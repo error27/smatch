@@ -407,6 +407,8 @@ void show_entry(struct entrypoint *ep)
 	FOR_EACH_PTR(ep->bbs, bb) {
 		if (!bb)
 			continue;
+		if (!bb->parents && !bb->children && !bb->insns)
+			continue;
 		if (bb == ep->entry)
 			printf("ENTRY:\n");
 		show_bb(bb);
