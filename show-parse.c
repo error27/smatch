@@ -352,18 +352,17 @@ static void show_switch_statement(struct statement *stmt)
 	 * cases to decide whether to use a lookup table or a
 	 * series of comparisons etc
 	 */
-	printf("case list:\n");
+	printf("# case table:\n");
 	FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
 		struct statement *case_stmt = sym->stmt;
 		struct expression *expr = case_stmt->case_expression;
 		struct expression *to = case_stmt->case_to;
 
-		printf("   .L%p: ", sym);
 		if (!expr) {
-			printf(" default");
+			printf("    default");
 		} else {
 			if (expr->type == EXPR_VALUE) {
-				printf(" %lld", expr->value);
+				printf("    case %lld", expr->value);
 				if (to) {
 					if (to->type == EXPR_VALUE) {
 						printf(" .. %lld", to->value);
@@ -372,10 +371,11 @@ static void show_switch_statement(struct statement *stmt)
 					}
 				}
 			} else
-				printf(" what?");
+				printf("    what?");
 		}
-		printf("\n");
+		printf(": .L%p\n", sym);
 	} END_FOR_EACH_PTR;
+	printf("# end case table\n");
 
 	if (stmt->switch_break->used)
 		printf(".L%p:\n", stmt->switch_break);
