@@ -436,6 +436,9 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 		return NULL;
 	if (attribute == &visibility_ident)
 		return NULL;
+	if (attribute == &model_ident ||
+	    attribute == &__model___ident)
+		return NULL;
 
 	return "unknown attribute";
 }

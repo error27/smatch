@@ -27,7 +27,7 @@ IDENT(__noreturn__); IDENT(regparm); IDENT(weak);
 IDENT(alias); IDENT(pure); IDENT(always_inline);
 IDENT(syscall_linkage); IDENT(visibility);
 IDENT(bitwise);
-
+IDENT(model); IDENT(__model__);
 
 __IDENT(pragma_ident, "__pragma__");
 __IDENT(__VA_ARGS___ident, "__VA_ARGS__");
