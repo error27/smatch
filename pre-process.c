@@ -285,10 +285,9 @@ static int arg_number(struct token *arglist, struct ident *ident)
 
 static struct token empty_arg_token = { .pos = { .type = TOKEN_EOF } };
 
-static struct token *expand_one_arg(struct token *parent, struct token *head, struct token *token,
-		struct token *arglist, struct token *arguments)
+static struct token *expand_one_arg(struct token *parent, struct token *head, struct token *token, struct token *arguments)
 {
-	int nr = arg_number(arglist, token->ident);
+	int nr = token->argnum;
 	struct token *orig_head = head;
 
 	if (nr >= 0) {
@@ -327,8 +326,8 @@ static void expand_arguments(struct token *parent,
 
 		if (match_op(next, '#')) {
 			struct token *nextnext = next->next;
-			int nr = arg_number(arglist, nextnext->ident);
-			if (nextnext != head && nr >= 0 && token_type(nextnext) == TOKEN_IDENT) {
+			if (token_type(nextnext) == TOKEN_MACRO_ARGUMENT) {
+				int nr = nextnext->argnum;
 				struct token *newtoken = stringify(nextnext, get_argument(nr, arguments));
 				replace(NULL, nextnext, head, newtoken);
 				continue;
@@ -336,8 +335,8 @@ static void expand_arguments(struct token *parent,
 			warn(next->pos, "'#' operation is not followed by argument name");
 		}
 
-		if (token_type(next) == TOKEN_IDENT)
-			next = expand_one_arg(parent, head, next, arglist, arguments);
+		if (token_type(next) == TOKEN_MACRO_ARGUMENT)
+			next = expand_one_arg(parent, head, next, arguments);
 
 		head = next;
 	}
@@ -659,6 +658,19 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 	}
 	sym = alloc_symbol(left->pos, SYM_NODE);
 	bind_symbol(sym, name, NS_PREPROCESSOR);
+
+	if (arglist) {
+		struct token *p;
+		for (p = expansion; !eof_token(p); p = p->next) {
+			if (token_type(p) == TOKEN_IDENT) {
+				int nr = arg_number(arglist, p->ident);
+				if (nr >= 0) {
+					p->pos.type = TOKEN_MACRO_ARGUMENT;
+					p->argnum = nr;
+				}
+			}
+		}
+	}
 
 	sym->expansion = expansion;
 	sym->arglist = arglist;

@@ -56,6 +56,7 @@ enum token_type {
 	TOKEN_SPECIAL,
 	TOKEN_STREAMBEGIN,
 	TOKEN_STREAMEND,
+	TOKEN_MACRO_ARGUMENT,
 };
 
 /* Combination tokens */
@@ -126,6 +127,7 @@ struct token {
 		unsigned int special;
 		struct string *string;
 		int character;
+		int argnum;
 	};
 };
 
