@@ -809,6 +809,13 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 			ctype = ctype->ctype.base_type;
 			mod |= ctype->ctype.modifiers;
 		}
+	} else {
+		if (deref->type != EXPR_PREOP || deref->op != '*') {
+			warn(deref->pos, "expected lvalue for member dereference");
+			return NULL;
+		}
+		deref = deref->unop;
+		expr->deref = deref;
 	}
 	if (mod & MOD_NODEREF)
 		warn(expr->pos, "bad dereference");
