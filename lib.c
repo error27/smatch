@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -719,4 +720,92 @@ void create_builtin_stream(void)
 	add_pre_buffer("#define __builtin_va_alist (*(void *)0)\n");
 	add_pre_buffer("#define __builtin_va_arg_incr(x) ((x) + 1)\n");
 	add_pre_buffer("#define __builtin_va_end(arg)\n");
+}
+
+static void do_predefined(char *filename)
+{
+	add_pre_buffer("#define __BASE_FILE__ \"%s\"\n", filename);
+	add_pre_buffer("#define __DATE__ \"??? ?? ????\"\n");
+	add_pre_buffer("#define __TIME__ \"??:??:??\"\n");
+}
+
+struct symbol_list *sparse(int argc, char **argv)
+{
+	int fd;
+	char *filename = NULL, **args;
+	struct token *token;
+
+	// Initialize symbol stream first, so that we can add defines etc
+	init_symbols();
+
+	args = argv;
+	for (;;) {
+		char *arg = *++args;
+		if (!arg)
+			break;
+		if (arg[0] == '-' && arg[1]) {
+			args = handle_switch(arg+1, args);
+			continue;
+		}
+		filename = arg;
+	}
+
+	if (!filename)
+		die("no input files given");
+
+	// Initialize type system
+	init_ctype();
+
+	create_builtin_stream();
+	add_pre_buffer("#define __CHECKER__ 1\n");
+	if (!preprocess_only)
+		declare_builtin_functions();
+
+	do_predefined(filename);
+
+	if (strcmp (filename, "-") == 0) {
+		fd = 0;
+	} else {
+		fd = open(filename, O_RDONLY);
+		if (fd < 0)
+			die("No such file: %s", filename);
+	}
+
+	// Tokenize the input stream
+	token = tokenize(filename, fd, NULL, includepath);
+	close(fd);
+
+	// Prepend any "include" file to the stream.
+	if (include_fd >= 0)
+		token = tokenize(include, include_fd, token, includepath);
+
+	// Prepend the initial built-in stream
+	token = tokenize_buffer(pre_buffer, pre_buffer_size, token);
+
+	// Pre-process the stream
+	token = preprocess(token);
+
+	if (preprocess_only) {
+		while (!eof_token(token)) {
+			int prec = 1;
+			struct token *next = token->next;
+			const char *separator = "";
+			if (next->pos.whitespace)
+				separator = " ";
+			if (next->pos.newline) {
+				separator = "\n\t\t\t\t\t";
+				prec = next->pos.pos;
+				if (prec > 4)
+					prec = 4;
+			}
+			printf("%s%.*s", show_token(token), prec, separator);
+			token = next;
+		}
+		putchar('\n');
+
+		return NULL;
+	} 
+
+	// Parse the resulting C code
+	return translation_unit(token);
 }

@@ -122,6 +122,7 @@ extern int Wbitwise, Wtypesign, Wcontext;
 
 extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);
+extern struct symbol_list *sparse(int argc, char **argv);
 
 static inline int symbol_list_size(struct symbol_list* list)
 {
