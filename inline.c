@@ -325,7 +325,9 @@ static struct statement *copy_one_statement(struct statement *stmt)
 		struct symbol *switch_case = copy_symbol(stmt->pos, stmt->switch_case);
 		struct expression *expr = copy_expression(stmt->switch_expression);
 		struct statement *switch_stmt = copy_one_statement(stmt->switch_statement);
+
 		stmt = dup_statement(stmt);
+		switch_case->symbol_list = copy_symbol_list(switch_case->symbol_list);
 		stmt->switch_break = switch_break;
 		stmt->switch_case = switch_case;
 		stmt->switch_expression = expr;
@@ -404,6 +406,7 @@ static struct symbol *create_copy_symbol(struct symbol *orig)
 	if (orig) {
 		sym = alloc_symbol(orig->pos, orig->type);
 		*sym = *orig;
+		sym->bb_target = NULL;
 		set_replace(orig, sym);
 		orig = sym;
 	}
