@@ -41,9 +41,7 @@ static int expand_symbol_expression(struct expression *expr)
 	 * The preprocessor can cause unknown symbols to be generated
 	 */
 	if (!sym) {
-		const char *ident = show_ident(expr->symbol_name);
-		if (ident[0] != '_')
-			warn(expr->pos, "undefined preprocessor identifier '%s'", ident);
+		warn(expr->pos, "undefined preprocessor identifier '%s'", show_ident(expr->symbol_name));
 		expr->type = EXPR_VALUE;
 		expr->value = 0;
 		return UNSAFE;

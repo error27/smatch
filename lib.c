@@ -670,45 +670,12 @@ char **handle_switch(char *arg, char **next)
 
 void create_builtin_stream(void)
 {
-#if defined(__linux__)
 	add_pre_buffer("#define __linux__ 1\n");
-	add_pre_buffer("#define __linux 1\n");
-	add_pre_buffer("#define linux 1\n");
-
-	add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
-	add_pre_buffer("#define __builtin_va_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
-	add_pre_buffer("#define __builtin_va_arg(arg,type)  ((type)0)\n");
-	add_pre_buffer("#define __builtin_va_end(arg)\n");	
-
-	add_pre_buffer("#define __STDC__ 1\n");
-#elif defined(__sun__)
-	add_pre_buffer("#define __sun__ 1\n");
-	add_pre_buffer("#define __sun 1\n");
-	add_pre_buffer("#define sun 1\n");
-	add_pre_buffer("#define __svr4__ 1\n");
-	add_pre_buffer("#define SVR4 1\n");
-	// The system definition (either 0 or 0L) is just not useful.
-	// Luckily, it is conditionally defined.
-	add_pre_buffer("#define NULL ((void *)0)\n");
-	// gcc specs define the following on solaris:
-	add_pre_buffer("#define _REENTRANT\n");
-	add_pre_buffer("#define _SOLARIS_THREADS\n");
-	// I'm just guessing here:
-	add_pre_buffer("#define __builtin_va_alist (*(void *)0)\n");
-	add_pre_buffer("#define __builtin_va_arg_incr(x) ((x) + 1)\n");
-#ifdef __sparc
-	// System headers really want this:
-	add_pre_buffer("#define __sparc__ 1\n");
-	add_pre_buffer("#define __sparc 1\n");
-	add_pre_buffer("#define sparc 1\n");
-	add_pre_buffer("#define __STDC__ 0\n");
-#endif
-#else
-#warning "System not recognized; hope for the best"
-#endif
+	add_pre_buffer("#define linux linux\n");
 	add_pre_buffer("#define unix 1\n");
 	add_pre_buffer("#define __unix 1\n");
 	add_pre_buffer("#define __unix__ 1\n");
+	add_pre_buffer("#define __STDC__ 1\n");
 	add_pre_buffer("#define __GNUC__ 2\n");
 	add_pre_buffer("#define __GNUC_MINOR__ 95\n");
 	add_pre_buffer("#define __func__ \"function\"\n");
@@ -719,36 +686,8 @@ void create_builtin_stream(void)
 	// it is "long unsigned int".  In either case we can probably
 	// get away with this:
 	add_pre_buffer("#define __SIZE_TYPE__ long unsigned int\n");
+	add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
+	add_pre_buffer("#define __builtin_va_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
+	add_pre_buffer("#define __builtin_va_arg(arg,type)  ((type)0)\n");
+	add_pre_buffer("#define __builtin_va_end(arg)\n");	
 }
-
-#ifdef __sun__
-#include <floatingpoint.h>
-#include <limits.h>
-#include <errno.h>
-
-long double
-strtold (char const *str, char **end)
-{
-	long double res;
-	decimal_record dr;
-	enum decimal_string_form form;
-	decimal_mode dm;
-	fp_exception_field_type excp;
-	char *echar;
-
-	string_to_decimal ((char **)&str, INT_MAX, 0,
-			   &dr, &form, &echar);
-	if (end) *end = (char *)str;
-
-	if (form == invalid_form) {
-		errno = EINVAL;
-		return 0.0;
-	}
-
-	dm.rd = fp_nearest;
-	decimal_to_quadruple (&res, &dm, &dr, &excp);
-        if (excp & ((1 << fp_overflow) | (1 << fp_underflow)))
-                errno = ERANGE;
-	return res;
-}
-#endif
