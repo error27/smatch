@@ -1368,6 +1368,54 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	return ctype;
 }
 
+static int inline_function(struct expression *expr, struct symbol *sym)
+{
+	struct symbol *fn = sym->ctype.base_type;
+	struct expression_list *arg_list = expr->args;
+	struct statement *stmt = alloc_statement(expr->pos, STMT_COMPOUND);
+	struct symbol_list *name_list = sym->ctype.base_type->arguments;
+	struct symbol *name;
+	struct expression *arg;
+
+	expr->type = EXPR_STATEMENT;
+	expr->statement = stmt;
+	expr->ctype = fn->ctype.base_type;
+
+	/*
+	 * FIXME! On expansion, we'll need to replace the original return
+	 * symbol with this local one!
+	 */
+	stmt->ret = alloc_symbol(sym->pos, SYM_NODE);
+
+	/*
+	 * FIXME! On expansion, we'll also need to replace the original
+	 * argument symbols with these!
+	 */
+	PREPARE_PTR_LIST(name_list, name);
+	FOR_EACH_PTR(arg_list, arg) {
+		struct symbol *a = alloc_symbol(arg->pos, SYM_NODE);
+
+		if (name) {
+			a->ident = name->ident;
+			a->ctype.modifiers = name->ctype.modifiers;
+		}
+		a->ctype.base_type = arg->ctype;
+		a->initializer = arg;
+		add_symbol(&stmt->syms, a);
+
+		NEXT_PTR_LIST(name);
+	} END_FOR_EACH_PTR;
+	FINISH_PTR_LIST(name);
+
+	/*
+	 * FIXME!
+	 *
+	 * This is bogus, we should expand it, not just access it!
+	 */
+	access_symbol(sym);
+	return 1;
+}
+
 /*
  * Evaluate a call expression with a symbol. This
  * should expand inline functions, and evaluate
@@ -1390,7 +1438,8 @@ static int evaluate_symbol_call(struct expression *expr)
 	 * up on the list of used symbols.
 	 */
 	if (ctype->ctype.modifiers & MOD_INLINE)
-		access_symbol(ctype);
+		return inline_function(expr, ctype);
+
 	return 0;
 }
 
