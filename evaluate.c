@@ -289,17 +289,20 @@ static struct symbol *degenerate(struct expression *expr, struct symbol *ctype, 
 		sym->bit_size = BITS_IN_POINTER;
 		sym->ctype.alignment = POINTER_ALIGNMENT;
 		ctype = sym;
-		ptr = *ptr_p;
-		*ptr_p = ptr->unop;
 
-		/*
-		 * This all really assumes that we got the degenerate
-		 * array as an lvalue (ie a dereference). If that
-		 * is not the case, then holler - because we've screwed
-		 * up.
-		 */
-		if (!lvalue_expression(ptr))
-			warn(ptr->pos, "internal error: strange degenerate array case");
+		if (expr->type != EXPR_STRING) {
+			ptr = *ptr_p;
+			*ptr_p = ptr->unop;
+
+			/*
+			 * This all really assumes that we got the degenerate
+			 * array as an lvalue (ie a dereference). If that
+			 * is not the case, then holler - because we've screwed
+			 * up.
+			 */
+			if (!lvalue_expression(ptr))
+				warn(ptr->pos, "internal error: strange degenerate array case");
+		}
 	}
 	return ctype;
 }
@@ -905,6 +908,7 @@ static struct symbol *evaluate_preop(struct expression *expr)
 
 	switch (expr->op) {
 	case '(':
+	case '+':
 		*expr = *expr->unop;
 		return ctype;
 
@@ -1084,19 +1088,34 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 	return size_t_ctype;
 }
 
-static int evaluate_expression_list(struct expression_list *head)
+static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 {
-	if (head) {
-		struct ptr_list *list = (struct ptr_list *)head;
-		do {
-			int i;
-			for (i = 0; i < list->nr; i++) {
-				struct expression *expr = (struct expression *)list->list[i];
-				evaluate_expression(expr);
+	struct expression *expr;
+	struct symbol_list *argument_types = fn->arguments;
+	struct symbol *argtype;
+
+	PREPARE_PTR_LIST(argument_types, argtype);
+	FOR_EACH_PTR (head, expr) {
+		struct expression **p = THIS_ADDRESS(expr);
+		struct symbol *ctype, *target;
+		ctype = evaluate_expression(expr);
+
+		if (ctype) {
+			if (ctype->type == SYM_ARRAY) {
+				ctype = degenerate(expr, ctype, p);
+				expr->ctype = ctype;
 			}
-		} while ((list = list->next) != (struct ptr_list *)head);
-	}
-	// FIXME!
+		}
+
+		target = argtype;
+		if (!target && ctype->bit_size < BITS_IN_INT)
+			target = &int_ctype;
+		if (target)
+			compatible_assignment_types(expr, target, p, ctype);
+
+		NEXT_PTR_LIST(argument_types, argtype);
+	} END_FOR_EACH_PTR;
+	FINISH_PTR_LIST;
 	return 1;
 }
 
@@ -1202,8 +1221,6 @@ static struct symbol *evaluate_call(struct expression *expr)
 
 	if (!evaluate_expression(fn))
 		return NULL;
-	if (!evaluate_expression_list(arglist))
-		return NULL;
 	ctype = fn->ctype;
 	if (ctype->type == SYM_NODE)
 		ctype = ctype->ctype.base_type;
@@ -1213,6 +1230,8 @@ static struct symbol *evaluate_call(struct expression *expr)
 		warn(expr->pos, "not a function");
 		return NULL;
 	}
+	if (!evaluate_arguments(ctype, arglist))
+		return NULL;
 	args = expression_list_size(expr->args);
 	fnargs = symbol_list_size(ctype->arguments);
 	if (args < fnargs)
@@ -1416,8 +1435,6 @@ long long get_expression_value(struct expression *expr)
 	ctype = evaluate_expression(expr);
 	if (!ctype || expr->type != EXPR_VALUE) {
 		warn(expr->pos, "bad constant expression");
-		show_expression(expr);
-		printf(": badness\n");
 		return 0;
 	}
 
