@@ -25,4 +25,7 @@ int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom
 
 extern void track_pseudo_usage(struct entrypoint *ep);
 
+extern struct basic_block *trivial_common_parent(struct basic_block *, pseudo_t,
+	struct basic_block *, pseudo_t);
+
 #endif
