@@ -363,11 +363,13 @@ static void add_goto(struct entrypoint *ep, struct basic_block *dst)
 
 static void add_deathnote(struct entrypoint *ep, pseudo_t pseudo)
 {
-	struct basic_block *bb = ep->active;
-	if (pseudo != VOID && bb_reachable(bb)) {
-		struct instruction *dead = alloc_instruction(OP_DEAD, NULL);
-		dead->target = pseudo;
-		add_instruction(&bb->insns, dead);
+	if (pseudo && pseudo != VOID) {
+		struct basic_block *bb = ep->active;
+		if (!--pseudo->usage && bb_reachable(bb)) {
+			struct instruction *dead = alloc_instruction(OP_DEAD, NULL);
+			dead->target = pseudo;
+			add_instruction(&bb->insns, dead);
+		}
 	}
 }
 
@@ -422,6 +424,7 @@ static pseudo_t alloc_pseudo(struct instruction *def)
 	static int nr = 0;
 	struct pseudo * pseudo = __alloc_pseudo(0);
 	pseudo->nr = ++nr;
+	pseudo->usage = 1;
 	pseudo->def = def;
 	return pseudo;
 }
@@ -511,8 +514,11 @@ static pseudo_t add_load(struct entrypoint *ep, struct access_data *ad)
 	struct instruction *insn;
 	pseudo_t new;
 
-	if (ad->origval)
-		return ad->origval;
+	new = ad->origval;
+	if (new) {
+		new->usage++;
+		return new;
+	}
 
 	insn = alloc_instruction(OP_LOAD, ad->ctype);
 	new = alloc_pseudo(insn);

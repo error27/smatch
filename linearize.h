@@ -11,6 +11,7 @@ struct instruction;
 /* Silly pseudo define. Do this right some day */
 struct pseudo {
 	int nr;
+	int usage;
 	struct instruction *def;
 };
 
