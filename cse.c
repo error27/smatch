@@ -84,7 +84,7 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 		pseudo_t phi;
 		FOR_EACH_PTR(insn->phi_list, phi) {
 			struct instruction *def;
-			if (phi == VOID)
+			if (phi == VOID || !phi->def)
 				continue;
 			def = phi->def;
 			hash += hashval(def->src1);
@@ -134,9 +134,9 @@ static int phi_list_compare(struct pseudo_list *l1, struct pseudo_list *l2)
 	for (;;) {
 		int cmp;
 
-		while (phi1 == VOID)
+		while (phi1 && (phi1 == VOID || !phi1->def))
 			NEXT_PTR_LIST(phi1);
-		while (phi2 == VOID)
+		while (phi2 && (phi2 == VOID || !phi2->def))
 			NEXT_PTR_LIST(phi2);
 
 		if (!phi1)
@@ -298,6 +298,13 @@ static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction
 	 */
 	b1 = i1->bb;
 	b2 = i2->bb;
+
+	/*
+	 * PHI-nodes do not care where they are - the only thing that matters
+	 * are the PHI _sources_.
+	 */
+	if (i1->opcode == OP_PHI)
+		return cse_one_instruction(i1, i2);
 
 	/*
 	 * Currently we only handle the uninteresting degenerate case where
