@@ -341,7 +341,7 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 	sym->id_list = &ident->symbols;
 
 	scope = block_scope;
-	if (ns != NS_TYPEDEF && toplevel(scope)) {
+	if (ns == NS_SYMBOL && toplevel(scope)) {
 		sym->ctype.modifiers |= MOD_TOPLEVEL | MOD_ADDRESSABLE;
 		if (sym->ctype.modifiers & MOD_STATIC)
 			scope = file_scope;
