@@ -2,6 +2,7 @@
 #define LIB_H
 
 #include <stdlib.h>
+#include <stddef.h>
 
 /*
  * Basic helper routine descriptions for 'sparse'.
@@ -14,6 +15,9 @@
  */
 
 #include "compat.h"
+
+#define container(ptr, type, member) \
+	(type *)((void *)(ptr) - offsetof(type, member))
 
 extern unsigned int hexval(unsigned int c);
 
