@@ -2121,12 +2121,23 @@ static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old
 {
 	struct instruction *insn = last_instruction(bb->insns);
 
-	if (insn && insn->opcode == OP_BR) {
+	if (!insn)
+		return 0;
+	switch (insn->opcode) {
+	case OP_BR:
 		rewrite_branch(bb, &insn->bb_true, old, new);
 		rewrite_branch(bb, &insn->bb_false, old, new);
 		return 1;
+	case OP_SWITCH: {
+		struct multijmp *jmp;
+		FOR_EACH_PTR(insn->multijmp_list, jmp) {
+			rewrite_branch(bb, &jmp->target, old, new);
+		} END_FOR_EACH_PTR(jmp);
+		return 1;
 	}
-	return 0;
+	default:
+		return 0;
+	}
 }
 
 static int rewrite_branch_bb(struct basic_block *bb, struct instruction *br)
