@@ -181,6 +181,11 @@ left:
 	return left;
 }
 
+static int same_cast_type(struct symbol *orig, struct symbol *new)
+{
+	return orig->bit_size == new->bit_size && orig->bit_offset == orig->bit_offset;
+}
+
 /*
  * This gets called for implicit casts in assignments and
  * integer promotion. We often want to try to move the
@@ -206,6 +211,9 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 
 	case EXPR_IMPLIED_CAST:
 		if (old->ctype->bit_size >= type->bit_size) {
+			struct expression *orig = old->cast_expression;
+			if (same_cast_type(orig->ctype, type))
+				return orig;
 			if (old->ctype->bit_offset == type->bit_offset) {
 				old->ctype = type;
 				old->cast_type = type;
