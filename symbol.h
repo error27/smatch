@@ -42,14 +42,22 @@ struct symbol {
 	enum namespace namespace:8;
 	enum type type:8;
 	struct token *token;		/* Where this symbol was declared */
-	struct symbol *next;		/* Next symbol at this level */
 	struct symbol *next_id;		/* Next semantic symbol that shares this identifier */
-	unsigned long size;
-	unsigned long modifiers;
-	struct symbol *base_type;
-	struct symbol *children;
-	struct statement *stmt;
-	struct symbol_list *symbol_list;
+	union {
+		struct preprocessor_sym {
+			int busy;
+			struct token *expansion;
+		};
+		struct ctype_symbol {
+			struct symbol *next;		/* Next symbol at this level */
+			unsigned long size;
+			unsigned long modifiers;
+			struct symbol *base_type;
+			struct symbol *children;
+			struct statement *stmt;
+			struct symbol_list *symbol_list;
+		};
+	};
 };
 
 /* Modifiers */

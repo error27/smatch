@@ -181,6 +181,7 @@ struct token eof_token_entry;
 static void mark_eof(action_t *action)
 {
 	eof_token_entry.next = &eof_token_entry;
+	eof_token_entry.newline = 1;
 	*action->tokenlist = &eof_token_entry;
 	action->tokenlist = NULL;
 }

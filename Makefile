@@ -4,8 +4,8 @@ PROGRAMS=test-lexing test-parsing
 
 all: $(PROGRAMS)
 
-test-lexing: test-lexing.o tokenize.o pre-process.o lib.o
-	gcc -o $@ test-lexing.o tokenize.o pre-process.o lib.o
+test-lexing: test-lexing.o tokenize.o pre-process.o symbol.o lib.o
+	gcc -o $@ test-lexing.o tokenize.o pre-process.o symbol.o lib.o
 
 test-parsing: test-parsing.o parse.o tokenize.o symbol.o pre-process.o lib.o 
 	gcc -o $@ test-parsing.o parse.o tokenize.o symbol.o pre-process.o lib.o
