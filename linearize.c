@@ -185,6 +185,10 @@ void show_instruction(struct instruction *insn)
 
 		if (pseudo) {
 			struct symbol *sym = pseudo->sym;
+			if (!sym) {
+				printf("\t%%r%d <- %s\n", target, show_pseudo(pseudo));
+				break;
+			}
 			if (sym->bb_target) {
 				printf("\t%%r%d <- .L%p\n", target, sym->bb_target);
 				break;
