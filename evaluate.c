@@ -212,7 +212,21 @@ static inline int is_float_type(struct symbol *type)
 
 static struct symbol *bad_expr_type(struct expression *expr)
 {
-	warn(expr->pos, "incompatible types for operation");
+	warn(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
+	switch (expr->type) {
+	case EXPR_BINOP:
+	case EXPR_COMPARE:
+		info(expr->pos, "   left side has type %s", show_typename(expr->left->ctype));
+		info(expr->pos, "   right side has type %s", show_typename(expr->right->ctype));
+		break;
+	case EXPR_PREOP:
+	case EXPR_POSTOP:
+		info(expr->pos, "   argument has type %s", show_typename(expr->unop->ctype));
+		break;
+	default:
+		break;
+	}
+
 	return NULL;
 }
 
@@ -741,6 +755,10 @@ static struct symbol *evaluate_compare(struct expression *expr)
 		return &bool_ctype;
 	}
 	ctype = compatible_float_binop(&expr->left, &expr->right);
+	if (ctype) {
+		expr->ctype = &bool_ctype;
+		return &bool_ctype;
+	}
 
 	return bad_expr_type(expr);
 }
