@@ -241,9 +241,9 @@ void track_pseudo_liveness(struct entrypoint *ep)
 	/* Calculate liveness.. */
 	do {
 		liveness_changed = 0;
-		FOR_EACH_PTR(ep->bbs, bb) {
+		FOR_EACH_PTR_REVERSE(ep->bbs, bb) {
 			track_bb_liveness(bb);
-		} END_FOR_EACH_PTR(bb);
+		} END_FOR_EACH_PTR_REVERSE(bb);
 	} while (liveness_changed);
 
 	/* Remove the pseudos from the "defines" list that are used internally */
