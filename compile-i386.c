@@ -1521,7 +1521,7 @@ static struct storage *x86_call_expression(struct expression *expr)
 		fncall = x86_expression(fn);
 		emit_move(fncall, REG_EAX, fn->ctype, NULL, 0);
 
-		strcpy(s, "\tcall\t*%%eax\n");
+		strcpy(s, "\tcall\t*%eax\n");
 		push_text_atom(f, s);
 	}
 
