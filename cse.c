@@ -58,6 +58,9 @@ static unsigned long clean_up_phi(struct instruction *insn)
 		hash += hashval(phi->pseudo);
 		hash += hashval(phi->source);
 	} END_FOR_EACH_PTR(phi);
+
+	/* Whenever we delete pointers, we may have to pack the end result */
+	PACK_PTR_LIST(&insn->phi_list);
 	return hash;
 }
 
