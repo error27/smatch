@@ -555,6 +555,29 @@ static int simplify_branch(struct instruction *insn)
 			if (constant(def->src2) && !def->src2->value)
 				return simplify_cond_branch(insn, cond, def, &def->src1);
 		}
+		if (def->opcode == OP_SEL) {
+			if (constant(def->src2) && constant(def->src3)) {
+				long long val1 = def->src2->value;
+				long long val2 = def->src3->value;
+				if (!val1 && !val2) {
+					insert_branch(insn->bb, insn, insn->bb_false);
+					return REPEAT_CSE;
+				}
+				if (val1 && val2) {
+					insert_branch(insn->bb, insn, insn->bb_true);
+					return REPEAT_CSE;
+				}
+				if (val2) {
+					struct basic_block *true = insn->bb_true;
+					struct basic_block *false = insn->bb_false;
+					insn->bb_false = true;
+					insn->bb_true = false;
+				}
+				use_pseudo(def->src1, &insn->cond);
+				remove_usage(cond, &insn->cond);
+				return REPEAT_CSE;
+			}
+		}
 	}
 	return 0;
 }
