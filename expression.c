@@ -53,6 +53,37 @@ struct token *parens_expression(struct token *token, struct expression **expr, c
 	return expect(token, ')', where);
 }
 
+static struct token *string_expression(struct token *token, struct expression *expr)
+{
+	struct string *string = token->string;
+	struct token *next = token->next;
+
+	if (token_type(next) == TOKEN_STRING) {
+		int totlen = string->length;
+		char *data;
+
+		do {
+			totlen += next->string->length-1;
+			next = next->next;
+		} while (token_type(next) == TOKEN_STRING);
+
+		string = __alloc_string(totlen);
+		string->length = totlen;
+		data = string->data;
+		next = token;
+		do {
+			struct string *s = next->string;
+			int len = s->length;
+
+			next = next->next;
+			memcpy(data, s->data, len);
+			data += len-1;
+		} while (token_type(next) == TOKEN_STRING);
+	}
+	expr->string = string;
+	return next;
+}
+
 struct token *primary_expression(struct token *token, struct expression **tree)
 {
 	struct expression *expr = NULL;
@@ -74,13 +105,11 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		break;
 	}
 
-	case TOKEN_STRING:
-		expr = alloc_expression(token->pos, EXPR_CONSTANT);
-		expr->token = token;
-		do {
-			token = token->next;
-		} while (token_type(token) == TOKEN_STRING);
+	case TOKEN_STRING: {
+		expr = alloc_expression(token->pos, EXPR_STRING);
+		token = string_expression(token, expr);
 		break;
+	}
 
 	case TOKEN_SPECIAL:
 		if (token->special == '(') {

@@ -13,6 +13,7 @@ struct expression_list;
 enum expression_type {
 	EXPR_CONSTANT,
 	EXPR_VALUE,
+	EXPR_STRING,
 	EXPR_SYMBOL,
 	EXPR_BINOP,
 	EXPR_ASSIGNMENT,
@@ -40,6 +41,9 @@ struct expression {
 
 		// EXPR_VALUE
 		unsigned long long value;
+
+		// EXPR_STRING
+		struct string *string;
 
 		// EXPR_UNOP, EXPR_PREOP and EXPR_POSTOP
 		struct expression *unop;

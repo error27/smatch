@@ -78,6 +78,23 @@ char *charstr(char *ptr, unsigned char c, unsigned char escape, unsigned char ne
 	return ptr + sprintf(ptr, "%03o", c);
 }
 
+const char *show_string(const struct string *string)
+{
+	static char buffer[256];
+	char *ptr;
+	int i;
+
+	ptr = buffer;
+	*ptr++ = '"';
+	for (i = 0; i < string->length-1; i++) {
+		const unsigned char *p = string->data + i;
+		ptr = charstr(ptr, p[0], '"', p[1]);
+	}
+	*ptr++ = '"';
+	*ptr = '\0';
+	return buffer;
+}
+
 const char *show_token(const struct token *token)
 {
 	static char buffer[256];
@@ -94,21 +111,8 @@ const char *show_token(const struct token *token)
 	case TOKEN_IDENT:
 		return show_ident(token->ident);
 
-	case TOKEN_STRING: {
-		char *ptr;
-		int i;
-		struct string *string = token->string;
-
-		ptr = buffer;
-		*ptr++ = '"';
-		for (i = 0; i < string->length-1; i++) {
-			unsigned char *p = string->data + i;
-			ptr = charstr(ptr, p[0], '"', p[1]);
-		}
-		*ptr++ = '"';
-		*ptr = '\0';
-		return buffer;
-	}
+	case TOKEN_STRING:
+		return show_string(token->string);
 
 	case TOKEN_INTEGER: {
 		const char *p = token->integer;

@@ -445,6 +445,9 @@ void show_expression(struct expression *expr)
 	case EXPR_VALUE:
 		printf("(%lld)", expr->value);
 		break;
+	case EXPR_STRING:
+		printf("%s", show_string(expr->string));
+		break;
 	case EXPR_SIZEOF:
 		printf("sizeof(");
 		if (expr->cast_type)

@@ -143,6 +143,7 @@ extern struct ident *built_in_ident(const char *);
 extern struct token *built_in_token(int, const char *);
 extern const char *show_special(int);
 extern const char *show_ident(const struct ident *);
+extern const char *show_string(const struct string *string);
 extern const char *show_token(const struct token *);
 extern struct token * tokenize(const char *, int, struct token *);
 extern struct token * tokenize_buffer(unsigned char *, unsigned long, struct token *);
