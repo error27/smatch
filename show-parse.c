@@ -33,7 +33,8 @@ const char *modifier_string(unsigned long mod)
 		"const", "volatile", "[signed]", "[unsigned]",
 		"[char]", "[short]", "[long]", "[long]",
 		"[typdef]", "[structof]", "[unionof]", "[enum]",
-		"[typeof]", "[attribute]",
+		"[typeof]", "[attribute]", "inline", "<80000>",
+		"[nocast]", "[noderef]", 
 		NULL
 	};
 	ptr = names;
