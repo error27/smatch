@@ -214,21 +214,28 @@ static struct token *stringify(struct token *token, struct token *arg)
 	return newtoken;
 }
 
-static struct token *expand_one_arg(struct token *head, struct token *token,
-		struct token *arglist, struct token *arguments)
+static int arg_number(struct token *arglist, struct ident *ident)
 {
 	int nr = 0;
 
 	while (!eof_token(arglist)) {
-		if (arglist->ident == token->ident) {
-			struct token *arg = get_argument(nr, arguments);
-			if (match_op(head, '#'))
-				arg = stringify(token, arg);
-			replace(token, head, token->next, arg);
-			return expand_list(head, token->next);
-		}
+		if (arglist->ident == ident)
+			return nr;
 		nr++;
 		arglist = arglist->next;
+	}
+	return -1;
+}			
+
+static struct token *expand_one_arg(struct token *head, struct token *token,
+		struct token *arglist, struct token *arguments)
+{
+	int nr = arg_number(arglist, token->ident);
+
+	if (nr >= 0) {
+		struct token *arg = get_argument(nr, arguments);
+		replace(token, head, token->next, arg);
+		return expand_list(head, token->next);
 	}
 	return token;
 }
@@ -239,6 +246,7 @@ static void expand_arguments(struct token *token, struct token *head, struct tok
 	struct token *old = head;
 	if (!last)
 		last = &eof_token_entry;
+
 	for (;;) {
 		struct token *next = head->next;
 
@@ -249,6 +257,17 @@ static void expand_arguments(struct token *token, struct token *head, struct tok
 			warn(last, "walked past end");
 			warn(old, "started here");
 			break;
+		}
+
+		if (match_op(next, '#')) {
+			struct token *nextnext = next->next;
+			int nr = arg_number(arglist, nextnext->ident);
+			if (nextnext != head && nr >= 0 && nextnext->type == TOKEN_IDENT) {
+				struct token *newtoken = stringify(nextnext, get_argument(nr, arguments));
+				replace(nextnext, head, nextnext->next, newtoken);
+				continue;
+			}
+			warn(next, "'#' operation is not followed by argument name");
 		}
 
 		if (next->type == TOKEN_IDENT)
