@@ -1774,8 +1774,11 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 			if (one == insn)
 				goto no_dominance;
 			dominance = dominates(pseudo, insn, one, local);
-			if (dominance < 0)
+			if (dominance < 0) {
+				if (one->opcode == OP_LOAD)
+					continue;
 				return 0;
+			}
 			if (!dominance)
 				continue;
 			goto found_dominator;
@@ -1817,6 +1820,9 @@ static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,
 			goto found;
 		dominance = dominates(pseudo, insn, one, local);
 		if (dominance < 0) {
+			/* Ignore partial load dominators */
+			if (one->opcode == OP_LOAD)
+				continue;
 			dom = NULL;
 			partial = 1;
 			continue;
