@@ -780,13 +780,31 @@ static void generate_output_storage(struct bb_state *state)
 		if (out->type == REG_REG) {
 			struct hardreg *reg = hardregs + out->regno;
 			pseudo_t p;
+			int flushme = 0;
+
 			reg->busy = 1000;
 			FOR_EACH_PTR(reg->contains, p) {
-				if (p == entry->pseudo)
-					goto ok;
+				struct hardreg *dst;
+				if (p == entry->pseudo) {
+					flushme = -100;
+					continue;
+				}
+				dst = preferred_reg(state, p);
+				if (dst && !dst->busy) {
+					DELETE_CURRENT_PTR(p);
+					output_insn(state, "movl %s,%s", reg->name, dst->name);
+					add_pseudo_reg(state, p, dst);
+					continue;
+				}
+				if (CURRENT_TAG(p) & TAG_DEAD)
+					continue;
+				flushme++;
 			} END_FOR_EACH_PTR(p);
-			flush_reg(state, reg);
-ok:			;
+
+			/* Argh. We did not contain the info we wanted, but something else instead. */
+			if (flushme > 0)
+				flush_reg(state, reg);
+			PACK_PTR_LIST(&reg->contains);
 		}
 	} END_FOR_EACH_PTR(entry);
 
