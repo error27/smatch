@@ -694,7 +694,7 @@ static int simplify_branch(struct instruction *insn)
 				return REPEAT_CSE;
 			}
 		}
-		if (def->opcode == OP_CAST) {
+		if (def->opcode == OP_CAST || def->opcode == OP_SCAST) {
 			int orig_size = def->orig_type ? def->orig_type->bit_size : 0;
 			if (def->size > orig_size) {
 				use_pseudo(def->src, &insn->cond);
@@ -770,8 +770,10 @@ int simplify_instruction(struct instruction *insn)
 		if (dead_insn(insn, NULL, NULL, NULL))
 			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 		return replace_with_pseudo(insn, insn->symbol);
-	case OP_PTRCAST:
 	case OP_CAST:
+	case OP_SCAST:
+	case OP_FPCAST:
+	case OP_PTRCAST:
 		return simplify_cast(insn);
 	case OP_PHI:
 		if (dead_insn(insn, NULL, NULL, NULL)) {

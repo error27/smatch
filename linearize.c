@@ -216,6 +216,8 @@ static const char* opcodes[] = {
 	[OP_PHI] = "phi",
 	[OP_PHISOURCE] = "phisrc",
 	[OP_CAST] = "cast",
+	[OP_SCAST] = "scast",
+	[OP_FPCAST] = "fpcast",
 	[OP_PTRCAST] = "ptrcast",
 	[OP_CALL] = "call",
 	[OP_VANEXT] = "va_next",
@@ -398,6 +400,8 @@ const char *show_instruction(struct instruction *insn)
 		break;
 	}
 	case OP_CAST:
+	case OP_SCAST:
+	case OP_FPCAST:
 	case OP_PTRCAST:
 		buf += sprintf(buf, "%s <- (%d) %s",
 			show_pseudo(insn->target),
@@ -1077,6 +1081,8 @@ static struct instruction *alloc_cast_instruction(struct symbol *ctype)
 	int opcode = OP_CAST;
 	struct symbol *base = ctype;
 
+	if (base->ctype.modifiers & MOD_SIGNED)
+		opcode = OP_SCAST;
 	if (base->type == SYM_NODE)
 		base = base->ctype.base_type;
 	if (base->type == SYM_PTR) {
@@ -1084,6 +1090,8 @@ static struct instruction *alloc_cast_instruction(struct symbol *ctype)
 		if (base != &void_ctype)
 			opcode = OP_PTRCAST;
 	}
+	if (base->ctype.base_type == &fp_type)
+		opcode = OP_FPCAST;
 	return alloc_typed_instruction(opcode, ctype);
 }
 

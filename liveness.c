@@ -115,6 +115,8 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 		break;
 
 	case OP_CAST:
+	case OP_SCAST:
+	case OP_FPCAST:
 	case OP_PTRCAST:
 		USES(src); DEFINES(target);
 		break;
