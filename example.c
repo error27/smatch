@@ -1256,7 +1256,7 @@ static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, ps
 			output_insn(state, "movl %s,%s", reg->name, out->name);
 			storage->type = REG_REG;
 			storage->regno = i;
-			reg->busy = REG_FIXED;
+			out->busy = REG_FIXED;
 			return;
 		}
 
