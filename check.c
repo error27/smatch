@@ -88,8 +88,14 @@ static void check_context(struct entrypoint *ep)
 {
 	struct symbol *sym = ep->name;
 
-	if (verbose && ep->entry->bb->needs)
-		warning(sym->pos, "%s: possible uninitialized variable", show_ident(sym->ident));
+	if (verbose && ep->entry->bb->needs) {
+		pseudo_t pseudo;
+		FOR_EACH_PTR(ep->entry->bb->needs, pseudo) {
+			if (pseudo->type != PSEUDO_ARG)
+				warning(sym->pos, "%s: possible uninitialized variable (%s)",
+					show_ident(sym->ident), show_pseudo(pseudo));
+		} END_FOR_EACH_PTR(pseudo);
+	}
 
 	check_bb_context(ep, ep->entry->bb, sym->ctype.in_context, sym->ctype.out_context);
 }
