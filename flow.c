@@ -256,25 +256,28 @@ found_dominator:
  */
 static void rewrite_load_instruction(struct instruction *insn, struct phi_list *dominators)
 {
-	struct phi *phi, *first;
+	struct phi *phi;
 	pseudo_t new;
 
-	first = NULL;
+	/*
+	 * Check for somewhat common case of duplicate
+	 * phi nodes.
+	 */
+	new = first_phi(dominators)->pseudo;
 	FOR_EACH_PTR(dominators, phi) {
-		if (!first) {
-			first = phi;
-			continue;
-		}
-		if (first->pseudo == phi->pseudo &&
-		    first->source == phi->source) {
-			phi->source = NULL;
-			continue;
-		}
-		goto complex_phi;
+		if (new != phi->pseudo)
+			goto complex_phi;
 	} END_FOR_EACH_PTR(phi);
 
-	first->source = NULL;	/* Mark it as not used */
-	convert_load_insn(insn, first->pseudo);
+	/*
+	 * All the same pseudo - mark the phi-nodes unused
+	 * and convert the load into a LNOP and replace the
+	 * pseudo.
+	 */
+	FOR_EACH_PTR(dominators, phi) {
+		phi->source = NULL;
+	} END_FOR_EACH_PTR(phi);
+	convert_load_insn(insn, new);
 	return;
 
 complex_phi:
