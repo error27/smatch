@@ -294,9 +294,14 @@ static void do_warn(const char *type, struct position pos, const char * fmt, va_
 		name, pos.line, pos.pos, type, buffer);
 }
 
+static int max_warnings = 100;
+
 void info(struct position pos, const char * fmt, ...)
 {
 	va_list args;
+
+	if (!max_warnings)
+		return;
 	va_start(args, fmt);
 	do_warn("", pos, fmt, args);
 	va_end(args);
@@ -304,21 +309,17 @@ void info(struct position pos, const char * fmt, ...)
 
 void warning(struct position pos, const char * fmt, ...)
 {
-	static int warnings = 0;
 	va_list args;
 
-	if (warnings > 100) {
-		static int once = 0;
-		if (once)
-			return;
+	if (!max_warnings)
+		return;
+
+	if (!--max_warnings)
 		fmt = "too many warnings";
-		once = 1;
-	}
 
 	va_start(args, fmt);
 	do_warn("warning: ", pos, fmt, args);
 	va_end(args);
-	warnings++;
 }	
 
 void error(struct position pos, const char * fmt, ...)
@@ -326,6 +327,8 @@ void error(struct position pos, const char * fmt, ...)
 	static int errors = 0;
 	va_list args;
 
+	/* Shut up warnings after an error */
+	max_warnings = 0;
 	if (errors > 100) {
 		static int once = 0;
 		if (once)
