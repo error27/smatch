@@ -175,7 +175,7 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			incomplete_ctype, label_ctype, bad_enum_ctype;
 
 
-#define __IDENT(n,str) \
+#define __IDENT(n,str,res) \
 	extern struct ident n
 #include "ident-list.h"
 

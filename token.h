@@ -54,7 +54,8 @@ struct ident {
 	struct ident *next;	/* Hash chain of identifiers */
 	struct symbol *symbols;	/* Pointer to semantic meaning list */
 	unsigned char len;	/* Length of identifier name */
-	unsigned char tainted;
+	unsigned char tainted:1,
+	              reserved:1;
 	char name[];		/* Actual identifier */
 };
 

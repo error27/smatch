@@ -357,6 +357,10 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 		warning(sym->pos, "internal error: symbol type already bound");
 		return;
 	}
+	if (ident->reserved && (ns & (NS_TYPEDEF | NS_STRUCT | NS_LABEL | NS_SYMBOL))) {
+		warning(sym->pos, "Trying to use reserved word '%s' as identifier", show_ident(ident));
+		return;
+	}
 	sym->namespace = ns;
 	sym->next_id = ident->symbols;
 	ident->symbols = sym;
@@ -572,9 +576,9 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		incomplete_ctype, label_ctype, bad_enum_ctype;
 
 
-#define __INIT_IDENT(str) { .len = sizeof(str)-1, .name = str }
-#define __IDENT(n,str) \
-	struct ident n  = __INIT_IDENT(str)
+#define __INIT_IDENT(str, res) { .len = sizeof(str)-1, .name = str, .reserved = res }
+#define __IDENT(n,str,res) \
+	struct ident n  = __INIT_IDENT(str,res)
 
 #include "ident-list.h"
 
@@ -583,13 +587,14 @@ void init_symbols(void)
 	int stream = init_stream("builtin", -1, includepath);
 	struct sym_init *ptr;
 
-#define __IDENT(n,str) \
+#define __IDENT(n,str,res) \
 	hash_ident(&n)
 #include "ident-list.h"
 
 	for (ptr = symbol_init_table; ptr->name; ptr++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, ptr->name, SYM_NODE, NS_TYPEDEF);
+		sym->ident->reserved = 1;
 		sym->ctype.base_type = ptr->base_type;
 		sym->ctype.modifiers = ptr->modifiers;
 	}
