@@ -210,6 +210,16 @@ static inline int is_float_type(struct symbol *type)
 	return type->ctype.base_type == &fp_type;
 }
 
+static inline int is_string_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	if (!type->type == SYM_ARRAY)
+		return 0;
+	type = type->ctype.base_type;
+	return type->bit_size == bits_in_char && type->type != SYM_BITFIELD;
+}
+
 static struct symbol *bad_expr_type(struct expression *expr)
 {
 	warn(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
@@ -1476,6 +1486,7 @@ static int evaluate_array_initializer(struct symbol *ctype, struct expression *e
 	struct expression *entry;
 	int current = 0;
 	int max = 0;
+	int accept_string = ctype->bit_size == bits_in_char;
 
 	FOR_EACH_PTR(expr->expr_list, entry) {
 		struct expression **p = THIS_ADDRESS(entry);
@@ -1488,10 +1499,7 @@ static int evaluate_array_initializer(struct symbol *ctype, struct expression *e
 		}
 		sym = evaluate_expression(entry);
 
-		if (sym->type == SYM_NODE)
-			sym = sym->ctype.base_type;
-		if (sym->type == SYM_ARRAY) {
-			compatible_assignment_types(entry, ctype, p, sym->ctype.base_type, "array initializer");
+		if (accept_string && is_string_type(sym)) {
 			entries = get_expression_value(sym->array_size);
 		} else {
 			evaluate_initializer(ctype, p, offset + current*(ctype->bit_size>>3));
@@ -1573,13 +1581,22 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep, un
 		if (rtype) {
 			struct expression *pos;
 
-			// FIXME! char array[] = "string" special case
-			// should _not_ degenerate.
-			rtype = degenerate(expr);
+			/*
+			 * Special case:
+			 * 	char array[] = "string"
+			 * should _not_ degenerate.
+			 */
+			if (is_string_type(rtype) && is_string_type(ctype)) {
+				struct expression *array_size = ctype->array_size;
+				if (!array_size)
+					array_size = ctype->array_size = rtype->array_size;
+				size = get_expression_value(array_size);
+			} else {
+				rtype = degenerate(expr);
+				size = 1;
+			}
 			compatible_assignment_types(expr, ctype, ep, rtype, "initializer");
-			/* strings are special: char arrays */
-			if (rtype->type == SYM_ARRAY)
-				size = get_expression_value(rtype->array_size);
+
 			/*
 			 * Don't bother creating a position expression for
 			 * the simple initializer cases that don't need it.
