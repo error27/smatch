@@ -775,5 +775,10 @@ void create_builtin_stream(void)
 	add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
 	add_pre_buffer("#define __builtin_va_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
 	add_pre_buffer("#define __builtin_va_arg(arg,type)  ((type)0)\n");
-	add_pre_buffer("#define __builtin_va_end(arg)\n");	
+	add_pre_buffer("#define __builtin_va_end(arg)\n");
+	// These live somewhere between parse-land (they need to know the
+	// function name) and pre-processor-land (they concatenate with
+	// strings).  Punt.
+	add_pre_buffer("#define __FUNCTION__ \"function\"\n");
+	add_pre_buffer("#define __PRETTY_FUNCTION__ \"function\"\n");
 }
