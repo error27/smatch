@@ -42,7 +42,7 @@ static int expand_symbol_expression(struct expression *expr)
 	 * The preprocessor can cause unknown symbols to be generated
 	 */
 	if (!sym) {
-		warn(expr->pos, "undefined preprocessor identifier '%s'", show_ident(expr->symbol_name));
+		warning(expr->pos, "undefined preprocessor identifier '%s'", show_ident(expr->symbol_name));
 		expr->type = EXPR_VALUE;
 		expr->value = 0;
 		return UNSAFE;
@@ -120,7 +120,7 @@ Float:
 static int check_shift_count(struct expression *expr, struct symbol *ctype, unsigned int count)
 {
 	if (count >= ctype->bit_size) {
-		warn(expr->pos, "shift too big for type (%x)", ctype->ctype.modifiers);
+		warning(expr->pos, "shift too big for type (%x)", ctype->ctype.modifiers);
 		count &= ctype->bit_size-1;
 	}
 	return count;
@@ -233,10 +233,10 @@ static int simplify_int_binop(struct expression *expr, struct symbol *ctype)
 	expr->type = EXPR_VALUE;
 	return 1;
 Div:
-	warn(expr->pos, "division by zero");
+	warning(expr->pos, "division by zero");
 	return 0;
 Overflow:
-	warn(expr->pos, "constant integer operation overflow");
+	warning(expr->pos, "constant integer operation overflow");
 	return 0;
 }
 
@@ -315,7 +315,7 @@ static int simplify_float_binop(struct expression *expr)
 	expr->fvalue = res;
 	return 1;
 Div:
-	warn(expr->pos, "division by zero");
+	warning(expr->pos, "division by zero");
 	return 0;
 }
 
@@ -511,7 +511,7 @@ static int expand_dereference(struct expression *expr)
 	 * test for me to get the type evaluation right..
 	 */
 	if (expr->ctype->ctype.modifiers & MOD_NODEREF)
-		warn(unop->pos, "dereference of noderef expression");
+		warning(unop->pos, "dereference of noderef expression");
 
 	if (unop->type == EXPR_SYMBOL) {
 		struct symbol *sym = unop->symbol;
@@ -565,7 +565,7 @@ static int simplify_preop(struct expression *expr)
 	return 1;
 
 Overflow:
-	warn(expr->pos, "constant integer operation overflow");
+	warning(expr->pos, "constant integer operation overflow");
 	return 0;
 }
 
@@ -739,7 +739,7 @@ static int expand_expression(struct expression *expr)
 		return expand_call(expr);
 
 	case EXPR_DEREF:
-		warn(expr->pos, "we should not have an EXPR_DEREF left at expansion time");
+		warning(expr->pos, "we should not have an EXPR_DEREF left at expansion time");
 		return UNSAFE;
 
 	case EXPR_BITFIELD:
@@ -772,7 +772,7 @@ static int expand_expression(struct expression *expr)
 
 	case EXPR_SIZEOF:
 	case EXPR_ALIGNOF:
-		warn(expr->pos, "internal front-end error: sizeof in expansion?");
+		warning(expr->pos, "internal front-end error: sizeof in expansion?");
 		return UNSAFE;
 	}
 	return SIDE_EFFECTS;
@@ -783,7 +783,7 @@ static void expand_const_expression(struct expression *expr, const char *where)
 	if (expr) {
 		expand_expression(expr);
 		if (expr->type != EXPR_VALUE)
-			warn(expr->pos, "Expected constant expression in %s", where);
+			warning(expr->pos, "Expected constant expression in %s", where);
 	}
 }
 
@@ -919,12 +919,12 @@ long long get_expression_value(struct expression *expr)
 		return 0;
 	ctype = evaluate_expression(expr);
 	if (!ctype) {
-		warn(expr->pos, "bad constant expression type");
+		warning(expr->pos, "bad constant expression type");
 		return 0;
 	}
 	expand_expression(expr);
 	if (expr->type != EXPR_VALUE) {
-		warn(expr->pos, "bad constant expression");
+		warning(expr->pos, "bad constant expression");
 		return 0;
 	}
 

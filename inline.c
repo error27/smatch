@@ -37,7 +37,7 @@ static struct symbol *copy_symbol(struct position pos, struct symbol *sym)
 	if (sym->ctype.modifiers & (MOD_STATIC | MOD_EXTERN | MOD_TOPLEVEL | MOD_INLINE))
 		return sym;
 	if (!sym->replace) {
-		warn(pos, "unreplaced symbol '%s'", show_ident(sym->ident));
+		warning(pos, "unreplaced symbol '%s'", show_ident(sym->ident));
 		return sym;
 	}
 	return sym->replace;
@@ -220,7 +220,7 @@ static struct expression * copy_expression(struct expression *expr)
 	}
 
 	default:
-		warn(expr->pos, "trying to copy expression type %d", expr->type);
+		warning(expr->pos, "trying to copy expression type %d", expr->type);
 	}
 	return expr;
 }
@@ -235,7 +235,7 @@ void unset_replace(struct symbol *sym)
 {
 	struct symbol *r = sym->replace;
 	if (!r) {
-		warn(sym->pos, "symbol '%s' not replaced?", show_ident(sym->ident));
+		warning(sym->pos, "symbol '%s' not replaced?", show_ident(sym->ident));
 		return;
 	}
 	r->replace = NULL;
@@ -351,7 +351,7 @@ static struct statement *copy_one_statement(struct statement *stmt)
 		break;
 	}
 	default:
-		warn(stmt->pos, "trying to copy statement type %d", stmt->type);
+		warning(stmt->pos, "trying to copy statement type %d", stmt->type);
 		break;
 	}
 	return stmt;
@@ -419,7 +419,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	struct expression *arg;
 
 	if (!fn->inline_stmt) {
-		warn(fn->pos, "marked inline, but without a definition");
+		warning(fn->pos, "marked inline, but without a definition");
 		return 0;
 	}
 	if (fn->expanding)

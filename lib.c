@@ -40,8 +40,8 @@ struct token *expect(struct token *token, int op, const char *where)
 		static struct token bad_token;
 		if (token != &bad_token) {
 			bad_token.next = token;
-			warn(token->pos, "Expected %s %s", show_special(op), where);
-			warn(token->pos, "got %s", show_token(token));
+			warning(token->pos, "Expected %s %s", show_special(op), where);
+			warning(token->pos, "got %s", show_token(token));
 		}
 		if (op == ';')
 			return skip_to(token, op);
@@ -496,7 +496,7 @@ void info(struct position pos, const char * fmt, ...)
 	va_end(args);
 }
 
-void warn(struct position pos, const char * fmt, ...)
+void warning(struct position pos, const char * fmt, ...)
 {
 	static int warnings = 0;
 	va_list args;
@@ -516,6 +516,25 @@ void warn(struct position pos, const char * fmt, ...)
 }	
 
 void error(struct position pos, const char * fmt, ...)
+{
+	static int errors = 0;
+	va_list args;
+
+	if (errors > 100) {
+		static int once = 0;
+		if (once)
+			return;
+		fmt = "too many errors";
+		once = 1;
+	}
+
+	va_start(args, fmt);
+	do_warn("error: ", pos, fmt, args);
+	va_end(args);
+	errors++;
+}	
+
+void error_die(struct position pos, const char * fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);

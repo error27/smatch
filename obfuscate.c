@@ -29,11 +29,11 @@ static void emit_blob(struct symbol *sym)
 	const char *name = show_ident(sym->ident);
 
 	if (size <= 0) {
-		warn(sym->pos, "emitting insized symbol");
+		warning(sym->pos, "emitting insized symbol");
 		size = 8;
 	}
 	if (size & 7)
-		warn(sym->pos, "emitting symbol of size %d bits\n", size);
+		warning(sym->pos, "emitting symbol of size %d bits\n", size);
 	size = (size+7) >> 3;
 	if (alignment < 1)
 		alignment = 1;
@@ -67,7 +67,7 @@ void emit_symbol(struct symbol *sym, void *_parent, int flags)
 
 	evaluate_symbol(sym);
 	if (sym->type != SYM_NODE) {
-		warn(sym->pos, "I really want to emit nodes, not pure types!");
+		warning(sym->pos, "I really want to emit nodes, not pure types!");
 		return;
 	}
 
@@ -87,7 +87,7 @@ void emit_symbol(struct symbol *sym, void *_parent, int flags)
 		emit_fn(sym);
 		return;
 	default:
-		warn(sym->pos, "what kind of strange node do you want me to emit again?");
+		warning(sym->pos, "what kind of strange node do you want me to emit again?");
 		return;
 	}
 }

@@ -123,7 +123,7 @@ static void lay_out_struct(struct symbol *sym, void *_info, int flags)
 		sym->offset = (bit_size - bit_offset) >> 3;
 		sym->bit_offset = bit_offset;
 		info->bit_size = bit_size + width;
-		// warn (sym->pos, "bitfield: offset=%d:%d  size=:%d", sym->offset, sym->bit_offset, width);
+		// warning (sym->pos, "bitfield: offset=%d:%d  size=:%d", sym->offset, sym->bit_offset, width);
 
 		return;
 	}
@@ -135,7 +135,7 @@ static void lay_out_struct(struct symbol *sym, void *_info, int flags)
 	sym->offset = bit_size >> 3;
 
 	info->bit_size = bit_size + sym->bit_size;
-	// warn (sym->pos, "regular: offset=%d", sym->offset);
+	// warning (sym->pos, "regular: offset=%d", sym->offset);
 }
 
 static void examine_struct_union_type(struct symbol *sym, int advance)
@@ -182,7 +182,7 @@ static void examine_bitfield_type(struct symbol *sym)
 	examine_symbol_type(base_type);
 	bit_size = base_type->bit_size;
 	if (sym->fieldwidth > bit_size) {
-		warn(sym->pos, "impossible field-width, %d, for this type",
+		warning(sym->pos, "impossible field-width, %d, for this type",
 		     sym->fieldwidth);
 		sym->fieldwidth = bit_size;
 	}
@@ -257,7 +257,7 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 	case SYM_TYPEOF: {
 		struct symbol *base = evaluate_expression(sym->initializer);
 		if (is_bitfield_type (base))
-			warn(base->pos, "typeof applied to bitfield type");
+			warning(base->pos, "typeof applied to bitfield type");
 		if (base) {
 			if (base->type == SYM_NODE)
 				base = base->ctype.base_type;
@@ -266,10 +266,10 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		}
 		break;
 	case SYM_PREPROCESSOR:
-		warn(sym->pos, "ctype on preprocessor command? (%s)", show_ident(sym->ident));
+		warning(sym->pos, "ctype on preprocessor command? (%s)", show_ident(sym->ident));
 		return NULL;
 	case SYM_UNINITIALIZED:
-		warn(sym->pos, "ctype on uninitialized symbol %p", sym);
+		warning(sym->pos, "ctype on uninitialized symbol %p", sym);
 		return NULL;
 	}
 	default:
@@ -332,7 +332,7 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 {
 	struct scope *scope;
 	if (sym->id_list) {
-		warn(sym->pos, "internal error: symbol type already bound");
+		warning(sym->pos, "internal error: symbol type already bound");
 		return;
 	}
 	sym->namespace = ns;

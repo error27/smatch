@@ -75,7 +75,7 @@ static struct token *string_expression(struct token *token, struct expression *e
 		} while (token_type(next) == TOKEN_STRING);
 
 		if (totlen > MAX_STRING) {
-			warn(token->pos, "trying to concatenate %d-character string (%d bytes max)", totlen, MAX_STRING);
+			warning(token->pos, "trying to concatenate %d-character string (%d bytes max)", totlen, MAX_STRING);
 			totlen = MAX_STRING;
 		}
 
@@ -179,18 +179,18 @@ static void get_number_value(struct expression *expr, struct token *token)
 	if (!(value & (1ULL << bits)))
 		goto got_it;
 	if (!try_unsigned)
-		warn(expr->pos, "decimal constant %s is too big for long long",
+		warning(expr->pos, "decimal constant %s is too big for long long",
 			show_token(token));
 	modifiers |= MOD_UNSIGNED;
 got_it:
 	if (do_warn)
-		warn(expr->pos, "constant %s is so big it is%s%s%s",
+		warning(expr->pos, "constant %s is so big it is%s%s%s",
 			show_token(token),
 			(modifiers & MOD_UNSIGNED) ? " unsigned":"",
 			(modifiers & MOD_LONG) ? " long":"",
 			(modifiers & MOD_LONGLONG) ? " long":"");
 	if (do_warn & 2)
-		warn(expr->pos,
+		warning(expr->pos,
 			"decimal constant %s is between LONG_MAX and ULONG_MAX."
 			" For C99 that means long long, C90 compilers are very "
 			"likely to produce unsigned long (and a warning) here",
@@ -200,7 +200,7 @@ got_it:
         expr->value = value;
 	return;
 Eoverflow:
-	error(expr->pos, "constant %s is too big even for unsigned long long",
+	error_die(expr->pos, "constant %s is too big even for unsigned long long",
 			show_token(token));
 	return;
 Float:
@@ -224,7 +224,7 @@ Float:
 	return;
 
 Enoint:
-	error(expr->pos, "constant %s is not a valid number", show_token(token));
+	error_die(expr->pos, "constant %s is not a valid number", show_token(token));
 }
 
 struct token *primary_expression(struct token *token, struct expression **tree)
@@ -258,7 +258,7 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		 *	if (typeof(a) == int) ..
 		 */
 		if (sym && sym->namespace == NS_TYPEDEF) {
-			warn(token->pos, "typename in expression");
+			warning(token->pos, "typename in expression");
 			sym = NULL;
 		}
 		expr->symbol_name = token->ident;
@@ -359,7 +359,7 @@ static struct token *postfix_expression(struct token *token, struct expression *
 			deref->deref = expr;
 			token = token->next;
 			if (token_type(token) != TOKEN_IDENT) {
-				warn(token->pos, "Expected member name");
+				warning(token->pos, "Expected member name");
 				break;
 			}
 			deref->member = token->ident;
@@ -435,7 +435,7 @@ static struct token *unary_expression(struct token *token, struct expression **t
 
 			next = cast_expression(token->next, &unop);
 			if (!unop) {
-				warn(token->pos, "Syntax error in unary expression");
+				warning(token->pos, "Syntax error in unary expression");
 				return next;
 			}
 			unary = alloc_expression(token->pos, EXPR_PREOP);
@@ -522,7 +522,7 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 			top = alloc_expression(next->pos, type);	\
 			next = inner(next->next, &right);		\
 			if (!right) {					\
-				warn(next->pos, "No right hand side of '%s'-expression", show_special(op));	\
+				warning(next->pos, "No right hand side of '%s'-expression", show_special(op));	\
 				break;					\
 			}						\
 			top->op = op;					\

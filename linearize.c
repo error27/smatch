@@ -272,7 +272,7 @@ void show_entry(struct entrypoint *ep)
 static void bind_label(struct symbol *label, struct basic_block *bb, struct position pos)
 {
 	if (label->bb_target)
-		warn(pos, "label '%s' already bound", show_ident(label->ident));
+		warning(pos, "label '%s' already bound", show_ident(label->ident));
 	label->bb_target = bb;
 }
 
@@ -370,7 +370,7 @@ static pseudo_t linearize_address_gen(struct entrypoint *ep, struct expression *
 		return linearize_expression(ep, expr->unop);
 	if (expr->type == EXPR_BITFIELD)
 		return linearize_expression(ep, expr->address);
-	warn(expr->pos, "generating address of non-lvalue");
+	warning(expr->pos, "generating address of non-lvalue");
 	return VOID;
 }
 
@@ -452,7 +452,7 @@ static pseudo_t linearize_load_gen(struct entrypoint *ep, struct expression *exp
 		return add_binary_op(ep, expr, OP_AND, new, mask);
 	}
 
-	warn(expr->pos, "loading unknown expression");
+	warning(expr->pos, "loading unknown expression");
 	return new;		
 }
 
@@ -570,7 +570,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	pseudo_t retval;
 
 	if (!expr->ctype) {
-		warn(expr->pos, "call with no type!");
+		warning(expr->pos, "call with no type!");
 		return VOID;
 	}
 
@@ -829,7 +829,7 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 		return linearize_slice(ep, expr);
 
 	default: 
-		warn(expr->pos, "unknown expression (%d %d)", expr->type, expr->op);
+		warning(expr->pos, "unknown expression (%d %d)", expr->type, expr->op);
 		return VOID;
 	}
 	return VOID;

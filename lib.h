@@ -42,9 +42,16 @@ struct phi_list;
 
 struct token *skip_to(struct token *, int);
 struct token *expect(struct token *, int, const char *);
-extern void info(struct position, const char *, ...);
-extern void warn(struct position, const char *, ...);
-extern void error(struct position, const char *, ...);
+#ifdef __GNUC__
+#define FORMAT_ATTR __attribute__ ((__format__ (__printf__, 2, 3)))
+#else
+#define FORMAT_ATTR
+#endif
+extern void info(struct position, const char *, ...) FORMAT_ATTR;
+extern void warning(struct position, const char *, ...) FORMAT_ATTR;
+extern void error(struct position, const char *, ...) FORMAT_ATTR;
+extern void error_die(struct position, const char *, ...) FORMAT_ATTR;
+#undef FORMAT_ATTR
 
 #define __DECLARE_ALLOCATOR(type, x)		\
 	extern type *__alloc_##x(int);		\

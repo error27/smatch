@@ -1371,15 +1371,15 @@ static struct storage *emit_binop(struct expression *expr)
 			opname = "mul";
 		break;
 	case SPECIAL_LOGICAL_AND:
-		warn(expr->pos, "bogus bitwise and for logical op (should use '2*setne + and' or something)");
+		warning(expr->pos, "bogus bitwise and for logical op (should use '2*setne + and' or something)");
 		opname = "and";
 		break;
 	case SPECIAL_LOGICAL_OR:
-		warn(expr->pos, "bogus bitwise or for logical op (should use 'or + setne' or something)");
+		warning(expr->pos, "bogus bitwise or for logical op (should use 'or + setne' or something)");
 		opname = "or";
 		break;
 	default:
-		error(expr->pos, "unhandled binop '%s'\n", show_special(expr->op));
+		error_die(expr->pos, "unhandled binop '%s'\n", show_special(expr->op));
 		break;
 	}
 
@@ -2061,7 +2061,7 @@ static struct storage *x86_call_expression(struct expression *expr)
 	char s[64];
 
 	if (!expr->ctype) {
-		warn(expr->pos, "\tcall with no type!");
+		warning(expr->pos, "\tcall with no type!");
 		return NULL;
 	}
 
@@ -2355,7 +2355,7 @@ static struct storage *x86_expression(struct expression *expr)
 	case EXPR_DEREF:
 	case EXPR_SIZEOF:
 	case EXPR_ALIGNOF:
-		warn(expr->pos, "invalid expression after evaluation");
+		warning(expr->pos, "invalid expression after evaluation");
 		return NULL;
 	case EXPR_CAST:
 		return emit_cast_expr(expr);
@@ -2380,19 +2380,19 @@ static struct storage *x86_expression(struct expression *expr)
 	// None of these should exist as direct expressions: they are only
 	// valid as sub-expressions of initializers.
 	case EXPR_POS:
-		warn(expr->pos, "unable to show plain initializer position expression");
+		warning(expr->pos, "unable to show plain initializer position expression");
 		return NULL;
 	case EXPR_IDENTIFIER:
-		warn(expr->pos, "unable to show identifier expression");
+		warning(expr->pos, "unable to show identifier expression");
 		return NULL;
 	case EXPR_INDEX:
-		warn(expr->pos, "unable to show index expression");
+		warning(expr->pos, "unable to show index expression");
 		return NULL;
 	case EXPR_TYPE:
-		warn(expr->pos, "unable to show type expression");
+		warning(expr->pos, "unable to show type expression");
 		return NULL;
 	case EXPR_FVALUE:
-		warn(expr->pos, "floating point support is not implemented");
+		warning(expr->pos, "floating point support is not implemented");
 		return NULL;
 	}
 	return NULL;

@@ -240,7 +240,7 @@ repeat:
 	} else {
 		if (c == '\n') {
 			if (complain)
-				warn(stream->pos, "non-ASCII data stream");
+				warning(stream->pos, "non-ASCII data stream");
 			spliced = 1;
 			goto restart;
 		}
@@ -252,7 +252,7 @@ repeat:
 out:
 	stream->offset = offset;
 	if (complain)
-		warn(stream->pos, "non-ASCII data stream");
+		warning(stream->pos, "non-ASCII data stream");
 
 	return c;
 
@@ -262,11 +262,11 @@ got_eof:
 		goto out;
 	}
 	if (stream->pos.pos)
-		warn(stream->pos, "no newline at end of file");
+		warning(stream->pos, "no newline at end of file");
 	else if (had_cr)
-		warn(stream->pos, "non-ASCII data stream");
+		warning(stream->pos, "non-ASCII data stream");
 	else if (spliced)
-		warn(stream->pos, "backslash-newline at end of file");
+		warning(stream->pos, "backslash-newline at end of file");
 	return EOF;
 }
 
@@ -433,7 +433,7 @@ static int escapechar(int first, int type, stream_t *stream, int *valp)
 	value = first;
 
 	if (first == '\n')
-		warn(stream->pos, "Newline in string or character constant");
+		warning(stream->pos, "Newline in string or character constant");
 
 	if (first == '\\' && next != EOF) {
 		value = next;
@@ -471,7 +471,7 @@ static int escapechar(int first, int type, stream_t *stream, int *valp)
 			case '"':
 				break;
 			case '\n':
-				warn(stream->pos, "Newline in string or character constant");
+				warning(stream->pos, "Newline in string or character constant");
 				break;
 			case '0'...'7': {
 				int nr = 2;
@@ -500,7 +500,7 @@ static int escapechar(int first, int type, stream_t *stream, int *valp)
 			}
 			/* Fallthrough */
 			default:
-				warn(stream->pos, "Unknown escape '%c'", value);
+				warning(stream->pos, "Unknown escape '%c'", value);
 			}
 		}
 		/* Mark it as escaped */
@@ -517,7 +517,7 @@ static int get_char_token(int next, stream_t *stream)
 
 	next = escapechar(next, '\'', stream, &value);
 	if (value == '\'' || next != '\'') {
-		warn(stream->pos, "Bad character constant");
+		warning(stream->pos, "Bad character constant");
 		drop_token(stream);
 		return next;
 	}
@@ -543,7 +543,7 @@ static int get_string_token(int next, stream_t *stream)
 		if (val == '"')
 			break;
 		if (next == EOF) {
-			warn(stream->pos, "End of file in middle of string");
+			warning(stream->pos, "End of file in middle of string");
 			return next;
 		}
 		if (len < MAX_STRING)
@@ -552,7 +552,7 @@ static int get_string_token(int next, stream_t *stream)
 	}
 
 	if (len > MAX_STRING) {
-		warn(stream->pos, "string too long (%d bytes, %d bytes max)", len, MAX_STRING);
+		warning(stream->pos, "string too long (%d bytes, %d bytes max)", len, MAX_STRING);
 		len = MAX_STRING;
 	}
 
@@ -595,7 +595,7 @@ static int drop_stream_comment(stream_t *stream)
 	for (;;) {
 		int curr = next;
 		if (curr == EOF) {
-			warn(stream->pos, "End of file in the middle of a comment");
+			warning(stream->pos, "End of file in the middle of a comment");
 			return curr;
 		}
 		next = nextchar(stream);

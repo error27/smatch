@@ -586,7 +586,7 @@ static int show_call_expression(struct expression *expr)
 	int framesize;
 
 	if (!expr->ctype) {
-		warn(expr->pos, "\tcall with no type!");
+		warning(expr->pos, "\tcall with no type!");
 		return 0;
 	}
 
@@ -994,7 +994,7 @@ int show_expression(struct expression *expr)
 	case EXPR_DEREF:
 	case EXPR_SIZEOF:
 	case EXPR_ALIGNOF:
-		warn(expr->pos, "invalid expression after evaluation");
+		warning(expr->pos, "invalid expression after evaluation");
 		return 0;
 	case EXPR_CAST:
 		return show_cast_expr(expr);
@@ -1021,16 +1021,16 @@ int show_expression(struct expression *expr)
 	// None of these should exist as direct expressions: they are only
 	// valid as sub-expressions of initializers.
 	case EXPR_POS:
-		warn(expr->pos, "unable to show plain initializer position expression");
+		warning(expr->pos, "unable to show plain initializer position expression");
 		return 0;
 	case EXPR_IDENTIFIER:
-		warn(expr->pos, "unable to show identifier expression");
+		warning(expr->pos, "unable to show identifier expression");
 		return 0;
 	case EXPR_INDEX:
-		warn(expr->pos, "unable to show index expression");
+		warning(expr->pos, "unable to show index expression");
 		return 0;
 	case EXPR_TYPE:
-		warn(expr->pos, "unable to show type expression");
+		warning(expr->pos, "unable to show type expression");
 		return 0;
 	}
 	return 0;
