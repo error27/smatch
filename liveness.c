@@ -113,6 +113,16 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 		USES(base); DEFINES(target);
 		break;
 
+	case OP_ASM:
+		FOR_EACH_PTR(insn->inputs, pseudo) {
+			use(bb, insn, pseudo);
+		} END_FOR_EACH_PTR(pseudo);
+		
+		FOR_EACH_PTR(insn->outputs, pseudo) {
+			def(bb, insn, pseudo);
+		} END_FOR_EACH_PTR(pseudo);
+		break;
+
 	case OP_BADOP:
 	case OP_INVOKE:
 	case OP_UNWIND:
