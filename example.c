@@ -13,11 +13,14 @@
 
 struct hardreg {
 	const char *name;
-	pseudo_t contains;
+	struct pseudo_list *contains;
 	unsigned busy:1,
 		 dirty:1,
 		 used:1;
 };
+
+#define TAG_DEAD 1
+#define TAG_DIRTY 2
 
 static void output_bb(struct basic_block *bb, unsigned long generation);
 
@@ -91,21 +94,11 @@ static void alloc_stack(struct bb_state *state, struct storage *storage)
 	state->stack_offset += 4;
 }
 
-/* Flush a hardreg out to the storage it has.. */
-static void flush_reg(struct bb_state *state, struct hardreg *hardreg)
+static void flush_one_pseudo(struct bb_state *state, struct hardreg *hardreg, pseudo_t pseudo)
 {
-	pseudo_t pseudo;
 	struct storage_hash *out;
 	struct storage *storage;
 
-	if (!hardreg->busy || !hardreg->dirty)
-		return;
-	hardreg->busy = 0;
-	hardreg->dirty = 0;
-	hardreg->used = 1;
-	pseudo = hardreg->contains;
-	if (!pseudo)
-		return;
 	if (pseudo->type != PSEUDO_REG && pseudo->type != PSEUDO_ARG)
 		return;
 
@@ -133,6 +126,24 @@ static void flush_reg(struct bb_state *state, struct hardreg *hardreg)
 		printf("\tmovl %s,%s\n", hardreg->name, show_memop(storage));
 		break;
 	}
+}
+
+/* Flush a hardreg out to the storage it has.. */
+static void flush_reg(struct bb_state *state, struct hardreg *hardreg)
+{
+	pseudo_t pseudo;
+
+	if (!hardreg->busy || !hardreg->dirty)
+		return;
+	hardreg->busy = 0;
+	hardreg->dirty = 0;
+	hardreg->used = 1;
+	FOR_EACH_PTR(hardreg->contains, pseudo) {
+		if (CURRENT_TAG(pseudo) & TAG_DEAD)
+			continue;
+		flush_one_pseudo(state, hardreg, pseudo);
+	} END_FOR_EACH_PTR(pseudo);
+	free_ptr_list(&hardreg->contains);
 }
 
 /* Fill a hardreg with the pseudo it has */
@@ -211,7 +222,7 @@ static struct hardreg *target_reg(struct bb_state *state, pseudo_t pseudo, pseud
 	flush_reg(state, reg);
 
 found:
-	reg->contains = pseudo;
+	add_ptr_list(&reg->contains, pseudo);
 	reg->busy = 1;
 	reg->dirty = 0;
 	return reg;
@@ -223,10 +234,13 @@ static struct hardreg *getreg(struct bb_state *state, pseudo_t pseudo, pseudo_t 
 	struct hardreg *reg;
 
 	for (i = 0; i < REGNO; i++) {
-		if (hardregs[i].contains == pseudo) {
-			last_reg = i;
-			return hardregs+i;
-		}
+		pseudo_t p;
+		FOR_EACH_PTR(hardregs[i].contains, p) {
+			if (p == pseudo) {
+				last_reg = i;
+				return hardregs+i;
+			}
+		} END_FOR_EACH_PTR(p);
 	}
 	reg = target_reg(state, pseudo, target);
 	return fill_reg(state, reg, pseudo);
@@ -380,7 +394,7 @@ static void generate_binop(struct bb_state *state, struct instruction *insn)
 	struct hardreg *dst = copy_reg(state, src);
 
 	printf("\t%s.%d %s,%s\n", op, insn->size, reg_or_imm(state, insn->src2), dst->name);
-	dst->contains = insn->target;
+	add_ptr_list(&dst->contains, insn->target);
 	dst->busy = 1;
 	dst->dirty = 1;
 }
@@ -390,10 +404,12 @@ static void mark_pseudo_dead(pseudo_t pseudo)
 	int i;
 
 	for (i = 0; i < REGNO; i++) {
-		if (hardregs[i].contains == pseudo) {
-			hardregs[i].busy = 0;
-			hardregs[i].dirty = 0;
-		}
+		pseudo_t p;
+		FOR_EACH_PTR(hardregs[i].contains, p) {
+			if (p != pseudo)
+				continue;
+			TAG_CURRENT(p, TAG_DEAD);
+		} END_FOR_EACH_PTR(p);
 	}
 }
 
@@ -405,9 +421,7 @@ static void generate_phisource(struct instruction *insn, struct bb_state *state)
 	if (!user)
 		return;
 	reg = getreg(state, insn->phi_src, user->target);
-
-	flush_reg(state, reg);
-	reg->contains = user->target;
+	add_ptr_list(&reg->contains, user->target);
 	reg->busy = 1;
 	reg->dirty = 1;
 }
@@ -481,8 +495,10 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 
 	default:
 		show_instruction(insn);
-		break;
+		return;
 	}
+	if (verbose)
+		show_instruction(insn);
 }
 
 static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, struct storage *storage)
@@ -547,10 +563,14 @@ static void fill_output(struct bb_state *state, pseudo_t pseudo, struct storage 
 	/* See if we have that pseudo in a register.. */
 	for (i = 0; i < REGNO; i++) {
 		struct hardreg *reg = hardregs + i;
-		if (reg->contains != pseudo)
-			continue;
-		write_reg_to_storage(state, reg, out);
-		return;
+		pseudo_t p;
+
+		FOR_EACH_PTR(reg->contains, p) {
+			if (p == pseudo) {
+				write_reg_to_storage(state, reg, out);
+				return;
+			}
+		} END_FOR_EACH_PTR(p);
 	}
 
 	/* Do we have it in another storage? */
@@ -589,10 +609,13 @@ static void generate_output_storage(struct bb_state *state)
 		struct storage *out = entry->storage;
 		if (out->type == REG_REG) {
 			struct hardreg *reg = hardregs + out->regno;
-			if (reg->contains != entry->pseudo) {
-				flush_reg(state, reg);
-				reg->contains = NULL;
-			}
+			pseudo_t p;
+			FOR_EACH_PTR(reg->contains, p) {
+				if (p == entry->pseudo)
+					goto ok;
+			} END_FOR_EACH_PTR(p);
+			flush_reg(state, reg);
+ok:
 		}
 	} END_FOR_EACH_PTR(entry);
 
@@ -608,7 +631,7 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 	struct instruction *insn;
 
 	for (i = 0; i < REGNO; i++) {
-		hardregs[i].contains = NULL;
+		free_ptr_list(&hardregs[i].contains);
 		hardregs[i].busy = 0;
 		hardregs[i].dirty = 0;
 		hardregs[i].used = 0;
@@ -619,7 +642,7 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 		const char *name = show_storage(storage);
 		if (storage->type == REG_REG) {
 			int regno = storage->regno;
-			hardregs[regno].contains = entry->pseudo;
+			add_ptr_list(&hardregs[regno].contains, entry->pseudo);
 			hardregs[regno].busy = 1;
 			hardregs[regno].dirty = 1;
 			name = hardregs[regno].name;
