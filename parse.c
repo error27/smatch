@@ -450,6 +450,35 @@ static void apply_ctype(struct position pos, struct ctype *thistype, struct ctyp
 	ctype->as = thistype->as;
 }
 
+static void check_modifiers(struct position *pos, struct symbol *s, unsigned long mod)
+{
+	unsigned long banned, wrong;
+	unsigned long this_mod = s->ctype.modifiers;
+	const unsigned long BANNED_SIZE = MOD_LONG | MOD_LONGLONG | MOD_SHORT;
+	const unsigned long BANNED_SIGN = MOD_SIGNED | MOD_UNSIGNED;
+
+	if (this_mod & (MOD_STRUCTOF | MOD_UNIONOF | MOD_ENUMOF))
+		banned = BANNED_SIZE | BANNED_SIGN;
+	else if (this_mod & MOD_SPECIALBITS)
+		banned = 0;
+	else if (s->ctype.base_type == &fp_type)
+		banned = BANNED_SIGN;
+	else if (s->ctype.base_type == &int_type || !s->ctype.base_type || is_int_type (s))
+		banned = 0;
+	else {
+		// label_type
+		// void_type
+		// bad_type
+		// vector_type <-- whatever that is
+		banned = BANNED_SIZE | BANNED_SIGN;
+	}
+
+	wrong = mod & banned;
+	if (wrong)
+		warn(*pos, "modifier %sis invalid in this context",
+		     modifier_string (wrong));
+}
+
 
 static struct token *declaration_specifiers(struct token *next, struct ctype *ctype, int qual)
 {
@@ -473,6 +502,7 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 		mod = thistype.modifiers;
 		if (qual && (mod & ~(MOD_ATTRIBUTE | MOD_CONST | MOD_VOLATILE)))
 			break;
+		check_modifiers(&token->pos, s, ctype->modifiers);
 		if (mod & MOD_SPECIALBITS) {
 			if (mod & MOD_STRUCTOF)
 				next = struct_or_union_specifier(SYM_STRUCT, next, &thistype);
