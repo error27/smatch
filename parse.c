@@ -78,7 +78,7 @@ void show_statement(struct statement *stmt)
 
 void show_statement_list(struct statement_list *stmt)
 {
-	iterate(stmt, show_statement);
+	statement_iterate(stmt, show_statement);
 }
 
 void show_expression(struct expression *expr)

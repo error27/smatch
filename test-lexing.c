@@ -7,6 +7,7 @@
 #include <fcntl.h>
 
 #include "token.h"
+#include "symbol.h"
 
 int main(int argc, char **argv)
 {

@@ -5,6 +5,7 @@
 
 #include "lib.h"
 #include "token.h"
+#include "parse.h"
 #include "symbol.h"
 
 struct symbol *lookup_symbol(struct ident *ident, enum namespace ns)
@@ -66,13 +67,6 @@ const char *type_string(unsigned int modifiers, struct symbol *sym)
 	return "typedef";
 }
 
-static void show_one_symbol(struct symbol *sym)
-{
-	printf("Symbol %s:\n\t", show_token(sym->token));
-	show_type(sym);
-	printf("\n");
-}
-	
 void show_symbol_list(struct symbol_list *list)
 {
 	symbol_iterate(list, show_symbol);
@@ -134,6 +128,7 @@ void show_symbol(struct symbol *sym)
 		show_statement(sym->stmt);
 		break;
 	default:
+		break;
 	}
 	printf("\n");
 }
