@@ -791,7 +791,7 @@ static struct token *parse_asm(struct token *token, struct statement *stmt)
 	struct expression *expr;
 
 	stmt->type = STMT_ASM;
-	if (match_idents(token, &__volatile___ident, &volatile_ident)) {
+	if (match_idents(token, &__volatile___ident, &volatile_ident, NULL)) {
 		token = token->next;
 	}
 	token = expect(token, '(', "after asm");
@@ -1299,7 +1299,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	int is_typedef;
 
 	/* Top-level inline asm? */
-	if (match_idents(token, &asm_ident, &__asm___ident, &__asm_ident)) {
+	if (match_idents(token, &asm_ident, &__asm___ident, &__asm_ident, NULL)) {
 		struct symbol *anon = alloc_symbol(token->pos, SYM_NODE);
 		struct symbol *fn = alloc_symbol(token->pos, SYM_FN);
 		struct statement *stmt;
