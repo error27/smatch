@@ -33,11 +33,12 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 
 	if (!sym)
 		return;
-	fprintf(stderr, "%.*s%s%3d:%lu %lx %s (as: %d, context: %x:%x)\n",
+	fprintf(stderr, "%.*s%s%3d:%lu %lx %s (as: %d, context: %x:%x) %p\n",
 		indent, indent_string, typestr[sym->type],
 		sym->bit_size, sym->ctype.alignment,
 		sym->ctype.modifiers, show_ident(sym->ident),
-		sym->ctype.as, sym->ctype.context, sym->ctype.contextmask);
+		sym->ctype.as, sym->ctype.context, sym->ctype.contextmask,
+		sym);
 	do_debug_symbol(sym->ctype.base_type, indent+2);
 }
 
