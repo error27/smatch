@@ -317,6 +317,8 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 		as2 = source->ctype.as; 
 		if (target->type == SYM_NODE) {
 			target = target->ctype.base_type;
+			if (!target)
+				return "bad types";
 			if (target->type == SYM_PTR) {
 				mod1 = 0;
 				as1 = 0;
@@ -326,6 +328,8 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 		}
 		if (source->type == SYM_NODE) {
 			source = source->ctype.base_type;
+			if (!source)
+				return "bad types";
 			if (source->type == SYM_PTR) {
 				mod2 = 0;
 				as2 = 0;
