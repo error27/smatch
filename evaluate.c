@@ -1169,7 +1169,6 @@ static struct symbol *create_pointer(struct expression *expr, struct symbol *sym
 	node->ctype.alignment = pointer_alignment;
 
 	access_symbol(sym);
-	sym->ctype.modifiers |= MOD_ADDRESSABLE;
 	if (sym->ctype.modifiers & MOD_REGISTER) {
 		warning(expr->pos, "taking address of 'register' variable '%s'", show_ident(sym->ident));
 		sym->ctype.modifiers &= ~MOD_REGISTER;

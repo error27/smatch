@@ -436,6 +436,11 @@ static void kill_dominated_stores(pseudo_t pseudo, struct instruction *insn,
 	struct instruction *one;
 	struct basic_block *parent;
 
+	/* Unreachable store? Undo it */
+	if (!bb) {
+		insn->opcode = OP_SNOP;
+		return;
+	}
 	if (bb->generation == generation)
 		return;
 	bb->generation = generation;
@@ -477,7 +482,7 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 	pseudo_t pseudo, src, *pp;
 	struct instruction *def;
 	unsigned long mod;
-	int all;
+	int all, stores, complex;
 
 	/* Never used as a symbol? */
 	pseudo = sym->pseudo;
@@ -494,24 +499,34 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 		goto external_visibility;
 
 	def = NULL;
+	stores = 0;
+	complex = 0;
 	FOR_EACH_PTR(pseudo->users, pp) {
 		/* We know that the symbol-pseudo use is the "src" in the instruction */
 		struct instruction *insn = container(pp, struct instruction, src);
 
 		switch (insn->opcode) {
 		case OP_STORE:
-			if (def)
-				goto multi_def;
+			stores++;
 			def = insn;
 			break;
 		case OP_LOAD:
 			break;
+		case OP_SETVAL:
+			if (!insn->bb)
+				continue;
+			mod |= MOD_ADDRESSABLE;
+			goto external_visibility;
 		default:
 			warning(sym->pos, "symbol '%s' pseudo used in unexpected way", show_ident(sym->ident));
 		}
-		if (insn->offset)
-			goto complex_def;
+		complex |= insn->offset;
 	} END_FOR_EACH_PTR(pp);
+
+	if (complex)
+		goto complex_def;
+	if (stores > 1)
+		goto multi_def;
 
 	/*
 	 * Goodie, we have a single store (if even that) in the whole

@@ -180,10 +180,11 @@ void show_instruction(struct instruction *insn)
 
 	case OP_SETVAL: {
 		struct expression *expr = insn->val;
-		struct symbol *sym = insn->symbol;
+		pseudo_t pseudo = insn->symbol;
 		int target = regno(insn->target);
 
-		if (sym) {
+		if (pseudo) {
+			struct symbol *sym = pseudo->sym;
 			if (sym->bb_target) {
 				printf("\t%%r%d <- .L%p\n", target, sym->bb_target);
 				break;
@@ -849,8 +850,10 @@ static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct e
 	pseudo_t target = alloc_pseudo(insn);
 	insn->target = target;
 	insn->val = val;
-	if (!val)
-		insn->symbol = ctype;
+	if (!val) {
+		pseudo_t addr = symbol_pseudo(ep, ctype);
+		use_pseudo(addr, &insn->symbol);
+	}
 	add_one_insn(ep, insn);
 	return target;
 }
@@ -1721,13 +1724,19 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 				add_one_insn(ep, insn);
 			}
 
-			simplify_symbol_usage(ep);
-
 			/*
 			 * Do trivial flow simplification - branches to
 			 * branches, kill dead basicblocks etc
 			 */
 			simplify_flow(ep);
+
+			/*
+			 * Do initial CSE on the pre-symbol code. This gets rid
+			 * of dead symbol address computations.
+			 */
+			cleanup_and_cse(ep);
+
+			simplify_symbol_usage(ep);
 
 			/*
 			 * Remove trivial instructions, and try to CSE

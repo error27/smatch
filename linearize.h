@@ -58,8 +58,8 @@ struct instruction {
 			struct pseudo_list *phi_list;
 		};
 		struct /* unops */ {
-			struct symbol *orig_type;	/* casts */
 			pseudo_t src;
+			struct symbol *orig_type;	/* casts */
 			unsigned int offset;		/* memops */
 		};
 		struct /* binops */ {
@@ -73,8 +73,8 @@ struct instruction {
 			int begin, end;
 		};
 		struct /* setval */ {
+			pseudo_t symbol;		/* Subtle: same offset as "src" !! */
 			struct expression *val;
-			struct symbol *symbol;
 		};
 		struct /* call */ {
 			pseudo_t func;
