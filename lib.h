@@ -65,6 +65,9 @@ struct ptr_list {
 
 #define ITERATE_FIRST 1
 #define ITERATE_LAST 2
+
+#define ptr_list_empty(x) ((x) == NULL)
+
 void iterate(struct ptr_list *,void (*callback)(void *, void *, int), void*);
 extern void add_ptr_list(struct ptr_list **, void *);
 extern void concat_ptr_list(struct ptr_list *a, struct ptr_list **b);
