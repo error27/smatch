@@ -204,6 +204,7 @@ struct entrypoint {
 	struct symbol_list *syms;
 	struct basic_block_list *bbs;
 	struct basic_block *active;
+	struct basic_block *entry;
 };
 
 struct entrypoint *linearize_symbol(struct symbol *sym);
