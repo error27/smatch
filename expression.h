@@ -110,6 +110,7 @@ struct token *parens_expression(struct token *token, struct expression **expr, c
 struct token *assignment_expression(struct token *token, struct expression **tree);
 
 extern int evaluate_expression(struct expression *);
+extern int evaluate_initializer(struct symbol *, struct expression *);
 
 static inline struct expression *alloc_expression(struct position pos, int type)
 {

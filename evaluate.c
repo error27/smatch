@@ -681,6 +681,21 @@ static int evaluate_expression_list(struct expression_list *head)
 	return 1;
 }
 
+/*
+ * Initializers are kind of like assignments. Except
+ * they can be a hell of a lot more complex.
+ */
+int evaluate_initializer(struct symbol *sym, struct expression *expr)
+{
+	/*
+	 * FIXME!! Check type compatibility, and look up any named
+	 * initializers!
+	 */
+	if (!evaluate_expression(expr))
+		return 0;
+	return 0;
+}
+
 static int evaluate_cast(struct expression *expr)
 {
 	struct expression *target = expr->cast_expression;
