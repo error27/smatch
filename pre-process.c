@@ -51,23 +51,14 @@ static struct token *alloc_token(struct token *dup)
 static const char *show_token_sequence(struct token *token);
 
 /* Head is one-before-list, and last is one-past-list */
-static struct token *for_each_ident(struct token *head, struct token *last,
-	struct token *(*action)(struct token *head, struct token *))
+static struct token *for_each_ident(struct token *head, struct token *(*action)(struct token *head, struct token *))
 {
-	struct token *old = head;
-	if (!last)
-		last = &eof_token_entry;
 	for (;;) {
 		struct token *next = head->next;
 
 		/* Did we hit the end of the current expansion? */
-		if (next == last)
+		if (eof_token(next))
 			break;
-		if (eof_token(next)) {
-			warn(last, "walked past end");
-			warn(old, "started here");
-			break;
-		}
 
 		if (next->type == TOKEN_IDENT)
 			next = action(head, next);
@@ -110,9 +101,9 @@ struct token *defined_one_symbol(struct token *head, struct token *next)
 	return next;
 }
 
-static struct token *expand_defined(struct token *head, struct token *last)
+static struct token *expand_defined(struct token *head)
 {
-	return for_each_ident(head, last, defined_one_symbol);
+	return for_each_ident(head, defined_one_symbol);
 }
 
 /* Expand symbol 'sym' between 'head->next' and 'head->next->next' */
@@ -129,9 +120,9 @@ struct token *expand_one_symbol(struct token *head, struct token *token)
 	return token;
 }
 
-static struct token *expand_list(struct token *head, struct token *last)
+static struct token *expand_list(struct token *head)
 {
-	return for_each_ident(head, last, expand_one_symbol);
+	return for_each_ident(head, expand_one_symbol);
 }
 
 static struct token *find_argument_end(struct token *start)
@@ -164,21 +155,21 @@ static struct token *dup_token(struct token *token, struct token *pos, int newli
 	return alloc;	
 }
 
-static void insert(struct token *token, struct token *prev, struct token *next)
+static void insert(struct token *token, struct token *prev)
 {
-	token->next = next;
+	token->next = &eof_token_entry;
 	prev->next = token;
 }
 
-static void replace(struct token *token, struct token *prev, struct token *last, struct token *list)
+static void replace(struct token *token, struct token *prev, struct token *list)
 {
 	int newline = token->newline;
 
-	prev->next = last;
+	prev->next = &eof_token_entry;
 	while (!eof_token(list) && !match_op(list, SPECIAL_ARG_SEPARATOR)) {
 		struct token *newtok = dup_token(list, token, newline);
 		newline = 0;
-		insert(newtok, prev, last);
+		insert(newtok, prev);
 		prev = newtok;
 		list = list->next;
 	}
@@ -234,37 +225,34 @@ static struct token *expand_one_arg(struct token *head, struct token *token,
 
 	if (nr >= 0) {
 		struct token *arg = get_argument(nr, arguments);
-		replace(token, head, token->next, arg);
-		return expand_list(head, token->next);
+		struct token *last = token->next;
+		token->next = &eof_token_entry;
+		replace(token, head, arg);
+		head = expand_list(head);
+		head->next = last;
+		return head;
 	}
 	return token;
 }
 
-static void expand_arguments(struct token *token, struct token *head, struct token *last,
+static void expand_arguments(struct token *token, struct token *head,
 	struct token *arguments, struct token *arglist)
 {
-	struct token *old = head;
-	if (!last)
-		last = &eof_token_entry;
-
 	for (;;) {
 		struct token *next = head->next;
 
 		/* Did we hit the end of the current expansion? */
-		if (next == last)
+		if (eof_token(next))
 			break;
-		if (eof_token(next)) {
-			warn(last, "walked past end");
-			warn(old, "started here");
-			break;
-		}
 
 		if (match_op(next, '#')) {
 			struct token *nextnext = next->next;
 			int nr = arg_number(arglist, nextnext->ident);
 			if (nextnext != head && nr >= 0 && nextnext->type == TOKEN_IDENT) {
+				struct token * last = nextnext->next;
 				struct token *newtoken = stringify(nextnext, get_argument(nr, arguments));
-				replace(nextnext, head, nextnext->next, newtoken);
+				replace(nextnext, head, newtoken);
+				head->next = last;
 				continue;
 			}
 			warn(next, "'#' operation is not followed by argument name");
@@ -342,17 +330,17 @@ static struct token *hashhash(struct token *head, struct token *first, struct to
 	return newtoken;
 }
 
-static void retokenize(struct token *head, struct token *last)
+static void retokenize(struct token *head)
 {
 	struct token * next = head->next;
 	struct token * nextnext = next->next;
 	struct token * nextnextnext = nextnext->next;
 
-	if (next == last || nextnext == last)
+	if (eof_token(next) || eof_token(nextnext))
 		return;
 
 	for (;;) {
-		if (nextnextnext == last)
+		if (eof_token(nextnextnext))
 			break;
 		
 		if (match_op(nextnext, SPECIAL_HASHHASH)) {
@@ -363,7 +351,7 @@ static void retokenize(struct token *head, struct token *last)
 			nextnextnext = nextnext->next;
 
 			newtoken->next = nextnext;
-			if (nextnext != last)
+			if (!eof_token(nextnext))
 				continue;
 			break;
 		}
@@ -388,19 +376,23 @@ static struct token *expand(struct token *head, struct symbol *sym)
 		arguments = last->next;
 		last = find_argument_end(last);
 	}
+	token->next = &eof_token_entry;
 
 	/* Replace the token with the token expansion */
-	replace(token, head, last, sym->expansion);
+	replace(token, head, sym->expansion);
 
 	/* Then, replace all the arguments with their expansions */
 	if (arguments)
-		expand_arguments(token, head, last, arguments, sym->arglist);
+		expand_arguments(token, head, arguments, sym->arglist);
 
 	/* Re-tokenize the sequence if any ## token exists.. */
-	retokenize(head, last);
+	retokenize(head);
 
 	/* Finally, expand the expansion itself .. */
-	head = expand_list(head, last);
+	head = expand_list(head);
+
+	/* Put the rest of the stuff in place again */
+	head->next = last;
 	sym->busy--;
 	return head;
 }
@@ -464,7 +456,7 @@ static int handle_include(struct stream *stream, struct token *head, struct toke
 	next = token->next;
 	expect = '>';
 	if (!match_op(next, '<')) {
-		expand_list(token, NULL);
+		expand_list(token);
 		expect = 0;
 		next = token;
 	}
@@ -634,7 +626,7 @@ static long long primary_value(struct token *token)
 	case TOKEN_INTEGER:
 		return get_int_value(token->integer);
 	}
-	error(token, "bad preprocessor expression");
+	error(token, "bad constant expression");
 	return 0;
 }
 
@@ -645,9 +637,14 @@ long long get_expression_value(struct expression *expr)
 	switch (expr->type) {
 	case EXPR_CONSTANT:
 		return primary_value(expr->token);
-	case EXPR_SYMBOL:
-		warn(expr->token, "undefined identifier in preprocessor expression");
-		return 0;
+	case EXPR_SYMBOL: {
+		struct symbol *sym = expr->symbol;
+		if (!sym || !sym->ctype.base_type || sym->ctype.base_type->type != SYM_ENUM) {
+			warn(expr->token, "undefined identifier in constant expression");
+			return 0;
+		}
+		return sym->value;
+	}
 
 #define OP(x,y)	case x: return left y right;
 	case EXPR_BINOP:
@@ -686,7 +683,7 @@ long long get_expression_value(struct expression *expr)
 		right = get_expression_value(expr->cond_false);
 		return left ? middle : right;
 	}
-	error(expr->token, "bad preprocessor expression");
+	error(expr->token, "bad constant expression");
 	return 0;
 }
 
@@ -698,8 +695,8 @@ static int expression_value(struct token *head)
 	struct token *token;
 	long long value;
 
-	expand_defined(head, NULL);
-	expand_list(head, NULL);
+	expand_defined(head);
+	expand_list(head);
 	token = conditional_expression(head->next, &expr);
 	if (!eof_token(token))
 		warn(token, "garbage at end: %s", show_token_sequence(token));
