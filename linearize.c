@@ -228,7 +228,7 @@ static void show_instruction(struct instruction *insn)
 		break;
 	case OP_CALL: {
 		struct pseudo *arg;
-		printf("\t%%r%d <- CALL %%r%d", regno(insn->target), insn->func->nr);
+		printf("\t%%r%d <- CALL %s", regno(insn->target), show_pseudo(insn->func));
 		FOR_EACH_PTR(insn->arguments, arg) {
 			printf(", %%r%d", arg->nr);
 		} END_FOR_EACH_PTR(arg);
@@ -454,6 +454,13 @@ static pseudo_t alloc_pseudo(struct instruction *def)
 	return pseudo;
 }
 
+static pseudo_t symbol_pseudo(struct symbol *sym)
+{
+	pseudo_t pseudo = alloc_pseudo(NULL);
+	pseudo->sym = sym;
+	return pseudo;
+}
+
 /*
  * We carry the "access_data" structure around for any accesses,
  * which simplifies things a lot. It contains all the access
@@ -479,9 +486,7 @@ static int linearize_simple_address(struct entrypoint *ep,
 	struct access_data *ad)
 {
 	if (addr->type == EXPR_SYMBOL) {
-		pseudo_t pseudo = alloc_pseudo(NULL);
-		pseudo->sym = addr->symbol;
-		ad->address = pseudo;
+		ad->address = symbol_pseudo(addr->symbol);
 		return 1;
 	}
 	if (addr->type == EXPR_BINOP) {
@@ -815,7 +820,11 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 				fn = fn->unop;
 		}
 	}
-	insn->func = linearize_expression(ep, fn);
+	if (fn->type == EXPR_SYMBOL) {
+		insn->func = symbol_pseudo(fn->symbol);
+	} else {
+		insn->func = linearize_expression(ep, fn);
+	}
 	insn->target = retval = alloc_pseudo(insn);
 	add_one_insn(ep, insn);
 
