@@ -30,7 +30,7 @@ static int elif_ignore[MAXNEST];
 #define if_nesting (true_nesting + false_nesting)
 
 #define INCLUDEPATHS 32
-char *includepath[INCLUDEPATHS+1] = {
+const char *includepath[INCLUDEPATHS+1] = {
 	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.1/include/",
 	"/usr/include/",
 	"/usr/local/include/",
@@ -460,7 +460,7 @@ static const char *token_name_sequence(struct token *token, int endop, struct to
 static void do_include(struct token *head, struct token *token, const char *filename)
 {
 	int endlen = strlen(filename) + 1;
-	char **pptr = includepath, *path;
+	const char **pptr = includepath, *path;
 
 	while ((path = *pptr++) != NULL) {
 		int fd, len = strlen(path);
