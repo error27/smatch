@@ -17,12 +17,13 @@
  */
 struct symbol {
 	struct token *token;		/* Where this symbol was declared */
-	struct symbol *next;		/* Next semantic symbol that shares this identifier */
+	struct symbol *next;		/* Next symbol at this level */
+	struct symbol *next_id;		/* Next semantic symbol that shares this identifier */
 	int type;
 	unsigned long size;
 	unsigned long modifiers;
 	struct symbol *base_type;
-	struct symbol *next_type;	/* Next member in this struct/union? */
+	struct symbol *children;
 };
 
 /* Modifiers */
@@ -31,15 +32,16 @@ struct symbol {
 #define SYM_STATIC	0x0004
 #define SYM_EXTERN	0x0008
 
-#define SYM_CHAR	0x0010
-#define SYM_SHORT	0x0020
-#define SYM_LONG	0x0040
-#define SYM_LONGLONG	0x0080
+#define SYM_CONST	0x0010
+#define SYM_VOLATILE	0x0020
+#define SYM_SIGNED	0x0030
+#define SYM_UNSIGNED	0x0040
 
-#define SYM_SIGNED	0x0100
-#define SYM_UNSIGNED	0x0200
-#define SYM_CONST	0x0400
-#define SYM_VOLATILE	0x0800
+#define SYM_CHAR	0x0100
+#define SYM_SHORT	0x0200
+#define SYM_LONG	0x0400
+#define SYM_LONGLONG	0x0800
+
 
 /* Basic types */
 extern struct symbol	void_type,
@@ -60,5 +62,6 @@ extern void init_symbols(void);
 extern struct symbol *alloc_symbol(int type);
 extern void show_type(struct symbol *);
 extern const char *modifier_string(unsigned long mod);
+extern void show_symbol(struct symbol *);
 
 #endif /* SEMANTIC_H */

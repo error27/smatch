@@ -55,5 +55,7 @@ struct statement {
 extern struct token *parse_expression(struct token *, struct expression **);
 extern struct token *statement_list(struct token *, struct statement **);
 extern void show_expression(struct expression *);
+extern struct token *translation_unit(struct token *, struct symbol **);
+extern struct token * translation_unit(struct token *, struct symbol **);
 
 #endif /* PARSE_H */

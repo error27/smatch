@@ -38,6 +38,8 @@ const char *show_token(const struct token *token)
 {
 	static char buffer[256];
 
+	if (!token)
+		return "<no token>";
 	switch (token->type) {
 	case TOKEN_ERROR:
 		return "syntax error";

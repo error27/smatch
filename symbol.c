@@ -12,8 +12,8 @@ const char *modifier_string(unsigned long mod)
 	char *p = buffer;
 	const char *res,**ptr, *names[] = {
 		"auto", "register", "static", "extern",
+		"const", "volatile", "signed", "unsigned",
 		"char", "short", "long", "long",
-		"signed", "unsigned", "const", "volatile",
 		NULL
 	};
 	ptr = names;
@@ -26,16 +26,23 @@ const char *modifier_string(unsigned long mod)
 		}
 		mod >>= 1;
 	}
-	*p = 0;
+	*p++ = 0;
+	*p++ = 0;
 	return buffer+1;
 }
 
-const char *type_string(struct symbol *sym)
+const char *type_string(unsigned int modifiers, struct symbol *sym)
 {
+	if (!sym)
+		return "<notype>";
+		
 	if (sym->token)
 		return sym->token->ident->name;
-	if (sym == &int_type)
+	if (sym == &int_type) {
+		if (modifiers & (SYM_CHAR | SYM_SHORT | SYM_LONG))
+			return "";
 		return "int";
+	}
 	if (sym == &fp_type)
 		return "float";
 	if (sym == &void_type)
@@ -45,37 +52,68 @@ const char *type_string(struct symbol *sym)
 	return "unknown";
 }
 
+static void show_type_list(struct symbol *sym)
+{
+	while (sym) {
+		show_type(sym);
+		printf("\n\t");
+		sym = sym->next;
+	}
+}
+
 void show_type(struct symbol *sym)
 {
+	if (!sym) {
+		printf("<nosym>");
+		return;
+	}
+
 	switch (sym->type) {
 	case SYM_PTR:
+		printf("%s", modifier_string(sym->modifiers));
 		printf("*(");
 		show_type(sym->base_type);
 		printf(")");
 		break;
+
 	case SYM_FN:
+		printf("%s", modifier_string(sym->modifiers));
 		show_type(sym->base_type);
-		printf("( ... )");
+
+		printf("(\n\t");
+		show_type_list(sym->children);
+		printf(" )");
 		break;
+
 	case SYM_ARRAY:
+		printf("%s", modifier_string(sym->modifiers));
 		show_type(sym->base_type);
 		printf("[ ... ]");
 		break;
+
 	case SYM_TYPE:
-		printf("%s %s", modifier_string(sym->modifiers), type_string(sym->base_type));
+		printf("%s %s", modifier_string(sym->modifiers), type_string(sym->modifiers, sym->base_type));
 		break;
+
 	default:
 		printf("<bad type>");
 	}
+}
+
+void show_symbol(struct symbol *sym)
+{
+	printf("Symbol %s:\n  ", show_token(sym->token));
+	show_type(sym);
+	printf("\n");
 }
 
 struct symbol *alloc_symbol(int type)
 {
 	struct symbol *sym = malloc(sizeof(struct symbol));
 
-	memset(sym, 0, sizeof(*sym));
 	if (!sym)
 		die("out of memory for symbol information");
+	memset(sym, 0, sizeof(*sym));
 	sym->type = type;
 	return sym;
 }
@@ -92,7 +130,7 @@ void bind_symbol(struct symbol *sym, struct token *token)
 		die("Internal error: trying to make a symbol out of a non-identifier");
 	ident = token->ident;
 	sym->token = token;
-	sym->next = ident->symbol;
+	sym->next_id = ident->symbol;
 	ident->symbol = sym;
 }
 
