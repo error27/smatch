@@ -40,6 +40,105 @@ static void sort_phi_list(struct phi_list **list)
 	sort_list((struct ptr_list **)list , phi_compare);
 }
 
+/* Find the trivial parent for a phi-source */
+static struct basic_block *phi_parent(struct basic_block *source, pseudo_t pseudo)
+{
+	/* Can't go upwards if the pseudo is defined in the bb it came from.. */
+	if (pseudo->type == PSEUDO_REG) {
+		struct instruction *def = pseudo->def;
+		if (def->bb == source)
+			return source;
+	}
+	if (bb_list_size(source->children) != 1 || bb_list_size(source->parents) != 1)
+		return source;
+	return first_basic_block(source->parents);
+}
+
+static void clear_phi(struct instruction *insn)
+{
+	struct phi *phi;
+
+	insn->bb = NULL;
+	FOR_EACH_PTR(insn->phi_list, phi) {
+		phi->source = NULL;
+	} END_FOR_EACH_PTR(phi);
+}
+
+static void if_convert_phi(struct instruction *insn)
+{
+	struct phi *array[3];
+	struct basic_block *parents[3];
+	struct basic_block *bb, *bb1, *bb2, *source;
+	struct instruction *br;
+	pseudo_t p1, p2;
+
+	bb = insn->bb;
+	if (linearize_ptr_list((struct ptr_list *)insn->phi_list, (void **)array, 3) != 2)
+		return;
+	if (linearize_ptr_list((struct ptr_list *)bb->parents, (void **)parents, 3) != 2)
+		return;
+	p1 = array[0]->pseudo;
+	bb1 = array[0]->source;
+	p2 = array[1]->pseudo;
+	bb2 = array[1]->source;
+
+	/* Only try the simple "direct parents" case */
+	if ((bb1 != parents[0] || bb2 != parents[1]) &&
+	    (bb1 != parents[1] || bb2 != parents[0]))
+		return;
+
+	/*
+	 * See if we can find a common source for this..
+	 */
+	source = phi_parent(bb1, p1);
+	if (phi_parent(bb2, p2) != source)
+		return;
+
+	/*
+	 * Cool. We now know that 'source' is the exclusive
+	 * parent of both phi-nodes, so the exit at the
+	 * end of it fully determines which one it is, and
+	 * we can turn it into a select.
+	 *
+	 * HOWEVER, right now we only handle regular
+	 * conditional branches. No multijumps or computed
+	 * stuff. Verify that here.
+	 */
+	br = last_instruction(source->insns);
+	if (!br || br->opcode != OP_BR)
+		return;
+
+	/*
+	 * We're in business. Match up true/false with p1/p2.
+	 */
+	if (br->bb_true == bb2 || br->bb_false == bb1) {
+		pseudo_t p = p1;
+		p1 = p2;
+		p2 = p;
+	}
+
+	/*
+	 * Ok, we can now replace that last
+	 *
+	 *	br cond, a, b
+	 *
+	 * with the sequence
+	 *
+	 *	setcc cond
+	 *	select pseudo, p1, p2
+	 *	br cond, a, b
+	 *
+	 * and remove the phi-node. If it then
+	 * turns out that 'a' or 'b' is entirely
+	 * empty (common case), and now no longer
+	 * a phi-source, we'll be able to simplify
+	 * the conditional branch too.
+	 */
+	insert_select(source, br, insn, p1, p2);
+	clear_phi(insn);
+	cse_repeat = 1;
+}
+
 static unsigned long clean_up_phi(struct instruction *insn)
 {
 	struct phi *phi, *last;
@@ -79,6 +178,8 @@ static unsigned long clean_up_phi(struct instruction *insn)
 		/* This one is bogus, but no worse than anything else */
 		return hash;
 	}
+
+	if_convert_phi(insn);
 
 	return hash;
 }

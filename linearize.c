@@ -376,7 +376,7 @@ static void show_bb(struct basic_block *bb)
 	if (bb->phinodes) {
 		struct phi *phi;
 		FOR_EACH_PTR(bb->phinodes, phi) {
-			printf("  **phi source %s**\n", show_pseudo(phi->pseudo));
+			printf("  **phi source (%s,.L%p)**\n", show_pseudo(phi->pseudo), phi->source);
 		} END_FOR_EACH_PTR(phi);
 	}
 
@@ -483,6 +483,28 @@ static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
 	ep->active = bb;
 	if (bb_reachable(bb))
 		add_bb(&ep->bbs, bb);
+}
+
+void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi, pseudo_t true, pseudo_t false)
+{
+	struct instruction *setcc, *select;
+
+	/* Remove the 'br' */
+	delete_last_instruction(&bb->insns);
+
+	setcc = alloc_instruction(OP_SETCC, &bool_ctype);
+	setcc->bb = bb;
+	use_pseudo(br->cond, &setcc->src);
+
+	select = alloc_instruction(OP_SEL, phi->type);
+	select->bb = bb;
+	select->target = phi->target;
+	use_pseudo(true, &select->src1);
+	use_pseudo(false, &select->src2);
+
+	add_instruction(&bb->insns, setcc);
+	add_instruction(&bb->insns, select);
+	add_instruction(&bb->insns, br);
 }
 
 static inline int bb_empty(struct basic_block *bb)
