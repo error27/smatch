@@ -1577,7 +1577,7 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep, un
 	 * case, and look (and parse) largely like assignments.
 	 */
 	if (expr->type != EXPR_INITIALIZER) {
-		int size = 0;
+		int size = 0, is_string = expr->type == EXPR_STRING;
 		struct symbol *rtype = evaluate_expression(expr);
 		if (rtype) {
 			struct expression *pos;
@@ -1587,7 +1587,7 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep, un
 			 * 	char array[] = "string"
 			 * should _not_ degenerate.
 			 */
-			if (is_string_type(rtype) && is_string_type(ctype)) {
+			if (is_string && is_string_type(ctype)) {
 				struct expression *array_size = ctype->array_size;
 				if (!array_size)
 					array_size = ctype->array_size = rtype->array_size;
