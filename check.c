@@ -105,6 +105,7 @@ int main(int argc, char **argv)
 
 	add_pre_buffer("#define __i386__ 1\n");
 	add_pre_buffer("#define __linux__ 1\n");
+	add_pre_buffer("#define __STDC__ 1\n");
 	add_pre_buffer("#define linux linux\n");
 	add_pre_buffer("#define __CHECKER__ 1\n");
 	add_pre_buffer("#define cond_syscall(x)\n");
