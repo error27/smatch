@@ -432,6 +432,15 @@ static inline int lvalue_expression(struct expression *expr)
 	return expr->type == EXPR_PREOP && expr->op == '*';
 }
 
+static int ptr_object_size(struct symbol *ptr_type)
+{
+	if (ptr_type->type == SYM_NODE)
+		ptr_type = ptr_type->ctype.base_type;
+	if (ptr_type->type == SYM_PTR)
+		ptr_type = ptr_type->ctype.base_type;
+	return ptr_type->bit_size;
+}
+
 static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *ctype, struct expression **ip)
 {
 	struct expression *i = *ip;
@@ -452,12 +461,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *c
 	}
 
 	/* Get the size of whatever the pointer points to */
-	ptr_type = ctype;
-	if (ptr_type->type == SYM_NODE)
-	ptr_type = ptr_type->ctype.base_type;
-	if (ptr_type->type == SYM_PTR)
-		ptr_type = ptr_type->ctype.base_type;
-	bit_size = ptr_type->bit_size;
+	bit_size = ptr_object_size(ctype);
 
 	if (i->type == EXPR_VALUE) {
 		i->value *= bit_size >> 3;
@@ -1378,6 +1382,10 @@ static struct symbol *evaluate_postop(struct expression *expr)
 	evaluate_assign_to(op, ctype);
 
 	expr->ctype = ctype;
+	expr->op_value = 1;
+	if (is_ptr_type(ctype))
+		expr->op_value = ptr_object_size(ctype) >> 3;
+
 	return ctype;
 }
 

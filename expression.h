@@ -60,7 +60,10 @@ struct expression {
 		struct string *string;
 
 		// EXPR_UNOP, EXPR_PREOP and EXPR_POSTOP
-		struct expression *unop;
+		struct /* unop */ {
+			struct expression *unop;
+			unsigned long op_value;
+		};
 
 		// EXPR_SYMBOL, EXPR_TYPE
 		struct /* symbol_arg */ {
