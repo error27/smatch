@@ -699,6 +699,8 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 	struct expression **rp, struct symbol *source, const char *where)
 {
 	const char *typediff;
+	struct symbol *t;
+	int target_as;
 
 	/* It's ok if the target is more volatile or const than the source */
 	typediff = type_difference(target, source, MOD_VOLATILE | MOD_CONST, 0);
@@ -712,49 +714,38 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 	}
 
 	/* Pointer destination? */
-	if (target->type == SYM_NODE)
-		target = target->ctype.base_type;
-	if (source->type == SYM_NODE)
-		source = source->ctype.base_type;
-	if (target->type == SYM_PTR) {
+	t = target;
+	target_as = t->ctype.as;
+	if (t->type == SYM_NODE) {
+		t = t->ctype.base_type;
+		target_as |= t->ctype.as;
+	}
+	if (t->type == SYM_PTR) {
 		struct expression *right = *rp;
-		struct symbol *source_base = source->ctype.base_type;
-		struct symbol *target_base = target->ctype.base_type;
+		struct symbol *s = source;
+		int source_as;
 
-		if (source->type == SYM_NODE) {
-			source = source_base;
-			source_base = source->ctype.base_type;
-		}
-		if (target->type == SYM_NODE) {
-			target = target_base;
-			target_base = target->ctype.base_type;
-		}
-		if (source->type == SYM_ARRAY) {
-			const char *typediff = type_difference(target_base, source_base, MOD_IGN, MOD_IGN);
-			if (!typediff)
-				return 1;
-		}
-		if (source->type == SYM_FN) {
-			const char *typediff = type_difference(target_base, source, MOD_IGN, MOD_IGN);
-			if (!typediff)
-				return 1;
-		}
-
-		// NULL pointer?
+		// NULL pointer is always ok
 		if (right->type == EXPR_VALUE && !right->value)
 			return 1;
 
-		// void pointer ?
-		if (target->type == SYM_PTR) {
-			struct symbol *source_base = source->ctype.base_type;
-			struct symbol *target_base = target->ctype.base_type;
-			/* Even (void *) types have to match the address space */
-			if (source_base == &void_ctype || target_base == &void_ctype) {
-				if (source->ctype.as == target->ctype.as)
-					return 1;
-			}
-			warn(expr->pos, "incorrect type in %s (%s)", where, typediff);
-			return 1;
+		/* "void *" matches anything as long as the address space is ok */
+		source_as = s->ctype.as;
+		if (s->type == SYM_NODE) {
+			s = s->ctype.base_type;
+			source_as |= s->ctype.as;
+		}
+		if (source_as == target_as && s->type == SYM_PTR) {
+			s = s->ctype.base_type;
+			t = t->ctype.base_type;
+			if (s == &void_ctype || t == &void_ctype)
+				return 1;
+		}
+
+		if (s->type == SYM_FN) {
+			typediff = type_difference(t->ctype.base_type, s, 0, 0);
+			if (!typediff)
+				return 1;
 		}
 
 		// FIXME!! Cast it!
