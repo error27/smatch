@@ -7,6 +7,7 @@
  * subroutine calls. That's all "local" behaviour.
  *
  * Copyright (C) 2004 Linus Torvalds
+ * Copyright (C) 2004 Christopher Li
  */
 
 #include <string.h>
@@ -39,6 +40,23 @@ static struct basic_block *alloc_basic_block(void)
 	return __alloc_basic_block(0);
 }
 
+static struct multijmp* alloc_multijmp(struct basic_block *target, int begin, int end)
+{
+	struct multijmp *multijmp = __alloc_multijmp(0);
+	multijmp->target = target;
+	multijmp->begin = begin;
+	multijmp->end = end;
+	return multijmp;
+}
+
+static struct phi* alloc_phi(struct basic_block *source, pseudo_t pseudo)
+{
+	struct phi *phi = __alloc_phi(0);
+	phi->source = source;
+	phi->pseudo = pseudo;
+	return phi;
+}
+
 static void show_instruction(struct instruction *insn)
 {
 	int op = insn->opcode;
@@ -47,11 +65,14 @@ static void show_instruction(struct instruction *insn)
 	case OP_BADOP:
 		printf("\tAIEEE! (%d %d)\n", insn->target.nr, insn->src.nr);
 		break;
-	case OP_CONDTRUE: case OP_CONDFALSE:
-		printf("\t%s %%r%d,%p\n",
-			op == OP_CONDTRUE ? "jne" : "jz",
-			insn->target.nr, insn->address->bb_target);
+	case OP_BR:
+		if (insn->bb_true && insn->bb_false) {
+			printf("\tbr\t%%r%d, .L%p, .L%p\n", insn->cond.nr, insn->bb_true, insn->bb_false);
+			break;
+		}
+		printf("\tbr\t.L%p\n", insn->bb_true ? insn->bb_true : insn->bb_false);
 		break;
+
 	case OP_SETVAL: {
 		struct expression *expr = insn->val;
 		switch (expr->type) {
@@ -72,20 +93,37 @@ static void show_instruction(struct instruction *insn)
 		}
 		break;
 	}
-	case OP_MULTIVALUE:
-		printf("\tswitch %%r%d\n", insn->target.nr);
+	case OP_SWITCH: {
+		struct multijmp *jmp;
+		printf("\tswitch %%r%d", insn->target.nr);
+		FOR_EACH_PTR(insn->multijmp_list, jmp) {
+			if (jmp->begin == jmp->end)
+				printf(", %d -> .L%p", jmp->begin, jmp->target);
+			else if (jmp->begin < jmp->end)
+				printf(", %d ... %d -> .L%p", jmp->begin, jmp->end, jmp->target);
+			else
+				printf(", default -> .L%p\n", jmp->target);
+		} END_FOR_EACH_PTR;
+		printf("\n");
 		break;
-	case OP_MULTIJUMP:
-		printf("\tcase %d ... %d -> %p\n", insn->begin, insn->end, insn->type);
+	}
+	
+	case OP_PHI: {
+		struct phi *phi;
+		char *s = " ";
+		printf("\t%%r%d <- phi", insn->target.nr);
+		FOR_EACH_PTR(insn->phi_list, phi) {
+			printf("%s(%%r%d, .L%p)", s, phi->pseudo.nr, phi->source);
+			s = ", ";
+		} END_FOR_EACH_PTR;
+		printf("\n");
 		break;
+	}	
 	case OP_LOAD:
 		printf("\tload %%r%d <- [%%r%d]\n", insn->target.nr, insn->src.nr);
 		break;
 	case OP_STORE:
 		printf("\tstore %%r%d -> [%%r%d]\n", insn->target.nr, insn->src.nr);
-		break;
-	case OP_MOVE:
-		printf("\t%%r%d <- %%r%d\n", insn->target.nr, insn->src.nr);
 		break;
 	case OP_ARGUMENT:
 		printf("\tpush %%r%d\n", insn->src.nr);
@@ -120,24 +158,19 @@ static void show_instruction(struct instruction *insn)
 static void show_bb(struct basic_block *bb)
 {
 	struct instruction *insn;
-	struct symbol *owner = bb->this;
 
-	printf("bb: %p%s\n", bb, owner ? "" : " UNREACHABLE!!");
-	if (owner) {
+	printf("bb: %p\n", bb);
+	if (bb->parents) {
 		struct basic_block *from;
-		FOR_EACH_PTR(owner->bb_parents, from) {
+		FOR_EACH_PTR(bb->parents, from) {
 			printf("  **from %p**\n", from);
 		} END_FOR_EACH_PTR;
 	}
 	FOR_EACH_PTR(bb->insns, insn) {
 		show_instruction(insn);
 	} END_FOR_EACH_PTR;
-
-	if (bb->next) {
-		printf("\tgoto\t\t.L%p\n", bb->next->bb_target);
-	} else {
+	if (!bb_terminated(bb))
 		printf("\tEND\n");
-	}
 	printf("\n");
 }
 
@@ -161,90 +194,67 @@ static void show_entry(struct entrypoint *ep)
 	printf("\n");
 }
 
-#define bb_reachable(bb) ((bb)->this != NULL)
-#define ep_haslabel(ep) ((ep)->flags & EP_HASLABEL)
-
-static struct basic_block * new_basic_block(struct entrypoint *ep, struct symbol *owner)
+static void bind_label(struct symbol *label, struct basic_block *bb, struct position pos)
 {
-	struct basic_block *bb;
+	if (label->bb_target)
+		warn(pos, "label already bound\n");
+	label->bb_target = bb;
+}
 
-	if (!owner) {
-		static struct basic_block unreachable;
-		return &unreachable;
+static struct basic_block * get_bound_block(struct entrypoint *ep, struct symbol *label)
+{
+	struct basic_block *bb = label->bb_target;
+
+	if (!bb) {
+		label->bb_target = bb = alloc_basic_block();
+		bb->flags |= BB_REACHABLE;
 	}
-		
-	bb = alloc_basic_block();
-	add_bb(&ep->bbs, bb);
-	bb->this = owner;
-	if (owner->bb_target)
-		warn(owner->pos, "Symbol already has a basic block %p", owner->bb_target);
-	owner->bb_target = bb;
 	return bb;
 }
 
-static void add_goto(struct basic_block *bb, struct symbol *sym)
+static void add_goto(struct entrypoint *ep, struct basic_block *dst)
 {
-	if (bb_reachable(bb)) {
-		bb->next = sym;
-		add_bb(&sym->bb_parents, bb);
+	struct basic_block *src = ep->active;
+	if (bb_reachable(src)) {
+		struct instruction *br = alloc_instruction(OP_BR, NULL);
+		br->bb_true = dst;
+		add_bb(&dst->parents, src);
+		add_instruction(&src->insns, br);
+		ep->active = NULL;
 	}
-}
-
-static void add_label(struct entrypoint *ep, struct symbol *sym)
-{
-	struct basic_block *new_bb = new_basic_block(ep, sym);
-	struct basic_block *bb = ep->active;
-
-	add_goto(bb, sym);
-	ep->active = new_bb;
-}
-
-/*
- * Add a anonymous label, return the symbol for it..
- *
- * If we already have a label for the top of the active
- * context, we can just re-use it.
- */
-static struct symbol *create_label(struct entrypoint *ep, struct position pos)
-{
-	struct basic_block *bb = ep->active;
-	struct symbol *label = bb->this;
-
-	if (!bb_reachable(bb) || !ptr_list_empty(bb->insns)) {
-		label = alloc_symbol(pos, SYM_LABEL);
-		add_label(ep, label);
-	}
-	return label;
 }
 
 static void add_one_insn(struct entrypoint *ep, struct position pos, struct instruction *insn)
 {
 	struct basic_block *bb = ep->active;    
 
-	if (bb_reachable(bb)) {
-		if (bb->flags & BB_HASBRANCH) {
-			add_label(ep, alloc_symbol(pos, SYM_LABEL));
-			bb = ep->active;
-		}
+	if (bb_reachable(bb))
 		add_instruction(&bb->insns, insn);
-	}
 }
 
-static void set_unreachable(struct entrypoint *ep)
+static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
 {
-	ep->active = new_basic_block(ep, NULL);
+	if (!bb_terminated(ep->active))
+		add_goto(ep, bb);
+
+	ep->active = bb;
+	if (bb_reachable(bb))
+		add_bb(&ep->bbs, bb);
 }
 
-static void add_branch(struct entrypoint *ep, int opcode, struct expression *cond, struct symbol *target)
+static void add_branch(struct entrypoint *ep, struct expression *expr, pseudo_t cond, struct basic_block *bb_true, struct basic_block *bb_false)
 {
 	struct basic_block *bb = ep->active;
+	struct instruction *br;
 
 	if (bb_reachable(bb)) {
-		struct instruction *jump = alloc_instruction(opcode, target);
-		jump->address = target;
-		bb->flags |= BB_HASBRANCH;
-		add_instruction(&bb->insns, jump);
-		add_bb(&target->bb_parents, bb);
+       		br = alloc_instruction(OP_BR, expr->ctype);
+		br->cond = cond;
+		br->bb_true = bb_true;
+		br->bb_false = bb_false;
+		add_bb(&bb_true->parents, bb);
+		add_bb(&bb_false->parents, bb);
+		add_one_insn(ep, expr->pos, br);
 	}
 }
 
@@ -442,44 +452,93 @@ static pseudo_t linearize_binop(struct entrypoint *ep, struct expression *expr)
 	return result;
 }
 
-static void cond_branch(struct entrypoint *ep, int op, struct symbol *ctype, pseudo_t pseudo, struct symbol *target)
-{
-	struct instruction *insn;
-	struct basic_block *bb = ep->active;
+static pseudo_t linearize_logical_branch(struct entrypoint *ep, struct expression *expr, struct basic_block *bb_true, struct basic_block *bb_false);
 
-	insn = alloc_instruction(op, ctype);
-	insn->address = target;
-	bb->flags |= BB_HASBRANCH;
-	add_instruction(&bb->insns, insn);
-	add_bb(&target->bb_parents, bb);
-}
-
-static void copy_pseudo(struct entrypoint *ep, struct expression *expr, pseudo_t old, pseudo_t new)
-{
-	struct instruction *insn = alloc_instruction(OP_MOVE, expr->ctype);
-	insn->target = new;
-	insn->src = old;
-	add_one_insn(ep, expr->pos, insn);
-}
+pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *expr, struct basic_block *bb_true, struct basic_block *bb_false);
 
 static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr)
 {
-	pseudo_t src1, src2, result;
-	struct symbol *label;
-	int op = (expr->op == SPECIAL_LOGICAL_OR) ? OP_CONDTRUE : OP_CONDFALSE;
+	pseudo_t src1, src2, target;
+	struct basic_block *bb_true = alloc_basic_block();
+	struct basic_block *bb_false = alloc_basic_block();
+	struct basic_block *merge = alloc_basic_block();
+	struct basic_block *first = bb_true;
+	struct basic_block *second = bb_false;
+	struct instruction *insn;
 
-	src1 = linearize_expression(ep, expr->left);
-	result = alloc_pseudo();
-	copy_pseudo(ep, expr, src1, result);
+	if (expr->op == SPECIAL_LOGICAL_OR) {
+		first = bb_false;
+		second = bb_true;
+	}
 
-	/* Conditional jump */
-	label = alloc_symbol(expr->pos, SYM_LABEL);
-	cond_branch(ep, op, expr->ctype, src1, label);
+	linearize_cond_branch(ep, expr->left, bb_true, bb_false);
 
-	src2 = linearize_expression(ep, expr->right);
-	copy_pseudo(ep, expr, src2, result);
-	add_label(ep, label);
-	return result;
+	set_activeblock(ep, first);
+	src1 = linearize_expression(ep, expr->right);
+	add_goto(ep, merge);
+
+	set_activeblock(ep, second);
+       	insn = alloc_instruction(OP_SETVAL, expr->ctype);
+	insn->target = src2 = alloc_pseudo();
+	insn->val = alloc_const_expression(expr->pos, expr->op == SPECIAL_LOGICAL_OR);
+	add_one_insn(ep, expr->pos,insn);
+
+	set_activeblock(ep, merge);
+
+	if (bb_reachable(bb_true) && bb_reachable(bb_false)) {
+		struct instruction *phi_node = alloc_instruction(OP_PHI, expr->ctype);
+		add_phi(&phi_node->phi_list, alloc_phi(first, src1));
+		add_phi(&phi_node->phi_list, alloc_phi(second, src2));
+		phi_node->target = target = alloc_pseudo();
+		add_one_insn(ep, expr->pos, phi_node);
+		set_activeblock(ep, alloc_basic_block());
+		return target;
+	}
+
+	return bb_reachable(first) ? src1 : src2;
+}
+
+pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *expr, struct basic_block *bb_true, struct basic_block *bb_false)
+{
+	if (!expr || !bb_reachable(ep->active))
+		return VOID;
+
+	switch (expr->type) {
+
+	case EXPR_STRING:
+	case EXPR_VALUE:
+		add_goto(ep, expr->value ? bb_true : bb_false);
+		return VOID;
+		
+	case EXPR_LOGICAL:
+		linearize_logical_branch(ep, expr, bb_true, bb_false);
+		return VOID;
+
+	case EXPR_PREOP:
+		if (expr->op == '!')
+			return linearize_cond_branch(ep, expr->unop, bb_false, bb_true);
+		/* fall through */
+	default: {
+		pseudo_t cond = linearize_expression(ep, expr);
+		add_branch(ep, expr, cond, bb_true, bb_false);
+
+		return VOID;
+	}
+	}
+	return VOID;
+}
+
+static pseudo_t linearize_logical_branch(struct entrypoint *ep, struct expression *expr, struct basic_block *bb_true, struct basic_block *bb_false)
+{
+	struct basic_block *next = alloc_basic_block();
+
+	if (expr->op == SPECIAL_LOGICAL_OR)
+		linearize_cond_branch(ep, expr->left, bb_true, next);
+	else
+		linearize_cond_branch(ep, expr->left, next, bb_false);
+	set_activeblock(ep, next);
+	linearize_cond_branch(ep, expr->right, bb_true, bb_false);
+	return VOID;
 }
 
 pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
@@ -570,26 +629,30 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 
 	case STMT_RETURN: {
 		pseudo_t pseudo = linearize_expression(ep, stmt->expression);
-		set_unreachable(ep);
 		return pseudo;
 	}
 
 	case STMT_CASE: {
-		add_label(ep, stmt->case_label);
+		struct basic_block *bb = get_bound_block(ep, stmt->case_label);
+		set_activeblock(ep, bb);
 		linearize_statement(ep, stmt->case_statement);
 		break;
 	}
 
 	case STMT_LABEL: {
-		add_label(ep, stmt->label_identifier);
-		ep->flags |= EP_HASLABEL;
-		linearize_statement(ep, stmt->label_statement);
+		struct symbol *label = stmt->label_identifier;
+		struct basic_block *bb;
+
+		if (label->used) {
+			bb = get_bound_block(ep, stmt->label_identifier);
+			set_activeblock(ep, bb);
+			linearize_statement(ep, stmt->label_statement);
+		}
 		break;
 	}
 
 	case STMT_GOTO: {
-		add_goto(ep->active, stmt->goto_label);
-		set_unreachable(ep);
+		add_goto(ep, get_bound_block(ep, stmt->goto_label));
 		break;
 	}
 
@@ -608,99 +671,66 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	 * switch the arms around appropriately..
 	 */
 	case STMT_IF: {
-		struct symbol *target;
-		struct basic_block *if_block;
-		struct expression *cond = stmt->if_conditional;
+		struct basic_block *bb_true, *bb_false, *endif;
+ 		struct expression *cond = stmt->if_conditional;
 
-		if (cond->type == EXPR_VALUE) {
-			struct statement *always = stmt->if_true;
-			struct statement *never = stmt->if_false;
+		bb_true = alloc_basic_block();
+		bb_false = endif = alloc_basic_block();
 
-			if (!cond->value) {
-				never = always;
-				always = stmt->if_false;
-			}
-			if (always)
-				linearize_statement(ep, always);
-			if (never) {
-				struct basic_block *bb = ep->active;
-				set_unreachable(ep);
-				linearize_statement(ep, never);
+ 		linearize_cond_branch(ep, cond, bb_true, bb_false);
 
-				/*
-				 * If the "never case" is reachable some other
-				 * way, we need to merge the old always case
-				 * with the fallthrough of the never case.
-				 */
-				if (bb_reachable(ep->active)) {
-					add_goto(bb, create_label(ep, never->pos));
-					break;
-				}
-
-				/* Otherwise we just continue with the old always case.. */
-				ep->active = bb;
-			}
-			break;
+		set_activeblock(ep, bb_true);
+ 		linearize_statement(ep, stmt->if_true);
+ 
+ 		if (stmt->if_false) {
+			endif = alloc_basic_block();
+			add_goto(ep, endif);
+			set_activeblock(ep, bb_false);
+ 			linearize_statement(ep, stmt->if_false);
 		}
-			
-
-		target = alloc_symbol(stmt->pos, SYM_LABEL);
-		add_branch(ep, OP_CONDFALSE, cond, target);
-
-		linearize_statement(ep, stmt->if_true);
-
-		if_block = ep->active;
-		add_label(ep, target);
-		
-		if (stmt->if_false) {
-			struct symbol *else_target = alloc_symbol(stmt->pos, SYM_LABEL);
-			add_goto(if_block, else_target);
-			linearize_statement(ep, stmt->if_false);
-			add_label(ep, else_target);
-		}
+		set_activeblock(ep, endif);
 		break;
 	}
 
 	case STMT_SWITCH: {
-		int default_seen;
 		struct symbol *sym;
-		struct instruction *switch_value;
+		struct instruction *switch_ins;
+		struct basic_block *switch_end = alloc_basic_block();
 		pseudo_t pseudo;
 
-		/* Create the "head node" */
-		if (!bb_reachable(ep->active))
-			break;
-
 		pseudo = linearize_expression(ep, stmt->switch_expression);
-		switch_value = alloc_instruction(OP_MULTIVALUE, NULL);
-		switch_value->target = pseudo;
-		add_one_insn(ep, stmt->pos, switch_value);
+		switch_ins = alloc_instruction(OP_SWITCH, NULL);
+		switch_ins->target = pseudo;
+		add_one_insn(ep, stmt->pos, switch_ins);
 
-		/* Create all the sub-jumps */
-		default_seen = 0;
 		FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
 			struct statement *case_stmt = sym->stmt;
-			struct instruction *sw_bb = alloc_instruction(OP_MULTIJUMP, sym);
-			if (!case_stmt->case_expression)
-				default_seen = 1;
-			if (case_stmt->case_expression)
-				sw_bb->begin = case_stmt->case_expression->value;
-			if (case_stmt->case_to)
-				sw_bb->end = case_stmt->case_to->value;
-			add_one_insn(ep, stmt->pos, sw_bb);
-			add_bb(&sym->bb_parents, ep->active);
+			struct basic_block *bb_case = get_bound_block(ep, sym);
+			struct multijmp *jmp;
+			int begin, end;
+			if (!case_stmt->case_expression) {
+			      jmp = alloc_multijmp(bb_case, 1, 0);
+			} else {
+				if (case_stmt->case_expression)
+					begin = end = case_stmt->case_expression->value;
+				if (case_stmt->case_to)
+					end = case_stmt->case_to->value;
+				if (begin > end)
+					jmp = alloc_multijmp(bb_case, end, begin);
+				else
+					jmp = alloc_multijmp(bb_case, begin, end);
+
+			}
+			add_multijmp(&switch_ins->multijmp_list, jmp);
+			add_bb(&bb_case->parents, ep->active);
 		} END_FOR_EACH_PTR;
 
-		/* Default fall-through case */
-		if (!default_seen)
-			add_goto(ep->active, stmt->switch_break);
-		set_unreachable(ep);
+		bind_label(stmt->switch_break, switch_end, stmt->pos);
 
 		/* And linearize the actual statement */
 		linearize_statement(ep, stmt->switch_statement);
+		set_activeblock(ep, switch_end);
 
-		/* ..then tie it all together at the end.. */
-		add_label(ep, stmt->switch_break);
 		break;
 	}
 
@@ -710,70 +740,44 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		struct statement  *statement = stmt->iterator_statement;
 		struct statement  *post_statement = stmt->iterator_post_statement;
 		struct expression *post_condition = stmt->iterator_post_condition;
-		struct symbol *loop_top = NULL, *loop_bottom = NULL;
-		struct entrypoint *oldep = NULL;
-
-		if (!bb_reachable(ep->active)) {
-			oldep = ep;
-			ep = alloc_entrypoint();
-			ep->active = oldep->active;
-		}
+		struct basic_block *loop_top, *loop_body, *loop_continue, *loop_end;
 
 		concat_symbol_list(stmt->iterator_syms, &ep->syms);
 		linearize_statement(ep, pre_statement);
-		if (pre_condition && bb_reachable(ep->active)) {
-			if (pre_condition->type == EXPR_VALUE) {
-				if (!pre_condition->value) {
-					loop_bottom = alloc_symbol(stmt->pos, SYM_LABEL);
-					add_goto(ep->active, loop_bottom);
-					set_unreachable(ep);
-				}
-			} else {
-				loop_bottom = alloc_symbol(stmt->pos, SYM_LABEL);
-				add_branch(ep, OP_CONDFALSE, pre_condition, loop_bottom);
-			}
+
+ 		loop_body = loop_top = alloc_basic_block();
+ 		loop_continue = alloc_basic_block();
+ 		loop_end = alloc_basic_block();
+ 
+		if (!post_statement && (pre_condition == post_condition)) {
+			/*
+			 * If it is a while loop, optimize away the post_condition.
+			 */
+			post_condition = NULL;
+			loop_body = loop_continue;
+			loop_continue = loop_top;
+			loop_top->flags |= BB_REACHABLE;
+			set_activeblock(ep, loop_top);
 		}
 
-		if (!post_condition || post_condition->type != EXPR_VALUE || post_condition->value)
-			loop_top = create_label(ep, stmt->pos);
+		loop_top->flags |= BB_REACHABLE;
+		if (pre_condition) 
+ 			linearize_cond_branch(ep, pre_condition, loop_body, loop_end);
 
+		bind_label(stmt->iterator_continue, loop_continue, stmt->pos);
+		bind_label(stmt->iterator_break, loop_end, stmt->pos);
+
+		set_activeblock(ep, loop_body);
 		linearize_statement(ep, statement);
+		add_goto(ep, loop_continue);
 
-		if (stmt->iterator_continue->used)
-			add_label(ep, stmt->iterator_continue);
-
-		linearize_statement(ep, post_statement);
-
-		if (!post_condition) {
-			add_goto(ep->active, loop_top);
-			set_unreachable(ep);
-		} else {
-			if (post_condition->type == EXPR_VALUE) {
-				if (post_condition->value) {
-					add_goto(ep->active, loop_top);
-					set_unreachable(ep);
-				}
-			} else
-				add_branch(ep, OP_CONDTRUE, post_condition, loop_top);
+		if (post_condition) {
+			set_activeblock(ep, loop_continue);
+			linearize_statement(ep, post_statement);
+ 			linearize_cond_branch(ep, post_condition, loop_top, loop_end);
 		}
 
-		if (stmt->iterator_break->used)
-			add_label(ep, stmt->iterator_break);
-		if (loop_bottom)
-			add_label(ep, loop_bottom);
-
-		/*
-		 * If we started out unreachable, maybe the inside
-		 * of the loop is still reachable?
-		 */
-		if (oldep) {
-			if (ep_haslabel(ep)) {
-				concat_basic_block_list(ep->bbs, &oldep->bbs);
-				concat_symbol_list(ep->syms, &oldep->syms);
-				oldep->active = ep->active;
-			}
-			ep = oldep;
-		}
+		set_activeblock(ep, loop_end);
 		break;
 	}
 
@@ -781,6 +785,102 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		break;
 	}
 	return VOID;
+}
+
+void mark_bb_reachable(struct basic_block *bb)
+{
+	struct basic_block *child;
+	struct terminator_iterator term;
+	struct basic_block_list *bbstack = NULL;
+
+	if (!bb || bb->flags & BB_REACHABLE)
+		return;
+
+	add_bb(&bbstack, bb);
+	while (bbstack) {
+		bb = delete_last_basic_block(&bbstack);
+		if (bb->flags & BB_REACHABLE)
+			continue;
+		bb->flags |= BB_REACHABLE;
+		init_terminator_iterator(last_instruction(bb->insns), &term);
+		while ((child=next_terminator_bb(&term))) {
+			if (!(child->flags & BB_REACHABLE))
+				add_bb(&bbstack, child);
+		}
+	}
+}
+
+void remove_unreachable_bbs(struct basic_block_list **bblist)
+{
+	struct basic_block *bb, *child;
+	struct list_iterator iterator;
+	struct terminator_iterator term;
+
+	init_iterator((struct ptr_list **) bblist, &iterator, 0);
+	while((bb=next_basic_block(&iterator)))
+		bb->flags &= ~BB_REACHABLE;
+
+	init_iterator((struct ptr_list **) bblist, &iterator, 0);
+	mark_bb_reachable(next_basic_block(&iterator));
+	while((bb=next_basic_block(&iterator))) {
+		if (bb->flags & BB_REACHABLE)
+			continue;
+		init_terminator_iterator(last_instruction(bb->insns), &term);
+		while ((child=next_terminator_bb(&term)))
+			replace_basic_block_list(&child->parents, bb, NULL);
+		delete_iterator(&iterator);
+	}
+}
+
+void pack_basic_blocks(struct basic_block_list **bblist)
+{
+	struct basic_block *child, *bb, *parent;
+	struct list_iterator iterator;
+	struct terminator_iterator term;
+	struct instruction *jmp;
+
+	remove_unreachable_bbs(bblist);
+	init_bb_iterator(bblist, &iterator, 0);
+	while((bb=next_basic_block(&iterator))) {
+		if (is_branch_goto(jmp=first_instruction(bb->insns))) {
+			/*
+			 * This is an empty goto block. Transfer the parents' terminator
+			 * to target directly.
+			 */
+			struct list_iterator it_parents;
+			struct basic_block *target;
+
+			target = jmp->bb_true ? jmp->bb_true : jmp->bb_false;
+			replace_basic_block_list(&target->parents, bb, NULL);
+			init_bb_iterator(&bb->parents, &it_parents, 0);
+			while((parent=next_basic_block(&it_parents))) {
+				init_terminator_iterator(last_instruction(parent->insns), &term);
+				while ((child=next_terminator_bb(&term))) {
+					if (child == bb) {
+						replace_terminator_bb(&term, target);
+						add_bb(&target->parents, parent);
+					}
+				}
+			}
+			delete_iterator(&iterator);
+			continue;
+		}
+		
+		if (bb_list_size(bb->parents)!=1)
+		       continue;
+		parent = first_basic_block(bb->parents);
+		if (parent!=bb && is_branch_goto(last_instruction(parent->insns))) {
+			/*
+			 * Combine this block with the parent.
+			 */
+			delete_last_instruction(&parent->insns);
+			concat_instruction_list(bb->insns, &parent->insns);
+			init_terminator_iterator(last_instruction(bb->insns), &term);
+			while ((child=next_terminator_bb(&term)))
+				replace_basic_block_list(&child->parents, bb, parent);
+			delete_iterator(&iterator);
+		}
+	}
 }
 
 void linearize_symbol(struct symbol *sym)
@@ -795,11 +895,14 @@ void linearize_symbol(struct symbol *sym)
 	if (base_type->type == SYM_FN) {
 		if (base_type->stmt) {
 			struct entrypoint *ep = alloc_entrypoint();
+			struct basic_block *bb = alloc_basic_block();
 
 			ep->name = sym;
-			ep->active = new_basic_block(ep, sym);
+			bb->flags |= BB_REACHABLE;
+			set_activeblock(ep, bb);
 			concat_symbol_list(base_type->arguments, &ep->syms);
 			linearize_statement(ep, base_type->stmt);
+			pack_basic_blocks(&ep->bbs);
 			show_entry(ep);
 		}
 	}

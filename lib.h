@@ -32,6 +32,8 @@ struct basic_block;
 struct basic_block_list;
 struct entrypoint;
 struct instruction;
+struct instruction_list;
+struct multijmp;
 
 struct token *skip_to(struct token *, int);
 struct token *expect(struct token *, int, const char *);
@@ -55,6 +57,8 @@ __DECLARE_ALLOCATOR(void, bytes);
 DECLARE_ALLOCATOR(basic_block);
 DECLARE_ALLOCATOR(entrypoint);
 DECLARE_ALLOCATOR(instruction);
+DECLARE_ALLOCATOR(multijmp);
+DECLARE_ALLOCATOR(phi);
 
 
 #define LIST_NODE_NR (29)
@@ -66,12 +70,46 @@ struct ptr_list {
 	void *list[LIST_NODE_NR];
 };
 
+struct list_iterator {
+	struct ptr_list **head;
+	struct ptr_list *active;
+	int index;
+	unsigned int flags;
+};
+
+enum iterator_br_state {
+	BR_INIT,
+	BR_TRUE,
+	BR_FALSE,
+	BR_END,
+};
+
+struct terminator_iterator {
+	struct instruction *terminator;
+	union {
+		struct list_iterator multijmp;
+		int branch;
+	};
+};
+
+#define ITERATOR_BACKWARDS 1
+#define ITERATOR_CURRENT 2
+
 #define ITERATE_FIRST 1
 #define ITERATE_LAST 2
 
 #define ptr_list_empty(x) ((x) == NULL)
 
 void iterate(struct ptr_list *,void (*callback)(void *, void *, int), void*);
+void init_iterator(struct ptr_list **head, struct list_iterator *iterator, int flags);
+void * next_iterator(struct list_iterator *iterator);
+void delete_iterator(struct list_iterator *iterator);
+void init_terminator_iterator(struct instruction* terminator, struct terminator_iterator *iterator);
+struct basic_block* next_terminator_bb(struct terminator_iterator *iterator);
+void replace_terminator_bb(struct terminator_iterator *iterator, struct basic_block* bb);
+void * delete_ptr_list_last(struct ptr_list **head);
+int replace_ptr_list(struct ptr_list **head, void *old_ptr, void *new_ptr);
+
 extern void add_ptr_list(struct ptr_list **, void *);
 extern void concat_ptr_list(struct ptr_list *a, struct ptr_list **b);
 extern void free_ptr_list(struct ptr_list **);
@@ -90,6 +128,73 @@ extern void create_builtin_stream(void);
 #define symbol_list_size(list) ptr_list_size((struct ptr_list *)(list))
 #define statement_list_size(list) ptr_list_size((struct ptr_list *)(list))
 #define expression_list_size(list) ptr_list_size((struct ptr_list *)(list))
+#define instruction_list_size(list) ptr_list_size((struct ptr_list *)(list))
+#define bb_list_size(list) ptr_list_size((struct ptr_list *)(list))
+
+
+#define init_multijmp_iterator(list, iterator, flags) init_iterator((struct ptr_list **)(list), (iterator), (flags))
+
+#define next_basic_block(iterator) (struct basic_block*) next_iterator(iterator)
+#define next_multijmp(iterator) (struct multijmp*) next_iterator(iterator)
+
+void * next_iterator(struct list_iterator *iterator);
+
+static inline void init_bb_iterator(struct basic_block_list **head, struct list_iterator *iterator, int flags)
+{
+	init_iterator((struct ptr_list **)head, iterator, flags);
+}
+
+static inline struct instruction * delete_last_instruction(struct instruction_list **head)
+{
+	return delete_ptr_list_last((struct ptr_list **)head);
+}
+
+static inline struct basic_block * delete_last_basic_block(struct basic_block_list **head)
+{
+	return delete_ptr_list_last((struct ptr_list **)head);
+}
+
+
+static inline void *first_ptr_list(struct ptr_list *list)
+{
+	if (!list)
+		return NULL;
+	return list->list[0];
+}
+
+static inline void *last_ptr_list(struct ptr_list *list)
+{
+
+	if (!list)
+		return NULL;
+	list = list->prev;
+	return list->list[list->nr-1];
+}
+
+static inline void * current_iterator(struct list_iterator *iterator)
+{
+	struct ptr_list *list = iterator->active;
+	return list ? list->list[iterator->index] : NULL;
+}
+
+static inline struct basic_block *first_basic_block(struct basic_block_list *head)
+{
+	return last_ptr_list((struct ptr_list *)head);
+}
+static inline struct instruction *last_instruction(struct instruction_list *head)
+{
+	return last_ptr_list((struct ptr_list *)head);
+}
+
+static inline struct instruction *first_instruction(struct instruction_list *head)
+{
+	return first_ptr_list((struct ptr_list *)head);
+}
+
+static inline int replace_basic_block_list(struct basic_block_list **head, struct basic_block *from, struct basic_block *to)
+{
+	return replace_ptr_list((struct ptr_list **)head, (void*)from, (void*)to);
+}
 
 static inline void concat_symbol_list(struct symbol_list *from, struct symbol_list **to)
 {
@@ -97,6 +202,11 @@ static inline void concat_symbol_list(struct symbol_list *from, struct symbol_li
 }
 
 static inline void concat_basic_block_list(struct basic_block_list *from, struct basic_block_list **to)
+{
+	concat_ptr_list((struct ptr_list *)from, (struct ptr_list **)to);
+}
+
+static inline void concat_instruction_list(struct instruction_list *from, struct instruction_list **to)
 {
 	concat_ptr_list((struct ptr_list *)from, (struct ptr_list **)to);
 }

@@ -159,6 +159,8 @@ struct allocator_struct bytes_allocator = { "bytes", NULL, 1, CHUNK };
 struct allocator_struct basic_block_allocator = { "basic_block", NULL, __alignof__(struct basic_block), CHUNK };
 struct allocator_struct entrypoint_allocator = { "entrypoint", NULL, __alignof__(struct entrypoint), CHUNK };
 struct allocator_struct instruction_allocator = { "instruction", NULL, __alignof__(struct instruction), CHUNK };
+struct allocator_struct multijmp_allocator = { "multijmp", NULL, __alignof__(struct multijmp), CHUNK };
+struct allocator_struct phi_allocator = { "phi", NULL, __alignof__(struct phi), CHUNK };
 
 #define __ALLOCATOR(type, size, x)				\
 	type *__alloc_##x(int extra)				\
@@ -180,6 +182,8 @@ ALLOCATOR(expression); ALLOCATOR(statement); ALLOCATOR(string);
 ALLOCATOR(scope); __ALLOCATOR(void, 0, bytes);
 ALLOCATOR(basic_block); ALLOCATOR(entrypoint);
 ALLOCATOR(instruction);
+ALLOCATOR(multijmp);
+ALLOCATOR(phi);
 
 int ptr_list_size(struct ptr_list *head)
 {
@@ -240,6 +244,206 @@ void add_ptr_list(struct ptr_list **listp, void *ptr)
 	last->list[nr] = ptr;
 	nr++;
 	last->nr = nr;
+}
+
+void init_iterator(struct ptr_list **head, struct list_iterator *iterator, int flags)
+{
+	iterator->head = head;
+	iterator->index = 0;
+	iterator->active = NULL;
+	iterator->flags = flags;
+}
+
+void * next_iterator(struct list_iterator *iterator)
+{
+	struct ptr_list *list = iterator->active;
+	int index;
+
+	if (!list) {
+		if (*iterator->head==NULL)
+			return NULL;
+
+		list = *iterator->head;
+		iterator->index = 0;
+		if (!(iterator->flags & ITERATOR_BACKWARDS)) {
+			iterator->active = list;
+			return list->list[0];
+		}
+	}
+
+	if (iterator->flags & ITERATOR_BACKWARDS) {
+		index = iterator->index -1;
+		if (index < 0) {
+			if (list->prev == *iterator->head)
+				return NULL;
+			list = iterator->active = list->prev;
+			index = list->nr -1;
+		}
+	} else {
+		index = iterator->index + 1;
+		if (index >= list->nr) {
+			if (list->next == *iterator->head)
+				return NULL;
+			list = iterator->active = list->next;
+			index = 0;
+		}
+	}
+	iterator->index = index;
+	return list->list[index];
+}
+
+void replace_iterator(struct list_iterator *iterator, void* ptr)
+{
+	struct ptr_list *list = iterator->active;
+	if (list)
+		list->list[iterator->index] = ptr;
+}
+
+void delete_iterator(struct list_iterator *iterator)
+{
+	struct ptr_list *list = iterator->active;
+	int movsize = list->nr - iterator->index - 1;
+	void ** curptr = list->list+iterator->index;
+
+	if (movsize>0)
+		memmove(curptr, curptr+1, movsize*sizeof curptr);
+
+	list->nr --;
+	if (iterator->flags & ITERATOR_BACKWARDS) {
+		if (iterator->index + 1 >= list->nr) {
+			iterator->active = (list->next == *iterator->head) ? NULL : list->next;
+			iterator->index = 0;
+		}
+	} else {
+		if (--iterator->index <0) {
+			iterator->active = (list->prev == *iterator->head) ? NULL : list->prev;
+			iterator->index = list->prev->nr;
+		}
+	}
+	if (list->nr <=0) {
+		list->prev->next = list->next;
+		list->next->prev = list->prev;
+		if (list == *iterator->head)
+			*iterator->head = (list->next == *iterator->head) ? NULL : list->next;
+		free(list);
+	}
+}
+
+void init_terminator_iterator(struct instruction* terminator, struct terminator_iterator *iterator)
+{
+	iterator->terminator = terminator;
+	if (!terminator)
+		return;
+
+	switch (terminator->opcode) {
+	case OP_BR:
+		iterator->branch = BR_INIT;
+		break;
+	case OP_SWITCH:
+		init_multijmp_iterator(&terminator->multijmp_list, &iterator->multijmp, 0);
+		break;
+	}
+}
+
+struct basic_block* next_terminator_bb(struct terminator_iterator *iterator)
+{
+	struct instruction *terminator = iterator->terminator;
+
+	if (!terminator)
+		return NULL;
+	switch (terminator->opcode) {
+	case OP_BR:
+		switch(iterator->branch) {
+		case BR_INIT:
+			if (terminator->bb_true) {
+				iterator->branch = BR_TRUE;
+				return terminator->bb_true;
+			}
+		case BR_TRUE:
+			if (terminator->bb_false) {
+				iterator->branch = BR_FALSE;
+				return terminator->bb_false;
+			}
+		default:
+			iterator->branch = BR_END;
+			return NULL;
+		}
+		break;
+	case OP_SWITCH: {
+		struct multijmp *jmp = next_multijmp(&iterator->multijmp);
+		return jmp ? jmp->target : NULL;
+	}
+	}
+	return NULL;
+}
+
+void replace_terminator_bb(struct terminator_iterator *iterator, struct basic_block* bb)
+{
+	struct instruction *terminator = iterator->terminator;
+	if (!terminator)
+		return;
+
+	switch (terminator->opcode) {
+	case OP_BR:
+		switch(iterator->branch) {
+		case BR_TRUE:
+			if (terminator->bb_true) {
+				terminator->bb_true = bb;
+				return;
+			}
+		case BR_FALSE:
+			if (terminator->bb_false) {
+				terminator->bb_false = bb;
+				return;
+			}
+		}
+		break;
+
+	case OP_SWITCH: {
+		struct multijmp *jmp = (struct multijmp*) current_iterator(&iterator->multijmp);
+		if (jmp)
+		       jmp->target = bb;
+	}
+	}
+}
+
+
+
+int replace_ptr_list(struct ptr_list **head, void *old_ptr, void *new_ptr)
+{
+	int count = 0;
+	struct list_iterator iterator;
+	void *ptr;
+
+	init_iterator(head, &iterator, 0);
+	while ((ptr=next_iterator(&iterator))) {
+		if (ptr==old_ptr) {
+			if (new_ptr)
+				replace_iterator(&iterator, new_ptr);
+			else
+				delete_iterator(&iterator);
+			count ++;
+		}
+	}
+	return count;
+}
+
+void * delete_ptr_list_last(struct ptr_list **head)
+{
+	void *ptr = NULL;
+	struct ptr_list *last;
+
+	if (!*head)
+		return NULL;
+	last = (*head)->prev;
+	if (last->nr)
+		ptr = last->list[--last->nr];
+	if (last->nr <=0) {
+		if (last == *head)
+			*head = NULL;
+		free(last);
+	}
+	return ptr;
 }
 
 void concat_ptr_list(struct ptr_list *a, struct ptr_list **b)
