@@ -107,7 +107,7 @@ static inline int linearize_insn_list(struct instruction_list *list, struct inst
 	return linearize_ptr_list((struct ptr_list *)list, (void **)arr, nr);
 }
 
-void simplify_phi_nodes(struct entrypoint *ep)
+static void simplify_phi_nodes(struct entrypoint *ep)
 {
 	struct basic_block *bb;
 
@@ -705,13 +705,16 @@ static void simplify_switch(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(insn);
 }
 
+void simplify_flow(struct entrypoint *ep)
+{
+	simplify_phi_nodes(ep);
+	simplify_switch(ep);
+	kill_unreachable_bbs(ep);
+}
+
 void pack_basic_blocks(struct entrypoint *ep)
 {
 	struct basic_block *bb;
-
-	simplify_switch(ep);
-
-	kill_unreachable_bbs(ep);
 
 	/* See if we can merge a bb into another one.. */
 	FOR_EACH_PTR(ep->bbs, bb) {

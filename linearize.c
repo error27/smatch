@@ -1631,14 +1631,10 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 			simplify_symbol_usage(ep);
 
 			/*
-			 * Questionable conditional branch simplification.
-			 * This short-circuits branches to conditional branches,
-			 * and leaves the phi-nodes "dangling" in the old
-			 * basic block - the nodes are no longer attached to
-			 * where the uses are. But it can still be considered
-			 * SSA if you just look at it sideways..
+			 * Do trivial flow simplification - branches to
+			 * branches, kill dead basicblocks etc
 			 */
-			simplify_phi_nodes(ep);
+			simplify_flow(ep);
 
 			/*
 			 * Remove trivial instructions, and try to CSE
