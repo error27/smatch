@@ -922,13 +922,8 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
  		loop_continue = alloc_basic_block();
  		loop_end = alloc_basic_block();
  
-		if (!post_statement && (pre_condition == post_condition)) {
-			/*
-			 * If it is a while loop, optimize away the post_condition.
-			 */
-			post_condition = NULL;
-			loop_body = loop_continue;
-			loop_continue = loop_top;
+		if (pre_condition == post_condition) {
+			loop_top = alloc_basic_block();
 			loop_top->flags |= BB_REACHABLE;
 			set_activeblock(ep, loop_top);
 		}
@@ -947,7 +942,10 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		if (post_condition) {
 			set_activeblock(ep, loop_continue);
 			linearize_statement(ep, post_statement);
- 			linearize_cond_branch(ep, post_condition, loop_top, loop_end);
+			if (pre_condition == post_condition)
+				add_goto(ep, loop_top);
+			else
+	 			linearize_cond_branch(ep, post_condition, loop_top, loop_end);
 		}
 
 		set_activeblock(ep, loop_end);
