@@ -994,6 +994,8 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 		if (is_int_type(source)) {
 			if (target->bit_size != source->bit_size)
 				goto Cast;
+			if (target->bit_offset != source->bit_offset)
+				goto Cast;
 			return 1;
 		}
 		if (is_float_type(source))
