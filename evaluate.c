@@ -2086,13 +2086,23 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 
 	/* And finally, evaluate the body of the symbol too */
 	if (base_type->type == SYM_FN) {
+		struct symbol *curr = current_fn;
+		unsigned long context = current_context;
+		unsigned long mask = current_contextmask;
+
+		current_fn = base_type;
+		current_contextmask = sym->ctype.contextmask;
+		current_context = sym->ctype.context;
+
 		examine_fn_arguments(base_type);
-		if (base_type->stmt) {
-			current_fn = base_type;
-			current_contextmask = sym->ctype.contextmask;
-			current_context = sym->ctype.context;
+		if (!base_type->stmt && base_type->inline_stmt)
+			uninline(sym);
+		if (base_type->stmt)
 			evaluate_statement(base_type->stmt);
-		}
+
+		current_fn = curr;
+		current_contextmask = mask;
+		current_context = context;
 	}
 
 	return base_type;

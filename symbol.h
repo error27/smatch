@@ -93,6 +93,8 @@ struct symbol {
 		struct symbol_list *arguments;
 		struct statement *stmt;
 		struct symbol_list *symbol_list;
+		struct statement *inline_stmt;
+		struct symbol_list *inline_symbol_list;
 		struct expression *initializer;
 		long long value;		/* Initial value */
 	};

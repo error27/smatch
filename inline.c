@@ -418,7 +418,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	struct symbol *name;
 	struct expression *arg;
 
-	if (!fn->stmt) {
+	if (!fn->inline_stmt) {
 		warn(fn->pos, "marked inline, but without a definition");
 		return 0;
 	}
@@ -428,13 +428,11 @@ int inline_function(struct expression *expr, struct symbol *sym)
 
 	name_list = fn->arguments;
 
-	stmt = alloc_statement(expr->pos, STMT_COMPOUND);
-
 	expr->type = EXPR_STATEMENT;
 	expr->statement = stmt;
 	expr->ctype = fn->ctype.base_type;
 
-	fn_symbol_list = create_symbol_list(sym->symbol_list);
+	fn_symbol_list = create_symbol_list(sym->inline_symbol_list);
 
 	PREPARE_PTR_LIST(name_list, name);
 	FOR_EACH_PTR(arg_list, arg) {
@@ -453,7 +451,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	} END_FOR_EACH_PTR;
 	FINISH_PTR_LIST(name);
 
-	copy_statement(fn->stmt, stmt);
+	copy_statement(fn->inline_stmt, stmt);
 
 	unset_replace_list(fn_symbol_list);
 
@@ -461,4 +459,20 @@ int inline_function(struct expression *expr, struct symbol *sym)
 
 	fn->expanding = 0;
 	return 1;
+}
+
+void uninline(struct symbol *sym)
+{
+	struct symbol *fn = sym->ctype.base_type;
+	struct symbol_list *arg_list = fn->arguments;
+	struct symbol *p;
+
+	sym->symbol_list = create_symbol_list(sym->inline_symbol_list);
+	FOR_EACH_PTR(arg_list, p) {
+		p->replace = p;
+	} END_FOR_EACH_PTR;
+	fn->stmt = alloc_statement(fn->pos, STMT_COMPOUND);
+	copy_statement(fn->inline_stmt, fn->stmt);
+	unset_replace_list(sym->symbol_list);
+	unset_replace_list(arg_list);
 }

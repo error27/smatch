@@ -1309,10 +1309,16 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 	struct symbol_list **list)
 {
 	struct symbol *base_type = decl->ctype.base_type;
-	struct statement *stmt;
+	struct statement *stmt, **p;
 	struct symbol *arg;
 
-	function_symbol_list = &decl->symbol_list;
+	if (decl->ctype.modifiers & MOD_INLINE) {
+		function_symbol_list = &decl->inline_symbol_list;
+		p = &base_type->inline_stmt;
+	} else {
+		function_symbol_list = &decl->symbol_list;
+		p = &base_type->stmt;
+	}
 	function_computed_target_list = NULL;
 	function_computed_goto_list = NULL;
 
@@ -1325,7 +1331,7 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 
 	stmt = start_function(decl);
 
-	base_type->stmt = stmt;
+	*p = stmt;
 	FOR_EACH_PTR (base_type->arguments, arg) {
 		declare_argument(arg, base_type);
 	} END_FOR_EACH_PTR;
