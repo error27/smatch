@@ -32,11 +32,15 @@ static struct symbol_list **function_symbol_list;
 struct symbol_list *function_computed_target_list;
 struct statement_list *function_computed_goto_list;
 
-// Add a symbol to the list of function-local symbols
-#define fn_local_symbol(x) add_symbol(function_symbol_list, (x))
-
 static struct token *statement(struct token *token, struct statement **tree);
 static struct token *external_declaration(struct token *token, struct symbol_list **list);
+
+// Add a symbol to the list of function-local symbols
+static void fn_local_symbol(struct symbol *sym)
+{
+	if (function_symbol_list)
+		add_symbol(function_symbol_list, sym);
+}
 
 static int match_idents(struct token *token, ...)
 {
@@ -1475,10 +1479,12 @@ static void declare_argument(struct symbol *sym, struct symbol *fn)
 static struct token *parse_function_body(struct token *token, struct symbol *decl,
 	struct symbol_list **list)
 {
+	struct symbol_list **old_symbol_list;
 	struct symbol *base_type = decl->ctype.base_type;
 	struct statement *stmt, **p;
 	struct symbol *arg;
 
+	old_symbol_list = function_symbol_list;
 	if (decl->ctype.modifiers & MOD_INLINE) {
 		function_symbol_list = &decl->inline_symbol_list;
 		p = &base_type->inline_stmt;
@@ -1509,7 +1515,7 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 	if (!(decl->ctype.modifiers & MOD_INLINE))
 		add_symbol(list, decl);
 	check_declaration(decl);
-	function_symbol_list = NULL;
+	function_symbol_list = old_symbol_list;
 	if (function_computed_goto_list) {
 		if (!function_computed_target_list)
 			warning(decl->pos, "function has computed goto but no targets?");
@@ -1591,16 +1597,18 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 
 	/* Top-level inline asm? */
 	if (match_idents(token, &asm_ident, &__asm___ident, &__asm_ident, NULL)) {
+		struct symbol_list **old_symbol_list;
 		struct symbol *anon = alloc_symbol(token->pos, SYM_NODE);
 		struct symbol *fn = alloc_symbol(token->pos, SYM_FN);
 		struct statement *stmt;
 
 		anon->ctype.base_type = fn;
+		old_symbol_list = function_symbol_list;
 		function_symbol_list = &anon->symbol_list;
 		stmt = start_function(anon);
 		token = parse_asm(token->next, stmt);
 		end_function(anon);
-		function_symbol_list = NULL;
+		function_symbol_list = old_symbol_list;
 		add_symbol(list, anon);
 		return token;
 	}
@@ -1652,8 +1660,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 		if (!is_typedef) {
 			if (!(decl->ctype.modifiers & (MOD_EXTERN | MOD_INLINE))) {
 				add_symbol(list, decl);
-				if (function_symbol_list)
-					fn_local_symbol(decl);
+				fn_local_symbol(decl);
 			}
 		}
 		check_declaration(decl);
