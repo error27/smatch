@@ -40,24 +40,48 @@ struct struct_union_info {
 	unsigned long max_align;
 	unsigned long bit_size;
 	unsigned long offset;
+	unsigned long last_offset;
 	unsigned long bit_offset;
+	unsigned long bit_width;
 };
 
 static void examine_one_member(struct symbol *sym, void *_info, int flags)
 {
 	struct struct_union_info *info = _info;
-	unsigned long offset = info->offset;
-	unsigned long bit_size;
+	unsigned long offset = info->offset, correction;
+	unsigned long bit_size, mybits, basewidth;
+	int advance;
 
 	examine_symbol_type(sym);
 	if (sym->alignment > info->max_align)
 		info->max_align = sym->alignment;
-	if (info->advance) {
+
+	advance = info->advance;
+
+	mybits = sym->fieldwidth;
+	basewidth = 0;
+	correction = 0;
+	if (mybits) {
+		basewidth = sym->bit_size;
+
+		/* Don't advance if the bitfield fits in the old entry */
+		if (basewidth == info->bit_width && mybits + info->bit_offset <= info->bit_width) {
+			advance = 0;
+			offset = info->last_offset;
+		}
+	}
+	info->bit_width = basewidth;
+
+	if (advance) {
 		offset += sym->alignment-1;
 		offset &= ~(sym->alignment-1);
-		sym->offset = offset;
 		info->offset = offset + (sym->bit_size >> 3);
+		info->bit_offset = 0;
 	}
+	sym->offset = offset;
+	info->last_offset = offset;
+
+	/* Size of the _structure_, not the field */
 	bit_size = (offset << 3) + sym->bit_size;
 
 	/*
@@ -67,11 +91,18 @@ static void examine_one_member(struct symbol *sym, void *_info, int flags)
 	 */
 	if (bit_size > info->bit_size)
 		info->bit_size = bit_size;
+
+	/* Pack the bitfield into the top entry.. */
+	if (sym->fieldwidth) {
+		sym->bit_offset = info->bit_offset;
+		if (info->advance)
+			info->bit_offset += mybits;
+	}
 }
 
 static void examine_struct_union_type(struct symbol *sym, int advance)
 {
-	struct struct_union_info info = { advance, 1, 0, 0 };
+	struct struct_union_info info = { advance, 1, 0, 0, 0 };
 	unsigned long bit_size, bit_align;
 
 	symbol_iterate(sym->symbol_list, examine_one_member, &info);
@@ -91,6 +122,25 @@ static void examine_array_type(struct symbol *sym)
 		return;
 	examine_symbol_type(base_type);
 	bit_size = base_type->bit_size * sym->array_size;
+	alignment = base_type->alignment;
+	if (!sym->alignment)
+		sym->alignment = alignment;
+	sym->bit_size = bit_size;
+}
+
+static void examine_bitfield_type(struct symbol *sym)
+{
+	struct symbol *base_type = sym->ctype.base_type;
+	unsigned long bit_size, alignment;
+
+	if (!base_type)
+		return;
+	examine_symbol_type(base_type);
+	bit_size = base_type->bit_size;
+	if (sym->fieldwidth > bit_size) {
+		warn(sym->token, "impossible field-width for this type");
+		sym->fieldwidth = bit_size;
+	}
 	alignment = base_type->alignment;
 	if (!sym->alignment)
 		sym->alignment = alignment;
@@ -137,6 +187,9 @@ void examine_symbol_type(struct symbol * sym)
 		if (!sym->alignment)
 			sym->alignment = ENUM_ALIGNMENT;
 		return;
+	case SYM_BITFIELD:
+		examine_bitfield_type(sym);
+		return;
 	case SYM_BASETYPE:
 		/* Size and alignment had better already be set up */
 		return;
@@ -154,6 +207,8 @@ void examine_symbol_type(struct symbol * sym)
 
 		bit_size = base_type->bit_size;
 		alignment = base_type->alignment;
+		if (base_type->fieldwidth)
+			sym->fieldwidth = base_type->fieldwidth;
 	} else
 		bit_size = 0;
 
