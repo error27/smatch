@@ -18,21 +18,6 @@
 ALLOCATOR(storage, "storages");
 ALLOCATOR(storage_hash, "storage hash");
 
-static inline struct storage *alloc_storage(void)
-{
-	return __alloc_storage(0);
-}
-
-static inline struct storage_hash *alloc_storage_hash(struct storage *s)
-{
-	struct storage_hash *entry = __alloc_storage_hash(0);
-	struct storage **usep = &entry->storage;
-
-	*usep = s;
-	add_ptr_list(&s->users, usep);
-	return entry;
-}
-
 #define MAX_STORAGE_HASH 64
 struct storage_hash_list *storage_hash_table[MAX_STORAGE_HASH];
 

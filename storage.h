@@ -51,4 +51,22 @@ extern void free_storage(void);
 extern const char *show_storage(struct storage *);
 extern void set_up_storage(struct entrypoint *);
 
+DECLARE_ALLOCATOR(storage);
+DECLARE_ALLOCATOR(storage_hash);
+
+static inline struct storage *alloc_storage(void)
+{
+	return __alloc_storage(0);
+}
+
+static inline struct storage_hash *alloc_storage_hash(struct storage *s)
+{
+	struct storage_hash *entry = __alloc_storage_hash(0);
+	struct storage **usep = &entry->storage;
+
+	*usep = s;
+	add_ptr_list(&s->users, usep);
+	return entry;
+}
+
 #endif /* STORAGE_H */
