@@ -32,6 +32,7 @@ static struct hardreg hardregs[] = {
 #define REGNO (sizeof(hardregs)/sizeof(struct hardreg))
 
 struct bb_state {
+	int last_reg;
 	struct basic_block *bb;
 	unsigned long stack_offset;
 	struct storage_hash_list *inputs;
@@ -94,6 +95,8 @@ static void flush_reg(struct bb_state *state, struct hardreg *hardreg)
 
 	if (!hardreg->busy || !hardreg->dirty)
 		return;
+	hardreg->busy = 0;
+	hardreg->dirty = 0;
 	pseudo = hardreg->contains;
 	if (!pseudo)
 		return;
@@ -124,13 +127,13 @@ static void flush_reg(struct bb_state *state, struct hardreg *hardreg)
 		printf("\tmovl %s,%s\n", hardreg->name, show_memop(storage));
 		break;
 	}
-		
 }
 
 /* Fill a hardreg with the pseudo it has */
 static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg, pseudo_t pseudo)
 {
 	struct storage_hash *src;
+	struct instruction *def;
 
 	switch (pseudo->type) {
 	case PSEUDO_VAL:
@@ -141,6 +144,11 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 		break;
 	case PSEUDO_ARG:
 	case PSEUDO_REG:
+		def = pseudo->def;
+		if (def->opcode == OP_SETVAL) {
+			printf("\tmovl $<%s>,%s\n", show_pseudo(def->symbol), hardreg->name);
+			break;
+		}
 		src = find_storage_hash(pseudo, state->outputs);
 		if (!src) {
 			src = find_storage_hash(pseudo, state->internal);
@@ -157,28 +165,40 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 		printf("\treload %s from %s\n", hardreg->name, show_pseudo(pseudo));
 		break;
 	}
+	return hardreg;
+}
+
+static struct hardreg *target_reg(struct bb_state *state, pseudo_t pseudo)
+{
+	int i;
+	struct hardreg *hardreg;
+
+	i = state->last_reg+1;
+	if (i >= REGNO)
+		i = 0;
+	state->last_reg = i;
+	hardreg = hardregs + i;
+	flush_reg(state, hardreg);
+
 	hardreg->contains = pseudo;
 	hardreg->busy = 1;
+	hardreg->dirty = 0;
 	return hardreg;
 }
 
 static struct hardreg *getreg(struct bb_state *state, pseudo_t pseudo)
 {
 	int i;
-	static int last;
+	struct hardreg *hardreg;
 
 	for (i = 0; i < REGNO; i++) {
 		if (hardregs[i].contains == pseudo) {
-			last = i;
+			state->last_reg = i;
 			return hardregs+i;
 		}
 	}
-	i = last+1;
-	if (i >= REGNO)
-		i = 0;
-	last = i;
-	flush_reg(state, hardregs + i);
-	return fill_reg(state, hardregs + i, pseudo);
+	hardreg = target_reg(state, pseudo);
+	return fill_reg(state, hardreg, pseudo);
 }
 
 static const char *address(struct bb_state *state, struct instruction *memop)
@@ -217,6 +237,12 @@ static const char *reg_or_imm(struct bb_state *state, pseudo_t pseudo)
 static void generate_store(struct instruction *insn, struct bb_state *state)
 {
 	printf("\tmov.%d %s,%s\n", insn->size, reg_or_imm(state, insn->target), address(state, insn));
+}
+
+static void generate_load(struct instruction *insn, struct bb_state *state)
+{
+	const char *input = address(state, insn);
+	printf("\tmov.%d %s,%s\n", insn->size, target_reg(state, insn->target)->name, input);
 }
 
 static const char* opcodes[] = {
@@ -319,6 +345,21 @@ static void mark_pseudo_dead(pseudo_t pseudo)
 	}
 }
 
+static void generate_phisource(struct instruction *insn, struct bb_state *state)
+{
+	struct instruction *user = first_instruction(insn->phi_users);
+	struct hardreg *reg = getreg(state, insn->phi_src);
+
+	if (!user)
+		return;
+	reg = getreg(state, insn->phi_src); 
+
+	flush_reg(state, reg);
+	reg->contains = user->target;
+	reg->busy = 1;
+	reg->dirty = 1;
+}
+
 static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 {
 	switch (insn->opcode) {
@@ -338,6 +379,11 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 	 */
 	case OP_PHI:
 		break;
+
+	case OP_PHISOURCE:
+		generate_phisource(insn, state);
+		break;
+
 	/*
 	 * OP_SETVAL likewise doesn't actually generate any
 	 * code. On use, the "def" of the pseudo will be
@@ -348,6 +394,10 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 
 	case OP_STORE:
 		generate_store(insn, state);
+		break;
+
+	case OP_LOAD:
+		generate_load(insn, state);
 		break;
 
 	case OP_DEATHNOTE:
@@ -365,14 +415,95 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 	}
 }
 
-static void generate_list(struct basic_block_list *list, unsigned long generation)
+static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, struct storage *storage)
 {
-	struct basic_block *bb;
-	FOR_EACH_PTR(list, bb) {
-		if (bb->generation == generation)
+	struct hardreg *out;
+
+	switch (storage->type) {
+	case REG_UDEF:
+		storage->type = REG_REG;
+		storage->regno = reg - hardregs;
+		return;
+	case REG_REG:
+		out = hardregs + storage->regno;
+		if (reg == out)
+			return;
+		assert(!out->contains);
+		printf("\tmovl %s,%s\n", reg->name, out->name);
+		return;
+	default:
+		printf("\tmovl %s,%s\n", reg->name, show_memop(storage));
+		return;
+	}
+}
+
+static void write_val_to_storage(struct bb_state *state, pseudo_t src, struct storage *storage)
+{
+	struct hardreg *out;
+
+	switch (storage->type) {
+	case REG_UDEF:
+		alloc_stack(state, storage);
+	default:
+		printf("\tmovl %s,%s\n", show_pseudo(src), show_memop(storage));
+		break;
+	case REG_REG:
+		out = hardregs + storage->regno;
+		printf("\tmovl %s,%s\n", show_pseudo(src), out->name);
+	}
+}
+
+static void fill_output(struct bb_state *state, pseudo_t pseudo, struct storage *out)
+{
+	int i;
+	struct storage_hash *in;
+	struct instruction *def;
+
+	/* Is that pseudo a constant value? */
+	switch (pseudo->type) {
+	case PSEUDO_VAL:
+		write_val_to_storage(state, pseudo, out);
+		return;
+	case PSEUDO_REG:
+		def = pseudo->def;
+		if (def->opcode == OP_SETVAL) {
+			write_val_to_storage(state, def->symbol, out);
+			return;
+		}
+	default:
+		break;
+	}
+
+	/* See if we have that pseudo in a register.. */
+	for (i = 0; i < REGNO; i++) {
+		struct hardreg *reg = hardregs + i;
+		if (reg->contains != pseudo)
 			continue;
-		output_bb(bb, generation);
-	} END_FOR_EACH_PTR(bb);
+		write_reg_to_storage(state, reg, out);
+		return;
+	}
+
+	/* Do we have it in another storage? */
+	in = find_storage_hash(pseudo, state->internal);
+	if (!in) {
+		in = find_storage_hash(pseudo, state->inputs);
+		/* Undefined? */
+		if (!in)
+			return;
+	}
+	switch (out->type) {
+	case REG_UDEF:
+		*out = *in->storage;
+		break;
+	case REG_REG:
+		printf("\tmovl %s,%s\n", show_memop(in->storage), hardregs[out->regno].name);
+		break;
+	default:
+		printf("\tmovl %s,tmp\n", show_memop(in->storage));
+		printf("\tmovl tmp,%s\n", show_memop(out));
+		break;
+	}
+	return;
 }
 
 static void generate(struct basic_block *bb, struct bb_state *state)
@@ -407,10 +538,36 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 		generate_one_insn(insn, state);
 	} END_FOR_EACH_PTR(insn);
 
+	/* Go through the fixed outputs, making sure we have those regs free */
+	FOR_EACH_PTR(state->outputs, entry) {
+		struct storage *out = entry->storage;
+		if (out->type == REG_REG) {
+			struct hardreg *reg = hardregs + out->regno;
+			if (reg->contains != entry->pseudo) {
+				flush_reg(state, reg);
+				reg->contains = NULL;
+			}
+		}
+	} END_FOR_EACH_PTR(entry);
+
+	FOR_EACH_PTR(state->outputs, entry) {
+		fill_output(state, entry->pseudo, entry->storage);
+	} END_FOR_EACH_PTR(entry);
+
 	FOR_EACH_PTR(state->outputs, entry) {
 		printf("\t%s -> %s\n", show_pseudo(entry->pseudo), show_storage(entry->storage));
 	} END_FOR_EACH_PTR(entry);
 	printf("\n");
+}
+
+static void generate_list(struct basic_block_list *list, unsigned long generation)
+{
+	struct basic_block *bb;
+	FOR_EACH_PTR(list, bb) {
+		if (bb->generation == generation)
+			continue;
+		output_bb(bb, generation);
+	} END_FOR_EACH_PTR(bb);
 }
 
 static void output_bb(struct basic_block *bb, unsigned long generation)
@@ -426,6 +583,7 @@ static void output_bb(struct basic_block *bb, unsigned long generation)
 	state.outputs = gather_storage(bb, STOR_OUT);
 	state.internal = NULL;
 	state.stack_offset = 0;
+	state.last_reg = -1;
 
 	generate(bb, &state);
 
