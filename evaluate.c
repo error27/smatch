@@ -2377,10 +2377,22 @@ static void evaluate_iterator(struct statement *stmt)
 
 static void verify_output_constraint(struct expression *expr, const char *constraint)
 {
+	switch (*constraint) {
+	case '=':	/* Assignment */
+	case '+':	/* Update */
+		break;
+	default:
+		warning(expr->pos, "output constraint is not an assignment constraint (\"%s\")", constraint);
+	}
 }
 
 static void verify_input_constraint(struct expression *expr, const char *constraint)
 {
+	switch (*constraint) {
+	case '=':	/* Assignment */
+	case '+':	/* Update */
+		warning(expr->pos, "input constraint with assignment (\"%s\")", constraint);
+	}
 }
 
 static void evaluate_asm_statement(struct statement *stmt)
