@@ -538,7 +538,7 @@ static int simplify_cast(struct instruction *insn)
 
 	if (dead_insn(insn, &insn->src, NULL, NULL))
 		return REPEAT_CSE;
-	if (insn->opcode == OP_PTRCAST)
+	if (0 && insn->opcode == OP_PTRCAST)
 		return 0;
 	orig_size = insn->orig_type ? insn->orig_type->bit_size : 0;
 	if (orig_size < 0)
