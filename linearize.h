@@ -236,6 +236,7 @@ static inline int bb_reachable(struct basic_block *bb)
 struct entrypoint {
 	struct symbol *name;
 	struct symbol_list *syms;
+	struct symbol_list *accesses;
 	struct basic_block_list *bbs;
 	struct basic_block *active;
 	struct basic_block *entry;

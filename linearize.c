@@ -534,7 +534,7 @@ static pseudo_t alloc_pseudo(struct instruction *def)
 	return pseudo;
 }
 
-static pseudo_t symbol_pseudo(struct symbol *sym)
+static pseudo_t symbol_pseudo(struct entrypoint *ep, struct symbol *sym)
 {
 	pseudo_t pseudo = sym->pseudo;
 
@@ -543,6 +543,7 @@ static pseudo_t symbol_pseudo(struct symbol *sym)
 		pseudo->type = PSEUDO_SYM;
 		pseudo->sym = sym;
 		sym->pseudo = pseudo;
+		add_symbol(&ep->accesses, sym);
 	}
 	/* Symbol pseudos have neither nr, usage nor def */
 	return pseudo;
@@ -589,7 +590,7 @@ static int linearize_simple_address(struct entrypoint *ep,
 	struct access_data *ad)
 {
 	if (addr->type == EXPR_SYMBOL) {
-		ad->address = symbol_pseudo(addr->symbol);
+		ad->address = symbol_pseudo(ep, addr->symbol);
 		return 1;
 	}
 	if (addr->type == EXPR_BINOP) {
@@ -906,7 +907,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 		}
 	}
 	if (fn->type == EXPR_SYMBOL) {
-		call = symbol_pseudo(fn->symbol);
+		call = symbol_pseudo(ep, fn->symbol);
 	} else {
 		call = linearize_expression(ep, fn);
 	}
@@ -1199,7 +1200,7 @@ void linearize_argument(struct entrypoint *ep, struct symbol *arg, int nr)
 	struct access_data ad = { NULL, };
 
 	ad.ctype = arg;
-	ad.address = symbol_pseudo(arg);
+	ad.address = symbol_pseudo(ep, arg);
 	linearize_store_gen(ep, argument_pseudo(nr), &ad);
 	finish_address_gen(ep, &ad);
 }
@@ -1282,7 +1283,7 @@ static void linearize_one_symbol(struct entrypoint *ep, struct symbol *sym)
 	if (!sym->initializer)
 		return;
 
-	ad.address = symbol_pseudo(sym);
+	ad.address = symbol_pseudo(ep, sym);
 	linearize_initializer(ep, sym->initializer, &ad);
 	finish_address_gen(ep, &ad);
 }
@@ -1718,8 +1719,45 @@ static inline int same_memop(struct instruction *a, struct instruction *b)
 		a->type->bit_offset == b->type->bit_offset;
 }
 
+/*
+ * Return 1 if "one" dominates the access to 'pseudo'
+ * in insn.
+ *
+ * Return 0 if it doesn't, and -1 if you don't know.
+ */
+static int dominates(pseudo_t pseudo, struct instruction *insn,
+	struct instruction *one, int local)
+{
+	int opcode = one->opcode;
+
+	if (opcode == OP_CALL)
+		return local ? 0 : -1;
+	if (opcode != OP_LOAD && opcode != OP_STORE)
+		return 0;
+	if (one->src != pseudo) {
+		if (local)
+			return 0;
+		/* We don't think two explicitly different symbols ever alias */
+		if (one->src->type == PSEUDO_SYM)
+			return 0;
+		/* We could try to do some alias analysis here */
+		return -1;
+	}
+	if (!same_memop(insn, one)) {
+		if (one->opcode == OP_LOAD)
+			return 0;
+		if (!overlapping_memop(insn, one))
+			return 0;
+		return -1;
+	}
+	if (!local)
+		warning(pseudo->sym->pos, "Found dominator for %s", show_ident(pseudo->sym->ident));
+	return 1;
+}
+
 static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
-	struct basic_block *bb, unsigned long generation, struct phi_list **dominators)
+	struct basic_block *bb, unsigned long generation, struct phi_list **dominators,
+	int local)
 {
 	struct basic_block *parent;
 
@@ -1727,19 +1765,16 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 		struct instruction *one, *dom;
 		dom = NULL;
 		FOR_EACH_PTR(parent->insns, one) {
-			if (one == insn)
+			int dominance;
+			if (one == insn) {
 				dom = NULL;
-			if (one->opcode != OP_STORE && one->opcode != OP_LOAD)
 				continue;
-			if (one->src != pseudo)
-				continue;
-			if (!same_memop(insn, one)) {
-				if (one->opcode == OP_LOAD)
-					continue;
-				if (!overlapping_memop(insn, one))
-					continue;
-				return 0;
 			}
+			dominance = dominates(pseudo, insn, one, local);
+			if (dominance < 0)
+				return 0;
+			if (!dominance)
+				continue;
 			dom = one;
 		} END_FOR_EACH_PTR(one);
 
@@ -1753,13 +1788,14 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 			continue;
 		parent->generation = generation;
 
-		if (!find_dominating_parents(pseudo, insn, parent, generation, dominators))
+		if (!find_dominating_parents(pseudo, insn, parent, generation, dominators, local))
 			return 0;
 	} END_FOR_EACH_PTR(parent);
 	return 1;
 }		
 
-static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn, unsigned long generation)
+static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,
+	unsigned long generation, int local)
 {
 	struct basic_block *bb = insn->bb;
 	struct instruction *one, *dom = NULL;
@@ -1772,19 +1808,14 @@ static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn, uns
 	}
 
 	FOR_EACH_PTR(bb->insns, one) {
+		int dominance;
 		if (one == insn)
 			goto found;
-		if (one->opcode != OP_STORE && one->opcode != OP_LOAD)
-			continue;
-		if (one->src != pseudo)
-			continue;
-		if (!same_memop(one, insn)) {
-			if (one->opcode == OP_LOAD);
-				continue;
-			if (!overlapping_memop(one, insn))
-				continue;
+		dominance = dominates(pseudo, insn, one, local);
+		if (dominance < 0)
 			return 0;
-		}
+		if (!dominance)
+			continue;
 		dom = one;
 	} END_FOR_EACH_PTR(one);
 	/* Whaa? */
@@ -1800,11 +1831,13 @@ found:
 	bb->generation = generation;
 
 	dominators = NULL;
-	if (!find_dominating_parents(pseudo, insn, bb, generation, &dominators))
+	if (!find_dominating_parents(pseudo, insn, bb, generation, &dominators, local))
 		return 0;
 
 	/* This happens with initial assignments to structures etc.. */
 	if (!dominators) {
+		if (!local)
+			return 0;
 		convert_load_insn(insn, value_pseudo(0));
 		return 1;
 	}
@@ -1843,16 +1876,21 @@ static void simplify_one_symbol(struct symbol *sym)
 {
 	pseudo_t pseudo, src, *pp;
 	struct instruction *def;
-	int all;
-
-	/* External visibility? Never mind */
-	if (sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE))
-		return;
+	int all, local;
 
 	/* Never used as a symbol? */
 	pseudo = sym->pseudo;
 	if (!pseudo)
 		return;
+
+	/* We don't do coverage analysis of volatiles.. */
+	if (sym->ctype.modifiers & MOD_VOLATILE)
+		return;
+
+	/* ..and symbols with external visibility need more care */
+	local = !(sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE));
+	if (!local)
+		goto external_visibility;
 
 	def = NULL;
 	FOR_EACH_PTR(pseudo->users, pp) {
@@ -1895,16 +1933,16 @@ static void simplify_one_symbol(struct symbol *sym)
 
 multi_def:
 complex_def:
-
+external_visibility:
 	all = 1;
 	FOR_EACH_PTR(pseudo->users, pp) {
 		struct instruction *insn = container(pp, struct instruction, src);
 		if (insn->opcode == OP_LOAD)
-			all &= find_dominating_stores(pseudo, insn, ++bb_generation);
+			all &= find_dominating_stores(pseudo, insn, ++bb_generation, local);
 	} END_FOR_EACH_PTR(pp);
 
 	/* If we converted all the loads, remove the stores. They are dead */
-	if (all) {
+	if (local && all) {
 		FOR_EACH_PTR(pseudo->users, pp) {
 			struct instruction *insn = container(pp, struct instruction, src);
 			if (insn->opcode == OP_STORE)
@@ -1918,8 +1956,9 @@ complex_def:
 static void simplify_symbol_usage(struct entrypoint *ep)
 {
 	struct symbol *sym;
-	FOR_EACH_PTR(ep->syms, sym) {
+	FOR_EACH_PTR(ep->accesses, sym) {
 		simplify_one_symbol(sym);
+		sym->pseudo = NULL;
 	} END_FOR_EACH_PTR(sym);
 }
 
