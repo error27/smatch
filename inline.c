@@ -248,15 +248,11 @@ static struct statement *copy_one_statement(struct statement *stmt)
 		break;
 	}
 	case STMT_CASE: {
-		struct symbol *sym = copy_symbol(stmt->case_label);
-		struct expression *from = copy_expression(stmt->case_expression);
-		struct expression *to = copy_expression(stmt->case_to);
-		struct statement *stmt = copy_one_statement(stmt->case_statement);
 		stmt = dup_statement(stmt);
-		stmt->case_expression = from;
-		stmt->case_to = to;
-		stmt->case_statement = stmt;
-		stmt->case_label = sym;
+		stmt->case_label = copy_symbol(stmt->case_label);
+		stmt->case_expression = copy_expression(stmt->case_expression);
+		stmt->case_to = copy_expression(stmt->case_to);
+		stmt->case_statement = copy_one_statement(stmt->case_statement);
 		break;
 	}
 	case STMT_SWITCH: {
