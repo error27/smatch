@@ -420,7 +420,8 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 
 	/* Throw away for now.. */
 	if (attribute == &format_ident ||
-	    attribute == &__format___ident)
+	    attribute == &__format___ident ||
+	    attribute == &__format_arg___ident)
 		return NULL;
 	if (attribute == &section_ident ||
 	    attribute == &__section___ident)

@@ -53,6 +53,7 @@ IDENT(alias); IDENT(pure); IDENT(always_inline);
 IDENT(syscall_linkage); IDENT(visibility);
 IDENT(bitwise);
 IDENT(model); IDENT(__model__);
+IDENT(__format_arg__);
 
 /* Preprocessor idents */
 __IDENT(pragma_ident, "__pragma__", 0);
