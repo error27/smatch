@@ -473,6 +473,7 @@ static int new_pseudo(void)
 
 static int show_call_expression(struct expression *expr)
 {
+	struct symbol *direct;
 	struct expression *arg, *fn;
 	int fncall, retval;
 	int framesize;
@@ -491,15 +492,26 @@ static int show_call_expression(struct expression *expr)
 	} END_FOR_EACH_PTR;
 
 	fn = expr->fn;
-	/* Remove dereference, if any */
-	if (fn->type == EXPR_PREOP)
-		fn = fn->unop;
-	fncall = show_expression(fn);
-	retval = new_pseudo();
 
-	printf("\tcall\t\t*v%d\n", fncall);
+	/* Remove dereference, if any */
+	direct = NULL;
+	if (fn->type == EXPR_PREOP) {
+		if (fn->unop->type == EXPR_SYMBOL) {
+			struct symbol *sym = fn->unop->symbol;
+			if (sym->ctype.base_type->type == SYM_FN)
+				direct = sym;
+		}
+	}
+	if (direct) {
+		printf("\tcall\t\t%s\n", show_ident(direct->ident));
+	} else {
+		fncall = show_expression(fn);
+		printf("\tcall\t\t*v%d\n", fncall);
+	}
 	if (framesize)
 		printf("\tadd.%d\t\tvSP,vSP,$%d\n", BITS_IN_POINTER, framesize);
+
+	retval = new_pseudo();
 	printf("\tmov.%d\t\tv%d,retval\n", expr->ctype->bit_size, retval);
 	return retval;
 }
