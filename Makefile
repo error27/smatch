@@ -10,7 +10,8 @@ LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 	  linearize.h bitmap.h ident-list.h
 
 LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
-	  expression.o show-parse.o evaluate.o expand.o inline.o linearize.o
+	  expression.o show-parse.o evaluate.o expand.o inline.o linearize.o \
+	  sort.o
 
 LIB_FILE= sparse.a
 LIBS=$(LIB_FILE)
@@ -56,6 +57,7 @@ show-parse.o: $(LIB_H)
 symbol.o: $(LIB_H)
 expand.o: $(LIB_H)
 linearize.o: $(LIB_H)
+sort.o: $(LIB_H)
 inline.o: $(LIB_H)
 target.o: $(LIB_H)
 test-lexing.o: $(LIB_H)

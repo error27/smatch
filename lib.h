@@ -123,6 +123,7 @@ struct basic_block* next_terminator_bb(struct terminator_iterator *iterator);
 void replace_terminator_bb(struct terminator_iterator *iterator, struct basic_block* bb);
 void * delete_ptr_list_last(struct ptr_list **head);
 int replace_ptr_list(struct ptr_list *head, void *old_ptr, void *new_ptr);
+extern void sort_list(struct ptr_list **, int (*)(const void *, const void *));
 
 extern void add_ptr_list(struct ptr_list **, void *);
 extern void concat_ptr_list(struct ptr_list *a, struct ptr_list **b);
