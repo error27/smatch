@@ -542,13 +542,24 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 			if (diff & ~MOD_SIGNEDNESS)
 				return "different modifiers";
 
-			/* Differs in signedness only.. Sometimes ok - but not if both are explicit */
-			if ((mod1 | mod2) & MOD_EXPLICITLY_SIGNED)
-				return "different explicit signedness";
+			/* Differs in signedness only.. */
+			if (Wtypesign) {
+				/*
+				 * Warn if both are explicitly signed ("unsigned" is obvously
+				 * always explicit, and since we know one of them has to be
+				 * unsigned, we check if the signed one was explicit).
+				 */
+				if ((mod1 | mod2) & MOD_EXPLICITLY_SIGNED)
+					return "different explicit signedness";
 
-			/* "char" matches both "unsigned char" and "signed char" */
-			if (!(mod1 & MOD_CHAR))
-				return "different signedness";
+				/*
+				 * "char" matches both "unsigned char" and "signed char",
+				 * so if the explicit test didn't trigger, then we should
+				 * not warn about a char.
+				 */
+				if (!(mod1 & MOD_CHAR))
+					return "different signedness";
+			}
 		}
 
 		if (type1 == SYM_FN) {

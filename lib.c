@@ -561,6 +561,7 @@ unsigned char pre_buffer[8192];
 
 int Wdefault_bitfield_sign = 0;
 int Wbitwise = 0;
+int Wtypesign = 0;
 int preprocess_only;
 char *include;
 int include_fd = -1;
@@ -669,7 +670,8 @@ struct warning {
 	int *flag;
 } warnings[] = {
 	{ "default-bitfield-sign", &Wdefault_bitfield_sign },
-	{ "bitwise", &Wbitwise }
+	{ "bitwise", &Wbitwise },
+	{ "typesign", &Wtypesign },
 };
 
 
