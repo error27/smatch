@@ -1581,7 +1581,7 @@ static struct storage *x86_call_expression(struct expression *expr)
 	}
 
 	retval = new_pseudo();
-	emit_move(REG_EAX, retval, expr->ctype, "end function call", 0);
+	emit_move(REG_EAX, retval, NULL, "end function call", 0);
 
 	return retval;
 }
