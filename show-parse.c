@@ -338,6 +338,40 @@ static int new_label(void)
 	return ++label;
 }
 
+static void show_switch_statement(struct statement *stmt)
+{
+	int val = show_expression(stmt->switch_expression);
+	struct symbol *sym;
+	printf("\tswitch v%d\n", val);
+
+	FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
+		struct statement *case_stmt = sym->stmt;
+		struct expression *expr = case_stmt->case_expression;
+		struct expression *to = case_stmt->case_to;
+
+		if (!expr) {
+			printf("default:\n");
+		} else {
+			if (expr->type == EXPR_VALUE) {
+				printf("case %lld", expr->value);
+				if (to) {
+					if (to->type == EXPR_VALUE) {
+						printf(" .. %lld", to->value);
+					} else {
+						printf(" .. what");
+					}
+				}
+				printf(":\n");
+			} else
+				printf("case what:\n");
+		}
+		show_statement(case_stmt->case_statement);
+	} END_FOR_EACH_PTR;
+
+	if (stmt->switch_break->used)
+		printf(".L%p:\n", stmt->switch_break);
+}
+
 /*
  * Print out a statement
  */
@@ -390,14 +424,9 @@ int show_statement(struct statement *stmt)
 		printf(".L%d:\n", target);
 		break;
 	}
-	case STMT_SWITCH: {
-		int val = show_expression(stmt->switch_expression);
-		printf("\tswitch v%d\n", val);
-		show_statement(stmt->switch_statement);
-		if (stmt->switch_break->used)
-			printf(".L%p:\n", stmt->switch_break);
+	case STMT_SWITCH:
+		show_switch_statement(stmt);
 		break;
-	}
 
 	case STMT_CASE:
 		if (!stmt->case_expression)
@@ -433,9 +462,10 @@ int show_statement(struct statement *stmt)
 				printf("\tje\t\tv%d, .L%d\n", val, loop_bottom);
 			}
 		}
-		if (!post_condition || post_condition->type != EXPR_VALUE || post_condition->value)
+		if (!post_condition || post_condition->type != EXPR_VALUE || post_condition->value) {
 			loop_top = new_label();
-		printf(".L%d:\n", loop_top);
+			printf(".L%d:\n", loop_top);
+		}
 		show_statement(statement);
 		if (stmt->iterator_continue->used)
 			printf(".L%p:\n", stmt->iterator_continue);
@@ -528,7 +558,7 @@ static int show_call_expression(struct expression *expr)
 		int size = arg->ctype->bit_size;
 		printf("\tpush.%d\t\tv%d\n", size, new);
 		framesize += size >> 3;
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR_REVERSE;
 
 	fn = expr->fn;
 
