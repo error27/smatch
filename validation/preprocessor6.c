@@ -19,6 +19,8 @@
  * which doesn't work, of course.
  */
 
+#define __devinitdata __attribute__((section(".devinit")))
+
 #define VENDOR( vendor, name ) \
 	static char __vendorstr_##vendor[] __devinitdata = name;
 VENDOR(003d,"Lockheed Martin-Marietta Corp")
