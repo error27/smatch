@@ -1213,22 +1213,16 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 
 static struct symbol *evaluate_alignof(struct expression *expr)
 {
-	int offset;
+	struct symbol *type = expr->cast_type;
 
-	if (expr->cast_type) {
-		examine_symbol_type(expr->cast_type);
-		offset = expr->cast_type->bit_offset;
-	} else {
-		if (!evaluate_expression(expr->cast_expression))
+	if (!type) {
+		type = evaluate_expression(expr->cast_expression);
+		if (!type)
 			return NULL;
-		offset = expr->cast_expression->ctype->bit_offset;
 	}
-	if (offset & 7) {
-		warn(expr->pos, "cannot size expression");
-		return NULL;
-	}
+	examine_symbol_type(type);
 	expr->type = EXPR_VALUE;
-	expr->value = offset >> 3;
+	expr->value = type->ctype.alignment;
 	expr->ctype = size_t_ctype;
 	return size_t_ctype;
 }
