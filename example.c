@@ -842,7 +842,7 @@ static void generate_asm_inputs(struct bb_state *state, struct asm_constraint_li
 		const char *constraint = entry->constraint;
 		pseudo_t pseudo = entry->pseudo;
 
-		output_comment(state, "\"%s\": %s", constraint, show_pseudo(pseudo));
+		output_insn(state, "# asm input \"%s\": %s", constraint, show_pseudo(pseudo));
 	} END_FOR_EACH_PTR(entry);
 }
 
@@ -857,7 +857,7 @@ static void generate_asm_outputs(struct bb_state *state, struct asm_constraint_l
 		while (*constraint == '=' || *constraint == '+')
 			constraint++;
 
-		output_comment(state, "\"%s\": %s", constraint, show_pseudo(pseudo));
+		output_insn(state, "# asm output \"%s\": %s", constraint, show_pseudo(pseudo));
 	} END_FOR_EACH_PTR(entry);
 }
 
