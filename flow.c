@@ -580,10 +580,10 @@ void check_access(struct instruction *insn)
 	pseudo_t pseudo = insn->src;
 
 	if (insn->bb && pseudo->type == PSEUDO_SYM) {
-		int offset = insn->offset;
+		int offset = insn->offset, bit = (offset << 3) + insn->size;
 		struct symbol *sym = pseudo->sym;
 
-		if (sym->bit_size > 0 && (offset < 0 || offset >= sym->bit_size >> 3))
+		if (sym->bit_size > 0 && (offset < 0 || bit > sym->bit_size))
 			warning(insn->bb->pos, "invalid access %s '%s' (%d %d)",
 				offset < 0 ? "below" : "past the end of",
 				show_ident(sym->ident), offset, sym->bit_size >> 3);
