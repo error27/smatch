@@ -498,6 +498,10 @@ static struct symbol *evaluate_sub(struct expression *expr)
 static struct symbol *evaluate_logical(struct expression *expr)
 {
 	struct expression *left = expr->left;
+	struct expression *right;
+
+	if (!evaluate_expression(left))
+		return NULL;
 
 	/* Do immediate short-circuiting ... */
 	if (left->type == EXPR_VALUE) {
@@ -505,16 +509,32 @@ static struct symbol *evaluate_logical(struct expression *expr)
 			if (!left->value) {
 				expr->type = EXPR_VALUE;
 				expr->value = 0;
+				expr->ctype = &bool_ctype;
+				return &bool_ctype;
 			}
 		} else {
 			if (left->value) {
 				expr->type = EXPR_VALUE;
-				expr->value  = 1;
+				expr->value = 1;
+				expr->ctype = &bool_ctype;
+				return &bool_ctype;
 			}
 		}
 	}
 
+	right = expr->right;
+	if (!evaluate_expression(right))
+		return NULL;
 	expr->ctype = &bool_ctype;
+	if (left->type == EXPR_VALUE && right->type == EXPR_VALUE) {
+		/*
+		 * We know the left value doesn't matter, since
+		 * otherwise we would have short-circuited it..
+		 */
+		expr->type = EXPR_VALUE;
+		expr->value = right->value;
+	}
+
 	return &bool_ctype;
 }
 
@@ -534,11 +554,6 @@ static struct symbol *evaluate_binop(struct expression *expr)
 	// subtraction can take ptr-ptr, fp and int
 	case '-':
 		return evaluate_sub(expr);
-
-	// Logical ops can take a lot of special stuff and have early-out
-	case SPECIAL_LOGICAL_AND:
-	case SPECIAL_LOGICAL_OR:
-		return evaluate_logical(expr);
 
 	// Arithmetic operations can take fp and int
 	case '*': case '/': case '%':
@@ -1198,6 +1213,8 @@ struct symbol *evaluate_expression(struct expression *expr)
 		if (!evaluate_expression(expr->right))
 			return NULL;
 		return evaluate_binop(expr);
+	case EXPR_LOGICAL:
+		return evaluate_logical(expr);
 	case EXPR_COMMA:
 		if (!evaluate_expression(expr->left))
 			return NULL;
@@ -1362,72 +1379,25 @@ struct symbol *evaluate_statement(struct statement *stmt)
 
 long long get_expression_value(struct expression *expr)
 {
-	long long left, middle, right;
+	long long value, mask;
+	struct symbol *ctype;
 
-	switch (expr->type) {
-	case EXPR_SIZEOF:
-		if (expr->cast_type) {
-			examine_symbol_type(expr->cast_type);
-			if (expr->cast_type->bit_size & 7) {
-				warn(expr->pos, "type has no size");
-				return 0;
-			}
-			return expr->cast_type->bit_size >> 3;
-		}
-		warn(expr->pos, "expression sizes not yet supported");
+	ctype = evaluate_expression(expr);
+	if (!ctype || expr->type != EXPR_VALUE) {
+		warn(expr->pos, "bad constant expression");
+		show_expression(expr);
+		printf(": badness\n");
 		return 0;
-	case EXPR_VALUE:
-		return expr->value;
-	case EXPR_SYMBOL: {
-		struct symbol *sym = expr->symbol;
-		if (!sym || !sym->ctype.base_type || sym->ctype.base_type->type != SYM_ENUM) {
-			warn(expr->pos, "undefined identifier '%s' in constant expression", show_ident(expr->symbol_name));
-			return 0;
-		}
-		return sym->value;
 	}
 
-#define OP(x,y)	case x: return left y right;
-	case EXPR_BINOP:
-	case EXPR_COMPARE:
-		left = get_expression_value(expr->left);
-		if (!left && expr->op == SPECIAL_LOGICAL_AND)
-			return 0;
-		if (left && expr->op == SPECIAL_LOGICAL_OR)
-			return 1;
-		right = get_expression_value(expr->right);
-		switch (expr->op) {
-			OP('+',+); OP('-',-); OP('*',*); OP('/',/);
-			OP('%',%); OP('<',<); OP('>',>);
-			OP('&',&);OP('|',|);OP('^',^);
-			OP(SPECIAL_EQUAL,==); OP(SPECIAL_NOTEQUAL,!=);
-			OP(SPECIAL_LTE,<=); OP(SPECIAL_LEFTSHIFT,<<);
-			OP(SPECIAL_RIGHTSHIFT,>>); OP(SPECIAL_GTE,>=);
-			OP(SPECIAL_LOGICAL_AND,&&);OP(SPECIAL_LOGICAL_OR,||);
-		}
-		break;
+	value = expr->value;
+	mask = 1ULL << (ctype->bit_size-1);
 
-#undef OP
-#define OP(x,y)	case x: return y left;
-	case EXPR_PREOP:
-		left = get_expression_value(expr->unop);
-		switch (expr->op) {
-			OP('+', +); OP('-', -); OP('!', !); OP('~', ~); OP('(', );
-		}
-		break;
-
-	case EXPR_CONDITIONAL:
-		left = get_expression_value(expr->conditional);
-		if (!expr->cond_true)
-			middle = left;
-		else
-			middle = get_expression_value(expr->cond_true);
-		right = get_expression_value(expr->cond_false);
-		return left ? middle : right;
-
-	default:
-		break;
+	if (value & mask) {
+		while (ctype->type != SYM_BASETYPE)
+			ctype = ctype->ctype.base_type;
+		if (!(ctype->ctype.modifiers & MOD_UNSIGNED))
+			value = value | mask | ~(mask-1);
 	}
-	error(expr->pos, "bad constant expression");
-	return 0;
+	return value;
 }

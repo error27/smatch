@@ -467,6 +467,7 @@ void show_expression(struct expression *expr)
 	case EXPR_BINOP:
 	case EXPR_COMMA:
 	case EXPR_COMPARE:
+	case EXPR_LOGICAL:
 		show_expression(expr->left);
 		printf(" %s ", show_special(expr->op));
 		show_expression(expr->right);

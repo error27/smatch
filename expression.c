@@ -433,12 +433,12 @@ static struct token *bitwise_or_expression(struct token *token, struct expressio
 
 static struct token *logical_and_expression(struct token *token, struct expression **tree)
 {
-	return lr_binop_expression(token, tree, EXPR_BINOP, bitwise_or_expression, SPECIAL_LOGICAL_AND, 0);
+	return lr_binop_expression(token, tree, EXPR_LOGICAL, bitwise_or_expression, SPECIAL_LOGICAL_AND, 0);
 }
 
 static struct token *logical_or_expression(struct token *token, struct expression **tree)
 {
-	return lr_binop_expression(token, tree, EXPR_BINOP, logical_and_expression, SPECIAL_LOGICAL_OR, 0);
+	return lr_binop_expression(token, tree, EXPR_LOGICAL, logical_and_expression, SPECIAL_LOGICAL_OR, 0);
 }
 
 struct token *conditional_expression(struct token *token, struct expression **tree)

@@ -16,6 +16,7 @@ enum expression_type {
 	EXPR_SYMBOL,
 	EXPR_BINOP,
 	EXPR_ASSIGNMENT,
+	EXPR_LOGICAL,
 	EXPR_DEREF,
 	EXPR_PREOP,
 	EXPR_POSTOP,
@@ -56,7 +57,7 @@ struct expression {
 		// EXPR_STATEMENT
 		struct statement *statement;
 
-		// EXPR_BINOP, EXPR_COMMA, EXPR_COMPARE and EXPR_ASSIGNMENT
+		// EXPR_BINOP, EXPR_COMMA, EXPR_COMPARE, EXPR_LOGICAL and EXPR_ASSIGNMENT
 		struct binop_arg {
 			struct expression *left, *right;
 		};
