@@ -607,7 +607,8 @@ static int show_binop(struct expression *expr)
 	static const char *name[] = {
 		['+'] = "add", ['-'] = "sub",
 		['*'] = "mul", ['/'] = "div",
-		['%'] = "mod"
+		['%'] = "mod", ['&'] = "and",
+		['|'] = "lor", ['^'] = "xor"
 	};
 	unsigned int op = expr->op;
 
