@@ -27,9 +27,37 @@ static int elif_ignore[MAXNEST];
 
 static const char *show_token_sequence(struct token *token);
 
+/* Expand symbol 'sym' between 'head->next' and 'head->next->next' */
+static struct token *expand(struct token *, struct symbol *);
+
+/* Head is one-before-list, and last is one-past-list */
+static struct token *expand_list(struct token *head, struct token *last)
+{
+	if (!last)
+		last = &eof_token_entry;
+	for (;;) {
+		struct token *next = head->next;
+
+		/* Did we hit the end of the current expansion? */
+		if (next == last)
+			break;
+
+		if (next->type == TOKEN_IDENT) {
+			struct symbol *sym = lookup_symbol(next->ident, NS_PREPROCESSOR);
+			if (sym && !sym->busy) {
+				head = expand(head, sym);
+				continue;
+			}
+		}
+		
+		head = next;
+	}
+	return head;
+}
+
 static struct token *expand(struct token *head, struct symbol *sym)
 {
-	struct token *expansion, *pptr, *token, *next;
+	struct token *expansion, *pptr, *token, *last;
 	int newline;
 
 	sym->busy++;
@@ -38,7 +66,7 @@ static struct token *expand(struct token *head, struct symbol *sym)
 
 	expansion = sym->expansion;
 	pptr = head;
-	next = token->next;
+	last = token->next;
 	while (!eof_token(expansion)) {
 		struct token *alloc = __alloc_token(0);
 
@@ -47,30 +75,14 @@ static struct token *expand(struct token *head, struct symbol *sym)
 		alloc->pos = token->pos;
 		alloc->newline = newline;
 		alloc->line = token->line;
-		alloc->next = next;
+		alloc->next = last;
 		alloc->integer = expansion->integer;
 		pptr->next = alloc;
 		pptr = alloc;
 		expansion = expansion->next;
 		newline = 0;
 	}
-	for (;;) {
-		struct token *next_recursive = head->next;
-
-		/* Did we hit the end of the current expansion? */
-		if (next_recursive == next)
-			break;
-
-		if (next_recursive->type == TOKEN_IDENT) {
-			struct symbol *sym = lookup_symbol(next_recursive->ident, NS_PREPROCESSOR);
-			if (sym && !sym->busy) {
-				head = expand(head, sym);
-				continue;
-			}
-		}
-		
-		head = next_recursive;
-	}
+	head = expand_list(head, last);
 	sym->busy--;
 	return head;
 }
@@ -83,8 +95,11 @@ static const char *token_name_sequence(struct token *token, int endop, struct to
 
 	last = token;
 	while (!eof_token(token) && !match_op(token, endop)) {
-		const char *val = show_token(token);
-		int len = strlen(val);
+		int len;
+		const char *val = token->string->data;
+		if (token->type != TOKEN_STRING)
+			val = show_token(token);
+		len = strlen(val);
 		memcpy(ptr, val, len);
 		ptr += len;
 		token = token->next;
@@ -127,17 +142,20 @@ static void do_include(struct token *head, struct token *token, const char *file
 static int handle_include(struct token *head, struct token *token)
 {
 	const char *filename;
+	struct token *next;
+	int expect;
 
 	if (false_nesting)
 		return 1;
-
-	token = token->next;
-	if (token->type == TOKEN_STRING)
-		filename = token->string->data;
-	else if (match_op(token, '<'))
-		filename = token_name_sequence(token->next, '>', token);
-	else
-		filename = token_name_sequence(token, 0, token);
+	next = token->next;
+	expect = '>';
+	if (!match_op(next, '<')) {
+		expand_list(token, NULL);
+		expect = 0;
+		next = token;
+	}
+	token = next->next;
+	filename = token_name_sequence(token, expect, token);
 	do_include(head, token, filename);
 	return 1;
 }
@@ -348,10 +366,13 @@ static struct token *cpp_conditional(struct token *token, struct cpp_expression 
 	return cpp_additive(token, value);
 }
 	
-static int expression_value(struct token *token)
+static int expression_value(struct token *head)
 {
 	struct cpp_expression expr;
-	token = cpp_conditional(token, &expr);
+	struct token *token;
+
+	expand_list(head, NULL);
+	token = cpp_conditional(head->next, &expr);
 	if (!eof_token(token))
 		warn(token, "garbage at end: %s", show_token_sequence(token));
 	return expr.value != 0;
@@ -361,7 +382,7 @@ static int handle_if(struct token *head, struct token *token)
 {
 	int value = 0;
 	if (!false_nesting)
-		value = expression_value(token->next);
+		value = expression_value(token);
 	return preprocessor_if(token, value);
 }
 
@@ -371,7 +392,7 @@ static int handle_elif(struct token *head, struct token *token)
 		/* If this whole if-thing is if'ed out, an elif cannot help */
 		if (elif_ignore[if_nesting-1])
 			return 1;
-		if (expression_value(token->next)) {
+		if (expression_value(token)) {
 			false_nesting--;
 			true_nesting++;
 			elif_ignore[if_nesting-1] = 1;
