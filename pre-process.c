@@ -22,6 +22,8 @@
 #include "symbol.h"
 #include "expression.h"
 
+int preprocessing = 0;
+
 #define MAXNEST (16)
 static int true_nesting = 0;
 static int false_nesting = 0;
@@ -924,6 +926,7 @@ struct token * preprocess(struct token *token)
 {
 	struct token header = { };
 
+	preprocessing = 1;
 	header.next = token;
 	do_preprocess(&header);
 	if (if_nesting)
@@ -931,6 +934,7 @@ struct token * preprocess(struct token *token)
 
 	// Drop all expressions from pre-processing, they're not used any more.
 	clear_expression_alloc();
+	preprocessing = 0;
 
 	return header.next;
 }

@@ -29,6 +29,13 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 	struct symbol *base_type;
 
 	if (!sym) {
+		if (preprocessing) {
+			expr->type = EXPR_VALUE;
+			expr->value = 0;
+			expr->ctype = &int_ctype;
+			warn(expr->pos, "undefined preprocessor identifier '%s'", show_ident(expr->symbol_name));
+			return &int_ctype;
+		}
 		warn(expr->pos, "undefined identifier '%s'", show_ident(expr->symbol_name));
 		return NULL;
 	}
@@ -268,9 +275,8 @@ static struct symbol *evaluate_int_binop(struct expression *expr)
 
 static inline int lvalue_expression(struct expression *expr)
 {
-	return expr->type == EXPR_PREOP && expr->op == '*';
+	return (expr->type == EXPR_PREOP && expr->op == '*') || expr->type == EXPR_BITFIELD;
 }
-	
 
 /* Arrays degenerate into pointers on pointer arithmetic */
 static struct symbol *degenerate(struct expression *expr, struct symbol *ctype, struct expression **ptr_p)
