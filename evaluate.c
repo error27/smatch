@@ -839,10 +839,15 @@ static struct symbol *convert_to_as_mod(struct symbol *sym, int as, int mod)
 
 static struct symbol *create_pointer(struct expression *expr, struct symbol *sym)
 {
+	struct symbol *node = alloc_symbol(expr->pos, SYM_NODE);
 	struct symbol *ptr = alloc_symbol(expr->pos, SYM_PTR);
 
-	ptr->ctype.base_type = sym;
+	node->ctype.base_type = ptr;
 	ptr->bit_size = bits_in_pointer;
+	ptr->ctype.alignment = pointer_alignment;
+
+	node->bit_size = bits_in_pointer;
+	node->ctype.alignment = pointer_alignment;
 
 	sym->ctype.modifiers |= MOD_ADDRESSABLE;
 	if (sym->ctype.modifiers & MOD_REGISTER) {
@@ -861,7 +866,7 @@ static struct symbol *create_pointer(struct expression *expr, struct symbol *sym
 	}
 	ptr->ctype.base_type = sym;
 
-	return ptr;
+	return node;
 }
 
 static struct symbol *evaluate_addressof(struct expression *expr)
