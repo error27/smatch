@@ -771,6 +771,7 @@ void kill_unreachable_bbs(struct entrypoint *ep)
 
 static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old, struct basic_block *new)
 {
+	int changed = 0;
 	struct instruction *insn = last_instruction(bb->insns);
 
 	if (!insn)
@@ -782,15 +783,17 @@ static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old
 
 	switch (insn->opcode) {
 	case OP_BR:
-		rewrite_branch(bb, &insn->bb_true, old, new);
-		rewrite_branch(bb, &insn->bb_false, old, new);
-		return 1;
+		changed |= rewrite_branch(bb, &insn->bb_true, old, new);
+		changed |= rewrite_branch(bb, &insn->bb_false, old, new);
+		assert(changed);
+		return changed;
 	case OP_SWITCH: {
 		struct multijmp *jmp;
 		FOR_EACH_PTR(insn->multijmp_list, jmp) {
-			rewrite_branch(bb, &jmp->target, old, new);
+			changed |= rewrite_branch(bb, &jmp->target, old, new);
 		} END_FOR_EACH_PTR(jmp);
-		return 1;
+		assert(changed);
+		return changed;
 	}
 	default:
 		return 0;
