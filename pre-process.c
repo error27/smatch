@@ -1187,10 +1187,8 @@ static int handle_elif(struct stream * stream, struct token **line, struct token
 	if (stream->nesting == if_nesting)
 		MARK_STREAM_NONCONST(token->pos);
 
-	if (stream->nesting > if_nesting) {
-		warning(token->pos, "unmatched #elif");
-		return 1;
-	}
+	if (stream->nesting > if_nesting)
+		warning(token->pos, "unmatched #elif within stream");
 
 	if (elif_ignore[if_nesting-1] & ELIF_SEEN_ELSE)
 		warning(token->pos, "#elif after #else");
@@ -1216,10 +1214,8 @@ static int handle_else(struct stream *stream, struct token **line, struct token 
 	if (stream->nesting == if_nesting)
 		MARK_STREAM_NONCONST(token->pos);
 
-	if (stream->nesting > if_nesting) {
-		warning(token->pos, "unmatched #else");
-		return 1;
-	}
+	if (stream->nesting > if_nesting)
+		warning(token->pos, "unmatched #else within stream");
 
 	if (elif_ignore[if_nesting-1] & ELIF_SEEN_ELSE)
 		warning(token->pos, "#else after #else");
@@ -1246,8 +1242,8 @@ static int handle_endif(struct stream *stream, struct token **line, struct token
 		stream->constant = CONSTANT_FILE_MAYBE;
 
 	if (stream->nesting > if_nesting)
-		warning(token->pos, "unmatched #endif");
-	else if (false_nesting)
+		warning(token->pos, "unmatched #endif in stream");
+	if (false_nesting)
 		false_nesting--;
 	else
 		true_nesting--;
