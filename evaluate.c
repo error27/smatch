@@ -856,6 +856,11 @@ static struct symbol *degenerate(struct expression *expr)
 	switch (base->type) {
 	case SYM_FN:
 	case SYM_ARRAY:
+		if (expr->op != '*' || expr->type != EXPR_PREOP) {
+			warn(expr->pos, "strange non-value function or array");
+			return NULL;
+		}
+		*expr = *expr->unop;
 		ctype = create_pointer(expr, ctype, 1);
 		expr->ctype = ctype;
 	default:
@@ -864,8 +869,9 @@ static struct symbol *degenerate(struct expression *expr)
 	return ctype;
 }
 
-static struct symbol *evaluate_addressof(struct expression *expr, struct expression *op)
+static struct symbol *evaluate_addressof(struct expression *expr)
 {
+	struct expression *op = expr->unop;
 	struct symbol *ctype;
 
 	if (op->op != '*' || op->type != EXPR_PREOP) {
@@ -975,7 +981,7 @@ static struct symbol *evaluate_preop(struct expression *expr)
 		return evaluate_dereference(expr);
 
 	case '&':
-		return evaluate_addressof(expr, expr->unop);
+		return evaluate_addressof(expr);
 
 	case SPECIAL_INCREMENT:
 	case SPECIAL_DECREMENT:
