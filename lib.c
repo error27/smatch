@@ -204,7 +204,7 @@ void **__add_ptr_list(struct ptr_list **listp, void *ptr, unsigned long tag)
 	return ret;
 }
 
-void delete_ptr_list_entry(struct ptr_list **list, void *entry, int count)
+int delete_ptr_list_entry(struct ptr_list **list, void *entry, int count)
 {
 	void *ptr;
 
@@ -218,9 +218,10 @@ void delete_ptr_list_entry(struct ptr_list **list, void *entry, int count)
 	assert(count <= 0);
 out:
 	pack_ptr_list(list);
+	return count;
 }
 
-void replace_ptr_list_entry(struct ptr_list **list, void *old_ptr, void *new_ptr, int count)
+int replace_ptr_list_entry(struct ptr_list **list, void *old_ptr, void *new_ptr, int count)
 {
 	void *ptr;
 
@@ -228,10 +229,12 @@ void replace_ptr_list_entry(struct ptr_list **list, void *old_ptr, void *new_ptr
 		if (ptr==old_ptr) {
 			REPLACE_CURRENT_PTR(ptr, new_ptr);
 			if (!--count)
-				return;
+				goto out;
 		}
 	}END_FOR_EACH_PTR(ptr);
 	assert(count <= 0);
+out:
+	return count;
 }
 
 void * delete_ptr_list_last(struct ptr_list **head)

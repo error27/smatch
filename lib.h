@@ -87,8 +87,8 @@ struct ptr_list {
 #define ptr_list_empty(x) ((x) == NULL)
 
 void * delete_ptr_list_last(struct ptr_list **head);
-void delete_ptr_list_entry(struct ptr_list **, void *, int);
-void replace_ptr_list_entry(struct ptr_list **, void *old, void *new, int);
+int delete_ptr_list_entry(struct ptr_list **, void *, int);
+int replace_ptr_list_entry(struct ptr_list **, void *old, void *new, int);
 extern void sort_list(struct ptr_list **, int (*)(const void *, const void *));
 
 extern void **__add_ptr_list(struct ptr_list **, void *, unsigned long tag);
