@@ -810,6 +810,39 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 	return ltype;
 }
 
+static void examine_fn_arguments(struct symbol *fn)
+{
+	struct symbol *s;
+
+	FOR_EACH_PTR(fn->arguments, s) {
+		struct symbol *arg = evaluate_symbol(s);
+		/* Array/function arguments silently degenerate into pointers */
+		if (arg) {
+			struct symbol *ptr;
+			switch(arg->type) {
+			case SYM_ARRAY:
+			case SYM_FN:
+				ptr = alloc_symbol(s->pos, SYM_PTR);
+				if (arg->type == SYM_ARRAY)
+					ptr->ctype = arg->ctype;
+				else
+					ptr->ctype.base_type = arg;
+				ptr->ctype.as |= s->ctype.as;
+				ptr->ctype.modifiers |= s->ctype.modifiers;
+
+				s->ctype.base_type = ptr;
+				s->ctype.as = 0;
+				s->ctype.modifiers = 0;
+				examine_symbol_type(s);
+				break;
+			default:
+				/* nothing */
+				break;
+			}
+		}
+	} END_FOR_EACH_PTR;
+}
+
 static struct symbol *convert_to_as_mod(struct symbol *sym, int as, int mod)
 {
 	if (sym->ctype.as != as || sym->ctype.modifiers != mod) {
@@ -1475,6 +1508,8 @@ static int evaluate_symbol_call(struct expression *expr)
 		current_context |= ctype->ctype.context;
 		current_contextmask |= ctype->ctype.contextmask;
 		current_fn = ctype->ctype.base_type;
+		examine_fn_arguments(current_fn);
+
 		ret = inline_function(expr, ctype);
 
 		/* restore the old function context */
@@ -1658,12 +1693,7 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 
 	/* And finally, evaluate the body of the symbol too */
 	if (base_type->type == SYM_FN) {
-		struct symbol *s;
-
-		FOR_EACH_PTR(base_type->arguments, s) {
-			evaluate_symbol(s);
-		} END_FOR_EACH_PTR;
-
+		examine_fn_arguments(base_type);
 		if (base_type->stmt) {
 			current_fn = base_type;
 			current_contextmask = sym->ctype.contextmask;
