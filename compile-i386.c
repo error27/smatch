@@ -1781,17 +1781,12 @@ static void emit_switch_statement(struct statement *stmt)
 		emit_label(switch_end, NULL);
 }
 
-static void x86_struct_member(struct symbol *sym, void *data, int flags)
+static void x86_struct_member(struct symbol *sym)
 {
-	if (flags & ITERATE_FIRST)
-		printf(" {\n\t");
-	printf("%s:%d:%ld at offset %ld", show_ident(sym->ident), sym->bit_size, sym->ctype.alignment, sym->offset);
+	printf("\t%s:%d:%ld at offset %ld", show_ident(sym->ident), sym->bit_size, sym->ctype.alignment, sym->offset);
 	if (sym->fieldwidth)
 		printf("[%d..%d]", sym->bit_offset, sym->bit_offset+sym->fieldwidth-1);
-	if (flags & ITERATE_LAST)
-		printf("\n} ");
-	else
-		printf(", ");
+	printf("\n");
 }
 
 static void x86_symbol(struct symbol *sym)
@@ -1830,12 +1825,16 @@ static void x86_symbol(struct symbol *sym)
 		break;
 
 	case SYM_STRUCT:
-		symbol_iterate(type->symbol_list, x86_struct_member, NULL);
-		break;
+	case SYM_UNION: {
+		struct symbol *member;
 
-	case SYM_UNION:
-		symbol_iterate(type->symbol_list, x86_struct_member, NULL);
+		printf(" {\n");
+		FOR_EACH_PTR(type->symbol_list, member) {
+			x86_struct_member(member);
+		} END_FOR_EACH_PTR(member);
+		printf("}\n");
 		break;
+	}
 
 	case SYM_FN: {
 		struct statement *stmt = type->stmt;

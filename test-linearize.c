@@ -21,16 +21,20 @@
 #include "expression.h"
 #include "linearize.h"
 
-static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
+static void clean_up_symbols(struct symbol_list *list)
 {
-	struct entrypoint *ep;
+	struct symbol *sym;
 
-	check_duplicates(sym);
-	evaluate_symbol(sym);
-	expand_symbol(sym);
-	ep = linearize_symbol(sym);
-	if (ep)
-		show_entry(ep);
+	FOR_EACH_PTR(list, sym) {
+		struct entrypoint *ep;
+
+		check_duplicates(sym);
+		evaluate_symbol(sym);
+		expand_symbol(sym);
+		ep = linearize_symbol(sym);
+		if (ep)
+			show_entry(ep);
+	} END_FOR_EACH_PTR(sym);
 }
 
 int main(int argc, char **argv)
@@ -84,6 +88,6 @@ int main(int argc, char **argv)
 	translation_unit(token, &used_list);
 
 	// Do type evaluation and simplify
-	symbol_iterate(used_list, clean_up_symbol, NULL);
+	clean_up_symbols(used_list);
 	return 0;
 }

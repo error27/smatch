@@ -69,10 +69,8 @@ struct struct_union_info {
 /*
  * Unions are fairly easy to lay out ;)
  */
-static void lay_out_union(struct symbol *sym, void *_info, int flags)
+static void lay_out_union(struct symbol *sym, struct struct_union_info *info)
 {
-	struct struct_union_info *info = _info;
-
 	examine_symbol_type(sym);
 
 	// Unnamed bitfields do not affect alignment.
@@ -90,9 +88,8 @@ static void lay_out_union(struct symbol *sym, void *_info, int flags)
 /*
  * Structures are a bit more interesting to lay out
  */
-static void lay_out_struct(struct symbol *sym, void *_info, int flags)
+static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 {
-	struct struct_union_info *info = _info;
 	unsigned long bit_size, align_bit_mask;
 	int base_size;
 
@@ -153,10 +150,13 @@ static void examine_struct_union_type(struct symbol *sym, int advance)
 {
 	struct struct_union_info info = { 1, 0, 1 };
 	unsigned long bit_size, bit_align;
-	void (*fn)(struct symbol *, void *, int);
+	void (*fn)(struct symbol *, struct struct_union_info *);
+	struct symbol *member;
 
 	fn = advance ? lay_out_struct : lay_out_union;
-	symbol_iterate(sym->symbol_list, fn, &info);
+	FOR_EACH_PTR(sym->symbol_list, member) {
+		fn(member, &info);
+	} END_FOR_EACH_PTR(member);
 
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = info.max_align;

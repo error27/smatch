@@ -109,29 +109,24 @@ const char *modifier_string(unsigned long mod)
 	return buffer;
 }
 
-void show_struct_member(struct symbol *sym, void *data, int flags)
+void show_struct_member(struct symbol *sym)
 {
-	if (flags & ITERATE_FIRST)
-		printf(" {\n\t");
-	printf("%s:%d:%ld at offset %ld", show_ident(sym->ident), sym->bit_size, sym->ctype.alignment, sym->offset);
+	printf("\t%s:%d:%ld at offset %ld", show_ident(sym->ident), sym->bit_size, sym->ctype.alignment, sym->offset);
 	if (sym->fieldwidth)
 		printf("[%d..%d]", sym->bit_offset, sym->bit_offset+sym->fieldwidth-1);
-	if (flags & ITERATE_LAST)
-		printf("\n} ");
-	else
-		printf(", ");
-}
-
-static void show_one_symbol(struct symbol *sym, void *sep, int flags)
-{
-	show_symbol(sym);
-	if (!(flags & ITERATE_LAST))
-		printf("%s", (const char *)sep);
+	printf("\n");
 }
 
 void show_symbol_list(struct symbol_list *list, const char *sep)
 {
-	symbol_iterate(list, show_one_symbol, (void *)sep);
+	struct symbol *sym;
+	const char *prepend = "";
+
+	FOR_EACH_PTR(list, sym) {
+		puts(prepend);
+		prepend = ", ";
+		show_symbol(sym);
+	} END_FOR_EACH_PTR(sym);
 }
 
 struct type_name {
@@ -331,12 +326,15 @@ void show_symbol(struct symbol *sym)
 	 * Show actual implementation information
 	 */
 	switch (type->type) {
-	case SYM_STRUCT:
-		symbol_iterate(type->symbol_list, show_struct_member, NULL);
-		break;
+		struct symbol *member;
 
+	case SYM_STRUCT:
 	case SYM_UNION:
-		symbol_iterate(type->symbol_list, show_struct_member, NULL);
+		printf(" {\n");
+		FOR_EACH_PTR(type->symbol_list, member) {
+			show_struct_member(member);
+		} END_FOR_EACH_PTR(member);
+		printf("}\n");
 		break;
 
 	case SYM_FN: {
@@ -570,30 +568,6 @@ int show_statement(struct statement *stmt)
 	}
 	}
 	return 0;
-}
-
-static void show_one_statement(struct statement *stmt, void *sep, int flags)
-{
-	show_statement(stmt);
-	if (!(flags & ITERATE_LAST))
-		printf("%s", (const char *)sep);
-}
-
-void show_statement_list(struct statement_list *stmt, const char *sep)
-{
-	statement_iterate(stmt, show_one_statement, (void *)sep);
-}
-
-static void show_one_expression(struct expression *expr, void *sep, int flags)
-{
-	show_expression(expr);
-	if (!(flags & ITERATE_LAST))
-		printf("%s", (const char *)sep);
-}
-
-void show_expression_list(struct expression_list *list, const char *sep)
-{
-	expression_iterate(list, show_one_expression, (void *)sep);
 }
 
 static int show_call_expression(struct expression *expr)

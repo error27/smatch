@@ -82,16 +82,20 @@ static void check_context(struct entrypoint *ep)
 	}
 }
 
-static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
+static void clean_up_symbols(struct symbol_list *list)
 {
-	struct entrypoint *ep;
+	struct symbol *sym;
 
-	evaluate_symbol(sym);
-	check_duplicates(sym);
-	expand_symbol(sym);
-	ep = linearize_symbol(sym);
-	if (ep)
-		check_context(ep);
+	FOR_EACH_PTR(list, sym) {
+		struct entrypoint *ep;
+
+		evaluate_symbol(sym);
+		check_duplicates(sym);
+		expand_symbol(sym);
+		ep = linearize_symbol(sym);
+		if (ep)
+			check_context(ep);
+	} END_FOR_EACH_PTR(sym);
 }
 
 static void do_predefined(char *filename)
@@ -178,6 +182,6 @@ int main(int argc, char **argv)
 	translation_unit(token, &used_list);
 
 	// Do type evaluation and simplify
-	symbol_iterate(used_list, clean_up_symbol, NULL);
+	clean_up_symbols(used_list);
 	return 0;
 }

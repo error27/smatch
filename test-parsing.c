@@ -22,10 +22,14 @@
 #include "symbol.h"
 #include "expression.h"
 
-static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
+static void clean_up_symbols(struct symbol_list *list)
 {
-	evaluate_symbol(sym);
-	expand_symbol(sym);
+	struct symbol *sym;
+
+	FOR_EACH_PTR(list, sym) {
+		evaluate_symbol(sym);
+		expand_symbol(sym);
+	} END_FOR_EACH_PTR(sym);
 }
 
 int main(int argc, char **argv)
@@ -72,7 +76,7 @@ int main(int argc, char **argv)
 	translation_unit(token, &used_list);
 
 	// Do type evaluation and simplification
-	symbol_iterate(used_list, clean_up_symbol, NULL);
+	clean_up_symbols(used_list);
 
 #if 1
 	// Show the end result.

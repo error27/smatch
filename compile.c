@@ -24,11 +24,15 @@
 #include "expression.h"
 #include "compile.h"
 
-static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
+static void clean_up_symbols(struct symbol_list *list)
 {
-	evaluate_symbol(sym);
-	expand_symbol(sym);
-	emit_one_symbol(sym);
+	struct symbol *sym;
+
+	FOR_EACH_PTR(list, sym) {
+		evaluate_symbol(sym);
+		expand_symbol(sym);
+		emit_one_symbol(sym);
+	} END_FOR_EACH_PTR(sym);
 }
 
 int main(int argc, char **argv)
@@ -93,7 +97,7 @@ int main(int argc, char **argv)
 
 	// Do type evaluation and simplification
 	emit_unit_begin(basename);
-	symbol_iterate(used_list, clean_up_symbol, NULL);
+	clean_up_symbols(used_list);
 	emit_unit_end();
 
 #if 0

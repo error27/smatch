@@ -195,25 +195,6 @@ int ptr_list_size(struct ptr_list *head)
 	return nr;
 }
 
-void iterate(struct ptr_list *head, void (*callback)(void *, void *, int), void *data)
-{
-	struct ptr_list *list = head;
-	int flag = ITERATE_FIRST;
-
-	if (!head)
-		return;
-	do {
-		int i;
-		for (i = 0; i < list->nr; i++) {
-			if (i == list->nr-1 && list->next == head)
-				flag |= ITERATE_LAST;
-			callback(list->list[i], data, flag);
-			flag = 0;
-		}
-		list = list->next;
-	} while (list != head);
-}
-
 void add_ptr_list(struct ptr_list **listp, void *ptr)
 {
 	struct ptr_list *list = *listp;
