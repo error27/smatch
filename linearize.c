@@ -419,8 +419,8 @@ static void show_bb(struct basic_block *bb)
 
 		FOR_EACH_PTR(bb->needs, needs) {
 			struct instruction *def = needs->def;
-			if (def->opcode != OP_PHI) {
-				printf("  **uses %s (from .L%p)**\n", show_pseudo(needs), def->bb);
+			if (!def || def->opcode != OP_PHI) {
+				printf("  **uses %s (from .L%p)**\n", show_pseudo(needs), def ? def->bb : NULL);
 			} else {
 				pseudo_t phi;
 				const char *sep = " ";

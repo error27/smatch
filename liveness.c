@@ -152,25 +152,13 @@ static void add_pseudo_exclusive(struct pseudo_list **list, pseudo_t pseudo)
 
 static inline int trackable_pseudo(pseudo_t pseudo)
 {
-	return pseudo && (pseudo->type == PSEUDO_REG || pseudo->type == PSEUDO_PHI);
+	return pseudo && (pseudo->type == PSEUDO_REG || pseudo->type == PSEUDO_PHI || pseudo->type == PSEUDO_ARG);
 }
 
 static void insn_uses(struct basic_block *bb, struct instruction *insn, pseudo_t pseudo)
 {
-	if (trackable_pseudo(pseudo)) {
-		struct instruction *def = pseudo->def;
-#if 1
-		/*
-		 * This assert is wrong, since this actually _can_ happen for
-		 * truly undefined programs, but it's good for finding bugs.
-		 */
-		assert(def && def->bb);
-#else
-		if (!def || !def->bb)
-			warning(insn->bb->pos, "undef pseudo ;(");
-#endif
+	if (trackable_pseudo(pseudo))
 		add_pseudo_exclusive(&bb->needs, pseudo);
-	}
 }
 
 static void insn_defines(struct basic_block *bb, struct instruction *insn, pseudo_t pseudo)
