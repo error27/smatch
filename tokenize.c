@@ -356,10 +356,9 @@ static int do_integer(char *buffer, int len, int next, stream_t *stream)
 	return next;
 }
 
-static int get_one_number(int c, stream_t *stream)
+static int get_one_number(int c, int next, stream_t *stream)
 {
 	static char buffer[256];
-	int next = nextchar(stream);
 	char *p = buffer;
 
 	*p++ = c;
@@ -573,9 +572,13 @@ static int get_one_special(int c, stream_t *stream)
 	next = nextchar(stream);
 
 	/*
-	 * Check for strings, character constants, and comments
+	 * Check for numbers, strings, character constants, and comments
 	 */
 	switch (c) {
+	case '.':
+		if (next >= '0' && next <= '9')
+			return get_one_number(c, next, stream);
+		break;
 	case '"':
 		return get_string_token(next, stream);
 	case '\'':
@@ -764,7 +767,7 @@ static int get_one_token(int c, stream_t *stream)
 {
 	switch (c) {
 	case '0'...'9':
-		return get_one_number(c, stream);
+		return get_one_number(c, nextchar(stream), stream);
 	case 'a'...'z':
 	case 'A'...'Z':
 	case '_':
