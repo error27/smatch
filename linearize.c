@@ -419,6 +419,7 @@ static void add_goto(struct entrypoint *ep, struct basic_block *dst)
 		struct instruction *br = alloc_instruction(OP_BR, NULL);
 		br->bb_true = dst;
 		add_bb(&dst->parents, src);
+		br->bb = src;
 		add_instruction(&src->insns, br);
 		ep->active = NULL;
 	}
@@ -435,8 +436,10 @@ static void add_one_insn(struct entrypoint *ep, struct instruction *insn)
 {
 	struct basic_block *bb = ep->active;    
 
-	if (bb_reachable(bb))
+	if (bb_reachable(bb)) {
+		insn->bb = bb;
 		add_instruction(&bb->insns, insn);
+	}
 }
 
 static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
@@ -921,6 +924,7 @@ static pseudo_t copy_pseudo(struct entrypoint *ep, struct expression *expr, pseu
 		pseudo_t dst = alloc_pseudo(src->def);
 		new->target = dst;
 		use_pseudo(new, src, &new->src);
+		new->bb = bb;
 		add_instruction(&bb->insns, new);
 		return dst;
 	}
@@ -1109,6 +1113,7 @@ pseudo_t linearize_position(struct entrypoint *ep, struct expression *pos, struc
 	pseudo_t value = linearize_expression(ep, init_expr);
 
 	ad->offset = pos->init_offset;	
+	ad->ctype = init_expr->ctype;
 	linearize_store_gen(ep, value, ad);
 	return VOID;
 }
@@ -1128,6 +1133,7 @@ pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initial
 		break;
 	default: {
 		pseudo_t value = linearize_expression(ep, initializer);
+		ad->ctype = initializer->ctype;
 		linearize_store_gen(ep, value, ad);
 	}
 	}
@@ -1139,6 +1145,7 @@ void linearize_argument(struct entrypoint *ep, struct symbol *arg, int nr)
 {
 	struct access_data ad = { NULL, };
 
+	ad.ctype = arg;
 	ad.address = symbol_pseudo(arg);
 	linearize_store_gen(ep, argument_pseudo(nr), &ad);
 	finish_address_gen(ep, &ad);
@@ -1310,6 +1317,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			if (!phi_node) {
 				phi_node = alloc_instruction(OP_PHI, expr->ctype);
 				phi_node->target = alloc_pseudo(phi_node);
+				phi_node->bb = bb_return;
 				add_instruction(&bb_return->insns, phi_node);
 			}
 			phi = alloc_phi(active, src);
@@ -1701,6 +1709,7 @@ static void create_phi_copy(struct basic_block *bb, struct instruction *phi,
 	delete_last_instruction(&bb->insns);
 	new->target = dst;
 	use_pseudo(new, src, &new->src);
+	new->bb = bb;
 	add_instruction(&bb->insns, new);
 
 	/* And add back the last instruction */
@@ -1732,6 +1741,79 @@ static void remove_phi_nodes(struct entrypoint *ep)
 static inline void concat_user_list(struct pseudo_ptr_list *src, struct pseudo_ptr_list **dst)
 {
 	concat_ptr_list((struct ptr_list *)src, (struct ptr_list **)dst);
+}
+
+static void convert_load_insn(struct instruction *insn, pseudo_t src)
+{
+	pseudo_t target, *usep;
+
+	/*
+	 * Go through the "insn->users" list and replace them all..
+	 */
+	target = insn->target;
+	FOR_EACH_PTR(target->users, usep) {
+		*usep = src;
+	} END_FOR_EACH_PTR(usep);
+	concat_user_list(target->users, &src->users);
+
+	/* Turn the load into a no-op */
+	insn->opcode = OP_LNOP;
+}
+
+static inline int same_memop(struct instruction *a, struct instruction *b)
+{
+	return	a->offset == b->offset &&
+		a->type->bit_size == b->type->bit_size &&
+		a->type->bit_offset == b->type->bit_offset;
+}
+
+static void convert_dominated_loads(pseudo_t pseudo, struct instruction *insn)
+{
+	struct basic_block *bb = insn->bb;
+	struct instruction *one;
+	int dominates = 0;
+
+	/* Unreachable store? Undo it */
+	if (!bb) {
+		insn->opcode = OP_SNOP;
+		return;
+	}
+
+	FOR_EACH_PTR(bb->insns, one) {
+		if (one == insn) {
+			dominates = 1;
+			continue;
+		}
+		if (!dominates)
+			continue;
+		switch (one->opcode) {
+		case OP_STORE:
+			if (one->src != pseudo)
+				continue;
+			if (same_memop(one, insn))
+				insn->opcode = OP_SNOP;
+			return;
+
+		case OP_LOAD:
+			if (one->src != pseudo)
+				continue;
+			if (!same_memop(one, insn))
+				continue;
+			convert_load_insn(one, insn->target);
+			continue;
+		default:
+			continue;
+		}
+	} END_FOR_EACH_PTR(one);
+
+	/*
+	 * If we exited the above without returning, the store might
+	 * still dominate our children. We should create a phi-node
+	 * in them and continue the domination check with that.
+	 *
+	 * But I'm incompetent.
+	 */
+	return;
 }
 
 static void simplify_one_symbol(struct symbol *sym)
@@ -1782,27 +1864,19 @@ static void simplify_one_symbol(struct symbol *sym)
 	}
 	FOR_EACH_PTR(pseudo->users, pp) {
 		struct instruction *insn = container(pp, struct instruction, src);
-		if (insn->opcode == OP_LOAD) {
-			pseudo_t target, *usep;
-
-			/*
-			 * Go through the "insn->users" list and replace them all..
-			 */
-			target = insn->target;
-			FOR_EACH_PTR(target->users, usep) {
-				*usep = src;
-			} END_FOR_EACH_PTR(usep);
-			concat_user_list(target->users, &src->users);
-
-			/* Turn the load into a no-op */
-			insn->opcode = OP_LNOP;
-		}
+		if (insn->opcode == OP_LOAD)
+			convert_load_insn(insn, src);
 	} END_FOR_EACH_PTR(pp);
 	return;
 
 multi_def:
 complex_def:
 	/* We need to check offsets, generate phi-nodes and a coverage graph. */
+	FOR_EACH_PTR(pseudo->users, pp) {
+		struct instruction *insn = container(pp, struct instruction, src);
+		if (insn->opcode == OP_STORE)
+			convert_dominated_loads(pseudo, insn);
+	} END_FOR_EACH_PTR(pp);
 	return;
 }
 
@@ -1874,6 +1948,11 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 			 */
 			remove_phi_nodes(ep);
 
+			/*
+			 * This packs the basic blocks, and also destroys the
+			 * instruction "bb" pointer information, so we must
+			 * do it last.
+			 */
 			pack_basic_blocks(ep);
 
 			ret_ep = ep;

@@ -45,6 +45,7 @@ struct phi {
 
 struct instruction {
 	struct symbol *type;
+	struct basic_block *bb;
 	int opcode;
 	union {
 		pseudo_t target;
