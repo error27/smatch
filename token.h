@@ -9,6 +9,7 @@
  */
 
 #include <sys/types.h>
+#include "lib.h"
 
 /*
  * This describes the pure lexical elements (tokens), with
@@ -114,12 +115,7 @@ struct string {
  * pointers.
  */
 struct token {
-	unsigned int type:8,
-		     stream:8,
-		     pos:14,
-		     newline:1,
-		     whitespace:1;
-	unsigned int line;
+	struct position pos;
 	struct token *next;
 	union {
 		char *integer;
@@ -130,6 +126,8 @@ struct token {
 		int character;
 	};
 };
+
+#define token_type(x) ((x)->pos.type)
 
 /*
  * Last token in the stream - points to itself.
@@ -155,12 +153,12 @@ extern struct token *preprocess(struct token *);
 
 static inline int match_op(struct token *token, int op)
 {
-	return token->type == TOKEN_SPECIAL && token->special == op;
+	return token->pos.type == TOKEN_SPECIAL && token->special == op;
 }
 
 static inline int match_ident(struct token *token, struct ident *id)
 {
-	return token->type == TOKEN_IDENT && token->ident == id;
+	return token->pos.type == TOKEN_IDENT && token->ident == id;
 }
 
 #endif

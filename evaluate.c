@@ -27,7 +27,7 @@ static int evaluate_symbol(struct expression *expr)
 	struct symbol *base_type;
 
 	if (!sym) {
-		warn(expr->token, "undefined identifier '%s'", show_token(expr->token));
+		warn(expr->pos, "undefined identifier '%s'", show_ident(expr->symbol_name));
 		return 0;
 	}
 	examine_symbol_type(sym);
@@ -112,7 +112,7 @@ static int get_int_value(struct expression *expr, const char *str)
 			if (BITS_IN_LONG == BITS_IN_INT)
 				modifiers = MOD_LONG | MOD_UNSIGNED;
 		}
-		warn(expr->token, "value is so big it is%s%s%s",
+		warn(expr->pos, "value is so big it is%s%s%s",
 			(modifiers & MOD_UNSIGNED) ? " unsigned":"",
 			(modifiers & MOD_LONG) ? " long":"",
 			(modifiers & MOD_LONGLONG) ? " long":"");
@@ -128,7 +128,7 @@ static int evaluate_constant(struct expression *expr)
 {
 	struct token *token = expr->token;
 
-	switch (token->type) {
+	switch (token_type(token)) {
 	case TOKEN_INTEGER:
 		return get_int_value(expr, token->integer);
 
@@ -137,11 +137,13 @@ static int evaluate_constant(struct expression *expr)
 		expr->ctype = &int_ctype;
 		expr->value = (char) token->character;
 		return 1;
+
 	case TOKEN_STRING:
 		expr->ctype = &string_ctype;
 		return 1;
+
 	default:
-		warn(token, "non-typed expression");
+		warn(expr->pos, "non-typed expression");
 	}
 	return 0;
 }
@@ -212,7 +214,7 @@ static int cast_value(struct expression *expr, struct symbol *newtype,
 
 static struct expression * cast_to(struct expression *old, struct symbol *type)
 {
-	struct expression *expr = alloc_expression(old->token, EXPR_CAST);
+	struct expression *expr = alloc_expression(old->pos, EXPR_CAST);
 	expr->ctype = type;
 	expr->cast_type = type;
 	expr->cast_expression = old;
@@ -233,7 +235,7 @@ static int is_int_type(struct symbol *type)
 
 static int bad_expr_type(struct expression *expr)
 {
-	warn(expr->token, "incompatible types for operation");
+	warn(expr->pos, "incompatible types for operation");
 	return 0;
 }
 
@@ -274,8 +276,10 @@ static int evaluate_int_binop(struct expression *expr)
 static struct symbol *degenerate(struct expression *expr, struct symbol *ctype)
 {
 	if (ctype->type == SYM_ARRAY) {
-		struct symbol *sym = alloc_symbol(expr->token, SYM_PTR);
+		struct symbol *sym = alloc_symbol(expr->pos, SYM_PTR);
 		sym->ctype = ctype->ctype;
+		sym->bit_size = BITS_IN_POINTER;
+		sym->alignment = POINTER_ALIGNMENT;
 		ctype = sym;
 	}
 	return ctype;
@@ -298,8 +302,8 @@ static int evaluate_ptr_add(struct expression *expr, struct expression *ptr, str
 	expr->ctype = degenerate(expr, ptr_type);
 	if (ctype->bit_size > BITS_IN_CHAR) {
 		struct expression *add = expr;
-		struct expression *mul = alloc_expression(expr->token, EXPR_BINOP);
-		struct expression *val = alloc_expression(expr->token, EXPR_VALUE);
+		struct expression *mul = alloc_expression(expr->pos, EXPR_BINOP);
+		struct expression *val = alloc_expression(expr->pos, EXPR_VALUE);
 
 		val->ctype = size_t_ctype;
 		val->value = ctype->bit_size >> 3;
@@ -310,7 +314,6 @@ static int evaluate_ptr_add(struct expression *expr, struct expression *ptr, str
 		mul->right = val;
 
 		/* Leave 'add->op' as 'expr->op' - either '+' or '-' */
-		add->ctype = ptr_type;
 		add->left = ptr;
 		add->right = mul;
 	}
@@ -360,16 +363,16 @@ static int evaluate_ptr_sub(struct expression *expr, struct expression *l, struc
 
 	ctype = same_ptr_types(ltype, rtype);
 	if (!ctype) {
-		warn(expr->token, "subtraction of different types can't work");
+		warn(expr->pos, "subtraction of different types can't work");
 		return 0;
 	}
 	examine_symbol_type(ctype);
 
 	expr->ctype = ssize_t_ctype;
 	if (ctype->bit_size > BITS_IN_CHAR) {
-		struct expression *sub = alloc_expression(expr->token, EXPR_BINOP);
+		struct expression *sub = alloc_expression(expr->pos, EXPR_BINOP);
 		struct expression *div = expr;
-		struct expression *val = alloc_expression(expr->token, EXPR_VALUE);
+		struct expression *val = alloc_expression(expr->pos, EXPR_VALUE);
 
 		val->ctype = size_t_ctype;
 		val->value = ctype->bit_size >> 3;
@@ -489,19 +492,19 @@ static int evaluate_preop(struct expression *expr)
 
 	case '*':
 		if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
-			warn(expr->token, "cannot derefence this type");
+			warn(expr->pos, "cannot derefence this type");
 			return 0;
 		}
 		examine_symbol_type(expr->ctype);
 		expr->ctype = ctype->ctype.base_type;
 		if (!expr->ctype) {
-			warn(expr->token, "undefined type");
+			warn(expr->pos, "undefined type");
 			return 0;
 		}
 		return 1;
 
 	case '&': {
-		struct symbol *symbol = alloc_symbol(expr->token, SYM_PTR);
+		struct symbol *symbol = alloc_symbol(expr->pos, SYM_PTR);
 		symbol->ctype.base_type = ctype;
 		symbol->bit_size = BITS_IN_POINTER;
 		symbol->alignment = POINTER_ALIGNMENT;
@@ -538,7 +541,7 @@ struct symbol *find_identifier(struct ident *ident, struct symbol_list *_list, i
 		for (i = 0; i < list->nr; i++) {
 			struct symbol *sym = (struct symbol *) list->list[i];
 			if (sym->ident) {
-				if (sym->ident->ident != ident)
+				if (sym->ident != ident)
 					continue;
 				*offset = sym->offset;
 				return sym;
@@ -575,29 +578,29 @@ static int evaluate_dereference(struct expression *expr)
 	if (expr->op == SPECIAL_DEREFERENCE) {
 		/* Arrays will degenerate into pointers for '->' */
 		if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
-			warn(expr->token, "expected a pointer to a struct/union");
+			warn(expr->pos, "expected a pointer to a struct/union");
 			return 0;
 		}
 		ctype = ctype->ctype.base_type;
 	}
 	if (!ctype || (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION)) {
-		warn(expr->token, "expected structure or union");
+		warn(expr->pos, "expected structure or union");
 		return 0;
 	}
 	offset = 0;
 	member = find_identifier(token->ident, ctype->symbol_list, &offset);
 	if (!member) {
-		warn(expr->token, "no such struct/union member");
+		warn(expr->pos, "no such struct/union member");
 		return 0;
 	}
 
 	add = deref;
 	if (offset != 0) {
-		add = alloc_expression(expr->token, EXPR_BINOP);
+		add = alloc_expression(expr->pos, EXPR_BINOP);
 		add->op = '+';
 		add->ctype = &ptr_ctype;
 		add->left = deref;
-		add->right = alloc_expression(expr->token, EXPR_VALUE);
+		add->right = alloc_expression(expr->pos, EXPR_VALUE);
 		add->right->ctype = &int_ctype;
 		add->right->value = offset;
 	}
@@ -632,7 +635,7 @@ static int evaluate_sizeof(struct expression *expr)
 		size = expr->cast_expression->ctype->bit_size;
 	}
 	if (size & 7) {
-		warn(expr->token, "cannot size expression");
+		warn(expr->pos, "cannot size expression");
 		return 0;
 	}
 	expr->type = EXPR_VALUE;
@@ -694,15 +697,15 @@ static int evaluate_call(struct expression *expr)
 	if (ctype->type == SYM_PTR || ctype->type == SYM_ARRAY)
 		ctype = ctype->ctype.base_type;
 	if (ctype->type != SYM_FN) {
-		warn(expr->token, "not a function");
+		warn(expr->pos, "not a function");
 		return 0;
 	}
 	args = expression_list_size(expr->args);
 	fnargs = symbol_list_size(ctype->arguments);
 	if (args < fnargs)
-		warn(expr->token, "not enough arguments for function");
+		warn(expr->pos, "not enough arguments for function");
 	if (args > fnargs && !ctype->variadic)
-		warn(expr->token, "too many arguments for function");
+		warn(expr->pos, "too many arguments for function");
 	expr->ctype = ctype->ctype.base_type;
 	return 1;
 }
@@ -774,12 +777,12 @@ long long get_expression_value(struct expression *expr)
 		if (expr->cast_type) {
 			examine_symbol_type(expr->cast_type);
 			if (expr->cast_type->bit_size & 7) {
-				warn(expr->token, "type has no size");
+				warn(expr->pos, "type has no size");
 				return 0;
 			}
 			return expr->cast_type->bit_size >> 3;
 		}
-		warn(expr->token, "expression sizes not yet supported");
+		warn(expr->pos, "expression sizes not yet supported");
 		return 0;
 	case EXPR_CONSTANT:
 		evaluate_constant(expr);
@@ -789,7 +792,7 @@ long long get_expression_value(struct expression *expr)
 	case EXPR_SYMBOL: {
 		struct symbol *sym = expr->symbol;
 		if (!sym || !sym->ctype.base_type || sym->ctype.base_type->type != SYM_ENUM) {
-			warn(expr->token, "undefined identifier in constant expression");
+			warn(expr->pos, "undefined identifier '%s' in constant expression", expr->symbol_name);
 			return 0;
 		}
 		return sym->value;
@@ -836,6 +839,6 @@ long long get_expression_value(struct expression *expr)
 	default:
 		break;
 	}
-	error(expr->token, "bad constant expression");
+	error(expr->pos, "bad constant expression");
 	return 0;
 }

@@ -28,8 +28,8 @@ struct token *expect(struct token *token, int op, const char *where)
 		static struct token bad_token;
 		if (token != &bad_token) {
 			bad_token.next = token;
-			warn(token, "Expected %s %s", show_special(op), where);
-			warn(token, "got %s", show_token(token));
+			warn(token->pos, "Expected %s %s", show_special(op), where);
+			warn(token->pos, "got %s", show_token(token));
 		}
 		if (op == ';')
 			return skip_to(token, op);
@@ -223,27 +223,19 @@ void add_ptr_list(struct ptr_list **listp, void *ptr)
 	list->nr = nr;
 }
 
-static void do_warn(const char *type, struct token *token, const char * fmt, va_list args)
+static void do_warn(const char *type, struct position pos, const char * fmt, va_list args)
 {
 	static char buffer[512];
 	const char *name;
-	int pos,line;
 
 	vsprintf(buffer, fmt, args);	
-	name = "EOF";
-	pos = 0;
-	line = 0;
-	if (token) {
-		name = input_streams[token->stream].name;
-		pos = token->pos;
-		line = token->line;
-	}
+	name = input_streams[pos.stream].name;
 		
 	fprintf(stderr, "%s: %s:%d:%d: %s\n",
-		type, name, line, pos, buffer);
+		type, name, pos.line, pos.pos, buffer);
 }
 
-void warn(struct token *token, const char * fmt, ...)
+void warn(struct position pos, const char * fmt, ...)
 {
 	static int warnings = 0;
 
@@ -257,16 +249,16 @@ void warn(struct token *token, const char * fmt, ...)
 
 	va_list args;
 	va_start(args, fmt);
-	do_warn("warning", token, fmt, args);
+	do_warn("warning", pos, fmt, args);
 	va_end(args);
 	warnings++;
 }	
 
-void error(struct token *token, const char * fmt, ...)
+void error(struct position pos, const char * fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	do_warn("error", token, fmt, args);
+	do_warn("error", pos, fmt, args);
 	va_end(args);
 	exit(1);
 }

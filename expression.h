@@ -32,9 +32,12 @@ enum expression_type {
 struct expression {
 	enum expression_type type;
 	int op;
-	struct token *token;
+	struct position pos;
 	struct symbol *ctype;
 	union {
+		// EXPR_CONSTANT
+		struct token *token;
+
 		// EXPR_VALUE
 		unsigned long long value;
 
@@ -42,7 +45,10 @@ struct expression {
 		struct expression *unop;
 
 		// EXPR_SYMBOL
-		struct symbol *symbol;
+		struct symbol_arg {
+			struct symbol *symbol;
+			struct ident *symbol_name;
+		};
 
 		// EXPR_STATEMENT
 		struct statement *statement;
@@ -90,11 +96,11 @@ struct token *assignment_expression(struct token *token, struct expression **tre
 
 extern int evaluate_expression(struct expression *);
 
-static inline struct expression *alloc_expression(struct token *token, int type)
+static inline struct expression *alloc_expression(struct position pos, int type)
 {
 	struct expression *expr = __alloc_expression(0);
 	expr->type = type;
-	expr->token = token;
+	expr->pos = pos;
 	return expr;
 }
 
@@ -103,7 +109,7 @@ struct token *typename(struct token *, struct symbol **);
 
 static inline int lookup_type(struct token *token)
 {
-	if (token->type == TOKEN_IDENT)
+	if (token->pos.type == TOKEN_IDENT)
 		return lookup_symbol(token->ident, NS_TYPEDEF) != NULL;
 	return 0;
 }

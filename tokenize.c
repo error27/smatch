@@ -26,8 +26,8 @@ static int input_streams_allocated;
 #define BUFSIZE (8192)
 
 typedef struct {
-	int fd, stream, line, pos, offset, size;
-	unsigned int newline:1, whitespace:1;
+	int fd, offset, size;
+	struct position pos;
 	struct token **tokenlist;
 	struct token *token;
 	unsigned char *buffer;
@@ -49,6 +49,8 @@ const char *show_special(int val)
 const char *show_ident(const struct ident *ident)
 {
 	static char buffer[256];
+	if (!ident)
+		return "<noident>";
 	sprintf(buffer, "%.*s", ident->len, ident->name);
 	return buffer;
 }
@@ -82,7 +84,7 @@ const char *show_token(const struct token *token)
 
 	if (!token)
 		return "<no token>";
-	switch (token->type) {
+	switch (token_type(token)) {
 	case TOKEN_ERROR:
 		return "syntax error";
 
@@ -138,11 +140,11 @@ const char *show_token(const struct token *token)
 	}
 
 	case TOKEN_STREAMBEGIN:
-		sprintf(buffer, "<beginning of '%s'>", (input_streams + token->stream)->name);
+		sprintf(buffer, "<beginning of '%s'>", (input_streams + token->pos.stream)->name);
 		return buffer;
 
 	case TOKEN_STREAMEND:
-		sprintf(buffer, "<end of '%s'>", (input_streams + token->stream)->name);
+		sprintf(buffer, "<end of '%s'>", (input_streams + token->pos.stream)->name);
 		return buffer;
 	
 	default:
@@ -189,11 +191,7 @@ int init_stream(const char *name, int fd)
 static struct token * alloc_token(stream_t *stream)
 {
 	struct token *token = __alloc_token(0);
-	token->line = stream->line;
 	token->pos = stream->pos;
-	token->stream = stream->stream;
-	token->newline = stream->newline;
-	token->whitespace = stream->whitespace;
 	return token;
 }
 
@@ -213,11 +211,11 @@ static int nextchar(stream_t *stream)
 	}
 	c = stream->buffer[offset];
 	stream->offset = offset + 1;
-	stream->pos++;
+	stream->pos.pos++;
 	if (c == '\n') {
-		stream->line++;
-		stream->newline = 1;
-		stream->pos = 0;
+		stream->pos.line++;
+		stream->pos.newline = 1;
+		stream->pos.pos = 0;
 	}
 	return c;
 }
@@ -229,11 +227,11 @@ static void mark_eof(stream_t *stream, struct token *end_token)
 	struct token *end;
 
 	end = alloc_token(stream);
-	end->type = TOKEN_STREAMEND;
-	end->newline = 1;
+	token_type(end) = TOKEN_STREAMEND;
+	end->pos.newline = 1;
 
 	eof_token_entry.next = &eof_token_entry;
-	eof_token_entry.newline = 1;
+	eof_token_entry.pos.newline = 1;
 
 	if (!end_token)
 		end_token =  &eof_token_entry;
@@ -254,8 +252,8 @@ static void add_token(stream_t *stream)
 
 static void drop_token(stream_t *stream)
 {
-	stream->newline |= stream->token->newline;
-	stream->whitespace |= stream->token->whitespace;
+	stream->pos.newline |= stream->token->pos.newline;
+	stream->pos.whitespace |= stream->token->pos.whitespace;
 	stream->token = NULL;
 }
 
@@ -288,7 +286,7 @@ static int do_integer(char *buffer, int len, int next, stream_t *stream)
 	buffer[len++] = '\0';
 	buf = __alloc_bytes(len);
 	memcpy(buf, buffer, len);
-	token->type = TOKEN_INTEGER;
+	token_type(token) = TOKEN_INTEGER;
 	token->integer = buf;
 	add_token(stream);
 	return next;
@@ -329,7 +327,7 @@ static int escapechar(int first, int type, stream_t *stream, int *valp)
 	value = first;
 
 	if (first == '\n')
-		warn(stream->token, "Newline in string or character constant");
+		warn(stream->pos, "Newline in string or character constant");
 
 	if (first == '\\' && next != EOF) {
 		value = next;
@@ -375,7 +373,7 @@ static int escapechar(int first, int type, stream_t *stream, int *valp)
 			}
 			/* Fallthrough */
 			default:
-				warn(stream->token, "Unknown escape '%c'", value);
+				warn(stream->pos, "Unknown escape '%c'", value);
 			}
 		}
 		/* Mark it as escaped */
@@ -392,13 +390,13 @@ static int get_char_token(int next, stream_t *stream)
 
 	next = escapechar(next, '\'', stream, &value);
 	if (value == '\'' || next != '\'') {
-		warn(stream->token, "Bad character constant");
+		warn(stream->pos, "Bad character constant");
 		drop_token(stream);
 		return next;
 	}
 
 	token = stream->token;
-	token->type = TOKEN_CHAR;
+	token_type(token) = TOKEN_CHAR;
 	token->character = value & 0xff;
 
 	add_token(stream);
@@ -418,7 +416,7 @@ static int get_string_token(int next, stream_t *stream)
 		if (val == '"')
 			break;
 		if (next == EOF) {
-			warn(stream->token, "Enf of file in middle of string");
+			warn(stream->pos, "Enf of file in middle of string");
 			return next;
 		}
 		if (len < sizeof(buffer)) {
@@ -429,7 +427,7 @@ static int get_string_token(int next, stream_t *stream)
 	}
 
 	if (len > 256)
-		warn(stream->token, "String too long");
+		warn(stream->pos, "String too long");
 
 	string = __alloc_string(len+1);
 	memcpy(string->data, buffer, len);
@@ -438,7 +436,7 @@ static int get_string_token(int next, stream_t *stream)
 
 	/* Pass it on.. */
 	token = stream->token;
-	token->type = TOKEN_STRING;
+	token_type(token) = TOKEN_STRING;
 	token->string = string;
 	add_token(stream);
 	
@@ -466,7 +464,7 @@ static int drop_stream_comment(stream_t *stream)
 	for (;;) {
 		int curr = next;
 		if (curr == EOF) {
-			warn(stream->token, "End of file in the middle of a comment");
+			warn(stream->pos, "End of file in the middle of a comment");
 			return curr;
 		}
 		next = nextchar(stream);
@@ -523,7 +521,7 @@ static int get_one_special(int c, stream_t *stream)
 
 	/* Pass it on.. */
 	token = stream->token;
-	token->type = TOKEN_SPECIAL;
+	token_type(token) = TOKEN_SPECIAL;
 	token->special = value;
 	add_token(stream);
 	return next;
@@ -632,8 +630,8 @@ struct token *built_in_token(int stream, const char *name)
 	struct token *token;
 
 	token = __alloc_token(0);
-	token->stream = stream;
-	token->type = TOKEN_IDENT;
+	token->pos.stream = stream;
+	token_type(token) = TOKEN_IDENT;
 	token->ident = built_in_ident(name);
 	return token;
 }
@@ -671,7 +669,7 @@ static int get_one_identifier(int c, stream_t *stream)
 
 	/* Pass it on.. */
 	token = stream->token;
-	token->type = TOKEN_IDENT;
+	token_type(token) = TOKEN_IDENT;
 	token->ident = ident;
 	add_token(stream);
 	return next;
@@ -696,19 +694,20 @@ static struct token *setup_stream(stream_t *stream, int idx, int fd,
 {
 	struct token *begin;
 
-	stream->stream = idx;
+	stream->pos.stream = idx;
+	stream->pos.line = 1;
+	stream->pos.newline = 1;
+	stream->pos.whitespace = 0;
+	stream->pos.pos = 0;
+
 	stream->token = NULL;
-	stream->line = 1;
-	stream->newline = 1;
-	stream->whitespace = 0;
-	stream->pos = 0;
 	stream->fd = fd;
 	stream->offset = 0;
 	stream->size = buf_size;
 	stream->buffer = buf;
 
 	begin = alloc_token(stream);
-	begin->type = TOKEN_STREAMBEGIN;
+	token_type(begin) = TOKEN_STREAMBEGIN;
 	stream->tokenlist = &begin->next;
 	return begin;
 }
@@ -719,21 +718,19 @@ static void tokenize_stream(stream_t *stream, struct token *endtoken)
 	while (c != EOF) {
 		if (c == '\\') {
 			c = nextchar(stream);
-			stream->newline = 0;
-			stream->whitespace = 1;
+			stream->pos.newline = 0;
+			stream->pos.whitespace = 1;
 			continue;
 		}
 		if (!isspace(c)) {
 			struct token *token = alloc_token(stream);
-			token->newline = stream->newline;
-			token->whitespace = stream->whitespace;
-			stream->newline = 0;
-			stream->whitespace = 0;
 			stream->token = token;
+			stream->pos.newline = 0;
+			stream->pos.whitespace = 0;
 			c = get_one_token(c, stream);
 			continue;
 		}
-		stream->whitespace = 1;
+		stream->pos.whitespace = 1;
 		c = nextchar(stream);
 	}
 	mark_eof(stream, endtoken);

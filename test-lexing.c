@@ -31,9 +31,9 @@ int main(int argc, char **argv)
 	while (!eof_token(token)) {
 		struct token *next = token->next;
 		char * separator = "";
-		if (next->whitespace)
+		if (next->pos.whitespace)
 			separator = " ";
-		if (next->newline)
+		if (next->pos.newline)
 			separator = "\n";
 		printf("%s%s", show_token(token), separator);
 		token = next;

@@ -49,14 +49,14 @@ static int match_string_ident(struct ident *ident, const char *str)
 	return !str[ident->len] && !memcmp(str, ident->name, ident->len);
 }
 
-static struct token *alloc_token(struct token *dup)
+static struct token *alloc_token(struct position *pos)
 {
 	struct token *token = __alloc_token(0);
 
-	token->stream = dup->stream;
-	token->line = dup->line;
-	token->pos = dup->pos;
-	token->whitespace = 1;
+	token->pos.stream = pos->stream;
+	token->pos.line = pos->line;
+	token->pos.pos = pos->pos;
+	token->pos.whitespace = 1;
 	return token;
 }
 
@@ -72,7 +72,7 @@ static struct token *for_each_ident(struct token *head, struct token *(*action)(
 		if (eof_token(next))
 			break;
 
-		if (next->type == TOKEN_IDENT)
+		if (token_type(next) == TOKEN_IDENT)
 			next = action(head, next);
 
 		head = next;
@@ -84,9 +84,9 @@ static struct token *is_defined(struct token *head, struct token *token, struct 
 {
 	char *string[] = { "0", "1" };
 	char *defined = string[lookup_symbol(token->ident, NS_PREPROCESSOR) != NULL];
-	struct token *newtoken = alloc_token(token);
+	struct token *newtoken = alloc_token(&token->pos);
 
-	newtoken->type = TOKEN_INTEGER;
+	token_type(newtoken) = TOKEN_INTEGER;
 	newtoken->integer = defined;
 	newtoken->next = next;
 	head->next = newtoken;
@@ -107,7 +107,7 @@ struct token *defined_one_symbol(struct token *head, struct token *next)
 				return next;
 			past = past->next;
 		}
-		if (token->type == TOKEN_IDENT)
+		if (token_type(token) == TOKEN_IDENT)
 			return is_defined(head, token, past);
 	}
 	return next;
@@ -128,7 +128,7 @@ static void replace_with_string(struct token *token, const char *str)
 
 	s->length = size;
 	memcpy(s->data, str, size);
-	token->type = TOKEN_STRING;
+	token_type(token) = TOKEN_STRING;
 	token->string = s;
 }
 
@@ -136,7 +136,7 @@ static void replace_with_integer(struct token *token, unsigned int val)
 {
 	char *buf = __alloc_bytes(10);
 	sprintf(buf, "%d", val);
-	token->type = TOKEN_INTEGER;
+	token_type(token) = TOKEN_INTEGER;
 	token->integer = buf;
 }
 
@@ -149,9 +149,9 @@ struct token *expand_one_symbol(struct token *head, struct token *token)
 		return expand(head, sym);
 	}
 	if (!memcmp(token->ident->name, "__LINE__", 9)) {
-		replace_with_integer(token, token->line);
+		replace_with_integer(token, token->pos.line);
 	} else if (!memcmp(token->ident->name, "__FILE__", 9)) {
-		replace_with_string(token, (input_streams + token->stream)->name);
+		replace_with_string(token, (input_streams + token->pos.stream)->name);
 	}
 	return token;
 }
@@ -181,12 +181,12 @@ static struct token *find_argument_end(struct token *start)
 	return start;
 }
 
-static struct token *dup_token(struct token *token, struct token *pos, int newline)
+static struct token *dup_token(struct token *token, struct position *pos, int newline)
 {
 	struct token *alloc = alloc_token(pos);
-	alloc->type = token->type;
-	alloc->line = pos->line;
-	alloc->newline = newline;
+	token_type(alloc) = token_type(token);
+	alloc->pos.line = pos->line;
+	alloc->pos.newline = newline;
 	alloc->integer = token->integer;
 	return alloc;	
 }
@@ -199,11 +199,11 @@ static void insert(struct token *token, struct token *prev)
 
 static struct token * replace(struct token *token, struct token *prev, struct token *list)
 {
-	int newline = token->newline;
+	int newline = token->pos.newline;
 
 	prev->next = token->next;
 	while (!eof_token(list) && !match_op(list, SPECIAL_ARG_SEPARATOR)) {
-		struct token *newtok = dup_token(list, token, newline);
+		struct token *newtok = dup_token(list, &token->pos, newline);
 		newline = 0;
 		insert(newtok, prev);
 		prev = newtok;
@@ -230,13 +230,13 @@ static struct token *stringify(struct token *token, struct token *arg)
 {
 	const char *s = show_token_sequence(arg);
 	int size = strlen(s)+1;
-	struct token *newtoken = alloc_token(token);
+	struct token *newtoken = alloc_token(&token->pos);
 	struct string *string = __alloc_string(size);
 
-	newtoken->newline = token->newline;
+	newtoken->pos.newline = token->pos.newline;
 	memcpy(string->data, s, size);
 	string->length = size;
-	newtoken->type = TOKEN_STRING;
+	token_type(newtoken) = TOKEN_STRING;
 	newtoken->string = string;
 	newtoken->next = &eof_token_entry;
 	return newtoken;
@@ -255,7 +255,7 @@ static int arg_number(struct token *arglist, struct ident *ident)
 	return -1;
 }			
 
-static struct token empty_arg_token = { .type = TOKEN_EOF };
+static struct token empty_arg_token = { .pos = { .type = TOKEN_EOF } };
 
 static struct token *expand_one_arg(struct token *head, struct token *token,
 		struct token *arglist, struct token *arguments)
@@ -299,15 +299,15 @@ static void expand_arguments(struct token *token, struct token *head,
 		if (match_op(next, '#')) {
 			struct token *nextnext = next->next;
 			int nr = arg_number(arglist, nextnext->ident);
-			if (nextnext != head && nr >= 0 && nextnext->type == TOKEN_IDENT) {
+			if (nextnext != head && nr >= 0 && token_type(nextnext) == TOKEN_IDENT) {
 				struct token *newtoken = stringify(nextnext, get_argument(nr, arguments));
 				replace(nextnext, head, newtoken);
 				continue;
 			}
-			warn(next, "'#' operation is not followed by argument name");
+			warn(next->pos, "'#' operation is not followed by argument name");
 		}
 
-		if (next->type == TOKEN_IDENT)
+		if (token_type(next) == TOKEN_IDENT)
 			next = expand_one_arg(head, next, arglist, arguments);
 
 		head = next;
@@ -339,13 +339,13 @@ static struct token *hashhash(struct token *head, struct token *first, struct to
 	 *
 	 * See expand_one_arg.
 	 */
-	if (second->type == TOKEN_EOF) {
+	if (token_type(second) == TOKEN_EOF) {
 		head->next = second->next;
 		return head;
 	}
 
 	p = buffer;
-	switch (first->type) {
+	switch (token_type(first)) {
 	case TOKEN_INTEGER:
 		len = strlen(first->integer);
 		src = first->integer;
@@ -360,7 +360,7 @@ static struct token *hashhash(struct token *head, struct token *first, struct to
 	memcpy(p, src, len);
 	p += len;
 
-	switch (second->type) {
+	switch (token_type(second)) {
 	case TOKEN_INTEGER:
 		len = strlen(second->integer);
 		src = second->integer;
@@ -376,10 +376,10 @@ static struct token *hashhash(struct token *head, struct token *first, struct to
 	p += len;
 	*p++ = 0;
 
-	newtoken = alloc_token(first);
+	newtoken = alloc_token(&first->pos);
 	head->next = newtoken;
-	newtoken->type = first->type;
-	switch (newtoken->type) {
+	token_type(newtoken) = token_type(first);
+	switch (token_type(newtoken)) {
 	case TOKEN_IDENT:
 		newtoken->ident = built_in_ident(buffer);
 		break;
@@ -468,7 +468,7 @@ static const char *token_name_sequence(struct token *token, int endop, struct to
 	while (!eof_token(token) && !match_op(token, endop)) {
 		int len;
 		const char *val = token->string->data;
-		if (token->type != TOKEN_STRING)
+		if (token_type(token) != TOKEN_STRING)
 			val = show_token(token);
 		len = strlen(val);
 		memcpy(ptr, val, len);
@@ -477,7 +477,7 @@ static const char *token_name_sequence(struct token *token, int endop, struct to
 	}
 	*ptr = 0;
 	if (endop && !match_op(token, endop))
-		warn(start, "expected '>' at end of filename");
+		warn(start->pos, "expected '>' at end of filename");
 	return buffer;
 }
 
@@ -501,7 +501,7 @@ static void do_include(struct token *head, struct token *token, const char *file
 			return;
 		}
 	}
-	warn(token, "unable to open '%s'", filename);
+	warn(token->pos, "unable to open '%s'", filename);
 }
 
 static int handle_include(struct stream *stream, struct token *head, struct token *token)
@@ -534,7 +534,7 @@ static int token_list_different(struct token *list1, struct token *list2)
 			return 0;
 		if (!list1 || !list2)
 			return 1;
-		if (list1->type != list2->type)
+		if (token_type(list1) != token_type(list2))
 			return 1;
 		list1 = list1->next;
 		list2 = list2->next;
@@ -549,8 +549,8 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 	struct symbol *sym;
 	struct ident *name;
 
-	if (left->type != TOKEN_IDENT) {
-		warn(head, "expected identifier to 'define'");
+	if (token_type(left) != TOKEN_IDENT) {
+		warn(head->pos, "expected identifier to 'define'");
 		return 0;
 	}
 	if (false_nesting)
@@ -559,7 +559,7 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 
 	arglist = NULL;
 	expansion = left->next;
-	if (!expansion->whitespace && match_op(expansion, '(')) {
+	if (!expansion->pos.whitespace && match_op(expansion, '(')) {
 		arglist = expansion;
 		while (!eof_token(expansion)) {
 			struct token *next = expansion->next;
@@ -580,12 +580,12 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 	if (sym) {
 		if (token_list_different(sym->expansion, expansion) || 
 		    token_list_different(sym->arglist, arglist)) {
-			warn(left, "preprocessor token redefined");
-			warn(sym->token, "this was the original definition");
+			warn(left->pos, "preprocessor token redefined");
+			warn(sym->pos, "this was the original definition");
 		}
 		return 1;
 	}
-	sym = alloc_symbol(left, SYM_NODE);
+	sym = alloc_symbol(left->pos, SYM_NODE);
 	bind_symbol(sym, name, NS_PREPROCESSOR);
 
 	sym->expansion = expansion;
@@ -598,8 +598,8 @@ static int handle_undef(struct stream *stream, struct token *head, struct token 
 	struct token *left = token->next;
 	struct symbol **sym;
 
-	if (left->type != TOKEN_IDENT) {
-		warn(head, "expected identifier to 'undef'");
+	if (token_type(left) != TOKEN_IDENT) {
+		warn(head->pos, "expected identifier to 'undef'");
 		return 0;
 	}
 	if (false_nesting)
@@ -631,10 +631,10 @@ static int preprocessor_if(struct token *token, int true)
 
 static int token_defined(struct token *token)
 {
-	if (token->type == TOKEN_IDENT)
+	if (token_type(token) == TOKEN_IDENT)
 		return lookup_symbol(token->ident, NS_PREPROCESSOR) != NULL;
 
-	warn(token, "expected identifier for #if[n]def");
+	warn(token->pos, "expected identifier for #if[n]def");
 	return 0;
 }
 
@@ -648,7 +648,7 @@ static int handle_ifndef(struct stream *stream, struct token *head, struct token
 	struct token *next = token->next;
 	if (stream->constant == -1) {
 		int newconstant = 0;
-		if (next->type == TOKEN_IDENT) {
+		if (token_type(next) == TOKEN_IDENT) {
 			if (!stream->protect || stream->protect == next->ident) {
 				newconstant = -2;
 				stream->protect = next->ident;
@@ -670,7 +670,7 @@ static int expression_value(struct token *head)
 	expand_list(head);
 	token = constant_expression(head->next, &expr);
 	if (!eof_token(token))
-		warn(token, "garbage at end: %s", show_token_sequence(token));
+		warn(token->pos, "garbage at end: %s", show_token_sequence(token));
 	value = get_expression_value(expr);
 	return value != 0;
 }
@@ -703,7 +703,7 @@ static int handle_elif(struct stream * stream, struct token *head, struct token 
 		true_nesting--;
 		return 1;
 	}
-	warn(token, "unmatched '#elif'");
+	warn(token->pos, "unmatched '#elif'");
 	return 1;
 }
 
@@ -725,7 +725,7 @@ static int handle_else(struct stream *stream, struct token *head, struct token *
 		false_nesting = 1;
 		return 1;
 	}
-	warn(token, "unmatched #else");
+	warn(token->pos, "unmatched #else");
 	return 1;
 }
 
@@ -742,7 +742,7 @@ static int handle_endif(struct stream *stream, struct token *head, struct token 
 		true_nesting--;
 		return 1;
 	}
-	warn(token, "unmatched #endif");
+	warn(token->pos, "unmatched #endif");
 	return 1;
 }
 
@@ -762,7 +762,7 @@ static const char *show_token_sequence(struct token *token)
 		memcpy(ptr, val, len);
 		ptr += len;
 		token = token->next;
-		whitespace = token->whitespace;
+		whitespace = token->pos.whitespace;
 	}
 	*ptr = 0;
 	return buffer;
@@ -772,7 +772,7 @@ static int handle_warning(struct stream *stream, struct token *head, struct toke
 {
 	if (false_nesting)
 		return 1;
-	warn(token, "%s", show_token_sequence(token->next));
+	warn(token->pos, "%s", show_token_sequence(token->next));
 	return 1;
 }
 
@@ -780,7 +780,7 @@ static int handle_error(struct stream *stream, struct token *head, struct token 
 {
 	if (false_nesting)
 		return 1;
-	error(token, "%s", show_token_sequence(token->next));
+	error(token->pos, "%s", show_token_sequence(token->next));
 	return 1;
 }
 
@@ -803,7 +803,7 @@ static void add_path_entry(struct token *token, const char *path)
 			return;
 		}
 	}
-	warn(token, "too many include path entries");
+	warn(token->pos, "too many include path entries");
 }
 
 static int handle_add_include(struct stream *stream, struct token *head, struct token *token)
@@ -812,8 +812,8 @@ static int handle_add_include(struct stream *stream, struct token *head, struct 
 		token = token->next;
 		if (eof_token(token))
 			return 1;
-		if (token->type != TOKEN_STRING) {
-			warn(token, "expected path string");
+		if (token_type(token) != TOKEN_STRING) {
+			warn(token->pos, "expected path string");
 			return 1;
 		}
 		add_path_entry(token, token->string->data);
@@ -856,10 +856,10 @@ static void handle_preprocessor_line(struct stream *stream, struct token * head,
 	if (!token)
 		return;
 
-	if (token->type == TOKEN_IDENT)
+	if (token_type(token) == TOKEN_IDENT)
 		if (handle_preprocessor_command(stream, head, token->ident, token))
 			return;
-	warn(token, "unrecognized preprocessor line '%s'", show_token_sequence(token));
+	warn(token->pos, "unrecognized preprocessor line '%s'", show_token_sequence(token));
 }
 
 static void preprocessor_line(struct stream *stream, struct token * head)
@@ -869,7 +869,7 @@ static void preprocessor_line(struct stream *stream, struct token * head)
 
 	for (;;) {
 		next = *tp;
-		if (next->newline)
+		if (next->pos.newline)
 			break;
 		tp = &next->next;
 	}
@@ -882,9 +882,9 @@ static void do_preprocess(struct token *head)
 {
 	do {
 		struct token *next = head->next;
-		struct stream *stream = input_streams + next->stream;
+		struct stream *stream = input_streams + next->pos.stream;
 
-		if (next->newline && match_op(next, '#')) {
+		if (next->pos.newline && match_op(next, '#')) {
 			preprocessor_line(stream, head);
 			continue;
 		}
@@ -894,7 +894,7 @@ static void do_preprocess(struct token *head)
 			continue;
 		}
 
-		switch (next->type) {
+		switch (token_type(next)) {
 		case TOKEN_STREAMEND:
 			if (stream->constant == -1 && stream->protect) {
 				stream->constant = 1;
@@ -922,12 +922,12 @@ static void do_preprocess(struct token *head)
 
 struct token * preprocess(struct token *token)
 {
-	struct token header = { 0, };
+	struct token header = { };
 
 	header.next = token;
 	do_preprocess(&header);
 	if (if_nesting)
-		warn(unmatched_if, "unmatched preprocessor conditional");
+		warn(unmatched_if->pos, "unmatched preprocessor conditional");
 
 	// Drop all expressions from pre-processing, they're not used any more.
 	clear_expression_alloc();

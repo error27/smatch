@@ -54,7 +54,7 @@ void show_struct_member(struct symbol *sym, void *data, int flags)
 {
 	if (flags & ITERATE_FIRST)
 		printf(" { ");
-	printf("%s:%d:%d at offset %ld", show_token(sym->token), sym->bit_size, sym->alignment, sym->offset);
+	printf("%s:%d:%d at offset %ld", show_ident(sym->ident), sym->bit_size, sym->alignment, sym->offset);
 	if (sym->fieldwidth)
 		printf("[%d..%d]", sym->bit_offset, sym->bit_offset+sym->fieldwidth-1);
 	if (flags & ITERATE_LAST)
@@ -145,15 +145,15 @@ void show_type(struct symbol *sym)
 		return;
 
 	case SYM_STRUCT:
-		printf("struct %s", show_token(sym->token));
+		printf("struct %s", show_ident(sym->ident));
 		return;
 
 	case SYM_UNION:
-		printf("union %s", show_token(sym->token)); 
+		printf("union %s", show_ident(sym->ident)); 
 		return;
 
 	case SYM_ENUM:
-		printf("enum %s", show_token(sym->token));
+		printf("enum %s", show_ident(sym->ident));
 		return;
 
 	case SYM_NODE: {
@@ -162,7 +162,7 @@ void show_type(struct symbol *sym)
 			printf("notype");
 		else
 			show_type(type);
-		printf(": %s", show_token(sym->token));
+		printf(": %s", show_ident(sym->ident));
 		return;
 	}
 
@@ -172,7 +172,7 @@ void show_type(struct symbol *sym)
 		return;
 
 	default:
-		printf("strange type %d '%s' of type ", sym->type, show_token(sym->token));
+		printf("strange type %d '%s' of type ", sym->type, show_ident(sym->ident));
 		show_type(sym->ctype.base_type);
 		return;
 	}
@@ -423,11 +423,11 @@ void show_expression(struct expression *expr)
 		break;
 	case EXPR_SYMBOL:
 		if (!expr->symbol) {
-			warn(expr->token, "undefined symbol '%s'", show_token(expr->token));
+			warn(expr->pos, "undefined symbol '%s'", show_ident(expr->symbol_name));
 			printf("<nosymbol>");
 			break;
 		}
-		printf("<%s:", show_token(expr->symbol->token));
+		printf("<%s:", show_ident(expr->symbol_name));
 		show_type(expr->symbol->ctype.base_type);
 		printf(">");
 		break;

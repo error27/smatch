@@ -8,6 +8,15 @@
 
 extern unsigned int hexval(unsigned int c);
 
+struct position {
+	unsigned int type:6,
+		     stream:10,
+		     pos:14,
+		     newline:1,
+		     whitespace:1;
+	unsigned int line;
+};
+
 struct ident;
 struct token;
 struct symbol;
@@ -19,8 +28,8 @@ struct expression_list;
 
 struct token *skip_to(struct token *, int);
 struct token *expect(struct token *, int, const char *);
-extern void warn(struct token *, const char *, ...);
-extern void error(struct token *, const char *, ...);
+extern void warn(struct position, const char *, ...);
+extern void error(struct position, const char *, ...);
 
 #define __DECLARE_ALLOCATOR(type, x)		\
 	extern type *__alloc_##x(int);		\

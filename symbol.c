@@ -27,11 +27,11 @@ struct symbol *lookup_symbol(struct ident *ident, enum namespace ns)
 	return sym;
 }
 
-struct symbol *alloc_symbol(struct token *token, int type)
+struct symbol *alloc_symbol(struct position pos, int type)
 {
 	struct symbol *sym = __alloc_symbol(0);
 	sym->type = type;
-	sym->token = token;
+	sym->pos = pos;
 	return sym;
 }
 
@@ -141,7 +141,7 @@ static void examine_bitfield_type(struct symbol *sym)
 	examine_symbol_type(base_type);
 	bit_size = base_type->bit_size;
 	if (sym->fieldwidth > bit_size) {
-		warn(sym->token, "impossible field-width for this type");
+		warn(sym->pos, "impossible field-width for this type");
 		sym->fieldwidth = bit_size;
 	}
 	alignment = base_type->alignment;
@@ -223,7 +223,7 @@ void examine_symbol_type(struct symbol * sym)
 void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 {
 	if (sym->id_list) {
-		warn(sym->token, "internal error: symbol type already bound");
+		warn(sym->pos, "internal error: symbol type already bound");
 		return;
 	}
 	sym->namespace = ns;
@@ -236,7 +236,7 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 struct symbol *create_symbol(int stream, const char *name, int type)
 {
 	struct token *token = built_in_token(stream, name);
-	struct symbol *sym = alloc_symbol(token, type);
+	struct symbol *sym = alloc_symbol(token->pos, type);
 	bind_symbol(sym, token->ident, NS_TYPEDEF);
 	return sym;
 }

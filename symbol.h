@@ -52,8 +52,8 @@ struct ctype {
 struct symbol {
 	enum namespace namespace:8;
 	enum type type:8;
-	struct token *token;		/* Where this symbol was declared */
-	struct token *ident;		/* What identifier this symbol is associated with */
+	struct position pos;		/* Where this symbol was declared */
+	struct ident *ident;		/* What identifier this symbol is associated with */
 	struct symbol *next_id;		/* Next semantic symbol that shares this identifier */
 	struct symbol **id_list;	/* Backpointer to symbol list head */
 	union {
@@ -155,7 +155,7 @@ extern struct ident	__asm___ident,
 
 extern struct symbol *lookup_symbol(struct ident *, enum namespace);
 extern void init_symbols(void);
-extern struct symbol *alloc_symbol(struct token *, int type);
+extern struct symbol *alloc_symbol(struct position, int type);
 extern void show_type(struct symbol *);
 extern const char *modifier_string(unsigned long mod);
 extern void show_symbol(struct symbol *);
