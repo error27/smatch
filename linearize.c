@@ -93,6 +93,24 @@ static void add_label(struct entrypoint *ep, struct symbol *sym)
 	ep->active = new_bb;
 }
 
+/*
+ * Add a anonymous label, return the symbol for it..
+ *
+ * If we already have a label for the top of the active
+ * context, we can just re-use it.
+ */
+static struct symbol *create_label(struct entrypoint *ep, struct position pos)
+{
+	struct basic_block *bb = ep->active;
+	struct symbol *label = bb->this;
+
+	if (!bb_reachable(bb) || !ptr_list_empty(bb->stmts)) {
+		label = alloc_symbol(pos, SYM_LABEL);
+		add_label(ep, label);
+	}
+	return label;
+}
+
 static void linearize_simple_statement(struct entrypoint *ep, struct statement *stmt)
 {
 	struct basic_block *bb = ep->active;    
@@ -200,9 +218,7 @@ void linearize_statement(struct entrypoint *ep, struct statement *stmt)
 				 * with the fallthrough of the never case.
 				 */
 				if (bb_reachable(ep->active)) {
-					struct symbol *merge = alloc_symbol(never->pos, SYM_LABEL);
-					add_label(ep, merge);
-					bb->next = merge;
+					bb->next = create_label(ep, never->pos);
 					break;
 				}
 
@@ -284,10 +300,8 @@ void linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			}
 		}
 
-		if (!post_condition || post_condition->type != EXPR_VALUE || post_condition->value) {
-			loop_top = alloc_symbol(stmt->pos, SYM_LABEL);
-			add_label(ep, loop_top);
-		}
+		if (!post_condition || post_condition->type != EXPR_VALUE || post_condition->value)
+			loop_top = create_label(ep, stmt->pos);
 
 		linearize_statement(ep, statement);
 
