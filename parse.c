@@ -866,6 +866,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	struct symbol *decl;
 	struct ctype ctype = { 0, };
 	struct symbol *base_type;
+	int is_typedef;
 
 	/* Parse declaration-specifiers, if any */
 	token = declaration_specifiers(token, &ctype, 0);
@@ -881,10 +882,11 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	decl->ident = ident;
 
 	/* type define declaration? */
-	bind_symbol(decl, ident, (ctype.modifiers & MOD_TYPEDEF) ? NS_TYPEDEF: NS_SYMBOL);
+	is_typedef = (ctype.modifiers & MOD_TYPEDEF) != 0;
+	bind_symbol(decl, ident, is_typedef ? NS_TYPEDEF: NS_SYMBOL);
 
 	base_type = decl->ctype.base_type;
-	if (base_type && base_type->type == SYM_FN) {
+	if (!is_typedef && base_type && base_type->type == SYM_FN) {
 		if (match_op(token, '{')) {
 			if (decl->ctype.modifiers & MOD_EXTERN) {
 				if (!(decl->ctype.modifiers & MOD_INLINE))
@@ -903,17 +905,15 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	}
 
 	for (;;) {
-		if (match_op(token, '=')) {
+		if (!is_typedef && match_op(token, '=')) {
 			if (decl->ctype.modifiers & MOD_EXTERN) {
 				warn(decl->pos, "symbol with external linkage has initializer");
 				decl->ctype.modifiers &= ~MOD_EXTERN;
 			}
 			token = initializer(&decl->initializer, token->next);
 		}
-		if (!(decl->ctype.modifiers & MOD_EXTERN)) {
-			if (!(ctype.modifiers & MOD_TYPEDEF))
-				add_symbol(list, decl);
-		}
+		if (!is_typedef && !(decl->ctype.modifiers & MOD_EXTERN))
+			add_symbol(list, decl);
 			
 		if (!match_op(token, ','))
 			break;
@@ -928,7 +928,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 			return token;
 		}
 
-		bind_symbol(decl, ident, (ctype.modifiers & MOD_TYPEDEF) ? NS_TYPEDEF: NS_SYMBOL);
+		bind_symbol(decl, ident, is_typedef ? NS_TYPEDEF: NS_SYMBOL);
 	}
 	return expect(token, ';', "at end of declaration");
 }
