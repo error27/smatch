@@ -58,16 +58,6 @@ static const char **gcc_includepath = includepath + 2;
 } while (0)
 
 
-
-/*
- * This is stupid - the tokenizer already guarantees unique
- * identifiers, so we should just compare identifier pointers
- */
-int match_string_ident(struct ident *ident, const char *str)
-{
-	return !strncmp(str, ident->name, ident->len) && !str[ident->len];
-}
-
 static struct token *alloc_token(struct position *pos)
 {
 	struct token *token = __alloc_token(0);
