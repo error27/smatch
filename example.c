@@ -799,7 +799,8 @@ static int final_pseudo_flush(struct bb_state *state, pseudo_t pseudo, struct ha
 	 * storage for it..
 	 */
 	hash = find_storage_hash(pseudo, state->outputs);
-	assert(hash);
+	if (!hash)
+		return 1;
 	out = hash->storage;
 
 	/* If the output is in a register, try to get it there.. */
@@ -837,6 +838,8 @@ static int final_pseudo_flush(struct bb_state *state, pseudo_t pseudo, struct ha
 	return 1;
 
 copy_to_dst:
+	if (reg == dst)
+		return 1;
 	output_insn(state, "movl %s,%s", reg->name, dst->name);
 	add_pseudo_reg(state, pseudo, dst);
 	return 1;
