@@ -1093,6 +1093,35 @@ static struct storage *emit_return_stmt(struct statement *stmt)
 	return val;
 }
 
+static struct storage *emit_conditional_expr(struct expression *expr)
+{
+	struct storage *cond = x86_expression(expr->conditional);
+	struct storage *true = x86_expression(expr->cond_true);
+	struct storage *false = x86_expression(expr->cond_false);
+	struct storage *new = new_pseudo();
+
+	if (!true)
+		true = cond;
+
+	emit_move(cond,  REG_EAX, expr->conditional->ctype,
+		  "begin EXPR_CONDITIONAL", 0);
+	emit_move(true,  REG_ECX, expr->cond_true->ctype,   NULL, 0);
+	emit_move(false, REG_EDX, expr->cond_false->ctype,  NULL, 0);
+
+	/* test EAX (for zero/non-zero) */
+	insn("test", REG_EAX, REG_EAX, NULL, 0);
+
+	/* if false, move EDX to ECX */
+	insn("cmovz", REG_EDX, REG_ECX, NULL, 0);
+
+	/* finally, store the result (ECX) in a new pseudo / stack slot */
+	new = new_pseudo();
+	emit_move(REG_ECX, new, expr->ctype, "end EXPR_CONDITIONAL", 0);
+	/* FIXME: we lose type knowledge of expression result at this point */
+
+	return new;
+}
+
 static void x86_struct_member(struct symbol *sym, void *data, int flags)
 {
 	if (flags & ITERATE_FIRST)
@@ -1563,21 +1592,6 @@ static struct storage *x86_label_expr(struct expression *expr)
 	return new;
 }
 
-static struct storage *x86_conditional_expr(struct expression *expr)
-{
-	struct storage *cond = x86_expression(expr->conditional);
-	struct storage *true = x86_expression(expr->cond_true);
-	struct storage *false = x86_expression(expr->cond_false);
-	struct storage *new = new_pseudo();
-
-	if (!true)
-		true = cond;
-	printf("[v%d]\tcmov.%d\t\tv%d,v%d,v%d\n",
-		cond->pseudo, expr->ctype->bit_size, new->pseudo,
-		true->pseudo, false->pseudo);
-	return new;
-}
-
 static struct storage *x86_statement_expr(struct expression *expr)
 {
 	return x86_statement(expr->statement);
@@ -1688,7 +1702,7 @@ static struct storage *x86_expression(struct expression *expr)
 		x86_initializer_expr(expr, expr->ctype);
 		return NULL;
 	case EXPR_CONDITIONAL:
-		return x86_conditional_expr(expr);
+		return emit_conditional_expr(expr);
 	case EXPR_STATEMENT:
 		return x86_statement_expr(expr);
 	case EXPR_LABEL:
