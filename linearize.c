@@ -1053,7 +1053,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		pseudo_t src = linearize_expression(ep, expr);
 		active = ep->active;
 		add_goto(ep, bb_return);
-		if (src != &void_pseudo) {
+		if (active && src != &void_pseudo) {
 			struct instruction *phi_node = first_instruction(bb_return->insns);
 			if (!phi_node) {
 				phi_node = alloc_instruction(OP_PHI, expr->ctype);
@@ -1456,7 +1456,7 @@ static void remove_phi_nodes(struct entrypoint *ep)
 	struct basic_block *bb;
 	FOR_EACH_PTR(ep->bbs, bb) {
 		struct instruction *insn = first_instruction(bb->insns);
-		if (insn->opcode == OP_PHI)
+		if (insn && insn->opcode == OP_PHI)
 			remove_one_phi_node(ep, bb, insn);
 	} END_FOR_EACH_PTR(bb);
 }
