@@ -711,12 +711,17 @@ int simplify_instruction(struct instruction *insn)
 	 * but we could do it if signed.
 	 */
 	case OP_MUL:
+	case OP_SET_EQ: case OP_SET_NE:
 		if (simplify_binop(insn))
 			return REPEAT_CSE;
 		return simplify_commutative_binop(insn);
 
 	case OP_SUB: case OP_DIV: case OP_MOD:
 	case OP_SHL: case OP_SHR:
+	case OP_SET_LE: case OP_SET_GE:
+	case OP_SET_LT: case OP_SET_GT:
+	case OP_SET_B:  case OP_SET_A:
+	case OP_SET_BE: case OP_SET_AE:
 		return simplify_binop(insn);
 
 	case OP_NOT: case OP_NEG:
