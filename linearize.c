@@ -1609,15 +1609,45 @@ static void rewrite_branch(struct basic_block *bb,
 	 */
 }
 
+/*
+ * Return the known truth value of a pseudo, or -1 if
+ * it's not known.
+ */
+static int pseudo_truth_value(pseudo_t pseudo)
+{
+	switch (pseudo->type) {
+	case PSEUDO_VAL:
+		return !!pseudo->value;
+
+	case PSEUDO_REG: {
+		struct instruction *insn = pseudo->def;
+		if (insn->opcode == OP_SETVAL && insn->target == pseudo) {
+			struct expression *expr = insn->val;
+
+			/* A symbol address is always considered true.. */
+			if (!expr)
+				return 1;
+			if (expr->type == EXPR_VALUE)
+				return !!expr->value;
+		}
+	}
+		/* Fall through */
+	default:
+		return -1;
+	}
+}
+
+
 static void try_to_simplify_bb(struct entrypoint *ep, struct basic_block *bb,
 	struct instruction *first, struct instruction *second)
 {
 	struct phi *phi;
 
 	FOR_EACH_PTR(first->phi_list, phi) {
-		struct basic_block *source = phi->source;
+		struct basic_block *source = phi->source, *target;
 		pseudo_t pseudo = phi->pseudo;
-		struct instruction *br, *insn;
+		struct instruction *br;
+		int true;
 
 		br = last_instruction(source->insns);
 		if (!br)
@@ -1625,27 +1655,14 @@ static void try_to_simplify_bb(struct entrypoint *ep, struct basic_block *bb,
 		if (br->opcode != OP_BR)
 			continue;
 
-		insn = pseudo->def;
-		if (insn->opcode == OP_SETVAL && insn->target == pseudo) {
-			struct expression *expr = insn->val;
-			struct basic_block *target;
-			int true = 1; /* A symbol address is always considered true.. */
-
-			if (expr) {
-				switch (expr->type) {
-				default:
-					continue;
-				case EXPR_VALUE:
-					true = !!expr->value;
-					break;
-				}
-			}
-			target = true ? second->bb_true : second->bb_false;
-			if (br->bb_true == bb)
-				rewrite_branch(source, &br->bb_true, bb, target);
-			if (br->bb_false == bb)
-				rewrite_branch(source, &br->bb_false, bb, target);
-		}
+		true = pseudo_truth_value(pseudo);
+		if (true < 0)
+			continue;
+		target = true ? second->bb_true : second->bb_false;
+		if (br->bb_true == bb)
+			rewrite_branch(source, &br->bb_true, bb, target);
+		if (br->bb_false == bb)
+			rewrite_branch(source, &br->bb_false, bb, target);
 	} END_FOR_EACH_PTR(phi);
 }
 
