@@ -33,6 +33,24 @@ static struct symbol_list **function_symbol_list;
 static struct token *statement(struct token *token, struct statement **tree);
 static struct token *external_declaration(struct token *token, struct symbol_list **list);
 
+static int match_idents(struct token *token, ...)
+{
+	va_list args;
+
+	if (token_type(token) != TOKEN_IDENT)
+		return 0;
+
+	va_start(args, token);
+	for (;;) {
+		struct ident * next = va_arg(args, struct ident *);
+		if (!next)
+			return 0;
+		if (token->ident == next)
+			return 1;
+	}
+}
+
+
 struct statement *alloc_statement(struct position pos, int type)
 {
 	struct statement *stmt = __alloc_statement(0);
@@ -472,7 +490,7 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 	}
 
 	for (;;) {
-		if (match_ident(token, &__attribute___ident) || match_ident(token, &__attribute_ident)) {
+		if (match_idents(token, &__attribute___ident, &__attribute_ident, NULL)) {
 			struct ctype thistype = { 0, };
 			token = attribute_specifier(token->next, &thistype);
 			apply_ctype(token->pos, &thistype, ctype);
@@ -645,6 +663,26 @@ static struct token *parse_asm_clobbers(struct token *token, struct statement *s
 		token = primary_expression(token->next, &expr);
 	} while (match_op(token, ','));
 	return token;
+}
+
+static struct token *parse_asm(struct token *token, struct statement *stmt)
+{
+	struct expression *expr;
+
+	stmt->type = STMT_ASM;
+	if (match_idents(token, &__volatile___ident, &volatile_ident)) {
+		token = token->next;
+	}
+	token = expect(token, '(', "after asm");
+	token = parse_expression(token->next, &expr);
+	if (match_op(token, ':'))
+		token = parse_asm_operands(token, stmt);
+	if (match_op(token, ':'))
+		token = parse_asm_operands(token, stmt);
+	if (match_op(token, ':'))
+		token = parse_asm_clobbers(token, stmt);
+	token = expect(token, ')', "after asm");
+	return expect(token, ';', "at end of asm-statement");
 }
 
 /* Make a statement out of an expression */
@@ -927,24 +965,8 @@ default_statement:
 			}
 			return expect(token, ';', "at end of statement");
 		}
-		if (token->ident == &asm_ident || token->ident == &__asm___ident || token->ident == &__asm_ident) {
-			struct expression *expr;
-			stmt->type = STMT_ASM;
-			token = token->next;
-			if (token_type(token) == TOKEN_IDENT) {
-				if (token->ident == &__volatile___ident || token->ident == &volatile_ident)
-					token = token->next;
-			}
-			token = expect(token, '(', "after asm");
-			token = parse_expression(token->next, &expr);
-			if (match_op(token, ':'))
-				token = parse_asm_operands(token, stmt);
-			if (match_op(token, ':'))
-				token = parse_asm_operands(token, stmt);
-			if (match_op(token, ':'))
-				token = parse_asm_clobbers(token, stmt);
-			token = expect(token, ')', "after asm");
-			return expect(token, ';', "at end of asm-statement");
+		if (match_idents(token, &asm_ident, &__asm___ident, &__asm_ident, NULL)) {
+			return parse_asm(token->next, stmt);
 		}
 		if (match_op(token->next, ':')) {
 			stmt->type = STMT_LABEL;
@@ -1137,6 +1159,22 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	struct ctype ctype = { 0, };
 	struct symbol *base_type;
 	int is_typedef;
+
+	/* Top-level inline asm? */
+	if (match_idents(token, &asm_ident, &__asm___ident, &__asm_ident)) {
+		struct symbol *anon = alloc_symbol(token->pos, SYM_NODE);
+		struct symbol *fn = alloc_symbol(token->pos, SYM_FN);
+		struct statement *stmt;
+
+		anon->ctype.base_type = fn;
+		function_symbol_list = &anon->symbol_list;
+		stmt = start_function(anon);
+		token = parse_asm(token->next, stmt);
+		end_function(anon);
+		function_symbol_list = NULL;
+		add_symbol(list, anon);
+		return token;
+	}
 
 	/* Parse declaration-specifiers, if any */
 	token = declaration_specifiers(token, &ctype, 0);
