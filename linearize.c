@@ -239,10 +239,12 @@ static void show_bb(struct basic_block *bb)
 	struct instruction *insn;
 
 	printf("bb: %p\n", bb);
+	printf("   %s:%d:%d\n", input_streams[bb->pos.stream].name, bb->pos.line,bb->pos.pos);
 	if (bb->parents) {
 		struct basic_block *from;
 		FOR_EACH_PTR(bb->parents, from) {
-			printf("  **from %p**\n", from);
+			printf("  **from %p (%s:%d:%d)**\n", from,
+				input_streams[from->pos.stream].name, from->pos.line, from->pos.pos);
 		} END_FOR_EACH_PTR(from);
 	}
 	FOR_EACH_PTR(bb->insns, insn) {
