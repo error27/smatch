@@ -1297,7 +1297,7 @@ static struct symbol *evaluate_sign(struct expression *expr)
 		if (rtype->bit_size != ctype->bit_size)
 			expr->unop = cast_to(expr->unop, rtype);
 		ctype = rtype;
-	} else if (is_float_type(ctype) && expr->op != '%') {
+	} else if (is_float_type(ctype) && expr->op != '~') {
 		/* no conversions needed */
 	} else {
 		return bad_expr_type(expr);
