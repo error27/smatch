@@ -1965,6 +1965,8 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		FOR_EACH_PTR(stmt->stmts, s) {
 			type = evaluate_statement(s);
 		} END_FOR_EACH_PTR;
+		if (!type)
+			type = &void_ctype;
 		return type;
 	}
 	case STMT_IF:
