@@ -150,6 +150,20 @@ restart:
 	}
 }		
 
+void split_ptr_list_head(struct ptr_list *head)
+{
+	int nr = head->nr / 2;
+	struct ptr_list *newlist = malloc(sizeof(*newlist));
+
+	head->nr -= nr;
+	newlist->next = head->next;
+	newlist->prev = head;
+	head->next = newlist;
+	newlist->nr = nr;
+	memcpy(newlist->list, head->list + head->nr, nr * sizeof(void *));
+	memset(head->list + head->nr, 0xf0, nr * sizeof(void *));
+}
+
 void **__add_ptr_list(struct ptr_list **listp, void *ptr)
 {
 	struct ptr_list *list = *listp;

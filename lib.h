@@ -358,6 +358,33 @@ static inline void add_expression(struct expression_list **list, struct expressi
 #define THIS_ADDRESS(ptr) \
 	DO_THIS_ADDRESS(ptr, __head##ptr, __list##ptr, __nr##ptr)
 
+extern void split_ptr_list_head(struct ptr_list *);
+
+#define DO_SPLIT(ptr, __head, __list, __nr) do {					\
+	split_ptr_list_head(__list);							\
+	if (__nr >= __list->nr) {							\
+		__nr -= __list->nr;							\
+		__list = __list->next;							\
+	};										\
+} while (0)
+
+#define DO_INSERT_CURRENT(new, ptr, __head, __list, __nr) do {				\
+	void **__this, **__last;							\
+	if (__list->nr == LIST_NODE_NR)							\
+		DO_SPLIT(ptr, __head, __list, __nr);					\
+	__this = __list->list + __nr;							\
+	__last = __list->list + __list->nr - 1;						\
+	while (__last >= __this) {							\
+		__last[1] = __last[0];							\
+		__last--;								\
+	}										\
+	*__this = (new);								\
+	__list->nr++;									\
+} while (0)
+
+#define INSERT_CURRENT(new, ptr) \
+	DO_INSERT_CURRENT(new, ptr, __head##ptr, __list##ptr, __nr##ptr)
+
 #define DO_DELETE_CURRENT(ptr, __head, __list, __nr) do {				\
 	void **__this = __list->list + __nr;						\
 	void **__last = __list->list + __list->nr - 1;					\
