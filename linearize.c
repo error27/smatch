@@ -79,6 +79,43 @@ static inline int regno(pseudo_t n)
 	return retval;
 }
 
+static const char *show_pseudo(pseudo_t pseudo)
+{
+	static int n;
+	static char buffer[4][64];
+	char *buf = buffer[3 & ++n];
+	struct symbol *sym = pseudo->sym;
+
+	if (sym) {
+		struct expression *expr;
+		if (sym->bb_target) {
+			snprintf(buf, 64, ".L%p", sym->bb_target);
+			return buf;
+		}
+		if (sym->ident) {
+			snprintf(buf, 64, "%s", show_ident(sym->ident));
+			return buf;
+		}
+		expr = sym->initializer;
+		if (!expr) {
+			snprintf(buf, 64, "<anon sym: %d>", pseudo->nr);
+			return buf;
+		}
+		switch (expr->type) {
+		case EXPR_VALUE:
+			snprintf(buf, 64, "$%lld", expr->value);
+			return buf;
+		case EXPR_STRING:
+			return show_string(expr->string);
+		default:
+			snprintf(buf, 64, "<symbol expression: %d>", pseudo->nr);
+			return buf;
+		}
+	}
+	snprintf(buf, 64, "%%r%d", pseudo->nr);
+	return buf;
+}
+
 static void show_instruction(struct instruction *insn)
 {
 	int op = insn->opcode;
@@ -183,24 +220,12 @@ static void show_instruction(struct instruction *insn)
 		printf("\n");
 		break;
 	}	
-	case OP_LOAD: {
-		struct symbol *sym = insn->orig_type;
-		if (sym) {
-			printf("\tload %%r%d <- %d[%s]\n", regno(insn->target), insn->offset, show_ident(sym->ident));
-			break;
-		}
-		printf("\tload %%r%d <- %d[%%r%d]\n", regno(insn->target), insn->offset, regno(insn->src));
+	case OP_LOAD:
+		printf("\tload %s <- %d[%s]\n", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
 		break;
-	}
-	case OP_STORE: {
-		struct symbol *sym = insn->orig_type;
-		if (sym) {
-			printf("\tstore %%r%d -> %d[%s]\n", regno(insn->target), insn->offset, show_ident(sym->ident));
-			break;
-		}
-		printf("\tstore %%r%d -> %d[%%r%d]\n", regno(insn->target), insn->offset, regno(insn->src));
+	case OP_STORE:
+		printf("\tstore %s -> %d[%s]\n", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
 		break;
-	}
 	case OP_CALL: {
 		struct pseudo *arg;
 		printf("\t%%r%d <- CALL %%r%d", regno(insn->target), insn->func->nr);
@@ -436,7 +461,6 @@ static pseudo_t alloc_pseudo(struct instruction *def)
  */
 struct access_data {
 	struct symbol *ctype;
-	struct symbol *sym;		// Local symbol, or..
 	pseudo_t address;		// pseudo containing address ..
 	pseudo_t origval;		// pseudo for original value ..
 	unsigned int offset, alignment;	// byte offset
@@ -455,7 +479,9 @@ static int linearize_simple_address(struct entrypoint *ep,
 	struct access_data *ad)
 {
 	if (addr->type == EXPR_SYMBOL) {
-		ad->sym = addr->symbol;
+		pseudo_t pseudo = alloc_pseudo(NULL);
+		pseudo->sym = addr->symbol;
+		ad->address = pseudo;
 		return 1;
 	}
 	if (addr->type == EXPR_BINOP) {
@@ -513,7 +539,6 @@ static pseudo_t add_load(struct entrypoint *ep, struct access_data *ad)
 
 	insn->target = new;
 	insn->src = ad->address;
-	insn->orig_type = ad->sym;
 	insn->offset = ad->offset;
 	add_one_insn(ep, insn);
 	return new;
@@ -527,7 +552,6 @@ static void add_store(struct entrypoint *ep, struct access_data *ad, pseudo_t va
 		struct instruction *store = alloc_instruction(OP_STORE, ad->ctype);
 		store->target = value;
 		store->src = ad->address;
-		store->orig_type = ad->sym;
 		store->offset = ad->offset;
 		add_one_insn(ep, store);
 	}

@@ -12,6 +12,7 @@ struct instruction;
 struct pseudo {
 	int nr;
 	int usage;
+	struct symbol *sym;
 	struct instruction *def;
 };
 
