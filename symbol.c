@@ -36,76 +36,77 @@ struct symbol *alloc_symbol(struct token *token, int type)
 }
 
 struct struct_union_info {
-	int advance;
 	unsigned long max_align;
 	unsigned long bit_size;
-	unsigned long offset;
-	unsigned long last_offset;
-	unsigned long bit_offset;
-	unsigned long bit_width;
 };
 
-static void examine_one_member(struct symbol *sym, void *_info, int flags)
+/*
+ * Unions are easy to lay out ;)
+ */
+static void lay_out_union(struct symbol *sym, void *_info, int flags)
 {
 	struct struct_union_info *info = _info;
-	unsigned long offset = info->offset, correction;
-	unsigned long bit_size, mybits, basewidth;
-	int advance;
+
+	examine_symbol_type(sym);
+	if (sym->alignment > info->max_align)
+		info->max_align = sym->alignment;
+	if (sym->bit_size > info->bit_size)
+		info->bit_size = sym->bit_size;
+
+	sym->offset = 0;
+}
+
+/*
+ * Structures are a bit more interesting to lay out
+ */
+static void lay_out_struct(struct symbol *sym, void *_info, int flags)
+{
+	struct struct_union_info *info = _info;
+	unsigned long bit_size, base_size;
+	unsigned long align_bit_mask;
 
 	examine_symbol_type(sym);
 	if (sym->alignment > info->max_align)
 		info->max_align = sym->alignment;
 
-	advance = info->advance;
-
-	mybits = sym->fieldwidth;
-	basewidth = 0;
-	correction = 0;
-	if (mybits) {
-		basewidth = sym->bit_size;
-
-		/* Don't advance if the bitfield fits in the old entry */
-		if (basewidth == info->bit_width && mybits + info->bit_offset <= info->bit_width) {
-			advance = 0;
-			offset = info->last_offset;
-		}
-	}
-	info->bit_width = basewidth;
-
-	if (advance) {
-		offset += sym->alignment-1;
-		offset &= ~(sym->alignment-1);
-		info->offset = offset + (sym->bit_size >> 3);
-		info->bit_offset = 0;
-	}
-	sym->offset = offset;
-	info->last_offset = offset;
-
-	/* Size of the _structure_, not the field */
-	bit_size = (offset << 3) + sym->bit_size;
+	bit_size = info->bit_size;
+	base_size = sym->bit_size; 
+	align_bit_mask = (sym->alignment << 3) - 1;
 
 	/*
-	 * In the case of a union, we want to get the _biggest_ size.
-	 * For structures, this will always be true, since the offset
-	 * ends up being cumulative.
+	 * Bitfields have some very special rules..
 	 */
-	if (bit_size > info->bit_size)
-		info->bit_size = bit_size;
-
-	/* Pack the bitfield into the top entry.. */
 	if (sym->fieldwidth) {
-		sym->bit_offset = info->bit_offset;
-		if (info->advance)
-			info->bit_offset += mybits;
+		unsigned long bit_offset = bit_size & align_bit_mask;
+
+		if (bit_offset + sym->fieldwidth > base_size) {
+			bit_size = (bit_size + align_bit_mask) & ~align_bit_mask;
+			bit_offset = 0;
+		}
+		sym->offset = (bit_size - bit_offset) >> 3;
+		sym->bit_offset = bit_offset;
+		info->bit_size = bit_size + sym->fieldwidth;
+		return;
 	}
+
+	/*
+	 * Otherwise, just align it right and add it up..
+	 */
+	bit_size = (bit_size + align_bit_mask) & ~align_bit_mask;
+	sym->offset = bit_size >> 3;
+
+	info->bit_size = bit_size + sym->bit_size;
 }
 
 static void examine_struct_union_type(struct symbol *sym, int advance)
 {
-	struct struct_union_info info = { advance, 1, 0, 0, 0 };
+	struct struct_union_info info = { 1, 0 };
 	unsigned long bit_size, bit_align;
+	void (*fn)(struct symbol *, void *, int);
 
-	symbol_iterate(sym->symbol_list, examine_one_member, &info);
+	fn = advance ? lay_out_struct : lay_out_union;
+	symbol_iterate(sym->symbol_list, fn, &info);
+
 	bit_size = info.bit_size;
 	bit_align = (info.max_align << 3)-1;
 	bit_size = (bit_size + bit_align) & ~bit_align;
