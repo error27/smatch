@@ -143,6 +143,7 @@ enum opcode {
 	OP_VANEXT,
 	OP_VAARG,
 	OP_SLICE,
+	OP_DEAD,
 
 	/* Sparse tagging (line numbers, context, whatever) */
 	OP_CONTEXT,
