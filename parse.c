@@ -503,7 +503,6 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 		mod = thistype.modifiers;
 		if (qual && (mod & ~(MOD_ATTRIBUTE | MOD_CONST | MOD_VOLATILE)))
 			break;
-		check_modifiers(&token->pos, s, ctype->modifiers);
 		if (mod & MOD_SPECIALBITS) {
 			if (mod & MOD_STRUCTOF)
 				next = struct_or_union_specifier(SYM_STRUCT, next, &thistype);
@@ -531,6 +530,7 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 			ctype->base_type = type;
 		}
 
+		check_modifiers(&token->pos, s, ctype->modifiers);
 		apply_ctype(token->pos, &thistype, ctype);
 	}
 
