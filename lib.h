@@ -10,6 +10,8 @@
  *  Licensed under the Open Software License version 1.1
  */
 
+#include "compat.h"
+
 extern unsigned int hexval(unsigned int c);
 
 struct position {

@@ -170,8 +170,8 @@ int init_stream(const char *name, int fd, const char **next_path)
 
 		for (i = 0; i < stream; i++) {
 			struct stream *s = input_streams + i;
-			if (s->dev == st.st_dev && s->ino == st.st_ino &&
-			    s->constant == CONSTANT_FILE_YES &&
+			if (s->constant == CONSTANT_FILE_YES &&
+			    identical_files(s, &st, name) &&
 			    lookup_symbol(s->protect, NS_MACRO))
 				return -1;
 		}

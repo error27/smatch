@@ -8,7 +8,6 @@
  *
  * This is the expression parsing part of parsing C.
  */
-#define _ISOC99_SOURCE
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -204,7 +203,7 @@ Eoverflow:
 			show_token(token));
 	return;
 Float:
-	expr->fvalue = strtold(str, &end);
+	expr->fvalue = string_to_ld(str, &end);
 	if (str == end)
 		goto Enoint;
 

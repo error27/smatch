@@ -1,3 +1,5 @@
+OS=linux
+
 CC=gcc
 CFLAGS=-O -g -Wall -Wwrite-strings
 LDFLAGS=-g
@@ -11,7 +13,7 @@ LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 
 LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 	  expression.o show-parse.o evaluate.o expand.o inline.o linearize.o \
-	  sort.o
+	  sort.o compat-$(OS).o
 
 LIB_FILE= sparse.a
 LIBS=$(LIB_FILE)

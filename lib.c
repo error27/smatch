@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -81,24 +80,6 @@ struct allocation_blob {
 	unsigned int left, offset;
 	unsigned char data[];
 };
-
-#define CHUNK 32768
-
-static void *blob_alloc (size_t size)
-{
-	void *ptr;
-	size = (size + 4095) & ~4095;
-	ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-	if (ptr == MAP_FAILED)
-		ptr = NULL;
-	return ptr;
-}
-
-static void blob_free (void *addr, size_t size)
-{
-	size = (size + 4095) & ~4095;
-	munmap(addr, size);
-}
 
 struct allocator_struct {
 	const char *name;
