@@ -1802,6 +1802,7 @@ static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,
 	struct basic_block *bb = insn->bb;
 	struct instruction *one, *dom = NULL;
 	struct phi_list *dominators;
+	int partial;
 
 	/* Unreachable load? Undo it */
 	if (!bb) {
@@ -1809,6 +1810,7 @@ static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,
 		return 1;
 	}
 
+	partial = 0;
 	FOR_EACH_PTR(bb->insns, one) {
 		int dominance;
 		if (one == insn)
@@ -1816,16 +1818,21 @@ static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,
 		dominance = dominates(pseudo, insn, one, local);
 		if (dominance < 0) {
 			dom = NULL;
+			partial = 1;
 			continue;
 		}
 		if (!dominance)
 			continue;
 		dom = one;
+		partial = 0;
 	} END_FOR_EACH_PTR(one);
 	/* Whaa? */
 	warning(pseudo->sym->pos, "unable to find symbol read");
 	return 0;
 found:
+	if (partial)
+		return 0;
+
 	if (dom) {
 		convert_load_insn(insn, dom->target);
 		return 1;
