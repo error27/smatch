@@ -457,6 +457,14 @@ static void expand_expression(struct expression *expr)
 	return;
 }
 
+static void expand_const_expression(struct expression *expr, const char *where)
+{
+	if (expr) {
+		expand_expression(expr);
+		if (expr->type != EXPR_VALUE)
+			warn(expr->pos, "Expected constant expression in %s", where);
+	}
+}
 
 void expand_symbol(struct symbol *sym)
 {
@@ -558,8 +566,8 @@ static void expand_statement(struct statement *stmt)
 		return;
 
 	case STMT_CASE:
-		expand_expression(stmt->case_expression);
-		expand_expression(stmt->case_to);
+		expand_const_expression(stmt->case_expression, "case statement");
+		expand_const_expression(stmt->case_to, "case statement");
 		expand_statement(stmt->case_statement);
 		return;
 
