@@ -484,8 +484,16 @@ static void do_warn(const char *type, struct position pos, const char * fmt, va_
 	vsprintf(buffer, fmt, args);	
 	name = input_streams[pos.stream].name;
 		
-	fprintf(stderr, "%s: %s:%d:%d: %s\n",
-		type, name, pos.line, pos.pos, buffer);
+	fprintf(stderr, "%s:%d:%d: %s%s\n",
+		name, pos.line, pos.pos, type, buffer);
+}
+
+void info(struct position pos, const char * fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	do_warn("", pos, fmt, args);
+	va_end(args);
 }
 
 void warn(struct position pos, const char * fmt, ...)
@@ -502,7 +510,7 @@ void warn(struct position pos, const char * fmt, ...)
 	}
 
 	va_start(args, fmt);
-	do_warn("warning", pos, fmt, args);
+	do_warn("warning: ", pos, fmt, args);
 	va_end(args);
 	warnings++;
 }	
@@ -511,7 +519,7 @@ void error(struct position pos, const char * fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	do_warn("error", pos, fmt, args);
+	do_warn("error: ", pos, fmt, args);
 	va_end(args);
 	exit(1);
 }

@@ -41,6 +41,7 @@ struct phi_list;
 
 struct token *skip_to(struct token *, int);
 struct token *expect(struct token *, int, const char *);
+extern void info(struct position, const char *, ...);
 extern void warn(struct position, const char *, ...);
 extern void error(struct position, const char *, ...);
 
