@@ -129,8 +129,7 @@ void *allocate(struct allocator_struct *desc, unsigned int size)
 		blob = newblob;
 		desc->blobs = newblob;
 		offset = offsetof(struct allocation_blob, data);
-		if (alignment > offset)
-			offset = alignment;
+		offset = (offset + alignment - 1) & ~(alignment-1);
 		blob->left = chunking - offset;
 		blob->offset = offset - offsetof(struct allocation_blob, data);
 	}
