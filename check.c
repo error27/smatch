@@ -44,6 +44,8 @@ static int check_children(struct basic_block *bb, int value)
 	struct basic_block *child;
 
 	insn = last_instruction(bb->insns);
+	if (!insn)
+		return 0;
 	if (insn->opcode == OP_RET)
 		return value ? -1 : 0;
 
