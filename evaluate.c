@@ -441,6 +441,17 @@ static const char * type_difference(struct symbol *target, struct symbol *source
 			/* Ignore ARRAY/PTR differences, as long as they point to the same type */
 			type1 = type1 == SYM_ARRAY ? SYM_PTR : type1;
 			type2 = type2 == SYM_ARRAY ? SYM_PTR : type2;
+
+			if ((type1 == SYM_PTR) && (target->ctype.base_type->type == SYM_FN)) {
+				target = target->ctype.base_type;
+				type1 = SYM_FN;
+			}
+
+			if ((type2 == SYM_PTR) && (source->ctype.base_type->type == SYM_FN)) {
+				source = source->ctype.base_type;
+				type2 = SYM_FN;
+			}
+
 			if (type1 != type2)
 				return "different base types";
 		}
