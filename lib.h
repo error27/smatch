@@ -28,6 +28,8 @@ struct statement;
 struct statement_list;
 struct expression;
 struct expression_list;
+struct basic_block;
+struct entrypoint;
 
 struct token *skip_to(struct token *, int);
 struct token *expect(struct token *, int, const char *);
@@ -48,6 +50,9 @@ DECLARE_ALLOCATOR(statement);
 DECLARE_ALLOCATOR(string);
 DECLARE_ALLOCATOR(scope);
 __DECLARE_ALLOCATOR(void, bytes);
+DECLARE_ALLOCATOR(basic_block);
+DECLARE_ALLOCATOR(entrypoint);
+
 
 #define LIST_NODE_NR (29)
 
@@ -62,6 +67,7 @@ struct ptr_list {
 #define ITERATE_LAST 2
 void iterate(struct ptr_list *,void (*callback)(void *, void *, int), void*);
 extern void add_ptr_list(struct ptr_list **, void *);
+extern void copy_ptr_list(struct ptr_list *a, struct ptr_list **b);
 extern void free_ptr_list(struct ptr_list **);
 extern int ptr_list_size(struct ptr_list *);
 extern char **handle_switch(char *arg, char **next);
@@ -78,6 +84,11 @@ extern void create_builtin_stream(void);
 #define symbol_list_size(list) ptr_list_size((struct ptr_list *)(list))
 #define statement_list_size(list) ptr_list_size((struct ptr_list *)(list))
 #define expression_list_size(list) ptr_list_size((struct ptr_list *)(list))
+
+static inline void copy_symbol_list(struct symbol_list *from, struct symbol_list **to)
+{
+	copy_ptr_list((struct ptr_list *)from, (struct ptr_list **)to);
+}
 
 static inline void add_symbol(struct symbol_list **list, struct symbol *sym)
 {

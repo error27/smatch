@@ -24,6 +24,7 @@
 #include "symbol.h"
 #include "expression.h"
 #include "scope.h"
+#include "linearize.h"
 
 struct token *skip_to(struct token *token, int op)
 {
@@ -155,6 +156,8 @@ struct allocator_struct statement_allocator = { "statements", NULL, __alignof__(
 struct allocator_struct string_allocator = { "strings", NULL, __alignof__(struct statement), CHUNK };
 struct allocator_struct scope_allocator = { "scopes", NULL, __alignof__(struct scope), CHUNK };
 struct allocator_struct bytes_allocator = { "bytes", NULL, 1, CHUNK };
+struct allocator_struct basic_block_allocator = { "basic_block", NULL, __alignof__(struct basic_block), CHUNK };
+struct allocator_struct entrypoint_allocator = { "entrypoint", NULL, __alignof__(struct entrypoint), CHUNK };
 
 #define __ALLOCATOR(type, size, x)				\
 	type *__alloc_##x(int extra)				\
@@ -174,6 +177,7 @@ struct allocator_struct bytes_allocator = { "bytes", NULL, 1, CHUNK };
 ALLOCATOR(ident); ALLOCATOR(token); ALLOCATOR(symbol);
 ALLOCATOR(expression); ALLOCATOR(statement); ALLOCATOR(string);
 ALLOCATOR(scope); __ALLOCATOR(void, 0, bytes);
+ALLOCATOR(basic_block); ALLOCATOR(entrypoint);
 
 int ptr_list_size(struct ptr_list *head)
 {
@@ -233,6 +237,14 @@ void add_ptr_list(struct ptr_list **listp, void *ptr)
 	list->list[nr] = ptr;
 	nr++;
 	list->nr = nr;
+}
+
+void copy_ptr_list(struct ptr_list *a, struct ptr_list **b)
+{
+	void *entry;
+	FOR_EACH_PTR(a, entry) {
+		add_ptr_list(b, entry);
+	} END_FOR_EACH_PTR;
 }
 
 void free_ptr_list(struct ptr_list **listp)
