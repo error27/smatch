@@ -182,15 +182,31 @@ struct sym_init {
 	{ "float",	&fp_type,	0 },
 	{ "double",	&fp_type,	SYM_LONG },
 	{ "signed",	&int_type,	SYM_SIGNED },
+	{ "__signed",	&int_type,	SYM_SIGNED },
+	{ "__signed__",	&int_type,	SYM_SIGNED },
 	{ "unsigned",	&int_type,	SYM_UNSIGNED },
 
 	/* Type qualifiers */
 	{ "const",	NULL,		SYM_CONST },
 	{ "__const",	NULL,		SYM_CONST },
+	{ "__const__",	NULL,		SYM_CONST },
 	{ "volatile",	NULL,		SYM_VOLATILE },
 
 	/* Typedef.. */
 	{ "typedef",	NULL,		SYM_TYPEDEF },
+
+	/* Extended types */
+	{ "typeof",	NULL,		SYM_TYPEOF },
+	{ "__typeof",	NULL,		SYM_TYPEOF },
+	{ "__typeof__",	NULL,		SYM_TYPEOF },
+
+	{ "attribute",	NULL,		SYM_ATTRIBUTE },
+	{ "__attribute", NULL,		SYM_ATTRIBUTE },
+	{ "__attribute__", NULL,	SYM_ATTRIBUTE },
+
+	{ "struct",	NULL,		SYM_STRUCTOF },
+	{ "union",	NULL,		SYM_UNIONOF },
+	{ "enum",	NULL,		SYM_ENUMOF },
 
 	/* Ignored for now.. */
 	{ "inline",	NULL,		0 },
@@ -208,8 +224,9 @@ struct symbol	void_type,
 		vector_type,
 		bad_type;
 
-#define IDENT(n) \
-	struct ident n ## _ident = { len: sizeof(#n)-1, name: #n }
+#define __IDENT(n,str) \
+	struct ident n ## _ident = { len: sizeof(str)-1, name: str }
+#define IDENT(n) __IDENT(n, #n)
 
 IDENT(struct); IDENT(union); IDENT(enum);
 IDENT(sizeof);
@@ -218,14 +235,15 @@ IDENT(switch); IDENT(case); IDENT(default);
 IDENT(break); IDENT(continue);
 IDENT(for); IDENT(while); IDENT(do); IDENT(goto);
 
+IDENT(__asm__); IDENT(__asm); IDENT(asm);
+IDENT(__volatile__); IDENT(__volatile); IDENT(volatile);
+IDENT(__attribute__); IDENT(__attribute);
+
 void init_symbols(void)
 {
 	int stream = init_stream("builtin");
 	struct sym_init *ptr;
 
-	hash_ident(&struct_ident);
-	hash_ident(&union_ident);
-	hash_ident(&enum_ident);
 	hash_ident(&sizeof_ident);
 	hash_ident(&if_ident);
 	hash_ident(&else_ident);
@@ -239,6 +257,14 @@ void init_symbols(void)
 	hash_ident(&while_ident);
 	hash_ident(&do_ident);
 	hash_ident(&goto_ident);
+	hash_ident(&__attribute___ident);
+	hash_ident(&__attribute_ident);
+	hash_ident(&__asm___ident);
+	hash_ident(&__asm_ident);
+	hash_ident(&asm_ident);
+	hash_ident(&__volatile___ident);
+	hash_ident(&__volatile_ident);
+	hash_ident(&volatile_ident);
 	for (ptr = symbol_init_table; ptr->name; ptr++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, ptr->name, SYM_TYPE);

@@ -69,6 +69,12 @@ struct symbol {
 #define SYM_LONGLONG	0x0800
 
 #define SYM_TYPEDEF	0x1000
+#define SYM_STRUCTOF	0x2000
+#define SYM_UNIONOF	0x4000
+#define SYM_ENUMOF	0x8000
+
+#define SYM_TYPEOF	0x10000
+#define SYM_ATTRIBUTE	0x20000
 
 /* Basic types */
 extern struct symbol	void_type,
@@ -78,10 +84,7 @@ extern struct symbol	void_type,
 			bad_type;
 
 /* Basic identifiers */
-extern struct ident	struct_ident,
-			union_ident,
-			enum_ident,
-			sizeof_ident,
+extern struct ident	sizeof_ident,
 			if_ident,
 			else_ident,
 			switch_ident,
@@ -94,6 +97,15 @@ extern struct ident	struct_ident,
 			do_ident,
 			goto_ident,
 			return_ident;
+
+extern struct ident	__asm___ident,
+			__asm_ident,
+			asm_ident,
+			__volatile___ident,
+			__volatile_ident,
+			volatile_ident,
+			__attribute___ident,
+			__attribute_ident;
 
 #define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)
 

@@ -64,9 +64,21 @@ static struct expression *alloc_expression(struct token *token, int type)
 	return expr;
 }
 
+struct statement *alloc_statement(struct token * token, int type)
+{
+	struct statement *stmt = __alloc_statement(0);
+	stmt->type = type;
+	return stmt;
+}
+
 static int match_op(struct token *token, int op)
 {
 	return token && token->type == TOKEN_SPECIAL && token->special == op;
+}
+
+static int match_ident(struct token *token, struct ident *id)
+{
+	return token && token->type == TOKEN_IDENT && token->ident == id;
 }
 
 static int match_oplist(int op, ...)
@@ -85,12 +97,8 @@ static int match_oplist(int op, ...)
 
 int lookup_type(struct token *token)
 {
-	if (token && token->type == TOKEN_IDENT) {
-		struct ident *ident = token->ident;
-		if (ident == &struct_ident || ident == &union_ident || ident == &enum_ident)
-			return 1;
+	if (token && token->type == TOKEN_IDENT)
 		return lookup_symbol(token->ident, NS_TYPEDEF) != NULL;
-	}
 	return 0;
 }
 
@@ -104,16 +112,37 @@ static struct token *skip_to(struct token *token, int op)
 static struct token *expect(struct token *token, int op, const char *where)
 {
 	if (!match_op(token, op)) {
-		warn(token, "Expected %s %s", show_special(op), where);
-		warn(token, "got %s", show_token(token));
+		static struct token bad_token;
+		if (token != &bad_token) {
+			bad_token.next = token;
+			warn(token, "Expected %s %s", show_special(op), where);
+			warn(token, "got %s", show_token(token));
+		}
 		if (op == ';')
-			token = skip_to(token, op);
-		return token;
+			return skip_to(token, op);
+		return &bad_token;
 	}
 	return token->next;
 }
 
 static struct token *comma_expression(struct token *, struct expression **);
+static struct token *compound_statement(struct token *, struct statement *);
+static struct token *initializer(struct token *token, struct symbol *sym);
+
+static struct token *parens_expression(struct token *token, struct expression **expr, const char *where)
+{
+	token = expect(token, '(', where);
+	if (match_op(token, '{')) {
+		struct expression *e = alloc_expression(token, EXPR_STATEMENT);
+		struct statement *stmt = alloc_statement(token, STMT_COMPOUND);
+		*expr = e;
+		e->statement = stmt;
+		token = compound_statement(token->next, stmt);
+		token = expect(token, '}', "at end of statement expression");
+	} else
+		token = parse_expression(token, expr);
+	return expect(token, ')', where);
+}
 
 static struct token *primary_expression(struct token *token, struct expression **tree)
 {
@@ -128,17 +157,22 @@ static struct token *primary_expression(struct token *token, struct expression *
 	case TOKEN_IDENT:
 	case TOKEN_INTEGER:
 	case TOKEN_FP:
-	case TOKEN_STRING:
 		expr = alloc_expression(token, EXPR_PRIMARY);
 		token = token->next;
+		break;
+
+	case TOKEN_STRING:
+		expr = alloc_expression(token, EXPR_PRIMARY);
+		do {
+			token = token->next;
+		} while (token && token->type == TOKEN_STRING);
 		break;
 
 	case TOKEN_SPECIAL:
 		if (token->special == '(') {
 			expr = alloc_expression(token, EXPR_PREOP);
 			expr->op = '(';
-			token = parse_expression(token->next, &expr->unop);
-			token = expect(token, ')', "in expression");
+			token = parens_expression(token, &expr->unop, "in expression");
 			break;
 		}
 	default:
@@ -210,6 +244,7 @@ static struct token *postfix_expression(struct token *token, struct expression *
 
 static struct token *typename(struct token *, struct symbol **);
 
+static struct token *cast_expression(struct token *token, struct expression **tree);
 static struct token *unary_expression(struct token *token, struct expression **tree)
 {
 	if (token->type == TOKEN_IDENT && token->ident == &sizeof_ident) {
@@ -230,7 +265,7 @@ static struct token *unary_expression(struct token *token, struct expression **t
 			struct expression *unary = alloc_expression(token, EXPR_PREOP);
 			unary->op = token->special;
 			*tree = unary;
-			return unary_expression(token->next, &unary->unop);
+			return cast_expression(token->next, &unary->unop);
 		}
 	}
 			
@@ -248,8 +283,11 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 		struct token *next = token->next;
 		if (lookup_type(next)) {
 			struct expression *cast = alloc_expression(next, EXPR_CAST);
+
 			token = typename(next, &cast->cast_type);
 			token = expect(token, ')', "at end of cast operator");
+			if (match_op(token, '{'))
+				return initializer(token, cast->cast_type);
 			token = cast_expression(token, &cast->cast_expression);
 			*tree = cast;
 			return token;
@@ -283,7 +321,8 @@ static struct token *lr_binop_expression(struct token *token, struct expression 
 			top = alloc_expression(next, EXPR_BINOP);
 			next = inner(next->next, &right);
 			if (!right) {
-				warn(token, "Syntax error");
+				warn(token, "No right hand side of '%s'-expression", show_special(op));
+show_expression(left);
 				break;
 			}
 			top->op = op;
@@ -368,6 +407,15 @@ struct token *assignment_expression(struct token *token, struct expression **tre
 				*tree = expr;
 				return assignment_expression(token->next, &expr->right);
 			}
+		if (op == '?') {
+			struct expression *expr = alloc_expression(token, EXPR_CONDITIONAL);
+			expr->left = left;
+			expr->op = op;
+			*tree = expr;
+			token = parse_expression(token->next, &expr->cond_true);
+			token = expect(token, ':', "in conditional expression");
+			return assignment_expression(token, &expr->cond_false);
+		}
 	}
 	*tree = left;
 	return token;
@@ -381,13 +429,6 @@ struct token *comma_expression(struct token *token, struct expression **tree)
 struct token *parse_expression(struct token *token, struct expression **tree)
 {
 	return comma_expression(token,tree);
-}
-
-struct statement *alloc_statement(struct token * token, int type)
-{
-	struct statement *stmt = __alloc_statement(0);
-	stmt->type = type;
-	return stmt;
 }
 
 static struct token *struct_declaration_list(struct token *token, struct symbol_list **list);
@@ -468,6 +509,51 @@ struct token *enum_specifier(struct token *token, struct symbol **p)
 	return struct_union_enum_specifier(NS_ENUM, SYM_ENUM, token, p, parse_enum_declaration);
 }
 
+struct token *typeof_specifier(struct token *token, struct symbol **p)
+{
+	static struct symbol empty = { .base_type = NULL, .modifiers = 0 };
+	struct expression *expr;
+
+	*p = &empty;
+	if (token && match_op(token, '(') && lookup_type(token->next)) {
+		token = typename(token->next, p);
+		return expect(token, ')', "after typeof");
+	}
+	token = parse_expression(token, &expr);
+	/* look at type.. */
+	return token;
+}
+
+struct token *attribute_specifier(struct token *token, struct symbol **p)
+{
+	int parens = 0;
+	static struct symbol empty = { .base_type = NULL, .modifiers = 0 };
+	*p = &empty;
+	token = expect(token, '(', "after attribute");
+	token = expect(token, '(', "after attribute");
+
+	for (;;) {
+		if (!token)
+			break;
+		if (match_op(token, ';'))
+			break;
+		if (match_op(token, ')')) {
+			if (!parens)
+				break;
+			parens--;
+		}
+		if (match_op(token, '('))
+			parens++;
+		token = token->next;
+	}
+
+	token = expect(token, ')', "after attribute");
+	token = expect(token, ')', "after attribute");
+	return token;
+}
+
+#define MOD_SPECIALBITS (SYM_STRUCTOF | SYM_UNIONOF | SYM_ENUMOF | SYM_ATTRIBUTE | SYM_TYPEOF)
+
 static struct token *declaration_specifiers(struct token *next, struct symbol *sym)
 {
 	struct token *token;
@@ -484,18 +570,24 @@ static struct token *declaration_specifiers(struct token *next, struct symbol *s
 		ident = token->ident;
 
 		s = lookup_symbol(ident, NS_TYPEDEF);
-		if (!s) {
-			if (ident == &struct_ident)
-				next = struct_or_union_specifier(SYM_STRUCT, next, &s);
-			else if (ident == &union_ident)
-				next = struct_or_union_specifier(SYM_UNION, next, &s);
-			else if (ident == &enum_ident)
-				next = enum_specifier(next, &s);
-			if (!s)
-				break;
-		}
-		type = s->base_type;
+		if (!s)
+			break;
 		mod = s->modifiers;
+		if (mod & MOD_SPECIALBITS) {
+			if (mod & SYM_STRUCTOF)
+				next = struct_or_union_specifier(SYM_STRUCT, next, &s);
+			else if (mod & SYM_UNIONOF)
+				next = struct_or_union_specifier(SYM_UNION, next, &s);
+			else if (mod & SYM_ENUMOF)
+				next = enum_specifier(next, &s);
+			else if (mod & SYM_ATTRIBUTE)
+				next = attribute_specifier(next, &s);
+			else if (mod & SYM_TYPEOF)
+				next = typeof_specifier(next, &s);
+			mod &= ~MOD_SPECIALBITS;
+		}
+			
+		type = s->base_type;
 		if (type) {
 			if (type != sym->base_type) {
 				if (sym->base_type) {
@@ -554,23 +646,29 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 	}
 
 	for (;;) {
+		if (match_ident(token, &__attribute___ident) || match_ident(token, &__attribute_ident)) {
+			struct symbol *sym;
+			token = attribute_specifier(token->next, &sym);
+			continue;
+		}
 		if (!token || token->type != TOKEN_SPECIAL)
 			return token;
 
 		/*
-		 * This can be either a function or a grouping!
-		 * A grouping must start with '*', '[' or '('..
+		 * This can be either a parameter list or a grouping.
+		 * For the direct (non-abstract) case, we know if must be
+		 * a paramter list if we already saw the identifier.
+		 * For the abstract case, we know if must be a parameter
+		 * list if it is empty or starts with a type.
 		 */
 		if (token->special == '(') {
 			struct token *next = token->next;
-			if (next && next->type == TOKEN_SPECIAL) {
-				if (next->special == '*' ||
-				    next->special == '(' ||
-				    next->special == '[') {
-					token = declarator(next, tree, p);
-					token = expect(token, ')', "in nested declarator");
-					continue;
-				    }
+			int fn = (p && *p) || match_op(next, ')') || lookup_type(next);
+
+			if (!fn) {
+				token = declarator(next, tree, p);
+				token = expect(token, ')', "in nested declarator");
+				continue;
 			}
 			*tree = indirect(*tree, SYM_FN);
 			token = abstract_function_declarator(next, &(*tree)->children);
@@ -676,7 +774,29 @@ struct token *expression_statement(struct token *token, struct expression **tree
 	return expect(token, ';', "at end of statement");
 }
 
-static struct token *compound_statement(struct token *, struct statement *);
+static struct token *parse_asm_operands(struct token *token, struct statement *stmt)
+{
+	struct expression *expr;
+
+	/* Allow empty operands */
+	if (match_op(token->next, ':') || match_op(token->next, ')'))
+		return token->next;
+	do {
+		token = primary_expression(token->next, &expr);
+		token = parens_expression(token, &expr, "in asm parameter");
+	} while (match_op(token, ','));
+	return token;
+}
+
+static struct token *parse_asm_clobbers(struct token *token, struct statement *stmt)
+{
+	struct expression *expr;
+
+	do {
+		token = primary_expression(token->next, &expr);
+	} while (match_op(token, ','));
+	return token;
+}
 
 struct token *statement(struct token *token, struct statement **tree)
 {
@@ -685,9 +805,7 @@ struct token *statement(struct token *token, struct statement **tree)
 	if (token->type == TOKEN_IDENT) {
 		if (token->ident == &if_ident) {
 			stmt->type = STMT_IF;
-			token = expect(token->next, '(', "after 'if'");
-			token = parse_expression(token, &stmt->if_conditional);
-			token = expect(token, ')', "after 'if'");
+			token = parens_expression(token->next, &stmt->if_conditional, "after if");
 			token = statement(token, &stmt->if_true);
 			*tree = stmt;
 			if (!token || token->type != TOKEN_IDENT)
@@ -724,9 +842,7 @@ default_statement:
 		}
 		if (token->ident == &switch_ident) {
 			stmt->type = STMT_SWITCH;
-			token = expect(token->next, '(', "after 'switch'");
-			token = parse_expression(token, &stmt->switch_expression);
-			token = expect(token, ')', "after 'case' expression");
+			token = parens_expression(token->next, &stmt->switch_expression, "after 'switch'");
 			return statement(token, &stmt->switch_statement);
 		}
 		if (token->ident == &for_ident) {
@@ -742,9 +858,7 @@ default_statement:
 		}
 		if (token->ident == &while_ident) {
 			stmt->type = STMT_WHILE;
-			token = expect(token->next, '(', "after 'while'");
-			token = parse_expression(token, &stmt->e1);
-			token = expect(token, ')', "in 'while'");
+			token = parens_expression(token->next, &stmt->e1, "after 'while'");
 			return statement(token, &stmt->iterate);
 		}
 		if (token->ident == &do_ident) {
@@ -754,9 +868,7 @@ default_statement:
 				token = token->next;
 			else
 				warn(token, "expected 'while' after 'do'");
-			token = expect(token, '(', "after 'do-while'");
-			token = parse_expression(token, &stmt->e1);
-			token = expect(token, ')', "after 'do-while'");
+			token = parens_expression(token, &stmt->e1, "after 'do-while'");
 			return expect(token, ';', "after statement");
 		}
 		if (token->ident == &goto_ident) {
@@ -769,7 +881,25 @@ default_statement:
 				warn(token, "invalid label");
 			return expect(token, ';', "at end of statement");
 		}
-				
+		if (token->ident == &asm_ident || token->ident == &__asm___ident || token->ident == &__asm_ident) {
+			struct expression *expr;
+			stmt->type = STMT_ASM;
+			token = token->next;
+			if (token && token->type == TOKEN_IDENT) {
+				if (token->ident == &__volatile___ident || token->ident == &volatile_ident)
+					token = token->next;
+			}
+			token = expect(token, '(', "after asm");
+			token = parse_expression(token->next, &expr);
+			if (match_op(token, ':'))
+				token = parse_asm_operands(token, stmt);
+			if (match_op(token, ':'))
+				token = parse_asm_operands(token, stmt);
+			if (match_op(token, ':'))
+				token = parse_asm_clobbers(token, stmt);
+			token = expect(token, ')', "after asm");
+			return expect(token, ';', "at end of asm-statement");
+		}
 		if (match_op(token->next, ':')) {
 			stmt->type = STMT_LABEL;
 			stmt->label_identifier = token;
@@ -840,7 +970,6 @@ static struct token *compound_statement(struct token *token, struct statement *s
 	return statement_list(token, &stmt->stmts);
 }
 
-static struct token *initializer(struct token *token, struct symbol *sym);
 static struct token *initializer_list(struct token *token, struct symbol *sym)
 {
 	for (;;) {

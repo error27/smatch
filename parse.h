@@ -11,6 +11,8 @@ enum expression_type {
 	EXPR_POSTOP,
 	EXPR_CAST,
 	EXPR_SIZEOF,
+	EXPR_CONDITIONAL,
+	EXPR_STATEMENT,
 };
 
 struct expression {
@@ -18,6 +20,7 @@ struct expression {
 	struct token *token;
 	union {
 		struct expression *unop;
+		struct statement *statement;
 		struct binop_arg {
 			struct expression *left, *right;
 		};
@@ -28,6 +31,13 @@ struct expression {
 		struct cast_arg {
 			struct symbol *cast_type;
 			struct expression *cast_expression;
+		};
+		struct conditional_expr {
+			struct expression *conditional, *cond_true, *cond_false;
+		};
+		struct statement_struct {
+			struct symbol_list *syms;
+			struct statement_list *stmts;
 		};
 	};
 };
@@ -47,6 +57,7 @@ enum statement_type {
 	STMT_DO,
 	STMT_LABEL,
 	STMT_GOTO,
+	STMT_ASM,
 };
 
 struct statement {
