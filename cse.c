@@ -122,8 +122,6 @@ static void clean_up_insns(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(bb);
 }
 
-extern void show_instruction(struct instruction *);
-
 /* Compare two (sorted) phi-lists */
 static int phi_list_compare(struct pseudo_list *l1, struct pseudo_list *l2)
 {

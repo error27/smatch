@@ -280,6 +280,7 @@ struct entrypoint *linearize_symbol(struct symbol *sym);
 void show_entry(struct entrypoint *ep);
 const char *show_pseudo(pseudo_t pseudo);
 void show_bb(struct basic_block *bb);
+void show_instruction(struct instruction *insn);
 
 #endif /* LINEARIZE_H */
 
