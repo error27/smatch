@@ -4,11 +4,12 @@
  * Copyright (C) 2004 Linus Torvalds
  */
 
+#include <assert.h>
+
 #include "parse.h"
 #include "expression.h"
 #include "linearize.h"
 #include "flow.h"
-
 
 /* Find the trivial parent for a phi-source */
 static struct basic_block *phi_parent(struct basic_block *source, pseudo_t pseudo)
@@ -259,6 +260,12 @@ static int simplify_unop(struct instruction *insn)
 
 int simplify_instruction(struct instruction *insn)
 {
+	pseudo_t cond;
+	static struct instruction *last_setcc;
+	struct instruction *setcc = last_setcc;
+
+	last_setcc = NULL;
+
 	switch (insn->opcode) {
 	case OP_BINARY ... OP_BINCMP_END:
 		return simplify_binop(insn);
@@ -280,6 +287,28 @@ int simplify_instruction(struct instruction *insn)
 		if (dead_insn(insn, insn->src1, VOID))
 			return 1;
 		break;
+	case OP_SETCC:
+		last_setcc = insn;
+		return 0;
+	case OP_SEL:
+		assert(setcc && setcc->bb);
+		if (dead_insn(insn, insn->src1, insn->src2)) {
+			setcc->bb = NULL;
+			return 1;
+		}
+		cond = setcc->src;
+		if (!constant(cond) && insn->src1 != insn->src2)
+			return 0;
+		setcc->bb = NULL;
+		kill_use(cond);
+		replace_with_pseudo(insn, cond->value ? insn->src1 : insn->src2);
+		return 1;
+	case OP_BR:
+		cond = insn->cond;
+		if (!cond || !constant(cond))
+			break;
+		insert_branch(insn->bb, insn, cond->value ? insn->bb_true : insn->bb_false);
+		return 1;
 	}
 	return 0;
 }

@@ -304,11 +304,17 @@ void show_instruction(struct instruction *insn)
 			[OP_OR_BOOL - OP_BINARY] = "or-bool",
 			[OP_SEL - OP_BINARY] = "select",
 		};
-		printf("\t%%r%d <- %s  %s, %s\n",
-			regno(insn->target),
-			opname[op - OP_BINARY], show_pseudo(insn->src1), show_pseudo(insn->src2));
+		printf("\t%s <- %s  %s, %s\n",
+			show_pseudo(insn->target), opname[op - OP_BINARY],
+			show_pseudo(insn->src1), show_pseudo(insn->src2));
 		break;
 	}
+
+	case OP_SEL:
+		printf("\t%s <- select  %s, %s\n",
+			show_pseudo(insn->target),
+			show_pseudo(insn->src1), show_pseudo(insn->src2));
+		break;
 
 	case OP_SLICE:
 		printf("\t%%r%d <- slice  %s, %d, %d\n",

@@ -107,7 +107,6 @@ enum opcode {
 	OP_MOD,
 	OP_SHL,
 	OP_SHR,
-	OP_SEL,
 	
 	/* Logical */
 	OP_AND,
@@ -137,6 +136,7 @@ enum opcode {
 
 	/* Setcc - always in combination with a select or conditional branch */
 	OP_SETCC,
+	OP_SEL,
 	
 	/* Memory */
 	OP_MALLOC,
