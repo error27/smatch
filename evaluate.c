@@ -188,6 +188,11 @@ static int same_cast_type(struct symbol *orig, struct symbol *new)
 	return orig->bit_size == new->bit_size && orig->bit_offset == orig->bit_offset;
 }
 
+static int same_sign(struct symbol *orig, struct symbol *new)
+{
+	return !((orig->ctype.modifiers ^ new->ctype.modifiers) & MOD_SIGNED);
+}
+
 /*
  * This gets called for implicit casts in assignments and
  * integer promotion. We often want to try to move the
@@ -226,6 +231,16 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 
 	default:
 		/* nothing */;
+	}
+
+	if (type) {
+		struct symbol *otype = old->ctype;
+		if (otype) {
+			if (otype->bit_size == type->bit_size &&
+			    otype->bit_offset == type->bit_offset &&
+			    same_sign(otype, type))
+				return old;
+		}
 	}
 
 	expr = alloc_expression(old->pos, EXPR_IMPLIED_CAST);
@@ -334,11 +349,8 @@ static struct symbol *compatible_integer_binop(struct expression **lp, struct ex
 	if (is_int_type(ltype) && is_int_type(rtype)) {
 		struct symbol *ctype = bigger_int_type(ltype, rtype);
 
-		/* Don't bother promoting same-size entities, it only adds clutter */
-		if (ltype->bit_size != ctype->bit_size)
-			*lp = cast_to(left, ctype);
-		if (rtype->bit_size != ctype->bit_size)
-			*rp = cast_to(right, ctype);
+		*lp = cast_to(left, ctype);
+		*rp = cast_to(right, ctype);
 		return ctype;
 	}
 	return NULL;
@@ -814,12 +826,10 @@ static struct symbol *evaluate_shift(struct expression *expr)
 		rtype = rtype->ctype.base_type;
 	if (is_int_type(ltype) && is_int_type(rtype)) {
 		struct symbol *ctype = integer_promotion(ltype);
-		if (ltype->bit_size != ctype->bit_size)
-			expr->left = cast_to(expr->left, ctype);
+		expr->left = cast_to(expr->left, ctype);
 		expr->ctype = ctype;
 		ctype = integer_promotion(rtype);
-		if (rtype->bit_size != ctype->bit_size)
-			expr->right = cast_to(expr->right, ctype);
+		expr->right = cast_to(expr->right, ctype);
 		return expr->ctype;
 	}
 	return bad_expr_type(expr);
@@ -1008,13 +1018,8 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 	int target_as;
 
 	if (is_int_type(target)) {
-		if (is_int_type(source)) {
-			if (target->bit_size != source->bit_size)
-				goto Cast;
-			if (target->bit_offset != source->bit_offset)
-				goto Cast;
-			return 1;
-		}
+		if (is_int_type(source))
+			goto Cast;
 		if (is_float_type(source))
 			goto Cast;
 	} else if (is_float_type(target)) {
@@ -1024,11 +1029,8 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 		}
 		if (is_int_type(source))
 			goto Cast;
-		if (is_float_type(source)) {
-			if (target->bit_size != source->bit_size)
-				goto Cast;
-			return 1;
-		}
+		if (is_float_type(source))
+			goto Cast;
 	} else if (is_restricted_type(target)) {
 		if (restricted_binop(op, target)) {
 			warning(expr->pos, "bad restricted assignment");
@@ -1412,8 +1414,7 @@ static struct symbol *evaluate_sign(struct expression *expr)
 	struct symbol *ctype = expr->unop->ctype;
 	if (is_int_type(ctype)) {
 		struct symbol *rtype = rtype = integer_promotion(ctype);
-		if (rtype->bit_size != ctype->bit_size)
-			expr->unop = cast_to(expr->unop, rtype);
+		expr->unop = cast_to(expr->unop, rtype);
 		ctype = rtype;
 	} else if (is_float_type(ctype) && expr->op != '~') {
 		/* no conversions needed */
