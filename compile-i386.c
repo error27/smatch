@@ -1024,7 +1024,7 @@ static void sort_array(struct expression *expr)
 	i = 0;
 	FOR_EACH_PTR(expr->expr_list, entry) {
 		if ((entry->type == EXPR_POS) || (entry->type == EXPR_VALUE))
-			__list->list[__i] = list[i++];
+			*THIS_ADDRESS(entry) = list[i++];
 	} END_FOR_EACH_PTR;
 
 }
