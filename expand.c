@@ -62,7 +62,7 @@ void cast_value(struct expression *expr, struct symbol *newtype,
 {
 	int old_size = oldtype->bit_size;
 	int new_size = newtype->bit_size;
-	long long value, mask;
+	long long value, mask, signmask;
 
 	if (newtype->ctype.base_type == &fp_type ||
 	    oldtype->ctype.base_type == &fp_type)
@@ -80,8 +80,15 @@ void cast_value(struct expression *expr, struct symbol *newtype,
 
 Int:
 	// Truncate it to the new size
-	mask = 1ULL << (new_size-1);
-	mask = mask | (mask-1);
+	signmask = 1ULL << (new_size-1);
+	mask = signmask | (signmask-1);
+
+	/* Did we drop bits? Ok if the bits were (and still are) purely sign bits */
+	if (value & ~mask) {
+		long long oldsignmask = 1ULL << (old_size-1);
+		if (!(value & oldsignmask) || !(value & signmask) || (value & ~mask) != ~mask)
+			warning(old->pos, "cast truncates bits from constant value (%llx becomes %llx)", value, value & mask);
+	}
 	expr->value = value & mask;
 	return;
 
