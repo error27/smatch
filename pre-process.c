@@ -49,6 +49,10 @@ static struct token *for_each_ident(struct token *head, struct token *last,
 		/* Did we hit the end of the current expansion? */
 		if (next == last)
 			break;
+		if (eof_token(next)) {
+			warn(last, "walked past end");
+			break;
+		}
 
 		if (next->type == TOKEN_IDENT)
 			next = action(head, next);
@@ -80,6 +84,7 @@ struct token *defined_one_symbol(struct token *head, struct token *next)
 
 		if (match_op(token, '(')) {
 			token = past;
+			past = token->next;
 			if (!match_op(past, ')'))
 				return next;
 			past = past->next;
@@ -275,6 +280,7 @@ static const char *token_name_sequence(struct token *token, int endop, struct to
 }
 
 static const char *includepath[] = {
+	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.1/include/",
 	"/usr/include/",
 	"/usr/local/include/",
 	"",
@@ -513,13 +519,15 @@ static int expression_value(struct token *head)
 {
 	struct expression *expr;
 	struct token *token;
+	long long value;
 
 	expand_defined(head, NULL);
 	expand_list(head, NULL);
 	token = assignment_expression(head->next, &expr);
 	if (!eof_token(token))
 		warn(token, "garbage at end: %s", show_token_sequence(token));
-	return get_expression_value(expr) != 0;
+	value = get_expression_value(expr);
+	return value != 0;
 }
 
 static int handle_if(struct token *head, struct token *token)
@@ -554,13 +562,13 @@ static int handle_elif(struct token *head, struct token *token)
 
 static int handle_else(struct token *head, struct token *token)
 {
-	// else inside a _nesting_ false is a no-op
-	if (false_nesting > 1)
-		return 1;
-	// but if we have just one false, this else
 	if (false_nesting) {
-		true_nesting += false_nesting;
-		false_nesting = 0;
+		/* If this whole if-thing is if'ed out, an else cannot help */
+		if (elif_ignore[if_nesting-1])
+			return 1;
+		false_nesting--;
+		true_nesting++;
+		elif_ignore[if_nesting-1] = 1;
 		return 1;
 	}
 	if (true_nesting) {
