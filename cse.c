@@ -66,6 +66,9 @@ static unsigned long clean_up_phi(struct instruction *insn)
 		hash += hashval(phi->source);
 	} END_FOR_EACH_PTR(phi);
 
+	/* Whenever we delete pointers, we may have to pack the end result */
+	PACK_PTR_LIST(&insn->phi_list);
+
 	if (same) {
 		pseudo_t pseudo = last ? last->pseudo : VOID;
 		convert_instruction_target(insn, pseudo);
@@ -74,8 +77,6 @@ static unsigned long clean_up_phi(struct instruction *insn)
 		return hash;
 	}
 
-	/* Whenever we delete pointers, we may have to pack the end result */
-	PACK_PTR_LIST(&insn->phi_list);
 	return hash;
 }
 
