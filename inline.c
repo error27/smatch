@@ -407,6 +407,10 @@ int inline_function(struct expression *expr, struct symbol *sym)
 		warn(fn->pos, "marked inline, but without a definition");
 		return 0;
 	}
+	if (fn->expanding)
+		return 0;
+	fn->expanding = 1;
+
 	name_list = fn->arguments;
 
 	stmt = alloc_statement(expr->pos, STMT_COMPOUND);
@@ -440,5 +444,6 @@ int inline_function(struct expression *expr, struct symbol *sym)
 
 	evaluate_statement(stmt);
 
+	fn->expanding = 0;
 	return 1;
 }
