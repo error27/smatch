@@ -28,6 +28,10 @@ static void evaluate_symbol(struct expression *expr)
 	struct symbol *sym = expr->symbol;
 	struct symbol *base_type;
 
+	if (!sym) {
+		warn(expr->token, "undefined identifier in expression");
+		return;
+	}
 	examine_symbol_type(sym);
 	base_type = sym->ctype.base_type;
 	if (!base_type)

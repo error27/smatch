@@ -203,10 +203,8 @@ void show_symbol(struct symbol *sym)
  */
 void show_statement(struct statement *stmt)
 {
-	if (!stmt) {
-		printf("\t<nostatement>");
+	if (!stmt)
 		return;
-	}
 	switch (stmt->type) {
 	case STMT_RETURN:
 		printf("\treturn ");
@@ -276,14 +274,14 @@ void show_statement(struct statement *stmt)
 		 * any of for/while/do-while, and can't
 		 * be printed out as C without goto's
 		 */
-		if (post_statement) {
-			printf("\tfor (\n\t");
+		if (post_statement || !post_condition) {
+			printf("\tfor ( ");
 			show_statement(pre_statement);
-			printf(";\n\t\t");
+			printf(" ; ");
 			show_expression(pre_condition);
-			printf(";\n\t");
+			printf(" ; ");
 			show_statement(post_statement);
-			printf("\n\t)\n");
+			printf(" )\n");
 			show_statement(statement);
 		} else if (pre_condition) {
 			if (pre_statement) {
