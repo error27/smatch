@@ -309,6 +309,8 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 		return NULL;
 	if (match_string_ident(attribute, "syscall_linkage"))
 		return NULL;
+	if (match_string_ident(attribute, "visibility"))
+		return NULL;
 
 	return "unknown attribute";
 }
