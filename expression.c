@@ -88,8 +88,9 @@ static struct token *string_expression(struct token *token, struct expression *e
 	return next;
 }
 
-static void get_int_value(struct expression *expr, const char *str)
+static void get_int_value(struct expression *expr, struct token *token)
 {
+	const char *str = token->integer;
 	unsigned long long value = 0;
 	unsigned int base = 10, digit, bits;
 	unsigned long modifiers, extramod;
@@ -157,7 +158,8 @@ static void get_int_value(struct expression *expr, const char *str)
 
 		/* Hex or octal constants don't complain about missing signedness */
 		if (base == 10 || extramod != MOD_UNSIGNED)
-			warn(expr->pos, "value is so big it is%s%s%s",
+			warn(expr->pos, "constant %s is so big it is%s%s%s",
+				show_token(token),
 				(modifiers & MOD_UNSIGNED) ? " unsigned":"",
 				(modifiers & MOD_LONG) ? " long":"",
 				(modifiers & MOD_LONGLONG) ? " long":"");
@@ -194,7 +196,7 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 
 	case TOKEN_INTEGER:
 		expr = alloc_expression(token->pos, EXPR_VALUE);
-		get_int_value(expr, token->integer);
+		get_int_value(expr, token);
 		token = token->next;
 		break;
 
