@@ -440,6 +440,17 @@ static void generate_branch(struct bb_state *state, struct instruction *br)
 	printf("\tjmp .L%p\n", br->bb_true);
 }
 
+static void generate_ret(struct bb_state *state, struct instruction *ret)
+{
+	if (ret->src && ret->src != VOID) {
+		struct hardreg *wants = hardregs+0;
+		struct hardreg *reg = getreg(state, ret->src, NULL);
+		if (reg != wants)
+			printf("\tmovl %s,%s\n", reg->name, wants->name);
+	}
+	printf("\tret\n");
+}
+
 static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 {
 	switch (insn->opcode) {
@@ -491,6 +502,10 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 
 	case OP_BR:
 		generate_branch(state, insn);
+		break;
+
+	case OP_RET:
+		generate_ret(state, insn);
 		break;
 
 	default:
