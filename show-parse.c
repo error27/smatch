@@ -230,6 +230,9 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 	case SYM_ARRAY:
 		break;
 
+	case SYM_RESTRICT:
+		break;
+
 	default:
 		prepend(name, "unknown type %d", sym->type);
 		return;
@@ -257,6 +260,11 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 	case SYM_ARRAY:
 		append(name, "[%lld]", get_expression_value(sym->array_size));
 		return;
+
+	case SYM_RESTRICT:
+		prepend(name, "restricted ");
+		return;
+
 	default:
 		break;
 	}

@@ -131,6 +131,7 @@ extern int include_fd;
 extern char *include;
 extern int preprocess_only;
 extern int Wdefault_bitfield_sign;
+extern int Wbitwise;
 
 extern void create_builtin_stream(void);
 

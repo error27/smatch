@@ -47,6 +47,7 @@ enum type {
 	SYM_MEMBER,
 	SYM_BITFIELD,
 	SYM_LABEL,
+	SYM_RESTRICT,
 };
 
 struct ctype {
@@ -145,6 +146,7 @@ struct symbol {
 #define MOD_USERTYPE	0x10000000
 #define MOD_FORCE	0x20000000
 #define MOD_EXPLICITLY_SIGNED	0x40000000
+#define MOD_BITWISE	0x80000000
 
 /* Basic types */
 extern struct symbol	void_type,
@@ -206,6 +208,13 @@ static inline int is_int_type(const struct symbol *type)
 	return (type->type == SYM_ENUM) ||
 	       (type->type == SYM_BITFIELD) ||
 	       type->ctype.base_type == &int_type;
+}
+
+static inline int is_restricted_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type->type == SYM_RESTRICT;
 }
 
 static inline int is_bitfield_type(const struct symbol *type)

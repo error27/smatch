@@ -240,6 +240,11 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 		ctype->modifiers |= MOD_FORCE;
 		return NULL;
 	}
+	if (attribute == &bitwise_ident) {
+		if (Wbitwise)
+			ctype->modifiers |= MOD_BITWISE;
+		return NULL;
+	}
 	if (attribute == &address_space_ident) {
 		if (!expr)
 			return "expected address space number";
@@ -339,7 +344,7 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 	return "unknown attribute";
 }
 
-struct token *attribute_specifier(struct token *token, struct ctype *ctype)
+static struct token *attribute_specifier(struct token *token, struct ctype *ctype)
 {
 	ctype->modifiers = 0;
 	token = expect(token, '(', "after attribute");
@@ -564,16 +569,26 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 			base = &int_type;
 		ctype->base_type = base;
 	}
-
 	if (ctype->base_type == &int_type) {
 		ctype->base_type = ctype_integer(ctype->modifiers);
 		ctype->modifiers &= ~MOD_SPECIFIER;
-		return token;
-	}
-	if (ctype->base_type == &fp_type) {
+	} else if (ctype->base_type == &fp_type) {
 		ctype->base_type = ctype_fp(ctype->modifiers & MOD_SPECIFIER);
 		ctype->modifiers &= ~MOD_SPECIFIER;
-		return token;
+	}
+	if (ctype->modifiers & MOD_BITWISE) {
+		struct symbol *type;
+		ctype->modifiers &= ~(MOD_BITWISE | MOD_SPECIFIER);
+		if (!is_int_type(ctype->base_type)) {
+			warn(token->pos, "invalid modifier");
+			return token;
+		}
+		type = alloc_symbol(token->pos, SYM_BASETYPE);
+		*type = *ctype->base_type;
+		type->ctype.base_type = ctype->base_type;
+		type->type = SYM_RESTRICT;
+		type->ctype.modifiers &= ~MOD_SPECIFIER;
+		ctype->base_type = type;
 	}
 	return token;
 }

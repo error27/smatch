@@ -291,11 +291,73 @@ static struct symbol *compatible_integer_binop(struct expression **lp, struct ex
 	return NULL;
 }
 
+static int restricted_value(struct expression *v, struct symbol *type)
+{
+	if (v->type != EXPR_VALUE)
+		return 1;
+	if (v->value != 0)
+		return 1;
+	return 0;
+}
+
+static int restricted_binop(int op, struct symbol *type)
+{
+	switch (op) {
+		case '&':
+		case '|':
+		case '^':
+		case '?':
+		case SPECIAL_EQUAL:
+		case SPECIAL_NOTEQUAL:
+			return 0;
+		default:
+			return 1;
+	}
+}
+
+static int restricted_unop(int op, struct symbol *type)
+{
+	if (op == '~' && type->bit_size >= bits_in_int)
+		return 0;
+	return 1;
+}
+
+static struct symbol *compatible_restricted_binop(int op, struct expression **lp, struct expression **rp)
+{
+	struct expression *left = *lp, *right = *rp;
+	struct symbol *ltype = left->ctype, *rtype = right->ctype;
+	struct symbol *type = NULL;
+
+	if (ltype->type == SYM_NODE)
+		ltype = ltype->ctype.base_type;
+	if (rtype->type == SYM_NODE)
+		rtype = rtype->ctype.base_type;
+	if (is_restricted_type(ltype)) {
+		if (is_restricted_type(rtype)) {
+			if (ltype == rtype)
+				type = ltype;
+		} else {
+			if (!restricted_value(right, ltype))
+				type = ltype;
+		}
+	} else if (is_restricted_type(rtype)) {
+		if (!restricted_value(left, rtype))
+			type = rtype;
+	}
+	if (!type)
+		return NULL;
+	if (restricted_binop(op, type))
+		return NULL;
+	return type;
+}
+
 static struct symbol *evaluate_arith(struct expression *expr, int float_ok)
 {
 	struct symbol *ctype = compatible_integer_binop(&expr->left, &expr->right);
 	if (!ctype && float_ok)
 		ctype = compatible_float_binop(&expr->left, &expr->right);
+	if (!ctype)
+		ctype = compatible_restricted_binop(expr->op, &expr->left, &expr->right);
 	if (ctype) {
 		expr->ctype = ctype;
 		return ctype;
@@ -464,7 +526,7 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 		type1 = (type1 == SYM_ARRAY) ? SYM_PTR : type1;
 		type2 = (type2 == SYM_ARRAY) ? SYM_PTR : type2;
 
-		if (type1 != type2)
+		if (type1 != type2 || type1 == SYM_RESTRICT)
 			return "different base types";
 
 		/* Must be same address space to be comparable */
@@ -735,35 +797,38 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	struct symbol *ctype;
 
 	/* Type types? */
-	if (is_type_type(ltype) && is_type_type(rtype)) {
-		expr->ctype = &bool_ctype;
-		return &bool_ctype;
-	}
+	if (is_type_type(ltype) && is_type_type(rtype))
+		goto OK;
 
 	if (is_safe_type(ltype) || is_safe_type(rtype))
 		warn(expr->pos, "testing a 'safe expression'");
 
 	/* Pointer types? */
 	if (is_ptr_type(ltype) || is_ptr_type(rtype)) {
-		expr->ctype = &bool_ctype;
 		// FIXME! Check the types for compatibility
-		return &bool_ctype;
+		goto OK;
 	}
 
 	ctype = compatible_integer_binop(&expr->left, &expr->right);
 	if (ctype) {
 		if (ctype->ctype.modifiers & MOD_UNSIGNED)
 			expr->op = modify_for_unsigned(expr->op);
-		expr->ctype = &bool_ctype;
-		return &bool_ctype;
-	}
-	ctype = compatible_float_binop(&expr->left, &expr->right);
-	if (ctype) {
-		expr->ctype = &bool_ctype;
-		return &bool_ctype;
+		goto OK;
 	}
 
-	return bad_expr_type(expr);
+	ctype = compatible_float_binop(&expr->left, &expr->right);
+	if (ctype)
+		goto OK;
+
+	ctype = compatible_restricted_binop(expr->op, &expr->left, &expr->right);
+	if (ctype)
+		goto OK;
+
+	bad_expr_type(expr);
+
+OK:
+	expr->ctype = &bool_ctype;
+	return &bool_ctype;
 }
 
 /*
@@ -824,6 +889,9 @@ static struct symbol * evaluate_conditional_expression(struct expression *expr)
 	ctype = compatible_float_binop(&true, &expr->cond_false);
 	if (ctype)
 		goto out;
+	ctype = compatible_restricted_binop('?', &expr->left, &expr->right);
+	if (ctype)
+		goto out;
 	warn(expr->pos, "incompatible types in conditional expression (%s)", typediff);
 	return NULL;
 
@@ -861,6 +929,9 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			return 1;
 		}
 	}
+
+	if (is_restricted_type(target) && !restricted_value(*rp, target))
+		return 1;
 
 	/* Pointer destination? */
 	t = target;
@@ -1282,6 +1353,10 @@ static struct symbol *evaluate_postop(struct expression *expr)
 		warn(expr->pos, "need lvalue expression for ++/--");
 		return NULL;
 	}
+	if (is_restricted_type(ctype) && restricted_unop(expr->op, ctype)) {
+		warn(expr->pos, "bad operation on restricted");
+		return NULL;
+	}
 
 	evaluate_assign_to(op, ctype);
 
@@ -1298,6 +1373,8 @@ static struct symbol *evaluate_sign(struct expression *expr)
 			expr->unop = cast_to(expr->unop, rtype);
 		ctype = rtype;
 	} else if (is_float_type(ctype) && expr->op != '~') {
+		/* no conversions needed */
+	} else if (is_restricted_type(ctype) && !restricted_unop(expr->op, ctype)) {
 		/* no conversions needed */
 	} else {
 		return bad_expr_type(expr);
@@ -1510,14 +1587,45 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	return member;
 }
 
+static int is_promoted(struct expression *expr)
+{
+	while (1) {
+		switch (expr->type) {
+		case EXPR_BINOP:
+		case EXPR_SELECT:
+		case EXPR_CONDITIONAL:
+			return 1;
+		case EXPR_COMMA:
+			expr = expr->right;
+			continue;
+		case EXPR_PREOP:
+			switch (expr->op) {
+			case '(':
+				expr = expr->unop;
+				continue;
+			case '+':
+			case '-':
+			case '~':
+				return 1;
+			default:
+				return 0;
+			}
+		default:
+			return 0;
+		}
+	}
+}
+
+
 static struct symbol *evaluate_cast(struct expression *);
 
 static struct symbol *evaluate_sizeof(struct expression *expr)
 {
+	struct expression *what = expr->cast_expression;
 	int size;
 
 	if (expr->cast_type) {
-		if (expr->cast_expression) {
+		if (what) {
 			struct symbol *sym = evaluate_cast(expr);
 			size = sym->bit_size;
 		} else {
@@ -1525,10 +1633,14 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 			size = expr->cast_type->bit_size;
 		}
 	} else {
-		if (!evaluate_expression(expr->cast_expression))
+		if (!evaluate_expression(what))
 			return NULL;
-		size = expr->cast_expression->ctype->bit_size;
-		if (is_bitfield_type (expr->cast_expression->ctype))
+		size = what->ctype->bit_size;
+		if (is_restricted_type(what->ctype)) {
+			if (size < bits_in_int && is_promoted(what))
+				size = bits_in_int;
+		}
+		if (is_bitfield_type(what->ctype))
 			warn(expr->pos, "sizeof applied to bitfield type");
 	}
 	if (size & 7)
@@ -1857,6 +1969,20 @@ static struct symbol *evaluate_cast(struct expression *expr)
 
 	if (!get_as(ctype) && get_as(target->ctype) > 0)
 		warn(expr->pos, "cast removes address space of expression");
+
+	if (!(ctype->ctype.modifiers & MOD_FORCE)) {
+		struct symbol *t1 = ctype, *t2 = target->ctype;
+		if (t1->type == SYM_NODE)
+			t1 = t1->ctype.base_type;
+		if (t2->type == SYM_NODE)
+			t2 = t2->ctype.base_type;
+		if (t1 != t2) {
+			if (t1->type == SYM_RESTRICT)
+				warn(expr->pos, "cast to restricted type");
+			if (t2->type == SYM_RESTRICT)
+				warn(expr->pos, "cast from restricted type");
+		}
+	}
 
 	/*
 	 * Casts of constant values are special: they
