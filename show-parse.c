@@ -537,7 +537,7 @@ static int show_load_gen(int bits, struct expression *expr, int addr)
 	/* bitfield load! */
 	if (expr->bitpos)
 		printf("\tshr.%d\t\tv%d,v%d,$%d\n", bits, new, new, expr->bitpos);
-	printf("\tandi.%d\t\tv%d,v%d,$%llu", bits, new, new, 1ULL << expr->nrbits);
+	printf("\tandi.%d\t\tv%d,v%d,$%llu\n", bits, new, new, (1ULL << expr->nrbits)-1);
 	return new;
 }
 
@@ -658,12 +658,7 @@ static int show_string_expr(struct expression *expr)
 
 static int show_bitfield_expr(struct expression *expr)
 {
-	int address = show_expression(expr->address);
-	int new = new_pseudo();
-
-	printf("v%d = (extract bits[%d-%d]) v%d\n",
-		new, expr->bitpos, expr->bitpos + expr->nrbits - 1, address);
-	return new;
+	return show_access(expr);
 }
 
 static int show_conditional_expr(struct expression *expr)
