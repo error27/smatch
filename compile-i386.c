@@ -1555,15 +1555,31 @@ static struct storage *x86_regular_preop(struct expression *expr)
 	return new;
 }
 
-/*
- * FIXME! Not all accesses are memory loads. We should
- * check what kind of symbol is behind the dereference.
- */
 static struct storage *x86_address_gen(struct expression *expr)
 {
-	if (expr->type == EXPR_PREOP)
-		return x86_expression(expr->unop);
-	return x86_expression(expr->address);
+	struct function *f = current_func;
+	struct storage *addr;
+	struct storage *new;
+	char s[32];
+
+	if ((expr->type != EXPR_PREOP) ||
+	    ((expr->type == EXPR_PREOP) && (expr->op != '*')))
+		return x86_expression(expr->address);
+
+	addr = x86_expression(expr->unop);
+	if (expr->unop->type == EXPR_SYMBOL)
+		return addr;
+
+	emit_move(addr, REG_EAX, NULL, "begin deref ..", 0);
+
+	/* FIXME: operand size */
+	strcpy(s, "\tmovl\t(%eax), %ecx\n");
+	push_text_atom(f, s);
+
+	new = new_pseudo();
+	emit_move(REG_ECX, new, NULL, ".... end deref", 0);
+
+	return new;
 }
 
 static struct storage *x86_assignment(struct expression *expr)
