@@ -180,7 +180,7 @@ void add_pre_buffer(const char *fmt, ...)
 	va_end(args);
 }
 
-char **handle_switch_D(char *arg, char **next)
+static char **handle_switch_D(char *arg, char **next)
 {
 	const char *name = arg + 1;
 	const char *value = "1";
@@ -199,13 +199,13 @@ char **handle_switch_D(char *arg, char **next)
 	return next;
 }
 
-char **handle_switch_E(char *arg, char **next)
+static char **handle_switch_E(char *arg, char **next)
 {
 	preprocess_only = 1;
 	return next;
 }
 
-char **handle_switch_v(char *arg, char **next)
+static char **handle_switch_v(char *arg, char **next)
 {
 	do {
 		verbose++;
@@ -213,7 +213,7 @@ char **handle_switch_v(char *arg, char **next)
 	return next;
 }
 
-char **handle_switch_I(char *arg, char **next)
+static char **handle_switch_I(char *arg, char **next)
 {
 	char *path = arg+1;
 
@@ -233,7 +233,7 @@ char **handle_switch_I(char *arg, char **next)
 	return next;
 }
 
-char **handle_switch_i(char *arg, char **next)
+static char **handle_switch_i(char *arg, char **next)
 {
 	if (*next && !strcmp(arg, "include")) {
 		char *name = *++next;
@@ -253,7 +253,7 @@ char **handle_switch_i(char *arg, char **next)
 	return next;
 }
 
-char **handle_switch_M(char *arg, char **next)
+static char **handle_switch_M(char *arg, char **next)
 {
 	if (!strcmp(arg, "MF") || !strcmp(arg,"MQ") || !strcmp(arg,"MT")) {
 		if (!*next)
@@ -263,7 +263,7 @@ char **handle_switch_M(char *arg, char **next)
 	return next;
 }
 
-char **handle_switch_m(char *arg, char **next)
+static char **handle_switch_m(char *arg, char **next)
 {
 	if (!strcmp(arg, "m64")) {
 		bits_in_long = 64;
@@ -274,7 +274,7 @@ char **handle_switch_m(char *arg, char **next)
 	return next;
 }
 
-char **handle_switch_o(char *arg, char **next)
+static char **handle_switch_o(char *arg, char **next)
 {
 	if (!strcmp (arg, "o") && *next)
 		return next + 1; // "-o foo"
@@ -282,7 +282,7 @@ char **handle_switch_o(char *arg, char **next)
 		return next;     // "-ofoo" or (bogus) terminal "-o"
 }
 
-const struct warning {
+static const struct warning {
 	const char *name;
 	int *flag;
 } warnings[] = {
@@ -295,7 +295,7 @@ const struct warning {
 };
 
 
-char **handle_switch_W(char *arg, char **next)
+static char **handle_switch_W(char *arg, char **next)
 {
 	int no = 0;
 	char *p = arg + 1;
@@ -320,14 +320,14 @@ char **handle_switch_W(char *arg, char **next)
 	return next;
 }
 
-char **handle_switch_U(char *arg, char **next)
+static char **handle_switch_U(char *arg, char **next)
 {
 	const char *name = arg + 1;
 	add_pre_buffer ("#undef %s\n", name);
 	return next;
 }
 
-char **handle_switch_O(char *arg, char **next)
+static char **handle_switch_O(char *arg, char **next)
 {
 	int level = 1;
 	if (arg[1] >= '0' && arg[1] <= '9')
@@ -336,13 +336,13 @@ char **handle_switch_O(char *arg, char **next)
 	return next;
 }
 
-char **handle_nostdinc(char *arg, char **next)
+static char **handle_nostdinc(char *arg, char **next)
 {
 	add_pre_buffer("#nostdinc\n");
 	return next;
 }
 
-char **handle_dirafter(char *arg, char **next)
+static char **handle_dirafter(char *arg, char **next)
 {
 	char *path = *++next;
 	if (!path)

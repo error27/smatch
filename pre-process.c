@@ -383,7 +383,6 @@ static enum token_type combine(struct token *left, struct token *right, char *p)
 
 static int merge(struct token *left, struct token *right)
 {
-	extern unsigned char combinations[][3];
 	static char buffer[512];
 	int n;
 
@@ -1535,7 +1534,7 @@ static int handle_line(struct stream *stream, struct token **line, struct token 
 }
 
 
-void init_preprocessor(void)
+static void init_preprocessor(void)
 {
 	int i;
 	int stream = init_stream("preprocessor", -1, includepath);

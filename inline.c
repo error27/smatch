@@ -258,13 +258,13 @@ static struct expression_list *copy_asm_constraints(struct expression_list *in)
 	return out;
 }
 
-void set_replace(struct symbol *old, struct symbol *new)
+static void set_replace(struct symbol *old, struct symbol *new)
 {
 	new->replace = old;
 	old->replace = new;
 }
 
-void unset_replace(struct symbol *sym)
+static void unset_replace(struct symbol *sym)
 {
 	struct symbol *r = sym->replace;
 	if (!r) {

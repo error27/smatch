@@ -105,7 +105,7 @@ struct symbol *label_symbol(struct token *token)
 	return lookup_or_create_symbol(NS_LABEL, SYM_LABEL, token);
 }
 
-struct token *struct_union_enum_specifier(enum type type,
+static struct token *struct_union_enum_specifier(enum type type,
 	struct token *token, struct ctype *ctype,
 	struct token *(*parse)(struct token *, struct symbol *))
 {
@@ -159,7 +159,7 @@ static struct token *parse_struct_declaration(struct token *token, struct symbol
 	return struct_declaration_list(token, &sym->symbol_list);
 }
 
-struct token *struct_or_union_specifier(enum type type, struct token *token, struct ctype *ctype)
+static struct token *struct_or_union_specifier(enum type type, struct token *token, struct ctype *ctype)
 {
 	return struct_union_enum_specifier(type, token, ctype, parse_struct_declaration);
 }
@@ -316,12 +316,12 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 	return token;
 }
 
-struct token *enum_specifier(struct token *token, struct ctype *ctype)
+static struct token *enum_specifier(struct token *token, struct ctype *ctype)
 {
 	return struct_union_enum_specifier(SYM_ENUM, token, ctype, parse_enum_declaration);
 }
 
-struct token *typeof_specifier(struct token *token, struct ctype *ctype)
+static struct token *typeof_specifier(struct token *token, struct ctype *ctype)
 {
 	struct symbol *sym;
 
@@ -948,7 +948,7 @@ struct token *typename(struct token *token, struct symbol **p)
 	return declarator(token, sym, NULL);
 }
 
-struct token *expression_statement(struct token *token, struct expression **tree)
+static struct token *expression_statement(struct token *token, struct expression **tree)
 {
 	token = parse_expression(token, tree);
 	return expect(token, ';', "at end of statement");
@@ -1180,7 +1180,7 @@ static struct token *parse_for_statement(struct token *token, struct statement *
 	return token;
 }
 
-struct token *parse_while_statement(struct token *token, struct statement *stmt)
+static struct token *parse_while_statement(struct token *token, struct statement *stmt)
 {
 	struct expression *expr;
 	struct statement *iterator;
@@ -1197,7 +1197,7 @@ struct token *parse_while_statement(struct token *token, struct statement *stmt)
 	return token;
 }
 
-struct token *parse_do_statement(struct token *token, struct statement *stmt)
+static struct token *parse_do_statement(struct token *token, struct statement *stmt)
 {
 	struct expression *expr;
 	struct statement *iterator;

@@ -110,7 +110,7 @@ const char *modifier_string(unsigned long mod)
 	return buffer;
 }
 
-void show_struct_member(struct symbol *sym)
+static void show_struct_member(struct symbol *sym)
 {
 	printf("\t%s:%d:%ld at offset %ld.%d", show_ident(sym->ident), sym->bit_size, sym->ctype.alignment, sym->offset, sym->bit_offset);
 	printf("\n");
@@ -874,7 +874,7 @@ static int show_string_expr(struct expression *expr)
 	return new;
 }
 
-int show_label_expr(struct expression *expr)
+static int show_label_expr(struct expression *expr)
 {
 	int new = new_pseudo();
 	printf("\tmovi.%d\t\tv%d,.L%p\n",bits_in_pointer, new, expr->label_symbol);

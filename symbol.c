@@ -542,7 +542,7 @@ out:
  *
  * "double" == "long float", "long double" == "long long float"
  */
-struct sym_init {
+static struct sym_init {
 	const char *name;
 	struct symbol *base_type;
 	unsigned int modifiers;

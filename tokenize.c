@@ -44,7 +44,7 @@ const char *stream_name(int stream)
 	return input_streams[stream].name;
 }
 
-struct position stream_pos(stream_t *stream)
+static struct position stream_pos(stream_t *stream)
 {
 	struct position pos;
 	pos.type = 0;
@@ -78,7 +78,7 @@ const char *show_ident(const struct ident *ident)
 	return buffer;
 }
 
-char *charstr(char *ptr, unsigned char c, unsigned char escape, unsigned char next)
+static char *charstr(char *ptr, unsigned char c, unsigned char escape, unsigned char next)
 {
 	if (isprint(c)) {
 		if (c == escape || c == '\\')
@@ -679,7 +679,7 @@ static int get_one_special(int c, stream_t *stream)
 #define ident_hash_end(hash)		((((hash) >> IDENT_HASH_BITS) + (hash)) & IDENT_HASH_MASK)
 
 static struct ident *hash_table[IDENT_HASH_SIZE];
-int ident_hit, ident_miss, idents;
+static int ident_hit, ident_miss, idents;
 
 void show_identifier_stats(void)
 {

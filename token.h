@@ -95,6 +95,8 @@ enum token_type {
 	"<", ">", "<=", ">="	\
 }
 
+extern unsigned char combinations[][3];
+
 enum special_token {
 	SPECIAL_BASE = 256,
 	SPECIAL_ADD_ASSIGN = SPECIAL_BASE,
