@@ -20,6 +20,7 @@ struct scope	*block_scope = &toplevel_scope,
 
 void bind_scope(struct symbol *sym, struct scope *scope)
 {
+	sym->scope = scope;
 	add_symbol(&scope->symbols, sym);
 }
 

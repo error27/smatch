@@ -607,7 +607,7 @@ static void start_iterator(struct statement *stmt)
 
 static void end_iterator(void)
 {
-	start_symbol_scope();
+	end_symbol_scope();
 }
 
 static void start_switch(struct statement *stmt)
@@ -625,7 +625,7 @@ static void start_switch(struct statement *stmt)
 
 static void end_switch(void)
 {
-	start_symbol_scope();
+	end_symbol_scope();
 }
 
 struct token *statement(struct token *token, struct statement **tree)
@@ -944,8 +944,9 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 			if (decl->ctype.modifiers & MOD_EXTERN) {
 				if (!(decl->ctype.modifiers & MOD_INLINE))
 					warn(decl->pos, "function with external linkage has definition");
-				decl->ctype.modifiers &= ~MOD_EXTERN;
 			}
+			if (!(decl->ctype.modifiers & MOD_STATIC))
+				decl->ctype.modifiers |= MOD_EXTERN;
 			base_type->stmt = alloc_statement(token->pos, STMT_COMPOUND);
 			start_function_scope();
 			symbol_iterate(base_type->arguments, declare_argument, decl);
@@ -953,6 +954,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 			end_function_scope();
 			if (!(decl->ctype.modifiers & MOD_INLINE))
 				add_symbol(list, decl);
+			check_declaration(decl);
 			return expect(token, '}', "at end of function");
 		}
 		if (!(decl->ctype.modifiers & MOD_STATIC))
@@ -969,7 +971,8 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 		}
 		if (!is_typedef && !(decl->ctype.modifiers & (MOD_EXTERN | MOD_INLINE)))
 			add_symbol(list, decl);
-			
+		check_declaration(decl);
+
 		if (!match_op(token, ','))
 			break;
 

@@ -267,6 +267,24 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 	return sym;
 }
 
+void check_declaration(struct symbol *sym)
+{
+	struct symbol *next = sym;
+
+	while ((next = next->next_id) != NULL) {
+		if (next->namespace != sym->namespace)
+			continue;
+		if (sym->scope == next->scope) {
+			sym->same_symbol = next;
+			return;
+		}
+		if (sym->ctype.modifiers & next->ctype.modifiers & MOD_EXTERN) {
+			sym->same_symbol = next;
+			return;
+		}
+	}
+}
+
 void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 {
 	struct scope *scope;
