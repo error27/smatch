@@ -663,6 +663,20 @@ static void generate_call(struct bb_state *state, struct instruction *insn)
 	add_pseudo_reg(state, insn->target, hardregs+0);
 }
 
+static void generate_select(struct bb_state *state, struct instruction *insn)
+{
+	struct hardreg *src1, *src2, *cond, *dst;
+
+	cond = getreg(state, insn->src1, NULL);
+	output_insn(state, "testl %s,%s", cond->name, cond->name);
+
+	src1 = getreg(state, insn->src2, NULL);
+	dst = copy_reg(state, src1, insn->target);
+	add_pseudo_reg(state, insn->target, dst);
+	src2 = getreg(state, insn->src3, insn->target);
+	output_insn(state, "sele %s,%s", src2->name, dst->name);
+}
+
 static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 {
 	if (verbose)
@@ -717,6 +731,10 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 
 	case OP_CAST: case OP_PTRCAST:
 		generate_cast(state, insn);
+		break;
+
+	case OP_SEL:
+		generate_select(state, insn);
 		break;
 
 	case OP_BR:
