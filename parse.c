@@ -22,6 +22,7 @@
 #include "symbol.h"
 #include "scope.h"
 #include "expression.h"
+#include "target.h"
 
 static struct token *statement(struct token *token, struct statement **tree);
 static struct token *external_declaration(struct token *token, struct symbol_list **list);
@@ -170,9 +171,10 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 		return NULL;
 	}
 	if (match_string_ident(attribute, "aligned")) {
-		if (!expr)
-			return "expected alignment expression";
-		ctype->alignment = get_expression_value(expr);
+		int alignment = MAX_ALIGNMENT;
+		if (expr)
+			alignment = get_expression_value(expr);
+		ctype->alignment = alignment;
 		return NULL;
 	}
 	if (match_string_ident(attribute, "nocast")) {

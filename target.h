@@ -5,6 +5,11 @@
 #define ssize_t_ctype (&long_ctype)
 
 /*
+ * For "__attribute__((aligned))"
+ */
+#define MAX_ALIGNMENT		16
+
+/*
  * Integer data types
  */
 #define BITS_IN_CHAR		8
