@@ -899,7 +899,8 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 			symbol_iterate(base_type->arguments, declare_argument, decl);
 			token = compound_statement(token->next, base_type->stmt);
 			end_function_scope();
-			add_symbol(list, decl);
+			if (!(decl->ctype.modifiers & MOD_INLINE))
+				add_symbol(list, decl);
 			return expect(token, '}', "at end of function");
 		}
 		decl->ctype.modifiers |= MOD_EXTERN;
@@ -913,7 +914,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 			}
 			token = initializer(&decl->initializer, token->next);
 		}
-		if (!is_typedef && !(decl->ctype.modifiers & MOD_EXTERN))
+		if (!is_typedef && !(decl->ctype.modifiers & (MOD_EXTERN | MOD_INLINE)))
 			add_symbol(list, decl);
 			
 		if (!match_op(token, ','))

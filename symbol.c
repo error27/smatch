@@ -317,10 +317,11 @@ struct sym_init {
 	{ "union",	NULL,		MOD_UNIONOF },
 	{ "enum",	NULL,		MOD_ENUMOF },
 
-	/* Ignored for now.. */
 	{ "inline",	NULL,		MOD_INLINE },
 	{ "__inline",	NULL,		MOD_INLINE },
 	{ "__inline__",	NULL,		MOD_INLINE },
+
+	/* Ignored for now.. */
 	{ "restrict",	NULL,		0 },
 	{ "__restrict",	NULL,		0 },
 
