@@ -172,11 +172,15 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 	struct expression *expr = NULL;
 
 	switch (token_type(token)) {
+	static int fp_warned;
 	case TOKEN_FP:
 		expr = alloc_expression(token->pos, EXPR_VALUE);
 		expr->ctype = &double_ctype;
 		expr->value = 0;
-		warn(token->pos, "FP values not yet implemented");
+		if (!fp_warned) {
+			warn(token->pos, "FP values not yet implemented");
+			fp_warned = 1;
+		}
 		token = token->next;
 		break;
 

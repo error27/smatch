@@ -280,11 +280,54 @@ static int get_base_number(unsigned int base, char **p, int next, stream_t *stre
 	return next;
 }
 
+static int do_fp(char *buffer, int len, int next, stream_t *stream)
+{
+	struct token *token = stream->token;
+	void *buf;
+
+	/* Get the decimal part */
+	if (next == '.') {
+		buffer[len++] = next;
+		next = nextchar(stream);
+		while (next >= '0' && next <= '9') {
+			buffer[len++] = next;
+			next = nextchar(stream);
+		}
+	}
+
+	/* Get the exponential part */
+	if (next == 'e' || next == 'E') {
+		buffer[len++] = next;
+		next = nextchar(stream);
+		while (next >= '0' && next <= '9') {
+			buffer[len++] = next;
+			next = nextchar(stream);
+		}
+	}
+
+	/* Get the 'lf' type specifiers */
+	while (next == 'f' || next == 'F' || next == 'l' || next == 'L') {
+		buffer[len++] = next;
+		next = nextchar(stream);
+	}
+
+	buffer[len++] = '\0';
+	buf = __alloc_bytes(len);
+	memcpy(buf, buffer, len);
+	token_type(token) = TOKEN_FP;
+	token->fp = buf;
+	add_token(stream);
+	return next;
+}
+
 static int do_integer(char *buffer, int len, int next, stream_t *stream)
 {
 	struct token *token = stream->token;
 	void *buf;
-	
+
+	if (next == '.' || next == 'e' || next == 'E')
+		return do_fp(buffer, len, next, stream);
+
 	while (next == 'u' || next == 'U' || next == 'l' || next == 'L') {
 		buffer[len++] = next;
 		next = nextchar(stream);
