@@ -190,6 +190,9 @@ static int do_integer(unsigned long long value, int next, action_t *action)
 {
 	struct token *token = action->token;
 	
+	while (next == 'u' || next == 'U' || next == 'l' || next == 'L') {
+		next = nextchar(action);
+	}
 	token->type = TOKEN_INTEGER;
 	token->intval = value;
 	add_token(action);
@@ -218,6 +221,7 @@ static int get_base_number(unsigned int base, unsigned int __val, action_t *acti
 			break;
 		value = value * base + n;
 	}
+		
 	return do_integer(value, next, action);
 }
 
@@ -466,11 +470,10 @@ static int get_one_special(int c, action_t *action)
 	for (i = 0; i < NR_COMBINATIONS; i++) {
 		if (comb[0] == c1 && comb[1] == c2 && comb[2] == c3) {
 			value = i + SPECIAL_BASE;
-			c = next;
 			next = nextchar(action);
 			if (c3)
 				break;
-			c3 = c;
+			c3 = next;
 		}
 		comb += 3;
 	}
@@ -557,26 +560,29 @@ static struct ident *create_hashed_ident(const char *name, int len, unsigned lon
 	return insert_hash(alloc_ident(name, len), hash);
 }
 
-struct ident *hash_ident(struct ident *ident)
+static unsigned long hash_name(const char *name, int len)
 {
-	int n;
 	unsigned long hash;
-	const unsigned char *p = (const unsigned char *)ident->name;
+	const unsigned char *p = (const unsigned char *)name;
 
 	hash = ident_hash_init(*p++);
-	n = ident->len;
-	while (--n) {
+	while (--len) {
 		unsigned int i = *p++;
 		hash = ident_hash_add(hash, i);
 	}
-	hash = ident_hash_end(hash);
-	return insert_hash(ident, hash);
+	return ident_hash_end(hash);
+}
+
+struct ident *hash_ident(struct ident *ident)
+{
+	return insert_hash(ident, hash_name(ident->name, ident->len));
 }
 
 struct ident *built_in_ident(const char *name)
 {
-	return hash_ident(alloc_ident(name, strlen(name)));
-}	
+	int len = strlen(name);
+	return create_hashed_ident(name, len, hash_name(name, len));
+}
 
 struct token *built_in_token(int stream, const char *name)
 {

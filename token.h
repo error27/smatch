@@ -87,7 +87,7 @@ struct string {
 
 struct token {
 	unsigned int line;
-	unsigned int pos:16,stream:8,len:8;
+	unsigned int pos:16,stream:8;
 	struct token *next;
 
 	enum token_type type;
