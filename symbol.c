@@ -465,9 +465,11 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 
 	scope = block_scope;
 	if (ns == NS_SYMBOL && toplevel(scope)) {
-		sym->ctype.modifiers |= MOD_TOPLEVEL | MOD_ADDRESSABLE;
+		sym->ctype.modifiers |= MOD_TOPLEVEL;
 		if (sym->ctype.modifiers & MOD_STATIC)
 			scope = file_scope;
+		else
+			sym->ctype.modifiers |= MOD_ADDRESSABLE;
 	}
 	if (ns == NS_LABEL)
 		scope = function_scope;
