@@ -202,7 +202,7 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 		return NULL;
 	}
 	if (match_string_ident(attribute, "context")) {
-		if (expr->type == EXPR_COMMA) {
+		if (expr && expr->type == EXPR_COMMA) {
 			int mask = get_expression_value(expr->left);
 			int value = get_expression_value(expr->right);
 			if (value & ~mask)
@@ -212,6 +212,36 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 			return NULL;
 		}
 		return "expected context mask and value";
+	}
+	if (match_string_ident(attribute, "mode") ||
+	    match_string_ident(attribute, "__mode__")) {
+		if (expr && expr->type == EXPR_SYMBOL) {
+			struct ident *ident = expr->symbol_name;
+
+			/*
+			 * Match against __HI__/__SI__/__DI__
+			 *
+			 * FIXME! This is broken - we don't actually get
+			 * the type information updated properly at this
+			 * stage for some reason.
+			 */
+			if (match_string_ident(ident, "__HI__")) {
+				ctype->modifiers |= MOD_SHORT;
+				ctype->base_type = ctype_integer(ctype->modifiers);
+				return NULL;
+			}
+			if (match_string_ident(ident, "__SI__")) {
+				/* Nothing? */
+				return NULL;
+			}
+			if (match_string_ident(ident, "__DI__")) {
+				ctype->modifiers |= MOD_LONGLONG;
+				ctype->base_type = ctype_integer(ctype->modifiers);
+				return NULL;
+			}
+			return "unknown mode attribute";
+		}
+		return "expected attribute mode symbol";
 	}
 
 	/* Throw away for now.. */
