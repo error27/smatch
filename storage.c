@@ -129,7 +129,7 @@ const char *show_storage(struct storage *s)
  * We just randomly pick one over the other, and replace
  * the other uses.
  */
-static void combine_storage(struct storage *src, struct storage *dst)
+static struct storage * combine_storage(struct storage *src, struct storage *dst)
 {
 	struct storage **usep;
 
@@ -143,6 +143,7 @@ static void combine_storage(struct storage *src, struct storage *dst)
 	/* Mark it unused */
 	src->type = REG_BAD;
 	src->users = NULL;
+	return dst;
 }
 
 static void set_up_bb_storage(struct basic_block *bb)
@@ -203,22 +204,23 @@ static void combine_phi_storage(struct basic_block *bb)
 {
 	struct instruction *insn;
 	FOR_EACH_PTR(bb->insns, insn) {
-		struct instruction *phi, *last;
+		struct instruction *phi;
+		struct storage *last;
 
 		if (!insn->bb || insn->opcode != OP_PHISOURCE)
 			continue;
 		last = NULL;
 		FOR_EACH_PTR(insn->phi_users, phi) {
-			if (last) {
-				struct storage *s1, *s2;
-				s1 = lookup_storage(bb, last->target, STOR_OUT);
-				s2 = lookup_storage(bb, phi->target, STOR_OUT);
-				if (s1 && s2 && s1 != s2)
-					combine_storage(s1, s2);
+			struct storage *storage = lookup_storage(bb, phi->target, STOR_OUT);
+			if (!storage) {
+				DELETE_CURRENT_PTR(phi);
+				continue;
 			}
-			last = phi;
-			
+			if (last && storage != last)
+				storage = combine_storage(storage, last);
+			last = storage;
 		} END_FOR_EACH_PTR(phi);
+		PACK_PTR_LIST(&insn->phi_users);
 	} END_FOR_EACH_PTR(insn);
 }
 
