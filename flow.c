@@ -33,8 +33,8 @@ static void rewrite_branch(struct basic_block *bb,
 		return;
 
 	*ptr = new;
-	replace_bb_in_list(&bb->children, old, new);
-	remove_bb_from_list(&old->parents, bb);
+	replace_bb_in_list(&bb->children, old, new, 1);
+	remove_bb_from_list(&old->parents, bb, 1);
 	add_bb(&new->parents, bb);
 }
 
@@ -635,12 +635,12 @@ void kill_bb(struct basic_block *bb)
 	bb->insns = NULL;
 
 	FOR_EACH_PTR(bb->children, child) {
-		remove_bb_from_list(&child->parents, bb);
+		remove_bb_from_list(&child->parents, bb, 0);
 	} END_FOR_EACH_PTR(child);
 	bb->children = NULL;
 
 	FOR_EACH_PTR(bb->parents, parent) {
-		remove_bb_from_list(&parent->children, bb);
+		remove_bb_from_list(&parent->children, bb, 0);
 	} END_FOR_EACH_PTR(parent);
 	bb->parents = NULL;
 }

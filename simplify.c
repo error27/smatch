@@ -159,9 +159,7 @@ static int clean_up_phi(struct instruction *insn)
 static inline void remove_usage(pseudo_t p, pseudo_t *usep)
 {
 	if (has_use_list(p)) {
-		int deleted;
-		deleted = delete_ptr_list_entry((struct ptr_list **)&p->users, usep);
-		assert(deleted == 1);
+		delete_ptr_list_entry((struct ptr_list **)&p->users, usep, 1);
 		if (!p->users)
 			kill_instruction(p->def);
 	}

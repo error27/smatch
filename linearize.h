@@ -232,15 +232,15 @@ static inline void use_pseudo(pseudo_t p, pseudo_t *pp)
 		add_pseudo_ptr(pp, &p->users);
 }
 
-static inline int remove_bb_from_list(struct basic_block_list **list, struct basic_block *entry)
+static inline void remove_bb_from_list(struct basic_block_list **list, struct basic_block *entry, int count)
 {
-	return delete_ptr_list_entry((struct ptr_list **)list, entry);
+	delete_ptr_list_entry((struct ptr_list **)list, entry, count);
 }
 
-static inline int replace_bb_in_list(struct basic_block_list **list,
-	struct basic_block *old, struct basic_block *new)
+static inline void replace_bb_in_list(struct basic_block_list **list,
+	struct basic_block *old, struct basic_block *new, int count)
 {
-	return replace_ptr_list_entry((struct ptr_list **)list, old, new);
+	replace_ptr_list_entry((struct ptr_list **)list, old, new, count);
 }
 
 struct entrypoint {

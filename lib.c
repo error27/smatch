@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -324,34 +325,32 @@ void **__add_ptr_list(struct ptr_list **listp, void *ptr)
 	return ret;
 }
 
-int delete_ptr_list_entry(struct ptr_list **list, void *entry)
+void delete_ptr_list_entry(struct ptr_list **list, void *entry, int count)
 {
-	int count = 0;
 	void *ptr;
 
 	FOR_EACH_PTR(*list, ptr) {
 		if (ptr == entry) {
 			DELETE_CURRENT_PTR(ptr);
-			count++;
+			if (!--count)
+				return;
 		}
 	} END_FOR_EACH_PTR(ptr);
-	if (count)
-		PACK_PTR_LIST(list);
-	return count;
+	assert(count <= 0);
 }
 
-int replace_ptr_list_entry(struct ptr_list **list, void *old_ptr, void *new_ptr)
+void replace_ptr_list_entry(struct ptr_list **list, void *old_ptr, void *new_ptr, int count)
 {
-	int count = 0;
 	void *ptr;
 
 	FOR_EACH_PTR(*list, ptr) {
 		if (ptr==old_ptr) {
 			REPLACE_CURRENT_PTR(ptr, new_ptr);
-			count ++;
+			if (--count)
+				return;
 		}
 	}END_FOR_EACH_PTR(ptr);
-	return count;
+	assert(count <= 0);
 }
 
 void * delete_ptr_list_last(struct ptr_list **head)
