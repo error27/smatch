@@ -679,6 +679,8 @@ void create_builtin_stream(void)
 	add_pre_buffer("#define __builtin_va_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
 	add_pre_buffer("#define __builtin_va_arg(arg,type)  ((type)0)\n");
 	add_pre_buffer("#define __builtin_va_end(arg)\n");	
+
+	add_pre_buffer("#define __STDC__ 1\n");
 #elif defined(__sun__)
 	add_pre_buffer("#define __sun__ 1\n");
 	add_pre_buffer("#define __sun 1\n");
@@ -694,13 +696,19 @@ void create_builtin_stream(void)
 	// I'm just guessing here:
 	add_pre_buffer("#define __builtin_va_alist (*(void *)0)\n");
 	add_pre_buffer("#define __builtin_va_arg_incr(x) ((x) + 1)\n");
+#ifdef __sparc
+	// System headers really want this:
+	add_pre_buffer("#define __sparc__ 1\n");
+	add_pre_buffer("#define __sparc 1\n");
+	add_pre_buffer("#define sparc 1\n");
+	add_pre_buffer("#define __STDC__ 0\n");
+#endif
 #else
 #warning "System not recognized; hope for the best"
 #endif
 	add_pre_buffer("#define unix 1\n");
 	add_pre_buffer("#define __unix 1\n");
 	add_pre_buffer("#define __unix__ 1\n");
-	add_pre_buffer("#define __STDC__ 1\n");
 	add_pre_buffer("#define __GNUC__ 2\n");
 	add_pre_buffer("#define __GNUC_MINOR__ 95\n");
 	add_pre_buffer("#define __func__ \"function\"\n");
