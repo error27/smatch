@@ -48,6 +48,9 @@ struct instruction {
 		pseudo_t cond;		/* for branch and switch */
 	};
 	union {
+		struct /* entrypoint */ {
+			struct pseudo_list *arg_list;
+		};
 		struct /* branch */ {
 			struct basic_block *bb_true, *bb_false;
 		};

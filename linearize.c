@@ -758,9 +758,13 @@ pseudo_t value_pseudo(long long val)
 static pseudo_t argument_pseudo(struct entrypoint *ep, int nr)
 {
 	pseudo_t pseudo = __alloc_pseudo(0);
+	struct instruction *entry = ep->entry;
+
 	pseudo->type = PSEUDO_ARG;
 	pseudo->nr = nr;
-	pseudo->def = ep->entry;
+	pseudo->def = entry;
+	add_pseudo(&entry->arg_list, pseudo);
+
 	/* Argument pseudos have neither usage nor def */
 	return pseudo;
 }
