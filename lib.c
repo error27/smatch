@@ -88,7 +88,6 @@ void drop_all_allocations(struct allocator_struct *desc)
 {
 	struct allocation_blob *blob = desc->blobs;
 
-	fprintf(stderr, "Dropping %d bytes of %s\n", desc->total_bytes, desc->name);
 	desc->blobs = NULL;
 	desc->allocations = 0;
 	desc->total_bytes = 0;
