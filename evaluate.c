@@ -316,6 +316,8 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 	for (;;) {
 		unsigned long mod1, mod2, diff;
 		unsigned long as1, as2;
+		int type1, type2;
+		struct symbol *base1, *base2;
 
 		if (target == source)
 			break;
@@ -340,27 +342,47 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 		mod2 = source->ctype.modifiers;
 		as2 = source->ctype.as;
 
-		if (target->type != source->type) {
-			int type1 = target->type;
-			int type2 = source->type;
+		type1 = target->type;
+		base1 = target->ctype.base_type;
 
-			/* Ignore ARRAY/PTR differences, as long as they point to the same type */
-			type1 = type1 == SYM_ARRAY ? SYM_PTR : type1;
-			type2 = type2 == SYM_ARRAY ? SYM_PTR : type2;
+		type2 = source->type;
+		base2 = source->ctype.base_type;
 
-			if ((type1 == SYM_PTR) && (target->ctype.base_type->type == SYM_FN)) {
-				target = target->ctype.base_type;
+		/*
+		 * Pointers to arrays degenerate to pointers to the array entry.
+		 * Pointers to functions compare as the function itself
+		 */
+		if (type1 == SYM_PTR && base1) {
+			switch (base1->type) {
+			case SYM_FN:
 				type1 = SYM_FN;
+				target = base1;
+				/* fallthrough */
+			case SYM_ARRAY:
+				base1 = base1->ctype.base_type;
+			default:
+				/* nothing */;
 			}
-
-			if ((type2 == SYM_PTR) && (source->ctype.base_type->type == SYM_FN)) {
-				source = source->ctype.base_type;
-				type2 = SYM_FN;
-			}
-
-			if (type1 != type2)
-				return "different base types";
 		}
+		if (type2 == SYM_PTR && base2) {
+			switch (base2->type) {
+			case SYM_FN:
+				type2 = SYM_FN;
+				source = base2;
+				/* fallthrough */
+			case SYM_ARRAY:
+				base2 = base2->ctype.base_type;
+			default:
+				/* nothing */;
+			}
+		}
+
+		/* Arrays degenerate to pointers for type comparisons */
+		type1 = (type1 == SYM_ARRAY) ? SYM_PTR : type1;
+		type2 = (type2 == SYM_ARRAY) ? SYM_PTR : type2;
+
+		if (type1 != type2)
+			return "different base types";
 
 		/* Must be same address space to be comparable */
 		if (as1 != as2)
@@ -378,10 +400,10 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 			}
 		}
 
-		if (target->type == SYM_FN) {
+		if (type1 == SYM_FN) {
 			int i;
 			struct symbol *arg1, *arg2;
-			if (target->variadic != source->variadic)
+			if (base1->variadic != base2->variadic)
 				return "incompatible variadic arguments";
 			PREPARE_PTR_LIST(target->arguments, arg1);
 			PREPARE_PTR_LIST(source->arguments, arg2);
@@ -404,8 +426,8 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 			FINISH_PTR_LIST(arg1);
 		}
 
-		target = target->ctype.base_type;
-		source = source->ctype.base_type;
+		target = base1;
+		source = base2;
 	}
 	return NULL;
 }
