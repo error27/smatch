@@ -87,8 +87,8 @@ static void replace_with_string(struct token *token, const char *str)
 
 static void replace_with_integer(struct token *token, unsigned int val)
 {
-	char *buf = __alloc_bytes(10);
-	sprintf(buf, "%d", val);
+	char *buf = __alloc_bytes(11);
+	sprintf(buf, "%u", val);
 	token_type(token) = TOKEN_NUMBER;
 	token->number = buf;
 }
