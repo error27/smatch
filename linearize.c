@@ -341,7 +341,7 @@ void show_instruction(struct instruction *insn)
 			insn->type->bit_offset, insn->type->bit_size, show_pseudo(insn->src));
 		break;
 	case OP_NOP:
-		printf("\tnop (cse'd %s)\n", show_pseudo(insn->target));
+		printf("\tnop (cse'd %s <- %s)\n", show_pseudo(insn->target), show_pseudo(insn->src1));
 		break;
 	default:
 		printf("\top %d ???\n", op);

@@ -225,6 +225,7 @@ static struct instruction * cse_one_instruction(struct instruction *insn, struct
 {
 	convert_instruction_target(insn, def->target);
 	insn->opcode = OP_NOP;
+	insn->src1 = def->target;
 	return def;
 }
 
