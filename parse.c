@@ -850,7 +850,7 @@ static struct expression *index_expression(struct expression *from, struct expre
 	idx_to = idx_from;
 	if (to) {
 		idx_to = get_expression_value(to);
-		if (idx_to < idx_from)
+		if (idx_to < idx_from || idx_from < 0)
 			warn(from->pos, "nonsense array initializer index range");
 	}
 	expr->idx_from = idx_from;
@@ -877,6 +877,7 @@ static struct token *initializer_list(struct expression_list **list, struct toke
 				token = constant_expression(token->next, &to);
 			add_expression(list, index_expression(from, to));
 			token = expect(token, ']', "at end of initializer index");
+			token = expect(token, '=', "at end of initializer index");
 		}
 
 		expr = NULL;

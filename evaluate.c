@@ -881,11 +881,11 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	struct symbol *ctype = op->ctype, *sym;
 
 	sym = alloc_symbol(expr->pos, SYM_NODE);
-	sym->ctype = ctype->ctype;
 	if (ctype->type == SYM_NODE) {
 		ctype = ctype->ctype.base_type;
 		merge_type(sym, ctype);
 	}
+	sym->ctype = ctype->ctype;
 	if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
 		warn(expr->pos, "cannot derefence this type");
 		return 0;
@@ -1177,24 +1177,29 @@ static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 	return 1;
 }
 
-/*
- * FIXME! This is bogus: we need to take array index
- * entries into account when calculating the size of
- * the array.
- */
-static int count_array_initializer(struct expression *expr)
-{
-	struct expression_list *list;
-
-	if (expr->type != EXPR_INITIALIZER)
-		return 1;
-	list = expr->expr_list;
-	return expression_list_size(list);
-}
-
 static int evaluate_array_initializer(struct symbol *ctype, struct expression *expr)
 {
-	return count_array_initializer(expr);
+	struct expression *entry;
+	int current = 0;
+	int max = 0;
+
+	FOR_EACH_PTR(expr->expr_list, entry) {
+		struct expression **p = THIS_ADDRESS(entry);
+		struct symbol *rtype;
+
+		if (entry->type == EXPR_INDEX) {
+			current = entry->idx_to;
+			continue;
+		}
+		rtype = evaluate_expression(entry);
+		if (!rtype)
+			continue;
+		compatible_assignment_types(entry, ctype, p, rtype, "array initializer");
+		current++;
+		if (current > max)
+			max = current;
+	} END_FOR_EACH_PTR;
+	return max;
 }
 
 static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct expression *expr, int multiple)
@@ -1228,10 +1233,13 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep)
 	}
 
 	expr->ctype = ctype;
+	if (ctype->type = SYM_NODE)
+		ctype = ctype->ctype.base_type;
+
 	switch (ctype->type) {
 	case SYM_ARRAY:
 	case SYM_PTR:
-		return evaluate_array_initializer(ctype, expr);
+		return evaluate_array_initializer(ctype->ctype.base_type, expr);
 	case SYM_UNION:
 		return evaluate_struct_or_union_initializer(ctype, expr, 0);
 	case SYM_STRUCT:
@@ -1434,7 +1442,7 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 
 	/* Evaluate the initializers */
 	if (sym->initializer) {
-		int count = evaluate_initializer(base_type, &sym->initializer);
+		int count = evaluate_initializer(sym, &sym->initializer);
 		if (base_type->type == SYM_ARRAY && base_type->array_size < 0) {
 			int bit_size = count * base_type->ctype.base_type->bit_size;
 			base_type->array_size = count;
