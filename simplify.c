@@ -489,7 +489,7 @@ static int simplify_select(struct instruction *insn)
 	src2 = insn->src3;
 	if (constant(cond) || src1 == src2) {
 		pseudo_t *kill, take;
-		kill_use(&insn->cond);
+		kill_use(&insn->src1);
 		take = cond->value ? src1 : src2;
 		kill = cond->value ? &insn->src3 : &insn->src2;
 		kill_use(kill);
