@@ -914,7 +914,7 @@ static int show_statement_expr(struct expression *expr)
 static int show_position_expr(struct expression *expr, struct symbol *base)
 {
 	int new = show_expression(expr->init_expr);
-	struct symbol *ctype = expr->init_sym;
+	struct symbol *ctype = expr->init_expr->ctype;
 
 	printf("\tinsert v%d at [%d:%d] of %s\n", new,
 		expr->init_offset, ctype->bit_offset,
@@ -927,6 +927,8 @@ static int show_initializer_expr(struct expression *expr, struct symbol *ctype)
 	struct expression *entry;
 
 	FOR_EACH_PTR(expr->expr_list, entry) {
+
+again:
 		// Nested initializers have their positions already
 		// recursively calculated - just output them too
 		if (entry->type == EXPR_INITIALIZER) {
@@ -934,10 +936,19 @@ static int show_initializer_expr(struct expression *expr, struct symbol *ctype)
 			continue;
 		}
 
-		// Ignore initializer indexes and identifiers - the
-		// evaluator has taken them into account
-		if (entry->type == EXPR_IDENTIFIER || entry->type == EXPR_INDEX)
-			continue;
+		// Initializer indexes and identifiers should
+		// have been evaluated to EXPR_POS
+		if (entry->type == EXPR_IDENTIFIER) {
+			printf(" AT '%s':\n", show_ident(entry->expr_ident));
+			entry = entry->ident_expression;
+			goto again;
+		}
+			
+		if (entry->type == EXPR_INDEX) {
+			printf(" AT '%d..%d:\n", entry->idx_from, entry->idx_to);
+			entry = entry->idx_expression;
+			goto again;
+		}
 		if (entry->type == EXPR_POS) {
 			show_position_expr(entry, ctype);
 			continue;

@@ -111,15 +111,18 @@ struct expression {
 		// EXPR_INITIALIZER
 		struct expression_list *expr_list;
 		// EXPR_IDENTIFIER
-		struct ident *expr_ident;
+		struct /* ident_expr */ {
+			struct ident *expr_ident;
+			struct expression *ident_expression;
+		};
 		// EXPR_INDEX
 		struct /* index_expr */ {
 			unsigned int idx_from, idx_to;
+			struct expression *idx_expression;
 		};
 		// EXPR_POS
 		struct /* initpos_expr */ {
-			unsigned int init_offset;
-			struct symbol *init_sym;
+			unsigned int init_offset, init_nr;
 			struct expression *init_expr;
 		};
 	};

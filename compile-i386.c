@@ -2284,7 +2284,7 @@ static struct storage *x86_statement_expr(struct expression *expr)
 static int x86_position_expr(struct expression *expr, struct symbol *base)
 {
 	struct storage *new = x86_expression(expr->init_expr);
-	struct symbol *ctype = expr->init_sym;
+	struct symbol *ctype = expr->init_expr->ctype;
 
 	printf("\tinsert v%d at [%d:%d] of %s\n", new->pseudo,
 		expr->init_offset, ctype->bit_offset,

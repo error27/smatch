@@ -1732,31 +1732,57 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 	return 1;
 }
 
-static int evaluate_initializer(struct symbol *ctype, struct expression **ep, unsigned long offset);
-static int evaluate_array_initializer(struct symbol *ctype, struct expression *expr, unsigned long offset)
+static int evaluate_initializer(struct symbol *ctype, struct expression **ep);
+
+static int evaluate_one_array_initializer(struct symbol *ctype, struct expression **ep, int current)
+{
+	struct expression *entry = *ep;
+	struct expression **parent, *reuse = NULL;
+	unsigned long offset;
+	struct symbol *sym;
+	unsigned long from, to;
+	int accept_string = is_byte_type(ctype);
+
+	from = current;
+	to = from+1;
+	parent = ep;
+	if (entry->type == EXPR_INDEX) {
+		from = entry->idx_from;
+		to = entry->idx_to;
+		parent = &entry->idx_expression;
+		reuse = entry;
+		entry = entry->idx_expression;
+	}
+
+	offset = from * (ctype->bit_size>>3);
+	if (offset) {
+		if (!reuse) reuse = alloc_expression(entry->pos, EXPR_POS);
+		reuse->type = EXPR_POS;
+		reuse->init_offset = offset;
+		reuse->init_nr = to - from;
+		reuse->init_expr = entry;
+		parent = &reuse->init_expr;
+		entry = reuse;
+	}
+	*ep = entry;
+
+	if (accept_string && entry->type == EXPR_STRING) {
+		sym = evaluate_expression(entry);
+		to = from + get_expression_value(sym->array_size);
+	} else {
+		evaluate_initializer(ctype, parent);
+	}
+	return to;
+}
+
+static int evaluate_array_initializer(struct symbol *ctype, struct expression *expr)
 {
 	struct expression *entry;
 	int current = 0;
 	int max = 0;
-	int accept_string = is_byte_type(ctype);
 
 	FOR_EACH_PTR(expr->expr_list, entry) {
-		struct expression **p = THIS_ADDRESS(entry);
-		struct symbol *sym;
-		int entries;
-
-		if (entry->type == EXPR_INDEX) {
-			current = entry->idx_to;
-			continue;
-		}
-		if (accept_string && entry->type == EXPR_STRING) {
-			sym = evaluate_expression(entry);
-			entries = get_expression_value(sym->array_size);
-		} else {
-			evaluate_initializer(ctype, p, offset + current*(ctype->bit_size>>3));
-			entries = 1;
-		}
-		current += entries;
+		current = evaluate_one_array_initializer(ctype, THIS_ADDRESS(entry), current);
 		if (current > max)
 			max = current;
 	} END_FOR_EACH_PTR(entry);
@@ -1764,49 +1790,83 @@ static int evaluate_array_initializer(struct symbol *ctype, struct expression *e
 }
 
 /* A scalar initializer is allowed, and acts pretty much like an array of one */
-static int evaluate_scalar_initializer(struct symbol *ctype, struct expression *expr, unsigned long offset)
+static int evaluate_scalar_initializer(struct symbol *ctype, struct expression *expr)
 {
-	if (offset || expression_list_size(expr->expr_list) != 1) {
+	if (expression_list_size(expr->expr_list) != 1) {
 		warning(expr->pos, "unexpected compound initializer");
 		return 0;
 	}
-	return evaluate_array_initializer(ctype, expr, 0);
+	return evaluate_array_initializer(ctype, expr);
 }
 
-static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct expression *expr, int multiple, unsigned long offset)
+static struct symbol *find_struct_ident(struct symbol *ctype, struct ident *ident)
+{
+	struct symbol *sym;
+
+	FOR_EACH_PTR(ctype->symbol_list, sym) {
+		if (sym->ident == ident)
+			return sym;
+	} END_FOR_EACH_PTR(sym);
+	return NULL;
+}
+
+static int evaluate_one_struct_initializer(struct symbol *ctype, struct expression **ep, struct symbol *sym)
+{
+	struct expression *entry = *ep;
+	struct expression **parent;
+	struct expression *reuse = NULL;
+	unsigned long offset;
+
+	if (!sym) {
+		error(entry->pos, "unknown named initializer");
+		return -1;
+	}	
+
+	if (entry->type == EXPR_IDENTIFIER) {
+		reuse = entry;
+		entry = entry->ident_expression;
+	}
+
+	parent = ep;
+	offset = sym->offset;
+	if (offset) {
+		if (!reuse)
+			reuse = alloc_expression(entry->pos, EXPR_POS);
+		reuse->type = EXPR_POS;
+		reuse->init_offset = offset;
+		reuse->init_nr = 1;
+		reuse->init_expr = entry;
+		parent = &reuse->init_expr;
+		entry = reuse;
+	}
+	*ep = entry;
+	evaluate_initializer(sym, parent);
+	return 0;
+}
+
+static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct expression *expr, int multiple)
 {
 	struct expression *entry;
 	struct symbol *sym;
 
 	PREPARE_PTR_LIST(ctype->symbol_list, sym);
 	FOR_EACH_PTR(expr->expr_list, entry) {
-		struct expression **p = THIS_ADDRESS(entry);
-
 		if (entry->type == EXPR_IDENTIFIER) {
 			struct ident *ident = entry->expr_ident;
 			/* We special-case the "already right place" case */
-			if (sym && sym->ident == ident)
-				continue;
-			RESET_PTR_LIST(sym);
-			for (;;) {
-				if (!sym) {
-					warning(entry->pos, "unknown named initializer '%s'", show_ident(ident));
-					return 0;
+			if (!sym || sym->ident != ident) {
+				RESET_PTR_LIST(sym);
+				for (;;) {
+					if (!sym)
+						break;
+					if (sym->ident == ident)
+						break;
+					NEXT_PTR_LIST(sym);
 				}
-				if (sym->ident == ident)
-					break;
-				NEXT_PTR_LIST(sym);
 			}
-			continue;
 		}
-
-		if (!sym) {
-			warning(expr->pos, "too many initializers for struct/union");
+		if (evaluate_one_struct_initializer(ctype, THIS_ADDRESS(entry), sym))
 			return 0;
-		}
-
-		evaluate_initializer(sym, p, offset + sym->offset);
-
 		NEXT_PTR_LIST(sym);
 	} END_FOR_EACH_PTR(entry);
 	FINISH_PTR_LIST(sym);
@@ -1818,7 +1878,7 @@ static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct exp
  * Initializers are kind of like assignments. Except
  * they can be a hell of a lot more complex.
  */
-static int evaluate_initializer(struct symbol *ctype, struct expression **ep, unsigned long offset)
+static int evaluate_initializer(struct symbol *ctype, struct expression **ep)
 {
 	struct expression *expr = *ep;
 
@@ -1826,12 +1886,11 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep, un
 	 * Simple non-structure/array initializers are the simple 
 	 * case, and look (and parse) largely like assignments.
 	 */
-	if (expr->type != EXPR_INITIALIZER) {
+	switch (expr->type) {
+	default: {
 		int size = 0, is_string = expr->type == EXPR_STRING;
 		struct symbol *rtype = evaluate_expression(expr);
 		if (rtype) {
-			struct expression *pos;
-
 			/*
 			 * Special case:
 			 * 	char array[] = "string"
@@ -1847,40 +1906,46 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep, un
 				size = 1;
 			}
 			compatible_assignment_types(expr, ctype, ep, rtype, "initializer");
-
-			/*
-			 * Don't bother creating a position expression for
-			 * the simple initializer cases that don't need it.
-			 *
-			 * We need a position if the initializer has a byte
-			 * offset, _or_ if we're initializing a bitfield.
-			 */
-			if (offset || ctype->fieldwidth) {
-				pos = alloc_expression(expr->pos, EXPR_POS);
-				pos->init_offset = offset;
-				pos->init_sym = ctype;
-				pos->init_expr = *ep;
-				pos->ctype = expr->ctype;
-				*ep = pos;
-			}
 		}
 		return size;
 	}
 
-	expr->ctype = ctype;
-	if (ctype->type == SYM_NODE)
-		ctype = ctype->ctype.base_type;
+	case EXPR_INITIALIZER:
+		expr->ctype = ctype;
+		if (ctype->type == SYM_NODE)
+			ctype = ctype->ctype.base_type;
+	
+		switch (ctype->type) {
+		case SYM_ARRAY:
+		case SYM_PTR:
+			return evaluate_array_initializer(ctype->ctype.base_type, expr);
+		case SYM_UNION:
+			return evaluate_struct_or_union_initializer(ctype, expr, 0);
+		case SYM_STRUCT:
+			return evaluate_struct_or_union_initializer(ctype, expr, 1);
+		default:
+			return evaluate_scalar_initializer(ctype, expr);
+		}
 
-	switch (ctype->type) {
-	case SYM_ARRAY:
-	case SYM_PTR:
-		return evaluate_array_initializer(ctype->ctype.base_type, expr, offset);
-	case SYM_UNION:
-		return evaluate_struct_or_union_initializer(ctype, expr, 0, offset);
-	case SYM_STRUCT:
-		return evaluate_struct_or_union_initializer(ctype, expr, 1, offset);
-	default:
-		return evaluate_scalar_initializer(ctype, expr, offset);
+	case EXPR_IDENTIFIER:
+		if (ctype->type == SYM_NODE)
+			ctype = ctype->ctype.base_type;
+		if (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION) {
+			error(expr->pos, "expected structure or union for '%s' dereference", show_ident(expr->expr_ident));
+			show_symbol(ctype);
+			return 0;
+		}
+		return evaluate_one_struct_initializer(ctype, ep,
+			find_struct_ident(ctype, expr->expr_ident));
+
+	case EXPR_INDEX:
+		if (ctype->type == SYM_NODE)
+			ctype = ctype->ctype.base_type;
+		if (ctype->type != SYM_ARRAY) {
+			error(expr->pos, "expected array");
+			return 0;
+		}
+		return evaluate_one_array_initializer(ctype->ctype.base_type, ep, 0);
 	}
 }
 
@@ -2218,7 +2283,7 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 
 	/* Evaluate the initializers */
 	if (sym->initializer) {
-		int count = evaluate_initializer(sym, &sym->initializer, 0);
+		int count = evaluate_initializer(sym, &sym->initializer);
 		if (base_type->type == SYM_ARRAY && !base_type->array_size) {
 			int bit_size = count * base_type->ctype.base_type->bit_size;
 			base_type->array_size = alloc_const_expression(sym->pos, count);

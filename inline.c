@@ -203,11 +203,23 @@ static struct expression * copy_expression(struct expression *expr)
 		break;
 	}
 
-	/* Identifier in member dereference is unchanged across a fn copy */
-	/* As is an array index expression */
-	case EXPR_INDEX:
-	case EXPR_IDENTIFIER:
+	case EXPR_INDEX: {
+		struct expression *sub_expr = dup_expression(expr->idx_expression);
+		if (sub_expr == expr->idx_expression)
+			break;
+		expr = dup_expression(expr);
+		expr->idx_expression = sub_expr;
 		break;
+	}
+		
+	case EXPR_IDENTIFIER: {
+		struct expression *sub_expr = dup_expression(expr->ident_expression);
+		if (sub_expr == expr->ident_expression)
+			break;
+		expr = dup_expression(expr);
+		expr->ident_expression = sub_expr;
+		break;
+	}
 
 	/* Position in initializer.. */
 	case EXPR_POS: {
