@@ -1145,7 +1145,8 @@ static void generate_call(struct bb_state *state, struct instruction *insn)
 	output_insn(state, "call %s", show_pseudo(insn->func));
 	if (offset)
 		output_insn(state, "addl $%d,%%esp", offset);
-	add_pseudo_reg(state, insn->target, hardregs+0);
+	if (insn->target && insn->target != VOID)
+		add_pseudo_reg(state, insn->target, hardregs+0);
 }
 
 static void generate_select(struct bb_state *state, struct instruction *insn)
