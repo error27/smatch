@@ -496,7 +496,7 @@ struct token *enum_specifier(struct token *token, struct symbol **p)
 
 struct token *typeof_specifier(struct token *token, struct symbol **p)
 {
-	static struct symbol empty = { .base_type = NULL, .modifiers = 0 };
+	static struct symbol empty;
 	struct expression *expr;
 
 	*p = &empty;
@@ -512,7 +512,7 @@ struct token *typeof_specifier(struct token *token, struct symbol **p)
 struct token *attribute_specifier(struct token *token, struct symbol **p)
 {
 	int parens = 0;
-	static struct symbol empty = { .base_type = NULL, .modifiers = 0 };
+	static struct symbol empty;
 	*p = &empty;
 	token = expect(token, '(', "after attribute");
 	token = expect(token, '(', "after attribute");
