@@ -207,7 +207,10 @@ static int nextchar(stream_t *stream)
 	int offset = stream->offset;
 	int size = stream->size;
 	int c;
+	int complain = -1;
 
+repeat:
+	complain++;
 	if (offset >= size) {
 		size = read(stream->fd, stream->buffer, BUFSIZE);
 		if (size <= 0)
@@ -217,13 +220,24 @@ static int nextchar(stream_t *stream)
 		offset = 0;
 	}
 	c = stream->buffer[offset];
-	stream->offset = offset + 1;
+	stream->offset = ++offset;
+
 	stream->pos.pos++;
+
+	/* Ignore DOS-stype '\r' characters */
+	if (c == '\r')
+		goto repeat;
+
 	if (c == '\n') {
 		stream->pos.line++;
 		stream->pos.newline = 1;
 		stream->pos.pos = 0;
+		complain = 0;
 	}
+
+	if (complain)
+		warn(stream->pos, "non-ASCII data stream");
+
 	return c;
 }
 
