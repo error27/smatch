@@ -268,7 +268,7 @@ struct symbol	bool_ctype, void_ctype,
 		long_ctype, ulong_ctype,
 		llong_ctype, ullong_ctype,
 		float_ctype, double_ctype, ldouble_ctype,
-		string_ctype;
+		string_ctype, ptr_ctype;
 
 struct ctype_declare {
 	struct symbol *ptr;
@@ -296,6 +296,7 @@ struct ctype_declare {
 	{ &ldouble_ctype,MOD_LONG | MOD_LONGLONG,		  BITS_IN_LONGDOUBLE,MAX_FP_ALIGNMENT,	&fp_type },
 
 	{ &string_ctype,	    0,  BITS_IN_POINTER, POINTER_ALIGNMENT, &char_ctype },
+	{ &ptr_ctype,		    0,  BITS_IN_POINTER, POINTER_ALIGNMENT, &void_ctype },
 	{ NULL, }
 };
 
@@ -353,6 +354,7 @@ void init_symbols(void)
 		sym->ctype.modifiers = ptr->modifiers;
 	}
 
+	ptr_ctype.type = SYM_PTR;
 	string_ctype.type = SYM_PTR;
 	for (ctype = ctype_declaration ; ctype->ptr; ctype++) {
 		struct symbol *sym = ctype->ptr;
