@@ -62,6 +62,7 @@ struct ptr_list {
 #define ITERATE_LAST 2
 void iterate(struct ptr_list *,void (*callback)(void *, void *, int), void*);
 extern void add_ptr_list(struct ptr_list **, void *);
+extern void free_ptr_list(struct ptr_list **);
 extern int ptr_list_size(struct ptr_list *);
 extern char **handle_switch(char *arg, char **next);
 extern void add_pre_buffer(const char *fmt, ...);

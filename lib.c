@@ -235,6 +235,23 @@ void add_ptr_list(struct ptr_list **listp, void *ptr)
 	list->nr = nr;
 }
 
+void free_ptr_list(struct ptr_list **listp)
+{
+	struct ptr_list *tmp, *list = *listp;
+
+	if (!list)
+		return;
+
+	list->prev->next = NULL;
+	while (list) {
+		tmp = list;
+		list = list->next;
+		free(tmp);
+	}
+
+	*listp = NULL;
+}
+
 static void do_warn(const char *type, struct position pos, const char * fmt, va_list args)
 {
 	static char buffer[512];
