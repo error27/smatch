@@ -1989,8 +1989,7 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		evaluate_statement(stmt->case_statement);
 		return NULL;
 	case STMT_LABEL:
-		evaluate_statement(stmt->label_statement);
-		return NULL;
+		return evaluate_statement(stmt->label_statement);
 	case STMT_GOTO:
 		evaluate_expression(stmt->goto_expression);
 		return NULL;
