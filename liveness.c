@@ -232,4 +232,20 @@ void track_pseudo_liveness(struct entrypoint *ep)
 			track_bb_liveness(bb);
 		} END_FOR_EACH_PTR(bb);
 	} while (liveness_changed);
+
+	/* Remove the pseudos from the "defines" list that are used internally */
+	FOR_EACH_PTR(ep->bbs, bb) {
+		pseudo_t def;
+		FOR_EACH_PTR(bb->defines, def) {
+			struct basic_block *child;
+			FOR_EACH_PTR(bb->children, child) {
+				if (pseudo_in_list(child->needs, def))
+					goto is_used;
+			} END_FOR_EACH_PTR(child);
+			DELETE_CURRENT_PTR(def);
+is_used:
+		;
+		} END_FOR_EACH_PTR(def);
+		PACK_PTR_LIST(&bb->defines);
+	} END_FOR_EACH_PTR(bb);
 }
