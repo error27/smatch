@@ -354,12 +354,6 @@ static void expand_arguments(struct token *parent,
  *		12 ## 12 = '1212'
  *  - number + ident - combine (==number)
  *		0x ## aaa = '0xaaa'
- *  - number + FP - combine (==FP or number)
- *		0x ## '0e11' = '0x0e11' = number
- *		1 ## 0.123 = '10.123' = FP)
- *  - ident + FP - combine (and split?)
- *		a ## 0e11 = 'a0e11', but
- *		a ## 0.e1 should be 'a0' '.' 'e1')
  *  - string + string - leave as is, C will combine them anyway
  * others cause an error and leave the tokens as separate tokens.
  */
@@ -400,7 +394,7 @@ static struct token *hashhash(struct token *head, struct token *first)
 		memcpy(p, src, len);
 		p += len;
 		token = token->next;
-	} while (--i > 0 || !(token->pos.whitespace | token->pos.newline));
+	} while (--i > 0);
 
 out:
 	*p++ = 0;
