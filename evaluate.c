@@ -336,7 +336,7 @@ static int evaluate_ptr_add(struct expression *expr, struct expression *ptr, str
 	return 1;
 }
 
-static int evaluate_plus(struct expression *expr)
+static int evaluate_add(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
 	struct symbol *ltype = left->ctype, *rtype = right->ctype;
@@ -405,7 +405,7 @@ static int evaluate_ptr_sub(struct expression *expr, struct expression *l, struc
 	return 1;
 }
 
-static int evaluate_minus(struct expression *expr)
+static int evaluate_sub(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
 	struct symbol *ltype = left->ctype;
@@ -435,11 +435,11 @@ static int evaluate_binop(struct expression *expr)
 	switch (expr->op) {
 	// addition can take ptr+int, fp and int
 	case '+':
-		return evaluate_plus(expr);
+		return evaluate_add(expr);
 
 	// subtraction can take ptr-ptr, fp and int
 	case '-':
-		return evaluate_minus(expr);
+		return evaluate_sub(expr);
 
 	// Logical ops can take a lot of special stuff and have early-out
 	case SPECIAL_LOGICAL_AND:
@@ -484,14 +484,103 @@ static int evaluate_compare(struct expression *expr)
 	return bad_expr_type(expr);
 }
 
+static int same_type(struct symbol *target, struct symbol *source)
+{
+	int dropped_modifiers = 0;
+	for (;;) {
+		if (target == source)
+			break;
+		if (!target || !source)
+			return 0;
+		if (target->type != source->type)
+			return 0;
+		target = target->ctype.base_type;
+		source = source->ctype.base_type;
+	}
+	if (dropped_modifiers)
+		warn(target->pos, "assignment drops modifiers");
+	return 1;
+}
+
+static int compatible_assignment_types(struct expression *left, struct symbol *target,
+	struct expression *right, struct symbol *source)
+{
+	if (same_type(target, source))
+		return 1;
+
+	/* Pointer destination? */
+	if (target->type == SYM_PTR) {
+		struct symbol *source_base = source->ctype.base_type;
+		struct symbol *target_base = target->ctype.base_type;
+
+		if (source->type == SYM_ARRAY && same_type(target_base, source_base))
+			return 1;
+		if (source->type == SYM_FN && same_type(target_base, source))
+			return 1;
+
+		// NULL pointer?
+		if (right->type == EXPR_VALUE && !right->value)
+			return 1;
+
+		// void pointer ?
+		if (target->type == SYM_PTR) {
+			struct symbol *source_base = source->ctype.base_type;
+			struct symbol *target_base = target->ctype.base_type;
+			if (source_base == &void_ctype || target_base == &void_ctype)
+				return 1;
+			warn(left->pos, "assignment from incompatible pointer types");
+			return 1;
+		}
+
+		// FIXME!! Cast it!
+		return 0;
+	}
+
+	// FIXME!! Cast it!
+	return 0;
+}
+
+static int evaluate_binop_assignment(struct expression *expr, struct expression *left, struct expression *right)
+{
+	int op = expr->op;
+	struct expression *subexpr = alloc_expression(expr->pos, EXPR_BINOP);
+	static const int op_trans[] = {
+		[SPECIAL_ADD_ASSIGN - SPECIAL_BASE] = '+',
+		[SPECIAL_SUB_ASSIGN - SPECIAL_BASE] = '-',
+		[SPECIAL_MUL_ASSIGN - SPECIAL_BASE] = '*',
+		[SPECIAL_DIV_ASSIGN - SPECIAL_BASE] = '/',
+		[SPECIAL_MOD_ASSIGN - SPECIAL_BASE] = '%',
+		[SPECIAL_SHL_ASSIGN - SPECIAL_BASE] = SPECIAL_LEFTSHIFT,
+		[SPECIAL_SHR_ASSIGN - SPECIAL_BASE] = SPECIAL_RIGHTSHIFT,
+		[SPECIAL_AND_ASSIGN - SPECIAL_BASE] = '&',
+		[SPECIAL_OR_ASSIGN - SPECIAL_BASE] = '&',
+		[SPECIAL_XOR_ASSIGN - SPECIAL_BASE] = '^'
+	};
+
+	subexpr->left = left;
+	subexpr->right = right;
+	subexpr->op = op_trans[op - SPECIAL_BASE];
+	expr->op = '=';
+	expr->right = subexpr;
+	return evaluate_binop(subexpr);
+}
+
 static int evaluate_assignment(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
-	struct symbol *ltype = left->ctype, *rtype = right->ctype;
+	struct symbol *ltype, *rtype;
 
-	// FIXME! We need to cast and check the rigth side!
-	if (ltype->bit_size != rtype->bit_size)
-		expr->right = cast_to(right, ltype);
+	if (expr->op != '=') {
+		if (!evaluate_binop_assignment(expr, left, right))
+			return 0;
+		right = expr->right;
+	}
+	ltype = left->ctype;
+	rtype = right->ctype;
+
+	if (!compatible_assignment_types(left, ltype, right, rtype))
+		return 0;
+
 	expr->ctype = expr->left->ctype;
 	return 1;
 }

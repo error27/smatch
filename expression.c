@@ -370,11 +370,12 @@ struct token *assignment_expression(struct token *token, struct expression **tre
 	token = conditional_expression(token, tree);
 	if (token_type(token) == TOKEN_SPECIAL) {
 		static const int assignments[] = {
-			'=', SPECIAL_ADD_ASSIGN, SPECIAL_MINUS_ASSIGN,
-			SPECIAL_TIMES_ASSIGN, SPECIAL_DIV_ASSIGN,
+			'=',
+			SPECIAL_ADD_ASSIGN, SPECIAL_SUB_ASSIGN,
+			SPECIAL_MUL_ASSIGN, SPECIAL_DIV_ASSIGN,
 			SPECIAL_MOD_ASSIGN, SPECIAL_SHL_ASSIGN,
 			SPECIAL_SHR_ASSIGN, SPECIAL_AND_ASSIGN,
-			SPECIAL_OR_ASSIGN, SPECIAL_XOR_ASSIGN };
+			SPECIAL_OR_ASSIGN,  SPECIAL_XOR_ASSIGN };
 		int i, op = token->special;
 		for (i = 0; i < sizeof(assignments)/sizeof(int); i++)
 			if (assignments[i] == op) {
