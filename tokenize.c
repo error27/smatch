@@ -150,6 +150,7 @@ int init_stream(const char *name, int fd)
 {
 	int stream = input_stream_nr;
 	struct stream *current;
+	struct stat st;
 
 	if (stream >= input_streams_allocated) {
 		int newalloc = stream * 4 / 3 + 10;
@@ -162,21 +163,20 @@ int init_stream(const char *name, int fd)
 	memset(current, 0, sizeof(*current));
 	current->name = name;
 	current->fd = fd;
-	current->constant = -1;	// "unknown"
-	if (fd > 0) {
+	current->constant = CONSTANT_FILE_MAYBE;
+	if (fd >= 0 && fstat(fd, &st) == 0 && S_ISREG(st.st_mode)) {
 		int i;
-		struct stat st;
 
-		fstat(fd, &st);
-		current->dev = st.st_dev;
-		current->ino = st.st_ino;
 		for (i = 0; i < stream; i++) {
 			struct stream *s = input_streams + i;
-			if (s->dev == st.st_dev && s->ino == st.st_ino) {
-				if (s->constant > 0 && lookup_symbol(s->protect, NS_PREPROCESSOR))
-					return -1;
-			}
+			if (s->dev == st.st_dev && s->ino == st.st_ino &&
+			    s->constant == CONSTANT_FILE_YES &&
+			    lookup_symbol(s->protect, NS_PREPROCESSOR))
+				return -1;
 		}
+
+		current->dev = st.st_dev;
+		current->ino = st.st_ino;
 	}
 	input_stream_nr = stream+1;
 	return stream;
@@ -882,8 +882,10 @@ struct token * tokenize(const char *name, int fd, struct token *endtoken)
 	int idx;
 
 	idx = init_stream(name, fd);
-	if (idx < 0)
+	if (idx < 0) {
+		// info(endtoken->pos, "File %s is const", name);
 		return endtoken;
+	}
 
 	begin = setup_stream(&stream, idx, fd, buffer, 0);
 	tokenize_stream(&stream, endtoken);

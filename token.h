@@ -23,12 +23,20 @@
  * Semantic meaning is handled elsewhere.
  */
 
+enum constantfile {
+  CONSTANT_FILE_MAYBE,    // To be determined, not inside any #ifs in this file
+  CONSTANT_FILE_IFNDEF,   // To be determined, currently inside #ifndef
+  CONSTANT_FILE_NOPE,     // No
+  CONSTANT_FILE_YES       // Yes
+};
+
 struct stream {
 	int fd;
 	const char *name;
 
 	/* Use these to check for "already parsed" */
-	int constant, nesting;
+	enum constantfile constant;
+	int nesting;
 	struct ident *protect;
 	dev_t dev;
 	ino_t ino;

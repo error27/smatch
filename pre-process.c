@@ -52,6 +52,15 @@ const char *gcc_includepath[] = {
 	NULL
 };
 
+#define MARK_STREAM_NONCONST(pos) do {					\
+	if (stream->constant != CONSTANT_FILE_NOPE) {			\
+		if (0)							\
+			info(pos, "%s triggers non-const", __func__);	\
+		stream->constant = CONSTANT_FILE_NOPE;			\
+	}								\
+} while (0)
+
+
 
 /*
  * This is stupid - the tokenizer already guarantees unique
@@ -667,10 +676,12 @@ static int handle_include(struct stream *stream, struct token **list, struct tok
 	struct token *next;
 	int expect;
 
-	if (stream->constant == -1)
-		stream->constant = 0;
 	if (false_nesting)
 		return 1;
+
+	if (stream->constant == CONSTANT_FILE_MAYBE)
+		MARK_STREAM_NONCONST(token->pos);
+
 	next = token->next;
 	expect = '>';
 	if (!match_op(next, '<')) {
@@ -971,6 +982,10 @@ static int handle_define(struct stream *stream, struct token **line, struct toke
 	}
 	if (false_nesting)
 		return 1;
+
+	if (stream->constant == CONSTANT_FILE_MAYBE)
+		MARK_STREAM_NONCONST(token->pos);
+
 	name = left->ident;
 
 	arglist = NULL;
@@ -1015,6 +1030,10 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 	}
 	if (false_nesting)
 		return 1;
+
+	if (stream->constant == CONSTANT_FILE_MAYBE)
+		MARK_STREAM_NONCONST(token->pos);
+
 	sym = &left->ident->symbols;
 	while (*sym) {
 		struct symbol *t = *sym;
@@ -1059,16 +1078,14 @@ static int handle_ifdef(struct stream *stream, struct token **line, struct token
 static int handle_ifndef(struct stream *stream, struct token **line, struct token *token)
 {
 	struct token *next = token->next;
-	if (stream->constant == -1) {
-		int newconstant = 0;
-		if (token_type(next) == TOKEN_IDENT) {
-			if (!stream->protect || stream->protect == next->ident) {
-				newconstant = -2;
-				stream->protect = next->ident;
-				stream->nesting = if_nesting+1;
-			}
-		}
-		stream->constant = newconstant;
+	if (stream->constant == CONSTANT_FILE_MAYBE) {
+		if (token_type(next) == TOKEN_IDENT &&
+		    (!stream->protect || stream->protect == next->ident)) {
+			stream->constant = CONSTANT_FILE_IFNDEF;
+			stream->protect = next->ident;
+			stream->nesting = if_nesting+1;
+		} else
+			MARK_STREAM_NONCONST(token->pos);
 	}
 	return preprocessor_if(token, !token_defined(next));
 }
@@ -1136,13 +1153,21 @@ static int handle_if(struct stream *stream, struct token **line, struct token *t
 	int value = 0;
 	if (!false_nesting)
 		value = expression_value(&token->next);
+
+	// This is an approximation.  We really only need this if the
+	// condition does depends on a pre-processor symbol.  Note, that
+	// the important #ifndef case has already changed ->constant.
+	if (stream->constant == CONSTANT_FILE_MAYBE)
+		MARK_STREAM_NONCONST(token->pos);
+
 	return preprocessor_if(token, value);
 }
 
 static int handle_elif(struct stream * stream, struct token **line, struct token *token)
 {
 	if (stream->nesting == if_nesting)
-		stream->constant = 0;
+		MARK_STREAM_NONCONST(token->pos);
+
 	if (false_nesting) {
 		/* If this whole if-thing is if'ed out, an elif cannot help */
 		if (elif_ignore[if_nesting-1])
@@ -1166,7 +1191,8 @@ static int handle_elif(struct stream * stream, struct token **line, struct token
 static int handle_else(struct stream *stream, struct token **line, struct token *token)
 {
 	if (stream->nesting == if_nesting)
-		stream->constant = 0;
+		MARK_STREAM_NONCONST(token->pos);
+
 	if (false_nesting) {
 		/* If this whole if-thing is if'ed out, an else cannot help */
 		if (elif_ignore[if_nesting-1])
@@ -1187,8 +1213,8 @@ static int handle_else(struct stream *stream, struct token **line, struct token 
 
 static int handle_endif(struct stream *stream, struct token **line, struct token *token)
 {
-	if (stream->constant == -2 && stream->nesting == if_nesting)
-		stream->constant = -1;
+	if (stream->constant == CONSTANT_FILE_IFNDEF && stream->nesting == if_nesting)
+		stream->constant = CONSTANT_FILE_MAYBE;
 
 	if (false_nesting) {
 		false_nesting--;
@@ -1403,8 +1429,8 @@ static void do_preprocess(struct token **list)
 
 		switch (token_type(next)) {
 		case TOKEN_STREAMEND:
-			if (stream->constant == -1 && stream->protect) {
-				stream->constant = 1;
+			if (stream->constant == CONSTANT_FILE_MAYBE && stream->protect) {
+				stream->constant = CONSTANT_FILE_YES;
 			}
 			/* fallthrough */
 		case TOKEN_STREAMBEGIN:
@@ -1417,12 +1443,15 @@ static void do_preprocess(struct token **list)
 		default:
 			list = &next->next;
 		}
-		/*
-		 * Any token expansion (even if it ended up being an
-		 * empty expansion) in this stream implies it can't
-		 * be constant.
-		 */
-		stream->constant = 0;
+
+		if (stream->constant == CONSTANT_FILE_MAYBE) {
+			/*
+			 * Any token expansion (even if it ended up being an
+			 * empty expansion) in this stream implies it can't
+			 * be constant.
+			 */
+			MARK_STREAM_NONCONST(next->pos);
+		}
 	}
 }
 
