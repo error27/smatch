@@ -1297,6 +1297,11 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 	ctype = op->ctype;
 	*expr = *op->unop;
 
+	if (expr->type == EXPR_SYMBOL) {
+		struct symbol *sym = expr->symbol;
+		sym->ctype.modifiers |= MOD_ADDRESSABLE;
+	}
+
 	/*
 	 * symbol expression evaluation is lazy about the type
 	 * of the sub-expression, so we may have to generate
