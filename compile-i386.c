@@ -1824,8 +1824,7 @@ static struct storage *x86_call_expression(struct expression *expr)
 		struct storage *new = x86_expression(arg);
 		int size = arg->ctype->bit_size;
 
-		/* FIXME: pay attention to 'size' */
-		insn("pushl", new, NULL,
+		insn(opbits("push", size), new, NULL,
 		     !framesize ? "begin function call" : NULL);
 
 		framesize += size >> 3;
