@@ -21,12 +21,14 @@
 #include "parse.h"
 #include "symbol.h"
 #include "expression.h"
+#include "linearize.h"
 
 static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 {
 	evaluate_symbol(sym);
 	check_duplicates(sym);
 	expand_symbol(sym);
+	linearize_symbol(sym);
 }
 
 static void do_predefined(char *filename)
