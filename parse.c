@@ -661,6 +661,7 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 		struct ctype thistype;
 		struct ident *ident;
 		struct symbol *s, *type;
+		unsigned long mod;
 
 		next = token->next;
 		if (token->type != TOKEN_IDENT)
@@ -686,7 +687,8 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 				next = typeof_specifier(next, &thistype);
 		}
 
-		type = s->ctype.base_type;
+		type = thistype.base_type;
+		mod = thistype.modifiers;
 		if (type) {
 			if (type != ctype->base_type) {
 				if (ctype->base_type) {
@@ -696,20 +698,20 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 				ctype->base_type = type;
 			}
 		}
-		if (thistype.modifiers) {
+		if (mod) {
 			unsigned long old = ctype->modifiers;
 			unsigned long extra = 0, dup;
 
-			if (thistype.modifiers & old & SYM_LONG) {
+			if (mod & old & SYM_LONG) {
 				extra = SYM_LONGLONG | SYM_LONG;
-				thistype.modifiers &= ~SYM_LONG;
+				mod &= ~SYM_LONG;
 				old &= ~SYM_LONG;
 			}
-			dup = (thistype.modifiers & old) | (extra & old) | (extra & thistype.modifiers);
+			dup = (mod & old) | (extra & old) | (extra & mod);
 			if (dup)
 				warn(token, "Just how %s do you want this type to be?",
 					modifier_string(dup));
-			ctype->modifiers = old | thistype.modifiers | extra;
+			ctype->modifiers = old | mod | extra;
 		}
 	}
 	return token;

@@ -68,6 +68,8 @@ const char *type_string(unsigned int modifiers, struct symbol *sym)
 		return "vector";
 	if (sym == &bad_type)
 		return "bad type";
+	if (sym->token)
+		return show_token(sym->token);
 	return "typedef";
 }
 
