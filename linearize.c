@@ -346,7 +346,7 @@ static void add_goto(struct entrypoint *ep, struct basic_block *dst)
 static void add_deathnote(struct entrypoint *ep, pseudo_t pseudo)
 {
 	struct basic_block *bb = ep->active;
-	if (bb_reachable(bb)) {
+	if (pseudo != VOID && bb_reachable(bb)) {
 		struct instruction *dead = alloc_instruction(OP_DEAD, NULL);
 		dead->target = pseudo;
 		add_instruction(&bb->insns, dead);
@@ -867,6 +867,10 @@ pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 	src = linearize_expression(ep, expr->cast_expression);
 	if (src == VOID)
 		return VOID;
+	if (expr->ctype->bit_size < 0) {
+		add_deathnote(ep, src);
+		return VOID;
+	}
 	insn = alloc_instruction(OP_CAST, expr->ctype);
 	result = alloc_pseudo(insn);
 	insn->target = result;
@@ -983,7 +987,7 @@ static void linearize_one_symbol(struct entrypoint *ep, struct symbol *sym)
 
 static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct statement *stmt)
 {
-	pseudo_t pseudo = NULL;
+	pseudo_t pseudo;
 	struct statement *s;
 	struct symbol *sym;
 	struct symbol *ret = stmt->ret;
@@ -997,7 +1001,9 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 		linearize_one_symbol(ep, sym);
 	} END_FOR_EACH_PTR(sym);
 
+	pseudo = VOID;
 	FOR_EACH_PTR(stmt->stmts, s) {
+		add_deathnote(ep, pseudo);
 		pseudo = linearize_statement(ep, s);
 	} END_FOR_EACH_PTR(s);
 
