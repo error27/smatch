@@ -333,10 +333,12 @@ void delete_ptr_list_entry(struct ptr_list **list, void *entry, int count)
 		if (ptr == entry) {
 			DELETE_CURRENT_PTR(ptr);
 			if (!--count)
-				return;
+				goto out;
 		}
 	} END_FOR_EACH_PTR(ptr);
 	assert(count <= 0);
+out:
+	pack_ptr_list(list);
 }
 
 void replace_ptr_list_entry(struct ptr_list **list, void *old_ptr, void *new_ptr, int count)
