@@ -721,42 +721,6 @@ static struct basic_block * rewrite_branch_bb(struct basic_block *bb, struct ins
 	return target;
 }
 
-static void simplify_one_switch(struct basic_block *bb,
-	long long val,
-	struct instruction *insn)
-{
-	struct multijmp *jmp;
-
-	FOR_EACH_PTR(insn->multijmp_list, jmp) {
-		/* Default case */
-		if (jmp->begin > jmp->end)
-			goto found;
-		if (val >= jmp->begin && val <= jmp->end)
-			goto found;
-	} END_FOR_EACH_PTR(jmp);
-	warning(bb->pos, "Impossible case statement");
-	return;
-
-found:
-	insert_branch(bb, insn, jmp->target);
-}
-
-static void simplify_switch(struct entrypoint *ep)
-{
-	struct basic_block *bb;
-
-	FOR_EACH_PTR(ep->bbs, bb) {
-		pseudo_t pseudo;
-		struct instruction *insn = last_instruction(bb->insns);
-
-		if (!insn || insn->opcode != OP_SWITCH)
-			continue;
-		pseudo = insn->target;
-		if (pseudo->type == PSEUDO_VAL)
-			simplify_one_switch(bb, pseudo->value, insn);
-	} END_FOR_EACH_PTR(bb);
-}
-
 static void vrfy_bb_in_list(struct basic_block *bb, struct basic_block_list *list)
 {
 	if (bb) {
@@ -831,7 +795,6 @@ void vrfy_flow(struct entrypoint *ep)
 void simplify_flow(struct entrypoint *ep)
 {
 	simplify_phi_nodes(ep);
-	simplify_switch(ep);
 	kill_unreachable_bbs(ep);
 }
 

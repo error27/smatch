@@ -497,6 +497,31 @@ static int simplify_branch(struct instruction *insn)
 	return REPEAT_CSE;
 }
 
+static int simplify_switch(struct instruction *insn)
+{
+	pseudo_t cond = insn->cond;
+	long long val;
+	struct multijmp *jmp;
+
+	if (!constant(cond))
+		return 0;
+	val = insn->cond->value;
+
+	FOR_EACH_PTR(insn->multijmp_list, jmp) {
+		/* Default case */
+		if (jmp->begin > jmp->end)
+			goto found;
+		if (val >= jmp->begin && val <= jmp->end)
+			goto found;
+	} END_FOR_EACH_PTR(jmp);
+	warning(insn->bb->pos, "Impossible case statement");
+	return 0;
+
+found:
+	insert_branch(insn->bb, insn, jmp->target);
+	return REPEAT_CSE;
+}
+
 int simplify_instruction(struct instruction *insn)
 {
 	static struct instruction *last_setcc;
@@ -538,6 +563,8 @@ int simplify_instruction(struct instruction *insn)
 		return simplify_select(insn, setcc);
 	case OP_BR:
 		return simplify_branch(insn);
+	case OP_SWITCH:
+		return simplify_switch(insn);
 	}
 	return 0;
 }
