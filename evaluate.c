@@ -805,7 +805,10 @@ static struct symbol *create_pointer(struct expression *expr, struct symbol *sym
 		sym->ctype.modifiers &= ~MOD_REGISTER;
 	}
 	if (sym->type == SYM_NODE)
-		ptr->ctype.base_type = sym->ctype.base_type;
+		sym = sym->ctype.base_type;
+	if (sym->type == SYM_ARRAY)
+		sym = sym->ctype.base_type;
+	ptr->ctype.base_type = sym;
 
 	return ptr;
 }
