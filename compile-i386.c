@@ -161,68 +161,66 @@ struct function *current_func = NULL;
 struct textbuf *unit_post_text = NULL;
 static const char *current_section;
 
-static struct reg_info reg_info_table[] = {
-	{ "%eax" },
-	{ "%ecx" },
-	{ "%edx" },
-	{ "%esp" },
-	{ "%dl" },
-	{ "%dx" },
-	{ "%al" },
-	{ "%ax" },
+enum registers {
+	NOREG,
+	 AL,  DL,  CL,  BL,  AH,  DH,  CH,  BH,	// 8-bit
+	 AX,  DX,  CX,  BX,  SI,  DI,  BP,  SP,	// 16-bit
+	EAX, EDX, ECX, EBX, ESI, EDI, EBP, ESP,	// 32-bit
+	EAX_EDX, ECX_EBX, ESI_EDI,		// 64-bit
 };
+
+#define REGINFO(nr, str, aliases...)	[nr] = { .name = str }
+
+static struct reg_info reg_info_table[] = {
+	REGINFO( AL,  "%al", AX, EAX, EAX_EDX),
+	REGINFO( DL,  "%dl", DX, EDX, EAX_EDX),
+	REGINFO( CL,  "%cl", CX, ECX, ECX_EBX),
+	REGINFO( BL,  "%bl", BX, EBX, ECX_EBX),
+	REGINFO( AH,  "%ah", AX, EAX, EAX_EDX),
+	REGINFO( DH,  "%dh", DX, EDX, EAX_EDX),
+	REGINFO( CH,  "%ch", CX, ECX, ECX_EBX),
+	REGINFO( BH,  "%bh", BX, EBX, ECX_EBX),
+	REGINFO( AX,  "%ax", AL, AH, EAX, EAX_EDX),
+	REGINFO( DX,  "%dx", DL, DH, EDX, EAX_EDX),
+	REGINFO( CX,  "%cx", CL, CH, ECX, ECX_EBX),
+	REGINFO( BX,  "%bx", BL, BH, EBX, ECX_EBX),
+	REGINFO( SI,  "%si", ESI, ESI_EDI),
+	REGINFO( DI,  "%di", EDI, ESI_EDI),
+	REGINFO( BP,  "%bp", EBP),
+	REGINFO( SP,  "%sp", ESP),
+	REGINFO(EAX, "%eax", AL, AH, AX, EAX_EDX),
+	REGINFO(EDX, "%edx", DL, DH, DX, EAX_EDX),
+	REGINFO(ECX, "%ecx", CL, CH, CX, ECX_EBX),
+	REGINFO(EBX, "%ebx", BL, BH, BX, ECX_EBX),
+	REGINFO(ESI, "%esi", SI, ESI_EDI),
+	REGINFO(EDI, "%edi", DI, ESI_EDI),
+	REGINFO(EBP, "%ebp", BP),
+	REGINFO(ESP, "%esp", SP),
+	REGINFO(EAX_EDX, "%eax:%edx", AL, AH, AX, EAX, DL, DH, DX, EDX),
+	REGINFO(ECX_EBX, "%ecx:%ebx", CL, CH, CX, ECX, BL, BH, BX, EBX),
+	REGINFO(ESI_EDI, "%esi:%edi", SI, ESI, DI, EDI),
+};
+
+#define REGSTORAGE(nr) [nr] = { .type = STOR_REG, .reg = reg_info_table + (nr) }
 
 static struct storage hardreg_storage_table[] = {
-	{	/* eax */
-		.type = STOR_REG,
-		.reg = &reg_info_table[0],
-	},
-
-	{	/* ecx */
-		.type = STOR_REG,
-		.reg = &reg_info_table[1],
-	},
-
-	{	/* edx */
-		.type = STOR_REG,
-		.reg = &reg_info_table[2],
-	},
-
-	{	/* esp */
-		.type = STOR_REG,
-		.reg = &reg_info_table[3],
-	},
-
-	{	/* dl */
-		.type = STOR_REG,
-		.reg = &reg_info_table[4],
-	},
-
-	{	/* dx */
-		.type = STOR_REG,
-		.reg = &reg_info_table[5],
-	},
-
-	{	/* al */
-		.type = STOR_REG,
-		.reg = &reg_info_table[6],
-	},
-
-	{	/* ax */
-		.type = STOR_REG,
-		.reg = &reg_info_table[7],
-	},
+	REGSTORAGE(AL), REGSTORAGE(DL), REGSTORAGE(CL), REGSTORAGE(BL),
+	REGSTORAGE(AH), REGSTORAGE(DH), REGSTORAGE(CH), REGSTORAGE(BH),
+	REGSTORAGE(AX), REGSTORAGE(DX), REGSTORAGE(CX), REGSTORAGE(BX),
+	REGSTORAGE(SI), REGSTORAGE(DI), REGSTORAGE(BP), REGSTORAGE(SP),
+	REGSTORAGE(EAX), REGSTORAGE(EDX), REGSTORAGE(ECX), REGSTORAGE(EBX),
+	REGSTORAGE(ESI), REGSTORAGE(EDI), REGSTORAGE(EBP), REGSTORAGE(ESP),
+	REGSTORAGE(EAX_EDX), REGSTORAGE(ECX_EBX), REGSTORAGE(ESI_EDI),
 };
 
-#define REG_EAX (&hardreg_storage_table[0])
-#define REG_ECX (&hardreg_storage_table[1])
-#define REG_EDX (&hardreg_storage_table[2])
-#define REG_ESP (&hardreg_storage_table[3])
-#define REG_DL	(&hardreg_storage_table[4])
-#define REG_DX	(&hardreg_storage_table[5])
-#define REG_AL	(&hardreg_storage_table[6])
-#define REG_AX	(&hardreg_storage_table[7])
-
+#define REG_EAX (&hardreg_storage_table[EAX])
+#define REG_ECX (&hardreg_storage_table[ECX])
+#define REG_EDX (&hardreg_storage_table[EDX])
+#define REG_ESP (&hardreg_storage_table[ESP])
+#define REG_DL	(&hardreg_storage_table[DL])
+#define REG_DX	(&hardreg_storage_table[DX])
+#define REG_AL	(&hardreg_storage_table[AL])
+#define REG_AX	(&hardreg_storage_table[AX])
 
 static void emit_move(struct storage *src, struct storage *dest,
 		      struct symbol *ctype, const char *comment);
