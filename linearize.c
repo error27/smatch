@@ -35,11 +35,14 @@ pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initial
 
 struct pseudo void_pseudo = {};
 
+static struct position current_pos;
+
 static struct instruction *alloc_instruction(int opcode, int size)
 {
 	struct instruction * insn = __alloc_instruction(0);
 	insn->opcode = opcode;
 	insn->size = size;
+	insn->pos = current_pos;
 	return insn;
 }
 
@@ -1484,6 +1487,7 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 	if (!expr)
 		return VOID;
 
+	current_pos = expr->pos;
 	switch (expr->type) {
 	case EXPR_SYMBOL:
 		linearize_one_symbol(ep, expr->symbol);
@@ -1766,6 +1770,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	bb = ep->active;
 	if (bb && !bb->insns)
 		bb->pos = stmt->pos;
+	current_pos = stmt->pos;
 
 	switch (stmt->type) {
 	case STMT_NONE:
@@ -2095,6 +2100,7 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 
 	if (!sym)
 		return NULL;
+	current_pos = sym->pos;
 	base_type = sym->ctype.base_type;
 	if (!base_type)
 		return NULL;

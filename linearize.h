@@ -57,6 +57,7 @@ struct instruction {
 	unsigned opcode:8,
 		 size:24;
 	struct basic_block *bb;
+	struct position pos;
 	union {
 		pseudo_t target;
 		pseudo_t cond;		/* for branch and switch */
