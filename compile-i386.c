@@ -596,14 +596,14 @@ static void emit_func_post(struct symbol *sym, struct storage *ret_val)
 
 	/* function epilogue */
 
-	/* jump target for 'return' statements */
-	sprintf(jump_target, ".L%d:\n", f->ret_target);
-	push_text_atom(f, jump_target);
-
 	if (ret_val) {
 		/* FIXME: mem operand hardcoded at 32 bits */
 		emit_move(ret_val, REG_EAX, NULL, NULL, 0);
 	}
+
+	/* jump target for 'return' statements */
+	sprintf(jump_target, ".L%d:\n", f->ret_target);
+	push_text_atom(f, jump_target);
 
 	val = new_storage(STOR_VALUE);
 	val->value = (long long) (pseudo_nr * 4);
@@ -1134,8 +1134,11 @@ static struct storage *emit_return_stmt(struct statement *stmt)
 	struct storage *val = NULL;
 	char s[32];
 
-	if (expr && expr->ctype)
+	if (expr && expr->ctype) {
 		val = x86_expression(expr);
+		assert(val != NULL);
+		emit_move(val, REG_EAX, expr->ctype, "return", 0);
+	}
 
 	sprintf(s, "\tjmp\t.L%d\n", f->ret_target);
 	push_text_atom(f, s);
