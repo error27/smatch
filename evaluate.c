@@ -413,13 +413,40 @@ static int compatible_integer_types(struct symbol *ltype, struct symbol *rtype)
 	return (is_int_type(ltype) && is_int_type(rtype));
 }
 
+static int is_void_ptr(struct expression *expr)
+{
+	return (expr->type == EXPR_VALUE &&
+		expr->value == 0);
+}
+
+/*
+ * FIXME!! This shoul ddo casts, array degeneration etc..
+ */
+static struct symbol *compatible_ptr_type(struct expression *left, struct expression *right)
+{
+	struct symbol *ltype = left->ctype, *rtype = right->ctype;
+
+	if (ltype->type == SYM_PTR) {
+		if (is_void_ptr(right))
+			return ltype;
+	}
+
+	if (rtype->type == SYM_PTR) {
+		if (is_void_ptr(left))
+			return rtype;
+	}
+	return NULL;
+}
+
 static struct symbol * evaluate_conditional(struct expression *expr)
 {
 	struct symbol *ctype;
+	struct symbol *ltype = expr->cond_true->ctype;
+	struct symbol *rtype = expr->cond_false->ctype;
 
-	if (same_type(expr->cond_true->ctype, expr->cond_false->ctype)) {
-		expr->ctype = expr->cond_true->ctype;
-		return expr->ctype;
+	if (same_type(ltype, rtype)) {
+		expr->ctype = ltype;
+		return ltype;
 	}
 
 	ctype = compatible_integer_binop(expr, &expr->cond_true, &expr->cond_false);
@@ -427,6 +454,13 @@ static struct symbol * evaluate_conditional(struct expression *expr)
 		expr->ctype = ctype;
 		return ctype;
 	}
+
+	ctype = compatible_ptr_type(expr->cond_true, expr->cond_false);
+	if (ctype) {
+		expr->ctype = ctype;
+		return ctype;
+	}
+
 	warn(expr->pos, "incompatible types in conditional expression");
 	return NULL;
 }
@@ -539,14 +573,12 @@ static struct symbol *evaluate_preop(struct expression *expr)
 
 	switch (expr->op) {
 	case '(':
-		expr->ctype = ctype;
+		*expr = *expr->unop;
 		return ctype;
 
 	case '*':
 		if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
 			warn(expr->pos, "cannot derefence this type");
-			show_type(ctype);
-			printf("\n");
 			return 0;
 		}
 		examine_symbol_type(expr->ctype);
@@ -884,6 +916,16 @@ static void evaluate_one_symbol(struct symbol *sym, void *unused, int flags)
 	evaluate_symbol(sym);
 }
 
+static int count_array_initializer(struct expression *expr)
+{
+	struct expression_list *list;
+
+	if (expr->type != EXPR_INITIALIZER)
+		return 1;
+	list = expr->expr_list;
+	return expression_list_size(list);
+}
+
 struct symbol *evaluate_symbol(struct symbol *sym)
 {
 	struct symbol *base_type = sym->ctype.base_type;
@@ -895,8 +937,17 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 	sym->ctype.base_type = base_type;
 
 	/* Evaluate the initializers */
-	if (sym->initializer)
+	if (sym->initializer) {
 		evaluate_initializer(sym, sym->initializer);
+		if (base_type->type == SYM_ARRAY && base_type->array_size < 0) {
+			int array_size = count_array_initializer(sym->initializer);
+			int bit_size = array_size * base_type->ctype.base_type->bit_size;
+			base_type->array_size = array_size;
+			base_type->bit_size = bit_size;
+			sym->array_size = array_size;
+			sym->bit_size = bit_size;
+		}
+	}
 
 	/* And finally, evaluate the body of the symbol too */
 	if (base_type->type == SYM_FN) {
