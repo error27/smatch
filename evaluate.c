@@ -1946,6 +1946,13 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep)
 			return 0;
 		}
 		return evaluate_one_array_initializer(ctype->ctype.base_type, ep, 0);
+
+	case EXPR_POS:
+		/*
+		 * An EXPR_POS expression has already been evaluated, and we don't
+		 * need to do anything more
+		 */
+		return 0;
 	}
 }
 
