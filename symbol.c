@@ -63,6 +63,7 @@ struct symbol *alloc_symbol(struct position pos, int type)
 struct struct_union_info {
 	unsigned long max_align;
 	unsigned long bit_size;
+	int align_size;
 };
 
 /*
@@ -92,8 +93,8 @@ static void lay_out_union(struct symbol *sym, void *_info, int flags)
 static void lay_out_struct(struct symbol *sym, void *_info, int flags)
 {
 	struct struct_union_info *info = _info;
-	unsigned long bit_size, base_size;
-	unsigned long align_bit_mask;
+	unsigned long bit_size, align_bit_mask;
+	int base_size;
 
 	examine_symbol_type(sym);
 
@@ -105,6 +106,16 @@ static void lay_out_struct(struct symbol *sym, void *_info, int flags)
 
 	bit_size = info->bit_size;
 	base_size = sym->bit_size; 
+
+	/*
+	 * Unsized arrays cause us to not align the resulting
+	 * structure size
+	 */
+	if (base_size < 0) {
+		info->align_size = 0;
+		base_size = 0;
+	}
+
 	align_bit_mask = (sym->ctype.alignment << 3) - 1;
 
 	/*
@@ -134,13 +145,13 @@ static void lay_out_struct(struct symbol *sym, void *_info, int flags)
 	bit_size = (bit_size + align_bit_mask) & ~align_bit_mask;
 	sym->offset = bit_size >> 3;
 
-	info->bit_size = bit_size + sym->bit_size;
+	info->bit_size = bit_size + base_size;
 	// warning (sym->pos, "regular: offset=%d", sym->offset);
 }
 
 static void examine_struct_union_type(struct symbol *sym, int advance)
 {
-	struct struct_union_info info = { 1, 0 };
+	struct struct_union_info info = { 1, 0, 1 };
 	unsigned long bit_size, bit_align;
 	void (*fn)(struct symbol *, void *, int);
 
@@ -150,8 +161,10 @@ static void examine_struct_union_type(struct symbol *sym, int advance)
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = info.max_align;
 	bit_size = info.bit_size;
-	bit_align = (sym->ctype.alignment << 3)-1;
-	bit_size = (bit_size + bit_align) & ~bit_align;
+	if (info.align_size) {
+		bit_align = (sym->ctype.alignment << 3)-1;
+		bit_size = (bit_size + bit_align) & ~bit_align;
+	}
 	sym->bit_size = bit_size;
 }
 
