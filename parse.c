@@ -569,8 +569,8 @@ static void apply_ctype(struct position pos, struct ctype *thistype, struct ctyp
 	}
 
 	/* Context mask and value */
-	ctype->in_context = thistype->in_context;
-	ctype->out_context = thistype->out_context;
+	ctype->in_context += thistype->in_context;
+	ctype->out_context += thistype->out_context;
 
 	/* Alignment */
 	if (thistype->alignment & (thistype->alignment-1)) {
@@ -806,8 +806,8 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 		struct symbol *ptr = alloc_symbol(token->pos, SYM_PTR);
 		ptr->ctype.modifiers = modifiers & ~MOD_STORAGE;
 		ptr->ctype.as = ctype->as;
-		ptr->ctype.in_context = ctype->in_context;
-		ptr->ctype.out_context = ctype->out_context;
+		ptr->ctype.in_context += ctype->in_context;
+		ptr->ctype.out_context += ctype->out_context;
 		ptr->ctype.base_type = base_type;
 
 		base_type = ptr;
