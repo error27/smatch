@@ -913,8 +913,6 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 		ctype = ctype->ctype.base_type;
 
 	node = alloc_symbol(expr->pos, SYM_NODE);
-	merge_type(node, ctype);
-
 	target = ctype->ctype.base_type;
 
 	switch (ctype->type) {
@@ -922,6 +920,7 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 		warn(expr->pos, "cannot derefence this type");
 		return NULL;
 	case SYM_PTR:
+		merge_type(node, ctype);
 		if (ctype->type != SYM_ARRAY)
 			break;
 		/*
@@ -939,7 +938,12 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 		break;
 
 	case SYM_ARRAY:
-		/* All done - we generate a node of the type of the entry */
+		/*
+		 * When an array is dereferenced, we need to pick
+		 * up the attributes of the original node too..
+		 */
+		merge_type(node, op->ctype);
+		merge_type(node, ctype);
 		break;
 	}
 
