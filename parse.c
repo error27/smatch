@@ -440,6 +440,7 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 			struct symbol *array = indirect(token->pos, ctype, SYM_ARRAY);
 			token = abstract_array_declarator(token->next, array);
 			token = expect(token, ']', "in abstract_array_declarator");
+			ctype = &array->ctype;
 			continue;
 		}
 		if (token->special == ':') {
