@@ -393,7 +393,24 @@ static int simplify_binop(struct instruction *insn)
 
 static int simplify_constant_unop(struct instruction *insn)
 {
-	return 0;
+	long long val = insn->src1->value;
+	long long res, mask;
+
+	switch (insn->opcode) {
+	case OP_NOT:
+		res = ~val;
+		break;
+	case OP_NEG:
+		res = -val;
+		break;
+	default:
+		return 0;
+	}
+	mask = 1ULL << (insn->size-1);
+	res &= mask | (mask-1);
+	
+	replace_with_pseudo(insn, value_pseudo(res));
+	return REPEAT_CSE;
 }
 
 static int simplify_unop(struct instruction *insn)
