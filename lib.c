@@ -175,8 +175,8 @@ void iterate(struct ptr_list *head, void (*callback)(void *, void *, int), void 
 			if (i == list->nr-1 && list->next == head)
 				flag |= ITERATE_LAST;
 			callback(list->list[i], data, flag);
+			flag = 0;
 		}
-		flag = 0;
 		list = list->next;
 	} while (list != head);
 }

@@ -51,6 +51,17 @@ const char *modifier_string(unsigned long mod)
 	return buffer+1;
 }
 
+void show_struct_member(struct symbol *sym, void *data, int flags)
+{
+	if (flags & ITERATE_FIRST)
+		printf(" { ");
+	printf("%s", show_token(sym->token));
+	if (flags & ITERATE_LAST)
+		printf(" } ");
+	else
+		printf(", ");
+}
+
 void show_type_details(unsigned int modifiers, struct symbol *sym)
 {
 	if (!sym) {
@@ -80,23 +91,33 @@ void show_type_details(unsigned int modifiers, struct symbol *sym)
 		printf(" <badtype>");
 		return;
 	}
-	if (sym->type == SYM_STRUCT)
-		printf(" struct");
-	else if (sym->type == SYM_UNION)
-		printf(" union");
-	else if (sym->type == SYM_ENUM)
-		printf(" enum");
-	else if (sym->type == SYM_PTR)
+	if (sym->type == SYM_STRUCT) {
+		printf(" struct %s", show_token(sym->token));
+		symbol_iterate(sym->symbol_list, show_struct_member, NULL);
+		return;
+	}
+	if (sym->type == SYM_UNION) {
+		printf(" union %s", show_token(sym->token)); 
+		symbol_iterate(sym->symbol_list, show_struct_member, NULL);
+		return;
+	}
+	if (sym->type == SYM_ENUM) {
+		printf(" enum %s", show_token(sym->token));
+		return;
+	}
+
+	if (sym->type == SYM_PTR)
 		printf(" *");
 	else if (sym->type == SYM_FN)
 		printf(" <fn>");
 	else
 		printf(" strange type %d", sym->type);
-	if (sym->token)
-		printf(" %s", show_token(sym->token));
 
-	if (sym->ctype.base_type)
-		show_type(sym->ctype.base_type);
+	if (sym->token)
+		printf(" '%s'", show_token(sym->token));
+
+	printf("%s", modifier_string(sym->ctype.modifiers));
+	show_type_details(sym->ctype.modifiers, sym->ctype.base_type);
 }
 
 static void show_one_symbol(struct symbol *sym, void *sep, int flags)
