@@ -92,6 +92,12 @@ struct statement {
 			struct expression *multi_to;
 			struct symbol *multi_target;
 		};
+		struct /* asm */ {
+			struct expression *asm_string;
+			struct expression_list *asm_outputs;
+			struct expression_list *asm_inputs;
+			struct expression_list *asm_clobbers;
+		};
 	};
 };
 

@@ -939,7 +939,8 @@ struct token *expression_statement(struct token *token, struct expression **tree
 	return expect(token, ';', "at end of statement");
 }
 
-static struct token *parse_asm_operands(struct token *token, struct statement *stmt)
+static struct token *parse_asm_operands(struct token *token, struct statement *stmt,
+	struct expression_list **inout)
 {
 	struct expression *expr;
 
@@ -952,37 +953,39 @@ static struct token *parse_asm_operands(struct token *token, struct statement *s
 		    match_op(token->next->next->next, ']'))
 			token = token->next->next->next;
 		token = primary_expression(token->next, &expr);
+		add_expression(inout, expr);
 		token = parens_expression(token, &expr, "in asm parameter");
+		add_expression(inout, expr);
 	} while (match_op(token, ','));
 	return token;
 }
 
-static struct token *parse_asm_clobbers(struct token *token, struct statement *stmt)
+static struct token *parse_asm_clobbers(struct token *token, struct statement *stmt,
+	struct expression_list **clobbers)
 {
 	struct expression *expr;
 
 	do {
 		token = primary_expression(token->next, &expr);
+		add_expression(clobbers, expr);
 	} while (match_op(token, ','));
 	return token;
 }
 
 static struct token *parse_asm(struct token *token, struct statement *stmt)
 {
-	struct expression *expr;
-
 	stmt->type = STMT_ASM;
 	if (match_idents(token, &__volatile___ident, &__volatile_ident, &volatile_ident, NULL)) {
 		token = token->next;
 	}
 	token = expect(token, '(', "after asm");
-	token = parse_expression(token->next, &expr);
+	token = parse_expression(token->next, &stmt->asm_string);
 	if (match_op(token, ':'))
-		token = parse_asm_operands(token, stmt);
+		token = parse_asm_operands(token, stmt, &stmt->asm_outputs);
 	if (match_op(token, ':'))
-		token = parse_asm_operands(token, stmt);
+		token = parse_asm_operands(token, stmt, &stmt->asm_inputs);
 	if (match_op(token, ':'))
-		token = parse_asm_clobbers(token, stmt);
+		token = parse_asm_clobbers(token, stmt, &stmt->asm_clobbers);
 	token = expect(token, ')', "after asm");
 	return expect(token, ';', "at end of asm-statement");
 }
