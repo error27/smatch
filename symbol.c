@@ -265,6 +265,9 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 			sym->ctype.base_type = base;
 		}
 		break;
+	case SYM_PREPROCESSOR:
+		warn(sym->pos, "ctype on preprocessor command?\n");
+		return NULL;
 	}
 	default:
 		break;
@@ -345,7 +348,7 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 	bind_scope(sym, scope);
 }
 
-static struct symbol *create_symbol(int stream, const char *name, int type, int namespace)
+struct symbol *create_symbol(int stream, const char *name, int type, int namespace)
 {
 	struct token *token = built_in_token(stream, name);
 	struct symbol *sym = alloc_symbol(token->pos, type);

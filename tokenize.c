@@ -172,7 +172,7 @@ int init_stream(const char *name, int fd, const char **next_path)
 			struct stream *s = input_streams + i;
 			if (s->dev == st.st_dev && s->ino == st.st_ino &&
 			    s->constant == CONSTANT_FILE_YES &&
-			    lookup_symbol(s->protect, NS_PREPROCESSOR))
+			    lookup_symbol(s->protect, NS_MACRO))
 				return -1;
 		}
 

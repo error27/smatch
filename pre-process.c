@@ -109,7 +109,7 @@ static void replace_with_defined(struct token *token)
 	int defined = 0;
 	if (token_type(token) != TOKEN_IDENT)
 		warn(token->pos, "operator \"defined\" requires an identifier");
-	else if (lookup_symbol(token->ident, NS_PREPROCESSOR))
+	else if (lookup_symbol(token->ident, NS_MACRO))
 		defined = 1;
 	token_type(token) = TOKEN_NUMBER;
 	token->number = string[defined];
@@ -123,7 +123,7 @@ struct token **expand_one_symbol(struct token **list)
 	if (token->pos.noexpand)
 		return &token->next;
 
-	sym = lookup_symbol(token->ident, NS_PREPROCESSOR);
+	sym = lookup_symbol(token->ident, NS_MACRO);
 	if (sym)
 		return expand(list, sym);
 	if (token->ident == &__LINE___ident) {
@@ -1003,7 +1003,7 @@ static int handle_define(struct stream *stream, struct token **line, struct toke
 	if (!expansion)
 		return 1;
 
-	sym = lookup_symbol(name, NS_PREPROCESSOR);
+	sym = lookup_symbol(name, NS_MACRO);
 	if (sym) {
 		if (token_list_different(sym->expansion, expansion) || 
 		    token_list_different(sym->arglist, arglist)) {
@@ -1014,7 +1014,7 @@ static int handle_define(struct stream *stream, struct token **line, struct toke
 		return 1;
 	}
 	sym = alloc_symbol(left->pos, SYM_NODE);
-	bind_symbol(sym, name, NS_PREPROCESSOR);
+	bind_symbol(sym, name, NS_MACRO);
 
 	sym->expansion = expansion;
 	sym->arglist = arglist;
@@ -1039,7 +1039,7 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 	sym = &left->ident->symbols;
 	while (*sym) {
 		struct symbol *t = *sym;
-		if (t->namespace == NS_PREPROCESSOR) {
+		if (t->namespace == NS_MACRO) {
 			*sym = t->next_id;
 			return 1;
 		}
@@ -1066,7 +1066,7 @@ static int preprocessor_if(struct token *token, int true)
 static int token_defined(struct token *token)
 {
 	if (token_type(token) == TOKEN_IDENT)
-		return lookup_symbol(token->ident, NS_PREPROCESSOR) != NULL;
+		return lookup_symbol(token->ident, NS_MACRO) != NULL;
 
 	warn(token->pos, "expected identifier for #if[n]def");
 	return 0;
@@ -1385,9 +1385,11 @@ static int handle_line(struct stream *stream, struct token **line, struct token 
 	return 1;
 }
 
-static int handle_preprocessor_command(struct stream *stream, struct token **line, struct ident *ident, struct token *token)
+
+void init_preprocessor()
 {
 	int i;
+	int stream = init_stream("preprocessor", -1, includepath);
 	static struct {
 		const char *name;
 		int (*handler)(struct stream *, struct token **, struct token *);
@@ -1413,10 +1415,10 @@ static int handle_preprocessor_command(struct stream *stream, struct token **lin
 	};
 
 	for (i = 0; i < (sizeof (handlers) / sizeof (handlers[0])); i++) {
-		if (match_string_ident(ident, handlers[i].name))
-			return handlers[i].handler(stream, line, token);
+		struct symbol *sym;
+		sym = create_symbol(stream, handlers[i].name, SYM_PREPROCESSOR, NS_PREPROCESSOR);
+		sym->handler = handlers[i].handler;
 	}
-	return 0;
 }
 
 static void handle_preprocessor_line(struct stream *stream, struct token **line, struct token *start)
@@ -1430,9 +1432,11 @@ static void handle_preprocessor_line(struct stream *stream, struct token **line,
 		if (handle_line(stream, line, start))
 			return;
 
-	if (token_type(token) == TOKEN_IDENT)
-		if (handle_preprocessor_command(stream, line, token->ident, token))
+	if (token_type(token) == TOKEN_IDENT) {
+		struct symbol *sym = lookup_symbol(token->ident, NS_PREPROCESSOR);
+		if (sym && sym->handler(stream, line, token))
 			return;
+	}
 
 	warn(token->pos, "unrecognized preprocessor line '%s'", show_token_sequence(token));
 }
@@ -1513,6 +1517,7 @@ static void do_preprocess(struct token **list)
 struct token * preprocess(struct token *token)
 {
 	preprocessing = 1;
+	init_preprocessor();
 	do_preprocess(&token);
 
 	// Drop all expressions from pre-processing, they're not used any more.

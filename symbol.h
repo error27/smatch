@@ -25,15 +25,17 @@
  */
 enum namespace {
 	NS_NONE = 0,
-	NS_PREPROCESSOR = 1,
+	NS_MACRO = 1,
 	NS_TYPEDEF = 2,
 	NS_STRUCT = 4,  // Also used for unions and enums.
 	NS_LABEL = 8,
 	NS_SYMBOL = 16,
 	NS_ITERATOR = 32,
+	NS_PREPROCESSOR = 64,
 };
 
 enum type {
+	SYM_PREPROCESSOR,
 	SYM_BASETYPE,
 	SYM_NODE,
 	SYM_PTR,
@@ -74,30 +76,34 @@ struct symbol {
 	struct symbol	*same_symbol;
 	struct symbol_op *op;
 
-	struct /* preprocessor_sym */ {
-		struct token *expansion;
-		struct token *arglist;
-	};
-	
-	struct /* ctype_sym */ {
-		unsigned long	offset;
-		unsigned int	bit_size;
-		unsigned int	bit_offset:8,
-				fieldwidth:8,
-				arg_count:10,
-				variadic:1,
-				used:1,
-				initialized:1,
-				expanding:1;
-		struct expression *array_size;
-		struct ctype ctype;
-		struct symbol_list *arguments;
-		struct statement *stmt;
-		struct symbol_list *symbol_list;
-		struct statement *inline_stmt;
-		struct symbol_list *inline_symbol_list;
-		struct expression *initializer;
-		long long value;		/* Initial value */
+	union {
+		struct /* NS_MACRO */ {
+			struct token *expansion;
+			struct token *arglist;
+		};
+		struct /* NS_PREPROCESSOR */ {
+			int (*handler)(struct stream *, struct token **, struct token *);
+		};
+		struct /* NS_SYMBOL */ {
+			unsigned long	offset;
+			unsigned int	bit_size;
+			unsigned int	bit_offset:8,
+					fieldwidth:8,
+					arg_count:10,
+					variadic:1,
+					used:1,
+					initialized:1,
+					expanding:1;
+			struct expression *array_size;
+			struct ctype ctype;
+			struct symbol_list *arguments;
+			struct statement *stmt;
+			struct symbol_list *symbol_list;
+			struct statement *inline_stmt;
+			struct symbol_list *inline_symbol_list;
+			struct expression *initializer;
+			long long value;		/* Initial value */
+		};
 	};
 	union /* backend */ {
 		struct basic_block *bb_target;	/* label */
@@ -182,6 +188,7 @@ extern const char * type_difference(struct symbol *target, struct symbol *source
 	unsigned long target_mod_ignore, unsigned long source_mod_ignore);
 
 extern struct symbol *lookup_symbol(struct ident *, enum namespace);
+extern struct symbol *create_symbol(int stream, const char *name, int type, int namespace);
 extern void init_symbols(void);
 extern void init_ctype(void);
 extern struct symbol *alloc_symbol(struct position, int type);
