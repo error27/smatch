@@ -177,6 +177,7 @@ static void flush_one_pseudo(struct bb_state *state, struct hardreg *hardreg, ps
 	if (can_regenerate(state, pseudo))
 		return;
 
+	output_comment(state, "flushing %s from %s", show_pseudo(pseudo), hardreg->name);
 	out = find_storage_hash(pseudo, state->internal);
 	if (!out) {
 		out = find_storage_hash(pseudo, state->outputs);
@@ -280,6 +281,13 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 	return hardreg;
 }
 
+static void add_pseudo_reg(struct bb_state *state, pseudo_t pseudo, struct hardreg *reg)
+{
+	output_comment(state, "added pseudo %s to reg %s", show_pseudo(pseudo), reg->name);
+	add_ptr_list_tag(&reg->contains, pseudo, TAG_DIRTY);
+	reg->busy++;
+}
+
 static int last_reg;
 
 static struct hardreg *preferred_reg(struct bb_state *state, pseudo_t target)
@@ -313,8 +321,7 @@ static struct hardreg *target_reg(struct bb_state *state, pseudo_t pseudo, pseud
 	flush_reg(state, reg);
 
 found:
-	add_ptr_list_tag(&reg->contains, pseudo, TAG_DIRTY);
-	reg->busy = 1;
+	add_pseudo_reg(state, pseudo, reg);
 	return reg;
 }
 
@@ -325,10 +332,13 @@ static struct hardreg *getreg(struct bb_state *state, pseudo_t pseudo, pseudo_t 
 
 	for (i = 0; i < REGNO; i++) {
 		pseudo_t p;
-		FOR_EACH_PTR(hardregs[i].contains, p) {
+
+		reg = hardregs + i;
+		FOR_EACH_PTR(reg->contains, p) {
 			if (p == pseudo) {
 				last_reg = i;
-				return hardregs+i;
+				output_comment(state, "found pseudo %s in reg %s", show_pseudo(pseudo), reg->name);
+				return reg;
 			}
 		} END_FOR_EACH_PTR(p);
 	}
@@ -346,6 +356,7 @@ static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src, pse
 
 	reg = preferred_reg(state, target);
 	if (reg && !reg->busy) {
+		output_comment(state, "copying %s to preferred target %s", show_pseudo(target), reg->name);
 		output_insn(state, "movl %s,%s", src->name, reg->name);
 		return reg;
 	}
@@ -353,6 +364,7 @@ static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src, pse
 	for (i = 0; i < REGNO; i++) {
 		struct hardreg *reg = hardregs + i;
 		if (!reg->busy) {
+			output_comment(state, "copying %s to %s", show_pseudo(target), reg->name);
 			output_insn(state, "movl %s,%s", src->name, reg->name);
 			return reg;
 		}
@@ -490,21 +502,22 @@ static void generate_binop(struct bb_state *state, struct instruction *insn)
 	struct hardreg *dst = copy_reg(state, src, insn->target);
 
 	output_insn(state, "%s.%d %s,%s", op, insn->size, reg_or_imm(state, insn->src2), dst->name);
-	add_ptr_list_tag(&dst->contains, insn->target, TAG_DIRTY);
-	dst->busy++;
+	add_pseudo_reg(state, insn->target, dst);
 }
 
-static void mark_pseudo_dead(pseudo_t pseudo)
+static void mark_pseudo_dead(struct bb_state *state, pseudo_t pseudo)
 {
 	int i;
 
 	for (i = 0; i < REGNO; i++) {
 		pseudo_t p;
-		FOR_EACH_PTR(hardregs[i].contains, p) {
+		struct hardreg *reg = hardregs + i;
+		FOR_EACH_PTR(reg->contains, p) {
 			if (p != pseudo)
 				continue;
+			output_comment(state, "marking pseudo %s in reg %s dead", show_pseudo(pseudo), reg->name);
 			TAG_CURRENT(p, TAG_DEAD);
-			hardregs[i].busy--;
+			reg->busy--;
 		} END_FOR_EACH_PTR(p);
 	}
 }
@@ -515,27 +528,35 @@ static void mark_pseudo_dead(pseudo_t pseudo)
  * old register so that we don't end up with the same
  * pseudo in "two places".
  */
-static void remove_pseudo_reg(pseudo_t pseudo)
+static void remove_pseudo_reg(struct bb_state *state, pseudo_t pseudo)
 {
 	int i;
 
+	output_comment(state, "pseudo %s died", show_pseudo(pseudo));
 	for (i = 0; i < REGNO; i++) {
 		struct hardreg *reg = hardregs + i;
-		remove_pseudo(&reg->contains, pseudo);
+		if (remove_pseudo(&reg->contains, pseudo))
+			output_comment(state, "removed pseudo %s from reg %s", show_pseudo(pseudo), reg->name);
 	}
 }
 
 static void generate_phisource(struct instruction *insn, struct bb_state *state)
 {
-	struct instruction *user = first_instruction(insn->phi_users);
+	struct instruction *user;
 	struct hardreg *reg;
 
-	if (!user)
-		return;
-	reg = getreg(state, insn->phi_src, user->target);
-	remove_pseudo_reg(user->target);
-	add_ptr_list(&reg->contains, user->target);
-	reg->busy++;
+	/* Mark all the target pseudos dead first */
+	FOR_EACH_PTR(insn->phi_users, user) {
+		mark_pseudo_dead(state, user->target);
+	} END_FOR_EACH_PTR(user);
+
+	reg = NULL;
+	FOR_EACH_PTR(insn->phi_users, user) {
+		if (!reg)
+			reg = getreg(state, insn->phi_src, user->target);
+		remove_pseudo_reg(state, user->target);
+		add_pseudo_reg(state, user->target, reg);
+	} END_FOR_EACH_PTR(user);
 }
 
 static void generate_output_storage(struct bb_state *state);
@@ -607,7 +628,7 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 		break;
 
 	case OP_DEATHNOTE:
-		mark_pseudo_dead(insn->target);
+		mark_pseudo_dead(state, insn->target);
 		break;
 
 	case OP_BINARY ... OP_BINARY_END:
@@ -789,8 +810,7 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 		const char *name = show_storage(storage);
 		if (storage->type == REG_REG) {
 			int regno = storage->regno;
-			add_ptr_list_tag(&hardregs[regno].contains, entry->pseudo, TAG_DIRTY);
-			hardregs[regno].busy++;
+			add_pseudo_reg(state, entry->pseudo, hardregs + regno);
 			name = hardregs[regno].name;
 		}
 	} END_FOR_EACH_PTR(entry);
