@@ -705,7 +705,8 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 						bitfield->fieldwidth = stupid_gcc;
 						warn(token->pos, "truncating large bitfield from %lld to %d bits", width, bitfield->fieldwidth);
 					} else {
-						int is_signed = !(ctype->modifiers & MOD_UNSIGNED);
+						struct symbol *base_type = bitfield->ctype.base_type;
+						int is_signed = !(base_type->ctype.modifiers & MOD_UNSIGNED);
 						if (decl->ident &&
 						    bitfield->fieldwidth == 1 &&
 						    is_signed) {
@@ -714,8 +715,8 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 							warn(token->pos, "dubious one-bit signed bitfield");
 						}
 						if (decl->ident &&
-						    ctype->base_type->type != SYM_ENUM &&
-						    !(ctype->modifiers & MOD_EXPLICITLY_SIGNED) &&
+						    base_type->type != SYM_ENUM &&
+						    !(base_type->ctype.modifiers & MOD_EXPLICITLY_SIGNED) &&
 						    is_signed) {
 							// The sign of bitfields is unspecified by default.
 							warn (token->pos, "dubious bitfield without explicit `signed' or `unsigned'");
