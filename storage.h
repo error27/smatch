@@ -11,6 +11,7 @@ enum storage_type {
 	REG_UDEF,
 	REG_REG,
 	REG_STACK,
+	REG_FRAME,
 	REG_SYM,
 	REG_ARG,
 	REG_BAD,
@@ -50,6 +51,8 @@ extern struct storage_hash_list *gather_storage(struct basic_block *, enum inout
 extern void free_storage(void);
 extern const char *show_storage(struct storage *);
 extern void set_up_storage(struct entrypoint *);
+struct storage *lookup_storage(struct basic_block *, pseudo_t, enum inout_enum);
+void add_storage(struct storage *, struct basic_block *, pseudo_t, enum inout_enum);
 
 DECLARE_ALLOCATOR(storage);
 DECLARE_ALLOCATOR(storage_hash);

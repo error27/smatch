@@ -85,7 +85,7 @@ static void name_storage(void)
 	}
 }
 
-static struct storage *lookup_storage(struct basic_block *bb, pseudo_t pseudo, enum inout_enum inout)
+struct storage *lookup_storage(struct basic_block *bb, pseudo_t pseudo, enum inout_enum inout)
 {
 	struct storage_hash_list *list = storage_hash_table[storage_hash(bb,pseudo,inout)];
 	struct storage_hash *hash;
@@ -97,7 +97,7 @@ static struct storage *lookup_storage(struct basic_block *bb, pseudo_t pseudo, e
 	return NULL;
 }
 
-static void add_storage(struct storage *storage, struct basic_block *bb, pseudo_t pseudo, enum inout_enum inout)
+void add_storage(struct storage *storage, struct basic_block *bb, pseudo_t pseudo, enum inout_enum inout)
 {
 	struct storage_hash_list **listp = storage_hash_table + storage_hash(bb,pseudo,inout);
 	struct storage_hash *hash = alloc_storage_hash(storage);
