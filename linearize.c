@@ -1829,7 +1829,6 @@ repeat:
 	 */
 	do {
 		cleanup_and_cse(ep);
-		simplify_flow(ep);
 		pack_basic_blocks(ep);
 	} while (repeat_phase & REPEAT_CSE);
 
