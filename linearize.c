@@ -719,7 +719,8 @@ pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo)
  * information in one place.
  */
 struct access_data {
-	struct symbol *ctype;
+	struct symbol *result_type;	// result ctype
+	struct symbol *source_type;	// source ctype
 	pseudo_t address;		// pseudo containing address ..
 	pseudo_t origval;		// pseudo for original value ..
 	unsigned int offset, alignment;	// byte offset
@@ -751,6 +752,17 @@ static int linearize_simple_address(struct entrypoint *ep,
 	return 1;
 }
 
+static struct symbol *base_type(struct symbol *sym)
+{
+	struct symbol *base = sym;
+
+	if (sym->type == SYM_NODE)
+		base = base->ctype.base_type;
+	if (base->type == SYM_BITFIELD)
+		return base->ctype.base_type;
+	return sym;
+}
+
 static int linearize_address_gen(struct entrypoint *ep,
 	struct expression *expr,
 	struct access_data *ad)
@@ -760,7 +772,8 @@ static int linearize_address_gen(struct entrypoint *ep,
 	if (!ctype)
 		return 0;
 	ad->pos = expr->pos;
-	ad->ctype = ctype;
+	ad->result_type = ctype;
+	ad->source_type = base_type(ctype);
 	ad->bit_size = ctype->bit_size;
 	ad->alignment = ctype->ctype.alignment;
 	ad->bit_offset = ctype->bit_offset;
@@ -777,10 +790,10 @@ static pseudo_t add_load(struct entrypoint *ep, struct access_data *ad)
 	pseudo_t new;
 
 	new = ad->origval;
-	if (new)
+	if (0 && new)
 		return new;
 
-	insn = alloc_instruction(OP_LOAD, ad->ctype);
+	insn = alloc_instruction(OP_LOAD, ad->source_type);
 	new = alloc_pseudo(insn);
 	ad->origval = new;
 
@@ -796,7 +809,7 @@ static void add_store(struct entrypoint *ep, struct access_data *ad, pseudo_t va
 	struct basic_block *bb = ep->active;
 
 	if (bb_reachable(bb)) {
-		struct instruction *store = alloc_instruction(OP_STORE, ad->ctype);
+		struct instruction *store = alloc_instruction(OP_STORE, ad->source_type);
 		store->offset = ad->offset;
 		use_pseudo(value, &store->target);
 		use_pseudo(ad->address, &store->src);
@@ -804,54 +817,25 @@ static void add_store(struct entrypoint *ep, struct access_data *ad, pseudo_t va
 	}
 }
 
-/* Target-dependent, really.. */
-#define OFFSET_ALIGN 8
-#define MUST_ALIGN 0
-
-static struct symbol *base_type(struct symbol *s)
-{
-	if (s->type == SYM_NODE)
-		s = s->ctype.base_type;
-	if (s->type == SYM_BITFIELD)
-		s = s->ctype.base_type;
-	return s;
-}
-
 static pseudo_t linearize_store_gen(struct entrypoint *ep,
 		pseudo_t value,
 		struct access_data *ad)
 {
-	unsigned long mask;
-	pseudo_t shifted, ormask, orig, value_mask, newval;
+	pseudo_t store = value;
 
-	/* Bogus tests, but you get the idea.. */
-	if (ad->bit_offset & (OFFSET_ALIGN-1))
-		goto unaligned;
-	if (ad->bit_size & (ad->bit_size-1))
-		goto unaligned;
-	if (ad->bit_size & (OFFSET_ALIGN-1))
-		goto unaligned;
-	if (MUST_ALIGN && ((ad->bit_size >> 3) & (ad->alignment-1)))
-		goto unaligned;
+	if (ad->source_type->bit_size != ad->result_type->bit_size) {
+		pseudo_t orig = add_load(ep, ad);
+		int shift = ad->bit_offset;
+		unsigned long long mask = (1ULL << ad->bit_size)-1;
 
-	add_store(ep, ad, value);
-	return value;
-
-unaligned:
-	mask = ((1<<ad->bit_size)-1) << ad->bit_offset;
-	shifted = value;
-	if (ad->bit_offset) {
-		pseudo_t shift;
-		shift = value_pseudo(ad->bit_offset);
-		shifted = add_binary_op(ep, ad->ctype, OP_SHL, value, shift);
+		if (shift) {
+			store = add_binary_op(ep, ad->source_type, OP_SHL, value, value_pseudo(shift));
+			mask <<= shift;
+		}
+		orig = add_binary_op(ep, ad->source_type, OP_AND, orig, value_pseudo(~mask));
+		store = add_binary_op(ep, ad->source_type, OP_OR, orig, store);
 	}
-	ad->ctype = base_type(ad->ctype);
-	orig = add_load(ep, ad);
-	ormask = value_pseudo(~mask);
-	value_mask = add_binary_op(ep, ad->ctype, OP_AND, orig, ormask);
-	newval = add_binary_op(ep, ad->ctype, OP_OR, orig, value_mask);
-
-	add_store(ep, ad, newval);
+	add_store(ep, ad, store);
 	return value;
 }
 
@@ -886,7 +870,7 @@ static pseudo_t linearize_load_gen(struct entrypoint *ep, struct access_data *ad
 
 	if (ad->bit_offset) {
 		pseudo_t shift = value_pseudo(ad->bit_offset);
-		pseudo_t newval = add_binary_op(ep, ad->ctype, OP_SHR, new, shift);
+		pseudo_t newval = add_binary_op(ep, ad->source_type, OP_SHR, new, shift);
 		new = newval;
 	}
 		
@@ -1289,7 +1273,8 @@ pseudo_t linearize_position(struct entrypoint *ep, struct expression *pos, struc
 	pseudo_t value = linearize_expression(ep, init_expr);
 
 	ad->offset = pos->init_offset;	
-	ad->ctype = init_expr->ctype;
+	ad->source_type = base_type(init_expr->ctype);
+	ad->result_type = init_expr->ctype;
 	linearize_store_gen(ep, value, ad);
 	return VOID;
 }
@@ -1309,7 +1294,8 @@ pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initial
 		break;
 	default: {
 		pseudo_t value = linearize_expression(ep, initializer);
-		ad->ctype = initializer->ctype;
+		ad->source_type = base_type(initializer->ctype);
+		ad->result_type = initializer->ctype;
 		linearize_store_gen(ep, value, ad);
 	}
 	}
@@ -1321,7 +1307,8 @@ void linearize_argument(struct entrypoint *ep, struct symbol *arg, int nr)
 {
 	struct access_data ad = { NULL, };
 
-	ad.ctype = arg;
+	ad.source_type = arg;
+	ad.result_type = arg;
 	ad.address = symbol_pseudo(ep, arg);
 	linearize_store_gen(ep, argument_pseudo(nr), &ad);
 	finish_address_gen(ep, &ad);
