@@ -380,18 +380,19 @@ static struct token *attribute_specifier(struct token *token, struct ctype *ctyp
 }
 
 #define MOD_SPECIALBITS (MOD_STRUCTOF | MOD_UNIONOF | MOD_ENUMOF | MOD_ATTRIBUTE | MOD_TYPEOF)
-#define MOD_SPECIFIER (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG | MOD_SIGNED | MOD_UNSIGNED)
+#define MOD_SPECIFIER (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG | MOD_SIGNED | MOD_UNSIGNED | MOD_EXPLICITLY_SIGNED)
 
 struct symbol * ctype_integer(unsigned long spec)
 {
-	static struct symbol *const integer_ctypes[][2] = {
-		{ &llong_ctype, &ullong_ctype },
-		{ &long_ctype,  &ulong_ctype  },
-		{ &short_ctype, &ushort_ctype },
-		{ &char_ctype,  &uchar_ctype  },
-		{ &int_ctype,   &uint_ctype   },
+	static struct symbol *const integer_ctypes[][3] = {
+		{ &llong_ctype, &sllong_ctype, &ullong_ctype },
+		{ &long_ctype,  &slong_ctype,  &ulong_ctype  },
+		{ &short_ctype, &sshort_ctype, &ushort_ctype },
+		{ &char_ctype,  &schar_ctype,  &uchar_ctype  },
+		{ &int_ctype,   &sint_ctype,   &uint_ctype   },
 	};
-	struct symbol *const (*ctype)[2];
+	struct symbol *const (*ctype)[3];
+	int sub;
 
 	ctype = integer_ctypes;
 	if (!(spec & MOD_LONGLONG)) {
@@ -405,7 +406,14 @@ struct symbol * ctype_integer(unsigned long spec)
 			}
 		}
 	}
-	return ctype[0][(spec & MOD_UNSIGNED) != 0];
+
+	sub = ((spec & MOD_UNSIGNED)
+	       ? 2
+	       : ((spec & MOD_EXPLICITLY_SIGNED)
+		  ? 1
+		  : 0));
+
+	return ctype[0][sub];
 }
 
 struct symbol * ctype_fp(unsigned long spec)
@@ -573,7 +581,7 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 		ctype->base_type = ctype_integer(ctype->modifiers);
 		ctype->modifiers &= ~MOD_SPECIFIER;
 	} else if (ctype->base_type == &fp_type) {
-		ctype->base_type = ctype_fp(ctype->modifiers & MOD_SPECIFIER);
+		ctype->base_type = ctype_fp(ctype->modifiers);
 		ctype->modifiers &= ~MOD_SPECIFIER;
 	}
 	if (ctype->modifiers & MOD_BITWISE) {
@@ -651,7 +659,7 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 				p = NULL;
 				continue;
 			}
-			
+
 			sym = indirect(token->pos, ctype, SYM_FN);
 			token = parameter_type_list(next, sym);
 			token = expect(token, ')', "in function declarator");

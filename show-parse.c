@@ -162,14 +162,19 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 		char *name;
 	} typenames[] = {
 		{ & char_ctype,  "char" },
+		{ &schar_ctype,  "signed char" },
 		{ &uchar_ctype,  "unsigned char" },
 		{ & short_ctype, "short" },
+		{ &sshort_ctype, "signed short" },
 		{ &ushort_ctype, "unsigned short" },
 		{ & int_ctype,   "int" },
+		{ &sint_ctype,   "signed int" },
 		{ &uint_ctype,   "unsigned int" },
+		{ &slong_ctype,  "signed long" },
 		{ & long_ctype,  "long" },
 		{ &ulong_ctype,  "unsigned long" },
 		{ & llong_ctype, "long long" },
+		{ &sllong_ctype, "signed long long" },
 		{ &ullong_ctype, "unsigned long long" },
 
 		{ &void_ctype,   "void" },

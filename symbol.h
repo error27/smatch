@@ -164,11 +164,11 @@ extern struct symbol	void_type,
 
 /* C types */
 extern struct symbol	bool_ctype, void_ctype, type_ctype,
-			char_ctype, uchar_ctype,
-			short_ctype, ushort_ctype,
-			int_ctype, uint_ctype,
-			long_ctype, ulong_ctype,
-			llong_ctype, ullong_ctype,
+			char_ctype, schar_ctype, uchar_ctype,
+			short_ctype, sshort_ctype, ushort_ctype,
+			int_ctype, sint_ctype, uint_ctype,
+			long_ctype, slong_ctype, ulong_ctype,
+			llong_ctype, sllong_ctype, ullong_ctype,
 			float_ctype, double_ctype, ldouble_ctype,
 			string_ctype, ptr_ctype, lazy_ptr_ctype,
 			incomplete_ctype, label_ctype;
