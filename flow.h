@@ -18,4 +18,6 @@ extern void kill_bb(struct basic_block *);
 extern void kill_use(pseudo_t *);
 extern void kill_instruction(struct instruction *);
 
+extern void track_pseudo_usage(struct entrypoint *ep);
+
 #endif

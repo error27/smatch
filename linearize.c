@@ -1770,6 +1770,9 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	/* Cleanup */
 	clear_symbol_pseudos(ep);
 
+	/* And track pseudo register usage */
+	track_pseudo_usage(ep);
+
 	return ep;
 }
 

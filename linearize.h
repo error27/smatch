@@ -23,6 +23,7 @@ struct pseudo {
 	unsigned int usage:24,
 		     type:8;
 	struct pseudo_ptr_list *users;
+	struct instruction_list *insns;
 	union {
 		struct symbol *sym;
 		struct instruction *def;
@@ -244,6 +245,7 @@ struct entrypoint {
 	struct basic_block_list *bbs;
 	struct basic_block *active;
 	struct basic_block *entry;
+	struct pseudo_list *pseudos;
 };
 
 extern void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi, pseudo_t true, pseudo_t false);
