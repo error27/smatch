@@ -101,16 +101,21 @@ static void lay_out_struct(struct symbol *sym, void *_info, int flags)
 	/*
 	 * Bitfields have some very special rules..
 	 */
-	if (sym->fieldwidth) {
+	if (is_bitfield_type (sym)) {
 		unsigned long bit_offset = bit_size & align_bit_mask;
+		int room = base_size - bit_offset;
+		// Zero-width fields just fill up the unit.
+		int width = sym->fieldwidth ? sym->fieldwidth : (bit_offset ? room : 0);
 
-		if (bit_offset + sym->fieldwidth > base_size) {
+		if (width > room) {
 			bit_size = (bit_size + align_bit_mask) & ~align_bit_mask;
 			bit_offset = 0;
 		}
 		sym->offset = (bit_size - bit_offset) >> 3;
 		sym->bit_offset = bit_offset;
-		info->bit_size = bit_size + sym->fieldwidth;
+		info->bit_size = bit_size + width;
+		// warn (sym->pos, "bitfield: offset=%d:%d  size=:%d", sym->offset, sym->bit_offset, width);
+
 		return;
 	}
 
@@ -121,6 +126,7 @@ static void lay_out_struct(struct symbol *sym, void *_info, int flags)
 	sym->offset = bit_size >> 3;
 
 	info->bit_size = bit_size + sym->bit_size;
+	// warn (sym->pos, "regular: offset=%d", sym->offset);
 }
 
 static void examine_struct_union_type(struct symbol *sym, int advance)
@@ -194,9 +200,6 @@ void merge_type(struct symbol *sym, struct symbol *base_type)
  * Fill in type size and alignment information for
  * regular SYM_TYPE things.
  */
-#define MOD_STRIP (MOD_CONST | MOD_VOLATILE | MOD_ADDRESSABLE | \
-		  MOD_NODEREF | MOD_ACCESSED | MOD_ASSIGNED | \
-		  MOD_SAFE | MOD_FORCE | MOD_STORAGE)
 struct symbol *examine_symbol_type(struct symbol * sym)
 {
 	unsigned int bit_size, alignment;
