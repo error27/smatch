@@ -21,6 +21,7 @@ extern void kill_use(pseudo_t *);
 extern void kill_instruction(struct instruction *);
 extern void kill_unreachable_bbs(struct entrypoint *ep);
 
+void check_access(struct instruction *insn);
 void convert_load_instruction(struct instruction *, pseudo_t);
 void rewrite_load_instruction(struct instruction *, struct pseudo_list *);
 int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom, int local);

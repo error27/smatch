@@ -459,6 +459,7 @@ found:
 	if (!dominators) {
 		if (!local)
 			return 0;
+		check_access(insn);
 		convert_load_instruction(insn, value_pseudo(0));
 		return 1;
 	}
@@ -574,6 +575,21 @@ static void kill_dominated_stores(pseudo_t pseudo, struct instruction *insn,
 	} END_FOR_EACH_PTR(parent);
 }
 
+void check_access(struct instruction *insn)
+{
+	pseudo_t pseudo = insn->src;
+
+	if (insn->bb && pseudo->type == PSEUDO_SYM) {
+		int offset = insn->offset;
+		struct symbol *sym = pseudo->sym;
+
+		if (sym->bit_size > 0 && (offset < 0 || offset >= sym->bit_size >> 3))
+			warning(insn->bb->pos, "invalid access %s '%s' (%d %d)",
+				offset < 0 ? "below" : "past the end of",
+				show_ident(sym->ident), offset, sym->bit_size >> 3);
+	}
+}
+
 static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 {
 	pseudo_t pseudo, src, *pp;
@@ -641,8 +657,10 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 
 	FOR_EACH_PTR(pseudo->users, pp) {
 		struct instruction *insn = container(pp, struct instruction, src);
-		if (insn->opcode == OP_LOAD)
+		if (insn->opcode == OP_LOAD) {
+			check_access(insn);
 			convert_load_instruction(insn, src);
+		}
 	} END_FOR_EACH_PTR(pp);
 
 	/* Turn the store into a no-op */
