@@ -310,6 +310,18 @@ static struct hardreg *preferred_reg(struct bb_state *state, pseudo_t target)
 	return NULL;
 }
 
+static struct hardreg *empty_reg(struct bb_state *state)
+{
+	int i;
+	struct hardreg *reg = hardregs;
+
+	for (i = 0; i < REGNO; i++, reg++) {
+		if (!reg->busy)
+			return reg;
+	}
+	return NULL;
+}
+
 static struct hardreg *target_reg(struct bb_state *state, pseudo_t pseudo, pseudo_t target)
 {
 	int i;
@@ -659,6 +671,9 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 	}
 }
 
+#define VERY_BUSY 1000
+#define REG_FIXED 2000
+
 static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, pseudo_t pseudo, struct storage *storage)
 {
 	int i;
@@ -672,10 +687,10 @@ static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, ps
 		output_insn(state, "movl %s,%s", reg->name, out->name);
 		return;
 	case REG_UDEF:
-		if (reg->busy < 1000) {
+		if (reg->busy < VERY_BUSY) {
 			storage->type = REG_REG;
 			storage->regno = reg - hardregs;
-			reg->busy = 1000;
+			reg->busy = REG_FIXED;
 			return;
 		}
 
@@ -687,7 +702,7 @@ static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, ps
 			output_insn(state, "movl %s,%s", reg->name, out->name);
 			storage->type = REG_REG;
 			storage->regno = i;
-			reg->busy = 1000;
+			reg->busy = REG_FIXED;
 			return;
 		}
 
@@ -773,6 +788,60 @@ static void fill_output(struct bb_state *state, pseudo_t pseudo, struct storage 
 	return;
 }
 
+static int final_pseudo_flush(struct bb_state *state, pseudo_t pseudo, struct hardreg *reg)
+{
+	struct storage_hash *hash;
+	struct storage *out;
+	struct hardreg *dst;
+
+	/*
+	 * Since this pseudo is live at exit, we'd better have output 
+	 * storage for it..
+	 */
+	hash = find_storage_hash(pseudo, state->outputs);
+	assert(hash);
+	out = hash->storage;
+
+	/* If the output is in a register, try to get it there.. */
+	if (out->type == REG_REG) {
+		dst = hardregs + out->regno;
+		/*
+		 * Two good cases: nobody is using the right register,
+		 * or we've already set it aside for output..
+		 */
+		if (!dst->busy || dst->busy > VERY_BUSY)
+			goto copy_to_dst;
+
+		/* Aiee. Try to keep it in a register.. */
+		dst = empty_reg(state);
+		if (dst)
+			goto copy_to_dst;
+
+		return 0;
+	}
+
+	/* If the output is undefined, let's see if we can put it in a register.. */
+	if (out->type == REG_UDEF) {
+		dst = empty_reg(state);
+		if (dst) {
+			out->type = REG_REG;
+			out->regno = dst - hardregs;
+			goto copy_to_dst;
+		}
+		/* Uhhuh. Not so good. No empty registers right now */
+		return 0;
+	}
+
+	/* If we know we need to flush it, just do so already .. */
+	output_insn(state, "movl %s,%s", reg->name, show_memop(out));
+	return 1;
+
+copy_to_dst:
+	output_insn(state, "movl %s,%s", reg->name, dst->name);
+	add_pseudo_reg(state, pseudo, dst);
+	return 1;
+}
+
 /*
  * This tries to make sure that we put all the pseudos that are
  * live on exit into the proper storage
@@ -789,29 +858,26 @@ static void generate_output_storage(struct bb_state *state)
 			pseudo_t p;
 			int flushme = 0;
 
-			reg->busy = 1000;
+			reg->busy = REG_FIXED;
 			FOR_EACH_PTR(reg->contains, p) {
-				struct hardreg *dst;
 				if (p == entry->pseudo) {
 					flushme = -100;
 					continue;
 				}
-				dst = preferred_reg(state, p);
-				if (dst && !dst->busy) {
-					DELETE_CURRENT_PTR(p);
-					output_insn(state, "movl %s,%s", reg->name, dst->name);
-					add_pseudo_reg(state, p, dst);
-					continue;
-				}
 				if (CURRENT_TAG(p) & TAG_DEAD)
 					continue;
+
+				/* Try to write back the pseudo to where it should go ... */
+				if (final_pseudo_flush(state, p, reg)) {
+					DELETE_CURRENT_PTR(p);
+					reg->busy--;
+					continue;
+				}
 				flushme++;
 			} END_FOR_EACH_PTR(p);
-
-			/* Argh. We did not contain the info we wanted, but something else instead. */
+			PACK_PTR_LIST(&reg->contains);
 			if (flushme > 0)
 				flush_reg(state, reg);
-			PACK_PTR_LIST(&reg->contains);
 		}
 	} END_FOR_EACH_PTR(entry);
 
