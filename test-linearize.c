@@ -23,10 +23,13 @@
 
 static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 {
+	struct entrypoint *ep;
+
 	check_duplicates(sym);
 	evaluate_symbol(sym);
 	expand_symbol(sym);
-	linearize_symbol(sym);
+	ep = linearize_symbol(sym);
+	show_entry(ep);
 }
 
 int main(int argc, char **argv)

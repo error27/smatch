@@ -192,7 +192,8 @@ struct entrypoint {
 	struct basic_block *active;
 };
 
-void linearize_symbol(struct symbol *sym);
+struct entrypoint *linearize_symbol(struct symbol *sym);
+void show_entry(struct entrypoint *ep);
 
 #endif /* LINEARIZE_H */
 
