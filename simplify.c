@@ -200,7 +200,7 @@ void kill_instruction(struct instruction *insn)
 /*
  * Kill trivially dead instructions
  */
-static int dead_insn(struct instruction *insn, pseudo_t *src1, pseudo_t *src2)
+static int dead_insn(struct instruction *insn, pseudo_t *src1, pseudo_t *src2, pseudo_t *src3)
 {
 	pseudo_t *usep;
 	FOR_EACH_PTR(insn->target->users, usep) {
@@ -211,6 +211,7 @@ static int dead_insn(struct instruction *insn, pseudo_t *src1, pseudo_t *src2)
 	insn->bb = NULL;
 	kill_use(src1);
 	kill_use(src2);
+	kill_use(src3);
 	return REPEAT_CSE;
 }
 
@@ -378,7 +379,7 @@ static int simplify_constant_binop(struct instruction *insn)
 
 static int simplify_binop(struct instruction *insn)
 {
-	if (dead_insn(insn, &insn->src1, &insn->src2))
+	if (dead_insn(insn, &insn->src1, &insn->src2, NULL))
 		return REPEAT_CSE;
 	if (constant(insn->src1)) {
 		if (constant(insn->src2))
@@ -397,7 +398,7 @@ static int simplify_constant_unop(struct instruction *insn)
 
 static int simplify_unop(struct instruction *insn)
 {
-	if (dead_insn(insn, &insn->src1, NULL))
+	if (dead_insn(insn, &insn->src1, NULL, NULL))
 		return REPEAT_CSE;
 	if (constant(insn->src1))
 		return simplify_constant_unop(insn);
@@ -464,7 +465,7 @@ static int simplify_cast(struct instruction *insn)
 {
 	int orig_size;
 
-	if (dead_insn(insn, &insn->src, NULL))
+	if (dead_insn(insn, &insn->src, NULL, NULL))
 		return REPEAT_CSE;
 	if (insn->opcode == OP_PTRCAST)
 		return 0;
@@ -476,22 +477,23 @@ static int simplify_cast(struct instruction *insn)
 	return replace_with_pseudo(insn, insn->src);
 }
 
-static int simplify_select(struct instruction *insn, struct instruction *setcc)
+static int simplify_select(struct instruction *insn)
 {
 	pseudo_t cond, src1, src2;
 
-	assert(setcc && setcc->bb);
-	if (dead_insn(insn, &insn->src1, &insn->src2)) {
-		setcc->bb = NULL;
+	if (dead_insn(insn, &insn->src1, &insn->src2, &insn->src3))
 		return REPEAT_CSE;
-	}
-	cond = setcc->src;
-	src1 = insn->src1;
-	src2 = insn->src2;
+
+	cond = insn->src1;
+	src1 = insn->src2;
+	src2 = insn->src3;
 	if (constant(cond) || src1 == src2) {
-		setcc->bb = NULL;
-		kill_use(&setcc->cond);
-		replace_with_pseudo(insn, cond->value ? src1 : src2);
+		pseudo_t *kill, take;
+		kill_use(&insn->cond);
+		take = cond->value ? src1 : src2;
+		kill = cond->value ? &insn->src3 : &insn->src2;
+		kill_use(kill);
+		replace_with_pseudo(insn, take);
 		return REPEAT_CSE;
 	}
 	if (constant(src1) && constant(src2)) {
@@ -506,10 +508,8 @@ static int simplify_select(struct instruction *insn, struct instruction *setcc)
 				opcode = OP_SET_NE;
 			}
 			insn->opcode = opcode;
+			/* insn->src1 is already cond */
 			insn->src2 = src1; /* Zero */
-			use_pseudo(cond, &insn->src1);
-			setcc->bb = NULL;
-			kill_use(&setcc->cond);
 			return REPEAT_CSE;
 		}
 	}
@@ -586,11 +586,6 @@ found:
 
 int simplify_instruction(struct instruction *insn)
 {
-	static struct instruction *last_setcc;
-	struct instruction *setcc = last_setcc;
-
-	last_setcc = NULL;
-
 	if (!insn->bb)
 		return 0;
 	switch (insn->opcode) {
@@ -602,27 +597,24 @@ int simplify_instruction(struct instruction *insn)
 	case OP_LOAD: case OP_STORE:
 		return simplify_memop(insn);
 	case OP_SETVAL:
-		if (dead_insn(insn, NULL, NULL))
+		if (dead_insn(insn, NULL, NULL, NULL))
 			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 		break;
 	case OP_PTRCAST:
 	case OP_CAST:
 		return simplify_cast(insn);
 	case OP_PHI:
-		if (dead_insn(insn, NULL, NULL)) {
+		if (dead_insn(insn, NULL, NULL, NULL)) {
 			clear_phi(insn);
 			return REPEAT_CSE;
 		}
 		return clean_up_phi(insn);
 	case OP_PHISOURCE:
-		if (dead_insn(insn, &insn->src1, NULL))
+		if (dead_insn(insn, &insn->src1, NULL, NULL))
 			return REPEAT_CSE;
 		break;
-	case OP_SETCC:
-		last_setcc = insn;
-		return 0;
 	case OP_SEL:
-		return simplify_select(insn, setcc);
+		return simplify_select(insn);
 	case OP_BR:
 		return simplify_branch(insn);
 	case OP_SWITCH:

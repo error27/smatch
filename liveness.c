@@ -110,13 +110,8 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 		USES(src1); DEFINES(target);
 		break;
 
-	/* Setcc - always in combination with a select or conditional branch */
-	case OP_SETCC:
-		USES(src);
-		break;
-
 	case OP_SEL:
-		USES(src1); USES(src2); DEFINES(target);
+		USES(src1); USES(src2); USES(src3); DEFINES(target);
 		break;
 	
 	/* Memory */

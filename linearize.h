@@ -62,8 +62,8 @@ struct instruction {
 			struct symbol *orig_type;	/* casts */
 			unsigned int offset;		/* memops */
 		};
-		struct /* binops */ {
-			pseudo_t src1, src2;
+		struct /* binops and sel */ {
+			pseudo_t src1, src2, src3;
 		};
 		struct /* slice */ {
 			pseudo_t base;
@@ -134,8 +134,7 @@ enum opcode {
 	OP_NOT,
 	OP_NEG,
 
-	/* Setcc - always in combination with a select or conditional branch */
-	OP_SETCC,
+	/* Select - three input values */
 	OP_SEL,
 	
 	/* Memory */

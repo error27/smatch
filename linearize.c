@@ -25,7 +25,6 @@
 pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt);
 pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr);
 
-static void add_setcc(struct entrypoint *ep, struct expression *expr, pseudo_t val);
 static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int op, pseudo_t left, pseudo_t right);
 static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct expression *val);
 
@@ -194,8 +193,7 @@ static const char* opcodes[] = {
 	[OP_NOT] = "not",
 	[OP_NEG] = "neg",
 
-	/* Setcc - always in combination with a select or conditional branch */
-	[OP_SETCC] = "setcc",
+	/* Special three-input */
 	[OP_SEL] = "select",
 	
 	/* Memory */
@@ -373,8 +371,12 @@ void show_instruction(struct instruction *insn)
 		break;
 	case OP_BINARY ... OP_BINARY_END:
 	case OP_BINCMP ... OP_BINCMP_END:
-	case OP_SEL:
 		buf += sprintf(buf, "%s <- %s, %s", show_pseudo(insn->target), show_pseudo(insn->src1), show_pseudo(insn->src2));
+		break;
+
+	case OP_SEL:
+		buf += sprintf(buf, "%s <- %s, %s, %s", show_pseudo(insn->target),
+			show_pseudo(insn->src1), show_pseudo(insn->src2), show_pseudo(insn->src3));
 		break;
 
 	case OP_SLICE:
@@ -385,9 +387,6 @@ void show_instruction(struct instruction *insn)
 		buf += sprintf(buf, "%s <- %s", show_pseudo(insn->target), show_pseudo(insn->src1));
 		break;
 
-	case OP_SETCC:
-		buf += sprintf(buf, "%s", show_pseudo(insn->src));
-		break;
 	case OP_CONTEXT:
 		buf += sprintf(buf, "%d", insn->increment);
 		break;
@@ -602,28 +601,25 @@ void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic
 void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi_node, pseudo_t true, pseudo_t false)
 {
 	pseudo_t target;
-	struct instruction *setcc, *select;
+	struct instruction *select;
 
 	/* Remove the 'br' */
 	delete_last_instruction(&bb->insns);
 
-	setcc = alloc_instruction(OP_SETCC, 1);
-	setcc->bb = bb;
-	assert(br->cond);
-	use_pseudo(br->cond, &setcc->src);
-
 	select = alloc_instruction(OP_SEL, phi_node->size);
 	select->bb = bb;
+
+	assert(br->cond);
+	use_pseudo(br->cond, &select->src1);
 
 	target = phi_node->target;
 	assert(target->def == phi_node);
 	select->target = target;
 	target->def = select;
 
-	use_pseudo(true, &select->src1);
-	use_pseudo(false, &select->src2);
+	use_pseudo(true, &select->src2);
+	use_pseudo(false, &select->src3);
 
-	add_instruction(&bb->insns, setcc);
 	add_instruction(&bb->insns, select);
 	add_instruction(&bb->insns, br);
 }
@@ -649,18 +645,6 @@ static struct basic_block * add_label(struct entrypoint *ep, struct symbol *labe
 	}
 	label->bb_target = bb;
 	return bb;
-}
-
-static void add_setcc(struct entrypoint *ep, struct expression *expr, pseudo_t val)
-{
-	struct basic_block *bb = ep->active;
-
-	if (bb_reachable(bb)) {
-		struct instruction *cc = alloc_instruction(OP_SETCC, 1);
-		use_pseudo(val, &cc->src);
-		assert(val);
-		add_one_insn(ep, cc);
-	}
 }
 
 static void add_branch(struct entrypoint *ep, struct expression *expr, pseudo_t cond, struct basic_block *bb_true, struct basic_block *bb_false)
@@ -1141,15 +1125,22 @@ pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *expr, s
 static pseudo_t linearize_select(struct entrypoint *ep, struct expression *expr)
 {
 	pseudo_t cond, true, false, res;
+	struct instruction *insn;
 
 	true = linearize_expression(ep, expr->cond_true);
 	false = linearize_expression(ep, expr->cond_false);
 	cond = linearize_expression(ep, expr->conditional);
 
-	add_setcc(ep, expr, cond);
+	insn = alloc_typed_instruction(OP_SEL, expr->ctype);
 	if (!expr->cond_true)
 		true = cond;
-	res = add_binary_op(ep, expr->ctype, OP_SEL, true, false);
+	use_pseudo(cond, &insn->src1);
+	use_pseudo(true, &insn->src2);
+	use_pseudo(false, &insn->src3);
+
+	res = alloc_pseudo(insn);
+	insn->target = res;
+	add_one_insn(ep, insn);
 	return res;
 }
 

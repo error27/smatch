@@ -46,7 +46,10 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 	assert(insn->bb == bb);
 	repeat_phase |= simplify_instruction(insn);
 	hash = (insn->opcode << 3) + (insn->size >> 3);
-	switch (insn->opcode) {	
+	switch (insn->opcode) {
+	case OP_SEL:
+		hash += hashval(insn->src3);
+		/* Fallthrough */	
 
 	/* Binary arithmetic */
 	case OP_ADD: case OP_SUB:
@@ -65,9 +68,8 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 	case OP_SET_LT: case OP_SET_GT:
 	case OP_SET_B:  case OP_SET_A:
 	case OP_SET_BE: case OP_SET_AE:
-		hash += hashval(insn->src1);
 		hash += hashval(insn->src2);
-		break;
+		/* Fallthrough */
 	
 	/* Unary */
 	case OP_NOT: case OP_NEG:
@@ -163,6 +165,10 @@ static int insn_compare(const void *_i1, const void *_i2)
 		return i1->opcode < i2->opcode ? -1 : 1;
 
 	switch (i1->opcode) {
+	case OP_SEL:
+		if (i1->src3 != i2->src3)
+			return i1->src3 < i2->src3 ? -1 : 1;
+		/* Fall-through to binops */
 
 	/* Binary arithmetic */
 	case OP_ADD: case OP_SUB:
@@ -181,11 +187,9 @@ static int insn_compare(const void *_i1, const void *_i2)
 	case OP_SET_LT: case OP_SET_GT:
 	case OP_SET_B:  case OP_SET_A:
 	case OP_SET_BE: case OP_SET_AE:
-		if (i1->src1 != i2->src1)
-			return i1->src1 < i2->src1 ? -1 : 1;
 		if (i1->src2 != i2->src2)
 			return i1->src2 < i2->src2 ? -1 : 1;
-		break;
+		/* Fall-through to unops */
 
 	/* Unary */
 	case OP_NOT: case OP_NEG:
