@@ -927,12 +927,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 			return token;
 		}
 
-		if (ctype.modifiers & MOD_TYPEDEF) {
-			bind_symbol(decl, ident, NS_TYPEDEF);
-		} else {
-			add_symbol(list, decl);
-			bind_symbol(decl, ident, NS_SYMBOL);
-		}
+		bind_symbol(decl, ident, (ctype.modifiers & MOD_TYPEDEF) ? NS_TYPEDEF: NS_SYMBOL);
 	}
 	return expect(token, ';', "at end of declaration");
 }
