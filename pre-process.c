@@ -294,7 +294,7 @@ static struct token *expand_one_arg(struct token *parent, struct token *head, st
 			empty_arg_token.next = &eof_token_entry;
 		}
 
-		head = replace(parent, token, head, arg);
+		head = replace(NULL, token, head, arg);
 		if (!match_op(orig_head, SPECIAL_HASHHASH) && !match_op(last, SPECIAL_HASHHASH) && !match_op(orig_head, '#'))
 			head = expand_list(parent, orig_head);
 		head->next = last;
@@ -319,7 +319,7 @@ static void expand_arguments(struct token *parent,
 			int nr = arg_number(arglist, nextnext->ident);
 			if (nextnext != head && nr >= 0 && token_type(nextnext) == TOKEN_IDENT) {
 				struct token *newtoken = stringify(nextnext, get_argument(nr, arguments));
-				replace(parent, nextnext, head, newtoken);
+				replace(NULL, nextnext, head, newtoken);
 				continue;
 			}
 			warn(next->pos, "'#' operation is not followed by argument name");
