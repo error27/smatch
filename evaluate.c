@@ -713,14 +713,14 @@ static struct symbol *evaluate_sub(struct expression *expr)
 
 #define is_safe_type(type) ((type)->ctype.modifiers & MOD_SAFE)
 
-static struct symbol *evaluate_conditional(struct expression *expr)
+static struct symbol *evaluate_conditional(struct expression *expr, int iterator)
 {
 	struct symbol *ctype;
 
 	if (!expr)
 		return NULL;
 
-	if (expr->type == EXPR_ASSIGNMENT)
+	if (!iterator && expr->type == EXPR_ASSIGNMENT)
 		warning(expr->pos, "assignment expression in conditional");
 
 	ctype = evaluate_expression(expr);
@@ -734,9 +734,9 @@ static struct symbol *evaluate_conditional(struct expression *expr)
 
 static struct symbol *evaluate_logical(struct expression *expr)
 {
-	if (!evaluate_conditional(expr->left))
+	if (!evaluate_conditional(expr->left, 0))
 		return NULL;
-	if (!evaluate_conditional(expr->right))
+	if (!evaluate_conditional(expr->right, 0))
 		return NULL;
 
 	expr->ctype = &bool_ctype;
@@ -889,7 +889,7 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 	struct symbol *ctype, *ltype, *rtype;
 	const char * typediff;
 
-	if (!evaluate_conditional(expr->conditional))
+	if (!evaluate_conditional(expr->conditional, 0))
 		return NULL;
 	if (!evaluate_expression(expr->cond_false))
 		return NULL;
@@ -2367,15 +2367,15 @@ static void evaluate_if_statement(struct statement *stmt)
 	if (!stmt->if_conditional)
 		return;
 
-	evaluate_conditional(stmt->if_conditional);
+	evaluate_conditional(stmt->if_conditional, 0);
 	evaluate_statement(stmt->if_true);
 	evaluate_statement(stmt->if_false);
 }
 
 static void evaluate_iterator(struct statement *stmt)
 {
-	evaluate_conditional(stmt->iterator_pre_condition);
-	evaluate_conditional(stmt->iterator_post_condition);
+	evaluate_conditional(stmt->iterator_pre_condition, 1);
+	evaluate_conditional(stmt->iterator_post_condition,1);
 	evaluate_statement(stmt->iterator_pre_statement);
 	evaluate_statement(stmt->iterator_statement);
 	evaluate_statement(stmt->iterator_post_statement);
