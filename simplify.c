@@ -545,6 +545,18 @@ static int simplify_branch(struct instruction *insn)
 		return REPEAT_CSE;
 	}
 
+	/* Same target? */
+	if (insn->bb_true == insn->bb_false) {
+		struct basic_block *bb = insn->bb;
+		struct basic_block *target = insn->bb_false;
+		remove_bb_from_list(&target->parents, bb, 1);
+		remove_bb_from_list(&bb->children, target, 1);
+		insn->bb_false = NULL;
+		kill_use(&insn->cond);
+		insn->cond = NULL;
+		return REPEAT_CSE;
+	}
+
 	/* Conditional on a SETNE $0 or SETEQ $0 */
 	if (cond->type == PSEUDO_REG) {
 		struct instruction *def = cond->def;
