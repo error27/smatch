@@ -186,10 +186,22 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 
 static int last_reg;
 
-static struct hardreg *target_reg(struct bb_state *state, pseudo_t pseudo)
+static struct hardreg *target_reg(struct bb_state *state, pseudo_t pseudo, pseudo_t target)
 {
 	int i;
 	struct hardreg *reg;
+	struct storage_hash *dst;
+
+	/* First, see if we have a preferred target register.. */
+	dst = find_storage_hash(target, state->outputs);
+	if (dst) {
+		struct storage *storage = dst->storage;
+		if (storage->type == REG_REG) {
+			reg = hardregs + storage->regno;
+			if (!reg->busy)
+				goto found;
+		}
+	}
 
 	i = last_reg+1;
 	if (i >= REGNO)
@@ -198,13 +210,14 @@ static struct hardreg *target_reg(struct bb_state *state, pseudo_t pseudo)
 	reg = hardregs + i;
 	flush_reg(state, reg);
 
+found:
 	reg->contains = pseudo;
 	reg->busy = 1;
 	reg->dirty = 0;
 	return reg;
 }
 
-static struct hardreg *getreg(struct bb_state *state, pseudo_t pseudo)
+static struct hardreg *getreg(struct bb_state *state, pseudo_t pseudo, pseudo_t target)
 {
 	int i;
 	struct hardreg *reg;
@@ -215,7 +228,7 @@ static struct hardreg *getreg(struct bb_state *state, pseudo_t pseudo)
 			return hardregs+i;
 		}
 	}
-	reg = target_reg(state, pseudo);
+	reg = target_reg(state, pseudo, target);
 	return fill_reg(state, reg, pseudo);
 }
 
@@ -236,7 +249,7 @@ static const char *address(struct bb_state *state, struct instruction *memop)
 		sprintf(buffer, "%d+%s(SP)", memop->offset, show_ident(sym->ident));
 		return buffer;
 	default:
-		base = getreg(state, addr);
+		base = getreg(state, addr, NULL);
 		sprintf(buffer, "%d(%s)", memop->offset, base->name);
 		return buffer;
 	}
@@ -248,7 +261,7 @@ static const char *reg_or_imm(struct bb_state *state, pseudo_t pseudo)
 	case PSEUDO_VAL:
 		return show_pseudo(pseudo);
 	default:
-		return getreg(state, pseudo)->name;
+		return getreg(state, pseudo, NULL)->name;
 	}
 }
 
@@ -260,7 +273,7 @@ static void generate_store(struct instruction *insn, struct bb_state *state)
 static void generate_load(struct instruction *insn, struct bb_state *state)
 {
 	const char *input = address(state, insn);
-	printf("\tmov.%d %s,%s\n", insn->size, input, target_reg(state, insn->target)->name);
+	printf("\tmov.%d %s,%s\n", insn->size, input, target_reg(state, insn->target, NULL)->name);
 }
 
 static const char* opcodes[] = {
@@ -363,7 +376,7 @@ static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src)
 static void generate_binop(struct bb_state *state, struct instruction *insn)
 {
 	const char *op = opcodes[insn->opcode];
-	struct hardreg *src = getreg(state, insn->src1);
+	struct hardreg *src = getreg(state, insn->src1, NULL);
 	struct hardreg *dst = copy_reg(state, src);
 
 	printf("\t%s.%d %s,%s\n", op, insn->size, reg_or_imm(state, insn->src2), dst->name);
@@ -391,7 +404,7 @@ static void generate_phisource(struct instruction *insn, struct bb_state *state)
 
 	if (!user)
 		return;
-	reg = getreg(state, insn->phi_src); 
+	reg = getreg(state, insn->phi_src, user->target);
 
 	flush_reg(state, reg);
 	reg->contains = user->target;
@@ -404,7 +417,7 @@ static void generate_output_storage(struct bb_state *state);
 static void generate_branch(struct bb_state *state, struct instruction *br)
 {
 	if (br->cond) {
-		struct hardreg *reg = getreg(state, br->cond);
+		struct hardreg *reg = getreg(state, br->cond, NULL);
 		printf("\ttestl %s,%s\n", reg->name, reg->name);
 	}
 	generate_output_storage(state);
