@@ -524,64 +524,19 @@ const struct ctype_declare {
 
 #define __INIT_IDENT(str) { .len = sizeof(str)-1, .name = str }
 #define __IDENT(n,str) \
-	struct ident n ## _ident = __INIT_IDENT(str)
-#define IDENT(n) __IDENT(n, #n)
+	struct ident n  = __INIT_IDENT(str)
 
-IDENT(struct); IDENT(union); IDENT(enum);
-IDENT(sizeof);
-IDENT(alignof); IDENT(__alignof); IDENT(__alignof__);
-IDENT(if); IDENT(else); IDENT(return);
-IDENT(switch); IDENT(case); IDENT(default);
-IDENT(break); IDENT(continue);
-IDENT(for); IDENT(while); IDENT(do); IDENT(goto);
-
-IDENT(__asm__); IDENT(__asm); IDENT(asm);
-IDENT(__volatile__); IDENT(__volatile); IDENT(volatile);
-IDENT(__attribute__); IDENT(__attribute);
-IDENT(defined);
-
-__IDENT(pragma, "__pragma__");
-
-struct ident __VA_ARGS___ident = __INIT_IDENT("__VA_ARGS__");
-struct ident __LINE___ident = __INIT_IDENT("__LINE__");
-struct ident __FILE___ident = __INIT_IDENT("__FILE__");
-struct ident __func___ident = __INIT_IDENT("__func__");
+#include "ident-list.h"
 
 void init_symbols(void)
 {
 	int stream = init_stream("builtin", -1, includepath);
 	struct sym_init *ptr;
 
-	hash_ident(&sizeof_ident);
-	hash_ident(&alignof_ident);
-	hash_ident(&__alignof_ident);
-	hash_ident(&__alignof___ident);
-	hash_ident(&if_ident);
-	hash_ident(&else_ident);
-	hash_ident(&return_ident);
-	hash_ident(&switch_ident);
-	hash_ident(&case_ident);
-	hash_ident(&default_ident);
-	hash_ident(&break_ident);
-	hash_ident(&continue_ident);
-	hash_ident(&for_ident);
-	hash_ident(&while_ident);
-	hash_ident(&do_ident);
-	hash_ident(&goto_ident);
-	hash_ident(&__attribute___ident);
-	hash_ident(&__attribute_ident);
-	hash_ident(&__asm___ident);
-	hash_ident(&__asm_ident);
-	hash_ident(&asm_ident);
-	hash_ident(&__volatile___ident);
-	hash_ident(&__volatile_ident);
-	hash_ident(&volatile_ident);
-	hash_ident(&defined_ident);
-	hash_ident(&__LINE___ident);
-	hash_ident(&__FILE___ident);
-	hash_ident(&__func___ident);
-	hash_ident(&__VA_ARGS___ident);
-	hash_ident(&pragma_ident);
+#define __IDENT(n,str) \
+	hash_ident(&n)
+#include "ident-list.h"
+
 	for (ptr = symbol_init_table; ptr->name; ptr++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, ptr->name, SYM_NODE, NS_TYPEDEF);

@@ -164,38 +164,9 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			incomplete_ctype;
 
 
-/* Basic identifiers */
-extern struct ident	sizeof_ident,
-			alignof_ident,
-			__alignof_ident,
-			__alignof___ident,
-			if_ident,
-			else_ident,
-			switch_ident,
-			case_ident,
-			default_ident,
-			break_ident,
-			continue_ident,
-			for_ident,
-			while_ident,
-			do_ident,
-			goto_ident,
-			return_ident;
-
-extern struct ident	__asm___ident,
-			__asm_ident,
-			asm_ident,
-			__volatile___ident,
-			__volatile_ident,
-			volatile_ident,
-			__attribute___ident,
-			__attribute_ident,
-			defined_ident,
-			__VA_ARGS___ident,
-			__LINE___ident,
-			__FILE___ident,
-			__func___ident,
-			pragma_ident;
+#define __IDENT(n,str) \
+	extern struct ident n
+#include "ident-list.h"
 
 #define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)
 

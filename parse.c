@@ -211,42 +211,42 @@ struct token *typeof_specifier(struct token *token, struct ctype *ctype)
 
 static const char * handle_attribute(struct ctype *ctype, struct ident *attribute, struct expression *expr)
 {
-	if (match_string_ident(attribute, "packed") ||
-	    match_string_ident(attribute, "__packed__")) {
+	if (attribute == &packed_ident ||
+	    attribute == &__packed___ident) {
 		ctype->alignment = 1;
 		return NULL;
 	}
-	if (match_string_ident(attribute, "aligned") ||
-	    match_string_ident(attribute, "__aligned__")) {
+	if (attribute == &aligned_ident ||
+	    attribute == &__aligned___ident) {
 		int alignment = max_alignment;
 		if (expr)
 			alignment = get_expression_value(expr);
 		ctype->alignment = alignment;
 		return NULL;
 	}
-	if (match_string_ident(attribute, "nocast")) {
+	if (attribute == &nocast_ident) {
 		ctype->modifiers |= MOD_NOCAST;
 		return NULL;
 	}
-	if (match_string_ident(attribute, "noderef")) {
+	if (attribute == &noderef_ident) {
 		ctype->modifiers |= MOD_NODEREF;
 		return NULL;
 	}
-	if (match_string_ident(attribute, "safe")) {
+	if (attribute == &safe_ident) {
 		ctype->modifiers |= MOD_SAFE;
 		return NULL;
 	}
-	if (match_string_ident(attribute, "force")) {
+	if (attribute == &force_ident) {
 		ctype->modifiers |= MOD_FORCE;
 		return NULL;
 	}
-	if (match_string_ident(attribute, "address_space")) {
+	if (attribute == &address_space_ident) {
 		if (!expr)
 			return "expected address space number";
 		ctype->as = get_expression_value(expr);
 		return NULL;
 	}
-	if (match_string_ident(attribute, "context")) {
+	if (attribute == &context_ident) {
 		if (expr && expr->type == EXPR_COMMA) {
 			int mask = get_expression_value(expr->left);
 			int value = get_expression_value(expr->right);
@@ -258,8 +258,8 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 		}
 		return "expected context mask and value";
 	}
-	if (match_string_ident(attribute, "mode") ||
-	    match_string_ident(attribute, "__mode__")) {
+	if (attribute == &mode_ident ||
+	    attribute == &__mode___ident) {
 		if (expr && expr->type == EXPR_SYMBOL) {
 			struct ident *ident = expr->symbol_name;
 
@@ -270,31 +270,31 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 			 * the type information updated properly at this
 			 * stage for some reason.
 			 */
-			if (match_string_ident(ident, "__QI__") ||
-			    match_string_ident(ident, "QI")) {
+			if (ident == &__QI___ident ||
+			    ident == &QI_ident) {
 				ctype->modifiers |= MOD_CHAR;
 				ctype->base_type = ctype_integer(ctype->modifiers);
 				return NULL;
 			}
-			if (match_string_ident(ident, "__HI__") ||
-			    match_string_ident(ident, "HI")) {
+			if (ident == &__HI___ident ||
+			    ident == &HI_ident) {
 				ctype->modifiers |= MOD_SHORT;
 				ctype->base_type = ctype_integer(ctype->modifiers);
 				return NULL;
 			}
-			if (match_string_ident(ident, "__SI__") ||
-			    match_string_ident(ident, "SI")) {
+			if (ident == &__SI___ident ||
+			    ident == &SI_ident) {
 				/* Nothing? */
 				return NULL;
 			}
-			if (match_string_ident(ident, "__DI__") ||
-			    match_string_ident(ident, "DI")) {
+			if (ident == &__DI___ident ||
+			    ident == &DI_ident) {
 				ctype->modifiers |= MOD_LONGLONG;
 				ctype->base_type = ctype_integer(ctype->modifiers);
 				return NULL;
 			}
-			if (match_string_ident(ident, "__word__") ||
-			    match_string_ident(ident, "word")) {
+			if (ident == &__word___ident ||
+			    ident == &word_ident) {
 				ctype->modifiers |= MOD_LONG;
 				ctype->base_type = ctype_integer(ctype->modifiers);
 				return NULL;
@@ -305,35 +305,35 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 	}
 
 	/* Throw away for now.. */
-	if (match_string_ident(attribute, "format") ||
-	    match_string_ident(attribute, "__format__"))
+	if (attribute == &format_ident ||
+	    attribute == &__format___ident)
 		return NULL;
-	if (match_string_ident(attribute, "section") ||
-	    match_string_ident(attribute, "__section__"))
+	if (attribute == &section_ident ||
+	    attribute == &__section___ident)
 		return NULL;
-	if (match_string_ident(attribute, "unused") ||
-	    match_string_ident(attribute, "__unused__"))
+	if (attribute == &unused_ident ||
+	    attribute == &__unused___ident)
 		return NULL;
-	if (match_string_ident(attribute, "const") ||
-	    match_string_ident(attribute, "__const") ||
-	    match_string_ident(attribute, "__const__"))
+	if (attribute == &const_ident ||
+	    attribute == &__const_ident ||
+	    attribute == &__const___ident)
 		return NULL;
-	if (match_string_ident(attribute, "noreturn") ||
-	    match_string_ident(attribute, "__noreturn__"))
+	if (attribute == &noreturn_ident ||
+	    attribute == &__noreturn___ident)
 		return NULL;
-	if (match_string_ident(attribute, "regparm"))
+	if (attribute == &regparm_ident)
 		return NULL;
-	if (match_string_ident(attribute, "weak"))
+	if (attribute == &weak_ident)
 		return NULL;
-	if (match_string_ident(attribute, "alias"))
+	if (attribute == &alias_ident)
 		return NULL;
-	if (match_string_ident(attribute, "pure"))
+	if (attribute == &pure_ident)
 		return NULL;
-	if (match_string_ident(attribute, "always_inline"))
+	if (attribute == &always_inline_ident)
 		return NULL;
-	if (match_string_ident(attribute, "syscall_linkage"))
+	if (attribute == &syscall_linkage_ident)
 		return NULL;
-	if (match_string_ident(attribute, "visibility"))
+	if (attribute == &visibility_ident)
 		return NULL;
 
 	return "unknown attribute";
