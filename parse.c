@@ -968,7 +968,7 @@ static struct token *parse_asm(struct token *token, struct statement *stmt)
 	struct expression *expr;
 
 	stmt->type = STMT_ASM;
-	if (match_idents(token, &__volatile___ident, &volatile_ident, NULL)) {
+	if (match_idents(token, &__volatile___ident, &__volatile_ident, &volatile_ident, NULL)) {
 		token = token->next;
 	}
 	token = expect(token, '(', "after asm");
