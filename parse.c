@@ -597,6 +597,11 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 				bitfield->fieldwidth = get_expression_value(expr);
 			} else
 				error(token->pos, "Invalid bitfield specifier for type %s.", show_typename (ctype->base_type));
+			while (match_idents(token, &__attribute___ident, &__attribute_ident, NULL)) {
+				struct ctype thistype = { 0, };
+				token = attribute_specifier(token->next, &thistype);
+				apply_ctype(token->pos, &thistype, ctype);
+			}
 			break;
 		}
 		break;
