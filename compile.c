@@ -33,7 +33,7 @@ static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 
 int main(int argc, char **argv)
 {
-	int i, fd;
+	int fd;
 	char *basename, *filename = NULL, **args;
 	struct token *token;
 
@@ -53,6 +53,9 @@ int main(int argc, char **argv)
 		}
 		filename = arg;
 	}
+
+	if (filename == NULL)
+		die("No file specified");
 
 	basename = strrchr(filename, '/');
 	if (!basename)
