@@ -590,6 +590,16 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 static struct token *parameter_type_list(struct token *, struct symbol *);
 static struct token *declarator(struct token *token, struct symbol **tree, struct ident **p);
 
+static struct token *handle_attributes(struct token *token, struct ctype *ctype)
+{
+	while (match_idents(token, &__attribute___ident, &__attribute_ident, NULL)) {
+		struct ctype thistype = { 0, };
+		token = attribute_specifier(token->next, &thistype);
+		apply_ctype(token->pos, &thistype, ctype);
+	}
+	return token;
+}
+
 static struct token *direct_declarator(struct token *token, struct symbol **tree, struct ident **p)
 {
 	struct ctype *ctype = &(*tree)->ctype;
@@ -600,12 +610,8 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 	}
 
 	for (;;) {
-		if (match_idents(token, &__attribute___ident, &__attribute_ident, NULL)) {
-			struct ctype thistype = { 0, };
-			token = attribute_specifier(token->next, &thistype);
-			apply_ctype(token->pos, &thistype, ctype);
-			continue;
-		}
+		token = handle_attributes(token, ctype);
+
 		if (token_type(token) != TOKEN_SPECIAL)
 			return token;
 
@@ -687,6 +693,56 @@ static struct token *declarator(struct token *token, struct symbol **tree, struc
 	return direct_declarator(token, tree, p);
 }
 
+static struct token *handle_bitfield(struct token *token, struct symbol *decl)
+{
+	struct ctype *ctype = &decl->ctype;
+	struct expression *expr;
+	struct symbol *bitfield;
+	long long width;
+
+	if (!is_int_type(ctype->base_type)) {
+		warn(token->pos, "invalid bitfield specifier for type %s.",
+			show_typename(ctype->base_type));
+		// Parse this to recover gracefully.
+		return conditional_expression(token->next, &expr);
+	}
+
+	bitfield = indirect(token->pos, ctype, SYM_BITFIELD);
+	token = conditional_expression(token->next, &expr);
+	width = get_expression_value(expr);
+	bitfield->fieldwidth = width;
+
+	if (width < 0) {
+		warn(token->pos, "invalid negative bitfield width, %lld.", width);
+		bitfield->fieldwidth = 8;
+	} else if (decl->ident && width == 0) {
+		warn(token->pos, "invalid named zero-width bitfield `%s'",
+		     show_ident(decl->ident));
+		bitfield->fieldwidth = 8;
+	} else if (width != bitfield->fieldwidth) {
+		// Overflow.
+		unsigned int stupid_gcc = -1;
+		bitfield->fieldwidth = stupid_gcc;
+		warn(token->pos, "truncating large bitfield from %lld to %d bits", width, bitfield->fieldwidth);
+	} else if (decl->ident) {
+		struct symbol *base_type = bitfield->ctype.base_type;
+		int is_signed = !(base_type->ctype.modifiers & MOD_UNSIGNED);
+		if (bitfield->fieldwidth == 1 && is_signed) {
+			// Valid values are either {-1;0} or {0}, depending on integer
+			// representation.  The latter makes for very efficient code...
+			warn(token->pos, "dubious one-bit signed bitfield");
+		}
+		if (Wdefault_bitfield_sign &&
+		    base_type->type != SYM_ENUM &&
+		    !(base_type->ctype.modifiers & MOD_EXPLICITLY_SIGNED) &&
+		    is_signed) {
+			// The sign of bitfields is unspecified by default.
+			warn (token->pos, "dubious bitfield without explicit `signed' or `unsigned'");
+		}
+	}
+	return token;
+}
+
 static struct token *struct_declaration_list(struct token *token, struct symbol_list **list)
 {
 	while (!match_op(token, '}')) {
@@ -699,57 +755,8 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 			decl->ctype = ctype;
 			token = declarator(token, &decl, &ident);
 			if (match_op(token, ':')) {
-				struct ctype *ctype = &decl->ctype;
-				struct expression *expr;
-				struct symbol *bitfield;
-				long long width;
-
-				if (is_int_type (ctype->base_type)) {
-					bitfield = indirect(token->pos, ctype, SYM_BITFIELD);
-					token = conditional_expression(token->next, &expr);
-					width = get_expression_value(expr);
-					bitfield->fieldwidth = width;
-					if (width < 0) {
-						warn(token->pos, "invalid negative bitfield width, %lld.", width);
-						bitfield->fieldwidth = 8;
-					} else if (decl->ident && width == 0) {
-						warn(token->pos, "invalid named zero-width bitfield `%s'",
-						     show_ident (decl->ident));
-						bitfield->fieldwidth = 8;
-					} else if (width != bitfield->fieldwidth) {
-						// Overflow.
-						unsigned int stupid_gcc = -1;
-						bitfield->fieldwidth = stupid_gcc;
-						warn(token->pos, "truncating large bitfield from %lld to %d bits", width, bitfield->fieldwidth);
-					} else {
-						struct symbol *base_type = bitfield->ctype.base_type;
-						int is_signed = !(base_type->ctype.modifiers & MOD_UNSIGNED);
-						if (decl->ident &&
-						    bitfield->fieldwidth == 1 &&
-						    is_signed) {
-							// Valid values are either {-1;0} or {0}, depending on integer
-							// representation.  The latter makes for very efficient code...
-							warn(token->pos, "dubious one-bit signed bitfield");
-						}
-						if (Wdefault_bitfield_sign &&
-						    decl->ident &&
-						    base_type->type != SYM_ENUM &&
-						    !(base_type->ctype.modifiers & MOD_EXPLICITLY_SIGNED) &&
-						    is_signed) {
-							// The sign of bitfields is unspecified by default.
-							warn (token->pos, "dubious bitfield without explicit `signed' or `unsigned'");
-						}
-					}
-				} else {
-					warn(token->pos, "invalid bitfield specifier for type %s.", show_typename (ctype->base_type));
-					// Parse this to recover gracefully.
-					token = conditional_expression(token->next, &expr);
-				}
-				while (match_idents(token, &__attribute___ident, &__attribute_ident, NULL)) {
-					struct ctype thistype = { 0, };
-					token = attribute_specifier(token->next, &thistype);
-					apply_ctype(token->pos, &thistype, ctype);
-				}
+				token = handle_bitfield(token, decl);
+				token = handle_attributes(token, &decl->ctype);
 			}
 			add_symbol(list, decl);
 			if (!match_op(token, ','))
