@@ -237,6 +237,17 @@ void show_type(struct symbol *sym)
 	printf("%s", name.start);
 }
 
+const char *show_typename(struct symbol *sym)
+{
+	static char array[200];
+	struct type_name name;
+
+	name.start = name.end = array+100;
+	do_show_type(sym, &name);
+	*name.end = 0;
+	return name.start;
+}
+
 void show_symbol(struct symbol *sym)
 {
 	struct symbol *type;
@@ -289,6 +300,8 @@ static int show_return_stmt(struct statement *stmt)
 	return 0;
 }
 
+static int show_symbol_init(struct symbol *sym);
+
 /*
  * Print out a statement
  */
@@ -300,14 +313,14 @@ int show_statement(struct statement *stmt)
 	case STMT_RETURN:
 		return show_return_stmt(stmt);
 	case STMT_COMPOUND: {
+		struct symbol *sym;
 		struct statement *s;
 		int last;
 
-		if (stmt->syms) {
-			printf("\t");
-			show_symbol_list(stmt->syms, "\n\t");
-			printf("\n\n");
-		}
+		FOR_EACH_PTR(stmt->syms, sym) {
+			show_symbol_init(sym);
+		} END_FOR_EACH_PTR;
+
 		FOR_EACH_PTR(stmt->stmts, s) {
 			last = show_statement(s);
 		} END_FOR_EACH_PTR;
@@ -464,6 +477,11 @@ static int show_call_expression(struct expression *expr)
 	int fncall, retval;
 	int framesize;
 
+	if (!expr->ctype) {
+		warn(expr->pos, "\tcall with no type!");
+		return 0;
+	}
+
 	framesize = 0;
 	FOR_EACH_PTR_REVERSE(expr->args, arg) {
 		int new = show_expression(arg);
@@ -610,11 +628,26 @@ static int show_postop(struct expression *expr)
 	return show_inc_dec(expr, 1);
 }	
 
-static int show_symbol_expr(struct expression *expr)
+static int show_symbol_expr(struct symbol *sym)
 {
 	int new = new_pseudo();
-	printf("\tmovi.%d\t\tv%d,$%s\n", BITS_IN_POINTER, new, show_ident(expr->symbol_name));
+	printf("\tmovi.%d\t\tv%d,$%s\n", BITS_IN_POINTER, new, show_ident(sym->ident));
 	return new;
+}
+
+static int show_symbol_init(struct symbol *sym)
+{
+	struct expression *expr = sym->initializer;
+
+	if (expr) {
+		int val, addr, bits;
+
+		bits = expr->ctype->bit_size;
+		val = show_expression(expr);
+		addr = show_symbol_expr(sym);
+		show_store_gen(bits, val, NULL, addr);
+	}
+	return 0;
 }
 
 static int type_is_signed(struct symbol *sym)
@@ -716,7 +749,7 @@ int show_expression(struct expression *expr)
 	case EXPR_POSTOP:
 		return show_postop(expr);
 	case EXPR_SYMBOL:
-		return show_symbol_expr(expr);
+		return show_symbol_expr(expr->symbol);
 	case EXPR_DEREF:
 	case EXPR_SIZEOF:
 		warn(expr->pos, "invalid expression after evaluation");

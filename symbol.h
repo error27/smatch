@@ -176,5 +176,6 @@ extern void bind_symbol(struct symbol *, struct ident *, enum namespace);
 
 extern struct symbol *examine_symbol_type(struct symbol *);
 extern void examine_simple_symbol_type(struct symbol *);
+extern const char *show_typename(struct symbol *sym);
 
 #endif /* SEMANTIC_H */
