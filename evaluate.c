@@ -116,7 +116,7 @@ static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 	return ctype_integer(mod);
 }
 
-static struct expression * promote(struct expression *old, struct symbol *type)
+static struct expression * cast_to(struct expression *old, struct symbol *type)
 {
 	struct expression *expr = alloc_expression(old->token, EXPR_CAST);
 	expr->ctype = type;
@@ -156,9 +156,9 @@ static struct symbol * compatible_integer_binop(struct expression *expr)
 
 		/* Don't bother promoting same-size entities, it only adds clutter */
 		if (ltype->bit_size != ctype->bit_size)
-			expr->left = promote(left, ctype);
+			expr->left = cast_to(left, ctype);
 		if (rtype->bit_size != ctype->bit_size)
-			expr->right = promote(right, ctype);
+			expr->right = cast_to(right, ctype);
 		return ctype;
 	}
 	return NULL;
@@ -361,7 +361,12 @@ static int evaluate_compare(struct expression *expr)
 
 static int evaluate_assignment(struct expression *expr)
 {
+	struct expression *left = expr->left, *right = expr->right;
+	struct symbol *ltype = left->ctype, *rtype = right->ctype;
+
 	// FIXME! We need to cast and check the rigth side!
+	if (ltype->bit_size != rtype->bit_size)
+		expr->right = cast_to(right, ltype);
 	expr->ctype = expr->left->ctype;
 	return 1;
 }
