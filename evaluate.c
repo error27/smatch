@@ -891,7 +891,7 @@ static struct symbol *evaluate_addressof(struct expression *expr, struct express
 static struct symbol *evaluate_dereference(struct expression *expr)
 {
 	struct expression *op = expr->unop;
-	struct symbol *ctype = op->ctype, *sym;
+	struct symbol *ctype = op->ctype, *node, *target;
 
 	/* Simplify: *&(expr) => (expr) */
 	if (op->type == EXPR_PREOP && op->op == '&') {
@@ -903,16 +903,16 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	if (ctype->type == SYM_NODE)
 		ctype = ctype->ctype.base_type;
 
-	sym = alloc_symbol(expr->pos, SYM_NODE);
-	expr->ctype = sym;
+	node = alloc_symbol(expr->pos, SYM_NODE);
+	merge_type(node, ctype);
+
+	target = ctype->ctype.base_type;
 
 	switch (ctype->type) {
 	default:
 		warn(expr->pos, "cannot derefence this type");
 		return NULL;
 	case SYM_PTR:
-		merge_type(sym, ctype);
-		ctype = ctype->ctype.base_type;
 		if (ctype->type != SYM_ARRAY)
 			break;
 		/*
@@ -922,20 +922,23 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 		 * goes away.
 		 */
 		*expr = *op;
-		expr->ctype = sym;
 
-		sym->ctype.base_type = alloc_symbol(expr->pos, SYM_PTR);
-		sym = sym->ctype.base_type;
-		/* Fallthrough */
+		target = alloc_symbol(expr->pos, SYM_PTR);
+		target->bit_size = bits_in_pointer;
+		target->ctype.alignment = pointer_alignment;
+		merge_type(target, ctype->ctype.base_type);
+		break;
+
 	case SYM_ARRAY:
-		merge_type(sym, ctype);
-		ctype = ctype->ctype.base_type;
+		/* All done - we generate a node of the type of the entry */
+		break;
 	}
 
-	sym->bit_size = ctype->bit_size;
-	sym->array_size = ctype->array_size;
+	node->bit_size = target->bit_size;
+	node->array_size = target->array_size;
 
-	return expr->ctype;
+	expr->ctype = node;
+	return node;
 }
 
 /*
