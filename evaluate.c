@@ -206,6 +206,7 @@ static struct symbol *degenerate(struct expression *expr, struct symbol *ctype, 
 		base = ctype->ctype.base_type;
 	if (base->type == SYM_ARRAY || base->type == SYM_FN) {
 		struct symbol *sym = alloc_symbol(expr->pos, SYM_PTR);
+		struct expression *n = alloc_expression(expr->pos, 0);
 		struct expression *ptr;
 
 		merge_type(sym, ctype);
@@ -216,7 +217,9 @@ static struct symbol *degenerate(struct expression *expr, struct symbol *ctype, 
 		ctype = sym;
 
 		ptr = *ptr_p;
-		*ptr_p = ptr->unop;
+		*n = *ptr->unop;
+		n->ctype = ctype;
+		*ptr_p = n;
 
 		/*
 		 * This all really assumes that we got the degenerate
@@ -226,7 +229,6 @@ static struct symbol *degenerate(struct expression *expr, struct symbol *ctype, 
 		 */
 		if (!lvalue_expression(ptr))
 			warn(ptr->pos, "internal error: strange degenerate array case");
-		ptr->ctype = base;
 	}
 	return ctype;
 }
