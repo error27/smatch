@@ -199,7 +199,7 @@ static void expand_logical(struct expression *expr)
 		 * otherwise we would have short-circuited it..
 		 */
 		expr->type = EXPR_VALUE;
-		expr->value = right->value;
+		expr->value = right->value != 0;
 	}
 }
 
