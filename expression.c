@@ -400,7 +400,18 @@ static struct token *unary_expression(struct token *token, struct expression **t
 			if (!match_op(token, '(') || !lookup_type(token->next))
 				return unary_expression(token, &sizeof_ex->cast_expression);
 			token = typename(token->next, &sizeof_ex->cast_type);
-			return expect(token, ')', "at end of sizeof type-name");
+
+			if (!match_op(token, ')'))
+				return expect(token, ')', "at end of sizeof type-name");
+
+			token = token->next;
+			/*
+			 * C99 ambiguity: the typename might have been the beginning
+			 * of a typed initializer expression..
+			 */
+			if (match_op(token, '{'))
+				token = initializer(&sizeof_ex->cast_expression, token);
+			return token;
 		} else if (token->ident == &__alignof___ident) {
 			struct expression *alignof_ex 
 				= alloc_expression(token->pos, EXPR_ALIGNOF);

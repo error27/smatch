@@ -1382,22 +1382,27 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	return member;
 }
 
+static struct symbol *evaluate_cast(struct expression *);
+
 static struct symbol *evaluate_sizeof(struct expression *expr)
 {
 	int size;
 
 	if (expr->cast_type) {
-		examine_symbol_type(expr->cast_type);
-		size = expr->cast_type->bit_size;
+		if (expr->cast_expression) {
+			struct symbol *sym = evaluate_cast(expr);
+			size = sym->bit_size;
+		} else {
+			examine_symbol_type(expr->cast_type);
+			size = expr->cast_type->bit_size;
+		}
 	} else {
 		if (!evaluate_expression(expr->cast_expression))
 			return NULL;
 		size = expr->cast_expression->ctype->bit_size;
 	}
-	if (size & 7) {
+	if (size & 7)
 		warn(expr->pos, "cannot size expression");
-		return NULL;
-	}
 	expr->type = EXPR_VALUE;
 	expr->value = size >> 3;
 	expr->ctype = size_t_ctype;
@@ -1658,10 +1663,9 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	 * We need to produce an expression that can be dereferenced.
 	 */
 	if (target->type == EXPR_INITIALIZER) {
-		struct symbol *sym = alloc_symbol(expr->pos, SYM_NODE);
+		struct symbol *sym = expr->cast_type;
 		struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
 
-		sym->ctype.base_type = ctype;
 		sym->initializer = expr->cast_expression;
 		evaluate_symbol(sym);
 
@@ -1671,8 +1675,9 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		expr->type = EXPR_PREOP;
 		expr->op = '*';
 		expr->unop = addr;
-		expr->ctype =  ctype;
-		return ctype;
+		expr->ctype = sym;
+
+		return sym;
 	}
 
 	evaluate_expression(target);
