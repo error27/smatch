@@ -52,7 +52,8 @@ enum token_type {
 	"==", "!=",		\
 	"&&", "&=",		\
 	"||", "|=",		\
-	"^=",			\
+	"^=", "##",		\
+	" @ ",			\
 }
 
 enum special_token {
@@ -81,7 +82,9 @@ enum special_token {
 	SPECIAL_AND_ASSIGN,
 	SPECIAL_LOGICAL_OR,
 	SPECIAL_OR_ASSIGN,
-	SPECIAL_XOR_ASSIGN
+	SPECIAL_XOR_ASSIGN,
+	SPECIAL_HASHHASH,
+	SPECIAL_ARG_SEPARATOR
 };
 
 struct string {

@@ -114,17 +114,43 @@ static struct token *expand_list(struct token *head, struct token *last)
 	return for_each_ident(head, last, expand_one_symbol);
 }
 
+static struct token *find_argument_end(struct token *start)
+{
+	int nesting = 0;
+
+	while (!eof_token(start)) {
+		struct token *next = start->next;
+		if (match_op(next, '('))
+			nesting++;
+		else if (match_op(next, ')')) {
+			if (--nesting < 0) {
+				start->next = &eof_token_entry;
+				return next;
+			}
+		} else if (!nesting && match_op(next, ','))
+			next->special = SPECIAL_ARG_SEPARATOR;
+		start = next;
+	}
+	return start;
+}
+
 static struct token *expand(struct token *head, struct symbol *sym)
 {
-	struct token *expansion, *pptr, *token, *last;
+	struct token *arguments, *expansion, *pptr, *token, *last;
 	int newline;
 
 	sym->busy++;
 	token = head->next;
 	newline = token->newline;
+	pptr = head;
+
+	if (sym->arglist) {
+		arguments = token->next;		/* '(' */
+		token = find_argument_end(arguments);	/* ')' */
+		arguments = arguments->next;
+	}
 
 	expansion = sym->expansion;
-	pptr = head;
 	last = token->next;
 	while (!eof_token(expansion)) {
 		struct token *alloc = __alloc_token(0);
