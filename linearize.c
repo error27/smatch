@@ -125,9 +125,14 @@ static const char *show_pseudo(pseudo_t pseudo)
 	case PSEUDO_REG:
 		snprintf(buf, 64, "%%r%d", pseudo->nr);
 		break;
-	case PSEUDO_VAL:
-		snprintf(buf, 64, "$%lld", pseudo->value);
+	case PSEUDO_VAL: {
+		long long value = pseudo->value;
+		if (value > 1000 || value < -1000)
+			snprintf(buf, 64, "$%#llx", value);
+		else
+			snprintf(buf, 64, "$%lld", value);
 		break;
+	}
 	case PSEUDO_ARG:
 		snprintf(buf, 64, "%%arg%d", pseudo->nr);
 		break;
