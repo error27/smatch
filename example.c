@@ -1408,7 +1408,7 @@ static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, ps
 		/* Try to find a non-busy register.. */
 		for (i = 0; i < REGNO; i++) {
 			out = hardregs + i;
-			if (out->busy)
+			if (out->contains)
 				continue;
 			output_insn(state, "movl %s,%s", reg->name, out->name);
 			storage->type = REG_REG;
