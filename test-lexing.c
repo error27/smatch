@@ -18,6 +18,7 @@ int main(int argc, char **argv)
 
 	token = tokenize(argv[1], fd, NULL);
 	token = preprocess(token);
+
 	while (!eof_token(token)) {
 		struct token *next = token->next;
 		char separator = ' ';

@@ -20,11 +20,20 @@ int main(int argc, char **argv)
 	if (fd < 0)
 		die("No such file: %s", argv[1]);
 	init_symbols();
+
+	// Tokenize the input stream
 	token = tokenize(argv[1], fd, NULL);
+
+	// Pre-process the stream
 	token = preprocess(token);
+
+	// Parse the resulting C code
 	translation_unit(token, &list);
+
+	// Show the end result.
 	show_symbol_list(list);
 
+	// And show the allocation statistics
 	show_ident_alloc();
 	show_token_alloc();
 	show_symbol_alloc();
