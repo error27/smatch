@@ -1766,7 +1766,6 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 				insn->src = result;
 				add_one_insn(ep, insn);
 			}
-			pack_basic_blocks(ep);
 
 			/*
 			 * Questionable conditional branch simplification.
@@ -1786,6 +1785,9 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 			 * optimizations (CSE etc) _before_ this point.
 			 */
 			remove_phi_nodes(ep);
+
+			pack_basic_blocks(ep);
+
 			ret_ep = ep;
 		}
 	}
