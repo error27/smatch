@@ -667,7 +667,7 @@ static int get_one_special(int c, stream_t *stream)
 	return next;
 }
 
-#define IDENT_HASH_BITS (10)
+#define IDENT_HASH_BITS (13)
 #define IDENT_HASH_SIZE (1<<IDENT_HASH_BITS)
 #define IDENT_HASH_MASK (IDENT_HASH_SIZE-1)
 
@@ -676,7 +676,7 @@ static int get_one_special(int c, stream_t *stream)
 #define ident_hash_end(hash)		((((hash) >> IDENT_HASH_BITS) + (hash)) & IDENT_HASH_MASK)
 
 static struct ident *hash_table[IDENT_HASH_SIZE];
-int ident_hit, ident_miss;
+int ident_hit, ident_miss, idents;
 
 void show_identifier_stats(void)
 {
@@ -744,6 +744,7 @@ static struct ident *create_hashed_ident(const char *name, int len, unsigned lon
 	*p = ident;
 	ident->next = NULL;
 	ident_miss++;
+	idents++;
 	return ident;
 }
 
