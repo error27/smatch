@@ -128,9 +128,13 @@ void *allocate(struct allocator_struct *desc, unsigned int size)
 	 */
 	if (desc->freelist) {
 		void **p = desc->freelist;
+		retval = p;
 		desc->freelist = *p;
-		memset(p, 0, size);
-		return p;
+		do {
+			*p = NULL;
+			p++;
+		} while ((size -= sizeof(void *)) > 0);
+		return retval;
 	}
 
 	desc->allocations++;
