@@ -95,8 +95,14 @@ static void replace_with_integer(struct token *token, unsigned int val)
 
 static int token_defined(struct token *token)
 {
-	if (token_type(token) == TOKEN_IDENT)
-		return lookup_symbol(token->ident, NS_MACRO) != NULL;
+	if (token_type(token) == TOKEN_IDENT) {
+		struct symbol *sym = lookup_symbol(token->ident, NS_MACRO);
+		if (sym) {
+			sym->weak = 0;
+			return 1;
+		}
+		return 0;
+	}
 
 	warning(token->pos, "expected preprocessor identifier");
 	return 0;
@@ -120,8 +126,10 @@ static int expand_one_symbol(struct token **list)
 		return 1;
 
 	sym = lookup_symbol(token->ident, NS_MACRO);
-	if (sym)
+	if (sym) {
+		sym->weak = 0;
 		return expand(list, sym);
+	}
 	if (token->ident == &__LINE___ident) {
 		replace_with_integer(token, token->pos.line);
 	} else if (token->ident == &__FILE___ident) {
