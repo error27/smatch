@@ -187,17 +187,63 @@ static int dead_insn(struct instruction *insn, pseudo_t src1, pseudo_t src2)
 	return 1;
 }
 
+static inline int constant(pseudo_t pseudo)
+{
+	return pseudo->type == PSEUDO_VAL;
+}
+
+static int simplify_constant_binop(struct instruction *insn)
+{
+	return 0;
+}
+
+static int simplify_constant_leftside(struct instruction *insn)
+{
+	return 0;
+}
+
+static int simplify_constant_rightside(struct instruction *insn)
+{
+	return 0;
+}
+
+static int simplify_binop(struct instruction *insn)
+{
+	if (dead_insn(insn, insn->src1, insn->src2))
+		return 1;
+	if (constant(insn->src1)) {
+		if (constant(insn->src2))
+			return simplify_constant_binop(insn);
+		return simplify_constant_leftside(insn);
+	}
+	if (constant(insn->src2))
+		return simplify_constant_rightside(insn);
+	return 0;
+}
+
+static int simplify_constant_unop(struct instruction *insn)
+{
+	return 0;
+}
+
+static int simplify_unop(struct instruction *insn)
+{
+	if (dead_insn(insn, insn->src1, VOID))
+		return 1;
+	if (constant(insn->src1))
+		return simplify_constant_unop(insn);
+	return 0;
+}
+
 int simplify_instruction(struct instruction *insn)
 {
 	switch (insn->opcode) {
 	case OP_BINARY ... OP_BINCMP_END:
-		if (dead_insn(insn, insn->src1, insn->src2))
-			return 1;
-		break;
+		return simplify_binop(insn);
+
 	case OP_NOT: case OP_NEG:
-		if (dead_insn(insn, insn->src1, VOID))
-			return 1;
-		break;
+		return simplify_unop(insn);
+
 	case OP_SETVAL:
 		if (dead_insn(insn, VOID, VOID))
 			return 1;
