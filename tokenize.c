@@ -189,43 +189,121 @@ static struct token * alloc_token(stream_t *stream)
 	return token;
 }
 
-static int nextchar(stream_t *stream)
+/*
+ *  Argh...  That was surprisingly messy - handling '\r' complicates the
+ *  things a _lot_.
+ */
+static int nextchar_slow(stream_t *stream)
 {
 	int offset = stream->offset;
 	int size = stream->size;
 	int c;
-	int complain = -1;
+	int spliced = 0, had_cr, had_backslash, complain;
+
+restart:
+	had_cr = had_backslash = complain = 0;
 
 repeat:
-	complain++;
 	if (offset >= size) {
 		size = read(stream->fd, stream->buffer, BUFSIZE);
 		if (size <= 0)
-			return EOF;
+			goto got_eof;
 		stream->size = size;
-		stream->offset = 0;
-		offset = 0;
+		stream->offset = offset = 0;
 	}
-	c = stream->buffer[offset];
-	stream->offset = ++offset;
+
+	c = stream->buffer[offset++];
+
+	if (had_cr && c != '\n')
+		complain = 1;
+
+	if (c == '\r') {
+		had_cr = 1;
+		goto repeat;
+	}
 
 	stream->pos.pos++;
 
-	/* Ignore DOS-stype '\r' characters */
-	if (c == '\r')
-		goto repeat;
-
 	if (c == '\n') {
 		stream->pos.line++;
-		stream->pos.newline = 1;
 		stream->pos.pos = 0;
-		complain = 0;
 	}
 
+	if (!had_backslash) {
+		if (c == '\\') {
+			had_backslash = 1;
+			goto repeat;
+		}
+		if (c == '\n')
+			stream->pos.newline = 1;
+	} else {
+		if (c == '\n') {
+			if (complain)
+				warn(stream->pos, "non-ASCII data stream");
+			spliced = 1;
+			goto restart;
+		}
+		stream->pos.pos--;
+		offset--;
+		c = '\\';
+	}
+
+out:
+	stream->offset = offset;
 	if (complain)
 		warn(stream->pos, "non-ASCII data stream");
 
 	return c;
+
+got_eof:
+	if (had_backslash) {
+		c = '\\';
+		goto out;
+	}
+	if (stream->pos.pos)
+		warn(stream->pos, "no newline at end of file");
+	else if (had_cr)
+		warn(stream->pos, "non-ASCII data stream");
+	else if (spliced)
+		warn(stream->pos, "backslash-newline at end of file");
+	return EOF;
+}
+
+/*
+ *  We want that as light as possible while covering all normal cases.
+ *  Slow path (including the logics with line-splicing and EOF sanity
+ *  checks) is in nextchar_slow().
+ */
+static inline int nextchar(stream_t *stream)
+{
+	int offset = stream->offset;
+
+	if (offset < stream->size) {
+		int c = stream->buffer[offset++];
+		unsigned char next;
+		switch (c) {
+		case '\r':
+			break;
+		case '\n':
+			stream->offset = offset;
+			stream->pos.line++;
+			stream->pos.newline = 1;
+			stream->pos.pos = 0;
+			return '\n';
+		case '\\':
+			if (offset >= stream->size)
+				break;
+			next = stream->buffer[offset];
+			if (next == '\n' || next == '\r')
+				break;
+			/* fallthru */
+		default:
+			stream->offset = offset;
+			stream->pos.pos++;
+			return c;
+		}
+	}
+	return nextchar_slow(stream);
 }
 
 struct token eof_token_entry;
@@ -365,7 +443,7 @@ static int escapechar(int first, int type, stream_t *stream, int *valp)
 			case '"':
 				break;
 			case '\n':
-				next = escapechar(next, type, stream, &value);
+				warn(stream->pos, "Newline in string or character constant");
 				break;
 			case '0'...'7': {
 				int nr = 2;
@@ -437,7 +515,7 @@ static int get_string_token(int next, stream_t *stream)
 		if (val == '"')
 			break;
 		if (next == EOF) {
-			warn(stream->pos, "Enf of file in middle of string");
+			warn(stream->pos, "End of file in middle of string");
 			return next;
 		}
 		if (len < sizeof(buffer)) {
@@ -748,12 +826,6 @@ static void tokenize_stream(stream_t *stream, struct token *endtoken)
 {
 	int c = nextchar(stream);
 	while (c != EOF) {
-		if (c == '\\') {
-			c = nextchar(stream);
-			stream->pos.newline = 0;
-			stream->pos.whitespace = 1;
-			continue;
-		}
 		if (!isspace(c)) {
 			struct token *token = alloc_token(stream);
 			stream->token = token;
