@@ -1246,6 +1246,14 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 		break;
 
 	case SYM_ARRAY:
+		if (!lvalue_expression(op)) {
+			warn(op->pos, "non-lvalue array??");
+			return NULL;
+		}
+
+		/* Do the implied "addressof" on the array */
+		*op = *op->unop;
+
 		/*
 		 * When an array is dereferenced, we need to pick
 		 * up the attributes of the original node too..
