@@ -315,9 +315,7 @@ static struct token *cpp_value(struct token *token, struct cpp_expression *value
 			return token;
 		}
 	}
-	if (!eof_token(token))
-		warn(token, "garbage at end: %s", show_token_sequence(token));
-	return &eof_token_entry;
+	return token;
 }
 
 static unsigned cpp_type(unsigned type1, unsigned type2)
@@ -354,6 +352,8 @@ static int expression_value(struct token *token)
 {
 	struct cpp_expression expr;
 	token = cpp_conditional(token, &expr);
+	if (!eof_token(token))
+		warn(token, "garbage at end: %s", show_token_sequence(token));
 	return expr.value != 0;
 }
 
