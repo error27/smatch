@@ -27,6 +27,8 @@
 #include "linearize.h"
 #include "target.h"
 
+int verbose, optimize, preprocessing;
+
 struct token *skip_to(struct token *token, int op)
 {
 	while (!match_op(token, op) && !eof_token(token))
@@ -520,6 +522,7 @@ char **handle_switch_v(char *arg, char **next)
 	verbose = 1;
 	return next;
 }
+
 char **handle_switch_I(char *arg, char **next)
 {
 	char *path = arg+1;
@@ -635,7 +638,14 @@ char **handle_switch_U(char *arg, char **next)
 	return next;
 }
 
-
+char **handle_switch_O(char *arg, char **next)
+{
+	int level = 1;
+	if (arg[1] >= '0' && arg[1] <= '9')
+		level = arg[1] - '0';
+	optimize = level;
+	return next;
+}
 
 char **handle_nostdinc(char *arg, char **next)
 {
@@ -668,6 +678,7 @@ char **handle_switch(char *arg, char **next)
 	case 'U': rc = handle_switch_U(arg, next); break;
 	case 'v': rc = handle_switch_v(arg, next); break;
 	case 'W': rc = handle_switch_W(arg, next); break;
+	case 'O': rc = handle_switch_O(arg, next); break;
 	default:
 		break;
 	}

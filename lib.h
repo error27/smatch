@@ -16,6 +16,8 @@
 
 #include "compat.h"
 
+extern int verbose, optimize, preprocessing;
+
 #define container(ptr, type, member) \
 	(type *)((void *)(ptr) - offsetof(type, member))
 

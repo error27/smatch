@@ -176,7 +176,6 @@ static inline struct token *containing_token(struct token **p)
  * This allows us to not test for NULL pointers
  * when following the token->next chain..
  */
-extern int preprocessing, verbose;
 extern struct token eof_token_entry;
 #define eof_token(x) ((x) == &eof_token_entry)
 
