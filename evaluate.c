@@ -127,9 +127,26 @@ static inline struct symbol *integer_promotion(struct symbol *type)
 	return &int_ctype;
 }
 
+/*
+ * integer part of usual arithmetic conversions:
+ *	integer promotions are applied
+ *	if left and right are identical, we are done
+ *	if signedness is the same, convert one with lower rank
+ *	unless unsigned argument has rank lower than signed one, convert the
+ *	signed one.
+ *	if signed argument is bigger than unsigned one, convert the unsigned.
+ *	otherwise, convert signed.
+ *
+ * Leaving aside the integer promotions, that is equivalent to
+ *	if identical, don't convert
+ *	if left is bigger than right, convert right
+ *	if right is bigger than left, convert right
+ *	otherwise, if signedness is the same, convert one with lower rank
+ *	otherwise convert the signed one.
+ */
 static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 {
-	unsigned long lmod, rmod, mod;
+	unsigned long lmod, rmod;
 
 	left = integer_promotion(left);
 	right = integer_promotion(right);
@@ -143,16 +160,13 @@ static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 	if (right->bit_size > left->bit_size)
 		goto right;
 
-	/* Same size integers - promote to unsigned, promote to long */
 	lmod = left->ctype.modifiers;
 	rmod = right->ctype.modifiers;
-	mod = lmod | rmod;
-	if (mod == lmod)
+	if ((lmod ^ rmod) & MOD_UNSIGNED) {
+		if (lmod & MOD_UNSIGNED)
+			goto left;
+	} else if ((lmod & ~rmod) & (MOD_LONG | MOD_LONGLONG))
 		goto left;
-	if (mod == rmod)
-		goto right;
-	return ctype_integer(mod);
-
 right:
 	left = right;
 left:
