@@ -1293,13 +1293,17 @@ static struct expression *index_expression(struct expression *from, struct expre
 
 static struct token *initializer_list(struct expression_list **list, struct token *token)
 {
+	int expect_equal = 0;
+
 	for (;;) {
 		struct token *next = token->next;
 		struct expression *expr;
 
-		if (match_op(token, '.') && (token_type(next) == TOKEN_IDENT) && match_op(next->next, '=')) {
+		if (match_op(token, '.') && (token_type(next) == TOKEN_IDENT)) {
 			add_expression(list, identifier_expression(next));
-			token = next->next->next;
+			token = next->next;
+			expect_equal = 1;
+			continue;
 		} else if ((token_type(token) == TOKEN_IDENT) && match_op(next, ':')) {
 			add_expression(list, identifier_expression(token));
 			token = next->next;
@@ -1310,8 +1314,11 @@ static struct token *initializer_list(struct expression_list **list, struct toke
 				token = constant_expression(token->next, &to);
 			add_expression(list, index_expression(from, to));
 			token = expect(token, ']', "at end of initializer index");
-			token = expect(token, '=', "at end of initializer index");
+			expect_equal = 1;
+			continue;
 		}
+		if (expect_equal)
+			token = expect(token, '=', "at end of initializer index");
 
 		expr = NULL;
 		token = initializer(&expr, token);
@@ -1321,6 +1328,7 @@ static struct token *initializer_list(struct expression_list **list, struct toke
 		if (!match_op(token, ','))
 			break;
 		token = token->next;
+		expect_equal = 0;
 	}
 	return token;
 }
