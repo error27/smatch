@@ -174,6 +174,9 @@ void **__add_ptr_list(struct ptr_list **listp, void *ptr)
 	void **ret;
 	int nr;
 
+	/* The low two bits are reserved for tags */
+	assert((3 & (unsigned long)ptr) == 0);
+
 	if (!list || (nr = (last = list->prev)->nr) >= LIST_NODE_NR) {
 		struct ptr_list *newlist = malloc(sizeof(*newlist));
 		if (!newlist)

@@ -168,11 +168,13 @@ static inline struct basic_block * delete_last_basic_block(struct basic_block_li
 	return delete_ptr_list_last((struct ptr_list **)head);
 }
 
+#define PTR_ENTRY(h,i)	(void *)(~3UL & (unsigned long)(h)->list[i])
+
 static inline void *first_ptr_list(struct ptr_list *list)
 {
 	if (!list)
 		return NULL;
-	return list->list[0];
+	return PTR_ENTRY(list, 0);
 }
 
 static inline void *last_ptr_list(struct ptr_list *list)
@@ -181,7 +183,7 @@ static inline void *last_ptr_list(struct ptr_list *list)
 	if (!list)
 		return NULL;
 	list = list->prev;
-	return list->list[list->nr-1];
+	return PTR_ENTRY(list, list->nr-1);
 }
 
 static inline struct basic_block *first_basic_block(struct basic_block_list *head)
@@ -239,19 +241,19 @@ static inline void add_expression(struct expression_list **list, struct expressi
 		struct ptr_list *__list = __head;					\
 		int __nr = 0;								\
 		CHECK_TYPE(head,ptr);							\
-		if (__head) ptr = (__typeof__(ptr)) __head->list[0];			\
+		if (__head) ptr = PTR_ENTRY(__head, 0);					\
 		else ptr = NULL
 
 #define DO_NEXT(ptr, __head, __list, __nr)						\
 		if (ptr) {								\
 			if (++__nr < __list->nr) {					\
-				ptr = (__typeof__(ptr)) __list->list[__nr];		\
+				ptr = PTR_ENTRY(__list,__nr);				\
 			} else {							\
 				__list = __list->next;					\
 				ptr = NULL;						\
 				if (__list != __head) {					\
 					__nr = 0;					\
-					ptr = (__typeof__(ptr)) __list->list[0];	\
+					ptr = PTR_ENTRY(__list,0);			\
 				}							\
 			}								\
 		}
@@ -260,7 +262,7 @@ static inline void add_expression(struct expression_list **list, struct expressi
 	do {										\
 		__nr = 0;								\
 		__list = __head;							\
-		if (__head) ptr = (__typeof__(ptr)) __head->list[0];			\
+		if (__head) ptr = PTR_ENTRY(__head, 0);					\
 	} while (0)
 
 #define DO_FINISH(ptr, __head, __list, __nr)						\
@@ -287,7 +289,7 @@ static inline void add_expression(struct expression_list **list, struct expressi
 		do { int __nr;								\
 			for (__nr = 0; __nr < __list->nr; __nr++) {			\
 				do {							\
-					ptr = (__typeof__(ptr)) (__list->list[__nr]);	\
+					ptr = PTR_ENTRY(__list,__nr);			\
 					do {
 
 #define DO_END_FOR_EACH(ptr, __head, __list, __nr)					\
@@ -308,7 +310,7 @@ static inline void add_expression(struct expression_list **list, struct expressi
 			__nr = __list->nr;						\
 			while (--__nr >= 0) {						\
 				do {							\
-					ptr = (__typeof__(ptr)) (__list->list[__nr]);	\
+					ptr = PTR_ENTRY(__list,__nr);			\
 					do {
 
 
@@ -333,7 +335,7 @@ static inline void add_expression(struct expression_list **list, struct expressi
 	__inside##new:									\
 			while (--__newnr >= 0) {					\
 				do {							\
-					new = (__typeof__(ptr)) (__newlist->list[__newnr]);\
+					new = PTR_ENTRY(__newlist,__newnr);		\
 					do {
 
 #define RECURSE_PTR_REVERSE(ptr, new)							\
