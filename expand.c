@@ -37,17 +37,6 @@ static int expand_statement(struct statement *);
 static int expand_symbol_expression(struct expression *expr)
 {
 	struct symbol *sym = expr->symbol;
-
-	/*
-	 * The preprocessor can cause unknown symbols to be generated
-	 */
-	if (!sym) {
-		warning(expr->pos, "undefined preprocessor identifier '%s'", show_ident(expr->symbol_name));
-		expr->type = EXPR_VALUE;
-		expr->value = 0;
-		return UNSAFE;
-	}
-
 	/* The cost of a symbol expression is lower for on-stack symbols */
 	return (sym->ctype.modifiers & (MOD_STATIC | MOD_EXTERN)) ? 2 : 1;
 }

@@ -72,7 +72,7 @@ static struct token *alloc_token(struct position *pos)
 static const char *show_token_sequence(struct token *token);
 
 /* Expand symbol 'sym' at '*list' */
-static struct token **expand(struct token **, struct symbol *);
+static int expand(struct token **, struct symbol *);
 
 static void replace_with_string(struct token *token, const char *str)
 {
@@ -105,13 +105,13 @@ static void replace_with_defined(struct token *token)
 	token->number = string[defined];
 }
 
-struct token **expand_one_symbol(struct token **list)
+static int expand_one_symbol(struct token **list)
 {
 	struct token *token = *list;
 	struct symbol *sym;
 
 	if (token->pos.noexpand)
-		return &token->next;
+		return 1;
 
 	sym = lookup_symbol(token->ident, NS_MACRO);
 	if (sym)
@@ -121,7 +121,7 @@ struct token **expand_one_symbol(struct token **list)
 	} else if (token->ident == &__FILE___ident) {
 		replace_with_string(token, (input_streams + token->pos.stream)->name);
 	}
-	return &token->next;
+	return 1;
 }
 
 static inline struct token *scan_next(struct token **where)
@@ -137,16 +137,13 @@ static inline struct token *scan_next(struct token **where)
 	return token;
 }
 
-static struct token **expand_list(struct token **list)
+static void expand_list(struct token **list)
 {
 	struct token *next;
 	while (!eof_token(next = scan_next(list))) {
-		if (token_type(next) == TOKEN_IDENT)
-			list = expand_one_symbol(list);
-		else
+		if (token_type(next) != TOKEN_IDENT || expand_one_symbol(list))
 			list = &next->next;
 	}
-	return list;
 }
 
 static struct token *collect_arg(struct token *prev, int vararg, struct position *pos)
@@ -533,7 +530,7 @@ static struct token **substitute(struct token **list, struct token *body, struct
 	return list;
 }
 
-static struct token **expand(struct token **list, struct symbol *sym)
+static int expand(struct token **list, struct symbol *sym)
 {
 	struct token *last;
 	struct token *token = *list;
@@ -544,14 +541,14 @@ static struct token **expand(struct token **list, struct symbol *sym)
 
 	if (expanding->tainted) {
 		token->pos.noexpand = 1;
-		return &token->next;
+		return 1;
 	}
 
 	if (sym->arglist) {
 		if (!match_op(scan_next(&token->next), '('))
-			return &token->next;
+			return 1;
 		if (!collect_arguments(token->next, sym->arglist, args, token))
-			return &token->next;
+			return 1;
 		expand_arguments(nargs, args);
 	}
 
@@ -561,7 +558,7 @@ static struct token **expand(struct token **list, struct symbol *sym)
 	tail = substitute(list, sym->expansion, args);
 	*tail = last;
 
-	return list;
+	return 0;
 }
 
 static const char *token_name_sequence(struct token *token, int endop, struct token *start)
@@ -1098,14 +1095,20 @@ static int expression_value(struct token **where)
 	while (!eof_token(p = scan_next(list))) {
 		switch (state) {
 		case 0:
-			if (token_type(p) == TOKEN_IDENT) {
-				if (p->ident != &defined_ident) {
-					list = expand_one_symbol(list);
-					continue;
-				}
+			if (token_type(p) != TOKEN_IDENT)
+				break;
+			if (p->ident == &defined_ident) {
 				state = 1;
 				beginning = list;
+				break;
 			}
+			if (!expand_one_symbol(list))
+				continue;
+			if (token_type(p) != TOKEN_IDENT)
+				break;
+			if (Wundefined_preprocessor)
+				warning(p->pos, "undefined preprocessor identifier '%s'", show_ident(p->ident));
+			replace_with_integer(p, 0);
 			break;
 		case 1:
 			if (match_op(p, '(')) {
@@ -1489,9 +1492,8 @@ static void do_preprocess(struct token **list)
 				continue;
 			}
 
-			if (token_type(next) == TOKEN_IDENT)
-				list = expand_one_symbol(list);
-			else
+			if (token_type(next) != TOKEN_IDENT ||
+			    expand_one_symbol(list))
 				list = &next->next;
 		}
 

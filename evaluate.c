@@ -36,10 +36,6 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 	struct symbol *base_type;
 
 	if (!sym) {
-		if (preprocessing) {
-			expr->ctype = &int_ctype;
-			return &int_ctype;
-		}
 		warning(expr->pos, "undefined identifier '%s'", show_ident(expr->symbol_name));
 		return NULL;
 	}

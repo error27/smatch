@@ -144,6 +144,7 @@ extern int include_fd;
 extern char *include;
 extern int preprocess_only;
 extern int Wdefault_bitfield_sign;
+extern int Wundefined_preprocessor;
 extern int Wbitwise;
 extern int Wtypesign;
 
