@@ -23,12 +23,6 @@ enum statement_type {
 	STMT_LABEL,
 	STMT_GOTO,
 	STMT_ASM,
-
-	/* These only show up after linearization */
-	STMT_CONDTRUE,
-	STMT_CONDFALSE,
-	STMT_MULTIVALUE,
-	STMT_MULTIJMP,
 };
 
 struct statement {

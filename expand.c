@@ -584,13 +584,6 @@ static void expand_statement(struct statement *stmt)
 	case STMT_ASM:
 		/* FIXME! Do the asm parameter evaluation! */
 		break;
-
-	/* Should not show up at this stage */
-	case STMT_CONDTRUE:
-	case STMT_CONDFALSE:
-	case STMT_MULTIVALUE:
-	case STMT_MULTIJMP:
-		break;
 	}
 }
 
