@@ -195,6 +195,8 @@ extern struct symbol_list *used_list;
 
 extern void access_symbol(struct symbol *);
 
+extern const char * type_difference(struct symbol *target, struct symbol *source,
+	unsigned long target_mod_ignore, unsigned long source_mod_ignore);
 
 extern struct symbol *lookup_symbol(struct ident *, enum namespace);
 extern void init_symbols(void);

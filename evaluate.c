@@ -310,7 +310,7 @@ static struct symbol *evaluate_add(struct expression *expr)
 #define MOD_SIZE (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG)
 #define MOD_IGNORE (MOD_TOPLEVEL | MOD_STORAGE | MOD_ADDRESSABLE | MOD_SIGNED | MOD_UNSIGNED | MOD_ASSIGNED)
 
-static const char * type_difference(struct symbol *target, struct symbol *source,
+const char * type_difference(struct symbol *target, struct symbol *source,
 	unsigned long target_mod_ignore, unsigned long source_mod_ignore)
 {
 	for (;;) {
@@ -1430,6 +1430,9 @@ struct symbol *evaluate_expression(struct expression *expr)
 		return &ptr_ctype;
 
 	case EXPR_TYPE:
+		/* Evaluate the type of the symbol .. */
+		evaluate_symbol(expr->symbol);
+		/* .. but the type of the _expression_ is a "type" */
 		expr->ctype = &type_ctype;
 		return &type_ctype;
 

@@ -190,9 +190,25 @@ static void expand_comma(struct expression *expr)
 		*expr = *expr->right;
 }
 
+#define MOD_IGN (MOD_VOLATILE | MOD_CONST)
+
 static int compare_types(int op, struct symbol *left, struct symbol *right)
 {
-	return 1;
+	switch (op) {
+	case SPECIAL_EQUAL:
+		return !type_difference(left, right, MOD_IGN, MOD_IGN);
+	case SPECIAL_NOTEQUAL:
+		return type_difference(left, right, MOD_IGN, MOD_IGN) != NULL;
+	case '<':
+		return left->bit_size < right->bit_size;
+	case '>':
+		return left->bit_size > right->bit_size;
+	case SPECIAL_LTE:
+		return left->bit_size <= right->bit_size;
+	case SPECIAL_GTE:
+		return left->bit_size >= right->bit_size;
+	}
+	return 0;
 }
 
 static void expand_compare(struct expression *expr)
