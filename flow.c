@@ -621,6 +621,8 @@ static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old
 	case OP_BR:
 		rewrite_branch(bb, &insn->bb_true, old, new);
 		rewrite_branch(bb, &insn->bb_false, old, new);
+		if (insn->bb_true == insn->bb_false)
+			insn->bb_false = NULL;
 		return 1;
 	case OP_SWITCH: {
 		struct multijmp *jmp;
@@ -726,20 +728,35 @@ void pack_basic_blocks(struct entrypoint *ep)
 		/*
 		 * If this block has a phi-node associated with it,
 		 */
-		if (bb->phinodes)
-			continue;
+		if (bb->phinodes) {
+			struct phi *phi;
+			FOR_EACH_PTR(bb->phinodes, phi) {
+				if (phi->source)
+					goto no_merge;
+			} END_FOR_EACH_PTR(phi);
+		}
 
 		/*
 		 * Just a branch?
 		 */
-		first = first_instruction(bb->insns);
-		if (first && first->opcode == OP_BR) {
-			if (rewrite_branch_bb(bb, first)) {
-				kill_bb(bb);
+		FOR_EACH_PTR(bb->insns, first) {
+			if (!first->bb)
 				continue;
+			switch (first->opcode) {
+			case OP_NOP: case OP_LNOP: case OP_SNOP:
+				continue;
+			case OP_BR:
+				if (rewrite_branch_bb(bb, first)) {
+					kill_bb(bb);
+					goto no_merge;
+				}
+			/* fallthrough */
+			default:
+				goto out;
 			}
-		}
+		} END_FOR_EACH_PTR(first);
 
+out:
 		if (ep->entry == bb)
 			continue;
 
