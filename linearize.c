@@ -324,10 +324,6 @@ static void show_instruction(struct instruction *insn)
 		break;
 	}
 
-	case OP_MOV:
-		printf("\t%%r%d <- %s\n",
-			regno(insn->target), show_pseudo(insn->src));
-		break;
 	case OP_NOT: case OP_NEG:
 		printf("\t%%r%d <- %s %s\n",
 			regno(insn->target),
@@ -962,25 +958,6 @@ static pseudo_t linearize_select(struct entrypoint *ep, struct expression *expr)
 	return res;
 }
 
-static pseudo_t copy_pseudo(struct entrypoint *ep, struct expression *expr, pseudo_t src)
-{
-	struct basic_block *bb = ep->active;
-
-	if (src->type != PSEUDO_REG)
-		return src;
-
-	if (bb_reachable(bb)) {
-		struct instruction *new = alloc_instruction(OP_MOV, expr->ctype);
-		pseudo_t dst = alloc_pseudo(src->def);
-		new->target = dst;
-		new->bb = bb;
-		use_pseudo(src, &new->src);
-		add_instruction(&bb->insns, new);
-		return dst;
-	}
-	return VOID;
-}
-
 static pseudo_t add_join_conditional(struct entrypoint *ep, struct expression *expr,
 				     pseudo_t src1, struct basic_block *bb1,
 				     pseudo_t src2, struct basic_block *bb2)
@@ -1007,15 +984,14 @@ static pseudo_t linearize_short_conditional(struct entrypoint *ep, struct expres
 					    struct expression *cond,
 					    struct expression *expr_false)
 {
-	pseudo_t tst, src1, src2;
+	pseudo_t src1, src2;
 	struct basic_block *bb_true;
 	struct basic_block *bb_false = alloc_basic_block(expr_false->pos);
 	struct basic_block *merge = alloc_basic_block(expr->pos);
 
-	tst = linearize_expression(ep, cond);
-	src1 = copy_pseudo(ep, expr, tst);
+	src1 = linearize_expression(ep, cond);
 	bb_true = ep->active;
-	add_branch(ep, expr, tst, merge, bb_false);
+	add_branch(ep, expr, src1, merge, bb_false);
 
 	set_activeblock(ep, bb_false);
 	src2 = linearize_expression(ep, expr_false);
