@@ -153,6 +153,7 @@ static void examine_struct_union_type(struct symbol *sym, int advance)
 	void (*fn)(struct symbol *, struct struct_union_info *);
 	struct symbol *member;
 
+	sym->bit_size = -1;	/* Make sure we don't recurse */
 	fn = advance ? lay_out_struct : lay_out_union;
 	FOR_EACH_PTR(sym->symbol_list, member) {
 		fn(member, &info);
