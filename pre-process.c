@@ -101,8 +101,11 @@ static struct token *expand(struct token *, struct symbol *);
 struct token *expand_one_symbol(struct token *head, struct token *token)
 {
 	struct symbol *sym = lookup_symbol(token->ident, NS_PREPROCESSOR);
-	if (sym && !sym->busy)
+	if (sym && !sym->busy) {
+		if (sym->arglist && !match_op(token->next, '('))
+			return token;
 		return expand(head, sym);
+	}
 	return token;
 }
 
@@ -218,6 +221,7 @@ static int handle_include(struct token *head, struct token *token)
 
 static int handle_define(struct token *head, struct token *token)
 {
+	struct token *arglist, *expansion;
 	struct token *left = token->next;
 	struct symbol *sym;
 	struct ident *name;
@@ -236,7 +240,25 @@ static int handle_define(struct token *head, struct token *token)
 	}
 	sym = alloc_symbol(left, SYM_NONE);
 	bind_symbol(sym, name, NS_PREPROCESSOR);
-	sym->expansion = left->next;
+
+	arglist = NULL;
+	expansion = left->next;
+	if (match_op(expansion, '(')) {
+		arglist = expansion;
+		while (!eof_token(expansion)) {
+			struct token *next = expansion->next;
+			if (match_op(next, ')')) {
+				// Terminate the arglist
+				expansion->next = &eof_token_entry;
+				expansion = next->next;
+				break;
+			}
+			expansion = next;
+		}
+		arglist = arglist->next;
+	}
+	sym->expansion = expansion;
+	sym->arglist = arglist;
 	return 1;
 }
 
@@ -462,6 +484,8 @@ static const char *show_token_sequence(struct token *token)
 	static char buffer[256];
 	char *ptr = buffer;
 
+	if (!token)
+		return "<none>";
 	while (!eof_token(token)) {
 		const char *val = show_token(token);
 		int len = strlen(val);
@@ -557,13 +581,8 @@ static void do_preprocess(struct token *head)
 			head->next = next->next;
 			continue;
 		}
-		if (next->type == TOKEN_IDENT) {
-			struct symbol *sym= lookup_symbol(next->ident, NS_PREPROCESSOR);
-			if (sym) {
-				head = expand(head, sym);
-				continue;
-			}
-		}
+		if (next->type == TOKEN_IDENT)
+			next = expand_one_symbol(head, next);
 		head = next;
 	} while (!eof_token(head));
 }

@@ -47,6 +47,7 @@ struct symbol {
 		struct preprocessor_sym {
 			int busy;
 			struct token *expansion;
+			struct token *arglist;
 		};
 		struct ctype_symbol {
 			struct symbol *next;		/* Next symbol at this level */
