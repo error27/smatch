@@ -184,12 +184,8 @@ static void replace(struct token *token, struct token *prev, struct token *last,
 	}
 }
 
-static struct token *current_arglist, *current_arguments;
-
-static struct token *get_current_argument(int nr)
+static struct token *get_argument(int nr, struct token *args)
 {
-	struct token *args = current_arguments;
-
 	if (!nr)
 		return args;
 	while (!eof_token(args)) {
@@ -218,14 +214,14 @@ static struct token *stringify(struct token *token, struct token *arg)
 	return newtoken;
 }
 
-static struct token *expand_one_arg(struct token *head, struct token *token)
+static struct token *expand_one_arg(struct token *head, struct token *token,
+		struct token *arglist, struct token *arguments)
 {
 	int nr = 0;
-	struct token *arglist = current_arglist;
 
 	while (!eof_token(arglist)) {
 		if (arglist->ident == token->ident) {
-			struct token *arg = get_current_argument(nr);
+			struct token *arg = get_argument(nr, arguments);
 			if (match_op(head, '#'))
 				arg = stringify(token, arg);
 			replace(token, head, token->next, arg);
@@ -240,9 +236,26 @@ static struct token *expand_one_arg(struct token *head, struct token *token)
 static void expand_arguments(struct token *token, struct token *head, struct token *last,
 	struct token *arguments, struct token *arglist)
 {
-	current_arglist = arglist;
-	current_arguments = arguments;
-	for_each_ident(head, last, expand_one_arg);
+	struct token *old = head;
+	if (!last)
+		last = &eof_token_entry;
+	for (;;) {
+		struct token *next = head->next;
+
+		/* Did we hit the end of the current expansion? */
+		if (next == last)
+			break;
+		if (eof_token(next)) {
+			warn(last, "walked past end");
+			warn(old, "started here");
+			break;
+		}
+
+		if (next->type == TOKEN_IDENT)
+			next = expand_one_arg(head, next, arglist, arguments);
+
+		head = next;
+	}
 }
 
 /*
