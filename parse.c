@@ -103,8 +103,11 @@ void show_expression(struct expression *expr)
 		show_expression(expr->unop);
 		printf(" %s ", show_special(expr->op));
 		break;
-	case EXPR_PRIMARY:
+	case EXPR_CONSTANT:
 		printf("%s", show_token(expr->token));
+		break;
+	case EXPR_SYMBOL:
+		show_symbol(expr->symbol);
 		break;
 	case EXPR_DEREF:
 		show_expression(expr->deref);
@@ -171,7 +174,9 @@ static struct token *parens_expression(struct token *token, struct expression **
 		struct statement *stmt = alloc_statement(token, STMT_COMPOUND);
 		*expr = e;
 		e->statement = stmt;
+		start_symbol_scope();
 		token = compound_statement(token->next, stmt);
+		end_symbol_scope();
 		token = expect(token, '}', "at end of statement expression");
 	} else
 		token = parse_expression(token, expr);
@@ -183,16 +188,25 @@ static struct token *primary_expression(struct token *token, struct expression *
 	struct expression *expr = NULL;
 
 	switch (token->type) {
-	case TOKEN_IDENT:
 	case TOKEN_INTEGER:
 	case TOKEN_FP:
 	case TOKEN_CHAR:
-		expr = alloc_expression(token, EXPR_PRIMARY);
+		expr = alloc_expression(token, EXPR_CONSTANT);
 		token = token->next;
 		break;
 
+	case TOKEN_IDENT: {
+		struct symbol *sym = lookup_symbol(token->ident, NS_SYMBOL);
+		if (!sym)
+			warn(token, "undefined identifier");
+		expr = alloc_expression(token, EXPR_SYMBOL);
+		expr->symbol = sym;
+		token = token->next;
+		break;
+	}
+
 	case TOKEN_STRING:
-		expr = alloc_expression(token, EXPR_PRIMARY);
+		expr = alloc_expression(token, EXPR_CONSTANT);
 		do {
 			token = token->next;
 		} while (token->type == TOKEN_STRING);
@@ -661,7 +675,7 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 	return token;
 }
 
-static struct token *abstract_function_declarator(struct token *token, struct symbol **tree);
+static struct token *abstract_function_declarator(struct token *, struct symbol_list **);
 
 static struct token *direct_declarator(struct token *token, struct symbol **tree,
 	struct token *(*declarator)(struct token *, struct symbol **, struct token **),
@@ -702,7 +716,7 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 				continue;
 			}
 			*tree = indirect(*tree, SYM_FN);
-			token = abstract_function_declarator(next, &(*tree)->children);
+			token = abstract_function_declarator(next, &(*tree)->arguments);
 			token = expect(token, ')', "in function declarator");
 			continue;
 		}
@@ -720,8 +734,10 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 		}
 		break;
 	}
-	if (p)
+	if (p) {
 		(*tree)->token = *p;
+		(*tree)->ident = *p;
+	}
 	return token;
 }
 
@@ -939,7 +955,10 @@ default_statement:
 
 	if (match_op(token, '{')) {
 		stmt->type = STMT_COMPOUND;
+		start_symbol_scope();
 		token = compound_statement(token->next, stmt);
+		end_symbol_scope();
+		
 		return expect(token, '}', "at end of compound statement");
 	}
 			
@@ -961,17 +980,15 @@ struct token * statement_list(struct token *token, struct statement_list **list)
 	return token;
 }
 
-static struct token *parameter_type_list(struct token *token, struct symbol **tree)
+static struct token *parameter_type_list(struct token *token, struct symbol_list **list)
 {
 	for (;;) {
 		struct symbol *sym = alloc_symbol(token, SYM_TYPE);
 
-		*tree = sym;
-		token = parameter_declaration(token, tree);
+		token = parameter_declaration(token, &sym);
 		if (!match_op(token, ','))
 			break;
-		if (*tree)
-			tree = &(*tree)->next;
+		add_symbol(list, sym);
 		token = token->next;
 
 		if (match_op(token, SPECIAL_ELLIPSIS)) {
@@ -983,23 +1000,21 @@ static struct token *parameter_type_list(struct token *token, struct symbol **tr
 	return token;
 }
 
-static struct token *abstract_function_declarator(struct token *token, struct symbol **tree)
+static struct token *abstract_function_declarator(struct token *token, struct symbol_list **list)
 {
-	return parameter_type_list(token, tree);
+	return parameter_type_list(token, list);
 }
 
 static struct token *external_declaration(struct token *token, struct symbol_list **list);
 
 static struct token *compound_statement(struct token *token, struct statement *stmt)
 {
-	start_symbol_scope();
 	while (!eof_token(token)) {
 		if (!lookup_type(token))
 			break;
 		token = external_declaration(token, &stmt->syms);
 	}
 	token = statement_list(token, &stmt->stmts);
-	end_symbol_scope();
 	return token;
 }
 
@@ -1024,6 +1039,15 @@ static struct token *initializer(struct token *token, struct symbol *sym)
 	return assignment_expression(token, &expr);
 }
 
+static void declare_argument(struct symbol *sym)
+{
+	if (!sym->ident) {
+		warn(sym->token, "no identifier for function argument");
+		return;
+	}
+	bind_symbol(sym, sym->ident->ident, NS_SYMBOL);
+}
+
 static struct token *external_declaration(struct token *token, struct symbol_list **list)
 {
 	struct token *ident = NULL;
@@ -1037,15 +1061,20 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	declarator = specifiers;
 	token = generic_declarator(token, &declarator, &ident);
 
+	if (!ident) {
+		warn(token, "expected identifier name in type definition");
+		return token;
+	}
+
 	if (specifiers->modifiers & SYM_TYPEDEF) {
 		specifiers->modifiers &= ~SYM_TYPEDEF;
-		if (ident)
-			bind_symbol(indirect(declarator, SYM_TYPEDEF), ident->ident, NS_TYPEDEF);
-			
+		bind_symbol(indirect(declarator, SYM_TYPEDEF), ident->ident, NS_TYPEDEF);
 		return expect(token, ';', "end of typedef");
 	}
 
+	declarator->ident = ident;
 	add_symbol(list, declarator);
+	bind_symbol(declarator, ident->ident, NS_SYMBOL);
 
 	if (ident) {
 		printf("external_declarator %s:\n  ", show_token(ident));
@@ -1055,7 +1084,10 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 
 	if (declarator->type == SYM_FN && match_op(token, '{')) {
 		declarator->stmt = alloc_statement(token, STMT_COMPOUND);
+		start_symbol_scope();
+		symbol_iterate(declarator->arguments, declare_argument);
 		token = compound_statement(token->next, declarator->stmt);
+		end_symbol_scope();
 		return expect(token, '}', "at end of function");
 	}
 

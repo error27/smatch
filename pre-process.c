@@ -587,9 +587,6 @@ static long long primary_value(struct token *token)
 	switch (token->type) {
 	case TOKEN_INTEGER:
 		return get_int_value(token->integer);
-	case TOKEN_IDENT:
-		warn(token, "undefined identifier in preprocessor expression");
-		return 0;
 	}
 	error(token, "bad preprocessor expression");
 	return 0;
@@ -600,8 +597,11 @@ static long long get_expression_value(struct expression *expr)
 	long long left, middle, right;
 
 	switch (expr->type) {
-	case EXPR_PRIMARY:
+	case EXPR_CONSTANT:
 		return primary_value(expr->token);
+	case EXPR_SYMBOL:
+		warn(expr->token, "undefined identifier in preprocessor expression");
+		return 0;
 
 #define OP(x,y)	case x: return left y right;
 	case EXPR_BINOP:

@@ -4,7 +4,8 @@
 #include "symbol.h"
 
 enum expression_type {
-	EXPR_PRIMARY,
+	EXPR_CONSTANT,
+	EXPR_SYMBOL,
 	EXPR_BINOP,
 	EXPR_DEREF,
 	EXPR_PREOP,
@@ -21,6 +22,7 @@ struct expression {
 	union {
 		struct expression *unop;
 		struct statement *statement;
+		struct symbol *symbol;
 		struct binop_arg {
 			struct expression *left, *right;
 		};

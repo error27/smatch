@@ -101,7 +101,7 @@ void show_type(struct symbol *sym)
 		show_type(sym->base_type);
 
 		printf("(\n");
-		show_type_list(sym->children);
+		show_symbol_list(sym->arguments);
 		printf(" )");
 		break;
 
@@ -122,6 +122,10 @@ void show_type(struct symbol *sym)
 
 void show_symbol(struct symbol *sym)
 {
+	if (!sym) {
+		printf("<anon symbol>");
+		return;
+	}
 	printf("Symbol %s:\n  ", show_token(sym->token));
 	show_type(sym);
 	switch (sym->type) {
@@ -144,6 +148,8 @@ struct symbol *alloc_symbol(struct token *token, int type)
 
 void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 {
+	if (sym->id_list)
+		*(int *)0 = 0;
 	sym->namespace = ns;
 	sym->next_id = ident->symbols;
 	ident->symbols = sym;
