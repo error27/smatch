@@ -54,6 +54,9 @@ int main(int argc, char **argv)
 		filename = arg;
 	}
 
+	if (filename == NULL)
+		die("No file specified");
+
 	basename = strrchr(filename, '/');
 	if (!basename)
 		basename = filename;
