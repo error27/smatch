@@ -1,16 +1,18 @@
 #ifndef LIST_H
 #define LIST_H
 
-#define DECLARE_ALLOCATOR(x)			\
-	extern struct x *__alloc_##x(int);	\
-	extern unsigned int __size_##x;		\
+#define __DECLARE_ALLOCATOR(type, x)		\
+	extern type *__alloc_##x(int);		\
 	extern void show_##x##_alloc(void);
+#define DECLARE_ALLOCATOR(x) __DECLARE_ALLOCATOR(struct x, x)
 
 DECLARE_ALLOCATOR(ident);
 DECLARE_ALLOCATOR(token);
 DECLARE_ALLOCATOR(symbol);
 DECLARE_ALLOCATOR(expression);
 DECLARE_ALLOCATOR(statement);
+DECLARE_ALLOCATOR(string);
+__DECLARE_ALLOCATOR(void, bytes);
 
 #define LIST_NODE_NR (14)
 

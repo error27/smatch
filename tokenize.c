@@ -42,6 +42,29 @@ const char *show_ident(const struct ident *ident)
 	return buffer;
 }
 
+char *charstr(char *ptr, unsigned char c, unsigned char escape, unsigned char next)
+{
+	if (isprint(c)) {
+		if (c == escape || c == '\\')
+			*ptr++ = '\\';
+		*ptr++ = c;
+		return ptr;
+	}
+	*ptr++ = '\\';
+	switch (c) {
+	case '\n':
+		*ptr++ = 'n';
+		return ptr;
+	case '\t':
+		*ptr++ = 't';
+		return ptr;
+	}
+	if (!isdigit(next))
+		return ptr + sprintf(ptr, "%o", c);
+		
+	return ptr + sprintf(ptr, "%03o", c);
+}
+
 const char *show_token(const struct token *token)
 {
 	static char buffer[256];
@@ -63,48 +86,32 @@ const char *show_token(const struct token *token)
 		ptr = buffer;
 		*ptr++ = '"';
 		for (i = 0; i < string->length-1; i++) {
-			unsigned char c = string->data[i];
-			if (isprint(c) && c != '"') {
-				*ptr++ = c;
-				continue;
-			}
-			*ptr++ = '\\';
-			switch (c) {
-			case '\n':
-				*ptr++ = 'n';
-				continue;
-			case '\t':
-				*ptr++ = 't';
-				continue;
-			case '"':
-				*ptr++ = '"';
-				continue;
-			}
-			if (!isdigit(string->data[i+1])) {
-				ptr += sprintf(ptr, "%o", c);
-				continue;
-			}
-				
-			ptr += sprintf(ptr, "%03o", c);
+			unsigned char *p = string->data + i;
+			ptr = charstr(ptr, p[0], '"', p[1]);
 		}
 		*ptr++ = '"';
 		*ptr = '\0';
 		return buffer;
 	}
 
-	case TOKEN_INTEGER: {
-		char *ptr;
-		ptr = buffer + sprintf(buffer, "%lu", token->smallint);
-		return buffer;
-	}
+	case TOKEN_INTEGER:
+		return token->integer;
 
-	case TOKEN_FP: {
-		sprintf(buffer, "%f", token->smallfp);
-		return buffer;
-	}
+	case TOKEN_FP:
+		return token->fp;
 
 	case TOKEN_SPECIAL:
 		return show_special(token->special);
+
+	case TOKEN_CHAR: {
+		char *ptr = buffer;
+		int c = token->character;
+		*ptr++ = '\'';
+		ptr = charstr(ptr, c, '\'', 0);
+		*ptr++ = '\'';
+		*ptr++ = '\0';
+		return buffer;
+	}
 	
 	default:
 		return "WTF???";
@@ -195,24 +202,11 @@ static void drop_token(action_t *action)
 	free(token);
 }
 
-static int do_integer(unsigned long long value, int next, action_t *action)
+static int get_base_number(unsigned int base, char **p, int next, action_t *action)
 {
-	struct token *token = action->token;
-	
-	while (next == 'u' || next == 'U' || next == 'l' || next == 'L') {
-		next = nextchar(action);
-	}
-	token->type = TOKEN_INTEGER;
-	token->smallint = value;
-	add_token(action);
-	return next;
-}
+	char *buf = *p;
 
-static int get_base_number(unsigned int base, unsigned int __val, action_t *action)
-{
-	unsigned long long value = __val;
-	int next;
-
+	*buf++ = next;
 	for (;;) {
 		unsigned int n = 1000;
 		next = nextchar(action);
@@ -228,50 +222,52 @@ static int get_base_number(unsigned int base, unsigned int __val, action_t *acti
 		}
 		if (n >= base)
 			break;
-		value = value * base + n;
+		*buf++ = next;
 	}
-		
-	return do_integer(value, next, action);
+	*p = buf;
+	return next;
 }
 
-/* Parse error: return a token with a NULL "value" part */
-static void parse_error(action_t *action)
+static int do_integer(char *buffer, int len, int next, action_t *action)
 {
+	struct token *token = action->token;
+	void *buf;
+	
+	while (next == 'u' || next == 'U' || next == 'l' || next == 'L') {
+		buffer[len++] = next;
+		next = nextchar(action);
+	}
+	buffer[len++] = '\0';
+	buf = __alloc_bytes(len);
+	memcpy(buf, buffer, len);
+	token->type = TOKEN_INTEGER;
+	token->integer = buf;
 	add_token(action);
-}
-
-static int get_hex_number(int x, action_t *action)
-{
-	int next = nextchar(action);
-
-	switch (next) {
-	case '0'...'9':
-		return get_base_number(16, next-'0', action);
-	case 'a'...'f':		
-		return get_base_number(16, next-'a'+10, action);
-	case 'A'...'F':
-		return get_base_number(16, next-'A'+10, action);
-	}
-	parse_error(action);
 	return next;
 }
 
 static int get_one_number(int c, action_t *action)
 {
+	static char buffer[256];
 	int next = nextchar(action);
+	char *p = buffer;
 
+	*p++ = c;
 	switch (next) {
 	case '0'...'7':
-		if (c == '0')
-			return get_base_number(8, next-'0', action);
+		if (c == '0') {
+			next = get_base_number(8, &p, next, action);
+			break;
+		}
 		/* fallthrough */
 	case '8'...'9':
-		return get_base_number(10, c*10+next-'0'*11, action);
+		next = get_base_number(10, &p, next, action);
+		break;
 	case 'x': case 'X':
 		if (c == '0')
-			return get_hex_number(next, action);
+			next = get_base_number(16, &p, next, action);
 	}
-	return do_integer(c-'0', next, action);
+	return do_integer(buffer, p - buffer, next, action);
 }
 
 static int hexval(int c)
@@ -364,8 +360,8 @@ static int get_char_token(int next, action_t *action)
 	}
 
 	token = action->token;
-	token->type = TOKEN_INTEGER;
-	token->smallint = value & 0xff;
+	token->type = TOKEN_CHAR;
+	token->character = value & 0xff;
 
 	add_token(action);
 	return nextchar(action);
@@ -397,7 +393,7 @@ static int get_string_token(int next, action_t *action)
 	if (len > 256)
 		warn(action->token, "String too long");
 
-	string = malloc(sizeof(int)+len+1);
+	string = __alloc_string(len+1);
 	memcpy(string->data, buffer, len);
 	string->data[len] = '\0';
 	string->length = len+1;

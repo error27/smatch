@@ -30,5 +30,7 @@ int main(int argc, char **argv)
 	show_symbol_alloc();
 	show_expression_alloc();
 	show_statement_alloc();
+	show_string_alloc();
+	show_bytes_alloc();
 	return 0;
 }

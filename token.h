@@ -32,6 +32,7 @@ enum token_type {
 	TOKEN_IDENT,
 	TOKEN_INTEGER,
 	TOKEN_FP,
+	TOKEN_CHAR,
 	TOKEN_STRING,
 	TOKEN_SPECIAL,
 };
@@ -98,13 +99,12 @@ struct token {
 	unsigned int line;
 	struct token *next;
 	union {
-		unsigned long smallint;		// for "small" integers
-		unsigned long long *bigint;	// for big integers
-		float smallfp;			// for doubles that fit in floats (common)
-		double *bigfp;			// for others
+		char *integer;
+		char *fp;
 		struct ident *ident;
 		unsigned int special;
 		struct string *string;
+		int character;
 	};
 };
 
