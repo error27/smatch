@@ -219,19 +219,10 @@ static int get_base_number(unsigned int base, char **p, int next, action_t *acti
 	char *buf = *p;
 
 	*buf++ = next;
-	for (;;) {
-		unsigned int n = 1000;
+	for (;;) {		
+		unsigned int n;
 		next = nextchar(action);
-		switch (next) {
-		case '0'...'9':
-			n = next-'0';
-			break;
-		case 'a'...'z':
-			n = next-'a'+10;
-			break;
-		case 'A'...'Z':
-			n = next-'A'+10;
-		}
+		n = hexval(next);
 		if (n >= base)
 			break;
 		*buf++ = next;
@@ -283,23 +274,6 @@ static int get_one_number(int c, action_t *action)
 		}
 	}
 	return do_integer(buffer, p - buffer, next, action);
-}
-
-static int hexval(int c)
-{
-	int retval = 256;
-	switch (c) {
-	case '0'...'9':
-		retval = c - '0';
-		break;
-	case 'a'...'f':
-		retval = c - 'a' + 10;
-		break;
-	case 'A'...'F':
-		retval = c - 'A' + 10;
-		break;
-	}
-	return retval;
 }
 
 static int escapechar(int first, int type, action_t *action, int *valp)

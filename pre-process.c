@@ -205,9 +205,132 @@ static int handle_ifndef(struct token *head, struct token *token)
 	return preprocessor_if(token, !token_defined(token->next));
 }
 
+/*
+ * We could share the parsing with the "real" C parser, but
+ * quite frankly expression parsing is simple enough that it's
+ * just easier to not have to bother with the differences, and
+ * have two separate paths instead.
+ *
+ * The C parser builds a parse tree for future optimization and
+ * code generation, while the preprocessor parser just calculates
+ * the value.  So while the parsed language is similar, the
+ * differences are big.
+ *
+ * Types are built up from their physical sizes in bits (minus one)
+ * and their "logical sizes" (ie one bit for "long", one for "short")
+ * This way we can literally just or the values together and get the
+ * right answer.
+ */
+#define PHYS_MASK	0x000ff
+#define PHYS_CMASK	0x00007
+#define PHYS_SMASK	0x0000f
+#define PHYS_IMASK	0x0001f
+#define PHYS_LMASK	0x0001f
+#define PHYS_LLMASK	0x0003f
+
+#define LOG_MASK	0x01f00
+#define LOG_CMASK	0x00100
+#define LOG_SMASK	0x00300
+#define LOG_IMASK	0x00700
+#define LOG_LMASK	0x00f00
+#define LOG_LLMASK	0x01f00
+
+#define UNSIGNEDMASK	0x10000
+
+struct cpp_expression {
+	unsigned type;		/* unsigned / long / long long / bytemasks*/
+	long long value;
+};
+
+static void get_int_value(const char *str, struct cpp_expression *val)
+{
+	unsigned long long value = 0;
+	unsigned int base = 10, digit, type;
+
+	switch (str[0]) {
+	case 'x':
+		base = 18;	// the -= 2 for the octal case will
+		str++;		// skip the 'x'
+	/* fallthrough */
+	case 'o':
+		str++;		// skip the 'o' or 'x/X'
+		base -= 2;	// the fall-through will make this 8
+	}
+	while ((digit = hexval(*str)) < base) {
+		value = value * base + digit;
+		str++;
+	}
+	type = PHYS_IMASK | LOG_IMASK;
+	val->value = value;
+	while (*str) {
+		if (*str == 'u' || *str == 'U')
+			val->type |= UNSIGNEDMASK;
+		else if (val->type & LOG_LMASK)
+			val->type |= PHYS_LLMASK | LOG_LLMASK;
+		else
+			val->type |= PHYS_LMASK | LOG_LMASK;
+		str++;
+	}
+}
+
+static struct token *cpp_conditional(struct token *token, struct cpp_expression *value);
+static struct token *cpp_value(struct token *token, struct cpp_expression *value)
+{
+	value->type = 0;
+	value->value = 0;
+
+	switch (token->type) {
+	case TOKEN_INTEGER:
+		get_int_value(token->integer, value);
+		return token->next;
+	case TOKEN_SPECIAL:
+		if (token->special == '(') {
+			token = cpp_conditional(token->next, value);
+			token = expect(token, ')', "in preprocessor expression");
+			return token;
+		}
+	}
+	if (!eof_token(token))
+		warn(token, "expected value");
+	return &eof_token_entry;
+}
+
+static unsigned cpp_type(unsigned type1, unsigned type2)
+{
+	/* Are they of physically different sized types? */
+	if ((type1 ^ type2) & PHYS_MASK) {
+		/* Remove 'unsigned' from the smaller one */
+		if ((type1 & PHYS_MASK) < (type2 & PHYS_MASK))
+			type1 &= ~UNSIGNEDMASK;
+		else
+			type2 &= ~UNSIGNEDMASK;
+	}
+	return type1 | type2;
+}			
+
+static struct token *cpp_additive(struct token *token, struct cpp_expression *value)
+{
+	token = cpp_value(token, value);
+	while (match_op(token, '+')) {
+		struct cpp_expression righthand;
+		token = cpp_value(token->next, &righthand);
+		value->type = cpp_type(value->type, righthand.type);
+		value->value += righthand.value;
+	}
+	return token;
+}
+
+static struct token *cpp_conditional(struct token *token, struct cpp_expression *value)
+{
+	return cpp_additive(token, value);
+}
+	
 static int expression_value(struct token *token)
 {
-	return 0;
+	struct cpp_expression expr;
+	token = cpp_conditional(token, &expr);
+fprintf(stderr, "value=%lld, type=%x\n", expr.value, expr.type);
+	return expr.value != 0;
 }
 
 static int handle_if(struct token *head, struct token *token)

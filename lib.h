@@ -1,6 +1,8 @@
 #ifndef LIST_H
 #define LIST_H
 
+extern unsigned int hexval(unsigned int c);
+
 struct ident;
 struct token;
 struct symbol;
@@ -8,6 +10,8 @@ struct symbol_list;
 struct statement;
 struct statement_list;
 
+struct token *skip_to(struct token *, int);
+struct token *expect(struct token *, int, const char *);
 extern void warn(struct token *, const char *, ...);
 extern void error(struct token *, const char *, ...);
 

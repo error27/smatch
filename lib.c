@@ -12,6 +12,46 @@
 #include "parse.h"
 #include "symbol.h"
 
+struct token *skip_to(struct token *token, int op)
+{
+	while (!match_op(token, op) && !eof_token(token))
+		token = token->next;
+	return token;
+}
+
+struct token *expect(struct token *token, int op, const char *where)
+{
+	if (!match_op(token, op)) {
+		static struct token bad_token;
+		if (token != &bad_token) {
+			bad_token.next = token;
+			warn(token, "Expected %s %s", show_special(op), where);
+			warn(token, "got %s", show_token(token));
+		}
+		if (op == ';')
+			return skip_to(token, op);
+		return &bad_token;
+	}
+	return token->next;
+}
+
+unsigned int hexval(unsigned int c)
+{
+	int retval = 256;
+	switch (c) {
+	case '0'...'9':
+		retval = c - '0';
+		break;
+	case 'a'...'f':
+		retval = c - 'a' + 10;
+		break;
+	case 'A'...'F':
+		retval = c - 'A' + 10;
+		break;
+	}
+	return retval;
+}
+
 /*
  * Simple allocator for data that doesn't get partially free'd.
  * The tokenizer and parser allocate a _lot_ of small data structures

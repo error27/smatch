@@ -92,29 +92,6 @@ int lookup_type(struct token *token)
 	return 0;
 }
 
-static struct token *skip_to(struct token *token, int op)
-{
-	while (!match_op(token, op) && !eof_token(token))
-		token = token->next;
-	return token;
-}
-
-static struct token *expect(struct token *token, int op, const char *where)
-{
-	if (!match_op(token, op)) {
-		static struct token bad_token;
-		if (token != &bad_token) {
-			bad_token.next = token;
-			warn(token, "Expected %s %s", show_special(op), where);
-			warn(token, "got %s", show_token(token));
-		}
-		if (op == ';')
-			return skip_to(token, op);
-		return &bad_token;
-	}
-	return token->next;
-}
-
 static struct token *comma_expression(struct token *, struct expression **);
 static struct token *compound_statement(struct token *, struct statement *);
 static struct token *initializer(struct token *token, struct symbol *sym);
@@ -289,7 +266,7 @@ static struct token *lr_binop_expression(struct token *token, struct expression 
 	struct token * next = inner(token, &left);
 
 	if (left) {
-		while (next && next->type == TOKEN_SPECIAL) {
+		while (next->type == TOKEN_SPECIAL) {
 			struct expression *top, *right = NULL;
 			int op = next->special;
 			va_list args;
@@ -307,7 +284,6 @@ static struct token *lr_binop_expression(struct token *token, struct expression 
 			next = inner(next->next, &right);
 			if (!right) {
 				warn(token, "No right hand side of '%s'-expression", show_special(op));
-show_expression(left);
 				break;
 			}
 			top->op = op;
