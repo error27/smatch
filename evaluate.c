@@ -816,25 +816,19 @@ static struct symbol *create_pointer(struct expression *expr, struct symbol *sym
 static struct symbol *evaluate_addressof(struct expression *expr)
 {
 	struct expression *op = expr->unop;
-	struct expression *addr;
+	struct symbol *ctype;
 
 	if (op->op != '*' || op->type != EXPR_PREOP) {
 		warn(expr->pos, "not addressable");
 		return NULL;
 	}
 
-	addr = op->unop;
-	*expr = *addr;
+	ctype = create_pointer(expr, op->ctype);
 
-	/*
-	 * We're lazy generating the ptr symbol type for symbols,
-	 * so if we actually want the address-of, we now need to
-	 * generate the proper pointer.
-	 */
-	if (addr->type == EXPR_SYMBOL)
-		expr->ctype = create_pointer(expr, addr->symbol);
+	*expr = *op->unop;
 
-	return expr->ctype;
+	expr->ctype = ctype;
+	return ctype;
 }
 
 
@@ -987,7 +981,7 @@ static struct expression *evaluate_offset(struct expression *expr, unsigned long
 static struct symbol *evaluate_member_dereference(struct expression *expr)
 {
 	int offset;
-	struct symbol *ctype, *member, *sym;
+	struct symbol *ctype, *member;
 	struct expression *deref = expr->deref, *add;
 	struct ident *ident = expr->member;
 	unsigned int mod;
@@ -1049,17 +1043,10 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		return NULL;
 	}
 
-	ctype = create_pointer(deref, member->ctype.base_type);
+	ctype = create_pointer(deref, member);
 	ctype->ctype.modifiers = mod;
 	ctype->ctype.as = address_space;
 	add = evaluate_offset(deref, offset, ctype);
-
-	sym = alloc_symbol(expr->pos, SYM_NODE);
-	sym->bit_size = member->bit_size;
-	sym->array_size = member->array_size;
-	sym->ctype = member->ctype;
-	sym->ctype.modifiers = mod;
-	sym->ctype.as = address_space;
 
 	ctype = member->ctype.base_type;
 	if (ctype->type == SYM_BITFIELD) {
@@ -1074,8 +1061,8 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		expr->unop = add;
 	}
 
-	expr->ctype = sym;
-	return sym;
+	expr->ctype = member;
+	return member;
 }
 
 static struct symbol *evaluate_sizeof(struct expression *expr)
