@@ -202,20 +202,40 @@ static struct symbol * compatible_integer_binop(struct expression *expr, struct 
  * CAREFUL! We need to get the size and sign of the
  * result right!
  */
-static void simplify_int_binop(struct expression *expr)
+static void simplify_int_binop(struct expression *expr, struct symbol *ctype)
 {
 	struct expression *left = expr->left, *right = expr->right;
 	unsigned long long v, l, r, mask;
+	signed long long s, sl, sr;
+	int is_signed;
 
 	if (left->type != EXPR_VALUE || right->type != EXPR_VALUE)
 		return;
 	l = left->value; r = right->value;
+	is_signed = !(ctype->ctype.modifiers & MOD_UNSIGNED);
+	mask = 1ULL << (ctype->bit_size-1);
+	sl = l; sr = r;
+	if (is_signed && (sl & mask))
+		sl |= ~(mask-1);
+	if (is_signed && (sr & mask))
+		sr |= ~(mask-1);
+	
 	switch (expr->op) {
-	case '+': v = l+r; break;
-	case '-': v = l-r; break;
+	case '+':		v = l+r; s = v; break;
+	case '-':		v = l-r; s = v; break;
+	case '*':		v = l*r; s = sl * sr; break;
+	case '/':		if (!r) return; v = l / r; s = sl / sr; break;
+	case '%':		if (!r) return; v = l % r; s = sl % sr; break;
+	case SPECIAL_LEFTSHIFT: return;
+	case SPECIAL_RIGHTSHIFT: return;
+	case '<':		v = l < r; s = sl < sr; break;
+	case '>':		v = l > r; s = sl > sr; break;
+	case SPECIAL_LTE:	v = l <= r; s = sl <= sr; break;
+	case SPECIAL_GTE:	v = l >= r; s = sl >= sr; break;
 	default: return;
 	}
-	mask = 1ULL << (expr->ctype->bit_size-1);
+	if (is_signed)
+		v = s;
 	mask = mask | (mask-1);
 	expr->value = v & mask;
 	expr->type = EXPR_VALUE;
@@ -226,7 +246,7 @@ static struct symbol *evaluate_int_binop(struct expression *expr)
 	struct symbol *ctype = compatible_integer_binop(expr, &expr->left, &expr->right);
 	if (ctype) {
 		expr->ctype = ctype;
-		simplify_int_binop(expr);
+		simplify_int_binop(expr, ctype);
 		return ctype;
 	}
 	return bad_expr_type(expr);
@@ -277,12 +297,12 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 		mul->ctype = size_t_ctype;
 		mul->left = i;
 		mul->right = val;
-		simplify_int_binop(mul);
+		simplify_int_binop(mul, size_t_ctype);
 
 		/* Leave 'add->op' as 'expr->op' - either '+' or '-' */
 		add->left = ptr;
 		add->right = mul;
-		simplify_int_binop(add);
+		simplify_int_binop(add, add->ctype);
 	}
 		
 	return expr->ctype;
@@ -486,6 +506,7 @@ static struct symbol *evaluate_compare(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
 	struct symbol *ltype = left->ctype, *rtype = right->ctype;
+	struct symbol *ctype;
 
 	/* Pointer types? */
 	if (is_ptr_type(ltype) || is_ptr_type(rtype)) {
@@ -494,7 +515,9 @@ static struct symbol *evaluate_compare(struct expression *expr)
 		return &bool_ctype;
 	}
 
-	if (compatible_integer_binop(expr, &expr->left, &expr->right)) {
+	ctype = compatible_integer_binop(expr, &expr->left, &expr->right);
+	if (ctype) {
+		simplify_int_binop(expr, ctype);
 		expr->ctype = &bool_ctype;
 		return &bool_ctype;
 	}
@@ -730,6 +753,27 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	return ctype;
 }
 
+static void simplify_preop(struct expression *expr)
+{
+	struct expression *op = expr->unop;
+	unsigned long long v, mask;
+
+	if (op->type != EXPR_VALUE)
+		return;
+	v = op->value;
+	switch (expr->op) {
+	case '+': break;
+	case '-': v = -v; break;
+	case '!': v = !v; break;
+	case '~': v = ~v; break;
+	default: return;
+	}
+	mask = 1ULL << (expr->ctype->bit_size-1);
+	mask = mask | (mask-1);
+	expr->value = v & mask;
+	expr->type = EXPR_VALUE;
+}
+
 static struct symbol *evaluate_preop(struct expression *expr)
 {
 	struct symbol *ctype = expr->unop->ctype;
@@ -747,10 +791,12 @@ static struct symbol *evaluate_preop(struct expression *expr)
 
 	case '!':
 		expr->ctype = &bool_ctype;
+		simplify_preop(expr);
 		return &bool_ctype;
 
 	default:
 		expr->ctype = ctype;
+		simplify_preop(expr);
 		return ctype;
 	}
 }
@@ -863,7 +909,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		add->right = alloc_expression(expr->pos, EXPR_VALUE);
 		add->right->ctype = &int_ctype;
 		add->right->value = offset;
-		simplify_int_binop(add);
+		simplify_int_binop(add, &ptr_ctype);
 	}
 
 	ctype = member->ctype.base_type;
