@@ -35,11 +35,11 @@ static int context_increase(struct basic_block *bb)
 	return sum;
 }
 
-static int imbalance(struct entrypoint *ep, struct basic_block *bb, int entry, int exit)
+static int imbalance(struct entrypoint *ep, struct basic_block *bb, int entry, int exit, const char *why)
 {
 	if (Wcontext) {
 		struct symbol *sym = ep->name;
-		warning(bb->pos, "context imbalance in '%s' (saw %d, expected %d)", show_ident(sym->ident), entry, exit);
+		warning(bb->pos, "context imbalance in '%s' - %s", show_ident(sym->ident), why);
 	}
 	return -1;
 }
@@ -56,7 +56,7 @@ static int check_children(struct entrypoint *ep, struct basic_block *bb, int ent
 	if (!insn)
 		return 0;
 	if (insn->opcode == OP_RET)
-		return entry != exit ? imbalance(ep, bb, entry, exit) : 0;
+		return entry != exit ? imbalance(ep, bb, entry, exit, "wrong count at exit") : 0;
 
 	init_terminator_iterator(insn, &term);
 	while ((child=next_terminator_bb(&term)) != NULL) {
@@ -75,12 +75,12 @@ static int check_bb_context(struct entrypoint *ep, struct basic_block *bb, int e
 
 	/* Now that's not good.. */
 	if (bb->context >= 0)
-		return imbalance(ep, bb, entry, bb->context);
+		return imbalance(ep, bb, entry, bb->context, "different lock contexts for basic block");
 
 	bb->context = entry;
 	entry += context_increase(bb);
 	if (entry < 0)
-		return imbalance(ep, bb, entry, exit);
+		return imbalance(ep, bb, entry, exit, "unexpected unlock");
 
 	return check_children(ep, bb, entry, exit);
 }
