@@ -771,19 +771,36 @@ char **handle_switch(char *arg, char **next)
 	return rc;
 }
 
+void declare_builtin_functions(void)
+{
+	add_pre_buffer("extern void *__builtin_memcpy(void *, const void *, __SIZE_TYPE__);\n");
+	add_pre_buffer("extern void *__builtin_return_address(int);\n");
+	add_pre_buffer("extern void *__builtin_memset(void *, int, __SIZE_TYPE__);\n");	
+	add_pre_buffer("extern void __builtin_trap(void);\n");
+	add_pre_buffer("extern int __builtin_ffs(int);\n");
+	add_pre_buffer("extern void *__builtin_alloca(__SIZE_TYPE__);\n");
+}
+
 void create_builtin_stream(void)
 {
 	add_pre_buffer("#define __GNUC__ 2\n");
 	add_pre_buffer("#define __GNUC_MINOR__ 95\n");
 	add_pre_buffer("#define __extension__\n");
 	add_pre_buffer("#define __pragma__\n");
+
+	add_pre_buffer("#ifndef __SIZE_TYPE__\n");
 	// gcc defines __SIZE_TYPE__ to be size_t.  For linux/i86 and
 	// solaris/sparc that is really "unsigned int" and for linux/x86_64
 	// it is "long unsigned int".  In either case we can probably
-	// get away with this:
+	// get away with this.  We need the #ifndef as cgcc will define
+	// the right __SIZE_TYPE__.
 	add_pre_buffer("#define __SIZE_TYPE__ long unsigned int\n");
+	add_pre_buffer("#endif\n");
+
 	add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
 	add_pre_buffer("#define __builtin_va_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
 	add_pre_buffer("#define __builtin_va_arg(arg,type)  ((type)0)\n");
+	add_pre_buffer("#define __builtin_va_alist (*(void *)0)\n");
+	add_pre_buffer("#define __builtin_va_arg_incr(x) ((x) + 1)\n");
 	add_pre_buffer("#define __builtin_va_end(arg)\n");
 }

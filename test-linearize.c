@@ -42,11 +42,6 @@ int main(int argc, char **argv)
 	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
 
-	create_builtin_stream();
-	add_pre_buffer("#define __CHECKER__ 1\n");
-	add_pre_buffer("extern void *__builtin_memcpy(void *, const void *, unsigned long);\n");
-	add_pre_buffer("extern void * __builtin_return_address(int);\n");
-
 	args = argv;
 	for (;;) {
 		char *arg = *++args;
@@ -61,6 +56,11 @@ int main(int argc, char **argv)
 
 	// Initialize type system
 	init_ctype();
+
+	create_builtin_stream();
+	add_pre_buffer("#define __CHECKER__ 1\n");
+	if (!preprocess_only)
+		declare_builtin_functions();
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0)

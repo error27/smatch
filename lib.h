@@ -148,6 +148,7 @@ extern int Wundefined_preprocessor;
 extern int Wbitwise;
 extern int Wtypesign;
 
+extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);
 
 static inline int symbol_list_size(struct symbol_list* list)

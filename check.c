@@ -67,14 +67,8 @@ int main(int argc, char **argv)
 
 	create_builtin_stream();
 	add_pre_buffer("#define __CHECKER__ 1\n");
-	if (!preprocess_only) {
-		add_pre_buffer("extern void *__builtin_memcpy(void *, const void *, __SIZE_TYPE__);\n");
-		add_pre_buffer("extern void *__builtin_return_address(int);\n");
-		add_pre_buffer("extern void *__builtin_memset(void *, int, __SIZE_TYPE__);\n");	
-		add_pre_buffer("extern void __builtin_trap(void);\n");
-		add_pre_buffer("extern int __builtin_ffs(unsigned long);\n"); /* XXX(cw) check this */
-		add_pre_buffer("extern void *__builtin_alloca(__SIZE_TYPE__);\n");
-	}
+	if (!preprocess_only)
+		declare_builtin_functions();
 
 	do_predefined(filename);
 
