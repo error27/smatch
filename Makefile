@@ -61,6 +61,7 @@ test-linearize.o: $(LIB_H)
 compile.o: $(LIB_H)
 compile-i386.o: $(LIB_H)
 tokenize.o: $(LIB_H)
+check.o: $(LIB_H)
 
 pre-process.h:
 	echo "#define GCC_INTERNAL_INCLUDE \"`$(CC) -print-file-name=include`\"" > pre-process.h
