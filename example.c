@@ -15,7 +15,6 @@ struct hardreg {
 	const char *name;
 	struct pseudo_list *contains;
 	unsigned busy:16,
-		 dirty:1,
 		 used:1;
 };
 
@@ -115,6 +114,7 @@ static int can_regenerate(struct bb_state *state, pseudo_t pseudo)
 		if (in && in->storage->type != REG_REG)
 			return 1;
 		in = find_storage_hash(pseudo, state->internal);
+		if (in)
 			return 1;
 	}
 	return 0;
@@ -159,13 +159,14 @@ static void flush_reg(struct bb_state *state, struct hardreg *hardreg)
 {
 	pseudo_t pseudo;
 
-	if (!hardreg->busy || !hardreg->dirty)
+	if (!hardreg->busy)
 		return;
 	hardreg->busy = 0;
-	hardreg->dirty = 0;
 	hardreg->used = 1;
 	FOR_EACH_PTR(hardreg->contains, pseudo) {
 		if (CURRENT_TAG(pseudo) & TAG_DEAD)
+			continue;
+		if (!(CURRENT_TAG(pseudo) & TAG_DIRTY))
 			continue;
 		flush_one_pseudo(state, hardreg, pseudo);
 	} END_FOR_EACH_PTR(pseudo);
@@ -200,6 +201,15 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 				/* Undefined? Screw it! */
 				if (!src) {
 					printf("\tundef %s ??\n", show_pseudo(pseudo));
+					break;
+				}
+
+				/*
+				 * If we found output storage, it had better be local stack
+				 * that we flushed to earlier..
+				 */
+				if (src->storage->type != REG_STACK) {
+					printf("\tfill_reg on undef storage %s ??\n", show_pseudo(pseudo));
 					break;
 				}
 			}
@@ -254,9 +264,8 @@ static struct hardreg *target_reg(struct bb_state *state, pseudo_t pseudo, pseud
 	flush_reg(state, reg);
 
 found:
-	add_ptr_list(&reg->contains, pseudo);
+	add_ptr_list_tag(&reg->contains, pseudo, TAG_DIRTY);
 	reg->busy = 1;
-	reg->dirty = 0;
 	return reg;
 }
 
@@ -432,9 +441,8 @@ static void generate_binop(struct bb_state *state, struct instruction *insn)
 	struct hardreg *dst = copy_reg(state, src, insn->target);
 
 	printf("\t%s.%d %s,%s\n", op, insn->size, reg_or_imm(state, insn->src2), dst->name);
-	add_ptr_list(&dst->contains, insn->target);
+	add_ptr_list_tag(&dst->contains, insn->target, TAG_DIRTY);
 	dst->busy++;
-	dst->dirty = 1;
 }
 
 static void mark_pseudo_dead(pseudo_t pseudo)
@@ -462,7 +470,6 @@ static void generate_phisource(struct instruction *insn, struct bb_state *state)
 	reg = getreg(state, insn->phi_src, user->target);
 	add_ptr_list(&reg->contains, user->target);
 	reg->busy++;
-	reg->dirty = 1;
 }
 
 static void generate_output_storage(struct bb_state *state);
@@ -686,7 +693,6 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 	for (i = 0; i < REGNO; i++) {
 		free_ptr_list(&hardregs[i].contains);
 		hardregs[i].busy = 0;
-		hardregs[i].dirty = 0;
 		hardregs[i].used = 0;
 	}
 
@@ -695,9 +701,8 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 		const char *name = show_storage(storage);
 		if (storage->type == REG_REG) {
 			int regno = storage->regno;
-			add_ptr_list(&hardregs[regno].contains, entry->pseudo);
+			add_ptr_list_tag(&hardregs[regno].contains, entry->pseudo, TAG_DIRTY);
 			hardregs[regno].busy++;
-			hardregs[regno].dirty = 1;
 			name = hardregs[regno].name;
 		}
 	} END_FOR_EACH_PTR(entry);
