@@ -588,6 +588,34 @@ static int handle_include(struct stream *stream, struct token *head, struct toke
 	return 1;
 }
 
+static int token_different(struct token *t1, struct token *t2)
+{
+	if (token_type(t1) != token_type(t2))
+		return 1;
+	switch (token_type(t1)) {
+	case TOKEN_IDENT:
+		if (t1->ident != t2->ident)
+			return 1;
+		break;
+	case TOKEN_NUMBER:
+		if (strcmp(t1->number, t2->number))
+			return 1;
+		break;
+	case TOKEN_SPECIAL:
+		if (t1->special != t2->special)
+			return 1;
+		break;
+	case TOKEN_MACRO_ARGUMENT:
+		if (t1->argnum != t2->argnum)
+			return 1;
+		break;
+	default:
+		/* Let's be lazy, we don't really care that much */
+		break;
+	}
+	return 0;
+}
+
 static int token_list_different(struct token *list1, struct token *list2)
 {
 	for (;;) {
@@ -595,7 +623,7 @@ static int token_list_different(struct token *list1, struct token *list2)
 			return 0;
 		if (!list1 || !list2)
 			return 1;
-		if (token_type(list1) != token_type(list2))
+		if (token_different(list1, list2))
 			return 1;
 		list1 = list1->next;
 		list2 = list2->next;
