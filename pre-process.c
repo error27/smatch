@@ -65,7 +65,7 @@ static const char **gcc_includepath = includepath + 2;
  */
 int match_string_ident(struct ident *ident, const char *str)
 {
-	return !str[ident->len] && !memcmp(str, ident->name, ident->len);
+	return !strncmp(str, ident->name, ident->len) && !str[ident->len];
 }
 
 static struct token *alloc_token(struct position *pos)
