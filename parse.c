@@ -1,3 +1,6 @@
+#ifndef __GNUC__
+typedef int __builtin_va_list;
+#endif
 /*
  * Stupid C parser, version 1e-6.
  *
@@ -61,9 +64,9 @@ void show_statement(struct statement *stmt)
 
 	case STMT_CASE:
 		if (!stmt->case_expression)
-			printf("\tdefault");
+			printf("default");
 		else {
-			printf("\tcase ");
+			printf("case ");
 			show_expression(stmt->case_expression);
 			if (stmt->case_to) {
 				printf(" ... ");
@@ -72,6 +75,10 @@ void show_statement(struct statement *stmt)
 		}
 		printf(":");
 		show_statement(stmt->case_statement);
+		break;
+
+	case STMT_BREAK:
+		printf("break");
 		break;
 		
 	default:
@@ -1060,11 +1067,11 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	declarator = specifiers;
 	token = generic_declarator(token, &declarator, &ident);
 
-	if (!ident) {
-		warn(token, "expected identifier name in type definition");
-		return token;
-	}
+	/* Just a type declaration? */
+	if (!ident)
+		return expect(token, ';', "end of type declaration");
 
+	/* type define declaration? */
 	if (specifiers->modifiers & SYM_TYPEDEF) {
 		specifiers->modifiers &= ~SYM_TYPEDEF;
 		bind_symbol(indirect(declarator, SYM_TYPEDEF), ident->ident, NS_TYPEDEF);
