@@ -1049,8 +1049,11 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			break;
 		}
 
-		/* This can happen as part of simplification */
 		expr = stmt->goto_expression;
+		if (!expr)
+			break;
+
+		/* This can happen as part of simplification */
 		if (expr->type == EXPR_LABEL) {
 			add_goto(ep, get_bound_block(ep, expr->label_symbol));
 			break;
