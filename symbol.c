@@ -183,7 +183,7 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 			sym->bit_size = BITS_IN_POINTER;
 		if (!sym->alignment)
 			sym->alignment = POINTER_ALIGNMENT;
-		examine_symbol_type(sym->ctype.base_type);
+		sym->ctype.base_type = examine_symbol_type(sym->ctype.base_type);
 		return sym;
 	case SYM_ENUM:
 		if (!sym->bit_size)
@@ -212,7 +212,8 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 	modifiers = sym->ctype.modifiers;
 
 	if (base_type) {
-		examine_symbol_type(base_type);
+		base_type = examine_symbol_type(base_type);
+		sym->ctype.base_type = base_type;
 
 		bit_size = base_type->bit_size;
 		alignment = base_type->alignment;

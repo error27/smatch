@@ -751,6 +751,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		return NULL;
 	ctype = examine_symbol_type(ctype);
 	expr->ctype = ctype;
+	expr->cast_type = ctype;
 
 	/* Simplify normal integer casts.. */
 	if (target->type == EXPR_VALUE)
@@ -891,6 +892,7 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 		return NULL;
 
 	base_type = examine_symbol_type(base_type);
+	sym->ctype.base_type = base_type;
 
 	/* Evaluate the initializers */
 	if (sym->initializer)
