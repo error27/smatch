@@ -1376,6 +1376,34 @@ static struct storage *emit_conditional_expr(struct expression *expr)
 	return new;
 }
 
+static struct storage *emit_select_expr(struct expression *expr)
+{
+	struct storage *cond = x86_expression(expr->conditional);
+	struct storage *true = x86_expression(expr->cond_true);
+	struct storage *false = x86_expression(expr->cond_false);
+	struct storage *new = stack_alloc(4);
+	struct storage *truereg;
+
+	emit_move(cond,  REG_EAX, expr->conditional->ctype, "begin SELECT");
+	truereg = REG_EAX;
+	if (true) {
+		emit_move(true,  REG_ECX, expr->cond_true->ctype, NULL);
+		truereg = REG_ECX;
+	}
+	emit_move(false, REG_EDX, expr->cond_false->ctype, NULL);
+
+	/*
+	 * Do the actual select: check the conditional for zero,
+	 * move false over true if zero
+	 */ 
+	insn("test", REG_EAX, REG_EAX, NULL);
+	insn("cmovz", REG_EDX, truereg, NULL);
+
+	/* Store it back */
+	emit_move(truereg, new, expr->ctype, "end SELECT");
+	return new;
+}
+
 static struct storage *emit_symbol_expr_init(struct symbol *sym)
 {
 	struct expression *expr = sym->initializer;
@@ -1387,7 +1415,8 @@ static struct storage *emit_symbol_expr_init(struct symbol *sym)
 
 		if (expr == NULL) {
 			struct storage *new = stack_alloc(4);
-			fprintf(stderr, "FIXME! no value for symbol.  creating pseudo %d (stack offset %d)\n",
+			fprintf(stderr, "FIXME! no value for symbol %s.  creating pseudo %d (stack offset %d)\n",
+				show_ident(sym->ident),
 				new->pseudo, new->pseudo * 4);
 			priv->addr = new;
 		} else {
@@ -2145,6 +2174,7 @@ static struct storage *x86_expression(struct expression *expr)
 		x86_initializer_expr(expr, expr->ctype);
 		return NULL;
 	case EXPR_SELECT:
+		return emit_select_expr(expr);
 	case EXPR_CONDITIONAL:
 		return emit_conditional_expr(expr);
 	case EXPR_STATEMENT:
