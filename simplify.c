@@ -110,7 +110,7 @@ static int if_convert_phi(struct instruction *insn)
 	 */
 	insert_select(source, br, insn, p1, p2);
 	clear_phi(insn);
-	return 1;
+	return REPEAT_CSE;
 }
 
 static int clean_up_phi(struct instruction *insn)
@@ -140,7 +140,7 @@ static int clean_up_phi(struct instruction *insn)
 		pseudo_t pseudo = last ? last->src1 : VOID;
 		convert_instruction_target(insn, pseudo);
 		clear_phi(insn);
-		return 1;
+		return REPEAT_CSE;
 	}
 
 	return if_convert_phi(insn);
@@ -176,15 +176,26 @@ void kill_instruction(struct instruction *insn)
 		insn->bb = NULL;
 		kill_use(&insn->src1);
 		kill_use(&insn->src2);
+		repeat_phase |= REPEAT_CSE;
 		return;
+
 	case OP_NOT: case OP_NEG:
 		insn->bb = NULL;
 		kill_use(&insn->src1);
+		repeat_phase |= REPEAT_CSE;
 		return;
 
-	case OP_PHI: case OP_SETVAL:
+	case OP_PHI:
 		insn->bb = NULL;
+		repeat_phase |= REPEAT_CSE;
 		return;
+
+	 case OP_SETVAL:
+	 	insn->bb = NULL;
+	 	repeat_phase |= REPEAT_CSE;
+	 	if (insn->symbol)
+	 		repeat_phase |= REPEAT_SYMBOL_CLEANUP;
+	 	return;
 	}
 }
 
@@ -202,7 +213,7 @@ static int dead_insn(struct instruction *insn, pseudo_t *src1, pseudo_t *src2)
 	insn->bb = NULL;
 	kill_use(src1);
 	kill_use(src2);
-	return 1;
+	return REPEAT_CSE;
 }
 
 static inline int constant(pseudo_t pseudo)
@@ -214,7 +225,7 @@ static int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
 {
 	convert_instruction_target(insn, pseudo);
 	insn->bb = NULL;
-	return 1;
+	return REPEAT_CSE;
 }
 
 static int simplify_constant_rightside(struct instruction *insn)
@@ -343,13 +354,13 @@ static int simplify_constant_binop(struct instruction *insn)
 
 	/* FIXME!! Sign??? */
 	replace_with_pseudo(insn, value_pseudo(res));
-	return 1;
+	return REPEAT_CSE;
 }
 
 static int simplify_binop(struct instruction *insn)
 {
 	if (dead_insn(insn, &insn->src1, &insn->src2))
-		return 1;
+		return REPEAT_CSE;
 	if (constant(insn->src1)) {
 		if (constant(insn->src2))
 			return simplify_constant_binop(insn);
@@ -368,7 +379,7 @@ static int simplify_constant_unop(struct instruction *insn)
 static int simplify_unop(struct instruction *insn)
 {
 	if (dead_insn(insn, &insn->src1, NULL))
-		return 1;
+		return REPEAT_CSE;
 	if (constant(insn->src1))
 		return simplify_constant_unop(insn);
 	return 0;
@@ -382,7 +393,7 @@ static int simplify_memop(struct instruction *insn)
 		if (def->opcode == OP_SETVAL && def->src) {
 			kill_use(&insn->src);
 			use_pseudo(def->src, &insn->src);
-			return 1;
+			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 		}
 	}
 	return 0;
@@ -408,17 +419,17 @@ int simplify_instruction(struct instruction *insn)
 		return simplify_memop(insn);
 	case OP_SETVAL:
 		if (dead_insn(insn, NULL, NULL))
-			return 1;
+			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 		break;
 	case OP_PHI:
 		if (dead_insn(insn, NULL, NULL)) {
 			clear_phi(insn);
-			return 1;
+			return REPEAT_CSE;
 		}
 		return clean_up_phi(insn);
 	case OP_PHISOURCE:
 		if (dead_insn(insn, &insn->src1, NULL))
-			return 1;
+			return REPEAT_CSE;
 		break;
 	case OP_SETCC:
 		last_setcc = insn;
@@ -427,7 +438,7 @@ int simplify_instruction(struct instruction *insn)
 		assert(setcc && setcc->bb);
 		if (dead_insn(insn, &insn->src1, &insn->src2)) {
 			setcc->bb = NULL;
-			return 1;
+			return REPEAT_CSE;
 		}
 		cond = setcc->src;
 		if (!constant(cond) && insn->src1 != insn->src2)
@@ -435,13 +446,13 @@ int simplify_instruction(struct instruction *insn)
 		setcc->bb = NULL;
 		kill_use(&setcc->cond);
 		replace_with_pseudo(insn, cond->value ? insn->src1 : insn->src2);
-		return 1;
+		return REPEAT_CSE;
 	case OP_BR:
 		cond = insn->cond;
 		if (!cond || !constant(cond))
 			break;
 		insert_branch(insn->bb, insn, cond->value ? insn->bb_true : insn->bb_false);
-		return 1;
+		return REPEAT_CSE;
 	}
 	return 0;
 }

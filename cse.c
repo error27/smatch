@@ -22,7 +22,7 @@ static struct instruction_list *insn_hash_table[INSN_HASH_SIZE];
 
 #define hashval(x) ((unsigned long)(x))
 
-static int cse_repeat;
+int repeat_phase;
 
 static int phi_compare(pseudo_t phi1, pseudo_t phi2)
 {
@@ -44,8 +44,7 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 	if (!insn->bb)
 		return;
 	assert(insn->bb == bb);
-	if (simplify_instruction(insn))
-		cse_repeat = 1;
+	repeat_phase |= simplify_instruction(insn);
 	hash = insn->opcode;
 	switch (insn->opcode) {	
 
@@ -227,7 +226,7 @@ static struct instruction * cse_one_instruction(struct instruction *insn, struct
 {
 	convert_instruction_target(insn, def->target);
 	insn->opcode = OP_NOP;
-	cse_repeat = 1;
+	repeat_phase |= REPEAT_CSE;
 	return def;
 }
 
@@ -294,7 +293,7 @@ void cleanup_and_cse(struct entrypoint *ep)
 	int i;
 
 repeat:
-	cse_repeat = 0;
+	repeat_phase = 0;
 	clean_up_insns(ep);
 	for (i = 0; i < INSN_HASH_SIZE; i++) {
 		struct instruction_list **list = insn_hash_table + i;
@@ -319,6 +318,9 @@ repeat:
 		}
 	}
 
-	if (cse_repeat)
+	if (repeat_phase & REPEAT_SYMBOL_CLEANUP)
+		simplify_symbol_usage(ep);
+
+	if (repeat_phase & REPEAT_CSE)
 		goto repeat;
 }

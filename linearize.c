@@ -1750,11 +1750,8 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 			simplify_flow(ep);
 
 			/*
-			 * Do initial CSE on the pre-symbol code. This gets rid
-			 * of dead symbol address computations.
+			 * Turn symbols into pseudos
 			 */
-			cleanup_and_cse(ep);
-
 			simplify_symbol_usage(ep);
 
 			/*

@@ -526,6 +526,11 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 				continue;
 			mod |= MOD_ADDRESSABLE;
 			goto external_visibility;
+		case OP_NOP:
+		case OP_SNOP:
+		case OP_LNOP:
+		case OP_PHI:
+			continue;
 		default:
 			warning(sym->pos, "symbol '%s' pseudo used in unexpected way", show_ident(sym->ident));
 		}

@@ -3,6 +3,9 @@
 
 extern unsigned long bb_generation;
 
+#define REPEAT_CSE		1
+#define REPEAT_SYMBOL_CLEANUP	2
+
 extern void simplify_symbol_usage(struct entrypoint *ep);
 extern void simplify_flow(struct entrypoint *ep);
 extern void pack_basic_blocks(struct entrypoint *ep);
