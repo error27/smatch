@@ -315,6 +315,7 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 	    match_string_ident(attribute, "__unused__"))
 		return NULL;
 	if (match_string_ident(attribute, "const") ||
+	    match_string_ident(attribute, "__const") ||
 	    match_string_ident(attribute, "__const__"))
 		return NULL;
 	if (match_string_ident(attribute, "noreturn") ||
