@@ -1059,28 +1059,12 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		address_space |= ctype->ctype.as;
 		mod |= ctype->ctype.modifiers;
 	}
-	if (expr->op == SPECIAL_DEREFERENCE) {
-		/* Arrays will degenerate into pointers for '->' */
-		if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
-			warn(expr->pos, "expected a pointer to a struct/union");
-			return NULL;
-		}
-		mod = ctype->ctype.modifiers;
-		address_space = ctype->ctype.as;
-		ctype = ctype->ctype.base_type;
-		if (ctype->type == SYM_NODE) {
-			mod |= ctype->ctype.modifiers;
-			address_space |= ctype->ctype.as;
-			ctype = ctype->ctype.base_type;
-		}
-	} else {
-		if (!lvalue_expression(deref)) {
-			warn(deref->pos, "expected lvalue for member dereference");
-			return NULL;
-		}
-		deref = deref->unop;
-		expr->deref = deref;
+	if (!lvalue_expression(deref)) {
+		warn(deref->pos, "expected lvalue for member dereference");
+		return NULL;
 	}
+	deref = deref->unop;
+	expr->deref = deref;
 	if (!ctype || (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION)) {
 		warn(expr->pos, "expected structure or union");
 		return NULL;

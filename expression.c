@@ -300,10 +300,17 @@ static struct token *postfix_expression(struct token *token, struct expression *
 			token = token->next;
 			continue;
 		}
-		case '.':			/* Structure member dereference */
 		case SPECIAL_DEREFERENCE: {	/* Structure pointer member dereference */
+			/* "x->y" is just shorthand for "(*x).y" */
+			struct expression *inner = alloc_expression(token->pos, EXPR_PREOP);
+			inner->op = '*';
+			inner->unop = expr;
+			expr = inner;
+		}
+		/* Fallthrough!! */
+		case '.': {			/* Structure member dereference */
 			struct expression *deref = alloc_expression(token->pos, EXPR_DEREF);
-			deref->op = token->special;
+			deref->op = '.';
 			deref->deref = expr;
 			token = token->next;
 			if (token_type(token) != TOKEN_IDENT) {
