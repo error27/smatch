@@ -74,7 +74,7 @@ static void show_instruction(struct instruction *insn)
 		printf("\tAIEEE! (%d %d)\n", insn->target->nr, insn->src->nr);
 		break;
 	case OP_RET:
-		if (insn->type)
+		if (insn->type && insn->type != &void_ctype)
 			printf("\tret %%r%d\n", insn->src->nr);
 		else
 			printf("\tret\n");
@@ -752,10 +752,20 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 
 	case STMT_RETURN: {
 		struct expression *expr = stmt->expression;
-		struct instruction *ret = alloc_instruction(OP_RET, expr ? expr->ctype : NULL);
-		ret->src = linearize_expression(ep, expr);
-		add_one_insn(ep, stmt->pos, ret);
-		ep->active = NULL;
+		struct basic_block *bb_return = stmt->ret_target->bb_target;
+		struct basic_block *active;
+		pseudo_t src = linearize_expression(ep, expr);
+		active = ep->active;
+		add_goto(ep, bb_return);
+		if (src != &void_pseudo) {
+			struct instruction *phi_node = first_instruction(bb_return->insns);
+			if (!phi_node) {
+				phi_node = alloc_instruction(OP_PHI, expr->ctype);
+				phi_node->target = alloc_pseudo();
+				add_instruction(&bb_return->insns, phi_node);
+			}
+			add_phi(&phi_node->phi_list, alloc_phi(active, src));
+		}
 		return VOID;
 	}
 
@@ -786,10 +796,28 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	case STMT_COMPOUND: {
 		pseudo_t pseudo;
 		struct statement *s;
+		struct symbol *ret = stmt->ret;
 		concat_symbol_list(stmt->syms, &ep->syms);
+		if (ret)
+			ret->bb_target = alloc_basic_block();
 		FOR_EACH_PTR(stmt->stmts, s) {
 			pseudo = linearize_statement(ep, s);
 		} END_FOR_EACH_PTR;
+		if (ret) {
+			struct basic_block *bb = ret->bb_target;
+			struct instruction *phi = first_instruction(bb->insns);
+
+			if (!phi)
+				return pseudo;
+
+			set_activeblock(ep, bb);
+			if (phi_list_size(phi->phi_list)==1) {
+				pseudo = first_phi(phi->phi_list)->pseudo;
+				delete_last_instruction(&bb->insns);
+				return pseudo;
+			}
+			return phi->target;
+		}
 		return pseudo;
 	}
 
@@ -1018,19 +1046,19 @@ void linearize_symbol(struct symbol *sym)
 		if (base_type->stmt) {
 			struct entrypoint *ep = alloc_entrypoint();
 			struct basic_block *bb = alloc_basic_block();
+			pseudo_t result;
 
 			ep->name = sym;
 			bb->flags |= BB_REACHABLE;
 			set_activeblock(ep, bb);
 			concat_symbol_list(base_type->arguments, &ep->syms);
-			linearize_statement(ep, base_type->stmt);
+			result = linearize_statement(ep, base_type->stmt);
 			if (bb_reachable(ep->active) && !bb_terminated(ep->active)) {
 				struct symbol *ret_type = base_type->ctype.base_type;
-				struct instruction *insn = alloc_instruction(OP_RET, NULL);
+				struct instruction *insn = alloc_instruction(OP_RET, ret_type);
 				struct position pos = base_type->stmt->pos;
-
-				if (ret_type && ret_type != &void_ctype)
-					warn(pos, "control reaches end of non-void function\n");
+				
+				insn->src = result;
 				add_one_insn(ep, pos, insn);
 			}
 			pack_basic_blocks(&ep->bbs);

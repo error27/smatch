@@ -36,6 +36,8 @@ struct instruction;
 struct instruction_list;
 struct multijmp;
 struct multijmp_list;
+struct phi;
+struct phi_list;
 
 struct token *skip_to(struct token *, int);
 struct token *expect(struct token *, int, const char *);
@@ -149,6 +151,11 @@ static inline int instruction_list_size(struct instruction_list* list)
 	return ptr_list_size((struct ptr_list *)(list));
 }
 
+static inline int phi_list_size(struct phi_list* list)
+{
+	return ptr_list_size((struct ptr_list *)(list));
+}
+
 static inline int bb_list_size(struct basic_block_list* list)
 {
 	return ptr_list_size((struct ptr_list *)(list));
@@ -221,6 +228,11 @@ static inline struct instruction *last_instruction(struct instruction_list *head
 }
 
 static inline struct instruction *first_instruction(struct instruction_list *head)
+{
+	return first_ptr_list((struct ptr_list *)head);
+}
+
+static inline struct phi *first_phi(struct phi_list *head)
 {
 	return first_ptr_list((struct ptr_list *)head);
 }

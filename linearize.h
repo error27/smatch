@@ -13,7 +13,9 @@ struct pseudo {
 
 typedef struct pseudo *pseudo_t;
 
-#define VOID NULL
+extern struct pseudo void_pseudo;
+
+#define VOID (&void_pseudo)
 
 struct multijmp {
 	struct basic_block *target;
