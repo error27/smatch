@@ -1396,7 +1396,7 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 {
 	struct symbol *base_type;
 
-	examine_symbol_type(sym);
+	sym = examine_symbol_type(sym);
 	base_type = sym->ctype.base_type;
 	if (!base_type)
 		return NULL;

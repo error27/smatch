@@ -236,13 +236,8 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		return sym;
 	case SYM_TYPEOF: {
 		struct symbol *base = evaluate_expression(sym->initializer);
-		if (base) {
-			struct symbol *node = alloc_symbol(sym->pos, SYM_NODE);
-			merge_type(node, base);
-			node->bit_size = base->bit_size;
-			node->array_size = base->array_size;
-			return node;
-		}
+		if (base)
+			return base;
 		break;
 	}
 	default:
@@ -255,6 +250,7 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 
 	if (base_type) {
 		base_type = examine_symbol_type(base_type);
+		sym->ctype.base_type = base_type;
 		if (base_type && base_type->type == SYM_NODE)
 			merge_type(sym, base_type);
 
