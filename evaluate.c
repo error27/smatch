@@ -51,7 +51,7 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 		struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
 		addr->symbol = sym;
 		addr->symbol_name = expr->symbol_name;
-		addr->ctype = sym;
+		addr->ctype = &ptr_ctype;
 		expr->type = EXPR_PREOP;
 		expr->op = '*';
 		expr->unop = addr;
