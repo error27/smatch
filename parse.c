@@ -451,6 +451,12 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 				break;
 			if (ctype->base_type)
 				break;
+			/* User types only mix with qualifiers */
+			if (mod & MOD_USERTYPE) {
+				qual = 1;
+				if (ctype->modifiers & MOD_SPECIFIER)
+					break;
+			}
 			ctype->base_type = type;
 		}
 
@@ -1200,6 +1206,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	if (is_typedef) {
 		ctype.modifiers &= ~MOD_STORAGE;
 		decl->ctype.modifiers &= ~MOD_STORAGE;
+		decl->ctype.modifiers |= MOD_USERTYPE;
 	}
 
 	bind_symbol(decl, ident, is_typedef ? NS_TYPEDEF: NS_SYMBOL);
