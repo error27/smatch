@@ -74,7 +74,7 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 
 	case STMT_COMPOUND: {
 		struct statement *s;
-		copy_symbol_list(stmt->syms, syms);
+		concat_symbol_list(stmt->syms, syms);
 		FOR_EACH_PTR(stmt->stmts, s) {
 			bb = linearize_statement(syms, bbs, bb, s);
 		} END_FOR_EACH_PTR;
@@ -102,7 +102,7 @@ void linearize_symbol(struct symbol *sym)
 			struct basic_block *bb = alloc_basic_block();
 			ep->name = sym;
 			add_bb(&ep->bbs, bb);
-			copy_symbol_list(base_type->arguments, &ep->syms);
+			concat_symbol_list(base_type->arguments, &ep->syms);
 			linearize_statement(&ep->syms, &ep->bbs, bb, base_type->stmt);
 			show_entry(ep);
 		}

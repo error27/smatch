@@ -239,7 +239,7 @@ void add_ptr_list(struct ptr_list **listp, void *ptr)
 	list->nr = nr;
 }
 
-void copy_ptr_list(struct ptr_list *a, struct ptr_list **b)
+void concat_ptr_list(struct ptr_list *a, struct ptr_list **b)
 {
 	void *entry;
 	FOR_EACH_PTR(a, entry) {

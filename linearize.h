@@ -23,5 +23,7 @@ struct entrypoint {
 	struct basic_block_list *bbs;
 };
 
+void linearize_symbol(struct symbol *sym);
+
 #endif /* LINEARIZE_H */
 
