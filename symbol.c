@@ -364,6 +364,8 @@ struct sym_init {
 	{ "__const",	NULL,		MOD_CONST },
 	{ "__const__",	NULL,		MOD_CONST },
 	{ "volatile",	NULL,		MOD_VOLATILE },
+	{ "__volatile",	NULL,		MOD_VOLATILE },
+	{ "__volatile__", NULL,		MOD_VOLATILE },
 
 	/* Predeclared types */
 	{ "__builtin_va_list", &int_type, 0 },
