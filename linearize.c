@@ -1246,7 +1246,7 @@ static void linearize_one_symbol(struct entrypoint *ep, struct symbol *sym)
 	if (!sym->initializer)
 		return;
 
-	ad.address = add_setval(ep, sym, NULL);
+	ad.address = symbol_pseudo(sym);
 	linearize_initializer(ep, sym->initializer, &ad);
 	finish_address_gen(ep, &ad);
 }
