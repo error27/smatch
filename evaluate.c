@@ -1194,6 +1194,7 @@ static void examine_fn_arguments(struct symbol *fn)
 				s->ctype.base_type = ptr;
 				s->ctype.as = 0;
 				s->ctype.modifiers = 0;
+				s->bit_size = 0;
 				examine_symbol_type(s);
 				break;
 			default:
