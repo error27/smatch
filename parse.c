@@ -590,6 +590,15 @@ static struct statement *make_statement(struct expression *expr)
 	return stmt;
 }
 
+/*
+ * All iterators have two symbols associated with them:
+ * the "continue" and "break" symbols, which are targets
+ * for continue and break statements respectively.
+ *
+ * They are in a special name-space, but they follow
+ * all the normal visibility rules, so nested iterators
+ * automatically work right.
+ */
 static void start_iterator(struct statement *stmt)
 {
 	struct symbol *cont, *brk;
@@ -607,27 +616,61 @@ static void start_iterator(struct statement *stmt)
 	stmt->iterator_continue = cont;
 }
 
-static void end_iterator(void)
+static void end_iterator(struct statement *stmt)
 {
 	end_symbol_scope();
 }
 
+/*
+ * A "switch()" statement, like an iterator, has a
+ * the "break" symbol associated with it. It works
+ * exactly like the iterator break - it's the target
+ * for any break-statements in scope, and means that
+ * "break" handling doesn't even need to know whether
+ * it's breaking out of an iterator or a switch.
+ *
+ * In addition, the "case" symbol is a marker for the
+ * case/default statements to find the switch statement
+ * that they are associated with.
+ */
 static void start_switch(struct statement *stmt)
 {
-	struct symbol *brk;
+	struct symbol *brk, *switch_case;
 
 	start_symbol_scope();
 	brk = alloc_symbol(stmt->pos, SYM_NODE);
 	brk->ident = &break_ident;
 	bind_symbol(brk, &break_ident, NS_ITERATOR);
 
+	switch_case = alloc_symbol(stmt->pos, SYM_NODE);
+	switch_case->ident = &case_ident;
+	bind_symbol(switch_case, &case_ident, NS_ITERATOR);
+	switch_case->stmt = stmt;
+
 	stmt->type = STMT_SWITCH;
 	stmt->switch_break = brk;
+	stmt->switch_case = switch_case;
 }
 
-static void end_switch(void)
+static void end_switch(struct statement *stmt)
 {
+	if (!stmt->switch_case->symbol_list)
+		warn(stmt->pos, "switch with no cases");
 	end_symbol_scope();
+}
+
+static void add_case_statement(struct statement *stmt)
+{
+	struct symbol *target = lookup_symbol(&case_ident, NS_ITERATOR);
+	struct symbol *sym;
+
+	if (!target) {
+		warn(stmt->pos, "not in switch scope");
+		return;
+	}
+	sym = alloc_symbol(stmt->pos, SYM_NODE);
+	add_symbol(&target->symbol_list, sym);
+	sym->stmt = stmt;
 }
 
 struct token *statement(struct token *token, struct statement **tree)
@@ -669,6 +712,7 @@ struct token *statement(struct token *token, struct statement **tree)
 default_statement:
 			stmt->type = STMT_CASE;
 			token = expect(token, ':', "after default/case");
+			add_case_statement(stmt);
 			return statement(token, &stmt->case_statement);
 		}
 		if (token->ident == &switch_ident) {
@@ -676,7 +720,7 @@ default_statement:
 			start_switch(stmt);
 			token = parens_expression(token->next, &stmt->switch_expression, "after 'switch'");
 			token = statement(token, &stmt->switch_statement);
-			end_switch();
+			end_switch(stmt);
 			return token;
 		}
 		if (token->ident == &for_ident) {
@@ -698,7 +742,7 @@ default_statement:
 			stmt->iterator_post_statement = make_statement(e3);
 			stmt->iterator_post_condition = e2;
 			stmt->iterator_statement = iterator;
-			end_iterator();
+			end_iterator(stmt);
 
 			return token;
 		}
@@ -713,7 +757,7 @@ default_statement:
 			stmt->iterator_pre_condition = expr;
 			stmt->iterator_post_condition = expr;
 			stmt->iterator_statement = iterator;
-			end_iterator();
+			end_iterator(stmt);
 
 			return token;
 		}
@@ -731,7 +775,7 @@ default_statement:
 
 			stmt->iterator_post_condition = expr;
 			stmt->iterator_statement = iterator;
-			end_iterator();
+			end_iterator(stmt);
 
 			return expect(token, ';', "after statement");
 		}

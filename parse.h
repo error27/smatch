@@ -55,7 +55,7 @@ struct statement {
 		struct switch_struct {
 			struct expression *switch_expression;
 			struct statement *switch_statement;
-			struct symbol *switch_break;
+			struct symbol *switch_break, *switch_case;
 		};
 		struct iterator_struct {
 			struct symbol *iterator_break;
