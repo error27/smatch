@@ -49,22 +49,41 @@ enum storage_type {
 	STOR_PSEUDO,	/* variable stored on the stack */
 	STOR_ARG,	/* function argument */
 	STOR_SYM,	/* a symbol we can directly ref in the asm */
+	STOR_REG,	/* scratch register */
+	STOR_VALUE,	/* integer constant */
+	STOR_LABEL,	/* label / jump target */
+};
+
+struct reg_info {
+	const char	*name;
 };
 
 struct storage {
 	enum storage_type type;
+
+	/* STOR_REG */
+	struct reg_info *reg;
+
 	union {
-		/* stuff for pseudos */
+		/* STOR_PSEUDO */
 		struct {
 			int pseudo;
 		};
-		/* stuff for function arguments */
+		/* STOR_ARG */
 		struct {
 			int idx;
 		};
-		/* stuff for symbols */
+		/* STOR_SYM */
 		struct {
 			struct symbol *sym;
+		};
+		/* STOR_VALUE */
+		struct {
+			long long value;
+		};
+		/* STOR_LABEL */
+		struct {
+			int label;
 		};
 	};
 };
@@ -76,6 +95,11 @@ struct symbol_private {
 enum atom_type {
 	ATOM_TEXT,
 	ATOM_INSN,
+};
+
+enum {
+	ATOM_FREE_OP1	= (1 << 0),
+	ATOM_FREE_OP2	= (1 << 1),
 };
 
 struct atom {
@@ -102,6 +126,37 @@ struct atom {
 struct function *current_func = NULL;
 struct textbuf *unit_post_text = NULL;
 static const char *current_section;
+
+static struct reg_info reg_info_table[] = {
+	{ "%eax" },
+	{ "%ecx" },
+	{ "%edx" },
+	{ "%esp" },
+};
+
+static struct storage hardreg_storage_table[] = {
+	{
+		.type = STOR_REG,
+		.reg = &reg_info_table[0],
+	},
+	{
+		.type = STOR_REG,
+		.reg = &reg_info_table[1],
+	},
+	{
+		.type = STOR_REG,
+		.reg = &reg_info_table[2],
+	},
+	{
+		.type = STOR_REG,
+		.reg = &reg_info_table[3],
+	},
+};
+
+#define REG_EAX (&hardreg_storage_table[0])
+#define REG_ECX (&hardreg_storage_table[1])
+#define REG_EDX (&hardreg_storage_table[2])
+#define REG_ESP (&hardreg_storage_table[3])
 
 
 static struct storage *x86_address_gen(struct expression *expr);
@@ -185,6 +240,15 @@ static const char *stor_op_name(struct storage *s)
 	case STOR_SYM:
 		strcpy(name, show_ident(s->sym->ident));
 		break;
+	case STOR_REG:
+		strcpy(name, s->reg->name);
+		break;
+	case STOR_VALUE:
+		sprintf(name, "$%Ld", s->value);
+		break;
+	case STOR_LABEL:
+		sprintf(name, ".L%d", s->label);
+		break;
 	}
 
 	return name;
@@ -218,6 +282,19 @@ static void push_text_atom(struct function *f, const char *text)
 	push_atom(f, atom);
 }
 
+static struct storage *new_storage(enum storage_type type)
+{
+	struct storage *stor;
+
+	stor = calloc(1, sizeof(*stor));
+	if (!stor)
+		die("OOM in new_storage");
+
+	stor->type = type;
+
+	return stor;
+}
+
 static struct storage *new_pseudo(void)
 {
 	struct function *f = current_func;
@@ -225,10 +302,7 @@ static struct storage *new_pseudo(void)
 
 	assert(f != NULL);
 
-	stor = calloc(1, sizeof(*stor));
-	if (!stor)
-		die("OOM in new_pseudo");
-
+	stor = new_storage(STOR_PSEUDO);
 	stor->type = STOR_PSEUDO;
 	stor->pseudo = ++f->pseudo_nr;
 
@@ -293,29 +367,24 @@ static void textbuf_emit(struct textbuf **buf_p)
 	*buf_p = list;
 }
 
-static void insn(const char *insn, const char *op1, const char *op2,
-		 const char *comment_in)
+static void insn(const char *insn, struct storage *op1, struct storage *op2,
+		 const char *comment_in, unsigned long flags)
 {
 	struct function *f = current_func;
-	char s[128];
-	char comment[64];
+	struct atom *atom = new_atom(ATOM_INSN);
 
 	assert(insn != NULL);
 
+	strcpy(atom->insn, insn);
 	if (comment_in && (*comment_in))
-		sprintf(comment, "\t\t# %s", comment_in);
-	else
-		comment[0] = 0;
+		strncpy(atom->comment, comment_in,
+			sizeof(atom->comment) - 1);
 
-	if (op2 && (*op2))
-		sprintf(s, "\t%s\t%s, %s%s\n", insn, op1, op2, comment);
-	else if (op1 && (*op1))
-		sprintf(s, "\t%s\t%s%s%s\n", insn, op1,
-			comment[0] ? "\t" : "", comment);
-	else
-		sprintf(s, "\t%s\t%s%s\n", insn,
-			comment[0] ? "\t\t" : "", comment);
-	push_text_atom(f, s);
+	atom->op1 = op1;
+	atom->op2 = op2;
+	atom->flags = flags;
+
+	push_atom(f, atom);
 }
 
 static void emit_unit_pre(const char *basename)
@@ -341,18 +410,31 @@ static void emit_section(const char *s)
 	current_section = s;
 }
 
-static void emit_atom(struct function *f, struct atom *atom)
+static void emit_insn_atom(struct function *f, struct atom *atom)
 {
-	switch (atom->type) {
-	case ATOM_TEXT: {
-		ssize_t rc = write(STDOUT_FILENO, atom->text, atom->text_len);
-		(void) rc;	/* FIXME */
-		break;
-	}
-	default:
-		assert(0);
-		break;
-	}
+	char s[128];
+	char comment[64];
+
+	if (atom->comment[0])
+		sprintf(comment, "\t\t# %s", atom->comment);
+	else
+		comment[0] = 0;
+
+	if (atom->op2) {
+		char tmp[16];
+		strcpy(tmp, stor_op_name(atom->op1));
+		sprintf(s, "\t%s\t%s, %s%s\n",
+			atom->insn, tmp, stor_op_name(atom->op2), comment);
+	} else if (atom->op1)
+		sprintf(s, "\t%s\t%s%s%s\n",
+			atom->insn, stor_op_name(atom->op1),
+			comment[0] ? "\t" : "", comment);
+	else
+		sprintf(s, "\t%s\t%s%s\n",
+			atom->insn,
+			comment[0] ? "\t\t" : "", comment);
+
+	write(STDOUT_FILENO, s, strlen(s));
 }
 
 static void emit_atom_list(struct function *f)
@@ -360,7 +442,17 @@ static void emit_atom_list(struct function *f)
 	struct atom *atom;
 
 	FOR_EACH_PTR(f->atom_list, atom) {
-		emit_atom(f, atom);
+		switch (atom->type) {
+		case ATOM_TEXT: {
+			ssize_t rc = write(STDOUT_FILENO, atom->text,
+					   atom->text_len);
+			(void) rc;	/* FIXME */
+			break;
+		}
+		case ATOM_INSN:
+			emit_insn_atom(f, atom);
+			break;
+		}
 	} END_FOR_EACH_PTR;
 }
 
@@ -376,6 +468,10 @@ static void func_cleanup(struct function *f)
 	FOR_EACH_PTR(f->atom_list, atom) {
 		if ((atom->type == ATOM_TEXT) && (atom->text))
 			free(atom->text);
+		if (atom->flags & ATOM_FREE_OP1)
+			free(atom->op1);
+		if (atom->flags & ATOM_FREE_OP2)
+			free(atom->op2);
 		free(atom);
 	} END_FOR_EACH_PTR;
 
@@ -440,10 +536,11 @@ static void emit_func_pre(struct symbol *sym)
 }
 
 /* function epilogue */
-static void emit_func_post(struct symbol *sym, struct storage *val)
+static void emit_func_post(struct symbol *sym, struct storage *ret_val)
 {
 	const char *name = show_ident(sym->ident);
 	struct function *f = current_func;
+	struct storage *val;
 	int pseudo_nr = f->pseudo_nr;
 	char pseudo_const[16], jump_target[16];
 
@@ -456,10 +553,14 @@ static void emit_func_post(struct symbol *sym, struct storage *val)
 	push_text_atom(f, jump_target);
 
 	/* function prologue */
-	if (val)
-		insn("movl", stor_op_name(val), "%eax", stor_arg_warning(val));
-	insn("addl", pseudo_const, "%esp", NULL);
-	insn("ret", NULL, NULL, NULL);
+	if (ret_val)
+		insn("movl", ret_val, REG_EAX, stor_arg_warning(ret_val), 0);
+
+	val = new_storage(STOR_VALUE);
+	val->value = (long long) (pseudo_nr * 4);
+
+	insn("addl", val, REG_ESP, NULL, ATOM_FREE_OP1);
+	insn("ret", NULL, NULL, NULL, 0);
 
 	/* output everything to stdout */
 	fflush(stdout);		/* paranoia; needed? */
@@ -677,10 +778,10 @@ static void emit_move(struct expression *dest_expr, struct storage *dest,
 	/* FIXME: Bitfield move! */
 
 	/* FIXME: pay attention to arg 'bits' */
-	insn("movl", stor_op_name(src), "%eax", stor_arg_warning(src));
+	insn("movl", src, REG_EAX, stor_arg_warning(src), 0);
 
 	/* FIXME: pay attention to arg 'bits' */
-	insn("movl", "%eax", stor_op_name(dest), stor_arg_warning(dest));
+	insn("movl", REG_EAX, dest, stor_arg_warning(dest), 0);
 }
 
 static void emit_store(struct expression *dest_expr, struct storage *dest,
@@ -710,7 +811,7 @@ static struct storage *emit_compare(struct expression *expr)
 {
 	struct storage *left = x86_expression(expr->left);
 	struct storage *right = x86_expression(expr->right);
-	struct storage *new;
+	struct storage *new, *val;
 	const char *opname = NULL;
 	static const char *name[] = {
 		['<'] = "cmovl",
@@ -737,40 +838,43 @@ static struct storage *emit_compare(struct expression *expr)
 	}
 
 	/* init ECX to 1 */
-	insn("movl", "$1", "%ecx", "EXPR_COMPARE");
+	val = new_storage(STOR_VALUE);
+	val->value = 1;
+	insn("movl", val, REG_ECX, "EXPR_COMPARE", ATOM_FREE_OP1);
 
 	/* init EDX to 0 */
-	insn("xorl", "%edx", "%edx", NULL);
+	insn("xorl", REG_EDX, REG_EDX, NULL, 0);
 
 	/* FIXME: don't hardcode operand size */
 	/* move op1 into EAX */
-	insn("movl", stor_op_name(left), "%eax", NULL);
+	insn("movl", left, REG_EAX, NULL, 0);
 
 	/* perform comparison, EAX (op1) and op2 */
-	insn("cmpl", "%eax", stor_op_name(right), NULL);
+	insn("cmpl", REG_EAX, right, NULL, 0);
 
 	/* store result of operation, 0 or 1, in EDX using CMOV */
 	/* FIXME: does this need an operand size suffix? */
-	insn(opname, "%ecx", "%edx", NULL);
+	insn(opname, REG_ECX, REG_EDX, NULL, 0);
 
 	/* finally, store the result (EDX) in a new pseudo / stack slot */
 	new = new_pseudo();
-	insn("movl", "%edx", stor_op_name(new), "end EXPR_COMPARE");
+	insn("movl", REG_EDX, new, "end EXPR_COMPARE", 0);
 
 	return new;
 }
 
 /*
- * TODO: create a new type STOR_VALUE.  This will allow us to store
+ * TODO: use new type STOR_VALUE.  This will allow us to store
  * the constant internally, and avoid assigning stack slots to them.
  */
 static struct storage *emit_value(struct expression *expr)
 {
 	struct storage *new = new_pseudo();
-	char s[32];
+	struct storage *val;
 
-	sprintf(s, "$%Ld", (long long) expr->value);
-	insn("movl", s, pretty_offset(pseudo_offset(new)), NULL);
+	val = new_storage(STOR_VALUE);
+	val->value = (long long) expr->value;
+	insn("movl", val, new, NULL, ATOM_FREE_OP1);
 
 	return new;
 }
@@ -804,14 +908,14 @@ static struct storage *emit_binop(struct expression *expr)
 		assert(0); /* FIXME: no operations other than name[], ATM */
 
 	/* load op2 into EAX */
-	insn("movl", stor_op_name(right), "%eax", "EXPR_BINOP/COMMA/LOGICAL");
+	insn("movl", right, REG_EAX, "EXPR_BINOP/COMMA/LOGICAL", 0);
 
 	/* perform binop */
-	insn(opname, stor_op_name(left), "%eax", NULL);
+	insn(opname, left, REG_EAX, NULL, 0);
 
 	/* store result (EAX) in new pseudo / stack slot */
 	new = new_pseudo();
-	insn("movl", "%eax", stor_op_name(new), "end EXPR_BINOP");
+	insn("movl", REG_EAX, new, "end EXPR_BINOP", 0);
 
 	return new;
 }
@@ -819,7 +923,7 @@ static struct storage *emit_binop(struct expression *expr)
 static void emit_if_conditional(struct statement *stmt)
 {
 	struct function *f = current_func;
-	struct storage *val;
+	struct storage *val, *target_val;
 	int target;
 	struct expression *cond = stmt->if_conditional;
 	char s[16];
@@ -837,33 +941,37 @@ static void emit_if_conditional(struct statement *stmt)
 	val = x86_expression(cond);
 
 	/* load 'if' test result into EAX */
-	insn("movl", stor_op_name(val), "%eax",
+	insn("movl", val, REG_EAX,
 	     stor_arg_warning(val) ? stor_arg_warning(val) :
-	     "begin if conditional");
+	     "begin if conditional", 0);
 
 	/* clear ECX */
-	insn("xorl", "%ecx", "%ecx", NULL);
+	insn("xorl", REG_ECX, REG_ECX, NULL, 0);
 
 	/* compare 'if' test result */
-	insn("cmpl", "%eax", "%ecx", NULL);
+	insn("cmpl", REG_EAX, REG_ECX, NULL, 0);
 
 	/* create end-of-if label / if-failed labelto jump to,
 	 * and jump to it if the expression returned zero.
 	 */
 	target = new_label();
-	sprintf(s, ".L%d", target);
-	insn("je", s, NULL, NULL);
+	target_val = new_storage(STOR_LABEL);
+	target_val->label = target;
+	insn("je", target_val, NULL, NULL, ATOM_FREE_OP1);
 
 	x86_statement(stmt->if_true);
 	if (stmt->if_false) {
-		int last = new_label();
+		struct storage *last_val;
+		int last;
 
 		/* finished generating code for if-true statement.
 		 * add a jump-to-end jump to avoid falling through
 		 * to the if-false statement code.
 		 */
-		sprintf(s, ".L%d", last);
-		insn("jmp", s, NULL, NULL);
+		last = new_label();
+		last_val = new_storage(STOR_LABEL);
+		last_val->label = last;
+		insn("jmp", last_val, NULL, NULL, ATOM_FREE_OP1);
 
 		/* if we have both if-true and if-false statements,
 		 * the failed-conditional case will fall through to here
@@ -898,7 +1006,7 @@ static struct storage *emit_inc_dec(struct expression *expr, int postop)
 	} else
 		retval = addr;
 
-	insn(opname, stor_op_name(addr), NULL, NULL);
+	insn(opname, addr, NULL, NULL, 0);
 
 	return retval;
 }
@@ -1166,11 +1274,11 @@ static struct storage *x86_statement(struct statement *stmt)
 
 static struct storage *x86_call_expression(struct expression *expr)
 {
+	struct function *f = current_func;
 	struct symbol *direct;
 	struct expression *arg, *fn;
 	struct storage *retval, *fncall;
 	int framesize;
-	char s[64];
 
 	if (!expr->ctype) {
 		warn(expr->pos, "\tcall with no type!");
@@ -1183,9 +1291,9 @@ static struct storage *x86_call_expression(struct expression *expr)
 		int size = arg->ctype->bit_size;
 
 		/* FIXME: pay attention to 'size' */
-		insn("pushl", stor_op_name(new), NULL,
+		insn("pushl", new, NULL,
 		     stor_arg_warning(new) ? stor_arg_warning(new) :
-		     !framesize ? "begin function call" : NULL);
+		     !framesize ? "begin function call" : NULL, 0);
 
 		framesize += size >> 3;
 	} END_FOR_EACH_PTR_REVERSE;
@@ -1201,17 +1309,20 @@ static struct storage *x86_call_expression(struct expression *expr)
 				direct = sym;
 		}
 	}
-	if (direct)
-		insn("call", show_ident(direct->ident), NULL, NULL);
-	else {
+	if (direct) {
+		char s[64];
+		sprintf(s, "\tcall\t%s\n", show_ident(direct->ident));
+		push_text_atom(f, s);
+	} else {
 		fncall = x86_expression(fn);
 		printf("\tcall\t*v%d\n", fncall->pseudo);
 	}
 
 	/* FIXME: pay attention to BITS_IN_POINTER */
 	if (framesize) {
-		sprintf(s, "$%d", framesize);
-		insn("addl", s, "%esp", "end function call");
+		struct storage *val = new_storage(STOR_VALUE);
+		val->value = (long long) framesize;
+		insn("addl", val, REG_ESP, "end function call", ATOM_FREE_OP1);
 	}
 
 	retval = new_pseudo();
