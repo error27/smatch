@@ -628,6 +628,13 @@ static void do_include(int local, struct stream *stream, struct token **list, st
 {
 	int flen = strlen(filename) + 1;
 
+	/* Absolute path? */
+	if (filename[0] == '/') {
+		if (try_include("", 0, filename, flen, list))
+			return;
+		goto out;
+	}
+
 	/* Same directory as current stream? */
 	if (local) {
 		const char *path;
@@ -650,6 +657,7 @@ static void do_include(int local, struct stream *stream, struct token **list, st
 	if (do_include_path(gcc_includepath, list, token, filename, flen))
 		return;
 
+out:
 	error(token->pos, "unable to open '%s'", filename);
 }
 
