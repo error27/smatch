@@ -240,6 +240,17 @@ static struct expression * copy_expression(struct expression *expr)
 	return expr;
 }
 
+static struct expression_list *copy_expression_list(struct expression_list *in)
+{
+	struct expression_list *out = NULL;
+	struct expression *expr;
+
+	FOR_EACH_PTR(in, expr) {
+		add_expression(&out, copy_expression(expr));
+	} END_FOR_EACH_PTR(expr);
+	return out;
+}
+
 void set_replace(struct symbol *old, struct symbol *new)
 {
 	new->replace = old;
@@ -365,7 +376,10 @@ static struct statement *copy_one_statement(struct statement *stmt)
 		break;
 	}
 	case STMT_ASM: {
-		/* FIXME! */
+		stmt = dup_statement(stmt);
+		stmt->asm_inputs = copy_expression_list(stmt->asm_inputs);
+		stmt->asm_outputs = copy_expression_list(stmt->asm_outputs);
+		/* no need to dup "clobbers", since they are all constant strings */
 		break;
 	}
 	default:
