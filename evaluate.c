@@ -1413,7 +1413,8 @@ static void check_duplicates(struct symbol *sym)
 		evaluate_symbol(next);
 		typediff = type_difference(sym, next, 0, 0);
 		if (typediff) {
-			warn(sym->pos, "symbol redeclared with different type (originally declared at %s:%d)",
+			warn(sym->pos, "symbol '%s' redeclared with different type (originally declared at %s:%d)",
+				show_ident(sym->ident),
 				input_streams[next->pos.stream].name, next->pos.line);
 			return;
 		}
