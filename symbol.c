@@ -108,12 +108,12 @@ static void examine_struct_union_type(struct symbol *sym, int advance)
 	fn = advance ? lay_out_struct : lay_out_union;
 	symbol_iterate(sym->symbol_list, fn, &info);
 
+	if (!sym->ctype.alignment)
+		sym->ctype.alignment = info.max_align;
 	bit_size = info.bit_size;
-	bit_align = (info.max_align << 3)-1;
+	bit_align = (sym->ctype.alignment << 3)-1;
 	bit_size = (bit_size + bit_align) & ~bit_align;
 	sym->bit_size = bit_size;
-	if (info.max_align > sym->ctype.alignment)
-		sym->ctype.alignment = info.max_align;
 }
 
 static void examine_array_type(struct symbol *sym)
