@@ -459,9 +459,11 @@ static const char * type_difference(struct symbol *target, struct symbol *source
 			PREPARE_PTR_LIST(source->arguments, arg2);
 			i = 1;
 			for (;;) {
-				if (type_difference(arg1, arg2, 0, 0)) {
-					static char argdiff[30];
-					sprintf(argdiff, "incompatible argument %d", i);
+				const char *diff;
+				diff = type_difference(arg1, arg2, 0, 0);
+				if (diff) {
+					static char argdiff[80];
+					sprintf(argdiff, "incompatible argument %d (%s)", i, diff);
 					return argdiff;
 				}
 				if (!arg1)
@@ -1166,7 +1168,14 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 	return size_t_ctype;
 }
 
-static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
+static int context_clash(struct symbol *sym1, struct symbol *sym2)
+{
+	unsigned long clash = (sym1->ctype.context ^ sym2->ctype.context);
+	clash &= (sym1->ctype.contextmask & sym2->ctype.contextmask);
+	return clash != 0;
+}
+
+static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expression_list *head)
 {
 	struct expression *expr;
 	struct symbol_list *argument_types = fn->arguments;
@@ -1181,6 +1190,9 @@ static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 
 		if (!ctype)
 			return 0;
+
+		if (context_clash(f, ctype))
+			warn(expr->pos, "argument %d used in wrong context", i);
 
 		ctype = degenerate(expr, ctype, p);
 
@@ -1358,13 +1370,13 @@ static struct symbol *evaluate_cast(struct expression *expr)
 static struct symbol *evaluate_call(struct expression *expr)
 {
 	int args, fnargs;
-	struct symbol *ctype;
+	struct symbol *ctype, *sym;
 	struct expression *fn = expr->fn;
 	struct expression_list *arglist = expr->args;
 
 	if (!evaluate_expression(fn))
 		return NULL;
-	ctype = fn->ctype;
+	sym = ctype = fn->ctype;
 	if (ctype->type == SYM_NODE) {
 		/*
 		 * FIXME!! We should really expand the inline functions.
@@ -1381,7 +1393,7 @@ static struct symbol *evaluate_call(struct expression *expr)
 		warn(expr->pos, "not a function");
 		return NULL;
 	}
-	if (!evaluate_arguments(ctype, arglist))
+	if (!evaluate_arguments(sym, ctype, arglist))
 		return NULL;
 	args = expression_list_size(expr->args);
 	fnargs = symbol_list_size(ctype->arguments);
