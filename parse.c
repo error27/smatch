@@ -1370,14 +1370,21 @@ static void apply_k_r_types(struct symbol_list *argtypes, struct symbol *fn)
 			if (type->ident == arg->ident)
 				goto match;
 		} END_FOR_EACH_PTR;
-		warn(arg->pos, "no K&R type for '%s'", show_ident(arg->ident));
-		return;
+		warn(arg->pos, "missing type declaration for parameter '%s'", show_ident(arg->ident));
+		continue;
 match:
+		type->used = 1;
 		/* "char" and "short" promote to "int" */
 		promote_k_r_types(type);
 
 		arg->ctype = type->ctype;
 	} END_FOR_EACH_PTR;
+
+	FOR_EACH_PTR(argtypes, arg) {
+		if (!arg->used)
+			warn(arg->pos, "nonsensical parameter declaration '%s'", show_ident(arg->ident));
+	} END_FOR_EACH_PTR;
+
 }
 
 static struct token *parse_k_r_arguments(struct token *token, struct symbol *decl,
