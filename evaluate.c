@@ -428,12 +428,18 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 	return NULL;
 }
 
+static int is_null_ptr(struct expression *expr)
+{
+	return (expr->type == EXPR_VALUE &&
+		expr->value == 0);
+}
+
 static struct symbol *common_ptr_type(struct expression *l, struct expression *r)
 {
 	/* NULL expression? Just return the type of the "other side" */
-	if (r->type == EXPR_VALUE && !r->value)
+	if (is_null_ptr(r))
 		return l->ctype;
-	if (l->type == EXPR_VALUE && !l->value)
+	if (is_null_ptr(l))
 		return r->ctype;
 	return NULL;
 }
@@ -624,12 +630,6 @@ static int compatible_integer_types(struct symbol *ltype, struct symbol *rtype)
 	return (is_int_type(ltype) && is_int_type(rtype));
 }
 
-static int is_null_ptr(struct expression *expr)
-{
-	return (expr->type == EXPR_VALUE &&
-		expr->value == 0);
-}
-
 /*
  * FIXME!! This should do casts, array degeneration etc..
  */
@@ -722,7 +722,7 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 		int source_as;
 
 		// NULL pointer is always ok
-		if (right->type == EXPR_VALUE && !right->value)
+		if (is_null_ptr(right))
 			return 1;
 
 		/* "void *" matches anything as long as the address space is ok */
