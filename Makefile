@@ -121,4 +121,4 @@ pre-process.h:
 	echo "#define GCC_INTERNAL_INCLUDE \"`$(CC) -print-file-name=include`\"" > pre-process.h
 
 clean:
-	rm -f *.[oasi] core core.[0-9]* $(PROGRAMS) pre-process.h
+	rm -f *.[oasi] core core.[0-9]* $(PROGRAMS) $(SLIB_FILE) pre-process.h
