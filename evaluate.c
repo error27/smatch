@@ -1242,6 +1242,16 @@ static int evaluate_array_initializer(struct symbol *ctype, struct expression *e
 	return max;
 }
 
+/* A scalar initializer is allowed, and acts pretty much like an array of one */
+static int evaluate_scalar_initializer(struct symbol *ctype, struct expression *expr, unsigned long offset)
+{
+	if (offset || expression_list_size(expr->expr_list) != 1) {
+		warn(expr->pos, "unexpected compound initializer");
+		return 0;
+	}
+	return evaluate_array_initializer(ctype, expr, 0);
+}
+
 static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct expression *expr, int multiple, unsigned long offset)
 {
 	struct expression *entry;
@@ -1340,10 +1350,8 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep, un
 	case SYM_STRUCT:
 		return evaluate_struct_or_union_initializer(ctype, expr, 1, offset);
 	default:
-		break;
+		return evaluate_scalar_initializer(ctype, expr, offset);
 	}
-	warn(expr->pos, "unexpected compound initializer");
-	return 0;
 }
 
 static int get_as(struct symbol *sym)
