@@ -1479,13 +1479,25 @@ static int evaluate_array_initializer(struct symbol *ctype, struct expression *e
 
 	FOR_EACH_PTR(expr->expr_list, entry) {
 		struct expression **p = THIS_ADDRESS(entry);
+		struct symbol *sym;
+		int entries;
 
 		if (entry->type == EXPR_INDEX) {
 			current = entry->idx_to;
 			continue;
 		}
-		evaluate_initializer(ctype, p, offset + current*(ctype->bit_size>>3));
-		current++;
+		sym = evaluate_expression(entry);
+
+		if (sym->type == SYM_NODE)
+			sym = sym->ctype.base_type;
+		if (sym->type == SYM_ARRAY) {
+			compatible_assignment_types(entry, ctype, p, sym->ctype.base_type, "array initializer");
+			entries = get_expression_value(sym->array_size);
+		} else {
+			evaluate_initializer(ctype, p, offset + current*(ctype->bit_size>>3));
+			entries = 1;
+		}
+		current += entries;
 		if (current > max)
 			max = current;
 	} END_FOR_EACH_PTR;
