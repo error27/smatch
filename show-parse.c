@@ -182,11 +182,11 @@ void show_symbol(struct symbol *sym)
 	 */
 	switch (type->type) {
 	case SYM_STRUCT:
-		symbol_iterate(sym->symbol_list, show_struct_member, NULL);
+		symbol_iterate(type->symbol_list, show_struct_member, NULL);
 		return;
 
 	case SYM_UNION:
-		symbol_iterate(sym->symbol_list, show_struct_member, NULL);
+		symbol_iterate(type->symbol_list, show_struct_member, NULL);
 		return;
 
 	case SYM_FN:
