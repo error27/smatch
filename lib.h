@@ -161,7 +161,7 @@ static inline struct basic_block* next_basic_block(struct list_iterator *iterato
 
 static inline struct multijmp* next_multijmp(struct list_iterator *iterator)
 {
-	return 	next_multijmp(iterator);
+	return 	next_iterator(iterator);
 }
 
 static inline void free_instruction_list(struct instruction_list **head)

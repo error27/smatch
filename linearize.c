@@ -500,42 +500,47 @@ static pseudo_t linearize_logical_branch(struct entrypoint *ep, struct expressio
 
 pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *expr, struct basic_block *bb_true, struct basic_block *bb_false);
 
-static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr)
+static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *expr,
+				      struct expression *cond, struct expression *expr_true,
+				      struct expression *expr_false)
 {
 	pseudo_t src1, src2, target;
 	struct basic_block *bb_true = alloc_basic_block();
 	struct basic_block *bb_false = alloc_basic_block();
 	struct basic_block *merge = alloc_basic_block();
-	struct basic_block *first = bb_true;
-	struct basic_block *second = bb_false;
 
-	if (expr->op == SPECIAL_LOGICAL_OR) {
-		first = bb_false;
-		second = bb_true;
-	}
+	linearize_cond_branch(ep, cond, bb_true, bb_false);
 
-	linearize_cond_branch(ep, expr->left, bb_true, bb_false);
+	set_activeblock(ep, bb_true);
+	src1 = linearize_expression(ep, expr_true);
+	bb_true = ep->active;
+	add_goto(ep, merge); 
 
-	set_activeblock(ep, first);
-	src1 = linearize_expression(ep, expr->right);
-	add_goto(ep, merge);
-
-	set_activeblock(ep, second);
-	src2 = add_setval(ep, expr->ctype, alloc_const_expression(expr->pos, expr->op == SPECIAL_LOGICAL_OR));
-
+	set_activeblock(ep, bb_false);
+	src2 = linearize_expression(ep, expr_false);
+	bb_false = ep->active;
 	set_activeblock(ep, merge);
 
 	if (bb_reachable(bb_true) && bb_reachable(bb_false)) {
 		struct instruction *phi_node = alloc_instruction(OP_PHI, expr->ctype);
-		add_phi(&phi_node->phi_list, alloc_phi(first, src1));
-		add_phi(&phi_node->phi_list, alloc_phi(second, src2));
+		add_phi(&phi_node->phi_list, alloc_phi(bb_true, src1));
+		add_phi(&phi_node->phi_list, alloc_phi(bb_false, src2));
 		phi_node->target = target = alloc_pseudo();
 		add_one_insn(ep, expr->pos, phi_node);
 		set_activeblock(ep, alloc_basic_block());
 		return target;
 	}
 
-	return bb_reachable(first) ? src1 : src2;
+	return bb_reachable(bb_true) ? src1 : src2;
+}
+
+static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr)
+{
+	struct expression *shortcut;
+
+	shortcut = alloc_const_expression(expr->pos, expr->op == SPECIAL_LOGICAL_OR);
+	shortcut->ctype = expr->ctype;
+	return  linearize_conditional(ep, expr, expr->left, shortcut, expr->right);
 }
 
 static pseudo_t linearize_compare(struct entrypoint *ep, struct expression *expr)
@@ -644,6 +649,10 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 
 	case EXPR_COMPARE:
 		return  linearize_compare(ep, expr);
+
+	case EXPR_CONDITIONAL:
+		return  linearize_conditional(ep, expr, expr->conditional,
+					      expr->cond_true, expr->cond_false);
 
 	case EXPR_COMMA: {
 		linearize_expression(ep, expr->left);
