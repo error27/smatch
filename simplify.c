@@ -378,7 +378,7 @@ static int simplify_constant_binop(struct instruction *insn)
 	default:
 		return 0;
 	}
-	mask = 1ULL << (insn->type->bit_size-1);
+	mask = 1ULL << (insn->size-1);
 	res &= mask | (mask-1);
 
 	/* FIXME!! Sign??? */

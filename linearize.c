@@ -20,6 +20,7 @@
 #include "expression.h"
 #include "linearize.h"
 #include "flow.h"
+#include "target.h"
 
 pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt);
 pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr);
@@ -34,11 +35,11 @@ pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initial
 
 struct pseudo void_pseudo = {};
 
-static struct instruction *alloc_instruction(int opcode, struct symbol *type)
+static struct instruction *alloc_instruction(int opcode, int size)
 {
 	struct instruction * insn = __alloc_instruction(0);
-	insn->type = type;
 	insn->opcode = opcode;
+	insn->size = size > 0 ? size : 0;
 	return insn;
 }
 
@@ -94,7 +95,7 @@ static const char *show_pseudo(pseudo_t pseudo)
 			break;
 		}
 		if (sym->ident) {
-			snprintf(buf, 64, "%s:%p", show_ident(sym->ident), sym);
+			snprintf(buf, 64, "%s", show_ident(sym->ident));
 			break;
 		}
 		expr = sym->initializer;
@@ -127,279 +128,286 @@ static const char *show_pseudo(pseudo_t pseudo)
 	case PSEUDO_ARG:
 		snprintf(buf, 64, "%%arg%d", pseudo->nr);
 		break;
-	case PSEUDO_PHI: {
-		struct instruction *def = pseudo->def;
-		char buffer[64];
-		const char *name = "none";
-		struct basic_block *bb = NULL;
-
-		if (def) {
-			pseudo_t orig = def->src1;
-
-			if (orig->type == PSEUDO_PHI) {
-				sprintf(buffer, "%%phi%d", orig->nr);
-				name = buffer;
-			} else
-				name = show_pseudo(orig);
-			bb = def->bb;
-		}
-		snprintf(buf, 64, "%%phi%d <%s,.L%p>", pseudo->nr, name, bb);
+	case PSEUDO_PHI:
+		snprintf(buf, 64, "%%phi%d", pseudo->nr);
 		break;
-	}
 	default:
 		snprintf(buf, 64, "<bad pseudo type %d>", pseudo->type);
 	}
 	return buf;
 }
 
+static const char* opcodes[] = {
+	[OP_BADOP] = "bad_op",
+	/* Terminator */
+	[OP_RET] = "ret",
+	[OP_BR] = "br",
+	[OP_SWITCH] = "switch",
+	[OP_INVOKE] = "invoke",
+	[OP_COMPUTEDGOTO] = "jmp *",
+	[OP_UNWIND] = "unwind",
+	
+	/* Binary */
+	[OP_ADD] = "add",
+	[OP_SUB] = "sub",
+	[OP_MUL] = "mul",
+	[OP_DIV] = "div",
+	[OP_MOD] = "mod",
+	[OP_SHL] = "shl",
+	[OP_SHR] = "shr",
+	
+	/* Logical */
+	[OP_AND] = "and",
+	[OP_OR] = "or",
+	[OP_XOR] = "xor",
+	[OP_AND_BOOL] = "and-bool",
+	[OP_OR_BOOL] = "or-bool",
+
+	/* Binary comparison */
+	[OP_SET_EQ] = "seteq",
+	[OP_SET_NE] = "setne",
+	[OP_SET_LE] = "setle",
+	[OP_SET_GE] = "setge",
+	[OP_SET_LT] = "setlt",
+	[OP_SET_GT] = "setgt",
+	[OP_SET_B] = "setb",
+	[OP_SET_A] = "seta",
+	[OP_SET_BE] = "setbe",
+	[OP_SET_AE] = "setae",
+
+	/* Uni */
+	[OP_NOT] = "not",
+	[OP_NEG] = "neg",
+
+	/* Setcc - always in combination with a select or conditional branch */
+	[OP_SETCC] = "setcc",
+	[OP_SEL] = "select",
+	
+	/* Memory */
+	[OP_MALLOC] = "malloc",
+	[OP_FREE] = "free",
+	[OP_ALLOCA] = "alloca",
+	[OP_LOAD] = "load",
+	[OP_STORE] = "store",
+	[OP_SETVAL] = "set",
+	[OP_GET_ELEMENT_PTR] = "getelem",
+
+	/* Other */
+	[OP_PHI] = "phi",
+	[OP_PHISOURCE] = "phisrc",
+	[OP_CAST] = "cast",
+	[OP_CALL] = "call",
+	[OP_VANEXT] = "va_next",
+	[OP_VAARG] = "va_arg",
+	[OP_SLICE] = "slice",
+	[OP_SNOP] = "snop",
+	[OP_LNOP] = "lnop",
+	[OP_NOP] = "nop",
+
+	/* Sparse tagging (line numbers, context, whatever) */
+	[OP_CONTEXT] = "context",
+};
+
 void show_instruction(struct instruction *insn)
 {
-	int op = insn->opcode;
+	int opcode = insn->opcode;
+	static char buffer[1024] = "\t";
+	char *buf;
 
+	buf = buffer+1;
 	if (!insn->bb) {
 		if (!verbose)
 			return;
-		printf("\tunused");
+		buf += sprintf(buf, "# ");
 	}
-	switch (op) {
-	case OP_BADOP:
-		printf("\tAIEEE! (%s <- %s)\n", show_pseudo(insn->target), show_pseudo(insn->src));
-		break;
-	case OP_RET:
-		if (insn->type && insn->type != &void_ctype)
-			printf("\tret %s\n", show_pseudo(insn->src));
+
+	if (opcode < sizeof(opcodes)/sizeof(char *)) {
+		const char *op = opcodes[opcode];
+		if (!op)
+			buf += sprintf(buf, "opcode:%d", opcode);
 		else
-			printf("\tret\n");
+			buf += sprintf(buf, "%s", op);
+		if (insn->size)
+			buf += sprintf(buf, ".%d", insn->size);
+		memset(buf, ' ', 20);
+		buf++;
+	}
+
+	if (buf < buffer + 12)
+		buf = buffer + 12;
+	switch (opcode) {
+	case OP_RET:
+		if (insn->src && insn->src != VOID)
+			buf += sprintf(buf, "%s", show_pseudo(insn->src));
 		break;
 	case OP_BR:
 		if (insn->bb_true && insn->bb_false) {
-			printf("\tbr\t%s, .L%p, .L%p\n", show_pseudo(insn->cond), insn->bb_true, insn->bb_false);
+			buf += sprintf(buf, "%s, .L%p, .L%p", show_pseudo(insn->cond), insn->bb_true, insn->bb_false);
 			break;
 		}
-		printf("\tbr\t.L%p\n", insn->bb_true ? insn->bb_true : insn->bb_false);
+		buf += sprintf(buf, ".L%p", insn->bb_true ? insn->bb_true : insn->bb_false);
 		break;
 
 	case OP_SETVAL: {
 		struct expression *expr = insn->val;
 		pseudo_t pseudo = insn->symbol;
-		int target = regno(insn->target);
-
+		buf += sprintf(buf, "%s <- ", show_pseudo(insn->target));
 		if (pseudo) {
 			struct symbol *sym = pseudo->sym;
 			if (!sym) {
-				printf("\t%%r%d <- %s\n", target, show_pseudo(pseudo));
+				buf += sprintf(buf, "%s", show_pseudo(pseudo));
 				break;
 			}
 			if (sym->bb_target) {
-				printf("\t%%r%d <- .L%p\n", target, sym->bb_target);
+				buf += sprintf(buf, ".L%p", sym->bb_target);
 				break;
 			}
 			if (sym->ident) {
-				printf("\t%%r%d <- %s\n", target, show_ident(sym->ident));
+				buf += sprintf(buf, "%s", show_ident(sym->ident));
 				break;
 			}
 			expr = sym->initializer;
 			if (!expr) {
-				printf("\t%%r%d <- %s\n", target, "anon symbol");
+				buf += sprintf(buf, "%s", "anon symbol");
 				break;
 			}
 		}
 
 		if (!expr) {
-			printf("\t%%r%d <- %s\n", target, "<none>");
+			buf += sprintf(buf, "%s", "<none>");
 			break;
 		}
 			
 		switch (expr->type) {
 		case EXPR_VALUE:
-			printf("\t%%r%d <- %lld\n", target, expr->value);
+			buf += sprintf(buf, "%lld", expr->value);
 			break;
 		case EXPR_FVALUE:
-			printf("\t%%r%d <- %Lf\n", target, expr->fvalue);
+			buf += sprintf(buf, "%Lf", expr->fvalue);
 			break;
 		case EXPR_STRING:
-			printf("\t%%r%d <- %s\n", target, show_string(expr->string));
+			buf += sprintf(buf, "%.40s", show_string(expr->string));
 			break;
 		case EXPR_SYMBOL:
-			printf("\t%%r%d <- %s\n",   target, show_ident(expr->symbol->ident));
+			buf += sprintf(buf, "%s", show_ident(expr->symbol->ident));
 			break;
 		case EXPR_LABEL:
-			printf("\t%%r%d <- .L%p\n",   target, expr->symbol->bb_target);
+			buf += sprintf(buf, ".L%p", expr->symbol->bb_target);
 			break;
 		default:
-			printf("\t%%r%d <- SETVAL EXPR TYPE %d\n", target, expr->type);
+			buf += sprintf(buf, "SETVAL EXPR TYPE %d", expr->type);
 		}
 		break;
 	}
 	case OP_SWITCH: {
 		struct multijmp *jmp;
-		printf("\tswitch %s", show_pseudo(insn->cond));
+		buf += sprintf(buf, "%s", show_pseudo(insn->target));
 		FOR_EACH_PTR(insn->multijmp_list, jmp) {
 			if (jmp->begin == jmp->end)
-				printf(", %d -> .L%p", jmp->begin, jmp->target);
+				buf += sprintf(buf, ", %d -> .L%p", jmp->begin, jmp->target);
 			else if (jmp->begin < jmp->end)
-				printf(", %d ... %d -> .L%p", jmp->begin, jmp->end, jmp->target);
+				buf += sprintf(buf, ", %d ... %d -> .L%p", jmp->begin, jmp->end, jmp->target);
 			else
-				printf(", default -> .L%p\n", jmp->target);
+				buf += sprintf(buf, ", default -> .L%p", jmp->target);
 		} END_FOR_EACH_PTR(jmp);
-		printf("\n");
 		break;
 	}
 	case OP_COMPUTEDGOTO: {
 		struct multijmp *jmp;
-		printf("\tjmp *%s", show_pseudo(insn->target));
+		buf += sprintf(buf, "%s", show_pseudo(insn->target));
 		FOR_EACH_PTR(insn->multijmp_list, jmp) {
-			printf(", .L%p", jmp->target);
+			buf += sprintf(buf, ", .L%p", jmp->target);
 		} END_FOR_EACH_PTR(jmp);
-		printf("\n");
 		break;
 	}
 
-	case OP_PHISOURCE: {
-		pseudo_t phi = insn->target;
-		if (phi && phi->type == PSEUDO_PHI) {
-			printf("\t%%phi%d <- phi-source %s\n", phi->nr, show_pseudo(insn->src1));
-			break;
-		}
-		printf("\tHuh? non-phi phi-source: %s <- %s", show_pseudo(phi), show_pseudo(insn->src1));
+	case OP_PHISOURCE:
+		buf += sprintf(buf, "%s <- %s", show_pseudo(insn->target), show_pseudo(insn->src1));
 		break;
-	}
 
 	case OP_PHI: {
 		pseudo_t phi;
-		const char *s = " ";
-		printf("\t%s <- phi", show_pseudo(insn->target));
+		const char *s = " <-";
+		buf += sprintf(buf, "%s", show_pseudo(insn->target));
 		FOR_EACH_PTR(insn->phi_list, phi) {
-			printf("%s(%s)", s, show_pseudo(phi));
-			s = ", ";
+			buf += sprintf(buf, "%s %s", s, show_pseudo(phi));
+			s = ",";
 		} END_FOR_EACH_PTR(phi);
-		printf("\n");
 		break;
 	}	
-	case OP_LOAD:
-		printf("\tload %s <- %d.%d.%d[%s]\n", show_pseudo(insn->target), insn->offset,
-			insn->type->bit_offset, insn->type->bit_size, show_pseudo(insn->src));
+	case OP_LOAD: case OP_LNOP:
+		buf += sprintf(buf, "%s <- %d[%s]", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
 		break;
-	case OP_STORE:
-		printf("\tstore %s -> %d.%d.%d[%s]\n", show_pseudo(insn->target), insn->offset,
-			insn->type->bit_offset, insn->type->bit_size, show_pseudo(insn->src));
+	case OP_STORE: case OP_SNOP:
+		buf += sprintf(buf, "%s -> %d[%s]", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
 		break;
 	case OP_CALL: {
 		struct pseudo *arg;
-		printf("\tCALL %s", show_pseudo(insn->func));
+		if (insn->target && insn->target != VOID)
+			buf += sprintf(buf, "%s <- ", show_pseudo(insn->target));
+		buf += sprintf(buf, "%s", show_pseudo(insn->func));
 		FOR_EACH_PTR(insn->arguments, arg) {
-			printf(", %s", show_pseudo(arg));
+			buf += sprintf(buf, ", %s", show_pseudo(arg));
 		} END_FOR_EACH_PTR(arg);
-		printf("\n");
-		if (insn->target != VOID)
-			printf("\t%s <- %%retval\n", show_pseudo(insn->target));
 		break;
 	}
 	case OP_CAST:
-		printf("\t%%r%d <- CAST(%d->%d) %s\n",
-			regno(insn->target),
-			insn->orig_type->bit_size, insn->type->bit_size, 
-			show_pseudo(insn->src));
+		buf += sprintf(buf, "%s <- (%d) %s", show_pseudo(insn->target), insn->orig_type->bit_size, show_pseudo(insn->src));
 		break;
-	case OP_BINARY ... OP_BINARY_END: {
-		static const char *opname[] = {
-			[OP_ADD - OP_BINARY] = "add", [OP_SUB - OP_BINARY] = "sub",
-			[OP_MUL - OP_BINARY] = "mul", [OP_DIV - OP_BINARY] = "div",
-			[OP_MOD - OP_BINARY] = "mod", [OP_AND - OP_BINARY] = "and",
-			[OP_OR  - OP_BINARY] = "or",  [OP_XOR - OP_BINARY] = "xor",
-			[OP_SHL - OP_BINARY] = "shl", [OP_SHR - OP_BINARY] = "shr",
-			[OP_AND_BOOL - OP_BINARY] = "and-bool",
-			[OP_OR_BOOL - OP_BINARY] = "or-bool",
-			[OP_SEL - OP_BINARY] = "select",
-		};
-		printf("\t%s <- %s  %s, %s\n",
-			show_pseudo(insn->target), opname[op - OP_BINARY],
-			show_pseudo(insn->src1), show_pseudo(insn->src2));
-		break;
-	}
-
+	case OP_BINARY ... OP_BINARY_END:
+	case OP_BINCMP ... OP_BINCMP_END:
 	case OP_SEL:
-		printf("\t%s <- select  %s, %s\n",
-			show_pseudo(insn->target),
-			show_pseudo(insn->src1), show_pseudo(insn->src2));
+		buf += sprintf(buf, "%s <- %s, %s", show_pseudo(insn->target), show_pseudo(insn->src1), show_pseudo(insn->src2));
 		break;
 
 	case OP_SLICE:
-		printf("\t%%r%d <- slice  %s, %d, %d\n",
-			regno(insn->target),
-			show_pseudo(insn->base), insn->from, insn->len);
+		buf += sprintf(buf, "%s <- %s, %d, %d", show_pseudo(insn->target), show_pseudo(insn->base), insn->from, insn->len);
 		break;
-
-	case OP_BINCMP ... OP_BINCMP_END: {
-		static const char *opname[] = {
-			[OP_SET_EQ - OP_BINCMP] = "seteq",
-			[OP_SET_NE - OP_BINCMP] = "setne",
-			[OP_SET_LE - OP_BINCMP] = "setle",
-			[OP_SET_GE - OP_BINCMP] = "setge",
-			[OP_SET_LT - OP_BINCMP] = "setlt",
-			[OP_SET_GT - OP_BINCMP] = "setgt",
-			[OP_SET_BE - OP_BINCMP] = "setbe",
-			[OP_SET_AE - OP_BINCMP] = "setae",
-			[OP_SET_A - OP_BINCMP] = "seta",
-			[OP_SET_B - OP_BINCMP] = "setb",
-		};
-		printf("\t%%r%d <- %s  %s, %s\n",
-			regno(insn->target),
-			opname[op - OP_BINCMP], show_pseudo(insn->src1), show_pseudo(insn->src2));
-		break;
-	}
 
 	case OP_NOT: case OP_NEG:
-		printf("\t%%r%d <- %s %s\n",
-			regno(insn->target),
-			op == OP_NOT ? "not" : "neg", show_pseudo(insn->src1));
+		buf += sprintf(buf, "%s <- %s", show_pseudo(insn->target), show_pseudo(insn->src1));
 		break;
+
 	case OP_SETCC:
-		printf("\tsetcc %s\n", show_pseudo(insn->src));
+		buf += sprintf(buf, "%s", show_pseudo(insn->src));
 		break;
 	case OP_CONTEXT:
-		printf("\tcontext %d\n", insn->increment);
-		break;
-	case OP_SNOP:
-		if (verbose)
-			printf("\tnop (%s -> %d.%d.%d[%s])\n", show_pseudo(insn->target), insn->offset,
-				insn->type->bit_offset, insn->type->bit_size, show_pseudo(insn->src));
-		break;
-	case OP_LNOP:
-		if (verbose)
-			printf("\tnop (%s <- %d.%d.%d[%s])\n", show_pseudo(insn->target), insn->offset,
-				insn->type->bit_offset, insn->type->bit_size, show_pseudo(insn->src));
+		buf += sprintf(buf, "%d", insn->increment);
 		break;
 	case OP_NOP:
-		if (verbose)
-			printf("\tnop (cse'd %s <- %s)\n", show_pseudo(insn->target), show_pseudo(insn->src1));
+		buf += sprintf(buf, "%s <- %s", show_pseudo(insn->target), show_pseudo(insn->src1));
 		break;
 	default:
-		printf("\top %d ???\n", op);
+		break;
 	}
+	do { --buf; } while (*buf == ' ');
+	*++buf = 0;
+	printf("%s\n", buffer);
 }
 
 static void show_bb(struct basic_block *bb)
 {
 	struct instruction *insn;
 
-	printf("bb: %p\n", bb);
-	printf("   %s:%d:%d\n", input_streams[bb->pos.stream].name, bb->pos.line,bb->pos.pos);
+	printf(".L%p:\n", bb);
 
-	if (bb->parents) {
-		struct basic_block *from;
-		FOR_EACH_PTR(bb->parents, from) {
-			printf("  **from %p (%s:%d:%d)**\n", from,
-				input_streams[from->pos.stream].name, from->pos.line, from->pos.pos);
-		} END_FOR_EACH_PTR(from);
-	}
+	if (verbose) {
+		printf("%s:%d\n", input_streams[bb->pos.stream].name, bb->pos.line);
+		if (bb->parents) {
+			struct basic_block *from;
+			FOR_EACH_PTR(bb->parents, from) {
+				printf("  **from %p (%s:%d:%d)**\n", from,
+					input_streams[from->pos.stream].name, from->pos.line, from->pos.pos);
+			} END_FOR_EACH_PTR(from);
+		}
 
-	if (bb->children) {
-		struct basic_block *to;
-		FOR_EACH_PTR(bb->children, to) {
-			printf("  **to %p (%s:%d:%d)**\n", to,
-				input_streams[to->pos.stream].name, to->pos.line, to->pos.pos);
-		} END_FOR_EACH_PTR(to);
+		if (bb->children) {
+			struct basic_block *to;
+			FOR_EACH_PTR(bb->children, to) {
+				printf("  **to %p (%s:%d:%d)**\n", to,
+					input_streams[to->pos.stream].name, to->pos.line, to->pos.pos);
+			} END_FOR_EACH_PTR(to);
+		}
 	}
 
 	FOR_EACH_PTR(bb->insns, insn) {
@@ -426,20 +434,24 @@ void show_entry(struct entrypoint *ep)
 	struct symbol *sym;
 	struct basic_block *bb;
 
-	printf("ep %p: %s\n", ep, show_ident(ep->name->ident));
+	printf("%s:\n", show_ident(ep->name->ident));
 
-	FOR_EACH_PTR(ep->syms, sym) {
-		if (!sym->pseudo)
-			continue;
-		if (!sym->pseudo->users)
-			continue;
-		printf("   sym: %p %s\n", sym, show_ident(sym->ident));
-		if (sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE))
-			printf("\texternal visibility\n");
-		show_symbol_usage(sym->pseudo);
-	} END_FOR_EACH_PTR(sym);
+	if (verbose) {
+		printf("ep %p: %s\n", ep, show_ident(ep->name->ident));
 
-	printf("\n");
+		FOR_EACH_PTR(ep->syms, sym) {
+			if (!sym->pseudo)
+				continue;
+			if (!sym->pseudo->users)
+				continue;
+			printf("   sym: %p %s\n", sym, show_ident(sym->ident));
+			if (sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE))
+				printf("\texternal visibility\n");
+			show_symbol_usage(sym->pseudo);
+		} END_FOR_EACH_PTR(sym);
+
+		printf("\n");
+	}
 
 	FOR_EACH_PTR(ep->bbs, bb) {
 		if (!bb)
@@ -483,7 +495,7 @@ static void add_goto(struct entrypoint *ep, struct basic_block *dst)
 {
 	struct basic_block *src = ep->active;
 	if (bb_reachable(src)) {
-		struct instruction *br = alloc_instruction(OP_BR, NULL);
+		struct instruction *br = alloc_instruction(OP_BR, 0);
 		br->bb_true = dst;
 		add_bb(&dst->parents, src);
 		add_bb(&src->children, dst);
@@ -530,7 +542,7 @@ void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic
 	old = delete_last_instruction(&bb->insns);
 	assert(old == jmp);
 
-	br = alloc_instruction(OP_BR, NULL);
+	br = alloc_instruction(OP_BR, 0);
 	br->bb = bb;
 	br->bb_true = target;
 	add_instruction(&bb->insns, br);
@@ -555,12 +567,12 @@ void insert_select(struct basic_block *bb, struct instruction *br, struct instru
 	/* Remove the 'br' */
 	delete_last_instruction(&bb->insns);
 
-	setcc = alloc_instruction(OP_SETCC, &bool_ctype);
+	setcc = alloc_instruction(OP_SETCC, 1);
 	setcc->bb = bb;
 	assert(br->cond);
 	use_pseudo(br->cond, &setcc->src);
 
-	select = alloc_instruction(OP_SEL, phi_node->type);
+	select = alloc_instruction(OP_SEL, phi_node->size);
 	select->bb = bb;
 
 	target = phi_node->target;
@@ -604,7 +616,7 @@ static void add_setcc(struct entrypoint *ep, struct expression *expr, pseudo_t v
 	struct basic_block *bb = ep->active;
 
 	if (bb_reachable(bb)) {
-		struct instruction *cc = alloc_instruction(OP_SETCC, &bool_ctype);
+		struct instruction *cc = alloc_instruction(OP_SETCC, 1);
 		use_pseudo(val, &cc->src);
 		assert(val);
 		add_one_insn(ep, cc);
@@ -617,7 +629,7 @@ static void add_branch(struct entrypoint *ep, struct expression *expr, pseudo_t 
 	struct instruction *br;
 
 	if (bb_reachable(bb)) {
-       		br = alloc_instruction(OP_BR, expr->ctype);
+       		br = alloc_instruction(OP_BR, 0);
 		use_pseudo(cond, &br->cond);
 		br->bb_true = bb_true;
 		br->bb_false = bb_false;
@@ -699,9 +711,9 @@ static pseudo_t argument_pseudo(int nr)
 	return pseudo;
 }
 
-pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo)
+pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo, int size)
 {
-	struct instruction *insn = alloc_instruction(OP_PHISOURCE, NULL);
+	struct instruction *insn = alloc_instruction(OP_PHISOURCE, size);
 	pseudo_t phi = __alloc_pseudo(0);
 	static int nr = 0;
 
@@ -796,7 +808,7 @@ static pseudo_t add_load(struct entrypoint *ep, struct access_data *ad)
 	if (0 && new)
 		return new;
 
-	insn = alloc_instruction(OP_LOAD, ad->source_type);
+	insn = alloc_instruction(OP_LOAD, ad->source_type->bit_size);
 	new = alloc_pseudo(insn);
 	ad->origval = new;
 
@@ -812,7 +824,7 @@ static void add_store(struct entrypoint *ep, struct access_data *ad, pseudo_t va
 	struct basic_block *bb = ep->active;
 
 	if (bb_reachable(bb)) {
-		struct instruction *store = alloc_instruction(OP_STORE, ad->source_type);
+		struct instruction *store = alloc_instruction(OP_STORE, ad->source_type->bit_size);
 		store->offset = ad->offset;
 		use_pseudo(value, &store->target);
 		use_pseudo(ad->address, &store->src);
@@ -844,7 +856,7 @@ static pseudo_t linearize_store_gen(struct entrypoint *ep,
 
 static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int op, pseudo_t left, pseudo_t right)
 {
-	struct instruction *insn = alloc_instruction(op, ctype);
+	struct instruction *insn = alloc_instruction(op, ctype->bit_size);
 	pseudo_t target = alloc_pseudo(insn);
 	insn->target = target;
 	use_pseudo(left, &insn->src1);
@@ -855,13 +867,14 @@ static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int o
 
 static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct expression *val)
 {
-	struct instruction *insn = alloc_instruction(OP_SETVAL, ctype);
+	struct instruction *insn = alloc_instruction(OP_SETVAL, ctype->bit_size);
 	pseudo_t target = alloc_pseudo(insn);
 	insn->target = target;
 	insn->val = val;
 	if (!val) {
 		pseudo_t addr = symbol_pseudo(ep, ctype);
 		use_pseudo(addr, &insn->symbol);
+		insn->size = bits_in_pointer;
 	}
 	add_one_insn(ep, insn);
 	return target;
@@ -912,7 +925,7 @@ static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr
 
 static pseudo_t add_uniop(struct entrypoint *ep, struct expression *expr, int op, pseudo_t src)
 {
-	struct instruction *insn = alloc_instruction(op, expr->ctype);
+	struct instruction *insn = alloc_instruction(op, expr->ctype->bit_size);
 	pseudo_t new = alloc_pseudo(insn);
 
 	insn->target = new;
@@ -924,7 +937,7 @@ static pseudo_t add_uniop(struct entrypoint *ep, struct expression *expr, int op
 static pseudo_t linearize_slice(struct entrypoint *ep, struct expression *expr)
 {
 	pseudo_t pre = linearize_expression(ep, expr->base);
-	struct instruction *insn = alloc_instruction(OP_SLICE, expr->ctype);
+	struct instruction *insn = alloc_instruction(OP_SLICE, expr->ctype->bit_size);
 	pseudo_t new = alloc_pseudo(insn);
 
 	insn->target = new;
@@ -1007,7 +1020,7 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expression *expr)
 {
 	struct expression *arg, *fn;
-	struct instruction *insn = alloc_instruction(OP_CALL, expr->ctype);
+	struct instruction *insn = alloc_instruction(OP_CALL, expr->ctype->bit_size);
 	pseudo_t retval, call;
 	int context_diff;
 
@@ -1052,7 +1065,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	add_one_insn(ep, insn);
 
 	if (context_diff) {
-		insn = alloc_instruction(OP_CONTEXT, &void_ctype);
+		insn = alloc_instruction(OP_CONTEXT, 0);
 		insn->increment = context_diff;
 		add_one_insn(ep, insn);
 	}
@@ -1110,7 +1123,7 @@ static pseudo_t add_join_conditional(struct entrypoint *ep, struct expression *e
 	if (phi2 == VOID)
 		return phi1;
 
-	phi_node = alloc_instruction(OP_PHI, expr->ctype);
+	phi_node = alloc_instruction(OP_PHI, expr->ctype->bit_size);
 	use_pseudo(phi1, add_pseudo(&phi_node->phi_list, phi1));
 	use_pseudo(phi2, add_pseudo(&phi_node->phi_list, phi2));
 	phi_node->target = target = alloc_pseudo(phi_node);
@@ -1126,14 +1139,15 @@ static pseudo_t linearize_short_conditional(struct entrypoint *ep, struct expres
 	struct basic_block *bb_false = alloc_basic_block(ep, expr_false->pos);
 	struct basic_block *merge = alloc_basic_block(ep, expr->pos);
 	pseudo_t phi1, phi2;
+	int size = expr->ctype->bit_size;
 
 	src1 = linearize_expression(ep, cond);
-	phi1 = alloc_phi(ep->active, src1);
+	phi1 = alloc_phi(ep->active, src1, size);
 	add_branch(ep, expr, src1, merge, bb_false);
 
 	set_activeblock(ep, bb_false);
 	src2 = linearize_expression(ep, expr_false);
-	phi2 = alloc_phi(ep->active, src2);
+	phi2 = alloc_phi(ep->active, src2, size);
 	set_activeblock(ep, merge);
 
 	return add_join_conditional(ep, expr, phi1, phi2);
@@ -1149,17 +1163,18 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 	struct basic_block *bb_true = alloc_basic_block(ep, expr_true->pos);
 	struct basic_block *bb_false = alloc_basic_block(ep, expr_false->pos);
 	struct basic_block *merge = alloc_basic_block(ep, expr->pos);
+	int size = expr->ctype->bit_size;
 
 	linearize_cond_branch(ep, cond, bb_true, bb_false);
 
 	set_activeblock(ep, bb_true);
 	src1 = linearize_expression(ep, expr_true);
-	phi1 = alloc_phi(ep->active, src1);
+	phi1 = alloc_phi(ep->active, src1, size);
 	add_goto(ep, merge); 
 
 	set_activeblock(ep, bb_false);
 	src2 = linearize_expression(ep, expr_false);
-	phi2 = alloc_phi(ep->active, src2);
+	phi2 = alloc_phi(ep->active, src2, size);
 	set_activeblock(ep, merge);
 
 	return add_join_conditional(ep, expr, phi1, phi2);
@@ -1261,7 +1276,7 @@ pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 		return VOID;
 	if (expr->ctype->bit_size < 0)
 		return VOID;
-	insn = alloc_instruction(OP_CAST, expr->ctype);
+	insn = alloc_instruction(OP_CAST, expr->ctype->bit_size);
 	result = alloc_pseudo(insn);
 	insn->target = result;
 	insn->orig_type = expr->cast_expression->ctype;
@@ -1438,7 +1453,7 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 
 pseudo_t linearize_internal(struct entrypoint *ep, struct statement *stmt)
 {
-	struct instruction *insn = alloc_instruction(OP_CONTEXT, &void_ctype);
+	struct instruction *insn = alloc_instruction(OP_CONTEXT, 0);
 	struct expression *expr = stmt->expression;
 	int value = 0;
 
@@ -1485,12 +1500,12 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			struct instruction *phi_node = first_instruction(bb_return->insns);
 			pseudo_t phi;
 			if (!phi_node) {
-				phi_node = alloc_instruction(OP_PHI, expr->ctype);
+				phi_node = alloc_instruction(OP_PHI, expr->ctype->bit_size);
 				phi_node->target = alloc_pseudo(phi_node);
 				phi_node->bb = bb_return;
 				add_instruction(&bb_return->insns, phi_node);
 			}
-			phi = alloc_phi(active, src);
+			phi = alloc_phi(active, src, expr->ctype->bit_size);
 			use_pseudo(phi, add_pseudo(&phi_node->phi_list, phi));
 		}
 		add_goto(ep, bb_return);
@@ -1540,7 +1555,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		}
 
 		pseudo = linearize_expression(ep, expr);
-		goto_ins = alloc_instruction(OP_COMPUTEDGOTO, NULL);
+		goto_ins = alloc_instruction(OP_COMPUTEDGOTO, 0);
 		use_pseudo(pseudo, &goto_ins->target);
 		add_one_insn(ep, goto_ins);
 
@@ -1599,7 +1614,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		if (!bb_reachable(active))
 			break;
 
-		switch_ins = alloc_instruction(OP_SWITCH, NULL);
+		switch_ins = alloc_instruction(OP_SWITCH, 0);
 		use_pseudo(pseudo, &switch_ins->cond);
 		add_one_insn(ep, switch_ins);
 		finish_block(ep);
@@ -1723,7 +1738,7 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	result = linearize_statement(ep, base_type->stmt);
 	if (bb_reachable(ep->active) && !bb_terminated(ep->active)) {
 		struct symbol *ret_type = base_type->ctype.base_type;
-		struct instruction *insn = alloc_instruction(OP_RET, ret_type);
+		struct instruction *insn = alloc_instruction(OP_RET, ret_type->bit_size);
 		
 		use_pseudo(result, &insn->src);
 		add_one_insn(ep, insn);

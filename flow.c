@@ -161,10 +161,10 @@ void convert_load_instruction(struct instruction *insn, pseudo_t src)
 
 static int overlapping_memop(struct instruction *a, struct instruction *b)
 {
-	unsigned int a_start = (a->offset << 3) + a->type->bit_offset;
-	unsigned int b_start = (b->offset << 3) + b->type->bit_offset;
-	unsigned int a_size = a->type->bit_size;
-	unsigned int b_size = b->type->bit_size;
+	unsigned int a_start = a->offset << 3;
+	unsigned int b_start = b->offset << 3;
+	unsigned int a_size = a->size;
+	unsigned int b_size = b->size;
 
 	if (a_size + a_start <= b_start)
 		return 0;
@@ -175,9 +175,7 @@ static int overlapping_memop(struct instruction *a, struct instruction *b)
 
 static inline int same_memop(struct instruction *a, struct instruction *b)
 {
-	return	a->offset == b->offset &&
-		a->type->bit_size == b->type->bit_size &&
-		a->type->bit_offset == b->type->bit_offset;
+	return	a->offset == b->offset && a->size == b->size;
 }
 
 /*
@@ -256,7 +254,7 @@ no_dominance:
 
 found_dominator:
 		br = delete_last_instruction(&parent->insns);
-		phi = alloc_phi(parent, one->target);
+		phi = alloc_phi(parent, one->target, one->size);
 		add_instruction(&parent->insns, br);
 		use_pseudo(phi, add_pseudo(dominators, phi));
 	} END_FOR_EACH_PTR(parent);
