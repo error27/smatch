@@ -26,7 +26,7 @@ enum statement_type {
 
 struct statement {
 	enum statement_type type;
-	struct token *token;
+	struct position pos;
 	struct statement *next;
 	union {
 		struct label_arg {

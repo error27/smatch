@@ -21,10 +21,11 @@
 #include "scope.h"
 #include "expression.h"
 
-struct statement *alloc_statement(struct token * token, int type)
+struct statement *alloc_statement(struct position pos, int type)
 {
 	struct statement *stmt = __alloc_statement(0);
 	stmt->type = type;
+	stmt->pos = pos;
 	return stmt;
 }
 
@@ -514,14 +515,14 @@ static struct statement *make_statement(struct expression *expr)
 
 	if (!expr)
 		return NULL;
-	stmt = alloc_statement(expr->token, STMT_EXPRESSION);
+	stmt = alloc_statement(expr->pos, STMT_EXPRESSION);
 	stmt->expression = expr;
 	return stmt;
 }
 
 struct token *statement(struct token *token, struct statement **tree)
 {
-	struct statement *stmt = alloc_statement(token, STMT_NONE);
+	struct statement *stmt = alloc_statement(token->pos, STMT_NONE);
 
 	*tree = stmt;
 	if (token_type(token) == TOKEN_IDENT) {
@@ -828,7 +829,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 
 	base_type = decl->ctype.base_type;
 	if (base_type && base_type->type == SYM_FN && match_op(token, '{')) {
-		base_type->stmt = alloc_statement(token, STMT_COMPOUND);
+		base_type->stmt = alloc_statement(token->pos, STMT_COMPOUND);
 		start_symbol_scope();
 		symbol_iterate(base_type->arguments, declare_argument, decl);
 		token = compound_statement(token->next, base_type->stmt);

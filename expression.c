@@ -19,6 +19,7 @@
 #include "symbol.h"
 #include "scope.h"
 #include "expression.h"
+#include "target.h"
 
 static int match_oplist(int op, ...)
 {
@@ -41,7 +42,7 @@ struct token *parens_expression(struct token *token, struct expression **expr, c
 	token = expect(token, '(', where);
 	if (match_op(token, '{')) {
 		struct expression *e = alloc_expression(token->pos, EXPR_STATEMENT);
-		struct statement *stmt = alloc_statement(token, STMT_COMPOUND);
+		struct statement *stmt = alloc_statement(token->pos, STMT_COMPOUND);
 		*expr = e;
 		e->statement = stmt;
 		start_symbol_scope();
@@ -84,16 +85,106 @@ static struct token *string_expression(struct token *token, struct expression *e
 	return next;
 }
 
+static void get_int_value(struct expression *expr, const char *str)
+{
+	unsigned long long value = 0;
+	unsigned int base = 10, digit, bits;
+	unsigned long modifiers, extramod;
+
+	switch (str[0]) {
+	case 'x':
+		base = 18;	// the -= 2 for the octal case will
+		str++;		// skip the 'x'
+	/* fallthrough */
+	case 'o':
+		str++;		// skip the 'o' or 'x/X'
+		base -= 2;	// the fall-through will make this 8
+	}
+	while ((digit = hexval(*str)) < base) {
+		value = value * base + digit;
+		str++;
+	}
+	modifiers = 0;
+	for (;;) {
+		char c = *str++;
+		if (c == 'u' || c == 'U') {
+			modifiers |= MOD_UNSIGNED;
+			continue;
+		}
+		if (c == 'l' || c == 'L') {
+			if (modifiers & MOD_LONG)
+				modifiers |= MOD_LONGLONG;
+			modifiers |= MOD_LONG;
+			continue;
+		}
+		break;
+	}
+
+	bits = BITS_IN_LONGLONG;
+	extramod = 0;
+	if (!(modifiers & MOD_LONGLONG)) {
+		if (value & (~0ULL << BITS_IN_LONG)) {
+			extramod = MOD_LONGLONG | MOD_LONG;
+		} else {
+			bits = BITS_IN_LONG;
+			if (!(modifiers & MOD_LONG)) {
+				if (value & (~0ULL << BITS_IN_INT)) {
+					extramod = MOD_LONG;
+				} else
+					bits = BITS_IN_INT;
+			}
+		}
+	}
+	if (!(modifiers & MOD_UNSIGNED)) {
+		if (value & (1ULL << (bits-1))) {
+			extramod |= MOD_UNSIGNED;
+		}
+	}
+	if (extramod) {
+		/*
+		 * Special case: "int" gets promoted directly to "long"
+		 * for normal decimal numbers..
+		 */
+		modifiers |= extramod;
+		if (base == 10 && modifiers == MOD_UNSIGNED) {
+			modifiers = MOD_LONG;
+			if (BITS_IN_LONG == BITS_IN_INT)
+				modifiers = MOD_LONG | MOD_UNSIGNED;
+		}
+		warn(expr->pos, "value is so big it is%s%s%s",
+			(modifiers & MOD_UNSIGNED) ? " unsigned":"",
+			(modifiers & MOD_LONG) ? " long":"",
+			(modifiers & MOD_LONGLONG) ? " long":"");
+	}
+
+	expr->type = EXPR_VALUE;
+	expr->ctype = ctype_integer(modifiers);
+	expr->value = value;
+}
+
 struct token *primary_expression(struct token *token, struct expression **tree)
 {
 	struct expression *expr = NULL;
 
 	switch (token_type(token)) {
-	case TOKEN_INTEGER:
 	case TOKEN_FP:
+		expr = alloc_expression(token->pos, EXPR_VALUE);
+		expr->ctype = &double_ctype;
+		expr->value = 0;
+		warn(token->pos, "FP values not yet implemented");
+		token = token->next;
+		break;
+
 	case TOKEN_CHAR:
-		expr = alloc_expression(token->pos, EXPR_CONSTANT);
-		expr->token = token;
+		expr = alloc_expression(token->pos, EXPR_VALUE);   
+		expr->ctype = &int_ctype; 
+		expr->value = (unsigned char) token->character;
+		token = token->next;
+		break;
+
+	case TOKEN_INTEGER:
+		expr = alloc_expression(token->pos, EXPR_VALUE);
+		get_int_value(expr, token->integer);
 		token = token->next;
 		break;
 

@@ -11,7 +11,6 @@
 struct expression_list;
 
 enum expression_type {
-	EXPR_CONSTANT,
 	EXPR_VALUE,
 	EXPR_STRING,
 	EXPR_SYMBOL,
@@ -39,9 +38,6 @@ struct expression {
 	struct position pos;
 	struct symbol *ctype;
 	union {
-		// EXPR_CONSTANT
-		struct token *token;
-
 		// EXPR_VALUE
 		unsigned long long value;
 
@@ -131,7 +127,7 @@ static inline int lookup_type(struct token *token)
 }
 
 /* Statement parsing */
-struct statement *alloc_statement(struct token * token, int type);
+struct statement *alloc_statement(struct position pos, int type);
 struct token *initializer(struct expression **tree, struct token *token);
 struct token *compound_statement(struct token *, struct statement *);
 

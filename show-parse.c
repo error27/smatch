@@ -421,9 +421,6 @@ void show_expression(struct expression *expr)
 		show_expression(expr->unop);
 		printf(" %s ", show_special(expr->op));
 		break;
-	case EXPR_CONSTANT:
-		printf("%s", show_token(expr->token));
-		break;
 	case EXPR_SYMBOL:
 		if (!expr->symbol) {
 			warn(expr->pos, "undefined symbol '%s'", show_ident(expr->symbol_name));
@@ -478,9 +475,19 @@ void show_expression(struct expression *expr)
 		} else {
 			printf("[%d ... %d]: ", expr->idx_from, expr->idx_to);
 		}
-		break;	
-	default:
-		printf("WTF");
+		break;
+	case EXPR_CONDITIONAL:
+		show_expression(expr->conditional);
+		printf(" ? ");
+		show_expression(expr->cond_true);
+		printf(" : ");
+		show_expression(expr->cond_false);
+		break;
+	case EXPR_STATEMENT:
+		printf("({\n\t");
+		show_statement(expr->statement);
+		printf("\n})");
+		break;
 	}
 	printf(" >");
 }
