@@ -500,13 +500,47 @@ static int simplify_select(struct instruction *insn, struct instruction *setcc)
 	return 0;
 }
 
+/*
+ * Simplify "set_ne/eq $0 + br"
+ */
+static int simplify_cond_branch(struct instruction *br, pseudo_t cond, struct instruction *def, pseudo_t *pp)
+{
+	use_pseudo(*pp, &br->cond);
+	remove_usage(cond, &br->cond);
+	if (def->opcode == OP_SET_EQ) {
+		struct basic_block *true = br->bb_true;
+		struct basic_block *false = br->bb_false;
+		br->bb_false = true;
+		br->bb_true = false;
+	}
+	return REPEAT_CSE;
+}
+
 static int simplify_branch(struct instruction *insn)
 {
 	pseudo_t cond = insn->cond;
-	if (!cond || !constant(cond))
+
+	if (!cond)
 		return 0;
-	insert_branch(insn->bb, insn, cond->value ? insn->bb_true : insn->bb_false);
-	return REPEAT_CSE;
+
+	/* Constant conditional */
+	if (constant(cond)) {
+		insert_branch(insn->bb, insn, cond->value ? insn->bb_true : insn->bb_false);
+		return REPEAT_CSE;
+	}
+
+	/* Conditional on a SETNE $0 or SETEQ $0 */
+	if (cond->type == PSEUDO_REG) {
+		struct instruction *def = cond->def;
+
+		if (def->opcode == OP_SET_NE || def->opcode == OP_SET_EQ) {
+			if (constant(def->src1) && !def->src1->value)
+				return simplify_cond_branch(insn, cond, def, &def->src2);
+			if (constant(def->src2) && !def->src2->value)
+				return simplify_cond_branch(insn, cond, def, &def->src1);
+		}
+	}
+	return 0;
 }
 
 static int simplify_switch(struct instruction *insn)
