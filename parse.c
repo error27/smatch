@@ -195,6 +195,10 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 		ctype->modifiers |= MOD_NODEREF;
 		return NULL;
 	}
+	if (match_string_ident(attribute, "safe")) {
+		ctype->modifiers |= MOD_SAFE;
+		return NULL;
+	}
 	if (match_string_ident(attribute, "address_space")) {
 		if (!expr)
 			return "expected address space number";
