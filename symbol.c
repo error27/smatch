@@ -249,25 +249,18 @@ static int count_array_initializer(struct expression *expr)
 	return nr;
 }
 
-static void examine_node_type(struct symbol *sym)
+static void examine_node_type(struct symbol *sym, struct symbol *base_type)
 {
-	struct symbol *base_type;
 	int bit_size;
 	unsigned long alignment, modifiers;
 
 	/* SYM_NODE - figure out what the type of the node was.. */
-	base_type = sym->ctype.base_type;
 	modifiers = sym->ctype.modifiers;
 
 	bit_size = 0;
 	alignment = 0;
 	if (!base_type)
 		return;
-
-	base_type = examine_symbol_type(base_type);
-	sym->ctype.base_type = base_type;
-	if (base_type && base_type->type == SYM_NODE)
-		merge_type(sym, base_type);
 
 	bit_size = base_type->bit_size;
 	alignment = base_type->ctype.alignment;
@@ -304,10 +297,21 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 	if (sym->bit_size)
 		return sym;
 
+	/* Check the basetype */
+	base_type = sym->ctype.base_type;
+	if (base_type) {
+		base_type = examine_symbol_type(base_type);
+		/* "typeof" can cause this */
+		if (base_type && base_type->type == SYM_NODE) {
+			merge_type(sym, base_type);
+			base_type = base_type->ctype.base_type;
+		}
+	}
+
 	switch (sym->type) {
 	case SYM_FN:
 	case SYM_NODE:
-		examine_node_type(sym);
+		examine_node_type(sym, base_type);
 		return sym;
 	case SYM_ARRAY:
 		examine_array_type(sym);
@@ -323,15 +327,9 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 			sym->bit_size = bits_in_pointer;
 		if (!sym->ctype.alignment)
 			sym->ctype.alignment = pointer_alignment;
-		base_type = sym->ctype.base_type;
-		base_type = examine_symbol_type(base_type);
-		if (base_type && base_type->type == SYM_NODE)
-			merge_type(sym, base_type);
 		return sym;
 	case SYM_ENUM:
-		base_type = sym->ctype.base_type;
-		base_type = examine_symbol_type(base_type);
-		if (base_type == &bad_enum_ctype) {
+		if (!base_type || base_type == &bad_enum_ctype) {
 			warning(sym->pos, "invalid enum type");
 			sym->bit_size = -1;
 			return sym;
