@@ -1018,31 +1018,15 @@ static void emit_move(struct storage *src, struct storage *dest,
 		return;
 	}
 
-	switch (bits) {
-	case 8:
+	if ((bits == 8) || (bits == 16)) {
 		if (is_dest)
-					opname = "movb";
-		else {
-			if (is_signed)	opname = "movsxb";
-			else		opname = "movzxb";
-		}
-		break;
-	case 16:
-		if (is_dest)
-					opname = "movw";
-		else {
-			if (is_signed)	opname = "movsxw";
-			else		opname = "movzxw";
-		}
-		break;
+			opname = "mov";
+		else
+			opname = is_signed ? "movsx" : "movzx";
+	} else
+		opname = "mov";
 
-	case 32:			opname = "movl";	break;
-	case 64:			opname = "movq";	break;
-
-	default:			assert(0);		break;
-	}
-
-	insn(opname, src, dest, comment);
+	insn(opbits(opname, bits), src, dest, comment);
 }
 
 static struct storage *emit_compare(struct expression *expr)
