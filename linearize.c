@@ -226,6 +226,30 @@ static const char* opcodes[] = {
 	[OP_CONTEXT] = "context",
 };
 
+static char *show_asm_constraints(char *buf, const char *sep, struct asm_constraint_list *list)
+{
+	struct asm_constraint *entry;
+
+	FOR_EACH_PTR(list, entry) {
+		buf += sprintf(buf, "%s\"%s\"", sep, entry->constraint);
+		if (entry->pseudo)
+			buf += sprintf(buf, " (%s)", show_pseudo(entry->pseudo));
+		sep = ", ";		
+	} END_FOR_EACH_PTR(entry);
+	return buf;
+}
+
+static char *show_asm(char *buf, struct instruction *insn)
+{
+	struct asm_rules *rules = insn->asm_rules;
+
+	buf += sprintf(buf, "\"%s\"", insn->string);
+	buf = show_asm_constraints(buf, "\n\t\tout: ", rules->outputs);
+	buf = show_asm_constraints(buf, "\n\t\tin: ", rules->inputs);
+	buf = show_asm_constraints(buf, "\n\t\tclobber: ", rules->clobbers);
+	return buf;
+}
+
 const char *show_instruction(struct instruction *insn)
 {
 	int opcode = insn->opcode;
@@ -403,23 +427,7 @@ const char *show_instruction(struct instruction *insn)
 		buf += sprintf(buf, "%s", show_pseudo(insn->target));
 		break;
 	case OP_ASM:
-		buf += sprintf(buf, "\"%s\"", insn->string);
-		if (insn->outputs) {
-			pseudo_t pseudo;
-			buf += sprintf(buf, " (");
-			FOR_EACH_PTR(insn->outputs, pseudo) {
-				buf += sprintf(buf, " %s", show_pseudo(pseudo));
-			} END_FOR_EACH_PTR(pseudo);
-			buf += sprintf(buf, " ) <-");
-		}
-		if (insn->inputs) {
-			pseudo_t pseudo;
-			buf += sprintf(buf, " (");
-			FOR_EACH_PTR(insn->inputs, pseudo) {
-				buf += sprintf(buf, " %s", show_pseudo(pseudo));
-			} END_FOR_EACH_PTR(pseudo);
-			buf += sprintf(buf, " )");
-		}
+		buf = show_asm(buf, insn);
 		break;
 	default:
 		break;
@@ -1562,23 +1570,33 @@ pseudo_t linearize_internal(struct entrypoint *ep, struct statement *stmt)
 	return VOID;
 }
 
-static void add_asm_input(struct entrypoint *ep, struct instruction *insn, struct expression *expr)
+ALLOCATOR(asm_rules, "asm rules");
+ALLOCATOR(asm_constraint, "asm constraints");
+
+static void add_asm_input(struct entrypoint *ep, struct instruction *insn, struct expression *expr, const char *constraint)
 {
 	pseudo_t pseudo = linearize_expression(ep, expr);
+	struct asm_constraint *rule = __alloc_asm_constraint(0);
 
-	use_pseudo(pseudo, add_pseudo(&insn->inputs, pseudo));
+	rule->constraint = constraint;
+	use_pseudo(pseudo, &rule->pseudo);
+	add_ptr_list(&insn->asm_rules->inputs, rule);
 }
 
-static void add_asm_output(struct entrypoint *ep, struct instruction *insn, struct expression *expr)
+static void add_asm_output(struct entrypoint *ep, struct instruction *insn, struct expression *expr, const char *constraint)
 {
 	struct access_data ad = { NULL, };
 	pseudo_t pseudo = alloc_pseudo(insn);
+	struct asm_constraint *rule;
 
 	if (!linearize_address_gen(ep, expr, &ad))
 		return;
 	linearize_store_gen(ep, pseudo, &ad);
 	finish_address_gen(ep, &ad);
-	add_pseudo(&insn->outputs, pseudo);
+	rule = __alloc_asm_constraint(0);
+	rule->constraint = constraint;
+	use_pseudo(pseudo, &rule->pseudo);
+	add_ptr_list(&insn->asm_rules->outputs, rule);
 }
 
 pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
@@ -1586,6 +1604,8 @@ pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 	int even_odd;
 	struct expression *expr;
 	struct instruction *insn;
+	struct asm_rules *rules;
+	const char *constraint;
 
 	insn = alloc_instruction(OP_ASM, 0);
 	expr = stmt->asm_string;
@@ -1595,15 +1615,21 @@ pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 	}
 	insn->string = expr->string->data;
 
+	rules = __alloc_asm_rules(0);
+	insn->asm_rules = rules;
+
 	/* Gather the inputs.. */
 	even_odd = 0;
+	constraint = NULL;
 	FOR_EACH_PTR(stmt->asm_inputs, expr) {
 		even_odd = 1 - even_odd;
 
 		/* FIXME! We ignore the constraints for now.. */
-		if (even_odd)
+		if (even_odd) {
+			constraint = expr->string->data;
 			continue;
-		add_asm_input(ep, insn, expr);
+		}
+		add_asm_input(ep, insn, expr, constraint);
 	} END_FOR_EACH_PTR(expr);
 
 	add_one_insn(ep, insn);
@@ -1614,9 +1640,11 @@ pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 		even_odd = 1 - even_odd;
 
 		/* FIXME! We ignore the constraints for now.. */
-		if (even_odd)
+		if (even_odd) {
+			constraint = expr->string->data;
 			continue;
-		add_asm_output(ep, insn, expr);
+		}
+		add_asm_output(ep, insn, expr, constraint);
 	} END_FOR_EACH_PTR(expr);
 
 	return VOID;

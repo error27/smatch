@@ -39,6 +39,19 @@ struct multijmp {
 	int begin, end;
 };
 
+struct asm_constraint {
+	pseudo_t pseudo;
+	const char *constraint;
+};
+
+DECLARE_PTR_LIST(asm_constraint_list, struct asm_constraint);
+
+struct asm_rules {
+	struct asm_constraint_list *inputs;
+	struct asm_constraint_list *outputs;
+	struct asm_constraint_list *clobbers;
+};
+
 struct instruction {
 	unsigned opcode:8,
 		 size:24;
@@ -92,8 +105,7 @@ struct instruction {
 		};
 		struct /* asm */ {
 			const char *string;
-			struct pseudo_list *outputs;
-			struct pseudo_list *inputs;
+			struct asm_rules *asm_rules;
 		};
 	};
 };

@@ -31,6 +31,21 @@ static void phi_defines(struct instruction * phi_node, pseudo_t target,
 	} END_FOR_EACH_PTR(phi);
 }
 
+static void asm_liveness(struct basic_block *bb, struct instruction *insn,
+	void (*def)(struct basic_block *, struct instruction *, pseudo_t),
+	void (*use)(struct basic_block *, struct instruction *, pseudo_t))
+{
+	struct asm_constraint *entry;
+
+	FOR_EACH_PTR(insn->asm_rules->inputs, entry) {
+		use(bb, insn, entry->pseudo);
+	} END_FOR_EACH_PTR(entry);
+		
+	FOR_EACH_PTR(insn->asm_rules->outputs, entry) {
+		def(bb, insn, entry->pseudo);
+	} END_FOR_EACH_PTR(entry);
+}
+
 static void track_instruction_usage(struct basic_block *bb, struct instruction *insn,
 	void (*def)(struct basic_block *, struct instruction *, pseudo_t),
 	void (*use)(struct basic_block *, struct instruction *, pseudo_t))
@@ -114,13 +129,7 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 		break;
 
 	case OP_ASM:
-		FOR_EACH_PTR(insn->inputs, pseudo) {
-			use(bb, insn, pseudo);
-		} END_FOR_EACH_PTR(pseudo);
-		
-		FOR_EACH_PTR(insn->outputs, pseudo) {
-			def(bb, insn, pseudo);
-		} END_FOR_EACH_PTR(pseudo);
+		asm_liveness(bb, insn, def, use);
 		break;
 
 	case OP_BADOP:
