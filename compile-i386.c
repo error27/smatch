@@ -11,7 +11,6 @@
  *
  * TODO list:
  * in general, any non-32bit SYM_BASETYPE is unlikely to work.
- * loops
  * complex initializers
  * bitfields
  * global struct/union variables
@@ -168,6 +167,9 @@ static struct reg_info reg_info_table[] = {
 	{ "%edx" },
 	{ "%esp" },
 	{ "%dl" },
+	{ "%dx" },
+	{ "%al" },
+	{ "%ax" },
 };
 
 static struct storage hardreg_storage_table[] = {
@@ -195,6 +197,21 @@ static struct storage hardreg_storage_table[] = {
 		.type = STOR_REG,
 		.reg = &reg_info_table[4],
 	},
+
+	{	/* dx */
+		.type = STOR_REG,
+		.reg = &reg_info_table[5],
+	},
+
+	{	/* al */
+		.type = STOR_REG,
+		.reg = &reg_info_table[6],
+	},
+
+	{	/* ax */
+		.type = STOR_REG,
+		.reg = &reg_info_table[7],
+	},
 };
 
 #define REG_EAX (&hardreg_storage_table[0])
@@ -202,6 +219,9 @@ static struct storage hardreg_storage_table[] = {
 #define REG_EDX (&hardreg_storage_table[2])
 #define REG_ESP (&hardreg_storage_table[3])
 #define REG_DL	(&hardreg_storage_table[4])
+#define REG_DX	(&hardreg_storage_table[5])
+#define REG_AL	(&hardreg_storage_table[6])
+#define REG_AX	(&hardreg_storage_table[7])
 
 
 static void emit_move(struct storage *src, struct storage *dest,
@@ -1088,38 +1108,110 @@ static struct storage *emit_binop(struct expression *expr)
 	struct storage *left = x86_expression(expr->left);
 	struct storage *right = x86_expression(expr->right);
 	struct storage *new;
+	struct storage *accum_reg = NULL;
+	struct storage *result_reg = NULL;
 	const char *opname = NULL;
+	const char *suffix;
+	char movstr[16], opstr[16];
+	int is_signed, doing_divide = 0;
 
-	/*
-	 * FIXME FIXME this routine is so wrong it's not even funny.
-	 * On x86 both mod/div are handled with the same instruction.
-	 * We don't pay attention to signed/unsigned issues,
-	 * and like elsewhere we hardcode the operand size at 32 bits.
-	 */
-
-	switch (expr->op) {
-	case '+':			opname = "addl";	break;
-	case '-':			opname = "subl";	break;
-	case '*':			opname = "mull";	break;
-	case '/':			opname = "divl";	break;
-	case '%':			opname = "modl";	break;
-	case '&':			opname = "andl";	break;
-	case '|':			opname = "orl";		break;
-	case '^':			opname = "xorl";	break;
-	case SPECIAL_LEFTSHIFT:		opname = "shll";	break;
-	case SPECIAL_RIGHTSHIFT:	opname = "shrl";	break;
-	default:			assert(0);		break;
+	if ((expr->op == '/') || (expr->op == '%')) {
+		doing_divide = 1;
+		/* init EDX to 0 */
+		struct storage *val = new_storage(STOR_VALUE);
+		val->flags = STOR_WANTS_FREE;
+		emit_move(val, REG_EDX, NULL, "begin EXPR_DIVIDE");
 	}
 
+	is_signed = type_is_signed(expr->ctype);
+
+	switch (expr->op) {
+	case '+':
+		opname = "add";
+		break;
+	case '-':
+		opname = "sub";
+		break;
+	case '&':
+		opname = "and";
+		break;
+	case '|':
+		opname = "or";
+		break;
+	case '^':
+		opname = "xor";
+		break;
+	case SPECIAL_LEFTSHIFT:
+		opname = "shl";
+		break;
+	case SPECIAL_RIGHTSHIFT:
+		if (is_signed)
+			opname = "sar";
+		else
+			opname = "shr";
+		break;
+	case '*':
+		if (is_signed)
+			opname = "imul";
+		else
+			opname = "mul";
+		break;
+	case '/':
+	case '%':
+		if (is_signed)
+			opname = "idiv";
+		else
+			opname = "div";
+		break;
+	default:
+		assert(0);
+		break;
+	}
+
+	switch (expr->ctype->bit_size) {
+	case 8:
+		suffix = "b";
+		result_reg = accum_reg = REG_AL;
+		if (expr->op == '%')
+			result_reg = REG_DL;
+		break;
+	case 16:
+		suffix = "w";
+		result_reg = accum_reg = REG_AX;
+		if (expr->op == '%')
+			result_reg = REG_DX;
+		break;
+	case 32:
+		suffix = "l";
+		result_reg = accum_reg = REG_EAX;
+		if (expr->op == '%')
+			result_reg = REG_EDX;
+		break;
+	case 64:
+		suffix = "q";		/* FIXME */
+		result_reg = accum_reg = REG_EAX;	/* FIXME */
+		if (expr->op == '%')
+			result_reg = REG_EDX;
+		break;
+	default:
+		assert(0);
+		break;
+	}
+
+	sprintf(movstr, "mov%s", suffix);
+	sprintf(opstr, "%s%s", opname, suffix);
+
 	/* load op2 into EAX */
-	insn("movl", right, REG_EAX, "EXPR_BINOP/COMMA/LOGICAL");
+	insn(movstr, right, accum_reg,
+	     doing_divide ? NULL : "EXPR_BINOP/COMMA/LOGICAL");
 
 	/* perform binop */
-	insn(opname, left, REG_EAX, NULL);
+	insn(opstr, left, accum_reg, NULL);
 
-	/* store result (EAX) in new pseudo / stack slot */
+	/* store result (EAX or EDX) in new pseudo / stack slot */
 	new = stack_alloc(4);
-	insn("movl", REG_EAX, new, "end EXPR_BINOP");
+	insn(movstr, result_reg, new,
+	     doing_divide ? "end EXPR_DIVIDE" : "end EXPR_BINOP");
 
 	return new;
 }
