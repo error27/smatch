@@ -927,13 +927,33 @@ void emit_unit(const char *basename, struct symbol_list *list)
 	emit_unit_post();
 }
 
-static void emit_copy(struct storage *src,  struct symbol *src_ctype,
-		      struct storage *dest, struct symbol *dest_ctype)
+static void emit_copy(struct storage *dest, struct storage *src,
+		      struct symbol *ctype)
 {
+	struct storage *reg = NULL;
+
 	/* FIXME: Bitfield move! */
 
-	emit_move(src, REG_EAX, src_ctype, "begin copy ..");
-	emit_move(REG_EAX, dest, dest_ctype, ".... end copy");
+	switch (ctype->bit_size) {
+	case 8:
+		reg = REG_AL;
+		break;
+	case 16:
+		reg = REG_AX;
+		break;
+	case 32:
+		reg = REG_EAX;
+		break;
+	case 64:
+		reg = REG_EAX;	/* FIXME */
+		break;
+	default:
+		assert(0);
+		break;
+	}
+
+	emit_move(src, reg, ctype, "begin copy ..");
+	emit_move(reg, dest, ctype, ".... end copy");
 }
 
 static void emit_store(struct expression *dest_expr, struct storage *dest,
@@ -1288,7 +1308,7 @@ static struct storage *emit_inc_dec(struct expression *expr, int postop)
 	if (postop) {
 		struct storage *new = stack_alloc(4);
 
-		emit_copy(addr, expr->unop->ctype, new, NULL);
+		emit_copy(new, addr, expr->unop->ctype);
 
 		retval = new;
 	} else
@@ -1899,12 +1919,10 @@ static struct storage *x86_assignment(struct expression *expr)
 {
 	struct expression *target = expr->left;
 	struct storage *val, *addr;
-	int bits;
 
 	if (!expr->ctype)
 		return NULL;
 
-	bits = expr->ctype->bit_size;
 	val = x86_expression(expr->right);
 	addr = x86_address_gen(target);
 
@@ -1912,7 +1930,7 @@ static struct storage *x86_assignment(struct expression *expr)
 	/* copy, where both operands are memory */
 	case STOR_PSEUDO:
 	case STOR_ARG:
-		emit_copy(val, expr->right->ctype, addr, expr->left->ctype);
+		emit_copy(addr, val, expr->ctype);
 		break;
 
 	/* copy, one or zero operands are memory */
