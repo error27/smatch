@@ -1537,36 +1537,70 @@ static void x86_loop(struct statement *stmt)
 	if (pre_condition) {
 		if (pre_condition->type == EXPR_VALUE) {
 			if (!pre_condition->value) {
+				struct storage *lbv;
 				loop_bottom = new_label();
-				printf("\tjmp\t\t.L%d\n", loop_bottom);
+
+				lbv = new_storage(STOR_LABEL);
+				lbv->label = loop_bottom;
+				lbv->flags = STOR_WANTS_FREE;
+				insn("jmp", lbv, NULL, "go to loop bottom");
 			}
 		} else {
+			struct storage *lbv = new_storage(STOR_LABEL);
 			loop_bottom = new_label();
+			lbv->label = loop_bottom;
+			lbv->flags = STOR_WANTS_FREE;
+
 			val = x86_expression(pre_condition);
-			printf("\tje\t\tv%d, .L%d\n", val->pseudo, loop_bottom);
+
+			emit_move(val, REG_EAX, NULL, "loop pre condition");
+			insn("test", REG_EAX, REG_EAX, NULL);
+			insn("jz", lbv, NULL, NULL);
 		}
 	}
 	if (!post_condition || post_condition->type != EXPR_VALUE || post_condition->value) {
 		loop_top = new_label();
-		printf(".L%d:\n", loop_top);
+		emit_label(loop_top, "loop top");
 	}
 	x86_statement(statement);
-	if (stmt->iterator_continue->used)
-		printf(".L%p:\n", stmt->iterator_continue);
+	if (stmt->iterator_continue->used) {
+		/* FIXME: incorrect; must get stmt->iterator_continue
+		 * label emitted */
+		int incorrect_label = new_label();
+		emit_label(incorrect_label, "'continue' iterator");
+	}
 	x86_statement(post_statement);
 	if (!post_condition) {
-		printf("\tjmp\t\t.L%d\n", loop_top);
+		struct storage *lbv = new_storage(STOR_LABEL);
+		lbv->label = loop_top;
+		lbv->flags = STOR_WANTS_FREE;
+		insn("jmp", lbv, NULL, "go to loop top");
 	} else if (post_condition->type == EXPR_VALUE) {
-		if (post_condition->value)
-			printf("\tjmp\t\t.L%d\n", loop_top);
+		if (post_condition->value) {
+			struct storage *lbv = new_storage(STOR_LABEL);
+			lbv->label = loop_top;
+			lbv->flags = STOR_WANTS_FREE;
+			insn("jmp", lbv, NULL, "go to loop top");
+		}
 	} else {
+		struct storage *lbv = new_storage(STOR_LABEL);
+		lbv->label = loop_top;
+		lbv->flags = STOR_WANTS_FREE;
+
 		val = x86_expression(post_condition);
-		printf("\tjne\t\tv%d, .L%d\n", val->pseudo, loop_top);
+
+		emit_move(val, REG_EAX, NULL, "loop post condition");
+		insn("test", REG_EAX, REG_EAX, NULL);
+		insn("jnz", lbv, NULL, NULL);
 	}
-	if (stmt->iterator_break->used)
-		printf(".L%p:\n", stmt->iterator_break);
+	if (stmt->iterator_break->used) {
+		/* FIXME: incorrect; must get stmt->iterator_break
+		 * label emitted */
+		int incorrect_label = new_label();
+		emit_label(incorrect_label, "'break' target");
+	}
 	if (loop_bottom)
-		printf(".L%d:\n", loop_bottom);
+		emit_label(loop_bottom, "loop bottom");
 }
 
 /*
