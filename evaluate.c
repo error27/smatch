@@ -579,6 +579,28 @@ static struct symbol *evaluate_logical(struct expression *expr)
 	return &bool_ctype;
 }
 
+static struct symbol *evaluate_shift(struct expression *expr)
+{
+	struct expression *left = expr->left, *right = expr->right;
+	struct symbol *ltype = left->ctype, *rtype = right->ctype;
+
+	if (ltype->type == SYM_NODE)
+		ltype = ltype->ctype.base_type;
+	if (rtype->type == SYM_NODE)
+		rtype = rtype->ctype.base_type;
+	if (is_int_type(ltype) && is_int_type(rtype)) {
+		struct symbol *ctype = integer_promotion(ltype);
+		if (ltype->bit_size != ctype->bit_size)
+			expr->left = cast_to(expr->left, ctype);
+		expr->ctype = ctype;
+		ctype = integer_promotion(rtype);
+		if (rtype->bit_size != ctype->bit_size)
+			expr->right = cast_to(expr->right, ctype);
+		return expr->ctype;
+	}
+	return bad_expr_type(expr);
+}
+
 static struct symbol *evaluate_arithmetic(struct expression *expr)
 {
 	// FIXME! Floating-point promotion!
@@ -600,8 +622,11 @@ static struct symbol *evaluate_binop(struct expression *expr)
 	case '*': case '/': case '%':
 		return evaluate_arithmetic(expr);
 
+	// shifts do integer promotions, but that's it.
+	case SPECIAL_LEFTSHIFT: case SPECIAL_RIGHTSHIFT:
+		return evaluate_shift(expr);
+
 	// The rest are integer operations (bitops)
-	// SPECIAL_LEFTSHIFT, SPECIAL_RIGHTSHIFT
 	// '&', '^', '|'
 	default:
 		return evaluate_int_binop(expr);
