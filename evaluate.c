@@ -1281,13 +1281,11 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep, un
 		struct symbol *rtype = evaluate_expression(expr);
 		if (rtype) {
 			struct expression *pos;
-			struct symbol *fn = rtype;
-			if (rtype->type == SYM_NODE)
-				fn = rtype->ctype.base_type;
-			if (fn->type == SYM_FN) {
-				rtype = degenerate(expr, rtype, ep);
-				expr = *ep;
-			}
+
+			// FIXME! char array[] = "string" special case
+			// should _not_ degenerate.
+			rtype = degenerate(expr, rtype, ep);
+			expr = *ep;
 			compatible_assignment_types(expr, ctype, ep, rtype, "initializer");
 			/* strings are special: char arrays */
 			if (rtype->type == SYM_ARRAY)
