@@ -264,7 +264,6 @@ static void expand_arguments(struct token *token, struct token *head,
 			struct token *nextnext = next->next;
 			int nr = arg_number(arglist, nextnext->ident);
 			if (nextnext != head && nr >= 0 && nextnext->type == TOKEN_IDENT) {
-				struct token * last = nextnext->next;
 				struct token *newtoken = stringify(nextnext, get_argument(nr, arguments));
 				replace(nextnext, head, newtoken);
 				continue;
