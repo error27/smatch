@@ -553,17 +553,31 @@ static int simplify_memop(struct instruction *insn)
 
 static int simplify_cast(struct instruction *insn)
 {
-	int orig_size;
+	int orig_size, size;
+	pseudo_t src;
 
 	if (dead_insn(insn, &insn->src, NULL, NULL))
 		return REPEAT_CSE;
-	if (0 && insn->opcode == OP_PTRCAST)
-		return 0;
 	orig_size = insn->orig_type ? insn->orig_type->bit_size : 0;
-	if (orig_size < 0)
-		orig_size = 0;
-	if (insn->size != orig_size)
-		return 0;
+	size = insn->size;
+	src = insn->src;
+
+	/* A cast of a "and" might be a no-op.. */
+	if (src->type == PSEUDO_REG) {
+		struct instruction *def = src->def;
+		if (def->opcode == OP_AND && def->size >= size) {
+			pseudo_t val = def->src2;
+			if (val->type == PSEUDO_VAL) {
+				unsigned long long value = val->value;
+				if (!(value >> (size-1)))
+					goto simplify;
+			}
+		}
+	}
+
+	return 0;
+
+simplify:
 	return replace_with_pseudo(insn, insn->src);
 }
 
