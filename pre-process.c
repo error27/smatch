@@ -218,6 +218,8 @@ static int arg_number(struct token *arglist, struct ident *ident)
 	return -1;
 }			
 
+static struct token empty_arg_token = { .type = TOKEN_EOF };
+
 static struct token *expand_one_arg(struct token *head, struct token *token,
 		struct token *arglist, struct token *arguments)
 {
@@ -227,6 +229,16 @@ static struct token *expand_one_arg(struct token *head, struct token *token,
 		struct token *arg = get_argument(nr, arguments);
 		struct token *last = token->next;
 		token->next = &eof_token_entry;
+
+		/*
+		 * Special case for gcc 'x ## arg' semantics: if 'arg' is empty
+		 * then the 'x' goes away too.
+		 */
+		if (match_op(head, SPECIAL_HASHHASH) && eof_token(arg)) {
+			arg = &empty_arg_token;
+			empty_arg_token.next = &eof_token_entry;
+		}
+
 		replace(token, head, arg);
 		head = expand_list(head);
 		head->next = last;
@@ -267,6 +279,7 @@ static void expand_arguments(struct token *token, struct token *head,
 
 /*
  * Possibly valid combinations:
+ *  - anything + 'empty_arg_token' is empty.
  *  - ident + ident - combine (==ident)
  *  - ident + number - combine (==ident)
  *  - number + number - combine (==number)
@@ -282,6 +295,17 @@ static struct token *hashhash(struct token *head, struct token *first, struct to
 	int len;
 
 	first->next = second;
+
+	/*
+	 * Special case for gcc 'x ## arg' semantics: if 'arg' is empty
+	 * then the 'x' goes away too.
+	 *
+	 * See expand_one_arg.
+	 */
+	if (second->type == TOKEN_EOF) {
+		head->next = second->next;
+		return head;
+	}
 
 	p = buffer;
 	switch (first->type) {
