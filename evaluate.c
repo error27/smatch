@@ -358,8 +358,12 @@ static int restricted_binop(int op, struct symbol *type)
 		case '|':
 		case '^':
 		case '?':
+		case '=':
 		case SPECIAL_EQUAL:
 		case SPECIAL_NOTEQUAL:
+		case SPECIAL_AND_ASSIGN:
+		case SPECIAL_OR_ASSIGN:
+		case SPECIAL_XOR_ASSIGN:
 			return 0;
 		default:
 			return 1;
@@ -1007,14 +1011,23 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 				goto Cast;
 			return 1;
 		}
+	} else if (is_restricted_type(target)) {
+		if (!restricted_binop(op, target)) {
+			warning(expr->pos, "bad restricted assignment");
+			return 0;
+		}
+		if (!restricted_value(*rp, target))
+			return 1;
 	} else if (is_ptr_type(target)) {
 		if (op == SPECIAL_ADD_ASSIGN || op == SPECIAL_SUB_ASSIGN) {
 			evaluate_ptr_add(expr, target, rp);
 			return 1;
 		}
-	}
-
-	if (op != '=') {
+		if (op != '=') {
+			warning(expr->pos, "invalid pointer assignment");
+			return 0;
+		}
+	} else if (op != '=') {
 		warning(expr->pos, "invalid assignment");
 		return 0;
 	}
@@ -1022,9 +1035,6 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 	/* It's ok if the target is more volatile or const than the source */
 	typediff = type_difference(target, source, MOD_VOLATILE | MOD_CONST, 0);
 	if (!typediff)
-		return 1;
-
-	if (is_restricted_type(target) && !restricted_value(*rp, target))
 		return 1;
 
 	/* Pointer destination? */
