@@ -964,16 +964,6 @@ out:
 		 */
 		repeat_phase |= REPEAT_CSE;
 
-		/*
-		 *  But don't allow phi-source merges after this.
-		 * FIXME, FIXME! I really need to think about this.
-		 * Is it true? I think it's ok to merge phi-sources,
-		 * as long as we keep their relative position in
-		 * the stream. It's the re-ordering we can't have.
-		 * I think. 
-		 */
-		merge_phi_sources = 0;
-
 		parent->children = bb->children;
 		bb->children = NULL;
 		bb->parents = NULL;

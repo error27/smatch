@@ -20,7 +20,7 @@
 #define INSN_HASH_SIZE 65536
 static struct instruction_list *insn_hash_table[INSN_HASH_SIZE];
 
-int repeat_phase, merge_phi_sources;
+int repeat_phase;
 
 static int phi_compare(pseudo_t phi1, pseudo_t phi2)
 {
@@ -92,11 +92,6 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 		} END_FOR_EACH_PTR(phi);
 		break;
 	}
-
-	case OP_PHISOURCE:
-		hash += hashval(insn->phi_src);
-		hash += hashval(insn->bb);
-		break;
 
 	default:
 		/*
@@ -203,17 +198,6 @@ static int insn_compare(const void *_i1, const void *_i2)
 	/* Other */
 	case OP_PHI:
 		return phi_list_compare(i1->phi_list, i2->phi_list);
-
-	case OP_PHISOURCE:
-		if (i1->phi_src != i2->phi_src)
-			return i1->src1 < i2->src1 ? -1 : 1;
-		if (i1->bb != i2->bb)
-			return i1->bb < i2->bb ? -1 : 1;
-		if (!merge_phi_sources) {
-			if (i1 != i2)
-				return i1 < i2 ? -1 : 1;
-		}
-		break;
 
 	default:
 		warning(i1->bb->pos, "bad instruction on hash chain");

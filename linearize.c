@@ -1901,8 +1901,6 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 		add_one_insn(ep, insn);
 	}
 
-	merge_phi_sources = 1;
-
 	/*
 	 * Do trivial flow simplification - branches to
 	 * branches, kill dead basicblocks etc
