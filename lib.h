@@ -30,6 +30,7 @@ struct expression;
 struct expression_list;
 struct basic_block;
 struct entrypoint;
+struct instruction;
 
 struct token *skip_to(struct token *, int);
 struct token *expect(struct token *, int, const char *);
@@ -52,6 +53,7 @@ DECLARE_ALLOCATOR(scope);
 __DECLARE_ALLOCATOR(void, bytes);
 DECLARE_ALLOCATOR(basic_block);
 DECLARE_ALLOCATOR(entrypoint);
+DECLARE_ALLOCATOR(instruction);
 
 
 #define LIST_NODE_NR (29)

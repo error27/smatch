@@ -6,7 +6,53 @@
 #include "parse.h"
 #include "symbol.h"
 
+/* Silly pseudo define. Do this right some day */
+typedef struct {
+	int nr;
+} pseudo_t;
+
+static inline pseudo_t to_pseudo(int nr)
+{
+	pseudo_t a;
+	a.nr = nr;
+	return a;
+}
+
+#define VOID (to_pseudo(0))
+
+struct instruction {
+	struct symbol *type;
+	int opcode;
+	pseudo_t target;
+	union {
+		pseudo_t src;	/* unops */
+		struct /* binops */ {
+			pseudo_t src1, src2;
+		};
+		struct /* multijump */ {
+			int begin, end;
+		};
+		struct expression *val;
+		struct symbol *address;
+	};
+};
+
+enum opcode {
+	OP_CONDTRUE,
+	OP_CONDFALSE,
+	OP_SETVAL,
+	OP_MULTIVALUE,
+	OP_MULTIJUMP,
+	OP_LOAD,
+	OP_STORE,
+	OP_UNOP = 0x200,
+	OP_LASTUNOP = 0x3ff,
+	OP_BINOP = 0x400,
+	OP_LASTBINOP = 0x5ff,
+};
+
 struct basic_block_list;
+struct instruction_list;
 
 /*
  * Basic block flags. Right now we only have one, which keeps
@@ -18,13 +64,18 @@ struct basic_block_list;
 struct basic_block {
 	unsigned long flags;		/* BB status flags */
 	struct symbol *this;		/* Points to the symbol that owns "this" basic block - NULL if unreachable */
-	struct statement_list *stmts;	/* Linear list of statements */
+	struct instruction_list *insns;	/* Linear list of instructions */
 	struct symbol *next;		/* Points to the symbol that describes the fallthrough */
 };
 
 static inline void add_bb(struct basic_block_list **list, struct basic_block *bb)
 {
 	add_ptr_list((struct ptr_list **)list, bb);
+}
+
+static inline void add_instruction(struct instruction_list **list, struct instruction *insn)
+{
+	add_ptr_list((struct ptr_list **)list, insn);
 }
 
 struct entrypoint {

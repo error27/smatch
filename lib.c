@@ -158,6 +158,7 @@ struct allocator_struct scope_allocator = { "scopes", NULL, __alignof__(struct s
 struct allocator_struct bytes_allocator = { "bytes", NULL, 1, CHUNK };
 struct allocator_struct basic_block_allocator = { "basic_block", NULL, __alignof__(struct basic_block), CHUNK };
 struct allocator_struct entrypoint_allocator = { "entrypoint", NULL, __alignof__(struct entrypoint), CHUNK };
+struct allocator_struct instruction_allocator = { "instruction", NULL, __alignof__(struct instruction), CHUNK };
 
 #define __ALLOCATOR(type, size, x)				\
 	type *__alloc_##x(int extra)				\
@@ -178,6 +179,7 @@ ALLOCATOR(ident); ALLOCATOR(token); ALLOCATOR(symbol);
 ALLOCATOR(expression); ALLOCATOR(statement); ALLOCATOR(string);
 ALLOCATOR(scope); __ALLOCATOR(void, 0, bytes);
 ALLOCATOR(basic_block); ALLOCATOR(entrypoint);
+ALLOCATOR(instruction);
 
 int ptr_list_size(struct ptr_list *head)
 {
