@@ -683,6 +683,10 @@ static int expand_call(struct expression *expr)
 
 	cost = expand_arguments(expr->args);
 	sym = fn->ctype;
+	if (!sym) {
+		error(expr->pos, "function has no type");
+		return SIDE_EFFECTS;
+	}
 	if (sym->type == SYM_NODE)
 		return expand_symbol_call(expr);
 
