@@ -1015,7 +1015,7 @@ struct symbol *find_identifier(struct ident *ident, struct symbol_list *_list, i
 	return NULL;
 }
 
-static struct expression *evaluate_offset(struct expression *expr, unsigned long offset, struct symbol *ctype)
+static struct expression *evaluate_offset(struct expression *expr, unsigned long offset)
 {
 	struct expression *add;
 
@@ -1030,7 +1030,11 @@ static struct expression *evaluate_offset(struct expression *expr, unsigned long
 		add->right->value = offset;
 	}
 
-	add->ctype = ctype;
+	/*
+	 * The ctype of the pointer will be lazily evaluated if
+	 * we ever take the address of this member dereference..
+	 */
+	add->ctype = NULL;
 	return add;
 }
 
@@ -1089,13 +1093,10 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	 * the "parent" type.
 	 */
 	member = convert_to_as_mod(member, address_space, mod);
-	ctype = create_pointer(deref, member);
-
-	add = evaluate_offset(deref, offset, ctype);
+	add = evaluate_offset(deref, offset);
 
 	ctype = member->ctype.base_type;
 	if (ctype->type == SYM_BITFIELD) {
-		ctype = ctype->ctype.base_type;
 		expr->type = EXPR_BITFIELD;
 		expr->bitpos = member->bit_offset;
 		expr->nrbits = member->fieldwidth;
