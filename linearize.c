@@ -222,6 +222,7 @@ static const char* opcodes[] = {
 	[OP_LNOP] = "lnop",
 	[OP_NOP] = "nop",
 	[OP_DEATHNOTE] = "dead",
+	[OP_ASM] = "asm",
 
 	/* Sparse tagging (line numbers, context, whatever) */
 	[OP_CONTEXT] = "context",
@@ -403,6 +404,25 @@ void show_instruction(struct instruction *insn)
 		break;
 	case OP_DEATHNOTE:
 		buf += sprintf(buf, "%s", show_pseudo(insn->target));
+		break;
+	case OP_ASM:
+		buf += sprintf(buf, "\"%s\"", insn->string);
+		if (insn->outputs) {
+			pseudo_t pseudo;
+			buf += sprintf(buf, " (");
+			FOR_EACH_PTR(insn->outputs, pseudo) {
+				buf += sprintf(buf, " %s", show_pseudo(pseudo));
+			} END_FOR_EACH_PTR(pseudo);
+			buf += sprintf(buf, " ) <-");
+		}
+		if (insn->inputs) {
+			pseudo_t pseudo;
+			buf += sprintf(buf, " (");
+			FOR_EACH_PTR(insn->inputs, pseudo) {
+				buf += sprintf(buf, " %s", show_pseudo(pseudo));
+			} END_FOR_EACH_PTR(pseudo);
+			buf += sprintf(buf, " )");
+		}
 		break;
 	default:
 		break;
@@ -1518,7 +1538,6 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 	return pseudo;
 }
 
-
 pseudo_t linearize_internal(struct entrypoint *ep, struct statement *stmt)
 {
 	struct instruction *insn = alloc_instruction(OP_CONTEXT, 0);
@@ -1530,6 +1549,66 @@ pseudo_t linearize_internal(struct entrypoint *ep, struct statement *stmt)
 
 	insn->increment = value;
 	add_one_insn(ep, insn);
+	return VOID;
+}
+
+static void add_asm_input(struct entrypoint *ep, struct instruction *insn, struct expression *expr)
+{
+	pseudo_t pseudo = linearize_expression(ep, expr);
+
+	use_pseudo(pseudo, add_pseudo(&insn->inputs, pseudo));
+}
+
+static void add_asm_output(struct entrypoint *ep, struct instruction *insn, struct expression *expr)
+{
+	struct access_data ad = { NULL, };
+	pseudo_t pseudo = alloc_pseudo(insn);
+
+	if (!linearize_address_gen(ep, expr, &ad))
+		return;
+	linearize_store_gen(ep, pseudo, &ad);
+	finish_address_gen(ep, &ad);
+	add_pseudo(&insn->outputs, pseudo);
+}
+
+pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
+{
+	int even_odd;
+	struct expression *expr;
+	struct instruction *insn;
+
+	insn = alloc_instruction(OP_ASM, 0);
+	expr = stmt->asm_string;
+	if (!expr || expr->type != EXPR_STRING) {
+		warning(stmt->pos, "expected string in inline asm, got %p:%d", expr, expr ? expr->type : -1);
+		return VOID;
+	}
+	insn->string = expr->string->data;
+
+	/* Gather the inputs.. */
+	even_odd = 0;
+	FOR_EACH_PTR(stmt->asm_outputs, expr) {
+		even_odd = 1 - even_odd;
+
+		/* FIXME! We ignore the constraints for now.. */
+		if (even_odd)
+			continue;
+		add_asm_input(ep, insn, expr);
+	} END_FOR_EACH_PTR(expr);
+
+	add_one_insn(ep, insn);
+
+	/* Assign the outputs */
+	even_odd = 0;
+	FOR_EACH_PTR(stmt->asm_outputs, expr) {
+		even_odd = 1 - even_odd;
+
+		/* FIXME! We ignore the constraints for now.. */
+		if (even_odd)
+			continue;
+		add_asm_output(ep, insn, expr);
+	} END_FOR_EACH_PTR(expr);
+
 	return VOID;
 }
 
@@ -1555,8 +1634,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		return linearize_expression(ep, stmt->expression);
 
 	case STMT_ASM:
-		/* FIXME */
-		break;
+		return linearize_asm_statement(ep, stmt);
 
 	case STMT_RETURN: {
 		struct expression *expr = stmt->expression;

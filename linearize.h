@@ -83,6 +83,11 @@ struct instruction {
 		struct /* context */ {
 			int increment;
 		};
+		struct /* asm */ {
+			const char *string;
+			struct pseudo_list *outputs;
+			struct pseudo_list *inputs;
+		};
 	};
 };
 
@@ -163,6 +168,7 @@ enum opcode {
 	OP_LNOP,
 	OP_NOP,
 	OP_DEATHNOTE,
+	OP_ASM,
 
 	/* Sparse tagging (line numbers, context, whatever) */
 	OP_CONTEXT,
