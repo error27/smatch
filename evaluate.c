@@ -198,6 +198,15 @@ static struct symbol * compatible_integer_binop(struct expression *expr, struct 
 	return NULL;
 }
 
+static int check_shift_count(struct expression *expr, struct symbol *ctype, unsigned int count)
+{
+	if (count >= ctype->bit_size) {
+		warn(expr->pos, "shift too big for type");
+		count &= ctype->bit_size-1;
+	}
+	return count;
+}
+
 /*
  * CAREFUL! We need to get the size and sign of the
  * result right!
@@ -207,7 +216,7 @@ static void simplify_int_binop(struct expression *expr, struct symbol *ctype)
 	struct expression *left = expr->left, *right = expr->right;
 	unsigned long long v, l, r, mask;
 	signed long long s, sl, sr;
-	int is_signed;
+	int is_signed, shift;
 
 	if (left->type != EXPR_VALUE || right->type != EXPR_VALUE)
 		return;
@@ -221,17 +230,22 @@ static void simplify_int_binop(struct expression *expr, struct symbol *ctype)
 		sr |= ~(mask-1);
 	
 	switch (expr->op) {
-	case '+':		v = l+r; s = v; break;
-	case '-':		v = l-r; s = v; break;
-	case '*':		v = l*r; s = sl * sr; break;
+	case '+':		v = l + r; s = v; break;
+	case '-':		v = l - r; s = v; break;
+	case '&':		v = l & r; s = v; break;
+	case '|':		v = l | r; s = v; break;
+	case '^':		v = l ^ r; s = v; break;
+	case '*':		v = l * r; s = sl * sr; break;
 	case '/':		if (!r) return; v = l / r; s = sl / sr; break;
 	case '%':		if (!r) return; v = l % r; s = sl % sr; break;
-	case SPECIAL_LEFTSHIFT: return;
-	case SPECIAL_RIGHTSHIFT: return;
+	case SPECIAL_LEFTSHIFT: shift = check_shift_count(expr, ctype, r); v = l << shift; s = v; break; 
+	case SPECIAL_RIGHTSHIFT:shift = check_shift_count(expr, ctype, r); v = l >> shift; s = sl >> shift; break;
 	case '<':		v = l < r; s = sl < sr; break;
 	case '>':		v = l > r; s = sl > sr; break;
 	case SPECIAL_LTE:	v = l <= r; s = sl <= sr; break;
 	case SPECIAL_GTE:	v = l >= r; s = sl >= sr; break;
+	case SPECIAL_EQUAL:	v = l == r; s = v; break;
+	case SPECIAL_NOTEQUAL:	v = l != r; s = v; break;
 	default: return;
 	}
 	if (is_signed)
