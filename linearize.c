@@ -1618,6 +1618,32 @@ pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 	return VOID;
 }
 
+static int multijmp_cmp(const void *_a, const void *_b)
+{
+	const struct multijmp *a = _a;
+	const struct multijmp *b = _b;
+
+	// "default" case?
+	if (a->begin > a->end) {
+		if (b->begin > b->end)
+			return 0;
+		return 1;
+	}
+	if (b->begin > b->end)
+		return -1;
+	if (a->begin == b->begin) {
+		if (a->end == b->end)
+			return 0;
+		return (a->end < b->end) ? -1 : 1;
+	}
+	return a->begin < b->begin ? -1 : 1;
+}
+
+static void sort_switch_cases(struct instruction *insn)
+{
+	sort_list((struct ptr_list **)&insn->multijmp_list, multijmp_cmp);
+}
+
 pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 {
 	struct basic_block *bb;
@@ -1810,6 +1836,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		add_multijmp(&switch_ins->multijmp_list, jmp);
 		add_bb(&default_case->parents, active);
 		add_bb(&active->children, default_case);
+		sort_switch_cases(switch_ins);
 
 		break;
 	}
