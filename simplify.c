@@ -404,7 +404,7 @@ static int simplify_unop(struct instruction *insn)
 	return 0;
 }
 
-static int simplify_memop(struct instruction *insn)
+static int simplify_one_memop(struct instruction *insn, pseudo_t orig)
 {
 	pseudo_t addr = insn->src;
 	pseudo_t new, off;
@@ -432,7 +432,7 @@ static int simplify_memop(struct instruction *insn)
 
 offset:
 	/* Invalid code */
-	if (new == addr) {
+	if (new == orig) {
 		if (new == VOID)
 			return 0;
 		new = VOID;
@@ -442,6 +442,22 @@ offset:
 	use_pseudo(new, &insn->src);
 	remove_usage(addr, &insn->src);
 	return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
+}
+
+/*
+ * We walk the whole chain of adds/subs backwards. That's not
+ * only more efficient, but it allows us to find looops.
+ */
+static int simplify_memop(struct instruction *insn)
+{
+	int one, ret = 0;
+	pseudo_t orig = insn->src;
+
+	do {
+		one = simplify_one_memop(insn, orig);
+		ret |= one;
+	} while (one);
+	return ret;
 }
 
 static int simplify_cast(struct instruction *insn)
