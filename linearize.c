@@ -83,7 +83,7 @@ static inline int regno(pseudo_t n)
 	return retval;
 }
 
-static const char *show_pseudo(pseudo_t pseudo)
+const char *show_pseudo(pseudo_t pseudo)
 {
 	static int n;
 	static char buffer[4][64];

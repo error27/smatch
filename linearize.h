@@ -264,6 +264,7 @@ pseudo_t value_pseudo(long long val);
 
 struct entrypoint *linearize_symbol(struct symbol *sym);
 void show_entry(struct entrypoint *ep);
+const char *show_pseudo(pseudo_t pseudo);
 
 #endif /* LINEARIZE_H */
 
