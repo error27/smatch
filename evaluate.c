@@ -274,6 +274,8 @@ static int same_type(struct symbol *target, struct symbol *source)
 	int dropped_modifiers = 0;
 	for (;;) {
 		unsigned long mod1, mod2;
+		unsigned long as1, as2;
+
 		if (target == source)
 			break;
 		if (!target || !source)
@@ -283,15 +285,28 @@ static int same_type(struct symbol *target, struct symbol *source)
 		 * FIXME! Check alignment, address space, and context too here!
 		 */
 		mod1 = target->ctype.modifiers;
+		as1 = target->ctype.as;
 		mod2 = source->ctype.modifiers;
+		as2 = source->ctype.as;
 		if (target->type == SYM_NODE) {
 			target = target->ctype.base_type;
 			mod1 |= target->ctype.modifiers;
+			as1 |= target->ctype.as;
 		}
 		if (source->type == SYM_NODE) {
 			source = source->ctype.base_type;
 			mod2 |= source->ctype.modifiers;
+			as2 |= source->ctype.as;
 		}
+
+		/* Ignore differences in storage types */
+		if ((mod1 ^ mod2) & ~MOD_STORAGE)
+			return 0;
+
+		/* Must be same address space to be comparable */
+		if (as1 != as2)
+			return 0;
+	
 		if (target->type != source->type) {
 			int type1 = target->type;
 			int type2 = source->type;
@@ -302,10 +317,7 @@ static int same_type(struct symbol *target, struct symbol *source)
 			if (type1 != type2)
 				return 0;
 		}
-		/* Ignore differences in storage types */
-		if ((mod1 ^ mod2) & ~MOD_STORAGE)
-			return 0;
-	
+
 		target = target->ctype.base_type;
 		source = source->ctype.base_type;
 	}
@@ -344,7 +356,7 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expressio
 			return NULL;
 		}
 	}
-	examine_symbol_type(ltype);
+	examine_symbol_type(ctype);
 
 	/* Figure out the base type we point to */
 	if (ctype->type == SYM_NODE)
@@ -665,10 +677,6 @@ static struct symbol *evaluate_preop(struct expression *expr)
 
 	case '&': {
 		struct symbol *symbol = alloc_symbol(expr->pos, SYM_PTR);
-		if (ctype->type == SYM_NODE) {
-			symbol->ctype.modifiers = ctype->ctype.modifiers & ~MOD_STORAGE;
-			ctype = ctype->ctype.base_type;
-		}
 		symbol->ctype.base_type = ctype;
 		symbol->ctype.alignment = POINTER_ALIGNMENT;
 		symbol->bit_size = BITS_IN_POINTER;

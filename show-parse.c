@@ -187,7 +187,7 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 
 	case SYM_LABEL:
 		append(name, "label(%s:%p)", show_ident(sym->ident), sym);
-		return;
+		break;
 
 	case SYM_ARRAY:
 		break;
@@ -205,6 +205,9 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 	do_show_type(sym->ctype.base_type, name);
 
 	/* Postpend */
+	if (sym->ctype.as)
+		append(name, "<asn:%d>", sym->ctype.as);
+
 	switch (sym->type) {
 	case SYM_PTR:
 		return; 
