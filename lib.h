@@ -224,7 +224,7 @@ static inline void * current_iterator(struct list_iterator *iterator)
 
 static inline struct basic_block *first_basic_block(struct basic_block_list *head)
 {
-	return last_ptr_list((struct ptr_list *)head);
+	return first_ptr_list((struct ptr_list *)head);
 }
 static inline struct instruction *last_instruction(struct instruction_list *head)
 {
