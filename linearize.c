@@ -396,6 +396,10 @@ void show_entry(struct entrypoint *ep)
 	printf("ep %p: %s\n", ep, show_ident(ep->name->ident));
 
 	FOR_EACH_PTR(ep->syms, sym) {
+		if (!sym->pseudo)
+			continue;
+		if (!sym->pseudo->users)
+			continue;
 		printf("   sym: %p %s\n", sym, show_ident(sym->ident));
 		if (sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE))
 			printf("\texternal visibility\n");
