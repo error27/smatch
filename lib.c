@@ -6,12 +6,17 @@
  *
  *  Licensed under the Open Software License version 1.1
  */
-#include <stddef.h>
+#include <ctype.h>
+#include <fcntl.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "lib.h"
 #include "token.h"
@@ -283,4 +288,71 @@ void die(const char *fmt, ...)
 	exit(1);
 }
 
+unsigned int pre_buffer_size;
+unsigned char pre_buffer[8192];
 
+int preprocess_only;
+char *include;
+int include_fd = -1;
+
+void add_pre_buffer(const char *fmt, ...)
+{
+	va_list args;
+	unsigned int size;
+
+	va_start(args, fmt);
+	size = pre_buffer_size;
+	size += vsnprintf(pre_buffer + size,
+		sizeof(pre_buffer) - size,
+		fmt, args);
+	pre_buffer_size = size;
+	va_end(args);
+}
+
+char **handle_switch(char *arg, char **next)
+{
+	switch (*arg) {
+	case 'D': {
+		const char *name = arg+1;
+		const char *value = "";
+		for (;;) {
+			char c;
+			c = *++arg;
+			if (!c)
+				break;
+			if (isspace(c) || c == '=') {
+				*arg = '\0';
+				value = arg+1;
+				break;
+			}
+		}
+		add_pre_buffer("#define %s %s\n", name, value);
+		return next;
+	}
+
+	case 'E':
+		preprocess_only = 1;
+		return next;
+	case 'v':
+		verbose = 1;
+		return next;
+	case 'I':
+		add_pre_buffer("#add_include \"%s/\"\n", arg+1);
+		return next;
+	case 'i':
+		if (*next && !strcmp(arg, "include")) {
+			char *name = *++next;
+			int fd = open(name, O_RDONLY);
+			include_fd = fd;
+			include = name;
+			if (fd < 0)
+				perror(name);
+			return next;
+		}
+	/* Fallthrough */
+	default:
+		/* Ignore unknown command line options - they're probably gcc switches */
+		break;
+	}
+	return next;
+}

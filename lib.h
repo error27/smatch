@@ -63,6 +63,14 @@ struct ptr_list {
 void iterate(struct ptr_list *,void (*callback)(void *, void *, int), void*);
 extern void add_ptr_list(struct ptr_list **, void *);
 extern int ptr_list_size(struct ptr_list *);
+extern char **handle_switch(char *arg, char **next);
+extern void add_pre_buffer(const char *fmt, ...);
+
+extern unsigned int pre_buffer_size;
+extern unsigned char pre_buffer[8192];
+extern int include_fd;
+extern char *include;
+extern int preprocess_only;
 
 #define symbol_list_size(list) ptr_list_size((struct ptr_list *)(list))
 #define statement_list_size(list) ptr_list_size((struct ptr_list *)(list))
