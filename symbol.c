@@ -475,7 +475,7 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		string_ctype, ptr_ctype, lazy_ptr_ctype,
 		incomplete_ctype;
 
-struct ctype_declare {
+const struct ctype_declare {
 	struct symbol *ptr;
 	unsigned long modifiers;
 	int *bit_size;
@@ -586,7 +586,7 @@ void init_symbols(void)
 
 void init_ctype(void)
 {
-	struct ctype_declare *ctype;
+	const struct ctype_declare *ctype;
 
 	ptr_ctype.type = SYM_PTR;
 	lazy_ptr_ctype.type = SYM_PTR;

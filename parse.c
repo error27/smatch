@@ -360,7 +360,7 @@ struct token *attribute_specifier(struct token *token, struct ctype *ctype)
 #define MOD_SPECIALBITS (MOD_STRUCTOF | MOD_UNIONOF | MOD_ENUMOF | MOD_ATTRIBUTE | MOD_TYPEOF)
 #define MOD_SPECIFIER (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG | MOD_SIGNED | MOD_UNSIGNED)
 
-struct symbol * ctype_integer(unsigned int spec)
+struct symbol * ctype_integer(unsigned long spec)
 {
 	static struct symbol *const integer_ctypes[][2] = {
 		{ &llong_ctype, &ullong_ctype },
@@ -386,7 +386,7 @@ struct symbol * ctype_integer(unsigned int spec)
 	return ctype[0][(spec & MOD_UNSIGNED) != 0];
 }
 
-struct symbol * ctype_fp(unsigned int spec)
+struct symbol * ctype_fp(unsigned long spec)
 {
 	if (spec & MOD_LONGLONG)
 		return &ldouble_ctype;
@@ -549,7 +549,7 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 	}
 
 	if (ctype->base_type == &int_type) {
-		ctype->base_type = ctype_integer(ctype->modifiers & MOD_SPECIFIER);
+		ctype->base_type = ctype_integer(ctype->modifiers);
 		ctype->modifiers &= ~MOD_SPECIFIER;
 		return token;
 	}
@@ -595,7 +595,7 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 		/*
 		 * This can be either a parameter list or a grouping.
 		 * For the direct (non-abstract) case, we know if must be
-		 * a paramter list if we already saw the identifier.
+		 * a parameter list if we already saw the identifier.
 		 * For the abstract case, we know if must be a parameter
 		 * list if it is empty or starts with a type.
 		 */
