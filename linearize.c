@@ -1102,10 +1102,10 @@ void remove_unreachable_bbs(struct entrypoint *ep)
 	struct basic_block_list **bblist;
 
 	bblist = &ep->bbs;
-	init_iterator((struct ptr_list **) bblist, &iterator, 0);
-	while((bb=next_basic_block(&iterator)) != NULL)
+	FOR_EACH_PTR(*bblist, bb) {
 		bb->flags &= ~BB_REACHABLE;
-
+	} END_FOR_EACH_PTR;
+	
 	mark_bb_reachable(ep->entry);
 	init_iterator((struct ptr_list **) bblist, &iterator, 0);
 	while((bb=next_basic_block(&iterator)) != NULL) {
@@ -1127,7 +1127,6 @@ void pack_basic_blocks(struct entrypoint *ep)
 	remove_unreachable_bbs(ep);
 	init_bb_iterator(bblist, &iterator, 0);
 	while((bb=next_basic_block(&iterator)) != NULL) {
-		struct list_iterator it_parents;
 		struct terminator_iterator term;
 		struct instruction *jmp;
 		struct basic_block *target, *sibling, *parent;
@@ -1147,8 +1146,7 @@ void pack_basic_blocks(struct entrypoint *ep)
 
 		/* Transfer the parents' terminator to target directly. */
 		replace_basic_block_list(&target->parents, bb, NULL);
-		init_bb_iterator(&bb->parents, &it_parents, 0);
-		while((parent=next_basic_block(&it_parents)) != NULL) {
+		FOR_EACH_PTR(bb->parents, parent) {
 			init_terminator_iterator(last_instruction(parent->insns), &term);
 			while ((sibling=next_terminator_bb(&term)) != NULL) {
 				if (sibling == bb) {
@@ -1156,7 +1154,7 @@ void pack_basic_blocks(struct entrypoint *ep)
 					add_bb(&target->parents, parent);
 				}
 			}
-		}
+		} END_FOR_EACH_PTR;
 
 		/* Move the instructions to the target block. */
 		delete_last_instruction(&bb->insns);
