@@ -391,20 +391,14 @@ static const char * type_difference(struct symbol *target, struct symbol *source
 		 * Peel of per-node information.
 		 * FIXME! Check alignment, address space, and context too here!
 		 */
+		if (target->type == SYM_NODE)
+			target = target->ctype.base_type;
+		if (source->type == SYM_NODE)
+			source = source->ctype.base_type;
 		mod1 = target->ctype.modifiers;
 		as1 = target->ctype.as;
 		mod2 = source->ctype.modifiers;
 		as2 = source->ctype.as;
-		if (target->type == SYM_NODE) {
-			target = target->ctype.base_type;
-			mod1 |= target->ctype.modifiers;
-			as1 |= target->ctype.as;
-		}
-		if (source->type == SYM_NODE) {
-			source = source->ctype.base_type;
-			mod2 |= source->ctype.modifiers;
-			as2 |= source->ctype.as;
-		}
 
 		if (target->type != source->type) {
 			int type1 = target->type;
@@ -1036,12 +1030,10 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	}
 
 	ctype = deref->ctype;
+	if (ctype->type == SYM_NODE)
+		ctype = ctype->ctype.base_type;
 	mod = ctype->ctype.modifiers;
 	address_space = ctype->ctype.as;
-	if (ctype->type == SYM_NODE) {
-		ctype = ctype->ctype.base_type;
-		mod |= ctype->ctype.modifiers;
-	}
 	if (expr->op == SPECIAL_DEREFERENCE) {
 		/* Arrays will degenerate into pointers for '->' */
 		if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
