@@ -1181,7 +1181,7 @@ static struct storage *emit_binop(struct expression *expr)
 			opname = "div";
 		break;
 	default:
-		assert(0);
+		error(expr->pos, "unhandled binop '%s'\n", show_special(expr->op));
 		break;
 	}
 
