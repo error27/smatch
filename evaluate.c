@@ -859,18 +859,32 @@ static int evaluate_expression_list(struct expression_list *head)
 }
 
 /*
+ * FIXME! This is bogus: we need to take array index
+ * entries into account when calculating the size of
+ * the array.
+ */
+static int count_array_initializer(struct expression *expr)
+{
+	struct expression_list *list;
+
+	if (expr->type != EXPR_INITIALIZER)
+		return 1;
+	list = expr->expr_list;
+	return expression_list_size(list);
+}
+
+/*
  * Initializers are kind of like assignments. Except
  * they can be a hell of a lot more complex.
  */
-static struct symbol *evaluate_initializer(struct symbol *sym, struct expression *expr)
+static int evaluate_initializer(struct symbol *ctype, struct expression *expr)
 {
 	/*
 	 * FIXME!! Check type compatibility, and look up any named
-	 * initializers!
+	 * initializers and index expressions!
 	 */
-	evaluate_expression(expr);
-	expr->ctype = sym->ctype.base_type;
-	return expr->ctype;
+	expr->ctype = ctype;
+	return count_array_initializer(expr);
 }
 
 static struct symbol *evaluate_cast(struct expression *expr)
@@ -880,6 +894,18 @@ static struct symbol *evaluate_cast(struct expression *expr)
 
 	expr->ctype = ctype;
 	expr->cast_type = ctype;
+
+	/*
+	 * Special case: a cast can be followed by an
+	 * initializer, in which case we need to pass
+	 * the type value down to that initializer rather
+	 * than trying to evaluate it as an expression
+	 */
+	if (target->type == EXPR_INITIALIZER) {
+		evaluate_initializer(ctype, target);
+		return ctype;
+	}
+
 	evaluate_expression(target);
 
 	/* Simplify normal integer casts.. */
@@ -985,18 +1011,12 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_STATEMENT:
 		expr->ctype = evaluate_statement(expr->statement);
 		return expr->ctype;
+
+	/* These can not exist as stand-alone expressions */
 	case EXPR_INITIALIZER:
-		if (!evaluate_expression_list(expr->expr_list))
-			return NULL;
-		
-		return NULL;
 	case EXPR_IDENTIFIER:
-		// FIXME!! Identifier
-		// warn(expr->pos, "identifier type??");
-		return NULL;
 	case EXPR_INDEX:
-		// FIXME!! Array identifier index
-		// warn(expr->pos, "array index type??");
+		warn(expr->pos, "internal front-end error: initializer in expression");
 		return NULL;
 	}
 	return NULL;
@@ -1016,16 +1036,6 @@ static void evaluate_one_symbol(struct symbol *sym, void *unused, int flags)
 	evaluate_symbol(sym);
 }
 
-static int count_array_initializer(struct expression *expr)
-{
-	struct expression_list *list;
-
-	if (expr->type != EXPR_INITIALIZER)
-		return 1;
-	list = expr->expr_list;
-	return expression_list_size(list);
-}
-
 struct symbol *evaluate_symbol(struct symbol *sym)
 {
 	struct symbol *base_type;
@@ -1038,13 +1048,12 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 
 	/* Evaluate the initializers */
 	if (sym->initializer) {
-		evaluate_initializer(sym, sym->initializer);
+		int count = evaluate_initializer(base_type, sym->initializer);
 		if (base_type->type == SYM_ARRAY && base_type->array_size < 0) {
-			int array_size = count_array_initializer(sym->initializer);
-			int bit_size = array_size * base_type->ctype.base_type->bit_size;
-			base_type->array_size = array_size;
+			int bit_size = count * base_type->ctype.base_type->bit_size;
+			base_type->array_size = count;
 			base_type->bit_size = bit_size;
-			sym->array_size = array_size;
+			sym->array_size = count;
 			sym->bit_size = bit_size;
 		}
 	}
