@@ -33,6 +33,7 @@ static struct symbol *evaluate_symbol(struct symbol *sym);
 
 static struct symbol *evaluate_symbol_expression(struct expression *expr)
 {
+	struct expression *addr;
 	struct symbol *sym = expr->symbol;
 	struct symbol *base_type;
 
@@ -49,33 +50,17 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 		return NULL;
 	}
 
+	addr = alloc_expression(expr->pos, EXPR_SYMBOL);
+	addr->symbol = sym;
+	addr->symbol_name = expr->symbol_name;
+	addr->ctype = &lazy_ptr_ctype;	/* Lazy evaluation: we need to do a proper job if somebody does &sym */
+	expr->type = EXPR_PREOP;
+	expr->op = '*';
+	expr->unop = addr;
+
 	/* The type of a symbol is the symbol itself! */
 	expr->ctype = sym;
-
-	/* enums can be turned into plain values */
-	if (sym->type != SYM_ENUM) {
-		struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
-		addr->symbol = sym;
-		addr->symbol_name = expr->symbol_name;
-		addr->ctype = &lazy_ptr_ctype;	/* Lazy evaluation: we need to do a proper job if somebody does &sym */
-		expr->type = EXPR_PREOP;
-		expr->op = '*';
-		expr->unop = addr;
-		return sym;
-	} else if (base_type->bit_size < bits_in_int) {
-		/* ugly - we need to force sizeof for these guys */
-		struct expression *e = alloc_expression(expr->pos, EXPR_VALUE);
-		e->value = sym->value;
-		e->ctype = base_type;
-		expr->type = EXPR_PREOP;
-		expr->op = '+';
-		expr->unop = e;
-	} else {
-		expr->type = EXPR_VALUE;
-		expr->value = sym->value;
-	}
-	expr->ctype = base_type;
-	return base_type;
+	return sym;
 }
 
 static struct symbol *evaluate_string(struct expression *expr)
@@ -196,13 +181,9 @@ static struct symbol *base_type(struct symbol *node, unsigned long *modp, unsign
 	while (node) {
 		mod |= node->ctype.modifiers;
 		as |= node->ctype.as;
-		switch (node->type) {
-		case SYM_NODE:
-		case SYM_ENUM:
+		if (node->type == SYM_NODE) {
 			node = node->ctype.base_type;
 			continue;
-		default:
-			break;
 		}
 		break;
 	}

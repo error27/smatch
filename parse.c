@@ -213,15 +213,18 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 	struct symbol *ctype = NULL, *base_type = NULL;
 	Num upper = {-1, 0}, lower = {1, 0};
 
+	parent->examined = 1;
+	parent->ctype.base_type = &int_ctype;
 	while (token_type(token) == TOKEN_IDENT) {
+		struct expression *expr = NULL;
 		struct token *next = token->next;
 		struct symbol *sym;
 
-		sym = alloc_symbol(token->pos, SYM_ENUM);
+		sym = alloc_symbol(token->pos, SYM_NODE);
 		bind_symbol(sym, token->ident, NS_SYMBOL);
+		sym->ctype.modifiers &= ~MOD_ADDRESSABLE;
 
 		if (match_op(next, '=')) {
-			struct expression *expr;
 			next = constant_expression(next->next, &expr);
 			lastval = get_expression_value(expr);
 			ctype = &void_ctype;
@@ -235,14 +238,23 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 			error_die(token->pos, "can't increment the last enum member");
 		}
 
-		sym->value = lastval;
-		sym->ctype.base_type = ctype;
+		if (!expr) {
+			expr = alloc_expression(token->pos, EXPR_VALUE);
+			expr->value = lastval;
+		}
+
+		sym->initializer = expr;
+		sym->ctype.base_type = parent;
 
 		if (base_type != &bad_ctype) {
 			if (ctype->type == SYM_NODE)
 				ctype = ctype->ctype.base_type;
-			if (ctype->type == SYM_ENUM)
-				ctype = ctype->ctype.base_type;
+			if (ctype->type == SYM_ENUM) {
+				if (ctype == parent)
+					ctype = base_type;
+				else 
+					ctype = ctype->ctype.base_type;
+			}
 			/*
 			 * base_type rules:
 			 *  - if all enum's are of the same type, then
@@ -300,6 +312,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 		base_type = &bad_ctype;
 	parent->ctype.base_type = base_type;
 	parent->ctype.modifiers |= (base_type->ctype.modifiers & MOD_UNSIGNED);
+	parent->examined = 0;
 	return token;
 }
 
