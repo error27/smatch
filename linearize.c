@@ -713,7 +713,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 
 		concat_symbol_list(stmt->iterator_syms, &ep->syms);
 		linearize_statement(ep, pre_statement);
-		if (pre_condition) {
+		if (pre_condition && bb_reachable(ep->active)) {
 			if (pre_condition->type == EXPR_VALUE) {
 				if (!pre_condition->value) {
 					loop_bottom = alloc_symbol(stmt->pos, SYM_LABEL);
@@ -749,10 +749,16 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		if (loop_bottom)
 			add_label(ep, loop_bottom);
 
-		if (oldep && ep_haslabel(ep)) {
-			concat_basic_block_list(ep->bbs, &oldep->bbs);
-			concat_symbol_list(ep->syms, &oldep->syms);
-			oldep->active = ep->active;
+		/*
+		 * If we started out unreachable, maybe the inside
+		 * of the loop is still reachable?
+		 */
+		if (oldep) {
+			if (ep_haslabel(ep)) {
+				concat_basic_block_list(ep->bbs, &oldep->bbs);
+				concat_symbol_list(ep->syms, &oldep->syms);
+				oldep->active = ep->active;
+			}
 			ep = oldep;
 		}
 		break;
