@@ -1755,15 +1755,12 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		linearize_statement(ep, statement);
 		add_goto(ep, loop_continue);
 
-		if (post_condition) {
-			set_activeblock(ep, loop_continue);
-			linearize_statement(ep, post_statement);
-			if (pre_condition == post_condition)
-				add_goto(ep, loop_top);
-			else
-	 			linearize_cond_branch(ep, post_condition, loop_top, loop_end);
-		}
-
+		set_activeblock(ep, loop_continue);
+		linearize_statement(ep, post_statement);
+		if (!post_condition || pre_condition == post_condition)
+			add_goto(ep, loop_top);
+		else
+ 			linearize_cond_branch(ep, post_condition, loop_top, loop_end);
 		set_activeblock(ep, loop_end);
 		break;
 	}
