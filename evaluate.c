@@ -1997,6 +1997,9 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	struct symbol *ctype = examine_symbol_type(expr->cast_type);
 	enum type type;
 
+	if (!target)
+		return NULL;
+
 	expr->ctype = ctype;
 	expr->cast_type = ctype;
 
