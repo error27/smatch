@@ -244,7 +244,7 @@ void show_entry(struct entrypoint *ep)
 static void bind_label(struct symbol *label, struct basic_block *bb, struct position pos)
 {
 	if (label->bb_target)
-		warn(pos, "label already bound\n");
+		warn(pos, "label already bound");
 	label->bb_target = bb;
 }
 
@@ -510,7 +510,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	pseudo_t retval;
 
 	if (!expr->ctype) {
-		warn(expr->pos, "\tcall with no type!");
+		warn(expr->pos, "call with no type!");
 		return VOID;
 	}
 
