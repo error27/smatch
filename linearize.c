@@ -244,7 +244,7 @@ void show_entry(struct entrypoint *ep)
 static void bind_label(struct symbol *label, struct basic_block *bb, struct position pos)
 {
 	if (label->bb_target)
-		warn(pos, "label already bound");
+		warn(pos, "label '%s' already bound", show_ident(label->ident));
 	label->bb_target = bb;
 }
 
