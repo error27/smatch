@@ -626,14 +626,30 @@ char **handle_switch_v(char *arg, char **next)
 }
 char **handle_switch_I(char *arg, char **next)
 {
-	// FIXME: What about "-I-"?
-	if (!strcmp (arg, "I") && *next) {
-		add_pre_buffer("#add_include \"%s/\"\n", next);
-		return next + 1; // "-I foo"
-	} else {
-		add_pre_buffer("#add_include \"%s/\"\n", arg + 1);
-		return next;    // "-Ifoo" or (bogus) terminal "-I"
+	char *path = arg+1;
+
+	switch (arg[1]) {
+	case '-':
+		/* Explaining '-I-' with a google search:
+		 *
+		 *	"Specifying -I after -I- searches for #include directories.
+		 *	 If -I- is specified before, it searches for #include "file"
+		 *	 and not #include ."
+		 *
+		 * Which didn't explain it at all to me. Maybe somebody else can
+		 * explain it properly. We ignore it for now.
+		 */
+		return next;
+
+	case '\0':	/* Plain "-I" */
+		path = *++next;
+		if (!path)
+			die("missing argument for -I option");
+		/* Fallthrough */
+	default:
+		add_pre_buffer("#add_include \"%s/\"\n", path);
 	}
+	return next;
 }
 
 char **handle_switch_i(char *arg, char **next)
