@@ -211,13 +211,25 @@ static struct symbol *base_type(struct symbol *node, unsigned long *modp, unsign
 	return node;
 }
 
-static int is_same_type(struct symbol *old, struct symbol *new)
+static int is_same_type(struct expression *expr, struct symbol *new)
 {
-	unsigned long oldmod, newmod, oldas, newas;
+	struct symbol *old = expr->ctype;
+	unsigned long oldmod, newmod, difmod, oldas, newas;
 
 	old = base_type(old, &oldmod, &oldas);
 	new = base_type(new, &newmod, &newas);
-	return old == new && oldmod == newmod && oldas == newas;
+	difmod = (oldmod ^ newmod) & ~MOD_NOCAST;
+	if (old == new && oldas == newas && !difmod)
+		return 1;
+	if ((oldmod | newmod) & MOD_NOCAST) {
+		const char *tofrom = "to/from";
+		if (!(newmod & MOD_NOCAST))
+			tofrom = "from";
+		if (!(oldmod & MOD_NOCAST))
+			tofrom = "to";
+		warning(expr->pos, "implicit cast %s nocast type", tofrom);
+	}
+	return 0;
 }
 
 /*
@@ -231,7 +243,7 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 {
 	struct expression *expr;
 
-	if (is_same_type(old->ctype, type))
+	if (is_same_type(old, type))
 		return old;
 
 	/*
@@ -1091,7 +1103,7 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 
 		// NULL pointer is always ok
 		if (is_null_ptr(right))
-			return 1;
+			goto Cast;
 
 		/* "void *" matches anything as long as the address space is ok */
 		source_as = s->ctype.as;
@@ -1103,7 +1115,7 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			s = s->ctype.base_type;
 			t = t->ctype.base_type;
 			if (s == &void_ctype || t == &void_ctype)
-				return 1;
+				goto Cast;
 		}
 	}
 
