@@ -1307,6 +1307,14 @@ static int handle_pragma(struct stream *stream, struct token **line, struct toke
 	return 1;
 }
 
+/*
+ * We ignore #line for now.
+ */
+static int handle_line(struct stream *stream, struct token **line, struct token *token)
+{
+	return 1;
+}
+
 static int handle_preprocessor_command(struct stream *stream, struct token **line, struct ident *ident, struct token *token)
 {
 	int i;
@@ -1326,6 +1334,7 @@ static int handle_preprocessor_command(struct stream *stream, struct token **lin
 		{ "error",	handle_error },
 		{ "include",	handle_include },
 		{ "pragma",	handle_pragma },
+		{ "line",	handle_line },
 
 		// our internal preprocessor tokens
 		{ "nostdinc",	handle_nostdinc },
