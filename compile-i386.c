@@ -731,7 +731,7 @@ static void emit_atom_list(struct function *f)
 			assert(0);
 			break;
 		}
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(atom);
 }
 
 static void emit_string_list(struct function *f)
@@ -746,7 +746,7 @@ static void emit_string_list(struct function *f)
 		printf("\t.string\t%s\n", show_string(atom->string));
 
 		free(atom);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(atom);
 }
 
 static void func_cleanup(struct function *f)
@@ -756,7 +756,7 @@ static void func_cleanup(struct function *f)
 
 	FOR_EACH_PTR(f->pseudo_list, stor) {
 		free(stor);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(stor);
 
 	FOR_EACH_PTR(f->atom_list, atom) {
 		if ((atom->type == ATOM_TEXT) && (atom->text))
@@ -766,7 +766,7 @@ static void func_cleanup(struct function *f)
 		if (atom->op2 && (atom->op2->flags & STOR_WANTS_FREE))
 			free(atom->op2);
 		free(atom);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(atom);
 
 	free_ptr_list(&f->pseudo_list);
 	free(f);
@@ -785,7 +785,7 @@ static void emit_func_pre(struct symbol *sym)
 
 	FOR_EACH_PTR(base_type->arguments, arg) {
 		argc++;
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(arg);
 
 	alloc_len =
 		sizeof(*f) +
@@ -815,7 +815,7 @@ static void emit_func_pre(struct symbol *sym)
 		storage_base[i].idx = i;
 		privbase[i].addr = &storage_base[i];
 		i++;
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(arg);
 
 	assert(current_func == NULL);
 	current_func = f;
@@ -977,7 +977,7 @@ static void sort_array(struct expression *expr)
 	elem = 0;
 	FOR_EACH_PTR(expr->expr_list, entry) {
 		elem++;
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(entry);
 
 	if (!elem)
 		return;
@@ -1019,13 +1019,13 @@ static void sort_array(struct expression *expr)
 				sorted++;
 			}
 		}
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(entry);
 
 	i = 0;
 	FOR_EACH_PTR(expr->expr_list, entry) {
 		if ((entry->type == EXPR_POS) || (entry->type == EXPR_VALUE))
 			*THIS_ADDRESS(entry) = list[i++];
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(entry);
 
 }
 
@@ -1058,7 +1058,7 @@ static void emit_array(struct symbol *sym)
 			emit_initializer(sym, entry->init_expr);
 			ea_last = ea_current;
 		}
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(entry);
 }
 
 void emit_one_symbol(struct symbol *sym)
@@ -1760,7 +1760,7 @@ static void emit_switch_statement(struct statement *stmt)
 				emit_label(next_test, NULL);
 			}
 		}
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(sym);
 
 	if (default_sym) {
 		labelsym = new_labelsym(default_sym);
@@ -1865,7 +1865,7 @@ static void x86_symbol_decl(struct symbol_list *syms)
 	struct symbol *sym;
 	FOR_EACH_PTR(syms, sym) {
 		x86_symbol_init(sym);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(sym);
 }
 
 static void loopstk_push(int cont_lbl, int loop_bottom_lbl)
@@ -1995,7 +1995,7 @@ static struct storage *x86_statement(struct statement *stmt)
 		x86_symbol_decl(stmt->syms);
 		FOR_EACH_PTR(stmt->stmts, s) {
 			last = x86_statement(s);
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(s);
 
 		return last;
 	}
@@ -2083,7 +2083,7 @@ static struct storage *x86_call_expression(struct expression *expr)
 		     !framesize ? "begin function call" : NULL);
 
 		framesize += size >> 3;
-	} END_FOR_EACH_PTR_REVERSE;
+	} END_FOR_EACH_PTR_REVERSE(arg);
 
 	fn = expr->fn;
 
@@ -2313,7 +2313,7 @@ static void x86_initializer_expr(struct expression *expr, struct symbol *ctype)
 			continue;
 		}
 		x86_initialization(ctype, entry);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(entry);
 }
 
 /*

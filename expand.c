@@ -634,7 +634,7 @@ static int expand_arguments(struct expression_list *head)
 
 	FOR_EACH_PTR (head, expr) {
 		cost += expand_expression(expr);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(expr);
 	return cost;
 }
 
@@ -692,7 +692,7 @@ static int expand_expression_list(struct expression_list *list)
 
 	FOR_EACH_PTR(list, expr) {
 		cost += expand_expression(expr);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(expr);
 	return cost;
 }
 
@@ -861,13 +861,13 @@ static int expand_statement(struct statement *stmt)
 
 		FOR_EACH_PTR(stmt->syms, sym) {
 			expand_symbol(sym);
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(sym);
 		expand_symbol(stmt->ret);
 
 		cost = 0;
 		FOR_EACH_PTR(stmt->stmts, s) {
 			cost += expand_statement(s);
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(s);
 		return cost;
 	}
 

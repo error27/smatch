@@ -51,7 +51,7 @@ static struct symbol_list *copy_symbol_list(struct symbol_list *src)
 	FOR_EACH_PTR(src, sym) {
 		struct symbol *newsym = copy_symbol(sym->pos, sym);
 		add_symbol(&dst, newsym);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(sym);
 	return dst;
 }
 
@@ -179,7 +179,7 @@ static struct expression * copy_expression(struct expression *expr)
 		expr->args = NULL;
 		FOR_EACH_PTR(list, arg) {
 			add_expression(&expr->args, copy_expression(arg));
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(arg);
 		break;
 	}
 
@@ -191,7 +191,7 @@ static struct expression * copy_expression(struct expression *expr)
 		expr->expr_list = NULL;
 		FOR_EACH_PTR(list, entry) {
 			add_expression(&expr->expr_list, copy_expression(entry));
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(entry);
 		break;
 	}
 
@@ -247,7 +247,7 @@ static void unset_replace_list(struct symbol_list *list)
 	struct symbol *sym;
 	FOR_EACH_PTR(list, sym) {
 		unset_replace(sym);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(sym);
 }
 
 static struct statement *copy_one_statement(struct statement *stmt)
@@ -375,11 +375,11 @@ void copy_statement(struct statement *src, struct statement *dst)
 		struct symbol *newsym = copy_symbol(src->pos, sym);
 		newsym->initializer = copy_expression(sym->initializer);
 		add_symbol(&dst->syms, newsym);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(sym);
 
 	FOR_EACH_PTR(src->stmts, stmt) {
 		add_statement(&dst->stmts, copy_one_statement(stmt));
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(stmt);
 
 	dst->ret = copy_symbol(src->pos, src->ret);
 }
@@ -404,7 +404,7 @@ static struct symbol_list *create_symbol_list(struct symbol_list *src)
 	FOR_EACH_PTR(src, sym) {
 		struct symbol *newsym = create_copy_symbol(sym);
 		add_symbol(&dst, newsym);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(sym);
 	return dst;
 }
 
@@ -448,7 +448,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 		add_symbol(&stmt->syms, a);
 
 		NEXT_PTR_LIST(name);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(arg);
 	FINISH_PTR_LIST(name);
 
 	copy_statement(fn->inline_stmt, stmt);
@@ -470,7 +470,7 @@ void uninline(struct symbol *sym)
 	sym->symbol_list = create_symbol_list(sym->inline_symbol_list);
 	FOR_EACH_PTR(arg_list, p) {
 		p->replace = p;
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(p);
 	fn->stmt = alloc_statement(fn->pos, STMT_COMPOUND);
 	copy_statement(fn->inline_stmt, fn->stmt);
 	unset_replace_list(sym->symbol_list);

@@ -379,18 +379,18 @@ static inline void expression_iterate(struct expression_list *list, void (*callb
 	((__typeof__(&(ptr))) (__list->list + __nr))
 
 #define FOR_EACH_PTR(head, ptr) \
-	DO_FOR_EACH(head, ptr, __head, __list, __nr)
+	DO_FOR_EACH(head, ptr, __head##ptr, __list##ptr, __nr##ptr)
 
-#define END_FOR_EACH_PTR \
-	DO_END_FOR_EACH(dummy_unused, __head, __list, __nr)
+#define END_FOR_EACH_PTR(ptr) \
+	DO_END_FOR_EACH(ptr, __head##ptr, __list##ptr, __nr##ptr)
 
 #define FOR_EACH_PTR_REVERSE(head, ptr) \
-	DO_FOR_EACH_REVERSE(head, ptr, __head, __list, __nr)
+	DO_FOR_EACH_REVERSE(head, ptr, __head##ptr, __list##ptr, __nr##ptr)
 
-#define END_FOR_EACH_PTR_REVERSE \
-	DO_END_FOR_EACH_REVERSE(dummy_unused, __head, __list, __nr)
+#define END_FOR_EACH_PTR_REVERSE(ptr) \
+	DO_END_FOR_EACH_REVERSE(ptr, __head##ptr, __list##ptr, __nr##ptr)
 
 #define THIS_ADDRESS(ptr) \
-	DO_THIS_ADDRESS(ptr, __head, __list, __nr)
+	DO_THIS_ADDRESS(ptr, __head##ptr, __list##ptr, __nr##ptr)
 
 #endif

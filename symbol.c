@@ -370,7 +370,7 @@ static int expand_constant_p(struct expression *expr)
 	FOR_EACH_PTR (arglist, arg) {
 		if (arg->type != EXPR_VALUE && arg->type != EXPR_FVALUE)
 			value = 0;
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(arg);
 
 	expr->type = EXPR_VALUE;
 	expr->value = value;

@@ -1356,7 +1356,7 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 	*p = stmt;
 	FOR_EACH_PTR (base_type->arguments, arg) {
 		declare_argument(arg, base_type);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(arg);
 
 	token = compound_statement(token->next, stmt);
 
@@ -1372,7 +1372,7 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 			struct statement *stmt;
 			FOR_EACH_PTR(function_computed_goto_list, stmt) {
 				stmt->target_list = function_computed_target_list;
-			} END_FOR_EACH_PTR;
+			} END_FOR_EACH_PTR(stmt);
 		}
 	}
 	return expect(token, '}', "at end of function");
@@ -1398,7 +1398,7 @@ static void apply_k_r_types(struct symbol_list *argtypes, struct symbol *fn)
 		FOR_EACH_PTR(argtypes, type) {
 			if (type->ident == arg->ident)
 				goto match;
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(type);
 		warn(arg->pos, "missing type declaration for parameter '%s'", show_ident(arg->ident));
 		continue;
 match:
@@ -1407,12 +1407,12 @@ match:
 		promote_k_r_types(type);
 
 		arg->ctype = type->ctype;
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(arg);
 
 	FOR_EACH_PTR(argtypes, arg) {
 		if (!arg->used)
 			warn(arg->pos, "nonsensical parameter declaration '%s'", show_ident(arg->ident));
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(arg);
 
 }
 

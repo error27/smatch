@@ -127,7 +127,7 @@ static void show_instruction(struct instruction *insn)
 				printf(", %d ... %d -> .L%p", jmp->begin, jmp->end, jmp->target);
 			else
 				printf(", default -> .L%p\n", jmp->target);
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(jmp);
 		printf("\n");
 		break;
 	}
@@ -136,7 +136,7 @@ static void show_instruction(struct instruction *insn)
 		printf("\tjmp *%%r%d", insn->target->nr);
 		FOR_EACH_PTR(insn->multijmp_list, jmp) {
 			printf(", .L%p", jmp->target);
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(jmp);
 		printf("\n");
 		break;
 	}
@@ -148,7 +148,7 @@ static void show_instruction(struct instruction *insn)
 		FOR_EACH_PTR(insn->phi_list, phi) {
 			printf("%s(%%r%d, .L%p)", s, phi->pseudo->nr, phi->source);
 			s = ", ";
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(phi);
 		printf("\n");
 		break;
 	}	
@@ -163,7 +163,7 @@ static void show_instruction(struct instruction *insn)
 		printf("\t%%r%d <- CALL %%r%d", insn->target->nr, insn->func->nr);
 		FOR_EACH_PTR(insn->arguments, arg) {
 			printf(", %%r%d", arg->nr);
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(arg);
 		printf("\n");
 		break;
 	}
@@ -237,11 +237,11 @@ static void show_bb(struct basic_block *bb)
 		struct basic_block *from;
 		FOR_EACH_PTR(bb->parents, from) {
 			printf("  **from %p**\n", from);
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(from);
 	}
 	FOR_EACH_PTR(bb->insns, insn) {
 		show_instruction(insn);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(insn);
 	if (!bb_terminated(bb))
 		printf("\tEND\n");
 	printf("\n");
@@ -256,7 +256,7 @@ void show_entry(struct entrypoint *ep)
 
 	FOR_EACH_PTR(ep->syms, sym) {
 		printf("   sym: %p %s\n", sym, show_ident(sym->ident));
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(sym);
 
 	printf("\n");
 
@@ -264,7 +264,7 @@ void show_entry(struct entrypoint *ep)
 		if (bb == ep->entry)
 			printf("ENTRY:\n");
 		show_bb(bb);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(bb);
 
 	printf("\n");
 }
@@ -577,7 +577,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	FOR_EACH_PTR(expr->args, arg) {
 		pseudo_t new = linearize_expression(ep, arg);
 		add_pseudo(&insn->arguments, new);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(arg);
 
 	fn = expr->fn;
 	if (fn->type == EXPR_PREOP) {
@@ -917,7 +917,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			struct multijmp *jmp = alloc_multijmp(bb_computed, 1, 0);
 			add_multijmp(&goto_ins->multijmp_list, jmp);
 			add_bb(&bb_computed->parents, ep->active);
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(sym);
 
 		finish_block(ep);
 		break;
@@ -932,7 +932,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			ret->bb_target = alloc_basic_block();
 		FOR_EACH_PTR(stmt->stmts, s) {
 			pseudo = linearize_statement(ep, s);
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(s);
 		if (ret) {
 			struct basic_block *bb = ret->bb_target;
 			struct instruction *phi = first_instruction(bb->insns);
@@ -1009,7 +1009,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			}
 			add_multijmp(&switch_ins->multijmp_list, jmp);
 			add_bb(&bb_case->parents, ep->active);
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(sym);
 
 		bind_label(stmt->switch_break, switch_end, stmt->pos);
 
@@ -1104,7 +1104,7 @@ void remove_unreachable_bbs(struct entrypoint *ep)
 	bblist = &ep->bbs;
 	FOR_EACH_PTR(*bblist, bb) {
 		bb->flags &= ~BB_REACHABLE;
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(bb);
 	
 	mark_bb_reachable(ep->entry);
 	init_iterator((struct ptr_list **) bblist, &iterator, 0);
@@ -1154,7 +1154,7 @@ void pack_basic_blocks(struct entrypoint *ep)
 					add_bb(&target->parents, parent);
 				}
 			}
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(parent);
 
 		/* Move the instructions to the target block. */
 		delete_last_instruction(&bb->insns);

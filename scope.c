@@ -65,7 +65,7 @@ static void end_scope(struct scope **s)
 	scope->symbols = NULL;
 	FOR_EACH_PTR(symbols, sym) {
 		remove_symbol_scope(sym);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(sym);
 }
 
 void end_symbol_scope(void)

@@ -458,7 +458,7 @@ void concat_ptr_list(struct ptr_list *a, struct ptr_list **b)
 	void *entry;
 	FOR_EACH_PTR(a, entry) {
 		add_ptr_list(b, entry);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(entry);
 }
 
 void free_ptr_list(struct ptr_list **listp)

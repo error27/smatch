@@ -1124,7 +1124,7 @@ static void examine_fn_arguments(struct symbol *fn)
 				break;
 			}
 		}
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(s);
 }
 
 static struct symbol *convert_to_as_mod(struct symbol *sym, int as, int mod)
@@ -1709,7 +1709,7 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 
 		i++;
 		NEXT_PTR_LIST(argtype);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(expr);
 	FINISH_PTR_LIST(argtype);
 	return 1;
 }
@@ -1741,7 +1741,7 @@ static int evaluate_array_initializer(struct symbol *ctype, struct expression *e
 		current += entries;
 		if (current > max)
 			max = current;
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(entry);
 	return max;
 }
 
@@ -1790,7 +1790,7 @@ static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct exp
 		evaluate_initializer(sym, p, offset + sym->offset);
 
 		NEXT_PTR_LIST(sym);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(entry);
 	FINISH_PTR_LIST(sym);
 
 	return 0;
@@ -2306,7 +2306,7 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		/* Evaluate each symbol in the compound statement */
 		FOR_EACH_PTR(stmt->syms, sym) {
 			evaluate_symbol(sym);
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(sym);
 		evaluate_symbol(stmt->ret);
 
 		/*
@@ -2316,7 +2316,7 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		type = NULL;
 		FOR_EACH_PTR(stmt->stmts, s) {
 			type = evaluate_statement(s);
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(s);
 		if (!type)
 			type = &void_ctype;
 		return type;

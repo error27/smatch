@@ -52,7 +52,7 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 			do_debug_symbol(arg, 0);
 			fprintf(stderr, "  end arg%d >\n", i);
 			i++;
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(arg);
 	}
 	do_debug_symbol(sym->ctype.base_type, indent+2);
 }
@@ -392,7 +392,7 @@ static void show_switch_statement(struct statement *stmt)
 				printf("    what?");
 		}
 		printf(": .L%p\n", sym->bb_target);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(sym);
 	printf("# end case table\n");
 
 	show_statement(stmt->switch_statement);
@@ -406,7 +406,7 @@ static void show_symbol_decl(struct symbol_list *syms)
 	struct symbol *sym;
 	FOR_EACH_PTR(syms, sym) {
 		show_symbol_init(sym);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(sym);
 }
 
 static int show_return_stmt(struct statement *stmt);
@@ -428,7 +428,7 @@ int show_statement(struct statement *stmt)
 		show_symbol_decl(stmt->syms);
 		FOR_EACH_PTR(stmt->stmts, s) {
 			last = show_statement(s);
-		} END_FOR_EACH_PTR;
+		} END_FOR_EACH_PTR(s);
 		if (stmt->ret) {
 			int addr, bits;
 			printf(".L%p:\n", stmt->ret);
@@ -590,7 +590,7 @@ static int show_call_expression(struct expression *expr)
 		int size = arg->ctype->bit_size;
 		printf("\tpush.%d\t\tv%d\n", size, new);
 		framesize += size >> 3;
-	} END_FOR_EACH_PTR_REVERSE;
+	} END_FOR_EACH_PTR_REVERSE(arg);
 
 	fn = expr->fn;
 
@@ -937,7 +937,7 @@ static int show_initializer_expr(struct expression *expr, struct symbol *ctype)
 			continue;
 		}
 		show_initialization(ctype, entry);
-	} END_FOR_EACH_PTR;
+	} END_FOR_EACH_PTR(entry);
 	return 0;
 }
 
