@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
+#include <assert.h>
 
 #include "parse.h"
 #include "expression.h"
@@ -223,8 +224,7 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 
 	if (!insn->bb)
 		return;
-	if (insn->bb != bb)
-		warning(bb->pos, "instruction with bad bb");
+	assert(insn->bb == bb);
 	hash = insn->opcode;
 	switch (insn->opcode) {	
 
