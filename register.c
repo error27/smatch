@@ -59,6 +59,7 @@ static void track_instruction_usage(struct entrypoint *ep, struct instruction *i
 
 	case OP_COMPUTEDGOTO:
 		USES(target);
+		break;
 	
 	/* Binary */
 	case OP_BINARY ... OP_BINARY_END:
