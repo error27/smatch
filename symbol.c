@@ -217,9 +217,9 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		return sym;
 	case SYM_PTR:
 		if (!sym->bit_size)
-			sym->bit_size = BITS_IN_POINTER;
+			sym->bit_size = bits_in_pointer;
 		if (!sym->ctype.alignment)
-			sym->ctype.alignment = POINTER_ALIGNMENT;
+			sym->ctype.alignment = pointer_alignment;
 		base_type = sym->ctype.base_type;
 		base_type = examine_symbol_type(base_type);
 		if (base_type && base_type->type == SYM_NODE)
@@ -227,9 +227,9 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		return sym;
 	case SYM_ENUM:
 		if (!sym->bit_size)
-			sym->bit_size = BITS_IN_ENUM;
+			sym->bit_size = bits_in_enum;
 		if (!sym->ctype.alignment)
-			sym->ctype.alignment = ENUM_ALIGNMENT;
+			sym->ctype.alignment = enum_alignment;
 		return sym;
 	case SYM_BITFIELD:
 		examine_bitfield_type(sym);
@@ -470,28 +470,28 @@ struct ctype_declare {
 	int *maxalign;
 	struct symbol *base_type;
 } ctype_declaration[] = {
-	{ &bool_ctype,   0,					  &BITS_IN_INT,		&MAX_INT_ALIGNMENT, &int_type },
+	{ &bool_ctype,   0,					  &bits_in_int,		&max_int_alignment, &int_type },
 	{ &void_ctype,   0,					  NULL,			NULL,			NULL },
 	{ &type_ctype,   MOD_TYPE,				  NULL,			NULL,			NULL },
-	{ &label_ctype,  MOD_LABEL | MOD_UNSIGNED,		  &BITS_IN_POINTER,	&MAX_INT_ALIGNMENT, &label_type },
+	{ &label_ctype,  MOD_LABEL | MOD_UNSIGNED,		  &bits_in_pointer,	&max_int_alignment, &label_type },
 
-	{ &char_ctype,   MOD_SIGNED | MOD_CHAR,  		  &BITS_IN_CHAR,	&MAX_INT_ALIGNMENT, &int_type },
-	{ &uchar_ctype,  MOD_UNSIGNED | MOD_CHAR,		  &BITS_IN_CHAR,	&MAX_INT_ALIGNMENT, &int_type },
-	{ &short_ctype,  MOD_SIGNED | MOD_SHORT, 		  &BITS_IN_SHORT,	&MAX_INT_ALIGNMENT, &int_type },
-	{ &ushort_ctype, MOD_UNSIGNED | MOD_SHORT,		  &BITS_IN_SHORT,	&MAX_INT_ALIGNMENT, &int_type },
-	{ &int_ctype,    MOD_SIGNED,		 		  &BITS_IN_INT,		&MAX_INT_ALIGNMENT, &int_type },
-	{ &uint_ctype,   MOD_UNSIGNED,				  &BITS_IN_INT,		&MAX_INT_ALIGNMENT, &int_type },
-	{ &long_ctype,   MOD_SIGNED | MOD_LONG,			  &BITS_IN_LONG,	&MAX_INT_ALIGNMENT, &int_type },
-	{ &ulong_ctype,  MOD_UNSIGNED | MOD_LONG,		  &BITS_IN_LONG,	&MAX_INT_ALIGNMENT, &int_type },
-	{ &llong_ctype,  MOD_SIGNED | MOD_LONG | MOD_LONGLONG,    &BITS_IN_LONGLONG,	&MAX_INT_ALIGNMENT, &int_type },
-	{ &ullong_ctype, MOD_UNSIGNED | MOD_LONG | MOD_LONGLONG,  &BITS_IN_LONGLONG,	&MAX_INT_ALIGNMENT, &int_type },
+	{ &char_ctype,   MOD_SIGNED | MOD_CHAR,  		  &bits_in_char,	&max_int_alignment, &int_type },
+	{ &uchar_ctype,  MOD_UNSIGNED | MOD_CHAR,		  &bits_in_char,	&max_int_alignment, &int_type },
+	{ &short_ctype,  MOD_SIGNED | MOD_SHORT, 		  &bits_in_short,	&max_int_alignment, &int_type },
+	{ &ushort_ctype, MOD_UNSIGNED | MOD_SHORT,		  &bits_in_short,	&max_int_alignment, &int_type },
+	{ &int_ctype,    MOD_SIGNED,		 		  &bits_in_int,		&max_int_alignment, &int_type },
+	{ &uint_ctype,   MOD_UNSIGNED,				  &bits_in_int,		&max_int_alignment, &int_type },
+	{ &long_ctype,   MOD_SIGNED | MOD_LONG,			  &bits_in_long,	&max_int_alignment, &int_type },
+	{ &ulong_ctype,  MOD_UNSIGNED | MOD_LONG,		  &bits_in_long,	&max_int_alignment, &int_type },
+	{ &llong_ctype,  MOD_SIGNED | MOD_LONG | MOD_LONGLONG,    &bits_in_longlong,	&max_int_alignment, &int_type },
+	{ &ullong_ctype, MOD_UNSIGNED | MOD_LONG | MOD_LONGLONG,  &bits_in_longlong,	&max_int_alignment, &int_type },
 
-	{ &float_ctype,  0,					  &BITS_IN_FLOAT,	&MAX_FP_ALIGNMENT, &fp_type },
-	{ &double_ctype, MOD_LONG,				  &BITS_IN_DOUBLE,	&MAX_FP_ALIGNMENT, &fp_type },
-	{ &ldouble_ctype,MOD_LONG | MOD_LONGLONG,		  &BITS_IN_LONGDOUBLE,	&MAX_FP_ALIGNMENT, &fp_type },
+	{ &float_ctype,  0,					  &bits_in_float,	&max_fp_alignment, &fp_type },
+	{ &double_ctype, MOD_LONG,				  &bits_in_double,	&max_fp_alignment, &fp_type },
+	{ &ldouble_ctype,MOD_LONG | MOD_LONGLONG,		  &bits_in_longdouble,	&max_fp_alignment, &fp_type },
 
-	{ &string_ctype,	    0,  &BITS_IN_POINTER, &POINTER_ALIGNMENT, &char_ctype },
-	{ &ptr_ctype,		    0,  &BITS_IN_POINTER, &POINTER_ALIGNMENT, &void_ctype },
+	{ &string_ctype,	    0,  &bits_in_pointer, &pointer_alignment, &char_ctype },
+	{ &ptr_ctype,		    0,  &bits_in_pointer, &pointer_alignment, &void_ctype },
 	{ NULL, }
 };
 

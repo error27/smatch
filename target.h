@@ -7,38 +7,38 @@ extern struct symbol *ssize_t_ctype;
 /*
  * For "__attribute__((aligned))"
  */
-extern int MAX_ALIGNMENT;
+extern int max_alignment;
 
 /*
  * Integer data types
  */
-extern int BITS_IN_CHAR;
-extern int BITS_IN_SHORT;
-extern int BITS_IN_INT;
-extern int BITS_IN_LONG;
-extern int BITS_IN_LONGLONG;
+extern int bits_in_char;
+extern int bits_in_short;
+extern int bits_in_int;
+extern int bits_in_long;
+extern int bits_in_longlong;
 
-extern int MAX_INT_ALIGNMENT;
+extern int max_int_alignment;
 
 /*
  * Floating point data types
  */
-extern int BITS_IN_FLOAT;
-extern int BITS_IN_DOUBLE;
-extern int BITS_IN_LONGDOUBLE;
+extern int bits_in_float;
+extern int bits_in_double;
+extern int bits_in_longdouble;
 
-extern int MAX_FP_ALIGNMENT;
+extern int max_fp_alignment;
 
 /*
  * Pointer data type
  */
-extern int BITS_IN_POINTER;
-extern int POINTER_ALIGNMENT;
+extern int bits_in_pointer;
+extern int pointer_alignment;
 
 /*
  * Enum data types
  */
-extern int BITS_IN_ENUM;
-extern int ENUM_ALIGNMENT;
+extern int bits_in_enum;
+extern int enum_alignment;
 
 #endif

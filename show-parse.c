@@ -599,7 +599,7 @@ static int show_call_expression(struct expression *expr)
 		printf("\tcall\t\t*v%d\n", fncall);
 	}
 	if (framesize)
-		printf("\tadd.%d\t\tvSP,vSP,$%d\n", BITS_IN_POINTER, framesize);
+		printf("\tadd.%d\t\tvSP,vSP,$%d\n", bits_in_pointer, framesize);
 
 	retval = new_pseudo();
 	printf("\tmov.%d\t\tv%d,retval\n", expr->ctype->bit_size, retval);
@@ -771,14 +771,14 @@ static int show_symbol_expr(struct symbol *sym)
 	int new = new_pseudo();
 
 	if (sym->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN | MOD_STATIC)) {
-		printf("\tmovi.%d\t\tv%d,$%s\n", BITS_IN_POINTER, new, show_ident(sym->ident));
+		printf("\tmovi.%d\t\tv%d,$%s\n", bits_in_pointer, new, show_ident(sym->ident));
 		return new;
 	}
 	if (sym->ctype.modifiers & MOD_ADDRESSABLE) {
-		printf("\taddi.%d\t\tv%d,vFP,$%lld\n", BITS_IN_POINTER, new, sym->value);
+		printf("\taddi.%d\t\tv%d,vFP,$%lld\n", bits_in_pointer, new, sym->value);
 		return new;
 	}
-	printf("\taddi.%d\t\tv%d,vFP,$offsetof(%s:%p)\n", BITS_IN_POINTER, new, show_ident(sym->ident), sym);
+	printf("\taddi.%d\t\tv%d,vFP,$offsetof(%s:%p)\n", bits_in_pointer, new, show_ident(sym->ident), sym);
 	return new;
 }
 
@@ -843,7 +843,7 @@ static int show_string_expr(struct expression *expr)
 {
 	int new = new_pseudo();
 
-	printf("\tmovi.%d\t\tv%d,&%s\n", BITS_IN_POINTER, new, show_string(expr->string));
+	printf("\tmovi.%d\t\tv%d,&%s\n", bits_in_pointer, new, show_string(expr->string));
 	return new;
 }
 
@@ -855,7 +855,7 @@ static int show_bitfield_expr(struct expression *expr)
 int show_label_expr(struct expression *expr)
 {
 	int new = new_pseudo();
-	printf("\tmovi.%d\t\tv%d,.L%p\n",BITS_IN_POINTER, new, expr->label_symbol);
+	printf("\tmovi.%d\t\tv%d,.L%p\n",bits_in_pointer, new, expr->label_symbol);
 	return new;
 }
 

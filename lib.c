@@ -603,10 +603,10 @@ char **handle_switch_i(char *arg, char **next)
 char **handle_switch_m(char *arg, char **next)
 {
 	if (!strcmp(arg, "m64")) {
-		BITS_IN_LONG = 64;
-		MAX_INT_ALIGNMENT = 8;
-		BITS_IN_POINTER = 64;
-		POINTER_ALIGNMENT = 8;
+		bits_in_long = 64;
+		max_int_alignment = 8;
+		bits_in_pointer = 64;
+		pointer_alignment = 8;
 	}
 	return next;
 }

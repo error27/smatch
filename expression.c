@@ -123,18 +123,18 @@ static void get_int_value(struct expression *expr, const char *str)
 		break;
 	}
 
-	bits = BITS_IN_LONGLONG;
+	bits = bits_in_longlong;
 	extramod = 0;
 	if (!(modifiers & MOD_LONGLONG)) {
-		if (value & (~1ULL << (BITS_IN_LONG-1))) {
+		if (value & (~1ULL << (bits_in_long-1))) {
 			extramod = MOD_LONGLONG | MOD_LONG;
 		} else {
-			bits = BITS_IN_LONG;
+			bits = bits_in_long;
 			if (!(modifiers & MOD_LONG)) {
-				if (value & (~1ULL << (BITS_IN_INT-1))) {
+				if (value & (~1ULL << (bits_in_int-1))) {
 					extramod = MOD_LONG;
 				} else
-					bits = BITS_IN_INT;
+					bits = bits_in_int;
 			}
 		}
 	}
@@ -151,7 +151,7 @@ static void get_int_value(struct expression *expr, const char *str)
 		modifiers |= extramod;
 		if (base == 10 && modifiers == MOD_UNSIGNED) {
 			modifiers = MOD_LONG;
-			if (BITS_IN_LONG == BITS_IN_INT)
+			if (bits_in_long == bits_in_int)
 				modifiers = MOD_LONG | MOD_UNSIGNED;
 		}
 

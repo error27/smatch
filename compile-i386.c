@@ -1988,14 +1988,14 @@ static struct storage *x86_symbol_expr(struct symbol *sym)
 	struct storage *new = stack_alloc(4);
 
 	if (sym->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN | MOD_STATIC)) {
-		printf("\tmovi.%d\t\tv%d,$%s\n", BITS_IN_POINTER, new->pseudo, show_ident(sym->ident));
+		printf("\tmovi.%d\t\tv%d,$%s\n", bits_in_pointer, new->pseudo, show_ident(sym->ident));
 		return new;
 	}
 	if (sym->ctype.modifiers & MOD_ADDRESSABLE) {
-		printf("\taddi.%d\t\tv%d,vFP,$%lld\n", BITS_IN_POINTER, new->pseudo, sym->value);
+		printf("\taddi.%d\t\tv%d,vFP,$%lld\n", bits_in_pointer, new->pseudo, sym->value);
 		return new;
 	}
-	printf("\taddi.%d\t\tv%d,vFP,$offsetof(%s:%p)\n", BITS_IN_POINTER, new->pseudo, show_ident(sym->ident), sym);
+	printf("\taddi.%d\t\tv%d,vFP,$offsetof(%s:%p)\n", bits_in_pointer, new->pseudo, show_ident(sym->ident), sym);
 	return new;
 }
 
@@ -2037,7 +2037,7 @@ static struct storage *x86_bitfield_expr(struct expression *expr)
 static struct storage *x86_label_expr(struct expression *expr)
 {
 	struct storage *new = stack_alloc(4);
-	printf("\tmovi.%d\t\tv%d,.L%p\n",BITS_IN_POINTER, new->pseudo, expr->label_symbol);
+	printf("\tmovi.%d\t\tv%d,.L%p\n", bits_in_pointer, new->pseudo, expr->label_symbol);
 	return new;
 }
 

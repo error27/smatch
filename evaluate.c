@@ -81,7 +81,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 	unsigned int length = expr->string->length;
 
 	sym->array_size = alloc_const_expression(expr->pos, length);
-	sym->bit_size = BITS_IN_CHAR * length;
+	sym->bit_size = bits_in_char * length;
 	sym->ctype.alignment = 1;
 	sym->ctype.modifiers = MOD_STATIC;
 	sym->ctype.base_type = array;
@@ -91,7 +91,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 	initstr->string = expr->string;
 
 	array->array_size = sym->array_size;
-	array->bit_size = BITS_IN_CHAR * length;
+	array->bit_size = bits_in_char * length;
 	array->ctype.alignment = 1;
 	array->ctype.modifiers = MOD_STATIC;
 	array->ctype.base_type = &char_ctype;
@@ -224,7 +224,7 @@ static struct symbol *degenerate(struct expression *expr, struct symbol *ctype, 
 		if (base->type == SYM_FN)
 			base = ctype;
 		merge_type(sym, base);
-		sym->bit_size = BITS_IN_POINTER;
+		sym->bit_size = bits_in_pointer;
 		ctype = sym;
 
 		ptr = *ptr_p;
@@ -270,7 +270,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 	/* Special case: adding zero commonly happens as a result of 'array[0]' */
 	if (i->type == EXPR_VALUE && !i->value) {
 		*expr = *ptr;
-	} else if (bit_size > BITS_IN_CHAR) {
+	} else if (bit_size > bits_in_char) {
 		struct expression *add = expr;
 		struct expression *mul = alloc_expression(expr->pos, EXPR_BINOP);
 		struct expression *val = alloc_expression(expr->pos, EXPR_VALUE);
@@ -482,7 +482,7 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expressio
 	ctype = ctype->ctype.base_type;
 
 	expr->ctype = ssize_t_ctype;
-	if (ctype->bit_size > BITS_IN_CHAR) {
+	if (ctype->bit_size > bits_in_char) {
 		struct expression *sub = alloc_expression(expr->pos, EXPR_BINOP);
 		struct expression *div = expr;
 		struct expression *val = alloc_expression(expr->pos, EXPR_VALUE);
@@ -819,7 +819,7 @@ static struct symbol *create_pointer(struct expression *expr, struct symbol *sym
 	struct symbol *ptr = alloc_symbol(expr->pos, SYM_PTR);
 
 	ptr->ctype.base_type = sym;
-	ptr->bit_size = BITS_IN_POINTER;
+	ptr->bit_size = bits_in_pointer;
 
 	sym->ctype.modifiers |= MOD_ADDRESSABLE;
 	if (sym->ctype.modifiers & MOD_REGISTER) {
@@ -1138,7 +1138,7 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 		ctype = degenerate(expr, ctype, p);
 
 		target = argtype;
-		if (!target && ctype->bit_size < BITS_IN_INT)
+		if (!target && ctype->bit_size < bits_in_int)
 			target = &int_ctype;
 		if (target) {
 			static char where[30];

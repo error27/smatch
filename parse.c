@@ -181,7 +181,7 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 	}
 	if (match_string_ident(attribute, "aligned") ||
 	    match_string_ident(attribute, "__aligned__")) {
-		int alignment = MAX_ALIGNMENT;
+		int alignment = max_alignment;
 		if (expr)
 			alignment = get_expression_value(expr);
 		ctype->alignment = alignment;
