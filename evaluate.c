@@ -108,9 +108,31 @@ static struct symbol *evaluate_string(struct expression *expr)
 	return sym;
 }
 
+static inline struct symbol *integer_promotion(struct symbol *type)
+{
+	unsigned long mod =  type->ctype.modifiers;
+	int width;
+
+	if (type->type == SYM_ENUM)
+		return &int_ctype;
+	else if (type->type == SYM_BITFIELD) {
+		mod = type->ctype.base_type->ctype.modifiers;
+		width = type->fieldwidth;
+	} else if (mod & (MOD_CHAR | MOD_SHORT))
+		width = type->bit_size;
+	else
+		return type;
+	if (mod & MOD_UNSIGNED && width == bits_in_int)
+		return &uint_ctype;
+	return &int_ctype;
+}
+
 static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 {
 	unsigned long lmod, rmod, mod;
+
+	left = integer_promotion(left);
+	right = integer_promotion(right);
 
 	if (left == right)
 		goto left;
@@ -134,8 +156,6 @@ static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 right:
 	left = right;
 left:
-	if (left->bit_size < bits_in_int)
-		left = &int_ctype;
 	return left;
 }
 
@@ -160,11 +180,13 @@ static int is_ptr_type(struct symbol *type)
 	return type->type == SYM_PTR || type->type == SYM_ARRAY || type->type == SYM_FN;
 }
 
-static int is_int_type(struct symbol *type)
+static inline int is_int_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
-	return (type->type == SYM_BITFIELD) || type->ctype.base_type == &int_type;
+	return (type->type == SYM_ENUM) ||
+	       (type->type == SYM_BITFIELD) ||
+	       type->ctype.base_type == &int_type;
 }
 
 static struct symbol *bad_expr_type(struct expression *expr)
@@ -182,11 +204,6 @@ static struct symbol * compatible_integer_binop(struct expression *expr, struct 
 		ltype = ltype->ctype.base_type;
 	if (rtype->type == SYM_NODE)
 		rtype = rtype->ctype.base_type;
-	/* Integer promotion? */
-	if (ltype->type == SYM_ENUM || ltype->type == SYM_BITFIELD)
-		ltype = &int_ctype;
-	if (rtype->type == SYM_ENUM || rtype->type == SYM_BITFIELD)
-		rtype = &int_ctype;
 	if (is_int_type(ltype) && is_int_type(rtype)) {
 		struct symbol *ctype = bigger_int_type(ltype, rtype);
 
@@ -221,17 +238,12 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 {
 	struct symbol *ctype;
 	struct symbol *ptr_type = ptr->ctype;
-	struct symbol *i_type = i->ctype;
 	int bit_size;
 
-	if (i_type->type == SYM_NODE)
-		i_type = i_type->ctype.base_type;
 	if (ptr_type->type == SYM_NODE)
 		ptr_type = ptr_type->ctype.base_type;
 
-	if (i_type->type == SYM_ENUM)
-		i_type = &int_ctype;
-	if (!is_int_type(i_type))
+	if (!is_int_type(i->ctype))
 		return bad_expr_type(expr);
 
 	ctype = ptr->ctype;
@@ -621,15 +633,6 @@ static struct symbol *evaluate_compare(struct expression *expr)
 
 static int compatible_integer_types(struct symbol *ltype, struct symbol *rtype)
 {
-	/* Integer promotion? */
-	if (ltype->type == SYM_NODE)
-		ltype = ltype->ctype.base_type;
-	if (rtype->type == SYM_NODE)
-		rtype = rtype->ctype.base_type;
-	if (ltype->type == SYM_ENUM || ltype->type == SYM_BITFIELD)
-		ltype = &int_ctype;
-	if (rtype->type == SYM_ENUM || rtype->type == SYM_BITFIELD)
-		rtype = &int_ctype;
 	return (is_int_type(ltype) && is_int_type(rtype));
 }
 
