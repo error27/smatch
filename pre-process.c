@@ -154,13 +154,74 @@ static void replace(struct token *token, struct token *prev, struct token *last,
 {
 	int newline = token->newline;
 
-	while (!eof_token(list)) {
+	while (!eof_token(list) && !match_op(list, SPECIAL_ARG_SEPARATOR)) {
 		struct token *newtok = dup_token(list, token, newline);
 		newline = 0;
 		insert(newtok, prev, last);
 		prev = newtok;
 		list = list->next;
 	}
+}
+
+static struct token *current_arglist, *current_arguments;
+
+static struct token *get_current_argument(int nr)
+{
+	struct token *args = current_arguments;
+
+	if (!nr)
+		return args;
+	while (!eof_token(args)) {
+		if (match_op(args, SPECIAL_ARG_SEPARATOR))
+			if (!--nr)
+				return args->next;
+		args = args->next;
+	}
+				
+	return args;
+}
+
+static struct token *stringify(struct token *token, struct token *arg)
+{
+	const char *s = show_token_sequence(arg);
+	int size = strlen(s)+1;
+	struct token *newtoken = alloc_token(token->stream, token->line, token->pos);
+	struct string *string = __alloc_string(size);
+
+	newtoken->newline = token->newline;
+	memcpy(string->data, s, size);
+	string->length = size;
+	newtoken->type = TOKEN_STRING;
+	newtoken->string = string;
+	newtoken->next = &eof_token_entry;
+	return newtoken;
+}
+
+static struct token *expand_one_arg(struct token *head, struct token *token)
+{
+	int nr = 0;
+	struct token *arglist = current_arglist;
+
+	while (!eof_token(arglist)) {
+		if (arglist->ident == token->ident) {
+			struct token *arg = get_current_argument(nr);
+			if (match_op(head, '#'))
+				arg = stringify(token, arg);
+			replace(token, head, token->next, arg);
+			return expand_list(head, token->next);
+		}
+		nr++;
+		arglist = arglist->next;
+	}
+	return token;
+}
+
+static void expand_arguments(struct token *token, struct token *prev, struct token *last,
+	struct token *arguments, struct token *arglist)
+{
+	current_arglist = arglist;
+	current_arguments = arguments;
+	for_each_ident(prev, last, expand_one_arg);
 }
 
 static struct token *expand(struct token *head, struct symbol *sym)
@@ -171,12 +232,20 @@ static struct token *expand(struct token *head, struct symbol *sym)
 	token = head->next;
 	last = token->next;
 
+	arguments = NULL;
 	if (sym->arglist) {
 		arguments = last->next;
 		last = find_argument_end(last);
 	}
 
+	/* Replace the token with the token expansion */
 	replace(token, head, last, sym->expansion);
+
+	/* Then, replace all the arguments with their expansions */
+	if (arguments)
+		expand_arguments(token, head, last, arguments, sym->arglist);
+
+	/* Finally, expand the expansion itself .. */
 	head = expand_list(head, last);
 	sym->busy--;
 	return head;
@@ -289,6 +358,8 @@ static int handle_define(struct token *head, struct token *token)
 				expansion = next->next;
 				break;
 			}
+			if (match_op(next, ','))
+				expansion->next = next->next;
 			expansion = next;
 		}
 		arglist = arglist->next;
