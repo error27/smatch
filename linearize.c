@@ -14,6 +14,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "parse.h"
+#include "expression.h"
 #include "linearize.h"
 
 static struct entrypoint *alloc_entrypoint(void)
@@ -34,6 +36,13 @@ static void show_bb(struct basic_block *bb)
 	FOR_EACH_PTR(bb->stmts, stmt) {
 		show_statement(stmt);
 	} END_FOR_EACH_PTR;
+
+	if (bb->next) {
+		printf("\tgoto .L%p\n", bb->next);
+	} else {
+		printf("\tdefault return\n");
+	}
+	printf("\n");
 }
 
 static void show_entry(struct entrypoint *ep)
@@ -56,6 +65,13 @@ static void show_entry(struct entrypoint *ep)
 	printf("\n");
 }
 
+static struct basic_block * new_basic_block(struct basic_block_list **bbs)
+{
+	struct basic_block *bb = alloc_basic_block();
+	add_bb(bbs, bb);
+	return bb;
+}
+
 static struct basic_block * linearize_statement(struct symbol_list **syms,
 	struct basic_block_list **bbs,
 	struct basic_block *bb,
@@ -72,12 +88,44 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		add_statement(&bb->stmts, stmt);
 		break;
 
+	case STMT_RETURN:
+		add_statement(&bb->stmts, stmt);
+		bb = new_basic_block(bbs);
+		break;
+
 	case STMT_COMPOUND: {
 		struct statement *s;
 		concat_symbol_list(stmt->syms, syms);
 		FOR_EACH_PTR(stmt->stmts, s) {
 			bb = linearize_statement(syms, bbs, bb, s);
 		} END_FOR_EACH_PTR;
+		break;
+	}
+
+	/*
+	 * This could take 'likely/unlikely' into account, and
+	 * switch the arms around appropriately..
+	 */
+	case STMT_IF: {
+		struct statement *goto_bb = alloc_statement(stmt->pos, STMT_GOTO_BB);
+		struct basic_block *else_bb, *last_bb;
+
+		add_statement(&bb->stmts, goto_bb);
+		last_bb = new_basic_block(bbs);
+
+		goto_bb->bb_conditional = stmt->if_conditional;
+		goto_bb->bb_target = last_bb;
+
+		bb = linearize_statement(syms, bbs, bb, stmt->if_true);
+		bb->next = last_bb;
+		
+		if (stmt->if_false) {
+			else_bb = new_basic_block(bbs);
+			else_bb = linearize_statement(syms, bbs, bb, stmt->if_false);
+			else_bb->next = last_bb;
+		}
+				
+		bb = last_bb;
 		break;
 	}
 
@@ -99,9 +147,10 @@ void linearize_symbol(struct symbol *sym)
 	if (base_type->type == SYM_FN) {
 		if (base_type->stmt) {
 			struct entrypoint *ep = alloc_entrypoint();
-			struct basic_block *bb = alloc_basic_block();
+			struct basic_block *bb;
+
 			ep->name = sym;
-			add_bb(&ep->bbs, bb);
+			bb = new_basic_block(&ep->bbs);
 			concat_symbol_list(base_type->arguments, &ep->syms);
 			linearize_statement(&ep->syms, &ep->bbs, bb, base_type->stmt);
 			show_entry(ep);

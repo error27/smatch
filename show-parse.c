@@ -532,7 +532,13 @@ int show_statement(struct statement *stmt)
 	case STMT_ASM:
 		printf("\tasm( .... )\n");
 		break;
-		
+
+	case STMT_GOTO_BB: {
+		int val = show_expression(stmt->bb_conditional);
+		printf("\tje v%d,.L%p\n", val, stmt->bb_target);
+		break;
+	}
+
 	}
 	return 0;
 }

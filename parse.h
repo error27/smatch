@@ -23,6 +23,9 @@ enum statement_type {
 	STMT_LABEL,
 	STMT_GOTO,
 	STMT_ASM,
+
+	/* These only show up after linearization */
+	STMT_GOTO_BB,
 };
 
 struct statement {
@@ -78,6 +81,10 @@ struct statement {
 		struct /* goto_struct */ {
 			struct symbol *goto_label;
 			struct expression *goto_expression;
+		};
+		struct /* goto_bb */ {
+			struct expression *bb_conditional;
+			struct basic_block *bb_target;
 		};
 	};
 };
