@@ -223,8 +223,8 @@ static void sort_instruction_list(struct instruction_list **list)
 
 static struct instruction * cse_one_instruction(struct instruction *insn, struct instruction *def)
 {
-	/* We re-use the "convert_load_insn()" function. Does the same thing */
-	convert_load_insn(insn, def->target);
+	convert_instruction_target(insn, def->target);
+	insn->opcode = OP_NOP;
 	return def;
 }
 

@@ -135,7 +135,7 @@ static inline void concat_user_list(struct pseudo_ptr_list *src, struct pseudo_p
 	concat_ptr_list((struct ptr_list *)src, (struct ptr_list **)dst);
 }
 
-void convert_load_insn(struct instruction *insn, pseudo_t src)
+void convert_instruction_target(struct instruction *insn, pseudo_t src)
 {
 	pseudo_t target, *usep;
 
@@ -147,7 +147,11 @@ void convert_load_insn(struct instruction *insn, pseudo_t src)
 		*usep = src;
 	} END_FOR_EACH_PTR(usep);
 	concat_user_list(target->users, &src->users);
+}
 
+static void convert_load_insn(struct instruction *insn, pseudo_t src)
+{
+	convert_instruction_target(insn, src);
 	/* Turn the load into a no-op */
 	insn->opcode = OP_LNOP;
 }

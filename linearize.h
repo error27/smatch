@@ -160,6 +160,7 @@ enum opcode {
 	OP_SLICE,
 	OP_SNOP,
 	OP_LNOP,
+	OP_NOP,
 
 	/* Sparse tagging (line numbers, context, whatever) */
 	OP_CONTEXT,
