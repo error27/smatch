@@ -24,6 +24,7 @@
 static unsigned int pre_buffer_size = 0;
 static unsigned char pre_buffer[8192];
 
+static int preprocess_only;
 static char *include = NULL;
 static int include_fd = -1;
 
@@ -61,6 +62,10 @@ static char ** handle_switch(char *arg, char **next)
 		add_pre_buffer("#define %s %s\n", name, value);
 		return next;
 	}
+
+	case 'E':
+		preprocess_only = 1;
+		return next;
 
 	case 'I':
 		add_pre_buffer("#add_include \"%s/\"\n", arg+1);
@@ -143,6 +148,27 @@ int main(int argc, char **argv)
 
 	// Pre-process the stream
 	token = preprocess(token);
+
+	if (preprocess_only) {
+		while (!eof_token(token)) {
+			int prec = 1;
+			struct token *next = token->next;
+			char * separator = "";
+			if (next->pos.whitespace)
+				separator = " ";
+			if (next->pos.newline) {
+				separator = "\n\t\t\t\t\t";
+				prec = next->pos.pos;
+				if (prec > 4)
+					prec = 4;
+			}
+			printf("%s%.*s", show_token(token), prec, separator);
+			token = next;
+		}
+		putchar('\n');
+
+		return 0;
+	} 
 
 	// Parse the resulting C code
 	translation_unit(token, &used_list);
