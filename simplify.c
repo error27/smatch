@@ -409,6 +409,8 @@ static int simplify_unop(struct instruction *insn)
 static int simplify_memop(struct instruction *insn)
 {
 	pseudo_t addr = insn->src;
+	pseudo_t new, off;
+
 	if (addr->type == PSEUDO_REG) {
 		struct instruction *def = addr->def;
 		if (def->opcode == OP_SETVAL && def->src) {
@@ -416,8 +418,25 @@ static int simplify_memop(struct instruction *insn)
 			use_pseudo(def->src, &insn->src);
 			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 		}
+		if (def->opcode == OP_ADD) {
+			new = def->src1;
+			off = def->src2;
+			if (constant(off))
+				goto offset;
+			new = off;
+			off = def->src1;
+			if (constant(off))
+				goto offset;
+			return 0;
+		}
 	}
 	return 0;
+
+offset:
+	insn->offset += off->value;
+	use_pseudo(new, &insn->src);
+	remove_usage(addr, &insn->src);
+	return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 }
 
 int simplify_instruction(struct instruction *insn)
