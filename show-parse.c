@@ -927,7 +927,7 @@ int show_symbol_expr_init(struct symbol *sym)
 	struct expression *expr = sym->initializer;
 
 	if (expr)
-		show_initializer_expr(expr, expr->ctype);
+		show_expression(expr);
 	return show_symbol_expr(sym);
 }
 
