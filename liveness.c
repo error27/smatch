@@ -185,14 +185,12 @@ static void track_bb_liveness(struct basic_block *bb)
 	pseudo_t needs;
 
 	FOR_EACH_PTR(bb->needs, needs) {
-		if (!pseudo_in_list(bb->defines, needs)) {
-			struct basic_block *parent;
-			FOR_EACH_PTR(bb->parents, parent) {
-				if (!pseudo_in_list(parent->defines, needs)) {
-					add_pseudo_exclusive(&parent->needs, needs);
-				}
-			} END_FOR_EACH_PTR(parent);
-		}
+		struct basic_block *parent;
+		FOR_EACH_PTR(bb->parents, parent) {
+			if (!pseudo_in_list(parent->defines, needs)) {
+				add_pseudo_exclusive(&parent->needs, needs);
+			}
+		} END_FOR_EACH_PTR(parent);
 	} END_FOR_EACH_PTR(needs);
 }
 
