@@ -713,10 +713,9 @@ static struct symbol *evaluate_sub(struct expression *expr)
 
 #define is_safe_type(type) ((type)->ctype.modifiers & MOD_SAFE)
 
-static struct symbol *evaluate_conditional(struct expression **p)
+static struct symbol *evaluate_conditional(struct expression *expr)
 {
 	struct symbol *ctype;
-	struct expression *expr = *p;
 
 	if (!expr)
 		return NULL;
@@ -728,25 +727,6 @@ static struct symbol *evaluate_conditional(struct expression **p)
 	if (ctype) {
 		if (is_safe_type(ctype))
 			warning(expr->pos, "testing a 'safe expression'");
-		if (is_float_type(ctype)) {
-			struct expression *comp;
-			/*
-			 * It's easier to handle here, rather than deal with
-			 * FP all over the place.  Floating point in boolean
-			 * context is rare enough (and very often wrong),
-			 * so price of explicit comparison with appropriate
-			 * FP zero is not too high.  And it simplifies things
-			 * elsewhere.
-			 */
-			comp = alloc_expression(expr->pos, EXPR_BINOP);
-			comp->op = SPECIAL_NOTEQUAL;
-			comp->left = expr;
-			comp->right = alloc_expression(expr->pos, EXPR_FVALUE);
-			comp->right->ctype = comp->left->ctype;
-			comp->right->fvalue = 0;
-			ctype = comp->ctype = &bool_ctype;
-			*p = comp;
-		}
 	}
 
 	return ctype;
@@ -754,9 +734,9 @@ static struct symbol *evaluate_conditional(struct expression **p)
 
 static struct symbol *evaluate_logical(struct expression *expr)
 {
-	if (!evaluate_conditional(&expr->left))
+	if (!evaluate_conditional(expr->left))
 		return NULL;
-	if (!evaluate_conditional(&expr->right))
+	if (!evaluate_conditional(expr->right))
 		return NULL;
 
 	expr->ctype = &bool_ctype;
@@ -901,7 +881,7 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 	struct symbol *ctype, *ltype, *rtype;
 	const char * typediff;
 
-	if (!evaluate_conditional(&expr->conditional))
+	if (!evaluate_conditional(expr->conditional))
 		return NULL;
 	if (!evaluate_expression(expr->cond_false))
 		return NULL;
@@ -2420,22 +2400,15 @@ static void evaluate_if_statement(struct statement *stmt)
 	if (!stmt->if_conditional)
 		return;
 
-	evaluate_conditional(&stmt->if_conditional);
+	evaluate_conditional(stmt->if_conditional);
 	evaluate_statement(stmt->if_true);
 	evaluate_statement(stmt->if_false);
 }
 
 static void evaluate_iterator(struct statement *stmt)
 {
-	struct expression **pre = &stmt->iterator_pre_condition;
-	struct expression **post = &stmt->iterator_post_condition;
-	if (*pre == *post) {
-		evaluate_conditional(pre);
-		*post = *pre;
-	} else {
-		evaluate_conditional(pre);
-		evaluate_conditional(post);
-	}
+	evaluate_conditional(stmt->iterator_pre_condition);
+	evaluate_conditional(stmt->iterator_post_condition);
 	evaluate_statement(stmt->iterator_pre_statement);
 	evaluate_statement(stmt->iterator_statement);
 	evaluate_statement(stmt->iterator_post_statement);
