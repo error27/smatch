@@ -219,7 +219,7 @@ static struct symbol * examine_array_type(struct symbol *sym)
 static struct symbol *examine_bitfield_type(struct symbol *sym)
 {
 	struct symbol *base_type = examine_base_type(sym);
-	unsigned long bit_size, alignment;
+	unsigned long bit_size, alignment, modifiers;
 
 	if (!base_type)
 		return sym;
@@ -230,6 +230,12 @@ static struct symbol *examine_bitfield_type(struct symbol *sym)
 	alignment = base_type->ctype.alignment;
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = alignment;
+	modifiers = base_type->ctype.modifiers;
+
+	/* Bitfields are unsigned, unless the base type was explicitly signed */
+	if (!(modifiers & MOD_EXPLICITLY_SIGNED))
+		modifiers = (modifiers & ~MOD_SIGNED) | MOD_UNSIGNED;
+	sym->ctype.modifiers |= modifiers & MOD_SIGNEDNESS;
 	return sym;
 }
 
@@ -293,6 +299,9 @@ static struct symbol * examine_node_type(struct symbol *sym)
 	bit_size = base_type->bit_size;
 	alignment = base_type->ctype.alignment;
 
+	/* Pick up signedness information into the node */
+	sym->ctype.modifiers |= (MOD_SIGNEDNESS & base_type->ctype.modifiers);
+
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = alignment;
 
@@ -318,6 +327,7 @@ static struct symbol *examine_enum_type(struct symbol *sym)
 		sym->bit_size = -1;
 		return sym;
 	}
+	sym->ctype.modifiers |= (base_type->ctype.modifiers & MOD_SIGNEDNESS);
 	sym->bit_size = bits_in_enum;
 	if (base_type->bit_size > sym->bit_size)
 		sym->bit_size = base_type->bit_size;

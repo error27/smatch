@@ -488,9 +488,6 @@ static struct token *attribute_specifier(struct token *token, struct ctype *ctyp
 	return token;
 }
 
-#define MOD_SPECIALBITS (MOD_STRUCTOF | MOD_UNIONOF | MOD_ENUMOF | MOD_ATTRIBUTE | MOD_TYPEOF)
-#define MOD_SPECIFIER (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG | MOD_SIGNED | MOD_UNSIGNED | MOD_EXPLICITLY_SIGNED)
-
 struct symbol * ctype_integer(unsigned long spec)
 {
 	static struct symbol *const integer_ctypes[][3] = {
