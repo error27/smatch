@@ -1178,6 +1178,14 @@ static struct storage *emit_binop(struct expression *expr)
 		else
 			opname = "div";
 		break;
+	case SPECIAL_LOGICAL_AND:
+		warn(expr->pos, "bogus bitwise and for logical op (should use '2*setne + and' or something)");
+		opname = "and";
+		break;
+	case SPECIAL_LOGICAL_OR:
+		warn(expr->pos, "bogus bitwise or for logical op (should use 'or + setne' or something)");
+		opname = "or";
+		break;
 	default:
 		error(expr->pos, "unhandled binop '%s'\n", show_special(expr->op));
 		break;
