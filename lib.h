@@ -406,4 +406,6 @@ extern void pack_ptr_list(struct ptr_list **);
 
 #define PACK_PTR_LIST(x) pack_ptr_list((struct ptr_list **)(x))
 
+#define hashval(x) ((unsigned long)(x))
+
 #endif

@@ -92,7 +92,7 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 		 * We don't care about the phi-source define, they get set
 		 * up and expanded by the OP_PHI
 		 */
-		USES(src1);
+		USES(phi_src);
 		break;
 
 	case OP_CAST:
@@ -272,6 +272,19 @@ static void merge_pseudo_list(struct pseudo_list *src, struct pseudo_list **dest
 	} END_FOR_EACH_PTR(pseudo);
 }
 
+static void track_phi_uses(struct instruction *insn)
+{
+	pseudo_t phi;
+	FOR_EACH_PTR(insn->phi_list, phi) {
+		struct instruction *def;
+		if (phi == VOID || !phi->def)
+			continue;
+		def = phi->def;
+		assert(def->opcode == OP_PHISOURCE);
+		add_ptr_list(&def->phi_users, insn);
+	} END_FOR_EACH_PTR(phi);
+}
+
 static struct pseudo_list **live_list;
 static struct pseudo_list *dead_list;
 
@@ -301,6 +314,8 @@ static void track_pseudo_death_bb(struct basic_block *bb)
 	FOR_EACH_PTR_REVERSE(bb->insns, insn) {
 		if (!insn->bb)
 			continue;
+		if (insn->opcode == OP_PHI)
+			track_phi_uses(insn);
 		dead_list = NULL;
 		track_instruction_usage(bb, insn, death_def, death_use);
 		if (dead_list) {

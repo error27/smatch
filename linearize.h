@@ -57,6 +57,10 @@ struct instruction {
 		struct /* phi_node */ {
 			struct pseudo_list *phi_list;
 		};
+		struct /* phi source */ {
+			pseudo_t phi_src;
+			struct instruction_list *phi_users;
+		};
 		struct /* unops */ {
 			pseudo_t src;
 			struct symbol *orig_type;	/* casts */

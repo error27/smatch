@@ -336,9 +336,14 @@ void show_instruction(struct instruction *insn)
 		break;
 	}
 
-	case OP_PHISOURCE:
-		buf += sprintf(buf, "%s <- %s", show_pseudo(insn->target), show_pseudo(insn->src1));
+	case OP_PHISOURCE: {
+		struct instruction *phi;
+		buf += sprintf(buf, "%s <- %s    ", show_pseudo(insn->target), show_pseudo(insn->phi_src));
+		FOR_EACH_PTR(insn->phi_users, phi) {
+			buf += sprintf(buf, " (%s)", show_pseudo(phi->target));
+		} END_FOR_EACH_PTR(phi);
 		break;
+	}
 
 	case OP_PHI: {
 		pseudo_t phi;
@@ -427,7 +432,7 @@ void show_instruction(struct instruction *insn)
 	printf("%s\n", buffer);
 }
 
-static void show_bb(struct basic_block *bb)
+void show_bb(struct basic_block *bb)
 {
 	struct instruction *insn;
 
@@ -771,7 +776,7 @@ pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo, int size)
 	phi->nr = ++nr;
 	phi->def = insn;
 
-	use_pseudo(pseudo, &insn->src1);
+	use_pseudo(pseudo, &insn->phi_src);
 	insn->bb = source;
 	insn->target = phi;
 	add_instruction(&source->insns, insn);

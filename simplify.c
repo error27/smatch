@@ -662,7 +662,7 @@ int simplify_instruction(struct instruction *insn)
 		}
 		return clean_up_phi(insn);
 	case OP_PHISOURCE:
-		if (dead_insn(insn, &insn->src1, NULL, NULL))
+		if (dead_insn(insn, &insn->phi_src, NULL, NULL))
 			return REPEAT_CSE;
 		break;
 	case OP_SEL:
