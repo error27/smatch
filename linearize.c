@@ -1097,36 +1097,29 @@ void mark_bb_reachable(struct basic_block *bb)
 void remove_unreachable_bbs(struct entrypoint *ep)
 {
 	struct basic_block *bb, *child;
-	struct list_iterator iterator;
 	struct terminator_iterator term;
-	struct basic_block_list **bblist;
 
-	bblist = &ep->bbs;
-	FOR_EACH_PTR(*bblist, bb) {
+	FOR_EACH_PTR(ep->bbs, bb) {
 		bb->flags &= ~BB_REACHABLE;
 	} END_FOR_EACH_PTR(bb);
 	
 	mark_bb_reachable(ep->entry);
-	init_iterator((struct ptr_list **) bblist, &iterator, 0);
-	while((bb=next_basic_block(&iterator)) != NULL) {
+	FOR_EACH_PTR(ep->bbs, bb) {
 		if (bb->flags & BB_REACHABLE)
 			continue;
 		init_terminator_iterator(last_instruction(bb->insns), &term);
 		while ((child=next_terminator_bb(&term)) != NULL)
-			replace_basic_block_list(&child->parents, bb, NULL);
-		delete_iterator(&iterator);
-	}
+			replace_basic_block_list(child->parents, bb, NULL);
+		DELETE_CURRENT_PTR(bb);
+	}END_FOR_EACH_PTR(bb);
 }
 
 void pack_basic_blocks(struct entrypoint *ep)
 {
 	struct basic_block *bb;
-	struct list_iterator iterator;
-	struct basic_block_list **bblist = &ep->bbs;
 
 	remove_unreachable_bbs(ep);
-	init_bb_iterator(bblist, &iterator, 0);
-	while((bb=next_basic_block(&iterator)) != NULL) {
+	FOR_EACH_PTR(ep->bbs, bb) {
 		struct terminator_iterator term;
 		struct instruction *jmp;
 		struct basic_block *target, *sibling, *parent;
@@ -1145,7 +1138,7 @@ void pack_basic_blocks(struct entrypoint *ep)
 			continue;
 
 		/* Transfer the parents' terminator to target directly. */
-		replace_basic_block_list(&target->parents, bb, NULL);
+		replace_basic_block_list(target->parents, bb, NULL);
 		FOR_EACH_PTR(bb->parents, parent) {
 			init_terminator_iterator(last_instruction(parent->insns), &term);
 			while ((sibling=next_terminator_bb(&term)) != NULL) {
@@ -1165,8 +1158,8 @@ void pack_basic_blocks(struct entrypoint *ep)
 		}
 		if (bb == ep->entry)
 			ep->entry = target;
-		delete_iterator(&iterator);
-	}
+		DELETE_CURRENT_PTR(bb);
+	}END_FOR_EACH_PTR(bb);
 }
 
 struct entrypoint *linearize_symbol(struct symbol *sym)

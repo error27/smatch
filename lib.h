@@ -115,7 +115,7 @@ void init_terminator_iterator(struct instruction* terminator, struct terminator_
 struct basic_block* next_terminator_bb(struct terminator_iterator *iterator);
 void replace_terminator_bb(struct terminator_iterator *iterator, struct basic_block* bb);
 void * delete_ptr_list_last(struct ptr_list **head);
-int replace_ptr_list(struct ptr_list **head, void *old_ptr, void *new_ptr);
+int replace_ptr_list(struct ptr_list *head, void *old_ptr, void *new_ptr);
 
 extern void add_ptr_list(struct ptr_list **, void *);
 extern void concat_ptr_list(struct ptr_list *a, struct ptr_list **b);
@@ -241,9 +241,9 @@ static inline struct phi *first_phi(struct phi_list *head)
 	return first_ptr_list((struct ptr_list *)head);
 }
 
-static inline int replace_basic_block_list(struct basic_block_list **head, struct basic_block *from, struct basic_block *to)
+static inline int replace_basic_block_list(struct basic_block_list *head, struct basic_block *from, struct basic_block *to)
 {
-	return replace_ptr_list((struct ptr_list **)head, (void*)from, (void*)to);
+	return replace_ptr_list((struct ptr_list *)head, (void*)from, (void*)to);
 }
 
 static inline void concat_symbol_list(struct symbol_list *from, struct symbol_list **to)
