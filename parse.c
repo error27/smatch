@@ -232,15 +232,24 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 				ctype = ctype->ctype.base_type;
 			if (ctype->type == SYM_ENUM)
 				ctype = ctype->ctype.base_type;
+			/*
+			 * base_type rules:
+			 *  - if all enum's are of the same type, then
+			 *    the base_type is that type (two first
+			 *    cases)
+			 *  - if enums are of different types, they
+			 *    all have to be integer types, and the
+			 *    base type is "int_ctype".
+			 *  - otherwise the base_type is "bad_enum_ctype".
+			 */
 			if (!base_type) {
 				base_type = ctype;
 			} else if (ctype == base_type) {
 				/* nothing */
-			} else if (is_restricted_type(ctype)) {
+			} else if (is_int_type(base_type) && is_int_type(ctype)) {
+				base_type = &int_ctype;
+			} else
 				base_type = &bad_enum_ctype;
-			} else if (is_restricted_type(base_type)) {
-				base_type = &bad_enum_ctype;
-			}
 		}
 		if (is_int_type(base_type)) {
 			Num v = {.y = lastval};
@@ -259,23 +268,27 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 		token = token->next;
 	}
 	if (!base_type)
-		parent->ctype.base_type = &bad_enum_ctype;
+		base_type = &bad_enum_ctype;
 	else if (!is_int_type(base_type))
-		parent->ctype.base_type = base_type;
+		base_type = base_type;
+	else if (type_is_ok(base_type, &upper, &lower))
+		base_type = base_type;
 	else if (type_is_ok(&int_ctype, &upper, &lower))
-		parent->ctype.base_type = &int_ctype;
+		base_type = &int_ctype;
 	else if (type_is_ok(&uint_ctype, &upper, &lower))
-		parent->ctype.base_type = &uint_ctype;
+		base_type = &uint_ctype;
 	else if (type_is_ok(&long_ctype, &upper, &lower))
-		parent->ctype.base_type = &long_ctype;
+		base_type = &long_ctype;
 	else if (type_is_ok(&ulong_ctype, &upper, &lower))
-		parent->ctype.base_type = &ulong_ctype;
+		base_type = &ulong_ctype;
 	else if (type_is_ok(&llong_ctype, &upper, &lower))
-		parent->ctype.base_type = &llong_ctype;
+		base_type = &llong_ctype;
 	else if (type_is_ok(&ullong_ctype, &upper, &lower))
-		parent->ctype.base_type = &ullong_ctype;
+		base_type = &ullong_ctype;
 	else
-		parent->ctype.base_type = &bad_enum_ctype;
+		base_type = &bad_enum_ctype;
+	parent->ctype.base_type = base_type;
+	parent->ctype.modifiers |= (base_type->ctype.modifiers & MOD_UNSIGNED);
 	return token;
 }
 
