@@ -544,19 +544,28 @@ static int simplify_preop(struct expression *expr)
 
 	if (op->type != EXPR_VALUE)
 		return 0;
+
+	mask = 1ULL << (expr->ctype->bit_size-1);
 	v = op->value;
 	switch (expr->op) {
 	case '+': break;
-	case '-': v = -v; break;
+	case '-':
+		if (v == mask && !(expr->ctype->ctype.modifiers & MOD_UNSIGNED))
+			goto Overflow;
+		v = -v;
+		break;
 	case '!': v = !v; break;
 	case '~': v = ~v; break;
 	default: return 0;
 	}
-	mask = 1ULL << (expr->ctype->bit_size-1);
 	mask = mask | (mask-1);
 	expr->value = v & mask;
 	expr->type = EXPR_VALUE;
 	return 1;
+
+Overflow:
+	warn(expr->pos, "constant integer operation overflow");
+	return 0;
 }
 
 static int simplify_float_preop(struct expression *expr)
