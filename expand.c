@@ -459,8 +459,9 @@ static int expand_conditional(struct expression *expr)
 	struct expression *cond = expr->conditional;
 	struct expression *true = expr->cond_true;
 	struct expression *false = expr->cond_false;
-	int cost;
+	int cost, cond_cost;
 
+	cond_cost = expand_expression(cond);
 	if (cond->type == EXPR_VALUE) {
 		true = true ? : cond;
 		if (!cond->value)
@@ -477,7 +478,7 @@ static int expand_conditional(struct expression *expr)
 		cost -= BRANCH_COST - 1;
 	}
 
-	return cost + expand_expression(cond) + BRANCH_COST;
+	return cost + cond_cost + BRANCH_COST;
 }
 		
 static int expand_assignment(struct expression *expr)
