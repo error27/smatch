@@ -246,13 +246,20 @@ static void do_warn(const char *type, struct token *token, const char * fmt, va_
 void warn(struct token *token, const char * fmt, ...)
 {
 	static int warnings = 0;
+
+	if (warnings > 100) {
+		static int once = 0;
+		if (once)
+			return;
+		fmt = "too many warnings";
+		once = 1;
+	}
+
 	va_list args;
 	va_start(args, fmt);
 	do_warn("warning", token, fmt, args);
 	va_end(args);
 	warnings++;
-	if (warnings > 100)
-		error(token, "too many warnings");
 }	
 
 void error(struct token *token, const char * fmt, ...)
