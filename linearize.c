@@ -239,9 +239,13 @@ static void show_instruction(struct instruction *insn)
 		break;
 	}	
 	case OP_LOAD:
+		if (insn->target == VOID)
+			break;
 		printf("\tload %s <- %d[%s]\n", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
 		break;
 	case OP_STORE:
+		if (insn->target == VOID)
+			break;
 		printf("\tstore %s -> %d[%s]\n", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
 		break;
 	case OP_CALL: {
@@ -315,9 +319,6 @@ static void show_instruction(struct instruction *insn)
 		break;
 	case OP_CONTEXT:
 		printf("\tcontext %d\n", insn->increment);
-		break;
-	case OP_DEAD:
-		printf("\tdeathnote %%r%d\n", regno(insn->target));
 		break;
 	default:
 		printf("\top %d ???\n", op);
@@ -409,18 +410,6 @@ static inline void use_pseudo(struct instruction *insn, pseudo_t p, pseudo_t *pp
 	*pp = p;
 	if (p && p->type != PSEUDO_VOID)
 		add_ptr_list((struct ptr_list **)&p->users, pp);
-}
-
-static void add_deathnote(struct entrypoint *ep, pseudo_t pseudo)
-{
-	if (pseudo && pseudo->type == PSEUDO_REG) {
-		struct basic_block *bb = ep->active;
-		if (!--pseudo->usage && bb_reachable(bb)) {
-			struct instruction *dead = alloc_instruction(OP_DEAD, NULL);
-			dead->target = pseudo;
-			add_instruction(&bb->insns, dead);
-		}
-	}
 }
 
 static void add_one_insn(struct entrypoint *ep, struct instruction *insn)
@@ -528,8 +517,6 @@ struct access_data {
 
 static void finish_address_gen(struct entrypoint *ep, struct access_data *ad)
 {
-	if (ad->address && ad->address != VOID)
-		add_deathnote(ep, ad->address);
 }
 
 static int linearize_simple_address(struct entrypoint *ep,
@@ -636,20 +623,13 @@ unaligned:
 		pseudo_t shift;
 		shift = value_pseudo(ad->bit_offset);
 		shifted = add_binary_op(ep, ad->ctype, OP_SHL, value, shift);
-		add_deathnote(ep, shift);
 	}
 	orig = add_load(ep, ad);
 	ormask = value_pseudo(mask);
 	value_mask = add_binary_op(ep, ad->ctype, OP_AND, shifted, ormask);
-	add_deathnote(ep, ormask);
-	if (shifted != value)
-		add_deathnote(ep, shifted);
 	newval = add_binary_op(ep, ad->ctype, OP_OR, orig, value_mask);
-	add_deathnote(ep, orig);
-	add_deathnote(ep, value_mask);
 
 	add_store(ep, ad, newval);
-	add_deathnote(ep, newval);
 	return value;
 }
 
@@ -683,8 +663,6 @@ static pseudo_t linearize_load_gen(struct entrypoint *ep, struct access_data *ad
 	if (ad->bit_offset) {
 		pseudo_t shift = value_pseudo(ad->bit_offset);
 		pseudo_t newval = add_binary_op(ep, ad->ctype, OP_SHR, new, shift);
-		add_deathnote(ep, new);
-		add_deathnote(ep, shift);
 		new = newval;
 	}
 		
@@ -718,12 +696,7 @@ static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr
 	new = add_binary_op(ep, expr->ctype, op, old, one);
 	linearize_store_gen(ep, new, &ad);
 	finish_address_gen(ep, &ad);
-	if (postop) {
-		add_deathnote(ep, new);
-		return old;
-	}
-	add_deathnote(ep, old);
-	return new;
+	return postop ? old : new;
 }
 
 static pseudo_t add_uniop(struct entrypoint *ep, struct expression *expr, int op, pseudo_t src)
@@ -734,7 +707,6 @@ static pseudo_t add_uniop(struct entrypoint *ep, struct expression *expr, int op
 	insn->target = new;
 	use_pseudo(insn, src, &insn->src1);
 	add_one_insn(ep, insn);
-	add_deathnote(ep, src);
 	return new;
 }
 
@@ -749,7 +721,6 @@ static pseudo_t linearize_slice(struct entrypoint *ep, struct expression *expr)
 	insn->len = expr->r_nrbits;
 	use_pseudo(insn, pre, &insn->base);
 	add_one_insn(ep, insn);
-	add_deathnote(ep, pre);
 	return new;
 }
 
@@ -815,8 +786,6 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 			[SPECIAL_XOR_ASSIGN - SPECIAL_BASE] = OP_XOR
 		};
 		dst = add_binary_op(ep, expr->ctype, op_trans[expr->op - SPECIAL_BASE], oldvalue, value);
-		add_deathnote(ep, oldvalue);
-		add_deathnote(ep, value);
 		value = dst;
 	}
 	value = linearize_store_gen(ep, value, &ad);
@@ -897,8 +866,6 @@ static pseudo_t linearize_binop(struct entrypoint *ep, struct expression *expr)
 	src1 = linearize_expression(ep, expr->left);
 	src2 = linearize_expression(ep, expr->right);
 	dst = add_binary_op(ep, expr->ctype, opcode[expr->op], src1, src2);
-	add_deathnote(ep, src1);
-	add_deathnote(ep, src2);
 	return dst;
 }
 
@@ -915,13 +882,9 @@ static pseudo_t linearize_select(struct entrypoint *ep, struct expression *expr)
 	cond = linearize_expression(ep, expr->conditional);
 
 	add_setcc(ep, expr, cond);
-	if (expr->cond_true)
-		add_deathnote(ep, cond);
-	else
+	if (!expr->cond_true)
 		true = cond;
 	res = add_binary_op(ep, expr->ctype, OP_SEL, true, false);
-	add_deathnote(ep, true);
-	add_deathnote(ep, false);
 	return res;
 }
 
@@ -1040,8 +1003,6 @@ static pseudo_t linearize_compare(struct entrypoint *ep, struct expression *expr
 	pseudo_t src1 = linearize_expression(ep, expr->left);
 	pseudo_t src2 = linearize_expression(ep, expr->right);
 	pseudo_t dst = add_binary_op(ep, expr->ctype, cmpop[expr->op], src1, src2);
-	add_deathnote(ep, src1);
-	add_deathnote(ep, src2);
 	return dst;
 }
 
@@ -1110,17 +1071,14 @@ pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 	src = linearize_expression(ep, expr->cast_expression);
 	if (src == VOID)
 		return VOID;
-	if (expr->ctype->bit_size < 0) {
-		add_deathnote(ep, src);
+	if (expr->ctype->bit_size < 0)
 		return VOID;
-	}
 	insn = alloc_instruction(OP_CAST, expr->ctype);
 	result = alloc_pseudo(insn);
 	insn->target = result;
 	insn->orig_type = expr->cast_expression->ctype;
 	use_pseudo(insn, src, &insn->src);
 	add_one_insn(ep, insn);
-	add_deathnote(ep, src);
 	return result;
 }
 
@@ -1131,7 +1089,6 @@ pseudo_t linearize_position(struct entrypoint *ep, struct expression *pos, struc
 
 	ad->offset = pos->init_offset;	
 	linearize_store_gen(ep, value, ad);
-	add_deathnote(ep, value);
 	return VOID;
 }
 
@@ -1151,7 +1108,6 @@ pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initial
 	default: {
 		pseudo_t value = linearize_expression(ep, initializer);
 		linearize_store_gen(ep, value, ad);
-		add_deathnote(ep, value);
 	}
 	}
 
@@ -1207,11 +1163,9 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 		return  linearize_conditional(ep, expr, expr->conditional,
 					      expr->cond_true, expr->cond_false);
 
-	case EXPR_COMMA: {
-		pseudo_t left = linearize_expression(ep, expr->left);
-		add_deathnote(ep, left);
+	case EXPR_COMMA:
+		linearize_expression(ep, expr->left);
 		return linearize_expression(ep, expr->right);
-	}
 
 	case EXPR_ASSIGNMENT:
 		return linearize_assignment(ep, expr);
@@ -1270,7 +1224,6 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 
 	pseudo = VOID;
 	FOR_EACH_PTR(stmt->stmts, s) {
-		add_deathnote(ep, pseudo);
 		pseudo = linearize_statement(ep, s);
 	} END_FOR_EACH_PTR(s);
 
@@ -1731,12 +1684,6 @@ static void create_phi_copy(struct basic_block *bb, struct instruction *phi,
 	new->target = dst;
 	use_pseudo(new, src, &new->src);
 	add_instruction(&bb->insns, new);
-
-	if (src->type == PSEUDO_REG) {
-		struct instruction *dead = alloc_instruction(OP_DEAD, NULL);
-		dead->target = src;
-		add_instruction(&bb->insns, dead);
-	}
 
 	/* And add back the last instruction */
 	add_instruction(&bb->insns, insn);
