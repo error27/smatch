@@ -342,6 +342,22 @@ static inline void add_expression(struct expression_list **list, struct expressi
 	}										\
 } while (0)
 
+#define DO_REVERSE(ptr, __head, __list, __nr, new, __newhead, __newlist, __newnr) do {	\
+	struct ptr_list *__newhead = __head;						\
+	struct ptr_list *__newlist = __list;						\
+	int __newnr = __nr;								\
+	new = ptr;									\
+	if (1) {									\
+		do {									\
+			while (--__newnr >= 0) {					\
+				do {							\
+					new = (__typeof__(ptr)) (__list->list[__newnr]);\
+					do {
+
+#define RECURSE_PTR_REVERSE(ptr, new)							\
+	DO_REVERSE(ptr, __head##ptr, __list##ptr, __nr##ptr,				\
+		   new, __head##new, __list##new, __nr##new)
+
 #define DO_THIS_ADDRESS(ptr, __head, __list, __nr)					\
 	((__typeof__(&(ptr))) (__list->list + __nr))
 
