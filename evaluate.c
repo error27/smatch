@@ -621,6 +621,10 @@ static struct symbol *evaluate_compare(struct expression *expr)
 static int compatible_integer_types(struct symbol *ltype, struct symbol *rtype)
 {
 	/* Integer promotion? */
+	if (ltype->type == SYM_NODE)
+		ltype = ltype->ctype.base_type;
+	if (rtype->type == SYM_NODE)
+		rtype = rtype->ctype.base_type;
 	if (ltype->type == SYM_ENUM)
 		ltype = &int_ctype;
 	if (rtype->type == SYM_ENUM)
@@ -744,6 +748,8 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 
 	// FIXME!! Cast it?
 	warn(expr->pos, "incorrect type in %s", where);
+	warn(expr->pos, "  expected %s", show_typename(target));
+	warn(expr->pos, "  got %s", show_typename(source));
 	return 0;
 }
 
