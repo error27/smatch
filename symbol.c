@@ -213,8 +213,8 @@ void merge_type(struct symbol *sym, struct symbol *base_type)
 {
 	sym->ctype.as |= base_type->ctype.as;
 	sym->ctype.modifiers |= (base_type->ctype.modifiers & ~MOD_STORAGE);
-	sym->ctype.context |= base_type->ctype.context;
-	sym->ctype.contextmask |= base_type->ctype.contextmask;
+	sym->ctype.in_context += base_type->ctype.in_context;
+	sym->ctype.out_context += base_type->ctype.out_context;
 	sym->ctype.base_type = base_type->ctype.base_type;
 }
 

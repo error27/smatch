@@ -26,7 +26,6 @@
 #include "expression.h"
 
 struct symbol *current_fn;
-static int current_context, current_contextmask;
 
 static struct symbol *degenerate(struct expression *expr);
 
@@ -41,8 +40,6 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 	}
 
 	examine_symbol_type(sym);
-	if ((sym->ctype.context ^ current_context) & (sym->ctype.contextmask & current_contextmask))
-		warning(expr->pos, "Using symbol '%s' in wrong context", show_ident(expr->symbol_name));
 
 	base_type = sym->ctype.base_type;
 	if (!base_type) {
@@ -1788,13 +1785,6 @@ static struct symbol *evaluate_alignof(struct expression *expr)
 	return size_t_ctype;
 }
 
-static int context_clash(struct symbol *sym1, struct symbol *sym2)
-{
-	unsigned long clash = (sym1->ctype.context ^ sym2->ctype.context);
-	clash &= (sym1->ctype.contextmask & sym2->ctype.contextmask);
-	return clash != 0;
-}
-
 static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expression_list *head)
 {
 	struct expression *expr;
@@ -1810,9 +1800,6 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 
 		if (!ctype)
 			return 0;
-
-		if (context_clash(f, ctype))
-			warning(expr->pos, "argument %d used in wrong context", i);
 
 		ctype = degenerate(expr);
 
@@ -2211,20 +2198,13 @@ static int evaluate_symbol_call(struct expression *expr)
 	if (ctype->ctype.modifiers & MOD_INLINE) {
 		int ret;
 		struct symbol *curr = current_fn;
-		unsigned long context = current_context;
-		unsigned long mask = current_contextmask;
-
-		current_context |= ctype->ctype.context;
-		current_contextmask |= ctype->ctype.contextmask;
 		current_fn = ctype->ctype.base_type;
 		examine_fn_arguments(current_fn);
 
 		ret = inline_function(expr, ctype);
 
-		/* restore the old function context */
+		/* restore the old function */
 		current_fn = curr;
-		current_context = context;
-		current_contextmask = mask;
 		return ret;
 	}
 
@@ -2408,12 +2388,8 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 	/* And finally, evaluate the body of the symbol too */
 	if (base_type->type == SYM_FN) {
 		struct symbol *curr = current_fn;
-		unsigned long context = current_context;
-		unsigned long mask = current_contextmask;
 
 		current_fn = base_type;
-		current_contextmask = sym->ctype.contextmask;
-		current_context = sym->ctype.context;
 
 		examine_fn_arguments(base_type);
 		if (!base_type->stmt && base_type->inline_stmt)
@@ -2422,8 +2398,6 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 			evaluate_statement(base_type->stmt);
 
 		current_fn = curr;
-		current_contextmask = mask;
-		current_context = context;
 	}
 
 	return base_type;

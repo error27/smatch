@@ -360,15 +360,13 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 	}
 	if (attribute == &context_ident) {
 		if (expr && expr->type == EXPR_COMMA) {
-			int mask = get_expression_value(expr->left);
-			int value = get_expression_value(expr->right);
-			if (value & ~mask)
-				return "nonsense attribute types";
-			ctype->contextmask |= mask;
-			ctype->context |= value;
+			int input = get_expression_value(expr->left);
+			int output = get_expression_value(expr->right);
+			ctype->in_context = input;
+			ctype->out_context = output;
 			return NULL;
 		}
-		return "expected context mask and value";
+		return "expected context input/output values";
 	}
 	if (attribute == &mode_ident ||
 	    attribute == &__mode___ident) {
@@ -571,13 +569,8 @@ static void apply_ctype(struct position pos, struct ctype *thistype, struct ctyp
 	}
 
 	/* Context mask and value */
-	if ((ctype->context ^ thistype->context) & (ctype->contextmask & thistype->contextmask)) {
-		warning(pos, "inconsistent attribute types");
-		thistype->context = 0;
-		thistype->contextmask = 0;
-	}
-	ctype->context |= thistype->context;
-	ctype->contextmask |= thistype->contextmask;
+	ctype->in_context = thistype->in_context;
+	ctype->out_context = thistype->out_context;
 
 	/* Alignment */
 	if (thistype->alignment & (thistype->alignment-1)) {
@@ -813,16 +806,16 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 		struct symbol *ptr = alloc_symbol(token->pos, SYM_PTR);
 		ptr->ctype.modifiers = modifiers & ~MOD_STORAGE;
 		ptr->ctype.as = ctype->as;
-		ptr->ctype.context = ctype->context;
-		ptr->ctype.contextmask = ctype->contextmask;
+		ptr->ctype.in_context = ctype->in_context;
+		ptr->ctype.out_context = ctype->out_context;
 		ptr->ctype.base_type = base_type;
 
 		base_type = ptr;
 		ctype->modifiers = modifiers & MOD_STORAGE;
 		ctype->base_type = base_type;
 		ctype->as = 0;
-		ctype->context = 0;
-		ctype->contextmask = 0;
+		ctype->in_context = 0;
+		ctype->out_context = 0;
 
 		token = declaration_specifiers(token->next, ctype, 1);
 		modifiers = ctype->modifiers;

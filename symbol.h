@@ -57,7 +57,7 @@ enum type {
 struct ctype {
 	unsigned long modifiers;
 	unsigned long alignment;
-	unsigned int contextmask, context, as;
+	unsigned int in_context, out_context, as;
 	struct symbol *base_type;
 };
 
