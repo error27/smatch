@@ -688,7 +688,6 @@ static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old
 
 static struct basic_block * rewrite_branch_bb(struct basic_block *bb, struct instruction *br)
 {
-	struct basic_block *success;
 	struct basic_block *parent;
 	struct basic_block *target = br->bb_true;
 	struct basic_block *false = br->bb_false;
@@ -700,13 +699,16 @@ static struct basic_block * rewrite_branch_bb(struct basic_block *bb, struct ins
 		target = cond->value ? target : false;
 	}
 
-	target = target ? : false;
-	success = target;
-	FOR_EACH_PTR(bb->parents, parent) {
+	/*
+	 * We can't do FOR_EACH_PTR() here, because the parent list
+	 * may change when we rewrite the parent.
+	 */
+	while ((parent = first_basic_block(bb->parents)) != NULL) {
 		if (!rewrite_parent_branch(parent, bb, target))
-			success = NULL;
-	} END_FOR_EACH_PTR(parent);
-	return success;
+			return NULL;
+		remove_bb_from_list(&bb->parents, parent, 0);
+	}
+	return target;
 }
 
 static void simplify_one_switch(struct basic_block *bb,
