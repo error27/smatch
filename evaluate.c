@@ -1754,13 +1754,6 @@ static int get_as(struct symbol *sym)
 		as |= sym->ctype.as;
 		mod |= sym->ctype.modifiers;
 	}
-	/*
-	 * You can always throw a value away by casting to
-	 * "void" - that's an implicit "force". Note that
-	 * the same is _not_ true of "void *".
-	 */
-	if (sym == &void_ctype)
-		return -1;
 
 	/*
 	 * At least for now, allow casting to a "unsigned long".
@@ -1784,6 +1777,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 {
 	struct expression *target = expr->cast_expression;
 	struct symbol *ctype = examine_symbol_type(expr->cast_type);
+	enum type type;
 
 	expr->ctype = ctype;
 	expr->cast_type = ctype;
@@ -1819,6 +1813,34 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	evaluate_expression(target);
 	degenerate(target);
 
+	/*
+	 * You can always throw a value away by casting to
+	 * "void" - that's an implicit "force". Note that
+	 * the same is _not_ true of "void *".
+	 */
+	if (ctype == &void_ctype)
+		goto out;
+
+	type = ctype->type;
+	if (type == SYM_NODE) {
+		type = ctype->ctype.base_type->type;
+		if (ctype->ctype.base_type == &void_ctype)
+			goto out;
+	}
+	if (type == SYM_ARRAY || type == SYM_UNION || type == SYM_STRUCT)
+		warn(expr->pos, "cast to non-scalar");
+
+	if (!target->ctype) {
+		warn(expr->pos, "cast from unknown type");
+		goto out;
+	}
+
+	type = target->ctype->type;
+	if (type == SYM_NODE)
+		type = target->ctype->ctype.base_type->type;
+	if (type == SYM_ARRAY || type == SYM_UNION || type == SYM_STRUCT)
+		warn(expr->pos, "cast from non-scalar");
+
 	if (!get_as(ctype) && get_as(target->ctype) > 0)
 		warn(expr->pos, "cast removes address space of expression");
 
@@ -1830,6 +1852,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	if (target->type == EXPR_VALUE)
 		cast_value(expr, ctype, target, target->ctype);
 
+out:
 	return ctype;
 }
 
