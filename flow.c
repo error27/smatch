@@ -676,6 +676,7 @@ static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old
 		if (insn->bb_true == insn->bb_false) {
 			remove_bb_from_list(&new->parents, bb, 1);
 			insn->bb_false = NULL;
+			kill_use(&insn->cond);
 		}
 		return 1;
 	case OP_SWITCH: {
