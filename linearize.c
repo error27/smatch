@@ -233,11 +233,8 @@ const char *show_instruction(struct instruction *insn)
 	char *buf;
 
 	buf = buffer;
-	if (!insn->bb) {
-		if (verbose < 2)
-			return "";
+	if (!insn->bb)
 		buf += sprintf(buf, "# ");
-	}
 
 	if (opcode < sizeof(opcodes)/sizeof(char *)) {
 		const char *op = opcodes[opcode];
@@ -481,6 +478,8 @@ void show_bb(struct basic_block *bb)
 	}
 
 	FOR_EACH_PTR(bb->insns, insn) {
+		if (!insn->bb && verbose < 2)
+			continue;
 		printf("\t%s\n", show_instruction(insn));
 	} END_FOR_EACH_PTR(insn);
 	if (!bb_terminated(bb))
