@@ -373,16 +373,16 @@ struct sym_init {
 
 	/* Type specifiers */
 	{ "void",	&void_ctype,	0 },
-	{ "char",	&int_type,	MOD_CHAR },
-	{ "short",	&int_type,	MOD_SHORT },
+	{ "char",	NULL,		MOD_CHAR },
+	{ "short",	NULL,		MOD_SHORT },
 	{ "int",	&int_type,	0 },
 	{ "long",	NULL,		MOD_LONG },
 	{ "float",	&fp_type,	0 },
 	{ "double",	&fp_type,	MOD_LONG },
-	{ "signed",	&int_type,	MOD_SIGNED },
-	{ "__signed",	&int_type,	MOD_SIGNED },
-	{ "__signed__",	&int_type,	MOD_SIGNED },
-	{ "unsigned",	&int_type,	MOD_UNSIGNED },
+	{ "signed",	NULL,		MOD_SIGNED },
+	{ "__signed",	NULL,		MOD_SIGNED },
+	{ "__signed__",	NULL,		MOD_SIGNED },
+	{ "unsigned",	NULL,		MOD_UNSIGNED },
 	{ "__label__",	&label_type,	MOD_LABEL | MOD_UNSIGNED },
 
 	/* Type qualifiers */
