@@ -234,6 +234,22 @@ static struct storage *x86_statement(struct statement *stmt);
 static struct storage *x86_expression(struct expression *expr);
 
 
+static struct storage *temp_from_bits(unsigned int bit_size)
+{
+	switch(bit_size) {
+	case 8:		return REG_AL;
+	case 16:	return REG_AX;
+	case 32:	return REG_EAX;
+
+	case 64: /* FIXME */
+	default:
+		assert(0);
+		break;
+	}
+
+	return NULL;
+}
+
 static inline unsigned int pseudo_offset(struct storage *s)
 {
 	if (s->type != STOR_PSEUDO)
@@ -375,7 +391,7 @@ static struct storage *stack_alloc(int n_bytes)
 	stor = new_storage(STOR_PSEUDO);
 	stor->type = STOR_PSEUDO;
 	stor->pseudo = f->pseudo_nr;
-	stor->offset = f->stack_size;
+	stor->offset = f->stack_size; /* FIXME: stack req. natural align */
 	stor->size = n_bytes;
 	f->stack_size += n_bytes;
 	f->pseudo_nr++;
@@ -931,28 +947,26 @@ static void emit_copy(struct storage *dest, struct storage *src,
 		      struct symbol *ctype)
 {
 	struct storage *reg = NULL;
+	unsigned int bit_size;
 
-	/* FIXME: Bitfield move! */
+	/* FIXME: Bitfield copy! */
 
-	switch (ctype->bit_size) {
-	case 8:
-		reg = REG_AL;
-		break;
-	case 16:
-		reg = REG_AX;
-		break;
-	case 32:
-		reg = REG_EAX;
-		break;
-	case 64:
-		reg = REG_EAX;	/* FIXME */
-		break;
-	default:
-		assert(0);
-		break;
-	}
+	bit_size = src->size * 8;
+	if (!bit_size)
+		bit_size = 32;
+	if ((src->type == STOR_ARG) && (bit_size < 32))
+		bit_size = 32;
 
+	reg = temp_from_bits(bit_size);
 	emit_move(src, reg, ctype, "begin copy ..");
+
+	bit_size = dest->size * 8;
+	if (!bit_size)
+		bit_size = 32;
+	if ((dest->type == STOR_ARG) && (bit_size < 32))
+		bit_size = 32;
+
+	reg = temp_from_bits(bit_size);
 	emit_move(reg, dest, ctype, ".... end copy");
 }
 
@@ -1210,7 +1224,7 @@ static struct storage *emit_binop(struct expression *expr)
 	insn(opstr, left, accum_reg, NULL);
 
 	/* store result (EAX or EDX) in new pseudo / stack slot */
-	new = stack_alloc(4);
+	new = stack_alloc(expr->ctype->bit_size / 8);
 	insn(movstr, result_reg, new,
 	     doing_divide ? "end EXPR_DIVIDE" : "end EXPR_BINOP");
 
@@ -1407,7 +1421,7 @@ static struct storage *emit_cast_expr(struct expression *expr)
 
 	emit_move(op, REG_EAX, old_type, "begin cast ..");
 
-	new = stack_alloc(4);
+	new = stack_alloc(newbits / 8);
 	emit_move(REG_EAX, new, new_type, ".... end cast");
 
 	return new;
@@ -1493,7 +1507,7 @@ static void emit_switch_statement(struct statement *stmt)
 				label = new_storage(STOR_LABEL);
 				label->flags |= STOR_WANTS_FREE;
 				label->label = next_test = new_label();
-				
+
 				/* FIXME: signed/unsigned */
 				insn("jl", label, NULL, NULL);
 
@@ -1504,7 +1518,7 @@ static void emit_switch_statement(struct statement *stmt)
 				label = new_storage(STOR_LABEL);
 				label->flags |= STOR_WANTS_FREE;
 				label->label = next_test;
-				
+
 				/* FIXME: signed/unsigned */
 				insn("jg", label, NULL, NULL);
 
