@@ -9,8 +9,9 @@
 struct basic_block_list;
 
 struct basic_block {
-	struct statement_list *stmts;
-	struct symbol *next;
+	struct symbol *this;		/* Points to the symbol that owns "this" basic block - NULL if unreachable */
+	struct statement_list *stmts;	/* Linear list of statements */
+	struct symbol *next;		/* Points to the symbol that describes the fallthrough */
 };
 
 static inline void add_bb(struct basic_block_list **list, struct basic_block *bb)

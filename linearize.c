@@ -32,7 +32,7 @@ static void show_bb(struct basic_block *bb)
 {
 	struct statement *stmt;
 
-	printf("bb: %p\n", bb);
+	printf("bb: %p%s\n", bb, bb->this ? "" : " UNREACHABLE!!");
 	FOR_EACH_PTR(bb->stmts, stmt) {
 		show_statement(stmt);
 	} END_FOR_EACH_PTR;
@@ -65,10 +65,23 @@ static void show_entry(struct entrypoint *ep)
 	printf("\n");
 }
 
-static struct basic_block * new_basic_block(struct basic_block_list **bbs)
+#define bb_reachable(bb) ((bb)->this != NULL)
+
+static struct basic_block * new_basic_block(struct basic_block_list **bbs, struct symbol *owner)
 {
-	struct basic_block *bb = alloc_basic_block();
+	struct basic_block *bb;
+
+	if (!owner) {
+		static struct basic_block unreachable;
+		return &unreachable;
+	}
+		
+	bb = alloc_basic_block();
 	add_bb(bbs, bb);
+	bb->this = owner;
+	if (owner->bb_target)
+		warn(owner->pos, "Symbol already has a basic block %p", owner->bb_target);
+	owner->bb_target = bb;
 	return bb;
 }
 
@@ -91,33 +104,30 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 
 	case STMT_RETURN:
 		add_statement(&bb->stmts, stmt);
-		bb = new_basic_block(bbs);
+		bb = new_basic_block(bbs, NULL);
 		break;
 
 	case STMT_CASE: {
-		struct basic_block *new_bb = new_basic_block(bbs);
 		struct symbol *sym = stmt->case_label;
+		struct basic_block *new_bb = new_basic_block(bbs, sym);
 
 		bb->next = sym;
-		sym->bb_target = new_bb;
-
 		bb = linearize_statement(syms, bbs, new_bb, stmt->case_statement);
 		break;
 	}
 
 	case STMT_LABEL: {
-		struct basic_block *new_bb = new_basic_block(bbs);
 		struct symbol *sym = stmt->label_identifier;
+		struct basic_block *new_bb = new_basic_block(bbs, sym);
 
 		bb->next = sym;
-		sym->bb_target = new_bb;
 
 		bb = linearize_statement(syms, bbs, new_bb, stmt->label_statement);
 		break;
 	}
 
 	case STMT_GOTO: {
-		struct basic_block *new_bb = new_basic_block(bbs);
+		struct basic_block *new_bb = new_basic_block(bbs, NULL);
 		struct symbol *sym = stmt->goto_label;
 
 		bb->next = sym;
@@ -139,25 +149,50 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 	 * switch the arms around appropriately..
 	 */
 	case STMT_IF: {
-		struct symbol *target = alloc_symbol(stmt->pos, SYM_LABEL);
-		struct statement *goto_bb = alloc_statement(stmt->pos, STMT_CONDFALSE);
+		struct symbol *target;
+		struct statement *goto_bb;
 		struct basic_block *last_bb;
+		struct expression *cond = stmt->if_conditional;
+
+		if (cond->type == EXPR_VALUE) {
+			struct statement *always = stmt->if_true;
+			struct statement *never = stmt->if_false;
+			if (!cond->value) {
+				never = always;
+				always = stmt->if_false;
+			}
+			if (always)
+				bb = linearize_statement(syms, bbs, bb, always);
+			if (never) {
+				struct basic_block *n = new_basic_block(bbs, NULL);
+				n = linearize_statement(syms, bbs, n, never);
+				if (bb_reachable(n)) {
+					struct symbol *merge = alloc_symbol(never->pos, SYM_LABEL);
+					n->next = merge;
+					bb->next = merge;
+					bb = new_basic_block(bbs, merge);
+				}
+			}
+			break;
+		}
+			
+
+		target = alloc_symbol(stmt->pos, SYM_LABEL);
+		goto_bb = alloc_statement(stmt->pos, STMT_CONDFALSE);
 
 		add_statement(&bb->stmts, goto_bb);
-		last_bb = new_basic_block(bbs);
+		last_bb = new_basic_block(bbs, target);
 
-		goto_bb->bb_conditional = stmt->if_conditional;
+		goto_bb->bb_conditional = cond;
 		goto_bb->bb_target = target;
 
 		bb = linearize_statement(syms, bbs, bb, stmt->if_true);
 		bb->next = target;
-		target->bb_target = last_bb;
 		
 		if (stmt->if_false) {
 			struct symbol *else_target = alloc_symbol(stmt->pos, SYM_LABEL);
-			struct basic_block *else_bb = new_basic_block(bbs);
+			struct basic_block *else_bb = new_basic_block(bbs, else_target);
 
-			else_target->bb_target = else_bb;
 			else_bb = linearize_statement(syms, bbs, else_bb, stmt->if_false);
 			goto_bb->bb_target = else_target;
 			else_bb->next = target;
@@ -190,12 +225,11 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		bb->next = stmt->switch_break;
 
 		/* And linearize the actual statement */
-		bb = linearize_statement(syms, bbs, new_basic_block(bbs), stmt->switch_statement);
+		bb = linearize_statement(syms, bbs, new_basic_block(bbs, NULL), stmt->switch_statement);
 
 		/* ..then tie it all together at the end.. */
 		bb->next = stmt->switch_break;
-		bb = new_basic_block(bbs);
-		stmt->switch_break->bb_target = bb;
+		bb = new_basic_block(bbs, stmt->switch_break);
 
 		break;
 	}
@@ -215,7 +249,7 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 				if (!pre_condition->value) {
 					loop_bottom = alloc_symbol(stmt->pos, SYM_LABEL);
 					bb->next = loop_bottom;
-					bb = new_basic_block(bbs);
+					bb = new_basic_block(bbs, loop_bottom);
 				}
 			} else {
 				struct statement *pre_cond = alloc_statement(stmt->pos, STMT_CONDFALSE);
@@ -227,9 +261,10 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		}
 
 		if (!post_condition || post_condition->type != EXPR_VALUE || post_condition->value) {
-			struct basic_block *loop = new_basic_block(bbs);
+			struct basic_block *loop;
+
 			loop_top = alloc_symbol(stmt->pos, SYM_LABEL);
-			loop_top->bb_target = loop;
+			loop = new_basic_block(bbs, loop_top);
 			bb->next = loop_top;
 			bb = loop;
 		}
@@ -237,8 +272,7 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		bb = linearize_statement(syms, bbs, bb, statement);
 
 		if (stmt->iterator_continue->used) {
-			struct basic_block *cont = new_basic_block(bbs);
-			stmt->iterator_continue->bb_target = cont;
+			struct basic_block *cont = new_basic_block(bbs, stmt->iterator_continue);
 			bb->next = stmt->iterator_continue;
 			bb = cont;
 		}
@@ -257,8 +291,7 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		}
 
 		if (stmt->iterator_break->used) {
-			struct basic_block *brk = new_basic_block(bbs);
-			stmt->iterator_break->bb_target = brk;
+			struct basic_block *brk = new_basic_block(bbs, stmt->iterator_break);
 			bb->next = stmt->iterator_break;
 			bb = brk;
 		}
@@ -286,7 +319,7 @@ void linearize_symbol(struct symbol *sym)
 			struct basic_block *bb;
 
 			ep->name = sym;
-			bb = new_basic_block(&ep->bbs);
+			bb = new_basic_block(&ep->bbs, sym);
 			concat_symbol_list(base_type->arguments, &ep->syms);
 			linearize_statement(&ep->syms, &ep->bbs, bb, base_type->stmt);
 			show_entry(ep);
