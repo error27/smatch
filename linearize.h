@@ -19,6 +19,7 @@ struct pseudo {
 	int nr;
 	unsigned int usage:24,
 		     type:8;
+	struct instruction_list *users;
 	union {
 		struct symbol *sym;
 		struct instruction *def;
