@@ -277,13 +277,21 @@ got_eof:
  *  Slow path (including the logics with line-splicing and EOF sanity
  *  checks) is in nextchar_slow().
  */
-static inline int nextchar(stream_t *stream)
+static int nextchar(stream_t *stream)
 {
 	int offset = stream->offset;
 
 	if (offset < stream->size) {
 		int c = stream->buffer[offset++];
+		static char special[256] = {
+			['\r'] = 1, ['\n'] = 1, ['\\'] = 1
+		};
 		unsigned char next;
+		if (!special[c]) {
+			stream->offset = offset;
+			stream->pos.pos++;
+			return c;
+		}
 		switch (c) {
 		case '\r':
 			break;
@@ -293,14 +301,12 @@ static inline int nextchar(stream_t *stream)
 			stream->pos.newline = 1;
 			stream->pos.pos = 0;
 			return '\n';
-		case '\\':
+		default: /* '\\' */
 			if (offset >= stream->size)
 				break;
 			next = stream->buffer[offset];
 			if (next == '\n' || next == '\r')
 				break;
-			/* fallthru */
-		default:
 			stream->offset = offset;
 			stream->pos.pos++;
 			return c;
