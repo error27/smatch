@@ -29,12 +29,14 @@
 int verbose = 0;
 int preprocessing = 0;
 
-#define MAX_NEST (256)
 static int true_nesting = 0;
 static int false_nesting = 0;
 static struct token *unmatched_if = NULL;
-static char elif_ignore[MAX_NEST];
 #define if_nesting (true_nesting + false_nesting)
+
+#define MAX_NEST (256)
+static unsigned char elif_ignore[MAX_NEST];
+enum { ELIF_IGNORE = 1, ELIF_SEEN_ELSE = 2 };
 
 #define INCLUDEPATHS 300
 const char *includepath[INCLUDEPATHS+1] = {
@@ -1052,7 +1054,7 @@ static int preprocessor_if(struct token *token, int true)
 		unmatched_if = token;
 	if (if_nesting >= MAX_NEST)
 		error(token->pos, "Maximum preprocessor conditional level exhausted");
-	elif_ignore[if_nesting] = false_nesting || true;
+	elif_ignore[if_nesting] = (false_nesting || true) ? ELIF_IGNORE : 0;
 	if (false_nesting || !true) {
 		false_nesting++;
 		return 1;
@@ -1083,7 +1085,6 @@ static int handle_ifndef(struct stream *stream, struct token **line, struct toke
 		    (!stream->protect || stream->protect == next->ident)) {
 			stream->constant = CONSTANT_FILE_IFNDEF;
 			stream->protect = next->ident;
-			stream->nesting = if_nesting+1;
 		} else
 			MARK_STREAM_NONCONST(token->pos);
 	}
@@ -1168,23 +1169,27 @@ static int handle_elif(struct stream * stream, struct token **line, struct token
 	if (stream->nesting == if_nesting)
 		MARK_STREAM_NONCONST(token->pos);
 
+	if (stream->nesting > if_nesting) {
+		warn(token->pos, "unmatched #elif");
+		return 1;
+	}
+
+	if (elif_ignore[if_nesting-1] & ELIF_SEEN_ELSE)
+		warn(token->pos, "#elif after #else");
+
 	if (false_nesting) {
 		/* If this whole if-thing is if'ed out, an elif cannot help */
-		if (elif_ignore[if_nesting-1])
+		if (elif_ignore[if_nesting-1] & ELIF_IGNORE)
 			return 1;
 		if (expression_value(&token->next)) {
-			false_nesting--;
+			false_nesting = 0;
 			true_nesting++;
-			elif_ignore[if_nesting-1] = 1;
+			elif_ignore[if_nesting-1] |= ELIF_IGNORE;
 		}
-		return 1;
-	}
-	if (true_nesting) {
+	} else {
 		false_nesting = 1;
 		true_nesting--;
-		return 1;
 	}
-	warn(token->pos, "unmatched '#elif'");
 	return 1;
 }
 
@@ -1193,21 +1198,27 @@ static int handle_else(struct stream *stream, struct token **line, struct token 
 	if (stream->nesting == if_nesting)
 		MARK_STREAM_NONCONST(token->pos);
 
+	if (stream->nesting > if_nesting) {
+		warn(token->pos, "unmatched #else");
+		return 1;
+	}
+
+	if (elif_ignore[if_nesting-1] & ELIF_SEEN_ELSE)
+		warn(token->pos, "#else after #else");
+	else
+		elif_ignore[if_nesting-1] |= ELIF_SEEN_ELSE;
+
 	if (false_nesting) {
 		/* If this whole if-thing is if'ed out, an else cannot help */
-		if (elif_ignore[if_nesting-1])
+		if (elif_ignore[if_nesting-1] & ELIF_IGNORE)
 			return 1;
-		false_nesting--;
+		false_nesting = 0;
 		true_nesting++;
-		elif_ignore[if_nesting-1] = 1;
-		return 1;
-	}
-	if (true_nesting) {
+		elif_ignore[if_nesting-1] |= ELIF_IGNORE;
+	} else {
 		true_nesting--;
 		false_nesting = 1;
-		return 1;
 	}
-	warn(token->pos, "unmatched #else");
 	return 1;
 }
 
@@ -1216,15 +1227,12 @@ static int handle_endif(struct stream *stream, struct token **line, struct token
 	if (stream->constant == CONSTANT_FILE_IFNDEF && stream->nesting == if_nesting)
 		stream->constant = CONSTANT_FILE_MAYBE;
 
-	if (false_nesting) {
+	if (stream->nesting > if_nesting)
+		warn(token->pos, "unmatched #endif");
+	else if (false_nesting)
 		false_nesting--;
-		return 1;
-	}
-	if (true_nesting) {
+	else
 		true_nesting--;
-		return 1;
-	}
-	warn(token->pos, "unmatched #endif");
 	return 1;
 }
 
@@ -1466,11 +1474,17 @@ static void do_preprocess(struct token **list)
 
 		switch (token_type(next)) {
 		case TOKEN_STREAMEND:
+			if (stream->nesting != if_nesting + 1) {
+				MARK_STREAM_NONCONST(next->pos);
+				warn(unmatched_if->pos, "unterminated preprocessor conditional");
+			}
 			if (stream->constant == CONSTANT_FILE_MAYBE && stream->protect) {
 				stream->constant = CONSTANT_FILE_YES;
 			}
-			/* fallthrough */
+			*list = next->next;
+			continue;
 		case TOKEN_STREAMBEGIN:
+			stream->nesting = if_nesting + 1;
 			*list = next->next;
 			continue;
 
@@ -1496,8 +1510,6 @@ struct token * preprocess(struct token *token)
 {
 	preprocessing = 1;
 	do_preprocess(&token);
-	if (if_nesting)
-		warn(unmatched_if->pos, "unmatched preprocessor conditional");
 
 	// Drop all expressions from pre-processing, they're not used any more.
 	clear_expression_alloc();
