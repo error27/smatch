@@ -12,5 +12,6 @@ extern void cleanup_and_cse(struct entrypoint *ep);
 extern int simplify_instruction(struct instruction *);
 
 extern void kill_bb(struct basic_block *);
+extern void kill_instruction(struct instruction *);
 
 #endif

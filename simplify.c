@@ -143,21 +143,21 @@ static int clean_up_phi(struct instruction *insn)
 	return if_convert_phi(insn);
 }
 
-static void try_to_kill(struct instruction *);
-
 static void kill_use(pseudo_t pseudo)
 {
 	if (pseudo->type == PSEUDO_REG) {
 		if (ptr_list_size((struct ptr_list *)pseudo->users) == 1) {
-			try_to_kill(pseudo->def);
+			kill_instruction(pseudo->def);
 		}
 	}
 }
 
-static void try_to_kill(struct instruction *insn)
+void kill_instruction(struct instruction *insn)
 {
-	int opcode = insn->opcode;
-	switch (opcode) {
+	if (!insn->bb)
+		return;
+
+	switch (insn->opcode) {
 	case OP_BINARY ... OP_BINCMP_END:
 		insn->bb = NULL;
 		kill_use(insn->src1);
