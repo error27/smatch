@@ -69,7 +69,7 @@ const char *type_string(unsigned int modifiers, struct symbol *sym)
 		return "void";
 	if (sym == &vector_type)
 		return "vector";
-	return "unknown";
+	return "typedef";
 }
 
 static void show_one_symbol(struct symbol *sym)

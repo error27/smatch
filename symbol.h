@@ -20,6 +20,10 @@ enum symbol_types {
 	SYM_PTR,
 	SYM_FN,
 	SYM_ARRAY,
+	SYM_STRUCT,
+	SYM_UNION,
+	SYM_ENUM,
+	SYM_TYPEDEF,
 };
 
 struct symbol {
