@@ -1748,7 +1748,7 @@ static int evaluate_one_array_initializer(struct symbol *ctype, struct expressio
 	parent = ep;
 	if (entry->type == EXPR_INDEX) {
 		from = entry->idx_from;
-		to = entry->idx_to;
+		to = entry->idx_to+1;
 		parent = &entry->idx_expression;
 		reuse = entry;
 		entry = entry->idx_expression;
