@@ -589,8 +589,14 @@ char **handle_switch_v(char *arg, char **next)
 }
 char **handle_switch_I(char *arg, char **next)
 {
-	add_pre_buffer("#add_include \"%s/\"\n", arg + 1);
-	return next;
+	// FIXME: What about "-I-"?
+	if (!strcmp (arg, "I") && *next) {
+		add_pre_buffer("#add_include \"%s/\"\n", next);
+		return next + 1; // "-I foo"
+	} else {
+		add_pre_buffer("#add_include \"%s/\"\n", arg + 1);
+		return next;    // "-Ifoo" or (bogus) terminal "-I"
+	}
 }
 
 char **handle_switch_i(char *arg, char **next)
@@ -618,6 +624,14 @@ char **handle_switch_m(char *arg, char **next)
 	return next;
 }
 
+char **handle_switch_o(char *arg, char **next)
+{
+	if (!strcmp (arg, "o") && *next)
+		return next + 1; // "-o foo"
+	else
+		return next;     // "-ofoo" or (bogus) terminal "-o"
+}
+
 char **handle_switch(char *arg, char **next)
 {
 	char **rc = next;
@@ -629,6 +643,7 @@ char **handle_switch(char *arg, char **next)
 	case 'I': rc = handle_switch_I(arg, next); break;
 	case 'i': rc = handle_switch_i(arg, next); break;
 	case 'm': rc = handle_switch_m(arg, next); break;
+	case 'o': rc = handle_switch_o(arg, next); break;
 	default:
 		/*
 		 * Ignore unknown command line options:
