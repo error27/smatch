@@ -363,11 +363,12 @@ static struct symbol *evaluate_add(struct expression *expr)
 	return evaluate_int_binop(expr);
 }
 
-static int same_type(struct symbol *target, struct symbol *source)
+static int same_type(struct symbol *target, struct symbol *source,
+	unsigned long target_mod_ignore, unsigned long source_mod_ignore)
 {
 	int dropped_modifiers = 0;
 	for (;;) {
-		unsigned long mod1, mod2;
+		unsigned long mod1, mod2, diff;
 		unsigned long as1, as2;
 
 		if (target == source)
@@ -393,9 +394,14 @@ static int same_type(struct symbol *target, struct symbol *source)
 			as2 |= source->ctype.as;
 		}
 
-		/* Ignore differences in storage types */
-		if ((mod1 ^ mod2) & ~MOD_STORAGE)
-			return 0;
+		/* Ignore differences in storage types or addressability */
+		diff = (mod1 ^ mod2) & ~(MOD_STORAGE | MOD_ADDRESSABLE);
+		if (diff) {
+			mod1 &= diff & ~target_mod_ignore;
+			mod2 &= diff & ~source_mod_ignore;
+			if (mod1 | mod2)
+				return 0;
+		}
 
 		/* Must be same address space to be comparable */
 		if (as1 != as2)
@@ -430,6 +436,12 @@ static struct symbol *common_ptr_type(struct expression *l, struct expression *r
 	return NULL;
 }
 
+/*
+ * Ignore differences in "volatile" and "const"ness when
+ * subtracting pointers
+ */
+#define MOD_IGN (MOD_VOLATILE | MOD_CONST)
+
 static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expression *l, struct expression *r)
 {
 	struct symbol *ctype;
@@ -443,7 +455,7 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expressio
 		return evaluate_ptr_add(expr, l, r);
 
 	ctype = ltype;
-	if (!same_type(ltype, rtype)) {
+	if (!same_type(ltype, rtype, MOD_IGN, MOD_IGN)) {
 		ctype = common_ptr_type(l, r);
 		if (!ctype) {
 			warn(expr->pos, "subtraction of different types can't work");
@@ -644,7 +656,7 @@ static struct symbol * evaluate_conditional(struct expression *expr)
 	rtype = false->ctype;
 
 	ctype = ltype;
-	if (!same_type(ltype, rtype)) {
+	if (!same_type(ltype, rtype, MOD_IGN, MOD_IGN)) {
 		ctype = compatible_integer_binop(expr, &true, &expr->cond_false);
 		if (!ctype) {
 			ctype = compatible_ptr_type(true, expr->cond_false);
@@ -668,7 +680,8 @@ static struct symbol * evaluate_conditional(struct expression *expr)
 static int compatible_assignment_types(struct expression *expr, struct symbol *target,
 	struct expression **rp, struct symbol *source)
 {
-	if (same_type(target, source))
+	/* It's ok if the target is more volatile or const than the source */
+	if (same_type(target, source, MOD_VOLATILE | MOD_CONST, 0))
 		return 1;
 
 	if (compatible_integer_types(target, source)) {
@@ -695,9 +708,9 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			target = target_base;
 			target_base = target->ctype.base_type;
 		}
-		if (source->type == SYM_ARRAY && same_type(target_base, source_base))
+		if (source->type == SYM_ARRAY && same_type(target_base, source_base, MOD_IGN, MOD_IGN))
 			return 1;
-		if (source->type == SYM_FN && same_type(target_base, source))
+		if (source->type == SYM_FN && same_type(target_base, source, MOD_IGN, MOD_IGN))
 			return 1;
 
 		// NULL pointer?
