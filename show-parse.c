@@ -723,6 +723,12 @@ static int show_statement_expr(struct expression *expr)
 	return show_statement(expr->statement);
 }
 
+static int show_initializer_expr(struct expression *expr)
+{
+	printf("\t// initializer goes here\n");
+	return 0;
+}
+
 /*
  * Print out an expression. Return the pseudo that contains the
  * variable.
@@ -763,8 +769,7 @@ int show_expression(struct expression *expr)
 	case EXPR_BITFIELD:
 		return show_bitfield_expr(expr);
 	case EXPR_INITIALIZER:
-		warn(expr->pos, "unable to show initializer expression");
-		return 0;
+		return show_initializer_expr(expr);
 	case EXPR_IDENTIFIER:
 		warn(expr->pos, "unable to show identifier expression");
 		return 0;
