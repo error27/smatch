@@ -80,7 +80,6 @@ static struct symbol *lookup_or_create_symbol(enum namespace ns, enum type type,
 	struct symbol *sym = lookup_symbol(token->ident, ns);
 	if (!sym) {
 		sym = alloc_symbol(token->pos, type);
-		sym->ident = token->ident;
 		bind_symbol(sym, token->ident, ns);
 		if (type == SYM_LABEL)
 			fn_local_symbol(sym);
@@ -113,7 +112,6 @@ struct token *struct_union_enum_specifier(enum type type,
 			// Either a new symbol, or else an out-of-scope
 			// symbol being redefined.
 			sym = alloc_symbol(token->pos, type);
-			sym->ident = token->ident;
 			bind_symbol(sym, token->ident, NS_STRUCT);
 		}
 		if (sym->type != type)
@@ -723,7 +721,7 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 }
 
 static struct token *parameter_type_list(struct token *, struct symbol *);
-static struct token *declarator(struct token *token, struct symbol **tree, struct ident **p);
+static struct token *declarator(struct token *token, struct symbol *sym, struct ident **p);
 
 static struct token *handle_attributes(struct token *token, struct ctype *ctype)
 {
@@ -748,9 +746,9 @@ static struct token *handle_attributes(struct token *token, struct ctype *ctype)
 	return token;
 }
 
-static struct token *direct_declarator(struct token *token, struct symbol **tree, struct ident **p)
+static struct token *direct_declarator(struct token *token, struct symbol *decl, struct ident **p)
 {
-	struct ctype *ctype = &(*tree)->ctype;
+	struct ctype *ctype = &decl->ctype;
 
 	if (p && token_type(token) == TOKEN_IDENT) {
 		*p = token->ident;
@@ -777,7 +775,7 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 
 			if (!fn) {
 				struct symbol *base_type = ctype->base_type;
-				token = declarator(next, tree, p);
+				token = declarator(next, decl, p);
 				token = expect(token, ')', "in nested declarator");
 				while (ctype->base_type != base_type)
 					ctype = &ctype->base_type->ctype;
@@ -798,9 +796,6 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 			continue;
 		}
 		break;
-	}
-	if (p) {
-		(*tree)->ident = *p;
 	}
 	return token;
 }
@@ -835,10 +830,10 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 	return token;
 }
 
-static struct token *declarator(struct token *token, struct symbol **tree, struct ident **p)
+static struct token *declarator(struct token *token, struct symbol *sym, struct ident **p)
 {
-	token = pointer(token, &(*tree)->ctype);
-	return direct_declarator(token, tree, p);
+	token = pointer(token, &sym->ctype);
+	return direct_declarator(token, sym, p);
 }
 
 static struct token *handle_bitfield(struct token *token, struct symbol *decl)
@@ -901,7 +896,8 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 			struct ident *ident = NULL;
 			struct symbol *decl = alloc_symbol(token->pos, SYM_NODE);
 			decl->ctype = ctype;
-			token = declarator(token, &decl, &ident);
+			token = declarator(token, decl, &ident);
+			decl->ident = ident;
 			if (match_op(token, ':')) {
 				token = handle_bitfield(token, decl);
 				token = handle_attributes(token, &decl->ctype);
@@ -930,7 +926,8 @@ static struct token *parameter_declaration(struct token *token, struct symbol **
 	sym = alloc_symbol(token->pos, SYM_NODE);
 	sym->ctype = ctype;
 	*tree = sym;
-	token = declarator(token, tree, &ident);
+	token = declarator(token, sym, &ident);
+	sym->ident = ident;
 	return token;
 }
 
@@ -939,7 +936,7 @@ struct token *typename(struct token *token, struct symbol **p)
 	struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
 	*p = sym;
 	token = declaration_specifiers(token, &sym->ctype, 0);
-	return declarator(token, &sym, NULL);
+	return declarator(token, sym, NULL);
 }
 
 struct token *expression_statement(struct token *token, struct expression **tree)
@@ -1023,10 +1020,8 @@ static void start_iterator(struct statement *stmt)
 
 	start_symbol_scope();
 	cont = alloc_symbol(stmt->pos, SYM_NODE);
-	cont->ident = &continue_ident;
 	bind_symbol(cont, &continue_ident, NS_ITERATOR);
 	brk = alloc_symbol(stmt->pos, SYM_NODE);
-	brk->ident = &break_ident;
 	bind_symbol(brk, &break_ident, NS_ITERATOR);
 
 	stmt->type = STMT_ITERATOR;
@@ -1048,7 +1043,6 @@ static struct statement *start_function(struct symbol *sym)
 
 	start_function_scope();
 	ret = alloc_symbol(sym->pos, SYM_NODE);
-	ret->ident = &return_ident;
 	ret->ctype = sym->ctype.base_type->ctype;
 	ret->ctype.modifiers &= ~(MOD_STORAGE | MOD_CONST | MOD_VOLATILE | MOD_INLINE | MOD_ADDRESSABLE | MOD_NOCAST | MOD_NODEREF | MOD_ACCESSED | MOD_TOPLEVEL);
 	ret->ctype.modifiers |= (MOD_AUTO | MOD_REGISTER);
@@ -1086,11 +1080,9 @@ static void start_switch(struct statement *stmt)
 
 	start_symbol_scope();
 	brk = alloc_symbol(stmt->pos, SYM_NODE);
-	brk->ident = &break_ident;
 	bind_symbol(brk, &break_ident, NS_ITERATOR);
 
 	switch_case = alloc_symbol(stmt->pos, SYM_NODE);
-	switch_case->ident = &case_ident;
 	bind_symbol(switch_case, &case_ident, NS_ITERATOR);
 	switch_case->stmt = stmt;
 
@@ -1621,13 +1613,11 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	token = declaration_specifiers(token, &ctype, 0);
 	decl = alloc_symbol(token->pos, SYM_NODE);
 	decl->ctype = ctype;
-	token = declarator(token, &decl, &ident);
+	token = declarator(token, decl, &ident);
 
 	/* Just a type declaration? */
 	if (!ident)
 		return expect(token, ';', "end of type declaration");
-
-	decl->ident = ident;
 
 	/* type define declaration? */
 	is_typedef = (ctype.modifiers & MOD_TYPEDEF) != 0;
@@ -1680,7 +1670,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 		decl = alloc_symbol(token->pos, SYM_NODE);
 		decl->ctype = ctype;
 		token = declaration_specifiers(token, &decl->ctype, 1);
-		token = declarator(token, &decl, &ident);
+		token = declarator(token, decl, &ident);
 		if (!ident) {
 			warning(token->pos, "expected identifier name in type definition");
 			return token;
