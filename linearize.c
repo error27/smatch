@@ -316,6 +316,12 @@ static void show_instruction(struct instruction *insn)
 	case OP_CONTEXT:
 		printf("\tcontext %d\n", insn->increment);
 		break;
+	case OP_SNOP:
+		printf("\tnop (%s -> %d[%s])\n", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
+		break;
+	case OP_LNOP:
+		printf("\tnop (%s <- %d[%s])\n", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
+		break;
 	default:
 		printf("\top %d ???\n", op);
 	}
@@ -1775,7 +1781,7 @@ static void simplify_one_symbol(struct symbol *sym)
 		src = def->target;		
 
 		/* Turn the store into a no-op */
-		def->src = VOID;
+		def->opcode = OP_SNOP;
 	}
 	FOR_EACH_PTR(pseudo->users, pp) {
 		struct instruction *insn = container(pp, struct instruction, src);
@@ -1792,7 +1798,7 @@ static void simplify_one_symbol(struct symbol *sym)
 			concat_user_list(target->users, &src->users);
 
 			/* Turn the load into a no-op */
-			insn->src = VOID;
+			insn->opcode = OP_LNOP;
 		}
 	} END_FOR_EACH_PTR(pp);
 	return;
