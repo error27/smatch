@@ -345,6 +345,7 @@ static void show_bb(struct basic_block *bb)
 
 	printf("bb: %p\n", bb);
 	printf("   %s:%d:%d\n", input_streams[bb->pos.stream].name, bb->pos.line,bb->pos.pos);
+
 	if (bb->parents) {
 		struct basic_block *from;
 		FOR_EACH_PTR(bb->parents, from) {
@@ -352,6 +353,15 @@ static void show_bb(struct basic_block *bb)
 				input_streams[from->pos.stream].name, from->pos.line, from->pos.pos);
 		} END_FOR_EACH_PTR(from);
 	}
+
+	if (bb->children) {
+		struct basic_block *to;
+		FOR_EACH_PTR(bb->children, to) {
+			printf("  **to %p (%s:%d:%d)**\n", to,
+				input_streams[to->pos.stream].name, to->pos.line, to->pos.pos);
+		} END_FOR_EACH_PTR(to);
+	}
+
 	FOR_EACH_PTR(bb->insns, insn) {
 		show_instruction(insn);
 	} END_FOR_EACH_PTR(insn);
@@ -431,6 +441,7 @@ static void add_goto(struct entrypoint *ep, struct basic_block *dst)
 		struct instruction *br = alloc_instruction(OP_BR, NULL);
 		br->bb_true = dst;
 		add_bb(&dst->parents, src);
+		add_bb(&src->children, dst);
 		br->bb = src;
 		add_instruction(&src->insns, br);
 		ep->active = NULL;
@@ -487,6 +498,8 @@ static void add_branch(struct entrypoint *ep, struct expression *expr, pseudo_t 
 		br->bb_false = bb_false;
 		add_bb(&bb_true->parents, bb);
 		add_bb(&bb_false->parents, bb);
+		add_bb(&bb->children, bb_true);
+		add_bb(&bb->children, bb_false);
 		add_one_insn(ep, br);
 	}
 }
@@ -1372,7 +1385,12 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		struct symbol *sym;
 		struct expression *expr;
 		struct instruction *goto_ins;
+		struct basic_block *active;
 		pseudo_t pseudo;
+
+		active = ep->active;
+		if (!bb_reachable(active))
+			break;
 
 		if (stmt->goto_label) {
 			add_goto(ep, get_bound_block(ep, stmt->goto_label));
@@ -1399,6 +1417,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			struct multijmp *jmp = alloc_multijmp(bb_computed, 1, 0);
 			add_multijmp(&goto_ins->multijmp_list, jmp);
 			add_bb(&bb_computed->parents, ep->active);
+			add_bb(&active->children, bb_computed);
 		} END_FOR_EACH_PTR(sym);
 
 		finish_block(ep);
@@ -1438,9 +1457,15 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		struct symbol *sym;
 		struct instruction *switch_ins;
 		struct basic_block *switch_end = alloc_basic_block(stmt->pos);
+		struct basic_block *active;
 		pseudo_t pseudo;
 
 		pseudo = linearize_expression(ep, stmt->switch_expression);
+
+		active = ep->active;
+		if (!bb_reachable(active))
+			break;
+
 		switch_ins = alloc_instruction(OP_SWITCH, NULL);
 		use_pseudo(switch_ins, pseudo, &switch_ins->cond);
 		add_one_insn(ep, switch_ins);
@@ -1465,7 +1490,8 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 
 			}
 			add_multijmp(&switch_ins->multijmp_list, jmp);
-			add_bb(&bb_case->parents, ep->active);
+			add_bb(&bb_case->parents, active);
+			add_bb(&active->children, bb_case);
 		} END_FOR_EACH_PTR(sym);
 
 		bind_label(stmt->switch_break, switch_end, stmt->pos);
@@ -1526,97 +1552,6 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		break;
 	}
 	return VOID;
-}
-
-void mark_bb_reachable(struct basic_block *bb)
-{
-	struct basic_block *child;
-	struct terminator_iterator term;
-	struct basic_block_list *bbstack = NULL;
-
-	if (!bb || bb->flags & BB_REACHABLE)
-		return;
-
-	add_bb(&bbstack, bb);
-	while (bbstack) {
-		bb = delete_last_basic_block(&bbstack);
-		if (bb->flags & BB_REACHABLE)
-			continue;
-		bb->flags |= BB_REACHABLE;
-		init_terminator_iterator(last_instruction(bb->insns), &term);
-		while ((child=next_terminator_bb(&term)) != NULL) {
-			if (!(child->flags & BB_REACHABLE))
-				add_bb(&bbstack, child);
-		}
-	}
-}
-
-void remove_unreachable_bbs(struct entrypoint *ep)
-{
-	struct basic_block *bb, *child;
-	struct terminator_iterator term;
-
-	FOR_EACH_PTR(ep->bbs, bb) {
-		bb->flags &= ~BB_REACHABLE;
-	} END_FOR_EACH_PTR(bb);
-	
-	mark_bb_reachable(ep->entry);
-	FOR_EACH_PTR(ep->bbs, bb) {
-		if (bb->flags & BB_REACHABLE)
-			continue;
-		init_terminator_iterator(last_instruction(bb->insns), &term);
-		while ((child=next_terminator_bb(&term)) != NULL)
-			replace_basic_block_list(child->parents, bb, NULL);
-		DELETE_CURRENT_PTR(bb);
-	}END_FOR_EACH_PTR(bb);
-}
-
-void pack_basic_blocks(struct entrypoint *ep)
-{
-	struct basic_block *bb;
-
-	remove_unreachable_bbs(ep);
-	FOR_EACH_PTR(ep->bbs, bb) {
-		struct terminator_iterator term;
-		struct instruction *jmp;
-		struct basic_block *target, *sibling, *parent;
-		int parents;
-
-		if (!is_branch_goto(jmp=last_instruction(bb->insns)))
-			continue;
-
-		target = jmp->bb_true ? jmp->bb_true : jmp->bb_false;
-		if (target == bb)
-			continue;
-		parents = bb_list_size(target->parents);
-		if (target == ep->entry)
-			parents++;
-		if (parents != 1 && jmp != first_instruction(bb->insns))
-			continue;
-
-		/* Transfer the parents' terminator to target directly. */
-		replace_basic_block_list(target->parents, bb, NULL);
-		FOR_EACH_PTR(bb->parents, parent) {
-			init_terminator_iterator(last_instruction(parent->insns), &term);
-			while ((sibling=next_terminator_bb(&term)) != NULL) {
-				if (sibling == bb) {
-					replace_terminator_bb(&term, target);
-					add_bb(&target->parents, parent);
-				}
-			}
-		} END_FOR_EACH_PTR(parent);
-
-		/* Move the instructions to the target block. */
-		delete_last_instruction(&bb->insns);
-		if (bb->insns) {
-			concat_instruction_list(target->insns, &bb->insns);
-			free_instruction_list(&target->insns);
-			target->insns = bb->insns;
-		}
-		if (bb == ep->entry)
-			ep->entry = target;
-		DELETE_CURRENT_PTR(bb);
-	}END_FOR_EACH_PTR(bb);
 }
 
 /*
@@ -2069,14 +2004,6 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 			 */
 			remove_phi_nodes(ep);
 #endif
-
-			/*
-			 * This packs the basic blocks, and also destroys the
-			 * instruction "bb" pointer information, so we must
-			 * do it last.
-			 */
-			pack_basic_blocks(ep);
-
 			ret_ep = ep;
 		}
 	}

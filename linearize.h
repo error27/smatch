@@ -182,6 +182,7 @@ struct basic_block {
 	unsigned long generation;
 	int context;
 	struct basic_block_list *parents; /* sources */
+	struct basic_block_list *children; /* destinations */
 	struct instruction_list *insns;	/* Linear list of instructions */
 };
 

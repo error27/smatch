@@ -48,7 +48,6 @@ static int check_bb_context(struct entrypoint *ep, struct basic_block *bb, int e
 
 static int check_children(struct entrypoint *ep, struct basic_block *bb, int entry, int exit)
 {
-	struct terminator_iterator term;
 	struct instruction *insn;
 	struct basic_block *child;
 
@@ -58,11 +57,10 @@ static int check_children(struct entrypoint *ep, struct basic_block *bb, int ent
 	if (insn->opcode == OP_RET)
 		return entry != exit ? imbalance(ep, bb, entry, exit, "wrong count at exit") : 0;
 
-	init_terminator_iterator(insn, &term);
-	while ((child=next_terminator_bb(&term)) != NULL) {
+	FOR_EACH_PTR(bb->children, child) {
 		if (check_bb_context(ep, child, entry, exit))
 			return -1;
-	}
+	} END_FOR_EACH_PTR(child);
 	return 0;
 }
 

@@ -93,39 +93,8 @@ struct ptr_list {
 	void *list[LIST_NODE_NR];
 };
 
-struct list_iterator {
-	struct ptr_list **head;
-	struct ptr_list *active;
-	int index;
-	unsigned int flags;
-};
-
-enum iterator_br_state {
-	BR_INIT,
-	BR_TRUE,
-	BR_FALSE,
-	BR_END,
-};
-
-struct terminator_iterator {
-	struct instruction *terminator;
-	union {
-		struct list_iterator multijmp;
-		int branch;
-	};
-};
-
-#define ITERATOR_BACKWARDS 1
-#define ITERATOR_CURRENT 2
-
 #define ptr_list_empty(x) ((x) == NULL)
 
-void init_iterator(struct ptr_list **head, struct list_iterator *iterator, int flags);
-void * next_iterator(struct list_iterator *iterator);
-void delete_iterator(struct list_iterator *iterator);
-void init_terminator_iterator(struct instruction* terminator, struct terminator_iterator *iterator);
-struct basic_block* next_terminator_bb(struct terminator_iterator *iterator);
-void replace_terminator_bb(struct terminator_iterator *iterator, struct basic_block* bb);
 void * delete_ptr_list_last(struct ptr_list **head);
 int replace_ptr_list(struct ptr_list *head, void *old_ptr, void *new_ptr);
 extern void sort_list(struct ptr_list **, int (*)(const void *, const void *));
@@ -136,7 +105,6 @@ extern void free_ptr_list(struct ptr_list **);
 extern int ptr_list_size(struct ptr_list *);
 extern char **handle_switch(char *arg, char **next);
 extern void add_pre_buffer(const char *fmt, ...);
-void * next_iterator(struct list_iterator *iterator);
 int linearize_ptr_list(struct ptr_list *, void **, int);
 
 extern unsigned int pre_buffer_size;
@@ -181,29 +149,9 @@ static inline int bb_list_size(struct basic_block_list* list)
 	return ptr_list_size((struct ptr_list *)(list));
 }
 
-static inline struct basic_block* next_basic_block(struct list_iterator *iterator)
-{
-	return 	next_iterator(iterator);
-}
-
-static inline struct multijmp* next_multijmp(struct list_iterator *iterator)
-{
-	return 	next_iterator(iterator);
-}
-
 static inline void free_instruction_list(struct instruction_list **head)
 {
 	free_ptr_list((struct ptr_list **)head);
-}
-
-static inline void init_multijmp_iterator(struct multijmp_list **head, struct list_iterator *iterator, int flags)
-{
-	init_iterator((struct ptr_list **)head, iterator, flags);
-}
-
-static inline void init_bb_iterator(struct basic_block_list **head, struct list_iterator *iterator, int flags)
-{
-	init_iterator((struct ptr_list **)head, iterator, flags);
 }
 
 static inline struct instruction * delete_last_instruction(struct instruction_list **head)
@@ -230,12 +178,6 @@ static inline void *last_ptr_list(struct ptr_list *list)
 		return NULL;
 	list = list->prev;
 	return list->list[list->nr-1];
-}
-
-static inline void * current_iterator(struct list_iterator *iterator)
-{
-	struct ptr_list *list = iterator->active;
-	return list ? list->list[iterator->index] : NULL;
 }
 
 static inline struct basic_block *first_basic_block(struct basic_block_list *head)
