@@ -1390,7 +1390,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 
 		if (!(decl->ctype.modifiers & MOD_STATIC))
 			decl->ctype.modifiers |= MOD_EXTERN;
-	} else if (!is_typedef && base_type == &void_ctype) {
+	} else if (!is_typedef && base_type == &void_ctype && !(decl->ctype.modifiers & MOD_EXTERN)) {
 		warn(token->pos, "void declaration");
 	}
 
