@@ -2,6 +2,7 @@ CC=gcc
 CFLAGS=-g -Wall
 AR=ar
 
+PREFIX=/usr/local
 PROGRAMS=test-lexing test-parsing obfuscate check
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h
@@ -12,6 +13,14 @@ LIB_OBJS= parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 LIB_FILE= sparse.a
 
 all: $(PROGRAMS)
+
+#
+# Install the 'check' binary as 'sparse', just to confuse people.
+#
+#		"The better to keep you on your toes, my dear".
+#
+install: check
+	install -C check $(PREFIX)/bin/sparse
 
 test-lexing: test-lexing.o $(LIB_FILE)
 	gcc -o $@ $< $(LIB_FILE)
