@@ -91,7 +91,7 @@ void delete_ptr_list_entry(struct ptr_list **, void *, int);
 void replace_ptr_list_entry(struct ptr_list **, void *old, void *new, int);
 extern void sort_list(struct ptr_list **, int (*)(const void *, const void *));
 
-extern void **__add_ptr_list(struct ptr_list **, void *);
+extern void **__add_ptr_list(struct ptr_list **, void *, unsigned long tag);
 extern void concat_ptr_list(struct ptr_list *a, struct ptr_list **b);
 extern void __free_ptr_list(struct ptr_list **);
 extern int ptr_list_size(struct ptr_list *);
@@ -105,8 +105,10 @@ int linearize_ptr_list(struct ptr_list *, void **, int);
  * You just have to be creative, and use some gcc
  * extensions..
  */
+#define add_ptr_list_tag(list,entry,tag) \
+	(TYPEOF(*(list))) (CHECK_TYPE(*(list),(entry)),__add_ptr_list((struct ptr_list **)(list), (entry), (tag)))
 #define add_ptr_list(list,entry) \
-	(TYPEOF(*(list))) (CHECK_TYPE(*(list),(entry)),__add_ptr_list((struct ptr_list **)(list), (entry)))
+	add_ptr_list_tag(list,entry,0)
 #define free_ptr_list(list) \
 	do { VRFY_PTR_LIST(*(list)); __free_ptr_list((struct ptr_list **)(list)); } while (0)
 
@@ -414,6 +416,11 @@ static inline void update_tag(void *p, unsigned long tag)
 {
 	unsigned long *ptr = p;
 	*ptr = tag | (~3UL & *ptr);
+}
+
+static inline void *tag_ptr(void *ptr, unsigned long tag)
+{
+	return (void *)(tag | (unsigned long)ptr);
 }
 
 #define CURRENT_TAG(ptr) (3 & (unsigned long)*THIS_ADDRESS(ptr))

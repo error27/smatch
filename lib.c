@@ -167,7 +167,7 @@ void split_ptr_list_head(struct ptr_list *head)
 	memset(head->list + old, 0xf0, nr * sizeof(void *));
 }
 
-void **__add_ptr_list(struct ptr_list **listp, void *ptr)
+void **__add_ptr_list(struct ptr_list **listp, void *ptr, unsigned long tag)
 {
 	struct ptr_list *list = *listp;
 	struct ptr_list *last = NULL; /* gcc complains needlessly */
@@ -176,6 +176,8 @@ void **__add_ptr_list(struct ptr_list **listp, void *ptr)
 
 	/* The low two bits are reserved for tags */
 	assert((3 & (unsigned long)ptr) == 0);
+	assert((~3 & tag) == 0);
+	ptr = (void *)(tag | (unsigned long)ptr);
 
 	if (!list || (nr = (last = list->prev)->nr) >= LIST_NODE_NR) {
 		struct ptr_list *newlist = malloc(sizeof(*newlist));
