@@ -863,6 +863,36 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 	return VOID;
 }
 
+pseudo_t linearize_compound_statement(struct entrypoint *ep, struct statement *stmt)
+{
+	pseudo_t pseudo = NULL;
+	struct statement *s;
+	struct symbol *ret = stmt->ret;
+	concat_symbol_list(stmt->syms, &ep->syms);
+	if (ret)
+		ret->bb_target = alloc_basic_block(stmt->pos);
+	FOR_EACH_PTR(stmt->stmts, s) {
+		pseudo = linearize_statement(ep, s);
+	} END_FOR_EACH_PTR(s);
+	if (ret) {
+		struct basic_block *bb = ret->bb_target;
+		struct instruction *phi = first_instruction(bb->insns);
+
+		if (!phi)
+			return pseudo;
+
+		set_activeblock(ep, bb);
+		if (phi_list_size(phi->phi_list)==1) {
+			pseudo = first_phi(phi->phi_list)->pseudo;
+			delete_last_instruction(&bb->insns);
+			return pseudo;
+		}
+		return phi->target;
+	}
+	return pseudo;
+}
+
+
 pseudo_t linearize_internal(struct entrypoint *ep, struct statement *stmt)
 {
 	struct instruction *insn = alloc_instruction(OP_CONTEXT, &void_ctype);
@@ -968,33 +998,8 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		break;
 	}
 
-	case STMT_COMPOUND: {
-		pseudo_t pseudo = NULL;
-		struct statement *s;
-		struct symbol *ret = stmt->ret;
-		concat_symbol_list(stmt->syms, &ep->syms);
-		if (ret)
-			ret->bb_target = alloc_basic_block(stmt->pos);
-		FOR_EACH_PTR(stmt->stmts, s) {
-			pseudo = linearize_statement(ep, s);
-		} END_FOR_EACH_PTR(s);
-		if (ret) {
-			struct basic_block *bb = ret->bb_target;
-			struct instruction *phi = first_instruction(bb->insns);
-
-			if (!phi)
-				return pseudo;
-
-			set_activeblock(ep, bb);
-			if (phi_list_size(phi->phi_list)==1) {
-				pseudo = first_phi(phi->phi_list)->pseudo;
-				delete_last_instruction(&bb->insns);
-				return pseudo;
-			}
-			return phi->target;
-		}
-		return pseudo;
-	}
+	case STMT_COMPOUND:
+		return linearize_compound_statement(ep, stmt);
 
 	/*
 	 * This could take 'likely/unlikely' into account, and
