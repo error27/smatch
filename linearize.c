@@ -2036,11 +2036,11 @@ multi_def:
 complex_def:
 external_visibility:
 	all = 1;
-	FOR_EACH_PTR(pseudo->users, pp) {
+	FOR_EACH_PTR_REVERSE(pseudo->users, pp) {
 		struct instruction *insn = container(pp, struct instruction, src);
 		if (insn->opcode == OP_LOAD)
 			all &= find_dominating_stores(pseudo, insn, ++bb_generation, !mod);
-	} END_FOR_EACH_PTR(pp);
+	} END_FOR_EACH_PTR_REVERSE(pp);
 
 	/* If we converted all the loads, remove the stores. They are dead */
 	if (all && !mod) {
