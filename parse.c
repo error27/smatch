@@ -1188,6 +1188,9 @@ struct token * statement_list(struct token *token, struct statement_list **list)
 static struct token *parameter_type_list(struct token *token, struct symbol *fn)
 {
 	struct symbol_list **list = &fn->arguments;
+
+	if (match_op(token, ')'))
+		return token;
 	for (;;) {
 		struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
 
@@ -1346,28 +1349,38 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 	return expect(token, '}', "at end of function");
 }
 
-static void apply_kr_types(struct symbol_list *argtypes, struct symbol *fn)
+static void promote_k_r_types(struct symbol *arg)
 {
-	struct symbol_list *real_args = fn->ctype.base_type->arguments;
-	struct symbol *arg, *type;
-
-	PREPARE_PTR_LIST(argtypes, type);
-	FOR_EACH_PTR(real_args, arg) {
-		if (!type) {
-			warn(arg->pos, "no K&R type for '%s'", show_ident(arg->ident));
-			return;
-		}
-		if (type->ident != arg->ident) {
-			warn(arg->pos, "K&R declaration disagrees on name of %s",
-				show_ident(arg->ident));
-		}
-		arg->ctype = type->ctype;
-		NEXT_PTR_LIST(type);
-	} END_FOR_EACH_PTR;
-	FINISH_PTR_LIST(type);
+	struct symbol *base = arg->ctype.base_type;
+	if (base && base->ctype.base_type == &int_type && (base->ctype.modifiers & (MOD_CHAR | MOD_SHORT))) {
+		arg->ctype.base_type = &int_ctype;
+	}
 }
 
-static struct token *parse_kr_arguments(struct token *token, struct symbol *decl,
+static void apply_k_r_types(struct symbol_list *argtypes, struct symbol *fn)
+{
+	struct symbol_list *real_args = fn->ctype.base_type->arguments;
+	struct symbol *arg;
+
+	FOR_EACH_PTR(real_args, arg) {
+		struct symbol *type;
+
+		/* This is quadratic in the number of arguments. We _really_ don't care */
+		FOR_EACH_PTR(argtypes, type) {
+			if (type->ident == arg->ident)
+				goto match;
+		} END_FOR_EACH_PTR;
+		warn(arg->pos, "no K&R type for '%s'", show_ident(arg->ident));
+		return;
+match:
+		/* "char" and "short" promote to "int" */
+		promote_k_r_types(type);
+
+		arg->ctype = type->ctype;
+	} END_FOR_EACH_PTR;
+}
+
+static struct token *parse_k_r_arguments(struct token *token, struct symbol *decl,
 	struct symbol_list **list)
 {
 	struct symbol_list *args = NULL;
@@ -1377,13 +1390,13 @@ static struct token *parse_kr_arguments(struct token *token, struct symbol *decl
 		token = external_declaration(token, &args);
 	} while (lookup_type(token));
 
-	apply_kr_types(args, decl);
+	apply_k_r_types(args, decl);
 
 	if (!match_op(token, '{')) {
 		warn(token->pos, "expected function body");
 		return token;
 	}
-	return parse_function_body(token->next, decl, list);
+	return parse_function_body(token, decl, list);
 }
 
 
@@ -1439,7 +1452,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	if (!is_typedef && base_type && base_type->type == SYM_FN) {
 		/* K&R argument declaration? */
 		if (lookup_type(token))
-			return parse_kr_arguments(token, decl, list);
+			return parse_k_r_arguments(token, decl, list);
 		if (match_op(token, '{'))
 			return parse_function_body(token, decl, list);
 
