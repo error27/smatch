@@ -553,6 +553,10 @@ static void do_include(struct stream *stream, struct token *head, struct token *
 			return;
 	}
 
+	/* Check current directory */
+	if (try_include("", 0, filename, flen, head))
+		return;
+
 	error(token->pos, "unable to open '%s'", filename);
 }
 
