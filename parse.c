@@ -301,7 +301,8 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 	if (match_string_ident(attribute, "const") ||
 	    match_string_ident(attribute, "__const__"))
 		return NULL;
-	if (match_string_ident(attribute, "noreturn"))
+	if (match_string_ident(attribute, "noreturn") ||
+	    match_string_ident(attribute, "__noreturn__"))
 		return NULL;
 	if (match_string_ident(attribute, "regparm"))
 		return NULL;
