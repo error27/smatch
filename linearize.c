@@ -42,14 +42,14 @@ static struct instruction *alloc_instruction(int opcode, int size)
 	return insn;
 }
 
+static inline int type_size(struct symbol *type)
+{
+	return type ? type->bit_size > 0 ? type->bit_size : 0 : 0;
+}
+
 static struct instruction *alloc_typed_instruction(int opcode, struct symbol *type)
 {
-	int size;
-
-	size = type ? type->bit_size : 0;
-	if (size < 0)
-		size = 0;
-	return alloc_instruction(opcode, size);
+	return alloc_instruction(opcode, type_size(type));
 }
 
 static struct entrypoint *alloc_entrypoint(void)
@@ -367,7 +367,10 @@ void show_instruction(struct instruction *insn)
 	}
 	case OP_CAST:
 	case OP_PTRCAST:
-		buf += sprintf(buf, "%s <- (%d) %s", show_pseudo(insn->target), insn->orig_type->bit_size, show_pseudo(insn->src));
+		buf += sprintf(buf, "%s <- (%d) %s",
+			show_pseudo(insn->target),
+			type_size(insn->orig_type),
+			show_pseudo(insn->src));
 		break;
 	case OP_BINARY ... OP_BINARY_END:
 	case OP_BINCMP ... OP_BINCMP_END:
@@ -863,7 +866,7 @@ static pseudo_t linearize_store_gen(struct entrypoint *ep,
 {
 	pseudo_t store = value;
 
-	if (ad->source_type->bit_size != ad->result_type->bit_size) {
+	if (type_size(ad->source_type) != type_size(ad->result_type)) {
 		pseudo_t orig = add_load(ep, ad);
 		int shift = ad->bit_offset;
 		unsigned long long mask = (1ULL << ad->bit_size)-1;
@@ -1171,7 +1174,7 @@ static pseudo_t linearize_short_conditional(struct entrypoint *ep, struct expres
 	struct basic_block *bb_false = alloc_basic_block(ep, expr_false->pos);
 	struct basic_block *merge = alloc_basic_block(ep, expr->pos);
 	pseudo_t phi1, phi2;
-	int size = expr->ctype->bit_size;
+	int size = type_size(expr->ctype);
 
 	src1 = linearize_expression(ep, cond);
 	phi1 = alloc_phi(ep->active, src1, size);
@@ -1195,7 +1198,7 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 	struct basic_block *bb_true = alloc_basic_block(ep, expr_true->pos);
 	struct basic_block *bb_false = alloc_basic_block(ep, expr_false->pos);
 	struct basic_block *merge = alloc_basic_block(ep, expr->pos);
-	int size = expr->ctype->bit_size;
+	int size = type_size(expr->ctype);
 
 	linearize_cond_branch(ep, cond, bb_true, bb_false);
 
@@ -1326,6 +1329,8 @@ pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 
 	src = linearize_expression(ep, expr->cast_expression);
 	if (src == VOID)
+		return VOID;
+	if (!expr->ctype)
 		return VOID;
 	if (expr->ctype->bit_size < 0)
 		return VOID;
@@ -1559,7 +1564,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 				phi_node->bb = bb_return;
 				add_instruction(&bb_return->insns, phi_node);
 			}
-			phi = alloc_phi(active, src, expr->ctype->bit_size);
+			phi = alloc_phi(active, src, type_size(expr->ctype));
 			phi->ident = &return_ident;
 			use_pseudo(phi, add_pseudo(&phi_node->phi_list, phi));
 		}
@@ -1792,7 +1797,7 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 		struct symbol *ret_type = base_type->ctype.base_type;
 		struct instruction *insn = alloc_typed_instruction(OP_RET, ret_type);
 
-		if (ret_type->bit_size > 0)
+		if (type_size(ret_type) > 0)
 			use_pseudo(result, &insn->src);
 		add_one_insn(ep, insn);
 	}
