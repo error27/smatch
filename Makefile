@@ -27,7 +27,7 @@ LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 	  sort.o allocate.o compat-$(OS).o \
 	  flow.o cse.o simplify.o memops.o liveness.o storage.o
 
-LIB_FILE= sparse.a
+LIB_FILE= libsparse.a
 SLIB_FILE= libsparse.so
 
 LIBS=$(LIB_FILE)
