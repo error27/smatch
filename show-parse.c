@@ -377,9 +377,10 @@ static void show_switch_statement(struct statement *stmt)
 	} END_FOR_EACH_PTR;
 	printf("# end case table\n");
 
+	show_statement(stmt->switch_statement);
+
 	if (stmt->switch_break->used)
 		printf(".L%p:\n", stmt->switch_break);
-	show_statement(stmt->switch_statement);
 }
 
 /*
