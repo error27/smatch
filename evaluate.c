@@ -1412,8 +1412,7 @@ static struct symbol *evaluate_call(struct expression *expr)
 	if (!evaluate_arguments(sym, ctype, arglist))
 		return NULL;
 	if (ctype->type != SYM_FN) {
-		warn(expr->pos, "not a function %.*s",
-				sym->ident->len, sym->ident->name);
+		warn(expr->pos, "not a function %s", show_ident(sym->ident));
 		return NULL;
 	}
 	args = expression_list_size(expr->args);
