@@ -127,7 +127,7 @@ static struct expression * promote(struct expression *old, struct symbol *type)
 
 static int is_ptr_type(struct symbol *type)
 {
-	return type->type == SYM_PTR || type->type == SYM_ARRAY;
+	return type->type == SYM_PTR || type->type == SYM_ARRAY || type->type == SYM_FN;
 }
 
 static int is_int_type(struct symbol *type)
