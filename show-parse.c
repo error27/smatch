@@ -962,6 +962,7 @@ int show_expression(struct expression *expr)
 		return show_symbol_expr(expr->symbol);
 	case EXPR_DEREF:
 	case EXPR_SIZEOF:
+	case EXPR_ALIGNOF:
 		warn(expr->pos, "invalid expression after evaluation");
 		return 0;
 	case EXPR_CAST:

@@ -1211,6 +1211,28 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 	return size_t_ctype;
 }
 
+static struct symbol *evaluate_alignof(struct expression *expr)
+{
+	int offset;
+
+	if (expr->cast_type) {
+		examine_symbol_type(expr->cast_type);
+		offset = expr->cast_type->bit_offset;
+	} else {
+		if (!evaluate_expression(expr->cast_expression))
+			return NULL;
+		offset = expr->cast_expression->ctype->bit_offset;
+	}
+	if (offset & 7) {
+		warn(expr->pos, "cannot size expression");
+		return NULL;
+	}
+	expr->type = EXPR_VALUE;
+	expr->value = offset >> 3;
+	expr->ctype = size_t_ctype;
+	return size_t_ctype;
+}
+
 static int context_clash(struct symbol *sym1, struct symbol *sym2)
 {
 	unsigned long clash = (sym1->ctype.context ^ sym2->ctype.context);
@@ -1609,6 +1631,8 @@ struct symbol *evaluate_expression(struct expression *expr)
 		return evaluate_cast(expr);
 	case EXPR_SIZEOF:
 		return evaluate_sizeof(expr);
+	case EXPR_ALIGNOF:
+		return evaluate_alignof(expr);
 	case EXPR_DEREF:
 		return evaluate_member_dereference(expr);
 	case EXPR_CALL:

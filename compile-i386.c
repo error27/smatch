@@ -2121,6 +2121,7 @@ static struct storage *x86_expression(struct expression *expr)
 		return emit_symbol_expr_init(expr->symbol);
 	case EXPR_DEREF:
 	case EXPR_SIZEOF:
+	case EXPR_ALIGNOF:
 		warn(expr->pos, "invalid expression after evaluation");
 		return NULL;
 	case EXPR_CAST:
