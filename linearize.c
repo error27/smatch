@@ -153,6 +153,10 @@ const char *show_pseudo(pseudo_t pseudo)
 
 static const char* opcodes[] = {
 	[OP_BADOP] = "bad_op",
+
+	/* Fn entrypoint */
+	[OP_ENTRY] = "<entry-point>",
+
 	/* Terminator */
 	[OP_RET] = "ret",
 	[OP_BR] = "br",
@@ -419,8 +423,8 @@ static void show_bb(struct basic_block *bb)
 
 		FOR_EACH_PTR(bb->needs, needs) {
 			struct instruction *def = needs->def;
-			if (!def || def->opcode != OP_PHI) {
-				printf("  **uses %s (from .L%p)**\n", show_pseudo(needs), def ? def->bb : NULL);
+			if (def->opcode != OP_PHI) {
+				printf("  **uses %s (from .L%p)**\n", show_pseudo(needs), def->bb);
 			} else {
 				pseudo_t phi;
 				const char *sep = " ";
@@ -504,8 +508,6 @@ void show_entry(struct entrypoint *ep)
 			continue;
 		if (!bb->parents && !bb->children && !bb->insns && verbose < 2)
 			continue;
-		if (bb == ep->entry)
-			printf("ENTRY:\n");
 		show_bb(bb);
 	} END_FOR_EACH_PTR(bb);
 
@@ -734,11 +736,12 @@ pseudo_t value_pseudo(long long val)
 	return pseudo;
 }
 
-static pseudo_t argument_pseudo(int nr)
+static pseudo_t argument_pseudo(struct entrypoint *ep, int nr)
 {
 	pseudo_t pseudo = __alloc_pseudo(0);
 	pseudo->type = PSEUDO_ARG;
 	pseudo->nr = nr;
+	pseudo->def = ep->entry;
 	/* Argument pseudos have neither usage nor def */
 	return pseudo;
 }
@@ -1393,7 +1396,7 @@ void linearize_argument(struct entrypoint *ep, struct symbol *arg, int nr)
 	ad.source_type = arg;
 	ad.result_type = arg;
 	ad.address = symbol_pseudo(ep, arg);
-	linearize_store_gen(ep, argument_pseudo(nr), &ad);
+	linearize_store_gen(ep, argument_pseudo(ep, nr), &ad);
 	finish_address_gen(ep, &ad);
 }
 
@@ -1778,6 +1781,7 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	struct entrypoint *ep;
 	struct basic_block *bb;
 	struct symbol *arg;
+	struct instruction *entry;
 	pseudo_t result;
 	int i;
 
@@ -1788,8 +1792,12 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	bb = alloc_basic_block(ep, sym->pos);
 	
 	ep->name = sym;
-	ep->entry = bb;
 	set_activeblock(ep, bb);
+
+	entry = alloc_instruction(OP_ENTRY, 0);
+	add_one_insn(ep, entry);
+	ep->entry = entry;
+
 	concat_symbol_list(base_type->arguments, &ep->syms);
 
 	/* FIXME!! We should do something else about varargs.. */

@@ -88,6 +88,10 @@ struct instruction {
 
 enum opcode {
 	OP_BADOP,
+
+	/* Entry */
+	OP_ENTRY,
+
 	/* Terminator */
 	OP_TERMINATOR,
 	OP_RET = OP_TERMINATOR,
@@ -252,7 +256,7 @@ struct entrypoint {
 	struct symbol_list *accesses;
 	struct basic_block_list *bbs;
 	struct basic_block *active;
-	struct basic_block *entry;
+	struct instruction *entry;
 };
 
 extern void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi, pseudo_t true, pseudo_t false);

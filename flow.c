@@ -752,7 +752,7 @@ void kill_unreachable_bbs(struct entrypoint *ep)
 	struct basic_block *bb;
 	unsigned long generation = ++bb_generation;
 
-	mark_bb_reachable(ep->entry, generation);
+	mark_bb_reachable(ep->entry->bb, generation);
 	FOR_EACH_PTR(ep->bbs, bb) {
 		if (bb->generation == generation)
 			continue;
@@ -882,7 +882,7 @@ static void vrfy_bb_flow(struct basic_block *bb)
 void vrfy_flow(struct entrypoint *ep)
 {
 	struct basic_block *bb;
-	struct basic_block *entry = ep->entry;
+	struct basic_block *entry = ep->entry->bb;
 
 	FOR_EACH_PTR(ep->bbs, bb) {
 		if (bb == entry)
@@ -917,8 +917,6 @@ void pack_basic_blocks(struct entrypoint *ep)
 				struct basic_block *replace;
 				replace = rewrite_branch_bb(bb, first);
 				if (replace) {
-					if (bb == ep->entry)
-						ep->entry = replace;
 					kill_bb(bb);
 					goto no_merge;
 				}
@@ -930,9 +928,6 @@ void pack_basic_blocks(struct entrypoint *ep)
 		} END_FOR_EACH_PTR(first);
 
 out:
-		if (ep->entry == bb)
-			continue;
-
 		/*
 		 * See if we only have one parent..
 		 */
