@@ -125,6 +125,7 @@ int main(int argc, char **argv)
 	printf("\n\n");
 #endif
 
+#if 0
 	// And show the allocation statistics
 	show_ident_alloc();
 	show_token_alloc();
@@ -133,5 +134,6 @@ int main(int argc, char **argv)
 	show_statement_alloc();
 	show_string_alloc();
 	show_bytes_alloc();
+#endif
 	return 0;
 }
