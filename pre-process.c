@@ -38,19 +38,15 @@ static char elif_ignore[MAX_NEST];
 
 #define INCLUDEPATHS 300
 const char *includepath[INCLUDEPATHS+1] = {
-	NULL
-};
-
-const char *sys_includepath[] = {
 	"/usr/include",
 	"/usr/local/include",
-	NULL,
-};
-
-const char *gcc_includepath[] = {
 	GCC_INTERNAL_INCLUDE,
 	NULL
 };
+
+const char **sys_includepath = includepath + 0;
+const char **gcc_includepath = includepath + 2;
+const char **next_includepath = NULL;
 
 #define MARK_STREAM_NONCONST(pos) do {					\
 	if (stream->constant != CONSTANT_FILE_NOPE) {			\
@@ -661,11 +657,6 @@ static void do_include(int local, struct stream *stream, struct token **list, st
 	/* Check the standard include paths.. */
 	if (do_include_path(includepath, list, token, filename, flen))
 		return;
-	if (do_include_path(sys_includepath, list, token, filename, flen))
-		return;
-	if (do_include_path(gcc_includepath, list, token, filename, flen))
-		return;
-
 out:
 	error(token->pos, "unable to open '%s'", filename);
 }
@@ -1274,24 +1265,59 @@ static int handle_error(struct stream *stream, struct token **line, struct token
 
 static int handle_nostdinc(struct stream *stream, struct token **line, struct token *token)
 {
+	int stdinc;
+
 	if (false_nesting)
 		return 1;
-	includepath[0] = NULL;
+
+	/*
+	 * Do we have any non-system includes?
+	 * Clear them out if so..
+	 */
+	stdinc = sys_includepath - includepath;
+	if (stdinc) {
+		const char **src = sys_includepath;
+		const char **dst = includepath;
+		for (;;) {
+			if (!(*dst = *src))
+				break;
+			dst++;
+			src++;
+		}
+		sys_includepath -= stdinc;
+		gcc_includepath -= stdinc;
+		next_includepath = NULL;
+	}
 	return 1;
 }
 
 static void add_path_entry(struct token *token, const char *path)
 {
-	int i;
+	const char **dst;
+	const char *next;
 
-	for (i = 0; i < INCLUDEPATHS; i++) {
-		if (!includepath[i]) {
-			includepath[i] = path;
-			includepath[i+1] = NULL;
-			return;
-		}
+	/* Need one free entry.. */
+	if (includepath[INCLUDEPATHS-2])
+		error(token->pos, "too many include path entries");
+
+	next = path;
+	dst = sys_includepath;
+	sys_includepath++;
+	gcc_includepath++;
+	next_includepath = NULL;
+
+	/*
+	 * Move them all up starting at "sys_includepath",
+	 * insert the new entry..
+	 */
+	for (;;) {
+		const char *tmp = *dst;
+		*dst = next;
+		if (!next)
+			break;
+		next = tmp;
+		dst++;
 	}
-	warn(token->pos, "too many include path entries");
 }
 
 static int handle_add_include(struct stream *stream, struct token **line, struct token *token)
