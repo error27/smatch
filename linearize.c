@@ -1924,6 +1924,7 @@ repeat:
 		pack_basic_blocks(ep);
 	} while (repeat_phase & REPEAT_CSE);
 
+	kill_unreachable_bbs(ep);
 	vrfy_flow(ep);
 
 	/* Cleanup */
