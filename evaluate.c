@@ -2449,6 +2449,7 @@ static void evaluate_asm_statement(struct statement *stmt)
 				return;
 			if (!lvalue_expression(expr))
 				warning(expr->pos, "asm output is not an lvalue");
+			evaluate_assign_to(expr, expr->ctype);
 			continue;
 		}
 	} END_FOR_EACH_PTR(expr);
