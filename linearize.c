@@ -1459,6 +1459,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		switch_ins = alloc_instruction(OP_SWITCH, NULL);
 		use_pseudo(pseudo, &switch_ins->cond);
 		add_one_insn(ep, switch_ins);
+		finish_block(ep);
 
 		default_case = NULL;
 		FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
