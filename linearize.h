@@ -151,6 +151,7 @@ enum opcode {
 	OP_PHI,
 	OP_PHISOURCE,
 	OP_CAST,
+	OP_PTRCAST,
 	OP_CALL,
 	OP_VANEXT,
 	OP_VAARG,

@@ -211,6 +211,7 @@ static const char* opcodes[] = {
 	[OP_PHI] = "phi",
 	[OP_PHISOURCE] = "phisrc",
 	[OP_CAST] = "cast",
+	[OP_PTRCAST] = "ptrcast",
 	[OP_CALL] = "call",
 	[OP_VANEXT] = "va_next",
 	[OP_VAARG] = "va_arg",
@@ -367,6 +368,7 @@ void show_instruction(struct instruction *insn)
 		break;
 	}
 	case OP_CAST:
+	case OP_PTRCAST:
 		buf += sprintf(buf, "%s <- (%d) %s", show_pseudo(insn->target), insn->orig_type->bit_size, show_pseudo(insn->src));
 		break;
 	case OP_BINARY ... OP_BINARY_END:
@@ -1305,6 +1307,27 @@ static pseudo_t linearize_logical_branch(struct entrypoint *ep, struct expressio
 	return VOID;
 }
 
+/*
+ * Casts to pointers are "less safe" than other casts, since
+ * they imply type-unsafe accesses. "void *" is a special
+ * case, since you can't access through it anyway without another
+ * cast.
+ */
+static struct instruction *alloc_cast_instruction(struct symbol *ctype)
+{
+	int opcode = OP_CAST;
+	struct symbol *base = ctype;
+
+	if (base->type == SYM_NODE)
+		base = base->ctype.base_type;
+	if (base->type == SYM_PTR) {
+		base = base->ctype.base_type;
+		if (base != &void_ctype)
+			opcode = OP_PTRCAST;
+	}
+	return alloc_typed_instruction(opcode, ctype);
+}
+
 pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 {
 	pseudo_t src, result;
@@ -1315,7 +1338,8 @@ pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 		return VOID;
 	if (expr->ctype->bit_size < 0)
 		return VOID;
-	insn = alloc_typed_instruction(OP_CAST, expr->ctype);
+
+	insn = alloc_cast_instruction(expr->ctype);
 	result = alloc_pseudo(insn);
 	insn->target = result;
 	insn->orig_type = expr->cast_expression->ctype;

@@ -454,6 +454,22 @@ offset:
 	return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 }
 
+static int simplify_cast(struct instruction *insn)
+{
+	int orig_size;
+
+	if (dead_insn(insn, &insn->src, NULL))
+		return REPEAT_CSE;
+	if (insn->opcode == OP_PTRCAST)
+		return 0;
+	orig_size = insn->orig_type ? insn->orig_type->bit_size : 0;
+	if (orig_size < 0)
+		orig_size = 0;
+	if (insn->size != orig_size)
+		return 0;
+	return replace_with_pseudo(insn, insn->src);
+}
+
 int simplify_instruction(struct instruction *insn)
 {
 	pseudo_t cond;
@@ -476,6 +492,9 @@ int simplify_instruction(struct instruction *insn)
 		if (dead_insn(insn, NULL, NULL))
 			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 		break;
+	case OP_PTRCAST:
+	case OP_CAST:
+		return simplify_cast(insn);
 	case OP_PHI:
 		if (dead_insn(insn, NULL, NULL)) {
 			clear_phi(insn);
