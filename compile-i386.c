@@ -1136,9 +1136,11 @@ static struct storage *emit_binop(struct expression *expr)
 	int is_signed, doing_divide = 0;
 
 	if ((expr->op == '/') || (expr->op == '%')) {
+		struct storage *val;
+
 		doing_divide = 1;
 		/* init EDX to 0 */
-		struct storage *val = new_storage(STOR_VALUE);
+		val = new_storage(STOR_VALUE);
 		val->flags = STOR_WANTS_FREE;
 		emit_move(val, REG_EDX, NULL, "begin EXPR_DIVIDE");
 	}

@@ -419,7 +419,7 @@ int replace_ptr_list(struct ptr_list **head, void *old_ptr, void *new_ptr)
 	void *ptr;
 
 	init_iterator(head, &iterator, 0);
-	while ((ptr=next_iterator(&iterator))) {
+	while ((ptr=next_iterator(&iterator)) != NULL) {
 		if (ptr==old_ptr) {
 			if (new_ptr)
 				replace_iterator(&iterator, new_ptr);

@@ -958,7 +958,7 @@ void mark_bb_reachable(struct basic_block *bb)
 			continue;
 		bb->flags |= BB_REACHABLE;
 		init_terminator_iterator(last_instruction(bb->insns), &term);
-		while ((child=next_terminator_bb(&term))) {
+		while ((child=next_terminator_bb(&term)) != NULL) {
 			if (!(child->flags & BB_REACHABLE))
 				add_bb(&bbstack, child);
 		}
@@ -972,16 +972,16 @@ void remove_unreachable_bbs(struct basic_block_list **bblist)
 	struct terminator_iterator term;
 
 	init_iterator((struct ptr_list **) bblist, &iterator, 0);
-	while((bb=next_basic_block(&iterator)))
+	while((bb=next_basic_block(&iterator)) != NULL)
 		bb->flags &= ~BB_REACHABLE;
 
 	init_iterator((struct ptr_list **) bblist, &iterator, 0);
 	mark_bb_reachable(next_basic_block(&iterator));
-	while((bb=next_basic_block(&iterator))) {
+	while((bb=next_basic_block(&iterator)) != NULL) {
 		if (bb->flags & BB_REACHABLE)
 			continue;
 		init_terminator_iterator(last_instruction(bb->insns), &term);
-		while ((child=next_terminator_bb(&term)))
+		while ((child=next_terminator_bb(&term)) != NULL)
 			replace_basic_block_list(&child->parents, bb, NULL);
 		delete_iterator(&iterator);
 	}
@@ -994,7 +994,7 @@ void pack_basic_blocks(struct basic_block_list **bblist)
 
 	remove_unreachable_bbs(bblist);
 	init_bb_iterator(bblist, &iterator, 0);
-	while((bb=next_basic_block(&iterator))) {
+	while((bb=next_basic_block(&iterator)) != NULL) {
 		struct list_iterator it_parents;
 		struct terminator_iterator term;
 		struct instruction *jmp;
@@ -1012,9 +1012,9 @@ void pack_basic_blocks(struct basic_block_list **bblist)
 		/* Transfer the parents' terminator to target directly. */
 		replace_basic_block_list(&target->parents, bb, NULL);
 		init_bb_iterator(&bb->parents, &it_parents, 0);
-		while((parent=next_basic_block(&it_parents))) {
+		while((parent=next_basic_block(&it_parents)) != NULL) {
 			init_terminator_iterator(last_instruction(parent->insns), &term);
-			while ((sibling=next_terminator_bb(&term))) {
+			while ((sibling=next_terminator_bb(&term)) != NULL) {
 				if (sibling == bb) {
 					replace_terminator_bb(&term, target);
 					add_bb(&target->parents, parent);

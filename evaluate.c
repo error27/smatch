@@ -247,7 +247,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 	ptr_type = ctype;
 	if (ptr_type->type == SYM_NODE)
 	ptr_type = ptr_type->ctype.base_type;
-	if (ptr_type->type = SYM_PTR)
+	if (ptr_type->type == SYM_PTR)
 		ptr_type = ptr_type->ctype.base_type;
 	bit_size = ptr_type->bit_size;
 
