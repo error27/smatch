@@ -103,14 +103,6 @@ void show_symbol_list(struct symbol_list *list, const char *sep)
 	symbol_iterate(list, show_one_symbol, (void *)sep);
 }
 
-void show_type_list(struct symbol *sym)
-{
-	while (sym) {
-		show_symbol(sym);
-		sym = sym->next;
-	}
-}
-
 struct type_name {
 	char *start;
 	char *end;

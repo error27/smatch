@@ -68,7 +68,6 @@ struct symbol {
 			struct token *arglist;
 		};
 		struct ctype_symbol {
-			struct symbol *next;		/* Next symbol at this level */
 			unsigned long	offset;
 			unsigned int	bit_size;
 			unsigned int	bit_offset:8,
