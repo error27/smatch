@@ -64,7 +64,7 @@ static struct symbol *lookup_or_create_symbol(enum namespace ns, enum type type,
  * it also ends up using function scope instead of the
  * regular symbol scope.
  */
-static struct symbol *label_symbol(struct token *token)
+struct symbol *label_symbol(struct token *token)
 {
 	return lookup_or_create_symbol(NS_LABEL, SYM_LABEL, token);
 }
@@ -810,12 +810,15 @@ default_statement:
 
 		if (token->ident == &goto_ident) {
 			stmt->type = STMT_GOTO;
-			token = token->next;			
-			if (token_type(token) == TOKEN_IDENT) {
+			token = token->next;
+			if (match_op(token, '*')) {
+				token = parse_expression(token->next, &stmt->goto_expression);
+			} else if (token_type(token) == TOKEN_IDENT) {
 				stmt->goto_label = label_symbol(token);
 				token = token->next;
-			} else
-				warn(token->pos, "invalid label");
+			} else {
+				warn(token->pos, "Expected identifier or goto expression");
+			}
 			return expect(token, ';', "at end of statement");
 		}
 		if (token->ident == &asm_ident || token->ident == &__asm___ident || token->ident == &__asm_ident) {

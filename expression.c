@@ -326,6 +326,16 @@ static struct token *unary_expression(struct token *token, struct expression **t
 			*tree = unary;
 			return cast_expression(token->next, &unary->unop);
 		}
+
+		/* Gcc extension: &&label gives the address of a label */
+		if (match_op(token, SPECIAL_LOGICAL_AND) &&
+		    token_type(token->next) == TOKEN_IDENT) {
+			struct expression *label = alloc_expression(token->pos, EXPR_LABEL);
+			label->label_symbol = label_symbol(token->next);
+			*tree = label;
+			return token->next->next;
+		}
+						
 	}
 			
 	return postfix_expression(token, tree);

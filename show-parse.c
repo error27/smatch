@@ -824,6 +824,13 @@ static int show_bitfield_expr(struct expression *expr)
 	return show_access(expr);
 }
 
+int show_label_expr(struct expression *expr)
+{
+	int new = new_pseudo();
+	printf("\tmovi.%d\t\tv%d,.L%p\n",BITS_IN_POINTER, new, expr->label_symbol);
+	return new;
+}
+
 static int show_conditional_expr(struct expression *expr)
 {
 	int cond = show_expression(expr->conditional);
@@ -931,6 +938,8 @@ int show_expression(struct expression *expr)
 		return show_conditional_expr(expr);
 	case EXPR_STATEMENT:
 		return show_statement_expr(expr);
+	case EXPR_LABEL:
+		return show_label_expr(expr);
 
 	// None of these should exist as direct expressions: they are only
 	// valid as sub-expressions of initializers.

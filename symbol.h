@@ -125,9 +125,12 @@ struct symbol {
 #define MOD_ACCESSED	0x400000
 #define MOD_TOPLEVEL	0x800000	// scoping..
 
+#define MOD_LABEL	0x1000000
+
 /* Basic types */
 extern struct symbol	void_type,
 			int_type,
+			label_type,
 			fp_type,
 			vector_type,
 			bad_type;
@@ -140,7 +143,7 @@ extern struct symbol	bool_ctype, void_ctype,
 			long_ctype, ulong_ctype,
 			llong_ctype, ullong_ctype,
 			float_ctype, double_ctype, ldouble_ctype,
-			string_ctype, ptr_ctype;
+			string_ctype, ptr_ctype, label_type;
 
 
 /* Basic identifiers */

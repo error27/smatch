@@ -1499,6 +1499,10 @@ struct symbol *evaluate_expression(struct expression *expr)
 		expr->ctype = evaluate_statement(expr->statement);
 		return expr->ctype;
 
+	case EXPR_LABEL:
+		expr->ctype = &ptr_ctype;
+		return &ptr_ctype;
+
 	/* These can not exist as stand-alone expressions */
 	case EXPR_INITIALIZER:
 	case EXPR_IDENTIFIER:

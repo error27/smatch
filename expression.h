@@ -30,6 +30,7 @@ enum expression_type {
 	EXPR_COMMA,
 	EXPR_COMPARE,
 	EXPR_BITFIELD,
+	EXPR_LABEL,
 	EXPR_INITIALIZER,	// initializer list
 	EXPR_IDENTIFIER,	// identifier in initializer
 	EXPR_INDEX,		// index in initializer
@@ -87,6 +88,10 @@ struct expression {
 		struct bitfield_expr {
 			unsigned char bitpos, nrbits;
 			struct expression *address;
+		};
+		// EXPR_LABEL
+		struct label_expr {
+			struct symbol *label_symbol;
 		};
 		// EXPR_INITIALIZER
 		struct expression_list *expr_list;

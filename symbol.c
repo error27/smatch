@@ -376,6 +376,7 @@ struct sym_init {
 	{ "__signed",	&int_type,	MOD_SIGNED },
 	{ "__signed__",	&int_type,	MOD_SIGNED },
 	{ "unsigned",	&int_type,	MOD_UNSIGNED },
+	{ "__label__",	&label_type,	MOD_LABEL | MOD_UNSIGNED },
 
 	/* Type qualifiers */
 	{ "const",	NULL,		MOD_CONST },
@@ -432,6 +433,7 @@ struct sym_init eval_init_table[] = {
  */
 struct symbol	int_type,
 		fp_type,
+		label_type,
 		vector_type,
 		bad_type;
 
@@ -446,7 +448,7 @@ struct symbol	bool_ctype, void_ctype,
 		long_ctype, ulong_ctype,
 		llong_ctype, ullong_ctype,
 		float_ctype, double_ctype, ldouble_ctype,
-		string_ctype, ptr_ctype;
+		string_ctype, ptr_ctype, label_ctype;
 
 struct ctype_declare {
 	struct symbol *ptr;
@@ -457,6 +459,7 @@ struct ctype_declare {
 } ctype_declaration[] = {
 	{ &bool_ctype,   0,					  BITS_IN_INT,	     MAX_INT_ALIGNMENT, &int_type },
 	{ &void_ctype,   0,					  -1,		     0,			NULL },
+	{ &label_ctype,  MOD_LABEL | MOD_UNSIGNED,		  BITS_IN_POINTER,   MAX_INT_ALIGNMENT,	&label_type },
 
 	{ &char_ctype,   MOD_SIGNED | MOD_CHAR,  		  BITS_IN_CHAR,	     MAX_INT_ALIGNMENT, &int_type },
 	{ &uchar_ctype,  MOD_UNSIGNED | MOD_CHAR,		  BITS_IN_CHAR,	     MAX_INT_ALIGNMENT, &int_type },
