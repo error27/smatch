@@ -153,16 +153,19 @@ restart:
 
 void split_ptr_list_head(struct ptr_list *head)
 {
-	int nr = head->nr / 2;
+	int old = head->nr, nr = old / 2;
 	struct ptr_list *newlist = malloc(sizeof(*newlist));
+	struct ptr_list *next = head->next;
 
-	head->nr -= nr;
-	newlist->next = head->next;
+	old -= nr;
+	head->nr = old;
+	newlist->next = next;
+	next->prev = newlist;
 	newlist->prev = head;
 	head->next = newlist;
 	newlist->nr = nr;
-	memcpy(newlist->list, head->list + head->nr, nr * sizeof(void *));
-	memset(head->list + head->nr, 0xf0, nr * sizeof(void *));
+	memcpy(newlist->list, head->list + old, nr * sizeof(void *));
+	memset(head->list + old, 0xf0, nr * sizeof(void *));
 }
 
 void **__add_ptr_list(struct ptr_list **listp, void *ptr)
