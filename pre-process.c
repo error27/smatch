@@ -615,6 +615,7 @@ static int token_different(struct token *t1, struct token *t2)
 
 	switch (token_type(t1)) {
 	case TOKEN_IDENT:
+	case TOKEN_UNTAINT:
 		different = t1->ident != t2->ident;
 		break;
 	case TOKEN_NUMBER:
