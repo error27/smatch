@@ -293,6 +293,7 @@ void cleanup_and_cse(struct entrypoint *ep)
 {
 	int i;
 
+	simplify_memops(ep);
 repeat:
 	repeat_phase = 0;
 	clean_up_insns(ep);
@@ -320,7 +321,7 @@ repeat:
 	}
 
 	if (repeat_phase & REPEAT_SYMBOL_CLEANUP)
-		simplify_symbol_usage(ep);
+		simplify_memops(ep);
 
 	if (repeat_phase & REPEAT_CSE)
 		goto repeat;
