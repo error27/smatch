@@ -83,9 +83,43 @@ void show_type_list(struct symbol *sym)
 	}
 }
 
-void show_type(struct symbol *sym)
+struct type_name {
+	char *start;
+	char *end;
+};
+
+static void prepend(struct type_name *name, const char *fmt, ...)
 {
-	int i;
+	static char buffer[512];
+	int n;
+
+	va_list args;
+	va_start(args, fmt);
+	n = vsprintf(buffer, fmt, args);
+	va_end(args);
+
+	name->start -= n;
+	memcpy(name->start, buffer, n);
+}
+
+static void append(struct type_name *name, const char *fmt, ...)
+{
+	static char buffer[512];
+	int n;
+
+	va_list args;
+	va_start(args, fmt);
+	n = vsprintf(buffer, fmt, args);
+	va_end(args);
+
+	memcpy(name->end, buffer, n);
+	name->end += n;
+}
+
+static void do_show_type(struct symbol *sym, struct type_name *name)
+{
+	int i, modlen;
+	const char *mod;
 	static struct ctype_name {
 		struct symbol *sym;
 		char *name;
@@ -115,71 +149,82 @@ void show_type(struct symbol *sym)
 
 	for (i = 0; i < sizeof(typenames)/sizeof(typenames[0]); i++) {
 		if (typenames[i].sym == sym) {
-			printf("%s", typenames[i].name);
+			int len = strlen(typenames[i].name);
+			*--name->start = ' ';
+			name->start -= len;
+			memcpy(name->start, typenames[i].name, len);
 			return;
 		}
 	}
 
-	printf("%s", modifier_string(sym->ctype.modifiers));
+	/* Prepend */
 	switch (sym->type) {
 	case SYM_PTR:
-		printf("*");
-		show_type(sym->ctype.base_type);
-		return;
-
+		prepend(name, "*");
+		break;
 	case SYM_FN:
-		printf("<fn>(");
-		show_type(sym->ctype.base_type);
-		printf(")");
-		printf("(");
-		show_symbol_list(sym->arguments, ", ");
-		if (sym->variadic)
-			printf(", ...");
-		printf(")");
-		return;
-
-	case SYM_ARRAY:
-		printf("<array [%d] of>(", sym->array_size);
-		show_type(sym->ctype.base_type);
-		printf(")");
-		return;
-
+		prepend(name, "( ");
+		break;
 	case SYM_STRUCT:
-		printf("struct %s", show_ident(sym->ident));
+		prepend(name, "struct %s", show_ident(sym->ident));
 		return;
 
 	case SYM_UNION:
-		printf("union %s", show_ident(sym->ident)); 
+		prepend(name, "union %s", show_ident(sym->ident));
 		return;
 
 	case SYM_ENUM:
-		printf("enum %s", show_ident(sym->ident));
+		prepend(name, "enum %s", show_ident(sym->ident));
 		return;
 
-	case SYM_NODE: {
-		struct symbol *type = sym->ctype.base_type;
-		if (!type)
-			printf("notype");
-		else
-			show_type(type);
-		printf(": %s", show_ident(sym->ident));
-		return;
-	}
+	case SYM_NODE:
+		append(name, "%s", show_ident(sym->ident));
+		break;
 
 	case SYM_BITFIELD:
-		show_type(sym->ctype.base_type);
-		printf(":%d", sym->fieldwidth);
-		return;
+		append(name, ":%d", sym->fieldwidth);
+		break;
 
 	case SYM_LABEL:
-		printf("label(%s:%p)", show_ident(sym->ident), sym);
+		append(name, "label(%s:%p)", show_ident(sym->ident), sym);
+		return;
+	default:
+		break;
+	}
+
+	mod = modifier_string(sym->ctype.modifiers);
+	modlen = strlen(mod);
+	name->start -= modlen;    
+	memcpy(name->start, mod, modlen);  
+
+	do_show_type(sym->ctype.base_type, name);
+
+	/* Postpend */
+	switch (sym->type) {
+	case SYM_PTR:
+		return; 
+
+	case SYM_FN:
+		append(name, " )( ... )");
 		return;
 
-	default:
-		printf("strange type %d '%s' of type ", sym->type, show_ident(sym->ident));
-		show_type(sym->ctype.base_type);
+	case SYM_ARRAY:
+		append(name, "[%d]", sym->array_size);
 		return;
+	default:
+		break;
 	}
+}
+
+void show_type(struct symbol *sym)
+{
+	char array[200];
+	struct type_name name;
+
+	name.start = name.end = array+100;
+	do_show_type(sym, &name);
+	*name.end = 0;
+	printf("%s", name.start);
 }
 
 void show_symbol(struct symbol *sym)
