@@ -858,7 +858,8 @@ static struct symbol *compatible_ptr_type(struct expression *left, struct expres
 
 static struct symbol * evaluate_conditional_expression(struct expression *expr)
 {
-	struct expression *cond, *true, *false;
+	struct expression *cond, *false;
+	struct expression **true_p;
 	struct symbol *ctype, *ltype, *rtype;
 	const char * typediff;
 
@@ -866,10 +867,10 @@ static struct symbol * evaluate_conditional_expression(struct expression *expr)
 	cond = expr->conditional;
 
 	ltype = ctype;
-	true = cond;
+	true_p = &expr->conditional;
 	if (expr->cond_true) {
 		ltype = degenerate(expr->cond_true);
-		true = expr->cond_true;
+		true_p = &expr->cond_true;
 	}
 
 	rtype = degenerate(expr->cond_false);
@@ -880,16 +881,16 @@ static struct symbol * evaluate_conditional_expression(struct expression *expr)
 	if (!typediff)
 		goto out;
 
-	ctype = compatible_integer_binop(&true, &expr->cond_false);
+	ctype = compatible_integer_binop(true_p, &expr->cond_false);
 	if (ctype)
 		goto out;
-	ctype = compatible_ptr_type(true, expr->cond_false);
+	ctype = compatible_ptr_type(*true_p, expr->cond_false);
 	if (ctype)
 		goto out;
-	ctype = compatible_float_binop(&true, &expr->cond_false);
+	ctype = compatible_float_binop(true_p, &expr->cond_false);
 	if (ctype)
 		goto out;
-	ctype = compatible_restricted_binop('?', &expr->left, &expr->right);
+	ctype = compatible_restricted_binop('?', true_p, &expr->cond_false);
 	if (ctype)
 		goto out;
 	warning(expr->pos, "incompatible types in conditional expression (%s)", typediff);
