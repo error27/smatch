@@ -181,9 +181,44 @@ left:
 	return left;
 }
 
+/*
+ * This gets called for implicit casts in assignments and
+ * integer promotion. We often want to try to move the
+ * cast down, because the ops involved may have been
+ * implicitly cast up, and we can get rid of the casts
+ * early.
+ */
 static struct expression * cast_to(struct expression *old, struct symbol *type)
 {
-	struct expression *expr = alloc_expression(old->pos, EXPR_CAST);
+	struct expression *expr;
+
+	/*
+	 * See if we can simplify the op. Move the cast down.
+	 */
+	switch (old->type) {
+	case EXPR_PREOP:
+		if (old->op == '~') {
+			old->ctype = type;
+			old->unop = cast_to(old->unop, type);
+			return old;
+		}
+		break;
+
+	case EXPR_CAST:
+		if (old->ctype->bit_size >= type->bit_size) {
+			if (old->ctype->bit_offset == type->bit_offset) {
+				old->ctype = type;
+				old->cast_type = type;
+				return old;
+			}
+		}
+		break;
+
+	default:
+		/* nothing */;
+	}
+
+	expr = alloc_expression(old->pos, EXPR_CAST);
 	expr->ctype = type;
 	expr->cast_type = type;
 	expr->cast_expression = old;
