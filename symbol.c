@@ -66,15 +66,20 @@ struct struct_union_info {
 };
 
 /*
- * Unions are easy to lay out ;)
+ * Unions are fairly easy to lay out ;)
  */
 static void lay_out_union(struct symbol *sym, void *_info, int flags)
 {
 	struct struct_union_info *info = _info;
 
 	examine_symbol_type(sym);
-	if (sym->ctype.alignment > info->max_align)
-		info->max_align = sym->ctype.alignment;
+
+	// Unnamed bitfields do not affect alignment.
+	if (sym->ident || !is_bitfield_type(sym)) {
+		if (sym->ctype.alignment > info->max_align)
+			info->max_align = sym->ctype.alignment;
+	}
+
 	if (sym->bit_size > info->bit_size)
 		info->bit_size = sym->bit_size;
 
@@ -91,8 +96,12 @@ static void lay_out_struct(struct symbol *sym, void *_info, int flags)
 	unsigned long align_bit_mask;
 
 	examine_symbol_type(sym);
-	if (sym->ctype.alignment > info->max_align)
-		info->max_align = sym->ctype.alignment;
+
+	// Unnamed bitfields do not affect alignment.
+	if (sym->ident || !is_bitfield_type(sym)) {
+		if (sym->ctype.alignment > info->max_align)
+			info->max_align = sym->ctype.alignment;
+	}
 
 	bit_size = info->bit_size;
 	base_size = sym->bit_size; 
