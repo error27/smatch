@@ -40,6 +40,7 @@ struct function {
 	int pseudo_nr;
 	struct ptr_list *pseudo_list;
 	struct ptr_list *atom_list;
+	struct ptr_list *str_list;
 	struct symbol **argv;
 	unsigned int argc;
 	int ret_target;
@@ -84,8 +85,13 @@ struct storage {
 		/* STOR_LABEL */
 		struct {
 			int label;
+			unsigned long flags;
 		};
 	};
+};
+
+enum {
+	STOR_LABEL_VAL	= (1 << 0),
 };
 
 struct symbol_private {
@@ -95,6 +101,7 @@ struct symbol_private {
 enum atom_type {
 	ATOM_TEXT,
 	ATOM_INSN,
+	ATOM_CSTR,
 };
 
 enum {
@@ -118,6 +125,12 @@ struct atom {
 			struct storage *op1;
 			struct storage *op2;
 			unsigned long flags;
+		};
+
+		/* stuff for C strings */
+		struct {
+			struct string *string;
+			int label;
 		};
 	};
 };
@@ -225,7 +238,7 @@ static void stor_sym_init(struct symbol *sym)
 	stor->sym = sym;
 }
 
-static const char *stor_op_name(struct storage *s)
+static const char *stor_op_name(struct storage *s, unsigned long flags)
 {
 	static char name[32];
 
@@ -246,7 +259,8 @@ static const char *stor_op_name(struct storage *s)
 		sprintf(name, "$%Ld", s->value);
 		break;
 	case STOR_LABEL:
-		sprintf(name, ".L%d", s->label);
+		sprintf(name, "%s.L%d", flags & STOR_LABEL_VAL ? "$" : "",
+			s->label);
 		break;
 	}
 
@@ -264,6 +278,18 @@ static struct atom *new_atom(enum atom_type type)
 	atom->type = type;
 
 	return atom;
+}
+
+static inline void push_cstring(struct function *f, struct string *str,
+				int label)
+{
+	struct atom *atom;
+
+	atom = new_atom(ATOM_CSTR);
+	atom->string = str;
+	atom->label = label;
+
+	add_ptr_list(&f->str_list, atom);	/* note: _not_ atom_list */
 }
 
 static inline void push_atom(struct function *f, struct atom *atom)
@@ -413,6 +439,8 @@ static void emit_insn_atom(struct function *f, struct atom *atom)
 {
 	char s[128];
 	char comment[64];
+	struct storage *op1 = atom->op1;
+	struct storage *op2 = atom->op2;
 
 	if (atom->comment[0])
 		sprintf(comment, "\t\t# %s", atom->comment);
@@ -421,12 +449,12 @@ static void emit_insn_atom(struct function *f, struct atom *atom)
 
 	if (atom->op2) {
 		char tmp[16];
-		strcpy(tmp, stor_op_name(atom->op1));
+		strcpy(tmp, stor_op_name(op1, op1->flags));
 		sprintf(s, "\t%s\t%s, %s%s\n",
-			atom->insn, tmp, stor_op_name(atom->op2), comment);
+			atom->insn, tmp, stor_op_name(op2, op2->flags), comment);
 	} else if (atom->op1)
 		sprintf(s, "\t%s\t%s%s%s\n",
-			atom->insn, stor_op_name(atom->op1),
+			atom->insn, stor_op_name(op1, op1->flags),
 			comment[0] ? "\t" : "", comment);
 	else
 		sprintf(s, "\t%s\t%s%s\n",
@@ -451,7 +479,25 @@ static void emit_atom_list(struct function *f)
 		case ATOM_INSN:
 			emit_insn_atom(f, atom);
 			break;
+		case ATOM_CSTR:
+			assert(0);
+			break;
 		}
+	} END_FOR_EACH_PTR;
+}
+
+static void emit_string_list(struct function *f)
+{
+	struct atom *atom;
+
+	emit_section(".section\t.rodata");
+
+	FOR_EACH_PTR(f->str_list, atom) {
+		/* FIXME: escape " in string */
+		printf(".L%d:\n", atom->label);
+		printf("\t.string\t%s\n", show_string(atom->string));
+
+		free(atom);
 	} END_FOR_EACH_PTR;
 }
 
@@ -481,7 +527,6 @@ static void func_cleanup(struct function *f)
 /* function prologue */
 static void emit_func_pre(struct symbol *sym)
 {
-	const char *name = show_ident(sym->ident);
 	struct function *f;
 	struct symbol *arg;
 	unsigned int i, argc = 0, alloc_len;
@@ -526,12 +571,6 @@ static void emit_func_pre(struct symbol *sym)
 
 	assert(current_func == NULL);
 	current_func = f;
-
-	emit_section(".text");
-	if ((sym->ctype.modifiers & MOD_STATIC) == 0)
-		printf(".globl %s\n", name);
-	printf("\t.type\t%s, @function\n", name);
-	printf("%s:\n", name);
 }
 
 /* function epilogue */
@@ -543,15 +582,24 @@ static void emit_func_post(struct symbol *sym, struct storage *ret_val)
 	int pseudo_nr = f->pseudo_nr;
 	char pseudo_const[16], jump_target[16];
 
-	/* function epilogue */
+	if (f->str_list)
+		emit_string_list(f);
+
+	/* function prologue */
+	emit_section(".text");
+	if ((sym->ctype.modifiers & MOD_STATIC) == 0)
+		printf(".globl %s\n", name);
+	printf("\t.type\t%s, @function\n", name);
+	printf("%s:\n", name);
 	sprintf(pseudo_const, "$%d", pseudo_nr * 4);
 	printf("\tsubl\t%s, %%esp\n", pseudo_const);
+
+	/* function epilogue */
 
 	/* jump target for 'return' statements */
 	sprintf(jump_target, ".L%d:\n", f->ret_target);
 	push_text_atom(f, jump_target);
 
-	/* function prologue */
 	if (ret_val) {
 		/* FIXME: mem operand hardcoded at 32 bits */
 		emit_move(ret_val, REG_EAX, NULL, NULL, 0);
@@ -1119,6 +1167,39 @@ static struct storage *emit_conditional_expr(struct expression *expr)
 	return new;
 }
 
+static struct storage *emit_symbol_expr_init(struct symbol *sym)
+{
+	struct expression *expr = sym->initializer;
+	struct symbol_private *priv = sym->aux;
+
+	if (priv == NULL) {
+		if (expr == NULL) {
+			assert(0);
+			return NULL;
+		}
+
+		priv = calloc(1, sizeof(*priv));
+		sym->aux = priv;
+		priv->addr = x86_expression(expr);
+	}
+
+	return priv->addr;
+}
+
+static struct storage *emit_string_expr(struct expression *expr)
+{
+	struct function *f = current_func;
+	int label = new_label();
+	struct storage *new = new_pseudo();
+
+	push_cstring(f, expr->string, label);
+
+	new = new_storage(STOR_LABEL);
+	new->label = label;
+	new->flags = STOR_LABEL_VAL;
+	return new;
+}
+
 static void x86_struct_member(struct symbol *sym, void *data, int flags)
 {
 	if (flags & ITERATE_FIRST)
@@ -1366,6 +1447,7 @@ static struct storage *x86_call_expression(struct expression *expr)
 	struct expression *arg, *fn;
 	struct storage *retval, *fncall;
 	int framesize;
+	char s[64];
 
 	if (!expr->ctype) {
 		warn(expr->pos, "\tcall with no type!");
@@ -1396,23 +1478,26 @@ static struct storage *x86_call_expression(struct expression *expr)
 		}
 	}
 	if (direct) {
-		char s[64];
 		sprintf(s, "\tcall\t%s\n", show_ident(direct->ident));
 		push_text_atom(f, s);
 	} else {
 		fncall = x86_expression(fn);
-		printf("\tcall\t*v%d\n", fncall->pseudo);
+		emit_move(fncall, REG_EAX, fn->ctype, NULL, 0);
+
+		strcpy(s, "\tcall\t*%%eax\n");
+		push_text_atom(f, s);
 	}
 
 	/* FIXME: pay attention to BITS_IN_POINTER */
 	if (framesize) {
 		struct storage *val = new_storage(STOR_VALUE);
 		val->value = (long long) framesize;
-		insn("addl", val, REG_ESP, "end function call", ATOM_FREE_OP1);
+		insn("addl", val, REG_ESP, NULL, ATOM_FREE_OP1);
 	}
 
 	retval = new_pseudo();
-	printf("\tmov.%d\t\tv%d,retval\n", expr->ctype->bit_size, retval->pseudo);
+	emit_move(REG_EAX, retval, expr->ctype, "end function call", 0);
+
 	return retval;
 }
 
@@ -1568,15 +1653,6 @@ static struct storage *x86_cast_expr(struct expression *expr)
 	return new;
 }
 
-static struct storage *show_string_expr(struct expression *expr)
-{
-	struct storage *new = new_pseudo();
-
-	printf("\tmovi.%d\t\tv%d,&%s\n", BITS_IN_POINTER, new->pseudo,
-		show_string(expr->string));
-	return new;
-}
-
 static struct storage *x86_bitfield_expr(struct expression *expr)
 {
 	return x86_access(expr);
@@ -1629,24 +1705,6 @@ static void x86_initializer_expr(struct expression *expr, struct symbol *ctype)
 	} END_FOR_EACH_PTR;
 }
 
-static struct storage *x86_symbol_expr_init(struct symbol *sym)
-{
-	struct expression *expr = sym->initializer;
-	struct symbol_private *priv = sym->aux;
-
-	if (expr)
-		x86_initializer_expr(expr, expr->ctype);
-
-	if (priv == NULL) {
-		fprintf(stderr, "WARNING! priv == NULL\n");
-		priv = calloc(1, sizeof(*priv));
-		sym->aux = priv;
-		priv->addr = new_pseudo(); /* this is wrong! */
-	}
-
-	return priv->addr;
-}
-
 /*
  * Print out an expression. Return the pseudo that contains the
  * variable.
@@ -1682,7 +1740,7 @@ static struct storage *x86_expression(struct expression *expr)
 	case EXPR_POSTOP:
 		return emit_postop(expr);
 	case EXPR_SYMBOL:
-		return x86_symbol_expr_init(expr->symbol);
+		return emit_symbol_expr_init(expr->symbol);
 	case EXPR_DEREF:
 	case EXPR_SIZEOF:
 		warn(expr->pos, "invalid expression after evaluation");
@@ -1692,7 +1750,7 @@ static struct storage *x86_expression(struct expression *expr)
 	case EXPR_VALUE:
 		return emit_value(expr);
 	case EXPR_STRING:
-		return show_string_expr(expr);
+		return emit_string_expr(expr);
 	case EXPR_BITFIELD:
 		return x86_bitfield_expr(expr);
 	case EXPR_INITIALIZER:
