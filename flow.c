@@ -775,7 +775,7 @@ void pack_basic_blocks(struct entrypoint *ep)
 
 	/* See if we can merge a bb into another one.. */
 	FOR_EACH_PTR(ep->bbs, bb) {
-		struct instruction *first;
+		struct instruction *first, *insn;
 		struct basic_block *parent, *child, *last;
 
 		if (!bb_reachable(bb))
@@ -846,7 +846,13 @@ out:
 		} END_FOR_EACH_PTR(child);
 
 		delete_last_instruction(&parent->insns);
-		concat_instruction_list(bb->insns, &parent->insns);
+		FOR_EACH_PTR(bb->insns, insn) {
+			if (insn->bb) {
+				assert(insn->bb == bb);
+				insn->bb = parent;
+			}
+			add_instruction(&parent->insns, insn);
+		} END_FOR_EACH_PTR(insn);
 		bb->insns = NULL;
 		kill_bb(bb);
 
