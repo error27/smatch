@@ -992,7 +992,7 @@ static const char *opbits(const char *insn, unsigned int bits)
 	default: assert(0); break;
 	}
 
-	sprintf(opbits_str, "%s%c", insn, bits);
+	sprintf(opbits_str, "%s%c", insn, c);
 
 	return opbits_str;
 }
