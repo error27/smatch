@@ -37,9 +37,4 @@ void blob_free(void *addr, unsigned long size)
 long double string_to_ld(const char *nptr, char **endptr) 	
 {	
 	return strtod(nptr, endptr);	
-}	
-	
-int identical_files(struct stream* s, struct stat *st, const char * name) 	
-{	
-	return (s->dev == st->st_dev && s->ino == st->st_ino);	
-}	
+}

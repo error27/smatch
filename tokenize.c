@@ -14,7 +14,6 @@
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
-#include <sys/stat.h>
 
 #include "lib.h"
 #include "allocate.h"
@@ -166,7 +165,6 @@ int init_stream(const char *name, int fd, const char **next_path)
 {
 	int stream = input_stream_nr;
 	struct stream *current;
-	struct stat st;
 
 	if (stream >= input_streams_allocated) {
 		int newalloc = stream * 4 / 3 + 10;
@@ -181,20 +179,6 @@ int init_stream(const char *name, int fd, const char **next_path)
 	current->fd = fd;
 	current->next_path = next_path;
 	current->constant = CONSTANT_FILE_MAYBE;
-	if (fd >= 0 && fstat(fd, &st) == 0 && S_ISREG(st.st_mode)) {
-		int i;
-
-		for (i = 0; i < stream; i++) {
-			struct stream *s = input_streams + i;
-			if (s->constant == CONSTANT_FILE_YES &&
-			    identical_files(s, &st, name) &&
-			    lookup_symbol(s->protect, NS_MACRO))
-				return -1;
-		}
-
-		current->dev = st.st_dev;
-		current->ino = st.st_ino;
-	}
 	input_stream_nr = stream+1;
 	return stream;
 }

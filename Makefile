@@ -99,9 +99,9 @@ obfuscate.o: $(LIB_H)
 example.o: $(LIB_H)
 storage.o: $(LIB_H) storage.h
 
-compat-linux.o: compat/strtold.c compat/id-files-stat.c compat/mmap-blob.c \
+compat-linux.o: compat/strtold.c compat/mmap-blob.c \
 	$(LIB_H)
-compat-solaris.o: compat/id-files-stat.c compat/mmap-blob.c $(LIB_H)
+compat-solaris.o: compat/mmap-blob.c $(LIB_H)
 compat-mingw.o: $(LIB_H)
 compat-cygwin.o: $(LIB_H)
 

@@ -596,6 +596,23 @@ static const char *token_name_sequence(struct token *token, int endop, struct to
 	return buffer;
 }
 
+static int already_tokenized(const char *path)
+{
+	int i;
+	struct stream *s = input_streams;
+
+	for (i = input_stream_nr-1; i >= 0; i--, s++) {
+		if (s->constant != CONSTANT_FILE_YES)
+			continue;
+		if (strcmp(path, s->name))
+			continue;
+		if (!lookup_symbol(s->protect, NS_MACRO))
+			continue;
+		return 1;
+	}
+	return 0;
+}
+
 static int try_include(const char *path, int plen, const char *filename, int flen, struct token **where, const char **next_path)
 {
 	int fd;
@@ -607,6 +624,8 @@ static int try_include(const char *path, int plen, const char *filename, int fle
 		plen++;
 	}
 	memcpy(fullname+plen, filename, flen);
+	if (already_tokenized(fullname))
+		return 1;
 	fd = open(fullname, O_RDONLY);
 	if (fd >= 0) {
 		char * streamname = __alloc_bytes(plen + flen);

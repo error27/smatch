@@ -41,8 +41,6 @@ struct stream {
 	enum constantfile constant;
 	int nesting;
 	struct ident *protect;
-	dev_t dev;
-	ino_t ino;
 };
 
 extern int input_stream_nr;

@@ -9,8 +9,6 @@
  *	Missing in mingw
  *  - "string to long double" (C99 strtold())
  *	Missing in Solaris and mingw
- *  - checking for file identity (POSIX st_dev && st_ino comparison)
- *	mingw needs to check the name (st_dev/st_ino are zero)
  */
 struct stream;
 struct stat;
@@ -26,6 +24,5 @@ struct stat;
 void *blob_alloc(unsigned long size);
 void blob_free(void *addr, unsigned long size);
 long double string_to_ld(const char *nptr, char **endptr);
-int identical_files(struct stream* s, struct stat *st, const char * name);
 
 #endif
