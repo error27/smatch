@@ -1170,6 +1170,8 @@ static void examine_fn_arguments(struct symbol *fn)
 
 static struct symbol *convert_to_as_mod(struct symbol *sym, int as, int mod)
 {
+	/* Take the modifiers of the pointer, and apply them to the member */
+	mod |= sym->ctype.modifiers;
 	if (sym->ctype.as != as || sym->ctype.modifiers != mod) {
 		struct symbol *newsym = alloc_symbol(sym->pos, SYM_NODE);
 		*newsym = *sym;
