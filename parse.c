@@ -165,7 +165,7 @@ struct token *attribute_specifier(struct token *token, struct ctype *ctype)
 	token = expect(token, '(', "after attribute");
 	token = expect(token, '(', "after attribute");
 
-	for (;;) {
+	for (;;token = token->next) {
 		if (eof_token(token))
 			break;
 		if (match_op(token, ';'))
@@ -174,10 +174,12 @@ struct token *attribute_specifier(struct token *token, struct ctype *ctype)
 			if (!parens)
 				break;
 			parens--;
+			continue;
 		}
-		if (match_op(token, '('))
+		if (match_op(token, '(')) {
 			parens++;
-		token = token->next;
+			continue;
+		}
 	}
 
 	token = expect(token, ')', "after attribute");
