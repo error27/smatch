@@ -90,7 +90,7 @@ extern struct ident	struct_ident,
 
 extern struct symbol *lookup_symbol(struct ident *, enum namespace);
 extern void init_symbols(void);
-extern struct symbol *alloc_symbol(int type);
+extern struct symbol *alloc_symbol(struct token *, int type);
 extern void show_type(struct symbol *);
 extern const char *modifier_string(unsigned long mod);
 extern void show_symbol(struct symbol *);

@@ -354,16 +354,6 @@ struct statement *alloc_statement(struct token * token, int type)
 
 static struct token *struct_declaration_list(struct token *token, struct symbol_list **list);
 
-static struct symbol *lookup_struct_or_union_symbol(int type, struct ident *ident)
-{
-	struct symbol *sym = lookup_symbol(ident, NS_STRUCT);
-	if (!sym) {
-		sym = alloc_symbol(type);
-		bind_symbol(sym, ident, NS_STRUCT);
-	}
-	return sym;
-}
-
 static void force_default_type(struct symbol *sym)
 {
 	if (!sym->base_type)
@@ -372,41 +362,72 @@ static void force_default_type(struct symbol *sym)
 
 static struct symbol *indirect(struct symbol *parent, int type)
 {
-	struct symbol *sym = alloc_symbol(type);
+	struct symbol *sym = alloc_symbol(parent->token, type);
 
 	force_default_type(parent);
 	sym->base_type = parent;
 	return sym;
 }
 
-struct token *struct_or_union_specifier(enum type type, struct token *token, struct symbol **p)
+static struct symbol *lookup_or_create_symbol(enum namespace ns, enum type type, struct token *token)
 {
-	struct symbol *sym = NULL;
+	struct symbol *sym = lookup_symbol(token->ident, ns);
+	if (!sym) {
+		sym = alloc_symbol(token, type);
+		bind_symbol(sym, token->ident, ns);
+	}
+	return sym;
+}
+
+struct token *struct_union_enum_specifier(enum namespace ns, enum type type,
+	struct token *token, struct symbol **p,
+	struct token *(*parse)(struct token *, struct symbol *))
+{
+	struct symbol *sym;
 
 	if (token->type == TOKEN_IDENT) {
-		sym = lookup_struct_or_union_symbol(type, token->ident);
+		sym = lookup_or_create_symbol(ns, type, token);
 		token = token->next;
 		*p = indirect(sym, type);
-		if (!match_op(token, '{'))
-			return token;
-	} else
-		sym = alloc_symbol(type);
+		if (match_op(token, '{')) {
+			token = parse(token, sym);
+			token = expect(token, '}', "end of struct-union-enum-specifier");
+		}
+		return token;
+	}
 
+	// private struct/union/enum type
 	if (!match_op(token, '{')) {
-		warn(token, "expected struct/union declaration");
+		warn(token, "expected declaration");
 		*p = &bad_type;
 		return token;
 	}
 
+	sym = alloc_symbol(token, type);
 	*p = indirect(sym, type);
-	token = struct_declaration_list(token->next, &sym->symbol_list);
-	token = expect(token, '}', "end of struct-or-union-specifier");
+	token = parse(token->next, sym);
+	return expect(token, '}', "end of specifier");
+}
+
+static struct token *parse_struct_declaration(struct token *token, struct symbol *sym)
+{
+	return struct_declaration_list(token->next, &sym->symbol_list);
+}
+
+struct token *struct_or_union_specifier(enum type type, struct token *token, struct symbol **p)
+{
+	return struct_union_enum_specifier(NS_STRUCT, type, token, p, parse_struct_declaration);
+}
+
+/* FIXME! */
+static struct token *parse_enum_declaration(struct token *token, struct symbol *sym)
+{
 	return token;
 }
 
-struct token *enum_specifier(struct token *token, struct symbol **enum_sym)
+struct token *enum_specifier(struct token *token, struct symbol **p)
 {
-	return token;
+	return struct_union_enum_specifier(NS_ENUM, SYM_ENUM, token, p, parse_enum_declaration);
 }
 
 static struct token *declaration_specifiers(struct token *next, struct symbol *sym)
@@ -482,15 +503,15 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 static struct token *abstract_function_declarator(struct token *token, struct symbol **tree);
 
 static struct token *direct_declarator(struct token *token, struct symbol **tree,
-	struct token *(*declarator)(struct token *, struct symbol **, struct ident **),
-	struct ident **ident)
+	struct token *(*declarator)(struct token *, struct symbol **, struct token **),
+	struct token **p)
 {
-	if (ident && token && token->type == TOKEN_IDENT) {
+	if (p && token && token->type == TOKEN_IDENT) {
 		if (lookup_symbol(token->ident, NS_TYPEDEF)) {
 			warn(token, "unexpected type/qualifier");
 			return token;
 		}
-		*ident = token->ident;
+		*p = token;
 		token = token->next;
 	}
 
@@ -504,11 +525,11 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 		 */
 		if (token->special == '(') {
 			struct token *next = token->next;
-			if (!ident && next && next->type == TOKEN_SPECIAL) {
+			if (!p && next && next->type == TOKEN_SPECIAL) {
 				if (next->special == '*' ||
 				    next->special == '(' ||
 				    next->special == '[') {
-					token = declarator(next, tree, ident);
+					token = declarator(next, tree, p);
 					token = expect(token, ')', "in nested declarator");
 					continue;
 				    }
@@ -526,6 +547,7 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 		}
 		break;
 	}
+	(*tree)->token = *p;
 	return token;
 }
 
@@ -538,25 +560,25 @@ static struct token *pointer(struct token *token, struct symbol **tree)
 	return token;
 }
 
-static struct token *generic_declarator(struct token *token, struct symbol **tree, struct ident **ident)
+static struct token *generic_declarator(struct token *token, struct symbol **tree, struct token **p)
 {
 	token = pointer(token, tree);
-	return direct_declarator(token, tree, generic_declarator, ident);
+	return direct_declarator(token, tree, generic_declarator, p);
 }
 
 static struct token *struct_declaration_list(struct token *token, struct symbol_list **list)
 {
 	for (;;) {
-		struct symbol *spec = alloc_symbol(SYM_TYPE);
+		struct symbol *spec = alloc_symbol(token, SYM_TYPE);
 	
 		token = declaration_specifiers(token, spec);
 		for (;;) {
 			struct symbol *declaration = spec;
-			struct ident *ident = NULL;
+			struct token *ident = NULL;
 			token = pointer(token, &declaration);
 			token = direct_declarator(token, &declaration, generic_declarator, &ident);
 			if (ident) {
-				printf("named structure declarator %s:\n  ", show_ident(ident));
+				printf("named structure declarator %s:\n  ", show_token(ident));
 				show_type(declaration);
 				printf("\n\n");
 			}
@@ -581,14 +603,14 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 
 static struct token *parameter_declaration(struct token *token, struct symbol **tree)
 {
-	struct ident *ident = NULL;
+	struct token *ident = NULL;
 
-	*tree = alloc_symbol(SYM_TYPE);
+	*tree = alloc_symbol(token, SYM_TYPE);
 	token = declaration_specifiers(token, *tree);
 	token = pointer(token, tree);
 	token = direct_declarator(token, tree, generic_declarator, &ident);
 	if (ident) {
-		printf("named parameter declarator %s:\n  ", show_ident(ident));
+		printf("named parameter declarator %s:\n  ", show_token(ident));
 		show_type(*tree);
 		printf("\n\n");
 	}
@@ -597,7 +619,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol **
 
 static struct token *typename(struct token *token, struct symbol **tree)
 {
-	*tree = alloc_symbol(SYM_TYPE);
+	*tree = alloc_symbol(token, SYM_TYPE);
 	token = declaration_specifiers(token, *tree);
 	return abstract_declarator(token, tree);
 
@@ -636,7 +658,7 @@ struct token * statement_list(struct token *token, struct statement **tree)
 static struct token *parameter_type_list(struct token *token, struct symbol **tree)
 {
 	for (;;) {
-		struct symbol *sym = alloc_symbol(SYM_TYPE);
+		struct symbol *sym = alloc_symbol(token, SYM_TYPE);
 
 		*tree = sym;
 		token = parameter_declaration(token, tree);
@@ -683,12 +705,12 @@ static struct token *initializer(struct token *token, struct symbol *sym)
 
 static struct token *external_declaration(struct token *token, struct symbol_list **list)
 {
-	struct ident *ident = NULL;
+	struct token *ident = NULL;
 	struct symbol *specifiers;
 	struct symbol *declarator;
 
 	/* Parse declaration-specifiers, if any */
-	specifiers = alloc_symbol(SYM_TYPE);
+	specifiers = alloc_symbol(token, SYM_TYPE);
 	token = declaration_specifiers(token, specifiers);
 
 	declarator = specifiers;
@@ -697,7 +719,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	if (specifiers->modifiers & SYM_TYPEDEF) {
 		specifiers->modifiers &= ~SYM_TYPEDEF;
 		if (ident)
-			bind_symbol(indirect(declarator, SYM_TYPEDEF), ident, NS_TYPEDEF);
+			bind_symbol(indirect(declarator, SYM_TYPEDEF), ident->ident, NS_TYPEDEF);
 			
 		return expect(token, ';', "end of typedef");
 	}
@@ -705,7 +727,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	add_symbol(list, declarator);
 
 	if (ident) {
-		printf("external_declarator %s:\n  ", show_ident(ident));
+		printf("external_declarator %s:\n  ", show_token(ident));
 	}
 	show_type(declarator);
 	printf("\n\n");
@@ -728,7 +750,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 		add_symbol(list, declarator);
 
 		if (ident) {
-			printf("external_declarator %s:\n  ", show_ident(ident));
+			printf("external_declarator %s:\n  ", show_token(ident));
 		}
 		show_type(declarator);
 		printf("\n\n");

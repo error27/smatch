@@ -155,7 +155,7 @@ void show_symbol(struct symbol *sym)
 	printf("\n");
 }
 
-struct symbol *alloc_symbol(int type)
+struct symbol *alloc_symbol(struct token *token, int type)
 {
 	struct symbol *sym = malloc(sizeof(struct symbol));
 
@@ -163,6 +163,7 @@ struct symbol *alloc_symbol(int type)
 		die("out of memory for symbol information");
 	memset(sym, 0, sizeof(*sym));
 	sym->type = type;
+	sym->token = token;
 	return sym;
 }
 
@@ -175,8 +176,9 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 
 struct symbol *create_symbol(int stream, const char *name, int type)
 {
-	struct symbol *sym = alloc_symbol(type);
-	bind_symbol(sym, built_in_token(stream, name)->ident, NS_TYPEDEF);
+	struct token *token = built_in_token(stream, name);
+	struct symbol *sym = alloc_symbol(token, type);
+	bind_symbol(sym, token->ident, NS_TYPEDEF);
 	return sym;
 }
 
