@@ -724,6 +724,11 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 	return 0;
 }
 
+/*
+ * FIXME!! This is wrong from a double evaluation standpoint. We can't
+ * just expand the expression twice, that would make any side effects
+ * happen twice too.
+ */
 static struct symbol *evaluate_binop_assignment(struct expression *expr, struct expression *left, struct expression *right)
 {
 	int op = expr->op;
