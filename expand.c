@@ -120,7 +120,7 @@ Float:
 static int check_shift_count(struct expression *expr, struct symbol *ctype, unsigned int count)
 {
 	if (count >= ctype->bit_size) {
-		warning(expr->pos, "shift too big for type (%lx)", ctype->ctype.modifiers);
+		warning(expr->pos, "shift too big (%u) for type %s", count, show_typename(ctype));
 		count &= ctype->bit_size-1;
 	}
 	return count;
@@ -138,9 +138,16 @@ static int simplify_int_binop(struct expression *expr, struct symbol *ctype)
 	struct expression *left = expr->left, *right = expr->right;
 	unsigned long long v, l, r, mask;
 	signed long long sl, sr;
-	int is_signed, shift;
+	int is_signed;
 
-	if (left->type != EXPR_VALUE || right->type != EXPR_VALUE)
+	if (right->type != EXPR_VALUE)
+		return 0;
+	r = right->value;
+	if (expr->op == SPECIAL_LEFTSHIFT || expr->op == SPECIAL_RIGHTSHIFT) {
+		r = check_shift_count(expr, ctype, r);
+		right->value = r;
+	}
+	if (left->type != EXPR_VALUE)
 		return 0;
 	l = left->value; r = right->value;
 	is_signed = !(ctype->ctype.modifiers & MOD_UNSIGNED);
@@ -211,18 +218,15 @@ static int simplify_int_binop(struct expression *expr, struct symbol *ctype)
 
 	case SIGNED(SPECIAL_LEFTSHIFT):
 	case UNSIGNED(SPECIAL_LEFTSHIFT):
-		shift = check_shift_count(expr, ctype, r);
-		v = l << shift;
+		v = l << r;
 		break; 
 
 	case SIGNED(SPECIAL_RIGHTSHIFT):
-		shift = check_shift_count(expr, ctype, r);
-		v = sl >> shift;
+		v = sl >> r;
 		break;
 
 	case UNSIGNED(SPECIAL_RIGHTSHIFT):
-		shift = check_shift_count(expr, ctype, r);
-		v = l >> shift;
+		v = l >> r;
 		break;
 
 	default:
