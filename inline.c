@@ -416,7 +416,8 @@ void copy_statement(struct statement *src, struct statement *dst)
 
 	FOR_EACH_PTR(src->syms, sym) {
 		struct symbol *newsym = copy_symbol(src->pos, sym);
-		newsym->initializer = copy_expression(sym->initializer);
+		if (newsym != sym)
+			newsym->initializer = copy_expression(sym->initializer);
 		add_symbol(&dst->syms, newsym);
 	} END_FOR_EACH_PTR(sym);
 
