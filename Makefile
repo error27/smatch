@@ -22,7 +22,7 @@ all: $(PROGRAMS)
 #		"The better to keep you on your toes, my dear".
 #
 install: check
-	if test $< -nt $(PREFIX)/bin/sparse ; then install -sv $< $(PREFIX)/bin/sparse ; fi
+	if test $< -nt $(PREFIX)/bin/sparse ; then install -v $< $(PREFIX)/bin/sparse ; fi
 
 test-lexing: test-lexing.o $(LIB_FILE)
 	gcc $(LDFLAGS) -o $@ $< $(LIBS)

@@ -1548,7 +1548,7 @@ static struct symbol *evaluate_alignof(struct expression *expr)
 		if (!type)
 			return NULL;
 	}
-	if (is_bitfield_type (expr->cast_expression->ctype))
+	if (is_bitfield_type(type))
 		warn(expr->pos, "alignof applied to bitfield type");
 	examine_symbol_type(type);
 	expr->type = EXPR_VALUE;
