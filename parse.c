@@ -1,11 +1,15 @@
-#ifndef __GNUC__
-typedef int __builtin_va_list;
-#endif
 /*
  * Stupid C parser, version 1e-6.
  *
  * Let's see how hard this is to do.
+ *
+ * Copyright (C) 2003 Linus Torvalds, all rights reserved.
  */
+
+#ifndef __GNUC__
+typedef int __builtin_va_list;
+#endif
+
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>

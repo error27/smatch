@@ -1,3 +1,9 @@
+/*
+ * Example test program that just uses the tokenization and
+ * preprocessing phases, and prints out the results.
+ *
+ * Copyright (C) 2003 Linus Torvalds, all rights reserved.
+ */
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>

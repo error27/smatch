@@ -3,6 +3,8 @@
  * the tokenizer.
  *
  * This may not be the smartest preprocessor on the planet.
+ *
+ * Copyright (C) 2003 Linus Torvalds, all rights reserved.
  */
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,10 +1,8 @@
 /*
- * This is a really stupid C tokenizer, intended to run after the
- * preprocessor.
+ * This is a really stupid C tokenizer. It doesn't do any include
+ * files or anything complex at all. That's the pre-processor.
  *
- * A smart preprocessor would be integrated and pass the compiler
- * the tokenized input directly, but lacking that we just tokenize
- * the preprocessor output.
+ * Copyright (C) 2003 Linus Torvalds, all rights reserved.
  */
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,5 +1,12 @@
 #ifndef TOKEN_H
 #define TOKEN_H
+/*
+ * Basic tokenization structures. NOTE! Those tokens had better
+ * be pretty small, since we're going to keep them all in memory
+ * indefinitely.
+ *
+ * Copyright (C) 2003 Linus Torvalds, all rights reserved.
+ */
 
 #include <sys/types.h>
 

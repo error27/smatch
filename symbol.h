@@ -1,5 +1,10 @@
 #ifndef SEMANTIC_H
 #define SEMANTIC_H
+/*
+ * Basic symbol and namespace definitions.
+ *
+ * Copyright (C) 2003 Linus Torvalds, all rights reserved.
+ */
 
 #include "token.h"
 

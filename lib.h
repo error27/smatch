@@ -1,5 +1,10 @@
-#ifndef LIST_H
-#define LIST_H
+#ifndef LIB_H
+#define LIB_H
+/*
+ * Basic helper routine descriptions for 'sparse'.
+ *
+ * Copyright (C) 2003 Linus Torvalds, all rights reserved.
+ */
 
 extern unsigned int hexval(unsigned int c);
 

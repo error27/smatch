@@ -1,5 +1,10 @@
 #ifndef PARSE_H
 #define PARSE_H
+/*
+ * Basic parsing data structures. Statements and symbols.
+ *
+ * Copyright (C) 2003 Linus Torvalds, all rights reserved.
+ */
 
 #include "symbol.h"
 

@@ -1,5 +1,7 @@
 /*
- * Helper routines
+ * 'sparse' library helper routines.
+ *
+ * Copyright (C) 2003 Linus Torvalds, all rights reserved.
  */
 #include <stddef.h>
 #include <stdarg.h>

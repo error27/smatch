@@ -1,0 +1,31 @@
+This is just a placeholder.  I haven't decided on what the final license
+will be.  But it most likely (note the "likely" - I'm not promising
+anything until I've made a real decision) will have the following
+properties:
+
+ - it will _require_ source code for the library itself (ie GPL-like in
+   that respect). Much like the LGPL.
+
+ - but it will expressly allow linking with arbitrary back-ends, and
+   require that too in perpetuam (ie anti-GPL in that respects, and this
+   means that it's almost certainly not going to be LGPL)
+
+and, if possible:
+
+ - it will be "open source(tm)" compatible as far as I can tell,
+   although if the anti-GPL part ends up being a problem, I may not care
+   enough to conform fully to OSI guidelines.  Will need to check with
+   the OSI guys. 
+
+In the meantime, if you agree with the above, and expect to agree with
+whatever license I will choose with the above in mind, you can play with
+this freely, and make changes and send patches if you explicitly mark
+those patches as being compatible with whatever I do (yeah yeah, you'll
+just need to trust me).
+
+Oh, and keep in mind that I'm famous for changing my mind.  Maybe I'll
+call the license the "sucker" license, and sell whatever you send me for
+billions and billions of dollars without crediting you in the
+slightest..  Sucka!
+
+			Linus Torvalds

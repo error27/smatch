@@ -1,3 +1,10 @@
+/*
+ * Example trivial client program that uses the sparse library
+ * to tokenize, pre-process and parse a C file, and prints out
+ * the results.
+ *
+ * Copyright (C) 2003 Linus Torvalds, all rights reserved.
+ */
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>

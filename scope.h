@@ -1,5 +1,10 @@
 #ifndef SCOPE_H
 #define SCOPE_H
+/*
+ * Symbol scoping is pretty simple.
+ *
+ * Copyright (C) 2003 Linus Torvalds, all rights reserved.
+ */
 
 struct scope {
 	struct token *token;		/* Scope start information */
