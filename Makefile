@@ -4,12 +4,12 @@ LDFLAGS=-g
 AR=ar
 
 PREFIX=$(HOME)
-PROGRAMS=test-lexing test-parsing obfuscate check compile
+PROGRAMS=test-lexing test-parsing obfuscate check compile test-linearize
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h
 
 LIB_OBJS= parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
-	  expression.o show-parse.o evaluate.o expand.o inline.o
+	  expression.o show-parse.o evaluate.o expand.o inline.o linearize.o
 
 LIB_FILE= sparse.a
 LIBS=$(LIB_FILE)
@@ -28,6 +28,9 @@ test-lexing: test-lexing.o $(LIB_FILE)
 	gcc $(LDFLAGS) -o $@ $< $(LIBS)
 
 test-parsing: test-parsing.o $(LIB_FILE)
+	gcc $(LDFLAGS) -o $@ $< $(LIBS)
+
+test-linearize: test-linearize.o $(LIB_FILE)
 	gcc $(LDFLAGS) -o $@ $< $(LIBS)
 
 compile: compile.o compile-i386.o $(LIB_FILE)
@@ -52,6 +55,7 @@ show-parse.o: $(LIB_H)
 symbol.o: $(LIB_H)
 test-lexing.o: $(LIB_H)
 test-parsing.o: $(LIB_H)
+test-linearize.o: $(LIB_H)
 compile.o: $(LIB_H)
 compile-i386.o: $(LIB_H)
 tokenize.o: $(LIB_H)
