@@ -1101,6 +1101,7 @@ static void add_case_statement(struct statement *stmt)
 
 	if (!target) {
 		warning(stmt->pos, "not in switch scope");
+		stmt->type = STMT_NONE;
 		return;
 	}
 	sym = alloc_symbol(stmt->pos, SYM_NODE);
