@@ -1750,8 +1750,6 @@ static int dominates(pseudo_t pseudo, struct instruction *insn,
 			return 0;
 		return -1;
 	}
-	if (!local)
-		warning(pseudo->sym->pos, "Found dominator for %s", show_ident(pseudo->sym->ident));
 	return 1;
 }
 
