@@ -597,8 +597,7 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 			struct ident *ident = NULL;
 			struct symbol *decl = alloc_symbol(token->pos, SYM_NODE);
 			decl->ctype = ctype;
-			token = pointer(token, &decl->ctype);
-			token = direct_declarator(token, &decl, &ident);
+			token = declarator(token, &decl, &ident);
 			if (match_op(token, ':')) {
 				struct expression *expr;
 				token = parse_expression(token->next, &expr);
@@ -625,8 +624,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol **
 	sym = alloc_symbol(token->pos, SYM_NODE);
 	sym->ctype = ctype;
 	*tree = sym;
-	token = pointer(token, &sym->ctype);
-	token = direct_declarator(token, tree, &ident);
+	token = declarator(token, tree, &ident);
 	return token;
 }
 
@@ -1183,7 +1181,6 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	token = declaration_specifiers(token, &ctype, 0);
 	decl = alloc_symbol(token->pos, SYM_NODE);
 	decl->ctype = ctype;
-	token = pointer(token, &decl->ctype);
 	token = declarator(token, &decl, &ident);
 
 	/* Just a type declaration? */
@@ -1241,11 +1238,12 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 		if (!match_op(token, ','))
 			break;
 
+		token = token->next;
 		ident = NULL;
 		decl = alloc_symbol(token->pos, SYM_NODE);
 		decl->ctype = ctype;
-		token = pointer(token, &decl->ctype);
-		token = declarator(token->next, &decl, &ident);
+		token = declaration_specifiers(token, &decl->ctype, 1);
+		token = declarator(token, &decl, &ident);
 		if (!ident) {
 			warn(token->pos, "expected identifier name in type definition");
 			return token;
