@@ -1529,7 +1529,7 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 
 	if (decl->ctype.modifiers & MOD_EXTERN) {
 		if (!(decl->ctype.modifiers & MOD_INLINE))
-			warning(decl->pos, "function with external linkage has definition");
+			warning(decl->pos, "function '%s' with external linkage has definition", show_ident(decl->ident));
 	}
 	if (!(decl->ctype.modifiers & MOD_STATIC))
 		decl->ctype.modifiers |= MOD_EXTERN;
@@ -1550,7 +1550,7 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 	function_symbol_list = old_symbol_list;
 	if (function_computed_goto_list) {
 		if (!function_computed_target_list)
-			warning(decl->pos, "function has computed goto but no targets?");
+			warning(decl->pos, "function '%s' has computed goto but no targets?", show_ident(decl->ident));
 		else {
 			struct statement *stmt;
 			FOR_EACH_PTR(function_computed_goto_list, stmt) {
