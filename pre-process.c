@@ -347,20 +347,28 @@ static void expand_arguments(struct token *parent,
  * Possibly valid combinations:
  *  - anything + 'empty_arg_token' is empty.
  *  - ident + ident - combine (==ident)
+ *		a1 ## bb = 'a1bb'
  *  - ident + number - combine (==ident)
+ *		a ## 0x5 = 'a0x5'
  *  - number + number - combine (==number)
+ *		12 ## 12 = '1212'
  *  - number + ident - combine (==number)
+ *		0x ## aaa = '0xaaa'
+ *  - number + FP - combine (==FP or number)
+ *		0x ## '0e11' = '0x0e11' = number
+ *		1 ## 0.123 = '10.123' = FP)
+ *  - ident + FP - combine (and split?)
+ *		a ## 0e11 = 'a0e11', but
+ *		a ## 0.e1 should be 'a0' '.' 'e1')
  *  - string + string - leave as is, C will combine them anyway
- * others cause an error and leave the two tokens as separate tokens.
+ * others cause an error and leave the tokens as separate tokens.
  */
-static struct token *hashhash(struct token *head, struct token *first, struct token *second)
+static struct token *hashhash(struct token *head, struct token *first)
 {
+	struct token *token;
 	static char buffer[512], *p;
 	struct token *newtoken;
-	static const char *src;
-	int len;
-
-	first->next = second;
+	int i = 2;
 
 	/*
 	 * Special case for gcc 'x ## arg' semantics: if 'arg' is empty
@@ -368,54 +376,70 @@ static struct token *hashhash(struct token *head, struct token *first, struct to
 	 *
 	 * See expand_one_arg.
 	 */
-	if (token_type(second) == TOKEN_EOF) {
-		head->next = second->next;
-		return head;
-	}
+	if (token_type(first->next) == TOKEN_EOF)
+		return first->next->next;
 
 	p = buffer;
-	switch (token_type(first)) {
-	case TOKEN_INTEGER:
-		len = strlen(first->integer);
-		src = first->integer;
-		break;
-	case TOKEN_IDENT:
-		len = first->ident->len;
-		src = first->ident->name;
-		break;
-	default:
-		return second;
-	}
-	memcpy(p, src, len);
-	p += len;
+	token = first;
+	do {
+		static const char *src;
+		int len;
 
-	switch (token_type(second)) {
-	case TOKEN_INTEGER:
-		len = strlen(second->integer);
-		src = second->integer;
-		break;
-	case TOKEN_IDENT:
-		len = second->ident->len;
-		src = second->ident->name;
-		break;
-	default:
-		return second;
-	}
-	memcpy(p, src, len);
-	p += len;
+		switch (token_type(token)) {
+		case TOKEN_INTEGER:
+			src = token->integer;
+			len = strlen(src);
+			switch (*src) {
+			case 'o': case 'x':
+				*p++ = '0';
+				len--;
+				src++;
+			}
+			break;
+		case TOKEN_IDENT:
+			len = token->ident->len;
+			src = token->ident->name;
+			break;
+		case TOKEN_FP:
+			src = token->fp;
+			len = strlen(src);
+			break;
+		default:
+			goto out;
+		}
+		memcpy(p, src, len);
+		p += len;
+		token = token->next;
+	} while (--i > 0 || !(token->pos.whitespace | token->pos.newline));
+
+out:
 	*p++ = 0;
+	if (!*buffer)
+		return token;
 
 	newtoken = alloc_token(&first->pos);
-	head->next = newtoken;
+	newtoken->next = token;
+
 	token_type(newtoken) = token_type(first);
 	switch (token_type(newtoken)) {
 	case TOKEN_IDENT:
 		newtoken->ident = built_in_ident(buffer);
 		break;
-	case TOKEN_INTEGER:
+	case TOKEN_INTEGER: {
+		if (buffer[0] == '0') {
+			switch (buffer[1]) {
+			case 'x': case 'X':
+				buffer[0] = 'x';
+				break;
+			case '0' ... '7':
+				buffer[0] = 'o';
+				break;
+			}
+		}
 		newtoken->integer = __alloc_bytes(p - buffer);
 		memcpy(newtoken->integer, buffer, p - buffer);
 		break;
+	}
 	}
 	return newtoken;
 }
@@ -434,16 +458,13 @@ static void retokenize(struct token *head)
 			break;
 		
 		if (match_op(nextnext, SPECIAL_HASHHASH)) {
-			struct token *newtoken = hashhash(head, next, nextnextnext);
-
-			next = newtoken;
-			nextnext = nextnextnext->next;
+			next->next = nextnextnext;
+			next = hashhash(head, next);
+			head->next = next;
+			nextnext = next->next;
 			nextnextnext = nextnext->next;
-
-			newtoken->next = nextnext;
-			if (!eof_token(nextnext))
-				continue;
-			break;
+			continue;
+			
 		}
 
 		head = next;
