@@ -284,8 +284,10 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 
 	/* Other */
 	case OP_PHI:
-		if (dead_insn(insn, VOID, VOID))
+		if (dead_insn(insn, VOID, VOID)) {
+			clear_phi(insn);
 			return;
+		}
 		hash += clean_up_phi(insn);
 		break;
 
