@@ -741,7 +741,6 @@ static void generate_cast(struct bb_state *state, struct instruction *insn)
 	struct hardreg *dst;
 	unsigned int old = insn->orig_type ? insn->orig_type->bit_size : 0;
 	unsigned int new = insn->size;
-	unsigned long long mask;
 
 	/*
 	 * Cast to smaller type? Ignore the high bits, we
@@ -754,10 +753,14 @@ static void generate_cast(struct bb_state *state, struct instruction *insn)
 
 	dst = target_copy_reg(state, src, insn->target);
 
-	mask = ~(~0ULL << old);
-	mask &= ~(~0ULL << new);
-
-	output_insn(state, "andl.%d $%#llx,%s", insn->size, mask, dst->name);
+	if (insn->orig_type && (insn->orig_type->ctype.modifiers & MOD_SIGNED)) {
+		output_insn(state, "sext.%d.%d %s", old, new, dst->name);
+	} else {
+		unsigned long long mask;
+		mask = ~(~0ULL << old);
+		mask &= ~(~0ULL << new);
+		output_insn(state, "andl.%d $%#llx,%s", insn->size, mask, dst->name);
+	}
 	add_pseudo_reg(state, insn->target, dst);
 }
 
