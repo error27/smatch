@@ -393,4 +393,20 @@ static inline void expression_iterate(struct expression_list *list, void (*callb
 #define THIS_ADDRESS(ptr) \
 	DO_THIS_ADDRESS(ptr, __head##ptr, __list##ptr, __nr##ptr)
 
+#define DO_DELETE_CURRENT(ptr, __head, __list, __nr) do {				\
+	void **__this = __list->list + __nr;						\
+	void **__last = __list->list + __list->nr - 1;					\
+	while (__this < __last) {							\
+		__this[0] = __this[1];							\
+		__this++;								\
+	}										\
+	__list->nr--; __nr--;								\
+} while (0)
+
+#define DELETE_CURRENT_PTR(ptr) \
+	DO_DELETE_CURRENT(ptr, __head##ptr, __list##ptr, __nr##ptr)
+
+#define REPLACE_CURRENT_PTR(ptr, new_ptr)						\
+	do { *THIS_ADDRESS(ptr) = (new_ptr); } while (0)
+
 #endif
