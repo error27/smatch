@@ -25,16 +25,6 @@ static struct basic_block *phi_parent(struct basic_block *source, pseudo_t pseud
 	return first_basic_block(source->parents);
 }
 
-struct basic_block *trivial_common_parent(struct basic_block *s1, pseudo_t p1,
-					  struct basic_block *s2, pseudo_t p2)
-{
-	s1 = phi_parent(s1, p1);
-	s2 = phi_parent(s2, p2);
-	if (s1 != s2)
-		s1 = NULL;
-	return s1;
-}
-
 static void clear_phi(struct instruction *insn)
 {
 	pseudo_t phi;
@@ -71,8 +61,8 @@ static int if_convert_phi(struct instruction *insn)
 	/*
 	 * See if we can find a common source for this..
 	 */
-	source = trivial_common_parent(bb1, p1, bb2, p2);
-	if (!source)
+	source = phi_parent(bb1, p1);
+	if (source != phi_parent(bb2, p2))
 		return 0;
 
 	/*

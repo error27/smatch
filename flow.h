@@ -30,7 +30,4 @@ extern void track_pseudo_liveness(struct entrypoint *ep);
 extern void vrfy_flow(struct entrypoint *ep);
 extern int pseudo_in_list(struct pseudo_list *list, pseudo_t pseudo);
 
-extern struct basic_block *trivial_common_parent(struct basic_block *, pseudo_t,
-	struct basic_block *, pseudo_t);
-
 #endif

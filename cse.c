@@ -259,6 +259,20 @@ static int bb_dominates(struct entrypoint *ep, struct basic_block *bb1, struct b
 	return 1;
 }
 
+static struct basic_block *trivial_common_parent(struct basic_block *bb1, struct basic_block *bb2)
+{
+	struct basic_block *parent;
+
+	if (bb_list_size(bb1->parents) != 1)
+		return 0;
+	parent = first_basic_block(bb1->parents);
+	if (bb_list_size(bb2->parents) != 1)
+		return 0;
+	if (first_basic_block(bb2->parents) != parent)
+		return 0;
+	return parent;
+}
+
 static inline void remove_instruction(struct instruction_list **list, struct instruction *insn, int count)
 {
 	delete_ptr_list_entry((struct ptr_list **)list, insn, count);
@@ -305,7 +319,7 @@ static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction
 		return cse_one_instruction(i1, i2);
 
 	/* No direct dominance - but we could try to find a common ancestor.. */
-	common = trivial_common_parent(b1, VOID, b2, VOID);
+	common = trivial_common_parent(b1, b2);
 	if (common) {
 		i1 = cse_one_instruction(i2, i1);
 		remove_instruction(&b1->insns, i1, 1);
