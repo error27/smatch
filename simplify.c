@@ -188,11 +188,9 @@ void kill_instruction(struct instruction *insn)
 		repeat_phase |= REPEAT_CSE;
 		return;
 
-	 case OP_SETVAL:
+	 case OP_SYMADDR:
 	 	insn->bb = NULL;
-	 	repeat_phase |= REPEAT_CSE;
-	 	if (insn->symbol)
-	 		repeat_phase |= REPEAT_SYMBOL_CLEANUP;
+	 	repeat_phase |= REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 	 	return;
 	}
 }
@@ -485,7 +483,7 @@ static int simplify_one_memop(struct instruction *insn, pseudo_t orig)
 
 	if (addr->type == PSEUDO_REG) {
 		struct instruction *def = addr->def;
-		if (def->opcode == OP_SETVAL && def->src) {
+		if (def->opcode == OP_SYMADDR && def->src) {
 			kill_use(&insn->src);
 			use_pseudo(def->src, &insn->src);
 			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
@@ -736,7 +734,7 @@ int simplify_instruction(struct instruction *insn)
 		return simplify_unop(insn);
 	case OP_LOAD: case OP_STORE:
 		return simplify_memop(insn);
-	case OP_SETVAL:
+	case OP_SYMADDR:
 		if (dead_insn(insn, NULL, NULL, NULL))
 			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 		return replace_with_pseudo(insn, insn->symbol);

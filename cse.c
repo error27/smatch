@@ -76,6 +76,9 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 
 	case OP_SETVAL:
 		hash += hashval(insn->val);
+		break;
+
+	case OP_SYMADDR:
 		hash += hashval(insn->symbol);
 		break;
 
@@ -188,11 +191,14 @@ static int insn_compare(const void *_i1, const void *_i2)
 			return i1->src1 < i2->src1 ? -1 : 1;
 		break;
 
+	case OP_SYMADDR:
+		if (i1->symbol != i2->symbol)
+			return i1->symbol < i2->symbol ? -1 : 1;
+		break;
+
 	case OP_SETVAL:
 		if (i1->val != i2->val)
 			return i1->val < i2->val ? -1 : 1;
-		if (i1->symbol != i2->symbol)
-			return i1->symbol < i2->symbol ? -1 : 1;
 		break;
 
 	/* Other */

@@ -205,6 +205,7 @@ static const char* opcodes[] = {
 	[OP_LOAD] = "load",
 	[OP_STORE] = "store",
 	[OP_SETVAL] = "set",
+	[OP_SYMADDR] = "symaddr",
 	[OP_GET_ELEMENT_PTR] = "getelem",
 
 	/* Other */
@@ -289,27 +290,25 @@ const char *show_instruction(struct instruction *insn)
 		buf += sprintf(buf, ".L%p", insn->bb_true ? insn->bb_true : insn->bb_false);
 		break;
 
-	case OP_SETVAL: {
-		struct expression *expr = insn->val;
-		pseudo_t pseudo = insn->symbol;
+	case OP_SYMADDR: {
+		struct symbol *sym = insn->symbol->sym;
 		buf += sprintf(buf, "%s <- ", show_pseudo(insn->target));
-		if (pseudo) {
-			struct symbol *sym = pseudo->sym;
-			if (!sym) {
-				buf += sprintf(buf, "%s", show_pseudo(pseudo));
-				break;
-			}
-			if (sym->bb_target) {
-				buf += sprintf(buf, ".L%p", sym->bb_target);
-				break;
-			}
-			if (sym->ident) {
-				buf += sprintf(buf, "%s", show_ident(sym->ident));
-				break;
-			}
-			buf += sprintf(buf, "<anon symbol:%p>", sym);
+
+		if (sym->bb_target) {
+			buf += sprintf(buf, ".L%p", sym->bb_target);
 			break;
 		}
+		if (sym->ident) {
+			buf += sprintf(buf, "%s", show_ident(sym->ident));
+			break;
+		}
+		buf += sprintf(buf, "<anon symbol:%p>", sym);
+		break;
+	}
+		
+	case OP_SETVAL: {
+		struct expression *expr = insn->val;
+		buf += sprintf(buf, "%s <- ", show_pseudo(insn->target));
 
 		if (!expr) {
 			buf += sprintf(buf, "%s", "<none>");
@@ -942,11 +941,17 @@ static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct e
 	pseudo_t target = alloc_pseudo(insn);
 	insn->target = target;
 	insn->val = val;
-	if (!val) {
-		pseudo_t addr = symbol_pseudo(ep, ctype);
-		use_pseudo(addr, &insn->symbol);
-		insn->size = bits_in_pointer;
-	}
+	add_one_insn(ep, insn);
+	return target;
+}
+
+static pseudo_t add_symbol_address(struct entrypoint *ep, struct symbol *sym)
+{
+	struct instruction *insn = alloc_instruction(OP_SYMADDR, bits_in_pointer);
+	pseudo_t target = alloc_pseudo(insn);
+
+	insn->target = target;
+	use_pseudo(symbol_pseudo(ep, sym), &insn->symbol);
 	add_one_insn(ep, insn);
 	return target;
 }
@@ -1442,7 +1447,7 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 	switch (expr->type) {
 	case EXPR_SYMBOL:
 		linearize_one_symbol(ep, expr->symbol);
-		return add_setval(ep, expr->symbol, NULL);
+		return add_symbol_address(ep, expr->symbol);
 
 	case EXPR_VALUE:
 		return value_pseudo(expr->value);

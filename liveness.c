@@ -93,6 +93,10 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 		break;
 
 	case OP_SETVAL:
+		DEFINES(target);
+		break;
+
+	case OP_SYMADDR:
 		USES(symbol); DEFINES(target);
 		break;
 

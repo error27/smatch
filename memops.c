@@ -69,7 +69,7 @@ static inline int address_taken(pseudo_t pseudo)
 	pseudo_t *usep;
 	FOR_EACH_PTR(pseudo->users, usep) {
 		struct instruction *insn = container(usep, struct instruction, src);
-		if (insn->bb && insn->opcode == OP_SETVAL)
+		if (insn->bb && insn->opcode == OP_SYMADDR)
 			return 1;
 	} END_FOR_EACH_PTR(usep);
 	return 0;

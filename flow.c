@@ -53,15 +53,10 @@ static int pseudo_truth_value(pseudo_t pseudo)
 
 	case PSEUDO_REG: {
 		struct instruction *insn = pseudo->def;
-		if (insn->opcode == OP_SETVAL && insn->target == pseudo) {
-			struct expression *expr = insn->val;
 
-			/* A symbol address is always considered true.. */
-			if (!expr)
-				return 1;
-			if (expr->type == EXPR_VALUE)
-				return !!expr->value;
-		}
+		/* A symbol address is always considered true.. */
+		if (insn->opcode == OP_SYMADDR && insn->target == pseudo)
+			return 1;
 	}
 		/* Fall through */
 	default:
@@ -614,7 +609,7 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 			break;
 		case OP_LOAD:
 			break;
-		case OP_SETVAL:
+		case OP_SYMADDR:
 			if (!insn->bb)
 				continue;
 			mod |= MOD_ADDRESSABLE;

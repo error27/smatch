@@ -502,7 +502,7 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 	case PSEUDO_REG:
 		def = pseudo->def;
 		if (def->opcode == OP_SETVAL) {
-			output_insn(state, "movl $<%s>,%s", show_pseudo(def->symbol), hardreg->name);
+			output_insn(state, "movl $<%s>,%s", show_pseudo(def->target), hardreg->name);
 			break;
 		}
 		src = find_pseudo_storage(state, pseudo, hardreg);
@@ -1298,7 +1298,7 @@ static void fill_output(struct bb_state *state, pseudo_t pseudo, struct storage 
 	case PSEUDO_REG:
 		def = pseudo->def;
 		if (def->opcode == OP_SETVAL) {
-			write_val_to_storage(state, def->symbol, out);
+			write_val_to_storage(state, pseudo, out);
 			return;
 		}
 	default:

@@ -173,6 +173,7 @@ enum opcode {
 	OP_LOAD,
 	OP_STORE,
 	OP_SETVAL,
+	OP_SYMADDR,
 	OP_GET_ELEMENT_PTR,
 
 	/* Other */
