@@ -77,7 +77,7 @@ static char ** handle_switch(char *arg, char **next)
 		}
 	/* Fallthrough */
 	default:
-		fprintf(stderr, "unknown switch '%s'\n", arg);
+		/* Ignore unknown command line options - they're probably gcc switches */
 	}
 	return next;
 }
@@ -97,6 +97,7 @@ int main(int argc, char **argv)
 	init_symbols();
 
 	add_pre_buffer("#define __CHECKER__ 1\n");
+	add_pre_buffer("#define cond_syscall(x)\n");
 	add_pre_buffer("#nostdinc\n");
 	add_pre_buffer("#add_include \"/home/torvalds/v2.5/linux/include/\"\n");
 	add_pre_buffer("#add_include \"/home/torvalds/v2.5/linux/include/asm-i386/mach-default/\"\n");
@@ -107,7 +108,7 @@ int main(int argc, char **argv)
 	add_pre_buffer("#define __GNUC_MINOR__ 95\n");
 	add_pre_buffer("#define __builtin_constant_p(x) 0\n");
 	add_pre_buffer("#define __func__ \"function\"\n");
-
+	add_pre_buffer("#define __extension__\n");
 
 	args = argv;
 	for (;;) {
