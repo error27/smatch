@@ -12,7 +12,7 @@
 #include "linearize.h"
 #include "flow.h"
 
-static int pseudo_in_list(struct pseudo_list *list, pseudo_t pseudo)
+int pseudo_in_list(struct pseudo_list *list, pseudo_t pseudo)
 {
 	pseudo_t old;
 	FOR_EACH_PTR(list,old) {
@@ -202,6 +202,24 @@ static inline void remove_pseudo(struct pseudo_list **list, pseudo_t pseudo)
 	delete_ptr_list_entry((struct ptr_list **)list, pseudo, 0);
 }
 
+/*
+ * We need to clear the liveness information if we 
+ * are going to re-run it.
+ */
+void clear_liveness(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+
+	FOR_EACH_PTR(ep->bbs, bb) {
+		free_ptr_list(&bb->needs);
+		free_ptr_list(&bb->defines);
+	} END_FOR_EACH_PTR(bb);
+}
+
+/*
+ * Track inter-bb pseudo liveness. The intra-bb case
+ * is purely local information.
+ */
 void track_pseudo_liveness(struct entrypoint *ep)
 {
 	struct basic_block *bb;

@@ -24,13 +24,13 @@ unsigned long bb_generation;
  * branch on that phi-node, we should damn well be able to
  * do something about the source. Maybe.
  */
-static void rewrite_branch(struct basic_block *bb,
+static int rewrite_branch(struct basic_block *bb,
 	struct basic_block **ptr,
 	struct basic_block *old,
 	struct basic_block *new)
 {
 	if (*ptr != old || new == old)
-		return;
+		return 0;
 
 	/* We might find new if-conversions or non-dominating CSEs */
 	repeat_phase |= REPEAT_CSE;
@@ -38,6 +38,7 @@ static void rewrite_branch(struct basic_block *bb,
 	replace_bb_in_list(&bb->children, old, new, 1);
 	remove_bb_from_list(&old->parents, bb, 1);
 	add_bb(&new->parents, bb);
+	return 1;
 }
 
 /*
@@ -68,10 +69,35 @@ static int pseudo_truth_value(pseudo_t pseudo)
 	}
 }
 
+/*
+ * Does a basic block depend on the pseudos that "src" defines?
+ */
+static int bb_depends_on(struct basic_block *target, struct basic_block *src)
+{
+	pseudo_t pseudo;
 
-static void try_to_simplify_bb(struct entrypoint *ep, struct basic_block *bb,
+	FOR_EACH_PTR(src->defines, pseudo) {
+		if (pseudo_in_list(target->needs, pseudo))
+			return 1;
+	} END_FOR_EACH_PTR(pseudo);
+	return 0;
+}
+
+/*
+ * When we reach here, we have:
+ *  - a basic block that ends in a conditional branch and
+ *    that has no side effects apart from the pseudos it
+ *    may change.
+ *  - the phi-node that the conditional branch depends on
+ *  - full pseudo liveness information
+ *
+ * We need to check if any of the _sources_ of the phi-node
+ * may be constant, and not actually need this block at all.
+ */
+static int try_to_simplify_bb(struct entrypoint *ep, struct basic_block *bb,
 	struct instruction *first, struct instruction *second)
 {
+	int changed = 0;
 	pseudo_t phi;
 
 	FOR_EACH_PTR(first->phi_list, phi) {
@@ -88,42 +114,64 @@ static void try_to_simplify_bb(struct entrypoint *ep, struct basic_block *bb,
 			continue;
 		if (br->opcode != OP_BR)
 			continue;
-
 		true = pseudo_truth_value(pseudo);
 		if (true < 0)
 			continue;
 		target = true ? second->bb_true : second->bb_false;
-		rewrite_branch(source, &br->bb_true, bb, target);
-		rewrite_branch(source, &br->bb_false, bb, target);
+		if (bb_depends_on(target, bb))
+			continue;
+		changed |= rewrite_branch(source, &br->bb_true, bb, target);
+		changed |= rewrite_branch(source, &br->bb_false, bb, target);
 	} END_FOR_EACH_PTR(phi);
+	return changed;
 }
 
-static inline int linearize_insn_list(struct instruction_list *list, struct instruction **arr, int nr)
+static int bb_has_side_effects(struct basic_block *bb)
 {
-	return linearize_ptr_list((struct ptr_list *)list, (void **)arr, nr);
+	struct instruction *insn;
+	FOR_EACH_PTR(bb->insns, insn) {
+		switch (insn->opcode) {
+		case OP_CALL:
+		case OP_STORE:
+			return 1;
+		default:
+			continue;
+		}
+	} END_FOR_EACH_PTR(insn);
+	return 0;
 }
 
-static void simplify_phi_nodes(struct entrypoint *ep)
+static int simplify_phi_nodes(struct entrypoint *ep)
 {
+	int changed = 0;
 	struct basic_block *bb;
 
 	FOR_EACH_PTR(ep->bbs, bb) {
-		struct instruction *insns[2], *first, *second;
+		pseudo_t cond;
+		struct instruction *br = last_instruction(bb->insns);
+		struct instruction *def;
 
-		if (linearize_insn_list(bb->insns, insns, 2) < 2)
+		if (!br || br->opcode != OP_BR || !br->bb_false)
 			continue;
-
-		first = insns[0];
-		second = insns[1];
-
-		if (first->opcode != OP_PHI)
+		cond = br->cond;
+		if (!cond || cond->type != PSEUDO_REG)
 			continue;
-		if (second->opcode != OP_BR)
+		def = cond->def;
+		if (def->bb != bb || def->opcode != OP_PHI)
 			continue;
-		if (first->target != second->cond)
+		if (bb_has_side_effects(bb))
 			continue;
-		try_to_simplify_bb(ep, bb, first, second);
+		changed = try_to_simplify_bb(ep, bb, def, br);
 	} END_FOR_EACH_PTR(bb);
+	return changed;
+}
+
+/*
+ * This is called late - when we have intra-bb liveness information..
+ */
+int simplify_flow(struct entrypoint *ep)
+{
+	return simplify_phi_nodes(ep);
 }
 
 static inline void concat_user_list(struct pseudo_ptr_list *src, struct pseudo_ptr_list **dst)
@@ -647,7 +695,7 @@ void kill_bb(struct basic_block *bb)
 	bb->parents = NULL;
 }
 
-static void kill_unreachable_bbs(struct entrypoint *ep)
+void kill_unreachable_bbs(struct entrypoint *ep)
 {
 	struct basic_block *bb;
 	unsigned long generation = ++bb_generation;
@@ -790,12 +838,6 @@ void vrfy_flow(struct entrypoint *ep)
 		vrfy_bb_flow(bb);
 	} END_FOR_EACH_PTR(bb);
 	assert(!entry);
-}
-
-void simplify_flow(struct entrypoint *ep)
-{
-	simplify_phi_nodes(ep);
-	kill_unreachable_bbs(ep);
 }
 
 void pack_basic_blocks(struct entrypoint *ep)

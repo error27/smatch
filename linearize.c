@@ -1809,11 +1809,14 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 		add_one_insn(ep, insn);
 	}
 
+	merge_phi_sources = 1;
+
+repeat:
 	/*
 	 * Do trivial flow simplification - branches to
 	 * branches, kill dead basicblocks etc
 	 */
-	simplify_flow(ep);
+	kill_unreachable_bbs(ep);
 
 	/*
 	 * Turn symbols into pseudos
@@ -1824,7 +1827,6 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	 * Remove trivial instructions, and try to CSE
 	 * the rest.
 	 */
-	merge_phi_sources = 1;
 	do {
 		cleanup_and_cse(ep);
 		simplify_flow(ep);
@@ -1838,6 +1840,17 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 
 	/* And track pseudo register usage */
 	track_pseudo_liveness(ep);
+
+	/*
+	 * Some flow optimizations can only effectively
+	 * be done when we've done liveness analysis. But
+	 * if they trigger, we need to start all over
+	 * again
+	 */
+	if (simplify_flow(ep)) {
+		clear_liveness(ep);
+		goto repeat;
+	}
 
 	return ep;
 }
