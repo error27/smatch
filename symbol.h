@@ -24,14 +24,14 @@
  * declared.
  */
 enum namespace {
-	NS_NONE,
-	NS_PREPROCESSOR,
-	NS_TYPEDEF,
-	NS_STRUCT,
-	NS_ENUM,
-	NS_LABEL,
-	NS_SYMBOL,
-	NS_ITERATOR,
+	NS_NONE = 0,
+	NS_PREPROCESSOR = 1,
+	NS_TYPEDEF = 2,
+	NS_STRUCT = 4,
+	NS_ENUM = 8,
+	NS_LABEL = 16,
+	NS_SYMBOL = 32,
+	NS_ITERATOR = 64,
 };
 
 enum type {

@@ -44,7 +44,7 @@ struct symbol *lookup_symbol(struct ident *ident, enum namespace ns)
 	struct symbol *sym;
 
 	for (sym = ident->symbols; sym; sym = sym->next_id) {
-		if (sym->namespace == ns) {
+		if (sym->namespace & ns) {
 			sym->used = 1;
 			return sym;
 		}
