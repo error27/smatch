@@ -449,7 +449,10 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expressio
 {
 	const char *typediff;
 	struct symbol *ctype;
-	struct symbol *ltype = l->ctype, *rtype = r->ctype;
+	struct symbol *ltype, *rtype;
+
+	ltype = degenerate(l);
+	rtype = degenerate(r);
 
 	/*
 	 * If it is an integer subtract: the ptr add case will do the
@@ -1340,6 +1343,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	}
 
 	evaluate_expression(target);
+	degenerate(target);
 
 	/*
 	 * Casts of constant values are special: they
