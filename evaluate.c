@@ -720,7 +720,7 @@ static struct symbol *evaluate_conditional(struct expression *expr, int iterator
 	if (!expr)
 		return NULL;
 
-	if (!iterator && expr->type == EXPR_ASSIGNMENT)
+	if (!iterator && expr->type == EXPR_ASSIGNMENT && expr->op == '=')
 		warning(expr->pos, "assignment expression in conditional");
 
 	ctype = evaluate_expression(expr);
