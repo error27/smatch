@@ -255,6 +255,7 @@ no_dominance:
 found_dominator:
 		br = delete_last_instruction(&parent->insns);
 		phi = alloc_phi(parent, one->target, one->size);
+		phi->ident = phi->ident ? : pseudo->ident;
 		add_instruction(&parent->insns, br);
 		use_pseudo(phi, add_pseudo(dominators, phi));
 	} END_FOR_EACH_PTR(parent);
@@ -277,6 +278,7 @@ void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *domi
 	FOR_EACH_PTR(dominators, phi) {
 		if (new != phi->def->src1)
 			goto complex_phi;
+		new->ident = new->ident ? : phi->ident;
 	} END_FOR_EACH_PTR(phi);
 
 	/*

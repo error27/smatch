@@ -79,6 +79,7 @@ static const char *show_pseudo(pseudo_t pseudo)
 	static int n;
 	static char buffer[4][64];
 	char *buf;
+	int i;
 
 	if (!pseudo)
 		return "no pseudo";
@@ -115,7 +116,9 @@ static const char *show_pseudo(pseudo_t pseudo)
 		}
 	}
 	case PSEUDO_REG:
-		snprintf(buf, 64, "%%r%d", pseudo->nr);
+		i = snprintf(buf, 64, "%%r%d", pseudo->nr);
+		if (pseudo->ident)
+			sprintf(buf+i, "(%s)", show_ident(pseudo->ident));
 		break;
 	case PSEUDO_VAL: {
 		long long value = pseudo->value;
@@ -129,7 +132,9 @@ static const char *show_pseudo(pseudo_t pseudo)
 		snprintf(buf, 64, "%%arg%d", pseudo->nr);
 		break;
 	case PSEUDO_PHI:
-		snprintf(buf, 64, "%%phi%d", pseudo->nr);
+		i = snprintf(buf, 64, "%%phi%d", pseudo->nr);
+		if (pseudo->ident)
+			sprintf(buf+i, "(%s)", show_ident(pseudo->ident));
 		break;
 	default:
 		snprintf(buf, 64, "<bad pseudo type %d>", pseudo->type);
@@ -388,10 +393,10 @@ void show_instruction(struct instruction *insn)
 static void show_bb(struct basic_block *bb)
 {
 	struct instruction *insn;
-	pseudo_t needs;
 
 	printf(".L%p:\n", bb);
 	if (verbose) {
+		pseudo_t needs, defines;
 		printf("%s:%d\n", input_streams[bb->pos.stream].name, bb->pos.line);
 
 		FOR_EACH_PTR(bb->needs, needs) {
@@ -411,6 +416,10 @@ static void show_bb(struct basic_block *bb)
 				printf(")**\n");
 			}
 		} END_FOR_EACH_PTR(needs);
+
+		FOR_EACH_PTR(bb->defines, defines) {
+			printf("  **defines %s **\n", show_pseudo(defines));
+		} END_FOR_EACH_PTR(defines);
 
 		if (bb->parents) {
 			struct basic_block *from;
@@ -692,6 +701,7 @@ static pseudo_t symbol_pseudo(struct entrypoint *ep, struct symbol *sym)
 		pseudo = __alloc_pseudo(0);
 		pseudo->type = PSEUDO_SYM;
 		pseudo->sym = sym;
+		pseudo->ident = sym->ident;
 		sym->pseudo = pseudo;
 		add_symbol(&ep->accesses, sym);
 	}
@@ -1525,6 +1535,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 				add_instruction(&bb_return->insns, phi_node);
 			}
 			phi = alloc_phi(active, src, expr->ctype->bit_size);
+			phi->ident = &return_ident;
 			use_pseudo(phi, add_pseudo(&phi_node->phi_list, phi));
 		}
 		add_goto(ep, bb_return);
@@ -1782,6 +1793,7 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	merge_phi_sources = 1;
 	do {
 		cleanup_and_cse(ep);
+		simplify_flow(ep);
 		pack_basic_blocks(ep);
 	} while (repeat_phase & REPEAT_CSE);
 

@@ -22,6 +22,7 @@ struct pseudo {
 	int nr;
 	enum pseudo_type type;
 	struct pseudo_ptr_list *users;
+	struct ident *ident;
 	union {
 		struct symbol *sym;
 		struct instruction *def;
