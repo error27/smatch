@@ -305,8 +305,6 @@ static struct symbol *evaluate_arith(struct expression *expr, int float_ok)
 
 static inline int lvalue_expression(struct expression *expr)
 {
-	while (expr->type == EXPR_CAST)
-		expr = expr->cast_expression;
 	return (expr->type == EXPR_PREOP && expr->op == '*') || expr->type == EXPR_BITFIELD;
 }
 
