@@ -217,8 +217,6 @@ static struct expression * copy_expression(struct expression *expr)
 		
 	case EXPR_IDENTIFIER: {
 		struct expression *sub_expr = copy_expression(expr->ident_expression);
-		if (sub_expr == expr->ident_expression)
-			break;
 		expr = dup_expression(expr);
 		expr->ident_expression = sub_expr;
 		break;
@@ -227,8 +225,6 @@ static struct expression * copy_expression(struct expression *expr)
 	/* Position in initializer.. */
 	case EXPR_POS: {
 		struct expression *val = copy_expression(expr->init_expr);
-		if (val == expr->init_expr)
-			break;
 		expr = dup_expression(expr);
 		expr->init_expr = val;
 		break;
