@@ -347,11 +347,15 @@ static inline void add_expression(struct expression_list **list, struct expressi
 	struct ptr_list *__newlist = __list;						\
 	int __newnr = __nr;								\
 	new = ptr;									\
+	goto __inside##new;								\
 	if (1) {									\
 		do {									\
+			__newlist = __newlist->prev;					\
+			__newnr = __newlist->nr;					\
+	__inside##new:									\
 			while (--__newnr >= 0) {					\
 				do {							\
-					new = (__typeof__(ptr)) (__list->list[__newnr]);\
+					new = (__typeof__(ptr)) (__newlist->list[__newnr]);\
 					do {
 
 #define RECURSE_PTR_REVERSE(ptr, new)							\
