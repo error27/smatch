@@ -266,6 +266,48 @@ struct symbol * ctype_fp(unsigned int spec)
 	return &float_ctype;
 }
 
+static void apply_ctype(struct position pos, struct ctype *thistype, struct ctype *ctype)
+{
+	unsigned long mod = thistype->modifiers;
+
+	if (mod) {
+		unsigned long old = ctype->modifiers;
+		unsigned long extra = 0, dup;
+
+		if (mod & old & MOD_LONG) {
+			extra = MOD_LONGLONG | MOD_LONG;
+			mod &= ~MOD_LONG;
+			old &= ~MOD_LONG;
+		}
+		dup = (mod & old) | (extra & old) | (extra & mod);
+		if (dup)
+			warn(pos, "Just how %s do you want this type to be?",
+				modifier_string(dup));
+		ctype->modifiers = old | mod | extra;
+	}
+
+	/* Context mask and value */
+	if ((ctype->context ^ thistype->context) & (ctype->contextmask & thistype->contextmask)) {
+		warn(pos, "inconsistend attribute types");
+		thistype->context = 0;
+		thistype->contextmask = 0;
+	}
+	ctype->context |= thistype->context;
+	ctype->contextmask |= thistype->contextmask;
+
+	/* Alignment */
+	if (thistype->alignment & (thistype->alignment-1)) {
+		warn(pos, "I don't like non-power-of-2 alignments");
+		thistype->alignment = 0;
+	}
+	if (thistype->alignment > ctype->alignment)
+		ctype->alignment = thistype->alignment;
+
+	/* Address space */
+	ctype->as = thistype->as;
+}
+
+
 static struct token *declaration_specifiers(struct token *next, struct ctype *ctype, int qual)
 {
 	struct token *token;
@@ -301,7 +343,6 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 				next = typeof_specifier(next, &thistype);
 			mod = thistype.modifiers;
 		}
-
 		type = thistype.base_type;
 		if (type) {
 			if (qual)
@@ -314,41 +355,8 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 				ctype->base_type = type;
 			}
 		}
-		if (mod) {
-			unsigned long old = ctype->modifiers;
-			unsigned long extra = 0, dup;
 
-			if (mod & old & MOD_LONG) {
-				extra = MOD_LONGLONG | MOD_LONG;
-				mod &= ~MOD_LONG;
-				old &= ~MOD_LONG;
-			}
-			dup = (mod & old) | (extra & old) | (extra & mod);
-			if (dup)
-				warn(token->pos, "Just how %s do you want this type to be?",
-					modifier_string(dup));
-			ctype->modifiers = old | mod | extra;
-		}
-
-		/* Context mask and value */
-		if ((ctype->context ^ thistype.context) & (ctype->contextmask & thistype.contextmask)) {
-			warn(token->pos, "inconsistend attribute types");
-			thistype.context = 0;
-			thistype.contextmask = 0;
-		}
-		ctype->context |= thistype.context;
-		ctype->contextmask |= thistype.contextmask;
-
-		/* Alignment */
-		if (thistype.alignment & (thistype.alignment-1)) {
-			warn(token->pos, "I don't like non-power-of-2 alignments");
-			thistype.alignment = 0;
-		}
-		if (thistype.alignment > ctype->alignment)
-			ctype->alignment = thistype.alignment;
-
-		/* Address space */
-		ctype->as = thistype.as;
+		apply_ctype(token->pos, &thistype, ctype);
 	}
 
 	/* Turn the "virtual types" into real types with real sizes etc */
@@ -394,8 +402,9 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 
 	for (;;) {
 		if (match_ident(token, &__attribute___ident) || match_ident(token, &__attribute_ident)) {
-			struct ctype ctype = { 0, };
-			token = attribute_specifier(token->next, &ctype);
+			struct ctype thistype = { 0, };
+			token = attribute_specifier(token->next, &thistype);
+			apply_ctype(token->pos, &thistype, ctype);
 			continue;
 		}
 		if (token_type(token) != TOKEN_SPECIAL)
