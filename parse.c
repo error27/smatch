@@ -1017,6 +1017,13 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 
 	/* type define declaration? */
 	is_typedef = (ctype.modifiers & MOD_TYPEDEF) != 0;
+
+	/* Typedef's don't have meaningful storage */
+	if (is_typedef) {
+		ctype.modifiers &= ~MOD_STORAGE;
+		decl->ctype.modifiers &= ~MOD_STORAGE;
+	}
+
 	bind_symbol(decl, ident, is_typedef ? NS_TYPEDEF: NS_SYMBOL);
 
 	base_type = decl->ctype.base_type;
