@@ -734,6 +734,7 @@ void pack_basic_blocks(struct entrypoint *ep)
 				if (phi->source)
 					goto no_merge;
 			} END_FOR_EACH_PTR(phi);
+			bb->phinodes = NULL;
 		}
 
 		/*
