@@ -27,22 +27,22 @@ install: check
 	if test $< -nt $(PREFIX)/bin/sparse ; then install -v $< $(PREFIX)/bin/sparse ; fi
 
 test-lexing: test-lexing.o $(LIB_FILE)
-	gcc $(LDFLAGS) -o $@ $< $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 test-parsing: test-parsing.o $(LIB_FILE)
-	gcc $(LDFLAGS) -o $@ $< $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 test-linearize: test-linearize.o $(LIB_FILE)
-	gcc $(LDFLAGS) -o $@ $< $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 compile: compile.o compile-i386.o $(LIB_FILE)
-	gcc $(LDFLAGS) -o $@ $< compile-i386.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $< compile-i386.o $(LIBS)
 
 obfuscate: obfuscate.o $(LIB_FILE)
-	gcc $(LDFLAGS) -o $@ $< $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 check: check.o $(LIB_FILE)
-	gcc $(LDFLAGS) -o $@ $< $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 $(LIB_FILE): $(LIB_OBJS)
 	$(AR) rcs $(LIB_FILE) $(LIB_OBJS)
