@@ -1704,73 +1704,79 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 
 struct basic_block outside;
 
+static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_type)
+{
+	struct entrypoint *ep;
+	struct basic_block *bb;
+	struct symbol *arg;
+	pseudo_t result;
+	int i;
+
+	if (!base_type->stmt)
+		return NULL;
+
+	ep = alloc_entrypoint();
+	bb = alloc_basic_block(sym->pos);
+	
+	ep->name = sym;
+	ep->entry = bb;
+	add_bb(&bb->parents, &outside);
+	set_activeblock(ep, bb);
+	concat_symbol_list(base_type->arguments, &ep->syms);
+
+	/* FIXME!! We should do something else about varargs.. */
+	i = 0;
+	FOR_EACH_PTR(base_type->arguments, arg) {
+		linearize_argument(ep, arg, ++i);
+	} END_FOR_EACH_PTR(arg);
+
+	result = linearize_statement(ep, base_type->stmt);
+	if (bb_reachable(ep->active) && !bb_terminated(ep->active)) {
+		struct symbol *ret_type = base_type->ctype.base_type;
+		struct instruction *insn = alloc_instruction(OP_RET, ret_type);
+		
+		use_pseudo(result, &insn->src);
+		add_one_insn(ep, insn);
+	}
+
+	/*
+	 * Do trivial flow simplification - branches to
+	 * branches, kill dead basicblocks etc
+	 */
+	simplify_flow(ep);
+
+	/*
+	 * Turn symbols into pseudos
+	 */
+	simplify_symbol_usage(ep);
+
+	/*
+	 * Remove trivial instructions, and try to CSE
+	 * the rest.
+	 */
+	cleanup_and_cse(ep);
+
+	/*
+	 * Remove or merge basic blocks.
+	 */
+	pack_basic_blocks(ep);
+
+	/* Cleanup */
+	clear_symbol_pseudos(ep);
+
+	return ep;
+}
+
 struct entrypoint *linearize_symbol(struct symbol *sym)
 {
 	struct symbol *base_type;
-	struct entrypoint *ret_ep = NULL;
 
 	if (!sym)
 		return NULL;
 	base_type = sym->ctype.base_type;
 	if (!base_type)
 		return NULL;
-	if (base_type->type == SYM_FN) {
-		if (base_type->stmt) {
-			struct entrypoint *ep = alloc_entrypoint();
-			struct basic_block *bb = alloc_basic_block(sym->pos);
-			struct symbol *arg;
-			pseudo_t result;
-			int i;
-
-			ep->name = sym;
-			ep->entry = bb;
-			add_bb(&bb->parents, &outside);
-			set_activeblock(ep, bb);
-			concat_symbol_list(base_type->arguments, &ep->syms);
-
-			/* FIXME!! We should do something else about varargs.. */
-			i = 0;
-			FOR_EACH_PTR(base_type->arguments, arg) {
-				linearize_argument(ep, arg, ++i);
-			} END_FOR_EACH_PTR(arg);
-
-			result = linearize_statement(ep, base_type->stmt);
-			if (bb_reachable(ep->active) && !bb_terminated(ep->active)) {
-				struct symbol *ret_type = base_type->ctype.base_type;
-				struct instruction *insn = alloc_instruction(OP_RET, ret_type);
-				
-				use_pseudo(result, &insn->src);
-				add_one_insn(ep, insn);
-			}
-
-			/*
-			 * Do trivial flow simplification - branches to
-			 * branches, kill dead basicblocks etc
-			 */
-			simplify_flow(ep);
-
-			/*
-			 * Turn symbols into pseudos
-			 */
-			simplify_symbol_usage(ep);
-
-			/*
-			 * Remove trivial instructions, and try to CSE
-			 * the rest.
-			 */
-			cleanup_and_cse(ep);
-
-			/*
-			 * Remove or merge basic blocks.
-			 */
-			pack_basic_blocks(ep);
-
-			/* Cleanup */
-			clear_symbol_pseudos(ep);
-
-			ret_ep = ep;
-		}
-	}
-
-	return ret_ep;
+	if (base_type->type == SYM_FN)
+		return linearize_fn(sym, base_type);
+	return NULL;
 }
