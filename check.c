@@ -99,8 +99,6 @@ static void clean_up_symbols(struct symbol_list *list)
 	FOR_EACH_PTR(list, sym) {
 		struct entrypoint *ep;
 
-		evaluate_symbol(sym);
-		check_duplicates(sym);
 		expand_symbol(sym);
 		ep = linearize_symbol(sym);
 		if (ep)
@@ -120,6 +118,7 @@ int main(int argc, char **argv)
 	int fd;
 	char *filename = NULL, **args;
 	struct token *token;
+	struct symbol_list *list;
 
 	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
@@ -189,9 +188,9 @@ int main(int argc, char **argv)
 	} 
 
 	// Parse the resulting C code
-	translation_unit(token, &used_list);
+	list = translation_unit(token);
 
-	// Do type evaluation and simplify
-	clean_up_symbols(used_list);
+	// Expand, linearize and show it.
+	clean_up_symbols(list);
 	return 0;
 }

@@ -65,7 +65,6 @@ void emit_symbol(struct symbol *sym)
 {
 	struct symbol *ctype;
 
-	evaluate_symbol(sym);
 	if (sym->type != SYM_NODE) {
 		warning(sym->pos, "I really want to emit nodes, not pure types!");
 		return;
@@ -106,7 +105,7 @@ int main(int argc, char **argv)
 	int fd;
 	char *filename = argv[1];
 	struct token *token;
-	struct symbol_list *list = NULL;
+	struct symbol_list *list;
 
 	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
@@ -126,9 +125,9 @@ int main(int argc, char **argv)
 	token = preprocess(token);
 
 	// Parse the resulting C code
-	translation_unit(token, &list);
+	list = translation_unit(token);
 
-	// Do type evaluation and simplify
+	// Show it
 	emit_symbol_list(list);
 
 	return 0;

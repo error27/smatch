@@ -1681,10 +1681,14 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	return expect(token, ';', "at end of declaration");
 }
 
-void translation_unit(struct token *token, struct symbol_list **list)
+struct symbol_list *translation_unit(struct token *token)
 {
 	while (!eof_token(token))
-		token = external_declaration(token, list);
+		token = external_declaration(token, &translation_unit_used_list);
 	// They aren't needed any more
 	clear_token_alloc();
+
+	/* Evaluate the symbol list */
+	evaluate_symbol_list(translation_unit_used_list);
+	return translation_unit_used_list;
 }

@@ -188,7 +188,7 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 
 #define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)
 
-extern struct symbol_list *used_list;
+extern struct symbol_list *translation_unit_used_list;
 
 extern void access_symbol(struct symbol *);
 

@@ -29,7 +29,6 @@ static void clean_up_symbols(struct symbol_list *list)
 	struct symbol *sym;
 
 	FOR_EACH_PTR(list, sym) {
-		evaluate_symbol(sym);
 		expand_symbol(sym);
 		emit_one_symbol(sym);
 	} END_FOR_EACH_PTR(sym);
@@ -40,6 +39,7 @@ int main(int argc, char **argv)
 	int fd;
 	char *basename, *filename = NULL, **args;
 	struct token *token;
+	struct symbol_list *list;
 
 	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
@@ -93,11 +93,11 @@ int main(int argc, char **argv)
 	token = preprocess(token);
 
 	// Parse the resulting C code
-	translation_unit(token, &used_list);
+	list = translation_unit(token);
 
 	// Do type evaluation and simplification
 	emit_unit_begin(basename);
-	clean_up_symbols(used_list);
+	clean_up_symbols(list);
 	emit_unit_end();
 
 #if 0

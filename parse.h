@@ -105,7 +105,7 @@ extern struct symbol *label_symbol(struct token *token);
 extern int show_statement(struct statement *);
 extern void show_statement_list(struct statement_list *, const char *);
 extern int show_expression(struct expression *);
-extern void translation_unit(struct token *, struct symbol_list **);
+extern struct symbol_list *translation_unit(struct token *);
 
 extern struct symbol *ctype_integer(unsigned long spec);
 extern struct symbol *ctype_fp(unsigned long spec);

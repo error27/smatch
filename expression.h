@@ -134,8 +134,7 @@ struct token *primary_expression(struct token *token, struct expression **tree);
 struct token *parens_expression(struct token *token, struct expression **expr, const char *where);
 struct token *assignment_expression(struct token *token, struct expression **tree);
 
-extern void check_duplicates(struct symbol *sym);
-extern struct symbol *evaluate_symbol(struct symbol *sym);
+extern void evaluate_symbol_list(struct symbol_list *list);
 extern struct symbol *evaluate_statement(struct statement *stmt);
 extern struct symbol *evaluate_expression(struct expression *);
 

@@ -28,6 +28,7 @@
 struct symbol *current_fn;
 
 static struct symbol *degenerate(struct expression *expr);
+static struct symbol *evaluate_symbol(struct symbol *sym);
 
 static struct symbol *evaluate_symbol_expression(struct expression *expr)
 {
@@ -2261,7 +2262,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 	return NULL;
 }
 
-void check_duplicates(struct symbol *sym)
+static void check_duplicates(struct symbol *sym)
 {
 	struct symbol *next = sym;
 
@@ -2278,7 +2279,7 @@ void check_duplicates(struct symbol *sym)
 	}
 }
 
-struct symbol *evaluate_symbol(struct symbol *sym)
+static struct symbol *evaluate_symbol(struct symbol *sym)
 {
 	struct symbol *base_type;
 
@@ -2312,7 +2313,17 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 	return base_type;
 }
 
-struct symbol *evaluate_return_expression(struct statement *stmt)
+void evaluate_symbol_list(struct symbol_list *list)
+{
+	struct symbol *sym;
+
+	FOR_EACH_PTR(list, sym) {
+		check_duplicates(sym);
+		evaluate_symbol(sym);
+	} END_FOR_EACH_PTR(sym);
+}
+
+static struct symbol *evaluate_return_expression(struct statement *stmt)
 {
 	struct expression *expr = stmt->expression;
 	struct symbol *ctype, *fntype;
