@@ -1119,9 +1119,12 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn)
 			break;
 		}
 		token = parameter_declaration(token, &sym);
-		/* Special case: (void) */
-		if (!*list && !sym->ident && sym->ctype.base_type == &void_ctype)
-			break;
+		if (sym->ctype.base_type == &void_ctype) {
+			/* Special case: (void) */
+			if (!*list && !sym->ident)
+				break;
+			warn(token->pos, "void parameter");
+		}
 		add_symbol(list, sym);
 		if (!match_op(token, ','))
 			break;
@@ -1320,6 +1323,8 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 
 		if (!(decl->ctype.modifiers & MOD_STATIC))
 			decl->ctype.modifiers |= MOD_EXTERN;
+	} else if (!is_typedef && base_type == &void_ctype) {
+		warn(token->pos, "void declaration");
 	}
 
 	for (;;) {
