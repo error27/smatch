@@ -818,6 +818,17 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 	return ltype;
 }
 
+static struct symbol *convert_to_address_space(struct symbol *sym, int as)
+{
+	if (sym->ctype.as != as) {
+		struct symbol *newsym = alloc_symbol(sym->pos, SYM_NODE);
+		*newsym = *sym;
+		newsym->ctype.as = as;
+		sym = newsym;
+	}
+	return sym;
+}
+
 static struct symbol *create_pointer(struct expression *expr, struct symbol *sym)
 {
 	struct symbol *ptr = alloc_symbol(expr->pos, SYM_PTR);
@@ -1069,6 +1080,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		return NULL;
 	}
 
+	member = convert_to_address_space(member, address_space);
 	ctype = create_pointer(deref, member);
 	ctype->ctype.modifiers = mod;
 	ctype->ctype.as = address_space;
