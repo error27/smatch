@@ -342,7 +342,7 @@ struct ctype_declare {
 	{ &uchar_ctype,  MOD_UNSIGNED | MOD_CHAR,		  BITS_IN_CHAR,	     MAX_INT_ALIGNMENT, &int_type },
 	{ &short_ctype,  MOD_SIGNED | MOD_SHORT, 		  BITS_IN_SHORT,     MAX_INT_ALIGNMENT, &int_type },
 	{ &ushort_ctype, MOD_UNSIGNED | MOD_SHORT,		  BITS_IN_SHORT,     MAX_INT_ALIGNMENT, &int_type },
-	{ &int_ctype,    0,			 		  BITS_IN_INT,	     MAX_INT_ALIGNMENT, &int_type },
+	{ &int_ctype,    MOD_SIGNED,		 		  BITS_IN_INT,	     MAX_INT_ALIGNMENT, &int_type },
 	{ &uint_ctype,   MOD_UNSIGNED,				  BITS_IN_INT,	     MAX_INT_ALIGNMENT, &int_type },
 	{ &long_ctype,   MOD_SIGNED | MOD_LONG,			  BITS_IN_LONG,	     MAX_INT_ALIGNMENT, &int_type },
 	{ &ulong_ctype,  MOD_UNSIGNED | MOD_LONG,		  BITS_IN_LONG,	     MAX_INT_ALIGNMENT, &int_type },
