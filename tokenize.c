@@ -396,8 +396,8 @@ static const long cclass[257] = {
 static int get_one_number(int c, int next, stream_t *stream)
 {
 	struct token *token;
-	static char buffer[256];
-	char *p = buffer, *buf;
+	static char buffer[4095];
+	char *p = buffer, *buf, *buffer_end = buffer + sizeof (buffer);
 	int len;
 
 	*p++ = c;
@@ -405,15 +405,26 @@ static int get_one_number(int c, int next, stream_t *stream)
 		long class =  cclass[next + 1];
 		if (!(class & (Dot | Digit | Letter)))
 			break;
-		*p++ = next;
+		if (p != buffer_end)
+			*p++ = next;
 		next = nextchar(stream);
 		if (class & Exp) {
 			if (next == '-' || next == '+') {
-				*p++ = next;
+				if (p != buffer_end)
+					*p++ = next;
 				next = nextchar(stream);
 			}
 		}
 	}
+
+	if (p == buffer_end) {
+		error(stream->pos, "number token exceeds %d characters",
+		      buffer_end - buffer);
+		// Pretend we saw just "1".
+		buffer[0] = '1';
+		p = buffer + 1;
+	}
+
 	*p++ = 0;
 	len = p - buffer;
 	buf = __alloc_bytes(len);
