@@ -904,15 +904,12 @@ out:
 		merge_phi_sources = 0;
 
 		parent->children = bb->children;
-		FOR_EACH_PTR(bb->children, child) {
-			struct basic_block *p;
-			FOR_EACH_PTR(child->parents, p) {
-				if (p != bb)
-					continue;
-				*THIS_ADDRESS(p) = parent;
-			} END_FOR_EACH_PTR(p);
-		} END_FOR_EACH_PTR(child);
 		bb->children = NULL;
+		bb->parents = NULL;
+
+		FOR_EACH_PTR(parent->children, child) {
+			replace_bb_in_list(&child->parents, bb, parent, 0);
+		} END_FOR_EACH_PTR(child);
 
 		delete_last_instruction(&parent->insns);
 		FOR_EACH_PTR(bb->insns, insn) {
@@ -923,7 +920,6 @@ out:
 			add_instruction(&parent->insns, insn);
 		} END_FOR_EACH_PTR(insn);
 		bb->insns = NULL;
-		kill_bb(bb);
 
 	no_merge:
 		/* nothing to do */;
