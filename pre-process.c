@@ -368,7 +368,7 @@ static enum token_type combine(struct token *left, struct token *right, char *p)
 		return TOKEN_NUMBER;
 	}
 
-	if (p[0] == '.' && isdigit(p[1]))
+	if (p[0] == '.' && isdigit((unsigned char)p[1]))
 		return TOKEN_NUMBER;
 
 	return TOKEN_SPECIAL;
