@@ -553,12 +553,17 @@ static int simplify_memop(struct instruction *insn)
 
 static int simplify_cast(struct instruction *insn)
 {
+	struct symbol *orig_type;
 	int orig_size, size;
 	pseudo_t src;
 
 	if (dead_insn(insn, &insn->src, NULL, NULL))
 		return REPEAT_CSE;
-	orig_size = insn->orig_type ? insn->orig_type->bit_size : 0;
+
+	orig_type = insn->orig_type;
+	if (!orig_type)
+		return 0;
+	orig_size = orig_type->bit_size;
 	size = insn->size;
 	src = insn->src;
 
@@ -573,6 +578,12 @@ static int simplify_cast(struct instruction *insn)
 					goto simplify;
 			}
 		}
+	}
+
+	if (size == orig_size) {
+		int op = (orig_type->ctype.modifiers & MOD_SIGNED) ? OP_SCAST : OP_CAST;
+		if (insn->opcode == op)
+			goto simplify;
 	}
 
 	return 0;
