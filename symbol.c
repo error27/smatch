@@ -395,6 +395,7 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 				base = base->ctype.base_type;
 			sym->type = SYM_NODE;
 			sym->ctype.base_type = base;
+			sym->bit_size = base->bit_size;
 		}
 		break;
 	}
