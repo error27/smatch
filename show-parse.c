@@ -435,6 +435,8 @@ int show_statement(struct statement *stmt)
 		int val, target;
 		struct expression *cond = stmt->if_conditional;
 
+/* This is only valid if nobody can jump into the "dead" statement */
+#if 0
 		if (cond->type == EXPR_VALUE) {
 			struct statement *s = stmt->if_true;
 			if (!cond->value)
@@ -442,6 +444,7 @@ int show_statement(struct statement *stmt)
 			show_statement(s);
 			break;
 		}
+#endif
 		val = show_expression(cond);
 		target = new_label();
 		printf("\tje\t\tv%d,.L%d\n", val, target);
@@ -477,9 +480,10 @@ int show_statement(struct statement *stmt)
 		show_statement(pre_statement);
 		if (pre_condition) {
 			if (pre_condition->type == EXPR_VALUE) {
-				if (!pre_condition->value)
-					break;
-				pre_condition = NULL;
+				if (!pre_condition->value) {
+					loop_bottom = new_label();   
+					printf("\tjmp\t\t.L%d\n", loop_bottom);
+				}
 			} else {
 				loop_bottom = new_label();
 				val = show_expression(pre_condition);
@@ -505,7 +509,7 @@ int show_statement(struct statement *stmt)
 		}
 		if (stmt->iterator_break->used)
 			printf(".L%p:\n", stmt->iterator_break);
-		if (pre_condition)
+		if (loop_bottom)
 			printf(".L%d:\n", loop_bottom);
 		break;
 	}

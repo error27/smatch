@@ -490,6 +490,8 @@ static void expand_if_statement(struct statement *stmt)
 
 	expand_expression(expr);
 
+/* This is only valid if nobody jumps into the "dead" side */
+#if 0
 	/* Simplify constant conditionals without even evaluating the false side */
 	if (expr->type == EXPR_VALUE) {
 		struct statement *simple;
@@ -504,6 +506,7 @@ static void expand_if_statement(struct statement *stmt)
 		*stmt = *simple;
 		return;
 	}
+#endif
 	expand_statement(stmt->if_true);
 	expand_statement(stmt->if_false);
 }
