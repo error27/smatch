@@ -12,12 +12,13 @@ PREFIX=$(HOME)
 PROGRAMS=test-lexing test-parsing obfuscate check compile test-linearize example
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
-	  linearize.h bitmap.h ident-list.h compat.h flow.h allocate.h
+	  linearize.h bitmap.h ident-list.h compat.h flow.h allocate.h \
+	  storage.h
 
 LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 	  expression.o show-parse.o evaluate.o expand.o inline.o linearize.o \
 	  sort.o allocate.o compat-$(OS).o \
-	  flow.o cse.o simplify.o memops.o liveness.o
+	  flow.o cse.o simplify.o memops.o liveness.o storage.o
 
 LIB_FILE= sparse.a
 LIBS=$(LIB_FILE)

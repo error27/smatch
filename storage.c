@@ -1,5 +1,10 @@
 /*
- * Example of how to write a compiler with sparse
+ * Storage - associate pseudos with "storage" that keeps them alive
+ * between basic blocks.  The aim is to be able to turn as much of
+ * the global storage allocation problem as possible into a local
+ * per-basic-block one.
+ *
+ * Copyright (C) 2004 Linus Torvalds
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,51 +13,7 @@
 #include "symbol.h"
 #include "expression.h"
 #include "linearize.h"
-
-/*
- * The "storage" that underlies an incoming/outgoing pseudo. It's
- * basically the backing store for a pseudo, and may be a real hw
- * register, a stack slot or a static symbol. Or nothing at all,
- * since some pseudos can just be recalculated on the fly.
- */
-enum storage_type {
-	REG_UDEF,
-	REG_REG,
-	REG_STACK,
-	REG_SYM,
-	REG_ARG,
-	REG_BAD,
-};
-
-enum inout_enum {
-	STOR_IN,
-	STOR_OUT
-};
-
-struct storage;
-DECLARE_PTR_LIST(storage_ptr_list, struct storage *);
-
-struct storage {
-	enum storage_type type;
-	pseudo_t pseudo;
-	struct storage_ptr_list *users;
-	union {
-		int regno;
-		int offset;
-		struct symbol *sym;
-	};
-};
-
-DECLARE_PTR_LIST(storage_list, struct storage);
-
-struct storage_hash {
-	struct basic_block *bb;
-	pseudo_t pseudo;
-	enum inout_enum inout;
-	struct storage *storage;
-};
-
-DECLARE_PTR_LIST(storage_hash_list, struct storage_hash);
+#include "storage.h"
 
 ALLOCATOR(storage, "storages");
 ALLOCATOR(storage_hash, "storage hash");
@@ -96,7 +57,7 @@ static void sort_hash_list(struct storage_hash_list **listp)
 	sort_list((struct ptr_list **)listp, hash_list_cmp);
 }
 
-static struct storage_hash_list *gather_storage(struct basic_block *bb, enum inout_enum inout)
+struct storage_hash_list *gather_storage(struct basic_block *bb, enum inout_enum inout)
 {
 	int i;
 	struct storage_hash *entry, *prev;
@@ -147,8 +108,8 @@ static void add_storage(struct storage *storage, struct basic_block *bb, pseudo_
 	add_ptr_list(listp, hash);
 }
 
-static void free_storage(void)
-{
+void free_storage(void)
+ {
 	int i;
 
 	for (i = 0; i < MAX_STORAGE_HASH; i++)
@@ -276,7 +237,7 @@ static void combine_phi_storage(struct basic_block *bb)
 	} END_FOR_EACH_PTR(insn);
 }
 
-static void set_up_storage(struct entrypoint *ep)
+void set_up_storage(struct entrypoint *ep)
 {
 	struct basic_block *bb;
 
@@ -288,61 +249,4 @@ static void set_up_storage(struct entrypoint *ep)
 		set_up_bb_storage(bb);
 		combine_phi_storage(bb);
 	} END_FOR_EACH_PTR(bb);
-}
-
-static void output_bb(struct basic_block *bb)
-{
-	struct storage_hash *entry;
-	struct storage_hash_list *inputs, *outputs;
-
-	inputs = gather_storage(bb, STOR_IN);
-	outputs = gather_storage(bb, STOR_OUT);
-
-	FOR_EACH_PTR(inputs, entry) {
-		printf("\t%s <- %s\n", show_pseudo(entry->pseudo), show_storage(entry->storage));
-	} END_FOR_EACH_PTR(entry);
-	show_bb(bb);
-	FOR_EACH_PTR(outputs, entry) {
-		printf("\t%s -> %s\n", show_pseudo(entry->pseudo), show_storage(entry->storage));
-	} END_FOR_EACH_PTR(entry);
-	printf("\n");
-
-	free_ptr_list(&inputs);
-	free_ptr_list(&outputs);
-}
-
-static void output(struct entrypoint *ep)
-{
-	struct basic_block *bb, *prev;
-
-	/* Set up initial inter-bb storage links */
-	set_up_storage(ep);
-
-	/* Show the results ... */
-	prev = NULL;
-	FOR_EACH_PTR(ep->bbs, bb) {
-		output_bb(bb);
-	} END_FOR_EACH_PTR(bb);
-
-	/* Clear the storage hashes for the next function.. */
-	free_storage();
-}
-
-static int compile(struct symbol_list *list)
-{
-	struct symbol *sym;
-	FOR_EACH_PTR(list, sym) {
-		struct entrypoint *ep;
-		expand_symbol(sym);
-		ep = linearize_symbol(sym);
-		if (ep)
-			output(ep);
-	} END_FOR_EACH_PTR(sym);
-	
-	return 0;
-}
-
-int main(int argc, char **argv)
-{
-	return compile(sparse(argc, argv));
 }
