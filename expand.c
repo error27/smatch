@@ -717,12 +717,38 @@ static int expand_pos_expression(struct expression *expr)
 
 	cost = expand_expression(nested);
 	if (nr == 1) {
-		if (nested->type == EXPR_POS) {
-			if (nested->init_nr == 1) {
-				offset += nested->init_offset;
-				*expr = *nested;
-				expr->init_offset = offset;
-			}
+		switch (nested->type) {
+		case EXPR_POS:
+			offset += nested->init_offset;
+			*expr = *nested;
+			expr->init_offset = offset;
+			break;
+
+		case EXPR_INITIALIZER: {
+			struct expression *reuse = nested, *entry;
+			*expr = *nested;
+			FOR_EACH_PTR(expr->expr_list, entry) {
+				if (entry->type == EXPR_POS) {
+					entry->init_offset += offset;
+				} else {
+					if (!reuse) {
+						error(entry->pos, "Multiple initializers at offset zero");
+						return SIDE_EFFECTS;
+					}
+					reuse->type = EXPR_POS;
+					reuse->ctype = entry->ctype;
+					reuse->init_offset = offset;
+					reuse->init_nr = 1;
+					reuse->init_expr = entry;
+					REPLACE_CURRENT_PTR(entry, reuse);
+					reuse = NULL;
+				}
+			} END_FOR_EACH_PTR(entry);
+			break;
+		}
+
+		default:
+			break;
 		}
 	}
 	return cost;
