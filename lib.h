@@ -133,6 +133,7 @@ extern int ptr_list_size(struct ptr_list *);
 extern char **handle_switch(char *arg, char **next);
 extern void add_pre_buffer(const char *fmt, ...);
 void * next_iterator(struct list_iterator *iterator);
+int linearize_ptr_list(struct ptr_list *, void **, int);
 
 extern unsigned int pre_buffer_size;
 extern unsigned char pre_buffer[8192];

@@ -195,6 +195,35 @@ int ptr_list_size(struct ptr_list *head)
 	return nr;
 }
 
+/*
+ * Linearize the entries of a list up to a total of 'max',
+ * and return the nr of entries linearized.
+ *
+ * The array to linearize into (second argument) should really
+ * be "void *x[]", but we want to let people fill in any kind
+ * of pointer array, so let's just call it "void *".
+ */
+int linearize_ptr_list(struct ptr_list *head, void **arr, int max)
+{
+	int nr = 0;
+	if (head && max > 0) {
+		struct ptr_list *list = head;
+
+		do {
+			int i = list->nr;
+			if (i > max) 
+				i = max;
+			memcpy(arr, list->list, i*sizeof(void *));
+			arr += i;
+			nr += i;
+			max -= i;
+			if (!max)
+				break;
+		} while ((list = list->next) != head);
+	}
+	return nr;
+}
+
 void add_ptr_list(struct ptr_list **listp, void *ptr)
 {
 	struct ptr_list *list = *listp;
