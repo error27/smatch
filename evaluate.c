@@ -176,6 +176,7 @@ static int evaluate_int_binop(struct expression *expr)
 
 static int evaluate_ptr_add(struct expression *expr, struct expression *ptr, struct expression *i)
 {
+	struct symbol *ctype;
 	struct symbol *ptr_type = ptr->ctype;
 	struct symbol *i_type = i->ctype;
 
@@ -184,8 +185,29 @@ static int evaluate_ptr_add(struct expression *expr, struct expression *ptr, str
 	if (!is_int_type(i_type))
 		return bad_expr_type(expr);
 
-	// FIXME!! Do the size scaling!
+	ctype = ptr_type->ctype.base_type;
+	examine_symbol_type(ctype);
+
 	expr->ctype = ptr_type;
+	if (ctype->bit_size > BITS_IN_CHAR) {
+		struct expression *add = expr;
+		struct expression *mul = alloc_expression(expr->token, EXPR_BINOP);
+		struct expression *val = alloc_expression(expr->token, EXPR_VALUE);
+
+		val->ctype = size_t_ctype;
+		val->value = ctype->bit_size >> 3;
+
+		mul->op = '*';
+		mul->ctype = size_t_ctype;
+		mul->left = i;
+		mul->right = val;
+
+		add->op = '+';
+		add->ctype = ptr_type;
+		add->left = ptr;
+		add->right = mul;
+	}
+		
 	return 1;
 }
 
@@ -204,9 +226,71 @@ static int evaluate_plus(struct expression *expr)
 	return evaluate_int_binop(expr);
 }
 
+static struct symbol *same_ptr_types(struct symbol *a, struct symbol *b)
+{
+	a = a->ctype.base_type;
+	b = b->ctype.base_type;
+
+	if (a->bit_size != b->bit_size)
+		return NULL;
+
+	// FIXME! We should really check a bit more..
+	return a;
+}
+
+static int evaluate_ptr_sub(struct expression *expr, struct expression *l, struct expression *r)
+{
+	struct symbol *ctype;
+	struct symbol *ltype = l->ctype, *rtype = r->ctype;
+
+	if (!is_ptr_type(rtype)) {
+		// NULL aka plain zero is ok.
+		if (r->type != EXPR_VALUE || r->value)
+			return bad_expr_type(expr);
+		rtype = &ptr_ctype;
+	}
+
+	ctype = same_ptr_types(ltype, rtype);
+	if (!ctype) {
+		warn(expr->token, "subtraction of different types can't work");
+		return 0;
+	}
+	examine_symbol_type(ctype);
+
+	expr->ctype = ssize_t_ctype;
+	if (ctype->bit_size > BITS_IN_CHAR) {
+		struct expression *sub = alloc_expression(expr->token, EXPR_BINOP);
+		struct expression *div = expr;
+		struct expression *val = alloc_expression(expr->token, EXPR_VALUE);
+
+		val->ctype = size_t_ctype;
+		val->value = ctype->bit_size >> 3;
+
+		sub->op = '-';
+		sub->ctype = ssize_t_ctype;
+		sub->left = l;
+		sub->right = r;
+
+		div->op = '/';
+		div->left = sub;
+		div->right = val;
+	}
+		
+	return 1;
+}
+
 static int evaluate_minus(struct expression *expr)
 {
-	// FIXME! FP promotion and pointer operations
+	struct expression *left = expr->left, *right = expr->right;
+	struct symbol *ltype = left->ctype, *rtype = right->ctype;
+
+	if (is_ptr_type(ltype))
+		return evaluate_ptr_sub(expr, left, right);
+
+	if (is_ptr_type(rtype))
+		return evaluate_ptr_sub(expr, right, left);
+
+	// FIXME! FP promotion
 	return evaluate_int_binop(expr);
 }
 
@@ -327,6 +411,8 @@ static int evaluate_preop(struct expression *expr)
 
 static int evaluate_postop(struct expression *expr)
 {
+	struct symbol *ctype = expr->unop->ctype;
+	expr->ctype = ctype;
 	return 0;
 }
 

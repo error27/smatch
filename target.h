@@ -2,6 +2,7 @@
 #define TARGET_H
 
 #define size_t_ctype (&ulong_ctype)
+#define ssize_t_ctype (&long_ctype)
 
 /*
  * Integer data types
