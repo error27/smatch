@@ -405,10 +405,10 @@ static struct symbol *indirect(struct symbol *type)
 	return sym;
 }
 
+static struct token *parameter_declaration(struct token *token, struct symbol **tree);
 static struct token *parameter_type_list(struct token *token, struct symbol **tree)
 {
-	*tree = NULL;
-	return token;
+	return parameter_declaration(token, tree);
 }
 
 static struct token *abstract_function_declarator(struct token *token, struct symbol **tree)
@@ -435,9 +435,15 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 	return token;
 }
 
-static struct token *abstract_declarator(struct token *token, struct symbol **tree);
-static struct token *direct_abstract_declarator(struct token *token, struct symbol **tree)
+static struct token *direct_declarator(struct token *token, struct symbol **tree,
+	struct token *(*declarator)(struct token *, struct symbol **, struct token **),
+	struct token **ident)
 {
+	if (ident && token->type == TOKEN_IDENT) {
+		*ident = token;
+		return token->next;
+	}
+		
 	if (token->type != TOKEN_SPECIAL)
 		return token;
 
@@ -451,7 +457,7 @@ static struct token *direct_abstract_declarator(struct token *token, struct symb
 			if (next->special == '*' ||
 			    next->special == '(' ||
 			    next->special == '[') {
-				token = abstract_declarator(next,tree);
+				token = declarator(next,tree, ident);
 				return expect(token, ')', "in nested declarator");
 			    }
 		}
@@ -465,15 +471,51 @@ static struct token *direct_abstract_declarator(struct token *token, struct symb
 	return token;
 }
 
-static struct token *abstract_declarator(struct token *token, struct symbol **tree)
+static struct token *pointer(struct token *token, struct symbol **tree)
 {
-	while (token->type == TOKEN_SPECIAL && token->special == '*') {
+	while (match_op(token,'*')) {
 		*tree = indirect(*tree);
 		token = declaration_specifiers(token->next, tree);
 	}
-	return direct_abstract_declarator(token, tree);
+	return token;
 }
-	
+
+static struct token *generic_declarator(struct token *token, struct symbol **tree, struct token **ident)
+{
+	token = pointer(token, tree);
+	return direct_declarator(token, tree, generic_declarator, ident);
+}
+
+#define abstract_declarator(token, symbol) \
+	generic_declarator(token, symbol, NULL)
+
+static struct token *declarator(struct token *token, struct symbol **tree)
+{
+	struct token *ident = NULL;
+	token = pointer(token, tree);
+	token = direct_declarator(token, tree, generic_declarator, &ident);
+	if (ident) {
+		printf("declarator for %s:\n", show_token(ident));
+		show_type(*tree);
+	}
+	return token;
+}
+
+static struct token *parameter_declaration(struct token *token, struct symbol **tree)
+{
+	struct token *ident = NULL;
+
+	*tree = alloc_symbol(SYM_TYPE);
+	token = declaration_specifiers(token, tree);
+	token = pointer(token, tree);
+	token = direct_declarator(token, tree, generic_declarator, &ident);
+	if (ident) {
+		printf("named parameter declarator %s:\n  ", show_token(ident));
+		show_type(*tree);
+		printf("\n\n");
+	}
+	return token;
+}
 
 static struct token *typename(struct token *token, struct symbol **tree)
 {
