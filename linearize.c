@@ -799,10 +799,12 @@ static struct symbol *base_type(struct symbol *sym)
 {
 	struct symbol *base = sym;
 
-	if (sym->type == SYM_NODE)
-		base = base->ctype.base_type;
-	if (base->type == SYM_BITFIELD)
-		return base->ctype.base_type;
+	if (sym) {
+		if (sym->type == SYM_NODE)
+			base = base->ctype.base_type;
+		if (base->type == SYM_BITFIELD)
+			return base->ctype.base_type;
+	}
 	return sym;
 }
 

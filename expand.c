@@ -864,7 +864,7 @@ static int expand_expression(struct expression *expr)
 		struct statement *stmt = expr->statement;
 		int cost = expand_statement(stmt);
 
-		if (stmt->type == STMT_EXPRESSION)
+		if (stmt->type == STMT_EXPRESSION && stmt->expression)
 			*expr = *stmt->expression;
 		return cost;
 	}
