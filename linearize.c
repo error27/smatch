@@ -1761,10 +1761,12 @@ static int dominates(pseudo_t pseudo, struct instruction *insn,
 
 static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 	struct basic_block *bb, unsigned long generation, struct phi_list **dominators,
-	int local)
+	int local, int loads)
 {
 	struct basic_block *parent;
 
+	if (bb_list_size(bb->parents) > 1)
+		loads = 0;
 	FOR_EACH_PTR(bb->parents, parent) {
 		struct instruction *one;
 		struct phi *phi;
@@ -1781,6 +1783,8 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 			}
 			if (!dominance)
 				continue;
+			if (one->opcode == OP_LOAD && !loads)
+				continue;
 			goto found_dominator;
 		} END_FOR_EACH_PTR_REVERSE(one);
 no_dominance:
@@ -1788,7 +1792,7 @@ no_dominance:
 			continue;
 		parent->generation = generation;
 
-		if (!find_dominating_parents(pseudo, insn, parent, generation, dominators, local))
+		if (!find_dominating_parents(pseudo, insn, parent, generation, dominators, local, loads))
 			return 0;
 		continue;
 
@@ -1840,6 +1844,8 @@ found:
 		return 0;
 
 	if (dom) {
+		if (dom->opcode == OP_LOAD)
+			find_dominating_stores(pseudo, dom, ++bb_generation, local);
 		convert_load_insn(insn, dom->target);
 		return 1;
 	}
@@ -1848,7 +1854,7 @@ found:
 	bb->generation = generation;
 
 	dominators = NULL;
-	if (!find_dominating_parents(pseudo, insn, bb, generation, &dominators, local))
+	if (!find_dominating_parents(pseudo, insn, bb, generation, &dominators, local, 1))
 		return 0;
 
 	/* This happens with initial assignments to structures etc.. */
