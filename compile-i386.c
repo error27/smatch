@@ -186,6 +186,8 @@ enum registers {
 
 /* This works on regno's, reg_info's and hardreg_storage's */
 #define byte_reg(reg) ((reg) - 16)
+#define highbyte_reg(reg) ((reg)-12)
+#define word_reg(reg) ((reg)-8)
 
 #define REGINFO(nr, str, conflicts...)	[nr] = { .name = str, .aliases = { nr , conflicts } }
 
