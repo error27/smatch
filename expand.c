@@ -457,11 +457,6 @@ static void expand_expression(struct expression *expr)
 }
 
 
-static void expand_one_statement(struct statement *stmt, void *unused, int flags)
-{
-	expand_statement(stmt);
-}
-
 void expand_symbol(struct symbol *sym)
 {
 	struct symbol *base_type;
@@ -478,11 +473,6 @@ void expand_symbol(struct symbol *sym)
 		if (base_type->stmt)
 			expand_statement(base_type->stmt);
 	}
-}
-
-static void expand_one_symbol(struct symbol *sym, void *unused, int flags)
-{
-	expand_symbol(sym);
 }
 
 static void expand_return_expression(struct statement *stmt)
@@ -532,9 +522,17 @@ static void expand_statement(struct statement *stmt)
 		return;
 
 	case STMT_COMPOUND: {
-		symbol_iterate(stmt->syms, expand_one_symbol, NULL);
+		struct symbol *sym;
+		struct statement *s;
+
+		FOR_EACH_PTR(stmt->syms, sym) {
+			expand_symbol(sym);
+		} END_FOR_EACH_PTR;
 		expand_symbol(stmt->ret);
-		statement_iterate(stmt->stmts, expand_one_statement, NULL);
+
+		FOR_EACH_PTR(stmt->stmts, s) {
+			expand_statement(s);
+		} END_FOR_EACH_PTR;
 		return;
 	}
 
