@@ -26,7 +26,6 @@
 #include "expression.h"
 
 struct symbol *current_fn;
-static int current_context, current_contextmask;
 
 static struct symbol *degenerate(struct expression *expr);
 
@@ -41,8 +40,6 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 	}
 
 	examine_symbol_type(sym);
-	if ((sym->ctype.context ^ current_context) & (sym->ctype.contextmask & current_contextmask))
-		warning(expr->pos, "Using symbol '%s' in wrong context", show_ident(expr->symbol_name));
 
 	base_type = sym->ctype.base_type;
 	if (!base_type) {
@@ -118,20 +115,24 @@ static inline struct symbol *integer_promotion(struct symbol *type)
 	unsigned long mod =  type->ctype.modifiers;
 	int width;
 
-	if (type->type == SYM_ENUM) {
+	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
-		mod = type->ctype.modifiers;
+	if (type->type == SYM_ENUM)
+		type = type->ctype.base_type;
+	width = type->bit_size;
+	if (type->type == SYM_BITFIELD)
+		type = type->ctype.base_type;
+	mod = type->ctype.modifiers;
+	if (width < bits_in_int)
+		return &int_ctype;
+
+	/* If char/short has as many bits as int, it still gets "promoted" */
+	if (mod & (MOD_CHAR | MOD_SHORT)) {
+		type = &int_ctype;
+		if (mod & MOD_UNSIGNED)
+			type = &uint_ctype;
 	}
-	if (type->type == SYM_BITFIELD) {
-		mod = type->ctype.base_type->ctype.modifiers;
-		width = type->fieldwidth;
-	} else if (mod & (MOD_CHAR | MOD_SHORT))
-		width = type->bit_size;
-	else
-		return type;
-	if (mod & MOD_UNSIGNED && width == bits_in_int)
-		return &uint_ctype;
-	return &int_ctype;
+	return type;
 }
 
 /*
@@ -454,7 +455,6 @@ static struct symbol *evaluate_add(struct expression *expr)
 #define MOD_SIZE (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG)
 #define MOD_IGNORE (MOD_TOPLEVEL | MOD_STORAGE | MOD_ADDRESSABLE |	\
 	MOD_ASSIGNED | MOD_USERTYPE | MOD_FORCE | MOD_ACCESSED | MOD_EXPLICITLY_SIGNED)
-#define MOD_SIGNEDNESS (MOD_SIGNED | MOD_UNSIGNED)
 
 const char * type_difference(struct symbol *target, struct symbol *source,
 	unsigned long target_mod_ignore, unsigned long source_mod_ignore)
@@ -987,14 +987,11 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 	struct symbol *t;
 	int target_as;
 
-	/* It's ok if the target is more volatile or const than the source */
-	typediff = type_difference(target, source, MOD_VOLATILE | MOD_CONST, 0);
-	if (!typediff)
-		return 1;
-
 	if (is_int_type(target)) {
 		if (is_int_type(source)) {
 			if (target->bit_size != source->bit_size)
+				goto Cast;
+			if (target->bit_offset != source->bit_offset)
 				goto Cast;
 			return 1;
 		}
@@ -1009,6 +1006,11 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			return 1;
 		}
 	}
+
+	/* It's ok if the target is more volatile or const than the source */
+	typediff = type_difference(target, source, MOD_VOLATILE | MOD_CONST, 0);
+	if (!typediff)
+		return 1;
 
 	if (is_restricted_type(target) && !restricted_value(*rp, target))
 		return 1;
@@ -1197,6 +1199,7 @@ static void examine_fn_arguments(struct symbol *fn)
 				s->ctype.base_type = ptr;
 				s->ctype.as = 0;
 				s->ctype.modifiers = 0;
+				s->bit_size = 0;
 				examine_symbol_type(s);
 				break;
 			default:
@@ -1320,7 +1323,7 @@ static struct symbol *degenerate(struct expression *expr)
 	case SYM_FN:
 		if (expr->op != '*' || expr->type != EXPR_PREOP) {
 			warning(expr->pos, "strange non-value function or array");
-			return NULL;
+			return &bad_ctype;
 		}
 		*expr = *expr->unop;
 		ctype = create_pointer(expr, ctype, 1);
@@ -1638,12 +1641,8 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		}
 		expr->r_bitpos += offset << 3;
 		expr->type = EXPR_SLICE;
-		if (ctype->type == SYM_BITFIELD) {
-			expr->r_bitpos += member->bit_offset;
-			expr->r_nrbits = member->fieldwidth;
-		} else {
-			expr->r_nrbits = member->bit_size;
-		}
+		expr->r_nrbits = member->bit_size;
+		expr->r_bitpos += member->bit_offset;
 		expr->ctype = member;
 		return member;
 	}
@@ -1655,7 +1654,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	if (ctype->type == SYM_BITFIELD) {
 		expr->type = EXPR_BITFIELD;
 		expr->bitpos = member->bit_offset;
-		expr->nrbits = member->fieldwidth;
+		expr->nrbits = member->bit_size;
 		expr->address = add;
 	} else {
 		expr->type = EXPR_PREOP;
@@ -1699,30 +1698,40 @@ static int is_promoted(struct expression *expr)
 
 static struct symbol *evaluate_cast(struct expression *);
 
+static struct symbol *evaluate_type_information(struct expression *expr)
+{
+	struct symbol *sym = expr->cast_type;
+	if (!sym) {
+		sym = evaluate_expression(expr->cast_expression);
+		if (!sym)
+			return NULL;
+		/*
+		 * Expressions of restricted types will possibly get
+		 * promoted - check that here
+		 */
+		if (is_restricted_type(sym)) {
+			if (sym->bit_size < bits_in_int && is_promoted(expr))
+				sym = &int_ctype;
+		}
+	}
+	examine_symbol_type(sym);
+	if (is_bitfield_type(sym)) {
+		warning(expr->pos, "trying to examine bitfield type");
+		return NULL;
+	}
+	return sym;
+}
+
 static struct symbol *evaluate_sizeof(struct expression *expr)
 {
-	struct expression *what = expr->cast_expression;
+	struct symbol *type;
 	int size;
 
-	if (expr->cast_type) {
-		if (what) {
-			struct symbol *sym = evaluate_cast(expr);
-			size = sym->bit_size;
-		} else {
-			examine_symbol_type(expr->cast_type);
-			size = expr->cast_type->bit_size;
-		}
-	} else {
-		if (!evaluate_expression(what))
-			return NULL;
-		size = what->ctype->bit_size;
-		if (is_restricted_type(what->ctype)) {
-			if (size < bits_in_int && is_promoted(what))
-				size = bits_in_int;
-		}
-		if (is_bitfield_type(what->ctype))
-			warning(expr->pos, "sizeof applied to bitfield type");
-	}
+	type = evaluate_type_information(expr);
+	if (!type)
+		return NULL;
+
+	size = type->bit_size;
 	if (size & 7)
 		warning(expr->pos, "cannot size expression");
 	expr->type = EXPR_VALUE;
@@ -1731,29 +1740,51 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 	return size_t_ctype;
 }
 
-static struct symbol *evaluate_alignof(struct expression *expr)
+static struct symbol *evaluate_ptrsizeof(struct expression *expr)
 {
-	struct symbol *type = expr->cast_type;
+	struct symbol *type;
+	int size;
 
-	if (!type) {
-		type = evaluate_expression(expr->cast_expression);
-		if (!type)
-			return NULL;
+	type = evaluate_type_information(expr);
+	if (!type)
+		return NULL;
+
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	if (!type)
+		return NULL;
+	switch (type->type) {
+	case SYM_ARRAY:
+		break;
+	case SYM_PTR:
+		type = type->ctype.base_type;
+		if (type)
+			break;
+	default:
+		warning(expr->pos, "expected pointer expression");
+		return NULL;
 	}
-	if (is_bitfield_type(type))
-		warning(expr->pos, "alignof applied to bitfield type");
-	examine_symbol_type(type);
+	size = type->bit_size;
+	if (size & 7)
+		size = 0;
 	expr->type = EXPR_VALUE;
-	expr->value = type->ctype.alignment;
+	expr->value = size >> 3;
 	expr->ctype = size_t_ctype;
 	return size_t_ctype;
 }
 
-static int context_clash(struct symbol *sym1, struct symbol *sym2)
+static struct symbol *evaluate_alignof(struct expression *expr)
 {
-	unsigned long clash = (sym1->ctype.context ^ sym2->ctype.context);
-	clash &= (sym1->ctype.contextmask & sym2->ctype.contextmask);
-	return clash != 0;
+	struct symbol *type;
+
+	type = evaluate_type_information(expr);
+	if (!type)
+		return NULL;
+
+	expr->type = EXPR_VALUE;
+	expr->value = type->ctype.alignment;
+	expr->ctype = size_t_ctype;
+	return size_t_ctype;
 }
 
 static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expression_list *head)
@@ -1771,9 +1802,6 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 
 		if (!ctype)
 			return 0;
-
-		if (context_clash(f, ctype))
-			warning(expr->pos, "argument %d used in wrong context", i);
 
 		ctype = degenerate(expr);
 
@@ -1794,7 +1822,7 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 	return 1;
 }
 
-static int evaluate_initializer(struct symbol *ctype, struct expression **ep);
+static void evaluate_initializer(struct symbol *ctype, struct expression **ep);
 
 static int evaluate_one_array_initializer(struct symbol *ctype, struct expression **ep, int current)
 {
@@ -1838,28 +1866,25 @@ static int evaluate_one_array_initializer(struct symbol *ctype, struct expressio
 	return to;
 }
 
-static int evaluate_array_initializer(struct symbol *ctype, struct expression *expr)
+static void evaluate_array_initializer(struct symbol *ctype, struct expression *expr)
 {
 	struct expression *entry;
 	int current = 0;
-	int max = 0;
 
 	FOR_EACH_PTR(expr->expr_list, entry) {
 		current = evaluate_one_array_initializer(ctype, THIS_ADDRESS(entry), current);
-		if (current > max)
-			max = current;
 	} END_FOR_EACH_PTR(entry);
-	return max;
 }
 
 /* A scalar initializer is allowed, and acts pretty much like an array of one */
-static int evaluate_scalar_initializer(struct symbol *ctype, struct expression *expr)
+static void evaluate_scalar_initializer(struct symbol *ctype, struct expression *expr)
 {
 	if (expression_list_size(expr->expr_list) != 1) {
 		warning(expr->pos, "unexpected compound initializer");
-		return 0;
+		return;
 	}
-	return evaluate_array_initializer(ctype, expr);
+	evaluate_array_initializer(ctype, expr);
+	return;
 }
 
 static struct symbol *find_struct_ident(struct symbol *ctype, struct ident *ident)
@@ -1883,7 +1908,7 @@ static int evaluate_one_struct_initializer(struct symbol *ctype, struct expressi
 	if (!sym) {
 		error(entry->pos, "unknown named initializer");
 		return -1;
-	}	
+	}
 
 	if (entry->type == EXPR_IDENTIFIER) {
 		reuse = entry;
@@ -1896,7 +1921,7 @@ static int evaluate_one_struct_initializer(struct symbol *ctype, struct expressi
 		if (!reuse)
 			reuse = alloc_expression(entry->pos, EXPR_POS);
 		reuse->type = EXPR_POS;
-		reuse->ctype = ctype;
+		reuse->ctype = sym;
 		reuse->init_offset = offset;
 		reuse->init_nr = 1;
 		reuse->init_expr = entry;
@@ -1908,7 +1933,7 @@ static int evaluate_one_struct_initializer(struct symbol *ctype, struct expressi
 	return 0;
 }
 
-static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct expression *expr, int multiple)
+static void evaluate_struct_or_union_initializer(struct symbol *ctype, struct expression *expr, int multiple)
 {
 	struct expression *entry;
 	struct symbol *sym;
@@ -1930,19 +1955,17 @@ static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct exp
 			}
 		}
 		if (evaluate_one_struct_initializer(ctype, THIS_ADDRESS(entry), sym))
-			return 0;
+			return;
 		NEXT_PTR_LIST(sym);
 	} END_FOR_EACH_PTR(entry);
 	FINISH_PTR_LIST(sym);
-
-	return 0;
 }
 
 /*
  * Initializers are kind of like assignments. Except
  * they can be a hell of a lot more complex.
  */
-static int evaluate_initializer(struct symbol *ctype, struct expression **ep)
+static void evaluate_initializer(struct symbol *ctype, struct expression **ep)
 {
 	struct expression *expr = *ep;
 
@@ -1952,7 +1975,7 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep)
 	 */
 	switch (expr->type) {
 	default: {
-		int size = 0, is_string = expr->type == EXPR_STRING;
+		int is_string = expr->type == EXPR_STRING;
 		struct symbol *rtype = evaluate_expression(expr);
 		if (rtype) {
 			/*
@@ -1960,18 +1983,11 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep)
 			 * 	char array[] = "string"
 			 * should _not_ degenerate.
 			 */
-			if (is_string && is_string_type(ctype)) {
-				struct expression *array_size = ctype->array_size;
-				if (!array_size)
-					array_size = ctype->array_size = rtype->array_size;
-				size = get_expression_value(array_size);
-			} else {
+			if (!is_string || !is_string_type(ctype))
 				rtype = degenerate(expr);
-				size = 1;
-			}
 			compatible_assignment_types(expr, ctype, ep, rtype, "initializer");
 		}
-		return size;
+		return;
 	}
 
 	case EXPR_INITIALIZER:
@@ -1982,13 +1998,17 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep)
 		switch (ctype->type) {
 		case SYM_ARRAY:
 		case SYM_PTR:
-			return evaluate_array_initializer(ctype->ctype.base_type, expr);
+			evaluate_array_initializer(ctype->ctype.base_type, expr);
+			return;
 		case SYM_UNION:
-			return evaluate_struct_or_union_initializer(ctype, expr, 0);
+			evaluate_struct_or_union_initializer(ctype, expr, 0);
+			return;
 		case SYM_STRUCT:
-			return evaluate_struct_or_union_initializer(ctype, expr, 1);
+			evaluate_struct_or_union_initializer(ctype, expr, 1);
+			return;
 		default:
-			return evaluate_scalar_initializer(ctype, expr);
+			evaluate_scalar_initializer(ctype, expr);
+			return;
 		}
 
 	case EXPR_IDENTIFIER:
@@ -1997,26 +2017,28 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep)
 		if (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION) {
 			error(expr->pos, "expected structure or union for '%s' dereference", show_ident(expr->expr_ident));
 			show_symbol(ctype);
-			return 0;
+			return;
 		}
-		return evaluate_one_struct_initializer(ctype, ep,
+		evaluate_one_struct_initializer(ctype, ep,
 			find_struct_ident(ctype, expr->expr_ident));
+		return;
 
 	case EXPR_INDEX:
 		if (ctype->type == SYM_NODE)
 			ctype = ctype->ctype.base_type;
 		if (ctype->type != SYM_ARRAY) {
 			error(expr->pos, "expected array");
-			return 0;
+			return;
 		}
-		return evaluate_one_array_initializer(ctype->ctype.base_type, ep, 0);
+		evaluate_one_array_initializer(ctype->ctype.base_type, ep, 0);
+		return;
 
 	case EXPR_POS:
 		/*
 		 * An EXPR_POS expression has already been evaluated, and we don't
 		 * need to do anything more
 		 */
-		return 0;
+		return;
 	}
 }
 
@@ -2172,20 +2194,13 @@ static int evaluate_symbol_call(struct expression *expr)
 	if (ctype->ctype.modifiers & MOD_INLINE) {
 		int ret;
 		struct symbol *curr = current_fn;
-		unsigned long context = current_context;
-		unsigned long mask = current_contextmask;
-
-		current_context |= ctype->ctype.context;
-		current_contextmask |= ctype->ctype.contextmask;
 		current_fn = ctype->ctype.base_type;
 		examine_fn_arguments(current_fn);
 
 		ret = inline_function(expr, ctype);
 
-		/* restore the old function context */
+		/* restore the old function */
 		current_fn = curr;
-		current_context = context;
-		current_contextmask = mask;
 		return ret;
 	}
 
@@ -2279,6 +2294,8 @@ struct symbol *evaluate_expression(struct expression *expr)
 		return evaluate_cast(expr);
 	case EXPR_SIZEOF:
 		return evaluate_sizeof(expr);
+	case EXPR_PTRSIZEOF:
+		return evaluate_ptrsizeof(expr);
 	case EXPR_ALIGNOF:
 		return evaluate_alignof(expr);
 	case EXPR_DEREF:
@@ -2353,26 +2370,14 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 		return NULL;
 
 	/* Evaluate the initializers */
-	if (sym->initializer) {
-		int count = evaluate_initializer(sym, &sym->initializer);
-		if (base_type->type == SYM_ARRAY && !base_type->array_size) {
-			int bit_size = count * base_type->ctype.base_type->bit_size;
-			base_type->array_size = alloc_const_expression(sym->pos, count);
-			base_type->bit_size = bit_size;
-			sym->array_size = base_type->array_size;
-			sym->bit_size = bit_size;
-		}
-	}
+	if (sym->initializer)
+		evaluate_initializer(sym, &sym->initializer);
 
 	/* And finally, evaluate the body of the symbol too */
 	if (base_type->type == SYM_FN) {
 		struct symbol *curr = current_fn;
-		unsigned long context = current_context;
-		unsigned long mask = current_contextmask;
 
 		current_fn = base_type;
-		current_contextmask = sym->ctype.contextmask;
-		current_context = sym->ctype.context;
 
 		examine_fn_arguments(base_type);
 		if (!base_type->stmt && base_type->inline_stmt)
@@ -2381,8 +2386,6 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 			evaluate_statement(base_type->stmt);
 
 		current_fn = curr;
-		current_contextmask = mask;
-		current_context = context;
 	}
 
 	return base_type;
@@ -2500,6 +2503,9 @@ struct symbol *evaluate_statement(struct statement *stmt)
 	case STMT_ASM:
 		/* FIXME! Do the asm parameter evaluation! */
 		break;
+	case STMT_INTERNAL:
+		evaluate_expression(stmt->expression);
+		return NULL;
 	}
 	return NULL;
 }

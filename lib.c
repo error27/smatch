@@ -195,23 +195,33 @@ int ptr_list_size(struct ptr_list *head)
 	return nr;
 }
 
-void iterate(struct ptr_list *head, void (*callback)(void *, void *, int), void *data)
+/*
+ * Linearize the entries of a list up to a total of 'max',
+ * and return the nr of entries linearized.
+ *
+ * The array to linearize into (second argument) should really
+ * be "void *x[]", but we want to let people fill in any kind
+ * of pointer array, so let's just call it "void *".
+ */
+int linearize_ptr_list(struct ptr_list *head, void **arr, int max)
 {
-	struct ptr_list *list = head;
-	int flag = ITERATE_FIRST;
+	int nr = 0;
+	if (head && max > 0) {
+		struct ptr_list *list = head;
 
-	if (!head)
-		return;
-	do {
-		int i;
-		for (i = 0; i < list->nr; i++) {
-			if (i == list->nr-1 && list->next == head)
-				flag |= ITERATE_LAST;
-			callback(list->list[i], data, flag);
-			flag = 0;
-		}
-		list = list->next;
-	} while (list != head);
+		do {
+			int i = list->nr;
+			if (i > max) 
+				i = max;
+			memcpy(arr, list->list, i*sizeof(void *));
+			arr += i;
+			nr += i;
+			max -= i;
+			if (!max)
+				break;
+		} while ((list = list->next) != head);
+	}
+	return nr;
 }
 
 void add_ptr_list(struct ptr_list **listp, void *ptr)
@@ -557,6 +567,7 @@ unsigned char pre_buffer[8192];
 int Wdefault_bitfield_sign = 0;
 int Wbitwise = 0;
 int Wtypesign = 0;
+int Wcontext = 0;
 int Wundefined_preprocessor = 0;
 int preprocess_only;
 char *include;
@@ -685,6 +696,7 @@ const struct warning {
 	{ "undef", &Wundefined_preprocessor },
 	{ "bitwise", &Wbitwise },
 	{ "typesign", &Wtypesign },
+	{ "context", &Wcontext },
 };
 
 
@@ -774,7 +786,8 @@ char **handle_switch(char *arg, char **next)
 void declare_builtin_functions(void)
 {
 	add_pre_buffer("extern void *__builtin_memcpy(void *, const void *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern void *__builtin_return_address(int);\n");
+	add_pre_buffer("extern void *__builtin_return_address(unsigned int);\n");
+	add_pre_buffer("extern void *__builtin_frame_address(unsigned int);\n");
 	add_pre_buffer("extern void *__builtin_memset(void *, int, __SIZE_TYPE__);\n");	
 	add_pre_buffer("extern void __builtin_trap(void);\n");
 	add_pre_buffer("extern int __builtin_ffs(int);\n");
@@ -788,14 +801,13 @@ void create_builtin_stream(void)
 	add_pre_buffer("#define __extension__\n");
 	add_pre_buffer("#define __pragma__\n");
 
-	add_pre_buffer("#ifndef __SIZE_TYPE__\n");
 	// gcc defines __SIZE_TYPE__ to be size_t.  For linux/i86 and
 	// solaris/sparc that is really "unsigned int" and for linux/x86_64
 	// it is "long unsigned int".  In either case we can probably
 	// get away with this.  We need the #ifndef as cgcc will define
 	// the right __SIZE_TYPE__.
-	add_pre_buffer("#define __SIZE_TYPE__ long unsigned int\n");
-	add_pre_buffer("#endif\n");
+	add_pre_buffer("#weak_define __SIZE_TYPE__ long unsigned int\n");
+	add_pre_buffer("#weak_define __STDC__ 1\n");
 
 	add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
 	add_pre_buffer("#define __builtin_va_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");

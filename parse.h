@@ -23,6 +23,7 @@ enum statement_type {
 	STMT_LABEL,
 	STMT_GOTO,
 	STMT_ASM,
+	STMT_INTERNAL,
 };
 
 struct statement {

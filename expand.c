@@ -62,7 +62,8 @@ void cast_value(struct expression *expr, struct symbol *newtype,
 {
 	int old_size = oldtype->bit_size;
 	int new_size = newtype->bit_size;
-	long long value, mask;
+	long long value, mask, signmask;
+	long long oldmask, oldsignmask, dropped;
 
 	if (newtype->ctype.base_type == &fp_type ||
 	    oldtype->ctype.base_type == &fp_type)
@@ -80,9 +81,22 @@ void cast_value(struct expression *expr, struct symbol *newtype,
 
 Int:
 	// Truncate it to the new size
-	mask = 1ULL << (new_size-1);
-	mask = mask | (mask-1);
+	signmask = 1ULL << (new_size-1);
+	mask = signmask | (signmask-1);
 	expr->value = value & mask;
+
+	// Check if we dropped any bits..
+	oldsignmask = 1ULL << (old_size-1);
+	oldmask = oldsignmask | (oldsignmask-1);
+	dropped = oldmask & ~mask;
+
+	// Ok if the bits were (and still are) purely sign bits
+	if (value & dropped) {
+		if (!(value & oldsignmask) || !(value & signmask) || (value & dropped) != dropped)
+			warning(old->pos, "cast truncates bits from constant value (%llx becomes %llx)",
+				value & oldmask,
+				value & mask);
+	}
 	return;
 
 Float:
@@ -341,9 +355,9 @@ static int expand_binop(struct expression *expr)
 	cost = expand_expression(expr->left);
 	cost += expand_expression(expr->right);
 	if (simplify_int_binop(expr, expr->ctype))
-		return 1;
+		return 0;
 	if (simplify_float_binop(expr))
-		return 1;
+		return 0;
 	return cost + 1;
 }
 
@@ -459,7 +473,6 @@ static int expand_conditional(struct expression *expr)
 
 	cond_cost = expand_expression(cond);
 	if (cond->type == EXPR_VALUE) {
-		true = true ? : cond;
 		if (!cond->value)
 			true = false;
 		*expr = *true;
@@ -646,11 +659,27 @@ static int expand_cast(struct expression *expr)
 	return cost + 1;
 }
 
+/* The arguments are constant if the cost of all of them is zero */
+int expand_constant_p(struct expression *expr, int cost)
+{
+	expr->type = EXPR_VALUE;
+	expr->value = !cost;
+	return 0;
+}
+
+/* The arguments are safe, if their cost is less than SIDE_EFFECTS */
+int expand_safe_p(struct expression *expr, int cost)
+{
+	expr->type = EXPR_VALUE;
+	expr->value = (cost < SIDE_EFFECTS);
+	return 0;
+}
+
 /*
  * expand a call expression with a symbol. This
  * should expand builtins.
  */
-static int expand_symbol_call(struct expression *expr)
+static int expand_symbol_call(struct expression *expr, int cost)
 {
 	struct expression *fn = expr->fn;
 	struct symbol *ctype = fn->ctype;
@@ -659,7 +688,7 @@ static int expand_symbol_call(struct expression *expr)
 		return SIDE_EFFECTS;
 
 	if (ctype->op && ctype->op->expand)
-		return ctype->op->expand(expr);
+		return ctype->op->expand(expr, cost);
 
 	return SIDE_EFFECTS;
 }
@@ -677,7 +706,7 @@ static int expand_call(struct expression *expr)
 		return SIDE_EFFECTS;
 	}
 	if (sym->type == SYM_NODE)
-		return expand_symbol_call(expr);
+		return expand_symbol_call(expr, cost);
 
 	return SIDE_EFFECTS;
 }
@@ -831,8 +860,14 @@ static int expand_expression(struct expression *expr)
 	case EXPR_CONDITIONAL:
 		return expand_conditional(expr);
 
-	case EXPR_STATEMENT:
-		return expand_statement(expr->statement);
+	case EXPR_STATEMENT: {
+		struct statement *stmt = expr->statement;
+		int cost = expand_statement(stmt);
+
+		if (stmt->type == STMT_EXPRESSION)
+			*expr = *stmt->expression;
+		return cost;
+	}
 
 	case EXPR_LABEL:
 		return 0;
@@ -854,6 +889,7 @@ static int expand_expression(struct expression *expr)
 		return expand_pos_expression(expr);
 
 	case EXPR_SIZEOF:
+	case EXPR_PTRSIZEOF:
 	case EXPR_ALIGNOF:
 		warning(expr->pos, "internal front-end error: sizeof in expansion?");
 		return UNSAFE;
@@ -924,6 +960,48 @@ static int expand_if_statement(struct statement *stmt)
 	return SIDE_EFFECTS;
 }
 
+/*
+ * Expanding a compound statement is really just
+ * about adding up the costs of each individual
+ * statement.
+ *
+ * We also collapse a simple compound statement:
+ * this would trigger for simple inline functions,
+ * except we would have to check the "return"
+ * symbol usage. Next time.
+ */
+static int expand_compound(struct statement *stmt)
+{
+	struct symbol *sym;
+	struct statement *s, *last;
+	int cost, symbols, statements;
+
+	symbols = 0;
+	FOR_EACH_PTR(stmt->syms, sym) {
+		symbols++;
+		expand_symbol(sym);
+	} END_FOR_EACH_PTR(sym);
+
+	if (stmt->ret) {
+		symbols++;
+		expand_symbol(stmt->ret);
+	}
+
+	cost = 0;
+	last = NULL;
+	statements = 0;
+	FOR_EACH_PTR(stmt->stmts, s) {
+		statements++;
+		last = s;
+		cost += expand_statement(s);
+	} END_FOR_EACH_PTR(s);
+
+	if (!symbols && statements == 1)
+		*stmt = *last;
+
+	return cost;
+}
+
 static int expand_statement(struct statement *stmt)
 {
 	if (!stmt)
@@ -937,22 +1015,8 @@ static int expand_statement(struct statement *stmt)
 	case STMT_EXPRESSION:
 		return expand_expression(stmt->expression);
 
-	case STMT_COMPOUND: {
-		struct symbol *sym;
-		struct statement *s;
-		int cost;
-
-		FOR_EACH_PTR(stmt->syms, sym) {
-			expand_symbol(sym);
-		} END_FOR_EACH_PTR(sym);
-		expand_symbol(stmt->ret);
-
-		cost = 0;
-		FOR_EACH_PTR(stmt->stmts, s) {
-			cost += expand_statement(s);
-		} END_FOR_EACH_PTR(s);
-		return cost;
-	}
+	case STMT_COMPOUND:
+		return expand_compound(stmt);
 
 	case STMT_IF:
 		return expand_if_statement(stmt);
@@ -988,6 +1052,9 @@ static int expand_statement(struct statement *stmt)
 		break;
 	case STMT_ASM:
 		/* FIXME! Do the asm parameter evaluation! */
+		break;
+	case STMT_INTERNAL:
+		expand_expression(stmt->expression);
 		break;
 	}
 	return SIDE_EFFECTS;

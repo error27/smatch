@@ -1546,10 +1546,7 @@ static struct storage *emit_conditional_expr(struct expression *expr)
 	target_false = emit_conditional_test(cond);
 
 	/* handle if-true part of the expression */
-	if (!expr->cond_true)
-		true = cond;
-	else
-		true = x86_expression(expr->cond_true);
+	true = x86_expression(expr->cond_true);
 
 	emit_copy(new, true, expr->ctype);
 
@@ -1576,10 +1573,7 @@ static struct storage *emit_select_expr(struct expression *expr)
 
 	emit_comment("begin SELECT");
 	reg_cond = get_reg_value(cond, get_regclass(expr->conditional));
-	reg_true = reg_cond;
-	if (true) {
-		reg_true = get_reg_value(true, get_regclass(expr));
-	}
+	reg_true = get_reg_value(true, get_regclass(expr));
 	reg_false = get_reg_value(false, get_regclass(expr));
 
 	/*
@@ -1592,8 +1586,7 @@ static struct storage *emit_select_expr(struct expression *expr)
 	/* Store it back */
 	emit_move(reg_true, new, expr->ctype, NULL);
 	put_reg(reg_cond);
-	if (true)
-		put_reg(reg_true);
+	put_reg(reg_true);
 	put_reg(reg_false);
 	emit_comment("end SELECT");
 	return new;
@@ -1781,17 +1774,10 @@ static void emit_switch_statement(struct statement *stmt)
 		emit_label(switch_end, NULL);
 }
 
-static void x86_struct_member(struct symbol *sym, void *data, int flags)
+static void x86_struct_member(struct symbol *sym)
 {
-	if (flags & ITERATE_FIRST)
-		printf(" {\n\t");
-	printf("%s:%d:%ld at offset %ld", show_ident(sym->ident), sym->bit_size, sym->ctype.alignment, sym->offset);
-	if (sym->fieldwidth)
-		printf("[%d..%d]", sym->bit_offset, sym->bit_offset+sym->fieldwidth-1);
-	if (flags & ITERATE_LAST)
-		printf("\n} ");
-	else
-		printf(", ");
+	printf("\t%s:%d:%ld at offset %ld.%d", show_ident(sym->ident), sym->bit_size, sym->ctype.alignment, sym->offset, sym->bit_offset);
+	printf("\n");
 }
 
 static void x86_symbol(struct symbol *sym)
@@ -1830,12 +1816,16 @@ static void x86_symbol(struct symbol *sym)
 		break;
 
 	case SYM_STRUCT:
-		symbol_iterate(type->symbol_list, x86_struct_member, NULL);
-		break;
+	case SYM_UNION: {
+		struct symbol *member;
 
-	case SYM_UNION:
-		symbol_iterate(type->symbol_list, x86_struct_member, NULL);
+		printf(" {\n");
+		FOR_EACH_PTR(type->symbol_list, member) {
+			x86_struct_member(member);
+		} END_FOR_EACH_PTR(member);
+		printf("}\n");
 		break;
+	}
 
 	case SYM_FN: {
 		struct statement *stmt = type->stmt;

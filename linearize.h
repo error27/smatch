@@ -6,9 +6,12 @@
 #include "parse.h"
 #include "symbol.h"
 
+struct instruction;
+
 /* Silly pseudo define. Do this right some day */
 struct pseudo {
 	int nr;
+	struct instruction *def;
 };
 
 typedef struct pseudo *pseudo_t;
@@ -60,10 +63,14 @@ struct instruction {
 		};
 		struct /* setval */ {
 			struct expression *val;
+			struct symbol *symbol;
 		};
 		struct /* call */ {
 			pseudo_t func;
 			struct pseudo_list *arguments;
+		};
+		struct /* context */ {
+			int increment;
 		};
 	};
 };
@@ -116,6 +123,7 @@ enum opcode {
 	/* Uni */
 	OP_NOT,
 	OP_NEG,
+	OP_MOV,
 
 	/* Setcc - always in combination with a select or conditional branch */
 	OP_SETCC,
@@ -136,6 +144,10 @@ enum opcode {
 	OP_VANEXT,
 	OP_VAARG,
 	OP_SLICE,
+	OP_DEAD,
+
+	/* Sparse tagging (line numbers, context, whatever) */
+	OP_CONTEXT,
 };
 
 struct basic_block_list;
@@ -149,7 +161,9 @@ struct instruction_list;
 #define BB_REACHABLE	0x00000001
 
 struct basic_block {
+	struct position pos;
 	unsigned long flags;		/* BB status flags */
+	int context;
 	struct basic_block_list *parents; /* sources */
 	struct instruction_list *insns;	/* Linear list of instructions */
 };

@@ -114,12 +114,8 @@ struct terminator_iterator {
 #define ITERATOR_BACKWARDS 1
 #define ITERATOR_CURRENT 2
 
-#define ITERATE_FIRST 1
-#define ITERATE_LAST 2
-
 #define ptr_list_empty(x) ((x) == NULL)
 
-void iterate(struct ptr_list *,void (*callback)(void *, void *, int), void*);
 void init_iterator(struct ptr_list **head, struct list_iterator *iterator, int flags);
 void * next_iterator(struct list_iterator *iterator);
 void delete_iterator(struct list_iterator *iterator);
@@ -137,6 +133,7 @@ extern int ptr_list_size(struct ptr_list *);
 extern char **handle_switch(char *arg, char **next);
 extern void add_pre_buffer(const char *fmt, ...);
 void * next_iterator(struct list_iterator *iterator);
+int linearize_ptr_list(struct ptr_list *, void **, int);
 
 extern unsigned int pre_buffer_size;
 extern unsigned char pre_buffer[8192];
@@ -145,8 +142,7 @@ extern char *include;
 extern int preprocess_only;
 extern int Wdefault_bitfield_sign;
 extern int Wundefined_preprocessor;
-extern int Wbitwise;
-extern int Wtypesign;
+extern int Wbitwise, Wtypesign, Wcontext;
 
 extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);
@@ -290,21 +286,6 @@ static inline void add_statement(struct statement_list **list, struct statement 
 static inline void add_expression(struct expression_list **list, struct expression *expr)
 {
 	add_ptr_list((struct ptr_list **)list, expr);
-}
-
-static inline void symbol_iterate(struct symbol_list *list, void (*callback)(struct symbol *, void *, int), void *data)
-{
-	iterate((struct ptr_list *)list, (void (*)(void *, void *, int))callback, data);
-}
-
-static inline void statement_iterate(struct statement_list *list, void (*callback)(struct statement *, void *, int), void *data)
-{
-	iterate((struct ptr_list *)list, (void (*)(void *, void *, int))callback, data);
-}
-
-static inline void expression_iterate(struct expression_list *list, void (*callback)(struct expression *, void *, int), void *data)
-{
-	iterate((struct ptr_list *)list, (void (*)(void *, void *, int))callback, data);
 }
 
 #define DO_PREPARE(head, ptr, __head, __list, __nr)					\

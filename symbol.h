@@ -57,19 +57,22 @@ enum type {
 struct ctype {
 	unsigned long modifiers;
 	unsigned long alignment;
-	unsigned int contextmask, context, as;
+	unsigned int in_context, out_context, as;
 	struct symbol *base_type;
 };
 
 struct symbol_op {
 	int (*evaluate)(struct expression *);
-	int (*expand)(struct expression *);
+	int (*expand)(struct expression *, int);
 };	
+
+extern int expand_safe_p(struct expression *expr, int cost);
+extern int expand_constant_p(struct expression *expr, int cost);
 
 struct symbol {
 	enum namespace namespace:8;
 	enum type type:8;
-	unsigned char used:1;
+	unsigned char used:1, weak:1;
 	struct position pos;		/* Where this symbol was declared */
 	struct ident *ident;		/* What identifier this symbol is associated with */
 	struct symbol *next_id;		/* Next semantic symbol that shares this identifier */
@@ -91,10 +94,10 @@ struct symbol {
 			unsigned long	offset;
 			int		bit_size;
 			unsigned int	bit_offset:8,
-					fieldwidth:8,
 					arg_count:10,
 					variadic:1,
 					initialized:1,
+					examined:1,
 					expanding:1;
 			struct expression *array_size;
 			struct ctype ctype;
@@ -118,8 +121,6 @@ struct symbol {
 #define MOD_REGISTER	0x0002
 #define MOD_STATIC	0x0004
 #define MOD_EXTERN	0x0008
-
-#define MOD_STORAGE	(MOD_AUTO | MOD_REGISTER | MOD_STATIC | MOD_EXTERN | MOD_INLINE | MOD_TOPLEVEL)
 
 #define MOD_CONST	0x0010
 #define MOD_VOLATILE	0x0020
@@ -156,15 +157,17 @@ struct symbol {
 #define MOD_EXPLICITLY_SIGNED	0x40000000
 #define MOD_BITWISE	0x80000000
 
+#define MOD_STORAGE	(MOD_AUTO | MOD_REGISTER | MOD_STATIC | MOD_EXTERN | MOD_INLINE | MOD_TOPLEVEL)
+#define MOD_SPECIALBITS (MOD_STRUCTOF | MOD_UNIONOF | MOD_ENUMOF | MOD_ATTRIBUTE | MOD_TYPEOF)
+#define MOD_SIGNEDNESS	(MOD_SIGNED | MOD_UNSIGNED | MOD_EXPLICITLY_SIGNED)
+#define MOD_SPECIFIER	(MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG | MOD_SIGNEDNESS)
+
 /* Current parsing/evaluation function */
 extern struct symbol *current_fn;
 
-/* Basic types */
-extern struct symbol	void_type,
-			int_type,
-			fp_type,
-			vector_type,
-			bad_type;
+/* Abstract types */
+extern struct symbol	int_type,
+			fp_type;
 
 /* C types */
 extern struct symbol	bool_ctype, void_ctype, type_ctype,
@@ -175,7 +178,7 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			llong_ctype, sllong_ctype, ullong_ctype,
 			float_ctype, double_ctype, ldouble_ctype,
 			string_ctype, ptr_ctype, lazy_ptr_ctype,
-			incomplete_ctype, label_ctype, bad_enum_ctype;
+			incomplete_ctype, label_ctype, bad_ctype;
 
 
 #define __IDENT(n,str,res) \

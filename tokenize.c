@@ -83,7 +83,7 @@ char *charstr(char *ptr, unsigned char c, unsigned char escape, unsigned char ne
 
 const char *show_string(const struct string *string)
 {
-	static char buffer[256];
+	static char buffer[4 * MAX_STRING + 3];
 	char *ptr;
 	int i;
 
@@ -396,8 +396,8 @@ static const long cclass[257] = {
 static int get_one_number(int c, int next, stream_t *stream)
 {
 	struct token *token;
-	static char buffer[256];
-	char *p = buffer, *buf;
+	static char buffer[4095];
+	char *p = buffer, *buf, *buffer_end = buffer + sizeof (buffer);
 	int len;
 
 	*p++ = c;
@@ -405,15 +405,26 @@ static int get_one_number(int c, int next, stream_t *stream)
 		long class =  cclass[next + 1];
 		if (!(class & (Dot | Digit | Letter)))
 			break;
-		*p++ = next;
+		if (p != buffer_end)
+			*p++ = next;
 		next = nextchar(stream);
 		if (class & Exp) {
 			if (next == '-' || next == '+') {
-				*p++ = next;
+				if (p != buffer_end)
+					*p++ = next;
 				next = nextchar(stream);
 			}
 		}
 	}
+
+	if (p == buffer_end) {
+		error(stream->pos, "number token exceeds %td characters",
+		      buffer_end - buffer);
+		// Pretend we saw just "1".
+		buffer[0] = '1';
+		p = buffer + 1;
+	}
+
 	*p++ = 0;
 	len = p - buffer;
 	buf = __alloc_bytes(len);
@@ -667,7 +678,7 @@ static int get_one_special(int c, stream_t *stream)
 	return next;
 }
 
-#define IDENT_HASH_BITS (10)
+#define IDENT_HASH_BITS (13)
 #define IDENT_HASH_SIZE (1<<IDENT_HASH_BITS)
 #define IDENT_HASH_MASK (IDENT_HASH_SIZE-1)
 
@@ -676,7 +687,7 @@ static int get_one_special(int c, stream_t *stream)
 #define ident_hash_end(hash)		((((hash) >> IDENT_HASH_BITS) + (hash)) & IDENT_HASH_MASK)
 
 static struct ident *hash_table[IDENT_HASH_SIZE];
-int ident_hit, ident_miss;
+int ident_hit, ident_miss, idents;
 
 void show_identifier_stats(void)
 {
@@ -744,6 +755,7 @@ static struct ident *create_hashed_ident(const char *name, int len, unsigned lon
 	*p = ident;
 	ident->next = NULL;
 	ident_miss++;
+	idents++;
 	return ident;
 }
 

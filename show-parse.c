@@ -56,7 +56,7 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 		indent, indent_string, typestr[sym->type],
 		sym->bit_size, sym->ctype.alignment,
 		sym->ctype.modifiers, show_ident(sym->ident),
-		sym->ctype.as, sym->ctype.context, sym->ctype.contextmask,
+		sym->ctype.as, sym->ctype.in_context, sym->ctype.out_context,
 		sym, input_streams[sym->pos.stream].name, sym->pos.line, sym->pos.pos);
 	if (sym->type == SYM_FN) {
 		int i = 1;
@@ -109,29 +109,22 @@ const char *modifier_string(unsigned long mod)
 	return buffer;
 }
 
-void show_struct_member(struct symbol *sym, void *data, int flags)
+void show_struct_member(struct symbol *sym)
 {
-	if (flags & ITERATE_FIRST)
-		printf(" {\n\t");
-	printf("%s:%d:%ld at offset %ld", show_ident(sym->ident), sym->bit_size, sym->ctype.alignment, sym->offset);
-	if (sym->fieldwidth)
-		printf("[%d..%d]", sym->bit_offset, sym->bit_offset+sym->fieldwidth-1);
-	if (flags & ITERATE_LAST)
-		printf("\n} ");
-	else
-		printf(", ");
-}
-
-static void show_one_symbol(struct symbol *sym, void *sep, int flags)
-{
-	show_symbol(sym);
-	if (!(flags & ITERATE_LAST))
-		printf("%s", (const char *)sep);
+	printf("\t%s:%d:%ld at offset %ld.%d", show_ident(sym->ident), sym->bit_size, sym->ctype.alignment, sym->offset, sym->bit_offset);
+	printf("\n");
 }
 
 void show_symbol_list(struct symbol_list *list, const char *sep)
 {
-	symbol_iterate(list, show_one_symbol, (void *)sep);
+	struct symbol *sym;
+	const char *prepend = "";
+
+	FOR_EACH_PTR(list, sym) {
+		puts(prepend);
+		prepend = ", ";
+		show_symbol(sym);
+	} END_FOR_EACH_PTR(sym);
 }
 
 struct type_name {
@@ -200,6 +193,7 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 		{ &ldouble_ctype,"long double" },
 		{ &incomplete_ctype, "incomplete type" },
 		{ &label_ctype, "label type" },
+		{ &bad_ctype, "bad type" },
 	};
 
 	if (!sym)
@@ -240,7 +234,7 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 		break;
 
 	case SYM_BITFIELD:
-		append(name, ":%d", sym->fieldwidth);
+		append(name, ":%d", sym->bit_size);
 		break;
 
 	case SYM_LABEL:
@@ -331,12 +325,15 @@ void show_symbol(struct symbol *sym)
 	 * Show actual implementation information
 	 */
 	switch (type->type) {
-	case SYM_STRUCT:
-		symbol_iterate(type->symbol_list, show_struct_member, NULL);
-		break;
+		struct symbol *member;
 
+	case SYM_STRUCT:
 	case SYM_UNION:
-		symbol_iterate(type->symbol_list, show_struct_member, NULL);
+		printf(" {\n");
+		FOR_EACH_PTR(type->symbol_list, member) {
+			show_struct_member(member);
+		} END_FOR_EACH_PTR(member);
+		printf("}\n");
 		break;
 
 	case SYM_FN: {
@@ -563,33 +560,13 @@ int show_statement(struct statement *stmt)
 	case STMT_ASM:
 		printf("\tasm( .... )\n");
 		break;
-
+	case STMT_INTERNAL: {
+		int val = show_expression(stmt->expression);
+		printf("\tINTERNAL( %d )\n", val);
+		break;
+	}
 	}
 	return 0;
-}
-
-static void show_one_statement(struct statement *stmt, void *sep, int flags)
-{
-	show_statement(stmt);
-	if (!(flags & ITERATE_LAST))
-		printf("%s", (const char *)sep);
-}
-
-void show_statement_list(struct statement_list *stmt, const char *sep)
-{
-	statement_iterate(stmt, show_one_statement, (void *)sep);
-}
-
-static void show_one_expression(struct expression *expr, void *sep, int flags)
-{
-	show_expression(expr);
-	if (!(flags & ITERATE_LAST))
-		printf("%s", (const char *)sep);
-}
-
-void show_expression_list(struct expression_list *list, const char *sep)
-{
-	expression_iterate(list, show_one_expression, (void *)sep);
 }
 
 static int show_call_expression(struct expression *expr)
@@ -917,8 +894,6 @@ static int show_conditional_expr(struct expression *expr)
 	int false = show_expression(expr->cond_false);
 	int new = new_pseudo();
 
-	if (!true)
-		true = cond;
 	printf("[v%d]\tcmov.%d\t\tv%d,v%d,v%d\n", cond, expr->ctype->bit_size, new, true, false);
 	return new;
 }
@@ -1024,6 +999,7 @@ int show_expression(struct expression *expr)
 		return show_symbol_expr(expr->symbol);
 	case EXPR_DEREF:
 	case EXPR_SIZEOF:
+	case EXPR_PTRSIZEOF:
 	case EXPR_ALIGNOF:
 		warning(expr->pos, "invalid expression after evaluation");
 		return 0;

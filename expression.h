@@ -27,6 +27,7 @@ enum expression_type {
 	EXPR_CAST,
 	EXPR_SIZEOF,
 	EXPR_ALIGNOF,
+	EXPR_PTRSIZEOF,
 	EXPR_CONDITIONAL,
 	EXPR_SELECT,		// a "safe" conditional expression
 	EXPR_STATEMENT,

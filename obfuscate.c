@@ -61,7 +61,7 @@ static void emit_fn(struct symbol *sym)
 	printf("%s();\n", name);	
 }
 
-void emit_symbol(struct symbol *sym, void *_parent, int flags)
+void emit_symbol(struct symbol *sym)
 {
 	struct symbol *ctype;
 
@@ -92,6 +92,15 @@ void emit_symbol(struct symbol *sym, void *_parent, int flags)
 	}
 }
 
+static void emit_symbol_list(struct symbol_list *list)
+{
+	struct symbol *sym;
+
+	FOR_EACH_PTR(list, sym) {
+		emit_symbol(sym);
+	} END_FOR_EACH_PTR(sym);
+}
+
 int main(int argc, char **argv)
 {
 	int fd;
@@ -120,7 +129,7 @@ int main(int argc, char **argv)
 	translation_unit(token, &list);
 
 	// Do type evaluation and simplify
-	symbol_iterate(list, emit_symbol, NULL);
+	emit_symbol_list(list);
 
 	return 0;
 }

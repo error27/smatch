@@ -24,16 +24,17 @@ IDENT(enum);
 IDENT(__attribute__);
 IDENT(__attribute);
 IDENT(volatile);
+IDENT(__volatile__);
+IDENT(__volatile);
 
 /* Extended gcc identifiers */
 IDENT(asm);
-IDENT(__asm__);
-IDENT(__asm);
 IDENT(alignof);
-IDENT(__alignof);
-IDENT(__alignof__); 
-IDENT(__volatile__);
-IDENT(__volatile);
+IDENT_RESERVED(__asm__);
+IDENT_RESERVED(__asm);
+IDENT_RESERVED(__alignof);
+IDENT_RESERVED(__alignof__); 
+IDENT_RESERVED(__sizeof_ptr__);
 
 /* Attribute names */
 IDENT(defined); IDENT(packed); IDENT(__packed__);
@@ -61,6 +62,9 @@ __IDENT(__FILE___ident, "__FILE__", 0);
 __IDENT(__func___ident, "__func__", 0);
 __IDENT(__FUNCTION___ident, "__FUNCTION__", 0);
 __IDENT(__PRETTY_FUNCTION___ident, "__PRETTY_FUNCTION__", 0);
+
+/* Sparse commands */
+IDENT_RESERVED(__context__);
 
 #undef __IDENT
 #undef IDENT

@@ -960,7 +960,7 @@ Earg:
 	return NULL;
 }
 
-static int handle_define(struct stream *stream, struct token **line, struct token *token)
+static int do_handle_define(struct stream *stream, struct token **line, struct token *token, int weak)
 {
 	struct token *arglist, *expansion;
 	struct token *left = token->next;
@@ -996,18 +996,36 @@ static int handle_define(struct stream *stream, struct token **line, struct toke
 	if (sym) {
 		if (token_list_different(sym->expansion, expansion) || 
 		    token_list_different(sym->arglist, arglist)) {
+			if (sym->weak)
+				goto replace_it;
+			if (weak)
+				return 1;
 			warning(left->pos, "preprocessor token %.*s redefined",
 					name->len, name->name);
 			info(sym->pos, "this was the original definition");
+			sym->expansion = expansion;
+			sym->arglist = arglist;
 		}
 		return 1;
 	}
 	sym = alloc_symbol(left->pos, SYM_NODE);
 	bind_symbol(sym, name, NS_MACRO);
 
+replace_it:
 	sym->expansion = expansion;
 	sym->arglist = arglist;
+	sym->weak = weak;
 	return 1;
+}
+
+static int handle_define(struct stream *stream, struct token **line, struct token *token)
+{
+	return do_handle_define(stream, line, token, 0);
+}
+
+static int handle_weak_define(struct stream *stream, struct token **line, struct token *token)
+{
+	return do_handle_define(stream, line, token, 1);
 }
 
 static int handle_undef(struct stream *stream, struct token **line, struct token *token)
@@ -1390,6 +1408,7 @@ void init_preprocessor(void)
 		int (*handler)(struct stream *, struct token **, struct token *);
 	} handlers[] = {
 		{ "define",	handle_define },
+		{ "weak_define",handle_weak_define },
 		{ "undef",	handle_undef },
 		{ "ifdef",	handle_ifdef },
 		{ "ifndef",	handle_ifndef },
