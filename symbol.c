@@ -325,6 +325,12 @@ static struct symbol *examine_enum_type(struct symbol *sym)
 
 static struct symbol *examine_pointer_type(struct symbol *sym)
 {
+	/*
+	 * We need to set the pointer size first, and
+	 * examine the thing we point to only afterwards.
+	 * That's because this pointer type may end up
+	 * being needed for the base type size evalutation.
+	 */
 	if (!sym->bit_size)
 		sym->bit_size = bits_in_pointer;
 	if (!sym->ctype.alignment)
