@@ -83,7 +83,7 @@ char *charstr(char *ptr, unsigned char c, unsigned char escape, unsigned char ne
 
 const char *show_string(const struct string *string)
 {
-	static char buffer[256];
+	static char buffer[4 * MAX_STRING + 3];
 	char *ptr;
 	int i;
 
