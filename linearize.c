@@ -1185,6 +1185,84 @@ void pack_basic_blocks(struct entrypoint *ep)
 	}END_FOR_EACH_PTR(bb);
 }
 
+/*
+ * Dammit, if we have a phi-node followed by a conditional
+ * branch on that phi-node, we should damn well be able to
+ * do something about the source. Maybe.
+ */
+static void rewrite_branch(struct basic_block *bb,
+	struct basic_block **ptr,
+	struct basic_block *old,
+	struct basic_block *new)
+{
+	*ptr = new;
+	add_bb(&new->parents, bb);
+	/* 
+	 * FIXME!!! We should probably also remove bb from "old->parents",
+	 * but we need to be careful that bb isn't a parent some other way.
+	 */
+}
+
+static void try_to_simplify_bb(struct entrypoint *ep, struct basic_block *bb,
+	struct instruction *first, struct instruction *second)
+{
+	struct phi *phi;
+
+	FOR_EACH_PTR(first->phi_list, phi) {
+		struct basic_block *source = phi->source;
+		pseudo_t pseudo = phi->pseudo;
+		struct instruction *br, *insn;
+
+		br = last_instruction(source->insns);
+		if (!br)
+			continue;
+		if (br->opcode != OP_BR)
+			continue;
+
+		FOR_EACH_PTR(source->insns, insn) {
+			if (insn->opcode == OP_SETVAL && insn->target == pseudo) {
+				struct expression *expr = insn->val;
+				if (expr->type == EXPR_VALUE) {
+					struct basic_block *target;
+
+					target = expr->value ? second->bb_true: second->bb_false;
+					if (br->bb_true == bb)
+						rewrite_branch(source, &br->bb_true, bb, target);
+					if (br->bb_false == bb)
+						rewrite_branch(source, &br->bb_false, bb, target);
+				}
+			}
+		} END_FOR_EACH_PTR(insn);
+	} END_FOR_EACH_PTR(phi);
+}
+
+static void simplify_phi_nodes(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+
+	FOR_EACH_PTR(ep->bbs, bb) {
+		struct instruction *first, *second;
+		struct ptr_list *list;
+
+		/* FIXME! This knows too much about list internals */
+		list = (struct ptr_list *)bb->insns;
+		if (!list)
+			continue;
+		first = list->list[0];
+		second = list->list[1];
+
+		if (!first || !second)
+			continue;
+		if (first->opcode != OP_PHI)
+			continue;
+		if (second->opcode != OP_BR)
+			continue;
+		if (first->target != second->cond)
+			continue;
+		try_to_simplify_bb(ep, bb, first, second);
+	} END_FOR_EACH_PTR(bb);
+}
+
 struct entrypoint *linearize_symbol(struct symbol *sym)
 {
 	struct symbol *base_type;
@@ -1216,6 +1294,7 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 				add_one_insn(ep, pos, insn);
 			}
 			pack_basic_blocks(ep);
+			simplify_phi_nodes(ep);
 			ret_ep = ep;
 		}
 	}
