@@ -68,7 +68,7 @@ static struct symbol * indirect(struct position pos, struct ctype *ctype, int ty
 	struct symbol *sym = alloc_symbol(pos, type);
 
 	sym->ctype.base_type = ctype->base_type;
-	sym->ctype.modifiers = ctype->modifiers & ~MOD_STORAGE;
+	sym->ctype.modifiers = ctype->modifiers & ~(MOD_STORAGE | MOD_EXPLICITLY_SIGNED);
 
 	ctype->base_type = sym;
 	ctype->modifiers &= MOD_STORAGE;

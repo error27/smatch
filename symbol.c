@@ -179,6 +179,12 @@ static void examine_bitfield_type(struct symbol *sym)
 		// representation.  The latter makes for very efficient code...
 		warn(sym->pos, "dubious one-bit signed bitfield");
 	}
+	if (base_type->type != SYM_ENUM &&
+	    !(base_type->ctype.modifiers & MOD_EXPLICITLY_SIGNED) && is_signed) {
+		// The sign of bitfields is unspecified by default.
+		warn (sym->pos, "dubious bitfield without explicit `signed' or `unsigned'");
+	}
+
 	alignment = base_type->ctype.alignment;
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = alignment;
@@ -397,9 +403,9 @@ struct sym_init {
 	{ "long",	NULL,		MOD_LONG },
 	{ "float",	&fp_type,	0 },
 	{ "double",	&fp_type,	MOD_LONG },
-	{ "signed",	NULL,		MOD_SIGNED },
-	{ "__signed",	NULL,		MOD_SIGNED },
-	{ "__signed__",	NULL,		MOD_SIGNED },
+	{ "signed",	NULL,		MOD_SIGNED | MOD_EXPLICITLY_SIGNED },
+	{ "__signed",	NULL,		MOD_SIGNED | MOD_EXPLICITLY_SIGNED },
+	{ "__signed__",	NULL,		MOD_SIGNED | MOD_EXPLICITLY_SIGNED },
 	{ "unsigned",	NULL,		MOD_UNSIGNED },
 	{ "__label__",	&label_type,	MOD_LABEL | MOD_UNSIGNED },
 
