@@ -15,8 +15,15 @@
  * token contains the information on where the symbol was
  * declared.
  */
+enum symbol_types {
+	SYM_TYPE,
+	SYM_PTR,
+	SYM_FN,
+	SYM_ARRAY,
+};
+
 struct symbol {
-	int type;
+	enum symbol_types type;
 	struct token *token;		/* Where this symbol was declared */
 	struct symbol *next;		/* Next symbol at this level */
 	struct symbol *next_id;		/* Next semantic symbol that shares this identifier */
@@ -25,6 +32,13 @@ struct symbol {
 	struct symbol *base_type;
 	struct symbol *children;
 	struct statement *stmt;
+};
+
+#define NRSYM 10
+struct symbol_list {
+	int nr;
+	struct symbol *list[NRSYM];
+	struct symbol_list *next;
 };
 
 /* Modifiers */
@@ -43,19 +57,13 @@ struct symbol {
 #define SYM_LONG	0x0400
 #define SYM_LONGLONG	0x0800
 
+#define SYM_TYPEDEF	0x1000
 
 /* Basic types */
 extern struct symbol	void_type,
 			int_type,
 			fp_type,
 			vector_type;
-
-enum symbol_types {
-	SYM_TYPE,
-	SYM_PTR,
-	SYM_FN,
-	SYM_ARRAY,
-};
 
 #define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)
 
@@ -64,5 +72,7 @@ extern struct symbol *alloc_symbol(int type);
 extern void show_type(struct symbol *);
 extern const char *modifier_string(unsigned long mod);
 extern void show_symbol(struct symbol *);
+extern void show_type_list(struct symbol *);
+extern void add_symbol(struct symbol_list **, struct symbol *);
 
 #endif /* SEMANTIC_H */

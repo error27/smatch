@@ -72,11 +72,20 @@ static int match_op(struct token *token, int op)
 	return token && token->type == TOKEN_SPECIAL && token->special == op;
 }
 
+static struct token *skip_to(struct token *token, int op)
+{
+	while (token && !match_op(token, op))
+		token = token->next;
+	return token;
+}
+
 static struct token *expect(struct token *token, int op, const char *where)
 {
 	if (!match_op(token, op)) {
 		warn(token, "Expected %s %s", show_special(op), where);
 		warn(token, "got %s", show_token(token));
+		if (op == ';')
+			token = skip_to(token, op);
 		return token;
 	}
 	return token->next;
@@ -340,7 +349,6 @@ struct statement *alloc_statement(struct token * token, int type)
 		die("Out of memory for statements");
 	memset(stmt, 0, sizeof(*stmt));
 	stmt->type = type;
-	stmt->token = token;
 	return stmt;
 }
 
@@ -427,6 +435,10 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 	struct token **ident)
 {
 	if (ident && token && token->type == TOKEN_IDENT) {
+		if (token->ident->symbol) {
+			warn(token, "unexpected type/qualifier");
+			return token;
+		}
 		*ident = token;
 		token = token->next;
 	}
@@ -580,7 +592,29 @@ static struct token *compound_statement(struct token *token, struct statement **
 	return statement_list(token, tree);
 }
 
-static struct token *external_declaration(struct token *token, struct symbol **tree)
+static struct token *initializer(struct token *token, struct symbol *sym);
+static struct token *initializer_list(struct token *token, struct symbol *sym)
+{
+	for (;;) {
+		token = initializer(token, sym);
+		if (!match_op(token, ','))
+			break;
+		token = token->next;
+	}
+	return token;
+}
+
+static struct token *initializer(struct token *token, struct symbol *sym)
+{
+	struct expression *expr;
+	if (match_op(token, '{')) {
+		token = initializer_list(token, sym);
+		return expect(token, '}', "at end of initializer");
+	}
+	return assignment_expression(token, &expr);
+}
+
+static struct token *external_declaration(struct token *token, struct symbol_list **list)
 {
 	struct token *ident = NULL;
 	struct symbol *specifiers;
@@ -593,30 +627,48 @@ static struct token *external_declaration(struct token *token, struct symbol **t
 	declarator = specifiers;
 	token = generic_declarator(token, &declarator, &ident);
 
-	*tree = declarator;
+	if (specifiers->modifiers & SYM_TYPEDEF) {
+		specifiers->modifiers &= ~SYM_TYPEDEF;
+		bind_symbol(declarator, ident);
+		return expect(token, ';', "end of typedef");
+	}
+
+	add_symbol(list, declarator);
 
 	if (ident) {
 		printf("external_declarator %s:\n  ", show_token(ident));
-		show_type(declarator);
-		printf("\n\n");
 	}
+	show_type(declarator);
+	printf("\n\n");
 
 	if (match_op(token, '{')) {
 		token = compound_statement(token->next, &declarator->stmt);
 		return expect(token, '}', "at end of function");
 	}
 
-	return token;
+	for (;;) {
+		if (match_op(token, '='))
+			token = initializer(token->next, declarator);
+		if (!match_op(token, ','))
+			break;
+
+		ident = NULL;
+		declarator = specifiers;
+		token = generic_declarator(token->next, &declarator, &ident);
+
+		add_symbol(list, declarator);
+
+		if (ident) {
+			printf("external_declarator %s:\n  ", show_token(ident));
+		}
+		show_type(declarator);
+		printf("\n\n");
+	}
+	return expect(token, ';', "at end of declaration");
 }
 
-struct token * translation_unit(struct token *token, struct symbol **tree)
+void translation_unit(struct token *token, struct symbol_list *list)
 {
-	for (;;) {
-		token = external_declaration(token, tree);
-		if (!match_op(token, ';'))
-			return token;
-		if (*tree)
-			tree = &(*tree)->next;
-		token = token->next;
-	}
+	while (token)
+		token = external_declaration(token, &list);
 }

@@ -6,6 +6,26 @@
 #include "token.h"
 #include "symbol.h"
 
+void add_symbol(struct symbol_list **listp, struct symbol *sym)
+{
+	struct symbol_list *list = *listp;
+	int nr = list->nr;
+
+	if (nr >= NRSYM) {
+		struct symbol_list *newlist = malloc(sizeof(*newlist));
+		if (!newlist)
+			die("out of memory for symbol lists");
+		memset(newlist, 0, sizeof(*newlist));
+		list->next = newlist;
+		list = newlist;
+		*listp = newlist;
+		nr = 0;
+	}
+	list->list[nr] = sym;
+	nr++;
+	list->nr = nr;
+}
+
 const char *modifier_string(unsigned long mod)
 {
 	static char buffer[100];
@@ -52,11 +72,26 @@ const char *type_string(unsigned int modifiers, struct symbol *sym)
 	return "unknown";
 }
 
-static void show_type_list(struct symbol *sym)
+static void show_one_symbol(struct symbol *sym)
+{
+	printf("Symbol %s:\n\t", show_token(sym->token));
+	show_type(sym);
+	printf("\n");
+}
+
+void show_symbol_list(struct symbol_list *sym)
+{
+	for ( ; sym ; sym = sym->next) {
+		int i;
+		for (i = 0; i < sym->nr; i++)
+			show_one_symbol(sym->list[i]);
+	}
+}
+
+void show_type_list(struct symbol *sym)
 {
 	while (sym) {
-		show_type(sym);
-		printf("\n\t");
+		show_one_symbol(sym);
 		sym = sym->next;
 	}
 }
@@ -173,6 +208,9 @@ struct sym_init {
 	/* Type qualifiers */
 	{ "const",	NULL,		SYM_CONST },
 	{ "volatile",	NULL,		SYM_VOLATILE },
+
+	/* Typedef.. */
+	{ "typedef",	NULL,		SYM_TYPEDEF },
 
 	{ NULL,		NULL,			0 }
 };
