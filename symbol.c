@@ -91,6 +91,9 @@ struct sym_init {
 	{ "__const__",	NULL,		SYM_CONST },
 	{ "volatile",	NULL,		SYM_VOLATILE },
 
+	/* Predeclared types */
+	{ "__builtin_va_list", &int_type, 0 },
+
 	/* Typedef.. */
 	{ "typedef",	NULL,		SYM_TYPEDEF },
 

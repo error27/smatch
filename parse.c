@@ -6,10 +6,6 @@
  * Copyright (C) 2003 Linus Torvalds, all rights reserved.
  */
 
-#ifndef __GNUC__
-typedef int __builtin_va_list;
-#endif
-
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -43,9 +39,11 @@ static void force_default_type(struct ctype *type)
 static struct symbol *indirect(struct symbol *base, int type)
 {
 	struct symbol *sym = alloc_symbol(NULL, type);
+	unsigned long mod = base->ctype.modifiers;
 
 	sym->ctype.base_type = base;
-	sym->ctype.modifiers = 0;
+	sym->ctype.modifiers = mod & SYM_STORAGE;
+	base->ctype.modifiers = mod & ~SYM_STORAGE;
 	force_default_type(&sym->ctype);
 	return sym;
 }
@@ -324,8 +322,11 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 
 static struct token *pointer(struct token *token, struct symbol **tree, struct ctype *ctype)
 {
+	unsigned long storage = ctype->modifiers & SYM_STORAGE;
+
 	force_default_type(ctype);
-	(*tree)->ctype = *ctype;
+	(*tree)->ctype.base_type = ctype->base_type;
+	(*tree)->ctype.modifiers = ctype->modifiers & ~SYM_STORAGE;
 	while (match_op(token,'*')) {
 		struct symbol *sym;
 		sym = alloc_symbol(token, SYM_PTR);
@@ -333,6 +334,7 @@ static struct token *pointer(struct token *token, struct symbol **tree, struct c
 		*tree = sym;
 		token = declaration_specifiers(token->next, &sym->ctype);
 	}
+	(*tree)->ctype.modifiers |= storage;
 	return token;
 }
 

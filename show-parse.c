@@ -105,23 +105,22 @@ void show_type(struct symbol *sym)
 
 	switch (sym->type) {
 	case SYM_PTR:
-		printf("*(");
 		show_type(sym->ctype.base_type);
-		printf(")");
+		printf(" *");
 		break;
 
 	case SYM_FN:
-		printf("<fn of>(");
+		printf(" ");
 		show_type(sym->ctype.base_type);
-		printf(")(");
+		printf(" <fn>(");
 		show_symbol_list(sym->arguments, ", ");
 		printf(")");
 		break;
 
 	case SYM_ARRAY:
-		printf("<array of>(");
+		printf("<array of>");
 		show_type(sym->ctype.base_type);
-		printf(")[ ... ]");
+		printf("[ ... ]");
 		break;
 
 	default:
@@ -136,14 +135,17 @@ void show_symbol(struct symbol *sym)
 		printf("<anon symbol>");
 		return;
 	}
-	printf("Symbol %s: ", show_token(sym->token));
-	show_type(sym);
 	switch (sym->type) {
 	case SYM_FN:
+		printf("%s: ", show_token(sym->token));
+		show_type(sym);
 		printf("\n");
 		show_statement(sym->stmt);
 		break;
 	default:
+		printf("");
+		show_type(sym);
+		printf(": %s", show_token(sym->token));
 		break;
 	}
 }

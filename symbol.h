@@ -80,6 +80,8 @@ struct symbol {
 #define SYM_STATIC	0x0004
 #define SYM_EXTERN	0x0008
 
+#define SYM_STORAGE	(SYM_AUTO | SYM_REGISTER | SYM_STATIC | SYM_EXTERN)
+
 #define SYM_CONST	0x0010
 #define SYM_VOLATILE	0x0020
 #define SYM_SIGNED	0x0040
