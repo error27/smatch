@@ -12,6 +12,124 @@
 #include "linearize.h"
 #include "flow.h"
 
+static void phi_defines(struct instruction * phi_node, pseudo_t target,
+	void (*defines)(struct basic_block *, struct instruction *, pseudo_t))
+{
+	pseudo_t phi;
+	FOR_EACH_PTR(phi_node->phi_list, phi) {
+		struct instruction *def;
+		if (phi == VOID)
+			continue;
+		def = phi->def;
+		if (!def || !def->bb)
+			continue;
+		if (def->opcode == OP_PHI) {
+			phi_defines(def, target, defines);
+			continue;
+		}
+		defines(def->bb, phi->def, target);
+	} END_FOR_EACH_PTR(phi);
+}
+
+static void track_instruction_usage(struct basic_block *bb, struct instruction *insn,
+	void (*def)(struct basic_block *, struct instruction *, pseudo_t),
+	void (*use)(struct basic_block *, struct instruction *, pseudo_t))
+{
+	pseudo_t pseudo;
+
+	#define USES(x)		use(bb, insn, insn->x)
+	#define DEFINES(x)	def(bb, insn, insn->x)
+
+	switch (insn->opcode) {
+	case OP_RET:
+		USES(src);
+		break;
+
+	case OP_BR: case OP_SWITCH:
+		USES(cond);
+		break;
+
+	case OP_COMPUTEDGOTO:
+		USES(target);
+		break;
+	
+	/* Binary */
+	case OP_BINARY ... OP_BINARY_END:
+	case OP_BINCMP ... OP_BINCMP_END:
+		USES(src1); USES(src2); DEFINES(target);
+		break;
+
+	/* Uni */
+	case OP_NOT: case OP_NEG:
+		USES(src1); DEFINES(target);
+		break;
+
+	case OP_SEL:
+		USES(src1); USES(src2); USES(src3); DEFINES(target);
+		break;
+	
+	/* Memory */
+	case OP_LOAD:
+		USES(src); DEFINES(target);
+		break;
+
+	case OP_STORE:
+		USES(src); USES(target);
+		break;
+
+	case OP_SETVAL:
+		USES(symbol); DEFINES(target);
+		break;
+
+	/* Other */
+	case OP_PHI:
+		/* Phi-nodes are "backwards" nodes. Their def doesn't matter */
+		phi_defines(insn, insn->target, def);
+		break;
+
+	case OP_PHISOURCE:
+		/*
+		 * We don't care about the phi-source define, they get set
+		 * up and expanded by the OP_PHI
+		 */
+		USES(src1);
+		break;
+
+	case OP_CAST:
+	case OP_PTRCAST:
+		USES(src); DEFINES(target);
+		break;
+
+	case OP_CALL:
+		USES(func);
+		if (insn->target != VOID)
+			DEFINES(target);
+		FOR_EACH_PTR(insn->arguments, pseudo) {
+			use(bb, insn, pseudo);
+		} END_FOR_EACH_PTR(pseudo);
+		break;
+
+	case OP_SLICE:
+		USES(base); DEFINES(target);
+		break;
+
+	case OP_BADOP:
+	case OP_INVOKE:
+	case OP_UNWIND:
+	case OP_MALLOC:
+	case OP_FREE:
+	case OP_ALLOCA:
+	case OP_GET_ELEMENT_PTR:
+	case OP_VANEXT:
+	case OP_VAARG:
+	case OP_SNOP:
+	case OP_LNOP:
+	case OP_NOP:
+	case OP_CONTEXT:
+		break;
+	}
+}
+
 int pseudo_in_list(struct pseudo_list *list, pseudo_t pseudo)
 {
 	pseudo_t old;
@@ -59,121 +177,6 @@ static void insn_defines(struct basic_block *bb, struct instruction *insn, pseud
 {
 	assert(trackable_pseudo(pseudo));
 	add_pseudo(&bb->defines, pseudo);
-}
-
-static void phi_defines(struct instruction * phi_node, pseudo_t target)
-{
-	pseudo_t phi;
-	FOR_EACH_PTR(phi_node->phi_list, phi) {
-		struct instruction *def;
-		if (phi == VOID)
-			continue;
-		def = phi->def;
-		if (!def || !def->bb)
-			continue;
-		if (def->opcode == OP_PHI) {
-			phi_defines(def, target);
-			continue;
-		}
-		insn_defines(def->bb, phi->def, target);
-	} END_FOR_EACH_PTR(phi);
-}
-
-static void track_instruction_usage(struct basic_block *bb, struct instruction *insn)
-{
-	pseudo_t pseudo;
-
-	#define USES(x) insn_uses(bb, insn, insn->x)
-	#define DEFINES(x) insn_defines(bb, insn, insn->x)
-
-	switch (insn->opcode) {
-	case OP_RET:
-		USES(src);
-		break;
-
-	case OP_BR: case OP_SWITCH:
-		USES(cond);
-		break;
-
-	case OP_COMPUTEDGOTO:
-		USES(target);
-		break;
-	
-	/* Binary */
-	case OP_BINARY ... OP_BINARY_END:
-	case OP_BINCMP ... OP_BINCMP_END:
-		USES(src1); USES(src2); DEFINES(target);
-		break;
-
-	/* Uni */
-	case OP_NOT: case OP_NEG:
-		USES(src1); DEFINES(target);
-		break;
-
-	case OP_SEL:
-		USES(src1); USES(src2); USES(src3); DEFINES(target);
-		break;
-	
-	/* Memory */
-	case OP_LOAD:
-		USES(src); DEFINES(target);
-		break;
-
-	case OP_STORE:
-		USES(src); USES(target);
-		break;
-
-	case OP_SETVAL:
-		USES(symbol); DEFINES(target);
-		break;
-
-	/* Other */
-	case OP_PHI:
-		/* Phi-nodes are "backwards" nodes. Their def doesn't matter */
-		phi_defines(insn, insn->target);
-		break;
-
-	case OP_PHISOURCE:
-		/*
-		 * We don't care about the phi-source define, they get set
-		 * up and expanded by the OP_PHI
-		 */
-		USES(src1);
-		break;
-
-	case OP_CAST:
-	case OP_PTRCAST:
-		USES(src); DEFINES(target);
-		break;
-
-	case OP_CALL:
-		USES(func);
-		if (insn->target != VOID)
-			DEFINES(target);
-		FOR_EACH_PTR(insn->arguments, pseudo) {
-			insn_uses(bb, insn, pseudo);
-		} END_FOR_EACH_PTR(pseudo);
-		break;
-
-	case OP_SLICE:
-		USES(base); DEFINES(target);
-		break;
-
-	case OP_BADOP:
-	case OP_INVOKE:
-	case OP_UNWIND:
-	case OP_MALLOC:
-	case OP_FREE:
-	case OP_ALLOCA:
-	case OP_GET_ELEMENT_PTR:
-	case OP_VANEXT:
-	case OP_VAARG:
-	case OP_SNOP:
-	case OP_LNOP:
-	case OP_NOP:
-	case OP_CONTEXT:
-		break;
-	}
 }
 
 static void track_bb_liveness(struct basic_block *bb)
@@ -226,7 +229,7 @@ void track_pseudo_liveness(struct entrypoint *ep)
 			if (!insn->bb)
 				continue;
 			assert(insn->bb == bb);
-			track_instruction_usage(bb, insn);
+			track_instruction_usage(bb, insn, insn_defines, insn_uses);
 		} END_FOR_EACH_PTR(insn);
 	} END_FOR_EACH_PTR(bb);
 
@@ -260,5 +263,68 @@ is_used:
 		;
 		} END_FOR_EACH_PTR(def);
 		PACK_PTR_LIST(&bb->defines);
+	} END_FOR_EACH_PTR(bb);
+}
+
+static void merge_pseudo_list(struct pseudo_list *src, struct pseudo_list **dest)
+{
+	pseudo_t pseudo;
+	FOR_EACH_PTR(src, pseudo) {
+		add_pseudo_exclusive(dest, pseudo);
+	} END_FOR_EACH_PTR(pseudo);
+}
+
+static struct pseudo_list **live_list;
+static struct pseudo_list *dead_list;
+
+static void death_def(struct basic_block *bb, struct instruction *insn, pseudo_t pseudo)
+{
+}
+
+static void death_use(struct basic_block *bb, struct instruction *insn, pseudo_t pseudo)
+{
+	if (trackable_pseudo(pseudo) && !pseudo_in_list(*live_list, pseudo)) {
+		add_pseudo(&dead_list, pseudo);
+		add_pseudo(live_list, pseudo);
+	}
+}
+
+static void track_pseudo_death_bb(struct basic_block *bb)
+{
+	struct pseudo_list *live = NULL;
+	struct basic_block *child;
+	struct instruction *insn;
+
+	FOR_EACH_PTR(bb->children, child) {
+		merge_pseudo_list(child->needs, &live);
+	} END_FOR_EACH_PTR(child);
+
+	live_list = &live;
+	FOR_EACH_PTR_REVERSE(bb->insns, insn) {
+		if (!insn->bb)
+			continue;
+		dead_list = NULL;
+		track_instruction_usage(bb, insn, death_def, death_use);
+		if (dead_list) {
+			pseudo_t dead;
+			FOR_EACH_PTR(dead_list, dead) {
+				struct instruction *deathnote = __alloc_instruction(0);
+				deathnote->bb = bb;
+				deathnote->opcode = OP_DEATHNOTE;
+				deathnote->target = dead;
+				INSERT_CURRENT(deathnote, insn);
+			} END_FOR_EACH_PTR(dead);
+			free_ptr_list(&dead_list);
+		}
+	} END_FOR_EACH_PTR_REVERSE(insn);
+	free_ptr_list(&live);
+}
+
+void track_pseudo_death(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+
+	FOR_EACH_PTR(ep->bbs, bb) {
+		track_pseudo_death_bb(bb);
 	} END_FOR_EACH_PTR(bb);
 }

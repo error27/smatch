@@ -158,6 +158,7 @@ enum opcode {
 	OP_SNOP,
 	OP_LNOP,
 	OP_NOP,
+	OP_DEATHNOTE,
 
 	/* Sparse tagging (line numbers, context, whatever) */
 	OP_CONTEXT,

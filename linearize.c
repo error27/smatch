@@ -217,6 +217,7 @@ static const char* opcodes[] = {
 	[OP_SNOP] = "snop",
 	[OP_LNOP] = "lnop",
 	[OP_NOP] = "nop",
+	[OP_DEATHNOTE] = "dead",
 
 	/* Sparse tagging (line numbers, context, whatever) */
 	[OP_CONTEXT] = "context",
@@ -395,6 +396,9 @@ void show_instruction(struct instruction *insn)
 		break;
 	case OP_NOP:
 		buf += sprintf(buf, "%s <- %s", show_pseudo(insn->target), show_pseudo(insn->src1));
+		break;
+	case OP_DEATHNOTE:
+		buf += sprintf(buf, "%s", show_pseudo(insn->target));
 		break;
 	default:
 		break;
@@ -1845,6 +1849,9 @@ repeat:
 		clear_liveness(ep);
 		goto repeat;
 	}
+
+	/* Finally, add deathnotes to pseudos now that we have them */
+	track_pseudo_death(ep);
 
 	return ep;
 }
