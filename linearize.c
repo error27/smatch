@@ -226,16 +226,16 @@ static const char* opcodes[] = {
 	[OP_CONTEXT] = "context",
 };
 
-void show_instruction(struct instruction *insn)
+const char *show_instruction(struct instruction *insn)
 {
 	int opcode = insn->opcode;
-	static char buffer[1024] = "\t";
+	static char buffer[1024];
 	char *buf;
 
-	buf = buffer+1;
+	buf = buffer;
 	if (!insn->bb) {
 		if (verbose < 2)
-			return;
+			return "";
 		buf += sprintf(buf, "# ");
 	}
 
@@ -429,7 +429,7 @@ void show_instruction(struct instruction *insn)
 	}
 	do { --buf; } while (*buf == ' ');
 	*++buf = 0;
-	printf("%s\n", buffer);
+	return buffer;
 }
 
 void show_bb(struct basic_block *bb)
@@ -481,7 +481,7 @@ void show_bb(struct basic_block *bb)
 	}
 
 	FOR_EACH_PTR(bb->insns, insn) {
-		show_instruction(insn);
+		printf("\t%s\n", show_instruction(insn));
 	} END_FOR_EACH_PTR(insn);
 	if (!bb_terminated(bb))
 		printf("\tEND\n");
@@ -493,7 +493,7 @@ static void show_symbol_usage(pseudo_t pseudo)
 		pseudo_t *pp;
 		FOR_EACH_PTR(pseudo->users, pp) {
 			struct instruction *insn = container(pp, struct instruction, src);
-			show_instruction(insn);
+			printf("\t%s\n", show_instruction(insn));
 		} END_FOR_EACH_PTR(pp);
 	}
 }

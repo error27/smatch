@@ -3,6 +3,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <assert.h>
 
 #include "symbol.h"
@@ -66,6 +67,54 @@ static struct storage_hash *find_or_create_hash(pseudo_t pseudo, struct storage_
 		add_ptr_list(listp, entry);
 	}
 	return entry;
+}
+
+/* Eventually we should just build it up in memory */
+static void output_line(struct bb_state *state, const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+}
+
+static void output_label(struct bb_state *state, const char *fmt, ...)
+{
+	static char buffer[512];
+	va_list args;
+
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+
+	output_line(state, "%s:\n", buffer);
+}
+
+static void output_insn(struct bb_state *state, const char *fmt, ...)
+{
+	static char buffer[512];
+	va_list args;
+
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+
+	output_line(state, "\t%s\n", buffer);
+}
+
+static void output_comment(struct bb_state *state, const char *fmt, ...)
+{
+	static char buffer[512];
+	va_list args;
+
+	if (!verbose)
+		return;
+	va_start(args, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+
+	output_line(state, "\t# %s\n", buffer);
 }
 
 static const char *show_memop(struct storage *storage)
@@ -149,7 +198,7 @@ static void flush_one_pseudo(struct bb_state *state, struct hardreg *hardreg, ps
 		alloc_stack(state, storage);
 		/* Fall through */
 	case REG_STACK:
-		printf("\tmovl %s,%s\n", hardreg->name, show_memop(storage));
+		output_insn(state, "movl %s,%s", hardreg->name, show_memop(storage));
 		break;
 	}
 }
@@ -181,16 +230,16 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 
 	switch (pseudo->type) {
 	case PSEUDO_VAL:
-		printf("\tmovl $%lld,%s\n", pseudo->value, hardreg->name);
+		output_insn(state, "movl $%lld,%s", pseudo->value, hardreg->name);
 		break;
 	case PSEUDO_SYM:
-		printf("\tmovl $<%s>,%s\n", show_pseudo(pseudo), hardreg->name);
+		output_insn(state, "movl $<%s>,%s", show_pseudo(pseudo), hardreg->name);
 		break;
 	case PSEUDO_ARG:
 	case PSEUDO_REG:
 		def = pseudo->def;
 		if (def->opcode == OP_SETVAL) {
-			printf("\tmovl $<%s>,%s\n", show_pseudo(def->symbol), hardreg->name);
+			output_insn(state, "movl $<%s>,%s", show_pseudo(def->symbol), hardreg->name);
 			break;
 		}
 		src = find_storage_hash(pseudo, state->internal);
@@ -200,7 +249,7 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 				src = find_storage_hash(pseudo, state->outputs);
 				/* Undefined? Screw it! */
 				if (!src) {
-					printf("\tundef %s ??\n", show_pseudo(pseudo));
+					output_insn(state, "undef %s ??", show_pseudo(pseudo));
 					break;
 				}
 
@@ -209,7 +258,7 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 				 * that we flushed to earlier..
 				 */
 				if (src->storage->type != REG_STACK) {
-					printf("\tfill_reg on undef storage %s ??\n", show_pseudo(pseudo));
+					output_insn(state, "fill_reg on undef storage %s ??", show_pseudo(pseudo));
 					break;
 				}
 			}
@@ -222,10 +271,10 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 			}
 			alloc_stack(state, src->storage);
 		}
-		printf("\tmov.%d %s,%s\n", 32, show_memop(src->storage), hardreg->name);
+		output_insn(state, "mov.%d %s,%s", 32, show_memop(src->storage), hardreg->name);
 		break;
 	default:
-		printf("\treload %s from %s\n", hardreg->name, show_pseudo(pseudo));
+		output_insn(state, "reload %s from %s", hardreg->name, show_pseudo(pseudo));
 		break;
 	}
 	return hardreg;
@@ -297,14 +346,14 @@ static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src, pse
 
 	reg = preferred_reg(state, target);
 	if (reg && !reg->busy) {
-		printf("\tmovl %s,%s\n", src->name, reg->name);
+		output_insn(state, "movl %s,%s", src->name, reg->name);
 		return reg;
 	}
 
 	for (i = 0; i < REGNO; i++) {
 		struct hardreg *reg = hardregs + i;
 		if (!reg->busy) {
-			printf("\tmovl %s,%s\n", src->name, reg->name);
+			output_insn(state, "movl %s,%s", src->name, reg->name);
 			return reg;
 		}
 	}
@@ -348,13 +397,13 @@ static const char *reg_or_imm(struct bb_state *state, pseudo_t pseudo)
 
 static void generate_store(struct instruction *insn, struct bb_state *state)
 {
-	printf("\tmov.%d %s,%s\n", insn->size, reg_or_imm(state, insn->target), address(state, insn));
+	output_insn(state, "mov.%d %s,%s", insn->size, reg_or_imm(state, insn->target), address(state, insn));
 }
 
 static void generate_load(struct instruction *insn, struct bb_state *state)
 {
 	const char *input = address(state, insn);
-	printf("\tmov.%d %s,%s\n", insn->size, input, target_reg(state, insn->target, NULL)->name);
+	output_insn(state, "mov.%d %s,%s", insn->size, input, target_reg(state, insn->target, NULL)->name);
 }
 
 static const char* opcodes[] = {
@@ -440,7 +489,7 @@ static void generate_binop(struct bb_state *state, struct instruction *insn)
 	struct hardreg *src = getreg(state, insn->src1, insn->target);
 	struct hardreg *dst = copy_reg(state, src, insn->target);
 
-	printf("\t%s.%d %s,%s\n", op, insn->size, reg_or_imm(state, insn->src2), dst->name);
+	output_insn(state, "%s.%d %s,%s", op, insn->size, reg_or_imm(state, insn->src2), dst->name);
 	add_ptr_list_tag(&dst->contains, insn->target, TAG_DIRTY);
 	dst->busy++;
 }
@@ -478,12 +527,12 @@ static void generate_branch(struct bb_state *state, struct instruction *br)
 {
 	if (br->cond) {
 		struct hardreg *reg = getreg(state, br->cond, NULL);
-		printf("\ttestl %s,%s\n", reg->name, reg->name);
+		output_insn(state, "testl %s,%s", reg->name, reg->name);
 	}
 	generate_output_storage(state);
 	if (br->cond)
-		printf("\tje .L%p\n", br->bb_false);
-	printf("\tjmp .L%p\n", br->bb_true);
+		output_insn(state, "je .L%p", br->bb_false);
+	output_insn(state, "jmp .L%p", br->bb_true);
 }
 
 static void generate_ret(struct bb_state *state, struct instruction *ret)
@@ -492,13 +541,16 @@ static void generate_ret(struct bb_state *state, struct instruction *ret)
 		struct hardreg *wants = hardregs+0;
 		struct hardreg *reg = getreg(state, ret->src, NULL);
 		if (reg != wants)
-			printf("\tmovl %s,%s\n", reg->name, wants->name);
+			output_insn(state, "movl %s,%s", reg->name, wants->name);
 	}
-	printf("\tret\n");
+	output_insn(state, "ret");
 }
 
 static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 {
+	if (verbose)
+		output_comment(state, "%s", show_instruction(insn));
+
 	switch (insn->opcode) {
 	case OP_ENTRY: {
 		struct symbol *sym = insn->bb->ep->name;
@@ -555,11 +607,9 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 		break;
 
 	default:
-		show_instruction(insn);
-		return;
+		output_comment(state, "unimplemented: %s", show_instruction(insn));
+		break;
 	}
-	if (verbose)
-		show_instruction(insn);
 }
 
 static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, pseudo_t pseudo, struct storage *storage)
@@ -572,7 +622,7 @@ static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, ps
 		out = hardregs + storage->regno;
 		if (reg == out)
 			return;
-		printf("\tmovl %s,%s\n", reg->name, out->name);
+		output_insn(state, "movl %s,%s", reg->name, out->name);
 		return;
 	case REG_UDEF:
 		if (reg->busy < 1000) {
@@ -587,7 +637,7 @@ static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, ps
 			out = hardregs + i;
 			if (out->busy)
 				continue;
-			printf("\tmovl %s,%s\n", reg->name, out->name);
+			output_insn(state, "movl %s,%s", reg->name, out->name);
 			storage->type = REG_REG;
 			storage->regno = i;
 			reg->busy = 1000;
@@ -598,7 +648,7 @@ static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, ps
 		alloc_stack(state, storage);
 		/* Fallthroigh */
 	default:
-		printf("\tmovl %s,%s\n", reg->name, show_memop(storage));
+		output_insn(state, "movl %s,%s", reg->name, show_memop(storage));
 		return;
 	}
 }
@@ -611,11 +661,11 @@ static void write_val_to_storage(struct bb_state *state, pseudo_t src, struct st
 	case REG_UDEF:
 		alloc_stack(state, storage);
 	default:
-		printf("\tmovl %s,%s\n", show_pseudo(src), show_memop(storage));
+		output_insn(state, "movl %s,%s", show_pseudo(src), show_memop(storage));
 		break;
 	case REG_REG:
 		out = hardregs + storage->regno;
-		printf("\tmovl %s,%s\n", show_pseudo(src), out->name);
+		output_insn(state, "movl %s,%s", show_pseudo(src), out->name);
 	}
 }
 
@@ -666,11 +716,11 @@ static void fill_output(struct bb_state *state, pseudo_t pseudo, struct storage 
 		*out = *in->storage;
 		break;
 	case REG_REG:
-		printf("\tmovl %s,%s\n", show_memop(in->storage), hardregs[out->regno].name);
+		output_insn(state, "movl %s,%s", show_memop(in->storage), hardregs[out->regno].name);
 		break;
 	default:
-		printf("\tmovl %s,tmp\n", show_memop(in->storage));
-		printf("\tmovl tmp,%s\n", show_memop(out));
+		output_insn(state, "movl %s,tmp", show_memop(in->storage));
+		output_insn(state, "movl tmp,%s", show_memop(out));
 		break;
 	}
 	return;
@@ -728,7 +778,7 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 		}
 	} END_FOR_EACH_PTR(entry);
 
-	printf(".L%p:\n", bb);
+	output_label(state, ".L%p", bb);
 	FOR_EACH_PTR(bb->insns, insn) {
 		if (!insn->bb)
 			continue;
@@ -736,17 +786,17 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 	} END_FOR_EACH_PTR(insn);
 
 	if (verbose) {
-		printf("\t---\n");
+		output_comment(state, "--- in ---");
 		FOR_EACH_PTR(state->inputs, entry) {
-			printf("\t%s <- %s\n", show_pseudo(entry->pseudo), show_storage(entry->storage));
+			output_comment(state, "%s <- %s", show_pseudo(entry->pseudo), show_storage(entry->storage));
 		} END_FOR_EACH_PTR(entry);
-		printf("\t---\n");
+		output_comment(state, "--- spill ---");
 		FOR_EACH_PTR(state->internal, entry) {
-			printf("\t%s <-> %s\n", show_pseudo(entry->pseudo), show_storage(entry->storage));
+			output_comment(state, "%s <-> %s", show_pseudo(entry->pseudo), show_storage(entry->storage));
 		} END_FOR_EACH_PTR(entry);
-		printf("\t---\n");
+		output_comment(state, "--- out ---");
 		FOR_EACH_PTR(state->outputs, entry) {
-			printf("\t%s -> %s\n", show_pseudo(entry->pseudo), show_storage(entry->storage));
+			output_comment(state, "%s -> %s", show_pseudo(entry->pseudo), show_storage(entry->storage));
 		} END_FOR_EACH_PTR(entry);
 	}
 	printf("\n");
