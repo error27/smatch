@@ -475,6 +475,8 @@ static int expand_conditional(struct expression *expr)
 	if (cond->type == EXPR_VALUE) {
 		if (!cond->value)
 			true = false;
+		if (!true)
+			true = cond;
 		*expr = *true;
 		return expand_expression(expr);
 	}
