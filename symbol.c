@@ -174,6 +174,18 @@ static void examine_bitfield_type(struct symbol *sym)
 }
 
 /*
+ * "typeof" will have to merge the types together
+ */
+static void merge_type(struct symbol *sym, struct symbol *base_type)
+{
+	sym->ctype.as |= base_type->ctype.as;
+	sym->ctype.modifiers |= base_type->ctype.modifiers;
+	sym->ctype.context |= base_type->ctype.context;
+	sym->ctype.contextmask |= base_type->ctype.contextmask;
+	sym->ctype.base_type = base_type->ctype.base_type;
+}
+
+/*
  * Fill in type size and alignment information for
  * regular SYM_TYPE things.
  */
@@ -205,7 +217,10 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 			sym->bit_size = BITS_IN_POINTER;
 		if (!sym->ctype.alignment)
 			sym->ctype.alignment = POINTER_ALIGNMENT;
-		sym->ctype.base_type = examine_symbol_type(sym->ctype.base_type);
+		base_type = sym->ctype.base_type;
+		examine_symbol_type(base_type);
+		if (base_type && base_type->type == SYM_TYPEOF)
+			merge_type(sym, base_type);
 		return sym;
 	case SYM_ENUM:
 		if (!sym->bit_size)
@@ -221,8 +236,12 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		return sym;
 	case SYM_TYPEOF: {
 		struct symbol *base = evaluate_expression(sym->initializer);
-		if (base)
+		if (base) {
+			sym->ctype = base->ctype;
+			sym->bit_size = base->bit_size;
+			sym->array_size = base->array_size;
 			return base;
+		}
 		break;
 	}
 	default:
@@ -235,7 +254,8 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 
 	if (base_type) {
 		base_type = examine_symbol_type(base_type);
-		sym->ctype.base_type = base_type;
+		if (base_type && base_type->type == SYM_TYPEOF)
+			merge_type(sym, base_type);
 
 		bit_size = base_type->bit_size;
 		alignment = base_type->ctype.alignment;
