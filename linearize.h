@@ -233,6 +233,10 @@ struct entrypoint {
 	struct basic_block *entry;
 };
 
+struct phi* alloc_phi(struct basic_block *source, pseudo_t pseudo);
+pseudo_t alloc_pseudo(struct instruction *def);
+pseudo_t value_pseudo(long long val);
+
 struct entrypoint *linearize_symbol(struct symbol *sym);
 void show_entry(struct entrypoint *ep);
 

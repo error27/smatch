@@ -2,7 +2,7 @@
  * sparse/expand.c
  *
  * Copyright (C) 2003 Transmeta Corp.
- *               2003 Linus Torvalds
+ *               2003-2004 Linus Torvalds
  *
  *  Licensed under the Open Software License version 1.1
  *
@@ -475,6 +475,8 @@ static int expand_conditional(struct expression *expr)
 	if (cond->type == EXPR_VALUE) {
 		if (!cond->value)
 			true = false;
+		if (!true)
+			true = cond;
 		*expr = *true;
 		return expand_expression(expr);
 	}
