@@ -507,15 +507,7 @@ static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
 
 static void remove_parent(struct basic_block *child, struct basic_block *parent)
 {
-	struct basic_block *p;
-
-	FOR_EACH_PTR(child->parents, p) {
-		if (p != parent)
-			continue;
-		DELETE_CURRENT_PTR(p);
-	} END_FOR_EACH_PTR(p);
-	PACK_PTR_LIST(&child->parents);
-
+	remove_bb_from_list(&child->parents, parent);
 	if (!child->parents)
 		kill_bb(child);
 }

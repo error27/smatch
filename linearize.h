@@ -227,6 +227,11 @@ static inline void use_pseudo(pseudo_t p, pseudo_t *pp)
 		add_pseudo_ptr(pp, &p->users);
 }
 
+static inline int remove_bb_from_list(struct basic_block_list **list, struct basic_block *entry)
+{
+	return delete_ptr_list_entry((struct ptr_list **)list, entry);
+}
+
 struct entrypoint {
 	struct symbol *name;
 	struct symbol_list *syms;

@@ -597,12 +597,21 @@ static void mark_bb_reachable(struct basic_block *bb, unsigned long generation)
 void kill_bb(struct basic_block *bb)
 {
 	struct instruction *insn;
+	struct basic_block *child, *parent;
 
 	FOR_EACH_PTR(bb->insns, insn) {
 		insn->bb = NULL;
 	} END_FOR_EACH_PTR(insn);
 	bb->insns = NULL;
+
+	FOR_EACH_PTR(bb->children, child) {
+		remove_bb_from_list(&child->parents, bb);
+	} END_FOR_EACH_PTR(child);
 	bb->children = NULL;
+
+	FOR_EACH_PTR(bb->parents, parent) {
+		remove_bb_from_list(&parent->children, bb);
+	} END_FOR_EACH_PTR(parent);
 	bb->parents = NULL;
 }
 
