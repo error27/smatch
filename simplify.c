@@ -470,9 +470,35 @@ static int simplify_cast(struct instruction *insn)
 	return replace_with_pseudo(insn, insn->src);
 }
 
-int simplify_instruction(struct instruction *insn)
+static int simplify_select(struct instruction *insn, struct instruction *setcc)
 {
 	pseudo_t cond;
+
+	assert(setcc && setcc->bb);
+	if (dead_insn(insn, &insn->src1, &insn->src2)) {
+		setcc->bb = NULL;
+		return REPEAT_CSE;
+	}
+	cond = setcc->src;
+	if (!constant(cond) && insn->src1 != insn->src2)
+		return 0;
+	setcc->bb = NULL;
+	kill_use(&setcc->cond);
+	replace_with_pseudo(insn, cond->value ? insn->src1 : insn->src2);
+	return REPEAT_CSE;
+}
+
+static int simplify_branch(struct instruction *insn)
+{
+	pseudo_t cond = insn->cond;
+	if (!cond || !constant(cond))
+		return 0;
+	insert_branch(insn->bb, insn, cond->value ? insn->bb_true : insn->bb_false);
+	return REPEAT_CSE;
+}
+
+int simplify_instruction(struct instruction *insn)
+{
 	static struct instruction *last_setcc;
 	struct instruction *setcc = last_setcc;
 
@@ -509,24 +535,9 @@ int simplify_instruction(struct instruction *insn)
 		last_setcc = insn;
 		return 0;
 	case OP_SEL:
-		assert(setcc && setcc->bb);
-		if (dead_insn(insn, &insn->src1, &insn->src2)) {
-			setcc->bb = NULL;
-			return REPEAT_CSE;
-		}
-		cond = setcc->src;
-		if (!constant(cond) && insn->src1 != insn->src2)
-			return 0;
-		setcc->bb = NULL;
-		kill_use(&setcc->cond);
-		replace_with_pseudo(insn, cond->value ? insn->src1 : insn->src2);
-		return REPEAT_CSE;
+		return simplify_select(insn, setcc);
 	case OP_BR:
-		cond = insn->cond;
-		if (!cond || !constant(cond))
-			break;
-		insert_branch(insn->bb, insn, cond->value ? insn->bb_true : insn->bb_false);
-		return REPEAT_CSE;
+		return simplify_branch(insn);
 	}
 	return 0;
 }
