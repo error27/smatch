@@ -33,6 +33,8 @@ pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initial
 
 struct pseudo void_pseudo = {};
 
+unsigned long bb_generation;
+
 static struct instruction *alloc_instruction(int opcode, struct symbol *type)
 {
 	struct instruction * insn = __alloc_instruction(0);
@@ -43,6 +45,7 @@ static struct instruction *alloc_instruction(int opcode, struct symbol *type)
 
 static struct entrypoint *alloc_entrypoint(void)
 {
+	bb_generation = 0;
 	return __alloc_entrypoint(0);
 }
 
@@ -239,10 +242,12 @@ static void show_instruction(struct instruction *insn)
 		break;
 	}	
 	case OP_LOAD:
-		printf("\tload %s <- %d[%s]\n", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
+		printf("\tload %s <- %d.%d.%d[%s]\n", show_pseudo(insn->target), insn->offset,
+			insn->type->bit_offset, insn->type->bit_size, show_pseudo(insn->src));
 		break;
 	case OP_STORE:
-		printf("\tstore %s -> %d[%s]\n", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
+		printf("\tstore %s -> %d.%d.%d[%s]\n", show_pseudo(insn->target), insn->offset,
+			insn->type->bit_offset, insn->type->bit_size, show_pseudo(insn->src));
 		break;
 	case OP_CALL: {
 		struct pseudo *arg;
@@ -317,10 +322,12 @@ static void show_instruction(struct instruction *insn)
 		printf("\tcontext %d\n", insn->increment);
 		break;
 	case OP_SNOP:
-		printf("\tnop (%s -> %d[%s])\n", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
+		printf("\tnop (%s -> %d.%d.%d[%s])\n", show_pseudo(insn->target), insn->offset,
+			insn->type->bit_offset, insn->type->bit_size, show_pseudo(insn->src));
 		break;
 	case OP_LNOP:
-		printf("\tnop (%s <- %d[%s])\n", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
+		printf("\tnop (%s <- %d.%d.%d[%s])\n", show_pseudo(insn->target), insn->offset,
+			insn->type->bit_offset, insn->type->bit_size, show_pseudo(insn->src));
 		break;
 	default:
 		printf("\top %d ???\n", op);
@@ -620,6 +627,15 @@ static void add_store(struct entrypoint *ep, struct access_data *ad, pseudo_t va
 #define OFFSET_ALIGN 8
 #define MUST_ALIGN 0
 
+static struct symbol *base_type(struct symbol *s)
+{
+	if (s->type == SYM_NODE)
+		s = s->ctype.base_type;
+	if (s->type == SYM_BITFIELD)
+		s = s->ctype.base_type;
+	return s;
+}
+
 static pseudo_t linearize_store_gen(struct entrypoint *ep,
 		pseudo_t value,
 		struct access_data *ad)
@@ -648,6 +664,7 @@ unaligned:
 		shift = value_pseudo(ad->bit_offset);
 		shifted = add_binary_op(ep, ad->ctype, OP_SHL, value, shift);
 	}
+	ad->ctype = base_type(ad->ctype);
 	orig = add_load(ep, ad);
 	ormask = value_pseudo(mask);
 	value_mask = add_binary_op(ep, ad->ctype, OP_AND, shifted, ormask);
@@ -1760,6 +1777,20 @@ static void convert_load_insn(struct instruction *insn, pseudo_t src)
 	insn->opcode = OP_LNOP;
 }
 
+static int overlapping_memop(struct instruction *a, struct instruction *b)
+{
+	unsigned int a_start = (a->offset << 3) + a->type->bit_offset;
+	unsigned int b_start = (b->offset << 3) + b->type->bit_offset;
+	unsigned int a_size = a->type->bit_size;
+	unsigned int b_size = b->type->bit_size;
+
+	if (a_size + a_start <= b_start)
+		return 0;
+	if (b_size + b_start <= a_start)
+		return 0;
+	return 1;
+}
+
 static inline int same_memop(struct instruction *a, struct instruction *b)
 {
 	return	a->offset == b->offset &&
@@ -1767,59 +1798,112 @@ static inline int same_memop(struct instruction *a, struct instruction *b)
 		a->type->bit_offset == b->type->bit_offset;
 }
 
-static void convert_dominated_loads(pseudo_t pseudo, struct instruction *insn)
+static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
+	struct basic_block *bb, unsigned long generation, struct phi_list **dominators)
+{
+	struct basic_block *parent;
+
+	FOR_EACH_PTR(bb->parents, parent) {
+		struct instruction *one, *dom;
+		if (parent->generation == generation)
+			continue;
+		parent->generation = generation;
+		dom = NULL;
+		FOR_EACH_PTR(parent->insns, one) {
+			if (one == insn)
+				dom = NULL;
+			if (one->opcode != OP_STORE)
+				continue;
+			if (one->src != pseudo)
+				continue;
+			if (!same_memop(insn, one)) {
+				if (!overlapping_memop(insn, one))
+					continue;
+				return 0;
+			}
+			dom = one;
+		} END_FOR_EACH_PTR(one);
+
+		if (dom) {
+			add_phi(dominators, alloc_phi(parent, dom->target));
+			continue;
+		}
+
+		if (!find_dominating_parents(pseudo, insn, parent, generation, dominators))
+			return 0;
+	} END_FOR_EACH_PTR(parent);
+	return 1;
+}		
+
+static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn, unsigned long generation)
 {
 	struct basic_block *bb = insn->bb;
-	struct instruction *one;
-	int dominates = 0;
+	struct instruction *one, *dom = NULL;
+	struct phi_list *dominators;
 
-	/* Unreachable store? Undo it */
+	/* Unreachable load? Undo it */
 	if (!bb) {
-		insn->opcode = OP_SNOP;
-		return;
+		insn->opcode = OP_LNOP;
+		return 1;
 	}
 
 	FOR_EACH_PTR(bb->insns, one) {
-		if (one == insn) {
-			dominates = 1;
+		if (one == insn)
+			goto found;
+		if (one->opcode != OP_STORE)
 			continue;
+		if (one->src != pseudo)
+			continue;
+		if (!same_memop(one, insn)) {
+			if (!overlapping_memop(one, insn))
+				continue;
+			return 0;
 		}
-		if (!dominates)
-			continue;
-		switch (one->opcode) {
-		case OP_STORE:
-			if (one->src != pseudo)
-				continue;
-			if (same_memop(one, insn))
-				insn->opcode = OP_SNOP;
-			return;
-
-		case OP_LOAD:
-			if (one->src != pseudo)
-				continue;
-			if (!same_memop(one, insn))
-				continue;
-			convert_load_insn(one, insn->target);
-			continue;
-		default:
-			continue;
-		}
+		dom = one;
 	} END_FOR_EACH_PTR(one);
+	/* Whaa? */
+	warning(pseudo->sym->pos, "unable to find symbol read");
+	return 0;
+found:
+	if (dom) {
+		convert_load_insn(insn, dom->target);
+		return 1;
+	}
+
+	/* Ok, go find the parents */
+	bb->generation = generation;
+
+	dominators = NULL;
+	if (!find_dominating_parents(pseudo, insn, bb, generation, &dominators))
+		return 0;
+
+	/* This happens with initial assignments to structures etc.. */
+	if (!dominators)
+		return 0;
 
 	/*
-	 * If we exited the above without returning, the store might
-	 * still dominate our children. We should create a phi-node
-	 * in them and continue the domination check with that.
-	 *
-	 * But I'm incompetent.
+	 * If we find just one dominating instruction, we
+	 * can turn it into a direct thing. Otherwise we'll
+	 * have to turn the load into a phi-node of the
+	 * dominators.
 	 */
-	return;
+	if (phi_list_size(dominators) == 1) {
+		convert_load_insn(insn, first_phi(dominators)->pseudo);
+	} else {
+		pseudo_t new = alloc_pseudo(insn);
+		convert_load_insn(insn, new);
+		insn->opcode = OP_PHI;
+		insn->target = new;
+		insn->phi_list = dominators;
+	}
+	return 1;
 }
 
 static void simplify_one_symbol(struct symbol *sym)
 {
 	pseudo_t pseudo, src, *pp;
 	struct instruction *def;
+	int all;
 
 	/* External visibility? Never mind */
 	if (sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE))
@@ -1871,12 +1955,23 @@ static void simplify_one_symbol(struct symbol *sym)
 
 multi_def:
 complex_def:
-	/* We need to check offsets, generate phi-nodes and a coverage graph. */
+
+	all = 1;
 	FOR_EACH_PTR(pseudo->users, pp) {
 		struct instruction *insn = container(pp, struct instruction, src);
-		if (insn->opcode == OP_STORE)
-			convert_dominated_loads(pseudo, insn);
+		if (insn->opcode == OP_LOAD)
+			all &= find_dominating_stores(pseudo, insn, ++bb_generation);
 	} END_FOR_EACH_PTR(pp);
+
+	/* If we converted all the loads, remove the stores. They are dead */
+	if (all) {
+		FOR_EACH_PTR(pseudo->users, pp) {
+			struct instruction *insn = container(pp, struct instruction, src);
+			if (insn->opcode == OP_STORE)
+				insn->opcode = OP_SNOP;
+		} END_FOR_EACH_PTR(pp);
+	}
+			
 	return;
 }
 

@@ -179,6 +179,7 @@ struct instruction_list;
 struct basic_block {
 	struct position pos;
 	unsigned long flags;		/* BB status flags */
+	unsigned long generation;
 	int context;
 	struct basic_block_list *parents; /* sources */
 	struct instruction_list *insns;	/* Linear list of instructions */
