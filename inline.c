@@ -177,9 +177,30 @@ static struct expression * copy_expression(struct expression *expr)
 		break;
 	}
 
+	/* Label in inline function - hmm. */
+	case EXPR_LABEL: {
+		struct symbol *label_symbol = copy_symbol(expr->pos, expr->label_symbol);
+		expr = dup_expression(expr);
+		expr->label_symbol = label_symbol;
+		break;
+	}
+
+	/* Identifier in member dereference is unchanged across a fn copy */
+	case EXPR_IDENTIFIER:
+		break;
+
+	/* Position in initializer.. */
+	case EXPR_POS: {
+		struct expression *val = copy_expression(expr->init_expr);
+		if (val == expr->init_expr)
+			break;
+		expr = dup_expression(expr);
+		expr->init_expr = val;
+		break;
+	}
+
 	default:
-		if (verbose)
-			warn(expr->pos, "trying to copy expression type %d", expr->type);
+		warn(expr->pos, "trying to copy expression type %d", expr->type);
 	}
 	return expr;
 }
@@ -299,7 +320,9 @@ static struct statement *copy_one_statement(struct statement *stmt)
 		break;
 	}
 	case STMT_GOTO: {
-		/* FIXME! */
+		stmt = dup_statement(stmt);
+		stmt->goto_label = copy_symbol(stmt->pos, stmt->goto_label);
+		stmt->goto_expression = copy_expression(stmt->goto_expression);
 		break;
 	}
 	case STMT_ASM: {
@@ -307,8 +330,7 @@ static struct statement *copy_one_statement(struct statement *stmt)
 		break;
 	}
 	default:
-		if (verbose)
-			warn(stmt->pos, "trying to copy statement type %d", stmt->type);
+		warn(stmt->pos, "trying to copy statement type %d", stmt->type);
 		break;
 	}
 	return stmt;
@@ -346,6 +368,7 @@ static struct symbol *create_copy_symbol(struct symbol *orig)
 	struct symbol *sym = orig;
 	if (orig) {
 		sym = alloc_symbol(orig->pos, orig->type);
+		sym->ident = orig->ident;
 		sym->ctype = orig->ctype;
 		sym->initializer = NULL;
 		set_replace(orig, sym);
