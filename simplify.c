@@ -122,7 +122,10 @@ static int clean_up_phi(struct instruction *insn)
 	last = NULL;
 	same = 1;
 	FOR_EACH_PTR(insn->phi_list, phi) {
-		struct instruction *def = phi->def;
+		struct instruction *def;
+		if (phi == VOID)
+			continue;
+		def = phi->def;
 		if (def->src1 == VOID || !def->bb)
 			continue;
 		if (last) {
@@ -136,7 +139,7 @@ static int clean_up_phi(struct instruction *insn)
 	if (same) {
 		pseudo_t pseudo = last ? last->src1 : VOID;
 		convert_instruction_target(insn, pseudo);
-		insn->bb = NULL;
+		clear_phi(insn);
 		return 1;
 	}
 
