@@ -115,20 +115,26 @@ static inline struct symbol *integer_promotion(struct symbol *type)
 	unsigned long mod =  type->ctype.modifiers;
 	int width;
 
-	if (type->type == SYM_ENUM) {
+	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
-		mod = type->ctype.modifiers;
-	}
+	if (type->type == SYM_ENUM)
+		type = type->ctype.base_type;
+	width = type->bit_size;
 	if (type->type == SYM_BITFIELD) {
-		mod = type->ctype.base_type->ctype.modifiers;
 		width = type->fieldwidth;
-	} else if (mod & (MOD_CHAR | MOD_SHORT))
-		width = type->bit_size;
-	else
-		return type;
-	if (mod & MOD_UNSIGNED && width == bits_in_int)
-		return &uint_ctype;
-	return &int_ctype;
+		type = type->ctype.base_type;
+	}	
+	mod = type->ctype.modifiers;
+	if (width < bits_in_int)
+		return &int_ctype;
+
+	/* If char/short has as many bits as int, it still gets "promoted" */
+	if (mod & (MOD_CHAR | MOD_SHORT)) {
+		type = &int_ctype;
+		if (mod & MOD_UNSIGNED)
+			type = &uint_ctype;
+	}
+	return type;
 }
 
 /*
