@@ -256,9 +256,9 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		return sym;
 	case SYM_TYPEOF: {
 		struct symbol *base = evaluate_expression(sym->initializer);
-		if (is_bitfield_type (base))
-			warning(base->pos, "typeof applied to bitfield type");
 		if (base) {
+			if (is_bitfield_type(base))
+				warning(base->pos, "typeof applied to bitfield type");
 			if (base->type == SYM_NODE)
 				base = base->ctype.base_type;
 			sym->type = SYM_NODE;
