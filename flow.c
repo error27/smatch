@@ -718,7 +718,7 @@ void pack_basic_blocks(struct entrypoint *ep)
 	/* See if we can merge a bb into another one.. */
 	FOR_EACH_PTR(ep->bbs, bb) {
 		struct instruction *first;
-		struct basic_block *parent, *child;
+		struct basic_block *parent, *child, *last;
 
 		if (!bb_reachable(bb))
 			continue;
@@ -755,10 +755,18 @@ out:
 		/*
 		 * See if we only have one parent..
 		 */
-		if (bb_list_size(bb->parents) != 1)
-			continue;
-		parent = first_basic_block(bb->parents);
-		if (parent == bb)
+		last = NULL;
+		FOR_EACH_PTR(bb->parents, parent) {
+			if (last) {
+				if (last != parent)
+					goto no_merge;
+				continue;
+			}
+			last = parent;
+		} END_FOR_EACH_PTR(parent);
+
+		parent = last;
+		if (!parent || parent == bb)
 			continue;
 
 		/*
