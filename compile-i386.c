@@ -1004,14 +1004,7 @@ static struct storage *emit_binop(struct expression *expr)
 	struct storage *left = x86_expression(expr->left);
 	struct storage *right = x86_expression(expr->right);
 	struct storage *new;
-	const char *opname;
-	static const char *name[] = {
-		['+'] = "addl", ['-'] = "subl",
-		['*'] = "mull", ['/'] = "divl",
-		['%'] = "modl", ['&'] = "andl",
-		['|'] = "orl", ['^'] = "xorl"
-	};
-	unsigned int op = expr->op;
+	const char *opname = NULL;
 
 	/*
 	 * FIXME FIXME this routine is so wrong it's not even funny.
@@ -1020,12 +1013,19 @@ static struct storage *emit_binop(struct expression *expr)
 	 * and like elsewhere we hardcode the operand size at 32 bits.
 	 */
 
-	opname = show_special(op);
-	if (op < sizeof(name)/sizeof(*name)) {
-		opname = name[op];
-		assert(opname != NULL);
-	} else
-		assert(0); /* FIXME: no operations other than name[], ATM */
+	switch (expr->op) {
+	case '+':			opname = "addl";	break;
+	case '-':			opname = "subl";	break;
+	case '*':			opname = "mull";	break;
+	case '/':			opname = "divl";	break;
+	case '%':			opname = "modl";	break;
+	case '&':			opname = "andl";	break;
+	case '|':			opname = "orl";		break;
+	case '^':			opname = "xorl";	break;
+	case SPECIAL_LEFTSHIFT:		opname = "shll";	break;
+	case SPECIAL_RIGHTSHIFT:	opname = "shrl";	break;
+	default:			assert(0);		break;
+	}
 
 	/* load op2 into EAX */
 	insn("movl", right, REG_EAX, "EXPR_BINOP/COMMA/LOGICAL", 0);
