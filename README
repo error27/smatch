@@ -26,13 +26,14 @@ And no, it doesn't use lex and yacc (or flex and bison).  In my personal
 opinion, the result of using lex/yacc tends to end up just having to
 fight the assumptions the tools make. 
 
-The parsing is done in four phases:
+The parsing is done in five phases:
 
  - full-file tokenization
  - pre-processing (which can cause another tokenization phase of another
    file)
  - semantic parsing.
  - lazy type evaluation
+ - inline function expansion and tree simplification
 
 Note the "full file" part. Partly for efficiency, but mostly for ease of
 use, there are no "partial results". The library completely parses one
