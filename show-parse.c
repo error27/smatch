@@ -180,6 +180,7 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 		{ &double_ctype, "double" },
 		{ &ldouble_ctype,"long double" },
 		{ &incomplete_ctype, "incomplete type" },
+		{ &label_ctype, "label type" },
 	};
 
 	if (!sym)

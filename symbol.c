@@ -266,7 +266,10 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		}
 		break;
 	case SYM_PREPROCESSOR:
-		warn(sym->pos, "ctype on preprocessor command?\n");
+		warn(sym->pos, "ctype on preprocessor command? (%s)", show_ident(sym->ident));
+		return NULL;
+	case SYM_UNINITIALIZED:
+		warn(sym->pos, "ctype on uninitialized symbol %p", sym);
 		return NULL;
 	}
 	default:
@@ -411,7 +414,7 @@ struct sym_init {
 	{ "__signed",	NULL,		MOD_SIGNED | MOD_EXPLICITLY_SIGNED },
 	{ "__signed__",	NULL,		MOD_SIGNED | MOD_EXPLICITLY_SIGNED },
 	{ "unsigned",	NULL,		MOD_UNSIGNED },
-	{ "__label__",	&label_type,	MOD_LABEL | MOD_UNSIGNED },
+	{ "__label__",	&label_ctype,	MOD_LABEL | MOD_UNSIGNED },
 
 	/* Type qualifiers */
 	{ "const",	NULL,		MOD_CONST },
@@ -473,7 +476,6 @@ static struct sym_init eval_init_table[] = {
  */
 struct symbol	int_type,
 		fp_type,
-		label_type,
 		vector_type,
 		bad_type;
 
@@ -489,40 +491,7 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		llong_ctype, ullong_ctype,
 		float_ctype, double_ctype, ldouble_ctype,
 		string_ctype, ptr_ctype, lazy_ptr_ctype,
-		incomplete_ctype;
-
-const struct ctype_declare {
-	struct symbol *ptr;
-	unsigned long modifiers;
-	int *bit_size;
-	int *maxalign;
-	struct symbol *base_type;
-} ctype_declaration[] = {
-	{ &bool_ctype,   0,					  &bits_in_int,		&max_int_alignment, &int_type },
-	{ &void_ctype,   0,					  NULL,			NULL,			NULL },
-	{ &type_ctype,   MOD_TYPE,				  NULL,			NULL,			NULL },
-	{ &incomplete_ctype, 0,					  NULL,			NULL,			NULL },
-
-	{ &char_ctype,   MOD_SIGNED | MOD_CHAR,  		  &bits_in_char,	&max_int_alignment, &int_type },
-	{ &uchar_ctype,  MOD_UNSIGNED | MOD_CHAR,		  &bits_in_char,	&max_int_alignment, &int_type },
-	{ &short_ctype,  MOD_SIGNED | MOD_SHORT, 		  &bits_in_short,	&max_int_alignment, &int_type },
-	{ &ushort_ctype, MOD_UNSIGNED | MOD_SHORT,		  &bits_in_short,	&max_int_alignment, &int_type },
-	{ &int_ctype,    MOD_SIGNED,		 		  &bits_in_int,		&max_int_alignment, &int_type },
-	{ &uint_ctype,   MOD_UNSIGNED,				  &bits_in_int,		&max_int_alignment, &int_type },
-	{ &long_ctype,   MOD_SIGNED | MOD_LONG,			  &bits_in_long,	&max_int_alignment, &int_type },
-	{ &ulong_ctype,  MOD_UNSIGNED | MOD_LONG,		  &bits_in_long,	&max_int_alignment, &int_type },
-	{ &llong_ctype,  MOD_SIGNED | MOD_LONG | MOD_LONGLONG,    &bits_in_longlong,	&max_int_alignment, &int_type },
-	{ &ullong_ctype, MOD_UNSIGNED | MOD_LONG | MOD_LONGLONG,  &bits_in_longlong,	&max_int_alignment, &int_type },
-
-	{ &float_ctype,  0,					  &bits_in_float,	&max_fp_alignment, &fp_type },
-	{ &double_ctype, MOD_LONG,				  &bits_in_double,	&max_fp_alignment, &fp_type },
-	{ &ldouble_ctype,MOD_LONG | MOD_LONGLONG,		  &bits_in_longdouble,	&max_fp_alignment, &fp_type },
-
-	{ &string_ctype,	    0,  &bits_in_pointer, &pointer_alignment, &char_ctype },
-	{ &ptr_ctype,		    0,  &bits_in_pointer, &pointer_alignment, &void_ctype },
-	{ &lazy_ptr_ctype,	    0,  &bits_in_pointer, &pointer_alignment, &void_ctype },
-	{ NULL, }
-};
+		incomplete_ctype, label_ctype;
 
 
 #define __INIT_IDENT(str) { .len = sizeof(str)-1, .name = str }
@@ -557,13 +526,45 @@ void init_symbols(void)
 	}
 }
 
+static const struct ctype_declare {
+	struct symbol *ptr;
+	enum type type;
+	unsigned long modifiers;
+	int *bit_size;
+	int *maxalign;
+	struct symbol *base_type;
+} ctype_declaration[] = {
+	{ &bool_ctype,	    SYM_BASETYPE, 0,					  &bits_in_int,		&max_int_alignment, &int_type },
+	{ &void_ctype,	    SYM_BASETYPE, 0,					  NULL,			NULL,			NULL },
+	{ &type_ctype,	    SYM_BASETYPE, MOD_TYPE,				  NULL,			NULL,			NULL },
+	{ &incomplete_ctype,SYM_BASETYPE, 0,					  NULL,			NULL,			NULL },
+
+	{ &char_ctype,	    SYM_BASETYPE, MOD_SIGNED | MOD_CHAR,  		  &bits_in_char,	&max_int_alignment, &int_type },
+	{ &uchar_ctype,	    SYM_BASETYPE, MOD_UNSIGNED | MOD_CHAR,		  &bits_in_char,	&max_int_alignment, &int_type },
+	{ &short_ctype,	    SYM_BASETYPE, MOD_SIGNED | MOD_SHORT, 		  &bits_in_short,	&max_int_alignment, &int_type },
+	{ &ushort_ctype,    SYM_BASETYPE, MOD_UNSIGNED | MOD_SHORT,		  &bits_in_short,	&max_int_alignment, &int_type },
+	{ &int_ctype,	    SYM_BASETYPE, MOD_SIGNED,		 		  &bits_in_int,		&max_int_alignment, &int_type },
+	{ &uint_ctype,	    SYM_BASETYPE, MOD_UNSIGNED,				  &bits_in_int,		&max_int_alignment, &int_type },
+	{ &long_ctype,	    SYM_BASETYPE, MOD_SIGNED | MOD_LONG,		  &bits_in_long,	&max_int_alignment, &int_type },
+	{ &ulong_ctype,	    SYM_BASETYPE, MOD_UNSIGNED | MOD_LONG,		  &bits_in_long,	&max_int_alignment, &int_type },
+	{ &llong_ctype,	    SYM_BASETYPE, MOD_SIGNED | MOD_LONG | MOD_LONGLONG,   &bits_in_longlong,	&max_int_alignment, &int_type },
+	{ &ullong_ctype,    SYM_BASETYPE, MOD_UNSIGNED | MOD_LONG | MOD_LONGLONG, &bits_in_longlong,	&max_int_alignment, &int_type },
+
+	{ &float_ctype,	    SYM_BASETYPE,  0,					  &bits_in_float,	&max_fp_alignment, &fp_type },
+	{ &double_ctype,    SYM_BASETYPE, MOD_LONG,				  &bits_in_double,	&max_fp_alignment, &fp_type },
+	{ &ldouble_ctype,   SYM_BASETYPE, MOD_LONG | MOD_LONGLONG,		  &bits_in_longdouble,	&max_fp_alignment, &fp_type },
+
+	{ &string_ctype,    SYM_PTR,	  0,					  &bits_in_pointer,	&pointer_alignment, &char_ctype },
+	{ &ptr_ctype,	    SYM_PTR,	  0,					  &bits_in_pointer,	&pointer_alignment, &void_ctype },
+	{ &label_ctype,	    SYM_PTR,	  0,					  &bits_in_pointer,	&pointer_alignment, &void_ctype },
+	{ &lazy_ptr_ctype,  SYM_PTR,	  0,					  &bits_in_pointer,	&pointer_alignment, &void_ctype },
+	{ NULL, }
+};
+
 void init_ctype(void)
 {
 	const struct ctype_declare *ctype;
 
-	ptr_ctype.type = SYM_PTR;
-	lazy_ptr_ctype.type = SYM_PTR;
-	string_ctype.type = SYM_PTR;
 	for (ctype = ctype_declaration ; ctype->ptr; ctype++) {
 		struct symbol *sym = ctype->ptr;
 		unsigned long bit_size = ctype->bit_size ? *ctype->bit_size : -1;
@@ -572,7 +573,7 @@ void init_ctype(void)
 
 		if (alignment > maxalign)
 			alignment = maxalign;
-		sym->type = SYM_BASETYPE;
+		sym->type = ctype->type;
 		sym->bit_size = bit_size;
 		sym->ctype.alignment = alignment;
 		sym->ctype.base_type = ctype->base_type;

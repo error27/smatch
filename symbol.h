@@ -35,6 +35,7 @@ enum namespace {
 };
 
 enum type {
+	SYM_UNINITIALIZED,
 	SYM_PREPROCESSOR,
 	SYM_BASETYPE,
 	SYM_NODE,
@@ -157,7 +158,6 @@ struct symbol {
 /* Basic types */
 extern struct symbol	void_type,
 			int_type,
-			label_type,
 			fp_type,
 			vector_type,
 			bad_type;
@@ -171,7 +171,7 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			llong_ctype, ullong_ctype,
 			float_ctype, double_ctype, ldouble_ctype,
 			string_ctype, ptr_ctype, lazy_ptr_ctype,
-			incomplete_ctype;
+			incomplete_ctype, label_ctype;
 
 
 #define __IDENT(n,str) \
