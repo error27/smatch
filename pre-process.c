@@ -95,7 +95,7 @@ static void replace_with_integer(struct token *token, unsigned int val)
 
 static void replace_with_defined(struct token *token)
 {
-	static char *string[] = { "0", "1" };
+	static const char *string[] = { "0", "1" };
 	int defined = 0;
 	if (token_type(token) != TOKEN_IDENT)
 		warning(token->pos, "operator \"defined\" requires an identifier");
@@ -382,11 +382,13 @@ static int merge(struct token *left, struct token *right)
 		left->pos.noexpand = 0;
 		return 1;
 
-	case TOKEN_NUMBER:
+	case TOKEN_NUMBER: {
+		char *number = __alloc_bytes(strlen(buffer) + 1);
+		memcpy(number, buffer, strlen(buffer) + 1);
 		token_type(left) = TOKEN_NUMBER;	/* could be . + num */
-		left->number = __alloc_bytes(strlen(buffer) + 1);
-		memcpy(left->number, buffer, strlen(buffer) + 1);
+		left->number = number;
 		return 1;
+	}
 
 	case TOKEN_SPECIAL:
 		if (buffer[2] && buffer[3])

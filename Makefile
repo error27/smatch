@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-O -g -Wall
+CFLAGS=-O -g -Wall -Wwrite-strings
 LDFLAGS=-g
 AR=ar
 

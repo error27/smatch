@@ -150,7 +150,7 @@ struct token {
 	struct position pos;
 	struct token *next;
 	union {
-		char *number;
+		const char *number;
 		struct ident *ident;
 		unsigned int special;
 		struct string *string;
