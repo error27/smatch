@@ -251,6 +251,8 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 	base_type = sym->ctype.base_type;
 	modifiers = sym->ctype.modifiers;
 
+	bit_size = 0;
+	alignment = 0;
 	if (base_type) {
 		base_type = examine_symbol_type(base_type);
 		sym->ctype.base_type = base_type;
@@ -261,8 +263,7 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		alignment = base_type->ctype.alignment;
 		if (base_type->fieldwidth)
 			sym->fieldwidth = base_type->fieldwidth;
-	} else
-		bit_size = 0;
+	}
 
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = alignment;

@@ -222,7 +222,7 @@ void iterate(struct ptr_list *head, void (*callback)(void *, void *, int), void 
 void add_ptr_list(struct ptr_list **listp, void *ptr)
 {
 	struct ptr_list *list = *listp;
-	struct ptr_list *last;
+	struct ptr_list *last = NULL; /* gcc complains needlessly */
 	int nr;
 
 	if (!list || (nr = (last = list->prev)->nr) >= LIST_NODE_NR) {

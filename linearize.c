@@ -794,7 +794,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	}
 
 	case STMT_COMPOUND: {
-		pseudo_t pseudo;
+		pseudo_t pseudo = NULL;
 		struct statement *s;
 		struct symbol *ret = stmt->ret;
 		concat_symbol_list(stmt->syms, &ep->syms);
@@ -862,12 +862,13 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			struct statement *case_stmt = sym->stmt;
 			struct basic_block *bb_case = get_bound_block(ep, sym);
 			struct multijmp *jmp;
-			int begin, end;
+
 			if (!case_stmt->case_expression) {
 			      jmp = alloc_multijmp(bb_case, 1, 0);
 			} else {
-				if (case_stmt->case_expression)
-					begin = end = case_stmt->case_expression->value;
+				int begin, end;
+
+				begin = end = case_stmt->case_expression->value;
 				if (case_stmt->case_to)
 					end = case_stmt->case_to->value;
 				if (begin > end)
