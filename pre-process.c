@@ -999,6 +999,8 @@ static int handle_define(struct stream *stream, struct token **line, struct toke
 			warning(left->pos, "preprocessor token %.*s redefined",
 					name->len, name->name);
 			info(sym->pos, "this was the original definition");
+			sym->expansion = expansion;
+			sym->arglist = arglist;
 		}
 		return 1;
 	}
