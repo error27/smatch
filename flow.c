@@ -766,7 +766,10 @@ void kill_unreachable_bbs(struct entrypoint *ep)
 			continue;
 		/* Mark it as being dead */
 		kill_bb(bb);
+		bb->ep = NULL;
+		DELETE_CURRENT_PTR(bb);
 	} END_FOR_EACH_PTR(bb);
+	PACK_PTR_LIST(&ep->bbs);
 }
 
 static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old, struct basic_block *new)
