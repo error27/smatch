@@ -66,7 +66,9 @@ static char ** handle_switch(char *arg, char **next)
 	case 'E':
 		preprocess_only = 1;
 		return next;
-
+	case 'v':
+		verbose = 1;
+		return next;
 	case 'I':
 		add_pre_buffer("#add_include \"%s/\"\n", arg+1);
 		return next;

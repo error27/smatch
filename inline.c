@@ -109,7 +109,8 @@ static struct expression * copy_expression(struct expression *expr)
 	}	
 
 	default:
-		warn(expr->pos, "trying to copy expression type %d", expr->type);
+		if (verbose)
+			warn(expr->pos, "trying to copy expression type %d", expr->type);
 	}
 	return expr;
 }

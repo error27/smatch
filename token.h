@@ -137,7 +137,7 @@ struct token {
  * This allows us to not test for NULL pointers
  * when following the token->next chain..
  */
-extern int preprocessing;
+extern int preprocessing, verbose;
 extern struct token eof_token_entry;
 #define eof_token(x) ((x) == &eof_token_entry)
 

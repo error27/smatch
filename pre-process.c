@@ -25,6 +25,7 @@
 #include "symbol.h"
 #include "expression.h"
 
+int verbose = 0;
 int preprocessing = 0;
 
 #define MAXNEST (16)
