@@ -61,6 +61,24 @@ static void insn_defines(struct basic_block *bb, struct instruction *insn, pseud
 	add_pseudo(&bb->defines, pseudo);
 }
 
+static void phi_defines(struct instruction * phi_node, pseudo_t target)
+{
+	pseudo_t phi;
+	FOR_EACH_PTR(phi_node->phi_list, phi) {
+		struct instruction *def;
+		if (phi == VOID)
+			continue;
+		def = phi->def;
+		if (!def || !def->bb)
+			continue;
+		if (def->opcode == OP_PHI) {
+			phi_defines(def, target);
+			continue;
+		}
+		insn_defines(def->bb, phi->def, target);
+	} END_FOR_EACH_PTR(phi);
+}
+
 static void track_instruction_usage(struct basic_block *bb, struct instruction *insn)
 {
 	pseudo_t pseudo;
@@ -117,15 +135,15 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 	/* Other */
 	case OP_PHI:
 		/* Phi-nodes are "backwards" nodes. Their def doesn't matter */
-		FOR_EACH_PTR(insn->phi_list, pseudo) {
-			if (pseudo == VOID || !pseudo->def->bb)
-				continue;
-			insn_defines(pseudo->def->bb, pseudo->def, insn->target);
-		} END_FOR_EACH_PTR(pseudo);
+		phi_defines(insn, insn->target);
 		break;
 
 	case OP_PHISOURCE:
-		USES(src1); DEFINES(target);
+		/*
+		 * We don't care about the phi-source define, they get set
+		 * up and expanded by the OP_PHI
+		 */
+		USES(src1);
 		break;
 
 	case OP_CAST:
