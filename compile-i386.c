@@ -578,9 +578,8 @@ static void emit_func_post(struct symbol *sym)
 {
 	const char *name = show_ident(sym->ident);
 	struct function *f = current_func;
-	struct storage *val;
 	int pseudo_nr = f->pseudo_nr;
-	char pseudo_const[16], jump_target[16];
+	char jump_target[16];
 
 	if (f->str_list)
 		emit_string_list(f);
@@ -591,8 +590,13 @@ static void emit_func_post(struct symbol *sym)
 		printf(".globl %s\n", name);
 	printf("\t.type\t%s, @function\n", name);
 	printf("%s:\n", name);
-	sprintf(pseudo_const, "$%d", pseudo_nr * 4);
-	printf("\tsubl\t%s, %%esp\n", pseudo_const);
+
+	if (pseudo_nr) {
+		char pseudo_const[16];
+
+		sprintf(pseudo_const, "$%d", pseudo_nr * 4);
+		printf("\tsubl\t%s, %%esp\n", pseudo_const);
+	}
 
 	/* function epilogue */
 
@@ -600,10 +604,15 @@ static void emit_func_post(struct symbol *sym)
 	sprintf(jump_target, ".L%d:\n", f->ret_target);
 	push_text_atom(f, jump_target);
 
-	val = new_storage(STOR_VALUE);
-	val->value = (long long) (pseudo_nr * 4);
+	if (pseudo_nr) {
+		struct storage *val;
 
-	insn("addl", val, REG_ESP, NULL, ATOM_FREE_OP1);
+		val = new_storage(STOR_VALUE);
+		val->value = (long long) (pseudo_nr * 4);
+
+		insn("addl", val, REG_ESP, NULL, ATOM_FREE_OP1);
+	}
+
 	insn("ret", NULL, NULL, NULL, 0);
 
 	/* output everything to stdout */
@@ -1174,9 +1183,6 @@ static struct storage *emit_symbol_expr_init(struct symbol *sym)
 {
 	struct expression *expr = sym->initializer;
 	struct symbol_private *priv = sym->aux;
-
-	if (sym->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN | MOD_STATIC))
-		expr = NULL;
 
 	if (priv == NULL) {
 		priv = calloc(1, sizeof(*priv));
