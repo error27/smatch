@@ -24,6 +24,8 @@ enum expression_type {
 	EXPR_CONDITIONAL,
 	EXPR_STATEMENT,
 	EXPR_CALL,
+	EXPR_COMMA,
+	EXPR_COMPARE,
 };
 
 struct expression {
@@ -43,7 +45,7 @@ struct expression {
 		// EXPR_STATEMENT
 		struct statement *statement;
 
-		// EXPR_BINOP and EXPR_ASSIGNMENT
+		// EXPR_BINOP, EXPR_COMMA, EXPR_COMPARE and EXPR_ASSIGNMENT
 		struct binop_arg {
 			struct expression *left, *right;
 		};

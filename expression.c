@@ -231,7 +231,7 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 
 /* Generic left-to-right binop parsing */
 static struct token *lr_binop_expression(struct token *token, struct expression **tree,
-	struct token *(*inner)(struct token *, struct expression **), ...)
+	enum expression_type type, struct token *(*inner)(struct token *, struct expression **), ...)
 {
 	struct expression *left = NULL;
 	struct token * next = inner(token, &left);
@@ -251,7 +251,7 @@ static struct token *lr_binop_expression(struct token *token, struct expression 
 					break;
 			}
 			va_end(args);
-			top = alloc_expression(next, EXPR_BINOP);
+			top = alloc_expression(next, type);
 			next = inner(next->next, &right);
 			if (!right) {
 				warn(next, "No right hand side of '%s'-expression", show_special(op));
@@ -270,52 +270,52 @@ out:
 
 static struct token *multiplicative_expression(struct token *token, struct expression **tree)
 {
-	return lr_binop_expression(token, tree, cast_expression, '*', '/', '%', 0);
+	return lr_binop_expression(token, tree, EXPR_BINOP, cast_expression, '*', '/', '%', 0);
 }
 
 static struct token *additive_expression(struct token *token, struct expression **tree)
 {
-	return lr_binop_expression(token, tree, multiplicative_expression, '+', '-', 0);
+	return lr_binop_expression(token, tree, EXPR_BINOP, multiplicative_expression, '+', '-', 0);
 }
 
 static struct token *shift_expression(struct token *token, struct expression **tree)
 {
-	return lr_binop_expression(token, tree, additive_expression, SPECIAL_LEFTSHIFT, SPECIAL_RIGHTSHIFT, 0);
+	return lr_binop_expression(token, tree, EXPR_BINOP, additive_expression, SPECIAL_LEFTSHIFT, SPECIAL_RIGHTSHIFT, 0);
 }
 
 static struct token *relational_expression(struct token *token, struct expression **tree)
 {
-	return lr_binop_expression(token, tree, shift_expression, '<', '>', SPECIAL_LTE, SPECIAL_GTE, 0);
+	return lr_binop_expression(token, tree, EXPR_COMPARE, shift_expression, '<', '>', SPECIAL_LTE, SPECIAL_GTE, 0);
 }
 
 static struct token *equality_expression(struct token *token, struct expression **tree)
 {
-	return lr_binop_expression(token, tree, relational_expression, SPECIAL_EQUAL, SPECIAL_NOTEQUAL, 0);
+	return lr_binop_expression(token, tree, EXPR_COMPARE, relational_expression, SPECIAL_EQUAL, SPECIAL_NOTEQUAL, 0);
 }
 
 static struct token *bitwise_and_expression(struct token *token, struct expression **tree)
 {
-	return lr_binop_expression(token, tree, equality_expression, '&', 0);
+	return lr_binop_expression(token, tree, EXPR_BINOP, equality_expression, '&', 0);
 }
 
 static struct token *bitwise_xor_expression(struct token *token, struct expression **tree)
 {
-	return lr_binop_expression(token, tree, bitwise_and_expression, '^', 0);
+	return lr_binop_expression(token, tree, EXPR_BINOP, bitwise_and_expression, '^', 0);
 }
 
 static struct token *bitwise_or_expression(struct token *token, struct expression **tree)
 {
-	return lr_binop_expression(token, tree, bitwise_xor_expression, '|', 0);
+	return lr_binop_expression(token, tree, EXPR_BINOP, bitwise_xor_expression, '|', 0);
 }
 
 static struct token *logical_and_expression(struct token *token, struct expression **tree)
 {
-	return lr_binop_expression(token, tree, bitwise_or_expression, SPECIAL_LOGICAL_AND, 0);
+	return lr_binop_expression(token, tree, EXPR_BINOP, bitwise_or_expression, SPECIAL_LOGICAL_AND, 0);
 }
 
 static struct token *logical_or_expression(struct token *token, struct expression **tree)
 {
-	return lr_binop_expression(token, tree, logical_and_expression, SPECIAL_LOGICAL_OR, 0);
+	return lr_binop_expression(token, tree, EXPR_BINOP, logical_and_expression, SPECIAL_LOGICAL_OR, 0);
 }
 
 struct token *conditional_expression(struct token *token, struct expression **tree)
@@ -358,7 +358,7 @@ struct token *assignment_expression(struct token *token, struct expression **tre
 
 static struct token *comma_expression(struct token *token, struct expression **tree)
 {
-	return lr_binop_expression(token, tree, assignment_expression, ',', 0);
+	return lr_binop_expression(token, tree, EXPR_COMMA, assignment_expression, ',', 0);
 }
 
 struct token *parse_expression(struct token *token, struct expression **tree)

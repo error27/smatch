@@ -159,6 +159,11 @@ void show_type(struct symbol *sym)
 		return;
 	}
 
+	case SYM_BITFIELD:
+		show_type(sym->ctype.base_type);
+		printf(":%d", sym->fieldwidth);
+		return;
+
 	default:
 		printf("strange type %d '%s' of type ", sym->type, show_token(sym->token));
 		show_type(sym->ctype.base_type);
@@ -372,6 +377,8 @@ void show_expression(struct expression *expr)
 		show_expression(expr->right);
 		break;
 	case EXPR_BINOP:
+	case EXPR_COMMA:
+	case EXPR_COMPARE:
 		show_expression(expr->left);
 		printf(" %s ", show_special(expr->op));
 		show_expression(expr->right);

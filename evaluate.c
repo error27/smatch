@@ -125,10 +125,22 @@ static struct expression * promote(struct expression *old, struct symbol *type)
 	return expr;
 }
 
-static int evaluate_binop(struct expression *expr)
+static struct symbol * compatible_binop(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
 	struct symbol *ltype = left->ctype, *rtype = right->ctype;
+
+	/* Pointer types? */
+	if (ltype->type == SYM_PTR || rtype->type == SYM_PTR) {
+		/* NULL pointer? */
+		if (left->type == EXPR_VALUE && !left->value)
+			return &ptr_ctype;
+		if (right->type == EXPR_VALUE && !right->value)
+			return &ptr_ctype;
+
+		// FIXME!!
+		return ltype;
+	}
 
 	/* Integer promotion? */
 	if (ltype->ctype.base_type == &int_type && rtype->ctype.base_type == &int_type) {
@@ -139,11 +151,37 @@ static int evaluate_binop(struct expression *expr)
 			expr->left = promote(left, ctype);
 		if (rtype->bit_size != ctype->bit_size)
 			expr->right = promote(right, ctype);
-		expr->ctype = ctype;
-		return 1;
+		return ctype;
 	}
-	warn(expr->token, "unexpected types for operation");
-	return 0;
+
+	warn(expr->token, "incompatible types for operation");
+	return NULL;
+}
+
+static int evaluate_binop(struct expression *expr)
+{
+	struct symbol *ctype;
+	// FIXME! handle int + ptr and ptr - ptr here
+
+	ctype = compatible_binop(expr);
+	if (!ctype)
+		return 0;
+	expr->ctype = ctype;
+	return 1;
+}
+
+static int evaluate_comma(struct expression *expr)
+{
+	expr->ctype = expr->right->ctype;
+	return 1;
+}
+
+static int evaluate_compare(struct expression *expr)
+{
+	if (!compatible_binop(expr))
+		return 0;
+	expr->ctype = &bool_ctype;
+	return 1;
 }
 
 static int evaluate_assignment(struct expression *expr)
@@ -362,6 +400,18 @@ int evaluate_expression(struct expression *expr)
 		if (!evaluate_expression(expr->right))
 			return 0;
 		return evaluate_binop(expr);
+	case EXPR_COMMA:
+		if (!evaluate_expression(expr->left))
+			return 0;
+		if (!evaluate_expression(expr->right))
+			return 0;
+		return evaluate_comma(expr);
+	case EXPR_COMPARE:
+		if (!evaluate_expression(expr->left))
+			return 0;
+		if (!evaluate_expression(expr->right))
+			return 0;
+		return evaluate_compare(expr);
 	case EXPR_ASSIGNMENT:
 		if (!evaluate_lvalue_expression(expr->left))
 			return 0;
