@@ -1803,6 +1803,36 @@ found_dominator:
 	return 1;
 }		
 
+/*
+ * We should probably sort the phi list just to make it easier to compare
+ * later for equality. 
+ */
+static void rewrite_load_instruction(struct instruction *insn, struct phi_list *dominators)
+{
+	if (phi_list_size(dominators) == 1) {
+		struct phi * phi = first_phi(dominators);
+		phi->source = NULL;	/* Mark it as not used */
+		convert_load_insn(insn, phi->pseudo);
+	} else {
+		pseudo_t new = alloc_pseudo(insn);
+		convert_load_insn(insn, new);
+
+		/*
+		 * FIXME! This is dubious. We should probably allocate a new
+		 * instruction instead of re-using the OP_LOAD instruction.
+		 * Re-use of the instruction makes the usage list suspect.
+		 *
+		 * It should be ok, because the only usage of the OP_LOAD
+		 * is the symbol pseudo, and we should never follow that
+		 * list _except_ for exactly the dominant instruction list
+		 * generation (and then we always check the opcode).
+		 */
+		insn->opcode = OP_PHI;
+		insn->target = new;
+		insn->phi_list = dominators;
+	}
+}
+
 static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,
 	unsigned long generation, int local)
 {
@@ -1871,29 +1901,7 @@ found:
 	 * have to turn the load into a phi-node of the
 	 * dominators.
 	 */
-	if (phi_list_size(dominators) == 1) {
-		struct phi * phi = first_phi(dominators);
-		phi->source = NULL;	/* Mark it as not used */
-		convert_load_insn(insn, phi->pseudo);
-	} else {
-		pseudo_t new = alloc_pseudo(insn);
-		convert_load_insn(insn, new);
-
-		/*
-		 * FIXME! This is dubious. We should probably allocate a new
-		 * instruction instead of re-using the OP_LOAD instruction.
-		 * Re-use of the instruction makes the usage list suspect.
-		 *
-		 * It should be ok, because the only usage of the OP_LOAD
-		 * is the symbol pseudo, and we should never follow that
-		 * list _except_ for exactly the dominant instruction list
-		 * generation (and then we always check the opcode).
-		 */
-		insn->opcode = OP_PHI;
-		insn->bb = bb;
-		insn->target = new;
-		insn->phi_list = dominators;
-	}
+	rewrite_load_instruction(insn, dominators);
 	return 1;
 }
 
