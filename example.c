@@ -94,12 +94,38 @@ static void alloc_stack(struct bb_state *state, struct storage *storage)
 	state->stack_offset += 4;
 }
 
+/*
+ * Can we re-generate the pseudo, so that we don't need to
+ * flush it to memory? We can regenerate:
+ *  - immediates and symbol addresses
+ *  - pseudos we got as input in non-registers
+ *  - pseudos we've already saved off earlier..
+ */
+static int can_regenerate(struct bb_state *state, pseudo_t pseudo)
+{
+	struct storage_hash *in;
+
+	switch (pseudo->type) {
+	case PSEUDO_VAL:
+	case PSEUDO_SYM:
+		return 1;
+
+	default:
+		in = find_storage_hash(pseudo, state->inputs);
+		if (in && in->storage->type != REG_REG)
+			return 1;
+		in = find_storage_hash(pseudo, state->internal);
+			return 1;
+	}
+	return 0;
+}
+
 static void flush_one_pseudo(struct bb_state *state, struct hardreg *hardreg, pseudo_t pseudo)
 {
 	struct storage_hash *out;
 	struct storage *storage;
 
-	if (pseudo->type != PSEUDO_REG && pseudo->type != PSEUDO_ARG)
+	if (can_regenerate(state, pseudo))
 		return;
 
 	out = find_storage_hash(pseudo, state->internal);
