@@ -1306,15 +1306,18 @@ static struct symbol *evaluate_call(struct expression *expr)
 			return expr->ctype;
 	}
 	if (ctype->type != SYM_FN) {
-		warn(expr->pos, "not a function");
+		warn(expr->pos, "not a function %.*s",
+				sym->ident->len, sym->ident->name);
 		return NULL;
 	}
 	args = expression_list_size(expr->args);
 	fnargs = symbol_list_size(ctype->arguments);
 	if (args < fnargs)
-		warn(expr->pos, "not enough arguments for function");
+		warn(expr->pos, "not enough arguments for function %.*s",
+				sym->ident->len, sym->ident->name);
 	if (args > fnargs && !ctype->variadic)
-		warn(expr->pos, "too many arguments for function");
+		warn(expr->pos, "too many arguments for function %.*s",
+				sym->ident->len, sym->ident->name);
 	expr->ctype = ctype->ctype.base_type;
 	return expr->ctype;
 }

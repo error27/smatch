@@ -640,7 +640,8 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 	if (sym) {
 		if (token_list_different(sym->expansion, expansion) || 
 		    token_list_different(sym->arglist, arglist)) {
-			warn(left->pos, "preprocessor token redefined");
+			warn(left->pos, "preprocessor token %.*s redefined",
+					name->ident->len, name->ident->name);
 			warn(sym->pos, "this was the original definition");
 		}
 		return 1;
