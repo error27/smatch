@@ -720,8 +720,12 @@ static int expand_pos_expression(struct expression *expr)
 					entry->init_offset += offset;
 				} else {
 					if (!reuse) {
-						error(entry->pos, "multiple initializers at offset zero");
-						return SIDE_EFFECTS;
+						/*
+						 * This happens rarely, but it can happen
+						 * with bitfields that are all at offset
+						 * zero..
+						 */
+						reuse = alloc_expression(entry->pos, EXPR_POS);
 					}
 					reuse->type = EXPR_POS;
 					reuse->ctype = entry->ctype;
