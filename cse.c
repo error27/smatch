@@ -21,6 +21,8 @@ static struct instruction_list *insn_hash_table[INSN_HASH_SIZE];
 
 #define hashval(x) ((unsigned long)(x))
 
+static int cse_repeat;
+
 static int phi_compare(const void *_phi1, const void *_phi2)
 {
 	const struct phi *phi1 = _phi1;
@@ -72,6 +74,7 @@ static unsigned long clean_up_phi(struct instruction *insn)
 	if (same) {
 		pseudo_t pseudo = last ? last->pseudo : VOID;
 		convert_instruction_target(insn, pseudo);
+		cse_repeat = 1;
 		insn->bb = NULL;
 		/* This one is bogus, but no worse than anything else */
 		return hash;
@@ -297,6 +300,7 @@ static struct instruction * cse_one_instruction(struct instruction *insn, struct
 	convert_instruction_target(insn, def->target);
 	insn->opcode = OP_NOP;
 	insn->src1 = def->target;
+	cse_repeat = 1;
 	return def;
 }
 
@@ -346,7 +350,7 @@ static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction
 				return cse_one_instruction(i1, i2);
 		} END_FOR_EACH_PTR(insn);
 		warning(b1->pos, "Whaa? unable to find CSE instructions");
-		return NULL;
+		return i1;
 	}
 	if (bb_dominates(ep, b1, b2, ++bb_generation))
 		return cse_one_instruction(i2, i1);
@@ -355,15 +359,15 @@ static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction
 		return cse_one_instruction(i1, i2);
 
 	/* No direct dominance - but we could try to find a common ancestor.. */
-	return NULL;
+	return i1;
 }
 
 void cleanup_and_cse(struct entrypoint *ep)
 {
-	int i, success;
+	int i;
 
 repeat:
-	success = 0;
+	cse_repeat = 0;
 	clean_up_insns(ep);
 	for (i = 0; i < INSN_HASH_SIZE; i++) {
 		struct instruction_list **list = insn_hash_table + i;
@@ -378,13 +382,8 @@ repeat:
 					if (!insn->bb)
 						continue;
 					if (last) {
-						if (!insn_compare(last, insn)) {
-							struct instruction *def = try_to_cse(ep, last, insn);
-							if (def) {
-								success++;
-								insn = def;
-							}
-						}
+						if (!insn_compare(last, insn))
+							insn = try_to_cse(ep, last, insn);
 					}
 					last = insn;
 				} END_FOR_EACH_PTR(insn);
@@ -393,6 +392,6 @@ repeat:
 		}
 	}
 
-	if (success)
+	if (cse_repeat)
 		goto repeat;
 }
