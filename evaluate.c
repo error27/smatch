@@ -49,7 +49,8 @@ static int evaluate_symbol(struct expression *expr)
 static int get_int_value(struct expression *expr, const char *str)
 {
 	unsigned long long value = 0;
-	unsigned int base = 10, digit;
+	unsigned int base = 10, digit, bits;
+	unsigned long modifiers;
 
 	switch (str[0]) {
 	case 'x':
@@ -64,8 +65,47 @@ static int get_int_value(struct expression *expr, const char *str)
 		value = value * base + digit;
 		str++;
 	}
+	modifiers = 0;
+	for (;;) {
+		char c = *str++;
+		if (c == 'u' || c == 'U') {
+			modifiers |= MOD_UNSIGNED;
+			continue;
+		}
+		if (c == 'l' || c == 'L') {
+			if (modifiers & MOD_LONG)
+				modifiers |= MOD_LONGLONG;
+			modifiers |= MOD_LONG;
+			continue;
+		}
+		break;
+	}
+
+	bits = BITS_IN_LONGLONG;
+	if (!(modifiers & MOD_LONGLONG)) {
+		if (value & (~0ULL << BITS_IN_LONG)) {
+			warn(expr->token, "value is so big it is long long");
+			modifiers |= MOD_LONGLONG;
+		} else {
+			bits = BITS_IN_LONG;
+			if (!(modifiers & MOD_LONG)) {
+				if (value & (~0ULL << BITS_IN_INT)) {
+					warn(expr->token, "value is so big it is long");
+					modifiers |= MOD_LONG;
+				} else
+					bits = BITS_IN_INT;
+			}
+		}
+	}
+	if (!(modifiers & MOD_UNSIGNED)) {
+		if (value & (1ULL << (bits-1))) {
+			warn(expr->token, "value is so big it is unsigned");
+			modifiers |= MOD_UNSIGNED;
+		}
+	}
+
 	expr->type = EXPR_VALUE;
-	expr->ctype = &int_ctype;
+	expr->ctype = ctype_integer(modifiers);
 	expr->value = value;
 	return 1;
 }
@@ -116,12 +156,49 @@ static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 	return ctype_integer(mod);
 }
 
+static int cast_value(struct expression *expr, struct symbol *newtype,
+			struct expression *old, struct symbol *oldtype)
+{
+	int old_size = oldtype->bit_size;
+	int new_size = newtype->bit_size;
+	long long value, mask, ormask, andmask;
+	int is_signed;
+
+	// FIXME! We don't handle FP casts of constant values yet
+	if (newtype->ctype.base_type == &fp_type)
+		return 0;
+	if (oldtype->ctype.base_type == &fp_type)
+		return 0;
+
+	// For pointers and integers, we can just move the value around
+	expr->type = EXPR_VALUE;
+	if (old_size >= new_size) {
+		expr->value = old->value;
+		return 1;
+	}
+
+	is_signed = !(oldtype->ctype.modifiers & MOD_UNSIGNED);
+
+	mask = 1ULL << (old_size-1);
+	value = old->value;
+	if (!(value & mask))
+		is_signed = 0;
+	andmask = mask | (mask-1);
+	ormask = ~andmask;
+	if (!is_signed)
+		ormask = 0;
+	expr->value = (value & andmask) | ormask;
+	return 1;
+}
+
 static struct expression * cast_to(struct expression *old, struct symbol *type)
 {
 	struct expression *expr = alloc_expression(old->token, EXPR_CAST);
 	expr->ctype = type;
 	expr->cast_type = type;
 	expr->cast_expression = old;
+	if (old->type == EXPR_VALUE)
+		cast_value(expr, type, old, old->ctype);
 	return expr;
 }
 
@@ -555,6 +632,22 @@ static int evaluate_expression_list(struct expression_list *head)
 	return 1;
 }
 
+static int evaluate_cast(struct expression *expr)
+{
+	struct expression *target = expr->cast_expression;
+	struct symbol *ctype = expr->cast_type;
+
+	if (!evaluate_expression(target))
+		return 0;
+	examine_symbol_type(ctype);
+	expr->ctype = ctype;
+
+	/* Simplify normal integer casts.. */
+	if (target->type == EXPR_VALUE)
+		cast_value(expr, ctype, target, target->ctype);
+	return 1;
+}
+
 static int evaluate_call(struct expression *expr)
 {
 	int args, fnargs;
@@ -628,11 +721,7 @@ int evaluate_expression(struct expression *expr)
 			return 0;
 		return evaluate_postop(expr);
 	case EXPR_CAST:
-		if (!evaluate_expression(expr->cast_expression))
-			return 0;
-		examine_symbol_type(expr->cast_type);
-		expr->ctype = expr->cast_type;
-		return 1;
+		return evaluate_cast(expr);
 	case EXPR_SIZEOF:
 		return evaluate_sizeof(expr);
 	case EXPR_DEREF:
