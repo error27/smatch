@@ -1329,6 +1329,37 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep, un
 	return 0;
 }
 
+static int get_as(struct symbol *sym)
+{
+	int as;
+	unsigned long mod;
+
+	if (!sym)
+		return 0;
+	as = sym->ctype.as;
+	mod = sym->ctype.modifiers;
+	if (sym->type == SYM_NODE) {
+		sym = sym->ctype.base_type;
+		as |= sym->ctype.as;
+		mod |= sym->ctype.modifiers;
+	}
+	/*
+	 * You can always throw a value away by casting to
+	 * "void" - that's an implicit "force". Note that
+	 * the same is _not_ true of "void *".
+	 */
+	if (sym == &void_ctype)
+		return -1;
+	if (sym && sym->type == SYM_PTR) {
+		sym = sym->ctype.base_type;
+		as |= sym->ctype.as;
+		mod |= sym->ctype.modifiers;
+	}
+	if (mod & MOD_FORCE)
+		return -1;
+	return as;
+}
+
 static struct symbol *evaluate_cast(struct expression *expr)
 {
 	struct expression *target = expr->cast_expression;
@@ -1367,6 +1398,9 @@ static struct symbol *evaluate_cast(struct expression *expr)
 
 	evaluate_expression(target);
 	degenerate(target);
+
+	if (!get_as(ctype) && get_as(target->ctype))
+		warn(expr->pos, "cast removes address space of expression");
 
 	/*
 	 * Casts of constant values are special: they
