@@ -19,6 +19,7 @@
 #include "symbol.h"
 #include "scope.h"
 #include "expression.h"
+#include "target.h"
 
 /*
  * Symbol type printout. The type system is by far the most
@@ -240,6 +241,9 @@ void show_symbol(struct symbol *sym)
 {
 	struct symbol *type;
 
+	if (!sym)
+		return;
+		
 	show_type(sym);
 	type = sym->ctype.base_type;
 	if (!type)
@@ -425,12 +429,6 @@ void show_statement_list(struct statement_list *stmt, const char *sep)
 	statement_iterate(stmt, show_one_statement, (void *)sep);
 }
 
-static void show_size(struct symbol *sym)
-{
-	if (sym)
-		printf("%d:%ld", sym->bit_size, sym->ctype.alignment);
-}
-
 static void show_one_expression(struct expression *expr, void *sep, int flags)
 {
 	show_expression(expr);
@@ -451,14 +449,16 @@ static int new_pseudo(void)
 
 static int show_call_expression(struct expression *expr)
 {
-	int pseudoarg[45];
 	struct expression *arg, *fn;
 	int fncall, retval;
-	int count = 0, i;
+	int framesize;
 
-	FOR_EACH_PTR(expr->args, arg) {
+	framesize = 0;
+	FOR_EACH_PTR_REVERSE(expr->args, arg) {
 		int new = show_expression(arg);
-		pseudoarg[count++] = new;
+		int size = arg->ctype->bit_size;
+		printf("\tpush.%d\t\tv%d\n", size, new);
+		framesize += size >> 3;
 	} END_FOR_EACH_PTR;
 
 	fn = expr->fn;
@@ -467,31 +467,12 @@ static int show_call_expression(struct expression *expr)
 		fn = fn->unop;
 	fncall = show_expression(fn);
 	retval = new_pseudo();
-	printf("v%d = call *v%d(", retval, fncall);
-	for (i = 0; i < count; i++)
-		printf("v%d%s", pseudoarg[i], (i == count-1) ? "" : ", ");
-	printf(")\n");
+
+	printf("\tcall\t\t*v%d\n", fncall);
+	if (framesize)
+		printf("\tadd.%d\t\tvSP,vSP,$%d\n", BITS_IN_POINTER, framesize);
+	printf("\tmov.%d\t\tv%d,retval\n", expr->ctype->bit_size, retval);
 	return retval;
-}
-
-static int show_assignment(struct expression *expr)
-{
-	int src = show_expression(expr->right);
-	struct expression *target = expr->left;
-	int dst;
-
-	/* Is it a regular dereferece? */
-	if (target->type == EXPR_PREOP) {
-		dst = show_expression(target->unop);
-		printf("store(v%d,v%d)\n", src, dst);
-		return src;
-	}
-
-	/* Bitfield.. */
-	dst = show_expression(target->address);
-	printf("bit_insert(v%d,v%d[%d-%d]\n", src, dst,
-		target->bitpos, target->bitpos + target->nrbits);
-	return src;
 }
 
 static int show_binop(struct expression *expr)
@@ -499,74 +480,171 @@ static int show_binop(struct expression *expr)
 	int left = show_expression(expr->left);
 	int right = show_expression(expr->right);
 	int new = new_pseudo();
+	const char *opname;
+	static const char *name[] = {
+		['+'] = "add", ['-'] = "sub",
+		['*'] = "mul", ['/'] = "div",
+		['%'] = "mod"
+	};
+	unsigned int op = expr->op;
 
-	printf("v%d = v%d %s v%d\n", new, left, show_special(expr->op), right);
+	opname = show_special(op);
+	if (op < sizeof(name)/sizeof(*name))
+		opname = name[op];
+	printf("\t%s.%d\t\tv%d,v%d,v%d\n", opname,
+		expr->ctype->bit_size,
+		new, left, right);
 	return new;
 }
 
-static int show_preop(struct expression *expr)
+static int show_regular_preop(struct expression *expr)
 {
-	int op = show_expression(expr->unop);
+	int target = show_expression(expr->unop);
+	int new = new_pseudo();
+	static const char *name[] = {
+		['!'] = "nonzero", ['-'] = "neg",
+		['~'] = "not",
+	};
+	unsigned int op = expr->op;
+	const char *opname;
+
+	opname = show_special(op);
+	if (op < sizeof(name)/sizeof(*name))
+		opname = name[op];
+	printf("\t%s.%d\t\tv%d,v%d\n", opname, expr->ctype->bit_size, new, target);
+	return new;
+}
+
+/*
+ * FIXME! Not all accesses are memory loads. We should
+ * check what kind of symbol is behind the dereference.
+ */
+static int show_address_gen(struct expression *expr)
+{
+	if (expr->type == EXPR_PREOP)
+		return show_expression(expr->unop);
+	return show_expression(expr->address);
+}
+
+static int show_load_gen(int bits, struct expression *expr, int addr)
+{
 	int new = new_pseudo();
 
-	printf("v%d = %sv%d\n", new, show_special(expr->op), op);
+	printf("\tld.%d\t\tv%d,[v%d]\n", bits, new, addr);
+	if (expr->type == EXPR_PREOP)
+		return new;
+
+	/* bitfield load! */
+	if (expr->bitpos)
+		printf("\tshr.%d\t\tv%d,v%d,$%d\n", bits, new, new, expr->bitpos);
+	printf("\tandi.%d\t\tv%d,v%d,$%llu", bits, new, new, 1ULL << expr->nrbits);
 	return new;
+}
+
+static void show_store_gen(int bits, int value, struct expression *expr, int addr)
+{
+	/* FIXME!!! Bitfield store! */
+	printf("\tst.%d\t\tv%d,[v%d]\n", bits, value, addr);
+}
+
+static int show_assignment(struct expression *expr)
+{
+	struct expression *target = expr->left;
+	int val, addr, bits = expr->ctype->bit_size;
+
+	val = show_expression(expr->right);
+	addr = show_address_gen(target);
+	show_store_gen(bits, val, target, addr);
+	return val;
+}
+
+static int show_access(struct expression *expr)
+{
+	int addr = show_address_gen(expr);
+	return show_load_gen(expr->ctype->bit_size, expr, addr);
+}
+
+static int show_inc_dec(struct expression *expr, int postop)
+{
+	int addr = show_address_gen(expr->unop);
+	int retval, new;
+	const char *opname = expr->op == SPECIAL_INCREMENT ? "add" : "sub";
+	int bits = expr->ctype->bit_size;
+
+	retval = show_load_gen(bits, expr->unop, addr);
+	new = retval;
+	if (postop)
+		new = new_pseudo();
+	printf("\t%s.%d\t\tv%d,v%d,$1\n", opname, bits, new, retval);
+	show_store_gen(bits, new, expr->unop, addr);
+	return retval;
 }	
+
+static int show_preop(struct expression *expr)
+{
+	/*
+	 * '*' is an lvalue access, and is fundamentally different
+	 * from an arithmetic operation. Maybe it should have an
+	 * expression type of its own..
+	 */
+	if (expr->op == '*')
+		return show_access(expr);
+	if (expr->op == SPECIAL_INCREMENT || expr->op == SPECIAL_DECREMENT)
+		return show_inc_dec(expr, 0);
+	return show_regular_preop(expr);
+}
 
 static int show_postop(struct expression *expr)
 {
-	int op = show_expression(expr->unop);
-	int new = new_pseudo();
-
-	printf("v%d = v%d%s\n", new, op, show_special(expr->op));
-	return new;
+	return show_inc_dec(expr, 1);
 }	
 
 static int show_symbol_expr(struct expression *expr)
 {
 	int new = new_pseudo();
-	printf("v%d = address of '%s'\n", new, show_ident(expr->symbol_name));
-	return new;
-}
-
-static int show_cast_expr(struct expression *expr)
-{
-	int op = show_expression(expr->cast_expression);
-	int oldbits, newbits;
-	int new;
-
-	oldbits = expr->cast_expression->ctype->bit_size;
-	newbits = expr->cast_type->bit_size;
-	if (oldbits == newbits)
-		return op;
-	new = new_pseudo();
-	printf("v%d = <cast from %d to %d bits> v%d\n",
-		new, oldbits, newbits, op);
+	printf("\tmovi.%d\t\tv%d,$%s\n", BITS_IN_POINTER, new, show_ident(expr->symbol_name));
 	return new;
 }
 
 static int type_is_signed(struct symbol *sym)
 {
-	while (sym->type != SYM_BASETYPE)
+	if (sym->type == SYM_NODE)
 		sym = sym->ctype.base_type;
+	if (sym->type == SYM_PTR)
+		return 0;
 	return !(sym->ctype.modifiers & MOD_UNSIGNED);
+}
+
+static int show_cast_expr(struct expression *expr)
+{
+	struct symbol *old_type, *new_type;
+	int op = show_expression(expr->cast_expression);
+	int oldbits, newbits;
+	int new, is_signed;
+
+	old_type = expr->cast_expression->ctype;
+	new_type = expr->cast_type;
+	
+	oldbits = old_type->bit_size;
+	newbits = new_type->bit_size;
+	if (oldbits >= newbits)
+		return op;
+	new = new_pseudo();
+	is_signed = type_is_signed(old_type);
+	if (is_signed) {
+		printf("\tsext%d.%d\tv%d,v%d\n", oldbits, newbits, new, op);
+	} else {
+		printf("\tandl.%d\t\tv%d,v%d,$%lu\n", newbits, new, op, (1UL << oldbits)-1);
+	}
+	return new;
 }
 
 static int show_value(struct expression *expr)
 {
 	int new = new_pseudo();
-	struct symbol *ctype = expr->ctype;
 	unsigned long long value = expr->value;
-	unsigned long long mask = 1ULL << (ctype->bit_size-1);
 
-	if (value & mask) {
-		if (type_is_signed(ctype)) {
-			long long svalue = value | ~(mask-1);
-			printf("v%d = %lld\n", new, svalue);
-			return new;
-		}
-	}
-	printf("v%d = %llu\n", new, value);
+	printf("\tmovi.%d\t\tv%d,$%llu\n", expr->ctype->bit_size, new, value);
 	return new;
 }
 
@@ -574,7 +652,7 @@ static int show_string_expr(struct expression *expr)
 {
 	int new = new_pseudo();
 
-	printf("v%d = %s\n", new, show_string(expr->string));
+	printf("\tmovi.%d\t\tv%d,&%s\n", BITS_IN_POINTER, new, show_string(expr->string));
 	return new;
 }
 
@@ -597,7 +675,7 @@ static int show_conditional_expr(struct expression *expr)
 
 	if (!true)
 		true = cond;
-	printf("v%d = v%d ? v%d : v%d\n", new, cond, true, false);
+	printf("[v%d]\tcmov.%d\t\tv%d,v%d,v%d\n", cond, expr->ctype->bit_size, new, true, false);
 	return new;
 }
 
