@@ -567,9 +567,22 @@ static pseudo_t symbol_pseudo(struct entrypoint *ep, struct symbol *sym)
 
 static pseudo_t value_pseudo(long long val)
 {
-	pseudo_t pseudo = __alloc_pseudo(0);
+#define MAX_VAL_HASH 64
+	static struct pseudo_list *prev[MAX_VAL_HASH];
+	int hash = val & (MAX_VAL_HASH-1);
+	struct pseudo_list **list = prev + hash;
+	pseudo_t pseudo;
+
+	FOR_EACH_PTR(*list, pseudo) {
+		if (pseudo->value == val)
+			return pseudo;
+	} END_FOR_EACH_PTR(pseudo);
+
+	pseudo = __alloc_pseudo(0);
 	pseudo->type = PSEUDO_VAL;
 	pseudo->value = val;
+	add_pseudo(list, pseudo);
+
 	/* Value pseudos have neither nr, usage nor def */
 	return pseudo;
 }
