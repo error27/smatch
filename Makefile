@@ -1,3 +1,6 @@
+#
+# Turkey time!
+#
 OS=linux
 
 CC=gcc
