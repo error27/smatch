@@ -13,6 +13,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <sys/stat.h>
+
 
 #include "lib.h"
 #include "token.h"
@@ -135,15 +137,24 @@ const char *show_token(const struct token *token)
 		*ptr++ = '\0';
 		return buffer;
 	}
+
+	case TOKEN_STREAMBEGIN:
+		sprintf(buffer, "<beginning of '%s'>", (input_streams + token->stream)->name);
+		return buffer;
+
+	case TOKEN_STREAMEND:
+		sprintf(buffer, "<end of '%s'>", (input_streams + token->stream)->name);
+		return buffer;
 	
 	default:
 		return "WTF???";
 	}
 }
 
-int init_stream(const char *name)
+int init_stream(const char *name, int fd)
 {
 	int stream = input_stream_nr;
+	struct stream *current;
 
 	if (stream >= input_streams_allocated) {
 		int newalloc = stream * 4 / 3 + 10;
@@ -152,8 +163,20 @@ int init_stream(const char *name)
 			die("Unable to allocate more streams space");
 		input_streams_allocated = newalloc;
 	}
-	input_streams[stream].name = name;
+	current = input_streams + stream;
 	input_stream_nr = stream+1;
+
+	memset(current, 0, sizeof(*current));
+	current->name = name;
+	current->fd = fd;
+	current->constant = -1;	// "unknown"
+	if (fd > 0) {
+		struct stat st;
+		if (!fstat(fd, &st)) {
+			current->dev = st.st_dev;
+			current->ino = st.st_ino;
+		}
+	}
 	return stream;
 }
 
@@ -197,11 +220,19 @@ struct token eof_token_entry;
 
 static void mark_eof(stream_t *stream, struct token *end_token)
 {
+	struct token *end;
+
+	end = alloc_token(stream);
+	end->type = TOKEN_STREAMEND;
+	end->newline = 1;
+
 	eof_token_entry.next = &eof_token_entry;
 	eof_token_entry.newline = 1;
+
 	if (!end_token)
 		end_token =  &eof_token_entry;
-	*stream->tokenlist = end_token;
+	end->next = end_token;
+	*stream->tokenlist = end;
 	stream->tokenlist = NULL;
 }
 
@@ -652,13 +683,11 @@ static int get_one_token(int c, stream_t *stream)
 
 struct token * tokenize(const char *name, int fd, struct token *endtoken)
 {
-	struct token *retval;
+	struct token *begin;
 	stream_t stream;
 	int c;
 
-	retval = NULL;
-	stream.stream = init_stream(name);
-	stream.tokenlist = &retval;
+	stream.stream = init_stream(name, fd);
 	stream.token = NULL;
 	stream.line = 1;
 	stream.newline = 1;
@@ -667,6 +696,10 @@ struct token * tokenize(const char *name, int fd, struct token *endtoken)
 	stream.fd = fd;
 	stream.offset = 0;
 	stream.size = 0;
+
+	begin = alloc_token(&stream);
+	begin->type = TOKEN_STREAMBEGIN;
+	stream.tokenlist = &begin->next;
 
 	c = nextchar(&stream);
 	while (c != EOF) {
@@ -689,5 +722,5 @@ struct token * tokenize(const char *name, int fd, struct token *endtoken)
 		c = nextchar(&stream);
 	}
 	mark_eof(&stream, endtoken);
-	return retval;
+	return begin;
 }

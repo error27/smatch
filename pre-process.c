@@ -712,9 +712,18 @@ static void do_preprocess(struct token *head)
 			head->next = next->next;
 			continue;
 		}
-		if (next->type == TOKEN_IDENT)
-			next = expand_one_symbol(head, next);
-		head = next;
+		switch (next->type) {
+		case TOKEN_IDENT:
+			head = expand_one_symbol(head, next);
+			continue;
+		case TOKEN_STREAMEND:
+		case TOKEN_STREAMBEGIN:
+			head->next = next->next;
+			continue;
+		default:
+			/* Let it stay in the token stream, go on to next token */
+			head = next;
+		}
 	} while (!eof_token(head));
 }
 

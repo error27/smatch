@@ -1,6 +1,8 @@
 #ifndef TOKEN_H
 #define TOKEN_H
 
+#include <sys/types.h>
+
 /*
  * This describes the pure lexical elements (tokens), with
  * no semantic meaning. In other words, an identifier doesn't
@@ -11,7 +13,13 @@
  */
 
 struct stream {
+	int fd;
 	const char *name;
+
+	/* Use these to check for "already parsed" */
+	int constant;
+	dev_t dev;
+	ino_t ino;
 };
 
 extern int input_stream_nr;
@@ -35,6 +43,8 @@ enum token_type {
 	TOKEN_CHAR,
 	TOKEN_STRING,
 	TOKEN_SPECIAL,
+	TOKEN_STREAMBEGIN,
+	TOKEN_STREAMEND,
 };
 
 /* Combination tokens */
@@ -121,7 +131,7 @@ struct token {
 extern struct token eof_token_entry;
 #define eof_token(x) ((x) == &eof_token_entry)
 
-extern int init_stream(const char *);
+extern int init_stream(const char *, int fd);
 extern struct ident *hash_ident(struct ident *);
 extern struct ident *built_in_ident(const char *);
 extern struct token *built_in_token(int, const char *);

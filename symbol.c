@@ -241,7 +241,7 @@ IDENT(__attribute__); IDENT(__attribute);
 
 void init_symbols(void)
 {
-	int stream = init_stream("builtin");
+	int stream = init_stream("builtin", -1);
 	struct sym_init *ptr;
 
 	hash_ident(&sizeof_ident);
