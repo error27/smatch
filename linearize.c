@@ -31,8 +31,15 @@ static struct basic_block *alloc_basic_block(void)
 static void show_bb(struct basic_block *bb)
 {
 	struct statement *stmt;
+	struct symbol *owner = bb->this;
 
-	printf("bb: %p%s\n", bb, bb->this ? "" : " UNREACHABLE!!");
+	printf("bb: %p%s\n", bb, owner ? "" : " UNREACHABLE!!");
+	if (owner) {
+		struct basic_block *from;
+		FOR_EACH_PTR(owner->bb_parents, from) {
+			printf("  **from %p**\n", from);
+		} END_FOR_EACH_PTR;
+	}
 	FOR_EACH_PTR(bb->stmts, stmt) {
 		show_statement(stmt);
 	} END_FOR_EACH_PTR;
@@ -85,11 +92,20 @@ static struct basic_block * new_basic_block(struct entrypoint *ep, struct symbol
 	return bb;
 }
 
+static void add_goto(struct basic_block *bb, struct symbol *sym)
+{
+	if (bb_reachable(bb)) {
+		bb->next = sym;
+		add_bb(&sym->bb_parents, bb);
+	}
+}
+
 static void add_label(struct entrypoint *ep, struct symbol *sym)
 {
 	struct basic_block *new_bb = new_basic_block(ep, sym);
+	struct basic_block *bb = ep->active;
 
-	ep->active->next = sym;
+	add_goto(bb, sym);
 	ep->active = new_bb;
 }
 
@@ -139,6 +155,7 @@ static void add_branch(struct entrypoint *ep, struct statement *stmt, int true, 
 		jump->bb_target = target;
 		bb->flags |= BB_HASBRANCH;
 		add_statement(&bb->stmts, jump);
+		add_bb(&target->bb_parents, bb);
 	}
 }	
 
@@ -174,7 +191,7 @@ void linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	}
 
 	case STMT_GOTO: {
-		ep->active->next = stmt->goto_label;
+		add_goto(ep->active, stmt->goto_label);
 		set_unreachable(ep);
 		break;
 	}
@@ -218,7 +235,7 @@ void linearize_statement(struct entrypoint *ep, struct statement *stmt)
 				 * with the fallthrough of the never case.
 				 */
 				if (bb_reachable(ep->active)) {
-					bb->next = create_label(ep, never->pos);
+					add_goto(bb, create_label(ep, never->pos));
 					break;
 				}
 
@@ -239,7 +256,7 @@ void linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		
 		if (stmt->if_false) {
 			struct symbol *else_target = alloc_symbol(stmt->pos, SYM_LABEL);
-			if_block->next = else_target;
+			add_goto(if_block, else_target);
 			linearize_statement(ep, stmt->if_false);
 			add_label(ep, else_target);
 		}
@@ -247,26 +264,35 @@ void linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	}
 
 	case STMT_SWITCH: {
+		int default_seen;
 		struct symbol *sym;
 		struct statement *switch_value;
 
 		/* Create the "head node" */
+		if (!bb_reachable(ep->active))
+			break;
+
 		switch_value = alloc_statement(stmt->pos, STMT_MULTIVALUE);
 		switch_value->expression = stmt->switch_expression;
 		linearize_simple_statement(ep, switch_value);
 
 		/* Create all the sub-jumps */
+		default_seen = 0;
 		FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
 			struct statement *case_stmt = sym->stmt;
 			struct statement *sw_bb = alloc_statement(case_stmt->pos, STMT_MULTIJMP);
+			if (!case_stmt->case_expression)
+				default_seen = 1;
 			sw_bb->multi_from = case_stmt->case_expression;
 			sw_bb->multi_to = case_stmt->case_to;
 			sw_bb->multi_target = sym;
 			linearize_simple_statement(ep, sw_bb);
+			add_bb(&sym->bb_parents, ep->active);
 		} END_FOR_EACH_PTR;
 
 		/* Default fall-through case */
-		ep->active->next = stmt->switch_break;
+		if (!default_seen)
+			add_goto(ep->active, stmt->switch_break);
 		set_unreachable(ep);
 
 		/* And linearize the actual statement */
@@ -291,7 +317,7 @@ void linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			if (pre_condition->type == EXPR_VALUE) {
 				if (!pre_condition->value) {
 					loop_bottom = alloc_symbol(stmt->pos, SYM_LABEL);
-					ep->active->next = loop_bottom;
+					add_goto(ep->active, loop_bottom);
 					set_unreachable(ep);
 				}
 			} else {
@@ -311,7 +337,7 @@ void linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		linearize_statement(ep, post_statement);
 
 		if (!post_condition) {
-			ep->active->next = loop_top;
+			add_goto(ep->active, loop_top);
 			set_unreachable(ep);
 		} else {
 			if (post_condition->type != EXPR_VALUE || post_condition->value)

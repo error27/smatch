@@ -95,6 +95,7 @@ struct symbol {
 		struct symbol_list *symbol_list;
 		struct expression *initializer;
 		struct basic_block *bb_target;	/* label */
+		struct basic_block_list *bb_parents; /* sources */
 		long long value;		/* Initial value */
 	};
 	void *aux;				/* Auxiliary info, eg. backend information */
