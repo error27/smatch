@@ -536,8 +536,10 @@ void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic
 	add_instruction(&bb->insns, br);
 
 	FOR_EACH_PTR(bb->children, child) {
-		if (child == target)
+		if (child == target) {
+			target = NULL;	/* Trigger just once */
 			continue;
+		}
 		DELETE_CURRENT_PTR(child);
 		remove_parent(child, bb);
 	} END_FOR_EACH_PTR(child);
