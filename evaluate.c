@@ -1013,7 +1013,7 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			return 1;
 		}
 	} else if (is_restricted_type(target)) {
-		if (!restricted_binop(op, target)) {
+		if (restricted_binop(op, target)) {
 			warning(expr->pos, "bad restricted assignment");
 			return 0;
 		}
