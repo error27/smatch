@@ -206,12 +206,12 @@ static struct token *find_argument_end(struct token *start, struct token *arglis
 	return start;
 }
 
-static struct token *dup_token(struct token *token, struct position *pos, int newline)
+static struct token *dup_token(struct token *token, struct position *streampos, struct position *pos)
 {
-	struct token *alloc = alloc_token(pos);
+	struct token *alloc = alloc_token(streampos);
 	token_type(alloc) = token_type(token);
-	alloc->pos.line = pos->line;
-	alloc->pos.newline = newline;
+	alloc->pos.newline = pos->newline;
+	alloc->pos.whitespace = pos->whitespace;
 	alloc->integer = token->integer;
 	return alloc;	
 }
@@ -224,16 +224,16 @@ static void insert(struct token *token, struct token *prev)
 
 static struct token * replace(struct token *parent, struct token *token, struct token *prev, struct token *list)
 {
-	int newline = token->pos.newline;
+	struct position *pos = &token->pos;
 
 	prev->next = token->next;
 	while (!eof_token(list) && !match_op(list, SPECIAL_ARG_SEPARATOR)) {
-		struct token *newtok = dup_token(list, &token->pos, newline);
+		struct token *newtok = dup_token(list, &token->pos, pos);
 		newtok->parent = parent;
-		newline = 0;
 		insert(newtok, prev);
 		prev = newtok;
 		list = list->next;
+		pos = &list->pos;
 	}
 	return prev;
 }
