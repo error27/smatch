@@ -1350,6 +1350,15 @@ static int get_as(struct symbol *sym)
 	 */
 	if (sym == &void_ctype)
 		return -1;
+
+	/*
+	 * At least for now, allow casting to a "unsigned long".
+	 * That's how we do things like pointer arithmetic and
+	 * store pointers to registers.
+	 */
+	if (sym == &ulong_ctype)
+		return -1;
+
 	if (sym && sym->type == SYM_PTR) {
 		sym = sym->ctype.base_type;
 		as |= sym->ctype.as;
@@ -1399,7 +1408,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	evaluate_expression(target);
 	degenerate(target);
 
-	if (!get_as(ctype) && get_as(target->ctype))
+	if (!get_as(ctype) && get_as(target->ctype) > 0)
 		warn(expr->pos, "cast removes address space of expression");
 
 	/*
