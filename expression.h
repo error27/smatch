@@ -108,7 +108,6 @@ struct token *assignment_expression(struct token *token, struct expression **tre
 extern struct symbol *evaluate_symbol(struct symbol *sym);
 extern struct symbol *evaluate_statement(struct statement *stmt);
 extern struct symbol *evaluate_expression(struct expression *);
-extern struct symbol *evaluate_initializer(struct symbol *, struct expression *);
 
 static inline struct expression *alloc_expression(struct position pos, int type)
 {
