@@ -58,7 +58,7 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 	expr->ctype = sym;
 
 	/* enum's can be turned into plain values */
-	if (base_type->type != SYM_ENUM) {
+	if (sym->type != SYM_ENUM) {
 		struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
 		addr->symbol = sym;
 		addr->symbol_name = expr->symbol_name;
@@ -70,6 +70,7 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 	}
 	expr->type = EXPR_VALUE;
 	expr->value = sym->value;
+	expr->ctype = base_type;
 	return sym;
 }
 
