@@ -243,6 +243,7 @@ static void do_warn(const char *type, struct position pos, const char * fmt, va_
 void warn(struct position pos, const char * fmt, ...)
 {
 	static int warnings = 0;
+	va_list args;
 
 	if (warnings > 100) {
 		static int once = 0;
@@ -252,7 +253,6 @@ void warn(struct position pos, const char * fmt, ...)
 		once = 1;
 	}
 
-	va_list args;
 	va_start(args, fmt);
 	do_warn("warning", pos, fmt, args);
 	va_end(args);
