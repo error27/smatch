@@ -24,12 +24,13 @@ struct stream *input_streams;
 static int input_streams_allocated;
 
 #define BUFSIZE (8192)
+
 typedef struct {
 	int fd, stream, line, pos, offset, size;
 	unsigned int newline:1, whitespace:1;
 	struct token **tokenlist;
 	struct token *token;
-	unsigned char buffer[BUFSIZE];
+	unsigned char *buffer;
 } stream_t;
 
 
@@ -203,7 +204,7 @@ static int nextchar(stream_t *stream)
 	int c;
 
 	if (offset >= size) {
-		size = read(stream->fd, stream->buffer, sizeof(stream->buffer));
+		size = read(stream->fd, stream->buffer, BUFSIZE);
 		if (size <= 0)
 			return EOF;
 		stream->size = size;
@@ -690,51 +691,76 @@ static int get_one_token(int c, stream_t *stream)
 	}	
 }
 
+static struct token *setup_stream(stream_t *stream, int idx, int fd,
+	unsigned char *buf, unsigned int buf_size)
+{
+	struct token *begin;
+
+	stream->stream = idx;
+	stream->token = NULL;
+	stream->line = 1;
+	stream->newline = 1;
+	stream->whitespace = 0;
+	stream->pos = 0;
+	stream->fd = fd;
+	stream->offset = 0;
+	stream->size = buf_size;
+	stream->buffer = buf;
+
+	begin = alloc_token(stream);
+	begin->type = TOKEN_STREAMBEGIN;
+	stream->tokenlist = &begin->next;
+	return begin;
+}
+
+static void tokenize_stream(stream_t *stream, struct token *endtoken)
+{
+	int c = nextchar(stream);
+	while (c != EOF) {
+		if (c == '\\') {
+			c = nextchar(stream);
+			stream->newline = 0;
+			stream->whitespace = 1;
+			continue;
+		}
+		if (!isspace(c)) {
+			struct token *token = alloc_token(stream);
+			token->newline = stream->newline;
+			token->whitespace = stream->whitespace;
+			stream->newline = 0;
+			stream->whitespace = 0;
+			stream->token = token;
+			c = get_one_token(c, stream);
+			continue;
+		}
+		stream->whitespace = 1;
+		c = nextchar(stream);
+	}
+	mark_eof(stream, endtoken);
+}
+
+struct token * tokenize_buffer(unsigned char *buffer, unsigned long size, struct token *endtoken)
+{
+	stream_t stream;
+	struct token *begin;
+
+	begin = setup_stream(&stream, 0, -1, buffer, size);
+	tokenize_stream(&stream, endtoken);
+	return begin;
+}
+
 struct token * tokenize(const char *name, int fd, struct token *endtoken)
 {
 	struct token *begin;
 	stream_t stream;
-	int c, idx;
+	unsigned char buffer[BUFSIZE];
+	int idx;
 
 	idx = init_stream(name, fd);
 	if (idx < 0)
 		return endtoken;
 
-	stream.stream = idx;
-	stream.token = NULL;
-	stream.line = 1;
-	stream.newline = 1;
-	stream.whitespace = 0;
-	stream.pos = 0;
-	stream.fd = fd;
-	stream.offset = 0;
-	stream.size = 0;
-
-	begin = alloc_token(&stream);
-	begin->type = TOKEN_STREAMBEGIN;
-	stream.tokenlist = &begin->next;
-
-	c = nextchar(&stream);
-	while (c != EOF) {
-		if (c == '\\') {
-			c = nextchar(&stream);
-			stream.newline = 0;
-			stream.whitespace = 1;
-			continue;
-		}
-		if (!isspace(c)) {
-			struct token *token = alloc_token(&stream);
-			token->newline = stream.newline;
-			token->whitespace = stream.whitespace;
-			stream.newline = 0;
-			stream.whitespace = 0;
-			stream.token = token;
-			c = get_one_token(c, &stream);
-			continue;
-		}
-		stream.whitespace = 1;
-		c = nextchar(&stream);
-	}
-	mark_eof(&stream, endtoken);
+	begin = setup_stream(&stream, idx, fd, buffer, 0);
+	tokenize_stream(&stream, endtoken);
 	return begin;
 }

@@ -19,8 +19,50 @@
 #include "symbol.h"
 #include "expression.h"
 
+unsigned int pre_buffer_size = 0;
+unsigned char pre_buffer[8192];
+
+static void add_pre_buffer(const char *fmt, ...)
+{
+	va_list args;
+	unsigned int size;
+
+	va_start(args, fmt);
+	size = pre_buffer_size;
+	size += vsnprintf(pre_buffer + size,
+		sizeof(pre_buffer) - size,
+		fmt, args);
+	pre_buffer_size = size;
+	va_end(args);
+}
+
 static void handle_switch(char *arg)
 {
+	switch (*arg) {
+	case 'D': {
+		const char *name = arg+1;
+		const char *value = "";
+		for (;;) {
+			char c;
+			c = *++arg;
+			if (!c)
+				break;
+			if (isspace(c) || c == '=') {
+				*arg = '\0';
+				value = arg+1;
+				break;
+			}
+		}
+		add_pre_buffer("#define %s %s\n", name, value);
+		return;
+	}
+
+	case 'I':
+		add_pre_buffer("#add_include \"%s/\"\n", arg+1);
+		return;
+	default:
+		fprintf(stderr, "unknown switch '%s'\n", arg);
+	}	
 }
 
 static void clean_up_statement(struct statement *stmt, void *_parent, int flags);
@@ -95,6 +137,10 @@ int main(int argc, char **argv)
 	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
 
+	// Stupid defines to make various headers happy
+	add_pre_buffer("#define __GNUC__ 2\n");
+	add_pre_buffer("#define __GNUC_MINOR__ 95\n");
+
 	for (i = 1; i < argc; i++) {
 		char *arg = argv[i];
 		if (arg[0] == '-') {
@@ -112,6 +158,9 @@ int main(int argc, char **argv)
 	// Tokenize the input stream
 	token = tokenize(filename, fd, NULL);
 	close(fd);
+
+	// Prepend the initial built-in stream
+	token = tokenize_buffer(pre_buffer, pre_buffer_size, token);
 
 	// Pre-process the stream
 	token = preprocess(token);
