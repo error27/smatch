@@ -270,6 +270,7 @@ static struct statement *copy_one_statement(struct statement *stmt)
 	switch(stmt->type) {
 	case STMT_NONE:
 		break;
+	case STMT_INTERNAL:
 	case STMT_EXPRESSION: {
 		struct expression *expr = copy_expression(stmt->expression);
 		if (expr == stmt->expression)
