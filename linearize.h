@@ -15,6 +15,7 @@ enum pseudo_type {
 	PSEUDO_SYM,
 	PSEUDO_VAL,
 	PSEUDO_ARG,
+	PSEUDO_PHI,
 };
 
 struct pseudo {

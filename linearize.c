@@ -14,6 +14,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "parse.h"
 #include "expression.h"
@@ -125,6 +126,25 @@ static const char *show_pseudo(pseudo_t pseudo)
 	case PSEUDO_ARG:
 		snprintf(buf, 64, "%%arg%d", pseudo->nr);
 		break;
+	case PSEUDO_PHI: {
+		struct instruction *def = pseudo->def;
+		char buffer[64];
+		const char *name = "none";
+		struct basic_block *bb = NULL;
+
+		if (def) {
+			pseudo_t orig = def->src1;
+
+			if (orig->type == PSEUDO_PHI) {
+				sprintf(buffer, "%%phi%d", orig->nr);
+				name = buffer;
+			} else
+				name = show_pseudo(orig);
+			bb = def->bb;
+		}
+		snprintf(buf, 64, "%%phi%d <%s,.L%p>", pseudo->nr, name, bb);
+		break;
+	}
 	default:
 		snprintf(buf, 64, "<bad pseudo type %d>", pseudo->type);
 	}
@@ -229,17 +249,22 @@ void show_instruction(struct instruction *insn)
 		break;
 	}
 
-	case OP_PHISOURCE:
-		printf("\t%s <- phi-source %s\n", show_pseudo(insn->target), show_pseudo(insn->src1));
+	case OP_PHISOURCE: {
+		pseudo_t phi = insn->target;
+		if (phi && phi->type == PSEUDO_PHI) {
+			printf("\t%%phi%d <- phi-source %s\n", phi->nr, show_pseudo(insn->src1));
+			break;
+		}
+		printf("\tHuh? non-phi phi-source: %s <- %s", show_pseudo(phi), show_pseudo(insn->src1));
 		break;
+	}
 
 	case OP_PHI: {
 		pseudo_t phi;
 		const char *s = " ";
 		printf("\t%s <- phi", show_pseudo(insn->target));
 		FOR_EACH_PTR(insn->phi_list, phi) {
-			struct instruction *def = phi->def;
-			printf("%s(%s: <%s,.L%p>)", s, show_pseudo(phi), show_pseudo(def->src1), def->bb);
+			printf("%s(%s)", s, show_pseudo(phi));
 			s = ", ";
 		} END_FOR_EACH_PTR(phi);
 		printf("\n");
@@ -637,13 +662,18 @@ static pseudo_t argument_pseudo(int nr)
 pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo)
 {
 	struct instruction *insn = alloc_instruction(OP_PHISOURCE, NULL);
-	pseudo_t target = alloc_pseudo(insn);
+	pseudo_t phi = __alloc_pseudo(0);
+	static int nr = 0;
+
+	phi->type = PSEUDO_PHI;
+	phi->nr = ++nr;
+	phi->def = insn;
 
 	use_pseudo(pseudo, &insn->src1);
 	insn->bb = source;
-	insn->target = target;
+	insn->target = phi;
 	add_instruction(&source->insns, insn);
-	return target;
+	return phi;
 }
 
 /*
@@ -1370,6 +1400,7 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 
 		if (pseudo_list_size(phi_node->phi_list)==1) {
 			pseudo = first_pseudo(phi_node->phi_list);
+			assert(pseudo->type == PSEUDO_PHI);
 			return pseudo->def->src1;
 		}
 		return phi_node->target;
