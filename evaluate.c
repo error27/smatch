@@ -1110,8 +1110,10 @@ static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 		target = argtype;
 		if (!target && ctype->bit_size < BITS_IN_INT)
 			target = &int_ctype;
-		if (target)
+		if (target) {
+			examine_symbol_type(target);
 			compatible_assignment_types(expr, target, p, ctype);
+		}
 
 		NEXT_PTR_LIST(argument_types, argtype);
 	} END_FOR_EACH_PTR;
