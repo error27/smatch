@@ -649,7 +649,19 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 	struct symbol *ctype, *symbol;
 	struct expression *op = expr->unop;
 
+
 	ctype = op->ctype;
+
+#if 0
+	/* Simplify: &*(expr) => (expr) */
+	if (op->type == EXPR_PREOP && op->op == '*') {
+		ctype = ctype->ctype.base_type;
+		*expr = *op->unop;
+		expr->ctype = ctype;
+		return ctype;
+	}
+#endif
+
 	symbol = alloc_symbol(expr->pos, SYM_PTR);
 	symbol->ctype.base_type = ctype;
 	symbol->ctype.alignment = POINTER_ALIGNMENT;
@@ -669,7 +681,8 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 
 static struct symbol *evaluate_dereference(struct expression *expr)
 {
-	struct symbol *ctype = expr->unop->ctype;
+	struct expression *op = expr->unop;
+	struct symbol *ctype = op->ctype;
 	unsigned long mod;
 
 	mod = ctype->ctype.modifiers;
@@ -681,6 +694,7 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 		warn(expr->pos, "cannot derefence this type");
 		return 0;
 	}
+
 	if (mod & MOD_NODEREF)
 		warn(expr->pos, "bad dereference");
 	ctype = ctype->ctype.base_type;
@@ -688,7 +702,16 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 		warn(expr->pos, "undefined type");
 		return 0;
 	}
+
 	examine_symbol_type(ctype);
+
+#if 0
+	/* Simplify: *&(expr) => (expr) */
+	if (op->type == EXPR_PREOP && op->op == '&') {
+		*expr = *op->unop;
+	}
+#endif
+
 	expr->ctype = ctype;
 	return ctype;
 }
@@ -897,6 +920,17 @@ static int count_array_initializer(struct expression *expr)
 	return expression_list_size(list);
 }
 
+static int evaluate_array_initializer(struct symbol *ctype, struct expression *expr)
+{
+	return count_array_initializer(expr);
+}
+
+static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct expression *expr, int multiple)
+{
+	/* Fixme: walk through the struct/union definitions and try to assign right types! */
+	return 0;
+}
+
 /*
  * Initializers are kind of like assignments. Except
  * they can be a hell of a lot more complex.
@@ -904,23 +938,37 @@ static int count_array_initializer(struct expression *expr)
 static int evaluate_initializer(struct symbol *ctype, struct expression **ep)
 {
 	struct expression *expr = *ep;
+
 	/*
 	 * Simple non-structure/array initializers are the simple 
 	 * case, and look (and parse) largely like assignments.
 	 */
 	if (expr->type != EXPR_INITIALIZER) {
+		int size = 0;
 		struct symbol *rtype = evaluate_expression(expr);
-		if (rtype)
+		if (rtype) {
 			compatible_assignment_types(expr, ctype, ep, rtype);
-		return 0;
+			/* strings are special: char arrays */
+			if (rtype->type == SYM_ARRAY)
+				size = rtype->array_size;
+		}
+		return size;
 	}
 
-	/*
-	 * FIXME!! Check type compatibility, and look up any named
-	 * initializers and index expressions!
-	 */
 	expr->ctype = ctype;
-	return count_array_initializer(expr);
+	switch (ctype->type) {
+	case SYM_ARRAY:
+	case SYM_PTR:
+		return evaluate_array_initializer(ctype, expr);
+	case SYM_UNION:
+		return evaluate_struct_or_union_initializer(ctype, expr, 0);
+	case SYM_STRUCT:
+		return evaluate_struct_or_union_initializer(ctype, expr, 1);
+	default:
+		break;
+	}
+	warn(expr->pos, "unexpected compound initializer");
+	return 0;
 }
 
 static struct symbol *evaluate_cast(struct expression *expr)
