@@ -50,6 +50,7 @@ struct instruction {
 		struct /* unops */ {
 			struct symbol *orig_type;	/* casts */
 			pseudo_t src;
+			unsigned int offset;		/* memops */
 		};
 		struct /* binops */ {
 			pseudo_t src1, src2;
