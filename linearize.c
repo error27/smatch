@@ -474,7 +474,7 @@ static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
 		add_bb(&ep->bbs, bb);
 }
 
-void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi, pseudo_t true, pseudo_t false)
+void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi_node, pseudo_t true, pseudo_t false)
 {
 	struct instruction *setcc, *select;
 
@@ -485,9 +485,9 @@ void insert_select(struct basic_block *bb, struct instruction *br, struct instru
 	setcc->bb = bb;
 	use_pseudo(br->cond, &setcc->src);
 
-	select = alloc_instruction(OP_SEL, phi->type);
+	select = alloc_instruction(OP_SEL, phi_node->type);
 	select->bb = bb;
-	select->target = phi->target;
+	select->target = phi_node->target;
 	use_pseudo(true, &select->src1);
 	use_pseudo(false, &select->src2);
 
@@ -1335,17 +1335,17 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 
 	if (ret) {
 		struct basic_block *bb = add_label(ep, ret);
-		struct instruction *phi = first_instruction(bb->insns);
+		struct instruction *phi_node = first_instruction(bb->insns);
 
-		if (!phi)
+		if (!phi_node)
 			return pseudo;
 
-		if (pseudo_list_size(phi->phi_list)==1) {
-			pseudo = first_pseudo(phi->phi_list);
+		if (pseudo_list_size(phi_node->phi_list)==1) {
+			pseudo = first_pseudo(phi_node->phi_list);
 			delete_last_instruction(&bb->insns);
 			return pseudo->def->src1;
 		}
-		return phi->target;
+		return phi_node->target;
 	}
 	return pseudo;
 }

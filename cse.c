@@ -144,7 +144,8 @@ static void if_convert_phi(struct instruction *insn)
 
 static unsigned long clean_up_phi(struct instruction *insn)
 {
-	struct instruction *phi, *last;
+	pseudo_t phi;
+	struct instruction *last;
 	unsigned long hash = 0;
 	int same;
 
@@ -153,21 +154,22 @@ static unsigned long clean_up_phi(struct instruction *insn)
 	last = NULL;
 	same = 1;
 	FOR_EACH_PTR(insn->phi_list, phi) {
-		if (phi->src1 == VOID) {
+		struct instruction *def = phi->def;
+		if (def->src1 == VOID) {
 			DELETE_CURRENT_PTR(phi);
 			continue;
 		}
 		if (last) {
-			if (last->src1 != phi->src1) {
+			if (last->src1 != def->src1) {
 				same = 0;
-			} else if (last->bb == phi->bb) {
+			} else if (last->bb == def->bb) {
 				DELETE_CURRENT_PTR(phi);
 				continue;
 			}
 		}
-		last = phi;
-		hash += hashval(phi->src1);
-		hash += hashval(phi->bb);
+		last = def;
+		hash += hashval(def->src1);
+		hash += hashval(def->bb);
 	} END_FOR_EACH_PTR(phi);
 
 	/* Whenever we delete pointers, we may have to pack the end result */
@@ -316,7 +318,7 @@ extern void show_instruction(struct instruction *);
 /* Compare two (sorted) phi-lists */
 static int phi_list_compare(struct pseudo_list *l1, struct pseudo_list *l2)
 {
-	struct instruction *phi1, *phi2;
+	pseudo_t phi1, phi2;
 
 	PREPARE_PTR_LIST(l1, phi1);
 	PREPARE_PTR_LIST(l2, phi2);

@@ -77,11 +77,12 @@ static int pseudo_truth_value(pseudo_t pseudo)
 static void try_to_simplify_bb(struct entrypoint *ep, struct basic_block *bb,
 	struct instruction *first, struct instruction *second)
 {
-	struct instruction *phi;
+	pseudo_t phi;
 
 	FOR_EACH_PTR(first->phi_list, phi) {
-		struct basic_block *source = phi->bb, *target;
-		pseudo_t pseudo = phi->src1;
+		struct instruction *def = phi->def;
+		struct basic_block *source = def->bb, *target;
+		pseudo_t pseudo = def->src1;
 		struct instruction *br;
 		int true;
 
