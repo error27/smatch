@@ -199,8 +199,10 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 		struct token *next = token->next;
 		if (lookup_type(next)) {
 			struct expression *cast = alloc_expression(next, EXPR_CAST);
+			struct symbol *sym;
 
-			token = typename(next, &cast->cast_type);
+			token = typename(next, &sym);
+			cast->cast_type = sym->ctype.base_type;
 			token = expect(token, ')', "at end of cast operator");
 			if (match_op(token, '{'))
 				return initializer(token, &cast->cast_type->ctype);

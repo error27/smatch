@@ -214,6 +214,11 @@ int evaluate_expression(struct expression *expr)
 		if (!evaluate_expression(expr->unop))
 			return 1;
 		return evaluate_postop(expr);
+	case EXPR_CAST:
+		if (!evaluate_expression(expr->cast_expression))
+			return 1;
+		expr->ctype = expr->cast_type;
+		return 1;
 	default:
 		break;
 	}

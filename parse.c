@@ -304,6 +304,9 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 	}
 
 	/* Turn the "virtual types" into real types with real sizes etc */
+	if (!ctype->base_type && (ctype->modifiers & MOD_SPECIFIER))
+		ctype->base_type = &int_type;
+
 	if (ctype->base_type == &int_type) {
 		ctype->base_type = ctype_integer(ctype->modifiers & MOD_SPECIFIER);
 		ctype->modifiers &= ~MOD_SPECIFIER;
@@ -467,10 +470,9 @@ static struct token *parameter_declaration(struct token *token, struct symbol **
 
 struct token *typename(struct token *token, struct symbol **p)
 {
-	struct ctype ctype = { 0, };
 	struct symbol *sym = alloc_symbol(token, SYM_NODE);
 	*p = sym;
-	token = declaration_specifiers(token, &ctype);
+	token = declaration_specifiers(token, &sym->ctype);
 	return declarator(token, &sym, NULL);
 }
 

@@ -30,10 +30,10 @@ const char *modifier_string(unsigned long mod)
 	char *p = buffer;
 	const char *res,**ptr, *names[] = {
 		"auto", "register", "static", "extern",
-		"const", "volatile", "signed", "unsigned",
-		"char", "short", "long", "long",
-		"typdef", "structof", "unionof", "enum",
-		"typeof", "attribute",
+		"const", "volatile", "[signed]", "[unsigned]",
+		"[char]", "[short]", "[long]", "[long]",
+		"[typdef]", "[structof]", "[unionof]", "[enum]",
+		"[typeof]", "[attribute]",
 		NULL
 	};
 	ptr = names;
@@ -151,37 +151,32 @@ void show_type(struct symbol *sym)
 		printf("enum %s", show_token(sym->token));
 		return;
 
-	case SYM_NODE:
-		printf("node '%s' of type ", show_token(sym->token));
-		break;
+	case SYM_NODE: {
+		struct symbol *type = sym->ctype.base_type;
+		if (!type)
+			printf("notype");
+		else
+			show_type(type);
+		printf(": %s", show_token(sym->token));
+		return;
+	}
 
 	default:
 		printf("strange type %d '%s' of type ", sym->type, show_token(sym->token));
-		break;
+		show_type(sym->ctype.base_type);
+		return;
 	}
-	show_type(sym->ctype.base_type);
 }
 
 void show_symbol(struct symbol *sym)
 {
-	if (!sym) {
-		printf("<anon symbol>");
-		return;
-	}
-	switch (sym->type) {
-	case SYM_FN:
-		printf("%s: ", show_token(sym->token));
-		show_type(sym);
+	
+	show_type(sym);
+	if (sym->type == SYM_FN) {
 		printf("\n");
 		show_statement(sym->stmt);
-		break;
-	default:
-		show_type(sym);
-		printf(": %s", show_token(sym->token));
-		break;
 	}
 }
-
 
 /*
  * Print out a statement
