@@ -67,12 +67,12 @@ struct symbol {
 	struct symbol	*same_symbol;
 	int (*evaluate)(struct expression *);
 
-	struct preprocessor_sym {
+	struct /* preprocessor_sym */ {
 		struct token *expansion;
 		struct token *arglist;
 	};
 	
-	struct ctype_sym {
+	struct /* ctype_sym */ {
 		unsigned long	offset;
 		unsigned int	bit_size;
 		unsigned int	bit_offset:8,

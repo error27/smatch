@@ -53,7 +53,7 @@ struct expression {
 		struct expression *unop;
 
 		// EXPR_SYMBOL
-		struct symbol_arg {
+		struct /* symbol_arg */ {
 			struct symbol *symbol;
 			struct ident *symbol_name;
 		};
@@ -62,35 +62,35 @@ struct expression {
 		struct statement *statement;
 
 		// EXPR_BINOP, EXPR_COMMA, EXPR_COMPARE, EXPR_LOGICAL and EXPR_ASSIGNMENT
-		struct binop_arg {
+		struct /* binop_arg */ {
 			struct expression *left, *right;
 		};
 		// EXPR_DEREF
-		struct deref_arg {
+		struct /* deref_arg */ {
 			struct expression *deref;
 			struct ident *member;
 		};
 		// EXPR_CAST and EXPR_SIZEOF
-		struct cast_arg {
+		struct /* cast_arg */ {
 			struct symbol *cast_type;
 			struct expression *cast_expression;
 		};
 		// EXPR_CONDITIONAL
-		struct conditional_expr {
+		struct /* conditional_expr */ {
 			struct expression *conditional, *cond_true, *cond_false;
 		};
 		// EXPR_CALL
-		struct call_expr {
+		struct /* call_expr */ {
 			struct expression *fn;
 			struct expression_list *args;
 		};
 		// EXPR_BITFIELD
-		struct bitfield_expr {
+		struct /* bitfield_expr */ {
 			unsigned char bitpos, nrbits;
 			struct expression *address;
 		};
 		// EXPR_LABEL
-		struct label_expr {
+		struct /* label_expr */ {
 			struct symbol *label_symbol;
 		};
 		// EXPR_INITIALIZER
@@ -98,11 +98,11 @@ struct expression {
 		// EXPR_IDENTIFIER
 		struct ident *expr_ident;
 		// EXPR_INDEX
-		struct index_expr {
+		struct /* index_expr */ {
 			unsigned int idx_from, idx_to;
 		};
 		// EXPR_POS
-		struct initpos_expr {
+		struct /* initpos_expr */ {
 			unsigned int init_offset;
 			struct symbol *init_sym;
 			struct expression *init_expr;

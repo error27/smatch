@@ -28,41 +28,41 @@ struct statement {
 	enum statement_type type;
 	struct position pos;
 	union {
-		struct label_arg {
+		struct /* label_arg */ {
 			struct symbol *label;
 			struct statement *label_statement;
 		};
 		struct expression *expression;
-		struct return_statement {
+		struct /* return_statement */ {
 			struct expression *ret_value;
 			struct symbol *ret_target;
 		};
-		struct if_statement {
+		struct /* if_statement */ {
 			struct expression *if_conditional;
 			struct statement *if_true;
 			struct statement *if_false;
 		};
-		struct compound_struct {
+		struct /* compound_struct */ {
 			struct symbol_list *syms;
 			struct statement_list *stmts;
 			struct symbol *ret;
 		};
-		struct labeled_struct {
+		struct /* labeled_struct */ {
 			struct symbol *label_identifier;
 			struct statement *label_statement;
 		};
-		struct case_struct {
+		struct /* case_struct */ {
 			struct expression *case_expression;
 			struct expression *case_to;
 			struct statement *case_statement;
 			struct symbol *case_label;
 		};
-		struct switch_struct {
+		struct /* switch_struct */ {
 			struct expression *switch_expression;
 			struct statement *switch_statement;
 			struct symbol *switch_break, *switch_case;
 		};
-		struct iterator_struct {
+		struct /* iterator_struct */ {
 			struct symbol *iterator_break;
 			struct symbol *iterator_continue;
 			struct symbol_list *iterator_syms;
@@ -74,7 +74,7 @@ struct statement {
 			struct statement  *iterator_post_statement;
 			struct expression *iterator_post_condition;
 		};
-		struct goto_struct {
+		struct /* goto_struct */ {
 			struct symbol *goto_label;
 			struct expression *goto_expression;
 		};
