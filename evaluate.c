@@ -430,8 +430,11 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 
 static int is_null_ptr(struct expression *expr)
 {
-	return (expr->type == EXPR_VALUE &&
-		expr->value == 0);
+	if (expr->type != EXPR_VALUE || expr->value)
+		return 0;
+	if (!is_ptr_type(expr->ctype))
+		warn(expr->pos, "Using plain integer as NULL pointer");
+	return 1;
 }
 
 static struct symbol *common_ptr_type(struct expression *l, struct expression *r)
