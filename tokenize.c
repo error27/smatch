@@ -94,8 +94,18 @@ const char *show_token(const struct token *token)
 		return buffer;
 	}
 
-	case TOKEN_INTEGER:
-		return token->integer;
+	case TOKEN_INTEGER: {
+		const char *p = token->integer;
+		switch (*p) {
+		case 'o':	// octal
+		case 'x':	// hex
+			buffer[0] = '0';
+			strcpy(buffer+1, p+1);
+			return buffer;
+		default:
+			return p;
+		}
+	}
 
 	case TOKEN_FP:
 		return token->fp;
@@ -258,6 +268,7 @@ static int get_one_number(int c, action_t *action)
 	switch (next) {
 	case '0'...'7':
 		if (c == '0') {
+			buffer[0] = 'o';
 			next = get_base_number(8, &p, next, action);
 			break;
 		}
@@ -266,8 +277,10 @@ static int get_one_number(int c, action_t *action)
 		next = get_base_number(10, &p, next, action);
 		break;
 	case 'x': case 'X':
-		if (c == '0')
+		if (c == '0') {
+			buffer[0] = 'x';
 			next = get_base_number(16, &p, next, action);
+		}
 	}
 	return do_integer(buffer, p - buffer, next, action);
 }
