@@ -871,36 +871,44 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	struct expression *op = expr->unop;
 	struct symbol *ctype = op->ctype, *sym;
 
+	/* Simplify: *&(expr) => (expr) */
+	if (op->type == EXPR_PREOP && op->op == '&') {
+		*expr = *op->unop;
+		return expr->ctype;
+	}
+
 	/* Dereferencing a node drops all the node information. */
 	if (ctype->type == SYM_NODE)
 		ctype = ctype->ctype.base_type;
 
-	if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
-		warn(expr->pos, "cannot derefence this type");
-		return 0;
-	}
-
-	/* The new node gets the ctype information from the pointer */
 	sym = alloc_symbol(expr->pos, SYM_NODE);
-	sym->ctype = ctype->ctype;
+	expr->ctype = sym;
 
-	ctype = ctype->ctype.base_type;
-	examine_symbol_type(ctype);
-	if (!ctype) {
-		warn(expr->pos, "undefined type");
+	switch (ctype->type) {
+	default:
+		warn(expr->pos, "cannot derefence this type");
 		return NULL;
+	case SYM_PTR:
+		merge_type(sym, ctype);
+		ctype = ctype->ctype.base_type;
+		if (ctype->type != SYM_ARRAY)
+			break;
+		/*
+		 * Dereferencing a pointer to an array results in a
+		 * pointer to the entry
+		 */
+		sym->ctype.base_type = alloc_symbol(expr->pos, SYM_PTR);
+		sym = sym->ctype.base_type;
+		/* Fallthrough */
+	case SYM_ARRAY:
+		merge_type(sym, ctype);
+		ctype = ctype->ctype.base_type;
 	}
 
 	sym->bit_size = ctype->bit_size;
 	sym->array_size = ctype->array_size;
 
-	/* Simplify: *&(expr) => (expr) */
-	if (op->type == EXPR_PREOP && op->op == '&') {
-		*expr = *op->unop;
-	}
-
-	expr->ctype = sym;
-	return sym;
+	return expr->ctype;
 }
 
 /*
