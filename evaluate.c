@@ -2375,6 +2375,64 @@ static void evaluate_iterator(struct statement *stmt)
 	evaluate_statement(stmt->iterator_post_statement);
 }
 
+static void evaluate_asm_statement(struct statement *stmt)
+{
+	struct expression *expr;
+	int even_odd;
+
+	expr = stmt->asm_string;
+	if (!expr || expr->type != EXPR_STRING) {
+		warning(stmt->pos, "need constant string for inline asm");
+		return;
+	}
+
+	even_odd = 0;
+	FOR_EACH_PTR(stmt->asm_outputs, expr) {
+		if (!expr) {
+			warning(stmt->pos, "bad asm output");
+			return;
+		}
+		even_odd = 1 - even_odd;
+		if (even_odd) {
+			if (expr->type == EXPR_STRING)
+				continue;
+			warning(expr->pos, "asm output constraint is not a string");
+			continue;
+		}
+		if (!evaluate_expression(expr))
+			return;
+		if (!lvalue_expression(expr))
+			warning(expr->pos, "asm output is not an lvalue");
+	} END_FOR_EACH_PTR(expr);
+
+	even_odd = 0;
+	FOR_EACH_PTR(stmt->asm_inputs, expr) {
+		if (!expr) {
+			warning(stmt->pos, "bad asm output");
+			return;
+		}
+		even_odd = 1 - even_odd;
+		if (even_odd) {
+			if (expr->type == EXPR_STRING)
+				continue;
+			warning(expr->pos, "asm input constraint is not a string");
+			continue;
+		}
+		if (!evaluate_expression(expr))
+			return;
+	} END_FOR_EACH_PTR(expr);
+
+	FOR_EACH_PTR(stmt->asm_clobbers, expr) {
+		if (!expr) {
+			warning(stmt->pos, "bad asm output");
+			return;
+		}
+		if (expr->type == EXPR_STRING)
+			continue;
+		warning(expr->pos, "asm clobber is not a string");
+	} END_FOR_EACH_PTR(expr);
+}
+
 struct symbol *evaluate_statement(struct statement *stmt)
 {
 	if (!stmt)
@@ -2435,8 +2493,8 @@ struct symbol *evaluate_statement(struct statement *stmt)
 	case STMT_NONE:
 		break;
 	case STMT_ASM:
-		/* FIXME! Do the asm parameter evaluation! */
-		break;
+		evaluate_asm_statement(stmt);
+		return NULL;
 	case STMT_INTERNAL:
 		evaluate_expression(stmt->expression);
 		return NULL;
