@@ -3,7 +3,7 @@
  * to tokenize, pre-process and parse a C file, and prints out
  * the results.
  *
- * Copyright (C) 2003 Linus Torvalds, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp, all rights reserved.
  */
 #include <stdarg.h>
 #include <stdlib.h>

@@ -3,7 +3,7 @@
  *
  * Let's see how hard this is to do.
  *
- * Copyright (C) 2003 Linus Torvalds, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp, all rights reserved.
  */
 
 #include <stdarg.h>

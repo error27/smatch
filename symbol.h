@@ -3,7 +3,7 @@
 /*
  * Basic symbol and namespace definitions.
  *
- * Copyright (C) 2003 Linus Torvalds, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp, all rights reserved
  */
 
 #include "token.h"

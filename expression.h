@@ -3,7 +3,7 @@
 /*
  * sparse/expression.h
  *
- * Copyright (C) 2003 Linus Torvalds, all rights reserved
+ * Copyright (C) 2003 Transmeta Corp, all rights reserved.
  *
  * Declarations and helper functions for expression parsing.
  */

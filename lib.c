@@ -1,7 +1,7 @@
 /*
  * 'sparse' library helper routines.
  *
- * Copyright (C) 2003 Linus Torvalds, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp, all rights reserved.
  */
 #include <stddef.h>
 #include <stdarg.h>

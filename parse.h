@@ -3,7 +3,7 @@
 /*
  * Basic parsing data structures. Statements and symbols.
  *
- * Copyright (C) 2003 Linus Torvalds, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp, all rights reserved.
  */
 
 #include "symbol.h"

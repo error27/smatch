@@ -3,7 +3,7 @@
  *
  * This is pretty trivial.
  *
- * Copyright (C) 2003 Linus Torvalds, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp, all rights reserved.
  */
 #include <stdlib.h>
 #include <string.h>

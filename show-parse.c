@@ -1,7 +1,7 @@
 /*
  * sparse/show-parse.c
  *
- * Copyright (C) 2003 Linus Torvalds, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp, all rights reserved.
  *
  * Print out results of parsing for debugging and testing.
  */
