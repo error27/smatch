@@ -706,7 +706,6 @@ static struct basic_block * rewrite_branch_bb(struct basic_block *bb, struct ins
 	while ((parent = first_basic_block(bb->parents)) != NULL) {
 		if (!rewrite_parent_branch(parent, bb, target))
 			return NULL;
-		remove_bb_from_list(&bb->parents, parent, 0);
 	}
 	return target;
 }
@@ -779,9 +778,16 @@ static void vrfy_children(struct basic_block *bb)
 		return;
 	}
 	switch (br->opcode) {
+		struct multijmp *jmp;
 	case OP_BR:
 		vrfy_bb_in_list(br->bb_true, bb->children);
 		vrfy_bb_in_list(br->bb_false, bb->children);
+		break;
+	case OP_SWITCH:
+	case OP_COMPUTEDGOTO:
+		FOR_EACH_PTR(br->multijmp_list, jmp) {
+			vrfy_bb_in_list(jmp->target, bb->children);
+		} END_FOR_EACH_PTR(jmp);
 		break;
 	default:
 		break;
