@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 #include <assert.h>
 
 #include "symbol.h"
@@ -917,38 +918,167 @@ static void generate_select(struct bb_state *state, struct instruction *insn)
 	output_insn(state, "sel%s %s,%s", cond, src2->name, dst->name);
 }
 
-static void generate_asm_inputs(struct bb_state *state, struct asm_constraint_list *list)
+struct asm_arg {
+	const struct ident *name;
+	const char *value;
+};
+
+static void replace_asm_arg(char **dst_p, struct asm_arg *arg)
 {
-	struct asm_constraint *entry;
+	char *dst = *dst_p;
+	int len = strlen(arg->value);
 
-	FOR_EACH_PTR(list, entry) {
-		const char *constraint = entry->constraint;
-		pseudo_t pseudo = entry->pseudo;
-
-		output_insn(state, "# asm input \"%s\": %s", constraint, show_pseudo(pseudo));
-	} END_FOR_EACH_PTR(entry);
+	memcpy(dst, arg->value, len);
+	*dst_p = dst + len;
 }
 
-static void generate_asm_outputs(struct bb_state *state, struct asm_constraint_list *list)
+static void replace_asm_percent(const char **src_p, char **dst_p, struct asm_arg *args, int nr)
+{
+	const char *src = *src_p;
+	char c;
+	int index;
+
+	c = *src++;
+	switch (c) {
+	case '0' ... '9':
+		index = c - '0';
+		if (index < nr)
+			replace_asm_arg(dst_p, args+index);
+		break;
+	}	
+	*src_p = src;
+	return;
+}
+
+static void replace_asm_named(const char **src_p, char **dst_p, struct asm_arg *args, int nr)
+{
+	const char *src = *src_p;
+	const char *end = src;
+
+	for(;;) {
+		char c = *end++;
+		if (!c)
+			return;
+		if (c == ']') {
+			int i;
+
+			*src_p = end;
+			for (i = 0; i < nr; i++) {
+				const struct ident *ident = args[i].name;
+				int len;
+				if (!ident)
+					continue;
+				len = ident->len;
+				if (memcmp(src, ident->name, len))
+					continue;
+				replace_asm_arg(dst_p, args+i);
+				return;
+			}
+		}
+	}
+}
+
+static const char *replace_asm_args(const char *str, struct asm_arg *args, int nr)
+{
+	static char buffer[1000];
+	char *p = buffer;
+
+	for (;;) {
+		char c = *str;
+		*p = c;
+		if (!c)
+			return buffer;
+		str++;
+		switch (c) {
+		case '%':
+			if (*str == '%') {
+				str++;
+				p++;
+				continue;
+			}
+			replace_asm_percent(&str, &p, args, nr);
+			continue;
+		case '[':
+			replace_asm_named(&str, &p, args, nr);
+			continue;
+		default:
+			break;
+		}
+		p++;
+	}
+}
+
+#define MAX_ASM_ARG (50)
+static struct asm_arg *generate_asm_inputs(struct bb_state *state, struct asm_constraint_list *list, struct asm_arg *arg)
 {
 	struct asm_constraint *entry;
 
 	FOR_EACH_PTR(list, entry) {
 		const char *constraint = entry->constraint;
 		pseudo_t pseudo = entry->pseudo;
+		const char *string;
+
+		string = "undef";
+		switch (*constraint) {
+		case 'r':
+			string = getreg(state, pseudo, NULL)->name;
+			break;
+		default:
+			string = generic(state, pseudo);
+			break;
+		}
+
+		output_insn(state, "# asm input \"%s\": %s : %s", constraint, show_pseudo(pseudo), string);
+
+		arg->name = entry->ident;
+		arg->value = string;
+		arg++;
+	} END_FOR_EACH_PTR(entry);
+	return arg;
+}
+
+static struct asm_arg *generate_asm_outputs(struct bb_state *state, struct asm_constraint_list *list, struct asm_arg *arg)
+{
+	struct asm_constraint *entry;
+
+	FOR_EACH_PTR(list, entry) {
+		const char *constraint = entry->constraint;
+		pseudo_t pseudo = entry->pseudo;
+		const char *string;
 
 		while (*constraint == '=' || *constraint == '+')
 			constraint++;
 
-		output_insn(state, "# asm output \"%s\": %s", constraint, show_pseudo(pseudo));
+		string = "undef";
+		switch (*constraint) {
+		case 'r':
+		default:
+			string = target_reg(state, pseudo, NULL)->name;
+			break;
+		}
+
+		output_insn(state, "# asm output \"%s\": %s : %s", constraint, show_pseudo(pseudo), string);
+
+		arg->name = entry->ident;
+		arg->value = string;
+		arg++;
 	} END_FOR_EACH_PTR(entry);
+	return arg;
 }
 
 static void generate_asm(struct bb_state *state, struct instruction *insn)
 {
-	generate_asm_inputs(state, insn->asm_rules->inputs);
-	output_insn(state, "ASM: %s", insn->string);
-	generate_asm_outputs(state, insn->asm_rules->outputs);
+	const char *str = insn->string;
+
+	if (insn->asm_rules->outputs || insn->asm_rules->inputs) {
+		static struct asm_arg args[MAX_ASM_ARG];
+		struct asm_arg *arg;
+
+		arg = generate_asm_outputs(state, insn->asm_rules->outputs, args);
+		arg = generate_asm_inputs(state, insn->asm_rules->inputs, arg);
+		str = replace_asm_args(str, args, arg - args);
+	}
+	output_insn(state, "%s", str);
 }
 
 static void generate_compare(struct bb_state *state, struct instruction *insn)
