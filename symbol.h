@@ -162,12 +162,9 @@ struct symbol {
 /* Current parsing/evaluation function */
 extern struct symbol *current_fn;
 
-/* Basic types */
-extern struct symbol	void_type,
-			int_type,
-			fp_type,
-			vector_type,
-			bad_type;
+/* Abstract types */
+extern struct symbol	int_type,
+			fp_type;
 
 /* C types */
 extern struct symbol	bool_ctype, void_ctype, type_ctype,
@@ -178,7 +175,7 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			llong_ctype, sllong_ctype, ullong_ctype,
 			float_ctype, double_ctype, ldouble_ctype,
 			string_ctype, ptr_ctype, lazy_ptr_ctype,
-			incomplete_ctype, label_ctype, bad_enum_ctype;
+			incomplete_ctype, label_ctype, bad_ctype;
 
 
 #define __IDENT(n,str,res) \

@@ -195,6 +195,7 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 		{ &ldouble_ctype,"long double" },
 		{ &incomplete_ctype, "incomplete type" },
 		{ &label_ctype, "label type" },
+		{ &bad_ctype, "bad type" },
 	};
 
 	if (!sym)

@@ -309,7 +309,7 @@ static struct symbol *examine_enum_type(struct symbol *sym)
 {
 	struct symbol *base_type = examine_base_type(sym);
 
-	if (!base_type || base_type == &bad_enum_ctype) {
+	if (!base_type || base_type == &bad_ctype) {
 		warning(sym->pos, "invalid enum type");
 		sym->bit_size = -1;
 		return sym;
@@ -618,9 +618,7 @@ static struct sym_init eval_init_table[] = {
  * Abstract types
  */
 struct symbol	int_type,
-		fp_type,
-		vector_type,
-		bad_type;
+		fp_type;
 
 /*
  * C types (ie actual instances that the abstract types
@@ -634,7 +632,7 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		llong_ctype, sllong_ctype, ullong_ctype,
 		float_ctype, double_ctype, ldouble_ctype,
 		string_ctype, ptr_ctype, lazy_ptr_ctype,
-		incomplete_ctype, label_ctype, bad_enum_ctype;
+		incomplete_ctype, label_ctype, bad_ctype;
 
 
 #define __INIT_IDENT(str, res) { .len = sizeof(str)-1, .name = str, .reserved = res }
@@ -684,7 +682,7 @@ static const struct ctype_declare {
 	{ &void_ctype,	    SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
 	{ &type_ctype,	    SYM_BASETYPE, MOD_TYPE,		    NULL,		     NULL,		 NULL },
 	{ &incomplete_ctype,SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
-	{ &bad_enum_ctype,	SYM_BAD, 0,			    NULL,		     NULL,		 NULL },
+	{ &bad_ctype,	    SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
 
 	{ &char_ctype,	    SYM_BASETYPE, MOD_SIGNED | MOD_CHAR,    &bits_in_char,	     &max_int_alignment, &int_type },
 	{ &schar_ctype,	    SYM_BASETYPE, MOD_ESIGNED | MOD_CHAR,   &bits_in_char,	     &max_int_alignment, &int_type },

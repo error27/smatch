@@ -1324,7 +1324,7 @@ static struct symbol *degenerate(struct expression *expr)
 	case SYM_FN:
 		if (expr->op != '*' || expr->type != EXPR_PREOP) {
 			warning(expr->pos, "strange non-value function or array");
-			return NULL;
+			return &bad_ctype;
 		}
 		*expr = *expr->unop;
 		ctype = create_pointer(expr, ctype, 1);

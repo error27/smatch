@@ -133,7 +133,7 @@ struct token *struct_union_enum_specifier(enum type type,
 	// private struct/union/enum type
 	if (!match_op(token, '{')) {
 		warning(token->pos, "expected declaration");
-		ctype->base_type = &bad_type;
+		ctype->base_type = &bad_ctype;
 		return token;
 	}
 
@@ -225,7 +225,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 		sym->value = lastval;
 		sym->ctype.base_type = ctype;
 
-		if (base_type != &bad_enum_ctype) {
+		if (base_type != &bad_ctype) {
 			if (ctype->type == SYM_NODE)
 				ctype = ctype->ctype.base_type;
 			if (ctype->type == SYM_ENUM)
@@ -238,7 +238,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 			 *  - if enums are of different types, they
 			 *    all have to be integer types, and the
 			 *    base type is "int_ctype".
-			 *  - otherwise the base_type is "bad_enum_ctype".
+			 *  - otherwise the base_type is "bad_ctype".
 			 */
 			if (!base_type) {
 				base_type = ctype;
@@ -247,7 +247,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 			} else if (is_int_type(base_type) && is_int_type(ctype)) {
 				base_type = &int_ctype;
 			} else
-				base_type = &bad_enum_ctype;
+				base_type = &bad_ctype;
 		}
 		if (is_int_type(base_type)) {
 			Num v = {.y = lastval};
@@ -266,7 +266,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 		token = token->next;
 	}
 	if (!base_type)
-		base_type = &bad_enum_ctype;
+		base_type = &bad_ctype;
 	else if (!is_int_type(base_type))
 		base_type = base_type;
 	else if (type_is_ok(base_type, &upper, &lower))
@@ -284,7 +284,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 	else if (type_is_ok(&ullong_ctype, &upper, &lower))
 		base_type = &ullong_ctype;
 	else
-		base_type = &bad_enum_ctype;
+		base_type = &bad_ctype;
 	parent->ctype.base_type = base_type;
 	parent->ctype.modifiers |= (base_type->ctype.modifiers & MOD_UNSIGNED);
 	return token;
