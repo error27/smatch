@@ -112,6 +112,9 @@ enum opcode {
 	/* Uni */
 	OP_NOT,
 	OP_NEG,
+
+	/* Setcc - always in combination with a select or conditional branch */
+	OP_SETCC,
 	
 	/* Memory */
 	OP_MALLOC,

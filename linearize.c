@@ -22,6 +22,7 @@
 pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt);
 pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr);
 
+static void add_setcc(struct entrypoint *ep, struct expression *expr, pseudo_t val);
 static pseudo_t add_binary_op(struct entrypoint *ep, struct expression *expr, int op, pseudo_t left, pseudo_t right);
 static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct expression *val);
 static pseudo_t add_const_value(struct entrypoint *ep, struct position pos, struct symbol *ctype, int val);
@@ -181,6 +182,7 @@ static void show_instruction(struct instruction *insn)
 			[OP_SHL - OP_BINARY] = "shl", [OP_SHR - OP_BINARY] = "shr",
 			[OP_AND_BOOL - OP_BINARY] = "and-bool",
 			[OP_OR_BOOL - OP_BINARY] = "or-bool",
+			[OP_SEL - OP_BINARY] = "select",
 		};
 		printf("\t%%r%d <- %s  %%r%d, %%r%d\n",
 			insn->target->nr,
@@ -211,6 +213,9 @@ static void show_instruction(struct instruction *insn)
 		printf("\t%%r%d <- %s %%r%d\n",
 			insn->target->nr,
 			op == OP_NOT ? "not" : "neg", insn->src1->nr);
+		break;
+	case OP_SETCC:
+		printf("\tsetcc %%r%d\n", insn->src->nr);
 		break;
 	default:
 		printf("\top %d ???\n", op);
@@ -309,6 +314,17 @@ static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
 	ep->active = bb;
 	if (bb_reachable(bb))
 		add_bb(&ep->bbs, bb);
+}
+
+static void add_setcc(struct entrypoint *ep, struct expression *expr, pseudo_t val)
+{
+	struct basic_block *bb = ep->active;
+
+	if (bb_reachable(bb)) {
+		struct instruction *cc = alloc_instruction(OP_SETCC, &bool_ctype);
+		cc->src = val;
+		add_one_insn(ep, expr->pos, cc);
+	}
 }
 
 static void add_branch(struct entrypoint *ep, struct expression *expr, pseudo_t cond, struct basic_block *bb_true, struct basic_block *bb_false)
@@ -591,7 +607,7 @@ static pseudo_t linearize_select(struct entrypoint *ep, struct expression *expr)
 	if (!true)
 		true = cond;
 
-	/* FIXME! This needs a ternary operation */
+	add_setcc(ep, expr, cond);
 	return add_binary_op(ep, expr, OP_SEL, true, false);
 }
 
