@@ -642,8 +642,10 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 				break;
 			token = token->next;
 		}
-		if (!match_op(token, ';'))
+		if (!match_op(token, ';')) {
+			warn(token->pos, "expected ; at end of declaration");
 			break;
+		}
 		token = token->next;
 	}
 	return token;
