@@ -132,24 +132,33 @@ static struct reg_info reg_info_table[] = {
 	{ "%ecx" },
 	{ "%edx" },
 	{ "%esp" },
+	{ "%dl" },
 };
 
 static struct storage hardreg_storage_table[] = {
-	{
+	{	/* eax */
 		.type = STOR_REG,
 		.reg = &reg_info_table[0],
 	},
-	{
+
+	{	/* ecx */
 		.type = STOR_REG,
 		.reg = &reg_info_table[1],
 	},
-	{
+
+	{	/* edx */
 		.type = STOR_REG,
 		.reg = &reg_info_table[2],
 	},
-	{
+
+	{	/* esp */
 		.type = STOR_REG,
 		.reg = &reg_info_table[3],
+	},
+
+	{	/* dl */
+		.type = STOR_REG,
+		.reg = &reg_info_table[4],
 	},
 };
 
@@ -157,8 +166,13 @@ static struct storage hardreg_storage_table[] = {
 #define REG_ECX (&hardreg_storage_table[1])
 #define REG_EDX (&hardreg_storage_table[2])
 #define REG_ESP (&hardreg_storage_table[3])
+#define REG_DL	(&hardreg_storage_table[4])
 
 
+static void emit_move(struct storage *src, struct storage *dest,
+		      struct symbol *ctype, const char *comment,
+		      unsigned long flags);
+static int type_is_signed(struct symbol *sym);
 static struct storage *x86_address_gen(struct expression *expr);
 static struct storage *x86_symbol_expr(struct symbol *sym);
 static void x86_symbol(struct symbol *sym);
@@ -538,8 +552,10 @@ static void emit_func_post(struct symbol *sym, struct storage *ret_val)
 	push_text_atom(f, jump_target);
 
 	/* function prologue */
-	if (ret_val)
-		insn("movl", ret_val, REG_EAX, NULL, 0);
+	if (ret_val) {
+		/* FIXME: mem operand hardcoded at 32 bits */
+		emit_move(ret_val, REG_EAX, NULL, NULL, 0);
+	}
 
 	val = new_storage(STOR_VALUE);
 	val->value = (long long) (pseudo_nr * 4);
@@ -757,16 +773,13 @@ void emit_unit(const char *basename, struct symbol_list *list)
 	emit_unit_post();
 }
 
-static void emit_move(struct expression *dest_expr, struct storage *dest,
-		      struct storage *src, int bits)
+static void emit_copy(struct storage *src,  struct symbol *src_ctype,
+		      struct storage *dest, struct symbol *dest_ctype)
 {
 	/* FIXME: Bitfield move! */
 
-	/* FIXME: pay attention to arg 'bits' */
-	insn("movl", src, REG_EAX, NULL, 0);
-
-	/* FIXME: pay attention to arg 'bits' */
-	insn("movl", REG_EAX, dest, NULL, 0);
+	emit_move(src, REG_EAX, src_ctype, "begin copy ...", 0);
+	emit_move(REG_EAX, dest, dest_ctype, "... end copy", 0);
 }
 
 static void emit_store(struct expression *dest_expr, struct storage *dest,
@@ -792,45 +805,123 @@ static void emit_array_noinit(struct symbol *sym)
 	stor_sym_init(sym);
 }
 
+static const char *opbits(const char *insn, unsigned int bits)
+{
+	static char opbits_str[32];
+	char c;
+
+	switch (bits) {
+	case 8:	 c = 'b'; break;
+	case 16: c = 'w'; break;
+	case 32: c = 'l'; break;
+	case 64: c = 'q'; break;
+	default: assert(0); break;
+	}
+
+	sprintf(opbits_str, "%s%c", insn, bits);
+
+	return opbits_str;
+}
+
+static void emit_move(struct storage *src, struct storage *dest,
+		      struct symbol *ctype, const char *comment,
+		      unsigned long flags)
+{
+	unsigned int bits;
+	unsigned int is_signed;
+	unsigned int is_dest = (src->type == STOR_REG);
+	const char *opname;
+
+	if (ctype) {
+		bits = ctype->bit_size;
+		is_signed = type_is_signed(ctype);
+	} else {
+		bits = 32;
+		is_signed = 0;
+	}
+
+	if ((dest->type == STOR_REG) && (src->type == STOR_REG)) {
+		insn("mov", src, dest, NULL, 0);
+		return;
+	}
+
+	switch (bits) {
+	case 8:
+		if (is_dest)
+					opname = "movb";
+		else {
+			if (is_signed)	opname = "movsxb";
+			else		opname = "movzxb";
+		}
+		break;
+	case 16:
+		if (is_dest)
+					opname = "movw";
+		else {
+			if (is_signed)	opname = "movsxw";
+			else		opname = "movzxw";
+		}
+		break;
+
+	case 32:			opname = "movl";	break;
+	case 64:			opname = "movq";	break;
+
+	default:			assert(0);		break;
+	}
+
+	insn(opname, src, dest, comment, flags);
+}
+
 static struct storage *emit_compare(struct expression *expr)
 {
 	struct storage *left = x86_expression(expr->left);
 	struct storage *right = x86_expression(expr->right);
-	struct storage *new, *val;
+	struct storage *new;
 	const char *opname = NULL;
+	unsigned int is_signed = type_is_signed(expr->left->ctype); /* FIXME */
+	unsigned int right_bits = expr->right->ctype->bit_size;
 
 	switch(expr->op) {
-	case '<':		opname = "cmovl";	break;
-	case '>':		opname = "cmovg";	break;
-	case SPECIAL_LTE:	opname = "cmovle";	break;
-	case SPECIAL_GTE:	opname = "cmovge";	break;
-	case SPECIAL_EQUAL:	opname = "cmove";	break;
-	case SPECIAL_NOTEQUAL:	opname = "cmovne";	break;
-	default:		assert(0);		break;
+	case '<':
+		if (is_signed)	opname = "setl";
+		else		opname = "setb";
+		break;
+	case '>':
+		if (is_signed)	opname = "setg";
+		else		opname = "seta";
+		break;
+	case SPECIAL_LTE:
+		if (is_signed)	opname = "setle";
+		else		opname = "setbe";
+		break;
+	case SPECIAL_GTE:
+		if (is_signed)	opname = "setge";
+		else		opname = "setae";
+		break;
+
+	case SPECIAL_EQUAL:	opname = "sete";	break;
+	case SPECIAL_NOTEQUAL:	opname = "setne";	break;
+
+	default:
+		assert(0);
+		break;
 	}
 
-	/* init ECX to 1 */
-	val = new_storage(STOR_VALUE);
-	val->value = 1;
-	insn("movl", val, REG_ECX, "EXPR_COMPARE", ATOM_FREE_OP1);
-
 	/* init EDX to 0 */
-	insn("xorl", REG_EDX, REG_EDX, NULL, 0);
+	insn("xor", REG_EDX, REG_EDX, "begin EXPR_COMPARE", 0);
 
-	/* FIXME: don't hardcode operand size */
 	/* move op1 into EAX */
-	insn("movl", left, REG_EAX, NULL, 0);
+	emit_move(left, REG_EAX, expr->left->ctype, NULL, 0);
 
-	/* perform comparison, EAX (op1) and op2 */
-	insn("cmpl", right, REG_EAX, NULL, 0);
+	/* perform comparison, RHS (op1, right) and LHS (op2, EAX) */
+	insn(opbits("cmp", right_bits), right, REG_EAX, NULL, 0);
 
-	/* store result of operation, 0 or 1, in EDX using CMOV */
-	/* FIXME: does this need an operand size suffix? */
-	insn(opname, REG_ECX, REG_EDX, NULL, 0);
+	/* store result of operation, 0 or 1, in DL using SETcc */
+	insn(opname, REG_DL, NULL, NULL, 0);
 
-	/* finally, store the result (EDX) in a new pseudo / stack slot */
+	/* finally, store the result (DL) in a new pseudo / stack slot */
 	new = new_pseudo();
-	insn("movl", REG_EDX, new, "end EXPR_COMPARE", 0);
+	emit_move(REG_EDX, new, NULL, "end EXPR_COMPARE", 0);
 
 	return new;
 }
@@ -970,7 +1061,7 @@ static struct storage *emit_inc_dec(struct expression *expr, int postop)
 	if (postop) {
 		struct storage *new = new_pseudo();
 
-		emit_move(NULL, new, addr, 1234 /* intentionally bogus */);
+		emit_copy(addr, expr->unop->ctype, new, NULL);
 
 		retval = new;
 	} else
@@ -1340,7 +1431,7 @@ static struct storage *x86_assignment(struct expression *expr)
 	bits = expr->ctype->bit_size;
 	val = x86_expression(expr->right);
 	addr = x86_address_gen(target);
-	emit_move(target, addr, val, bits);
+	emit_copy(val, expr->right->ctype, addr, expr->left->ctype);
 	return val;
 }
 
