@@ -400,6 +400,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 			add_symbol(&fn_symbol_list, a);
 		}
 		a->initializer = arg;
+		add_symbol(&stmt->syms, a);
 
 		NEXT_PTR_LIST(name);
 	} END_FOR_EACH_PTR;
