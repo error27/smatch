@@ -135,22 +135,16 @@ static int is_int_type(struct symbol *type)
 	return type->ctype.base_type == &int_type;
 }
 
-static struct symbol * compatible_binop(struct expression *expr)
+static int bad_expr_type(struct expression *expr)
+{
+	warn(expr->token, "incompatible types for operation");
+	return 0;
+}
+
+static struct symbol * compatible_integer_binop(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
 	struct symbol *ltype = left->ctype, *rtype = right->ctype;
-
-	/* Pointer types? */
-	if (is_ptr_type(ltype) || is_ptr_type(rtype)) {
-		/* NULL pointer? */
-		if (left->type == EXPR_VALUE && !left->value)
-			return &ptr_ctype;
-		if (right->type == EXPR_VALUE && !right->value)
-			return &ptr_ctype;
-
-		// FIXME!!
-		return ltype;
-	}
 
 	/* Integer promotion? */
 	if (ltype->type == SYM_ENUM)
@@ -167,21 +161,94 @@ static struct symbol * compatible_binop(struct expression *expr)
 			expr->right = promote(right, ctype);
 		return ctype;
 	}
-
-	warn(expr->token, "incompatible types for operation");
 	return NULL;
+}
+
+static int evaluate_int_binop(struct expression *expr)
+{
+	struct symbol *ctype = compatible_integer_binop(expr);
+	if (ctype) {
+		expr->ctype = ctype;
+		return 1;
+	}
+	return bad_expr_type(expr);
+}
+
+static int evaluate_ptr_add(struct expression *expr, struct expression *ptr, struct expression *i)
+{
+	struct symbol *ptr_type = ptr->ctype;
+	struct symbol *i_type = i->ctype;
+
+	if (i_type->type == SYM_ENUM)
+		i_type = &int_ctype;
+	if (!is_int_type(i_type))
+		return bad_expr_type(expr);
+
+	// FIXME!! Do the size scaling!
+	expr->ctype = ptr_type;
+	return 1;
+}
+
+static int evaluate_plus(struct expression *expr)
+{
+	struct expression *left = expr->left, *right = expr->right;
+	struct symbol *ltype = left->ctype, *rtype = right->ctype;
+
+	if (is_ptr_type(ltype))
+		return evaluate_ptr_add(expr, left, right);
+
+	if (is_ptr_type(rtype))
+		return evaluate_ptr_add(expr, right, left);
+		
+	// FIXME! FP promotion
+	return evaluate_int_binop(expr);
+}
+
+static int evaluate_minus(struct expression *expr)
+{
+	// FIXME! FP promotion and pointer operations
+	return evaluate_int_binop(expr);
+}
+
+static int evaluate_logical(struct expression *expr)
+{
+	// FIXME! Short-circuit, FP and pointers!
+	expr->ctype = &bool_ctype;
+	return 1;
+}
+
+static int evaluate_arithmetic(struct expression *expr)
+{
+	// FIXME! Floating-point promotion!
+	return evaluate_int_binop(expr);
 }
 
 static int evaluate_binop(struct expression *expr)
 {
-	struct symbol *ctype;
-	// FIXME! handle int + ptr and ptr - ptr here
+	switch (expr->op) {
+	// addition can take ptr+int, fp and int
+	case '+':
+		return evaluate_plus(expr);
 
-	ctype = compatible_binop(expr);
-	if (!ctype)
-		return 0;
-	expr->ctype = ctype;
-	return 1;
+	// subtraction can take ptr-ptr, fp and int
+	case '-':
+		return evaluate_minus(expr);
+
+	// Logical ops can take a lot of special stuff and have early-out
+	case SPECIAL_LOGICAL_AND:
+	case SPECIAL_LOGICAL_OR:
+		return evaluate_logical(expr);
+
+	// Arithmetic operations can take fp and int
+	case '*': case '/': case '%':
+		return evaluate_arithmetic(expr);
+
+	// The rest are integer operations (bitops)
+	// SPECIAL_LEFTSHIFT, SPECIAL_RIGHTSHIFT
+	// '&', '^', '|'
+	default:
+		return evaluate_int_binop(expr);
+	}
 }
 
 static int evaluate_comma(struct expression *expr)
@@ -192,10 +259,22 @@ static int evaluate_comma(struct expression *expr)
 
 static int evaluate_compare(struct expression *expr)
 {
-	if (!compatible_binop(expr))
-		return 0;
-	expr->ctype = &bool_ctype;
-	return 1;
+	struct expression *left = expr->left, *right = expr->right;
+	struct symbol *ltype = left->ctype, *rtype = right->ctype;
+
+	/* Pointer types? */
+	if (is_ptr_type(ltype) || is_ptr_type(rtype)) {
+		expr->ctype = &bool_ctype;
+		// FIXME! Check the types for compatibility
+		return 1;
+	}
+
+	if (compatible_integer_binop(expr)) {
+		expr->ctype = &bool_ctype;
+		return 1;
+	}
+
+	return bad_expr_type(expr);
 }
 
 static int evaluate_assignment(struct expression *expr)
