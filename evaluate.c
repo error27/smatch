@@ -305,8 +305,6 @@ static struct symbol *evaluate_arith(struct expression *expr, int float_ok)
 
 static inline int lvalue_expression(struct expression *expr)
 {
-	while (expr->type == EXPR_CAST)
-		expr = expr->cast_expression;
 	return (expr->type == EXPR_PREOP && expr->op == '*') || expr->type == EXPR_BITFIELD;
 }
 
@@ -925,13 +923,64 @@ static struct symbol *evaluate_binop_assignment(struct expression *expr, struct 
 		[SPECIAL_OR_ASSIGN - SPECIAL_BASE] = '|',
 		[SPECIAL_XOR_ASSIGN - SPECIAL_BASE] = '^'
 	};
+	struct expression *e0, *e1, *e2, *e3, *e4, *e5;
+	struct symbol *a = alloc_symbol(expr->pos, SYM_NODE);
+	struct symbol *ltype = left->ctype;
+	struct expression *addr;
+	struct symbol *lptype;
 
-	subexpr->left = left;
-	subexpr->right = right;
-	subexpr->op = op_trans[op - SPECIAL_BASE];
-	expr->op = '=';
-	expr->right = subexpr;
-	return evaluate_binop(subexpr);
+	if (left->type == EXPR_BITFIELD)
+		addr = left->address;
+	else
+		addr = left->unop;
+
+	lptype = addr->ctype;
+
+	a->ctype.base_type = lptype;
+	a->bit_size = lptype->bit_size;
+	a->array_size = lptype->array_size;
+
+	e0 = alloc_expression(expr->pos, EXPR_SYMBOL);
+	e0->symbol = a;
+	e0->ctype = &lazy_ptr_ctype;
+
+	e1 = alloc_expression(expr->pos, EXPR_PREOP);
+	e1->unop = e0;
+	e1->op = '*';
+	e1->ctype = lptype;
+
+	e2 = alloc_expression(expr->pos, EXPR_ASSIGNMENT);
+	e2->left = e1;
+	e2->right = addr;
+	e2->op = '=';
+	e2->ctype = lptype;
+
+	/* we can't cannibalize left, unfortunately */
+	e3 = alloc_expression(expr->pos, left->type);
+	*e3 = *left;
+	if (e3->type == EXPR_BITFIELD)
+		e3->address = e1;
+	else
+		e3->unop = e1;
+
+	e4 = alloc_expression(expr->pos, EXPR_BINOP);
+	e4->op = subexpr->op = op_trans[op - SPECIAL_BASE];
+	e4->left = e3;
+	e4->right = right;
+	/* will calculate type later */
+
+	e5 = alloc_expression(expr->pos, EXPR_ASSIGNMENT);
+	e5->left = e3;	/* we can share that one */
+	e5->right = e4;
+	e5->op = '=';
+	e5->ctype = ltype;
+
+	expr->type = EXPR_COMMA;
+	expr->left = e2;
+	expr->right = e5;
+	expr->ctype = ltype;
+
+	return evaluate_binop(e4);
 }
 
 static void evaluate_assign_to(struct expression *left, struct symbol *type)
@@ -945,25 +994,27 @@ static void evaluate_assign_to(struct expression *left, struct symbol *type)
 static struct symbol *evaluate_assignment(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
+	struct expression *where = expr;
 	struct symbol *ltype, *rtype;
-
-	ltype = left->ctype;
-	rtype = right->ctype;
-	if (expr->op != '=') {
-		rtype = evaluate_binop_assignment(expr, left, right);
-		if (!rtype)
-			return NULL;
-		right = expr->right;
-	}
 
 	if (!lvalue_expression(left)) {
 		warn(expr->pos, "not an lvalue");
 		return NULL;
 	}
 
+	ltype = left->ctype;
+
+	if (expr->op != '=') {
+		if (!evaluate_binop_assignment(expr, left, right))
+			return NULL;
+		where = expr->right;	/* expr is EXPR_COMMA now */
+		left = where->left;
+		right = where->right;
+	}
+
 	rtype = degenerate(right);
 
-	if (!compatible_assignment_types(expr, ltype, &expr->right, rtype, "assignment"))
+	if (!compatible_assignment_types(where, ltype, &where->right, rtype, "assignment"))
 		return NULL;
 
 	evaluate_assign_to(left, ltype);
@@ -1705,13 +1756,6 @@ static int get_as(struct symbol *sym)
 		as |= sym->ctype.as;
 		mod |= sym->ctype.modifiers;
 	}
-	/*
-	 * You can always throw a value away by casting to
-	 * "void" - that's an implicit "force". Note that
-	 * the same is _not_ true of "void *".
-	 */
-	if (sym == &void_ctype)
-		return -1;
 
 	/*
 	 * At least for now, allow casting to a "unsigned long".
@@ -1735,6 +1779,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 {
 	struct expression *target = expr->cast_expression;
 	struct symbol *ctype = examine_symbol_type(expr->cast_type);
+	enum type type;
 
 	expr->ctype = ctype;
 	expr->cast_type = ctype;
@@ -1770,6 +1815,34 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	evaluate_expression(target);
 	degenerate(target);
 
+	/*
+	 * You can always throw a value away by casting to
+	 * "void" - that's an implicit "force". Note that
+	 * the same is _not_ true of "void *".
+	 */
+	if (ctype == &void_ctype)
+		goto out;
+
+	type = ctype->type;
+	if (type == SYM_NODE) {
+		type = ctype->ctype.base_type->type;
+		if (ctype->ctype.base_type == &void_ctype)
+			goto out;
+	}
+	if (type == SYM_ARRAY || type == SYM_UNION || type == SYM_STRUCT)
+		warn(expr->pos, "cast to non-scalar");
+
+	if (!target->ctype) {
+		warn(expr->pos, "cast from unknown type");
+		goto out;
+	}
+
+	type = target->ctype->type;
+	if (type == SYM_NODE)
+		type = target->ctype->ctype.base_type->type;
+	if (type == SYM_ARRAY || type == SYM_UNION || type == SYM_STRUCT)
+		warn(expr->pos, "cast from non-scalar");
+
 	if (!get_as(ctype) && get_as(target->ctype) > 0)
 		warn(expr->pos, "cast removes address space of expression");
 
@@ -1781,6 +1854,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	if (target->type == EXPR_VALUE)
 		cast_value(expr, ctype, target, target->ctype);
 
+out:
 	return ctype;
 }
 
@@ -1882,8 +1956,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_LOGICAL:
 		return evaluate_logical(expr);
 	case EXPR_COMMA:
-		if (!evaluate_expression(expr->left))
-			return NULL;
+		evaluate_expression(expr->left);
 		if (!evaluate_expression(expr->right))
 			return NULL;
 		return evaluate_comma(expr);
@@ -2044,12 +2117,25 @@ static void evaluate_if_statement(struct statement *stmt)
 	if (!stmt->if_conditional)
 		return;
 
-	ctype = evaluate_conditional(&stmt->if_conditional);
-	if (!ctype)
-		return;
-
+	evaluate_conditional(&stmt->if_conditional);
 	evaluate_statement(stmt->if_true);
 	evaluate_statement(stmt->if_false);
+}
+
+static void evaluate_iterator(struct statement *stmt)
+{
+	struct expression **pre = &stmt->iterator_pre_condition;
+	struct expression **post = &stmt->iterator_post_condition;
+	if (*pre == *post) {
+		evaluate_conditional(pre);
+		*post = *pre;
+	} else {
+		evaluate_conditional(pre);
+		evaluate_conditional(post);
+	}
+	evaluate_statement(stmt->iterator_pre_statement);
+	evaluate_statement(stmt->iterator_statement);
+	evaluate_statement(stmt->iterator_post_statement);
 }
 
 struct symbol *evaluate_statement(struct statement *stmt)
@@ -2062,7 +2148,8 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		return evaluate_return_expression(stmt);
 
 	case STMT_EXPRESSION:
-		evaluate_expression(stmt->expression);
+		if (!evaluate_expression(stmt->expression))
+			return NULL;
 		return degenerate(stmt->expression);
 
 	case STMT_COMPOUND: {
@@ -2092,11 +2179,7 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		evaluate_if_statement(stmt);
 		return NULL;
 	case STMT_ITERATOR:
-		evaluate_conditional(&stmt->iterator_pre_condition);
-		evaluate_conditional(&stmt->iterator_post_condition);
-		evaluate_statement(stmt->iterator_pre_statement);
-		evaluate_statement(stmt->iterator_statement);
-		evaluate_statement(stmt->iterator_post_statement);
+		evaluate_iterator(stmt);
 		return NULL;
 	case STMT_SWITCH:
 		evaluate_expression(stmt->switch_expression);

@@ -102,8 +102,7 @@ static struct expression * copy_expression(struct expression *expr)
 	case EXPR_BINOP:
 	case EXPR_COMMA:
 	case EXPR_COMPARE:
-	case EXPR_LOGICAL:
-	case EXPR_ASSIGNMENT: {
+	case EXPR_LOGICAL: {
 		struct expression *left = copy_expression(expr->left);
 		struct expression *right = copy_expression(expr->right);
 		if (left == expr->left && right == expr->right)
@@ -114,11 +113,20 @@ static struct expression * copy_expression(struct expression *expr)
 		break;
 	}
 
+	case EXPR_ASSIGNMENT: {
+		struct expression *left = copy_expression(expr->left);
+		struct expression *right = copy_expression(expr->right);
+		if (expr->op == '=' && left == expr->left && right == expr->right)
+			break;
+		expr = dup_expression(expr);
+		expr->left = left;
+		expr->right = right;
+		break;
+	}
+
 	/* Dereference */
 	case EXPR_DEREF: {
 		struct expression *deref = copy_expression(expr->deref);
-		if (deref == expr->deref)
-			break;
 		expr = dup_expression(expr);
 		expr->deref = deref;
 		break;
