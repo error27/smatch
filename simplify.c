@@ -233,7 +233,14 @@ static int simplify_constant_rightside(struct instruction *insn)
 	long long value = insn->src2->value;
 
 	switch (insn->opcode) {
-	case OP_ADD: case OP_SUB:
+	case OP_SUB:
+		if (value) {
+			insn->opcode = OP_ADD;
+			insn->src2 = value_pseudo(-value);
+			return REPEAT_CSE;
+		}
+	/* Fallthrough */
+	case OP_ADD:
 	case OP_OR: case OP_XOR:
 	case OP_SHL: case OP_SHR:
 		if (!value)
