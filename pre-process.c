@@ -75,24 +75,6 @@ static struct token *alloc_token(struct position *pos)
 
 static const char *show_token_sequence(struct token *token);
 
-/* Head is one-before-list, and last is one-past-list */
-static struct token *for_each_ident(struct token *parent, struct token *head, struct token *(*action)(struct token *parent, struct token *head, struct token *))
-{
-	for (;;) {
-		struct token *next = head->next;
-
-		/* Did we hit the end of the current expansion? */
-		if (eof_token(next))
-			break;
-
-		if (token_type(next) == TOKEN_IDENT)
-			next = action(parent, head, next);
-
-		head = next;
-	}
-	return head;
-}
-
 static struct token *is_defined(struct token *head, struct token *token, struct token *next)
 {
 	char *string[] = { "0", "1" };
@@ -127,7 +109,7 @@ struct token *defined_one_symbol(struct token *head, struct token *next)
 struct token variable_argument = { .next = &eof_token_entry };
 
 /* Expand symbol 'sym' between 'head->next' and 'head->next->next' */
-static struct token *expand(struct token *, struct token *, struct symbol *);
+static struct token *expand(struct token *, struct symbol *);
 
 static void replace_with_string(struct token *token, const char *str)
 {
@@ -148,26 +130,16 @@ static void replace_with_integer(struct token *token, unsigned int val)
 	token->number = buf;
 }
 
-struct token *expand_one_symbol(struct token *parent, struct token *head, struct token *token)
+struct token *expand_one_symbol(struct token *head, struct token *token)
 {
 	struct symbol *sym;
-	struct token *x;
 
-	/* Avoid recursive expansion */
-	x = token;
-	while ((x = x->parent) != NULL) {
-		if (parent && x->ident == parent->ident)
-			return token;
-		if (x->ident == token->ident)
-			return token;
-	}
+	if (token->noexpand)
+		return token;
 
 	sym = lookup_symbol(token->ident, NS_PREPROCESSOR);
-	if (sym) {
-		if (sym->arglist && !match_op(token->next, '('))
-			return token;
-		return expand(token, head, sym);
-	}
+	if (sym)
+		return expand(head, sym);
 	if (token->ident == &__LINE___ident) {
 		replace_with_integer(token, token->pos.line);
 	} else if (token->ident == &__FILE___ident) {
@@ -178,9 +150,36 @@ struct token *expand_one_symbol(struct token *parent, struct token *head, struct
 	return token;
 }
 
-static struct token *expand_list(struct token *parent, struct token *head)
+static inline void eat_untaint(struct token *head, struct token *token)
 {
-	return for_each_ident(parent, head, expand_one_symbol);
+	do {
+		token->ident->tainted = 0;
+		token = token->next;
+	} while (token_type(token) == TOKEN_UNTAINT);
+	head->next = token;
+}
+
+static struct token *expand_list(struct token *head)
+{
+	for (;;) {
+		struct token *next = head->next;
+
+		/* Did we hit the end of the current expansion? */
+		if (eof_token(next))
+			break;
+
+		switch (token_type(next)) {
+		case TOKEN_IDENT:
+			next = expand_one_symbol(head, next);
+			break;
+		case TOKEN_UNTAINT:
+			eat_untaint(head, next);
+			continue;
+		}
+
+		head = next;
+	}
+	return head;
 }
 
 static struct token *find_argument_end(struct token *start, struct token *arglist)
@@ -189,7 +188,13 @@ static struct token *find_argument_end(struct token *start, struct token *arglis
 
 	while (!eof_token(start)) {
 		struct token *next = start->next;
-		if (match_op(next, '('))
+		if (token_type(next) == TOKEN_UNTAINT) {
+			eat_untaint(start, next);
+			continue;
+		} else if (token_type(next) == TOKEN_IDENT) {
+			if (next->ident->tainted)
+				next->noexpand = 1;
+		} else if (match_op(next, '('))
 			nesting++;
 		else if (match_op(next, ')')) {
 			if (--nesting < 0) {
@@ -213,6 +218,7 @@ static struct token *dup_token(struct token *token, struct position *streampos, 
 	alloc->pos.newline = pos->newline;
 	alloc->pos.whitespace = pos->whitespace;
 	alloc->number = token->number;
+	alloc->noexpand = token->noexpand;
 	return alloc;	
 }
 
@@ -222,14 +228,13 @@ static void insert(struct token *token, struct token *prev)
 	prev->next = token;
 }
 
-static struct token * replace(struct token *parent, struct token *token, struct token *prev, struct token *list)
+static struct token * replace(struct token *token, struct token *prev, struct token *list)
 {
 	struct position *pos = &token->pos;
 
 	prev->next = token->next;
 	while (!eof_token(list) && !match_op(list, SPECIAL_ARG_SEPARATOR)) {
 		struct token *newtok = dup_token(list, &token->pos, pos);
-		newtok->parent = parent;
 		insert(newtok, prev);
 		prev = newtok;
 		list = list->next;
@@ -285,7 +290,7 @@ static int arg_number(struct token *arglist, struct ident *ident)
 
 static struct token empty_arg_token = { .pos = { .type = TOKEN_EOF } };
 
-static struct token *expand_one_arg(struct token *parent, struct token *head, struct token *token, struct token *arguments)
+static struct token *expand_one_arg(struct token *head, struct token *token, struct token *arguments)
 {
 	int nr = token->argnum;
 	struct token *orig_head = head;
@@ -304,18 +309,17 @@ static struct token *expand_one_arg(struct token *parent, struct token *head, st
 			empty_arg_token.next = &eof_token_entry;
 		}
 
-		head = replace(NULL, token, head, arg);
+		head = replace(token, head, arg);
 		if (!match_op(orig_head, SPECIAL_HASHHASH) && !match_op(last, SPECIAL_HASHHASH) && !match_op(orig_head, '#'))
-			head = expand_list(parent, orig_head);
+			head = expand_list(orig_head);
 		head->next = last;
 		return head;
 	}
 	return token;
 }
 
-static void expand_arguments(struct token *parent,
-	struct token *token, struct token *head,
-	struct token *arguments, struct token *arglist)
+static void expand_arguments(struct token *token, struct token *head,
+		struct token *arguments)
 {
 	for (;;) {
 		struct token *next = head->next;
@@ -329,14 +333,14 @@ static void expand_arguments(struct token *parent,
 			if (token_type(nextnext) == TOKEN_MACRO_ARGUMENT) {
 				int nr = nextnext->argnum;
 				struct token *newtoken = stringify(nextnext, get_argument(nr, arguments));
-				replace(NULL, nextnext, head, newtoken);
+				replace(nextnext, head, newtoken);
 				continue;
 			}
 			warn(next->pos, "'#' operation is not followed by argument name");
 		}
 
 		if (token_type(next) == TOKEN_MACRO_ARGUMENT)
-			next = expand_one_arg(parent, head, next, arguments);
+			next = expand_one_arg(head, next, arguments);
 
 		head = next;
 	}
@@ -447,26 +451,37 @@ static void retokenize(struct token *head)
 	}
 }
 
-static struct token *expand(struct token *parent, struct token *head, struct symbol *sym)
+static struct token *expand(struct token *head, struct symbol *sym)
 {
-	struct token *arguments, *token, *last;
+	struct token *arguments, *last;
+	struct token *token = head->next;
+	struct ident *expanding = token->ident;
 
-	token = head->next;
-	last = token->next;
+	if (expanding->tainted) {
+		token->noexpand = 1;
+		return token;
+	}
 
-	arguments = NULL;
 	if (sym->arglist) {
-		arguments = last->next;
-		last = find_argument_end(last, sym->arglist);
+		if (token_type(token->next) == TOKEN_UNTAINT)
+			eat_untaint(token, token->next);
+		arguments = token->next;
+		if (!match_op(arguments, '('))
+			return token;
+		last = find_argument_end(arguments, sym->arglist);
+		arguments = arguments->next;
+	} else {
+		arguments = NULL;
+		last = token->next;
 	}
 	token->next = &eof_token_entry;
 
 	/* Replace the token with the token expansion */
-	replace(parent, token, head, sym->expansion);
+	replace(token, head, sym->expansion);
 
 	/* Then, replace all the arguments with their expansions */
 	if (arguments)
-		expand_arguments(parent, token, head, arguments, sym->arglist);
+		expand_arguments(token, head, arguments);
 
 	/* Re-tokenize the sequence if any ## token exists.. */
 	retokenize(head);
@@ -475,6 +490,9 @@ static struct token *expand(struct token *parent, struct token *head, struct sym
 	while (!eof_token(token->next))
 		token = token->next;
 	token->next = last;
+
+	expanding->tainted = 1;
+
 	return head;
 }
 
@@ -578,7 +596,7 @@ static int handle_include(struct stream *stream, struct token *head, struct toke
 	next = token->next;
 	expect = '>';
 	if (!match_op(next, '<')) {
-		expand_list(NULL, token);
+		expand_list(token);
 		expect = 0;
 		next = token;
 	}
@@ -650,6 +668,8 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 	struct token *left = token->next;
 	struct symbol *sym;
 	struct ident *name;
+	struct token *untaint;
+	struct token **p;
 
 	if (token_type(left) != TOKEN_IDENT) {
 		warn(head->pos, "expected identifier to 'define'");
@@ -687,18 +707,21 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 		arglist = arglist->next;
 	}
 
-	if (arglist) {
-		struct token *p;
-		for (p = expansion; !eof_token(p); p = p->next) {
-			if (token_type(p) == TOKEN_IDENT) {
-				int nr = arg_number(arglist, p->ident);
-				if (nr >= 0) {
-					token_type(p) = TOKEN_MACRO_ARGUMENT;
-					p->argnum = nr;
-				}
+	untaint = alloc_token(&head->pos);
+	token_type(untaint) = TOKEN_UNTAINT;
+	untaint->ident = name;
+
+	for (p = &expansion; !eof_token(token = *p); p = &token->next) {
+		if (arglist && token_type(token) == TOKEN_IDENT) {
+			int nr = arg_number(arglist, token->ident);
+			if (nr >= 0) {
+				token_type(token) = TOKEN_MACRO_ARGUMENT;
+				token->argnum = nr;
 			}
 		}
 	}
+	untaint->next = *p;
+	*p = untaint;
 
 	sym = lookup_symbol(name, NS_PREPROCESSOR);
 	if (sym) {
@@ -793,7 +816,7 @@ static int expression_value(struct token *head)
 	struct token *token;
 	long long value;
 
-	expand_list(NULL, head);
+	expand_list(head);
 	token = constant_expression(head->next, &expr);
 	if (!eof_token(token))
 		warn(token->pos, "garbage at end: %s", show_token_sequence(token));
@@ -1062,8 +1085,12 @@ static void do_preprocess(struct token *head)
 			head->next = next->next;
 			continue;
 
+		case TOKEN_UNTAINT:
+			eat_untaint(head, next);
+			continue;
+
 		case TOKEN_IDENT:
-			next = expand_one_symbol(next, head, next);
+			next = expand_one_symbol(head, next);
 			/* fallthrough */
 		default:
 			/*

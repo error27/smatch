@@ -43,6 +43,7 @@ struct ident {
 	struct ident *next;	/* Hash chain of identifiers */
 	struct symbol *symbols;	/* Pointer to semantic meaning list */
 	unsigned char len;	/* Length of identifier name */
+	unsigned char tainted;
 	char name[];		/* Actual identifier */
 };
 
@@ -57,6 +58,7 @@ enum token_type {
 	TOKEN_STREAMBEGIN,
 	TOKEN_STREAMEND,
 	TOKEN_MACRO_ARGUMENT,
+	TOKEN_UNTAINT,
 };
 
 /* Combination tokens */
@@ -120,7 +122,7 @@ struct string {
 struct token {
 	struct position pos;
 	struct token *next;
-	struct token *parent;
+	int noexpand;
 	union {
 		char *number;
 		struct ident *ident;

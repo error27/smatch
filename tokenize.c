@@ -598,6 +598,7 @@ static struct ident *alloc_ident(const char *name, int len)
 	struct ident *ident = __alloc_ident(len);
 	ident->symbols = NULL;
 	ident->len = len;
+	ident->tainted = 0;
 	memcpy(ident->name, name, len);
 	return ident;
 }
