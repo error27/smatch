@@ -410,4 +410,13 @@ extern void pack_ptr_list(struct ptr_list **);
 
 #define hashval(x) ((unsigned long)(x))
 
+static inline void update_tag(void *p, unsigned long tag)
+{
+	unsigned long *ptr = p;
+	*ptr = tag | (~3UL & *ptr);
+}
+
+#define CURRENT_TAG(ptr) (3 & (unsigned long)*THIS_ADDRESS(ptr))
+#define TAG_CURRENT(ptr,val)	update_tag(THIS_ADDRESS(ptr),val)
+
 #endif
