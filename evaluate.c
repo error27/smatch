@@ -1177,6 +1177,7 @@ static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 	return 1;
 }
 
+static int evaluate_initializer(struct symbol *ctype, struct expression **ep);
 static int evaluate_array_initializer(struct symbol *ctype, struct expression *expr)
 {
 	struct expression *entry;
@@ -1185,16 +1186,12 @@ static int evaluate_array_initializer(struct symbol *ctype, struct expression *e
 
 	FOR_EACH_PTR(expr->expr_list, entry) {
 		struct expression **p = THIS_ADDRESS(entry);
-		struct symbol *rtype;
 
 		if (entry->type == EXPR_INDEX) {
 			current = entry->idx_to;
 			continue;
 		}
-		rtype = evaluate_expression(entry);
-		if (!rtype)
-			continue;
-		compatible_assignment_types(entry, ctype, p, rtype, "array initializer");
+		evaluate_initializer(ctype, p);
 		current++;
 		if (current > max)
 			max = current;
@@ -1202,7 +1199,6 @@ static int evaluate_array_initializer(struct symbol *ctype, struct expression *e
 	return max;
 }
 
-static int evaluate_initializer(struct symbol *ctype, struct expression **ep);
 static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct expression *expr, int multiple)
 {
 	struct expression *entry;
@@ -1211,7 +1207,6 @@ static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct exp
 	PREPARE_PTR_LIST(ctype->symbol_list, sym);
 	FOR_EACH_PTR(expr->expr_list, entry) {
 		struct expression **p = THIS_ADDRESS(entry);
-		struct symbol *rtype;
 
 		if (entry->type == EXPR_IDENTIFIER) {
 			struct ident *ident = entry->expr_ident;
@@ -1221,7 +1216,7 @@ static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct exp
 			RESET_PTR_LIST(sym);
 			for (;;) {
 				if (!sym) {
-					warn(expr->pos, "unknown named initializer");
+					warn(entry->pos, "unknown named initializer");
 					return 0;
 				}
 				if (sym->ident == ident)
@@ -1235,9 +1230,6 @@ static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct exp
 			warn(expr->pos, "too many initializers for struct/union");
 			return 0;
 		}
-		rtype = evaluate_expression(entry);
-		if (!rtype)
-			return 0;
 
 		evaluate_initializer(sym, p);
 
@@ -1273,7 +1265,7 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep)
 	}
 
 	expr->ctype = ctype;
-	if (ctype->type = SYM_NODE)
+	if (ctype->type == SYM_NODE)
 		ctype = ctype->ctype.base_type;
 
 	switch (ctype->type) {
