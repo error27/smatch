@@ -1,38 +1,44 @@
 CC=gcc
 CFLAGS=-g -Wall
+AR=ar
 
 PROGRAMS=test-lexing test-parsing obfuscate check
 
-HEADERS=token.h parse.h lib.h symbol.h scope.h expression.h target.h
+LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h
 
-COMMON=	parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
-	expression.o show-parse.o evaluate.o
+LIB_OBJS= parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
+	  expression.o show-parse.o evaluate.o
+
+LIB_FILE= sparse.a
 
 all: $(PROGRAMS)
 
-test-lexing: test-lexing.o $(COMMON)
-	gcc -o $@ $< $(COMMON)
+test-lexing: test-lexing.o $(LIB_FILE)
+	gcc -o $@ $< $(LIB_FILE)
 
-test-parsing: test-parsing.o $(COMMON)
-	gcc -o $@ $< $(COMMON)
+test-parsing: test-parsing.o $(LIB_FILE)
+	gcc -o $@ $< $(LIB_FILE)
 
-obfuscate: obfuscate.o $(COMMON)
-	gcc -o $@ $< $(COMMON)
+obfuscate: obfuscate.o $(LIB_FILE)
+	gcc -o $@ $< $(LIB_FILE)
 
-check: check.o $(COMMON)
-	gcc -o $@ $< $(COMMON)
+check: check.o $(LIB_FILE)
+	gcc -o $@ $< $(LIB_FILE)
 
-evaluate.o: $(HEADERS)
-expression.o: $(HEADERS)
-lib.o: $(HEADERS)
-parse.o: $(HEADERS)
-pre-process.o: $(HEADERS)
-scope.o: $(HEADERS)
-show-parse.o: $(HEADERS)
-symbol.o: $(HEADERS)
-test-lexing.o: $(HEADERS)
-test-parsing.o: $(HEADERS)
-tokenize.o: $(HEADERS)
+$(LIB_FILE): $(LIB_OBJS)
+	$(AR) rcs $(LIB_FILE) $(LIB_OBJS)
+
+evaluate.o: $(LIB_H)
+expression.o: $(LIB_H)
+lib.o: $(LIB_H)
+parse.o: $(LIB_H)
+pre-process.o: $(LIB_H)
+scope.o: $(LIB_H)
+show-parse.o: $(LIB_H)
+symbol.o: $(LIB_H)
+test-lexing.o: $(LIB_H)
+test-parsing.o: $(LIB_H)
+tokenize.o: $(LIB_H)
 
 clean:
 	rm -f *.[oasi] core core.[0-9]* $(PROGRAMS)
