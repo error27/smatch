@@ -533,7 +533,7 @@ char **handle_switch_E(char *arg, char **next)
 
 char **handle_switch_v(char *arg, char **next)
 {
-	verbose = 1;
+	verbose++;
 	return next;
 }
 

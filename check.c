@@ -87,6 +87,9 @@ static void check_context(struct entrypoint *ep)
 {
 	struct symbol *sym = ep->name;
 
+	if (verbose && ep->entry->needs)
+		warning(sym->pos, "%s: possible uninitialized variable", show_ident(sym->ident));
+
 	check_bb_context(ep, ep->entry, sym->ctype.in_context, sym->ctype.out_context);
 }
 

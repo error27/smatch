@@ -216,7 +216,7 @@ void show_instruction(struct instruction *insn)
 
 	buf = buffer+1;
 	if (!insn->bb) {
-		if (!verbose)
+		if (verbose < 2)
 			return;
 		buf += sprintf(buf, "# ");
 	}
@@ -391,25 +391,27 @@ static void show_bb(struct basic_block *bb)
 	pseudo_t needs;
 
 	printf(".L%p:\n", bb);
-	FOR_EACH_PTR(bb->needs, needs) {
-		struct instruction *def = needs->def;
-		if (def->opcode != OP_PHI) {
-			printf("  **uses %s (from .L%p)**\n", show_pseudo(needs), def->bb);
-		} else {
-			pseudo_t phi;
-			const char *sep = " ";
-			printf("  **uses %s (from", show_pseudo(needs));
-			FOR_EACH_PTR(def->phi_list, phi) {
-				if (phi == VOID)
-					continue;
-				printf("%s(%s:.L%p)", sep, show_pseudo(phi), phi->def->bb);
-				sep = ", ";
-			} END_FOR_EACH_PTR(phi);		
-			printf(")**\n");
-		}
-	} END_FOR_EACH_PTR(needs);
 	if (verbose) {
 		printf("%s:%d\n", input_streams[bb->pos.stream].name, bb->pos.line);
+
+		FOR_EACH_PTR(bb->needs, needs) {
+			struct instruction *def = needs->def;
+			if (def->opcode != OP_PHI) {
+				printf("  **uses %s (from .L%p)**\n", show_pseudo(needs), def->bb);
+			} else {
+				pseudo_t phi;
+				const char *sep = " ";
+				printf("  **uses %s (from", show_pseudo(needs));
+				FOR_EACH_PTR(def->phi_list, phi) {
+					if (phi == VOID)
+						continue;
+					printf("%s(%s:.L%p)", sep, show_pseudo(phi), phi->def->bb);
+					sep = ", ";
+				} END_FOR_EACH_PTR(phi);		
+				printf(")**\n");
+			}
+		} END_FOR_EACH_PTR(needs);
+
 		if (bb->parents) {
 			struct basic_block *from;
 			FOR_EACH_PTR(bb->parents, from) {
@@ -473,7 +475,7 @@ void show_entry(struct entrypoint *ep)
 	FOR_EACH_PTR(ep->bbs, bb) {
 		if (!bb)
 			continue;
-		if (!bb->parents && !bb->children && !bb->insns)
+		if (!bb->parents && !bb->children && !bb->insns && verbose < 2)
 			continue;
 		if (bb == ep->entry)
 			printf("ENTRY:\n");
@@ -1756,8 +1758,9 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	if (bb_reachable(ep->active) && !bb_terminated(ep->active)) {
 		struct symbol *ret_type = base_type->ctype.base_type;
 		struct instruction *insn = alloc_instruction(OP_RET, ret_type->bit_size);
-		
-		use_pseudo(result, &insn->src);
+
+		if (ret_type->bit_size > 0)
+			use_pseudo(result, &insn->src);
 		add_one_insn(ep, insn);
 	}
 
