@@ -255,7 +255,14 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 		warn(expr->pos, "missing type information");
 		return NULL;
 	}
-	bit_size = ctype->ctype.base_type->bit_size;
+
+	/* Get the size of whatever the pointer points to */
+	ptr_type = ctype;
+	if (ptr_type->type == SYM_NODE)
+	ptr_type = ptr_type->ctype.base_type;
+	if (ptr_type->type = SYM_PTR)
+		ptr_type = ptr_type->ctype.base_type;
+	bit_size = ptr_type->bit_size;
 
 	/* Special case: adding zero commonly happens as a result of 'array[0]' */
 	if (i->type == EXPR_VALUE && !i->value) {
@@ -895,8 +902,13 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 			break;
 		/*
 		 * Dereferencing a pointer to an array results in a
-		 * pointer to the entry
+		 * degenerate dereference: the expression becomes
+		 * just a pointer to the entry, and the derefence
+		 * goes away.
 		 */
+		*expr = *op;
+		expr->ctype = sym;
+
 		sym->ctype.base_type = alloc_symbol(expr->pos, SYM_PTR);
 		sym = sym->ctype.base_type;
 		/* Fallthrough */
