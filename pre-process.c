@@ -323,7 +323,7 @@ static void do_include(struct token *head, struct token *token, const char *file
 	warn(token, "unable to open '%s'", filename);
 }
 
-static int handle_include(struct token *head, struct token *token)
+static int handle_include(struct stream *stream, struct token *head, struct token *token)
 {
 	const char *filename;
 	struct token *next;
@@ -344,7 +344,7 @@ static int handle_include(struct token *head, struct token *token)
 	return 1;
 }
 
-static int handle_define(struct token *head, struct token *token)
+static int handle_define(struct stream *stream, struct token *head, struct token *token)
 {
 	struct token *arglist, *expansion;
 	struct token *left = token->next;
@@ -390,7 +390,7 @@ static int handle_define(struct token *head, struct token *token)
 	return 1;
 }
 
-static int handle_undef(struct token *head, struct token *token)
+static int handle_undef(struct stream *stream, struct token *head, struct token *token)
 {
 	struct token *left = token->next;
 	struct symbol **sym;
@@ -435,12 +435,12 @@ static int token_defined(struct token *token)
 	return 0;
 }
 
-static int handle_ifdef(struct token *head, struct token *token)
+static int handle_ifdef(struct stream *stream, struct token *head, struct token *token)
 {
 	return preprocessor_if(token, token_defined(token->next));
 }
 
-static int handle_ifndef(struct token *head, struct token *token)
+static int handle_ifndef(struct stream *stream, struct token *head, struct token *token)
 {
 	return preprocessor_if(token, !token_defined(token->next));
 }
@@ -545,7 +545,7 @@ static int expression_value(struct token *head)
 	return value != 0;
 }
 
-static int handle_if(struct token *head, struct token *token)
+static int handle_if(struct stream *stream, struct token *head, struct token *token)
 {
 	int value = 0;
 	if (!false_nesting)
@@ -553,7 +553,7 @@ static int handle_if(struct token *head, struct token *token)
 	return preprocessor_if(token, value);
 }
 
-static int handle_elif(struct token *head, struct token *token)
+static int handle_elif(struct stream * stream, struct token *head, struct token *token)
 {
 	if (false_nesting) {
 		/* If this whole if-thing is if'ed out, an elif cannot help */
@@ -575,7 +575,7 @@ static int handle_elif(struct token *head, struct token *token)
 	return 1;
 }
 
-static int handle_else(struct token *head, struct token *token)
+static int handle_else(struct stream *stream, struct token *head, struct token *token)
 {
 	if (false_nesting) {
 		/* If this whole if-thing is if'ed out, an else cannot help */
@@ -595,7 +595,7 @@ static int handle_else(struct token *head, struct token *token)
 	return 1;
 }
 
-static int handle_endif(struct token *head, struct token *token)
+static int handle_endif(struct stream *stream, struct token *head, struct token *token)
 {
 	if (false_nesting) {
 		false_nesting--;
@@ -630,7 +630,7 @@ static const char *show_token_sequence(struct token *token)
 	return buffer+1;
 }
 
-static int handle_warning(struct token *head, struct token *token)
+static int handle_warning(struct stream *stream, struct token *head, struct token *token)
 {
 	if (false_nesting)
 		return 1;
@@ -638,7 +638,7 @@ static int handle_warning(struct token *head, struct token *token)
 	return 1;
 }
 
-static int handle_error(struct token *head, struct token *token)
+static int handle_error(struct stream *stream, struct token *head, struct token *token)
 {
 	if (false_nesting)
 		return 1;
@@ -646,12 +646,12 @@ static int handle_error(struct token *head, struct token *token)
 	return 1;
 }
 
-static int handle_preprocessor_command(struct token *head, struct ident *ident, struct token *token)
+static int handle_preprocessor_command(struct stream *stream, struct token *head, struct ident *ident, struct token *token)
 {
 	int i;
 	static struct {
 		const char *name;
-		int (*handler)(struct token *, struct token *);
+		int (*handler)(struct stream *, struct token *, struct token *);
 	} handlers[] = {
 		{ "define",	handle_define },
 		{ "undef",	handle_undef },
@@ -668,23 +668,23 @@ static int handle_preprocessor_command(struct token *head, struct ident *ident, 
 
 	for (i = 0; i < (sizeof (handlers) / sizeof (handlers[0])); i++) {
 		if (match_string_ident(ident, handlers[i].name))
-			return handlers[i].handler(head, token);
+			return handlers[i].handler(stream, head, token);
 	}
 	return 0;
 }
 
-static void handle_preprocessor_line(struct token * head, struct token *token)
+static void handle_preprocessor_line(struct stream *stream, struct token * head, struct token *token)
 {
 	if (!token)
 		return;
 
 	if (token->type == TOKEN_IDENT)
-		if (handle_preprocessor_command(head, token->ident, token))
+		if (handle_preprocessor_command(stream, head, token->ident, token))
 			return;
 	warn(token, "unrecognized preprocessor line '%s'", show_token_sequence(token));
 }
 
-static void preprocessor_line(struct token * head)
+static void preprocessor_line(struct stream *stream, struct token * head)
 {
 	struct token *start = head->next, *next;
 	struct token **tp = &start->next;
@@ -697,33 +697,49 @@ static void preprocessor_line(struct token * head)
 	}
 	head->next = next;
 	*tp = &eof_token_entry;
-	handle_preprocessor_line(head, start->next);
+	handle_preprocessor_line(stream, head, start->next);
 }
 
 static void do_preprocess(struct token *head)
 {
 	do {
 		struct token *next = head->next;
+		struct stream *stream = input_streams + next->stream;
+
 		if (next->newline && match_op(next, '#')) {
-			preprocessor_line(head);
+			preprocessor_line(stream, head);
 			continue;
 		}
+
 		if (false_nesting) {
 			head->next = next->next;
 			continue;
 		}
+
 		switch (next->type) {
-		case TOKEN_IDENT:
-			head = expand_one_symbol(head, next);
-			continue;
 		case TOKEN_STREAMEND:
+			if (stream->constant == -1) {
+				stream->constant = 1;
+				fprintf(stderr, "stream %s was constant?\n", stream->name);
+			}
+			/* fallthrough */
 		case TOKEN_STREAMBEGIN:
 			head->next = next->next;
 			continue;
+
+		case TOKEN_IDENT:
+			next = expand_one_symbol(head, next);
+			/* fallthrough */
 		default:
-			/* Let it stay in the token stream, go on to next token */
-			head = next;
+			/*
+			 * Any token expansion (even if it ended up being an
+			 * empty expansion) in this stream implies it can't
+			 * be constant.
+			 */
+			stream->constant = 0;
 		}
+
+		head = next;
 	} while (!eof_token(head));
 }
 
