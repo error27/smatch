@@ -20,8 +20,7 @@ enum pseudo_type {
 
 struct pseudo {
 	int nr;
-	unsigned int usage:24,
-		     type:8;
+	enum pseudo_type type;
 	struct pseudo_ptr_list *users;
 	struct instruction_list *insns;
 	union {
