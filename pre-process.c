@@ -316,7 +316,7 @@ static struct token *cpp_value(struct token *token, struct cpp_expression *value
 		}
 	}
 	if (!eof_token(token))
-		warn(token, "expected value");
+		warn(token, "garbage at end: %s", show_token_sequence(token));
 	return &eof_token_entry;
 }
 

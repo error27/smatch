@@ -75,6 +75,9 @@ const char *show_token(const struct token *token)
 	case TOKEN_ERROR:
 		return "syntax error";
 
+	case TOKEN_EOF:
+		return "end-of-input";
+
 	case TOKEN_IDENT:
 		return show_ident(token->ident);
 
