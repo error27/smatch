@@ -156,6 +156,8 @@ void show_instruction(struct instruction *insn)
 {
 	int op = insn->opcode;
 
+	if (!insn->bb)
+		printf("\tunused");
 	switch (op) {
 	case OP_BADOP:
 		printf("\tAIEEE! (%s <- %s)\n", show_pseudo(insn->target), show_pseudo(insn->src));

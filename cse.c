@@ -64,10 +64,57 @@ static unsigned long clean_up_phi(struct instruction *insn)
 	return hash;
 }
 
+static void try_to_kill(struct instruction *);
+
+static void kill_use(pseudo_t pseudo)
+{
+	if (pseudo->type == PSEUDO_REG) {
+		if (ptr_list_size((struct ptr_list *)pseudo->users) == 1) {
+			try_to_kill(pseudo->def);
+		}
+	}
+}
+
+static void try_to_kill(struct instruction *insn)
+{
+	int opcode = insn->opcode;
+	switch (opcode) {
+	case OP_BINARY ... OP_BINCMP_END:
+		insn->bb = NULL;
+		kill_use(insn->src1);
+		kill_use(insn->src2);
+		return;
+	case OP_NOT: case OP_NEG:
+		insn->bb = NULL;
+		kill_use(insn->src1);
+		return;
+
+	case OP_PHI: case OP_SETVAL:
+		insn->bb = NULL;
+		return;
+	}
+}
+
+/*
+ * Kill trivially dead instructions
+ */
+static int dead_insn(struct instruction *insn, pseudo_t src1, pseudo_t src2)
+{
+	if (!insn->target->users) {
+		insn->bb = NULL;
+		kill_use(src1);
+		kill_use(src2);
+		return 1;
+	}
+	return 0;
+}
+
 static void clean_up_one_instruction(struct basic_block *bb, struct instruction *insn)
 {
 	unsigned long hash;
 
+	if (!insn->bb)
+		return;
 	if (insn->bb != bb)
 		warning(bb->pos, "instruction with bad bb");
 	hash = insn->opcode;
@@ -90,22 +137,30 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 	case OP_SET_LT: case OP_SET_GT:
 	case OP_SET_B:  case OP_SET_A:
 	case OP_SET_BE: case OP_SET_AE:
+		if (dead_insn(insn, insn->src1, insn->src2))
+			return;
 		hash += hashval(insn->src1);
 		hash += hashval(insn->src2);
 		break;
 	
 	/* Unary */
 	case OP_NOT: case OP_NEG:
+		if (dead_insn(insn, insn->src1, VOID))
+			return;
 		hash += hashval(insn->src1);
 		break;
 
 	case OP_SETVAL:
+		if (dead_insn(insn, VOID, VOID))
+			return;
 		hash += hashval(insn->val);
 		hash += hashval(insn->symbol);
 		break;
 
 	/* Other */
 	case OP_PHI:
+		if (dead_insn(insn, VOID, VOID))
+			return;
 		hash += clean_up_phi(insn);
 		break;
 
