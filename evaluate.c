@@ -990,11 +990,6 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 	struct symbol *t;
 	int target_as;
 
-	/* It's ok if the target is more volatile or const than the source */
-	typediff = type_difference(target, source, MOD_VOLATILE | MOD_CONST, 0);
-	if (!typediff)
-		return 1;
-
 	if (is_int_type(target)) {
 		if (is_int_type(source)) {
 			if (target->bit_size != source->bit_size)
@@ -1012,6 +1007,11 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			return 1;
 		}
 	}
+
+	/* It's ok if the target is more volatile or const than the source */
+	typediff = type_difference(target, source, MOD_VOLATILE | MOD_CONST, 0);
+	if (!typediff)
+		return 1;
 
 	if (is_restricted_type(target) && !restricted_value(*rp, target))
 		return 1;
@@ -1926,7 +1926,7 @@ static int evaluate_one_struct_initializer(struct symbol *ctype, struct expressi
 		if (!reuse)
 			reuse = alloc_expression(entry->pos, EXPR_POS);
 		reuse->type = EXPR_POS;
-		reuse->ctype = ctype;
+		reuse->ctype = sym;
 		reuse->init_offset = offset;
 		reuse->init_nr = 1;
 		reuse->init_expr = entry;
