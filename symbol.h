@@ -88,7 +88,7 @@ struct symbol {
 		};
 		struct /* NS_SYMBOL */ {
 			unsigned long	offset;
-			unsigned int	bit_size;
+			int		bit_size;
 			unsigned int	bit_offset:8,
 					fieldwidth:8,
 					arg_count:10,
