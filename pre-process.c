@@ -533,11 +533,23 @@ static int do_include_path(const char **pptr, struct token *head, struct token *
 }
 	
 
-static void do_include(struct stream *stream, struct token *head, struct token *token, const char *filename)
+static void do_include(int local, struct stream *stream, struct token *head, struct token *token, const char *filename)
 {
-	const char *path;
-	char *slash;
 	int flen = strlen(filename) + 1;
+
+	/* Same directory as current stream? */
+	if (local) {
+		const char *path;
+		char *slash;
+		int plen;
+
+		path = stream->name;
+		slash = strrchr(path, '/');
+		plen = slash ? slash - path : 0;
+
+		if (try_include(path, plen, filename, flen, head))
+			return;
+	}
 
 	/* Check the standard include paths.. */
 	if (do_include_path(includepath, head, token, filename, flen))
@@ -545,18 +557,6 @@ static void do_include(struct stream *stream, struct token *head, struct token *
 	if (do_include_path(sys_includepath, head, token, filename, flen))
 		return;
 	if (do_include_path(gcc_includepath, head, token, filename, flen))
-		return;
-
-	/* Check same directory as current stream.. */
-	path = stream->name;
-	slash = strrchr(path, '/');
-	if (slash) {
-		if (try_include(path, slash-path, filename, flen, head))
-			return;
-	}
-
-	/* Check current directory */
-	if (try_include("", 0, filename, flen, head))
 		return;
 
 	error(token->pos, "unable to open '%s'", filename);
@@ -581,7 +581,7 @@ static int handle_include(struct stream *stream, struct token *head, struct toke
 	}
 	token = next->next;
 	filename = token_name_sequence(token, expect, token);
-	do_include(stream, head, token, filename);
+	do_include(!expect, stream, head, token, filename);
 	return 1;
 }
 
