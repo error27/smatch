@@ -66,7 +66,7 @@ static struct expression *alloc_expression(struct token *token, int type)
 	return expr;
 }
 
-struct token *expect(struct token *token, int op)
+static struct token *expect(struct token *token, int op)
 {
 	if (!token ||
 	     token->value.type != TOKEN_SPECIAL ||
@@ -77,7 +77,9 @@ struct token *expect(struct token *token, int op)
 	return token->next;
 }
 
-struct token *primary_expression(struct token *token, struct expression **tree)
+static struct token *comma_expression(struct token *, struct expression **);
+
+static struct token *primary_expression(struct token *token, struct expression **tree)
 {
 	struct expression *expr = NULL;
 
@@ -106,7 +108,7 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 	return token;
 }
 
-struct token *postfix_expression(struct token *token, struct expression **tree)
+static struct token *postfix_expression(struct token *token, struct expression **tree)
 {
 	struct expression *expr = NULL;
 
@@ -147,7 +149,17 @@ struct token *postfix_expression(struct token *token, struct expression **tree)
 			continue;
 		}
 
-		case '(':			/* Function call */
+		case '(': {			/* Function call */
+			struct expression *call = alloc_expression(token, EXPR_BINOP);
+			call->op = '(';
+			call->left = expr;
+			token = comma_expression(token->next, &call->right);
+			token = expect(token, ')');
+			expr = call;
+			continue;
+		}
+
+		default:
 			break;
 		}
 		break;
@@ -156,18 +168,18 @@ struct token *postfix_expression(struct token *token, struct expression **tree)
 	return token;
 }
 
-struct token *unary_expression(struct token *token, struct expression **tree)
+static struct token *unary_expression(struct token *token, struct expression **tree)
 {
 	return postfix_expression(token, tree);
 }
 
-struct token *cast_expression(struct token *token, struct expression **tree)
+static struct token *cast_expression(struct token *token, struct expression **tree)
 {
 	return unary_expression(token, tree);
 }
 
 /* Generic left-to-right binop parsing */
-struct token *lr_binop_expression(struct token *token, struct expression **tree,
+static struct token *lr_binop_expression(struct token *token, struct expression **tree,
 	struct token *(*inner)(struct token *, struct expression **), ...)
 {
 	struct expression *left = NULL;
@@ -205,57 +217,62 @@ out:
 	return next;
 }
 
-struct token *multiplicative_expression(struct token *token, struct expression **tree)
+static struct token *multiplicative_expression(struct token *token, struct expression **tree)
 {
 	return lr_binop_expression(token, tree, cast_expression, '*', '/', '%', 0);
 }
 
-struct token *additive_expression(struct token *token, struct expression **tree)
+static struct token *additive_expression(struct token *token, struct expression **tree)
 {
 	return lr_binop_expression(token, tree, multiplicative_expression, '+', '-', 0);
 }
 
-struct token *shift_expression(struct token *token, struct expression **tree)
+static struct token *shift_expression(struct token *token, struct expression **tree)
 {
 	return lr_binop_expression(token, tree, additive_expression, SPECIAL_LEFTSHIFT, SPECIAL_RIGHTSHIFT, 0);
 }
 
-struct token *relational_expression(struct token *token, struct expression **tree)
+static struct token *relational_expression(struct token *token, struct expression **tree)
 {
 	return lr_binop_expression(token, tree, shift_expression, '<', '>', SPECIAL_LTE, SPECIAL_GTE, 0);
 }
 
-struct token *equality_expression(struct token *token, struct expression **tree)
+static struct token *equality_expression(struct token *token, struct expression **tree)
 {
 	return lr_binop_expression(token, tree, relational_expression, SPECIAL_EQUAL, SPECIAL_NOTEQUAL, 0);
 }
 
-struct token *bitwise_and_expression(struct token *token, struct expression **tree)
+static struct token *bitwise_and_expression(struct token *token, struct expression **tree)
 {
 	return lr_binop_expression(token, tree, equality_expression, '&', 0);
 }
 
-struct token *bitwise_xor_expression(struct token *token, struct expression **tree)
+static struct token *bitwise_xor_expression(struct token *token, struct expression **tree)
 {
 	return lr_binop_expression(token, tree, bitwise_and_expression, '^', 0);
 }
 
-struct token *bitwise_or_expression(struct token *token, struct expression **tree)
+static struct token *bitwise_or_expression(struct token *token, struct expression **tree)
 {
 	return lr_binop_expression(token, tree, bitwise_xor_expression, '|', 0);
 }
 
-struct token *logical_and_expression(struct token *token, struct expression **tree)
+static struct token *logical_and_expression(struct token *token, struct expression **tree)
 {
 	return lr_binop_expression(token, tree, bitwise_or_expression, SPECIAL_LOGICAL_AND, 0);
 }
 
-struct token *logical_or_expression(struct token *token, struct expression **tree)
+static struct token *logical_or_expression(struct token *token, struct expression **tree)
 {
 	return lr_binop_expression(token, tree, logical_and_expression, SPECIAL_LOGICAL_OR, 0);
 }
 
+struct token *comma_expression(struct token *token, struct expression **tree)
+{
+	return lr_binop_expression(token, tree, logical_or_expression, ',', 0);
+}
+
 struct token *parse_expression(struct token *token, struct expression **tree)
 {
-	return logical_or_expression(token,tree);
+	return comma_expression(token,tree);
 }

@@ -31,6 +31,6 @@ int main(int argc, char **argv)
 		}
 	}
 	putchar('\n');
-	print_ident_stat();
+	show_identifier_stats();
 	return 0;
 }

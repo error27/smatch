@@ -108,5 +108,6 @@ extern const char *show_token(const struct token *token);
 extern struct token * tokenize(const char *, int);
 extern void die(const char *, ...);
 extern void warn(struct token *, const char *, ...);
+extern void show_identifier_stats(void);
 
 #endif

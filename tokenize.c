@@ -473,7 +473,7 @@ static int get_one_special(int c, action_t *action)
 static struct ident *hash_table[IDENT_HASH_SIZE];
 int ident_hit, ident_miss;
 
-void print_ident_stat(void)
+void show_identifier_stats(void)
 {
 	int i;
 	int distribution[100];
