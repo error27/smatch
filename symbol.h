@@ -115,6 +115,7 @@ extern struct symbol	void_type,
 /* C types */
 extern struct symbol	char_ctype,
 			int_ctype,
+			bool_ctype,
 			string_ctype;
 
 

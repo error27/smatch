@@ -20,6 +20,7 @@ enum expression_type {
 	EXPR_SIZEOF,
 	EXPR_CONDITIONAL,
 	EXPR_STATEMENT,
+	EXPR_CALL,
 };
 
 struct expression {
@@ -62,7 +63,7 @@ struct token *primary_expression(struct token *token, struct expression **tree);
 struct token *parens_expression(struct token *token, struct expression **expr, const char *where);
 struct token *assignment_expression(struct token *token, struct expression **tree);
 
-void evaluate_expression(struct expression *);
+extern int evaluate_expression(struct expression *);
 
 static inline struct expression *alloc_expression(struct token *token, int type)
 {

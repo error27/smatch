@@ -101,12 +101,17 @@ static struct token *postfix_expression(struct token *token, struct expression *
 	while (expr && token->type == TOKEN_SPECIAL) {
 		switch (token->special) {
 		case '[': {			/* Array dereference */
-			struct expression *array_expr = alloc_expression(token, EXPR_BINOP);
-			array_expr->op = '[';
-			array_expr->left = expr;
-			token = parse_expression(token->next, &array_expr->right);
+			struct expression *deref = alloc_expression(token, EXPR_PREOP);
+			struct expression *add = alloc_expression(token, EXPR_BINOP);
+
+			deref->op = '*';
+			deref->unop = add;
+
+			add->op = '+';
+			add->left = expr;
+			token = parse_expression(token->next, &add->right);
 			token = expect(token, ']', "at end of array dereference");
-			expr = array_expr;
+			expr = deref;
 			continue;
 		}
 		case SPECIAL_INCREMENT:		/* Post-increment */
@@ -135,7 +140,7 @@ static struct token *postfix_expression(struct token *token, struct expression *
 		}
 
 		case '(': {			/* Function call */
-			struct expression *call = alloc_expression(token, EXPR_BINOP);
+			struct expression *call = alloc_expression(token, EXPR_CALL);
 			call->op = '(';
 			call->left = expr;
 			token = comma_expression(token->next, &call->right);

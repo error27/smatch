@@ -144,10 +144,8 @@ void show_type(struct symbol *sym)
 {
 	struct ctype *ctype = &sym->ctype;
 
-	if (!sym) {
-		printf(" <typeless>");
+	if (!sym)
 		return;
-	}
 
 	printf("%d:%d %s", sym->bit_size, sym->alignment, modifier_string(sym->ctype.modifiers));
 
@@ -331,7 +329,8 @@ void show_expression(struct expression *expr)
 	if (!expr)
 		return;
 
-	printf("< ");
+	printf("<");
+	show_type(expr->ctype);
 	switch (expr->type) {
 	case EXPR_BINOP:
 		show_expression(expr->left);

@@ -282,6 +282,7 @@ struct symbol	void_type,
  */
 struct symbol	char_ctype,
 		int_ctype,
+		bool_ctype,
 		string_ctype;
 
 struct ctype_declare {
@@ -293,6 +294,7 @@ struct ctype_declare {
 } ctype_declaration[] = {
 	{ &char_ctype, MOD_SIGNED | MOD_CHAR, BITS_IN_CHAR, MAX_INT_ALIGNMENT, &int_type },
 	{ &int_ctype,			  0,  BITS_IN_INT, MAX_INT_ALIGNMENT, &int_type },
+	{ &bool_ctype,			  0,  BITS_IN_INT, MAX_INT_ALIGNMENT, &int_type },
 	{ &string_ctype,	    0,  BITS_IN_POINTER, POINTER_ALIGNMENT, &char_ctype },
 	{ NULL, }
 };

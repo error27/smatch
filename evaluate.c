@@ -21,19 +21,19 @@
 #include "target.h"
 #include "expression.h"
 
-static void evaluate_symbol(struct expression *expr)
+static int evaluate_symbol(struct expression *expr)
 {
 	struct symbol *sym = expr->symbol;
 	struct symbol *base_type;
 
 	if (!sym) {
 		warn(expr->token, "undefined identifier '%s'", show_token(expr->token));
-		return;
+		return 0;
 	}
 	examine_symbol_type(sym);
 	base_type = sym->ctype.base_type;
 	if (!base_type)
-		return;
+		return 0;
 
 	/* The ctype of a symbol expression is the symbol itself! */
 	expr->ctype = sym;
@@ -42,11 +42,11 @@ static void evaluate_symbol(struct expression *expr)
 	if (base_type->type == SYM_ENUM) {
 		expr->type = EXPR_VALUE;
 		expr->value = sym->value;
-		return;
 	}
+	return 1;
 }
 
-static void get_int_value(struct expression *expr, const char *str)
+static int get_int_value(struct expression *expr, const char *str)
 {
 	unsigned long long value = 0;
 	unsigned int base = 10, digit;
@@ -67,53 +67,137 @@ static void get_int_value(struct expression *expr, const char *str)
 	expr->type = EXPR_VALUE;
 	expr->ctype = &int_ctype;
 	expr->value = value;
+	return 1;
 }
 
-static void evaluate_constant(struct expression *expr)
+static int evaluate_constant(struct expression *expr)
 {
 	struct token *token = expr->token;
 
 	switch (token->type) {
 	case TOKEN_INTEGER:
-		get_int_value(expr, token->integer);
-		return;
+		return get_int_value(expr, token->integer);
+
 	case TOKEN_CHAR:
 		expr->type = EXPR_VALUE;
 		expr->ctype = &int_ctype;
 		expr->value = (char) token->character;
-		return;
+		return 1;
 	case TOKEN_STRING:
 		expr->ctype = &string_ctype;
-		return;
+		return 1;
 	default:
 		warn(token, "non-typed expression");
 	}
-}	
+	return 0;
+}
 
-void evaluate_expression(struct expression *expr)
+static struct symbol *integer_type(unsigned long mod, int bit_size, int alignment)
 {
-	if (!expr || expr->ctype)
-		return;
+	/* FIXME! We shouldn't allocate a new one, we should look up a static one! */
+	struct symbol *sym = alloc_symbol(NULL, SYM_TYPE);
+	mod &= (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG | MOD_UNSIGNED);
+	sym->ctype.base_type = &int_type;
+	sym->ctype.modifiers = mod;
+	sym->bit_size = bit_size;
+	sym->alignment = alignment;
+	return sym;
+}
+
+static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
+{
+	unsigned long lmod, rmod, mod;
+
+	if (left == right)
+		return left;
+
+	if (left->bit_size > right->bit_size)
+		return left;
+
+	if (right->bit_size > left->bit_size)
+		return right;
+
+	/* Same size integers - promote to unsigned, promote to long */
+	lmod = left->ctype.modifiers;
+	rmod = right->ctype.modifiers;
+	mod = lmod | rmod;
+	if (mod == lmod)
+		return left;
+	if (mod == rmod)
+		return right;
+	return integer_type(mod, left->bit_size, left->alignment);
+}
+
+static struct expression * promote(struct expression *old, struct symbol *type)
+{
+	struct expression *expr = alloc_expression(old->token, EXPR_CAST);
+	expr->ctype = type;
+	expr->cast_type = type;
+	expr->cast_expression = old;
+	return expr;
+}
+
+static int evaluate_binop(struct expression *expr)
+{
+	struct expression *left = expr->left, *right = expr->right;
+	struct symbol *ltype = left->ctype, *rtype = right->ctype;
+
+	/* Integer promotion? */
+	if (ltype->ctype.base_type == &int_type && rtype->ctype.base_type == &int_type) {
+		struct symbol *ctype = bigger_int_type(ltype, rtype);
+
+		/* Don't bother promoting same-size entities, it only adds clutter */
+		if (ltype->bit_size != ctype->bit_size)
+			expr->left = promote(left, ctype);
+		if (rtype->bit_size != ctype->bit_size)
+			expr->right = promote(right, ctype);
+		expr->ctype = ctype;
+		return 1;
+	}
+	warn(expr->token, "unexpected types for operation");
+	return 0;
+}
+
+static int evaluate_preop(struct expression *expr)
+{
+	return 0;
+}
+
+static int evaluate_postop(struct expression *expr)
+{
+	return 0;
+}
+
+int evaluate_expression(struct expression *expr)
+{
+	if (!expr)
+		return 0;
+	if (expr->ctype)
+		return 1;
+
 	switch (expr->type) {
 	case EXPR_CONSTANT:
-		evaluate_constant(expr);
-		return;
+		return evaluate_constant(expr);
 	case EXPR_SYMBOL:
-		evaluate_symbol(expr);
-		return;
+		return evaluate_symbol(expr);
 	case EXPR_BINOP:
-		evaluate_expression(expr->left);
-		evaluate_expression(expr->right);
-		return;
+		if (!evaluate_expression(expr->left))
+			return 0;
+		if (!evaluate_expression(expr->right))
+			return 0;
+		return evaluate_binop(expr);
 	case EXPR_PREOP:
-		evaluate_expression(expr->unop);
-		return;
+		if (!evaluate_expression(expr->unop))
+			return 0;
+		return evaluate_preop(expr);
 	case EXPR_POSTOP:
-		evaluate_expression(expr->unop);
-		return;
+		if (!evaluate_expression(expr->unop))
+			return 1;
+		return evaluate_postop(expr);
 	default:
 		break;
 	}
+	return 0;
 }
 
 long long get_expression_value(struct expression *expr)
