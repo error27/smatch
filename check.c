@@ -23,12 +23,75 @@
 #include "expression.h"
 #include "linearize.h"
 
+static int context_increase(struct basic_block *bb)
+{
+	int sum = 0;
+	struct instruction *insn;
+
+	FOR_EACH_PTR(bb->insns, insn) {
+		if (insn->opcode == OP_CONTEXT)
+			sum += insn->increment;
+	} END_FOR_EACH_PTR(insn);
+	return sum;
+}
+
+static int check_bb_context(struct basic_block *bb, int value);
+
+static int check_children(struct basic_block *bb, int value)
+{
+	struct terminator_iterator term;
+	struct instruction *insn;
+	struct basic_block *child;
+
+	insn = last_instruction(bb->insns);
+	if (insn->opcode == OP_RET)
+		return value ? -1 : 0;
+
+	init_terminator_iterator(insn, &term);
+	while ((child=next_terminator_bb(&term)) != NULL) {
+		if (check_bb_context(child, value))
+			return -1;
+	}
+	return 0;
+}
+
+static int check_bb_context(struct basic_block *bb, int value)
+{
+	if (!bb)
+		return 0;
+	if (bb->context == value)
+		return 0;
+
+	/* Now that's not good.. */
+	if (bb->context >= 0)
+		return -1;
+
+	bb->context = value;
+	value += context_increase(bb);
+	if (value < 0)
+		return -1;
+
+	return check_children(bb, value);
+}
+
+static void check_context(struct entrypoint *ep)
+{
+	if (check_bb_context(ep->entry, 0)) {
+		struct symbol *sym = ep->name;
+		warning(sym->pos, "context imbalance in '%s'", show_ident(sym->ident));
+	}
+}
+
 static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 {
+	struct entrypoint *ep;
+
 	evaluate_symbol(sym);
 	check_duplicates(sym);
 	expand_symbol(sym);
-	linearize_symbol(sym);
+	ep = linearize_symbol(sym);
+	if (ep)
+		check_context(ep);
 }
 
 static void do_predefined(char *filename)
