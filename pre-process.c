@@ -486,27 +486,40 @@ static const char *token_name_sequence(struct token *token, int endop, struct to
 	return buffer;
 }
 
-static void do_include(struct token *head, struct token *token, const char *filename)
+static struct token *try_include(const char *path, int plen, const char *filename, int flen, struct token *next_token)
 {
-	int endlen = strlen(filename) + 1;
+	int fd;
+	static char fullname[PATH_MAX];
+
+	memcpy(fullname, path, plen);
+	memcpy(fullname+plen, filename, flen);
+	fd = open(fullname, O_RDONLY);
+	if (fd >= 0) {
+		char * streamname = __alloc_bytes(plen + flen);
+		struct token *list;
+		memcpy(streamname, fullname, plen + flen);
+		list = tokenize(streamname, fd, next_token);
+		close(fd);
+		return list;
+	}
+	return NULL;
+}
+
+static void do_include(struct stream *stream, struct token *head, struct token *token, const char *filename)
+{
+	int flen = strlen(filename) + 1;
 	const char **pptr = includepath, *path;
 
 	while ((path = *pptr++) != NULL) {
-		int fd, len = strlen(path);
-		static char fullname[PATH_MAX];
+		struct token *new;
 
-		memcpy(fullname, path, len);
-		memcpy(fullname+len, filename, endlen);
-		fd = open(fullname, O_RDONLY);
-		if (fd >= 0) {
-			char * streamname = __alloc_bytes(len + endlen);
-			memcpy(streamname, fullname, len + endlen);
-			head->next = tokenize(streamname, fd, head->next);
-			close(fd);
-			return;
-		}
+		new = try_include(path, strlen(path), filename, flen, head->next);
+		if (!new)
+			continue;
+		head->next = new;
+		return;
 	}
-	warn(token->pos, "unable to open '%s'", filename);
+	error(token->pos, "unable to open '%s'", filename);
 }
 
 static int handle_include(struct stream *stream, struct token *head, struct token *token)
@@ -528,7 +541,7 @@ static int handle_include(struct stream *stream, struct token *head, struct toke
 	}
 	token = next->next;
 	filename = token_name_sequence(token, expect, token);
-	do_include(head, token, filename);
+	do_include(stream, head, token, filename);
 	return 1;
 }
 
