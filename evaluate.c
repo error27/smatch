@@ -760,8 +760,6 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 		ctype = ctype->ctype.base_type;
 		mod |= ctype->ctype.modifiers;
 	}
-	if (mod & MOD_NODEREF)
-		warn(expr->pos, "bad dereference");
 	if (expr->op == SPECIAL_DEREFERENCE) {
 		/* Arrays will degenerate into pointers for '->' */
 		if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
@@ -769,7 +767,14 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 			return NULL;
 		}
 		ctype = ctype->ctype.base_type;
+		mod |= ctype->ctype.modifiers;
+		if (ctype->type == SYM_NODE) {
+			ctype = ctype->ctype.base_type;
+			mod |= ctype->ctype.modifiers;
+		}
 	}
+	if (mod & MOD_NODEREF)
+		warn(expr->pos, "bad dereference");
 	if (!ctype || (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION)) {
 		warn(expr->pos, "expected structure or union");
 		return NULL;
@@ -857,7 +862,7 @@ static int evaluate_expression_list(struct expression_list *head)
  * Initializers are kind of like assignments. Except
  * they can be a hell of a lot more complex.
  */
-struct symbol *evaluate_initializer(struct symbol *sym, struct expression *expr)
+static struct symbol *evaluate_initializer(struct symbol *sym, struct expression *expr)
 {
 	/*
 	 * FIXME!! Check type compatibility, and look up any named
@@ -871,13 +876,11 @@ struct symbol *evaluate_initializer(struct symbol *sym, struct expression *expr)
 static struct symbol *evaluate_cast(struct expression *expr)
 {
 	struct expression *target = expr->cast_expression;
-	struct symbol *ctype = expr->cast_type;
+	struct symbol *ctype = examine_symbol_type(expr->cast_type);
 
-	if (!evaluate_expression(target))
-		return NULL;
-	ctype = examine_symbol_type(ctype);
 	expr->ctype = ctype;
 	expr->cast_type = ctype;
+	evaluate_expression(target);
 
 	/* Simplify normal integer casts.. */
 	if (target->type == EXPR_VALUE)
@@ -985,6 +988,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_INITIALIZER:
 		if (!evaluate_expression_list(expr->expr_list))
 			return NULL;
+		
 		return NULL;
 	case EXPR_IDENTIFIER:
 		// FIXME!! Identifier
@@ -1024,12 +1028,12 @@ static int count_array_initializer(struct expression *expr)
 
 struct symbol *evaluate_symbol(struct symbol *sym)
 {
-	struct symbol *base_type = sym->ctype.base_type;
+	struct symbol *base_type;
 
+	examine_symbol_type(sym);
+	base_type = sym->ctype.base_type;
 	if (!base_type)
 		return NULL;
-
-	base_type = examine_symbol_type(base_type);
 	sym->ctype.base_type = base_type;
 
 	/* Evaluate the initializers */
@@ -1095,7 +1099,18 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		evaluate_expression(stmt->case_to);
 		evaluate_statement(stmt->case_statement);
 		return NULL;
-	default:
+	case STMT_LABEL:
+		evaluate_statement(stmt->label_statement);
+		return NULL;
+	case STMT_GOTO:
+		evaluate_expression(stmt->goto_expression);
+		return NULL;
+	case STMT_NONE:
+	case STMT_BREAK:
+	case STMT_CONTINUE:
+		break;
+	case STMT_ASM:
+		/* FIXME! Do the asm parameter evaluation! */
 		break;
 	}
 	return NULL;
