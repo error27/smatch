@@ -1499,9 +1499,8 @@ static int evaluate_array_initializer(struct symbol *ctype, struct expression *e
 			current = entry->idx_to;
 			continue;
 		}
-		sym = evaluate_expression(entry);
-
-		if (accept_string && is_string_type(sym)) {
+		if (accept_string && entry->type == EXPR_STRING) {
+			sym = evaluate_expression(entry);
 			entries = get_expression_value(sym->array_size);
 		} else {
 			evaluate_initializer(ctype, p, offset + current*(ctype->bit_size>>3));
