@@ -757,8 +757,6 @@ static void declare_argument(struct symbol *sym, void *data, int flags)
 
 	if (sym->type == SYM_ELLIPSIS)
 		return;
-	if (sym->ctype.base_type == &void_type)
-		return;
 	if (!sym->ident) {
 		warn(decl->token, "no identifier for function argument");
 		return;

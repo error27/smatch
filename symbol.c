@@ -127,11 +127,6 @@ void examine_symbol_type(struct symbol * sym)
 	base_type = sym->ctype.base_type;
 	modifiers = sym->ctype.modifiers;
 
-	if (base_type == &void_type) {
-		sym->bit_size = -1;
-		return;
-	}
-		
 	if (base_type == &int_type) {
 		bit_size = BITS_IN_INT;
 		if (modifiers & MOD_LONGLONG) {
@@ -221,7 +216,7 @@ struct sym_init {
 	{ "extern",	NULL,		MOD_EXTERN },
 
 	/* Type specifiers */
-	{ "void",	&void_type,	0 },
+	{ "void",	&void_ctype,	0 },
 	{ "char",	&int_type,	MOD_CHAR },
 	{ "short",	&int_type,	MOD_SHORT },
 	{ "int",	&int_type,	0 },
@@ -271,8 +266,7 @@ struct sym_init {
 /*
  * Abstract types
  */
-struct symbol	void_type,
-		int_type,
+struct symbol	int_type,
 		fp_type,
 		vector_type,
 		bad_type;
@@ -298,6 +292,7 @@ struct ctype_declare {
 	struct symbol *base_type;
 } ctype_declaration[] = {
 	{ &bool_ctype,   0,					  BITS_IN_INT,	     MAX_INT_ALIGNMENT, &int_type },
+	{ &void_ctype,   0,					  -1,		     0,			&void_ctype },
 
 	{ &char_ctype,   MOD_SIGNED | MOD_CHAR,  		  BITS_IN_CHAR,	     MAX_INT_ALIGNMENT, &int_type },
 	{ &uchar_ctype,  MOD_UNSIGNED | MOD_CHAR,		  BITS_IN_CHAR,	     MAX_INT_ALIGNMENT, &int_type },
