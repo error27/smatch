@@ -3,7 +3,9 @@
  * to tokenize, pre-process and parse a C file, and prints out
  * the results.
  *
- * Copyright (C) 2003 Transmeta Corp, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp.
+ *
+ *  Licensed under the Open Software License version 1.1
  */
 #include <stdarg.h>
 #include <stdlib.h>
