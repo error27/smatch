@@ -366,7 +366,7 @@ void show_entry(struct entrypoint *ep)
 	FOR_EACH_PTR(ep->syms, sym) {
 		printf("   sym: %p %s\n", sym, show_ident(sym->ident));
 		if (sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE))
-			printf("\texternal visibility");
+			printf("\texternal visibility\n");
 		show_symbol_usage(sym->pseudo);
 	} END_FOR_EACH_PTR(sym);
 
