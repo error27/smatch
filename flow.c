@@ -385,6 +385,15 @@ found:
 	return 1;
 }
 
+static void kill_store(struct instruction *insn)
+{
+	if (insn) {
+		insn->bb = NULL;
+		insn->opcode = OP_SNOP;
+		kill_use(&insn->target);
+	}
+}
+
 /* Kill a pseudo that is dead on exit from the bb */
 static void kill_dead_stores(pseudo_t pseudo, unsigned long generation, struct basic_block *bb, int local)
 {
@@ -407,7 +416,7 @@ static void kill_dead_stores(pseudo_t pseudo, unsigned long generation, struct b
 		if (insn->src == pseudo) {
 			if (opcode == OP_LOAD)
 				return;
-			insn->opcode = OP_SNOP;
+			kill_store(insn);
 			continue;
 		}
 		if (local)
@@ -438,7 +447,7 @@ static void kill_dominated_stores(pseudo_t pseudo, struct instruction *insn,
 
 	/* Unreachable store? Undo it */
 	if (!bb) {
-		insn->opcode = OP_SNOP;
+		kill_store(insn);
 		return;
 	}
 	if (bb->generation == generation)
@@ -459,7 +468,7 @@ static void kill_dominated_stores(pseudo_t pseudo, struct instruction *insn,
 			return;
 		if (one->opcode == OP_LOAD)
 			return;
-		one->opcode = OP_SNOP;
+		kill_store(one);
 	} END_FOR_EACH_PTR_REVERSE(one);
 
 	if (!found) {
@@ -534,17 +543,17 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 	 * replace the store with a def.
 	 */
 	src = VOID;
-	if (def) {
-		src = def->target;		
+	if (def)
+		src = def->target;
 
-		/* Turn the store into a no-op */
-		def->opcode = OP_SNOP;
-	}
 	FOR_EACH_PTR(pseudo->users, pp) {
 		struct instruction *insn = container(pp, struct instruction, src);
 		if (insn->opcode == OP_LOAD)
 			convert_load_insn(insn, src);
 	} END_FOR_EACH_PTR(pp);
+
+	/* Turn the store into a no-op */
+	kill_store(def);
 	return;
 
 multi_def:
@@ -562,7 +571,7 @@ external_visibility:
 		FOR_EACH_PTR(pseudo->users, pp) {
 			struct instruction *insn = container(pp, struct instruction, src);
 			if (insn->opcode == OP_STORE)
-				insn->opcode = OP_SNOP;
+				kill_store(insn);
 		} END_FOR_EACH_PTR(pp);
 	} else {
 		/*
@@ -593,7 +602,6 @@ void simplify_symbol_usage(struct entrypoint *ep)
 
 	FOR_EACH_PTR(ep->accesses, sym) {
 		simplify_one_symbol(ep, sym);
-		sym->pseudo = NULL;
 	} END_FOR_EACH_PTR(sym);
 }
 

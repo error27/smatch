@@ -632,6 +632,15 @@ pseudo_t alloc_pseudo(struct instruction *def)
 	return pseudo;
 }
 
+static void clear_symbol_pseudos(struct entrypoint *ep)
+{
+	struct symbol *sym;
+
+	FOR_EACH_PTR(ep->accesses, sym) {
+		sym->pseudo = NULL;
+	} END_FOR_EACH_PTR(sym);
+}
+
 static pseudo_t symbol_pseudo(struct entrypoint *ep, struct symbol *sym)
 {
 	pseudo_t pseudo;
@@ -1758,6 +1767,9 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 			 * Remove or merge basic blocks.
 			 */
 			pack_basic_blocks(ep);
+
+			/* Cleanup */
+			clear_symbol_pseudos(ep);
 
 			ret_ep = ep;
 		}
