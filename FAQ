@@ -66,3 +66,21 @@ A.  I don't know yet.  I originally thought it would be LGPL, but I'm
     people can write back-ends for it without having to make those
     back-ends available under the OSL. 
 
+
+Q.  Does it really parse C?
+
+A.  Yeah, well...  It parses a fairly complete subset of "extended C" as
+    defined by gcc.  HOWEVER, since I don't believe in K&R syntax for
+    function declarations or in giving automatic integer types, it
+    doesn't do that.  If you don't give types to your variables, they
+    won't have any types, and you can't use them.
+
+    Similarly, it will be very unhappy about undeclared functions,
+    rather than just assuming they have type "int". 
+
+    Note that a large rationale for me doing this project is for type
+    following, which to some degree explains why the thing is type-anal
+    and refuses to touch the old-style pre-ANSI non-typed (or weakly
+    typed) constructs. Maybe somebody else who is working on projects
+    where pre-ANSI C makes sense might be more inclined to care about
+    ancient C.  It's open source, after all. Go wild.
