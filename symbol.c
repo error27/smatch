@@ -85,6 +85,15 @@ static void lay_out_union(struct symbol *sym, struct struct_union_info *info)
 	sym->offset = 0;
 }
 
+static int bitfield_base_size(struct symbol *sym)
+{
+	if (sym->type == SYM_NODE)
+		sym = sym->ctype.base_type;
+	if (sym->type == SYM_BITFIELD)
+		sym = sym->ctype.base_type;
+	return sym->bit_size;
+}
+
 /*
  * Structures are a bit more interesting to lay out
  */
@@ -120,7 +129,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 	 */
 	if (is_bitfield_type (sym)) {
 		unsigned long bit_offset = bit_size & align_bit_mask;
-		int room = base_size - bit_offset;
+		int room = bitfield_base_size(sym) - bit_offset;
 		// Zero-width fields just fill up the unit.
 		int width = sym->fieldwidth ? sym->fieldwidth : (bit_offset ? room : 0);
 
