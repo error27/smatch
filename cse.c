@@ -258,12 +258,12 @@ static struct basic_block *trivial_common_parent(struct basic_block *bb1, struct
 	struct basic_block *parent;
 
 	if (bb_list_size(bb1->parents) != 1)
-		return 0;
+		return NULL;
 	parent = first_basic_block(bb1->parents);
 	if (bb_list_size(bb2->parents) != 1)
-		return 0;
+		return NULL;
 	if (first_basic_block(bb2->parents) != parent)
-		return 0;
+		return NULL;
 	return parent;
 }
 
