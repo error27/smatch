@@ -148,13 +148,10 @@ struct allocator_struct statement_allocator = { "statements", NULL, __alignof__(
 struct allocator_struct string_allocator = { "strings", NULL, __alignof__(struct statement), CHUNK };
 struct allocator_struct bytes_allocator = { "bytes", NULL, 1, CHUNK };
 
-#define __ALLOCATOR(type, size, prepare, x)			\
+#define __ALLOCATOR(type, size, x)				\
 	type *__alloc_##x(int extra)				\
 	{							\
-		type *ret = allocate(&x##_allocator, 		\
-				size+extra);			\
-		prepare;					\
-		return ret;					\
+		return allocate(&x##_allocator, size+extra);	\
 	}							\
 	void show_##x##_alloc(void)				\
 	{							\
@@ -164,11 +161,11 @@ struct allocator_struct bytes_allocator = { "bytes", NULL, 1, CHUNK };
 	{							\
 		drop_all_allocations(&x##_allocator);		\
 	}
-#define ALLOCATOR(x) __ALLOCATOR(struct x, sizeof(struct x), memset(ret, 0, sizeof(struct x)), x)
+#define ALLOCATOR(x) __ALLOCATOR(struct x, sizeof(struct x), x)
 
 ALLOCATOR(ident); ALLOCATOR(token); ALLOCATOR(symbol);
 ALLOCATOR(expression); ALLOCATOR(statement); ALLOCATOR(string);
-__ALLOCATOR(void, 0, , bytes);
+__ALLOCATOR(void, 0, bytes);
 
 int ptr_list_size(struct ptr_list *head)
 {
