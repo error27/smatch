@@ -798,6 +798,14 @@ int show_expression(struct expression *expr)
 	if (!expr)
 		return 0;
 
+	if (!expr->ctype) {
+		struct position *pos = &expr->pos;
+		printf("\tno type at %s:%d:%d\n",
+			input_streams[pos->stream].name,
+			pos->line, pos->pos);
+		return 0;
+	}
+		
 	switch (expr->type) {
 	case EXPR_CALL:
 		return show_call_expression(expr);
