@@ -2040,12 +2040,25 @@ static void evaluate_if_statement(struct statement *stmt)
 	if (!stmt->if_conditional)
 		return;
 
-	ctype = evaluate_conditional(&stmt->if_conditional);
-	if (!ctype)
-		return;
-
+	evaluate_conditional(&stmt->if_conditional);
 	evaluate_statement(stmt->if_true);
 	evaluate_statement(stmt->if_false);
+}
+
+static void evaluate_iterator(struct statement *stmt)
+{
+	struct expression **pre = &stmt->iterator_pre_condition;
+	struct expression **post = &stmt->iterator_post_condition;
+	if (*pre == *post) {
+		evaluate_conditional(pre);
+		*post = *pre;
+	} else {
+		evaluate_conditional(pre);
+		evaluate_conditional(post);
+	}
+	evaluate_statement(stmt->iterator_pre_statement);
+	evaluate_statement(stmt->iterator_statement);
+	evaluate_statement(stmt->iterator_post_statement);
 }
 
 struct symbol *evaluate_statement(struct statement *stmt)
@@ -2058,7 +2071,8 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		return evaluate_return_expression(stmt);
 
 	case STMT_EXPRESSION:
-		evaluate_expression(stmt->expression);
+		if (!evaluate_expression(stmt->expression))
+			return NULL;
 		return degenerate(stmt->expression);
 
 	case STMT_COMPOUND: {
@@ -2088,11 +2102,7 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		evaluate_if_statement(stmt);
 		return NULL;
 	case STMT_ITERATOR:
-		evaluate_conditional(&stmt->iterator_pre_condition);
-		evaluate_conditional(&stmt->iterator_post_condition);
-		evaluate_statement(stmt->iterator_pre_statement);
-		evaluate_statement(stmt->iterator_statement);
-		evaluate_statement(stmt->iterator_post_statement);
+		evaluate_iterator(stmt);
 		return NULL;
 	case STMT_SWITCH:
 		evaluate_expression(stmt->switch_expression);
