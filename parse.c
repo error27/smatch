@@ -55,9 +55,9 @@ static struct symbol *lookup_or_create_symbol(enum namespace ns, enum type type,
 }
 
 /*
- * FIXME! This needs to not just be in a different namespace (NS_LABEL),
- * but also a different "nesting scope", since labels are per-function,
- * not per-block.
+ * NOTE! NS_LABEL is not just a different namespace,
+ * it also ends up using function scope instead of the
+ * regular symbol scope.
  */
 static struct symbol *label_symbol(struct token *token)
 {
