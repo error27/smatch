@@ -725,6 +725,7 @@ static struct token *setup_stream(stream_t *stream, int idx, int fd,
 	stream->pos.newline = 1;
 	stream->pos.whitespace = 0;
 	stream->pos.pos = 0;
+	stream->pos.noexpand = 0;
 
 	stream->token = NULL;
 	stream->fd = fd;

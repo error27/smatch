@@ -134,7 +134,7 @@ struct token *expand_one_symbol(struct token *head, struct token *token)
 {
 	struct symbol *sym;
 
-	if (token->noexpand)
+	if (token->pos.noexpand)
 		return token;
 
 	sym = lookup_symbol(token->ident, NS_PREPROCESSOR);
@@ -193,7 +193,7 @@ static struct token *find_argument_end(struct token *start, struct token *arglis
 			continue;
 		} else if (token_type(next) == TOKEN_IDENT) {
 			if (next->ident->tainted)
-				next->noexpand = 1;
+				next->pos.noexpand = 1;
 		} else if (match_op(next, '('))
 			nesting++;
 		else if (match_op(next, ')')) {
@@ -217,8 +217,8 @@ static struct token *dup_token(struct token *token, struct position *streampos, 
 	token_type(alloc) = token_type(token);
 	alloc->pos.newline = pos->newline;
 	alloc->pos.whitespace = pos->whitespace;
+	alloc->pos.noexpand = token->pos.noexpand;
 	alloc->number = token->number;
-	alloc->noexpand = token->noexpand;
 	return alloc;	
 }
 
@@ -458,7 +458,7 @@ static struct token *expand(struct token *head, struct symbol *sym)
 	struct ident *expanding = token->ident;
 
 	if (expanding->tainted) {
-		token->noexpand = 1;
+		token->pos.noexpand = 1;
 		return token;
 	}
 

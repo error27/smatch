@@ -18,7 +18,8 @@ struct position {
 		     pos:14,
 		     newline:1,
 		     whitespace:1;
-	unsigned int line;
+	unsigned int line:31,
+		     noexpand:1;
 };
 
 struct ident;

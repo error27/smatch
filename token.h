@@ -122,7 +122,6 @@ struct string {
 struct token {
 	struct position pos;
 	struct token *next;
-	int noexpand;
 	union {
 		char *number;
 		struct ident *ident;
