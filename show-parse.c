@@ -913,6 +913,15 @@ static int show_initializer_expr(struct expression *expr, struct symbol *ctype)
 	return 0;
 }
 
+int show_symbol_expr_init(struct symbol *sym)
+{
+	struct expression *expr = sym->initializer;
+
+	if (expr)
+		show_initializer_expr(expr, expr->ctype);
+	return show_symbol_expr(sym);
+}
+
 /*
  * Print out an expression. Return the pseudo that contains the
  * variable.
@@ -947,7 +956,7 @@ int show_expression(struct expression *expr)
 	case EXPR_POSTOP:
 		return show_postop(expr);
 	case EXPR_SYMBOL:
-		return show_symbol_expr(expr->symbol);
+		return show_symbol_expr_init(expr->symbol);
 	case EXPR_DEREF:
 	case EXPR_SIZEOF:
 		warn(expr->pos, "invalid expression after evaluation");

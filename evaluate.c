@@ -1225,9 +1225,26 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	 * initializer, in which case we need to pass
 	 * the type value down to that initializer rather
 	 * than trying to evaluate it as an expression
+	 *
+	 * A more complex case is when the initializer is
+	 * dereferenced as part of a post-fix expression.
+	 * We need to produce an expression that can be dereferenced.
 	 */
 	if (target->type == EXPR_INITIALIZER) {
-		evaluate_initializer(ctype, &expr->cast_expression, 0);
+		struct symbol *sym = alloc_symbol(expr->pos, SYM_NODE);
+		struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
+
+		sym->ctype.base_type = ctype;
+		sym->initializer = expr->cast_expression;
+		evaluate_symbol(sym);
+
+		addr->ctype = &ptr_ctype;
+		addr->symbol = sym;
+
+		expr->type = EXPR_PREOP;
+		expr->op = '*';
+		expr->unop = addr;
+		expr->ctype =  ctype;
 		return ctype;
 	}
 

@@ -241,11 +241,17 @@ static struct token *expression_list(struct token *token, struct expression_list
 	return token;
 }
 
-static struct token *postfix_expression(struct token *token, struct expression **tree)
+/*
+ * extend to deal with the ambiguous C grammar for parsing
+ * a cast expressions followed by an initializer.
+ */
+static struct token *postfix_expression(struct token *token, struct expression **tree, struct expression *cast_init_expr)
 {
-	struct expression *expr = NULL;
+	struct expression *expr = cast_init_expr;
 
-	token = primary_expression(token, &expr);
+	if (!expr)
+		token = primary_expression(token, &expr);
+
 	while (expr && token_type(token) == TOKEN_SPECIAL) {
 		switch (token->special) {
 		case '[': {			/* Array dereference */
@@ -343,13 +349,16 @@ static struct token *unary_expression(struct token *token, struct expression **t
 						
 	}
 			
-	return postfix_expression(token, tree);
+	return postfix_expression(token, tree, NULL);
 }
 
 /*
  * Ambiguity: a '(' can be either a cast-expression or
  * a primary-expression depending on whether it is followed
  * by a type or not. 
+ *
+ * additional ambiguity: a "cast expression" followed by
+ * an initializer is really a postfix-expression.
  */
 static struct token *cast_expression(struct token *token, struct expression **tree)
 {
@@ -362,9 +371,11 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 			token = typename(next, &sym);
 			cast->cast_type = sym->ctype.base_type;
 			token = expect(token, ')', "at end of cast operator");
+			if (match_op(token, '{')) {
+				token = initializer(&cast->cast_expression, token);
+				return postfix_expression(token, tree, cast);
+			}
 			*tree = cast;
-			if (match_op(token, '{'))
-				return initializer(&cast->cast_expression, token);
 			token = cast_expression(token, &cast->cast_expression);
 			return token;
 		}
