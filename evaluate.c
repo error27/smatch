@@ -146,6 +146,13 @@ static int evaluate_binop(struct expression *expr)
 	return 0;
 }
 
+static int evaluate_assignment(struct expression *expr)
+{
+	// FIXME! We need to cast and check the rigth side!
+	expr->ctype = expr->left->ctype;
+	return 1;
+}
+
 static int evaluate_preop(struct expression *expr)
 {
 	struct symbol *ctype = expr->unop->ctype;
@@ -289,6 +296,54 @@ static int evaluate_sizeof(struct expression *expr)
 	return 1;
 }
 
+static int evaluate_lvalue_expression(struct expression *expr)
+{
+	// FIXME!
+	return evaluate_expression(expr);
+}
+
+static int evaluate_expression_list(struct expression_list *head)
+{
+	if (head) {
+		struct ptr_list *list = (struct ptr_list *)head;
+		do {
+			int i;
+			for (i = 0; i < list->nr; i++) {
+				struct expression *expr = (struct expression *)list->list[i];
+				evaluate_expression(expr);
+			}
+		} while ((list = list->next) != (struct ptr_list *)head);
+	}
+	// FIXME!
+	return 1;
+}
+
+static int evaluate_call(struct expression *expr)
+{
+	int args, fnargs;
+	struct symbol *ctype;
+	struct expression *fn = expr->fn;
+	struct expression_list *arglist = expr->args;
+
+	if (!evaluate_expression(fn))
+		return 0;
+	if (!evaluate_expression_list(arglist))
+		return 0;
+	ctype = fn->ctype;
+	if (ctype->type != SYM_FN) {
+		warn(expr->token, "not a function");
+		return 0;
+	}
+	args = expression_list_size(expr->args);
+	fnargs = symbol_list_size(ctype->arguments);
+	if (args < fnargs)
+		warn(expr->token, "not enough arguments for function");
+	if (args > fnargs && !ctype->variadic)
+		warn(expr->token, "too many arguments for function");
+	expr->ctype = ctype->ctype.base_type;
+	return 1;
+}
+
 int evaluate_expression(struct expression *expr)
 {
 	if (!expr)
@@ -307,6 +362,12 @@ int evaluate_expression(struct expression *expr)
 		if (!evaluate_expression(expr->right))
 			return 0;
 		return evaluate_binop(expr);
+	case EXPR_ASSIGNMENT:
+		if (!evaluate_lvalue_expression(expr->left))
+			return 0;
+		if (!evaluate_expression(expr->right))
+			return 0;
+		return evaluate_assignment(expr);
 	case EXPR_PREOP:
 		if (!evaluate_expression(expr->unop))
 			return 0;
@@ -324,6 +385,8 @@ int evaluate_expression(struct expression *expr)
 		return evaluate_sizeof(expr);
 	case EXPR_DEREF:
 		return evaluate_dereference(expr);
+	case EXPR_CALL:
+		return evaluate_call(expr);
 	default:
 		break;
 	}

@@ -334,6 +334,18 @@ static void show_size(struct symbol *sym)
 		printf("%d:%d", sym->bit_size, sym->alignment);
 }
 
+static void show_one_expression(struct expression *expr, void *sep, int flags)
+{
+	show_expression(expr);
+	if (!(flags & ITERATE_LAST))
+		printf("%s", (const char *)sep);
+}
+
+void show_expression_list(struct expression_list *list, const char *sep)
+{
+	expression_iterate(list, show_one_expression, (void *)sep);
+}
+
 /*
  * Print out an expression
  */
@@ -347,6 +359,18 @@ void show_expression(struct expression *expr)
 	show_type(expr->ctype);
 	printf(") ");
 	switch (expr->type) {
+	case EXPR_CALL:
+		show_expression(expr->fn);
+		printf("( ");
+		show_expression_list(expr->args, ", ");
+		printf(" )");
+		break;
+		
+	case EXPR_ASSIGNMENT:
+		show_expression(expr->left);
+		printf(" %s ", show_special(expr->op));
+		show_expression(expr->right);
+		break;
 	case EXPR_BINOP:
 		show_expression(expr->left);
 		printf(" %s ", show_special(expr->op));

@@ -93,6 +93,21 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 	return token;
 }
 
+static struct token *expression_list(struct token *token, struct expression_list **list)
+{
+	while (!match_op(token, ')')) {
+		struct expression *expr = NULL;
+		token = assignment_expression(token, &expr);
+		if (!expr)
+			break;
+		add_expression(list, expr);
+		if (!match_op(token, ','))
+			break;
+		token = token->next;
+	}
+	return token;
+}
+
 static struct token *postfix_expression(struct token *token, struct expression **tree)
 {
 	struct expression *expr = NULL;
@@ -142,8 +157,8 @@ static struct token *postfix_expression(struct token *token, struct expression *
 		case '(': {			/* Function call */
 			struct expression *call = alloc_expression(token, EXPR_CALL);
 			call->op = '(';
-			call->left = expr;
-			token = comma_expression(token->next, &call->right);
+			call->fn = expr;
+			token = expression_list(token->next, &call->args);
 			token = expect(token, ')', "in function call");
 			expr = call;
 			continue;
@@ -331,7 +346,7 @@ struct token *assignment_expression(struct token *token, struct expression **tre
 		int i, op = token->special;
 		for (i = 0; i < sizeof(assignments)/sizeof(int); i++)
 			if (assignments[i] == op) {
-				struct expression * expr = alloc_expression(token, EXPR_BINOP);
+				struct expression * expr = alloc_expression(token, EXPR_ASSIGNMENT);
 				expr->left = *tree;
 				expr->op = op;
 				*tree = expr;

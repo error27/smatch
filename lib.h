@@ -14,6 +14,8 @@ struct symbol;
 struct symbol_list;
 struct statement;
 struct statement_list;
+struct expression;
+struct expression_list;
 
 struct token *skip_to(struct token *, int);
 struct token *expect(struct token *, int, const char *);
@@ -47,6 +49,11 @@ struct ptr_list {
 #define ITERATE_LAST 2
 void iterate(struct ptr_list *,void (*callback)(void *, void *, int), void*);
 extern void add_ptr_list(struct ptr_list **, void *);
+extern int ptr_list_size(struct ptr_list *);
+
+#define symbol_list_size(list) ptr_list_size((struct ptr_list *)(list))
+#define statement_list_size(list) ptr_list_size((struct ptr_list *)(list))
+#define expression_list_size(list) ptr_list_size((struct ptr_list *)(list))
 
 static inline void add_symbol(struct symbol_list **list, struct symbol *sym)
 {
@@ -58,12 +65,22 @@ static inline void add_statement(struct statement_list **list, struct statement 
 	add_ptr_list((struct ptr_list **)list, stmt);
 }
 
+static inline void add_expression(struct expression_list **list, struct expression *expr)
+{
+	add_ptr_list((struct ptr_list **)list, expr);
+}
+
 static inline void symbol_iterate(struct symbol_list *list, void (*callback)(struct symbol *, void *, int), void *data)
 {
 	iterate((struct ptr_list *)list, (void (*)(void *, void *, int))callback, data);
 }
 
 static inline void statement_iterate(struct statement_list *list, void (*callback)(struct statement *, void *, int), void *data)
+{
+	iterate((struct ptr_list *)list, (void (*)(void *, void *, int))callback, data);
+}
+
+static inline void expression_iterate(struct expression_list *list, void (*callback)(struct expression *, void *, int), void *data)
 {
 	iterate((struct ptr_list *)list, (void (*)(void *, void *, int))callback, data);
 }

@@ -25,7 +25,7 @@ enum statement_type {
 };
 
 struct statement {
-	int type;
+	enum statement_type type;
 	struct token *token;
 	struct statement *next;
 	union {

@@ -163,6 +163,19 @@ ALLOCATOR(ident); ALLOCATOR(token); ALLOCATOR(symbol);
 ALLOCATOR(expression); ALLOCATOR(statement); ALLOCATOR(string);
 __ALLOCATOR(void, 0, , bytes);
 
+int ptr_list_size(struct ptr_list *head)
+{
+	int nr = 0;
+
+	if (head) {
+		struct ptr_list *list = head;
+		do {
+			nr += list->nr;
+		} while ((list = list->next) != head);
+	}
+	return nr;
+}
+
 void iterate(struct ptr_list *head, void (*callback)(void *, void *, int), void *data)
 {
 	struct ptr_list *list = head;

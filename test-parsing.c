@@ -60,6 +60,8 @@ static void simplify_statement(struct statement *stmt, struct symbol *fn)
 		evaluate_expression(stmt->case_to);
 		simplify_statement(stmt->case_statement, fn);
 		return;
+	default:
+		break;
 	}
 }
 
