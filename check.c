@@ -79,6 +79,19 @@ int main(int argc, char **argv)
 	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
 
+	add_pre_buffer("#define __CHECKER__ 1\n");
+	add_pre_buffer("#nostdinc\n");
+	add_pre_buffer("#add_include \"/home/torvalds/v2.5/linux/include/\"\n");
+	add_pre_buffer("#add_include \"/home/torvalds/v2.5/linux/include/asm-i386/mach-default/\"\n");
+	add_pre_buffer("#add_include \"/home/torvalds/v2.5/linux/arch/i386/mach-default/\"\n");
+	add_pre_buffer("#add_include \"\"\n");
+	add_pre_buffer("#define __KERNEL__\n");
+	add_pre_buffer("#define __GNUC__ 2\n");
+	add_pre_buffer("#define __GNUC_MINOR__ 95\n");
+	add_pre_buffer("#define __builtin_constant_p(x) 0\n");
+	add_pre_buffer("#define __func__ \"function\"\n");
+
+
 	for (i = 1; i < argc; i++) {
 		char *arg = argv[i];
 		if (arg[0] == '-') {
