@@ -190,7 +190,6 @@ extern const char *show_token(const struct token *);
 extern struct token * tokenize(const char *, int, struct token *, const char **next_path);
 extern struct token * tokenize_buffer(unsigned char *, unsigned long, struct token *);
 
-extern void die(const char *, ...);
 extern void show_identifier_stats(void);
 extern struct token *preprocess(struct token *);
 

@@ -64,14 +64,15 @@ typedef struct pseudo *pseudo_t;
 struct token *skip_to(struct token *, int);
 struct token *expect(struct token *, int, const char *);
 #ifdef __GNUC__
-#define FORMAT_ATTR __attribute__ ((__format__ (__printf__, 2, 3)))
+#define FORMAT_ATTR(pos) __attribute__ ((__format__ (__printf__, pos, pos+1)))
 #else
-#define FORMAT_ATTR
+#define FORMAT_ATTR(pos)
 #endif
-extern void info(struct position, const char *, ...) FORMAT_ATTR;
-extern void warning(struct position, const char *, ...) FORMAT_ATTR;
-extern void error(struct position, const char *, ...) FORMAT_ATTR;
-extern void error_die(struct position, const char *, ...) FORMAT_ATTR;
+extern void die(const char *, ...) FORMAT_ATTR(1);
+extern void info(struct position, const char *, ...) FORMAT_ATTR(2);
+extern void warning(struct position, const char *, ...) FORMAT_ATTR(2);
+extern void error(struct position, const char *, ...) FORMAT_ATTR(2);
+extern void error_die(struct position, const char *, ...) FORMAT_ATTR(2);
 #undef FORMAT_ATTR
 
 #define __DECLARE_ALLOCATOR(type, x)		\
