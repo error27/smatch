@@ -101,11 +101,15 @@ static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first,
 
 	FOR_EACH_PTR(first->phi_list, phi) {
 		struct instruction *def = phi->def;
-		struct basic_block *source = def->bb, *target;
-		pseudo_t pseudo = def->src1;
+		struct basic_block *source, *target;
+		pseudo_t pseudo;
 		struct instruction *br;
 		int true;
 
+		if (!def)
+			continue;
+		source = def->bb;
+		pseudo = def->src1;
 		if (!pseudo || !source)
 			continue;
 		br = last_instruction(source->insns);
