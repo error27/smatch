@@ -14,7 +14,8 @@
 struct hardreg {
 	const char *name;
 	pseudo_t contains;
-	int busy;
+	unsigned busy:1,
+		 dirty:1;
 };
 
 static void output_bb(struct basic_block *bb, unsigned long generation);
@@ -32,6 +33,7 @@ static struct hardreg hardregs[] = {
 
 struct bb_state {
 	struct basic_block *bb;
+	unsigned long stack_offset;
 	struct storage_hash_list *inputs;
 	struct storage_hash_list *outputs;
 	struct storage_hash_list *internal;
@@ -60,26 +62,6 @@ static struct storage_hash *find_or_create_hash(pseudo_t pseudo, struct storage_
 	return entry;
 }
 
-/* Flush a hardreg out to the storage it has.. */
-static void flush_reg(struct bb_state *state, struct hardreg *hardreg)
-{
-	pseudo_t pseudo;
-	struct storage_hash *out;
-
-	if (!hardreg->busy)
-		return;
-	pseudo = hardreg->contains;
-	if (!pseudo)
-		return;
-	if (pseudo->type != PSEUDO_REG && pseudo->type != PSEUDO_ARG)
-		return;
-
-	out = find_storage_hash(pseudo, state->outputs);
-	if (!out)
-		out = find_or_create_hash(pseudo, &state->internal);
-	/* FIXME! Create a private storage for this pseudo for this bb!! */
-}
-
 static const char *show_memop(struct storage *storage)
 {
 	static char buffer[1000];
@@ -94,6 +76,55 @@ static const char *show_memop(struct storage *storage)
 		return show_storage(storage);
 	}
 	return buffer;
+}
+
+static void alloc_stack(struct bb_state *state, struct storage *storage)
+{
+	storage->type = REG_STACK;
+	storage->offset = state->stack_offset;
+	state->stack_offset += 4;
+}
+
+/* Flush a hardreg out to the storage it has.. */
+static void flush_reg(struct bb_state *state, struct hardreg *hardreg)
+{
+	pseudo_t pseudo;
+	struct storage_hash *out;
+	struct storage *storage;
+
+	if (!hardreg->busy || !hardreg->dirty)
+		return;
+	pseudo = hardreg->contains;
+	if (!pseudo)
+		return;
+	if (pseudo->type != PSEUDO_REG && pseudo->type != PSEUDO_ARG)
+		return;
+
+	out = find_storage_hash(pseudo, state->internal);
+	if (!out) {
+		out = find_storage_hash(pseudo, state->outputs);
+		if (!out)
+			out = find_or_create_hash(pseudo, &state->internal);
+	}
+	storage = out->storage;
+	switch (storage->type) {
+	default:
+		/*
+		 * Aieee - the next user wants it in a register, but we
+		 * need to flush it to memory in between. Which means that
+		 * we need to allocate an internal one, dammit..
+		 */
+		out = find_or_create_hash(pseudo, &state->internal);
+		storage = out->storage;
+		/* Fall through */
+	case REG_UDEF:
+		alloc_stack(state, storage);
+		/* Fall through */
+	case REG_STACK:
+		printf("\tmovl %s,%s\n", hardreg->name, show_memop(storage));
+		break;
+	}
+		
 }
 
 /* Fill a hardreg with the pseudo it has */
@@ -150,35 +181,130 @@ static struct hardreg *getreg(struct bb_state *state, pseudo_t pseudo)
 	return fill_reg(state, hardregs + i, pseudo);
 }
 
-static struct hardreg *prepare_address(struct bb_state *state, pseudo_t addr)
+static const char *address(struct bb_state *state, struct instruction *memop)
 {
-	if (addr->type == PSEUDO_SYM)
-		return 0;
-	return getreg(state, addr);
-}
+	struct symbol *sym;
+	struct hardreg *base;
+	static char buffer[100];
+	pseudo_t addr = memop->src;
 
-static const char *show_address(struct hardreg *base, struct instruction *memop)
-{
-	static char buffer[1000];
-
-	if (!base) {
-		struct symbol *sym = memop->src->sym;
+	switch(addr->type) {
+	case PSEUDO_SYM:
+		sym = addr->sym;
 		if (sym->ctype.modifiers & MOD_NONLOCAL) {
 			sprintf(buffer, "%s+%d", show_ident(sym->ident), memop->offset);
 			return buffer;
 		}
 		sprintf(buffer, "%d+%s(SP)", memop->offset, show_ident(sym->ident));
 		return buffer;
+	default:
+		base = getreg(state, addr);
+		sprintf(buffer, "%d(%s)", memop->offset, base->name);
+		return buffer;
 	}
-	sprintf(buffer, "%d(%s)", memop->offset, base->name);
-	return buffer;
+}
+
+static const char *reg_or_imm(struct bb_state *state, pseudo_t pseudo)
+{
+	switch(pseudo->type) {
+	case PSEUDO_VAL:
+		return show_pseudo(pseudo);
+	default:
+		return getreg(state, pseudo)->name;
+	}
 }
 
 static void generate_store(struct instruction *insn, struct bb_state *state)
 {
-	struct hardreg *value = getreg(state, insn->target);
-	struct hardreg *addr = prepare_address(state, insn->src);
-	printf("\tmov.%d %s,%s\n", insn->size, value->name, show_address(addr, insn));
+	printf("\tmov.%d %s,%s\n", insn->size, reg_or_imm(state, insn->target), address(state, insn));
+}
+
+static const char* opcodes[] = {
+	[OP_BADOP] = "bad_op",
+
+	/* Fn entrypoint */
+	[OP_ENTRY] = "<entry-point>",
+
+	/* Terminator */
+	[OP_RET] = "ret",
+	[OP_BR] = "br",
+	[OP_SWITCH] = "switch",
+	[OP_INVOKE] = "invoke",
+	[OP_COMPUTEDGOTO] = "jmp *",
+	[OP_UNWIND] = "unwind",
+	
+	/* Binary */
+	[OP_ADD] = "add",
+	[OP_SUB] = "sub",
+	[OP_MUL] = "mul",
+	[OP_DIV] = "div",
+	[OP_MOD] = "mod",
+	[OP_SHL] = "shl",
+	[OP_SHR] = "shr",
+	
+	/* Logical */
+	[OP_AND] = "and",
+	[OP_OR] = "or",
+	[OP_XOR] = "xor",
+	[OP_AND_BOOL] = "and-bool",
+	[OP_OR_BOOL] = "or-bool",
+
+	/* Binary comparison */
+	[OP_SET_EQ] = "seteq",
+	[OP_SET_NE] = "setne",
+	[OP_SET_LE] = "setle",
+	[OP_SET_GE] = "setge",
+	[OP_SET_LT] = "setlt",
+	[OP_SET_GT] = "setgt",
+	[OP_SET_B] = "setb",
+	[OP_SET_A] = "seta",
+	[OP_SET_BE] = "setbe",
+	[OP_SET_AE] = "setae",
+
+	/* Uni */
+	[OP_NOT] = "not",
+	[OP_NEG] = "neg",
+
+	/* Special three-input */
+	[OP_SEL] = "select",
+	
+	/* Memory */
+	[OP_MALLOC] = "malloc",
+	[OP_FREE] = "free",
+	[OP_ALLOCA] = "alloca",
+	[OP_LOAD] = "load",
+	[OP_STORE] = "store",
+	[OP_SETVAL] = "set",
+	[OP_GET_ELEMENT_PTR] = "getelem",
+
+	/* Other */
+	[OP_PHI] = "phi",
+	[OP_PHISOURCE] = "phisrc",
+	[OP_CAST] = "cast",
+	[OP_PTRCAST] = "ptrcast",
+	[OP_CALL] = "call",
+	[OP_VANEXT] = "va_next",
+	[OP_VAARG] = "va_arg",
+	[OP_SLICE] = "slice",
+	[OP_SNOP] = "snop",
+	[OP_LNOP] = "lnop",
+	[OP_NOP] = "nop",
+	[OP_DEATHNOTE] = "dead",
+	[OP_ASM] = "asm",
+
+	/* Sparse tagging (line numbers, context, whatever) */
+	[OP_CONTEXT] = "context",
+};
+
+static void generate_binop(struct bb_state *state, struct instruction *insn)
+{
+	const char *op = opcodes[insn->opcode];
+	struct hardreg *reg = getreg(state, insn->src1);
+	flush_reg(state, reg);
+	printf("\t%s.%d %s,%s\n", op, insn->size, reg_or_imm(state, insn->src2), reg->name);
+	reg->contains = insn->target;
+	reg->busy = 1;
+	reg->dirty = 1;
 }
 
 static void mark_pseudo_dead(pseudo_t pseudo)
@@ -186,8 +312,10 @@ static void mark_pseudo_dead(pseudo_t pseudo)
 	int i;
 
 	for (i = 0; i < REGNO; i++) {
-		if (hardregs[i].contains == pseudo)
+		if (hardregs[i].contains == pseudo) {
 			hardregs[i].busy = 0;
+			hardregs[i].dirty = 0;
+		}
 	}
 }
 
@@ -226,6 +354,11 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 		mark_pseudo_dead(insn->target);
 		break;
 
+	case OP_BINARY ... OP_BINARY_END:
+	case OP_BINCMP ... OP_BINCMP_END:
+		generate_binop(state, insn);
+		break;
+
 	default:
 		show_instruction(insn);
 		break;
@@ -251,6 +384,7 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 	for (i = 0; i < REGNO; i++) {
 		hardregs[i].contains = NULL;
 		hardregs[i].busy = 0;
+		hardregs[i].dirty = 0;
 	}
 
 	FOR_EACH_PTR(state->inputs, entry) {
@@ -260,6 +394,7 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 			int regno = storage->regno;
 			hardregs[regno].contains = entry->pseudo;
 			hardregs[regno].busy = 1;
+			hardregs[regno].dirty = 1;
 			name = hardregs[regno].name;
 		}
 		printf("\t%s <- %s\n", show_pseudo(entry->pseudo), name);
@@ -290,6 +425,7 @@ static void output_bb(struct basic_block *bb, unsigned long generation)
 	state.inputs = gather_storage(bb, STOR_IN);
 	state.outputs = gather_storage(bb, STOR_OUT);
 	state.internal = NULL;
+	state.stack_offset = 0;
 
 	generate(bb, &state);
 
