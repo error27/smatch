@@ -264,7 +264,6 @@ static void expand_arguments(struct token *token, struct token *head,
 				struct token * last = nextnext->next;
 				struct token *newtoken = stringify(nextnext, get_argument(nr, arguments));
 				replace(nextnext, head, newtoken);
-				head->next = last;
 				continue;
 			}
 			warn(next, "'#' operation is not followed by argument name");
