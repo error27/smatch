@@ -8,12 +8,22 @@
 
 struct instruction;
 
-/* Silly pseudo define. Do this right some day */
+enum pseudo_type {
+	PSEUDO_VOID,
+	PSEUDO_REG,
+	PSEUDO_SYM,
+	PSEUDO_VAL,
+};
+
 struct pseudo {
 	int nr;
-	int usage;
-	struct symbol *sym;
-	struct instruction *def;
+	unsigned int usage:24,
+		     type:8;
+	union {
+		struct symbol *sym;
+		struct instruction *def;
+		long long value;
+	};
 };
 
 typedef struct pseudo *pseudo_t;

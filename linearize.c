@@ -74,7 +74,7 @@ static struct phi* alloc_phi(struct basic_block *source, pseudo_t pseudo)
 static inline int regno(pseudo_t n)
 {
 	int retval = -1;
-	if (n)
+	if (n && n->type == PSEUDO_REG)
 		retval = n->nr;
 	return retval;
 }
@@ -84,41 +84,50 @@ static const char *show_pseudo(pseudo_t pseudo)
 	static int n;
 	static char buffer[4][64];
 	char *buf;
-	struct symbol *sym;
 
 	if (!pseudo)
 		return "no pseudo";
 	if (pseudo == VOID)
 		return "VOID";
 	buf = buffer[3 & ++n];
-	sym = pseudo->sym;
-	if (sym) {
+	switch(pseudo->type) {
+	case PSEUDO_SYM: {
+		struct symbol *sym = pseudo->sym;
 		struct expression *expr;
+
 		if (sym->bb_target) {
 			snprintf(buf, 64, ".L%p", sym->bb_target);
-			return buf;
+			break;
 		}
 		if (sym->ident) {
 			snprintf(buf, 64, "%s", show_ident(sym->ident));
-			return buf;
+			break;
 		}
 		expr = sym->initializer;
 		if (!expr) {
 			snprintf(buf, 64, "<anon sym: %d>", pseudo->nr);
-			return buf;
+			break;
 		}
 		switch (expr->type) {
 		case EXPR_VALUE:
-			snprintf(buf, 64, "$%lld", expr->value);
-			return buf;
+			snprintf(buf, 64, "<symbol value: %lld>", expr->value);
+			break;
 		case EXPR_STRING:
 			return show_string(expr->string);
 		default:
 			snprintf(buf, 64, "<symbol expression: %d>", pseudo->nr);
-			return buf;
+			break;
 		}
 	}
-	snprintf(buf, 64, "%%r%d", pseudo->nr);
+	case PSEUDO_REG:
+		snprintf(buf, 64, "%%r%d", pseudo->nr);
+		break;
+	case PSEUDO_VAL:
+		snprintf(buf, 64, "$%lld", pseudo->value);
+		break;
+	default:
+		snprintf(buf, 64, "<bad pseudo type %d>", pseudo->type);
+	}
 	return buf;
 }
 
@@ -128,17 +137,17 @@ static void show_instruction(struct instruction *insn)
 
 	switch (op) {
 	case OP_BADOP:
-		printf("\tAIEEE! (%d %d)\n", regno(insn->target), regno(insn->src));
+		printf("\tAIEEE! (%s <- %s)\n", show_pseudo(insn->target), show_pseudo(insn->src));
 		break;
 	case OP_RET:
 		if (insn->type && insn->type != &void_ctype)
-			printf("\tret %%r%d\n", regno(insn->src));
+			printf("\tret %s\n", show_pseudo(insn->src));
 		else
 			printf("\tret\n");
 		break;
 	case OP_BR:
 		if (insn->bb_true && insn->bb_false) {
-			printf("\tbr\t%%r%d, .L%p, .L%p\n", regno(insn->cond), insn->bb_true, insn->bb_false);
+			printf("\tbr\t%s, .L%p, .L%p\n", show_pseudo(insn->cond), insn->bb_true, insn->bb_false);
 			break;
 		}
 		printf("\tbr\t.L%p\n", insn->bb_true ? insn->bb_true : insn->bb_false);
@@ -193,7 +202,7 @@ static void show_instruction(struct instruction *insn)
 	}
 	case OP_SWITCH: {
 		struct multijmp *jmp;
-		printf("\tswitch %%r%d", regno(insn->cond));
+		printf("\tswitch %s", show_pseudo(insn->cond));
 		FOR_EACH_PTR(insn->multijmp_list, jmp) {
 			if (jmp->begin == jmp->end)
 				printf(", %d -> .L%p", jmp->begin, jmp->target);
@@ -207,7 +216,7 @@ static void show_instruction(struct instruction *insn)
 	}
 	case OP_COMPUTEDGOTO: {
 		struct multijmp *jmp;
-		printf("\tjmp *%%r%d", regno(insn->target));
+		printf("\tjmp *%s", show_pseudo(insn->target));
 		FOR_EACH_PTR(insn->multijmp_list, jmp) {
 			printf(", .L%p", jmp->target);
 		} END_FOR_EACH_PTR(jmp);
@@ -218,9 +227,9 @@ static void show_instruction(struct instruction *insn)
 	case OP_PHI: {
 		struct phi *phi;
 		const char *s = " ";
-		printf("\t%%r%d <- phi", regno(insn->target));
+		printf("\t%s <- phi", show_pseudo(insn->target));
 		FOR_EACH_PTR(insn->phi_list, phi) {
-			printf("%s(%%r%d, .L%p)", s, phi->pseudo->nr, phi->source);
+			printf("%s(%s, .L%p)", s, show_pseudo(phi->pseudo), phi->source);
 			s = ", ";
 		} END_FOR_EACH_PTR(phi);
 		printf("\n");
@@ -236,16 +245,16 @@ static void show_instruction(struct instruction *insn)
 		struct pseudo *arg;
 		printf("\t%s <- CALL %s", show_pseudo(insn->target), show_pseudo(insn->func));
 		FOR_EACH_PTR(insn->arguments, arg) {
-			printf(", %%r%d", arg->nr);
+			printf(", %s", show_pseudo(arg));
 		} END_FOR_EACH_PTR(arg);
 		printf("\n");
 		break;
 	}
 	case OP_CAST:
-		printf("\t%%r%d <- CAST(%d->%d) %%r%d\n",
+		printf("\t%%r%d <- CAST(%d->%d) %s\n",
 			regno(insn->target),
 			insn->orig_type->bit_size, insn->type->bit_size, 
-			regno(insn->src));
+			show_pseudo(insn->src));
 		break;
 	case OP_BINARY ... OP_BINARY_END: {
 		static const char *opname[] = {
@@ -258,16 +267,16 @@ static void show_instruction(struct instruction *insn)
 			[OP_OR_BOOL - OP_BINARY] = "or-bool",
 			[OP_SEL - OP_BINARY] = "select",
 		};
-		printf("\t%%r%d <- %s  %%r%d, %%r%d\n",
+		printf("\t%%r%d <- %s  %s, %s\n",
 			regno(insn->target),
-			opname[op - OP_BINARY], regno(insn->src1), regno(insn->src2));
+			opname[op - OP_BINARY], show_pseudo(insn->src1), show_pseudo(insn->src2));
 		break;
 	}
 
 	case OP_SLICE:
-		printf("\t%%r%d <- slice  %%r%d, %d, %d\n",
+		printf("\t%%r%d <- slice  %s, %d, %d\n",
 			regno(insn->target),
-			regno(insn->base), insn->from, insn->len);
+			show_pseudo(insn->base), insn->from, insn->len);
 		break;
 
 	case OP_BINCMP ... OP_BINCMP_END: {
@@ -283,23 +292,23 @@ static void show_instruction(struct instruction *insn)
 			[OP_SET_A - OP_BINCMP] = "seta",
 			[OP_SET_B - OP_BINCMP] = "setb",
 		};
-		printf("\t%%r%d <- %s  %%r%d, %%r%d\n",
+		printf("\t%%r%d <- %s  %s, %s\n",
 			regno(insn->target),
-			opname[op - OP_BINCMP], regno(insn->src1), regno(insn->src2));
+			opname[op - OP_BINCMP], show_pseudo(insn->src1), show_pseudo(insn->src2));
 		break;
 	}
 
 	case OP_MOV:
-		printf("\t%%r%d <- %%r%d\n",
-			regno(insn->target), regno(insn->src));
+		printf("\t%%r%d <- %s\n",
+			regno(insn->target), show_pseudo(insn->src));
 		break;
 	case OP_NOT: case OP_NEG:
-		printf("\t%%r%d <- %s %%r%d\n",
+		printf("\t%%r%d <- %s %s\n",
 			regno(insn->target),
-			op == OP_NOT ? "not" : "neg", insn->src1->nr);
+			op == OP_NOT ? "not" : "neg", show_pseudo(insn->src1));
 		break;
 	case OP_SETCC:
-		printf("\tsetcc %%r%d\n", regno(insn->src));
+		printf("\tsetcc %s\n", show_pseudo(insn->src));
 		break;
 	case OP_CONTEXT:
 		printf("\tcontext %d\n", insn->increment);
@@ -394,7 +403,7 @@ static void add_goto(struct entrypoint *ep, struct basic_block *dst)
 
 static void add_deathnote(struct entrypoint *ep, pseudo_t pseudo)
 {
-	if (pseudo && pseudo != VOID && !pseudo->sym) {
+	if (pseudo && pseudo->type == PSEUDO_REG) {
 		struct basic_block *bb = ep->active;
 		if (!--pseudo->usage && bb_reachable(bb)) {
 			struct instruction *dead = alloc_instruction(OP_DEAD, NULL);
@@ -454,6 +463,7 @@ static pseudo_t alloc_pseudo(struct instruction *def)
 {
 	static int nr = 0;
 	struct pseudo * pseudo = __alloc_pseudo(0);
+	pseudo->type = PSEUDO_REG;
 	pseudo->nr = ++nr;
 	pseudo->usage = 1;
 	pseudo->def = def;
@@ -463,8 +473,18 @@ static pseudo_t alloc_pseudo(struct instruction *def)
 static pseudo_t symbol_pseudo(struct symbol *sym)
 {
 	pseudo_t pseudo = __alloc_pseudo(0);
+	pseudo->type = PSEUDO_SYM;
 	pseudo->sym = sym;
 	/* Symbol pseudos have neither nr, usage nor def */
+	return pseudo;
+}
+
+static pseudo_t value_pseudo(long long val)
+{
+	pseudo_t pseudo = __alloc_pseudo(0);
+	pseudo->type = PSEUDO_VAL;
+	pseudo->value = val;
+	/* Value pseudos have neither nr, usage nor def */
 	return pseudo;
 }
 
@@ -796,7 +816,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 {
 	struct expression *arg, *fn;
 	struct instruction *insn = alloc_instruction(OP_CALL, expr->ctype);
-	pseudo_t retval, pseudo;
+	pseudo_t retval;
 	int context_diff;
 
 	if (!expr->ctype) {
@@ -837,11 +857,6 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 		retval = alloc_pseudo(insn);
 	insn->target = retval;
 	add_one_insn(ep, insn);
-
-	add_deathnote(ep, insn->func);
-	FOR_EACH_PTR(insn->arguments, pseudo) {
-		add_deathnote(ep, pseudo);
-	} END_FOR_EACH_PTR(pseudo);
 
 	if (context_diff) {
 		insn = alloc_instruction(OP_CONTEXT, &void_ctype);
@@ -1131,7 +1146,10 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 	case EXPR_SYMBOL:
 		return add_setval(ep, expr->symbol, NULL);
 
-	case EXPR_VALUE: case EXPR_STRING: case EXPR_FVALUE: case EXPR_LABEL:
+	case EXPR_VALUE:
+		return value_pseudo(expr->value);
+
+	case EXPR_STRING: case EXPR_FVALUE: case EXPR_LABEL:
 		return add_setval(ep, expr->ctype, expr);
 
 	case EXPR_STATEMENT:
@@ -1661,15 +1679,17 @@ static void create_phi_copy(struct basic_block *bb, struct instruction *phi,
 {
 	struct instruction *insn = last_instruction(bb->insns);
 	struct instruction *new = alloc_instruction(OP_MOV, phi->type);
-	struct instruction *dead = alloc_instruction(OP_DEAD, NULL);
 
 	delete_last_instruction(&bb->insns);
 	new->target = dst;
 	new->src = src;
 	add_instruction(&bb->insns, new);
 
-	dead->target = src;
-	add_instruction(&bb->insns, dead);
+	if (src->type == PSEUDO_REG) {
+		struct instruction *dead = alloc_instruction(OP_DEAD, NULL);
+		dead->target = src;
+		add_instruction(&bb->insns, dead);
+	}
 
 	/* And add back the last instruction */
 	add_instruction(&bb->insns, insn);
