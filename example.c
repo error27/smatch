@@ -16,6 +16,7 @@ struct hardreg {
 	const char *name;
 	struct pseudo_list *contains;
 	unsigned busy:16,
+		 dead:8,
 		 used:1;
 };
 
@@ -212,6 +213,7 @@ static void flush_reg(struct bb_state *state, struct hardreg *hardreg)
 	if (!hardreg->busy)
 		return;
 	hardreg->busy = 0;
+	hardreg->dead = 0;
 	hardreg->used = 1;
 	FOR_EACH_PTR(hardreg->contains, pseudo) {
 		if (CURRENT_TAG(pseudo) & TAG_DEAD)
@@ -532,16 +534,46 @@ static const char* opcodes[] = {
 	[OP_CONTEXT] = "context",
 };
 
+static void kill_dead_reg(struct hardreg *reg)
+{
+	if (reg->dead) {
+		pseudo_t p;
+		
+		FOR_EACH_PTR(reg->contains, p) {
+			if (CURRENT_TAG(p) & TAG_DEAD) {
+				DELETE_CURRENT_PTR(p);
+				reg->busy--;
+				reg->dead--;
+			}
+		} END_FOR_EACH_PTR(p);
+		PACK_PTR_LIST(&reg->contains);
+		assert(!reg->dead);
+	}
+}
+
+static struct hardreg *target_copy_reg(struct bb_state *state, struct hardreg *src, pseudo_t target)
+{
+	kill_dead_reg(src);
+	return copy_reg(state, src, target);
+}
+
 static void generate_binop(struct bb_state *state, struct instruction *insn)
 {
 	const char *op = opcodes[insn->opcode];
 	struct hardreg *src = getreg(state, insn->src1, insn->target);
-	struct hardreg *dst = copy_reg(state, src, insn->target);
+	const char *src2 = reg_or_imm(state, insn->src2);
+	struct hardreg *dst;
 
-	output_insn(state, "%s.%d %s,%s", op, insn->size, reg_or_imm(state, insn->src2), dst->name);
+	dst = target_copy_reg(state, src, insn->target);
+	output_insn(state, "%s.%d %s,%s", op, insn->size, src2, dst->name);
 	add_pseudo_reg(state, insn->target, dst);
 }
 
+/*
+ * This marks a pseudo dead. It still stays on the hardreg list (the hardreg
+ * still has its value), but it's scheduled to be killed after the next
+ * "sequence point" when we call "kill_read_pseudos()"
+ */
 static void mark_pseudo_dead(struct bb_state *state, pseudo_t pseudo)
 {
 	int i;
@@ -556,8 +588,17 @@ static void mark_pseudo_dead(struct bb_state *state, pseudo_t pseudo)
 				continue;
 			output_comment(state, "marking pseudo %s in reg %s dead", show_pseudo(pseudo), reg->name);
 			TAG_CURRENT(p, TAG_DEAD);
-			reg->busy--;
+			reg->dead++;
 		} END_FOR_EACH_PTR(p);
+	}
+}
+
+static void kill_dead_pseudos(struct bb_state *state)
+{
+	int i;
+
+	for (i = 0; i < REGNO; i++) {
+		kill_dead_reg(hardregs + i);
 	}
 }
 
@@ -574,8 +615,17 @@ static void remove_pseudo_reg(struct bb_state *state, pseudo_t pseudo)
 	output_comment(state, "pseudo %s died", show_pseudo(pseudo));
 	for (i = 0; i < REGNO; i++) {
 		struct hardreg *reg = hardregs + i;
-		if (remove_pseudo(&reg->contains, pseudo))
+		pseudo_t p;
+		FOR_EACH_PTR(reg->contains, p) {
+			if (p != pseudo)
+				continue;
+			if (CURRENT_TAG(p) & TAG_DEAD)
+				reg->dead--;
+			reg->busy--;
+			DELETE_CURRENT_PTR(p);
 			output_comment(state, "removed pseudo %s from reg %s", show_pseudo(pseudo), reg->name);
+		} END_FOR_EACH_PTR(p);
+		PACK_PTR_LIST(&reg->contains);
 	}
 }
 
@@ -722,7 +772,7 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 
 	case OP_DEATHNOTE:
 		mark_pseudo_dead(state, insn->target);
-		break;
+		return;
 
 	case OP_BINARY ... OP_BINARY_END:
 	case OP_BINCMP ... OP_BINCMP_END:
@@ -753,6 +803,7 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 		output_insn(state, "unimplemented: %s", show_instruction(insn));
 		break;
 	}
+	kill_dead_pseudos(state);
 }
 
 #define VERY_BUSY 1000
@@ -982,6 +1033,7 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 	for (i = 0; i < REGNO; i++) {
 		free_ptr_list(&hardregs[i].contains);
 		hardregs[i].busy = 0;
+		hardregs[i].dead = 0;
 		hardregs[i].used = 0;
 	}
 
