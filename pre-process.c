@@ -121,6 +121,25 @@ static struct token *expand_defined(struct token *head)
 /* Expand symbol 'sym' between 'head->next' and 'head->next->next' */
 static struct token *expand(struct token *, struct symbol *);
 
+static void replace_with_string(struct token *token, const char *str)
+{
+	int size = strlen(str) + 1;
+	struct string *s = __alloc_string(size);
+
+	s->length = size;
+	memcpy(s->data, str, size);
+	token->type = TOKEN_STRING;
+	token->string = s;
+}
+
+static void replace_with_integer(struct token *token, unsigned int val)
+{
+	char *buf = __alloc_bytes(10);
+	sprintf(buf, "%d", val);
+	token->type = TOKEN_INTEGER;
+	token->integer = buf;
+}
+
 struct token *expand_one_symbol(struct token *head, struct token *token)
 {
 	struct symbol *sym = lookup_symbol(token->ident, NS_PREPROCESSOR);
@@ -128,6 +147,11 @@ struct token *expand_one_symbol(struct token *head, struct token *token)
 		if (sym->arglist && !match_op(token->next, '('))
 			return token;
 		return expand(head, sym);
+	}
+	if (!memcmp(token->ident->name, "__LINE__", 9)) {
+		replace_with_integer(token, token->line);
+	} else if (!memcmp(token->ident->name, "__FILE__", 9)) {
+		replace_with_string(token, (input_streams + token->stream)->name);
 	}
 	return token;
 }
