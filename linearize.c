@@ -1675,44 +1675,6 @@ static void simplify_phi_nodes(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(bb);
 }
 
-static void create_phi_copy(struct basic_block *bb, struct instruction *phi,
-		pseudo_t src, pseudo_t dst)
-{
-	struct instruction *insn = last_instruction(bb->insns);
-	struct instruction *new = alloc_instruction(OP_MOV, phi->type);
-
-	delete_last_instruction(&bb->insns);
-	new->target = dst;
-	use_pseudo(new, src, &new->src);
-	use_bb(bb, &new->bb);
-	add_instruction(&bb->insns, new);
-
-	/* And add back the last instruction */
-	add_instruction(&bb->insns, insn);
-}
-
-static void remove_one_phi_node(struct entrypoint *ep,
-	struct basic_block *bb,
-	struct instruction *insn)
-{
-	struct phi *node;
-	pseudo_t target = insn->target;
-
-	FOR_EACH_PTR(insn->phi_list, node) {
-		create_phi_copy(node->source, insn, node->pseudo, target);
-	} END_FOR_EACH_PTR(node);
-}
-
-static void remove_phi_nodes(struct entrypoint *ep)
-{
-	struct basic_block *bb;
-	FOR_EACH_PTR(ep->bbs, bb) {
-		struct instruction *insn = first_instruction(bb->insns);
-		if (insn && insn->opcode == OP_PHI)
-			remove_one_phi_node(ep, bb, insn);
-	} END_FOR_EACH_PTR(bb);
-}
-
 static inline void concat_user_list(struct pseudo_ptr_list *src, struct pseudo_ptr_list **dst)
 {
 	concat_ptr_list((struct ptr_list *)src, (struct ptr_list **)dst);
@@ -2012,16 +1974,6 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 			 */
 			simplify_phi_nodes(ep);
 
-#if 0
-			/*
-			 * WARNING!! The removal of phi nodes will make the
-			 * tree no longer valid SSA format. We do it here
-			 * to make the linearized code look more like real
-			 * assembly code, but we should do all the SSA-based
-			 * optimizations (CSE etc) _before_ this point.
-			 */
-			remove_phi_nodes(ep);
-#endif
 			ret_ep = ep;
 		}
 	}
