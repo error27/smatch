@@ -7,6 +7,7 @@
 #include "symbol.h"
 
 struct instruction;
+struct pseudo_ptr_list;
 
 enum pseudo_type {
 	PSEUDO_VOID,
@@ -20,7 +21,7 @@ struct pseudo {
 	int nr;
 	unsigned int usage:24,
 		     type:8;
-	struct instruction_list *users;
+	struct pseudo_ptr_list *users;
 	union {
 		struct symbol *sym;
 		struct instruction *def;
@@ -206,9 +207,9 @@ static inline void add_phi(struct phi_list **list, struct phi *phi)
 	add_ptr_list((struct ptr_list **)list, phi);
 }
 
-static inline void add_pseudo(struct pseudo_list **list, struct pseudo *pseudo)
+static inline void *add_pseudo(struct pseudo_list **list, struct pseudo *pseudo)
 {
-	add_ptr_list((struct ptr_list **)list, pseudo);
+	return add_ptr_list((struct ptr_list **)list, pseudo);
 }
 
 

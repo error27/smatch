@@ -14,6 +14,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stddef.h>
 
 #include "parse.h"
 #include "expression.h"
@@ -344,16 +345,6 @@ static void show_bb(struct basic_block *bb)
 	printf("\n");
 }
 
-static void show_uses(pseudo_t pseudo)
-{
-	if (pseudo && pseudo->users) {
-		struct instruction *use;
-		FOR_EACH_PTR(pseudo->users, use) {
-			show_instruction(use);
-		} END_FOR_EACH_PTR(use);
-	}
-}
-
 void show_entry(struct entrypoint *ep)
 {
 	struct symbol *sym;
@@ -363,9 +354,6 @@ void show_entry(struct entrypoint *ep)
 
 	FOR_EACH_PTR(ep->syms, sym) {
 		printf("   sym: %p %s\n", sym, show_ident(sym->ident));
-		if (sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE))
-			printf("\texternal visibility\n");
-		show_uses(sym->pseudo);
 	} END_FOR_EACH_PTR(sym);
 
 	printf("\n");
@@ -416,10 +404,11 @@ static void add_goto(struct entrypoint *ep, struct basic_block *dst)
 	}
 }
 
-static inline void use_pseudo(struct instruction *insn, pseudo_t pseudo)
+static inline void use_pseudo(struct instruction *insn, pseudo_t p, pseudo_t *pp)
 {
-	if (pseudo && pseudo->type != PSEUDO_VOID)
-		add_instruction(&pseudo->users, insn);
+	*pp = p;
+	if (p && p->type != PSEUDO_VOID)
+		add_ptr_list((struct ptr_list **)&p->users, pp);
 }
 
 static void add_deathnote(struct entrypoint *ep, pseudo_t pseudo)
@@ -458,8 +447,7 @@ static void add_setcc(struct entrypoint *ep, struct expression *expr, pseudo_t v
 
 	if (bb_reachable(bb)) {
 		struct instruction *cc = alloc_instruction(OP_SETCC, &bool_ctype);
-		cc->src = val;
-		use_pseudo(cc, val);
+		use_pseudo(cc, val, &cc->src);
 		add_one_insn(ep, cc);
 	}
 }
@@ -471,8 +459,7 @@ static void add_branch(struct entrypoint *ep, struct expression *expr, pseudo_t 
 
 	if (bb_reachable(bb)) {
        		br = alloc_instruction(OP_BR, expr->ctype);
-		br->cond = cond;
-		use_pseudo(br, cond);
+		use_pseudo(br, cond, &br->cond);
 		br->bb_true = bb_true;
 		br->bb_false = bb_false;
 		add_bb(&bb_true->parents, bb);
@@ -601,9 +588,8 @@ static pseudo_t add_load(struct entrypoint *ep, struct access_data *ad)
 	ad->origval = new;
 
 	insn->target = new;
-	insn->src = ad->address;
 	insn->offset = ad->offset;
-	use_pseudo(insn, ad->address);
+	use_pseudo(insn, ad->address, &insn->src);
 	add_one_insn(ep, insn);
 	return new;
 }
@@ -614,11 +600,9 @@ static void add_store(struct entrypoint *ep, struct access_data *ad, pseudo_t va
 
 	if (bb_reachable(bb)) {
 		struct instruction *store = alloc_instruction(OP_STORE, ad->ctype);
-		store->target = value;
-		store->src = ad->address;
 		store->offset = ad->offset;
-		use_pseudo(store, value);
-		use_pseudo(store, ad->address);
+		use_pseudo(store, value, &store->target);
+		use_pseudo(store, ad->address, &store->src);
 		add_one_insn(ep, store);
 	}
 }
@@ -674,10 +658,8 @@ static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int o
 	struct instruction *insn = alloc_instruction(op, ctype);
 	pseudo_t target = alloc_pseudo(insn);
 	insn->target = target;
-	insn->src1 = left;
-	insn->src2 = right;
-	use_pseudo(insn, left);
-	use_pseudo(insn, right);
+	use_pseudo(insn, left, &insn->src1);
+	use_pseudo(insn, right, &insn->src2);
 	add_one_insn(ep, insn);
 	return target;
 }
@@ -750,8 +732,7 @@ static pseudo_t add_uniop(struct entrypoint *ep, struct expression *expr, int op
 	pseudo_t new = alloc_pseudo(insn);
 
 	insn->target = new;
-	insn->src1 = src;
-	use_pseudo(insn, src);
+	use_pseudo(insn, src, &insn->src1);
 	add_one_insn(ep, insn);
 	add_deathnote(ep, src);
 	return new;
@@ -764,10 +745,9 @@ static pseudo_t linearize_slice(struct entrypoint *ep, struct expression *expr)
 	pseudo_t new = alloc_pseudo(insn);
 
 	insn->target = new;
-	insn->base = pre;
 	insn->from = expr->r_bitpos;
 	insn->len = expr->r_nrbits;
-	use_pseudo(insn, pre);
+	use_pseudo(insn, pre, &insn->base);
 	add_one_insn(ep, insn);
 	add_deathnote(ep, pre);
 	return new;
@@ -848,7 +828,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 {
 	struct expression *arg, *fn;
 	struct instruction *insn = alloc_instruction(OP_CALL, expr->ctype);
-	pseudo_t retval;
+	pseudo_t retval, call;
 	int context_diff;
 
 	if (!expr->ctype) {
@@ -858,8 +838,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 
 	FOR_EACH_PTR(expr->args, arg) {
 		pseudo_t new = linearize_expression(ep, arg);
-		add_pseudo(&insn->arguments, new);
-		use_pseudo(insn, new);
+		use_pseudo(insn, new, add_pseudo(&insn->arguments, new));
 	} END_FOR_EACH_PTR(arg);
 
 	fn = expr->fn;
@@ -881,11 +860,11 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 		}
 	}
 	if (fn->type == EXPR_SYMBOL) {
-		insn->func = symbol_pseudo(fn->symbol);
+		call = symbol_pseudo(fn->symbol);
 	} else {
-		insn->func = linearize_expression(ep, fn);
+		call = linearize_expression(ep, fn);
 	}
-	use_pseudo(insn, insn->func);
+	use_pseudo(insn, call, &insn->func);
 	retval = VOID;
 	if (expr->ctype != &void_ctype)
 		retval = alloc_pseudo(insn);
@@ -957,8 +936,7 @@ static pseudo_t copy_pseudo(struct entrypoint *ep, struct expression *expr, pseu
 		struct instruction *new = alloc_instruction(OP_MOV, expr->ctype);
 		pseudo_t dst = alloc_pseudo(src->def);
 		new->target = dst;
-		new->src = src;
-		use_pseudo(new, src);
+		use_pseudo(new, src, &new->src);
 		add_instruction(&bb->insns, new);
 		return dst;
 	}
@@ -971,17 +949,20 @@ static pseudo_t add_join_conditional(struct entrypoint *ep, struct expression *e
 {
 	pseudo_t target;
 	struct instruction *phi_node;
+	struct phi *phi1, *phi2;
 
 	if (src1 == VOID || !bb_reachable(bb1))
 		return src2;
 	if (src2 == VOID || !bb_reachable(bb2))
 		return src1;
 	phi_node = alloc_instruction(OP_PHI, expr->ctype);
-	add_phi(&phi_node->phi_list, alloc_phi(bb1, src1));
-	add_phi(&phi_node->phi_list, alloc_phi(bb2, src2));
+	phi1 = alloc_phi(bb1, src1);
+	phi2 = alloc_phi(bb2, src2);
+	add_phi(&phi_node->phi_list, phi1);
+	add_phi(&phi_node->phi_list, phi2);
 	phi_node->target = target = alloc_pseudo(phi_node);
-	use_pseudo(phi_node, src1);
-	use_pseudo(phi_node, src2);
+	use_pseudo(phi_node, src1, &phi1->pseudo);
+	use_pseudo(phi_node, src2, &phi2->pseudo);
 	add_one_insn(ep, phi_node);
 	return target;
 }	
@@ -1136,9 +1117,8 @@ pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 	insn = alloc_instruction(OP_CAST, expr->ctype);
 	result = alloc_pseudo(insn);
 	insn->target = result;
-	insn->src = src;
 	insn->orig_type = expr->cast_expression->ctype;
-	use_pseudo(insn, src);
+	use_pseudo(insn, src, &insn->src);
 	add_one_insn(ep, insn);
 	add_deathnote(ep, src);
 	return result;
@@ -1355,13 +1335,15 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		add_goto(ep, bb_return);
 		if (active && src != &void_pseudo) {
 			struct instruction *phi_node = first_instruction(bb_return->insns);
+			struct phi *phi;
 			if (!phi_node) {
 				phi_node = alloc_instruction(OP_PHI, expr->ctype);
 				phi_node->target = alloc_pseudo(phi_node);
 				add_instruction(&bb_return->insns, phi_node);
 			}
-			use_pseudo(phi_node, src);
-			add_phi(&phi_node->phi_list, alloc_phi(active, src));
+			phi = alloc_phi(active, src);
+			use_pseudo(phi_node, src, &phi->pseudo);
+			add_phi(&phi_node->phi_list, phi);
 		}
 		return VOID;
 	}
@@ -1408,9 +1390,8 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 
 		pseudo = linearize_expression(ep, expr);
 		goto_ins = alloc_instruction(OP_COMPUTEDGOTO, NULL);
-		use_pseudo(goto_ins, pseudo);
+		use_pseudo(goto_ins, pseudo, &goto_ins->target);
 		add_one_insn(ep, goto_ins);
-		goto_ins->target = pseudo;
 
 		FOR_EACH_PTR(stmt->target_list, sym) {
 			struct basic_block *bb_computed = get_bound_block(ep, sym);
@@ -1460,8 +1441,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 
 		pseudo = linearize_expression(ep, stmt->switch_expression);
 		switch_ins = alloc_instruction(OP_SWITCH, NULL);
-		switch_ins->cond = pseudo;
-		use_pseudo(switch_ins, pseudo);
+		use_pseudo(switch_ins, pseudo, &switch_ins->cond);
 		add_one_insn(ep, switch_ins);
 
 		FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
@@ -1749,8 +1729,7 @@ static void create_phi_copy(struct basic_block *bb, struct instruction *phi,
 
 	delete_last_instruction(&bb->insns);
 	new->target = dst;
-	new->src = src;
-	use_pseudo(new, src);
+	use_pseudo(new, src, &new->src);
 	add_instruction(&bb->insns, new);
 
 	if (src->type == PSEUDO_REG) {
@@ -1785,10 +1764,18 @@ static void remove_phi_nodes(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(bb);
 }
 
+#define container(ptr, type, member) \
+	(type *)((void *)(ptr) - offsetof(type, member))
+
+static inline void concat_user_list(struct pseudo_ptr_list *src, struct pseudo_ptr_list **dst)
+{
+	concat_ptr_list((struct ptr_list *)src, (struct ptr_list **)dst);
+}
+
 static void simplify_one_symbol(struct symbol *sym)
 {
-	pseudo_t pseudo, src;
-	struct instruction *insn, *def;
+	pseudo_t pseudo, src, *pp;
+	struct instruction *def;
 
 	/* External visibility? Never mind */
 	if (sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE))
@@ -1800,17 +1787,20 @@ static void simplify_one_symbol(struct symbol *sym)
 		return;
 
 	def = NULL;
-	FOR_EACH_PTR(pseudo->users, insn) {
+	FOR_EACH_PTR(pseudo->users, pp) {
+		/* We know that the symbol-pseudo use is the "src" in the instruction */
+		struct instruction *insn = container(pp, struct instruction, src);
+
 		if (insn->opcode == OP_STORE) {
 			if (def)
 				goto multi_def;
 			def = insn;
-		}
+		} 
 		/*
 		 * FIXME!! We should also check that offsets 
 		 * and access sizes match!
 		 */
-	} END_FOR_EACH_PTR(insn);
+	} END_FOR_EACH_PTR(pp);
 
 	/*
 	 * Goodie, we have a single store (if even that) in the whole
@@ -1826,24 +1816,26 @@ static void simplify_one_symbol(struct symbol *sym)
 		def->src = src;
 		def->opcode = OP_MOV;
 	}
-	FOR_EACH_PTR(pseudo->users, insn) {
+	FOR_EACH_PTR(pseudo->users, pp) {
+		struct instruction *insn = container(pp, struct instruction, src);
 		if (insn->opcode == OP_LOAD) {
-			pseudo_t target;
-			struct instruction *use;
+			pseudo_t target, *usep;
 
 			/*
 			 * Go through the "insn->users" list and replace them all..
 			 */
 			target = insn->target;
-			FOR_EACH_PTR(target->users, use) {
-				/* Should replace here */
-			} END_FOR_EACH_PTR(use);
+			FOR_EACH_PTR(target->users, usep) {
+				*usep = src;
+			} END_FOR_EACH_PTR(usep);
+			concat_user_list(target->users, &src->users);
 
-			/* Turn the load into a move */
+			/* Turn the load into a no-op */
+			insn->target = VOID;
 			insn->src = src;
 			insn->opcode = OP_MOV;
 		}
-	} END_FOR_EACH_PTR(insn);
+	} END_FOR_EACH_PTR(pp);
 	return;
 
 multi_def:
@@ -1894,8 +1886,7 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 				struct symbol *ret_type = base_type->ctype.base_type;
 				struct instruction *insn = alloc_instruction(OP_RET, ret_type);
 				
-				insn->src = result;
-				use_pseudo(insn, result);
+				use_pseudo(insn, result, &insn->src);
 				add_one_insn(ep, insn);
 			}
 
