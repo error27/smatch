@@ -1830,7 +1830,9 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 		} END_FOR_EACH_PTR(one);
 
 		if (dom) {
-			add_phi(dominators, alloc_phi(parent, dom->target));
+			struct phi *phi = alloc_phi(parent, dom->target);
+			use_pseudo(NULL, dom->target, &phi->pseudo);
+			add_phi(dominators, phi);
 			continue;
 		}
 
