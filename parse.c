@@ -136,15 +136,20 @@ struct token *typeof_specifier(struct token *token, struct ctype *ctype)
 	struct symbol *sym;
 	struct expression *expr;
 
-	if (match_op(token, '(') && lookup_type(token->next)) {
+	if (!match_op(token, '(')) {
+		warn(token, "expected '(' after typeof");
+		return token;
+	}
+	if (lookup_type(token->next)) {
 		token = typename(token->next, &sym);
 		*ctype = sym->ctype;
-		return expect(token, ')', "after typeof");
-	}
-	token = parse_expression(token, &expr);
-	/* look at type.. */
-	ctype->base_type = &bad_type;
-	return token;
+	} else {
+		token = parse_expression(token->next, &expr);
+		/* Leave ctype at NULL, we'll evaluate it lazily later.. */
+		ctype->modifiers = 0;
+		ctype->base_type = NULL;
+	}		
+	return expect(token, ')', "after typeof");
 }
 
 struct token *attribute_specifier(struct token *token, struct ctype *ctype)
