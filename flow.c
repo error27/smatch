@@ -182,7 +182,7 @@ static int simplify_branch_branch(struct basic_block *bb, struct instruction *br
 		goto try_to_rewrite_target;
 	if (bb_depends_on(final, target))
 		goto try_to_rewrite_target;
-	retval = rewrite_branch(bb, target_p, target, final);
+	return rewrite_branch(bb, target_p, target, final);
 
 try_to_rewrite_target:
 	/*
