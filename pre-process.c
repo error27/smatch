@@ -15,6 +15,7 @@
 #include <limits.h>
 
 #include "lib.h"
+#include "parse.h"
 #include "token.h"
 #include "symbol.h"
 
@@ -25,13 +26,20 @@ static struct token *unmatched_if = NULL;
 static int elif_ignore[MAXNEST];
 #define if_nesting (true_nesting + false_nesting)
 
+/*
+ * This is stupid - the tokenizer already guarantees unique
+ * identifiers, so we should just compare identifier pointers
+ */
+static int match_string_ident(struct ident *ident, const char *str)
+{
+	return !str[ident->len] && !memcmp(str, ident->name, ident->len);
+}
+
 static const char *show_token_sequence(struct token *token);
 
-/* Expand symbol 'sym' between 'head->next' and 'head->next->next' */
-static struct token *expand(struct token *, struct symbol *);
-
 /* Head is one-before-list, and last is one-past-list */
-static struct token *expand_list(struct token *head, struct token *last)
+static struct token *for_each_ident(struct token *head, struct token *last,
+	struct token *(*action)(struct token *head, struct token *))
 {
 	if (!last)
 		last = &eof_token_entry;
@@ -42,17 +50,65 @@ static struct token *expand_list(struct token *head, struct token *last)
 		if (next == last)
 			break;
 
-		if (next->type == TOKEN_IDENT) {
-			struct symbol *sym = lookup_symbol(next->ident, NS_PREPROCESSOR);
-			if (sym && !sym->busy) {
-				head = expand(head, sym);
-				continue;
-			}
-		}
-		
+		if (next->type == TOKEN_IDENT)
+			next = action(head, next);
+
 		head = next;
 	}
 	return head;
+}
+
+static struct token *is_defined(struct token *head, struct token *token, struct token *next)
+{
+	char *string[] = { "0", "1" };
+	char *defined = string[lookup_symbol(token->ident, NS_PREPROCESSOR) != NULL];
+	struct token *newtoken = alloc_token(token->stream, token->line, token->pos);
+
+	newtoken->type = TOKEN_INTEGER;
+	newtoken->integer = defined;
+	newtoken->next = next;
+	head->next = newtoken;
+	return next;
+}
+
+
+struct token *defined_one_symbol(struct token *head, struct token *next)
+{
+	if (match_string_ident(next->ident, "defined")) {
+		struct token *token = next->next;
+		struct token *past = token->next;
+
+		if (match_op(token, '(')) {
+			token = past;
+			if (!match_op(past, ')'))
+				return next;
+			past = past->next;
+		}
+		if (token->type == TOKEN_IDENT)
+			return is_defined(head, token, past);
+	}
+	return next;
+}
+
+static struct token *expand_defined(struct token *head, struct token *last)
+{
+	return for_each_ident(head, last, defined_one_symbol);
+}
+
+/* Expand symbol 'sym' between 'head->next' and 'head->next->next' */
+static struct token *expand(struct token *, struct symbol *);
+
+struct token *expand_one_symbol(struct token *head, struct token *token)
+{
+	struct symbol *sym = lookup_symbol(token->ident, NS_PREPROCESSOR);
+	if (sym && !sym->busy)
+		return expand(head, sym);
+	return token;
+}
+
+static struct token *expand_list(struct token *head, struct token *last)
+{
+	return for_each_ident(head, last, expand_one_symbol);
 }
 
 static struct token *expand(struct token *head, struct symbol *sym)
@@ -207,15 +263,6 @@ static int handle_undef(struct token *head, struct token *token)
 	return 1;
 }
 
-/*
- * This is stupid - the tokenizer already guarantees unique
- * identifiers, so we should just compare identifier pointers
- */
-static int match_string_ident(struct ident *ident, const char *str)
-{
-	return !str[ident->len] && !memcmp(str, ident->name, ident->len);
-}
-
 static int preprocessor_if(struct token *token, int true)
 {
 	if (if_nesting == 0)
@@ -248,47 +295,10 @@ static int handle_ifndef(struct token *head, struct token *token)
 	return preprocessor_if(token, !token_defined(token->next));
 }
 
-/*
- * We could share the parsing with the "real" C parser, but
- * quite frankly expression parsing is simple enough that it's
- * just easier to not have to bother with the differences, and
- * have two separate paths instead.
- *
- * The C parser builds a parse tree for future optimization and
- * code generation, while the preprocessor parser just calculates
- * the value.  So while the parsed language is similar, the
- * differences are big.
- *
- * Types are built up from their physical sizes in bits (minus one)
- * and their "logical sizes" (ie one bit for "long", one for "short")
- * This way we can literally just or the values together and get the
- * right answer.
- */
-#define PHYS_MASK	0x000ff
-#define PHYS_CMASK	0x00007
-#define PHYS_SMASK	0x0000f
-#define PHYS_IMASK	0x0001f
-#define PHYS_LMASK	0x0001f
-#define PHYS_LLMASK	0x0003f
-
-#define LOG_MASK	0x01f00
-#define LOG_CMASK	0x00100
-#define LOG_SMASK	0x00300
-#define LOG_IMASK	0x00700
-#define LOG_LMASK	0x00f00
-#define LOG_LLMASK	0x01f00
-
-#define UNSIGNEDMASK	0x10000
-
-struct cpp_expression {
-	unsigned type;		/* unsigned / long / long long / bytemasks*/
-	long long value;
-};
-
-static void get_int_value(const char *str, struct cpp_expression *val)
+static unsigned long long get_int_value(const char *str)
 {
 	unsigned long long value = 0;
-	unsigned int base = 10, digit, type;
+	unsigned int base = 10, digit;
 
 	switch (str[0]) {
 	case 'x':
@@ -303,79 +313,84 @@ static void get_int_value(const char *str, struct cpp_expression *val)
 		value = value * base + digit;
 		str++;
 	}
-	type = PHYS_IMASK | LOG_IMASK;
-	val->value = value;
-	while (*str) {
-		if (*str == 'u' || *str == 'U')
-			val->type |= UNSIGNEDMASK;
-		else if (val->type & LOG_LMASK)
-			val->type |= PHYS_LLMASK | LOG_LLMASK;
-		else
-			val->type |= PHYS_LMASK | LOG_LMASK;
-		str++;
-	}
+	return value;
 }
 
-static struct token *cpp_conditional(struct token *token, struct cpp_expression *value);
-static struct token *cpp_value(struct token *token, struct cpp_expression *value)
+static long long primary_value(struct token *token)
 {
-	value->type = 0;
-	value->value = 0;
-
 	switch (token->type) {
 	case TOKEN_INTEGER:
-		get_int_value(token->integer, value);
-		return token->next;
-	case TOKEN_SPECIAL:
-		if (token->special == '(') {
-			token = cpp_conditional(token->next, value);
-			token = expect(token, ')', "in preprocessor expression");
-			return token;
+		return get_int_value(token->integer);
+	case TOKEN_IDENT:
+		warn(token, "undefined identifier in preprocessor expression");
+		return 0;
+	}
+	error(token, "bad preprocessor expression");
+	return 0;
+}
+
+static long long get_expression_value(struct expression *expr)
+{
+	long long left, middle, right;
+
+	switch (expr->type) {
+	case EXPR_PRIMARY:
+		return primary_value(expr->token);
+
+#define OP(x,y)	case x: return left y right;
+	case EXPR_BINOP:
+		left = get_expression_value(expr->left);
+		if (!left && expr->op == SPECIAL_LOGICAL_AND)
+			return 0;
+		if (left && expr->op == SPECIAL_LOGICAL_OR)
+			return 1;
+		right = get_expression_value(expr->right);
+		switch (expr->op) {
+			OP('+',+); OP('-',-); OP('*',*); OP('/',/);
+			OP('%',%); OP('<',<); OP('>',>);
+			OP('&',&);OP('|',|);OP('^',^);
+			OP(SPECIAL_EQUAL,==); OP(SPECIAL_NOTEQUAL,!=);
+			OP(SPECIAL_LTE,<=); OP(SPECIAL_LEFTSHIFT,<<);
+			OP(SPECIAL_RIGHTSHIFT,>>); OP(SPECIAL_GTE,>=);
+			OP(SPECIAL_LOGICAL_AND,&&);OP(SPECIAL_LOGICAL_OR,||);
 		}
-	}
-	return token;
-}
+		break;
 
-static unsigned cpp_type(unsigned type1, unsigned type2)
-{
-	/* Are they of physically different sized types? */
-	if ((type1 ^ type2) & PHYS_MASK) {
-		/* Remove 'unsigned' from the smaller one */
-		if ((type1 & PHYS_MASK) < (type2 & PHYS_MASK))
-			type1 &= ~UNSIGNEDMASK;
+#undef OP
+#define OP(x,y)	case x: return y left;
+	case EXPR_PREOP:
+		left = get_expression_value(expr->unop);
+		switch (expr->op) {
+			OP('+', +); OP('-', -); OP('!', !); OP('~', ~); OP('(', );
+		}
+		break;
+
+	case EXPR_CONDITIONAL:
+		left = get_expression_value(expr->conditional);
+		if (!expr->cond_true)
+			middle = left;
 		else
-			type2 &= ~UNSIGNEDMASK;
+			middle = get_expression_value(expr->cond_true);
+		right = get_expression_value(expr->cond_false);
+		return left ? middle : right;
 	}
-	return type1 | type2;
-}			
-
-static struct token *cpp_additive(struct token *token, struct cpp_expression *value)
-{
-	token = cpp_value(token, value);
-	while (match_op(token, '+')) {
-		struct cpp_expression righthand;
-		token = cpp_value(token->next, &righthand);
-		value->type = cpp_type(value->type, righthand.type);
-		value->value += righthand.value;
-	}
-	return token;
+	error(expr->token, "bad preprocessor expression");
+	return 0;
 }
 
-static struct token *cpp_conditional(struct token *token, struct cpp_expression *value)
-{
-	return cpp_additive(token, value);
-}
-	
+extern struct token *assignment_expression(struct token *token, struct expression **tree);
+
 static int expression_value(struct token *head)
 {
-	struct cpp_expression expr;
+	struct expression *expr;
 	struct token *token;
 
+	expand_defined(head, NULL);
 	expand_list(head, NULL);
-	token = cpp_conditional(head->next, &expr);
+	token = assignment_expression(head->next, &expr);
 	if (!eof_token(token))
 		warn(token, "garbage at end: %s", show_token_sequence(token));
-	return expr.value != 0;
+	return get_expression_value(expr) != 0;
 }
 
 static int handle_if(struct token *head, struct token *token)
@@ -561,5 +576,9 @@ struct token * preprocess(struct token *token)
 	do_preprocess(&header);
 	if (if_nesting)
 		warn(unmatched_if, "unmatched preprocessor conditional");
+
+	// Drop all expressions from pre-processing, they're not used any more.
+	clear_expression_alloc();
+
 	return header.next;
 }
