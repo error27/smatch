@@ -1346,8 +1346,14 @@ pseudo_t linearize_internal(struct entrypoint *ep, struct statement *stmt)
 
 pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 {
+	struct basic_block *bb;
+
 	if (!stmt)
 		return VOID;
+
+	bb = ep->active;
+	if (bb && !bb->insns)
+		bb->pos = stmt->pos;
 
 	switch (stmt->type) {
 	case STMT_NONE:
