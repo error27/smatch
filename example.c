@@ -515,6 +515,8 @@ static void mark_pseudo_dead(struct bb_state *state, pseudo_t pseudo)
 		FOR_EACH_PTR(reg->contains, p) {
 			if (p != pseudo)
 				continue;
+			if (CURRENT_TAG(p) & TAG_DEAD)
+				continue;
 			output_comment(state, "marking pseudo %s in reg %s dead", show_pseudo(pseudo), reg->name);
 			TAG_CURRENT(p, TAG_DEAD);
 			reg->busy--;
