@@ -825,7 +825,7 @@ static int handle_endif(struct stream *stream, struct token *head, struct token 
 
 static const char *show_token_sequence(struct token *token)
 {
-	static char buffer[256];
+	static char buffer[1024];
 	char *ptr = buffer;
 	int whitespace = 0;
 
@@ -834,6 +834,12 @@ static const char *show_token_sequence(struct token *token)
 	while (!eof_token(token) && !match_op(token, SPECIAL_ARG_SEPARATOR)) {
 		const char *val = show_token(token);
 		int len = strlen(val);
+
+		if (ptr + whitespace + len > buffer + sizeof(buffer)) {
+			warn(token->pos, "too long token expansion");
+			break;
+		}
+
 		if (whitespace)
 			*ptr++ = ' ';
 		memcpy(ptr, val, len);
