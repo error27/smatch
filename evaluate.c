@@ -21,15 +21,13 @@
 #include "target.h"
 #include "expression.h"
 
-struct symbol char_ctype, int_ctype;
-
 static void evaluate_symbol(struct expression *expr)
 {
 	struct symbol *sym = expr->symbol;
 	struct symbol *base_type;
 
 	if (!sym) {
-		warn(expr->token, "undefined identifier in expression");
+		warn(expr->token, "undefined identifier '%s'", show_token(expr->token));
 		return;
 	}
 	examine_symbol_type(sym);
@@ -86,7 +84,12 @@ static void evaluate_constant(struct expression *expr)
 		expr->type = EXPR_VALUE;
 		expr->ctype = &int_ctype;
 		expr->value = value;
-		return;	
+		return;
+	case TOKEN_STRING:
+		expr->ctype = &string_ctype;
+		return;
+	default:
+		warn(token, "non-typed expression");
 	}
 }	
 

@@ -267,11 +267,36 @@ struct sym_init {
 	{ NULL,		NULL,			0 }
 };
 
+/*
+ * Abstract types
+ */
 struct symbol	void_type,
 		int_type,
 		fp_type,
 		vector_type,
 		bad_type;
+
+/*
+ * C types (ie actual instances that the abstract types
+ * can map onto)
+ */
+struct symbol	char_ctype,
+		int_ctype,
+		string_ctype;
+
+struct ctype_declare {
+	struct symbol *ptr;
+	unsigned long modifiers;
+	unsigned long bit_size;
+	unsigned long maxalign;
+	struct symbol *base_type;
+} ctype_declaration[] = {
+	{ &char_ctype, MOD_SIGNED | MOD_CHAR, BITS_IN_CHAR, MAX_INT_ALIGNMENT, &int_type },
+	{ &int_ctype,			  0,  BITS_IN_INT, MAX_INT_ALIGNMENT, &int_type },
+	{ &string_ctype,	    0,  BITS_IN_POINTER, POINTER_ALIGNMENT, &char_ctype },
+	{ NULL, }
+};
+
 
 #define __IDENT(n,str) \
 	struct ident n ## _ident = { len: sizeof(str)-1, name: str }
@@ -293,6 +318,7 @@ void init_symbols(void)
 {
 	int stream = init_stream("builtin", -1);
 	struct sym_init *ptr;
+	struct ctype_declare *ctype;
 
 	hash_ident(&sizeof_ident);
 	hash_ident(&alignof_ident);
@@ -323,5 +349,19 @@ void init_symbols(void)
 		sym = create_symbol(stream, ptr->name, SYM_TYPE);
 		sym->ctype.base_type = ptr->base_type;
 		sym->ctype.modifiers = ptr->modifiers;
+	}
+
+	string_ctype.type = SYM_PTR;
+	for (ctype = ctype_declaration ; ctype->ptr; ctype++) {
+		struct symbol *sym = ctype->ptr;
+		unsigned long bit_size = ctype->bit_size;
+		unsigned long alignment = bit_size >> 3;
+
+		if (alignment > ctype->maxalign)
+			alignment = ctype->maxalign;
+		sym->bit_size = bit_size;
+		sym->alignment = alignment;
+		sym->ctype.base_type = ctype->base_type;
+		sym->ctype.modifiers = ctype->modifiers;
 	}
 }

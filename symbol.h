@@ -112,6 +112,12 @@ extern struct symbol	void_type,
 			vector_type,
 			bad_type;
 
+/* C types */
+extern struct symbol	char_ctype,
+			int_ctype,
+			string_ctype;
+
+
 /* Basic identifiers */
 extern struct ident	sizeof_ident,
 			alignof_ident,
