@@ -31,7 +31,7 @@ static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 int main(int argc, char **argv)
 {
 	int fd;
-	char *filename = NULL, **args;;
+	char *filename = NULL, **args;
 	struct token *token;
 
 	// Initialize symbol stream first, so that we can add defines etc
