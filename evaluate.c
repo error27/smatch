@@ -1403,6 +1403,22 @@ static void evaluate_one_symbol(struct symbol *sym, void *unused, int flags)
 	evaluate_symbol(sym);
 }
 
+static void check_duplicates(struct symbol *sym)
+{
+	struct symbol *next = sym;
+
+	while ((next = next->same_symbol) != NULL) {
+		const char *typediff;
+		evaluate_symbol(next);
+		typediff = type_difference(sym, next, 0, 0);
+		if (typediff) {
+			warn(sym->pos, "symbol redeclared with different type (originally declared at %s:%d)",
+				input_streams[next->pos.stream].name, next->pos.line);
+			return;
+		}
+	}
+}
+
 struct symbol *evaluate_symbol(struct symbol *sym)
 {
 	struct symbol *base_type;
@@ -1411,6 +1427,8 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 	base_type = sym->ctype.base_type;
 	if (!base_type)
 		return NULL;
+
+	check_duplicates(sym);
 
 	/* Evaluate the initializers */
 	if (sym->initializer) {
