@@ -14,19 +14,34 @@
 
 static struct scope
 	 base_scope = { .next = &base_scope },
-	*current_scope = &base_scope;
+	*block_scope = &base_scope,
+	*function_scope = &base_scope;
 
 void bind_scope(struct symbol *sym)
 {
-	add_symbol(&current_scope->symbols, sym);
+	struct scope *scope = block_scope;
+	if (sym->namespace == NS_LABEL)
+		scope = function_scope;
+	add_symbol(&scope->symbols, sym);
+}
+
+static void start_scope(struct scope **s)
+{
+	struct scope *scope = __alloc_bytes(sizeof(*scope));
+	memset(scope, 0, sizeof(*scope));
+	scope->next = *s;
+	*s = scope;
 }
 
 void start_symbol_scope(void)
 {
-	struct scope *scope = __alloc_bytes(sizeof(*scope));
-	memset(scope, 0, sizeof(*scope));
-	scope->next = current_scope;
-	current_scope = scope;
+	start_scope(&block_scope);
+}
+
+void start_function_scope(void)
+{
+	start_scope(&function_scope);
+	start_scope(&block_scope);
 }
 
 static void remove_symbol_scope(struct symbol *sym, void *data, int flags)
@@ -38,12 +53,23 @@ static void remove_symbol_scope(struct symbol *sym, void *data, int flags)
 	*ptr = sym->next_id;
 }
 
-void end_symbol_scope(void)
+static void end_scope(struct scope **s)
 {
-	struct scope *scope = current_scope;
+	struct scope *scope = *s;
 	struct symbol_list *symbols = scope->symbols;
 
-	current_scope = scope->next;
+	*s = scope->next;
 	scope->symbols = NULL;
 	symbol_iterate(symbols, remove_symbol_scope, NULL);
+}
+
+void end_symbol_scope(void)
+{
+	end_scope(&block_scope);
+}
+
+void end_function_scope(void)
+{
+	end_scope(&block_scope);
+	end_scope(&function_scope);
 }

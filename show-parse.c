@@ -172,7 +172,7 @@ void show_type(struct symbol *sym)
 		return;
 
 	case SYM_LABEL:
-		printf("label(%s)", show_ident(sym->ident));
+		printf("label(%s:%p)", show_ident(sym->ident), sym);
 		return;
 
 	default:

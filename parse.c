@@ -840,10 +840,10 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	base_type = decl->ctype.base_type;
 	if (base_type && base_type->type == SYM_FN && match_op(token, '{')) {
 		base_type->stmt = alloc_statement(token->pos, STMT_COMPOUND);
-		start_symbol_scope();
+		start_function_scope();
 		symbol_iterate(base_type->arguments, declare_argument, decl);
 		token = compound_statement(token->next, base_type->stmt);
-		end_symbol_scope();
+		end_function_scope();
 		return expect(token, '}', "at end of function");
 	}
 

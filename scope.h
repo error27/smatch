@@ -14,6 +14,10 @@ struct scope {
 
 extern void start_symbol_scope(void);
 extern void end_symbol_scope(void);
+
+extern void start_function_scope(void);
+extern void end_function_scope(void);
+
 extern void bind_scope(struct symbol *);
 
 #endif
