@@ -38,19 +38,14 @@ static char elif_ignore[MAX_NEST];
 
 #define INCLUDEPATHS 300
 const char *includepath[INCLUDEPATHS+1] = {
-	NULL
-};
-
-const char *sys_includepath[] = {
 	"/usr/include",
 	"/usr/local/include",
-	NULL,
-};
-
-const char *gcc_includepath[] = {
 	GCC_INTERNAL_INCLUDE,
 	NULL
 };
+
+static const char **sys_includepath = includepath + 0;
+static const char **gcc_includepath = includepath + 2;
 
 #define MARK_STREAM_NONCONST(pos) do {					\
 	if (stream->constant != CONSTANT_FILE_NOPE) {			\
@@ -598,7 +593,7 @@ static const char *token_name_sequence(struct token *token, int endop, struct to
 	return buffer;
 }
 
-static int try_include(const char *path, int plen, const char *filename, int flen, struct token **where)
+static int try_include(const char *path, int plen, const char *filename, int flen, struct token **where, const char **next_path)
 {
 	int fd;
 	static char fullname[PATH_MAX];
@@ -613,7 +608,7 @@ static int try_include(const char *path, int plen, const char *filename, int fle
 	if (fd >= 0) {
 		char * streamname = __alloc_bytes(plen + flen);
 		memcpy(streamname, fullname, plen + flen);
-		*where = tokenize(streamname, fd, *where);
+		*where = tokenize(streamname, fd, *where, next_path);
 		close(fd);
 		return 1;
 	}
@@ -625,7 +620,7 @@ static int do_include_path(const char **pptr, struct token **list, struct token 
 	const char *path;
 
 	while ((path = *pptr++) != NULL) {
-		if (!try_include(path, strlen(path), filename, flen, list))
+		if (!try_include(path, strlen(path), filename, flen, list, pptr))
 			continue;
 		return 1;
 	}
@@ -633,13 +628,13 @@ static int do_include_path(const char **pptr, struct token **list, struct token 
 }
 	
 
-static void do_include(int local, struct stream *stream, struct token **list, struct token *token, const char *filename)
+static void do_include(int local, struct stream *stream, struct token **list, struct token *token, const char *filename, const char **path)
 {
 	int flen = strlen(filename) + 1;
 
 	/* Absolute path? */
 	if (filename[0] == '/') {
-		if (try_include("", 0, filename, flen, list))
+		if (try_include("", 0, filename, flen, list, includepath))
 			return;
 		goto out;
 	}
@@ -654,23 +649,18 @@ static void do_include(int local, struct stream *stream, struct token **list, st
 		slash = strrchr(path, '/');
 		plen = slash ? slash - path : 0;
 
-		if (try_include(path, plen, filename, flen, list))
+		if (try_include(path, plen, filename, flen, list, includepath))
 			return;
 	}
 
 	/* Check the standard include paths.. */
-	if (do_include_path(includepath, list, token, filename, flen))
+	if (do_include_path(path, list, token, filename, flen))
 		return;
-	if (do_include_path(sys_includepath, list, token, filename, flen))
-		return;
-	if (do_include_path(gcc_includepath, list, token, filename, flen))
-		return;
-
 out:
 	error(token->pos, "unable to open '%s'", filename);
 }
 
-static int handle_include(struct stream *stream, struct token **list, struct token *token)
+static int handle_include_path(struct stream *stream, struct token **list, struct token *token, const char **path)
 {
 	const char *filename;
 	struct token *next;
@@ -695,8 +685,18 @@ static int handle_include(struct stream *stream, struct token **list, struct tok
 	}
 	token = next->next;
 	filename = token_name_sequence(token, expect, token);
-	do_include(!expect, stream, list, token, filename);
+	do_include(!expect, stream, list, token, filename, path);
 	return 1;
+}
+
+static int handle_include(struct stream *stream, struct token **list, struct token *token)
+{
+	return handle_include_path(stream, list, token, includepath);
+}
+
+static int handle_include_next(struct stream *stream, struct token **list, struct token *token)
+{
+	return handle_include_path(stream, list, token, stream->next_path);
 }
 
 static int token_different(struct token *t1, struct token *t2)
@@ -1274,24 +1274,56 @@ static int handle_error(struct stream *stream, struct token **line, struct token
 
 static int handle_nostdinc(struct stream *stream, struct token **line, struct token *token)
 {
+	int stdinc;
+
 	if (false_nesting)
 		return 1;
-	includepath[0] = NULL;
+
+	/*
+	 * Do we have any non-system includes?
+	 * Clear them out if so..
+	 */
+	stdinc = gcc_includepath - sys_includepath;
+	if (stdinc) {
+		const char **src = gcc_includepath;
+		const char **dst = sys_includepath;
+		for (;;) {
+			if (!(*dst = *src))
+				break;
+			dst++;
+			src++;
+		}
+		gcc_includepath -= stdinc;
+	}
 	return 1;
 }
 
 static void add_path_entry(struct token *token, const char *path)
 {
-	int i;
+	const char **dst;
+	const char *next;
 
-	for (i = 0; i < INCLUDEPATHS; i++) {
-		if (!includepath[i]) {
-			includepath[i] = path;
-			includepath[i+1] = NULL;
-			return;
-		}
+	/* Need one free entry.. */
+	if (includepath[INCLUDEPATHS-2])
+		error(token->pos, "too many include path entries");
+
+	next = path;
+	dst = sys_includepath;
+	sys_includepath++;
+	gcc_includepath++;
+
+	/*
+	 * Move them all up starting at "sys_includepath",
+	 * insert the new entry..
+	 */
+	for (;;) {
+		const char *tmp = *dst;
+		*dst = next;
+		if (!next)
+			break;
+		next = tmp;
+		dst++;
 	}
-	warn(token->pos, "too many include path entries");
 }
 
 static int handle_add_include(struct stream *stream, struct token **line, struct token *token)
@@ -1359,6 +1391,7 @@ static int handle_preprocessor_command(struct stream *stream, struct token **lin
 		{ "warning",	handle_warning },
 		{ "error",	handle_error },
 		{ "include",	handle_include },
+		{ "include_next",handle_include_next },
 		{ "pragma",	handle_pragma },
 		{ "line",	handle_line },
 

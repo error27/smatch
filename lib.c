@@ -679,9 +679,25 @@ char **handle_switch_W(char *arg, char **next)
 	return next;
 }
 
+char **handle_nostdinc(char *arg, char **next)
+{
+	add_pre_buffer("#nostdinc\n");
+	return next;
+}
+
+struct switches {
+	const char *name;
+	char **(*fn)(char *, char**);
+};
+
 char **handle_switch(char *arg, char **next)
 {
 	char **rc = next;
+	static struct switches cmd[] = {
+		{ "nostdinc", handle_nostdinc },
+		{ NULL, NULL }
+	};
+	struct switches *s;
 
 	switch (*arg) {
 	case 'D': rc = handle_switch_D(arg, next); break;
@@ -694,12 +710,20 @@ char **handle_switch(char *arg, char **next)
 	case 'o': rc = handle_switch_o(arg, next); break;
 	case 'W': rc = handle_switch_W(arg, next); break;
 	default:
-		/*
-		 * Ignore unknown command line options:
-		 * they're probably gcc switches
-		 */
 		break;
 	}
+
+	s = cmd;
+	while (s->name) {
+		if (!strcmp(s->name, arg))
+			return s->fn(arg, next);
+		s++;
+	}
+
+	/*
+	 * Ignore unknown command line options:
+	 * they're probably gcc switches
+	 */
 	return rc;
 }
 

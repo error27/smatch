@@ -146,7 +146,7 @@ const char *show_token(const struct token *token)
 	}
 }
 
-int init_stream(const char *name, int fd)
+int init_stream(const char *name, int fd, const char **next_path)
 {
 	int stream = input_stream_nr;
 	struct stream *current;
@@ -163,6 +163,7 @@ int init_stream(const char *name, int fd)
 	memset(current, 0, sizeof(*current));
 	current->name = name;
 	current->fd = fd;
+	current->next_path = next_path;
 	current->constant = CONSTANT_FILE_MAYBE;
 	if (fd >= 0 && fstat(fd, &st) == 0 && S_ISREG(st.st_mode)) {
 		int i;
@@ -874,14 +875,14 @@ struct token * tokenize_buffer(unsigned char *buffer, unsigned long size, struct
 	return begin;
 }
 
-struct token * tokenize(const char *name, int fd, struct token *endtoken)
+struct token * tokenize(const char *name, int fd, struct token *endtoken, const char **next_path)
 {
 	struct token *begin;
 	stream_t stream;
 	unsigned char buffer[BUFSIZE];
 	int idx;
 
-	idx = init_stream(name, fd);
+	idx = init_stream(name, fd, next_path);
 	if (idx < 0) {
 		// info(endtoken->pos, "File %s is const", name);
 		return endtoken;

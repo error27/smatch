@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 	init_ctype();
 
 	// Tokenize the input stream
-	token = tokenize(filename, fd, NULL);
+	token = tokenize(filename, fd, NULL, includepath);
 	close(fd);
 
 	// Pre-process the stream
