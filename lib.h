@@ -5,6 +5,7 @@
  *
  * Copyright (C) 2003 Transmeta Corp.
  *               2003 Linus Torvalds
+ *               2004 Christopher Li
  *
  *  Licensed under the Open Software License version 1.1
  */
@@ -34,6 +35,7 @@ struct entrypoint;
 struct instruction;
 struct instruction_list;
 struct multijmp;
+struct multijmp_list;
 
 struct token *skip_to(struct token *, int);
 struct token *expect(struct token *, int, const char *);
@@ -116,6 +118,7 @@ extern void free_ptr_list(struct ptr_list **);
 extern int ptr_list_size(struct ptr_list *);
 extern char **handle_switch(char *arg, char **next);
 extern void add_pre_buffer(const char *fmt, ...);
+void * next_iterator(struct list_iterator *iterator);
 
 extern unsigned int pre_buffer_size;
 extern unsigned char pre_buffer[8192];
@@ -125,19 +128,50 @@ extern int preprocess_only;
 
 extern void create_builtin_stream(void);
 
-#define symbol_list_size(list) ptr_list_size((struct ptr_list *)(list))
-#define statement_list_size(list) ptr_list_size((struct ptr_list *)(list))
-#define expression_list_size(list) ptr_list_size((struct ptr_list *)(list))
-#define instruction_list_size(list) ptr_list_size((struct ptr_list *)(list))
-#define bb_list_size(list) ptr_list_size((struct ptr_list *)(list))
+static inline int symbol_list_size(struct symbol_list* list)
+{
+	return ptr_list_size((struct ptr_list *)(list));
+}
 
+static inline int statement_list_size(struct statement_list* list)
+{
+	return ptr_list_size((struct ptr_list *)(list));
+}
 
-#define init_multijmp_iterator(list, iterator, flags) init_iterator((struct ptr_list **)(list), (iterator), (flags))
+static inline int expression_list_size(struct expression_list* list)
+{
+	return ptr_list_size((struct ptr_list *)(list));
+}
 
-#define next_basic_block(iterator) (struct basic_block*) next_iterator(iterator)
-#define next_multijmp(iterator) (struct multijmp*) next_iterator(iterator)
+static inline int instruction_list_size(struct instruction_list* list)
+{
+	return ptr_list_size((struct ptr_list *)(list));
+}
 
-void * next_iterator(struct list_iterator *iterator);
+static inline int bb_list_size(struct basic_block_list* list)
+{
+	return ptr_list_size((struct ptr_list *)(list));
+}
+
+static inline struct basic_block* next_basic_block(struct list_iterator *iterator)
+{
+	return 	next_iterator(iterator);
+}
+
+static inline struct multijmp* next_multijmp(struct list_iterator *iterator)
+{
+	return 	next_multijmp(iterator);
+}
+
+static inline void free_instruction_list(struct instruction_list **head)
+{
+	free_ptr_list((struct ptr_list **)head);
+}
+
+static inline void init_multijmp_iterator(struct multijmp_list **head, struct list_iterator *iterator, int flags)
+{
+	init_iterator((struct ptr_list **)head, iterator, flags);
+}
 
 static inline void init_bb_iterator(struct basic_block_list **head, struct list_iterator *iterator, int flags)
 {

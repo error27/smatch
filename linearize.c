@@ -903,52 +903,47 @@ void remove_unreachable_bbs(struct basic_block_list **bblist)
 
 void pack_basic_blocks(struct basic_block_list **bblist)
 {
-	struct basic_block *child, *bb, *parent;
+	struct basic_block *bb;
 	struct list_iterator iterator;
-	struct terminator_iterator term;
-	struct instruction *jmp;
 
 	remove_unreachable_bbs(bblist);
 	init_bb_iterator(bblist, &iterator, 0);
 	while((bb=next_basic_block(&iterator))) {
-		if (is_branch_goto(jmp=first_instruction(bb->insns))) {
-			/*
-			 * This is an empty goto block. Transfer the parents' terminator
-			 * to target directly.
-			 */
-			struct list_iterator it_parents;
-			struct basic_block *target;
+		struct list_iterator it_parents;
+		struct terminator_iterator term;
+		struct instruction *jmp;
+		struct basic_block *target, *sibling, *parent;
 
-			target = jmp->bb_true ? jmp->bb_true : jmp->bb_false;
-			replace_basic_block_list(&target->parents, bb, NULL);
-			init_bb_iterator(&bb->parents, &it_parents, 0);
-			while((parent=next_basic_block(&it_parents))) {
-				init_terminator_iterator(last_instruction(parent->insns), &term);
-				while ((child=next_terminator_bb(&term))) {
-					if (child == bb) {
-						replace_terminator_bb(&term, target);
-						add_bb(&target->parents, parent);
-					}
+		if (!is_branch_goto(jmp=last_instruction(bb->insns)))
+			continue;
+
+		target = jmp->bb_true ? jmp->bb_true : jmp->bb_false;
+		if (target == bb)
+			continue;
+		if (bb_list_size(target->parents) != 1 && jmp != first_instruction(bb->insns))
+			continue;
+
+		/* Transfer the parents' terminator to target directly. */
+		replace_basic_block_list(&target->parents, bb, NULL);
+		init_bb_iterator(&bb->parents, &it_parents, 0);
+		while((parent=next_basic_block(&it_parents))) {
+			init_terminator_iterator(last_instruction(parent->insns), &term);
+			while ((sibling=next_terminator_bb(&term))) {
+				if (sibling == bb) {
+					replace_terminator_bb(&term, target);
+					add_bb(&target->parents, parent);
 				}
 			}
-			delete_iterator(&iterator);
-			continue;
 		}
-		
-		if (bb_list_size(bb->parents)!=1)
-		       continue;
-		parent = first_basic_block(bb->parents);
-		if (parent!=bb && is_branch_goto(last_instruction(parent->insns))) {
-			/*
-			 * Combine this block with the parent.
-			 */
-			delete_last_instruction(&parent->insns);
-			concat_instruction_list(bb->insns, &parent->insns);
-			init_terminator_iterator(last_instruction(bb->insns), &term);
-			while ((child=next_terminator_bb(&term)))
-				replace_basic_block_list(&child->parents, bb, parent);
-			delete_iterator(&iterator);
-		}
+
+		/* Move the instructions to the target block. */
+		delete_last_instruction(&bb->insns);
+		if (bb->insns) {
+			concat_instruction_list(target->insns, &bb->insns);
+			free_instruction_list(&target->insns);
+			target->insns = bb->insns;
+		} 
+		delete_iterator(&iterator);
 	}
 }
 
