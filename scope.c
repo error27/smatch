@@ -28,7 +28,7 @@ void bind_scope(struct symbol *sym, struct scope *scope)
 
 static void start_scope(struct scope **s)
 {
-	struct scope *scope = __alloc_bytes(sizeof(*scope));
+	struct scope *scope = __alloc_scope(0);
 	memset(scope, 0, sizeof(*scope));
 	scope->next = *s;
 	*s = scope;

@@ -17,6 +17,7 @@
 #include "parse.h"
 #include "symbol.h"
 #include "expression.h"
+#include "scope.h"
 
 struct token *skip_to(struct token *token, int op)
 {
@@ -146,6 +147,7 @@ struct allocator_struct symbol_allocator = { "symbols", NULL, __alignof__(struct
 struct allocator_struct expression_allocator = { "expressions", NULL, __alignof__(struct expression), CHUNK };
 struct allocator_struct statement_allocator = { "statements", NULL, __alignof__(struct statement), CHUNK };
 struct allocator_struct string_allocator = { "strings", NULL, __alignof__(struct statement), CHUNK };
+struct allocator_struct scope_allocator = { "scopes", NULL, __alignof__(struct scope), CHUNK };
 struct allocator_struct bytes_allocator = { "bytes", NULL, 1, CHUNK };
 
 #define __ALLOCATOR(type, size, x)				\
@@ -165,7 +167,7 @@ struct allocator_struct bytes_allocator = { "bytes", NULL, 1, CHUNK };
 
 ALLOCATOR(ident); ALLOCATOR(token); ALLOCATOR(symbol);
 ALLOCATOR(expression); ALLOCATOR(statement); ALLOCATOR(string);
-__ALLOCATOR(void, 0, bytes);
+ALLOCATOR(scope); __ALLOCATOR(void, 0, bytes);
 
 int ptr_list_size(struct ptr_list *head)
 {
