@@ -39,7 +39,7 @@ struct textbuf {
 struct function {
 	int pseudo_nr;
 	struct ptr_list *pseudo_list;
-	struct textbuf *buf;
+	struct ptr_list *atom_list;
 	struct symbol **argv;
 	unsigned int argc;
 	int ret_target;
@@ -72,6 +72,32 @@ struct storage {
 struct symbol_private {
 	struct storage *addr;
 };
+
+enum atom_type {
+	ATOM_TEXT,
+	ATOM_INSN,
+};
+
+struct atom {
+	enum atom_type type;
+	union {
+		/* stuff for text */
+		struct {
+			char *text;
+			unsigned int text_len;  /* w/o terminating null */
+		};
+
+		/* stuff for insns */
+		struct {
+			char insn[32];
+			char comment[40];
+			struct storage *op1;
+			struct storage *op2;
+			unsigned long flags;
+		};
+	};
+};
+
 
 struct function *current_func = NULL;
 struct textbuf *unit_post_text = NULL;
@@ -162,6 +188,34 @@ static const char *stor_op_name(struct storage *s)
 	}
 
 	return name;
+}
+
+static struct atom *new_atom(enum atom_type type)
+{
+	struct atom *atom;
+
+	atom = calloc(1, sizeof(*atom));	/* TODO: chunked alloc */
+	if (!atom)
+		die("nuclear OOM");
+
+	atom->type = type;
+
+	return atom;
+}
+
+static inline void push_atom(struct function *f, struct atom *atom)
+{
+	add_ptr_list(&f->atom_list, atom);
+}
+
+static void push_text_atom(struct function *f, const char *text)
+{
+	struct atom *atom = new_atom(ATOM_TEXT);
+
+	atom->text = strdup(text);
+	atom->text_len = strlen(text);
+
+	push_atom(f, atom);
 }
 
 static struct storage *new_pseudo(void)
@@ -261,7 +315,7 @@ static void insn(const char *insn, const char *op1, const char *op2,
 	else
 		sprintf(s, "\t%s\t%s%s\n", insn,
 			comment[0] ? "\t\t" : "", comment);
-	textbuf_push(&f->buf, s);
+	push_text_atom(f, s);
 }
 
 static void emit_unit_pre(const char *basename)
@@ -287,12 +341,42 @@ static void emit_section(const char *s)
 	current_section = s;
 }
 
+static void emit_atom(struct function *f, struct atom *atom)
+{
+	switch (atom->type) {
+	case ATOM_TEXT: {
+		ssize_t rc = write(STDOUT_FILENO, atom->text, atom->text_len);
+		(void) rc;	/* FIXME */
+		break;
+	}
+	default:
+		assert(0);
+		break;
+	}
+}
+
+static void emit_atom_list(struct function *f)
+{
+	struct atom *atom;
+
+	FOR_EACH_PTR(f->atom_list, atom) {
+		emit_atom(f, atom);
+	} END_FOR_EACH_PTR;
+}
+
 static void func_cleanup(struct function *f)
 {
 	struct storage *stor;
+	struct atom *atom;
 
 	FOR_EACH_PTR(f->pseudo_list, stor) {
 		free(stor);
+	} END_FOR_EACH_PTR;
+
+	FOR_EACH_PTR(f->atom_list, atom) {
+		if ((atom->type == ATOM_TEXT) && (atom->text))
+			free(atom->text);
+		free(atom);
 	} END_FOR_EACH_PTR;
 
 	free_ptr_list(&f->pseudo_list);
@@ -369,7 +453,7 @@ static void emit_func_post(struct symbol *sym, struct storage *val)
 
 	/* jump target for 'return' statements */
 	sprintf(jump_target, ".L%d:\n", f->ret_target);
-	textbuf_push(&f->buf, jump_target);
+	push_text_atom(f, jump_target);
 
 	/* function prologue */
 	if (val)
@@ -378,7 +462,8 @@ static void emit_func_post(struct symbol *sym, struct storage *val)
 	insn("ret", NULL, NULL, NULL);
 
 	/* output everything to stdout */
-	textbuf_emit(&f->buf);
+	fflush(stdout);		/* paranoia; needed? */
+	emit_atom_list(f);
 
 	/* function footer */
 	printf("\t.size\t%s, .-%s\n", name, name);
@@ -784,14 +869,14 @@ static void emit_if_conditional(struct statement *stmt)
 		 * the failed-conditional case will fall through to here
 		 */
 		sprintf(s, ".L%d:\n", target);
-		textbuf_push(&f->buf, s);
+		push_text_atom(f, s);
 
 		target = last;
 		x86_statement(stmt->if_false);
 	}
 
 	sprintf(s, ".L%d:\t\t\t\t\t# end if\n", target);
-	textbuf_push(&f->buf, s);
+	push_text_atom(f, s);
 }
 
 static struct storage *emit_inc_dec(struct expression *expr, int postop)
@@ -834,7 +919,7 @@ static struct storage *emit_return_stmt(struct statement *stmt)
 		val = x86_expression(expr);
 
 	sprintf(s, "\tjmp\t.L%d\n", f->ret_target);
-	textbuf_push(&f->buf, s);
+	push_text_atom(f, s);
 
 	return val;
 }
