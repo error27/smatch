@@ -3,7 +3,7 @@ CFLAGS=-g -Wall
 
 PROGRAMS=test-lexing test-parsing obfuscate
 
-HEADERS=token.h parse.h lib.h symbol.h scope.h expression.h
+HEADERS=token.h parse.h lib.h symbol.h scope.h expression.h target.h
 
 COMMON=	parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 	expression.o show-parse.o evaluate.o
