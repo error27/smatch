@@ -36,67 +36,18 @@ static void clean_up_symbols(struct symbol_list *list)
 
 int main(int argc, char **argv)
 {
-	int fd;
-	char *basename, *filename = NULL, **args;
-	struct token *token;
+	const char *basename, *filename;
 	struct symbol_list *list;
 
-	// Initialize symbol stream first, so that we can add defines etc
-	init_symbols();
+	list = sparse(argc, argv);
 
-	create_builtin_stream();
-
-	args = argv;
-	for (;;) {
-		char *arg = *++args;
-		if (!arg)
-			break;
-		if (arg[0] == '-') {
-			args = handle_switch(arg + 1, args);
-			continue;
-		}
-		filename = arg;
-	}
-
-	// Initialize type system
-	init_ctype();
-
-	if (filename == NULL)
-		die("No file specified");
-
+	filename = input_streams[1].name;
 	basename = strrchr(filename, '/');
-	if (!basename)
-		basename = filename;
-	else if ((basename == filename) && (basename[1] == 0)) {
-		fprintf(stderr, "um\n");
-		exit(1);
-	} else {
-		basename++;
-		if (*basename == 0) {
-			fprintf(stderr, "um\n");
-			exit(1);
-		}
-	}
-
-	fd = open(filename, O_RDONLY);
-	if (fd < 0)
-		die("No such file: %s", filename);
-
-	// Tokenize the input stream
-	token = tokenize(filename, fd, NULL, includepath);
-	close(fd);
-
-	// Prepend the initial built-in stream
-	token = tokenize_buffer(pre_buffer, pre_buffer_size, token);
-
-	// Pre-process the stream
-	token = preprocess(token);
-
-	// Parse the resulting C code
-	list = translation_unit(token);
+	if (basename)
+		filename = basename+1;
 
 	// Do type evaluation and simplification
-	emit_unit_begin(basename);
+	emit_unit_begin(filename);
 	clean_up_symbols(list);
 	emit_unit_end();
 
