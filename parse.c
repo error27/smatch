@@ -147,6 +147,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 		sym = alloc_symbol(token->pos, SYM_ENUM);
 		bind_symbol(sym, token->ident, NS_SYMBOL);
 		sym->ctype.base_type = parent;
+		parent->ctype.base_type = &int_ctype;
 
 		if (match_op(next, '=')) {
 			struct expression *expr;
