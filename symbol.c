@@ -312,7 +312,7 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 
 	scope = block_scope;
 	if (ns != NS_TYPEDEF && toplevel(scope)) {
-		sym->ctype.modifiers |= MOD_TOPLEVEL;
+		sym->ctype.modifiers |= MOD_TOPLEVEL | MOD_ADDRESSABLE;
 		if (sym->ctype.modifiers & MOD_STATIC)
 			scope = file_scope;
 	}
