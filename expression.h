@@ -31,6 +31,7 @@ enum expression_type {
 	EXPR_INITIALIZER,	// initializer list
 	EXPR_IDENTIFIER,	// identifier in initializer
 	EXPR_INDEX,		// index in initializer
+	EXPR_POS,		// position in initializer
 };
 
 struct expression {
@@ -92,6 +93,12 @@ struct expression {
 		// EXPR_INDEX
 		struct index_expr {
 			unsigned int idx_from, idx_to;
+		};
+		// EXPR_POS
+		struct initpos_expr {
+			unsigned int init_offset;
+			struct symbol *init_sym;
+			struct expression *init_expr;
 		};
 	};
 };

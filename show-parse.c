@@ -300,7 +300,7 @@ void show_symbol(struct symbol *sym)
 	}
 
 	if (sym->initializer) {
-		printf(" = ");
+		printf(" = \n");
 		show_expression(sym->initializer);
 	}
 }
@@ -775,9 +775,35 @@ static int show_statement_expr(struct expression *expr)
 	return show_statement(expr->statement);
 }
 
-static int show_initializer_expr(struct expression *expr)
+static int show_position_expr(struct expression *expr, struct symbol *base)
 {
-	printf("\t// initializer goes here\n");
+	int new = show_expression(expr->init_expr);
+	struct symbol *ctype = expr->init_sym;
+
+	printf("\tinsert v%d at [%d:%d] of %s\n", new,
+		expr->init_offset, ctype->bit_offset,
+		show_ident(base->ident));
+	return 0;
+}
+
+static int show_initializer_expr(struct expression *expr, struct symbol *ctype)
+{
+	struct expression *entry;
+
+	FOR_EACH_PTR(expr->expr_list, entry) {
+		// Nested initializers have their positions already
+		// recursively calculated - just output them too
+		if (entry->type == EXPR_INITIALIZER) {
+			show_initializer_expr(entry, ctype);
+			continue;
+		}
+
+		// Ignore initializer indexes and identifiers - the
+		// evaluator has taken them into account
+		if (entry->type != EXPR_POS)
+			continue;
+		show_position_expr(entry, ctype);
+	} END_FOR_EACH_PTR;
 	return 0;
 }
 
@@ -829,17 +855,23 @@ int show_expression(struct expression *expr)
 	case EXPR_BITFIELD:
 		return show_bitfield_expr(expr);
 	case EXPR_INITIALIZER:
-		return show_initializer_expr(expr);
+		return show_initializer_expr(expr, expr->ctype);
+	case EXPR_CONDITIONAL:
+		return show_conditional_expr(expr);
+	case EXPR_STATEMENT:
+		return show_statement_expr(expr);
+
+	// None of these should exist as direct expressions: they are only
+	// valid as sub-expressions of initializers.
+	case EXPR_POS:
+		warn(expr->pos, "unable to show plain initializer position expression");
+		return 0;
 	case EXPR_IDENTIFIER:
 		warn(expr->pos, "unable to show identifier expression");
 		return 0;
 	case EXPR_INDEX:
 		warn(expr->pos, "unable to show index expression");
 		return 0;
-	case EXPR_CONDITIONAL:
-		return show_conditional_expr(expr);
-	case EXPR_STATEMENT:
-		return show_statement_expr(expr);
 	}
 	return 0;
 }

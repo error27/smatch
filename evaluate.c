@@ -1177,8 +1177,8 @@ static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 	return 1;
 }
 
-static int evaluate_initializer(struct symbol *ctype, struct expression **ep);
-static int evaluate_array_initializer(struct symbol *ctype, struct expression *expr)
+static int evaluate_initializer(struct symbol *ctype, struct expression **ep, unsigned long offset);
+static int evaluate_array_initializer(struct symbol *ctype, struct expression *expr, unsigned long offset)
 {
 	struct expression *entry;
 	int current = 0;
@@ -1191,7 +1191,7 @@ static int evaluate_array_initializer(struct symbol *ctype, struct expression *e
 			current = entry->idx_to;
 			continue;
 		}
-		evaluate_initializer(ctype, p);
+		evaluate_initializer(ctype, p, offset + current*(ctype->bit_size>>3));
 		current++;
 		if (current > max)
 			max = current;
@@ -1199,7 +1199,7 @@ static int evaluate_array_initializer(struct symbol *ctype, struct expression *e
 	return max;
 }
 
-static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct expression *expr, int multiple)
+static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct expression *expr, int multiple, unsigned long offset)
 {
 	struct expression *entry;
 	struct symbol *sym;
@@ -1231,7 +1231,7 @@ static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct exp
 			return 0;
 		}
 
-		evaluate_initializer(sym, p);
+		evaluate_initializer(sym, p, offset + sym->offset);
 
 		NEXT_PTR_LIST(sym);
 	} END_FOR_EACH_PTR;
@@ -1244,7 +1244,7 @@ static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct exp
  * Initializers are kind of like assignments. Except
  * they can be a hell of a lot more complex.
  */
-static int evaluate_initializer(struct symbol *ctype, struct expression **ep)
+static int evaluate_initializer(struct symbol *ctype, struct expression **ep, unsigned long offset)
 {
 	struct expression *expr = *ep;
 
@@ -1256,10 +1256,16 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep)
 		int size = 0;
 		struct symbol *rtype = evaluate_expression(expr);
 		if (rtype) {
+			struct expression *pos;
 			compatible_assignment_types(expr, ctype, ep, rtype, "initializer");
 			/* strings are special: char arrays */
 			if (rtype->type == SYM_ARRAY)
 				size = rtype->array_size;
+			pos = alloc_expression(expr->pos, EXPR_POS);
+			pos->init_offset = offset;
+			pos->init_sym = ctype;
+			pos->init_expr = *ep;
+			*ep = pos;
 		}
 		return size;
 	}
@@ -1271,11 +1277,11 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep)
 	switch (ctype->type) {
 	case SYM_ARRAY:
 	case SYM_PTR:
-		return evaluate_array_initializer(ctype->ctype.base_type, expr);
+		return evaluate_array_initializer(ctype->ctype.base_type, expr, offset);
 	case SYM_UNION:
-		return evaluate_struct_or_union_initializer(ctype, expr, 0);
+		return evaluate_struct_or_union_initializer(ctype, expr, 0, offset);
 	case SYM_STRUCT:
-		return evaluate_struct_or_union_initializer(ctype, expr, 1);
+		return evaluate_struct_or_union_initializer(ctype, expr, 1, offset);
 	default:
 		break;
 	}
@@ -1298,7 +1304,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	 * than trying to evaluate it as an expression
 	 */
 	if (target->type == EXPR_INITIALIZER) {
-		evaluate_initializer(ctype, &expr->cast_expression);
+		evaluate_initializer(ctype, &expr->cast_expression, 0);
 		return ctype;
 	}
 
@@ -1424,6 +1430,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_INITIALIZER:
 	case EXPR_IDENTIFIER:
 	case EXPR_INDEX:
+	case EXPR_POS:
 		warn(expr->pos, "internal front-end error: initializer in expression");
 		return NULL;
 	}
@@ -1474,7 +1481,7 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 
 	/* Evaluate the initializers */
 	if (sym->initializer) {
-		int count = evaluate_initializer(sym, &sym->initializer);
+		int count = evaluate_initializer(sym, &sym->initializer, 0);
 		if (base_type->type == SYM_ARRAY && base_type->array_size < 0) {
 			int bit_size = count * base_type->ctype.base_type->bit_size;
 			base_type->array_size = count;
