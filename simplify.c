@@ -472,7 +472,7 @@ static int simplify_cast(struct instruction *insn)
 
 static int simplify_select(struct instruction *insn, struct instruction *setcc)
 {
-	pseudo_t cond;
+	pseudo_t cond, src1, src2;
 
 	assert(setcc && setcc->bb);
 	if (dead_insn(insn, &insn->src1, &insn->src2)) {
@@ -480,12 +480,34 @@ static int simplify_select(struct instruction *insn, struct instruction *setcc)
 		return REPEAT_CSE;
 	}
 	cond = setcc->src;
-	if (!constant(cond) && insn->src1 != insn->src2)
-		return 0;
-	setcc->bb = NULL;
-	kill_use(&setcc->cond);
-	replace_with_pseudo(insn, cond->value ? insn->src1 : insn->src2);
-	return REPEAT_CSE;
+	src1 = insn->src1;
+	src2 = insn->src2;
+	if (constant(cond) || src1 == src2) {
+		setcc->bb = NULL;
+		kill_use(&setcc->cond);
+		replace_with_pseudo(insn, cond->value ? src1 : src2);
+		return REPEAT_CSE;
+	}
+	if (constant(src1) && constant(src2)) {
+		long long val1 = src1->value;
+		long long val2 = src2->value;
+
+		/* The pair 0/1 is special - replace with SETNE/SETEQ */
+		if ((val1 | val2) == 1) {
+			int opcode = OP_SET_EQ;
+			if (val1) {
+				src1 = src2;
+				opcode = OP_SET_NE;
+			}
+			insn->opcode = opcode;
+			insn->src2 = src1; /* Zero */
+			use_pseudo(cond, &insn->src1);
+			setcc->bb = NULL;
+			kill_use(&setcc->cond);
+			return REPEAT_CSE;
+		}
+	}
+	return 0;
 }
 
 static int simplify_branch(struct instruction *insn)
