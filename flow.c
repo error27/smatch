@@ -206,6 +206,15 @@ static int dominates(pseudo_t pseudo, struct instruction *insn,
 	return 1;
 }
 
+static pseudo_t load_dominator(struct instruction *insn, struct instruction *dom)
+{
+	/*
+	 * We should eventually see if we can determine a more precise
+	 * value by seeing if the load value gets tested..
+	 */
+	return dom->target;
+}
+
 static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 	struct basic_block *bb, unsigned long generation, struct phi_list **dominators,
 	int local, int loads)
@@ -216,6 +225,7 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 		loads = 0;
 	FOR_EACH_PTR(bb->parents, parent) {
 		struct instruction *one;
+		pseudo_t target;
 		struct phi *phi;
 
 		FOR_EACH_PTR_REVERSE(parent->insns, one) {
@@ -230,8 +240,12 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 			}
 			if (!dominance)
 				continue;
-			if (one->opcode == OP_LOAD && !loads)
-				continue;
+			target = one->target;
+			if (one->opcode == OP_LOAD) {
+				if (!loads)
+					continue;
+				target = load_dominator(insn, one);
+			}
 			goto found_dominator;
 		} END_FOR_EACH_PTR_REVERSE(one);
 no_dominance:
@@ -244,7 +258,7 @@ no_dominance:
 		continue;
 
 found_dominator:
-		phi = alloc_phi(parent, one->target);
+		phi = alloc_phi(parent, target);
 		add_phi(dominators, phi);
 	} END_FOR_EACH_PTR(parent);
 	return 1;
@@ -338,7 +352,10 @@ found:
 		return 0;
 
 	if (dom) {
-		convert_load_insn(insn, dom->target);
+		pseudo_t target = dom->target;
+		if (dom->opcode == OP_LOAD)
+			target = load_dominator(insn, dom);
+		convert_load_insn(insn, target);
 		return 1;
 	}
 
