@@ -1070,15 +1070,36 @@ static struct symbol *evaluate_postop(struct expression *expr)
 	return ctype;
 }
 
+static struct symbol *evaluate_sign(struct expression *expr)
+{
+	struct symbol *ctype = expr->unop->ctype;
+	if (is_int_type(ctype)) {
+		struct symbol *rtype = rtype = integer_promotion(ctype);
+		if (rtype->bit_size != ctype->bit_size)
+			expr->unop = cast_to(expr->unop, rtype);
+		ctype = rtype;
+	} else {
+		return bad_expr_type(expr);
+	}
+	if (expr->op == '+')
+		*expr = *expr->unop;
+	expr->ctype = ctype;
+	return ctype;
+}
+
 static struct symbol *evaluate_preop(struct expression *expr)
 {
 	struct symbol *ctype = expr->unop->ctype;
 
 	switch (expr->op) {
 	case '(':
-	case '+':
 		*expr = *expr->unop;
 		return ctype;
+
+	case '+':
+	case '-':
+	case '~':
+		return evaluate_sign(expr);
 
 	case '*':
 		return evaluate_dereference(expr);
