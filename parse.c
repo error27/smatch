@@ -134,6 +134,9 @@ struct token *struct_union_enum_specifier(enum type type,
 				error_die(token->pos, "redefinition of %s", show_typename (sym));
 			token = parse(token->next, sym);
 			token = expect(token, '}', "at end of struct-union-enum-specifier");
+
+			// Mark the structure as needing re-examination
+			sym->examined = 0;
 		}
 		return token;
 	}
