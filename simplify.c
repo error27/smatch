@@ -79,6 +79,9 @@ static int if_convert_phi(struct instruction *insn)
 	if (!br || br->opcode != OP_BR)
 		return 0;
 
+	assert(br->cond);
+	assert(br->bb_false);
+
 	/*
 	 * We're in business. Match up true/false with p1/p2.
 	 */
@@ -120,7 +123,7 @@ static int clean_up_phi(struct instruction *insn)
 	same = 1;
 	FOR_EACH_PTR(insn->phi_list, phi) {
 		struct instruction *def = phi->def;
-		if (def->src1 == VOID)
+		if (def->src1 == VOID || !def->bb)
 			continue;
 		if (last) {
 			if (last->src1 != def->src1)
