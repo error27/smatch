@@ -1236,9 +1236,6 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 
 	concat_symbol_list(stmt->syms, &ep->syms);
 
-	if (ret)
-		ret->bb_target = alloc_basic_block(stmt->pos);
-
 	FOR_EACH_PTR(stmt->syms, sym) {
 		linearize_one_symbol(ep, sym);
 	} END_FOR_EACH_PTR(sym);
@@ -1249,13 +1246,13 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 	} END_FOR_EACH_PTR(s);
 
 	if (ret) {
-		struct basic_block *bb = ret->bb_target;
+		struct basic_block *bb = get_bound_block(ep, ret);
 		struct instruction *phi = first_instruction(bb->insns);
 
+		set_activeblock(ep, bb);
 		if (!phi)
 			return pseudo;
 
-		set_activeblock(ep, bb);
 		if (phi_list_size(phi->phi_list)==1) {
 			pseudo = first_phi(phi->phi_list)->pseudo;
 			delete_last_instruction(&bb->insns);
@@ -1302,7 +1299,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 
 	case STMT_RETURN: {
 		struct expression *expr = stmt->expression;
-		struct basic_block *bb_return = stmt->ret_target->bb_target;
+		struct basic_block *bb_return = get_bound_block(ep, stmt->ret_target);
 		struct basic_block *active;
 		pseudo_t src = linearize_expression(ep, expr);
 		active = ep->active;
