@@ -47,11 +47,12 @@ static struct entrypoint *alloc_entrypoint(void)
 	return __alloc_entrypoint(0);
 }
 
-static struct basic_block *alloc_basic_block(struct position pos)
+static struct basic_block *alloc_basic_block(struct entrypoint *ep, struct position pos)
 {
 	struct basic_block *bb = __alloc_basic_block(0);
 	bb->context = -1;
 	bb->pos = pos;
+	bb->ep = ep;
 	return bb;
 }
 
@@ -465,7 +466,7 @@ static struct basic_block * get_bound_block(struct entrypoint *ep, struct symbol
 	struct basic_block *bb = label->bb_target;
 
 	if (!bb) {
-		bb = alloc_basic_block(label->pos);
+		bb = alloc_basic_block(ep, label->pos);
 		label->bb_target = bb;
 	}
 	return bb;
@@ -589,7 +590,7 @@ static struct basic_block * add_label(struct entrypoint *ep, struct symbol *labe
 	}
 	bb = ep->active;
 	if (!bb_reachable(bb) || !bb_empty(bb)) {
-		bb = alloc_basic_block(label->pos);
+		bb = alloc_basic_block(ep, label->pos);
 		set_activeblock(ep, bb);
 	}
 	label->bb_target = bb;
@@ -1120,8 +1121,8 @@ static pseudo_t linearize_short_conditional(struct entrypoint *ep, struct expres
 					    struct expression *expr_false)
 {
 	pseudo_t src1, src2;
-	struct basic_block *bb_false = alloc_basic_block(expr_false->pos);
-	struct basic_block *merge = alloc_basic_block(expr->pos);
+	struct basic_block *bb_false = alloc_basic_block(ep, expr_false->pos);
+	struct basic_block *merge = alloc_basic_block(ep, expr->pos);
 	pseudo_t phi1, phi2;
 
 	src1 = linearize_expression(ep, cond);
@@ -1143,9 +1144,9 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 {
 	pseudo_t src1, src2;
 	pseudo_t phi1, phi2;
-	struct basic_block *bb_true = alloc_basic_block(expr_true->pos);
-	struct basic_block *bb_false = alloc_basic_block(expr_false->pos);
-	struct basic_block *merge = alloc_basic_block(expr->pos);
+	struct basic_block *bb_true = alloc_basic_block(ep, expr_true->pos);
+	struct basic_block *bb_false = alloc_basic_block(ep, expr_false->pos);
+	struct basic_block *merge = alloc_basic_block(ep, expr->pos);
 
 	linearize_cond_branch(ep, cond, bb_true, bb_false);
 
@@ -1237,7 +1238,7 @@ pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *expr, s
 	
 static pseudo_t linearize_logical_branch(struct entrypoint *ep, struct expression *expr, struct basic_block *bb_true, struct basic_block *bb_false)
 {
-	struct basic_block *next = alloc_basic_block(expr->pos);
+	struct basic_block *next = alloc_basic_block(ep, expr->pos);
 
 	if (expr->op == SPECIAL_LOGICAL_OR)
 		linearize_cond_branch(ep, expr->left, bb_true, next);
@@ -1564,8 +1565,8 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		struct basic_block *bb_true, *bb_false, *endif;
  		struct expression *cond = stmt->if_conditional;
 
-		bb_true = alloc_basic_block(stmt->pos);
-		bb_false = endif = alloc_basic_block(stmt->pos);
+		bb_true = alloc_basic_block(ep, stmt->pos);
+		bb_false = endif = alloc_basic_block(ep, stmt->pos);
 
  		linearize_cond_branch(ep, cond, bb_true, bb_false);
 
@@ -1573,7 +1574,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
  		linearize_statement(ep, stmt->if_true);
  
  		if (stmt->if_false) {
-			endif = alloc_basic_block(stmt->pos);
+			endif = alloc_basic_block(ep, stmt->pos);
 			add_goto(ep, endif);
 			set_activeblock(ep, bb_false);
  			linearize_statement(ep, stmt->if_false);
@@ -1585,7 +1586,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	case STMT_SWITCH: {
 		struct symbol *sym;
 		struct instruction *switch_ins;
-		struct basic_block *switch_end = alloc_basic_block(stmt->pos);
+		struct basic_block *switch_end = alloc_basic_block(ep, stmt->pos);
 		struct basic_block *active, *default_case;
 		struct multijmp *jmp;
 		pseudo_t pseudo;
@@ -1654,12 +1655,12 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		concat_symbol_list(stmt->iterator_syms, &ep->syms);
 		linearize_statement(ep, pre_statement);
 
- 		loop_body = loop_top = alloc_basic_block(stmt->pos);
- 		loop_continue = alloc_basic_block(stmt->pos);
- 		loop_end = alloc_basic_block(stmt->pos);
+ 		loop_body = loop_top = alloc_basic_block(ep, stmt->pos);
+ 		loop_continue = alloc_basic_block(ep, stmt->pos);
+ 		loop_end = alloc_basic_block(ep, stmt->pos);
  
 		if (pre_condition == post_condition) {
-			loop_top = alloc_basic_block(stmt->pos);
+			loop_top = alloc_basic_block(ep, stmt->pos);
 			set_activeblock(ep, loop_top);
 		}
 
@@ -1704,7 +1705,7 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 		return NULL;
 
 	ep = alloc_entrypoint();
-	bb = alloc_basic_block(sym->pos);
+	bb = alloc_basic_block(ep, sym->pos);
 	
 	ep->name = sym;
 	ep->entry = bb;

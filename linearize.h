@@ -170,6 +170,7 @@ struct basic_block {
 	struct position pos;
 	unsigned long generation;
 	int context;
+	struct entrypoint *ep;
 	struct basic_block_list *parents; /* sources */
 	struct basic_block_list *children; /* destinations */
 	struct instruction_list *insns;	/* Linear list of instructions */
