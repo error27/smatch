@@ -1695,7 +1695,7 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 		return NULL;
 
 	size = type->bit_size;
-	if (size & 7)
+	if ((size <= 0) || (size & 7))
 		warning(expr->pos, "cannot size expression");
 	expr->type = EXPR_VALUE;
 	expr->value = size >> 3;
