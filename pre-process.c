@@ -646,19 +646,6 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 		arglist = arglist->next;
 	}
 
-	sym = lookup_symbol(name, NS_PREPROCESSOR);
-	if (sym) {
-		if (token_list_different(sym->expansion, expansion) || 
-		    token_list_different(sym->arglist, arglist)) {
-			warn(left->pos, "preprocessor token %.*s redefined",
-					name->len, name->name);
-			info(sym->pos, "this was the original definition");
-		}
-		return 1;
-	}
-	sym = alloc_symbol(left->pos, SYM_NODE);
-	bind_symbol(sym, name, NS_PREPROCESSOR);
-
 	if (arglist) {
 		struct token *p;
 		for (p = expansion; !eof_token(p); p = p->next) {
@@ -671,6 +658,19 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 			}
 		}
 	}
+
+	sym = lookup_symbol(name, NS_PREPROCESSOR);
+	if (sym) {
+		if (token_list_different(sym->expansion, expansion) || 
+		    token_list_different(sym->arglist, arglist)) {
+			warn(left->pos, "preprocessor token %.*s redefined",
+					name->len, name->name);
+			info(sym->pos, "this was the original definition");
+		}
+		return 1;
+	}
+	sym = alloc_symbol(left->pos, SYM_NODE);
+	bind_symbol(sym, name, NS_PREPROCESSOR);
 
 	sym->expansion = expansion;
 	sym->arglist = arglist;
