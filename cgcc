@@ -16,6 +16,9 @@ foreach (@ARGV) {
     # with arguments, but it seems to do the job.)
     $do_check = 1 if /^[^-].*\.c$/;
 
+    # Ditto for stdin.
+    $do_check = 1 if $_ eq '-';
+
     $m64 = 1 if /^-m64$/;
 
     if (/^-specs=(.*)$/) {

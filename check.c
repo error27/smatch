@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 		char *arg = *++args;
 		if (!arg)
 			break;
-		if (arg[0] == '-') {
+		if (arg[0] == '-' && arg[1]) {
 			args = handle_switch(arg+1, args);
 			continue;
 		}
@@ -146,9 +146,13 @@ int main(int argc, char **argv)
 
 	do_predefined(filename);
 
-	fd = open(filename, O_RDONLY);
-	if (fd < 0)
-		die("No such file: %s", filename);
+	if (strcmp (filename, "-") == 0) {
+		fd = 0;
+	} else {
+		fd = open(filename, O_RDONLY);
+		if (fd < 0)
+			die("No such file: %s", filename);
+	}
 
 	// Tokenize the input stream
 	token = tokenize(filename, fd, NULL, includepath);
