@@ -38,7 +38,7 @@
 #include "scope.h"
 #include "expression.h"
 #include "target.h"
-
+#include "compile.h"
 
 struct textbuf {
 	unsigned int	len;	/* does NOT include terminating null */
@@ -530,12 +530,12 @@ static void emit_labelsym (struct symbol *sym, const char *comment)
 	push_text_atom(f, s);
 }
 
-static void emit_unit_pre(const char *basename)
+void emit_unit_begin(const char *basename)
 {
 	printf("\t.file\t\"%s\"\n", basename);
 }
 
-static void emit_unit_post(void)
+void emit_unit_end(void)
 {
 	textbuf_emit(&unit_post_text);
 	printf("\t.ident\t\"sparse silly x86 backend (built %s)\"\n", __DATE__);
@@ -931,16 +931,9 @@ static void emit_array(struct symbol *sym)
 	} END_FOR_EACH_PTR;
 }
 
-static void emit_one_symbol(struct symbol *sym, void *dummy, int flags)
+void emit_one_symbol(struct symbol *sym)
 {
 	x86_symbol(sym);
-}
-
-void emit_unit(const char *basename, struct symbol_list *list)
-{
-	emit_unit_pre(basename);
-	symbol_iterate(list, emit_one_symbol, NULL);
-	emit_unit_post();
 }
 
 static void emit_copy(struct storage *dest, struct storage *src,

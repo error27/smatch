@@ -22,13 +22,13 @@
 #include "parse.h"
 #include "symbol.h"
 #include "expression.h"
-
-extern void emit_unit(const char *basename, struct symbol_list *list);
+#include "compile.h"
 
 static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 {
 	evaluate_symbol(sym);
 	expand_symbol(sym);
+	emit_one_symbol(sym);
 }
 
 int main(int argc, char **argv)
@@ -92,10 +92,9 @@ int main(int argc, char **argv)
 	translation_unit(token, &used_list);
 
 	// Do type evaluation and simplification
+	emit_unit_begin(basename);
 	symbol_iterate(used_list, clean_up_symbol, NULL);
-
-	// Show the end result.
-	emit_unit(basename, used_list);
+	emit_unit_end();
 
 #if 0
 	// And show the allocation statistics
