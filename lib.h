@@ -44,6 +44,9 @@ struct multijmp;
 struct multijmp_list;
 struct phi;
 struct phi_list;
+struct pseudo;
+
+typedef struct pseudo *pseudo_t;
 
 struct token *skip_to(struct token *, int);
 struct token *expect(struct token *, int, const char *);

@@ -27,8 +27,6 @@ struct pseudo {
 	};
 };
 
-typedef struct pseudo *pseudo_t;
-
 extern struct pseudo void_pseudo;
 
 #define VOID (&void_pseudo)

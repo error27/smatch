@@ -114,6 +114,7 @@ struct symbol {
 		struct basic_block *bb_target;	/* label */
 		void *aux;			/* Auxiliary info, eg. backend information */
 	};
+	pseudo_t pseudo;
 };
 
 /* Modifiers */

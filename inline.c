@@ -408,6 +408,7 @@ static struct symbol *create_copy_symbol(struct symbol *orig)
 		sym = alloc_symbol(orig->pos, orig->type);
 		*sym = *orig;
 		sym->bb_target = NULL;
+		sym->pseudo = NULL;
 		set_replace(orig, sym);
 		orig = sym;
 	}

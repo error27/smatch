@@ -341,6 +341,16 @@ static void show_bb(struct basic_block *bb)
 	printf("\n");
 }
 
+static void show_uses(pseudo_t pseudo)
+{
+	if (pseudo && pseudo->users) {
+		struct instruction *use;
+		FOR_EACH_PTR(pseudo->users, use) {
+			show_instruction(use);
+		} END_FOR_EACH_PTR(use);
+	}
+}
+
 void show_entry(struct entrypoint *ep)
 {
 	struct symbol *sym;
@@ -350,6 +360,9 @@ void show_entry(struct entrypoint *ep)
 
 	FOR_EACH_PTR(ep->syms, sym) {
 		printf("   sym: %p %s\n", sym, show_ident(sym->ident));
+		if (sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE))
+			printf("\texternal use\n");
+		show_uses(sym->pseudo);
 	} END_FOR_EACH_PTR(sym);
 
 	printf("\n");
@@ -479,9 +492,14 @@ static pseudo_t alloc_pseudo(struct instruction *def)
 
 static pseudo_t symbol_pseudo(struct symbol *sym)
 {
-	pseudo_t pseudo = __alloc_pseudo(0);
-	pseudo->type = PSEUDO_SYM;
-	pseudo->sym = sym;
+	pseudo_t pseudo = sym->pseudo;
+
+	if (!pseudo) {
+		pseudo = __alloc_pseudo(0);
+		pseudo->type = PSEUDO_SYM;
+		pseudo->sym = sym;
+		sym->pseudo = pseudo;
+	}
 	/* Symbol pseudos have neither nr, usage nor def */
 	return pseudo;
 }
