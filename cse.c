@@ -257,9 +257,22 @@ static int bb_dominates(struct entrypoint *ep, struct basic_block *bb1, struct b
 	return 1;
 }
 
+static inline void remove_instruction(struct instruction_list **list, struct instruction *insn, int count)
+{
+	delete_ptr_list_entry((struct ptr_list **)list, insn, count);
+}
+
+static void add_instruction_to_end(struct instruction *insn, struct basic_block *bb)
+{
+	struct instruction *br = delete_last_instruction(&bb->insns);
+	insn->bb = bb;
+	add_instruction(&bb->insns, insn);
+	add_instruction(&bb->insns, br);
+}
+
 static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction *i1, struct instruction *i2)
 {
-	struct basic_block *b1, *b2;
+	struct basic_block *b1, *b2, *common;
 
 	/*
 	 * Ok, i1 and i2 are the same instruction, modulo "target".
@@ -290,6 +303,13 @@ static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction
 		return cse_one_instruction(i1, i2);
 
 	/* No direct dominance - but we could try to find a common ancestor.. */
+	common = trivial_common_parent(b1, VOID, b2, VOID);
+	if (common) {
+		i1 = cse_one_instruction(i2, i1);
+		remove_instruction(&b1->insns, i1, 1);
+		add_instruction_to_end(i1, common);
+	}
+
 	return i1;
 }
 
