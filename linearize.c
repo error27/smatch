@@ -828,6 +828,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 
 	case STMT_GOTO: {
 		struct symbol *sym;
+		struct expression *expr;
 		struct instruction *goto_ins;
 		pseudo_t pseudo;
 
@@ -836,7 +837,14 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			break;
 		}
 
-		pseudo = linearize_expression(ep, stmt->goto_expression);
+		/* This can happen as part of simplification */
+		expr = stmt->goto_expression;
+		if (expr->type == EXPR_LABEL) {
+			add_goto(ep, get_bound_block(ep, expr->label_symbol));
+			break;
+		}
+
+		pseudo = linearize_expression(ep, expr);
 		goto_ins = alloc_instruction(OP_COMPUTEDGOTO, NULL);
 		add_one_insn(ep, stmt->pos, goto_ins);
 		goto_ins->target = pseudo;
