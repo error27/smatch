@@ -417,6 +417,8 @@ void show_entry(struct entrypoint *ep)
 	printf("\n");
 
 	FOR_EACH_PTR(ep->bbs, bb) {
+		if (!bb)
+			continue;
 		if (bb == ep->entry)
 			printf("ENTRY:\n");
 		show_bb(bb);
@@ -439,7 +441,6 @@ static struct basic_block * get_bound_block(struct entrypoint *ep, struct symbol
 	if (!bb) {
 		bb = alloc_basic_block(label->pos);
 		label->bb_target = bb;
-		bb->flags |= BB_REACHABLE;
 	}
 	return bb;
 }
@@ -1508,11 +1509,9 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
  
 		if (pre_condition == post_condition) {
 			loop_top = alloc_basic_block(stmt->pos);
-			loop_top->flags |= BB_REACHABLE;
 			set_activeblock(ep, loop_top);
 		}
 
-		loop_top->flags |= BB_REACHABLE;
 		if (pre_condition) 
  			linearize_cond_branch(ep, pre_condition, loop_body, loop_end);
 
@@ -1816,7 +1815,9 @@ found:
 	 * dominators.
 	 */
 	if (phi_list_size(dominators) == 1) {
-		convert_load_insn(insn, first_phi(dominators)->pseudo);
+		struct phi * phi = first_phi(dominators);
+		phi->source = NULL;	/* Mark it as not used */
+		convert_load_insn(insn, phi->pseudo);
 	} else {
 		pseudo_t new = alloc_pseudo(insn);
 		convert_load_insn(insn, new);
@@ -2030,6 +2031,94 @@ static void simplify_symbol_usage(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(sym);
 }
 
+static void mark_bb_reachable(struct basic_block *bb, unsigned long generation)
+{
+	struct basic_block *child;
+
+	if (bb->generation == generation)
+		return;
+	bb->generation = generation;
+	FOR_EACH_PTR(bb->children, child) {
+		mark_bb_reachable(child, generation);
+	} END_FOR_EACH_PTR(child);
+}
+
+static void kill_unreachable_bbs(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+	unsigned long generation = ++bb_generation;
+
+	mark_bb_reachable(ep->entry, generation);
+	FOR_EACH_PTR(ep->bbs, bb) {
+		struct phi *phi;
+		if (bb->generation == generation)
+			continue;
+		FOR_EACH_PTR(bb->phinodes, phi) {
+			phi->pseudo = VOID;
+			phi->source = NULL;
+		} END_FOR_EACH_PTR(phi);
+	} END_FOR_EACH_PTR(bb);
+}
+
+static void pack_basic_blocks(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+
+	kill_unreachable_bbs(ep);
+
+	/* See if we can merge a bb into another one.. */
+	FOR_EACH_PTR(ep->bbs, bb) {
+		struct basic_block *parent, *child;
+
+		if (!bb_reachable(bb))
+			continue;
+		/*
+		 * If this block has a phi-node associated with it,
+		 */
+		if (bb->phinodes)
+			continue;
+
+		if (ep->entry == bb)
+			continue;
+
+		/*
+		 * See if we only have one parent..
+		 */
+		if (bb_list_size(bb->parents) != 1)
+			continue;
+		parent = first_basic_block(bb->parents);
+		if (parent == bb)
+			continue;
+
+		/*
+		 * Goodie. See if the parent can merge..
+		 */
+		FOR_EACH_PTR(parent->children, child) {
+			if (child != bb)
+				goto no_merge;
+		} END_FOR_EACH_PTR(child);
+
+		parent->children = bb->children;
+		FOR_EACH_PTR(bb->children, child) {
+			struct basic_block *p;
+			FOR_EACH_PTR(child->parents, p) {
+				if (p != bb)
+					continue;
+				*THIS_ADDRESS(p) = parent;
+			} END_FOR_EACH_PTR(p);
+		} END_FOR_EACH_PTR(child);
+
+		delete_last_instruction(&parent->insns);
+		concat_instruction_list(bb->insns, &parent->insns);
+		bb->parents = NULL;
+		bb->children = NULL;
+		bb->insns = NULL;
+
+	no_merge:
+		/* nothing to do */;
+	} END_FOR_EACH_PTR(bb);
+}
+
 struct entrypoint *linearize_symbol(struct symbol *sym)
 {
 	struct symbol *base_type;
@@ -2050,7 +2139,6 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 
 			ep->name = sym;
 			ep->entry = bb;
-			bb->flags |= BB_REACHABLE;
 			set_activeblock(ep, bb);
 			concat_symbol_list(base_type->arguments, &ep->syms);
 
@@ -2080,6 +2168,11 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 			 * SSA if you just look at it sideways..
 			 */
 			simplify_phi_nodes(ep);
+
+			/*
+			 * Remove or merge basic blocks.
+			 */
+			pack_basic_blocks(ep);
 
 			ret_ep = ep;
 		}

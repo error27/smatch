@@ -168,16 +168,8 @@ enum opcode {
 struct basic_block_list;
 struct instruction_list;
 
-/*
- * Basic block flags. Right now we only have one, which keeps
- * track (at build time) whether the basic block has been branched
- * out of yet. 
- */
-#define BB_REACHABLE	0x00000001
-
 struct basic_block {
 	struct position pos;
-	unsigned long flags;		/* BB status flags */
 	unsigned long generation;
 	int context;
 	struct basic_block_list *parents; /* sources */
@@ -228,7 +220,7 @@ static inline int bb_terminated(struct basic_block *bb)
 
 static inline int bb_reachable(struct basic_block *bb)
 {
-	return bb && (bb->parents || (bb->flags & BB_REACHABLE));
+	return bb != NULL;
 }
 
 struct entrypoint {
