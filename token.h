@@ -45,7 +45,7 @@ enum token_type {
 	"..", "...",		\
 	"<=", "<<", "<<=",	\
 	">=", ">>", ">>=",	\
-	"==",			\
+	"==", "!=",		\
 	"&&", "&=",		\
 	"||", "|=",		\
 	"^=",			\
@@ -72,6 +72,7 @@ enum special_token {
 	SPECIAL_RIGHTSHIFT,
 	SPECIAL_SHR_ASSIGN,
 	SPECIAL_EQUAL,
+	SPECIAL_NOTEQUAL,
 	SPECIAL_LOGICAL_AND,
 	SPECIAL_AND_ASSIGN,
 	SPECIAL_LOGICAL_OR,
@@ -102,7 +103,10 @@ struct token {
 	struct token *next;
 };
 
+extern const char *show_special(int op);
+extern const char *show_token(const struct token *token);
 extern struct token * tokenize(const char *, int);
 extern void die(const char *, ...);
+extern void warn(struct token *, const char *, ...);
 
 #endif

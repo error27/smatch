@@ -5,32 +5,23 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "token.h"
 
-void callback(struct token *token)
-{
-	printf("%s ", show_token(token));
-}
+#include "token.h"
+#include "parse.h"
 
 int main(int argc, char **argv)
 {
-	int line;
 	int fd = open(argv[1], O_RDONLY);
 	struct token *token;
+	struct expression *expr;
 
 	if (fd < 0)
 		die("No such file: %s", argv[1]);
 	token = tokenize(argv[1], fd);
-	line = token->line;
-	while (token) {
-		callback(token);
-		token = token->next;
-		if (token && token->line != line) {
-			line = token->line;
-			putchar('\n');
-		}
-	}
-	putchar('\n');
-	print_ident_stat();
+	token = parse_expression(token, &expr);
+	if (token)
+		warn(token, "Extra data");
+	show_expression(expr);
+	printf("\n");
 	return 0;
 }

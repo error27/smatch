@@ -21,6 +21,90 @@ int input_stream_nr = 0;
 struct stream *input_streams;
 static int input_streams_allocated;
 
+const char *show_special(int val)
+{
+	static const char *combinations[] = COMBINATION_STRINGS;
+	static char buffer[4];
+
+	buffer[0] = val;
+	buffer[1] = 0;
+	if (val >= SPECIAL_BASE)
+		strcpy(buffer, combinations[val - SPECIAL_BASE]);
+	return buffer;
+}
+
+
+const char *show_token(const struct token *token)
+{
+	static char buffer[256];
+	const struct value *value = &token->value;
+
+	switch (value->type) {
+	case TOKEN_ERROR:
+		return "syntax error";
+
+	case TOKEN_IDENT: {
+		struct ident *ident = value->ident;
+		sprintf(buffer, "%.*s", ident->len, ident->name);
+		return buffer;
+	}
+
+	case TOKEN_STRING: {
+		char *ptr;
+		int i;
+		struct string *string = value->string;
+
+		ptr = buffer;
+		*ptr++ = '"';
+		for (i = 0; i < string->length; i++) {
+			unsigned char c = string->data[i];
+			if (isprint(c) && c != '"') {
+				*ptr++ = c;
+				continue;
+			}
+			*ptr++ = '\\';
+			switch (c) {
+			case '\n':
+				*ptr++ = 'n';
+				continue;
+			case '\t':
+				*ptr++ = 't';
+				continue;
+			case '"':
+				*ptr++ = '"';
+				continue;
+			}
+			if (!isdigit(string->data[i+1])) {
+				ptr += sprintf(ptr, "%o", c);
+				continue;
+			}
+				
+			ptr += sprintf(ptr, "%03o", c);
+		}
+		*ptr++ = '"';
+		*ptr = '\0';
+		return buffer;
+	}
+
+	case TOKEN_INTEGER: {
+		char *ptr;
+		ptr = buffer + sprintf(buffer, "%llu", value->intval);
+		return buffer;
+	}
+
+	case TOKEN_FP: {
+		sprintf(buffer, "%f", value->fpval);
+		return buffer;
+	}
+
+	case TOKEN_SPECIAL:
+		return show_special(value->special);
+	
+	default:
+		return "WTF???";
+	}
+}
+
 static int init_stream(const char *name)
 {
 	int stream = input_stream_nr;
@@ -67,23 +151,6 @@ static int nextchar(action_t *action)
 		action->pos = 0;
 	}
 	return c;
-}
-
-static void warn(action_t *action, const char *fmt, ...)
-{
-	static char buffer[512];
-	struct stream *stream;
-	struct token *token = action->token;
-
-	va_list args;
-	va_start(args, fmt);
-	vsprintf(buffer, fmt, args);
-	va_end(args);
-
-	stream = input_streams + token->stream;
-	fprintf(stderr, "warning: %s:%d: %s\n",
-		stream->name, token->line,
-		buffer);
 }
 
 static void add_token(action_t *action)
@@ -204,7 +271,7 @@ static int escapechar(int first, int type, action_t *action, int *valp)
 	value = first;
 
 	if (first == '\n')
-		warn(action, "Newline in string or character constant");
+		warn(action->token, "Newline in string or character constant");
 
 	if (first == '\\' && next != EOF) {
 		value = next;
@@ -246,7 +313,7 @@ static int escapechar(int first, int type, action_t *action, int *valp)
 			}
 			/* Fallthrough */
 			default:
-				warn(action, "Unknown escape '%c'", value);
+				warn(action->token, "Unknown escape '%c'", value);
 			}
 		}
 		/* Mark it as escaped */
@@ -263,7 +330,7 @@ static int get_char_token(int next, action_t *action)
 
 	next = escapechar(next, '\'', action, &value);
 	if (value == '\'' || next != '\'') {
-		warn(action, "Bad character constant");
+		warn(action->token, "Bad character constant");
 		drop_token(action);
 		return next;
 	}
@@ -289,7 +356,7 @@ static int get_string_token(int next, action_t *action)
 		if (val == '"')
 			break;
 		if (next == EOF) {
-			warn(action, "Enf of file in middle of string");
+			warn(action->token, "Enf of file in middle of string");
 			return next;
 		}
 		if (len < sizeof(buffer)) {
@@ -300,7 +367,7 @@ static int get_string_token(int next, action_t *action)
 	}
 
 	if (len > 256)
-		warn(action, "String too long");
+		warn(action->token, "String too long");
 
 	string = malloc(sizeof(int)+len);
 	memcpy(string->data, buffer, len);
@@ -336,7 +403,7 @@ static int drop_stream_comment(action_t *action)
 	for (;;) {
 		int curr = next;
 		if (curr == EOF) {
-			warn(action, "End of file in the middle of a comment");
+			warn(action->token, "End of file in the middle of a comment");
 			return curr;
 		}
 		next = nextchar(action);
