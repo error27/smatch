@@ -55,7 +55,7 @@ void show_struct_member(struct symbol *sym, void *data, int flags)
 {
 	if (flags & ITERATE_FIRST)
 		printf(" { ");
-	printf("%s", show_token(sym->token));
+	printf("%s:%d:%d at offset %ld", show_token(sym->token), sym->bit_size, sym->alignment, sym->offset);
 	if (flags & ITERATE_LAST)
 		printf(" } ");
 	else
