@@ -344,32 +344,42 @@ static void show_switch_statement(struct statement *stmt)
 	struct symbol *sym;
 	printf("\tswitch v%d\n", val);
 
+	/*
+	 * Debugging only: Check that the case list is correct
+	 * by printing it out.
+	 *
+	 * This is where a _real_ back-end would go through the
+	 * cases to decide whether to use a lookup table or a
+	 * series of comparisons etc
+	 */
+	printf("case list:\n");
 	FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
 		struct statement *case_stmt = sym->stmt;
 		struct expression *expr = case_stmt->case_expression;
 		struct expression *to = case_stmt->case_to;
 
+		printf("   .L%p: ", sym);
 		if (!expr) {
-			printf("default:\n");
+			printf(" default");
 		} else {
 			if (expr->type == EXPR_VALUE) {
-				printf("case %lld", expr->value);
+				printf(" %lld", expr->value);
 				if (to) {
 					if (to->type == EXPR_VALUE) {
 						printf(" .. %lld", to->value);
 					} else {
-						printf(" .. what");
+						printf(" .. what?");
 					}
 				}
-				printf(":\n");
 			} else
-				printf("case what:\n");
+				printf(" what?");
 		}
-		show_statement(case_stmt->case_statement);
+		printf("\n");
 	} END_FOR_EACH_PTR;
 
 	if (stmt->switch_break->used)
 		printf(".L%p:\n", stmt->switch_break);
+	show_statement(stmt->switch_statement);
 }
 
 /*
@@ -429,16 +439,7 @@ int show_statement(struct statement *stmt)
 		break;
 
 	case STMT_CASE:
-		if (!stmt->case_expression)
-			printf("default");
-		else {
-			printf("case %lld", stmt->case_expression->value);
-			if (stmt->case_to) {
-				printf("...%lld", stmt->case_to->value);
-			}
-			
-		}
-		printf(":\n");
+		printf(".L%p:\n", stmt->case_label);
 		show_statement(stmt->case_statement);
 		break;
 

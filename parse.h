@@ -51,6 +51,7 @@ struct statement {
 			struct expression *case_expression;
 			struct expression *case_to;
 			struct statement *case_statement;
+			struct symbol *case_label;
 		};
 		struct switch_struct {
 			struct expression *switch_expression;

@@ -671,6 +671,7 @@ static void add_case_statement(struct statement *stmt)
 	sym = alloc_symbol(stmt->pos, SYM_NODE);
 	add_symbol(&target->symbol_list, sym);
 	sym->stmt = stmt;
+	stmt->case_label = sym;
 }
 
 struct token *statement(struct token *token, struct statement **tree)
