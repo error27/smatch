@@ -158,28 +158,36 @@ struct token *typeof_specifier(struct token *token, struct ctype *ctype)
 	return expect(token, ')', "after typeof");
 }
 
+static void handle_attribute(struct ctype *ctype, struct ident *attribute, struct expression *expr)
+{
+	fprintf(stderr, "saw attribute '%s'\n", show_ident(attribute));
+}
+
+
 struct token *attribute_specifier(struct token *token, struct ctype *ctype)
 {
-	int parens = 0;
-
 	token = expect(token, '(', "after attribute");
 	token = expect(token, '(', "after attribute");
 
-	for (;;token = token->next) {
+	for (;;) {
+		struct ident *attribute_name;
+		struct expression *attribute_expr;
+
 		if (eof_token(token))
 			break;
 		if (match_op(token, ';'))
 			break;
-		if (match_op(token, ')')) {
-			if (!parens)
-				break;
-			parens--;
-			continue;
-		}
-		if (match_op(token, '(')) {
-			parens++;
-			continue;
-		}
+		if (token_type(token) != TOKEN_IDENT)
+			break;
+		attribute_name = token->ident;
+		token = token->next;
+		attribute_expr = NULL;
+		if (match_op(token, '('))
+			token = parens_expression(token, &attribute_expr, "in attribute");
+		handle_attribute(ctype, attribute_name, attribute_expr);
+		if (!match_op(token, ','))
+			break;
+		token = token->next;
 	}
 
 	token = expect(token, ')', "after attribute");
