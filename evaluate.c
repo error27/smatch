@@ -499,6 +499,9 @@ static struct symbol *evaluate_conditional(struct expression *expr)
 {
 	struct symbol *ctype;
 
+	if (!expr)
+		return NULL;
+
 	if (expr->type == EXPR_ASSIGNMENT)
 		warn(expr->pos, "assignment expression in conditional");
 
@@ -908,6 +911,8 @@ static struct symbol *evaluate_preop(struct expression *expr)
 		return evaluate_postop(expr);
 
 	case '!':
+		if (is_safe_type(ctype))
+			warn(expr->pos, "testing a 'safe expression'");
 		ctype = &bool_ctype;
 		break;
 
