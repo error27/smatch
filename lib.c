@@ -682,7 +682,7 @@ struct warning {
 	int *flag;
 } warnings[] = {
 	{ "default-bitfield-sign", &Wdefault_bitfield_sign },
-	{ "undefined-preprocessor-symbol", &Wundefined_preprocessor },
+	{ "undef", &Wundefined_preprocessor },
 	{ "bitwise", &Wbitwise },
 	{ "typesign", &Wtypesign },
 };
