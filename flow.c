@@ -135,9 +135,17 @@ static int bb_has_side_effects(struct basic_block *bb)
 	FOR_EACH_PTR(bb->insns, insn) {
 		switch (insn->opcode) {
 		case OP_CALL:
+			/* Fixme! This should take "const" etc into account */
+			return 1;
+
 		case OP_STORE:
 		case OP_CONTEXT:
 			return 1;
+
+		case OP_ASM:
+			/* Fixme! This should take "volatile" etc into account */
+			return 1;
+
 		default:
 			continue;
 		}
