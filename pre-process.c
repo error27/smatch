@@ -1260,6 +1260,8 @@ static int handle_warning(struct stream *stream, struct token **line, struct tok
 {
 	if (false_nesting)
 		return 1;
+	if (stream->constant == CONSTANT_FILE_MAYBE)
+		MARK_STREAM_NONCONST(token->pos);
 	warn(token->pos, "%s", show_token_sequence(token->next));
 	return 1;
 }
@@ -1268,6 +1270,8 @@ static int handle_error(struct stream *stream, struct token **line, struct token
 {
 	if (false_nesting)
 		return 1;
+	if (stream->constant == CONSTANT_FILE_MAYBE)
+		MARK_STREAM_NONCONST(token->pos);
 	warn(token->pos, "%s", show_token_sequence(token->next));
 	return 1;
 }
