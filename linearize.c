@@ -239,13 +239,9 @@ static void show_instruction(struct instruction *insn)
 		break;
 	}	
 	case OP_LOAD:
-		if (insn->target == VOID)
-			break;
 		printf("\tload %s <- %d[%s]\n", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
 		break;
 	case OP_STORE:
-		if (insn->target == VOID)
-			break;
 		printf("\tstore %s -> %d[%s]\n", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
 		break;
 	case OP_CALL: {
@@ -346,6 +342,20 @@ static void show_bb(struct basic_block *bb)
 	printf("\n");
 }
 
+#define container(ptr, type, member) \
+	(type *)((void *)(ptr) - offsetof(type, member))
+
+static void show_symbol_usage(pseudo_t pseudo)
+{
+	if (pseudo) {
+		pseudo_t *pp;
+		FOR_EACH_PTR(pseudo->users, pp) {
+			struct instruction *insn = container(pp, struct instruction, src);
+			show_instruction(insn);
+		} END_FOR_EACH_PTR(pp);
+	}
+}
+
 void show_entry(struct entrypoint *ep)
 {
 	struct symbol *sym;
@@ -355,6 +365,9 @@ void show_entry(struct entrypoint *ep)
 
 	FOR_EACH_PTR(ep->syms, sym) {
 		printf("   sym: %p %s\n", sym, show_ident(sym->ident));
+		if (sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE))
+			printf("\texternal visibility");
+		show_symbol_usage(sym->pseudo);
 	} END_FOR_EACH_PTR(sym);
 
 	printf("\n");
@@ -1711,9 +1724,6 @@ static void remove_phi_nodes(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(bb);
 }
 
-#define container(ptr, type, member) \
-	(type *)((void *)(ptr) - offsetof(type, member))
-
 static inline void concat_user_list(struct pseudo_ptr_list *src, struct pseudo_ptr_list **dst)
 {
 	concat_ptr_list((struct ptr_list *)src, (struct ptr_list **)dst);
@@ -1748,11 +1758,9 @@ static void simplify_one_symbol(struct symbol *sym)
 			break;
 		default:
 			warning(sym->pos, "symbol '%s' pseudo used in unexpected way", show_ident(sym->ident));
-		} 
-		/*
-		 * FIXME!! We should also check that offsets 
-		 * and access sizes match!
-		 */
+		}
+		if (insn->offset)
+			goto complex_def;
 	} END_FOR_EACH_PTR(pp);
 
 	/*
@@ -1765,7 +1773,7 @@ static void simplify_one_symbol(struct symbol *sym)
 		src = def->target;		
 
 		/* Turn the store into a no-op */
-		def->target = VOID;
+		def->src = VOID;
 	}
 	FOR_EACH_PTR(pseudo->users, pp) {
 		struct instruction *insn = container(pp, struct instruction, src);
@@ -1782,12 +1790,13 @@ static void simplify_one_symbol(struct symbol *sym)
 			concat_user_list(target->users, &src->users);
 
 			/* Turn the load into a no-op */
-			insn->target = VOID;
+			insn->src = VOID;
 		}
 	} END_FOR_EACH_PTR(pp);
 	return;
 
 multi_def:
+complex_def:
 	/* We need to check offsets, generate phi-nodes and a coverage graph. */
 	return;
 }
