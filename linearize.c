@@ -1785,6 +1785,80 @@ static void remove_phi_nodes(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(bb);
 }
 
+static void simplify_one_symbol(struct symbol *sym)
+{
+	pseudo_t pseudo, src;
+	struct instruction *insn, *def;
+
+	/* External visibility? Never mind */
+	if (sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE))
+		return;
+
+	/* Never used as a symbol? */
+	pseudo = sym->pseudo;
+	if (!pseudo)
+		return;
+
+	def = NULL;
+	FOR_EACH_PTR(pseudo->users, insn) {
+		if (insn->opcode == OP_STORE) {
+			if (def)
+				goto multi_def;
+			def = insn;
+		}
+		/*
+		 * FIXME!! We should also check that offsets 
+		 * and access sizes match!
+		 */
+	} END_FOR_EACH_PTR(insn);
+
+	/*
+	 * Goodie, we have a single store (if even that) in the whole
+	 * thing. Replace all loads with moves from the pseudo,
+	 * replace the store with a def.
+	 */
+	src = VOID;
+	if (def) {
+		src = def->target;		
+
+		/* Turn the store into a no-op */
+		def->target = VOID;
+		def->src = src;
+		def->opcode = OP_MOV;
+	}
+	FOR_EACH_PTR(pseudo->users, insn) {
+		if (insn->opcode == OP_LOAD) {
+			pseudo_t target;
+			struct instruction *use;
+
+			/*
+			 * Go through the "insn->users" list and replace them all..
+			 */
+			target = insn->target;
+			FOR_EACH_PTR(target->users, use) {
+				/* Should replace here */
+			} END_FOR_EACH_PTR(use);
+
+			/* Turn the load into a move */
+			insn->src = src;
+			insn->opcode = OP_MOV;
+		}
+	} END_FOR_EACH_PTR(insn);
+	return;
+
+multi_def:
+	/* We need to check offsets, generate phi-nodes and a coverage graph. */
+	return;
+}
+
+static void simplify_symbol_usage(struct entrypoint *ep)
+{
+	struct symbol *sym;
+	FOR_EACH_PTR(ep->syms, sym) {
+		simplify_one_symbol(sym);
+	} END_FOR_EACH_PTR(sym);
+}
+
 struct entrypoint *linearize_symbol(struct symbol *sym)
 {
 	struct symbol *base_type;
@@ -1824,6 +1898,8 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 				use_pseudo(insn, result);
 				add_one_insn(ep, insn);
 			}
+
+			simplify_symbol_usage(ep);
 
 			/*
 			 * Questionable conditional branch simplification.
