@@ -916,6 +916,9 @@ static pseudo_t copy_pseudo(struct entrypoint *ep, struct expression *expr, pseu
 {
 	struct basic_block *bb = ep->active;
 
+	if (src->type != PSEUDO_REG)
+		return src;
+
 	if (bb_reachable(bb)) {
 		struct instruction *new = alloc_instruction(OP_MOV, expr->ctype);
 		pseudo_t dst = alloc_pseudo(src->def);
