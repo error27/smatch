@@ -1370,6 +1370,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 
 static int inline_function(struct expression *expr, struct symbol *sym)
 {
+	struct symbol *curr;
 	struct symbol *fn = sym->ctype.base_type;
 	struct expression_list *arg_list = expr->args;
 	struct statement *stmt = alloc_statement(expr->pos, STMT_COMPOUND);
@@ -1377,6 +1378,12 @@ static int inline_function(struct expression *expr, struct symbol *sym)
 	struct symbol *name;
 	struct expression *arg;
 
+	if (!fn->stmt) {
+		warn(fn->pos, "marked inline, but without a definition");
+		return 0;
+	}
+
+	stmt = alloc_statement(expr->pos, STMT_COMPOUND);
 	expr->type = EXPR_STATEMENT;
 	expr->statement = stmt;
 	expr->ctype = fn->ctype.base_type;
@@ -1407,12 +1414,12 @@ static int inline_function(struct expression *expr, struct symbol *sym)
 	} END_FOR_EACH_PTR;
 	FINISH_PTR_LIST(name);
 
-	/*
-	 * FIXME!
-	 *
-	 * This is bogus, we should expand it, not just access it!
-	 */
-	access_symbol(sym);
+	copy_statement(fn->stmt, stmt);
+
+	curr = current_fn;
+	current_fn = fn;
+	evaluate_statement(stmt);
+	current_fn = curr;
 	return 1;
 }
 
