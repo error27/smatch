@@ -921,13 +921,64 @@ static struct symbol *evaluate_binop_assignment(struct expression *expr, struct 
 		[SPECIAL_OR_ASSIGN - SPECIAL_BASE] = '|',
 		[SPECIAL_XOR_ASSIGN - SPECIAL_BASE] = '^'
 	};
+	struct expression *e0, *e1, *e2, *e3, *e4, *e5;
+	struct symbol *a = alloc_symbol(expr->pos, SYM_NODE);
+	struct symbol *ltype = left->ctype;
+	struct expression *addr;
+	struct symbol *lptype;
 
-	subexpr->left = left;
-	subexpr->right = right;
-	subexpr->op = op_trans[op - SPECIAL_BASE];
-	expr->op = '=';
-	expr->right = subexpr;
-	return evaluate_binop(subexpr);
+	if (left->type == EXPR_BITFIELD)
+		addr = left->address;
+	else
+		addr = left->unop;
+
+	lptype = addr->ctype;
+
+	a->ctype.base_type = lptype;
+	a->bit_size = lptype->bit_size;
+	a->array_size = lptype->array_size;
+
+	e0 = alloc_expression(expr->pos, EXPR_SYMBOL);
+	e0->symbol = a;
+	e0->ctype = &lazy_ptr_ctype;
+
+	e1 = alloc_expression(expr->pos, EXPR_PREOP);
+	e1->unop = e0;
+	e1->op = '*';
+	e1->ctype = lptype;
+
+	e2 = alloc_expression(expr->pos, EXPR_ASSIGNMENT);
+	e2->left = e1;
+	e2->right = addr;
+	e2->op = '=';
+	e2->ctype = lptype;
+
+	/* we can't cannibalize left, unfortunately */
+	e3 = alloc_expression(expr->pos, left->type);
+	*e3 = *left;
+	if (e3->type == EXPR_BITFIELD)
+		e3->address = e1;
+	else
+		e3->unop = e1;
+
+	e4 = alloc_expression(expr->pos, EXPR_BINOP);
+	e4->op = subexpr->op = op_trans[op - SPECIAL_BASE];
+	e4->left = e3;
+	e4->right = right;
+	/* will calculate type later */
+
+	e5 = alloc_expression(expr->pos, EXPR_ASSIGNMENT);
+	e5->left = e3;	/* we can share that one */
+	e5->right = e4;
+	e5->op = '=';
+	e5->ctype = ltype;
+
+	expr->type = EXPR_COMMA;
+	expr->left = e2;
+	expr->right = e5;
+	expr->ctype = ltype;
+
+	return evaluate_binop(e4);
 }
 
 static void evaluate_assign_to(struct expression *left, struct symbol *type)
@@ -941,25 +992,27 @@ static void evaluate_assign_to(struct expression *left, struct symbol *type)
 static struct symbol *evaluate_assignment(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
+	struct expression *where = expr;
 	struct symbol *ltype, *rtype;
-
-	ltype = left->ctype;
-	rtype = right->ctype;
-	if (expr->op != '=') {
-		rtype = evaluate_binop_assignment(expr, left, right);
-		if (!rtype)
-			return NULL;
-		right = expr->right;
-	}
 
 	if (!lvalue_expression(left)) {
 		warn(expr->pos, "not an lvalue");
 		return NULL;
 	}
 
+	ltype = left->ctype;
+
+	if (expr->op != '=') {
+		if (!evaluate_binop_assignment(expr, left, right))
+			return NULL;
+		where = expr->right;	/* expr is EXPR_COMMA now */
+		left = where->left;
+		right = where->right;
+	}
+
 	rtype = degenerate(right);
 
-	if (!compatible_assignment_types(expr, ltype, &expr->right, rtype, "assignment"))
+	if (!compatible_assignment_types(where, ltype, &where->right, rtype, "assignment"))
 		return NULL;
 
 	evaluate_assign_to(left, ltype);
