@@ -214,9 +214,10 @@ void iterate(struct ptr_list *head, void (*callback)(void *, void *, int), void 
 void add_ptr_list(struct ptr_list **listp, void *ptr)
 {
 	struct ptr_list *list = *listp;
+	struct ptr_list *last;
 	int nr;
 
-	if (!list || (nr = list->nr) >= LIST_NODE_NR) {
+	if (!list || (nr = (last = list->prev)->nr) >= LIST_NODE_NR) {
 		struct ptr_list *newlist = malloc(sizeof(*newlist));
 		if (!newlist)
 			die("out of memory for symbol/statement lists");
@@ -226,17 +227,17 @@ void add_ptr_list(struct ptr_list **listp, void *ptr)
 			newlist->prev = newlist;
 			*listp = newlist;
 		} else {
+			newlist->prev = last;
 			newlist->next = list;
-			newlist->prev = list->prev;
-			list->prev->next = newlist;
 			list->prev = newlist;
+			last->next = newlist;
 		}
-		list = newlist;
+		last = newlist;
 		nr = 0;
 	}
-	list->list[nr] = ptr;
+	last->list[nr] = ptr;
 	nr++;
-	list->nr = nr;
+	last->nr = nr;
 }
 
 void concat_ptr_list(struct ptr_list *a, struct ptr_list **b)
