@@ -253,6 +253,14 @@ static void expand_dereference(struct expression *expr)
 {
 	struct expression *unop = expr->unop;
 
+	/*
+	 * NOTE! We get a bogus warning right now for some special
+	 * cases: apparently I've screwed up the optimization of
+	 * a zero-offset derefence, and the ctype is wrong.
+	 *
+	 * Leave the warning in anyway, since this is also a good
+	 * test for me to get the type evaluation right..
+	 */
 	if (expr->ctype->ctype.modifiers & MOD_NODEREF)
 		warn(unop->pos, "dereference of noderef expression");
 
