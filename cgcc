@@ -1,0 +1,22 @@
+#!/usr/bin/perl -w
+# -----------------------------------------------------------------------------
+
+my $cc = $ENV{'REAL_CC'} || 'cc';
+my $check = $ENV{'CHECK'} || 'check';
+
+# Look for a .c file.  We don't want to run the checker on .o or .so files
+# in the link run.  (This simplistic check knows nothing about options
+# with arguments, but it seems to do the job.)
+my $seen_a_c_file = 0;
+foreach (@ARGV) {
+    if (/^[^-].*\.c/) {
+	$seen_a_c_file = 1;
+	last;
+    }
+}
+
+if ($seen_a_c_file) {
+    system ($check, @ARGV);
+}
+
+exec ($cc, @ARGV);
