@@ -31,10 +31,23 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 {
 	static const char indent_string[] = "                                  ";
 	static const char *typestr[] = {
-		"base", "node", "ptr.", "fn..",
-		"arry", "strt", "unin", "enum",
-		"tdef", "tpof", "memb", "bitf",
-		"labl"
+		[SYM_UNINITIALIZED] = "none",
+		[SYM_PREPROCESSOR] = "cpp.",
+		[SYM_BASETYPE] = "base",
+		[SYM_NODE] = "node",
+		[SYM_PTR] = "ptr.",
+		[SYM_FN] = "fn..",
+		[SYM_ARRAY] = "arry",
+		[SYM_STRUCT] = "strt",
+		[SYM_UNION] = "unin",
+		[SYM_ENUM] = "enum",
+		[SYM_TYPEDEF] = "tdef",
+		[SYM_TYPEOF] = "tpof",
+		[SYM_MEMBER] = "memb",
+		[SYM_BITFIELD] = "bitf",
+		[SYM_LABEL] = "labl",
+		[SYM_RESTRICT] = "rstr",
+		[SYM_BAD] = "bad.",
 	};
 
 	if (!sym)
