@@ -6,7 +6,7 @@ PROGRAMS=test-lexing test-parsing
 HEADERS=token.h parse.h lib.h symbol.h scope.h expression.h
 
 COMMON=	parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
-	expression.o show-parse.o
+	expression.o show-parse.o evaluate.o
 
 all: $(PROGRAMS)
 
@@ -16,6 +16,7 @@ test-lexing: test-lexing.o $(COMMON)
 test-parsing: test-parsing.o $(COMMON)
 	gcc -o $@ $< $(COMMON)
 
+evaluate.o: $(HEADERS)
 expression.o: $(HEADERS)
 lib.o: $(HEADERS)
 parse.o: $(HEADERS)
