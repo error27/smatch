@@ -85,17 +85,25 @@ static struct basic_block * new_basic_block(struct entrypoint *ep, struct symbol
 	return bb;
 }
 
-static void linearize_simple_statement(struct entrypoint *ep, struct statement *stmt)
-{
-	add_statement(&ep->active->stmts, stmt);
-}
-
 static void add_label(struct entrypoint *ep, struct symbol *sym)
 {
 	struct basic_block *new_bb = new_basic_block(ep, sym);
 
 	ep->active->next = sym;
 	ep->active = new_bb;
+}
+
+static void linearize_simple_statement(struct entrypoint *ep, struct statement *stmt)
+{
+	struct basic_block *bb = ep->active;    
+
+	if (bb_reachable(bb)) {
+		if (bb->flags & BB_HASBRANCH) {
+			add_label(ep, alloc_symbol(stmt->pos, SYM_LABEL));
+			bb = ep->active;
+		}
+		add_statement(&bb->stmts, stmt);
+	}
 }
 
 static void set_unreachable(struct entrypoint *ep)
@@ -105,10 +113,15 @@ static void set_unreachable(struct entrypoint *ep)
 
 static void add_branch(struct entrypoint *ep, struct statement *stmt, int true, struct expression *cond, struct symbol *target)
 {
-	struct statement *jump = alloc_statement(stmt->pos, true);
-	jump->bb_conditional = cond;
-	jump->bb_target = target;
-	linearize_simple_statement(ep, jump);
+	struct basic_block *bb = ep->active;
+
+	if (bb_reachable(bb)) {
+		struct statement *jump = alloc_statement(stmt->pos, true);
+		jump->bb_conditional = cond;
+		jump->bb_target = target;
+		bb->flags |= BB_HASBRANCH;
+		add_statement(&bb->stmts, jump);
+	}
 }	
 
 void linearize_statement(struct entrypoint *ep, struct statement *stmt)
@@ -190,7 +203,6 @@ void linearize_statement(struct entrypoint *ep, struct statement *stmt)
 					struct symbol *merge = alloc_symbol(never->pos, SYM_LABEL);
 					add_label(ep, merge);
 					bb->next = merge;
-					ep->active = new_basic_block(ep, merge);
 					break;
 				}
 
