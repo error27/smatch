@@ -461,6 +461,12 @@ char **handle_switch_i(char *arg, char **next)
 		if (fd < 0)
 			perror(name);
 	}
+	else if (*next && !strcmp(arg, "isystem")) {
+		char *path = *++next;
+		if (!path)
+			die("missing argument for -isystem option");
+		add_pre_buffer("#add_include \"%s/\"\n", path);
+	}
 	return next;
 }
 
