@@ -188,6 +188,85 @@ static int evaluate_postop(struct expression *expr)
 	return 0;
 }
 
+struct symbol *find_identifier(struct ident *ident, struct symbol_list *_list, int *offset)
+{
+	struct ptr_list *head = (struct ptr_list *)_list;
+	struct ptr_list *list = head;
+
+	if (!head)
+		return NULL;
+	do {
+		int i;
+		for (i = 0; i < list->nr; i++) {
+			struct symbol *sym = (struct symbol *) list->list[i];
+			if (sym->ident) {
+				if (sym->ident->ident != ident)
+					continue;
+				*offset = sym->offset;
+				return sym;
+			} else {
+				struct symbol *ctype = sym->ctype.base_type;
+				struct symbol *sub;
+				if (!ctype)
+					continue;
+				if (ctype->type != SYM_UNION && ctype->type != SYM_STRUCT)
+					continue;
+				sub = find_identifier(ident, ctype->symbol_list, offset);
+				if (!sub)
+					continue;
+				*offset += sym->offset;
+				return sub;
+			}	
+		}
+	} while ((list = list->next) != head);
+	return NULL;
+}
+
+/* structure/union dereference */
+static int evaluate_dereference(struct expression *expr)
+{
+	int offset;
+	struct symbol *ctype, *member;
+	struct expression *deref = expr->deref, *add;
+	struct token *token = expr->member;
+
+	if (!evaluate_expression(deref) || !token)
+		return 0;
+
+	ctype = deref->ctype;
+	if (expr->op == SPECIAL_DEREFERENCE) {
+		if (ctype->type != SYM_PTR) {
+			warn(expr->token, "expected a pointer to a struct/union");
+			return 0;
+		}
+		ctype = ctype->ctype.base_type;
+	}
+	if (!ctype || (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION)) {
+		warn(expr->token, "expected structure or union");
+		return 0;
+	}
+	offset = 0;
+	member = find_identifier(token->ident, ctype->symbol_list, &offset);
+	if (!member) {
+		warn(expr->token, "no such struct/union member");
+		return 0;
+	}
+
+	expr->type = EXPR_PREOP;
+	expr->op = '*';
+	expr->ctype = member->ctype.base_type;
+
+	add = alloc_expression(expr->token, EXPR_BINOP);
+	expr->unop = add;
+	add->op = '+';
+	add->ctype = &ptr_ctype;
+	add->left = deref;
+	add->right = alloc_expression(expr->token, EXPR_VALUE);
+	add->right->ctype = &int_ctype;
+	add->right->value = offset;
+	return 1;
+}
+
 static int evaluate_sizeof(struct expression *expr)
 {
 	int size;
@@ -243,6 +322,8 @@ int evaluate_expression(struct expression *expr)
 		return 1;
 	case EXPR_SIZEOF:
 		return evaluate_sizeof(expr);
+	case EXPR_DEREF:
+		return evaluate_dereference(expr);
 	default:
 		break;
 	}
