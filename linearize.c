@@ -1889,8 +1889,10 @@ found:
 		return 0;
 
 	/* This happens with initial assignments to structures etc.. */
-	if (!dominators)
-		return 0;
+	if (!dominators) {
+		convert_load_insn(insn, value_pseudo(0));
+		return 1;
+	}
 
 	/*
 	 * If we find just one dominating instruction, we
