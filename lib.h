@@ -121,6 +121,7 @@ static inline void expression_iterate(struct expression_list *list, void (*callb
 
 #define RESET_PTR_LIST(ptr) do {							\
 		__nr##ptr = 0;								\
+		__list##ptr = __head##ptr;						\
 		if (__head##ptr) ptr = (__typeof__(ptr)) __head##ptr->list[0];		\
 	} while (0)
 	
