@@ -35,9 +35,16 @@ static int context_increase(struct basic_block *bb)
 	return sum;
 }
 
-static int check_bb_context(struct basic_block *bb, int value);
+static int imbalance(struct entrypoint *ep, struct basic_block *bb, int value)
+{
+	struct symbol *sym = ep->name;
+	warning(bb->pos, "context imbalance in '%s'", show_ident(sym->ident));
+	return -1;
+}
 
-static int check_children(struct basic_block *bb, int value)
+static int check_bb_context(struct entrypoint *ep, struct basic_block *bb, int value);
+
+static int check_children(struct entrypoint *ep, struct basic_block *bb, int value)
 {
 	struct terminator_iterator term;
 	struct instruction *insn;
@@ -47,17 +54,17 @@ static int check_children(struct basic_block *bb, int value)
 	if (!insn)
 		return 0;
 	if (insn->opcode == OP_RET)
-		return value ? -1 : 0;
+		return value ? imbalance(ep, bb, value) : 0;
 
 	init_terminator_iterator(insn, &term);
 	while ((child=next_terminator_bb(&term)) != NULL) {
-		if (check_bb_context(child, value))
+		if (check_bb_context(ep, child, value))
 			return -1;
 	}
 	return 0;
 }
 
-static int check_bb_context(struct basic_block *bb, int value)
+static int check_bb_context(struct entrypoint *ep, struct basic_block *bb, int value)
 {
 	if (!bb)
 		return 0;
@@ -66,22 +73,19 @@ static int check_bb_context(struct basic_block *bb, int value)
 
 	/* Now that's not good.. */
 	if (bb->context >= 0)
-		return -1;
+		return imbalance(ep, bb, value);
 
 	bb->context = value;
 	value += context_increase(bb);
 	if (value < 0)
-		return -1;
+		return imbalance(ep, bb, value);
 
-	return check_children(bb, value);
+	return check_children(ep, bb, value);
 }
 
 static void check_context(struct entrypoint *ep)
 {
-	if (check_bb_context(ep->entry, 0)) {
-		struct symbol *sym = ep->name;
-		warning(sym->pos, "context imbalance in '%s'", show_ident(sym->ident));
-	}
+	check_bb_context(ep, ep->entry, 0);
 }
 
 static void clean_up_symbols(struct symbol_list *list)
