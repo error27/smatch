@@ -53,12 +53,12 @@ const char *modifier_string(unsigned long mod)
 void show_struct_member(struct symbol *sym, void *data, int flags)
 {
 	if (flags & ITERATE_FIRST)
-		printf(" { ");
+		printf(" {\n\t");
 	printf("%s:%d:%d at offset %ld", show_ident(sym->ident), sym->bit_size, sym->alignment, sym->offset);
 	if (sym->fieldwidth)
 		printf("[%d..%d]", sym->bit_offset, sym->bit_offset+sym->fieldwidth-1);
 	if (flags & ITERATE_LAST)
-		printf(" } ");
+		printf("\n} ");
 	else
 		printf(", ");
 }
@@ -196,20 +196,25 @@ void show_symbol(struct symbol *sym)
 	case SYM_STRUCT:
 		printf("\n");
 		symbol_iterate(type->symbol_list, show_struct_member, NULL);
-		return;
+		break;
 
 	case SYM_UNION:
 		printf("\n");
 		symbol_iterate(type->symbol_list, show_struct_member, NULL);
-		return;
+		break;
 
 	case SYM_FN:
 		printf("\n");		
 		show_statement(type->stmt);
-		return;
+		break;
 
 	default:
 		break;
+	}
+
+	if (sym->initializer) {
+		printf(" = ");
+		show_expression(sym->initializer);
 	}
 }
 
@@ -461,6 +466,21 @@ void show_expression(struct expression *expr)
 		show_expression(expr->address);
 		printf(")");
 		break;
+	case EXPR_INITIALIZER:
+		printf(" {\n\t");
+		show_expression_list(expr->expr_list, ", ");
+		printf("\n} ");
+		break;
+	case EXPR_IDENTIFIER:
+		printf("%s: ", show_ident(expr->expr_ident));
+		break;
+	case EXPR_INDEX:
+		if (expr->idx_from == expr->idx_to) {
+			printf("[%d]: ", expr->idx_from);
+		} else {
+			printf("[%d ... %d]: ", expr->idx_from, expr->idx_to);
+		}
+		break;	
 	default:
 		printf("WTF");
 	}

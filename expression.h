@@ -28,6 +28,9 @@ enum expression_type {
 	EXPR_COMMA,
 	EXPR_COMPARE,
 	EXPR_BITFIELD,
+	EXPR_INITIALIZER,	// initializer list
+	EXPR_IDENTIFIER,	// identifier in initializer
+	EXPR_INDEX,		// index in initializer
 };
 
 struct expression {
@@ -85,6 +88,14 @@ struct expression {
 			unsigned char bitpos, nrbits;
 			struct expression *address;
 		};
+		// EXPR_INITIALIZER
+		struct expression_list *expr_list;
+		// EXPR_IDENTIFIER
+		struct ident *expr_ident;
+		// EXPR_INDEX
+		struct index_expr {
+			unsigned int idx_from, idx_to;
+		};
 	};
 };
 
@@ -120,7 +131,7 @@ static inline int lookup_type(struct token *token)
 
 /* Statement parsing */
 struct statement *alloc_statement(struct token * token, int type);
-struct token *initializer(struct token *token, struct ctype *type);
+struct token *initializer(struct expression **tree, struct token *token);
 struct token *compound_statement(struct token *, struct statement *);
 
 /* The preprocessor calls this 'constant_expression()' */

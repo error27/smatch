@@ -791,6 +791,17 @@ int evaluate_expression(struct expression *expr)
 	case EXPR_STATEMENT:
 		// FIXME!! Statement expression
 		return 0;
+	case EXPR_INITIALIZER:
+		if (!evaluate_expression_list(expr->expr_list))
+			return 0;
+		// FIXME! Figure out the type of the initializer!
+		return 0;
+	case EXPR_IDENTIFIER:
+		// FIXME!! Identifier
+		return 0;
+	case EXPR_INDEX:
+		// FIXME!! Array identifier index
+		return 0;
 	}
 	return 0;
 }

@@ -119,6 +119,8 @@ static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 	struct symbol *type;
 
 	examine_symbol_type(sym);
+	if (sym->initializer)
+		evaluate_expression(sym->initializer);
 	type = sym->ctype.base_type;
 	if (type && type->type == SYM_FN) {
 		symbol_iterate(type->arguments, clean_up_symbol, parent);

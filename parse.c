@@ -719,10 +719,32 @@ struct token *compound_statement(struct token *token, struct statement *stmt)
 	return token;
 }
 
-static struct token *initializer_list(struct token *token, struct ctype *type)
+static struct expression *identifier_expression(struct token *token)
+{
+	struct expression *expr = alloc_expression(token->pos, EXPR_IDENTIFIER);
+	expr->expr_ident = token->ident;
+	return expr;
+}
+
+static struct token *initializer_list(struct expression_list **list, struct token *token)
 {
 	for (;;) {
-		token = initializer(token, type);
+		struct token *next = token->next;
+		struct expression *expr;
+
+		if (match_op(token, '.') && (token_type(next) == TOKEN_IDENT) && match_op(next->next, '=')) {
+			add_expression(list, identifier_expression(next));
+			token = next->next->next;
+		} else if ((token_type(token) == TOKEN_IDENT) && match_op(next, ':')) {
+			add_expression(list, identifier_expression(token));
+			token = next->next;
+		}
+
+		expr = NULL;
+		token = initializer(&expr, token);
+		if (!expr)
+			break;
+		add_expression(list, expr);
 		if (!match_op(token, ','))
 			break;
 		token = token->next;
@@ -730,32 +752,15 @@ static struct token *initializer_list(struct token *token, struct ctype *type)
 	return token;
 }
 
-struct token *parse_named_initializer(struct token *id, struct token *token)
+struct token *initializer(struct expression **tree, struct token *token)
 {
-	struct expression *expr;
-
-	return assignment_expression(token, &expr);
-}
-
-struct token *initializer(struct token *token, struct ctype *type)
-{
-	struct expression *expr;
-	struct token *next, *name = NULL;
-
-	next = token->next;
-	if (match_op(token, '.') && (token_type(next) == TOKEN_IDENT) && match_op(next->next, '=')) {
-		name = next;
-		token = next->next->next;
-	} else if ((token_type(token) == TOKEN_IDENT) && match_op(next, ':')) {
-		name = token;
-		token = next->next;
-	}
-
 	if (match_op(token, '{')) {
-		token = initializer_list(token->next, type);
+		struct expression *expr = alloc_expression(token->pos, EXPR_INITIALIZER);
+		*tree = expr;
+		token = initializer_list(&expr->expr_list, token->next);
 		return expect(token, '}', "at end of initializer");
 	}
-	return assignment_expression(token, &expr);
+	return assignment_expression(token, tree);
 }
 
 static void declare_argument(struct symbol *sym, void *data, int flags)
@@ -809,7 +814,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 
 	for (;;) {
 		if (match_op(token, '='))
-			token = initializer(token->next, &decl->ctype);
+			token = initializer(&decl->initializer, token->next);
 		if (!match_op(token, ','))
 			break;
 

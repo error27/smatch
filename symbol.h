@@ -73,6 +73,7 @@ struct symbol {
 			struct symbol_list *arguments;
 			struct statement *stmt;
 			struct symbol_list *symbol_list;
+			struct expression *initializer;
 			long long value;		/* Initial value */
 			int fieldwidth;
 			int arg_count:10, variadic:1;
