@@ -94,6 +94,30 @@ static inline void expression_iterate(struct expression_list *list, void (*callb
 	iterate((struct ptr_list *)list, (void (*)(void *, void *, int))callback, data);
 }
 
+#define PREPARE_PTR_LIST(head, ptr)							\
+	do {										\
+		struct ptr_list *__head##ptr = (struct ptr_list *) (head);		\
+		struct ptr_list *__list##ptr = __head##ptr;				\
+		int __nr##ptr = 0;							\
+		if (__head##ptr) ptr = (__typeof__(ptr)) __head##ptr->list[0]
+
+#define NEXT_PTR_LIST(head, ptr)							\
+		if (ptr) {								\
+			if (++__nr##ptr < __list##ptr->nr) {				\
+				ptr = (__typeof__(ptr)) __list##ptr->list[__nr##ptr];	\
+			} else {							\
+				__list##ptr = __list##ptr->next;			\
+				ptr = NULL;						\
+				if (__list##ptr != __head##ptr) {			\
+					__nr##ptr = 0;					\
+					ptr = (__typeof__(ptr)) __list##ptr->list[0];	\
+				}							\
+			}								\
+		}
+
+#define FINISH_PTR_LIST									\
+	} while (0)
+
 #define FOR_EACH_PTR(head, ptr) do {							\
 	struct ptr_list *__head = (struct ptr_list *) (head);				\
 	struct ptr_list *__list = __head;						\
@@ -111,8 +135,34 @@ static inline void expression_iterate(struct expression_list *list, void (*callb
 				} while (0);						\
 				__flag = 0;						\
 			}								\
-		} while (0);								\
+		} while ((__list = __list->next) != __head);				\
 	}										\
 } while (0)
+
+#define FOR_EACH_PTR_REVERSE(head, ptr) do {						\
+	struct ptr_list *__head = (struct ptr_list *) (head);				\
+	struct ptr_list *__list = __head;						\
+	int __flag = ITERATE_FIRST;							\
+	if (__head) {									\
+		do { int __i;								\
+			__list = __list->prev;						\
+			__i = __list->nr;						\
+			while (--__i >= 0) {						\
+				if (__i == 0 && __list == __head)			\
+					__flag |= ITERATE_LAST;				\
+				do {							\
+					ptr = (__typeof__(ptr)) (__list->list[__i]);	\
+					do {
+
+#define END_FOR_EACH_PTR_REVERSE	} while (0);					\
+				} while (0);						\
+				__flag = 0;						\
+			}								\
+		} while (__list != __head);						\
+	}										\
+} while (0)
+
+#define THIS_ADDRESS(x) \
+	((__typeof__(&(x))) (__list->list + __i))
 
 #endif
