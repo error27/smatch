@@ -119,8 +119,13 @@ static struct hardreg hardregs[] = {
 	{ .name = "%ebx" },
 	{ .name = "%esi" },
 	{ .name = "%edi" },
+
+	{ .name = "%ebp" },
+	{ .name = "%esp" },
 };
-#define REGNO (sizeof(hardregs)/sizeof(struct hardreg))
+#define REGNO 6
+#define REG_EBP 6
+#define REG_ESP 7
 
 struct bb_state {
 	struct position pos;
@@ -132,6 +137,72 @@ struct bb_state {
 	int cc_opcode, cc_dead;
 	pseudo_t cc_target;
 };
+
+enum optype {
+	OP_UNDEF,
+	OP_REG,
+	OP_VAL,
+	OP_MEM,
+	OP_ADDR,
+};
+
+struct operand {
+	enum optype type;
+	int size;
+	union {
+		struct hardreg *reg;
+		long long value;
+		struct /* OP_MEM and OP_ADDR */ {
+			unsigned int offset;
+			unsigned int scale;
+			struct symbol *sym;
+			struct hardreg *base;
+			struct hardreg *index;
+		};
+	};
+};
+
+static const char *show_op(struct bb_state *state, struct operand *op)
+{
+	static char buf[256][4];
+	static int bufnr;
+	char *p, *ret;
+	int nr;
+
+	nr = (bufnr + 1) & 3;
+	bufnr = nr;
+	ret = p = buf[nr];
+
+	switch (op->type) {
+	case OP_UNDEF:
+		return "undef";
+	case OP_REG:
+		return op->reg->name;
+	case OP_VAL:
+		sprintf(p, "$%lld", op->value);
+		break;
+	case OP_MEM:
+	case OP_ADDR:
+		if (op->offset)
+			p += sprintf(p, "%d", op->offset);
+		if (op->sym)
+			p += sprintf(p, "%s%s",
+				op->offset ? "+" : "",
+				show_ident(op->sym->ident));
+		if (op->base || op->index) {
+			p += sprintf(p, "(%s%s%s",
+				op->base ? op->base->name : "",
+				(op->base && op->index) ? "," : "",
+				op->index ? op->index->name : "");
+			if (op->scale > 1)
+				p += sprintf(p, ",%d", op->scale);
+			*p++ = ')';
+			*p = '\0';
+		}
+		break;
+	}
+	return ret;
+}
 
 static struct storage_hash *find_storage_hash(pseudo_t pseudo, struct storage_hash_list *list)
 {
@@ -563,24 +634,80 @@ static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src, pse
 	return src;
 }
 
-static const char *generic(struct bb_state *state, pseudo_t pseudo)
+static void put_operand(struct bb_state *state, struct operand *op)
+{
+}
+
+static struct operand *alloc_op(void)
+{
+	struct operand *op = malloc(sizeof(*op));
+	memset(op, 0, sizeof(*op));
+	return op;
+}
+
+static struct operand *get_register_operand(struct bb_state *state, pseudo_t pseudo, pseudo_t target)
+{
+	struct operand *op = alloc_op();
+	op->type = OP_REG;
+	op->reg = getreg(state, pseudo, target);
+	return op;
+}	
+
+static struct operand *get_generic_operand(struct bb_state *state, pseudo_t pseudo)
 {
 	struct hardreg *reg;
-	struct storage_hash *src;
+	struct storage *src;
+	struct storage_hash *hash;
+	struct operand *op = malloc(sizeof(*op));
 
+	memset(op, 0, sizeof(*op));
 	switch (pseudo->type) {
-	case PSEUDO_SYM:
 	case PSEUDO_VAL:
-		return show_pseudo(pseudo);
+		op->type = OP_VAL;
+		op->value = pseudo->value;
+		break;
+
+	case PSEUDO_SYM:
+		op->type = OP_ADDR;
+		op->sym = pseudo->sym;
+		break;
+
 	default:
 		reg = find_in_reg(state, pseudo);
-		if (reg)
-			return reg->name;
-		src = find_pseudo_storage(state, pseudo, NULL);
-		if (!src)
-			return "undef";
-		return show_memop(src->storage);
+		if (reg) {
+			op->type = OP_REG;
+			op->reg = reg;
+			break;
+		}
+		hash = find_pseudo_storage(state, pseudo, NULL);
+		if (!hash)
+			break;
+		src = hash->storage;
+		switch (src->type) {
+		case REG_REG:
+			op->type = OP_REG;
+			op->reg = hardregs + src->regno;
+			break;
+		case REG_FRAME:
+			op->type = OP_MEM;
+			op->offset = src->offset;
+			op->base = hardregs + REG_EBP;
+			break;
+		case REG_STACK:
+			op->type = OP_MEM;
+			op->offset = src->offset;
+			op->base = hardregs + REG_ESP;
+			break;
+		default:
+			break;
+		}
 	}
+	return op;
+}
+
+static const char *generic(struct bb_state *state, pseudo_t pseudo)
+{
+	return show_op(state, get_generic_operand(state, pseudo));
 }
 
 static const char *address(struct bb_state *state, struct instruction *memop)
@@ -642,12 +769,14 @@ static struct hardreg *target_copy_reg(struct bb_state *state, struct hardreg *s
 static void do_binop(struct bb_state *state, struct instruction *insn, pseudo_t val1, pseudo_t val2)
 {
 	const char *op = opcodes[insn->opcode];
-	struct hardreg *src = getreg(state, val1, insn->target);
-	const char *src2 = generic(state, val2);
+	struct operand *src = get_register_operand(state, val1, insn->target);
+	struct operand *src2 = get_generic_operand(state, val2);
 	struct hardreg *dst;
 
-	dst = target_copy_reg(state, src, insn->target);
-	output_insn(state, "%s.%d %s,%s", op, insn->size, src2, dst->name);
+	dst = target_copy_reg(state, src->reg, insn->target);
+	output_insn(state, "%s.%d %s,%s", op, insn->size, show_op(state, src2), dst->name);
+	put_operand(state, src);
+	put_operand(state, src2);
 	add_pseudo_reg(state, insn->target, dst);
 }
 
