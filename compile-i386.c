@@ -50,6 +50,7 @@ struct textbuf {
 };
 
 struct function {
+	int stack_size;
 	int pseudo_nr;
 	struct ptr_list *pseudo_list;
 	struct ptr_list *atom_list;
@@ -84,6 +85,8 @@ struct storage {
 		/* STOR_PSEUDO */
 		struct {
 			int pseudo;
+			int offset;
+			int size;
 		};
 		/* STOR_ARG */
 		struct {
@@ -210,7 +213,7 @@ static inline unsigned int pseudo_offset(struct storage *s)
 	if (s->type != STOR_PSEUDO)
 		return 123456;	/* intentionally bogus value */
 
-	return ((s->pseudo - 1) * 4);
+	return s->offset;
 }
 
 static inline unsigned int arg_offset(struct storage *s)
@@ -219,7 +222,7 @@ static inline unsigned int arg_offset(struct storage *s)
 		return 123456;	/* intentionally bogus value */
 
 	/* FIXME: this is wrong wrong wrong */
-	return (current_func->pseudo_nr + 1 + s->idx) * 4;
+	return current_func->stack_size + ((1 + s->idx) * 4);
 }
 
 static const char *pretty_offset(int ofs)
@@ -336,7 +339,7 @@ static struct storage *new_storage(enum storage_type type)
 	return stor;
 }
 
-static struct storage *new_pseudo(void)
+static struct storage *stack_alloc(int n_bytes)
 {
 	struct function *f = current_func;
 	struct storage *stor;
@@ -345,7 +348,11 @@ static struct storage *new_pseudo(void)
 
 	stor = new_storage(STOR_PSEUDO);
 	stor->type = STOR_PSEUDO;
-	stor->pseudo = ++f->pseudo_nr;
+	stor->pseudo = f->pseudo_nr;
+	stor->offset = f->stack_size;
+	stor->size = n_bytes;
+	f->stack_size += n_bytes;
+	f->pseudo_nr++;
 
 	add_ptr_list(&f->pseudo_list, stor);
 
@@ -647,7 +654,7 @@ static void emit_func_post(struct symbol *sym)
 {
 	const char *name = show_ident(sym->ident);
 	struct function *f = current_func;
-	int pseudo_nr = f->pseudo_nr;
+	int stack_size = f->stack_size;
 
 	if (f->str_list)
 		emit_string_list(f);
@@ -659,10 +666,10 @@ static void emit_func_post(struct symbol *sym)
 	printf("\t.type\t%s, @function\n", name);
 	printf("%s:\n", name);
 
-	if (pseudo_nr) {
+	if (stack_size) {
 		char pseudo_const[16];
 
-		sprintf(pseudo_const, "$%d", pseudo_nr * 4);
+		sprintf(pseudo_const, "$%d", stack_size);
 		printf("\tsubl\t%s, %%esp\n", pseudo_const);
 	}
 
@@ -671,11 +678,11 @@ static void emit_func_post(struct symbol *sym)
 	/* jump target for 'return' statements */
 	emit_label(f->ret_target, NULL);
 
-	if (pseudo_nr) {
+	if (stack_size) {
 		struct storage *val;
 
 		val = new_storage(STOR_VALUE);
-		val->value = (long long) (pseudo_nr * 4);
+		val->value = (long long) (stack_size);
 		val->flags = STOR_WANTS_FREE;
 
 		insn("addl", val, REG_ESP, NULL);
@@ -1041,7 +1048,7 @@ static struct storage *emit_compare(struct expression *expr)
 	insn(opname, REG_DL, NULL, NULL);
 
 	/* finally, store the result (DL) in a new pseudo / stack slot */
-	new = new_pseudo();
+	new = stack_alloc(4);
 	emit_move(REG_EDX, new, NULL, "end EXPR_COMPARE");
 
 	return new;
@@ -1050,7 +1057,7 @@ static struct storage *emit_compare(struct expression *expr)
 static struct storage *emit_value(struct expression *expr)
 {
 #if 0 /* old and slow way */
-	struct storage *new = new_pseudo();
+	struct storage *new = stack_alloc(4);
 	struct storage *val;
 
 	val = new_storage(STOR_VALUE);
@@ -1104,7 +1111,7 @@ static struct storage *emit_binop(struct expression *expr)
 	insn(opname, left, REG_EAX, NULL);
 
 	/* store result (EAX) in new pseudo / stack slot */
-	new = new_pseudo();
+	new = stack_alloc(4);
 	insn("movl", REG_EAX, new, "end EXPR_BINOP");
 
 	return new;
@@ -1180,7 +1187,7 @@ static struct storage *emit_inc_dec(struct expression *expr, int postop)
 			      expr->ctype->bit_size));
 
 	if (postop) {
-		struct storage *new = new_pseudo();
+		struct storage *new = stack_alloc(4);
 
 		emit_copy(addr, expr->unop->ctype, new, NULL);
 
@@ -1223,7 +1230,7 @@ static struct storage *emit_conditional_expr(struct expression *expr)
 	struct storage *cond = x86_expression(expr->conditional);
 	struct storage *true = x86_expression(expr->cond_true);
 	struct storage *false = x86_expression(expr->cond_false);
-	struct storage *new = new_pseudo();
+	struct storage *new = stack_alloc(4);
 
 	if (!true)
 		true = cond;
@@ -1240,7 +1247,7 @@ static struct storage *emit_conditional_expr(struct expression *expr)
 	insn("cmovz", REG_EDX, REG_ECX, NULL);
 
 	/* finally, store the result (ECX) in a new pseudo / stack slot */
-	new = new_pseudo();
+	new = stack_alloc(4);
 	emit_move(REG_ECX, new, expr->ctype, "end EXPR_CONDITIONAL");
 	/* FIXME: we lose type knowledge of expression result at this point */
 
@@ -1257,7 +1264,7 @@ static struct storage *emit_symbol_expr_init(struct symbol *sym)
 		sym->aux = priv;
 
 		if (expr == NULL) {
-			struct storage *new = new_pseudo();
+			struct storage *new = stack_alloc(4);
 			fprintf(stderr, "FIXME! no value for symbol.  creating pseudo %d (stack offset %d)\n",
 				new->pseudo, new->pseudo * 4);
 			priv->addr = new;
@@ -1300,7 +1307,7 @@ static struct storage *emit_cast_expr(struct expression *expr)
 
 	emit_move(op, REG_EAX, old_type, "begin cast ..");
 
-	new = new_pseudo();
+	new = stack_alloc(4);
 	emit_move(REG_EAX, new, new_type, ".... end cast");
 
 	return new;
@@ -1309,7 +1316,7 @@ static struct storage *emit_cast_expr(struct expression *expr)
 static struct storage *emit_regular_preop(struct expression *expr)
 {
 	struct storage *target = x86_expression(expr->unop);
-	struct storage *val, *new = new_pseudo();
+	struct storage *val, *new = stack_alloc(4);
 	const char *opname = NULL;
 
 	switch (expr->op) {
@@ -1684,7 +1691,7 @@ static struct storage *x86_call_expression(struct expression *expr)
 		insn("addl", val, REG_ESP, NULL);
 	}
 
-	retval = new_pseudo();
+	retval = stack_alloc(4);
 	emit_move(REG_EAX, retval, NULL, "end function call");
 
 	return retval;
@@ -1710,7 +1717,7 @@ static struct storage *x86_address_gen(struct expression *expr)
 	strcpy(s, "\tmovl\t(%eax), %ecx\n");
 	push_text_atom(f, s);
 
-	new = new_pseudo();
+	new = stack_alloc(4);
 	emit_move(REG_ECX, new, NULL, ".... end deref");
 
 	return new;
@@ -1789,7 +1796,7 @@ static struct storage *x86_preop(struct expression *expr)
 
 static struct storage *x86_symbol_expr(struct symbol *sym)
 {
-	struct storage *new = new_pseudo();
+	struct storage *new = stack_alloc(4);
 
 	if (sym->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN | MOD_STATIC)) {
 		printf("\tmovi.%d\t\tv%d,$%s\n", BITS_IN_POINTER, new->pseudo, show_ident(sym->ident));
@@ -1812,7 +1819,7 @@ static void x86_symbol_init(struct symbol *sym)
 	if (expr)
 		new = x86_expression(expr);
 	else
-		new = new_pseudo();
+		new = stack_alloc(sym->bit_size / 8);
 
 	if (!priv) {
 		priv = calloc(1, sizeof(*priv));
@@ -1840,7 +1847,7 @@ static struct storage *x86_bitfield_expr(struct expression *expr)
 
 static struct storage *x86_label_expr(struct expression *expr)
 {
-	struct storage *new = new_pseudo();
+	struct storage *new = stack_alloc(4);
 	printf("\tmovi.%d\t\tv%d,.L%p\n",BITS_IN_POINTER, new->pseudo, expr->label_symbol);
 	return new;
 }
