@@ -269,16 +269,59 @@ static struct symbol *evaluate_add(struct expression *expr)
 	return evaluate_int_binop(expr);
 }
 
-static struct symbol *same_ptr_types(struct symbol *a, struct symbol *b)
+static int same_type(struct symbol *target, struct symbol *source)
 {
-	a = a->ctype.base_type;
-	b = b->ctype.base_type;
+	int dropped_modifiers = 0;
+	for (;;) {
+		unsigned long mod1, mod2;
+		if (target == source)
+			break;
+		if (!target || !source)
+			return 0;
+		/*
+		 * Peel of per-node information.
+		 * FIXME! Check alignment, address space, and context too here!
+		 */
+		mod1 = target->ctype.modifiers;
+		mod2 = source->ctype.modifiers;
+		if (target->type == SYM_NODE) {
+			target = target->ctype.base_type;
+			mod1 |= target->ctype.modifiers;
+		}
+		if (source->type == SYM_NODE) {
+			source = source->ctype.base_type;
+			mod2 |= source->ctype.modifiers;
+		}
+		if (target->type != source->type) {
+			int type1 = target->type;
+			int type2 = source->type;
 
-	if (a->bit_size != b->bit_size)
-		return NULL;
+			/* Ignore ARRAY/PTR differences, as long as they point to the same type */
+			type1 = type1 == SYM_ARRAY ? SYM_PTR : type1;
+			type2 = type2 == SYM_ARRAY ? SYM_PTR : type2;
+			if (type1 != type2)
+				return 0;
+		}
+		/* Ignore differences in storage types */
+		if ((mod1 ^ mod2) & ~MOD_STORAGE)
+			return 0;
+	
+		target = target->ctype.base_type;
+		source = source->ctype.base_type;
+	}
+	if (dropped_modifiers)
+		warn(target->pos, "assignment drops modifiers");
+	return 1;
+}
 
-	// FIXME! We should really check a bit more..
-	return a;
+static struct symbol *common_ptr_type(struct expression *l, struct expression *r)
+{
+	/* NULL expression? Just return the type of the "other side" */
+	if (r->type == EXPR_VALUE && !r->value)
+		return l->ctype;
+	if (l->type == EXPR_VALUE && !l->value)
+		return r->ctype;
+	return NULL;
 }
 
 static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expression *l, struct expression *r)
@@ -293,12 +336,24 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expressio
 	if (!is_ptr_type(rtype))
 		return evaluate_ptr_add(expr, l, r);
 
-	ctype = same_ptr_types(ltype, rtype);
-	if (!ctype) {
-		warn(expr->pos, "subtraction of different types can't work");
+	ctype = ltype;
+	if (!same_type(ltype, rtype)) {
+		ctype = common_ptr_type(l, r);
+		if (!ctype) {
+			warn(expr->pos, "subtraction of different types can't work");
+			return NULL;
+		}
+	}
+	examine_symbol_type(ltype);
+
+	/* Figure out the base type we point to */
+	if (ctype->type == SYM_NODE)
+		ctype = ctype->ctype.base_type;
+	if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
+		warn(expr->pos, "subtraction of functions? Share your drugs");
 		return NULL;
 	}
-	examine_symbol_type(ctype);
+	ctype = ctype->ctype.base_type;
 
 	expr->ctype = ssize_t_ctype;
 	if (ctype->bit_size > BITS_IN_CHAR) {
@@ -401,41 +456,6 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	return bad_expr_type(expr);
 }
 
-static int same_type(struct symbol *target, struct symbol *source)
-{
-	int dropped_modifiers = 0;
-	for (;;) {
-		unsigned long mod1, mod2;
-		if (target == source)
-			break;
-		if (!target || !source)
-			return 0;
-		/*
-		 * Peel of per-node information.
-		 * FIXME! Check alignment, address space, and context too here!
-		 */
-		mod1 = target->ctype.modifiers;
-		mod2 = source->ctype.modifiers;
-		if (target->type == SYM_NODE) {
-			target = target->ctype.base_type;
-			mod1 |= target->ctype.modifiers;
-		}
-		if (source->type == SYM_NODE) {
-			source = source->ctype.base_type;
-			mod2 |= source->ctype.modifiers;
-		}
-		if (target->type != source->type)
-			return 0;
-		if (mod1 != mod2)
-			return 0;
-		target = target->ctype.base_type;
-		source = source->ctype.base_type;
-	}
-	if (dropped_modifiers)
-		warn(target->pos, "assignment drops modifiers");
-	return 1;
-}
-
 static int compatible_integer_types(struct symbol *ltype, struct symbol *rtype)
 {
 	/* Integer promotion? */
@@ -512,6 +532,10 @@ static int compatible_assignment_types(struct expression *expr,
 	}
 
 	/* Pointer destination? */
+	if (target->type == SYM_NODE)
+		target = target->ctype.base_type;
+	if (source->type == SYM_NODE)
+		source = source->ctype.base_type;
 	if (target->type == SYM_PTR) {
 		struct symbol *source_base = source->ctype.base_type;
 		struct symbol *target_base = target->ctype.base_type;
@@ -641,6 +665,10 @@ static struct symbol *evaluate_preop(struct expression *expr)
 
 	case '&': {
 		struct symbol *symbol = alloc_symbol(expr->pos, SYM_PTR);
+		if (ctype->type == SYM_NODE) {
+			symbol->ctype.modifiers = ctype->ctype.modifiers & ~MOD_STORAGE;
+			ctype = ctype->ctype.base_type;
+		}
 		symbol->ctype.base_type = ctype;
 		symbol->ctype.alignment = POINTER_ALIGNMENT;
 		symbol->bit_size = BITS_IN_POINTER;
