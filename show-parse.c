@@ -23,6 +23,8 @@
 #include "expression.h"
 #include "target.h"
 
+static int show_symbol_expr(struct symbol *sym);
+
 static void do_debug_symbol(struct symbol *sym, int indent)
 {
 	static const char indent_string[] = "                                  ";
@@ -305,11 +307,18 @@ void show_symbol(struct symbol *sym)
 		symbol_iterate(type->symbol_list, show_struct_member, NULL);
 		break;
 
-	case SYM_FN:
-		printf("\n");		
-		show_statement(type->stmt);
-		printf("\tret\n");
+	case SYM_FN: {
+		struct statement *stmt = type->stmt;
+		if (stmt) {
+			int val;
+			printf("\n");		
+			val = show_statement(stmt);
+			if (val)
+				printf("\tmov.%d\t\tretval,%d\n", stmt->ret->bit_size, val);
+			printf("\tret\n");
+		}
 		break;
+	}
 
 	default:
 		break;
@@ -321,21 +330,13 @@ void show_symbol(struct symbol *sym)
 	}
 }
 
-static int show_return_stmt(struct statement *stmt)
-{
-	struct expression *expr = stmt->ret_value;
-	struct symbol *target = stmt->ret_target;
-
-	if (expr && expr->ctype) {
-		int val = show_expression(expr);
-		printf("\tmov.%d\t\tretval,v%d\n",
-			expr->ctype->bit_size, val);
-	}
-	printf("\tgoto .L%p\n", target);
-	return 0;
-}
-
 static int show_symbol_init(struct symbol *sym);
+
+static int new_pseudo(void)
+{
+	static int nr = 0;
+	return ++nr;
+}
 
 static int new_label(void)
 {
@@ -396,6 +397,8 @@ static void show_symbol_decl(struct symbol_list *syms)
 	} END_FOR_EACH_PTR;
 }
 
+static int show_return_stmt(struct statement *stmt);
+
 /*
  * Print out a statement
  */
@@ -414,8 +417,14 @@ int show_statement(struct statement *stmt)
 		FOR_EACH_PTR(stmt->stmts, s) {
 			last = show_statement(s);
 		} END_FOR_EACH_PTR;
-		if (stmt->ret)
+		if (stmt->ret) {
+			int addr, bits;
 			printf(".L%p:\n", stmt->ret);
+			addr = show_symbol_expr(stmt->ret);
+			bits = stmt->ret->bit_size;
+			last = new_pseudo();
+			printf("\tld.%d\t\tv%d,[v%d]\n", bits, last, addr);
+		}
 		return last;
 	}
 
@@ -545,12 +554,6 @@ static void show_one_expression(struct expression *expr, void *sep, int flags)
 void show_expression_list(struct expression_list *list, const char *sep)
 {
 	expression_iterate(list, show_one_expression, (void *)sep);
-}
-
-static int new_pseudo(void)
-{
-	static int nr = 0;
-	return ++nr;
 }
 
 static int show_call_expression(struct expression *expr)
@@ -686,7 +689,20 @@ static int show_assignment(struct expression *expr)
 	return val;
 }
 
-static int show_symbol_expr(struct symbol *sym);
+static int show_return_stmt(struct statement *stmt)
+{
+	struct expression *expr = stmt->ret_value;
+	struct symbol *target = stmt->ret_target;
+
+	if (expr && expr->ctype) {
+		int val = show_expression(expr);
+		int bits = expr->ctype->bit_size;
+		int addr = show_symbol_expr(target);
+		show_store_gen(bits, val, NULL, addr);
+	}
+	printf("\tgoto .L%p\n", target);
+	return 0;
+}
 
 static int show_initialization(struct symbol *sym, struct expression *expr)
 {
@@ -962,5 +978,3 @@ int show_expression(struct expression *expr)
 	}
 	return 0;
 }
-
-

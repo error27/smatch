@@ -886,8 +886,8 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 	if (!compatible_assignment_types(expr, ltype, &expr->right, rtype, "assignment"))
 		return 0;
 
-	expr->ctype = expr->left->ctype;
-	return expr->ctype;
+	expr->ctype = ltype;
+	return ltype;
 }
 
 static struct symbol *evaluate_addressof(struct expression *expr)
@@ -1580,6 +1580,9 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 {
 	struct symbol *base_type;
 
+	if (!sym)
+		return sym;
+
 	sym = examine_symbol_type(sym);
 	base_type = sym->ctype.base_type;
 	if (!base_type)
@@ -1684,6 +1687,7 @@ struct symbol *evaluate_statement(struct statement *stmt)
 	case STMT_COMPOUND: {
 		struct symbol *type = NULL;
 		symbol_iterate(stmt->syms, evaluate_one_symbol, NULL);
+		evaluate_symbol(stmt->ret);
 		statement_iterate(stmt->stmts, evaluate_one_statement, &type);
 		return type;
 	}
