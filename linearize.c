@@ -1551,12 +1551,21 @@ static void rewrite_branch(struct basic_block *bb,
 	struct basic_block *old,
 	struct basic_block *new)
 {
+	struct basic_block *tmp;
+
+	if (*ptr != old)
+		return;
+
 	*ptr = new;
-	add_bb(&new->parents, bb);
-	/* 
-	 * FIXME!!! We should probably also remove bb from "old->parents",
-	 * but we need to be careful that bb isn't a parent some other way.
-	 */
+	FOR_EACH_PTR(new->parents, tmp) {
+		if (tmp == old)
+			*THIS_ADDRESS(tmp) = bb;
+	} END_FOR_EACH_PTR(tmp);
+
+	FOR_EACH_PTR(bb->children, tmp) {
+		if (tmp == old)
+			*THIS_ADDRESS(tmp) = new;
+	} END_FOR_EACH_PTR(tmp);
 }
 
 /*
@@ -1609,10 +1618,8 @@ static void try_to_simplify_bb(struct entrypoint *ep, struct basic_block *bb,
 		if (true < 0)
 			continue;
 		target = true ? second->bb_true : second->bb_false;
-		if (br->bb_true == bb)
-			rewrite_branch(source, &br->bb_true, bb, target);
-		if (br->bb_false == bb)
-			rewrite_branch(source, &br->bb_false, bb, target);
+		rewrite_branch(source, &br->bb_true, bb, target);
+		rewrite_branch(source, &br->bb_false, bb, target);
 	} END_FOR_EACH_PTR(phi);
 }
 
@@ -2060,6 +2067,51 @@ static void kill_unreachable_bbs(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(bb);
 }
 
+static void try_to_replace(struct basic_block *bb, struct basic_block **target,
+	struct basic_block *old, struct basic_block *new)
+{
+	if (*target == old) {
+		*target = new;
+		/* FIXME!! Fix child information */
+		warning(bb->pos, "changed child from %p to %p", old, new);
+	}
+}
+
+static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old, struct basic_block *new)
+{
+	struct instruction *insn = last_instruction(bb->insns);
+
+	if (insn && insn->opcode == OP_BR) {
+		rewrite_branch(bb, &insn->bb_true, old, new);
+		rewrite_branch(bb, &insn->bb_false, old, new);
+		return 1;
+	}
+	return 0;
+}
+
+static int rewrite_branch_bb(struct basic_block *bb, struct instruction *br)
+{
+	int success;
+	struct basic_block *parent;
+	struct basic_block *target = br->bb_true;
+	struct basic_block *false = br->bb_false;
+
+	if (target && false) {
+		pseudo_t cond = br->cond;
+		if (cond->type != PSEUDO_VAL)
+			return 0;
+		target = cond->value ? target : false;
+	}
+
+	success = 1;
+	target = target ? : false;
+	FOR_EACH_PTR(bb->parents, parent) {
+		if (!rewrite_parent_branch(parent, bb, target))
+			success = 0;
+	} END_FOR_EACH_PTR(parent);
+	return success;
+}
+
 static void pack_basic_blocks(struct entrypoint *ep)
 {
 	struct basic_block *bb;
@@ -2068,6 +2120,7 @@ static void pack_basic_blocks(struct entrypoint *ep)
 
 	/* See if we can merge a bb into another one.. */
 	FOR_EACH_PTR(ep->bbs, bb) {
+		struct instruction *first;
 		struct basic_block *parent, *child;
 
 		if (!bb_reachable(bb))
@@ -2077,6 +2130,15 @@ static void pack_basic_blocks(struct entrypoint *ep)
 		 */
 		if (bb->phinodes)
 			continue;
+
+		/*
+		 * Just a branch?
+		 */
+		first = first_instruction(bb->insns);
+		if (first && first->opcode == OP_BR) {
+			if (rewrite_branch_bb(bb, first))
+				continue;
+		}
 
 		if (ep->entry == bb)
 			continue;
