@@ -274,12 +274,14 @@ static int simplify_float_binop(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
 	unsigned long mod = expr->ctype->ctype.modifiers;
-	long double l = left->fvalue;
-	long double r = right->fvalue;
-	long double res;
+	long double l, r, res;
 
 	if (left->type != EXPR_FVALUE || right->type != EXPR_FVALUE)
 		return 0;
+
+	l = left->fvalue;
+	r = right->fvalue;
+
 	if (mod & MOD_LONGLONG) {
 		switch (expr->op) {
 		case '+':	res = l + r; break;
