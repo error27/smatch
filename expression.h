@@ -151,8 +151,10 @@ struct token *typename(struct token *, struct symbol **);
 
 static inline int lookup_type(struct token *token)
 {
-	if (token->pos.type == TOKEN_IDENT)
-		return lookup_symbol(token->ident, NS_TYPEDEF) != NULL;
+	if (token->pos.type == TOKEN_IDENT) {
+		struct symbol *sym = lookup_symbol(token->ident, NS_SYMBOL | NS_TYPEDEF);
+		return sym && sym->namespace == NS_TYPEDEF;
+	}
 	return 0;
 }
 
