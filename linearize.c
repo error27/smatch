@@ -1747,6 +1747,8 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 		pack_basic_blocks(ep);
 	} while (repeat_phase & REPEAT_CSE);
 
+	vrfy_flow(ep);
+
 	/* Cleanup */
 	clear_symbol_pseudos(ep);
 

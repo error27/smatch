@@ -747,6 +747,70 @@ static void simplify_switch(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(bb);
 }
 
+static void vrfy_bb_in_list(struct basic_block *bb, struct basic_block_list *list)
+{
+	if (bb) {
+		struct basic_block *tmp;
+		int no_bb_in_list = 0;
+
+		FOR_EACH_PTR(list, tmp) {
+			if (bb == tmp)
+				return;
+		} END_FOR_EACH_PTR(tmp);
+		assert(no_bb_in_list);
+	}
+}
+
+static void vrfy_parents(struct basic_block *bb)
+{
+	struct basic_block *tmp;
+	FOR_EACH_PTR(bb->parents, tmp) {
+		vrfy_bb_in_list(bb, tmp->children);
+	} END_FOR_EACH_PTR(tmp);
+}
+
+static void vrfy_children(struct basic_block *bb)
+{
+	struct basic_block *tmp;
+	struct instruction *br = last_instruction(bb->insns);
+
+	if (!br) {
+		assert(!bb->children);
+		return;
+	}
+	switch (br->opcode) {
+	case OP_BR:
+		vrfy_bb_in_list(br->bb_true, bb->children);
+		vrfy_bb_in_list(br->bb_false, bb->children);
+		break;
+	default:
+		break;
+	}
+		
+	FOR_EACH_PTR(bb->children, tmp) {
+		vrfy_bb_in_list(bb, tmp->parents);
+	} END_FOR_EACH_PTR(tmp);
+}
+
+static void vrfy_bb_flow(struct basic_block *bb)
+{
+	vrfy_children(bb);
+	vrfy_parents(bb);
+}
+
+void vrfy_flow(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+	struct basic_block *entry = ep->entry;
+
+	FOR_EACH_PTR(ep->bbs, bb) {
+		if (bb == entry)
+			entry = NULL;
+		vrfy_bb_flow(bb);
+	} END_FOR_EACH_PTR(bb);
+	assert(!entry);
+}
+
 void simplify_flow(struct entrypoint *ep)
 {
 	simplify_phi_nodes(ep);
