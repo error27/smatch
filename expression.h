@@ -105,6 +105,8 @@ struct token *primary_expression(struct token *token, struct expression **tree);
 struct token *parens_expression(struct token *token, struct expression **expr, const char *where);
 struct token *assignment_expression(struct token *token, struct expression **tree);
 
+extern int evaluate_symbol(struct symbol *sym);
+extern int evaluate_statement(struct statement *stmt);
 extern int evaluate_expression(struct expression *);
 extern int evaluate_initializer(struct symbol *, struct expression *);
 
@@ -130,6 +132,9 @@ static inline int lookup_type(struct token *token)
 struct statement *alloc_statement(struct position pos, int type);
 struct token *initializer(struct expression **tree, struct token *token);
 struct token *compound_statement(struct token *, struct statement *);
+
+extern void clean_up_statement(struct statement *stmt, void *_parent, int flags);
+extern void clean_up_symbol(struct symbol *sym, void *_parent, int flags);
 
 /* The preprocessor calls this 'constant_expression()' */
 #define constant_expression(token,tree) conditional_expression(token, tree)

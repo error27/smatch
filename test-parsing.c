@@ -65,68 +65,14 @@ static void handle_switch(char *arg)
 	}	
 }
 
-static void clean_up_statement(struct statement *stmt, void *_parent, int flags);
-static void clean_up_symbol(struct symbol *sym, void *_parent, int flags);
-
-static void simplify_statement(struct statement *stmt, struct symbol *fn)
+void clean_up_statement(struct statement *stmt, void *_parent, int flags)
 {
-	if (!stmt)
-		return;
-	switch (stmt->type) {
-	case STMT_RETURN:
-	case STMT_EXPRESSION:
-		evaluate_expression(stmt->expression);
-		return;
-	case STMT_COMPOUND:
-		symbol_iterate(stmt->syms, clean_up_symbol, fn);
-		statement_iterate(stmt->stmts, clean_up_statement, fn);
-		return;
-	case STMT_IF:
-		evaluate_expression(stmt->if_conditional);
-		simplify_statement(stmt->if_true, fn);
-		simplify_statement(stmt->if_false, fn);
-		return;
-	case STMT_ITERATOR:
-		evaluate_expression(stmt->iterator_pre_condition);
-		evaluate_expression(stmt->iterator_post_condition);
-		simplify_statement(stmt->iterator_pre_statement, fn);
-		simplify_statement(stmt->iterator_statement, fn);
-		simplify_statement(stmt->iterator_post_statement, fn);
-		return;
-	case STMT_SWITCH:
-		evaluate_expression(stmt->switch_expression);
-		simplify_statement(stmt->switch_statement, fn);
-		return;
-	case STMT_CASE:
-		evaluate_expression(stmt->case_expression);
-		evaluate_expression(stmt->case_to);
-		simplify_statement(stmt->case_statement, fn);
-		return;
-	default:
-		break;
-	}
+	evaluate_statement(stmt);
 }
 
-static void clean_up_statement(struct statement *stmt, void *_parent, int flags)
+void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 {
-	struct symbol *parent = _parent;
-	simplify_statement(stmt, parent);
-}
-
-static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
-{
-	struct symbol *parent = _parent;
-	struct symbol *type;
-
-	examine_symbol_type(sym);
-	if (sym->initializer)
-		evaluate_initializer(sym, sym->initializer);
-	type = sym->ctype.base_type;
-	if (type && type->type == SYM_FN) {
-		symbol_iterate(type->arguments, clean_up_symbol, parent);
-		if (type->stmt)
-			simplify_statement(type->stmt, sym);
-	}
+	evaluate_symbol(sym);
 }
 
 int main(int argc, char **argv)

@@ -21,7 +21,7 @@
 #include "target.h"
 #include "expression.h"
 
-static int evaluate_symbol(struct expression *expr)
+static int evaluate_symbol_expression(struct expression *expr)
 {
 	struct symbol *sym = expr->symbol;
 	struct symbol *base_type;
@@ -30,13 +30,12 @@ static int evaluate_symbol(struct expression *expr)
 		warn(expr->pos, "undefined identifier '%s'", show_ident(expr->symbol_name));
 		return 0;
 	}
-	examine_symbol_type(sym);
 	base_type = sym->ctype.base_type;
-	if (!base_type)
+	if (!base_type) {
+		warn(sym->pos, "identifier '%s' has no type", show_ident(expr->symbol_name));
 		return 0;
-
+	}
 	expr->ctype = base_type;
-	examine_symbol_type(base_type);
 
 	/* enum's can be turned into plain values */
 	if (base_type->type == SYM_ENUM) {
@@ -152,9 +151,9 @@ static int bad_expr_type(struct expression *expr)
 	return 0;
 }
 
-static struct symbol * compatible_integer_binop(struct expression *expr)
+static struct symbol * compatible_integer_binop(struct expression *expr, struct expression **lp, struct expression **rp)
 {
-	struct expression *left = expr->left, *right = expr->right;
+	struct expression *left = *lp, *right = *rp;
 	struct symbol *ltype = left->ctype, *rtype = right->ctype;
 
 	/* Integer promotion? */
@@ -167,9 +166,9 @@ static struct symbol * compatible_integer_binop(struct expression *expr)
 
 		/* Don't bother promoting same-size entities, it only adds clutter */
 		if (ltype->bit_size != ctype->bit_size)
-			expr->left = cast_to(left, ctype);
+			*lp = cast_to(left, ctype);
 		if (rtype->bit_size != ctype->bit_size)
-			expr->right = cast_to(right, ctype);
+			*rp = cast_to(right, ctype);
 		return ctype;
 	}
 	return NULL;
@@ -177,7 +176,7 @@ static struct symbol * compatible_integer_binop(struct expression *expr)
 
 static int evaluate_int_binop(struct expression *expr)
 {
-	struct symbol *ctype = compatible_integer_binop(expr);
+	struct symbol *ctype = compatible_integer_binop(expr, &expr->left, &expr->right);
 	if (ctype) {
 		expr->ctype = ctype;
 		return 1;
@@ -272,7 +271,6 @@ static int evaluate_ptr_sub(struct expression *expr, struct expression *l, struc
 	 */
 	if (!is_ptr_type(rtype))
 		return evaluate_ptr_add(expr, l, r);
-
 
 	ctype = same_ptr_types(ltype, rtype);
 	if (!ctype) {
@@ -374,7 +372,7 @@ static int evaluate_compare(struct expression *expr)
 		return 1;
 	}
 
-	if (compatible_integer_binop(expr)) {
+	if (compatible_integer_binop(expr, &expr->left, &expr->right)) {
 		expr->ctype = &bool_ctype;
 		return 1;
 	}
@@ -415,6 +413,24 @@ static int compatible_integer_types(struct symbol *ltype, struct symbol *rtype)
 	return (is_int_type(ltype) && is_int_type(rtype));
 }
 
+static int evaluate_conditional(struct expression *expr)
+{
+	struct symbol *ctype;
+
+	if (same_type(expr->cond_true->ctype, expr->cond_false->ctype)) {
+		expr->ctype = expr->cond_true->ctype;
+		return 1;
+	}
+
+	ctype = compatible_integer_binop(expr, &expr->cond_true, &expr->cond_false);
+	if (ctype) {
+		expr->ctype = ctype;
+		return 1;
+	}
+	warn(expr->pos, "incompatible types in conditional expression");
+	return 0;
+}
+		
 static int compatible_assignment_types(struct expression *expr,
 	struct expression *left, struct symbol *target,
 	struct expression *right, struct symbol *source)
@@ -496,9 +512,22 @@ static int evaluate_assignment(struct expression *expr)
 		if (!evaluate_binop_assignment(expr, left, right))
 			return 0;
 		right = expr->right;
+		if (!right->ctype) {
+			warn(expr->pos, "what? evaluate_binop_assignment lies!");
+			return 0;
+		}
 	}
 	ltype = left->ctype;
 	rtype = right->ctype;
+
+	if (!ltype) {
+		warn(expr->pos, "what? no ltype");
+		return 0;
+	}
+	if (!rtype) {
+		warn(expr->pos, "what? no rtype");
+		return 0;
+	}
 
 	if (!compatible_assignment_types(expr, left, ltype, right, rtype))
 		return 0;
@@ -548,11 +577,14 @@ static int evaluate_preop(struct expression *expr)
 	}
 }
 
+/*
+ * Unary post-ops: x++ and x--
+ */
 static int evaluate_postop(struct expression *expr)
 {
 	struct symbol *ctype = expr->unop->ctype;
 	expr->ctype = ctype;
-	return 0;
+	return 1;
 }
 
 struct symbol *find_identifier(struct ident *ident, struct symbol_list *_list, int *offset)
@@ -597,8 +629,12 @@ static int evaluate_dereference(struct expression *expr)
 	struct expression *deref = expr->deref, *add;
 	struct ident *ident = expr->member;
 
-	if (!evaluate_expression(deref) || !ident)
+	if (!evaluate_expression(deref))
 		return 0;
+	if (!ident) {
+		warn(expr->pos, "bad member name");
+		return 0;
+	}
 
 	ctype = deref->ctype;
 	if (expr->op == SPECIAL_DEREFERENCE) {
@@ -704,7 +740,9 @@ int evaluate_initializer(struct symbol *sym, struct expression *expr)
 	 */
 	if (!evaluate_expression(expr))
 		return 0;
-	return 0;
+//	warn(sym->pos, "check initializer type");
+	expr->ctype = sym->ctype.base_type;
+	return 1;
 }
 
 static int evaluate_cast(struct expression *expr)
@@ -765,7 +803,7 @@ int evaluate_expression(struct expression *expr)
 	case EXPR_STRING:
 		return evaluate_string(expr);
 	case EXPR_SYMBOL:
-		return evaluate_symbol(expr);
+		return evaluate_symbol_expression(expr);
 	case EXPR_BINOP:
 		if (!evaluate_expression(expr->left))
 			return 0;
@@ -814,24 +852,109 @@ int evaluate_expression(struct expression *expr)
 		    !evaluate_expression(expr->cond_true) ||
 		    !evaluate_expression(expr->cond_false))
 			return 0;
-
-		// FIXME!! Conditional expression type
-		return 0;
+		return evaluate_conditional(expr);
 	case EXPR_STATEMENT:
-
-		// FIXME!! Statement expression
-		return 0;
+		return evaluate_statement(expr->statement);
 	case EXPR_INITIALIZER:
 		if (!evaluate_expression_list(expr->expr_list))
 			return 0;
 		// FIXME! Figure out the type of the initializer!
+		warn(expr->pos, "no initializer expression type yet");   
 		return 0;
 	case EXPR_IDENTIFIER:
 		// FIXME!! Identifier
+		// warn(expr->pos, "identifier type??");
 		return 0;
 	case EXPR_INDEX:
 		// FIXME!! Array identifier index
+		// warn(expr->pos, "array index type??");
 		return 0;
+	}
+	return 0;
+}
+
+static void evaluate_one_statement(struct statement *stmt, void *_last, int flags)
+{
+	struct statement **last = _last;
+	if (flags & ITERATE_LAST)
+		*last = stmt;
+	evaluate_statement(stmt);
+}
+
+static void evaluate_one_symbol(struct symbol *sym, void *unused, int flags)
+{
+	evaluate_symbol(sym);
+}
+
+int evaluate_symbol(struct symbol *sym)
+{
+	struct symbol *base_type = sym->ctype.base_type;
+
+	if (!base_type)
+		return 0;
+
+	examine_symbol_type(base_type);
+
+	// Uhhuh! We had a typeof expression!
+	if (base_type->type == SYM_TYPEOF) {
+		if (!evaluate_expression(base_type->initializer))
+			return 0;
+		base_type = base_type->initializer->ctype;
+		sym->ctype.base_type = base_type;
+	}
+
+	/* Evaluate the initializers */
+	if (sym->initializer)
+		evaluate_initializer(sym, sym->initializer);
+
+	/* And finally, evaluate the body of the symbol too */
+	if (base_type->type == SYM_FN) {
+		symbol_iterate(base_type->arguments, evaluate_one_symbol, NULL);
+		if (base_type->stmt)
+			evaluate_statement(base_type->stmt);
+	}
+
+	return 1;
+}
+
+int evaluate_statement(struct statement *stmt)
+{
+	if (!stmt)
+		return 0;
+
+	switch (stmt->type) {
+	case STMT_RETURN:
+	case STMT_EXPRESSION:
+		return evaluate_expression(stmt->expression);
+	case STMT_COMPOUND: {
+		struct statement *last;
+		symbol_iterate(stmt->syms, evaluate_one_symbol, NULL);
+		statement_iterate(stmt->stmts, evaluate_one_statement, &last);
+		return 0;
+	}
+	case STMT_IF:
+		evaluate_expression(stmt->if_conditional);
+		evaluate_statement(stmt->if_true);
+		evaluate_statement(stmt->if_false);
+		return 0;
+	case STMT_ITERATOR:
+		evaluate_expression(stmt->iterator_pre_condition);
+		evaluate_expression(stmt->iterator_post_condition);
+		evaluate_statement(stmt->iterator_pre_statement);
+		evaluate_statement(stmt->iterator_statement);
+		evaluate_statement(stmt->iterator_post_statement);
+		return 0;
+	case STMT_SWITCH:
+		evaluate_expression(stmt->switch_expression);
+		evaluate_statement(stmt->switch_statement);
+		return 0;
+	case STMT_CASE:
+		evaluate_expression(stmt->case_expression);
+		evaluate_expression(stmt->case_to);
+		evaluate_statement(stmt->case_statement);
+		return 0;
+	default:
+		break;
 	}
 	return 0;
 }
