@@ -291,16 +291,7 @@ void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *domi
 	return;
 
 complex_phi:
-	/*
-	 * FIXME! This is dubious. We should probably allocate a new
-	 * instruction instead of re-using the OP_LOAD instruction.
-	 * Re-use of the instruction makes the usage list suspect.
-	 *
-	 * It should be ok, because the only usage of the OP_LOAD
-	 * is the symbol pseudo, and we should never follow that
-	 * list _except_ for exactly the dominant instruction list
-	 * generation (and then we always check the opcode).
-	 */
+	kill_use(&insn->src);
 	insn->opcode = OP_PHI;
 	insn->phi_list = dominators;
 }
