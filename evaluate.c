@@ -680,7 +680,7 @@ static int compatible_integer_types(struct symbol *ltype, struct symbol *rtype)
 	return (is_int_type(ltype) && is_int_type(rtype));
 }
 
-static int is_void_ptr(struct expression *expr)
+static int is_null_ptr(struct expression *expr)
 {
 	return (expr->type == EXPR_VALUE &&
 		expr->value == 0);
@@ -694,12 +694,12 @@ static struct symbol *compatible_ptr_type(struct expression *left, struct expres
 	struct symbol *ltype = left->ctype, *rtype = right->ctype;
 
 	if (ltype->type == SYM_PTR) {
-		if (is_void_ptr(right))
+		if (is_null_ptr(right))
 			return ltype;
 	}
 
 	if (rtype->type == SYM_PTR) {
-		if (is_void_ptr(left))
+		if (is_null_ptr(left))
 			return rtype;
 	}
 	return NULL;
