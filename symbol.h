@@ -27,11 +27,10 @@ enum namespace {
 	NS_NONE = 0,
 	NS_PREPROCESSOR = 1,
 	NS_TYPEDEF = 2,
-	NS_STRUCT = 4,
-	NS_ENUM = 8,
-	NS_LABEL = 16,
-	NS_SYMBOL = 32,
-	NS_ITERATOR = 64,
+	NS_STRUCT = 4,  // Also used for unions and enums.
+	NS_LABEL = 8,
+	NS_SYMBOL = 16,
+	NS_ITERATOR = 32,
 };
 
 enum type {

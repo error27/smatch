@@ -98,7 +98,7 @@ struct symbol *label_symbol(struct token *token)
 	return lookup_or_create_symbol(NS_LABEL, SYM_LABEL, token);
 }
 
-struct token *struct_union_enum_specifier(enum namespace ns, enum type type,
+struct token *struct_union_enum_specifier(enum type type,
 	struct token *token, struct ctype *ctype,
 	struct token *(*parse)(struct token *, struct symbol *))
 {
@@ -106,7 +106,9 @@ struct token *struct_union_enum_specifier(enum namespace ns, enum type type,
 
 	ctype->modifiers = 0;
 	if (token_type(token) == TOKEN_IDENT) {
-		sym = lookup_or_create_symbol(ns, type, token);
+		sym = lookup_or_create_symbol(NS_STRUCT, type, token);
+		if (sym->type != type)
+			error (sym->pos, "invalid tag applied to %s", show_typename (sym));
 		token = token->next;
 		ctype->base_type = sym;
 		if (match_op(token, '{')) {
@@ -136,7 +138,7 @@ static struct token *parse_struct_declaration(struct token *token, struct symbol
 
 struct token *struct_or_union_specifier(enum type type, struct token *token, struct ctype *ctype)
 {
-	return struct_union_enum_specifier(NS_STRUCT, type, token, ctype, parse_struct_declaration);
+	return struct_union_enum_specifier(type, token, ctype, parse_struct_declaration);
 }
 
 static struct token *parse_enum_declaration(struct token *token, struct symbol *parent)
@@ -169,7 +171,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 
 struct token *enum_specifier(struct token *token, struct ctype *ctype)
 {
-	return struct_union_enum_specifier(NS_ENUM, SYM_ENUM, token, ctype, parse_enum_declaration);
+	return struct_union_enum_specifier(SYM_ENUM, token, ctype, parse_enum_declaration);
 }
 
 struct token *typeof_specifier(struct token *token, struct ctype *ctype)
