@@ -771,36 +771,25 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 
 static struct symbol *evaluate_addressof(struct expression *expr)
 {
-	struct symbol *ctype, *symbol;
 	struct expression *op = expr->unop;
+	struct expression *addr;
 
 	if (op->op != '*' || op->type != EXPR_PREOP) {
 		warn(expr->pos, "not addressable");
 		return NULL;
 	}
 
-	symbol = alloc_symbol(expr->pos, SYM_PTR);
-	symbol->ctype.alignment = POINTER_ALIGNMENT;
-	symbol->bit_size = BITS_IN_POINTER;
-
-	ctype = op->ctype;
-	if (ctype->type == SYM_NODE) {
-		ctype->ctype.modifiers |= MOD_ADDRESSABLE;
-		if (ctype->ctype.modifiers & MOD_REGISTER) {
-			warn(expr->pos, "taking address of 'register' variable '%s'", show_ident(ctype->ident));
-			ctype->ctype.modifiers &= ~MOD_REGISTER;
+	addr = op->unop;
+	*expr = *addr;
+	if (addr->type == EXPR_SYMBOL) {
+		struct symbol *sym = addr->symbol;
+		sym->ctype.modifiers |= MOD_ADDRESSABLE;
+		if (sym->ctype.modifiers & MOD_REGISTER) {
+			warn(expr->pos, "taking address of 'register' variable '%s'", show_ident(sym->ident));
+			sym->ctype.modifiers &= ~MOD_REGISTER;
 		}
-		symbol->ctype.modifiers = ctype->ctype.modifiers;
-		symbol->ctype.as = ctype->ctype.as;
-		symbol->ctype.context = ctype->ctype.context;
-		symbol->ctype.contextmask = ctype->ctype.contextmask;
-		ctype = ctype->ctype.base_type;
 	}
-
-	symbol->ctype.base_type = ctype;
-	*expr = *op->unop;
-	expr->ctype = symbol;
-	return symbol;
+	return expr->ctype;
 }
 
 
