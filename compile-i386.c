@@ -2120,9 +2120,6 @@ static struct storage *x86_address_gen(struct expression *expr)
 	struct storage *new;
 	char s[32];
 
-	if ((expr->type != EXPR_PREOP) || (expr->op != '*'))
-		return x86_expression(expr->address);
-
 	addr = x86_expression(expr->unop);
 	if (expr->unop->type == EXPR_SYMBOL)
 		return addr;
@@ -2254,11 +2251,6 @@ static int type_is_signed(struct symbol *sym)
 	return !(sym->ctype.modifiers & MOD_UNSIGNED);
 }
 
-static struct storage *x86_bitfield_expr(struct expression *expr)
-{
-	return x86_access(expr);
-}
-
 static struct storage *x86_label_expr(struct expression *expr)
 {
 	struct storage *new = stack_alloc(4);
@@ -2354,8 +2346,6 @@ static struct storage *x86_expression(struct expression *expr)
 		return emit_value(expr);
 	case EXPR_STRING:
 		return emit_string_expr(expr);
-	case EXPR_BITFIELD:
-		return x86_bitfield_expr(expr);
 	case EXPR_INITIALIZER:
 		x86_initializer_expr(expr, expr->ctype);
 		return NULL;

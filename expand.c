@@ -854,9 +854,6 @@ static int expand_expression(struct expression *expr)
 		warning(expr->pos, "we should not have an EXPR_DEREF left at expansion time");
 		return UNSAFE;
 
-	case EXPR_BITFIELD:
-		return expand_expression(expr->address);
-
 	case EXPR_SELECT:
 	case EXPR_CONDITIONAL:
 		return expand_conditional(expr);

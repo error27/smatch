@@ -540,16 +540,10 @@ static int linearize_address_gen(struct entrypoint *ep,
 	ad->ctype = ctype;
 	ad->bit_size = ctype->bit_size;
 	ad->alignment = ctype->ctype.alignment;
-	if (expr->type == EXPR_PREOP)
+	ad->bit_offset = ctype->bit_offset;
+	if (expr->type == EXPR_PREOP && expr->op == '*')
 		return linearize_simple_address(ep, expr->unop, ad);
 
-	if (expr->type == EXPR_BITFIELD) {
-		if (!linearize_simple_address(ep, expr->address, ad))
-			return 0;
-		ad->bit_offset += ctype->bit_offset;
-		ad->bit_size = ctype->bit_size;
-		return 1;
-	}
 	warning(expr->pos, "generating address of non-lvalue (%d)", expr->type);
 	return 0;
 }
@@ -1199,9 +1193,6 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 	case EXPR_IMPLIED_CAST:
 		return linearize_cast(ep, expr);
 	
-	case EXPR_BITFIELD:
-		return linearize_access(ep, expr);
-
 	case EXPR_SLICE:
 		return linearize_slice(ep, expr);
 

@@ -669,9 +669,7 @@ static int show_regular_preop(struct expression *expr)
  */
 static int show_address_gen(struct expression *expr)
 {
-	if (expr->type == EXPR_PREOP)
-		return show_expression(expr->unop);
-	return show_expression(expr->address);
+	return show_expression(expr->unop);
 }
 
 static int show_load_gen(int bits, struct expression *expr, int addr)
@@ -679,13 +677,6 @@ static int show_load_gen(int bits, struct expression *expr, int addr)
 	int new = new_pseudo();
 
 	printf("\tld.%d\t\tv%d,[v%d]\n", bits, new, addr);
-	if (expr->type == EXPR_PREOP)
-		return new;
-
-	/* bitfield load! */
-	if (expr->bitpos)
-		printf("\tshr.%d\t\tv%d,v%d,$%d\n", bits, new, new, expr->bitpos);
-	printf("\tandi.%d\t\tv%d,v%d,$%llu\n", bits, new, new, (1ULL << expr->nrbits)-1);
 	return new;
 }
 
@@ -875,11 +866,6 @@ static int show_string_expr(struct expression *expr)
 	return new;
 }
 
-static int show_bitfield_expr(struct expression *expr)
-{
-	return show_access(expr);
-}
-
 int show_label_expr(struct expression *expr)
 {
 	int new = new_pseudo();
@@ -1012,8 +998,6 @@ int show_expression(struct expression *expr)
 		return show_fvalue(expr);
 	case EXPR_STRING:
 		return show_string_expr(expr);
-	case EXPR_BITFIELD:
-		return show_bitfield_expr(expr);
 	case EXPR_INITIALIZER:
 		return show_initializer_expr(expr, expr->ctype);
 	case EXPR_SELECT:
