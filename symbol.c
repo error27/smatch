@@ -1,7 +1,9 @@
 /*
  * Symbol lookup and handling.
  *
- * Copyright (C) 2003 Transmeta Corp, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp.
+ *
+ *  Licensed under the Open Software License version 1.1
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -282,6 +284,16 @@ void check_declaration(struct symbol *sym)
 			sym->same_symbol = next;
 			return;
 		}
+#if 0
+		// This may make sense from a warning standpoint:
+		//  consider top-level symbols to clash with everything
+		//  (but the scoping rules will mean that we actually
+		//  _use_ the innermost version)
+		if (toplevel(next->scope)) {
+			sym->same_symbol = next;
+			return;
+		}
+#endif
 	}
 }
 

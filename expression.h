@@ -3,7 +3,9 @@
 /*
  * sparse/expression.h
  *
- * Copyright (C) 2003 Transmeta Corp, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp.
+ *
+ *  Licensed under the Open Software License version 1.1
  *
  * Declarations and helper functions for expression parsing.
  */

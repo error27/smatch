@@ -3,7 +3,9 @@
  *
  * Let's see how hard this is to do.
  *
- * Copyright (C) 2003 Transmeta Corp, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp.
+ *
+ *  Licensed under the Open Software License version 1.1
  */
 
 #include <stdarg.h>

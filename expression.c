@@ -1,7 +1,9 @@
 /*
  * sparse/expression.c
  *
- * Copyright (C) 2003 Transmeta Corp, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp.
+ *
+ *  Licensed under the Open Software License version 1.1
  *
  * This is the expression parsing part of parsing C.
  */

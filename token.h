@@ -5,7 +5,9 @@
  * be pretty small, since we're going to keep them all in memory
  * indefinitely.
  *
- * Copyright (C) 2003 Transmeta Corp, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp.
+ *
+ *  Licensed under the Open Software License version 1.1
  */
 
 #include <sys/types.h>

@@ -1,9 +1,11 @@
-#ifndef SEMANTIC_H
-#define SEMANTIC_H
+#ifndef SYMBOL_H
+#define SYMBOL_H
 /*
  * Basic symbol and namespace definitions.
  *
- * Copyright (C) 2003 Transmeta Corp, all rights reserved
+ * Copyright (C) 2003 Transmeta Corp.
+ *
+ *  Licensed under the Open Software License version 1.1
  */
 
 #include "token.h"

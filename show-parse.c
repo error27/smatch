@@ -1,7 +1,9 @@
 /*
  * sparse/show-parse.c
  *
- * Copyright (C) 2003 Transmeta Corp, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp.
+ *
+ *  Licensed under the Open Software License version 1.1
  *
  * Print out results of parsing for debugging and testing.
  */

@@ -1,7 +1,9 @@
 /*
  * 'sparse' library helper routines.
  *
- * Copyright (C) 2003 Transmeta Corp, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp.
+ *
+ *  Licensed under the Open Software License version 1.1
  */
 #include <stddef.h>
 #include <stdarg.h>

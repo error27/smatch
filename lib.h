@@ -3,7 +3,9 @@
 /*
  * Basic helper routine descriptions for 'sparse'.
  *
- * Copyright (C) 2003 Transmeta Corp, all rights reserved.
+ * Copyright (C) 2003 Transmeta Corp.
+ *
+ *  Licensed under the Open Software License version 1.1
  */
 
 extern unsigned int hexval(unsigned int c);
