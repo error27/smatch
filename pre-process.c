@@ -450,6 +450,21 @@ static int handle_include(struct stream *stream, struct token *head, struct toke
 	return 1;
 }
 
+static int token_list_different(struct token *list1, struct token *list2)
+{
+	for (;;) {
+		if (list1 == list2)
+			return 0;
+		if (!list1 || !list2)
+			return 1;
+		if (list1->type != list2->type)
+			return 1;
+		list1 = list1->next;
+		list2 = list2->next;
+	}
+}
+	
+
 static int handle_define(struct stream *stream, struct token *head, struct token *token)
 {
 	struct token *arglist, *expansion;
@@ -464,14 +479,6 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 	if (false_nesting)
 		return 1;
 	name = left->ident;
-	sym = lookup_symbol(name, NS_PREPROCESSOR);
-	if (sym) {
-		warn(left, "preprocessor token redefined");
-		warn(sym->token, "this was the original definition");
-		return 1;
-	}
-	sym = alloc_symbol(left, SYM_NONE);
-	bind_symbol(sym, name, NS_PREPROCESSOR);
 
 	arglist = NULL;
 	expansion = left->next;
@@ -491,6 +498,19 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 		}
 		arglist = arglist->next;
 	}
+
+	sym = lookup_symbol(name, NS_PREPROCESSOR);
+	if (sym) {
+		if (token_list_different(sym->expansion, expansion) || 
+		    token_list_different(sym->arglist, arglist)) {
+			warn(left, "preprocessor token redefined");
+			warn(sym->token, "this was the original definition");
+		}
+		return 1;
+	}
+	sym = alloc_symbol(left, SYM_NONE);
+	bind_symbol(sym, name, NS_PREPROCESSOR);
+
 	sym->expansion = expansion;
 	sym->arglist = arglist;
 	return 1;
@@ -594,7 +614,7 @@ static long long primary_value(struct token *token)
 	return 0;
 }
 
-static long long get_expression_value(struct expression *expr)
+long long get_expression_value(struct expression *expr)
 {
 	long long left, middle, right;
 

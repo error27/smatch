@@ -8,6 +8,9 @@
  * Declarations and helper functions for expression parsing.
  */
 
+/* Constant expression values */
+long long get_expression_value(struct expression *);
+
 /* Expression parsing */
 struct token *parse_expression(struct token *token, struct expression **tree);
 struct token *conditional_expression(struct token *token, struct expression **tree);

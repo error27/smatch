@@ -101,10 +101,31 @@ struct token *struct_or_union_specifier(enum type type, struct token *token, str
 	return struct_union_enum_specifier(NS_STRUCT, type, token, ctype, parse_struct_declaration);
 }
 
-/* FIXME! */
-static struct token *parse_enum_declaration(struct token *token, struct symbol *sym)
+static struct token *parse_enum_declaration(struct token *token, struct symbol *parent)
 {
-	return skip_to(token, '}');
+	int nextval = 0;
+	while (token->type == TOKEN_IDENT) {
+		struct token *next = token->next;
+		struct symbol *sym;
+
+		sym = alloc_symbol(token, SYM_TYPE);
+		bind_symbol(sym, token->ident, NS_SYMBOL);
+		sym->ctype.base_type = parent;
+
+		if (match_op(next, '=')) {
+			struct expression *expr;
+			next = constant_expression(next->next, &expr);
+			nextval = get_expression_value(expr);
+		}
+		sym->value = nextval;
+
+		token = next;
+		if (!match_op(token, ','))
+			break;
+		token = token->next;
+		nextval = nextval + 1;
+	}
+	return token;
 }
 
 struct token *enum_specifier(struct token *token, struct ctype *ctype)
