@@ -94,4 +94,25 @@ static inline void expression_iterate(struct expression_list *list, void (*callb
 	iterate((struct ptr_list *)list, (void (*)(void *, void *, int))callback, data);
 }
 
+#define FOR_EACH_PTR(head, ptr) do {							\
+	struct ptr_list *__head = (struct ptr_list *) (head);				\
+	struct ptr_list *__list = __head;						\
+	int __flag = ITERATE_FIRST;							\
+	if (__head) {									\
+		do { int __i;								\
+			for (__i = 0; __i < __list->nr; __i++) {			\
+				if (__i == __list->nr-1 && __list->next == __head)	\
+					__flag |= ITERATE_LAST;				\
+				do {							\
+					ptr = (__typeof__(ptr)) (__list->list[__i]);	\
+					do {
+
+#define END_FOR_EACH_PTR		} while (0);					\
+				} while (0);						\
+				__flag = 0;						\
+			}								\
+		} while (0);								\
+	}										\
+} while (0)
+
 #endif
