@@ -223,6 +223,8 @@ static struct symbol *degenerate(struct expression *expr)
 	struct symbol *ctype = expr->ctype;
 	struct symbol *base = ctype;
 
+	if (!ctype)
+		return NULL;
 	if (ctype->type == SYM_NODE)
 		base = ctype->ctype.base_type;
 	if (base->type == SYM_ARRAY || base->type == SYM_FN)
