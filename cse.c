@@ -291,6 +291,11 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 		hash += clean_up_phi(insn);
 		break;
 
+	case OP_PHISOURCE:
+		hash += hashval(insn->src1);
+		hash += hashval(insn->bb);
+		break;
+
 	default:
 		/*
 		 * Nothing to do, don't even bother hashing them,
@@ -391,6 +396,13 @@ static int insn_compare(const void *_i1, const void *_i2)
 	/* Other */
 	case OP_PHI:
 		return phi_list_compare(i1->phi_list, i2->phi_list);
+
+	case OP_PHISOURCE:
+		if (i1->src1 != i2->src1)
+			return i1->src1 < i2->src1 ? -1 : 1;
+		if (i1->bb != i2->bb)
+			return i1->bb < i2->bb ? -1 : 1;
+		break;
 
 	default:
 		warning(i1->bb->pos, "bad instruction on hash chain");
