@@ -273,24 +273,6 @@ static struct token *stringify(struct token *token, struct token *arg)
 	return newtoken;
 }
 
-static int is_arg(struct token *token, struct token *arglist)
-{
-	struct ident *ident = token->ident;
-	int nr;
-
-	if (!arglist || token_type(token) != TOKEN_IDENT)
-		return 0;
-
-	for (nr = 0; !eof_token(arglist); nr++, arglist = arglist->next) {
-		if ((match_op(arglist, SPECIAL_ELLIPSIS) && ident == &__VA_ARGS___ident) || 
-		    arglist->ident == ident) {
-			token->argnum = nr;
-			return 1;
-		}
-	}
-	return 0;
-}
-
 static struct token empty_arg_token = { .pos = { .type = TOKEN_EOF } };
 
 static struct token *expand_one_arg(struct token *head, struct token *token, struct token *arguments, int do_expand)
@@ -662,14 +644,76 @@ static int token_list_different(struct token *list1, struct token *list2)
 	}
 }
 
+static int try_arg(struct token *token, enum token_type type, struct token *arglist)
+{
+	struct ident *ident = token->ident;
+	int nr;
+
+	if (!arglist || token_type(token) != TOKEN_IDENT)
+		return 0;
+
+	for (nr = 0; !eof_token(arglist); nr++, arglist = arglist->next) {
+		if ((match_op(arglist, SPECIAL_ELLIPSIS) && ident == &__VA_ARGS___ident) || 
+		    arglist->ident == ident) {
+			token->argnum = nr;
+			token_type(token) = type;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static struct token *parse_expansion(struct token *expansion, struct token *arglist, struct ident *name)
+{
+	struct token *token = expansion;
+	struct token **p;
+
+	if (match_op(token, SPECIAL_HASHHASH))
+		goto Econcat;
+
+	for (p = &expansion; !eof_token(token); p = &token->next, token = *p) {
+		if (match_op(token, '#') && arglist) {
+			struct token *next = token->next;
+			if (!try_arg(next, TOKEN_STR_ARGUMENT, arglist))
+				goto Equote;
+			token = *p = next;
+		} else if (match_op(token, SPECIAL_HASHHASH)) {
+			struct token *next = token->next;
+			token_type(token) = TOKEN_CONCAT;
+			if (try_arg(next, TOKEN_QUOTED_ARGUMENT, arglist))
+				token = next;
+			else if (match_op(next, SPECIAL_HASHHASH))
+				token = next;
+			else if (eof_token(next))
+				goto Econcat;
+		} else if (match_op(token->next, SPECIAL_HASHHASH)) {
+			try_arg(token, TOKEN_QUOTED_ARGUMENT, arglist);
+		} else {
+			try_arg(token, TOKEN_MACRO_ARGUMENT, arglist);
+		}
+	}
+	token = alloc_token(&expansion->pos);
+	token_type(token) = TOKEN_UNTAINT;
+	token->ident = name;
+	token->next = *p;
+	*p = token;
+	return expansion;
+
+Equote:
+	warn(token->pos, "'#' is not followed by a macro parameter");
+	return NULL;
+
+Econcat:
+	warn(token->pos, "'##' cannot appear at the ends of macro expansion");
+	return NULL;
+}
+
 static int handle_define(struct stream *stream, struct token *head, struct token *token)
 {
 	struct token *arglist, *expansion;
 	struct token *left = token->next;
 	struct symbol *sym;
 	struct ident *name;
-	struct token *untaint;
-	struct token **p;
 
 	if (token_type(left) != TOKEN_IDENT) {
 		warn(head->pos, "expected identifier to 'define'");
@@ -707,48 +751,9 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 		arglist = arglist->next;
 	}
 
-	if (match_op(expansion, SPECIAL_HASHHASH)) {
-		warn(expansion->pos, "'##' cannot appear at the either end of macro expansion");
+	expansion = parse_expansion(expansion, arglist, name);
+	if (!expansion)
 		return 1;
-	}
-
-	untaint = alloc_token(&head->pos);
-	token_type(untaint) = TOKEN_UNTAINT;
-	untaint->ident = name;
-
-	for (p = &expansion; !eof_token(token = *p); p = &token->next) {
-		if (match_op(token, '#') && arglist) {
-			struct token *next = token->next;
-			if (is_arg(next, arglist)) {
-				token_type(token) = TOKEN_STR_ARGUMENT;
-				token->argnum = next->argnum;
-				token->next = next->next;
-				continue;
-			}
-			warn(token->pos, "'#' is not followed by a macro parameter");
-			return 1;
-		} else if (match_op(token, SPECIAL_HASHHASH)) {
-			struct token *next = token->next;
-			token_type(token) = TOKEN_CONCAT;
-			if (is_arg(next, arglist)) {
-				token_type(next) = TOKEN_QUOTED_ARGUMENT;
-				token = next;
-			} else if (match_op(next, SPECIAL_HASHHASH)) {
-				token = next;
-			} else if (eof_token(next)) {
-				warn(token->pos, "'##' cannot appear at the either end of macro expansion");
-				return 1;
-			}
-			continue;
-		} else if (is_arg(token, arglist)) {
-			if (match_op(token->next, SPECIAL_HASHHASH))
-				token_type(token) = TOKEN_QUOTED_ARGUMENT;
-			else
-				token_type(token) = TOKEN_MACRO_ARGUMENT;
-		}
-	}
-	untaint->next = *p;
-	*p = untaint;
 
 	sym = lookup_symbol(name, NS_PREPROCESSOR);
 	if (sym) {
