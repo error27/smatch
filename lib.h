@@ -117,6 +117,7 @@ extern unsigned char pre_buffer[8192];
 extern int include_fd;
 extern char *include;
 extern int preprocess_only;
+extern int Wptr_subtraction_blows;
 extern int Wdefault_bitfield_sign;
 extern int Wundefined_preprocessor;
 extern int Wbitwise, Wtypesign, Wcontext;

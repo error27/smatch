@@ -737,9 +737,15 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expressio
 		struct expression *sub = alloc_expression(expr->pos, EXPR_BINOP);
 		struct expression *div = expr;
 		struct expression *val = alloc_expression(expr->pos, EXPR_VALUE);
+		unsigned long value = ctype->bit_size >> 3;
 
 		val->ctype = size_t_ctype;
-		val->value = ctype->bit_size >> 3;
+		val->value = value;
+
+		if (value & (value-1)) {
+			if (Wptr_subtraction_blows)
+				warning(expr->pos, "potentially expensive pointer subtraction");
+		}
 
 		sub->op = '-';
 		sub->ctype = ssize_t_ctype;

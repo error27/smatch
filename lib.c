@@ -370,6 +370,7 @@ int Wbitwise = 0;
 int Wtypesign = 0;
 int Wcontext = 0;
 int Wundefined_preprocessor = 0;
+int Wptr_subtraction_blows = 0;
 int preprocess_only;
 char *include;
 int include_fd = -1;
@@ -496,6 +497,7 @@ const struct warning {
 	const char *name;
 	int *flag;
 } warnings[] = {
+	{ "ptr-subtraction-blows", &Wptr_subtraction_blows },
 	{ "default-bitfield-sign", &Wdefault_bitfield_sign },
 	{ "undef", &Wundefined_preprocessor },
 	{ "bitwise", &Wbitwise },
