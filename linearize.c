@@ -445,7 +445,7 @@ static pseudo_t linearize_store_gen(struct entrypoint *ep, pseudo_t value, struc
 
 	if(is_bitfield_type(ctype)) {
 		unsigned long mask = ((1<<ctype->bit_size)-1) << ctype->bit_offset;
-		pseudo_t shifted, andmask, ormask, orig, orig_mask, value_mask, newval;
+		pseudo_t shifted, ormask, orig, value_mask, newval;
 
 		shifted = value;
 		if (ctype->bit_offset) {
@@ -455,17 +455,13 @@ static pseudo_t linearize_store_gen(struct entrypoint *ep, pseudo_t value, struc
 			add_deathnote(ep, shift);
 		}
 		orig = add_load(ep, expr, addr);
-		andmask = add_const_value(ep, expr->pos, &uint_ctype, ~mask);
-		orig_mask = add_binary_op(ep, ctype, OP_AND, orig, andmask);
-		add_deathnote(ep, orig);
-		add_deathnote(ep, andmask);
 		ormask = add_const_value(ep, expr->pos, &uint_ctype, mask);
 		value_mask = add_binary_op(ep, ctype, OP_AND, shifted, ormask);
 		add_deathnote(ep, ormask);
 		if (shifted != value)
 			add_deathnote(ep, shifted);
-		newval = add_binary_op(ep, ctype, OP_OR, orig_mask, value_mask);
-		add_deathnote(ep, orig_mask);
+		newval = add_binary_op(ep, ctype, OP_OR, orig, value_mask);
+		add_deathnote(ep, orig);
 		add_deathnote(ep, value_mask);
 		value = newval;
 	}
