@@ -249,7 +249,7 @@ static int bb_dominates(struct entrypoint *ep, struct basic_block *bb1, struct b
 	struct basic_block *parent;
 
 	/* Nothing dominates the entrypoint.. */
-	if (bb2 == ep->entry)
+	if (bb2 == ep->entry->bb)
 		return 0;
 	FOR_EACH_PTR(bb2->parents, parent) {
 		if (parent == bb1)
