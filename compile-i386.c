@@ -12,7 +12,6 @@
  * TODO list:
  * in general, any non-32bit SYM_BASETYPE is unlikely to work.
  * loops
- * 'switch' statements
  * complex initializers
  * bitfields
  * global struct/union variables
@@ -67,6 +66,7 @@ enum storage_type {
 	STOR_REG,	/* scratch register */
 	STOR_VALUE,	/* integer constant */
 	STOR_LABEL,	/* label / jump target */
+	STOR_LABELSYM,	/* label generated from symbol's pointer value */
 };
 
 struct reg_info {
@@ -100,6 +100,10 @@ struct storage {
 		/* STOR_LABEL */
 		struct {
 			int label;
+		};
+		/* STOR_LABELSYM */
+		struct {
+			struct symbol *labelsym;
 		};
 	};
 };
@@ -270,6 +274,10 @@ static const char *stor_op_name(struct storage *s)
 		sprintf(name, "%s.L%d", s->flags & STOR_LABEL_VAL ? "$" : "",
 			s->label);
 		break;
+	case STOR_LABELSYM:
+		sprintf(name, "%s.LS%p", s->flags & STOR_LABEL_VAL ? "$" : "",
+			s->labelsym);
+		break;
 	}
 
 	return name;
@@ -340,6 +348,34 @@ static struct storage *new_pseudo(void)
 	stor->pseudo = ++f->pseudo_nr;
 
 	add_ptr_list(&f->pseudo_list, stor);
+
+	return stor;
+}
+
+static struct storage *new_labelsym(struct symbol *sym)
+{
+	struct storage *stor;
+
+	stor = new_storage(STOR_LABELSYM);
+
+	if (stor) {
+		stor->flags |= STOR_WANTS_FREE;
+		stor->labelsym = sym;
+	}
+
+	return stor;
+}
+
+static struct storage *new_val(long long value)
+{
+	struct storage *stor;
+
+	stor = new_storage(STOR_VALUE);
+
+	if (stor) {
+		stor->flags |= STOR_WANTS_FREE;
+		stor->value = value;
+	}
 
 	return stor;
 }
@@ -417,6 +453,32 @@ static void insn(const char *insn, struct storage *op1, struct storage *op2,
 	atom->op2 = op2;
 
 	push_atom(f, atom);
+}
+
+static void emit_label (int label, const char *comment)
+{
+	struct function *f = current_func;
+	char s[64];
+
+	if (!comment)
+		sprintf(s, ".L%d:\n", label);
+	else
+		sprintf(s, ".L%d:\t\t\t\t\t# %s\n", label, comment);
+
+	push_text_atom(f, s);
+}
+
+static void emit_labelsym (struct symbol *sym, const char *comment)
+{
+	struct function *f = current_func;
+	char s[64];
+
+	if (!comment)
+		sprintf(s, ".LS%p:\n", sym);
+	else
+		sprintf(s, ".LS%p:\t\t\t\t# %s\n", sym, comment);
+
+	push_text_atom(f, s);
 }
 
 static void emit_unit_pre(const char *basename)
@@ -586,7 +648,6 @@ static void emit_func_post(struct symbol *sym)
 	const char *name = show_ident(sym->ident);
 	struct function *f = current_func;
 	int pseudo_nr = f->pseudo_nr;
-	char jump_target[16];
 
 	if (f->str_list)
 		emit_string_list(f);
@@ -608,8 +669,7 @@ static void emit_func_post(struct symbol *sym)
 	/* function epilogue */
 
 	/* jump target for 'return' statements */
-	sprintf(jump_target, ".L%d:\n", f->ret_target);
-	push_text_atom(f, jump_target);
+	emit_label(f->ret_target, NULL);
 
 	if (pseudo_nr) {
 		struct storage *val;
@@ -1052,11 +1112,9 @@ static struct storage *emit_binop(struct expression *expr)
 
 static void emit_if_conditional(struct statement *stmt)
 {
-	struct function *f = current_func;
 	struct storage *val, *target_val;
 	int target;
 	struct expression *cond = stmt->if_conditional;
-	char s[16];
 
 /* This is only valid if nobody can jump into the "dead" statement */
 #if 0
@@ -1103,15 +1161,13 @@ static void emit_if_conditional(struct statement *stmt)
 		/* if we have both if-true and if-false statements,
 		 * the failed-conditional case will fall through to here
 		 */
-		sprintf(s, ".L%d:\n", target);
-		push_text_atom(f, s);
+		emit_label(target, NULL);
 
 		target = last;
 		x86_statement(stmt->if_false);
 	}
 
-	sprintf(s, ".L%d:\t\t\t\t\t# end if\n", target);
-	push_text_atom(f, s);
+	emit_label(target, "end if");
 }
 
 static struct storage *emit_inc_dec(struct expression *expr, int postop)
@@ -1146,8 +1202,7 @@ static struct storage *emit_return_stmt(struct statement *stmt)
 {
 	struct function *f = current_func;
 	struct expression *expr = stmt->ret_value;
-	struct storage *val = NULL;
-	char s[32];
+	struct storage *val = NULL, *jmplbl;
 
 	if (expr && expr->ctype) {
 		val = x86_expression(expr);
@@ -1155,8 +1210,10 @@ static struct storage *emit_return_stmt(struct statement *stmt)
 		emit_move(val, REG_EAX, expr->ctype, "return");
 	}
 
-	sprintf(s, "\tjmp\t.L%d\n", f->ret_target);
-	push_text_atom(f, s);
+	jmplbl = new_storage(STOR_LABEL);
+	jmplbl->flags |= STOR_WANTS_FREE;
+	jmplbl->label = f->ret_target;
+	insn("jmp", jmplbl, NULL, NULL);
 
 	return val;
 }
@@ -1283,6 +1340,94 @@ static struct storage *emit_regular_preop(struct expression *expr)
 	return new;
 }
 
+static void emit_case_statement(struct statement *stmt)
+{
+	emit_labelsym(stmt->case_label, NULL);
+	x86_statement(stmt->case_statement);
+}
+
+static void emit_switch_statement(struct statement *stmt)
+{
+	struct storage *val = x86_expression(stmt->switch_expression);
+	struct symbol *sym, *default_sym = NULL;
+	struct storage *labelsym, *label;
+	int switch_end = 0;
+
+	emit_move(val, REG_EAX, stmt->switch_expression->ctype, "begin case");
+
+	/*
+	 * This is where a _real_ back-end would go through the
+	 * cases to decide whether to use a lookup table or a
+	 * series of comparisons etc
+	 */
+	FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
+		struct statement *case_stmt = sym->stmt;
+		struct expression *expr = case_stmt->case_expression;
+		struct expression *to = case_stmt->case_to;
+
+		/* default: */
+		if (!expr)
+			default_sym = sym;
+
+		/* case NNN: */
+		else {
+			struct storage *case_val = new_val(expr->value);
+
+			assert (expr->type == EXPR_VALUE);
+
+			insn("cmpl", case_val, REG_EAX, NULL);
+
+			if (!to) {
+				labelsym = new_labelsym(sym);
+				insn("je", labelsym, NULL, NULL);
+			} else {
+				int next_test;
+
+				label = new_storage(STOR_LABEL);
+				label->flags |= STOR_WANTS_FREE;
+				label->label = next_test = new_label();
+				
+				/* FIXME: signed/unsigned */
+				insn("jl", label, NULL, NULL);
+
+				case_val = new_val(to->value);
+				insn("cmpl", case_val, REG_EAX, NULL);
+
+				/* TODO: implement and use refcounting... */
+				label = new_storage(STOR_LABEL);
+				label->flags |= STOR_WANTS_FREE;
+				label->label = next_test;
+				
+				/* FIXME: signed/unsigned */
+				insn("jg", label, NULL, NULL);
+
+				labelsym = new_labelsym(sym);
+				insn("jmp", labelsym, NULL, NULL);
+
+				emit_label(next_test, NULL);
+			}
+		}
+	} END_FOR_EACH_PTR;
+
+	if (default_sym) {
+		labelsym = new_labelsym(default_sym);
+		insn("jmp", labelsym, NULL, "default");
+	} else {
+		label = new_storage(STOR_LABEL);
+		label->flags |= STOR_WANTS_FREE;
+		label->label = switch_end = new_label();
+		insn("jmp", label, NULL, "goto end of switch");
+	}
+
+	x86_statement(stmt->switch_statement);
+
+	if (stmt->switch_break->used)
+		emit_labelsym(stmt->switch_break, NULL);
+
+	if (switch_end)
+		emit_label(switch_end, NULL);
+}
+
 static void x86_struct_member(struct symbol *sym, void *data, int flags)
 {
 	if (flags & ITERATE_FIRST)
@@ -1361,51 +1506,6 @@ static void x86_symbol(struct symbol *sym)
 }
 
 static void x86_symbol_init(struct symbol *sym);
-
-static void x86_switch_statement(struct statement *stmt)
-{
-	struct storage *val = x86_expression(stmt->switch_expression);
-	struct symbol *sym;
-	printf("\tswitch v%d\n", val->pseudo);
-
-	/*
-	 * Debugging only: Check that the case list is correct
-	 * by printing it out.
-	 *
-	 * This is where a _real_ back-end would go through the
-	 * cases to decide whether to use a lookup table or a
-	 * series of comparisons etc
-	 */
-	printf("# case table:\n");
-	FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
-		struct statement *case_stmt = sym->stmt;
-		struct expression *expr = case_stmt->case_expression;
-		struct expression *to = case_stmt->case_to;
-
-		if (!expr) {
-			printf("    default");
-		} else {
-			if (expr->type == EXPR_VALUE) {
-				printf("    case %lld", expr->value);
-				if (to) {
-					if (to->type == EXPR_VALUE) {
-						printf(" .. %lld", to->value);
-					} else {
-						printf(" .. what?");
-					}
-				}
-			} else
-				printf("    what?");
-		}
-		printf(": .L%p\n", sym);
-	} END_FOR_EACH_PTR;
-	printf("# end case table\n");
-
-	x86_statement(stmt->switch_statement);
-
-	if (stmt->switch_break->used)
-		printf(".L%p:\n", stmt->switch_break);
-}
 
 static void x86_symbol_decl(struct symbol_list *syms)
 {
@@ -1489,13 +1589,12 @@ static struct storage *x86_statement(struct statement *stmt)
 	case STMT_IF:
 		emit_if_conditional(stmt);
 		return NULL;
-	case STMT_SWITCH:
-		x86_switch_statement(stmt);
-		break;
 
 	case STMT_CASE:
-		printf(".L%p:\n", stmt->case_label);
-		x86_statement(stmt->case_statement);
+		emit_case_statement(stmt);
+		break;
+	case STMT_SWITCH:
+		emit_switch_statement(stmt);
 		break;
 
 	case STMT_ITERATOR:
@@ -1515,7 +1614,8 @@ static struct storage *x86_statement(struct statement *stmt)
 			struct storage *val = x86_expression(stmt->goto_expression);
 			printf("\tgoto *v%d\n", val->pseudo);
 		} else {
-			printf("\tgoto .L%p\n", stmt->goto_label);
+			struct storage *labelsym = new_labelsym(stmt->goto_label);
+			insn("jmp", labelsym, NULL, NULL);
 		}
 		break;
 	case STMT_ASM:
@@ -1564,8 +1664,10 @@ static struct storage *x86_call_expression(struct expression *expr)
 		}
 	}
 	if (direct) {
-		sprintf(s, "\tcall\t%s\n", show_ident(direct->ident));
-		push_text_atom(f, s);
+		struct storage *direct_stor = new_storage(STOR_SYM);
+		direct_stor->flags |= STOR_WANTS_FREE;
+		direct_stor->sym = direct;
+		insn("call", direct_stor, NULL, NULL);
 	} else {
 		fncall = x86_expression(fn);
 		emit_move(fncall, REG_EAX, fn->ctype, NULL);
@@ -1640,6 +1742,10 @@ static struct storage *x86_assignment(struct expression *expr)
 	case STOR_VALUE:
 	case STOR_LABEL:
 		emit_move(val, addr, expr->left->ctype, NULL);
+		break;
+
+	case STOR_LABELSYM:
+		assert(0);
 		break;
 	}
 	return val;
