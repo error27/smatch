@@ -440,8 +440,8 @@ static struct symbol *evaluate_add(struct expression *expr)
 
 #define MOD_SIZE (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG)
 #define MOD_IGNORE (MOD_TOPLEVEL | MOD_STORAGE | MOD_ADDRESSABLE |	\
-	MOD_SIGNED | MOD_UNSIGNED | MOD_EXPLICITLY_SIGNED |		\
 	MOD_ASSIGNED | MOD_USERTYPE | MOD_FORCE | MOD_ACCESSED)
+#define MOD_SIGNEDNESS (MOD_SIGNED | MOD_UNSIGNED | MOD_EXPLICITLY_SIGNED)
 
 const char * type_difference(struct symbol *target, struct symbol *source,
 	unsigned long target_mod_ignore, unsigned long source_mod_ignore)
@@ -538,9 +538,12 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 		if (diff) {
 			mod1 &= diff & ~target_mod_ignore;
 			mod2 &= diff & ~source_mod_ignore;
-			if (mod1 | mod2) {
-				if ((mod1 | mod2) & MOD_SIZE)
+			mod1 |= mod2;
+			if (mod1) {
+				if (mod1 & MOD_SIZE)
 					return "different type sizes";
+				if (!(mod1 & ~MOD_SIGNEDNESS))
+					return "different signedness";
 				return "different modifiers";
 			}
 		}
