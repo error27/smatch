@@ -29,6 +29,17 @@ static struct token *unmatched_if = NULL;
 static int elif_ignore[MAXNEST];
 #define if_nesting (true_nesting + false_nesting)
 
+#define INCLUDEPATHS 32
+char *includepath[INCLUDEPATHS+1] = {
+	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.1/include/",
+	"/usr/include/",
+	"/usr/local/include/",
+	"",
+	NULL
+};
+
+
+
 /*
  * This is stupid - the tokenizer already guarantees unique
  * identifiers, so we should just compare identifier pointers
@@ -749,6 +760,42 @@ static int handle_error(struct stream *stream, struct token *head, struct token 
 	return 1;
 }
 
+static int handle_nostdinc(struct stream *stream, struct token *head, struct token *token)
+{
+	if (false_nesting)
+		return 1;
+	includepath[1] = NULL;
+	return 1;
+}
+
+static void add_path_entry(struct token *token, const char *path)
+{
+	int i;
+
+	for (i = 0; i < INCLUDEPATHS; i++) {
+		if (!includepath[i]) {
+			includepath[i] = path;
+			includepath[i+1] = NULL;
+			return;
+		}
+	}
+	warn(token, "too many include path entries");
+}
+
+static int handle_add_include(struct stream *stream, struct token *head, struct token *token)
+{
+	for (;;) {
+		token = token->next;
+		if (eof_token(token))
+			return 1;
+		if (token->type != TOKEN_STRING) {
+			warn(token, "expected path string");
+			return 1;
+		}
+		add_path_entry(token, token->string->data);
+	}
+}
+
 static int handle_preprocessor_command(struct stream *stream, struct token *head, struct ident *ident, struct token *token)
 {
 	int i;
@@ -767,6 +814,10 @@ static int handle_preprocessor_command(struct stream *stream, struct token *head
 		{ "warning",	handle_warning },
 		{ "error",	handle_error },
 		{ "include",	handle_include },
+
+		// our internal preprocessor tokens
+		{ "nostdinc",	handle_nostdinc },
+		{ "add_include", handle_add_include },
 	};
 
 	for (i = 0; i < (sizeof (handlers) / sizeof (handlers[0])); i++) {
