@@ -252,11 +252,12 @@ static void expand_addressof(struct expression *expr)
 static void expand_dereference(struct expression *expr)
 {
 	struct expression *unop = expr->unop;
+
+	if (expr->ctype->ctype.modifiers & MOD_NODEREF)
+		warn(unop->pos, "dereference of noderef expression");
+
 	if (unop->type == EXPR_SYMBOL) {
 		struct symbol *sym = unop->symbol;
-
-		if (sym->ctype.modifiers & MOD_NODEREF)
-			warn(expr->pos, "dereference of '%s'", show_ident(sym->ident));
 
 		/* Const symbol with a constant initializer? */
 		if (!(sym->ctype.modifiers & (MOD_ASSIGNED | MOD_ADDRESSABLE))) {
