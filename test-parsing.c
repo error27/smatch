@@ -19,8 +19,8 @@
 #include "symbol.h"
 #include "expression.h"
 
-unsigned int pre_buffer_size = 0;
-unsigned char pre_buffer[8192];
+static unsigned int pre_buffer_size = 0;
+static unsigned char pre_buffer[8192];
 
 static void add_pre_buffer(const char *fmt, ...)
 {
@@ -65,12 +65,7 @@ static void handle_switch(char *arg)
 	}	
 }
 
-void clean_up_statement(struct statement *stmt, void *_parent, int flags)
-{
-	evaluate_statement(stmt);
-}
-
-void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
+static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 {
 	evaluate_symbol(sym);
 }
@@ -80,7 +75,6 @@ int main(int argc, char **argv)
 	int i, fd;
 	char *filename = NULL;
 	struct token *token;
-	struct symbol_list *list = NULL;
 
 	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
@@ -114,14 +108,14 @@ int main(int argc, char **argv)
 	token = preprocess(token);
 
 	// Parse the resulting C code
-	translation_unit(token, &list);
+	translation_unit(token, &used_list);
 
 	// Do type evaluation and simplify
-	symbol_iterate(list, clean_up_symbol, NULL);
+	symbol_iterate(used_list, clean_up_symbol, NULL);
 
 #if 1
 	// Show the end result.
-	show_symbol_list(list, "\n\n");
+	show_symbol_list(used_list, "\n\n");
 	printf("\n\n");
 #endif
 

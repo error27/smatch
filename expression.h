@@ -133,9 +133,6 @@ struct statement *alloc_statement(struct position pos, int type);
 struct token *initializer(struct expression **tree, struct token *token);
 struct token *compound_statement(struct token *, struct statement *);
 
-extern void clean_up_statement(struct statement *stmt, void *_parent, int flags);
-extern void clean_up_symbol(struct symbol *sym, void *_parent, int flags);
-
 /* The preprocessor calls this 'constant_expression()' */
 #define constant_expression(token,tree) conditional_expression(token, tree)
 
