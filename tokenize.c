@@ -94,12 +94,12 @@ const char *show_token(const struct token *token)
 
 	case TOKEN_INTEGER: {
 		char *ptr;
-		ptr = buffer + sprintf(buffer, "%llu", token->intval);
+		ptr = buffer + sprintf(buffer, "%lu", token->smallint);
 		return buffer;
 	}
 
 	case TOKEN_FP: {
-		sprintf(buffer, "%f", token->fpval);
+		sprintf(buffer, "%f", token->smallfp);
 		return buffer;
 	}
 
@@ -168,6 +168,15 @@ static int nextchar(action_t *action)
 	return c;
 }
 
+struct token eof_token_entry;
+
+static void mark_eof(action_t *action)
+{
+	eof_token_entry.next = &eof_token_entry;
+	*action->tokenlist = &eof_token_entry;
+	action->tokenlist = NULL;
+}
+
 static void add_token(action_t *action)
 {
 	struct token *token = action->token;
@@ -194,7 +203,7 @@ static int do_integer(unsigned long long value, int next, action_t *action)
 		next = nextchar(action);
 	}
 	token->type = TOKEN_INTEGER;
-	token->intval = value;
+	token->smallint = value;
 	add_token(action);
 	return next;
 }
@@ -356,7 +365,7 @@ static int get_char_token(int next, action_t *action)
 
 	token = action->token;
 	token->type = TOKEN_INTEGER;
-	token->intval = value & 0xff;
+	token->smallint = value & 0xff;
 
 	add_token(action);
 	return nextchar(action);
@@ -673,5 +682,6 @@ struct token * tokenize(const char *name, int fd)
 		}
 		c = nextchar(&action);
 	}
+	mark_eof(&action);
 	return retval;
 }

@@ -27,7 +27,8 @@ struct ident {
 };
 
 enum token_type {
-	TOKEN_ERROR = 0,
+	TOKEN_EOF,
+	TOKEN_ERROR,
 	TOKEN_IDENT,
 	TOKEN_INTEGER,
 	TOKEN_FP,
@@ -85,20 +86,35 @@ struct string {
 	char data[];
 };
 
+/*
+ * This is a very common data structure, it should be kept
+ * as small as humanly possible. Big (rare) types go as
+ * pointers.
+ */
 struct token {
+	unsigned int type:8,
+		     stream:8,
+		     pos:16;
 	unsigned int line;
-	unsigned int pos:16,stream:8;
 	struct token *next;
-
-	enum token_type type;
 	union {
-		double fpval;
-		unsigned long long intval;
+		unsigned long smallint;		// for "small" integers
+		unsigned long long *bigint;	// for big integers
+		float smallfp;			// for doubles that fit in floats (common)
+		double *bigfp;			// for others
 		struct ident *ident;
 		unsigned int special;
 		struct string *string;
 	};
 };
+
+/*
+ * Last token in the stream - points to itself.
+ * This allows us to not test for NULL pointers
+ * when following the token->next chain..
+ */
+extern struct token eof_token_entry;
+#define eof_token(x) ((x) == &eof_token_entry)
 
 extern int init_stream(const char *);
 extern struct ident *hash_ident(struct ident *);

@@ -73,12 +73,12 @@ struct statement *alloc_statement(struct token * token, int type)
 
 static int match_op(struct token *token, int op)
 {
-	return token && token->type == TOKEN_SPECIAL && token->special == op;
+	return token->type == TOKEN_SPECIAL && token->special == op;
 }
 
 static int match_ident(struct token *token, struct ident *id)
 {
-	return token && token->type == TOKEN_IDENT && token->ident == id;
+	return token->type == TOKEN_IDENT && token->ident == id;
 }
 
 static int match_oplist(int op, ...)
@@ -97,14 +97,14 @@ static int match_oplist(int op, ...)
 
 int lookup_type(struct token *token)
 {
-	if (token && token->type == TOKEN_IDENT)
+	if (token->type == TOKEN_IDENT)
 		return lookup_symbol(token->ident, NS_TYPEDEF) != NULL;
 	return 0;
 }
 
 static struct token *skip_to(struct token *token, int op)
 {
-	while (token && !match_op(token, op))
+	while (!match_op(token, op) && !eof_token(token))
 		token = token->next;
 	return token;
 }
@@ -148,11 +148,6 @@ static struct token *primary_expression(struct token *token, struct expression *
 {
 	struct expression *expr = NULL;
 
-	if (!token) {
-		*tree = NULL;
-		return token;
-	}
-
 	switch (token->type) {
 	case TOKEN_IDENT:
 	case TOKEN_INTEGER:
@@ -165,7 +160,7 @@ static struct token *primary_expression(struct token *token, struct expression *
 		expr = alloc_expression(token, EXPR_PRIMARY);
 		do {
 			token = token->next;
-		} while (token && token->type == TOKEN_STRING);
+		} while (token->type == TOKEN_STRING);
 		break;
 
 	case TOKEN_SPECIAL:
@@ -187,7 +182,7 @@ static struct token *postfix_expression(struct token *token, struct expression *
 	struct expression *expr = NULL;
 
 	token = primary_expression(token, &expr);
-	while (expr && token && token->type == TOKEN_SPECIAL) {
+	while (expr && token->type == TOKEN_SPECIAL) {
 		switch (token->special) {
 		case '[': {			/* Array dereference */
 			struct expression *array_expr = alloc_expression(token, EXPR_BINOP);
@@ -213,7 +208,7 @@ static struct token *postfix_expression(struct token *token, struct expression *
 			deref->op = token->special;
 			deref->deref = expr;
 			token = token->next;
-			if (!token || token->type != TOKEN_IDENT) {
+			if (token->type != TOKEN_IDENT) {
 				warn(token, "Expected member name");
 				break;
 			}
@@ -391,7 +386,7 @@ struct token *assignment_expression(struct token *token, struct expression **tre
 	struct expression *left = NULL;
 
 	token = logical_or_expression(token, &left);
-	if (token && token->type == TOKEN_SPECIAL) {
+	if (token->type == TOKEN_SPECIAL) {
 		static const int assignments[] = {
 			'=', SPECIAL_ADD_ASSIGN, SPECIAL_MINUS_ASSIGN,
 			SPECIAL_TIMES_ASSIGN, SPECIAL_DIV_ASSIGN,
@@ -515,7 +510,7 @@ struct token *typeof_specifier(struct token *token, struct symbol **p)
 	struct expression *expr;
 
 	*p = &empty;
-	if (token && match_op(token, '(') && lookup_type(token->next)) {
+	if (match_op(token, '(') && lookup_type(token->next)) {
 		token = typename(token->next, p);
 		return expect(token, ')', "after typeof");
 	}
@@ -533,7 +528,7 @@ struct token *attribute_specifier(struct token *token, struct symbol **p)
 	token = expect(token, '(', "after attribute");
 
 	for (;;) {
-		if (!token)
+		if (eof_token(token))
 			break;
 		if (match_op(token, ';'))
 			break;
@@ -636,7 +631,7 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 	struct token *(*declarator)(struct token *, struct symbol **, struct token **),
 	struct token **p)
 {
-	if (p && token && token->type == TOKEN_IDENT) {
+	if (p && token->type == TOKEN_IDENT) {
 		if (lookup_symbol(token->ident, NS_TYPEDEF)) {
 			warn(token, "unexpected type/qualifier");
 			return token;
@@ -651,7 +646,7 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 			token = attribute_specifier(token->next, &sym);
 			continue;
 		}
-		if (!token || token->type != TOKEN_SPECIAL)
+		if (token->type != TOKEN_SPECIAL)
 			return token;
 
 		/*
@@ -808,7 +803,7 @@ struct token *statement(struct token *token, struct statement **tree)
 			token = parens_expression(token->next, &stmt->if_conditional, "after if");
 			token = statement(token, &stmt->if_true);
 			*tree = stmt;
-			if (!token || token->type != TOKEN_IDENT)
+			if (token->type != TOKEN_IDENT)
 				return token;
 			if (token->ident != &else_ident)
 				return token;
@@ -864,7 +859,7 @@ default_statement:
 		if (token->ident == &do_ident) {
 			stmt->type = STMT_DO;
 			token = statement(token->next, &stmt->iterate);
-			if (token && token->type == TOKEN_IDENT && token->ident == &while_ident)
+			if (token->type == TOKEN_IDENT && token->ident == &while_ident)
 				token = token->next;
 			else
 				warn(token, "expected 'while' after 'do'");
@@ -874,7 +869,7 @@ default_statement:
 		if (token->ident == &goto_ident) {
 			stmt->type = STMT_GOTO;
 			token = token->next;			
-			if (token && token->type == TOKEN_IDENT) {
+			if (token->type == TOKEN_IDENT) {
 				stmt->goto_label = token;
 				token = token->next;
 			} else
@@ -885,7 +880,7 @@ default_statement:
 			struct expression *expr;
 			stmt->type = STMT_ASM;
 			token = token->next;
-			if (token && token->type == TOKEN_IDENT) {
+			if (token->type == TOKEN_IDENT) {
 				if (token->ident == &__volatile___ident || token->ident == &volatile_ident)
 					token = token->next;
 			}
@@ -921,7 +916,7 @@ struct token * statement_list(struct token *token, struct statement_list **list)
 {
 	for (;;) {
 		struct statement * stmt;
-		if (!token)
+		if (eof_token(token))
 			break;
 		if (match_op(token, '}'))
 			break;
@@ -962,7 +957,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 
 static struct token *compound_statement(struct token *token, struct statement *stmt)
 {
-	while (token) {
+	while (!eof_token(token)) {
 		if (!lookup_type(token))
 			break;
 		token = external_declaration(token, &stmt->syms);
@@ -1049,6 +1044,6 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 
 void translation_unit(struct token *token, struct symbol_list **list)
 {
-	while (token)
+	while (!eof_token(token))
 		token = external_declaration(token, list);
 }
