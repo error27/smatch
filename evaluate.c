@@ -1335,11 +1335,9 @@ static struct symbol *evaluate_call(struct expression *expr)
 	args = expression_list_size(expr->args);
 	fnargs = symbol_list_size(ctype->arguments);
 	if (args < fnargs)
-		warn(expr->pos, "not enough arguments for function %.*s",
-				sym->ident->len, sym->ident->name);
+		warn(expr->pos, "not enough arguments for function %s", show_ident(sym->ident));
 	if (args > fnargs && !ctype->variadic)
-		warn(expr->pos, "too many arguments for function %.*s",
-				sym->ident->len, sym->ident->name);
+		warn(expr->pos, "too many arguments for function %s", show_ident(sym->ident));
 	expr->ctype = ctype->ctype.base_type;
 	return expr->ctype;
 }
