@@ -77,13 +77,18 @@ static struct symbol *evaluate_string(struct expression *expr)
 	struct symbol *sym = alloc_symbol(expr->pos, SYM_NODE);
 	struct symbol *array = alloc_symbol(expr->pos, SYM_ARRAY);
 	struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
-	int length = expr->string->length;
+	struct expression *initstr = alloc_expression(expr->pos, EXPR_STRING);
+	unsigned int length = expr->string->length;
 
 	sym->array_size = length;
 	sym->bit_size = BITS_IN_CHAR * length;
 	sym->ctype.alignment = 1;
 	sym->ctype.modifiers = MOD_STATIC;
 	sym->ctype.base_type = array;
+	sym->initializer = initstr;
+
+	initstr->ctype = sym;
+	initstr->string = expr->string;
 
 	array->array_size = length;
 	array->bit_size = BITS_IN_CHAR * length;
