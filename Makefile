@@ -13,11 +13,14 @@ test-lexing: test-lexing.o $(COMMON)
 test-parsing: test-parsing.o $(COMMON)
 	gcc -o $@ $< $(COMMON)
 
-test-parsing.o: $(HEADERS)
-test-lexing.o: $(HEADERS)
-tokenize.o: $(HEADERS)
+lib.o: $(HEADERS)
 parse.o: $(HEADERS)
+pre-process.o: $(HEADERS)
+scope.o: $(HEADERS)
 symbol.o: $(HEADERS)
+test-lexing.o: $(HEADERS)
+test-parsing.o: $(HEADERS)
+tokenize.o: $(HEADERS)
 
 clean:
 	rm -f *.[oasi] core core.[0-9]* $(PROGRAMS)
