@@ -592,6 +592,8 @@ long long get_expression_value(struct expression *expr)
 	long long value, mask;
 	struct symbol *ctype;
 
+	if (!expr)
+		return 0;
 	ctype = evaluate_expression(expr);
 	if (!ctype) {
 		warn(expr->pos, "bad constant expression type");

@@ -88,7 +88,7 @@ struct symbol {
 				variadic:1,
 				used:1,
 				initialized:1;
-		int	array_size;
+		struct expression *array_size;
 		struct ctype ctype;
 		struct symbol_list *arguments;
 		struct statement *stmt;

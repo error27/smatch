@@ -766,7 +766,7 @@ static void emit_initializer(struct symbol *sym,
 		struct symbol *base_type = sym->ctype.base_type;
 		assert(base_type != NULL);
 
-		emit_scalar(expr, sym->bit_size / base_type->array_size);
+		emit_scalar(expr, sym->bit_size / get_expression_value(base_type->array_size));
 		return;
 	}
 	if (expr->type != EXPR_INITIALIZER)
@@ -921,7 +921,7 @@ static void emit_array_noinit(struct symbol *sym)
 {
 	emit_global_noinit(show_ident(sym->ident),
 			   sym->ctype.modifiers, sym->ctype.alignment,
-			   sym->array_size * (sym->bit_size / 8));
+			   get_expression_value(sym->array_size) * (sym->bit_size / 8));
 	stor_sym_init(sym);
 }
 

@@ -148,8 +148,8 @@ static void examine_array_type(struct symbol *sym)
 	if (!base_type)
 		return;
 	examine_symbol_type(base_type);
-	bit_size = base_type->bit_size * sym->array_size;
-	if (sym->array_size < 0)
+	bit_size = base_type->bit_size * get_expression_value(sym->array_size);
+	if (!sym->array_size)
 		bit_size = -1;
 	alignment = base_type->ctype.alignment;
 	if (!sym->ctype.alignment)

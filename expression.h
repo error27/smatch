@@ -136,6 +136,16 @@ static inline struct expression *alloc_expression(struct position pos, int type)
 	return expr;
 }
 
+static inline struct expression *alloc_const_expression(struct position pos, int value)
+{
+	struct expression *expr = __alloc_expression(0);
+	expr->type = EXPR_VALUE;
+	expr->pos = pos;
+	expr->value = value;
+	expr->ctype = &int_ctype;
+	return expr;
+}
+
 /* Type name parsing */
 struct token *typename(struct token *, struct symbol **);
 

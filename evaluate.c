@@ -80,7 +80,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 	struct expression *initstr = alloc_expression(expr->pos, EXPR_STRING);
 	unsigned int length = expr->string->length;
 
-	sym->array_size = length;
+	sym->array_size = alloc_const_expression(expr->pos, length);
 	sym->bit_size = BITS_IN_CHAR * length;
 	sym->ctype.alignment = 1;
 	sym->ctype.modifiers = MOD_STATIC;
@@ -90,7 +90,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 	initstr->ctype = sym;
 	initstr->string = expr->string;
 
-	array->array_size = length;
+	array->array_size = sym->array_size;
 	array->bit_size = BITS_IN_CHAR * length;
 	array->ctype.alignment = 1;
 	array->ctype.modifiers = MOD_STATIC;
@@ -1178,7 +1178,7 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep, un
 			compatible_assignment_types(expr, ctype, ep, rtype, "initializer");
 			/* strings are special: char arrays */
 			if (rtype->type == SYM_ARRAY)
-				size = rtype->array_size;
+				size = get_expression_value(rtype->array_size);
 			/*
 			 * Don't bother creating a position expression for
 			 * the simple initializer cases that don't need it.
@@ -1463,11 +1463,11 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 	/* Evaluate the initializers */
 	if (sym->initializer) {
 		int count = evaluate_initializer(sym, &sym->initializer, 0);
-		if (base_type->type == SYM_ARRAY && base_type->array_size < 0) {
+		if (base_type->type == SYM_ARRAY && !base_type->array_size) {
 			int bit_size = count * base_type->ctype.base_type->bit_size;
-			base_type->array_size = count;
+			base_type->array_size = alloc_const_expression(sym->pos, count);
 			base_type->bit_size = bit_size;
-			sym->array_size = count;
+			sym->array_size = base_type->array_size;
 			sym->bit_size = bit_size;
 		}
 	}

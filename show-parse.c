@@ -252,7 +252,7 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 		return;
 
 	case SYM_ARRAY:
-		append(name, "[%d]", sym->array_size);
+		append(name, "[%lld]", get_expression_value(sym->array_size));
 		return;
 	default:
 		break;

@@ -423,10 +423,7 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 	struct expression *expr = NULL;
 
 	token = parse_expression(token, &expr);
-	if (expr)
-		sym->array_size = get_expression_value(expr);
-	else
-		sym->array_size = -1;
+	sym->array_size = expr;
 	return token;
 }
 
