@@ -1348,14 +1348,21 @@ static int handle_preprocessor_command(struct stream *stream, struct token **lin
 	return 0;
 }
 
-static void handle_preprocessor_line(struct stream *stream, struct token **line, struct token *token)
+static void handle_preprocessor_line(struct stream *stream, struct token **line, struct token *start)
 {
+	struct token *token = start->next;
+
 	if (!token)
 		return;
+
+	if (token_type(token) == TOKEN_NUMBER)
+		if (handle_line(stream, line, start))
+			return;
 
 	if (token_type(token) == TOKEN_IDENT)
 		if (handle_preprocessor_command(stream, line, token->ident, token))
 			return;
+
 	warn(token->pos, "unrecognized preprocessor line '%s'", show_token_sequence(token));
 }
 
@@ -1372,7 +1379,7 @@ static void preprocessor_line(struct stream *stream, struct token **line)
 	}
 	*line = next;
 	*tp = &eof_token_entry;
-	handle_preprocessor_line(stream, line, start->next);
+	handle_preprocessor_line(stream, line, start);
 }
 
 static void do_preprocess(struct token **list)
