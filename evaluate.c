@@ -1046,22 +1046,26 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	}
 
 	ctype = deref->ctype;
-	if (ctype->type == SYM_NODE)
-		ctype = ctype->ctype.base_type;
-	mod = ctype->ctype.modifiers;
 	address_space = ctype->ctype.as;
+	mod = ctype->ctype.modifiers;
+	if (ctype->type == SYM_NODE) {
+		ctype = ctype->ctype.base_type;
+		address_space |= ctype->ctype.as;
+		mod |= ctype->ctype.modifiers;
+	}
 	if (expr->op == SPECIAL_DEREFERENCE) {
 		/* Arrays will degenerate into pointers for '->' */
 		if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
 			warn(expr->pos, "expected a pointer to a struct/union");
 			return NULL;
 		}
+		mod = ctype->ctype.modifiers;
 		address_space = ctype->ctype.as;
 		ctype = ctype->ctype.base_type;
-		mod |= ctype->ctype.modifiers;
 		if (ctype->type == SYM_NODE) {
-			ctype = ctype->ctype.base_type;
 			mod |= ctype->ctype.modifiers;
+			address_space |= ctype->ctype.as;
+			ctype = ctype->ctype.base_type;
 		}
 	} else {
 		if (!lvalue_expression(deref)) {
