@@ -1044,15 +1044,43 @@ struct token *initializer(struct expression **tree, struct token *token)
 	return assignment_expression(token, tree);
 }
 
-static void declare_argument(struct symbol *sym, void *data, int flags)
+static void declare_argument(struct symbol *sym, struct symbol *fn)
 {
-	struct symbol *decl = data;
-
 	if (!sym->ident) {
-		warn(decl->pos, "no identifier for function argument");
+		warn(sym->pos, "no identifier for function argument");
 		return;
 	}
 	bind_symbol(sym, sym->ident, NS_SYMBOL);
+}
+
+static struct token *parse_function_body(struct token *token, struct symbol *decl,
+	struct symbol_list **list)
+{
+	struct symbol *base_type = decl->ctype.base_type;
+	struct statement *stmt;
+	struct symbol *arg;
+
+	if (decl->ctype.modifiers & MOD_EXTERN) {
+		if (!(decl->ctype.modifiers & MOD_INLINE))
+			warn(decl->pos, "function with external linkage has definition");
+	}
+	if (!(decl->ctype.modifiers & MOD_STATIC))
+		decl->ctype.modifiers |= MOD_EXTERN;
+
+	stmt = start_function(decl);
+
+	base_type->stmt = stmt;
+	FOR_EACH_PTR (base_type->arguments, arg) {
+		declare_argument(arg, base_type);
+	} END_FOR_EACH_PTR;
+
+	token = compound_statement(token->next, stmt);
+
+	end_function(decl);
+	if (!(decl->ctype.modifiers & MOD_INLINE))
+		add_symbol(list, decl);
+	check_declaration(decl);
+	return expect(token, '}', "at end of function");
 }
 
 static struct token *external_declaration(struct token *token, struct symbol_list **list)
@@ -1089,27 +1117,9 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 
 	base_type = decl->ctype.base_type;
 	if (!is_typedef && base_type && base_type->type == SYM_FN) {
-		if (match_op(token, '{')) {
-			struct statement *stmt;
-			if (decl->ctype.modifiers & MOD_EXTERN) {
-				if (!(decl->ctype.modifiers & MOD_INLINE))
-					warn(decl->pos, "function with external linkage has definition");
-			}
-			if (!(decl->ctype.modifiers & MOD_STATIC))
-				decl->ctype.modifiers |= MOD_EXTERN;
+		if (match_op(token, '{'))
+			return parse_function_body(token, decl, list);
 
-			stmt = start_function(decl);
-
-			base_type->stmt = stmt;
-			symbol_iterate(base_type->arguments, declare_argument, decl);
-			token = compound_statement(token->next, stmt);
-
-			end_function(decl);
-			if (!(decl->ctype.modifiers & MOD_INLINE))
-				add_symbol(list, decl);
-			check_declaration(decl);
-			return expect(token, '}', "at end of function");
-		}
 		if (!(decl->ctype.modifiers & MOD_STATIC))
 			decl->ctype.modifiers |= MOD_EXTERN;
 	}
