@@ -635,13 +635,9 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 		right = expr->right;
 	}
 
-	if (!ltype) {
-		warn(expr->pos, "what? no ltype");
-		return 0;
-	}
-	if (!rtype) {
-		warn(expr->pos, "what? no rtype");
-		return 0;
+	if (left->type != EXPR_PREOP || left->op != '*') {
+		warn(expr->pos, "not an lvalue");
+		return NULL;
 	}
 
 	if (!compatible_assignment_types(expr, ltype, &expr->right, rtype))
@@ -876,12 +872,6 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 	return size_t_ctype;
 }
 
-static struct symbol *evaluate_lvalue_expression(struct expression *expr)
-{
-	// FIXME!
-	return evaluate_expression(expr);
-}
-
 static int evaluate_expression_list(struct expression_list *head)
 {
 	if (head) {
@@ -1055,7 +1045,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 			return NULL;
 		return evaluate_compare(expr);
 	case EXPR_ASSIGNMENT:
-		if (!evaluate_lvalue_expression(expr->left))
+		if (!evaluate_expression(expr->left))
 			return NULL;
 		if (!evaluate_expression(expr->right))
 			return NULL;
