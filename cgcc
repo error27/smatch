@@ -24,7 +24,7 @@ exec ($cc);
 
 sub check_only_option {
     my ($arg) = @_;
-    return 1 if $arg =~ /^-W(no-?)?default-bitfield-sign$/;
+    return 1 if $arg =~ /^-W(no-?)?(default-bitfield-sig|bitwise|typesign)$/;
     return 0;
 }
 
