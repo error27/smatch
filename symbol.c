@@ -231,6 +231,7 @@ struct symbol	void_type,
 
 IDENT(struct); IDENT(union); IDENT(enum);
 IDENT(sizeof);
+IDENT(alignof); IDENT(__alignof); IDENT(__alignof__);
 IDENT(if); IDENT(else); IDENT(return);
 IDENT(switch); IDENT(case); IDENT(default);
 IDENT(break); IDENT(continue);
@@ -246,6 +247,9 @@ void init_symbols(void)
 	struct sym_init *ptr;
 
 	hash_ident(&sizeof_ident);
+	hash_ident(&alignof_ident);
+	hash_ident(&__alignof_ident);
+	hash_ident(&__alignof___ident);
 	hash_ident(&if_ident);
 	hash_ident(&else_ident);
 	hash_ident(&return_ident);

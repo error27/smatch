@@ -275,7 +275,9 @@ static struct token *typename(struct token *, struct symbol **);
 static struct token *cast_expression(struct token *token, struct expression **tree);
 static struct token *unary_expression(struct token *token, struct expression **tree)
 {
-	if (token->type == TOKEN_IDENT && token->ident == &sizeof_ident) {
+	if (token->type == TOKEN_IDENT &&
+	    (token->ident == &sizeof_ident ||
+	     token->ident == &__alignof___ident)) {
 		struct expression *sizeof_ex = alloc_expression(token, EXPR_SIZEOF);
 		*tree = sizeof_ex;
 		tree = &sizeof_ex->unop;

@@ -156,7 +156,6 @@ int init_stream(const char *name, int fd)
 	int stream = input_stream_nr;
 	struct stream *current;
 
-fprintf(stderr, "%s\n", name);
 	if (stream >= input_streams_allocated) {
 		int newalloc = stream * 4 / 3 + 10;
 		input_streams = realloc(input_streams, newalloc * sizeof(struct stream));
@@ -185,7 +184,6 @@ fprintf(stderr, "%s\n", name);
 		}
 	}
 	input_stream_nr = stream+1;
-fprintf(stderr, "%d\n", stream);
 	return stream;
 }
 
@@ -697,10 +695,8 @@ struct token * tokenize(const char *name, int fd, struct token *endtoken)
 	int c, idx;
 
 	idx = init_stream(name, fd);
-	if (idx < 0) {
-		fprintf(stderr, "Not re-tokenizing '%s'\n", name);
+	if (idx < 0)
 		return endtoken;
-	}
 
 	stream.stream = idx;
 	stream.token = NULL;

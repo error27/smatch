@@ -843,12 +843,9 @@ static void do_preprocess(struct token *head)
 		case TOKEN_STREAMEND:
 			if (stream->constant == -1 && stream->protect) {
 				stream->constant = 1;
-				fprintf(stderr, "stream %s was conditional on '%s'\n",
-					stream->name, stream->protect->name);
 			}
 			/* fallthrough */
 		case TOKEN_STREAMBEGIN:
-			fprintf(stderr, "<%s>\n", show_token(next));
 			head->next = next->next;
 			continue;
 

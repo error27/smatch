@@ -94,6 +94,9 @@ extern struct symbol	void_type,
 
 /* Basic identifiers */
 extern struct ident	sizeof_ident,
+			alignof_ident,
+			__alignof_ident,
+			__alignof___ident,
 			if_ident,
 			else_ident,
 			switch_ident,
