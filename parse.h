@@ -2,9 +2,11 @@
 #define PARSE_H
 
 enum expression_type {
-	EXPR_UNARY,
+	EXPR_PRIMARY,
 	EXPR_BINOP,
-	EXPR_IDENT,
+	EXPR_DEREF,
+	EXPR_PREOP,
+	EXPR_POSTOP,
 };
 
 struct expression {
@@ -14,6 +16,10 @@ struct expression {
 		struct expression *unop;
 		struct binop_arg {
 			struct expression *left, *right;
+		};
+		struct deref_arg {
+			struct expression *deref;
+			struct token *member;
 		};
 	};
 };

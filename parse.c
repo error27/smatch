@@ -20,20 +20,34 @@ void show_expression(struct expression *expr)
 		return;
 
 	switch (expr->type) {
-	case EXPR_IDENT:
-		printf("%s", show_token(expr->token));
-		break;
 	case EXPR_BINOP:
-		printf("<");
+		printf("< ");
 		show_expression(expr->left);
 		printf(" %s ", show_special(expr->op));
 		show_expression(expr->right);
-		printf(">");
+		printf(" >");
 		break;
-	case EXPR_UNARY:
-		printf("(");
+	case EXPR_PREOP:
+		printf("( ");
+		printf(" %s ", show_special(expr->op));
 		show_expression(expr->unop);
-		printf(")");
+		printf(" )");
+		break;
+	case EXPR_POSTOP:
+		printf("( ");
+		show_expression(expr->unop);
+		printf(" %s ", show_special(expr->op));
+		printf(" )");
+		break;
+	case EXPR_PRIMARY:
+		printf("%s", show_token(expr->token));
+		break;
+	case EXPR_DEREF:
+		printf("< ");
+		show_expression(expr->deref);
+		printf("%s", show_special(expr->op));
+		printf("%s", show_token(expr->member));
+		printf(" >");
 		break;
 	default:
 		printf("WTF");
@@ -52,33 +66,104 @@ static struct expression *alloc_expression(struct token *token, int type)
 	return expr;
 }
 
-struct token *cast_expression(struct token *token, struct expression **tree)
+struct token *expect(struct token *token, int op)
+{
+	if (!token ||
+	     token->value.type != TOKEN_SPECIAL ||
+	     token->value.special != op) {
+		warn(token, "Expected %s", show_special(op));
+		return token;
+	}
+	return token->next;
+}
+
+struct token *primary_expression(struct token *token, struct expression **tree)
 {
 	struct expression *expr = NULL;
 
-	if (token) {
-		switch (token->value.type) {
-		case TOKEN_IDENT:
-			expr = alloc_expression(token, EXPR_IDENT);
-			token = token->next;
+	switch (token->value.type) {
+	case TOKEN_IDENT:
+	case TOKEN_INTEGER:
+	case TOKEN_FP:
+	case TOKEN_STRING:
+		expr = alloc_expression(token, EXPR_PRIMARY);
+		token = token->next;
+		break;
+
+	case TOKEN_SPECIAL:
+		if (token->value.special == '(') {
+			expr = alloc_expression(token, EXPR_PREOP);
+			expr->op = '(';
+			token = parse_expression(token->next, &expr->unop);
+			token = expect(token, ')');
 			break;
-		case TOKEN_SPECIAL:
-			if (token->value.special == '(') {
-				expr = alloc_expression(token, EXPR_UNARY);
-				expr->op = '(';
-				token = parse_expression(token->next, &expr->unop);
-				if (!token || token->value.type != TOKEN_SPECIAL || token->value.special != ')')
-					warn(token, "Expected ')'");
-				else
-					token = token->next;
-				break;
-			}
-		default:
-			warn(token, "Syntax error");
 		}
+	/* Fallthrough */
+	default:
+		warn(token, "Expected primary expression");
 	}
 	*tree = expr;
 	return token;
+}
+
+struct token *postfix_expression(struct token *token, struct expression **tree)
+{
+	struct expression *expr = NULL;
+
+	token = primary_expression(token, &expr);
+	while (expr && token && token->value.type == TOKEN_SPECIAL) {
+		switch (token->value.special) {
+		case '[': {			/* Array dereference */
+			struct expression *array_expr = alloc_expression(token, EXPR_BINOP);
+			array_expr->op = '[';
+			array_expr->left = expr;
+			token = parse_expression(token->next, &array_expr->right);
+			token = expect(token, ']');
+			expr = array_expr;
+			continue;
+		}
+		case SPECIAL_INCREMENT:		/* Post-increment */
+		case SPECIAL_DECREMENT:	{	/* Post-decrement */
+			struct expression *post = alloc_expression(token, EXPR_POSTOP);
+			post->op = token->value.special;
+			post->unop = expr;
+			expr = post;
+			token = token->next;
+			continue;
+		}
+		case '.':			/* Structure member dereference */
+		case SPECIAL_DEREFERENCE: {	/* Structure pointer member dereference */
+			struct expression *deref = alloc_expression(token, EXPR_DEREF);
+			deref->op = token->value.special;
+			deref->deref = expr;
+			token = token->next;
+			if (!token || token->value.type != TOKEN_IDENT) {
+				warn(token, "Expected member name");
+				break;
+			}
+			deref->member = token;
+			token = token->next;
+			expr = deref;
+			continue;
+		}
+
+		case '(':			/* Function call */
+			break;
+		}
+		break;
+	}
+	*tree = expr;
+	return token;
+}
+
+struct token *unary_expression(struct token *token, struct expression **tree)
+{
+	return postfix_expression(token, tree);
+}
+
+struct token *cast_expression(struct token *token, struct expression **tree)
+{
+	return unary_expression(token, tree);
 }
 
 /* Generic left-to-right binop parsing */

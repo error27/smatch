@@ -9,17 +9,25 @@
 void warn(struct token *token, const char * fmt, ...)
 {
 	static char buffer[512];
-	struct stream *stream;
+	const char *name;
+	int pos,line;
 
 	va_list args;
 	va_start(args, fmt);
 	vsprintf(buffer, fmt, args);
 	va_end(args);
 
-	stream = input_streams + token->stream;
-	fprintf(stderr, "warning: %s:%d: %s\n",
-		stream->name, token->line,
-		buffer);
+	name = "EOF";
+	pos = 0;
+	line = 0;
+	if (token) {
+		name = input_streams[token->stream].name;
+		pos = token->pos;
+		line = token->line;
+	}
+		
+	fprintf(stderr, "warning: %s:%d:%d: %s\n",
+		name, line, pos, buffer);
 }	
 
 

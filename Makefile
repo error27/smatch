@@ -1,6 +1,8 @@
 CFLAGS=-g -Wall
 
-all: test-lexing test-parsing
+PROGRAMS=test-lexing test-parsing
+
+all: $(PROGRAMS)
 
 test-lexing: test-lexing.o tokenize.o lib.o
 	gcc -o $@ test-lexing.o tokenize.o lib.o
@@ -8,10 +10,10 @@ test-lexing: test-lexing.o tokenize.o lib.o
 test-parsing: test-parsing.o parse.o tokenize.o lib.o
 	gcc -o $@ test-parsing.o parse.o tokenize.o lib.o
 
-test-parsing: token.h
+test-parsing.o: token.h parse.h
 test-lexing.o: token.h
 tokenize.o: token.h
-parse.o: token.h
+parse.o: token.h parse.h
 
 clean:
-	rm -f *.o
+	rm -f *.[oasi] $(PROGRAMS)
