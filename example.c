@@ -514,7 +514,6 @@ static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, st
 		out = hardregs + storage->regno;
 		if (reg == out)
 			return;
-		assert(!out->contains);
 		printf("\tmovl %s,%s\n", reg->name, out->name);
 		return;
 	default:
