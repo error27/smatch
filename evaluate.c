@@ -253,14 +253,27 @@ static struct symbol *evaluate_int_binop(struct expression *expr)
 }
 
 /* Arrays degenerate into pointers on pointer arithmetic */
-static struct symbol *degenerate(struct expression *expr, struct symbol *ctype)
+static struct symbol *degenerate(struct expression *expr, struct symbol *ctype, struct expression **ptr_p)
 {
 	if (ctype->type == SYM_ARRAY) {
 		struct symbol *sym = alloc_symbol(expr->pos, SYM_PTR);
+		struct expression *ptr;
+
 		sym->ctype = ctype->ctype;
 		sym->bit_size = BITS_IN_POINTER;
 		sym->ctype.alignment = POINTER_ALIGNMENT;
 		ctype = sym;
+		ptr = *ptr_p;
+		*ptr_p = ptr->unop;
+
+		/*
+		 * This all really assumes that we got the degenerate
+		 * array as a symbol or an array dereference. If that
+		 * is not the case, then holler - because we've screwed
+		 * up.
+		 */
+		if (ptr->type != EXPR_PREOP && ptr->op != '*')
+			warn(ptr->pos, "internal error: strange degenerate array case");
 	}
 	return ctype;
 }
@@ -284,7 +297,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 	ctype = ptr_type->ctype.base_type;
 	examine_symbol_type(ctype);
 
-	expr->ctype = degenerate(expr, ptr_type);
+	expr->ctype = degenerate(expr, ptr_type, &ptr);
 	if (ctype->bit_size > BITS_IN_CHAR) {
 		struct expression *add = expr;
 		struct expression *mul = alloc_expression(expr->pos, EXPR_BINOP);
