@@ -12,6 +12,83 @@
 #include "flow.h"
 #include "storage.h"
 
+static const char* opcodes[] = {
+	[OP_BADOP] = "bad_op",
+
+	/* Fn entrypoint */
+	[OP_ENTRY] = "<entry-point>",
+
+	/* Terminator */
+	[OP_RET] = "ret",
+	[OP_BR] = "br",
+	[OP_SWITCH] = "switch",
+	[OP_INVOKE] = "invoke",
+	[OP_COMPUTEDGOTO] = "jmp *",
+	[OP_UNWIND] = "unwind",
+	
+	/* Binary */
+	[OP_ADD] = "add",
+	[OP_SUB] = "sub",
+	[OP_MUL] = "mul",
+	[OP_DIV] = "div",
+	[OP_MOD] = "mod",
+	[OP_SHL] = "shl",
+	[OP_SHR] = "shr",
+	
+	/* Logical */
+	[OP_AND] = "and",
+	[OP_OR] = "or",
+	[OP_XOR] = "xor",
+	[OP_AND_BOOL] = "and-bool",
+	[OP_OR_BOOL] = "or-bool",
+
+	/* Binary comparison */
+	[OP_SET_EQ] = "seteq",
+	[OP_SET_NE] = "setne",
+	[OP_SET_LE] = "setle",
+	[OP_SET_GE] = "setge",
+	[OP_SET_LT] = "setlt",
+	[OP_SET_GT] = "setgt",
+	[OP_SET_B] = "setb",
+	[OP_SET_A] = "seta",
+	[OP_SET_BE] = "setbe",
+	[OP_SET_AE] = "setae",
+
+	/* Uni */
+	[OP_NOT] = "not",
+	[OP_NEG] = "neg",
+
+	/* Special three-input */
+	[OP_SEL] = "select",
+	
+	/* Memory */
+	[OP_MALLOC] = "malloc",
+	[OP_FREE] = "free",
+	[OP_ALLOCA] = "alloca",
+	[OP_LOAD] = "load",
+	[OP_STORE] = "store",
+	[OP_SETVAL] = "set",
+	[OP_GET_ELEMENT_PTR] = "getelem",
+
+	/* Other */
+	[OP_PHI] = "phi",
+	[OP_PHISOURCE] = "phisrc",
+	[OP_CAST] = "cast",
+	[OP_PTRCAST] = "ptrcast",
+	[OP_CALL] = "call",
+	[OP_VANEXT] = "va_next",
+	[OP_VAARG] = "va_arg",
+	[OP_SLICE] = "slice",
+	[OP_SNOP] = "snop",
+	[OP_LNOP] = "lnop",
+	[OP_NOP] = "nop",
+	[OP_DEATHNOTE] = "dead",
+	[OP_ASM] = "asm",
+
+	/* Sparse tagging (line numbers, context, whatever) */
+	[OP_CONTEXT] = "context",
+};
+
 struct hardreg {
 	const char *name;
 	struct pseudo_list *contains;
@@ -48,6 +125,10 @@ struct bb_state {
 	struct storage_hash_list *inputs;
 	struct storage_hash_list *outputs;
 	struct storage_hash_list *internal;
+
+	/* CC cache.. */
+	int cc_opcode, cc_dead;
+	pseudo_t cc_target;
 };
 
 static struct storage_hash *find_storage_hash(pseudo_t pseudo, struct storage_hash_list *list)
@@ -284,40 +365,6 @@ static void mark_reg_dead(struct bb_state *state, pseudo_t pseudo, struct hardre
 	} END_FOR_EACH_PTR(p);
 }
 
-/* Fill a hardreg with the pseudo it has */
-static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg, pseudo_t pseudo)
-{
-	struct storage_hash *src;
-	struct instruction *def;
-
-	switch (pseudo->type) {
-	case PSEUDO_VAL:
-		output_insn(state, "movl $%lld,%s", pseudo->value, hardreg->name);
-		break;
-	case PSEUDO_SYM:
-		output_insn(state, "movl $<%s>,%s", show_pseudo(pseudo), hardreg->name);
-		break;
-	case PSEUDO_ARG:
-	case PSEUDO_REG:
-		def = pseudo->def;
-		if (def->opcode == OP_SETVAL) {
-			output_insn(state, "movl $<%s>,%s", show_pseudo(def->symbol), hardreg->name);
-			break;
-		}
-		src = find_pseudo_storage(state, pseudo, hardreg);
-		if (!src)
-			break;
-		if (src->flags & TAG_DEAD)
-			mark_reg_dead(state, pseudo, hardreg);
-		output_insn(state, "mov.%d %s,%s", 32, show_memop(src->storage), hardreg->name);
-		break;
-	default:
-		output_insn(state, "reload %s from %s", hardreg->name, show_pseudo(pseudo));
-		break;
-	}
-	return hardreg;
-}
-
 static void add_pseudo_reg(struct bb_state *state, pseudo_t pseudo, struct hardreg *reg)
 {
 	output_comment(state, "added pseudo %s to reg %s", show_pseudo(pseudo), reg->name);
@@ -396,6 +443,79 @@ static struct hardreg *find_in_reg(struct bb_state *state, pseudo_t pseudo)
 		} END_FOR_EACH_PTR(p);
 	}
 	return NULL;
+}
+
+static void flush_cc_cache_to_reg(struct bb_state *state, pseudo_t pseudo, struct hardreg *reg)
+{
+	int opcode = state->cc_opcode;
+
+	state->cc_opcode = 0;
+	state->cc_target = NULL;
+	output_insn(state, "%s %s", opcodes[opcode], reg->name);
+}
+
+static void flush_cc_cache(struct bb_state *state)
+{
+	pseudo_t pseudo = state->cc_target;
+
+	if (pseudo) {
+		struct hardreg *dst;
+
+		state->cc_target = NULL;
+
+		if (!state->cc_dead) {
+			dst = target_reg(state, pseudo, pseudo);
+			flush_cc_cache_to_reg(state, pseudo, dst);
+		}
+	}
+}
+
+static void add_cc_cache(struct bb_state *state, int opcode, pseudo_t pseudo)
+{
+	assert(!state->cc_target);
+	state->cc_target = pseudo;
+	state->cc_opcode = opcode;
+	state->cc_dead = 0;
+	output_comment(state, "caching %s", opcodes[opcode]);
+}
+
+/* Fill a hardreg with the pseudo it has */
+static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg, pseudo_t pseudo)
+{
+	struct storage_hash *src;
+	struct instruction *def;
+
+	if (state->cc_target == pseudo) {
+		flush_cc_cache_to_reg(state, pseudo, hardreg);
+		return hardreg;
+	}
+
+	switch (pseudo->type) {
+	case PSEUDO_VAL:
+		output_insn(state, "movl $%lld,%s", pseudo->value, hardreg->name);
+		break;
+	case PSEUDO_SYM:
+		output_insn(state, "movl $<%s>,%s", show_pseudo(pseudo), hardreg->name);
+		break;
+	case PSEUDO_ARG:
+	case PSEUDO_REG:
+		def = pseudo->def;
+		if (def->opcode == OP_SETVAL) {
+			output_insn(state, "movl $<%s>,%s", show_pseudo(def->symbol), hardreg->name);
+			break;
+		}
+		src = find_pseudo_storage(state, pseudo, hardreg);
+		if (!src)
+			break;
+		if (src->flags & TAG_DEAD)
+			mark_reg_dead(state, pseudo, hardreg);
+		output_insn(state, "mov.%d %s,%s", 32, show_memop(src->storage), hardreg->name);
+		break;
+	default:
+		output_insn(state, "reload %s from %s", hardreg->name, show_pseudo(pseudo));
+		break;
+	}
+	return hardreg;
 }
 
 static struct hardreg *getreg(struct bb_state *state, pseudo_t pseudo, pseudo_t target)
@@ -490,83 +610,6 @@ static const char *reg_or_imm(struct bb_state *state, pseudo_t pseudo)
 	}
 }
 
-static const char* opcodes[] = {
-	[OP_BADOP] = "bad_op",
-
-	/* Fn entrypoint */
-	[OP_ENTRY] = "<entry-point>",
-
-	/* Terminator */
-	[OP_RET] = "ret",
-	[OP_BR] = "br",
-	[OP_SWITCH] = "switch",
-	[OP_INVOKE] = "invoke",
-	[OP_COMPUTEDGOTO] = "jmp *",
-	[OP_UNWIND] = "unwind",
-	
-	/* Binary */
-	[OP_ADD] = "add",
-	[OP_SUB] = "sub",
-	[OP_MUL] = "mul",
-	[OP_DIV] = "div",
-	[OP_MOD] = "mod",
-	[OP_SHL] = "shl",
-	[OP_SHR] = "shr",
-	
-	/* Logical */
-	[OP_AND] = "and",
-	[OP_OR] = "or",
-	[OP_XOR] = "xor",
-	[OP_AND_BOOL] = "and-bool",
-	[OP_OR_BOOL] = "or-bool",
-
-	/* Binary comparison */
-	[OP_SET_EQ] = "seteq",
-	[OP_SET_NE] = "setne",
-	[OP_SET_LE] = "setle",
-	[OP_SET_GE] = "setge",
-	[OP_SET_LT] = "setlt",
-	[OP_SET_GT] = "setgt",
-	[OP_SET_B] = "setb",
-	[OP_SET_A] = "seta",
-	[OP_SET_BE] = "setbe",
-	[OP_SET_AE] = "setae",
-
-	/* Uni */
-	[OP_NOT] = "not",
-	[OP_NEG] = "neg",
-
-	/* Special three-input */
-	[OP_SEL] = "select",
-	
-	/* Memory */
-	[OP_MALLOC] = "malloc",
-	[OP_FREE] = "free",
-	[OP_ALLOCA] = "alloca",
-	[OP_LOAD] = "load",
-	[OP_STORE] = "store",
-	[OP_SETVAL] = "set",
-	[OP_GET_ELEMENT_PTR] = "getelem",
-
-	/* Other */
-	[OP_PHI] = "phi",
-	[OP_PHISOURCE] = "phisrc",
-	[OP_CAST] = "cast",
-	[OP_PTRCAST] = "ptrcast",
-	[OP_CALL] = "call",
-	[OP_VANEXT] = "va_next",
-	[OP_VAARG] = "va_arg",
-	[OP_SLICE] = "slice",
-	[OP_SNOP] = "snop",
-	[OP_LNOP] = "lnop",
-	[OP_NOP] = "nop",
-	[OP_DEATHNOTE] = "dead",
-	[OP_ASM] = "asm",
-
-	/* Sparse tagging (line numbers, context, whatever) */
-	[OP_CONTEXT] = "context",
-};
-
 static void kill_dead_reg(struct hardreg *reg)
 {
 	if (reg->dead) {
@@ -604,6 +647,7 @@ static void do_binop(struct bb_state *state, struct instruction *insn, pseudo_t 
 
 static void generate_binop(struct bb_state *state, struct instruction *insn)
 {
+	flush_cc_cache(state);
 	do_binop(state, insn, insn->src1, insn->src2);
 }
 
@@ -624,9 +668,13 @@ static int is_dead_reg(struct bb_state *state, pseudo_t pseudo, struct hardreg *
  */
 static void generate_commutative_binop(struct bb_state *state, struct instruction *insn)
 {
-	pseudo_t src1 = insn->src1, src2 = insn->src2;
-	struct hardreg *reg1, *reg2 = find_in_reg(state, src2);
+	pseudo_t src1, src2;
+	struct hardreg *reg1, *reg2;
 
+	flush_cc_cache(state);
+	src1 = insn->src1;
+	src2 = insn->src2;
+	reg2 = find_in_reg(state, src2);
 	if (!reg2)
 		goto dont_switch;
 	reg1 = find_in_reg(state, src1);
@@ -658,6 +706,8 @@ static void mark_pseudo_dead(struct bb_state *state, pseudo_t pseudo)
 	int i;
 	struct storage_hash *src;
 
+	if (state->cc_target == pseudo)
+		state->cc_dead = 1;
 	src = find_pseudo_storage(state, pseudo, NULL);
 	if (src)
 		src->flags |= TAG_DEAD;
@@ -768,14 +818,37 @@ static void generate_output_storage(struct bb_state *state);
 
 static void generate_branch(struct bb_state *state, struct instruction *br)
 {
+	const char *branch = "jXXX";
+	struct basic_block *target;
+
 	if (br->cond) {
-		struct hardreg *reg = getreg(state, br->cond, NULL);
-		output_insn(state, "testl %s,%s", reg->name, reg->name);
+		if (state->cc_target == br->cond) {
+			static const char *branches[] = {
+				[OP_SET_EQ] = "je",
+				[OP_SET_NE] = "jne",
+				[OP_SET_LE] = "jle",
+				[OP_SET_GE] = "jge",
+				[OP_SET_LT] = "jlt",
+				[OP_SET_GT] = "jgt",
+				[OP_SET_B] = "jb",
+				[OP_SET_A] = "ja",
+				[OP_SET_BE] = "jbe",
+				[OP_SET_AE] = "jae"
+			};
+			branch = branches[state->cc_opcode];
+		} else {
+			struct hardreg *reg = getreg(state, br->cond, NULL);
+			output_insn(state, "testl %s,%s", reg->name, reg->name);
+			branch = "jne";
+		}
 	}
 	generate_output_storage(state);
-	if (br->cond)
-		output_insn(state, "je .L%p", br->bb_false);
-	output_insn(state, "jmp .L%p", br->bb_true);
+	target = br->bb_true;
+	if (br->cond) {
+		output_insn(state, "%s .L%p", branch, target);
+		target = br->bb_false;
+	}
+	output_insn(state, "jmp .L%p", target);
 }
 
 /* We've made sure that there is a dummy reg live for the output */
@@ -868,6 +941,27 @@ static void generate_asm(struct bb_state *state, struct instruction *insn)
 	generate_asm_outputs(state, insn->asm_rules->outputs);
 }
 
+static void generate_compare(struct bb_state *state, struct instruction *insn)
+{
+	struct hardreg *src;
+	const char *src2;
+	int opcode;
+
+	flush_cc_cache(state);
+	opcode = insn->opcode;
+
+	/*
+	 * We should try to switch these around if necessary,
+	 * and update the opcode to match..
+	 */
+	src = getreg(state, insn->src1, insn->target);
+	src2 = generic(state, insn->src2);
+
+	output_insn(state, "cmp.%d %s,%s", insn->size, src2, src->name);
+
+	add_cc_cache(state, opcode, insn->target);
+}
+
 static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 {
 	if (verbose)
@@ -918,17 +1012,16 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 	case OP_ADD: case OP_MUL:
 	case OP_AND: case OP_OR: case OP_XOR:
 	case OP_AND_BOOL: case OP_OR_BOOL:
-	case OP_SET_EQ: case OP_SET_NE:
 		generate_commutative_binop(state, insn);
 		break;
 
 	case OP_SUB: case OP_DIV: case OP_MOD:
 	case OP_SHL: case OP_SHR:
-	case OP_SET_LE: case OP_SET_GE:
-	case OP_SET_LT: case OP_SET_GT:
-	case OP_SET_B:  case OP_SET_A:
-	case OP_SET_BE: case OP_SET_AE:
  		generate_binop(state, insn);
+		break;
+
+	case OP_BINCMP ... OP_BINCMP_END:
+		generate_compare(state, insn);
 		break;
 
 	case OP_CAST: case OP_PTRCAST:
@@ -1259,6 +1352,8 @@ static void output_bb(struct basic_block *bb, unsigned long generation)
 	state.outputs = gather_storage(bb, STOR_OUT);
 	state.internal = NULL;
 	state.stack_offset = 0;
+	state.cc_opcode = 0;
+	state.cc_target = NULL;
 
 	generate(bb, &state);
 
