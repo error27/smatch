@@ -160,14 +160,17 @@ ALLOCATOR(ident); ALLOCATOR(token); ALLOCATOR(symbol);
 ALLOCATOR(expression); ALLOCATOR(statement); ALLOCATOR(string);
 __ALLOCATOR(void, 0, , bytes);
 
-void iterate(struct ptr_list *list, void (*callback)(void *))
+void iterate(struct ptr_list *head, void (*callback)(void *))
 {
-	while (list) {
+	struct ptr_list *list = head;
+	if (!head)
+		return;
+	do {
 		int i;
 		for (i = 0; i < list->nr; i++)
 			callback(list->list[i]);
 		list = list->next;
-	}
+	} while (list != head);
 }
 
 void add_ptr_list(struct ptr_list **listp, void *ptr)
@@ -180,9 +183,17 @@ void add_ptr_list(struct ptr_list **listp, void *ptr)
 		if (!newlist)
 			die("out of memory for symbol/statement lists");
 		memset(newlist, 0, sizeof(*newlist));
-		newlist->next = list;
+		if (!list) {
+			newlist->next = newlist;
+			newlist->prev = newlist;
+			*listp = newlist;
+		} else {
+			newlist->next = list;
+			newlist->prev = list->prev;
+			list->prev->next = newlist;
+			list->prev = newlist;
+		}
 		list = newlist;
-		*listp = newlist;
 		nr = 0;
 	}
 	list->list[nr] = ptr;

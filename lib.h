@@ -29,12 +29,13 @@ DECLARE_ALLOCATOR(statement);
 DECLARE_ALLOCATOR(string);
 __DECLARE_ALLOCATOR(void, bytes);
 
-#define LIST_NODE_NR (14)
+#define LIST_NODE_NR (29)
 
 struct ptr_list {
 	int nr;
-	void *list[LIST_NODE_NR];
+	struct ptr_list *prev;
 	struct ptr_list *next;
+	void *list[LIST_NODE_NR];
 };
 
 void iterate(struct ptr_list *,void (*callback)(void *));
