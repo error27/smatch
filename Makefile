@@ -1,9 +1,10 @@
 CC=gcc
 CFLAGS=-g -Wall
+LDFLAGS=-g
 AR=ar
 
 PREFIX=$(HOME)
-PROGRAMS=test-lexing test-parsing obfuscate check
+PROGRAMS=test-lexing test-parsing obfuscate check compile
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h
 
@@ -24,16 +25,19 @@ install: check
 	install -C check $(PREFIX)/bin/sparse
 
 test-lexing: test-lexing.o $(LIB_FILE)
-	gcc -o $@ $< $(LIBS)
+	gcc $(LDFLAGS) -o $@ $< $(LIBS)
 
 test-parsing: test-parsing.o $(LIB_FILE)
-	gcc -o $@ $< $(LIBS)
+	gcc $(LDFLAGS) -o $@ $< $(LIBS)
+
+compile: compile.o compile-i386.o $(LIB_FILE)
+	gcc $(LDFLAGS) -o $@ $< compile-i386.o $(LIBS)
 
 obfuscate: obfuscate.o $(LIB_FILE)
-	gcc -o $@ $< $(LIBS)
+	gcc $(LDFLAGS) -o $@ $< $(LIBS)
 
 check: check.o $(LIB_FILE)
-	gcc -o $@ $< $(LIBS)
+	gcc $(LDFLAGS) -o $@ $< $(LIBS)
 
 $(LIB_FILE): $(LIB_OBJS)
 	$(AR) rcs $(LIB_FILE) $(LIB_OBJS)
@@ -48,6 +52,8 @@ show-parse.o: $(LIB_H)
 symbol.o: $(LIB_H)
 test-lexing.o: $(LIB_H)
 test-parsing.o: $(LIB_H)
+compile.o: $(LIB_H)
+compile-i386.o: $(LIB_H)
 tokenize.o: $(LIB_H)
 
 pre-process.h:
