@@ -83,9 +83,15 @@ static const char *show_pseudo(pseudo_t pseudo)
 {
 	static int n;
 	static char buffer[4][64];
-	char *buf = buffer[3 & ++n];
-	struct symbol *sym = pseudo->sym;
+	char *buf;
+	struct symbol *sym;
 
+	if (!pseudo)
+		return "no pseudo";
+	if (pseudo == VOID)
+		return "VOID";
+	buf = buffer[3 & ++n];
+	sym = pseudo->sym;
 	if (sym) {
 		struct expression *expr;
 		if (sym->bb_target) {
@@ -228,7 +234,7 @@ static void show_instruction(struct instruction *insn)
 		break;
 	case OP_CALL: {
 		struct pseudo *arg;
-		printf("\t%%r%d <- CALL %s", regno(insn->target), show_pseudo(insn->func));
+		printf("\t%s <- CALL %s", show_pseudo(insn->target), show_pseudo(insn->func));
 		FOR_EACH_PTR(insn->arguments, arg) {
 			printf(", %%r%d", arg->nr);
 		} END_FOR_EACH_PTR(arg);
@@ -388,7 +394,7 @@ static void add_goto(struct entrypoint *ep, struct basic_block *dst)
 
 static void add_deathnote(struct entrypoint *ep, pseudo_t pseudo)
 {
-	if (pseudo && pseudo != VOID) {
+	if (pseudo && pseudo != VOID && !pseudo->sym) {
 		struct basic_block *bb = ep->active;
 		if (!--pseudo->usage && bb_reachable(bb)) {
 			struct instruction *dead = alloc_instruction(OP_DEAD, NULL);
@@ -456,8 +462,9 @@ static pseudo_t alloc_pseudo(struct instruction *def)
 
 static pseudo_t symbol_pseudo(struct symbol *sym)
 {
-	pseudo_t pseudo = alloc_pseudo(NULL);
+	pseudo_t pseudo = __alloc_pseudo(0);
 	pseudo->sym = sym;
+	/* Symbol pseudos have neither nr, usage nor def */
 	return pseudo;
 }
 
@@ -825,7 +832,10 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	} else {
 		insn->func = linearize_expression(ep, fn);
 	}
-	insn->target = retval = alloc_pseudo(insn);
+	retval = VOID;
+	if (expr->ctype != &void_ctype)
+		retval = alloc_pseudo(insn);
+	insn->target = retval;
 	add_one_insn(ep, insn);
 
 	add_deathnote(ep, insn->func);
