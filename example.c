@@ -386,7 +386,7 @@ static void mark_pseudo_dead(pseudo_t pseudo)
 static void generate_phisource(struct instruction *insn, struct bb_state *state)
 {
 	struct instruction *user = first_instruction(insn->phi_users);
-	struct hardreg *reg = getreg(state, insn->phi_src);
+	struct hardreg *reg;
 
 	if (!user)
 		return;
