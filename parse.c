@@ -140,7 +140,6 @@ struct token *enum_specifier(struct token *token, struct ctype *ctype)
 struct token *typeof_specifier(struct token *token, struct ctype *ctype)
 {
 	struct symbol *sym;
-	struct expression *expr;
 
 	if (!match_op(token, '(')) {
 		warn(token->pos, "expected '(' after typeof");
@@ -150,10 +149,11 @@ struct token *typeof_specifier(struct token *token, struct ctype *ctype)
 		token = typename(token->next, &sym);
 		*ctype = sym->ctype;
 	} else {
-		token = parse_expression(token->next, &expr);
-		/* Leave ctype at NULL, we'll evaluate it lazily later.. */
+		struct symbol *typeof_sym = alloc_symbol(token->pos, SYM_TYPEOF);
+		token = parse_expression(token->next, &typeof_sym->initializer);
+
 		ctype->modifiers = 0;
-		ctype->base_type = NULL;
+		ctype->base_type = typeof_sym;
 	}		
 	return expect(token, ')', "after typeof");
 }
