@@ -275,29 +275,32 @@ void show_symbol(struct symbol *sym)
 /*
  * Print out a statement
  */
-void show_statement(struct statement *stmt)
+int show_statement(struct statement *stmt)
 {
 	if (!stmt)
-		return;
+		return 0;
 	switch (stmt->type) {
 	case STMT_RETURN:
 		printf("\treturn ");
 		show_expression(stmt->expression);
-		break;
-	case STMT_COMPOUND:
-		printf("{\n");
+		return 0;
+	case STMT_COMPOUND: {
+		struct statement *s;
+		int last;
+
 		if (stmt->syms) {
 			printf("\t");
 			show_symbol_list(stmt->syms, "\n\t");
 			printf("\n\n");
 		}
-		show_statement_list(stmt->stmts, ";\n");
-		printf("\n}\n\n");
-		break;
+		FOR_EACH_PTR(stmt->stmts, s) {
+			last = show_statement(s);
+		} END_FOR_EACH_PTR;
+		return last;
+	}
+
 	case STMT_EXPRESSION:
-		printf("\t");
-		show_expression(stmt->expression);
-		return;
+		return show_expression(stmt->expression);
 	case STMT_IF:
 		printf("\tif (");
 		show_expression(stmt->if_conditional);
@@ -407,6 +410,7 @@ void show_statement(struct statement *stmt)
 		break;
 		
 	}
+	return 0;
 }
 
 static void show_one_statement(struct statement *stmt, void *sep, int flags)
@@ -439,109 +443,223 @@ void show_expression_list(struct expression_list *list, const char *sep)
 	expression_iterate(list, show_one_expression, (void *)sep);
 }
 
+static int new_pseudo(void)
+{
+	static int nr = 0;
+	return ++nr;
+}
+
+static int show_call_expression(struct expression *expr)
+{
+	int pseudoarg[45];
+	struct expression *arg, *fn;
+	int fncall, retval;
+	int count = 0, i;
+
+	FOR_EACH_PTR(expr->args, arg) {
+		int new = show_expression(arg);
+		pseudoarg[count++] = new;
+	} END_FOR_EACH_PTR;
+
+	fn = expr->fn;
+	/* Remove dereference, if any */
+	if (fn->type == EXPR_PREOP)
+		fn = fn->unop;
+	fncall = show_expression(fn);
+	retval = new_pseudo();
+	printf("v%d = call *v%d(", retval, fncall);
+	for (i = 0; i < count; i++)
+		printf("v%d%s", pseudoarg[i], (i == count-1) ? "" : ", ");
+	printf(")\n");
+	return retval;
+}
+
+static int show_assignment(struct expression *expr)
+{
+	int src = show_expression(expr->right);
+	struct expression *target = expr->left;
+	int dst;
+
+	/* Is it a regular dereferece? */
+	if (target->type == EXPR_PREOP) {
+		dst = show_expression(target->unop);
+		printf("store(v%d,v%d)\n", src, dst);
+		return src;
+	}
+
+	/* Bitfield.. */
+	dst = show_expression(target->address);
+	printf("bit_insert(v%d,v%d[%d-%d]\n", src, dst,
+		target->bitpos, target->bitpos + target->nrbits);
+	return src;
+}
+
+static int show_binop(struct expression *expr)
+{
+	int left = show_expression(expr->left);
+	int right = show_expression(expr->right);
+	int new = new_pseudo();
+
+	printf("v%d = v%d %s v%d\n", new, left, show_special(expr->op), right);
+	return new;
+}
+
+static int show_preop(struct expression *expr)
+{
+	int op = show_expression(expr->unop);
+	int new = new_pseudo();
+
+	printf("v%d = %sv%d\n", new, show_special(expr->op), op);
+	return new;
+}	
+
+static int show_postop(struct expression *expr)
+{
+	int op = show_expression(expr->unop);
+	int new = new_pseudo();
+
+	printf("v%d = v%d%s\n", new, op, show_special(expr->op));
+	return new;
+}	
+
+static int show_symbol_expr(struct expression *expr)
+{
+	int new = new_pseudo();
+	printf("v%d = address of '%s'\n", new, show_ident(expr->symbol_name));
+	return new;
+}
+
+static int show_cast_expr(struct expression *expr)
+{
+	int op = show_expression(expr->cast_expression);
+	int oldbits, newbits;
+	int new;
+
+	oldbits = expr->cast_expression->ctype->bit_size;
+	newbits = expr->cast_type->bit_size;
+	if (oldbits == newbits)
+		return op;
+	new = new_pseudo();
+	printf("v%d = <cast from %d to %d bits> v%d\n",
+		new, oldbits, newbits, op);
+	return new;
+}
+
+static int type_is_signed(struct symbol *sym)
+{
+	while (sym->type != SYM_BASETYPE)
+		sym = sym->ctype.base_type;
+	return !(sym->ctype.modifiers & MOD_UNSIGNED);
+}
+
+static int show_value(struct expression *expr)
+{
+	int new = new_pseudo();
+	struct symbol *ctype = expr->ctype;
+	unsigned long long value = expr->value;
+	unsigned long long mask = 1ULL << (ctype->bit_size-1);
+
+	if (value & mask) {
+		if (type_is_signed(ctype)) {
+			long long svalue = value | ~(mask-1);
+			printf("v%d = %lld\n", new, svalue);
+			return new;
+		}
+	}
+	printf("v%d = %llu\n", new, value);
+	return new;
+}
+
+static int show_string_expr(struct expression *expr)
+{
+	int new = new_pseudo();
+
+	printf("v%d = %s\n", new, show_string(expr->string));
+	return new;
+}
+
+static int show_bitfield_expr(struct expression *expr)
+{
+	int address = show_expression(expr->address);
+	int new = new_pseudo();
+
+	printf("v%d = (extract bits[%d-%d]) v%d\n",
+		new, expr->bitpos, expr->bitpos + expr->nrbits - 1, address);
+	return new;
+}
+
+static int show_conditional_expr(struct expression *expr)
+{
+	int cond = show_expression(expr->conditional);
+	int true = show_expression(expr->cond_true);
+	int false = show_expression(expr->cond_false);
+	int new = new_pseudo();
+
+	if (!true)
+		true = cond;
+	printf("v%d = v%d ? v%d : v%d\n", new, cond, true, false);
+	return new;
+}
+
+static int show_statement_expr(struct expression *expr)
+{
+	return show_statement(expr->statement);
+}
+
 /*
- * Print out an expression
+ * Print out an expression. Return the pseudo that contains the
+ * variable.
  */
-void show_expression(struct expression *expr)
+int show_expression(struct expression *expr)
 {
 	if (!expr)
-		return;
+		return 0;
 
-	printf("< (");
-	show_size(expr->ctype);
-	show_type(expr->ctype);
-	printf(") ");
 	switch (expr->type) {
 	case EXPR_CALL:
-		show_expression(expr->fn);
-		printf("( ");
-		show_expression_list(expr->args, ", ");
-		printf(" )");
-		break;
+		return show_call_expression(expr);
 		
 	case EXPR_ASSIGNMENT:
-		show_expression(expr->left);
-		printf(" %s ", show_special(expr->op));
-		show_expression(expr->right);
-		break;
+		return show_assignment(expr);
+
 	case EXPR_BINOP:
 	case EXPR_COMMA:
 	case EXPR_COMPARE:
 	case EXPR_LOGICAL:
-		show_expression(expr->left);
-		printf(" %s ", show_special(expr->op));
-		show_expression(expr->right);
-		break;
+		return show_binop(expr);
 	case EXPR_PREOP:
-		printf("%s", show_special(expr->op));
-		show_expression(expr->unop);
-		break;
+		return show_preop(expr);
 	case EXPR_POSTOP:
-		show_expression(expr->unop);
-		printf(" %s ", show_special(expr->op));
-		break;
+		return show_postop(expr);
 	case EXPR_SYMBOL:
-		printf("%s", show_ident(expr->symbol_name));
-		break;
+		return show_symbol_expr(expr);
 	case EXPR_DEREF:
-		show_expression(expr->deref);
-		printf("%s", show_special(expr->op));
-		printf("%s", show_ident(expr->member));
-		break;
-	case EXPR_CAST:
-		printf("<cast>(");
-		show_type(expr->cast_type);
-		printf(")");
-		show_expression(expr->cast_expression);
-		break;
-	case EXPR_VALUE:
-		printf("(%lld)", expr->value);
-		break;
-	case EXPR_STRING:
-		printf("%s", show_string(expr->string));
-		break;
 	case EXPR_SIZEOF:
-		printf("sizeof(");
-		if (expr->cast_type)
-			show_type(expr->cast_type);
-		else
-			show_expression(expr->cast_expression);
-		printf(")");
-		break;
+		warn(expr->pos, "invalid expression after evaluation");
+		return 0;
+	case EXPR_CAST:
+		return show_cast_expr(expr);
+	case EXPR_VALUE:
+		return show_value(expr);
+	case EXPR_STRING:
+		return show_string_expr(expr);
 	case EXPR_BITFIELD:
-		printf("bits[%d-%d](", expr->bitpos, expr->bitpos + expr->nrbits - 1);
-		show_expression(expr->address);
-		printf(")");
-		break;
+		return show_bitfield_expr(expr);
 	case EXPR_INITIALIZER:
-		printf(" {\n\t");
-		show_expression_list(expr->expr_list, ", ");
-		printf("\n} ");
-		break;
+		warn(expr->pos, "unable to show initializer expression");
+		return 0;
 	case EXPR_IDENTIFIER:
-		printf("%s: ", show_ident(expr->expr_ident));
-		break;
+		warn(expr->pos, "unable to show identifier expression");
+		return 0;
 	case EXPR_INDEX:
-		if (expr->idx_from == expr->idx_to) {
-			printf("[%d]: ", expr->idx_from);
-		} else {
-			printf("[%d ... %d]: ", expr->idx_from, expr->idx_to);
-		}
-		break;
+		warn(expr->pos, "unable to show index expression");
+		return 0;
 	case EXPR_CONDITIONAL:
-		show_expression(expr->conditional);
-		printf(" ? ");
-		show_expression(expr->cond_true);
-		printf(" : ");
-		show_expression(expr->cond_false);
-		break;
+		return show_conditional_expr(expr);
 	case EXPR_STATEMENT:
-		printf("({\n\t");
-		show_statement(expr->statement);
-		printf("\n})");
-		break;
+		return show_statement_expr(expr);
 	}
-	printf(" >");
+	return 0;
 }
 
 
