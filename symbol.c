@@ -218,8 +218,8 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		if (!sym->ctype.alignment)
 			sym->ctype.alignment = POINTER_ALIGNMENT;
 		base_type = sym->ctype.base_type;
-		examine_symbol_type(base_type);
-		if (base_type && base_type->type == SYM_TYPEOF)
+		base_type = examine_symbol_type(base_type);
+		if (base_type && base_type->type == SYM_NODE)
 			merge_type(sym, base_type);
 		return sym;
 	case SYM_ENUM:
@@ -237,10 +237,11 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 	case SYM_TYPEOF: {
 		struct symbol *base = evaluate_expression(sym->initializer);
 		if (base) {
-			sym->ctype = base->ctype;
-			sym->bit_size = base->bit_size;
-			sym->array_size = base->array_size;
-			return base;
+			struct symbol *node = alloc_symbol(sym->pos, SYM_NODE);
+			merge_type(node, base);
+			node->bit_size = base->bit_size;
+			node->array_size = base->array_size;
+			return node;
 		}
 		break;
 	}
@@ -254,7 +255,7 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 
 	if (base_type) {
 		base_type = examine_symbol_type(base_type);
-		if (base_type && base_type->type == SYM_TYPEOF)
+		if (base_type && base_type->type == SYM_NODE)
 			merge_type(sym, base_type);
 
 		bit_size = base_type->bit_size;
