@@ -1137,7 +1137,7 @@ long long get_expression_value(struct expression *expr)
 	case EXPR_SYMBOL: {
 		struct symbol *sym = expr->symbol;
 		if (!sym || !sym->ctype.base_type || sym->ctype.base_type->type != SYM_ENUM) {
-			warn(expr->pos, "undefined identifier '%s' in constant expression", expr->symbol_name);
+			warn(expr->pos, "undefined identifier '%s' in constant expression", show_ident(expr->symbol_name));
 			return 0;
 		}
 		return sym->value;

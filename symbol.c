@@ -307,8 +307,10 @@ struct sym_init {
 	{ "__typeof",	NULL,		MOD_TYPEOF },
 	{ "__typeof__",	NULL,		MOD_TYPEOF },
 
+#if 0
 	{ "attribute",	NULL,		MOD_ATTRIBUTE },
 	{ "__attribute", NULL,		MOD_ATTRIBUTE },
+#endif
 	{ "__attribute__", NULL,	MOD_ATTRIBUTE },
 
 	{ "struct",	NULL,		MOD_STRUCTOF },
