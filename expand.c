@@ -713,15 +713,14 @@ static int expand_pos_expression(struct expression *expr)
 	struct expression *nested = expr->init_expr;
 	unsigned long offset = expr->init_offset;
 	int nr = expr->init_nr;
-	int cost;
 
-	cost = expand_expression(nested);
 	if (nr == 1) {
 		switch (nested->type) {
 		case EXPR_POS:
 			offset += nested->init_offset;
 			*expr = *nested;
 			expr->init_offset = offset;
+			nested = expr;
 			break;
 
 		case EXPR_INITIALIZER: {
@@ -732,7 +731,7 @@ static int expand_pos_expression(struct expression *expr)
 					entry->init_offset += offset;
 				} else {
 					if (!reuse) {
-						error(entry->pos, "Multiple initializers at offset zero");
+						error(entry->pos, "multiple initializers at offset zero");
 						return SIDE_EFFECTS;
 					}
 					reuse->type = EXPR_POS;
@@ -744,6 +743,7 @@ static int expand_pos_expression(struct expression *expr)
 					reuse = NULL;
 				}
 			} END_FOR_EACH_PTR(entry);
+			nested = expr;
 			break;
 		}
 
@@ -751,7 +751,7 @@ static int expand_pos_expression(struct expression *expr)
 			break;
 		}
 	}
-	return cost;
+	return expand_expression(nested);
 }
 
 static int expand_expression(struct expression *expr)
