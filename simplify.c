@@ -192,8 +192,30 @@ static inline int constant(pseudo_t pseudo)
 	return pseudo->type == PSEUDO_VAL;
 }
 
-static int simplify_constant_binop(struct instruction *insn)
+static int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
 {
+	convert_instruction_target(insn, pseudo);
+	insn->bb = NULL;
+	return 1;
+}
+
+static int simplify_constant_rightside(struct instruction *insn)
+{
+	unsigned long value = insn->src2->value;
+
+	switch (insn->opcode) {
+	case OP_ADD: case OP_SUB:
+	case OP_OR: case OP_XOR:
+	case OP_SHL: case OP_SHR:
+		if (!value)
+			return replace_with_pseudo(insn, insn->src1);
+		return 0;
+
+	case OP_AND: case OP_MUL:
+		if (!value)
+			return replace_with_pseudo(insn, insn->src2);
+		return 0;
+	}
 	return 0;
 }
 
@@ -202,9 +224,9 @@ static int simplify_constant_leftside(struct instruction *insn)
 	return 0;
 }
 
-static int simplify_constant_rightside(struct instruction *insn)
+static int simplify_constant_binop(struct instruction *insn)
 {
-	return 0;
+	return simplify_constant_rightside(insn);
 }
 
 static int simplify_binop(struct instruction *insn)
