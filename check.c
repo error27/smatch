@@ -24,8 +24,8 @@
 
 static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 {
-	check_duplicates(sym);
 	evaluate_symbol(sym);
+	check_duplicates(sym);
 	expand_symbol(sym);
 }
 
