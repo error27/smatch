@@ -194,12 +194,10 @@ void show_symbol(struct symbol *sym)
 	 */
 	switch (type->type) {
 	case SYM_STRUCT:
-		printf("\n");
 		symbol_iterate(type->symbol_list, show_struct_member, NULL);
 		break;
 
 	case SYM_UNION:
-		printf("\n");
 		symbol_iterate(type->symbol_list, show_struct_member, NULL);
 		break;
 
