@@ -36,7 +36,7 @@ static struct token *unmatched_if = NULL;
 static char elif_ignore[MAX_NEST];
 #define if_nesting (true_nesting + false_nesting)
 
-#define INCLUDEPATHS 32
+#define INCLUDEPATHS 300
 const char *includepath[INCLUDEPATHS+1] = {
 	NULL
 };
