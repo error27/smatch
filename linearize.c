@@ -1692,8 +1692,6 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	return VOID;
 }
 
-struct basic_block outside;
-
 static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_type)
 {
 	struct entrypoint *ep;
@@ -1710,7 +1708,6 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	
 	ep->name = sym;
 	ep->entry = bb;
-	add_bb(&bb->parents, &outside);
 	set_activeblock(ep, bb);
 	concat_symbol_list(base_type->arguments, &ep->syms);
 
