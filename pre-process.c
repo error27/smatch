@@ -243,6 +243,104 @@ static void expand_arguments(struct token *token, struct token *prev, struct tok
 	for_each_ident(prev, last, expand_one_arg);
 }
 
+/*
+ * Possibly valid combinations:
+ *  - ident + ident - combine (==ident)
+ *  - ident + number - combine (==ident)
+ *  - number + number - combine (==number)
+ *  - number + ident - combine (==number)
+ *  - string + string - leave as is, C will combine them anyway
+ * others cause an error and leave the two tokens as separate tokens.
+ */
+static struct token *hashhash(struct token *head, struct token *first, struct token *second)
+{
+	static char buffer[512], *p;
+	struct token *newtoken;
+	static const char *src;
+	int len;
+
+	first->next = second;
+
+	p = buffer;
+	switch (first->type) {
+	case TOKEN_INTEGER:
+		len = strlen(first->integer);
+		src = first->integer;
+		break;
+	case TOKEN_IDENT:
+		len = first->ident->len;
+		src = first->ident->name;
+		break;
+	default:
+		return second;
+	}
+	memcpy(p, src, len);
+	p += len;
+
+	switch (second->type) {
+	case TOKEN_INTEGER:
+		len = strlen(second->integer);
+		src = second->integer;
+		break;
+	case TOKEN_IDENT:
+		len = second->ident->len;
+		src = second->ident->name;
+		break;
+	default:
+		return second;
+	}
+	memcpy(p, src, len);
+	p += len;
+	*p++ = 0;
+
+	newtoken = alloc_token(first);
+	head->next = newtoken;
+	newtoken->type = first->type;
+	switch (newtoken->type) {
+	case TOKEN_IDENT:
+		newtoken->ident = built_in_ident(buffer);
+		break;
+	case TOKEN_INTEGER:
+		newtoken->integer = __alloc_bytes(p - buffer);
+		memcpy(newtoken->integer, buffer, p - buffer);
+		break;
+	}
+	return newtoken;
+}
+
+static void retokenize(struct token *head, struct token *last)
+{
+	struct token * next = head->next;
+	struct token * nextnext = next->next;
+	struct token * nextnextnext = nextnext->next;
+
+	if (next == last || nextnext == last)
+		return;
+
+	for (;;) {
+		if (nextnextnext == last)
+			break;
+		
+		if (match_op(nextnext, SPECIAL_HASHHASH)) {
+			struct token *newtoken = hashhash(head, next, nextnextnext);
+
+			next = newtoken;
+			nextnext = nextnextnext->next;
+			nextnextnext = nextnext->next;
+
+			newtoken->next = nextnext;
+			if (nextnext != last)
+				continue;
+			break;
+		}
+
+		head = next;
+		next = nextnext;
+		nextnext = nextnext->next;
+		nextnextnext = nextnextnext->next;
+	}
+}
+
 static struct token *expand(struct token *head, struct symbol *sym)
 {
 	struct token *arguments, *token, *last;
@@ -263,6 +361,9 @@ static struct token *expand(struct token *head, struct symbol *sym)
 	/* Then, replace all the arguments with their expansions */
 	if (arguments)
 		expand_arguments(token, head, last, arguments, sym->arglist);
+
+	/* Re-tokenize the sequence if any ## token exists.. */
+	retokenize(head, last);
 
 	/* Finally, expand the expansion itself .. */
 	head = expand_list(head, last);
