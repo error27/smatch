@@ -1497,7 +1497,7 @@ static void linearize_one_symbol(struct entrypoint *ep, struct symbol *sym)
 {
 	struct access_data ad = { NULL, };
 
-	if (!sym->initializer || sym->initialized)
+	if (!sym || !sym->initializer || sym->initialized)
 		return;
 
 	/* We need to output these puppies some day too.. */
