@@ -645,6 +645,7 @@ void create_builtin_stream(void)
 	add_pre_buffer("#define __extension__\n");
 	add_pre_buffer("#define __pragma__\n");
 	add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
+	add_pre_buffer("#define __builtin_va_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
 	add_pre_buffer("#define __builtin_va_arg(arg,type)  ((type)0)\n");
 	add_pre_buffer("#define __builtin_va_end(arg)\n");	
 }
