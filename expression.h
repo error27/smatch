@@ -16,7 +16,7 @@
 struct expression_list;
 
 enum expression_type {
-	EXPR_VALUE,
+	EXPR_VALUE = 1,
 	EXPR_STRING,
 	EXPR_SYMBOL,
 	EXPR_TYPE,
