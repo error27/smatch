@@ -63,6 +63,7 @@ struct instruction {
 		};
 		struct /* setval */ {
 			struct expression *val;
+			struct symbol *symbol;
 		};
 		struct /* call */ {
 			pseudo_t func;

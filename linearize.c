@@ -93,30 +93,45 @@ static void show_instruction(struct instruction *insn)
 
 	case OP_SETVAL: {
 		struct expression *expr = insn->val;
+		struct symbol *sym = insn->symbol;
+		int target = insn->target->nr;
+
+		if (sym) {
+			if (sym->bb_target)
+				printf("\t%%r%d <- .L%p\n", target, sym->bb_target);
+			else if (sym->ident)
+				printf("\t%%r%d <- %s\n", target, show_ident(sym->ident));
+			else if (sym->initializer)
+				expr = sym->initializer;
+			else {
+				printf("\t%%r%d <- %s\n", target, "anon symbol");
+				break;
+			}
+		}
+
+		if (!expr) {
+			printf("\t%%r%d <- %s\n", target, "<none>");
+			break;
+		}
+			
 		switch (expr->type) {
 		case EXPR_VALUE:
-			printf("\t%%r%d <- %lld\n",
-				insn->target->nr, expr->value);
+			printf("\t%%r%d <- %lld\n", target, expr->value);
 			break;
 		case EXPR_FVALUE:
-			printf("\t%%r%d <- %Lf\n",
-				insn->target->nr, expr->fvalue);
+			printf("\t%%r%d <- %Lf\n", target, expr->fvalue);
 			break;
 		case EXPR_STRING:
-			printf("\t%%r%d <- %s\n",
-				insn->target->nr, show_string(expr->string));
+			printf("\t%%r%d <- %s\n", target, show_string(expr->string));
 			break;
 		case EXPR_SYMBOL:
-			printf("\t%%r%d <- %s\n",  
-				insn->target->nr, show_ident(expr->symbol->ident));
+			printf("\t%%r%d <- %s\n",   target, show_ident(expr->symbol->ident));
 			break;
 		case EXPR_LABEL:
-			printf("\t%%r%d <- .L%p\n",  
-				insn->target->nr, expr->symbol->bb_target);
+			printf("\t%%r%d <- .L%p\n",   target, expr->symbol->bb_target);
 			break;
 		default:
-			printf("\t%%r%d <- SETVAL EXPR TYPE %d\n",
-				insn->target->nr, expr->type);
+			printf("\t%%r%d <- SETVAL EXPR TYPE %d\n", target, expr->type);
 		}
 		break;
 	}
@@ -424,6 +439,8 @@ static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct e
 	pseudo_t target = alloc_pseudo(insn);
 	insn->target = target;
 	insn->val = val;
+	if (!val)
+		insn->symbol = ctype;
 	add_one_insn(ep, insn);
 	return target;
 }
@@ -802,13 +819,30 @@ pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 	return result;
 }
 
+pseudo_t linearize_position(struct entrypoint *ep, struct expression *pos)
+{
+	return linearize_expression(ep, pos->init_expr);
+}
+
+pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initializer)
+{
+	struct expression *expr;
+	FOR_EACH_PTR(initializer->expr_list, expr) {
+		linearize_expression(ep, expr);
+	} END_FOR_EACH_PTR(expr);
+	return VOID;
+}
+
 pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 {
 	if (!expr)
 		return VOID;
 
 	switch (expr->type) {
-	case EXPR_VALUE: case EXPR_STRING: case EXPR_SYMBOL: case EXPR_FVALUE: case EXPR_LABEL:
+	case EXPR_SYMBOL:
+		return add_setval(ep, expr->symbol, NULL);
+
+	case EXPR_VALUE: case EXPR_STRING: case EXPR_FVALUE: case EXPR_LABEL:
 		return add_setval(ep, expr->ctype, expr);
 
 	case EXPR_STATEMENT:
@@ -856,6 +890,12 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 	case EXPR_SLICE:
 		return linearize_slice(ep, expr);
 
+	case EXPR_INITIALIZER:
+		return linearize_initializer(ep, expr);
+
+	case EXPR_POS:
+		return linearize_position(ep, expr);
+
 	default: 
 		warning(expr->pos, "unknown expression (%d %d)", expr->type, expr->op);
 		return VOID;
@@ -863,17 +903,43 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 	return VOID;
 }
 
-pseudo_t linearize_compound_statement(struct entrypoint *ep, struct statement *stmt)
+static void linearize_one_symbol(struct entrypoint *ep, struct symbol *sym)
+{
+	pseudo_t value, address;
+	struct instruction *store;
+
+	if (!sym->initializer)
+		return;
+	
+	value = linearize_expression(ep, sym->initializer);
+	address = add_setval(ep, sym, NULL);
+
+	store = alloc_instruction(OP_STORE, sym);
+	store->target = value;
+	store->src = address;
+	add_one_insn(ep, store);
+}
+
+static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct statement *stmt)
 {
 	pseudo_t pseudo = NULL;
 	struct statement *s;
+	struct symbol *sym;
 	struct symbol *ret = stmt->ret;
+
 	concat_symbol_list(stmt->syms, &ep->syms);
+
 	if (ret)
 		ret->bb_target = alloc_basic_block(stmt->pos);
+
+	FOR_EACH_PTR(stmt->syms, sym) {
+		linearize_one_symbol(ep, sym);
+	} END_FOR_EACH_PTR(sym);
+
 	FOR_EACH_PTR(stmt->stmts, s) {
 		pseudo = linearize_statement(ep, s);
 	} END_FOR_EACH_PTR(s);
+
 	if (ret) {
 		struct basic_block *bb = ret->bb_target;
 		struct instruction *phi = first_instruction(bb->insns);
@@ -1249,15 +1315,23 @@ static void try_to_simplify_bb(struct entrypoint *ep, struct basic_block *bb,
 		insn = pseudo->def;
 		if (insn->opcode == OP_SETVAL && insn->target == pseudo) {
 			struct expression *expr = insn->val;
-			if (expr->type == EXPR_VALUE) {
-				struct basic_block *target;
+			struct basic_block *target;
+			int true = 1; /* A symbol address is always considered true.. */
 
-				target = expr->value ? second->bb_true: second->bb_false;
-				if (br->bb_true == bb)
-					rewrite_branch(source, &br->bb_true, bb, target);
-				if (br->bb_false == bb)
-					rewrite_branch(source, &br->bb_false, bb, target);
+			if (expr) {
+				switch (expr->type) {
+				default:
+					continue;
+				case EXPR_VALUE:
+					true = !!expr->value;
+					break;
+				}
 			}
+			target = true ? second->bb_true : second->bb_false;
+			if (br->bb_true == bb)
+				rewrite_branch(source, &br->bb_true, bb, target);
+			if (br->bb_false == bb)
+				rewrite_branch(source, &br->bb_false, bb, target);
 		}
 	} END_FOR_EACH_PTR(phi);
 }
