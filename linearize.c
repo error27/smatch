@@ -75,15 +75,6 @@ static inline void use_pseudo(pseudo_t p, pseudo_t *pp)
 		add_pseudo_ptr(pp, &p->users);
 }
 
-struct phi* alloc_phi(struct basic_block *source, pseudo_t pseudo)
-{
-	struct phi *phi = __alloc_phi(0);
-	phi->source = source;
-	add_phi(&source->phinodes, phi);
-	use_pseudo(pseudo, &phi->pseudo);
-	return phi;
-}
-
 static inline int regno(pseudo_t n)
 {
 	int retval = -1;
@@ -246,13 +237,18 @@ void show_instruction(struct instruction *insn)
 		printf("\n");
 		break;
 	}
-	
+
+	case OP_PHISOURCE:
+		printf("\t%s <- phi-source %s\n", show_pseudo(insn->target), show_pseudo(insn->src1));
+		break;
+
 	case OP_PHI: {
-		struct phi *phi;
+		pseudo_t phi;
 		const char *s = " ";
 		printf("\t%s <- phi", show_pseudo(insn->target));
 		FOR_EACH_PTR(insn->phi_list, phi) {
-			printf("%s(%s, .L%p)", s, show_pseudo(phi->pseudo), phi->source);
+			struct instruction *def = phi->def;
+			printf("%s(%s: <%s,.L%p>)", s, show_pseudo(phi), show_pseudo(def->src1), def->bb);
 			s = ", ";
 		} END_FOR_EACH_PTR(phi);
 		printf("\n");
@@ -371,13 +367,6 @@ static void show_bb(struct basic_block *bb)
 			printf("  **to %p (%s:%d:%d)**\n", to,
 				input_streams[to->pos.stream].name, to->pos.line, to->pos.pos);
 		} END_FOR_EACH_PTR(to);
-	}
-
-	if (bb->phinodes) {
-		struct phi *phi;
-		FOR_EACH_PTR(bb->phinodes, phi) {
-			printf("  **phi source (%s,.L%p)**\n", show_pseudo(phi->pseudo), phi->source);
-		} END_FOR_EACH_PTR(phi);
 	}
 
 	FOR_EACH_PTR(bb->insns, insn) {
@@ -509,7 +498,7 @@ void insert_select(struct basic_block *bb, struct instruction *br, struct instru
 
 static inline int bb_empty(struct basic_block *bb)
 {
-	return !bb->insns && !bb->phinodes;
+	return !bb->insns;
 }
 
 /* Add a label to the currently active block, return new active block */
@@ -615,6 +604,18 @@ static pseudo_t argument_pseudo(int nr)
 	pseudo->nr = nr;
 	/* Argument pseudos have neither usage nor def */
 	return pseudo;
+}
+
+pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo)
+{
+	struct instruction *insn = alloc_instruction(OP_PHISOURCE, NULL);
+	pseudo_t target = alloc_pseudo(insn);
+
+	use_pseudo(pseudo, &insn->src1);
+	insn->bb = source;
+	insn->target = target;
+	add_instruction(&source->insns, insn);
+	return target;
 }
 
 /*
@@ -1017,22 +1018,19 @@ static pseudo_t linearize_select(struct entrypoint *ep, struct expression *expr)
 }
 
 static pseudo_t add_join_conditional(struct entrypoint *ep, struct expression *expr,
-				     pseudo_t src1, struct basic_block *bb1,
-				     pseudo_t src2, struct basic_block *bb2)
+				     pseudo_t phi1, pseudo_t phi2)
 {
 	pseudo_t target;
 	struct instruction *phi_node;
-	struct phi *phi1, *phi2;
 
-	if (src1 == VOID || !bb_reachable(bb1))
-		return src2;
-	if (src2 == VOID || !bb_reachable(bb2))
-		return src1;
+	if (phi1 == VOID)
+		return phi2;
+	if (phi2 == VOID)
+		return phi1;
+
 	phi_node = alloc_instruction(OP_PHI, expr->ctype);
-	phi1 = alloc_phi(bb1, src1);
-	phi2 = alloc_phi(bb2, src2);
-	add_phi(&phi_node->phi_list, phi1);
-	add_phi(&phi_node->phi_list, phi2);
+	use_pseudo(phi1, add_pseudo(&phi_node->phi_list, phi1));
+	use_pseudo(phi2, add_pseudo(&phi_node->phi_list, phi2));
 	phi_node->target = target = alloc_pseudo(phi_node);
 	add_one_insn(ep, phi_node);
 	return target;
@@ -1043,20 +1041,20 @@ static pseudo_t linearize_short_conditional(struct entrypoint *ep, struct expres
 					    struct expression *expr_false)
 {
 	pseudo_t src1, src2;
-	struct basic_block *bb_true;
 	struct basic_block *bb_false = alloc_basic_block(expr_false->pos);
 	struct basic_block *merge = alloc_basic_block(expr->pos);
+	pseudo_t phi1, phi2;
 
 	src1 = linearize_expression(ep, cond);
-	bb_true = ep->active;
+	phi1 = alloc_phi(ep->active, src1);
 	add_branch(ep, expr, src1, merge, bb_false);
 
 	set_activeblock(ep, bb_false);
 	src2 = linearize_expression(ep, expr_false);
-	bb_false = ep->active;
+	phi2 = alloc_phi(ep->active, src2);
 	set_activeblock(ep, merge);
 
-	return add_join_conditional(ep, expr, src1, bb_true, src2, bb_false);
+	return add_join_conditional(ep, expr, phi1, phi2);
 }
 
 static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *expr,
@@ -1065,6 +1063,7 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 				      struct expression *expr_false)
 {
 	pseudo_t src1, src2;
+	pseudo_t phi1, phi2;
 	struct basic_block *bb_true = alloc_basic_block(expr_true->pos);
 	struct basic_block *bb_false = alloc_basic_block(expr_false->pos);
 	struct basic_block *merge = alloc_basic_block(expr->pos);
@@ -1073,15 +1072,15 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 
 	set_activeblock(ep, bb_true);
 	src1 = linearize_expression(ep, expr_true);
-	bb_true = ep->active;
+	phi1 = alloc_phi(ep->active, src1);
 	add_goto(ep, merge); 
 
 	set_activeblock(ep, bb_false);
 	src2 = linearize_expression(ep, expr_false);
-	bb_false = ep->active;
+	phi2 = alloc_phi(ep->active, src2);
 	set_activeblock(ep, merge);
 
-	return add_join_conditional(ep, expr, src1, bb_true, src2, bb_false);
+	return add_join_conditional(ep, expr, phi1, phi2);
 }
 
 static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr)
@@ -1341,10 +1340,10 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 		if (!phi)
 			return pseudo;
 
-		if (phi_list_size(phi->phi_list)==1) {
-			pseudo = first_phi(phi->phi_list)->pseudo;
+		if (pseudo_list_size(phi->phi_list)==1) {
+			pseudo = first_pseudo(phi->phi_list);
 			delete_last_instruction(&bb->insns);
-			return pseudo;
+			return pseudo->def->src1;
 		}
 		return phi->target;
 	}
@@ -1397,10 +1396,9 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		struct basic_block *active;
 		pseudo_t src = linearize_expression(ep, expr);
 		active = ep->active;
-		add_goto(ep, bb_return);
 		if (active && src != &void_pseudo) {
 			struct instruction *phi_node = first_instruction(bb_return->insns);
-			struct phi *phi;
+			pseudo_t phi;
 			if (!phi_node) {
 				phi_node = alloc_instruction(OP_PHI, expr->ctype);
 				phi_node->target = alloc_pseudo(phi_node);
@@ -1408,8 +1406,9 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 				add_instruction(&bb_return->insns, phi_node);
 			}
 			phi = alloc_phi(active, src);
-			add_phi(&phi_node->phi_list, phi);
+			use_pseudo(phi, add_pseudo(&phi_node->phi_list, phi));
 		}
+		add_goto(ep, bb_return);
 		return VOID;
 	}
 

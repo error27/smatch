@@ -46,9 +46,8 @@ struct instruction;
 struct instruction_list;
 struct multijmp;
 struct multijmp_list;
-struct phi;
-struct phi_list;
 struct pseudo;
+struct pseudo_list;
 
 typedef struct pseudo *pseudo_t;
 
@@ -144,7 +143,7 @@ static inline int instruction_list_size(struct instruction_list* list)
 	return ptr_list_size((struct ptr_list *)(list));
 }
 
-static inline int phi_list_size(struct phi_list* list)
+static inline int pseudo_list_size(struct pseudo_list* list)
 {
 	return ptr_list_size((struct ptr_list *)(list));
 }
@@ -199,7 +198,7 @@ static inline struct instruction *first_instruction(struct instruction_list *hea
 	return first_ptr_list((struct ptr_list *)head);
 }
 
-static inline struct phi *first_phi(struct phi_list *head)
+static inline pseudo_t first_pseudo(struct pseudo_list *head)
 {
 	return first_ptr_list((struct ptr_list *)head);
 }

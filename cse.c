@@ -25,17 +25,19 @@ static int cse_repeat;
 
 static int phi_compare(const void *_phi1, const void *_phi2)
 {
-	const struct phi *phi1 = _phi1;
-	const struct phi *phi2 = _phi2;
+	const struct pseudo * phi1 = _phi1;
+	const struct pseudo * phi2 = _phi2;
+	const struct instruction *def1 = phi1->def;
+	const struct instruction *def2 = phi2->def;
 
-	if (phi1->pseudo != phi2->pseudo)
-		return phi1->pseudo < phi2->pseudo ? -1 : 1;
-	if (phi1->source != phi2->source)
-		return phi1->source < phi2->source ? -1 : 1;
+	if (def1->src1 != def2->src1)
+		return def1->src1 < def2->src1 ? -1 : 1;
+	if (def1->bb != def2->bb)
+		return def1->bb < def2->bb ? -1 : 1;
 	return 0;
 }
 
-static void sort_phi_list(struct phi_list **list)
+static void sort_phi_list(struct pseudo_list **list)
 {
 	sort_list((struct ptr_list **)list , phi_compare);
 }
@@ -56,17 +58,18 @@ static struct basic_block *phi_parent(struct basic_block *source, pseudo_t pseud
 
 static void clear_phi(struct instruction *insn)
 {
-	struct phi *phi;
+	pseudo_t phi;
 
 	insn->bb = NULL;
 	FOR_EACH_PTR(insn->phi_list, phi) {
-		phi->source = NULL;
+		struct instruction *def = phi->def;
+		def->bb = NULL;
 	} END_FOR_EACH_PTR(phi);
 }
 
 static void if_convert_phi(struct instruction *insn)
 {
-	struct phi *array[3];
+	pseudo_t array[3];
 	struct basic_block *parents[3];
 	struct basic_block *bb, *bb1, *bb2, *source;
 	struct instruction *br;
@@ -77,10 +80,10 @@ static void if_convert_phi(struct instruction *insn)
 		return;
 	if (linearize_ptr_list((struct ptr_list *)bb->parents, (void **)parents, 3) != 2)
 		return;
-	p1 = array[0]->pseudo;
-	bb1 = array[0]->source;
-	p2 = array[1]->pseudo;
-	bb2 = array[1]->source;
+	p1 = array[0]->def->src1;
+	bb1 = array[0]->def->bb;
+	p2 = array[1]->def->src1;
+	bb2 = array[1]->def->bb;
 
 	/* Only try the simple "direct parents" case */
 	if ((bb1 != parents[0] || bb2 != parents[1]) &&
@@ -141,7 +144,7 @@ static void if_convert_phi(struct instruction *insn)
 
 static unsigned long clean_up_phi(struct instruction *insn)
 {
-	struct phi *phi, *last;
+	struct instruction *phi, *last;
 	unsigned long hash = 0;
 	int same;
 
@@ -150,28 +153,28 @@ static unsigned long clean_up_phi(struct instruction *insn)
 	last = NULL;
 	same = 1;
 	FOR_EACH_PTR(insn->phi_list, phi) {
-		if (phi->pseudo == VOID) {
+		if (phi->src1 == VOID) {
 			DELETE_CURRENT_PTR(phi);
 			continue;
 		}
 		if (last) {
-			if (last->pseudo != phi->pseudo) {
+			if (last->src1 != phi->src1) {
 				same = 0;
-			} else if (last->source == phi->source) {
+			} else if (last->bb == phi->bb) {
 				DELETE_CURRENT_PTR(phi);
 				continue;
 			}
 		}
 		last = phi;
-		hash += hashval(phi->pseudo);
-		hash += hashval(phi->source);
+		hash += hashval(phi->src1);
+		hash += hashval(phi->bb);
 	} END_FOR_EACH_PTR(phi);
 
 	/* Whenever we delete pointers, we may have to pack the end result */
 	PACK_PTR_LIST(&insn->phi_list);
 
 	if (same) {
-		pseudo_t pseudo = last ? last->pseudo : VOID;
+		pseudo_t pseudo = last ? last->src1 : VOID;
 		convert_instruction_target(insn, pseudo);
 		cse_repeat = 1;
 		insn->bb = NULL;
@@ -311,9 +314,9 @@ static void clean_up_insns(struct entrypoint *ep)
 extern void show_instruction(struct instruction *);
 
 /* Compare two (sorted) phi-lists */
-static int phi_list_compare(struct phi_list *l1, struct phi_list *l2)
+static int phi_list_compare(struct pseudo_list *l1, struct pseudo_list *l2)
 {
-	struct phi *phi1, *phi2;
+	struct instruction *phi1, *phi2;
 
 	PREPARE_PTR_LIST(l1, phi1);
 	PREPARE_PTR_LIST(l2, phi2);

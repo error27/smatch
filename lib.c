@@ -182,7 +182,6 @@ struct allocator_struct basic_block_allocator = { "basic_block", NULL, __alignof
 struct allocator_struct entrypoint_allocator = { "entrypoint", NULL, __alignof__(struct entrypoint), CHUNK };
 struct allocator_struct instruction_allocator = { "instruction", NULL, __alignof__(struct instruction), CHUNK };
 struct allocator_struct multijmp_allocator = { "multijmp", NULL, __alignof__(struct multijmp), CHUNK };
-struct allocator_struct phi_allocator = { "phi", NULL, __alignof__(struct phi), CHUNK };
 struct allocator_struct pseudo_allocator = { "pseudo", NULL, __alignof__(struct pseudo), CHUNK };
 
 #define __ALLOCATOR(type, size, x)				\
@@ -210,7 +209,6 @@ ALLOCATOR(scope); __ALLOCATOR(void, 0, bytes);
 ALLOCATOR(basic_block); ALLOCATOR(entrypoint);
 ALLOCATOR(instruction);
 ALLOCATOR(multijmp);
-ALLOCATOR(phi);
 ALLOCATOR(pseudo);
 
 int ptr_list_size(struct ptr_list *head)

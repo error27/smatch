@@ -38,11 +38,6 @@ struct multijmp {
 	int begin, end;
 };
 
-struct phi {
-	struct basic_block *source;
-	pseudo_t pseudo;
-};
-
 struct instruction {
 	struct symbol *type;
 	struct basic_block *bb;
@@ -59,7 +54,7 @@ struct instruction {
 			struct multijmp_list *multijmp_list;
 		};
 		struct /* phi_node */ {
-			struct phi_list *phi_list;
+			struct pseudo_list *phi_list;
 		};
 		struct /* unops */ {
 			struct symbol *orig_type;	/* casts */
@@ -153,6 +148,7 @@ enum opcode {
 
 	/* Other */
 	OP_PHI,
+	OP_PHISOURCE,
 	OP_CAST,
 	OP_CALL,
 	OP_VANEXT,
@@ -175,7 +171,6 @@ struct basic_block {
 	int context;
 	struct basic_block_list *parents; /* sources */
 	struct basic_block_list *children; /* destinations */
-	struct phi_list *phinodes;	/* phi-nodes that need this bb */
 	struct instruction_list *insns;	/* Linear list of instructions */
 };
 
@@ -197,11 +192,6 @@ static inline void add_instruction(struct instruction_list **list, struct instru
 static inline void add_multijmp(struct multijmp_list **list, struct multijmp *multijmp)
 {
 	add_ptr_list((struct ptr_list **)list, multijmp);
-}
-
-static inline void add_phi(struct phi_list **list, struct phi *phi)
-{
-	add_ptr_list((struct ptr_list **)list, phi);
 }
 
 static inline void *add_pseudo(struct pseudo_list **list, struct pseudo *pseudo)
@@ -235,7 +225,7 @@ struct entrypoint {
 };
 
 extern void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi, pseudo_t true, pseudo_t false);
-struct phi* alloc_phi(struct basic_block *source, pseudo_t pseudo);
+pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo);
 pseudo_t alloc_pseudo(struct instruction *def);
 pseudo_t value_pseudo(long long val);
 

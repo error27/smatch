@@ -77,11 +77,11 @@ static int pseudo_truth_value(pseudo_t pseudo)
 static void try_to_simplify_bb(struct entrypoint *ep, struct basic_block *bb,
 	struct instruction *first, struct instruction *second)
 {
-	struct phi *phi;
+	struct instruction *phi;
 
 	FOR_EACH_PTR(first->phi_list, phi) {
-		struct basic_block *source = phi->source, *target;
-		pseudo_t pseudo = phi->pseudo;
+		struct basic_block *source = phi->bb, *target;
+		pseudo_t pseudo = phi->src1;
 		struct instruction *br;
 		int true;
 
@@ -212,7 +212,7 @@ static int dominates(pseudo_t pseudo, struct instruction *insn,
 }
 
 static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
-	struct basic_block *bb, unsigned long generation, struct phi_list **dominators,
+	struct basic_block *bb, unsigned long generation, struct pseudo_list **dominators,
 	int local, int loads)
 {
 	struct basic_block *parent;
@@ -221,7 +221,8 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 		loads = 0;
 	FOR_EACH_PTR(bb->parents, parent) {
 		struct instruction *one;
-		struct phi *phi;
+		struct instruction *br;
+		pseudo_t phi;
 
 		FOR_EACH_PTR_REVERSE(parent->insns, one) {
 			int dominance;
@@ -249,8 +250,10 @@ no_dominance:
 		continue;
 
 found_dominator:
+		br = delete_last_instruction(&parent->insns);
 		phi = alloc_phi(parent, one->target);
-		add_phi(dominators, phi);
+		add_instruction(&parent->insns, br);
+		add_pseudo(dominators, phi);
 	} END_FOR_EACH_PTR(parent);
 	return 1;
 }		
@@ -259,18 +262,17 @@ found_dominator:
  * We should probably sort the phi list just to make it easier to compare
  * later for equality. 
  */
-static void rewrite_load_instruction(struct instruction *insn, struct phi_list *dominators)
+static void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *dominators)
 {
-	struct phi *phi;
-	pseudo_t new;
+	pseudo_t new, phi;
 
 	/*
 	 * Check for somewhat common case of duplicate
 	 * phi nodes.
 	 */
-	new = first_phi(dominators)->pseudo;
+	new = first_pseudo(dominators)->def->src1;
 	FOR_EACH_PTR(dominators, phi) {
-		if (new != phi->pseudo)
+		if (new != phi->def->src1)
 			goto complex_phi;
 	} END_FOR_EACH_PTR(phi);
 
@@ -280,7 +282,7 @@ static void rewrite_load_instruction(struct instruction *insn, struct phi_list *
 	 * pseudo.
 	 */
 	FOR_EACH_PTR(dominators, phi) {
-		phi->source = NULL;
+		phi->def->bb = NULL;
 	} END_FOR_EACH_PTR(phi);
 	convert_load_insn(insn, new);
 	return;
@@ -310,7 +312,7 @@ static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,
 {
 	struct basic_block *bb = insn->bb;
 	struct instruction *one, *dom = NULL;
-	struct phi_list *dominators;
+	struct pseudo_list *dominators;
 	int partial;
 
 	/* Unreachable load? Undo it */
@@ -598,14 +600,8 @@ static void kill_unreachable_bbs(struct entrypoint *ep)
 
 	mark_bb_reachable(ep->entry, generation);
 	FOR_EACH_PTR(ep->bbs, bb) {
-		struct phi *phi;
 		if (bb->generation == generation)
 			continue;
-		FOR_EACH_PTR(bb->phinodes, phi) {
-			phi->pseudo = VOID;
-			phi->source = NULL;
-		} END_FOR_EACH_PTR(phi);
-
 		/* Mark it as being dead */
 		kill_bb(bb);
 	} END_FOR_EACH_PTR(bb);
@@ -636,9 +632,9 @@ static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old
 	}
 }
 
-static int rewrite_branch_bb(struct basic_block *bb, struct instruction *br)
+static struct basic_block * rewrite_branch_bb(struct basic_block *bb, struct instruction *br)
 {
-	int success;
+	struct basic_block *success;
 	struct basic_block *parent;
 	struct basic_block *target = br->bb_true;
 	struct basic_block *false = br->bb_false;
@@ -646,15 +642,15 @@ static int rewrite_branch_bb(struct basic_block *bb, struct instruction *br)
 	if (target && false) {
 		pseudo_t cond = br->cond;
 		if (cond->type != PSEUDO_VAL)
-			return 0;
+			return NULL;
 		target = cond->value ? target : false;
 	}
 
-	success = 1;
 	target = target ? : false;
+	success = target;
 	FOR_EACH_PTR(bb->parents, parent) {
 		if (!rewrite_parent_branch(parent, bb, target))
-			success = 0;
+			success = NULL;
 	} END_FOR_EACH_PTR(parent);
 	return success;
 }
@@ -725,17 +721,6 @@ void pack_basic_blocks(struct entrypoint *ep)
 
 		if (!bb_reachable(bb))
 			continue;
-		/*
-		 * If this block has a phi-node associated with it,
-		 */
-		if (bb->phinodes) {
-			struct phi *phi;
-			FOR_EACH_PTR(bb->phinodes, phi) {
-				if (phi->source)
-					goto no_merge;
-			} END_FOR_EACH_PTR(phi);
-			bb->phinodes = NULL;
-		}
 
 		/*
 		 * Just a branch?
@@ -746,11 +731,16 @@ void pack_basic_blocks(struct entrypoint *ep)
 			switch (first->opcode) {
 			case OP_NOP: case OP_LNOP: case OP_SNOP:
 				continue;
-			case OP_BR:
-				if (rewrite_branch_bb(bb, first)) {
+			case OP_BR: {
+				struct basic_block *replace;
+				replace = rewrite_branch_bb(bb, first);
+				if (replace) {
+					if (ep->entry == bb)
+						ep->entry = replace;
 					kill_bb(bb);
 					goto no_merge;
 				}
+			}
 			/* fallthrough */
 			default:
 				goto out;
