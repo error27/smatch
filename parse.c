@@ -624,6 +624,25 @@ static void end_iterator(struct statement *stmt)
 	end_symbol_scope();
 }
 
+static struct statement *start_function(struct symbol *sym)
+{
+	struct symbol *ret;
+	struct statement *stmt = alloc_statement(sym->pos, STMT_COMPOUND);
+
+	start_function_scope();
+	ret = alloc_symbol(sym->pos, SYM_NODE);
+	ret->ident = &return_ident;
+	ret->ctype = sym->ctype;
+	bind_symbol(ret, &return_ident, NS_ITERATOR);
+	stmt->ret = ret;
+	return stmt;
+}
+
+static void end_function(struct symbol *sym)
+{
+	end_function_scope();
+}
+
 /*
  * A "switch()" statement, like an iterator, has a
  * the "break" symbol associated with it. It works
@@ -675,6 +694,17 @@ static void add_case_statement(struct statement *stmt)
 	add_symbol(&target->symbol_list, sym);
 	sym->stmt = stmt;
 	stmt->case_label = sym;
+}
+
+static struct token *parse_return_statement(struct token *token, struct statement *stmt)
+{
+	struct symbol *target = lookup_symbol(&return_ident, NS_ITERATOR);
+
+	if (!target)
+		error(token->pos, "internal error: return without a function target");
+	stmt->type = STMT_RETURN;
+	stmt->ret_target = target;
+	return expression_statement(token->next, &stmt->ret_value);
 }
 
 static struct token *parse_for_statement(struct token *token, struct statement *stmt)
@@ -765,10 +795,10 @@ static struct token *statement(struct token *token, struct statement **tree)
 				return token;
 			return statement(token->next, &stmt->if_false);
 		}
-		if (token->ident == &return_ident) {
-			stmt->type = STMT_RETURN;
-			return expression_statement(token->next, &stmt->expression);
-		}
+
+		if (token->ident == &return_ident)
+			return parse_return_statement(token, stmt);
+
 		if (token->ident == &break_ident || token->ident == &continue_ident) {
 			struct symbol *target = lookup_symbol(token->ident, NS_ITERATOR);
 			stmt->type = STMT_GOTO;
@@ -1029,17 +1059,21 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	base_type = decl->ctype.base_type;
 	if (!is_typedef && base_type && base_type->type == SYM_FN) {
 		if (match_op(token, '{')) {
+			struct statement *stmt;
 			if (decl->ctype.modifiers & MOD_EXTERN) {
 				if (!(decl->ctype.modifiers & MOD_INLINE))
 					warn(decl->pos, "function with external linkage has definition");
 			}
 			if (!(decl->ctype.modifiers & MOD_STATIC))
 				decl->ctype.modifiers |= MOD_EXTERN;
-			base_type->stmt = alloc_statement(token->pos, STMT_COMPOUND);
-			start_function_scope();
+
+			stmt = start_function(decl);
+
+			base_type->stmt = stmt;
 			symbol_iterate(base_type->arguments, declare_argument, decl);
-			token = compound_statement(token->next, base_type->stmt);
-			end_function_scope();
+			token = compound_statement(token->next, stmt);
+
+			end_function(decl);
 			if (!(decl->ctype.modifiers & MOD_INLINE))
 				add_symbol(list, decl);
 			check_declaration(decl);

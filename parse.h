@@ -33,6 +33,10 @@ struct statement {
 			struct statement *label_statement;
 		};
 		struct expression *expression;
+		struct return_statement {
+			struct expression *ret_value;
+			struct symbol *ret_target;
+		};
 		struct if_statement {
 			struct expression *if_conditional;
 			struct statement *if_true;
@@ -41,6 +45,7 @@ struct statement {
 		struct compound_struct {
 			struct symbol_list *syms;
 			struct statement_list *stmts;
+			struct symbol *ret;
 		};
 		struct labeled_struct {
 			struct symbol *label_identifier;

@@ -305,6 +305,8 @@ void show_symbol(struct symbol *sym)
 	case SYM_FN:
 		printf("\n");		
 		show_statement(type->stmt);
+		printf(".L%p:\n", type->stmt->ret);
+		printf("\tret\n");
 		break;
 
 	default:
@@ -319,14 +321,15 @@ void show_symbol(struct symbol *sym)
 
 static int show_return_stmt(struct statement *stmt)
 {
-	struct expression *expr = stmt->expression;
+	struct expression *expr = stmt->ret_value;
+	struct symbol *target = stmt->ret_target;
 
 	if (expr && expr->ctype) {
 		int val = show_expression(expr);
 		printf("\tmov.%d\t\tretval,v%d\n",
 			expr->ctype->bit_size, val);
 	}
-	printf("\tret\n");
+	printf("\tgoto .L%p\n", target);
 	return 0;
 }
 
