@@ -213,7 +213,7 @@ static void show_bb(struct basic_block *bb)
 	printf("\n");
 }
 
-static void show_entry(struct entrypoint *ep)
+void show_entry(struct entrypoint *ep)
 {
 	struct symbol *sym;
 	struct basic_block *bb;
@@ -1033,15 +1033,16 @@ void pack_basic_blocks(struct basic_block_list **bblist)
 	}
 }
 
-void linearize_symbol(struct symbol *sym)
+struct entrypoint *linearize_symbol(struct symbol *sym)
 {
 	struct symbol *base_type;
+	struct entrypoint *ret_ep = NULL;
 
 	if (!sym)
-		return;
+		return NULL;
 	base_type = sym->ctype.base_type;
 	if (!base_type)
-		return;
+		return NULL;
 	if (base_type->type == SYM_FN) {
 		if (base_type->stmt) {
 			struct entrypoint *ep = alloc_entrypoint();
@@ -1062,7 +1063,9 @@ void linearize_symbol(struct symbol *sym)
 				add_one_insn(ep, pos, insn);
 			}
 			pack_basic_blocks(&ep->bbs);
-			show_entry(ep);
+			ret_ep = ep;
 		}
 	}
+
+	return ret_ep;
 }
