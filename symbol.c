@@ -139,6 +139,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		}
 		sym->offset = (bit_size - bit_offset) >> 3;
 		sym->bit_offset = bit_offset;
+		sym->ctype.base_type->bit_offset = bit_offset;
 		info->bit_size = bit_size + width;
 		// warning (sym->pos, "bitfield: offset=%d:%d  size=:%d", sym->offset, sym->bit_offset, width);
 
