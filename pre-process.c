@@ -237,12 +237,12 @@ static struct token *expand_one_arg(struct token *head, struct token *token)
 	return token;
 }
 
-static void expand_arguments(struct token *token, struct token *prev, struct token *last,
+static void expand_arguments(struct token *token, struct token *head, struct token *last,
 	struct token *arguments, struct token *arglist)
 {
 	current_arglist = arglist;
 	current_arguments = arguments;
-	for_each_ident(prev, last, expand_one_arg);
+	for_each_ident(head, last, expand_one_arg);
 }
 
 /*
