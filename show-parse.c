@@ -361,16 +361,31 @@ int show_statement(struct statement *stmt)
 
 	case STMT_EXPRESSION:
 		return show_expression(stmt->expression);
-	case STMT_IF:
-		printf("\tif (");
-		show_expression(stmt->if_conditional);
-		printf(")\n");
+	case STMT_IF: {
+		int val, target;
+		struct expression *cond = stmt->if_conditional;
+
+		if (cond->type == EXPR_VALUE) {
+			struct statement *s = stmt->if_true;
+			if (!cond->value)
+				s = stmt->if_false;
+			show_statement(s);
+			break;
+		}
+		val = show_expression(cond);
+		target = new_label();
+		printf("\tje\t\tv%d,.L%d\n", val, target);
 		show_statement(stmt->if_true);
 		if (stmt->if_false) {
-			printf("\nelse\n");
+			int last = new_label();
+			printf("\tjmp\t\t.L%d\n", last);
+			printf(".L%d:\n", target);
+			target = last;
 			show_statement(stmt->if_false);
 		}
+		printf(".L%d:\n", target);
 		break;
+	}
 	case STMT_SWITCH:
 		printf("\tswitch (");
 		show_expression(stmt->switch_expression);
@@ -410,36 +425,37 @@ int show_statement(struct statement *stmt)
 			} else {
 				loop_bottom = new_label();
 				val = show_expression(pre_condition);
-				printf("\tje v%d, .L%d\n", val, loop_bottom);
+				printf("\tje\t\tv%d, .L%d\n", val, loop_bottom);
 			}
 		}
-		if (post_condition->type != EXPR_VALUE || post_condition->value)
+		if (!post_condition || post_condition->type != EXPR_VALUE || post_condition->value)
 			loop_top = new_label();
 		printf(".L%d:\n", loop_top);
 		show_statement(statement);
-		if (stmt->cont_symbol->used)
-			printf(".L%p:\n", stmt->cont_symbol);
+		if (stmt->iterator_continue->used)
+			printf(".L%p:\n", stmt->iterator_continue);
 		show_statement(post_statement);
-		if (post_condition->type == EXPR_VALUE) {
+		if (!post_condition) {
+			printf("\tjmp\t\t.L%d\n", loop_top);
+		} else if (post_condition->type == EXPR_VALUE) {
 			if (post_condition->value)
-				printf("\tjmp .L%d\n", loop_top);
+				printf("\tjmp\t\t.L%d\n", loop_top);
 		} else {
 			val = show_expression(post_condition);
-			printf("\tjne v%d, .L%d\n", val, loop_top);
+			printf("\tjne\t\tv%d, .L%d\n", val, loop_top);
 		}
-		if (stmt->break_symbol->used)
-			printf(".L%p:\n", stmt->break_symbol);
+		if (stmt->iterator_break->used)
+			printf(".L%p:\n", stmt->iterator_break);
 		if (pre_condition)
 			printf(".L%d:\n", loop_bottom);
 		break;
 	}
 	case STMT_NONE:
-		printf("\tNONE");
+		printf("\t!NONE!\n");
 		break;
 	
 	case STMT_LABEL:
-		show_symbol(stmt->label_identifier);
-		printf(":\n");
+		printf(".L%p:\n", stmt->label_identifier);
 		show_statement(stmt->label_statement);
 		break;
 
@@ -452,7 +468,7 @@ int show_statement(struct statement *stmt)
 		}
 		break;
 	case STMT_ASM:
-		printf("\tasm( .... )");
+		printf("\tasm( .... )\n");
 		break;
 		
 	}

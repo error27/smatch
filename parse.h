@@ -53,10 +53,11 @@ struct statement {
 		struct switch_struct {
 			struct expression *switch_expression;
 			struct statement *switch_statement;
+			struct symbol *switch_break;
 		};
 		struct iterator_struct {
-			struct symbol *break_symbol;
-			struct symbol *cont_symbol;
+			struct symbol *iterator_break;
+			struct symbol *iterator_continue;
 			struct statement  *iterator_pre_statement;
 			struct expression *iterator_pre_condition;
 

@@ -601,11 +601,29 @@ static void start_iterator(struct statement *stmt)
 	bind_symbol(brk, &break_ident, NS_ITERATOR);
 
 	stmt->type = STMT_ITERATOR;
-	stmt->break_symbol = brk;
-	stmt->cont_symbol = cont;
+	stmt->iterator_break = brk;
+	stmt->iterator_continue = cont;
 }
 
 static void end_iterator(void)
+{
+	start_symbol_scope();
+}
+
+static void start_switch(struct statement *stmt)
+{
+	struct symbol *brk;
+
+	start_symbol_scope();
+	brk = alloc_symbol(stmt->pos, SYM_NODE);
+	brk->ident = &break_ident;
+	bind_symbol(brk, &break_ident, NS_ITERATOR);
+
+	stmt->type = STMT_SWITCH;
+	stmt->switch_break = brk;
+}
+
+static void end_switch(void)
 {
 	start_symbol_scope();
 }
@@ -653,8 +671,11 @@ default_statement:
 		}
 		if (token->ident == &switch_ident) {
 			stmt->type = STMT_SWITCH;
+			start_switch(stmt);
 			token = parens_expression(token->next, &stmt->switch_expression, "after 'switch'");
-			return statement(token, &stmt->switch_statement);
+			token = statement(token, &stmt->switch_statement);
+			end_switch();
+			return token;
 		}
 		if (token->ident == &for_ident) {
 			struct expression *e1, *e2, *e3;
