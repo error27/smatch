@@ -526,7 +526,7 @@ int show_statement(struct statement *stmt)
 			int val = show_expression(stmt->goto_expression);
 			printf("\tgoto *v%d\n", val);
 		} else {
-			printf("\tgoto .L%p\n", stmt->goto_label);
+			printf("\tgoto .L%p\n", stmt->goto_label->bb_target);
 		}
 		break;
 	case STMT_ASM:

@@ -10,7 +10,7 @@ struct basic_block_list;
 
 struct basic_block {
 	struct statement_list *stmts;
-	struct basic_block *next;
+	struct symbol *next;
 };
 
 static inline void add_bb(struct basic_block_list **list, struct basic_block *bb)

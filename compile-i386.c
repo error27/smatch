@@ -1821,6 +1821,9 @@ static struct storage *x86_statement(struct statement *stmt)
 		printf("\tasm( .... )\n");
 		break;
 
+	case STMT_GOTO_BB:
+		printf("\t goto BB ? *\n");
+		break;
 	}
 	return NULL;
 }

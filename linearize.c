@@ -38,7 +38,7 @@ static void show_bb(struct basic_block *bb)
 	} END_FOR_EACH_PTR;
 
 	if (bb->next) {
-		printf("\tgoto .L%p\n", bb->next);
+		printf("\tgoto .L%p\n", bb->next->bb_target);
 	} else {
 		printf("\tdefault return\n");
 	}
@@ -93,6 +93,26 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		bb = new_basic_block(bbs);
 		break;
 
+	case STMT_LABEL: {
+		struct basic_block *new_bb = new_basic_block(bbs);
+		struct symbol *sym = stmt->label_identifier;
+
+		bb->next = sym;
+		sym->bb_target = new_bb;
+
+		bb = linearize_statement(syms, bbs, new_bb, stmt->label_statement);
+		break;
+	}
+
+	case STMT_GOTO: {
+		struct basic_block *new_bb = new_basic_block(bbs);
+		struct symbol *sym = stmt->goto_label;
+
+		bb->next = sym;
+		bb = new_bb;
+		break;
+	}
+
 	case STMT_COMPOUND: {
 		struct statement *s;
 		concat_symbol_list(stmt->syms, syms);
@@ -107,8 +127,9 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 	 * switch the arms around appropriately..
 	 */
 	case STMT_IF: {
+		struct symbol *target = alloc_symbol(stmt->pos, SYM_LABEL);
 		struct statement *goto_bb = alloc_statement(stmt->pos, STMT_GOTO_BB);
-		struct basic_block *else_bb, *last_bb;
+		struct basic_block *last_bb;
 
 		add_statement(&bb->stmts, goto_bb);
 		last_bb = new_basic_block(bbs);
@@ -117,13 +138,17 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		goto_bb->bb_target = last_bb;
 
 		bb = linearize_statement(syms, bbs, bb, stmt->if_true);
-		bb->next = last_bb;
+		bb->next = target;
+		target->bb_target = last_bb;
 		
 		if (stmt->if_false) {
-			else_bb = new_basic_block(bbs);
+			struct symbol *else_target = alloc_symbol(stmt->pos, SYM_LABEL);
+			struct basic_block *else_bb = new_basic_block(bbs);
+
+			else_target->bb_target = else_bb;
 			else_bb = linearize_statement(syms, bbs, else_bb, stmt->if_false);
 			goto_bb->bb_target = else_bb;
-			else_bb->next = last_bb;
+			else_bb->next = target;
 		}
 				
 		bb = last_bb;

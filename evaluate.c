@@ -1598,6 +1598,10 @@ struct symbol *evaluate_statement(struct statement *stmt)
 	case STMT_ASM:
 		/* FIXME! Do the asm parameter evaluation! */
 		break;
+
+	/* These should not exist at evaluation time */
+	case STMT_GOTO_BB:
+		break;
 	}
 	return NULL;
 }
