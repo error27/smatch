@@ -877,6 +877,31 @@ static int handle_add_include(struct stream *stream, struct token *head, struct 
 	}
 }
 
+/*
+ * We replace "#pragma xxx" with "__pragma__" in the token
+ * stream. Just as an example.
+ *
+ * We'll just #define that away for now, but the theory here
+ * is that we can use this to insert arbitrary token sequences
+ * to turn the pragma's into internal front-end sequences for
+ * when we actually start caring about them.
+ *
+ * So eventually this will turn into some kind of extended
+ * __attribute__() like thing, except called __pragma__(xxx).
+ */
+static int handle_pragma(struct stream *stream, struct token *head, struct token *token)
+{
+	struct token *next = head->next;
+
+	token->ident = &pragma_ident;
+	token->pos.newline = 1;
+	token->pos.whitespace = 1;
+	token->pos.pos = 1;
+	head->next = token;
+	token->next = next;
+	return 1;
+}
+
 static int handle_preprocessor_command(struct stream *stream, struct token *head, struct ident *ident, struct token *token)
 {
 	int i;
@@ -895,6 +920,7 @@ static int handle_preprocessor_command(struct stream *stream, struct token *head
 		{ "warning",	handle_warning },
 		{ "error",	handle_error },
 		{ "include",	handle_include },
+		{ "pragma",	handle_pragma },
 
 		// our internal preprocessor tokens
 		{ "nostdinc",	handle_nostdinc },

@@ -498,6 +498,8 @@ IDENT(__asm__); IDENT(__asm); IDENT(asm);
 IDENT(__volatile__); IDENT(__volatile); IDENT(volatile);
 IDENT(__attribute__); IDENT(__attribute);
 
+__IDENT(pragma, "__pragma__");
+
 void init_symbols(void)
 {
 	int stream = init_stream("builtin", -1);
@@ -528,6 +530,7 @@ void init_symbols(void)
 	hash_ident(&__volatile___ident);
 	hash_ident(&__volatile_ident);
 	hash_ident(&volatile_ident);
+	hash_ident(&pragma_ident);
 	for (ptr = symbol_init_table; ptr->name; ptr++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, ptr->name, SYM_NODE, NS_TYPEDEF);

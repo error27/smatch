@@ -308,7 +308,6 @@ void show_symbol(struct symbol *sym)
 	case SYM_FN:
 		printf("\n");		
 		show_statement(type->stmt);
-		printf(".L%p:\n", type->stmt->ret);
 		printf("\tret\n");
 		break;
 
@@ -415,6 +414,8 @@ int show_statement(struct statement *stmt)
 		FOR_EACH_PTR(stmt->stmts, s) {
 			last = show_statement(s);
 		} END_FOR_EACH_PTR;
+		if (stmt->ret)
+			printf(".L%p:\n", stmt->ret);
 		return last;
 	}
 
