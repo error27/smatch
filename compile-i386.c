@@ -180,7 +180,7 @@ static inline unsigned int arg_offset(struct storage *s)
 		return 123456;	/* intentionally bogus value */
 
 	/* FIXME: this is wrong wrong wrong */
-	return (current_func->pseudo_nr + 1) * 4;
+	return (current_func->pseudo_nr + 1 + s->idx) * 4;
 }
 
 static const char *pretty_offset(int ofs)
@@ -209,21 +209,6 @@ static void stor_sym_init(struct symbol *sym)
 	priv->addr = stor;
 	stor->type = STOR_SYM;
 	stor->sym = sym;
-}
-
-/* we don't yet properly locate arguments on the stack.  we generate
- * an offset based on the stack frame at the time the argument is
- * referenced, which is incorrect, because the stack frame pointer
- * may change after that point, and before the end of the function.
- */
-static const char *stor_arg_warning(struct storage *s)
-{
-	static const char warning[32] = "stack offset WRONG!";
-
-	if (s->type != STOR_ARG)
-		return NULL;
-
-	return warning;
 }
 
 static const char *stor_op_name(struct storage *s)
@@ -554,7 +539,7 @@ static void emit_func_post(struct symbol *sym, struct storage *ret_val)
 
 	/* function prologue */
 	if (ret_val)
-		insn("movl", ret_val, REG_EAX, stor_arg_warning(ret_val), 0);
+		insn("movl", ret_val, REG_EAX, NULL, 0);
 
 	val = new_storage(STOR_VALUE);
 	val->value = (long long) (pseudo_nr * 4);
@@ -778,10 +763,10 @@ static void emit_move(struct expression *dest_expr, struct storage *dest,
 	/* FIXME: Bitfield move! */
 
 	/* FIXME: pay attention to arg 'bits' */
-	insn("movl", src, REG_EAX, stor_arg_warning(src), 0);
+	insn("movl", src, REG_EAX, NULL, 0);
 
 	/* FIXME: pay attention to arg 'bits' */
-	insn("movl", REG_EAX, dest, stor_arg_warning(dest), 0);
+	insn("movl", REG_EAX, dest, NULL, 0);
 }
 
 static void emit_store(struct expression *dest_expr, struct storage *dest,
@@ -941,9 +926,7 @@ static void emit_if_conditional(struct statement *stmt)
 	val = x86_expression(cond);
 
 	/* load 'if' test result into EAX */
-	insn("movl", val, REG_EAX,
-	     stor_arg_warning(val) ? stor_arg_warning(val) :
-	     "begin if conditional", 0);
+	insn("movl", val, REG_EAX, "begin if conditional", 0);
 
 	/* clear ECX */
 	insn("xorl", REG_ECX, REG_ECX, NULL, 0);
@@ -1292,7 +1275,6 @@ static struct storage *x86_call_expression(struct expression *expr)
 
 		/* FIXME: pay attention to 'size' */
 		insn("pushl", new, NULL,
-		     stor_arg_warning(new) ? stor_arg_warning(new) :
 		     !framesize ? "begin function call" : NULL, 0);
 
 		framesize += size >> 3;
