@@ -157,7 +157,7 @@ static struct token *dup_token(struct token *token, struct token *pos, int newli
 
 static void insert(struct token *token, struct token *prev)
 {
-	token->next = &eof_token_entry;
+	token->next = prev->next;
 	prev->next = token;
 }
 
@@ -165,7 +165,7 @@ static struct token * replace(struct token *token, struct token *prev, struct to
 {
 	int newline = token->newline;
 
-	prev->next = &eof_token_entry;
+	prev->next = token->next;
 	while (!eof_token(list) && !match_op(list, SPECIAL_ARG_SEPARATOR)) {
 		struct token *newtok = dup_token(list, token, newline);
 		newline = 0;
@@ -808,7 +808,7 @@ static const char *show_token_sequence(struct token *token)
 
 	if (!token)
 		return "<none>";
-	while (!eof_token(token)) {
+	while (!eof_token(token) && !match_op(token, SPECIAL_ARG_SEPARATOR)) {
 		const char *val = show_token(token);
 		int len = strlen(val);
 		if (whitespace)
@@ -818,7 +818,6 @@ static const char *show_token_sequence(struct token *token)
 		token = token->next;
 		whitespace = token->whitespace;
 	}
-	*ptr++ = 0;
 	*ptr = 0;
 	return buffer;
 }
