@@ -1342,7 +1342,6 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 
 		if (pseudo_list_size(phi_node->phi_list)==1) {
 			pseudo = first_pseudo(phi_node->phi_list);
-			delete_last_instruction(&bb->insns);
 			return pseudo->def->src1;
 		}
 		return phi_node->target;
