@@ -83,4 +83,6 @@ extern void translation_unit(struct token *, struct symbol_list **);
 extern struct symbol *ctype_integer(unsigned int spec);
 extern struct symbol *ctype_fp(unsigned int spec);
 
+extern int match_string_ident(struct ident *, const char *);
+
 #endif /* PARSE_H */

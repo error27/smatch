@@ -21,6 +21,8 @@
 #include "target.h"
 #include "expression.h"
 
+static int current_type, current_typemask;
+
 static struct symbol *evaluate_symbol_expression(struct expression *expr)
 {
 	struct symbol *sym = expr->symbol;
@@ -30,6 +32,10 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 		warn(expr->pos, "undefined identifier '%s'", show_ident(expr->symbol_name));
 		return NULL;
 	}
+
+	if ((sym->ctype.type ^ current_type) & (sym->ctype.typemask & current_typemask))
+		warn(expr->pos, "Using symbol '%s' in illegal context", show_ident(expr->symbol_name));
+
 	base_type = sym->ctype.base_type;
 	if (!base_type) {
 		warn(sym->pos, "identifier '%s' has no type", show_ident(expr->symbol_name));
@@ -951,8 +957,11 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 	/* And finally, evaluate the body of the symbol too */
 	if (base_type->type == SYM_FN) {
 		symbol_iterate(base_type->arguments, evaluate_one_symbol, NULL);
-		if (base_type->stmt)
+		if (base_type->stmt) {
+			current_typemask = sym->ctype.typemask;
+			current_type = sym->ctype.type;
 			evaluate_statement(base_type->stmt);
+		}
 	}
 
 	return base_type;

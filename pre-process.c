@@ -44,7 +44,7 @@ const char *includepath[INCLUDEPATHS+1] = {
  * This is stupid - the tokenizer already guarantees unique
  * identifiers, so we should just compare identifier pointers
  */
-static int match_string_ident(struct ident *ident, const char *str)
+int match_string_ident(struct ident *ident, const char *str)
 {
 	return !str[ident->len] && !memcmp(str, ident->name, ident->len);
 }

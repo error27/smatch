@@ -49,6 +49,7 @@ enum type {
 struct ctype {
 	unsigned long modifiers;
 	unsigned long alignment;
+	unsigned int typemask, type;
 	struct symbol *base_type;
 };
 
@@ -109,6 +110,8 @@ struct symbol {
 
 #define MOD_TYPEOF	0x10000
 #define MOD_ATTRIBUTE	0x20000
+
+#define MOD_NOCAST	0x100000
 
 /* Basic types */
 extern struct symbol	void_type,

@@ -160,6 +160,31 @@ struct token *typeof_specifier(struct token *token, struct ctype *ctype)
 
 static void handle_attribute(struct ctype *ctype, struct ident *attribute, struct expression *expr)
 {
+	if (match_string_ident(attribute, "packed")) {
+		ctype->alignment = 1;
+		return;
+	}
+	if (match_string_ident(attribute, "aligned")) {
+		ctype->alignment = get_expression_value(expr);
+		return;
+	}
+	if (match_string_ident(attribute, "nocast")) {
+		ctype->modifiers |= MOD_NOCAST;
+		return;
+	}
+	if (match_string_ident(attribute, "type")) {
+		if (expr->type == EXPR_COMMA) {
+			int mask = get_expression_value(expr->left);
+			int value = get_expression_value(expr->right);
+			if (value & ~mask) {
+				warn(expr->pos, "nonsense attribute types");
+				return;
+			}
+			ctype->typemask |= mask;
+			ctype->type |= value;
+			return;
+		}
+	}
 	fprintf(stderr, "saw attribute '%s'\n", show_ident(attribute));
 }
 
@@ -317,6 +342,13 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 					modifier_string(dup));
 			ctype->modifiers = old | mod | extra;
 		}
+		if ((ctype->type ^ thistype.type) & (ctype->typemask & thistype.typemask)) {
+			warn(token->pos, "inconsistend attribute types");
+			thistype.type = 0;
+			thistype.typemask = 0;
+		}
+		ctype->type |= thistype.type;
+		ctype->typemask |= thistype.typemask;
 	}
 
 	/* Turn the "virtual types" into real types with real sizes etc */
