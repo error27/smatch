@@ -184,4 +184,6 @@ extern struct symbol *examine_symbol_type(struct symbol *);
 extern void examine_simple_symbol_type(struct symbol *);
 extern const char *show_typename(struct symbol *sym);
 
+extern void debug_symbol(struct symbol *);
+
 #endif /* SEMANTIC_H */

@@ -21,6 +21,31 @@
 #include "expression.h"
 #include "target.h"
 
+static void do_debug_symbol(struct symbol *sym, int indent)
+{
+	static const char indent_string[] = "                                  ";
+	static const char *typestr[] = {
+		"base", "node", "ptr.", "fn..",
+		"arry", "strt", "unin", "enum",
+		"tdef", "tpof", "memb", "bitf",
+		"labl"
+	};
+
+	if (!sym)
+		return;
+	fprintf(stderr, "%.*s%s%3d:%lu %lx %s (as: %d, context: %x:%x)\n",
+		indent, indent_string, typestr[sym->type],
+		sym->bit_size, sym->ctype.alignment,
+		sym->ctype.modifiers, show_ident(sym->ident),
+		sym->ctype.as, sym->ctype.context, sym->ctype.contextmask);
+	do_debug_symbol(sym->ctype.base_type, indent+2);
+}
+
+void debug_symbol(struct symbol *sym)
+{
+	do_debug_symbol(sym, 0);
+}
+
 /*
  * Symbol type printout. The type system is by far the most
  * complicated part of C - everything else is trivial.
