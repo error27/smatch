@@ -133,6 +133,7 @@ static int bb_has_side_effects(struct basic_block *bb)
 		switch (insn->opcode) {
 		case OP_CALL:
 		case OP_STORE:
+		case OP_CONTEXT:
 			return 1;
 		default:
 			continue;
