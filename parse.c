@@ -198,6 +198,7 @@ static void handle_attribute(struct ctype *ctype, struct ident *attribute, struc
 
 struct token *attribute_specifier(struct token *token, struct ctype *ctype)
 {
+	ctype->modifiers = 0;
 	token = expect(token, '(', "after attribute");
 	token = expect(token, '(', "after attribute");
 
