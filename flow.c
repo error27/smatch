@@ -671,8 +671,12 @@ static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old
 	case OP_BR:
 		rewrite_branch(bb, &insn->bb_true, old, new);
 		rewrite_branch(bb, &insn->bb_false, old, new);
-		if (insn->bb_true == insn->bb_false)
+
+		/* Conditional branch to same target? */
+		if (insn->bb_true == insn->bb_false) {
+			remove_bb_from_list(&new->parents, bb, 1);
 			insn->bb_false = NULL;
+		}
 		return 1;
 	case OP_SWITCH: {
 		struct multijmp *jmp;
