@@ -256,7 +256,7 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 			 */
 			if (match_string_ident(ident, "__QI__") ||
 			    match_string_ident(ident, "QI")) {
-				ctype->modifiers |= MOD_SHORT;
+				ctype->modifiers |= MOD_CHAR;
 				ctype->base_type = ctype_integer(ctype->modifiers);
 				return NULL;
 			}
@@ -274,6 +274,12 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 			if (match_string_ident(ident, "__DI__") ||
 			    match_string_ident(ident, "DI")) {
 				ctype->modifiers |= MOD_LONGLONG;
+				ctype->base_type = ctype_integer(ctype->modifiers);
+				return NULL;
+			}
+			if (match_string_ident(ident, "__word__") ||
+			    match_string_ident(ident, "word")) {
+				ctype->modifiers |= MOD_LONG;
 				ctype->base_type = ctype_integer(ctype->modifiers);
 				return NULL;
 			}
