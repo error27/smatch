@@ -376,7 +376,7 @@ struct ctype_declare {
 	struct symbol *base_type;
 } ctype_declaration[] = {
 	{ &bool_ctype,   0,					  BITS_IN_INT,	     MAX_INT_ALIGNMENT, &int_type },
-	{ &void_ctype,   0,					  -1,		     0,			&void_ctype },
+	{ &void_ctype,   0,					  -1,		     0,			NULL },
 
 	{ &char_ctype,   MOD_SIGNED | MOD_CHAR,  		  BITS_IN_CHAR,	     MAX_INT_ALIGNMENT, &int_type },
 	{ &uchar_ctype,  MOD_UNSIGNED | MOD_CHAR,		  BITS_IN_CHAR,	     MAX_INT_ALIGNMENT, &int_type },
