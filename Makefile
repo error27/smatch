@@ -53,6 +53,7 @@ pre-process.o: $(LIB_H) pre-process.h
 scope.o: $(LIB_H)
 show-parse.o: $(LIB_H)
 symbol.o: $(LIB_H)
+expand.o: $(LIB_H)
 linearize.o: $(LIB_H)
 test-lexing.o: $(LIB_H)
 test-parsing.o: $(LIB_H)
