@@ -892,10 +892,10 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 		}
 	}
 
-	// FIXME!! Cast it?
 	warn(expr->pos, "incorrect type in %s (%s)", where, typediff);
 	info(expr->pos, "   expected %s", show_typename(target));
 	info(expr->pos, "   got %s", show_typename(source));
+	*rp = cast_to(*rp, target);
 	return 0;
 Cast:
 	*rp = cast_to(*rp, target);
@@ -1063,11 +1063,57 @@ static struct symbol *degenerate(struct expression *expr)
 		base = ctype->ctype.base_type;
 	/*
 	 * Arrays degenerate into pointers to the entries, while
-	 * functions degenerate into pointers to themselves
+	 * functions degenerate into pointers to themselves.
+	 * If array was part of non-lvalue compound, we create a copy
+	 * of that compound first and then act as if we were dealing with
+	 * the corresponding field in there.
 	 */
 	switch (base->type) {
-	case SYM_FN:
 	case SYM_ARRAY:
+		if (expr->type == EXPR_SLICE) {
+			struct symbol *a = alloc_symbol(expr->pos, SYM_NODE);
+			struct expression *e0, *e1, *e2, *e3, *e4;
+
+			a->ctype.base_type = expr->base->ctype;
+			a->bit_size = expr->base->ctype->bit_size;
+			a->array_size = expr->base->ctype->array_size;
+
+			e0 = alloc_expression(expr->pos, EXPR_SYMBOL);
+			e0->symbol = a;
+			e0->ctype = &lazy_ptr_ctype;
+
+			e1 = alloc_expression(expr->pos, EXPR_PREOP);
+			e1->unop = e0;
+			e1->op = '*';
+			e1->ctype = expr->base->ctype;	/* XXX */
+
+			e2 = alloc_expression(expr->pos, EXPR_ASSIGNMENT);
+			e2->left = e1;
+			e2->right = expr->base;
+			e2->op = '=';
+			e2->ctype = expr->base->ctype;
+
+			if (expr->r_bitpos) {
+				e3 = alloc_expression(expr->pos, EXPR_BINOP);
+				e3->op = '+';
+				e3->left = e0;
+				e3->right = alloc_const_expression(expr->pos,
+							expr->r_bitpos >> 3);
+				e3->ctype = &lazy_ptr_ctype;
+			} else {
+				e3 = e0;
+			}
+
+			e4 = alloc_expression(expr->pos, EXPR_COMMA);
+			e4->left = e2;
+			e4->right = e3;
+			e4->ctype = &lazy_ptr_ctype;
+
+			expr->unop = e4;
+			expr->type = EXPR_PREOP;
+			expr->op = '*';
+		}
+	case SYM_FN:
 		if (expr->op != '*' || expr->type != EXPR_PREOP) {
 			warn(expr->pos, "strange non-value function or array");
 			return NULL;
@@ -1338,12 +1384,6 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		address_space |= ctype->ctype.as;
 		mod |= ctype->ctype.modifiers;
 	}
-	if (!lvalue_expression(deref)) {
-		warn(deref->pos, "expected lvalue for member dereference");
-		return NULL;
-	}
-	deref = deref->unop;
-	expr->deref = deref;
 	if (!ctype || (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION)) {
 		warn(expr->pos, "expected structure or union");
 		return NULL;
@@ -1368,9 +1408,32 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	 * the "parent" type.
 	 */
 	member = convert_to_as_mod(member, address_space, mod);
-	add = evaluate_offset(deref, offset);
-
 	ctype = member->ctype.base_type;
+
+	if (!lvalue_expression(deref)) {
+		if (deref->type != EXPR_SLICE) {
+			expr->base = deref;
+			expr->r_bitpos = 0;
+		} else {
+			expr->base = deref->base;
+			expr->r_bitpos = deref->r_bitpos;
+		}
+		expr->r_bitpos += offset << 3;
+		expr->type = EXPR_SLICE;
+		if (ctype->type == SYM_BITFIELD) {
+			expr->r_bitpos += member->bit_offset;
+			expr->r_nrbits = member->fieldwidth;
+		} else {
+			expr->r_nrbits = member->bit_size;
+		}
+		expr->ctype = member;
+		return member;
+	}
+
+	deref = deref->unop;
+	expr->deref = deref;
+
+	add = evaluate_offset(deref, offset);
 	if (ctype->type == SYM_BITFIELD) {
 		expr->type = EXPR_BITFIELD;
 		expr->bitpos = member->bit_offset;
@@ -1885,6 +1948,9 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_INDEX:
 	case EXPR_POS:
 		warn(expr->pos, "internal front-end error: initializer in expression");
+		return NULL;
+	case EXPR_SLICE:
+		warn(expr->pos, "internal front-end error: SLICE re-evaluated");
 		return NULL;
 	}
 	return NULL;

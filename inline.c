@@ -91,6 +91,13 @@ static struct expression * copy_expression(struct expression *expr)
 		break;
 	}
 
+	case EXPR_SLICE: {
+		struct expression *base = copy_expression(expr->base);
+		expr = dup_expression(expr);
+		expr->base = base;
+		break;
+	}
+
 	/* Binops: copy left/right expressions */
 	case EXPR_BINOP:
 	case EXPR_COMMA:

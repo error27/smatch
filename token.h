@@ -80,12 +80,13 @@ enum token_type {
 	"&&", "&=",		\
 	"||", "|=",		\
 	"^=", "##",		\
-	" @ ",			\
+	"",			\
+	"<", ">", "<=", ">="	\
 }
 
 enum special_token {
 	SPECIAL_BASE = 256,
-	SPECIAL_ADD_ASSIGN = 256,
+	SPECIAL_ADD_ASSIGN = SPECIAL_BASE,
 	SPECIAL_INCREMENT,
 	SPECIAL_SUB_ASSIGN,
 	SPECIAL_DECREMENT,

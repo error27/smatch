@@ -626,6 +626,11 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 			ctype = &array->ctype;
 			continue;
 		}
+			while (match_idents(token, &__attribute___ident, &__attribute_ident, NULL)) {
+				struct ctype thistype = { 0, };
+				token = attribute_specifier(token->next, &thistype);
+				apply_ctype(token->pos, &thistype, ctype);
+			}
 		break;
 	}
 	if (p) {

@@ -51,6 +51,10 @@ struct instruction {
 		struct /* binops */ {
 			pseudo_t src1, src2;
 		};
+		struct /* slice */ {
+			pseudo_t base;
+			unsigned from, len;
+		};
 		struct /* multijump */ {
 			int begin, end;
 		};
@@ -131,6 +135,7 @@ enum opcode {
 	OP_CALL,
 	OP_VANEXT,
 	OP_VAARG,
+	OP_SLICE,
 };
 
 struct basic_block_list;
