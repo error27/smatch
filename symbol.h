@@ -63,6 +63,7 @@ struct symbol {
 	struct ident *ident;		/* What identifier this symbol is associated with */
 	struct symbol *next_id;		/* Next semantic symbol that shares this identifier */
 	struct symbol **id_list;	/* Backpointer to symbol list head */
+	struct symbol	*replace;	/* What is this symbol shadowed by in copy-expression */
 	struct scope	*scope;
 	struct symbol	*same_symbol;
 	int (*evaluate)(struct expression *);

@@ -756,7 +756,7 @@ static int show_symbol_expr(struct symbol *sym)
 		printf("\taddi.%d\t\tv%d,vFP,$%lld\n", BITS_IN_POINTER, new, sym->value);
 		return new;
 	}
-	printf("\taddi.%d\t\tv%d,vFP,$offsetof(%s)\n", BITS_IN_POINTER, new, show_ident(sym->ident));
+	printf("\taddi.%d\t\tv%d,vFP,$offsetof(%s:%p)\n", BITS_IN_POINTER, new, show_ident(sym->ident), sym);
 	return new;
 }
 
