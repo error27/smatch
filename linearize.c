@@ -1587,7 +1587,7 @@ pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 
 	/* Gather the inputs.. */
 	even_odd = 0;
-	FOR_EACH_PTR(stmt->asm_outputs, expr) {
+	FOR_EACH_PTR(stmt->asm_inputs, expr) {
 		even_odd = 1 - even_odd;
 
 		/* FIXME! We ignore the constraints for now.. */
