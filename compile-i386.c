@@ -1370,6 +1370,53 @@ static void x86_symbol_decl(struct symbol_list *syms)
 	} END_FOR_EACH_PTR;
 }
 
+static void x86_loop(struct statement *stmt)
+{
+	struct statement  *pre_statement = stmt->iterator_pre_statement;
+	struct expression *pre_condition = stmt->iterator_pre_condition;
+	struct statement  *statement = stmt->iterator_statement;
+	struct statement  *post_statement = stmt->iterator_post_statement;
+	struct expression *post_condition = stmt->iterator_post_condition;
+	int loop_top = 0, loop_bottom = 0;
+	struct storage *val;
+
+	x86_symbol_decl(stmt->iterator_syms);
+	x86_statement(pre_statement);
+	if (pre_condition) {
+		if (pre_condition->type == EXPR_VALUE) {
+			if (!pre_condition->value) {
+				loop_bottom = new_label();
+				printf("\tjmp\t\t.L%d\n", loop_bottom);
+			}
+		} else {
+			loop_bottom = new_label();
+			val = x86_expression(pre_condition);
+			printf("\tje\t\tv%d, .L%d\n", val->pseudo, loop_bottom);
+		}
+	}
+	if (!post_condition || post_condition->type != EXPR_VALUE || post_condition->value) {
+		loop_top = new_label();
+		printf(".L%d:\n", loop_top);
+	}
+	x86_statement(statement);
+	if (stmt->iterator_continue->used)
+		printf(".L%p:\n", stmt->iterator_continue);
+	x86_statement(post_statement);
+	if (!post_condition) {
+		printf("\tjmp\t\t.L%d\n", loop_top);
+	} else if (post_condition->type == EXPR_VALUE) {
+		if (post_condition->value)
+			printf("\tjmp\t\t.L%d\n", loop_top);
+	} else {
+		val = x86_expression(post_condition);
+		printf("\tjne\t\tv%d, .L%d\n", val->pseudo, loop_top);
+	}
+	if (stmt->iterator_break->used)
+		printf(".L%p:\n", stmt->iterator_break);
+	if (loop_bottom)
+		printf(".L%d:\n", loop_bottom);
+}
+
 /*
  * Print out a statement
  */
@@ -1406,52 +1453,10 @@ static struct storage *x86_statement(struct statement *stmt)
 		x86_statement(stmt->case_statement);
 		break;
 
-	case STMT_ITERATOR: {
-		struct statement  *pre_statement = stmt->iterator_pre_statement;
-		struct expression *pre_condition = stmt->iterator_pre_condition;
-		struct statement  *statement = stmt->iterator_statement;
-		struct statement  *post_statement = stmt->iterator_post_statement;
-		struct expression *post_condition = stmt->iterator_post_condition;
-		int loop_top = 0, loop_bottom = 0;
-		struct storage *val;
-
-		x86_symbol_decl(stmt->iterator_syms);
-		x86_statement(pre_statement);
-		if (pre_condition) {
-			if (pre_condition->type == EXPR_VALUE) {
-				if (!pre_condition->value) {
-					loop_bottom = new_label();
-					printf("\tjmp\t\t.L%d\n", loop_bottom);
-				}
-			} else {
-				loop_bottom = new_label();
-				val = x86_expression(pre_condition);
-				printf("\tje\t\tv%d, .L%d\n", val->pseudo, loop_bottom);
-			}
-		}
-		if (!post_condition || post_condition->type != EXPR_VALUE || post_condition->value) {
-			loop_top = new_label();
-			printf(".L%d:\n", loop_top);
-		}
-		x86_statement(statement);
-		if (stmt->iterator_continue->used)
-			printf(".L%p:\n", stmt->iterator_continue);
-		x86_statement(post_statement);
-		if (!post_condition) {
-			printf("\tjmp\t\t.L%d\n", loop_top);
-		} else if (post_condition->type == EXPR_VALUE) {
-			if (post_condition->value)
-				printf("\tjmp\t\t.L%d\n", loop_top);
-		} else {
-			val = x86_expression(post_condition);
-			printf("\tjne\t\tv%d, .L%d\n", val->pseudo, loop_top);
-		}
-		if (stmt->iterator_break->used)
-			printf(".L%p:\n", stmt->iterator_break);
-		if (loop_bottom)
-			printf(".L%d:\n", loop_bottom);
+	case STMT_ITERATOR:
+		x86_loop(stmt);
 		break;
-	}
+
 	case STMT_NONE:
 		break;
 
@@ -1473,7 +1478,7 @@ static struct storage *x86_statement(struct statement *stmt)
 		break;
 
 	}
-	return 0;
+	return NULL;
 }
 
 static struct storage *x86_call_expression(struct expression *expr)
