@@ -26,6 +26,8 @@
 #include "expression.h"
 #include "target.h"
 
+#define warn_on_mixed (1)
+
 static struct symbol_list **function_symbol_list;
 struct symbol_list *function_computed_target_list;
 struct statement_list *function_computed_goto_list;
@@ -1289,7 +1291,7 @@ default_statement:
 	return expression_statement(token, &stmt->expression);
 }
 
-struct token * statement_list(struct token *token, struct statement_list **list)
+static struct token * statement_list(struct token *token, struct statement_list **list, struct symbol_list **syms)
 {
 	for (;;) {
 		struct statement * stmt;
@@ -1297,6 +1299,12 @@ struct token * statement_list(struct token *token, struct statement_list **list)
 			break;
 		if (match_op(token, '}'))
 			break;
+		if (lookup_type(token)) {
+			if (warn_on_mixed && *list)
+				warning(token->pos, "mixing declarations and code");
+			token = external_declaration(token, syms);
+			continue;
+		}
 		token = statement(token, &stmt);
 		add_statement(list, stmt);
 	}
@@ -1345,12 +1353,7 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn)
 
 struct token *compound_statement(struct token *token, struct statement *stmt)
 {
-	while (!eof_token(token)) {
-		if (!lookup_type(token))
-			break;
-		token = external_declaration(token, &stmt->syms);
-	}
-	token = statement_list(token, &stmt->stmts);
+	token = statement_list(token, &stmt->stmts, &stmt->syms);
 	return token;
 }
 

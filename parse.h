@@ -99,7 +99,6 @@ extern struct symbol_list *function_computed_target_list;
 extern struct statement_list *function_computed_goto_list;
 
 extern struct token *parse_expression(struct token *, struct expression **);
-extern struct token *statement_list(struct token *, struct statement_list **);
 extern struct symbol *label_symbol(struct token *token);
 
 extern int show_statement(struct statement *);
