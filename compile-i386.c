@@ -257,11 +257,12 @@ struct storage * get_hardreg(struct storage *reg, int clear)
 
 	aliases = info->aliases;
 	while ((regno = *aliases++) != NOREG) {
-		if (test_and_set_bit(regno, regs_in_use))
+		if (test_bit(regno, regs_in_use))
 			goto busy;
 		if (clear)
 			reg_info_table[regno].contains = NULL;
 	}
+	set_bit(info->own_regno, regs_in_use);
 	return reg;
 busy:
 	fprintf(stderr, "register %s is busy\n", info->name);
@@ -273,16 +274,10 @@ busy:
 void put_reg(struct storage *reg)
 {
 	struct reg_info *info = reg->reg;
-	const unsigned char *aliases;
-	int regno;
+	int regno = info->own_regno;
 
-	aliases = info->aliases;
-	while ((regno = *aliases++) != NOREG) {
-		if (!test_and_clear_bit(regno, regs_in_use))
-			goto free;
-	}
-	return;
-free:
+	if (test_and_clear_bit(regno, regs_in_use))
+		return;
 	fprintf(stderr, "freeing already free'd register %s\n", reg_info_table[regno].name);
 }
 
@@ -297,6 +292,21 @@ struct regclass regclass_32 = { "32-bit", { EAX, EDX, ECX, EBX, ESI, EDI, EBP }}
 struct regclass regclass_64 = { "64-bit", { EAX_EDX, ECX_EBX, ESI_EDI }};
 
 struct regclass regclass_32_8 = { "32-bit bytes", { EAX, EDX, ECX, EBX }};
+
+static struct regclass *get_regclass_bits(int bits)
+{
+	switch (bits) {
+	case 8: return &regclass_8;
+	case 16: return &regclass_16;
+	case 64: return &regclass_64;
+	default: return &regclass_32;
+	}
+}
+
+static struct regclass *get_regclass(struct expression *expr)
+{
+	return get_regclass_bits(expr->ctype->bit_size);
+}
 
 static int register_busy(int regno)
 {
@@ -330,7 +340,7 @@ struct storage *get_reg(struct regclass *class)
 	exit(1);
 }
 
-struct storage *get_reg_value(struct storage *value)
+struct storage *get_reg_value(struct storage *value, struct regclass *class)
 {
 	struct reg_info *info;
 	struct storage *reg;
@@ -342,7 +352,7 @@ struct storage *get_reg_value(struct storage *value)
 		return get_hardreg(hardreg_storage_table + info->own_regno, 0);
 	}
 
-	reg = get_reg(&regclass_32);
+	reg = get_reg(class);
 	emit_move(value, reg, value->ctype, "reload register");
 	info = reg->reg;
 	info->contains = value;
@@ -352,14 +362,7 @@ struct storage *get_reg_value(struct storage *value)
 
 static struct storage *temp_from_bits(unsigned int bit_size)
 {
-	switch(bit_size) {
-	case 8:		return get_reg(&regclass_8);
-	case 16:	return get_reg(&regclass_16);
-	case 32:	return get_reg(&regclass_32);
-	case 64:	return get_reg(&regclass_64);
-	}
-
-	return NULL;
+	return get_reg(get_regclass_bits(bit_size));
 }
 
 static inline unsigned int pseudo_offset(struct storage *s)
@@ -1245,7 +1248,7 @@ static struct storage *emit_compare(struct expression *expr)
 	emit_move(val, reg1, NULL, NULL);
 
 	/* move op1 into EAX */
-	reg2 = get_reg_value(left);
+	reg2 = get_reg_value(left, get_regclass(expr->left));
 
 	/* perform comparison, RHS (op1, right) and LHS (op2, EAX) */
 	insn(opbits("cmp", right_bits), right, reg2, NULL);
@@ -1303,7 +1306,7 @@ static struct storage *emit_divide(struct expression *expr, struct storage *left
 	/* EAX is dividend */
 	emit_move(left, REG_EAX, NULL, NULL);
 
-	reg = get_reg_value(right);
+	reg = get_reg_value(right, &regclass_32);
 
 	/* perform binop */
 	insn("div", reg, REG_EAX, NULL);
@@ -1380,8 +1383,8 @@ static struct storage *emit_binop(struct expression *expr)
 		break;
 	}
 
-	dest = get_reg_value(right);
-	src = get_reg_value(left);
+	dest = get_reg_value(right, &regclass_32);
+	src = get_reg_value(left, &regclass_32);
 	switch (expr->ctype->bit_size) {
 	case 8:
 		suffix = "b";
@@ -1423,7 +1426,7 @@ static int emit_conditional_test(struct storage *val)
 
 	/* load result into EAX */
 	emit_comment("begin if/conditional");
-	reg = get_reg_value(val);
+	reg = get_reg_value(val, &regclass_32);
 
 	/* compare result with zero */
 	insn("test", reg, reg, NULL);
@@ -1572,12 +1575,12 @@ static struct storage *emit_select_expr(struct expression *expr)
 	struct storage *new = stack_alloc(4);
 
 	emit_comment("begin SELECT");
-	reg_cond = get_reg_value(cond);
+	reg_cond = get_reg_value(cond, get_regclass(expr->conditional));
 	reg_true = reg_cond;
 	if (true) {
-		reg_true = get_reg_value(true);
+		reg_true = get_reg_value(true, get_regclass(expr));
 	}
-	reg_false = get_reg_value(false);
+	reg_false = get_reg_value(false, get_regclass(expr));
 
 	/*
 	 * Do the actual select: check the conditional for zero,
