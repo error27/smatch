@@ -723,7 +723,7 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 		t = t->ctype.base_type;
 		target_as |= t->ctype.as;
 	}
-	if (t->type == SYM_PTR || t->type == SYM_FN) {
+	if (t->type == SYM_PTR || t->type == SYM_FN || t->type == SYM_ARRAY) {
 		struct expression *right = *rp;
 		struct symbol *s = source;
 		int source_as;
