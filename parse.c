@@ -278,7 +278,7 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 	struct expression *expr;
 	struct symbol *sym = *tree;
 	token = parse_expression(token, &expr);
-	sym->size = constant_value(expr);
+	sym->array_size = constant_value(expr);
 	return token;
 }
 

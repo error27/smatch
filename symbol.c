@@ -14,6 +14,8 @@
 #include "symbol.h"
 #include "scope.h"
 
+#include "target.h"
+
 struct symbol *lookup_symbol(struct ident *ident, enum namespace ns)
 {
 	struct symbol *sym;
@@ -31,6 +33,136 @@ struct symbol *alloc_symbol(struct token *token, int type)
 	sym->type = type;
 	sym->token = token;
 	return sym;
+}
+
+struct struct_union_info {
+	int advance;
+	unsigned long max_align;
+	unsigned long bit_size;
+	unsigned long offset;
+	unsigned long bit_offset;
+};
+
+static void examine_one_member(struct symbol *sym, void *_info, int flags)
+{
+	struct struct_union_info *info = _info;
+	unsigned long offset = info->offset;
+
+	examine_symbol_type(sym);
+	if (sym->alignment > info->max_align)
+		info->max_align = sym->alignment;
+	if (info->advance) {
+		offset += sym->alignment-1;
+		offset &= ~(sym->alignment-1);
+		sym->offset = offset;
+		info->offset = offset + (sym->bit_size >> 3);
+	}
+	info->bit_size = (offset << 3) + sym->bit_size;
+}
+
+static void examine_struct_union_type(struct symbol *sym, int advance)
+{
+	struct struct_union_info info = { advance, 1, 0, 0 };
+	unsigned long bit_size, bit_align;
+
+	symbol_iterate(sym->symbol_list, examine_one_member, &info);
+	bit_size = info.bit_size;
+	bit_align = (info.max_align << 3)-1;
+	bit_size = (bit_size + bit_align) & ~bit_align;
+	sym->bit_size = bit_size;
+	sym->alignment = info.max_align;
+}
+
+/*
+ * Fill in type size and alignment information for
+ * regular SYM_TYPE things.
+ */
+void examine_symbol_type(struct symbol * sym)
+{
+	unsigned int bit_size, alignment;
+	struct symbol *base_type;
+	unsigned long modifiers;
+
+	/* Already done? */
+	if (sym->bit_size)
+		return;
+	base_type = sym->ctype.base_type;
+	modifiers = sym->ctype.modifiers;
+
+	/* If this symbol doesn't have a type yet, we'll just have to punt */
+	if (!base_type) {
+		warn(sym->token, "no type");
+		return;
+	}
+
+	switch (base_type->type) {
+	case SYM_STRUCT:
+		examine_struct_union_type(base_type, 1);
+		break;
+	case SYM_UNION:
+		examine_struct_union_type(base_type, 0);
+		break;
+	case SYM_PTR:
+		if (!base_type->bit_size)
+			base_type->bit_size = BITS_IN_POINTER;
+		if (!base_type->alignment)
+			base_type->alignment = POINTER_ALIGNMENT;
+		break;
+	default:
+		break;
+	}
+
+	bit_size = base_type->bit_size;
+	alignment = base_type->alignment;
+	if (bit_size) {
+		if (!sym->alignment)
+			sym->alignment = alignment;
+		sym->bit_size = bit_size;
+		return;
+	}
+
+	if (base_type == &int_type) {
+		bit_size = BITS_IN_INT;
+		if (modifiers & MOD_LONGLONG) {
+			bit_size = BITS_IN_LONGLONG;
+		} else if (modifiers & MOD_LONG) {
+			bit_size = BITS_IN_LONG;
+		} else if (modifiers & MOD_SHORT) {
+			bit_size = BITS_IN_SHORT;
+		} else if (modifiers & MOD_CHAR) {
+			bit_size = BITS_IN_CHAR;
+		}
+		if (!alignment) {
+			alignment = bit_size >> 3;
+			if (alignment > MAX_INT_ALIGNMENT)
+				alignment = MAX_INT_ALIGNMENT;
+		}
+		if (!sym->alignment)
+			sym->alignment = alignment;
+		sym->bit_size = bit_size;
+		return;
+	}
+
+	if (base_type == &fp_type) {
+		bit_size = BITS_IN_FLOAT;
+		if (modifiers & MOD_LONGLONG) {
+			bit_size = BITS_IN_LONGDOUBLE;
+		} else if (modifiers & MOD_LONG) {
+			bit_size = BITS_IN_DOUBLE;
+		}
+		if (!alignment) {
+			alignment = bit_size >> 3;
+			if (alignment > MAX_FP_ALIGNMENT)
+				alignment = MAX_FP_ALIGNMENT;
+		}
+		if (!sym->alignment)
+			sym->alignment = alignment;
+		sym->bit_size = bit_size;
+		return;
+	}
+
+	warn(sym->token, "unknown type");
+	return;
 }
 
 void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)

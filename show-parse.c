@@ -68,7 +68,7 @@ void show_type_details(unsigned int modifiers, struct symbol *sym)
 		printf(" <notype>");
 		return;
 	}
-		
+
 	if (sym == &int_type) {
 		if (modifiers & (MOD_CHAR | MOD_SHORT | MOD_LONG))
 			return;
@@ -149,7 +149,8 @@ void show_type(struct symbol *sym)
 		return;
 	}
 
-	printf("%s", modifier_string(sym->ctype.modifiers));
+	examine_symbol_type(sym);
+	printf("%d:%d %s", sym->bit_size, sym->alignment, modifier_string(sym->ctype.modifiers));
 
 	switch (sym->type) {
 	case SYM_PTR:
