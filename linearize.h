@@ -155,6 +155,7 @@ struct instruction_list;
 #define BB_REACHABLE	0x00000001
 
 struct basic_block {
+	struct position pos;
 	unsigned long flags;		/* BB status flags */
 	int context;
 	struct basic_block_list *parents; /* sources */
