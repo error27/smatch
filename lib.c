@@ -560,7 +560,7 @@ void add_pre_buffer(const char *fmt, ...)
 char **handle_switch_D(char *arg, char **next)
 {
 	const char *name = arg + 1;
-	const char *value = "";
+	const char *value = "1";
 	for (;;) {
 		char c;
 		c = *++arg;
