@@ -1383,14 +1383,6 @@ static struct symbol *evaluate_call(struct expression *expr)
 		ctype = ctype->ctype.base_type;
 	if (!evaluate_arguments(sym, ctype, arglist))
 		return NULL;
-	if (sym->type == SYM_NODE) {
-		if (evaluate_symbol_call(expr))
-			return expr->ctype;
-	}
-	if (sym->type == SYM_NODE) {
-		if (evaluate_symbol_call(expr))
-			return expr->ctype;
-	}
 	if (ctype->type != SYM_FN) {
 		warn(expr->pos, "not a function %.*s",
 				sym->ident->len, sym->ident->name);
@@ -1402,6 +1394,10 @@ static struct symbol *evaluate_call(struct expression *expr)
 		warn(expr->pos, "not enough arguments for function %s", show_ident(sym->ident));
 	if (args > fnargs && !ctype->variadic)
 		warn(expr->pos, "too many arguments for function %s", show_ident(sym->ident));
+	if (sym->type == SYM_NODE) {
+		if (evaluate_symbol_call(expr))
+			return expr->ctype;
+	}
 	expr->ctype = ctype->ctype.base_type;
 	return expr->ctype;
 }

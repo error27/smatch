@@ -433,8 +433,9 @@ struct symbol_op constant_p_op = {
 /*
  * Builtin functions
  */
+static struct symbol builtin_fn_type = { .type = SYM_FN };
 struct sym_init eval_init_table[] = {
-	{ "__builtin_constant_p", &int_type, MOD_TOPLEVEL, &constant_p_op },
+	{ "__builtin_constant_p", &builtin_fn_type, MOD_TOPLEVEL, &constant_p_op },
 
 	{ NULL,		NULL,		0 }
 };
@@ -561,6 +562,7 @@ void init_symbols(void)
 		sym->ctype.modifiers = ptr->modifiers;
 	}
 
+	builtin_fn_type.variadic = 1;
 	for (ptr = eval_init_table; ptr->name; ptr++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, ptr->name, SYM_NODE, NS_SYMBOL);
