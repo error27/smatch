@@ -35,6 +35,16 @@ static int match_string_ident(struct ident *ident, const char *str)
 	return !str[ident->len] && !memcmp(str, ident->name, ident->len);
 }
 
+static struct token *alloc_token(struct token *dup)
+{
+	struct token *token = __alloc_token(0);
+
+	token->stream = dup->stream;
+	token->line = dup->line;
+	token->pos = dup->pos;
+	return token;
+}
+
 static const char *show_token_sequence(struct token *token);
 
 /* Head is one-before-list, and last is one-past-list */
@@ -68,7 +78,7 @@ static struct token *is_defined(struct token *head, struct token *token, struct 
 {
 	char *string[] = { "0", "1" };
 	char *defined = string[lookup_symbol(token->ident, NS_PREPROCESSOR) != NULL];
-	struct token *newtoken = alloc_token(token->stream, token->line, token->pos);
+	struct token *newtoken = alloc_token(token);
 
 	newtoken->type = TOKEN_INTEGER;
 	newtoken->integer = defined;
@@ -143,7 +153,7 @@ static struct token *find_argument_end(struct token *start)
 
 static struct token *dup_token(struct token *token, struct token *pos, int newline)
 {
-	struct token *alloc = alloc_token(pos->stream, pos->line, pos->pos);
+	struct token *alloc = alloc_token(pos);
 	alloc->type = token->type;
 	alloc->line = pos->line;
 	alloc->newline = newline;
@@ -193,7 +203,7 @@ static struct token *stringify(struct token *token, struct token *arg)
 {
 	const char *s = show_token_sequence(arg);
 	int size = strlen(s)+1;
-	struct token *newtoken = alloc_token(token->stream, token->line, token->pos);
+	struct token *newtoken = alloc_token(token);
 	struct string *string = __alloc_string(size);
 
 	newtoken->newline = token->newline;

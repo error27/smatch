@@ -17,8 +17,6 @@ struct stream {
 extern int input_stream_nr;
 extern struct stream *input_streams;
 
-struct token * alloc_token(int stream, int line, int pos);
-
 extern int ident_hit, ident_miss;
 
 struct ident {

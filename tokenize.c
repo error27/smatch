@@ -23,6 +23,16 @@ int input_stream_nr = 0;
 struct stream *input_streams;
 static int input_streams_allocated;
 
+#define BUFSIZE (8192)
+typedef struct {
+	int fd, stream, line, pos, offset, size;
+	unsigned int newline:1, whitespace:1;
+	struct token **tokenlist;
+	struct token *token;
+	unsigned char buffer[BUFSIZE];
+} stream_t;
+
+
 const char *show_special(int val)
 {
 	static const char *combinations[] = COMBINATION_STRINGS;
@@ -147,88 +157,79 @@ int init_stream(const char *name)
 	return stream;
 }
 
-struct token * alloc_token(int stream, int line, int pos)
+static struct token * alloc_token(stream_t *stream)
 {
 	struct token *token = __alloc_token(0);
-	token->line = line;
-	token->pos = pos;
-	token->stream = stream;
-	token->newline = 0;
-	token->whitespace = 1;
+	token->line = stream->line;
+	token->pos = stream->pos;
+	token->stream = stream->stream;
+	token->newline = stream->newline;
+	token->whitespace = stream->whitespace;
 	return token;
 }
 
-#define BUFSIZE (4096)
-typedef struct {
-	int fd, line, pos, offset, size;
-	unsigned int newline:1, whitespace:1;
-	struct token **tokenlist;
-	struct token *token;
-	unsigned char buffer[BUFSIZE];
-} action_t;
-
-static int nextchar(action_t *action)
+static int nextchar(stream_t *stream)
 {
-	int offset = action->offset;
-	int size = action->size;
+	int offset = stream->offset;
+	int size = stream->size;
 	int c;
 
 	if (offset >= size) {
-		size = read(action->fd, action->buffer, sizeof(action->buffer));
+		size = read(stream->fd, stream->buffer, sizeof(stream->buffer));
 		if (size <= 0)
 			return EOF;
-		action->size = size;
-		action->offset = 0;
+		stream->size = size;
+		stream->offset = 0;
 		offset = 0;
 	}
-	c = action->buffer[offset];
-	action->offset = offset + 1;
-	action->pos++;
+	c = stream->buffer[offset];
+	stream->offset = offset + 1;
+	stream->pos++;
 	if (c == '\n') {
-		action->line++;
-		action->newline = 1;
-		action->pos = 0;
+		stream->line++;
+		stream->newline = 1;
+		stream->pos = 0;
 	}
 	return c;
 }
 
 struct token eof_token_entry;
 
-static void mark_eof(action_t *action, struct token *end_token)
+static void mark_eof(stream_t *stream, struct token *end_token)
 {
 	eof_token_entry.next = &eof_token_entry;
 	eof_token_entry.newline = 1;
 	if (!end_token)
 		end_token =  &eof_token_entry;
-	*action->tokenlist = end_token;
-	action->tokenlist = NULL;
+	*stream->tokenlist = end_token;
+	stream->tokenlist = NULL;
 }
 
-static void add_token(action_t *action)
+static void add_token(stream_t *stream)
 {
-	struct token *token = action->token;
+	struct token *token = stream->token;
 
-	action->token = NULL;
+	stream->token = NULL;
 	token->next = NULL;
-	*action->tokenlist = token;
-	action->tokenlist = &token->next;
+	*stream->tokenlist = token;
+	stream->tokenlist = &token->next;
 }
 
-static void drop_token(action_t *action)
+static void drop_token(stream_t *stream)
 {
-	action->newline |= action->token->newline;
-	action->whitespace |= action->token->whitespace;
-	action->token = NULL;
+	stream->newline |= stream->token->newline;
+	stream->whitespace |= stream->token->whitespace;
+	stream->token = NULL;
 }
 
-static int get_base_number(unsigned int base, char **p, int next, action_t *action)
+static int get_base_number(unsigned int base, char **p, int next, stream_t *stream)
 {
 	char *buf = *p;
 
 	*buf++ = next;
 	for (;;) {		
 		unsigned int n;
-		next = nextchar(action);
+		next = nextchar(stream);
 		n = hexval(next);
 		if (n >= base)
 			break;
@@ -238,28 +239,28 @@ static int get_base_number(unsigned int base, char **p, int next, action_t *acti
 	return next;
 }
 
-static int do_integer(char *buffer, int len, int next, action_t *action)
+static int do_integer(char *buffer, int len, int next, stream_t *stream)
 {
-	struct token *token = action->token;
+	struct token *token = stream->token;
 	void *buf;
 	
 	while (next == 'u' || next == 'U' || next == 'l' || next == 'L') {
 		buffer[len++] = next;
-		next = nextchar(action);
+		next = nextchar(stream);
 	}
 	buffer[len++] = '\0';
 	buf = __alloc_bytes(len);
 	memcpy(buf, buffer, len);
 	token->type = TOKEN_INTEGER;
 	token->integer = buf;
-	add_token(action);
+	add_token(stream);
 	return next;
 }
 
-static int get_one_number(int c, action_t *action)
+static int get_one_number(int c, stream_t *stream)
 {
 	static char buffer[256];
-	int next = nextchar(action);
+	int next = nextchar(stream);
 	char *p = buffer;
 
 	*p++ = c;
@@ -267,35 +268,35 @@ static int get_one_number(int c, action_t *action)
 	case '0'...'7':
 		if (c == '0') {
 			buffer[0] = 'o';
-			next = get_base_number(8, &p, next, action);
+			next = get_base_number(8, &p, next, stream);
 			break;
 		}
 		/* fallthrough */
 	case '8'...'9':
-		next = get_base_number(10, &p, next, action);
+		next = get_base_number(10, &p, next, stream);
 		break;
 	case 'x': case 'X':
 		if (c == '0') {
 			buffer[0] = 'x';
-			next = get_base_number(16, &p, next, action);
+			next = get_base_number(16, &p, next, stream);
 		}
 	}
-	return do_integer(buffer, p - buffer, next, action);
+	return do_integer(buffer, p - buffer, next, stream);
 }
 
-static int escapechar(int first, int type, action_t *action, int *valp)
+static int escapechar(int first, int type, stream_t *stream, int *valp)
 {
 	int next, value;
 
-	next = nextchar(action);
+	next = nextchar(stream);
 	value = first;
 
 	if (first == '\n')
-		warn(action->token, "Newline in string or character constant");
+		warn(stream->token, "Newline in string or character constant");
 
 	if (first == '\\' && next != EOF) {
 		value = next;
-		next = nextchar(action);
+		next = nextchar(stream);
 		if (value != type) {
 			switch (value) {
 			case 'n':
@@ -311,7 +312,7 @@ static int escapechar(int first, int type, action_t *action, int *valp)
 				value -= '0';
 				while (next >= '0' && next <= '9') {
 					value = (value << 3) + (next-'0');
-					next = nextchar(action);
+					next = nextchar(stream);
 					if (!--nr)
 						break;
 				}
@@ -322,10 +323,10 @@ static int escapechar(int first, int type, action_t *action, int *valp)
 				int hex = hexval(next);
 				if (hex < 16) {
 					value = hex;
-					next = nextchar(action);
+					next = nextchar(stream);
 					while ((hex = hexval(next)) < 16) {
 						value = (value << 4) + hex;
-						next = nextchar(action);
+						next = nextchar(stream);
 					}
 					value &= 0xff;
 					break;
@@ -333,7 +334,7 @@ static int escapechar(int first, int type, action_t *action, int *valp)
 			}
 			/* Fallthrough */
 			default:
-				warn(action->token, "Unknown escape '%c'", value);
+				warn(stream->token, "Unknown escape '%c'", value);
 			}
 		}
 		/* Mark it as escaped */
@@ -343,27 +344,27 @@ static int escapechar(int first, int type, action_t *action, int *valp)
 	return next;
 }
 
-static int get_char_token(int next, action_t *action)
+static int get_char_token(int next, stream_t *stream)
 {
 	int value;
 	struct token *token;
 
-	next = escapechar(next, '\'', action, &value);
+	next = escapechar(next, '\'', stream, &value);
 	if (value == '\'' || next != '\'') {
-		warn(action->token, "Bad character constant");
-		drop_token(action);
+		warn(stream->token, "Bad character constant");
+		drop_token(stream);
 		return next;
 	}
 
-	token = action->token;
+	token = stream->token;
 	token->type = TOKEN_CHAR;
 	token->character = value & 0xff;
 
-	add_token(action);
-	return nextchar(action);
+	add_token(stream);
+	return nextchar(stream);
 }
 
-static int get_string_token(int next, action_t *action)
+static int get_string_token(int next, stream_t *stream)
 {
 	static char buffer[512];
 	struct string *string;
@@ -372,11 +373,11 @@ static int get_string_token(int next, action_t *action)
 
 	for (;;) {
 		int val;
-		next = escapechar(next, '"', action, &val);
+		next = escapechar(next, '"', stream, &val);
 		if (val == '"')
 			break;
 		if (next == EOF) {
-			warn(action->token, "Enf of file in middle of string");
+			warn(stream->token, "Enf of file in middle of string");
 			return next;
 		}
 		if (len < sizeof(buffer)) {
@@ -387,7 +388,7 @@ static int get_string_token(int next, action_t *action)
 	}
 
 	if (len > 256)
-		warn(action->token, "String too long");
+		warn(stream->token, "String too long");
 
 	string = __alloc_string(len+1);
 	memcpy(string->data, buffer, len);
@@ -395,71 +396,71 @@ static int get_string_token(int next, action_t *action)
 	string->length = len+1;
 
 	/* Pass it on.. */
-	token = action->token;
+	token = stream->token;
 	token->type = TOKEN_STRING;
 	token->string = string;
-	add_token(action);
+	add_token(stream);
 	
 	return next;
 }
 
-static int drop_stream_eoln(action_t *action)
+static int drop_stream_eoln(stream_t *stream)
 {
-	int next = nextchar(action);
-	drop_token(action);
+	int next = nextchar(stream);
+	drop_token(stream);
 	for (;;) {
 		int curr = next;
 		if (curr == EOF)
 			return next;
-		next = nextchar(action);
+		next = nextchar(stream);
 		if (curr == '\n')
 			return next;
 	}
 }
 
-static int drop_stream_comment(action_t *action)
+static int drop_stream_comment(stream_t *stream)
 {
-	int next = nextchar(action);
-	drop_token(action);
+	int next = nextchar(stream);
+	drop_token(stream);
 	for (;;) {
 		int curr = next;
 		if (curr == EOF) {
-			warn(action->token, "End of file in the middle of a comment");
+			warn(stream->token, "End of file in the middle of a comment");
 			return curr;
 		}
-		next = nextchar(action);
+		next = nextchar(stream);
 		if (curr == '*' && next == '/')
 			break;
 	}
-	return nextchar(action);
+	return nextchar(stream);
 }
 
 unsigned char combinations[][3] = COMBINATION_STRINGS;
 
 #define NR_COMBINATIONS (sizeof(combinations)/3)
 
-static int get_one_special(int c, action_t *action)
+static int get_one_special(int c, stream_t *stream)
 {
 	struct token *token;
 	unsigned char c1, c2, c3;
 	int next, value, i;
 	char *comb;
 
-	next = nextchar(action);
+	next = nextchar(stream);
 
 	/*
 	 * Check for strings, character constants, and comments
 	 */
 	switch (c) {
 	case '"':
-		return get_string_token(next, action);
+		return get_string_token(next, stream);
 	case '\'':
-		return get_char_token(next, action);
+		return get_char_token(next, stream);
 	case '/':
 		if (next == '/')
-			return drop_stream_eoln(action);
+			return drop_stream_eoln(stream);
 		if (next == '*')
-			return drop_stream_comment(action);
+			return drop_stream_comment(stream);
 	}
 
 	/*
@@ -471,7 +472,7 @@ static int get_one_special(int c, action_t *action)
 	for (i = 0; i < NR_COMBINATIONS; i++) {
 		if (comb[0] == c1 && comb[1] == c2 && comb[2] == c3) {
 			value = i + SPECIAL_BASE;
-			next = nextchar(action);
+			next = nextchar(stream);
 			if (c3)
 				break;
 			c3 = next;
@@ -480,10 +481,10 @@ static int get_one_special(int c, action_t *action)
 	}
 
 	/* Pass it on.. */
-	token = action->token;
+	token = stream->token;
 	token->type = TOKEN_SPECIAL;
 	token->special = value;
-	add_token(action);
+	add_token(stream);
 	return next;
 }
 
@@ -589,13 +590,14 @@ struct token *built_in_token(int stream, const char *name)
 {
 	struct token *token;
 
-	token = alloc_token(stream, 0, 0);
+	token = __alloc_token(0);
+	token->stream = stream;
 	token->type = TOKEN_IDENT;
 	token->ident = built_in_ident(name);
 	return token;
 }
 
-static int get_one_identifier(int c, action_t *action)
+static int get_one_identifier(int c, stream_t *stream)
 {
 	struct token *token;
 	struct ident *ident;
@@ -607,7 +609,7 @@ static int get_one_identifier(int c, action_t *action)
 	hash = ident_hash_init(c);
 	buf[0] = c;
 	for (;;) {
-		next = nextchar(action);
+		next = nextchar(stream);
 		switch (next) {
 		case '0'...'9':
 		case 'a'...'z':
@@ -627,65 +629,65 @@ static int get_one_identifier(int c, action_t *action)
 	ident = create_hashed_ident(buf, len, hash);
 
 	/* Pass it on.. */
-	token = action->token;
+	token = stream->token;
 	token->type = TOKEN_IDENT;
 	token->ident = ident;
-	add_token(action);
+	add_token(stream);
 	return next;
 }		
 
-static int get_one_token(int c, action_t *action)
+static int get_one_token(int c, stream_t *stream)
 {
 	switch (c) {
 	case '0'...'9':
-		return get_one_number(c, action);
+		return get_one_number(c, stream);
 	case 'a'...'z':
 	case 'A'...'Z':
 	case '_':
-		return get_one_identifier(c, action);
+		return get_one_identifier(c, stream);
 	default:
-		return get_one_special(c, action);
+		return get_one_special(c, stream);
 	}	
 }
 
 struct token * tokenize(const char *name, int fd, struct token *endtoken)
 {
 	struct token *retval;
-	int stream = init_stream(name);
-	action_t action;
+	stream_t stream;
 	int c;
 
 	retval = NULL;
-	action.tokenlist = &retval;
-	action.token = NULL;
-	action.line = 1;
-	action.newline = 1;
-	action.whitespace = 0;
-	action.pos = 0;
-	action.fd = fd;
-	action.offset = 0;
-	action.size = 0;
+	stream.stream = init_stream(name);
+	stream.tokenlist = &retval;
+	stream.token = NULL;
+	stream.line = 1;
+	stream.newline = 1;
+	stream.whitespace = 0;
+	stream.pos = 0;
+	stream.fd = fd;
+	stream.offset = 0;
+	stream.size = 0;
 
-	c = nextchar(&action);
+	c = nextchar(&stream);
 	while (c != EOF) {
 		if (c == '\\') {
-			c = nextchar(&action);
-			action.newline = 0;
-			action.whitespace = 1;
+			c = nextchar(&stream);
+			stream.newline = 0;
+			stream.whitespace = 1;
 		}
 		if (!isspace(c)) {
-			struct token *token = alloc_token(stream, action.line, action.pos);
-			token->newline = action.newline;
-			token->whitespace = action.whitespace;
-			action.newline = 0;
-			action.whitespace = 0;
-			action.token = token;
-			c = get_one_token(c, &action);
+			struct token *token = alloc_token(&stream);
+			token->newline = stream.newline;
+			token->whitespace = stream.whitespace;
+			stream.newline = 0;
+			stream.whitespace = 0;
+			stream.token = token;
+			c = get_one_token(c, &stream);
 			continue;
 		}
-		action.whitespace = 1;
-		c = nextchar(&action);
+		stream.whitespace = 1;
+		c = nextchar(&stream);
 	}
-	mark_eof(&action, endtoken);
+	mark_eof(&stream, endtoken);
 	return retval;
 }
