@@ -74,6 +74,8 @@ static const char *show_memop(struct storage *storage)
 	case REG_STACK:
 		sprintf(buffer, "%d(SP)", storage->offset);
 		break;
+	case REG_REG:
+		return hardregs[storage->regno].name;
 	default:
 		return show_storage(storage);
 	}
@@ -151,11 +153,11 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 			printf("\tmovl $<%s>,%s\n", show_pseudo(def->symbol), hardreg->name);
 			break;
 		}
-		src = find_storage_hash(pseudo, state->outputs);
+		src = find_storage_hash(pseudo, state->internal);
 		if (!src) {
-			src = find_storage_hash(pseudo, state->internal);
+			src = find_storage_hash(pseudo, state->inputs);
 			if (!src) {
-				src = find_storage_hash(pseudo, state->inputs);
+				src = find_storage_hash(pseudo, state->outputs);
 				/* Undefined? Screw it! */
 				if (!src) {
 					printf("\tundef %s ??\n", show_pseudo(pseudo));
@@ -167,7 +169,6 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 			if (!hardreg->used) {
 				src->storage->type = REG_REG;
 				src->storage->regno = hardreg - hardregs;
-				printf("\tinput %p is a reg\n", src->storage);
 				break;
 			}
 			alloc_stack(state, src->storage);
@@ -255,7 +256,7 @@ static void generate_store(struct instruction *insn, struct bb_state *state)
 static void generate_load(struct instruction *insn, struct bb_state *state)
 {
 	const char *input = address(state, insn);
-	printf("\tmov.%d %s,%s\n", insn->size, target_reg(state, insn->target)->name, input);
+	printf("\tmov.%d %s,%s\n", insn->size, input, target_reg(state, insn->target)->name);
 }
 
 static const char* opcodes[] = {
