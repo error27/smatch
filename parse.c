@@ -72,10 +72,11 @@ static int match_op(struct token *token, int op)
 	return token && token->type == TOKEN_SPECIAL && token->special == op;
 }
 
-static struct token *expect(struct token *token, int op)
+static struct token *expect(struct token *token, int op, const char *where)
 {
 	if (!match_op(token, op)) {
-		warn(token, "Expected %s", show_special(op));
+		warn(token, "Expected %s %s", show_special(op), where);
+		warn(token, "got %s", show_token(token));
 		return token;
 	}
 	return token->next;
@@ -88,7 +89,6 @@ static struct token *primary_expression(struct token *token, struct expression *
 	struct expression *expr = NULL;
 
 	if (!token) {
-		warn(token, "unexpected end of file");
 		*tree = NULL;
 		return token;
 	}
@@ -107,12 +107,11 @@ static struct token *primary_expression(struct token *token, struct expression *
 			expr = alloc_expression(token, EXPR_PREOP);
 			expr->op = '(';
 			token = parse_expression(token->next, &expr->unop);
-			token = expect(token, ')');
+			token = expect(token, ')', "in expression");
 			break;
 		}
-	/* Fallthrough */
 	default:
-		warn(token, "Expected primary expression");
+		;
 	}
 	*tree = expr;
 	return token;
@@ -130,7 +129,7 @@ static struct token *postfix_expression(struct token *token, struct expression *
 			array_expr->op = '[';
 			array_expr->left = expr;
 			token = parse_expression(token->next, &array_expr->right);
-			token = expect(token, ']');
+			token = expect(token, ']', "at end of array dereference");
 			expr = array_expr;
 			continue;
 		}
@@ -164,7 +163,7 @@ static struct token *postfix_expression(struct token *token, struct expression *
 			call->op = '(';
 			call->left = expr;
 			token = comma_expression(token->next, &call->right);
-			token = expect(token, ')');
+			token = expect(token, ')', "in function call");
 			expr = call;
 			continue;
 		}
@@ -199,7 +198,7 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 			if (sym && symbol_is_typename(sym)) {
 				struct expression *cast = alloc_expression(next, EXPR_CAST);
 				token = typename(next, &cast->cast_type);
-				token = expect(token, ')');
+				token = expect(token, ')', "at end of cast operator");
 				token = cast_expression(token, &cast->cast_expression);
 				*tree = cast;
 				return token;
@@ -347,9 +346,9 @@ struct statement *alloc_statement(struct token * token, int type)
 
 static struct token *declaration_specifiers(struct token *token, struct symbol **tree)
 {
-	struct symbol *sym = alloc_symbol(SYM_TYPE);
+	struct symbol *sym = *tree;
 
-	do {
+	for ( ; token; token = token->next) {
 		struct ident *ident;
 		struct symbol *s;
 		struct symbol *type;
@@ -390,7 +389,7 @@ static struct token *declaration_specifiers(struct token *token, struct symbol *
 					modifier_string(dup));
 			sym->modifiers = old | mod | extra;
 		}
-	} while ((token = token->next) != NULL);
+	}
 
 	if (!sym->base_type)
 		sym->base_type = &int_type;
@@ -398,21 +397,118 @@ static struct token *declaration_specifiers(struct token *token, struct symbol *
 	return token;
 }
 
-static struct token *specifier_qualifier_list(struct token *token, struct symbol **tree)
+static struct symbol *indirect(struct symbol *type)
 {
-	return declaration_specifiers(token, tree);
+	struct symbol *sym = alloc_symbol(SYM_PTR);
+
+	sym->base_type = type;
+	return sym;
 }
+
+static struct token *parameter_type_list(struct token *token, struct symbol **tree)
+{
+	*tree = NULL;
+	return token;
+}
+
+static struct token *abstract_function_declarator(struct token *token, struct symbol **tree)
+{
+	struct symbol *sym = alloc_symbol(SYM_FN);
+	sym->base_type = *tree;
+	*tree = sym;
+	return parameter_type_list(token, &sym->next_type);
+}
+
+static int constant_value(struct expression *expr)
+{
+	return 0;
+}
+
+static struct token *abstract_array_declarator(struct token *token, struct symbol **tree)
+{
+	struct expression *expr;
+	struct symbol *sym = alloc_symbol(SYM_ARRAY);
+	sym->base_type = *tree;
+	*tree = sym;
+	token = parse_expression(token, &expr);
+	sym->size = constant_value(expr);
+	return token;
+}
+
+static struct token *abstract_declarator(struct token *token, struct symbol **tree);
+static struct token *direct_abstract_declarator(struct token *token, struct symbol **tree)
+{
+	if (token->type != TOKEN_SPECIAL)
+		return token;
+
+	/*
+	 * This can be either a function or a grouping!
+	 * A grouping must start with '*', '[' or '('..
+	 */
+	if (token->special == '(') {
+		struct token *next = token->next;
+		if (next && next->type == TOKEN_SPECIAL) {
+			if (next->special == '*' ||
+			    next->special == '(' ||
+			    next->special == '[') {
+				token = abstract_declarator(next,tree);
+				return expect(token, ')', "in nested declarator");
+			    }
+		}
+		token = abstract_function_declarator(next, tree);
+		return expect(token, ')', "in function declarator");
+	}
+	if (token->special == '[') {
+		token = abstract_array_declarator(token->next, tree);
+		return expect(token, ']', "in abstract_array_declarator");
+	}
+	return token;
+}
+
+static struct token *abstract_declarator(struct token *token, struct symbol **tree)
+{
+	while (token->type == TOKEN_SPECIAL && token->special == '*') {
+		*tree = indirect(*tree);
+		token = declaration_specifiers(token->next, tree);
+	}
+	return direct_abstract_declarator(token, tree);
+}
+	
 
 static struct token *typename(struct token *token, struct symbol **tree)
 {
-	return specifier_qualifier_list(token, tree);
+	*tree = alloc_symbol(SYM_TYPE);
+	token = declaration_specifiers(token, tree);
+	return abstract_declarator(token, tree);
+
 }
 
-struct token *parse_statement(struct token *token, struct statement **tree)
+struct token *statement(struct token *token, struct statement **tree)
 {
-	struct statement *stmt = alloc_statement(token, STMT_EXPRESSION);
-	token = parse_expression(token, &stmt->expression);
-	token = expect(token, ';');
+	struct statement *stmt;
+	struct expression *expr;
+
+	token = parse_expression(token, &expr);
+	if (!expr) {
+		*tree = NULL;
+		return token;
+	}
+	token = expect(token, ';', "at end of statement");
+	stmt = alloc_statement(token, STMT_EXPRESSION);
+	stmt->expression = expr;
 	*tree = stmt;
+	return token;
+}
+
+struct token * statement_list(struct token *token, struct statement **tree)
+{
+	struct statement *stmt;
+
+	do {
+		stmt = NULL;
+		token = statement(token, &stmt);
+		*tree = stmt;
+		tree = &stmt->next;
+	} while (stmt);
 	return token;
 }

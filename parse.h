@@ -53,7 +53,7 @@ struct statement {
 };
 
 extern struct token *parse_expression(struct token *, struct expression **);
-extern struct token *parse_statement(struct token *, struct statement **);
+extern struct token *statement_list(struct token *, struct statement **);
 extern void show_expression(struct expression *);
 
 #endif /* PARSE_H */

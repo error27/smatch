@@ -47,7 +47,26 @@ const char *type_string(struct symbol *sym)
 
 void show_type(struct symbol *sym)
 {
-	printf("%s %s", modifier_string(sym->modifiers), type_string(sym->base_type));
+	switch (sym->type) {
+	case SYM_PTR:
+		printf("*(");
+		show_type(sym->base_type);
+		printf(")");
+		break;
+	case SYM_FN:
+		show_type(sym->base_type);
+		printf("( ... )");
+		break;
+	case SYM_ARRAY:
+		show_type(sym->base_type);
+		printf("[ ... ]");
+		break;
+	case SYM_TYPE:
+		printf("%s %s", modifier_string(sym->modifiers), type_string(sym->base_type));
+		break;
+	default:
+		printf("<bad type>");
+	}
 }
 
 struct symbol *alloc_symbol(int type)

@@ -21,10 +21,13 @@ int main(int argc, char **argv)
 	init_symbols();
 	token = tokenize(argv[1], fd);
 
-	token = parse_statement(token, &stmt);
+	token = statement_list(token, &stmt);
 	if (token)
 		warn(token, "Extra data");
-	show_expression(stmt->expression);
-	printf("\n");
+	while (stmt) {
+		show_expression(stmt->expression);
+		printf("\n");
+		stmt = stmt->next;
+	}
 	return 0;
 }

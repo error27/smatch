@@ -49,6 +49,9 @@ extern struct symbol	void_type,
 
 enum symbol_types {
 	SYM_TYPE,
+	SYM_PTR,
+	SYM_FN,
+	SYM_ARRAY,
 };
 
 #define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)
