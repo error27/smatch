@@ -446,17 +446,6 @@ static const char *reg_or_imm(struct bb_state *state, pseudo_t pseudo)
 	}
 }
 
-static void generate_store(struct instruction *insn, struct bb_state *state)
-{
-	output_insn(state, "mov.%d %s,%s", insn->size, reg_or_imm(state, insn->target), address(state, insn));
-}
-
-static void generate_load(struct instruction *insn, struct bb_state *state)
-{
-	const char *input = address(state, insn);
-	output_insn(state, "mov.%d %s,%s", insn->size, input, target_reg(state, insn->target, NULL)->name);
-}
-
 static const char* opcodes[] = {
 	[OP_BADOP] = "bad_op",
 
@@ -629,6 +618,21 @@ static void remove_pseudo_reg(struct bb_state *state, pseudo_t pseudo)
 	}
 }
 
+static void generate_store(struct instruction *insn, struct bb_state *state)
+{
+	output_insn(state, "mov.%d %s,%s", insn->size, reg_or_imm(state, insn->target), address(state, insn));
+}
+
+static void generate_load(struct instruction *insn, struct bb_state *state)
+{
+	const char *input = address(state, insn);
+	struct hardreg *dst;
+
+	kill_dead_pseudos(state);
+	dst = target_reg(state, insn->target, NULL);
+	output_insn(state, "mov.%d %s,%s", insn->size, input, dst->name);
+}
+
 static void generate_phisource(struct instruction *insn, struct bb_state *state)
 {
 	struct instruction *user;
@@ -651,7 +655,7 @@ static void generate_phisource(struct instruction *insn, struct bb_state *state)
 static void generate_cast(struct bb_state *state, struct instruction *insn)
 {
 	struct hardreg *src = getreg(state, insn->src, insn->target);
-	struct hardreg *dst = copy_reg(state, src, insn->target);
+	struct hardreg *dst = target_copy_reg(state, src, insn->target);
 	unsigned int old = insn->orig_type ? insn->orig_type->bit_size : 0;
 	unsigned int new = insn->size;
 	unsigned long long mask;
