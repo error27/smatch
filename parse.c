@@ -700,10 +700,9 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 }
 
 static struct token *abstract_function_declarator(struct token *, struct symbol_list **);
+static struct token *declarator(struct token *token, struct symbol **tree, struct token **p);
 
-static struct token *direct_declarator(struct token *token, struct symbol **tree,
-	struct token *(*declarator)(struct token *, struct symbol **, struct token **),
-	struct token **p)
+static struct token *direct_declarator(struct token *token, struct symbol **tree, struct token **p)
 {
 	if (p && token->type == TOKEN_IDENT) {
 		if (lookup_symbol(token->ident, NS_TYPEDEF)) {
@@ -780,10 +779,10 @@ static struct token *pointer(struct token *token, struct symbol **tree, struct c
 	return token;
 }
 
-static struct token *generic_declarator(struct token *token, struct symbol **tree, struct token **p)
+static struct token *declarator(struct token *token, struct symbol **tree, struct token **p)
 {
 	token = pointer(token, tree, &(*tree)->ctype);
-	return direct_declarator(token, tree, generic_declarator, p);
+	return direct_declarator(token, tree, p);
 }
 
 static struct token *struct_declaration_list(struct token *token, struct symbol_list **list)
@@ -798,7 +797,7 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 			struct symbol *declaration = spec;
 			struct token *ident = NULL;
 			token = pointer(token, &declaration, base_type);
-			token = direct_declarator(token, &declaration, generic_declarator, &ident);
+			token = direct_declarator(token, &declaration, &ident);
 			if (match_op(token, ':')) {
 				struct expression *expr;
 				token = parse_expression(token->next, &expr);
@@ -824,7 +823,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol **
 	*tree = alloc_symbol(token, SYM_TYPE);
 	base_type = &ctype;
 	token = pointer(token, tree, base_type);
-	token = direct_declarator(token, tree, generic_declarator, &ident);
+	token = direct_declarator(token, tree, &ident);
 	return token;
 }
 
@@ -834,7 +833,7 @@ static struct token *typename(struct token *token, struct symbol **p)
 	struct symbol *sym = alloc_symbol(token, SYM_TYPE);
 	*p = sym;
 	token = declaration_specifiers(token, &ctype);
-	return generic_declarator(token, &sym, NULL);
+	return declarator(token, &sym, NULL);
 }
 
 struct token *expression_statement(struct token *token, struct expression **tree)
@@ -1073,56 +1072,58 @@ static void declare_argument(struct symbol *sym, void *data, int flags)
 static struct token *external_declaration(struct token *token, struct symbol_list **list)
 {
 	struct token *ident = NULL;
-	struct symbol *specifiers;
-	struct symbol *declarator;
+	struct symbol *spec, *decl;
+	struct ctype ctype = { 0, };
 
-	specifiers = alloc_symbol(token, SYM_TYPE);
 	/* Parse declaration-specifiers, if any */
-	token = declaration_specifiers(token, &specifiers->ctype);
+	token = declaration_specifiers(token, &ctype);
 
-	declarator = specifiers;
-	token = generic_declarator(token, &declarator, &ident);
+	spec = alloc_symbol(token, SYM_TYPE);
+	spec->ctype = ctype;
+
+	decl = spec;
+	token = declarator(token, &decl, &ident);
 
 	/* Just a type declaration? */
 	if (!ident)
 		return expect(token, ';', "end of type declaration");
 
 	/* type define declaration? */
-	if (specifiers->ctype.modifiers & SYM_TYPEDEF) {
-		specifiers->ctype.modifiers &= ~SYM_TYPEDEF;
-		bind_symbol(indirect(declarator, SYM_TYPEDEF), ident->ident, NS_TYPEDEF);
+	if (spec->ctype.modifiers & SYM_TYPEDEF) {
+		spec->ctype.modifiers &= ~SYM_TYPEDEF;
+		bind_symbol(indirect(decl, SYM_TYPEDEF), ident->ident, NS_TYPEDEF);
 		return expect(token, ';', "end of typedef");
 	}
 
-	declarator->ident = ident;
-	add_symbol(list, declarator);
-	bind_symbol(declarator, ident->ident, NS_SYMBOL);
+	decl->ident = ident;
+	add_symbol(list, decl);
+	bind_symbol(decl, ident->ident, NS_SYMBOL);
 
-	if (declarator->type == SYM_FN && match_op(token, '{')) {
-		declarator->stmt = alloc_statement(token, STMT_COMPOUND);
+	if (decl->type == SYM_FN && match_op(token, '{')) {
+		decl->stmt = alloc_statement(token, STMT_COMPOUND);
 		start_symbol_scope();
-		symbol_iterate(declarator->arguments, declare_argument, NULL);
-		token = compound_statement(token->next, declarator->stmt);
+		symbol_iterate(decl->arguments, declare_argument, NULL);
+		token = compound_statement(token->next, decl->stmt);
 		end_symbol_scope();
 		return expect(token, '}', "at end of function");
 	}
 
 	for (;;) {
 		if (match_op(token, '='))
-			token = initializer(token->next, &declarator->ctype);
+			token = initializer(token->next, &decl->ctype);
 		if (!match_op(token, ','))
 			break;
 
 		ident = NULL;
-		declarator = specifiers;
-		token = generic_declarator(token->next, &declarator, &ident);
+		decl = spec;
+		token = declarator(token->next, &decl, &ident);
 		if (!ident) {
 			warn(token, "expected identifier name in type definition");
 			return token;
 		}
 
-		add_symbol(list, declarator);
-		bind_symbol(declarator, ident->ident, NS_SYMBOL);
+		add_symbol(list, decl);
+		bind_symbol(decl, ident->ident, NS_SYMBOL);
 	}
 	return expect(token, ';', "at end of declaration");
 }
