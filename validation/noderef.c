@@ -11,6 +11,7 @@ void h(void)
 	char __A * * q1;
 	char * __A * q2;
 	struct x __A *xp;
+	struct x __A x;
 	int __A *q;
 	int __A *r;
 	
@@ -24,4 +25,9 @@ void h(void)
 
 	r = &xp->a;	/* This should NOT complain */
 	r = &xp->b;
+	r = &(*xp).a;
+	r = &(*xp).b;
+
+	r = &x.a;
+	r = &x.b;
 }
