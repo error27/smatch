@@ -171,6 +171,10 @@ void show_type(struct symbol *sym)
 		printf(":%d", sym->fieldwidth);
 		return;
 
+	case SYM_LABEL:
+		printf("label(%s)", show_ident(sym->ident));
+		return;
+
 	default:
 		printf("strange type %d '%s' of type ", sym->type, show_ident(sym->ident));
 		show_type(sym->ctype.base_type);
@@ -182,8 +186,6 @@ void show_symbol(struct symbol *sym)
 {
 	struct symbol *type;
 
-	if (sym->type != SYM_NODE)
-		*(int *)0 = 0;
 	show_type(sym);
 	type = sym->ctype.base_type;
 	if (!type)
@@ -332,7 +334,8 @@ void show_statement(struct statement *stmt)
 		break;
 
 	case STMT_LABEL:
-		printf("%s:\n", show_token(stmt->label_identifier));
+		show_symbol(stmt->label_identifier);
+		printf(":\n");
 		show_statement(stmt->label_statement);
 		break;
 
@@ -340,8 +343,10 @@ void show_statement(struct statement *stmt)
 		if (stmt->goto_expression) {
 			printf("\tgoto *");
 			show_expression(stmt->goto_expression);
-		} else
-			printf("goto %s", show_token(stmt->goto_label));
+		} else {
+			printf("\tgoto ");
+			show_symbol(stmt->goto_label);
+		}
 		break;
 	case STMT_ASM:
 		printf("\tasm( .... )");

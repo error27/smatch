@@ -54,6 +54,16 @@ static struct symbol *lookup_or_create_symbol(enum namespace ns, enum type type,
 	return sym;
 }
 
+/*
+ * FIXME! This needs to not just be in a different namespace (NS_LABEL),
+ * but also a different "nesting scope", since labels are per-function,
+ * not per-block.
+ */
+static struct symbol *label_symbol(struct token *token)
+{
+	return lookup_or_create_symbol(NS_LABEL, SYM_LABEL, token);
+}
+
 struct token *struct_union_enum_specifier(enum namespace ns, enum type type,
 	struct token *token, struct ctype *ctype,
 	struct token *(*parse)(struct token *, struct symbol *))
@@ -623,7 +633,7 @@ default_statement:
 			stmt->type = STMT_GOTO;
 			token = token->next;			
 			if (token_type(token) == TOKEN_IDENT) {
-				stmt->goto_label = token;
+				stmt->goto_label = label_symbol(token);
 				token = token->next;
 			} else
 				warn(token->pos, "invalid label");
@@ -650,7 +660,7 @@ default_statement:
 		}
 		if (match_op(token->next, ':')) {
 			stmt->type = STMT_LABEL;
-			stmt->label_identifier = token;
+			stmt->label_identifier = label_symbol(token);
 			return statement(token->next->next, &stmt->label_statement);
 		}
 	}

@@ -30,7 +30,7 @@ struct statement {
 	struct statement *next;
 	union {
 		struct label_arg {
-			struct token *label;
+			struct symbol *label;
 			struct statement *label_statement;
 		};
 		struct expression *expression;
@@ -44,7 +44,7 @@ struct statement {
 			struct statement_list *stmts;
 		};
 		struct labeled_struct {
-			struct token *label_identifier;
+			struct symbol *label_identifier;
 			struct statement *label_statement;
 		};
 		struct case_struct {
@@ -66,7 +66,7 @@ struct statement {
 			struct expression *iterator_post_condition;
 		};
 		struct goto_struct {
-			struct token *goto_label;
+			struct symbol *goto_label;
 			struct expression *goto_expression;
 		};
 	};
