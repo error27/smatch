@@ -409,11 +409,35 @@ void show_entry(struct entrypoint *ep)
 	printf("\n");
 }
 
+static inline void add_bb_ptr(struct basic_block **ptr, struct bb_ptr_list **list)
+{
+	add_ptr_list((struct ptr_list **)list, ptr);
+}
+
+static inline void use_bb(struct basic_block *bb, struct basic_block **bb_ptr)
+{
+	*bb_ptr = bb;
+	if (bb)
+		add_bb_ptr(bb_ptr, &bb->users);
+}
+
+static inline void add_pseudo_ptr(pseudo_t *ptr, struct pseudo_ptr_list **list)
+{
+	add_ptr_list((struct ptr_list **)list, ptr);
+}
+
+static inline void use_pseudo(struct instruction *insn, pseudo_t p, pseudo_t *pp)
+{
+	*pp = p;
+	if (p && p->type != PSEUDO_VOID)
+		add_pseudo_ptr(pp, &p->users);
+}
+
 static void bind_label(struct symbol *label, struct basic_block *bb, struct position pos)
 {
 	if (label->bb_target)
 		warning(pos, "label '%s' already bound", show_ident(label->ident));
-	label->bb_target = bb;
+	use_bb(bb, &label->bb_target);
 }
 
 static struct basic_block * get_bound_block(struct entrypoint *ep, struct symbol *label)
@@ -421,7 +445,8 @@ static struct basic_block * get_bound_block(struct entrypoint *ep, struct symbol
 	struct basic_block *bb = label->bb_target;
 
 	if (!bb) {
-		label->bb_target = bb = alloc_basic_block(label->pos);
+		bb = alloc_basic_block(label->pos);
+		use_bb(bb, &label->bb_target);
 		bb->flags |= BB_REACHABLE;
 	}
 	return bb;
@@ -448,19 +473,12 @@ static void add_goto(struct entrypoint *ep, struct basic_block *dst)
 	}
 }
 
-static inline void use_pseudo(struct instruction *insn, pseudo_t p, pseudo_t *pp)
-{
-	*pp = p;
-	if (p && p->type != PSEUDO_VOID)
-		add_ptr_list((struct ptr_list **)&p->users, pp);
-}
-
 static void add_one_insn(struct entrypoint *ep, struct instruction *insn)
 {
 	struct basic_block *bb = ep->active;    
 
 	if (bb_reachable(bb)) {
-		insn->bb = bb;
+		use_bb(bb, &insn->bb);
 		add_instruction(&bb->insns, insn);
 	}
 }
@@ -494,8 +512,8 @@ static void add_branch(struct entrypoint *ep, struct expression *expr, pseudo_t 
 	if (bb_reachable(bb)) {
        		br = alloc_instruction(OP_BR, expr->ctype);
 		use_pseudo(br, cond, &br->cond);
-		br->bb_true = bb_true;
-		br->bb_false = bb_false;
+		use_bb(bb_true, &br->bb_true);
+		use_bb(bb_false, &br->bb_false);
 		add_bb(&bb_true->parents, bb);
 		add_bb(&bb_false->parents, bb);
 		add_bb(&bb->children, bb_true);
@@ -959,7 +977,7 @@ static pseudo_t copy_pseudo(struct entrypoint *ep, struct expression *expr, pseu
 		pseudo_t dst = alloc_pseudo(src->def);
 		new->target = dst;
 		use_pseudo(new, src, &new->src);
-		new->bb = bb;
+		use_bb(bb, &new->bb);
 		add_instruction(&bb->insns, new);
 		return dst;
 	}
@@ -1352,7 +1370,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			if (!phi_node) {
 				phi_node = alloc_instruction(OP_PHI, expr->ctype);
 				phi_node->target = alloc_pseudo(phi_node);
-				phi_node->bb = bb_return;
+				use_bb(bb_return, &phi_node->bb);
 				add_instruction(&bb_return->insns, phi_node);
 			}
 			phi = alloc_phi(active, src);
@@ -1666,7 +1684,7 @@ static void create_phi_copy(struct basic_block *bb, struct instruction *phi,
 	delete_last_instruction(&bb->insns);
 	new->target = dst;
 	use_pseudo(new, src, &new->src);
-	new->bb = bb;
+	use_bb(bb, &new->bb);
 	add_instruction(&bb->insns, new);
 
 	/* And add back the last instruction */
@@ -1852,7 +1870,7 @@ found:
 		 * generation (and then we always check the opcode).
 		 */
 		insn->opcode = OP_PHI;
-		insn->bb = bb;
+		use_bb(bb, &insn->bb);
 		insn->target = new;
 		insn->phi_list = dominators;
 	}
@@ -1962,7 +1980,7 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 			int i;
 
 			ep->name = sym;
-			ep->entry = bb;
+			use_bb(bb, &ep->entry);
 			bb->flags |= BB_REACHABLE;
 			set_activeblock(ep, bb);
 			concat_symbol_list(base_type->arguments, &ep->syms);
