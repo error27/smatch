@@ -23,11 +23,12 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt);
 pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr);
 
 static void add_setcc(struct entrypoint *ep, struct expression *expr, pseudo_t val);
-static pseudo_t add_binary_op(struct entrypoint *ep, struct expression *expr, int op, pseudo_t left, pseudo_t right);
+static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int op, pseudo_t left, pseudo_t right);
 static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct expression *val);
 static pseudo_t add_const_value(struct entrypoint *ep, struct position pos, struct symbol *ctype, int val);
 static pseudo_t add_load(struct entrypoint *ep, struct expression *expr, pseudo_t addr);
 
+pseudo_t linearize_initializer(struct entrypoint *ep, pseudo_t baseaddr, struct expression *initializer);
 
 struct pseudo void_pseudo = {};
 
@@ -386,6 +387,18 @@ static void add_setcc(struct entrypoint *ep, struct expression *expr, pseudo_t v
 	}
 }
 
+static void add_store(struct entrypoint *ep, struct expression *expr, pseudo_t addr, pseudo_t value)
+{
+	struct basic_block *bb = ep->active;
+
+	if (bb_reachable(bb)) {
+		struct instruction *store = alloc_instruction(OP_STORE, expr->ctype);
+		store->target = value;
+		store->src = addr;
+		add_one_insn(ep, store);
+	}
+}
+
 static void add_branch(struct entrypoint *ep, struct expression *expr, pseudo_t cond, struct basic_block *bb_true, struct basic_block *bb_false)
 {
 	struct basic_block *bb = ep->active;
@@ -428,8 +441,6 @@ static pseudo_t linearize_address_gen(struct entrypoint *ep, struct expression *
 
 static pseudo_t linearize_store_gen(struct entrypoint *ep, pseudo_t value, struct expression *expr, pseudo_t addr)
 {
-	struct instruction *store = alloc_instruction(OP_STORE, expr->ctype);
-
 	if (expr->type == EXPR_BITFIELD) {
 		unsigned long mask = ((1<<expr->nrbits)-1) << expr->bitpos;
 		pseudo_t shifted, andmask, ormask, orig, orig_mask, value_mask, newval;
@@ -438,35 +449,33 @@ static pseudo_t linearize_store_gen(struct entrypoint *ep, pseudo_t value, struc
 		if (expr->bitpos) {
 			pseudo_t shift;
 			shift = add_const_value(ep, expr->pos, &uint_ctype, expr->bitpos);
-			shifted = add_binary_op(ep, expr, OP_SHL, value, shift);
+			shifted = add_binary_op(ep, expr->ctype, OP_SHL, value, shift);
 			add_deathnote(ep, shift);
 		}
 		orig = add_load(ep, expr, addr);
 		andmask = add_const_value(ep, expr->pos, &uint_ctype, ~mask);
-		orig_mask = add_binary_op(ep, expr, OP_AND, orig, andmask);
+		orig_mask = add_binary_op(ep, expr->ctype, OP_AND, orig, andmask);
 		add_deathnote(ep, orig);
 		add_deathnote(ep, andmask);
 		ormask = add_const_value(ep, expr->pos, &uint_ctype, mask);
-		value_mask = add_binary_op(ep, expr, OP_AND, shifted, ormask);
+		value_mask = add_binary_op(ep, expr->ctype, OP_AND, shifted, ormask);
 		add_deathnote(ep, ormask);
 		if (shifted != value)
 			add_deathnote(ep, shifted);
-		newval = add_binary_op(ep, expr, OP_OR, orig_mask, value_mask);
+		newval = add_binary_op(ep, expr->ctype, OP_OR, orig_mask, value_mask);
 		add_deathnote(ep, orig_mask);
 		add_deathnote(ep, value_mask);
 		value = newval;
 	}
 
-	store->target = value;
-	store->src = addr;
-	add_one_insn(ep, store);
+	add_store(ep, expr, addr, value);
 	add_deathnote(ep, addr);
 	return value;
 }
 
-static pseudo_t add_binary_op(struct entrypoint *ep, struct expression *expr, int op, pseudo_t left, pseudo_t right)
+static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int op, pseudo_t left, pseudo_t right)
 {
-	struct instruction *insn = alloc_instruction(op, expr->ctype);
+	struct instruction *insn = alloc_instruction(op, ctype);
 	pseudo_t target = alloc_pseudo(insn);
 	insn->target = target;
 	insn->src1 = left;
@@ -514,11 +523,11 @@ static pseudo_t linearize_load_gen(struct entrypoint *ep, struct expression *exp
 		pseudo_t mask;
 		if (expr->bitpos) {
 			pseudo_t shift = add_const_value(ep, expr->pos, &uint_ctype, expr->bitpos);
-			new = add_binary_op(ep, expr, OP_SHR, new, shift);
+			new = add_binary_op(ep, expr->ctype, OP_SHR, new, shift);
 			add_deathnote(ep, shift);
 		}
 		mask = add_const_value(ep, expr->pos, &uint_ctype, (1<<expr->nrbits)-1);
-		new = add_binary_op(ep, expr, OP_AND, new, mask);
+		new = add_binary_op(ep, expr->ctype, OP_AND, new, mask);
 		add_deathnote(ep, mask);
 		return new;
 	}
@@ -544,7 +553,7 @@ static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr
 
 	old = linearize_load_gen(ep, expr->unop, addr);
 	one = add_const_value(ep, expr->pos, expr->ctype, 1);
-	new = add_binary_op(ep, expr, op, old, one);
+	new = add_binary_op(ep, expr->ctype, op, old, one);
 	linearize_store_gen(ep, new, expr->unop, addr);
 	if (postop) {
 		add_deathnote(ep, new);
@@ -589,7 +598,7 @@ static pseudo_t linearize_regular_preop(struct entrypoint *ep, struct expression
 		return pre;
 	case '!': {
 		pseudo_t zero = add_const_value(ep, expr->pos, expr->ctype, 0);
-		return add_binary_op(ep, expr, OP_SET_EQ, pre, zero);
+		return add_binary_op(ep, expr->ctype, OP_SET_EQ, pre, zero);
 	}
 	case '~':
 		return add_uniop(ep, expr, OP_NOT, pre);
@@ -697,7 +706,7 @@ static pseudo_t linearize_binop(struct entrypoint *ep, struct expression *expr)
 
 	src1 = linearize_expression(ep, expr->left);
 	src2 = linearize_expression(ep, expr->right);
-	dst = add_binary_op(ep, expr, opcode[expr->op], src1, src2);
+	dst = add_binary_op(ep, expr->ctype, opcode[expr->op], src1, src2);
 	add_deathnote(ep, src1);
 	add_deathnote(ep, src2);
 	return dst;
@@ -716,7 +725,7 @@ static pseudo_t linearize_select(struct entrypoint *ep, struct expression *expr)
 	cond = linearize_expression(ep, expr->conditional);
 
 	add_setcc(ep, expr, cond);
-	res = add_binary_op(ep, expr, OP_SEL, true, false);
+	res = add_binary_op(ep, expr->ctype, OP_SEL, true, false);
 	add_deathnote(ep, true);
 	add_deathnote(ep, false);
 	add_deathnote(ep, cond);
@@ -783,7 +792,7 @@ static pseudo_t linearize_compare(struct entrypoint *ep, struct expression *expr
 
 	pseudo_t src1 = linearize_expression(ep, expr->left);
 	pseudo_t src2 = linearize_expression(ep, expr->right);
-	pseudo_t dst = add_binary_op(ep, expr, cmpop[expr->op], src1, src2);
+	pseudo_t dst = add_binary_op(ep, expr->ctype, cmpop[expr->op], src1, src2);
 	add_deathnote(ep, src1);
 	add_deathnote(ep, src2);
 	return dst;
@@ -868,17 +877,38 @@ pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 	return result;
 }
 
-pseudo_t linearize_position(struct entrypoint *ep, struct expression *pos)
+pseudo_t linearize_position(struct entrypoint *ep, pseudo_t baseaddr, struct expression *pos)
 {
-	return linearize_expression(ep, pos->init_expr);
+	struct expression *init_expr = pos->init_expr;
+	pseudo_t offset = add_const_value(ep, pos->pos, &uint_ctype, pos->init_offset);
+	pseudo_t addr = add_binary_op(ep, baseaddr->def->type, OP_ADD, baseaddr, offset);
+	pseudo_t value = linearize_expression(ep, init_expr);
+	add_store(ep, init_expr, addr, value);
+	add_deathnote(ep, addr);
+	add_deathnote(ep, value);
+	return VOID;
 }
 
-pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initializer)
+pseudo_t linearize_initializer(struct entrypoint *ep, pseudo_t baseaddr, struct expression *initializer)
 {
-	struct expression *expr;
-	FOR_EACH_PTR(initializer->expr_list, expr) {
-		linearize_expression(ep, expr);
-	} END_FOR_EACH_PTR(expr);
+	switch (initializer->type) {
+	case EXPR_INITIALIZER: {
+		struct expression *expr;
+		FOR_EACH_PTR(initializer->expr_list, expr) {
+			linearize_initializer(ep, baseaddr, expr);
+		} END_FOR_EACH_PTR(expr);
+		break;
+	}
+	case EXPR_POS:
+		linearize_position(ep, baseaddr, initializer);
+		break;
+	default: {
+		pseudo_t value = linearize_expression(ep, initializer);
+		add_store(ep, initializer, baseaddr, value);
+		add_deathnote(ep, value);
+	}
+	}
+
 	return VOID;
 }
 
@@ -941,11 +971,9 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 		return linearize_slice(ep, expr);
 
 	case EXPR_INITIALIZER:
-		return linearize_initializer(ep, expr);
-
 	case EXPR_POS:
-		return linearize_position(ep, expr);
-
+		warning(expr->pos, "unexpected initializer expression (%d %d)", expr->type, expr->op);
+		return VOID;
 	default: 
 		warning(expr->pos, "unknown expression (%d %d)", expr->type, expr->op);
 		return VOID;
@@ -955,21 +983,14 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 
 static void linearize_one_symbol(struct entrypoint *ep, struct symbol *sym)
 {
-	pseudo_t value, address;
-	struct instruction *store;
+	pseudo_t address;
 
 	if (!sym->initializer)
 		return;
 	
-	value = linearize_expression(ep, sym->initializer);
 	address = add_setval(ep, sym, NULL);
-
-	store = alloc_instruction(OP_STORE, sym);
-	store->target = value;
-	store->src = address;
-	add_one_insn(ep, store);
+	linearize_initializer(ep, address, sym->initializer);
 	add_deathnote(ep, address);
-	add_deathnote(ep, value);
 }
 
 static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct statement *stmt)
