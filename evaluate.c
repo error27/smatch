@@ -384,10 +384,10 @@ static inline int lvalue_expression(struct expression *expr)
 	return (expr->type == EXPR_PREOP && expr->op == '*') || expr->type == EXPR_BITFIELD;
 }
 
-static struct symbol *evaluate_ptr_add(struct expression *expr, struct expression *ptr, struct expression *i)
+static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *ctype, struct expression **ip)
 {
-	struct symbol *ctype;
-	struct symbol *ptr_type = ptr->ctype;
+	struct expression *i = *ip;
+	struct symbol *ptr_type = ctype;
 	int bit_size;
 
 	if (ptr_type->type == SYM_NODE)
@@ -396,10 +396,8 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 	if (!is_int_type(i->ctype))
 		return bad_expr_type(expr);
 
-	ctype = ptr->ctype;
 	examine_symbol_type(ctype);
 
-	ctype = degenerate(ptr);
 	if (!ctype->ctype.base_type) {
 		warning(expr->pos, "missing type information");
 		return NULL;
@@ -413,11 +411,9 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 		ptr_type = ptr_type->ctype.base_type;
 	bit_size = ptr_type->bit_size;
 
-	/* Special case: adding zero commonly happens as a result of 'array[0]' */
-	if (i->type == EXPR_VALUE && !i->value) {
-		*expr = *ptr;
+	if (i->type == EXPR_VALUE) {
+		i->value *= bit_size >> 3;
 	} else if (bit_size > bits_in_char) {
-		struct expression *add = expr;
 		struct expression *mul = alloc_expression(expr->pos, EXPR_BINOP);
 		struct expression *val = alloc_expression(expr->pos, EXPR_VALUE);
 
@@ -429,9 +425,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 		mul->left = i;
 		mul->right = val;
 
-		/* Leave 'add->op' as 'expr->op' - either '+' or '-' */
-		add->left = ptr;
-		add->right = mul;
+		*ip = mul;
 	}
 
 	expr->ctype = ctype;	
@@ -444,10 +438,10 @@ static struct symbol *evaluate_add(struct expression *expr)
 	struct symbol *ltype = left->ctype, *rtype = right->ctype;
 
 	if (is_ptr_type(ltype))
-		return evaluate_ptr_add(expr, left, right);
+		return evaluate_ptr_add(expr, degenerate(left), &expr->right);
 
 	if (is_ptr_type(rtype))
-		return evaluate_ptr_add(expr, right, left);
+		return evaluate_ptr_add(expr, degenerate(right), &expr->left);
 		
 	return evaluate_arith(expr, 1);
 }
@@ -642,11 +636,12 @@ static struct symbol *common_ptr_type(struct expression *l, struct expression *r
  */
 #define MOD_IGN (MOD_VOLATILE | MOD_CONST)
 
-static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expression *l, struct expression *r)
+static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expression *l, struct expression **rp)
 {
 	const char *typediff;
 	struct symbol *ctype;
 	struct symbol *ltype, *rtype;
+	struct expression *r = *rp;
 
 	ltype = degenerate(l);
 	rtype = degenerate(r);
@@ -656,7 +651,7 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expressio
 	 * right thing.
 	 */
 	if (!is_ptr_type(rtype))
-		return evaluate_ptr_add(expr, l, r);
+		return evaluate_ptr_add(expr, degenerate(l), rp);
 
 	ctype = ltype;
 	typediff = type_difference(ltype, rtype, ~MOD_SIZE, ~MOD_SIZE);
@@ -702,11 +697,11 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expressio
 
 static struct symbol *evaluate_sub(struct expression *expr)
 {
-	struct expression *left = expr->left, *right = expr->right;
+	struct expression *left = expr->left;
 	struct symbol *ltype = left->ctype;
 
 	if (is_ptr_type(ltype))
-		return evaluate_ptr_sub(expr, left, right);
+		return evaluate_ptr_sub(expr, left, &expr->right);
 
 	return evaluate_arith(expr, 1);
 }
@@ -929,9 +924,19 @@ out:
 	expr->ctype = ctype;
 	return ctype;
 }
-		
+
+/* FP assignments can not do modulo or bit operations */
+static int compatible_float_op(int op)
+{
+	return	op == '=' ||
+		op == SPECIAL_ADD_ASSIGN ||
+		op == SPECIAL_SUB_ASSIGN ||
+		op == SPECIAL_MUL_ASSIGN ||
+		op == SPECIAL_DIV_ASSIGN;
+}
+
 static int compatible_assignment_types(struct expression *expr, struct symbol *target,
-	struct expression **rp, struct symbol *source, const char *where)
+	struct expression **rp, struct symbol *source, const char *where, int op)
 {
 	const char *typediff;
 	struct symbol *t;
@@ -948,6 +953,10 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 		if (is_float_type(source))
 			goto Cast;
 	} else if (is_float_type(target)) {
+		if (!compatible_float_op(op)) {
+			warning(expr->pos, "invalid assignment");
+			return 0;
+		}
 		if (is_int_type(source))
 			goto Cast;
 		if (is_float_type(source)) {
@@ -955,6 +964,16 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 				goto Cast;
 			return 1;
 		}
+	} else if (is_ptr_type(target)) {
+		if (op == SPECIAL_ADD_ASSIGN || op == SPECIAL_SUB_ASSIGN) {
+			evaluate_ptr_add(expr, target, rp);
+			return 1;
+		}
+	}
+
+	if (op != '=') {
+		warning(expr->pos, "invalid assignment");
+		return 0;
 	}
 
 	/* It's ok if the target is more volatile or const than the source */
@@ -1005,87 +1024,6 @@ Cast:
 	return 1;
 }
 
-/*
- * FIXME!! This is wrong from a double evaluation standpoint. We can't
- * just expand the expression twice, that would make any side effects
- * happen twice too.
- */
-static struct symbol *evaluate_binop_assignment(struct expression *expr, struct expression *left, struct expression *right)
-{
-	int op = expr->op;
-	struct expression *subexpr = alloc_expression(expr->pos, EXPR_BINOP);
-	static const int op_trans[] = {
-		[SPECIAL_ADD_ASSIGN - SPECIAL_BASE] = '+',
-		[SPECIAL_SUB_ASSIGN - SPECIAL_BASE] = '-',
-		[SPECIAL_MUL_ASSIGN - SPECIAL_BASE] = '*',
-		[SPECIAL_DIV_ASSIGN - SPECIAL_BASE] = '/',
-		[SPECIAL_MOD_ASSIGN - SPECIAL_BASE] = '%',
-		[SPECIAL_SHL_ASSIGN - SPECIAL_BASE] = SPECIAL_LEFTSHIFT,
-		[SPECIAL_SHR_ASSIGN - SPECIAL_BASE] = SPECIAL_RIGHTSHIFT,
-		[SPECIAL_AND_ASSIGN - SPECIAL_BASE] = '&',
-		[SPECIAL_OR_ASSIGN - SPECIAL_BASE] = '|',
-		[SPECIAL_XOR_ASSIGN - SPECIAL_BASE] = '^'
-	};
-	struct expression *e0, *e1, *e2, *e3, *e4, *e5;
-	struct symbol *a = alloc_symbol(expr->pos, SYM_NODE);
-	struct symbol *ltype = left->ctype;
-	struct expression *addr;
-	struct symbol *lptype;
-
-	if (left->type == EXPR_BITFIELD)
-		addr = left->address;
-	else
-		addr = left->unop;
-
-	lptype = addr->ctype;
-
-	a->ctype.base_type = lptype;
-	a->bit_size = lptype->bit_size;
-	a->array_size = lptype->array_size;
-
-	e0 = alloc_expression(expr->pos, EXPR_SYMBOL);
-	e0->symbol = a;
-	e0->ctype = &lazy_ptr_ctype;
-
-	e1 = alloc_expression(expr->pos, EXPR_PREOP);
-	e1->unop = e0;
-	e1->op = '*';
-	e1->ctype = lptype;
-
-	e2 = alloc_expression(expr->pos, EXPR_ASSIGNMENT);
-	e2->left = e1;
-	e2->right = addr;
-	e2->op = '=';
-	e2->ctype = lptype;
-
-	/* we can't cannibalize left, unfortunately */
-	e3 = alloc_expression(expr->pos, left->type);
-	*e3 = *left;
-	if (e3->type == EXPR_BITFIELD)
-		e3->address = e1;
-	else
-		e3->unop = e1;
-
-	e4 = alloc_expression(expr->pos, EXPR_BINOP);
-	e4->op = subexpr->op = op_trans[op - SPECIAL_BASE];
-	e4->left = e3;
-	e4->right = right;
-	/* will calculate type later */
-
-	e5 = alloc_expression(expr->pos, EXPR_ASSIGNMENT);
-	e5->left = e3;	/* we can share that one */
-	e5->right = e4;
-	e5->op = '=';
-	e5->ctype = ltype;
-
-	expr->type = EXPR_COMMA;
-	expr->left = e2;
-	expr->right = e5;
-	expr->ctype = ltype;
-
-	return evaluate_binop(e4);
-}
-
 static void evaluate_assign_to(struct expression *left, struct symbol *type)
 {
 	if (type->ctype.modifiers & MOD_CONST)
@@ -1107,17 +1045,9 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 
 	ltype = left->ctype;
 
-	if (expr->op != '=') {
-		if (!evaluate_binop_assignment(expr, left, right))
-			return NULL;
-		where = expr->right;	/* expr is EXPR_COMMA now */
-		left = where->left;
-		right = where->right;
-	}
-
 	rtype = degenerate(right);
 
-	if (!compatible_assignment_types(where, ltype, &where->right, rtype, "assignment"))
+	if (!compatible_assignment_types(where, ltype, &where->right, rtype, "assignment", expr->op))
 		return NULL;
 
 	evaluate_assign_to(left, ltype);
@@ -1762,7 +1692,7 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 			static char where[30];
 			examine_symbol_type(target);
 			sprintf(where, "argument %d", i);
-			compatible_assignment_types(expr, target, p, ctype, where);
+			compatible_assignment_types(expr, target, p, ctype, where, '=');
 		}
 
 		i++;
@@ -1935,7 +1865,7 @@ static void evaluate_initializer(struct symbol *ctype, struct expression **ep)
 			 */
 			if (!is_string || !is_string_type(ctype))
 				rtype = degenerate(expr);
-			compatible_assignment_types(expr, ctype, ep, rtype, "initializer");
+			compatible_assignment_types(expr, ctype, ep, rtype, "initializer", '=');
 		}
 		return;
 	}
@@ -2358,7 +2288,7 @@ struct symbol *evaluate_return_expression(struct statement *stmt)
 	}
 	if (!ctype)
 		return NULL;
-	compatible_assignment_types(expr, fntype, &stmt->expression, ctype, "return expression");
+	compatible_assignment_types(expr, fntype, &stmt->expression, ctype, "return expression", '=');
 	return NULL;
 }
 
