@@ -1357,26 +1357,24 @@ static void promote_k_r_types(struct symbol *arg)
 static void apply_k_r_types(struct symbol_list *argtypes, struct symbol *fn)
 {
 	struct symbol_list *real_args = fn->ctype.base_type->arguments;
-	struct symbol *arg, *type;
+	struct symbol *arg;
 
-	PREPARE_PTR_LIST(argtypes, type);
 	FOR_EACH_PTR(real_args, arg) {
-		if (!type) {
-			warn(arg->pos, "no K&R type for '%s'", show_ident(arg->ident));
-			return;
-		}
-		if (type->ident != arg->ident) {
-			warn(arg->pos, "K&R declaration disagrees on name of %s",
-				show_ident(arg->ident));
-		}
+		struct symbol *type;
+
+		/* This is quadratic in the number of arguments. We _really_ don't care */
+		FOR_EACH_PTR(argtypes, type) {
+			if (type->ident == arg->ident)
+				goto match;
+		} END_FOR_EACH_PTR;
+		warn(arg->pos, "no K&R type for '%s'", show_ident(arg->ident));
+		return;
+match:
 		/* "char" and "short" promote to "int" */
 		promote_k_r_types(type);
 
 		arg->ctype = type->ctype;
-
-		NEXT_PTR_LIST(type);
 	} END_FOR_EACH_PTR;
-	FINISH_PTR_LIST(type);
 }
 
 static struct token *parse_k_r_arguments(struct token *token, struct symbol *decl,
