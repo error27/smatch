@@ -61,6 +61,7 @@ struct statement {
 		struct iterator_struct {
 			struct symbol *iterator_break;
 			struct symbol *iterator_continue;
+			struct symbol_list *iterator_syms;
 			struct statement  *iterator_pre_statement;
 			struct expression *iterator_pre_condition;
 

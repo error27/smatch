@@ -383,6 +383,14 @@ static void show_switch_statement(struct statement *stmt)
 		printf(".L%p:\n", stmt->switch_break);
 }
 
+static void show_symbol_decl(struct symbol_list *syms)
+{
+	struct symbol *sym;
+	FOR_EACH_PTR(syms, sym) {
+		show_symbol_init(sym);
+	} END_FOR_EACH_PTR;
+}
+
 /*
  * Print out a statement
  */
@@ -394,14 +402,10 @@ int show_statement(struct statement *stmt)
 	case STMT_RETURN:
 		return show_return_stmt(stmt);
 	case STMT_COMPOUND: {
-		struct symbol *sym;
 		struct statement *s;
-		int last;
+		int last = 0;
 
-		FOR_EACH_PTR(stmt->syms, sym) {
-			show_symbol_init(sym);
-		} END_FOR_EACH_PTR;
-
+		show_symbol_decl(stmt->syms);
 		FOR_EACH_PTR(stmt->stmts, s) {
 			last = show_statement(s);
 		} END_FOR_EACH_PTR;
@@ -452,6 +456,7 @@ int show_statement(struct statement *stmt)
 		struct expression *post_condition = stmt->iterator_post_condition;
 		int val, loop_top = 0, loop_bottom = 0;
 
+		show_symbol_decl(stmt->iterator_syms);
 		show_statement(pre_statement);
 		if (pre_condition) {
 			if (pre_condition->type == EXPR_VALUE) {

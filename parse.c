@@ -24,6 +24,7 @@
 #include "expression.h"
 
 static struct token *statement(struct token *token, struct statement **tree);
+static struct token *external_declaration(struct token *token, struct symbol_list **list);
 
 struct statement *alloc_statement(struct position pos, int type)
 {
@@ -678,19 +679,29 @@ static void add_case_statement(struct statement *stmt)
 
 static struct token *parse_for_statement(struct token *token, struct statement *stmt)
 {
+	struct symbol_list *syms;
 	struct expression *e1, *e2, *e3;
 	struct statement *iterator;
 
 	start_iterator(stmt);
 	token = expect(token->next, '(', "after 'for'");
-	token = parse_expression(token, &e1);
-	token = expect(token, ';', "in 'for'");
+
+	syms = NULL;
+	e1 = NULL;
+	/* C99 variable declaration? */
+	if (lookup_type(token)) {
+		token = external_declaration(token, &syms);
+	} else {
+		token = parse_expression(token, &e1);
+		token = expect(token, ';', "in 'for'");
+	}
 	token = parse_expression(token, &e2);
 	token = expect(token, ';', "in 'for'");
 	token = parse_expression(token, &e3);
 	token = expect(token, ')', "in 'for'");
 	token = statement(token, &iterator);
 
+	stmt->iterator_syms = syms;
 	stmt->iterator_pre_statement = make_statement(e1);
 	stmt->iterator_pre_condition = e2;
 	stmt->iterator_post_statement = make_statement(e3);
@@ -884,8 +895,6 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn)
 	}
 	return token;
 }
-
-static struct token *external_declaration(struct token *token, struct symbol_list **list);
 
 struct token *compound_statement(struct token *token, struct statement *stmt)
 {
