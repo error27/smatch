@@ -36,7 +36,6 @@ static struct hardreg hardregs[] = {
 #define REGNO (sizeof(hardregs)/sizeof(struct hardreg))
 
 struct bb_state {
-	int last_reg;
 	struct basic_block *bb;
 	unsigned long stack_offset;
 	struct storage_hash_list *inputs;
@@ -185,37 +184,39 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 	return hardreg;
 }
 
+static int last_reg;
+
 static struct hardreg *target_reg(struct bb_state *state, pseudo_t pseudo)
 {
 	int i;
-	struct hardreg *hardreg;
+	struct hardreg *reg;
 
-	i = state->last_reg+1;
+	i = last_reg+1;
 	if (i >= REGNO)
 		i = 0;
-	state->last_reg = i;
-	hardreg = hardregs + i;
-	flush_reg(state, hardreg);
+	last_reg = i;
+	reg = hardregs + i;
+	flush_reg(state, reg);
 
-	hardreg->contains = pseudo;
-	hardreg->busy = 1;
-	hardreg->dirty = 0;
-	return hardreg;
+	reg->contains = pseudo;
+	reg->busy = 1;
+	reg->dirty = 0;
+	return reg;
 }
 
 static struct hardreg *getreg(struct bb_state *state, pseudo_t pseudo)
 {
 	int i;
-	struct hardreg *hardreg;
+	struct hardreg *reg;
 
 	for (i = 0; i < REGNO; i++) {
 		if (hardregs[i].contains == pseudo) {
-			state->last_reg = i;
+			last_reg = i;
 			return hardregs+i;
 		}
 	}
-	hardreg = target_reg(state, pseudo);
-	return fill_reg(state, hardreg, pseudo);
+	reg = target_reg(state, pseudo);
+	return fill_reg(state, reg, pseudo);
 }
 
 static const char *address(struct bb_state *state, struct instruction *memop)
@@ -659,7 +660,6 @@ static void output_bb(struct basic_block *bb, unsigned long generation)
 	state.outputs = gather_storage(bb, STOR_OUT);
 	state.internal = NULL;
 	state.stack_offset = 0;
-	state.last_reg = -1;
 
 	generate(bb, &state);
 
@@ -673,6 +673,8 @@ static void output_bb(struct basic_block *bb, unsigned long generation)
 static void output(struct entrypoint *ep)
 {
 	unsigned long generation = ++bb_generation;
+
+	last_reg = -1;
 
 	/* Set up initial inter-bb storage links */
 	set_up_storage(ep);
