@@ -33,14 +33,15 @@ struct phi {
 struct instruction {
 	struct symbol *type;
 	int opcode;
-	pseudo_t target;
+	union {
+		pseudo_t target;
+		pseudo_t cond;		/* for branch and switch */
+	};
 	union {
 		struct /* branch */ {
-			pseudo_t cond;
 			struct basic_block *bb_true, *bb_false;
 		};
 		struct /* switch */ {
-			pseudo_t switch_cond;
 			struct multijmp_list *multijmp_list;	/* switch */
 		};
 		struct /* phi_node */ {
@@ -64,33 +65,41 @@ struct instruction {
 enum opcode {
 	OP_BADOP,
 	/* Terminator */
-	OP_RET,
+	OP_TERMINATOR,
+	OP_RET = OP_TERMINATOR,
 	OP_BR,
 	OP_SWITCH,
 	OP_INVOKE,
 	OP_UNWIND,
+	OP_TERMINATOR_END = OP_UNWIND,
 	
 	/* Binary */
-	OP_ADD,
+	OP_BINARY,
+	OP_ADD = OP_BINARY,
 	OP_SUB,
 	OP_MUL,
 	OP_DIV,
-	OP_REM,
+	OP_MOD,
 	OP_SHL,
 	OP_SHR,
+	OP_BINARY_END = OP_SHR,
 	
 	/* Logical */
-	OP_AND,
+	OP_LOGICAL,
+	OP_AND = OP_LOGICAL,
 	OP_OR,
 	OP_XOR,
+	OP_LOGICAL_END = OP_XOR,
 
 	/* Binary comparison */
-	OP_SET_EQ,
+	OP_BINCMP,
+	OP_SET_EQ = OP_BINCMP,
 	OP_SET_NE,
 	OP_SET_LE,
 	OP_SET_GE,
 	OP_SET_LT,
 	OP_SET_GT,
+	OP_BINCMP_END = OP_SET_GT,
 	
 	/* Memory */
 	OP_MALLOC,

@@ -65,6 +65,9 @@ static void show_instruction(struct instruction *insn)
 	case OP_BADOP:
 		printf("\tAIEEE! (%d %d)\n", insn->target.nr, insn->src.nr);
 		break;
+	case OP_RET:
+		printf("\tret %%r%d\n", insn->src.nr);
+		break;
 	case OP_BR:
 		if (insn->bb_true && insn->bb_false) {
 			printf("\tbr\t%%r%d, .L%p, .L%p\n", insn->cond.nr, insn->bb_true, insn->bb_false);
@@ -95,7 +98,7 @@ static void show_instruction(struct instruction *insn)
 	}
 	case OP_SWITCH: {
 		struct multijmp *jmp;
-		printf("\tswitch %%r%d", insn->target.nr);
+		printf("\tswitch %%r%d", insn->cond.nr);
 		FOR_EACH_PTR(insn->multijmp_list, jmp) {
 			if (jmp->begin == jmp->end)
 				printf(", %d -> .L%p", jmp->begin, jmp->target);
@@ -140,15 +143,39 @@ static void show_instruction(struct instruction *insn)
 			insn->orig_type->bit_size, insn->type->bit_size, 
 			insn->src.nr);
 		break;
+	case OP_BINARY ... OP_BINARY_END:
+	case OP_LOGICAL ... OP_LOGICAL_END: {
+		static const char *opname[] = {
+			[OP_ADD - OP_BINARY] = "add", [OP_SUB - OP_BINARY] = "sub",
+			[OP_MUL - OP_BINARY] = "mul", [OP_DIV - OP_BINARY] = "div",
+			[OP_MOD - OP_BINARY] = "mod", [OP_AND - OP_BINARY] = "and",
+			[OP_OR  - OP_BINARY] = "or",  [OP_XOR - OP_BINARY] = "xor"
+		};
+		printf("\t%%r%d <- %s  %%r%d, %%r%d\n",
+			insn->target.nr,
+			opname[op - OP_BINARY], insn->src1.nr, insn->src2.nr);
+		break;
+	}
+
+	case OP_BINCMP ... OP_BINCMP_END: {
+		static const char *opname[] = {
+			[OP_SET_EQ - OP_BINCMP] = "seteq",
+			[OP_SET_NE - OP_BINCMP] = "setne",
+			[OP_SET_LE - OP_BINCMP] = "setle",
+			[OP_SET_GE - OP_BINCMP] = "setge",
+			[OP_SET_LT - OP_BINCMP] = "setlt",
+			[OP_SET_GT - OP_BINCMP] = "setgt",
+		};
+		printf("\t%%r%d <- %s  %%r%d, %%r%d\n",
+			insn->target.nr,
+			opname[op - OP_BINCMP], insn->src1.nr, insn->src2.nr);
+		break;
+	}
+
 	case OP_UNOP ... OP_LASTUNOP:
 		printf("\t%%r%d <- %s %%r%d\n",
 			insn->target.nr,
 			show_special(op - OP_UNOP), insn->src.nr);
-		break;
-	case OP_BINOP ... OP_LASTBINOP:
-		printf("\t%%r%d <- %%r%d %s %%r%d\n",
-			insn->target.nr,
-			insn->src1.nr, show_special(op - OP_UNOP), insn->src2.nr);
 		break;
 	default:
 		printf("\top %d ???\n", op);
@@ -440,11 +467,18 @@ static pseudo_t linearize_binop(struct entrypoint *ep, struct expression *expr)
 {
 	pseudo_t src1, src2, result;
 	struct instruction *insn;
+	static const int opcode[] = {
+		['+'] = OP_ADD, ['-'] = OP_SUB,
+		['*'] = OP_MUL, ['/'] = OP_DIV,
+		['%'] = OP_MOD, ['&'] = OP_AND,
+		['|'] = OP_OR,  ['^'] = OP_XOR,
+	};
 
 	src1 = linearize_expression(ep, expr->left);
 	src2 = linearize_expression(ep, expr->right);
 	result = alloc_pseudo();
-	insn = alloc_instruction(OP_BINOP + expr->op, expr->ctype);
+
+	insn = alloc_instruction(opcode[expr->op], expr->ctype);
 	insn->target = result;
 	insn->src1 = src1;
 	insn->src2 = src2;
@@ -498,8 +532,29 @@ static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr
 	return bb_reachable(first) ? src1 : src2;
 }
 
+static pseudo_t linearize_compare(struct entrypoint *ep, struct expression *expr)
+{
+	static const int cmpop[] = {
+		['>'] = OP_SET_GT, ['<'] = OP_SET_LT,
+		[SPECIAL_EQUAL] = OP_SET_EQ,
+		[SPECIAL_NOTEQUAL] = OP_SET_NE,
+		[SPECIAL_GTE] = OP_SET_GE,
+		[SPECIAL_LTE] = OP_SET_LE,
+	};
+	struct instruction *insn = alloc_instruction(cmpop[expr->op], expr->ctype);
+	pseudo_t target;
+	insn->src1 = linearize_expression(ep, expr->left);
+	insn->src2 = linearize_expression(ep, expr->right);
+	insn->target = target = alloc_pseudo();
+	add_one_insn(ep, expr->pos, insn);
+	return target;
+}
+
+
 pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *expr, struct basic_block *bb_true, struct basic_block *bb_false)
 {
+	pseudo_t cond;
+
 	if (!expr || !bb_reachable(ep->active))
 		return VOID;
 
@@ -514,12 +569,17 @@ pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *expr, s
 		linearize_logical_branch(ep, expr, bb_true, bb_false);
 		return VOID;
 
+	case EXPR_COMPARE:
+		cond = linearize_compare(ep, expr);
+		add_branch(ep, expr, cond, bb_true, bb_false);
+		break;
+		
 	case EXPR_PREOP:
 		if (expr->op == '!')
 			return linearize_cond_branch(ep, expr->unop, bb_false, bb_true);
 		/* fall through */
 	default: {
-		pseudo_t cond = linearize_expression(ep, expr);
+		cond = linearize_expression(ep, expr);
 		add_branch(ep, expr, cond, bb_true, bb_false);
 
 		return VOID;
@@ -528,6 +588,8 @@ pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *expr, s
 	return VOID;
 }
 
+
+	
 static pseudo_t linearize_logical_branch(struct entrypoint *ep, struct expression *expr, struct basic_block *bb_true, struct basic_block *bb_false)
 {
 	struct basic_block *next = alloc_basic_block();
@@ -583,6 +645,9 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 	case EXPR_LOGICAL:
 		return linearize_logical(ep, expr);
 
+	case EXPR_COMPARE:
+		return  linearize_compare(ep, expr);
+
 	case EXPR_COMMA: {
 		linearize_expression(ep, expr->left);
 		return linearize_expression(ep, expr->right);
@@ -628,8 +693,12 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		break;
 
 	case STMT_RETURN: {
-		pseudo_t pseudo = linearize_expression(ep, stmt->expression);
-		return pseudo;
+		struct expression *expr = stmt->expression;
+		struct instruction *ret = alloc_instruction(OP_RET, expr->ctype);
+		ret->src = linearize_expression(ep, expr);
+		add_one_insn(ep, stmt->pos, ret);
+		ep->active = NULL;
+		return VOID;
 	}
 
 	case STMT_CASE: {
@@ -700,7 +769,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 
 		pseudo = linearize_expression(ep, stmt->switch_expression);
 		switch_ins = alloc_instruction(OP_SWITCH, NULL);
-		switch_ins->target = pseudo;
+		switch_ins->cond = pseudo;
 		add_one_insn(ep, stmt->pos, switch_ins);
 
 		FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
