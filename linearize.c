@@ -103,6 +103,14 @@ static void set_unreachable(struct entrypoint *ep)
 	ep->active = new_basic_block(ep, NULL);
 }
 
+static void add_branch(struct entrypoint *ep, struct statement *stmt, int true, struct expression *cond, struct symbol *target)
+{
+	struct statement *jump = alloc_statement(stmt->pos, true);
+	jump->bb_conditional = cond;
+	jump->bb_target = target;
+	linearize_simple_statement(ep, jump);
+}	
+
 void linearize_statement(struct entrypoint *ep, struct statement *stmt)
 {
 	if (!stmt)
@@ -155,7 +163,6 @@ void linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	 */
 	case STMT_IF: {
 		struct symbol *target;
-		struct statement *goto_bb;
 		struct basic_block *if_block;
 		struct expression *cond = stmt->if_conditional;
 
@@ -195,11 +202,8 @@ void linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			
 
 		target = alloc_symbol(stmt->pos, SYM_LABEL);
-		goto_bb = alloc_statement(stmt->pos, STMT_CONDFALSE);
-		goto_bb->bb_conditional = cond;
-		goto_bb->bb_target = target;
+		add_branch(ep, stmt, STMT_CONDFALSE, cond, target);
 
-		linearize_simple_statement(ep, goto_bb);
 		linearize_statement(ep, stmt->if_true);
 
 		if_block = ep->active;
@@ -263,11 +267,8 @@ void linearize_statement(struct entrypoint *ep, struct statement *stmt)
 					set_unreachable(ep);
 				}
 			} else {
-				struct statement *pre_cond = alloc_statement(stmt->pos, STMT_CONDFALSE);
 				loop_bottom = alloc_symbol(stmt->pos, SYM_LABEL);
-				pre_cond->bb_conditional = pre_condition;
-				pre_cond->bb_target = loop_bottom;
-				linearize_simple_statement(ep, pre_cond);
+				add_branch(ep, stmt, STMT_CONDFALSE, pre_condition, loop_bottom);
 			}
 		}
 
@@ -287,12 +288,8 @@ void linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			ep->active->next = loop_top;
 			set_unreachable(ep);
 		} else {
-			if (post_condition->type != EXPR_VALUE || post_condition->value) {
-				struct statement *post_cond = alloc_statement(stmt->pos, STMT_CONDTRUE);
-				post_cond->bb_conditional = post_condition;
-				post_cond->bb_target = loop_top;
-				linearize_simple_statement(ep, post_cond);
-			}
+			if (post_condition->type != EXPR_VALUE || post_condition->value)
+				add_branch(ep, stmt, STMT_CONDTRUE, post_condition, loop_top);
 		}
 
 		if (stmt->iterator_break->used)
