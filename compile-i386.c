@@ -1561,7 +1561,7 @@ static int loopstk_continue(void)
 	return current_func->loop_stack->continue_lbl;
 }
 
-static void x86_loop(struct statement *stmt)
+static void emit_loop(struct statement *stmt)
 {
 	struct statement  *pre_statement = stmt->iterator_pre_statement;
 	struct expression *pre_condition = stmt->iterator_pre_condition;
@@ -1674,7 +1674,7 @@ static struct storage *x86_statement(struct statement *stmt)
 		break;
 
 	case STMT_ITERATOR:
-		x86_loop(stmt);
+		emit_loop(stmt);
 		break;
 
 	case STMT_NONE:
@@ -1689,6 +1689,16 @@ static struct storage *x86_statement(struct statement *stmt)
 		if (stmt->goto_expression) {
 			struct storage *val = x86_expression(stmt->goto_expression);
 			printf("\tgoto *v%d\n", val->pseudo);
+		} else if (!strcmp("break", show_ident(stmt->goto_label->ident))) {
+			struct storage *lbv = new_storage(STOR_LABEL);
+			lbv->label = loopstk_break();
+			lbv->flags = STOR_WANTS_FREE;
+			insn("jmp", lbv, NULL, "'break'; go to loop bottom");
+		} else if (!strcmp("continue", show_ident(stmt->goto_label->ident))) {
+			struct storage *lbv = new_storage(STOR_LABEL);
+			lbv->label = loopstk_continue();
+			lbv->flags = STOR_WANTS_FREE;
+			insn("jmp", lbv, NULL, "'continue'; go to loop top");
 		} else {
 			struct storage *labelsym = new_labelsym(stmt->goto_label);
 			insn("jmp", labelsym, NULL, NULL);
