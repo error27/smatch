@@ -218,6 +218,9 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 {
 	struct basic_block *parent;
 
+	if (!bb->parents)
+		return !!local;
+
 	if (bb_list_size(bb->parents) > 1)
 		loads = 0;
 	FOR_EACH_PTR(bb->parents, parent) {
