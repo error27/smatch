@@ -385,9 +385,10 @@ static void linearize_store_gen(struct entrypoint *ep, pseudo_t value, struct ex
 		}
 		orig = add_load(ep, expr, addr);
 		andmask = add_const_value(ep, expr->pos, &uint_ctype, ~mask);
-		value = add_binary_op(ep, expr, OP_AND, orig, andmask);
+		orig = add_binary_op(ep, expr, OP_AND, orig, andmask);
 		ormask = add_const_value(ep, expr->pos, &uint_ctype, mask);
-		value = add_binary_op(ep, expr, OP_OR, orig, ormask);
+		value = add_binary_op(ep, expr, OP_AND, value, ormask);
+		value = add_binary_op(ep, expr, OP_OR, orig, value);
 	}
 
 	store->target = value;
