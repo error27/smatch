@@ -1415,14 +1415,17 @@ static struct storage *emit_binop(struct expression *expr)
 
 static int emit_conditional_test(struct storage *val)
 {
+	struct storage *reg;
 	struct storage *target_val;
 	int target_false;
 
 	/* load result into EAX */
-	insn("movl", val, REG_EAX, "begin if/conditional");
+	emit_comment("begin if/conditional");
+	reg = get_reg_value(val);
 
 	/* compare result with zero */
-	insn("test", REG_EAX, REG_EAX, NULL);
+	insn("test", reg, reg, NULL);
+	put_reg(reg);
 
 	/* create conditional-failed label to jump to */
 	target_false = new_label();
