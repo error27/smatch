@@ -90,6 +90,8 @@ static const char* opcodes[] = {
 	[OP_CONTEXT] = "context",
 };
 
+static int last_reg, stack_offset;
+
 struct hardreg {
 	const char *name;
 	struct pseudo_list *contains;
@@ -122,7 +124,6 @@ static struct hardreg hardregs[] = {
 
 struct bb_state {
 	struct position pos;
-	unsigned long stack_offset;
 	struct storage_hash_list *inputs;
 	struct storage_hash_list *outputs;
 	struct storage_hash_list *internal;
@@ -227,8 +228,8 @@ static const char *show_memop(struct storage *storage)
 static void alloc_stack(struct bb_state *state, struct storage *storage)
 {
 	storage->type = REG_STACK;
-	storage->offset = state->stack_offset;
-	state->stack_offset += 4;
+	storage->offset = stack_offset;
+	stack_offset += 4;
 }
 
 /*
@@ -373,8 +374,6 @@ static void add_pseudo_reg(struct bb_state *state, pseudo_t pseudo, struct hardr
 	add_ptr_list_tag(&reg->contains, pseudo, TAG_DIRTY);
 	reg->busy++;
 }
-
-static int last_reg;
 
 static struct hardreg *preferred_reg(struct bb_state *state, pseudo_t target)
 {
@@ -1517,7 +1516,6 @@ static void output_bb(struct basic_block *bb, unsigned long generation)
 	state.inputs = gather_storage(bb, STOR_IN);
 	state.outputs = gather_storage(bb, STOR_OUT);
 	state.internal = NULL;
-	state.stack_offset = 0;
 	state.cc_opcode = 0;
 	state.cc_target = NULL;
 
@@ -1629,6 +1627,7 @@ static void output(struct entrypoint *ep)
 	unsigned long generation = ++bb_generation;
 
 	last_reg = -1;
+	stack_offset = 0;
 
 	/* Set up initial inter-bb storage links */
 	set_up_storage(ep);
