@@ -118,6 +118,68 @@ static void check_range_instruction(struct instruction *insn)
 	warning(insn->pos, "value out of range");
 }
 
+static void check_byte_count(struct instruction *insn, pseudo_t count)
+{
+	if (count->type == PSEUDO_VAL) {
+		long long val = count->value;
+		if (val <= 0 || val > 100000)
+			warning(insn->pos, "%s with byte count of %lld",
+				show_ident(insn->func->sym->ident), val);
+		return;
+	}
+	/* Ok, we could try to do the range analysis here */
+}
+
+static pseudo_t argument(struct instruction *call, unsigned int argno)
+{
+	pseudo_t args[8];
+	struct ptr_list *arg_list = (struct ptr_list *) call->arguments;
+
+	argno--;
+	if (linearize_ptr_list(arg_list, (void *)args, 8) > argno)
+		return args[argno];
+	return NULL;
+}
+
+static void check_memset(struct instruction *insn)
+{
+	check_byte_count(insn, argument(insn, 3));
+}
+
+#define check_memcpy check_memset
+#define check_ctu check_memset
+#define check_cfu check_memset
+
+struct checkfn {
+	struct ident *id;
+	void (*check)(struct instruction *insn);
+};
+
+static void check_call_instruction(struct instruction *insn)
+{
+	pseudo_t fn = insn->func;
+	struct ident *ident;
+	static const struct checkfn check_fn[] = {
+		{ &memset_ident, check_memset },
+		{ &memcpy_ident, check_memcpy },
+		{ &copy_to_user_ident, check_ctu },
+		{ &copy_from_user_ident, check_cfu },
+	};
+	int i;
+
+	if (fn->type != PSEUDO_SYM)
+		return;
+	ident = fn->sym->ident;
+	if (!ident)
+		return;
+	for (i = 0; i < sizeof(check_fn)/sizeof(struct checkfn) ; i++) {
+		if (check_fn[i].id != ident)
+			continue;
+		check_fn[i].check(insn);
+		break;
+	}
+}
+
 static void check_one_instruction(struct instruction *insn)
 {
 	switch (insn->opcode) {
@@ -127,6 +189,9 @@ static void check_one_instruction(struct instruction *insn)
 		break;
 	case OP_RANGE:
 		check_range_instruction(insn);
+		break;
+	case OP_CALL:
+		check_call_instruction(insn);
 		break;
 	default:
 		break;

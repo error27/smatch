@@ -68,6 +68,10 @@ __IDENT(__PRETTY_FUNCTION___ident, "__PRETTY_FUNCTION__", 0);
 IDENT_RESERVED(__context__);
 IDENT_RESERVED(__range__);
 
+/* Magic function names we recognize */
+IDENT(memset); IDENT(memcpy);
+IDENT(copy_to_user); IDENT(copy_from_user);
+
 #undef __IDENT
 #undef IDENT
 #undef IDENT_RESERVED
