@@ -420,12 +420,18 @@ static void apply_ctype(struct position pos, struct ctype *thistype, struct ctyp
 		if (conflict)
 			warn(pos, "You cannot have both signed and unsigned modifiers.");
 
+		// Only one storage modifier allowed, except that "inline" doesn't count.
+		conflict = (mod | old) & (MOD_STORAGE & ~MOD_INLINE);
+		conflict &= (conflict - 1);
+		if (conflict)
+			warn(pos, "multiple storage classes");
+
 		ctype->modifiers = old | mod | extra;
 	}
 
 	/* Context mask and value */
 	if ((ctype->context ^ thistype->context) & (ctype->contextmask & thistype->contextmask)) {
-		warn(pos, "inconsistend attribute types");
+		warn(pos, "inconsistent attribute types");
 		thistype->context = 0;
 		thistype->contextmask = 0;
 	}
