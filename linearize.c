@@ -1791,10 +1791,16 @@ static void simplify_one_symbol(struct symbol *sym)
 		/* We know that the symbol-pseudo use is the "src" in the instruction */
 		struct instruction *insn = container(pp, struct instruction, src);
 
-		if (insn->opcode == OP_STORE) {
+		switch (insn->opcode) {
+		case OP_STORE:
 			if (def)
 				goto multi_def;
 			def = insn;
+			break;
+		case OP_LOAD:
+			break;
+		default:
+			warning(sym->pos, "symbol '%s' pseudo used in unexpected way", show_ident(sym->ident));
 		} 
 		/*
 		 * FIXME!! We should also check that offsets 
@@ -1813,8 +1819,6 @@ static void simplify_one_symbol(struct symbol *sym)
 
 		/* Turn the store into a no-op */
 		def->target = VOID;
-		def->src = src;
-		def->opcode = OP_MOV;
 	}
 	FOR_EACH_PTR(pseudo->users, pp) {
 		struct instruction *insn = container(pp, struct instruction, src);
@@ -1832,8 +1836,6 @@ static void simplify_one_symbol(struct symbol *sym)
 
 			/* Turn the load into a no-op */
 			insn->target = VOID;
-			insn->src = src;
-			insn->opcode = OP_MOV;
 		}
 	} END_FOR_EACH_PTR(pp);
 	return;
