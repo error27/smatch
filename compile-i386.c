@@ -1546,10 +1546,7 @@ static struct storage *emit_conditional_expr(struct expression *expr)
 	target_false = emit_conditional_test(cond);
 
 	/* handle if-true part of the expression */
-	if (!expr->cond_true)
-		true = cond;
-	else
-		true = x86_expression(expr->cond_true);
+	true = x86_expression(expr->cond_true);
 
 	emit_copy(new, true, expr->ctype);
 
@@ -1576,10 +1573,7 @@ static struct storage *emit_select_expr(struct expression *expr)
 
 	emit_comment("begin SELECT");
 	reg_cond = get_reg_value(cond, get_regclass(expr->conditional));
-	reg_true = reg_cond;
-	if (true) {
-		reg_true = get_reg_value(true, get_regclass(expr));
-	}
+	reg_true = get_reg_value(true, get_regclass(expr));
 	reg_false = get_reg_value(false, get_regclass(expr));
 
 	/*
@@ -1592,8 +1586,7 @@ static struct storage *emit_select_expr(struct expression *expr)
 	/* Store it back */
 	emit_move(reg_true, new, expr->ctype, NULL);
 	put_reg(reg_cond);
-	if (true)
-		put_reg(reg_true);
+	put_reg(reg_true);
 	put_reg(reg_false);
 	emit_comment("end SELECT");
 	return new;

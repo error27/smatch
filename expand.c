@@ -459,7 +459,6 @@ static int expand_conditional(struct expression *expr)
 
 	cond_cost = expand_expression(cond);
 	if (cond->type == EXPR_VALUE) {
-		true = true ? : cond;
 		if (!cond->value)
 			true = false;
 		*expr = *true;

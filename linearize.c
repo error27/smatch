@@ -724,13 +724,9 @@ static pseudo_t linearize_select(struct entrypoint *ep, struct expression *expr)
 {
 	pseudo_t cond, true, false, res;
 
-	true = NULL;
-	if (expr->cond_true)
-		true = linearize_expression(ep, expr->cond_true);
+	true = linearize_expression(ep, expr->cond_true);
 	false = linearize_expression(ep, expr->cond_false);
 	cond = linearize_expression(ep, expr->conditional);
-	if (!true)
-		true = cond;
 
 	add_setcc(ep, expr, cond);
 	res = add_binary_op(ep, expr, OP_SEL, true, false);
@@ -741,7 +737,8 @@ static pseudo_t linearize_select(struct entrypoint *ep, struct expression *expr)
 }
 
 static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *expr,
-				      struct expression *cond, struct expression *expr_true,
+				      struct expression *cond,
+				      struct expression *expr_true,
 				      struct expression *expr_false)
 {
 	pseudo_t src1, src2, target;
@@ -749,17 +746,12 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 	struct basic_block *bb_false = alloc_basic_block(expr_false->pos);
 	struct basic_block *merge = alloc_basic_block(expr->pos);
 
-	if (expr_true) {
-		linearize_cond_branch(ep, cond, bb_true, bb_false);
+	linearize_cond_branch(ep, cond, bb_true, bb_false);
 
-		set_activeblock(ep, bb_true);
-		src1 = linearize_expression(ep, expr_true);
-		bb_true = ep->active;
-		add_goto(ep, merge); 
-	} else {
-		src1 = linearize_expression(ep, cond);
-		add_branch(ep, expr, src1, merge, bb_false);
-	}
+	set_activeblock(ep, bb_true);
+	src1 = linearize_expression(ep, expr_true);
+	bb_true = ep->active;
+	add_goto(ep, merge); 
 
 	set_activeblock(ep, bb_false);
 	src2 = linearize_expression(ep, expr_false);

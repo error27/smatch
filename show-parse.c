@@ -896,8 +896,6 @@ static int show_conditional_expr(struct expression *expr)
 	int false = show_expression(expr->cond_false);
 	int new = new_pseudo();
 
-	if (!true)
-		true = cond;
 	printf("[v%d]\tcmov.%d\t\tv%d,v%d,v%d\n", cond, expr->ctype->bit_size, new, true, false);
 	return new;
 }
