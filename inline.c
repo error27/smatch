@@ -240,6 +240,20 @@ static struct statement *copy_one_statement(struct statement *stmt)
 	return stmt;
 }
 
+void set_replace(struct symbol *old, struct symbol *new)
+{
+	new->replace = old;
+	old->replace = new;
+}
+
+void unset_replace(struct symbol *sym)
+{
+	struct symbol *r = sym->replace;
+	if (r) {
+		r->replace = NULL;
+		sym->replace = NULL;
+	}
+}
 
 /*
  * Copy a stateemnt tree from 'src' to 'dst', where both
@@ -257,18 +271,71 @@ void copy_statement(struct statement *src, struct statement *dst)
 
 	FOR_EACH_PTR(src->syms, sym) {
 		struct symbol *newsym = alloc_symbol(sym->pos, sym->type);
-		newsym->replace = sym;
-		sym->replace = newsym;
 		newsym->ctype = sym->ctype;
 		newsym->initializer = copy_expression(sym->initializer);
 		add_symbol(&dst->syms, newsym);
+
+		set_replace(sym, newsym);
 	} END_FOR_EACH_PTR;
 
 	FOR_EACH_PTR(src->stmts, stmt) {
 		add_statement(&dst->stmts, copy_one_statement(stmt));
 	} END_FOR_EACH_PTR;
 
-	FOR_EACH_PTR(src->syms, sym) {
-		sym->replace = NULL;
+	FOR_EACH_PTR(dst->syms, sym) {
+		unset_replace(sym);
 	} END_FOR_EACH_PTR;
+}
+
+int inline_function(struct expression *expr, struct symbol *sym)
+{
+	struct symbol *fn = sym->ctype.base_type;
+	struct expression_list *arg_list = expr->args;
+	struct statement *stmt = alloc_statement(expr->pos, STMT_COMPOUND);
+	struct symbol_list *name_list = sym->ctype.base_type->arguments;
+	struct symbol *name;
+	struct expression *arg;
+
+	if (!fn->stmt) {
+		warn(fn->pos, "marked inline, but without a definition");
+		return 0;
+	}
+
+	stmt = alloc_statement(expr->pos, STMT_COMPOUND);
+
+	expr->type = EXPR_STATEMENT;
+	expr->statement = stmt;
+	expr->ctype = fn->ctype.base_type;
+
+	/*
+	 * FIXME! On expansion, we'll need to replace the original return
+	 * symbol with this local one!
+	 */
+	stmt->ret = alloc_symbol(sym->pos, SYM_NODE);
+
+	/*
+	 * FIXME! On expansion, we'll also need to replace the original
+	 * argument symbols with these!
+	 */
+	PREPARE_PTR_LIST(name_list, name);
+	FOR_EACH_PTR(arg_list, arg) {
+		struct symbol *a = alloc_symbol(arg->pos, SYM_NODE);
+
+		a->ctype.base_type = arg->ctype;
+		if (name) {
+			a->ident = name->ident;
+			a->ctype = name->ctype;
+			set_replace(name, a);
+		}
+		a->initializer = arg;
+		add_symbol(&stmt->syms, a);
+
+		NEXT_PTR_LIST(name);
+	} END_FOR_EACH_PTR;
+	FINISH_PTR_LIST(name);
+
+	copy_statement(fn->stmt, stmt);
+	evaluate_statement(stmt);
+
+	return 1;
 }

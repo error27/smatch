@@ -95,5 +95,6 @@ extern struct symbol *ctype_fp(unsigned int spec);
 
 extern int match_string_ident(struct ident *, const char *);
 extern void copy_statement(struct statement *src, struct statement *dst);
+extern int inline_function(struct expression *expr, struct symbol *sym);
 
 #endif /* PARSE_H */
