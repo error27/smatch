@@ -988,6 +988,7 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 	FOR_EACH_PTR(state->inputs, entry) {
 		struct storage *storage = entry->storage;
 		const char *name = show_storage(storage);
+		output_comment(state, "incoming %s in %s", show_pseudo(entry->pseudo), name);
 		if (storage->type == REG_REG) {
 			int regno = storage->regno;
 			add_pseudo_reg(state, entry->pseudo, hardregs + regno);
