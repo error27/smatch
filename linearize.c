@@ -84,6 +84,15 @@ static void show_instruction(struct instruction *insn)
 	case OP_MOVE:
 		printf("\t%%r%d <- %%r%d\n", insn->target.nr, insn->src.nr);
 		break;
+	case OP_ARGUMENT:
+		printf("\tpush %%r%d\n", insn->src.nr);
+		break;
+	case OP_CALL:
+		printf("\t%%r%d <- CALL %s\n", insn->target.nr, show_ident(insn->address->ident));
+		break;
+	case OP_INDCALL:
+		printf("\t%%r%d <- CALL [%%r%d]\n", insn->target.nr, insn->src.nr);
+		break;
 	case OP_UNOP ... OP_LASTUNOP:
 		printf("\t%%r%d <- %c %%r%d\n",
 			insn->target.nr,
@@ -329,6 +338,71 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 	return value;
 }
 
+static void push_argument(struct entrypoint *ep, struct expression *expr, pseudo_t pseudo)
+{
+	struct instruction *insn = alloc_instruction(OP_ARGUMENT, expr->ctype);
+	insn->src = pseudo;
+	add_one_insn(ep, expr->pos, insn);
+}
+
+static pseudo_t linearize_direct_call(struct entrypoint *ep, struct expression *expr, struct symbol *direct)
+{
+	struct instruction *insn = alloc_instruction(OP_CALL, expr->ctype);
+	pseudo_t retval = alloc_pseudo();
+
+	insn->target = retval;
+	insn->address = direct;
+	add_one_insn(ep, expr->pos, insn);
+	return retval;
+}
+
+static pseudo_t linearize_indirect_call(struct entrypoint *ep, struct expression *expr, pseudo_t pseudo)
+{
+	struct instruction *insn = alloc_instruction(OP_INDCALL, expr->ctype);
+	pseudo_t retval = alloc_pseudo();
+
+	insn->target = retval;
+	insn->src = pseudo;
+	add_one_insn(ep, expr->pos, insn);
+	return retval;
+}
+
+static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expression *expr)
+{
+	struct symbol *direct;
+	struct expression *arg, *fn;
+	pseudo_t retval;
+
+	if (!expr->ctype) {
+		warn(expr->pos, "\tcall with no type!");
+		return VOID;
+	}
+
+	FOR_EACH_PTR_REVERSE(expr->args, arg) {
+		pseudo_t new = linearize_expression(ep, arg);
+		push_argument(ep, arg, new);
+	} END_FOR_EACH_PTR_REVERSE;
+
+	fn = expr->fn;
+
+	/* Remove dereference, if any */
+	direct = NULL;
+	if (fn->type == EXPR_PREOP) {
+		if (fn->unop->type == EXPR_SYMBOL) {
+			struct symbol *sym = fn->unop->symbol;
+			if (sym->ctype.base_type->type == SYM_FN)
+				direct = sym;
+		}
+	}
+	if (direct) {
+		retval = linearize_direct_call(ep, expr, direct);
+	} else {
+		pseudo_t fncall = linearize_expression(ep, fn);
+		retval = linearize_indirect_call(ep, expr, fncall);
+	}
+	return retval;
+}
+
 static pseudo_t linearize_binop(struct entrypoint *ep, struct expression *expr)
 {
 	pseudo_t src1, src2, result;
@@ -402,6 +476,9 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 
 	case EXPR_STATEMENT:
 		return linearize_statement(ep, expr->statement);
+
+	case EXPR_CALL:
+		return linearize_call_expression(ep, expr);
 
 	case EXPR_BINOP:
 		return linearize_binop(ep, expr);
