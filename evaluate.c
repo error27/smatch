@@ -656,27 +656,18 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 	struct symbol *ctype, *symbol;
 	struct expression *op = expr->unop;
 
-
-	ctype = op->ctype;
-
-	/* Simplify: &*(expr) => (expr) */
-	if (op->type == EXPR_PREOP && op->op == '*') {
-		*expr = *op->unop;
+	if (op->type != EXPR_PREOP || op->op != '*') {
+		warn(expr->pos, "not an lvalue");
+		return NULL;
 	}
-
+	ctype = op->ctype;
 	symbol = alloc_symbol(expr->pos, SYM_PTR);
 	symbol->ctype.base_type = ctype;
 	symbol->ctype.alignment = POINTER_ALIGNMENT;
 	symbol->bit_size = BITS_IN_POINTER;
+
+	*expr = *op->unop;
 	expr->ctype = symbol;
-	if (expr->unop->type == EXPR_SYMBOL) {
-		struct symbol *var = expr->unop->symbol;
-		if (var->ctype.modifiers & MOD_REGISTER) {
-			warn(expr->pos, "register variable and address-of do not mix");
-			var->ctype.modifiers &= ~MOD_REGISTER;
-		}
-		var->ctype.modifiers |= MOD_ADDRESSABLE;
-	}
 	return symbol;
 }
 
