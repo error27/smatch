@@ -1582,7 +1582,7 @@ static void rewrite_branch(struct basic_block *bb,
 	struct basic_block *old,
 	struct basic_block *new)
 {
-	*ptr = new;
+	use_bb(new, ptr);
 	add_bb(&new->parents, bb);
 	/* 
 	 * FIXME!!! We should probably also remove bb from "old->parents",
