@@ -1,5 +1,8 @@
 #ifndef LIB_H
 #define LIB_H
+
+#include <stdlib.h>
+
 /*
  * Basic helper routine descriptions for 'sparse'.
  *
