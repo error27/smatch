@@ -8,6 +8,7 @@ my $m64 = 0;
 my $has_specs = 0;
 my $do_check = 0;
 my $do_compile = 1;
+my $verbose = 0;
 
 foreach (@ARGV) {
     # Look for a .c file.  We don't want to run the checker on .o or .so files
@@ -23,10 +24,15 @@ foreach (@ARGV) {
 	next;
     }
 
-    if (/^-no-compile$/) {
+    if ($_ eq '-no-compile') {
 	$do_compile = 0;
 	next;
     }
+
+    # If someone adds "-E", don't pre-process twice.
+    $do_compile = 0 if $_ eq '-E';
+
+    $verbose = 1 if $_ eq '-v';
 
     my $this_arg = ' ' . &quote_arg ($_);
     $cc .= $this_arg unless &check_only_option ($_);
@@ -39,9 +45,11 @@ if ($do_check) {
     if ($arch =~ /^(i.?86|athlon)$/) {
 	$check .= &integer_types (8, 16, 32, $m64 ? 64 : 32, 64);
 	$check .= &float_types (1, 1, 21, [24,8], [53,11], [64,15]);
+	$check .= &define_size_t ($m64 ? "long unsigned int" : "unsigned int");
     } elsif ($arch =~ /^(sun4u)$/) {
 	$check .= &integer_types (8, 16, 32, $m64 ? 64 : 32, 64);
 	$check .= &float_types (1, 1, 33, [24,8], [53,11], [113,15]);
+	$check .= &define_size_t ($m64 ? "long unsigned int" : "unsigned int");
     }
 
     if (!$has_specs) {
@@ -49,14 +57,20 @@ if ($do_check) {
 	chomp $os;
 	$check .= &add_specs (lc $os);
     }
-
-#    print "$check\n";
-#    exit 1;
 }
 
 
-system ($check) if $do_check;
-exec ($cc) if $do_compile;
+if ($do_check) {
+    print "$check\n" if $verbose;
+#    exit 1;
+    system ($check);
+}
+
+if ($do_compile) {
+    print "$cc\n" if $verbose;
+    exec ($cc);
+}
+
 exit 0;
 
 # -----------------------------------------------------------------------------
@@ -170,6 +184,14 @@ sub float_types {
 	}
     }
     return $result;
+}
+
+# -----------------------------------------------------------------------------
+
+sub define_size_t {
+    my ($text) = @_;
+    # We have to undef in order to override checks internal definition.
+    return ' -U__SIZE_TYPE__ ' . &quote_arg ("-D__SIZE_TYPE__=$text");
 }
 
 # -----------------------------------------------------------------------------

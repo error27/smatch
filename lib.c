@@ -677,7 +677,7 @@ char **handle_switch_o(char *arg, char **next)
 		return next;     // "-ofoo" or (bogus) terminal "-o"
 }
 
-struct warning {
+const struct warning {
 	const char *name;
 	int *flag;
 } warnings[] = {
@@ -713,6 +713,15 @@ char **handle_switch_W(char *arg, char **next)
 	return next;
 }
 
+char **handle_switch_U(char *arg, char **next)
+{
+	const char *name = arg + 1;
+	add_pre_buffer ("#undef %s\n", name);
+	return next;
+}
+
+
+
 char **handle_nostdinc(char *arg, char **next)
 {
 	add_pre_buffer("#nostdinc\n");
@@ -736,12 +745,13 @@ char **handle_switch(char *arg, char **next)
 	switch (*arg) {
 	case 'D': rc = handle_switch_D(arg, next); break;
 	case 'E': rc = handle_switch_E(arg, next); break;
-	case 'v': rc = handle_switch_v(arg, next); break;
 	case 'I': rc = handle_switch_I(arg, next); break;
 	case 'i': rc = handle_switch_i(arg, next); break;
 	case 'M': rc = handle_switch_M(arg, next); break;
 	case 'm': rc = handle_switch_m(arg, next); break;
 	case 'o': rc = handle_switch_o(arg, next); break;
+	case 'U': rc = handle_switch_U(arg, next); break;
+	case 'v': rc = handle_switch_v(arg, next); break;
 	case 'W': rc = handle_switch_W(arg, next); break;
 	default:
 		break;
