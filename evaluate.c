@@ -1400,7 +1400,6 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 	base_type = sym->ctype.base_type;
 	if (!base_type)
 		return NULL;
-	sym->ctype.base_type = base_type;
 
 	/* Evaluate the initializers */
 	if (sym->initializer) {
