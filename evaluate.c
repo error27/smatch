@@ -1290,11 +1290,21 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep, un
 			/* strings are special: char arrays */
 			if (rtype->type == SYM_ARRAY)
 				size = rtype->array_size;
-			pos = alloc_expression(expr->pos, EXPR_POS);
-			pos->init_offset = offset;
-			pos->init_sym = ctype;
-			pos->init_expr = *ep;
-			*ep = pos;
+			/*
+			 * Don't bother creating a position expression for
+			 * the simple initializer cases that don't need it.
+			 *
+			 * We need a position if the initializer has a byte
+			 * offset, _or_ if we're initializing a bitfield.
+			 */
+			if (offset || ctype->fieldwidth) {
+				pos = alloc_expression(expr->pos, EXPR_POS);
+				pos->init_offset = offset;
+				pos->init_sym = ctype;
+				pos->init_expr = *ep;
+				pos->ctype = expr->ctype;
+				*ep = pos;
+			}
 		}
 		return size;
 	}

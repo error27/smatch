@@ -642,6 +642,24 @@ static int show_assignment(struct expression *expr)
 	return val;
 }
 
+static int show_symbol_expr(struct symbol *sym);
+
+static int show_initialization(struct symbol *sym, struct expression *expr)
+{
+	int val, addr, bits;
+
+	if (!expr->ctype)
+		return 0;
+
+	bits = expr->ctype->bit_size;
+	val = show_expression(expr);
+	addr = show_symbol_expr(sym);
+	// FIXME! The "target" expression is for bitfield store information.
+	// Leave it NULL, which works fine.
+	show_store_gen(bits, val, NULL, addr);
+	return 0;
+}
+
 static int show_access(struct expression *expr)
 {
 	int addr = show_address_gen(expr);
@@ -812,9 +830,13 @@ static int show_initializer_expr(struct expression *expr, struct symbol *ctype)
 
 		// Ignore initializer indexes and identifiers - the
 		// evaluator has taken them into account
-		if (entry->type != EXPR_POS)
+		if (entry->type == EXPR_IDENTIFIER || entry->type == EXPR_INDEX)
 			continue;
-		show_position_expr(entry, ctype);
+		if (entry->type == EXPR_POS) {
+			show_position_expr(entry, ctype);
+			continue;
+		}
+		show_initialization(ctype, entry);
 	} END_FOR_EACH_PTR;
 	return 0;
 }
