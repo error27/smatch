@@ -485,7 +485,6 @@ void show_bb(struct basic_block *bb)
 	} END_FOR_EACH_PTR(insn);
 	if (!bb_terminated(bb))
 		printf("\tEND\n");
-	printf("\n");
 }
 
 static void show_symbol_usage(pseudo_t pseudo)
@@ -529,6 +528,7 @@ void show_entry(struct entrypoint *ep)
 		if (!bb->parents && !bb->children && !bb->insns && verbose < 2)
 			continue;
 		show_bb(bb);
+		printf("\n");
 	} END_FOR_EACH_PTR(bb);
 
 	printf("\n");
