@@ -45,6 +45,7 @@ enum opcode {
 	OP_MULTIJUMP,
 	OP_LOAD,
 	OP_STORE,
+	OP_MOVE,
 	OP_UNOP = 0x200,
 	OP_LASTUNOP = 0x3ff,
 	OP_BINOP = 0x400,

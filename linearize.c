@@ -47,7 +47,7 @@ static void show_instruction(struct instruction *insn)
 	case OP_CONDTRUE: case OP_CONDFALSE:
 		printf("\t%s %%r%d,%p\n",
 			op == OP_CONDTRUE ? "jne" : "jz",
-			insn->target.nr, insn->address);
+			insn->target.nr, insn->address->bb_target);
 		break;
 	case OP_SETVAL: {
 		struct expression *expr = insn->val;
@@ -80,6 +80,9 @@ static void show_instruction(struct instruction *insn)
 		break;
 	case OP_STORE:
 		printf("\tstore %%r%d -> [%%r%d]\n", insn->target.nr, insn->src.nr);
+		break;
+	case OP_MOVE:
+		printf("\t%%r%d <- %%r%d\n", insn->target.nr, insn->src.nr);
 		break;
 	case OP_UNOP ... OP_LASTUNOP:
 		printf("\t%%r%d <- %c %%r%d\n",
@@ -213,7 +216,7 @@ static void set_unreachable(struct entrypoint *ep)
 	ep->active = new_basic_block(ep, NULL);
 }
 
-static void add_branch(struct entrypoint *ep, struct statement *stmt, int opcode, struct expression *cond, struct symbol *target)
+static void add_branch(struct entrypoint *ep, int opcode, struct expression *cond, struct symbol *target)
 {
 	struct basic_block *bb = ep->active;
 
@@ -224,7 +227,7 @@ static void add_branch(struct entrypoint *ep, struct statement *stmt, int opcode
 		add_instruction(&bb->insns, jump);
 		add_bb(&target->bb_parents, bb);
 	}
-}	
+}
 
 /* Dummy pseudo allocator */
 static pseudo_t alloc_pseudo(void)
@@ -326,6 +329,62 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 	return value;
 }
 
+static pseudo_t linearize_binop(struct entrypoint *ep, struct expression *expr)
+{
+	pseudo_t src1, src2, result;
+	struct instruction *insn;
+
+	src1 = linearize_expression(ep, expr->left);
+	src2 = linearize_expression(ep, expr->right);
+	result = alloc_pseudo();
+	insn = alloc_instruction(OP_BINOP + expr->op, expr->ctype);
+	insn->target = result;
+	insn->src1 = src1;
+	insn->src2 = src2;
+	add_one_insn(ep, expr->pos, insn);
+	return result;
+}
+
+static void cond_branch(struct entrypoint *ep, int op, struct symbol *ctype, pseudo_t pseudo, struct symbol *target)
+{
+	struct instruction *insn;
+	struct basic_block *bb = ep->active;
+
+	insn = alloc_instruction(op, ctype);
+	insn->address = target;
+	bb->flags |= BB_HASBRANCH;
+	add_instruction(&bb->insns, insn);
+	add_bb(&target->bb_parents, bb);
+}
+
+static void copy_pseudo(struct entrypoint *ep, struct expression *expr, pseudo_t old, pseudo_t new)
+{
+	struct instruction *insn = alloc_instruction(OP_MOVE, expr->ctype);
+	insn->target = new;
+	insn->src = old;
+	add_one_insn(ep, expr->pos, insn);
+}
+
+static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr)
+{
+	pseudo_t src1, src2, result;
+	struct symbol *label;
+	int op = (expr->op == SPECIAL_LOGICAL_OR) ? OP_CONDTRUE : OP_CONDFALSE;
+
+	src1 = linearize_expression(ep, expr->left);
+	result = alloc_pseudo();
+	copy_pseudo(ep, expr, src1, result);
+
+	/* Conditional jump */
+	label = alloc_symbol(expr->pos, SYM_LABEL);
+	cond_branch(ep, op, expr->ctype, src1, label);
+
+	src2 = linearize_expression(ep, expr->right);
+	copy_pseudo(ep, expr, src2, result);
+	add_label(ep, label);
+	return result;
+}
+
 pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 {
 	if (!expr)
@@ -344,18 +403,11 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 	case EXPR_STATEMENT:
 		return linearize_statement(ep, expr->statement);
 
-	case EXPR_BINOP: {
-		pseudo_t src1, src2, result;
-		struct instruction *insn = alloc_instruction(OP_BINOP + expr->op, expr->ctype);
-		src1 = linearize_expression(ep, expr->left);
-		src2 = linearize_expression(ep, expr->right);
-		result = alloc_pseudo();
-		insn->target = result;
-		insn->src1 = src1;
-		insn->src2 = src2;
-		add_one_insn(ep, expr->pos, insn);
-		return result;
-	}
+	case EXPR_BINOP:
+		return linearize_binop(ep, expr);
+
+	case EXPR_LOGICAL:
+		return linearize_logical(ep, expr);
 
 	case EXPR_COMMA: {
 		linearize_expression(ep, expr->left);
@@ -466,7 +518,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			
 
 		target = alloc_symbol(stmt->pos, SYM_LABEL);
-		add_branch(ep, stmt, OP_CONDFALSE, cond, target);
+		add_branch(ep, OP_CONDFALSE, cond, target);
 
 		linearize_statement(ep, stmt->if_true);
 
@@ -544,7 +596,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 				}
 			} else {
 				loop_bottom = alloc_symbol(stmt->pos, SYM_LABEL);
-				add_branch(ep, stmt, OP_CONDFALSE, pre_condition, loop_bottom);
+				add_branch(ep, OP_CONDFALSE, pre_condition, loop_bottom);
 			}
 		}
 
@@ -563,7 +615,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			set_unreachable(ep);
 		} else {
 			if (post_condition->type != EXPR_VALUE || post_condition->value)
-				add_branch(ep, stmt, OP_CONDTRUE, post_condition, loop_top);
+				add_branch(ep, OP_CONDTRUE, post_condition, loop_top);
 		}
 
 		if (stmt->iterator_break->used)
