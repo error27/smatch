@@ -218,7 +218,7 @@ void warn(struct token *token, const char * fmt, ...)
 	do_warn("warning", token, fmt, args);
 	va_end(args);
 	warnings++;
-	if (warnings > 20)
+	if (warnings > 100)
 		error(token, "too many warnings");
 }	
 
