@@ -112,6 +112,11 @@ int main(int argc, char **argv)
 	add_pre_buffer("#define __builtin_constant_p(x) 0\n");
 	add_pre_buffer("#define __func__ \"function\"\n");
 	add_pre_buffer("#define __extension__\n");
+	add_pre_buffer("extern void *__builtin_memcpy(void *, const void *, unsigned long);\n");
+	add_pre_buffer("extern void * __builtin_return_address(int);\n");
+	add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
+	add_pre_buffer("#define __builtin_va_arg(arg,type)  ((type)0)\n");
+	add_pre_buffer("#define __builtin_va_end(arg)\n");	
 
 	args = argv;
 	for (;;) {
