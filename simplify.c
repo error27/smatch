@@ -227,7 +227,106 @@ static int simplify_constant_leftside(struct instruction *insn)
 
 static int simplify_constant_binop(struct instruction *insn)
 {
-	return simplify_constant_rightside(insn);
+	/* FIXME! Verify signs and sizes!! */
+	long long left = insn->src1->value;
+	long long right = insn->src2->value;
+	long long res, mask;
+
+	switch (insn->opcode) {
+	case OP_ADD:
+		res = left + right;
+		break;
+	case OP_SUB:
+		res = left - right;
+		break;
+	case OP_MUL:
+		/* FIXME! Check sign! */
+		res = left * right;
+		break;
+	case OP_DIV:
+		if (!right)
+			return 0;
+		/* FIXME! Check sign! */
+		res = left / right;
+		break;
+	case OP_MOD:
+		if (!right)
+			return 0;
+		/* FIXME! Check sign! */
+		res = left % right;
+		break;
+	case OP_SHL:
+		res = left << right;
+		break;
+	case OP_SHR:
+		/* FIXME! Check sign! */
+		res = left >> right;
+		break;
+       /* Logical */
+	case OP_AND:
+		res = left & right;
+		break;
+	case OP_OR:
+		res = left | right;
+		break;
+	case OP_XOR:
+		res = left ^ right;
+		break;
+	case OP_AND_BOOL:
+		res = left && right;
+		break;
+	case OP_OR_BOOL:
+		res = left || right;
+		break;
+			       
+	/* Binary comparison */
+	case OP_SET_EQ:
+		res = left == right;
+		break;
+	case OP_SET_NE:
+		res = left != right;
+		break;
+	case OP_SET_LE:
+		/* FIXME! Check sign! */
+		res = left <= right;
+		break;
+	case OP_SET_GE:
+		/* FIXME! Check sign! */
+		res = left >= right;
+		break;
+	case OP_SET_LT:
+		/* FIXME! Check sign! */
+		res = left < right;
+		break;
+	case OP_SET_GT:
+		/* FIXME! Check sign! */
+		res = left > right;
+		break;
+	case OP_SET_B:
+		/* FIXME! Check sign! */
+		res = (unsigned long long) left < (unsigned long long) right;
+		break;
+	case OP_SET_A:
+		/* FIXME! Check sign! */
+		res = (unsigned long long) left > (unsigned long long) right;
+		break;
+	case OP_SET_BE:
+		/* FIXME! Check sign! */
+		res = (unsigned long long) left <= (unsigned long long) right;
+		break;
+	case OP_SET_AE:
+		/* FIXME! Check sign! */
+		res = (unsigned long long) left >= (unsigned long long) right;
+		break;
+	default:
+		return 0;
+	}
+	mask = 1ULL << (insn->type->bit_size-1);
+	res &= mask | (mask-1);
+
+	/* FIXME!! Sign??? */
+	replace_with_pseudo(insn, value_pseudo(res));
+	return 1;
 }
 
 static int simplify_binop(struct instruction *insn)
