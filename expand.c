@@ -89,7 +89,7 @@ Int:
 
 Float:
 	if (newtype->ctype.base_type != &fp_type) {
-		value = (long long)expr->fvalue;
+		value = (long long)old->fvalue;
 		expr->type = EXPR_VALUE;
 		goto Int;
 	}
