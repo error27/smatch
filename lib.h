@@ -17,7 +17,8 @@ extern void error(struct token *, const char *, ...);
 
 #define __DECLARE_ALLOCATOR(type, x)		\
 	extern type *__alloc_##x(int);		\
-	extern void show_##x##_alloc(void);
+	extern void show_##x##_alloc(void);	\
+	extern void clear_##x##_alloc(void);
 #define DECLARE_ALLOCATOR(x) __DECLARE_ALLOCATOR(struct x, x)
 
 DECLARE_ALLOCATOR(ident);

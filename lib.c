@@ -80,6 +80,7 @@ void drop_all_allocations(struct allocator_struct *desc)
 {
 	struct allocation_blob *blob = desc->blobs;
 
+	desc->blobs = NULL;
 	while (blob) {
 		struct allocation_blob *next = blob->next;
 		free(blob);
@@ -145,6 +146,11 @@ struct allocator_struct bytes_allocator = { "bytes", NULL, 1, 8192 };
 	void show_##x##_alloc(void)				\
 	{							\
 		show_allocations(&x##_allocator);		\
+	}							\
+	void clear_##x##_alloc(void)				\
+	{							\
+		show_allocations(&x##_allocator);		\
+		drop_all_allocations(&x##_allocator);		\
 	}
 #define ALLOCATOR(x) __ALLOCATOR(struct x, sizeof(struct x), memset(ret, 0, sizeof(struct x)), x)
 
