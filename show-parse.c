@@ -915,9 +915,12 @@ static int show_position_expr(struct expression *expr, struct symbol *base)
 {
 	int new = show_expression(expr->init_expr);
 	struct symbol *ctype = expr->init_expr->ctype;
+	int bit_offset;
+
+	bit_offset = ctype ? ctype->bit_offset : -1;
 
 	printf("\tinsert v%d at [%d:%d] of %s\n", new,
-		expr->init_offset, ctype->bit_offset,
+		expr->init_offset, bit_offset,
 		show_ident(base->ident));
 	return 0;
 }
