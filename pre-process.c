@@ -125,7 +125,7 @@ static struct token *find_argument_end(struct token *start)
 		else if (match_op(next, ')')) {
 			if (--nesting < 0) {
 				start->next = &eof_token_entry;
-				return next;
+				return next->next;
 			}
 		} else if (!nesting && match_op(next, ','))
 			next->special = SPECIAL_ARG_SEPARATOR;
@@ -134,39 +134,49 @@ static struct token *find_argument_end(struct token *start)
 	return start;
 }
 
+static struct token *dup_token(struct token *token, struct token *pos, int newline)
+{
+	struct token *alloc = alloc_token(pos->stream, pos->line, pos->pos);
+	alloc->type = token->type;
+	alloc->line = pos->line;
+	alloc->newline = newline;
+	alloc->integer = token->integer;
+	return alloc;	
+}
+
+static void insert(struct token *token, struct token *prev, struct token *next)
+{
+	token->next = next;
+	prev->next = token;
+}
+
+static void replace(struct token *token, struct token *prev, struct token *last, struct token *list)
+{
+	int newline = token->newline;
+
+	while (!eof_token(list)) {
+		struct token *newtok = dup_token(list, token, newline);
+		newline = 0;
+		insert(newtok, prev, last);
+		prev = newtok;
+		list = list->next;
+	}
+}
+
 static struct token *expand(struct token *head, struct symbol *sym)
 {
-	struct token *arguments, *expansion, *pptr, *token, *last;
-	int newline;
+	struct token *arguments, *token, *last;
 
 	sym->busy++;
 	token = head->next;
-	newline = token->newline;
-	pptr = head;
+	last = token->next;
 
 	if (sym->arglist) {
-		arguments = token->next;		/* '(' */
-		token = find_argument_end(arguments);	/* ')' */
-		arguments = arguments->next;
+		arguments = last->next;
+		last = find_argument_end(last);
 	}
 
-	expansion = sym->expansion;
-	last = token->next;
-	while (!eof_token(expansion)) {
-		struct token *alloc = __alloc_token(0);
-
-		alloc->type = expansion->type;
-		alloc->stream = token->stream;
-		alloc->pos = token->pos;
-		alloc->newline = newline;
-		alloc->line = token->line;
-		alloc->next = last;
-		alloc->integer = expansion->integer;
-		pptr->next = alloc;
-		pptr = alloc;
-		expansion = expansion->next;
-		newline = 0;
-	}
+	replace(token, head, last, sym->expansion);
 	head = expand_list(head, last);
 	sym->busy--;
 	return head;
