@@ -332,6 +332,10 @@ static struct hardreg *target_reg(struct bb_state *state, pseudo_t pseudo, pseud
 	if (reg && !reg->busy)
 		goto found;
 
+	reg = empty_reg(state);
+	if (reg)
+		goto found;
+
 	i = last_reg+1;
 	if (i >= REGNO)
 		i = 0;
