@@ -39,6 +39,7 @@
 #include "expression.h"
 #include "target.h"
 #include "compile.h"
+#include "bitmap.h"
 
 struct textbuf {
 	unsigned int	len;	/* does NOT include terminating null */
@@ -77,6 +78,8 @@ enum storage_type {
 
 struct reg_info {
 	const char	*name;
+	const unsigned char aliases[12];
+#define own_regno aliases[0]
 };
 
 struct storage {
@@ -85,6 +88,7 @@ struct storage {
 
 	/* STOR_REG */
 	struct reg_info *reg;
+	struct symbol *ctype;
 
 	union {
 		/* STOR_PSEUDO */
@@ -161,6 +165,15 @@ struct function *current_func = NULL;
 struct textbuf *unit_post_text = NULL;
 static const char *current_section;
 
+static void emit_move(struct storage *src, struct storage *dest,
+		      struct symbol *ctype, const char *comment);
+static int type_is_signed(struct symbol *sym);
+static struct storage *x86_address_gen(struct expression *expr);
+static struct storage *x86_symbol_expr(struct symbol *sym);
+static void x86_symbol(struct symbol *sym);
+static struct storage *x86_statement(struct statement *stmt);
+static struct storage *x86_expression(struct expression *expr);
+
 enum registers {
 	NOREG,
 	 AL,  DL,  CL,  BL,  AH,  DH,  CH,  BH,	// 8-bit
@@ -169,7 +182,10 @@ enum registers {
 	EAX_EDX, ECX_EBX, ESI_EDI,		// 64-bit
 };
 
-#define REGINFO(nr, str, aliases...)	[nr] = { .name = str }
+/* This works on regno's, reg_info's and hardreg_storage's */
+#define byte_reg(reg) ((reg) - 16)
+
+#define REGINFO(nr, str, conflicts...)	[nr] = { .name = str, .aliases = { nr , conflicts } }
 
 static struct reg_info reg_info_table[] = {
 	REGINFO( AL,  "%al", AX, EAX, EAX_EDX),
@@ -222,15 +238,92 @@ static struct storage hardreg_storage_table[] = {
 #define REG_AL	(&hardreg_storage_table[AL])
 #define REG_AX	(&hardreg_storage_table[AX])
 
-static void emit_move(struct storage *src, struct storage *dest,
-		      struct symbol *ctype, const char *comment);
-static int type_is_signed(struct symbol *sym);
-static struct storage *x86_address_gen(struct expression *expr);
-static struct storage *x86_symbol_expr(struct symbol *sym);
-static void x86_symbol(struct symbol *sym);
-static struct storage *x86_statement(struct statement *stmt);
-static struct storage *x86_expression(struct expression *expr);
+DECLARE_BITMAP(regs_in_use, 256);
 
+struct storage * get_hardreg(struct storage *reg)
+{
+	struct reg_info *info = reg->reg;
+	const unsigned char *aliases;
+	int regno;
+
+	aliases = info->aliases;
+	while ((regno = *aliases++) != NOREG) {
+		if (test_and_set_bit(regno, regs_in_use))
+			goto busy;
+	}
+	return reg;
+busy:
+	fprintf(stderr, "register %s is busy\n", info->name);
+	if (regno + reg_info_table != info)
+		fprintf(stderr, "  conflicts with %s\n", reg_info_table[regno].name);
+	exit(1);
+}
+
+void put_reg(struct storage *reg)
+{
+	struct reg_info *info = reg->reg;
+	const unsigned char *aliases;
+	int regno;
+
+	aliases = info->aliases;
+	while ((regno = *aliases++) != NOREG) {
+		if (!test_and_clear_bit(regno, regs_in_use))
+			goto free;
+	}
+	return;
+free:
+	fprintf(stderr, "freeing already free'd register %s\n", reg_info_table[regno].name);
+}
+
+struct regclass {
+	const char *name;
+	const unsigned char regs[30];
+};
+
+struct regclass regclass_8 = { "8-bit", { AL, DL, CL, BL, AH, DH, CH, BH }};
+struct regclass regclass_16 = { "16-bit", { AX, DX, CX, BX, SI, DI, BP }};
+struct regclass regclass_32 = { "32-bit", { EAX, EDX, ECX, EBX, ESI, EDI, EBP }};
+
+struct regclass regclass_32_8 = { "32-bit bytes", { EAX, EDX, ECX, EBX }};
+
+static int register_busy(int regno)
+{
+	if (!test_bit(regno, regs_in_use)) {
+		struct reg_info *info = reg_info_table + regno;
+		const unsigned char *regs = info->aliases+1;
+
+		while ((regno = *regs) != NOREG) {
+			regs++;
+			if (test_bit(regno, regs_in_use))
+				goto busy;
+		}
+		return 0;
+	}
+busy:
+	return 1;
+}
+
+struct storage *get_reg(struct regclass *class)
+{
+	const unsigned char *regs = class->regs;
+	int regno;
+
+	while ((regno = *regs) != NOREG) {
+		regs++;
+		if (register_busy(regno))
+			continue;
+		return get_hardreg(hardreg_storage_table + regno);
+	}
+	fprintf(stderr, "Ran out of %s registers\n", class->name);
+	exit(1);
+}
+
+struct storage *get_reg_value(struct storage *value)
+{
+	struct storage *reg = get_reg(&regclass_32);
+	emit_move(value, reg, value->ctype, "reload register");
+	return reg;
+}
 
 static struct storage *temp_from_bits(unsigned int bit_size)
 {
@@ -1038,6 +1131,7 @@ static struct storage *emit_compare(struct expression *expr)
 {
 	struct storage *left = x86_expression(expr->left);
 	struct storage *right = x86_expression(expr->right);
+	struct storage *reg1, *reg2;
 	struct storage *new, *val;
 	const char *opname = NULL;
 	unsigned int right_bits = expr->right->ctype->bit_size;
@@ -1067,20 +1161,24 @@ static struct storage *emit_compare(struct expression *expr)
 	/* init EDX to 0 */
 	val = new_storage(STOR_VALUE);
 	val->flags = STOR_WANTS_FREE;
-	emit_move(val, REG_EDX, NULL, NULL);
+
+	reg1 = get_reg(&regclass_32_8);
+	emit_move(val, reg1, NULL, NULL);
 
 	/* move op1 into EAX */
-	emit_move(left, REG_EAX, expr->left->ctype, NULL);
+	reg2 = get_reg_value(left);
 
 	/* perform comparison, RHS (op1, right) and LHS (op2, EAX) */
-	insn(opbits("cmp", right_bits), right, REG_EAX, NULL);
+	insn(opbits("cmp", right_bits), right, reg2, NULL);
+	put_reg(reg2);
 
 	/* store result of operation, 0 or 1, in DL using SETcc */
-	insn(opname, REG_DL, NULL, NULL);
+	insn(opname, byte_reg(reg1), NULL, NULL);
 
 	/* finally, store the result (DL) in a new pseudo / stack slot */
 	new = stack_alloc(4);
-	emit_move(REG_EDX, new, NULL, "end EXPR_COMPARE");
+	emit_move(reg1, new, NULL, "end EXPR_COMPARE");
+	put_reg(reg1);
 
 	return new;
 }
