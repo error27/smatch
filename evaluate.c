@@ -319,6 +319,12 @@ static const char * type_difference(struct symbol *target, struct symbol *source
 			target = target->ctype.base_type;
 		if (source->type == SYM_NODE)
 			source = source->ctype.base_type;
+
+		if (target == source)
+			break;
+		if (!target || !source)
+			return "different types";
+
 		mod1 = target->ctype.modifiers;
 		as1 = target->ctype.as;
 		mod2 = source->ctype.modifiers;
