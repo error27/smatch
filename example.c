@@ -1503,6 +1503,31 @@ static void generate_list(struct basic_block_list *list, unsigned long generatio
 	} END_FOR_EACH_PTR(bb);
 }
 
+/*
+ * Mark all the output registers of all the parents
+ * as being "used" - this does not mean that we cannot
+ * re-use them, but it means that we cannot ask the
+ * parents to pass in another pseudo in one of those
+ * registers that it already uses for another child.
+ */
+static void mark_used_registers(struct basic_block *bb, struct bb_state *state)
+{
+	struct basic_block *parent;
+
+	FOR_EACH_PTR(bb->parents, parent) {
+		struct storage_hash_list *outputs = gather_storage(parent, STOR_OUT);
+		struct storage_hash *entry;
+
+		FOR_EACH_PTR(outputs, entry) {
+			struct storage *s = entry->storage;
+			if (s->type == REG_REG) {
+				struct hardreg *reg = hardregs + s->regno;
+				reg->used = 1;
+			}
+		} END_FOR_EACH_PTR(entry);
+	} END_FOR_EACH_PTR(parent);
+}
+
 static void output_bb(struct basic_block *bb, unsigned long generation)
 {
 	struct bb_state state;
@@ -1518,6 +1543,9 @@ static void output_bb(struct basic_block *bb, unsigned long generation)
 	state.internal = NULL;
 	state.cc_opcode = 0;
 	state.cc_target = NULL;
+
+	/* Mark incoming registers used */
+	mark_used_registers(bb, &state);
 
 	generate(bb, &state);
 
