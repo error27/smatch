@@ -1295,6 +1295,11 @@ static int simplify_associative_binop(struct instruction *insn)
 		return 0;
 	if (!simple_pseudo(def->src2))
 		return 0;
+	if (constant(def->src2) && constant(insn->src2)) {
+		// (x # C) # K --> x # eval(C # K)
+		insn->src2 = eval_op(insn->opcode, insn->size, insn->src2, def->src2);
+		return replace_pseudo(insn, &insn->src1, def->src1);
+	}
 	if (multi_users(def->target))
 		return 0;
 	switch_pseudo(def, &def->src1, insn, &insn->src2);
