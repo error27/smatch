@@ -614,17 +614,19 @@ static int get_one_special(int c, stream_t *stream)
 	 * Check for combinations
 	 */
 	value = c;
-	comb = combinations[0];
-	c1 = c; c2 = next; c3 = 0;
-	for (i = 0; i < NR_COMBINATIONS; i++) {
-		if (comb[0] == c1 && comb[1] == c2 && comb[2] == c3) {
-			value = i + SPECIAL_BASE;
-			next = nextchar(stream);
-			if (c3)
-				break;
-			c3 = next;
+	if (ispunct(next)) {
+		comb = combinations[0];
+		c1 = c; c2 = next; c3 = 0;
+		for (i = 0; i < NR_COMBINATIONS; i++) {
+			if (comb[0] == c1 && comb[1] == c2 && comb[2] == c3) {
+				value = i + SPECIAL_BASE;
+				next = nextchar(stream);
+				if (c3)
+					break;
+				c3 = next;
+			}
+			comb += 3;
 		}
-		comb += 3;
 	}
 
 	/* Pass it on.. */
