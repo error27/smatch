@@ -333,7 +333,6 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 		base2 = source->ctype.base_type;
 
 		/*
-		 * Pointers to arrays degenerate to pointers to the array entry.
 		 * Pointers to functions compare as the function itself
 		 */
 		if (type1 == SYM_PTR && base1) {
@@ -341,8 +340,6 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 			case SYM_FN:
 				type1 = SYM_FN;
 				target = base1;
-				/* fallthrough */
-			case SYM_ARRAY:
 				base1 = base1->ctype.base_type;
 			default:
 				/* nothing */;
@@ -353,8 +350,6 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 			case SYM_FN:
 				type2 = SYM_FN;
 				source = base2;
-				/* fallthrough */
-			case SYM_ARRAY:
 				base2 = base2->ctype.base_type;
 			default:
 				/* nothing */;
