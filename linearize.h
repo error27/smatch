@@ -7,18 +7,13 @@
 #include "symbol.h"
 
 /* Silly pseudo define. Do this right some day */
-typedef struct {
+struct pseudo {
 	int nr;
-} pseudo_t;
+};
 
-static inline pseudo_t to_pseudo(int nr)
-{
-	pseudo_t a;
-	a.nr = nr;
-	return a;
-}
+typedef struct pseudo *pseudo_t;
 
-#define VOID (to_pseudo(0))
+#define VOID NULL
 
 struct multijmp {
 	struct basic_block *target;
@@ -42,7 +37,7 @@ struct instruction {
 			struct basic_block *bb_true, *bb_false;
 		};
 		struct /* switch */ {
-			struct multijmp_list *multijmp_list;	/* switch */
+			struct multijmp_list *multijmp_list;
 		};
 		struct /* phi_node */ {
 			struct phi_list *phi_list;
@@ -57,8 +52,13 @@ struct instruction {
 		struct /* multijump */ {
 			int begin, end;
 		};
-		struct expression *val;
-		struct symbol *address;
+		struct /* setval */ {
+			struct expression *val;
+		};
+		struct /* call */ {
+			pseudo_t func;
+			struct pseudo_list *arguments;
+		};
 	};
 };
 
@@ -100,6 +100,10 @@ enum opcode {
 	OP_SET_LT,
 	OP_SET_GT,
 	OP_BINCMP_END = OP_SET_GT,
+
+	/* Uni */
+	OP_NOT,
+	OP_NEG,
 	
 	/* Memory */
 	OP_MALLOC,
@@ -116,16 +120,6 @@ enum opcode {
 	OP_CALL,
 	OP_VANEXT,
 	OP_VAARG,
-
-	/* The old op code */
-	OP_MULTIJUMP,
-	OP_MOVE,
-	OP_ARGUMENT,
-	OP_INDCALL,
-	OP_UNOP = 0x200,
-	OP_LASTUNOP = 0x3ff,
-	OP_BINOP = 0x400,
-	OP_LASTBINOP = 0x5ff,
 };
 
 struct basic_block_list;
@@ -168,6 +162,12 @@ static inline void add_phi(struct phi_list **list, struct phi *phi)
 {
 	add_ptr_list((struct ptr_list **)list, phi);
 }
+
+static inline void add_pseudo(struct pseudo_list **list, struct pseudo *pseudo)
+{
+	add_ptr_list((struct ptr_list **)list, pseudo);
+}
+
 
 static inline int bb_terminated(struct basic_block *bb)
 {

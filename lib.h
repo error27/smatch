@@ -61,6 +61,7 @@ DECLARE_ALLOCATOR(entrypoint);
 DECLARE_ALLOCATOR(instruction);
 DECLARE_ALLOCATOR(multijmp);
 DECLARE_ALLOCATOR(phi);
+DECLARE_ALLOCATOR(pseudo);
 
 
 #define LIST_NODE_NR (29)
@@ -187,7 +188,6 @@ static inline struct basic_block * delete_last_basic_block(struct basic_block_li
 {
 	return delete_ptr_list_last((struct ptr_list **)head);
 }
-
 
 static inline void *first_ptr_list(struct ptr_list *list)
 {
