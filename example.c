@@ -594,6 +594,25 @@ static void generate_phisource(struct instruction *insn, struct bb_state *state)
 	} END_FOR_EACH_PTR(user);
 }
 
+static void generate_cast(struct bb_state *state, struct instruction *insn)
+{
+	struct hardreg *src = getreg(state, insn->src, insn->target);
+	struct hardreg *dst = copy_reg(state, src, insn->target);
+	unsigned int old = insn->orig_type ? insn->orig_type->bit_size : 0;
+	unsigned int new = insn->size;
+	unsigned long long mask;
+
+	/* No, we shouldn't just mask it, but this is just for an example */
+	if (old > new) {
+		mask = ~(~0ULL << new);
+	} else {
+		mask = ~(~0ULL << old);
+	}
+
+	output_insn(state, "andl.%d $%#llx,%s", insn->size, mask, dst->name);
+	add_pseudo_reg(state, insn->target, dst);
+}
+
 static void generate_output_storage(struct bb_state *state);
 
 static void generate_branch(struct bb_state *state, struct instruction *br)
@@ -690,6 +709,10 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 	case OP_BINARY ... OP_BINARY_END:
 	case OP_BINCMP ... OP_BINCMP_END:
 		generate_binop(state, insn);
+		break;
+
+	case OP_CAST: case OP_PTRCAST:
+		generate_cast(state, insn);
 		break;
 
 	case OP_BR:
