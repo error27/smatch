@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 
 #include "lib.h"
+#include "allocate.h"
 #include "token.h"
 #include "symbol.h"
 

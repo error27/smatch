@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "lib.h"
+#include "allocate.h"
 #include "symbol.h"
 #include "scope.h"
 

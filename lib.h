@@ -75,29 +75,6 @@ extern void error(struct position, const char *, ...) FORMAT_ATTR(2);
 extern void error_die(struct position, const char *, ...) FORMAT_ATTR(2);
 #undef FORMAT_ATTR
 
-#define __DECLARE_ALLOCATOR(type, x)		\
-	extern type *__alloc_##x(int);		\
-	extern void __free_##x(type *);		\
-	extern void show_##x##_alloc(void);	\
-	extern void clear_##x##_alloc(void);
-#define DECLARE_ALLOCATOR(x) __DECLARE_ALLOCATOR(struct x, x)
-
-DECLARE_ALLOCATOR(ident);
-DECLARE_ALLOCATOR(token);
-DECLARE_ALLOCATOR(symbol);
-DECLARE_ALLOCATOR(expression);
-DECLARE_ALLOCATOR(statement);
-DECLARE_ALLOCATOR(string);
-DECLARE_ALLOCATOR(scope);
-__DECLARE_ALLOCATOR(void, bytes);
-DECLARE_ALLOCATOR(basic_block);
-DECLARE_ALLOCATOR(entrypoint);
-DECLARE_ALLOCATOR(instruction);
-DECLARE_ALLOCATOR(multijmp);
-DECLARE_ALLOCATOR(phi);
-DECLARE_ALLOCATOR(pseudo);
-
-
 #define LIST_NODE_NR (29)
 
 struct ptr_list {

@@ -14,6 +14,7 @@
 #include <string.h>	
 	
 #include "lib.h"
+#include "allocate.h"
 #include "token.h"
 	
 void *blob_alloc(unsigned long size)	

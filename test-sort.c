@@ -1,4 +1,5 @@
 #include "lib.h"
+#include "allocate.h"
 #include <stdio.h>
 #include <stdlib.h>
 

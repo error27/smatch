@@ -19,6 +19,8 @@
 #include <limits.h>
 
 #include "lib.h"
+#include "allocate.h"
+#include "allocate.h"
 #include "token.h"
 #include "parse.h"
 #include "symbol.h"

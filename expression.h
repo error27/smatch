@@ -11,6 +11,8 @@
  * Declarations and helper functions for expression parsing.
  */
 
+#include "allocate.h"
+
 struct expression_list;
 
 enum expression_type {
