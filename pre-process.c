@@ -201,8 +201,7 @@ static struct token *find_argument_end(struct token *start, struct token *arglis
 				start->next = &eof_token_entry;
 				return next->next;
 			}
-		} else if (!nesting && match_op(next, ',') && arglist->next != &variable_argument
-				&& !match_op(arglist, SPECIAL_ELLIPSIS)) {
+		} else if (!nesting && match_op(next, ',') && arglist->next != &variable_argument) {
 			next->special = SPECIAL_ARG_SEPARATOR;
 			arglist = arglist->next;
 		}
@@ -644,6 +643,84 @@ static int token_list_different(struct token *list1, struct token *list2)
 	}
 }
 
+static struct token *parse_arguments(struct token *list)
+{
+	struct token *arg = list->next, *next = list;
+
+	if (match_op(arg, ')')) {
+		list->next = &eof_token_entry;
+		return arg->next;
+	}
+
+	while (token_type(arg) == TOKEN_IDENT) {
+		if (arg->ident == &__VA_ARGS___ident)
+			goto Eva_args;
+		next = arg->next;
+
+		if (match_op(next, ',')) {
+			arg = arg->next = next->next;
+			continue;
+		}
+
+		if (match_op(next, ')')) {
+			arg->next = &eof_token_entry;
+			return next->next;
+		}
+
+		/* normal cases are finished here */
+
+		if (match_op(next, SPECIAL_ELLIPSIS)) {
+			arg->next = &variable_argument;
+			if (match_op(next->next, ')'))
+				return next->next->next;
+
+			arg = next;
+			goto Enotclosed;
+		}
+
+		if (eof_token(next)) {
+			goto Enotclosed;
+		} else {
+			arg = next;
+			goto Ebadstuff;
+		}
+	}
+
+	if (match_op(arg, SPECIAL_ELLIPSIS)) {
+		next = arg->next;
+		token_type(arg) = TOKEN_IDENT;
+		arg->ident = &__VA_ARGS___ident;
+		arg->next = &variable_argument;
+		if (!match_op(next, ')'))
+			goto Enotclosed;
+		return next->next;
+	}
+
+	if (eof_token(arg)) {
+		arg = next;
+		goto Enotclosed;
+	}
+	if (match_op(arg, ','))
+		goto Emissing;
+	else
+		goto Ebadstuff;
+
+
+Emissing:
+	warn(arg->pos, "parameter name missing");
+	return NULL;
+Ebadstuff:
+	warn(arg->pos, "\"%s\" may not appear in macro parameter list",
+		show_token(arg));
+	return NULL;
+Enotclosed:
+	warn(arg->pos, "missing ')' in macro parameter list");
+	return NULL;
+Eva_args:
+	warn(arg->pos, "__VA_ARGS__ can only appear in the expansion of a C99 variadic macro");
+	return NULL;
+}
+
 static int try_arg(struct token *token, enum token_type type, struct token *arglist)
 {
 	struct ident *ident = token->ident;
@@ -653,8 +730,7 @@ static int try_arg(struct token *token, enum token_type type, struct token *argl
 		return 0;
 
 	for (nr = 0; !eof_token(arglist); nr++, arglist = arglist->next) {
-		if ((match_op(arglist, SPECIAL_ELLIPSIS) && ident == &__VA_ARGS___ident) || 
-		    arglist->ident == ident) {
+		if (arglist->ident == ident) {
 			token->argnum = nr;
 			token_type(token) = type;
 			return 1;
@@ -727,27 +803,9 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 	expansion = left->next;
 	if (!expansion->pos.whitespace && match_op(expansion, '(')) {
 		arglist = expansion;
-		while (!eof_token(expansion)) {
-			struct token *next = expansion->next;
-			if (token_type(expansion) == TOKEN_IDENT) {
-				if (expansion->ident == &__VA_ARGS___ident)
-					warn(expansion->pos, "__VA_ARGS__ can only appear in the expansion of a C99 variadic macro");
-				if (match_op(next, SPECIAL_ELLIPSIS)) {
-					expansion->next = &variable_argument;
-					expansion = next;
-					next = next->next;
-				}
-			}
-			if (match_op(next, ')')) {
-				// Terminate the arglist
-				expansion->next = &eof_token_entry;
-				expansion = next->next;
-				break;
-			}
-			if (match_op(next, ','))
-				expansion->next = next->next;
-			expansion = next;
-		}
+		expansion = parse_arguments(expansion);
+		if (!expansion)
+			return 1;
 		arglist = arglist->next;
 	}
 
