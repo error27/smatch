@@ -25,35 +25,6 @@
 
 extern void emit_unit(const char *basename, struct symbol_list *list);
 
-static void do_switch(char *arg)
-{
-	switch (*arg) {
-	case 'D': {
-		const char *name = arg+1;
-		const char *value = "";
-		for (;;) {
-			char c;
-			c = *++arg;
-			if (!c)
-				break;
-			if (isspace(c) || c == '=') {
-				*arg = '\0';
-				value = arg+1;
-				break;
-			}
-		}
-		add_pre_buffer("#define %s %s\n", name, value);
-		return;
-	}
-
-	case 'I':
-		add_pre_buffer("#add_include \"%s/\"\n", arg+1);
-		return;
-	default:
-		fprintf(stderr, "unknown switch '%s'\n", arg);
-	}
-}
-
 static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 {
 	evaluate_symbol(sym);
@@ -63,25 +34,25 @@ static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 int main(int argc, char **argv)
 {
 	int i, fd;
-	char *basename, *filename = NULL;
+	char *basename, *filename = NULL, **args;
 	struct token *token;
 
 	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
 
-	// Stupid defines to make various headers happy
-	add_pre_buffer("#define __GNUC__ 2\n");
-	add_pre_buffer("#define __GNUC_MINOR__ 95\n");
+	create_builtin_stream();
 
-	for (i = 1; i < argc; i++) {
-		char *arg = argv[i];
+	args = argv;
+	for (;;) {
+		char *arg = *++args;
+		if (!arg)
+			break;
 		if (arg[0] == '-') {
-			do_switch(arg+1);
+			args = handle_switch(arg + 1, args);
 			continue;
 		}
 		filename = arg;
 	}
-
 
 	basename = strrchr(filename, '/');
 	if (!basename)
