@@ -616,6 +616,16 @@ char **handle_switch_i(char *arg, char **next)
 	return next;
 }
 
+char **handle_switch_M(char *arg, char **next)
+{
+	if (!strcmp(arg, "MF") || !strcmp(arg,"MQ") || !strcmp(arg,"MT")) {
+		if (!*next)
+			die("missing argument for -%s option", arg);
+		return next + 1;
+	}
+	return next;
+}
+
 char **handle_switch_m(char *arg, char **next)
 {
 	if (!strcmp(arg, "m64")) {
@@ -645,6 +655,7 @@ char **handle_switch(char *arg, char **next)
 	case 'v': rc = handle_switch_v(arg, next); break;
 	case 'I': rc = handle_switch_I(arg, next); break;
 	case 'i': rc = handle_switch_i(arg, next); break;
+	case 'M': rc = handle_switch_M(arg, next); break;
 	case 'm': rc = handle_switch_m(arg, next); break;
 	case 'o': rc = handle_switch_o(arg, next); break;
 	default:
