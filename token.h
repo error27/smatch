@@ -50,8 +50,7 @@ enum token_type {
 	TOKEN_EOF,
 	TOKEN_ERROR,
 	TOKEN_IDENT,
-	TOKEN_INTEGER,
-	TOKEN_FP,
+	TOKEN_NUMBER,
 	TOKEN_CHAR,
 	TOKEN_STRING,
 	TOKEN_SPECIAL,
@@ -122,8 +121,7 @@ struct token {
 	struct token *next;
 	struct token *parent;
 	union {
-		char *integer;
-		char *fp;
+		char *number;
 		struct ident *ident;
 		unsigned int special;
 		struct string *string;

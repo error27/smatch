@@ -88,21 +88,35 @@ static struct token *string_expression(struct token *token, struct expression *e
 	return next;
 }
 
-static void get_int_value(struct expression *expr, struct token *token)
+static void get_fp_value(struct expression *expr, struct token *token)
 {
-	const char *str = token->integer;
+	static int fp_warned;
+
+	expr->ctype = &double_ctype;
+	expr->value = 0;
+	if (!fp_warned) {
+		warn(token->pos, "FP values not yet implemented");
+		fp_warned = 1;
+	}
+}
+
+static void get_number_value(struct expression *expr, struct token *token)
+{
+	const char *str = token->number;
 	unsigned long long value = 0;
 	unsigned int base = 10, digit, bits;
 	unsigned long modifiers, extramod;
 
-	switch (str[0]) {
-	case 'x':
-		base = 18;	// the -= 2 for the octal case will
-		str++;		// skip the 'x'
-	/* fallthrough */
-	case 'o':
-		str++;		// skip the 'o' or 'x/X'
-		base -= 2;	// the fall-through will make this 8
+	if (str[0] == '0') {
+		switch (str[1]) {
+		case 'x': case 'X':
+			base = 18;	// the -= 2 for the octal case will
+			str++;		// skip the '0'
+		/* fallthrough */
+		case '0'...'7':
+			str++;		// skip the '0' or 'x/X'
+			base -= 2;	// the fall-through will make this 8
+		}
 	}
 	while ((digit = hexval(*str)) < base) {
 		value = value * base + digit;
@@ -120,6 +134,10 @@ static void get_int_value(struct expression *expr, struct token *token)
 				modifiers |= MOD_LONGLONG;
 			modifiers |= MOD_LONG;
 			continue;
+		}
+		if (c) {
+			get_fp_value(expr, token);
+			return;
 		}
 		break;
 	}
@@ -175,18 +193,6 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 	struct expression *expr = NULL;
 
 	switch (token_type(token)) {
-	static int fp_warned;
-	case TOKEN_FP:
-		expr = alloc_expression(token->pos, EXPR_VALUE);
-		expr->ctype = &double_ctype;
-		expr->value = 0;
-		if (!fp_warned) {
-			warn(token->pos, "FP values not yet implemented");
-			fp_warned = 1;
-		}
-		token = token->next;
-		break;
-
 	case TOKEN_CHAR:
 		expr = alloc_expression(token->pos, EXPR_VALUE);   
 		expr->ctype = &int_ctype; 
@@ -194,9 +200,9 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		token = token->next;
 		break;
 
-	case TOKEN_INTEGER:
+	case TOKEN_NUMBER:
 		expr = alloc_expression(token->pos, EXPR_VALUE);
-		get_int_value(expr, token);
+		get_number_value(expr, token);
 		token = token->next;
 		break;
 

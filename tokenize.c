@@ -117,21 +117,8 @@ const char *show_token(const struct token *token)
 	case TOKEN_STRING:
 		return show_string(token->string);
 
-	case TOKEN_INTEGER: {
-		const char *p = token->integer;
-		switch (*p) {
-		case 'o':	// octal
-		case 'x':	// hex
-			buffer[0] = '0';
-			strcpy(buffer+1, p+1);
-			return buffer;
-		default:
-			return p;
-		}
-	}
-
-	case TOKEN_FP:
-		return token->fp;
+	case TOKEN_NUMBER:
+		return token->number;
 
 	case TOKEN_SPECIAL:
 		return show_special(token->special);
@@ -278,108 +265,58 @@ static void drop_token(stream_t *stream)
 	stream->token = NULL;
 }
 
-static int get_base_number(unsigned int base, char **p, int next, stream_t *stream)
-{
-	char *buf = *p;
 
-	*buf++ = next;
-	for (;;) {		
-		unsigned int n;
-		next = nextchar(stream);
-		n = hexval(next);
-		if (n >= base)
-			break;
-		*buf++ = next;
-	}
-	*p = buf;
-	return next;
-}
-
-static int do_fp(char *buffer, int len, int next, stream_t *stream)
-{
-	struct token *token = stream->token;
-	void *buf;
-
-	/* Get the decimal part */
-	if (next == '.') {
-		buffer[len++] = next;
-		next = nextchar(stream);
-		while (next >= '0' && next <= '9') {
-			buffer[len++] = next;
-			next = nextchar(stream);
-		}
-	}
-
-	/* Get the exponential part */
-	if (next == 'e' || next == 'E') {
-		buffer[len++] = next;
-		next = nextchar(stream);
-		while (next >= '0' && next <= '9') {
-			buffer[len++] = next;
-			next = nextchar(stream);
-		}
-	}
-
-	/* Get the 'lf' type specifiers */
-	while (next == 'f' || next == 'F' || next == 'l' || next == 'L') {
-		buffer[len++] = next;
-		next = nextchar(stream);
-	}
-
-	buffer[len++] = '\0';
-	buf = __alloc_bytes(len);
-	memcpy(buf, buffer, len);
-	token_type(token) = TOKEN_FP;
-	token->fp = buf;
-	add_token(stream);
-	return next;
-}
-
-static int do_integer(char *buffer, int len, int next, stream_t *stream)
-{
-	struct token *token = stream->token;
-	void *buf;
-
-	if (next == '.' || next == 'e' || next == 'E')
-		return do_fp(buffer, len, next, stream);
-
-	while (next == 'u' || next == 'U' || next == 'l' || next == 'L') {
-		buffer[len++] = next;
-		next = nextchar(stream);
-	}
-	buffer[len++] = '\0';
-	buf = __alloc_bytes(len);
-	memcpy(buf, buffer, len);
-	token_type(token) = TOKEN_INTEGER;
-	token->integer = buf;
-	add_token(stream);
-	return next;
-}
-
+/*
+ * pp-number:
+ *	digit
+ *	. digit
+ *	pp-number digit
+ *	pp-number identifier-nodigit
+ *	pp-number e sign
+ *	pp-number E sign
+ *	pp-number p sign
+ *	pp-number P sign
+ *	pp-number .
+ */
 static int get_one_number(int c, int next, stream_t *stream)
 {
+	struct token *token;
 	static char buffer[256];
-	char *p = buffer;
+	char *p = buffer, *buf;
+	int len;
 
 	*p++ = c;
-	switch (next) {
-	case '0'...'7':
-		if (c == '0') {
-			buffer[0] = 'o';
-			next = get_base_number(8, &p, next, stream);
-			break;
+	for (;;) {
+		switch (next) {
+		case 'e': case 'E':
+		case 'p': case 'P':
+			*p++ = next;
+			next = nextchar(stream);
+			if (next != '-' && next != '+')
+				continue;
+		/* Fallthrough for sign of 'e'/'p' */
+		case '0'...'9':
+		case '.': case '_':
+		case 'a'...'d': case 'A'...'D':
+		case 'f'...'o': case 'F'...'O':
+		case 'q'...'z': case 'Q'...'Z':
+			*p++ = next;
+			next = nextchar(stream);
+			continue;
 		}
-		/* fallthrough */
-	case '8'...'9':
-		next = get_base_number(10, &p, next, stream);
 		break;
-	case 'x': case 'X':
-		if (c == '0') {
-			buffer[0] = 'x';
-			next = get_base_number(16, &p, next, stream);
-		}
 	}
-	return do_integer(buffer, p - buffer, next, stream);
+	*p++ = 0;
+	len = p - buffer;
+	buf = __alloc_bytes(len);
+	memcpy(buf, buffer, len);
+
+	token = stream->token;
+	token_type(token) = TOKEN_NUMBER;
+	token->number = buf;
+	add_token(stream);
+
+	return next;
 }
 
 static int escapechar(int first, int type, stream_t *stream, int *valp)

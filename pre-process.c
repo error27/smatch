@@ -99,8 +99,8 @@ static struct token *is_defined(struct token *head, struct token *token, struct 
 	char *defined = string[lookup_symbol(token->ident, NS_PREPROCESSOR) != NULL];
 	struct token *newtoken = alloc_token(&token->pos);
 
-	token_type(newtoken) = TOKEN_INTEGER;
-	newtoken->integer = defined;
+	token_type(newtoken) = TOKEN_NUMBER;
+	newtoken->number = defined;
 	newtoken->next = next;
 	head->next = newtoken;
 	return next;
@@ -144,8 +144,8 @@ static void replace_with_integer(struct token *token, unsigned int val)
 {
 	char *buf = __alloc_bytes(10);
 	sprintf(buf, "%d", val);
-	token_type(token) = TOKEN_INTEGER;
-	token->integer = buf;
+	token_type(token) = TOKEN_NUMBER;
+	token->number = buf;
 }
 
 struct token *expand_one_symbol(struct token *parent, struct token *head, struct token *token)
@@ -212,7 +212,7 @@ static struct token *dup_token(struct token *token, struct position *streampos, 
 	token_type(alloc) = token_type(token);
 	alloc->pos.newline = pos->newline;
 	alloc->pos.whitespace = pos->whitespace;
-	alloc->integer = token->integer;
+	alloc->number = token->number;
 	return alloc;	
 }
 
@@ -386,22 +386,12 @@ static struct token *hashhash(struct token *head, struct token *first)
 		int len;
 
 		switch (token_type(token)) {
-		case TOKEN_INTEGER:
-			src = token->integer;
-			len = strlen(src);
-			switch (*src) {
-			case 'o': case 'x':
-				*p++ = '0';
-				len--;
-				src++;
-			}
-			break;
 		case TOKEN_IDENT:
 			len = token->ident->len;
 			src = token->ident->name;
 			break;
-		case TOKEN_FP:
-			src = token->fp;
+		case TOKEN_NUMBER:
+			src = token->number;
 			len = strlen(src);
 			break;
 		default:
@@ -425,19 +415,9 @@ out:
 	case TOKEN_IDENT:
 		newtoken->ident = built_in_ident(buffer);
 		break;
-	case TOKEN_INTEGER: {
-		if (buffer[0] == '0') {
-			switch (buffer[1]) {
-			case 'x': case 'X':
-				buffer[0] = 'x';
-				break;
-			case '0' ... '7':
-				buffer[0] = 'o';
-				break;
-			}
-		}
-		newtoken->integer = __alloc_bytes(p - buffer);
-		memcpy(newtoken->integer, buffer, p - buffer);
+	case TOKEN_NUMBER: {
+		newtoken->number = __alloc_bytes(p - buffer);
+		memcpy(newtoken->number, buffer, p - buffer);
 		break;
 	}
 	}
