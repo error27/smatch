@@ -147,8 +147,11 @@ void show_instruction(struct instruction *insn)
 {
 	int op = insn->opcode;
 
-	if (!insn->bb)
+	if (!insn->bb) {
+		if (!verbose)
+			return;
 		printf("\tunused");
+	}
 	switch (op) {
 	case OP_BADOP:
 		printf("\tAIEEE! (%s <- %s)\n", show_pseudo(insn->target), show_pseudo(insn->src));
@@ -331,15 +334,18 @@ void show_instruction(struct instruction *insn)
 		printf("\tcontext %d\n", insn->increment);
 		break;
 	case OP_SNOP:
-		printf("\tnop (%s -> %d.%d.%d[%s])\n", show_pseudo(insn->target), insn->offset,
-			insn->type->bit_offset, insn->type->bit_size, show_pseudo(insn->src));
+		if (verbose)
+			printf("\tnop (%s -> %d.%d.%d[%s])\n", show_pseudo(insn->target), insn->offset,
+				insn->type->bit_offset, insn->type->bit_size, show_pseudo(insn->src));
 		break;
 	case OP_LNOP:
-		printf("\tnop (%s <- %d.%d.%d[%s])\n", show_pseudo(insn->target), insn->offset,
-			insn->type->bit_offset, insn->type->bit_size, show_pseudo(insn->src));
+		if (verbose)
+			printf("\tnop (%s <- %d.%d.%d[%s])\n", show_pseudo(insn->target), insn->offset,
+				insn->type->bit_offset, insn->type->bit_size, show_pseudo(insn->src));
 		break;
 	case OP_NOP:
-		printf("\tnop (cse'd %s <- %s)\n", show_pseudo(insn->target), show_pseudo(insn->src1));
+		if (verbose)
+			printf("\tnop (cse'd %s <- %s)\n", show_pseudo(insn->target), show_pseudo(insn->src1));
 		break;
 	default:
 		printf("\top %d ???\n", op);
