@@ -365,6 +365,9 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 	sym->next_id = ident->symbols;
 	ident->symbols = sym;
 	sym->id_list = &ident->symbols;
+	if (sym->ident && sym->ident != ident)
+		warning(sym->pos, "Symbol '%s' already bound", show_ident(sym->ident));
+	sym->ident = ident;
 
 	scope = block_scope;
 	if (ns == NS_SYMBOL && toplevel(scope)) {
@@ -382,7 +385,6 @@ struct symbol *create_symbol(int stream, const char *name, int type, int namespa
 	struct token *token = built_in_token(stream, name);
 	struct symbol *sym = alloc_symbol(token->pos, type);
 
-	sym->ident = token->ident;
 	bind_symbol(sym, token->ident, namespace);
 	return sym;
 }
