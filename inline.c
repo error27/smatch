@@ -22,6 +22,13 @@ static struct expression * dup_expression(struct expression *expr)
 	return dup;
 }
 
+static struct statement * dup_statement(struct statement *stmt)
+{
+	struct statement *dup = alloc_statement(stmt->pos, stmt->type);
+	*dup = *stmt;
+	return dup;
+}
+
 static struct expression * copy_expression(struct expression *expr)
 {
 	if (!expr)
@@ -106,20 +113,49 @@ static struct expression * copy_expression(struct expression *expr)
 		expr->cond_true = true;
 		expr->cond_false = false;
 		break;
-	}	
+	}
+
+	/* Statement expression */
+	case EXPR_STATEMENT: {
+		struct statement *stmt = alloc_statement(expr->pos, STMT_COMPOUND);
+		copy_statement(expr->statement, stmt);
+		expr = dup_expression(expr);
+		expr->statement = stmt;
+		break;
+	}
+
+	/* Call expression */
+	case EXPR_CALL: {
+		struct expression *fn = copy_expression(expr->fn);
+		struct expression_list *list = expr->args;
+		struct expression *arg;
+
+		expr = dup_expression(expr);
+		expr->fn = fn;
+		expr->args = NULL;
+		FOR_EACH_PTR(list, arg) {
+			add_expression(&expr->args, copy_expression(arg));
+		} END_FOR_EACH_PTR;
+		break;
+	}
+
+	/* Initializer list statement */
+	case EXPR_INITIALIZER: {
+		struct expression_list *list = expr->expr_list;
+		struct expression *entry;
+		expr = dup_expression(expr);
+		expr->expr_list = NULL;
+		FOR_EACH_PTR(list, entry) {
+			add_expression(&expr->expr_list, copy_expression(entry));
+		} END_FOR_EACH_PTR;
+		break;
+	}
 
 	default:
 		if (verbose)
 			warn(expr->pos, "trying to copy expression type %d", expr->type);
 	}
 	return expr;
-}
-
-static struct statement * dup_statement(struct statement *stmt)
-{
-	struct statement *dup = alloc_statement(stmt->pos, stmt->type);
-	*dup = *stmt;
-	return dup;
 }
 
 static struct statement *copy_one_statement(struct statement *stmt)
@@ -129,16 +165,76 @@ static struct statement *copy_one_statement(struct statement *stmt)
 	switch(stmt->type) {
 	case STMT_NONE:
 		break;
+	case STMT_EXPRESSION: {
+		struct expression *expr = copy_expression(stmt->expression);
+		if (expr == stmt->expression)
+			break;
+		stmt = dup_statement(stmt);
+		stmt->expression = expr;
+		break;
+	}
+	case STMT_COMPOUND: {
+		struct statement *new = alloc_statement(stmt->pos, STMT_COMPOUND);
+		copy_statement(stmt, new);
+		stmt = new;
+		break;
+	}
+	case STMT_IF: {
+		struct expression *cond = stmt->if_conditional;
+		struct statement *true = stmt->if_true;
+		struct statement *false = stmt->if_false;
+
+		cond = copy_expression(cond);
+		true = copy_one_statement(true);
+		false = copy_one_statement(false);
+		if (stmt->if_conditional == cond &&
+		    stmt->if_true == true &&
+		    stmt->if_false == false)
+			break;
+		stmt = dup_statement(stmt);
+		stmt->if_conditional = cond;
+		stmt->if_true = true;
+		stmt->if_false = false;
+		break;
+	}
 	case STMT_RETURN: {
 		struct expression *retval = copy_expression(stmt->ret_value);
-		struct symbol *sym = stmt->ret_target->replace;
+		struct symbol *sym = stmt->ret_target;
 
+		if (sym && sym->replace)
+			sym = sym->replace;
 		stmt = dup_statement(stmt);
 		stmt->ret_value = retval;
 		stmt->ret_target = sym;
 		break;
 	}
+	case STMT_CASE: {
+		/* FIXME! */
+		break;
+	}
+	case STMT_SWITCH: {
+		/* FIXME! */
+		break;		
+	}
+	case STMT_ITERATOR: {
+		/* FIXME! */
+		break;
+	}
+	case STMT_LABEL: {
+		/* FIXME! */
+		break;
+	}
+	case STMT_GOTO: {
+		/* FIXME! */
+		break;
+	}
+	case STMT_ASM: {
+		/* FIXME! */
+		break;
+	}
 	default:
+		if (verbose)
+			warn(stmt->pos, "trying to copy statement type %d", stmt->type);
 		break;
 	}
 	return stmt;
