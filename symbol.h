@@ -69,8 +69,8 @@ struct symbol {
 
 #define SYM_CONST	0x0010
 #define SYM_VOLATILE	0x0020
-#define SYM_SIGNED	0x0030
-#define SYM_UNSIGNED	0x0040
+#define SYM_SIGNED	0x0040
+#define SYM_UNSIGNED	0x0080
 
 #define SYM_CHAR	0x0100
 #define SYM_SHORT	0x0200

@@ -72,16 +72,16 @@ static void show_one_symbol(struct symbol *sym)
 	show_type(sym);
 	printf("\n");
 }
-
+	
 void show_symbol_list(struct symbol_list *list)
 {
-	symbol_iterate(list, show_one_symbol);
+	symbol_iterate(list, show_symbol);
 }
 
 void show_type_list(struct symbol *sym)
 {
 	while (sym) {
-		show_one_symbol(sym);
+		show_symbol(sym);
 		sym = sym->next;
 	}
 }
@@ -129,6 +129,12 @@ void show_symbol(struct symbol *sym)
 {
 	printf("Symbol %s:\n  ", show_token(sym->token));
 	show_type(sym);
+	switch (sym->type) {
+	case SYM_FN:
+		show_statement(sym->stmt);
+		break;
+	default:
+	}
 	printf("\n");
 }
 

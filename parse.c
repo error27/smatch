@@ -16,6 +16,71 @@
 #include "parse.h"
 #include "symbol.h"
 
+void show_statement(struct statement *stmt)
+{
+	if (!stmt) {
+		printf("<nostatement>");
+		return;
+	}
+	switch (stmt->type) {
+	case STMT_RETURN:
+		printf("\n\treturn ");
+		show_expression(stmt->expression);
+		printf("\n");
+		break;
+	case STMT_COMPOUND:
+		printf("\n{");
+		show_symbol_list(stmt->syms);
+		show_statement_list(stmt->stmts);
+		printf("}\n");
+		break;
+	case STMT_EXPRESSION:
+		printf("\n\t");
+		show_expression(stmt->expression);
+		printf("\n");
+		return;
+	case STMT_IF:
+		printf("\n\tif (");
+		show_expression(stmt->if_conditional);
+		printf(")\n\t\t");
+		show_statement(stmt->if_true);
+		if (stmt->if_false) {
+			printf("\n\telse\n\t\t");
+			show_statement(stmt->if_false);
+		}
+		break;
+	case STMT_SWITCH:
+		printf("\n\tswitch (");
+		show_expression(stmt->switch_expression);
+		printf(")\n\t\t");
+		show_statement(stmt->switch_statement);
+		break;
+
+	case STMT_CASE:
+		if (!stmt->case_expression)
+			printf("default\t");
+		else {
+			printf("\n\tcase ");
+			show_expression(stmt->case_expression);
+			if (stmt->case_to) {
+				printf("\n\t...");
+				show_expression(stmt->case_to);
+			}
+		}
+		printf(":");
+		show_statement(stmt->case_statement);
+		break;
+		
+	default:
+		printf("WTF\n");
+	}
+}
+
+void show_statement_list(struct statement_list *stmt)
+{
+	iterate(stmt, show_statement);
+}
+
 void show_expression(struct expression *expr)
 {
 	if (!expr)
@@ -284,7 +349,7 @@ static struct token *lr_binop_expression(struct token *token, struct expression 
 			top = alloc_expression(next, EXPR_BINOP);
 			next = inner(next->next, &right);
 			if (!right) {
-				warn(token, "No right hand side of '%s'-expression", show_special(op));
+				warn(next, "No right hand side of '%s'-expression", show_special(op));
 				break;
 			}
 			top->op = op;
@@ -764,12 +829,12 @@ struct token *statement(struct token *token, struct statement **tree)
 {
 	struct statement *stmt = alloc_statement(token, STMT_NONE);
 
+	*tree = stmt;
 	if (token->type == TOKEN_IDENT) {
 		if (token->ident == &if_ident) {
 			stmt->type = STMT_IF;
 			token = parens_expression(token->next, &stmt->if_conditional, "after if");
 			token = statement(token, &stmt->if_true);
-			*tree = stmt;
 			if (token->type != TOKEN_IDENT)
 				return token;
 			if (token->ident != &else_ident)
@@ -778,7 +843,6 @@ struct token *statement(struct token *token, struct statement **tree)
 		}
 		if (token->ident == &return_ident) {
 			stmt->type = STMT_RETURN;
-			*tree = stmt;
 			return expression_statement(token->next, &stmt->expression);
 		}
 		if (token->ident == &break_ident) {
