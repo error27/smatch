@@ -366,23 +366,24 @@ static void flush_one_pseudo(struct bb_state *state, struct hardreg *hardreg, ps
 }
 
 /* Flush a hardreg out to the storage it has.. */
-static void flush_reg(struct bb_state *state, struct hardreg *hardreg)
+static void flush_reg(struct bb_state *state, struct hardreg *reg)
 {
 	pseudo_t pseudo;
 
-	if (!hardreg->busy)
+	if (reg->busy)
+		output_comment(state, "reg %s flushed while busy is %d!", reg->name, reg->busy);
+	if (!reg->contains)
 		return;
-	hardreg->busy = 0;
-	hardreg->dead = 0;
-	hardreg->used = 1;
-	FOR_EACH_PTR(hardreg->contains, pseudo) {
+	reg->dead = 0;
+	reg->used = 1;
+	FOR_EACH_PTR(reg->contains, pseudo) {
 		if (CURRENT_TAG(pseudo) & TAG_DEAD)
 			continue;
 		if (!(CURRENT_TAG(pseudo) & TAG_DIRTY))
 			continue;
-		flush_one_pseudo(state, hardreg, pseudo);
+		flush_one_pseudo(state, reg, pseudo);
 	} END_FOR_EACH_PTR(pseudo);
-	free_ptr_list(&hardreg->contains);
+	free_ptr_list(&reg->contains);
 }
 
 static struct storage_hash *find_pseudo_storage(struct bb_state *state, pseudo_t pseudo, struct hardreg *reg)
@@ -443,7 +444,6 @@ static void add_pseudo_reg(struct bb_state *state, pseudo_t pseudo, struct hardr
 {
 	output_comment(state, "added pseudo %s to reg %s", show_pseudo(pseudo), reg->name);
 	add_ptr_list_tag(&reg->contains, pseudo, TAG_DIRTY);
-	reg->busy++;
 }
 
 static struct hardreg *preferred_reg(struct bb_state *state, pseudo_t target)
@@ -465,7 +465,7 @@ static struct hardreg *empty_reg(struct bb_state *state)
 	struct hardreg *reg = hardregs;
 
 	for (i = 0; i < REGNO; i++, reg++) {
-		if (!reg->busy)
+		if (!reg->contains)
 			return reg;
 	}
 	return NULL;
@@ -474,23 +474,31 @@ static struct hardreg *empty_reg(struct bb_state *state)
 static struct hardreg *target_reg(struct bb_state *state, pseudo_t pseudo, pseudo_t target)
 {
 	int i;
+	int unable_to_find_reg = 0;
 	struct hardreg *reg;
 
 	/* First, see if we have a preferred target register.. */
 	reg = preferred_reg(state, target);
-	if (reg && !reg->busy)
+	if (reg && !reg->contains)
 		goto found;
 
 	reg = empty_reg(state);
 	if (reg)
 		goto found;
 
-	i = last_reg+1;
-	if (i >= REGNO)
-		i = 0;
-	last_reg = i;
-	reg = hardregs + i;
-	flush_reg(state, reg);
+	i = last_reg;
+	do {
+		i++;
+		if (i >= REGNO)
+			i = 0;
+		reg = hardregs + i;
+		if (!reg->busy) {
+			flush_reg(state, reg);
+			last_reg = i;
+			goto found;
+		}
+	} while (i != last_reg);
+	assert(unable_to_find_reg);
 
 found:
 	add_pseudo_reg(state, pseudo, reg);
@@ -509,7 +517,7 @@ static struct hardreg *find_in_reg(struct bb_state *state, pseudo_t pseudo)
 		FOR_EACH_PTR(reg->contains, p) {
 			if (p == pseudo) {
 				last_reg = i;
-				output_comment(state, "found pseudo %s in reg %s", show_pseudo(pseudo), reg->name);
+				output_comment(state, "found pseudo %s in reg %s (busy=%d)", show_pseudo(pseudo), reg->name, reg->busy);
 				return reg;
 			}
 		} END_FOR_EACH_PTR(p);
@@ -611,11 +619,12 @@ static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src, pse
 	int i;
 	struct hardreg *reg;
 
-	if (!src->busy)
+	/* If "src" only has one user, and the contents are dead, we can re-use it */
+	if (src->busy == 1 && src->dead == 1)
 		return src;
 
 	reg = preferred_reg(state, target);
-	if (reg && !reg->busy) {
+	if (reg && !reg->contains) {
 		output_comment(state, "copying %s to preferred target %s", show_pseudo(target), reg->name);
 		move_reg(state, src, reg);
 		return reg;
@@ -623,7 +632,7 @@ static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src, pse
 
 	for (i = 0; i < REGNO; i++) {
 		struct hardreg *reg = hardregs + i;
-		if (!reg->busy) {
+		if (!reg->contains) {
 			output_comment(state, "copying %s to %s", show_pseudo(target), reg->name);
 			output_insn(state, "movl %s,%s", src->name, reg->name);
 			return reg;
@@ -636,6 +645,20 @@ static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src, pse
 
 static void put_operand(struct bb_state *state, struct operand *op)
 {
+	switch (op->type) {
+	case OP_REG:
+		op->reg->busy--;
+		break;
+	case OP_ADDR:
+	case OP_MEM:
+		if (op->base)
+			op->base->busy--;
+		if (op->index)
+			op->index->busy--;
+		break;
+	default:
+		break;
+	}
 }
 
 static struct operand *alloc_op(void)
@@ -650,6 +673,7 @@ static struct operand *get_register_operand(struct bb_state *state, pseudo_t pse
 	struct operand *op = alloc_op();
 	op->type = OP_REG;
 	op->reg = getreg(state, pseudo, target);
+	op->reg->busy++;
 	return op;
 }	
 
@@ -677,6 +701,7 @@ static struct operand *get_generic_operand(struct bb_state *state, pseudo_t pseu
 		if (reg) {
 			op->type = OP_REG;
 			op->reg = reg;
+			reg->busy++;
 			break;
 		}
 		hash = find_pseudo_storage(state, pseudo, NULL);
@@ -687,6 +712,7 @@ static struct operand *get_generic_operand(struct bb_state *state, pseudo_t pseu
 		case REG_REG:
 			op->type = OP_REG;
 			op->reg = hardregs + src->regno;
+			op->reg->busy++;
 			break;
 		case REG_FRAME:
 			op->type = OP_MEM;
@@ -705,9 +731,13 @@ static struct operand *get_generic_operand(struct bb_state *state, pseudo_t pseu
 	return op;
 }
 
+/* Callers should be made to use the proper "operand" formats */
 static const char *generic(struct bb_state *state, pseudo_t pseudo)
 {
-	return show_op(state, get_generic_operand(state, pseudo));
+	struct operand *op = get_generic_operand(state, pseudo);
+	const char *str = show_op(state, op);
+	put_operand(state, op);
+	return str;
 }
 
 static const char *address(struct bb_state *state, struct instruction *memop)
@@ -751,7 +781,6 @@ static void kill_dead_reg(struct hardreg *reg)
 		FOR_EACH_PTR(reg->contains, p) {
 			if (CURRENT_TAG(p) & TAG_DEAD) {
 				DELETE_CURRENT_PTR(p);
-				reg->busy--;
 				reg->dead--;
 			}
 		} END_FOR_EACH_PTR(p);
@@ -878,7 +907,6 @@ static void remove_pseudo_reg(struct bb_state *state, pseudo_t pseudo)
 				continue;
 			if (CURRENT_TAG(p) & TAG_DEAD)
 				reg->dead--;
-			reg->busy--;
 			DELETE_CURRENT_PTR(p);
 			output_comment(state, "removed pseudo %s from reg %s", show_pseudo(pseudo), reg->name);
 		} END_FOR_EACH_PTR(p);
@@ -1495,7 +1523,7 @@ static int final_pseudo_flush(struct bb_state *state, pseudo_t pseudo, struct ha
 		 * Two good cases: nobody is using the right register,
 		 * or we've already set it aside for output..
 		 */
-		if (!dst->busy || dst->busy > VERY_BUSY)
+		if (!dst->contains || dst->busy > VERY_BUSY)
 			goto copy_to_dst;
 
 		/* Aiee. Try to keep it in a register.. */
@@ -1558,7 +1586,6 @@ static void generate_output_storage(struct bb_state *state)
 				/* Try to write back the pseudo to where it should go ... */
 				if (final_pseudo_flush(state, p, reg)) {
 					DELETE_CURRENT_PTR(p);
-					reg->busy--;
 					continue;
 				}
 				flushme++;
