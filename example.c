@@ -124,6 +124,9 @@ static void output_comment(struct bb_state *state, const char *fmt, ...)
 static const char *show_memop(struct storage *storage)
 {
 	static char buffer[1000];
+
+	if (!storage)
+		return "undef";
 	switch (storage->type) {
 	case REG_FRAME:
 		sprintf(buffer, "%d(FP)", storage->offset);
@@ -228,10 +231,52 @@ static void flush_reg(struct bb_state *state, struct hardreg *hardreg)
 	free_ptr_list(&hardreg->contains);
 }
 
+static struct storage *find_pseudo_storage(struct bb_state *state, pseudo_t pseudo, struct hardreg *reg)
+{
+	struct storage_hash *src;
+
+	src = find_storage_hash(pseudo, state->internal);
+	if (!src) {
+		src = find_storage_hash(pseudo, state->inputs);
+		if (!src) {
+			src = find_storage_hash(pseudo, state->outputs);
+			/* Undefined? Screw it! */
+			if (!src) {
+				output_insn(state, "undef %s ??", show_pseudo(pseudo));
+				return NULL;
+			}
+
+			/*
+			 * If we found output storage, it had better be local stack
+			 * that we flushed to earlier..
+			 */
+			if (src->storage->type != REG_STACK) {
+				output_insn(state, "fill_reg on undef storage %s ??", show_pseudo(pseudo));
+				return NULL;
+			}
+		}
+	}
+
+	/*
+	 * Incoming pseudo with out any pre-set storage allocation?
+	 * We can make up our own, and obviously prefer to get it
+	 * in the register we already selected (if it hasn't been
+	 * used yet).
+	 */
+	if (src->storage->type == REG_UDEF) {
+		if (reg && !reg->used) {
+			src->storage->type = REG_REG;
+			src->storage->regno = reg - hardregs;
+		} else
+			alloc_stack(state, src->storage);
+	}
+	return src->storage;
+}
+
 /* Fill a hardreg with the pseudo it has */
 static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg, pseudo_t pseudo)
 {
-	struct storage_hash *src;
+	struct storage *src;
 	struct instruction *def;
 
 	switch (pseudo->type) {
@@ -248,43 +293,8 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 			output_insn(state, "movl $<%s>,%s", show_pseudo(def->symbol), hardreg->name);
 			break;
 		}
-		src = find_storage_hash(pseudo, state->internal);
-		if (!src) {
-			src = find_storage_hash(pseudo, state->inputs);
-			if (!src) {
-				src = find_storage_hash(pseudo, state->outputs);
-				/* Undefined? Screw it! */
-				if (!src) {
-					output_insn(state, "undef %s ??", show_pseudo(pseudo));
-					break;
-				}
-
-				/*
-				 * If we found output storage, it had better be local stack
-				 * that we flushed to earlier..
-				 */
-				if (src->storage->type != REG_STACK) {
-					output_insn(state, "fill_reg on undef storage %s ??", show_pseudo(pseudo));
-					break;
-				}
-			}
-		}
-
-		/*
-		 * Incoming pseudo with out any pre-set storage allocation?
-		 * We can make up our own, and obviously prefer to get it
-		 * in the register we already selected (if it hasn't been
-		 * used yet).
-		 */
-		if (src->storage->type == REG_UDEF) {
-			if (!hardreg->used) {
-				src->storage->type = REG_REG;
-				src->storage->regno = hardreg - hardregs;
-				break;
-			}
-			alloc_stack(state, src->storage);
-		}
-		output_insn(state, "mov.%d %s,%s", 32, show_memop(src->storage), hardreg->name);
+		src = find_pseudo_storage(state, pseudo, hardreg);
+		output_insn(state, "mov.%d %s,%s", 32, show_memop(src), hardreg->name);
 		break;
 	default:
 		output_insn(state, "reload %s from %s", hardreg->name, show_pseudo(pseudo));
@@ -353,7 +363,7 @@ found:
 	return reg;
 }
 
-static struct hardreg *getreg(struct bb_state *state, pseudo_t pseudo, pseudo_t target)
+static struct hardreg *find_in_reg(struct bb_state *state, pseudo_t pseudo)
 {
 	int i;
 	struct hardreg *reg;
@@ -370,6 +380,16 @@ static struct hardreg *getreg(struct bb_state *state, pseudo_t pseudo, pseudo_t 
 			}
 		} END_FOR_EACH_PTR(p);
 	}
+	return NULL;
+}
+
+static struct hardreg *getreg(struct bb_state *state, pseudo_t pseudo, pseudo_t target)
+{
+	struct hardreg *reg;
+
+	reg = find_in_reg(state, pseudo);
+	if (reg)
+		return reg;
 	reg = target_reg(state, pseudo, target);
 	return fill_reg(state, reg, pseudo);
 }
@@ -405,14 +425,18 @@ static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src, pse
 static const char *generic(struct bb_state *state, pseudo_t pseudo)
 {
 	struct hardreg *reg;
+	struct storage *src;
 
 	switch (pseudo->type) {
 	case PSEUDO_SYM:
 	case PSEUDO_VAL:
 		return show_pseudo(pseudo);
 	default:
-		reg = getreg(state, pseudo, NULL);
-		return reg->name;
+		reg = find_in_reg(state, pseudo);
+		if (reg)
+			return reg->name;
+		src = find_pseudo_storage(state, pseudo, NULL);
+		return show_memop(src);
 	}
 }
 
@@ -553,7 +577,7 @@ static void generate_binop(struct bb_state *state, struct instruction *insn)
 {
 	const char *op = opcodes[insn->opcode];
 	struct hardreg *src = getreg(state, insn->src1, insn->target);
-	const char *src2 = reg_or_imm(state, insn->src2);
+	const char *src2 = generic(state, insn->src2);
 	struct hardreg *dst;
 
 	dst = target_copy_reg(state, src, insn->target);
@@ -937,8 +961,11 @@ static void fill_output(struct bb_state *state, pseudo_t pseudo, struct storage 
 		output_insn(state, "movl %s,%s", show_memop(in->storage), hardregs[out->regno].name);
 		break;
 	default:
-		output_insn(state, "movl %s,tmp", show_memop(in->storage));
-		output_insn(state, "movl tmp,%s", show_memop(out));
+		if (out == in->storage)
+			break;
+		if (out->type == in->storage->type == out->regno == in->storage->regno)
+			break;
+		output_insn(state, "movl %s,%s", show_memop(in->storage), show_memop(out));
 		break;
 	}
 	return;
