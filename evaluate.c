@@ -896,6 +896,7 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	/* Pointer types? */
 	if (is_ptr_type(ltype) || is_ptr_type(rtype)) {
 		// FIXME! Check the types for compatibility
+		expr->op = modify_for_unsigned(expr->op);
 		goto OK;
 	}
 
@@ -911,8 +912,11 @@ static struct symbol *evaluate_compare(struct expression *expr)
 		goto OK;
 
 	ctype = compatible_restricted_binop(expr->op, &expr->left, &expr->right);
-	if (ctype)
+	if (ctype) {
+		if (ctype->ctype.modifiers & MOD_UNSIGNED)
+			expr->op = modify_for_unsigned(expr->op);
 		goto OK;
+	}
 
 	bad_expr_type(expr);
 
