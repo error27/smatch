@@ -98,24 +98,24 @@ static void check_cast_instruction(struct instruction *insn)
 				return;
 			if (newsigned)
 				return;
-			warning(insn->bb->pos, "cast loses sign");
+			warning(insn->pos, "cast loses sign");
 			return;
 		}
 		if (new < old) {
-			warning(insn->bb->pos, "cast drops bits");
+			warning(insn->pos, "cast drops bits");
 			return;
 		}
 		if (oldsigned == newsigned) {
-			warning(insn->bb->pos, "cast wasn't removed");
+			warning(insn->pos, "cast wasn't removed");
 			return;
 		}
-		warning(insn->bb->pos, "cast changes sign");
+		warning(insn->pos, "cast changes sign");
 	}
 }
 
 static void check_range_instruction(struct instruction *insn)
 {
-	warning(insn->bb->pos, "value out of range");
+	warning(insn->pos, "value out of range");
 }
 
 static void check_one_instruction(struct instruction *insn)

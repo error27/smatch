@@ -535,7 +535,7 @@ offset:
 		if (new == VOID)
 			return 0;
 		new = VOID;
-		warning(insn->bb->pos, "crazy programmer");
+		warning(insn->pos, "crazy programmer");
 	}
 	insn->offset += off->value;
 	use_pseudo(new, &insn->src);
@@ -771,7 +771,7 @@ static int simplify_switch(struct instruction *insn)
 		if (val >= jmp->begin && val <= jmp->end)
 			goto found;
 	} END_FOR_EACH_PTR(jmp);
-	warning(insn->bb->pos, "Impossible case statement");
+	warning(insn->pos, "Impossible case statement");
 	return 0;
 
 found:

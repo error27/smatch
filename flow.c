@@ -584,7 +584,7 @@ void check_access(struct instruction *insn)
 		struct symbol *sym = pseudo->sym;
 
 		if (sym->bit_size > 0 && (offset < 0 || bit > sym->bit_size))
-			warning(insn->bb->pos, "invalid access %s '%s' (%d %d)",
+			warning(insn->pos, "invalid access %s '%s' (%d %d)",
 				offset < 0 ? "below" : "past the end of",
 				show_ident(sym->ident), offset, sym->bit_size >> 3);
 	}

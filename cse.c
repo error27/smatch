@@ -210,7 +210,7 @@ static int insn_compare(const void *_i1, const void *_i2)
 		return phi_list_compare(i1->phi_list, i2->phi_list);
 
 	default:
-		warning(i1->bb->pos, "bad instruction on hash chain");
+		warning(i1->pos, "bad instruction on hash chain");
 	}
 	if (i1->size != i2->size)
 		return i1->size < i2->size ? -1 : 1;
