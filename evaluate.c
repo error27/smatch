@@ -270,6 +270,17 @@ static int evaluate_int_binop(struct expression *expr)
 	return bad_expr_type(expr);
 }
 
+/* Arrays degenerate into pointers on pointer arithmetic */
+static struct symbol *degenerate(struct expression *expr, struct symbol *ctype)
+{
+	if (ctype->type == SYM_ARRAY) {
+		struct symbol *sym = alloc_symbol(expr->token, SYM_PTR);
+		sym->ctype = ctype->ctype;
+		ctype = sym;
+	}
+	return ctype;
+}
+
 static int evaluate_ptr_add(struct expression *expr, struct expression *ptr, struct expression *i)
 {
 	struct symbol *ctype;
@@ -284,7 +295,7 @@ static int evaluate_ptr_add(struct expression *expr, struct expression *ptr, str
 	ctype = ptr_type->ctype.base_type;
 	examine_symbol_type(ctype);
 
-	expr->ctype = ptr_type;
+	expr->ctype = degenerate(expr, ptr_type);
 	if (ctype->bit_size > BITS_IN_CHAR) {
 		struct expression *add = expr;
 		struct expression *mul = alloc_expression(expr->token, EXPR_BINOP);
@@ -562,7 +573,8 @@ static int evaluate_dereference(struct expression *expr)
 
 	ctype = deref->ctype;
 	if (expr->op == SPECIAL_DEREFERENCE) {
-		if (ctype->type != SYM_PTR) {
+		/* Arrays will degenerate into pointers for '->' */
+		if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
 			warn(expr->token, "expected a pointer to a struct/union");
 			return 0;
 		}
@@ -679,7 +691,7 @@ static int evaluate_call(struct expression *expr)
 	if (!evaluate_expression_list(arglist))
 		return 0;
 	ctype = fn->ctype;
-	if (ctype->type == SYM_PTR)
+	if (ctype->type == SYM_PTR || ctype->type == SYM_ARRAY)
 		ctype = ctype->ctype.base_type;
 	if (ctype->type != SYM_FN) {
 		warn(expr->token, "not a function");
