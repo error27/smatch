@@ -139,12 +139,10 @@ void show_type(struct symbol *sym)
 
 	case SYM_STRUCT:
 		printf("struct %s", show_token(sym->token));
-		symbol_iterate(sym->symbol_list, show_struct_member, NULL);
 		return;
 
 	case SYM_UNION:
 		printf("union %s", show_token(sym->token)); 
-		symbol_iterate(sym->symbol_list, show_struct_member, NULL);
 		return;
 
 	case SYM_ENUM:
@@ -170,11 +168,29 @@ void show_type(struct symbol *sym)
 
 void show_symbol(struct symbol *sym)
 {
-	
 	show_type(sym);
-	if (sym->type == SYM_FN) {
-		printf("\n");
+
+	/*
+	 * Show actual implementation information
+	 */
+	switch (sym->type) {
+	case SYM_STRUCT:
+		symbol_iterate(sym->symbol_list, show_struct_member, NULL);
+		return;
+
+	case SYM_UNION:
+		symbol_iterate(sym->symbol_list, show_struct_member, NULL);
+		return;
+
+	case SYM_FN:
+		printf("(");
+		show_symbol_list(sym->arguments, ", ");
+		printf(")\n");
 		show_statement(sym->stmt);
+		return;
+
+	default:
+		break;
 	}
 }
 
