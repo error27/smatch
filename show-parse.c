@@ -524,9 +524,9 @@ int show_statement(struct statement *stmt)
 	case STMT_GOTO:
 		if (stmt->goto_expression) {
 			int val = show_expression(stmt->goto_expression);
-			printf("\tgoto *v%d\n", val);
+			printf("\tgoto\t\t*v%d\n", val);
 		} else {
-			printf("\tgoto .L%p\n", stmt->goto_label->bb_target);
+			printf("\tgoto\t\t.L%p\n", stmt->goto_label->bb_target);
 		}
 		break;
 	case STMT_ASM:
@@ -536,7 +536,7 @@ int show_statement(struct statement *stmt)
 	case STMT_CONDTRUE:
 	case STMT_CONDFALSE: {
 		int val = show_expression(stmt->bb_conditional);
-		printf("\t%s v%d,.L%p\n",
+		printf("\t%s\t\tv%d,.L%p\n",
 			stmt->type == STMT_CONDTRUE ? "jnz" : "jz",
 			val, stmt->bb_target->bb_target);
 		break;
@@ -714,7 +714,7 @@ static int show_return_stmt(struct statement *stmt)
 		int addr = show_symbol_expr(target);
 		show_store_gen(bits, val, NULL, addr);
 	}
-	printf("\tgoto .L%p\n", target);
+	printf("\tret\t\t(%p)\n", target);
 	return 0;
 }
 
@@ -965,7 +965,7 @@ int show_expression(struct expression *expr)
 	case EXPR_POSTOP:
 		return show_postop(expr);
 	case EXPR_SYMBOL:
-		return show_symbol_expr_init(expr->symbol);
+		return show_symbol_expr(expr->symbol);
 	case EXPR_DEREF:
 	case EXPR_SIZEOF:
 		warn(expr->pos, "invalid expression after evaluation");

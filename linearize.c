@@ -38,9 +38,9 @@ static void show_bb(struct basic_block *bb)
 	} END_FOR_EACH_PTR;
 
 	if (bb->next) {
-		printf("\tgoto .L%p\n", bb->next->bb_target);
+		printf("\tgoto\t\t.L%p\n", bb->next->bb_target);
 	} else {
-		printf("\tdefault return\n");
+		printf("\tEND\n");
 	}
 	printf("\n");
 }
