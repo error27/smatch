@@ -22,7 +22,7 @@ static struct instruction_list *insn_hash_table[INSN_HASH_SIZE];
 
 #define hashval(x) ((unsigned long)(x))
 
-int repeat_phase;
+int repeat_phase, merge_phi_sources;
 
 static int phi_compare(pseudo_t phi1, pseudo_t phi2)
 {
@@ -209,6 +209,10 @@ static int insn_compare(const void *_i1, const void *_i2)
 			return i1->src1 < i2->src1 ? -1 : 1;
 		if (i1->bb != i2->bb)
 			return i1->bb < i2->bb ? -1 : 1;
+		if (!merge_phi_sources) {
+			if (i1 != i2)
+				return i1 < i2 ? -1 : 1;
+		}
 		break;
 
 	default:

@@ -1741,12 +1741,11 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	 * Remove trivial instructions, and try to CSE
 	 * the rest.
 	 */
-	cleanup_and_cse(ep);
-
-	/*
-	 * Remove or merge basic blocks.
-	 */
-	pack_basic_blocks(ep);
+	merge_phi_sources = 1;
+	do {
+		cleanup_and_cse(ep);
+		pack_basic_blocks(ep);
+	} while (repeat_phase & REPEAT_CSE);
 
 	/* Cleanup */
 	clear_symbol_pseudos(ep);

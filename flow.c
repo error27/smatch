@@ -32,6 +32,8 @@ static void rewrite_branch(struct basic_block *bb,
 	if (*ptr != old)
 		return;
 
+	/* We might find new if-conversions or non-dominating CSEs */
+	repeat_phase |= REPEAT_CSE;
 	*ptr = new;
 	replace_bb_in_list(&bb->children, old, new, 1);
 	remove_bb_from_list(&old->parents, bb, 1);
@@ -814,6 +816,21 @@ out:
 				goto no_merge;
 		} END_FOR_EACH_PTR(child);
 
+		/*
+		 * Merge the two.
+		 */
+		repeat_phase |= REPEAT_CSE;
+
+		/*
+		 *  But don't allow phi-source merges after this.
+		 * FIXME, FIXME! I really need to think about this.
+		 * Is it true? I think it's ok to merge phi-sources,
+		 * as long as we keep their relative position in
+		 * the stream. It's the re-ordering we can't have.
+		 * I think. 
+		 */
+		merge_phi_sources = 0;
+
 		parent->children = bb->children;
 		FOR_EACH_PTR(bb->children, child) {
 			struct basic_block *p;
@@ -823,6 +840,7 @@ out:
 				*THIS_ADDRESS(p) = parent;
 			} END_FOR_EACH_PTR(p);
 		} END_FOR_EACH_PTR(child);
+		bb->children = NULL;
 
 		delete_last_instruction(&parent->insns);
 		FOR_EACH_PTR(bb->insns, insn) {

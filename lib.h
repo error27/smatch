@@ -17,7 +17,7 @@
 #include "compat.h"
 
 extern int verbose, optimize, preprocessing;
-extern int repeat_phase;
+extern int repeat_phase, merge_phi_sources;
 
 #define container(ptr, type, member) \
 	(type *)((void *)(ptr) - offsetof(type, member))
