@@ -1267,16 +1267,21 @@ static struct expression *evaluate_offset(struct expression *expr, unsigned long
 {
 	struct expression *add;
 
-	add = expr;
-	if (offset) {
-		/* Create a new add-expression */
-		add = alloc_expression(expr->pos, EXPR_BINOP);
-		add->op = '+';
-		add->left = expr;
-		add->right = alloc_expression(expr->pos, EXPR_VALUE);
-		add->right->ctype = &int_ctype;
-		add->right->value = offset;
-	}
+	/*
+	 * Create a new add-expression
+	 *
+	 * NOTE! Even if we just add zero, we need a new node
+	 * for the member pointer, since it has a different
+	 * type than the original pointer. We could make that
+	 * be just a cast, but the fact is, a node is a node,
+	 * so we might as well just do the "add zero" here.
+	 */
+	add = alloc_expression(expr->pos, EXPR_BINOP);
+	add->op = '+';
+	add->left = expr;
+	add->right = alloc_expression(expr->pos, EXPR_VALUE);
+	add->right->ctype = &int_ctype;
+	add->right->value = offset;
 
 	/*
 	 * The ctype of the pointer will be lazily evaluated if
