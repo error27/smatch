@@ -1367,6 +1367,33 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	return ctype;
 }
 
+/*
+ * Evaluate a call expression with a symbol. This
+ * should expand inline functions, and evaluate
+ * builtins.
+ */
+static struct symbol *evaluate_symbol_call(struct expression *expr)
+{
+	struct expression *fn = expr->fn;
+	struct symbol *ctype = fn->ctype;
+
+	if (fn->type != EXPR_PREOP)
+		goto out;
+
+	if (ctype->evaluate)
+		return ctype->evaluate(expr);
+
+	/*
+	 * FIXME!! We should really expand the inline functions.
+	 * For now we just mark them accessed so that they show
+	 * up on the list of used symbols.
+	 */
+	if (ctype->ctype.modifiers & MOD_INLINE)
+		access_symbol(ctype);
+out:
+	return ctype->ctype.base_type;
+}
+
 static struct symbol *evaluate_call(struct expression *expr)
 {
 	int args, fnargs;
@@ -1377,24 +1404,19 @@ static struct symbol *evaluate_call(struct expression *expr)
 	if (!evaluate_expression(fn))
 		return NULL;
 	sym = ctype = fn->ctype;
-	if (ctype->type == SYM_NODE) {
-		/*
-		 * FIXME!! We should really expand the inline functions.
-		 * For now we just mark them accessed so that they show
-		 * up on the list of used symbols.
-		 */
-		if (ctype->ctype.modifiers & MOD_INLINE)
-			access_symbol(ctype);
-		ctype = ctype->ctype.base_type;
-	}
 	if (ctype->type == SYM_PTR || ctype->type == SYM_ARRAY)
 		ctype = ctype->ctype.base_type;
+	if (!evaluate_arguments(sym, ctype, arglist))
+		return NULL;
+	if (sym->type == SYM_NODE) {
+		ctype = evaluate_symbol_call(expr);
+		if (!ctype)
+			return expr->ctype;
+	}
 	if (ctype->type != SYM_FN) {
 		warn(expr->pos, "not a function");
 		return NULL;
 	}
-	if (!evaluate_arguments(sym, ctype, arglist))
-		return NULL;
 	args = expression_list_size(expr->args);
 	fnargs = symbol_list_size(ctype->arguments);
 	if (args < fnargs)

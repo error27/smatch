@@ -320,12 +320,29 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 	bind_scope(sym, scope);
 }
 
-struct symbol *create_symbol(int stream, const char *name, int type)
+static struct symbol *create_symbol(int stream, const char *name, int type, int namespace)
 {
 	struct token *token = built_in_token(stream, name);
 	struct symbol *sym = alloc_symbol(token->pos, type);
-	bind_symbol(sym, token->ident, NS_TYPEDEF);
+	bind_symbol(sym, token->ident, namespace);
 	return sym;
+}
+
+struct symbol *evaluate_constant_p(struct expression *expr)
+{
+	struct expression *arg;
+	struct expression_list *arglist = expr->args;
+	int value = 1;
+
+	FOR_EACH_PTR (arglist, arg) {
+		if (arg->type != EXPR_VALUE)
+			value = 0;
+	} END_FOR_EACH_PTR;
+
+	expr->ctype = &int_ctype;
+	expr->type = EXPR_VALUE;
+	expr->value = value;
+	return NULL;
 }
 
 /*
@@ -339,6 +356,7 @@ struct sym_init {
 	const char *name;
 	struct symbol *base_type;
 	unsigned int modifiers;
+	struct symbol *(*evaluate)(struct expression *);
 } symbol_init_table[] = {
 	/* Storage class */
 	{ "auto",	NULL,		MOD_AUTO },
@@ -396,8 +414,18 @@ struct sym_init {
 	{ "restrict",	NULL,		0 },
 	{ "__restrict",	NULL,		0 },
 
-	{ NULL,		NULL,			0 }
+	{ NULL,		NULL,		0 }
 };
+
+/*
+ * Builtin functions
+ */
+struct sym_init eval_init_table[] = {
+	{ "__builtin_constant_p", &int_type, 0, evaluate_constant_p },
+
+	{ NULL,		NULL,		0 }
+};
+
 
 /*
  * Abstract types
@@ -499,9 +527,17 @@ void init_symbols(void)
 	hash_ident(&volatile_ident);
 	for (ptr = symbol_init_table; ptr->name; ptr++) {
 		struct symbol *sym;
-		sym = create_symbol(stream, ptr->name, SYM_NODE);
+		sym = create_symbol(stream, ptr->name, SYM_NODE, NS_TYPEDEF);
 		sym->ctype.base_type = ptr->base_type;
 		sym->ctype.modifiers = ptr->modifiers;
+	}
+
+	for (ptr = eval_init_table; ptr->name; ptr++) {
+		struct symbol *sym;
+		sym = create_symbol(stream, ptr->name, SYM_NODE, NS_SYMBOL);
+		sym->ctype.base_type = ptr->base_type;
+		sym->ctype.modifiers = ptr->modifiers;
+		sym->evaluate = ptr->evaluate;
 	}
 
 	ptr_ctype.type = SYM_PTR;
