@@ -43,6 +43,7 @@ int main(int argc, char **argv)
 	add_pre_buffer("extern void *__builtin_memcpy(void *, const void *, unsigned long);\n");
 	add_pre_buffer("extern void *__builtin_return_address(int);\n");
 	add_pre_buffer("extern void *__builtin_memset(void *, int, unsigned long);\n");	
+	add_pre_buffer("extern void __builtin_trap(void);\n");
 
 	args = argv;
 	for (;;) {
