@@ -1171,7 +1171,7 @@ static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 		}
 
 		i++;
-		NEXT_PTR_LIST(argument_types, argtype);
+		NEXT_PTR_LIST(argtype);
 	} END_FOR_EACH_PTR;
 	FINISH_PTR_LIST;
 	return 1;
@@ -1202,9 +1202,49 @@ static int evaluate_array_initializer(struct symbol *ctype, struct expression *e
 	return max;
 }
 
+static int evaluate_initializer(struct symbol *ctype, struct expression **ep);
 static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct expression *expr, int multiple)
 {
-	/* Fixme: walk through the struct/union definitions and try to assign right types! */
+	struct expression *entry;
+	struct symbol *sym;
+
+	PREPARE_PTR_LIST(ctype->symbol_list, sym);
+	FOR_EACH_PTR(expr->expr_list, entry) {
+		struct expression **p = THIS_ADDRESS(entry);
+		struct symbol *rtype;
+
+		if (entry->type == EXPR_IDENTIFIER) {
+			struct ident *ident = entry->expr_ident;
+			/* We special-case the "already right place" case */
+			if (sym && sym->ident == ident)
+				continue;
+			RESET_PTR_LIST(sym);
+			for (;;) {
+				if (!sym) {
+					warn(expr->pos, "unknown named initializer");
+					return 0;
+				}
+				if (sym->ident == ident)
+					break;
+				NEXT_PTR_LIST(sym);
+			}
+			continue;
+		}
+
+		if (!sym) {
+			warn(expr->pos, "too many initializers for struct/union");
+			return 0;
+		}
+		rtype = evaluate_expression(entry);
+		if (!rtype)
+			return 0;
+
+		evaluate_initializer(sym, p);
+
+		NEXT_PTR_LIST(sym);
+	} END_FOR_EACH_PTR;
+	FINISH_PTR_LIST;
+
 	return 0;
 }
 

@@ -101,7 +101,7 @@ static inline void expression_iterate(struct expression_list *list, void (*callb
 		int __nr##ptr = 0;							\
 		if (__head##ptr) ptr = (__typeof__(ptr)) __head##ptr->list[0]
 
-#define NEXT_PTR_LIST(head, ptr)							\
+#define NEXT_PTR_LIST(ptr)							\
 		if (ptr) {								\
 			if (++__nr##ptr < __list##ptr->nr) {				\
 				ptr = (__typeof__(ptr)) __list##ptr->list[__nr##ptr];	\
@@ -114,6 +114,12 @@ static inline void expression_iterate(struct expression_list *list, void (*callb
 				}							\
 			}								\
 		}
+
+#define RESET_PTR_LIST(ptr) do {							\
+		__nr##ptr = 0;								\
+		if (__head##ptr) ptr = (__typeof__(ptr)) __head##ptr->list[0];		\
+	} while (0)
+	
 
 #define FINISH_PTR_LIST									\
 	} while (0)
