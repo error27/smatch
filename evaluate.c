@@ -373,11 +373,9 @@ static struct symbol *evaluate_add(struct expression *expr)
 	return evaluate_int_binop(expr);
 }
 
-static int same_type(struct symbol *target, struct symbol *source,
+static const char * type_difference(struct symbol *target, struct symbol *source,
 	unsigned long target_mod_ignore, unsigned long source_mod_ignore)
 {
-	struct position pos = source->pos;
-	int dropped_modifiers = 0;
 	for (;;) {
 		unsigned long mod1, mod2, diff;
 		unsigned long as1, as2;
@@ -385,7 +383,7 @@ static int same_type(struct symbol *target, struct symbol *source,
 		if (target == source)
 			break;
 		if (!target || !source)
-			return 0;
+			return "different types";
 		/*
 		 * Peel of per-node information.
 		 * FIXME! Check alignment, address space, and context too here!
@@ -405,19 +403,6 @@ static int same_type(struct symbol *target, struct symbol *source,
 			as2 |= source->ctype.as;
 		}
 
-		/* Ignore differences in storage types or addressability */
-		diff = (mod1 ^ mod2) & ~(MOD_STORAGE | MOD_ADDRESSABLE);
-		if (diff) {
-			mod1 &= diff & ~target_mod_ignore;
-			mod2 &= diff & ~source_mod_ignore;
-			if (mod1 | mod2)
-				return 0;
-		}
-
-		/* Must be same address space to be comparable */
-		if (as1 != as2)
-			return 0;
-	
 		if (target->type != source->type) {
 			int type1 = target->type;
 			int type2 = source->type;
@@ -426,15 +411,26 @@ static int same_type(struct symbol *target, struct symbol *source,
 			type1 = type1 == SYM_ARRAY ? SYM_PTR : type1;
 			type2 = type2 == SYM_ARRAY ? SYM_PTR : type2;
 			if (type1 != type2)
-				return 0;
+				return "different base types";
+		}
+
+		/* Must be same address space to be comparable */
+		if (as1 != as2)
+			return "different address spaces";
+
+		/* Ignore differences in storage types, sign, or addressability */
+		diff = (mod1 ^ mod2) & ~(MOD_STORAGE | MOD_ADDRESSABLE | MOD_SIGNED | MOD_UNSIGNED);
+		if (diff) {
+			mod1 &= diff & ~target_mod_ignore;
+			mod2 &= diff & ~source_mod_ignore;
+			if (mod1 | mod2)
+				return "different modifiers";
 		}
 
 		target = target->ctype.base_type;
 		source = source->ctype.base_type;
 	}
-	if (dropped_modifiers)
-		warn(pos, "assignment drops modifiers");
-	return 1;
+	return NULL;
 }
 
 static struct symbol *common_ptr_type(struct expression *l, struct expression *r)
@@ -455,6 +451,7 @@ static struct symbol *common_ptr_type(struct expression *l, struct expression *r
 
 static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expression *l, struct expression *r)
 {
+	const char *typediff;
 	struct symbol *ctype;
 	struct symbol *ltype = l->ctype, *rtype = r->ctype;
 
@@ -466,10 +463,11 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expressio
 		return evaluate_ptr_add(expr, l, r);
 
 	ctype = ltype;
-	if (!same_type(ltype, rtype, MOD_IGN, MOD_IGN)) {
+	typediff = type_difference(ltype, rtype, MOD_IGN, MOD_IGN);
+	if (typediff) {
 		ctype = common_ptr_type(l, r);
 		if (!ctype) {
-			warn(expr->pos, "subtraction of different types can't work");
+			warn(expr->pos, "subtraction of different types can't work (%s)", typediff);
 			return NULL;
 		}
 	}
@@ -662,6 +660,7 @@ static struct symbol * evaluate_conditional(struct expression *expr)
 {
 	struct expression *cond, *true, *false;
 	struct symbol *ctype, *ltype, *rtype;
+	const char * typediff;
 
 	cond = expr->conditional;
 	true = expr->cond_true ? : cond;
@@ -671,12 +670,13 @@ static struct symbol * evaluate_conditional(struct expression *expr)
 	rtype = false->ctype;
 
 	ctype = ltype;
-	if (!same_type(ltype, rtype, MOD_IGN, MOD_IGN)) {
+	typediff = type_difference(ltype, rtype, MOD_IGN, MOD_IGN);
+	if (typediff) {
 		ctype = compatible_integer_binop(expr, &true, &expr->cond_false);
 		if (!ctype) {
 			ctype = compatible_ptr_type(true, expr->cond_false);
 			if (!ctype) {
-				warn(expr->pos, "incompatible types in conditional expression");
+				warn(expr->pos, "incompatible types in conditional expression (%s)", typediff);
 				return NULL;
 			}
 		}
@@ -695,8 +695,11 @@ static struct symbol * evaluate_conditional(struct expression *expr)
 static int compatible_assignment_types(struct expression *expr, struct symbol *target,
 	struct expression **rp, struct symbol *source, const char *where)
 {
+	const char *typediff;
+
 	/* It's ok if the target is more volatile or const than the source */
-	if (same_type(target, source, MOD_VOLATILE | MOD_CONST, 0))
+	typediff = type_difference(target, source, MOD_VOLATILE | MOD_CONST, 0);
+	if (!typediff)
 		return 1;
 
 	if (compatible_integer_types(target, source)) {
@@ -723,10 +726,16 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			target = target_base;
 			target_base = target->ctype.base_type;
 		}
-		if (source->type == SYM_ARRAY && same_type(target_base, source_base, MOD_IGN, MOD_IGN))
-			return 1;
-		if (source->type == SYM_FN && same_type(target_base, source, MOD_IGN, MOD_IGN))
-			return 1;
+		if (source->type == SYM_ARRAY) {
+			const char *typediff = type_difference(target_base, source_base, MOD_IGN, MOD_IGN);
+			if (!typediff)
+				return 1;
+		}
+		if (source->type == SYM_FN) {
+			const char *typediff = type_difference(target_base, source, MOD_IGN, MOD_IGN);
+			if (!typediff)
+				return 1;
+		}
 
 		// NULL pointer?
 		if (right->type == EXPR_VALUE && !right->value)
@@ -738,17 +747,17 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			struct symbol *target_base = target->ctype.base_type;
 			if (source_base == &void_ctype || target_base == &void_ctype)
 				return 1;
-			warn(expr->pos, "incorrect type in %s", where);
+			warn(expr->pos, "incorrect type in %s (%s)", where, typediff);
 			return 1;
 		}
 
 		// FIXME!! Cast it!
-		warn(expr->pos, "different types in %s", where);
+		warn(expr->pos, "different types in %s (%s)", where, typediff);
 		return 0;
 	}
 
 	// FIXME!! Cast it?
-	warn(expr->pos, "incorrect type in %s", where);
+	warn(expr->pos, "incorrect type in %s (%s)", where, typediff);
 	warn(expr->pos, "  expected %s", show_typename(target));
 	warn(expr->pos, "  got %s", show_typename(source));
 	return 0;
@@ -820,6 +829,10 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 		return NULL;
 	}
 
+	symbol = alloc_symbol(expr->pos, SYM_PTR);
+	symbol->ctype.alignment = POINTER_ALIGNMENT;
+	symbol->bit_size = BITS_IN_POINTER;
+
 	ctype = op->ctype;
 	if (ctype->type == SYM_NODE) {
 		ctype->ctype.modifiers |= MOD_ADDRESSABLE;
@@ -827,13 +840,14 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 			warn(expr->pos, "taking address of 'register' variable '%s'", show_ident(ctype->ident));
 			ctype->ctype.modifiers &= ~MOD_REGISTER;
 		}
+		symbol->ctype.modifiers = ctype->ctype.modifiers;
+		symbol->ctype.as = ctype->ctype.as;
+		symbol->ctype.context = ctype->ctype.context;
+		symbol->ctype.contextmask = ctype->ctype.contextmask;
+		ctype = ctype->ctype.base_type;
 	}
 
-	symbol = alloc_symbol(expr->pos, SYM_PTR);
 	symbol->ctype.base_type = ctype;
-	symbol->ctype.alignment = POINTER_ALIGNMENT;
-	symbol->bit_size = BITS_IN_POINTER;
-
 	*expr = *op->unop;
 	expr->ctype = symbol;
 	return symbol;
