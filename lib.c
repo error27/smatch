@@ -757,7 +757,8 @@ char **handle_switch(char *arg, char **next)
 void declare_builtin_functions(void)
 {
 	add_pre_buffer("extern void *__builtin_memcpy(void *, const void *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern void *__builtin_return_address(int);\n");
+	add_pre_buffer("extern void *__builtin_return_address(unsigned int);\n");
+	add_pre_buffer("extern void *__builtin_frame_address(unsigned int);\n");
 	add_pre_buffer("extern void *__builtin_memset(void *, int, __SIZE_TYPE__);\n");	
 	add_pre_buffer("extern void __builtin_trap(void);\n");
 	add_pre_buffer("extern int __builtin_ffs(int);\n");
