@@ -46,7 +46,9 @@ static struct entrypoint *alloc_entrypoint(void)
 
 static struct basic_block *alloc_basic_block(void)
 {
-	return __alloc_basic_block(0);
+	struct basic_block *bb = __alloc_basic_block(0);
+	bb->context = -1;
+	return bb;
 }
 
 static struct multijmp* alloc_multijmp(struct basic_block *target, int begin, int end)
@@ -222,6 +224,9 @@ static void show_instruction(struct instruction *insn)
 		break;
 	case OP_SETCC:
 		printf("\tsetcc %%r%d\n", insn->src->nr);
+		break;
+	case OP_CONTEXT:
+		printf("\tcontext %d\n", insn->increment);
 		break;
 	default:
 		printf("\top %d ???\n", op);
@@ -835,6 +840,20 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 	return VOID;
 }
 
+pseudo_t linearize_internal(struct entrypoint *ep, struct statement *stmt)
+{
+	struct instruction *insn = alloc_instruction(OP_CONTEXT, &void_ctype);
+	struct expression *expr = stmt->expression;
+	int value = 0;
+
+	if (expr->type == EXPR_VALUE)
+		value = expr->value;
+
+	insn->increment = value;
+	add_one_insn(ep, stmt->pos, insn);
+	return VOID;
+}
+
 pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 {
 	if (!stmt)
@@ -843,6 +862,9 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	switch (stmt->type) {
 	case STMT_NONE:
 		break;
+
+	case STMT_INTERNAL:
+		return linearize_internal(ep, stmt);
 
 	case STMT_EXPRESSION:
 		return linearize_expression(ep, stmt->expression);

@@ -63,6 +63,9 @@ __IDENT(__func___ident, "__func__", 0);
 __IDENT(__FUNCTION___ident, "__FUNCTION__", 0);
 __IDENT(__PRETTY_FUNCTION___ident, "__PRETTY_FUNCTION__", 0);
 
+/* Sparse commands */
+IDENT_RESERVED(__context__);
+
 #undef __IDENT
 #undef IDENT
 #undef IDENT_RESERVED

@@ -1276,6 +1276,11 @@ default_statement:
 		if (match_idents(token, &asm_ident, &__asm___ident, &__asm_ident, NULL)) {
 			return parse_asm(token->next, stmt);
 		}
+		if (token->ident == &__context___ident) {
+			stmt->type = STMT_INTERNAL;
+			token = parse_expression(token->next, &stmt->expression);
+			return expect(token, ';', "at end of statement");
+		}
 		if (match_op(token->next, ':')) {
 			stmt->type = STMT_LABEL;
 			stmt->label_identifier = label_symbol(token);

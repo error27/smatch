@@ -990,6 +990,9 @@ static int expand_statement(struct statement *stmt)
 	case STMT_ASM:
 		/* FIXME! Do the asm parameter evaluation! */
 		break;
+	case STMT_INTERNAL:
+		expand_expression(stmt->expression);
+		break;
 	}
 	return SIDE_EFFECTS;
 }

@@ -65,6 +65,9 @@ struct instruction {
 			pseudo_t func;
 			struct pseudo_list *arguments;
 		};
+		struct /* context */ {
+			int increment;
+		};
 	};
 };
 
@@ -136,6 +139,9 @@ enum opcode {
 	OP_VANEXT,
 	OP_VAARG,
 	OP_SLICE,
+
+	/* Sparse tagging (line numbers, context, whatever) */
+	OP_CONTEXT,
 };
 
 struct basic_block_list;
@@ -150,6 +156,7 @@ struct instruction_list;
 
 struct basic_block {
 	unsigned long flags;		/* BB status flags */
+	int context;
 	struct basic_block_list *parents; /* sources */
 	struct instruction_list *insns;	/* Linear list of instructions */
 };

@@ -563,7 +563,11 @@ int show_statement(struct statement *stmt)
 	case STMT_ASM:
 		printf("\tasm( .... )\n");
 		break;
-
+	case STMT_INTERNAL: {
+		int val = show_expression(stmt->expression);
+		printf("\tINTERNAL( %d )\n", val);
+		break;
+	}
 	}
 	return 0;
 }

@@ -2541,6 +2541,9 @@ struct symbol *evaluate_statement(struct statement *stmt)
 	case STMT_ASM:
 		/* FIXME! Do the asm parameter evaluation! */
 		break;
+	case STMT_INTERNAL:
+		evaluate_expression(stmt->expression);
+		return NULL;
 	}
 	return NULL;
 }
