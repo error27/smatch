@@ -326,7 +326,7 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 	return token;
 }
 
-static struct token *parameter_type_list(struct token *, struct symbol_list **);
+static struct token *parameter_type_list(struct token *, struct symbol *);
 static struct token *declarator(struct token *token, struct symbol **tree, struct token **p);
 
 static struct token *direct_declarator(struct token *token, struct symbol **tree, struct token **p)
@@ -364,7 +364,7 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 			}
 			
 			sym = indirect(token, *tree, SYM_FN);
-			token = parameter_type_list(next, &sym->arguments);
+			token = parameter_type_list(next, sym);
 			token = expect(token, ')', "in function declarator");
 			continue;
 		}
@@ -675,16 +675,19 @@ struct token * statement_list(struct token *token, struct statement_list **list)
 	return token;
 }
 
-static struct token *parameter_type_list(struct token *token, struct symbol_list **list)
+static struct token *parameter_type_list(struct token *token, struct symbol *fn)
 {
+	struct symbol_list **list = &fn->arguments;
 	for (;;) {
 		struct symbol *sym = alloc_symbol(token, SYM_NODE);
 
 		if (match_op(token, SPECIAL_ELLIPSIS)) {
-			sym->type = SYM_ELLIPSIS;
+			fn->variadic = 1;
 			token = token->next;
-		} else
-			token = parameter_declaration(token, &sym);
+			break;
+		} 
+		
+		token = parameter_declaration(token, &sym);
 		add_symbol(list, sym);
 		if (!match_op(token, ','))
 			break;
@@ -750,8 +753,6 @@ static void declare_argument(struct symbol *sym, void *data, int flags)
 {
 	struct symbol *decl = data;
 
-	if (sym->type == SYM_ELLIPSIS)
-		return;
 	if (!sym->ident) {
 		warn(decl->token, "no identifier for function argument");
 		return;

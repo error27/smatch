@@ -192,6 +192,8 @@ void show_symbol(struct symbol *sym)
 	case SYM_FN:
 		printf("(");
 		show_symbol_list(type->arguments, ", ");
+		if (type->variadic)
+			printf(", ...");
 		printf(")\n");
 		show_statement(type->stmt);
 		return;

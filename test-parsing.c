@@ -44,6 +44,22 @@ static void simplify_statement(struct statement *stmt, struct symbol *fn)
 		simplify_statement(stmt->if_true, fn);
 		simplify_statement(stmt->if_false, fn);
 		return;
+	case STMT_ITERATOR:
+		evaluate_expression(stmt->iterator_pre_condition);
+		evaluate_expression(stmt->iterator_post_condition);
+		simplify_statement(stmt->iterator_pre_statement, fn);
+		simplify_statement(stmt->iterator_statement, fn);
+		simplify_statement(stmt->iterator_post_statement, fn);
+		return;
+	case STMT_SWITCH:
+		evaluate_expression(stmt->switch_expression);
+		simplify_statement(stmt->switch_statement, fn);
+		return;
+	case STMT_CASE:
+		evaluate_expression(stmt->case_expression);
+		evaluate_expression(stmt->case_to);
+		simplify_statement(stmt->case_statement, fn);
+		return;
 	}
 }
 

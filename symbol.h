@@ -42,7 +42,6 @@ enum type {
 	SYM_TYPEDEF,
 	SYM_MEMBER,
 	SYM_BITFIELD,
-	SYM_ELLIPSIS,
 };
 
 struct ctype {
@@ -76,6 +75,7 @@ struct symbol {
 			struct symbol_list *symbol_list;
 			long long value;		/* Initial value */
 			int fieldwidth;
+			int arg_count:10, variadic:1;
 		};
 	};
 };
