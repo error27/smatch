@@ -241,12 +241,17 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 			struct ident *ident = expr->symbol_name;
 
 			/*
-			 * Match against __HI__/__SI__/__DI__
+			 * Match against __QI__/__HI__/__SI__/__DI__
 			 *
 			 * FIXME! This is broken - we don't actually get
 			 * the type information updated properly at this
 			 * stage for some reason.
 			 */
+			if (match_string_ident(ident, "__QI__")) {
+				ctype->modifiers |= MOD_SHORT;
+				ctype->base_type = ctype_integer(ctype->modifiers);
+				return NULL;
+			}
 			if (match_string_ident(ident, "__HI__")) {
 				ctype->modifiers |= MOD_SHORT;
 				ctype->base_type = ctype_integer(ctype->modifiers);
