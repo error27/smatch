@@ -32,7 +32,7 @@ evaluate.o: $(LIB_H)
 expression.o: $(LIB_H)
 lib.o: $(LIB_H)
 parse.o: $(LIB_H)
-pre-process.o: $(LIB_H)
+pre-process.o: $(LIB_H) pre-process.h
 scope.o: $(LIB_H)
 show-parse.o: $(LIB_H)
 symbol.o: $(LIB_H)
@@ -40,5 +40,8 @@ test-lexing.o: $(LIB_H)
 test-parsing.o: $(LIB_H)
 tokenize.o: $(LIB_H)
 
+pre-process.h:
+	echo "#define GCC_INTERNAL_INCLUDE \"`gcc -print-file-name=include`\"" > pre-process.h
+
 clean:
-	rm -f *.[oasi] core core.[0-9]* $(PROGRAMS)
+	rm -f *.[oasi] core core.[0-9]* $(PROGRAMS) pre-process.h

@@ -18,6 +18,7 @@
 #include <fcntl.h>
 #include <limits.h>
 
+#include "pre-process.h"
 #include "lib.h"
 #include "parse.h"
 #include "token.h"
@@ -45,8 +46,7 @@ const char *sys_includepath[] = {
 };
 
 const char *gcc_includepath[] = {
-	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.1/include",
-	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include",
+	GCC_INTERNAL_INCLUDE,
 	NULL
 };
 
