@@ -798,28 +798,15 @@ static struct storage *emit_compare(struct expression *expr)
 	struct storage *right = x86_expression(expr->right);
 	struct storage *new, *val;
 	const char *opname = NULL;
-	static const char *name[] = {
-		['<'] = "cmovl",
-		['>'] = "cmovg",
-	};
-	unsigned int op = expr->op;
 
-	if (op < sizeof(name)/sizeof(*name)) {
-		opname = name[op];
-		assert(opname != NULL);
-	} else {
-		const char *tmp = show_special(op);
-		if (!strcmp(tmp, "<="))
-			opname = "cmovle";
-		else if (!strcmp(tmp, ">="))
-			opname = "cmovge";
-		else if (!strcmp(tmp, "=="))
-			opname = "cmove";
-		else if (!strcmp(tmp, "!="))
-			opname = "cmovne";
-		else {
-			assert(0);
-		}
+	switch(expr->op) {
+	case '<':		opname = "cmovl";	break;
+	case '>':		opname = "cmovg";	break;
+	case SPECIAL_LTE:	opname = "cmovle";	break;
+	case SPECIAL_GTE:	opname = "cmovge";	break;
+	case SPECIAL_EQUAL:	opname = "cmove";	break;
+	case SPECIAL_NOTEQUAL:	opname = "cmovne";	break;
+	default:		assert(0);		break;
 	}
 
 	/* init ECX to 1 */
@@ -835,7 +822,7 @@ static struct storage *emit_compare(struct expression *expr)
 	insn("movl", left, REG_EAX, NULL, 0);
 
 	/* perform comparison, EAX (op1) and op2 */
-	insn("cmpl", REG_EAX, right, NULL, 0);
+	insn("cmpl", right, REG_EAX, NULL, 0);
 
 	/* store result of operation, 0 or 1, in EDX using CMOV */
 	/* FIXME: does this need an operand size suffix? */
