@@ -268,8 +268,8 @@ static int count_array_initializer(struct expression *expr)
 				nr += entry->string->length;
 				break;
 			case EXPR_INDEX:
-				if (entry->idx_to > nr)
-					nr = entry->idx_to;
+				if (entry->idx_to >= nr)
+					nr = entry->idx_to+1;
 				break;
 			default:
 				nr++;
