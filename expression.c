@@ -118,10 +118,16 @@ static void get_number_value(struct expression *expr, struct token *token)
 			base -= 2;	// the fall-through will make this 8
 		}
 	}
-	while ((digit = hexval(*str)) < base) {
+	for (;;) {
+		char c = *str++;
+		if (c == '_')
+			continue;
+		digit = hexval(c);
+		if (digit >= base)
+			break;
 		value = value * base + digit;
-		str++;
 	}
+	str--;
 	modifiers = 0;
 	for (;;) {
 		char c = *str++;
