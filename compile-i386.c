@@ -701,6 +701,7 @@ static void emit_func_post(struct symbol *sym)
 	emit_atom_list(f);
 
 	/* function footer */
+	name = show_ident(sym->ident);
 	printf("\t.size\t%s, .-%s\n", name, name);
 
 	func_cleanup(f);
