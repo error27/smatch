@@ -309,7 +309,7 @@ static int show_return_stmt(struct statement *stmt)
 {
 	struct expression *expr = stmt->expression;
 
-	if (expr) {
+	if (expr && expr->ctype) {
 		int val = show_expression(expr);
 		printf("\tmov.%d\t\tretval,v%d\n",
 			expr->ctype->bit_size, val);
