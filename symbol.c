@@ -68,9 +68,16 @@ const char *type_string(unsigned int modifiers, struct symbol *sym)
 	return "typedef";
 }
 
-void show_symbol_list(struct symbol_list *list)
+static void show_one_symbol(struct symbol *sym, void *sep, int flags)
 {
-	symbol_iterate(list, show_symbol);
+	show_symbol(sym);
+	if (!(flags & ITERATE_LAST))
+		printf("%s", (const char *)sep);
+}
+
+void show_symbol_list(struct symbol_list *list, const char *sep)
+{
+	symbol_iterate(list, show_one_symbol, (void *)sep);
 }
 
 void show_type_list(struct symbol *sym)
@@ -88,6 +95,7 @@ void show_type(struct symbol *sym)
 		return;
 	}
 
+	printf("Symbol %s:", show_token(sym->token));
 	switch (sym->type) {
 	case SYM_PTR:
 		printf("%s", modifier_string(sym->modifiers));
@@ -100,9 +108,9 @@ void show_type(struct symbol *sym)
 		printf("%s", modifier_string(sym->modifiers));
 		show_type(sym->base_type);
 
-		printf("(\n");
-		show_symbol_list(sym->arguments);
-		printf(" )");
+		printf("(");
+		show_symbol_list(sym->arguments, ", ");
+		printf(")");
 		break;
 
 	case SYM_ARRAY:
@@ -126,16 +134,15 @@ void show_symbol(struct symbol *sym)
 		printf("<anon symbol>");
 		return;
 	}
-	printf("Symbol %s:\n  ", show_token(sym->token));
 	show_type(sym);
 	switch (sym->type) {
 	case SYM_FN:
+		printf("\n");
 		show_statement(sym->stmt);
 		break;
 	default:
 		break;
 	}
-	printf("\n");
 }
 
 struct symbol *alloc_symbol(struct token *token, int type)
@@ -148,8 +155,10 @@ struct symbol *alloc_symbol(struct token *token, int type)
 
 void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 {
-	if (sym->id_list)
-		*(int *)0 = 0;
+	if (sym->id_list) {
+		warn(sym->token, "internal error: symbol type already bound");
+		return;
+	}
 	sym->namespace = ns;
 	sym->next_id = ident->symbols;
 	ident->symbols = sym;

@@ -109,7 +109,7 @@ extern struct token *parse_expression(struct token *, struct expression **);
 extern struct token *statement_list(struct token *, struct statement_list **);
 
 extern void show_statement(struct statement *);
-extern void show_statement_list(struct statement_list *);
+extern void show_statement_list(struct statement_list *, const char *);
 extern void show_expression(struct expression *);
 extern void translation_unit(struct token *, struct symbol_list **);
 

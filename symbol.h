@@ -131,7 +131,7 @@ extern void show_type(struct symbol *);
 extern const char *modifier_string(unsigned long mod);
 extern void show_symbol(struct symbol *);
 extern void show_type_list(struct symbol *);
-extern void show_symbol_list(struct symbol_list *);
+extern void show_symbol_list(struct symbol_list *, const char *);
 extern void add_symbol(struct symbol_list **, struct symbol *);
 extern void bind_symbol(struct symbol *, struct ident *, enum namespace);
 

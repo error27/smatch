@@ -38,7 +38,9 @@ struct ptr_list {
 	void *list[LIST_NODE_NR];
 };
 
-void iterate(struct ptr_list *,void (*callback)(void *));
+#define ITERATE_FIRST 1
+#define ITERATE_LAST 2
+void iterate(struct ptr_list *,void (*callback)(void *, void *, int), void*);
 extern void add_ptr_list(struct ptr_list **, void *);
 
 static inline void add_symbol(struct symbol_list **list, struct symbol *sym)
@@ -51,14 +53,14 @@ static inline void add_statement(struct statement_list **list, struct statement 
 	add_ptr_list((struct ptr_list **)list, stmt);
 }
 
-static inline void symbol_iterate(struct symbol_list *list, void (*callback)(struct symbol *))
+static inline void symbol_iterate(struct symbol_list *list, void (*callback)(struct symbol *, void *, int), void *data)
 {
-	iterate((struct ptr_list *)list, (void (*)(void *))callback);
+	iterate((struct ptr_list *)list, (void (*)(void *, void *, int))callback, data);
 }
 
-static inline void statement_iterate(struct statement_list *list, void (*callback)(struct statement *))
+static inline void statement_iterate(struct statement_list *list, void (*callback)(struct statement *, void *, int), void *data)
 {
-	iterate((struct ptr_list *)list, (void (*)(void *))callback);
+	iterate((struct ptr_list *)list, (void (*)(void *, void *, int))callback, data);
 }
 
 #endif

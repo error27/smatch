@@ -27,7 +27,7 @@ void start_symbol_scope(void)
 	current_scope = scope;
 }
 
-static void remove_symbol_scope(struct symbol *sym)
+static void remove_symbol_scope(struct symbol *sym, void *data, int flags)
 {
 	struct symbol **ptr = sym->id_list;
 
@@ -43,5 +43,5 @@ void end_symbol_scope(void)
 
 	current_scope = scope->next;
 	scope->symbols = NULL;
-	symbol_iterate(symbols, remove_symbol_scope);
+	symbol_iterate(symbols, remove_symbol_scope, NULL);
 }

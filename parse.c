@@ -20,51 +20,53 @@
 void show_statement(struct statement *stmt)
 {
 	if (!stmt) {
-		printf("<nostatement>");
+		printf("\t<nostatement>");
 		return;
 	}
 	switch (stmt->type) {
 	case STMT_RETURN:
-		printf("\n\treturn ");
+		printf("\treturn ");
 		show_expression(stmt->expression);
-		printf("\n");
 		break;
 	case STMT_COMPOUND:
-		printf("\n{");
-		show_symbol_list(stmt->syms);
-		show_statement_list(stmt->stmts);
-		printf("}\n");
+		printf("{\n");
+		if (stmt->syms) {
+			printf("\t");
+			show_symbol_list(stmt->syms, "\n\t");
+			printf("\n\n");
+		}
+		show_statement_list(stmt->stmts, ";\n");
+		printf("\n}\n\n");
 		break;
 	case STMT_EXPRESSION:
-		printf("\n\t");
+		printf("\t");
 		show_expression(stmt->expression);
-		printf("\n");
 		return;
 	case STMT_IF:
-		printf("\n\tif (");
+		printf("\tif (");
 		show_expression(stmt->if_conditional);
-		printf(")\n\t\t");
+		printf(")\n");
 		show_statement(stmt->if_true);
 		if (stmt->if_false) {
-			printf("\n\telse\n\t\t");
+			printf("\nelse\n");
 			show_statement(stmt->if_false);
 		}
 		break;
 	case STMT_SWITCH:
-		printf("\n\tswitch (");
+		printf("\tswitch (");
 		show_expression(stmt->switch_expression);
-		printf(")\n\t\t");
+		printf(")\n");
 		show_statement(stmt->switch_statement);
 		break;
 
 	case STMT_CASE:
 		if (!stmt->case_expression)
-			printf("default\t");
+			printf("\tdefault");
 		else {
-			printf("\n\tcase ");
+			printf("\tcase ");
 			show_expression(stmt->case_expression);
 			if (stmt->case_to) {
-				printf("\n\t...");
+				printf(" ... ");
 				show_expression(stmt->case_to);
 			}
 		}
@@ -73,13 +75,20 @@ void show_statement(struct statement *stmt)
 		break;
 		
 	default:
-		printf("WTF\n");
+		printf("WTF");
 	}
 }
 
-void show_statement_list(struct statement_list *stmt)
+static void show_one_statement(struct statement *stmt, void *sep, int flags)
 {
-	statement_iterate(stmt, show_statement);
+	show_statement(stmt);
+	if (!(flags & ITERATE_LAST))
+		printf("%s", (const char *)sep);
+}
+
+void show_statement_list(struct statement_list *stmt, const char *sep)
+{
+	statement_iterate(stmt, show_one_statement, (void *)sep);
 }
 
 void show_expression(struct expression *expr)
@@ -107,7 +116,7 @@ void show_expression(struct expression *expr)
 		printf("%s", show_token(expr->token));
 		break;
 	case EXPR_SYMBOL:
-		show_symbol(expr->symbol);
+		show_type(expr->symbol);
 		break;
 	case EXPR_DEREF:
 		show_expression(expr->deref);
@@ -767,11 +776,6 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 			struct token *ident = NULL;
 			token = pointer(token, &declaration);
 			token = direct_declarator(token, &declaration, generic_declarator, &ident);
-			if (ident) {
-				printf("named structure declarator %s:\n  ", show_token(ident));
-				show_type(declaration);
-				printf("\n\n");
-			}
 			if (match_op(token, ':')) {
 				struct expression *expr;
 				token = parse_expression(token->next, &expr);
@@ -799,11 +803,6 @@ static struct token *parameter_declaration(struct token *token, struct symbol **
 	token = declaration_specifiers(token, *tree);
 	token = pointer(token, tree);
 	token = direct_declarator(token, tree, generic_declarator, &ident);
-	if (ident) {
-		printf("named parameter declarator %s:\n  ", show_token(ident));
-		show_type(*tree);
-		printf("\n\n");
-	}
 	return token;
 }
 
@@ -986,9 +985,9 @@ static struct token *parameter_type_list(struct token *token, struct symbol_list
 		struct symbol *sym = alloc_symbol(token, SYM_TYPE);
 
 		token = parameter_declaration(token, &sym);
+		add_symbol(list, sym);
 		if (!match_op(token, ','))
 			break;
-		add_symbol(list, sym);
 		token = token->next;
 
 		if (match_op(token, SPECIAL_ELLIPSIS)) {
@@ -1039,7 +1038,7 @@ static struct token *initializer(struct token *token, struct symbol *sym)
 	return assignment_expression(token, &expr);
 }
 
-static void declare_argument(struct symbol *sym)
+static void declare_argument(struct symbol *sym, void *data, int flags)
 {
 	if (!sym->ident) {
 		warn(sym->token, "no identifier for function argument");
@@ -1076,16 +1075,10 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	add_symbol(list, declarator);
 	bind_symbol(declarator, ident->ident, NS_SYMBOL);
 
-	if (ident) {
-		printf("external_declarator %s:\n  ", show_token(ident));
-	}
-	show_type(declarator);
-	printf("\n\n");
-
 	if (declarator->type == SYM_FN && match_op(token, '{')) {
 		declarator->stmt = alloc_statement(token, STMT_COMPOUND);
 		start_symbol_scope();
-		symbol_iterate(declarator->arguments, declare_argument);
+		symbol_iterate(declarator->arguments, declare_argument, NULL);
 		token = compound_statement(token->next, declarator->stmt);
 		end_symbol_scope();
 		return expect(token, '}', "at end of function");
@@ -1100,14 +1093,13 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 		ident = NULL;
 		declarator = specifiers;
 		token = generic_declarator(token->next, &declarator, &ident);
+		if (!ident) {
+			warn(token, "expected identifier name in type definition");
+			return token;
+		}
 
 		add_symbol(list, declarator);
-
-		if (ident) {
-			printf("external_declarator %s:\n  ", show_token(ident));
-		}
-		show_type(declarator);
-		printf("\n\n");
+		bind_symbol(declarator, ident->ident, NS_SYMBOL);
 	}
 	return expect(token, ';', "at end of declaration");
 }

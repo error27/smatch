@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 	translation_unit(token, &list);
 
 	// Show the end result.
-	show_symbol_list(list);
+	show_symbol_list(list, "\n\n");
 
 	// And show the allocation statistics
 	show_ident_alloc();
