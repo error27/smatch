@@ -101,7 +101,6 @@ int main(int argc, char **argv)
 	add_pre_buffer("#define __linux__ 1\n");
 	add_pre_buffer("#define __CHECKER__ 1\n");
 	add_pre_buffer("#define cond_syscall(x)\n");
-	add_pre_buffer("#define __KERNEL__\n");
 	add_pre_buffer("#define __GNUC__ 2\n");
 	add_pre_buffer("#define __GNUC_MINOR__ 95\n");
 	add_pre_buffer("#define __builtin_constant_p(x) 0\n");
