@@ -787,9 +787,7 @@ void pack_basic_blocks(struct entrypoint *ep)
 			case OP_BR: {
 				struct basic_block *replace;
 				replace = rewrite_branch_bb(bb, first);
-				if (replace) {
-					if (ep->entry == bb)
-						ep->entry = replace;
+				if (replace && bb != ep->entry) {
 					kill_bb(bb);
 					goto no_merge;
 				}
