@@ -99,7 +99,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 	array->ctype.base_type = &char_ctype;
 	
 	addr->symbol = sym;
-	addr->ctype = &ptr_ctype;
+	addr->ctype = NULL;
 
 	expr->type = EXPR_PREOP;
 	expr->op = '*';
