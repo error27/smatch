@@ -160,7 +160,36 @@ static int evaluate_binop(struct expression *expr)
 
 static int evaluate_preop(struct expression *expr)
 {
-	return 0;
+	struct symbol *ctype = expr->unop->ctype;
+
+	switch (expr->op) {
+	case '(':
+		expr->ctype = ctype;
+		return 1;
+
+	case '*':
+		if (ctype->type != SYM_PTR) {
+			warn(expr->token, "cannot derefence this type");
+			return 0;
+		}
+		expr->ctype = ctype->ctype.base_type;
+		return 1;
+
+	case '&': {
+		struct symbol *symbol = alloc_symbol(expr->token, SYM_PTR);
+		symbol->ctype.base_type = ctype;
+		expr->ctype = symbol;
+		return 1;
+	}
+
+	case '!':
+		expr->ctype = &bool_ctype;
+		return 1;
+
+	default:
+		expr->ctype = ctype;
+		return 1;
+	}
 }
 
 static int evaluate_postop(struct expression *expr)
