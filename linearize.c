@@ -2079,6 +2079,11 @@ static void kill_unreachable_bbs(struct entrypoint *ep)
 			phi->pseudo = VOID;
 			phi->source = NULL;
 		} END_FOR_EACH_PTR(phi);
+
+		/* Mark it as being dead */
+		bb->insns = NULL;
+		bb->children = NULL;
+		bb->parents = NULL;
 	} END_FOR_EACH_PTR(bb);
 }
 
