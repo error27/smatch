@@ -194,11 +194,6 @@ static void track_bb_liveness(struct basic_block *bb)
 	} END_FOR_EACH_PTR(needs);
 }
 
-static inline void remove_pseudo(struct pseudo_list **list, pseudo_t pseudo)
-{
-	delete_ptr_list_entry((struct ptr_list **)list, pseudo, 0);
-}
-
 /*
  * We need to clear the liveness information if we 
  * are going to re-run it.

@@ -217,6 +217,10 @@ static inline void *add_pseudo(struct pseudo_list **list, struct pseudo *pseudo)
 	return add_ptr_list(list, pseudo);
 }
 
+static inline void remove_pseudo(struct pseudo_list **list, pseudo_t pseudo)
+{
+	delete_ptr_list_entry((struct ptr_list **)list, pseudo, 0);
+}
 
 static inline int bb_terminated(struct basic_block *bb)
 {
