@@ -546,6 +546,18 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 		ptr->ctype.as = ctype->as;
 		ptr->ctype.context = ctype->context;
 		ptr->ctype.contextmask = ctype->contextmask;
+
+		/*
+		 * Arrays are not first-class citizens in the C type
+		 * system.
+		 *
+		 * Pointer to arrays get silently converted to pointers
+		 * to the array member.
+		 */
+		if (base_type->type == SYM_ARRAY) {
+			apply_ctype(token->pos, &base_type->ctype, &ptr->ctype);
+			base_type = base_type->ctype.base_type;
+		}
 		ptr->ctype.base_type = base_type;
 
 		base_type = ptr;
