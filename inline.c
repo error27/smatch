@@ -29,6 +29,31 @@ static struct statement * dup_statement(struct statement *stmt)
 	return dup;
 }
 
+static struct symbol *copy_symbol(struct position pos, struct symbol *sym)
+{
+	if (!sym)
+		return sym;
+	if (sym->ctype.modifiers & (MOD_STATIC | MOD_EXTERN | MOD_TOPLEVEL | MOD_INLINE))
+		return sym;
+	if (!sym->replace) {
+		warn(pos, "unreplaced symbol '%s'", show_ident(sym->ident));
+		return sym;
+	}
+	return sym->replace;
+}
+
+static struct symbol_list *copy_symbol_list(struct symbol_list *src)
+{
+	struct symbol_list *dst = NULL;
+	struct symbol *sym;
+
+	FOR_EACH_PTR(src, sym) {
+		struct symbol *newsym = copy_symbol(sym->pos, sym);
+		add_symbol(&dst, newsym);
+	} END_FOR_EACH_PTR;
+	return dst;
+}
+
 static struct expression * copy_expression(struct expression *expr)
 {
 	if (!expr)
@@ -40,8 +65,8 @@ static struct expression * copy_expression(struct expression *expr)
 	 * symbol to the new copy.
 	 */
 	case EXPR_SYMBOL: {
-		struct symbol *sym = expr->symbol->replace;
-		if (!sym)
+		struct symbol *sym = copy_symbol(expr->pos, expr->symbol);
+		if (sym == expr->symbol)
 			break;
 		expr = dup_expression(expr);
 		expr->symbol = sym;
@@ -167,34 +192,20 @@ void set_replace(struct symbol *old, struct symbol *new)
 void unset_replace(struct symbol *sym)
 {
 	struct symbol *r = sym->replace;
-	if (r) {
-		r->replace = NULL;
-		sym->replace = NULL;
+	if (!r) {
+		warn(sym->pos, "symbol '%s' not replaced?", show_ident(sym->ident));
+		return;
 	}
+	r->replace = NULL;
+	sym->replace = NULL;
 }
 
-struct symbol *copy_symbol(struct symbol *orig)
+static void unset_replace_list(struct symbol_list *list)
 {
-	struct symbol *sym = orig;
-	if (orig) {
-		sym = alloc_symbol(orig->pos, orig->type);
-		sym->ctype = orig->ctype;
-		sym->initializer = copy_expression(orig->initializer);
-		set_replace(orig, sym);
-	}
-	return orig;
-}
-
-struct symbol_list *copy_symbol_list(struct symbol_list *src)
-{
-	struct symbol_list *dst = NULL;
 	struct symbol *sym;
-
-	FOR_EACH_PTR(src, sym) {
-		struct symbol *newsym = copy_symbol(sym);
-		add_symbol(&dst, newsym);
+	FOR_EACH_PTR(list, sym) {
+		unset_replace(sym);
 	} END_FOR_EACH_PTR;
-	return dst;
 }
 
 static struct statement *copy_one_statement(struct statement *stmt)
@@ -238,10 +249,8 @@ static struct statement *copy_one_statement(struct statement *stmt)
 	}
 	case STMT_RETURN: {
 		struct expression *retval = copy_expression(stmt->ret_value);
-		struct symbol *sym = stmt->ret_target;
+		struct symbol *sym = copy_symbol(stmt->pos, stmt->ret_target);
 
-		if (sym && sym->replace)
-			sym = sym->replace;
 		stmt = dup_statement(stmt);
 		stmt->ret_value = retval;
 		stmt->ret_target = sym;
@@ -249,15 +258,15 @@ static struct statement *copy_one_statement(struct statement *stmt)
 	}
 	case STMT_CASE: {
 		stmt = dup_statement(stmt);
-		stmt->case_label = copy_symbol(stmt->case_label);
+		stmt->case_label = copy_symbol(stmt->pos, stmt->case_label);
 		stmt->case_expression = copy_expression(stmt->case_expression);
 		stmt->case_to = copy_expression(stmt->case_to);
 		stmt->case_statement = copy_one_statement(stmt->case_statement);
 		break;
 	}
 	case STMT_SWITCH: {
-		struct symbol *switch_break = copy_symbol(stmt->switch_break);
-		struct symbol *switch_case = copy_symbol(stmt->switch_case);
+		struct symbol *switch_break = copy_symbol(stmt->pos, stmt->switch_break);
+		struct symbol *switch_case = copy_symbol(stmt->pos, stmt->switch_case);
 		struct expression *expr = copy_expression(stmt->switch_expression);
 		struct statement *switch_stmt = copy_one_statement(stmt->switch_statement);
 		stmt = dup_statement(stmt);
@@ -269,8 +278,8 @@ static struct statement *copy_one_statement(struct statement *stmt)
 	}
 	case STMT_ITERATOR: {
 		stmt = dup_statement(stmt);
-		stmt->iterator_break = copy_symbol(stmt->iterator_break);
-		stmt->iterator_continue = copy_symbol(stmt->iterator_continue);
+		stmt->iterator_break = copy_symbol(stmt->pos, stmt->iterator_break);
+		stmt->iterator_continue = copy_symbol(stmt->pos, stmt->iterator_continue);
 		stmt->iterator_syms = copy_symbol_list(stmt->iterator_syms);
 
 		stmt->iterator_pre_statement = copy_one_statement(stmt->iterator_pre_statement);
@@ -284,7 +293,7 @@ static struct statement *copy_one_statement(struct statement *stmt)
 	}
 	case STMT_LABEL: {
 		stmt = dup_statement(stmt);
-		stmt->label_identifier = copy_symbol(stmt->label_identifier);
+		stmt->label_identifier = copy_symbol(stmt->pos, stmt->label_identifier);
 		stmt->label_statement = copy_one_statement(stmt->label_statement);
 		break;
 	}
@@ -319,29 +328,49 @@ void copy_statement(struct statement *src, struct statement *dst)
 	struct symbol *sym;
 
 	FOR_EACH_PTR(src->syms, sym) {
-		struct symbol *newsym = alloc_symbol(sym->pos, sym->type);
-		newsym->ctype = sym->ctype;
+		struct symbol *newsym = copy_symbol(src->pos, sym);
 		newsym->initializer = copy_expression(sym->initializer);
 		add_symbol(&dst->syms, newsym);
-
-		set_replace(sym, newsym);
 	} END_FOR_EACH_PTR;
 
 	FOR_EACH_PTR(src->stmts, stmt) {
 		add_statement(&dst->stmts, copy_one_statement(stmt));
 	} END_FOR_EACH_PTR;
 
-	FOR_EACH_PTR(dst->syms, sym) {
-		unset_replace(sym);
+	dst->ret = copy_symbol(src->pos, src->ret);
+}
+
+static struct symbol *create_copy_symbol(struct symbol *orig)
+{
+	struct symbol *sym = orig;
+	if (orig) {
+		sym = alloc_symbol(orig->pos, orig->type);
+		sym->ctype = orig->ctype;
+		sym->initializer = NULL;
+		set_replace(orig, sym);
+	}
+	return orig;
+}
+
+static struct symbol_list *create_symbol_list(struct symbol_list *src)
+{
+	struct symbol_list *dst = NULL;
+	struct symbol *sym;
+
+	FOR_EACH_PTR(src, sym) {
+		struct symbol *newsym = create_copy_symbol(sym);
+		add_symbol(&dst, newsym);
 	} END_FOR_EACH_PTR;
+	return dst;
 }
 
 int inline_function(struct expression *expr, struct symbol *sym)
 {
+	struct symbol_list * fn_symbol_list;
 	struct symbol *fn = sym->ctype.base_type;
 	struct expression_list *arg_list = expr->args;
 	struct statement *stmt = alloc_statement(expr->pos, STMT_COMPOUND);
-	struct symbol_list *name_list = sym->ctype.base_type->arguments;
+	struct symbol_list *name_list;
 	struct symbol *name;
 	struct expression *arg;
 
@@ -349,6 +378,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 		warn(fn->pos, "marked inline, but without a definition");
 		return 0;
 	}
+	name_list = fn->arguments;
 
 	stmt = alloc_statement(expr->pos, STMT_COMPOUND);
 
@@ -356,16 +386,8 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	expr->statement = stmt;
 	expr->ctype = fn->ctype.base_type;
 
-	/*
-	 * FIXME! On expansion, we'll need to replace the original return
-	 * symbol with this local one!
-	 */
-	stmt->ret = alloc_symbol(sym->pos, SYM_NODE);
+	fn_symbol_list = create_symbol_list(sym->symbol_list);
 
-	/*
-	 * FIXME! On expansion, we'll also need to replace the original
-	 * argument symbols with these!
-	 */
 	PREPARE_PTR_LIST(name_list, name);
 	FOR_EACH_PTR(arg_list, arg) {
 		struct symbol *a = alloc_symbol(arg->pos, SYM_NODE);
@@ -375,15 +397,18 @@ int inline_function(struct expression *expr, struct symbol *sym)
 			a->ident = name->ident;
 			a->ctype = name->ctype;
 			set_replace(name, a);
+			add_symbol(&fn_symbol_list, a);
 		}
 		a->initializer = arg;
-		add_symbol(&stmt->syms, a);
 
 		NEXT_PTR_LIST(name);
 	} END_FOR_EACH_PTR;
 	FINISH_PTR_LIST(name);
 
 	copy_statement(fn->stmt, stmt);
+
+	unset_replace_list(fn_symbol_list);
+
 	evaluate_statement(stmt);
 
 	return 1;

@@ -24,6 +24,11 @@
 #include "expression.h"
 #include "target.h"
 
+static struct symbol_list **function_symbol_list;
+
+// Add a symbol to the list of function-local symbols
+#define fn_local_symbol(x) add_symbol(function_symbol_list, (x))
+
 static struct token *statement(struct token *token, struct statement **tree);
 static struct token *external_declaration(struct token *token, struct symbol_list **list);
 
@@ -56,6 +61,8 @@ static struct symbol *lookup_or_create_symbol(enum namespace ns, enum type type,
 		sym = alloc_symbol(token->pos, type);
 		sym->ident = token->ident;
 		bind_symbol(sym, token->ident, ns);
+		if (type == SYM_LABEL)
+			fn_local_symbol(sym);
 	}
 	return sym;
 }
@@ -648,6 +655,8 @@ static void start_iterator(struct statement *stmt)
 	stmt->type = STMT_ITERATOR;
 	stmt->iterator_break = brk;
 	stmt->iterator_continue = cont;
+	fn_local_symbol(brk);
+	fn_local_symbol(cont);
 }
 
 static void end_iterator(struct statement *stmt)
@@ -666,6 +675,7 @@ static struct statement *start_function(struct symbol *sym)
 	ret->ctype = sym->ctype;
 	bind_symbol(ret, &return_ident, NS_ITERATOR);
 	stmt->ret = ret;
+	fn_local_symbol(ret);
 	return stmt;
 }
 
@@ -703,6 +713,9 @@ static void start_switch(struct statement *stmt)
 	stmt->type = STMT_SWITCH;
 	stmt->switch_break = brk;
 	stmt->switch_case = switch_case;
+
+	fn_local_symbol(brk);
+	fn_local_symbol(switch_case);
 }
 
 static void end_switch(struct statement *stmt)
@@ -725,6 +738,7 @@ static void add_case_statement(struct statement *stmt)
 	add_symbol(&target->symbol_list, sym);
 	sym->stmt = stmt;
 	stmt->case_label = sym;
+	fn_local_symbol(sym);
 }
 
 static struct token *parse_return_statement(struct token *token, struct statement *stmt)
@@ -1060,6 +1074,7 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 	struct statement *stmt;
 	struct symbol *arg;
 
+	function_symbol_list = &decl->symbol_list;
 	if (decl->ctype.modifiers & MOD_EXTERN) {
 		if (!(decl->ctype.modifiers & MOD_INLINE))
 			warn(decl->pos, "function with external linkage has definition");
@@ -1080,6 +1095,7 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 	if (!(decl->ctype.modifiers & MOD_INLINE))
 		add_symbol(list, decl);
 	check_declaration(decl);
+	function_symbol_list = NULL;
 	return expect(token, '}', "at end of function");
 }
 
@@ -1132,8 +1148,13 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 			}
 			token = initializer(&decl->initializer, token->next);
 		}
-		if (!is_typedef && !(decl->ctype.modifiers & (MOD_EXTERN | MOD_INLINE)))
-			add_symbol(list, decl);
+		if (!is_typedef) {
+			if (!(decl->ctype.modifiers & (MOD_EXTERN | MOD_INLINE))) {
+				add_symbol(list, decl);
+				if (function_symbol_list)
+					fn_local_symbol(decl);
+			}
+		}
 		check_declaration(decl);
 
 		if (!match_op(token, ','))

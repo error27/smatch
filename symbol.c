@@ -324,6 +324,8 @@ static struct symbol *create_symbol(int stream, const char *name, int type, int 
 {
 	struct token *token = built_in_token(stream, name);
 	struct symbol *sym = alloc_symbol(token->pos, type);
+
+	sym->ident = token->ident;
 	bind_symbol(sym, token->ident, namespace);
 	return sym;
 }
@@ -422,7 +424,7 @@ struct sym_init {
  * Builtin functions
  */
 struct sym_init eval_init_table[] = {
-	{ "__builtin_constant_p", &int_type, 0, evaluate_constant_p },
+	{ "__builtin_constant_p", &int_type, MOD_TOPLEVEL, evaluate_constant_p },
 
 	{ NULL,		NULL,		0 }
 };
