@@ -435,6 +435,8 @@ static int simplify_associative_binop(struct instruction *insn)
 	if (pseudo->type != PSEUDO_REG)
 		return 0;
 	def = pseudo->def;
+	if (def == insn)
+		return 0;
 	if (def->opcode != insn->opcode)
 		return 0;
 	if (!simple_pseudo(def->src2))
