@@ -1217,6 +1217,15 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	}
 
 	evaluate_expression(target);
+
+	/*
+	 * Casts of constant values are special: they
+	 * can be NULL, and thus need to be simplified
+	 * early.
+	 */
+	if (target->type == EXPR_VALUE)
+		cast_value(expr, ctype, target, target->ctype);
+
 	return ctype;
 }
 

@@ -153,4 +153,8 @@ struct token *compound_statement(struct token *, struct statement *);
 /* The preprocessor calls this 'constant_expression()' */
 #define constant_expression(token,tree) conditional_expression(token, tree)
 
+/* Cast folding of constant values.. */
+void cast_value(struct expression *expr, struct symbol *newtype,
+	struct expression *old, struct symbol *oldtype);
+
 #endif

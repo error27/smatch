@@ -42,8 +42,8 @@ static void expand_symbol_expression(struct expression *expr)
 	}
 }
 
-static void cast_value(struct expression *expr, struct symbol *newtype,
-			struct expression *old, struct symbol *oldtype)
+void cast_value(struct expression *expr, struct symbol *newtype,
+		struct expression *old, struct symbol *oldtype)
 {
 	int old_size = oldtype->bit_size;
 	int new_size = newtype->bit_size;
