@@ -476,8 +476,18 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 	}
 
 	/* Turn the "virtual types" into real types with real sizes etc */
-	if (!ctype->base_type && (ctype->modifiers & MOD_SPECIFIER))
-		ctype->base_type = &int_type;
+	if (!ctype->base_type) {
+		struct symbol *base = &incomplete_ctype;
+
+		/*
+		 * If we have modifiers, we'll default to an integer
+		 * type, and "ctype_integer()" will turn this into
+		 * a specific one.
+		 */
+		if (ctype->modifiers & MOD_SPECIFIER)
+			base = &int_type;
+		ctype->base_type = base;
+	}
 
 	if (ctype->base_type == &int_type) {
 		ctype->base_type = ctype_integer(ctype->modifiers & MOD_SPECIFIER);

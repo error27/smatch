@@ -462,7 +462,7 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		long_ctype, ulong_ctype,
 		llong_ctype, ullong_ctype,
 		float_ctype, double_ctype, ldouble_ctype,
-		string_ctype, ptr_ctype, label_ctype;
+		string_ctype, ptr_ctype, incomplete_ctype;
 
 struct ctype_declare {
 	struct symbol *ptr;
@@ -474,7 +474,7 @@ struct ctype_declare {
 	{ &bool_ctype,   0,					  &bits_in_int,		&max_int_alignment, &int_type },
 	{ &void_ctype,   0,					  NULL,			NULL,			NULL },
 	{ &type_ctype,   MOD_TYPE,				  NULL,			NULL,			NULL },
-	{ &label_ctype,  MOD_LABEL | MOD_UNSIGNED,		  &bits_in_pointer,	&max_int_alignment, &label_type },
+	{ &incomplete_ctype, 0,					  NULL,			NULL,			NULL },
 
 	{ &char_ctype,   MOD_SIGNED | MOD_CHAR,  		  &bits_in_char,	&max_int_alignment, &int_type },
 	{ &uchar_ctype,  MOD_UNSIGNED | MOD_CHAR,		  &bits_in_char,	&max_int_alignment, &int_type },

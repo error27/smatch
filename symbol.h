@@ -159,7 +159,8 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			long_ctype, ulong_ctype,
 			llong_ctype, ullong_ctype,
 			float_ctype, double_ctype, ldouble_ctype,
-			string_ctype, ptr_ctype, label_type;
+			string_ctype, ptr_ctype,
+			incomplete_ctype;
 
 
 /* Basic identifiers */
