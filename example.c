@@ -231,7 +231,7 @@ static void flush_reg(struct bb_state *state, struct hardreg *hardreg)
 	free_ptr_list(&hardreg->contains);
 }
 
-static struct storage *find_pseudo_storage(struct bb_state *state, pseudo_t pseudo, struct hardreg *reg)
+static struct storage_hash *find_pseudo_storage(struct bb_state *state, pseudo_t pseudo, struct hardreg *reg)
 {
 	struct storage_hash *src;
 
@@ -270,13 +270,13 @@ static struct storage *find_pseudo_storage(struct bb_state *state, pseudo_t pseu
 		} else
 			alloc_stack(state, src->storage);
 	}
-	return src->storage;
+	return src;
 }
 
 /* Fill a hardreg with the pseudo it has */
 static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg, pseudo_t pseudo)
 {
-	struct storage *src;
+	struct storage_hash *src;
 	struct instruction *def;
 
 	switch (pseudo->type) {
@@ -294,7 +294,9 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 			break;
 		}
 		src = find_pseudo_storage(state, pseudo, hardreg);
-		output_insn(state, "mov.%d %s,%s", 32, show_memop(src), hardreg->name);
+		if (!src)
+			break;
+		output_insn(state, "mov.%d %s,%s", 32, show_memop(src->storage), hardreg->name);
 		break;
 	default:
 		output_insn(state, "reload %s from %s", hardreg->name, show_pseudo(pseudo));
@@ -425,7 +427,7 @@ static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src, pse
 static const char *generic(struct bb_state *state, pseudo_t pseudo)
 {
 	struct hardreg *reg;
-	struct storage *src;
+	struct storage_hash *src;
 
 	switch (pseudo->type) {
 	case PSEUDO_SYM:
@@ -436,7 +438,9 @@ static const char *generic(struct bb_state *state, pseudo_t pseudo)
 		if (reg)
 			return reg->name;
 		src = find_pseudo_storage(state, pseudo, NULL);
-		return show_memop(src);
+		if (!src)
+			return "undef";
+		return show_memop(src->storage);
 	}
 }
 
