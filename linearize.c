@@ -375,6 +375,13 @@ static void show_bb(struct basic_block *bb)
 		} END_FOR_EACH_PTR(to);
 	}
 
+	if (bb->phinodes) {
+		struct phi *phi;
+		FOR_EACH_PTR(bb->phinodes, phi) {
+			printf("  **phi source %s**\n", show_pseudo(phi->pseudo));
+		} END_FOR_EACH_PTR(phi);
+	}
+
 	FOR_EACH_PTR(bb->insns, insn) {
 		show_instruction(insn);
 	} END_FOR_EACH_PTR(insn);
