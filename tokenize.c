@@ -343,6 +343,40 @@ static void drop_token(stream_t *stream)
 	stream->token = NULL;
 }
 
+enum {
+	Letter = 1,
+	Digit = 2,
+	Hex = 4,
+	Exp = 8,
+	Dot = 16,
+	ValidSecond = 32,
+};
+
+static const long cclass[257] = {
+	['0' + 1 ... '9' + 1] = Digit | Hex,
+	['A' + 1 ... 'D' + 1] = Letter | Hex,
+	['E' + 1] = Letter | Hex | Exp,
+	['F' + 1] = Letter | Hex,
+	['G' + 1 ... 'O' + 1] = Letter,
+	['P' + 1] = Letter | Exp,
+	['Q' + 1 ... 'Z' + 1] = Letter,
+	['a' + 1 ... 'd' + 1] = Letter | Hex,
+	['e' + 1] = Letter | Hex | Exp,
+	['f' + 1] = Letter | Hex,
+	['g' + 1 ... 'o' + 1] = Letter,
+	['p' + 1] = Letter | Exp,
+	['q' + 1 ... 'z' + 1] = Letter,
+	['_' + 1] = Letter,
+	['.' + 1] = Dot | ValidSecond,
+	['=' + 1] = ValidSecond,
+	['+' + 1] = ValidSecond,
+	['-' + 1] = ValidSecond,
+	['>' + 1] = ValidSecond,
+	['<' + 1] = ValidSecond,
+	['&' + 1] = ValidSecond,
+	['|' + 1] = ValidSecond,
+	['#' + 1] = ValidSecond,
+};
 
 /*
  * pp-number:
@@ -365,24 +399,17 @@ static int get_one_number(int c, int next, stream_t *stream)
 
 	*p++ = c;
 	for (;;) {
-		switch (next) {
-		case 'e': case 'E':
-		case 'p': case 'P':
-			*p++ = next;
-			next = nextchar(stream);
-			if (next != '-' && next != '+')
-				continue;
-		/* Fallthrough for sign of 'e'/'p' */
-		case '0'...'9':
-		case '.': case '_':
-		case 'a'...'d': case 'A'...'D':
-		case 'f'...'o': case 'F'...'O':
-		case 'q'...'z': case 'Q'...'Z':
-			*p++ = next;
-			next = nextchar(stream);
-			continue;
+		long class =  cclass[next + 1];
+		if (!(class & (Dot | Digit | Letter)))
+			break;
+		*p++ = next;
+		next = nextchar(stream);
+		if (class & Exp) {
+			if (next == '-' || next == '+') {
+				*p++ = next;
+				next = nextchar(stream);
+			}
 		}
-		break;
 	}
 	*p++ = 0;
 	len = p - buffer;
@@ -616,7 +643,7 @@ static int get_one_special(int c, stream_t *stream)
 	 * Check for combinations
 	 */
 	value = c;
-	if (ispunct(next)) {
+	if (cclass[next + 1] & ValidSecond) {
 		comb = combinations[0];
 		c1 = c; c2 = next; c3 = 0;
 		for (i = 0; i < NR_COMBINATIONS; i++) {
@@ -701,17 +728,22 @@ static struct ident * insert_hash(struct ident *ident, unsigned long hash)
 static struct ident *create_hashed_ident(const char *name, int len, unsigned long hash)
 {
 	struct ident *ident;
+	struct ident **p;
 
-	ident = hash_table[hash];
-	while (ident) {
+	p = &hash_table[hash];
+	while ((ident = *p) != NULL) {
 		if (ident->len == len && !memcmp(ident->name, name, len)) {
 			ident_hit++;
 			return ident;
 		}
-		ident = ident->next;
+		//misses++;
+		p = &ident->next;
 	}
-
-	return insert_hash(alloc_ident(name, len), hash);
+	ident = alloc_ident(name, len);
+	*p = ident;
+	ident->next = NULL;
+	ident_miss++;
+	return ident;
 }
 
 static unsigned long hash_name(const char *name, int len)
@@ -762,19 +794,13 @@ static int get_one_identifier(int c, stream_t *stream)
 	buf[0] = c;
 	for (;;) {
 		next = nextchar(stream);
-		switch (next) {
-		case '0'...'9':
-		case 'a'...'z':
-		case 'A'...'Z':
-		case '_':
-			if (len < sizeof(buf)) {
-				hash = ident_hash_add(hash, next);
-				buf[len] = next;
-				len++;
-			}
-			continue;
-		}
-		break;
+		if (!(cclass[next + 1] & (Letter | Digit)))
+			break;
+		if (len >= sizeof(buf))
+			break;
+		hash = ident_hash_add(hash, next);
+		buf[len] = next;
+		len++;
 	};
 	hash = ident_hash_end(hash);
 
@@ -790,16 +816,12 @@ static int get_one_identifier(int c, stream_t *stream)
 
 static int get_one_token(int c, stream_t *stream)
 {
-	switch (c) {
-	case '0'...'9':
+	long class = cclass[c + 1];
+	if (class & Digit)
 		return get_one_number(c, nextchar(stream), stream);
-	case 'a'...'z':
-	case 'A'...'Z':
-	case '_':
+	if (class & Letter)
 		return get_one_identifier(c, stream);
-	default:
-		return get_one_special(c, stream);
-	}	
+	return get_one_special(c, stream);
 }
 
 static struct token *setup_stream(stream_t *stream, int idx, int fd,

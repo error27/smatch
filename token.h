@@ -71,7 +71,7 @@ enum token_type {
 	"+=", "++",		\
 	"-=", "--", "->",	\
 	"*=",			\
-	"/=", "/*", "//",	\
+	"/=",			\
 	"%=",			\
 	"..", "...",		\
 	"<=", "<<", "<<=",	\
@@ -92,8 +92,6 @@ enum special_token {
 	SPECIAL_DEREFERENCE,
 	SPECIAL_MUL_ASSIGN,
 	SPECIAL_DIV_ASSIGN,
-	SPECIAL_COMMENT,
-	SPECIAL_CPPCOMMENT,
 	SPECIAL_MOD_ASSIGN,
 	SPECIAL_DOTDOT,
 	SPECIAL_ELLIPSIS,
