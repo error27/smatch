@@ -29,6 +29,13 @@ static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 	expand_symbol(sym);
 }
 
+static void do_predefined(char *filename)
+{
+	add_pre_buffer("#define __BASE_FILE__ \"%s\"\n", filename);
+	add_pre_buffer("#define __DATE__ \"??? ?? ????\"\n");
+	add_pre_buffer("#define __TIME__ \"??:??:??\"\n");
+}
+
 int main(int argc, char **argv)
 {
 	int fd;
@@ -60,6 +67,8 @@ int main(int argc, char **argv)
 
 	// Initialize type system
 	init_ctype();
+
+	do_predefined(filename);
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0)

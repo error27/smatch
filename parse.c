@@ -685,6 +685,10 @@ static struct token *parse_asm_operands(struct token *token, struct statement *s
 	if (match_op(token->next, ':') || match_op(token->next, ')'))
 		return token->next;
 	do {
+		if (match_op(token->next, '[') &&
+		    token_type(token->next->next) == TOKEN_IDENT &&
+		    match_op(token->next->next->next, ']'))
+			token = token->next->next->next;
 		token = primary_expression(token->next, &expr);
 		token = parens_expression(token, &expr, "in asm parameter");
 	} while (match_op(token, ','));
