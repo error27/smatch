@@ -25,7 +25,10 @@ struct instruction {
 	int opcode;
 	pseudo_t target;
 	union {
-		pseudo_t src;	/* unops */
+		struct /* unops */ {
+			struct symbol *orig_type;	/* casts */
+			pseudo_t src;
+		};
 		struct /* binops */ {
 			pseudo_t src1, src2;
 		};
@@ -38,6 +41,7 @@ struct instruction {
 };
 
 enum opcode {
+	OP_BADOP,
 	OP_CONDTRUE,
 	OP_CONDFALSE,
 	OP_SETVAL,
@@ -49,6 +53,7 @@ enum opcode {
 	OP_ARGUMENT,
 	OP_CALL,
 	OP_INDCALL,
+	OP_CAST,
 	OP_UNOP = 0x200,
 	OP_LASTUNOP = 0x3ff,
 	OP_BINOP = 0x400,

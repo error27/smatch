@@ -44,6 +44,9 @@ static void show_instruction(struct instruction *insn)
 	int op = insn->opcode;
 
 	switch (op) {
+	case OP_BADOP:
+		printf("\tAIEEE! (%d %d)\n", insn->target.nr, insn->src.nr);
+		break;
 	case OP_CONDTRUE: case OP_CONDFALSE:
 		printf("\t%s %%r%d,%p\n",
 			op == OP_CONDTRUE ? "jne" : "jz",
@@ -92,6 +95,12 @@ static void show_instruction(struct instruction *insn)
 		break;
 	case OP_INDCALL:
 		printf("\t%%r%d <- CALL [%%r%d]\n", insn->target.nr, insn->src.nr);
+		break;
+	case OP_CAST:
+		printf("\t%%r%d <- CAST(%d->%d) %%r%d\n",
+			insn->target.nr,
+			insn->orig_type->bit_size, insn->type->bit_size, 
+			insn->src.nr);
 		break;
 	case OP_UNOP ... OP_LASTUNOP:
 		printf("\t%%r%d <- %c %%r%d\n",
@@ -327,6 +336,11 @@ static pseudo_t linearize_preop(struct entrypoint *ep, struct expression *expr)
 	return linearize_regular_preop(ep, expr);
 }
 
+static pseudo_t linearize_postop(struct entrypoint *ep, struct expression *expr)
+{
+	return linearize_inc_dec(ep, expr, 1);
+}	
+
 static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *expr)
 {
 	struct expression *target = expr->left;
@@ -459,6 +473,21 @@ static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr
 	return result;
 }
 
+pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
+{
+	pseudo_t src, result;
+	struct instruction *insn;
+
+	src = linearize_expression(ep, expr->cast_expression);
+	insn = alloc_instruction(OP_CAST, expr->ctype);
+	result = alloc_pseudo();
+	insn->target = result;
+	insn->src = src;
+	insn->orig_type = expr->cast_expression->ctype;
+	add_one_insn(ep, expr->pos, insn);
+	return result;
+}
+
 pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 {
 	if (!expr)
@@ -497,8 +526,19 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 	case EXPR_PREOP:
 		return linearize_preop(ep, expr);
 
-	default:
+	case EXPR_POSTOP:
+		return linearize_postop(ep, expr);
+
+	case EXPR_CAST:
+		return linearize_cast(ep, expr);
+
+	default: {
+		struct instruction *bad = alloc_instruction(OP_BADOP, expr->ctype);
+		bad->target.nr = expr->type;
+		bad->src.nr = expr->op;
+		add_one_insn(ep, expr->pos, bad);
 		return VOID;
+	}
 	}
 	return VOID;
 }
