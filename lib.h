@@ -291,84 +291,106 @@ static inline void expression_iterate(struct expression_list *list, void (*callb
 	iterate((struct ptr_list *)list, (void (*)(void *, void *, int))callback, data);
 }
 
-#define PREPARE_PTR_LIST(head, ptr)							\
+#define DO_PREPARE(head, ptr, __head, __list, __nr)					\
 	do {										\
-		struct ptr_list *__head##ptr = (struct ptr_list *) (head);		\
-		struct ptr_list *__list##ptr = __head##ptr;				\
-		int __nr##ptr = 0;							\
-		if (__head##ptr) ptr = (__typeof__(ptr)) __head##ptr->list[0];		\
+		struct ptr_list *__head = (struct ptr_list *) (head);			\
+		struct ptr_list *__list = __head;					\
+		int __nr = 0;								\
+		if (__head) ptr = (__typeof__(ptr)) __head->list[0];			\
 		else ptr = NULL
 
-#define NEXT_PTR_LIST(ptr)							\
+#define DO_NEXT(ptr, __head, __list, __nr)						\
 		if (ptr) {								\
-			if (++__nr##ptr < __list##ptr->nr) {				\
-				ptr = (__typeof__(ptr)) __list##ptr->list[__nr##ptr];	\
+			if (++__nr < __list->nr) {					\
+				ptr = (__typeof__(ptr)) __list->list[__nr];		\
 			} else {							\
-				__list##ptr = __list##ptr->next;			\
+				__list = __list->next;					\
 				ptr = NULL;						\
-				if (__list##ptr != __head##ptr) {			\
-					__nr##ptr = 0;					\
-					ptr = (__typeof__(ptr)) __list##ptr->list[0];	\
+				if (__list != __head) {					\
+					__nr = 0;					\
+					ptr = (__typeof__(ptr)) __list->list[0];	\
 				}							\
 			}								\
 		}
 
-#define RESET_PTR_LIST(ptr) do {							\
-		__nr##ptr = 0;								\
-		__list##ptr = __head##ptr;						\
-		if (__head##ptr) ptr = (__typeof__(ptr)) __head##ptr->list[0];		\
-	} while (0)
-	
-
-#define FINISH_PTR_LIST(ptr)								\
-		(void)(__nr##ptr); /* Sanity-check nesting */				\
+#define DO_RESET(ptr, __head, __list, __nr)						\
+	do {										\
+		__nr = 0;								\
+		__list = __head;							\
+		if (__head) ptr = (__typeof__(ptr)) __head->list[0];			\
 	} while (0)
 
-#define FOR_EACH_PTR(head, ptr) do {							\
+#define DO_FINISH(ptr, __head, __list, __nr)						\
+		(void)(__nr); /* Sanity-check nesting */				\
+	} while (0)
+
+#define PREPARE_PTR_LIST(head, ptr) \
+	DO_PREPARE(head, ptr, __head##ptr, __list##ptr, __nr##ptr)
+
+#define NEXT_PTR_LIST(ptr) \
+	DO_NEXT(ptr, __head##ptr, __list##ptr, __nr##ptr)
+
+#define RESET_PTR_LIST(ptr) \
+	DO_RESET(ptr, __head##ptr, __list##ptr, __nr##ptr)
+
+#define FINISH_PTR_LIST(ptr) \
+	DO_FINISH(ptr, __head##ptr, __list##ptr, __nr##ptr)
+
+#define DO_FOR_EACH(head, ptr, __head, __list, __nr) do {				\
 	struct ptr_list *__head = (struct ptr_list *) (head);				\
 	struct ptr_list *__list = __head;						\
-	int __flag = ITERATE_FIRST;							\
 	if (__head) {									\
-		do { int __i;								\
-			for (__i = 0; __i < __list->nr; __i++) {			\
-				if (__i == __list->nr-1 && __list->next == __head)	\
-					__flag |= ITERATE_LAST;				\
+		do { int __nr;								\
+			for (__nr = 0; __nr < __list->nr; __nr++) {			\
 				do {							\
-					ptr = (__typeof__(ptr)) (__list->list[__i]);	\
+					ptr = (__typeof__(ptr)) (__list->list[__nr]);	\
 					do {
 
-#define END_FOR_EACH_PTR		} while (0);					\
+#define DO_END_FOR_EACH(ptr, __head, __list, __nr)					\
+					} while (0);					\
 				} while (0);						\
-				__flag = 0;						\
 			}								\
 		} while ((__list = __list->next) != __head);				\
 	}										\
 } while (0)
 
-#define FOR_EACH_PTR_REVERSE(head, ptr) do {						\
+#define DO_FOR_EACH_REVERSE(head, ptr, __head, __list, __nr) do {			\
 	struct ptr_list *__head = (struct ptr_list *) (head);				\
 	struct ptr_list *__list = __head;						\
-	int __flag = ITERATE_FIRST;							\
 	if (__head) {									\
-		do { int __i;								\
+		do { int __nr;								\
 			__list = __list->prev;						\
-			__i = __list->nr;						\
-			while (--__i >= 0) {						\
-				if (__i == 0 && __list == __head)			\
-					__flag |= ITERATE_LAST;				\
+			__nr = __list->nr;						\
+			while (--__nr >= 0) {						\
 				do {							\
-					ptr = (__typeof__(ptr)) (__list->list[__i]);	\
+					ptr = (__typeof__(ptr)) (__list->list[__nr]);	\
 					do {
 
-#define END_FOR_EACH_PTR_REVERSE	} while (0);					\
+
+#define DO_END_FOR_EACH_REVERSE(ptr, __head, __list, __nr)				\
+					} while (0);					\
 				} while (0);						\
-				__flag = 0;						\
 			}								\
 		} while (__list != __head);						\
 	}										\
 } while (0)
 
-#define THIS_ADDRESS(x) \
-	((__typeof__(&(x))) (__list->list + __i))
+#define DO_THIS_ADDRESS(ptr, __head, __list, __nr)					\
+	((__typeof__(&(ptr))) (__list->list + __nr))
+
+#define FOR_EACH_PTR(head, ptr) \
+	DO_FOR_EACH(head, ptr, __head, __list, __nr)
+
+#define END_FOR_EACH_PTR \
+	DO_END_FOR_EACH(dummy_unused, __head, __list, __nr)
+
+#define FOR_EACH_PTR_REVERSE(head, ptr) \
+	DO_FOR_EACH_REVERSE(head, ptr, __head, __list, __nr)
+
+#define END_FOR_EACH_PTR_REVERSE \
+	DO_END_FOR_EACH_REVERSE(dummy_unused, __head, __list, __nr)
+
+#define THIS_ADDRESS(ptr) \
+	DO_THIS_ADDRESS(ptr, __head, __list, __nr)
 
 #endif
