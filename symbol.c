@@ -243,22 +243,10 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 	case SYM_TYPEOF: {
 		struct symbol *base = evaluate_expression(sym->initializer);
 		if (base) {
-			struct symbol *node;
-			unsigned long mod;
-			if (base->type != SYM_NODE)
-				return base;
-			mod = base->ctype.modifiers;
-			/* do we have anything to get rid of? */
-			if (!base->ctype.as && !(mod & MOD_STRIP))
-				return base;
-			node = alloc_symbol(sym->pos, SYM_NODE);
-			node->bit_size = base->bit_size;
-			node->array_size = base->array_size;
-			node->ctype.modifiers = mod & ~MOD_STRIP;
-			node->ctype.context = base->ctype.context;
-			node->ctype.contextmask = base->ctype.contextmask;
-			node->ctype.base_type = base->ctype.base_type;
-			return node;
+			if (base->type == SYM_NODE)
+				base = base->ctype.base_type;
+			sym->type = SYM_NODE;
+			sym->ctype.base_type = base;
 		}
 		break;
 	}
