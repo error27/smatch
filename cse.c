@@ -359,6 +359,8 @@ repeat:
 
 				last = NULL;
 				FOR_EACH_PTR(*list, insn) {
+					if (!insn->bb)
+						continue;
 					if (last) {
 						if (!insn_compare(last, insn)) {
 							struct instruction *def = try_to_cse(ep, last, insn);
