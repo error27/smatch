@@ -590,16 +590,62 @@ static struct hardreg *target_copy_reg(struct bb_state *state, struct hardreg *s
 	return copy_reg(state, src, target);
 }
 
-static void generate_binop(struct bb_state *state, struct instruction *insn)
+static void do_binop(struct bb_state *state, struct instruction *insn, pseudo_t val1, pseudo_t val2)
 {
 	const char *op = opcodes[insn->opcode];
-	struct hardreg *src = getreg(state, insn->src1, insn->target);
-	const char *src2 = generic(state, insn->src2);
+	struct hardreg *src = getreg(state, val1, insn->target);
+	const char *src2 = generic(state, val2);
 	struct hardreg *dst;
 
 	dst = target_copy_reg(state, src, insn->target);
 	output_insn(state, "%s.%d %s,%s", op, insn->size, src2, dst->name);
 	add_pseudo_reg(state, insn->target, dst);
+}
+
+static void generate_binop(struct bb_state *state, struct instruction *insn)
+{
+	do_binop(state, insn, insn->src1, insn->src2);
+}
+
+static int is_dead_reg(struct bb_state *state, pseudo_t pseudo, struct hardreg *reg)
+{
+	pseudo_t p;
+	FOR_EACH_PTR(reg->contains, p) {
+		if (p == pseudo)
+			return CURRENT_TAG(p) & TAG_DEAD;
+	} END_FOR_EACH_PTR(p);
+	return 0;
+}
+
+/*
+ * Commutative binops are much more flexible, since we can switch the
+ * sources around to satisfy the target register, or to avoid having
+ * to load one of them into a register..
+ */
+static void generate_commutative_binop(struct bb_state *state, struct instruction *insn)
+{
+	pseudo_t src1 = insn->src1, src2 = insn->src2;
+	struct hardreg *reg1, *reg2 = find_in_reg(state, src2);
+
+	if (!reg2)
+		goto dont_switch;
+	reg1 = find_in_reg(state, src1);
+	if (!reg1)
+		goto do_switch;
+	if (!is_dead_reg(state, src2, reg2))
+		goto dont_switch;
+	if (!is_dead_reg(state, src1, reg1))
+		goto do_switch;
+
+	/* Both are dead. Is one preferrable? */
+	if (reg2 != preferred_reg(state, insn->target))
+		goto dont_switch;
+
+do_switch:
+	src1 = src2;
+	src2 = insn->src1;
+dont_switch:
+	do_binop(state, insn, src1, src2);
 }
 
 /*
@@ -825,9 +871,20 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 		mark_pseudo_dead(state, insn->target);
 		return;
 
-	case OP_BINARY ... OP_BINARY_END:
-	case OP_BINCMP ... OP_BINCMP_END:
-		generate_binop(state, insn);
+	case OP_ADD: case OP_MUL:
+	case OP_AND: case OP_OR: case OP_XOR:
+	case OP_AND_BOOL: case OP_OR_BOOL:
+	case OP_SET_EQ: case OP_SET_NE:
+		generate_commutative_binop(state, insn);
+		break;
+
+	case OP_SUB: case OP_DIV: case OP_MOD:
+	case OP_SHL: case OP_SHR:
+	case OP_SET_LE: case OP_SET_GE:
+	case OP_SET_LT: case OP_SET_GT:
+	case OP_SET_B:  case OP_SET_A:
+	case OP_SET_BE: case OP_SET_AE:
+ 		generate_binop(state, insn);
 		break;
 
 	case OP_CAST: case OP_PTRCAST:
