@@ -243,11 +243,13 @@ Div:
 static int simplify_float_cmp(struct expression *expr, struct symbol *ctype)
 {
 	struct expression *left = expr->left, *right = expr->right;
-	long double l = left->fvalue, r = right->fvalue;
+	long double l, r;
 
 	if (left->type != EXPR_FVALUE || right->type != EXPR_FVALUE)
 		return 0;
 
+	l = left->fvalue;
+	r = right->fvalue;
 	switch (expr->op) {
 	case '<':		expr->value = l < r; break;
 	case '>':		expr->value = l > r; break;
