@@ -1231,64 +1231,70 @@ static struct storage *emit_binop(struct expression *expr)
 	return new;
 }
 
-static void emit_if_conditional(struct statement *stmt)
+static int emit_conditional_test(struct storage *val)
 {
-	struct storage *val, *target_val;
-	int target;
-	struct expression *cond = stmt->if_conditional;
+	struct storage *target_val;
+	int target_false;
 
-/* This is only valid if nobody can jump into the "dead" statement */
-#if 0
-	if (cond->type == EXPR_VALUE) {
-		struct statement *s = stmt->if_true;
-		if (!cond->value)
-			s = stmt->if_false;
-		x86_statement(s);
-		break;
-	}
-#endif
-	val = x86_expression(cond);
+	/* load result into EAX */
+	insn("movl", val, REG_EAX, "begin if/conditional");
 
-	/* load 'if' test result into EAX */
-	insn("movl", val, REG_EAX, "begin if conditional");
-
-	/* compare 'if' test result */
+	/* compare result with zero */
 	insn("test", REG_EAX, REG_EAX, NULL);
 
-	/* create end-of-if label / if-failed labelto jump to,
-	 * and jump to it if the expression returned zero.
-	 */
-	target = new_label();
+	/* create conditional-failed label to jump to */
+	target_false = new_label();
 	target_val = new_storage(STOR_LABEL);
-	target_val->label = target;
+	target_val->label = target_false;
 	target_val->flags = STOR_WANTS_FREE;
 	insn("jz", target_val, NULL, NULL);
 
+	return target_false;
+}
+
+static int emit_conditional_end(int target_false)
+{
+	struct storage *cond_end_st;
+	int cond_end;
+
+	/* finished generating code for if-true statement.
+	 * add a jump-to-end jump to avoid falling through
+	 * to the if-false statement code.
+	 */
+	cond_end = new_label();
+	cond_end_st = new_storage(STOR_LABEL);
+	cond_end_st->label = cond_end;
+	cond_end_st->flags = STOR_WANTS_FREE;
+	insn("jmp", cond_end_st, NULL, NULL);
+
+	/* if we have both if-true and if-false statements,
+	 * the failed-conditional case will fall through to here
+	 */
+	emit_label(target_false, NULL);
+
+	return cond_end;
+}
+
+static void emit_if_conditional(struct statement *stmt)
+{
+	struct storage *val;
+	int cond_end;
+
+	/* emit test portion of conditional */
+	val = x86_expression(stmt->if_conditional);
+	cond_end = emit_conditional_test(val);
+
+	/* emit if-true statement */
 	x86_statement(stmt->if_true);
+
+	/* emit if-false statement, if present */
 	if (stmt->if_false) {
-		struct storage *last_val;
-		int last;
-
-		/* finished generating code for if-true statement.
-		 * add a jump-to-end jump to avoid falling through
-		 * to the if-false statement code.
-		 */
-		last = new_label();
-		last_val = new_storage(STOR_LABEL);
-		last_val->label = last;
-		last_val->flags = STOR_WANTS_FREE;
-		insn("jmp", last_val, NULL, NULL);
-
-		/* if we have both if-true and if-false statements,
-		 * the failed-conditional case will fall through to here
-		 */
-		emit_label(target, NULL);
-
-		target = last;
+		cond_end = emit_conditional_end(cond_end);
 		x86_statement(stmt->if_false);
 	}
 
-	emit_label(target, "end if");
+	/* end of conditional; jump target for if-true branch */
+	emit_label(cond_end, "end if");
 }
 
 static struct storage *emit_inc_dec(struct expression *expr, int postop)
@@ -1341,29 +1347,31 @@ static struct storage *emit_return_stmt(struct statement *stmt)
 
 static struct storage *emit_conditional_expr(struct expression *expr)
 {
-	struct storage *cond = x86_expression(expr->conditional);
-	struct storage *true = x86_expression(expr->cond_true);
-	struct storage *false = x86_expression(expr->cond_false);
-	struct storage *new = stack_alloc(4);
+	struct storage *cond, *true = NULL, *false = NULL;
+	struct storage *new = stack_alloc(expr->ctype->bit_size / 8);
+	int target_false, cond_end;
 
-	if (!true)
+	/* evaluate conditional */
+	cond = x86_expression(expr->conditional);
+	target_false = emit_conditional_test(cond);
+
+	/* handle if-true part of the expression */
+	if (!expr->cond_true)
 		true = cond;
+	else
+		true = x86_expression(expr->cond_true);
 
-	emit_move(cond,  REG_EAX, expr->conditional->ctype,
-		  "begin EXPR_CONDITIONAL");
-	emit_move(true,  REG_ECX, expr->cond_true->ctype,   NULL);
-	emit_move(false, REG_EDX, expr->cond_false->ctype,  NULL);
+	emit_copy(new, true, expr->ctype);
 
-	/* test EAX (for zero/non-zero) */
-	insn("test", REG_EAX, REG_EAX, NULL);
+	cond_end = emit_conditional_end(target_false);
 
-	/* if false, move EDX to ECX */
-	insn("cmovz", REG_EDX, REG_ECX, NULL);
+	/* handle if-false part of the expression */
+	false = x86_expression(expr->cond_false);
 
-	/* finally, store the result (ECX) in a new pseudo / stack slot */
-	new = stack_alloc(4);
-	emit_move(REG_ECX, new, expr->ctype, "end EXPR_CONDITIONAL");
-	/* FIXME: we lose type knowledge of expression result at this point */
+	emit_copy(new, false, expr->ctype);
+
+	/* end of conditional; jump target for if-true branch */
+	emit_label(cond_end, "end conditional");
 
 	return new;
 }
