@@ -1445,9 +1445,9 @@ struct symbol *evaluate_return_expression(struct statement *stmt)
 	struct symbol *ctype, *fntype;
 
 	fntype = current_fn->ctype.base_type;
-	if (fntype == &void_ctype) {
+	if (!fntype || fntype == &void_ctype) {
 		if (expr)
-			warn(expr->pos, "return expression in void function");
+			warn(expr->pos, "return expression in %s function", fntype?"void":"typeless");
 		return NULL;
 	}
 
