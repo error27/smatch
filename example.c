@@ -738,17 +738,24 @@ static void generate_phisource(struct instruction *insn, struct bb_state *state)
 static void generate_cast(struct bb_state *state, struct instruction *insn)
 {
 	struct hardreg *src = getreg(state, insn->src, insn->target);
-	struct hardreg *dst = target_copy_reg(state, src, insn->target);
+	struct hardreg *dst;
 	unsigned int old = insn->orig_type ? insn->orig_type->bit_size : 0;
 	unsigned int new = insn->size;
 	unsigned long long mask;
 
-	/* No, we shouldn't just mask it, but this is just for an example */
-	if (old > new) {
-		mask = ~(~0ULL << new);
-	} else {
-		mask = ~(~0ULL << old);
+	/*
+	 * Cast to smaller type? Ignore the high bits, we
+	 * just keep both pseudos in the same register.
+	 */
+	if (old >= new) {
+		add_pseudo_reg(state, insn->target, src);
+		return;
 	}
+
+	dst = target_copy_reg(state, src, insn->target);
+
+	mask = ~(~0ULL << old);
+	mask &= ~(~0ULL << new);
 
 	output_insn(state, "andl.%d $%#llx,%s", insn->size, mask, dst->name);
 	add_pseudo_reg(state, insn->target, dst);
