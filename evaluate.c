@@ -326,11 +326,11 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 	if (!is_int_type(i_type))
 		return bad_expr_type(expr);
 
-	ctype = ptr_type->ctype.base_type;
+	ctype = ptr->ctype;
 	examine_symbol_type(ctype);
 
+	ctype = degenerate(expr, ctype, &ptr);
 	bit_size = ctype->bit_size;
-	ctype = degenerate(expr, ptr_type, &ptr);
 
 	/* Special case: adding zero commonly happens as a result of 'array[0]' */
 	if (i->type == EXPR_VALUE && !i->value) {
@@ -426,8 +426,11 @@ static const char * type_difference(struct symbol *target, struct symbol *source
 		if (diff) {
 			mod1 &= diff & ~target_mod_ignore;
 			mod2 &= diff & ~source_mod_ignore;
-			if (mod1 | mod2)
-				return ((mod1 | mod2) & MOD_SIZE) ? "different base types" : "different modifiers";
+			if (mod1 | mod2) {
+				if ((mod1 | mod2) & MOD_SIZE)
+					return "different type sizes";
+				return "different modifiers";
+			}
 		}
 
 		target = target->ctype.base_type;
@@ -854,36 +857,41 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 static struct symbol *evaluate_dereference(struct expression *expr)
 {
 	struct expression *op = expr->unop;
-	struct symbol *ctype = op->ctype;
-	unsigned long mod;
+	struct symbol *ctype = op->ctype, *sym;
 
-	mod = ctype->ctype.modifiers;
+	sym = alloc_symbol(expr->pos, SYM_NODE);
+	sym->ctype = ctype->ctype;
 	if (ctype->type == SYM_NODE) {
 		ctype = ctype->ctype.base_type;
-		mod |= ctype->ctype.modifiers;
+		sym->ctype.modifiers |= ctype->ctype.modifiers;
+		sym->ctype.as |= ctype->ctype.as;
 	}
 	if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
 		warn(expr->pos, "cannot derefence this type");
 		return 0;
 	}
 
-	if (mod & MOD_NODEREF)
-		warn(expr->pos, "bad dereference");
 	ctype = ctype->ctype.base_type;
 	if (!ctype) {
 		warn(expr->pos, "undefined type");
-		return 0;
+		return NULL;
 	}
-
 	examine_symbol_type(ctype);
+	sym->ctype.base_type = ctype;
+
+	sym->bit_size = ctype->bit_size;
+	sym->array_size = ctype->array_size;
+
+	if (sym->ctype.modifiers & MOD_NODEREF)
+		warn(expr->pos, "bad dereference");
 
 	/* Simplify: *&(expr) => (expr) */
 	if (op->type == EXPR_PREOP && op->op == '&') {
 		*expr = *op->unop;
 	}
 
-	expr->ctype = ctype;
-	return ctype;
+	expr->ctype = sym;
+	return sym;
 }
 
 static void simplify_preop(struct expression *expr)
