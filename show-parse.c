@@ -54,7 +54,7 @@ void show_struct_member(struct symbol *sym, void *data, int flags)
 {
 	if (flags & ITERATE_FIRST)
 		printf(" {\n\t");
-	printf("%s:%d:%d at offset %ld", show_ident(sym->ident), sym->bit_size, sym->alignment, sym->offset);
+	printf("%s:%d:%ld at offset %ld", show_ident(sym->ident), sym->bit_size, sym->ctype.alignment, sym->offset);
 	if (sym->fieldwidth)
 		printf("[%d..%d]", sym->bit_offset, sym->bit_offset+sym->fieldwidth-1);
 	if (flags & ITERATE_LAST)
@@ -420,7 +420,7 @@ void show_statement_list(struct statement_list *stmt, const char *sep)
 static void show_size(struct symbol *sym)
 {
 	if (sym)
-		printf("%d:%d", sym->bit_size, sym->alignment);
+		printf("%d:%ld", sym->bit_size, sym->ctype.alignment);
 }
 
 static void show_one_expression(struct expression *expr, void *sep, int flags)

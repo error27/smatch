@@ -52,8 +52,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 
 	sym->array_size = length;
 	sym->bit_size = BITS_IN_CHAR * length;
-	sym->alignment = 1;
-
+	sym->ctype.alignment = 1;
 	sym->ctype.modifiers = MOD_CONST;
 	sym->ctype.base_type = &char_ctype;
 	expr->ctype = sym;
@@ -191,7 +190,7 @@ static struct symbol *degenerate(struct expression *expr, struct symbol *ctype)
 		struct symbol *sym = alloc_symbol(expr->pos, SYM_PTR);
 		sym->ctype = ctype->ctype;
 		sym->bit_size = BITS_IN_POINTER;
-		sym->alignment = POINTER_ALIGNMENT;
+		sym->ctype.alignment = POINTER_ALIGNMENT;
 		ctype = sym;
 	}
 	return ctype;
@@ -592,8 +591,8 @@ static struct symbol *evaluate_preop(struct expression *expr)
 	case '&': {
 		struct symbol *symbol = alloc_symbol(expr->pos, SYM_PTR);
 		symbol->ctype.base_type = ctype;
+		symbol->ctype.alignment = POINTER_ALIGNMENT;
 		symbol->bit_size = BITS_IN_POINTER;
-		symbol->alignment = POINTER_ALIGNMENT;
 		expr->ctype = symbol;
 		return symbol;
 	}

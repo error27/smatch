@@ -49,8 +49,8 @@ static void lay_out_union(struct symbol *sym, void *_info, int flags)
 	struct struct_union_info *info = _info;
 
 	examine_symbol_type(sym);
-	if (sym->alignment > info->max_align)
-		info->max_align = sym->alignment;
+	if (sym->ctype.alignment > info->max_align)
+		info->max_align = sym->ctype.alignment;
 	if (sym->bit_size > info->bit_size)
 		info->bit_size = sym->bit_size;
 
@@ -67,12 +67,12 @@ static void lay_out_struct(struct symbol *sym, void *_info, int flags)
 	unsigned long align_bit_mask;
 
 	examine_symbol_type(sym);
-	if (sym->alignment > info->max_align)
-		info->max_align = sym->alignment;
+	if (sym->ctype.alignment > info->max_align)
+		info->max_align = sym->ctype.alignment;
 
 	bit_size = info->bit_size;
 	base_size = sym->bit_size; 
-	align_bit_mask = (sym->alignment << 3) - 1;
+	align_bit_mask = (sym->ctype.alignment << 3) - 1;
 
 	/*
 	 * Bitfields have some very special rules..
@@ -112,7 +112,8 @@ static void examine_struct_union_type(struct symbol *sym, int advance)
 	bit_align = (info.max_align << 3)-1;
 	bit_size = (bit_size + bit_align) & ~bit_align;
 	sym->bit_size = bit_size;
-	sym->alignment = info.max_align;
+	if (info.max_align > sym->ctype.alignment)
+		sym->ctype.alignment = info.max_align;
 }
 
 static void examine_array_type(struct symbol *sym)
@@ -126,9 +127,9 @@ static void examine_array_type(struct symbol *sym)
 	bit_size = base_type->bit_size * sym->array_size;
 	if (sym->array_size < 0)
 		bit_size = -1;
-	alignment = base_type->alignment;
-	if (!sym->alignment)
-		sym->alignment = alignment;
+	alignment = base_type->ctype.alignment;
+	if (!sym->ctype.alignment)
+		sym->ctype.alignment = alignment;
 	sym->bit_size = bit_size;
 }
 
@@ -145,9 +146,9 @@ static void examine_bitfield_type(struct symbol *sym)
 		warn(sym->pos, "impossible field-width for this type");
 		sym->fieldwidth = bit_size;
 	}
-	alignment = base_type->alignment;
-	if (!sym->alignment)
-		sym->alignment = alignment;
+	alignment = base_type->ctype.alignment;
+	if (!sym->ctype.alignment)
+		sym->ctype.alignment = alignment;
 	sym->bit_size = bit_size;
 }
 
@@ -181,15 +182,15 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 	case SYM_PTR:
 		if (!sym->bit_size)
 			sym->bit_size = BITS_IN_POINTER;
-		if (!sym->alignment)
-			sym->alignment = POINTER_ALIGNMENT;
+		if (!sym->ctype.alignment)
+			sym->ctype.alignment = POINTER_ALIGNMENT;
 		sym->ctype.base_type = examine_symbol_type(sym->ctype.base_type);
 		return sym;
 	case SYM_ENUM:
 		if (!sym->bit_size)
 			sym->bit_size = BITS_IN_ENUM;
-		if (!sym->alignment)
-			sym->alignment = ENUM_ALIGNMENT;
+		if (!sym->ctype.alignment)
+			sym->ctype.alignment = ENUM_ALIGNMENT;
 		return sym;
 	case SYM_BITFIELD:
 		examine_bitfield_type(sym);
@@ -216,14 +217,14 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		sym->ctype.base_type = base_type;
 
 		bit_size = base_type->bit_size;
-		alignment = base_type->alignment;
+		alignment = base_type->ctype.alignment;
 		if (base_type->fieldwidth)
 			sym->fieldwidth = base_type->fieldwidth;
 	} else
 		bit_size = 0;
 
-	if (!sym->alignment)
-		sym->alignment = alignment;
+	if (!sym->ctype.alignment)
+		sym->ctype.alignment = alignment;
 	sym->bit_size = bit_size;
 	return sym;
 }
@@ -430,7 +431,7 @@ void init_symbols(void)
 		if (alignment > ctype->maxalign)
 			alignment = ctype->maxalign;
 		sym->bit_size = bit_size;
-		sym->alignment = alignment;
+		sym->ctype.alignment = alignment;
 		sym->ctype.base_type = ctype->base_type;
 		sym->ctype.modifiers = ctype->modifiers;
 	}

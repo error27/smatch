@@ -48,6 +48,7 @@ enum type {
 
 struct ctype {
 	unsigned long modifiers;
+	unsigned long alignment;
 	struct symbol *base_type;
 };
 
@@ -68,8 +69,10 @@ struct symbol {
 			struct symbol *next;		/* Next symbol at this level */
 			unsigned long	offset;
 			unsigned int	bit_size;
-			unsigned int	alignment:24,
-					bit_offset:8;
+			unsigned int	bit_offset:8,
+					fieldwidth:8,
+					arg_count:10,
+					variadic:1;
 			int	array_size;
 			struct ctype ctype;
 			struct symbol_list *arguments;
@@ -77,8 +80,6 @@ struct symbol {
 			struct symbol_list *symbol_list;
 			struct expression *initializer;
 			long long value;		/* Initial value */
-			int fieldwidth;
-			int arg_count:10, variadic:1;
 		};
 	};
 };
