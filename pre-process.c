@@ -1467,16 +1467,15 @@ static void do_preprocess(struct token **list)
 			}
 		}
 
-		if (false_nesting) {
-			*list = next->next;
-			continue;
-		}
-
 		switch (token_type(next)) {
 		case TOKEN_STREAMEND:
-			if (stream->nesting != if_nesting + 1) {
-				MARK_STREAM_NONCONST(next->pos);
+			if (stream->nesting < if_nesting + 1) {
 				warn(unmatched_if->pos, "unterminated preprocessor conditional");
+				// Pretend to see a series of #endifs
+				MARK_STREAM_NONCONST(next->pos);
+				do {
+					handle_endif (stream, NULL, NULL);
+				} while (stream->nesting < if_nesting + 1);
 			}
 			if (stream->constant == CONSTANT_FILE_MAYBE && stream->protect) {
 				stream->constant = CONSTANT_FILE_YES;
@@ -1488,11 +1487,16 @@ static void do_preprocess(struct token **list)
 			*list = next->next;
 			continue;
 
-		case TOKEN_IDENT:
-			list = expand_one_symbol(list);
-			break;
 		default:
-			list = &next->next;
+			if (false_nesting) {
+				*list = next->next;
+				continue;
+			}
+
+			if (token_type(next) == TOKEN_IDENT)
+				list = expand_one_symbol(list);
+			else
+				list = &next->next;
 		}
 
 		if (stream->constant == CONSTANT_FILE_MAYBE) {
