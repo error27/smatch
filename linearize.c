@@ -103,14 +103,14 @@ static void show_instruction(struct instruction *insn)
 			insn->src.nr);
 		break;
 	case OP_UNOP ... OP_LASTUNOP:
-		printf("\t%%r%d <- %c %%r%d\n",
+		printf("\t%%r%d <- %s %%r%d\n",
 			insn->target.nr,
-			op - OP_UNOP, insn->src.nr);
+			show_special(op - OP_UNOP), insn->src.nr);
 		break;
 	case OP_BINOP ... OP_LASTBINOP:
-		printf("\t%%r%d <- %%r%d %c %%r%d\n",
+		printf("\t%%r%d <- %%r%d %s %%r%d\n",
 			insn->target.nr,
-			insn->src1.nr, op - OP_UNOP, insn->src2.nr);
+			insn->src1.nr, show_special(op - OP_UNOP), insn->src2.nr);
 		break;
 	default:
 		printf("\top %d ???\n", op);
@@ -263,7 +263,10 @@ static pseudo_t linearize_address_gen(struct entrypoint *ep, struct expression *
 {
 	if (expr->type == EXPR_PREOP)
 		return linearize_expression(ep, expr->unop);
-	return linearize_expression(ep, expr->address);
+	if (expr->type == EXPR_BITFIELD)
+		return linearize_expression(ep, expr->address);
+	warn(expr->pos, "generating address of non-lvalue");
+	return VOID;
 }
 
 static void linearize_store_gen(struct entrypoint *ep, pseudo_t value, struct expression *expr, pseudo_t addr)
@@ -306,9 +309,14 @@ static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr
 	new = retval;
 	if (postop)
 		new = alloc_pseudo();
+
+	/* Generate the inc/dec */
 	insn = alloc_instruction(OP_UNOP + expr->op, expr->ctype);
 	insn->target = new;
 	insn->src = retval;
+	add_one_insn(ep, expr->pos, insn);
+
+	/* Store back value */
 	linearize_store_gen(ep, new, expr->unop, addr);
 	return retval;
 }
@@ -740,7 +748,12 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			add_goto(ep->active, loop_top);
 			set_unreachable(ep);
 		} else {
-			if (post_condition->type != EXPR_VALUE || post_condition->value)
+			if (post_condition->type == EXPR_VALUE) {
+				if (post_condition->value) {
+					add_goto(ep->active, loop_top);
+					set_unreachable(ep);
+				}
+			} else
 				add_branch(ep, OP_CONDTRUE, post_condition, loop_top);
 		}
 
