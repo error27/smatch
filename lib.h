@@ -129,7 +129,7 @@ void * delete_ptr_list_last(struct ptr_list **head);
 int replace_ptr_list(struct ptr_list *head, void *old_ptr, void *new_ptr);
 extern void sort_list(struct ptr_list **, int (*)(const void *, const void *));
 
-extern void add_ptr_list(struct ptr_list **, void *);
+extern void **add_ptr_list(struct ptr_list **, void *);
 extern void concat_ptr_list(struct ptr_list *a, struct ptr_list **b);
 extern void free_ptr_list(struct ptr_list **);
 extern int ptr_list_size(struct ptr_list *);

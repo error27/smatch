@@ -224,10 +224,11 @@ int linearize_ptr_list(struct ptr_list *head, void **arr, int max)
 	return nr;
 }
 
-void add_ptr_list(struct ptr_list **listp, void *ptr)
+void **add_ptr_list(struct ptr_list **listp, void *ptr)
 {
 	struct ptr_list *list = *listp;
 	struct ptr_list *last = NULL; /* gcc complains needlessly */
+	void **ret;
 	int nr;
 
 	if (!list || (nr = (last = list->prev)->nr) >= LIST_NODE_NR) {
@@ -248,9 +249,11 @@ void add_ptr_list(struct ptr_list **listp, void *ptr)
 		last = newlist;
 		nr = 0;
 	}
-	last->list[nr] = ptr;
+	ret = last->list + nr;
+	*ret = ptr;
 	nr++;
 	last->nr = nr;
+	return ret;
 }
 
 void init_iterator(struct ptr_list **head, struct list_iterator *iterator, int flags)
