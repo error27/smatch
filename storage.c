@@ -109,12 +109,62 @@ void add_storage(struct storage *storage, struct basic_block *bb, pseudo_t pseud
 	add_ptr_list(listp, hash);
 }
 
+
+static int storage_hash_cmp(const void *_a, const void *_b)
+{
+	const struct storage_hash *a = _a;
+	const struct storage_hash *b = _b;
+	struct storage *aa = a->storage;
+	struct storage *bb = b->storage;
+
+	if (a->bb != b->bb)
+		return a->bb < b->bb ? -1 : 1;
+	if (a->inout != b->inout)
+		return a->inout < b->inout ? -1 : 1;
+	if (aa->type != bb->type)
+		return aa->type < bb->type ? -1 : 1;
+	if (aa->regno != bb->regno)
+		return aa->regno < bb->regno ? -1 : 1;
+	return 0;
+}
+
+void vrfy_storage(struct storage_hash_list **listp)
+{
+	struct storage_hash *entry, *last;
+
+	sort_list((struct ptr_list **)listp, storage_hash_cmp);
+	last = NULL;
+	FOR_EACH_PTR(*listp, entry) {
+		if (last) {
+			struct storage *a = last->storage;
+			struct storage *b = entry->storage;
+			if (a == b)
+				continue;
+			if (last->bb == entry->bb
+			    && last->inout == entry->inout
+			    && a->type != REG_UDEF
+			    && a->type == b->type
+			    && a->regno == b->regno) {
+				printf("\t BAD: same storage as %s in %p: %s (%s and %s)\n",
+					last->inout == STOR_IN ? "input" : "output",
+					last->bb,
+					show_storage(a),
+					show_pseudo(last->pseudo),
+					show_pseudo(entry->pseudo));
+			}
+		}
+		last = entry;
+	} END_FOR_EACH_PTR(entry);
+}
+
 void free_storage(void)
- {
+{
 	int i;
 
-	for (i = 0; i < MAX_STORAGE_HASH; i++)
+	for (i = 0; i < MAX_STORAGE_HASH; i++) {
+		vrfy_storage(storage_hash_table + i);
 		free_ptr_list(storage_hash_table + i);
+	}
 }
 
 const char *show_storage(struct storage *s)
