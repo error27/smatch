@@ -14,6 +14,7 @@
 #include "parse.h"
 #include "expression.h"
 #include "linearize.h"
+#include "flow.h"
 
 static unsigned long bb_generation;
 
@@ -134,7 +135,7 @@ static inline void concat_user_list(struct pseudo_ptr_list *src, struct pseudo_p
 	concat_ptr_list((struct ptr_list *)src, (struct ptr_list **)dst);
 }
 
-static void convert_load_insn(struct instruction *insn, pseudo_t src)
+void convert_load_insn(struct instruction *insn, pseudo_t src)
 {
 	pseudo_t target, *usep;
 
@@ -604,16 +605,6 @@ static void kill_unreachable_bbs(struct entrypoint *ep)
 		/* Mark it as being dead */
 		kill_bb(bb);
 	} END_FOR_EACH_PTR(bb);
-}
-
-static void try_to_replace(struct basic_block *bb, struct basic_block **target,
-	struct basic_block *old, struct basic_block *new)
-{
-	if (*target == old) {
-		*target = new;
-		/* FIXME!! Fix child information */
-		warning(bb->pos, "changed child from %p to %p", old, new);
-	}
 }
 
 static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old, struct basic_block *new)

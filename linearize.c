@@ -152,7 +152,7 @@ static const char *show_pseudo(pseudo_t pseudo)
 	return buf;
 }
 
-static void show_instruction(struct instruction *insn)
+void show_instruction(struct instruction *insn)
 {
 	int op = insn->opcode;
 
@@ -1628,6 +1628,12 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 			 * SSA if you just look at it sideways..
 			 */
 			simplify_phi_nodes(ep);
+
+			/*
+			 * Remove trivial instructions, and try to CSE
+			 * the rest.
+			 */
+			cleanup_and_cse(ep);
 
 			/*
 			 * Remove or merge basic blocks.
