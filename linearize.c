@@ -100,7 +100,7 @@ static const char *show_pseudo(pseudo_t pseudo)
 			break;
 		}
 		if (sym->ident) {
-			snprintf(buf, 64, "%s", show_ident(sym->ident));
+			snprintf(buf, 64, "%s:%p", show_ident(sym->ident), sym);
 			break;
 		}
 		expr = sym->initializer;
