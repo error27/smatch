@@ -306,6 +306,7 @@ static void do_include(struct token *head, struct token *token, const char *file
 			char * streamname = __alloc_bytes(len + endlen);
 			memcpy(streamname, fullname, len + endlen);
 			head->next = tokenize(streamname, fd, head->next);
+			close(fd);
 			return;
 		}
 	}

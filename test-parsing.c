@@ -23,6 +23,7 @@ int main(int argc, char **argv)
 
 	// Tokenize the input stream
 	token = tokenize(argv[1], fd, NULL);
+	close(fd);
 
 	// Pre-process the stream
 	token = preprocess(token);
