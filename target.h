@@ -1,6 +1,8 @@
 #ifndef TARGET_H
 #define TARGET_H
 
+#define size_t_ctype (&ulong_ctype)
+
 /*
  * Integer data types
  */

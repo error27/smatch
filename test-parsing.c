@@ -56,12 +56,14 @@ static void clean_up_statement(struct statement *stmt, void *_parent, int flags)
 static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 {
 	struct symbol *parent = _parent;
+	struct symbol *type;
 
 	examine_symbol_type(sym);
-	if (sym->type == SYM_FN) {
-		symbol_iterate(sym->arguments, clean_up_symbol, parent);
-		if (sym->stmt)
-			simplify_statement(sym->stmt, sym);
+	type = sym->ctype.base_type;
+	if (type && type->type == SYM_FN) {
+		symbol_iterate(type->arguments, clean_up_symbol, parent);
+		if (type->stmt)
+			simplify_statement(type->stmt, sym);
 	}
 }
 

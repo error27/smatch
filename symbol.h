@@ -31,6 +31,7 @@ enum namespace {
 };
 
 enum type {
+	SYM_BASETYPE,
 	SYM_NODE,
 	SYM_PTR,
 	SYM_FN,
@@ -74,6 +75,7 @@ struct symbol {
 			struct statement *stmt;
 			struct symbol_list *symbol_list;
 			long long value;		/* Initial value */
+			int fieldwidth;
 		};
 	};
 };

@@ -82,6 +82,21 @@ static void examine_struct_union_type(struct symbol *sym, int advance)
 	sym->alignment = info.max_align;
 }
 
+static void examine_array_type(struct symbol *sym)
+{
+	struct symbol *base_type = sym->ctype.base_type;
+	unsigned long bit_size, alignment;
+
+	if (!base_type)
+		return;
+	examine_symbol_type(base_type);
+	bit_size = base_type->bit_size * sym->array_size;
+	alignment = base_type->alignment;
+	if (!sym->alignment)
+		sym->alignment = alignment;
+	sym->bit_size = bit_size;
+}
+
 /*
  * Fill in type size and alignment information for
  * regular SYM_TYPE things.
@@ -100,6 +115,9 @@ void examine_symbol_type(struct symbol * sym)
 		return;
 
 	switch (sym->type) {
+	case SYM_ARRAY:
+		examine_array_type(sym);
+		return;
 	case SYM_STRUCT:
 		examine_struct_union_type(sym, 1);
 		return;
@@ -119,57 +137,25 @@ void examine_symbol_type(struct symbol * sym)
 		if (!sym->alignment)
 			sym->alignment = ENUM_ALIGNMENT;
 		return;
-			
+	case SYM_BASETYPE:
+		/* Size and alignment had better already be set up */
+		return;
+
 	default:
 		break;
 	}
 
+	/* SYM_NODE - figure out what the type of the node was.. */
 	base_type = sym->ctype.base_type;
 	modifiers = sym->ctype.modifiers;
 
-	if (base_type == &int_type) {
-		bit_size = BITS_IN_INT;
-		if (modifiers & MOD_LONGLONG) {
-			bit_size = BITS_IN_LONGLONG;
-		} else if (modifiers & MOD_LONG) {
-			bit_size = BITS_IN_LONG;
-		} else if (modifiers & MOD_SHORT) {
-			bit_size = BITS_IN_SHORT;
-		} else if (modifiers & MOD_CHAR) {
-			bit_size = BITS_IN_CHAR;
-		}
-		alignment = bit_size >> 3;
-		if (alignment > MAX_INT_ALIGNMENT)
-			alignment = MAX_INT_ALIGNMENT;
-	} else if (base_type == &fp_type) {
-		bit_size = BITS_IN_FLOAT;
-		if (modifiers & MOD_LONGLONG) {
-			bit_size = BITS_IN_LONGDOUBLE;
-		} else if (modifiers & MOD_LONG) {
-			bit_size = BITS_IN_DOUBLE;
-		}
-		alignment = bit_size >> 3;
-		if (alignment > MAX_FP_ALIGNMENT)
-			alignment = MAX_FP_ALIGNMENT;
-	} else if (base_type) {
+	if (base_type) {
 		examine_symbol_type(base_type);
 
 		bit_size = base_type->bit_size;
 		alignment = base_type->alignment;
 	} else
 		bit_size = 0;
-
-	if (!bit_size) {
-		warn(sym->token, "unknown type %d", sym->type);
-		return;
-	}
-
-	if (sym->type == SYM_ARRAY) {
-		int array_size = sym->array_size;
-		bit_size *= sym->array_size;
-		if (array_size == -1)
-			bit_size = -1;
-	}
 
 	if (!sym->alignment)
 		sym->alignment = alignment;

@@ -156,7 +156,7 @@ static int evaluate_preop(struct expression *expr)
 		return 1;
 
 	case '*':
-		if (ctype->type != SYM_PTR) {
+		if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
 			warn(expr->token, "cannot derefence this type");
 			return 0;
 		}
@@ -186,6 +186,28 @@ static int evaluate_preop(struct expression *expr)
 static int evaluate_postop(struct expression *expr)
 {
 	return 0;
+}
+
+static int evaluate_sizeof(struct expression *expr)
+{
+	int size;
+
+	if (expr->cast_type) {
+		examine_symbol_type(expr->cast_type);
+		size = expr->cast_type->bit_size;
+	} else {
+		if (!evaluate_expression(expr->cast_expression))
+			return 0;
+		size = expr->cast_expression->ctype->bit_size;
+	}
+	if (size & 7) {
+		warn(expr->token, "cannot size expression");
+		return 0;
+	}
+	expr->type = EXPR_VALUE;
+	expr->value = size >> 3;
+	expr->ctype = size_t_ctype;
+	return 1;
 }
 
 int evaluate_expression(struct expression *expr)
@@ -219,6 +241,8 @@ int evaluate_expression(struct expression *expr)
 			return 1;
 		expr->ctype = expr->cast_type;
 		return 1;
+	case EXPR_SIZEOF:
+		return evaluate_sizeof(expr);
 	default:
 		break;
 	}

@@ -30,21 +30,15 @@ struct statement *alloc_statement(struct token * token, int type)
 
 static struct token *struct_declaration_list(struct token *token, struct symbol_list **list);
 
-static void force_default_type(struct ctype *type)
-{
-	if (!type->base_type)
-		type->base_type = &int_type;
-}
-
-static struct symbol *indirect(struct token *token, struct symbol *base, int type)
+static struct symbol * indirect(struct token *token, struct symbol *base, int type)
 {
 	struct symbol *sym = alloc_symbol(token, type);
-	unsigned long mod = base->ctype.modifiers;
 
-	sym->ctype.base_type = base;
-	sym->ctype.modifiers = mod & MOD_STORAGE;
-	base->ctype.modifiers = mod & ~MOD_STORAGE;
-	force_default_type(&sym->ctype);
+	sym->ctype.base_type = base->ctype.base_type;
+	sym->ctype.modifiers = base->ctype.modifiers & ~MOD_STORAGE;
+
+	base->ctype.base_type = sym;
+	base->ctype.modifiers &= MOD_STORAGE;
 	return sym;
 }
 
@@ -320,12 +314,11 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 	return token;
 }
 
-static struct token *abstract_array_declarator(struct token *token, struct symbol **tree)
+static struct token *abstract_array_declarator(struct token *token, struct symbol *sym)
 {
 	struct expression *expr = NULL;
-	struct symbol *sym = *tree;
-	token = parse_expression(token, &expr);
 
+	token = parse_expression(token, &expr);
 	if (expr)
 		sym->array_size = get_expression_value(expr);
 	else
@@ -360,6 +353,7 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 		 * list if it is empty or starts with a type.
 		 */
 		if (token->special == '(') {
+			struct symbol *sym;
 			struct token *next = token->next;
 			int fn = (p && *p) || match_op(next, ')') || lookup_type(next);
 
@@ -369,21 +363,23 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 				continue;
 			}
 			
-			*tree = indirect(token, *tree, SYM_FN);
-			token = parameter_type_list(next, &(*tree)->arguments);
+			sym = indirect(token, *tree, SYM_FN);
+			token = parameter_type_list(next, &sym->arguments);
 			token = expect(token, ')', "in function declarator");
 			continue;
 		}
 		if (token->special == '[') {
-			*tree = indirect(token, *tree, SYM_ARRAY);
-			token = abstract_array_declarator(token->next, tree);
+			struct symbol *ctype = indirect(token, *tree, SYM_ARRAY);
+			token = abstract_array_declarator(token->next, ctype);
 			token = expect(token, ']', "in abstract_array_declarator");
 			continue;
 		}
 		if (token->special == ':') {
+			struct symbol *bitfield;
 			struct expression *expr;
-			*tree = indirect(token, *tree, SYM_BITFIELD);
+			bitfield = indirect(token, *tree, SYM_BITFIELD);
 			token = conditional_expression(token->next, &expr);
+			bitfield->fieldwidth = get_expression_value(expr);
 			continue;
 		}
 		break;
@@ -400,7 +396,6 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 	unsigned long modifiers;
 	struct symbol *base_type;
 
-	force_default_type(ctype);
 	modifiers = ctype->modifiers & ~(MOD_TYPEDEF | MOD_ATTRIBUTE);
 	base_type = ctype->base_type;
 	
@@ -769,6 +764,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	struct token *ident = NULL;
 	struct symbol *decl;
 	struct ctype ctype = { 0, };
+	struct symbol *base_type;
 
 	/* Parse declaration-specifiers, if any */
 	token = declaration_specifiers(token, &ctype);
@@ -791,11 +787,12 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 		bind_symbol(decl, ident->ident, NS_SYMBOL);
 	}
 
-	if (decl->type == SYM_FN && match_op(token, '{')) {
-		decl->stmt = alloc_statement(token, STMT_COMPOUND);
+	base_type = decl->ctype.base_type;
+	if (base_type && base_type->type == SYM_FN && match_op(token, '{')) {
+		base_type->stmt = alloc_statement(token, STMT_COMPOUND);
 		start_symbol_scope();
-		symbol_iterate(decl->arguments, declare_argument, decl);
-		token = compound_statement(token->next, decl->stmt);
+		symbol_iterate(base_type->arguments, declare_argument, decl);
+		token = compound_statement(token->next, base_type->stmt);
 		end_symbol_scope();
 		return expect(token, '}', "at end of function");
 	}

@@ -168,12 +168,19 @@ void show_type(struct symbol *sym)
 
 void show_symbol(struct symbol *sym)
 {
+	struct symbol *type;
+
+	if (sym->type != SYM_NODE)
+		*(int *)0 = 0;
 	show_type(sym);
+	type = sym->ctype.base_type;
+	if (!type)
+		return;
 
 	/*
 	 * Show actual implementation information
 	 */
-	switch (sym->type) {
+	switch (type->type) {
 	case SYM_STRUCT:
 		symbol_iterate(sym->symbol_list, show_struct_member, NULL);
 		return;
@@ -184,9 +191,13 @@ void show_symbol(struct symbol *sym)
 
 	case SYM_FN:
 		printf("(");
-		show_symbol_list(sym->arguments, ", ");
+		show_symbol_list(type->arguments, ", ");
 		printf(")\n");
-		show_statement(sym->stmt);
+		show_statement(type->stmt);
+		return;
+
+	case SYM_ARRAY:
+		printf("[%d]\n", type->array_size);
 		return;
 
 	default:
@@ -379,6 +390,15 @@ void show_expression(struct expression *expr)
 	case EXPR_VALUE:
 		printf("(%lld)", expr->value);
 		break;
+	case EXPR_SIZEOF:
+		printf("sizeof(");
+		if (expr->cast_type)
+			show_type(expr->cast_type);
+		else
+			show_expression(expr->cast_expression);
+		printf(")");
+		break;
+			
 	default:
 		printf("WTF");
 	}
