@@ -1579,7 +1579,22 @@ static struct storage *x86_assignment(struct expression *expr)
 	bits = expr->ctype->bit_size;
 	val = x86_expression(expr->right);
 	addr = x86_address_gen(target);
-	emit_copy(val, expr->right->ctype, addr, expr->left->ctype);
+
+	switch (val->type) {
+	/* copy, where both operands are memory */
+	case STOR_PSEUDO:
+	case STOR_ARG:
+		emit_copy(val, expr->right->ctype, addr, expr->left->ctype);
+		break;
+
+	/* copy, one or zero operands are memory */
+	case STOR_REG:
+	case STOR_SYM:
+	case STOR_VALUE:
+	case STOR_LABEL:
+		emit_move(val, addr, expr->left->ctype, NULL, 0);
+		break;
+	}
 	return val;
 }
 
