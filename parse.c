@@ -193,7 +193,6 @@ static void handle_attribute(struct ctype *ctype, struct ident *attribute, struc
 			return;
 		}
 	}
-	fprintf(stderr, "saw attribute '%s'\n", show_ident(attribute));
 }
 
 
@@ -281,7 +280,7 @@ static void apply_ctype(struct position pos, struct ctype *thistype, struct ctyp
 		}
 		dup = (mod & old) | (extra & old) | (extra & mod);
 		if (dup)
-			warn(pos, "Just how %s do you want this type to be?",
+			warn(pos, "Just how %sdo you want this type to be?",
 				modifier_string(dup));
 		ctype->modifiers = old | mod | extra;
 	}
@@ -881,26 +880,40 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	decl->ident = ident;
 
 	/* type define declaration? */
-	if (ctype.modifiers & MOD_TYPEDEF) {
-		bind_symbol(decl, ident, NS_TYPEDEF);
-	} else {
-		add_symbol(list, decl);
-		bind_symbol(decl, ident, NS_SYMBOL);
-	}
+	bind_symbol(decl, ident, (ctype.modifiers & MOD_TYPEDEF) ? NS_TYPEDEF: NS_SYMBOL);
 
 	base_type = decl->ctype.base_type;
-	if (base_type && base_type->type == SYM_FN && match_op(token, '{')) {
-		base_type->stmt = alloc_statement(token->pos, STMT_COMPOUND);
-		start_function_scope();
-		symbol_iterate(base_type->arguments, declare_argument, decl);
-		token = compound_statement(token->next, base_type->stmt);
-		end_function_scope();
-		return expect(token, '}', "at end of function");
+	if (base_type && base_type->type == SYM_FN) {
+		if (match_op(token, '{')) {
+			if (decl->ctype.modifiers & MOD_EXTERN) {
+				if (!(decl->ctype.modifiers & MOD_INLINE))
+					warn(decl->pos, "function with external linkage has definition");
+				decl->ctype.modifiers &= ~MOD_EXTERN;
+			}
+			base_type->stmt = alloc_statement(token->pos, STMT_COMPOUND);
+			start_function_scope();
+			symbol_iterate(base_type->arguments, declare_argument, decl);
+			token = compound_statement(token->next, base_type->stmt);
+			end_function_scope();
+			add_symbol(list, decl);
+			return expect(token, '}', "at end of function");
+		}
+		decl->ctype.modifiers |= MOD_EXTERN;
 	}
 
 	for (;;) {
-		if (match_op(token, '='))
+		if (match_op(token, '=')) {
+			if (decl->ctype.modifiers & MOD_EXTERN) {
+				warn(decl->pos, "symbol with external linkage has initializer");
+				decl->ctype.modifiers &= ~MOD_EXTERN;
+			}
 			token = initializer(&decl->initializer, token->next);
+		}
+		if (!(decl->ctype.modifiers & MOD_EXTERN)) {
+			if (!(ctype.modifiers & MOD_TYPEDEF))
+				add_symbol(list, decl);
+		}
+			
 		if (!match_op(token, ','))
 			break;
 

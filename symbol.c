@@ -316,9 +316,9 @@ struct sym_init {
 	{ "enum",	NULL,		MOD_ENUMOF },
 
 	/* Ignored for now.. */
-	{ "inline",	NULL,		0 },
-	{ "__inline",	NULL,		0 },
-	{ "__inline__",	NULL,		0 },
+	{ "inline",	NULL,		MOD_INLINE },
+	{ "__inline",	NULL,		MOD_INLINE },
+	{ "__inline__",	NULL,		MOD_INLINE },
 	{ "restrict",	NULL,		0 },
 	{ "__restrict",	NULL,		0 },
 
