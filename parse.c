@@ -198,7 +198,7 @@ static struct token *primary_expression(struct token *token, struct expression *
 	case TOKEN_IDENT: {
 		struct symbol *sym = lookup_symbol(token->ident, NS_SYMBOL);
 		if (!sym)
-			warn(token, "undefined identifier");
+			warn(token, "undefined identifier '%s'", token->ident->name);
 		expr = alloc_expression(token, EXPR_SYMBOL);
 		expr->symbol = sym;
 		token = token->next;
