@@ -186,6 +186,8 @@ static struct expression * copy_expression(struct expression *expr)
 	}
 
 	/* Identifier in member dereference is unchanged across a fn copy */
+	/* As is an array index expression */
+	case EXPR_INDEX:
 	case EXPR_IDENTIFIER:
 		break;
 
