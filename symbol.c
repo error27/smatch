@@ -389,6 +389,9 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 	case SYM_UNINITIALIZED:
 		warning(sym->pos, "ctype on uninitialized symbol %p", sym);
 		return NULL;
+	case SYM_RESTRICT:
+		examine_base_type(sym);
+		return sym;
 	default:
 		warning(sym->pos, "Examining unknown symbol type %d", sym->type);
 		break;
