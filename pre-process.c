@@ -1001,6 +1001,7 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 	if (stream->constant == CONSTANT_FILE_MAYBE)
 		MARK_STREAM_NONCONST(token->pos);
 
+	__free_token(token);		/* Free the "define" token, but not the rest of the line */
 	name = left->ident;
 
 	arglist = NULL;
@@ -1492,6 +1493,7 @@ static void do_preprocess(struct token **list)
 		if (next->pos.newline && match_op(next, '#')) {
 			if (!next->pos.noexpand) {
 				preprocessor_line(stream, list);
+				__free_token(next);	/* Free the '#' token */
 				continue;
 			}
 		}
