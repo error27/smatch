@@ -625,23 +625,6 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 
 	value = linearize_expression(ep, expr->right);
 	address = linearize_address_gen(ep, target);
-	if (expr->op != '=') {
-		static const int opcode[] = {
-			[SPECIAL_ADD_ASSIGN - SPECIAL_BASE] = OP_ADD,
-			[SPECIAL_SUB_ASSIGN - SPECIAL_BASE] = OP_SUB,
-			[SPECIAL_MUL_ASSIGN - SPECIAL_BASE] = OP_MUL,
-			[SPECIAL_DIV_ASSIGN - SPECIAL_BASE] = OP_DIV,
-			[SPECIAL_MOD_ASSIGN - SPECIAL_BASE] = OP_MOD,
-			[SPECIAL_SHL_ASSIGN - SPECIAL_BASE] = OP_SHL,
-			[SPECIAL_SHR_ASSIGN - SPECIAL_BASE] = OP_SHR,
-			[SPECIAL_AND_ASSIGN - SPECIAL_BASE] = OP_AND,
-			[SPECIAL_OR_ASSIGN  - SPECIAL_BASE] = OP_OR,
-			[SPECIAL_XOR_ASSIGN - SPECIAL_BASE] = OP_XOR 
-		};
-		pseudo_t left = linearize_load_gen(ep, target, address);
-		value = add_binary_op(ep, expr, opcode[expr->op - SPECIAL_BASE], left, value);
-		add_deathnote(ep, left);
-	}
 	return linearize_store_gen(ep, value, target, address);
 }
 
