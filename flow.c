@@ -288,7 +288,7 @@ int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom
 {
 	int opcode = dom->opcode;
 
-	if (opcode == OP_CALL)
+	if (opcode == OP_CALL || opcode == OP_ENTRY)
 		return local ? 0 : -1;
 	if (opcode != OP_LOAD && opcode != OP_STORE)
 		return 0;
