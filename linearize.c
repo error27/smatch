@@ -106,8 +106,13 @@ static void show_instruction(struct instruction *insn)
 			printf("\t%%r%d <- %s\n",  
 				insn->target->nr, show_ident(expr->symbol->ident));
 			break;
+		case EXPR_LABEL:
+			printf("\t%%r%d <- .L%p\n",  
+				insn->target->nr, expr->symbol->bb_target);
+			break;
 		default:
-			printf("\t SETVAL ?? ");
+			printf("\t%%r%d <- SETVAL EXPR TYPE %d\n",
+				insn->target->nr, expr->type);
 		}
 		break;
 	}
@@ -121,6 +126,15 @@ static void show_instruction(struct instruction *insn)
 				printf(", %d ... %d -> .L%p", jmp->begin, jmp->end, jmp->target);
 			else
 				printf(", default -> .L%p\n", jmp->target);
+		} END_FOR_EACH_PTR;
+		printf("\n");
+		break;
+	}
+	case OP_COMPUTEDGOTO: {
+		struct multijmp *jmp;
+		printf("\tjmp *%%r%d", insn->target->nr);
+		FOR_EACH_PTR(insn->multijmp_list, jmp) {
+			printf(", .L%p", jmp->target);
 		} END_FOR_EACH_PTR;
 		printf("\n");
 		break;
@@ -257,6 +271,13 @@ static struct basic_block * get_bound_block(struct entrypoint *ep, struct symbol
 		bb->flags |= BB_REACHABLE;
 	}
 	return bb;
+}
+
+static void finish_block(struct entrypoint *ep)
+{
+	struct basic_block *src = ep->active;
+	if (bb_reachable(src))
+		ep->active = NULL;
 }
 
 static void add_goto(struct entrypoint *ep, struct basic_block *dst)
@@ -806,7 +827,28 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	}
 
 	case STMT_GOTO: {
-		add_goto(ep, get_bound_block(ep, stmt->goto_label));
+		struct symbol *sym;
+		struct instruction *goto_ins;
+		pseudo_t pseudo;
+
+		if (stmt->goto_label) {
+			add_goto(ep, get_bound_block(ep, stmt->goto_label));
+			break;
+		}
+
+		pseudo = linearize_expression(ep, stmt->goto_expression);
+		goto_ins = alloc_instruction(OP_COMPUTEDGOTO, NULL);
+		add_one_insn(ep, stmt->pos, goto_ins);
+		goto_ins->target = pseudo;
+
+		FOR_EACH_PTR(stmt->target_list, sym) {
+			struct basic_block *bb_computed = get_bound_block(ep, sym);
+			struct multijmp *jmp = alloc_multijmp(bb_computed, 1, 0);
+			add_multijmp(&goto_ins->multijmp_list, jmp);
+			add_bb(&bb_computed->parents, ep->active);
+		} END_FOR_EACH_PTR;
+
+		finish_block(ep);
 		break;
 	}
 

@@ -342,6 +342,7 @@ void init_terminator_iterator(struct instruction* terminator, struct terminator_
 		iterator->branch = BR_INIT;
 		break;
 	case OP_SWITCH:
+	case OP_COMPUTEDGOTO:
 		init_multijmp_iterator(&terminator->multijmp_list, &iterator->multijmp, 0);
 		break;
 	}
@@ -371,6 +372,7 @@ struct basic_block* next_terminator_bb(struct terminator_iterator *iterator)
 			return NULL;
 		}
 		break;
+	case OP_COMPUTEDGOTO:
 	case OP_SWITCH: {
 		struct multijmp *jmp = next_multijmp(&iterator->multijmp);
 		return jmp ? jmp->target : NULL;
@@ -401,6 +403,7 @@ void replace_terminator_bb(struct terminator_iterator *iterator, struct basic_bl
 		}
 		break;
 
+	case OP_COMPUTEDGOTO:
 	case OP_SWITCH: {
 		struct multijmp *jmp = (struct multijmp*) current_iterator(&iterator->multijmp);
 		if (jmp)
