@@ -974,7 +974,15 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	offset = 0;
 	member = find_identifier(ident, ctype->symbol_list, &offset);
 	if (!member) {
-		warn(expr->pos, "no such struct/union member");
+		const char *type = ctype->type == SYM_STRUCT ? "struct" : "union";
+		const char *name = "<unnamed>";
+		int namelen = 9;
+		if (ctype->ident) {
+			name = ctype->ident->name;
+			namelen = ctype->ident->len;
+		}
+		warn(expr->pos, "no member '%s' in %s %.*s",
+			show_ident(ident), type, namelen, name);
 		return NULL;
 	}
 
