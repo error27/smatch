@@ -1760,34 +1760,33 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 	struct basic_block *parent;
 
 	FOR_EACH_PTR(bb->parents, parent) {
-		struct instruction *one, *dom;
-		dom = NULL;
-		FOR_EACH_PTR(parent->insns, one) {
+		struct instruction *one;
+		struct phi *phi;
+
+		FOR_EACH_PTR_REVERSE(parent->insns, one) {
 			int dominance;
-			if (one == insn) {
-				dom = NULL;
-				continue;
-			}
+			if (one == insn)
+				goto no_dominance;
 			dominance = dominates(pseudo, insn, one, local);
 			if (dominance < 0)
 				return 0;
 			if (!dominance)
 				continue;
-			dom = one;
-		} END_FOR_EACH_PTR(one);
-
-		if (dom) {
-			struct phi *phi = alloc_phi(parent, dom->target);
-			use_pseudo(NULL, dom->target, &phi->pseudo);
-			add_phi(dominators, phi);
-			continue;
-		}
+			goto found_dominator;
+		} END_FOR_EACH_PTR_REVERSE(one);
+no_dominance:
 		if (parent->generation == generation)
 			continue;
 		parent->generation = generation;
 
 		if (!find_dominating_parents(pseudo, insn, parent, generation, dominators, local))
 			return 0;
+		continue;
+
+found_dominator:
+		phi = alloc_phi(parent, one->target);
+		use_pseudo(NULL, one->target, &phi->pseudo);
+		add_phi(dominators, phi);
 	} END_FOR_EACH_PTR(parent);
 	return 1;
 }		
@@ -1810,8 +1809,10 @@ static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,
 		if (one == insn)
 			goto found;
 		dominance = dominates(pseudo, insn, one, local);
-		if (dominance < 0)
-			return 0;
+		if (dominance < 0) {
+			dom = NULL;
+			continue;
+		}
 		if (!dominance)
 			continue;
 		dom = one;
