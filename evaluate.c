@@ -848,7 +848,7 @@ static struct symbol *evaluate_binop_assignment(struct expression *expr, struct 
 		[SPECIAL_SHL_ASSIGN - SPECIAL_BASE] = SPECIAL_LEFTSHIFT,
 		[SPECIAL_SHR_ASSIGN - SPECIAL_BASE] = SPECIAL_RIGHTSHIFT,
 		[SPECIAL_AND_ASSIGN - SPECIAL_BASE] = '&',
-		[SPECIAL_OR_ASSIGN - SPECIAL_BASE] = '&',
+		[SPECIAL_OR_ASSIGN - SPECIAL_BASE] = '|',
 		[SPECIAL_XOR_ASSIGN - SPECIAL_BASE] = '^'
 	};
 
