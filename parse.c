@@ -172,6 +172,10 @@ static void handle_attribute(struct ctype *ctype, struct ident *attribute, struc
 		ctype->modifiers |= MOD_NOCAST;
 		return;
 	}
+	if (match_string_ident(attribute, "noderef")) {
+		ctype->modifiers |= MOD_NODEREF;
+		return;
+	}
 	if (match_string_ident(attribute, "type")) {
 		if (expr->type == EXPR_COMMA) {
 			int mask = get_expression_value(expr->left);
@@ -349,6 +353,13 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 		}
 		ctype->type |= thistype.type;
 		ctype->typemask |= thistype.typemask;
+
+		if (thistype.alignment & (thistype.alignment-1)) {
+			warn(token->pos, "I don't like non-power-of-2 alignments");
+			thistype.alignment = 0;
+		}
+		if (thistype.alignment > ctype->alignment)
+			ctype->alignment = thistype.alignment;
 	}
 
 	/* Turn the "virtual types" into real types with real sizes etc */

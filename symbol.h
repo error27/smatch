@@ -112,6 +112,7 @@ struct symbol {
 #define MOD_ATTRIBUTE	0x20000
 
 #define MOD_NOCAST	0x100000
+#define MOD_NODEREF	0x200000
 
 /* Basic types */
 extern struct symbol	void_type,
