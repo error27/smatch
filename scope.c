@@ -45,7 +45,7 @@ void start_function_scope(void)
 	start_scope(&block_scope);
 }
 
-static void remove_symbol_scope(struct symbol *sym, void *data, int flags)
+static void remove_symbol_scope(struct symbol *sym)
 {
 	struct symbol **ptr = sym->id_list;
 
@@ -58,10 +58,13 @@ static void end_scope(struct scope **s)
 {
 	struct scope *scope = *s;
 	struct symbol_list *symbols = scope->symbols;
+	struct symbol *sym;
 
 	*s = scope->next;
 	scope->symbols = NULL;
-	symbol_iterate(symbols, remove_symbol_scope, NULL);
+	FOR_EACH_PTR(symbols, sym) {
+		remove_symbol_scope(sym);
+	} END_FOR_EACH_PTR;
 }
 
 void end_symbol_scope(void)

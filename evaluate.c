@@ -1399,20 +1399,6 @@ struct symbol *evaluate_expression(struct expression *expr)
 	return NULL;
 }
 
-static void evaluate_one_statement(struct statement *stmt, void *_last, int flags)
-{
-	struct symbol **last = _last;
-	struct symbol *type = evaluate_statement(stmt);
-
-	if (flags & ITERATE_LAST)
-		*last = type;
-}
-
-static void evaluate_one_symbol(struct symbol *sym, void *unused, int flags)
-{
-	evaluate_symbol(sym);
-}
-
 void check_duplicates(struct symbol *sym)
 {
 	struct symbol *next = sym;
@@ -1456,7 +1442,12 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 
 	/* And finally, evaluate the body of the symbol too */
 	if (base_type->type == SYM_FN) {
-		symbol_iterate(base_type->arguments, evaluate_one_symbol, NULL);
+		struct symbol *s;
+
+		FOR_EACH_PTR(base_type->arguments, s) {
+			evaluate_symbol(s);
+		} END_FOR_EACH_PTR;
+
 		if (base_type->stmt) {
 			current_fn = base_type;
 			current_contextmask = sym->ctype.contextmask;
@@ -1525,10 +1516,24 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		return evaluate_expression(stmt->expression);
 
 	case STMT_COMPOUND: {
+		struct statement *s;
 		struct symbol *type = NULL;
-		symbol_iterate(stmt->syms, evaluate_one_symbol, NULL);
+		struct symbol *sym;
+
+		/* Evaluate each symbol in the compound statement */
+		FOR_EACH_PTR(stmt->syms, sym) {
+			evaluate_symbol(sym);
+		} END_FOR_EACH_PTR;
 		evaluate_symbol(stmt->ret);
-		statement_iterate(stmt->stmts, evaluate_one_statement, &type);
+
+		/*
+		 * Then, evaluate each statement, making the type of the
+		 * compound statement be the type of the last statement
+		 */
+		type = NULL;
+		FOR_EACH_PTR(stmt->stmts, s) {
+			type = evaluate_statement(s);
+		} END_FOR_EACH_PTR;
 		return type;
 	}
 	case STMT_IF:
