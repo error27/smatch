@@ -198,11 +198,35 @@ static struct symbol * compatible_integer_binop(struct expression *expr, struct 
 	return NULL;
 }
 
+/*
+ * CAREFUL! We need to get the size and sign of the
+ * result right!
+ */
+static void simplify_int_binop(struct expression *expr)
+{
+	struct expression *left = expr->left, *right = expr->right;
+	unsigned long long v, l, r, mask;
+
+	if (left->type != EXPR_VALUE || right->type != EXPR_VALUE)
+		return;
+	l = left->value; r = right->value;
+	switch (expr->op) {
+	case '+': v = l+r; break;
+	case '-': v = l-r; break;
+	default: return;
+	}
+	mask = 1ULL << (expr->ctype->bit_size-1);
+	mask = mask | (mask-1);
+	expr->value = v & mask;
+	expr->type = EXPR_VALUE;
+}
+
 static struct symbol *evaluate_int_binop(struct expression *expr)
 {
 	struct symbol *ctype = compatible_integer_binop(expr, &expr->left, &expr->right);
 	if (ctype) {
 		expr->ctype = ctype;
+		simplify_int_binop(expr);
 		return ctype;
 	}
 	return bad_expr_type(expr);
@@ -253,10 +277,12 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 		mul->ctype = size_t_ctype;
 		mul->left = i;
 		mul->right = val;
+		simplify_int_binop(mul);
 
 		/* Leave 'add->op' as 'expr->op' - either '+' or '-' */
 		add->left = ptr;
 		add->right = mul;
+		simplify_int_binop(add);
 	}
 		
 	return expr->ctype;
@@ -695,12 +721,10 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 
 	examine_symbol_type(ctype);
 
-#if 1
 	/* Simplify: *&(expr) => (expr) */
 	if (op->type == EXPR_PREOP && op->op == '&') {
 		*expr = *op->unop;
 	}
-#endif
 
 	expr->ctype = ctype;
 	return ctype;
@@ -839,6 +863,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		add->right = alloc_expression(expr->pos, EXPR_VALUE);
 		add->right->ctype = &int_ctype;
 		add->right->value = offset;
+		simplify_int_binop(add);
 	}
 
 	ctype = member->ctype.base_type;
