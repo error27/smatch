@@ -138,6 +138,10 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 		asm_liveness(bb, insn, def, use);
 		break;
 
+	case OP_RANGE:
+		USES(src1); USES(src2); USES(src3);
+		break;
+
 	case OP_BADOP:
 	case OP_INVOKE:
 	case OP_UNWIND:

@@ -66,6 +66,7 @@ __IDENT(__PRETTY_FUNCTION___ident, "__PRETTY_FUNCTION__", 0);
 
 /* Sparse commands */
 IDENT_RESERVED(__context__);
+IDENT_RESERVED(__range__);
 
 #undef __IDENT
 #undef IDENT

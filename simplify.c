@@ -188,10 +188,18 @@ void kill_instruction(struct instruction *insn)
 		repeat_phase |= REPEAT_CSE;
 		return;
 
-	 case OP_SYMADDR:
-	 	insn->bb = NULL;
-	 	repeat_phase |= REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
-	 	return;
+	case OP_SYMADDR:
+		insn->bb = NULL;
+		repeat_phase |= REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
+		return;
+
+	case OP_RANGE:
+		insn->bb = NULL;
+		repeat_phase |= REPEAT_CSE;
+		kill_use(&insn->src1);
+		kill_use(&insn->src2);
+		kill_use(&insn->src3);
+		return;
 	}
 }
 
@@ -631,6 +639,24 @@ static int simplify_select(struct instruction *insn)
 	return 0;
 }
 
+static int simplify_range(struct instruction *insn)
+{
+	pseudo_t src1, src2, src3;
+
+	src1 = insn->src1;
+	src2 = insn->src2;
+	src3 = insn->src3;
+	if (src2->type != PSEUDO_VAL || src2->type != PSEUDO_VAL)
+		return 0;
+	if (src1->type == PSEUDO_VAL) {
+		if (src1->value >= src2->value && src1->value <= src3->value) {
+			kill_instruction(insn);
+			return REPEAT_CSE;
+		}
+	}
+	return 0;
+}
+
 /*
  * Simplify "set_ne/eq $0 + br"
  */
@@ -802,6 +828,8 @@ int simplify_instruction(struct instruction *insn)
 		return simplify_branch(insn);
 	case OP_SWITCH:
 		return simplify_switch(insn);
+	case OP_RANGE:
+		return simplify_range(insn);
 	}
 	return 0;
 }

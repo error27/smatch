@@ -561,11 +561,18 @@ int show_statement(struct statement *stmt)
 	case STMT_ASM:
 		printf("\tasm( .... )\n");
 		break;
-	case STMT_INTERNAL: {
+	case STMT_CONTEXT: {
 		int val = show_expression(stmt->expression);
-		printf("\tINTERNAL( %d )\n", val);
+		printf("\tcontext( %d )\n", val);
 		break;
 	}
+	case STMT_RANGE: {
+		int val = show_expression(stmt->range_expression);
+		int low = show_expression(stmt->range_low);
+		int high = show_expression(stmt->range_high);
+		printf("\trange( %d %d-%d)\n", val, low, high); 
+		break;
+	}	
 	}
 	return 0;
 }

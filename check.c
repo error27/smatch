@@ -113,11 +113,20 @@ static void check_cast_instruction(struct instruction *insn)
 	}
 }
 
+static void check_range_instruction(struct instruction *insn)
+{
+	warning(insn->bb->pos, "value out of range");
+}
+
 static void check_one_instruction(struct instruction *insn)
 {
 	switch (insn->opcode) {
 	case OP_CAST: case OP_SCAST:
-		check_cast_instruction(insn);
+		if (verbose)
+			check_cast_instruction(insn);
+		break;
+	case OP_RANGE:
+		check_range_instruction(insn);
 		break;
 	default:
 		break;
@@ -155,8 +164,7 @@ static void check_context(struct entrypoint *ep)
 		} END_FOR_EACH_PTR(pseudo);
 	}
 
-	if (verbose)
-		check_instructions(ep);
+	check_instructions(ep);
 
 	check_bb_context(ep, ep->entry->bb, sym->ctype.in_context, sym->ctype.out_context);
 }

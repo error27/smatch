@@ -294,13 +294,21 @@ static struct statement *copy_one_statement(struct statement *stmt)
 	switch(stmt->type) {
 	case STMT_NONE:
 		break;
-	case STMT_INTERNAL:
+	case STMT_CONTEXT:
 	case STMT_EXPRESSION: {
 		struct expression *expr = copy_expression(stmt->expression);
 		if (expr == stmt->expression)
 			break;
 		stmt = dup_statement(stmt);
 		stmt->expression = expr;
+		break;
+	}
+	case STMT_RANGE: {
+		struct expression *expr = copy_expression(stmt->range_expression);
+		if (expr == stmt->expression)
+			break;
+		stmt = dup_statement(stmt);
+		stmt->range_expression = expr;
 		break;
 	}
 	case STMT_COMPOUND: {

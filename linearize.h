@@ -195,6 +195,7 @@ enum opcode {
 
 	/* Sparse tagging (line numbers, context, whatever) */
 	OP_CONTEXT,
+	OP_RANGE,
 };
 
 struct basic_block_list;

@@ -2560,8 +2560,13 @@ struct symbol *evaluate_statement(struct statement *stmt)
 	case STMT_ASM:
 		evaluate_asm_statement(stmt);
 		return NULL;
-	case STMT_INTERNAL:
+	case STMT_CONTEXT:
 		evaluate_expression(stmt->expression);
+		return NULL;
+	case STMT_RANGE:
+		evaluate_expression(stmt->range_expression);
+		evaluate_expression(stmt->range_low);
+		evaluate_expression(stmt->range_high);
 		return NULL;
 	}
 	return NULL;

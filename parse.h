@@ -23,7 +23,8 @@ enum statement_type {
 	STMT_LABEL,
 	STMT_GOTO,
 	STMT_ASM,
-	STMT_INTERNAL,
+	STMT_CONTEXT,
+	STMT_RANGE,
 };
 
 struct statement {
@@ -97,6 +98,11 @@ struct statement {
 			struct expression_list *asm_outputs;
 			struct expression_list *asm_inputs;
 			struct expression_list *asm_clobbers;
+		};
+		struct /* range */ {
+			struct expression *range_expression;
+			struct expression *range_low;
+			struct expression *range_high;
 		};
 	};
 };

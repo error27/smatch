@@ -1276,9 +1276,18 @@ default_statement:
 			return parse_asm(token->next, stmt);
 		}
 		if (token->ident == &__context___ident) {
-			stmt->type = STMT_INTERNAL;
+			stmt->type = STMT_CONTEXT;
 			token = parse_expression(token->next, &stmt->expression);
 			return expect(token, ';', "at end of statement");
+		}
+		if (token->ident == &__range___ident) {
+			stmt->type = STMT_RANGE;
+			token = assignment_expression(token->next, &stmt->range_expression);
+			token = expect(token, ',', "after range expression");
+			token = assignment_expression(token, &stmt->range_low);
+			token = expect(token, ',', "after low range");
+			token = assignment_expression(token, &stmt->range_high);
+			return expect(token, ';', "after range statement");
 		}
 		if (match_op(token->next, ':')) {
 			stmt->type = STMT_LABEL;

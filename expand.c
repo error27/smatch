@@ -1054,8 +1054,13 @@ static int expand_statement(struct statement *stmt)
 	case STMT_ASM:
 		/* FIXME! Do the asm parameter evaluation! */
 		break;
-	case STMT_INTERNAL:
+	case STMT_CONTEXT:
 		expand_expression(stmt->expression);
+		break;
+	case STMT_RANGE:
+		expand_expression(stmt->range_expression);
+		expand_expression(stmt->range_low);
+		expand_expression(stmt->range_high);
 		break;
 	}
 	return SIDE_EFFECTS;

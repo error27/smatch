@@ -231,6 +231,7 @@ static const char* opcodes[] = {
 
 	/* Sparse tagging (line numbers, context, whatever) */
 	[OP_CONTEXT] = "context",
+	[OP_RANGE] = "range-check",
 };
 
 static char *show_asm_constraints(char *buf, const char *sep, struct asm_constraint_list *list)
@@ -428,6 +429,9 @@ const char *show_instruction(struct instruction *insn)
 
 	case OP_CONTEXT:
 		buf += sprintf(buf, "%d", insn->increment);
+		break;
+	case OP_RANGE:
+		buf += sprintf(buf, "%s between %s..%s", show_pseudo(insn->src1), show_pseudo(insn->src2), show_pseudo(insn->src3));
 		break;
 	case OP_NOP:
 		buf += sprintf(buf, "%s <- %s", show_pseudo(insn->target), show_pseudo(insn->src1));
@@ -1599,7 +1603,7 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 	return pseudo;
 }
 
-pseudo_t linearize_internal(struct entrypoint *ep, struct statement *stmt)
+pseudo_t linearize_context(struct entrypoint *ep, struct statement *stmt)
 {
 	struct instruction *insn = alloc_instruction(OP_CONTEXT, 0);
 	struct expression *expr = stmt->expression;
@@ -1609,6 +1613,17 @@ pseudo_t linearize_internal(struct entrypoint *ep, struct statement *stmt)
 		value = expr->value;
 
 	insn->increment = value;
+	add_one_insn(ep, insn);
+	return VOID;
+}
+
+pseudo_t linearize_range(struct entrypoint *ep, struct statement *stmt)
+{
+	struct instruction *insn = alloc_instruction(OP_RANGE, 0);
+
+	use_pseudo(linearize_expression(ep, stmt->range_expression), &insn->src1);
+	use_pseudo(linearize_expression(ep, stmt->range_low), &insn->src2);
+	use_pseudo(linearize_expression(ep, stmt->range_high), &insn->src3);
 	add_one_insn(ep, insn);
 	return VOID;
 }
@@ -1756,8 +1771,11 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	case STMT_NONE:
 		break;
 
-	case STMT_INTERNAL:
-		return linearize_internal(ep, stmt);
+	case STMT_CONTEXT:
+		return linearize_context(ep, stmt);
+
+	case STMT_RANGE:
+		return linearize_range(ep, stmt);
 
 	case STMT_EXPRESSION:
 		return linearize_expression(ep, stmt->expression);

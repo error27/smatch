@@ -80,6 +80,8 @@ static const char* opcodes[] = {
 	[OP_PHI] = "phi",
 	[OP_PHISOURCE] = "phisrc",
 	[OP_CAST] = "cast",
+	[OP_SCAST] = "scast",
+	[OP_FPCAST] = "fpcast",
 	[OP_PTRCAST] = "ptrcast",
 	[OP_CALL] = "call",
 	[OP_VANEXT] = "va_next",
@@ -1438,7 +1440,7 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 		generate_compare(state, insn);
 		break;
 
-	case OP_CAST: case OP_PTRCAST:
+	case OP_CAST: case OP_SCAST: case OP_FPCAST: case OP_PTRCAST:
 		generate_cast(state, insn);
 		break;
 
