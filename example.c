@@ -393,6 +393,20 @@ static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src, pse
 	return src;
 }
 
+static const char *generic(struct bb_state *state, pseudo_t pseudo)
+{
+	struct hardreg *reg;
+
+	switch (pseudo->type) {
+	case PSEUDO_SYM:
+	case PSEUDO_VAL:
+		return show_pseudo(pseudo);
+	default:
+		reg = getreg(state, pseudo, NULL);
+		return reg->name;
+	}
+}
+
 static const char *address(struct bb_state *state, struct instruction *memop)
 {
 	struct symbol *sym;
@@ -605,6 +619,27 @@ static void generate_ret(struct bb_state *state, struct instruction *ret)
 	output_insn(state, "ret");
 }
 
+/*
+ * Fake "call" linearization just as a taster..
+ */
+static void generate_call(struct bb_state *state, struct instruction *insn)
+{
+	int offset = 0;
+	pseudo_t arg;
+
+	FOR_EACH_PTR(insn->arguments, arg) {
+		output_insn(state, "pushl %s", generic(state, arg));
+		offset += 4;
+	} END_FOR_EACH_PTR(arg);
+	flush_reg(state, hardregs+0);
+	flush_reg(state, hardregs+1);
+	flush_reg(state, hardregs+2);
+	output_insn(state, "call %s", show_pseudo(insn->func));
+	if (offset)
+		output_insn(state, "addl $%d,%%esp", offset);
+	add_pseudo_reg(state, insn->target, hardregs+0);
+}
+
 static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 {
 	if (verbose)
@@ -659,6 +694,10 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 
 	case OP_BR:
 		generate_branch(state, insn);
+		break;
+
+	case OP_CALL:
+		generate_call(state, insn);
 		break;
 
 	case OP_RET:
