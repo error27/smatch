@@ -486,6 +486,29 @@ static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
 		add_bb(&ep->bbs, bb);
 }
 
+static inline int bb_empty(struct basic_block *bb)
+{
+	return !bb->insns && !bb->phinodes;
+}
+
+/* Add a label to the currently active block, return new active block */
+static struct basic_block * add_label(struct entrypoint *ep, struct symbol *label)
+{
+	struct basic_block *bb = label->bb_target;
+
+	if (bb) {
+		set_activeblock(ep, bb);
+		return bb;
+	}
+	bb = ep->active;
+	if (!bb_reachable(bb) || !bb_empty(bb)) {
+		bb = alloc_basic_block(label->pos);
+		set_activeblock(ep, bb);
+	}
+	label->bb_target = bb;
+	return bb;
+}
+
 static void add_setcc(struct entrypoint *ep, struct expression *expr, pseudo_t val)
 {
 	struct basic_block *bb = ep->active;
@@ -1278,10 +1301,9 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 	} END_FOR_EACH_PTR(s);
 
 	if (ret) {
-		struct basic_block *bb = get_bound_block(ep, ret);
+		struct basic_block *bb = add_label(ep, ret);
 		struct instruction *phi = first_instruction(bb->insns);
 
-		set_activeblock(ep, bb);
 		if (!phi)
 			return pseudo;
 
@@ -1352,19 +1374,16 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	}
 
 	case STMT_CASE: {
-		struct basic_block *bb = get_bound_block(ep, stmt->case_label);
-		set_activeblock(ep, bb);
+		add_label(ep, stmt->case_label);
 		linearize_statement(ep, stmt->case_statement);
 		break;
 	}
 
 	case STMT_LABEL: {
 		struct symbol *label = stmt->label_identifier;
-		struct basic_block *bb;
 
 		if (label->used) {
-			bb = get_bound_block(ep, stmt->label_identifier);
-			set_activeblock(ep, bb);
+			add_label(ep, label);
 			linearize_statement(ep, stmt->label_statement);
 		}
 		break;
