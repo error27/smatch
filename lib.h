@@ -1,6 +1,16 @@
 #ifndef LIST_H
 #define LIST_H
 
+struct ident;
+struct token;
+struct symbol;
+struct symbol_list;
+struct statement;
+struct statement_list;
+
+extern void warn(struct token *, const char *, ...);
+extern void error(struct token *, const char *, ...);
+
 #define __DECLARE_ALLOCATOR(type, x)		\
 	extern type *__alloc_##x(int);		\
 	extern void show_##x##_alloc(void);
@@ -24,11 +34,6 @@ struct ptr_list {
 
 void iterate(struct ptr_list *,void (*callback)(void *));
 extern void add_ptr_list(struct ptr_list **, void *);
-
-struct symbol;
-struct symbol_list;
-struct statement;
-struct statement_list;
 
 static inline void add_symbol(struct symbol_list **list, struct symbol *sym)
 {

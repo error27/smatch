@@ -126,7 +126,6 @@ extern const char *show_ident(const struct ident *);
 extern const char *show_token(const struct token *);
 extern struct token * tokenize(const char *, int);
 extern void die(const char *, ...);
-extern void warn(struct token *, const char *, ...);
 extern void show_identifier_stats(void);
 extern struct token *preprocess(struct token *);
 

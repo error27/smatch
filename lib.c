@@ -142,17 +142,13 @@ void add_ptr_list(struct ptr_list **listp, void *ptr)
 	list->nr = nr;
 }
 
-void warn(struct token *token, const char * fmt, ...)
+static void do_warn(const char *type, struct token *token, const char * fmt, va_list args)
 {
 	static char buffer[512];
 	const char *name;
 	int pos,line;
 
-	va_list args;
-	va_start(args, fmt);
-	vsprintf(buffer, fmt, args);
-	va_end(args);
-
+	vsprintf(buffer, fmt, args);	
 	name = "EOF";
 	pos = 0;
 	line = 0;
@@ -162,10 +158,30 @@ void warn(struct token *token, const char * fmt, ...)
 		line = token->line;
 	}
 		
-	fprintf(stderr, "warning: %s:%d:%d: %s\n",
-		name, line, pos, buffer);
+	fprintf(stderr, "%s: %s:%d:%d: %s\n",
+		type, name, line, pos, buffer);
+}
+
+void warn(struct token *token, const char * fmt, ...)
+{
+	static int warnings = 0;
+	va_list args;
+	va_start(args, fmt);
+	do_warn("warning", token, fmt, args);
+	va_end(args);
+	warnings++;
+	if (warnings > 20)
+		error(token, "too many warnings");
 }	
 
+void error(struct token *token, const char * fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	do_warn("error", token, fmt, args);
+	va_end(args);
+	exit(1);
+}
 
 void die(const char *fmt, ...)
 {
