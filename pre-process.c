@@ -42,6 +42,7 @@ static struct token *alloc_token(struct token *dup)
 	token->stream = dup->stream;
 	token->line = dup->line;
 	token->pos = dup->pos;
+	token->whitespace = 1;
 	return token;
 }
 
