@@ -642,7 +642,6 @@ char **handle_switch(char *arg, char **next)
 
 void create_builtin_stream(void)
 {
-	add_pre_buffer("#define __i386__ 1\n");
 	add_pre_buffer("#define __linux__ 1\n");
 	add_pre_buffer("#define __STDC__ 1\n");
 	add_pre_buffer("#define linux linux\n");
