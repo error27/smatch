@@ -418,7 +418,7 @@ static int get_one_number(int c, int next, stream_t *stream)
 	}
 
 	if (p == buffer_end) {
-		error(stream->pos, "number token exceeds %d characters",
+		error(stream->pos, "number token exceeds %td characters",
 		      buffer_end - buffer);
 		// Pretend we saw just "1".
 		buffer[0] = '1';
