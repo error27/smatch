@@ -161,14 +161,23 @@ static void examine_bitfield_type(struct symbol *sym)
 {
 	struct symbol *base_type = sym->ctype.base_type;
 	unsigned long bit_size, alignment;
+	int is_signed;
 
 	if (!base_type)
 		return;
 	examine_symbol_type(base_type);
 	bit_size = base_type->bit_size;
 	if (sym->fieldwidth > bit_size) {
-		warn(sym->pos, "impossible field-width for this type");
+		warn(sym->pos, "impossible field-width, %d, for this type",
+		     sym->fieldwidth);
 		sym->fieldwidth = bit_size;
+	}
+
+	is_signed = !(base_type->ctype.modifiers & MOD_UNSIGNED);
+	if (sym->fieldwidth == 1 && is_signed) {
+		// Valid values are either {-1;0} or {0}, depending on integer
+		// representation.  The latter makes for very efficient code...
+		warn(sym->pos, "dubious one-bit signed bitfield");
 	}
 	alignment = base_type->ctype.alignment;
 	if (!sym->ctype.alignment)
