@@ -43,7 +43,7 @@ static struct hardreg hardregs[] = {
 #define REGNO (sizeof(hardregs)/sizeof(struct hardreg))
 
 struct bb_state {
-	struct basic_block *bb;
+	struct position pos;
 	unsigned long stack_offset;
 	struct storage_hash_list *inputs;
 	struct storage_hash_list *outputs;
@@ -834,6 +834,40 @@ static void generate_select(struct bb_state *state, struct instruction *insn)
 	output_insn(state, "sele %s,%s", src2->name, dst->name);
 }
 
+static void generate_asm_inputs(struct bb_state *state, struct asm_constraint_list *list)
+{
+	struct asm_constraint *entry;
+
+	FOR_EACH_PTR(list, entry) {
+		const char *constraint = entry->constraint;
+		pseudo_t pseudo = entry->pseudo;
+
+		output_comment(state, "\"%s\": %s", constraint, show_pseudo(pseudo));
+	} END_FOR_EACH_PTR(entry);
+}
+
+static void generate_asm_outputs(struct bb_state *state, struct asm_constraint_list *list)
+{
+	struct asm_constraint *entry;
+
+	FOR_EACH_PTR(list, entry) {
+		const char *constraint = entry->constraint;
+		pseudo_t pseudo = entry->pseudo;
+
+		while (*constraint == '=' || *constraint == '+')
+			constraint++;
+
+		output_comment(state, "\"%s\": %s", constraint, show_pseudo(pseudo));
+	} END_FOR_EACH_PTR(entry);
+}
+
+static void generate_asm(struct bb_state *state, struct instruction *insn)
+{
+	generate_asm_inputs(state, insn->asm_rules->inputs);
+	output_insn(state, "ASM: %s", insn->string);
+	generate_asm_outputs(state, insn->asm_rules->outputs);
+}
+
 static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 {
 	if (verbose)
@@ -919,6 +953,10 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 
 	case OP_RET:
 		generate_ret(state, insn);
+		break;
+
+	case OP_ASM:
+		generate_asm(state, insn);
 		break;
 
 	default:
@@ -1216,6 +1254,7 @@ static void output_bb(struct basic_block *bb, unsigned long generation)
 	/* Make sure all parents have been generated first */
 	generate_list(bb->parents, generation);
 
+	state.pos = bb->pos;
 	state.inputs = gather_storage(bb, STOR_IN);
 	state.outputs = gather_storage(bb, STOR_OUT);
 	state.internal = NULL;
