@@ -644,7 +644,7 @@ static long long get_expression_value(struct expression *expr)
 	return 0;
 }
 
-extern struct token *assignment_expression(struct token *token, struct expression **tree);
+extern struct token *conditional_expression(struct token *token, struct expression **tree);
 
 static int expression_value(struct token *head)
 {
@@ -654,7 +654,7 @@ static int expression_value(struct token *head)
 
 	expand_defined(head, NULL);
 	expand_list(head, NULL);
-	token = assignment_expression(head->next, &expr);
+	token = conditional_expression(head->next, &expr);
 	if (!eof_token(token))
 		warn(token, "garbage at end: %s", show_token_sequence(token));
 	value = get_expression_value(expr);

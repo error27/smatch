@@ -453,11 +453,24 @@ static struct token *logical_or_expression(struct token *token, struct expressio
 	return lr_binop_expression(token, tree, logical_and_expression, SPECIAL_LOGICAL_OR, 0);
 }
 
+struct token *conditional_expression(struct token *token, struct expression **tree)
+{
+	token = logical_or_expression(token, tree);
+	if (match_op(token, '?')) {
+		struct expression *expr = alloc_expression(token, EXPR_CONDITIONAL);
+		expr->op = token->special;
+		expr->left = *tree;
+		*tree = expr;
+		token = parse_expression(token->next, &expr->cond_true);
+		token = expect(token, ':', "in conditional expression");
+		token = conditional_expression(token, &expr->cond_false);
+	}
+	return token;
+}
+
 struct token *assignment_expression(struct token *token, struct expression **tree)
 {
-	struct expression *left = NULL;
-
-	token = logical_or_expression(token, &left);
+	token = conditional_expression(token, tree);
 	if (token->type == TOKEN_SPECIAL) {
 		static const int assignments[] = {
 			'=', SPECIAL_ADD_ASSIGN, SPECIAL_MINUS_ASSIGN,
@@ -469,22 +482,12 @@ struct token *assignment_expression(struct token *token, struct expression **tre
 		for (i = 0; i < sizeof(assignments)/sizeof(int); i++)
 			if (assignments[i] == op) {
 				struct expression * expr = alloc_expression(token, EXPR_BINOP);
-				expr->left = left;
+				expr->left = *tree;
 				expr->op = op;
 				*tree = expr;
 				return assignment_expression(token->next, &expr->right);
 			}
-		if (op == '?') {
-			struct expression *expr = alloc_expression(token, EXPR_CONDITIONAL);
-			expr->left = left;
-			expr->op = op;
-			*tree = expr;
-			token = parse_expression(token->next, &expr->cond_true);
-			token = expect(token, ':', "in conditional expression");
-			return assignment_expression(token, &expr->cond_false);
-		}
 	}
-	*tree = left;
 	return token;
 }
 
@@ -753,7 +756,7 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 		if (token->special == ':') {
 			struct expression *expr;
 			*tree = indirect(*tree, SYM_BITFIELD);
-			token = parse_expression(token->next, &expr);
+			token = conditional_expression(token->next, &expr);
 			continue;
 		}
 		break;
