@@ -928,6 +928,7 @@ static pseudo_t copy_pseudo(struct entrypoint *ep, struct expression *expr, pseu
 		pseudo_t dst = alloc_pseudo(src->def);
 		new->target = dst;
 		new->src = src;
+		use_pseudo(new, src);
 		add_instruction(&bb->insns, new);
 		return dst;
 	}
@@ -1710,6 +1711,7 @@ static void create_phi_copy(struct basic_block *bb, struct instruction *phi,
 	delete_last_instruction(&bb->insns);
 	new->target = dst;
 	new->src = src;
+	use_pseudo(new, src);
 	add_instruction(&bb->insns, new);
 
 	if (src->type == PSEUDO_REG) {
