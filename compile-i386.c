@@ -54,12 +54,18 @@ struct loop_stack {
 	struct loop_stack *next;
 };
 
+struct atom;
+struct storage;
+DECLARE_PTR_LIST(str_list, struct atom);
+DECLARE_PTR_LIST(atom_list, struct atom);
+DECLARE_PTR_LIST(storage_list, struct storage);
+
 struct function {
 	int stack_size;
 	int pseudo_nr;
-	struct ptr_list *pseudo_list;
-	struct ptr_list *atom_list;
-	struct ptr_list *str_list;
+	struct storage_list *pseudo_list;
+	struct atom_list *atom_list;
+	struct str_list *str_list;
 	struct loop_stack *loop_stack;
 	struct symbol **argv;
 	unsigned int argc;
