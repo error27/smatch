@@ -779,6 +779,14 @@ static struct symbol *evaluate_binop_assignment(struct expression *expr, struct 
 	return evaluate_binop(subexpr);
 }
 
+static void evaluate_assign_to(struct expression *left, struct symbol *type)
+{
+	if (type->ctype.modifiers & MOD_CONST)
+		warn(left->pos, "assignment to const expression");
+	if (type->type == SYM_NODE)
+		type->ctype.modifiers |= MOD_ASSIGNED;
+}
+
 static struct symbol *evaluate_assignment(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
@@ -803,8 +811,7 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 	if (!compatible_assignment_types(expr, ltype, &expr->right, rtype, "assignment"))
 		return NULL;
 
-	if (ltype->type == SYM_NODE)
-		ltype->ctype.modifiers |= MOD_ASSIGNED;
+	evaluate_assign_to(left, ltype);
 
 	expr->ctype = ltype;
 	return ltype;
@@ -1015,8 +1022,7 @@ static struct symbol *evaluate_postop(struct expression *expr)
 		return NULL;
 	}
 
-	if (ctype->type == SYM_NODE)
-		ctype->ctype.modifiers |= MOD_ASSIGNED;
+	evaluate_assign_to(op, ctype);
 
 	expr->ctype = ctype;
 	return ctype;

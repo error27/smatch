@@ -243,12 +243,6 @@ static void expand_conditional(struct expression *expr)
 		
 static void expand_assignment(struct expression *expr)
 {
-	struct expression *left = expr->left;
-	if (left) {
-		struct symbol *ctype = left->ctype;
-		if (ctype && (ctype->ctype.modifiers & MOD_CONST))
-			warn(expr->pos, "assignment of const expression");
-	}	
 }
 
 static void expand_addressof(struct expression *expr)
