@@ -922,6 +922,26 @@ struct symbol *find_identifier(struct ident *ident, struct symbol_list *_list, i
 	return NULL;
 }
 
+static struct expression *evaluate_offset(struct expression *expr, unsigned long offset)
+{
+	struct expression *add;
+
+	if (!offset)
+		return expr;
+
+	/* Create a new add-expression */
+	add = alloc_expression(expr->pos, EXPR_BINOP);
+	add->op = '+';
+	add->ctype = &ptr_ctype;
+	add->left = expr;
+	add->right = alloc_expression(expr->pos, EXPR_VALUE);
+	add->right->ctype = &int_ctype;
+	add->right->value = offset;
+
+	simplify_int_binop(add, &ptr_ctype);
+	return add;
+}
+
 /* structure/union dereference */
 static struct symbol *evaluate_member_dereference(struct expression *expr)
 {
@@ -977,17 +997,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		return NULL;
 	}
 
-	add = deref;
-	if (offset != 0) {
-		add = alloc_expression(expr->pos, EXPR_BINOP);
-		add->op = '+';
-		add->ctype = &ptr_ctype;
-		add->left = deref;
-		add->right = alloc_expression(expr->pos, EXPR_VALUE);
-		add->right->ctype = &int_ctype;
-		add->right->value = offset;
-		simplify_int_binop(add, &ptr_ctype);
-	}
+	add = evaluate_offset(deref, offset);
 
 	ctype = member->ctype.base_type;
 	if (ctype->type == SYM_BITFIELD) {
