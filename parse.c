@@ -68,7 +68,7 @@ static struct symbol * indirect(struct position pos, struct ctype *ctype, int ty
 	struct symbol *sym = alloc_symbol(pos, type);
 
 	sym->ctype.base_type = ctype->base_type;
-	sym->ctype.modifiers = ctype->modifiers & ~(MOD_STORAGE | MOD_EXPLICITLY_SIGNED);
+	sym->ctype.modifiers = ctype->modifiers & ~MOD_STORAGE;
 
 	ctype->base_type = sym;
 	ctype->modifiers &= MOD_STORAGE;
@@ -704,6 +704,22 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 						unsigned int stupid_gcc = -1;
 						bitfield->fieldwidth = stupid_gcc;
 						warn(token->pos, "truncating large bitfield from %lld to %d bits", width, bitfield->fieldwidth);
+					} else {
+						int is_signed = !(ctype->modifiers & MOD_UNSIGNED);
+						if (decl->ident &&
+						    bitfield->fieldwidth == 1 &&
+						    is_signed) {
+							// Valid values are either {-1;0} or {0}, depending on integer
+							// representation.  The latter makes for very efficient code...
+							warn(token->pos, "dubious one-bit signed bitfield");
+						}
+						if (decl->ident &&
+						    ctype->base_type->type != SYM_ENUM &&
+						    !(ctype->modifiers & MOD_EXPLICITLY_SIGNED) &&
+						    is_signed) {
+							// The sign of bitfields is unspecified by default.
+							warn (token->pos, "dubious bitfield without explicit `signed' or `unsigned'");
+						}
 					}
 				} else {
 					warn(token->pos, "invalid bitfield specifier for type %s.", show_typename (ctype->base_type));
