@@ -33,22 +33,25 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 		return NULL;
 	}
 
+	examine_symbol_type(sym);
 	if ((sym->ctype.type ^ current_type) & (sym->ctype.typemask & current_typemask))
-		warn(expr->pos, "Using symbol '%s' in illegal context", show_ident(expr->symbol_name));
+		warn(expr->pos, "Using symbol '%s' in wrong context", show_ident(expr->symbol_name));
 
 	base_type = sym->ctype.base_type;
 	if (!base_type) {
 		warn(sym->pos, "identifier '%s' has no type", show_ident(expr->symbol_name));
 		return NULL;
 	}
-	expr->ctype = base_type;
+
+	/* The type of a symbol is the symbol itself! */
+	expr->ctype = sym;
 
 	/* enum's can be turned into plain values */
 	if (base_type->type == SYM_ENUM) {
 		expr->type = EXPR_VALUE;
 		expr->value = sym->value;
 	}
-	return base_type;
+	return sym;
 }
 
 static struct symbol *evaluate_string(struct expression *expr)
@@ -142,11 +145,15 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 
 static int is_ptr_type(struct symbol *type)
 {
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
 	return type->type == SYM_PTR || type->type == SYM_ARRAY || type->type == SYM_FN;
 }
 
 static int is_int_type(struct symbol *type)
 {
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
 	return type->ctype.base_type == &int_type;
 }
 
@@ -161,6 +168,10 @@ static struct symbol * compatible_integer_binop(struct expression *expr, struct 
 	struct expression *left = *lp, *right = *rp;
 	struct symbol *ltype = left->ctype, *rtype = right->ctype;
 
+	if (ltype->type == SYM_NODE)
+		ltype = ltype->ctype.base_type;
+	if (rtype->type == SYM_NODE)
+		rtype = rtype->ctype.base_type;
 	/* Integer promotion? */
 	if (ltype->type == SYM_ENUM)
 		ltype = &int_ctype;
@@ -207,6 +218,11 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 	struct symbol *ctype;
 	struct symbol *ptr_type = ptr->ctype;
 	struct symbol *i_type = i->ctype;
+
+	if (i_type->type == SYM_NODE)
+		i_type = i_type->ctype.base_type;
+	if (ptr_type->type == SYM_NODE)
+		ptr_type = ptr_type->ctype.base_type;
 
 	if (i_type->type == SYM_ENUM)
 		i_type = &int_ctype;
@@ -394,10 +410,22 @@ static int same_type(struct symbol *target, struct symbol *source)
 			break;
 		if (!target || !source)
 			return 0;
-		if (target->type != source->type)
-			return 0;
+		/*
+		 * Peel of per-node information.
+		 * FIXME! Check alignment and context too here!
+		 */
 		mod1 = target->ctype.modifiers;
 		mod2 = source->ctype.modifiers;
+		if (target->type == SYM_NODE) {
+			target = target->ctype.base_type;
+			mod1 |= target->ctype.modifiers;
+		}
+		if (source->type == SYM_NODE) {
+			source = source->ctype.base_type;
+			mod2 |= source->ctype.modifiers;
+		}
+		if (target->type != source->type)
+			return 0;
 		if (mod1 != mod2)
 			return 0;
 		target = target->ctype.base_type;
@@ -488,6 +516,14 @@ static int compatible_assignment_types(struct expression *expr,
 		struct symbol *source_base = source->ctype.base_type;
 		struct symbol *target_base = target->ctype.base_type;
 
+		if (source->type == SYM_NODE) {
+			source = source_base;
+			source_base = source->ctype.base_type;
+		}
+		if (target->type == SYM_NODE) {
+			target = target_base;
+			target_base = target->ctype.base_type;
+		}
 		if (source->type == SYM_ARRAY && same_type(target_base, source_base))
 			return 1;
 		if (source->type == SYM_FN && same_type(target_base, source))
@@ -508,7 +544,7 @@ static int compatible_assignment_types(struct expression *expr,
 		}
 
 		// FIXME!! Cast it!
-		warn(left->pos, "assignment from bad type");
+		warn(left->pos, "assignment from different types");
 		return 0;
 	}
 
@@ -575,6 +611,7 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 static struct symbol *evaluate_preop(struct expression *expr)
 {
 	struct symbol *ctype = expr->unop->ctype;
+	unsigned long mod;
 
 	switch (expr->op) {
 	case '(':
@@ -582,17 +619,25 @@ static struct symbol *evaluate_preop(struct expression *expr)
 		return ctype;
 
 	case '*':
+		mod = ctype->ctype.modifiers;
+		if (ctype->type == SYM_NODE) {
+			ctype = ctype->ctype.base_type;
+			mod |= ctype->ctype.modifiers;
+		}
 		if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
 			warn(expr->pos, "cannot derefence this type");
 			return 0;
 		}
-		examine_symbol_type(expr->ctype);
-		expr->ctype = ctype->ctype.base_type;
-		if (!expr->ctype) {
+		if (mod & MOD_NODEREF)
+			warn(expr->pos, "bad dereference");
+		ctype = ctype->ctype.base_type;
+		if (!ctype) {
 			warn(expr->pos, "undefined type");
 			return 0;
 		}
-		return expr->ctype;
+		examine_symbol_type(ctype);
+		expr->ctype = ctype;
+		return ctype;
 
 	case '&': {
 		struct symbol *symbol = alloc_symbol(expr->pos, SYM_PTR);
@@ -664,6 +709,7 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	struct symbol *ctype, *member;
 	struct expression *deref = expr->deref, *add;
 	struct ident *ident = expr->member;
+	unsigned int mod;
 
 	if (!evaluate_expression(deref))
 		return NULL;
@@ -673,6 +719,13 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	}
 
 	ctype = deref->ctype;
+	mod = ctype->ctype.modifiers;
+	if (ctype->type == SYM_NODE) {
+		ctype = ctype->ctype.base_type;
+		mod |= ctype->ctype.modifiers;
+	}
+	if (mod & MOD_NODEREF)
+		warn(expr->pos, "bad dereference");
 	if (expr->op == SPECIAL_DEREFERENCE) {
 		/* Arrays will degenerate into pointers for '->' */
 		if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
@@ -808,6 +861,8 @@ static struct symbol *evaluate_call(struct expression *expr)
 	if (!evaluate_expression_list(arglist))
 		return NULL;
 	ctype = fn->ctype;
+	if (ctype->type == SYM_NODE)
+		ctype = ctype->ctype.base_type;
 	if (ctype->type == SYM_PTR || ctype->type == SYM_ARRAY)
 		ctype = ctype->ctype.base_type;
 	if (ctype->type != SYM_FN) {
