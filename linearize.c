@@ -546,6 +546,7 @@ void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic
 
 void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi_node, pseudo_t true, pseudo_t false)
 {
+	pseudo_t target;
 	struct instruction *setcc, *select;
 
 	/* Remove the 'br' */
@@ -558,7 +559,12 @@ void insert_select(struct basic_block *bb, struct instruction *br, struct instru
 
 	select = alloc_instruction(OP_SEL, phi_node->type);
 	select->bb = bb;
-	select->target = phi_node->target;
+
+	target = phi_node->target;
+	assert(target->def == phi_node);
+	select->target = target;
+	target->def = select;
+
 	use_pseudo(true, &select->src1);
 	use_pseudo(false, &select->src2);
 
