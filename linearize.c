@@ -105,13 +105,16 @@ static void show_instruction(struct instruction *insn)
 		int target = regno(insn->target);
 
 		if (sym) {
-			if (sym->bb_target)
+			if (sym->bb_target) {
 				printf("\t%%r%d <- .L%p\n", target, sym->bb_target);
-			else if (sym->ident)
+				break;
+			}
+			if (sym->ident) {
 				printf("\t%%r%d <- %s\n", target, show_ident(sym->ident));
-			else if (sym->initializer)
-				expr = sym->initializer;
-			else {
+				break;
+			}
+			expr = sym->initializer;
+			if (!expr) {
 				printf("\t%%r%d <- %s\n", target, "anon symbol");
 				break;
 			}
