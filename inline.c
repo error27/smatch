@@ -375,8 +375,10 @@ static struct symbol *create_copy_symbol(struct symbol *orig)
 		sym = alloc_symbol(orig->pos, orig->type);
 		sym->ident = orig->ident;
 		sym->ctype = orig->ctype;
+		sym->used = orig->used;
 		sym->initializer = NULL;
 		set_replace(orig, sym);
+		orig = sym;
 	}
 	return orig;
 }
