@@ -85,6 +85,7 @@ static const char *includepath[] = {
 
 static void do_include(struct token *head, struct token *token, const char *filename)
 {
+	int endlen = strlen(filename) + 1;
 	const char **pptr = includepath, *path;
 
 	while ((path = *pptr++) != NULL) {
@@ -92,10 +93,12 @@ static void do_include(struct token *head, struct token *token, const char *file
 		static char fullname[PATH_MAX];
 
 		memcpy(fullname, path, len);
-		strcpy(fullname+len, filename);
+		memcpy(fullname+len, filename, endlen);
 		fd = open(fullname, O_RDONLY);
 		if (fd >= 0) {
-			head->next = tokenize(filename, fd, head->next);
+			char * streamname = __alloc_bytes(len + endlen);
+			memcpy(streamname, fullname, len + endlen);
+			head->next = tokenize(streamname, fd, head->next);
 			return;
 		}
 	}
