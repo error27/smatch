@@ -1528,6 +1528,8 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 		if (!evaluate_expression(expr->cast_expression))
 			return NULL;
 		size = expr->cast_expression->ctype->bit_size;
+		if (is_bitfield_type (expr->cast_expression->ctype))
+			warn(expr->pos, "sizeof applied to bitfield type");
 	}
 	if (size & 7)
 		warn(expr->pos, "cannot size expression");
@@ -1546,6 +1548,8 @@ static struct symbol *evaluate_alignof(struct expression *expr)
 		if (!type)
 			return NULL;
 	}
+	if (is_bitfield_type (expr->cast_expression->ctype))
+		warn(expr->pos, "alignof applied to bitfield type");
 	examine_symbol_type(type);
 	expr->type = EXPR_VALUE;
 	expr->value = type->ctype.alignment;
@@ -2120,8 +2124,6 @@ struct symbol *evaluate_return_expression(struct statement *stmt)
 
 static void evaluate_if_statement(struct statement *stmt)
 {
-	struct symbol *ctype;
-
 	if (!stmt->if_conditional)
 		return;
 
