@@ -124,6 +124,9 @@ static const char *show_pseudo(pseudo_t pseudo)
 	case PSEUDO_VAL:
 		snprintf(buf, 64, "$%lld", pseudo->value);
 		break;
+	case PSEUDO_ARG:
+		snprintf(buf, 64, "%%arg%d", pseudo->nr);
+		break;
 	default:
 		snprintf(buf, 64, "<bad pseudo type %d>", pseudo->type);
 	}
@@ -361,7 +364,7 @@ void show_entry(struct entrypoint *ep)
 	FOR_EACH_PTR(ep->syms, sym) {
 		printf("   sym: %p %s\n", sym, show_ident(sym->ident));
 		if (sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE))
-			printf("\texternal use\n");
+			printf("\texternal visibility\n");
 		show_uses(sym->pseudo);
 	} END_FOR_EACH_PTR(sym);
 
@@ -510,6 +513,15 @@ static pseudo_t value_pseudo(long long val)
 	pseudo->type = PSEUDO_VAL;
 	pseudo->value = val;
 	/* Value pseudos have neither nr, usage nor def */
+	return pseudo;
+}
+
+static pseudo_t argument_pseudo(int nr)
+{
+	pseudo_t pseudo = __alloc_pseudo(0);
+	pseudo->type = PSEUDO_ARG;
+	pseudo->nr = nr;
+	/* Argument pseudos have neither usage nor def */
 	return pseudo;
 }
 
@@ -1166,6 +1178,15 @@ pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initial
 	return VOID;
 }
 
+void linearize_argument(struct entrypoint *ep, struct symbol *arg, int nr)
+{
+	struct access_data ad = { NULL, };
+
+	ad.address = symbol_pseudo(arg);
+	linearize_store_gen(ep, argument_pseudo(nr), &ad);
+	finish_address_gen(ep, &ad);
+}
+
 pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 {
 	if (!expr)
@@ -1778,13 +1799,22 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 		if (base_type->stmt) {
 			struct entrypoint *ep = alloc_entrypoint();
 			struct basic_block *bb = alloc_basic_block(sym->pos);
+			struct symbol *arg;
 			pseudo_t result;
+			int i;
 
 			ep->name = sym;
 			ep->entry = bb;
 			bb->flags |= BB_REACHABLE;
 			set_activeblock(ep, bb);
 			concat_symbol_list(base_type->arguments, &ep->syms);
+
+			/* FIXME!! We should do something else about varargs.. */
+			i = 0;
+			FOR_EACH_PTR(base_type->arguments, arg) {
+				linearize_argument(ep, arg, ++i);
+			} END_FOR_EACH_PTR(arg);
+
 			result = linearize_statement(ep, base_type->stmt);
 			if (bb_reachable(ep->active) && !bb_terminated(ep->active)) {
 				struct symbol *ret_type = base_type->ctype.base_type;
