@@ -7,6 +7,7 @@
 #include "symbol.h"
 
 struct instruction;
+struct pseudo_ptr_list;
 
 enum pseudo_type {
 	PSEUDO_VOID,
@@ -20,7 +21,7 @@ struct pseudo {
 	int nr;
 	unsigned int usage:24,
 		     type:8;
-	struct pseudo_list *users;
+	struct pseudo_ptr_list *users;
 	union {
 		struct symbol *sym;
 		struct instruction *def;
