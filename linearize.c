@@ -1639,6 +1639,8 @@ static void try_to_simplify_bb(struct entrypoint *ep, struct basic_block *bb,
 		struct instruction *br;
 		int true;
 
+		if (!pseudo || !source)
+			continue;
 		br = last_instruction(source->insns);
 		if (!br)
 			continue;
