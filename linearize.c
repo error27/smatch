@@ -450,25 +450,12 @@ static void finish_address_gen(struct entrypoint *ep, struct access_data *ad)
 		add_deathnote(ep, ad->address);
 }
 
-static struct symbol * local_symbol(struct expression *expr)
-{
-	struct symbol *sym = NULL;
-	if (expr->type == EXPR_SYMBOL) {
-		sym = expr->symbol;
-		if (sym->ctype.modifiers & (MOD_ADDRESSABLE | MOD_STATIC | MOD_EXTERN))
-			sym = NULL;
-	}
-	return sym;
-}
-
 static int linearize_simple_address(struct entrypoint *ep,
 	struct expression *addr,
 	struct access_data *ad)
 {
-	struct symbol *sym = local_symbol(addr);
-
-	if (sym) {
-		ad->sym = sym;
+	if (addr->type == EXPR_SYMBOL) {
+		ad->sym = addr->symbol;
 		return 1;
 	}
 	if (addr->type == EXPR_BINOP) {
