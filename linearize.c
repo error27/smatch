@@ -1814,11 +1814,13 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 		FOR_EACH_PTR(parent->insns, one) {
 			if (one == insn)
 				dom = NULL;
-			if (one->opcode != OP_STORE)
+			if (one->opcode != OP_STORE && one->opcode != OP_LOAD)
 				continue;
 			if (one->src != pseudo)
 				continue;
 			if (!same_memop(insn, one)) {
+				if (one->opcode == OP_LOAD)
+					continue;
 				if (!overlapping_memop(insn, one))
 					continue;
 				return 0;
@@ -1857,11 +1859,13 @@ static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn, uns
 	FOR_EACH_PTR(bb->insns, one) {
 		if (one == insn)
 			goto found;
-		if (one->opcode != OP_STORE)
+		if (one->opcode != OP_STORE && one->opcode != OP_LOAD)
 			continue;
 		if (one->src != pseudo)
 			continue;
 		if (!same_memop(one, insn)) {
+			if (one->opcode == OP_LOAD);
+				continue;
 			if (!overlapping_memop(one, insn))
 				continue;
 			return 0;
@@ -1899,7 +1903,19 @@ found:
 	} else {
 		pseudo_t new = alloc_pseudo(insn);
 		convert_load_insn(insn, new);
+
+		/*
+		 * FIXME! This is dubious. We should probably allocate a new
+		 * instruction instead of re-using the OP_LOAD instruction.
+		 * Re-use of the instruction makes the usage list suspect.
+		 *
+		 * It should be ok, because the only usage of the OP_LOAD
+		 * is the symbol pseudo, and we should never follow that
+		 * list _except_ for exactly the dominant instruction list
+		 * generation (and then we always check the opcode).
+		 */
 		insn->opcode = OP_PHI;
+		insn->bb = bb;
 		insn->target = new;
 		insn->phi_list = dominators;
 	}
