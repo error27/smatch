@@ -16,7 +16,7 @@
 #include "linearize.h"
 #include "flow.h"
 
-static unsigned long bb_generation;
+unsigned long bb_generation;
 
 /*
  * Dammit, if we have a phi-node followed by a conditional

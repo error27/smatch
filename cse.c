@@ -228,7 +228,29 @@ static struct instruction * cse_one_instruction(struct instruction *insn, struct
 	return def;
 }
 
-static struct instruction * try_to_cse(struct instruction *i1, struct instruction *i2)
+/*
+ * Does "bb1" dominate "bb2"?
+ */
+static int bb_dominates(struct entrypoint *ep, struct basic_block *bb1, struct basic_block *bb2, unsigned long generation)
+{
+	struct basic_block *parent;
+
+	/* Nothing dominates the entrypoint.. */
+	if (bb2 == ep->entry)
+		return 0;
+	FOR_EACH_PTR(bb2->parents, parent) {
+		if (parent == bb1)
+			continue;
+		if (parent->generation == generation)
+			continue;
+		parent->generation = generation;
+		if (!bb_dominates(ep, bb1, parent, generation))
+			return 0;
+	} END_FOR_EACH_PTR(parent);
+	return 1;
+}
+
+static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction *i1, struct instruction *i2)
 {
 	struct basic_block *b1, *b2;
 
@@ -252,7 +274,15 @@ static struct instruction * try_to_cse(struct instruction *i1, struct instructio
 				return cse_one_instruction(i1, i2);
 		} END_FOR_EACH_PTR(insn);
 		warning(b1->pos, "Whaa? unable to find CSE instructions");
+		return NULL;
 	}
+	if (bb_dominates(ep, b1, b2, ++bb_generation))
+		return cse_one_instruction(i2, i1);
+
+	if (bb_dominates(ep, b2, b1, ++bb_generation))
+		return cse_one_instruction(i1, i2);
+
+	/* No direct dominance - but we could try to find a common ancestor.. */
 	return NULL;
 }
 
@@ -275,7 +305,7 @@ repeat:
 				FOR_EACH_PTR(*list, insn) {
 					if (last) {
 						if (!insn_compare(last, insn)) {
-							struct instruction *def = try_to_cse(last, insn);
+							struct instruction *def = try_to_cse(ep, last, insn);
 							if (def) {
 								success++;
 								insn = def;
