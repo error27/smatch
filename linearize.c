@@ -177,6 +177,10 @@ static void show_instruction(struct instruction *insn)
 			[OP_SET_GE - OP_BINCMP] = "setge",
 			[OP_SET_LT - OP_BINCMP] = "setlt",
 			[OP_SET_GT - OP_BINCMP] = "setgt",
+			[OP_SET_BE - OP_BINCMP] = "setbe",
+			[OP_SET_AE - OP_BINCMP] = "setae",
+			[OP_SET_A - OP_BINCMP] = "seta",
+			[OP_SET_B - OP_BINCMP] = "setb",
 		};
 		printf("\t%%r%d <- %s  %%r%d, %%r%d\n",
 			insn->target->nr,
@@ -602,6 +606,10 @@ static pseudo_t linearize_compare(struct entrypoint *ep, struct expression *expr
 		[SPECIAL_NOTEQUAL] = OP_SET_NE,
 		[SPECIAL_GTE] = OP_SET_GE,
 		[SPECIAL_LTE] = OP_SET_LE,
+		[SPECIAL_UNSIGNED_LT] = OP_SET_B,
+		[SPECIAL_UNSIGNED_GT] = OP_SET_A,
+		[SPECIAL_UNSIGNED_LTE] = OP_SET_BE,
+		[SPECIAL_UNSIGNED_GTE] = OP_SET_AE,
 	};
 
 	pseudo_t src1 = linearize_expression(ep, expr->left);

@@ -124,18 +124,42 @@ static void simplify_int_binop(struct expression *expr, struct symbol *ctype)
 	case '%':		if (!r) return; v = l % r; s = sl % sr; break;
 	case SPECIAL_LEFTSHIFT: shift = check_shift_count(expr, ctype, r); v = l << shift; s = v; break; 
 	case SPECIAL_RIGHTSHIFT:shift = check_shift_count(expr, ctype, r); v = l >> shift; s = sl >> shift; break;
-	case '<':		v = l < r; s = sl < sr; break;
-	case '>':		v = l > r; s = sl > sr; break;
-	case SPECIAL_LTE:	v = l <= r; s = sl <= sr; break;
-	case SPECIAL_GTE:	v = l >= r; s = sl >= sr; break;
-	case SPECIAL_EQUAL:	v = l == r; s = v; break;
-	case SPECIAL_NOTEQUAL:	v = l != r; s = v; break;
 	default: return;
 	}
 	if (is_signed)
 		v = s;
 	mask = mask | (mask-1);
 	expr->value = v & mask;
+	expr->type = EXPR_VALUE;
+}
+
+static void simplify_cmp_binop(struct expression *expr, struct symbol *ctype)
+{
+	struct expression *left = expr->left, *right = expr->right;
+	unsigned long long l, r, mask;
+	signed long long sl, sr;
+
+	if (left->type != EXPR_VALUE || right->type != EXPR_VALUE)
+		return;
+	l = left->value; r = right->value;
+	mask = 1ULL << (ctype->bit_size-1);
+	sl = l; sr = r;
+	if (sl & mask)
+		sl |= ~(mask-1);
+	if (sr & mask)
+		sr |= ~(mask-1);
+	switch (expr->op) {
+	case '<':		expr->value = sl < sr; break;
+	case '>':		expr->value = sl > sr; break;
+	case SPECIAL_LTE:	expr->value = sl <= sr; break;
+	case SPECIAL_GTE:	expr->value = sl >= sr; break;
+	case SPECIAL_EQUAL:	expr->value = l == r; break;
+	case SPECIAL_NOTEQUAL:	expr->value = l != r; break;
+	case SPECIAL_UNSIGNED_LT:expr->value = l < r; break;
+	case SPECIAL_UNSIGNED_GT:expr->value = l > r; break;
+	case SPECIAL_UNSIGNED_LTE:expr->value = l <= r; break;
+	case SPECIAL_UNSIGNED_GTE:expr->value = l >= r; break;
+	}
 	expr->type = EXPR_VALUE;
 }
 
@@ -222,7 +246,7 @@ static void expand_compare(struct expression *expr)
 		expr->value = compare_types(op, left->symbol, right->symbol);
 		return;
 	}
-	simplify_int_binop(expr, expr->ctype);
+	simplify_cmp_binop(expr, expr->ctype);
 }
 
 static void expand_conditional(struct expression *expr)

@@ -101,7 +101,11 @@ enum opcode {
 	OP_SET_GE,
 	OP_SET_LT,
 	OP_SET_GT,
-	OP_BINCMP_END = OP_SET_GT,
+	OP_SET_B,
+	OP_SET_A,
+	OP_SET_BE,
+	OP_SET_AE,
+	OP_BINCMP_END = OP_SET_AE,
 
 	/* Uni */
 	OP_NOT,

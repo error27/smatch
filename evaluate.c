@@ -639,6 +639,19 @@ static struct symbol *evaluate_comma(struct expression *expr)
 	return expr->ctype;
 }
 
+static int modify_for_unsigned(int op)
+{
+	if (op == '<')
+		op = SPECIAL_UNSIGNED_LT;
+	else if (op == '>')
+		op = SPECIAL_UNSIGNED_GT;
+	else if (op == SPECIAL_LTE)
+		op = SPECIAL_UNSIGNED_LTE;
+	else if (op == SPECIAL_GTE)
+		op = SPECIAL_UNSIGNED_GTE;
+	return op;
+}
+
 static struct symbol *evaluate_compare(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
@@ -663,6 +676,8 @@ static struct symbol *evaluate_compare(struct expression *expr)
 
 	ctype = compatible_integer_binop(expr, &expr->left, &expr->right);
 	if (ctype) {
+		if (ctype->ctype.modifiers & MOD_UNSIGNED)
+			expr->op = modify_for_unsigned(expr->op);
 		expr->ctype = &bool_ctype;
 		return &bool_ctype;
 	}

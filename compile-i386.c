@@ -1051,30 +1051,25 @@ static struct storage *emit_compare(struct expression *expr)
 	struct storage *right = x86_expression(expr->right);
 	struct storage *new, *val;
 	const char *opname = NULL;
-	unsigned int is_signed = type_is_signed(expr->left->ctype); /* FIXME */
 	unsigned int right_bits = expr->right->ctype->bit_size;
 
 	switch(expr->op) {
-	case '<':
-		if (is_signed)	opname = "setl";
-		else		opname = "setb";
-		break;
-	case '>':
-		if (is_signed)	opname = "setg";
-		else		opname = "seta";
-		break;
+	case '<': 		opname = "setl";	break;
+	case '>':		opname = "setg";	break;
 	case SPECIAL_LTE:
-		if (is_signed)	opname = "setle";
-		else		opname = "setbe";
-		break;
+				opname = "setle";	break;
 	case SPECIAL_GTE:
-		if (is_signed)	opname = "setge";
-		else		opname = "setae";
-		break;
-
+				opname = "setge";	break;
 	case SPECIAL_EQUAL:	opname = "sete";	break;
 	case SPECIAL_NOTEQUAL:	opname = "setne";	break;
-
+	case SPECIAL_UNSIGNED_LT:
+				opname = "setb";	break;
+	case SPECIAL_UNSIGNED_GT:
+				opname = "seta";	break;
+	case SPECIAL_UNSIGNED_LTE:
+				opname = "setb";	break;
+	case SPECIAL_UNSIGNED_GTE:
+				opname = "setae";	break;
 	default:
 		assert(0);
 		break;
