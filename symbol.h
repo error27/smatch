@@ -43,6 +43,7 @@ struct symbol {
 	enum type type:8;
 	struct token *token;		/* Where this symbol was declared */
 	struct symbol *next_id;		/* Next semantic symbol that shares this identifier */
+	struct symbol **id_list;	/* Backpointer to symbol list head */
 	union {
 		struct preprocessor_sym {
 			int busy;

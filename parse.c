@@ -15,6 +15,7 @@
 #include "token.h"
 #include "parse.h"
 #include "symbol.h"
+#include "scope.h"
 
 void show_statement(struct statement *stmt)
 {
@@ -94,8 +95,9 @@ void show_expression(struct expression *expr)
 		show_expression(expr->right);
 		break;
 	case EXPR_PREOP:
-		printf(" %s ", show_special(expr->op));
+		printf("%s<", show_special(expr->op));
 		show_expression(expr->unop);
+		printf(">");
 		break;
 	case EXPR_POSTOP:
 		show_expression(expr->unop);
@@ -110,7 +112,7 @@ void show_expression(struct expression *expr)
 		printf("%s", show_token(expr->member));
 		break;
 	case EXPR_CAST:
-		printf("(");
+		printf("<cast>(");
 		show_type(expr->cast_type);
 		printf(")");
 		show_expression(expr->cast_expression);
@@ -990,12 +992,15 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 
 static struct token *compound_statement(struct token *token, struct statement *stmt)
 {
+	start_symbol_scope();
 	while (!eof_token(token)) {
 		if (!lookup_type(token))
 			break;
 		token = external_declaration(token, &stmt->syms);
 	}
-	return statement_list(token, &stmt->stmts);
+	token = statement_list(token, &stmt->stmts);
+	end_symbol_scope();
+	return token;
 }
 
 static struct token *initializer_list(struct token *token, struct symbol *sym)
@@ -1048,7 +1053,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	show_type(declarator);
 	printf("\n\n");
 
-	if (match_op(token, '{')) {
+	if (declarator->type == SYM_FN && match_op(token, '{')) {
 		declarator->stmt = alloc_statement(token, STMT_COMPOUND);
 		token = compound_statement(token->next, declarator->stmt);
 		return expect(token, '}', "at end of function");

@@ -7,6 +7,7 @@
 #include "token.h"
 #include "parse.h"
 #include "symbol.h"
+#include "scope.h"
 
 struct symbol *lookup_symbol(struct ident *ident, enum namespace ns)
 {
@@ -146,6 +147,8 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 	sym->namespace = ns;
 	sym->next_id = ident->symbols;
 	ident->symbols = sym;
+	sym->id_list = &ident->symbols;
+	bind_scope(sym);
 }
 
 struct symbol *create_symbol(int stream, const char *name, int type)

@@ -2,8 +2,8 @@ CC=gcc
 CFLAGS=-g -Wall
 
 PROGRAMS=test-lexing test-parsing
-HEADERS=token.h parse.h lib.h symbol.h
-COMMON=parse.o tokenize.o pre-process.o symbol.o lib.o
+HEADERS=token.h parse.h lib.h symbol.h scope.h
+COMMON=parse.o tokenize.o pre-process.o symbol.o lib.o scope.o
 
 all: $(PROGRAMS)
 
