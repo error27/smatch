@@ -376,6 +376,7 @@ static struct symbol *evaluate_add(struct expression *expr)
 static int same_type(struct symbol *target, struct symbol *source,
 	unsigned long target_mod_ignore, unsigned long source_mod_ignore)
 {
+	struct position pos = source->pos;
 	int dropped_modifiers = 0;
 	for (;;) {
 		unsigned long mod1, mod2, diff;
@@ -432,7 +433,7 @@ static int same_type(struct symbol *target, struct symbol *source,
 		source = source->ctype.base_type;
 	}
 	if (dropped_modifiers)
-		warn(target->pos, "assignment drops modifiers");
+		warn(pos, "assignment drops modifiers");
 	return 1;
 }
 
@@ -737,12 +738,12 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			struct symbol *target_base = target->ctype.base_type;
 			if (source_base == &void_ctype || target_base == &void_ctype)
 				return 1;
-			warn(expr->pos, "assignment from incompatible pointer types");
+			warn(expr->pos, "incorrect type in %s", where);
 			return 1;
 		}
 
 		// FIXME!! Cast it!
-		warn(expr->pos, "assignment from different types");
+		warn(expr->pos, "different types in %s", where);
 		return 0;
 	}
 
@@ -814,10 +815,11 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 	struct symbol *ctype, *symbol;
 	struct expression *op = expr->unop;
 
-	if (!lvalue_expression(op)) {
-		warn(expr->pos, "not an lvalue");
+	if (op->op != '*' || op->type != EXPR_PREOP) {
+		warn(expr->pos, "not addressable");
 		return NULL;
 	}
+
 	ctype = op->ctype;
 	if (ctype->type == SYM_NODE) {
 		ctype->ctype.modifiers |= MOD_ADDRESSABLE;
@@ -826,6 +828,7 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 			ctype->ctype.modifiers &= ~MOD_REGISTER;
 		}
 	}
+
 	symbol = alloc_symbol(expr->pos, SYM_PTR);
 	symbol->ctype.base_type = ctype;
 	symbol->ctype.alignment = POINTER_ALIGNMENT;
