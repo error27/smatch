@@ -758,23 +758,23 @@ static int compare_expressions(const void *_a, const void *_b)
 {
 	const struct expression *a = _a;
 	const struct expression *b = _b;
+	int r;
 
-	if (a->type != EXPR_POS)
-		return 1;
-	if (b->type != EXPR_POS)
-		return -1;
+	r = (b->type != EXPR_POS) - (a->type != EXPR_POS);
+	if (r) return r;
+
 	if (a->init_offset < b->init_offset)
-		return 1;
-	if (a->init_offset > b->init_offset)
 		return -1;
+	if (a->init_offset > b->init_offset)
+		return +1;
 	/* Check bitfield offset.. */
 	a = a->init_expr;
 	b = b->init_expr;
 	if (a && b) {
 		if (a->ctype && b->ctype) {
 			if (a->ctype->bit_offset < b->ctype->bit_offset)
-				return 1;
-			return -1;
+				return -1;
+			return +1;
 		}
 	}
 	return 0;
