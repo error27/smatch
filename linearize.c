@@ -39,8 +39,18 @@ static struct instruction *alloc_instruction(int opcode, int size)
 {
 	struct instruction * insn = __alloc_instruction(0);
 	insn->opcode = opcode;
-	insn->size = size > 0 ? size : 0;
+	insn->size = size;
 	return insn;
+}
+
+static struct instruction *alloc_typed_instruction(int opcode, struct symbol *type)
+{
+	int size;
+
+	size = type ? type->bit_size : 0;
+	if (size < 0)
+		size = 0;
+	return alloc_instruction(opcode, size);
 }
 
 static struct entrypoint *alloc_entrypoint(void)
@@ -837,7 +847,7 @@ static pseudo_t add_load(struct entrypoint *ep, struct access_data *ad)
 	if (0 && new)
 		return new;
 
-	insn = alloc_instruction(OP_LOAD, ad->source_type->bit_size);
+	insn = alloc_typed_instruction(OP_LOAD, ad->source_type);
 	new = alloc_pseudo(insn);
 	ad->origval = new;
 
@@ -853,7 +863,7 @@ static void add_store(struct entrypoint *ep, struct access_data *ad, pseudo_t va
 	struct basic_block *bb = ep->active;
 
 	if (bb_reachable(bb)) {
-		struct instruction *store = alloc_instruction(OP_STORE, ad->source_type->bit_size);
+		struct instruction *store = alloc_typed_instruction(OP_STORE, ad->source_type);
 		store->offset = ad->offset;
 		use_pseudo(value, &store->target);
 		use_pseudo(ad->address, &store->src);
@@ -885,7 +895,7 @@ static pseudo_t linearize_store_gen(struct entrypoint *ep,
 
 static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int op, pseudo_t left, pseudo_t right)
 {
-	struct instruction *insn = alloc_instruction(op, ctype->bit_size);
+	struct instruction *insn = alloc_typed_instruction(op, ctype);
 	pseudo_t target = alloc_pseudo(insn);
 	insn->target = target;
 	use_pseudo(left, &insn->src1);
@@ -896,7 +906,7 @@ static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int o
 
 static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct expression *val)
 {
-	struct instruction *insn = alloc_instruction(OP_SETVAL, ctype->bit_size);
+	struct instruction *insn = alloc_typed_instruction(OP_SETVAL, ctype);
 	pseudo_t target = alloc_pseudo(insn);
 	insn->target = target;
 	insn->val = val;
@@ -954,7 +964,7 @@ static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr
 
 static pseudo_t add_uniop(struct entrypoint *ep, struct expression *expr, int op, pseudo_t src)
 {
-	struct instruction *insn = alloc_instruction(op, expr->ctype->bit_size);
+	struct instruction *insn = alloc_typed_instruction(op, expr->ctype);
 	pseudo_t new = alloc_pseudo(insn);
 
 	insn->target = new;
@@ -966,7 +976,7 @@ static pseudo_t add_uniop(struct entrypoint *ep, struct expression *expr, int op
 static pseudo_t linearize_slice(struct entrypoint *ep, struct expression *expr)
 {
 	pseudo_t pre = linearize_expression(ep, expr->base);
-	struct instruction *insn = alloc_instruction(OP_SLICE, expr->ctype->bit_size);
+	struct instruction *insn = alloc_typed_instruction(OP_SLICE, expr->ctype);
 	pseudo_t new = alloc_pseudo(insn);
 
 	insn->target = new;
@@ -1049,7 +1059,7 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expression *expr)
 {
 	struct expression *arg, *fn;
-	struct instruction *insn = alloc_instruction(OP_CALL, expr->ctype->bit_size);
+	struct instruction *insn = alloc_typed_instruction(OP_CALL, expr->ctype);
 	pseudo_t retval, call;
 	int context_diff;
 
@@ -1152,7 +1162,7 @@ static pseudo_t add_join_conditional(struct entrypoint *ep, struct expression *e
 	if (phi2 == VOID)
 		return phi1;
 
-	phi_node = alloc_instruction(OP_PHI, expr->ctype->bit_size);
+	phi_node = alloc_typed_instruction(OP_PHI, expr->ctype);
 	use_pseudo(phi1, add_pseudo(&phi_node->phi_list, phi1));
 	use_pseudo(phi2, add_pseudo(&phi_node->phi_list, phi2));
 	phi_node->target = target = alloc_pseudo(phi_node);
@@ -1305,7 +1315,7 @@ pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 		return VOID;
 	if (expr->ctype->bit_size < 0)
 		return VOID;
-	insn = alloc_instruction(OP_CAST, expr->ctype->bit_size);
+	insn = alloc_typed_instruction(OP_CAST, expr->ctype);
 	result = alloc_pseudo(insn);
 	insn->target = result;
 	insn->orig_type = expr->cast_expression->ctype;
@@ -1529,7 +1539,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			struct instruction *phi_node = first_instruction(bb_return->insns);
 			pseudo_t phi;
 			if (!phi_node) {
-				phi_node = alloc_instruction(OP_PHI, expr->ctype->bit_size);
+				phi_node = alloc_typed_instruction(OP_PHI, expr->ctype);
 				phi_node->target = alloc_pseudo(phi_node);
 				phi_node->bb = bb_return;
 				add_instruction(&bb_return->insns, phi_node);
@@ -1768,7 +1778,7 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	result = linearize_statement(ep, base_type->stmt);
 	if (bb_reachable(ep->active) && !bb_terminated(ep->active)) {
 		struct symbol *ret_type = base_type->ctype.base_type;
-		struct instruction *insn = alloc_instruction(OP_RET, ret_type->bit_size);
+		struct instruction *insn = alloc_typed_instruction(OP_RET, ret_type);
 
 		if (ret_type->bit_size > 0)
 			use_pseudo(result, &insn->src);
