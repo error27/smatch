@@ -106,16 +106,16 @@ static int get_int_value(struct expression *expr, const char *str)
 		 * Special case: "int" gets promoted directly to "long"
 		 * for normal decimal numbers..
 		 */
-		if (base == 10 && extramod == MOD_UNSIGNED) {
-			extramod = MOD_LONG;
+		modifiers |= extramod;
+		if (base == 10 && modifiers == MOD_UNSIGNED) {
+			modifiers = MOD_LONG;
 			if (BITS_IN_LONG == BITS_IN_INT)
-				extramod = MOD_LONG | MOD_UNSIGNED;
+				modifiers = MOD_LONG | MOD_UNSIGNED;
 		}
 		warn(expr->token, "value is so big it is%s%s%s",
-			(extramod & MOD_UNSIGNED) ? " unsigned":"",
-			(extramod & MOD_LONG) ? " long":"",
-			(extramod & MOD_LONGLONG) ? " long":"");
-		modifiers |= extramod;
+			(modifiers & MOD_UNSIGNED) ? " unsigned":"",
+			(modifiers & MOD_LONG) ? " long":"",
+			(modifiers & MOD_LONGLONG) ? " long":"");
 	}
 
 	expr->type = EXPR_VALUE;
