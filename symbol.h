@@ -88,6 +88,7 @@ struct symbol {
 		struct expression *initializer;
 		long long value;		/* Initial value */
 	};
+	void *aux;				/* Auxiliary info, eg. backend information */
 };
 
 /* Modifiers */
