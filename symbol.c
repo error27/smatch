@@ -256,10 +256,19 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 			merge_type(sym, base_type);
 		return sym;
 	case SYM_ENUM:
-		if (!sym->bit_size)
-			sym->bit_size = bits_in_enum;
-		if (!sym->ctype.alignment)
-			sym->ctype.alignment = enum_alignment;
+		base_type = sym->ctype.base_type;
+		base_type = examine_symbol_type(base_type);
+		if (base_type == &bad_enum_ctype) {
+			warning(sym->pos, "invalid enum type");
+			sym->bit_size = -1;
+			return sym;
+		}
+		sym->bit_size = bits_in_enum;
+		if (base_type->bit_size > sym->bit_size)
+			sym->bit_size = base_type->bit_size;
+		sym->ctype.alignment = enum_alignment;
+		if (base_type->ctype.alignment > sym->ctype.alignment)
+			sym->ctype.alignment = base_type->ctype.alignment;
 		return sym;
 	case SYM_BITFIELD:
 		examine_bitfield_type(sym);
@@ -560,7 +569,7 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		llong_ctype, sllong_ctype, ullong_ctype,
 		float_ctype, double_ctype, ldouble_ctype,
 		string_ctype, ptr_ctype, lazy_ptr_ctype,
-		incomplete_ctype, label_ctype;
+		incomplete_ctype, label_ctype, bad_enum_ctype;
 
 
 #define __INIT_IDENT(str) { .len = sizeof(str)-1, .name = str }
@@ -609,6 +618,7 @@ static const struct ctype_declare {
 	{ &void_ctype,	    SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
 	{ &type_ctype,	    SYM_BASETYPE, MOD_TYPE,		    NULL,		     NULL,		 NULL },
 	{ &incomplete_ctype,SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
+	{ &bad_enum_ctype,	SYM_BAD, 0,			    NULL,		     NULL,		 NULL },
 
 	{ &char_ctype,	    SYM_BASETYPE, MOD_SIGNED | MOD_CHAR,    &bits_in_char,	     &max_int_alignment, &int_type },
 	{ &schar_ctype,	    SYM_BASETYPE, MOD_ESIGNED | MOD_CHAR,   &bits_in_char,	     &max_int_alignment, &int_type },

@@ -155,10 +155,54 @@ struct token *struct_or_union_specifier(enum type type, struct token *token, str
 	return struct_union_enum_specifier(type, token, ctype, parse_struct_declaration);
 }
 
+typedef struct {
+	int x;
+	unsigned long long y;
+} Num;
+
+static void upper_boundary(Num *n, Num *v)
+{
+	if (n->x > v->x)
+		return;
+	if (n->x < v->x) {
+		*n = *v;
+		return;
+	}
+	if (n->y < v->y)
+		n->y = v->y;
+}
+
+static void lower_boundary(Num *n, Num *v)
+{
+	if (n->x < v->x)
+		return;
+	if (n->x > v->x) {
+		*n = *v;
+		return;
+	}
+	if (n->y > v->y)
+		n->y = v->y;
+}
+
+static int type_is_ok(struct symbol *type, Num *upper, Num *lower)
+{
+	int shift = type->bit_size;
+	int is_unsigned = type->ctype.modifiers & MOD_UNSIGNED;
+
+	if (!is_unsigned)
+		shift--;
+	if (upper->x == 0 && upper->y >> shift)
+		return 0;
+	if (lower->x == 0 || (!is_unsigned && (~lower->y >> shift) == 0))
+		return 1;
+	return 0;
+}
+
 static struct token *parse_enum_declaration(struct token *token, struct symbol *parent)
 {
-	unsigned long long nextval = 0;
-	struct symbol *ctype = &int_ctype;
+	unsigned long long lastval = 0;
+	struct symbol *ctype = NULL, *base_type = NULL;
+	Num upper = {-1, 0}, lower = {1, 0};
 
 	while (token_type(token) == TOKEN_IDENT) {
 		struct token *next = token->next;
@@ -166,23 +210,72 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 
 		sym = alloc_symbol(token->pos, SYM_ENUM);
 		bind_symbol(sym, token->ident, NS_SYMBOL);
-		parent->ctype.base_type = &int_ctype;
 
 		if (match_op(next, '=')) {
 			struct expression *expr;
 			next = constant_expression(next->next, &expr);
-			nextval = get_expression_value(expr);
+			lastval = get_expression_value(expr);
 			ctype = expr->ctype;
+		} else if (!ctype) {
+			ctype = &int_ctype;
+		} else if (is_int_type(ctype)) {
+			lastval++;
+		} else {
+			error_die(token->pos, "can't increment the last enum member");
 		}
-		sym->value = nextval;
+
+		sym->value = lastval;
 		sym->ctype.base_type = ctype;
 
+		if (base_type != &bad_enum_ctype) {
+			if (ctype->type == SYM_NODE)
+				ctype = ctype->ctype.base_type;
+			if (ctype->type == SYM_ENUM)
+				ctype = ctype->ctype.base_type;
+			if (!base_type) {
+				base_type = ctype;
+			} else if (ctype == base_type) {
+				/* nothing */
+			} else if (is_restricted_type(ctype)) {
+				base_type = &bad_enum_ctype;
+			} else if (is_restricted_type(base_type)) {
+				base_type = &bad_enum_ctype;
+			}
+		}
+		if (is_int_type(base_type)) {
+			Num v = {.y = lastval};
+			if (ctype->ctype.modifiers & MOD_UNSIGNED)
+				v.x = 0;
+			else if ((long long)lastval >= 0)
+				v.x = 0;
+			else
+				v.x = -1;
+			upper_boundary(&upper, &v);
+			lower_boundary(&lower, &v);
+		}
 		token = next;
 		if (!match_op(token, ','))
 			break;
 		token = token->next;
-		nextval = nextval + 1;
 	}
+	if (!base_type)
+		parent->ctype.base_type = &bad_enum_ctype;
+	else if (!is_int_type(base_type))
+		parent->ctype.base_type = base_type;
+	else if (type_is_ok(&int_ctype, &upper, &lower))
+		parent->ctype.base_type = &int_ctype;
+	else if (type_is_ok(&uint_ctype, &upper, &lower))
+		parent->ctype.base_type = &uint_ctype;
+	else if (type_is_ok(&long_ctype, &upper, &lower))
+		parent->ctype.base_type = &long_ctype;
+	else if (type_is_ok(&ulong_ctype, &upper, &lower))
+		parent->ctype.base_type = &ulong_ctype;
+	else if (type_is_ok(&llong_ctype, &upper, &lower))
+		parent->ctype.base_type = &llong_ctype;
+	else if (type_is_ok(&ullong_ctype, &upper, &lower))
+		parent->ctype.base_type = &ullong_ctype;
+	else
+		parent->ctype.base_type = &bad_enum_ctype;
 	return token;
 }
 

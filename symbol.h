@@ -51,6 +51,7 @@ enum type {
 	SYM_BITFIELD,
 	SYM_LABEL,
 	SYM_RESTRICT,
+	SYM_BAD,
 };
 
 struct ctype {
@@ -171,7 +172,7 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			llong_ctype, sllong_ctype, ullong_ctype,
 			float_ctype, double_ctype, ldouble_ctype,
 			string_ctype, ptr_ctype, lazy_ptr_ctype,
-			incomplete_ctype, label_ctype;
+			incomplete_ctype, label_ctype, bad_enum_ctype;
 
 
 #define __IDENT(n,str) \
@@ -212,14 +213,17 @@ static inline int is_int_type(const struct symbol *type)
 {
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
-	return (type->type == SYM_ENUM) ||
-	       (type->type == SYM_BITFIELD) ||
+	if (type->type == SYM_ENUM)
+		type = type->ctype.base_type;
+	return type->type == SYM_BITFIELD ||
 	       type->ctype.base_type == &int_type;
 }
 
 static inline int get_sym_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	if (type->type == SYM_ENUM)
 		type = type->ctype.base_type;
 	return type->type;
 }

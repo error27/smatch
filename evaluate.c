@@ -57,7 +57,7 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 	/* The type of a symbol is the symbol itself! */
 	expr->ctype = sym;
 
-	/* enum's can be turned into plain values */
+	/* enums can be turned into plain values */
 	if (sym->type != SYM_ENUM) {
 		struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
 		addr->symbol = sym;
@@ -67,9 +67,18 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 		expr->op = '*';
 		expr->unop = addr;
 		return sym;
+	} else if (base_type->bit_size < bits_in_int) {
+		/* ugly - we need to force sizeof for these guys */
+		struct expression *e = alloc_expression(expr->pos, EXPR_VALUE);
+		e->value = sym->value;
+		e->ctype = base_type;
+		expr->type = EXPR_PREOP;
+		expr->op = '+';
+		expr->unop = e;
+	} else {
+		expr->type = EXPR_VALUE;
+		expr->value = sym->value;
 	}
-	expr->type = EXPR_VALUE;
-	expr->value = sym->value;
 	expr->ctype = base_type;
 	return base_type;
 }
@@ -113,9 +122,11 @@ static inline struct symbol *integer_promotion(struct symbol *type)
 	unsigned long mod =  type->ctype.modifiers;
 	int width;
 
-	if (type->type == SYM_ENUM)
-		return &int_ctype;
-	else if (type->type == SYM_BITFIELD) {
+	if (type->type == SYM_ENUM) {
+		type = type->ctype.base_type;
+		mod = type->ctype.modifiers;
+	}
+	if (type->type == SYM_BITFIELD) {
 		mod = type->ctype.base_type->ctype.modifiers;
 		width = type->fieldwidth;
 	} else if (mod & (MOD_CHAR | MOD_SHORT))
@@ -319,6 +330,8 @@ static int restricted_unop(int op, struct symbol *type)
 {
 	if (op == '~' && type->bit_size >= bits_in_int)
 		return 0;
+	if (op == '+')
+		return 0;
 	return 1;
 }
 
@@ -330,7 +343,11 @@ static struct symbol *compatible_restricted_binop(int op, struct expression **lp
 
 	if (ltype->type == SYM_NODE)
 		ltype = ltype->ctype.base_type;
+	if (ltype->type == SYM_ENUM)
+		ltype = ltype->ctype.base_type;
 	if (rtype->type == SYM_NODE)
+		rtype = rtype->ctype.base_type;
+	if (rtype->type == SYM_ENUM)
 		rtype = rtype->ctype.base_type;
 	if (is_restricted_type(ltype)) {
 		if (is_restricted_type(rtype)) {
@@ -485,6 +502,16 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 			}
 			mod2 |= source->ctype.modifiers;
 			as2 |= source->ctype.as; 
+		}
+		if (target->type == SYM_ENUM) {
+			target = target->ctype.base_type;
+			if (!target)
+				return "bad types";
+		}
+		if (source->type == SYM_ENUM) {
+			source = source->ctype.base_type;
+			if (!source)
+				return "bad types";
 		}
 
 		if (target == source)
