@@ -1402,7 +1402,7 @@ static struct expression *index_expression(struct expression *from, struct expre
 
 static struct token *initializer_list(struct expression_list **list, struct token *token)
 {
-	int expect_equal = 0;
+	int expect_equal = 0, old_style = 0;
 	struct expression *expr, **ep = &expr;
 
 	for (;;) {
@@ -1415,10 +1415,11 @@ static struct token *initializer_list(struct expression_list **list, struct toke
 			token = next->next;
 			expect_equal = 1;
 			continue;
-		} else if ((token_type(token) == TOKEN_IDENT) && match_op(next, ':')) {
+		} else if (!expect_equal && (token_type(token) == TOKEN_IDENT) && match_op(next, ':')) {
 			struct expression *expr = identifier_expression(token);
 			*ep = expr;
 			ep = &expr->ident_expression;
+			old_style = 1;
 			token = next->next;
 		} else if (match_op(token, '[')) {
 			struct expression *from = NULL, *to = NULL, *expr;
@@ -1432,8 +1433,15 @@ static struct token *initializer_list(struct expression_list **list, struct toke
 			expect_equal = 1;
 			continue;
 		}
-		if (expect_equal)
-			token = expect(token, '=', "at end of initializer index");
+		if (expect_equal) {
+			old_style = 1;
+			if (match_op(token, '=')) {
+				old_style = 0;
+				token = token->next;
+			}
+		}
+		if (old_style)
+			warning(token->pos, "Old-style gcc initializer - please us C99 syntax");
 
 		*ep = NULL;
 		token = initializer(ep, token);
