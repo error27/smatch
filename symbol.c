@@ -50,8 +50,6 @@ const char *type_string(unsigned int modifiers, struct symbol *sym)
 	if (!sym)
 		return "<notype>";
 		
-	if (sym->token)
-		return show_token(sym->token);
 	if (sym == &int_type) {
 		if (modifiers & (SYM_CHAR | SYM_SHORT | SYM_LONG))
 			return "";
@@ -90,41 +88,40 @@ void show_type_list(struct symbol *sym)
 
 void show_type(struct symbol *sym)
 {
+	struct ctype *ctype = &sym->ctype;
+
 	if (!sym) {
-		printf("<nosym>");
+		printf(" <typeless>");
 		return;
 	}
 
-	printf("Symbol %s:", show_token(sym->token));
+	printf("[%04lx:%08lx]", ctype->modifiers, (unsigned long) ctype->base_type);
+	printf("%s", modifier_string(sym->ctype.modifiers));
+
 	switch (sym->type) {
 	case SYM_PTR:
-		printf("%s", modifier_string(sym->modifiers));
 		printf("*(");
-		show_type(sym->base_type);
+		show_type(sym->ctype.base_type);
 		printf(")");
 		break;
 
 	case SYM_FN:
-		printf("%s", modifier_string(sym->modifiers));
-		show_type(sym->base_type);
-
-		printf("(");
+		printf("<fn of>(");
+		show_type(sym->ctype.base_type);
+		printf(")(");
 		show_symbol_list(sym->arguments, ", ");
 		printf(")");
 		break;
 
 	case SYM_ARRAY:
-		printf("%s", modifier_string(sym->modifiers));
-		show_type(sym->base_type);
-		printf("[ ... ]");
-		break;
-
-	case SYM_TYPE:
-		printf("%s %s", modifier_string(sym->modifiers), type_string(sym->modifiers, sym->base_type));
+		printf("<array of>(");
+		show_type(sym->ctype.base_type);
+		printf(")[ ... ]");
 		break;
 
 	default:
-		printf("<bad type>");
+		printf("%s", type_string(ctype->modifiers, ctype->base_type));
+		break;
 	}
 }
 
@@ -134,6 +131,7 @@ void show_symbol(struct symbol *sym)
 		printf("<anon symbol>");
 		return;
 	}
+	printf("Symbol %s: ", show_token(sym->token));
 	show_type(sym);
 	switch (sym->type) {
 	case SYM_FN:
@@ -291,7 +289,7 @@ void init_symbols(void)
 	for (ptr = symbol_init_table; ptr->name; ptr++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, ptr->name, SYM_TYPE);
-		sym->base_type = ptr->base_type;
-		sym->modifiers = ptr->modifiers;
+		sym->ctype.base_type = ptr->base_type;
+		sym->ctype.modifiers = ptr->modifiers;
 	}
 }

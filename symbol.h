@@ -39,6 +39,11 @@ enum type {
 	SYM_BITFIELD,
 };
 
+struct ctype {
+	unsigned long modifiers;
+	struct symbol *base_type;
+};
+
 struct symbol {
 	enum namespace namespace:8;
 	enum type type:8;
@@ -55,8 +60,7 @@ struct symbol {
 		struct ctype_symbol {
 			struct symbol *next;		/* Next symbol at this level */
 			unsigned long size;
-			unsigned long modifiers;
-			struct symbol *base_type;
+			struct ctype ctype;
 			struct symbol_list *arguments;
 			struct statement *stmt;
 			struct symbol_list *symbol_list;

@@ -33,6 +33,7 @@ int main(int argc, char **argv)
 
 	// Show the end result.
 	show_symbol_list(list, "\n\n");
+	printf("\n\n");
 
 	// And show the allocation statistics
 	show_ident_alloc();
