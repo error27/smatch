@@ -312,7 +312,7 @@ static void add_goto(struct entrypoint *ep, struct basic_block *dst)
 	}
 }
 
-static void add_one_insn(struct entrypoint *ep, struct position pos, struct instruction *insn)
+static void add_one_insn(struct entrypoint *ep, struct instruction *insn)
 {
 	struct basic_block *bb = ep->active;    
 
@@ -337,7 +337,7 @@ static void add_setcc(struct entrypoint *ep, struct expression *expr, pseudo_t v
 	if (bb_reachable(bb)) {
 		struct instruction *cc = alloc_instruction(OP_SETCC, &bool_ctype);
 		cc->src = val;
-		add_one_insn(ep, expr->pos, cc);
+		add_one_insn(ep, cc);
 	}
 }
 
@@ -353,7 +353,7 @@ static void add_branch(struct entrypoint *ep, struct expression *expr, pseudo_t 
 		br->bb_false = bb_false;
 		add_bb(&bb_true->parents, bb);
 		add_bb(&bb_false->parents, bb);
-		add_one_insn(ep, expr->pos, br);
+		add_one_insn(ep, br);
 	}
 }
 
@@ -402,7 +402,7 @@ static void linearize_store_gen(struct entrypoint *ep, pseudo_t value, struct ex
 
 	store->target = value;
 	store->src = addr;
-	add_one_insn(ep, expr->pos, store);
+	add_one_insn(ep, store);
 }
 
 static pseudo_t add_binary_op(struct entrypoint *ep, struct expression *expr, int op, pseudo_t left, pseudo_t right)
@@ -412,7 +412,7 @@ static pseudo_t add_binary_op(struct entrypoint *ep, struct expression *expr, in
 	insn->target = target;
 	insn->src1 = left;
 	insn->src2 = right;
-	add_one_insn(ep, expr->pos, insn);
+	add_one_insn(ep, insn);
 	return target;
 }
 
@@ -422,7 +422,7 @@ static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct e
 	pseudo_t target = alloc_pseudo(insn);
 	insn->target = target;
 	insn->val = val;
-	add_one_insn(ep, val->pos, insn);
+	add_one_insn(ep, insn);
 	return target;
 }
 
@@ -439,7 +439,7 @@ static pseudo_t add_load(struct entrypoint *ep, struct expression *expr, pseudo_
 
 	insn->target = new;
 	insn->src = addr;
-	add_one_insn(ep, expr->pos, insn);
+	add_one_insn(ep, insn);
 	return new;
 }
 
@@ -490,7 +490,7 @@ static pseudo_t add_uniop(struct entrypoint *ep, struct expression *expr, int op
 
 	insn->target = new;
 	insn->src1 = src;
-	add_one_insn(ep, expr->pos, insn);
+	add_one_insn(ep, insn);
 	return new;
 }
 
@@ -504,7 +504,7 @@ static pseudo_t linearize_slice(struct entrypoint *ep, struct expression *expr)
 	insn->base = pre;
 	insn->from = expr->r_bitpos;
 	insn->len = expr->r_nrbits;
-	add_one_insn(ep, expr->pos, insn);
+	add_one_insn(ep, insn);
 	return new;
 }
 
@@ -609,12 +609,12 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	}
 	insn->func = linearize_expression(ep, fn);
 	insn->target = retval = alloc_pseudo(insn);
-	add_one_insn(ep, expr->pos, insn);
+	add_one_insn(ep, insn);
 
 	if (context_diff) {
 		insn = alloc_instruction(OP_CONTEXT, &void_ctype);
 		insn->increment = context_diff;
-		add_one_insn(ep, expr->pos, insn);
+		add_one_insn(ep, insn);
 	}
 
 	return retval;
@@ -690,7 +690,7 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 		add_phi(&phi_node->phi_list, alloc_phi(bb_true, src1));
 		add_phi(&phi_node->phi_list, alloc_phi(bb_false, src2));
 		phi_node->target = target = alloc_pseudo(phi_node);
-		add_one_insn(ep, expr->pos, phi_node);
+		add_one_insn(ep, phi_node);
 		set_activeblock(ep, alloc_basic_block(expr->pos));
 		return target;
 	}
@@ -796,7 +796,7 @@ pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 	insn->target = result;
 	insn->src = src;
 	insn->orig_type = expr->cast_expression->ctype;
-	add_one_insn(ep, expr->pos, insn);
+	add_one_insn(ep, insn);
 	return result;
 }
 
@@ -871,7 +871,7 @@ pseudo_t linearize_internal(struct entrypoint *ep, struct statement *stmt)
 		value = expr->value;
 
 	insn->increment = value;
-	add_one_insn(ep, stmt->pos, insn);
+	add_one_insn(ep, insn);
 	return VOID;
 }
 
@@ -952,7 +952,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 
 		pseudo = linearize_expression(ep, expr);
 		goto_ins = alloc_instruction(OP_COMPUTEDGOTO, NULL);
-		add_one_insn(ep, stmt->pos, goto_ins);
+		add_one_insn(ep, goto_ins);
 		goto_ins->target = pseudo;
 
 		FOR_EACH_PTR(stmt->target_list, sym) {
@@ -1029,7 +1029,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		pseudo = linearize_expression(ep, stmt->switch_expression);
 		switch_ins = alloc_instruction(OP_SWITCH, NULL);
 		switch_ins->cond = pseudo;
-		add_one_insn(ep, stmt->pos, switch_ins);
+		add_one_insn(ep, switch_ins);
 
 		FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
 			struct statement *case_stmt = sym->stmt;
@@ -1307,10 +1307,9 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 			if (bb_reachable(ep->active) && !bb_terminated(ep->active)) {
 				struct symbol *ret_type = base_type->ctype.base_type;
 				struct instruction *insn = alloc_instruction(OP_RET, ret_type);
-				struct position pos = base_type->stmt->pos;
 				
 				insn->src = result;
-				add_one_insn(ep, pos, insn);
+				add_one_insn(ep, insn);
 			}
 			pack_basic_blocks(ep);
 			simplify_phi_nodes(ep);
