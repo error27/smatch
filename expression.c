@@ -175,9 +175,8 @@ static void get_number_value(struct expression *expr, struct token *token)
 		 */
 		modifiers |= extramod;
 		if (base == 10 && modifiers == MOD_UNSIGNED) {
-			modifiers = MOD_LONG;
-			if (bits_in_long == bits_in_int)
-				modifiers = MOD_LONG | MOD_UNSIGNED;
+			if (bits_in_long != bits_in_int)
+				modifiers = MOD_LONG;
 		}
 
 		/* Hex or octal constants don't complain about missing signedness */
