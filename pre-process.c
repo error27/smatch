@@ -635,6 +635,7 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 					warn(expansion->pos, "__VA_ARGS__ can only appear in the expansion of a C99 variadic macro");
 				if (match_op(next, SPECIAL_ELLIPSIS)) {
 					expansion->next = &variable_argument;
+					expansion = next;
 					next = next->next;
 				}
 			}
