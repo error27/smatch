@@ -291,7 +291,9 @@ void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *domi
 	return;
 
 complex_phi:
-	kill_use(&insn->src);
+	/* We leave symbol pseudos with a bogus usage list here */
+	if (insn->src->type != PSEUDO_SYM)
+		kill_use(&insn->src);
 	insn->opcode = OP_PHI;
 	insn->phi_list = dominators;
 }
