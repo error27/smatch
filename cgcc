@@ -40,27 +40,10 @@ foreach (@ARGV) {
 }
 
 if ($do_check) {
-    my $arch = `uname -m`;
-    chomp $arch;
-    if ($arch =~ /^(i.?86|athlon)$/) {
-	$check .= &integer_types (8, 16, 32, $m64 ? 64 : 32, 64);
-	$check .= &float_types (1, 1, 21, [24,8], [53,11], [64,15]);
-	$check .= &define_size_t ($m64 ? "long unsigned int" : "unsigned int");
-    } elsif ($arch =~ /^(sun4u)$/) {
-	$check .= &integer_types (8, 16, 32, $m64 ? 64 : 32, 64);
-	$check .= &float_types (1, 1, 33, [24,8], [53,11], [113,15]);
-	$check .= &define_size_t ($m64 ? "long unsigned int" : "unsigned int");
-    }
-
     if (!$has_specs) {
-	my $os = `uname -s`;
-	chomp $os;
-	$check .= &add_specs (lc $os);
+	$check .= &add_specs ('host_arch_specs');
+	$check .= &add_specs ('host_os_specs');
     }
-}
-
-
-if ($do_check) {
     print "$check\n" if $verbose;
 #    exit 1;
     system ($check);
@@ -190,7 +173,7 @@ sub float_types {
 
 sub define_size_t {
     my ($text) = @_;
-    # We have to undef in order to override checks internal definition.
+    # We have to undef in order to override check's internal definition.
     return ' -U__SIZE_TYPE__ ' . &quote_arg ("-D__SIZE_TYPE__=$text");
 }
 
@@ -200,7 +183,6 @@ sub add_specs {
     my ($spec) = @_;
     if ($spec eq 'sunos') {
 	return &add_specs ('unix') .
-	    &add_specs ('sparc') .
 	    ' -D__sun__=1 -D__sun=1 -Dsun=1' .
 	    ' -D__svr4__=1 -DSVR4=1' .
 	    ' -D__STDC__=0' .
@@ -209,12 +191,32 @@ sub add_specs {
 	    ' -DNULL="((void *)0)"';
     } elsif ($spec eq 'linux') {
 	return &add_specs ('unix') .
-	    ' -D__linux__=1 -Dlinux=linux' .
+	    ' -D__linux__=1 -D__linux=1 -Dlinux=linux' .
 	    ' -D__STDC__=1';
     } elsif ($spec eq 'unix') {
 	return ' -Dunix=1 -D__unix=1 -D__unix__=1';
+    } elsif ($spec eq 'i86') {
+	return (' -Di386=1 -D__i386=1 -D__i386__=1' .
+		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
+		&float_types (1, 1, 21, [24,8], [53,11], [64,15]) .
+		&define_size_t ($m64 ? "long unsigned int" : "unsigned int"));
     } elsif ($spec eq 'sparc') {
-	return ' -Dsparc=1 -D__sparc=1 -D__sparc__=1';
+	return (' -Dsparc=1 -D__sparc=1 -D__sparc__=1' .
+		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
+		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
+		&define_size_t ($m64 ? "long unsigned int" : "unsigned int"));
+    } elsif ($spec eq 'host_os_specs') {
+	my $os = `uname -s`;
+	chomp $os;
+	return &add_specs (lc $os);
+    } elsif ($spec eq 'host_arch_specs') {
+	my $arch = `uname -m`;
+	chomp $arch;
+	if ($arch =~ /^(i.?86|athlon)$/i) {
+	    return &add_specs ('i86');
+	} elsif ($arch =~ /^(sun4u)$/i) {
+	    return &add_specs ('sparc');
+	}
     } else {
 	die "$0: invalid specs: $spec\n";
     }
