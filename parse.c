@@ -425,11 +425,9 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 		if (type) {
 			if (qual)
 				break;
-			if (type != ctype->base_type) {
-				if (ctype->base_type)
-					break;
-				ctype->base_type = type;
-			}
+			if (ctype->base_type)
+				break;
+			ctype->base_type = type;
 		}
 
 		apply_ctype(token->pos, &thistype, ctype);
