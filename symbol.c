@@ -192,6 +192,9 @@ void merge_type(struct symbol *sym, struct symbol *base_type)
  * Fill in type size and alignment information for
  * regular SYM_TYPE things.
  */
+#define MOD_STRIP (MOD_CONST | MOD_VOLATILE | MOD_ADDRESSABLE | \
+		  MOD_NODEREF | MOD_ACCESSED | MOD_ASSIGNED | \
+		  MOD_SAFE | MOD_FORCE | MOD_STORAGE)
 struct symbol *examine_symbol_type(struct symbol * sym)
 {
 	unsigned int bit_size, alignment;
@@ -239,8 +242,24 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		return sym;
 	case SYM_TYPEOF: {
 		struct symbol *base = evaluate_expression(sym->initializer);
-		if (base)
-			return base;
+		if (base) {
+			struct symbol *node;
+			unsigned long mod;
+			if (base->type != SYM_NODE)
+				return base;
+			mod = base->ctype.modifiers;
+			/* do we have anything to get rid of? */
+			if (!base->ctype.as && !(mod & MOD_STRIP))
+				return base;
+			node = alloc_symbol(sym->pos, SYM_NODE);
+			node->bit_size = base->bit_size;
+			node->array_size = base->array_size;
+			node->ctype.modifiers = mod & ~MOD_STRIP;
+			node->ctype.context = base->ctype.context;
+			node->ctype.contextmask = base->ctype.contextmask;
+			node->ctype.base_type = base->ctype.base_type;
+			return node;
+		}
 		break;
 	}
 	default:
