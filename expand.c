@@ -704,6 +704,30 @@ static int expand_expression_list(struct expression_list *list)
 	return cost;
 }
 
+/* 
+ * We can simplify nested position expressions if
+ * this is a simple (single) positional expression.
+ */
+static int expand_pos_expression(struct expression *expr)
+{
+	struct expression *nested = expr->init_expr;
+	unsigned long offset = expr->init_offset;
+	int nr = expr->init_nr;
+	int cost;
+
+	cost = expand_expression(nested);
+	if (nr == 1) {
+		if (nested->type == EXPR_POS) {
+			if (nested->init_nr == 1) {
+				offset += nested->init_offset;
+				*expr = *nested;
+				expr->init_offset = offset;
+			}
+		}
+	}
+	return cost;
+}
+
 static int expand_expression(struct expression *expr)
 {
 	if (!expr)
@@ -776,7 +800,7 @@ static int expand_expression(struct expression *expr)
 		return expand_expression(expr->base) + 1;
 
 	case EXPR_POS:
-		return expand_expression(expr->init_expr);
+		return expand_pos_expression(expr);
 
 	case EXPR_SIZEOF:
 	case EXPR_ALIGNOF:
