@@ -25,7 +25,7 @@
 #include "target.h"
 #include "expression.h"
 
-static struct symbol *current_fn;
+struct symbol *current_fn;
 static int current_context, current_contextmask;
 
 static struct symbol *degenerate(struct expression *expr);

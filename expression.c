@@ -59,10 +59,65 @@ struct token *parens_expression(struct token *token, struct expression **expr, c
 	return expect(token, ')', where);
 }
 
+/*
+ * Handle __func__, __FUNCTION__ and __PRETTY_FUNCTION__ token
+ * conversion
+ */
+static int convert_one_fn_token(struct token *token)
+{
+	struct symbol *sym = current_fn;
+
+	if (sym) {
+		struct ident *ident = sym->ident;
+		if (ident) {
+			int len = ident->len;
+			struct string *string;
+
+			string = __alloc_string(len+1);
+			memcpy(string->data, ident->name, len);
+			string->data[len] = 0;
+			string->length = len+1;
+			token_type(token) = TOKEN_STRING;
+			token->string = string;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static int convert_function(struct token *next)
+{
+	int retval = 0;
+	for (;;) {
+		struct token *token = next;
+		next = next->next;
+		switch (token_type(token)) {
+		case TOKEN_STRING:
+			continue;
+		case TOKEN_IDENT:
+			if (token->ident == &__func___ident ||
+			    token->ident == &__FUNCTION___ident ||
+			    token->ident == &__PRETTY_FUNCTION___ident) {
+				if (!convert_one_fn_token(token))
+					break;
+				retval = 1;
+				continue;
+			}
+		/* Fall through */
+		default:
+			break;
+		}
+		break;
+	}
+	return retval;
+}
+
 static struct token *string_expression(struct token *token, struct expression *expr)
 {
 	struct string *string = token->string;
 	struct token *next = token->next;
+
+	convert_function(token);
 
 	if (token_type(next) == TOKEN_STRING) {
 		int totlen = string->length-1;
@@ -248,6 +303,9 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		struct symbol *sym = lookup_symbol(token->ident, NS_SYMBOL | NS_TYPEDEF);
 		struct token *next = token->next;
 
+		if (!sym && convert_function(token))
+			goto handle_string;
+
 		expr = alloc_expression(token->pos, EXPR_SYMBOL);
 
 		/*
@@ -267,6 +325,7 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 	}
 
 	case TOKEN_STRING: {
+	handle_string:
 		expr = alloc_expression(token->pos, EXPR_STRING);
 		token = string_expression(token, expr);
 		break;

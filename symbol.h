@@ -156,6 +156,9 @@ struct symbol {
 #define MOD_EXPLICITLY_SIGNED	0x40000000
 #define MOD_BITWISE	0x80000000
 
+/* Current parsing/evaluation function */
+extern struct symbol *current_fn;
+
 /* Basic types */
 extern struct symbol	void_type,
 			int_type,

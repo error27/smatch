@@ -1043,38 +1043,15 @@ static struct statement *start_function(struct symbol *sym)
 	stmt->ret = ret;
 	fn_local_symbol(ret);
 
-	// static const char __func__[] = "function-name";
-	if (sym->ident) {
-		struct symbol *funcname = alloc_symbol(sym->pos, SYM_NODE);
-		struct symbol *array = alloc_symbol(sym->pos, SYM_ARRAY);
-		struct expression *expr = alloc_expression(sym->pos, EXPR_STRING);
-		int len = sym->ident->len;
-		struct string *string = __alloc_string(len+1);
-
-		array->ctype.base_type = &char_ctype;
-		array->ctype.modifiers = MOD_CONST | MOD_STATIC;
-	  
-		memcpy(string->data, sym->ident->name, len);
-		string->data[len] = '\0';
-		string->length = len + 1;
-
-		expr->string = string;
-
-		funcname->initializer = expr;
-		funcname->ctype.modifiers = array->ctype.modifiers;
-		funcname->ctype.base_type = array;
-		funcname->ident = &__func___ident;
-		bind_symbol(funcname, &__func___ident, NS_SYMBOL);
-
-		add_symbol(&stmt->syms, funcname);
-		fn_local_symbol(funcname);
-	}
+	// Currently parsed symbol for __func__/__FUNCTION__/__PRETTY_FUNCTION__
+	current_fn = sym;
 
 	return stmt;
 }
 
 static void end_function(struct symbol *sym)
 {
+	current_fn = NULL;
 	end_function_scope();
 }
 
