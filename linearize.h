@@ -7,7 +7,7 @@
 #include "symbol.h"
 
 struct instruction;
-struct pseudo_ptr_list;
+DECLARE_PTR_LIST(pseudo_ptr_list, pseudo_t);
 
 enum pseudo_type {
 	PSEUDO_VOID,

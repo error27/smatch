@@ -37,20 +37,25 @@ struct position {
 struct ident;
 struct token;
 struct symbol;
-struct symbol_list;
 struct statement;
-struct statement_list;
 struct expression;
-struct expression_list;
 struct basic_block;
-struct basic_block_list;
 struct entrypoint;
 struct instruction;
-struct instruction_list;
 struct multijmp;
-struct multijmp_list;
 struct pseudo;
-struct pseudo_list;
+
+/* Silly type-safety check ;) */
+#define DECLARE_PTR_LIST(listname,type)	struct listname { type *list[1]; }
+#define CHECK_TYPE(head,ptr)		(void)(&(ptr) == &(head)->list[0])
+
+DECLARE_PTR_LIST(symbol_list, struct symbol);
+DECLARE_PTR_LIST(statement_list, struct statement);
+DECLARE_PTR_LIST(expression_list, struct expression);
+DECLARE_PTR_LIST(basic_block_list, struct basic_block);
+DECLARE_PTR_LIST(instruction_list, struct instruction);
+DECLARE_PTR_LIST(multijmp_list, struct multijmp);
+DECLARE_PTR_LIST(pseudo_list, struct pseudo);
 
 typedef struct pseudo *pseudo_t;
 
@@ -242,6 +247,7 @@ static inline void add_expression(struct expression_list **list, struct expressi
 		struct ptr_list *__head = (struct ptr_list *) (head);			\
 		struct ptr_list *__list = __head;					\
 		int __nr = 0;								\
+		CHECK_TYPE(head,ptr);							\
 		if (__head) ptr = (__typeof__(ptr)) __head->list[0];			\
 		else ptr = NULL
 
@@ -285,6 +291,7 @@ static inline void add_expression(struct expression_list **list, struct expressi
 #define DO_FOR_EACH(head, ptr, __head, __list, __nr) do {				\
 	struct ptr_list *__head = (struct ptr_list *) (head);				\
 	struct ptr_list *__list = __head;						\
+	CHECK_TYPE(head,ptr);								\
 	if (__head) {									\
 		do { int __nr;								\
 			for (__nr = 0; __nr < __list->nr; __nr++) {			\
@@ -303,6 +310,7 @@ static inline void add_expression(struct expression_list **list, struct expressi
 #define DO_FOR_EACH_REVERSE(head, ptr, __head, __list, __nr) do {			\
 	struct ptr_list *__head = (struct ptr_list *) (head);				\
 	struct ptr_list *__list = __head;						\
+	CHECK_TYPE(head,ptr);								\
 	if (__head) {									\
 		do { int __nr;								\
 			__list = __list->prev;						\
