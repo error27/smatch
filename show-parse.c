@@ -195,7 +195,7 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 
 	default:
 		prepend(name, "unknown type %d", sym->type);
-		break;
+		return;
 	}
 
 	mod = modifier_string(sym->ctype.modifiers);
@@ -481,14 +481,7 @@ void show_expression(struct expression *expr)
 		printf(" %s ", show_special(expr->op));
 		break;
 	case EXPR_SYMBOL:
-		if (!expr->symbol) {
-			warn(expr->pos, "undefined symbol '%s'", show_ident(expr->symbol_name));
-			printf("<nosymbol>");
-			break;
-		}
-		printf("<%s:", show_ident(expr->symbol_name));
-		show_type(expr->symbol->ctype.base_type);
-		printf(">");
+		show_type(expr->symbol);
 		break;
 	case EXPR_DEREF:
 		show_expression(expr->deref);

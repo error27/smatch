@@ -44,14 +44,21 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 	}
 
 	/* The type of a symbol is the symbol itself! */
-	expr->ctype = sym;
+	expr->ctype = base_type;
 
 	/* enum's can be turned into plain values */
-	if (base_type->type == SYM_ENUM) {
-		expr->type = EXPR_VALUE;
-		expr->value = sym->value;
+	if (base_type->type != SYM_ENUM) {
+		struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
+		addr->symbol = sym;
+		addr->ctype = sym;
+		expr->type = EXPR_PREOP;
+		expr->op = '*';
+		expr->unop = addr;
+		return base_type;
 	}
-	return sym;
+	expr->type = EXPR_VALUE;
+	expr->value = sym->value;
+	return base_type;
 }
 
 static struct symbol *evaluate_string(struct expression *expr)
@@ -652,15 +659,10 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 
 	ctype = op->ctype;
 
-#if 0
 	/* Simplify: &*(expr) => (expr) */
 	if (op->type == EXPR_PREOP && op->op == '*') {
-		ctype = ctype->ctype.base_type;
 		*expr = *op->unop;
-		expr->ctype = ctype;
-		return ctype;
 	}
-#endif
 
 	symbol = alloc_symbol(expr->pos, SYM_PTR);
 	symbol->ctype.base_type = ctype;
@@ -705,7 +707,7 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 
 	examine_symbol_type(ctype);
 
-#if 0
+#if 1
 	/* Simplify: *&(expr) => (expr) */
 	if (op->type == EXPR_PREOP && op->op == '&') {
 		*expr = *op->unop;
