@@ -123,12 +123,12 @@ static void get_int_value(struct expression *expr, const char *str)
 	bits = BITS_IN_LONGLONG;
 	extramod = 0;
 	if (!(modifiers & MOD_LONGLONG)) {
-		if (value & (~0ULL << BITS_IN_LONG)) {
+		if (value & (~1ULL << (BITS_IN_LONG-1))) {
 			extramod = MOD_LONGLONG | MOD_LONG;
 		} else {
 			bits = BITS_IN_LONG;
 			if (!(modifiers & MOD_LONG)) {
-				if (value & (~0ULL << BITS_IN_INT)) {
+				if (value & (~1ULL << (BITS_IN_INT-1))) {
 					extramod = MOD_LONG;
 				} else
 					bits = BITS_IN_INT;
