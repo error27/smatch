@@ -94,8 +94,7 @@ static int bb_depends_on(struct basic_block *target, struct basic_block *src)
  * We need to check if any of the _sources_ of the phi-node
  * may be constant, and not actually need this block at all.
  */
-static int try_to_simplify_bb(struct entrypoint *ep, struct basic_block *bb,
-	struct instruction *first, struct instruction *second)
+static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first, struct instruction *second)
 {
 	int changed = 0;
 	pseudo_t phi;
@@ -142,27 +141,32 @@ static int bb_has_side_effects(struct basic_block *bb)
 	return 0;
 }
 
-static int simplify_phi_nodes(struct entrypoint *ep)
+static int simplify_phi_branch(struct basic_block *bb, struct instruction *br)
+{
+	pseudo_t cond = br->cond;
+	struct instruction *def;
+
+	if (!cond || cond->type != PSEUDO_REG)
+		return 0;
+	def = cond->def;
+	if (def->bb != bb || def->opcode != OP_PHI)
+		return 0;
+	if (bb_has_side_effects(bb))
+		return 0;
+	return try_to_simplify_bb(bb, def, br);
+}
+
+static int simplify_branch_nodes(struct entrypoint *ep)
 {
 	int changed = 0;
 	struct basic_block *bb;
 
 	FOR_EACH_PTR(ep->bbs, bb) {
-		pseudo_t cond;
 		struct instruction *br = last_instruction(bb->insns);
-		struct instruction *def;
 
 		if (!br || br->opcode != OP_BR || !br->bb_false)
 			continue;
-		cond = br->cond;
-		if (!cond || cond->type != PSEUDO_REG)
-			continue;
-		def = cond->def;
-		if (def->bb != bb || def->opcode != OP_PHI)
-			continue;
-		if (bb_has_side_effects(bb))
-			continue;
-		changed = try_to_simplify_bb(ep, bb, def, br);
+		changed |= simplify_phi_branch(bb, br);
 	} END_FOR_EACH_PTR(bb);
 	return changed;
 }
@@ -172,7 +176,7 @@ static int simplify_phi_nodes(struct entrypoint *ep)
  */
 int simplify_flow(struct entrypoint *ep)
 {
-	return simplify_phi_nodes(ep);
+	return simplify_branch_nodes(ep);
 }
 
 static inline void concat_user_list(struct pseudo_ptr_list *src, struct pseudo_ptr_list **dst)
