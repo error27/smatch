@@ -1170,6 +1170,15 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	}
 
 	for (;;) {
+		if (token_type(token) == TOKEN_IDENT) {
+			if (token->ident ==  &asm_ident || token->ident == &__asm_ident || token->ident == &__asm___ident) {
+				struct expression *expr;
+
+				token = expect(token->next, '(', "after asm");
+				token = parse_expression(token->next, &expr);
+				token = expect(token, ')', "after asm");
+			}
+		}
 		if (!is_typedef && match_op(token, '=')) {
 			if (decl->ctype.modifiers & MOD_EXTERN) {
 				warn(decl->pos, "symbol with external linkage has initializer");
