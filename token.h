@@ -21,7 +21,7 @@ extern int ident_hit, ident_miss;
 
 struct ident {
 	struct ident *next;	/* Hash chain of identifiers */
-	struct symbol *symbol;	/* Pointer to semantic meaning list */
+	struct symbol *symbols;	/* Pointer to semantic meaning list */
 	unsigned char len;	/* Length of identifier name */
 	char name[];		/* Actual identifier */
 };
@@ -104,8 +104,9 @@ extern int init_stream(const char *);
 extern struct ident *hash_ident(struct ident *);
 extern struct ident *built_in_ident(const char *);
 extern struct token *built_in_token(int, const char *);
-extern const char *show_special(int op);
-extern const char *show_token(const struct token *token);
+extern const char *show_special(int);
+extern const char *show_ident(const struct ident *);
+extern const char *show_token(const struct token *);
 extern struct token * tokenize(const char *, int);
 extern void die(const char *, ...);
 extern void warn(struct token *, const char *, ...);

@@ -15,7 +15,15 @@
  * token contains the information on where the symbol was
  * declared.
  */
-enum symbol_types {
+enum namespace {
+	NS_PREPROCESSOR,
+	NS_TYPEDEF,
+	NS_STRUCT,
+	NS_ENUM,
+	NS_LABEL,
+};
+
+enum type {
 	SYM_TYPE,
 	SYM_PTR,
 	SYM_FN,
@@ -24,10 +32,12 @@ enum symbol_types {
 	SYM_UNION,
 	SYM_ENUM,
 	SYM_TYPEDEF,
+	SYM_MEMBER,
 };
 
 struct symbol {
-	enum symbol_types type;
+	enum namespace namespace:8;
+	enum type type:8;
 	struct token *token;		/* Where this symbol was declared */
 	struct symbol *next;		/* Next symbol at this level */
 	struct symbol *next_id;		/* Next semantic symbol that shares this identifier */
@@ -36,6 +46,7 @@ struct symbol {
 	struct symbol *base_type;
 	struct symbol *children;
 	struct statement *stmt;
+	struct symbol_list *symbol_list;
 };
 
 #define NRSYM 10
@@ -67,7 +78,8 @@ struct symbol_list {
 extern struct symbol	void_type,
 			int_type,
 			fp_type,
-			vector_type;
+			vector_type,
+			bad_type;
 
 /* Basic identifiers */
 extern struct ident	struct_ident,
@@ -76,6 +88,7 @@ extern struct ident	struct_ident,
 
 #define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)
 
+extern struct symbol *lookup_symbol(struct ident *, enum namespace);
 extern void init_symbols(void);
 extern struct symbol *alloc_symbol(int type);
 extern void show_type(struct symbol *);
@@ -84,6 +97,6 @@ extern void show_symbol(struct symbol *);
 extern void show_type_list(struct symbol *);
 extern void show_symbol_list(struct symbol_list *);
 extern void add_symbol(struct symbol_list **, struct symbol *);
-extern void bind_symbol(struct symbol *, struct token *);
+extern void bind_symbol(struct symbol *, struct ident *, enum namespace);
 
 #endif /* SEMANTIC_H */

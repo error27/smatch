@@ -33,6 +33,12 @@ const char *show_special(int val)
 	return buffer;
 }
 
+const char *show_ident(const struct ident *ident)
+{
+	static char buffer[256];
+	sprintf(buffer, "%.*s", ident->len, ident->name);
+	return buffer;
+}
 
 const char *show_token(const struct token *token)
 {
@@ -44,11 +50,8 @@ const char *show_token(const struct token *token)
 	case TOKEN_ERROR:
 		return "syntax error";
 
-	case TOKEN_IDENT: {
-		struct ident *ident = token->ident;
-		sprintf(buffer, "%.*s", ident->len, ident->name);
-		return buffer;
-	}
+	case TOKEN_IDENT:
+		return show_ident(token->ident);
 
 	case TOKEN_STRING: {
 		char *ptr;
@@ -530,7 +533,7 @@ static struct ident *alloc_ident(const char *name, int len)
 	ident = malloc(offsetof(struct ident,name) + len);
 	if (!ident)
 		die("Out of memory for identifiers");
-	ident->symbol = NULL;
+	ident->symbols = NULL;
 	ident->len = len;
 	memcpy(ident->name, name, len);
 	return ident;

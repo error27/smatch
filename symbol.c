@@ -6,17 +6,28 @@
 #include "token.h"
 #include "symbol.h"
 
+struct symbol *lookup_symbol(struct ident *ident, enum namespace ns)
+{
+	struct symbol *sym;
+
+	for (sym = ident->symbols; sym; sym = sym->next_id) {
+		if (sym->namespace == ns)
+			return sym;
+	}
+	return sym;
+}
+
 void add_symbol(struct symbol_list **listp, struct symbol *sym)
 {
 	struct symbol_list *list = *listp;
-	int nr = list->nr;
+	int nr;
 
-	if (nr >= NRSYM) {
+	if (!list || (nr = list->nr) >= NRSYM) {
 		struct symbol_list *newlist = malloc(sizeof(*newlist));
 		if (!newlist)
 			die("out of memory for symbol lists");
 		memset(newlist, 0, sizeof(*newlist));
-		list->next = newlist;
+		newlist->next = list;
 		list = newlist;
 		*listp = newlist;
 		nr = 0;
@@ -69,6 +80,8 @@ const char *type_string(unsigned int modifiers, struct symbol *sym)
 		return "void";
 	if (sym == &vector_type)
 		return "vector";
+	if (sym == &bad_type)
+		return "bad type";
 	return "typedef";
 }
 
@@ -153,26 +166,17 @@ struct symbol *alloc_symbol(int type)
 	return sym;
 }
 
-void bind_symbol(struct symbol *sym, struct token *token)
+void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 {
-	struct ident *ident;
-
-	if (sym->token) {
-		warn(token, "Symbol already bound");
-		return;
-	}
-	if (token->type != TOKEN_IDENT)
-		die("Internal error: trying to make a symbol out of a non-identifier");
-	ident = token->ident;
-	sym->token = token;
-	sym->next_id = ident->symbol;
-	ident->symbol = sym;
+	sym->namespace = ns;
+	sym->next_id = ident->symbols;
+	ident->symbols = sym;
 }
 
 struct symbol *create_symbol(int stream, const char *name, int type)
 {
 	struct symbol *sym = alloc_symbol(type);
-	bind_symbol(sym, built_in_token(stream, name));
+	bind_symbol(sym, built_in_token(stream, name)->ident, NS_TYPEDEF);
 	return sym;
 }
 
@@ -218,7 +222,8 @@ struct sym_init {
 struct symbol	void_type,
 		int_type,
 		fp_type,
-		vector_type;
+		vector_type,
+		bad_type;
 
 #define IDENT(n) \
 	struct ident n ## _ident = { len: sizeof(#n)-1, name: #n }
