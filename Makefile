@@ -68,6 +68,7 @@ $(LIB_FILE): $(LIB_OBJS)
 evaluate.o: $(LIB_H)
 expression.o: $(LIB_H)
 lib.o: $(LIB_H)
+allocate.o: $(LIB_H)
 parse.o: $(LIB_H)
 pre-process.o: $(LIB_H) pre-process.h
 scope.o: $(LIB_H)
