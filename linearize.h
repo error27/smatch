@@ -6,9 +6,12 @@
 #include "parse.h"
 #include "symbol.h"
 
+struct instruction;
+
 /* Silly pseudo define. Do this right some day */
 struct pseudo {
 	int nr;
+	struct instruction *def;
 };
 
 typedef struct pseudo *pseudo_t;

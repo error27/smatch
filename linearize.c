@@ -358,11 +358,12 @@ static void add_branch(struct entrypoint *ep, struct expression *expr, pseudo_t 
 }
 
 /* Dummy pseudo allocator */
-static pseudo_t alloc_pseudo(void)
+static pseudo_t alloc_pseudo(struct instruction *def)
 {
 	static int nr = 0;
 	struct pseudo * pseudo = __alloc_pseudo(0);
 	pseudo->nr = ++nr;
+	pseudo->def = def;
 	return pseudo;
 }
 
@@ -407,7 +408,7 @@ static void linearize_store_gen(struct entrypoint *ep, pseudo_t value, struct ex
 static pseudo_t add_binary_op(struct entrypoint *ep, struct expression *expr, int op, pseudo_t left, pseudo_t right)
 {
 	struct instruction *insn = alloc_instruction(op, expr->ctype);
-	pseudo_t target = alloc_pseudo();
+	pseudo_t target = alloc_pseudo(insn);
 	insn->target = target;
 	insn->src1 = left;
 	insn->src2 = right;
@@ -418,7 +419,7 @@ static pseudo_t add_binary_op(struct entrypoint *ep, struct expression *expr, in
 static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct expression *val)
 {
 	struct instruction *insn = alloc_instruction(OP_SETVAL, ctype);
-	pseudo_t target = alloc_pseudo();
+	pseudo_t target = alloc_pseudo(insn);
 	insn->target = target;
 	insn->val = val;
 	add_one_insn(ep, val->pos, insn);
@@ -433,8 +434,8 @@ static pseudo_t add_const_value(struct entrypoint *ep, struct position pos, stru
 
 static pseudo_t add_load(struct entrypoint *ep, struct expression *expr, pseudo_t addr)
 {
-	pseudo_t new = alloc_pseudo();
 	struct instruction *insn = alloc_instruction(OP_LOAD, expr->ctype);
+	pseudo_t new = alloc_pseudo(insn);
 
 	insn->target = new;
 	insn->src = addr;
@@ -484,8 +485,9 @@ static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr
 
 static pseudo_t add_uniop(struct entrypoint *ep, struct expression *expr, int op, pseudo_t src)
 {
-	pseudo_t new = alloc_pseudo();
 	struct instruction *insn = alloc_instruction(op, expr->ctype);
+	pseudo_t new = alloc_pseudo(insn);
+
 	insn->target = new;
 	insn->src1 = src;
 	add_one_insn(ep, expr->pos, insn);
@@ -495,8 +497,9 @@ static pseudo_t add_uniop(struct entrypoint *ep, struct expression *expr, int op
 static pseudo_t linearize_slice(struct entrypoint *ep, struct expression *expr)
 {
 	pseudo_t pre = linearize_expression(ep, expr->base);
-	pseudo_t new = alloc_pseudo();
 	struct instruction *insn = alloc_instruction(OP_SLICE, expr->ctype);
+	pseudo_t new = alloc_pseudo(insn);
+
 	insn->target = new;
 	insn->base = pre;
 	insn->from = expr->r_bitpos;
@@ -594,7 +597,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 		}
 	}
 	insn->func = linearize_expression(ep, fn);
-	insn->target = retval = alloc_pseudo();
+	insn->target = retval = alloc_pseudo(insn);
 	add_one_insn(ep, expr->pos, insn);
 
 	return retval;
@@ -669,7 +672,7 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 		struct instruction *phi_node = alloc_instruction(OP_PHI, expr->ctype);
 		add_phi(&phi_node->phi_list, alloc_phi(bb_true, src1));
 		add_phi(&phi_node->phi_list, alloc_phi(bb_false, src2));
-		phi_node->target = target = alloc_pseudo();
+		phi_node->target = target = alloc_pseudo(phi_node);
 		add_one_insn(ep, expr->pos, phi_node);
 		set_activeblock(ep, alloc_basic_block(expr->pos));
 		return target;
@@ -772,7 +775,7 @@ pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 	if (src == VOID)
 		return VOID;
 	insn = alloc_instruction(OP_CAST, expr->ctype);
-	result = alloc_pseudo();
+	result = alloc_pseudo(insn);
 	insn->target = result;
 	insn->src = src;
 	insn->orig_type = expr->cast_expression->ctype;
@@ -885,7 +888,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			struct instruction *phi_node = first_instruction(bb_return->insns);
 			if (!phi_node) {
 				phi_node = alloc_instruction(OP_PHI, expr->ctype);
-				phi_node->target = alloc_pseudo();
+				phi_node->target = alloc_pseudo(phi_node);
 				add_instruction(&bb_return->insns, phi_node);
 			}
 			add_phi(&phi_node->phi_list, alloc_phi(active, src));
@@ -1219,20 +1222,19 @@ static void try_to_simplify_bb(struct entrypoint *ep, struct basic_block *bb,
 		if (br->opcode != OP_BR)
 			continue;
 
-		FOR_EACH_PTR(source->insns, insn) {
-			if (insn->opcode == OP_SETVAL && insn->target == pseudo) {
-				struct expression *expr = insn->val;
-				if (expr->type == EXPR_VALUE) {
-					struct basic_block *target;
+		insn = pseudo->def;
+		if (insn->opcode == OP_SETVAL && insn->target == pseudo) {
+			struct expression *expr = insn->val;
+			if (expr->type == EXPR_VALUE) {
+				struct basic_block *target;
 
-					target = expr->value ? second->bb_true: second->bb_false;
-					if (br->bb_true == bb)
-						rewrite_branch(source, &br->bb_true, bb, target);
-					if (br->bb_false == bb)
-						rewrite_branch(source, &br->bb_false, bb, target);
-				}
+				target = expr->value ? second->bb_true: second->bb_false;
+				if (br->bb_true == bb)
+					rewrite_branch(source, &br->bb_true, bb, target);
+				if (br->bb_false == bb)
+					rewrite_branch(source, &br->bb_false, bb, target);
 			}
-		} END_FOR_EACH_PTR(insn);
+		}
 	} END_FOR_EACH_PTR(phi);
 }
 
