@@ -1859,8 +1859,13 @@ static void kill_dead_stores(pseudo_t pseudo, unsigned long generation, struct b
 	FOR_EACH_PTR_REVERSE(bb->insns, insn) {
 		int opcode = insn->opcode;
 
-		if (opcode != OP_LOAD && opcode != OP_STORE)
+		if (opcode != OP_LOAD && opcode != OP_STORE) {
+			if (local)
+				continue;
+			if (opcode == OP_CALL)
+				return;
 			continue;
+		}
 		if (insn->src == pseudo) {
 			if (opcode == OP_LOAD)
 				return;
