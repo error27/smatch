@@ -231,6 +231,7 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 
 void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 {
+	struct scope *scope;
 	if (sym->id_list) {
 		warn(sym->pos, "internal error: symbol type already bound");
 		return;
@@ -239,7 +240,15 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 	sym->next_id = ident->symbols;
 	ident->symbols = sym;
 	sym->id_list = &ident->symbols;
-	bind_scope(sym);
+
+	scope = block_scope;
+	if (toplevel(scope)) {
+		if (sym->ctype.modifiers & MOD_STATIC)
+			scope = file_scope;
+	}
+	if (ns == NS_LABEL)
+		scope = function_scope;
+	bind_scope(sym, scope);
 }
 
 struct symbol *create_symbol(int stream, const char *name, int type)

@@ -12,16 +12,14 @@
 #include "symbol.h"
 #include "scope.h"
 
-static struct scope
-	 base_scope = { .next = &base_scope },
-	*block_scope = &base_scope,
-	*function_scope = &base_scope;
+static struct scope toplevel_scope = { .next = &toplevel_scope };
 
-void bind_scope(struct symbol *sym)
+struct scope	*block_scope = &toplevel_scope,
+		*function_scope = &toplevel_scope,
+		*file_scope = &toplevel_scope;
+
+void bind_scope(struct symbol *sym, struct scope *scope)
 {
-	struct scope *scope = block_scope;
-	if (sym->namespace == NS_LABEL)
-		scope = function_scope;
 	add_symbol(&scope->symbols, sym);
 }
 

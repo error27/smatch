@@ -12,12 +12,22 @@ struct scope {
 	struct scope *next;
 };
 
+static inline int toplevel(struct scope *scope)
+{
+	return scope->next == scope;
+}
+
+extern struct scope
+		*block_scope,
+		*function_scope,
+		*file_scope;
+
 extern void start_symbol_scope(void);
 extern void end_symbol_scope(void);
 
 extern void start_function_scope(void);
 extern void end_function_scope(void);
 
-extern void bind_scope(struct symbol *);
+extern void bind_scope(struct symbol *, struct scope *);
 
 #endif
