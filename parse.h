@@ -25,7 +25,8 @@ enum statement_type {
 	STMT_ASM,
 
 	/* These only show up after linearization */
-	STMT_GOTO_BB,
+	STMT_CONDTRUE,
+	STMT_CONDFALSE,
 };
 
 struct statement {

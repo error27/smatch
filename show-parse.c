@@ -533,9 +533,12 @@ int show_statement(struct statement *stmt)
 		printf("\tasm( .... )\n");
 		break;
 
-	case STMT_GOTO_BB: {
+	case STMT_CONDTRUE:
+	case STMT_CONDFALSE: {
 		int val = show_expression(stmt->bb_conditional);
-		printf("\tje v%d,.L%p\n", val, stmt->bb_target->bb_target);
+		printf("\t%s v%d,.L%p\n",
+			stmt->type == STMT_CONDTRUE ? "jnz" : "jz",
+			val, stmt->bb_target->bb_target);
 		break;
 	}
 

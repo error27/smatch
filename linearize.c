@@ -130,7 +130,7 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 	 */
 	case STMT_IF: {
 		struct symbol *target = alloc_symbol(stmt->pos, SYM_LABEL);
-		struct statement *goto_bb = alloc_statement(stmt->pos, STMT_GOTO_BB);
+		struct statement *goto_bb = alloc_statement(stmt->pos, STMT_CONDFALSE);
 		struct basic_block *last_bb;
 
 		add_statement(&bb->stmts, goto_bb);
@@ -180,7 +180,7 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 					bb = new_basic_block(bbs);
 				}
 			} else {
-				struct statement *pre_cond = alloc_statement(stmt->pos, STMT_GOTO_BB);
+				struct statement *pre_cond = alloc_statement(stmt->pos, STMT_CONDFALSE);
 				loop_bottom = alloc_symbol(stmt->pos, SYM_LABEL);
 				pre_cond->bb_conditional = pre_condition;
 				pre_cond->bb_target = loop_bottom;
@@ -211,7 +211,7 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 			bb->next = loop_top;
 		} else {
 			if (post_condition->type != EXPR_VALUE || post_condition->value) {
-				struct statement *post_cond = alloc_statement(stmt->pos, STMT_GOTO_BB);
+				struct statement *post_cond = alloc_statement(stmt->pos, STMT_CONDTRUE);
 				post_cond->bb_conditional = post_condition;
 				post_cond->bb_target = loop_top;
 				add_statement(&bb->stmts, post_cond);

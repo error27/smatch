@@ -1600,7 +1600,8 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		break;
 
 	/* These should not exist at evaluation time */
-	case STMT_GOTO_BB:
+	case STMT_CONDTRUE:
+	case STMT_CONDFALSE:
 		break;
 	}
 	return NULL;
