@@ -769,6 +769,19 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 	return ltype;
 }
 
+static struct symbol *create_pointer(struct expression *expr, struct symbol *sym)
+{
+	struct symbol *ptr = alloc_symbol(expr->pos, SYM_PTR);
+
+	ptr->ctype.base_type = sym;
+	sym->ctype.modifiers |= MOD_ADDRESSABLE;
+	if (sym->ctype.modifiers & MOD_REGISTER) {
+		warn(expr->pos, "taking address of 'register' variable '%s'", show_ident(sym->ident));
+		sym->ctype.modifiers &= ~MOD_REGISTER;
+	}
+	return ptr;
+}
+
 static struct symbol *evaluate_addressof(struct expression *expr)
 {
 	struct expression *op = expr->unop;
@@ -781,14 +794,15 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 
 	addr = op->unop;
 	*expr = *addr;
-	if (addr->type == EXPR_SYMBOL) {
-		struct symbol *sym = addr->symbol;
-		sym->ctype.modifiers |= MOD_ADDRESSABLE;
-		if (sym->ctype.modifiers & MOD_REGISTER) {
-			warn(expr->pos, "taking address of 'register' variable '%s'", show_ident(sym->ident));
-			sym->ctype.modifiers &= ~MOD_REGISTER;
-		}
-	}
+
+	/*
+	 * We're lazy generating the ptr symbol type for symbols,
+	 * so if we actually want the address-of, we now need to
+	 * generate the proper pointer.
+	 */
+	if (addr->type == EXPR_SYMBOL)
+		expr->ctype = create_pointer(expr, addr->symbol);
+
 	return expr->ctype;
 }
 
@@ -913,22 +927,22 @@ struct symbol *find_identifier(struct ident *ident, struct symbol_list *_list, i
 	return NULL;
 }
 
-static struct expression *evaluate_offset(struct expression *expr, unsigned long offset)
+static struct expression *evaluate_offset(struct expression *expr, unsigned long offset, struct symbol *ctype)
 {
 	struct expression *add;
 
-	if (!offset)
-		return expr;
+	add = expr;
+	if (offset) {
+		/* Create a new add-expression */
+		add = alloc_expression(expr->pos, EXPR_BINOP);
+		add->op = '+';
+		add->left = expr;
+		add->right = alloc_expression(expr->pos, EXPR_VALUE);
+		add->right->ctype = &int_ctype;
+		add->right->value = offset;
+	}
 
-	/* Create a new add-expression */
-	add = alloc_expression(expr->pos, EXPR_BINOP);
-	add->op = '+';
-	add->ctype = &ptr_ctype;
-	add->left = expr;
-	add->right = alloc_expression(expr->pos, EXPR_VALUE);
-	add->right->ctype = &int_ctype;
-	add->right->value = offset;
-
+	add->ctype = ctype;
 	return add;
 }
 
@@ -998,7 +1012,9 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		return NULL;
 	}
 
-	add = evaluate_offset(deref, offset);
+	ctype = create_pointer(deref, member);
+	ctype->ctype.modifiers |= mod;
+	add = evaluate_offset(deref, offset, ctype);
 
 	sym = alloc_symbol(expr->pos, SYM_NODE);
 	sym->bit_size = member->bit_size;
@@ -1006,6 +1022,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	sym->ctype = member->ctype;
 	sym->ctype.modifiers = mod;
 	sym->ctype.as = address_space;
+
 	ctype = member->ctype.base_type;
 	if (ctype->type == SYM_BITFIELD) {
 		ctype = ctype->ctype.base_type;
