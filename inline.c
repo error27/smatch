@@ -158,6 +158,45 @@ static struct expression * copy_expression(struct expression *expr)
 	return expr;
 }
 
+void set_replace(struct symbol *old, struct symbol *new)
+{
+	new->replace = old;
+	old->replace = new;
+}
+
+void unset_replace(struct symbol *sym)
+{
+	struct symbol *r = sym->replace;
+	if (r) {
+		r->replace = NULL;
+		sym->replace = NULL;
+	}
+}
+
+struct symbol *copy_symbol(struct symbol *orig)
+{
+	struct symbol *sym = orig;
+	if (orig) {
+		sym = alloc_symbol(orig->pos, orig->type);
+		sym->ctype = orig->ctype;
+		sym->initializer = copy_expression(orig->initializer);
+		set_replace(orig, sym);
+	}
+	return orig;
+}
+
+struct symbol_list *copy_symbol_list(struct symbol_list *src)
+{
+	struct symbol_list *dst = NULL;
+	struct symbol *sym;
+
+	FOR_EACH_PTR(src, sym) {
+		struct symbol *newsym = copy_symbol(sym);
+		add_symbol(&dst, newsym);
+	} END_FOR_EACH_PTR;
+	return dst;
+}
+
 static struct statement *copy_one_statement(struct statement *stmt)
 {
 	if (!stmt)
@@ -209,19 +248,48 @@ static struct statement *copy_one_statement(struct statement *stmt)
 		break;
 	}
 	case STMT_CASE: {
-		/* FIXME! */
+		struct symbol *sym = copy_symbol(stmt->case_label);
+		struct expression *from = copy_expression(stmt->case_expression);
+		struct expression *to = copy_expression(stmt->case_to);
+		struct statement *stmt = copy_one_statement(stmt->case_statement);
+		stmt = dup_statement(stmt);
+		stmt->case_expression = from;
+		stmt->case_to = to;
+		stmt->case_statement = stmt;
+		stmt->case_label = sym;
 		break;
 	}
 	case STMT_SWITCH: {
-		/* FIXME! */
+		struct symbol *switch_break = copy_symbol(stmt->switch_break);
+		struct symbol *switch_case = copy_symbol(stmt->switch_case);
+		struct expression *expr = copy_expression(stmt->switch_expression);
+		struct statement *switch_stmt = copy_one_statement(stmt->switch_statement);
+		stmt = dup_statement(stmt);
+		stmt->switch_break = switch_break;
+		stmt->switch_case = switch_case;
+		stmt->switch_expression = expr;
+		stmt->switch_statement = switch_stmt;
 		break;		
 	}
 	case STMT_ITERATOR: {
-		/* FIXME! */
+		stmt = dup_statement(stmt);
+		stmt->iterator_break = copy_symbol(stmt->iterator_break);
+		stmt->iterator_continue = copy_symbol(stmt->iterator_continue);
+		stmt->iterator_syms = copy_symbol_list(stmt->iterator_syms);
+
+		stmt->iterator_pre_statement = copy_one_statement(stmt->iterator_pre_statement);
+		stmt->iterator_pre_condition = copy_expression(stmt->iterator_pre_condition);
+
+		stmt->iterator_statement = copy_one_statement(stmt->iterator_statement);
+
+		stmt->iterator_post_statement = copy_one_statement(stmt->iterator_post_statement);
+		stmt->iterator_post_condition = copy_expression(stmt->iterator_post_condition);
 		break;
 	}
 	case STMT_LABEL: {
-		/* FIXME! */
+		stmt = dup_statement(stmt);
+		stmt->label_identifier = copy_symbol(stmt->label_identifier);
+		stmt->label_statement = copy_one_statement(stmt->label_statement);
 		break;
 	}
 	case STMT_GOTO: {
@@ -238,21 +306,6 @@ static struct statement *copy_one_statement(struct statement *stmt)
 		break;
 	}
 	return stmt;
-}
-
-void set_replace(struct symbol *old, struct symbol *new)
-{
-	new->replace = old;
-	old->replace = new;
-}
-
-void unset_replace(struct symbol *sym)
-{
-	struct symbol *r = sym->replace;
-	if (r) {
-		r->replace = NULL;
-		sym->replace = NULL;
-	}
 }
 
 /*
