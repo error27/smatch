@@ -268,17 +268,16 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 	return token;
 }
 
-static int constant_value(struct expression *expr)
-{
-	return 0;
-}
-
 static struct token *abstract_array_declarator(struct token *token, struct symbol **tree)
 {
-	struct expression *expr;
+	struct expression *expr = NULL;
 	struct symbol *sym = *tree;
 	token = parse_expression(token, &expr);
-	sym->array_size = constant_value(expr);
+
+	if (expr)
+		sym->array_size = get_expression_value(expr);
+	else
+		sym->array_size = -1;
 	return token;
 }
 

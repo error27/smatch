@@ -86,40 +86,27 @@ void examine_symbol_type(struct symbol * sym)
 	/* Already done? */
 	if (sym->bit_size)
 		return;
-	base_type = sym->ctype.base_type;
-	modifiers = sym->ctype.modifiers;
 
-	/* If this symbol doesn't have a type yet, we'll just have to punt */
-	if (!base_type) {
-		warn(sym->token, "no type");
-		return;
-	}
-
-	switch (base_type->type) {
+	switch (sym->type) {
 	case SYM_STRUCT:
-		examine_struct_union_type(base_type, 1);
-		break;
+		examine_struct_union_type(sym, 1);
+		return;
 	case SYM_UNION:
-		examine_struct_union_type(base_type, 0);
-		break;
+		examine_struct_union_type(sym, 0);
+		return;
 	case SYM_PTR:
-		if (!base_type->bit_size)
-			base_type->bit_size = BITS_IN_POINTER;
-		if (!base_type->alignment)
-			base_type->alignment = POINTER_ALIGNMENT;
-		break;
+		if (!sym->bit_size)
+			sym->bit_size = BITS_IN_POINTER;
+		if (!sym->alignment)
+			sym->alignment = POINTER_ALIGNMENT;
+		return;
+			
 	default:
 		break;
 	}
 
-	bit_size = base_type->bit_size;
-	alignment = base_type->alignment;
-	if (bit_size) {
-		if (!sym->alignment)
-			sym->alignment = alignment;
-		sym->bit_size = bit_size;
-		return;
-	}
+	base_type = sym->ctype.base_type;
+	modifiers = sym->ctype.modifiers;
 
 	if (base_type == &int_type) {
 		bit_size = BITS_IN_INT;
@@ -132,37 +119,41 @@ void examine_symbol_type(struct symbol * sym)
 		} else if (modifiers & MOD_CHAR) {
 			bit_size = BITS_IN_CHAR;
 		}
-		if (!alignment) {
-			alignment = bit_size >> 3;
-			if (alignment > MAX_INT_ALIGNMENT)
-				alignment = MAX_INT_ALIGNMENT;
-		}
-		if (!sym->alignment)
-			sym->alignment = alignment;
-		sym->bit_size = bit_size;
-		return;
-	}
-
-	if (base_type == &fp_type) {
+		alignment = bit_size >> 3;
+		if (alignment > MAX_INT_ALIGNMENT)
+			alignment = MAX_INT_ALIGNMENT;
+	} else if (base_type == &fp_type) {
 		bit_size = BITS_IN_FLOAT;
 		if (modifiers & MOD_LONGLONG) {
 			bit_size = BITS_IN_LONGDOUBLE;
 		} else if (modifiers & MOD_LONG) {
 			bit_size = BITS_IN_DOUBLE;
 		}
-		if (!alignment) {
-			alignment = bit_size >> 3;
-			if (alignment > MAX_FP_ALIGNMENT)
-				alignment = MAX_FP_ALIGNMENT;
-		}
-		if (!sym->alignment)
-			sym->alignment = alignment;
-		sym->bit_size = bit_size;
+		alignment = bit_size >> 3;
+		if (alignment > MAX_FP_ALIGNMENT)
+			alignment = MAX_FP_ALIGNMENT;
+	} else {
+		examine_symbol_type(base_type);
+
+		bit_size = base_type->bit_size;
+		alignment = base_type->alignment;
+	}
+
+	if (!bit_size) {
+		warn(sym->token, "unknown type %d", sym->type);
 		return;
 	}
 
-	warn(sym->token, "unknown type");
-	return;
+	if (sym->type == SYM_ARRAY) {
+		int array_size = sym->array_size;
+		bit_size *= sym->array_size;
+		if (array_size == -1)
+			bit_size = -1;
+	}
+
+	if (!sym->alignment)
+		sym->alignment = alignment;
+	sym->bit_size = bit_size;
 }
 
 void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
