@@ -24,6 +24,9 @@
 static unsigned int pre_buffer_size = 0;
 static unsigned char pre_buffer[8192];
 
+static char *include = NULL;
+static int include_fd = -1;
+
 static void add_pre_buffer(const char *fmt, ...)
 {
 	va_list args;
@@ -38,7 +41,7 @@ static void add_pre_buffer(const char *fmt, ...)
 	va_end(args);
 }
 
-static void handle_switch(char *arg)
+static char ** handle_switch(char *arg, char **next)
 {
 	switch (*arg) {
 	case 'D': {
@@ -56,15 +59,27 @@ static void handle_switch(char *arg)
 			}
 		}
 		add_pre_buffer("#define %s %s\n", name, value);
-		return;
+		return next;
 	}
 
 	case 'I':
 		add_pre_buffer("#add_include \"%s/\"\n", arg+1);
-		return;
+		return next;
+	case 'i':
+		if (*next && !strcmp(arg, "include")) {
+			char *name = *++next;
+			int fd = open(name, O_RDONLY);
+			include_fd = fd;
+			include = name;
+			if (fd < 0)
+				perror(name);
+			return next;
+		}
+	/* Fallthrough */
 	default:
 		fprintf(stderr, "unknown switch '%s'\n", arg);
-	}	
+	}
+	return next;
 }
 
 static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
@@ -74,8 +89,8 @@ static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 
 int main(int argc, char **argv)
 {
-	int i, fd;
-	char *filename = NULL;
+	int fd;
+	char *filename = NULL, **args;
 	struct token *token;
 
 	// Initialize symbol stream first, so that we can add defines etc
@@ -94,10 +109,13 @@ int main(int argc, char **argv)
 	add_pre_buffer("#define __func__ \"function\"\n");
 
 
-	for (i = 1; i < argc; i++) {
-		char *arg = argv[i];
+	args = argv;
+	for (;;) {
+		char *arg = *++args;
+		if (!arg)
+			break;
 		if (arg[0] == '-') {
-			handle_switch(arg+1);
+			args = handle_switch(arg+1, args);
 			continue;
 		}
 		filename = arg;
@@ -111,6 +129,10 @@ int main(int argc, char **argv)
 	// Tokenize the input stream
 	token = tokenize(filename, fd, NULL);
 	close(fd);
+
+	// Prepend any "include" file to the stream.
+	if (include_fd >= 0)
+		token = tokenize(include, include_fd, token);
 
 	// Prepend the initial built-in stream
 	token = tokenize_buffer(pre_buffer, pre_buffer_size, token);
