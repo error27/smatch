@@ -265,6 +265,10 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 	examine_symbol_type(ctype);
 
 	ctype = degenerate(expr, ctype, &ptr);
+	if (!ctype->ctype.base_type) {
+		warn(expr->pos, "missing type information");
+		return NULL;
+	}
 	bit_size = ctype->ctype.base_type->bit_size;
 
 	/* Special case: adding zero commonly happens as a result of 'array[0]' */
