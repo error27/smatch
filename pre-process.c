@@ -161,7 +161,7 @@ static void insert(struct token *token, struct token *prev)
 	prev->next = token;
 }
 
-static void replace(struct token *token, struct token *prev, struct token *list)
+static struct token * replace(struct token *token, struct token *prev, struct token *list)
 {
 	int newline = token->newline;
 
@@ -173,6 +173,7 @@ static void replace(struct token *token, struct token *prev, struct token *list)
 		prev = newtok;
 		list = list->next;
 	}
+	return prev;
 }
 
 static struct token *get_argument(int nr, struct token *args)
@@ -224,6 +225,7 @@ static struct token *expand_one_arg(struct token *head, struct token *token,
 		struct token *arglist, struct token *arguments)
 {
 	int nr = arg_number(arglist, token->ident);
+	struct token *orig_head = head;
 
 	if (nr >= 0) {
 		struct token *arg = get_argument(nr, arguments);
@@ -239,8 +241,9 @@ static struct token *expand_one_arg(struct token *head, struct token *token,
 			empty_arg_token.next = &eof_token_entry;
 		}
 
-		replace(token, head, arg);
-		head = expand_list(head);
+		head = replace(token, head, arg);
+		if (!match_op(orig_head, SPECIAL_HASHHASH) && !match_op(last, SPECIAL_HASHHASH) && !match_op(orig_head, '#'))
+			head = expand_list(orig_head);
 		head->next = last;
 		return head;
 	}
