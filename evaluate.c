@@ -304,11 +304,13 @@ static struct symbol *degenerate(struct expression *expr, struct symbol *ctype, 
 
 	if (ctype->type == SYM_NODE)
 		base = ctype->ctype.base_type;
-	if (base->type == SYM_ARRAY) {
+	if (base->type == SYM_ARRAY || base->type == SYM_FN) {
 		struct symbol *sym = alloc_symbol(expr->pos, SYM_PTR);
 		struct expression *ptr;
 
 		merge_type(sym, ctype);
+		if (base->type == SYM_FN)
+			base = ctype;
 		merge_type(sym, base);
 		sym->bit_size = BITS_IN_POINTER;
 		ctype = sym;
@@ -324,7 +326,7 @@ static struct symbol *degenerate(struct expression *expr, struct symbol *ctype, 
 		 */
 		if (!lvalue_expression(ptr))
 			warn(ptr->pos, "internal error: strange degenerate array case");
-		ptr->ctype = ctype;
+		ptr->ctype = base;
 	}
 	return ctype;
 }
@@ -446,6 +448,30 @@ static const char * type_difference(struct symbol *target, struct symbol *source
 					return "different type sizes";
 				return "different modifiers";
 			}
+		}
+
+		if (target->type == SYM_FN) {
+			int i;
+			struct symbol *arg1, *arg2;
+			if (target->variadic != source->variadic)
+				return "incompatible variadic arguments";
+			PREPARE_PTR_LIST(target->arguments, arg1);
+			PREPARE_PTR_LIST(source->arguments, arg2);
+			i = 1;
+			for (;;) {
+				if (type_difference(arg1, arg2, 0, 0)) {
+					static char argdiff[30];
+					sprintf(argdiff, "incompatible argument %d", i);
+					return argdiff;
+				}
+				if (!arg1)
+					break;
+				NEXT_PTR_LIST(arg1);
+				NEXT_PTR_LIST(arg2);
+				i++;
+			}
+			FINISH_PTR_LIST(arg2);
+			FINISH_PTR_LIST(arg1);
 		}
 
 		target = target->ctype.base_type;
@@ -771,12 +797,6 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			if (s == &void_ctype || t == &void_ctype)
 				return 1;
 		}
-
-		if (s->type == SYM_FN) {
-			typediff = type_difference(t->ctype.base_type, s, 0, 0);
-			if (!typediff)
-				return 1;
-		}
 	}
 
 	// FIXME!! Cast it?
@@ -834,6 +854,8 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 		warn(expr->pos, "not an lvalue");
 		return NULL;
 	}
+
+	rtype = degenerate(right, rtype, &expr->right);
 
 	if (!compatible_assignment_types(expr, ltype, &expr->right, rtype, "assignment"))
 		return 0;
@@ -1175,7 +1197,7 @@ static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 		i++;
 		NEXT_PTR_LIST(argtype);
 	} END_FOR_EACH_PTR;
-	FINISH_PTR_LIST;
+	FINISH_PTR_LIST(argtype);
 	return 1;
 }
 
@@ -1237,7 +1259,7 @@ static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct exp
 
 		NEXT_PTR_LIST(sym);
 	} END_FOR_EACH_PTR;
-	FINISH_PTR_LIST;
+	FINISH_PTR_LIST(sym);
 
 	return 0;
 }
@@ -1259,6 +1281,13 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep, un
 		struct symbol *rtype = evaluate_expression(expr);
 		if (rtype) {
 			struct expression *pos;
+			struct symbol *fn = rtype;
+			if (rtype->type == SYM_NODE)
+				fn = rtype->ctype.base_type;
+			if (fn->type == SYM_FN) {
+				rtype = degenerate(expr, rtype, ep);
+				expr = *ep;
+			}
 			compatible_assignment_types(expr, ctype, ep, rtype, "initializer");
 			/* strings are special: char arrays */
 			if (rtype->type == SYM_ARRAY)
@@ -1462,9 +1491,9 @@ static void check_duplicates(struct symbol *sym)
 		evaluate_symbol(next);
 		typediff = type_difference(sym, next, 0, 0);
 		if (typediff) {
-			warn(sym->pos, "symbol '%s' redeclared with different type (originally declared at %s:%d)",
+			warn(sym->pos, "symbol '%s' redeclared with different type (originally declared at %s:%d) - %s",
 				show_ident(sym->ident),
-				input_streams[next->pos.stream].name, next->pos.line);
+				input_streams[next->pos.stream].name, next->pos.line, typediff);
 			return;
 		}
 	}
