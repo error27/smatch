@@ -233,7 +233,7 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 
 	case SYM_ENUM:
 		prepend(name, "enum %s ", show_ident(sym->ident));
-		return;
+		break;
 
 	case SYM_NODE:
 		append(name, "%s", show_ident(sym->ident));
