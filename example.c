@@ -157,14 +157,17 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 			if (!src) {
 				src = find_storage_hash(pseudo, state->inputs);
 				/* Undefined? Screw it! */
-				if (!src)
+				if (!src) {
+					printf("\tundef %s ??\n", show_pseudo(pseudo));
 					break;
+				}
 			}
 		}
 		if (src->storage->type == REG_UDEF) {
 			if (!hardreg->used) {
 				src->storage->type = REG_REG;
 				src->storage->regno = hardreg - hardregs;
+				printf("\tinput %p is a reg\n", src->storage);
 				break;
 			}
 			alloc_stack(state, src->storage);
@@ -370,6 +373,20 @@ static void generate_phisource(struct instruction *insn, struct bb_state *state)
 	reg->dirty = 1;
 }
 
+static void generate_output_storage(struct bb_state *state);
+
+static void generate_branch(struct bb_state *state, struct instruction *br)
+{
+	if (br->cond) {
+		struct hardreg *reg = getreg(state, br->cond);
+		printf("\ttestl %s,%s\n", reg->name, reg->name);
+	}
+	generate_output_storage(state);
+	if (br->cond)
+		printf("\tje .L%p\n", br->bb_false);
+	printf("\tjmp .L%p\n", br->bb_true);
+}
+
 static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 {
 	switch (insn->opcode) {
@@ -417,6 +434,10 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 	case OP_BINARY ... OP_BINARY_END:
 	case OP_BINCMP ... OP_BINCMP_END:
 		generate_binop(state, insn);
+		break;
+
+	case OP_BR:
+		generate_branch(state, insn);
 		break;
 
 	default:
@@ -516,6 +537,31 @@ static void fill_output(struct bb_state *state, pseudo_t pseudo, struct storage 
 	return;
 }
 
+/*
+ * This tries to make sure that we put all the pseudos that are
+ * live on exit into the proper storage
+ */
+static void generate_output_storage(struct bb_state *state)
+{
+	struct storage_hash *entry;
+
+	/* Go through the fixed outputs, making sure we have those regs free */
+	FOR_EACH_PTR(state->outputs, entry) {
+		struct storage *out = entry->storage;
+		if (out->type == REG_REG) {
+			struct hardreg *reg = hardregs + out->regno;
+			if (reg->contains != entry->pseudo) {
+				flush_reg(state, reg);
+				reg->contains = NULL;
+			}
+		}
+	} END_FOR_EACH_PTR(entry);
+
+	FOR_EACH_PTR(state->outputs, entry) {
+		fill_output(state, entry->pseudo, entry->storage);
+	} END_FOR_EACH_PTR(entry);
+}
+
 static void generate(struct basic_block *bb, struct bb_state *state)
 {
 	int i;
@@ -539,7 +585,6 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 			hardregs[regno].dirty = 1;
 			name = hardregs[regno].name;
 		}
-		printf("\t%s <- %s\n", show_pseudo(entry->pseudo), name);
 	} END_FOR_EACH_PTR(entry);
 
 	printf(".L%p:\n", bb);
@@ -549,25 +594,20 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 		generate_one_insn(insn, state);
 	} END_FOR_EACH_PTR(insn);
 
-	/* Go through the fixed outputs, making sure we have those regs free */
-	FOR_EACH_PTR(state->outputs, entry) {
-		struct storage *out = entry->storage;
-		if (out->type == REG_REG) {
-			struct hardreg *reg = hardregs + out->regno;
-			if (reg->contains != entry->pseudo) {
-				flush_reg(state, reg);
-				reg->contains = NULL;
-			}
-		}
-	} END_FOR_EACH_PTR(entry);
-
-	FOR_EACH_PTR(state->outputs, entry) {
-		fill_output(state, entry->pseudo, entry->storage);
-	} END_FOR_EACH_PTR(entry);
-
-	FOR_EACH_PTR(state->outputs, entry) {
-		printf("\t%s -> %s\n", show_pseudo(entry->pseudo), show_storage(entry->storage));
-	} END_FOR_EACH_PTR(entry);
+	if (verbose) {
+		printf("\t---\n");
+		FOR_EACH_PTR(state->inputs, entry) {
+			printf("\t%s <- %s\n", show_pseudo(entry->pseudo), show_storage(entry->storage));
+		} END_FOR_EACH_PTR(entry);
+		printf("\t---\n");
+		FOR_EACH_PTR(state->internal, entry) {
+			printf("\t%s <-> %s\n", show_pseudo(entry->pseudo), show_storage(entry->storage));
+		} END_FOR_EACH_PTR(entry);
+		printf("\t---\n");
+		FOR_EACH_PTR(state->outputs, entry) {
+			printf("\t%s -> %s\n", show_pseudo(entry->pseudo), show_storage(entry->storage));
+		} END_FOR_EACH_PTR(entry);
+	}
 	printf("\n");
 }
 
