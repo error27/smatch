@@ -24,14 +24,27 @@
 #include "expression.h"
 #include "linearize.h"
 
-static int context_increase(struct basic_block *bb)
+static int context_increase(struct basic_block *bb, int entry)
 {
 	int sum = 0;
 	struct instruction *insn;
 
 	FOR_EACH_PTR(bb->insns, insn) {
-		if (insn->opcode == OP_CONTEXT)
-			sum += insn->increment;
+		int val;
+		if (insn->opcode != OP_CONTEXT)
+			continue;
+		val = insn->increment;
+		if (insn->check) {
+			int current = sum + entry;
+			if (!val) {
+				if (!current)
+					continue;
+			} else if (current >= val)
+				continue;
+			warning(insn->pos, "context check failure");
+			continue;
+		}
+		sum += val;
 	} END_FOR_EACH_PTR(insn);
 	return sum;
 }
@@ -77,7 +90,7 @@ static int check_bb_context(struct entrypoint *ep, struct basic_block *bb, int e
 		return imbalance(ep, bb, entry, bb->context, "different lock contexts for basic block");
 
 	bb->context = entry;
-	entry += context_increase(bb);
+	entry += context_increase(bb, entry);
 	if (entry < 0)
 		return imbalance(ep, bb, entry, exit, "unexpected unlock");
 

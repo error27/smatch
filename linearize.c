@@ -431,7 +431,7 @@ const char *show_instruction(struct instruction *insn)
 		break;
 
 	case OP_CONTEXT:
-		buf += sprintf(buf, "%d", insn->increment);
+		buf += sprintf(buf, "%s%d", insn->check ? "check: " : "", insn->increment);
 		break;
 	case OP_RANGE:
 		buf += sprintf(buf, "%s between %s..%s", show_pseudo(insn->src1), show_pseudo(insn->src2), show_pseudo(insn->src3));
@@ -1175,7 +1175,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	struct expression *arg, *fn;
 	struct instruction *insn = alloc_typed_instruction(OP_CALL, expr->ctype);
 	pseudo_t retval, call;
-	int context_diff;
+	int context_diff, check;
 
 	if (!expr->ctype) {
 		warning(expr->pos, "call with no type!");
@@ -1189,12 +1189,19 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 
 	fn = expr->fn;
 
+	check = 0;
 	context_diff = 0;
 	if (fn->ctype) {
 		int in = fn->ctype->ctype.in_context;
 		int out = fn->ctype->ctype.out_context;
-		if (in < 0 || out < 0)
-			in = out = 0;
+		if (in < 0) {
+			check = 1;
+			in = 0;
+		}
+		if (out < 0) {
+			check = 0;
+			out = 0;
+		}
 		context_diff = out - in;
 	}
 
@@ -1217,9 +1224,10 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	insn->target = retval;
 	add_one_insn(ep, insn);
 
-	if (context_diff) {
+	if (check || context_diff) {
 		insn = alloc_instruction(OP_CONTEXT, 0);
 		insn->increment = context_diff;
+		insn->check = check;
 		add_one_insn(ep, insn);
 	}
 
