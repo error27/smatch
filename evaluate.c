@@ -373,6 +373,8 @@ static struct symbol *evaluate_add(struct expression *expr)
 	return evaluate_int_binop(expr);
 }
 
+#define MOD_SIZE (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG)
+
 static const char * type_difference(struct symbol *target, struct symbol *source,
 	unsigned long target_mod_ignore, unsigned long source_mod_ignore)
 {
@@ -424,7 +426,7 @@ static const char * type_difference(struct symbol *target, struct symbol *source
 			mod1 &= diff & ~target_mod_ignore;
 			mod2 &= diff & ~source_mod_ignore;
 			if (mod1 | mod2)
-				return "different modifiers";
+				return ((mod1 | mod2) & MOD_SIZE) ? "different base types" : "different modifiers";
 		}
 
 		target = target->ctype.base_type;
