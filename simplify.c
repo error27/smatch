@@ -639,6 +639,19 @@ static int simplify_select(struct instruction *insn)
 	return 0;
 }
 
+static int is_in_range(pseudo_t src, long long low, long long high)
+{
+	long long value;
+
+	switch (src->type) {
+	case PSEUDO_VAL:
+		value = src->value;
+		return value >= low && value <= high;
+	default:
+		return 0;
+	}
+}
+
 static int simplify_range(struct instruction *insn)
 {
 	pseudo_t src1, src2, src3;
@@ -648,11 +661,9 @@ static int simplify_range(struct instruction *insn)
 	src3 = insn->src3;
 	if (src2->type != PSEUDO_VAL || src2->type != PSEUDO_VAL)
 		return 0;
-	if (src1->type == PSEUDO_VAL) {
-		if (src1->value >= src2->value && src1->value <= src3->value) {
-			kill_instruction(insn);
-			return REPEAT_CSE;
-		}
+	if (is_in_range(src1, src2->value, src3->value)) {
+		kill_instruction(insn);
+		return REPEAT_CSE;
 	}
 	return 0;
 }
