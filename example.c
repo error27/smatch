@@ -531,6 +531,11 @@ static struct hardreg *getreg(struct bb_state *state, pseudo_t pseudo, pseudo_t 
 	return fill_reg(state, reg, pseudo);
 }
 
+static void move_reg(struct bb_state *state, struct hardreg *src, struct hardreg *dst)
+{
+	output_insn(state, "movl %s,%s", src->name, dst->name);
+}
+
 static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src, pseudo_t target)
 {
 	int i;
@@ -542,7 +547,7 @@ static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src, pse
 	reg = preferred_reg(state, target);
 	if (reg && !reg->busy) {
 		output_comment(state, "copying %s to preferred target %s", show_pseudo(target), reg->name);
-		output_insn(state, "movl %s,%s", src->name, reg->name);
+		move_reg(state, src, reg);
 		return reg;
 	}
 
@@ -921,6 +926,8 @@ static void generate_select(struct bb_state *state, struct instruction *insn)
 struct asm_arg {
 	const struct ident *name;
 	const char *value;
+	pseudo_t pseudo;
+	struct hardreg *reg;
 };
 
 static void replace_asm_arg(char **dst_p, struct asm_arg *arg)
@@ -1009,6 +1016,8 @@ static const char *replace_asm_args(const char *str, struct asm_arg *args, int n
 }
 
 #define MAX_ASM_ARG (50)
+static struct asm_arg asm_arguments[MAX_ASM_ARG];
+
 static struct asm_arg *generate_asm_inputs(struct bb_state *state, struct asm_constraint_list *list, struct asm_arg *arg)
 {
 	struct asm_constraint *entry;
@@ -1016,12 +1025,24 @@ static struct asm_arg *generate_asm_inputs(struct bb_state *state, struct asm_co
 	FOR_EACH_PTR(list, entry) {
 		const char *constraint = entry->constraint;
 		pseudo_t pseudo = entry->pseudo;
+		struct hardreg *reg, *orig;
 		const char *string;
+		int index;
 
 		string = "undef";
 		switch (*constraint) {
 		case 'r':
 			string = getreg(state, pseudo, NULL)->name;
+			break;
+		case '0' ... '9':
+			index = *constraint - '0';
+			reg = asm_arguments[index].reg;
+			orig = find_in_reg(state, pseudo);
+			if (orig)
+				move_reg(state, orig, reg);
+			else
+				fill_reg(state, reg, pseudo);
+			string = reg->name;
 			break;
 		default:
 			string = generic(state, pseudo);
@@ -1032,6 +1053,8 @@ static struct asm_arg *generate_asm_inputs(struct bb_state *state, struct asm_co
 
 		arg->name = entry->ident;
 		arg->value = string;
+		arg->pseudo = NULL;
+		arg->reg = NULL;
 		arg++;
 	} END_FOR_EACH_PTR(entry);
 	return arg;
@@ -1044,6 +1067,7 @@ static struct asm_arg *generate_asm_outputs(struct bb_state *state, struct asm_c
 	FOR_EACH_PTR(list, entry) {
 		const char *constraint = entry->constraint;
 		pseudo_t pseudo = entry->pseudo;
+		struct hardreg *reg;
 		const char *string;
 
 		while (*constraint == '=' || *constraint == '+')
@@ -1053,7 +1077,10 @@ static struct asm_arg *generate_asm_outputs(struct bb_state *state, struct asm_c
 		switch (*constraint) {
 		case 'r':
 		default:
-			string = target_reg(state, pseudo, NULL)->name;
+			reg = target_reg(state, pseudo, NULL);
+			arg->pseudo = pseudo;
+			arg->reg = reg;
+			string = reg->name;
 			break;
 		}
 
@@ -1071,12 +1098,11 @@ static void generate_asm(struct bb_state *state, struct instruction *insn)
 	const char *str = insn->string;
 
 	if (insn->asm_rules->outputs || insn->asm_rules->inputs) {
-		static struct asm_arg args[MAX_ASM_ARG];
 		struct asm_arg *arg;
 
-		arg = generate_asm_outputs(state, insn->asm_rules->outputs, args);
+		arg = generate_asm_outputs(state, insn->asm_rules->outputs, asm_arguments);
 		arg = generate_asm_inputs(state, insn->asm_rules->inputs, arg);
-		str = replace_asm_args(str, args, arg - args);
+		str = replace_asm_args(str, asm_arguments, arg - asm_arguments);
 	}
 	output_insn(state, "%s", str);
 }
