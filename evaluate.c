@@ -1669,9 +1669,11 @@ struct symbol *evaluate_return_expression(struct statement *stmt)
 	struct expression *expr = stmt->expression;
 	struct symbol *ctype, *fntype;
 
+	evaluate_expression(expr);
+	ctype = degenerate(expr);
 	fntype = current_fn->ctype.base_type;
 	if (!fntype || fntype == &void_ctype) {
-		if (expr)
+		if (expr && ctype != &void_ctype)
 			warn(expr->pos, "return expression in %s function", fntype?"void":"typeless");
 		return NULL;
 	}
@@ -1680,13 +1682,9 @@ struct symbol *evaluate_return_expression(struct statement *stmt)
 		warn(stmt->pos, "return with no return value");
 		return NULL;
 	}
-	ctype = evaluate_expression(expr);
 	if (!ctype)
 		return NULL;
-	ctype = degenerate(expr);
-	expr->ctype = ctype;
-	compatible_assignment_types(expr, fntype, &expr, ctype, "return expression");
-	stmt->expression = expr;
+	compatible_assignment_types(expr, fntype, &stmt->expression, ctype, "return expression");
 	return NULL;
 }
 
