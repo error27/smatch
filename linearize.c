@@ -666,8 +666,8 @@ unaligned:
 	}
 	ad->ctype = base_type(ad->ctype);
 	orig = add_load(ep, ad);
-	ormask = value_pseudo(mask);
-	value_mask = add_binary_op(ep, ad->ctype, OP_AND, shifted, ormask);
+	ormask = value_pseudo(~mask);
+	value_mask = add_binary_op(ep, ad->ctype, OP_AND, orig, ormask);
 	newval = add_binary_op(ep, ad->ctype, OP_OR, orig, value_mask);
 
 	add_store(ep, ad, newval);
@@ -2034,6 +2034,7 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 			 */
 			simplify_phi_nodes(ep);
 
+#if 0
 			/*
 			 * WARNING!! The removal of phi nodes will make the
 			 * tree no longer valid SSA format. We do it here
@@ -2042,6 +2043,7 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 			 * optimizations (CSE etc) _before_ this point.
 			 */
 			remove_phi_nodes(ep);
+#endif
 
 			/*
 			 * This packs the basic blocks, and also destroys the
