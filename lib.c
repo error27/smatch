@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 
 #include "lib.h"
 #include "token.h"
@@ -70,6 +71,10 @@ struct allocation_blob {
 	unsigned char data[];
 };
 
+#define CHUNK 32768
+#define blob_alloc(size) mmap(NULL, ((size)+4095) & ~4095, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)
+#define blob_free(addr,size) munmap((addr), ((size)+4095) & ~4095)
+
 struct allocator_struct {
 	const char *name;
 	struct allocation_blob *blobs;
@@ -83,13 +88,14 @@ void drop_all_allocations(struct allocator_struct *desc)
 {
 	struct allocation_blob *blob = desc->blobs;
 
+	fprintf(stderr, "Dropping %d bytes of %s\n", desc->total_bytes, desc->name);
 	desc->blobs = NULL;
 	desc->allocations = 0;
 	desc->total_bytes = 0;
 	desc->useful_bytes = 0;
 	while (blob) {
 		struct allocation_blob *next = blob->next;
-		free(blob);
+		blob_free(blob, desc->chunking);
 		blob = next;
 	}
 }
@@ -105,7 +111,7 @@ void *allocate(struct allocator_struct *desc, unsigned int size)
 	size = (size + alignment - 1) & ~(alignment-1);
 	if (!blob || blob->left < size) {
 		unsigned int offset, chunking = desc->chunking;
-		struct allocation_blob *newblob = malloc(chunking);
+		struct allocation_blob *newblob = blob_alloc(chunking);
 		if (!newblob)
 			die("out of memory");
 		desc->total_bytes += chunking;
@@ -133,13 +139,13 @@ static void show_allocations(struct allocator_struct *x)
 		(double) x->useful_bytes / x->allocations);
 }
 
-struct allocator_struct ident_allocator = { "identifiers", NULL, __alignof__(struct ident), 8192 };
-struct allocator_struct token_allocator = { "tokens", NULL, __alignof__(struct token), 8192 };
-struct allocator_struct symbol_allocator = { "symbols", NULL, __alignof__(struct symbol), 8192 };
-struct allocator_struct expression_allocator = { "expressions", NULL, __alignof__(struct expression), 8192 };
-struct allocator_struct statement_allocator = { "statements", NULL, __alignof__(struct statement), 8192 };
-struct allocator_struct string_allocator = { "strings", NULL, __alignof__(struct statement), 8192 };
-struct allocator_struct bytes_allocator = { "bytes", NULL, 1, 8192 };
+struct allocator_struct ident_allocator = { "identifiers", NULL, __alignof__(struct ident), CHUNK };
+struct allocator_struct token_allocator = { "tokens", NULL, __alignof__(struct token), CHUNK };
+struct allocator_struct symbol_allocator = { "symbols", NULL, __alignof__(struct symbol), CHUNK };
+struct allocator_struct expression_allocator = { "expressions", NULL, __alignof__(struct expression), CHUNK };
+struct allocator_struct statement_allocator = { "statements", NULL, __alignof__(struct statement), CHUNK };
+struct allocator_struct string_allocator = { "strings", NULL, __alignof__(struct statement), CHUNK };
+struct allocator_struct bytes_allocator = { "bytes", NULL, 1, CHUNK };
 
 #define __ALLOCATOR(type, size, prepare, x)			\
 	type *__alloc_##x(int extra)				\

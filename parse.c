@@ -877,4 +877,6 @@ void translation_unit(struct token *token, struct symbol_list **list)
 {
 	while (!eof_token(token))
 		token = external_declaration(token, list);
+	// They aren't needed any more
+	clear_token_alloc();
 }
