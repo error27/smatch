@@ -12,7 +12,7 @@ AR=ar
 # If building with shared libraries, you might
 # want to add this
 #
-# LDFLAG += -Wl,-rpath,$(BINDIR)
+# LDFLAGS += -Wl,-rpath,$(BINDIR)
 
 PREFIX=$(HOME)
 BINDIR=$(PREFIX)/bin
@@ -61,7 +61,7 @@ test-linearize: test-linearize.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 test-sort: test-sort.o $(LIBS)
-	gcc $(LDFLAGS) -o $@ $< $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 compile: compile.o compile-i386.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< compile-i386.o $(LIBS)
