@@ -23,7 +23,7 @@ void convert_load_instruction(struct instruction *, pseudo_t);
 void rewrite_load_instruction(struct instruction *, struct pseudo_list *);
 int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom, int local);
 
-extern void track_pseudo_usage(struct entrypoint *ep);
+extern void track_pseudo_liveness(struct entrypoint *ep);
 extern void vrfy_flow(struct entrypoint *ep);
 
 extern struct basic_block *trivial_common_parent(struct basic_block *, pseudo_t,

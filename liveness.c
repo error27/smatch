@@ -180,7 +180,7 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 	}
 }
 
-static void track_pseudo_liveness(struct basic_block *bb)
+static void track_bb_liveness(struct basic_block *bb)
 {
 	pseudo_t needs;
 
@@ -201,7 +201,7 @@ static inline void remove_pseudo(struct pseudo_list **list, pseudo_t pseudo)
 	delete_ptr_list_entry((struct ptr_list **)list, pseudo, 0);
 }
 
-void track_pseudo_usage(struct entrypoint *ep)
+void track_pseudo_liveness(struct entrypoint *ep)
 {
 	struct basic_block *bb;
 
@@ -228,7 +228,7 @@ void track_pseudo_usage(struct entrypoint *ep)
 	do {
 		liveness_changed = 0;
 		FOR_EACH_PTR(ep->bbs, bb) {
-			track_pseudo_liveness(bb);
+			track_bb_liveness(bb);
 		} END_FOR_EACH_PTR(bb);
 	} while (liveness_changed);
 }
