@@ -5,17 +5,27 @@ my $cc = $ENV{'REAL_CC'} || 'cc';
 my $check = $ENV{'CHECK'} || 'check';
 
 my $m64 = 0;
-my $seen_a_c_file = 0;
 my $has_specs = 0;
+my $do_check = 0;
+my $do_compile = 1;
+
 foreach (@ARGV) {
     # Look for a .c file.  We don't want to run the checker on .o or .so files
     # in the link run.  (This simplistic check knows nothing about options
     # with arguments, but it seems to do the job.)
-    $seen_a_c_file = 1 if /^[^-].*\.c$/;
+    $do_check = 1 if /^[^-].*\.c$/;
+
     $m64 = 1 if /^-m64$/;
+
     if (/^-specs=(.*)$/) {
 	$check .= &add_specs ($1);
 	$has_specs = 1;
+	next;
+    }
+
+    if (/^-no-compile$/) {
+	$do_compile = 0;
+	next;
     }
 
     my $this_arg = ' ' . &quote_arg ($_);
@@ -23,27 +33,31 @@ foreach (@ARGV) {
     $check .= $this_arg;
 }
 
-my $arch = `uname -m`;
-chomp $arch;
-if ($arch =~ /^(i.?86|athlon)$/) {
-    $check .= &integer_types (8, 16, 32, $m64 ? 64 : 32, 64);
-    $check .= &float_types (1, 1, 21, [24,8], [53,11], [64,15]);
-} elsif ($arch =~ /^(sun4u)$/) {
-    $check .= &integer_types (8, 16, 32, $m64 ? 64 : 32, 64);
-    $check .= &float_types (1, 1, 33, [24,8], [53,11], [113,15]);
+if ($do_check) {
+    my $arch = `uname -m`;
+    chomp $arch;
+    if ($arch =~ /^(i.?86|athlon)$/) {
+	$check .= &integer_types (8, 16, 32, $m64 ? 64 : 32, 64);
+	$check .= &float_types (1, 1, 21, [24,8], [53,11], [64,15]);
+    } elsif ($arch =~ /^(sun4u)$/) {
+	$check .= &integer_types (8, 16, 32, $m64 ? 64 : 32, 64);
+	$check .= &float_types (1, 1, 33, [24,8], [53,11], [113,15]);
+    }
+
+    if (!$has_specs) {
+	my $os = `uname -s`;
+	chomp $os;
+	$check .= &add_specs (lc $os);
+    }
+
+#    print "$check\n";
+#    exit 1;
 }
 
-if (!$has_specs) {
-    my $os = `uname -s`;
-    chomp $os;
-    $check .= &add_specs (lc $os);
-}
 
-# print "$check\n";
-# exit 1;
-
-system ($check) if $seen_a_c_file;
-exec ($cc);
+system ($check) if $do_check;
+exec ($cc) if $do_compile;
+exit 0;
 
 # -----------------------------------------------------------------------------
 # Check if an option is for "check" only.
@@ -51,7 +65,6 @@ exec ($cc);
 sub check_only_option {
     my ($arg) = @_;
     return 1 if $arg =~ /^-W(no-?)?(default-bitfield-sig|bitwise|typesign)$/;
-    return 1 if $arg =~ /^-specs=/;
     return 0;
 }
 
