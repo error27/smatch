@@ -2374,16 +2374,8 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 		return NULL;
 
 	/* Evaluate the initializers */
-	if (sym->initializer) {
-		int count = evaluate_initializer(sym, &sym->initializer);
-		if (base_type->type == SYM_ARRAY && !base_type->array_size) {
-			int bit_size = count * base_type->ctype.base_type->bit_size;
-			base_type->array_size = alloc_const_expression(sym->pos, count);
-			base_type->bit_size = bit_size;
-			sym->array_size = base_type->array_size;
-			sym->bit_size = bit_size;
-		}
-	}
+	if (sym->initializer)
+		evaluate_initializer(sym, &sym->initializer);
 
 	/* And finally, evaluate the body of the symbol too */
 	if (base_type->type == SYM_FN) {

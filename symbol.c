@@ -218,15 +218,85 @@ void merge_type(struct symbol *sym, struct symbol *base_type)
 	sym->ctype.base_type = base_type->ctype.base_type;
 }
 
+static int count_array_initializer(struct expression *expr)
+{
+	int nr = 0;
+
+	switch (expr->type) {
+	case EXPR_STRING:
+		nr = expr->string->length;
+		break;
+	case EXPR_INITIALIZER: {
+		struct expression *entry;
+		FOR_EACH_PTR(expr->expr_list, entry) {
+			switch (entry->type) {
+			case EXPR_STRING:
+				nr += entry->string->length;
+				break;
+			case EXPR_INDEX:
+				if (entry->idx_to > nr)
+					nr = entry->idx_to;
+				break;
+			default:
+				nr++;
+			}
+		} END_FOR_EACH_PTR(entry);
+		break;
+	}
+	default:
+		break;
+	}
+	return nr;
+}
+
+static void examine_node_type(struct symbol *sym)
+{
+	struct symbol *base_type;
+	int bit_size;
+	unsigned long alignment, modifiers;
+
+	/* SYM_NODE - figure out what the type of the node was.. */
+	base_type = sym->ctype.base_type;
+	modifiers = sym->ctype.modifiers;
+
+	bit_size = 0;
+	alignment = 0;
+	if (!base_type)
+		return;
+
+	base_type = examine_symbol_type(base_type);
+	sym->ctype.base_type = base_type;
+	if (base_type && base_type->type == SYM_NODE)
+		merge_type(sym, base_type);
+
+	bit_size = base_type->bit_size;
+	alignment = base_type->ctype.alignment;
+	if (base_type->fieldwidth)
+		sym->fieldwidth = base_type->fieldwidth;
+
+	if (!sym->ctype.alignment)
+		sym->ctype.alignment = alignment;
+
+	/* Unsized array? The size might come from the initializer.. */
+	if (bit_size < 0 && base_type->type == SYM_ARRAY && sym->initializer) {
+		int count = count_array_initializer(sym->initializer);
+		struct symbol *node_type = base_type->ctype.base_type;
+
+		/* We do not allow zero-sized arrays by doing empty initializers */
+		if (count && node_type)
+			bit_size = node_type->bit_size * count;
+	}
+	
+	sym->bit_size = bit_size;
+}
+
 /*
  * Fill in type size and alignment information for
  * regular SYM_TYPE things.
  */
 struct symbol *examine_symbol_type(struct symbol * sym)
 {
-	unsigned int bit_size, alignment;
 	struct symbol *base_type;
-	unsigned long modifiers;
 
 	if (!sym)
 		return sym;
@@ -236,6 +306,10 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		return sym;
 
 	switch (sym->type) {
+	case SYM_FN:
+	case SYM_NODE:
+		examine_node_type(sym);
+		return sym;
 	case SYM_ARRAY:
 		examine_array_type(sym);
 		return sym;
@@ -287,38 +361,17 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 			sym->ctype.base_type = base;
 		}
 		break;
+	}
 	case SYM_PREPROCESSOR:
 		warning(sym->pos, "ctype on preprocessor command? (%s)", show_ident(sym->ident));
 		return NULL;
 	case SYM_UNINITIALIZED:
 		warning(sym->pos, "ctype on uninitialized symbol %p", sym);
 		return NULL;
-	}
 	default:
+		warning(sym->pos, "Examining unknown symbol type %d", sym->type);
 		break;
 	}
-
-	/* SYM_NODE - figure out what the type of the node was.. */
-	base_type = sym->ctype.base_type;
-	modifiers = sym->ctype.modifiers;
-
-	bit_size = 0;
-	alignment = 0;
-	if (base_type) {
-		base_type = examine_symbol_type(base_type);
-		sym->ctype.base_type = base_type;
-		if (base_type && base_type->type == SYM_NODE)
-			merge_type(sym, base_type);
-
-		bit_size = base_type->bit_size;
-		alignment = base_type->ctype.alignment;
-		if (base_type->fieldwidth)
-			sym->fieldwidth = base_type->fieldwidth;
-	}
-
-	if (!sym->ctype.alignment)
-		sym->ctype.alignment = alignment;
-	sym->bit_size = bit_size;
 	return sym;
 }
 
