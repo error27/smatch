@@ -182,22 +182,22 @@ static inline int is_branch_goto(struct instruction *br)
 
 static inline void add_bb(struct basic_block_list **list, struct basic_block *bb)
 {
-	add_ptr_list((struct ptr_list **)list, bb);
+	add_ptr_list(list, bb);
 }
 
 static inline void add_instruction(struct instruction_list **list, struct instruction *insn)
 {
-	add_ptr_list((struct ptr_list **)list, insn);
+	add_ptr_list(list, insn);
 }
 
 static inline void add_multijmp(struct multijmp_list **list, struct multijmp *multijmp)
 {
-	add_ptr_list((struct ptr_list **)list, multijmp);
+	add_ptr_list(list, multijmp);
 }
 
 static inline void *add_pseudo(struct pseudo_list **list, struct pseudo *pseudo)
 {
-	return add_ptr_list((struct ptr_list **)list, pseudo);
+	return add_ptr_list(list, pseudo);
 }
 
 
@@ -217,7 +217,7 @@ static inline int bb_reachable(struct basic_block *bb)
 
 static inline void add_pseudo_ptr(pseudo_t *ptr, struct pseudo_ptr_list **list)
 {
-	add_ptr_list((struct ptr_list **)list, ptr);
+	add_ptr_list(list, ptr);
 }
 
 static inline int has_use_list(pseudo_t p)

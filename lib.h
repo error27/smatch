@@ -48,6 +48,8 @@ struct pseudo;
 /* Silly type-safety check ;) */
 #define DECLARE_PTR_LIST(listname,type)	struct listname { type *list[1]; }
 #define CHECK_TYPE(head,ptr)		(void)(&(ptr) == &(head)->list[0])
+#define TYPEOF(head)			__typeof__(&(head)->list[0])
+#define VRFY_PTR_LIST(head)		(void)(sizeof((head)->list[0]))
 
 DECLARE_PTR_LIST(symbol_list, struct symbol);
 DECLARE_PTR_LIST(statement_list, struct statement);
@@ -111,13 +113,24 @@ int delete_ptr_list_entry(struct ptr_list **, void *);
 int replace_ptr_list_entry(struct ptr_list **, void *old, void *new);
 extern void sort_list(struct ptr_list **, int (*)(const void *, const void *));
 
-extern void **add_ptr_list(struct ptr_list **, void *);
+extern void **__add_ptr_list(struct ptr_list **, void *);
 extern void concat_ptr_list(struct ptr_list *a, struct ptr_list **b);
-extern void free_ptr_list(struct ptr_list **);
+extern void __free_ptr_list(struct ptr_list **);
 extern int ptr_list_size(struct ptr_list *);
 extern char **handle_switch(char *arg, char **next);
 extern void add_pre_buffer(const char *fmt, ...);
 int linearize_ptr_list(struct ptr_list *, void **, int);
+
+/*
+ * Hey, who said that you can't do overloading in C?
+ *
+ * You just have to be creative, and use some gcc
+ * extensions..
+ */
+#define add_ptr_list(list,entry) \
+	(TYPEOF(*(list))) (CHECK_TYPE(*(list),(entry)),__add_ptr_list((struct ptr_list **)(list), (entry)))
+#define free_ptr_list(list) \
+	do { VRFY_PTR_LIST(*(list)); __free_ptr_list((struct ptr_list **)(list)); } while (0)
 
 extern unsigned int pre_buffer_size;
 extern unsigned char pre_buffer[8192];
@@ -229,17 +242,17 @@ static inline void concat_instruction_list(struct instruction_list *from, struct
 
 static inline void add_symbol(struct symbol_list **list, struct symbol *sym)
 {
-	add_ptr_list((struct ptr_list **)list, sym);
+	add_ptr_list(list, sym);
 }
 
 static inline void add_statement(struct statement_list **list, struct statement *stmt)
 {
-	add_ptr_list((struct ptr_list **)list, stmt);
+	add_ptr_list(list, stmt);
 }
 
 static inline void add_expression(struct expression_list **list, struct expression *expr)
 {
-	add_ptr_list((struct ptr_list **)list, expr);
+	add_ptr_list(list, expr);
 }
 
 #define DO_PREPARE(head, ptr, __head, __list, __nr)					\

@@ -292,7 +292,7 @@ restart:
 	}
 }		
 
-void **add_ptr_list(struct ptr_list **listp, void *ptr)
+void **__add_ptr_list(struct ptr_list **listp, void *ptr)
 {
 	struct ptr_list *list = *listp;
 	struct ptr_list *last = NULL; /* gcc complains needlessly */
@@ -382,7 +382,7 @@ void concat_ptr_list(struct ptr_list *a, struct ptr_list **b)
 	} END_FOR_EACH_PTR(entry);
 }
 
-void free_ptr_list(struct ptr_list **listp)
+void __free_ptr_list(struct ptr_list **listp)
 {
 	struct ptr_list *tmp, *list = *listp;
 
