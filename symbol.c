@@ -218,6 +218,8 @@ struct symbol	void_type,
 IDENT(struct); IDENT(union); IDENT(enum);
 IDENT(sizeof);
 IDENT(if); IDENT(else); IDENT(return);
+IDENT(switch); IDENT(case); IDENT(default);
+IDENT(break); IDENT(continue);
 
 void init_symbols(void)
 {
@@ -231,6 +233,11 @@ void init_symbols(void)
 	hash_ident(&if_ident);
 	hash_ident(&else_ident);
 	hash_ident(&return_ident);
+	hash_ident(&switch_ident);
+	hash_ident(&case_ident);
+	hash_ident(&default_ident);
+	hash_ident(&break_ident);
+	hash_ident(&continue_ident);
 	for (ptr = symbol_init_table; ptr->name; ptr++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, ptr->name, SYM_TYPE);

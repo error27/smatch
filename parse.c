@@ -682,6 +682,8 @@ struct token *expression_statement(struct token *token, struct expression **tree
 	return expect(token, ';', "at end of statement");
 }
 
+static struct token *compound_statement(struct token *, struct statement *);
+
 struct token *statement(struct token *token, struct statement **tree)
 {
 	struct statement *stmt = alloc_statement(token, STMT_NONE);
@@ -705,6 +707,40 @@ struct token *statement(struct token *token, struct statement **tree)
 			*tree = stmt;
 			return expression_statement(token->next, &stmt->expression);
 		}
+		if (token->ident == &break_ident) {
+			stmt->type = STMT_BREAK;
+			return expect(token->next, ';', "at end of statement");
+		}
+		if (token->ident == &continue_ident) {
+			stmt->type = STMT_CONTINUE;
+			return expect(token->next, ';', "at end of statement");
+		}
+		if (token->ident == &default_ident) {
+			token = token->next;
+			goto default_statement;
+		}
+		if (token->ident == &case_ident) {
+			token = parse_expression(token->next, &stmt->case_expression);
+			if (match_op(token, SPECIAL_ELLIPSIS))
+				token = parse_expression(token->next, &stmt->case_to);
+default_statement:
+			stmt->type = STMT_CASE;
+			token = expect(token, ':', "after default/case");
+			return statement(token, &stmt->case_statement);
+		}
+		if (token->ident == &switch_ident) {
+			stmt->type = STMT_SWITCH;
+			token = expect(token->next, '(', "after 'switch'");
+			token = parse_expression(token, &stmt->switch_expression);
+			token = expect(token, ')', "after 'case' expression");
+			return statement(token, &stmt->switch_statement);
+		}
+	}
+
+	if (match_op(token, '{')) {
+		stmt->type = STMT_COMPOUND;
+		token = compound_statement(token->next, stmt);
+		return expect(token, '}', "at end of compound statement");
 	}
 			
 	stmt->type = STMT_EXPRESSION;
@@ -754,10 +790,8 @@ static struct token *abstract_function_declarator(struct token *token, struct sy
 
 static struct token *external_declaration(struct token *token, struct symbol_list **list);
 
-static struct token *compound_statement(struct token *token, struct statement **tree)
+static struct token *compound_statement(struct token *token, struct statement *stmt)
 {
-	struct statement *stmt = alloc_statement(token, STMT_COMPOUND);
-	*tree = stmt;
 	while (token) {
 		if (!lookup_type(token))
 			break;
@@ -818,7 +852,8 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	printf("\n\n");
 
 	if (match_op(token, '{')) {
-		token = compound_statement(token->next, &declarator->stmt);
+		declarator->stmt = alloc_statement(token, STMT_COMPOUND);
+		token = compound_statement(token->next, declarator->stmt);
 		return expect(token, '}', "at end of function");
 	}
 

@@ -84,6 +84,11 @@ extern struct ident	struct_ident,
 			sizeof_ident,
 			if_ident,
 			else_ident,
+			switch_ident,
+			case_ident,
+			default_ident,
+			break_ident,
+			continue_ident,
 			return_ident;
 
 #define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)

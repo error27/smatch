@@ -38,6 +38,10 @@ enum statement_type {
 	STMT_COMPOUND,
 	STMT_IF,
 	STMT_RETURN,
+	STMT_BREAK,
+	STMT_CONTINUE,
+	STMT_CASE,
+	STMT_SWITCH,
 };
 
 struct statement {
@@ -58,6 +62,16 @@ struct statement {
 		struct compound_struct {
 			struct symbol_list *syms;
 			struct statement_list *stmts;
+		};
+		struct labeled_struct {
+			struct token *label_ideentifier;
+			struct expression *case_expression;
+			struct expression *case_to;
+			struct statement *case_statement;
+		};
+		struct switch_struct {
+			struct expression *switch_expression;
+			struct statement *switch_statement;
 		};
 	};
 };
