@@ -29,6 +29,9 @@ static struct hardreg hardregs[] = {
 	{ .name = "eax" },
 	{ .name = "edx" },
 	{ .name = "ecx" },
+	{ .name = "ebx" },
+	{ .name = "esi" },
+	{ .name = "edi" },
 };
 #define REGNO (sizeof(hardregs)/sizeof(struct hardreg))
 
@@ -336,15 +339,36 @@ static const char* opcodes[] = {
 	[OP_CONTEXT] = "context",
 };
 
+
+static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src)
+{
+	int i;
+
+	if (!src->busy)
+		return src;
+
+	for (i = 0; i < REGNO; i++) {
+		struct hardreg *reg = hardregs + i;
+		if (!reg->busy) {
+			printf("\tmovl %s,%s\n", src->name, reg->name);
+			return reg;
+		}
+	}
+
+	flush_reg(state, src);
+	return src;
+}
+
 static void generate_binop(struct bb_state *state, struct instruction *insn)
 {
 	const char *op = opcodes[insn->opcode];
-	struct hardreg *reg = getreg(state, insn->src1);
-	flush_reg(state, reg);
-	printf("\t%s.%d %s,%s\n", op, insn->size, reg_or_imm(state, insn->src2), reg->name);
-	reg->contains = insn->target;
-	reg->busy = 1;
-	reg->dirty = 1;
+	struct hardreg *src = getreg(state, insn->src1);
+	struct hardreg *dst = copy_reg(state, src);
+
+	printf("\t%s.%d %s,%s\n", op, insn->size, reg_or_imm(state, insn->src2), dst->name);
+	dst->contains = insn->target;
+	dst->busy = 1;
+	dst->dirty = 1;
 }
 
 static void mark_pseudo_dead(pseudo_t pseudo)
