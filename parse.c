@@ -472,11 +472,17 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 	while (match_op(token,'*')) {
 		struct symbol *ptr = alloc_symbol(token->pos, SYM_PTR);
 		ptr->ctype.modifiers = modifiers & ~MOD_STORAGE;
+		ptr->ctype.as = ctype->as;
+		ptr->ctype.context = ctype->context;
+		ptr->ctype.contextmask = ctype->contextmask;
 		ptr->ctype.base_type = base_type;
 
 		base_type = ptr;
 		ctype->modifiers = modifiers & MOD_STORAGE;
 		ctype->base_type = base_type;
+		ctype->as = 0;
+		ctype->context = 0;
+		ctype->contextmask = 0;
 
 		token = declaration_specifiers(token->next, ctype, 1);
 	}
