@@ -696,7 +696,7 @@ static void simplify_switch(struct entrypoint *ep)
 		pseudo_t pseudo;
 		struct instruction *insn = last_instruction(bb->insns);
 
-		if (insn->opcode != OP_SWITCH)
+		if (!insn || insn->opcode != OP_SWITCH)
 			continue;
 		pseudo = insn->target;
 		if (pseudo->type == PSEUDO_VAL)
