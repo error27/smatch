@@ -1378,7 +1378,7 @@ static int handle_line(struct stream *stream, struct token **line, struct token 
 }
 
 
-void init_preprocessor()
+void init_preprocessor(void)
 {
 	int i;
 	int stream = init_stream("preprocessor", -1, includepath);
