@@ -44,9 +44,8 @@ const char *includepath[INCLUDEPATHS+1] = {
 	NULL
 };
 
-const char **sys_includepath = includepath + 0;
-const char **gcc_includepath = includepath + 2;
-const char **next_includepath = includepath;
+static const char **sys_includepath = includepath + 0;
+static const char **gcc_includepath = includepath + 2;
 
 #define MARK_STREAM_NONCONST(pos) do {					\
 	if (stream->constant != CONSTANT_FILE_NOPE) {			\
@@ -594,7 +593,7 @@ static const char *token_name_sequence(struct token *token, int endop, struct to
 	return buffer;
 }
 
-static int try_include(const char *path, int plen, const char *filename, int flen, struct token **where)
+static int try_include(const char *path, int plen, const char *filename, int flen, struct token **where, const char **next_path)
 {
 	int fd;
 	static char fullname[PATH_MAX];
@@ -609,7 +608,7 @@ static int try_include(const char *path, int plen, const char *filename, int fle
 	if (fd >= 0) {
 		char * streamname = __alloc_bytes(plen + flen);
 		memcpy(streamname, fullname, plen + flen);
-		*where = tokenize(streamname, fd, *where);
+		*where = tokenize(streamname, fd, *where, next_path);
 		close(fd);
 		return 1;
 	}
@@ -621,9 +620,8 @@ static int do_include_path(const char **pptr, struct token **list, struct token 
 	const char *path;
 
 	while ((path = *pptr++) != NULL) {
-		if (!try_include(path, strlen(path), filename, flen, list))
+		if (!try_include(path, strlen(path), filename, flen, list, pptr))
 			continue;
-		next_includepath = pptr;
 		return 1;
 	}
 	return 0;
@@ -636,7 +634,7 @@ static void do_include(int local, struct stream *stream, struct token **list, st
 
 	/* Absolute path? */
 	if (filename[0] == '/') {
-		if (try_include("", 0, filename, flen, list))
+		if (try_include("", 0, filename, flen, list, includepath))
 			return;
 		goto out;
 	}
@@ -651,7 +649,7 @@ static void do_include(int local, struct stream *stream, struct token **list, st
 		slash = strrchr(path, '/');
 		plen = slash ? slash - path : 0;
 
-		if (try_include(path, plen, filename, flen, list))
+		if (try_include(path, plen, filename, flen, list, includepath))
 			return;
 	}
 
@@ -698,7 +696,7 @@ static int handle_include(struct stream *stream, struct token **list, struct tok
 
 static int handle_include_next(struct stream *stream, struct token **list, struct token *token)
 {
-	return handle_include_path(stream, list, token, next_includepath);
+	return handle_include_path(stream, list, token, stream->next_path);
 }
 
 static int token_different(struct token *t1, struct token *t2)
@@ -1285,19 +1283,17 @@ static int handle_nostdinc(struct stream *stream, struct token **line, struct to
 	 * Do we have any non-system includes?
 	 * Clear them out if so..
 	 */
-	stdinc = sys_includepath - includepath;
+	stdinc = gcc_includepath - sys_includepath;
 	if (stdinc) {
-		const char **src = sys_includepath;
-		const char **dst = includepath;
+		const char **src = gcc_includepath;
+		const char **dst = sys_includepath;
 		for (;;) {
 			if (!(*dst = *src))
 				break;
 			dst++;
 			src++;
 		}
-		sys_includepath -= stdinc;
 		gcc_includepath -= stdinc;
-		next_includepath = includepath;
 	}
 	return 1;
 }
@@ -1315,7 +1311,6 @@ static void add_path_entry(struct token *token, const char *path)
 	dst = sys_includepath;
 	sys_includepath++;
 	gcc_includepath++;
-	next_includepath = includepath;
 
 	/*
 	 * Move them all up starting at "sys_includepath",

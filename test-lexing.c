@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 	// Initialize type system
 	init_ctype();
 
-	token = tokenize(argv[1], fd, NULL);
+	token = tokenize(argv[1], fd, NULL, includepath);
 	close(fd);
 	token = preprocess(token);
 

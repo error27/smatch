@@ -550,7 +550,7 @@ struct ident __func___ident = __INIT_IDENT("__func__");
 
 void init_symbols(void)
 {
-	int stream = init_stream("builtin", -1);
+	int stream = init_stream("builtin", -1, includepath);
 	struct sym_init *ptr;
 
 	hash_ident(&sizeof_ident);

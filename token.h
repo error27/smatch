@@ -30,9 +30,12 @@ enum constantfile {
   CONSTANT_FILE_YES       // Yes
 };
 
+extern const char *includepath[];
+
 struct stream {
 	int fd;
 	const char *name;
+	const char **next_path;
 
 	/* Use these to check for "already parsed" */
 	enum constantfile constant;
@@ -176,7 +179,7 @@ extern int preprocessing, verbose;
 extern struct token eof_token_entry;
 #define eof_token(x) ((x) == &eof_token_entry)
 
-extern int init_stream(const char *, int fd);
+extern int init_stream(const char *, int fd, const char **next_path);
 extern struct ident *hash_ident(struct ident *);
 extern struct ident *built_in_ident(const char *);
 extern struct token *built_in_token(int, const char *);
@@ -184,7 +187,7 @@ extern const char *show_special(int);
 extern const char *show_ident(const struct ident *);
 extern const char *show_string(const struct string *string);
 extern const char *show_token(const struct token *);
-extern struct token * tokenize(const char *, int, struct token *);
+extern struct token * tokenize(const char *, int, struct token *, const char **next_path);
 extern struct token * tokenize_buffer(unsigned char *, unsigned long, struct token *);
 
 extern void die(const char *, ...);

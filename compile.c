@@ -79,7 +79,7 @@ int main(int argc, char **argv)
 		die("No such file: %s", argv[1]);
 
 	// Tokenize the input stream
-	token = tokenize(filename, fd, NULL);
+	token = tokenize(filename, fd, NULL, includepath);
 	close(fd);
 
 	// Prepend the initial built-in stream

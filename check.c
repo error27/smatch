@@ -81,12 +81,12 @@ int main(int argc, char **argv)
 		die("No such file: %s", filename);
 
 	// Tokenize the input stream
-	token = tokenize(filename, fd, NULL);
+	token = tokenize(filename, fd, NULL, includepath);
 	close(fd);
 
 	// Prepend any "include" file to the stream.
 	if (include_fd >= 0)
-		token = tokenize(include, include_fd, token);
+		token = tokenize(include, include_fd, token, includepath);
 
 	// Prepend the initial built-in stream
 	token = tokenize_buffer(pre_buffer, pre_buffer_size, token);
