@@ -669,6 +669,10 @@ static int handle_include(struct stream *stream, struct token **list, struct tok
 		expand_list(&token->next);
 		expect = 0;
 		next = token;
+		if (match_op(token->next, '<')) {
+			next = token->next;
+			expect = '>';
+		}
 	}
 	token = next->next;
 	filename = token_name_sequence(token, expect, token);
