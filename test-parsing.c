@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0)
-		die("No such file: %s", argv[1]);
+		die("No such file: %s", filename);
 
 	// Tokenize the input stream
 	token = tokenize(filename, fd, NULL, includepath);
