@@ -646,9 +646,11 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 
 static struct symbol *evaluate_addressof(struct expression *expr)
 {
-	struct symbol *ctype = expr->unop->ctype;
-	struct symbol *symbol = alloc_symbol(expr->pos, SYM_PTR);
+	struct symbol *ctype, *symbol;
+	struct expression *op = expr->unop;
 
+	ctype = op->ctype;
+	symbol = alloc_symbol(expr->pos, SYM_PTR);
 	symbol->ctype.base_type = ctype;
 	symbol->ctype.alignment = POINTER_ALIGNMENT;
 	symbol->bit_size = BITS_IN_POINTER;
@@ -665,11 +667,35 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 }
 
 
+static struct symbol *evaluate_dereference(struct expression *expr)
+{
+	struct symbol *ctype = expr->unop->ctype;
+	unsigned long mod;
+
+	mod = ctype->ctype.modifiers;
+	if (ctype->type == SYM_NODE) {
+		ctype = ctype->ctype.base_type;
+		mod |= ctype->ctype.modifiers;
+	}
+	if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
+		warn(expr->pos, "cannot derefence this type");
+		return 0;
+	}
+	if (mod & MOD_NODEREF)
+		warn(expr->pos, "bad dereference");
+	ctype = ctype->ctype.base_type;
+	if (!ctype) {
+		warn(expr->pos, "undefined type");
+		return 0;
+	}
+	examine_symbol_type(ctype);
+	expr->ctype = ctype;
+	return ctype;
+}
 
 static struct symbol *evaluate_preop(struct expression *expr)
 {
 	struct symbol *ctype = expr->unop->ctype;
-	unsigned long mod;
 
 	switch (expr->op) {
 	case '(':
@@ -677,25 +703,7 @@ static struct symbol *evaluate_preop(struct expression *expr)
 		return ctype;
 
 	case '*':
-		mod = ctype->ctype.modifiers;
-		if (ctype->type == SYM_NODE) {
-			ctype = ctype->ctype.base_type;
-			mod |= ctype->ctype.modifiers;
-		}
-		if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
-			warn(expr->pos, "cannot derefence this type");
-			return 0;
-		}
-		if (mod & MOD_NODEREF)
-			warn(expr->pos, "bad dereference");
-		ctype = ctype->ctype.base_type;
-		if (!ctype) {
-			warn(expr->pos, "undefined type");
-			return 0;
-		}
-		examine_symbol_type(ctype);
-		expr->ctype = ctype;
-		return ctype;
+		return evaluate_dereference(expr);
 
 	case '&':
 		return evaluate_addressof(expr);
@@ -755,7 +763,7 @@ struct symbol *find_identifier(struct ident *ident, struct symbol_list *_list, i
 }
 
 /* structure/union dereference */
-static struct symbol *evaluate_dereference(struct expression *expr)
+static struct symbol *evaluate_member_dereference(struct expression *expr)
 {
 	int offset;
 	struct symbol *ctype, *member;
@@ -1024,7 +1032,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_SIZEOF:
 		return evaluate_sizeof(expr);
 	case EXPR_DEREF:
-		return evaluate_dereference(expr);
+		return evaluate_member_dereference(expr);
 	case EXPR_CALL:
 		return evaluate_call(expr);
 	case EXPR_BITFIELD:
