@@ -237,6 +237,12 @@ static inline int remove_bb_from_list(struct basic_block_list **list, struct bas
 	return delete_ptr_list_entry((struct ptr_list **)list, entry);
 }
 
+static inline int replace_bb_in_list(struct basic_block_list **list,
+	struct basic_block *old, struct basic_block *new)
+{
+	return replace_ptr_list_entry((struct ptr_list **)list, old, new);
+}
+
 struct entrypoint {
 	struct symbol *name;
 	struct symbol_list *syms;

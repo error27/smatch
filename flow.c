@@ -29,21 +29,13 @@ static void rewrite_branch(struct basic_block *bb,
 	struct basic_block *old,
 	struct basic_block *new)
 {
-	struct basic_block *tmp;
-
 	if (*ptr != old)
 		return;
 
 	*ptr = new;
-	FOR_EACH_PTR(new->parents, tmp) {
-		if (tmp == old)
-			*THIS_ADDRESS(tmp) = bb;
-	} END_FOR_EACH_PTR(tmp);
-
-	FOR_EACH_PTR(bb->children, tmp) {
-		if (tmp == old)
-			*THIS_ADDRESS(tmp) = new;
-	} END_FOR_EACH_PTR(tmp);
+	replace_bb_in_list(&bb->children, old, new);
+	remove_bb_from_list(&old->parents, bb);
+	add_bb(&new->parents, bb);
 }
 
 /*
