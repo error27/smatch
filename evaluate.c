@@ -21,6 +21,7 @@
 #include "target.h"
 #include "expression.h"
 
+static struct symbol *current_fn;
 static int current_context, current_contextmask;
 
 static struct symbol *evaluate_symbol_expression(struct expression *expr)
@@ -687,7 +688,7 @@ static struct symbol * evaluate_conditional(struct expression *expr)
 }
 		
 static int compatible_assignment_types(struct expression *expr, struct symbol *target,
-	struct expression **rp, struct symbol *source)
+	struct expression **rp, struct symbol *source, const char *where)
 {
 	/* It's ok if the target is more volatile or const than the source */
 	if (same_type(target, source, MOD_VOLATILE | MOD_CONST, 0))
@@ -741,8 +742,8 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 		return 0;
 	}
 
-	// FIXME!! Cast it!
-	warn(expr->pos, "assignment from bad type");
+	// FIXME!! Cast it?
+	warn(expr->pos, "incorrect type in %s", where);
 	return 0;
 }
 
@@ -795,7 +796,7 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 		return NULL;
 	}
 
-	if (!compatible_assignment_types(expr, ltype, &expr->right, rtype))
+	if (!compatible_assignment_types(expr, ltype, &expr->right, rtype, "assignment"))
 		return 0;
 
 	expr->ctype = expr->left->ctype;
@@ -1112,7 +1113,7 @@ static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 			target = &int_ctype;
 		if (target) {
 			examine_symbol_type(target);
-			compatible_assignment_types(expr, target, p, ctype);
+			compatible_assignment_types(expr, target, p, ctype, "argument passing");
 		}
 
 		NEXT_PTR_LIST(argument_types, argtype);
@@ -1163,7 +1164,7 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep)
 		int size = 0;
 		struct symbol *rtype = evaluate_expression(expr);
 		if (rtype) {
-			compatible_assignment_types(expr, ctype, ep, rtype);
+			compatible_assignment_types(expr, ctype, ep, rtype, "initializer");
 			/* strings are special: char arrays */
 			if (rtype->type == SYM_ARRAY)
 				size = rtype->array_size;
@@ -1366,6 +1367,7 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 	if (base_type->type == SYM_FN) {
 		symbol_iterate(base_type->arguments, evaluate_one_symbol, NULL);
 		if (base_type->stmt) {
+			current_fn = base_type;
 			current_contextmask = sym->ctype.contextmask;
 			current_context = sym->ctype.context;
 			evaluate_statement(base_type->stmt);
@@ -1375,6 +1377,32 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 	return base_type;
 }
 
+struct symbol *evaluate_return_expression(struct statement *stmt)
+{
+	struct expression *expr = stmt->expression;
+	struct symbol *ctype, *fntype;
+
+	fntype = current_fn->ctype.base_type;
+	if (fntype == &void_ctype) {
+		if (expr)
+			warn(expr->pos, "return expression in void function");
+		return NULL;
+	}
+
+	if (!expr) {
+		warn(stmt->pos, "return with no return value");
+		return NULL;
+	}
+	ctype = evaluate_expression(expr);
+	if (!ctype)
+		return NULL;
+	ctype = degenerate(expr, ctype, &expr);
+	expr->ctype = ctype;
+	compatible_assignment_types(expr, fntype, &expr, ctype, "return expression");
+	stmt->expression = expr;
+	return NULL;
+}
+
 struct symbol *evaluate_statement(struct statement *stmt)
 {
 	if (!stmt)
@@ -1382,6 +1410,8 @@ struct symbol *evaluate_statement(struct statement *stmt)
 
 	switch (stmt->type) {
 	case STMT_RETURN:
+		return evaluate_return_expression(stmt);
+
 	case STMT_EXPRESSION:
 		return evaluate_expression(stmt->expression);
 

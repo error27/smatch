@@ -276,6 +276,19 @@ void show_symbol(struct symbol *sym)
 	}
 }
 
+static int show_return_stmt(struct statement *stmt)
+{
+	struct expression *expr = stmt->expression;
+
+	if (expr) {
+		int val = show_expression(expr);
+		printf("\tmov.%d\t\tretval,v%d\n",
+			expr->ctype->bit_size, val);
+	}
+	printf("\tret\n");
+	return 0;
+}
+
 /*
  * Print out a statement
  */
@@ -285,9 +298,7 @@ int show_statement(struct statement *stmt)
 		return 0;
 	switch (stmt->type) {
 	case STMT_RETURN:
-		printf("\treturn ");
-		show_expression(stmt->expression);
-		return 0;
+		return show_return_stmt(stmt);
 	case STMT_COMPOUND: {
 		struct statement *s;
 		int last;
