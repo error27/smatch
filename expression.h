@@ -30,7 +30,8 @@ enum expression_type {
 };
 
 struct expression {
-	int type, op;
+	enum expression_type type;
+	int op;
 	struct token *token;
 	struct symbol *ctype;
 	union {

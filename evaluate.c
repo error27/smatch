@@ -125,13 +125,23 @@ static struct expression * promote(struct expression *old, struct symbol *type)
 	return expr;
 }
 
+static int is_ptr_type(struct symbol *type)
+{
+	return type->type == SYM_PTR || type->type == SYM_ARRAY;
+}
+
+static int is_int_type(struct symbol *type)
+{
+	return type->ctype.base_type == &int_type;
+}
+
 static struct symbol * compatible_binop(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
 	struct symbol *ltype = left->ctype, *rtype = right->ctype;
 
 	/* Pointer types? */
-	if (ltype->type == SYM_PTR || rtype->type == SYM_PTR) {
+	if (is_ptr_type(ltype) || is_ptr_type(rtype)) {
 		/* NULL pointer? */
 		if (left->type == EXPR_VALUE && !left->value)
 			return &ptr_ctype;
@@ -143,7 +153,11 @@ static struct symbol * compatible_binop(struct expression *expr)
 	}
 
 	/* Integer promotion? */
-	if (ltype->ctype.base_type == &int_type && rtype->ctype.base_type == &int_type) {
+	if (ltype->type == SYM_ENUM)
+		ltype = &int_ctype;
+	if (rtype->type == SYM_ENUM)
+		rtype = &int_ctype;
+	if (is_int_type(ltype) && is_int_type(rtype)) {
 		struct symbol *ctype = bigger_int_type(ltype, rtype);
 
 		/* Don't bother promoting same-size entities, it only adds clutter */
@@ -527,6 +541,9 @@ long long get_expression_value(struct expression *expr)
 			middle = get_expression_value(expr->cond_true);
 		right = get_expression_value(expr->cond_false);
 		return left ? middle : right;
+
+	default:
+		break;
 	}
 	error(expr->token, "bad constant expression");
 	return 0;
