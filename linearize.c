@@ -1395,13 +1395,11 @@ pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 pseudo_t linearize_position(struct entrypoint *ep, struct expression *pos, struct access_data *ad)
 {
 	struct expression *init_expr = pos->init_expr;
-	pseudo_t value = linearize_expression(ep, init_expr);
 
-	ad->offset = pos->init_offset;	
+	ad->offset = pos->init_offset;
 	ad->source_type = base_type(init_expr->ctype);
 	ad->result_type = init_expr->ctype;
-	linearize_store_gen(ep, value, ad);
-	return VOID;
+	return linearize_initializer(ep, init_expr, ad);
 }
 
 pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initializer, struct access_data *ad)
