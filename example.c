@@ -344,8 +344,9 @@ static struct storage_hash *find_pseudo_storage(struct bb_state *state, pseudo_t
 		if (reg && !reg->used) {
 			src->storage->type = REG_REG;
 			src->storage->regno = reg - hardregs;
-		} else
-			alloc_stack(state, src->storage);
+			return NULL;
+		}
+		alloc_stack(state, src->storage);
 	}
 	return src;
 }
