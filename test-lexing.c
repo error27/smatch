@@ -16,13 +16,13 @@ int main(int argc, char **argv)
 	if (fd < 0)
 		die("No such file: %s", argv[1]);
 
-	token = tokenize(argv[1], fd);
+	token = tokenize(argv[1], fd, NULL);
 	token = preprocess(token);
 	while (!eof_token(token)) {
 		struct token *next = token->next;
-		char separator = '\n';
-		if (next->line == token->line)
-			separator = ' ';
+		char separator = ' ';
+		if (next->newline)
+			separator = '\n';
 		printf("%s%c", show_token(token), separator);
 		token = next;
 	}

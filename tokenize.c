@@ -178,11 +178,13 @@ static int nextchar(action_t *action)
 
 struct token eof_token_entry;
 
-static void mark_eof(action_t *action)
+static void mark_eof(action_t *action, struct token *end_token)
 {
 	eof_token_entry.next = &eof_token_entry;
 	eof_token_entry.newline = 1;
-	*action->tokenlist = &eof_token_entry;
+	if (!end_token)
+		end_token =  &eof_token_entry;
+	*action->tokenlist = end_token;
 	action->tokenlist = NULL;
 }
 
@@ -652,7 +654,7 @@ static int get_one_token(int c, action_t *action)
 	}	
 }
 
-struct token * tokenize(const char *name, int fd)
+struct token * tokenize(const char *name, int fd, struct token *endtoken)
 {
 	struct token *retval;
 	int stream = init_stream(name);
@@ -685,6 +687,6 @@ struct token * tokenize(const char *name, int fd)
 		}
 		c = nextchar(&action);
 	}
-	mark_eof(&action);
+	mark_eof(&action, endtoken);
 	return retval;
 }

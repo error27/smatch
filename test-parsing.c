@@ -20,7 +20,7 @@ int main(int argc, char **argv)
 	if (fd < 0)
 		die("No such file: %s", argv[1]);
 	init_symbols();
-	token = tokenize(argv[1], fd);
+	token = tokenize(argv[1], fd, NULL);
 	token = preprocess(token);
 	translation_unit(token, &list);
 	show_symbol_list(list);

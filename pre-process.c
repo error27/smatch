@@ -11,6 +11,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <limits.h>
 
 #include "lib.h"
 #include "token.h"
@@ -24,9 +26,11 @@ static struct token *unmatched_if = NULL;
 static void expand(struct token *head, struct symbol *sym)
 {
 	struct token *expansion, *token, **pptr, *next;
+	int newline;
 
 	sym->busy++;
 	token = head->next;
+	newline = token->newline;
 	fprintf(stderr, "expanding symbol '%s'\n", show_token(token));
 
 	expansion = sym->expansion;
@@ -38,15 +42,80 @@ static void expand(struct token *head, struct symbol *sym)
 		alloc->type = expansion->type;
 		alloc->stream = token->stream;
 		alloc->pos = token->pos;
-		alloc->newline = 0;
+		alloc->newline = newline;
 		alloc->line = token->line;
 		alloc->next = next;
 		alloc->integer = expansion->integer;
 		*pptr = alloc;
 		pptr = &alloc->next;
 		expansion = expansion->next;
+		newline = 0;
 	}
 	sym->busy--;
+}
+
+static const char *token_name_sequence(struct token *token, int endop, struct token *start)
+{
+	struct token *last;
+	static char buffer[256];
+	char *ptr = buffer;
+
+	last = token;
+	while (!eof_token(token) && !match_op(token, endop)) {
+		const char *val = show_token(token);
+		int len = strlen(val);
+		memcpy(ptr, val, len);
+		ptr += len;
+		token = token->next;
+	}
+	*ptr = 0;
+	if (endop && !match_op(token, endop))
+		warn(start, "expected '>' at end of filename");
+	return buffer;
+}
+
+static const char *includepath[] = {
+	"/usr/include/",
+	"/usr/local/include/",
+	"",
+	NULL
+};
+
+static void do_include(struct token *head, struct token *token, const char *filename)
+{
+	const char **pptr = includepath, *path;
+
+	while ((path = *pptr++) != NULL) {
+		int fd, len = strlen(path);
+		static char fullname[PATH_MAX];
+
+		memcpy(fullname, path, len);
+		strcpy(fullname+len, filename);
+		fd = open(fullname, O_RDONLY);
+		if (fd >= 0) {
+			head->next = tokenize(filename, fd, head->next);
+			return;
+		}
+	}
+	warn(token, "unable to open '%s'", filename);
+}
+
+static int handle_include(struct token *head, struct token *token)
+{
+	const char *filename;
+
+	if (false_nesting)
+		return 1;
+
+	token = token->next;
+	if (token->type == TOKEN_STRING)
+		filename = token->string->data;
+	else if (match_op(token, '<'))
+		filename = token_name_sequence(token->next, '>', token);
+	else
+		filename = token_name_sequence(token, 0, token);
+	do_include(head, token, filename);
+	return 1;
 }
 
 static int handle_define(struct token *head, struct token *token)
@@ -150,6 +219,27 @@ static int handle_if(struct token *head, struct token *token)
 	return preprocessor_if(token, expression_value(token->next));
 }
 
+static int handle_elif(struct token *head, struct token *token)
+{
+	/* if we're deep inside a false, 'elif' is a no-op */
+	if (false_nesting > 1)
+		return 1;
+	if (false_nesting == 1) {
+		if (expression_value(token->next)) {
+			false_nesting--;
+			true_nesting++;
+		}
+		return 1;
+	}
+	if (true_nesting) {
+		false_nesting = 1;
+		true_nesting--;
+		return 1;
+	}
+	warn(token, "unmatched '#elif'");
+	return 1;
+}
+
 static int handle_else(struct token *head, struct token *token)
 {
 	// else inside a _nesting_ false is a no-op
@@ -164,7 +254,9 @@ static int handle_else(struct token *head, struct token *token)
 	if (true_nesting) {
 		true_nesting--;
 		false_nesting = 1;
+		return 1;
 	}
+	warn(token, "unmatched #else");
 	return 1;
 }
 
@@ -230,8 +322,10 @@ static int handle_preprocessor_command(struct token *head, struct ident *ident, 
 		{ "else",	handle_else },
 		{ "endif",	handle_endif },
 		{ "if",		handle_if },
+		{ "elif",	handle_elif },
 		{ "warning",	handle_warning },
 		{ "error",	handle_error },
+		{ "include",	handle_include },
 	};
 
 	for (i = 0; i < (sizeof (handlers) / sizeof (handlers[0])); i++) {
@@ -284,8 +378,9 @@ static void do_preprocess(struct token *head)
 			struct symbol *sym= lookup_symbol(next->ident, NS_PREPROCESSOR);
 			if (sym)
 				expand(head, sym);
+				
 		}
-		head = next;
+		head = head->next;
 	} while (!eof_token(head));
 }
 

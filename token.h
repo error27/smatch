@@ -124,7 +124,7 @@ extern struct token *built_in_token(int, const char *);
 extern const char *show_special(int);
 extern const char *show_ident(const struct ident *);
 extern const char *show_token(const struct token *);
-extern struct token * tokenize(const char *, int);
+extern struct token * tokenize(const char *, int, struct token *end);
 extern void die(const char *, ...);
 extern void show_identifier_stats(void);
 extern struct token *preprocess(struct token *);
