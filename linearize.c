@@ -25,7 +25,6 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr);
 static void add_setcc(struct entrypoint *ep, struct expression *expr, pseudo_t val);
 static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int op, pseudo_t left, pseudo_t right);
 static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct expression *val);
-static pseudo_t add_const_value(struct entrypoint *ep, struct position pos, struct symbol *ctype, int val);
 
 struct access_data;
 static pseudo_t add_load(struct entrypoint *ep, struct access_data *);
@@ -610,12 +609,12 @@ unaligned:
 	shifted = value;
 	if (ad->bit_offset) {
 		pseudo_t shift;
-		shift = add_const_value(ep, ad->pos, &uint_ctype, ad->bit_offset);
+		shift = value_pseudo(ad->bit_offset);
 		shifted = add_binary_op(ep, ad->ctype, OP_SHL, value, shift);
 		add_deathnote(ep, shift);
 	}
 	orig = add_load(ep, ad);
-	ormask = add_const_value(ep, ad->pos, &uint_ctype, mask);
+	ormask = value_pseudo(mask);
 	value_mask = add_binary_op(ep, ad->ctype, OP_AND, shifted, ormask);
 	add_deathnote(ep, ormask);
 	if (shifted != value)
@@ -652,18 +651,12 @@ static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct e
 	return target;
 }
 
-static pseudo_t add_const_value(struct entrypoint *ep, struct position pos, struct symbol *ctype, int val)
-{
-	struct expression *expr = alloc_const_expression(pos, val);
-	return add_setval(ep, ctype, expr);
-}
-
 static pseudo_t linearize_load_gen(struct entrypoint *ep, struct access_data *ad)
 {
 	pseudo_t new = add_load(ep, ad);
 
 	if (ad->bit_offset) {
-		pseudo_t shift = add_const_value(ep, ad->pos, &uint_ctype, ad->bit_offset);
+		pseudo_t shift = value_pseudo(ad->bit_offset);
 		pseudo_t newval = add_binary_op(ep, ad->ctype, OP_SHR, new, shift);
 		add_deathnote(ep, new);
 		add_deathnote(ep, shift);
@@ -696,7 +689,7 @@ static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr
 		return VOID;
 
 	old = linearize_load_gen(ep, &ad);
-	one = add_const_value(ep, expr->pos, expr->ctype, 1);
+	one = value_pseudo(1);
 	new = add_binary_op(ep, expr->ctype, op, old, one);
 	linearize_store_gen(ep, new, &ad);
 	finish_address_gen(ep, &ad);
@@ -742,7 +735,7 @@ static pseudo_t linearize_regular_preop(struct entrypoint *ep, struct expression
 	case '+':
 		return pre;
 	case '!': {
-		pseudo_t zero = add_const_value(ep, expr->pos, expr->ctype, 0);
+		pseudo_t zero = value_pseudo(0);
 		return add_binary_op(ep, expr->ctype, OP_SET_EQ, pre, zero);
 	}
 	case '~':
