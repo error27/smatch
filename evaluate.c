@@ -790,6 +790,13 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 		return NULL;
 	}
 	ctype = op->ctype;
+	if (ctype->type == SYM_NODE) {
+		ctype->ctype.modifiers |= MOD_ADDRESSABLE;
+		if (ctype->ctype.modifiers & MOD_REGISTER) {
+			warn(expr->pos, "taking address of 'register' variable '%s'", show_ident(ctype->ident));
+			ctype->ctype.modifiers &= ~MOD_REGISTER;
+		}
+	}
 	symbol = alloc_symbol(expr->pos, SYM_PTR);
 	symbol->ctype.base_type = ctype;
 	symbol->ctype.alignment = POINTER_ALIGNMENT;
