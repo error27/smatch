@@ -14,7 +14,7 @@
 struct hardreg {
 	const char *name;
 	struct pseudo_list *contains;
-	unsigned busy:1,
+	unsigned busy:16,
 		 dirty:1,
 		 used:1;
 };
@@ -29,12 +29,12 @@ static void output_bb(struct basic_block *bb, unsigned long generation);
  * right now.
  */
 static struct hardreg hardregs[] = {
-	{ .name = "eax" },
-	{ .name = "edx" },
-	{ .name = "ecx" },
-	{ .name = "ebx" },
-	{ .name = "esi" },
-	{ .name = "edi" },
+	{ .name = "%eax" },
+	{ .name = "%edx" },
+	{ .name = "%ecx" },
+	{ .name = "%ebx" },
+	{ .name = "%esi" },
+	{ .name = "%edi" },
 };
 #define REGNO (sizeof(hardregs)/sizeof(struct hardreg))
 
@@ -197,22 +197,28 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 
 static int last_reg;
 
+static struct hardreg *preferred_reg(struct bb_state *state, pseudo_t target)
+{
+	struct storage_hash *dst;
+
+	dst = find_storage_hash(target, state->outputs);
+	if (dst) {
+		struct storage *storage = dst->storage;
+		if (storage->type == REG_REG)
+			return hardregs + storage->regno;
+	}
+	return NULL;
+}
+
 static struct hardreg *target_reg(struct bb_state *state, pseudo_t pseudo, pseudo_t target)
 {
 	int i;
 	struct hardreg *reg;
-	struct storage_hash *dst;
 
 	/* First, see if we have a preferred target register.. */
-	dst = find_storage_hash(target, state->outputs);
-	if (dst) {
-		struct storage *storage = dst->storage;
-		if (storage->type == REG_REG) {
-			reg = hardregs + storage->regno;
-			if (!reg->busy)
-				goto found;
-		}
-	}
+	reg = preferred_reg(state, target);
+	if (reg && !reg->busy)
+		goto found;
 
 	i = last_reg+1;
 	if (i >= REGNO)
@@ -244,6 +250,32 @@ static struct hardreg *getreg(struct bb_state *state, pseudo_t pseudo, pseudo_t 
 	}
 	reg = target_reg(state, pseudo, target);
 	return fill_reg(state, reg, pseudo);
+}
+
+static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src, pseudo_t target)
+{
+	int i;
+	struct hardreg *reg;
+
+	if (!src->busy)
+		return src;
+
+	reg = preferred_reg(state, target);
+	if (reg && !reg->busy) {
+		printf("\tmovl %s,%s\n", src->name, reg->name);
+		return reg;
+	}
+
+	for (i = 0; i < REGNO; i++) {
+		struct hardreg *reg = hardregs + i;
+		if (!reg->busy) {
+			printf("\tmovl %s,%s\n", src->name, reg->name);
+			return reg;
+		}
+	}
+
+	flush_reg(state, src);
+	return src;
 }
 
 static const char *address(struct bb_state *state, struct instruction *memop)
@@ -367,35 +399,15 @@ static const char* opcodes[] = {
 	[OP_CONTEXT] = "context",
 };
 
-
-static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src)
-{
-	int i;
-
-	if (!src->busy)
-		return src;
-
-	for (i = 0; i < REGNO; i++) {
-		struct hardreg *reg = hardregs + i;
-		if (!reg->busy) {
-			printf("\tmovl %s,%s\n", src->name, reg->name);
-			return reg;
-		}
-	}
-
-	flush_reg(state, src);
-	return src;
-}
-
 static void generate_binop(struct bb_state *state, struct instruction *insn)
 {
 	const char *op = opcodes[insn->opcode];
-	struct hardreg *src = getreg(state, insn->src1, NULL);
-	struct hardreg *dst = copy_reg(state, src);
+	struct hardreg *src = getreg(state, insn->src1, insn->target);
+	struct hardreg *dst = copy_reg(state, src, insn->target);
 
 	printf("\t%s.%d %s,%s\n", op, insn->size, reg_or_imm(state, insn->src2), dst->name);
 	add_ptr_list(&dst->contains, insn->target);
-	dst->busy = 1;
+	dst->busy++;
 	dst->dirty = 1;
 }
 
@@ -409,6 +421,7 @@ static void mark_pseudo_dead(pseudo_t pseudo)
 			if (p != pseudo)
 				continue;
 			TAG_CURRENT(p, TAG_DEAD);
+			hardregs[i].busy--;
 		} END_FOR_EACH_PTR(p);
 	}
 }
@@ -422,7 +435,7 @@ static void generate_phisource(struct instruction *insn, struct bb_state *state)
 		return;
 	reg = getreg(state, insn->phi_src, user->target);
 	add_ptr_list(&reg->contains, user->target);
-	reg->busy = 1;
+	reg->busy++;
 	reg->dirty = 1;
 }
 
@@ -629,7 +642,7 @@ static void generate_output_storage(struct bb_state *state)
 					goto ok;
 			} END_FOR_EACH_PTR(p);
 			flush_reg(state, reg);
-ok:
+ok:			;
 		}
 	} END_FOR_EACH_PTR(entry);
 
@@ -657,7 +670,7 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 		if (storage->type == REG_REG) {
 			int regno = storage->regno;
 			add_ptr_list(&hardregs[regno].contains, entry->pseudo);
-			hardregs[regno].busy = 1;
+			hardregs[regno].busy++;
 			hardregs[regno].dirty = 1;
 			name = hardregs[regno].name;
 		}
