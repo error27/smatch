@@ -172,14 +172,15 @@ static void show_instruction(struct instruction *insn)
 			insn->orig_type->bit_size, insn->type->bit_size, 
 			insn->src->nr);
 		break;
-	case OP_BINARY ... OP_BINARY_END:
-	case OP_LOGICAL ... OP_LOGICAL_END: {
+	case OP_BINARY ... OP_BINARY_END: {
 		static const char *opname[] = {
 			[OP_ADD - OP_BINARY] = "add", [OP_SUB - OP_BINARY] = "sub",
 			[OP_MUL - OP_BINARY] = "mul", [OP_DIV - OP_BINARY] = "div",
 			[OP_MOD - OP_BINARY] = "mod", [OP_AND - OP_BINARY] = "and",
 			[OP_OR  - OP_BINARY] = "or",  [OP_XOR - OP_BINARY] = "xor",
 			[OP_SHL - OP_BINARY] = "shl", [OP_SHR - OP_BINARY] = "shr",
+			[OP_AND_BOOL - OP_BINARY] = "and-bool",
+			[OP_OR_BOOL - OP_BINARY] = "or-bool",
 		};
 		printf("\t%%r%d <- %s  %%r%d, %%r%d\n",
 			insn->target->nr,
@@ -565,6 +566,8 @@ static pseudo_t linearize_binop(struct entrypoint *ep, struct expression *expr)
 		['|'] = OP_OR,  ['^'] = OP_XOR,
 		[SPECIAL_LEFTSHIFT] = OP_SHL,
 		[SPECIAL_RIGHTSHIFT] = OP_SHR,
+		[SPECIAL_LOGICAL_AND] = OP_AND_BOOL,
+		[SPECIAL_LOGICAL_OR] = OP_OR_BOOL,
 	};
 
 	src1 = linearize_expression(ep, expr->left);
@@ -749,7 +752,6 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 		return linearize_call_expression(ep, expr);
 
 	case EXPR_BINOP:
-	case EXPR_SAFELOGICAL:
 		return linearize_binop(ep, expr);
 
 	case EXPR_LOGICAL:

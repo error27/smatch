@@ -962,7 +962,6 @@ int show_expression(struct expression *expr)
 	case EXPR_COMMA:
 	case EXPR_COMPARE:
 	case EXPR_LOGICAL:
-	case EXPR_SAFELOGICAL:
 		return show_binop(expr);
 	case EXPR_PREOP:
 		return show_preop(expr);

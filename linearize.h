@@ -86,14 +86,14 @@ enum opcode {
 	OP_SHL,
 	OP_SHR,
 	OP_SEL,
-	OP_BINARY_END = OP_SHR,
 	
 	/* Logical */
-	OP_LOGICAL,
-	OP_AND = OP_LOGICAL,
+	OP_AND,
 	OP_OR,
 	OP_XOR,
-	OP_LOGICAL_END = OP_XOR,
+	OP_AND_BOOL,
+	OP_OR_BOOL,
+	OP_BINARY_END = OP_OR_BOOL,
 
 	/* Binary comparison */
 	OP_BINCMP,

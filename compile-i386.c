@@ -2121,7 +2121,6 @@ static struct storage *x86_expression(struct expression *expr)
 	case EXPR_BINOP:
 	case EXPR_COMMA:
 	case EXPR_LOGICAL:
-	case EXPR_SAFELOGICAL:
 		return emit_binop(expr);
 	case EXPR_PREOP:
 		return x86_preop(expr);

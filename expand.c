@@ -393,7 +393,7 @@ static int expand_logical(struct expression *expr)
 	 * style SAFELOGICAL.
 	 */
 	if (rcost < BRANCH_COST) {
-		expr->type = EXPR_SAFELOGICAL;
+		expr->type = EXPR_BINOP;
 		rcost -= BRANCH_COST - 1;
 	}
 
@@ -702,7 +702,6 @@ static int expand_expression(struct expression *expr)
 		return expand_binop(expr);
 
 	case EXPR_LOGICAL:
-	case EXPR_SAFELOGICAL:
 		return expand_logical(expr);
 
 	case EXPR_COMMA:
