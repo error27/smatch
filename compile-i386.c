@@ -50,7 +50,7 @@ struct textbuf {
 };
 
 struct function {
-	int pseudo_nr;
+	int stack_size;
 	struct ptr_list *pseudo_list;
 	struct ptr_list *atom_list;
 	struct ptr_list *str_list;
@@ -219,7 +219,7 @@ static inline unsigned int arg_offset(struct storage *s)
 		return 123456;	/* intentionally bogus value */
 
 	/* FIXME: this is wrong wrong wrong */
-	return (current_func->pseudo_nr + 1 + s->idx) * 4;
+	return ((current_func->stack_size / 4) + 1 + s->idx) * 4;
 }
 
 static const char *pretty_offset(int ofs)
@@ -345,7 +345,8 @@ static struct storage *new_pseudo(void)
 
 	stor = new_storage(STOR_PSEUDO);
 	stor->type = STOR_PSEUDO;
-	stor->pseudo = ++f->pseudo_nr;
+	f->stack_size += 4;
+	stor->pseudo = f->stack_size / 4;
 
 	add_ptr_list(&f->pseudo_list, stor);
 
@@ -647,7 +648,7 @@ static void emit_func_post(struct symbol *sym)
 {
 	const char *name = show_ident(sym->ident);
 	struct function *f = current_func;
-	int pseudo_nr = f->pseudo_nr;
+	int stack_size = f->stack_size;
 
 	if (f->str_list)
 		emit_string_list(f);
@@ -659,10 +660,10 @@ static void emit_func_post(struct symbol *sym)
 	printf("\t.type\t%s, @function\n", name);
 	printf("%s:\n", name);
 
-	if (pseudo_nr) {
+	if (stack_size) {
 		char pseudo_const[16];
 
-		sprintf(pseudo_const, "$%d", pseudo_nr * 4);
+		sprintf(pseudo_const, "$%d", stack_size);
 		printf("\tsubl\t%s, %%esp\n", pseudo_const);
 	}
 
@@ -671,11 +672,11 @@ static void emit_func_post(struct symbol *sym)
 	/* jump target for 'return' statements */
 	emit_label(f->ret_target, NULL);
 
-	if (pseudo_nr) {
+	if (stack_size) {
 		struct storage *val;
 
 		val = new_storage(STOR_VALUE);
-		val->value = (long long) (pseudo_nr * 4);
+		val->value = (long long) (stack_size);
 		val->flags = STOR_WANTS_FREE;
 
 		insn("addl", val, REG_ESP, NULL);
