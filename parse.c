@@ -1196,11 +1196,6 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn)
 			token = token->next;
 			break;
 		}
-		
-		if (!lookup_type(token)) {
-			warn(token->pos, "non-ANSI parameter list");
-			break;
-		}
 		token = parameter_declaration(token, &sym);
 		if (sym->ctype.base_type == &void_ctype) {
 			/* Special case: (void) */
@@ -1351,6 +1346,29 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 	return expect(token, '}', "at end of function");
 }
 
+static struct token *parse_kr_arguments(struct token *token, struct symbol *decl,
+	struct symbol_list **list)
+{
+	struct symbol_list *args = NULL;
+
+	warn(token->pos, "non-ANSI function declaration");
+	do {
+		token = external_declaration(token, &args);
+	} while (lookup_type(token));
+
+	/*
+	 * FIXME!! We should now apply these types to
+	 * the function arguments
+	 */
+
+	if (!match_op(token, '{')) {
+		warn(token->pos, "expected function body");
+		return token;
+	}
+	return parse_function_body(token->next, decl, list);
+}
+
+
 static struct token *external_declaration(struct token *token, struct symbol_list **list)
 {
 	struct ident *ident = NULL;
@@ -1401,6 +1419,9 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 
 	base_type = decl->ctype.base_type;
 	if (!is_typedef && base_type && base_type->type == SYM_FN) {
+		/* K&R argument declaration? */
+		if (lookup_type(token))
+			return parse_kr_arguments(token, decl, list);
 		if (match_op(token, '{'))
 			return parse_function_body(token, decl, list);
 
