@@ -702,7 +702,7 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 		return VOID;
 
 	switch (expr->type) {
-	case EXPR_VALUE: case EXPR_STRING: case EXPR_SYMBOL: case EXPR_FVALUE:
+	case EXPR_VALUE: case EXPR_STRING: case EXPR_SYMBOL: case EXPR_FVALUE: case EXPR_LABEL:
 		return add_setval(ep, expr->ctype, expr);
 
 	case EXPR_STATEMENT:
