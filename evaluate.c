@@ -440,8 +440,8 @@ static struct symbol *evaluate_add(struct expression *expr)
 
 #define MOD_SIZE (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG)
 #define MOD_IGNORE (MOD_TOPLEVEL | MOD_STORAGE | MOD_ADDRESSABLE |	\
-	MOD_ASSIGNED | MOD_USERTYPE | MOD_FORCE | MOD_ACCESSED)
-#define MOD_SIGNEDNESS (MOD_SIGNED | MOD_UNSIGNED | MOD_EXPLICITLY_SIGNED)
+	MOD_ASSIGNED | MOD_USERTYPE | MOD_FORCE | MOD_ACCESSED | MOD_EXPLICITLY_SIGNED)
+#define MOD_SIGNEDNESS (MOD_SIGNED | MOD_UNSIGNED)
 
 const char * type_difference(struct symbol *target, struct symbol *source,
 	unsigned long target_mod_ignore, unsigned long source_mod_ignore)
@@ -533,19 +533,22 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 		if (as1 != as2)
 			return "different address spaces";
 
-		/* Ignore differences in storage types, sign, or addressability */
+		/* Ignore differences in storage types or addressability */
 		diff = (mod1 ^ mod2) & ~MOD_IGNORE;
+		diff &= (mod1 & ~target_mod_ignore) | (mod2 & ~source_mod_ignore);
 		if (diff) {
-			mod1 &= diff & ~target_mod_ignore;
-			mod2 &= diff & ~source_mod_ignore;
-			mod1 |= mod2;
-			if (mod1) {
-				if (mod1 & MOD_SIZE)
-					return "different type sizes";
-				if (!(mod1 & ~MOD_SIGNEDNESS))
-					return "different signedness";
+			if (diff & MOD_SIZE)
+				return "different type sizes";
+			if (diff & ~MOD_SIGNEDNESS)
 				return "different modifiers";
-			}
+
+			/* Differs in signedness only.. Sometimes ok - but not if both are explicit */
+			if ((mod1 | mod2) & MOD_EXPLICITLY_SIGNED)
+				return "different explicit signedness";
+
+			/* "char" matches both "unsigned char" and "signed char" */
+			if (!(mod1 & MOD_CHAR))
+				return "different signedness";
 		}
 
 		if (type1 == SYM_FN) {
