@@ -93,14 +93,20 @@ static void replace_with_integer(struct token *token, unsigned int val)
 	token->number = buf;
 }
 
+static int token_defined(struct token *token)
+{
+	if (token_type(token) == TOKEN_IDENT)
+		return lookup_symbol(token->ident, NS_MACRO) != NULL;
+
+	warning(token->pos, "expected preprocessor identifier");
+	return 0;
+}
+
 static void replace_with_defined(struct token *token)
 {
 	static const char *string[] = { "0", "1" };
-	int defined = 0;
-	if (token_type(token) != TOKEN_IDENT)
-		warning(token->pos, "operator \"defined\" requires an identifier");
-	else if (lookup_symbol(token->ident, NS_MACRO))
-		defined = 1;
+	int defined = token_defined(token);
+
 	token_type(token) = TOKEN_NUMBER;
 	token->number = string[defined];
 }
@@ -1068,15 +1074,6 @@ static int preprocessor_if(struct token *token, int true)
 	}
 	true_nesting++;
 	return 1;
-}
-
-static int token_defined(struct token *token)
-{
-	if (token_type(token) == TOKEN_IDENT)
-		return lookup_symbol(token->ident, NS_MACRO) != NULL;
-
-	warning(token->pos, "expected identifier for #if[n]def");
-	return 0;
 }
 
 static int handle_ifdef(struct stream *stream, struct token **line, struct token *token)
