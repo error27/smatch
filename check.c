@@ -85,6 +85,7 @@ static char ** handle_switch(char *arg, char **next)
 
 static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 {
+	check_duplicates(sym);
 	evaluate_symbol(sym);
 }
 

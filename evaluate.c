@@ -1490,7 +1490,7 @@ static void evaluate_one_symbol(struct symbol *sym, void *unused, int flags)
 	evaluate_symbol(sym);
 }
 
-static void check_duplicates(struct symbol *sym)
+void check_duplicates(struct symbol *sym)
 {
 	struct symbol *next = sym;
 
@@ -1515,8 +1515,6 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 	base_type = sym->ctype.base_type;
 	if (!base_type)
 		return NULL;
-
-	check_duplicates(sym);
 
 	/* Evaluate the initializers */
 	if (sym->initializer) {
