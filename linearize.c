@@ -1903,7 +1903,6 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 
 	merge_phi_sources = 1;
 
-repeat:
 	/*
 	 * Do trivial flow simplification - branches to
 	 * branches, kill dead basicblocks etc
@@ -1915,6 +1914,7 @@ repeat:
 	 */
 	simplify_symbol_usage(ep);
 
+repeat:
 	/*
 	 * Remove trivial instructions, and try to CSE
 	 * the rest.

@@ -651,7 +651,7 @@ int simplify_instruction(struct instruction *insn)
 	case OP_SETVAL:
 		if (dead_insn(insn, NULL, NULL, NULL))
 			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
-		break;
+		return replace_with_pseudo(insn, insn->symbol);
 	case OP_PTRCAST:
 	case OP_CAST:
 		return simplify_cast(insn);
