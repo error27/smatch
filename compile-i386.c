@@ -1106,11 +1106,10 @@ static struct storage *emit_inc_dec(struct expression *expr, int postop)
 {
 	struct storage *addr = x86_address_gen(expr->unop);
 	struct storage *retval;
-	const char *opname = expr->op == SPECIAL_INCREMENT ? "incl" : "decl";
-#if 0
-	/* FIXME: don't hardware operand size */
-	int bits = expr->ctype->bit_size;
-#endif
+	char opname[16];
+
+	strcpy(opname, opbits(expr->op == SPECIAL_INCREMENT ? "inc" : "dec",
+			      expr->ctype->bit_size));
 
 	if (postop) {
 		struct storage *new = new_pseudo();
@@ -1234,6 +1233,38 @@ static struct storage *emit_cast_expr(struct expression *expr)
 
 	new = new_pseudo();
 	emit_move(REG_EAX, new, new_type, ".... end cast", 0);
+
+	return new;
+}
+
+static struct storage *emit_regular_preop(struct expression *expr)
+{
+	struct storage *target = x86_expression(expr->unop);
+	struct storage *new = new_pseudo();
+	const char *opname = NULL;
+
+	switch (expr->op) {
+	case '!':
+		insn("xor", REG_EDX, REG_EDX, NULL, 0);
+		emit_move(target, REG_EAX, expr->unop->ctype, NULL, 0);
+		insn("test", REG_EAX, REG_EAX, NULL, 0);
+		insn("setz", REG_DL, NULL, NULL, 0);
+		emit_move(REG_EDX, new, expr->unop->ctype, NULL, 0);
+
+		break;
+	case '~':
+		opname = "not";
+	case '-':
+		if (!opname)
+			opname = "neg";
+		emit_move(target, REG_EAX, expr->unop->ctype, NULL, 0);
+		insn(opname, REG_EAX, NULL, NULL, 0);
+		emit_move(REG_EAX, new, expr->unop->ctype, NULL, 0);
+		break;
+	default:
+		assert(0);
+		break;
+	}
 
 	return new;
 }
@@ -1542,24 +1573,6 @@ static struct storage *x86_call_expression(struct expression *expr)
 	return retval;
 }
 
-static struct storage *x86_regular_preop(struct expression *expr)
-{
-	struct storage *target = x86_expression(expr->unop);
-	struct storage *new = new_pseudo();
-	static const char *name[] = {
-		['!'] = "nonzero", ['-'] = "neg",
-		['~'] = "not",
-	};
-	unsigned int op = expr->op;
-	const char *opname;
-
-	opname = show_special(op);
-	if (op < sizeof(name)/sizeof(*name))
-		opname = name[op];
-	printf("\t%s.%d\t\tv%d,v%d\n", opname, expr->ctype->bit_size, new->pseudo, target->pseudo);
-	return new;
-}
-
 static struct storage *x86_address_gen(struct expression *expr)
 {
 	struct function *f = current_func;
@@ -1567,8 +1580,7 @@ static struct storage *x86_address_gen(struct expression *expr)
 	struct storage *new;
 	char s[32];
 
-	if ((expr->type != EXPR_PREOP) ||
-	    ((expr->type == EXPR_PREOP) && (expr->op != '*')))
+	if ((expr->type != EXPR_PREOP) || (expr->op != '*'))
 		return x86_expression(expr->address);
 
 	addr = x86_expression(expr->unop);
@@ -1651,7 +1663,7 @@ static struct storage *x86_preop(struct expression *expr)
 		return x86_access(expr);
 	if (expr->op == SPECIAL_INCREMENT || expr->op == SPECIAL_DECREMENT)
 		return emit_inc_dec(expr, 0);
-	return x86_regular_preop(expr);
+	return emit_regular_preop(expr);
 }
 
 static struct storage *x86_symbol_expr(struct symbol *sym)
