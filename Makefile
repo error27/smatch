@@ -97,6 +97,7 @@ tokenize.o: $(LIB_H)
 check.o: $(LIB_H)
 obfuscate.o: $(LIB_H)
 example.o: $(LIB_H)
+storage.o: $(LIB_H) storage.h
 
 compat-linux.o: compat/strtold.c compat/id-files-stat.c compat/mmap-blob.c \
 	$(LIB_H)
