@@ -86,6 +86,7 @@ struct allocator_struct {
 	struct allocation_blob *blobs;
 	unsigned int alignment;
 	unsigned int chunking;
+	void *freelist;
 	/* statistics */
 	unsigned int allocations, total_bytes, useful_bytes;
 };
@@ -105,11 +106,32 @@ void drop_all_allocations(struct allocator_struct *desc)
 	}
 }
 
+void free_one_entry(struct allocator_struct *desc, void *entry)
+{
+	void **p = entry;
+	*p = desc->freelist;
+	desc->freelist = p;
+}
+
 void *allocate(struct allocator_struct *desc, unsigned int size)
 {
 	unsigned long alignment = desc->alignment;
 	struct allocation_blob *blob = desc->blobs;
 	void *retval;
+
+	/*
+	 * NOTE! The freelist only works with things that are
+	 *  (a) sufficiently aligned
+	 *  (b) use a constant size
+	 * Don't try to free allocators that don't follow
+	 * these rules.
+	 */
+	if (desc->freelist) {
+		void **p = desc->freelist;
+		desc->freelist = *p;
+		memset(p, 0, size);
+		return p;
+	}
 
 	desc->allocations++;
 	desc->useful_bytes += size;
@@ -162,6 +184,10 @@ struct allocator_struct pseudo_allocator = { "pseudo", NULL, __alignof__(struct 
 	type *__alloc_##x(int extra)				\
 	{							\
 		return allocate(&x##_allocator, size+extra);	\
+	}							\
+	void __free_##x(type *entry)				\
+	{							\
+		return free_one_entry(&x##_allocator, entry);	\
 	}							\
 	void show_##x##_alloc(void)				\
 	{							\

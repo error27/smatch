@@ -63,6 +63,7 @@ extern void error_die(struct position, const char *, ...) FORMAT_ATTR;
 
 #define __DECLARE_ALLOCATOR(type, x)		\
 	extern type *__alloc_##x(int);		\
+	extern void __free_##x(type *);		\
 	extern void show_##x##_alloc(void);	\
 	extern void clear_##x##_alloc(void);
 #define DECLARE_ALLOCATOR(x) __DECLARE_ALLOCATOR(struct x, x)
