@@ -502,9 +502,11 @@ static int get_char_token(int next, stream_t *stream)
 	return nextchar(stream);
 }
 
+#define MAX_STRING 2048
+
 static int get_string_token(int next, stream_t *stream)
 {
-	static char buffer[512];
+	static char buffer[MAX_STRING];
 	struct string *string;
 	struct token *token;
 	int len = 0;
@@ -518,15 +520,15 @@ static int get_string_token(int next, stream_t *stream)
 			warn(stream->pos, "End of file in middle of string");
 			return next;
 		}
-		if (len < sizeof(buffer)) {
+		if (len < MAX_STRING)
 			buffer[len] = val;
-			len++;
-		}
-			
+		len++;
 	}
 
-	if (len > 256)
-		warn(stream->pos, "String too long");
+	if (len >= MAX_STRING) {
+		warn(stream->pos, "string too long (%d bytes, %d bytes max)", len, MAX_STRING);
+		len = MAX_STRING;
+	}
 
 	string = __alloc_string(len+1);
 	memcpy(string->data, buffer, len);
