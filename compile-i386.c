@@ -78,6 +78,7 @@ enum storage_type {
 
 struct reg_info {
 	const char	*name;
+	struct storage	*contains;
 	const unsigned char aliases[12];
 #define own_regno aliases[0]
 };
@@ -165,6 +166,7 @@ struct function *current_func = NULL;
 struct textbuf *unit_post_text = NULL;
 static const char *current_section;
 
+static void emit_comment(const char * fmt, ...);
 static void emit_move(struct storage *src, struct storage *dest,
 		      struct symbol *ctype, const char *comment);
 static int type_is_signed(struct symbol *sym);
@@ -240,7 +242,7 @@ static struct storage hardreg_storage_table[] = {
 
 DECLARE_BITMAP(regs_in_use, 256);
 
-struct storage * get_hardreg(struct storage *reg)
+struct storage * get_hardreg(struct storage *reg, int clear)
 {
 	struct reg_info *info = reg->reg;
 	const unsigned char *aliases;
@@ -250,6 +252,8 @@ struct storage * get_hardreg(struct storage *reg)
 	while ((regno = *aliases++) != NOREG) {
 		if (test_and_set_bit(regno, regs_in_use))
 			goto busy;
+		if (clear)
+			reg_info_table[regno].contains = NULL;
 	}
 	return reg;
 busy:
@@ -283,6 +287,7 @@ struct regclass {
 struct regclass regclass_8 = { "8-bit", { AL, DL, CL, BL, AH, DH, CH, BH }};
 struct regclass regclass_16 = { "16-bit", { AX, DX, CX, BX, SI, DI, BP }};
 struct regclass regclass_32 = { "32-bit", { EAX, EDX, ECX, EBX, ESI, EDI, EBP }};
+struct regclass regclass_64 = { "64-bit", { EAX_EDX, ECX_EBX, ESI_EDI }};
 
 struct regclass regclass_32_8 = { "32-bit bytes", { EAX, EDX, ECX, EBX }};
 
@@ -312,7 +317,7 @@ struct storage *get_reg(struct regclass *class)
 		regs++;
 		if (register_busy(regno))
 			continue;
-		return get_hardreg(hardreg_storage_table + regno);
+		return get_hardreg(hardreg_storage_table + regno, 1);
 	}
 	fprintf(stderr, "Ran out of %s registers\n", class->name);
 	exit(1);
@@ -320,22 +325,31 @@ struct storage *get_reg(struct regclass *class)
 
 struct storage *get_reg_value(struct storage *value)
 {
-	struct storage *reg = get_reg(&regclass_32);
+	struct reg_info *info;
+	struct storage *reg;
+
+	/* Do we already have it somewhere */
+	info = value->reg;
+	if (info && info->contains == value) {
+		emit_comment("already have register %s", info->name);
+		return get_hardreg(hardreg_storage_table + info->own_regno, 0);
+	}
+
+	reg = get_reg(&regclass_32);
 	emit_move(value, reg, value->ctype, "reload register");
+	info = reg->reg;
+	info->contains = value;
+	value->reg = info;
 	return reg;
 }
 
 static struct storage *temp_from_bits(unsigned int bit_size)
 {
 	switch(bit_size) {
-	case 8:		return REG_AL;
-	case 16:	return REG_AX;
-	case 32:	return REG_EAX;
-
-	case 64: /* FIXME */
-	default:
-		assert(0);
-		break;
+	case 8:		return get_reg(&regclass_8);
+	case 16:	return get_reg(&regclass_16);
+	case 32:	return get_reg(&regclass_32);
+	case 64:	return get_reg(&regclass_64);
 	}
 
 	return NULL;
@@ -593,6 +607,21 @@ static void insn(const char *insn, struct storage *op1, struct storage *op2,
 	atom->op2 = op2;
 
 	push_atom(f, atom);
+}
+
+static void emit_comment(const char *fmt, ...)
+{
+	struct function *f = current_func;
+	static char tmpbuf[100] = "\t# ";
+	va_list args;
+	int i;
+
+	va_start(args, fmt);
+	i = vsnprintf(tmpbuf+3, sizeof(tmpbuf)-4, fmt, args);
+	va_end(args);
+	tmpbuf[i+3] = '\n';
+	tmpbuf[i+4] = '\0';
+	push_text_atom(f, tmpbuf);
 }
 
 static void emit_label (int label, const char *comment)
@@ -1112,8 +1141,28 @@ static void emit_move(struct storage *src, struct storage *dest,
 	}
 
 	if ((dest->type == STOR_REG) && (src->type == STOR_REG)) {
+		struct storage *backing = src->reg->contains;
+		if (backing) {
+			/* Is it still valid? */
+			if (backing->reg != src->reg)
+				backing = NULL;
+			else
+				backing->reg = dest->reg;
+		}
+		dest->reg->contains = backing;
 		insn("mov", src, dest, NULL);
 		return;
+	}
+
+	if (src->type == STOR_REG) {
+		/* We could just mark the register dirty here and do lazy store.. */
+		src->reg->contains = dest;
+		dest->reg = src->reg;
+	}
+
+	if (dest->type == STOR_REG) {
+		dest->reg->contains = src;
+		src->reg = dest->reg;
 	}
 
 	if ((bits == 8) || (bits == 16)) {
@@ -1178,6 +1227,7 @@ static struct storage *emit_compare(struct expression *expr)
 	/* finally, store the result (DL) in a new pseudo / stack slot */
 	new = stack_alloc(4);
 	emit_move(reg1, new, NULL, "end EXPR_COMPARE");
+	reg1->reg->contains = new;
 	put_reg(reg1);
 
 	return new;
@@ -1205,6 +1255,41 @@ static struct storage *emit_value(struct expression *expr)
 #endif
 }
 
+static struct storage *emit_divide(struct expression *expr, struct storage *left, struct storage *right)
+{
+	struct storage *eax_edx;
+	struct storage *reg, *new;
+	struct storage *val = new_storage(STOR_VALUE);
+
+	emit_comment("begin DIVIDE");
+	eax_edx = get_hardreg(hardreg_storage_table + EAX_EDX, 1);
+
+	/* init EDX to 0 */
+	val = new_storage(STOR_VALUE);
+	val->flags = STOR_WANTS_FREE;
+	emit_move(val, REG_EDX, NULL, NULL);
+
+	new = stack_alloc(expr->ctype->bit_size / 8);
+
+	/* EAX is dividend */
+	emit_move(left, REG_EAX, NULL, NULL);
+
+	reg = get_reg_value(right);
+
+	/* perform binop */
+	insn("div", reg, REG_EAX, NULL);
+	put_reg(reg);
+
+	reg = REG_EAX;
+	if (expr->op == '%')
+		reg = REG_EDX;
+	emit_move(reg, new, NULL, NULL);
+
+	put_reg(eax_edx);
+	emit_comment("end DIVIDE");
+	return new;
+}
+
 static struct storage *emit_binop(struct expression *expr)
 {
 	struct storage *left = x86_expression(expr->left);
@@ -1215,17 +1300,11 @@ static struct storage *emit_binop(struct expression *expr)
 	const char *opname = NULL;
 	const char *suffix;
 	char movstr[16], opstr[16];
-	int is_signed, doing_divide = 0;
+	int is_signed;
 
-	if ((expr->op == '/') || (expr->op == '%')) {
-		struct storage *val;
-
-		doing_divide = 1;
-		/* init EDX to 0 */
-		val = new_storage(STOR_VALUE);
-		val->flags = STOR_WANTS_FREE;
-		emit_move(val, REG_EDX, NULL, "begin EXPR_DIVIDE");
-	}
+	/* Divides have special register constraints */
+	if ((expr->op == '/') || (expr->op == '%'))
+		return emit_divide(expr, left, right);
 
 	is_signed = type_is_signed(expr->ctype);
 
@@ -1314,16 +1393,14 @@ static struct storage *emit_binop(struct expression *expr)
 	sprintf(opstr, "%s%s", opname, suffix);
 
 	/* load op2 into EAX */
-	insn(movstr, right, accum_reg,
-	     doing_divide ? NULL : "EXPR_BINOP/COMMA/LOGICAL");
+	insn(movstr, right, accum_reg, "EXPR_BINOP/COMMA/LOGICAL");
 
 	/* perform binop */
 	insn(opstr, left, accum_reg, NULL);
 
 	/* store result (EAX or EDX) in new pseudo / stack slot */
 	new = stack_alloc(expr->ctype->bit_size / 8);
-	insn(movstr, result_reg, new,
-	     doing_divide ? "end EXPR_DIVIDE" : "end EXPR_BINOP");
+	insn(movstr, result_reg, new, "end EXPR_BINOP");
 
 	return new;
 }
@@ -1478,26 +1555,31 @@ static struct storage *emit_select_expr(struct expression *expr)
 	struct storage *cond = x86_expression(expr->conditional);
 	struct storage *true = x86_expression(expr->cond_true);
 	struct storage *false = x86_expression(expr->cond_false);
+	struct storage *reg_cond, *reg_true, *reg_false;
 	struct storage *new = stack_alloc(4);
-	struct storage *truereg;
 
-	emit_move(cond,  REG_EAX, expr->conditional->ctype, "begin SELECT");
-	truereg = REG_EAX;
+	emit_comment("begin SELECT");
+	reg_cond = get_reg_value(cond);
+	reg_true = reg_cond;
 	if (true) {
-		emit_move(true,  REG_ECX, expr->cond_true->ctype, NULL);
-		truereg = REG_ECX;
+		reg_true = get_reg_value(true);
 	}
-	emit_move(false, REG_EDX, expr->cond_false->ctype, NULL);
+	reg_false = get_reg_value(false);
 
 	/*
 	 * Do the actual select: check the conditional for zero,
 	 * move false over true if zero
 	 */ 
-	insn("test", REG_EAX, REG_EAX, NULL);
-	insn("cmovz", REG_EDX, truereg, NULL);
+	insn("test", reg_cond, reg_cond, NULL);
+	insn("cmovz", reg_false, reg_true, NULL);
 
 	/* Store it back */
-	emit_move(truereg, new, expr->ctype, "end SELECT");
+	emit_move(reg_true, new, expr->ctype, NULL);
+	put_reg(reg_cond);
+	if (true)
+		put_reg(reg_true);
+	put_reg(reg_false);
+	emit_comment("end SELECT");
 	return new;
 }
 
