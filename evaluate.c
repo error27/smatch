@@ -1954,8 +1954,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_LOGICAL:
 		return evaluate_logical(expr);
 	case EXPR_COMMA:
-		if (!evaluate_expression(expr->left))
-			return NULL;
+		evaluate_expression(expr->left);
 		if (!evaluate_expression(expr->right))
 			return NULL;
 		return evaluate_comma(expr);
