@@ -125,6 +125,8 @@ extern struct symbol *evaluate_symbol(struct symbol *sym);
 extern struct symbol *evaluate_statement(struct statement *stmt);
 extern struct symbol *evaluate_expression(struct expression *);
 
+extern void expand_symbol(struct symbol *);
+
 static inline struct expression *alloc_expression(struct position pos, int type)
 {
 	struct expression *expr = __alloc_expression(0);

@@ -332,6 +332,12 @@ static struct symbol *create_symbol(int stream, const char *name, int type, int 
 
 static int evaluate_constant_p(struct expression *expr)
 {
+	expr->ctype = &int_ctype;
+	return 1;
+}
+
+static void expand_constant_p(struct expression *expr)
+{
 	struct expression *arg;
 	struct expression_list *arglist = expr->args;
 	int value = 1;
@@ -341,10 +347,8 @@ static int evaluate_constant_p(struct expression *expr)
 			value = 0;
 	} END_FOR_EACH_PTR;
 
-	expr->ctype = &int_ctype;
 	expr->type = EXPR_VALUE;
 	expr->value = value;
-	return 1;
 }
 
 /*
@@ -358,7 +362,7 @@ struct sym_init {
 	const char *name;
 	struct symbol *base_type;
 	unsigned int modifiers;
-	int (*evaluate)(struct expression *);
+	struct symbol_op *op;
 } symbol_init_table[] = {
 	/* Storage class */
 	{ "auto",	NULL,		MOD_AUTO },
@@ -420,11 +424,16 @@ struct sym_init {
 	{ NULL,		NULL,		0 }
 };
 
+struct symbol_op constant_p_op = {
+	.evaluate = evaluate_constant_p,
+	.expand = expand_constant_p
+};
+
 /*
  * Builtin functions
  */
 struct sym_init eval_init_table[] = {
-	{ "__builtin_constant_p", &int_type, MOD_TOPLEVEL, evaluate_constant_p },
+	{ "__builtin_constant_p", &int_type, MOD_TOPLEVEL, &constant_p_op },
 
 	{ NULL,		NULL,		0 }
 };
@@ -545,7 +554,7 @@ void init_symbols(void)
 		sym = create_symbol(stream, ptr->name, SYM_NODE, NS_SYMBOL);
 		sym->ctype.base_type = ptr->base_type;
 		sym->ctype.modifiers = ptr->modifiers;
-		sym->evaluate = ptr->evaluate;
+		sym->op = ptr->op;
 	}
 
 	ptr_ctype.type = SYM_PTR;

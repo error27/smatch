@@ -34,9 +34,6 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 
 	if (!sym) {
 		if (preprocessing) {
-			warn(expr->pos, "undefined preprocessor identifier '%s'", show_ident(expr->symbol_name));
-			expr->type = EXPR_VALUE;
-			expr->value = 0;
 			expr->ctype = &int_ctype;
 			return &int_ctype;
 		}
@@ -56,16 +53,6 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 
 	/* The type of a symbol is the symbol itself! */
 	expr->ctype = sym;
-
-	/* Const symbol with a constant initializer? */
-	if (sym->ctype.modifiers & MOD_CONST) {
-		struct expression *value = sym->initializer;
-		if (value && value->type == EXPR_VALUE) {
-			expr->type = EXPR_VALUE;
-			expr->value = value->value;
-			return sym;
-		}
-	}
 
 	/* enum's can be turned into plain values */
 	if (sym->type != SYM_ENUM) {
@@ -137,54 +124,12 @@ static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 	return ctype_integer(mod);
 }
 
-static struct symbol * cast_value(struct expression *expr, struct symbol *newtype,
-			struct expression *old, struct symbol *oldtype)
-{
-	int old_size = oldtype->bit_size;
-	int new_size = newtype->bit_size;
-	long long value, mask, ormask, andmask;
-	int is_signed;
-
-	// FIXME! We don't handle FP casts of constant values yet
-	if (newtype->ctype.base_type == &fp_type)
-		return NULL;
-	if (oldtype->ctype.base_type == &fp_type)
-		return NULL;
-
-	// For pointers and integers, we can just move the value around
-	expr->type = EXPR_VALUE;
-	if (old_size == new_size) {
-		expr->value = old->value;
-		return newtype;
-	}
-
-	// expand it to the full "long long" value
-	is_signed = !(oldtype->ctype.modifiers & MOD_UNSIGNED);
-	mask = 1ULL << (old_size-1);
-	value = old->value;
-	if (!(value & mask))
-		is_signed = 0;
-	andmask = mask | (mask-1);
-	ormask = ~andmask;
-	if (!is_signed)
-		ormask = 0;
-	value = (value & andmask) | ormask;
-
-	// Truncate it to the new size
-	mask = 1ULL << (new_size-1);
-	mask = mask | (mask-1);
-	expr->value = value & mask;
-	return newtype;
-}
-
 static struct expression * cast_to(struct expression *old, struct symbol *type)
 {
 	struct expression *expr = alloc_expression(old->pos, EXPR_CAST);
 	expr->ctype = type;
 	expr->cast_type = type;
 	expr->cast_expression = old;
-	if (old->type == EXPR_VALUE)
-		cast_value(expr, type, old, old->ctype);
 	return expr;
 }
 
@@ -235,69 +180,11 @@ static struct symbol * compatible_integer_binop(struct expression *expr, struct 
 	return NULL;
 }
 
-static int check_shift_count(struct expression *expr, struct symbol *ctype, unsigned int count)
-{
-	if (count >= ctype->bit_size) {
-		warn(expr->pos, "shift too big for type");
-		count &= ctype->bit_size-1;
-	}
-	return count;
-}
-
-/*
- * CAREFUL! We need to get the size and sign of the
- * result right!
- */
-static void simplify_int_binop(struct expression *expr, struct symbol *ctype)
-{
-	struct expression *left = expr->left, *right = expr->right;
-	unsigned long long v, l, r, mask;
-	signed long long s, sl, sr;
-	int is_signed, shift;
-
-	if (left->type != EXPR_VALUE || right->type != EXPR_VALUE)
-		return;
-	l = left->value; r = right->value;
-	is_signed = !(ctype->ctype.modifiers & MOD_UNSIGNED);
-	mask = 1ULL << (ctype->bit_size-1);
-	sl = l; sr = r;
-	if (is_signed && (sl & mask))
-		sl |= ~(mask-1);
-	if (is_signed && (sr & mask))
-		sr |= ~(mask-1);
-	
-	switch (expr->op) {
-	case '+':		v = l + r; s = v; break;
-	case '-':		v = l - r; s = v; break;
-	case '&':		v = l & r; s = v; break;
-	case '|':		v = l | r; s = v; break;
-	case '^':		v = l ^ r; s = v; break;
-	case '*':		v = l * r; s = sl * sr; break;
-	case '/':		if (!r) return; v = l / r; s = sl / sr; break;
-	case '%':		if (!r) return; v = l % r; s = sl % sr; break;
-	case SPECIAL_LEFTSHIFT: shift = check_shift_count(expr, ctype, r); v = l << shift; s = v; break; 
-	case SPECIAL_RIGHTSHIFT:shift = check_shift_count(expr, ctype, r); v = l >> shift; s = sl >> shift; break;
-	case '<':		v = l < r; s = sl < sr; break;
-	case '>':		v = l > r; s = sl > sr; break;
-	case SPECIAL_LTE:	v = l <= r; s = sl <= sr; break;
-	case SPECIAL_GTE:	v = l >= r; s = sl >= sr; break;
-	case SPECIAL_EQUAL:	v = l == r; s = v; break;
-	case SPECIAL_NOTEQUAL:	v = l != r; s = v; break;
-	default: return;
-	}
-	if (is_signed)
-		v = s;
-	mask = mask | (mask-1);
-	expr->value = v & mask;
-	expr->type = EXPR_VALUE;
-}
-
 static struct symbol *evaluate_int_binop(struct expression *expr)
 {
 	struct symbol *ctype = compatible_integer_binop(expr, &expr->left, &expr->right);
 	if (ctype) {
 		expr->ctype = ctype;
-		simplify_int_binop(expr, ctype);
 		return ctype;
 	}
 	return bad_expr_type(expr);
@@ -382,12 +269,10 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 		mul->ctype = size_t_ctype;
 		mul->left = i;
 		mul->right = val;
-		simplify_int_binop(mul, size_t_ctype);
 
 		/* Leave 'add->op' as 'expr->op' - either '+' or '-' */
 		add->left = ptr;
 		add->right = mul;
-		simplify_int_binop(add, ctype);
 	}
 
 	expr->ctype = ctype;	
@@ -410,7 +295,7 @@ static struct symbol *evaluate_add(struct expression *expr)
 }
 
 #define MOD_SIZE (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG)
-#define MOD_IGNORE (MOD_TOPLEVEL | MOD_STORAGE | MOD_ADDRESSABLE | MOD_SIGNED | MOD_UNSIGNED)
+#define MOD_IGNORE (MOD_TOPLEVEL | MOD_STORAGE | MOD_ADDRESSABLE | MOD_SIGNED | MOD_UNSIGNED | MOD_ASSIGNED)
 
 static const char * type_difference(struct symbol *target, struct symbol *source,
 	unsigned long target_mod_ignore, unsigned long source_mod_ignore)
@@ -591,44 +476,11 @@ static struct symbol *evaluate_sub(struct expression *expr)
 
 static struct symbol *evaluate_logical(struct expression *expr)
 {
-	struct expression *left = expr->left;
-	struct expression *right;
-
-	if (!evaluate_expression(left))
+	if (!evaluate_expression(expr->left))
 		return NULL;
-
-	/* Do immediate short-circuiting ... */
-	if (left->type == EXPR_VALUE) {
-		if (expr->op == SPECIAL_LOGICAL_AND) {
-			if (!left->value) {
-				expr->type = EXPR_VALUE;
-				expr->value = 0;
-				expr->ctype = &bool_ctype;
-				return &bool_ctype;
-			}
-		} else {
-			if (left->value) {
-				expr->type = EXPR_VALUE;
-				expr->value = 1;
-				expr->ctype = &bool_ctype;
-				return &bool_ctype;
-			}
-		}
-	}
-
-	right = expr->right;
-	if (!evaluate_expression(right))
+	if (!evaluate_expression(expr->right))
 		return NULL;
 	expr->ctype = &bool_ctype;
-	if (left->type == EXPR_VALUE && right->type == EXPR_VALUE) {
-		/*
-		 * We know the left value doesn't matter, since
-		 * otherwise we would have short-circuited it..
-		 */
-		expr->type = EXPR_VALUE;
-		expr->value = right->value;
-	}
-
 	return &bool_ctype;
 }
 
@@ -682,7 +534,6 @@ static struct symbol *evaluate_compare(struct expression *expr)
 
 	ctype = compatible_integer_binop(expr, &expr->left, &expr->right);
 	if (ctype) {
-		simplify_int_binop(expr, ctype);
 		expr->ctype = &bool_ctype;
 		return &bool_ctype;
 	}
@@ -711,7 +562,7 @@ static int is_null_ptr(struct expression *expr)
 }
 
 /*
- * FIXME!! This shoul ddo casts, array degeneration etc..
+ * FIXME!! This should do casts, array degeneration etc..
  */
 static struct symbol *compatible_ptr_type(struct expression *left, struct expression *right)
 {
@@ -767,12 +618,6 @@ static struct symbol * evaluate_conditional(struct expression *expr)
 		}
 	}
 
-	/* Simplify conditional expression.. */
-	if (cond->type == EXPR_VALUE) {
-		if (!cond->value)
-			true = false;
-		*expr = *true;
-	}
 	expr->ctype = ctype;
 	return ctype;
 }
@@ -886,6 +731,9 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 	if (!compatible_assignment_types(expr, ltype, &expr->right, rtype, "assignment"))
 		return 0;
 
+	if (ltype->type == SYM_NODE)
+		ltype->ctype.modifiers |= MOD_ASSIGNED;
+
 	expr->ctype = ltype;
 	return ltype;
 }
@@ -960,27 +808,6 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	return sym;
 }
 
-static void simplify_preop(struct expression *expr)
-{
-	struct expression *op = expr->unop;
-	unsigned long long v, mask;
-
-	if (op->type != EXPR_VALUE)
-		return;
-	v = op->value;
-	switch (expr->op) {
-	case '+': break;
-	case '-': v = -v; break;
-	case '!': v = !v; break;
-	case '~': v = ~v; break;
-	default: return;
-	}
-	mask = 1ULL << (expr->ctype->bit_size-1);
-	mask = mask | (mask-1);
-	expr->value = v & mask;
-	expr->type = EXPR_VALUE;
-}
-
 /*
  * Unary post-ops: x++ and x--
  */
@@ -1029,7 +856,6 @@ static struct symbol *evaluate_preop(struct expression *expr)
 		break;
 	}
 	expr->ctype = ctype;
-	simplify_preop(expr);
 	return &bool_ctype;
 }
 
@@ -1083,7 +909,6 @@ static struct expression *evaluate_offset(struct expression *expr, unsigned long
 	add->right->ctype = &int_ctype;
 	add->right->value = offset;
 
-	simplify_int_binop(add, &ptr_ctype);
 	return add;
 }
 
@@ -1384,10 +1209,6 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	}
 
 	evaluate_expression(target);
-
-	/* Simplify normal integer casts.. */
-	if (target->type == EXPR_VALUE)
-		cast_value(expr, ctype, target, target->ctype);
 	return ctype;
 }
 
@@ -1404,8 +1225,8 @@ static int evaluate_symbol_call(struct expression *expr)
 	if (fn->type != EXPR_PREOP)
 		return 0;
 
-	if (ctype->evaluate)
-		return ctype->evaluate(expr);
+	if (ctype->op && ctype->op->evaluate)
+		return ctype->op->evaluate(expr);
 
 	/*
 	 * FIXME!! We should really expand the inline functions.
@@ -1440,6 +1261,10 @@ static struct symbol *evaluate_call(struct expression *expr)
 		ctype = ctype->ctype.base_type;
 	if (!evaluate_arguments(sym, ctype, arglist))
 		return NULL;
+	if (sym->type == SYM_NODE) {
+		if (evaluate_symbol_call(expr))
+			return expr->ctype;
+	}
 	if (sym->type == SYM_NODE) {
 		if (evaluate_symbol_call(expr))
 			return expr->ctype;
@@ -1654,20 +1479,6 @@ static void evaluate_if_statement(struct statement *stmt)
 	if (!ctype)
 		return;
 
-	/* Simplify constant conditionals without even evaluating the false side */
-	if (expr->type == EXPR_VALUE) {
-		struct statement *simple;
-		simple = expr->value ? stmt->if_true : stmt->if_false;
-
-		/* Nothing? */
-		if (!simple) {
-			stmt->type = STMT_NONE;
-			return;
-		}
-		evaluate_statement(simple);
-		*stmt = *simple;
-		return;
-	}
 	evaluate_statement(stmt->if_true);
 	evaluate_statement(stmt->if_false);
 }
@@ -1723,27 +1534,4 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		break;
 	}
 	return NULL;
-}
-
-long long get_expression_value(struct expression *expr)
-{
-	long long value, mask;
-	struct symbol *ctype;
-
-	ctype = evaluate_expression(expr);
-	if (!ctype || expr->type != EXPR_VALUE) {
-		warn(expr->pos, "bad constant expression");
-		return 0;
-	}
-
-	value = expr->value;
-	mask = 1ULL << (ctype->bit_size-1);
-
-	if (value & mask) {
-		while (ctype->type != SYM_BASETYPE)
-			ctype = ctype->ctype.base_type;
-		if (!(ctype->ctype.modifiers & MOD_UNSIGNED))
-			value = value | mask | ~(mask-1);
-	}
-	return value;
 }

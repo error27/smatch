@@ -56,6 +56,11 @@ struct ctype {
 	struct symbol *base_type;
 };
 
+struct symbol_op {
+	int (*evaluate)(struct expression *);
+	void (*expand)(struct expression *);
+};	
+
 struct symbol {
 	enum namespace namespace:8;
 	enum type type:8;
@@ -66,7 +71,7 @@ struct symbol {
 	struct symbol	*replace;	/* What is this symbol shadowed by in copy-expression */
 	struct scope	*scope;
 	struct symbol	*same_symbol;
-	int (*evaluate)(struct expression *);
+	struct symbol_op *op;
 
 	struct /* preprocessor_sym */ {
 		struct token *expansion;
@@ -127,6 +132,7 @@ struct symbol {
 #define MOD_TOPLEVEL	0x800000	// scoping..
 
 #define MOD_LABEL	0x1000000
+#define MOD_ASSIGNED	0x2000000
 
 /* Basic types */
 extern struct symbol	void_type,

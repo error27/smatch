@@ -94,6 +94,7 @@ static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 {
 	check_duplicates(sym);
 	evaluate_symbol(sym);
+	expand_symbol(sym);
 }
 
 int main(int argc, char **argv)

@@ -70,6 +70,7 @@ static void handle_switch(char *arg)
 static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
 {
 	evaluate_symbol(sym);
+	expand_symbol(sym);
 }
 
 int main(int argc, char **argv)
@@ -112,7 +113,7 @@ int main(int argc, char **argv)
 	// Parse the resulting C code
 	translation_unit(token, &used_list);
 
-	// Do type evaluation and simplify
+	// Do type evaluation and simplification
 	symbol_iterate(used_list, clean_up_symbol, NULL);
 
 #if 1
