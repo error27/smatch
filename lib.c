@@ -324,17 +324,30 @@ void **add_ptr_list(struct ptr_list **listp, void *ptr)
 	return ret;
 }
 
-int replace_ptr_list(struct ptr_list *head, void *old_ptr, void *new_ptr)
+int delete_ptr_list_entry(struct ptr_list **list, void *entry)
 {
 	int count = 0;
 	void *ptr;
 
-	FOR_EACH_PTR(head, ptr) {
+	FOR_EACH_PTR(*list, ptr) {
+		if (ptr == entry) {
+			DELETE_CURRENT_PTR(ptr);
+			count++;
+		}
+	} END_FOR_EACH_PTR(ptr);
+	if (count)
+		PACK_PTR_LIST(list);
+	return count;
+}
+
+int replace_ptr_list_entry(struct ptr_list **list, void *old_ptr, void *new_ptr)
+{
+	int count = 0;
+	void *ptr;
+
+	FOR_EACH_PTR(*list, ptr) {
 		if (ptr==old_ptr) {
-			if (new_ptr)
-				REPLACE_CURRENT_PTR(ptr, new_ptr);
-			else
-				DELETE_CURRENT_PTR(ptr);
+			REPLACE_CURRENT_PTR(ptr, new_ptr);
 			count ++;
 		}
 	}END_FOR_EACH_PTR(ptr);

@@ -101,7 +101,8 @@ struct ptr_list {
 #define ptr_list_empty(x) ((x) == NULL)
 
 void * delete_ptr_list_last(struct ptr_list **head);
-int replace_ptr_list(struct ptr_list *head, void *old_ptr, void *new_ptr);
+int delete_ptr_list_entry(struct ptr_list **, void *);
+int replace_ptr_list_entry(struct ptr_list **, void *old, void *new);
 extern void sort_list(struct ptr_list **, int (*)(const void *, const void *));
 
 extern void **add_ptr_list(struct ptr_list **, void *);
@@ -203,11 +204,6 @@ static inline struct instruction *first_instruction(struct instruction_list *hea
 static inline pseudo_t first_pseudo(struct pseudo_list *head)
 {
 	return first_ptr_list((struct ptr_list *)head);
-}
-
-static inline int replace_basic_block_list(struct basic_block_list *head, struct basic_block *from, struct basic_block *to)
-{
-	return replace_ptr_list((struct ptr_list *)head, (void*)from, (void*)to);
 }
 
 static inline void concat_symbol_list(struct symbol_list *from, struct symbol_list **to)
