@@ -222,7 +222,7 @@ static inline void add_pseudo_ptr(pseudo_t *ptr, struct pseudo_ptr_list **list)
 static inline void use_pseudo(pseudo_t p, pseudo_t *pp)
 {
 	*pp = p;
-	if (p && p->type != PSEUDO_VOID)
+	if (p && p->type != PSEUDO_VOID && p->type != PSEUDO_VAL)
 		add_pseudo_ptr(pp, &p->users);
 }
 
@@ -230,13 +230,14 @@ struct entrypoint {
 	struct symbol *name;
 	struct symbol_list *syms;
 	struct symbol_list *accesses;
-	struct instruction_list *switches;
 	struct basic_block_list *bbs;
 	struct basic_block *active;
 	struct basic_block *entry;
 };
 
 extern void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi, pseudo_t true, pseudo_t false);
+extern void insert_branch(struct basic_block *bb, struct basic_block *target);
+
 pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo);
 pseudo_t alloc_pseudo(struct instruction *def);
 pseudo_t value_pseudo(long long val);

@@ -148,6 +148,7 @@ void convert_instruction_target(struct instruction *insn, pseudo_t src)
 		*usep = src;
 	} END_FOR_EACH_PTR(usep);
 	concat_user_list(target->users, &src->users);
+	target->users = NULL;
 }
 
 static void convert_load_insn(struct instruction *insn, pseudo_t src)
@@ -656,22 +657,9 @@ static struct basic_block * rewrite_branch_bb(struct basic_block *bb, struct ins
 	return success;
 }
 
-/*
- * FIXME! This knows _way_ too much about list internals
- */
-static void set_list(struct basic_block_list *p, struct basic_block *child)
-{
-	struct ptr_list *list = (void *)p;
-	list->prev = list;
-	list->next = list;
-	list->nr = 1;
-	list->list[0] = child;
-}
-
 static void simplify_one_switch(struct basic_block *bb,
 	long long val,
-	struct multijmp_list *list,
-	struct instruction *p)
+	struct multijmp_list *list)
 {
 	struct multijmp *jmp;
 
@@ -686,22 +674,23 @@ static void simplify_one_switch(struct basic_block *bb,
 	return;
 
 found:
-	p->opcode = OP_BR;
-	p->cond = NULL;
-	p->bb_false = NULL;
-	p->bb_true = jmp->target;
-	set_list(bb->children, jmp->target);
+	insert_branch(bb, jmp->target);
 }
 
 static void simplify_switch(struct entrypoint *ep)
 {
-	struct instruction *insn;
+	struct basic_block *bb;
 
-	FOR_EACH_PTR(ep->switches, insn) {
-		pseudo_t pseudo = insn->target;
+	FOR_EACH_PTR(ep->bbs, bb) {
+		pseudo_t pseudo;
+		struct instruction *insn = last_instruction(bb->insns);
+
+		if (insn->opcode != OP_SWITCH)
+			continue;
+		pseudo = insn->target;
 		if (pseudo->type == PSEUDO_VAL)
-			simplify_one_switch(insn->bb, pseudo->value, insn->multijmp_list, insn);
-	} END_FOR_EACH_PTR(insn);
+			simplify_one_switch(bb, pseudo->value, insn->multijmp_list);
+	} END_FOR_EACH_PTR(bb);
 }
 
 void simplify_flow(struct entrypoint *ep)

@@ -474,6 +474,34 @@ static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
 		add_bb(&ep->bbs, bb);
 }
 
+/*
+ * FIXME! This knows _way_ too much about list internals
+ */
+static void set_list(struct basic_block_list *p, struct basic_block *child)
+{
+	struct ptr_list *list = (void *)p;
+	list->prev = list;
+	list->next = list;
+	list->nr = 1;
+	list->list[0] = child;
+}
+
+
+/* Change a "switch" into a branch */
+void insert_branch(struct basic_block *bb, struct basic_block *target)
+{
+	struct instruction *br;
+
+	/* Remove the switch */
+	delete_last_instruction(&bb->insns);
+
+	br = alloc_instruction(OP_BR, NULL);
+	br->bb_true = target;
+	add_instruction(&bb->insns, br);
+	set_list(bb->children, target);
+}
+	
+
 void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi_node, pseudo_t true, pseudo_t false)
 {
 	struct instruction *setcc, *select;
@@ -1514,7 +1542,6 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			break;
 
 		switch_ins = alloc_instruction(OP_SWITCH, NULL);
-		add_instruction(&ep->switches, switch_ins);
 		use_pseudo(pseudo, &switch_ins->cond);
 		add_one_insn(ep, switch_ins);
 		finish_block(ep);
