@@ -90,7 +90,7 @@ static void check_context(struct entrypoint *ep)
 	check_bb_context(ep, ep->entry, sym->ctype.in_context, sym->ctype.out_context);
 }
 
-static void clean_up_symbols(struct symbol_list *list)
+static void check_symbols(struct symbol_list *list)
 {
 	struct symbol *sym;
 
@@ -106,9 +106,7 @@ static void clean_up_symbols(struct symbol_list *list)
 
 int main(int argc, char **argv)
 {
-	struct symbol_list *list = sparse(argc, argv);
-
 	// Expand, linearize and show it.
-	clean_up_symbols(list);
+	check_symbols(sparse(argc, argv));
 	return 0;
 }
