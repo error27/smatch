@@ -666,7 +666,7 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 		break;
 
 	default:
-		output_comment(state, "unimplemented: %s", show_instruction(insn));
+		output_insn(state, "unimplemented: %s", show_instruction(insn));
 		break;
 	}
 }
