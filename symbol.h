@@ -225,4 +225,13 @@ extern void debug_symbol(struct symbol *);
 extern void merge_type(struct symbol *sym, struct symbol *base_type);
 extern void check_declaration(struct symbol *sym);
 
+static inline int is_int_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return (type->type == SYM_ENUM) ||
+	       (type->type == SYM_BITFIELD) ||
+	       type->ctype.base_type == &int_type;
+}
+
 #endif /* SEMANTIC_H */

@@ -392,7 +392,7 @@ static void apply_ctype(struct position pos, struct ctype *thistype, struct ctyp
 
 	if (mod) {
 		unsigned long old = ctype->modifiers;
-		unsigned long extra = 0, dup;
+		unsigned long extra = 0, dup, conflict;
 
 		if (mod & old & MOD_LONG) {
 			extra = MOD_LONGLONG | MOD_LONG;
@@ -403,6 +403,15 @@ static void apply_ctype(struct position pos, struct ctype *thistype, struct ctyp
 		if (dup)
 			warn(pos, "Just how %sdo you want this type to be?",
 				modifier_string(dup));
+
+		conflict = !(~mod & ~old & (MOD_LONG | MOD_SHORT));
+		if (conflict)
+			warn(pos, "You cannot have both long and short modifiers.");
+
+		conflict = !(~mod & ~old & (MOD_SIGNED | MOD_UNSIGNED));
+		if (conflict)
+			warn(pos, "You cannot have both signed and unsigned modifiers.");
+
 		ctype->modifiers = old | mod | extra;
 	}
 
@@ -573,12 +582,14 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 			continue;
 		}
 		if (token->special == ':') {
-			struct symbol *bitfield;
-			struct expression *expr;
-			bitfield = indirect(token->pos, ctype, SYM_BITFIELD);
-			token = conditional_expression(token->next, &expr);
-			bitfield->fieldwidth = get_expression_value(expr);
-			continue;
+			if (is_int_type (ctype->base_type)) {
+				struct symbol *bitfield = indirect(token->pos, ctype, SYM_BITFIELD);
+				struct expression *expr;
+				token = conditional_expression(token->next, &expr);
+				bitfield->fieldwidth = get_expression_value(expr);
+			} else
+				error(token->pos, "Invalid bitfield specifier for type %s.", show_typename (ctype->base_type));
+			break;
 		}
 		break;
 	}

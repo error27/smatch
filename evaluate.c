@@ -194,15 +194,6 @@ static int is_ptr_type(struct symbol *type)
 	return type->type == SYM_PTR || type->type == SYM_ARRAY || type->type == SYM_FN;
 }
 
-static inline int is_int_type(struct symbol *type)
-{
-	if (type->type == SYM_NODE)
-		type = type->ctype.base_type;
-	return (type->type == SYM_ENUM) ||
-	       (type->type == SYM_BITFIELD) ||
-	       type->ctype.base_type == &int_type;
-}
-
 static inline int is_float_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
