@@ -574,7 +574,7 @@ static void emit_func_pre(struct symbol *sym)
 }
 
 /* function epilogue */
-static void emit_func_post(struct symbol *sym, struct storage *ret_val)
+static void emit_func_post(struct symbol *sym)
 {
 	const char *name = show_ident(sym->ident);
 	struct function *f = current_func;
@@ -595,11 +595,6 @@ static void emit_func_post(struct symbol *sym, struct storage *ret_val)
 	printf("\tsubl\t%s, %%esp\n", pseudo_const);
 
 	/* function epilogue */
-
-	if (ret_val) {
-		/* FIXME: mem operand hardcoded at 32 bits */
-		emit_move(ret_val, REG_EAX, NULL, NULL, 0);
-	}
 
 	/* jump target for 'return' statements */
 	sprintf(jump_target, ".L%d:\n", f->ret_target);
@@ -1296,11 +1291,9 @@ static void x86_symbol(struct symbol *sym)
 	case SYM_FN: {
 		struct statement *stmt = type->stmt;
 		if (stmt) {
-			struct storage *val;
-
 			emit_func_pre(sym);
-			val = x86_statement(stmt);
-			emit_func_post(sym, val);
+			x86_statement(stmt);
+			emit_func_post(sym);
 		}
 		break;
 	}
