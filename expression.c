@@ -73,6 +73,11 @@ static struct token *string_expression(struct token *token, struct expression *e
 			next = next->next;
 		} while (token_type(next) == TOKEN_STRING);
 
+		if (totlen > MAX_STRING) {
+			warn(token->pos, "trying to concatenate %d-character string (%d bytes max)", totlen, MAX_STRING);
+			totlen = MAX_STRING;
+		}
+
 		string = __alloc_string(totlen);
 		string->length = totlen;
 		data = string->data;
@@ -80,6 +85,10 @@ static struct token *string_expression(struct token *token, struct expression *e
 		do {
 			struct string *s = next->string;
 			int len = s->length;
+
+			if (len > totlen)
+				len = totlen;
+			totlen -= len;
 
 			next = next->next;
 			memcpy(data, s->data, len);

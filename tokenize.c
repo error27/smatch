@@ -529,8 +529,6 @@ static int get_char_token(int next, stream_t *stream)
 	return nextchar(stream);
 }
 
-#define MAX_STRING 2048
-
 static int get_string_token(int next, stream_t *stream)
 {
 	static char buffer[MAX_STRING];

@@ -144,6 +144,8 @@ struct token {
 	};
 };
 
+#define MAX_STRING 2048
+
 static inline struct token *containing_token(struct token **p)
 {
 	void *addr = (char*)p - ((char*)&((struct token *)0)->next - (char*)0);
