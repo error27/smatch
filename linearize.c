@@ -186,6 +186,9 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 			add_statement(&bb->stmts, sw_bb);
 		} END_FOR_EACH_PTR;
 
+		/* Default fall-through case */
+		bb->next = stmt->switch_break;
+
 		/* And linearize the actual statement */
 		bb = linearize_statement(syms, bbs, new_basic_block(bbs), stmt->switch_statement);
 
