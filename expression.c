@@ -153,10 +153,13 @@ static void get_int_value(struct expression *expr, const char *str)
 			if (BITS_IN_LONG == BITS_IN_INT)
 				modifiers = MOD_LONG | MOD_UNSIGNED;
 		}
-		warn(expr->pos, "value is so big it is%s%s%s",
-			(modifiers & MOD_UNSIGNED) ? " unsigned":"",
-			(modifiers & MOD_LONG) ? " long":"",
-			(modifiers & MOD_LONGLONG) ? " long":"");
+
+		/* Hex or octal constants don't complain about missing signedness */
+		if (base == 10 || extramod != MOD_UNSIGNED)
+			warn(expr->pos, "value is so big it is%s%s%s",
+				(modifiers & MOD_UNSIGNED) ? " unsigned":"",
+				(modifiers & MOD_LONG) ? " long":"",
+				(modifiers & MOD_LONGLONG) ? " long":"");
 	}
 
 	expr->type = EXPR_VALUE;
