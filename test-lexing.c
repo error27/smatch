@@ -29,13 +29,18 @@ int main(int argc, char **argv)
 	token = preprocess(token);
 
 	while (!eof_token(token)) {
+		int prec = 1;
 		struct token *next = token->next;
 		char * separator = "";
 		if (next->pos.whitespace)
 			separator = " ";
-		if (next->pos.newline)
-			separator = "\n";
-		printf("%s%s", show_token(token), separator);
+		if (next->pos.newline) {
+			separator = "\n\t\t\t\t\t";
+			prec = next->pos.pos;
+			if (prec > 4)
+				prec = 4;
+		}
+		printf("%s%.*s", show_token(token), prec, separator);
 		token = next;
 	}
 	putchar('\n');
