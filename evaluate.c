@@ -46,7 +46,7 @@ static void evaluate_symbol(struct expression *expr)
 	}
 }
 
-static unsigned long long get_int_value(const char *str)
+static void get_int_value(struct expression *expr, const char *str)
 {
 	unsigned long long value = 0;
 	unsigned int base = 10, digit;
@@ -64,26 +64,23 @@ static unsigned long long get_int_value(const char *str)
 		value = value * base + digit;
 		str++;
 	}
-	return value;
+	expr->type = EXPR_VALUE;
+	expr->ctype = &int_ctype;
+	expr->value = value;
 }
 
 static void evaluate_constant(struct expression *expr)
 {
 	struct token *token = expr->token;
-	long long value;
 
 	switch (token->type) {
 	case TOKEN_INTEGER:
-		value = get_int_value(token->integer);
-		expr->type = EXPR_VALUE;
-		expr->ctype = &int_ctype;
-		expr->value = value;
+		get_int_value(expr, token->integer);
 		return;
 	case TOKEN_CHAR:
-		value = (char) token->character;
 		expr->type = EXPR_VALUE;
 		expr->ctype = &int_ctype;
-		expr->value = value;
+		expr->value = (char) token->character;
 		return;
 	case TOKEN_STRING:
 		expr->ctype = &string_ctype;
@@ -119,16 +116,6 @@ void evaluate_expression(struct expression *expr)
 	}
 }
 
-static long long primary_value(struct token *token)
-{
-	switch (token->type) {
-	case TOKEN_INTEGER:
-		return get_int_value(token->integer);
-	}
-	error(token, "bad constant expression");
-	return 0;
-}
-
 long long get_expression_value(struct expression *expr)
 {
 	long long left, middle, right;
@@ -146,7 +133,10 @@ long long get_expression_value(struct expression *expr)
 		warn(expr->token, "expression sizes not yet supported");
 		return 0;
 	case EXPR_CONSTANT:
-		return primary_value(expr->token);
+		evaluate_constant(expr);
+		if (expr->type == EXPR_VALUE)
+			return expr->value;
+		return 0;
 	case EXPR_SYMBOL: {
 		struct symbol *sym = expr->symbol;
 		if (!sym || !sym->ctype.base_type || sym->ctype.base_type->type != SYM_ENUM) {
