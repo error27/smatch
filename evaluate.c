@@ -205,8 +205,12 @@ static int evaluate_preop(struct expression *expr)
 			warn(expr->token, "cannot derefence this type");
 			return 0;
 		}
-		expr->ctype = ctype->ctype.base_type;
 		examine_symbol_type(expr->ctype);
+		expr->ctype = ctype->ctype.base_type;
+		if (!expr->ctype) {
+			warn(expr->token, "undefined type");
+			return 0;
+		}
 		return 1;
 
 	case '&': {
@@ -424,11 +428,11 @@ int evaluate_expression(struct expression *expr)
 		return evaluate_preop(expr);
 	case EXPR_POSTOP:
 		if (!evaluate_expression(expr->unop))
-			return 1;
+			return 0;
 		return evaluate_postop(expr);
 	case EXPR_CAST:
 		if (!evaluate_expression(expr->cast_expression))
-			return 1;
+			return 0;
 		expr->ctype = expr->cast_type;
 		return 1;
 	case EXPR_SIZEOF:
@@ -475,6 +479,7 @@ long long get_expression_value(struct expression *expr)
 
 #define OP(x,y)	case x: return left y right;
 	case EXPR_BINOP:
+	case EXPR_COMPARE:
 		left = get_expression_value(expr->left);
 		if (!left && expr->op == SPECIAL_LOGICAL_AND)
 			return 0;

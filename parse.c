@@ -685,9 +685,12 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn)
 			fn->variadic = 1;
 			token = token->next;
 			break;
-		} 
+		}
 		
 		token = parameter_declaration(token, &sym);
+		/* Special case: (void) */
+		if (!*list && !sym->token && sym->ctype.base_type == &void_ctype)
+			break;
 		add_symbol(list, sym);
 		if (!match_op(token, ','))
 			break;
