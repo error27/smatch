@@ -13,45 +13,46 @@
 
 #include "token.h"
 #include "parse.h"
+#include "symbol.h"
 
 void show_expression(struct expression *expr)
 {
 	if (!expr)
 		return;
 
+	printf("< ");
 	switch (expr->type) {
 	case EXPR_BINOP:
-		printf("< ");
 		show_expression(expr->left);
 		printf(" %s ", show_special(expr->op));
 		show_expression(expr->right);
-		printf(" >");
 		break;
 	case EXPR_PREOP:
-		printf("( ");
 		printf(" %s ", show_special(expr->op));
 		show_expression(expr->unop);
-		printf(" )");
 		break;
 	case EXPR_POSTOP:
-		printf("( ");
 		show_expression(expr->unop);
 		printf(" %s ", show_special(expr->op));
-		printf(" )");
 		break;
 	case EXPR_PRIMARY:
 		printf("%s", show_token(expr->token));
 		break;
 	case EXPR_DEREF:
-		printf("< ");
 		show_expression(expr->deref);
 		printf("%s", show_special(expr->op));
 		printf("%s", show_token(expr->member));
-		printf(" >");
+		break;
+	case EXPR_CAST:
+		printf("(");
+		show_expression(expr->cast_type);
+		printf(")");
+		show_expression(expr->cast_expression);
 		break;
 	default:
 		printf("WTF");
 	}
+	printf(" >");
 }
 
 static struct expression *alloc_expression(struct token *token, int type)
@@ -66,11 +67,14 @@ static struct expression *alloc_expression(struct token *token, int type)
 	return expr;
 }
 
+static int match_op(struct token *token, int op)
+{
+	return token && token->type == TOKEN_SPECIAL && token->special == op;
+}
+
 static struct token *expect(struct token *token, int op)
 {
-	if (!token ||
-	     token->value.type != TOKEN_SPECIAL ||
-	     token->value.special != op) {
+	if (!match_op(token, op)) {
 		warn(token, "Expected %s", show_special(op));
 		return token;
 	}
@@ -83,7 +87,13 @@ static struct token *primary_expression(struct token *token, struct expression *
 {
 	struct expression *expr = NULL;
 
-	switch (token->value.type) {
+	if (!token) {
+		warn(token, "unexpected end of file");
+		*tree = NULL;
+		return token;
+	}
+
+	switch (token->type) {
 	case TOKEN_IDENT:
 	case TOKEN_INTEGER:
 	case TOKEN_FP:
@@ -93,7 +103,7 @@ static struct token *primary_expression(struct token *token, struct expression *
 		break;
 
 	case TOKEN_SPECIAL:
-		if (token->value.special == '(') {
+		if (token->special == '(') {
 			expr = alloc_expression(token, EXPR_PREOP);
 			expr->op = '(';
 			token = parse_expression(token->next, &expr->unop);
@@ -113,8 +123,8 @@ static struct token *postfix_expression(struct token *token, struct expression *
 	struct expression *expr = NULL;
 
 	token = primary_expression(token, &expr);
-	while (expr && token && token->value.type == TOKEN_SPECIAL) {
-		switch (token->value.special) {
+	while (expr && token && token->type == TOKEN_SPECIAL) {
+		switch (token->special) {
 		case '[': {			/* Array dereference */
 			struct expression *array_expr = alloc_expression(token, EXPR_BINOP);
 			array_expr->op = '[';
@@ -127,7 +137,7 @@ static struct token *postfix_expression(struct token *token, struct expression *
 		case SPECIAL_INCREMENT:		/* Post-increment */
 		case SPECIAL_DECREMENT:	{	/* Post-decrement */
 			struct expression *post = alloc_expression(token, EXPR_POSTOP);
-			post->op = token->value.special;
+			post->op = token->special;
 			post->unop = expr;
 			expr = post;
 			token = token->next;
@@ -136,10 +146,10 @@ static struct token *postfix_expression(struct token *token, struct expression *
 		case '.':			/* Structure member dereference */
 		case SPECIAL_DEREFERENCE: {	/* Structure pointer member dereference */
 			struct expression *deref = alloc_expression(token, EXPR_DEREF);
-			deref->op = token->value.special;
+			deref->op = token->special;
 			deref->deref = expr;
 			token = token->next;
-			if (!token || token->value.type != TOKEN_IDENT) {
+			if (!token || token->type != TOKEN_IDENT) {
 				warn(token, "Expected member name");
 				break;
 			}
@@ -173,8 +183,33 @@ static struct token *unary_expression(struct token *token, struct expression **t
 	return postfix_expression(token, tree);
 }
 
+/* This is bogus, but before I have real types. */
+static struct token *typename_expression(struct token *token, struct expression **tree)
+{
+	return parse_expression(token,tree);
+}
+
+/*
+ * Ambiguity: a '(' can be either a cast-expression or
+ * a primary-expression depending on whether it is followed
+ * by a type or not. 
+ */
 static struct token *cast_expression(struct token *token, struct expression **tree)
 {
+	if (match_op(token, '(')) {
+		struct token *next = token->next;
+		if (next && next->type == TOKEN_IDENT) {
+			struct symbol *sym = next->ident->symbol;
+			if (sym && symbol_is_typename(sym)) {
+				struct expression *cast = alloc_expression(next, EXPR_CAST);
+				token = typename_expression(next, &cast->cast_type);
+				token = expect(token, ')');
+				token = cast_expression(token, &cast->cast_expression);
+				*tree = cast;
+				return token;
+			}
+		}
+	}
 	return unary_expression(token, tree);
 }
 
@@ -186,9 +221,9 @@ static struct token *lr_binop_expression(struct token *token, struct expression 
 	struct token * next = inner(token, &left);
 
 	if (left) {
-		while (next && next->value.type == TOKEN_SPECIAL) {
+		while (next && next->type == TOKEN_SPECIAL) {
 			struct expression *top, *right = NULL;
-			int op = next->value.special;
+			int op = next->special;
 			va_list args;
 
 			va_start(args, inner);

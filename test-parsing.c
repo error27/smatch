@@ -8,6 +8,7 @@
 
 #include "token.h"
 #include "parse.h"
+#include "symbol.h"
 
 int main(int argc, char **argv)
 {
@@ -17,6 +18,7 @@ int main(int argc, char **argv)
 
 	if (fd < 0)
 		die("No such file: %s", argv[1]);
+	init_symbols();
 	token = tokenize(argv[1], fd);
 	token = parse_expression(token, &expr);
 	if (token)

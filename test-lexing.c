@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <fcntl.h>
+
 #include "token.h"
 
 void callback(struct token *token)
@@ -20,6 +21,7 @@ int main(int argc, char **argv)
 
 	if (fd < 0)
 		die("No such file: %s", argv[1]);
+
 	token = tokenize(argv[1], fd);
 	line = token->line;
 	while (token) {

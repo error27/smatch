@@ -85,7 +85,11 @@ struct string {
 	char data[];
 };
 
-struct value {
+struct token {
+	unsigned int line;
+	unsigned int pos:16,stream:8,len:8;
+	struct token *next;
+
 	enum token_type type;
 	union {
 		double fpval;
@@ -96,13 +100,8 @@ struct value {
 	};
 };
 
-struct token {
-	unsigned int line;
-	unsigned int pos:16,stream:8,len:8;
-	struct value value;
-	struct token *next;
-};
-
+extern int init_stream(const char *);
+extern struct token *built_in_token(int, const char *);
 extern const char *show_special(int op);
 extern const char *show_token(const struct token *token);
 extern struct token * tokenize(const char *, int);

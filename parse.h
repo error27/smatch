@@ -7,6 +7,7 @@ enum expression_type {
 	EXPR_DEREF,
 	EXPR_PREOP,
 	EXPR_POSTOP,
+	EXPR_CAST,
 };
 
 struct expression {
@@ -20,6 +21,10 @@ struct expression {
 		struct deref_arg {
 			struct expression *deref;
 			struct token *member;
+		};
+		struct cast_arg {
+			struct expression *cast_type;
+			struct expression *cast_expression;
 		};
 	};
 };

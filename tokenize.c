@@ -37,14 +37,13 @@ const char *show_special(int val)
 const char *show_token(const struct token *token)
 {
 	static char buffer[256];
-	const struct value *value = &token->value;
 
-	switch (value->type) {
+	switch (token->type) {
 	case TOKEN_ERROR:
 		return "syntax error";
 
 	case TOKEN_IDENT: {
-		struct ident *ident = value->ident;
+		struct ident *ident = token->ident;
 		sprintf(buffer, "%.*s", ident->len, ident->name);
 		return buffer;
 	}
@@ -52,7 +51,7 @@ const char *show_token(const struct token *token)
 	case TOKEN_STRING: {
 		char *ptr;
 		int i;
-		struct string *string = value->string;
+		struct string *string = token->string;
 
 		ptr = buffer;
 		*ptr++ = '"';
@@ -88,24 +87,24 @@ const char *show_token(const struct token *token)
 
 	case TOKEN_INTEGER: {
 		char *ptr;
-		ptr = buffer + sprintf(buffer, "%llu", value->intval);
+		ptr = buffer + sprintf(buffer, "%llu", token->intval);
 		return buffer;
 	}
 
 	case TOKEN_FP: {
-		sprintf(buffer, "%f", value->fpval);
+		sprintf(buffer, "%f", token->fpval);
 		return buffer;
 	}
 
 	case TOKEN_SPECIAL:
-		return show_special(value->special);
+		return show_special(token->special);
 	
 	default:
 		return "WTF???";
 	}
 }
 
-static int init_stream(const char *name)
+int init_stream(const char *name)
 {
 	int stream = input_stream_nr;
 
@@ -119,6 +118,19 @@ static int init_stream(const char *name)
 	input_streams[stream].name = name;
 	input_stream_nr = stream+1;
 	return stream;
+}
+
+struct token * alloc_token(int stream, int line, int pos)
+{
+	struct token *token = malloc(sizeof(struct token));
+	if (!token)
+		die("Out of memory for token");
+
+	memset(token, 0, sizeof(struct token));
+	token->line = line;
+	token->pos = pos;
+	token->stream = stream;
+	return token;
 }
 
 #define BUFSIZE (4096)
@@ -175,8 +187,8 @@ static int do_integer(unsigned long long value, int next, action_t *action)
 {
 	struct token *token = action->token;
 	
-	token->value.type = TOKEN_INTEGER;
-	token->value.intval = value;
+	token->type = TOKEN_INTEGER;
+	token->intval = value;
 	add_token(action);
 	return next;
 }
@@ -336,8 +348,8 @@ static int get_char_token(int next, action_t *action)
 	}
 
 	token = action->token;
-	token->value.type = TOKEN_INTEGER;
-	token->value.intval = value & 0xff;
+	token->type = TOKEN_INTEGER;
+	token->intval = value & 0xff;
 
 	add_token(action);
 	return nextchar(action);
@@ -375,8 +387,8 @@ static int get_string_token(int next, action_t *action)
 
 	/* Pass it on.. */
 	token = action->token;
-	token->value.type = TOKEN_STRING;
-	token->value.string = string;
+	token->type = TOKEN_STRING;
+	token->string = string;
 	add_token(action);
 	
 	return next;
@@ -461,8 +473,8 @@ static int get_one_special(int c, action_t *action)
 
 	/* Pass it on.. */
 	token = action->token;
-	token->value.type = TOKEN_SPECIAL;
-	token->value.special = value;
+	token->type = TOKEN_SPECIAL;
+	token->special = value;
 	add_token(action);
 	return next;
 }
@@ -534,6 +546,28 @@ static struct ident *create_hashed_ident(const char *name, int len, unsigned lon
 #define ident_hash_add(oldhash,c)	((oldhash)*11 + (c))
 #define ident_hash_end(hash)		(hash)
 
+struct token *built_in_token(int stream, const char *name)
+{
+	int len = 1;
+	unsigned long hash;
+	struct token *token;
+	const unsigned char *p = (const unsigned char *)name;
+
+	hash = ident_hash_init(*p++);
+	for (;;) {
+		unsigned int i = *p++;
+		if (!i)
+			break;
+		hash = ident_hash_add(hash, i);
+		len++;
+	}
+	hash = ident_hash_end(hash);
+	token = alloc_token(stream, 0, 0);
+	token->type = TOKEN_IDENT;
+	token->ident = create_hashed_ident(name, len, hash);
+	return token;
+}
+
 static int get_one_identifier(int c, action_t *action)
 {
 	struct token *token;
@@ -567,8 +601,8 @@ static int get_one_identifier(int c, action_t *action)
 
 	/* Pass it on.. */
 	token = action->token;
-	token->value.type = TOKEN_IDENT;
-	token->value.ident = ident;
+	token->type = TOKEN_IDENT;
+	token->ident = ident;
 	add_token(action);
 	return next;
 }		
@@ -606,16 +640,7 @@ struct token * tokenize(const char *name, int fd)
 	c = nextchar(&action);
 	while (c != EOF) {
 		if (!isspace(c)) {
-			struct token *token = malloc(sizeof(struct token));
-			if (!token)
-				die("Out of memory for token");
-
-			memset(token, 0, sizeof(struct token));
-			token->line = action.line;
-			token->pos = action.pos;
-			token->stream = stream;
-
-			action.token = token;
+			action.token = alloc_token(stream, action.line, action.pos);
 
 			c = get_one_token(c, &action);
 			continue;

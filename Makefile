@@ -7,13 +7,14 @@ all: $(PROGRAMS)
 test-lexing: test-lexing.o tokenize.o lib.o
 	gcc -o $@ test-lexing.o tokenize.o lib.o
 
-test-parsing: test-parsing.o parse.o tokenize.o lib.o
-	gcc -o $@ test-parsing.o parse.o tokenize.o lib.o
+test-parsing: test-parsing.o parse.o tokenize.o symbol.o lib.o 
+	gcc -o $@ test-parsing.o parse.o tokenize.o symbol.o lib.o
 
 test-parsing.o: token.h parse.h
 test-lexing.o: token.h
 tokenize.o: token.h
 parse.o: token.h parse.h
+symbol.o: symbol.h token.h parse.h
 
 clean:
 	rm -f *.[oasi] $(PROGRAMS)
