@@ -711,10 +711,23 @@ static struct token *declarator(struct token *token, struct symbol **tree, struc
 
 static struct token *handle_attributes(struct token *token, struct ctype *ctype)
 {
-	while (match_idents(token, &__attribute___ident, &__attribute_ident, NULL)) {
-		struct ctype thistype = { 0, };
-		token = attribute_specifier(token->next, &thistype);
-		apply_ctype(token->pos, &thistype, ctype);
+	for (;;) {
+		if (token_type(token) != TOKEN_IDENT)
+			break;
+		if (match_idents(token, &__attribute___ident, &__attribute_ident, NULL)) {
+			struct ctype thistype = { 0, };
+			token = attribute_specifier(token->next, &thistype);
+			apply_ctype(token->pos, &thistype, ctype);
+			continue;
+		}
+		if (match_idents(token, &asm_ident, &__asm_ident, &__asm___ident)) {
+			struct expression *expr;
+			token = expect(token->next, '(', "after asm");
+			token = parse_expression(token->next, &expr);
+			token = expect(token, ')', "after asm");
+			continue;
+		}
+		break;
 	}
 	return token;
 }
@@ -1628,15 +1641,6 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	}
 
 	for (;;) {
-		if (token_type(token) == TOKEN_IDENT) {
-			if (token->ident ==  &asm_ident || token->ident == &__asm_ident || token->ident == &__asm___ident) {
-				struct expression *expr;
-
-				token = expect(token->next, '(', "after asm");
-				token = parse_expression(token->next, &expr);
-				token = expect(token, ')', "after asm");
-			}
-		}
 		if (!is_typedef && match_op(token, '=')) {
 			if (decl->ctype.modifiers & MOD_EXTERN) {
 				warning(decl->pos, "symbol with external linkage has initializer");
