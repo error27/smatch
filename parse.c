@@ -733,7 +733,7 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 	return token;
 }
 
-static struct token *parameter_type_list(struct token *, struct symbol *);
+static struct token *parameter_type_list(struct token *, struct symbol *, struct ident **p);
 static struct token *declarator(struct token *token, struct symbol *sym, struct ident **p);
 
 static struct token *handle_attributes(struct token *token, struct ctype *ctype)
@@ -797,7 +797,7 @@ static struct token *direct_declarator(struct token *token, struct symbol *decl,
 			}
 
 			sym = indirect(token->pos, ctype, SYM_FN);
-			token = parameter_type_list(next, sym);
+			token = parameter_type_list(next, sym, p);
 			token = expect(token, ')', "in function declarator");
 			continue;
 		}
@@ -1347,7 +1347,7 @@ static struct token * statement_list(struct token *token, struct statement_list 
 	return token;
 }
 
-static struct token *parameter_type_list(struct token *token, struct symbol *fn)
+static struct token *parameter_type_list(struct token *token, struct symbol *fn, struct ident **p)
 {
 	struct symbol_list **list = &fn->arguments;
 
@@ -1355,7 +1355,7 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn)
 		// No warning for "void oink ();"
 		// Bug or feature: warns for "void oink () __attribute__ ((noreturn));"
 		if (!match_op(token->next, ';'))
-			warning(token->pos, "non-ANSI function declaration");
+			warning(token->pos, "non-ANSI function declaration of function '%s'", show_ident(*p));
 		return token;
 	}
 
@@ -1604,7 +1604,7 @@ static struct token *parse_k_r_arguments(struct token *token, struct symbol *dec
 {
 	struct symbol_list *args = NULL;
 
-	warning(token->pos, "non-ANSI function declaration");
+	warning(token->pos, "non-ANSI function declaration of function '%s'", show_ident(decl->ident));
 	do {
 		token = external_declaration(token, &args);
 	} while (lookup_type(token));
