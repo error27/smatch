@@ -340,17 +340,38 @@ static int escapechar(int first, int type, stream_t *stream, int *valp)
 		next = nextchar(stream);
 		if (value != type) {
 			switch (value) {
-			case 'n':
-				value = '\n';
+			case 'a':
+				value = '\a';
+				break;
+			case 'b':
+				value = '\b';
 				break;
 			case 't':
 				value = '\t';
+				break;
+			case 'n':
+				value = '\n';
+				break;
+			case 'v':
+				value = '\v';
+				break;
+			case 'f':
+				value = '\f';
+				break;
+			case 'r':
+				value = '\r';
+				break;
+			case 'e':
+				value = '\e';
 				break;
 			case '\\':
 				break;
 			case '\'':
 				break;
 			case '"':
+				break;
+			case '\n':
+				next = escapechar(next, type, stream, &value);
 				break;
 			case '0'...'7': {
 				int nr = 2;
