@@ -40,15 +40,14 @@ const char *modifier_string(unsigned long mod)
 	while ((res = *ptr++) != NULL) {
 		if (mod & 1) {
 			char c;
-			*p++ = ' ';
 			while ((c = *res++) != '\0')
 				*p++ = c;
+			*p++ = ' ';
 		}
 		mod >>= 1;
 	}
-	*p++ = 0;
-	*p++ = 0;
-	return buffer+1;
+	*p = 0;
+	return buffer;
 }
 
 void show_struct_member(struct symbol *sym, void *data, int flags)
@@ -60,64 +59,6 @@ void show_struct_member(struct symbol *sym, void *data, int flags)
 		printf(" } ");
 	else
 		printf(", ");
-}
-
-void show_type_details(unsigned int modifiers, struct symbol *sym)
-{
-	if (!sym) {
-		printf(" <notype>");
-		return;
-	}
-
-	if (sym == &int_type) {
-		if (modifiers & (MOD_CHAR | MOD_SHORT | MOD_LONG))
-			return;
-		printf(" int");
-		return;
-	}
-	if (sym == &fp_type) {
-		printf(" float");
-		return;
-	}
-	if (sym == &void_type) {
-		printf(" void");
-		return;
-	}
-	if (sym == &vector_type) {
-		printf(" vector");
-		return;
-	}
-	if (sym == &bad_type) {
-		printf(" <badtype>");
-		return;
-	}
-	if (sym->type == SYM_STRUCT) {
-		printf(" struct %s", show_token(sym->token));
-		symbol_iterate(sym->symbol_list, show_struct_member, NULL);
-		return;
-	}
-	if (sym->type == SYM_UNION) {
-		printf(" union %s", show_token(sym->token)); 
-		symbol_iterate(sym->symbol_list, show_struct_member, NULL);
-		return;
-	}
-	if (sym->type == SYM_ENUM) {
-		printf(" enum %s", show_token(sym->token));
-		return;
-	}
-
-	if (sym->type == SYM_PTR)
-		printf(" *");
-	else if (sym->type == SYM_FN)
-		printf(" <fn>");
-	else
-		printf(" strange type %d", sym->type);
-
-	if (sym->token)
-		printf(" '%s'", show_token(sym->token));
-
-	printf("%s", modifier_string(sym->ctype.modifiers));
-	show_type_details(sym->ctype.modifiers, sym->ctype.base_type);
 }
 
 static void show_one_symbol(struct symbol *sym, void *sep, int flags)
@@ -142,37 +83,83 @@ void show_type_list(struct symbol *sym)
 
 void show_type(struct symbol *sym)
 {
-	struct ctype *ctype = &sym->ctype;
+	int i;
+	static struct ctype_name {
+		struct symbol *sym;
+		char *name;
+	} typenames[] = {
+		{ & char_ctype,  "char" },
+		{ &uchar_ctype,  "unsigned char" },
+		{ & short_ctype, "short" },
+		{ &ushort_ctype, "unsigned short" },
+		{ & int_ctype,   "int" },
+		{ &uint_ctype,   "unsigned int" },
+		{ & long_ctype,  "long" },
+		{ &ulong_ctype,  "unsigned long" },
+		{ & llong_ctype, "long long" },
+		{ &ullong_ctype, "unsigned long long" },
+
+		{ &void_ctype,   "void" },
+		{ &bool_ctype,   "bool" },
+		{ &string_ctype, "string" },
+
+		{ &float_ctype,  "float" },
+		{ &double_ctype, "double" },
+		{ &ldouble_ctype,"long double" },
+	};
 
 	if (!sym)
 		return;
 
-	printf("%d:%d %s", sym->bit_size, sym->alignment, modifier_string(sym->ctype.modifiers));
+	for (i = 0; i < sizeof(typenames)/sizeof(typenames[0]); i++) {
+		if (typenames[i].sym == sym) {
+			printf("%s", typenames[i].name);
+			return;
+		}
+	}
 
+	printf("%s", modifier_string(sym->ctype.modifiers));
 	switch (sym->type) {
 	case SYM_PTR:
+		printf("*");
 		show_type(sym->ctype.base_type);
-		printf(" *");
-		break;
+		return;
 
 	case SYM_FN:
-		printf(" ");
+		printf("<fn>(");
 		show_type(sym->ctype.base_type);
-		printf(" <fn>(");
-		show_symbol_list(sym->arguments, ", ");
 		printf(")");
-		break;
+		return;
 
 	case SYM_ARRAY:
-		printf("<array of>");
+		printf("<array>(");
 		show_type(sym->ctype.base_type);
-		printf("[ ... ]");
+		printf(")");
+		return;
+
+	case SYM_STRUCT:
+		printf("struct %s", show_token(sym->token));
+		symbol_iterate(sym->symbol_list, show_struct_member, NULL);
+		return;
+
+	case SYM_UNION:
+		printf("union %s", show_token(sym->token)); 
+		symbol_iterate(sym->symbol_list, show_struct_member, NULL);
+		return;
+
+	case SYM_ENUM:
+		printf("enum %s", show_token(sym->token));
+		return;
+
+	case SYM_NODE:
+		printf("node '%s' of type ", show_token(sym->token));
 		break;
 
 	default:
-		show_type_details(ctype->modifiers, ctype->base_type);
+		printf("strange type %d '%s' of type ", sym->type, show_token(sym->token));
 		break;
 	}
+	show_type(sym->ctype.base_type);
 }
 
 void show_symbol(struct symbol *sym)
@@ -321,6 +308,12 @@ void show_statement_list(struct statement_list *stmt, const char *sep)
 	statement_iterate(stmt, show_one_statement, (void *)sep);
 }
 
+static void show_size(struct symbol *sym)
+{
+	if (sym)
+		printf("%d:%d", sym->bit_size, sym->alignment);
+}
+
 /*
  * Print out an expression
  */
@@ -329,8 +322,10 @@ void show_expression(struct expression *expr)
 	if (!expr)
 		return;
 
-	printf("<");
+	printf("< (");
+	show_size(expr->ctype);
 	show_type(expr->ctype);
+	printf(") ");
 	switch (expr->type) {
 	case EXPR_BINOP:
 		show_expression(expr->left);
@@ -356,7 +351,7 @@ void show_expression(struct expression *expr)
 			break;
 		}
 		printf("<%s:", show_token(expr->symbol->token));
-		show_type(expr->symbol);
+		show_type(expr->symbol->ctype.base_type);
 		printf(">");
 		break;
 	case EXPR_DEREF:

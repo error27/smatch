@@ -31,8 +31,7 @@ enum namespace {
 };
 
 enum type {
-	SYM_NONE,
-	SYM_TYPE,
+	SYM_NODE,
 	SYM_PTR,
 	SYM_FN,
 	SYM_ARRAY,
@@ -113,9 +112,13 @@ extern struct symbol	void_type,
 			bad_type;
 
 /* C types */
-extern struct symbol	char_ctype,
-			int_ctype,
-			bool_ctype,
+extern struct symbol	bool_ctype, void_ctype,
+			char_ctype, uchar_ctype,
+			short_ctype, ushort_ctype,
+			int_ctype, uint_ctype,
+			long_ctype, ulong_ctype,
+			llong_ctype, ullong_ctype,
+			float_ctype, double_ctype, ldouble_ctype,
 			string_ctype;
 
 

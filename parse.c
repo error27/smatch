@@ -106,7 +106,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 		struct token *next = token->next;
 		struct symbol *sym;
 
-		sym = alloc_symbol(token, SYM_TYPE);
+		sym = alloc_symbol(token, SYM_NODE);
 		bind_symbol(sym, token->ident, NS_SYMBOL);
 		sym->ctype.base_type = parent;
 
@@ -205,6 +205,43 @@ static struct token *type_qualifiers(struct token *next, struct ctype *ctype)
 	return token;
 }
 
+#define MOD_SPECIFIER (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG | MOD_SIGNED | MOD_UNSIGNED)
+
+struct symbol * ctype_integer(unsigned int spec)
+{
+	static struct symbol *const integer_ctypes[][2] = {
+		{ &llong_ctype, &ullong_ctype },
+		{ &long_ctype,  &ulong_ctype  },
+		{ &short_ctype, &ushort_ctype },
+		{ &char_ctype,  &uchar_ctype  },
+		{ &int_ctype,   &uint_ctype   },
+	};
+	struct symbol *const (*ctype)[2];
+
+	ctype = integer_ctypes;
+	if (!(spec & MOD_LONGLONG)) {
+		ctype++;
+		if (!(spec & MOD_LONG)) {
+			ctype++;
+			if (!(spec & MOD_SHORT)) {
+				ctype++;
+				if (!(spec & MOD_CHAR))
+					ctype++;
+			}
+		}
+	}
+	return ctype[0][(spec & MOD_UNSIGNED) != 0];
+}
+
+struct symbol * ctype_fp(unsigned int spec)
+{
+	if (spec & MOD_LONGLONG)
+		return &ldouble_ctype;
+	if (spec & MOD_LONG)
+		return &double_ctype;
+	return &float_ctype;
+}
+
 static struct token *declaration_specifiers(struct token *next, struct ctype *ctype)
 {
 	struct token *token;
@@ -264,6 +301,18 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 					modifier_string(dup));
 			ctype->modifiers = old | mod | extra;
 		}
+	}
+
+	/* Turn the "virtual types" into real types with real sizes etc */
+	if (ctype->base_type == &int_type) {
+		ctype->base_type = ctype_integer(ctype->modifiers & MOD_SPECIFIER);
+		ctype->modifiers &= ~MOD_SPECIFIER;
+		return token;
+	}
+	if (ctype->base_type == &fp_type) {
+		ctype->base_type = ctype_fp(ctype->modifiers & MOD_SPECIFIER);
+		ctype->modifiers &= ~MOD_SPECIFIER;
+		return token;
 	}
 	return token;
 }
@@ -381,7 +430,7 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 		token = declaration_specifiers(token, &ctype);
 		for (;;) {
 			struct token *ident = NULL;
-			struct symbol *decl = alloc_symbol(token, SYM_TYPE);
+			struct symbol *decl = alloc_symbol(token, SYM_NODE);
 			decl->ctype = ctype;
 			token = pointer(token, &decl->ctype);
 			token = direct_declarator(token, &decl, &ident);
@@ -408,7 +457,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol **
 	struct ctype ctype = { 0, };
 
 	token = declaration_specifiers(token, &ctype);
-	sym = alloc_symbol(token, SYM_TYPE);
+	sym = alloc_symbol(token, SYM_NODE);
 	sym->ctype = ctype;
 	*tree = sym;
 	token = pointer(token, &sym->ctype);
@@ -419,7 +468,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol **
 struct token *typename(struct token *token, struct symbol **p)
 {
 	struct ctype ctype = { 0, };
-	struct symbol *sym = alloc_symbol(token, SYM_TYPE);
+	struct symbol *sym = alloc_symbol(token, SYM_NODE);
 	*p = sym;
 	token = declaration_specifiers(token, &ctype);
 	return declarator(token, &sym, NULL);
@@ -632,7 +681,7 @@ struct token * statement_list(struct token *token, struct statement_list **list)
 static struct token *parameter_type_list(struct token *token, struct symbol_list **list)
 {
 	for (;;) {
-		struct symbol *sym = alloc_symbol(token, SYM_TYPE);
+		struct symbol *sym = alloc_symbol(token, SYM_NODE);
 
 		if (match_op(token, SPECIAL_ELLIPSIS)) {
 			sym->type = SYM_ELLIPSIS;
@@ -723,7 +772,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 
 	/* Parse declaration-specifiers, if any */
 	token = declaration_specifiers(token, &ctype);
-	decl = alloc_symbol(token, SYM_TYPE);
+	decl = alloc_symbol(token, SYM_NODE);
 	decl->ctype = ctype;
 	token = pointer(token, &decl->ctype);
 	token = declarator(token, &decl, &ident);
@@ -758,7 +807,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 			break;
 
 		ident = NULL;
-		decl = alloc_symbol(token, SYM_TYPE);
+		decl = alloc_symbol(token, SYM_NODE);
 		decl->ctype = ctype;
 		token = pointer(token, &decl->ctype);
 		token = declarator(token->next, &decl, &ident);

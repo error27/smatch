@@ -111,6 +111,7 @@ void examine_symbol_type(struct symbol * sym)
 			sym->bit_size = BITS_IN_POINTER;
 		if (!sym->alignment)
 			sym->alignment = POINTER_ALIGNMENT;
+		examine_symbol_type(sym->ctype.base_type);
 		return;
 	case SYM_ENUM:
 		if (!sym->bit_size)
@@ -280,9 +281,13 @@ struct symbol	void_type,
  * C types (ie actual instances that the abstract types
  * can map onto)
  */
-struct symbol	char_ctype,
-		int_ctype,
-		bool_ctype,
+struct symbol	bool_ctype, void_ctype,
+		char_ctype, uchar_ctype,
+		short_ctype, ushort_ctype,
+		int_ctype, uint_ctype,
+		long_ctype, ulong_ctype,
+		llong_ctype, ullong_ctype,
+		float_ctype, double_ctype, ldouble_ctype,
 		string_ctype;
 
 struct ctype_declare {
@@ -292,9 +297,21 @@ struct ctype_declare {
 	unsigned long maxalign;
 	struct symbol *base_type;
 } ctype_declaration[] = {
-	{ &char_ctype, MOD_SIGNED | MOD_CHAR, BITS_IN_CHAR, MAX_INT_ALIGNMENT, &int_type },
-	{ &int_ctype,			  0,  BITS_IN_INT, MAX_INT_ALIGNMENT, &int_type },
-	{ &bool_ctype,			  0,  BITS_IN_INT, MAX_INT_ALIGNMENT, &int_type },
+	{ &bool_ctype,			     0,			  BITS_IN_INT,	     MAX_INT_ALIGNMENT, &int_type },
+
+	{ &char_ctype,   MOD_SIGNED | MOD_CHAR,  		  BITS_IN_CHAR,	     MAX_INT_ALIGNMENT, &int_type },
+	{ &uchar_ctype,  MOD_UNSIGNED | MOD_CHAR,		  BITS_IN_CHAR,	     MAX_INT_ALIGNMENT, &int_type },
+	{ &short_ctype,  MOD_SIGNED | MOD_SHORT, 		  BITS_IN_SHORT,     MAX_INT_ALIGNMENT, &int_type },
+	{ &ushort_ctype, MOD_UNSIGNED | MOD_SHORT,		  BITS_IN_SHORT,     MAX_INT_ALIGNMENT, &int_type },
+	{ &long_ctype,   MOD_SIGNED | MOD_LONG,			  BITS_IN_LONG,	     MAX_INT_ALIGNMENT, &int_type },
+	{ &ulong_ctype,  MOD_UNSIGNED | MOD_LONG,		  BITS_IN_LONG,	     MAX_INT_ALIGNMENT, &int_type },
+	{ &llong_ctype,  MOD_SIGNED | MOD_LONG | MOD_LONGLONG,    BITS_IN_LONGLONG,  MAX_INT_ALIGNMENT, &int_type },
+	{ &ullong_ctype, MOD_UNSIGNED | MOD_LONG | MOD_LONGLONG,  BITS_IN_LONGLONG,  MAX_INT_ALIGNMENT, &int_type },
+
+	{ &float_ctype,  0,					  BITS_IN_FLOAT,     MAX_FP_ALIGNMENT,	&fp_type },
+	{ &double_ctype, MOD_LONG,				  BITS_IN_DOUBLE,    MAX_FP_ALIGNMENT,	&fp_type },
+	{ &ldouble_ctype,MOD_LONG | MOD_LONGLONG,		  BITS_IN_LONGDOUBLE,MAX_FP_ALIGNMENT,	&fp_type },
+
 	{ &string_ctype,	    0,  BITS_IN_POINTER, POINTER_ALIGNMENT, &char_ctype },
 	{ NULL, }
 };
@@ -348,7 +365,7 @@ void init_symbols(void)
 	hash_ident(&volatile_ident);
 	for (ptr = symbol_init_table; ptr->name; ptr++) {
 		struct symbol *sym;
-		sym = create_symbol(stream, ptr->name, SYM_TYPE);
+		sym = create_symbol(stream, ptr->name, SYM_NODE);
 		sym->ctype.base_type = ptr->base_type;
 		sym->ctype.modifiers = ptr->modifiers;
 	}

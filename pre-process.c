@@ -585,7 +585,7 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 		}
 		return 1;
 	}
-	sym = alloc_symbol(left, SYM_NONE);
+	sym = alloc_symbol(left, SYM_NODE);
 	bind_symbol(sym, name, NS_PREPROCESSOR);
 
 	sym->expansion = expansion;

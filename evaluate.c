@@ -35,8 +35,8 @@ static int evaluate_symbol(struct expression *expr)
 	if (!base_type)
 		return 0;
 
-	/* The ctype of a symbol expression is the symbol itself! */
-	expr->ctype = sym;
+	expr->ctype = base_type;
+	examine_symbol_type(base_type);
 
 	/* enum's can be turned into plain values */
 	if (base_type->type == SYM_ENUM) {
@@ -92,18 +92,6 @@ static int evaluate_constant(struct expression *expr)
 	return 0;
 }
 
-static struct symbol *integer_type(unsigned long mod, int bit_size, int alignment)
-{
-	/* FIXME! We shouldn't allocate a new one, we should look up a static one! */
-	struct symbol *sym = alloc_symbol(NULL, SYM_TYPE);
-	mod &= (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG | MOD_UNSIGNED);
-	sym->ctype.base_type = &int_type;
-	sym->ctype.modifiers = mod;
-	sym->bit_size = bit_size;
-	sym->alignment = alignment;
-	return sym;
-}
-
 static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 {
 	unsigned long lmod, rmod, mod;
@@ -125,7 +113,7 @@ static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 		return left;
 	if (mod == rmod)
 		return right;
-	return integer_type(mod, left->bit_size, left->alignment);
+	return ctype_integer(mod);
 }
 
 static struct expression * promote(struct expression *old, struct symbol *type)
@@ -173,11 +161,14 @@ static int evaluate_preop(struct expression *expr)
 			return 0;
 		}
 		expr->ctype = ctype->ctype.base_type;
+		examine_symbol_type(expr->ctype);
 		return 1;
 
 	case '&': {
 		struct symbol *symbol = alloc_symbol(expr->token, SYM_PTR);
 		symbol->ctype.base_type = ctype;
+		symbol->bit_size = BITS_IN_POINTER;
+		symbol->alignment = POINTER_ALIGNMENT;
 		expr->ctype = symbol;
 		return 1;
 	}

@@ -80,4 +80,7 @@ extern void show_statement_list(struct statement_list *, const char *);
 extern void show_expression(struct expression *);
 extern void translation_unit(struct token *, struct symbol_list **);
 
+extern struct symbol *ctype_integer(unsigned int spec);
+extern struct symbol *ctype_fp(unsigned int spec);
+
 #endif /* PARSE_H */
