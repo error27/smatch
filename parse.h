@@ -18,9 +18,7 @@ enum statement_type {
 	STMT_CONTINUE,
 	STMT_CASE,
 	STMT_SWITCH,
-	STMT_FOR,
-	STMT_WHILE,
-	STMT_DO,
+	STMT_ITERATOR,
 	STMT_LABEL,
 	STMT_GOTO,
 	STMT_ASM,
@@ -58,9 +56,14 @@ struct statement {
 			struct expression *switch_expression;
 			struct statement *switch_statement;
 		};
-		struct iteration_struct {
-			struct expression *e1, *e2, *e3;
-			struct statement *iterate;
+		struct iterator_struct {
+			struct statement  *iterator_pre_statement;
+			struct expression *iterator_pre_condition;
+
+			struct statement  *iterator_statement;
+
+			struct statement  *iterator_post_statement;
+			struct expression *iterator_post_condition;
 		};
 		struct goto_struct {
 			struct token *goto_label;

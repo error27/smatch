@@ -263,31 +263,51 @@ void show_statement(struct statement *stmt)
 		printf("\tbreak");
 		break;
 		
-	case STMT_WHILE:
-		printf("\twhile (");
-		show_expression(stmt->e1);
-		printf(")\n");
-		show_statement(stmt->iterate);
+	case STMT_ITERATOR: {
+		struct statement  *pre_statement = stmt->iterator_pre_statement;
+		struct expression *pre_condition = stmt->iterator_pre_condition;
+		struct statement  *statement = stmt->iterator_statement;
+		struct statement  *post_statement = stmt->iterator_post_statement;
+		struct expression *post_condition = stmt->iterator_post_condition;
+
+		/*
+		 * THIS IS ONLY APPROXIMATE!
+		 *
+		 * Real iterators are more generic than
+		 * any of for/while/do-while, and can't
+		 * be printed out as C without goto's
+		 */
+		if (post_statement) {
+			printf("\tfor (\n\t");
+			show_statement(pre_statement);
+			printf(";\n\t\t");
+			show_expression(pre_condition);
+			printf(";\n\t");
+			show_statement(post_statement);
+			printf("\n\t)\n");
+			show_statement(statement);
+		} else if (pre_condition) {
+			if (pre_statement) {
+				show_statement(pre_statement);
+				printf(";\n");
+			}
+			printf("\twhile (");
+			show_expression(pre_condition);
+			printf(")\n");
+			show_statement(statement);
+		} else {
+			if (pre_statement) {
+				show_statement(pre_statement);
+				printf(";\n");
+			}
+			printf("\tdo\n");
+			show_statement(statement);
+			printf("\twhile (");
+			show_expression(post_condition);
+			printf(")");
+		}
 		break;
-		
-	case STMT_DO:
-		printf("\tdo");
-		show_statement(stmt->iterate);
-		printf("\nwhile (");
-		show_expression(stmt->e1);
-		printf(")\n");
-		break;
-		
-	case STMT_FOR:
-		printf("\tfor (" );
-		show_expression(stmt->e1);
-		printf(" ; ");
-		show_expression(stmt->e2);
-		printf(" ; ");
-		show_expression(stmt->e3);
-		printf(")\n");
-		show_statement(stmt->iterate);
-		break;
+	}
 		
 	default:
 		printf("WTF");

@@ -455,6 +455,18 @@ static struct token *parse_asm_clobbers(struct token *token, struct statement *s
 	return token;
 }
 
+/* Make a statement out of an expression */
+static struct statement *make_statement(struct expression *expr)
+{
+	struct statement *stmt;
+
+	if (!expr)
+		return NULL;
+	stmt = alloc_statement(expr->token, STMT_EXPRESSION);
+	stmt->expression = expr;
+	return stmt;
+}
+
 struct token *statement(struct token *token, struct statement **tree)
 {
 	struct statement *stmt = alloc_statement(token, STMT_NONE);
@@ -502,29 +514,56 @@ default_statement:
 			return statement(token, &stmt->switch_statement);
 		}
 		if (token->ident == &for_ident) {
-			stmt->type = STMT_FOR;
+			struct expression *e1, *e2, *e3;
+			struct statement *iterator;
+
 			token = expect(token->next, '(', "after 'for'");
-			token = parse_expression(token, &stmt->e1);
+			token = parse_expression(token, &e1);
 			token = expect(token, ';', "in 'for'");
-			token = parse_expression(token, &stmt->e2);
+			token = parse_expression(token, &e2);
 			token = expect(token, ';', "in 'for'");
-			token = parse_expression(token, &stmt->e3);
+			token = parse_expression(token, &e3);
 			token = expect(token, ')', "in 'for'");
-			return statement(token, &stmt->iterate);
+			token = statement(token, &iterator);
+
+			stmt->type = STMT_ITERATOR;
+			stmt->iterator_pre_statement = make_statement(e1);
+			stmt->iterator_pre_condition = e2;
+			stmt->iterator_post_statement = make_statement(e3);
+			stmt->iterator_post_condition = e2;
+			stmt->iterator_statement = iterator;
+
+			return token;
 		}
 		if (token->ident == &while_ident) {
-			stmt->type = STMT_WHILE;
-			token = parens_expression(token->next, &stmt->e1, "after 'while'");
-			return statement(token, &stmt->iterate);
+			struct expression *expr;
+			struct statement *iterator;
+
+			token = parens_expression(token->next, &expr, "after 'while'");
+			token = statement(token, &iterator);
+
+			stmt->type = STMT_ITERATOR;
+			stmt->iterator_pre_condition = expr;
+			stmt->iterator_post_condition = expr;
+			stmt->iterator_statement = iterator;
+
+			return token;
 		}
 		if (token->ident == &do_ident) {
-			stmt->type = STMT_DO;
-			token = statement(token->next, &stmt->iterate);
+			struct expression *expr;
+			struct statement *iterator;
+			
+			token = statement(token->next, &iterator);
 			if (token->type == TOKEN_IDENT && token->ident == &while_ident)
 				token = token->next;
 			else
 				warn(token, "expected 'while' after 'do'");
-			token = parens_expression(token, &stmt->e1, "after 'do-while'");
+			token = parens_expression(token, &expr, "after 'do-while'");
+
+			stmt->type = STMT_ITERATOR;
+			stmt->iterator_post_condition = expr;
+			stmt->iterator_statement = iterator;
+
 			return expect(token, ';', "after statement");
 		}
 		if (token->ident == &goto_ident) {
