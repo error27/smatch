@@ -25,6 +25,7 @@
 #include "expression.h"
 #include "scope.h"
 #include "linearize.h"
+#include "target.h"
 
 struct token *skip_to(struct token *token, int op)
 {
@@ -599,6 +600,17 @@ char **handle_switch_i(char *arg, char **next)
 	return next;
 }
 
+char **handle_switch_m(char *arg, char **next)
+{
+	if (!strcmp(arg, "m64")) {
+		BITS_IN_LONG = 64;
+		MAX_INT_ALIGNMENT = 8;
+		BITS_IN_POINTER = 64;
+		POINTER_ALIGNMENT = 8;
+	}
+	return next;
+}
+
 char **handle_switch(char *arg, char **next)
 {
 	char **rc = next;
@@ -609,6 +621,7 @@ char **handle_switch(char *arg, char **next)
 	case 'v': rc = handle_switch_v(arg, next); break;
 	case 'I': rc = handle_switch_I(arg, next); break;
 	case 'i': rc = handle_switch_i(arg, next); break;
+	case 'm': rc = handle_switch_m(arg, next); break;
 	default:
 		/*
 		 * Ignore unknown command line options:
