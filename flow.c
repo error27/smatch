@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
+#include <assert.h>
 
 #include "parse.h"
 #include "expression.h"
@@ -145,6 +146,7 @@ void convert_instruction_target(struct instruction *insn, pseudo_t src)
 	 */
 	target = insn->target;
 	FOR_EACH_PTR(target->users, usep) {
+		assert(*usep == target);
 		*usep = src;
 	} END_FOR_EACH_PTR(usep);
 	concat_user_list(target->users, &src->users);
