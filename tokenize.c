@@ -13,6 +13,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
+
+#include "lib.h"
 #include "token.h"
 
 #define EOF (-1)
@@ -127,11 +129,7 @@ int init_stream(const char *name)
 
 struct token * alloc_token(int stream, int line, int pos)
 {
-	struct token *token = malloc(sizeof(struct token));
-	if (!token)
-		die("Out of memory for token");
-
-	memset(token, 0, sizeof(struct token));
+	struct token *token = __alloc_token(0);
 	token->line = line;
 	token->pos = pos;
 	token->stream = stream;
@@ -528,11 +526,7 @@ void show_identifier_stats(void)
 
 static struct ident *alloc_ident(const char *name, int len)
 {
-	struct ident *ident;
-
-	ident = malloc(offsetof(struct ident,name) + len);
-	if (!ident)
-		die("Out of memory for identifiers");
+	struct ident *ident = __alloc_ident(len);
 	ident->symbols = NULL;
 	ident->len = len;
 	memcpy(ident->name, name, len);

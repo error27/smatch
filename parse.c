@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "list.h"
+#include "lib.h"
 #include "token.h"
 #include "parse.h"
 #include "symbol.h"
@@ -58,11 +58,7 @@ void show_expression(struct expression *expr)
 
 static struct expression *alloc_expression(struct token *token, int type)
 {
-	struct expression *expr = malloc(sizeof(struct expression));
-
-	if (!expr)
-		die("Unable to allocate expression");
-	memset(expr, 0, sizeof(*expr));
+	struct expression *expr = __alloc_expression(0);
 	expr->type = type;
 	expr->token = token;
 	return expr;
@@ -389,10 +385,7 @@ struct token *parse_expression(struct token *token, struct expression **tree)
 
 struct statement *alloc_statement(struct token * token, int type)
 {
-	struct statement *stmt = malloc(sizeof(*stmt));
-	if (!stmt)
-		die("Out of memory for statements");
-	memset(stmt, 0, sizeof(*stmt));
+	struct statement *stmt = __alloc_statement(0);
 	stmt->type = type;
 	return stmt;
 }

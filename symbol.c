@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "list.h"
+#include "lib.h"
 #include "token.h"
 #include "symbol.h"
 
@@ -134,11 +134,7 @@ void show_symbol(struct symbol *sym)
 
 struct symbol *alloc_symbol(struct token *token, int type)
 {
-	struct symbol *sym = malloc(sizeof(struct symbol));
-
-	if (!sym)
-		die("out of memory for symbol information");
-	memset(sym, 0, sizeof(*sym));
+	struct symbol *sym = __alloc_symbol(0);
 	sym->type = type;
 	sym->token = token;
 	return sym;

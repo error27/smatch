@@ -1,6 +1,17 @@
 #ifndef LIST_H
 #define LIST_H
 
+#define DECLARE_ALLOCATOR(x)			\
+	extern struct x *__alloc_##x(int);	\
+	extern unsigned int __size_##x;		\
+	extern void show_##x##_alloc(void);
+
+DECLARE_ALLOCATOR(ident);
+DECLARE_ALLOCATOR(token);
+DECLARE_ALLOCATOR(symbol);
+DECLARE_ALLOCATOR(expression);
+DECLARE_ALLOCATOR(statement);
+
 #define LIST_NODE_NR (14)
 
 struct ptr_list {

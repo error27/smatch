@@ -6,8 +6,31 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "list.h"
+#include "lib.h"
 #include "token.h"
+#include "parse.h"
+#include "symbol.h"
+
+#define ALLOCATOR(x)						\
+	unsigned int __size_##x;				\
+	unsigned int __nr_##x;					\
+	struct x *__alloc_##x(int extra)			\
+	{							\
+		struct x *ret = malloc(sizeof(*ret)+extra);	\
+		if (!ret) die("unable to allocate " #x);	\
+		__size_##x += sizeof(*ret)+extra;		\
+		__nr_##x ++;					\
+		memset(ret, 0, sizeof(*ret));			\
+		return ret;					\
+	}							\
+	void show_##x##_alloc(void)				\
+	{							\
+		fprintf(stderr, #x ": %d allocations, "		\
+			"%d bytes\n", __nr_##x, __size_##x);	\
+	}
+
+ALLOCATOR(ident); ALLOCATOR(token); ALLOCATOR(symbol);
+ALLOCATOR(expression); ALLOCATOR(statement);
 
 void iterate(struct ptr_list *list, void (*callback)(void *))
 {

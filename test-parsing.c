@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "lib.h"
 #include "token.h"
 #include "parse.h"
 #include "symbol.h"
@@ -23,5 +24,11 @@ int main(int argc, char **argv)
 
 	translation_unit(token, &list);
 	show_symbol_list(list);
+
+	show_ident_alloc();
+	show_token_alloc();
+	show_symbol_alloc();
+	show_expression_alloc();
+	show_statement_alloc();
 	return 0;
 }
