@@ -464,21 +464,27 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *c
 	/* Get the size of whatever the pointer points to */
 	bit_size = ptr_object_size(ctype);
 
-	if (i->type == EXPR_VALUE) {
-		i->value *= bit_size >> 3;
-	} else if (bit_size > bits_in_char) {
-		struct expression *mul = alloc_expression(expr->pos, EXPR_BINOP);
+	if (bit_size > bits_in_char) {
+		int multiply = bit_size >> 3;
 		struct expression *val = alloc_expression(expr->pos, EXPR_VALUE);
 
-		val->ctype = size_t_ctype;
-		val->value = bit_size >> 3;
+		if (i->type == EXPR_VALUE) {
+			val->value = i->value * multiply;
+			val->ctype = size_t_ctype;
+			*ip = val;
+		} else {
+			struct expression *mul = alloc_expression(expr->pos, EXPR_BINOP);
 
-		mul->op = '*';
-		mul->ctype = size_t_ctype;
-		mul->left = i;
-		mul->right = val;
+			val->ctype = size_t_ctype;
+			val->value = bit_size >> 3;
 
-		*ip = mul;
+			mul->op = '*';
+			mul->ctype = size_t_ctype;
+			mul->left = i;
+			mul->right = val;
+
+			*ip = mul;
+		}
 	}
 
 	expr->ctype = ctype;	
