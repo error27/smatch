@@ -1231,8 +1231,16 @@ static struct symbol *evaluate_call(struct expression *expr)
 	if (!evaluate_expression(fn))
 		return NULL;
 	ctype = fn->ctype;
-	if (ctype->type == SYM_NODE)
+	if (ctype->type == SYM_NODE) {
+		/*
+		 * FIXME!! We should really expand the inline functions.
+		 * For now we just mark them accessed so that they show
+		 * up on the list of used symbols.
+		 */
+		if (ctype->ctype.modifiers & MOD_INLINE)
+			access_symbol(ctype);
 		ctype = ctype->ctype.base_type;
+	}
 	if (ctype->type == SYM_PTR || ctype->type == SYM_ARRAY)
 		ctype = ctype->ctype.base_type;
 	if (ctype->type != SYM_FN) {
