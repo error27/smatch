@@ -30,12 +30,25 @@ static int input_streams_allocated;
 
 typedef struct {
 	int fd, offset, size;
-	struct position pos;
+	int pos, line, nr;
+	int newline, whitespace;
 	struct token **tokenlist;
 	struct token *token;
 	unsigned char *buffer;
 } stream_t;
 
+struct position stream_pos(stream_t *stream)
+{
+	struct position pos;
+	pos.type = 0;
+	pos.stream = stream->nr;
+	pos.newline = stream->newline;
+	pos.whitespace = stream->whitespace;
+	pos.pos = stream->pos;
+	pos.line = stream->line;
+	pos.noexpand = 0;
+	return pos;
+}
 
 const char *show_special(int val)
 {
@@ -188,7 +201,7 @@ int init_stream(const char *name, int fd, const char **next_path)
 static struct token * alloc_token(stream_t *stream)
 {
 	struct token *token = __alloc_token(0);
-	token->pos = stream->pos;
+	token->pos = stream_pos(stream);
 	return token;
 }
 
@@ -225,11 +238,11 @@ repeat:
 		goto repeat;
 	}
 
-	stream->pos.pos++;
+	stream->pos++;
 
 	if (c == '\n') {
-		stream->pos.line++;
-		stream->pos.pos = 0;
+		stream->line++;
+		stream->pos = 0;
 	}
 
 	if (!had_backslash) {
@@ -238,15 +251,15 @@ repeat:
 			goto repeat;
 		}
 		if (c == '\n')
-			stream->pos.newline = 1;
+			stream->newline = 1;
 	} else {
 		if (c == '\n') {
 			if (complain)
-				warning(stream->pos, "non-ASCII data stream");
+				warning(stream_pos(stream), "non-ASCII data stream");
 			spliced = 1;
 			goto restart;
 		}
-		stream->pos.pos--;
+		stream->pos--;
 		offset--;
 		c = '\\';
 	}
@@ -254,7 +267,7 @@ repeat:
 out:
 	stream->offset = offset;
 	if (complain)
-		warning(stream->pos, "non-ASCII data stream");
+		warning(stream_pos(stream), "non-ASCII data stream");
 
 	return c;
 
@@ -263,12 +276,12 @@ got_eof:
 		c = '\\';
 		goto out;
 	}
-	if (stream->pos.pos)
-		warning(stream->pos, "no newline at end of file");
+	if (stream->pos)
+		warning(stream_pos(stream), "no newline at end of file");
 	else if (had_cr)
-		warning(stream->pos, "non-ASCII data stream");
+		warning(stream_pos(stream), "non-ASCII data stream");
 	else if (spliced)
-		warning(stream->pos, "backslash-newline at end of file");
+		warning(stream_pos(stream), "backslash-newline at end of file");
 	return EOF;
 }
 
@@ -283,32 +296,12 @@ static int nextchar(stream_t *stream)
 
 	if (offset < stream->size) {
 		int c = stream->buffer[offset++];
-		static char special[256] = {
+		static const char special[256] = {
 			['\r'] = 1, ['\n'] = 1, ['\\'] = 1
 		};
-		unsigned char next;
 		if (!special[c]) {
 			stream->offset = offset;
-			stream->pos.pos++;
-			return c;
-		}
-		switch (c) {
-		case '\r':
-			break;
-		case '\n':
-			stream->offset = offset;
-			stream->pos.line++;
-			stream->pos.newline = 1;
-			stream->pos.pos = 0;
-			return '\n';
-		default: /* '\\' */
-			if (offset >= stream->size)
-				break;
-			next = stream->buffer[offset];
-			if (next == '\n' || next == '\r')
-				break;
-			stream->offset = offset;
-			stream->pos.pos++;
+			stream->pos++;
 			return c;
 		}
 	}
@@ -347,8 +340,8 @@ static void add_token(stream_t *stream)
 
 static void drop_token(stream_t *stream)
 {
-	stream->pos.newline |= stream->token->pos.newline;
-	stream->pos.whitespace |= stream->token->pos.whitespace;
+	stream->newline |= stream->token->pos.newline;
+	stream->whitespace |= stream->token->pos.whitespace;
 	stream->token = NULL;
 }
 
@@ -424,7 +417,7 @@ static int get_one_number(int c, int next, stream_t *stream)
 	}
 
 	if (p == buffer_end) {
-		error(stream->pos, "number token exceeds %td characters",
+		error(stream_pos(stream), "number token exceeds %td characters",
 		      buffer_end - buffer);
 		// Pretend we saw just "1".
 		buffer[0] = '1';
@@ -452,7 +445,7 @@ static int escapechar(int first, int type, stream_t *stream, int *valp)
 	value = first;
 
 	if (first == '\n')
-		warning(stream->pos, "Newline in string or character constant");
+		warning(stream_pos(stream), "Newline in string or character constant");
 
 	if (first == '\\' && next != EOF) {
 		value = next;
@@ -490,7 +483,7 @@ static int escapechar(int first, int type, stream_t *stream, int *valp)
 			case '"':
 				break;
 			case '\n':
-				warning(stream->pos, "Newline in string or character constant");
+				warning(stream_pos(stream), "Newline in string or character constant");
 				break;
 			case '0'...'7': {
 				int nr = 2;
@@ -519,7 +512,7 @@ static int escapechar(int first, int type, stream_t *stream, int *valp)
 			}
 			/* Fallthrough */
 			default:
-				warning(stream->pos, "Unknown escape '%c'", value);
+				warning(stream_pos(stream), "Unknown escape '%c'", value);
 			}
 		}
 		/* Mark it as escaped */
@@ -536,7 +529,7 @@ static int get_char_token(int next, stream_t *stream)
 
 	next = escapechar(next, '\'', stream, &value);
 	if (value == '\'' || next != '\'') {
-		warning(stream->pos, "Bad character constant");
+		warning(stream_pos(stream), "Bad character constant");
 		drop_token(stream);
 		return next;
 	}
@@ -562,7 +555,7 @@ static int get_string_token(int next, stream_t *stream)
 		if (val == '"')
 			break;
 		if (next == EOF) {
-			warning(stream->pos, "End of file in middle of string");
+			warning(stream_pos(stream), "End of file in middle of string");
 			return next;
 		}
 		if (len < MAX_STRING)
@@ -571,7 +564,7 @@ static int get_string_token(int next, stream_t *stream)
 	}
 
 	if (len > MAX_STRING) {
-		warning(stream->pos, "string too long (%d bytes, %d bytes max)", len, MAX_STRING);
+		warning(stream_pos(stream), "string too long (%d bytes, %d bytes max)", len, MAX_STRING);
 		len = MAX_STRING;
 	}
 
@@ -608,20 +601,20 @@ static int drop_stream_comment(stream_t *stream)
 	int newline;
 	int next;
 	drop_token(stream);
-	newline = stream->pos.newline;
+	newline = stream->newline;
 
 	next = nextchar(stream);
 	for (;;) {
 		int curr = next;
 		if (curr == EOF) {
-			warning(stream->pos, "End of file in the middle of a comment");
+			warning(stream_pos(stream), "End of file in the middle of a comment");
 			return curr;
 		}
 		next = nextchar(stream);
 		if (curr == '*' && next == '/')
 			break;
 	}
-	stream->pos.newline = newline;
+	stream->newline = newline;
 	return nextchar(stream);
 }
 
@@ -848,12 +841,11 @@ static struct token *setup_stream(stream_t *stream, int idx, int fd,
 {
 	struct token *begin;
 
-	stream->pos.stream = idx;
-	stream->pos.line = 1;
-	stream->pos.newline = 1;
-	stream->pos.whitespace = 0;
-	stream->pos.pos = 0;
-	stream->pos.noexpand = 0;
+	stream->nr = idx;
+	stream->line = 1;
+	stream->newline = 1;
+	stream->whitespace = 0;
+	stream->pos = 0;
 
 	stream->token = NULL;
 	stream->fd = fd;
@@ -874,12 +866,12 @@ static void tokenize_stream(stream_t *stream, struct token *endtoken)
 		if (!isspace(c)) {
 			struct token *token = alloc_token(stream);
 			stream->token = token;
-			stream->pos.newline = 0;
-			stream->pos.whitespace = 0;
+			stream->newline = 0;
+			stream->whitespace = 0;
 			c = get_one_token(c, stream);
 			continue;
 		}
-		stream->pos.whitespace = 1;
+		stream->whitespace = 1;
 		c = nextchar(stream);
 	}
 	mark_eof(stream, endtoken);
