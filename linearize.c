@@ -1476,6 +1476,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			break;
 
 		switch_ins = alloc_instruction(OP_SWITCH, NULL);
+		add_instruction(&ep->switches, switch_ins);
 		use_pseudo(pseudo, &switch_ins->cond);
 		add_one_insn(ep, switch_ins);
 		finish_block(ep);
@@ -2168,9 +2169,59 @@ static int rewrite_branch_bb(struct basic_block *bb, struct instruction *br)
 	return success;
 }
 
+/*
+ * FIXME! This knows _way_ too much about list internals
+ */
+static void set_list(struct basic_block_list *p, struct basic_block *child)
+{
+	struct ptr_list *list = (void *)p;
+	list->prev = list;
+	list->next = list;
+	list->nr = 1;
+	list->list[0] = child;
+}
+
+static void simplify_one_switch(struct basic_block *bb,
+	long long val,
+	struct multijmp_list *list,
+	struct instruction *p)
+{
+	struct multijmp *jmp;
+
+	FOR_EACH_PTR(list, jmp) {
+		/* Default case */
+		if (jmp->begin > jmp->end)
+			goto found;
+		if (val >= jmp->begin && val <= jmp->end)
+			goto found;
+	} END_FOR_EACH_PTR(jmp);
+	warning(bb->pos, "Impossible case statement");
+	return;
+
+found:
+	p->opcode = OP_BR;
+	p->cond = NULL;
+	p->bb_false = NULL;
+	p->bb_true = jmp->target;
+	set_list(bb->children, jmp->target);
+}
+
+static void simplify_switch(struct entrypoint *ep)
+{
+	struct instruction *insn;
+
+	FOR_EACH_PTR(ep->switches, insn) {
+		pseudo_t pseudo = insn->target;
+		if (pseudo->type == PSEUDO_VAL)
+			simplify_one_switch(insn->bb, pseudo->value, insn->multijmp_list, insn);
+	} END_FOR_EACH_PTR(insn);
+}
+
 static void pack_basic_blocks(struct entrypoint *ep)
 {
 	struct basic_block *bb;
+
+	simplify_switch(ep);
 
 	kill_unreachable_bbs(ep);
 

@@ -227,6 +227,7 @@ struct entrypoint {
 	struct symbol *name;
 	struct symbol_list *syms;
 	struct symbol_list *accesses;
+	struct instruction_list *switches;
 	struct basic_block_list *bbs;
 	struct basic_block *active;
 	struct basic_block *entry;
