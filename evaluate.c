@@ -861,8 +861,6 @@ static struct symbol *degenerate(struct expression *expr)
 			return NULL;
 		}
 		*expr = *expr->unop;
-		if (expr->ctype)
-			return expr->ctype;
 		ctype = create_pointer(expr, ctype, 1);
 		expr->ctype = ctype;
 	default:
