@@ -42,6 +42,7 @@ struct function {
 	struct textbuf *buf;
 	struct symbol **argv;
 	unsigned int argc;
+	int ret_target;
 };
 
 enum storage_type {
@@ -332,6 +333,7 @@ static void emit_func_pre(struct symbol *sym)
 	storage_base	=  (struct storage *) mem;
 
 	f->argc = argc;
+	f->ret_target = new_label();
 
 	i = 0;
 	FOR_EACH_PTR(base_type->arguments, arg) {
@@ -359,17 +361,26 @@ static void emit_func_post(struct symbol *sym, struct storage *val)
 	const char *name = show_ident(sym->ident);
 	struct function *f = current_func;
 	int pseudo_nr = f->pseudo_nr;
-	char s[16];
+	char pseudo_const[16], jump_target[16];
 
-	sprintf(s, "$%d", pseudo_nr * 4);
-	printf("\tsubl\t%s, %%esp\n", s);
+	/* function epilogue */
+	sprintf(pseudo_const, "$%d", pseudo_nr * 4);
+	printf("\tsubl\t%s, %%esp\n", pseudo_const);
+
+	/* jump target for 'return' statements */
+	sprintf(jump_target, ".L%d:\n", f->ret_target);
+	textbuf_push(&f->buf, jump_target);
+
+	/* function prologue */
 	if (val)
 		insn("movl", stor_op_name(val), "%eax", stor_arg_warning(val));
-	insn("addl", s, "%esp", NULL);
+	insn("addl", pseudo_const, "%esp", NULL);
 	insn("ret", NULL, NULL, NULL);
 
+	/* output everything to stdout */
 	textbuf_emit(&f->buf);
 
+	/* function footer */
 	printf("\t.size\t%s, .-%s\n", name, name);
 
 	func_cleanup(f);
@@ -812,6 +823,22 @@ static struct storage *emit_postop(struct expression *expr)
 	return emit_inc_dec(expr, 1);
 }
 
+static struct storage *emit_return_stmt(struct statement *stmt)
+{
+	struct function *f = current_func;
+	struct expression *expr = stmt->ret_value;
+	struct storage *val = NULL;
+	char s[32];
+
+	if (expr && expr->ctype)
+		val = x86_expression(expr);
+
+	sprintf(s, "\tjmp\t.L%d\n", f->ret_target);
+	textbuf_push(&f->buf, s);
+
+	return val;
+}
+
 static void x86_struct_member(struct symbol *sym, void *data, int flags)
 {
 	if (flags & ITERATE_FIRST)
@@ -946,8 +973,6 @@ static void x86_symbol_decl(struct symbol_list *syms)
 	} END_FOR_EACH_PTR;
 }
 
-static void x86_return_stmt(struct statement *stmt);
-
 /*
  * Print out a statement
  */
@@ -957,8 +982,7 @@ static struct storage *x86_statement(struct statement *stmt)
 		return 0;
 	switch (stmt->type) {
 	case STMT_RETURN:
-		x86_return_stmt(stmt);
-		return NULL;
+		return emit_return_stmt(stmt);
 	case STMT_COMPOUND: {
 		struct statement *s;
 		struct storage *last = NULL;
@@ -967,15 +991,7 @@ static struct storage *x86_statement(struct statement *stmt)
 		FOR_EACH_PTR(stmt->stmts, s) {
 			last = x86_statement(s);
 		} END_FOR_EACH_PTR;
-		if (stmt->ret) {
-			struct storage *addr;
-			int bits;
-			printf(".L%p:\n", stmt->ret);
-			addr = x86_symbol_expr(stmt->ret);
-			bits = stmt->ret->bit_size;
-			last = new_pseudo();
-			printf("\tld.%d\t\tv%d,[v%d]\n", bits, last->pseudo, addr->pseudo);
-		}
+
 		return last;
 	}
 
@@ -1161,20 +1177,6 @@ static struct storage *x86_assignment(struct expression *expr)
 	addr = x86_address_gen(target);
 	emit_move(target, addr, val, bits);
 	return val;
-}
-
-static void x86_return_stmt(struct statement *stmt)
-{
-	struct expression *expr = stmt->ret_value;
-	struct symbol *target = stmt->ret_target;
-
-	if (expr && expr->ctype) {
-		struct storage *val = x86_expression(expr);
-		int bits = expr->ctype->bit_size;
-		struct storage *addr = x86_symbol_expr(target);
-		emit_store(NULL, addr, val, bits);
-	}
-	printf("\tgoto .L%p\n", target);
 }
 
 static int x86_initialization(struct symbol *sym, struct expression *expr)
