@@ -20,6 +20,7 @@
 #include "parse.h"
 #include "token.h"
 #include "symbol.h"
+#include "expression.h"
 
 #define MAXNEST (16)
 static int true_nesting = 0;

@@ -13,6 +13,7 @@
 #include "token.h"
 #include "parse.h"
 #include "symbol.h"
+#include "expression.h"
 
 struct token *skip_to(struct token *token, int op)
 {

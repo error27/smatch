@@ -8,6 +8,47 @@
  * Declarations and helper functions for expression parsing.
  */
 
+enum expression_type {
+	EXPR_CONSTANT,
+	EXPR_SYMBOL,
+	EXPR_BINOP,
+	EXPR_DEREF,
+	EXPR_PREOP,
+	EXPR_POSTOP,
+	EXPR_CAST,
+	EXPR_SIZEOF,
+	EXPR_CONDITIONAL,
+	EXPR_STATEMENT,
+};
+
+struct expression {
+	int type, op;
+	struct token *token;
+	union {
+		struct expression *unop;
+		struct statement *statement;
+		struct symbol *symbol;
+		struct binop_arg {
+			struct expression *left, *right;
+		};
+		struct deref_arg {
+			struct expression *deref;
+			struct token *member;
+		};
+		struct cast_arg {
+			struct symbol *cast_type;
+			struct expression *cast_expression;
+		};
+		struct conditional_expr {
+			struct expression *conditional, *cond_true, *cond_false;
+		};
+		struct statement_struct {
+			struct symbol_list *syms;
+			struct statement_list *stmts;
+		};
+	};
+};
+
 /* Constant expression values */
 long long get_expression_value(struct expression *);
 
