@@ -18,6 +18,9 @@ extern void kill_bb(struct basic_block *);
 extern void kill_use(pseudo_t *);
 extern void kill_instruction(struct instruction *);
 
+void convert_load_instruction(struct instruction *, pseudo_t);
+void rewrite_load_instruction(struct instruction *, struct pseudo_list *);
+
 extern void track_pseudo_usage(struct entrypoint *ep);
 
 #endif

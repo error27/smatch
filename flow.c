@@ -149,7 +149,7 @@ void convert_instruction_target(struct instruction *insn, pseudo_t src)
 	target->users = NULL;
 }
 
-static void convert_load_insn(struct instruction *insn, pseudo_t src)
+void convert_load_instruction(struct instruction *insn, pseudo_t src)
 {
 	convert_instruction_target(insn, src);
 	/* Turn the load into a no-op */
@@ -266,7 +266,7 @@ found_dominator:
  * We should probably sort the phi list just to make it easier to compare
  * later for equality. 
  */
-static void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *dominators)
+void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *dominators)
 {
 	pseudo_t new, phi;
 
@@ -288,7 +288,7 @@ static void rewrite_load_instruction(struct instruction *insn, struct pseudo_lis
 	FOR_EACH_PTR(dominators, phi) {
 		phi->def->bb = NULL;
 	} END_FOR_EACH_PTR(phi);
-	convert_load_insn(insn, new);
+	convert_load_instruction(insn, new);
 	return;
 
 complex_phi:
@@ -347,7 +347,7 @@ found:
 		return 0;
 
 	if (dom) {
-		convert_load_insn(insn, dom->target);
+		convert_load_instruction(insn, dom->target);
 		return 1;
 	}
 
@@ -362,7 +362,7 @@ found:
 	if (!dominators) {
 		if (!local)
 			return 0;
-		convert_load_insn(insn, value_pseudo(0));
+		convert_load_instruction(insn, value_pseudo(0));
 		return 1;
 	}
 
@@ -545,7 +545,7 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 	FOR_EACH_PTR(pseudo->users, pp) {
 		struct instruction *insn = container(pp, struct instruction, src);
 		if (insn->opcode == OP_LOAD)
-			convert_load_insn(insn, src);
+			convert_load_instruction(insn, src);
 	} END_FOR_EACH_PTR(pp);
 
 	/* Turn the store into a no-op */
