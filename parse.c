@@ -576,6 +576,7 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 		ctype->contextmask = 0;
 
 		token = declaration_specifiers(token->next, ctype, 1);
+		modifiers = ctype->modifiers;
 	}
 	return token;
 }
