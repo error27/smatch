@@ -145,19 +145,60 @@ static int bb_has_side_effects(struct basic_block *bb)
 	return 0;
 }
 
-static int simplify_phi_branch(struct basic_block *bb, struct instruction *br)
+static int simplify_phi_branch(struct basic_block *bb, struct instruction *br, pseudo_t cond)
 {
-	pseudo_t cond = br->cond;
 	struct instruction *def;
 
-	if (!cond || cond->type != PSEUDO_REG)
-		return 0;
 	def = cond->def;
 	if (def->bb != bb || def->opcode != OP_PHI)
 		return 0;
 	if (bb_has_side_effects(bb))
 		return 0;
 	return try_to_simplify_bb(bb, def, br);
+}
+
+static int simplify_branch_branch(struct basic_block *bb, struct instruction *br,
+	pseudo_t cond, struct basic_block **target_p, int true)
+{
+	struct basic_block *target = *target_p, *final;
+	struct instruction *insn;
+
+	if (target == bb)
+		return 0;
+	insn = last_instruction(target->insns);
+	if (!insn || insn->opcode != OP_BR || insn->cond != cond)
+		return 0;
+	/*
+	 * Ahhah! We've found a branch to a branch on the same conditional!
+	 * Now we just need to see if we can rewrite the branch..
+	 */
+	final = true ? insn->bb_true : insn->bb_false;
+	if (bb_has_side_effects(target))
+		goto try_to_rewrite_target;
+	if (bb_depends_on(final, target))
+		goto try_to_rewrite_target;
+	return rewrite_branch(bb, target_p, target, final);
+
+try_to_rewrite_target:
+	/*
+	 * If we're the only parent, at least we can rewrite the
+	 * now-known second branch.
+	 */
+	if (bb_list_size(target->parents) != 1)
+		return 0;
+	insert_branch(target, insn, final);
+	return 1;
+}
+
+static int simplify_one_branch(struct basic_block *bb, struct instruction *br, pseudo_t cond)
+{
+	if (simplify_phi_branch(bb, br, cond))
+		return 1;
+	if (simplify_branch_branch(bb, br, cond, &br->bb_true, 1))
+		return 1;
+	if (simplify_branch_branch(bb, br, cond, &br->bb_false, 0))
+		return 1;
+	return 0;
 }
 
 static int simplify_branch_nodes(struct entrypoint *ep)
@@ -167,10 +208,14 @@ static int simplify_branch_nodes(struct entrypoint *ep)
 
 	FOR_EACH_PTR(ep->bbs, bb) {
 		struct instruction *br = last_instruction(bb->insns);
+		pseudo_t cond;
 
 		if (!br || br->opcode != OP_BR || !br->bb_false)
 			continue;
-		changed |= simplify_phi_branch(bb, br);
+		cond = br->cond;
+		if (!cond || cond->type != PSEUDO_REG)
+			continue;
+		changed |= simplify_one_branch(bb, br, cond);
 	} END_FOR_EACH_PTR(bb);
 	return changed;
 }
