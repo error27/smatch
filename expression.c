@@ -342,10 +342,10 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 			token = typename(next, &sym);
 			cast->cast_type = sym->ctype.base_type;
 			token = expect(token, ')', "at end of cast operator");
+			*tree = cast;
 			if (match_op(token, '{'))
 				return initializer(&cast->cast_expression, token);
 			token = cast_expression(token, &cast->cast_expression);
-			*tree = cast;
 			return token;
 		}
 	}
