@@ -107,26 +107,19 @@ static struct token *is_defined(struct token *head, struct token *token, struct 
 
 struct token *defined_one_symbol(struct token *head, struct token *next)
 {
-	if (match_string_ident(next->ident, "defined")) {
-		struct token *token = next->next;
-		struct token *past = token->next;
+	struct token *token = next->next;
+	struct token *past = token->next;
 
-		if (match_op(token, '(')) {
-			token = past;
-			past = token->next;
-			if (!match_op(past, ')'))
-				return next;
-			past = past->next;
-		}
-		if (token_type(token) == TOKEN_IDENT)
-			return is_defined(head, token, past);
+	if (match_op(token, '(')) {
+		token = past;
+		past = token->next;
+		if (!match_op(past, ')'))
+			return next;
+		past = past->next;
 	}
+	if (token_type(token) == TOKEN_IDENT)
+		return is_defined(head, token, past);
 	return next;
-}
-
-static struct token *expand_defined(struct token *head)
-{
-	return for_each_ident(head, defined_one_symbol);
 }
 
 /* Expand symbol 'sym' between 'head->next' and 'head->next->next' */
@@ -163,6 +156,8 @@ struct token *expand_one_symbol(struct token *head, struct token *token)
 		replace_with_integer(token, token->pos.line);
 	} else if (!memcmp(token->ident->name, "__FILE__", 9)) {
 		replace_with_string(token, (input_streams + token->pos.stream)->name);
+	} else if (!memcmp(token->ident->name, "defined", 8)) {
+		return defined_one_symbol(head, token);
 	}
 	return token;
 }
@@ -714,7 +709,6 @@ static int expression_value(struct token *head)
 	struct token *token;
 	long long value;
 
-	expand_defined(head);
 	expand_list(head);
 	token = constant_expression(head->next, &expr);
 	if (!eof_token(token))
