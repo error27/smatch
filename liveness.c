@@ -273,6 +273,15 @@ static void track_phi_uses(struct instruction *insn)
 	} END_FOR_EACH_PTR(phi);
 }
 
+static void track_bb_phi_uses(struct basic_block *bb)
+{
+	struct instruction *insn;
+	FOR_EACH_PTR(bb->insns, insn) {
+		if (insn->bb && insn->opcode == OP_PHI)
+			track_phi_uses(insn);
+	} END_FOR_EACH_PTR(insn);
+}
+
 static struct pseudo_list **live_list;
 static struct pseudo_list *dead_list;
 
@@ -302,8 +311,6 @@ static void track_pseudo_death_bb(struct basic_block *bb)
 	FOR_EACH_PTR_REVERSE(bb->insns, insn) {
 		if (!insn->bb)
 			continue;
-		if (insn->opcode == OP_PHI)
-			track_phi_uses(insn);
 		dead_list = NULL;
 		track_instruction_usage(bb, insn, death_def, death_use);
 		if (dead_list) {
@@ -324,6 +331,10 @@ static void track_pseudo_death_bb(struct basic_block *bb)
 void track_pseudo_death(struct entrypoint *ep)
 {
 	struct basic_block *bb;
+
+	FOR_EACH_PTR(ep->bbs, bb) {
+		track_bb_phi_uses(bb);
+	} END_FOR_EACH_PTR(bb);
 
 	FOR_EACH_PTR(ep->bbs, bb) {
 		track_pseudo_death_bb(bb);
