@@ -17,4 +17,4 @@ parse.o: token.h parse.h
 symbol.o: symbol.h token.h parse.h
 
 clean:
-	rm -f *.[oasi] $(PROGRAMS)
+	rm -f *.[oasi] core core.[0-9]* $(PROGRAMS)

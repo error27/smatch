@@ -81,7 +81,10 @@ extern struct symbol	void_type,
 extern struct ident	struct_ident,
 			union_ident,
 			enum_ident,
-			sizeof_ident;
+			sizeof_ident,
+			if_ident,
+			else_ident,
+			return_ident;
 
 #define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)
 

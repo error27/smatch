@@ -33,12 +33,11 @@ struct expression {
 };
 
 enum statement_type {
-	STMT_LABELED,
+	STMT_NONE,
 	STMT_EXPRESSION,
 	STMT_COMPOUND,
-	STMT_SELECTION,
-	STMT_ITERATION,
-	STMT_JUMP,
+	STMT_IF,
+	STMT_RETURN,
 };
 
 struct statement {
@@ -51,6 +50,11 @@ struct statement {
 			struct statement *label_statement;
 		};
 		struct expression *expression;
+		struct if_statement {
+			struct expression *if_conditional;
+			struct statement *if_true;
+			struct statement *if_false;
+		};
 		struct compound_struct {
 			struct symbol_list *syms;
 			struct statement_list *stmts;

@@ -676,30 +676,50 @@ static struct token *typename(struct token *token, struct symbol **tree)
 
 }
 
+struct token *expression_statement(struct token *token, struct expression **tree)
+{
+	token = parse_expression(token, tree);
+	return expect(token, ';', "at end of statement");
+}
+
 struct token *statement(struct token *token, struct statement **tree)
 {
-	struct statement *stmt;
-	struct expression *expr;
+	struct statement *stmt = alloc_statement(token, STMT_NONE);
 
-	token = parse_expression(token, &expr);
-	if (!expr) {
-		*tree = NULL;
-		return token;
+	if (token->type == TOKEN_IDENT) {
+		if (token->ident == &if_ident) {
+			stmt->type = STMT_IF;
+			token = expect(token->next, '(', "after 'if'");
+			token = parse_expression(token, &stmt->if_conditional);
+			token = expect(token, ')', "after 'if'");
+			token = statement(token, &stmt->if_true);
+			*tree = stmt;
+			if (!token || token->type != TOKEN_IDENT)
+				return token;
+			if (token->ident != &else_ident)
+				return token;
+			return statement(token->next, &stmt->if_false);
+		}
+		if (token->ident == &return_ident) {
+			stmt->type = STMT_RETURN;
+			*tree = stmt;
+			return expression_statement(token->next, &stmt->expression);
+		}
 	}
-	token = expect(token, ';', "at end of statement");
-	stmt = alloc_statement(token, STMT_EXPRESSION);
-	stmt->expression = expr;
-	*tree = stmt;
-	return token;
+			
+	stmt->type = STMT_EXPRESSION;
+	return expression_statement(token, &stmt->expression);
 }
 
 struct token * statement_list(struct token *token, struct statement_list **list)
 {
 	for (;;) {
-		struct statement * stmt = NULL;
-		token = statement(token, &stmt);
-		if (!stmt)
+		struct statement * stmt;
+		if (!token)
 			break;
+		if (match_op(token, '}'))
+			break;
+		token = statement(token, &stmt);
 		add_statement(list, stmt);
 	}
 	return token;
