@@ -1188,6 +1188,9 @@ struct token * statement_list(struct token *token, struct statement_list **list)
 static struct token *parameter_type_list(struct token *token, struct symbol *fn)
 {
 	struct symbol_list **list = &fn->arguments;
+
+	if (match_op(token, ')'))
+		return token;
 	for (;;) {
 		struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
 
