@@ -12,6 +12,7 @@
 #include "linearize.h"
 #include "flow.h"
 #include "storage.h"
+#include "target.h"
 
 static const char* opcodes[] = {
 	[OP_BADOP] = "bad_op",
@@ -1712,33 +1713,55 @@ static void output_bb(struct basic_block *bb, unsigned long generation)
 	generate_list(bb->children, generation);
 }
 
+/*
+ * We should set up argument sources here..
+ *
+ * Things like "first three arguments in registers" etc
+ * are all for this place.
+ *
+ * On x86, we default to stack, unless it's a static
+ * function that doesn't have its address taken.
+ *
+ * I should implement the -mregparm=X cmd line option.
+ */
 static void set_up_arch_entry(struct entrypoint *ep, struct instruction *entry)
 {
-	int i;
 	pseudo_t arg;
+	struct symbol *sym, *argtype;
+	int i, offset, regparm;
 
-	/*
-	 * We should set up argument sources here..
-	 *
-	 * Things like "first three arguments in registers" etc
-	 * are all for this place.
-	 */
+	sym = ep->name;
+	regparm = 0;
+	if (!(sym->ctype.modifiers & MOD_ADDRESSABLE))
+		regparm = 3;
+	sym = sym->ctype.base_type;
 	i = 0;
+	offset = 0;
+	PREPARE_PTR_LIST(sym->arguments, argtype);
 	FOR_EACH_PTR(entry->arg_list, arg) {
 		struct storage *in = lookup_storage(entry->bb, arg, STOR_IN);
 		if (!in) {
 			in = alloc_storage();
 			add_storage(in, entry->bb, arg, STOR_IN);
 		}
-		if (i < 3) {
+		if (i < regparm) {
 			in->type = REG_REG;
 			in->regno = i;
 		} else {
+			int bits = argtype ? argtype->bit_size : 0;
+
+			if (bits < bits_in_int)
+				bits = bits_in_int;
+
 			in->type = REG_FRAME;
-			in->offset = (i-3)*4;
+			in->offset = offset;
+			
+			offset += bits >> 3;
 		}
 		i++;
+		NEXT_PTR_LIST(argtype);
 	} END_FOR_EACH_PTR(arg);
+	FINISH_PTR_LIST(argtype);
 }
 
 /*
