@@ -71,7 +71,7 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 	expr->type = EXPR_VALUE;
 	expr->value = sym->value;
 	expr->ctype = base_type;
-	return sym;
+	return base_type;
 }
 
 static struct symbol *evaluate_string(struct expression *expr)

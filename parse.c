@@ -157,22 +157,25 @@ struct token *struct_or_union_specifier(enum type type, struct token *token, str
 
 static struct token *parse_enum_declaration(struct token *token, struct symbol *parent)
 {
-	int nextval = 0;
+	unsigned long long nextval = 0;
+	struct symbol *ctype = &int_ctype;
+
 	while (token_type(token) == TOKEN_IDENT) {
 		struct token *next = token->next;
 		struct symbol *sym;
 
 		sym = alloc_symbol(token->pos, SYM_ENUM);
 		bind_symbol(sym, token->ident, NS_SYMBOL);
-		sym->ctype.base_type = parent;
 		parent->ctype.base_type = &int_ctype;
 
 		if (match_op(next, '=')) {
 			struct expression *expr;
 			next = constant_expression(next->next, &expr);
 			nextval = get_expression_value(expr);
+			ctype = expr->ctype;
 		}
 		sym->value = nextval;
+		sym->ctype.base_type = ctype;
 
 		token = next;
 		if (!match_op(token, ','))
