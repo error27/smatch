@@ -67,6 +67,9 @@ int main(int argc, char **argv)
 		filename = arg;
 	}
 
+	if (!filename)
+		die("no input files given");
+
 	// Initialize type system
 	init_ctype();
 
