@@ -163,41 +163,45 @@ struct token *typeof_specifier(struct token *token, struct ctype *ctype)
 	return expect(token, ')', "after typeof");
 }
 
-static void handle_attribute(struct ctype *ctype, struct ident *attribute, struct expression *expr)
+static const char * handle_attribute(struct ctype *ctype, struct ident *attribute, struct expression *expr)
 {
 	if (match_string_ident(attribute, "packed")) {
 		ctype->alignment = 1;
-		return;
+		return NULL;
 	}
 	if (match_string_ident(attribute, "aligned")) {
+		if (!expr)
+			return "expected alignment expression";
 		ctype->alignment = get_expression_value(expr);
-		return;
+		return NULL;
 	}
 	if (match_string_ident(attribute, "nocast")) {
 		ctype->modifiers |= MOD_NOCAST;
-		return;
+		return NULL;
 	}
 	if (match_string_ident(attribute, "noderef")) {
 		ctype->modifiers |= MOD_NODEREF;
-		return;
+		return NULL;
 	}
 	if (match_string_ident(attribute, "address_space")) {
+		if (!expr)
+			return "expected address space number";
 		ctype->as = get_expression_value(expr);
-		return;
+		return NULL;
 	}
 	if (match_string_ident(attribute, "context")) {
 		if (expr->type == EXPR_COMMA) {
 			int mask = get_expression_value(expr->left);
 			int value = get_expression_value(expr->right);
-			if (value & ~mask) {
-				warn(expr->pos, "nonsense attribute types");
-				return;
-			}
+			if (value & ~mask)
+				return "nonsense attribute types";
 			ctype->contextmask |= mask;
 			ctype->context |= value;
-			return;
+			return NULL;
 		}
+		return "expected context mask and value";
 	}
+	return "unknown attribute";
 }
 
 
@@ -208,6 +212,7 @@ struct token *attribute_specifier(struct token *token, struct ctype *ctype)
 	token = expect(token, '(', "after attribute");
 
 	for (;;) {
+		const char *error;
 		struct ident *attribute_name;
 		struct expression *attribute_expr;
 
@@ -222,7 +227,9 @@ struct token *attribute_specifier(struct token *token, struct ctype *ctype)
 		attribute_expr = NULL;
 		if (match_op(token, '('))
 			token = parens_expression(token, &attribute_expr, "in attribute");
-		handle_attribute(ctype, attribute_name, attribute_expr);
+		error = handle_attribute(ctype, attribute_name, attribute_expr);
+		if (error)
+			warn(token->pos, "attribute '%s': %s", show_ident(attribute_name), error);
 		if (!match_op(token, ','))
 			break;
 		token = token->next;
