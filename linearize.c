@@ -1495,6 +1495,10 @@ static void linearize_one_symbol(struct entrypoint *ep, struct symbol *sym)
 	if (!sym->initializer || sym->initialized)
 		return;
 
+	/* We need to output these puppies some day too.. */
+	if (sym->ctype.modifiers & (MOD_STATIC | MOD_TOPLEVEL))
+		return;
+
 	sym->initialized = 1;
 	ad.address = symbol_pseudo(ep, sym);
 	linearize_initializer(ep, sym->initializer, &ad);
