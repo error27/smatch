@@ -1838,7 +1838,16 @@ static struct storage *x86_call_expression(struct expression *expr)
 		struct storage *new = x86_expression(arg);
 		int size = arg->ctype->bit_size;
 
-		insn(opbits("push", size), new, NULL,
+		/*
+		 * FIXME: i386 SysV ABI dictates that values
+		 * smaller than 32 bits should be placed onto
+		 * the stack as 32-bit objects.  We should not
+		 * blindly do a 32-bit push on objects smaller
+		 * than 32 bits.
+		 */
+		if (size < 32)
+			size = 32;
+		insn("pushl", new, NULL,
 		     !framesize ? "begin function call" : NULL);
 
 		framesize += size >> 3;
@@ -2147,6 +2156,9 @@ static struct storage *x86_expression(struct expression *expr)
 		return NULL;
 	case EXPR_TYPE:
 		warn(expr->pos, "unable to show type expression");
+		return NULL;
+	case EXPR_FVALUE:
+		warn(expr->pos, "floating point support is not implemented");
 		return NULL;
 	}
 	return NULL;
