@@ -871,16 +871,18 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	struct expression *op = expr->unop;
 	struct symbol *ctype = op->ctype, *sym;
 
-	sym = alloc_symbol(expr->pos, SYM_NODE);
-	sym->ctype = ctype->ctype;
-	if (ctype->type == SYM_NODE) {
+	/* Dereferencing a node drops all the node information. */
+	if (ctype->type == SYM_NODE)
 		ctype = ctype->ctype.base_type;
-		merge_type(sym, ctype);
-	}
+
 	if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
 		warn(expr->pos, "cannot derefence this type");
 		return 0;
 	}
+
+	/* The new node gets the ctype information from the pointer */
+	sym = alloc_symbol(expr->pos, SYM_NODE);
+	sym->ctype = ctype->ctype;
 
 	ctype = ctype->ctype.base_type;
 	examine_symbol_type(ctype);
