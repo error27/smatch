@@ -374,10 +374,20 @@ static struct token *unary_expression(struct token *token, struct expression **t
 		if (match_oplist(token->special,
 		    SPECIAL_INCREMENT, SPECIAL_DECREMENT,
 		    '&', '*', '+', '-', '~', '!', 0)) {
-			struct expression *unary = alloc_expression(token->pos, EXPR_PREOP);
+		    	struct expression *unop;
+			struct expression *unary;
+			struct token *next;
+
+			next = cast_expression(token->next, &unop);
+			if (!unop) {
+				warn(token->pos, "Syntax error in unary expression");
+				return next;
+			}
+			unary = alloc_expression(token->pos, EXPR_PREOP);
 			unary->op = token->special;
+			unary->unop = unop;
 			*tree = unary;
-			return cast_expression(token->next, &unary->unop);
+			return next;
 		}
 
 		/* Gcc extension: &&label gives the address of a label */
