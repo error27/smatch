@@ -176,6 +176,30 @@ struct token *attribute_specifier(struct token *token, struct ctype *ctype)
 
 #define MOD_SPECIALBITS (MOD_STRUCTOF | MOD_UNIONOF | MOD_ENUMOF | MOD_ATTRIBUTE | MOD_TYPEOF)
 
+static struct token *type_qualifiers(struct token *next, struct ctype *ctype)
+{
+	struct token *token;
+	while ( (token = next) != NULL ) {
+		struct symbol *s, *base_type;
+		unsigned long mod;
+
+		next = token->next;
+		if (token->type != TOKEN_IDENT) 
+			break;
+		s = lookup_symbol(token->ident, NS_TYPEDEF);
+		if (!s)
+			break;
+		mod = s->ctype.modifiers;
+		base_type = s->ctype.base_type;
+		if (base_type)
+			break;
+		if (mod & ~(MOD_CONST | MOD_VOLATILE))
+			break;
+		ctype->modifiers |= mod;
+	}
+	return token;
+}
+
 static struct token *declaration_specifiers(struct token *next, struct ctype *ctype)
 {
 	struct token *token;
@@ -259,10 +283,6 @@ static struct token *declarator(struct token *token, struct symbol **tree, struc
 static struct token *direct_declarator(struct token *token, struct symbol **tree, struct token **p)
 {
 	if (p && token->type == TOKEN_IDENT) {
-		if (lookup_symbol(token->ident, NS_TYPEDEF)) {
-			warn(token, "unexpected type/qualifier");
-			return token;
-		}
 		*p = token;
 		token = token->next;
 	}
@@ -325,7 +345,7 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 	struct symbol *base_type;
 
 	force_default_type(ctype);
-	modifiers = ctype->modifiers & ~MOD_TYPEDEF;
+	modifiers = ctype->modifiers & ~(MOD_TYPEDEF | MOD_ATTRIBUTE);
 	base_type = ctype->base_type;
 	
 	while (match_op(token,'*')) {
@@ -337,7 +357,7 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 		modifiers &= MOD_STORAGE;
 		ctype->base_type = base_type;
 
-		token = declaration_specifiers(token->next, ctype);
+		token = type_qualifiers(token->next, ctype);
 	}
 	ctype->modifiers = modifiers;
 	return token;
@@ -571,17 +591,16 @@ static struct token *parameter_type_list(struct token *token, struct symbol_list
 	for (;;) {
 		struct symbol *sym = alloc_symbol(token, SYM_TYPE);
 
-		token = parameter_declaration(token, &sym);
+		if (match_op(token, SPECIAL_ELLIPSIS)) {
+			sym->type = SYM_ELLIPSIS;
+			token = token->next;
+		} else
+			token = parameter_declaration(token, &sym);
 		add_symbol(list, sym);
 		if (!match_op(token, ','))
 			break;
 		token = token->next;
 
-		if (match_op(token, SPECIAL_ELLIPSIS)) {
-			/* FIXME: mark the function */
-			token = token->next;
-			break;
-		}
 	}
 	return token;
 }
@@ -610,9 +629,27 @@ static struct token *initializer_list(struct token *token, struct ctype *type)
 	return token;
 }
 
+struct token *parse_named_initializer(struct token *id, struct token *token)
+{
+	struct expression *expr;
+
+	return assignment_expression(token, &expr);
+}
+
 struct token *initializer(struct token *token, struct ctype *type)
 {
 	struct expression *expr;
+	struct token *next, *name = NULL;
+
+	next = token->next;
+	if (match_op(token, '.') && (next->type == TOKEN_IDENT) && match_op(next->next, '=')) {
+		name = next;
+		token = next->next->next;
+	} else if ((token->type == TOKEN_IDENT) && match_op(next, ':')) {
+		name = token;
+		token = next->next;
+	}
+
 	if (match_op(token, '{')) {
 		token = initializer_list(token->next, type);
 		return expect(token, '}', "at end of initializer");
@@ -622,8 +659,14 @@ struct token *initializer(struct token *token, struct ctype *type)
 
 static void declare_argument(struct symbol *sym, void *data, int flags)
 {
+	struct symbol *decl = data;
+
+	if (sym->type == SYM_ELLIPSIS)
+		return;
+	if (sym->ctype.base_type == &void_type)
+		return;
 	if (!sym->ident) {
-		warn(sym->token, "no identifier for function argument");
+		warn(decl->token, "no identifier for function argument");
 		return;
 	}
 	bind_symbol(sym, sym->ident->ident, NS_SYMBOL);
@@ -659,7 +702,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	if (decl->type == SYM_FN && match_op(token, '{')) {
 		decl->stmt = alloc_statement(token, STMT_COMPOUND);
 		start_symbol_scope();
-		symbol_iterate(decl->arguments, declare_argument, NULL);
+		symbol_iterate(decl->arguments, declare_argument, decl);
 		token = compound_statement(token->next, decl->stmt);
 		end_symbol_scope();
 		return expect(token, '}', "at end of function");

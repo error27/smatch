@@ -42,6 +42,7 @@ enum type {
 	SYM_TYPEDEF,
 	SYM_MEMBER,
 	SYM_BITFIELD,
+	SYM_ELLIPSIS,
 };
 
 struct ctype {

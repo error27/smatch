@@ -19,6 +19,7 @@ char *includepath[] = {
 	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.1/include/",
 #if 1
 	"/home/torvalds/v2.5/linux/include/",
+	"/home/torvalds/v2.5/linux/include/asm-i386/mach-default/",
 #else
 	"/usr/include/",
 	"/usr/local/include/",
