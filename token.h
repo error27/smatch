@@ -119,6 +119,7 @@ struct string {
 struct token {
 	struct position pos;
 	struct token *next;
+	struct token *parent;
 	union {
 		char *integer;
 		char *fp;

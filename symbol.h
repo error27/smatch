@@ -67,7 +67,6 @@ struct symbol {
 	struct symbol	*same_symbol;
 
 	struct preprocessor_sym {
-		int busy;
 		struct token *expansion;
 		struct token *arglist;
 	};
