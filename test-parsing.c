@@ -17,6 +17,7 @@
 #include "token.h"
 #include "parse.h"
 #include "symbol.h"
+#include "expression.h"
 
 char *includepath[] = {
 	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.1/include/",
@@ -34,6 +35,48 @@ char *includepath[] = {
 
 static void handle_switch(char *arg)
 {
+}
+
+static void clean_up_statement(struct statement *stmt, void *_parent, int flags);
+static void clean_up_symbol(struct symbol *sym, void *_parent, int flags);
+
+static void simplify_statement(struct statement *stmt, struct symbol *fn)
+{
+	if (!stmt)
+		return;
+	switch (stmt->type) {
+	case STMT_RETURN:
+	case STMT_EXPRESSION:
+		evaluate_expression(stmt->expression);
+		return;
+	case STMT_COMPOUND:
+		symbol_iterate(stmt->syms, clean_up_symbol, fn);
+		statement_iterate(stmt->stmts, clean_up_statement, fn);
+		return;
+	case STMT_IF:
+		evaluate_expression(stmt->if_conditional);
+		simplify_statement(stmt->if_true, fn);
+		simplify_statement(stmt->if_false, fn);
+		return;
+	}
+}
+
+static void clean_up_statement(struct statement *stmt, void *_parent, int flags)
+{
+	struct symbol *parent = _parent;
+	simplify_statement(stmt, parent);
+}
+
+static void clean_up_symbol(struct symbol *sym, void *_parent, int flags)
+{
+	struct symbol *parent = _parent;
+
+	examine_symbol_type(sym);
+	if (sym->type == SYM_FN) {
+		symbol_iterate(sym->arguments, clean_up_symbol, parent);
+		if (sym->stmt)
+			simplify_statement(sym->stmt, sym);
+	}
 }
 
 int main(int argc, char **argv)
@@ -70,7 +113,10 @@ int main(int argc, char **argv)
 	// Parse the resulting C code
 	translation_unit(token, &list);
 
-#if 0
+	// Do type evaluation and simplify
+	symbol_iterate(list, clean_up_symbol, NULL);
+
+#if 1
 	// Show the end result.
 	show_symbol_list(list, "\n\n");
 	printf("\n\n");

@@ -18,7 +18,31 @@
 #include "parse.h"
 #include "token.h"
 #include "symbol.h"
+#include "target.h"
 #include "expression.h"
+
+struct symbol char_ctype, int_ctype;
+
+static void evaluate_symbol(struct expression *expr)
+{
+	struct symbol *sym = expr->symbol;
+	struct symbol *base_type;
+
+	examine_symbol_type(sym);
+	base_type = sym->ctype.base_type;
+	if (!base_type)
+		return;
+
+	/* The ctype of a symbol expression is the symbol itself! */
+	expr->ctype = sym;
+
+	/* enum's can be turned into plain values */
+	if (base_type->type == SYM_ENUM) {
+		expr->type = EXPR_VALUE;
+		expr->value = sym->value;
+		return;
+	}
+}
 
 static unsigned long long get_int_value(const char *str)
 {
@@ -39,6 +63,47 @@ static unsigned long long get_int_value(const char *str)
 		str++;
 	}
 	return value;
+}
+
+static void evaluate_constant(struct expression *expr)
+{
+	struct token *token = expr->token;
+	long long value;
+
+	switch (token->type) {
+	case TOKEN_INTEGER:
+		value = get_int_value(token->integer);
+		expr->type = EXPR_VALUE;
+		expr->ctype = &int_ctype;
+		expr->value = value;
+		return;
+	}
+}	
+
+void evaluate_expression(struct expression *expr)
+{
+	if (!expr || expr->ctype)
+		return;
+	switch (expr->type) {
+	case EXPR_CONSTANT:
+		evaluate_constant(expr);
+		return;
+	case EXPR_SYMBOL:
+		evaluate_symbol(expr);
+		return;
+	case EXPR_BINOP:
+		evaluate_expression(expr->left);
+		evaluate_expression(expr->right);
+		return;
+	case EXPR_PREOP:
+		evaluate_expression(expr->unop);
+		return;
+	case EXPR_POSTOP:
+		evaluate_expression(expr->unop);
+		return;
+	default:
+		break;
+	}
 }
 
 static long long primary_value(struct token *token)

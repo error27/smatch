@@ -149,7 +149,6 @@ void show_type(struct symbol *sym)
 		return;
 	}
 
-	examine_symbol_type(sym);
 	printf("%d:%d %s", sym->bit_size, sym->alignment, modifier_string(sym->ctype.modifiers));
 
 	switch (sym->type) {
@@ -373,6 +372,9 @@ void show_expression(struct expression *expr)
 		show_type(expr->cast_type);
 		printf(")");
 		show_expression(expr->cast_expression);
+		break;
+	case EXPR_VALUE:
+		printf("(%lld)", expr->value);
 		break;
 	default:
 		printf("WTF");

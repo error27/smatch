@@ -10,6 +10,7 @@
 
 enum expression_type {
 	EXPR_CONSTANT,
+	EXPR_VALUE,
 	EXPR_SYMBOL,
 	EXPR_BINOP,
 	EXPR_DEREF,
@@ -24,7 +25,9 @@ enum expression_type {
 struct expression {
 	int type, op;
 	struct token *token;
+	struct symbol *ctype;
 	union {
+		long long value;
 		struct expression *unop;
 		struct statement *statement;
 		struct symbol *symbol;
@@ -58,6 +61,8 @@ struct token *conditional_expression(struct token *token, struct expression **tr
 struct token *primary_expression(struct token *token, struct expression **tree);
 struct token *parens_expression(struct token *token, struct expression **expr, const char *where);
 struct token *assignment_expression(struct token *token, struct expression **tree);
+
+void evaluate_expression(struct expression *);
 
 static inline struct expression *alloc_expression(struct token *token, int type)
 {
