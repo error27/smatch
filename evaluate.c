@@ -120,10 +120,8 @@ static inline struct symbol *integer_promotion(struct symbol *type)
 	if (type->type == SYM_ENUM)
 		type = type->ctype.base_type;
 	width = type->bit_size;
-	if (type->type == SYM_BITFIELD) {
-		width = type->fieldwidth;
+	if (type->type == SYM_BITFIELD)
 		type = type->ctype.base_type;
-	}	
 	mod = type->ctype.modifiers;
 	if (width < bits_in_int)
 		return &int_ctype;
@@ -1644,12 +1642,8 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		}
 		expr->r_bitpos += offset << 3;
 		expr->type = EXPR_SLICE;
-		if (ctype->type == SYM_BITFIELD) {
-			expr->r_bitpos += member->bit_offset;
-			expr->r_nrbits = member->fieldwidth;
-		} else {
-			expr->r_nrbits = member->bit_size;
-		}
+		expr->r_nrbits = member->bit_size;
+		expr->r_bitpos += member->bit_offset;
 		expr->ctype = member;
 		return member;
 	}
@@ -1661,7 +1655,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	if (ctype->type == SYM_BITFIELD) {
 		expr->type = EXPR_BITFIELD;
 		expr->bitpos = member->bit_offset;
-		expr->nrbits = member->fieldwidth;
+		expr->nrbits = member->bit_size;
 		expr->address = add;
 	} else {
 		expr->type = EXPR_PREOP;

@@ -111,9 +111,7 @@ const char *modifier_string(unsigned long mod)
 
 void show_struct_member(struct symbol *sym)
 {
-	printf("\t%s:%d:%ld at offset %ld", show_ident(sym->ident), sym->bit_size, sym->ctype.alignment, sym->offset);
-	if (sym->fieldwidth)
-		printf("[%d..%d]", sym->bit_offset, sym->bit_offset+sym->fieldwidth-1);
+	printf("\t%s:%d:%ld at offset %ld.%d", show_ident(sym->ident), sym->bit_size, sym->ctype.alignment, sym->offset, sym->bit_offset);
 	printf("\n");
 }
 
@@ -236,7 +234,7 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 		break;
 
 	case SYM_BITFIELD:
-		append(name, ":%d", sym->fieldwidth);
+		append(name, ":%d", sym->bit_size);
 		break;
 
 	case SYM_LABEL:

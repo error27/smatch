@@ -131,7 +131,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		unsigned long bit_offset = bit_size & align_bit_mask;
 		int room = bitfield_base_size(sym) - bit_offset;
 		// Zero-width fields just fill up the unit.
-		int width = sym->fieldwidth ? sym->fieldwidth : (bit_offset ? room : 0);
+		int width = base_size ? : (bit_offset ? room : 0);
 
 		if (width > room) {
 			bit_size = (bit_size + align_bit_mask) & ~align_bit_mask;
@@ -223,16 +223,12 @@ static struct symbol *examine_bitfield_type(struct symbol *sym)
 	if (!base_type)
 		return sym;
 	bit_size = base_type->bit_size;
-	if (sym->fieldwidth > bit_size) {
-		warning(sym->pos, "impossible field-width, %d, for this type",
-		     sym->fieldwidth);
-		sym->fieldwidth = bit_size;
-	}
+	if (sym->bit_size > bit_size)
+		warning(sym->pos, "impossible field-width, %d, for this type",  sym->bit_size);
 
 	alignment = base_type->ctype.alignment;
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = alignment;
-	sym->bit_size = sym->fieldwidth;
 	return sym;
 }
 
@@ -295,8 +291,6 @@ static struct symbol * examine_node_type(struct symbol *sym)
 
 	bit_size = base_type->bit_size;
 	alignment = base_type->ctype.alignment;
-	if (base_type->fieldwidth)
-		sym->fieldwidth = base_type->fieldwidth;
 
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = alignment;
@@ -358,8 +352,9 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		return sym;
 
 	/* Already done? */
-	if (sym->bit_size)
+	if (sym->examined)
 		return sym;
+	sym->examined = 1;
 
 	switch (sym->type) {
 	case SYM_FN:

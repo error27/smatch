@@ -16,6 +16,7 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <limits.h>
 
 #include "lib.h"
 #include "token.h"
@@ -846,24 +847,19 @@ static struct token *handle_bitfield(struct token *token, struct symbol *decl)
 	bitfield = indirect(token->pos, ctype, SYM_BITFIELD);
 	token = conditional_expression(token->next, &expr);
 	width = get_expression_value(expr);
-	bitfield->fieldwidth = width;
+	bitfield->bit_size = width;
 
-	if (width < 0) {
-		warning(token->pos, "invalid negative bitfield width, %lld.", width);
-		bitfield->fieldwidth = 8;
+	if (width < 0 || width > INT_MAX) {
+		warning(token->pos, "invalid bitfield width, %lld.", width);
+		width = -1;
 	} else if (decl->ident && width == 0) {
 		warning(token->pos, "invalid named zero-width bitfield `%s'",
 		     show_ident(decl->ident));
-		bitfield->fieldwidth = 8;
-	} else if (width != bitfield->fieldwidth) {
-		// Overflow.
-		unsigned int stupid_gcc = -1;
-		bitfield->fieldwidth = stupid_gcc;
-		warning(token->pos, "truncating large bitfield from %lld to %d bits", width, bitfield->fieldwidth);
+		width = -1;
 	} else if (decl->ident) {
 		struct symbol *base_type = bitfield->ctype.base_type;
 		int is_signed = !(base_type->ctype.modifiers & MOD_UNSIGNED);
-		if (bitfield->fieldwidth == 1 && is_signed) {
+		if (width == 1 && is_signed) {
 			// Valid values are either {-1;0} or {0}, depending on integer
 			// representation.  The latter makes for very efficient code...
 			warning(token->pos, "dubious one-bit signed bitfield");
@@ -876,6 +872,7 @@ static struct token *handle_bitfield(struct token *token, struct symbol *decl)
 			warning (token->pos, "dubious bitfield without explicit `signed' or `unsigned'");
 		}
 	}
+	bitfield->bit_size = width;
 	return token;
 }
 
