@@ -458,10 +458,9 @@ struct symbol_op constant_p_op = {
 /*
  * Builtin functions
  */
-static struct symbol builtin_fn_type = { .type = SYM_FN };
-struct sym_init eval_init_table[] = {
+static struct symbol builtin_fn_type = { .type = SYM_FN /* , .variadic =1 */ };
+static struct sym_init eval_init_table[] = {
 	{ "__builtin_constant_p", &builtin_fn_type, MOD_TOPLEVEL, &constant_p_op },
-
 	{ NULL,		NULL,		0 }
 };
 
