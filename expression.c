@@ -65,7 +65,7 @@ static struct token *string_expression(struct token *token, struct expression *e
 	struct token *next = token->next;
 
 	if (token_type(next) == TOKEN_STRING) {
-		int totlen = string->length;
+		int totlen = string->length-1;
 		char *data;
 
 		do {
@@ -78,13 +78,13 @@ static struct token *string_expression(struct token *token, struct expression *e
 			totlen = MAX_STRING;
 		}
 
-		string = __alloc_string(totlen);
-		string->length = totlen;
+		string = __alloc_string(totlen+1);
+		string->length = totlen+1;
 		data = string->data;
 		next = token;
 		do {
 			struct string *s = next->string;
-			int len = s->length;
+			int len = s->length-1;
 
 			if (len > totlen)
 				len = totlen;
@@ -92,8 +92,9 @@ static struct token *string_expression(struct token *token, struct expression *e
 
 			next = next->next;
 			memcpy(data, s->data, len);
-			data += len-1;
+			data += len;
 		} while (token_type(next) == TOKEN_STRING);
+		*data = '\0';
 	}
 	expr->string = string;
 	return next;

@@ -550,7 +550,7 @@ static int get_string_token(int next, stream_t *stream)
 		len++;
 	}
 
-	if (len >= MAX_STRING) {
+	if (len > MAX_STRING) {
 		warn(stream->pos, "string too long (%d bytes, %d bytes max)", len, MAX_STRING);
 		len = MAX_STRING;
 	}

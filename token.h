@@ -144,7 +144,7 @@ struct token {
 	};
 };
 
-#define MAX_STRING 2048
+#define MAX_STRING 4095
 
 static inline struct token *containing_token(struct token **p)
 {
