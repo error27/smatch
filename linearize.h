@@ -23,6 +23,7 @@ struct entrypoint {
 	struct symbol *name;
 	struct symbol_list *syms;
 	struct basic_block_list *bbs;
+	struct basic_block *active;
 };
 
 void linearize_symbol(struct symbol *sym);
