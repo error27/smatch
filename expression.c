@@ -15,6 +15,8 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <limits.h>
 
 #include "lib.h"
 #include "token.h"
@@ -100,97 +102,109 @@ static void get_fp_value(struct expression *expr, struct token *token)
 	}
 }
 
+#ifndef ULLONG_MAX
+#define ULLONG_MAX (~0ULL)
+#endif
+
 static void get_number_value(struct expression *expr, struct token *token)
 {
 	const char *str = token->number;
-	unsigned long long value = 0;
-	unsigned int base = 10, digit, bits;
-	unsigned long modifiers, extramod;
+	unsigned long long value;
+	char *end;
+	unsigned long modifiers = 0;
+	int overflow = 0, do_warn = 0;
+	int try_unsigned = 1;
+	int bits;
 
-	if (str[0] == '0') {
-		switch (str[1]) {
-		case 'x': case 'X':
-			base = 18;	// the -= 2 for the octal case will
-			str++;		// skip the '0'
-		/* fallthrough */
-		case '0'...'7':
-			str++;		// skip the '0' or 'x/X'
-			base -= 2;	// the fall-through will make this 8
-		}
-	}
-	for (;;) {
-		char c = *str++;
-		if (c == '_')
-			continue;
-		digit = hexval(c);
-		if (digit >= base)
+	errno = 0;
+	value = strtoull(str, &end, 0);
+	if (end == str)
+		goto Enoint;
+	if (value == ULLONG_MAX && errno == ERANGE)
+		overflow = 1;
+	while (1) {
+		unsigned long added;
+		char c = *end++;
+		if (!c) {
 			break;
-		value = value * base + digit;
+		} else if (c == 'u' || c == 'U') {
+			added = MOD_UNSIGNED;
+		} else if (c == 'l' || c == 'L') {
+			added = MOD_LONG;
+			if (*end == c) {
+				added |= MOD_LONGLONG;
+				end++;
+			}
+		} else
+			goto Enoint;
+		if (modifiers & added)
+			goto Enoint;
+		modifiers |= added;
 	}
-	str--;
-	modifiers = 0;
-	for (;;) {
-		char c = *str++;
-		if (c == 'u' || c == 'U') {
-			modifiers |= MOD_UNSIGNED;
-			continue;
-		}
-		if (c == 'l' || c == 'L') {
-			if (modifiers & MOD_LONG)
-				modifiers |= MOD_LONGLONG;
-			modifiers |= MOD_LONG;
-			continue;
-		}
-		if (c) {
-			get_fp_value(expr, token);
-			return;
-		}
-		break;
-	}
-
-	bits = bits_in_longlong;
-	extramod = 0;
-	if (!(modifiers & MOD_LONGLONG)) {
-		if (value & (~1ULL << (bits_in_long-1))) {
-			extramod = MOD_LONGLONG | MOD_LONG;
-		} else {
-			bits = bits_in_long;
-			if (!(modifiers & MOD_LONG)) {
-				if (value & (~1ULL << (bits_in_int-1))) {
-					extramod = MOD_LONG;
-				} else
-					bits = bits_in_int;
+	if (overflow)
+		goto Eoverflow;
+	/* OK, it's a valid integer */
+	/* decimals can be unsigned only if directly specified as such */
+	if (str[0] != '0' && !(modifiers & MOD_UNSIGNED))
+		try_unsigned = 0;
+	if (!(modifiers & MOD_LONG)) {
+		bits = bits_in_int - 1;
+		if (!(value & (~1ULL << bits))) {
+			if (!(value & (1ULL << bits))) {
+				goto got_it;
+			} else if (try_unsigned) {
+				modifiers |= MOD_UNSIGNED;
+				goto got_it;
 			}
 		}
+		modifiers |= MOD_LONG;
+		do_warn = 1;
 	}
-	if (!(modifiers & MOD_UNSIGNED)) {
-		if (value & (1ULL << (bits-1))) {
-			extramod |= MOD_UNSIGNED;
+	if (!(modifiers & MOD_LONGLONG)) {
+		bits = bits_in_long - 1;
+		if (!(value & (~1ULL << bits))) {
+			if (!(value & (1ULL << bits))) {
+				goto got_it;
+			} else if (try_unsigned) {
+				modifiers |= MOD_UNSIGNED;
+				goto got_it;
+			}
+			do_warn |= 2;
 		}
+		modifiers |= MOD_LONGLONG;
+		do_warn |= 1;
 	}
-	if (extramod) {
-		/*
-		 * Special case: "int" gets promoted directly to "long"
-		 * for normal decimal numbers..
-		 */
-		modifiers |= extramod;
-		if (base == 10 && modifiers == MOD_UNSIGNED) {
-			if (bits_in_long != bits_in_int)
-				modifiers = MOD_LONG;
-		}
-
-		/* Hex or octal constants don't complain about missing signedness */
-		if (base == 10 || extramod != MOD_UNSIGNED)
-			warn(expr->pos, "constant %s is so big it is%s%s%s",
-				show_token(token),
-				(modifiers & MOD_UNSIGNED) ? " unsigned":"",
-				(modifiers & MOD_LONG) ? " long":"",
-				(modifiers & MOD_LONGLONG) ? " long":"");
-	}
-
-	expr->type = EXPR_VALUE;
-	expr->ctype = ctype_integer(modifiers);
-	expr->value = value;
+	bits = bits_in_longlong - 1;
+	if (value & (~1ULL << bits))
+		goto Eoverflow;
+	if (!(value & (1ULL << bits)))
+		goto got_it;
+	if (!try_unsigned)
+		warn(expr->pos, "decimal constant %s is too big for long long",
+			show_token(token));
+	modifiers |= MOD_UNSIGNED;
+got_it:
+	if (do_warn)
+		warn(expr->pos, "constant %s is so big it is%s%s%s",
+			show_token(token),
+			(modifiers & MOD_UNSIGNED) ? " unsigned":"",
+			(modifiers & MOD_LONG) ? " long":"",
+			(modifiers & MOD_LONGLONG) ? " long":"");
+	if (do_warn & 2)
+		warn(expr->pos,
+			"decimal constant %s is between LONG_MAX and ULONG_MAX."
+			" For C99 that means long long, C90 compilers are very "
+			"likely to produce unsigned long (and a warning) here",
+			show_token(token));
+        expr->type = EXPR_VALUE;
+        expr->ctype = ctype_integer(modifiers);
+        expr->value = value;
+	return;
+Eoverflow:
+	error(expr->pos, "constant %s is too big even for unsigned long long",
+			show_token(token));
+Enoint:
+	get_fp_value(expr, token);
 }
 
 struct token *primary_expression(struct token *token, struct expression **tree)
