@@ -572,7 +572,7 @@ struct ident *hash_ident(struct ident *ident)
 		hash = ident_hash_add(hash, i);
 	}
 	hash = ident_hash_end(hash);
-	insert_hash(ident, hash);
+	return insert_hash(ident, hash);
 }
 
 struct ident *built_in_ident(const char *name)

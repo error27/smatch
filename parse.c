@@ -352,23 +352,40 @@ struct statement *alloc_statement(struct token * token, int type)
 	return stmt;
 }
 
-static struct token *declaration_specifiers(struct token *token, struct symbol *sym)
+struct token *struct_or_union_specifier(struct token *token, struct symbol **enum_sym)
 {
-	for ( ; token; token = token->next) {
+	return token;
+}
+
+struct token *enum_specifier(struct token *token, struct symbol **enum_sym)
+{
+	return token;
+}
+
+static struct token *declaration_specifiers(struct token *next, struct symbol *sym)
+{
+	struct token *token;
+
+	while ( (token = next) != NULL ) {
 		struct ident *ident;
 		struct symbol *s;
 		struct symbol *type;
 		unsigned long mod;
 
-		/*
-		 * Handle 'struct' and 'union' here!
-		 */
+		next = token->next;
 		if (token->type != TOKEN_IDENT)
 			break;
 		ident = token->ident;
+
 		s = ident->symbol;
-		if (!s || !symbol_is_typename(s))
-			break;
+		if (!s) {
+			if (ident == &struct_ident || ident == &union_ident)
+				next = struct_or_union_specifier(next, &s);
+			else if (ident == &enum_ident)
+				next = enum_specifier(next, &s);
+			if (!s)
+				break;
+		}
 		type = s->base_type;
 		mod = s->modifiers;
 		if (type) {
@@ -569,22 +586,6 @@ static struct token *parameter_type_list(struct token *token, struct symbol **tr
 static struct token *abstract_function_declarator(struct token *token, struct symbol **tree)
 {
 	return parameter_type_list(token, tree);
-}
-
-static struct token *declaration(struct token *token, struct symbol **tree)
-{
-	struct token *ident = NULL;
-
-	*tree = alloc_symbol(SYM_TYPE);
-	token = declaration_specifiers(token, *tree);
-	token = pointer(token, tree);
-	token = direct_declarator(token, tree, generic_declarator, &ident);
-	if (ident) {
-		printf("named declarator %s:\n  ", show_token(ident));
-		show_type(*tree);
-		printf("\n\n");
-	}
-	return token;
 }
 
 static struct token *compound_statement(struct token *token, struct statement **tree)

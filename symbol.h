@@ -65,6 +65,11 @@ extern struct symbol	void_type,
 			fp_type,
 			vector_type;
 
+/* Basic identifiers */
+extern struct ident	struct_ident,
+			union_ident,
+			enum_ident;
+
 #define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)
 
 extern void init_symbols(void);
@@ -73,6 +78,8 @@ extern void show_type(struct symbol *);
 extern const char *modifier_string(unsigned long mod);
 extern void show_symbol(struct symbol *);
 extern void show_type_list(struct symbol *);
+extern void show_symbol_list(struct symbol_list *);
 extern void add_symbol(struct symbol_list **, struct symbol *);
+extern void bind_symbol(struct symbol *, struct token *);
 
 #endif /* SEMANTIC_H */
