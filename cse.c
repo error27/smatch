@@ -42,14 +42,21 @@ static unsigned long clean_up_phi(struct instruction *insn)
 {
 	struct phi *phi, *last;
 	unsigned long hash = 0;
+	int same;
 
 	sort_phi_list(&insn->phi_list);
 
 	last = NULL;
+	same = 1;
 	FOR_EACH_PTR(insn->phi_list, phi) {
+		if (phi->pseudo == VOID) {
+			DELETE_CURRENT_PTR(phi);
+			continue;
+		}
 		if (last) {
-			if (last->pseudo == phi->pseudo &&
-			    last->source == phi->source) {
+			if (last->pseudo != phi->pseudo) {
+				same = 0;
+			} else if (last->source == phi->source) {
 				DELETE_CURRENT_PTR(phi);
 				continue;
 			}
@@ -58,6 +65,14 @@ static unsigned long clean_up_phi(struct instruction *insn)
 		hash += hashval(phi->pseudo);
 		hash += hashval(phi->source);
 	} END_FOR_EACH_PTR(phi);
+
+	if (same) {
+		pseudo_t pseudo = last ? last->pseudo : VOID;
+		convert_instruction_target(insn, pseudo);
+		insn->bb = NULL;
+		/* This one is bogus, but no worse than anything else */
+		return hash;
+	}
 
 	/* Whenever we delete pointers, we may have to pack the end result */
 	PACK_PTR_LIST(&insn->phi_list);
