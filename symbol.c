@@ -264,6 +264,7 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 
 	scope = block_scope;
 	if (toplevel(scope)) {
+		sym->ctype.modifiers |= MOD_TOPLEVEL;
 		if (sym->ctype.modifiers & MOD_STATIC)
 			scope = file_scope;
 	}

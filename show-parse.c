@@ -682,7 +682,16 @@ static int show_postop(struct expression *expr)
 static int show_symbol_expr(struct symbol *sym)
 {
 	int new = new_pseudo();
-	printf("\tmovi.%d\t\tv%d,$%s\n", BITS_IN_POINTER, new, show_ident(sym->ident));
+
+	if (sym->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN | MOD_STATIC)) {
+		printf("\tmovi.%d\t\tv%d,$%s\n", BITS_IN_POINTER, new, show_ident(sym->ident));
+		return new;
+	}
+	if (sym->ctype.modifiers & MOD_ADDRESSABLE) {
+		printf("\taddi.%d\t\tv%d,vFP,$%lld\n", BITS_IN_POINTER, new, sym->value);
+		return new;
+	}
+	printf("\taddi.%d\t\tv%d,vFP,$xxx\n", BITS_IN_POINTER, new);
 	return new;
 }
 

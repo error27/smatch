@@ -119,6 +119,7 @@ struct symbol {
 #define MOD_NOCAST	0x100000
 #define MOD_NODEREF	0x200000
 #define MOD_ACCESSED	0x400000
+#define MOD_TOPLEVEL	0x800000	// scoping..
 
 /* Basic types */
 extern struct symbol	void_type,
