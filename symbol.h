@@ -68,7 +68,7 @@ struct symbol {
 			unsigned int	bit_size;
 			unsigned int	alignment:24,
 					bit_offset:8;
-			unsigned int	array_size;
+			int	array_size;
 			struct ctype ctype;
 			struct symbol_list *arguments;
 			struct statement *stmt;

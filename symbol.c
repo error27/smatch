@@ -123,6 +123,8 @@ static void examine_array_type(struct symbol *sym)
 		return;
 	examine_symbol_type(base_type);
 	bit_size = base_type->bit_size * sym->array_size;
+	if (sym->array_size < 0)
+		bit_size = -1;
 	alignment = base_type->alignment;
 	if (!sym->alignment)
 		sym->alignment = alignment;
