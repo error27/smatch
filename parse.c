@@ -251,21 +251,25 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 			 * the type information updated properly at this
 			 * stage for some reason.
 			 */
-			if (match_string_ident(ident, "__QI__")) {
+			if (match_string_ident(ident, "__QI__") ||
+			    match_string_ident(ident, "QI")) {
 				ctype->modifiers |= MOD_SHORT;
 				ctype->base_type = ctype_integer(ctype->modifiers);
 				return NULL;
 			}
-			if (match_string_ident(ident, "__HI__")) {
+			if (match_string_ident(ident, "__HI__") ||
+			    match_string_ident(ident, "HI")) {
 				ctype->modifiers |= MOD_SHORT;
 				ctype->base_type = ctype_integer(ctype->modifiers);
 				return NULL;
 			}
-			if (match_string_ident(ident, "__SI__")) {
+			if (match_string_ident(ident, "__SI__") ||
+			    match_string_ident(ident, "SI")) {
 				/* Nothing? */
 				return NULL;
 			}
-			if (match_string_ident(ident, "__DI__")) {
+			if (match_string_ident(ident, "__DI__") ||
+			    match_string_ident(ident, "DI")) {
 				ctype->modifiers |= MOD_LONGLONG;
 				ctype->base_type = ctype_integer(ctype->modifiers);
 				return NULL;
