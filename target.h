@@ -1,44 +1,44 @@
 #ifndef TARGET_H
 #define TARGET_H
 
-#define size_t_ctype (&ulong_ctype)
-#define ssize_t_ctype (&long_ctype)
+extern struct symbol *size_t_ctype;
+extern struct symbol *ssize_t_ctype;
 
 /*
  * For "__attribute__((aligned))"
  */
-#define MAX_ALIGNMENT		16
+extern int MAX_ALIGNMENT;
 
 /*
  * Integer data types
  */
-#define BITS_IN_CHAR		8
-#define BITS_IN_SHORT		16
-#define BITS_IN_INT		32
-#define BITS_IN_LONG		32
-#define BITS_IN_LONGLONG	64
+extern int BITS_IN_CHAR;
+extern int BITS_IN_SHORT;
+extern int BITS_IN_INT;
+extern int BITS_IN_LONG;
+extern int BITS_IN_LONGLONG;
 
-#define MAX_INT_ALIGNMENT	4
+extern int MAX_INT_ALIGNMENT;
 
 /*
  * Floating point data types
  */
-#define BITS_IN_FLOAT		32
-#define BITS_IN_DOUBLE		64
-#define BITS_IN_LONGDOUBLE	80
+extern int BITS_IN_FLOAT;
+extern int BITS_IN_DOUBLE;
+extern int BITS_IN_LONGDOUBLE;
 
-#define MAX_FP_ALIGNMENT	8
+extern int MAX_FP_ALIGNMENT;
 
 /*
  * Pointer data type
  */
-#define BITS_IN_POINTER		32
-#define POINTER_ALIGNMENT	4
+extern int BITS_IN_POINTER;
+extern int POINTER_ALIGNMENT;
 
 /*
  * Enum data types
  */
-#define BITS_IN_ENUM		32
-#define ENUM_ALIGNMENT		4
+extern int BITS_IN_ENUM;
+extern int ENUM_ALIGNMENT;
 
 #endif

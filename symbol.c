@@ -466,32 +466,32 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 struct ctype_declare {
 	struct symbol *ptr;
 	unsigned long modifiers;
-	unsigned long bit_size;
-	unsigned long maxalign;
+	int *bit_size;
+	int *maxalign;
 	struct symbol *base_type;
 } ctype_declaration[] = {
-	{ &bool_ctype,   0,					  BITS_IN_INT,	     MAX_INT_ALIGNMENT, &int_type },
-	{ &void_ctype,   0,					  -1,		     0,			NULL },
-	{ &type_ctype,   MOD_TYPE,				  -1,		     0,			NULL },
-	{ &label_ctype,  MOD_LABEL | MOD_UNSIGNED,		  BITS_IN_POINTER,   MAX_INT_ALIGNMENT,	&label_type },
+	{ &bool_ctype,   0,					  &BITS_IN_INT,		&MAX_INT_ALIGNMENT, &int_type },
+	{ &void_ctype,   0,					  NULL,			NULL,			NULL },
+	{ &type_ctype,   MOD_TYPE,				  NULL,			NULL,			NULL },
+	{ &label_ctype,  MOD_LABEL | MOD_UNSIGNED,		  &BITS_IN_POINTER,	&MAX_INT_ALIGNMENT, &label_type },
 
-	{ &char_ctype,   MOD_SIGNED | MOD_CHAR,  		  BITS_IN_CHAR,	     MAX_INT_ALIGNMENT, &int_type },
-	{ &uchar_ctype,  MOD_UNSIGNED | MOD_CHAR,		  BITS_IN_CHAR,	     MAX_INT_ALIGNMENT, &int_type },
-	{ &short_ctype,  MOD_SIGNED | MOD_SHORT, 		  BITS_IN_SHORT,     MAX_INT_ALIGNMENT, &int_type },
-	{ &ushort_ctype, MOD_UNSIGNED | MOD_SHORT,		  BITS_IN_SHORT,     MAX_INT_ALIGNMENT, &int_type },
-	{ &int_ctype,    MOD_SIGNED,		 		  BITS_IN_INT,	     MAX_INT_ALIGNMENT, &int_type },
-	{ &uint_ctype,   MOD_UNSIGNED,				  BITS_IN_INT,	     MAX_INT_ALIGNMENT, &int_type },
-	{ &long_ctype,   MOD_SIGNED | MOD_LONG,			  BITS_IN_LONG,	     MAX_INT_ALIGNMENT, &int_type },
-	{ &ulong_ctype,  MOD_UNSIGNED | MOD_LONG,		  BITS_IN_LONG,	     MAX_INT_ALIGNMENT, &int_type },
-	{ &llong_ctype,  MOD_SIGNED | MOD_LONG | MOD_LONGLONG,    BITS_IN_LONGLONG,  MAX_INT_ALIGNMENT, &int_type },
-	{ &ullong_ctype, MOD_UNSIGNED | MOD_LONG | MOD_LONGLONG,  BITS_IN_LONGLONG,  MAX_INT_ALIGNMENT, &int_type },
+	{ &char_ctype,   MOD_SIGNED | MOD_CHAR,  		  &BITS_IN_CHAR,	&MAX_INT_ALIGNMENT, &int_type },
+	{ &uchar_ctype,  MOD_UNSIGNED | MOD_CHAR,		  &BITS_IN_CHAR,	&MAX_INT_ALIGNMENT, &int_type },
+	{ &short_ctype,  MOD_SIGNED | MOD_SHORT, 		  &BITS_IN_SHORT,	&MAX_INT_ALIGNMENT, &int_type },
+	{ &ushort_ctype, MOD_UNSIGNED | MOD_SHORT,		  &BITS_IN_SHORT,	&MAX_INT_ALIGNMENT, &int_type },
+	{ &int_ctype,    MOD_SIGNED,		 		  &BITS_IN_INT,		&MAX_INT_ALIGNMENT, &int_type },
+	{ &uint_ctype,   MOD_UNSIGNED,				  &BITS_IN_INT,		&MAX_INT_ALIGNMENT, &int_type },
+	{ &long_ctype,   MOD_SIGNED | MOD_LONG,			  &BITS_IN_LONG,	&MAX_INT_ALIGNMENT, &int_type },
+	{ &ulong_ctype,  MOD_UNSIGNED | MOD_LONG,		  &BITS_IN_LONG,	&MAX_INT_ALIGNMENT, &int_type },
+	{ &llong_ctype,  MOD_SIGNED | MOD_LONG | MOD_LONGLONG,    &BITS_IN_LONGLONG,	&MAX_INT_ALIGNMENT, &int_type },
+	{ &ullong_ctype, MOD_UNSIGNED | MOD_LONG | MOD_LONGLONG,  &BITS_IN_LONGLONG,	&MAX_INT_ALIGNMENT, &int_type },
 
-	{ &float_ctype,  0,					  BITS_IN_FLOAT,     MAX_FP_ALIGNMENT,	&fp_type },
-	{ &double_ctype, MOD_LONG,				  BITS_IN_DOUBLE,    MAX_FP_ALIGNMENT,	&fp_type },
-	{ &ldouble_ctype,MOD_LONG | MOD_LONGLONG,		  BITS_IN_LONGDOUBLE,MAX_FP_ALIGNMENT,	&fp_type },
+	{ &float_ctype,  0,					  &BITS_IN_FLOAT,	&MAX_FP_ALIGNMENT, &fp_type },
+	{ &double_ctype, MOD_LONG,				  &BITS_IN_DOUBLE,	&MAX_FP_ALIGNMENT, &fp_type },
+	{ &ldouble_ctype,MOD_LONG | MOD_LONGLONG,		  &BITS_IN_LONGDOUBLE,	&MAX_FP_ALIGNMENT, &fp_type },
 
-	{ &string_ctype,	    0,  BITS_IN_POINTER, POINTER_ALIGNMENT, &char_ctype },
-	{ &ptr_ctype,		    0,  BITS_IN_POINTER, POINTER_ALIGNMENT, &void_ctype },
+	{ &string_ctype,	    0,  &BITS_IN_POINTER, &POINTER_ALIGNMENT, &char_ctype },
+	{ &ptr_ctype,		    0,  &BITS_IN_POINTER, &POINTER_ALIGNMENT, &void_ctype },
 	{ NULL, }
 };
 
@@ -575,11 +575,12 @@ void init_symbols(void)
 	string_ctype.type = SYM_PTR;
 	for (ctype = ctype_declaration ; ctype->ptr; ctype++) {
 		struct symbol *sym = ctype->ptr;
-		unsigned long bit_size = ctype->bit_size;
+		unsigned long bit_size = ctype->bit_size ? *ctype->bit_size : -1;
+		unsigned long maxalign = ctype->maxalign ? *ctype->maxalign : 0;
 		unsigned long alignment = bit_size >> 3;
 
-		if (alignment > ctype->maxalign)
-			alignment = ctype->maxalign;
+		if (alignment > maxalign)
+			alignment = maxalign;
 		sym->bit_size = bit_size;
 		sym->ctype.alignment = alignment;
 		sym->ctype.base_type = ctype->base_type;
