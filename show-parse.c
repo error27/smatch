@@ -131,6 +131,11 @@ void show_type(struct symbol *sym)
 		printf("<fn>(");
 		show_type(sym->ctype.base_type);
 		printf(")");
+		printf("(");
+		show_symbol_list(sym->arguments, ", ");
+		if (sym->variadic)
+			printf(", ...");
+		printf(")");
 		return;
 
 	case SYM_ARRAY:
@@ -189,19 +194,17 @@ void show_symbol(struct symbol *sym)
 	 */
 	switch (type->type) {
 	case SYM_STRUCT:
+		printf("\n");
 		symbol_iterate(type->symbol_list, show_struct_member, NULL);
 		return;
 
 	case SYM_UNION:
+		printf("\n");
 		symbol_iterate(type->symbol_list, show_struct_member, NULL);
 		return;
 
 	case SYM_FN:
-		printf("(");
-		show_symbol_list(type->arguments, ", ");
-		if (type->variadic)
-			printf(", ...");
-		printf(")\n");
+		printf("\n");		
 		show_statement(type->stmt);
 		return;
 

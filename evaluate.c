@@ -202,7 +202,7 @@ static int evaluate_ptr_add(struct expression *expr, struct expression *ptr, str
 		mul->left = i;
 		mul->right = val;
 
-		add->op = '+';
+		/* Leave 'add->op' as 'expr->op' - either '+' or '-' */
 		add->ctype = ptr_type;
 		add->left = ptr;
 		add->right = mul;
@@ -243,12 +243,13 @@ static int evaluate_ptr_sub(struct expression *expr, struct expression *l, struc
 	struct symbol *ctype;
 	struct symbol *ltype = l->ctype, *rtype = r->ctype;
 
-	if (!is_ptr_type(rtype)) {
-		// NULL aka plain zero is ok.
-		if (r->type != EXPR_VALUE || r->value)
-			return bad_expr_type(expr);
-		rtype = &ptr_ctype;
-	}
+	/*
+	 * If it is an integer subtract: the ptr add case will do the
+	 * right thing.
+	 */
+	if (!is_ptr_type(rtype))
+		return evaluate_ptr_add(expr, l, r);
+
 
 	ctype = same_ptr_types(ltype, rtype);
 	if (!ctype) {
@@ -282,13 +283,10 @@ static int evaluate_ptr_sub(struct expression *expr, struct expression *l, struc
 static int evaluate_minus(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
-	struct symbol *ltype = left->ctype, *rtype = right->ctype;
+	struct symbol *ltype = left->ctype;
 
 	if (is_ptr_type(ltype))
 		return evaluate_ptr_sub(expr, left, right);
-
-	if (is_ptr_type(rtype))
-		return evaluate_ptr_sub(expr, right, left);
 
 	// FIXME! FP promotion
 	return evaluate_int_binop(expr);
@@ -564,6 +562,8 @@ static int evaluate_call(struct expression *expr)
 	if (!evaluate_expression_list(arglist))
 		return 0;
 	ctype = fn->ctype;
+	if (ctype->type == SYM_PTR)
+		ctype = ctype->ctype.base_type;
 	if (ctype->type != SYM_FN) {
 		warn(expr->token, "not a function");
 		return 0;
@@ -625,6 +625,7 @@ int evaluate_expression(struct expression *expr)
 	case EXPR_CAST:
 		if (!evaluate_expression(expr->cast_expression))
 			return 0;
+		examine_symbol_type(expr->cast_type);
 		expr->ctype = expr->cast_type;
 		return 1;
 	case EXPR_SIZEOF:

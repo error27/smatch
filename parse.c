@@ -30,15 +30,15 @@ struct statement *alloc_statement(struct token * token, int type)
 
 static struct token *struct_declaration_list(struct token *token, struct symbol_list **list);
 
-static struct symbol * indirect(struct token *token, struct symbol *base, int type)
+static struct symbol * indirect(struct token *token, struct ctype *ctype, int type)
 {
 	struct symbol *sym = alloc_symbol(token, type);
 
-	sym->ctype.base_type = base->ctype.base_type;
-	sym->ctype.modifiers = base->ctype.modifiers & ~MOD_STORAGE;
+	sym->ctype.base_type = ctype->base_type;
+	sym->ctype.modifiers = ctype->modifiers & ~MOD_STORAGE;
 
-	base->ctype.base_type = sym;
-	base->ctype.modifiers &= MOD_STORAGE;
+	ctype->base_type = sym;
+	ctype->modifiers &= MOD_STORAGE;
 	return sym;
 }
 
@@ -331,6 +331,8 @@ static struct token *declarator(struct token *token, struct symbol **tree, struc
 
 static struct token *direct_declarator(struct token *token, struct symbol **tree, struct token **p)
 {
+	struct ctype *ctype = &(*tree)->ctype;
+
 	if (p && token->type == TOKEN_IDENT) {
 		*p = token;
 		token = token->next;
@@ -358,26 +360,30 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 			int fn = (p && *p) || match_op(next, ')') || lookup_type(next);
 
 			if (!fn) {
+				struct symbol *base_type = ctype->base_type;
 				token = declarator(next, tree, p);
 				token = expect(token, ')', "in nested declarator");
+				while (ctype->base_type != base_type)
+					ctype = &ctype->base_type->ctype;
+				p = NULL;
 				continue;
 			}
 			
-			sym = indirect(token, *tree, SYM_FN);
+			sym = indirect(token, ctype, SYM_FN);
 			token = parameter_type_list(next, sym);
 			token = expect(token, ')', "in function declarator");
 			continue;
 		}
 		if (token->special == '[') {
-			struct symbol *ctype = indirect(token, *tree, SYM_ARRAY);
-			token = abstract_array_declarator(token->next, ctype);
+			struct symbol *array = indirect(token, ctype, SYM_ARRAY);
+			token = abstract_array_declarator(token->next, array);
 			token = expect(token, ']', "in abstract_array_declarator");
 			continue;
 		}
 		if (token->special == ':') {
 			struct symbol *bitfield;
 			struct expression *expr;
-			bitfield = indirect(token, *tree, SYM_BITFIELD);
+			bitfield = indirect(token, ctype, SYM_BITFIELD);
 			token = conditional_expression(token->next, &expr);
 			bitfield->fieldwidth = get_expression_value(expr);
 			continue;
