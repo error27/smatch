@@ -41,12 +41,17 @@
 #include "target.h"
 
 
-struct textbuf;
 struct textbuf {
 	unsigned int	len;	/* does NOT include terminating null */
 	char		*text;
 	struct textbuf	*next;
 	struct textbuf	*prev;
+};
+
+struct loop_stack {
+	int		continue_lbl;
+	int		loop_bottom_lbl;
+	struct loop_stack *next;
 };
 
 struct function {
@@ -55,6 +60,7 @@ struct function {
 	struct ptr_list *pseudo_list;
 	struct ptr_list *atom_list;
 	struct ptr_list *str_list;
+	struct loop_stack *loop_stack;
 	struct symbol **argv;
 	unsigned int argc;
 	int ret_target;
@@ -1522,6 +1528,39 @@ static void x86_symbol_decl(struct symbol_list *syms)
 	} END_FOR_EACH_PTR;
 }
 
+static void loopstk_push(int cont_lbl, int loop_bottom_lbl)
+{
+	struct function *f = current_func;
+	struct loop_stack *ls;
+
+	ls = malloc(sizeof(*ls));
+	ls->continue_lbl = cont_lbl;
+	ls->loop_bottom_lbl = loop_bottom_lbl;
+	ls->next = f->loop_stack;
+	f->loop_stack = ls;
+}
+
+static void loopstk_pop(void)
+{
+	struct function *f = current_func;
+	struct loop_stack *ls;
+
+	assert(f->loop_stack != NULL);
+	ls = f->loop_stack;
+	f->loop_stack = f->loop_stack->next;
+	free(ls);
+}
+
+static int loopstk_break(void)
+{
+	return current_func->loop_stack->loop_bottom_lbl;
+}
+
+static int loopstk_continue(void)
+{
+	return current_func->loop_stack->continue_lbl;
+}
+
 static void x86_loop(struct statement *stmt)
 {
 	struct statement  *pre_statement = stmt->iterator_pre_statement;
@@ -1529,8 +1568,13 @@ static void x86_loop(struct statement *stmt)
 	struct statement  *statement = stmt->iterator_statement;
 	struct statement  *post_statement = stmt->iterator_post_statement;
 	struct expression *post_condition = stmt->iterator_post_condition;
-	int loop_top = 0, loop_bottom = 0;
+	int loop_top = 0, loop_bottom, loop_continue;
+	int have_bottom = 0;
 	struct storage *val;
+
+	loop_bottom = new_label();
+	loop_continue = new_label();
+	loopstk_push(loop_continue, loop_bottom);
 
 	x86_symbol_decl(stmt->iterator_syms);
 	x86_statement(pre_statement);
@@ -1538,18 +1582,17 @@ static void x86_loop(struct statement *stmt)
 		if (pre_condition->type == EXPR_VALUE) {
 			if (!pre_condition->value) {
 				struct storage *lbv;
-				loop_bottom = new_label();
-
 				lbv = new_storage(STOR_LABEL);
 				lbv->label = loop_bottom;
 				lbv->flags = STOR_WANTS_FREE;
 				insn("jmp", lbv, NULL, "go to loop bottom");
+				have_bottom = 1;
 			}
 		} else {
 			struct storage *lbv = new_storage(STOR_LABEL);
-			loop_bottom = new_label();
 			lbv->label = loop_bottom;
 			lbv->flags = STOR_WANTS_FREE;
+			have_bottom = 1;
 
 			val = x86_expression(pre_condition);
 
@@ -1563,12 +1606,8 @@ static void x86_loop(struct statement *stmt)
 		emit_label(loop_top, "loop top");
 	}
 	x86_statement(statement);
-	if (stmt->iterator_continue->used) {
-		/* FIXME: incorrect; must get stmt->iterator_continue
-		 * label emitted */
-		int incorrect_label = new_label();
-		emit_label(incorrect_label, "'continue' iterator");
-	}
+	if (stmt->iterator_continue->used)
+		emit_label(loop_continue, "'continue' iterator");
 	x86_statement(post_statement);
 	if (!post_condition) {
 		struct storage *lbv = new_storage(STOR_LABEL);
@@ -1593,14 +1632,10 @@ static void x86_loop(struct statement *stmt)
 		insn("test", REG_EAX, REG_EAX, NULL);
 		insn("jnz", lbv, NULL, NULL);
 	}
-	if (stmt->iterator_break->used) {
-		/* FIXME: incorrect; must get stmt->iterator_break
-		 * label emitted */
-		int incorrect_label = new_label();
-		emit_label(incorrect_label, "'break' target");
-	}
-	if (loop_bottom)
+	if (have_bottom || stmt->iterator_break->used)
 		emit_label(loop_bottom, "loop bottom");
+
+	loopstk_pop();
 }
 
 /*
