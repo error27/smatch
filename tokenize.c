@@ -153,12 +153,15 @@ struct token * alloc_token(int stream, int line, int pos)
 	token->line = line;
 	token->pos = pos;
 	token->stream = stream;
+	token->newline = 0;
+	token->whitespace = 1;
 	return token;
 }
 
 #define BUFSIZE (4096)
 typedef struct {
-	int fd, line, pos, offset, size, newline;
+	int fd, line, pos, offset, size;
+	unsigned int newline:1, whitespace:1;
 	struct token **tokenlist;
 	struct token *token;
 	unsigned char buffer[BUFSIZE];
@@ -214,6 +217,7 @@ static void add_token(action_t *action)
 static void drop_token(action_t *action)
 {
 	action->newline |= action->token->newline;
+	action->whitespace |= action->token->whitespace;
 	action->token = NULL;
 }
 
@@ -656,6 +660,7 @@ struct token * tokenize(const char *name, int fd, struct token *endtoken)
 	action.token = NULL;
 	action.line = 1;
 	action.newline = 1;
+	action.whitespace = 0;
 	action.pos = 0;
 	action.fd = fd;
 	action.offset = 0;
@@ -666,15 +671,19 @@ struct token * tokenize(const char *name, int fd, struct token *endtoken)
 		if (c == '\\') {
 			c = nextchar(&action);
 			action.newline = 0;
+			action.whitespace = 1;
 		}
 		if (!isspace(c)) {
 			struct token *token = alloc_token(stream, action.line, action.pos);
 			token->newline = action.newline;
+			token->whitespace = action.whitespace;
 			action.newline = 0;
+			action.whitespace = 0;
 			action.token = token;
 			c = get_one_token(c, &action);
 			continue;
 		}
+		action.whitespace = 1;
 		c = nextchar(&action);
 	}
 	mark_eof(&action, endtoken);

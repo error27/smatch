@@ -119,6 +119,7 @@ static struct token *primary_expression(struct token *token, struct expression *
 	case TOKEN_IDENT:
 	case TOKEN_INTEGER:
 	case TOKEN_FP:
+	case TOKEN_CHAR:
 		expr = alloc_expression(token, EXPR_PRIMARY);
 		token = token->next;
 		break;

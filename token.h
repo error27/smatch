@@ -100,8 +100,9 @@ struct string {
 struct token {
 	unsigned int type:8,
 		     stream:8,
-		     pos:15,
-		     newline:1;
+		     pos:14,
+		     newline:1,
+		     whitespace:1;
 	unsigned int line;
 	struct token *next;
 	union {

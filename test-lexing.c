@@ -21,10 +21,12 @@ int main(int argc, char **argv)
 
 	while (!eof_token(token)) {
 		struct token *next = token->next;
-		char separator = ' ';
+		char * separator = "";
+		if (next->whitespace)
+			separator = " ";
 		if (next->newline)
-			separator = '\n';
-		printf("%s%c", show_token(token), separator);
+			separator = "\n";
+		printf("%s%s", show_token(token), separator);
 		token = next;
 	}
 	putchar('\n');

@@ -41,6 +41,7 @@ static const char *show_token_sequence(struct token *token);
 static struct token *for_each_ident(struct token *head, struct token *last,
 	struct token *(*action)(struct token *head, struct token *))
 {
+	struct token *old = head;
 	if (!last)
 		last = &eof_token_entry;
 	for (;;) {
@@ -51,6 +52,7 @@ static struct token *for_each_ident(struct token *head, struct token *last,
 			break;
 		if (eof_token(next)) {
 			warn(last, "walked past end");
+			warn(old, "started here");
 			break;
 		}
 
@@ -159,6 +161,7 @@ static void replace(struct token *token, struct token *prev, struct token *last,
 {
 	int newline = token->newline;
 
+	prev->next = last;
 	while (!eof_token(list) && !match_op(list, SPECIAL_ARG_SEPARATOR)) {
 		struct token *newtok = dup_token(list, token, newline);
 		newline = 0;
@@ -347,6 +350,7 @@ static int handle_define(struct token *head, struct token *token)
 	sym = lookup_symbol(name, NS_PREPROCESSOR);
 	if (sym) {
 		warn(left, "preprocessor token redefined");
+		warn(sym->token, "this was the original definition");
 		return 1;
 	}
 	sym = alloc_symbol(left, SYM_NONE);
@@ -354,7 +358,7 @@ static int handle_define(struct token *head, struct token *token)
 
 	arglist = NULL;
 	expansion = left->next;
-	if (match_op(expansion, '(')) {
+	if (!expansion->whitespace && match_op(expansion, '(')) {
 		arglist = expansion;
 		while (!eof_token(expansion)) {
 			struct token *next = expansion->next;
@@ -604,7 +608,8 @@ static const char *show_token_sequence(struct token *token)
 	while (!eof_token(token)) {
 		const char *val = show_token(token);
 		int len = strlen(val);
-		*ptr++ = ' ';
+		if (token->whitespace)
+			*ptr++ = ' ';
 		memcpy(ptr, val, len);
 		ptr += len;
 		token = token->next;
