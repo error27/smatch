@@ -15,7 +15,8 @@ struct hardreg {
 	const char *name;
 	pseudo_t contains;
 	unsigned busy:1,
-		 dirty:1;
+		 dirty:1,
+		 used:1;
 };
 
 static void output_bb(struct basic_block *bb, unsigned long generation);
@@ -97,6 +98,7 @@ static void flush_reg(struct bb_state *state, struct hardreg *hardreg)
 		return;
 	hardreg->busy = 0;
 	hardreg->dirty = 0;
+	hardreg->used = 1;
 	pseudo = hardreg->contains;
 	if (!pseudo)
 		return;
@@ -158,6 +160,14 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 				if (!src)
 					break;
 			}
+		}
+		if (src->storage->type == REG_UDEF) {
+			if (!hardreg->used) {
+				src->storage->type = REG_REG;
+				src->storage->regno = hardreg - hardregs;
+				break;
+			}
+			alloc_stack(state, src->storage);
 		}
 		printf("\tmov.%d %s,%s\n", 32, show_memop(src->storage), hardreg->name);
 		break;
@@ -516,6 +526,7 @@ static void generate(struct basic_block *bb, struct bb_state *state)
 		hardregs[i].contains = NULL;
 		hardregs[i].busy = 0;
 		hardregs[i].dirty = 0;
+		hardregs[i].used = 0;
 	}
 
 	FOR_EACH_PTR(state->inputs, entry) {
