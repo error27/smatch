@@ -179,7 +179,7 @@ static void examine_bitfield_type(struct symbol *sym)
 void merge_type(struct symbol *sym, struct symbol *base_type)
 {
 	sym->ctype.as |= base_type->ctype.as;
-	sym->ctype.modifiers |= base_type->ctype.modifiers;
+	sym->ctype.modifiers |= (base_type->ctype.modifiers & ~MOD_STORAGE);
 	sym->ctype.context |= base_type->ctype.context;
 	sym->ctype.contextmask |= base_type->ctype.contextmask;
 	sym->ctype.base_type = base_type->ctype.base_type;

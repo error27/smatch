@@ -81,7 +81,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 	sym->array_size = length;
 	sym->bit_size = BITS_IN_CHAR * length;
 	sym->ctype.alignment = 1;
-	sym->ctype.modifiers = MOD_STATIC | MOD_CONST;
+	sym->ctype.modifiers = MOD_STATIC;
 	sym->ctype.base_type = array;
 
 	array->array_size = length;
@@ -306,6 +306,7 @@ static struct symbol *degenerate(struct expression *expr, struct symbol *ctype, 
 		struct symbol *sym = alloc_symbol(expr->pos, SYM_PTR);
 		struct expression *ptr;
 
+		merge_type(sym, ctype);
 		merge_type(sym, base);
 		sym->bit_size = BITS_IN_POINTER;
 		ctype = sym;
