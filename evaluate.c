@@ -882,9 +882,6 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	sym->bit_size = ctype->bit_size;
 	sym->array_size = ctype->array_size;
 
-	if (sym->ctype.modifiers & MOD_NODEREF)
-		warn(expr->pos, "bad dereference");
-
 	/* Simplify: *&(expr) => (expr) */
 	if (op->type == EXPR_PREOP && op->op == '&') {
 		*expr = *op->unop;
@@ -1066,8 +1063,6 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		deref = deref->unop;
 		expr->deref = deref;
 	}
-	if (mod & MOD_NODEREF)
-		warn(expr->pos, "bad dereference");
 	if (!ctype || (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION)) {
 		warn(expr->pos, "expected structure or union");
 		return NULL;
@@ -1085,6 +1080,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	sym->bit_size = member->bit_size;
 	sym->array_size = member->array_size;
 	sym->ctype = member->ctype;
+	sym->ctype.modifiers = mod;
 	sym->ctype.as = address_space;
 	ctype = member->ctype.base_type;
 	if (ctype->type == SYM_BITFIELD) {
@@ -1137,11 +1133,12 @@ static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 		struct symbol *ctype, *target;
 		ctype = evaluate_expression(expr);
 
-		if (ctype) {
-			if (ctype->type == SYM_ARRAY) {
-				ctype = degenerate(expr, ctype, p);
-				expr->ctype = ctype;
-			}
+		if (!ctype)
+			return 0;
+
+		if (ctype->type == SYM_ARRAY) {
+			ctype = degenerate(expr, ctype, p);
+			expr->ctype = ctype;
 		}
 
 		target = argtype;
