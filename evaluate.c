@@ -266,6 +266,12 @@ static struct symbol *evaluate_int_binop(struct expression *expr)
 	return bad_expr_type(expr);
 }
 
+static inline int lvalue_expression(struct expression *expr)
+{
+	return expr->type == EXPR_PREOP && expr->op == '*';
+}
+	
+
 /* Arrays degenerate into pointers on pointer arithmetic */
 static struct symbol *degenerate(struct expression *expr, struct symbol *ctype, struct expression **ptr_p)
 {
@@ -282,11 +288,11 @@ static struct symbol *degenerate(struct expression *expr, struct symbol *ctype, 
 
 		/*
 		 * This all really assumes that we got the degenerate
-		 * array as a symbol or an array dereference. If that
+		 * array as an lvalue (ie a dereference). If that
 		 * is not the case, then holler - because we've screwed
 		 * up.
 		 */
-		if (ptr->type != EXPR_PREOP && ptr->op != '*')
+		if (!lvalue_expression(ptr))
 			warn(ptr->pos, "internal error: strange degenerate array case");
 	}
 	return ctype;
@@ -297,6 +303,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 	struct symbol *ctype;
 	struct symbol *ptr_type = ptr->ctype;
 	struct symbol *i_type = i->ctype;
+	int bit_size;
 
 	if (i_type->type == SYM_NODE)
 		i_type = i_type->ctype.base_type;
@@ -311,14 +318,19 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 	ctype = ptr_type->ctype.base_type;
 	examine_symbol_type(ctype);
 
-	expr->ctype = degenerate(expr, ptr_type, &ptr);
-	if (ctype->bit_size > BITS_IN_CHAR) {
+	bit_size = ctype->bit_size;
+	ctype = degenerate(expr, ptr_type, &ptr);
+
+	/* Special case: adding zero commonly happens as a result of 'array[0]' */
+	if (i->type == EXPR_VALUE && !i->value) {
+		*expr = *ptr;
+	} else if (bit_size > BITS_IN_CHAR) {
 		struct expression *add = expr;
 		struct expression *mul = alloc_expression(expr->pos, EXPR_BINOP);
 		struct expression *val = alloc_expression(expr->pos, EXPR_VALUE);
 
 		val->ctype = size_t_ctype;
-		val->value = ctype->bit_size >> 3;
+		val->value = bit_size >> 3;
 
 		mul->op = '*';
 		mul->ctype = size_t_ctype;
@@ -331,8 +343,9 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 		add->right = mul;
 		simplify_int_binop(add, add->ctype);
 	}
-		
-	return expr->ctype;
+
+	expr->ctype = ctype;	
+	return ctype;
 }
 
 static struct symbol *evaluate_add(struct expression *expr)
@@ -484,7 +497,23 @@ static struct symbol *evaluate_sub(struct expression *expr)
 
 static struct symbol *evaluate_logical(struct expression *expr)
 {
-	// FIXME! Short-circuit, FP and pointers!
+	struct expression *left = expr->left;
+
+	/* Do immediate short-circuiting ... */
+	if (left->type == EXPR_VALUE) {
+		if (expr->op == SPECIAL_LOGICAL_AND) {
+			if (!left->value) {
+				expr->type = EXPR_VALUE;
+				expr->value = 0;
+			}
+		} else {
+			if (left->value) {
+				expr->type = EXPR_VALUE;
+				expr->value  = 1;
+			}
+		}
+	}
+
 	expr->ctype = &bool_ctype;
 	return &bool_ctype;
 }
@@ -719,7 +748,7 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 		right = expr->right;
 	}
 
-	if (left->type != EXPR_PREOP || left->op != '*') {
+	if (!lvalue_expression(left)) {
 		warn(expr->pos, "not an lvalue");
 		return NULL;
 	}
@@ -736,7 +765,7 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 	struct symbol *ctype, *symbol;
 	struct expression *op = expr->unop;
 
-	if (op->type != EXPR_PREOP || op->op != '*') {
+	if (!lvalue_expression(op)) {
 		warn(expr->pos, "not an lvalue");
 		return NULL;
 	}
@@ -808,6 +837,22 @@ static void simplify_preop(struct expression *expr)
 	expr->type = EXPR_VALUE;
 }
 
+/*
+ * Unary post-ops: x++ and x--
+ */
+static struct symbol *evaluate_postop(struct expression *expr)
+{
+	struct expression *op = expr->unop;
+	struct symbol *ctype = op->ctype;
+
+	if (!lvalue_expression(expr->unop)) {
+		warn(expr->pos, "need lvalue expression for ++/--");
+		return NULL;
+	}
+	expr->ctype = ctype;
+	return ctype;
+}
+
 static struct symbol *evaluate_preop(struct expression *expr)
 {
 	struct symbol *ctype = expr->unop->ctype;
@@ -828,21 +873,19 @@ static struct symbol *evaluate_preop(struct expression *expr)
 		simplify_preop(expr);
 		return &bool_ctype;
 
+	case SPECIAL_INCREMENT:
+	case SPECIAL_DECREMENT:
+		/*
+		 * From a type evaluation standpoint the pre-ops are
+		 * the same as the postops
+		 */
+		return evaluate_postop(expr);
+
 	default:
 		expr->ctype = ctype;
 		simplify_preop(expr);
 		return ctype;
 	}
-}
-
-/*
- * Unary post-ops: x++ and x--
- */
-static struct symbol *evaluate_postop(struct expression *expr)
-{
-	struct symbol *ctype = expr->unop->ctype;
-	expr->ctype = ctype;
-	return ctype;
 }
 
 struct symbol *find_identifier(struct ident *ident, struct symbol_list *_list, int *offset)
@@ -914,7 +957,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 			mod |= ctype->ctype.modifiers;
 		}
 	} else {
-		if (deref->type != EXPR_PREOP || deref->op != '*') {
+		if (!lvalue_expression(deref)) {
 			warn(deref->pos, "expected lvalue for member dereference");
 			return NULL;
 		}
