@@ -441,28 +441,30 @@ static pseudo_t linearize_address_gen(struct entrypoint *ep, struct expression *
 
 static pseudo_t linearize_store_gen(struct entrypoint *ep, pseudo_t value, struct expression *expr, pseudo_t addr)
 {
-	if (expr->type == EXPR_BITFIELD) {
-		unsigned long mask = ((1<<expr->nrbits)-1) << expr->bitpos;
+	struct symbol *ctype = expr->ctype;
+
+	if(is_bitfield_type(ctype)) {
+		unsigned long mask = ((1<<ctype->bit_size)-1) << ctype->bit_offset;
 		pseudo_t shifted, andmask, ormask, orig, orig_mask, value_mask, newval;
 
 		shifted = value;
-		if (expr->bitpos) {
+		if (ctype->bit_offset) {
 			pseudo_t shift;
-			shift = add_const_value(ep, expr->pos, &uint_ctype, expr->bitpos);
-			shifted = add_binary_op(ep, expr->ctype, OP_SHL, value, shift);
+			shift = add_const_value(ep, expr->pos, &uint_ctype, ctype->bit_offset);
+			shifted = add_binary_op(ep, ctype, OP_SHL, value, shift);
 			add_deathnote(ep, shift);
 		}
 		orig = add_load(ep, expr, addr);
 		andmask = add_const_value(ep, expr->pos, &uint_ctype, ~mask);
-		orig_mask = add_binary_op(ep, expr->ctype, OP_AND, orig, andmask);
+		orig_mask = add_binary_op(ep, ctype, OP_AND, orig, andmask);
 		add_deathnote(ep, orig);
 		add_deathnote(ep, andmask);
 		ormask = add_const_value(ep, expr->pos, &uint_ctype, mask);
-		value_mask = add_binary_op(ep, expr->ctype, OP_AND, shifted, ormask);
+		value_mask = add_binary_op(ep, ctype, OP_AND, shifted, ormask);
 		add_deathnote(ep, ormask);
 		if (shifted != value)
 			add_deathnote(ep, shifted);
-		newval = add_binary_op(ep, expr->ctype, OP_OR, orig_mask, value_mask);
+		newval = add_binary_op(ep, ctype, OP_OR, orig_mask, value_mask);
 		add_deathnote(ep, orig_mask);
 		add_deathnote(ep, value_mask);
 		value = newval;
@@ -883,7 +885,7 @@ pseudo_t linearize_position(struct entrypoint *ep, pseudo_t baseaddr, struct exp
 	pseudo_t offset = add_const_value(ep, pos->pos, &uint_ctype, pos->init_offset);
 	pseudo_t addr = add_binary_op(ep, baseaddr->def->type, OP_ADD, baseaddr, offset);
 	pseudo_t value = linearize_expression(ep, init_expr);
-	add_store(ep, init_expr, addr, value);
+	linearize_store_gen(ep, value, init_expr, addr);
 	add_deathnote(ep, addr);
 	add_deathnote(ep, value);
 	return VOID;
@@ -904,7 +906,7 @@ pseudo_t linearize_initializer(struct entrypoint *ep, pseudo_t baseaddr, struct 
 		break;
 	default: {
 		pseudo_t value = linearize_expression(ep, initializer);
-		add_store(ep, initializer, baseaddr, value);
+		linearize_store_gen(ep, value, initializer, baseaddr);
 		add_deathnote(ep, value);
 	}
 	}
