@@ -441,6 +441,13 @@ static int simplify_memop(struct instruction *insn)
 	return 0;
 
 offset:
+	/* Invalid code */
+	if (new == addr) {
+		if (new == VOID)
+			return 0;
+		new = VOID;
+		warning(insn->bb->pos, "crazy programmer");
+	}
 	insn->offset += off->value;
 	use_pseudo(new, &insn->src);
 	remove_usage(addr, &insn->src);
