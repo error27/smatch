@@ -1107,7 +1107,7 @@ static int evaluate_struct_or_union_initializer(struct symbol *ctype, struct exp
 			RESET_PTR_LIST(sym);
 			for (;;) {
 				if (!sym) {
-					warn(entry->pos, "unknown named initializer");
+					warn(entry->pos, "unknown named initializer '%s'", show_ident(ident));
 					return 0;
 				}
 				if (sym->ident == ident)
