@@ -145,6 +145,8 @@ void convert_instruction_target(struct instruction *insn, pseudo_t src)
 	 * Go through the "insn->users" list and replace them all..
 	 */
 	target = insn->target;
+	if (target == src)
+		return;
 	FOR_EACH_PTR(target->users, usep) {
 		if (*usep != VOID) {
 			assert(*usep == target);
