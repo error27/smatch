@@ -745,7 +745,7 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 		return linearize_access(ep, expr);
 
 	default: 
-		die("Unknown expression (%d %d)", expr->type, expr->op);
+		warn(expr->pos, "unknown expression (%d %d)", expr->type, expr->op);
 		return VOID;
 	}
 	return VOID;
