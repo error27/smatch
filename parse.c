@@ -1212,16 +1212,26 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn)
 {
 	struct symbol_list **list = &fn->arguments;
 
-	if (match_op(token, ')'))
+	if (match_op(token, ')')) {
+		// No warning for "void oink ();"
+		// Bug or feature: warns for "void oink () __attribute__ ((noreturn));"
+		if (!match_op(token->next, ';'))
+			warn(token->pos, "non-ANSI function declaration");
 		return token;
+	}
+
 	for (;;) {
-		struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
+		struct symbol *sym;
 
 		if (match_op(token, SPECIAL_ELLIPSIS)) {
+			if (!*list)
+				warn(token->pos, "variadic functions must have one named argument");
 			fn->variadic = 1;
 			token = token->next;
 			break;
 		}
+
+		sym = alloc_symbol(token->pos, SYM_NODE);
 		token = parameter_declaration(token, &sym);
 		if (sym->ctype.base_type == &void_ctype) {
 			/* Special case: (void) */
