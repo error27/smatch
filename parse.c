@@ -626,11 +626,6 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 			ctype = &array->ctype;
 			continue;
 		}
-			while (match_idents(token, &__attribute___ident, &__attribute_ident, NULL)) {
-				struct ctype thistype = { 0, };
-				token = attribute_specifier(token->next, &thistype);
-				apply_ctype(token->pos, &thistype, ctype);
-			}
 		break;
 	}
 	if (p) {
@@ -714,6 +709,11 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 					warn(token->pos, "invalid bitfield specifier for type %s.", show_typename (ctype->base_type));
 					// Parse this to recover gracefully.
 					token = conditional_expression(token->next, &expr);
+				}
+				while (match_idents(token, &__attribute___ident, &__attribute_ident, NULL)) {
+					struct ctype thistype = { 0, };
+					token = attribute_specifier(token->next, &thistype);
+					apply_ctype(token->pos, &thistype, ctype);
 				}
 			}
 			add_symbol(list, decl);
