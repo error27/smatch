@@ -16,6 +16,7 @@
  * declared.
  */
 enum namespace {
+	NS_NONE,
 	NS_PREPROCESSOR,
 	NS_TYPEDEF,
 	NS_STRUCT,
@@ -24,6 +25,7 @@ enum namespace {
 };
 
 enum type {
+	SYM_NONE,
 	SYM_TYPE,
 	SYM_PTR,
 	SYM_FN,
@@ -33,6 +35,7 @@ enum type {
 	SYM_ENUM,
 	SYM_TYPEDEF,
 	SYM_MEMBER,
+	SYM_BITFIELD,
 };
 
 struct symbol {
@@ -47,13 +50,6 @@ struct symbol {
 	struct symbol *children;
 	struct statement *stmt;
 	struct symbol_list *symbol_list;
-};
-
-#define NRSYM 10
-struct symbol_list {
-	int nr;
-	struct symbol *list[NRSYM];
-	struct symbol_list *next;
 };
 
 /* Modifiers */
@@ -84,7 +80,8 @@ extern struct symbol	void_type,
 /* Basic identifiers */
 extern struct ident	struct_ident,
 			union_ident,
-			enum_ident;
+			enum_ident,
+			sizeof_ident;
 
 #define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)
 

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "list.h"
 #include "token.h"
 #include "symbol.h"
 
@@ -15,26 +16,6 @@ struct symbol *lookup_symbol(struct ident *ident, enum namespace ns)
 			return sym;
 	}
 	return sym;
-}
-
-void add_symbol(struct symbol_list **listp, struct symbol *sym)
-{
-	struct symbol_list *list = *listp;
-	int nr;
-
-	if (!list || (nr = list->nr) >= NRSYM) {
-		struct symbol_list *newlist = malloc(sizeof(*newlist));
-		if (!newlist)
-			die("out of memory for symbol lists");
-		memset(newlist, 0, sizeof(*newlist));
-		newlist->next = list;
-		list = newlist;
-		*listp = newlist;
-		nr = 0;
-	}
-	list->list[nr] = sym;
-	nr++;
-	list->nr = nr;
 }
 
 const char *modifier_string(unsigned long mod)
@@ -68,7 +49,7 @@ const char *type_string(unsigned int modifiers, struct symbol *sym)
 		return "<notype>";
 		
 	if (sym->token)
-		return sym->token->ident->name;
+		return show_token(sym->token);
 	if (sym == &int_type) {
 		if (modifiers & (SYM_CHAR | SYM_SHORT | SYM_LONG))
 			return "";
@@ -92,13 +73,9 @@ static void show_one_symbol(struct symbol *sym)
 	printf("\n");
 }
 
-void show_symbol_list(struct symbol_list *sym)
+void show_symbol_list(struct symbol_list *list)
 {
-	for ( ; sym ; sym = sym->next) {
-		int i;
-		for (i = 0; i < sym->nr; i++)
-			show_one_symbol(sym->list[i]);
-	}
+	symbol_iterate(list, show_one_symbol);
 }
 
 void show_type_list(struct symbol *sym)
@@ -213,10 +190,18 @@ struct sym_init {
 
 	/* Type qualifiers */
 	{ "const",	NULL,		SYM_CONST },
+	{ "__const",	NULL,		SYM_CONST },
 	{ "volatile",	NULL,		SYM_VOLATILE },
 
 	/* Typedef.. */
 	{ "typedef",	NULL,		SYM_TYPEDEF },
+
+	/* Ignored for now.. */
+	{ "inline",	NULL,		0 },
+	{ "__inline",	NULL,		0 },
+	{ "__inline__",	NULL,		0 },
+	{ "restrict",	NULL,		0 },
+	{ "__restrict",	NULL,		0 },
 
 	{ NULL,		NULL,			0 }
 };
@@ -231,6 +216,7 @@ struct symbol	void_type,
 	struct ident n ## _ident = { len: sizeof(#n)-1, name: #n }
 
 IDENT(struct); IDENT(union); IDENT(enum);
+IDENT(sizeof);
 
 void init_symbols(void)
 {
@@ -240,6 +226,7 @@ void init_symbols(void)
 	hash_ident(&struct_ident);
 	hash_ident(&union_ident);
 	hash_ident(&enum_ident);
+	hash_ident(&sizeof_ident);
 	for (ptr = symbol_init_table; ptr->name; ptr++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, ptr->name, SYM_TYPE);

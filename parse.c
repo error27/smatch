@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "list.h"
 #include "token.h"
 #include "parse.h"
 #include "symbol.h"
@@ -70,6 +71,31 @@ static struct expression *alloc_expression(struct token *token, int type)
 static int match_op(struct token *token, int op)
 {
 	return token && token->type == TOKEN_SPECIAL && token->special == op;
+}
+
+static int match_oplist(int op, ...)
+{
+	va_list args;
+
+	va_start(args, op);
+	for (;;) {
+		int nextop = va_arg(args, int);
+		if (!nextop)
+			return 0;
+		if (op == nextop)
+			return 1;
+	}
+}
+
+int lookup_type(struct token *token)
+{
+	if (token && token->type == TOKEN_IDENT) {
+		struct ident *ident = token->ident;
+		if (ident == &struct_ident || ident == &union_ident || ident == &enum_ident)
+			return 1;
+		return lookup_symbol(token->ident, NS_TYPEDEF) != NULL;
+	}
+	return 0;
 }
 
 static struct token *skip_to(struct token *token, int op)
@@ -186,12 +212,33 @@ static struct token *postfix_expression(struct token *token, struct expression *
 	return token;
 }
 
+static struct token *typename(struct token *, struct symbol **);
+
 static struct token *unary_expression(struct token *token, struct expression **tree)
 {
+	if (token->type == TOKEN_IDENT && token->ident == &sizeof_ident) {
+		struct expression *sizeof_ex = alloc_expression(token, EXPR_SIZEOF);
+		*tree = sizeof_ex;
+		tree = &sizeof_ex->unop;
+		token = token->next;
+		if (!match_op(token, '(') || !lookup_type(token->next))
+			return unary_expression(token, &sizeof_ex->cast_expression);
+		token = typename(token->next, &sizeof_ex->cast_type);
+		return expect(token, ')', "at end of sizeof type-name");
+	}
+
+	if (token->type == TOKEN_SPECIAL) {
+		if (match_oplist(token->special,
+		    SPECIAL_INCREMENT, SPECIAL_DECREMENT,
+		    '&', '*', '+', '-', '~', '!', 0)) {
+			struct expression *unary = alloc_expression(token, EXPR_PREOP);
+			unary->op = token->special;
+			return unary_expression(token->next, &unary->unop);
+		}
+	}
+			
 	return postfix_expression(token, tree);
 }
-
-static struct token *typename(struct token *, struct symbol **);
 
 /*
  * Ambiguity: a '(' can be either a cast-expression or
@@ -202,16 +249,13 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 {
 	if (match_op(token, '(')) {
 		struct token *next = token->next;
-		if (next && next->type == TOKEN_IDENT) {
-			struct symbol *sym = lookup_symbol(next->ident, NS_TYPEDEF);
-			if (sym) {
-				struct expression *cast = alloc_expression(next, EXPR_CAST);
-				token = typename(next, &cast->cast_type);
-				token = expect(token, ')', "at end of cast operator");
-				token = cast_expression(token, &cast->cast_expression);
-				*tree = cast;
-				return token;
-			}
+		if (lookup_type(next)) {
+			struct expression *cast = alloc_expression(next, EXPR_CAST);
+			token = typename(next, &cast->cast_type);
+			token = expect(token, ')', "at end of cast operator");
+			token = cast_expression(token, &cast->cast_expression);
+			*tree = cast;
+			return token;
 		}
 	}
 	return unary_expression(token, tree);
@@ -390,8 +434,8 @@ struct token *struct_union_enum_specifier(enum namespace ns, enum type type,
 		token = token->next;
 		*p = indirect(sym, type);
 		if (match_op(token, '{')) {
-			token = parse(token, sym);
-			token = expect(token, '}', "end of struct-union-enum-specifier");
+			token = parse(token->next, sym);
+			token = expect(token, '}', "at end of struct-union-enum-specifier");
 		}
 		return token;
 	}
@@ -406,12 +450,12 @@ struct token *struct_union_enum_specifier(enum namespace ns, enum type type,
 	sym = alloc_symbol(token, type);
 	*p = indirect(sym, type);
 	token = parse(token->next, sym);
-	return expect(token, '}', "end of specifier");
+	return expect(token, '}', "at end of specifier");
 }
 
 static struct token *parse_struct_declaration(struct token *token, struct symbol *sym)
 {
-	return struct_declaration_list(token->next, &sym->symbol_list);
+	return struct_declaration_list(token, &sym->symbol_list);
 }
 
 struct token *struct_or_union_specifier(enum type type, struct token *token, struct symbol **p)
@@ -422,7 +466,7 @@ struct token *struct_or_union_specifier(enum type type, struct token *token, str
 /* FIXME! */
 static struct token *parse_enum_declaration(struct token *token, struct symbol *sym)
 {
-	return token;
+	return skip_to(token, '}');
 }
 
 struct token *enum_specifier(struct token *token, struct symbol **p)
@@ -525,7 +569,7 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 		 */
 		if (token->special == '(') {
 			struct token *next = token->next;
-			if (!p && next && next->type == TOKEN_SPECIAL) {
+			if (next && next->type == TOKEN_SPECIAL) {
 				if (next->special == '*' ||
 				    next->special == '(' ||
 				    next->special == '[') {
@@ -545,9 +589,16 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 			token = expect(token, ']', "in abstract_array_declarator");
 			continue;
 		}
+		if (token->special == ':') {
+			struct expression *expr;
+			*tree = indirect(*tree, SYM_BITFIELD);
+			token = parse_expression(token->next, &expr);
+			continue;
+		}
 		break;
 	}
-	(*tree)->token = *p;
+	if (p)
+		(*tree)->token = *p;
 	return token;
 }
 
@@ -642,16 +693,15 @@ struct token *statement(struct token *token, struct statement **tree)
 	return token;
 }
 
-struct token * statement_list(struct token *token, struct statement **tree)
+struct token * statement_list(struct token *token, struct statement_list **list)
 {
-	struct statement *stmt;
-
-	do {
-		stmt = NULL;
+	for (;;) {
+		struct statement * stmt = NULL;
 		token = statement(token, &stmt);
-		*tree = stmt;
-		tree = &stmt->next;
-	} while (stmt);
+		if (!stmt)
+			break;
+		add_statement(list, stmt);
+	}
 	return token;
 }
 
@@ -667,6 +717,12 @@ static struct token *parameter_type_list(struct token *token, struct symbol **tr
 		if (*tree)
 			tree = &(*tree)->next;
 		token = token->next;
+
+		if (match_op(token, SPECIAL_ELLIPSIS)) {
+			/* FIXME: mark the function */
+			token = token->next;
+			break;
+		}
 	}
 	return token;
 }
@@ -676,9 +732,18 @@ static struct token *abstract_function_declarator(struct token *token, struct sy
 	return parameter_type_list(token, tree);
 }
 
+static struct token *external_declaration(struct token *token, struct symbol_list **list);
+
 static struct token *compound_statement(struct token *token, struct statement **tree)
 {
-	return statement_list(token, tree);
+	struct statement *stmt = alloc_statement(token, STMT_COMPOUND);
+	*tree = stmt;
+	while (token) {
+		if (!lookup_type(token))
+			break;
+		token = external_declaration(token, &stmt->syms);
+	}
+	return statement_list(token, &stmt->stmts);
 }
 
 static struct token *initializer(struct token *token, struct symbol *sym);
@@ -758,8 +823,8 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	return expect(token, ';', "at end of declaration");
 }
 
-void translation_unit(struct token *token, struct symbol_list *list)
+void translation_unit(struct token *token, struct symbol_list **list)
 {
 	while (token)
-		token = external_declaration(token, &list);
+		token = external_declaration(token, list);
 }

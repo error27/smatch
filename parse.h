@@ -10,6 +10,7 @@ enum expression_type {
 	EXPR_PREOP,
 	EXPR_POSTOP,
 	EXPR_CAST,
+	EXPR_SIZEOF,
 };
 
 struct expression {
@@ -50,13 +51,16 @@ struct statement {
 			struct statement *label_statement;
 		};
 		struct expression *expression;
-		struct statement *compound;
+		struct compound_struct {
+			struct symbol_list *syms;
+			struct statement_list *stmts;
+		};
 	};
 };
 
 extern struct token *parse_expression(struct token *, struct expression **);
-extern struct token *statement_list(struct token *, struct statement **);
+extern struct token *statement_list(struct token *, struct statement_list **);
 extern void show_expression(struct expression *);
-extern void translation_unit(struct token *, struct symbol_list *);
+extern void translation_unit(struct token *, struct symbol_list **);
 
 #endif /* PARSE_H */

@@ -14,15 +14,14 @@ int main(int argc, char **argv)
 {
 	int fd = open(argv[1], O_RDONLY);
 	struct token *token;
-	struct symbol_list list;
+	struct symbol_list *list = NULL;
 
 	if (fd < 0)
 		die("No such file: %s", argv[1]);
 	init_symbols();
 	token = tokenize(argv[1], fd);
 
-	memset(&list, 0, sizeof(list));
 	translation_unit(token, &list);
-	show_symbol_list(&list);
+	show_symbol_list(list);
 	return 0;
 }
