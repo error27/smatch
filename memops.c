@@ -64,12 +64,24 @@ found_dominator:
 	return 1;
 }		
 
-static inline int address_taken(pseudo_t pseudo)
+/*
+ * FIXME! This is wrong. Since we now distribute out the OP_SYMADDR,
+ * we can no longer really use "container()" to get from a user to
+ * the instruction that uses it.
+ *
+ * This happens to work, simply because the likelyhood of the
+ * (possibly non-instruction) containing the right bitpattern
+ * in the right place is pretty low. But this is still wrong.
+ *
+ * We should make symbol-pseudos count non-load/store usage,
+ * or something.
+ */
+static int address_taken(pseudo_t pseudo)
 {
 	pseudo_t *usep;
 	FOR_EACH_PTR(pseudo->users, usep) {
 		struct instruction *insn = container(usep, struct instruction, src);
-		if (insn->bb && insn->opcode == OP_SYMADDR)
+		if (insn->bb && (insn->opcode != OP_LOAD || insn->opcode != OP_STORE))
 			return 1;
 	} END_FOR_EACH_PTR(usep);
 	return 0;
