@@ -825,12 +825,13 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 	return ltype;
 }
 
-static struct symbol *convert_to_address_space(struct symbol *sym, int as)
+static struct symbol *convert_to_as_mod(struct symbol *sym, int as, int mod)
 {
-	if (sym->ctype.as != as) {
+	if (sym->ctype.as != as || sym->ctype.modifiers != mod) {
 		struct symbol *newsym = alloc_symbol(sym->pos, SYM_NODE);
 		*newsym = *sym;
 		newsym->ctype.as = as;
+		newsym->ctype.modifiers = mod;
 		sym = newsym;
 	}
 	return sym;
@@ -1093,10 +1094,13 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		return NULL;
 	}
 
-	member = convert_to_address_space(member, address_space);
+	/*
+	 * The member needs to take on the address space and modifiers of
+	 * the "parent" type.
+	 */
+	member = convert_to_as_mod(member, address_space, mod);
 	ctype = create_pointer(deref, member);
-	ctype->ctype.modifiers = mod;
-	ctype->ctype.as = address_space;
+
 	add = evaluate_offset(deref, offset, ctype);
 
 	ctype = member->ctype.base_type;
