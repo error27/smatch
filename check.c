@@ -35,16 +35,16 @@ static int context_increase(struct basic_block *bb)
 	return sum;
 }
 
-static int imbalance(struct entrypoint *ep, struct basic_block *bb, int value)
+static int imbalance(struct entrypoint *ep, struct basic_block *bb, int entry, int exit)
 {
 	struct symbol *sym = ep->name;
-	warning(bb->pos, "context imbalance in '%s'", show_ident(sym->ident));
+	warning(bb->pos, "context imbalance in '%s' (saw %d, expected %d)", show_ident(sym->ident), entry, exit);
 	return -1;
 }
 
-static int check_bb_context(struct entrypoint *ep, struct basic_block *bb, int value);
+static int check_bb_context(struct entrypoint *ep, struct basic_block *bb, int entry, int exit);
 
-static int check_children(struct entrypoint *ep, struct basic_block *bb, int value)
+static int check_children(struct entrypoint *ep, struct basic_block *bb, int entry, int exit)
 {
 	struct terminator_iterator term;
 	struct instruction *insn;
@@ -54,38 +54,40 @@ static int check_children(struct entrypoint *ep, struct basic_block *bb, int val
 	if (!insn)
 		return 0;
 	if (insn->opcode == OP_RET)
-		return value ? imbalance(ep, bb, value) : 0;
+		return entry != exit ? imbalance(ep, bb, entry, exit) : 0;
 
 	init_terminator_iterator(insn, &term);
 	while ((child=next_terminator_bb(&term)) != NULL) {
-		if (check_bb_context(ep, child, value))
+		if (check_bb_context(ep, child, entry, exit))
 			return -1;
 	}
 	return 0;
 }
 
-static int check_bb_context(struct entrypoint *ep, struct basic_block *bb, int value)
+static int check_bb_context(struct entrypoint *ep, struct basic_block *bb, int entry, int exit)
 {
 	if (!bb)
 		return 0;
-	if (bb->context == value)
+	if (bb->context == entry)
 		return 0;
 
 	/* Now that's not good.. */
 	if (bb->context >= 0)
-		return imbalance(ep, bb, value);
+		return imbalance(ep, bb, entry, bb->context);
 
-	bb->context = value;
-	value += context_increase(bb);
-	if (value < 0)
-		return imbalance(ep, bb, value);
+	bb->context = entry;
+	entry += context_increase(bb);
+	if (entry < 0)
+		return imbalance(ep, bb, entry, exit);
 
-	return check_children(ep, bb, value);
+	return check_children(ep, bb, entry, exit);
 }
 
 static void check_context(struct entrypoint *ep)
 {
-	check_bb_context(ep, ep->entry, 0);
+	struct symbol *sym = ep->name;
+
+	check_bb_context(ep, ep->entry, sym->ctype.in_context, sym->ctype.out_context);
 }
 
 static void clean_up_symbols(struct symbol_list *list)
