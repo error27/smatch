@@ -623,13 +623,13 @@ static struct symbol *compatible_ptr_type(struct expression *left, struct expres
 	if (ltype->type == SYM_NODE)
 		ltype = ltype->ctype.base_type;
 
+	if (rtype->type == SYM_NODE)
+		rtype = rtype->ctype.base_type;
+
 	if (ltype->type == SYM_PTR) {
 		if (is_null_ptr(right) || rtype->ctype.base_type == &void_ctype)
 			return ltype;
 	}
-
-	if (rtype->type == SYM_NODE)
-		rtype = rtype->ctype.base_type;
 
 	if (rtype->type == SYM_PTR) {
 		if (is_null_ptr(left) || ltype->ctype.base_type == &void_ctype)

@@ -399,7 +399,7 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 			struct symbol *sym;
 
 			token = typename(next, &sym);
-			cast->cast_type = sym->ctype.base_type;
+			cast->cast_type = sym;
 			token = expect(token, ')', "at end of cast operator");
 			if (match_op(token, '{')) {
 				token = initializer(&cast->cast_expression, token);
