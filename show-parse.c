@@ -472,9 +472,8 @@ void show_expression(struct expression *expr)
 		show_expression(expr->right);
 		break;
 	case EXPR_PREOP:
-		printf("%s<", show_special(expr->op));
+		printf("%s", show_special(expr->op));
 		show_expression(expr->unop);
-		printf(">");
 		break;
 	case EXPR_POSTOP:
 		show_expression(expr->unop);
