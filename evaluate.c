@@ -1346,21 +1346,8 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 		warning(expr->pos, "cannot derefence this type");
 		return NULL;
 	case SYM_PTR:
+		node->ctype.modifiers = target->ctype.modifiers & MOD_SPECIFIER;
 		merge_type(node, ctype);
-		if (ctype->type != SYM_ARRAY)
-			break;
-		/*
-		 * Dereferencing a pointer to an array results in a
-		 * degenerate dereference: the expression becomes
-		 * just a pointer to the entry, and the derefence
-		 * goes away.
-		 */
-		*expr = *op;
-
-		target = alloc_symbol(expr->pos, SYM_PTR);
-		target->bit_size = bits_in_pointer;
-		target->ctype.alignment = pointer_alignment;
-		merge_type(target, ctype->ctype.base_type);
 		break;
 
 	case SYM_ARRAY:
