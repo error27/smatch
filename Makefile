@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=-g -Wall
 AR=ar
 
-PREFIX=/usr/local
+PREFIX=$(HOME)
 PROGRAMS=test-lexing test-parsing obfuscate check
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h
