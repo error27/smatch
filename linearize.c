@@ -736,6 +736,7 @@ static pseudo_t symbol_pseudo(struct entrypoint *ep, struct symbol *sym)
 	pseudo = sym->pseudo;
 	if (!pseudo) {
 		pseudo = __alloc_pseudo(0);
+		pseudo->nr = -1;
 		pseudo->type = PSEUDO_SYM;
 		pseudo->sym = sym;
 		pseudo->ident = sym->ident;

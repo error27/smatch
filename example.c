@@ -304,11 +304,17 @@ static const char *show_memop(struct storage *storage)
 	return buffer;
 }
 
+static int alloc_stack_offset(int size)
+{
+	int ret = stack_offset;
+	stack_offset = ret + size;
+	return ret;
+}
+
 static void alloc_stack(struct bb_state *state, struct storage *storage)
 {
 	storage->type = REG_STACK;
-	storage->offset = stack_offset;
-	stack_offset += 4;
+	storage->offset = alloc_stack_offset(4);
 }
 
 /*
@@ -714,7 +720,17 @@ static struct operand *get_register_operand(struct bb_state *state, pseudo_t pse
 	op->reg = getreg(state, pseudo, target);
 	op->reg->busy++;
 	return op;
-}	
+}
+
+static int get_sym_frame_offset(struct bb_state *state, pseudo_t pseudo)
+{
+	int offset = pseudo->nr;
+	if (offset < 0) {
+		offset = alloc_stack_offset(4);
+		pseudo->nr = offset;
+	}
+	return offset;
+}
 
 static struct operand *get_generic_operand(struct bb_state *state, pseudo_t pseudo)
 {
@@ -730,10 +746,17 @@ static struct operand *get_generic_operand(struct bb_state *state, pseudo_t pseu
 		op->value = pseudo->value;
 		break;
 
-	case PSEUDO_SYM:
+	case PSEUDO_SYM: {
+		struct symbol *sym = pseudo->sym;
 		op->type = OP_ADDR;
-		op->sym = pseudo->sym;
+		if (sym->ctype.modifiers & MOD_NONLOCAL) {
+			op->sym = sym;
+			break;
+		}
+		op->base = hardregs + REG_EBP;
+		op->offset = get_sym_frame_offset(state, pseudo);
 		break;
+	}
 
 	default:
 		reg = find_in_reg(state, pseudo);
@@ -781,20 +804,15 @@ static const char *generic(struct bb_state *state, pseudo_t pseudo)
 
 static const char *address(struct bb_state *state, struct instruction *memop)
 {
-	struct symbol *sym;
 	struct hardreg *base;
 	static char buffer[100];
 	pseudo_t addr = memop->src;
 
-	switch(addr->type) {
+	switch (addr->type) {
 	case PSEUDO_SYM:
-		sym = addr->sym;
-		if (sym->ctype.modifiers & MOD_NONLOCAL) {
-			sprintf(buffer, "%s+%d", show_ident(sym->ident), memop->offset);
-			return buffer;
-		}
-		sprintf(buffer, "%d+%s(SP)", memop->offset, show_ident(sym->ident));
-		return buffer;
+	case PSEUDO_VAL:
+		return generic(state, addr);
+
 	default:
 		base = getreg(state, addr, NULL);
 		sprintf(buffer, "%d(%s)", memop->offset, base->name);
