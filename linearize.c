@@ -1810,9 +1810,6 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 
 	FOR_EACH_PTR(bb->parents, parent) {
 		struct instruction *one, *dom;
-		if (parent->generation == generation)
-			continue;
-		parent->generation = generation;
 		dom = NULL;
 		FOR_EACH_PTR(parent->insns, one) {
 			if (one == insn)
@@ -1835,6 +1832,9 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 			add_phi(dominators, phi);
 			continue;
 		}
+		if (parent->generation == generation)
+			continue;
+		parent->generation = generation;
 
 		if (!find_dominating_parents(pseudo, insn, parent, generation, dominators))
 			return 0;
