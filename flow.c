@@ -622,14 +622,12 @@ static void kill_defs(struct instruction *insn)
 {
 	pseudo_t target = insn->target;
 
-	if (!target || target->def != insn)
+	if (!has_use_list(target))
+		return;
+	if (target->def != insn)
 		return;
 
-	switch (target->type) {
-	case PSEUDO_REG:
-	case PSEUDO_PHI:
-		convert_instruction_target(insn, VOID);
-	}
+	convert_instruction_target(insn, VOID);
 }
 
 void kill_bb(struct basic_block *bb)
