@@ -25,8 +25,17 @@ all: $(PROGRAMS)
 #
 #		"The better to keep you on your toes, my dear".
 #
-install: check
+install: check bin-dir
 	if test $< -nt $(PREFIX)/bin/sparse ; then install -v $< $(PREFIX)/bin/sparse ; fi
+
+bin-dir:
+	@if ! test -d $(PREFIX)/bin; then \
+		echo "No '$(PREFIX)/bin' directory to install in"; \
+		echo "Please create it and add it to your PATH"; \
+		exit 1; \
+	fi
+
+.PHONY: bin-dir
 
 test-lexing: test-lexing.o $(LIB_FILE)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
