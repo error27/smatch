@@ -94,7 +94,17 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		bb = new_basic_block(bbs);
 		break;
 
-	case STMT_CASE:
+	case STMT_CASE: {
+		struct basic_block *new_bb = new_basic_block(bbs);
+		struct symbol *sym = stmt->case_label;
+
+		bb->next = sym;
+		sym->bb_target = new_bb;
+
+		bb = linearize_statement(syms, bbs, new_bb, stmt->case_statement);
+		break;
+	}
+
 	case STMT_LABEL: {
 		struct basic_block *new_bb = new_basic_block(bbs);
 		struct symbol *sym = stmt->label_identifier;
@@ -157,10 +167,35 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		break;
 	}
 
-	case STMT_SWITCH:
-		add_statement(&bb->stmts, stmt);
+	case STMT_SWITCH: {
+		struct symbol *sym;
+		struct statement *switch_value;
+
+		/* Create the "head node" */
+		switch_value = alloc_statement(stmt->pos, STMT_MULTIVALUE);
+		switch_value->expression = stmt->switch_expression;
+		add_statement(&bb->stmts, switch_value);
+
+		/* Create all the sub-jumps */
+		FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
+			struct statement *case_stmt = sym->stmt;
+			struct statement *sw_bb = alloc_statement(case_stmt->pos, STMT_MULTIJMP);
+			sw_bb->multi_from = case_stmt->case_expression;
+			sw_bb->multi_to = case_stmt->case_to;
+			sw_bb->multi_target = sym;
+			add_statement(&bb->stmts, sw_bb);
+		} END_FOR_EACH_PTR;
+
+		/* And linearize the actual statement */
+		bb = linearize_statement(syms, bbs, new_basic_block(bbs), stmt->switch_statement);
+
+		/* ..then tie it all together at the end.. */
+		bb->next = stmt->switch_break;
 		bb = new_basic_block(bbs);
+		stmt->switch_break->bb_target = bb;
+
 		break;
+	}
 
 	case STMT_ITERATOR: {
 		struct statement  *pre_statement = stmt->iterator_pre_statement;

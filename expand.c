@@ -588,6 +588,8 @@ static void expand_statement(struct statement *stmt)
 	/* Should not show up at this stage */
 	case STMT_CONDTRUE:
 	case STMT_CONDFALSE:
+	case STMT_MULTIVALUE:
+	case STMT_MULTIJMP:
 		break;
 	}
 }

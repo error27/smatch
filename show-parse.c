@@ -542,6 +542,23 @@ int show_statement(struct statement *stmt)
 		break;
 	}
 
+	case STMT_MULTIVALUE: {
+		int val = show_expression(stmt->expression);
+		printf("\tSWITCH\t\tv%d\n", val);
+		break;
+	}
+
+	case STMT_MULTIJMP: {
+		long long from = 0, to = 0;
+		if (stmt->multi_from && stmt->multi_from->type == EXPR_VALUE)
+			from = stmt->multi_from->value;
+		to = from;
+		if (stmt->multi_to && stmt->multi_to->type == EXPR_VALUE)
+			to = stmt->multi_to->value;
+		printf("\tIF %lld..%lld goto .L%p\n", from, to, stmt->multi_target->bb_target);
+		break;
+	}
+
 	}
 	return 0;
 }

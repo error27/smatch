@@ -27,6 +27,8 @@ enum statement_type {
 	/* These only show up after linearization */
 	STMT_CONDTRUE,
 	STMT_CONDFALSE,
+	STMT_MULTIVALUE,
+	STMT_MULTIJMP,
 };
 
 struct statement {
@@ -86,6 +88,11 @@ struct statement {
 		struct /* goto_bb */ {
 			struct expression *bb_conditional;
 			struct symbol *bb_target;
+		};
+		struct /* multijmp */ {
+			struct expression *multi_from;
+			struct expression *multi_to;
+			struct symbol *multi_target;
 		};
 	};
 };

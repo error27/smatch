@@ -1828,6 +1828,14 @@ static struct storage *x86_statement(struct statement *stmt)
 	case STMT_CONDFALSE:
 		printf("\tje xxx*\n");
 		break;
+
+	case STMT_MULTIVALUE:
+		printf("\tswitch value!!\n");
+		break;
+
+	case STMT_MULTIJMP:
+		printf("\tswitch case xxx\n");
+		break;
 	}
 	return NULL;
 }
