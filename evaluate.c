@@ -77,6 +77,12 @@ static void evaluate_constant(struct expression *expr)
 		expr->ctype = &int_ctype;
 		expr->value = value;
 		return;
+	case TOKEN_CHAR:
+		value = (char) token->character;
+		expr->type = EXPR_VALUE;
+		expr->ctype = &int_ctype;
+		expr->value = value;
+		return;	
 	}
 }	
 
