@@ -886,6 +886,10 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn)
 			break;
 		}
 		
+		if (!lookup_type(token)) {
+			warn(token->pos, "non-ANSI parameter list");
+			break;
+		}
 		token = parameter_declaration(token, &sym);
 		/* Special case: (void) */
 		if (!*list && !sym->ident && sym->ctype.base_type == &void_ctype)
