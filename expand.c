@@ -87,7 +87,9 @@ Int:
 	if (value & ~mask) {
 		long long oldsignmask = 1ULL << (old_size-1);
 		if (!(value & oldsignmask) || !(value & signmask) || (value & ~mask) != ~mask)
-			warning(old->pos, "cast truncates bits from constant value (%llx becomes %llx)", value, value & mask);
+			warning(old->pos, "cast truncates bits from constant value (%llx becomes %llx)",
+				value & (oldsignmask | (oldsignmask-1)),
+				value & mask);
 	}
 	expr->value = value & mask;
 	return;
