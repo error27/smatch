@@ -24,16 +24,17 @@ IDENT(enum);
 IDENT(__attribute__);
 IDENT(__attribute);
 IDENT(volatile);
+IDENT(__volatile__);
+IDENT(__volatile);
 
 /* Extended gcc identifiers */
 IDENT(asm);
-IDENT(__asm__);
-IDENT(__asm);
 IDENT(alignof);
-IDENT(__alignof);
-IDENT(__alignof__); 
-IDENT(__volatile__);
-IDENT(__volatile);
+IDENT_RESERVED(__asm__);
+IDENT_RESERVED(__asm);
+IDENT_RESERVED(__alignof);
+IDENT_RESERVED(__alignof__); 
+IDENT_RESERVED(__sizeof_ptr__);
 
 /* Attribute names */
 IDENT(defined); IDENT(packed); IDENT(__packed__);
