@@ -663,11 +663,11 @@ static struct basic_block * rewrite_branch_bb(struct basic_block *bb, struct ins
 
 static void simplify_one_switch(struct basic_block *bb,
 	long long val,
-	struct multijmp_list *list)
+	struct instruction *insn)
 {
 	struct multijmp *jmp;
 
-	FOR_EACH_PTR(list, jmp) {
+	FOR_EACH_PTR(insn->multijmp_list, jmp) {
 		/* Default case */
 		if (jmp->begin > jmp->end)
 			goto found;
@@ -678,7 +678,7 @@ static void simplify_one_switch(struct basic_block *bb,
 	return;
 
 found:
-	insert_branch(bb, jmp->target);
+	insert_branch(bb, insn, jmp->target);
 }
 
 static void simplify_switch(struct entrypoint *ep)
@@ -693,7 +693,7 @@ static void simplify_switch(struct entrypoint *ep)
 			continue;
 		pseudo = insn->target;
 		if (pseudo->type == PSEUDO_VAL)
-			simplify_one_switch(bb, pseudo->value, insn->multijmp_list);
+			simplify_one_switch(bb, pseudo->value, insn);
 	} END_FOR_EACH_PTR(bb);
 }
 

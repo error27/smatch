@@ -513,14 +513,16 @@ static void set_list(struct basic_block_list *p, struct basic_block *child)
 
 
 /* Change a "switch" into a branch */
-void insert_branch(struct basic_block *bb, struct basic_block *target)
+void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic_block *target)
 {
-	struct instruction *br;
+	struct instruction *br, *old;
 
 	/* Remove the switch */
-	delete_last_instruction(&bb->insns);
+	old = delete_last_instruction(&bb->insns);
+	assert(old == jmp);
 
 	br = alloc_instruction(OP_BR, NULL);
+	br->bb = bb;
 	br->bb_true = target;
 	add_instruction(&bb->insns, br);
 	set_list(bb->children, target);
