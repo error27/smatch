@@ -166,15 +166,15 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 		prepend(name, "( ");
 		break;
 	case SYM_STRUCT:
-		prepend(name, "struct %s", show_ident(sym->ident));
+		prepend(name, "struct %s ", show_ident(sym->ident));
 		return;
 
 	case SYM_UNION:
-		prepend(name, "union %s", show_ident(sym->ident));
+		prepend(name, "union %s ", show_ident(sym->ident));
 		return;
 
 	case SYM_ENUM:
-		prepend(name, "enum %s", show_ident(sym->ident));
+		prepend(name, "enum %s ", show_ident(sym->ident));
 		return;
 
 	case SYM_NODE:
