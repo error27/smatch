@@ -210,14 +210,16 @@ static inline int is_float_type(struct symbol *type)
 	return type->ctype.base_type == &fp_type;
 }
 
+static inline int is_byte_type(struct symbol *type)
+{
+	return type->bit_size == bits_in_char && type->type != SYM_BITFIELD;
+}
+
 static inline int is_string_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
-	if (!type->type == SYM_ARRAY)
-		return 0;
-	type = type->ctype.base_type;
-	return type->bit_size == bits_in_char && type->type != SYM_BITFIELD;
+	return type->type == SYM_ARRAY && is_byte_type(type->ctype.base_type);
 }
 
 static struct symbol *bad_expr_type(struct expression *expr)
@@ -1486,7 +1488,7 @@ static int evaluate_array_initializer(struct symbol *ctype, struct expression *e
 	struct expression *entry;
 	int current = 0;
 	int max = 0;
-	int accept_string = ctype->bit_size == bits_in_char;
+	int accept_string = is_byte_type(ctype);
 
 	FOR_EACH_PTR(expr->expr_list, entry) {
 		struct expression **p = THIS_ADDRESS(entry);
