@@ -876,8 +876,16 @@ static struct symbol *compatible_ptr_type(struct expression *left, struct expres
 	return NULL;
 }
 
+/*
+ * NOTE! The degenerate case of "x ? : y", where we don't
+ * have a true case, this will possibly promote "x" to the
+ * same type as "y", and thus _change_ the conditional
+ * test in the expression. But since promotion is "safe"
+ * for testing, that's ok.
+ */
 static struct symbol *evaluate_conditional_expression(struct expression *expr)
 {
+	struct expression **true;
 	struct symbol *ctype, *ltype, *rtype;
 	const char * typediff;
 
@@ -885,30 +893,34 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 		return NULL;
 	if (!evaluate_expression(expr->cond_false))
 		return NULL;
-	if (!evaluate_expression(expr->cond_true))
-		return NULL;
 
 	ctype = degenerate(expr->conditional);
-
-	ltype = degenerate(expr->cond_true);
 	rtype = degenerate(expr->cond_false);
 
+	true = &expr->conditional;
+	ltype = ctype;
+	if (expr->cond_true) {
+		if (!evaluate_expression(expr->cond_true))
+			return NULL;
+		ltype = degenerate(expr->cond_true);
+		true = &expr->cond_true;
+	}
+
+	ctype = compatible_integer_binop(true, &expr->cond_false);
+	if (ctype)
+		goto out;
+	ctype = compatible_ptr_type(*true, expr->cond_false);
+	if (ctype)
+		goto out;
+	ctype = compatible_float_binop(true, &expr->cond_false);
+	if (ctype)
+		goto out;
+	ctype = compatible_restricted_binop('?', true, &expr->cond_false);
+	if (ctype)
+		goto out;
 	ctype = ltype;
 	typediff = type_difference(ltype, rtype, MOD_IGN, MOD_IGN);
 	if (!typediff)
-		goto out;
-
-	ctype = compatible_integer_binop(&expr->cond_true, &expr->cond_false);
-	if (ctype)
-		goto out;
-	ctype = compatible_ptr_type(expr->cond_true, expr->cond_false);
-	if (ctype)
-		goto out;
-	ctype = compatible_float_binop(&expr->cond_true, &expr->cond_false);
-	if (ctype)
-		goto out;
-	ctype = compatible_restricted_binop('?', &expr->cond_true, &expr->cond_false);
-	if (ctype)
 		goto out;
 	warning(expr->pos, "incompatible types in conditional expression (%s)", typediff);
 	return NULL;
@@ -916,48 +928,6 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 out:
 	expr->ctype = ctype;
 	return ctype;
-}
-
-static struct symbol *evaluate_short_conditional(struct expression *expr)
-{
-	struct symbol *a = alloc_symbol(expr->pos, SYM_NODE);
-	struct expression *e0, *e1, *e2, *e3;
-	struct symbol *ctype;
-
-	if (!evaluate_expression(expr->conditional))
-		return NULL;
-
-	ctype = degenerate(expr->conditional);
-
-	a->ctype.base_type = ctype;
-	a->bit_size = ctype->bit_size;
-	a->array_size = ctype->array_size;
-
-	e0 = alloc_expression(expr->pos, EXPR_SYMBOL);
-	e0->symbol = a;
-	e0->ctype = &lazy_ptr_ctype;
-
-	e1 = alloc_expression(expr->pos, EXPR_PREOP);
-	e1->unop = e0;
-	e1->op = '*';
-	e1->ctype = ctype;
-
-	e2 = alloc_expression(expr->pos, EXPR_ASSIGNMENT);
-	e2->left = e1;
-	e2->right = expr->conditional;
-	e2->op = '=';
-	e2->ctype = ctype;
-
-	e3 = alloc_expression(expr->pos, EXPR_CONDITIONAL);
-	e3->conditional = e1;
-	e3->cond_true = e1;
-	e3->cond_false = expr->cond_false;
-	e3->ctype = evaluate_conditional_expression(e3);
-
-	expr->type = EXPR_COMMA;
-	expr->left = e2;
-	expr->right = e3;
-	return expr->ctype = e3->ctype;
 }
 		
 static int compatible_assignment_types(struct expression *expr, struct symbol *target,
@@ -2287,10 +2257,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 		return NULL;
 	case EXPR_SELECT:
 	case EXPR_CONDITIONAL:
-		if (expr->cond_true)
-			return evaluate_conditional_expression(expr);
-		else
-			return evaluate_short_conditional(expr);
+		return evaluate_conditional_expression(expr);
 	case EXPR_STATEMENT:
 		expr->ctype = evaluate_statement(expr->statement);
 		return expr->ctype;

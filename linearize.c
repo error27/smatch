@@ -727,11 +727,70 @@ static pseudo_t linearize_select(struct entrypoint *ep, struct expression *expr)
 	cond = linearize_expression(ep, expr->conditional);
 
 	add_setcc(ep, expr, cond);
+	if (expr->cond_true)
+		add_deathnote(ep, cond);
+	else
+		true = cond;
 	res = add_binary_op(ep, expr->ctype, OP_SEL, true, false);
 	add_deathnote(ep, true);
 	add_deathnote(ep, false);
-	add_deathnote(ep, cond);
 	return res;
+}
+
+static pseudo_t copy_pseudo(struct entrypoint *ep, struct expression *expr, pseudo_t src)
+{
+	struct basic_block *bb = ep->active;
+
+	if (bb_reachable(bb)) {
+		struct instruction *new = alloc_instruction(OP_MOV, expr->ctype);
+		pseudo_t dst = alloc_pseudo(src->def);
+		new->target = dst;
+		new->src = src;
+		add_instruction(&bb->insns, new);
+		return dst;
+	}
+	return VOID;
+}
+
+static pseudo_t add_join_conditional(struct entrypoint *ep, struct expression *expr,
+				     pseudo_t src1, struct basic_block *bb1,
+				     pseudo_t src2, struct basic_block *bb2)
+{
+	pseudo_t target;
+	struct instruction *phi_node;
+
+	if (src1 == VOID || !bb_reachable(bb1))
+		return src2;
+	if (src2 == VOID || !bb_reachable(bb2))
+		return src1;
+	phi_node = alloc_instruction(OP_PHI, expr->ctype);
+	add_phi(&phi_node->phi_list, alloc_phi(bb1, src1));
+	add_phi(&phi_node->phi_list, alloc_phi(bb2, src2));
+	phi_node->target = target = alloc_pseudo(phi_node);
+	add_one_insn(ep, phi_node);
+	return target;
+}	
+
+static pseudo_t linearize_short_conditional(struct entrypoint *ep, struct expression *expr,
+					    struct expression *cond,
+					    struct expression *expr_false)
+{
+	pseudo_t tst, src1, src2;
+	struct basic_block *bb_true;
+	struct basic_block *bb_false = alloc_basic_block(expr_false->pos);
+	struct basic_block *merge = alloc_basic_block(expr->pos);
+
+	tst = linearize_expression(ep, cond);
+	src1 = copy_pseudo(ep, expr, tst);
+	bb_true = ep->active;
+	add_branch(ep, expr, tst, merge, bb_false);
+
+	set_activeblock(ep, bb_false);
+	src2 = linearize_expression(ep, expr_false);
+	bb_false = ep->active;
+	set_activeblock(ep, merge);
+
+	return add_join_conditional(ep, expr, src1, bb_true, src2, bb_false);
 }
 
 static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *expr,
@@ -739,7 +798,7 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 				      struct expression *expr_true,
 				      struct expression *expr_false)
 {
-	pseudo_t src1, src2, target;
+	pseudo_t src1, src2;
 	struct basic_block *bb_true = alloc_basic_block(expr_true->pos);
 	struct basic_block *bb_false = alloc_basic_block(expr_false->pos);
 	struct basic_block *merge = alloc_basic_block(expr->pos);
@@ -756,17 +815,7 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 	bb_false = ep->active;
 	set_activeblock(ep, merge);
 
-	if (src1 != VOID && src2 != VOID) {
-		struct instruction *phi_node = alloc_instruction(OP_PHI, expr->ctype);
-		add_phi(&phi_node->phi_list, alloc_phi(bb_true, src1));
-		add_phi(&phi_node->phi_list, alloc_phi(bb_false, src2));
-		phi_node->target = target = alloc_pseudo(phi_node);
-		add_one_insn(ep, phi_node);
-		set_activeblock(ep, alloc_basic_block(expr->pos));
-		return target;
-	}
-
-	return src1 != VOID ? src1 : src2;
+	return add_join_conditional(ep, expr, src1, bb_true, src2, bb_false);
 }
 
 static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr)
@@ -945,6 +994,9 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 		return	linearize_select(ep, expr);
 
 	case EXPR_CONDITIONAL:
+		if (!expr->cond_true)
+			return linearize_short_conditional(ep, expr, expr->conditional, expr->cond_false);
+
 		return  linearize_conditional(ep, expr, expr->conditional,
 					      expr->cond_true, expr->cond_false);
 
