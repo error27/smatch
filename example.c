@@ -264,6 +264,13 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 				}
 			}
 		}
+
+		/*
+		 * Incoming pseudo with out any pre-set storage allocation?
+		 * We can make up our own, and obviously prefer to get it
+		 * in the register we already selected (if it hasn't been
+		 * used yet).
+		 */
 		if (src->storage->type == REG_UDEF) {
 			if (!hardreg->used) {
 				src->storage->type = REG_REG;
