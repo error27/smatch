@@ -63,18 +63,6 @@ static struct multijmp* alloc_multijmp(struct basic_block *target, int begin, in
 	return multijmp;
 }
 
-static inline void add_pseudo_ptr(pseudo_t *ptr, struct pseudo_ptr_list **list)
-{
-	add_ptr_list((struct ptr_list **)list, ptr);
-}
-
-static inline void use_pseudo(pseudo_t p, pseudo_t *pp)
-{
-	*pp = p;
-	if (p && p->type != PSEUDO_VOID)
-		add_pseudo_ptr(pp, &p->users);
-}
-
 static inline int regno(pseudo_t n)
 {
 	int retval = -1;

@@ -254,7 +254,7 @@ found_dominator:
 		br = delete_last_instruction(&parent->insns);
 		phi = alloc_phi(parent, one->target);
 		add_instruction(&parent->insns, br);
-		add_pseudo(dominators, phi);
+		use_pseudo(phi, add_pseudo(dominators, phi));
 	} END_FOR_EACH_PTR(parent);
 	return 1;
 }		

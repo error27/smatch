@@ -214,6 +214,18 @@ static inline int bb_reachable(struct basic_block *bb)
 	return bb != NULL;
 }
 
+static inline void add_pseudo_ptr(pseudo_t *ptr, struct pseudo_ptr_list **list)
+{
+	add_ptr_list((struct ptr_list **)list, ptr);
+}
+
+static inline void use_pseudo(pseudo_t p, pseudo_t *pp)
+{
+	*pp = p;
+	if (p && p->type != PSEUDO_VOID)
+		add_pseudo_ptr(pp, &p->users);
+}
+
 struct entrypoint {
 	struct symbol *name;
 	struct symbol_list *syms;
