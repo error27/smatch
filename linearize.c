@@ -2085,6 +2085,13 @@ static void mark_bb_reachable(struct basic_block *bb, unsigned long generation)
 	} END_FOR_EACH_PTR(child);
 }
 
+static void kill_bb(struct basic_block *bb)
+{
+	bb->insns = NULL;
+	bb->children = NULL;
+	bb->parents = NULL;
+}
+
 static void kill_unreachable_bbs(struct entrypoint *ep)
 {
 	struct basic_block *bb;
@@ -2101,9 +2108,7 @@ static void kill_unreachable_bbs(struct entrypoint *ep)
 		} END_FOR_EACH_PTR(phi);
 
 		/* Mark it as being dead */
-		bb->insns = NULL;
-		bb->children = NULL;
-		bb->parents = NULL;
+		kill_bb(bb);
 	} END_FOR_EACH_PTR(bb);
 }
 
@@ -2187,8 +2192,10 @@ static void pack_basic_blocks(struct entrypoint *ep)
 		 */
 		first = first_instruction(bb->insns);
 		if (first && first->opcode == OP_BR) {
-			if (rewrite_branch_bb(bb, first))
+			if (rewrite_branch_bb(bb, first)) {
+				kill_bb(bb);
 				continue;
+			}
 		}
 
 		if (ep->entry == bb)
@@ -2223,9 +2230,7 @@ static void pack_basic_blocks(struct entrypoint *ep)
 
 		delete_last_instruction(&parent->insns);
 		concat_instruction_list(bb->insns, &parent->insns);
-		bb->parents = NULL;
-		bb->children = NULL;
-		bb->insns = NULL;
+		kill_bb(bb);
 
 	no_merge:
 		/* nothing to do */;
