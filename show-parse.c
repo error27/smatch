@@ -33,7 +33,7 @@ const char *modifier_string(unsigned long mod)
 		"const", "volatile", "[signed]", "[unsigned]",
 		"[char]", "[short]", "[long]", "[long]",
 		"[typdef]", "[structof]", "[unionof]", "[enum]",
-		"[typeof]", "[attribute]", "inline", "<80000>",
+		"[typeof]", "[attribute]", "inline", "[addressable]",
 		"[nocast]", "[noderef]", 
 		NULL
 	};

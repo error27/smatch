@@ -644,6 +644,28 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 	return expr->ctype;
 }
 
+static struct symbol *evaluate_addressof(struct expression *expr)
+{
+	struct symbol *ctype = expr->unop->ctype;
+	struct symbol *symbol = alloc_symbol(expr->pos, SYM_PTR);
+
+	symbol->ctype.base_type = ctype;
+	symbol->ctype.alignment = POINTER_ALIGNMENT;
+	symbol->bit_size = BITS_IN_POINTER;
+	expr->ctype = symbol;
+	if (expr->unop->type == EXPR_SYMBOL) {
+		struct symbol *var = expr->unop->symbol;
+		if (var->ctype.modifiers & MOD_REGISTER) {
+			warn(expr->pos, "register variable and address-of do not mix");
+			var->ctype.modifiers &= ~MOD_REGISTER;
+		}
+		var->ctype.modifiers |= MOD_ADDRESSABLE;
+	}
+	return symbol;
+}
+
+
+
 static struct symbol *evaluate_preop(struct expression *expr)
 {
 	struct symbol *ctype = expr->unop->ctype;
@@ -675,14 +697,8 @@ static struct symbol *evaluate_preop(struct expression *expr)
 		expr->ctype = ctype;
 		return ctype;
 
-	case '&': {
-		struct symbol *symbol = alloc_symbol(expr->pos, SYM_PTR);
-		symbol->ctype.base_type = ctype;
-		symbol->ctype.alignment = POINTER_ALIGNMENT;
-		symbol->bit_size = BITS_IN_POINTER;
-		expr->ctype = symbol;
-		return symbol;
-	}
+	case '&':
+		return evaluate_addressof(expr);
 
 	case '!':
 		expr->ctype = &bool_ctype;
