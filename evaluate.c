@@ -188,9 +188,36 @@ static int same_cast_type(struct symbol *orig, struct symbol *new)
 	return orig->bit_size == new->bit_size && orig->bit_offset == orig->bit_offset;
 }
 
-static int same_sign(struct symbol *orig, struct symbol *new)
+static struct symbol *base_type(struct symbol *node, unsigned long *modp, unsigned long *asp)
 {
-	return !((orig->ctype.modifiers ^ new->ctype.modifiers) & MOD_SIGNED);
+	unsigned long mod, as;
+
+	mod = 0; as = 0;
+	while (node) {
+		mod |= node->ctype.modifiers;
+		as |= node->ctype.as;
+		switch (node->type) {
+		case SYM_NODE:
+		case SYM_ENUM:
+			node = node->ctype.base_type;
+			continue;
+		default:
+			break;
+		}
+		break;
+	}
+	*modp = mod & ~MOD_IGNORE;
+	*asp = as;
+	return node;
+}
+
+static int is_same_type(struct symbol *old, struct symbol *new)
+{
+	unsigned long oldmod, newmod, oldas, newas;
+
+	old = base_type(old, &oldmod, &oldas);
+	new = base_type(new, &newmod, &newas);
+	return old == new && oldmod == newmod && oldas == newas;
 }
 
 /*
@@ -203,6 +230,9 @@ static int same_sign(struct symbol *orig, struct symbol *new)
 static struct expression * cast_to(struct expression *old, struct symbol *type)
 {
 	struct expression *expr;
+
+	if (is_same_type(old->ctype, type))
+		return old;
 
 	/*
 	 * See if we can simplify the op. Move the cast down.
@@ -231,16 +261,6 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 
 	default:
 		/* nothing */;
-	}
-
-	if (type) {
-		struct symbol *otype = old->ctype;
-		if (otype) {
-			if (otype->bit_size == type->bit_size &&
-			    otype->bit_offset == type->bit_offset &&
-			    same_sign(otype, type))
-				return old;
-		}
 	}
 
 	expr = alloc_expression(old->pos, EXPR_IMPLIED_CAST);
@@ -516,10 +536,6 @@ static struct symbol *evaluate_add(struct expression *expr)
 		
 	return evaluate_arith(expr, 1);
 }
-
-#define MOD_SIZE (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG)
-#define MOD_IGNORE (MOD_TOPLEVEL | MOD_STORAGE | MOD_ADDRESSABLE |	\
-	MOD_ASSIGNED | MOD_USERTYPE | MOD_FORCE | MOD_ACCESSED | MOD_EXPLICITLY_SIGNED)
 
 const char * type_difference(struct symbol *target, struct symbol *source,
 	unsigned long target_mod_ignore, unsigned long source_mod_ignore)
