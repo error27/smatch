@@ -2300,11 +2300,13 @@ struct symbol *evaluate_expression(struct expression *expr)
 
 static void check_duplicates(struct symbol *sym)
 {
+	int declared = 0;
 	struct symbol *next = sym;
 
 	while ((next = next->same_symbol) != NULL) {
 		const char *typediff;
 		evaluate_symbol(next);
+		declared++;
 		typediff = type_difference(sym, next, 0, 0);
 		if (typediff) {
 			warning(sym->pos, "symbol '%s' redeclared with different type (originally declared at %s:%d) - %s",
@@ -2312,6 +2314,14 @@ static void check_duplicates(struct symbol *sym)
 				stream_name(next->pos.stream), next->pos.line, typediff);
 			return;
 		}
+	}
+	if (!declared) {
+		unsigned long mod = sym->ctype.modifiers;
+		if (mod & (MOD_STATIC | MOD_REGISTER))
+			return;
+		if (!(mod & MOD_TOPLEVEL))
+			return;
+		warning(sym->pos, "symbol '%s' was not declared. Should it be static?", show_ident(sym->ident));
 	}
 }
 
