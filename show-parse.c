@@ -320,9 +320,30 @@ void show_statement(struct statement *stmt)
 		}
 		break;
 	}
+	case STMT_NONE:
+		printf("\tNONE");
+		break;
+	
+	case STMT_CONTINUE:
+		printf("\tcontinue");
+		break;
+
+	case STMT_LABEL:
+		printf("%s:\n", show_token(stmt->label_identifier));
+		show_statement(stmt->label_statement);
+		break;
+
+	case STMT_GOTO:
+		if (stmt->goto_expression) {
+			printf("\tgoto *");
+			show_expression(stmt->goto_expression);
+		} else
+			printf("goto %s", show_token(stmt->goto_label));
+		break;
+	case STMT_ASM:
+		printf("\tasm( .... )");
+		break;
 		
-	default:
-		printf("WTF");
 	}
 }
 
