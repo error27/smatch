@@ -1006,11 +1006,8 @@ static void emit_if_conditional(struct statement *stmt)
 	/* load 'if' test result into EAX */
 	insn("movl", val, REG_EAX, "begin if conditional", 0);
 
-	/* clear ECX */
-	insn("xorl", REG_ECX, REG_ECX, NULL, 0);
-
 	/* compare 'if' test result */
-	insn("cmpl", REG_EAX, REG_ECX, NULL, 0);
+	insn("test", REG_EAX, REG_EAX, NULL, 0);
 
 	/* create end-of-if label / if-failed labelto jump to,
 	 * and jump to it if the expression returned zero.
@@ -1018,7 +1015,7 @@ static void emit_if_conditional(struct statement *stmt)
 	target = new_label();
 	target_val = new_storage(STOR_LABEL);
 	target_val->label = target;
-	insn("je", target_val, NULL, NULL, ATOM_FREE_OP1);
+	insn("jz", target_val, NULL, NULL, ATOM_FREE_OP1);
 
 	x86_statement(stmt->if_true);
 	if (stmt->if_false) {
