@@ -77,7 +77,10 @@ struct statement {
 		};
 		struct /* goto_struct */ {
 			struct symbol *goto_label;
+
+			/* computed gotos have these: */
 			struct expression *goto_expression;
+			struct symbol_list *target_list;
 		};
 		struct /* goto_bb */ {
 			struct expression *bb_conditional;
@@ -90,6 +93,9 @@ struct statement {
 		};
 	};
 };
+
+extern struct symbol_list *function_computed_target_list;
+extern struct statement_list *function_computed_goto_list;
 
 extern struct token *parse_expression(struct token *, struct expression **);
 extern struct token *statement_list(struct token *, struct statement_list **);

@@ -449,7 +449,12 @@ static struct token *unary_expression(struct token *token, struct expression **t
 		if (match_op(token, SPECIAL_LOGICAL_AND) &&
 		    token_type(token->next) == TOKEN_IDENT) {
 			struct expression *label = alloc_expression(token->pos, EXPR_LABEL);
-			label->label_symbol = label_symbol(token->next);
+			struct symbol *sym = label_symbol(token->next);
+			if (!(sym->ctype.modifiers & MOD_ADDRESSABLE)) {
+				sym->ctype.modifiers |= MOD_ADDRESSABLE;
+				add_symbol(&function_computed_target_list, sym);
+			}
+			label->label_symbol = sym;
 			*tree = label;
 			return token->next->next;
 		}

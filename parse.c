@@ -26,6 +26,8 @@
 #include "target.h"
 
 static struct symbol_list **function_symbol_list;
+struct symbol_list *function_computed_target_list;
+struct statement_list *function_computed_goto_list;
 
 // Add a symbol to the list of function-local symbols
 #define fn_local_symbol(x) add_symbol(function_symbol_list, (x))
@@ -999,6 +1001,7 @@ default_statement:
 			token = token->next;
 			if (match_op(token, '*')) {
 				token = parse_expression(token->next, &stmt->goto_expression);
+				add_statement(&function_computed_goto_list, stmt);
 			} else if (token_type(token) == TOKEN_IDENT) {
 				stmt->goto_label = label_symbol(token);
 				token = token->next;
@@ -1170,6 +1173,9 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 	struct symbol *arg;
 
 	function_symbol_list = &decl->symbol_list;
+	function_computed_target_list = NULL;
+	function_computed_goto_list = NULL;
+
 	if (decl->ctype.modifiers & MOD_EXTERN) {
 		if (!(decl->ctype.modifiers & MOD_INLINE))
 			warn(decl->pos, "function with external linkage has definition");
@@ -1191,6 +1197,16 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 		add_symbol(list, decl);
 	check_declaration(decl);
 	function_symbol_list = NULL;
+	if (function_computed_goto_list) {
+		if (!function_computed_target_list)
+			warn(decl->pos, "function has computed goto but no targets?");
+		else {
+			struct statement *stmt;
+			FOR_EACH_PTR(function_computed_goto_list, stmt) {
+				stmt->target_list = function_computed_target_list;
+			} END_FOR_EACH_PTR;
+		}
+	}
 	return expect(token, '}', "at end of function");
 }
 

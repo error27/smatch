@@ -327,6 +327,7 @@ static struct statement *copy_one_statement(struct statement *stmt)
 		stmt = dup_statement(stmt);
 		stmt->goto_label = copy_symbol(stmt->pos, stmt->goto_label);
 		stmt->goto_expression = copy_expression(stmt->goto_expression);
+		stmt->target_list = copy_symbol_list(stmt->target_list);
 		break;
 	}
 	case STMT_ASM: {
