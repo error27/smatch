@@ -83,6 +83,9 @@ void examine_symbol_type(struct symbol * sym)
 	struct symbol *base_type;
 	unsigned long modifiers;
 
+	if (!sym)
+		return;
+
 	/* Already done? */
 	if (sym->bit_size)
 		return;
@@ -108,6 +111,11 @@ void examine_symbol_type(struct symbol * sym)
 	base_type = sym->ctype.base_type;
 	modifiers = sym->ctype.modifiers;
 
+	if (base_type == &void_type) {
+		sym->bit_size = -1;
+		return;
+	}
+		
 	if (base_type == &int_type) {
 		bit_size = BITS_IN_INT;
 		if (modifiers & MOD_LONGLONG) {
@@ -132,12 +140,13 @@ void examine_symbol_type(struct symbol * sym)
 		alignment = bit_size >> 3;
 		if (alignment > MAX_FP_ALIGNMENT)
 			alignment = MAX_FP_ALIGNMENT;
-	} else {
+	} else if (base_type) {
 		examine_symbol_type(base_type);
 
 		bit_size = base_type->bit_size;
 		alignment = base_type->alignment;
-	}
+	} else
+		bit_size = 0;
 
 	if (!bit_size) {
 		warn(sym->token, "unknown type %d", sym->type);

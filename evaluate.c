@@ -59,6 +59,10 @@ long long get_expression_value(struct expression *expr)
 	case EXPR_SIZEOF:
 		if (expr->cast_type) {
 			examine_symbol_type(expr->cast_type);
+			if (expr->cast_type->bit_size & 7) {
+				warn(expr->token, "type has no size");
+				return 0;
+			}
 			return expr->cast_type->bit_size >> 3;
 		}
 		warn(expr->token, "expression sizes not yet supported");
