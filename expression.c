@@ -211,8 +211,8 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		 *	if (typeof(a) == int) ..
 		 */
 		if (sym && sym->namespace == NS_TYPEDEF) {
-			next = typename(token, &sym);
-			expr->type = EXPR_TYPE;
+			warn(token->pos, "typename in expression");
+			sym = NULL;
 		}
 		expr->symbol_name = token->ident;
 		expr->symbol = sym;
@@ -233,6 +233,13 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 			token = parens_expression(token, &expr->unop, "in expression");
 			break;
 		}
+		if (token->special == '[' && lookup_type(token->next)) {
+			expr = alloc_expression(token->pos, EXPR_TYPE);
+			token = typename(token->next, &expr->symbol);
+			token = expect(token, ']', "in type expression");
+			break;
+		}
+			
 	default:
 		;
 	}
