@@ -43,6 +43,7 @@ struct storage_hash {
 	pseudo_t pseudo;
 	enum inout_enum inout;
 	struct storage *storage;
+	unsigned long flags;
 };
 
 DECLARE_PTR_LIST(storage_hash_list, struct storage_hash);

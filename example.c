@@ -241,19 +241,15 @@ static struct storage_hash *find_pseudo_storage(struct bb_state *state, pseudo_t
 		if (!src) {
 			src = find_storage_hash(pseudo, state->outputs);
 			/* Undefined? Screw it! */
-			if (!src) {
-				output_insn(state, "undef %s ??", show_pseudo(pseudo));
+			if (!src)
 				return NULL;
-			}
 
 			/*
 			 * If we found output storage, it had better be local stack
 			 * that we flushed to earlier..
 			 */
-			if (src->storage->type != REG_STACK) {
-				output_insn(state, "fill_reg on undef storage %s ??", show_pseudo(pseudo));
+			if (src->storage->type != REG_STACK)
 				return NULL;
-			}
 		}
 	}
 
@@ -271,6 +267,21 @@ static struct storage_hash *find_pseudo_storage(struct bb_state *state, pseudo_t
 			alloc_stack(state, src->storage);
 	}
 	return src;
+}
+
+static void mark_reg_dead(struct bb_state *state, pseudo_t pseudo, struct hardreg *reg)
+{
+	pseudo_t p;
+
+	FOR_EACH_PTR(reg->contains, p) {
+		if (p != pseudo)
+			continue;
+		if (CURRENT_TAG(p) & TAG_DEAD)
+			continue;
+		output_comment(state, "marking pseudo %s in reg %s dead", show_pseudo(pseudo), reg->name);
+		TAG_CURRENT(p, TAG_DEAD);
+		reg->dead++;
+	} END_FOR_EACH_PTR(p);
 }
 
 /* Fill a hardreg with the pseudo it has */
@@ -296,6 +307,8 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 		src = find_pseudo_storage(state, pseudo, hardreg);
 		if (!src)
 			break;
+		if (src->flags & TAG_DEAD)
+			mark_reg_dead(state, pseudo, hardreg);
 		output_insn(state, "mov.%d %s,%s", 32, show_memop(src->storage), hardreg->name);
 		break;
 	default:
@@ -597,20 +610,13 @@ static void generate_binop(struct bb_state *state, struct instruction *insn)
 static void mark_pseudo_dead(struct bb_state *state, pseudo_t pseudo)
 {
 	int i;
+	struct storage_hash *src;
 
-	for (i = 0; i < REGNO; i++) {
-		pseudo_t p;
-		struct hardreg *reg = hardregs + i;
-		FOR_EACH_PTR(reg->contains, p) {
-			if (p != pseudo)
-				continue;
-			if (CURRENT_TAG(p) & TAG_DEAD)
-				continue;
-			output_comment(state, "marking pseudo %s in reg %s dead", show_pseudo(pseudo), reg->name);
-			TAG_CURRENT(p, TAG_DEAD);
-			reg->dead++;
-		} END_FOR_EACH_PTR(p);
-	}
+	src = find_pseudo_storage(state, pseudo, NULL);
+	if (src)
+		src->flags |= TAG_DEAD;
+	for (i = 0; i < REGNO; i++)
+		mark_reg_dead(state, pseudo, hardregs + i);
 }
 
 static void kill_dead_pseudos(struct bb_state *state)
