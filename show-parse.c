@@ -35,12 +35,22 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 
 	if (!sym)
 		return;
-	fprintf(stderr, "%.*s%s%3d:%lu %lx %s (as: %d, context: %x:%x) %p\n",
+	fprintf(stderr, "%.*s%s%3d:%lu %lx %s (as: %d, context: %x:%x) %p (%s:%d:%d)\n",
 		indent, indent_string, typestr[sym->type],
 		sym->bit_size, sym->ctype.alignment,
 		sym->ctype.modifiers, show_ident(sym->ident),
 		sym->ctype.as, sym->ctype.context, sym->ctype.contextmask,
-		sym);
+		sym, input_streams[sym->pos.stream].name, sym->pos.line, sym->pos.pos);
+	if (sym->type == SYM_FN) {
+		int i = 1;
+		struct symbol *arg;
+		FOR_EACH_PTR(sym->arguments, arg) {
+			fprintf(stderr, "< arg%d:\n", i);
+			do_debug_symbol(arg, 0);
+			fprintf(stderr, "  end arg%d >\n", i);
+			i++;
+		} END_FOR_EACH_PTR;
+	}
 	do_debug_symbol(sym->ctype.base_type, indent+2);
 }
 
