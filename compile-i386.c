@@ -935,7 +935,7 @@ static struct storage *emit_compare(struct expression *expr)
 {
 	struct storage *left = x86_expression(expr->left);
 	struct storage *right = x86_expression(expr->right);
-	struct storage *new;
+	struct storage *new, *val;
 	const char *opname = NULL;
 	unsigned int is_signed = type_is_signed(expr->left->ctype); /* FIXME */
 	unsigned int right_bits = expr->right->ctype->bit_size;
@@ -967,7 +967,9 @@ static struct storage *emit_compare(struct expression *expr)
 	}
 
 	/* init EDX to 0 */
-	insn("xor", REG_EDX, REG_EDX, "begin EXPR_COMPARE");
+	val = new_storage(STOR_VALUE);
+	val->flags = STOR_WANTS_FREE;
+	emit_move(val, REG_EDX, NULL, NULL);
 
 	/* move op1 into EAX */
 	emit_move(left, REG_EAX, expr->left->ctype, NULL);
@@ -1250,12 +1252,14 @@ static struct storage *emit_cast_expr(struct expression *expr)
 static struct storage *emit_regular_preop(struct expression *expr)
 {
 	struct storage *target = x86_expression(expr->unop);
-	struct storage *new = new_pseudo();
+	struct storage *val, *new = new_pseudo();
 	const char *opname = NULL;
 
 	switch (expr->op) {
 	case '!':
-		insn("xor", REG_EDX, REG_EDX, NULL);
+		val = new_storage(STOR_VALUE);
+		val->flags = STOR_WANTS_FREE;
+		emit_move(val, REG_EDX, NULL, NULL);
 		emit_move(target, REG_EAX, expr->unop->ctype, NULL);
 		insn("test", REG_EAX, REG_EAX, NULL);
 		insn("setz", REG_DL, NULL, NULL);
