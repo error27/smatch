@@ -826,8 +826,8 @@ static void emit_copy(struct storage *src,  struct symbol *src_ctype,
 {
 	/* FIXME: Bitfield move! */
 
-	emit_move(src, REG_EAX, src_ctype, "begin copy ...", 0);
-	emit_move(REG_EAX, dest, dest_ctype, "... end copy", 0);
+	emit_move(src, REG_EAX, src_ctype, "begin copy ..", 0);
+	emit_move(REG_EAX, dest, dest_ctype, ".... end copy", 0);
 }
 
 static void emit_store(struct expression *dest_expr, struct storage *dest,
@@ -974,12 +974,9 @@ static struct storage *emit_compare(struct expression *expr)
 	return new;
 }
 
-/*
- * TODO: use new type STOR_VALUE.  This will allow us to store
- * the constant internally, and avoid assigning stack slots to them.
- */
 static struct storage *emit_value(struct expression *expr)
 {
+#if 0 /* old and slow way */
 	struct storage *new = new_pseudo();
 	struct storage *val;
 
@@ -988,6 +985,14 @@ static struct storage *emit_value(struct expression *expr)
 	insn("movl", val, new, NULL, ATOM_FREE_OP1);
 
 	return new;
+#else
+	struct storage *val;
+
+	val = new_storage(STOR_VALUE);
+	val->value = (long long) expr->value;
+
+	return val;	/* FIXME: memory leak */
+#endif
 }
 
 static struct storage *emit_binop(struct expression *expr)
@@ -1172,15 +1177,21 @@ static struct storage *emit_symbol_expr_init(struct symbol *sym)
 	struct expression *expr = sym->initializer;
 	struct symbol_private *priv = sym->aux;
 
-	if (priv == NULL) {
-		if (expr == NULL) {
-			assert(0);
-			return NULL;
-		}
+	if (sym->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN | MOD_STATIC))
+		expr = NULL;
 
+	if (priv == NULL) {
 		priv = calloc(1, sizeof(*priv));
 		sym->aux = priv;
-		priv->addr = x86_expression(expr);
+
+		if (expr == NULL) {
+			struct storage *new = new_pseudo();
+			fprintf(stderr, "FIXME! no value for symbol.  creating pseudo %d (stack offset %d)\n",
+				new->pseudo, new->pseudo * 4);
+			priv->addr = new;
+		} else {
+			priv->addr = x86_expression(expr);
+		}
 	}
 
 	return priv->addr;
@@ -1197,6 +1208,29 @@ static struct storage *emit_string_expr(struct expression *expr)
 	new = new_storage(STOR_LABEL);
 	new->label = label;
 	new->flags = STOR_LABEL_VAL;
+	return new;
+}
+
+static struct storage *emit_cast_expr(struct expression *expr)
+{
+	struct symbol *old_type, *new_type;
+	struct storage *op = x86_expression(expr->cast_expression);
+	int oldbits, newbits;
+	struct storage *new;
+
+	old_type = expr->cast_expression->ctype;
+	new_type = expr->cast_type;
+
+	oldbits = old_type->bit_size;
+	newbits = new_type->bit_size;
+	if (oldbits >= newbits)
+		return op;
+
+	emit_move(op, REG_EAX, old_type, "begin cast ..", 0);
+
+	new = new_pseudo();
+	emit_move(REG_EAX, new, new_type, ".... end cast", 0);
+
 	return new;
 }
 
@@ -1628,31 +1662,6 @@ static int type_is_signed(struct symbol *sym)
 	return !(sym->ctype.modifiers & MOD_UNSIGNED);
 }
 
-static struct storage *x86_cast_expr(struct expression *expr)
-{
-	struct symbol *old_type, *new_type;
-	struct storage *op = x86_expression(expr->cast_expression);
-	int oldbits, newbits;
-	int is_signed;
-	struct storage *new;
-
-	old_type = expr->cast_expression->ctype;
-	new_type = expr->cast_type;
-
-	oldbits = old_type->bit_size;
-	newbits = new_type->bit_size;
-	if (oldbits >= newbits)
-		return op;
-	new = new_pseudo();
-	is_signed = type_is_signed(old_type);
-	if (is_signed) {
-		printf("\tsext%d.%d\tv%d,v%d\n", oldbits, newbits, new->pseudo, op->pseudo);
-	} else {
-		printf("\tandl.%d\t\tv%d,v%d,$%lu\n", newbits, new->pseudo, op->pseudo, (1UL << oldbits)-1);
-	}
-	return new;
-}
-
 static struct storage *x86_bitfield_expr(struct expression *expr)
 {
 	return x86_access(expr);
@@ -1746,7 +1755,7 @@ static struct storage *x86_expression(struct expression *expr)
 		warn(expr->pos, "invalid expression after evaluation");
 		return 0;
 	case EXPR_CAST:
-		return x86_cast_expr(expr);
+		return emit_cast_expr(expr);
 	case EXPR_VALUE:
 		return emit_value(expr);
 	case EXPR_STRING:
