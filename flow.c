@@ -494,7 +494,7 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 		return;
 
 	/* ..and symbols with external visibility need more care */
-	mod = sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE);
+	mod = sym->ctype.modifiers & (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE);
 	if (mod)
 		goto external_visibility;
 
@@ -580,7 +580,7 @@ external_visibility:
 				kill_dominated_stores(pseudo, insn, ++bb_generation, insn->bb, !mod, 0);
 		} END_FOR_EACH_PTR(pp);
 
-		if (!(mod & (MOD_EXTERN | MOD_STATIC))) {
+		if (!(mod & (MOD_NONLOCAL | MOD_STATIC))) {
 			struct basic_block *bb;
 			FOR_EACH_PTR(ep->bbs, bb) {
 				if (!bb->children)
