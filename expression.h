@@ -60,7 +60,7 @@ struct expression {
 		// EXPR_DEREF
 		struct deref_arg {
 			struct expression *deref;
-			struct token *member;
+			struct ident *member;
 		};
 		// EXPR_CAST and EXPR_SIZEOF
 		struct cast_arg {

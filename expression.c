@@ -151,7 +151,7 @@ static struct token *postfix_expression(struct token *token, struct expression *
 				warn(token->pos, "Expected member name");
 				break;
 			}
-			deref->member = token;
+			deref->member = token->ident;
 			token = token->next;
 			expr = deref;
 			continue;

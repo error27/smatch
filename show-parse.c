@@ -434,7 +434,7 @@ void show_expression(struct expression *expr)
 	case EXPR_DEREF:
 		show_expression(expr->deref);
 		printf("%s", show_special(expr->op));
-		printf("%s", show_token(expr->member));
+		printf("%s", show_ident(expr->member));
 		break;
 	case EXPR_CAST:
 		printf("<cast>(");

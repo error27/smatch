@@ -569,9 +569,9 @@ static int evaluate_dereference(struct expression *expr)
 	int offset;
 	struct symbol *ctype, *member;
 	struct expression *deref = expr->deref, *add;
-	struct token *token = expr->member;
+	struct ident *ident = expr->member;
 
-	if (!evaluate_expression(deref) || !token)
+	if (!evaluate_expression(deref) || !ident)
 		return 0;
 
 	ctype = deref->ctype;
@@ -588,7 +588,7 @@ static int evaluate_dereference(struct expression *expr)
 		return 0;
 	}
 	offset = 0;
-	member = find_identifier(token->ident, ctype->symbol_list, &offset);
+	member = find_identifier(ident, ctype->symbol_list, &offset);
 	if (!member) {
 		warn(expr->pos, "no such struct/union member");
 		return 0;
