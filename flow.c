@@ -184,28 +184,27 @@ static inline int same_memop(struct instruction *a, struct instruction *b)
  *
  * Return 0 if it doesn't, and -1 if you don't know.
  */
-static int dominates(pseudo_t pseudo, struct instruction *insn,
-	struct instruction *one, int local)
+int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom, int local)
 {
-	int opcode = one->opcode;
+	int opcode = dom->opcode;
 
 	if (opcode == OP_CALL)
 		return local ? 0 : -1;
 	if (opcode != OP_LOAD && opcode != OP_STORE)
 		return 0;
-	if (one->src != pseudo) {
+	if (dom->src != pseudo) {
 		if (local)
 			return 0;
 		/* We don't think two explicitly different symbols ever alias */
-		if (one->src->type == PSEUDO_SYM)
+		if (dom->src->type == PSEUDO_SYM)
 			return 0;
 		/* We could try to do some alias analysis here */
 		return -1;
 	}
-	if (!same_memop(insn, one)) {
-		if (one->opcode == OP_LOAD)
+	if (!same_memop(insn, dom)) {
+		if (dom->opcode == OP_LOAD)
 			return 0;
-		if (!overlapping_memop(insn, one))
+		if (!overlapping_memop(insn, dom))
 			return 0;
 		return -1;
 	}

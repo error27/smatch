@@ -20,6 +20,7 @@ extern void kill_instruction(struct instruction *);
 
 void convert_load_instruction(struct instruction *, pseudo_t);
 void rewrite_load_instruction(struct instruction *, struct pseudo_list *);
+int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom, int local);
 
 extern void track_pseudo_usage(struct entrypoint *ep);
 
