@@ -12,6 +12,7 @@ extern int max_alignment;
 /*
  * Integer data types
  */
+extern int bits_in_bool;
 extern int bits_in_char;
 extern int bits_in_short;
 extern int bits_in_int;

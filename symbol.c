@@ -545,6 +545,7 @@ struct sym_init {
 	{ "__signed__",	NULL,		MOD_SIGNED | MOD_EXPLICITLY_SIGNED },
 	{ "unsigned",	NULL,		MOD_UNSIGNED },
 	{ "__label__",	&label_ctype,	MOD_LABEL | MOD_UNSIGNED },
+	{ "_Bool",	&bool_ctype,	MOD_UNSIGNED },
 
 	/* Type qualifiers */
 	{ "const",	NULL,		MOD_CONST },
@@ -679,7 +680,7 @@ static const struct ctype_declare {
 	int *maxalign;
 	struct symbol *base_type;
 } ctype_declaration[] = {
-	{ &bool_ctype,	    SYM_BASETYPE, 0,			    &bits_in_int,	     &max_int_alignment, &int_type },
+	{ &bool_ctype,	    SYM_BASETYPE, MOD_UNSIGNED,		    &bits_in_bool,	     &max_int_alignment, &int_type },
 	{ &void_ctype,	    SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
 	{ &type_ctype,	    SYM_BASETYPE, MOD_TYPE,		    NULL,		     NULL,		 NULL },
 	{ &incomplete_ctype,SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
