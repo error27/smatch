@@ -189,5 +189,6 @@ extern void examine_simple_symbol_type(struct symbol *);
 extern const char *show_typename(struct symbol *sym);
 
 extern void debug_symbol(struct symbol *);
+extern void merge_type(struct symbol *sym, struct symbol *base_type);
 
 #endif /* SEMANTIC_H */

@@ -176,7 +176,7 @@ static void examine_bitfield_type(struct symbol *sym)
 /*
  * "typeof" will have to merge the types together
  */
-static void merge_type(struct symbol *sym, struct symbol *base_type)
+void merge_type(struct symbol *sym, struct symbol *base_type)
 {
 	sym->ctype.as |= base_type->ctype.as;
 	sym->ctype.modifiers |= base_type->ctype.modifiers;
