@@ -415,6 +415,7 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 
 	modifiers = ctype->modifiers & ~(MOD_TYPEDEF | MOD_ATTRIBUTE);
 	base_type = ctype->base_type;
+	ctype->modifiers = modifiers;
 	
 	while (match_op(token,'*')) {
 		struct symbol *ptr = alloc_symbol(token->pos, SYM_PTR);
@@ -422,12 +423,11 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 		ptr->ctype.base_type = base_type;
 
 		base_type = ptr;
-		modifiers &= MOD_STORAGE;
+		ctype->modifiers = modifiers & MOD_STORAGE;
 		ctype->base_type = base_type;
 
 		token = type_qualifiers(token->next, ctype);
 	}
-	ctype->modifiers = modifiers;
 	return token;
 }
 
