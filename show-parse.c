@@ -76,7 +76,9 @@ const char *modifier_string(unsigned long mod)
 		"[char]", "[short]", "[long]", "[long]",
 		"[typdef]", "[structof]", "[unionof]", "[enum]",
 		"[typeof]", "[attribute]", "inline", "[addressable]",
-		"[nocast]", "[noderef]", 
+		"[nocast]", "[noderef]", "[accessed]", "[toplevel]",
+		"[label]", "[assigned]", "[type]", "[safe]",
+		"[usertype]", "[force]",
 		NULL
 	};
 	ptr = names;

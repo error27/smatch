@@ -141,6 +141,7 @@ struct symbol {
 #define MOD_SAFE	0x8000000	// non-null/non-trapping pointer
 
 #define MOD_USERTYPE	0x10000000
+#define MOD_FORCE	0x20000000
 
 /* Basic types */
 extern struct symbol	void_type,
