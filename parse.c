@@ -458,7 +458,6 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 				break;
 			/* User types only mix with qualifiers */
 			if (mod & MOD_USERTYPE) {
-				qual = 1;
 				if (ctype->modifiers & MOD_SPECIFIER)
 					break;
 			}
