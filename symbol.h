@@ -74,7 +74,9 @@ struct symbol {
 			unsigned int	bit_offset:8,
 					fieldwidth:8,
 					arg_count:10,
-					variadic:1;
+					variadic:1,
+					used:1,
+					initialized:1;
 			int	array_size;
 			struct ctype ctype;
 			struct symbol_list *arguments;

@@ -631,9 +631,10 @@ struct token *statement(struct token *token, struct statement **tree)
 			return expression_statement(token->next, &stmt->expression);
 		}
 		if (token->ident == &break_ident || token->ident == &continue_ident) {
+			struct symbol *target = lookup_symbol(token->ident, NS_ITERATOR);
 			stmt->type = STMT_GOTO;
-			stmt->goto_label = lookup_symbol(token->ident, NS_ITERATOR);
-			if (!stmt->goto_label)
+			stmt->goto_label = target;
+			if (!target)
 				warn(stmt->pos, "break/continue not in iterator scope");
 			return expect(token->next, ';', "at end of statement");
 		}

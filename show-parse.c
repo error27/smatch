@@ -328,6 +328,12 @@ static int show_return_stmt(struct statement *stmt)
 
 static int show_symbol_init(struct symbol *sym);
 
+static int new_label(void)
+{
+	static int label = 0;
+	return ++label;
+}
+
 /*
  * Print out a statement
  */
@@ -393,43 +399,38 @@ int show_statement(struct statement *stmt)
 		struct statement  *statement = stmt->iterator_statement;
 		struct statement  *post_statement = stmt->iterator_post_statement;
 		struct expression *post_condition = stmt->iterator_post_condition;
+		int val, loop_top = 0, loop_bottom = 0;
 
-		/*
-		 * THIS IS ONLY APPROXIMATE!
-		 *
-		 * Real iterators are more generic than
-		 * any of for/while/do-while, and can't
-		 * be printed out as C without goto's
-		 */
-		if (post_statement || !post_condition) {
-			printf("\tfor ( ");
-			show_statement(pre_statement);
-			printf(" ; ");
-			show_expression(pre_condition);
-			printf(" ; ");
-			show_statement(post_statement);
-			printf(" )\n");
-			show_statement(statement);
-		} else if (pre_condition) {
-			if (pre_statement) {
-				show_statement(pre_statement);
-				printf(";\n");
+		show_statement(pre_statement);
+		if (pre_condition) {
+			if (pre_condition->type == EXPR_VALUE) {
+				if (!pre_condition->value)
+					break;
+				pre_condition = NULL;
+			} else {
+				loop_bottom = new_label();
+				val = show_expression(pre_condition);
+				printf("\tje v%d, .L%d\n", val, loop_bottom);
 			}
-			printf("\twhile (");
-			show_expression(pre_condition);
-			printf(")\n");
-			show_statement(statement);
-		} else {
-			if (pre_statement) {
-				show_statement(pre_statement);
-				printf(";\n");
-			}
-			printf("\tdo\n");
-			show_statement(statement);
-			printf("\twhile (");
-			show_expression(post_condition);
-			printf(")");
 		}
+		if (post_condition->type != EXPR_VALUE || post_condition->value)
+			loop_top = new_label();
+		printf(".L%d:\n", loop_top);
+		show_statement(statement);
+		if (stmt->cont_symbol->used)
+			printf(".L%p:\n", stmt->cont_symbol);
+		show_statement(post_statement);
+		if (post_condition->type == EXPR_VALUE) {
+			if (post_condition->value)
+				printf("\tjmp .L%d\n", loop_top);
+		} else {
+			val = show_expression(post_condition);
+			printf("\tjne v%d, .L%d\n", val, loop_top);
+		}
+		if (stmt->break_symbol->used)
+			printf(".L%p:\n", stmt->break_symbol);
+		if (pre_condition)
+			printf(".L%d:\n", loop_bottom);
 		break;
 	}
 	case STMT_NONE:
@@ -444,11 +445,10 @@ int show_statement(struct statement *stmt)
 
 	case STMT_GOTO:
 		if (stmt->goto_expression) {
-			printf("\tgoto *");
-			show_expression(stmt->goto_expression);
+			int val = show_expression(stmt->goto_expression);
+			printf("\tgoto *v%d\n", val);
 		} else {
-			printf("\tgoto ");
-			show_symbol(stmt->goto_label);
+			printf("\tgoto .L%p\n", stmt->goto_label);
 		}
 		break;
 	case STMT_ASM:
