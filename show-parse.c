@@ -143,7 +143,6 @@ void show_symbol(struct symbol *sym)
 		show_statement(sym->stmt);
 		break;
 	default:
-		printf("");
 		show_type(sym);
 		printf(": %s", show_token(sym->token));
 		break;
