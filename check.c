@@ -37,8 +37,10 @@ static int context_increase(struct basic_block *bb)
 
 static int imbalance(struct entrypoint *ep, struct basic_block *bb, int entry, int exit)
 {
-	struct symbol *sym = ep->name;
-	warning(bb->pos, "context imbalance in '%s' (saw %d, expected %d)", show_ident(sym->ident), entry, exit);
+	if (Wcontext) {
+		struct symbol *sym = ep->name;
+		warning(bb->pos, "context imbalance in '%s' (saw %d, expected %d)", show_ident(sym->ident), entry, exit);
+	}
 	return -1;
 }
 

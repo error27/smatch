@@ -141,8 +141,7 @@ extern char *include;
 extern int preprocess_only;
 extern int Wdefault_bitfield_sign;
 extern int Wundefined_preprocessor;
-extern int Wbitwise;
-extern int Wtypesign;
+extern int Wbitwise, Wtypesign, Wcontext;
 
 extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);

@@ -538,6 +538,7 @@ unsigned char pre_buffer[8192];
 int Wdefault_bitfield_sign = 0;
 int Wbitwise = 0;
 int Wtypesign = 0;
+int Wcontext = 0;
 int Wundefined_preprocessor = 0;
 int preprocess_only;
 char *include;
@@ -666,6 +667,7 @@ const struct warning {
 	{ "undef", &Wundefined_preprocessor },
 	{ "bitwise", &Wbitwise },
 	{ "typesign", &Wtypesign },
+	{ "context", &Wcontext },
 };
 
 
