@@ -217,18 +217,14 @@ static inline int is_int_type(const struct symbol *type)
 	       type->ctype.base_type == &int_type;
 }
 
-static inline int is_restricted_type(struct symbol *type)
+static inline int get_sym_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
-	return type->type == SYM_RESTRICT;
+	return type->type;
 }
 
-static inline int is_bitfield_type(const struct symbol *type)
-{
-	if (type->type == SYM_NODE)
-		type = type->ctype.base_type;
-	return (type->type == SYM_BITFIELD);
-}
+#define is_restricted_type(type) (get_sym_type(type) == SYM_RESTRICT)
+#define is_bitfield_type(type)   (get_sym_type(type) == SYM_BITFIELD)
 
 #endif /* SEMANTIC_H */
