@@ -48,7 +48,7 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 
 	base_type = sym->ctype.base_type;
 	if (!base_type) {
-		warn(sym->pos, "identifier '%s' has no type", show_ident(expr->symbol_name));
+		warn(expr->pos, "identifier '%s' has no type", show_ident(expr->symbol_name));
 		return NULL;
 	}
 
@@ -64,7 +64,7 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 		expr->type = EXPR_PREOP;
 		expr->op = '*';
 		expr->unop = addr;
-		return base_type;
+		return sym;
 	}
 	expr->type = EXPR_VALUE;
 	expr->value = sym->value;
@@ -205,9 +205,9 @@ static struct symbol * compatible_integer_binop(struct expression *expr, struct 
 	if (rtype->type == SYM_NODE)
 		rtype = rtype->ctype.base_type;
 	/* Integer promotion? */
-	if (ltype->type == SYM_ENUM)
+	if (ltype->type == SYM_ENUM || ltype->type == SYM_BITFIELD)
 		ltype = &int_ctype;
-	if (rtype->type == SYM_ENUM)
+	if (rtype->type == SYM_ENUM || rtype->type == SYM_BITFIELD)
 		rtype = &int_ctype;
 	if (is_int_type(ltype) && is_int_type(rtype)) {
 		struct symbol *ctype = bigger_int_type(ltype, rtype);
@@ -640,9 +640,9 @@ static int compatible_integer_types(struct symbol *ltype, struct symbol *rtype)
 		ltype = ltype->ctype.base_type;
 	if (rtype->type == SYM_NODE)
 		rtype = rtype->ctype.base_type;
-	if (ltype->type == SYM_ENUM)
+	if (ltype->type == SYM_ENUM || ltype->type == SYM_BITFIELD)
 		ltype = &int_ctype;
-	if (rtype->type == SYM_ENUM)
+	if (rtype->type == SYM_ENUM || rtype->type == SYM_BITFIELD)
 		rtype = &int_ctype;
 	return (is_int_type(ltype) && is_int_type(rtype));
 }
@@ -760,10 +760,6 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			if (!typediff)
 				return 1;
 		}
-
-		// FIXME!! Cast it!
-		warn(expr->pos, "different types in %s (%s)", where, typediff);
-		return 0;
 	}
 
 	// FIXME!! Cast it?
@@ -870,24 +866,20 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	struct symbol *ctype = op->ctype, *sym;
 
 	sym = alloc_symbol(expr->pos, SYM_NODE);
-	sym->ctype = ctype->ctype;
-	if (ctype->type == SYM_NODE) {
+	if (ctype->type == SYM_NODE)
 		ctype = ctype->ctype.base_type;
-		sym->ctype.modifiers |= ctype->ctype.modifiers;
-		sym->ctype.as |= ctype->ctype.as;
-	}
 	if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
 		warn(expr->pos, "cannot derefence this type");
 		return 0;
 	}
+	sym->ctype = ctype->ctype;
 
 	ctype = ctype->ctype.base_type;
+	examine_symbol_type(ctype);
 	if (!ctype) {
 		warn(expr->pos, "undefined type");
 		return NULL;
 	}
-	examine_symbol_type(ctype);
-	sym->ctype.base_type = ctype;
 
 	sym->bit_size = ctype->bit_size;
 	sym->array_size = ctype->array_size;
