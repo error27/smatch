@@ -202,7 +202,7 @@ static int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
 
 static int simplify_constant_rightside(struct instruction *insn)
 {
-	unsigned long value = insn->src2->value;
+	long long value = insn->src2->value;
 
 	switch (insn->opcode) {
 	case OP_ADD: case OP_SUB:
