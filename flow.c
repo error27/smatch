@@ -162,6 +162,7 @@ static void convert_load_insn(struct instruction *insn, pseudo_t src)
 	convert_instruction_target(insn, src);
 	/* Turn the load into a no-op */
 	insn->opcode = OP_LNOP;
+	insn->bb = NULL;
 }
 
 static int overlapping_memop(struct instruction *a, struct instruction *b)
@@ -296,9 +297,6 @@ static void rewrite_load_instruction(struct instruction *insn, struct pseudo_lis
 	return;
 
 complex_phi:
-	new = alloc_pseudo(insn);
-	convert_load_insn(insn, new);
-
 	/*
 	 * FIXME! This is dubious. We should probably allocate a new
 	 * instruction instead of re-using the OP_LOAD instruction.
@@ -310,9 +308,7 @@ complex_phi:
 	 * generation (and then we always check the opcode).
 	 */
 	insn->opcode = OP_PHI;
-	insn->target = new;
 	insn->phi_list = dominators;
-	new->def = insn;
 }
 
 static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,

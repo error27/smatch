@@ -226,6 +226,7 @@ static struct instruction * cse_one_instruction(struct instruction *insn, struct
 {
 	convert_instruction_target(insn, def->target);
 	insn->opcode = OP_NOP;
+	insn->bb = NULL;
 	repeat_phase |= REPEAT_CSE;
 	return def;
 }
