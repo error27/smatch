@@ -56,6 +56,13 @@ long long get_expression_value(struct expression *expr)
 	long long left, middle, right;
 
 	switch (expr->type) {
+	case EXPR_SIZEOF:
+		if (expr->cast_type) {
+			examine_symbol_type(expr->cast_type);
+			return expr->cast_type->bit_size >> 3;
+		}
+		warn(expr->token, "expression sizes not yet supported");
+		return 0;
 	case EXPR_CONSTANT:
 		return primary_value(expr->token);
 	case EXPR_SYMBOL: {
