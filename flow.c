@@ -338,8 +338,6 @@ found:
 		return 0;
 
 	if (dom) {
-		if (dom->opcode == OP_LOAD)
-			find_dominating_stores(pseudo, dom, ++bb_generation, local);
 		convert_load_insn(insn, dom->target);
 		return 1;
 	}
