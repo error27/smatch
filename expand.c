@@ -331,9 +331,6 @@ static void expand_symbol_call(struct expression *expr)
 		ctype->op->expand(expr);
 		return;
 	}
-
-	if (ctype->ctype.modifiers & MOD_INLINE)
-		inline_function(expr, ctype);
 }
 
 static void expand_call(struct expression *expr)

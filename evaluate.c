@@ -1234,17 +1234,21 @@ static int evaluate_symbol_call(struct expression *expr)
 	if (ctype->op && ctype->op->evaluate)
 		return ctype->op->evaluate(expr);
 
-	/*
-	 * FIXME!! We should really expand the inline functions.
-	 * For now we just mark them accessed so that they show
-	 * up on the list of used symbols.
-	 */
 	if (ctype->ctype.modifiers & MOD_INLINE) {
 		int ret;
 		struct symbol *curr = current_fn;
+		unsigned long context = current_context;
+		unsigned long mask = current_contextmask;
+
+		current_context |= ctype->ctype.context;
+		current_contextmask |= ctype->ctype.contextmask;
 		current_fn = ctype->ctype.base_type;
 		ret = inline_function(expr, ctype);
+
+		/* restore the old function context */
 		current_fn = curr;
+		current_context = context;
+		current_contextmask = mask;
 		return ret;
 	}
 
