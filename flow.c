@@ -594,8 +594,13 @@ static void mark_bb_reachable(struct basic_block *bb, unsigned long generation)
 	} END_FOR_EACH_PTR(child);
 }
 
-static void kill_bb(struct basic_block *bb)
+void kill_bb(struct basic_block *bb)
 {
+	struct instruction *insn;
+
+	FOR_EACH_PTR(bb->insns, insn) {
+		insn->bb = NULL;
+	} END_FOR_EACH_PTR(insn);
 	bb->insns = NULL;
 	bb->children = NULL;
 	bb->parents = NULL;
@@ -784,6 +789,7 @@ out:
 
 		delete_last_instruction(&parent->insns);
 		concat_instruction_list(bb->insns, &parent->insns);
+		bb->insns = NULL;
 		kill_bb(bb);
 
 	no_merge:
