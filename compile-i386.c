@@ -10,6 +10,7 @@
  * x86 backend
  *
  * TODO list:
+ * in general, any non-32bit SYM_BASETYPE is unlikely to work.
  * loops
  * 'switch' statements
  * complex initializers
@@ -74,6 +75,7 @@ struct reg_info {
 
 struct storage {
 	enum storage_type type;
+	unsigned long flags;
 
 	/* STOR_REG */
 	struct reg_info *reg;
@@ -98,13 +100,13 @@ struct storage {
 		/* STOR_LABEL */
 		struct {
 			int label;
-			unsigned long flags;
 		};
 	};
 };
 
 enum {
 	STOR_LABEL_VAL	= (1 << 0),
+	STOR_WANTS_FREE	= (1 << 1),
 };
 
 struct symbol_private {
@@ -115,11 +117,6 @@ enum atom_type {
 	ATOM_TEXT,
 	ATOM_INSN,
 	ATOM_CSTR,
-};
-
-enum {
-	ATOM_FREE_OP1	= (1 << 0),
-	ATOM_FREE_OP2	= (1 << 1),
 };
 
 struct atom {
@@ -137,7 +134,6 @@ struct atom {
 			char comment[40];
 			struct storage *op1;
 			struct storage *op2;
-			unsigned long flags;
 		};
 
 		/* stuff for C strings */
@@ -196,8 +192,7 @@ static struct storage hardreg_storage_table[] = {
 
 
 static void emit_move(struct storage *src, struct storage *dest,
-		      struct symbol *ctype, const char *comment,
-		      unsigned long flags);
+		      struct symbol *ctype, const char *comment);
 static int type_is_signed(struct symbol *sym);
 static struct storage *x86_address_gen(struct expression *expr);
 static struct storage *x86_symbol_expr(struct symbol *sym);
@@ -251,7 +246,7 @@ static void stor_sym_init(struct symbol *sym)
 	stor->sym = sym;
 }
 
-static const char *stor_op_name(struct storage *s, unsigned long flags)
+static const char *stor_op_name(struct storage *s)
 {
 	static char name[32];
 
@@ -272,7 +267,7 @@ static const char *stor_op_name(struct storage *s, unsigned long flags)
 		sprintf(name, "$%Ld", s->value);
 		break;
 	case STOR_LABEL:
-		sprintf(name, "%s.L%d", flags & STOR_LABEL_VAL ? "$" : "",
+		sprintf(name, "%s.L%d", s->flags & STOR_LABEL_VAL ? "$" : "",
 			s->label);
 		break;
 	}
@@ -406,7 +401,7 @@ static void textbuf_emit(struct textbuf **buf_p)
 }
 
 static void insn(const char *insn, struct storage *op1, struct storage *op2,
-		 const char *comment_in, unsigned long flags)
+		 const char *comment_in)
 {
 	struct function *f = current_func;
 	struct atom *atom = new_atom(ATOM_INSN);
@@ -420,7 +415,6 @@ static void insn(const char *insn, struct storage *op1, struct storage *op2,
 
 	atom->op1 = op1;
 	atom->op2 = op2;
-	atom->flags = flags;
 
 	push_atom(f, atom);
 }
@@ -462,12 +456,12 @@ static void emit_insn_atom(struct function *f, struct atom *atom)
 
 	if (atom->op2) {
 		char tmp[16];
-		strcpy(tmp, stor_op_name(op1, op1->flags));
+		strcpy(tmp, stor_op_name(op1));
 		sprintf(s, "\t%s\t%s, %s%s\n",
-			atom->insn, tmp, stor_op_name(op2, op2->flags), comment);
+			atom->insn, tmp, stor_op_name(op2), comment);
 	} else if (atom->op1)
 		sprintf(s, "\t%s\t%s%s%s\n",
-			atom->insn, stor_op_name(op1, op1->flags),
+			atom->insn, stor_op_name(op1),
 			comment[0] ? "\t" : "", comment);
 	else
 		sprintf(s, "\t%s\t%s%s\n",
@@ -526,9 +520,9 @@ static void func_cleanup(struct function *f)
 	FOR_EACH_PTR(f->atom_list, atom) {
 		if ((atom->type == ATOM_TEXT) && (atom->text))
 			free(atom->text);
-		if (atom->flags & ATOM_FREE_OP1)
+		if (atom->op1 && (atom->op1->flags & STOR_WANTS_FREE))
 			free(atom->op1);
-		if (atom->flags & ATOM_FREE_OP2)
+		if (atom->op2 && (atom->op2->flags & STOR_WANTS_FREE))
 			free(atom->op2);
 		free(atom);
 	} END_FOR_EACH_PTR;
@@ -622,11 +616,12 @@ static void emit_func_post(struct symbol *sym)
 
 		val = new_storage(STOR_VALUE);
 		val->value = (long long) (pseudo_nr * 4);
+		val->flags = STOR_WANTS_FREE;
 
-		insn("addl", val, REG_ESP, NULL, ATOM_FREE_OP1);
+		insn("addl", val, REG_ESP, NULL);
 	}
 
-	insn("ret", NULL, NULL, NULL, 0);
+	insn("ret", NULL, NULL, NULL);
 
 	/* output everything to stdout */
 	fflush(stdout);		/* paranoia; needed? */
@@ -843,8 +838,8 @@ static void emit_copy(struct storage *src,  struct symbol *src_ctype,
 {
 	/* FIXME: Bitfield move! */
 
-	emit_move(src, REG_EAX, src_ctype, "begin copy ..", 0);
-	emit_move(REG_EAX, dest, dest_ctype, ".... end copy", 0);
+	emit_move(src, REG_EAX, src_ctype, "begin copy ..");
+	emit_move(REG_EAX, dest, dest_ctype, ".... end copy");
 }
 
 static void emit_store(struct expression *dest_expr, struct storage *dest,
@@ -889,8 +884,7 @@ static const char *opbits(const char *insn, unsigned int bits)
 }
 
 static void emit_move(struct storage *src, struct storage *dest,
-		      struct symbol *ctype, const char *comment,
-		      unsigned long flags)
+		      struct symbol *ctype, const char *comment)
 {
 	unsigned int bits;
 	unsigned int is_signed;
@@ -906,7 +900,7 @@ static void emit_move(struct storage *src, struct storage *dest,
 	}
 
 	if ((dest->type == STOR_REG) && (src->type == STOR_REG)) {
-		insn("mov", src, dest, NULL, 0);
+		insn("mov", src, dest, NULL);
 		return;
 	}
 
@@ -934,7 +928,7 @@ static void emit_move(struct storage *src, struct storage *dest,
 	default:			assert(0);		break;
 	}
 
-	insn(opname, src, dest, comment, flags);
+	insn(opname, src, dest, comment);
 }
 
 static struct storage *emit_compare(struct expression *expr)
@@ -973,20 +967,20 @@ static struct storage *emit_compare(struct expression *expr)
 	}
 
 	/* init EDX to 0 */
-	insn("xor", REG_EDX, REG_EDX, "begin EXPR_COMPARE", 0);
+	insn("xor", REG_EDX, REG_EDX, "begin EXPR_COMPARE");
 
 	/* move op1 into EAX */
-	emit_move(left, REG_EAX, expr->left->ctype, NULL, 0);
+	emit_move(left, REG_EAX, expr->left->ctype, NULL);
 
 	/* perform comparison, RHS (op1, right) and LHS (op2, EAX) */
-	insn(opbits("cmp", right_bits), right, REG_EAX, NULL, 0);
+	insn(opbits("cmp", right_bits), right, REG_EAX, NULL);
 
 	/* store result of operation, 0 or 1, in DL using SETcc */
-	insn(opname, REG_DL, NULL, NULL, 0);
+	insn(opname, REG_DL, NULL, NULL);
 
 	/* finally, store the result (DL) in a new pseudo / stack slot */
 	new = new_pseudo();
-	emit_move(REG_EDX, new, NULL, "end EXPR_COMPARE", 0);
+	emit_move(REG_EDX, new, NULL, "end EXPR_COMPARE");
 
 	return new;
 }
@@ -999,7 +993,8 @@ static struct storage *emit_value(struct expression *expr)
 
 	val = new_storage(STOR_VALUE);
 	val->value = (long long) expr->value;
-	insn("movl", val, new, NULL, ATOM_FREE_OP1);
+	val->flags = STOR_WANTS_FREE;
+	insn("movl", val, new, NULL);
 
 	return new;
 #else
@@ -1041,14 +1036,14 @@ static struct storage *emit_binop(struct expression *expr)
 	}
 
 	/* load op2 into EAX */
-	insn("movl", right, REG_EAX, "EXPR_BINOP/COMMA/LOGICAL", 0);
+	insn("movl", right, REG_EAX, "EXPR_BINOP/COMMA/LOGICAL");
 
 	/* perform binop */
-	insn(opname, left, REG_EAX, NULL, 0);
+	insn(opname, left, REG_EAX, NULL);
 
 	/* store result (EAX) in new pseudo / stack slot */
 	new = new_pseudo();
-	insn("movl", REG_EAX, new, "end EXPR_BINOP", 0);
+	insn("movl", REG_EAX, new, "end EXPR_BINOP");
 
 	return new;
 }
@@ -1074,10 +1069,10 @@ static void emit_if_conditional(struct statement *stmt)
 	val = x86_expression(cond);
 
 	/* load 'if' test result into EAX */
-	insn("movl", val, REG_EAX, "begin if conditional", 0);
+	insn("movl", val, REG_EAX, "begin if conditional");
 
 	/* compare 'if' test result */
-	insn("test", REG_EAX, REG_EAX, NULL, 0);
+	insn("test", REG_EAX, REG_EAX, NULL);
 
 	/* create end-of-if label / if-failed labelto jump to,
 	 * and jump to it if the expression returned zero.
@@ -1085,7 +1080,8 @@ static void emit_if_conditional(struct statement *stmt)
 	target = new_label();
 	target_val = new_storage(STOR_LABEL);
 	target_val->label = target;
-	insn("jz", target_val, NULL, NULL, ATOM_FREE_OP1);
+	target_val->flags = STOR_WANTS_FREE;
+	insn("jz", target_val, NULL, NULL);
 
 	x86_statement(stmt->if_true);
 	if (stmt->if_false) {
@@ -1099,7 +1095,8 @@ static void emit_if_conditional(struct statement *stmt)
 		last = new_label();
 		last_val = new_storage(STOR_LABEL);
 		last_val->label = last;
-		insn("jmp", last_val, NULL, NULL, ATOM_FREE_OP1);
+		last_val->flags = STOR_WANTS_FREE;
+		insn("jmp", last_val, NULL, NULL);
 
 		/* if we have both if-true and if-false statements,
 		 * the failed-conditional case will fall through to here
@@ -1133,7 +1130,7 @@ static struct storage *emit_inc_dec(struct expression *expr, int postop)
 	} else
 		retval = addr;
 
-	insn(opname, addr, NULL, NULL, 0);
+	insn(opname, addr, NULL, NULL);
 
 	return retval;
 }
@@ -1153,7 +1150,7 @@ static struct storage *emit_return_stmt(struct statement *stmt)
 	if (expr && expr->ctype) {
 		val = x86_expression(expr);
 		assert(val != NULL);
-		emit_move(val, REG_EAX, expr->ctype, "return", 0);
+		emit_move(val, REG_EAX, expr->ctype, "return");
 	}
 
 	sprintf(s, "\tjmp\t.L%d\n", f->ret_target);
@@ -1173,19 +1170,19 @@ static struct storage *emit_conditional_expr(struct expression *expr)
 		true = cond;
 
 	emit_move(cond,  REG_EAX, expr->conditional->ctype,
-		  "begin EXPR_CONDITIONAL", 0);
-	emit_move(true,  REG_ECX, expr->cond_true->ctype,   NULL, 0);
-	emit_move(false, REG_EDX, expr->cond_false->ctype,  NULL, 0);
+		  "begin EXPR_CONDITIONAL");
+	emit_move(true,  REG_ECX, expr->cond_true->ctype,   NULL);
+	emit_move(false, REG_EDX, expr->cond_false->ctype,  NULL);
 
 	/* test EAX (for zero/non-zero) */
-	insn("test", REG_EAX, REG_EAX, NULL, 0);
+	insn("test", REG_EAX, REG_EAX, NULL);
 
 	/* if false, move EDX to ECX */
-	insn("cmovz", REG_EDX, REG_ECX, NULL, 0);
+	insn("cmovz", REG_EDX, REG_ECX, NULL);
 
 	/* finally, store the result (ECX) in a new pseudo / stack slot */
 	new = new_pseudo();
-	emit_move(REG_ECX, new, expr->ctype, "end EXPR_CONDITIONAL", 0);
+	emit_move(REG_ECX, new, expr->ctype, "end EXPR_CONDITIONAL");
 	/* FIXME: we lose type knowledge of expression result at this point */
 
 	return new;
@@ -1217,13 +1214,13 @@ static struct storage *emit_string_expr(struct expression *expr)
 {
 	struct function *f = current_func;
 	int label = new_label();
-	struct storage *new = new_pseudo();
+	struct storage *new;
 
 	push_cstring(f, expr->string, label);
 
 	new = new_storage(STOR_LABEL);
 	new->label = label;
-	new->flags = STOR_LABEL_VAL;
+	new->flags = STOR_LABEL_VAL | STOR_WANTS_FREE;
 	return new;
 }
 
@@ -1242,10 +1239,10 @@ static struct storage *emit_cast_expr(struct expression *expr)
 	if (oldbits >= newbits)
 		return op;
 
-	emit_move(op, REG_EAX, old_type, "begin cast ..", 0);
+	emit_move(op, REG_EAX, old_type, "begin cast ..");
 
 	new = new_pseudo();
-	emit_move(REG_EAX, new, new_type, ".... end cast", 0);
+	emit_move(REG_EAX, new, new_type, ".... end cast");
 
 	return new;
 }
@@ -1258,11 +1255,11 @@ static struct storage *emit_regular_preop(struct expression *expr)
 
 	switch (expr->op) {
 	case '!':
-		insn("xor", REG_EDX, REG_EDX, NULL, 0);
-		emit_move(target, REG_EAX, expr->unop->ctype, NULL, 0);
-		insn("test", REG_EAX, REG_EAX, NULL, 0);
-		insn("setz", REG_DL, NULL, NULL, 0);
-		emit_move(REG_EDX, new, expr->unop->ctype, NULL, 0);
+		insn("xor", REG_EDX, REG_EDX, NULL);
+		emit_move(target, REG_EAX, expr->unop->ctype, NULL);
+		insn("test", REG_EAX, REG_EAX, NULL);
+		insn("setz", REG_DL, NULL, NULL);
+		emit_move(REG_EDX, new, expr->unop->ctype, NULL);
 
 		break;
 	case '~':
@@ -1270,9 +1267,9 @@ static struct storage *emit_regular_preop(struct expression *expr)
 	case '-':
 		if (!opname)
 			opname = "neg";
-		emit_move(target, REG_EAX, expr->unop->ctype, NULL, 0);
-		insn(opname, REG_EAX, NULL, NULL, 0);
-		emit_move(REG_EAX, new, expr->unop->ctype, NULL, 0);
+		emit_move(target, REG_EAX, expr->unop->ctype, NULL);
+		insn(opname, REG_EAX, NULL, NULL);
+		emit_move(REG_EAX, new, expr->unop->ctype, NULL);
 		break;
 	default:
 		assert(0);
@@ -1546,7 +1543,7 @@ static struct storage *x86_call_expression(struct expression *expr)
 
 		/* FIXME: pay attention to 'size' */
 		insn("pushl", new, NULL,
-		     !framesize ? "begin function call" : NULL, 0);
+		     !framesize ? "begin function call" : NULL);
 
 		framesize += size >> 3;
 	} END_FOR_EACH_PTR_REVERSE;
@@ -1567,7 +1564,7 @@ static struct storage *x86_call_expression(struct expression *expr)
 		push_text_atom(f, s);
 	} else {
 		fncall = x86_expression(fn);
-		emit_move(fncall, REG_EAX, fn->ctype, NULL, 0);
+		emit_move(fncall, REG_EAX, fn->ctype, NULL);
 
 		strcpy(s, "\tcall\t*%eax\n");
 		push_text_atom(f, s);
@@ -1577,11 +1574,12 @@ static struct storage *x86_call_expression(struct expression *expr)
 	if (framesize) {
 		struct storage *val = new_storage(STOR_VALUE);
 		val->value = (long long) framesize;
-		insn("addl", val, REG_ESP, NULL, ATOM_FREE_OP1);
+		val->flags = STOR_WANTS_FREE;
+		insn("addl", val, REG_ESP, NULL);
 	}
 
 	retval = new_pseudo();
-	emit_move(REG_EAX, retval, NULL, "end function call", 0);
+	emit_move(REG_EAX, retval, NULL, "end function call");
 
 	return retval;
 }
@@ -1600,14 +1598,14 @@ static struct storage *x86_address_gen(struct expression *expr)
 	if (expr->unop->type == EXPR_SYMBOL)
 		return addr;
 
-	emit_move(addr, REG_EAX, NULL, "begin deref ..", 0);
+	emit_move(addr, REG_EAX, NULL, "begin deref ..");
 
 	/* FIXME: operand size */
 	strcpy(s, "\tmovl\t(%eax), %ecx\n");
 	push_text_atom(f, s);
 
 	new = new_pseudo();
-	emit_move(REG_ECX, new, NULL, ".... end deref", 0);
+	emit_move(REG_ECX, new, NULL, ".... end deref");
 
 	return new;
 }
@@ -1637,7 +1635,7 @@ static struct storage *x86_assignment(struct expression *expr)
 	case STOR_SYM:
 	case STOR_VALUE:
 	case STOR_LABEL:
-		emit_move(val, addr, expr->left->ctype, NULL, 0);
+		emit_move(val, addr, expr->left->ctype, NULL);
 		break;
 	}
 	return val;
