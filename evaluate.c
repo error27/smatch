@@ -111,23 +111,30 @@ static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 	unsigned long lmod, rmod, mod;
 
 	if (left == right)
-		return left;
+		goto left;
 
 	if (left->bit_size > right->bit_size)
-		return left;
+		goto left;
 
 	if (right->bit_size > left->bit_size)
-		return right;
+		goto right;
 
 	/* Same size integers - promote to unsigned, promote to long */
 	lmod = left->ctype.modifiers;
 	rmod = right->ctype.modifiers;
 	mod = lmod | rmod;
 	if (mod == lmod)
-		return left;
+		goto left;
 	if (mod == rmod)
-		return right;
+		goto right;
 	return ctype_integer(mod);
+
+right:
+	left = right;
+left:
+	if (left->bit_size < bits_in_int)
+		left = &int_ctype;
+	return left;
 }
 
 static struct expression * cast_to(struct expression *old, struct symbol *type)
@@ -155,7 +162,7 @@ static int is_int_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
-	return type->ctype.base_type == &int_type;
+	return (type->type == SYM_BITFIELD) || type->ctype.base_type == &int_type;
 }
 
 static struct symbol *bad_expr_type(struct expression *expr)
