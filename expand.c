@@ -646,11 +646,27 @@ static int expand_cast(struct expression *expr)
 	return cost + 1;
 }
 
+/* The arguments are constant if the cost of all of them is zero */
+int expand_constant_p(struct expression *expr, int cost)
+{
+	expr->type = EXPR_VALUE;
+	expr->value = !cost;
+	return 0;
+}
+
+/* The arguments are safe, if their cost is less than SIDE_EFFECTS */
+int expand_safe_p(struct expression *expr, int cost)
+{
+	expr->type = EXPR_VALUE;
+	expr->value = (cost < SIDE_EFFECTS);
+	return 0;
+}
+
 /*
  * expand a call expression with a symbol. This
  * should expand builtins.
  */
-static int expand_symbol_call(struct expression *expr)
+static int expand_symbol_call(struct expression *expr, int cost)
 {
 	struct expression *fn = expr->fn;
 	struct symbol *ctype = fn->ctype;
@@ -659,7 +675,7 @@ static int expand_symbol_call(struct expression *expr)
 		return SIDE_EFFECTS;
 
 	if (ctype->op && ctype->op->expand)
-		return ctype->op->expand(expr);
+		return ctype->op->expand(expr, cost);
 
 	return SIDE_EFFECTS;
 }
@@ -677,7 +693,7 @@ static int expand_call(struct expression *expr)
 		return SIDE_EFFECTS;
 	}
 	if (sym->type == SYM_NODE)
-		return expand_symbol_call(expr);
+		return expand_symbol_call(expr, cost);
 
 	return SIDE_EFFECTS;
 }

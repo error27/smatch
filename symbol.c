@@ -441,39 +441,17 @@ struct symbol *create_symbol(int stream, const char *name, int type, int namespa
 	return sym;
 }
 
-static int evaluate_constant_p(struct expression *expr)
+static int evaluate_to_integer(struct expression *expr)
 {
 	expr->ctype = &int_ctype;
 	return 1;
-}
-
-static int expand_constant_p(struct expression *expr)
-{
-	struct expression *arg;
-	struct expression_list *arglist = expr->args;
-	int value = 1;
-
-	FOR_EACH_PTR (arglist, arg) {
-		if (arg->type != EXPR_VALUE && arg->type != EXPR_FVALUE)
-			value = 0;
-	} END_FOR_EACH_PTR(arg);
-
-	expr->type = EXPR_VALUE;
-	expr->value = value;
-	return 0;
 }
 
 /*
  * __builtin_warning() has type "int" and always returns 1,
  * so that you can use it in conditionals or whatever
  */
-static int evaluate_warning(struct expression *expr)
-{
-	expr->ctype = &int_ctype;
-	return 1;
-}
-
-static int expand_warning(struct expression *expr)
+static int expand_warning(struct expression *expr, int cost)
 {
 	struct expression *arg;
 	struct expression_list *arglist = expr->args;
@@ -587,12 +565,17 @@ struct sym_init {
 };
 
 static struct symbol_op constant_p_op = {
-	.evaluate = evaluate_constant_p,
+	.evaluate = evaluate_to_integer,
 	.expand = expand_constant_p
 };
 
+static struct symbol_op safe_p_op = {
+	.evaluate = evaluate_to_integer,
+	.expand = expand_safe_p
+};
+
 static struct symbol_op warning_op = {
-	.evaluate = evaluate_warning,
+	.evaluate = evaluate_to_integer,
 	.expand = expand_warning
 };
 
@@ -602,6 +585,7 @@ static struct symbol_op warning_op = {
 static struct symbol builtin_fn_type = { .type = SYM_FN /* , .variadic =1 */ };
 static struct sym_init eval_init_table[] = {
 	{ "__builtin_constant_p", &builtin_fn_type, MOD_TOPLEVEL, &constant_p_op },
+	{ "__builtin_safe_p", &builtin_fn_type, MOD_TOPLEVEL, &safe_p_op },
 	{ "__builtin_warning", &builtin_fn_type, MOD_TOPLEVEL, &warning_op },
 	{ NULL,		NULL,		0 }
 };

@@ -63,8 +63,11 @@ struct ctype {
 
 struct symbol_op {
 	int (*evaluate)(struct expression *);
-	int (*expand)(struct expression *);
+	int (*expand)(struct expression *, int);
 };	
+
+extern int expand_safe_p(struct expression *expr, int cost);
+extern int expand_constant_p(struct expression *expr, int cost);
 
 struct symbol {
 	enum namespace namespace:8;
