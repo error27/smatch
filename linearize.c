@@ -1446,7 +1446,8 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		struct symbol *sym;
 		struct instruction *switch_ins;
 		struct basic_block *switch_end = alloc_basic_block(stmt->pos);
-		struct basic_block *active;
+		struct basic_block *active, *default_case;
+		struct multijmp *jmp;
 		pseudo_t pseudo;
 
 		pseudo = linearize_expression(ep, stmt->switch_expression);
@@ -1459,13 +1460,14 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		use_pseudo(pseudo, &switch_ins->cond);
 		add_one_insn(ep, switch_ins);
 
+		default_case = NULL;
 		FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
 			struct statement *case_stmt = sym->stmt;
 			struct basic_block *bb_case = get_bound_block(ep, sym);
-			struct multijmp *jmp;
 
 			if (!case_stmt->case_expression) {
-			      jmp = alloc_multijmp(bb_case, 1, 0);
+				default_case = bb_case;
+				continue;
 			} else {
 				int begin, end;
 
@@ -1488,6 +1490,14 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		/* And linearize the actual statement */
 		linearize_statement(ep, stmt->switch_statement);
 		set_activeblock(ep, switch_end);
+
+		if (!default_case)
+			default_case = switch_end;
+
+		jmp = alloc_multijmp(default_case, 1, 0);
+		add_multijmp(&switch_ins->multijmp_list, jmp);
+		add_bb(&default_case->parents, active);
+		add_bb(&active->children, default_case);
 
 		break;
 	}
