@@ -526,6 +526,14 @@ static struct hardreg *find_in_reg(struct bb_state *state, pseudo_t pseudo)
 	return NULL;
 }
 
+static void flush_pseudo(struct bb_state *state, pseudo_t pseudo, struct storage *storage)
+{
+	struct hardreg *reg = find_in_reg(state, pseudo);
+
+	if (reg)
+		flush_reg(state, reg);
+}
+
 static void flush_cc_cache_to_reg(struct bb_state *state, pseudo_t pseudo, struct hardreg *reg)
 {
 	int opcode = state->cc_opcode;
@@ -576,7 +584,26 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 		output_insn(state, "movl $%lld,%s", pseudo->value, hardreg->name);
 		break;
 	case PSEUDO_SYM:
-		output_insn(state, "movl $<%s>,%s", show_pseudo(pseudo), hardreg->name);
+		src = find_pseudo_storage(state, pseudo, NULL);
+		/* Static thing? */
+		if (!src) {
+			output_insn(state, "movl $<%s>,%s", show_pseudo(pseudo), hardreg->name);
+			break;
+		}
+		switch (src->storage->type) {
+		case REG_REG:
+			/* Aiaiaiaiaii! Need to flush it to temporary memory */
+			src = find_or_create_hash(pseudo, &state->internal);
+			/* Fallthrough */
+		default:
+			alloc_stack(state, src->storage);
+			/* Fallthrough */
+		case REG_STACK:
+		case REG_FRAME:
+			flush_pseudo(state, pseudo, src->storage);
+			output_insn(state, "leal %s,%s", show_memop(src->storage), hardreg->name);
+			break;
+		}
 		break;
 	case PSEUDO_ARG:
 	case PSEUDO_REG:
