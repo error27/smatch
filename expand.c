@@ -120,7 +120,7 @@ Float:
 static int check_shift_count(struct expression *expr, struct symbol *ctype, unsigned int count)
 {
 	if (count >= ctype->bit_size) {
-		warning(expr->pos, "shift too big for type (%x)", ctype->ctype.modifiers);
+		warning(expr->pos, "shift too big for type (%lx)", ctype->ctype.modifiers);
 		count &= ctype->bit_size-1;
 	}
 	return count;
