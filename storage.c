@@ -69,6 +69,22 @@ struct storage_hash_list *gather_storage(struct basic_block *bb, enum inout_enum
 	return list;
 }
 
+static void name_storage(void)
+{
+	int i;
+	int name = 0;
+
+	for (i = 0; i < MAX_STORAGE_HASH; i++) {
+		struct storage_hash *hash;
+		FOR_EACH_PTR(storage_hash_table[i], hash) {
+			struct storage *storage = hash->storage;
+			if (storage->name)
+				continue;
+			storage->name = ++name;
+		} END_FOR_EACH_PTR(hash);
+	}
+}
+
 static struct storage *lookup_storage(struct basic_block *bb, pseudo_t pseudo, enum inout_enum inout)
 {
 	struct storage_hash_list *list = storage_hash_table[storage_hash(bb,pseudo,inout)];
@@ -108,16 +124,16 @@ const char *show_storage(struct storage *s)
 		return "none";
 	switch (s->type) {
 	case REG_REG:
-		sprintf(buffer, "reg%d", s->regno);
+		sprintf(buffer, "reg%d (%d)", s->regno, s->name);
 		break;
 	case REG_STACK:
-		sprintf(buffer, "%d(SP)", s->offset);
+		sprintf(buffer, "%d(SP) (%d)", s->offset, s->name);
 		break;
 	case REG_ARG:
-		sprintf(buffer, "ARG%d", s->regno);
+		sprintf(buffer, "ARG%d (%d)", s->regno, s->name);
 		break;
 	default:
-		sprintf(buffer, "%d:%d", s->type, s->regno);
+		sprintf(buffer, "%d:%d (%d)", s->type, s->regno, s->name);
 		break;
 	}
 	return buffer;
@@ -236,4 +252,6 @@ void set_up_storage(struct entrypoint *ep)
 		set_up_bb_storage(bb);
 		combine_phi_storage(bb);
 	} END_FOR_EACH_PTR(bb);
+
+	name_storage();
 }

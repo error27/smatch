@@ -26,7 +26,7 @@ DECLARE_PTR_LIST(storage_ptr_list, struct storage *);
 
 struct storage {
 	enum storage_type type;
-	pseudo_t pseudo;
+	int name;
 	struct storage_ptr_list *users;
 	union {
 		int regno;
