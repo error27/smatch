@@ -1416,23 +1416,24 @@ static void try_to_simplify_bb(struct entrypoint *ep, struct basic_block *bb,
 	} END_FOR_EACH_PTR(phi);
 }
 
+static inline int linearize_insn_list(struct instruction_list *list, struct instruction **arr, int nr)
+{
+	return linearize_ptr_list((struct ptr_list *)list, (void **)arr, nr);
+}
+
 static void simplify_phi_nodes(struct entrypoint *ep)
 {
 	struct basic_block *bb;
 
 	FOR_EACH_PTR(ep->bbs, bb) {
-		struct instruction *first, *second;
-		struct ptr_list *list;
+		struct instruction *insns[2], *first, *second;
 
-		/* FIXME! This knows too much about list internals */
-		list = (struct ptr_list *)bb->insns;
-		if (!list)
+		if (linearize_insn_list(bb->insns, insns, 2) < 2)
 			continue;
-		first = list->list[0];
-		second = list->list[1];
 
-		if (!first || !second)
-			continue;
+		first = insns[0];
+		second = insns[1];
+
 		if (first->opcode != OP_PHI)
 			continue;
 		if (second->opcode != OP_BR)
