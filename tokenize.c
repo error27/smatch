@@ -480,8 +480,12 @@ static int drop_stream_eoln(stream_t *stream)
 
 static int drop_stream_comment(stream_t *stream)
 {
-	int next = nextchar(stream);
+	int newline;
+	int next;
 	drop_token(stream);
+	newline = stream->pos.newline;
+
+	next = nextchar(stream);
 	for (;;) {
 		int curr = next;
 		if (curr == EOF) {
@@ -492,6 +496,7 @@ static int drop_stream_comment(stream_t *stream)
 		if (curr == '*' && next == '/')
 			break;
 	}
+	stream->pos.newline = newline;
 	return nextchar(stream);
 }
 
