@@ -774,11 +774,16 @@ static struct symbol *create_pointer(struct expression *expr, struct symbol *sym
 	struct symbol *ptr = alloc_symbol(expr->pos, SYM_PTR);
 
 	ptr->ctype.base_type = sym;
+	ptr->bit_size = BITS_IN_POINTER;
+
 	sym->ctype.modifiers |= MOD_ADDRESSABLE;
 	if (sym->ctype.modifiers & MOD_REGISTER) {
 		warn(expr->pos, "taking address of 'register' variable '%s'", show_ident(sym->ident));
 		sym->ctype.modifiers &= ~MOD_REGISTER;
 	}
+	if (sym->type == SYM_NODE)
+		ptr->ctype.base_type = sym->ctype.base_type;
+
 	return ptr;
 }
 
@@ -1012,8 +1017,9 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		return NULL;
 	}
 
-	ctype = create_pointer(deref, member);
-	ctype->ctype.modifiers |= mod;
+	ctype = create_pointer(deref, member->ctype.base_type);
+	ctype->ctype.modifiers = mod;
+	ctype->ctype.as = address_space;
 	add = evaluate_offset(deref, offset, ctype);
 
 	sym = alloc_symbol(expr->pos, SYM_NODE);
