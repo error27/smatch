@@ -509,6 +509,22 @@ static void mark_pseudo_dead(pseudo_t pseudo)
 	}
 }
 
+/*
+ * A PHI source can define a pseudo that we already
+ * have in another register. We need to invalidate the
+ * old register so that we don't end up with the same
+ * pseudo in "two places".
+ */
+static void remove_pseudo_reg(pseudo_t pseudo)
+{
+	int i;
+
+	for (i = 0; i < REGNO; i++) {
+		struct hardreg *reg = hardregs + i;
+		remove_pseudo(&reg->contains, pseudo);
+	}
+}
+
 static void generate_phisource(struct instruction *insn, struct bb_state *state)
 {
 	struct instruction *user = first_instruction(insn->phi_users);
@@ -517,6 +533,7 @@ static void generate_phisource(struct instruction *insn, struct bb_state *state)
 	if (!user)
 		return;
 	reg = getreg(state, insn->phi_src, user->target);
+	remove_pseudo_reg(user->target);
 	add_ptr_list(&reg->contains, user->target);
 	reg->busy++;
 }
