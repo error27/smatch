@@ -433,15 +433,17 @@ int replace_ptr_list(struct ptr_list **head, void *old_ptr, void *new_ptr)
 void * delete_ptr_list_last(struct ptr_list **head)
 {
 	void *ptr = NULL;
-	struct ptr_list *last;
+	struct ptr_list *last, *first = *head;
 
-	if (!*head)
+	if (!first)
 		return NULL;
-	last = (*head)->prev;
+	last = first->prev;
 	if (last->nr)
 		ptr = last->list[--last->nr];
 	if (last->nr <=0) {
-		if (last == *head)
+		first->prev = last->prev;
+		last->prev->next = first;
+		if (last == first)
 			*head = NULL;
 		free(last);
 	}

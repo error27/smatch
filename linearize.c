@@ -22,6 +22,14 @@
 pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt);
 pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr);
 
+static pseudo_t add_binary_op(struct entrypoint *ep, struct expression *expr, int op, pseudo_t left, pseudo_t right);
+static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct expression *val);
+static pseudo_t add_const_value(struct entrypoint *ep, struct position pos, struct symbol *ctype, int val);
+static pseudo_t add_load(struct entrypoint *ep, struct expression *expr, pseudo_t addr);
+
+
+struct pseudo void_pseudo = {};
+
 static struct instruction *alloc_instruction(int opcode, struct symbol *type)
 {
 	struct instruction * insn = __alloc_instruction(0);
@@ -66,7 +74,10 @@ static void show_instruction(struct instruction *insn)
 		printf("\tAIEEE! (%d %d)\n", insn->target->nr, insn->src->nr);
 		break;
 	case OP_RET:
-		printf("\tret %%r%d\n", insn->src->nr);
+		if (insn->type)
+			printf("\tret %%r%d\n", insn->src->nr);
+		else
+			printf("\tret\n");
 		break;
 	case OP_BR:
 		if (insn->bb_true && insn->bb_false) {
@@ -312,6 +323,21 @@ static pseudo_t linearize_address_gen(struct entrypoint *ep, struct expression *
 static void linearize_store_gen(struct entrypoint *ep, pseudo_t value, struct expression *expr, pseudo_t addr)
 {
 	struct instruction *store = alloc_instruction(OP_STORE, expr->ctype);
+
+	if (expr->type == EXPR_BITFIELD) {
+		unsigned long mask = ((1<<expr->nrbits)-1) << expr->bitpos;
+		pseudo_t andmask, ormask, shift, orig;
+		if (expr->bitpos) {
+			shift = add_const_value(ep, expr->pos, &uint_ctype, expr->bitpos);
+			value = add_binary_op(ep, expr, OP_SHL, value, shift);
+		}
+		orig = add_load(ep, expr, addr);
+		andmask = add_const_value(ep, expr->pos, &uint_ctype, ~mask);
+		value = add_binary_op(ep, expr, OP_AND, orig, andmask);
+		ormask = add_const_value(ep, expr->pos, &uint_ctype, mask);
+		value = add_binary_op(ep, expr, OP_OR, orig, ormask);
+	}
+
 	store->target = value;
 	store->src = addr;
 	add_one_insn(ep, expr->pos, store);
@@ -338,7 +364,13 @@ static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct e
 	return target;
 }
 
-static pseudo_t linearize_load_gen(struct entrypoint *ep, struct expression *expr, pseudo_t addr)
+static pseudo_t add_const_value(struct entrypoint *ep, struct position pos, struct symbol *ctype, int val)
+{
+	struct expression *expr = alloc_const_expression(pos, val);
+	return add_setval(ep, ctype, expr);
+}
+
+static pseudo_t add_load(struct entrypoint *ep, struct expression *expr, pseudo_t addr)
 {
 	pseudo_t new = alloc_pseudo();
 	struct instruction *insn = alloc_instruction(OP_LOAD, expr->ctype);
@@ -346,11 +378,26 @@ static pseudo_t linearize_load_gen(struct entrypoint *ep, struct expression *exp
 	insn->target = new;
 	insn->src = addr;
 	add_one_insn(ep, expr->pos, insn);
+	return new;
+}
+
+static pseudo_t linearize_load_gen(struct entrypoint *ep, struct expression *expr, pseudo_t addr)
+{
+	pseudo_t new = add_load(ep, expr, addr);
 	if (expr->type == EXPR_PREOP)
 		return new;
 
-	/* bitfield load */
-	/* FIXME! Add shift and mask!!! */
+	if (expr->type == EXPR_BITFIELD) {
+		pseudo_t mask;
+		if (expr->bitpos) {
+			pseudo_t shift = add_const_value(ep, expr->pos, &uint_ctype, expr->bitpos);
+			new = add_binary_op(ep, expr, OP_SHR, new, shift);
+		}
+		mask = add_const_value(ep, expr->pos, &uint_ctype, (1<<expr->nrbits)-1);
+		return add_binary_op(ep, expr, OP_AND, new, mask);
+	}
+
+	warn(expr->pos, "loading unknown expression");
 	return new;		
 }
 
@@ -367,7 +414,7 @@ static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr
 	int op = expr->op == SPECIAL_INCREMENT ? OP_ADD : OP_SUB;
 
 	old = linearize_load_gen(ep, expr->unop, addr);
-	one = add_setval(ep, expr->ctype, alloc_const_expression(expr->pos, 1));
+	one = add_const_value(ep, expr->pos, expr->ctype, 1);
 	new = add_binary_op(ep, expr, op, old, one);
 	linearize_store_gen(ep, new, expr->unop, addr);
 	return postop ? old : new;
@@ -390,8 +437,7 @@ static pseudo_t linearize_regular_preop(struct entrypoint *ep, struct expression
 	case '+':
 		return pre;
 	case '!': {
-		struct expression * zeroval = alloc_const_expression(expr->pos, 0);
-		pseudo_t zero = add_setval(ep, expr->ctype, zeroval);
+		pseudo_t zero = add_const_value(ep, expr->pos, expr->ctype, 0);
 		return add_binary_op(ep, expr, OP_SET_EQ, pre, zero);
 	}
 	case '~':
@@ -441,7 +487,7 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 			[SPECIAL_OR_ASSIGN  - SPECIAL_BASE] = OP_OR,
 			[SPECIAL_XOR_ASSIGN - SPECIAL_BASE] = OP_XOR 
 		};
-		pseudo_t left = linearize_load_gen(ep, expr->left, address);
+		pseudo_t left = linearize_load_gen(ep, target, address);
 		value = add_binary_op(ep, expr, opcode[expr->op - SPECIAL_BASE], left, value);
 	}
 	linearize_store_gen(ep, value, target, address);
@@ -509,19 +555,24 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 	struct basic_block *bb_false = alloc_basic_block();
 	struct basic_block *merge = alloc_basic_block();
 
-	linearize_cond_branch(ep, cond, bb_true, bb_false);
+	if (expr_true) {
+		linearize_cond_branch(ep, cond, bb_true, bb_false);
 
-	set_activeblock(ep, bb_true);
-	src1 = linearize_expression(ep, expr_true);
-	bb_true = ep->active;
-	add_goto(ep, merge); 
+		set_activeblock(ep, bb_true);
+		src1 = linearize_expression(ep, expr_true);
+		bb_true = ep->active;
+		add_goto(ep, merge); 
+	} else {
+		src1 = linearize_expression(ep, cond);
+		add_branch(ep, expr, src1, merge, bb_false);
+	}
 
 	set_activeblock(ep, bb_false);
 	src2 = linearize_expression(ep, expr_false);
 	bb_false = ep->active;
 	set_activeblock(ep, merge);
 
-	if (bb_reachable(bb_true) && bb_reachable(bb_false)) {
+	if (src1 != VOID && src2 != VOID) {
 		struct instruction *phi_node = alloc_instruction(OP_PHI, expr->ctype);
 		add_phi(&phi_node->phi_list, alloc_phi(bb_true, src1));
 		add_phi(&phi_node->phi_list, alloc_phi(bb_false, src2));
@@ -531,7 +582,7 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 		return target;
 	}
 
-	return bb_reachable(bb_true) ? src1 : src2;
+	return src1 != VOID ? src1 : src2;
 }
 
 static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr)
@@ -617,6 +668,8 @@ pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 	struct instruction *insn;
 
 	src = linearize_expression(ep, expr->cast_expression);
+	if (src == VOID)
+		return VOID;
 	insn = alloc_instruction(OP_CAST, expr->ctype);
 	result = alloc_pseudo();
 	insn->target = result;
@@ -670,14 +723,13 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 
 	case EXPR_CAST:
 		return linearize_cast(ep, expr);
+	
+	case EXPR_BITFIELD:
+		return linearize_access(ep, expr);
 
-	default: {
-		struct instruction *bad = alloc_instruction(OP_BADOP, expr->ctype);
-		bad->target->nr = expr->type;
-		bad->src->nr = expr->op;
-		add_one_insn(ep, expr->pos, bad);
+	default: 
+		die("Unknown expression (%d %d)", expr->type, expr->op);
 		return VOID;
-	}
 	}
 	return VOID;
 }
@@ -700,7 +752,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 
 	case STMT_RETURN: {
 		struct expression *expr = stmt->expression;
-		struct instruction *ret = alloc_instruction(OP_RET, expr->ctype);
+		struct instruction *ret = alloc_instruction(OP_RET, expr ? expr->ctype : NULL);
 		ret->src = linearize_expression(ep, expr);
 		add_one_insn(ep, stmt->pos, ret);
 		ep->active = NULL;
@@ -972,6 +1024,15 @@ void linearize_symbol(struct symbol *sym)
 			set_activeblock(ep, bb);
 			concat_symbol_list(base_type->arguments, &ep->syms);
 			linearize_statement(ep, base_type->stmt);
+			if (bb_reachable(ep->active) && !bb_terminated(ep->active)) {
+				struct symbol *ret_type = base_type->ctype.base_type;
+				struct instruction *insn = alloc_instruction(OP_RET, NULL);
+				struct position pos = base_type->stmt->pos;
+
+				if (ret_type && ret_type != &void_ctype)
+					warn(pos, "control reaches end of non-void function\n");
+				add_one_insn(ep, pos, insn);
+			}
 			pack_basic_blocks(&ep->bbs);
 			show_entry(ep);
 		}
