@@ -681,6 +681,11 @@ void create_builtin_stream(void)
 	add_pre_buffer("#define __func__ \"function\"\n");
 	add_pre_buffer("#define __extension__\n");
 	add_pre_buffer("#define __pragma__\n");
+	// gcc defines __SIZE_TYPE__ to be size_t.  For linux/i86 and
+	// solaris/sparc that is really "unsigned int" and for linux/x86_64
+	// it is "long unsigned int".  In either case we can probably
+	// get away with this:
+	add_pre_buffer("#define __SIZE_TYPE__ long unsigned int\n");
 	add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
 	add_pre_buffer("#define __builtin_va_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
 	add_pre_buffer("#define __builtin_va_arg(arg,type)  ((type)0)\n");
