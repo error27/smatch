@@ -81,13 +81,13 @@ static struct symbol *evaluate_string(struct expression *expr)
 	sym->array_size = length;
 	sym->bit_size = BITS_IN_CHAR * length;
 	sym->ctype.alignment = 1;
-	sym->ctype.modifiers = MOD_CONST;
+	sym->ctype.modifiers = MOD_STATIC | MOD_CONST;
 	sym->ctype.base_type = array;
 
 	array->array_size = length;
 	array->bit_size = BITS_IN_CHAR * length;
 	array->ctype.alignment = 1;
-	array->ctype.modifiers = 0;
+	array->ctype.modifiers = MOD_STATIC;
 	array->ctype.base_type = &char_ctype;
 	
 	addr->symbol = sym;
@@ -298,28 +298,30 @@ static inline int lvalue_expression(struct expression *expr)
 /* Arrays degenerate into pointers on pointer arithmetic */
 static struct symbol *degenerate(struct expression *expr, struct symbol *ctype, struct expression **ptr_p)
 {
-	if (ctype->type == SYM_ARRAY) {
+	struct symbol *base = ctype;
+
+	if (ctype->type == SYM_NODE)
+		base = ctype->ctype.base_type;
+	if (base->type == SYM_ARRAY) {
 		struct symbol *sym = alloc_symbol(expr->pos, SYM_PTR);
 		struct expression *ptr;
 
-		sym->ctype = ctype->ctype;
+		merge_type(sym, base);
 		sym->bit_size = BITS_IN_POINTER;
-		sym->ctype.alignment = POINTER_ALIGNMENT;
 		ctype = sym;
 
-		if (expr->type != EXPR_STRING) {
-			ptr = *ptr_p;
-			*ptr_p = ptr->unop;
+		ptr = *ptr_p;
+		*ptr_p = ptr->unop;
 
-			/*
-			 * This all really assumes that we got the degenerate
-			 * array as an lvalue (ie a dereference). If that
-			 * is not the case, then holler - because we've screwed
-			 * up.
-			 */
-			if (!lvalue_expression(ptr))
-				warn(ptr->pos, "internal error: strange degenerate array case");
-		}
+		/*
+		 * This all really assumes that we got the degenerate
+		 * array as an lvalue (ie a dereference). If that
+		 * is not the case, then holler - because we've screwed
+		 * up.
+		 */
+		if (!lvalue_expression(ptr))
+			warn(ptr->pos, "internal error: strange degenerate array case");
+		ptr->ctype = ctype;
 	}
 	return ctype;
 }
@@ -672,18 +674,30 @@ static struct symbol *compatible_ptr_type(struct expression *left, struct expres
 	return NULL;
 }
 
+static struct symbol *do_degenerate(struct expression **ep)
+{
+	struct expression *expr = *ep;
+	return degenerate(expr, expr->ctype, ep);
+}
+
 static struct symbol * evaluate_conditional(struct expression *expr)
 {
 	struct expression *cond, *true, *false;
 	struct symbol *ctype, *ltype, *rtype;
 	const char * typediff;
 
+	ctype = do_degenerate(&expr->conditional);
 	cond = expr->conditional;
-	true = expr->cond_true ? : cond;
-	false = expr->cond_false;
 
-	ltype = true->ctype;
-	rtype = false->ctype;
+	ltype = ctype;
+	true = cond;
+	if (expr->cond_true) {
+		ltype = do_degenerate(&expr->cond_true);
+		true = expr->cond_true;
+	}
+
+	rtype = do_degenerate(&expr->cond_false);
+	false = expr->cond_false;
 
 	ctype = ltype;
 	typediff = type_difference(ltype, rtype, MOD_IGN, MOD_IGN);
@@ -948,11 +962,6 @@ static struct symbol *evaluate_preop(struct expression *expr)
 	case '&':
 		return evaluate_addressof(expr);
 
-	case '!':
-		expr->ctype = &bool_ctype;
-		simplify_preop(expr);
-		return &bool_ctype;
-
 	case SPECIAL_INCREMENT:
 	case SPECIAL_DECREMENT:
 		/*
@@ -961,11 +970,16 @@ static struct symbol *evaluate_preop(struct expression *expr)
 		 */
 		return evaluate_postop(expr);
 
+	case '!':
+		ctype = &bool_ctype;
+		break;
+
 	default:
-		expr->ctype = ctype;
-		simplify_preop(expr);
-		return ctype;
+		break;
 	}
+	expr->ctype = ctype;
+	simplify_preop(expr);
+	return &bool_ctype;
 }
 
 struct symbol *find_identifier(struct ident *ident, struct symbol_list *_list, int *offset)
@@ -1143,10 +1157,7 @@ static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 		if (!ctype)
 			return 0;
 
-		if (ctype->type == SYM_ARRAY) {
-			ctype = degenerate(expr, ctype, p);
-			expr->ctype = ctype;
-		}
+		ctype = degenerate(expr, ctype, p);
 
 		target = argtype;
 		if (!target && ctype->bit_size < BITS_IN_INT)
