@@ -530,16 +530,15 @@ static struct symbol * evaluate_conditional(struct expression *expr)
 	return NULL;
 }
 		
-static int compatible_assignment_types(struct expression *expr,
-	struct expression *left, struct symbol *target,
-	struct expression *right, struct symbol *source)
+static int compatible_assignment_types(struct expression *expr, struct symbol *target,
+	struct expression **rp, struct symbol *source)
 {
 	if (same_type(target, source))
 		return 1;
 
 	if (compatible_integer_types(target, source)) {
 		if (target->bit_size != source->bit_size)
-			expr->right = cast_to(right, target);
+			*rp = cast_to(*rp, target);
 		return 1;
 	}
 
@@ -549,6 +548,7 @@ static int compatible_assignment_types(struct expression *expr,
 	if (source->type == SYM_NODE)
 		source = source->ctype.base_type;
 	if (target->type == SYM_PTR) {
+		struct expression *right = *rp;
 		struct symbol *source_base = source->ctype.base_type;
 		struct symbol *target_base = target->ctype.base_type;
 
@@ -575,17 +575,17 @@ static int compatible_assignment_types(struct expression *expr,
 			struct symbol *target_base = target->ctype.base_type;
 			if (source_base == &void_ctype || target_base == &void_ctype)
 				return 1;
-			warn(left->pos, "assignment from incompatible pointer types");
+			warn(expr->pos, "assignment from incompatible pointer types");
 			return 1;
 		}
 
 		// FIXME!! Cast it!
-		warn(left->pos, "assignment from different types");
+		warn(expr->pos, "assignment from different types");
 		return 0;
 	}
 
 	// FIXME!! Cast it!
-	warn(left->pos, "assignment from bad type");
+	warn(expr->pos, "assignment from bad type");
 	return 0;
 }
 
@@ -637,7 +637,7 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 		return 0;
 	}
 
-	if (!compatible_assignment_types(expr, left, ltype, right, rtype))
+	if (!compatible_assignment_types(expr, ltype, &expr->right, rtype))
 		return 0;
 
 	expr->ctype = expr->left->ctype;
@@ -877,8 +877,20 @@ static int count_array_initializer(struct expression *expr)
  * Initializers are kind of like assignments. Except
  * they can be a hell of a lot more complex.
  */
-static int evaluate_initializer(struct symbol *ctype, struct expression *expr)
+static int evaluate_initializer(struct symbol *ctype, struct expression **ep)
 {
+	struct expression *expr = *ep;
+	/*
+	 * Simple non-structure/array initializers are the simple 
+	 * case, and look (and parse) largely like assignments.
+	 */
+	if (expr->type != EXPR_INITIALIZER) {
+		struct symbol *rtype = evaluate_expression(expr);
+		if (rtype)
+			compatible_assignment_types(expr, ctype, ep, rtype);
+		return 0;
+	}
+
 	/*
 	 * FIXME!! Check type compatibility, and look up any named
 	 * initializers and index expressions!
@@ -902,7 +914,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	 * than trying to evaluate it as an expression
 	 */
 	if (target->type == EXPR_INITIALIZER) {
-		evaluate_initializer(ctype, target);
+		evaluate_initializer(ctype, &expr->cast_expression);
 		return ctype;
 	}
 
@@ -1048,7 +1060,7 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 
 	/* Evaluate the initializers */
 	if (sym->initializer) {
-		int count = evaluate_initializer(base_type, sym->initializer);
+		int count = evaluate_initializer(base_type, &sym->initializer);
 		if (base_type->type == SYM_ARRAY && base_type->array_size < 0) {
 			int bit_size = count * base_type->ctype.base_type->bit_size;
 			base_type->array_size = count;
