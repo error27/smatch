@@ -220,10 +220,15 @@ static inline void add_pseudo_ptr(pseudo_t *ptr, struct pseudo_ptr_list **list)
 	add_ptr_list((struct ptr_list **)list, ptr);
 }
 
+static inline int has_use_list(pseudo_t p)
+{
+	return (p && p->type != PSEUDO_VOID && p->type != PSEUDO_VAL);
+}
+
 static inline void use_pseudo(pseudo_t p, pseudo_t *pp)
 {
 	*pp = p;
-	if (p && p->type != PSEUDO_VOID && p->type != PSEUDO_VAL)
+	if (has_use_list(p))
 		add_pseudo_ptr(pp, &p->users);
 }
 
