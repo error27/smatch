@@ -842,11 +842,14 @@ static struct symbol *create_pointer(struct expression *expr, struct symbol *sym
 /* Arrays degenerate into pointers on pointer arithmetic */
 static struct symbol *degenerate(struct expression *expr)
 {
-	struct symbol *ctype = expr->ctype;
-	struct symbol *base = ctype;
+	struct symbol *ctype, *base;
 
+	if (!expr)
+		return NULL;
+	ctype = expr->ctype;
 	if (!ctype)
 		return NULL;
+	base = ctype;
 	if (ctype->type == SYM_NODE)
 		base = ctype->ctype.base_type;
 	/*
@@ -1654,7 +1657,8 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		return evaluate_return_expression(stmt);
 
 	case STMT_EXPRESSION:
-		return evaluate_expression(stmt->expression);
+		evaluate_expression(stmt->expression);
+		return degenerate(stmt->expression);
 
 	case STMT_COMPOUND: {
 		struct statement *s;
