@@ -817,36 +817,38 @@ static void generate_cast(struct bb_state *state, struct instruction *insn)
 
 static void generate_output_storage(struct bb_state *state);
 
+static const char *conditional[] = {
+	[OP_SET_EQ] = "e",
+	[OP_SET_NE] = "ne",
+	[OP_SET_LE] = "le",
+	[OP_SET_GE] = "ge",
+	[OP_SET_LT] = "lt",
+	[OP_SET_GT] = "gt",
+	[OP_SET_B] = "b",
+	[OP_SET_A] = "a",
+	[OP_SET_BE] = "be",
+	[OP_SET_AE] = "ae"
+};
+	
+
 static void generate_branch(struct bb_state *state, struct instruction *br)
 {
-	const char *branch = "jXXX";
+	const char *cond = "XXX";
 	struct basic_block *target;
 
 	if (br->cond) {
 		if (state->cc_target == br->cond) {
-			static const char *branches[] = {
-				[OP_SET_EQ] = "je",
-				[OP_SET_NE] = "jne",
-				[OP_SET_LE] = "jle",
-				[OP_SET_GE] = "jge",
-				[OP_SET_LT] = "jlt",
-				[OP_SET_GT] = "jgt",
-				[OP_SET_B] = "jb",
-				[OP_SET_A] = "ja",
-				[OP_SET_BE] = "jbe",
-				[OP_SET_AE] = "jae"
-			};
-			branch = branches[state->cc_opcode];
+			cond = conditional[state->cc_opcode];
 		} else {
 			struct hardreg *reg = getreg(state, br->cond, NULL);
 			output_insn(state, "testl %s,%s", reg->name, reg->name);
-			branch = "jne";
+			cond = "ne";
 		}
 	}
 	generate_output_storage(state);
 	target = br->bb_true;
 	if (br->cond) {
-		output_insn(state, "%s .L%p", branch, target);
+		output_insn(state, "j%s .L%p", cond, target);
 		target = br->bb_false;
 	}
 	output_insn(state, "jmp .L%p", target);
@@ -896,16 +898,23 @@ static void generate_call(struct bb_state *state, struct instruction *insn)
 
 static void generate_select(struct bb_state *state, struct instruction *insn)
 {
-	struct hardreg *src1, *src2, *cond, *dst;
-
-	cond = getreg(state, insn->src1, NULL);
-	output_insn(state, "testl %s,%s", cond->name, cond->name);
+	const char *cond;
+	struct hardreg *src1, *src2, *dst;
 
 	src1 = getreg(state, insn->src2, NULL);
 	dst = copy_reg(state, src1, insn->target);
 	add_pseudo_reg(state, insn->target, dst);
 	src2 = getreg(state, insn->src3, insn->target);
-	output_insn(state, "sele %s,%s", src2->name, dst->name);
+
+	if (state->cc_target == insn->src1) {
+		cond = conditional[state->cc_opcode];
+	} else {
+		struct hardreg *reg = getreg(state, insn->src1, NULL);
+		output_insn(state, "testl %s,%s", reg->name, reg->name);
+		cond = "ne";
+	}
+
+	output_insn(state, "sel%s %s,%s", cond, src2->name, dst->name);
 }
 
 static void generate_asm_inputs(struct bb_state *state, struct asm_constraint_list *list)
