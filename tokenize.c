@@ -343,6 +343,10 @@ static int escapechar(int first, int type, stream_t *stream, int *valp)
 				break;
 			case '\\':
 				break;
+			case '\'':
+				break;
+			case '"':
+				break;
 			case '0'...'7': {
 				int nr = 2;
 				value -= '0';
