@@ -30,10 +30,10 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 
 	if (!sym) {
 		if (preprocessing) {
+			warn(expr->pos, "undefined preprocessor identifier '%s'", show_ident(expr->symbol_name));
 			expr->type = EXPR_VALUE;
 			expr->value = 0;
 			expr->ctype = &int_ctype;
-			warn(expr->pos, "undefined preprocessor identifier '%s'", show_ident(expr->symbol_name));
 			return &int_ctype;
 		}
 		warn(expr->pos, "undefined identifier '%s'", show_ident(expr->symbol_name));
