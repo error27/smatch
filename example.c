@@ -262,6 +262,9 @@ static void output_insn(struct bb_state *state, const char *fmt, ...)
 	output_line(state, "\t%s\n", buffer);
 }
 
+#define output_insn(state, fmt, arg...) \
+	output_insn(state, fmt "\t\t# %s" , ## arg , __FUNCTION__)
+
 static void output_comment(struct bb_state *state, const char *fmt, ...)
 {
 	static char buffer[512];
@@ -646,6 +649,10 @@ static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src, pse
 {
 	int i;
 	struct hardreg *reg;
+
+	/* If the container has been killed off, just re-use it */
+	if (!src->contains)
+		return src;
 
 	/* If "src" only has one user, and the contents are dead, we can re-use it */
 	if (src->busy == 1 && src->dead == 1)
