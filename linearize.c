@@ -27,6 +27,7 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr);
 
 static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int op, pseudo_t left, pseudo_t right);
 static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct expression *val);
+static void linearize_one_symbol(struct entrypoint *ep, struct symbol *sym);
 
 struct access_data;
 static pseudo_t add_load(struct entrypoint *ep, struct access_data *);
@@ -109,10 +110,7 @@ const char *show_pseudo(pseudo_t pseudo)
 			break;
 		}
 		expr = sym->initializer;
-		if (!expr) {
-			snprintf(buf, 64, "<anon sym: %d>", pseudo->nr);
-			break;
-		}
+		snprintf(buf, 64, "<anon symbol:%p>", sym);
 		switch (expr->type) {
 		case EXPR_VALUE:
 			snprintf(buf, 64, "<symbol value: %lld>", expr->value);
@@ -120,9 +118,9 @@ const char *show_pseudo(pseudo_t pseudo)
 		case EXPR_STRING:
 			return show_string(expr->string);
 		default:
-			snprintf(buf, 64, "<symbol expression: %d>", pseudo->nr);
 			break;
 		}
+		break;
 	}
 	case PSEUDO_REG:
 		i = snprintf(buf, 64, "%%r%d", pseudo->nr);
@@ -286,11 +284,8 @@ void show_instruction(struct instruction *insn)
 				buf += sprintf(buf, "%s", show_ident(sym->ident));
 				break;
 			}
-			expr = sym->initializer;
-			if (!expr) {
-				buf += sprintf(buf, "%s", "anon symbol");
-				break;
-			}
+			buf += sprintf(buf, "<anon symbol:%p>", sym);
+			break;
 		}
 
 		if (!expr) {
@@ -807,6 +802,7 @@ static int linearize_simple_address(struct entrypoint *ep,
 	struct access_data *ad)
 {
 	if (addr->type == EXPR_SYMBOL) {
+		linearize_one_symbol(ep, addr->symbol);
 		ad->address = symbol_pseudo(ep, addr->symbol);
 		return 1;
 	}
@@ -1427,6 +1423,7 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 
 	switch (expr->type) {
 	case EXPR_SYMBOL:
+		linearize_one_symbol(ep, expr->symbol);
 		return add_setval(ep, expr->symbol, NULL);
 
 	case EXPR_VALUE:
@@ -1495,9 +1492,10 @@ static void linearize_one_symbol(struct entrypoint *ep, struct symbol *sym)
 {
 	struct access_data ad = { NULL, };
 
-	if (!sym->initializer)
+	if (!sym->initializer || sym->initialized)
 		return;
 
+	sym->initialized = 1;
 	ad.address = symbol_pseudo(ep, sym);
 	linearize_initializer(ep, sym->initializer, &ad);
 	finish_address_gen(ep, &ad);
