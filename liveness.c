@@ -167,8 +167,11 @@ static inline int trackable_pseudo(pseudo_t pseudo)
 
 static void insn_uses(struct basic_block *bb, struct instruction *insn, pseudo_t pseudo)
 {
-	if (trackable_pseudo(pseudo))
-		add_pseudo_exclusive(&bb->needs, pseudo);
+	if (trackable_pseudo(pseudo)) {
+		struct instruction *def = pseudo->def;
+		if (pseudo->type != PSEUDO_REG || def->bb != bb || def->opcode == OP_PHI)
+			add_pseudo_exclusive(&bb->needs, pseudo);
+	}
 }
 
 static void insn_defines(struct basic_block *bb, struct instruction *insn, pseudo_t pseudo)
@@ -229,14 +232,6 @@ void track_pseudo_liveness(struct entrypoint *ep)
 			assert(insn->bb == bb);
 			track_instruction_usage(bb, insn, insn_defines, insn_uses);
 		} END_FOR_EACH_PTR(insn);
-	} END_FOR_EACH_PTR(bb);
-
-	/* Remove the pseudos from the "need" list that are defined internally */
-	FOR_EACH_PTR(ep->bbs, bb) {
-		pseudo_t def;
-		FOR_EACH_PTR(bb->defines, def) {
-			remove_pseudo(&bb->needs, def);
-		} END_FOR_EACH_PTR(def);
 	} END_FOR_EACH_PTR(bb);
 
 	/* Calculate liveness.. */
