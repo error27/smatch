@@ -524,7 +524,6 @@ void init_symbols(void)
 {
 	int stream = init_stream("builtin", -1);
 	struct sym_init *ptr;
-	struct ctype_declare *ctype;
 
 	hash_ident(&sizeof_ident);
 	hash_ident(&alignof_ident);
@@ -570,6 +569,11 @@ void init_symbols(void)
 		sym->ctype.modifiers = ptr->modifiers;
 		sym->op = ptr->op;
 	}
+}
+
+void init_ctype(void)
+{
+	struct ctype_declare *ctype;
 
 	ptr_ctype.type = SYM_PTR;
 	string_ctype.type = SYM_PTR;

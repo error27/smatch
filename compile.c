@@ -54,6 +54,9 @@ int main(int argc, char **argv)
 		filename = arg;
 	}
 
+	// Initialize type system
+	init_ctype();
+
 	if (filename == NULL)
 		die("No file specified");
 

@@ -27,6 +27,10 @@ int main(int argc, char **argv)
 		die("No such file: %s", argv[1]);
 
 	init_symbols();
+
+	// Initialize type system
+	init_ctype();
+
 	token = tokenize(argv[1], fd, NULL);
 	close(fd);
 	token = preprocess(token);

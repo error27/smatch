@@ -202,6 +202,7 @@ extern const char * type_difference(struct symbol *target, struct symbol *source
 
 extern struct symbol *lookup_symbol(struct ident *, enum namespace);
 extern void init_symbols(void);
+extern void init_ctype(void);
 extern struct symbol *alloc_symbol(struct position, int type);
 extern void show_type(struct symbol *);
 extern const char *modifier_string(unsigned long mod);

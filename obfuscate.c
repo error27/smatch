@@ -106,6 +106,9 @@ int main(int argc, char **argv)
 	if (fd < 0)
 		die("No such file: %s", argv[1]);
 
+	// Initialize type system
+	init_ctype();
+
 	// Tokenize the input stream
 	token = tokenize(filename, fd, NULL);
 	close(fd);

@@ -54,7 +54,9 @@ int main(int argc, char **argv)
 		}
 		filename = arg;
 	}
-		
+
+	// Initialize type system
+	init_ctype();
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0)

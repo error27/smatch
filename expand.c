@@ -85,7 +85,7 @@ void cast_value(struct expression *expr, struct symbol *newtype,
 static int check_shift_count(struct expression *expr, struct symbol *ctype, unsigned int count)
 {
 	if (count >= ctype->bit_size) {
-		warn(expr->pos, "shift too big for type");
+		warn(expr->pos, "shift too big for type (%x)", ctype->ctype.modifiers);
 		count &= ctype->bit_size-1;
 	}
 	return count;
