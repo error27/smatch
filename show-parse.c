@@ -493,7 +493,6 @@ int show_statement(struct statement *stmt)
 		break;
 	}
 	case STMT_NONE:
-		printf("\t!NONE!\n");
 		break;
 	
 	case STMT_LABEL:

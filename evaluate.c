@@ -1607,6 +1607,38 @@ struct symbol *evaluate_return_expression(struct statement *stmt)
 	return NULL;
 }
 
+static void evaluate_if_statement(struct statement *stmt)
+{
+	struct expression *expr = stmt->if_conditional;
+	struct symbol *ctype;
+
+	if (!expr)
+		return;
+	if (expr->type == EXPR_ASSIGNMENT)
+		warn(expr->pos, "assignment expression in conditional");
+
+	ctype = evaluate_expression(expr);
+	if (!ctype)
+		return;
+
+	/* Simplify constant conditionals without even evaluating the false side */
+	if (expr->type == EXPR_VALUE) {
+		struct statement *simple;
+		simple = expr->value ? stmt->if_true : stmt->if_false;
+
+		/* Nothing? */
+		if (!simple) {
+			stmt->type = STMT_NONE;
+			return;
+		}
+		evaluate_statement(simple);
+		*stmt = *simple;
+		return;
+	}
+	evaluate_statement(stmt->if_true);
+	evaluate_statement(stmt->if_false);
+}
+
 struct symbol *evaluate_statement(struct statement *stmt)
 {
 	if (!stmt)
@@ -1626,9 +1658,7 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		return type;
 	}
 	case STMT_IF:
-		evaluate_expression(stmt->if_conditional);
-		evaluate_statement(stmt->if_true);
-		evaluate_statement(stmt->if_false);
+		evaluate_if_statement(stmt);
 		return NULL;
 	case STMT_ITERATOR:
 		evaluate_expression(stmt->iterator_pre_condition);
