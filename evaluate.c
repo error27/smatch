@@ -386,11 +386,16 @@ static int same_type(struct symbol *target, struct symbol *source)
 {
 	int dropped_modifiers = 0;
 	for (;;) {
+		unsigned long mod1, mod2;
 		if (target == source)
 			break;
 		if (!target || !source)
 			return 0;
 		if (target->type != source->type)
+			return 0;
+		mod1 = target->ctype.modifiers;
+		mod2 = source->ctype.modifiers;
+		if (mod1 != mod2)
 			return 0;
 		target = target->ctype.base_type;
 		source = source->ctype.base_type;
@@ -400,11 +405,28 @@ static int same_type(struct symbol *target, struct symbol *source)
 	return 1;
 }
 
-static int compatible_assignment_types(struct expression *left, struct symbol *target,
+static int compatible_integer_types(struct symbol *ltype, struct symbol *rtype)
+{
+	/* Integer promotion? */
+	if (ltype->type == SYM_ENUM)
+		ltype = &int_ctype;
+	if (rtype->type == SYM_ENUM)
+		rtype = &int_ctype;
+	return (is_int_type(ltype) && is_int_type(rtype));
+}
+
+static int compatible_assignment_types(struct expression *expr,
+	struct expression *left, struct symbol *target,
 	struct expression *right, struct symbol *source)
 {
 	if (same_type(target, source))
 		return 1;
+
+	if (compatible_integer_types(target, source)) {
+		if (target->bit_size != source->bit_size)
+			expr->right = cast_to(right, target);
+		return 1;
+	}
 
 	/* Pointer destination? */
 	if (target->type == SYM_PTR) {
@@ -431,10 +453,12 @@ static int compatible_assignment_types(struct expression *left, struct symbol *t
 		}
 
 		// FIXME!! Cast it!
+		warn(left->pos, "assignment from bad type");
 		return 0;
 	}
 
 	// FIXME!! Cast it!
+	warn(left->pos, "assignment from bad type");
 	return 0;
 }
 
@@ -476,7 +500,7 @@ static int evaluate_assignment(struct expression *expr)
 	ltype = left->ctype;
 	rtype = right->ctype;
 
-	if (!compatible_assignment_types(left, ltype, right, rtype))
+	if (!compatible_assignment_types(expr, left, ltype, right, rtype))
 		return 0;
 
 	expr->ctype = expr->left->ctype;
