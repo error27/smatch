@@ -37,6 +37,9 @@ test-parsing: test-parsing.o $(LIB_FILE)
 test-linearize: test-linearize.o $(LIB_FILE)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
+test-sort: test-sort.o $(LIB_FILE)
+	gcc $(LDFLAGS) -o $@ $< $(LIBS)
+
 compile: compile.o compile-i386.o $(LIB_FILE)
 	$(CC) $(LDFLAGS) -o $@ $< compile-i386.o $(LIBS)
 
