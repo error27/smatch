@@ -20,6 +20,7 @@ enum storage_type {
 	REG_REG,
 	REG_STACK,
 	REG_SYM,
+	REG_ARG,
 	REG_BAD,
 };
 
@@ -41,6 +42,8 @@ struct storage {
 		struct symbol *sym;
 	};
 };
+
+DECLARE_PTR_LIST(storage_list, struct storage);
 
 struct storage_hash {
 	struct basic_block *bb;
@@ -79,6 +82,47 @@ static inline unsigned int storage_hash(struct basic_block *bb, pseudo_t pseudo,
 	return hash & (MAX_STORAGE_HASH-1);
 }
 
+static int hash_list_cmp(const void *_a, const void *_b)
+{
+	const struct storage_hash *a = _a;
+	const struct storage_hash *b = _b;
+	if (a->pseudo != b->pseudo)
+		return a->pseudo < b->pseudo ? -1 : 1;
+	return 0;
+}
+
+static void sort_hash_list(struct storage_hash_list **listp)
+{
+	sort_list((struct ptr_list **)listp, hash_list_cmp);
+}
+
+static struct storage_hash_list *gather_storage(struct basic_block *bb, enum inout_enum inout)
+{
+	int i;
+	struct storage_hash *entry, *prev;
+	struct storage_hash_list *list = NULL;
+
+	for (i = 0; i < MAX_STORAGE_HASH; i++) {
+		struct storage_hash *hash;
+		FOR_EACH_PTR(storage_hash_table[i], hash) {
+			if (hash->bb == bb && hash->inout == inout)
+				add_ptr_list(&list, hash);
+		} END_FOR_EACH_PTR(hash);
+	}
+	sort_hash_list(&list);
+
+	prev = NULL;
+	FOR_EACH_PTR(list, entry) {
+		if (prev && entry->pseudo == prev->pseudo) {
+			assert(entry == prev);
+			DELETE_CURRENT_PTR(entry);
+		}
+		prev = entry;
+	} END_FOR_EACH_PTR(entry);
+	PACK_PTR_LIST(&list);
+	return list;
+}
+
 static struct storage *lookup_storage(struct basic_block *bb, pseudo_t pseudo, enum inout_enum inout)
 {
 	struct storage_hash_list *list = storage_hash_table[storage_hash(bb,pseudo,inout)];
@@ -111,24 +155,7 @@ static void free_storage(void)
 		free_ptr_list(storage_hash_table + i);
 }
 
-static void name_storage(void)
-{
-	int i;
-	int regno = 0;
-
-	for (i = 0; i < MAX_STORAGE_HASH; i++) {
-		struct storage_hash *entry;
-		FOR_EACH_PTR(storage_hash_table[i], entry) {
-			struct storage *s = entry->storage;
-			if (s->type != REG_UDEF)
-				continue;
-			s->type = REG_REG;
-			s->regno = ++regno;
-		} END_FOR_EACH_PTR(entry);
-	}
-}
-
-static const char *show_storage(struct storage *s)
+const char *show_storage(struct storage *s)
 {
 	static char buffer[1024];
 	if (!s)
@@ -139,6 +166,9 @@ static const char *show_storage(struct storage *s)
 		break;
 	case REG_STACK:
 		sprintf(buffer, "%d(SP)", s->offset);
+		break;
+	case REG_ARG:
+		sprintf(buffer, "ARG%d", s->regno);
 		break;
 	default:
 		sprintf(buffer, "%d:%d", s->type, s->regno);
@@ -211,8 +241,8 @@ static void set_up_argument_storage(struct entrypoint *ep, struct basic_block *b
 
 		/* FIXME! Totally made-up argument passing conventions */
 		if (arg->type == PSEUDO_ARG) {
-			storage->type = REG_STACK;
-			storage->offset = arg->nr*4;
+			storage->type = REG_ARG;
+			storage->regno = arg->nr;
 		}
 		add_storage(storage, bb, arg, STOR_IN);
 	} END_FOR_EACH_PTR(arg);
@@ -246,7 +276,7 @@ static void combine_phi_storage(struct basic_block *bb)
 	} END_FOR_EACH_PTR(insn);
 }
 
-static void output(struct entrypoint *ep)
+static void set_up_storage(struct entrypoint *ep)
 {
 	struct basic_block *bb;
 
@@ -258,32 +288,43 @@ static void output(struct entrypoint *ep)
 		set_up_bb_storage(bb);
 		combine_phi_storage(bb);
 	} END_FOR_EACH_PTR(bb);
+}
 
-	/* Name the storage.. */
-	name_storage();
+static void output_bb(struct basic_block *bb)
+{
+	struct storage_hash *entry;
+	struct storage_hash_list *inputs, *outputs;
 
-	/* And show the results... */
-	printf("function '%s':\n", show_ident(ep->name->ident));
+	inputs = gather_storage(bb, STOR_IN);
+	outputs = gather_storage(bb, STOR_OUT);
+
+	FOR_EACH_PTR(inputs, entry) {
+		printf("\t%s <- %s\n", show_pseudo(entry->pseudo), show_storage(entry->storage));
+	} END_FOR_EACH_PTR(entry);
+	show_bb(bb);
+	FOR_EACH_PTR(outputs, entry) {
+		printf("\t%s -> %s\n", show_pseudo(entry->pseudo), show_storage(entry->storage));
+	} END_FOR_EACH_PTR(entry);
+	printf("\n");
+
+	free_ptr_list(&inputs);
+	free_ptr_list(&outputs);
+}
+
+static void output(struct entrypoint *ep)
+{
+	struct basic_block *bb, *prev;
+
+	/* Set up initial inter-bb storage links */
+	set_up_storage(ep);
+
+	/* Show the results ... */
+	prev = NULL;
 	FOR_EACH_PTR(ep->bbs, bb) {
-		pseudo_t pseudo;
-		struct basic_block *child;
-
-		FOR_EACH_PTR(bb->needs, pseudo) {
-			struct storage *s = lookup_storage(bb, pseudo, STOR_IN);
-			printf("\t%s <- %s\n", show_pseudo(pseudo), show_storage(s));
-		} END_FOR_EACH_PTR(pseudo);
-
-		show_bb(bb);
-
-		FOR_EACH_PTR(bb->children, child) {
-			FOR_EACH_PTR(child->needs, pseudo) {
-				struct storage *s = lookup_storage(child, pseudo, STOR_IN);
-				assert(s == lookup_storage(bb, pseudo, STOR_OUT));
-				printf("\t%s -> %s\n", show_pseudo(pseudo), show_storage(s));
-			} END_FOR_EACH_PTR(pseudo);
-		} END_FOR_EACH_PTR(child);
-		printf("\n-----------\n");
+		output_bb(bb);
 	} END_FOR_EACH_PTR(bb);
+
+	/* Clear the storage hashes for the next function.. */
 	free_storage();
 }
 
