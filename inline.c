@@ -15,8 +15,6 @@
 #include "symbol.h"
 #include "expression.h"
 
-#define copy_one_statement(stmt) (stmt)
-
 static struct expression * dup_expression(struct expression *expr)
 {
 	struct expression *dup = alloc_expression(expr->pos, expr->type);
@@ -115,6 +113,36 @@ static struct expression * copy_expression(struct expression *expr)
 	}
 	return expr;
 }
+
+static struct statement * dup_statement(struct statement *stmt)
+{
+	struct statement *dup = alloc_statement(stmt->pos, stmt->type);
+	*dup = *stmt;
+	return dup;
+}
+
+static struct statement *copy_one_statement(struct statement *stmt)
+{
+	if (!stmt)
+		return NULL;
+	switch(stmt->type) {
+	case STMT_NONE:
+		break;
+	case STMT_RETURN: {
+		struct expression *retval = copy_expression(stmt->ret_value);
+		struct symbol *sym = stmt->ret_target->replace;
+
+		stmt = dup_statement(stmt);
+		stmt->ret_value = retval;
+		stmt->ret_target = sym;
+		break;
+	}
+	default:
+		break;
+	}
+	return stmt;
+}
+
 
 /*
  * Copy a stateemnt tree from 'src' to 'dst', where both

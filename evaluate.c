@@ -57,6 +57,16 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 	/* The type of a symbol is the symbol itself! */
 	expr->ctype = sym;
 
+	/* Const symbol with a constant initializer? */
+	if (sym->ctype.modifiers & MOD_CONST) {
+		struct expression *value = sym->initializer;
+		if (value && value->type == EXPR_VALUE) {
+			expr->type = EXPR_VALUE;
+			expr->value = value->value;
+			return sym;
+		}
+	}
+
 	/* enum's can be turned into plain values */
 	if (sym->type != SYM_ENUM) {
 		struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
@@ -1405,6 +1415,7 @@ static int inline_function(struct expression *expr, struct symbol *sym)
 		if (name) {
 			a->ident = name->ident;
 			a->ctype.modifiers = name->ctype.modifiers;
+			name->replace = a;
 		}
 		a->ctype.base_type = arg->ctype;
 		a->initializer = arg;
