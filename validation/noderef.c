@@ -5,6 +5,10 @@ struct x {
 	int b;
 };
 
+struct y {
+	int a[2];
+};
+
 void h(void)
 {
 	char __A *p;
@@ -14,6 +18,7 @@ void h(void)
 	struct x __A x;
 	int __A *q;
 	int __A *r;
+	struct y __A *py;
 	
 	q1 = &p;
 	q2 = &p;	/* This should complain */
@@ -30,4 +35,8 @@ void h(void)
 
 	r = &x.a;
 	r = &x.b;
+
+	r = py->a;
+	r = py->a+1;
+	r = &py->a[0];
 }
