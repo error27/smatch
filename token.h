@@ -17,7 +17,8 @@ struct stream {
 	const char *name;
 
 	/* Use these to check for "already parsed" */
-	int constant;
+	int constant, nesting;
+	struct ident *protect;
 	dev_t dev;
 	ino_t ino;
 };

@@ -329,6 +329,8 @@ static int handle_include(struct stream *stream, struct token *head, struct toke
 	struct token *next;
 	int expect;
 
+	if (stream->constant == -1)
+		stream->constant = 0;
 	if (false_nesting)
 		return 1;
 	next = token->next;
@@ -442,7 +444,19 @@ static int handle_ifdef(struct stream *stream, struct token *head, struct token 
 
 static int handle_ifndef(struct stream *stream, struct token *head, struct token *token)
 {
-	return preprocessor_if(token, !token_defined(token->next));
+	struct token *next = token->next;
+	if (stream->constant == -1) {
+		int newconstant = 0;
+		if (next->type == TOKEN_IDENT) {
+			if (!stream->protect || stream->protect == next->ident) {
+				newconstant = -2;
+				stream->protect = next->ident;
+				stream->nesting = if_nesting+1;
+			}
+		}
+		stream->constant = newconstant;
+	}
+	return preprocessor_if(token, !token_defined(next));
 }
 
 static unsigned long long get_int_value(const char *str)
@@ -555,6 +569,8 @@ static int handle_if(struct stream *stream, struct token *head, struct token *to
 
 static int handle_elif(struct stream * stream, struct token *head, struct token *token)
 {
+	if (stream->nesting == if_nesting)
+		stream->constant = 0;
 	if (false_nesting) {
 		/* If this whole if-thing is if'ed out, an elif cannot help */
 		if (elif_ignore[if_nesting-1])
@@ -577,6 +593,8 @@ static int handle_elif(struct stream * stream, struct token *head, struct token 
 
 static int handle_else(struct stream *stream, struct token *head, struct token *token)
 {
+	if (stream->nesting == if_nesting)
+		stream->constant = 0;
 	if (false_nesting) {
 		/* If this whole if-thing is if'ed out, an else cannot help */
 		if (elif_ignore[if_nesting-1])
@@ -597,6 +615,9 @@ static int handle_else(struct stream *stream, struct token *head, struct token *
 
 static int handle_endif(struct stream *stream, struct token *head, struct token *token)
 {
+	if (stream->constant == -2 && stream->nesting == if_nesting)
+		stream->constant = -1;
+
 	if (false_nesting) {
 		false_nesting--;
 		return 1;
@@ -718,12 +739,14 @@ static void do_preprocess(struct token *head)
 
 		switch (next->type) {
 		case TOKEN_STREAMEND:
-			if (stream->constant == -1) {
+			if (stream->constant == -1 && stream->protect) {
 				stream->constant = 1;
-				fprintf(stderr, "stream %s was constant?\n", stream->name);
+				fprintf(stderr, "stream %s was conditional on '%s'\n",
+					stream->name, stream->protect->name);
 			}
 			/* fallthrough */
 		case TOKEN_STREAMBEGIN:
+			fprintf(stderr, "<%s>\n", show_token(next));
 			head->next = next->next;
 			continue;
 

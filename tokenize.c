@@ -15,9 +15,9 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-
 #include "lib.h"
 #include "token.h"
+#include "symbol.h"
 
 #define EOF (-1)
 
@@ -156,6 +156,7 @@ int init_stream(const char *name, int fd)
 	int stream = input_stream_nr;
 	struct stream *current;
 
+fprintf(stderr, "%s\n", name);
 	if (stream >= input_streams_allocated) {
 		int newalloc = stream * 4 / 3 + 10;
 		input_streams = realloc(input_streams, newalloc * sizeof(struct stream));
@@ -164,19 +165,27 @@ int init_stream(const char *name, int fd)
 		input_streams_allocated = newalloc;
 	}
 	current = input_streams + stream;
-	input_stream_nr = stream+1;
-
 	memset(current, 0, sizeof(*current));
 	current->name = name;
 	current->fd = fd;
 	current->constant = -1;	// "unknown"
 	if (fd > 0) {
+		int i;
 		struct stat st;
-		if (!fstat(fd, &st)) {
-			current->dev = st.st_dev;
-			current->ino = st.st_ino;
+
+		fstat(fd, &st);
+		current->dev = st.st_dev;
+		current->ino = st.st_ino;
+		for (i = 0; i < stream; i++) {
+			struct stream *s = input_streams + i;
+			if (s->dev == st.st_dev && s->ino == st.st_ino) {
+				if (s->constant > 0 && lookup_symbol(s->protect, NS_PREPROCESSOR))
+					return -1;
+			}
 		}
 	}
+	input_stream_nr = stream+1;
+fprintf(stderr, "%d\n", stream);
 	return stream;
 }
 
@@ -685,9 +694,15 @@ struct token * tokenize(const char *name, int fd, struct token *endtoken)
 {
 	struct token *begin;
 	stream_t stream;
-	int c;
+	int c, idx;
 
-	stream.stream = init_stream(name, fd);
+	idx = init_stream(name, fd);
+	if (idx < 0) {
+		fprintf(stderr, "Not re-tokenizing '%s'\n", name);
+		return endtoken;
+	}
+
+	stream.stream = idx;
 	stream.token = NULL;
 	stream.line = 1;
 	stream.newline = 1;
@@ -707,6 +722,7 @@ struct token * tokenize(const char *name, int fd, struct token *endtoken)
 			c = nextchar(&stream);
 			stream.newline = 0;
 			stream.whitespace = 1;
+			continue;
 		}
 		if (!isspace(c)) {
 			struct token *token = alloc_token(&stream);

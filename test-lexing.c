@@ -16,6 +16,7 @@ int main(int argc, char **argv)
 	if (fd < 0)
 		die("No such file: %s", argv[1]);
 
+	init_symbols();
 	token = tokenize(argv[1], fd, NULL);
 	close(fd);
 	token = preprocess(token);
