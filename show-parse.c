@@ -286,7 +286,7 @@ void show_symbol(struct symbol *sym)
 		return;
 
 	if (sym->ctype.alignment)
-		printf(".align %d\n", sym->ctype.alignment);
+		printf(".align %ld\n", sym->ctype.alignment);
 
 	show_type(sym);
 	type = sym->ctype.base_type;
