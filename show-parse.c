@@ -632,6 +632,14 @@ static int show_binop(struct expression *expr)
 	return new;
 }
 
+static int show_slice(struct expression *expr)
+{
+	int target = show_expression(expr->base);
+	int new = new_pseudo();
+	printf("\tslice.%d\t\tv%d,v%d,%d\n", expr->r_nrbits, target, new, expr->r_bitpos);
+	return new;
+}
+
 static int show_regular_preop(struct expression *expr)
 {
 	int target = show_expression(expr->unop);
@@ -993,6 +1001,8 @@ int show_expression(struct expression *expr)
 		return show_statement_expr(expr);
 	case EXPR_LABEL:
 		return show_label_expr(expr);
+	case EXPR_SLICE:
+		return show_slice(expr);
 
 	// None of these should exist as direct expressions: they are only
 	// valid as sub-expressions of initializers.

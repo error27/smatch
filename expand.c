@@ -754,6 +754,9 @@ static int expand_expression(struct expression *expr)
 	case EXPR_INDEX:
 		return UNSAFE;
 
+	case EXPR_SLICE:
+		return expand_expression(expr->base) + 1;
+
 	case EXPR_POS:
 		return expand_expression(expr->init_expr);
 

@@ -40,6 +40,7 @@ enum expression_type {
 	EXPR_INDEX,		// index in initializer
 	EXPR_POS,		// position in initializer
 	EXPR_FVALUE,
+	EXPR_SLICE,
 };
 
 struct expression {
@@ -77,6 +78,11 @@ struct expression {
 		struct /* deref_arg */ {
 			struct expression *deref;
 			struct ident *member;
+		};
+		// EXPR_SLICE
+		struct /* slice */ {
+			struct expression *base;
+			unsigned r_bitpos, r_nrbits;
 		};
 		// EXPR_CAST and EXPR_SIZEOF
 		struct /* cast_arg */ {

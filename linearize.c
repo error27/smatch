@@ -190,6 +190,12 @@ static void show_instruction(struct instruction *insn)
 		break;
 	}
 
+	case OP_SLICE:
+		printf("\t%%r%d <- slice  %%r%d, %d, %d\n",
+			insn->target->nr,
+			insn->base->nr, insn->from, insn->len);
+		break;
+
 	case OP_BINCMP ... OP_BINCMP_END: {
 		static const char *opname[] = {
 			[OP_SET_EQ - OP_BINCMP] = "seteq",
@@ -473,6 +479,19 @@ static pseudo_t add_uniop(struct entrypoint *ep, struct expression *expr, int op
 	struct instruction *insn = alloc_instruction(op, expr->ctype);
 	insn->target = new;
 	insn->src1 = src;
+	add_one_insn(ep, expr->pos, insn);
+	return new;
+}
+
+static pseudo_t linearize_slice(struct entrypoint *ep, struct expression *expr)
+{
+	pseudo_t pre = linearize_expression(ep, expr->base);
+	pseudo_t new = alloc_pseudo();
+	struct instruction *insn = alloc_instruction(OP_SLICE, expr->ctype);
+	insn->target = new;
+	insn->base = pre;
+	insn->from = expr->r_bitpos;
+	insn->len = expr->r_nrbits;
 	add_one_insn(ep, expr->pos, insn);
 	return new;
 }
@@ -802,6 +821,9 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 	
 	case EXPR_BITFIELD:
 		return linearize_access(ep, expr);
+
+	case EXPR_SLICE:
+		return linearize_slice(ep, expr);
 
 	default: 
 		warn(expr->pos, "unknown expression (%d %d)", expr->type, expr->op);
