@@ -103,7 +103,6 @@ int main(int argc, char **argv)
 	add_pre_buffer("#define cond_syscall(x)\n");
 	add_pre_buffer("#define __GNUC__ 2\n");
 	add_pre_buffer("#define __GNUC_MINOR__ 95\n");
-	add_pre_buffer("#define __builtin_constant_p(x) 0\n");
 	add_pre_buffer("#define __func__ \"function\"\n");
 	add_pre_buffer("#define __extension__\n");
 	add_pre_buffer("extern void *__builtin_memcpy(void *, const void *, unsigned long);\n");
