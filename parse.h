@@ -14,8 +14,6 @@ enum statement_type {
 	STMT_COMPOUND,
 	STMT_IF,
 	STMT_RETURN,
-	STMT_BREAK,
-	STMT_CONTINUE,
 	STMT_CASE,
 	STMT_SWITCH,
 	STMT_ITERATOR,
@@ -57,6 +55,8 @@ struct statement {
 			struct statement *switch_statement;
 		};
 		struct iterator_struct {
+			struct symbol *break_symbol;
+			struct symbol *cont_symbol;
 			struct statement  *iterator_pre_statement;
 			struct expression *iterator_pre_condition;
 

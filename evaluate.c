@@ -738,7 +738,7 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			s = s->ctype.base_type;
 			source_as |= s->ctype.as;
 		}
-		if (source_as == target_as && s->type == SYM_PTR) {
+		if (source_as == target_as && (s->type == SYM_PTR || s->type == SYM_ARRAY)) {
 			s = s->ctype.base_type;
 			t = t->ctype.base_type;
 			if (s == &void_ctype || t == &void_ctype)
@@ -1490,8 +1490,6 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		evaluate_expression(stmt->goto_expression);
 		return NULL;
 	case STMT_NONE:
-	case STMT_BREAK:
-	case STMT_CONTINUE:
 		break;
 	case STMT_ASM:
 		/* FIXME! Do the asm parameter evaluation! */

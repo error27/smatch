@@ -28,6 +28,7 @@ enum namespace {
 	NS_ENUM,
 	NS_LABEL,
 	NS_SYMBOL,
+	NS_ITERATOR,
 };
 
 enum type {

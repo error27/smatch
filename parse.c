@@ -588,6 +588,28 @@ static struct statement *make_statement(struct expression *expr)
 	return stmt;
 }
 
+static void start_iterator(struct statement *stmt)
+{
+	struct symbol *cont, *brk;
+
+	start_symbol_scope();
+	cont = alloc_symbol(stmt->pos, SYM_NODE);
+	cont->ident = &continue_ident;
+	bind_symbol(cont, &continue_ident, NS_ITERATOR);
+	brk = alloc_symbol(stmt->pos, SYM_NODE);
+	brk->ident = &break_ident;
+	bind_symbol(brk, &break_ident, NS_ITERATOR);
+
+	stmt->type = STMT_ITERATOR;
+	stmt->break_symbol = brk;
+	stmt->cont_symbol = cont;
+}
+
+static void end_iterator(void)
+{
+	start_symbol_scope();
+}
+
 struct token *statement(struct token *token, struct statement **tree)
 {
 	struct statement *stmt = alloc_statement(token->pos, STMT_NONE);
@@ -608,12 +630,11 @@ struct token *statement(struct token *token, struct statement **tree)
 			stmt->type = STMT_RETURN;
 			return expression_statement(token->next, &stmt->expression);
 		}
-		if (token->ident == &break_ident) {
-			stmt->type = STMT_BREAK;
-			return expect(token->next, ';', "at end of statement");
-		}
-		if (token->ident == &continue_ident) {
-			stmt->type = STMT_CONTINUE;
+		if (token->ident == &break_ident || token->ident == &continue_ident) {
+			stmt->type = STMT_GOTO;
+			stmt->goto_label = lookup_symbol(token->ident, NS_ITERATOR);
+			if (!stmt->goto_label)
+				warn(stmt->pos, "break/continue not in iterator scope");
 			return expect(token->next, ';', "at end of statement");
 		}
 		if (token->ident == &default_ident) {
@@ -638,6 +659,7 @@ default_statement:
 			struct expression *e1, *e2, *e3;
 			struct statement *iterator;
 
+			start_iterator(stmt);
 			token = expect(token->next, '(', "after 'for'");
 			token = parse_expression(token, &e1);
 			token = expect(token, ';', "in 'for'");
@@ -647,12 +669,12 @@ default_statement:
 			token = expect(token, ')', "in 'for'");
 			token = statement(token, &iterator);
 
-			stmt->type = STMT_ITERATOR;
 			stmt->iterator_pre_statement = make_statement(e1);
 			stmt->iterator_pre_condition = e2;
 			stmt->iterator_post_statement = make_statement(e3);
 			stmt->iterator_post_condition = e2;
 			stmt->iterator_statement = iterator;
+			end_iterator();
 
 			return token;
 		}
@@ -660,20 +682,22 @@ default_statement:
 			struct expression *expr;
 			struct statement *iterator;
 
+			start_iterator(stmt);
 			token = parens_expression(token->next, &expr, "after 'while'");
 			token = statement(token, &iterator);
 
-			stmt->type = STMT_ITERATOR;
 			stmt->iterator_pre_condition = expr;
 			stmt->iterator_post_condition = expr;
 			stmt->iterator_statement = iterator;
+			end_iterator();
 
 			return token;
 		}
 		if (token->ident == &do_ident) {
 			struct expression *expr;
 			struct statement *iterator;
-			
+
+			start_iterator(stmt);
 			token = statement(token->next, &iterator);
 			if (token_type(token) == TOKEN_IDENT && token->ident == &while_ident)
 				token = token->next;
@@ -681,9 +705,9 @@ default_statement:
 				warn(token->pos, "expected 'while' after 'do'");
 			token = parens_expression(token, &expr, "after 'do-while'");
 
-			stmt->type = STMT_ITERATOR;
 			stmt->iterator_post_condition = expr;
 			stmt->iterator_statement = iterator;
+			end_iterator();
 
 			return expect(token, ';', "after statement");
 		}

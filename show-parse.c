@@ -387,10 +387,6 @@ int show_statement(struct statement *stmt)
 		show_statement(stmt->case_statement);
 		break;
 
-	case STMT_BREAK:
-		printf("\tbreak");
-		break;
-		
 	case STMT_ITERATOR: {
 		struct statement  *pre_statement = stmt->iterator_pre_statement;
 		struct expression *pre_condition = stmt->iterator_pre_condition;
@@ -440,10 +436,6 @@ int show_statement(struct statement *stmt)
 		printf("\tNONE");
 		break;
 	
-	case STMT_CONTINUE:
-		printf("\tcontinue");
-		break;
-
 	case STMT_LABEL:
 		show_symbol(stmt->label_identifier);
 		printf(":\n");
@@ -617,8 +609,12 @@ static void show_store_gen(int bits, int value, struct expression *expr, int add
 static int show_assignment(struct expression *expr)
 {
 	struct expression *target = expr->left;
-	int val, addr, bits = expr->ctype->bit_size;
+	int val, addr, bits;
 
+	if (!expr->ctype)
+		return 0;
+
+	bits = expr->ctype->bit_size;
 	val = show_expression(expr->right);
 	addr = show_address_gen(target);
 	show_store_gen(bits, val, target, addr);
