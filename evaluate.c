@@ -309,22 +309,35 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 			return "different types";
 		/*
 		 * Peel of per-node information.
-		 * FIXME! Check alignment, address space, and context too here!
+		 * FIXME! Check alignment and context too here!
 		 */
-		if (target->type == SYM_NODE)
+		mod1 = target->ctype.modifiers;
+		as1 = target->ctype.as;
+		mod2 = source->ctype.modifiers;
+		as2 = source->ctype.as; 
+		if (target->type == SYM_NODE) {
 			target = target->ctype.base_type;
-		if (source->type == SYM_NODE)
+			if (target->type == SYM_PTR) {
+				mod1 = 0;
+				as1 = 0;
+			}	
+			mod1 |= target->ctype.modifiers;
+			as1 |= target->ctype.as;
+		}
+		if (source->type == SYM_NODE) {
 			source = source->ctype.base_type;
+			if (source->type == SYM_PTR) {
+				mod2 = 0;
+				as2 = 0;
+			}
+			mod2 |= source->ctype.modifiers;
+			as2 |= source->ctype.as; 
+		}
 
 		if (target == source)
 			break;
 		if (!target || !source)
 			return "different types";
-
-		mod1 = target->ctype.modifiers;
-		as1 = target->ctype.as;
-		mod2 = source->ctype.modifiers;
-		as2 = source->ctype.as;
 
 		type1 = target->type;
 		base1 = target->ctype.base_type;
