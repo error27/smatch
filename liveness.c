@@ -162,7 +162,7 @@ static void add_pseudo_exclusive(struct pseudo_list **list, pseudo_t pseudo)
 
 static inline int trackable_pseudo(pseudo_t pseudo)
 {
-	return pseudo && (pseudo->type == PSEUDO_REG || pseudo->type == PSEUDO_PHI || pseudo->type == PSEUDO_ARG);
+	return pseudo && (pseudo->type == PSEUDO_REG || pseudo->type == PSEUDO_ARG);
 }
 
 static void insn_uses(struct basic_block *bb, struct instruction *insn, pseudo_t pseudo)
