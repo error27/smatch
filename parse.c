@@ -302,9 +302,35 @@ static struct token *logical_or_expression(struct token *token, struct expressio
 	return lr_binop_expression(token, tree, logical_and_expression, SPECIAL_LOGICAL_OR, 0);
 }
 
+struct token *assignment_expression(struct token *token, struct expression **tree)
+{
+	struct expression *left = NULL;
+
+	token = logical_or_expression(token, &left);
+	if (token && token->type == TOKEN_SPECIAL) {
+		static const int assignments[] = {
+			'=', SPECIAL_ADD_ASSIGN, SPECIAL_MINUS_ASSIGN,
+			SPECIAL_TIMES_ASSIGN, SPECIAL_DIV_ASSIGN,
+			SPECIAL_MOD_ASSIGN, SPECIAL_SHL_ASSIGN,
+			SPECIAL_SHR_ASSIGN, SPECIAL_AND_ASSIGN,
+			SPECIAL_OR_ASSIGN, SPECIAL_XOR_ASSIGN };
+		int i, op = token->special;
+		for (i = 0; i < sizeof(assignments)/sizeof(int); i++)
+			if (assignments[i] == op) {
+				struct expression * expr = alloc_expression(token, EXPR_BINOP);
+				expr->left = left;
+				expr->op = op;
+				*tree = expr;
+				return assignment_expression(token->next, &expr->right);
+			}
+	}
+	*tree = left;
+	return token;
+}
+
 struct token *comma_expression(struct token *token, struct expression **tree)
 {
-	return lr_binop_expression(token, tree, logical_or_expression, ',', 0);
+	return lr_binop_expression(token, tree, assignment_expression, ',', 0);
 }
 
 struct token *parse_expression(struct token *token, struct expression **tree)
