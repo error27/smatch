@@ -16,14 +16,15 @@
  * declared.
  */
 struct symbol {
+	int type;
 	struct token *token;		/* Where this symbol was declared */
 	struct symbol *next;		/* Next symbol at this level */
 	struct symbol *next_id;		/* Next semantic symbol that shares this identifier */
-	int type;
 	unsigned long size;
 	unsigned long modifiers;
 	struct symbol *base_type;
 	struct symbol *children;
+	struct statement *stmt;
 };
 
 /* Modifiers */

@@ -573,12 +573,46 @@ static struct token *declaration(struct token *token, struct symbol **tree)
 		printf("\n\n");
 	}
 	return token;
-}	
+}
+
+static struct token *compound_statement(struct token *token, struct statement **tree)
+{
+	return statement_list(token, tree);
+}
+
+static struct token *external_declaration(struct token *token, struct symbol **tree)
+{
+	struct token *ident = NULL;
+	struct symbol *specifiers;
+	struct symbol *declarator;
+
+	/* Parse declaration-specifiers, if any */
+	specifiers = alloc_symbol(SYM_TYPE);
+	token = declaration_specifiers(token, specifiers);
+
+	declarator = specifiers;
+	token = generic_declarator(token, &declarator, &ident);
+
+	*tree = declarator;
+
+	if (ident) {
+		printf("external_declarator %s:\n  ", show_token(ident));
+		show_type(declarator);
+		printf("\n\n");
+	}
+
+	if (match_op(token, '{')) {
+		token = compound_statement(token->next, &declarator->stmt);
+		return expect(token, '}', "at end of function");
+	}
+
+	return token;
+}
 
 struct token * translation_unit(struct token *token, struct symbol **tree)
 {
 	for (;;) {
-		token = declaration(token, tree);
+		token = external_declaration(token, tree);
 		if (!match_op(token, ';'))
 			return token;
 		if (*tree)
