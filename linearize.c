@@ -1580,7 +1580,7 @@ pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 	insn = alloc_instruction(OP_ASM, 0);
 	expr = stmt->asm_string;
 	if (!expr || expr->type != EXPR_STRING) {
-		warning(stmt->pos, "expected string in inline asm, got %p:%d", expr, expr ? expr->type : -1);
+		warning(stmt->pos, "expected string in inline asm");
 		return VOID;
 	}
 	insn->string = expr->string->data;
