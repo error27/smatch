@@ -1403,26 +1403,30 @@ static struct expression *index_expression(struct expression *from, struct expre
 	return expr;
 }
 
-static struct token *initializer_list(struct expression_list **list, struct token *token)
+static struct token *single_initializer(struct expression **ep, struct token *token)
 {
-	int expect_equal = 0, old_style = 0;
-	struct expression *expr, **ep = &expr;
+	int expect_equal = 0;
+	struct token *next = token->next;
+	struct expression **tail = ep;
+	int nested;
 
-	for (;;) {
-		struct token *next = token->next;
+	*ep = NULL; 
 
+	if ((token_type(token) == TOKEN_IDENT) && match_op(next, ':')) {
+		struct expression *expr = identifier_expression(token);
+		warning(token->pos, "obsolete struct initializer, use C99 syntax");
+		token = initializer(&expr->ident_expression, next->next);
+		if (expr->ident_expression)
+			*ep = expr;
+		return token;
+	}
+
+	for (tail = ep, nested = 0; ; nested++, next = token->next) {
 		if (match_op(token, '.') && (token_type(next) == TOKEN_IDENT)) {
 			struct expression *expr = identifier_expression(next);
-			*ep = expr;
-			ep = &expr->ident_expression;
-			token = next->next;
+			*tail = expr;
+			tail = &expr->ident_expression;
 			expect_equal = 1;
-			continue;
-		} else if (!expect_equal && (token_type(token) == TOKEN_IDENT) && match_op(next, ':')) {
-			struct expression *expr = identifier_expression(token);
-			*ep = expr;
-			ep = &expr->ident_expression;
-			old_style = 1;
 			token = next->next;
 		} else if (match_op(token, '[')) {
 			struct expression *from = NULL, *to = NULL, *expr;
@@ -1430,32 +1434,42 @@ static struct token *initializer_list(struct expression_list **list, struct toke
 			if (match_op(token, SPECIAL_ELLIPSIS))
 				token = constant_expression(token->next, &to);
 			expr = index_expression(from, to);
-			*ep = expr;
-			ep = &expr->idx_expression;
+			*tail = expr;
+			tail = &expr->idx_expression;
 			token = expect(token, ']', "at end of initializer index");
+			if (nested)
+				expect_equal = 1;
+		} else {
+			break;
+		}
+	}
+	if (nested && !expect_equal) {
+		if (!match_op(token, '='))
+			warning(token->pos, "obsolete array initializer, use C99 syntax");
+		else
 			expect_equal = 1;
-			continue;
-		}
-		if (expect_equal) {
-			old_style = 1;
-			if (match_op(token, '=')) {
-				old_style = 0;
-				token = token->next;
-			}
-		}
-		if (old_style)
-			warning(token->pos, "Old-style gcc initializer - please us C99 syntax");
+	}
+	if (expect_equal)
+		token = expect(token, '=', "at end of initializer index");
 
+	token = initializer(tail, token);
+	if (!*tail)
 		*ep = NULL;
-		token = initializer(ep, token);
+	return token;
+}
+
+static struct token *initializer_list(struct expression_list **list, struct token *token)
+{
+	struct expression *expr;
+
+	for (;;) {
+		token = single_initializer(&expr, token);
 		if (!expr)
 			break;
 		add_expression(list, expr);
 		if (!match_op(token, ','))
 			break;
 		token = token->next;
-		expect_equal = 0;
-		ep = &expr;
 	}
 	return token;
 }
