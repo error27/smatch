@@ -406,8 +406,8 @@ struct sym_init {
 
 #if 0
 	{ "attribute",	NULL,		MOD_ATTRIBUTE },
-	{ "__attribute", NULL,		MOD_ATTRIBUTE },
 #endif
+	{ "__attribute", NULL,		MOD_ATTRIBUTE },
 	{ "__attribute__", NULL,	MOD_ATTRIBUTE },
 
 	{ "struct",	NULL,		MOD_STRUCTOF },
