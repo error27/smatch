@@ -726,6 +726,23 @@ static struct expression *identifier_expression(struct token *token)
 	return expr;
 }
 
+static struct expression *index_expression(struct expression *from, struct expression *to)
+{
+	int idx_from, idx_to;
+	struct expression *expr = alloc_expression(from->pos, EXPR_INDEX);
+
+	idx_from = get_expression_value(from);
+	idx_to = idx_from;
+	if (to) {
+		idx_to = get_expression_value(to);
+		if (idx_to < idx_from)
+			warn(from->pos, "nonsense array initializer index range");
+	}
+	expr->idx_from = idx_from;
+	expr->idx_to = idx_to;
+	return expr;
+}
+
 static struct token *initializer_list(struct expression_list **list, struct token *token)
 {
 	for (;;) {
@@ -738,6 +755,13 @@ static struct token *initializer_list(struct expression_list **list, struct toke
 		} else if ((token_type(token) == TOKEN_IDENT) && match_op(next, ':')) {
 			add_expression(list, identifier_expression(token));
 			token = next->next;
+		} else if (match_op(token, '[')) {
+			struct expression *from = NULL, *to = NULL;
+			token = constant_expression(token->next, &from);
+			if (match_op(token, SPECIAL_ELLIPSIS))
+				token = constant_expression(token->next, &to);
+			add_expression(list, index_expression(from, to));
+			token = expect(token, ']', "at end of initializer index");
 		}
 
 		expr = NULL;
