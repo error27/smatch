@@ -562,21 +562,41 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 		show_instruction(insn);
 }
 
-static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, struct storage *storage)
+static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, pseudo_t pseudo, struct storage *storage)
 {
+	int i;
 	struct hardreg *out;
 
 	switch (storage->type) {
-	case REG_UDEF:
-		storage->type = REG_REG;
-		storage->regno = reg - hardregs;
-		return;
 	case REG_REG:
 		out = hardregs + storage->regno;
 		if (reg == out)
 			return;
 		printf("\tmovl %s,%s\n", reg->name, out->name);
 		return;
+	case REG_UDEF:
+		if (reg->busy < 1000) {
+			storage->type = REG_REG;
+			storage->regno = reg - hardregs;
+			reg->busy = 1000;
+			return;
+		}
+
+		/* Try to find a non-busy register.. */
+		for (i = 0; i < REGNO; i++) {
+			out = hardregs + i;
+			if (out->busy)
+				continue;
+			printf("\tmovl %s,%s\n", reg->name, out->name);
+			storage->type = REG_REG;
+			storage->regno = i;
+			reg->busy = 1000;
+			return;
+		}
+
+		/* Fall back on stack allocation ... */
+		alloc_stack(state, storage);
+		/* Fallthroigh */
 	default:
 		printf("\tmovl %s,%s\n", reg->name, show_memop(storage));
 		return;
@@ -627,7 +647,7 @@ static void fill_output(struct bb_state *state, pseudo_t pseudo, struct storage 
 
 		FOR_EACH_PTR(reg->contains, p) {
 			if (p == pseudo) {
-				write_reg_to_storage(state, reg, out);
+				write_reg_to_storage(state, reg, pseudo, out);
 				return;
 			}
 		} END_FOR_EACH_PTR(p);
@@ -670,6 +690,7 @@ static void generate_output_storage(struct bb_state *state)
 		if (out->type == REG_REG) {
 			struct hardreg *reg = hardregs + out->regno;
 			pseudo_t p;
+			reg->busy = 1000;
 			FOR_EACH_PTR(reg->contains, p) {
 				if (p == entry->pseudo)
 					goto ok;
