@@ -17,6 +17,25 @@
 
 #include "target.h"
 
+/*
+ * Secondary symbol list for stuff that needs to be output because it
+ * was used. 
+ */
+struct symbol_list *used_list = NULL;
+
+/*
+ * If the symbol is an inline symbol, add it to the list of symbols to parse
+ */
+void access_symbol(struct symbol *sym)
+{
+	if (sym->ctype.modifiers & MOD_INLINE) {
+		if (!(sym->ctype.modifiers & MOD_ACCESSED)) {
+			add_symbol(&used_list, sym);
+			sym->ctype.modifiers |= MOD_ACCESSED;
+		}
+	}
+}
+
 struct symbol *lookup_symbol(struct ident *ident, enum namespace ns)
 {
 	struct symbol *sym;

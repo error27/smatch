@@ -115,6 +115,7 @@ struct symbol {
 
 #define MOD_NOCAST	0x100000
 #define MOD_NODEREF	0x200000
+#define MOD_ACCESSED	0x400000
 
 /* Basic types */
 extern struct symbol	void_type,
@@ -162,6 +163,11 @@ extern struct ident	__asm___ident,
 			__attribute_ident;
 
 #define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)
+
+extern struct symbol_list *used_list;
+
+extern void access_symbol(struct symbol *);
+
 
 extern struct symbol *lookup_symbol(struct ident *, enum namespace);
 extern void init_symbols(void);
