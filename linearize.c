@@ -1760,7 +1760,7 @@ static void remove_phi_nodes(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(bb);
 }
 
-static inline void concat_user_list(struct pseudo_ptr_list *src, struct pseudo_ptr_list **dst)
+static inline void concat_user_list(struct pseudo_list *src, struct pseudo_list **dst)
 {
 	concat_ptr_list((struct ptr_list *)src, (struct ptr_list **)dst);
 }
