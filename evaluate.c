@@ -73,14 +73,29 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 
 static struct symbol *evaluate_string(struct expression *expr)
 {
-	struct symbol *sym = alloc_symbol(expr->pos, SYM_ARRAY);
+	struct symbol *sym = alloc_symbol(expr->pos, SYM_NODE);
+	struct symbol *array = alloc_symbol(expr->pos, SYM_ARRAY);
+	struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
 	int length = expr->string->length;
 
 	sym->array_size = length;
 	sym->bit_size = BITS_IN_CHAR * length;
 	sym->ctype.alignment = 1;
-	sym->ctype.modifiers = 0;
-	sym->ctype.base_type = &char_ctype;
+	sym->ctype.modifiers = MOD_CONST;
+	sym->ctype.base_type = array;
+
+	array->array_size = length;
+	array->bit_size = BITS_IN_CHAR * length;
+	array->ctype.alignment = 1;
+	array->ctype.modifiers = 0;
+	array->ctype.base_type = &char_ctype;
+	
+	addr->symbol = sym;
+	addr->ctype = &ptr_ctype;
+
+	expr->type = EXPR_PREOP;
+	expr->op = '*';
+	expr->unop = addr;  
 	expr->ctype = sym;
 	return sym;
 }
@@ -1118,6 +1133,7 @@ static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 	struct expression *expr;
 	struct symbol_list *argument_types = fn->arguments;
 	struct symbol *argtype;
+	int i = 1;
 
 	PREPARE_PTR_LIST(argument_types, argtype);
 	FOR_EACH_PTR (head, expr) {
@@ -1137,10 +1153,13 @@ static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 		if (!target && ctype->bit_size < BITS_IN_INT)
 			target = &int_ctype;
 		if (target) {
+			static char where[30];
 			examine_symbol_type(target);
-			compatible_assignment_types(expr, target, p, ctype, "argument passing");
+			sprintf(where, "argument %d", i);
+			compatible_assignment_types(expr, target, p, ctype, where);
 		}
 
+		i++;
 		NEXT_PTR_LIST(argument_types, argtype);
 	} END_FOR_EACH_PTR;
 	FINISH_PTR_LIST;
