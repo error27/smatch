@@ -36,6 +36,7 @@ static int elif_ignore[MAXNEST];
 #define INCLUDEPATHS 32
 const char *includepath[INCLUDEPATHS+1] = {
 	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.1/include/",
+	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/",
 	"/usr/include/",
 	"/usr/local/include/",
 	"",
@@ -792,7 +793,7 @@ static int handle_nostdinc(struct stream *stream, struct token *head, struct tok
 {
 	if (false_nesting)
 		return 1;
-	includepath[1] = NULL;
+	includepath[2] = NULL;
 	return 1;
 }
 
