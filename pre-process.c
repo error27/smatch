@@ -35,14 +35,20 @@ static int elif_ignore[MAXNEST];
 
 #define INCLUDEPATHS 32
 const char *includepath[INCLUDEPATHS+1] = {
-	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.1/include/",
-	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/",
-	"/usr/include/",
-	"/usr/local/include/",
-	"",
 	NULL
 };
 
+const char *sys_includepath[] = {
+	"/usr/include",
+	"/usr/local/include",
+	NULL,
+};
+
+const char *gcc_includepath[] = {
+	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.1/include",
+	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include",
+	NULL
+};
 
 
 /*
@@ -486,39 +492,63 @@ static const char *token_name_sequence(struct token *token, int endop, struct to
 	return buffer;
 }
 
-static struct token *try_include(const char *path, int plen, const char *filename, int flen, struct token *next_token)
+static int try_include(const char *path, int plen, const char *filename, int flen, struct token *head)
 {
 	int fd;
 	static char fullname[PATH_MAX];
 
 	memcpy(fullname, path, plen);
+	if (plen && path[plen-1] != '/') {
+		fullname[plen] = '/';
+		plen++;
+	}
 	memcpy(fullname+plen, filename, flen);
 	fd = open(fullname, O_RDONLY);
 	if (fd >= 0) {
 		char * streamname = __alloc_bytes(plen + flen);
-		struct token *list;
 		memcpy(streamname, fullname, plen + flen);
-		list = tokenize(streamname, fd, next_token);
+		head->next = tokenize(streamname, fd, head->next);
 		close(fd);
-		return list;
+		return 1;
 	}
-	return NULL;
+	return 0;
 }
+
+static int do_include_path(const char **pptr, struct token *head, struct token *token, const char *filename, int flen)
+{
+	const char *path;
+
+	while ((path = *pptr++) != NULL) {
+		if (!try_include(path, strlen(path), filename, flen, head))
+			continue;
+		return 1;
+	}
+	return 0;
+}
+	
 
 static void do_include(struct stream *stream, struct token *head, struct token *token, const char *filename)
 {
+	const char *path;
+	char *slash;
 	int flen = strlen(filename) + 1;
-	const char **pptr = includepath, *path;
 
-	while ((path = *pptr++) != NULL) {
-		struct token *new;
-
-		new = try_include(path, strlen(path), filename, flen, head->next);
-		if (!new)
-			continue;
-		head->next = new;
+	/* Check the standard include paths.. */
+	if (do_include_path(includepath, head, token, filename, flen))
 		return;
+	if (do_include_path(sys_includepath, head, token, filename, flen))
+		return;
+	if (do_include_path(gcc_includepath, head, token, filename, flen))
+		return;
+
+	/* Check same directory as current stream.. */
+	path = stream->name;
+	slash = strrchr(path, '/');
+	if (slash) {
+		if (try_include(path, slash-path, filename, flen, head))
+			return;
 	}
+
 	error(token->pos, "unable to open '%s'", filename);
 }
 
@@ -798,7 +828,7 @@ static int handle_error(struct stream *stream, struct token *head, struct token 
 {
 	if (false_nesting)
 		return 1;
-	error(token->pos, "%s", show_token_sequence(token->next));
+	warn(token->pos, "%s", show_token_sequence(token->next));
 	return 1;
 }
 
@@ -806,7 +836,7 @@ static int handle_nostdinc(struct stream *stream, struct token *head, struct tok
 {
 	if (false_nesting)
 		return 1;
-	includepath[2] = NULL;
+	includepath[0] = NULL;
 	return 1;
 }
 
