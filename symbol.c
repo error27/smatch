@@ -13,6 +13,7 @@
 #include "parse.h"
 #include "symbol.h"
 #include "scope.h"
+#include "expression.h"
 
 #include "target.h"
 
@@ -154,49 +155,54 @@ static void examine_bitfield_type(struct symbol *sym)
  * Fill in type size and alignment information for
  * regular SYM_TYPE things.
  */
-void examine_symbol_type(struct symbol * sym)
+struct symbol *examine_symbol_type(struct symbol * sym)
 {
 	unsigned int bit_size, alignment;
 	struct symbol *base_type;
 	unsigned long modifiers;
 
 	if (!sym)
-		return;
+		return sym;
 
 	/* Already done? */
 	if (sym->bit_size)
-		return;
+		return sym;
 
 	switch (sym->type) {
 	case SYM_ARRAY:
 		examine_array_type(sym);
-		return;
+		return sym;
 	case SYM_STRUCT:
 		examine_struct_union_type(sym, 1);
-		return;
+		return sym;
 	case SYM_UNION:
 		examine_struct_union_type(sym, 0);
-		return;
+		return sym;
 	case SYM_PTR:
 		if (!sym->bit_size)
 			sym->bit_size = BITS_IN_POINTER;
 		if (!sym->alignment)
 			sym->alignment = POINTER_ALIGNMENT;
 		examine_symbol_type(sym->ctype.base_type);
-		return;
+		return sym;
 	case SYM_ENUM:
 		if (!sym->bit_size)
 			sym->bit_size = BITS_IN_ENUM;
 		if (!sym->alignment)
 			sym->alignment = ENUM_ALIGNMENT;
-		return;
+		return sym;
 	case SYM_BITFIELD:
 		examine_bitfield_type(sym);
-		return;
+		return sym;
 	case SYM_BASETYPE:
 		/* Size and alignment had better already be set up */
-		return;
-
+		return sym;
+	case SYM_TYPEOF: {
+		struct symbol *base = evaluate_expression(sym->initializer);
+		if (base)
+			return base;
+		break;
+	}
 	default:
 		break;
 	}
@@ -218,6 +224,7 @@ void examine_symbol_type(struct symbol * sym)
 	if (!sym->alignment)
 		sym->alignment = alignment;
 	sym->bit_size = bit_size;
+	return sym;
 }
 
 void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)

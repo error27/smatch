@@ -105,10 +105,10 @@ struct token *primary_expression(struct token *token, struct expression **tree);
 struct token *parens_expression(struct token *token, struct expression **expr, const char *where);
 struct token *assignment_expression(struct token *token, struct expression **tree);
 
-extern int evaluate_symbol(struct symbol *sym);
-extern int evaluate_statement(struct statement *stmt);
-extern int evaluate_expression(struct expression *);
-extern int evaluate_initializer(struct symbol *, struct expression *);
+extern struct symbol *evaluate_symbol(struct symbol *sym);
+extern struct symbol *evaluate_statement(struct statement *stmt);
+extern struct symbol *evaluate_expression(struct expression *);
+extern struct symbol *evaluate_initializer(struct symbol *, struct expression *);
 
 static inline struct expression *alloc_expression(struct position pos, int type)
 {

@@ -21,19 +21,19 @@
 #include "target.h"
 #include "expression.h"
 
-static int evaluate_symbol_expression(struct expression *expr)
+static struct symbol *evaluate_symbol_expression(struct expression *expr)
 {
 	struct symbol *sym = expr->symbol;
 	struct symbol *base_type;
 
 	if (!sym) {
 		warn(expr->pos, "undefined identifier '%s'", show_ident(expr->symbol_name));
-		return 0;
+		return NULL;
 	}
 	base_type = sym->ctype.base_type;
 	if (!base_type) {
 		warn(sym->pos, "identifier '%s' has no type", show_ident(expr->symbol_name));
-		return 0;
+		return NULL;
 	}
 	expr->ctype = base_type;
 
@@ -42,10 +42,10 @@ static int evaluate_symbol_expression(struct expression *expr)
 		expr->type = EXPR_VALUE;
 		expr->value = sym->value;
 	}
-	return 1;
+	return base_type;
 }
 
-static int evaluate_string(struct expression *expr)
+static struct symbol *evaluate_string(struct expression *expr)
 {
 	struct symbol *sym = alloc_symbol(expr->pos, SYM_ARRAY);
 	int length = expr->string->length;
@@ -57,7 +57,7 @@ static int evaluate_string(struct expression *expr)
 	sym->ctype.modifiers = MOD_CONST;
 	sym->ctype.base_type = &char_ctype;
 	expr->ctype = sym;
-	return 1;
+	return sym;
 }
 
 static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
@@ -84,7 +84,7 @@ static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 	return ctype_integer(mod);
 }
 
-static int cast_value(struct expression *expr, struct symbol *newtype,
+static struct symbol * cast_value(struct expression *expr, struct symbol *newtype,
 			struct expression *old, struct symbol *oldtype)
 {
 	int old_size = oldtype->bit_size;
@@ -94,15 +94,15 @@ static int cast_value(struct expression *expr, struct symbol *newtype,
 
 	// FIXME! We don't handle FP casts of constant values yet
 	if (newtype->ctype.base_type == &fp_type)
-		return 0;
+		return NULL;
 	if (oldtype->ctype.base_type == &fp_type)
-		return 0;
+		return NULL;
 
 	// For pointers and integers, we can just move the value around
 	expr->type = EXPR_VALUE;
 	if (old_size == new_size) {
 		expr->value = old->value;
-		return 1;
+		return newtype;
 	}
 
 	// expand it to the full "long long" value
@@ -121,7 +121,7 @@ static int cast_value(struct expression *expr, struct symbol *newtype,
 	mask = 1ULL << (new_size-1);
 	mask = mask | (mask-1);
 	expr->value = value & mask;
-	return 1;
+	return newtype;
 }
 
 static struct expression * cast_to(struct expression *old, struct symbol *type)
@@ -145,10 +145,10 @@ static int is_int_type(struct symbol *type)
 	return type->ctype.base_type == &int_type;
 }
 
-static int bad_expr_type(struct expression *expr)
+static struct symbol *bad_expr_type(struct expression *expr)
 {
 	warn(expr->pos, "incompatible types for operation");
-	return 0;
+	return NULL;
 }
 
 static struct symbol * compatible_integer_binop(struct expression *expr, struct expression **lp, struct expression **rp)
@@ -174,12 +174,12 @@ static struct symbol * compatible_integer_binop(struct expression *expr, struct 
 	return NULL;
 }
 
-static int evaluate_int_binop(struct expression *expr)
+static struct symbol *evaluate_int_binop(struct expression *expr)
 {
 	struct symbol *ctype = compatible_integer_binop(expr, &expr->left, &expr->right);
 	if (ctype) {
 		expr->ctype = ctype;
-		return 1;
+		return ctype;
 	}
 	return bad_expr_type(expr);
 }
@@ -197,7 +197,7 @@ static struct symbol *degenerate(struct expression *expr, struct symbol *ctype)
 	return ctype;
 }
 
-static int evaluate_ptr_add(struct expression *expr, struct expression *ptr, struct expression *i)
+static struct symbol *evaluate_ptr_add(struct expression *expr, struct expression *ptr, struct expression *i)
 {
 	struct symbol *ctype;
 	struct symbol *ptr_type = ptr->ctype;
@@ -230,10 +230,10 @@ static int evaluate_ptr_add(struct expression *expr, struct expression *ptr, str
 		add->right = mul;
 	}
 		
-	return 1;
+	return expr->ctype;
 }
 
-static int evaluate_add(struct expression *expr)
+static struct symbol *evaluate_add(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
 	struct symbol *ltype = left->ctype, *rtype = right->ctype;
@@ -260,7 +260,7 @@ static struct symbol *same_ptr_types(struct symbol *a, struct symbol *b)
 	return a;
 }
 
-static int evaluate_ptr_sub(struct expression *expr, struct expression *l, struct expression *r)
+static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expression *l, struct expression *r)
 {
 	struct symbol *ctype;
 	struct symbol *ltype = l->ctype, *rtype = r->ctype;
@@ -275,7 +275,7 @@ static int evaluate_ptr_sub(struct expression *expr, struct expression *l, struc
 	ctype = same_ptr_types(ltype, rtype);
 	if (!ctype) {
 		warn(expr->pos, "subtraction of different types can't work");
-		return 0;
+		return NULL;
 	}
 	examine_symbol_type(ctype);
 
@@ -298,10 +298,10 @@ static int evaluate_ptr_sub(struct expression *expr, struct expression *l, struc
 		div->right = val;
 	}
 		
-	return 1;
+	return ssize_t_ctype;
 }
 
-static int evaluate_sub(struct expression *expr)
+static struct symbol *evaluate_sub(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
 	struct symbol *ltype = left->ctype;
@@ -313,20 +313,20 @@ static int evaluate_sub(struct expression *expr)
 	return evaluate_int_binop(expr);
 }
 
-static int evaluate_logical(struct expression *expr)
+static struct symbol *evaluate_logical(struct expression *expr)
 {
 	// FIXME! Short-circuit, FP and pointers!
 	expr->ctype = &bool_ctype;
-	return 1;
+	return &bool_ctype;
 }
 
-static int evaluate_arithmetic(struct expression *expr)
+static struct symbol *evaluate_arithmetic(struct expression *expr)
 {
 	// FIXME! Floating-point promotion!
 	return evaluate_int_binop(expr);
 }
 
-static int evaluate_binop(struct expression *expr)
+static struct symbol *evaluate_binop(struct expression *expr)
 {
 	switch (expr->op) {
 	// addition can take ptr+int, fp and int
@@ -354,13 +354,13 @@ static int evaluate_binop(struct expression *expr)
 	}
 }
 
-static int evaluate_comma(struct expression *expr)
+static struct symbol *evaluate_comma(struct expression *expr)
 {
 	expr->ctype = expr->right->ctype;
-	return 1;
+	return expr->ctype;
 }
 
-static int evaluate_compare(struct expression *expr)
+static struct symbol *evaluate_compare(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
 	struct symbol *ltype = left->ctype, *rtype = right->ctype;
@@ -369,12 +369,12 @@ static int evaluate_compare(struct expression *expr)
 	if (is_ptr_type(ltype) || is_ptr_type(rtype)) {
 		expr->ctype = &bool_ctype;
 		// FIXME! Check the types for compatibility
-		return 1;
+		return &bool_ctype;
 	}
 
 	if (compatible_integer_binop(expr, &expr->left, &expr->right)) {
 		expr->ctype = &bool_ctype;
-		return 1;
+		return &bool_ctype;
 	}
 
 	return bad_expr_type(expr);
@@ -413,22 +413,22 @@ static int compatible_integer_types(struct symbol *ltype, struct symbol *rtype)
 	return (is_int_type(ltype) && is_int_type(rtype));
 }
 
-static int evaluate_conditional(struct expression *expr)
+static struct symbol * evaluate_conditional(struct expression *expr)
 {
 	struct symbol *ctype;
 
 	if (same_type(expr->cond_true->ctype, expr->cond_false->ctype)) {
 		expr->ctype = expr->cond_true->ctype;
-		return 1;
+		return expr->ctype;
 	}
 
 	ctype = compatible_integer_binop(expr, &expr->cond_true, &expr->cond_false);
 	if (ctype) {
 		expr->ctype = ctype;
-		return 1;
+		return ctype;
 	}
 	warn(expr->pos, "incompatible types in conditional expression");
-	return 0;
+	return NULL;
 }
 		
 static int compatible_assignment_types(struct expression *expr,
@@ -478,7 +478,7 @@ static int compatible_assignment_types(struct expression *expr,
 	return 0;
 }
 
-static int evaluate_binop_assignment(struct expression *expr, struct expression *left, struct expression *right)
+static struct symbol *evaluate_binop_assignment(struct expression *expr, struct expression *left, struct expression *right)
 {
 	int op = expr->op;
 	struct expression *subexpr = alloc_expression(expr->pos, EXPR_BINOP);
@@ -503,22 +503,19 @@ static int evaluate_binop_assignment(struct expression *expr, struct expression 
 	return evaluate_binop(subexpr);
 }
 
-static int evaluate_assignment(struct expression *expr)
+static struct symbol *evaluate_assignment(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
 	struct symbol *ltype, *rtype;
 
-	if (expr->op != '=') {
-		if (!evaluate_binop_assignment(expr, left, right))
-			return 0;
-		right = expr->right;
-		if (!right->ctype) {
-			warn(expr->pos, "what? evaluate_binop_assignment lies!");
-			return 0;
-		}
-	}
 	ltype = left->ctype;
 	rtype = right->ctype;
+	if (expr->op != '=') {
+		rtype = evaluate_binop_assignment(expr, left, right);
+		if (!rtype)
+			return 0;
+		right = expr->right;
+	}
 
 	if (!ltype) {
 		warn(expr->pos, "what? no ltype");
@@ -533,21 +530,23 @@ static int evaluate_assignment(struct expression *expr)
 		return 0;
 
 	expr->ctype = expr->left->ctype;
-	return 1;
+	return expr->ctype;
 }
 
-static int evaluate_preop(struct expression *expr)
+static struct symbol *evaluate_preop(struct expression *expr)
 {
 	struct symbol *ctype = expr->unop->ctype;
 
 	switch (expr->op) {
 	case '(':
 		expr->ctype = ctype;
-		return 1;
+		return ctype;
 
 	case '*':
 		if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
 			warn(expr->pos, "cannot derefence this type");
+			show_type(ctype);
+			printf("\n");
 			return 0;
 		}
 		examine_symbol_type(expr->ctype);
@@ -556,7 +555,7 @@ static int evaluate_preop(struct expression *expr)
 			warn(expr->pos, "undefined type");
 			return 0;
 		}
-		return 1;
+		return expr->ctype;
 
 	case '&': {
 		struct symbol *symbol = alloc_symbol(expr->pos, SYM_PTR);
@@ -564,27 +563,27 @@ static int evaluate_preop(struct expression *expr)
 		symbol->bit_size = BITS_IN_POINTER;
 		symbol->alignment = POINTER_ALIGNMENT;
 		expr->ctype = symbol;
-		return 1;
+		return symbol;
 	}
 
 	case '!':
 		expr->ctype = &bool_ctype;
-		return 1;
+		return &bool_ctype;
 
 	default:
 		expr->ctype = ctype;
-		return 1;
+		return ctype;
 	}
 }
 
 /*
  * Unary post-ops: x++ and x--
  */
-static int evaluate_postop(struct expression *expr)
+static struct symbol *evaluate_postop(struct expression *expr)
 {
 	struct symbol *ctype = expr->unop->ctype;
 	expr->ctype = ctype;
-	return 1;
+	return ctype;
 }
 
 struct symbol *find_identifier(struct ident *ident, struct symbol_list *_list, int *offset)
@@ -622,7 +621,7 @@ struct symbol *find_identifier(struct ident *ident, struct symbol_list *_list, i
 }
 
 /* structure/union dereference */
-static int evaluate_dereference(struct expression *expr)
+static struct symbol *evaluate_dereference(struct expression *expr)
 {
 	int offset;
 	struct symbol *ctype, *member;
@@ -630,10 +629,10 @@ static int evaluate_dereference(struct expression *expr)
 	struct ident *ident = expr->member;
 
 	if (!evaluate_expression(deref))
-		return 0;
+		return NULL;
 	if (!ident) {
 		warn(expr->pos, "bad member name");
-		return 0;
+		return NULL;
 	}
 
 	ctype = deref->ctype;
@@ -641,19 +640,19 @@ static int evaluate_dereference(struct expression *expr)
 		/* Arrays will degenerate into pointers for '->' */
 		if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
 			warn(expr->pos, "expected a pointer to a struct/union");
-			return 0;
+			return NULL;
 		}
 		ctype = ctype->ctype.base_type;
 	}
 	if (!ctype || (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION)) {
 		warn(expr->pos, "expected structure or union");
-		return 0;
+		return NULL;
 	}
 	offset = 0;
 	member = find_identifier(ident, ctype->symbol_list, &offset);
 	if (!member) {
 		warn(expr->pos, "no such struct/union member");
-		return 0;
+		return NULL;
 	}
 
 	add = deref;
@@ -669,22 +668,22 @@ static int evaluate_dereference(struct expression *expr)
 
 	ctype = member->ctype.base_type;
 	if (ctype->type == SYM_BITFIELD) {
+		ctype = ctype->ctype.base_type;
 		expr->type = EXPR_BITFIELD;
-		expr->ctype = ctype->ctype.base_type;
 		expr->bitpos = member->bit_offset;
 		expr->nrbits = member->fieldwidth;
 		expr->address = add;
 	} else {
 		expr->type = EXPR_PREOP;
 		expr->op = '*';
-		expr->ctype = ctype;
 		expr->unop = add;
 	}
 
-	return 1;
+	expr->ctype = ctype;
+	return ctype;
 }
 
-static int evaluate_sizeof(struct expression *expr)
+static struct symbol *evaluate_sizeof(struct expression *expr)
 {
 	int size;
 
@@ -703,10 +702,10 @@ static int evaluate_sizeof(struct expression *expr)
 	expr->type = EXPR_VALUE;
 	expr->value = size >> 3;
 	expr->ctype = size_t_ctype;
-	return 1;
+	return size_t_ctype;
 }
 
-static int evaluate_lvalue_expression(struct expression *expr)
+static struct symbol *evaluate_lvalue_expression(struct expression *expr)
 {
 	// FIXME!
 	return evaluate_expression(expr);
@@ -732,36 +731,34 @@ static int evaluate_expression_list(struct expression_list *head)
  * Initializers are kind of like assignments. Except
  * they can be a hell of a lot more complex.
  */
-int evaluate_initializer(struct symbol *sym, struct expression *expr)
+struct symbol *evaluate_initializer(struct symbol *sym, struct expression *expr)
 {
 	/*
 	 * FIXME!! Check type compatibility, and look up any named
 	 * initializers!
 	 */
-	if (!evaluate_expression(expr))
-		return 0;
-//	warn(sym->pos, "check initializer type");
+	evaluate_expression(expr);
 	expr->ctype = sym->ctype.base_type;
-	return 1;
+	return expr->ctype;
 }
 
-static int evaluate_cast(struct expression *expr)
+static struct symbol *evaluate_cast(struct expression *expr)
 {
 	struct expression *target = expr->cast_expression;
 	struct symbol *ctype = expr->cast_type;
 
 	if (!evaluate_expression(target))
-		return 0;
-	examine_symbol_type(ctype);
+		return NULL;
+	ctype = examine_symbol_type(ctype);
 	expr->ctype = ctype;
 
 	/* Simplify normal integer casts.. */
 	if (target->type == EXPR_VALUE)
 		cast_value(expr, ctype, target, target->ctype);
-	return 1;
+	return ctype;
 }
 
-static int evaluate_call(struct expression *expr)
+static struct symbol *evaluate_call(struct expression *expr)
 {
 	int args, fnargs;
 	struct symbol *ctype;
@@ -769,15 +766,15 @@ static int evaluate_call(struct expression *expr)
 	struct expression_list *arglist = expr->args;
 
 	if (!evaluate_expression(fn))
-		return 0;
+		return NULL;
 	if (!evaluate_expression_list(arglist))
-		return 0;
+		return NULL;
 	ctype = fn->ctype;
 	if (ctype->type == SYM_PTR || ctype->type == SYM_ARRAY)
 		ctype = ctype->ctype.base_type;
 	if (ctype->type != SYM_FN) {
 		warn(expr->pos, "not a function");
-		return 0;
+		return NULL;
 	}
 	args = expression_list_size(expr->args);
 	fnargs = symbol_list_size(ctype->arguments);
@@ -786,55 +783,55 @@ static int evaluate_call(struct expression *expr)
 	if (args > fnargs && !ctype->variadic)
 		warn(expr->pos, "too many arguments for function");
 	expr->ctype = ctype->ctype.base_type;
-	return 1;
+	return expr->ctype;
 }
 
-int evaluate_expression(struct expression *expr)
+struct symbol *evaluate_expression(struct expression *expr)
 {
 	if (!expr)
-		return 0;
+		return NULL;
 	if (expr->ctype)
-		return 1;
+		return expr->ctype;
 
 	switch (expr->type) {
 	case EXPR_VALUE:
 		warn(expr->pos, "value expression without a type");
-		return 0;
+		return NULL;
 	case EXPR_STRING:
 		return evaluate_string(expr);
 	case EXPR_SYMBOL:
 		return evaluate_symbol_expression(expr);
 	case EXPR_BINOP:
 		if (!evaluate_expression(expr->left))
-			return 0;
+			return NULL;
 		if (!evaluate_expression(expr->right))
-			return 0;
+			return NULL;
 		return evaluate_binop(expr);
 	case EXPR_COMMA:
 		if (!evaluate_expression(expr->left))
-			return 0;
+			return NULL;
 		if (!evaluate_expression(expr->right))
-			return 0;
+			return NULL;
 		return evaluate_comma(expr);
 	case EXPR_COMPARE:
 		if (!evaluate_expression(expr->left))
-			return 0;
+			return NULL;
 		if (!evaluate_expression(expr->right))
-			return 0;
+			return NULL;
 		return evaluate_compare(expr);
 	case EXPR_ASSIGNMENT:
 		if (!evaluate_lvalue_expression(expr->left))
-			return 0;
+			return NULL;
 		if (!evaluate_expression(expr->right))
-			return 0;
+			return NULL;
 		return evaluate_assignment(expr);
 	case EXPR_PREOP:
 		if (!evaluate_expression(expr->unop))
-			return 0;
+			return NULL;
 		return evaluate_preop(expr);
 	case EXPR_POSTOP:
 		if (!evaluate_expression(expr->unop))
-			return 0;
+			return NULL;
 		return evaluate_postop(expr);
 	case EXPR_CAST:
 		return evaluate_cast(expr);
@@ -846,39 +843,39 @@ int evaluate_expression(struct expression *expr)
 		return evaluate_call(expr);
 	case EXPR_BITFIELD:
 		warn(expr->pos, "bitfield generated by parser");
-		return 0;
+		return NULL;
 	case EXPR_CONDITIONAL:
 		if (!evaluate_expression(expr->conditional) ||
 		    !evaluate_expression(expr->cond_true) ||
 		    !evaluate_expression(expr->cond_false))
-			return 0;
+			return NULL;
 		return evaluate_conditional(expr);
 	case EXPR_STATEMENT:
-		return evaluate_statement(expr->statement);
+		expr->ctype = evaluate_statement(expr->statement);
+		return expr->ctype;
 	case EXPR_INITIALIZER:
 		if (!evaluate_expression_list(expr->expr_list))
-			return 0;
-		// FIXME! Figure out the type of the initializer!
-		warn(expr->pos, "no initializer expression type yet");   
-		return 0;
+			return NULL;
+		return NULL;
 	case EXPR_IDENTIFIER:
 		// FIXME!! Identifier
 		// warn(expr->pos, "identifier type??");
-		return 0;
+		return NULL;
 	case EXPR_INDEX:
 		// FIXME!! Array identifier index
 		// warn(expr->pos, "array index type??");
-		return 0;
+		return NULL;
 	}
-	return 0;
+	return NULL;
 }
 
 static void evaluate_one_statement(struct statement *stmt, void *_last, int flags)
 {
-	struct statement **last = _last;
+	struct symbol **last = _last;
+	struct symbol *type = evaluate_statement(stmt);
+
 	if (flags & ITERATE_LAST)
-		*last = stmt;
-	evaluate_statement(stmt);
+		*last = type;
 }
 
 static void evaluate_one_symbol(struct symbol *sym, void *unused, int flags)
@@ -886,22 +883,14 @@ static void evaluate_one_symbol(struct symbol *sym, void *unused, int flags)
 	evaluate_symbol(sym);
 }
 
-int evaluate_symbol(struct symbol *sym)
+struct symbol *evaluate_symbol(struct symbol *sym)
 {
 	struct symbol *base_type = sym->ctype.base_type;
 
 	if (!base_type)
-		return 0;
+		return NULL;
 
-	examine_symbol_type(base_type);
-
-	// Uhhuh! We had a typeof expression!
-	if (base_type->type == SYM_TYPEOF) {
-		if (!evaluate_expression(base_type->initializer))
-			return 0;
-		base_type = base_type->initializer->ctype;
-		sym->ctype.base_type = base_type;
-	}
+	base_type = examine_symbol_type(base_type);
 
 	/* Evaluate the initializers */
 	if (sym->initializer)
@@ -914,49 +903,50 @@ int evaluate_symbol(struct symbol *sym)
 			evaluate_statement(base_type->stmt);
 	}
 
-	return 1;
+	return base_type;
 }
 
-int evaluate_statement(struct statement *stmt)
+struct symbol *evaluate_statement(struct statement *stmt)
 {
 	if (!stmt)
-		return 0;
+		return NULL;
 
 	switch (stmt->type) {
 	case STMT_RETURN:
 	case STMT_EXPRESSION:
 		return evaluate_expression(stmt->expression);
+
 	case STMT_COMPOUND: {
-		struct statement *last;
+		struct symbol *type = NULL;
 		symbol_iterate(stmt->syms, evaluate_one_symbol, NULL);
-		statement_iterate(stmt->stmts, evaluate_one_statement, &last);
-		return 0;
+		statement_iterate(stmt->stmts, evaluate_one_statement, &type);
+		return type;
 	}
 	case STMT_IF:
 		evaluate_expression(stmt->if_conditional);
 		evaluate_statement(stmt->if_true);
 		evaluate_statement(stmt->if_false);
-		return 0;
+		return NULL;
 	case STMT_ITERATOR:
 		evaluate_expression(stmt->iterator_pre_condition);
 		evaluate_expression(stmt->iterator_post_condition);
 		evaluate_statement(stmt->iterator_pre_statement);
 		evaluate_statement(stmt->iterator_statement);
 		evaluate_statement(stmt->iterator_post_statement);
-		return 0;
+		return NULL;
 	case STMT_SWITCH:
 		evaluate_expression(stmt->switch_expression);
 		evaluate_statement(stmt->switch_statement);
-		return 0;
+		return NULL;
 	case STMT_CASE:
 		evaluate_expression(stmt->case_expression);
 		evaluate_expression(stmt->case_to);
 		evaluate_statement(stmt->case_statement);
-		return 0;
+		return NULL;
 	default:
 		break;
 	}
-	return 0;
+	return NULL;
 }
 
 long long get_expression_value(struct expression *expr)
