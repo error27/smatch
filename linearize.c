@@ -576,6 +576,22 @@ static pseudo_t linearize_logical_branch(struct entrypoint *ep, struct expressio
 
 pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *expr, struct basic_block *bb_true, struct basic_block *bb_false);
 
+static pseudo_t linearize_select(struct entrypoint *ep, struct expression *expr)
+{
+	pseudo_t cond, true, false;
+
+	true = NULL;
+	if (expr->cond_true)
+		true = linearize_expression(ep, expr->cond_true);
+	false = linearize_expression(ep, expr->cond_false);
+	cond = linearize_expression(ep, expr->conditional);
+	if (!true)
+		true = cond;
+
+	/* FIXME! This needs a ternary operation */
+	return add_binary_op(ep, expr, OP_SEL, true, false);
+}
+
 static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *expr,
 				      struct expression *cond, struct expression *expr_true,
 				      struct expression *expr_false)
@@ -733,6 +749,7 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 		return linearize_call_expression(ep, expr);
 
 	case EXPR_BINOP:
+	case EXPR_SAFELOGICAL:
 		return linearize_binop(ep, expr);
 
 	case EXPR_LOGICAL:
@@ -742,6 +759,8 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 		return  linearize_compare(ep, expr);
 
 	case EXPR_SELECT:
+		return	linearize_select(ep, expr);
+
 	case EXPR_CONDITIONAL:
 		return  linearize_conditional(ep, expr, expr->conditional,
 					      expr->cond_true, expr->cond_false);

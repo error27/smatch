@@ -25,10 +25,15 @@
 #include "target.h"
 #include "expression.h"
 
-static void expand_expression(struct expression *);
-static void expand_statement(struct statement *);
+/* Random cost numbers */
+#define UNSAFE 100		/* The expression may be "infinitely costly" due to exceptions */
+#define SELECT_COST 20		/* Cut-off for turning a conditional into a select */
+#define BRANCH_COST 10		/* Cost of a conditional branch */
 
-static void expand_symbol_expression(struct expression *expr)
+static int expand_expression(struct expression *);
+static int expand_statement(struct statement *);
+
+static int expand_symbol_expression(struct expression *expr)
 {
 	struct symbol *sym = expr->symbol;
 
@@ -39,8 +44,11 @@ static void expand_symbol_expression(struct expression *expr)
 		warn(expr->pos, "undefined preprocessor identifier '%s'", show_ident(expr->symbol_name));
 		expr->type = EXPR_VALUE;
 		expr->value = 0;
-		return;
+		return UNSAFE;
 	}
+
+	/* The cost of a symbol expression is lower for on-stack symbols */
+	return (sym->ctype.modifiers & (MOD_STATIC | MOD_EXTERN)) ? 2 : 1;
 }
 
 static long long get_longlong(struct expression *expr)
@@ -330,38 +338,45 @@ static int simplify_float_cmp(struct expression *expr, struct symbol *ctype)
 	return 1;
 }
 
-static void expand_binop(struct expression *expr)
+static int expand_binop(struct expression *expr)
 {
+	int cost;
+
+	cost = expand_expression(expr->left);
+	cost += expand_expression(expr->right);
 	if (simplify_int_binop(expr, expr->ctype))
-		return;
-	simplify_float_binop(expr);
+		return 1;
+	if (simplify_float_binop(expr))
+		return 1;
+	return cost + 1;
 }
 
-static void expand_logical(struct expression *expr)
+static int expand_logical(struct expression *expr)
 {
 	struct expression *left = expr->left;
 	struct expression *right;
+	int cost, rcost;
 
 	/* Do immediate short-circuiting ... */
-	expand_expression(left);
+	cost = expand_expression(left);
 	if (left->type == EXPR_VALUE) {
 		if (expr->op == SPECIAL_LOGICAL_AND) {
 			if (!left->value) {
 				expr->type = EXPR_VALUE;
 				expr->value = 0;
-				return;
+				return 0;
 			}
 		} else {
 			if (left->value) {
 				expr->type = EXPR_VALUE;
 				expr->value = 1;
-				return;
+				return 0;
 			}
 		}
 	}
 
 	right = expr->right;
-	expand_expression(right);
+	rcost = expand_expression(right);
 	if (left->type == EXPR_VALUE && right->type == EXPR_VALUE) {
 		/*
 		 * We know the left value doesn't matter, since
@@ -369,13 +384,31 @@ static void expand_logical(struct expression *expr)
 		 */
 		expr->type = EXPR_VALUE;
 		expr->value = right->value != 0;
+		return 0;
 	}
+
+	/*
+	 * If the right side is safe and cheaper than a branch,
+	 * just avoid the branch and turn it into a regular binop
+	 * style SAFELOGICAL.
+	 */
+	if (rcost < BRANCH_COST) {
+		expr->type = EXPR_SAFELOGICAL;
+		rcost -= BRANCH_COST - 1;
+	}
+
+	return cost + BRANCH_COST + rcost;
 }
 
-static void expand_comma(struct expression *expr)
+static int expand_comma(struct expression *expr)
 {
+	int cost;
+
+	cost = expand_expression(expr->left);
+	cost += expand_expression(expr->right);
 	if (expr->left->type == EXPR_VALUE || expr->left->type == EXPR_FVALUE)
 		*expr = *expr->right;
+	return cost;
 }
 
 #define MOD_IGN (MOD_VOLATILE | MOD_CONST)
@@ -399,49 +432,71 @@ static int compare_types(int op, struct symbol *left, struct symbol *right)
 	return 0;
 }
 
-static void expand_compare(struct expression *expr)
+static int expand_compare(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
+	int cost;
+
+	cost = expand_expression(left);
+	cost += expand_expression(right);
 
 	/* Type comparison? */
 	if (left && right && left->type == EXPR_TYPE && right->type == EXPR_TYPE) {
 		int op = expr->op;
 		expr->type = EXPR_VALUE;
 		expr->value = compare_types(op, left->symbol, right->symbol);
-		return;
+		return 0;
 	}
 	if (simplify_cmp_binop(expr, left->ctype))
-		return;
-	simplify_float_cmp(expr, left->ctype);
+		return 0;
+	if  (simplify_float_cmp(expr, left->ctype))
+		return 0;
+	return cost + 1;
 }
 
-static void expand_conditional(struct expression *expr)
+static int expand_conditional(struct expression *expr)
 {
 	struct expression *cond = expr->conditional;
+	struct expression *true = expr->cond_true;
+	struct expression *false = expr->cond_false;
+	int cost;
 
 	if (cond->type == EXPR_VALUE) {
-		struct expression *true, *false;
-
-		true = expr->cond_true ? : cond;
-		false = expr->cond_false;
-
+		true = true ? : cond;
 		if (!cond->value)
 			true = false;
 		*expr = *true;
+		return expand_expression(expr);
 	}
+
+	cost = expand_expression(true);
+	cost += expand_expression(false);
+
+	if (cost < SELECT_COST) {
+		expr->type = EXPR_SELECT;
+		cost -= BRANCH_COST - 1;
+	}
+
+	return cost + expand_expression(cond) + BRANCH_COST;
 }
 		
-static void expand_assignment(struct expression *expr)
+static int expand_assignment(struct expression *expr)
 {
+	expand_expression(expr->left);
+	expand_expression(expr->right);
+	return UNSAFE;
 }
 
-static void expand_addressof(struct expression *expr)
+static int expand_addressof(struct expression *expr)
 {
+	return expand_expression(expr->unop);
 }
 
-static void expand_dereference(struct expression *expr)
+static int expand_dereference(struct expression *expr)
 {
 	struct expression *unop = expr->unop;
+
+	expand_expression(unop);
 
 	/*
 	 * NOTE! We get a bogus warning right now for some special
@@ -464,13 +519,19 @@ static void expand_dereference(struct expression *expr)
 				if (value->type == EXPR_VALUE) {
 					expr->type = EXPR_VALUE;
 					expr->value = value->value;
+					return 0;
 				} else if (value->type == EXPR_FVALUE) {
 					expr->type = EXPR_FVALUE;
 					expr->fvalue = value->fvalue;
+					return 0;
 				}
 			}
 		}
+
+		/* Direct symbol dereference? Cheap and safe */
+		return (sym->ctype.modifiers & (MOD_STATIC | MOD_EXTERN)) ? 2 : 1;
 	}
+	return UNSAFE;
 }
 
 static int simplify_preop(struct expression *expr)
@@ -516,20 +577,22 @@ static int simplify_float_preop(struct expression *expr)
 /*
  * Unary post-ops: x++ and x--
  */
-static void expand_postop(struct expression *expr)
+static int expand_postop(struct expression *expr)
 {
+	expand_expression(expr->unop);
+	return UNSAFE;
 }
 
-static void expand_preop(struct expression *expr)
+static int expand_preop(struct expression *expr)
 {
+	int cost;
+
 	switch (expr->op) {
 	case '*':
-		expand_dereference(expr);
-		return;
+		return expand_dereference(expr);
 
 	case '&':
-		expand_addressof(expr);
-		return;
+		return expand_addressof(expr);
 
 	case SPECIAL_INCREMENT:
 	case SPECIAL_DECREMENT:
@@ -537,180 +600,167 @@ static void expand_preop(struct expression *expr)
 		 * From a type evaluation standpoint the pre-ops are
 		 * the same as the postops
 		 */
-		expand_postop(expr);
-		return;
+		return expand_postop(expr);
 
 	default:
 		break;
 	}
+	cost = expand_expression(expr->unop);
+
 	if (simplify_preop(expr))
-		return;
-	simplify_float_preop(expr);
+		return 0;
+	if (simplify_float_preop(expr))
+		return 0;
+	return cost + 1;
 }
 
-static void expand_arguments(struct expression_list *head)
+static int expand_arguments(struct expression_list *head)
 {
+	int cost = 0;
 	struct expression *expr;
 
 	FOR_EACH_PTR (head, expr) {
-		expand_expression(expr);
+		cost += expand_expression(expr);
 	} END_FOR_EACH_PTR;
+	return cost;
 }
 
-static void expand_cast(struct expression *expr)
+static int expand_cast(struct expression *expr)
 {
+	int cost;
 	struct expression *target = expr->cast_expression;
 
-	expand_expression(target);
+	cost = expand_expression(target);
 
 	/* Simplify normal integer casts.. */
-	if (target->type == EXPR_VALUE || target->type == EXPR_FVALUE)
+	if (target->type == EXPR_VALUE || target->type == EXPR_FVALUE) {
 		cast_value(expr, expr->ctype, target, target->ctype);
+		return 0;
+	}
+	return cost + 1;
 }
 
 /*
  * expand a call expression with a symbol. This
- * should expand inline functions, and expand
- * builtins.
+ * should expand builtins.
  */
-static void expand_symbol_call(struct expression *expr)
+static int expand_symbol_call(struct expression *expr)
 {
 	struct expression *fn = expr->fn;
 	struct symbol *ctype = fn->ctype;
 
 	if (fn->type != EXPR_PREOP)
-		return;
+		return UNSAFE;
 
-	if (ctype->op && ctype->op->expand) {
-		ctype->op->expand(expr);
-		return;
-	}
+	if (ctype->op && ctype->op->expand)
+		return ctype->op->expand(expr);
+
+	return UNSAFE;
 }
 
-static void expand_call(struct expression *expr)
+static int expand_call(struct expression *expr)
 {
+	int cost;
 	struct symbol *sym;
 	struct expression *fn = expr->fn;
 
+	cost = expand_arguments(expr->args);
 	sym = fn->ctype;
-	expand_arguments(expr->args);
 	if (sym->type == SYM_NODE)
-		expand_symbol_call(expr);
+		return expand_symbol_call(expr);
+
+	return UNSAFE;
 }
 
-static void expand_expression_list(struct expression_list *list)
+static int expand_expression_list(struct expression_list *list)
 {
+	int cost = 0;
 	struct expression *expr;
 
 	FOR_EACH_PTR(list, expr) {
-		expand_expression(expr);
+		cost += expand_expression(expr);
 	} END_FOR_EACH_PTR;
+	return cost;
 }
 
-static void expand_expression(struct expression *expr)
+static int expand_expression(struct expression *expr)
 {
 	if (!expr)
-		return;
+		return 0;
 	if (!expr->ctype)
-		return;
+		return UNSAFE;
 
 	switch (expr->type) {
 	case EXPR_VALUE:
 	case EXPR_FVALUE:
 	case EXPR_STRING:
-		return;
+		return 0;
 	case EXPR_TYPE:
 	case EXPR_SYMBOL:
-		expand_symbol_expression(expr);
-		return;
+		return expand_symbol_expression(expr);
 	case EXPR_BINOP:
-		expand_expression(expr->left);
-		expand_expression(expr->right);
-		expand_binop(expr);
-		return;
+		return expand_binop(expr);
 
 	case EXPR_LOGICAL:
-		expand_logical(expr);
-		return;
+	case EXPR_SAFELOGICAL:
+		return expand_logical(expr);
 
 	case EXPR_COMMA:
-		expand_expression(expr->left);
-		expand_expression(expr->right);
-		expand_comma(expr);
-		return;
+		return expand_comma(expr);
 
 	case EXPR_COMPARE:
-		expand_expression(expr->left);
-		expand_expression(expr->right);
-		expand_compare(expr);
-		return;
+		return expand_compare(expr);
 
 	case EXPR_ASSIGNMENT:
-		expand_expression(expr->left);
-		expand_expression(expr->right);
-		expand_assignment(expr);
-		return;
+		return expand_assignment(expr);
 
 	case EXPR_PREOP:
-		expand_expression(expr->unop);
-		expand_preop(expr);
-		return;
+		return expand_preop(expr);
 
 	case EXPR_POSTOP:
-		expand_expression(expr->unop);
-		expand_postop(expr);
-		return;
+		return expand_postop(expr);
 
 	case EXPR_CAST:
-		expand_cast(expr);
-		return;
+		return expand_cast(expr);
 
 	case EXPR_CALL:
-		expand_call(expr);
-		return;
+		return expand_call(expr);
 
 	case EXPR_DEREF:
-		return;
+		warn(expr->pos, "we should not have an EXPR_DEREF left at expansion time");
+		return UNSAFE;
 
 	case EXPR_BITFIELD:
-		expand_expression(expr->address);
-		return;
+		return expand_expression(expr->address);
 
 	case EXPR_SELECT:
 	case EXPR_CONDITIONAL:
-		expand_expression(expr->conditional);
-		expand_expression(expr->cond_false);
-		expand_expression(expr->cond_true);
-		expand_conditional(expr);
-		return;
+		return expand_conditional(expr);
 
 	case EXPR_STATEMENT:
-		expand_statement(expr->statement);
-		return;
+		return expand_statement(expr->statement);
 
 	case EXPR_LABEL:
-		return;
+		return 0;
 
 	case EXPR_INITIALIZER:
-		expand_expression_list(expr->expr_list);
-		return;
+		return expand_expression_list(expr->expr_list);
 
 	case EXPR_IDENTIFIER:
-		return;
+		return UNSAFE;
 
 	case EXPR_INDEX:
-		return;
+		return UNSAFE;
 
 	case EXPR_POS:
-		expand_expression(expr->init_expr);
-		return;
+		return expand_expression(expr->init_expr);
 
 	case EXPR_SIZEOF:
 	case EXPR_ALIGNOF:
 		warn(expr->pos, "internal front-end error: sizeof in expansion?");
-		return;
+		return UNSAFE;
 	}
-	return;
+	return UNSAFE;
 }
 
 static void expand_const_expression(struct expression *expr, const char *where)
@@ -745,12 +795,12 @@ static void expand_return_expression(struct statement *stmt)
 	expand_expression(stmt->expression);
 }
 
-static void expand_if_statement(struct statement *stmt)
+static int expand_if_statement(struct statement *stmt)
 {
 	struct expression *expr = stmt->if_conditional;
 
 	if (!expr || !expr->ctype)
-		return;
+		return UNSAFE;
 
 	expand_expression(expr);
 
@@ -764,49 +814,50 @@ static void expand_if_statement(struct statement *stmt)
 		/* Nothing? */
 		if (!simple) {
 			stmt->type = STMT_NONE;
-			return;
+			return 0;
 		}
 		expand_statement(simple);
 		*stmt = *simple;
-		return;
+		return UNSAFE;
 	}
 #endif
 	expand_statement(stmt->if_true);
 	expand_statement(stmt->if_false);
+	return UNSAFE;
 }
 
-static void expand_statement(struct statement *stmt)
+static int expand_statement(struct statement *stmt)
 {
 	if (!stmt)
-		return;
+		return 0;
 
 	switch (stmt->type) {
 	case STMT_RETURN:
 		expand_return_expression(stmt);
-		return;
+		return UNSAFE;
 
 	case STMT_EXPRESSION:
-		expand_expression(stmt->expression);
-		return;
+		return expand_expression(stmt->expression);
 
 	case STMT_COMPOUND: {
 		struct symbol *sym;
 		struct statement *s;
+		int cost;
 
 		FOR_EACH_PTR(stmt->syms, sym) {
 			expand_symbol(sym);
 		} END_FOR_EACH_PTR;
 		expand_symbol(stmt->ret);
 
+		cost = 0;
 		FOR_EACH_PTR(stmt->stmts, s) {
-			expand_statement(s);
+			cost += expand_statement(s);
 		} END_FOR_EACH_PTR;
-		return;
+		return cost;
 	}
 
 	case STMT_IF:
-		expand_if_statement(stmt);
-		return;
+		return expand_if_statement(stmt);
 
 	case STMT_ITERATOR:
 		expand_expression(stmt->iterator_pre_condition);
@@ -814,26 +865,26 @@ static void expand_statement(struct statement *stmt)
 		expand_statement(stmt->iterator_pre_statement);
 		expand_statement(stmt->iterator_statement);
 		expand_statement(stmt->iterator_post_statement);
-		return;
+		return UNSAFE;
 
 	case STMT_SWITCH:
 		expand_expression(stmt->switch_expression);
 		expand_statement(stmt->switch_statement);
-		return;
+		return UNSAFE;
 
 	case STMT_CASE:
 		expand_const_expression(stmt->case_expression, "case statement");
 		expand_const_expression(stmt->case_to, "case statement");
 		expand_statement(stmt->case_statement);
-		return;
+		return UNSAFE;
 
 	case STMT_LABEL:
 		expand_statement(stmt->label_statement);
-		return;
+		return UNSAFE;
 
 	case STMT_GOTO:
 		expand_expression(stmt->goto_expression);
-		return;
+		return UNSAFE;
 
 	case STMT_NONE:
 		break;
@@ -841,6 +892,7 @@ static void expand_statement(struct statement *stmt)
 		/* FIXME! Do the asm parameter evaluation! */
 		break;
 	}
+	return UNSAFE;
 }
 
 long long get_expression_value(struct expression *expr)

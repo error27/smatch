@@ -85,6 +85,7 @@ enum opcode {
 	OP_MOD,
 	OP_SHL,
 	OP_SHR,
+	OP_SEL,
 	OP_BINARY_END = OP_SHR,
 	
 	/* Logical */

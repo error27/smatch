@@ -1823,6 +1823,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 			return NULL;
 		return evaluate_binop(expr);
 	case EXPR_LOGICAL:
+	case EXPR_SAFELOGICAL:
 		return evaluate_logical(expr);
 	case EXPR_COMMA:
 		if (!evaluate_expression(expr->left))

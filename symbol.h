@@ -59,7 +59,7 @@ struct ctype {
 
 struct symbol_op {
 	int (*evaluate)(struct expression *);
-	void (*expand)(struct expression *);
+	int (*expand)(struct expression *);
 };	
 
 struct symbol {

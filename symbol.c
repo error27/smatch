@@ -345,7 +345,7 @@ static int evaluate_constant_p(struct expression *expr)
 	return 1;
 }
 
-static void expand_constant_p(struct expression *expr)
+static int expand_constant_p(struct expression *expr)
 {
 	struct expression *arg;
 	struct expression_list *arglist = expr->args;
@@ -358,6 +358,7 @@ static void expand_constant_p(struct expression *expr)
 
 	expr->type = EXPR_VALUE;
 	expr->value = value;
+	return 0;
 }
 
 /*
