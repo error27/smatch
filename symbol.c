@@ -223,7 +223,7 @@ static struct symbol *examine_bitfield_type(struct symbol *sym)
 	alignment = base_type->ctype.alignment;
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = alignment;
-	sym->bit_size = bit_size;
+	sym->bit_size = sym->fieldwidth;
 	return sym;
 }
 
