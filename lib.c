@@ -152,7 +152,6 @@ struct allocator_struct bytes_allocator = { "bytes", NULL, 1, 8192 };
 	}							\
 	void clear_##x##_alloc(void)				\
 	{							\
-		show_allocations(&x##_allocator);		\
 		drop_all_allocations(&x##_allocator);		\
 	}
 #define ALLOCATOR(x) __ALLOCATOR(struct x, sizeof(struct x), memset(ret, 0, sizeof(struct x)), x)
