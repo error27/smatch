@@ -75,41 +75,8 @@ static struct token *alloc_token(struct position *pos)
 
 static const char *show_token_sequence(struct token *token);
 
-static struct token *is_defined(struct token *head, struct token *token, struct token *next)
-{
-	char *string[] = { "0", "1" };
-	char *defined = string[lookup_symbol(token->ident, NS_PREPROCESSOR) != NULL];
-	struct token *newtoken = alloc_token(&token->pos);
-
-	token_type(newtoken) = TOKEN_NUMBER;
-	newtoken->number = defined;
-	newtoken->next = next;
-	head->next = newtoken;
-	return next;
-}
-
-
-struct token *defined_one_symbol(struct token *head, struct token *next)
-{
-	struct token *token = next->next;
-	struct token *past = token->next;
-
-	if (match_op(token, '(')) {
-		token = past;
-		past = token->next;
-		if (!match_op(past, ')'))
-			return next;
-		past = past->next;
-	}
-	if (token_type(token) == TOKEN_IDENT)
-		return is_defined(head, token, past);
-	return next;
-}
-
-struct token variable_argument = { .next = &eof_token_entry };
-
-/* Expand symbol 'sym' between 'head->next' and 'head->next->next' */
-static struct token *expand(struct token *, struct symbol *);
+/* Expand symbol 'sym' at '*list' */
+static struct token **expand(struct token **, struct symbol *);
 
 static void replace_with_string(struct token *token, const char *str)
 {
@@ -130,84 +97,315 @@ static void replace_with_integer(struct token *token, unsigned int val)
 	token->number = buf;
 }
 
-struct token *expand_one_symbol(struct token *head, struct token *token)
+static void replace_with_defined(struct token *token)
 {
+	char *string[] = { "0", "1" };
+	int defined = 0;
+	if (token_type(token) != TOKEN_IDENT)
+		warn(token->pos, "operator \"defined\" requires an identifier");
+	else if (lookup_symbol(token->ident, NS_PREPROCESSOR))
+		defined = 1;
+	token_type(token) = TOKEN_NUMBER;
+	token->number = string[defined];
+}
+
+struct token **expand_one_symbol(struct token **list)
+{
+	struct token *token = *list;
 	struct symbol *sym;
 
 	if (token->pos.noexpand)
-		return token;
+		return &token->next;
 
 	sym = lookup_symbol(token->ident, NS_PREPROCESSOR);
 	if (sym)
-		return expand(head, sym);
+		return expand(list, sym);
 	if (token->ident == &__LINE___ident) {
 		replace_with_integer(token, token->pos.line);
 	} else if (token->ident == &__FILE___ident) {
 		replace_with_string(token, (input_streams + token->pos.stream)->name);
-	} else if (token->ident == &defined_ident) {
-		return defined_one_symbol(head, token);
 	}
-	return token;
+	return &token->next;
 }
 
-static inline void eat_untaint(struct token *head, struct token *token)
+static inline struct token *scan_next(struct token **where)
 {
+	struct token *token = *where;
+	if (token_type(token) != TOKEN_UNTAINT)
+		return token;
 	do {
 		token->ident->tainted = 0;
 		token = token->next;
 	} while (token_type(token) == TOKEN_UNTAINT);
-	head->next = token;
+	*where = token;
+	return token;
 }
 
-static struct token *expand_list(struct token *head)
+static struct token **expand_list(struct token **list)
 {
-	for (;;) {
-		struct token *next = head->next;
-
-		/* Did we hit the end of the current expansion? */
-		if (eof_token(next))
-			break;
-
-		switch (token_type(next)) {
-		case TOKEN_IDENT:
-			next = expand_one_symbol(head, next);
-			break;
-		case TOKEN_UNTAINT:
-			eat_untaint(head, next);
-			continue;
-		}
-
-		head = next;
+	struct token *next;
+	while (!eof_token(next = scan_next(list))) {
+		if (token_type(next) == TOKEN_IDENT)
+			list = expand_one_symbol(list);
+		else
+			list = &next->next;
 	}
-	return head;
+	return list;
 }
 
-static struct token *find_argument_end(struct token *start, struct token *arglist)
+static struct token *collect_arg(struct token *prev, int vararg, struct position *pos)
 {
+	struct token **p = &prev->next;
+	struct token *next;
 	int nesting = 0;
 
-	while (!eof_token(start)) {
-		struct token *next = start->next;
-		if (token_type(next) == TOKEN_UNTAINT) {
-			eat_untaint(start, next);
-			continue;
-		} else if (token_type(next) == TOKEN_IDENT) {
-			if (next->ident->tainted)
-				next->pos.noexpand = 1;
-		} else if (match_op(next, '('))
+	while (!eof_token(next = scan_next(p))) {
+		if (match_op(next, '(')) {
 			nesting++;
-		else if (match_op(next, ')')) {
-			if (--nesting < 0) {
-				start->next = &eof_token_entry;
-				return next->next;
-			}
-		} else if (!nesting && match_op(next, ',') && arglist->next != &variable_argument) {
-			next->special = SPECIAL_ARG_SEPARATOR;
-			arglist = arglist->next;
+		} else if (match_op(next, ')')) {
+			if (!nesting--)
+				break;
+		} else if (match_op(next, ',') && !nesting && !vararg) {
+			break;
 		}
-		start = next;
+		next->pos.stream = pos->stream;
+		next->pos.line = pos->line;
+		next->pos.pos = pos->pos;
+		p = &next->next;
 	}
-	return start;
+	*p = &eof_token_entry;
+	return next;
+}
+
+/*
+ * We store arglist as <counter> [arg1] <number of uses for arg1> ... eof
+ */
+
+struct arg {
+	struct token *arg;
+	struct token *expanded;
+	struct token *str;
+	int n_normal;
+	int n_quoted;
+	int n_str;
+};
+
+static int collect_arguments(struct token *start, struct token *arglist, struct arg *args, struct token *what)
+{
+	int wanted = arglist->count.normal;
+	struct token *next = NULL;
+	int count = 0;
+
+	arglist = arglist->next;	/* skip counter */
+
+	if (!wanted) {
+		next = collect_arg(start, 0, &what->pos);
+		if (eof_token(next))
+			goto Eclosing;
+		if (!eof_token(start->next) || !match_op(next, ')')) {
+			count++;
+			goto Emany;
+		}
+	} else {
+		for (count = 0; count < wanted; count++) {
+			struct argcount *p = &arglist->next->count;
+			next = collect_arg(start, p->vararg, &what->pos);
+			arglist = arglist->next->next;
+			if (eof_token(next))
+				goto Eclosing;
+			args[count].arg = start->next;
+			args[count].n_normal = p->normal;
+			args[count].n_quoted = p->quoted;
+			args[count].n_str = p->str;
+			if (match_op(next, ')')) {
+				count++;
+				break;
+			}
+			start = next;
+		}
+		if (count == wanted && !match_op(next, ')'))
+			goto Emany;
+		if (count == wanted - 1) {
+			struct argcount *p = &arglist->next->count;
+			if (!p->vararg)
+				goto Efew;
+			args[count].arg = NULL;
+			args[count].n_normal = p->normal;
+			args[count].n_quoted = p->quoted;
+			args[count].n_str = p->str;
+		}
+		if (count < wanted - 1)
+			goto Efew;
+	}
+	what->next = next->next;
+	return 1;
+
+Efew:
+	warn(what->pos, "macro \"%s\" requires %d arguments, but only %d given",
+		show_token(what), wanted, count);
+	goto out;
+Emany:
+	while (match_op(next, ',')) {
+		next = collect_arg(next, 0, &what->pos);
+		count++;
+	}
+	if (eof_token(next))
+		goto Eclosing;
+	warn(what->pos, "macro \"%s\" passed %d arguments, but takes just %d",
+		show_token(what), count, wanted);
+	goto out;
+Eclosing:
+	warn(what->pos, "unterminated argument list invoking macro \"%s\"",
+		show_token(what));
+out:
+	what->next = next->next;
+	return 0;
+}
+
+static struct token *dup_list(struct token *list)
+{
+	struct token *res;
+	struct token **p = &res;
+
+	while (!eof_token(list)) {
+		struct token *newtok = __alloc_token(0);
+		*newtok = *list;
+		*p = newtok;
+		p = &newtok->next;
+		list = list->next;
+	}
+	return res;
+}
+
+static struct token *stringify(struct token *arg)
+{
+	const char *s = show_token_sequence(arg);
+	int size = strlen(s)+1;
+	struct token *token = __alloc_token(0);
+	struct string *string = __alloc_string(size);
+
+	memcpy(string->data, s, size);
+	string->length = size;
+	token->pos = arg->pos;
+	token_type(token) = TOKEN_STRING;
+	token->string = string;
+	token->next = &eof_token_entry;
+	return token;
+}
+
+static void expand_arguments(int count, struct arg *args)
+{
+	int i;
+	for (i = 0; i < count; i++) {
+		struct token *arg = args[i].arg;
+		if (!arg)
+			arg = &eof_token_entry;
+		if (args[i].n_str)
+			args[i].str = stringify(arg);
+		if (args[i].n_normal) {
+			if (!args[i].n_quoted) {
+				args[i].expanded = arg;
+				args[i].arg = NULL;
+			} else if (eof_token(arg)) {
+				args[i].expanded = arg;
+			} else {
+				args[i].expanded = dup_list(arg);
+			}
+			expand_list(&args[i].expanded);
+		}
+	}
+}
+
+/*
+ * Possibly valid combinations:
+ *  - ident + ident -> ident
+ *  - ident + number -> ident unless number contains '.', '+' or '-'.
+ *  - number + number -> number
+ *  - number + ident -> number
+ *  - number + '.' -> number
+ *  - number + '+' or '-' -> number, if number used to end on [eEpP].
+ *  - '.' + number -> number, if number used to start with a digit.
+ *  - special + special -> either special or an error.
+ */
+static enum token_type combine(struct token *left, struct token *right, char *p)
+{
+	int len;
+	enum token_type t1 = token_type(left), t2 = token_type(right);
+
+	if (t1 != TOKEN_IDENT && t1 != TOKEN_NUMBER && t1 != TOKEN_SPECIAL)
+		return TOKEN_ERROR;
+
+	if (t2 != TOKEN_IDENT && t2 != TOKEN_NUMBER && t2 != TOKEN_SPECIAL)
+		return TOKEN_ERROR;
+
+	strcpy(p, show_token(left));
+	strcat(p, show_token(right));
+	len = strlen(p);
+
+	if (len >= 256)
+		return TOKEN_ERROR;
+
+	if (t1 == TOKEN_IDENT) {
+		if (t2 == TOKEN_SPECIAL)
+			return TOKEN_ERROR;
+		if (t2 == TOKEN_NUMBER && strpbrk(p, "+-."))
+			return TOKEN_ERROR;
+		return TOKEN_IDENT;
+	}
+
+	if (t1 == TOKEN_NUMBER) {
+		if (t2 == TOKEN_SPECIAL) {
+			switch (right->special) {
+			case '.':
+				break;
+			case '+': case '-':
+				if (strchr("eEpP", p[len - 2]))
+					break;
+			default:
+				return TOKEN_ERROR;
+			}
+		}
+		return TOKEN_NUMBER;
+	}
+
+	if (p[0] == '.' && isdigit(p[1]))
+		return TOKEN_NUMBER;
+
+	return TOKEN_SPECIAL;
+}
+
+static int merge(struct token *left, struct token *right)
+{
+	extern unsigned char combinations[][3];
+	static char buffer[512];
+	int n;
+
+	switch (combine(left, right, buffer)) {
+	case TOKEN_IDENT:
+		left->ident = built_in_ident(buffer);
+		left->pos.noexpand = 0;
+		return 1;
+
+	case TOKEN_NUMBER:
+		token_type(left) = TOKEN_NUMBER;	/* could be . + num */
+		left->number = __alloc_bytes(strlen(buffer) + 1);
+		memcpy(left->number, buffer, strlen(buffer) + 1);
+		return 1;
+
+	case TOKEN_SPECIAL:
+		if (buffer[2] && buffer[3])
+			break;
+		for (n = SPECIAL_BASE; n < SPECIAL_ARG_SEPARATOR; n++) {
+			if (!memcmp(buffer, combinations[n-SPECIAL_BASE], 3)) {
+				left->special = n;
+				return 1;
+			}
+		}
+	default:
+		;
+	}
+	warn(left->pos, "'##' failed: concatenation is not a valid token");
+	return 0;
 }
 
 static struct token *dup_token(struct token *token, struct position *streampos, struct position *pos)
@@ -216,260 +414,156 @@ static struct token *dup_token(struct token *token, struct position *streampos, 
 	token_type(alloc) = token_type(token);
 	alloc->pos.newline = pos->newline;
 	alloc->pos.whitespace = pos->whitespace;
-	alloc->pos.noexpand = token->pos.noexpand;
 	alloc->number = token->number;
+	alloc->pos.noexpand = token->pos.noexpand;
 	return alloc;	
 }
 
-static void insert(struct token *token, struct token *prev)
+static struct token **copy(struct token **where, struct token *list, int *count)
 {
-	token->next = prev->next;
-	prev->next = token;
-}
-
-static struct token * replace(struct token *token, struct token *prev, struct token *list)
-{
-	struct position *pos = &token->pos;
-
-	prev->next = token->next;
-	while (!eof_token(list) && !match_op(list, SPECIAL_ARG_SEPARATOR)) {
-		struct token *newtok = dup_token(list, &token->pos, pos);
-		insert(newtok, prev);
-		prev = newtok;
+	int need_copy = --*count;
+	while (!eof_token(list)) {
+		struct token *token;
+		if (need_copy)
+			token = dup_token(list, &list->pos, &list->pos);
+		else
+			token = list;
+		if (token_type(token) == TOKEN_IDENT && token->ident->tainted)
+			token->pos.noexpand = 1;
+		*where = token;
+		where = &token->next;
 		list = list->next;
-		pos = &list->pos;
 	}
-	return prev;
+	*where = &eof_token_entry;
+	return where;
 }
 
-static struct token *get_argument(int nr, struct token *args)
+static struct token **substitute(struct token **list, struct token *body, struct arg *args)
 {
-	if (!nr)
-		return args;
-	while (!eof_token(args)) {
-		if (match_op(args, SPECIAL_ARG_SEPARATOR))
-			if (!--nr)
-				return args->next;
-		args = args->next;
-	}
-				
-	return args;
-}
+	struct token *token = *list;
+	struct position *base_pos = &token->pos;
+	struct position *pos = base_pos;
+	int *count;
+	enum {Normal, Placeholder, Concat} state = Normal;
 
-static struct token *stringify(struct token *token, struct token *arg)
-{
-	const char *s = show_token_sequence(arg);
-	int size = strlen(s)+1;
-	struct token *newtoken = alloc_token(&token->pos);
-	struct string *string = __alloc_string(size);
+	for (; !eof_token(body); body = body->next, pos = &body->pos) {
+		struct token *added, *arg;
+		struct token **tail;
 
-	newtoken->pos.newline = token->pos.newline;
-	memcpy(string->data, s, size);
-	string->length = size;
-	token_type(newtoken) = TOKEN_STRING;
-	newtoken->string = string;
-	newtoken->next = &eof_token_entry;
-	return newtoken;
-}
-
-static struct token empty_arg_token = { .pos = { .type = TOKEN_EOF } };
-
-static struct token *expand_one_arg(struct token *head, struct token *token, struct token *arguments, int do_expand)
-{
-	int nr = token->argnum;
-	struct token *orig_head = head;
-	struct token *arg = get_argument(nr, arguments);
-	struct token *last = token->next;
-	token->next = &eof_token_entry;
-
-	/*
-	 * Special case for gcc 'x ## arg' semantics: if 'arg' is empty
-	 * then the 'x' goes away too.
-	 * NB: that's not what gcc kludge is about; later  -- AV
-	 */
-	if (token_type(head) == TOKEN_CONCAT && eof_token(arg)) {
-		arg = &empty_arg_token;
-		empty_arg_token.next = &eof_token_entry;
-	}
-
-	head = replace(token, head, arg);
-	if (do_expand)
-		head = expand_list(orig_head);
-	head->next = last;
-	return head;
-}
-
-static void expand_arguments(struct token *token, struct token *head,
-		struct token *arguments)
-{
-	for (;;) {
-		struct token *next = head->next;
-
-		/* Did we hit the end of the current expansion? */
-		if (eof_token(next))
+		switch (token_type(body)) {
+		case TOKEN_GNU_KLUDGE:
+			/*
+			 * GNU kludge: if we had <comma>##<vararg>, behaviour
+			 * depends on whether we had enough arguments to have
+			 * a vararg.  If we did, ## is just ignored.  Otherwise
+			 * both , and ## are ignored.  Comma should come from
+			 * the body of macro and not be an argument of earlier
+			 * concatenation.
+			 */
+			if (!args[body->next->argnum].arg)
+				continue;
+			added = dup_token(body, base_pos, pos);
+			token_type(added) = TOKEN_SPECIAL;
+			tail = &added->next;
 			break;
 
-		if (token_type(next) == TOKEN_STR_ARGUMENT) {
-			int nr = next->argnum;
-			struct token *newtoken = stringify(next, get_argument(nr, arguments));
-			next = replace(next, head, newtoken);
-		} else if (token_type(next) == TOKEN_MACRO_ARGUMENT)
-			next = expand_one_arg(head, next, arguments, 1);
-		else if (token_type(next) == TOKEN_QUOTED_ARGUMENT)
-			next = expand_one_arg(head, next, arguments, 0);
+		case TOKEN_STR_ARGUMENT:
+			arg = args[body->argnum].str;
+			count = &args[body->argnum].n_str;
+			goto copy_arg;
 
-		head = next;
-	}
-}
+		case TOKEN_QUOTED_ARGUMENT:
+			arg = args[body->argnum].arg;
+			count = &args[body->argnum].n_quoted;
+			if (!arg || eof_token(arg)) {
+				if (state == Concat)
+					state = Normal;
+				else
+					state = Placeholder;
+				continue;
+			}
+			goto copy_arg;
 
-/*
- * Possibly valid combinations:
- *  - anything + 'empty_arg_token' is empty.
- *  - ident + ident - combine (==ident)
- *		a1 ## bb = 'a1bb'
- *  - ident + number - combine (==ident)
- *		a ## 0x5 = 'a0x5'
- *  - number + number - combine (==number)
- *		12 ## 12 = '1212'
- *  - number + ident - combine (==number)
- *		0x ## aaa = '0xaaa'
- *  - string + string - leave as is, C will combine them anyway
- * others cause an error and leave the tokens as separate tokens.
- */
-static struct token *hashhash(struct token *head, struct token *first)
-{
-	struct token *token;
-	static char buffer[512], *p;
-	struct token *newtoken;
-	int i = 2;
-
-	/*
-	 * Special case for gcc 'x ## arg' semantics: if 'arg' is empty
-	 * then the 'x' goes away too.
-	 *
-	 * See expand_one_arg.
-	 */
-	if (token_type(first->next) == TOKEN_EOF)
-		return first->next->next;
-
-	p = buffer;
-	token = first;
-	do {
-		static const char *src;
-		int len;
-
-		switch (token_type(token)) {
-		case TOKEN_IDENT:
-			len = token->ident->len;
-			src = token->ident->name;
+		case TOKEN_MACRO_ARGUMENT:
+			arg = args[body->argnum].expanded;
+			count = &args[body->argnum].n_normal;
+			if (eof_token(arg)) {
+				state = Normal;
+				continue;
+			}
+		copy_arg:
+			tail = copy(&added, arg, count);
+			added->pos.newline = pos->newline;
+			added->pos.whitespace = pos->whitespace;
 			break;
-		case TOKEN_NUMBER:
-			src = token->number;
-			len = strlen(src);
-			break;
-		default:
-			goto out;
-		}
-		memcpy(p, src, len);
-		p += len;
-		token = token->next;
-	} while (--i > 0);
 
-out:
-	*p++ = 0;
-	if (!*buffer)
-		return token;
-
-	newtoken = alloc_token(&first->pos);
-	newtoken->next = token;
-
-	token_type(newtoken) = token_type(first);
-	switch (token_type(newtoken)) {
-	case TOKEN_IDENT:
-		newtoken->ident = built_in_ident(buffer);
-		break;
-	case TOKEN_NUMBER: {
-		newtoken->number = __alloc_bytes(p - buffer);
-		memcpy(newtoken->number, buffer, p - buffer);
-		break;
-	}
-	}
-	return newtoken;
-}
-
-static void retokenize(struct token *head)
-{
-	struct token * next = head->next;
-	struct token * nextnext = next->next;
-	struct token * nextnextnext = nextnext->next;
-
-	if (eof_token(next) || eof_token(nextnext))
-		return;
-
-	for (;;) {
-		if (eof_token(nextnextnext))
-			break;
-		
-		if (token_type(nextnext) == TOKEN_CONCAT) {
-			next->next = nextnextnext;
-			next = hashhash(head, next);
-			head->next = next;
-			nextnext = next->next;
-			nextnextnext = nextnext->next;
+		case TOKEN_CONCAT:
+			if (state == Placeholder)
+				state = Normal;
+			else
+				state = Concat;
 			continue;
-			
+
+		case TOKEN_IDENT:
+			added = dup_token(body, base_pos, pos);
+			if (added->ident->tainted)
+				added->pos.noexpand = 1;
+			tail = &added->next;
+			break;
+
+		default:
+			added = dup_token(body, base_pos, pos);
+			tail = &added->next;
+			break;
 		}
 
-		head = next;
-		next = nextnext;
-		nextnext = nextnext->next;
-		nextnextnext = nextnextnext->next;
+		/*
+		 * if we got to doing real concatenation, we already have
+		 * added something into the list, so containing_token() is OK.
+		 */
+		if (state == Concat && merge(containing_token(list), added)) {
+			*list = added->next;
+			if (tail != &added->next)
+				list = tail;
+		} else {
+			*list = added;
+			list = tail;
+		}
+		state = Normal;
 	}
+	*list = &eof_token_entry;
+	return list;
 }
 
-static struct token *expand(struct token *head, struct symbol *sym)
+static struct token **expand(struct token **list, struct symbol *sym)
 {
-	struct token *arguments, *last;
-	struct token *token = head->next;
+	struct token *last;
+	struct token *token = *list;
 	struct ident *expanding = token->ident;
+	struct token **tail;
+	int nargs = sym->arglist ? sym->arglist->count.normal : 0;
+	struct arg args[nargs];
 
 	if (expanding->tainted) {
 		token->pos.noexpand = 1;
-		return token;
+		return &token->next;
 	}
 
 	if (sym->arglist) {
-		if (token_type(token->next) == TOKEN_UNTAINT)
-			eat_untaint(token, token->next);
-		arguments = token->next;
-		if (!match_op(arguments, '('))
-			return token;
-		last = find_argument_end(arguments, sym->arglist);
-		arguments = arguments->next;
-	} else {
-		arguments = NULL;
-		last = token->next;
+		if (!match_op(scan_next(&token->next), '('))
+			return &token->next;
+		if (!collect_arguments(token->next, sym->arglist, args, token))
+			return &token->next;
+		expand_arguments(nargs, args);
 	}
-	token->next = &eof_token_entry;
-
-	/* Replace the token with the token expansion */
-	replace(token, head, sym->expansion);
-
-	/* Then, replace all the arguments with their expansions */
-	if (arguments)
-		expand_arguments(token, head, arguments);
-
-	/* Re-tokenize the sequence if any ## token exists.. */
-	retokenize(head);
-
-	token = head;
-	while (!eof_token(token->next))
-		token = token->next;
-	token->next = last;
 
 	expanding->tainted = 1;
 
-	return head;
+	last = token->next;
+	tail = substitute(list, sym->expansion, args);
+	*tail = last;
+
+	return list;
 }
 
 static const char *token_name_sequence(struct token *token, int endop, struct token *start)
@@ -495,7 +589,7 @@ static const char *token_name_sequence(struct token *token, int endop, struct to
 	return buffer;
 }
 
-static int try_include(const char *path, int plen, const char *filename, int flen, struct token *head)
+static int try_include(const char *path, int plen, const char *filename, int flen, struct token **where)
 {
 	int fd;
 	static char fullname[PATH_MAX];
@@ -510,19 +604,19 @@ static int try_include(const char *path, int plen, const char *filename, int fle
 	if (fd >= 0) {
 		char * streamname = __alloc_bytes(plen + flen);
 		memcpy(streamname, fullname, plen + flen);
-		head->next = tokenize(streamname, fd, head->next);
+		*where = tokenize(streamname, fd, *where);
 		close(fd);
 		return 1;
 	}
 	return 0;
 }
 
-static int do_include_path(const char **pptr, struct token *head, struct token *token, const char *filename, int flen)
+static int do_include_path(const char **pptr, struct token **list, struct token *token, const char *filename, int flen)
 {
 	const char *path;
 
 	while ((path = *pptr++) != NULL) {
-		if (!try_include(path, strlen(path), filename, flen, head))
+		if (!try_include(path, strlen(path), filename, flen, list))
 			continue;
 		return 1;
 	}
@@ -530,7 +624,7 @@ static int do_include_path(const char **pptr, struct token *head, struct token *
 }
 	
 
-static void do_include(int local, struct stream *stream, struct token *head, struct token *token, const char *filename)
+static void do_include(int local, struct stream *stream, struct token **list, struct token *token, const char *filename)
 {
 	int flen = strlen(filename) + 1;
 
@@ -544,22 +638,22 @@ static void do_include(int local, struct stream *stream, struct token *head, str
 		slash = strrchr(path, '/');
 		plen = slash ? slash - path : 0;
 
-		if (try_include(path, plen, filename, flen, head))
+		if (try_include(path, plen, filename, flen, list))
 			return;
 	}
 
 	/* Check the standard include paths.. */
-	if (do_include_path(includepath, head, token, filename, flen))
+	if (do_include_path(includepath, list, token, filename, flen))
 		return;
-	if (do_include_path(sys_includepath, head, token, filename, flen))
+	if (do_include_path(sys_includepath, list, token, filename, flen))
 		return;
-	if (do_include_path(gcc_includepath, head, token, filename, flen))
+	if (do_include_path(gcc_includepath, list, token, filename, flen))
 		return;
 
 	error(token->pos, "unable to open '%s'", filename);
 }
 
-static int handle_include(struct stream *stream, struct token *head, struct token *token)
+static int handle_include(struct stream *stream, struct token **list, struct token *token)
 {
 	const char *filename;
 	struct token *next;
@@ -572,13 +666,13 @@ static int handle_include(struct stream *stream, struct token *head, struct toke
 	next = token->next;
 	expect = '>';
 	if (!match_op(next, '<')) {
-		expand_list(token);
+		expand_list(&token->next);
 		expect = 0;
 		next = token;
 	}
 	token = next->next;
 	filename = token_name_sequence(token, expect, token);
-	do_include(!expect, stream, head, token, filename);
+	do_include(!expect, stream, list, token, filename);
 	return 1;
 }
 
@@ -593,8 +687,10 @@ static int token_different(struct token *t1, struct token *t2)
 	case TOKEN_IDENT:
 		different = t1->ident != t2->ident;
 		break;
+	case TOKEN_ARG_COUNT:
 	case TOKEN_UNTAINT:
 	case TOKEN_CONCAT:
+	case TOKEN_GNU_KLUDGE:
 		different = 0;
 		break;
 	case TOKEN_NUMBER:
@@ -643,36 +739,56 @@ static int token_list_different(struct token *list1, struct token *list2)
 	}
 }
 
+static inline void set_arg_count(struct token *token)
+{
+	token_type(token) = TOKEN_ARG_COUNT;
+	token->count.normal = token->count.quoted =
+	token->count.str = token->count.vararg = 0;
+}
+
 static struct token *parse_arguments(struct token *list)
 {
 	struct token *arg = list->next, *next = list;
+	struct argcount *count = &list->count;
+
+	set_arg_count(list);
 
 	if (match_op(arg, ')')) {
+		next = arg->next;
 		list->next = &eof_token_entry;
-		return arg->next;
+		return next;
 	}
 
 	while (token_type(arg) == TOKEN_IDENT) {
 		if (arg->ident == &__VA_ARGS___ident)
 			goto Eva_args;
+		if (!++count->normal)
+			goto Eargs;
 		next = arg->next;
 
 		if (match_op(next, ',')) {
-			arg = arg->next = next->next;
+			set_arg_count(next);
+			arg = next->next;
 			continue;
 		}
 
 		if (match_op(next, ')')) {
-			arg->next = &eof_token_entry;
-			return next->next;
+			set_arg_count(next);
+			next = next->next;
+			arg->next->next = &eof_token_entry;
+			return next;
 		}
 
 		/* normal cases are finished here */
 
 		if (match_op(next, SPECIAL_ELLIPSIS)) {
-			arg->next = &variable_argument;
-			if (match_op(next->next, ')'))
-				return next->next->next;
+			if (match_op(next->next, ')')) {
+				set_arg_count(next);
+				next->count.vararg = 1;
+				next = next->next;
+				arg->next->next = &eof_token_entry;
+				return next->next;
+			}
 
 			arg = next;
 			goto Enotclosed;
@@ -690,10 +806,15 @@ static struct token *parse_arguments(struct token *list)
 		next = arg->next;
 		token_type(arg) = TOKEN_IDENT;
 		arg->ident = &__VA_ARGS___ident;
-		arg->next = &variable_argument;
 		if (!match_op(next, ')'))
 			goto Enotclosed;
-		return next->next;
+		if (!++count->normal)
+			goto Eargs;
+		set_arg_count(next);
+		next->count.vararg = 1;
+		next = next->next;
+		arg->next->next = &eof_token_entry;
+		return next;
 	}
 
 	if (eof_token(arg)) {
@@ -719,6 +840,9 @@ Enotclosed:
 Eva_args:
 	warn(arg->pos, "__VA_ARGS__ can only appear in the expansion of a C99 variadic macro");
 	return NULL;
+Eargs:
+	warn(arg->pos, "too many arguments in macro definition");
+	return NULL;
 }
 
 static int try_arg(struct token *token, enum token_type type, struct token *arglist)
@@ -729,11 +853,29 @@ static int try_arg(struct token *token, enum token_type type, struct token *argl
 	if (!arglist || token_type(token) != TOKEN_IDENT)
 		return 0;
 
-	for (nr = 0; !eof_token(arglist); nr++, arglist = arglist->next) {
+	arglist = arglist->next;
+
+	for (nr = 0; !eof_token(arglist); nr++, arglist = arglist->next->next) {
 		if (arglist->ident == ident) {
+			struct argcount *count = &arglist->next->count;
+			int n;
+
 			token->argnum = nr;
 			token_type(token) = type;
-			return 1;
+			switch (type) {
+			case TOKEN_MACRO_ARGUMENT:
+				n = ++count->normal;
+				break;
+			case TOKEN_QUOTED_ARGUMENT:
+				n = ++count->quoted;
+				break;
+			default:
+				n = ++count->str;
+			}
+			if (n)
+				return count->vararg ? 2 : 1;
+			token_type(token) = TOKEN_ERROR;
+			return -1;
 		}
 	}
 	return 0;
@@ -743,22 +885,36 @@ static struct token *parse_expansion(struct token *expansion, struct token *argl
 {
 	struct token *token = expansion;
 	struct token **p;
+	struct token *last = NULL;
 
 	if (match_op(token, SPECIAL_HASHHASH))
 		goto Econcat;
 
 	for (p = &expansion; !eof_token(token); p = &token->next, token = *p) {
-		if (match_op(token, '#') && arglist) {
-			struct token *next = token->next;
-			if (!try_arg(next, TOKEN_STR_ARGUMENT, arglist))
-				goto Equote;
-			token = *p = next;
+		if (match_op(token, '#')) {
+			if (arglist) {
+				struct token *next = token->next;
+				if (!try_arg(next, TOKEN_STR_ARGUMENT, arglist))
+					goto Equote;
+				next->pos.whitespace = token->pos.whitespace;
+				token = *p = next;
+			} else {
+				token->pos.noexpand = 1;
+			}
 		} else if (match_op(token, SPECIAL_HASHHASH)) {
 			struct token *next = token->next;
+			int arg = try_arg(next, TOKEN_QUOTED_ARGUMENT, arglist);
 			token_type(token) = TOKEN_CONCAT;
-			if (try_arg(next, TOKEN_QUOTED_ARGUMENT, arglist))
+			if (arg) {
 				token = next;
-			else if (match_op(next, SPECIAL_HASHHASH))
+				/* GNU kludge */
+				if (arg == 2 && last && match_op(last, ',')) {
+					token_type(last) = TOKEN_GNU_KLUDGE;
+					last->next = token;
+				}
+			} else if (match_op(next, SPECIAL_HASHHASH))
+				token = next;
+			else if (match_op(next, ','))
 				token = next;
 			else if (eof_token(next))
 				goto Econcat;
@@ -767,6 +923,9 @@ static struct token *parse_expansion(struct token *expansion, struct token *argl
 		} else {
 			try_arg(token, TOKEN_MACRO_ARGUMENT, arglist);
 		}
+		if (token_type(token) == TOKEN_ERROR)
+			goto Earg;
+		last = token;
 	}
 	token = alloc_token(&expansion->pos);
 	token_type(token) = TOKEN_UNTAINT;
@@ -782,9 +941,12 @@ Equote:
 Econcat:
 	warn(token->pos, "'##' cannot appear at the ends of macro expansion");
 	return NULL;
+Earg:
+	warn(token->pos, "too many instances of argument in body");
+	return NULL;
 }
 
-static int handle_define(struct stream *stream, struct token *head, struct token *token)
+static int handle_define(struct stream *stream, struct token **line, struct token *token)
 {
 	struct token *arglist, *expansion;
 	struct token *left = token->next;
@@ -792,7 +954,7 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 	struct ident *name;
 
 	if (token_type(left) != TOKEN_IDENT) {
-		warn(head->pos, "expected identifier to 'define'");
+		warn(token->pos, "expected identifier to 'define'");
 		return 0;
 	}
 	if (false_nesting)
@@ -806,7 +968,6 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 		expansion = parse_arguments(expansion);
 		if (!expansion)
 			return 1;
-		arglist = arglist->next;
 	}
 
 	expansion = parse_expansion(expansion, arglist, name);
@@ -831,13 +992,13 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 	return 1;
 }
 
-static int handle_undef(struct stream *stream, struct token *head, struct token *token)
+static int handle_undef(struct stream *stream, struct token **line, struct token *token)
 {
 	struct token *left = token->next;
 	struct symbol **sym;
 
 	if (token_type(left) != TOKEN_IDENT) {
-		warn(head->pos, "expected identifier to 'undef'");
+		warn(token->pos, "expected identifier to 'undef'");
 		return 0;
 	}
 	if (false_nesting)
@@ -878,12 +1039,12 @@ static int token_defined(struct token *token)
 	return 0;
 }
 
-static int handle_ifdef(struct stream *stream, struct token *head, struct token *token)
+static int handle_ifdef(struct stream *stream, struct token **line, struct token *token)
 {
 	return preprocessor_if(token, token_defined(token->next));
 }
 
-static int handle_ifndef(struct stream *stream, struct token *head, struct token *token)
+static int handle_ifndef(struct stream *stream, struct token **line, struct token *token)
 {
 	struct token *next = token->next;
 	if (stream->constant == -1) {
@@ -900,29 +1061,73 @@ static int handle_ifndef(struct stream *stream, struct token *head, struct token
 	return preprocessor_if(token, !token_defined(next));
 }
 
-static int expression_value(struct token *head)
+/*
+ * Expression handling for #if and #elif; it differs from normal expansion
+ * due to special treatment of "defined".
+ */
+static int expression_value(struct token **where)
 {
 	struct expression *expr;
-	struct token *token;
+	struct token *p;
+	struct token **list = where, **beginning = NULL;
 	long long value;
+	int state = 0;
 
-	expand_list(head);
-	token = constant_expression(head->next, &expr);
-	if (!eof_token(token))
-		warn(token->pos, "garbage at end: %s", show_token_sequence(token));
+	while (!eof_token(p = scan_next(list))) {
+		switch (state) {
+		case 0:
+			if (token_type(p) == TOKEN_IDENT) {
+				if (p->ident != &defined_ident) {
+					list = expand_one_symbol(list);
+					continue;
+				}
+				state = 1;
+				beginning = list;
+			}
+			break;
+		case 1:
+			if (match_op(p, '(')) {
+				state = 2;
+			} else {
+				state = 0;
+				replace_with_defined(p);
+				*beginning = p;
+			}
+			break;
+		case 2:
+			if (token_type(p) == TOKEN_IDENT)
+				state = 3;
+			else
+				state = 0;
+			replace_with_defined(p);
+			*beginning = p;
+			break;
+		case 3:
+			state = 0;
+			if (!match_op(p, ')'))
+				warn(p->pos, "missing ')' after \"defined\"");
+			*list = p->next;
+			continue;
+		}
+		list = &p->next;
+	}
+
+	p = constant_expression(*where, &expr);
+	if (!eof_token(p))
+		warn(p->pos, "garbage at end: %s", show_token_sequence(p));
 	value = get_expression_value(expr);
 	return value != 0;
 }
 
-static int handle_if(struct stream *stream, struct token *head, struct token *token)
+static int handle_if(struct stream *stream, struct token **line, struct token *token)
 {
 	int value = 0;
 	if (!false_nesting)
-		value = expression_value(token);
+		value = expression_value(&token->next);
 	return preprocessor_if(token, value);
 }
 
-static int handle_elif(struct stream * stream, struct token *head, struct token *token)
+static int handle_elif(struct stream * stream, struct token **line, struct token *token)
 {
 	if (stream->nesting == if_nesting)
 		stream->constant = 0;
@@ -930,7 +1135,7 @@ static int handle_elif(struct stream * stream, struct token *head, struct token 
 		/* If this whole if-thing is if'ed out, an elif cannot help */
 		if (elif_ignore[if_nesting-1])
 			return 1;
-		if (expression_value(token)) {
+		if (expression_value(&token->next)) {
 			false_nesting--;
 			true_nesting++;
 			elif_ignore[if_nesting-1] = 1;
@@ -946,7 +1151,7 @@ static int handle_elif(struct stream * stream, struct token *head, struct token 
 	return 1;
 }
 
-static int handle_else(struct stream *stream, struct token *head, struct token *token)
+static int handle_else(struct stream *stream, struct token **line, struct token *token)
 {
 	if (stream->nesting == if_nesting)
 		stream->constant = 0;
@@ -968,7 +1173,7 @@ static int handle_else(struct stream *stream, struct token *head, struct token *
 	return 1;
 }
 
-static int handle_endif(struct stream *stream, struct token *head, struct token *token)
+static int handle_endif(struct stream *stream, struct token **line, struct token *token)
 {
 	if (stream->constant == -2 && stream->nesting == if_nesting)
 		stream->constant = -1;
@@ -993,7 +1198,7 @@ static const char *show_token_sequence(struct token *token)
 
 	if (!token)
 		return "<none>";
-	while (!eof_token(token) && !match_op(token, SPECIAL_ARG_SEPARATOR)) {
+	while (!eof_token(token)) {
 		const char *val = show_token(token);
 		int len = strlen(val);
 
@@ -1013,7 +1218,7 @@ static const char *show_token_sequence(struct token *token)
 	return buffer;
 }
 
-static int handle_warning(struct stream *stream, struct token *head, struct token *token)
+static int handle_warning(struct stream *stream, struct token **line, struct token *token)
 {
 	if (false_nesting)
 		return 1;
@@ -1021,7 +1226,7 @@ static int handle_warning(struct stream *stream, struct token *head, struct toke
 	return 1;
 }
 
-static int handle_error(struct stream *stream, struct token *head, struct token *token)
+static int handle_error(struct stream *stream, struct token **line, struct token *token)
 {
 	if (false_nesting)
 		return 1;
@@ -1029,7 +1234,7 @@ static int handle_error(struct stream *stream, struct token *head, struct token 
 	return 1;
 }
 
-static int handle_nostdinc(struct stream *stream, struct token *head, struct token *token)
+static int handle_nostdinc(struct stream *stream, struct token **line, struct token *token)
 {
 	if (false_nesting)
 		return 1;
@@ -1051,7 +1256,7 @@ static void add_path_entry(struct token *token, const char *path)
 	warn(token->pos, "too many include path entries");
 }
 
-static int handle_add_include(struct stream *stream, struct token *head, struct token *token)
+static int handle_add_include(struct stream *stream, struct token **line, struct token *token)
 {
 	for (;;) {
 		token = token->next;
@@ -1077,25 +1282,25 @@ static int handle_add_include(struct stream *stream, struct token *head, struct 
  * So eventually this will turn into some kind of extended
  * __attribute__() like thing, except called __pragma__(xxx).
  */
-static int handle_pragma(struct stream *stream, struct token *head, struct token *token)
+static int handle_pragma(struct stream *stream, struct token **line, struct token *token)
 {
-	struct token *next = head->next;
+	struct token *next = *line;
 
 	token->ident = &pragma_ident;
 	token->pos.newline = 1;
 	token->pos.whitespace = 1;
 	token->pos.pos = 1;
-	head->next = token;
+	*line = token;
 	token->next = next;
 	return 1;
 }
 
-static int handle_preprocessor_command(struct stream *stream, struct token *head, struct ident *ident, struct token *token)
+static int handle_preprocessor_command(struct stream *stream, struct token **line, struct ident *ident, struct token *token)
 {
 	int i;
 	static struct {
 		const char *name;
-		int (*handler)(struct stream *, struct token *, struct token *);
+		int (*handler)(struct stream *, struct token **, struct token *);
 	} handlers[] = {
 		{ "define",	handle_define },
 		{ "undef",	handle_undef },
@@ -1117,25 +1322,25 @@ static int handle_preprocessor_command(struct stream *stream, struct token *head
 
 	for (i = 0; i < (sizeof (handlers) / sizeof (handlers[0])); i++) {
 		if (match_string_ident(ident, handlers[i].name))
-			return handlers[i].handler(stream, head, token);
+			return handlers[i].handler(stream, line, token);
 	}
 	return 0;
 }
 
-static void handle_preprocessor_line(struct stream *stream, struct token * head, struct token *token)
+static void handle_preprocessor_line(struct stream *stream, struct token **line, struct token *token)
 {
 	if (!token)
 		return;
 
 	if (token_type(token) == TOKEN_IDENT)
-		if (handle_preprocessor_command(stream, head, token->ident, token))
+		if (handle_preprocessor_command(stream, line, token->ident, token))
 			return;
 	warn(token->pos, "unrecognized preprocessor line '%s'", show_token_sequence(token));
 }
 
-static void preprocessor_line(struct stream *stream, struct token * head)
+static void preprocessor_line(struct stream *stream, struct token **line)
 {
-	struct token *start = head->next, *next;
+	struct token *start = *line, *next;
 	struct token **tp = &start->next;
 
 	for (;;) {
@@ -1144,24 +1349,27 @@ static void preprocessor_line(struct stream *stream, struct token * head)
 			break;
 		tp = &next->next;
 	}
-	head->next = next;
+	*line = next;
 	*tp = &eof_token_entry;
-	handle_preprocessor_line(stream, head, start->next);
+	handle_preprocessor_line(stream, line, start->next);
 }
 
-static void do_preprocess(struct token *head)
+static void do_preprocess(struct token **list)
 {
-	do {
-		struct token *next = head->next;
+	struct token *next;
+
+	while (!eof_token(next = scan_next(list))) {
 		struct stream *stream = input_streams + next->pos.stream;
 
 		if (next->pos.newline && match_op(next, '#')) {
-			preprocessor_line(stream, head);
-			continue;
+			if (!next->pos.noexpand) {
+				preprocessor_line(stream, list);
+				continue;
+			}
 		}
 
 		if (false_nesting) {
-			head->next = next->next;
+			*list = next->next;
 			continue;
 		}
 
@@ -1172,36 +1380,28 @@ static void do_preprocess(struct token *head)
 			}
 			/* fallthrough */
 		case TOKEN_STREAMBEGIN:
-			head->next = next->next;
-			continue;
-
-		case TOKEN_UNTAINT:
-			eat_untaint(head, next);
+			*list = next->next;
 			continue;
 
 		case TOKEN_IDENT:
-			next = expand_one_symbol(head, next);
-			/* fallthrough */
+			list = expand_one_symbol(list);
+			break;
 		default:
-			/*
-			 * Any token expansion (even if it ended up being an
-			 * empty expansion) in this stream implies it can't
-			 * be constant.
-			 */
-			stream->constant = 0;
+			list = &next->next;
 		}
-
-		head = next;
-	} while (!eof_token(head));
+		/*
+		 * Any token expansion (even if it ended up being an
+		 * empty expansion) in this stream implies it can't
+		 * be constant.
+		 */
+		stream->constant = 0;
+	}
 }
 
 struct token * preprocess(struct token *token)
 {
-	struct token header = { };
-
 	preprocessing = 1;
-	header.next = token;
-	do_preprocess(&header);
+	do_preprocess(&token);
 	if (if_nesting)
 		warn(unmatched_if->pos, "unmatched preprocessor conditional");
 
@@ -1209,5 +1409,5 @@ struct token * preprocess(struct token *token)
 	clear_expression_alloc();
 	preprocessing = 0;
 
-	return header.next;
+	return token;
 }

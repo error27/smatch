@@ -61,7 +61,9 @@ enum token_type {
 	TOKEN_STR_ARGUMENT,
 	TOKEN_QUOTED_ARGUMENT,
 	TOKEN_CONCAT,
+	TOKEN_GNU_KLUDGE,
 	TOKEN_UNTAINT,
+	TOKEN_ARG_COUNT,
 };
 
 /* Combination tokens */
@@ -117,6 +119,14 @@ struct string {
 	char data[];
 };
 
+/* will fit into 32 bits */
+struct argcount {
+	unsigned normal:10;
+	unsigned quoted:10;
+	unsigned str:10;
+	unsigned vararg:1;
+};
+
 /*
  * This is a very common data structure, it should be kept
  * as small as humanly possible. Big (rare) types go as
@@ -132,8 +142,15 @@ struct token {
 		struct string *string;
 		int character;
 		int argnum;
+		struct argcount count;
 	};
 };
+
+static inline struct token *containing_token(struct token **p)
+{
+	void *addr = (char*)p - ((char*)&((struct token *)0)->next - (char*)0);
+	return addr;
+}
 
 #define token_type(x) ((x)->pos.type)
 
