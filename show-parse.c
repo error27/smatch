@@ -32,6 +32,8 @@ const char *modifier_string(unsigned long mod)
 		"auto", "register", "static", "extern",
 		"const", "volatile", "signed", "unsigned",
 		"char", "short", "long", "long",
+		"typdef", "structof", "unionof", "enum",
+		"typeof", "attribute",
 		NULL
 	};
 	ptr = names;
@@ -49,27 +51,52 @@ const char *modifier_string(unsigned long mod)
 	return buffer+1;
 }
 
-const char *type_string(unsigned int modifiers, struct symbol *sym)
+void show_type_details(unsigned int modifiers, struct symbol *sym)
 {
-	if (!sym)
-		return "<notype>";
+	if (!sym) {
+		printf(" <notype>");
+		return;
+	}
 		
 	if (sym == &int_type) {
-		if (modifiers & (SYM_CHAR | SYM_SHORT | SYM_LONG))
-			return "";
-		return "int";
+		if (modifiers & (MOD_CHAR | MOD_SHORT | MOD_LONG))
+			return;
+		printf(" int");
+		return;
 	}
-	if (sym == &fp_type)
-		return "float";
-	if (sym == &void_type)
-		return "void";
-	if (sym == &vector_type)
-		return "vector";
-	if (sym == &bad_type)
-		return "bad type";
+	if (sym == &fp_type) {
+		printf(" float");
+		return;
+	}
+	if (sym == &void_type) {
+		printf(" void");
+		return;
+	}
+	if (sym == &vector_type) {
+		printf(" vector");
+		return;
+	}
+	if (sym == &bad_type) {
+		printf(" <badtype>");
+		return;
+	}
+	if (sym->type == SYM_STRUCT)
+		printf(" struct");
+	else if (sym->type == SYM_UNION)
+		printf(" union");
+	else if (sym->type == SYM_ENUM)
+		printf(" enum");
+	else if (sym->type == SYM_PTR)
+		printf(" *");
+	else if (sym->type == SYM_FN)
+		printf(" <fn>");
+	else
+		printf(" strange type %d", sym->type);
 	if (sym->token)
-		return show_token(sym->token);
-	return "typedef";
+		printf(" %s", show_token(sym->token));
+
+	if (sym->ctype.base_type)
+		show_type(sym->ctype.base_type);
 }
 
 static void show_one_symbol(struct symbol *sym, void *sep, int flags)
@@ -124,7 +151,7 @@ void show_type(struct symbol *sym)
 		break;
 
 	default:
-		printf("%s", type_string(ctype->modifiers, ctype->base_type));
+		show_type_details(ctype->modifiers, ctype->base_type);
 		break;
 	}
 }

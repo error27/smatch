@@ -67,48 +67,48 @@ struct sym_init {
 	unsigned int modifiers;
 } symbol_init_table[] = {
 	/* Storage class */
-	{ "auto",	NULL,		SYM_AUTO },
-	{ "register",	NULL,		SYM_REGISTER },
-	{ "static",	NULL,		SYM_STATIC },
-	{ "extern",	NULL,		SYM_EXTERN },
+	{ "auto",	NULL,		MOD_AUTO },
+	{ "register",	NULL,		MOD_REGISTER },
+	{ "static",	NULL,		MOD_STATIC },
+	{ "extern",	NULL,		MOD_EXTERN },
 
 	/* Type specifiers */
 	{ "void",	&void_type,	0 },
-	{ "char",	&int_type,	SYM_CHAR },
-	{ "short",	&int_type,	SYM_SHORT },
+	{ "char",	&int_type,	MOD_CHAR },
+	{ "short",	&int_type,	MOD_SHORT },
 	{ "int",	&int_type,	0 },
-	{ "long",	NULL,		SYM_LONG },
+	{ "long",	NULL,		MOD_LONG },
 	{ "float",	&fp_type,	0 },
-	{ "double",	&fp_type,	SYM_LONG },
-	{ "signed",	&int_type,	SYM_SIGNED },
-	{ "__signed",	&int_type,	SYM_SIGNED },
-	{ "__signed__",	&int_type,	SYM_SIGNED },
-	{ "unsigned",	&int_type,	SYM_UNSIGNED },
+	{ "double",	&fp_type,	MOD_LONG },
+	{ "signed",	&int_type,	MOD_SIGNED },
+	{ "__signed",	&int_type,	MOD_SIGNED },
+	{ "__signed__",	&int_type,	MOD_SIGNED },
+	{ "unsigned",	&int_type,	MOD_UNSIGNED },
 
 	/* Type qualifiers */
-	{ "const",	NULL,		SYM_CONST },
-	{ "__const",	NULL,		SYM_CONST },
-	{ "__const__",	NULL,		SYM_CONST },
-	{ "volatile",	NULL,		SYM_VOLATILE },
+	{ "const",	NULL,		MOD_CONST },
+	{ "__const",	NULL,		MOD_CONST },
+	{ "__const__",	NULL,		MOD_CONST },
+	{ "volatile",	NULL,		MOD_VOLATILE },
 
 	/* Predeclared types */
 	{ "__builtin_va_list", &int_type, 0 },
 
 	/* Typedef.. */
-	{ "typedef",	NULL,		SYM_TYPEDEF },
+	{ "typedef",	NULL,		MOD_TYPEDEF },
 
 	/* Extended types */
-	{ "typeof",	NULL,		SYM_TYPEOF },
-	{ "__typeof",	NULL,		SYM_TYPEOF },
-	{ "__typeof__",	NULL,		SYM_TYPEOF },
+	{ "typeof",	NULL,		MOD_TYPEOF },
+	{ "__typeof",	NULL,		MOD_TYPEOF },
+	{ "__typeof__",	NULL,		MOD_TYPEOF },
 
-	{ "attribute",	NULL,		SYM_ATTRIBUTE },
-	{ "__attribute", NULL,		SYM_ATTRIBUTE },
-	{ "__attribute__", NULL,	SYM_ATTRIBUTE },
+	{ "attribute",	NULL,		MOD_ATTRIBUTE },
+	{ "__attribute", NULL,		MOD_ATTRIBUTE },
+	{ "__attribute__", NULL,	MOD_ATTRIBUTE },
 
-	{ "struct",	NULL,		SYM_STRUCTOF },
-	{ "union",	NULL,		SYM_UNIONOF },
-	{ "enum",	NULL,		SYM_ENUMOF },
+	{ "struct",	NULL,		MOD_STRUCTOF },
+	{ "union",	NULL,		MOD_UNIONOF },
+	{ "enum",	NULL,		MOD_ENUMOF },
 
 	/* Ignored for now.. */
 	{ "inline",	NULL,		0 },

@@ -42,8 +42,8 @@ static struct symbol *indirect(struct symbol *base, int type)
 	unsigned long mod = base->ctype.modifiers;
 
 	sym->ctype.base_type = base;
-	sym->ctype.modifiers = mod & SYM_STORAGE;
-	base->ctype.modifiers = mod & ~SYM_STORAGE;
+	sym->ctype.modifiers = mod & MOD_STORAGE;
+	base->ctype.modifiers = mod & ~MOD_STORAGE;
 	force_default_type(&sym->ctype);
 	return sym;
 }
@@ -174,7 +174,7 @@ struct token *attribute_specifier(struct token *token, struct ctype *ctype)
 	return token;
 }
 
-#define MOD_SPECIALBITS (SYM_STRUCTOF | SYM_UNIONOF | SYM_ENUMOF | SYM_ATTRIBUTE | SYM_TYPEOF)
+#define MOD_SPECIALBITS (MOD_STRUCTOF | MOD_UNIONOF | MOD_ENUMOF | MOD_ATTRIBUTE | MOD_TYPEOF)
 
 static struct token *declaration_specifiers(struct token *next, struct ctype *ctype)
 {
@@ -198,15 +198,15 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 		if (thistype.modifiers & MOD_SPECIALBITS) {
 			unsigned long mod = thistype.modifiers;
 			thistype.modifiers = mod & ~MOD_SPECIALBITS;
-			if (mod & SYM_STRUCTOF)
+			if (mod & MOD_STRUCTOF)
 				next = struct_or_union_specifier(SYM_STRUCT, next, &thistype);
-			else if (mod & SYM_UNIONOF)
+			else if (mod & MOD_UNIONOF)
 				next = struct_or_union_specifier(SYM_UNION, next, &thistype);
-			else if (mod & SYM_ENUMOF)
+			else if (mod & MOD_ENUMOF)
 				next = enum_specifier(next, &thistype);
-			else if (mod & SYM_ATTRIBUTE)
+			else if (mod & MOD_ATTRIBUTE)
 				next = attribute_specifier(next, &thistype);
-			else if (mod & SYM_TYPEOF)
+			else if (mod & MOD_TYPEOF)
 				next = typeof_specifier(next, &thistype);
 		}
 
@@ -225,10 +225,10 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 			unsigned long old = ctype->modifiers;
 			unsigned long extra = 0, dup;
 
-			if (mod & old & SYM_LONG) {
-				extra = SYM_LONGLONG | SYM_LONG;
-				mod &= ~SYM_LONG;
-				old &= ~SYM_LONG;
+			if (mod & old & MOD_LONG) {
+				extra = MOD_LONGLONG | MOD_LONG;
+				mod &= ~MOD_LONG;
+				old &= ~MOD_LONG;
 			}
 			dup = (mod & old) | (extra & old) | (extra & mod);
 			if (dup)
@@ -254,7 +254,7 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 	return token;
 }
 
-static struct token *abstract_function_declarator(struct token *, struct symbol_list **);
+static struct token *parameter_type_list(struct token *, struct symbol_list **);
 static struct token *declarator(struct token *token, struct symbol **tree, struct token **p);
 
 static struct token *direct_declarator(struct token *token, struct symbol **tree, struct token **p)
@@ -295,7 +295,7 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 			}
 			
 			*tree = indirect(*tree, SYM_FN);
-			token = abstract_function_declarator(next, &(*tree)->arguments);
+			token = parameter_type_list(next, &(*tree)->arguments);
 			token = expect(token, ')', "in function declarator");
 			continue;
 		}
@@ -322,11 +322,11 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 
 static struct token *pointer(struct token *token, struct symbol **tree, struct ctype *ctype)
 {
-	unsigned long storage = ctype->modifiers & SYM_STORAGE;
+	unsigned long storage = ctype->modifiers & MOD_STORAGE;
 
 	force_default_type(ctype);
 	(*tree)->ctype.base_type = ctype->base_type;
-	(*tree)->ctype.modifiers = ctype->modifiers & ~SYM_STORAGE;
+	(*tree)->ctype.modifiers = ctype->modifiers & ~MOD_STORAGE;
 	while (match_op(token,'*')) {
 		struct symbol *sym;
 		sym = alloc_symbol(token, SYM_PTR);
@@ -580,11 +580,6 @@ static struct token *parameter_type_list(struct token *token, struct symbol_list
 	return token;
 }
 
-static struct token *abstract_function_declarator(struct token *token, struct symbol_list **list)
-{
-	return parameter_type_list(token, list);
-}
-
 static struct token *external_declaration(struct token *token, struct symbol_list **list);
 
 struct token *compound_statement(struct token *token, struct statement *stmt)
@@ -646,9 +641,10 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 		return expect(token, ';', "end of type declaration");
 
 	/* type define declaration? */
-	if (ctype.modifiers & SYM_TYPEDEF) {
-		ctype.modifiers &= ~SYM_TYPEDEF;
-		bind_symbol(indirect(decl, SYM_TYPEDEF), ident->ident, NS_TYPEDEF);
+	if (ctype.modifiers & MOD_TYPEDEF) {
+		decl->type = SYM_TYPEDEF;
+		decl->ctype.modifiers &= ~MOD_TYPEDEF;
+		bind_symbol(decl, ident->ident, NS_TYPEDEF);
 		return expect(token, ';', "end of typedef");
 	}
 

@@ -75,30 +75,30 @@ struct symbol {
 };
 
 /* Modifiers */
-#define SYM_AUTO	0x0001
-#define SYM_REGISTER	0x0002
-#define SYM_STATIC	0x0004
-#define SYM_EXTERN	0x0008
+#define MOD_AUTO	0x0001
+#define MOD_REGISTER	0x0002
+#define MOD_STATIC	0x0004
+#define MOD_EXTERN	0x0008
 
-#define SYM_STORAGE	(SYM_AUTO | SYM_REGISTER | SYM_STATIC | SYM_EXTERN)
+#define MOD_STORAGE	(MOD_AUTO | MOD_REGISTER | MOD_STATIC | MOD_EXTERN)
 
-#define SYM_CONST	0x0010
-#define SYM_VOLATILE	0x0020
-#define SYM_SIGNED	0x0040
-#define SYM_UNSIGNED	0x0080
+#define MOD_CONST	0x0010
+#define MOD_VOLATILE	0x0020
+#define MOD_SIGNED	0x0040
+#define MOD_UNSIGNED	0x0080
 
-#define SYM_CHAR	0x0100
-#define SYM_SHORT	0x0200
-#define SYM_LONG	0x0400
-#define SYM_LONGLONG	0x0800
+#define MOD_CHAR	0x0100
+#define MOD_SHORT	0x0200
+#define MOD_LONG	0x0400
+#define MOD_LONGLONG	0x0800
 
-#define SYM_TYPEDEF	0x1000
-#define SYM_STRUCTOF	0x2000
-#define SYM_UNIONOF	0x4000
-#define SYM_ENUMOF	0x8000
+#define MOD_TYPEDEF	0x1000
+#define MOD_STRUCTOF	0x2000
+#define MOD_UNIONOF	0x4000
+#define MOD_ENUMOF	0x8000
 
-#define SYM_TYPEOF	0x10000
-#define SYM_ATTRIBUTE	0x20000
+#define MOD_TYPEOF	0x10000
+#define MOD_ATTRIBUTE	0x20000
 
 /* Basic types */
 extern struct symbol	void_type,
