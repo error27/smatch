@@ -505,23 +505,26 @@ static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
 		add_bb(&ep->bbs, bb);
 }
 
-/*
- * FIXME! This knows _way_ too much about list internals
- */
-static void set_list(struct basic_block_list *p, struct basic_block *child)
+static void remove_parent(struct basic_block *child, struct basic_block *parent)
 {
-	struct ptr_list *list = (void *)p;
-	list->prev = list;
-	list->next = list;
-	list->nr = 1;
-	list->list[0] = child;
-}
+	struct basic_block *p;
 
+	FOR_EACH_PTR(child->parents, p) {
+		if (p != parent)
+			continue;
+		DELETE_CURRENT_PTR(p);
+	} END_FOR_EACH_PTR(p);
+	PACK_PTR_LIST(&child->parents);
+
+	if (!child->parents)
+		kill_bb(child);
+}
 
 /* Change a "switch" into a branch */
 void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic_block *target)
 {
 	struct instruction *br, *old;
+	struct basic_block *child;
 
 	/* Remove the switch */
 	old = delete_last_instruction(&bb->insns);
@@ -531,7 +534,14 @@ void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic
 	br->bb = bb;
 	br->bb_true = target;
 	add_instruction(&bb->insns, br);
-	set_list(bb->children, target);
+
+	FOR_EACH_PTR(bb->children, child) {
+		if (child == target)
+			continue;
+		DELETE_CURRENT_PTR(child);
+		remove_parent(child, bb);
+	} END_FOR_EACH_PTR(child);
+	PACK_PTR_LIST(&bb->children);
 }
 	
 
@@ -544,6 +554,7 @@ void insert_select(struct basic_block *bb, struct instruction *br, struct instru
 
 	setcc = alloc_instruction(OP_SETCC, &bool_ctype);
 	setcc->bb = bb;
+	assert(br->cond);
 	use_pseudo(br->cond, &setcc->src);
 
 	select = alloc_instruction(OP_SEL, phi_node->type);
@@ -587,6 +598,7 @@ static void add_setcc(struct entrypoint *ep, struct expression *expr, pseudo_t v
 	if (bb_reachable(bb)) {
 		struct instruction *cc = alloc_instruction(OP_SETCC, &bool_ctype);
 		use_pseudo(val, &cc->src);
+		assert(val);
 		add_one_insn(ep, cc);
 	}
 }
@@ -1676,6 +1688,8 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	return VOID;
 }
 
+struct basic_block outside;
+
 struct entrypoint *linearize_symbol(struct symbol *sym)
 {
 	struct symbol *base_type;
@@ -1696,6 +1710,7 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 
 			ep->name = sym;
 			ep->entry = bb;
+			add_bb(&bb->parents, &outside);
 			set_activeblock(ep, bb);
 			concat_symbol_list(base_type->arguments, &ep->syms);
 
