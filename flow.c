@@ -29,7 +29,7 @@ static void rewrite_branch(struct basic_block *bb,
 	struct basic_block *old,
 	struct basic_block *new)
 {
-	if (*ptr != old)
+	if (*ptr != old || new == old)
 		return;
 
 	/* We might find new if-conversions or non-dominating CSEs */
@@ -667,6 +667,11 @@ static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old
 
 	if (!insn)
 		return 0;
+
+	/* Infinite loops: let's not "optimize" them.. */
+	if (old == new)
+		return 0;
+
 	switch (insn->opcode) {
 	case OP_BR:
 		rewrite_branch(bb, &insn->bb_true, old, new);
