@@ -724,8 +724,8 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 
 	// FIXME!! Cast it?
 	warn(expr->pos, "incorrect type in %s (%s)", where, typediff);
-	warn(expr->pos, "  expected %s", show_typename(target));
-	warn(expr->pos, "  got %s", show_typename(source));
+	info(expr->pos, "   expected %s", show_typename(target));
+	info(expr->pos, "   got %s", show_typename(source));
 	return 0;
 }
 
