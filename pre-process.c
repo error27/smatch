@@ -273,49 +273,49 @@ static struct token *stringify(struct token *token, struct token *arg)
 	return newtoken;
 }
 
-static int arg_number(struct token *arglist, struct ident *ident)
+static int is_arg(struct token *token, struct token *arglist)
 {
-	int nr = 0;
+	struct ident *ident = token->ident;
+	int nr;
 
-	while (!eof_token(arglist)) {
-		if (match_op(arglist, SPECIAL_ELLIPSIS) && ident == &__VA_ARGS___ident)
-			return nr;
-		if (arglist->ident == ident)
-			return nr;
-		nr++;
-		arglist = arglist->next;
+	if (!arglist || token_type(token) != TOKEN_IDENT)
+		return 0;
+
+	for (nr = 0; !eof_token(arglist); nr++, arglist = arglist->next) {
+		if ((match_op(arglist, SPECIAL_ELLIPSIS) && ident == &__VA_ARGS___ident) || 
+		    arglist->ident == ident) {
+			token->argnum = nr;
+			return 1;
+		}
 	}
-	return -1;
-}			
+	return 0;
+}
 
 static struct token empty_arg_token = { .pos = { .type = TOKEN_EOF } };
 
-static struct token *expand_one_arg(struct token *head, struct token *token, struct token *arguments)
+static struct token *expand_one_arg(struct token *head, struct token *token, struct token *arguments, int do_expand)
 {
 	int nr = token->argnum;
 	struct token *orig_head = head;
+	struct token *arg = get_argument(nr, arguments);
+	struct token *last = token->next;
+	token->next = &eof_token_entry;
 
-	if (nr >= 0) {
-		struct token *arg = get_argument(nr, arguments);
-		struct token *last = token->next;
-		token->next = &eof_token_entry;
-
-		/*
-		 * Special case for gcc 'x ## arg' semantics: if 'arg' is empty
-		 * then the 'x' goes away too.
-		 */
-		if (match_op(head, SPECIAL_HASHHASH) && eof_token(arg)) {
-			arg = &empty_arg_token;
-			empty_arg_token.next = &eof_token_entry;
-		}
-
-		head = replace(token, head, arg);
-		if (!match_op(orig_head, SPECIAL_HASHHASH) && !match_op(last, SPECIAL_HASHHASH) && !match_op(orig_head, '#'))
-			head = expand_list(orig_head);
-		head->next = last;
-		return head;
+	/*
+	 * Special case for gcc 'x ## arg' semantics: if 'arg' is empty
+	 * then the 'x' goes away too.
+	 * NB: that's not what gcc kludge is about; later  -- AV
+	 */
+	if (token_type(head) == TOKEN_CONCAT && eof_token(arg)) {
+		arg = &empty_arg_token;
+		empty_arg_token.next = &eof_token_entry;
 	}
-	return token;
+
+	head = replace(token, head, arg);
+	if (do_expand)
+		head = expand_list(orig_head);
+	head->next = last;
+	return head;
 }
 
 static void expand_arguments(struct token *token, struct token *head,
@@ -328,19 +328,14 @@ static void expand_arguments(struct token *token, struct token *head,
 		if (eof_token(next))
 			break;
 
-		if (match_op(next, '#')) {
-			struct token *nextnext = next->next;
-			if (token_type(nextnext) == TOKEN_MACRO_ARGUMENT) {
-				int nr = nextnext->argnum;
-				struct token *newtoken = stringify(nextnext, get_argument(nr, arguments));
-				replace(nextnext, head, newtoken);
-				continue;
-			}
-			warn(next->pos, "'#' operation is not followed by argument name");
-		}
-
-		if (token_type(next) == TOKEN_MACRO_ARGUMENT)
-			next = expand_one_arg(head, next, arguments);
+		if (token_type(next) == TOKEN_STR_ARGUMENT) {
+			int nr = next->argnum;
+			struct token *newtoken = stringify(next, get_argument(nr, arguments));
+			next = replace(next, head, newtoken);
+		} else if (token_type(next) == TOKEN_MACRO_ARGUMENT)
+			next = expand_one_arg(head, next, arguments, 1);
+		else if (token_type(next) == TOKEN_QUOTED_ARGUMENT)
+			next = expand_one_arg(head, next, arguments, 0);
 
 		head = next;
 	}
@@ -434,7 +429,7 @@ static void retokenize(struct token *head)
 		if (eof_token(nextnextnext))
 			break;
 		
-		if (match_op(nextnext, SPECIAL_HASHHASH)) {
+		if (token_type(nextnext) == TOKEN_CONCAT) {
 			next->next = nextnextnext;
 			next = hashhash(head, next);
 			head->next = next;
@@ -615,8 +610,11 @@ static int token_different(struct token *t1, struct token *t2)
 
 	switch (token_type(t1)) {
 	case TOKEN_IDENT:
-	case TOKEN_UNTAINT:
 		different = t1->ident != t2->ident;
+		break;
+	case TOKEN_UNTAINT:
+	case TOKEN_CONCAT:
+		different = 0;
 		break;
 	case TOKEN_NUMBER:
 		different = strcmp(t1->number, t2->number);
@@ -625,6 +623,8 @@ static int token_different(struct token *t1, struct token *t2)
 		different = t1->special != t2->special;
 		break;
 	case TOKEN_MACRO_ARGUMENT:
+	case TOKEN_QUOTED_ARGUMENT:
+	case TOKEN_STR_ARGUMENT:
 		different = t1->argnum != t2->argnum;
 		break;
 	case TOKEN_CHAR:
@@ -661,7 +661,6 @@ static int token_list_different(struct token *list1, struct token *list2)
 		list2 = list2->next;
 	}
 }
-	
 
 static int handle_define(struct stream *stream, struct token *head, struct token *token)
 {
@@ -708,17 +707,44 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 		arglist = arglist->next;
 	}
 
+	if (match_op(expansion, SPECIAL_HASHHASH)) {
+		warn(expansion->pos, "'##' cannot appear at the either end of macro expansion");
+		return 1;
+	}
+
 	untaint = alloc_token(&head->pos);
 	token_type(untaint) = TOKEN_UNTAINT;
 	untaint->ident = name;
 
 	for (p = &expansion; !eof_token(token = *p); p = &token->next) {
-		if (arglist && token_type(token) == TOKEN_IDENT) {
-			int nr = arg_number(arglist, token->ident);
-			if (nr >= 0) {
-				token_type(token) = TOKEN_MACRO_ARGUMENT;
-				token->argnum = nr;
+		if (match_op(token, '#') && arglist) {
+			struct token *next = token->next;
+			if (is_arg(next, arglist)) {
+				token_type(token) = TOKEN_STR_ARGUMENT;
+				token->argnum = next->argnum;
+				token->next = next->next;
+				continue;
 			}
+			warn(token->pos, "'#' is not followed by a macro parameter");
+			return 1;
+		} else if (match_op(token, SPECIAL_HASHHASH)) {
+			struct token *next = token->next;
+			token_type(token) = TOKEN_CONCAT;
+			if (is_arg(next, arglist)) {
+				token_type(next) = TOKEN_QUOTED_ARGUMENT;
+				token = next;
+			} else if (match_op(next, SPECIAL_HASHHASH)) {
+				token = next;
+			} else if (eof_token(next)) {
+				warn(token->pos, "'##' cannot appear at the either end of macro expansion");
+				return 1;
+			}
+			continue;
+		} else if (is_arg(token, arglist)) {
+			if (match_op(token->next, SPECIAL_HASHHASH))
+				token_type(token) = TOKEN_QUOTED_ARGUMENT;
+			else
+				token_type(token) = TOKEN_MACRO_ARGUMENT;
 		}
 	}
 	untaint->next = *p;
