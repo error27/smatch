@@ -652,7 +652,7 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 			if (token_type(p) == TOKEN_IDENT) {
 				int nr = arg_number(arglist, p->ident);
 				if (nr >= 0) {
-					p->pos.type = TOKEN_MACRO_ARGUMENT;
+					token_type(p) = TOKEN_MACRO_ARGUMENT;
 					p->argnum = nr;
 				}
 			}
