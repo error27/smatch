@@ -115,7 +115,7 @@ void show_type(struct symbol *sym)
 		printf("%s", modifier_string(sym->modifiers));
 		show_type(sym->base_type);
 
-		printf("(\n\t");
+		printf("(\n");
 		show_type_list(sym->children);
 		printf(" )");
 		break;
@@ -220,11 +220,19 @@ struct symbol	void_type,
 		fp_type,
 		vector_type;
 
+#define IDENT(n) \
+	struct ident n ## _ident = { len: sizeof(#n)-1, name: #n }
+
+IDENT(struct); IDENT(union); IDENT(enum);
+
 void init_symbols(void)
 {
 	int stream = init_stream("builtin");
 	struct sym_init *ptr;
 
+	hash_ident(&struct_ident);
+	hash_ident(&union_ident);
+	hash_ident(&enum_ident);
 	for (ptr = symbol_init_table; ptr->name; ptr++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, ptr->name, SYM_TYPE);

@@ -484,6 +484,11 @@ static int get_one_special(int c, action_t *action)
 #define IDENT_HASH_BITS (10)
 #define IDENT_HASH_SIZE (1<<IDENT_HASH_BITS)
 #define IDENT_HASH_MASK (IDENT_HASH_SIZE-1)
+
+#define ident_hash_init(c)		(c)
+#define ident_hash_add(oldhash,c)	((oldhash)*11 + (c))
+#define ident_hash_end(hash)		((((hash) >> IDENT_HASH_BITS) + (hash)) & IDENT_HASH_MASK)
+
 static struct ident *hash_table[IDENT_HASH_SIZE];
 int ident_hit, ident_miss;
 
@@ -517,11 +522,31 @@ void show_identifier_stats(void)
 	}
 }
 
+static struct ident *alloc_ident(const char *name, int len)
+{
+	struct ident *ident;
+
+	ident = malloc(offsetof(struct ident,name) + len);
+	if (!ident)
+		die("Out of memory for identifiers");
+	ident->symbol = NULL;
+	ident->len = len;
+	memcpy(ident->name, name, len);
+	return ident;
+}
+
+static struct ident * insert_hash(struct ident *ident, unsigned long hash)
+{
+	ident->next = hash_table[hash];
+	hash_table[hash] = ident;
+	ident_miss++;
+	return ident;
+}
+
 static struct ident *create_hashed_ident(const char *name, int len, unsigned long hash)
 {
 	struct ident *ident;
 
-	hash = ((hash >> IDENT_HASH_BITS) + hash) & IDENT_HASH_MASK;
 	ident = hash_table[hash];
 	while (ident) {
 		if (ident->len == len && !memcmp(ident->name, name, len)) {
@@ -531,42 +556,37 @@ static struct ident *create_hashed_ident(const char *name, int len, unsigned lon
 		ident = ident->next;
 	}
 
-	ident = malloc(offsetof(struct ident,name) + len);
-	if (!ident)
-		die("Out of memory for identifiers");
-
-	ident->symbol = NULL;
-	ident->len = len;
-	memcpy(ident->name, name, len);
-	ident->next = hash_table[hash];
-	hash_table[hash] = ident;
-	ident_miss++;
-	return ident;
+	return insert_hash(alloc_ident(name, len), hash);
 }
 
-#define ident_hash_init(c)		(c)
-#define ident_hash_add(oldhash,c)	((oldhash)*11 + (c))
-#define ident_hash_end(hash)		(hash)
+struct ident *hash_ident(struct ident *ident)
+{
+	int n;
+	unsigned long hash;
+	const unsigned char *p = (const unsigned char *)ident->name;
+
+	hash = ident_hash_init(*p++);
+	n = ident->len;
+	while (--n) {
+		unsigned int i = *p++;
+		hash = ident_hash_add(hash, i);
+	}
+	hash = ident_hash_end(hash);
+	insert_hash(ident, hash);
+}
+
+struct ident *built_in_ident(const char *name)
+{
+	return hash_ident(alloc_ident(name, strlen(name)));
+}	
 
 struct token *built_in_token(int stream, const char *name)
 {
-	int len = 1;
-	unsigned long hash;
 	struct token *token;
-	const unsigned char *p = (const unsigned char *)name;
 
-	hash = ident_hash_init(*p++);
-	for (;;) {
-		unsigned int i = *p++;
-		if (!i)
-			break;
-		hash = ident_hash_add(hash, i);
-		len++;
-	}
-	hash = ident_hash_end(hash);
 	token = alloc_token(stream, 0, 0);
 	token->type = TOKEN_IDENT;
-	token->ident = create_hashed_ident(name, len, hash);
+	token->ident = built_in_ident(name);
 	return token;
 }
 

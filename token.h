@@ -101,6 +101,8 @@ struct token {
 };
 
 extern int init_stream(const char *);
+extern struct ident *hash_ident(struct ident *);
+extern struct ident *built_in_ident(const char *);
 extern struct token *built_in_token(int, const char *);
 extern const char *show_special(int op);
 extern const char *show_token(const struct token *token);
