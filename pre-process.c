@@ -763,21 +763,23 @@ static const char *show_token_sequence(struct token *token)
 {
 	static char buffer[256];
 	char *ptr = buffer;
+	int whitespace = 0;
 
 	if (!token)
 		return "<none>";
 	while (!eof_token(token)) {
 		const char *val = show_token(token);
 		int len = strlen(val);
-		if (token->whitespace)
+		if (whitespace)
 			*ptr++ = ' ';
 		memcpy(ptr, val, len);
 		ptr += len;
 		token = token->next;
+		whitespace = token->whitespace;
 	}
 	*ptr++ = 0;
 	*ptr = 0;
-	return buffer+1;
+	return buffer;
 }
 
 static int handle_warning(struct stream *stream, struct token *head, struct token *token)
