@@ -94,6 +94,10 @@ static void show_instruction(struct instruction *insn)
 			printf("\t%%r%d <- %lld\n",
 				insn->target->nr, expr->value);
 			break;
+		case EXPR_FVALUE:
+			printf("\t%%r%d <- %Lf\n",
+				insn->target->nr, expr->fvalue);
+			break;
 		case EXPR_STRING:
 			printf("\t%%r%d <- %s\n",
 				insn->target->nr, show_string(expr->string));
@@ -411,6 +415,7 @@ static pseudo_t linearize_access(struct entrypoint *ep, struct expression *expr)
 	return linearize_load_gen(ep, expr, addr);
 }
 
+/* FIXME: FP */
 static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr, int postop)
 {
 	pseudo_t addr = linearize_address_gen(ep, expr->unop);
@@ -631,6 +636,10 @@ pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *expr, s
 	case EXPR_VALUE:
 		add_goto(ep, expr->value ? bb_true : bb_false);
 		return VOID;
+
+	case EXPR_FVALUE:
+		add_goto(ep, expr->fvalue ? bb_true : bb_false);
+		return VOID;
 		
 	case EXPR_LOGICAL:
 		linearize_logical_branch(ep, expr, bb_true, bb_false);
@@ -693,7 +702,7 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 		return VOID;
 
 	switch (expr->type) {
-	case EXPR_VALUE: case EXPR_STRING: case EXPR_SYMBOL:
+	case EXPR_VALUE: case EXPR_STRING: case EXPR_SYMBOL: case EXPR_FVALUE:
 		return add_setval(ep, expr->ctype, expr);
 
 	case EXPR_STATEMENT:

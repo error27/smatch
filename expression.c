@@ -8,6 +8,7 @@
  *
  * This is the expression parsing part of parsing C.
  */
+#define _ISOC99_SOURCE
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -100,18 +101,6 @@ static struct token *string_expression(struct token *token, struct expression *e
 	return next;
 }
 
-static void get_fp_value(struct expression *expr, struct token *token)
-{
-	static int fp_warned;
-
-	expr->ctype = &double_ctype;
-	expr->value = 0;
-	if (!fp_warned) {
-		warn(token->pos, "FP values not yet implemented");
-		fp_warned = 1;
-	}
-}
-
 #ifndef ULLONG_MAX
 #define ULLONG_MAX (~0ULL)
 #endif
@@ -129,7 +118,7 @@ static void get_number_value(struct expression *expr, struct token *token)
 	errno = 0;
 	value = strtoull(str, &end, 0);
 	if (end == str)
-		goto Enoint;
+		goto Float;
 	if (value == ULLONG_MAX && errno == ERANGE)
 		overflow = 1;
 	while (1) {
@@ -146,7 +135,7 @@ static void get_number_value(struct expression *expr, struct token *token)
 				end++;
 			}
 		} else
-			goto Enoint;
+			goto Float;
 		if (modifiers & added)
 			goto Enoint;
 		modifiers |= added;
@@ -213,8 +202,29 @@ got_it:
 Eoverflow:
 	error(expr->pos, "constant %s is too big even for unsigned long long",
 			show_token(token));
+	return;
+Float:
+	expr->fvalue = strtold(str, &end);
+	if (str == end)
+		goto Enoint;
+
+	if (*end && end[1])
+		goto Enoint;
+
+	if (*end == 'f' || *end == 'F')
+		expr->ctype = &float_ctype;
+	else if (*end == 'l' || *end == 'L')
+		expr->ctype = &ldouble_ctype;
+	else if (!*end)
+		expr->ctype = &double_ctype;
+	else
+		goto Enoint;
+
+	expr->type = EXPR_FVALUE;
+	return;
+
 Enoint:
-	get_fp_value(expr, token);
+	error(expr->pos, "constant %s is not a valid number", show_token(token));
 }
 
 struct token *primary_expression(struct token *token, struct expression **tree)

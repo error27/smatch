@@ -203,10 +203,53 @@ static inline int is_int_type(struct symbol *type)
 	       type->ctype.base_type == &int_type;
 }
 
+static inline int is_float_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type->ctype.base_type == &fp_type;
+}
+
 static struct symbol *bad_expr_type(struct expression *expr)
 {
 	warn(expr->pos, "incompatible types for operation");
 	return NULL;
+}
+
+static struct symbol *compatible_float_binop(struct expression **lp, struct expression **rp)
+{
+	struct expression *left = *lp, *right = *rp;
+	struct symbol *ltype = left->ctype, *rtype = right->ctype;
+
+	if (ltype->type == SYM_NODE)
+		ltype = ltype->ctype.base_type;
+	if (rtype->type == SYM_NODE)
+		rtype = rtype->ctype.base_type;
+	if (is_float_type(ltype)) {
+		if (is_int_type(rtype))
+			goto Left;
+		if (is_float_type(rtype)) {
+			unsigned long lmod = ltype->ctype.modifiers;
+			unsigned long rmod = rtype->ctype.modifiers;
+			lmod &= MOD_LONG | MOD_LONGLONG;
+			rmod &= MOD_LONG | MOD_LONGLONG;
+			if (lmod == rmod)
+				return ltype;
+			if (lmod & ~rmod)
+				goto Left;
+			else
+				goto Right;
+		}
+		return NULL;
+	}
+	if (!is_float_type(rtype) || !is_int_type(ltype))
+		return NULL;
+Right:
+	*lp = cast_to(left, rtype);
+	return rtype;
+Left:
+	*rp = cast_to(right, ltype);
+	return ltype;
 }
 
 static struct symbol *compatible_integer_binop(struct expression **lp, struct expression **rp)
@@ -234,6 +277,8 @@ static struct symbol *compatible_integer_binop(struct expression **lp, struct ex
 static struct symbol *evaluate_arith(struct expression *expr, int float_ok)
 {
 	struct symbol *ctype = compatible_integer_binop(&expr->left, &expr->right);
+	if (!ctype && float_ok)
+		ctype = compatible_float_binop(&expr->left, &expr->right);
 	if (ctype) {
 		expr->ctype = ctype;
 		return ctype;
@@ -313,7 +358,6 @@ static struct symbol *evaluate_add(struct expression *expr)
 	if (is_ptr_type(rtype))
 		return evaluate_ptr_add(expr, right, left);
 		
-	// FIXME! FP promotion
 	return evaluate_arith(expr, 1);
 }
 
@@ -545,7 +589,6 @@ static struct symbol *evaluate_sub(struct expression *expr)
 	if (is_ptr_type(ltype))
 		return evaluate_ptr_sub(expr, left, right);
 
-	// FIXME! FP promotion
 	return evaluate_arith(expr, 1);
 }
 
@@ -563,8 +606,29 @@ static struct symbol *evaluate_conditional(struct expression **p)
 		warn(expr->pos, "assignment expression in conditional");
 
 	ctype = evaluate_expression(expr);
-	if (ctype && is_safe_type(ctype))
-		warn(expr->pos, "testing a 'safe expression'");
+	if (ctype) {
+		if (is_safe_type(ctype))
+			warn(expr->pos, "testing a 'safe expression'");
+		if (is_float_type(ctype)) {
+			struct expression *comp;
+			/*
+			 * It's easier to handle here, rather than deal with
+			 * FP all over the place.  Floating point in boolean
+			 * context is rare enough (and very often wrong),
+			 * so price of explicit comparison with appropriate
+			 * FP zero is not too high.  And it simplifies things
+			 * elsewhere.
+			 */
+			comp = alloc_expression(expr->pos, EXPR_BINOP);
+			comp->op = SPECIAL_NOTEQUAL;
+			comp->left = expr;
+			comp->right = alloc_expression(expr->pos, EXPR_FVALUE);
+			comp->right->ctype = comp->left->ctype;
+			comp->right->fvalue = 0;
+			ctype = comp->ctype = &bool_ctype;
+			*p = comp;
+		}
+	}
 
 	return ctype;
 }
@@ -676,13 +740,9 @@ static struct symbol *evaluate_compare(struct expression *expr)
 		expr->ctype = &bool_ctype;
 		return &bool_ctype;
 	}
+	ctype = compatible_float_binop(&expr->left, &expr->right);
 
 	return bad_expr_type(expr);
-}
-
-static int compatible_integer_types(struct symbol *ltype, struct symbol *rtype)
-{
-	return (is_int_type(ltype) && is_int_type(rtype));
 }
 
 /*
@@ -731,17 +791,22 @@ static struct symbol * evaluate_conditional_expression(struct expression *expr)
 
 	ctype = ltype;
 	typediff = type_difference(ltype, rtype, MOD_IGN, MOD_IGN);
-	if (typediff) {
-		ctype = compatible_integer_binop(&true, &expr->cond_false);
-		if (!ctype) {
-			ctype = compatible_ptr_type(true, expr->cond_false);
-			if (!ctype) {
-				warn(expr->pos, "incompatible types in conditional expression (%s)", typediff);
-				return NULL;
-			}
-		}
-	}
+	if (!typediff)
+		goto out;
 
+	ctype = compatible_integer_binop(&true, &expr->cond_false);
+	if (ctype)
+		goto out;
+	ctype = compatible_ptr_type(true, expr->cond_false);
+	if (ctype)
+		goto out;
+	ctype = compatible_float_binop(&true, &expr->cond_false);
+	if (ctype)
+		goto out;
+	warn(expr->pos, "incompatible types in conditional expression (%s)", typediff);
+	return NULL;
+
+out:
 	expr->ctype = ctype;
 	return ctype;
 }
@@ -758,10 +823,22 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 	if (!typediff)
 		return 1;
 
-	if (compatible_integer_types(target, source)) {
-		if (target->bit_size != source->bit_size)
-			*rp = cast_to(*rp, target);
-		return 1;
+	if (is_int_type(target)) {
+		if (is_int_type(source)) {
+			if (target->bit_size != source->bit_size)
+				goto Cast;
+			return 1;
+		}
+		if (is_float_type(source))
+			goto Cast;
+	} else if (is_float_type(target)) {
+		if (is_int_type(source))
+			goto Cast;
+		if (is_float_type(source)) {
+			if (target->bit_size != source->bit_size)
+				goto Cast;
+			return 1;
+		}
 	}
 
 	/* Pointer destination? */
@@ -799,6 +876,9 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 	info(expr->pos, "   expected %s", show_typename(target));
 	info(expr->pos, "   got %s", show_typename(source));
 	return 0;
+Cast:
+	*rp = cast_to(*rp, target);
+	return 1;
 }
 
 /*
@@ -1088,6 +1168,8 @@ static struct symbol *evaluate_sign(struct expression *expr)
 		if (rtype->bit_size != ctype->bit_size)
 			expr->unop = cast_to(expr->unop, rtype);
 		ctype = rtype;
+	} else if (is_float_type(ctype) && expr->op != '%') {
+		/* no conversions needed */
 	} else {
 		return bad_expr_type(expr);
 	}
@@ -1128,6 +1210,15 @@ static struct symbol *evaluate_preop(struct expression *expr)
 	case '!':
 		if (is_safe_type(ctype))
 			warn(expr->pos, "testing a 'safe expression'");
+		if (is_float_type(ctype)) {
+			struct expression *arg = expr->unop;
+			expr->type = EXPR_BINOP;
+			expr->op = SPECIAL_EQUAL;
+			expr->left = arg;
+			expr->right = alloc_expression(expr->pos, EXPR_FVALUE);
+			expr->right->ctype = ctype;
+			expr->right->fvalue = 0;
+		}
 		ctype = &bool_ctype;
 		break;
 
@@ -1660,6 +1751,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 
 	switch (expr->type) {
 	case EXPR_VALUE:
+	case EXPR_FVALUE:
 		warn(expr->pos, "value expression without a type");
 		return NULL;
 	case EXPR_STRING:

@@ -38,6 +38,7 @@ enum expression_type {
 	EXPR_IDENTIFIER,	// identifier in initializer
 	EXPR_INDEX,		// index in initializer
 	EXPR_POS,		// position in initializer
+	EXPR_FVALUE,
 };
 
 struct expression {
@@ -48,6 +49,9 @@ struct expression {
 	union {
 		// EXPR_VALUE
 		unsigned long long value;
+
+		// EXPR_FVALUE
+		long double fvalue;
 
 		// EXPR_STRING
 		struct string *string;

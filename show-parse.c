@@ -842,6 +842,15 @@ static int show_value(struct expression *expr)
 	return new;
 }
 
+static int show_fvalue(struct expression *expr)
+{
+	int new = new_pseudo();
+	long double value = expr->fvalue;
+
+	printf("\tmovf.%d\t\tv%d,$%Lf\n", expr->ctype->bit_size, new, value);
+	return new;
+}
+
 static int show_string_expr(struct expression *expr)
 {
 	int new = new_pseudo();
@@ -969,6 +978,8 @@ int show_expression(struct expression *expr)
 		return show_cast_expr(expr);
 	case EXPR_VALUE:
 		return show_value(expr);
+	case EXPR_FVALUE:
+		return show_fvalue(expr);
 	case EXPR_STRING:
 		return show_string_expr(expr);
 	case EXPR_BITFIELD:

@@ -77,6 +77,7 @@ static struct expression * copy_expression(struct expression *expr)
 	/* Atomics, never change, just return the expression directly */
 	case EXPR_VALUE:
 	case EXPR_STRING:
+	case EXPR_FVALUE:
 		break;
 
 	/* Unops: check if the subexpression is unique */

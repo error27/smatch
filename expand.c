@@ -43,19 +43,32 @@ static void expand_symbol_expression(struct expression *expr)
 	}
 }
 
+static long long get_longlong(struct expression *expr)
+{
+	int no_expand = expr->ctype->ctype.modifiers & MOD_UNSIGNED;
+	long long mask = 1ULL << (expr->ctype->bit_size - 1);
+	long long value = expr->value;
+	long long ormask, andmask;
+
+	if (!(value & mask))
+		no_expand = 1;
+	andmask = mask | (mask-1);
+	ormask = ~andmask;
+	if (no_expand)
+		ormask = 0;
+	return (value & andmask) | ormask;
+}
+
 void cast_value(struct expression *expr, struct symbol *newtype,
 		struct expression *old, struct symbol *oldtype)
 {
 	int old_size = oldtype->bit_size;
 	int new_size = newtype->bit_size;
-	long long value, mask, ormask, andmask;
-	int is_signed;
+	long long value, mask;
 
-	// FIXME! We don't handle FP casts of constant values yet
-	if (newtype->ctype.base_type == &fp_type)
-		return;
-	if (oldtype->ctype.base_type == &fp_type)
-		return;
+	if (newtype->ctype.base_type == &fp_type ||
+	    oldtype->ctype.base_type == &fp_type)
+		goto Float;
 
 	// For pointers and integers, we can just move the value around
 	expr->type = EXPR_VALUE;
@@ -65,21 +78,34 @@ void cast_value(struct expression *expr, struct symbol *newtype,
 	}
 
 	// expand it to the full "long long" value
-	is_signed = !(oldtype->ctype.modifiers & MOD_UNSIGNED);
-	mask = 1ULL << (old_size-1);
-	value = old->value;
-	if (!(value & mask))
-		is_signed = 0;
-	andmask = mask | (mask-1);
-	ormask = ~andmask;
-	if (!is_signed)
-		ormask = 0;
-	value = (value & andmask) | ormask;
+	value = get_longlong(old);
 
+Int:
 	// Truncate it to the new size
 	mask = 1ULL << (new_size-1);
 	mask = mask | (mask-1);
 	expr->value = value & mask;
+	return;
+
+Float:
+	if (newtype->ctype.base_type != &fp_type) {
+		value = (long long)expr->fvalue;
+		expr->type = EXPR_VALUE;
+		goto Int;
+	}
+
+	if (oldtype->ctype.base_type != &fp_type)
+		expr->fvalue = (long double)get_longlong(old);
+	else
+		expr->fvalue = old->value;
+
+	if (!(newtype->ctype.modifiers & MOD_LONGLONG)) {
+		if ((newtype->ctype.modifiers & MOD_LONG))
+			expr->fvalue = (double)expr->fvalue;
+		else
+			expr->fvalue = (float)expr->fvalue;
+	}
+	expr->type = EXPR_FVALUE;
 }
 
 static int check_shift_count(struct expression *expr, struct symbol *ctype, unsigned int count)
@@ -95,7 +121,7 @@ static int check_shift_count(struct expression *expr, struct symbol *ctype, unsi
  * CAREFUL! We need to get the size and sign of the
  * result right!
  */
-static void simplify_int_binop(struct expression *expr, struct symbol *ctype)
+static int simplify_int_binop(struct expression *expr, struct symbol *ctype)
 {
 	struct expression *left = expr->left, *right = expr->right;
 	unsigned long long v, l, r, mask;
@@ -103,7 +129,7 @@ static void simplify_int_binop(struct expression *expr, struct symbol *ctype)
 	int is_signed, shift;
 
 	if (left->type != EXPR_VALUE || right->type != EXPR_VALUE)
-		return;
+		return 0;
 	l = left->value; r = right->value;
 	is_signed = !(ctype->ctype.modifiers & MOD_UNSIGNED);
 	mask = 1ULL << (ctype->bit_size-1);
@@ -120,27 +146,31 @@ static void simplify_int_binop(struct expression *expr, struct symbol *ctype)
 	case '|':		v = l | r; s = v; break;
 	case '^':		v = l ^ r; s = v; break;
 	case '*':		v = l * r; s = sl * sr; break;
-	case '/':		if (!r) return; v = l / r; s = sl / sr; break;
-	case '%':		if (!r) return; v = l % r; s = sl % sr; break;
+	case '/':		if (!r) goto Div; v = l / r; s = sl / sr; break;
+	case '%':		if (!r) goto Div; v = l % r; s = sl % sr; break;
 	case SPECIAL_LEFTSHIFT: shift = check_shift_count(expr, ctype, r); v = l << shift; s = v; break; 
 	case SPECIAL_RIGHTSHIFT:shift = check_shift_count(expr, ctype, r); v = l >> shift; s = sl >> shift; break;
-	default: return;
+	default: return 0;
 	}
 	if (is_signed)
 		v = s;
 	mask = mask | (mask-1);
 	expr->value = v & mask;
 	expr->type = EXPR_VALUE;
+	return 1;
+Div:
+	warn(expr->pos, "division by zero");
+	return 0;
 }
 
-static void simplify_cmp_binop(struct expression *expr, struct symbol *ctype)
+static int simplify_cmp_binop(struct expression *expr, struct symbol *ctype)
 {
 	struct expression *left = expr->left, *right = expr->right;
 	unsigned long long l, r, mask;
 	signed long long sl, sr;
 
 	if (left->type != EXPR_VALUE || right->type != EXPR_VALUE)
-		return;
+		return 0;
 	l = left->value; r = right->value;
 	mask = 1ULL << (ctype->bit_size-1);
 	sl = l; sr = r;
@@ -161,11 +191,80 @@ static void simplify_cmp_binop(struct expression *expr, struct symbol *ctype)
 	case SPECIAL_UNSIGNED_GTE:expr->value = l >= r; break;
 	}
 	expr->type = EXPR_VALUE;
+	return 1;
 }
 
-static void expand_int_binop(struct expression *expr)
+static int simplify_float_binop(struct expression *expr)
 {
-	simplify_int_binop(expr, expr->ctype);
+	struct expression *left = expr->left, *right = expr->right;
+	unsigned long mod = expr->ctype->ctype.modifiers;
+	long double l = left->fvalue;
+	long double r = right->fvalue;
+	long double res;
+
+	if (left->type != EXPR_FVALUE || right->type != EXPR_FVALUE)
+		return 0;
+	if (mod & MOD_LONGLONG) {
+		switch (expr->op) {
+		case '+':	res = l + r; break;
+		case '-':	res = l - r; break;
+		case '*':	res = l * r; break;
+		case '/':	if (!r) goto Div;
+				res = l / r; break;
+		default: return 0;
+		}
+	} else if (mod & MOD_LONG) {
+		switch (expr->op) {
+		case '+':	res = (double) l + (double) r; break;
+		case '-':	res = (double) l - (double) r; break;
+		case '*':	res = (double) l * (double) r; break;
+		case '/':	if (!r) goto Div;
+				res = (double) l / (double) r; break;
+		default: return 0;
+		}
+	} else {
+		switch (expr->op) {
+		case '+':	res = (float)l + (float)r; break;
+		case '-':	res = (float)l - (float)r; break;
+		case '*':	res = (float)l * (float)r; break;
+		case '/':	if (!r) goto Div;
+				res = (float)l / (float)r; break;
+		default: return 0;
+		}
+	}
+	expr->type = EXPR_FVALUE;
+	expr->fvalue = res;
+	return 1;
+Div:
+	warn(expr->pos, "division by zero");
+	return 0;
+}
+
+static int simplify_float_cmp(struct expression *expr, struct symbol *ctype)
+{
+	struct expression *left = expr->left, *right = expr->right;
+	long double l = left->fvalue, r = right->fvalue;
+
+	if (left->type != EXPR_FVALUE || right->type != EXPR_FVALUE)
+		return 0;
+
+	switch (expr->op) {
+	case '<':		expr->value = l < r; break;
+	case '>':		expr->value = l > r; break;
+	case SPECIAL_LTE:	expr->value = l <= r; break;
+	case SPECIAL_GTE:	expr->value = l >= r; break;
+	case SPECIAL_EQUAL:	expr->value = l == r; break;
+	case SPECIAL_NOTEQUAL:	expr->value = l != r; break;
+	}
+	expr->type = EXPR_VALUE;
+	return 1;
+}
+
+static void expand_binop(struct expression *expr)
+{
+	if (simplify_int_binop(expr, expr->ctype))
+		return;
+	simplify_float_binop(expr);
 }
 
 static void expand_logical(struct expression *expr)
@@ -203,14 +302,9 @@ static void expand_logical(struct expression *expr)
 	}
 }
 
-static void expand_binop(struct expression *expr)
-{
-	expand_int_binop(expr);
-}
-
 static void expand_comma(struct expression *expr)
 {
-	if (expr->left->type == EXPR_VALUE)
+	if (expr->left->type == EXPR_VALUE || expr->left->type == EXPR_FVALUE)
 		*expr = *expr->right;
 }
 
@@ -246,7 +340,9 @@ static void expand_compare(struct expression *expr)
 		expr->value = compare_types(op, left->symbol, right->symbol);
 		return;
 	}
-	simplify_cmp_binop(expr, expr->ctype);
+	if (simplify_cmp_binop(expr, left->ctype))
+		return;
+	simplify_float_cmp(expr, left->ctype);
 }
 
 static void expand_conditional(struct expression *expr)
@@ -298,31 +394,53 @@ static void expand_dereference(struct expression *expr)
 				if (value->type == EXPR_VALUE) {
 					expr->type = EXPR_VALUE;
 					expr->value = value->value;
+				} else if (value->type == EXPR_FVALUE) {
+					expr->type = EXPR_FVALUE;
+					expr->fvalue = value->fvalue;
 				}
 			}
 		}
 	}
 }
 
-static void simplify_preop(struct expression *expr)
+static int simplify_preop(struct expression *expr)
 {
 	struct expression *op = expr->unop;
 	unsigned long long v, mask;
 
 	if (op->type != EXPR_VALUE)
-		return;
+		return 0;
 	v = op->value;
 	switch (expr->op) {
 	case '+': break;
 	case '-': v = -v; break;
 	case '!': v = !v; break;
 	case '~': v = ~v; break;
-	default: return;
+	default: return 0;
 	}
 	mask = 1ULL << (expr->ctype->bit_size-1);
 	mask = mask | (mask-1);
 	expr->value = v & mask;
 	expr->type = EXPR_VALUE;
+	return 1;
+}
+
+static int simplify_float_preop(struct expression *expr)
+{
+	struct expression *op = expr->unop;
+	long double v;
+
+	if (op->type != EXPR_FVALUE)
+		return 0;
+	v = op->fvalue;
+	switch (expr->op) {
+	case '+': break;
+	case '-': v = -v; break;
+	default: return 0;
+	}
+	expr->fvalue = v;
+	expr->type = EXPR_FVALUE;
+	return 1;
 }
 
 /*
@@ -355,7 +473,9 @@ static void expand_preop(struct expression *expr)
 	default:
 		break;
 	}
-	simplify_preop(expr);
+	if (simplify_preop(expr))
+		return;
+	simplify_float_preop(expr);
 }
 
 static void expand_arguments(struct expression_list *head)
@@ -374,7 +494,7 @@ static void expand_cast(struct expression *expr)
 	expand_expression(target);
 
 	/* Simplify normal integer casts.. */
-	if (target->type == EXPR_VALUE)
+	if (target->type == EXPR_VALUE || target->type == EXPR_FVALUE)
 		cast_value(expr, expr->ctype, target, target->ctype);
 }
 
@@ -426,7 +546,7 @@ static void expand_expression(struct expression *expr)
 
 	switch (expr->type) {
 	case EXPR_VALUE:
-		return;
+	case EXPR_FVALUE:
 	case EXPR_STRING:
 		return;
 	case EXPR_TYPE:

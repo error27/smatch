@@ -345,7 +345,7 @@ static void expand_constant_p(struct expression *expr)
 	int value = 1;
 
 	FOR_EACH_PTR (arglist, arg) {
-		if (arg->type != EXPR_VALUE)
+		if (arg->type != EXPR_VALUE && arg->type != EXPR_VALUE)
 			value = 0;
 	} END_FOR_EACH_PTR;
 
