@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 		while (!eof_token(token)) {
 			int prec = 1;
 			struct token *next = token->next;
-			char * separator = "";
+			const char *separator = "";
 			if (next->pos.whitespace)
 				separator = " ";
 			if (next->pos.newline) {

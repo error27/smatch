@@ -95,7 +95,7 @@ static void replace_with_integer(struct token *token, unsigned int val)
 
 static void replace_with_defined(struct token *token)
 {
-	char *string[] = { "0", "1" };
+	static char *string[] = { "0", "1" };
 	int defined = 0;
 	if (token_type(token) != TOKEN_IDENT)
 		warning(token->pos, "operator \"defined\" requires an identifier");

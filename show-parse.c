@@ -159,7 +159,7 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 	const char *mod;
 	static struct ctype_name {
 		struct symbol *sym;
-		char *name;
+		const char *name;
 	} typenames[] = {
 		{ & char_ctype,  "char" },
 		{ &schar_ctype,  "signed char" },

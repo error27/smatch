@@ -143,7 +143,7 @@ static void show_instruction(struct instruction *insn)
 	
 	case OP_PHI: {
 		struct phi *phi;
-		char *s = " ";
+		const char *s = " ";
 		printf("\t%%r%d <- phi", insn->target->nr);
 		FOR_EACH_PTR(insn->phi_list, phi) {
 			printf("%s(%%r%d, .L%p)", s, phi->pseudo->nr, phi->source);

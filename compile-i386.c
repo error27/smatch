@@ -286,10 +286,10 @@ struct regclass {
 	const unsigned char regs[30];
 };
 
-struct regclass regclass_8 = { "8-bit", { AL, DL, CL, BL, AH, DH, CH, BH }};
-struct regclass regclass_16 = { "16-bit", { AX, DX, CX, BX, SI, DI, BP }};
-struct regclass regclass_32 = { "32-bit", { EAX, EDX, ECX, EBX, ESI, EDI, EBP }};
-struct regclass regclass_64 = { "64-bit", { EAX_EDX, ECX_EBX, ESI_EDI }};
+static struct regclass regclass_8 = { "8-bit", { AL, DL, CL, BL, AH, DH, CH, BH }};
+static struct regclass regclass_16 = { "16-bit", { AX, DX, CX, BX, SI, DI, BP }};
+static struct regclass regclass_32 = { "32-bit", { EAX, EDX, ECX, EBX, ESI, EDI, EBP }};
+static struct regclass regclass_64 = { "64-bit", { EAX_EDX, ECX_EBX, ESI_EDI }};
 
 struct regclass regclass_32_8 = { "32-bit bytes", { EAX, EDX, ECX, EBX }};
 
@@ -1126,7 +1126,7 @@ static const char *opbits(const char *insn, unsigned int bits)
 	case 16: c = 'w'; break;
 	case 32: c = 'l'; break;
 	case 64: c = 'q'; break;
-	default: assert(0); break;
+	default: abort(); break;
 	}
 
 	sprintf(opbits_str, "%s%c", insn, c);
