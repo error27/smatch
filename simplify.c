@@ -663,6 +663,14 @@ static int simplify_branch(struct instruction *insn)
 				return REPEAT_CSE;
 			}
 		}
+		if (def->opcode == OP_CAST) {
+			int orig_size = def->orig_type ? def->orig_type->bit_size : 0;
+			if (def->size > orig_size) {
+				use_pseudo(def->src, &insn->cond);
+				remove_usage(cond, &insn->cond);
+				return REPEAT_CSE;
+			}
+		}
 	}
 	return 0;
 }
