@@ -1809,28 +1809,45 @@ found_dominator:
  */
 static void rewrite_load_instruction(struct instruction *insn, struct phi_list *dominators)
 {
-	if (phi_list_size(dominators) == 1) {
-		struct phi * phi = first_phi(dominators);
-		phi->source = NULL;	/* Mark it as not used */
-		convert_load_insn(insn, phi->pseudo);
-	} else {
-		pseudo_t new = alloc_pseudo(insn);
-		convert_load_insn(insn, new);
+	struct phi *phi, *first;
+	pseudo_t new;
 
-		/*
-		 * FIXME! This is dubious. We should probably allocate a new
-		 * instruction instead of re-using the OP_LOAD instruction.
-		 * Re-use of the instruction makes the usage list suspect.
-		 *
-		 * It should be ok, because the only usage of the OP_LOAD
-		 * is the symbol pseudo, and we should never follow that
-		 * list _except_ for exactly the dominant instruction list
-		 * generation (and then we always check the opcode).
-		 */
-		insn->opcode = OP_PHI;
-		insn->target = new;
-		insn->phi_list = dominators;
-	}
+	first = NULL;
+	FOR_EACH_PTR(dominators, phi) {
+		if (!first) {
+			first = phi;
+			continue;
+		}
+		if (first->pseudo == phi->pseudo &&
+		    first->source == phi->source) {
+			phi->source = NULL;
+			continue;
+		}
+		goto complex_phi;
+	} END_FOR_EACH_PTR(phi);
+
+	first->source = NULL;	/* Mark it as not used */
+	convert_load_insn(insn, first->pseudo);
+	return;
+
+complex_phi:
+	new = alloc_pseudo(insn);
+	convert_load_insn(insn, new);
+
+	/*
+	 * FIXME! This is dubious. We should probably allocate a new
+	 * instruction instead of re-using the OP_LOAD instruction.
+	 * Re-use of the instruction makes the usage list suspect.
+	 *
+	 * It should be ok, because the only usage of the OP_LOAD
+	 * is the symbol pseudo, and we should never follow that
+	 * list _except_ for exactly the dominant instruction list
+	 * generation (and then we always check the opcode).
+	 */
+	insn->opcode = OP_PHI;
+	insn->target = new;
+	insn->phi_list = dominators;
+	new->def = insn;
 }
 
 static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,
