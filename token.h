@@ -10,6 +10,8 @@
 
 #include <sys/types.h>
 
+extern char *includepath[];
+
 /*
  * This describes the pure lexical elements (tokens), with
  * no semantic meaning. In other words, an identifier doesn't

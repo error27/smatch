@@ -15,6 +15,19 @@
 #include "token.h"
 #include "symbol.h"
 
+char *includepath[] = {
+	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.1/include/",
+#if 1
+	"/home/torvalds/v2.5/linux/include/",
+#else
+	"/usr/include/",
+	"/usr/local/include/",
+#endif
+	"",
+	NULL
+};
+
+
 int main(int argc, char **argv)
 {
 	int fd = open(argv[1], O_RDONLY);

@@ -396,18 +396,10 @@ static const char *token_name_sequence(struct token *token, int endop, struct to
 	return buffer;
 }
 
-static const char *includepath[] = {
-	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.1/include/",
-	"/usr/include/",
-	"/usr/local/include/",
-	"",
-	NULL
-};
-
 static void do_include(struct token *head, struct token *token, const char *filename)
 {
 	int endlen = strlen(filename) + 1;
-	const char **pptr = includepath, *path;
+	char **pptr = includepath, *path;
 
 	while ((path = *pptr++) != NULL) {
 		int fd, len = strlen(path);

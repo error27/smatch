@@ -18,18 +18,48 @@
 #include "parse.h"
 #include "symbol.h"
 
+char *includepath[] = {
+	"/usr/lib/gcc-lib/i386-redhat-linux/3.2.1/include/",
+#if 1
+	"/home/torvalds/v2.5/linux/include/",
+#else
+	"/usr/include/",
+	"/usr/local/include/",
+#endif
+	"",
+	NULL
+};
+
+static void handle_switch(char *arg)
+{
+}
+
 int main(int argc, char **argv)
 {
-	int fd = open(argv[1], O_RDONLY);
+	int i, fd;
+	char *filename = NULL;
 	struct token *token;
 	struct symbol_list *list = NULL;
 
-	if (fd < 0)
-		die("No such file: %s", argv[1]);
+	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
 
+	for (i = 1; i < argc; i++) {
+		char *arg = argv[i];
+		if (arg[0] == '-') {
+			handle_switch(arg+1);
+			continue;
+		}
+		filename = arg;
+	}
+		
+
+	fd = open(filename, O_RDONLY);
+	if (fd < 0)
+		die("No such file: %s", argv[1]);
+
 	// Tokenize the input stream
-	token = tokenize(argv[1], fd, NULL);
+	token = tokenize(filename, fd, NULL);
 	close(fd);
 
 	// Pre-process the stream
