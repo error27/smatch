@@ -254,6 +254,43 @@ int linearize_ptr_list(struct ptr_list *head, void **arr, int max)
 	return nr;
 }
 
+/*
+ * When we've walked the list and deleted entries,
+ * we may need to re-pack it so that we don't have
+ * any empty blocks left (empty blocks upset the
+ * walking code
+ */
+void pack_ptr_list(struct ptr_list **listp)
+{
+	struct ptr_list *head = *listp;
+
+	if (head) {
+		struct ptr_list *entry = head;
+		do {
+			struct ptr_list *next;
+restart:
+			next = entry->next;
+			if (!entry->nr) {
+				struct ptr_list *prev;
+				if (next == entry) {
+					*listp = NULL;
+					return;
+				}
+				prev = entry->prev;
+				prev->next = next;
+				next->prev = prev;
+				free(entry);
+				if (entry == head) {
+					*listp = next;
+					head = next;
+					goto restart;
+				}
+			}
+			entry = next;
+		} while (entry != head);
+	}
+}		
+
 void **add_ptr_list(struct ptr_list **listp, void *ptr)
 {
 	struct ptr_list *list = *listp;

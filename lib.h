@@ -357,4 +357,8 @@ static inline void add_expression(struct expression_list **list, struct expressi
 #define REPLACE_CURRENT_PTR(ptr, new_ptr)						\
 	do { *THIS_ADDRESS(ptr) = (new_ptr); } while (0)
 
+extern void pack_ptr_list(struct ptr_list **);
+
+#define PACK_PTR_LIST(x) pack_ptr_list((struct ptr_list **)(x))
+
 #endif
