@@ -607,7 +607,7 @@ static int drop_stream_comment(stream_t *stream)
 
 unsigned char combinations[][3] = COMBINATION_STRINGS;
 
-#define NR_COMBINATIONS (sizeof(combinations)/3)
+#define NR_COMBINATIONS (SPECIAL_ARG_SEPARATOR - SPECIAL_BASE)
 
 static int get_one_special(int c, stream_t *stream)
 {
