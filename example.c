@@ -796,28 +796,61 @@ static struct operand *get_generic_operand(struct bb_state *state, pseudo_t pseu
 /* Callers should be made to use the proper "operand" formats */
 static const char *generic(struct bb_state *state, pseudo_t pseudo)
 {
+	struct hardreg *reg;
 	struct operand *op = get_generic_operand(state, pseudo);
-	const char *str = show_op(state, op);
+	static char buf[100];
+	const char *str;
+
+	switch (op->type) {
+	case OP_ADDR:
+		if (!op->offset && op->base && !op->sym)
+			return op->base->name;
+		if (op->sym && !op->base) {
+			int len = sprintf(buf, "$ %s", show_op(state, op));
+			if (op->offset)
+				sprintf(buf + len, " + %d", op->offset);
+			return buf;
+		}
+		str = show_op(state, op);
+		put_operand(state, op);
+		reg = target_reg(state, pseudo, NULL);
+		output_insn(state, "lea %s,%s", show_op(state, op), reg->name);
+		return reg->name;		
+
+	default:
+		str = show_op(state, op);
+	}
 	put_operand(state, op);
 	return str;
 }
 
-static const char *address(struct bb_state *state, struct instruction *memop)
+static struct operand *get_address_operand(struct bb_state *state, struct instruction *memop)
 {
 	struct hardreg *base;
-	static char buffer[100];
-	pseudo_t addr = memop->src;
+	struct operand *op = get_generic_operand(state, memop->src);
 
-	switch (addr->type) {
-	case PSEUDO_SYM:
-	case PSEUDO_VAL:
-		return generic(state, addr);
-
+	switch (op->type) {
+	case OP_ADDR:
+		op->offset += memop->offset;
+		break;
 	default:
-		base = getreg(state, addr, NULL);
-		sprintf(buffer, "%d(%s)", memop->offset, base->name);
-		return buffer;
+		put_operand(state, op);
+		base = getreg(state, memop->src, NULL);
+		op->type = OP_ADDR;
+		op->base = base;
+		base->busy++;
+		op->offset = memop->offset;
+		op->sym = NULL;
 	}
+	return op;
+}
+
+static const char *address(struct bb_state *state, struct instruction *memop)
+{
+	struct operand *op = get_address_operand(state, memop);
+	const char *str = show_op(state, op);
+	put_operand(state, op);
+	return str;
 }
 
 static const char *reg_or_imm(struct bb_state *state, pseudo_t pseudo)
