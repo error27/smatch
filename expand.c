@@ -341,9 +341,9 @@ static int expand_binop(struct expression *expr)
 	cost = expand_expression(expr->left);
 	cost += expand_expression(expr->right);
 	if (simplify_int_binop(expr, expr->ctype))
-		return 1;
+		return 0;
 	if (simplify_float_binop(expr))
-		return 1;
+		return 0;
 	return cost + 1;
 }
 
