@@ -1079,8 +1079,8 @@ static void emit_copy(struct storage *dest, struct storage *src,
 	if ((dest->type == STOR_ARG) && (bit_size < 32))
 		bit_size = 32;
 
-	reg = temp_from_bits(bit_size);
 	emit_move(reg, dest, ctype, ".... end copy");
+	put_reg(reg);
 }
 
 static void emit_store(struct expression *dest_expr, struct storage *dest,
@@ -1227,7 +1227,6 @@ static struct storage *emit_compare(struct expression *expr)
 	/* finally, store the result (DL) in a new pseudo / stack slot */
 	new = stack_alloc(4);
 	emit_move(reg1, new, NULL, "end EXPR_COMPARE");
-	reg1->reg->contains = new;
 	put_reg(reg1);
 
 	return new;
@@ -1295,11 +1294,10 @@ static struct storage *emit_binop(struct expression *expr)
 	struct storage *left = x86_expression(expr->left);
 	struct storage *right = x86_expression(expr->right);
 	struct storage *new;
-	struct storage *accum_reg = NULL;
-	struct storage *result_reg = NULL;
+	struct storage *dest, *src;
 	const char *opname = NULL;
-	const char *suffix;
-	char movstr[16], opstr[16];
+	const char *suffix = NULL;
+	char opstr[16];
 	int is_signed;
 
 	/* Divides have special register constraints */
@@ -1339,13 +1337,6 @@ static struct storage *emit_binop(struct expression *expr)
 		else
 			opname = "mul";
 		break;
-	case '/':
-	case '%':
-		if (is_signed)
-			opname = "idiv";
-		else
-			opname = "div";
-		break;
 	case SPECIAL_LOGICAL_AND:
 		warn(expr->pos, "bogus bitwise and for logical op (should use '2*setne + and' or something)");
 		opname = "and";
@@ -1359,48 +1350,37 @@ static struct storage *emit_binop(struct expression *expr)
 		break;
 	}
 
+	dest = get_reg_value(right);
+	src = get_reg_value(left);
 	switch (expr->ctype->bit_size) {
 	case 8:
 		suffix = "b";
-		result_reg = accum_reg = REG_AL;
-		if (expr->op == '%')
-			result_reg = REG_DL;
 		break;
 	case 16:
 		suffix = "w";
-		result_reg = accum_reg = REG_AX;
-		if (expr->op == '%')
-			result_reg = REG_DX;
 		break;
 	case 32:
 		suffix = "l";
-		result_reg = accum_reg = REG_EAX;
-		if (expr->op == '%')
-			result_reg = REG_EDX;
 		break;
 	case 64:
 		suffix = "q";		/* FIXME */
-		result_reg = accum_reg = REG_EAX;	/* FIXME */
-		if (expr->op == '%')
-			result_reg = REG_EDX;
 		break;
 	default:
 		assert(0);
 		break;
 	}
 
-	sprintf(movstr, "mov%s", suffix);
-	sprintf(opstr, "%s%s", opname, suffix);
-
-	/* load op2 into EAX */
-	insn(movstr, right, accum_reg, "EXPR_BINOP/COMMA/LOGICAL");
+	snprintf(opstr, sizeof(opstr), "%s%s", opname, suffix);
 
 	/* perform binop */
-	insn(opstr, left, accum_reg, NULL);
+	insn(opstr, src, dest, NULL);
+	put_reg(src);
 
-	/* store result (EAX or EDX) in new pseudo / stack slot */
+	/* store result in new pseudo / stack slot */
 	new = stack_alloc(expr->ctype->bit_size / 8);
-	insn(movstr, result_reg, new, "end EXPR_BINOP");
+	emit_move(dest, new, NULL, "end EXPR_BINOP");
+
+	put_reg(dest);
 
 	return new;
 }
