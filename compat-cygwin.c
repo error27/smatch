@@ -10,7 +10,8 @@
 #include <sys/mman.h>	
 #include <stdlib.h>	
 #include <string.h>	
-	
+#include <sys/stat.h>
+
 #include "lib.h"
 #include "token.h"
 	
