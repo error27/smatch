@@ -69,23 +69,31 @@ static struct phi* alloc_phi(struct basic_block *source, pseudo_t pseudo)
 	return phi;
 }
 
+static inline int regno(pseudo_t n)
+{
+	int retval = -1;
+	if (n)
+		retval = n->nr;
+	return retval;
+}
+
 static void show_instruction(struct instruction *insn)
 {
 	int op = insn->opcode;
 
 	switch (op) {
 	case OP_BADOP:
-		printf("\tAIEEE! (%d %d)\n", insn->target->nr, insn->src->nr);
+		printf("\tAIEEE! (%d %d)\n", regno(insn->target), regno(insn->src));
 		break;
 	case OP_RET:
 		if (insn->type && insn->type != &void_ctype)
-			printf("\tret %%r%d\n", insn->src->nr);
+			printf("\tret %%r%d\n", regno(insn->src));
 		else
 			printf("\tret\n");
 		break;
 	case OP_BR:
 		if (insn->bb_true && insn->bb_false) {
-			printf("\tbr\t%%r%d, .L%p, .L%p\n", insn->cond->nr, insn->bb_true, insn->bb_false);
+			printf("\tbr\t%%r%d, .L%p, .L%p\n", regno(insn->cond), insn->bb_true, insn->bb_false);
 			break;
 		}
 		printf("\tbr\t.L%p\n", insn->bb_true ? insn->bb_true : insn->bb_false);
@@ -94,7 +102,7 @@ static void show_instruction(struct instruction *insn)
 	case OP_SETVAL: {
 		struct expression *expr = insn->val;
 		struct symbol *sym = insn->symbol;
-		int target = insn->target->nr;
+		int target = regno(insn->target);
 
 		if (sym) {
 			if (sym->bb_target)
@@ -137,7 +145,7 @@ static void show_instruction(struct instruction *insn)
 	}
 	case OP_SWITCH: {
 		struct multijmp *jmp;
-		printf("\tswitch %%r%d", insn->cond->nr);
+		printf("\tswitch %%r%d", regno(insn->cond));
 		FOR_EACH_PTR(insn->multijmp_list, jmp) {
 			if (jmp->begin == jmp->end)
 				printf(", %d -> .L%p", jmp->begin, jmp->target);
@@ -151,7 +159,7 @@ static void show_instruction(struct instruction *insn)
 	}
 	case OP_COMPUTEDGOTO: {
 		struct multijmp *jmp;
-		printf("\tjmp *%%r%d", insn->target->nr);
+		printf("\tjmp *%%r%d", regno(insn->target));
 		FOR_EACH_PTR(insn->multijmp_list, jmp) {
 			printf(", .L%p", jmp->target);
 		} END_FOR_EACH_PTR(jmp);
@@ -162,7 +170,7 @@ static void show_instruction(struct instruction *insn)
 	case OP_PHI: {
 		struct phi *phi;
 		const char *s = " ";
-		printf("\t%%r%d <- phi", insn->target->nr);
+		printf("\t%%r%d <- phi", regno(insn->target));
 		FOR_EACH_PTR(insn->phi_list, phi) {
 			printf("%s(%%r%d, .L%p)", s, phi->pseudo->nr, phi->source);
 			s = ", ";
@@ -171,14 +179,14 @@ static void show_instruction(struct instruction *insn)
 		break;
 	}	
 	case OP_LOAD:
-		printf("\tload %%r%d <- [%%r%d]\n", insn->target->nr, insn->src->nr);
+		printf("\tload %%r%d <- [%%r%d]\n", regno(insn->target), regno(insn->src));
 		break;
 	case OP_STORE:
-		printf("\tstore %%r%d -> [%%r%d]\n", insn->target->nr, insn->src->nr);
+		printf("\tstore %%r%d -> [%%r%d]\n", regno(insn->target), regno(insn->src));
 		break;
 	case OP_CALL: {
 		struct pseudo *arg;
-		printf("\t%%r%d <- CALL %%r%d", insn->target->nr, insn->func->nr);
+		printf("\t%%r%d <- CALL %%r%d", regno(insn->target), insn->func->nr);
 		FOR_EACH_PTR(insn->arguments, arg) {
 			printf(", %%r%d", arg->nr);
 		} END_FOR_EACH_PTR(arg);
@@ -187,9 +195,9 @@ static void show_instruction(struct instruction *insn)
 	}
 	case OP_CAST:
 		printf("\t%%r%d <- CAST(%d->%d) %%r%d\n",
-			insn->target->nr,
+			regno(insn->target),
 			insn->orig_type->bit_size, insn->type->bit_size, 
-			insn->src->nr);
+			regno(insn->src));
 		break;
 	case OP_BINARY ... OP_BINARY_END: {
 		static const char *opname[] = {
@@ -203,15 +211,15 @@ static void show_instruction(struct instruction *insn)
 			[OP_SEL - OP_BINARY] = "select",
 		};
 		printf("\t%%r%d <- %s  %%r%d, %%r%d\n",
-			insn->target->nr,
-			opname[op - OP_BINARY], insn->src1->nr, insn->src2->nr);
+			regno(insn->target),
+			opname[op - OP_BINARY], regno(insn->src1), regno(insn->src2));
 		break;
 	}
 
 	case OP_SLICE:
 		printf("\t%%r%d <- slice  %%r%d, %d, %d\n",
-			insn->target->nr,
-			insn->base->nr, insn->from, insn->len);
+			regno(insn->target),
+			regno(insn->base), insn->from, insn->len);
 		break;
 
 	case OP_BINCMP ... OP_BINCMP_END: {
@@ -228,18 +236,18 @@ static void show_instruction(struct instruction *insn)
 			[OP_SET_B - OP_BINCMP] = "setb",
 		};
 		printf("\t%%r%d <- %s  %%r%d, %%r%d\n",
-			insn->target->nr,
-			opname[op - OP_BINCMP], insn->src1->nr, insn->src2->nr);
+			regno(insn->target),
+			opname[op - OP_BINCMP], regno(insn->src1), regno(insn->src2));
 		break;
 	}
 
 	case OP_NOT: case OP_NEG:
 		printf("\t%%r%d <- %s %%r%d\n",
-			insn->target->nr,
+			regno(insn->target),
 			op == OP_NOT ? "not" : "neg", insn->src1->nr);
 		break;
 	case OP_SETCC:
-		printf("\tsetcc %%r%d\n", insn->src->nr);
+		printf("\tsetcc %%r%d\n", regno(insn->src));
 		break;
 	case OP_CONTEXT:
 		printf("\tcontext %d\n", insn->increment);
