@@ -626,16 +626,6 @@ static struct token *direct_declarator(struct token *token, struct symbol **tree
 			ctype = &array->ctype;
 			continue;
 		}
-		if (token->special == ':') {
-			if (is_int_type (ctype->base_type)) {
-				struct symbol *bitfield = indirect(token->pos, ctype, SYM_BITFIELD);
-				struct expression *expr;
-				token = conditional_expression(token->next, &expr);
-				bitfield->fieldwidth = get_expression_value(expr);
-			} else
-				error(token->pos, "Invalid bitfield specifier for type %s.", show_typename (ctype->base_type));
-			break;
-		}
 		break;
 	}
 	if (p) {
@@ -692,8 +682,34 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 			decl->ctype = ctype;
 			token = declarator(token, &decl, &ident);
 			if (match_op(token, ':')) {
+				struct ctype *ctype = &decl->ctype;
 				struct expression *expr;
-				token = parse_expression(token->next, &expr);
+				struct symbol *bitfield;
+				long long width;
+
+				if (is_int_type (ctype->base_type)) {
+					bitfield = indirect(token->pos, ctype, SYM_BITFIELD);
+					token = conditional_expression(token->next, &expr);
+					width = get_expression_value(expr);
+					bitfield->fieldwidth = width;
+					if (width < 0) {
+						warn(token->pos, "invalid negative bitfield width, %lld.", width);
+						bitfield->fieldwidth = 8;
+					} else if (decl->ident && width == 0) {
+						warn(token->pos, "invalid named zero-width bitfield `%s'",
+						     show_ident (decl->ident));
+						bitfield->fieldwidth = 8;
+					} else if (width != bitfield->fieldwidth) {
+						// Overflow.
+						unsigned int stupid_gcc = -1;
+						bitfield->fieldwidth = stupid_gcc;
+						warn(token->pos, "truncating large bitfield from %lld to %d bits", width, bitfield->fieldwidth);
+					}
+				} else {
+					warn(token->pos, "invalid bitfield specifier for type %s.", show_typename (ctype->base_type));
+					// Parse this to recover gracefully.
+					token = conditional_expression(token->next, &expr);
+				}
 			}
 			add_symbol(list, decl);
 			if (!match_op(token, ','))
