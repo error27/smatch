@@ -106,12 +106,26 @@ struct token *struct_union_enum_specifier(enum type type,
 
 	ctype->modifiers = 0;
 	if (token_type(token) == TOKEN_IDENT) {
-		sym = lookup_or_create_symbol(NS_STRUCT, type, token);
+		sym = lookup_symbol(token->ident, NS_STRUCT);
+		if (!sym ||
+		    (sym->scope != block_scope &&
+		     (match_op(token->next,';') || match_op(token->next,'{')))) {
+			// Either a new symbol, or else an out-of-scope
+			// symbol being redefined.
+			sym = alloc_symbol(token->pos, type);
+			sym->ident = token->ident;
+			bind_symbol(sym, token->ident, NS_STRUCT);
+		}
 		if (sym->type != type)
-			error (sym->pos, "invalid tag applied to %s", show_typename (sym));
+			error(token->pos, "invalid tag applied to %s", show_typename (sym));
 		token = token->next;
 		ctype->base_type = sym;
 		if (match_op(token, '{')) {
+			// The following test is actually wrong for empty
+			// structs, but (1) they are not C99, (2) gcc does
+			// the same thing, and (3) it's easier.
+			if (sym->symbol_list)
+				error(token->pos, "redefinition of %s", show_typename (sym));
 			token = parse(token->next, sym);
 			token = expect(token, '}', "at end of struct-union-enum-specifier");
 		}
