@@ -9,6 +9,19 @@
  *
  * x86 backend
  *
+ * TODO list:
+ * loops
+ * 'switch' statements
+ * complex initializers
+ * bitfields
+ * global struct/union variables
+ * addressing structures, and members of structures (as opposed to
+ *     scalars) on the stack.  Requires smarter stack frame allocation.
+ * labels / goto
+ * any function argument that isn't 32 bits (or promoted to such)
+ * inline asm
+ * floating point
+ *
  */
 #include <stdarg.h>
 #include <stdlib.h>
