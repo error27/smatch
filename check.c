@@ -84,6 +84,64 @@ static int check_bb_context(struct entrypoint *ep, struct basic_block *bb, int e
 	return check_children(ep, bb, entry, exit);
 }
 
+static void check_cast_instruction(struct instruction *insn)
+{
+	struct symbol *orig_type = insn->orig_type;
+	if (orig_type) {
+		int old = orig_type->bit_size;
+		int new = insn->size;
+		int oldsigned = (orig_type->ctype.modifiers & MOD_SIGNED) != 0;
+		int newsigned = insn->opcode == OP_SCAST;
+
+		if (new > old) {
+			if (oldsigned == newsigned)
+				return;
+			if (newsigned)
+				return;
+			warning(insn->bb->pos, "cast loses sign");
+			return;
+		}
+		if (new < old) {
+			warning(insn->bb->pos, "cast drops bits");
+			return;
+		}
+		if (oldsigned == newsigned) {
+			warning(insn->bb->pos, "cast wasn't removed");
+			return;
+		}
+		warning(insn->bb->pos, "cast changes sign");
+	}
+}
+
+static void check_one_instruction(struct instruction *insn)
+{
+	switch (insn->opcode) {
+	case OP_CAST: case OP_SCAST:
+		check_cast_instruction(insn);
+		break;
+	default:
+		break;
+	}
+}
+
+static void check_bb_instructions(struct basic_block *bb)
+{
+	struct instruction *insn;
+	FOR_EACH_PTR(bb->insns, insn) {
+		if (!insn->bb)
+			continue;
+		check_one_instruction(insn);
+	} END_FOR_EACH_PTR(insn);
+}
+
+static void check_instructions(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+	FOR_EACH_PTR(ep->bbs, bb) {
+		check_bb_instructions(bb);
+	} END_FOR_EACH_PTR(bb);
+}
+
 static void check_context(struct entrypoint *ep)
 {
 	struct symbol *sym = ep->name;
@@ -96,6 +154,9 @@ static void check_context(struct entrypoint *ep)
 					show_ident(sym->ident), show_pseudo(pseudo));
 		} END_FOR_EACH_PTR(pseudo);
 	}
+
+	if (verbose)
+		check_instructions(ep);
 
 	check_bb_context(ep, ep->entry->bb, sym->ctype.in_context, sym->ctype.out_context);
 }
