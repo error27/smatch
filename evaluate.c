@@ -28,6 +28,8 @@
 static struct symbol *current_fn;
 static int current_context, current_contextmask;
 
+static struct symbol *evaluate_addressof(struct expression *expr, struct expression *op);
+
 static struct symbol *evaluate_symbol_expression(struct expression *expr)
 {
 	struct symbol *sym = expr->symbol;
@@ -216,38 +218,15 @@ static inline int lvalue_expression(struct expression *expr)
 }
 
 /* Arrays degenerate into pointers on pointer arithmetic */
-static struct symbol *degenerate(struct expression *expr, struct symbol *ctype, struct expression **ptr_p)
+static struct symbol *degenerate(struct expression *expr)
 {
+	struct symbol *ctype = expr->ctype;
 	struct symbol *base = ctype;
 
 	if (ctype->type == SYM_NODE)
 		base = ctype->ctype.base_type;
-	if (base->type == SYM_ARRAY || base->type == SYM_FN) {
-		struct symbol *sym = alloc_symbol(expr->pos, SYM_PTR);
-		struct expression *n = alloc_expression(expr->pos, 0);
-		struct expression *ptr;
-
-		merge_type(sym, ctype);
-		if (base->type == SYM_FN)
-			base = ctype;
-		merge_type(sym, base);
-		sym->bit_size = bits_in_pointer;
-		ctype = sym;
-
-		ptr = *ptr_p;
-		*n = *ptr->unop;
-		n->ctype = ctype;
-		*ptr_p = n;
-
-		/*
-		 * This all really assumes that we got the degenerate
-		 * array as an lvalue (ie a dereference). If that
-		 * is not the case, then holler - because we've screwed
-		 * up.
-		 */
-		if (!lvalue_expression(ptr))
-			warn(ptr->pos, "internal error: strange degenerate array case");
-	}
+	if (base->type == SYM_ARRAY || base->type == SYM_FN)
+		ctype = evaluate_addressof(expr, expr);
 	return ctype;
 }
 
@@ -271,7 +250,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 	ctype = ptr->ctype;
 	examine_symbol_type(ctype);
 
-	ctype = degenerate(expr, ctype, &ptr);
+	ctype = degenerate(ptr);
 	if (!ctype->ctype.base_type) {
 		warn(expr->pos, "missing type information");
 		return NULL;
@@ -667,29 +646,23 @@ static struct symbol *compatible_ptr_type(struct expression *left, struct expres
 	return NULL;
 }
 
-static struct symbol *do_degenerate(struct expression **ep)
-{
-	struct expression *expr = *ep;
-	return degenerate(expr, expr->ctype, ep);
-}
-
 static struct symbol * evaluate_conditional_expression(struct expression *expr)
 {
 	struct expression *cond, *true, *false;
 	struct symbol *ctype, *ltype, *rtype;
 	const char * typediff;
 
-	ctype = do_degenerate(&expr->conditional);
+	ctype = degenerate(expr->conditional);
 	cond = expr->conditional;
 
 	ltype = ctype;
 	true = cond;
 	if (expr->cond_true) {
-		ltype = do_degenerate(&expr->cond_true);
+		ltype = degenerate(expr->cond_true);
 		true = expr->cond_true;
 	}
 
-	rtype = do_degenerate(&expr->cond_false);
+	rtype = degenerate(expr->cond_false);
 	false = expr->cond_false;
 
 	ctype = ltype;
@@ -813,7 +786,7 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 		return NULL;
 	}
 
-	rtype = degenerate(right, rtype, &expr->right);
+	rtype = degenerate(right);
 
 	if (!compatible_assignment_types(expr, ltype, &expr->right, rtype, "assignment"))
 		return 0;
@@ -869,9 +842,8 @@ static struct symbol *create_pointer(struct expression *expr, struct symbol *sym
 	return node;
 }
 
-static struct symbol *evaluate_addressof(struct expression *expr)
+static struct symbol *evaluate_addressof(struct expression *expr, struct expression *op)
 {
-	struct expression *op = expr->unop;
 	struct symbol *ctype;
 
 	if (op->op != '*' || op->type != EXPR_PREOP) {
@@ -963,7 +935,7 @@ static struct symbol *evaluate_preop(struct expression *expr)
 		return evaluate_dereference(expr);
 
 	case '&':
-		return evaluate_addressof(expr);
+		return evaluate_addressof(expr, expr->unop);
 
 	case SPECIAL_INCREMENT:
 	case SPECIAL_DECREMENT:
@@ -1164,7 +1136,7 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 		if (context_clash(f, ctype))
 			warn(expr->pos, "argument %d used in wrong context", i);
 
-		ctype = degenerate(expr, ctype, p);
+		ctype = degenerate(expr);
 
 		target = argtype;
 		if (!target && ctype->bit_size < bits_in_int)
@@ -1266,8 +1238,7 @@ static int evaluate_initializer(struct symbol *ctype, struct expression **ep, un
 
 			// FIXME! char array[] = "string" special case
 			// should _not_ degenerate.
-			rtype = degenerate(expr, rtype, ep);
-			expr = *ep;
+			rtype = degenerate(expr);
 			compatible_assignment_types(expr, ctype, ep, rtype, "initializer");
 			/* strings are special: char arrays */
 			if (rtype->type == SYM_ARRAY)
@@ -1604,7 +1575,7 @@ struct symbol *evaluate_return_expression(struct statement *stmt)
 	ctype = evaluate_expression(expr);
 	if (!ctype)
 		return NULL;
-	ctype = degenerate(expr, ctype, &expr);
+	ctype = degenerate(expr);
 	expr->ctype = ctype;
 	compatible_assignment_types(expr, fntype, &expr, ctype, "return expression");
 	stmt->expression = expr;
