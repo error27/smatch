@@ -481,7 +481,7 @@ void show_expression(struct expression *expr)
 		printf(" %s ", show_special(expr->op));
 		break;
 	case EXPR_SYMBOL:
-		show_type(expr->symbol);
+		printf("%s", show_ident(expr->symbol_name));
 		break;
 	case EXPR_DEREF:
 		show_expression(expr->deref);
