@@ -391,10 +391,8 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 			if (qual)
 				break;
 			if (type != ctype->base_type) {
-				if (ctype->base_type) {
-					warn(token->pos, "Strange mix of types");
-					continue;
-				}
+				if (ctype->base_type)
+					break;
 				ctype->base_type = type;
 			}
 		}
