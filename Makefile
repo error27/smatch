@@ -74,6 +74,12 @@ tokenize.o: $(LIB_H)
 check.o: $(LIB_H)
 obfuscate.o: $(LIB_H)
 
+compat-linux.o: compat/strtold.c compat/id-files-stat.c compat/mmap-blob.c \
+	$(LIB_H)
+compat-solaris.o: compat/id-files-stat.c compat/mmap-blob.c $(LIB_H)
+compat-mingw.o: $(LIB_H)
+compat-cygwin.o: $(LIB_H)
+
 pre-process.h:
 	echo "#define GCC_INTERNAL_INCLUDE \"`$(CC) -print-file-name=include`\"" > pre-process.h
 
