@@ -27,4 +27,10 @@
 #define BITS_IN_POINTER		32
 #define POINTER_ALIGNMENT	4
 
+/*
+ * Enum data types
+ */
+#define BITS_IN_ENUM		32
+#define ENUM_ALIGNMENT		4
+
 #endif

@@ -103,6 +103,12 @@ void examine_symbol_type(struct symbol * sym)
 		if (!sym->alignment)
 			sym->alignment = POINTER_ALIGNMENT;
 		return;
+	case SYM_ENUM:
+		if (!sym->bit_size)
+			sym->bit_size = BITS_IN_ENUM;
+		if (!sym->alignment)
+			sym->alignment = ENUM_ALIGNMENT;
+		return;
 			
 	default:
 		break;
