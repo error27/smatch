@@ -190,8 +190,22 @@ static void expand_comma(struct expression *expr)
 		*expr = *expr->right;
 }
 
+static int compare_types(int op, struct symbol *left, struct symbol *right)
+{
+	return 1;
+}
+
 static void expand_compare(struct expression *expr)
 {
+	struct expression *left = expr->left, *right = expr->right;
+
+	/* Type comparison? */
+	if (left && right && left->type == EXPR_TYPE && right->type == EXPR_TYPE) {
+		int op = expr->op;
+		expr->type = EXPR_VALUE;
+		expr->value = compare_types(op, left->symbol, right->symbol);
+		return;
+	}
 	simplify_int_binop(expr, expr->ctype);
 }
 
@@ -366,6 +380,7 @@ static void expand_expression(struct expression *expr)
 		return;
 	case EXPR_STRING:
 		return;
+	case EXPR_TYPE:
 	case EXPR_SYMBOL:
 		expand_symbol_expression(expr);
 		return;

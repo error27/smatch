@@ -17,6 +17,7 @@ enum expression_type {
 	EXPR_VALUE,
 	EXPR_STRING,
 	EXPR_SYMBOL,
+	EXPR_TYPE,
 	EXPR_BINOP,
 	EXPR_ASSIGNMENT,
 	EXPR_LOGICAL,
@@ -53,7 +54,7 @@ struct expression {
 		// EXPR_UNOP, EXPR_PREOP and EXPR_POSTOP
 		struct expression *unop;
 
-		// EXPR_SYMBOL
+		// EXPR_SYMBOL, EXPR_TYPE
 		struct /* symbol_arg */ {
 			struct symbol *symbol;
 			struct ident *symbol_name;

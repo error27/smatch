@@ -136,6 +136,7 @@ struct symbol {
 
 #define MOD_LABEL	0x1000000
 #define MOD_ASSIGNED	0x2000000
+#define MOD_TYPE	0x4000000
 
 /* Basic types */
 extern struct symbol	void_type,
@@ -146,7 +147,7 @@ extern struct symbol	void_type,
 			bad_type;
 
 /* C types */
-extern struct symbol	bool_ctype, void_ctype,
+extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			char_ctype, uchar_ctype,
 			short_ctype, ushort_ctype,
 			int_ctype, uint_ctype,

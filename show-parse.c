@@ -989,6 +989,9 @@ int show_expression(struct expression *expr)
 	case EXPR_INDEX:
 		warn(expr->pos, "unable to show index expression");
 		return 0;
+	case EXPR_TYPE:
+		warn(expr->pos, "unable to show type expression");
+		return 0;
 	}
 	return 0;
 }

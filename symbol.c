@@ -453,7 +453,7 @@ struct symbol	int_type,
  * C types (ie actual instances that the abstract types
  * can map onto)
  */
-struct symbol	bool_ctype, void_ctype,
+struct symbol	bool_ctype, void_ctype, type_ctype,
 		char_ctype, uchar_ctype,
 		short_ctype, ushort_ctype,
 		int_ctype, uint_ctype,
@@ -471,6 +471,7 @@ struct ctype_declare {
 } ctype_declaration[] = {
 	{ &bool_ctype,   0,					  BITS_IN_INT,	     MAX_INT_ALIGNMENT, &int_type },
 	{ &void_ctype,   0,					  -1,		     0,			NULL },
+	{ &type_ctype,   MOD_TYPE,				  -1,		     0,			NULL },
 	{ &label_ctype,  MOD_LABEL | MOD_UNSIGNED,		  BITS_IN_POINTER,   MAX_INT_ALIGNMENT,	&label_type },
 
 	{ &char_ctype,   MOD_SIGNED | MOD_CHAR,  		  BITS_IN_CHAR,	     MAX_INT_ALIGNMENT, &int_type },

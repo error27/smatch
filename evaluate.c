@@ -139,6 +139,11 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 	return expr;
 }
 
+static int is_type_type(struct symbol *type)
+{
+	return (type->ctype.modifiers & MOD_TYPE) != 0;
+}
+
 static int is_ptr_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
@@ -538,6 +543,12 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	struct expression *left = expr->left, *right = expr->right;
 	struct symbol *ltype = left->ctype, *rtype = right->ctype;
 	struct symbol *ctype;
+
+	/* Type types? */
+	if (is_type_type(ltype) && is_type_type(rtype)) {
+		expr->ctype = &bool_ctype;
+		return &bool_ctype;
+	}
 
 	/* Pointer types? */
 	if (is_ptr_type(ltype) || is_ptr_type(rtype)) {
@@ -1417,6 +1428,10 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_LABEL:
 		expr->ctype = &ptr_ctype;
 		return &ptr_ctype;
+
+	case EXPR_TYPE:
+		expr->ctype = &type_ctype;
+		return &type_ctype;
 
 	/* These can not exist as stand-alone expressions */
 	case EXPR_INITIALIZER:
