@@ -1346,7 +1346,15 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 	return expect(token, '}', "at end of function");
 }
 
-static void apply_kr_types(struct symbol_list *argtypes, struct symbol *fn)
+static void promote_k_r_types(struct symbol *arg)
+{
+	struct symbol *base = arg->ctype.base_type;
+	if (base && base->ctype.base_type == &int_type && (base->ctype.modifiers & (MOD_CHAR | MOD_SHORT))) {
+		arg->ctype.base_type = &int_ctype;
+	}
+}
+
+static void apply_k_r_types(struct symbol_list *argtypes, struct symbol *fn)
 {
 	struct symbol_list *real_args = fn->ctype.base_type->arguments;
 	struct symbol *arg, *type;
@@ -1361,13 +1369,17 @@ static void apply_kr_types(struct symbol_list *argtypes, struct symbol *fn)
 			warn(arg->pos, "K&R declaration disagrees on name of %s",
 				show_ident(arg->ident));
 		}
+		/* "char" and "short" promote to "int" */
+		promote_k_r_types(type);
+
 		arg->ctype = type->ctype;
+
 		NEXT_PTR_LIST(type);
 	} END_FOR_EACH_PTR;
 	FINISH_PTR_LIST(type);
 }
 
-static struct token *parse_kr_arguments(struct token *token, struct symbol *decl,
+static struct token *parse_k_r_arguments(struct token *token, struct symbol *decl,
 	struct symbol_list **list)
 {
 	struct symbol_list *args = NULL;
@@ -1377,7 +1389,7 @@ static struct token *parse_kr_arguments(struct token *token, struct symbol *decl
 		token = external_declaration(token, &args);
 	} while (lookup_type(token));
 
-	apply_kr_types(args, decl);
+	apply_k_r_types(args, decl);
 
 	if (!match_op(token, '{')) {
 		warn(token->pos, "expected function body");
@@ -1439,7 +1451,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	if (!is_typedef && base_type && base_type->type == SYM_FN) {
 		/* K&R argument declaration? */
 		if (lookup_type(token))
-			return parse_kr_arguments(token, decl, list);
+			return parse_k_r_arguments(token, decl, list);
 		if (match_op(token, '{'))
 			return parse_function_body(token, decl, list);
 
