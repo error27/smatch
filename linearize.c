@@ -234,6 +234,8 @@ static char *show_asm_constraints(char *buf, const char *sep, struct asm_constra
 		buf += sprintf(buf, "%s\"%s\"", sep, entry->constraint);
 		if (entry->pseudo)
 			buf += sprintf(buf, " (%s)", show_pseudo(entry->pseudo));
+		if (entry->ident)
+			buf += sprintf(buf, " [%s]", show_ident(entry->ident));
 		sep = ", ";		
 	} END_FOR_EACH_PTR(entry);
 	return buf;
@@ -1573,17 +1575,20 @@ pseudo_t linearize_internal(struct entrypoint *ep, struct statement *stmt)
 ALLOCATOR(asm_rules, "asm rules");
 ALLOCATOR(asm_constraint, "asm constraints");
 
-static void add_asm_input(struct entrypoint *ep, struct instruction *insn, struct expression *expr, const char *constraint)
+static void add_asm_input(struct entrypoint *ep, struct instruction *insn, struct expression *expr,
+	const char *constraint, const struct ident *ident)
 {
 	pseudo_t pseudo = linearize_expression(ep, expr);
 	struct asm_constraint *rule = __alloc_asm_constraint(0);
 
+	rule->ident = ident;
 	rule->constraint = constraint;
 	use_pseudo(pseudo, &rule->pseudo);
 	add_ptr_list(&insn->asm_rules->inputs, rule);
 }
 
-static void add_asm_output(struct entrypoint *ep, struct instruction *insn, struct expression *expr, const char *constraint)
+static void add_asm_output(struct entrypoint *ep, struct instruction *insn, struct expression *expr,
+	const char *constraint, const struct ident *ident)
 {
 	struct access_data ad = { NULL, };
 	pseudo_t pseudo = alloc_pseudo(insn);
@@ -1594,6 +1599,7 @@ static void add_asm_output(struct entrypoint *ep, struct instruction *insn, stru
 	linearize_store_gen(ep, pseudo, &ad);
 	finish_address_gen(ep, &ad);
 	rule = __alloc_asm_constraint(0);
+	rule->ident = ident;
 	rule->constraint = constraint;
 	use_pseudo(pseudo, &rule->pseudo);
 	add_ptr_list(&insn->asm_rules->outputs, rule);
@@ -1601,11 +1607,12 @@ static void add_asm_output(struct entrypoint *ep, struct instruction *insn, stru
 
 pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 {
-	int even_odd;
+	int state;
 	struct expression *expr;
 	struct instruction *insn;
 	struct asm_rules *rules;
 	const char *constraint;
+	struct ident *ident;
 
 	insn = alloc_instruction(OP_ASM, 0);
 	expr = stmt->asm_string;
@@ -1619,32 +1626,49 @@ pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 	insn->asm_rules = rules;
 
 	/* Gather the inputs.. */
-	even_odd = 0;
+	state = 0;
+	ident = NULL;
 	constraint = NULL;
 	FOR_EACH_PTR(stmt->asm_inputs, expr) {
-		even_odd = 1 - even_odd;
-
-		/* FIXME! We ignore the constraints for now.. */
-		if (even_odd) {
-			constraint = expr->string->data;
+		switch (state) {
+		case 0:	/* Identifier */
+			state = 1;
+			ident = (struct ident *)expr;
 			continue;
+
+		case 1:	/* Constraint */
+			state = 2;
+			constraint = expr ? expr->string->data : "";
+			continue;
+
+		case 2:	/* Expression */
+			state = 0;
+			add_asm_input(ep, insn, expr, constraint, ident);
 		}
-		add_asm_input(ep, insn, expr, constraint);
 	} END_FOR_EACH_PTR(expr);
 
 	add_one_insn(ep, insn);
 
 	/* Assign the outputs */
-	even_odd = 0;
+	state = 0;
+	ident = NULL;
+	constraint = NULL;
 	FOR_EACH_PTR(stmt->asm_outputs, expr) {
-		even_odd = 1 - even_odd;
+		switch (state) {
+		case 0:	/* Identifier */
+			state = 1;
+			ident = (struct ident *)expr;
+			continue;
 
-		/* FIXME! We ignore the constraints for now.. */
-		if (even_odd) {
+		case 1:	/* Constraint */
+			state = 2;
 			constraint = expr->string->data;
 			continue;
+
+		case 2:
+			state = 0;
+			add_asm_output(ep, insn, expr, constraint, ident);
 		}
-		add_asm_output(ep, insn, expr, constraint);
 	} END_FOR_EACH_PTR(expr);
 
 	return VOID;

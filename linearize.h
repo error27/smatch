@@ -42,6 +42,7 @@ struct multijmp {
 struct asm_constraint {
 	pseudo_t pseudo;
 	const char *constraint;
+	const struct ident *ident;
 };
 
 DECLARE_PTR_LIST(asm_constraint_list, struct asm_constraint);

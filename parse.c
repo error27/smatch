@@ -944,10 +944,14 @@ static struct token *parse_asm_operands(struct token *token, struct statement *s
 	if (match_op(token->next, ':') || match_op(token->next, ')'))
 		return token->next;
 	do {
+		struct ident *ident = NULL;
 		if (match_op(token->next, '[') &&
 		    token_type(token->next->next) == TOKEN_IDENT &&
-		    match_op(token->next->next->next, ']'))
+		    match_op(token->next->next->next, ']')) {
+			ident = token->next->next->ident;
 			token = token->next->next->next;
+		}
+		add_expression(inout, (struct expression *)ident); /* UGGLEE!!! */
 		token = primary_expression(token->next, &expr);
 		add_expression(inout, expr);
 		token = parens_expression(token, &expr, "in asm parameter");
