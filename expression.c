@@ -199,9 +199,23 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		break;
 
 	case TOKEN_IDENT: {
+		struct symbol *sym = lookup_symbol(token->ident, NS_SYMBOL | NS_TYPEDEF);
+
+		/*
+		 * I'd like to support types as real first-class citizens,
+		 * with type comparisons etc:
+		 *
+		 *	if (typeof(a) == int) ..
+		 *
+		 * But for now just do normal C.
+		 */
+		if (sym && sym->namespace == NS_TYPEDEF) {
+			warn(token->pos, "We don't support type expressions (yet?)");
+			sym = NULL;
+		}
 		expr = alloc_expression(token->pos, EXPR_SYMBOL);
 		expr->symbol_name = token->ident;
-		expr->symbol = lookup_symbol(token->ident, NS_SYMBOL);
+		expr->symbol = sym;
 		token = token->next;
 		break;
 	}
