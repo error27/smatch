@@ -1124,7 +1124,7 @@ static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *
 
 static int opcode_sign(int opcode, struct symbol *ctype)
 {
-	if (ctype->ctype.modifiers & MOD_SIGNED) {
+	if (ctype && (ctype->ctype.modifiers & MOD_SIGNED)) {
 		switch(opcode) {
 		case OP_MULU: case OP_DIVU: case OP_MODU: case OP_LSR:
 			opcode++;
