@@ -37,9 +37,7 @@ int main(int argc, char **argv)
 	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
 
-	// Stupid defines to make various headers happy
-	add_pre_buffer("#define __GNUC__ 2\n");
-	add_pre_buffer("#define __GNUC_MINOR__ 95\n");
+	create_builtin_stream();
 
 	args = argv;
 	for (;;) {

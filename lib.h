@@ -72,6 +72,8 @@ extern int include_fd;
 extern char *include;
 extern int preprocess_only;
 
+extern void create_builtin_stream(void);
+
 #define symbol_list_size(list) ptr_list_size((struct ptr_list *)(list))
 #define statement_list_size(list) ptr_list_size((struct ptr_list *)(list))
 #define expression_list_size(list) ptr_list_size((struct ptr_list *)(list))
