@@ -1396,7 +1396,7 @@ static struct token *parse_k_r_arguments(struct token *token, struct symbol *dec
 		warn(token->pos, "expected function body");
 		return token;
 	}
-	return parse_function_body(token->next, decl, list);
+	return parse_function_body(token, decl, list);
 }
 
 
