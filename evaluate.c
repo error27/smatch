@@ -301,18 +301,31 @@ static int evaluate_dereference(struct expression *expr)
 		return 0;
 	}
 
-	expr->type = EXPR_PREOP;
-	expr->op = '*';
-	expr->ctype = member->ctype.base_type;
+	add = deref;
+	if (offset != 0) {
+		add = alloc_expression(expr->token, EXPR_BINOP);
+		add->op = '+';
+		add->ctype = &ptr_ctype;
+		add->left = deref;
+		add->right = alloc_expression(expr->token, EXPR_VALUE);
+		add->right->ctype = &int_ctype;
+		add->right->value = offset;
+	}
 
-	add = alloc_expression(expr->token, EXPR_BINOP);
-	expr->unop = add;
-	add->op = '+';
-	add->ctype = &ptr_ctype;
-	add->left = deref;
-	add->right = alloc_expression(expr->token, EXPR_VALUE);
-	add->right->ctype = &int_ctype;
-	add->right->value = offset;
+	ctype = member->ctype.base_type;
+	if (ctype->type == SYM_BITFIELD) {
+		expr->type = EXPR_BITFIELD;
+		expr->ctype = ctype->ctype.base_type;
+		expr->bitpos = member->bit_offset;
+		expr->nrbits = member->fieldwidth;
+		expr->address = add;
+	} else {
+		expr->type = EXPR_PREOP;
+		expr->op = '*';
+		expr->ctype = ctype;
+		expr->unop = add;
+	}
+
 	return 1;
 }
 

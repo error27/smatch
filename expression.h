@@ -26,6 +26,7 @@ enum expression_type {
 	EXPR_CALL,
 	EXPR_COMMA,
 	EXPR_COMPARE,
+	EXPR_BITFIELD,
 };
 
 struct expression {
@@ -67,6 +68,11 @@ struct expression {
 		struct call_expr {
 			struct expression *fn;
 			struct expression_list *args;
+		};
+		// EXPR_BITFIELD
+		struct bitfield_expr {
+			unsigned char bitpos, nrbits;
+			struct expression *address;
 		};
 	};
 };

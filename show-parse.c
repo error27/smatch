@@ -429,7 +429,11 @@ void show_expression(struct expression *expr)
 			show_expression(expr->cast_expression);
 		printf(")");
 		break;
-			
+	case EXPR_BITFIELD:
+		printf("bits[%d-%d](", expr->bitpos, expr->bitpos + expr->nrbits - 1);
+		show_expression(expr->address);
+		printf(")");
+		break;
 	default:
 		printf("WTF");
 	}
