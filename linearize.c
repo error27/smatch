@@ -1863,11 +1863,94 @@ found:
 	return 1;
 }
 
-static void simplify_one_symbol(struct symbol *sym)
+/* Kill a pseudo that is dead on exit from the bb */
+static void kill_dead_stores(pseudo_t pseudo, unsigned long generation, struct basic_block *bb, int local)
+{
+	struct instruction *insn;
+	struct basic_block *parent;
+
+	if (bb->generation == generation)
+		return;
+	bb->generation = generation;
+	FOR_EACH_PTR_REVERSE(bb->insns, insn) {
+		int opcode = insn->opcode;
+
+		if (opcode != OP_LOAD && opcode != OP_STORE)
+			continue;
+		if (insn->src == pseudo) {
+			if (opcode == OP_LOAD)
+				return;
+			insn->opcode = OP_SNOP;
+			continue;
+		}
+		if (local)
+			continue;
+		if (insn->src->type != PSEUDO_SYM)
+			return;
+	} END_FOR_EACH_PTR_REVERSE(insn);
+
+	FOR_EACH_PTR(bb->parents, parent) {
+		struct basic_block *child;
+		FOR_EACH_PTR(parent->children, child) {
+			if (child && child != bb)
+				return;
+		} END_FOR_EACH_PTR(child);
+		kill_dead_stores(pseudo, generation, parent, local);
+	} END_FOR_EACH_PTR(parent);
+}
+
+/*
+ * This should see if the "insn" trivially dominates some previous store, and kill the
+ * store if unnecessary.
+ */
+static void kill_dominated_stores(pseudo_t pseudo, struct instruction *insn, 
+	unsigned long generation, struct basic_block *bb, int local, int found)
+{
+	struct instruction *one;
+	struct basic_block *parent;
+
+	if (bb->generation == generation)
+		return;
+	bb->generation = generation;
+	FOR_EACH_PTR_REVERSE(bb->insns, one) {
+		int dominance;
+		if (!found) {
+			if (one != insn)
+				continue;
+			found = 1;
+			continue;
+		}
+		dominance = dominates(pseudo, insn, one, local);
+		if (!dominance)
+			continue;
+		if (dominance < 0)
+			return;
+		if (one->opcode == OP_LOAD)
+			return;
+		one->opcode = OP_SNOP;
+	} END_FOR_EACH_PTR_REVERSE(one);
+
+	if (!found) {
+		warning(bb->pos, "Unable to find instruction");
+		return;
+	}
+
+	FOR_EACH_PTR(bb->parents, parent) {
+		struct basic_block *child;
+		FOR_EACH_PTR(parent->children, child) {
+			if (child && child != bb)
+				return;
+		} END_FOR_EACH_PTR(child);
+		kill_dominated_stores(pseudo, insn, generation, parent, local, found);
+	} END_FOR_EACH_PTR(parent);
+}
+
+static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 {
 	pseudo_t pseudo, src, *pp;
 	struct instruction *def;
-	int all, local;
+	unsigned long mod;
+	int all;
 
 	/* Never used as a symbol? */
 	pseudo = sym->pseudo;
@@ -1879,8 +1962,8 @@ static void simplify_one_symbol(struct symbol *sym)
 		return;
 
 	/* ..and symbols with external visibility need more care */
-	local = !(sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE));
-	if (!local)
+	mod = sym->ctype.modifiers & (MOD_EXTERN | MOD_STATIC | MOD_ADDRESSABLE);
+	if (mod)
 		goto external_visibility;
 
 	def = NULL;
@@ -1929,16 +2012,34 @@ external_visibility:
 	FOR_EACH_PTR(pseudo->users, pp) {
 		struct instruction *insn = container(pp, struct instruction, src);
 		if (insn->opcode == OP_LOAD)
-			all &= find_dominating_stores(pseudo, insn, ++bb_generation, local);
+			all &= find_dominating_stores(pseudo, insn, ++bb_generation, !mod);
 	} END_FOR_EACH_PTR(pp);
 
 	/* If we converted all the loads, remove the stores. They are dead */
-	if (local && all) {
+	if (all && !mod) {
 		FOR_EACH_PTR(pseudo->users, pp) {
 			struct instruction *insn = container(pp, struct instruction, src);
 			if (insn->opcode == OP_STORE)
 				insn->opcode = OP_SNOP;
 		} END_FOR_EACH_PTR(pp);
+	} else {
+		/*
+		 * If we couldn't take the shortcut, see if we can at least kill some
+		 * of them..
+		 */
+		FOR_EACH_PTR(pseudo->users, pp) {
+			struct instruction *insn = container(pp, struct instruction, src);
+			if (insn->opcode == OP_STORE)
+				kill_dominated_stores(pseudo, insn, ++bb_generation, insn->bb, !mod, 0);
+		} END_FOR_EACH_PTR(pp);
+
+		if (!(mod & (MOD_EXTERN | MOD_STATIC))) {
+			struct basic_block *bb;
+			FOR_EACH_PTR(ep->bbs, bb) {
+				if (!bb->children)
+					kill_dead_stores(pseudo, ++bb_generation, bb, !mod);
+			} END_FOR_EACH_PTR(bb);
+		}
 	}
 			
 	return;
@@ -1948,7 +2049,7 @@ static void simplify_symbol_usage(struct entrypoint *ep)
 {
 	struct symbol *sym;
 	FOR_EACH_PTR(ep->accesses, sym) {
-		simplify_one_symbol(sym);
+		simplify_one_symbol(ep, sym);
 		sym->pseudo = NULL;
 	} END_FOR_EACH_PTR(sym);
 }
