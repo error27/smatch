@@ -60,7 +60,7 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 		struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
 		addr->symbol = sym;
 		addr->symbol_name = expr->symbol_name;
-		addr->ctype = &ptr_ctype;
+		addr->ctype = NULL;	/* Lazy evaluation: we need to do a proper job if somebody does &sym */
 		expr->type = EXPR_PREOP;
 		expr->op = '*';
 		expr->unop = addr;
@@ -873,13 +873,19 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 		warn(expr->pos, "not addressable");
 		return NULL;
 	}
-
-	ctype = create_pointer(expr, op->ctype);
-
+	ctype = op->ctype;
 	*expr = *op->unop;
 
-	expr->ctype = ctype;
-	return ctype;
+	/*
+	 * symbol expression evaluation is lazy about the type
+	 * of the sub-expression, so we may have to generate
+	 * the type here if so..
+	 */
+	if (!expr->ctype) {
+		ctype = create_pointer(expr, ctype);
+		expr->ctype = ctype;
+	}
+	return expr->ctype;
 }
 
 
@@ -1340,7 +1346,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		sym->initializer = expr->cast_expression;
 		evaluate_symbol(sym);
 
-		addr->ctype = &ptr_ctype;
+		addr->ctype = NULL;	/* Lazy eval */
 		addr->symbol = sym;
 
 		expr->type = EXPR_PREOP;
