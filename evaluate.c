@@ -50,7 +50,7 @@ static int get_int_value(struct expression *expr, const char *str)
 {
 	unsigned long long value = 0;
 	unsigned int base = 10, digit, bits;
-	unsigned long modifiers;
+	unsigned long modifiers, extramod;
 
 	switch (str[0]) {
 	case 'x':
@@ -82,16 +82,15 @@ static int get_int_value(struct expression *expr, const char *str)
 	}
 
 	bits = BITS_IN_LONGLONG;
+	extramod = 0;
 	if (!(modifiers & MOD_LONGLONG)) {
 		if (value & (~0ULL << BITS_IN_LONG)) {
-			warn(expr->token, "value is so big it is long long");
-			modifiers |= MOD_LONGLONG;
+			extramod = MOD_LONGLONG | MOD_LONG;
 		} else {
 			bits = BITS_IN_LONG;
 			if (!(modifiers & MOD_LONG)) {
 				if (value & (~0ULL << BITS_IN_INT)) {
-					warn(expr->token, "value is so big it is long");
-					modifiers |= MOD_LONG;
+					extramod = MOD_LONG;
 				} else
 					bits = BITS_IN_INT;
 			}
@@ -99,9 +98,24 @@ static int get_int_value(struct expression *expr, const char *str)
 	}
 	if (!(modifiers & MOD_UNSIGNED)) {
 		if (value & (1ULL << (bits-1))) {
-			warn(expr->token, "value is so big it is unsigned");
-			modifiers |= MOD_UNSIGNED;
+			extramod |= MOD_UNSIGNED;
 		}
+	}
+	if (extramod) {
+		/*
+		 * Special case: "int" gets promoted directly to "long"
+		 * for normal decimal numbers..
+		 */
+		if (base == 10 && extramod == MOD_UNSIGNED) {
+			extramod = MOD_LONG;
+			if (BITS_IN_LONG == BITS_IN_INT)
+				extramod = MOD_LONG | MOD_UNSIGNED;
+		}
+		warn(expr->token, "value is so big it is%s%s%s",
+			(extramod & MOD_UNSIGNED) ? " unsigned":"",
+			(extramod & MOD_LONG) ? " long":"",
+			(extramod & MOD_LONGLONG) ? " long":"");
+		modifiers |= extramod;
 	}
 
 	expr->type = EXPR_VALUE;
