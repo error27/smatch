@@ -469,7 +469,8 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		long_ctype, ulong_ctype,
 		llong_ctype, ullong_ctype,
 		float_ctype, double_ctype, ldouble_ctype,
-		string_ctype, ptr_ctype, incomplete_ctype;
+		string_ctype, ptr_ctype, lazy_ptr_ctype,
+		incomplete_ctype;
 
 struct ctype_declare {
 	struct symbol *ptr;
@@ -500,6 +501,7 @@ struct ctype_declare {
 
 	{ &string_ctype,	    0,  &bits_in_pointer, &pointer_alignment, &char_ctype },
 	{ &ptr_ctype,		    0,  &bits_in_pointer, &pointer_alignment, &void_ctype },
+	{ &lazy_ptr_ctype,	    0,  &bits_in_pointer, &pointer_alignment, &void_ctype },
 	{ NULL, }
 };
 
@@ -584,6 +586,7 @@ void init_ctype(void)
 	struct ctype_declare *ctype;
 
 	ptr_ctype.type = SYM_PTR;
+	lazy_ptr_ctype.type = SYM_PTR;
 	string_ctype.type = SYM_PTR;
 	for (ctype = ctype_declaration ; ctype->ptr; ctype++) {
 		struct symbol *sym = ctype->ptr;

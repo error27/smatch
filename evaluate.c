@@ -62,7 +62,7 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 		struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
 		addr->symbol = sym;
 		addr->symbol_name = expr->symbol_name;
-		addr->ctype = NULL;	/* Lazy evaluation: we need to do a proper job if somebody does &sym */
+		addr->ctype = &lazy_ptr_ctype;	/* Lazy evaluation: we need to do a proper job if somebody does &sym */
 		expr->type = EXPR_PREOP;
 		expr->op = '*';
 		expr->unop = addr;
@@ -99,7 +99,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 	array->ctype.base_type = &char_ctype;
 	
 	addr->symbol = sym;
-	addr->ctype = NULL;
+	addr->ctype = &lazy_ptr_ctype;
 
 	expr->type = EXPR_PREOP;
 	expr->op = '*';
@@ -1094,7 +1094,7 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 	 * of the sub-expression, so we may have to generate
 	 * the type here if so..
 	 */
-	if (!expr->ctype) {
+	if (expr->ctype == &lazy_ptr_ctype) {
 		ctype = create_pointer(expr, ctype, 0);
 		expr->ctype = ctype;
 	}
@@ -1305,7 +1305,7 @@ static struct expression *evaluate_offset(struct expression *expr, unsigned long
 	 * The ctype of the pointer will be lazily evaluated if
 	 * we ever take the address of this member dereference..
 	 */
-	add->ctype = NULL;
+	add->ctype = &lazy_ptr_ctype;
 	return add;
 }
 
@@ -1665,7 +1665,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		sym->initializer = expr->cast_expression;
 		evaluate_symbol(sym);
 
-		addr->ctype = NULL;	/* Lazy eval */
+		addr->ctype = &lazy_ptr_ctype;	/* Lazy eval */
 		addr->symbol = sym;
 
 		expr->type = EXPR_PREOP;
