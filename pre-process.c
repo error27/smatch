@@ -28,11 +28,11 @@
 int verbose = 0;
 int preprocessing = 0;
 
-#define MAXNEST (16)
+#define MAX_NEST (256)
 static int true_nesting = 0;
 static int false_nesting = 0;
 static struct token *unmatched_if = NULL;
-static int elif_ignore[MAXNEST];
+static char elif_ignore[MAX_NEST];
 #define if_nesting (true_nesting + false_nesting)
 
 #define INCLUDEPATHS 32
@@ -679,6 +679,8 @@ static int preprocessor_if(struct token *token, int true)
 {
 	if (if_nesting == 0)
 		unmatched_if = token;
+	if (if_nesting >= MAX_NEST)
+		error(token->pos, "Maximum preprocessor conditional level exhausted");
 	elif_ignore[if_nesting] = false_nesting || true;
 	if (false_nesting || !true) {
 		false_nesting++;
