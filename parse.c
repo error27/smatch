@@ -45,7 +45,7 @@ void show_expression(struct expression *expr)
 		break;
 	case EXPR_CAST:
 		printf("(");
-		show_expression(expr->cast_type);
+		show_type(expr->cast_type);
 		printf(")");
 		show_expression(expr->cast_expression);
 		break;
@@ -183,11 +183,7 @@ static struct token *unary_expression(struct token *token, struct expression **t
 	return postfix_expression(token, tree);
 }
 
-/* This is bogus, but before I have real types. */
-static struct token *typename_expression(struct token *token, struct expression **tree)
-{
-	return parse_expression(token,tree);
-}
+static struct token *typename(struct token *, struct symbol **);
 
 /*
  * Ambiguity: a '(' can be either a cast-expression or
@@ -202,7 +198,7 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 			struct symbol *sym = next->ident->symbol;
 			if (sym && symbol_is_typename(sym)) {
 				struct expression *cast = alloc_expression(next, EXPR_CAST);
-				token = typename_expression(next, &cast->cast_type);
+				token = typename(next, &cast->cast_type);
 				token = expect(token, ')');
 				token = cast_expression(token, &cast->cast_expression);
 				*tree = cast;
@@ -336,4 +332,87 @@ struct token *comma_expression(struct token *token, struct expression **tree)
 struct token *parse_expression(struct token *token, struct expression **tree)
 {
 	return comma_expression(token,tree);
+}
+
+struct statement *alloc_statement(struct token * token, int type)
+{
+	struct statement *stmt = malloc(sizeof(*stmt));
+	if (!stmt)
+		die("Out of memory for statements");
+	memset(stmt, 0, sizeof(*stmt));
+	stmt->type = type;
+	stmt->token = token;
+	return stmt;
+}
+
+static struct token *declaration_specifiers(struct token *token, struct symbol **tree)
+{
+	struct symbol *sym = alloc_symbol(SYM_TYPE);
+
+	do {
+		struct ident *ident;
+		struct symbol *s;
+		struct symbol *type;
+		unsigned long mod;
+
+		/*
+		 * Handle 'struct' and 'union' here!
+		 */
+		if (token->type != TOKEN_IDENT)
+			break;
+		ident = token->ident;
+		s = ident->symbol;
+		if (!s || !symbol_is_typename(s))
+			break;
+		type = s->base_type;
+		mod = s->modifiers;
+		if (type) {
+			if (type != sym->base_type) {
+				if (sym->base_type) {
+					warn(token, "Strange mix of types");
+					continue;
+				}
+				sym->base_type = type;
+			}
+		}
+		if (mod) {
+			unsigned long old = sym->modifiers;
+			unsigned long extra = 0, dup;
+
+			if (mod & old & SYM_LONG) {
+				extra = SYM_LONGLONG | SYM_LONG;
+				mod &= ~SYM_LONG;
+				old &= ~SYM_LONG;
+			}
+			dup = (mod & old) | (extra & old) | (extra & mod);
+			if (dup)
+				warn(token, "Just how %s do you want this type to be?",
+					modifier_string(dup));
+			sym->modifiers = old | mod | extra;
+		}
+	} while ((token = token->next) != NULL);
+
+	if (!sym->base_type)
+		sym->base_type = &int_type;
+	*tree = sym;
+	return token;
+}
+
+static struct token *specifier_qualifier_list(struct token *token, struct symbol **tree)
+{
+	return declaration_specifiers(token, tree);
+}
+
+static struct token *typename(struct token *token, struct symbol **tree)
+{
+	return specifier_qualifier_list(token, tree);
+}
+
+struct token *parse_statement(struct token *token, struct statement **tree)
+{
+	struct statement *stmt = alloc_statement(token, STMT_EXPRESSION);
+	token = parse_expression(token, &stmt->expression);
+	token = expect(token, ';');
+	*tree = stmt;
+	return token;
 }

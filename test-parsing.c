@@ -14,16 +14,17 @@ int main(int argc, char **argv)
 {
 	int fd = open(argv[1], O_RDONLY);
 	struct token *token;
-	struct expression *expr;
+	struct statement *stmt;
 
 	if (fd < 0)
 		die("No such file: %s", argv[1]);
 	init_symbols();
 	token = tokenize(argv[1], fd);
-	token = parse_expression(token, &expr);
+
+	token = parse_statement(token, &stmt);
 	if (token)
 		warn(token, "Extra data");
-	show_expression(expr);
+	show_expression(stmt->expression);
 	printf("\n");
 	return 0;
 }

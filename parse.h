@@ -23,13 +23,37 @@ struct expression {
 			struct token *member;
 		};
 		struct cast_arg {
-			struct expression *cast_type;
+			struct symbol *cast_type;
 			struct expression *cast_expression;
 		};
 	};
 };
 
+enum statement_type {
+	STMT_LABELED,
+	STMT_EXPRESSION,
+	STMT_COMPOUND,
+	STMT_SELECTION,
+	STMT_ITERATION,
+	STMT_JUMP,
+};
+
+struct statement {
+	int type;
+	struct token *token;
+	struct statement *next;
+	union {
+		struct label_arg {
+			struct token *label;
+			struct statement *label_statement;
+		};
+		struct expression *expression;
+		struct statement *compound;
+	};
+};
+
 extern struct token *parse_expression(struct token *, struct expression **);
+extern struct token *parse_statement(struct token *, struct statement **);
 extern void show_expression(struct expression *);
 
 #endif /* PARSE_H */
