@@ -955,7 +955,8 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 				add_symbol(list, decl);
 			return expect(token, '}', "at end of function");
 		}
-		decl->ctype.modifiers |= MOD_EXTERN;
+		if (!(decl->ctype.modifiers & MOD_STATIC))
+			decl->ctype.modifiers |= MOD_EXTERN;
 	}
 
 	for (;;) {
@@ -983,6 +984,13 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 		}
 
 		bind_symbol(decl, ident, is_typedef ? NS_TYPEDEF: NS_SYMBOL);
+
+		/* Function declarations are automatically extern unless specifically static */
+		base_type = decl->ctype.base_type;
+		if (!is_typedef && base_type && base_type->type == SYM_FN) {
+			if (!(decl->ctype.modifiers & MOD_STATIC))
+				decl->ctype.modifiers |= MOD_EXTERN;
+		}
 	}
 	return expect(token, ';', "at end of declaration");
 }
