@@ -572,6 +572,7 @@ void init_ctype(void)
 
 		if (alignment > maxalign)
 			alignment = maxalign;
+		sym->type = SYM_BASETYPE;
 		sym->bit_size = bit_size;
 		sym->ctype.alignment = alignment;
 		sym->ctype.base_type = ctype->base_type;
