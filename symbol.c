@@ -282,8 +282,7 @@ static void examine_node_type(struct symbol *sym)
 		int count = count_array_initializer(sym->initializer);
 		struct symbol *node_type = base_type->ctype.base_type;
 
-		/* We do not allow zero-sized arrays by doing empty initializers */
-		if (count && node_type)
+		if (node_type && node_type->bit_size >= 0)
 			bit_size = node_type->bit_size * count;
 	}
 	
