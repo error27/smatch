@@ -23,10 +23,8 @@ static struct instruction_list *insn_hash_table[INSN_HASH_SIZE];
 
 static int cse_repeat;
 
-static int phi_compare(const void *_phi1, const void *_phi2)
+static int phi_compare(pseudo_t phi1, pseudo_t phi2)
 {
-	const struct pseudo * phi1 = _phi1;
-	const struct pseudo * phi2 = _phi2;
 	const struct instruction *def1 = phi1->def;
 	const struct instruction *def2 = phi2->def;
 
@@ -35,11 +33,6 @@ static int phi_compare(const void *_phi1, const void *_phi2)
 	if (def1->bb != def2->bb)
 		return def1->bb < def2->bb ? -1 : 1;
 	return 0;
-}
-
-static void sort_phi_list(struct pseudo_list **list)
-{
-	sort_list((struct ptr_list **)list , phi_compare);
 }
 
 /* Find the trivial parent for a phi-source */
@@ -149,31 +142,21 @@ static unsigned long clean_up_phi(struct instruction *insn)
 	unsigned long hash = 0;
 	int same;
 
-	sort_phi_list(&insn->phi_list);
-
 	last = NULL;
 	same = 1;
 	FOR_EACH_PTR(insn->phi_list, phi) {
 		struct instruction *def = phi->def;
-		if (def->src1 == VOID) {
-			DELETE_CURRENT_PTR(phi);
+		if (def->src1 == VOID)
 			continue;
-		}
 		if (last) {
-			if (last->src1 != def->src1) {
+			if (last->src1 != def->src1)
 				same = 0;
-			} else if (last->bb == def->bb) {
-				DELETE_CURRENT_PTR(phi);
-				continue;
-			}
+			continue;
 		}
 		last = def;
 		hash += hashval(def->src1);
 		hash += hashval(def->bb);
 	} END_FOR_EACH_PTR(phi);
-
-	/* Whenever we delete pointers, we may have to pack the end result */
-	PACK_PTR_LIST(&insn->phi_list);
 
 	if (same) {
 		pseudo_t pseudo = last ? last->src1 : VOID;
