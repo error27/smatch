@@ -224,7 +224,9 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 			struct expression *expr;
 			next = constant_expression(next->next, &expr);
 			lastval = get_expression_value(expr);
-			ctype = expr->ctype;
+			ctype = &void_ctype;
+			if (expr && expr->ctype)
+				ctype = expr->ctype;
 		} else if (!ctype) {
 			ctype = &int_ctype;
 		} else if (is_int_type(ctype)) {
