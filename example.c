@@ -31,11 +31,15 @@ static const char* opcodes[] = {
 	/* Binary */
 	[OP_ADD] = "add",
 	[OP_SUB] = "sub",
-	[OP_MUL] = "mul",
-	[OP_DIV] = "div",
-	[OP_MOD] = "mod",
+	[OP_MULU] = "mulu",
+	[OP_MULS] = "muls",
+	[OP_DIVU] = "divu",
+	[OP_DIVS] = "divs",
+	[OP_MODU] = "modu",
+	[OP_MODS] = "mods",
 	[OP_SHL] = "shl",
-	[OP_SHR] = "shr",
+	[OP_LSR] = "lsr",
+	[OP_ASR] = "asr",
 	
 	/* Logical */
 	[OP_AND] = "and",
@@ -1366,14 +1370,15 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 		mark_pseudo_dead(state, insn->target);
 		return;
 
-	case OP_ADD: case OP_MUL:
+	case OP_ADD: case OP_MULU: case OP_MULS:
 	case OP_AND: case OP_OR: case OP_XOR:
 	case OP_AND_BOOL: case OP_OR_BOOL:
 		generate_commutative_binop(state, insn);
 		break;
 
-	case OP_SUB: case OP_DIV: case OP_MOD:
-	case OP_SHL: case OP_SHR:
+	case OP_SUB: case OP_DIVU: case OP_DIVS:
+	case OP_MODU: case OP_MODS:
+	case OP_SHL: case OP_LSR: case OP_ASR:
  		generate_binop(state, insn);
 		break;
 

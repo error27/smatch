@@ -239,12 +239,14 @@ static int simplify_constant_rightside(struct instruction *insn)
 	/* Fallthrough */
 	case OP_ADD:
 	case OP_OR: case OP_XOR:
-	case OP_SHL: case OP_SHR:
+	case OP_SHL:
+	case OP_LSR: case OP_ASR:
 		if (!value)
 			return replace_with_pseudo(insn, insn->src1);
 		return 0;
 
-	case OP_AND: case OP_MUL:
+	case OP_AND:
+	case OP_MULU: case OP_MULS:
 		if (!value)
 			return replace_with_pseudo(insn, insn->src2);
 		return 0;
@@ -262,8 +264,10 @@ static int simplify_constant_leftside(struct instruction *insn)
 			return replace_with_pseudo(insn, insn->src2);
 		return 0;
 
-	case OP_SHL: case OP_SHR:
-	case OP_AND: case OP_MUL:
+	case OP_SHL:
+	case OP_LSR: case OP_ASR:
+	case OP_AND:
+	case OP_MULU: case OP_MULS:
 		if (!value)
 			return replace_with_pseudo(insn, insn->src1);
 		return 0;
@@ -285,17 +289,20 @@ static int simplify_constant_binop(struct instruction *insn)
 	case OP_SUB:
 		res = left - right;
 		break;
-	case OP_MUL:
+	case OP_MULU:
+	case OP_MULS:
 		/* FIXME! Check sign! */
 		res = left * right;
 		break;
-	case OP_DIV:
+	case OP_DIVU:
+	case OP_DIVS:
 		if (!right)
 			return 0;
 		/* FIXME! Check sign! */
 		res = left / right;
 		break;
-	case OP_MOD:
+	case OP_MODU:
+	case OP_MODS:
 		if (!right)
 			return 0;
 		/* FIXME! Check sign! */
@@ -304,7 +311,8 @@ static int simplify_constant_binop(struct instruction *insn)
 	case OP_SHL:
 		res = left << right;
 		break;
-	case OP_SHR:
+	case OP_LSR:
+	case OP_ASR:
 		/* FIXME! Check sign! */
 		res = left >> right;
 		break;
@@ -705,7 +713,7 @@ int simplify_instruction(struct instruction *insn)
 	if (!insn->bb)
 		return 0;
 	switch (insn->opcode) {
-	case OP_ADD:
+	case OP_ADD: case OP_MULS:
 	case OP_AND: case OP_OR: case OP_XOR:
 	case OP_AND_BOOL: case OP_OR_BOOL:
 		if (simplify_binop(insn))
@@ -714,18 +722,17 @@ int simplify_instruction(struct instruction *insn)
 			return REPEAT_CSE;
 		return simplify_associative_binop(insn);
 
-	/*
-	 * Multiplication isn't associative in 2's complement,
-	 * but we could do it if signed.
-	 */
-	case OP_MUL:
+	case OP_MULU:
 	case OP_SET_EQ: case OP_SET_NE:
 		if (simplify_binop(insn))
 			return REPEAT_CSE;
 		return simplify_commutative_binop(insn);
 
-	case OP_SUB: case OP_DIV: case OP_MOD:
-	case OP_SHL: case OP_SHR:
+	case OP_SUB:
+	case OP_DIVU: case OP_DIVS:
+	case OP_MODU: case OP_MODS:
+	case OP_SHL:
+	case OP_LSR: case OP_ASR:
 	case OP_SET_LE: case OP_SET_GE:
 	case OP_SET_LT: case OP_SET_GT:
 	case OP_SET_B:  case OP_SET_A:

@@ -131,11 +131,11 @@ enum opcode {
 	OP_BINARY,
 	OP_ADD = OP_BINARY,
 	OP_SUB,
-	OP_MUL,
-	OP_DIV,
-	OP_MOD,
+	OP_MULU, OP_MULS,
+	OP_DIVU, OP_DIVS,
+	OP_MODU, OP_MODS,
 	OP_SHL,
-	OP_SHR,
+	OP_LSR, OP_ASR,
 	
 	/* Logical */
 	OP_AND,
