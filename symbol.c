@@ -146,14 +146,17 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 	// warning (sym->pos, "regular: offset=%d", sym->offset);
 }
 
-static void examine_struct_union_type(struct symbol *sym, int advance)
+static struct symbol * examine_struct_union_type(struct symbol *sym, int advance)
 {
-	struct struct_union_info info = { 1, 0, 1 };
+	struct struct_union_info info = {
+		.max_align = 1,
+		.bit_size = 0,
+		.align_size = 1
+	};
 	unsigned long bit_size, bit_align;
 	void (*fn)(struct symbol *, struct struct_union_info *);
 	struct symbol *member;
 
-	sym->bit_size = -1;	/* Make sure we don't recurse */
 	fn = advance ? lay_out_struct : lay_out_union;
 	FOR_EACH_PTR(sym->symbol_list, member) {
 		fn(member, &info);
@@ -167,16 +170,32 @@ static void examine_struct_union_type(struct symbol *sym, int advance)
 		bit_size = (bit_size + bit_align) & ~bit_align;
 	}
 	sym->bit_size = bit_size;
+	return sym;
 }
 
-static void examine_array_type(struct symbol *sym)
+static struct symbol *examine_base_type(struct symbol *sym)
 {
-	struct symbol *base_type = sym->ctype.base_type;
+	struct symbol *base_type;
+
+	/* Check the basetype */
+	base_type = sym->ctype.base_type;
+	if (base_type) {
+		base_type = examine_symbol_type(base_type);
+
+		/* "typeof" can cause this */
+		if (base_type && base_type->type == SYM_NODE)
+			merge_type(sym, base_type);
+	}
+	return base_type;
+}
+
+static struct symbol * examine_array_type(struct symbol *sym)
+{
+	struct symbol *base_type = examine_base_type(sym);
 	unsigned long bit_size, alignment;
 
 	if (!base_type)
-		return;
-	examine_symbol_type(base_type);
+		return sym;
 	bit_size = base_type->bit_size * get_expression_value(sym->array_size);
 	if (!sym->array_size || sym->array_size->type != EXPR_VALUE)
 		bit_size = -1;
@@ -184,16 +203,16 @@ static void examine_array_type(struct symbol *sym)
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = alignment;
 	sym->bit_size = bit_size;
+	return sym;
 }
 
-static void examine_bitfield_type(struct symbol *sym)
+static struct symbol *examine_bitfield_type(struct symbol *sym)
 {
-	struct symbol *base_type = sym->ctype.base_type;
+	struct symbol *base_type = examine_base_type(sym);
 	unsigned long bit_size, alignment;
 
 	if (!base_type)
-		return;
-	examine_symbol_type(base_type);
+		return sym;
 	bit_size = base_type->bit_size;
 	if (sym->fieldwidth > bit_size) {
 		warning(sym->pos, "impossible field-width, %d, for this type",
@@ -205,6 +224,7 @@ static void examine_bitfield_type(struct symbol *sym)
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = alignment;
 	sym->bit_size = bit_size;
+	return sym;
 }
 
 /*
@@ -250,8 +270,9 @@ static int count_array_initializer(struct expression *expr)
 	return nr;
 }
 
-static void examine_node_type(struct symbol *sym, struct symbol *base_type)
+static struct symbol * examine_node_type(struct symbol *sym)
 {
+	struct symbol *base_type = examine_base_type(sym);
 	int bit_size;
 	unsigned long alignment, modifiers;
 
@@ -261,7 +282,7 @@ static void examine_node_type(struct symbol *sym, struct symbol *base_type)
 	bit_size = 0;
 	alignment = 0;
 	if (!base_type)
-		return;
+		return sym;
 
 	bit_size = base_type->bit_size;
 	alignment = base_type->ctype.alignment;
@@ -281,6 +302,35 @@ static void examine_node_type(struct symbol *sym, struct symbol *base_type)
 	}
 	
 	sym->bit_size = bit_size;
+	return sym;
+}
+
+static struct symbol *examine_enum_type(struct symbol *sym)
+{
+	struct symbol *base_type = examine_base_type(sym);
+
+	if (!base_type || base_type == &bad_enum_ctype) {
+		warning(sym->pos, "invalid enum type");
+		sym->bit_size = -1;
+		return sym;
+	}
+	sym->bit_size = bits_in_enum;
+	if (base_type->bit_size > sym->bit_size)
+		sym->bit_size = base_type->bit_size;
+	sym->ctype.alignment = enum_alignment;
+	if (base_type->ctype.alignment > sym->ctype.alignment)
+		sym->ctype.alignment = base_type->ctype.alignment;
+	return sym;
+}
+
+static struct symbol *examine_pointer_type(struct symbol *sym)
+{
+	if (!sym->bit_size)
+		sym->bit_size = bits_in_pointer;
+	if (!sym->ctype.alignment)
+		sym->ctype.alignment = pointer_alignment;
+	examine_base_type(sym);
+	return sym;
 }
 
 /*
@@ -289,8 +339,6 @@ static void examine_node_type(struct symbol *sym, struct symbol *base_type)
  */
 struct symbol *examine_symbol_type(struct symbol * sym)
 {
-	struct symbol *base_type;
-
 	if (!sym)
 		return sym;
 
@@ -298,53 +346,22 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 	if (sym->bit_size)
 		return sym;
 
-	/* Check the basetype */
-	base_type = sym->ctype.base_type;
-	if (base_type) {
-		base_type = examine_symbol_type(base_type);
-		/* "typeof" can cause this */
-		if (base_type && base_type->type == SYM_NODE) {
-			merge_type(sym, base_type);
-			base_type = base_type->ctype.base_type;
-		}
-	}
-
 	switch (sym->type) {
 	case SYM_FN:
 	case SYM_NODE:
-		examine_node_type(sym, base_type);
-		return sym;
+		return examine_node_type(sym);
 	case SYM_ARRAY:
-		examine_array_type(sym);
-		return sym;
+		return examine_array_type(sym);
 	case SYM_STRUCT:
-		examine_struct_union_type(sym, 1);
-		return sym;
+		return examine_struct_union_type(sym, 1);
 	case SYM_UNION:
-		examine_struct_union_type(sym, 0);
-		return sym;
+		return examine_struct_union_type(sym, 0);
 	case SYM_PTR:
-		if (!sym->bit_size)
-			sym->bit_size = bits_in_pointer;
-		if (!sym->ctype.alignment)
-			sym->ctype.alignment = pointer_alignment;
-		return sym;
+		return examine_pointer_type(sym);
 	case SYM_ENUM:
-		if (!base_type || base_type == &bad_enum_ctype) {
-			warning(sym->pos, "invalid enum type");
-			sym->bit_size = -1;
-			return sym;
-		}
-		sym->bit_size = bits_in_enum;
-		if (base_type->bit_size > sym->bit_size)
-			sym->bit_size = base_type->bit_size;
-		sym->ctype.alignment = enum_alignment;
-		if (base_type->ctype.alignment > sym->ctype.alignment)
-			sym->ctype.alignment = base_type->ctype.alignment;
-		return sym;
+		return examine_enum_type(sym);
 	case SYM_BITFIELD:
-		examine_bitfield_type(sym);
-		return sym;
+		return examine_bitfield_type(sym);
 	case SYM_BASETYPE:
 		/* Size and alignment had better already be set up */
 		return sym;
