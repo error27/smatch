@@ -61,29 +61,31 @@ struct symbol {
 	struct ident *ident;		/* What identifier this symbol is associated with */
 	struct symbol *next_id;		/* Next semantic symbol that shares this identifier */
 	struct symbol **id_list;	/* Backpointer to symbol list head */
-	union {
-		struct preprocessor_sym {
-			int busy;
-			struct token *expansion;
-			struct token *arglist;
-		};
-		struct ctype_symbol {
-			unsigned long	offset;
-			unsigned int	bit_size;
-			unsigned int	bit_offset:8,
-					fieldwidth:8,
-					arg_count:10,
-					variadic:1,
-					used:1,
-					initialized:1;
-			int	array_size;
-			struct ctype ctype;
-			struct symbol_list *arguments;
-			struct statement *stmt;
-			struct symbol_list *symbol_list;
-			struct expression *initializer;
-			long long value;		/* Initial value */
-		};
+	struct scope	*scope;
+	struct symbol	*same_symbol;
+
+	struct preprocessor_sym {
+		int busy;
+		struct token *expansion;
+		struct token *arglist;
+	};
+	
+	struct ctype_sym {
+		unsigned long	offset;
+		unsigned int	bit_size;
+		unsigned int	bit_offset:8,
+				fieldwidth:8,
+				arg_count:10,
+				variadic:1,
+				used:1,
+				initialized:1;
+		int	array_size;
+		struct ctype ctype;
+		struct symbol_list *arguments;
+		struct statement *stmt;
+		struct symbol_list *symbol_list;
+		struct expression *initializer;
+		long long value;		/* Initial value */
 	};
 };
 
