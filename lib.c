@@ -542,6 +542,7 @@ void die(const char *fmt, ...)
 unsigned int pre_buffer_size;
 unsigned char pre_buffer[8192];
 
+int Wdefault_bitfield_sign = 0;
 int preprocess_only;
 char *include;
 int include_fd = -1;
@@ -645,6 +646,39 @@ char **handle_switch_o(char *arg, char **next)
 		return next;     // "-ofoo" or (bogus) terminal "-o"
 }
 
+struct warning {
+	const char *name;
+	int *flag;
+} warnings[] = {
+	{ "default-bitfield-sign", &Wdefault_bitfield_sign }
+};
+
+
+char **handle_switch_W(char *arg, char **next)
+{
+	int no = 0;
+	char *p = arg + 1;
+	unsigned i;
+
+	// Prefixes "no" and "no-" mean to turn warning off.
+	if (p[0] == 'n' && p[1] == 'o') {
+		p += 2;
+		if (p[0] == '-')
+			p++;
+		no = 1;
+	}
+
+	for (i = 0; i < sizeof(warnings) / sizeof(warnings[0]); i++) {
+		if (!strcmp(p,warnings[i].name)) {
+			*warnings[i].flag = !no;
+			return next;
+		}
+	}
+
+	// Unknown.
+	return next;
+}
+
 char **handle_switch(char *arg, char **next)
 {
 	char **rc = next;
@@ -658,6 +692,7 @@ char **handle_switch(char *arg, char **next)
 	case 'M': rc = handle_switch_M(arg, next); break;
 	case 'm': rc = handle_switch_m(arg, next); break;
 	case 'o': rc = handle_switch_o(arg, next); break;
+	case 'W': rc = handle_switch_W(arg, next); break;
 	default:
 		/*
 		 * Ignore unknown command line options:

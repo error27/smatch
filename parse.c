@@ -714,7 +714,8 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 							// representation.  The latter makes for very efficient code...
 							warn(token->pos, "dubious one-bit signed bitfield");
 						}
-						if (decl->ident &&
+						if (Wdefault_bitfield_sign &&
+						    decl->ident &&
 						    base_type->type != SYM_ENUM &&
 						    !(base_type->ctype.modifiers & MOD_EXPLICITLY_SIGNED) &&
 						    is_signed) {

@@ -130,6 +130,7 @@ extern unsigned char pre_buffer[8192];
 extern int include_fd;
 extern char *include;
 extern int preprocess_only;
+extern int Wdefault_bitfield_sign;
 
 extern void create_builtin_stream(void);
 
