@@ -255,7 +255,7 @@ static int is_type_type(struct symbol *type)
 	return (type->ctype.modifiers & MOD_TYPE) != 0;
 }
 
-static int is_ptr_type(struct symbol *type)
+int is_ptr_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
