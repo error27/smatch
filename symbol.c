@@ -95,7 +95,6 @@ void show_type(struct symbol *sym)
 		return;
 	}
 
-	printf("[%04lx:%08lx]", ctype->modifiers, (unsigned long) ctype->base_type);
 	printf("%s", modifier_string(sym->ctype.modifiers));
 
 	switch (sym->type) {

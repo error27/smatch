@@ -78,7 +78,33 @@ void show_statement(struct statement *stmt)
 		break;
 
 	case STMT_BREAK:
-		printf("break");
+		printf("\tbreak");
+		break;
+		
+	case STMT_WHILE:
+		printf("\twhile (");
+		show_expression(stmt->e1);
+		printf(")\n");
+		show_statement(stmt->iterate);
+		break;
+		
+	case STMT_DO:
+		printf("\tdo");
+		show_statement(stmt->iterate);
+		printf("\nwhile (");
+		show_expression(stmt->e1);
+		printf(")\n");
+		break;
+		
+	case STMT_FOR:
+		printf("\tfor (" );
+		show_expression(stmt->e1);
+		printf(" ; ");
+		show_expression(stmt->e2);
+		printf(" ; ");
+		show_expression(stmt->e3);
+		printf(")\n");
+		show_statement(stmt->iterate);
 		break;
 		
 	default:
@@ -218,11 +244,8 @@ static struct token *primary_expression(struct token *token, struct expression *
 		break;
 
 	case TOKEN_IDENT: {
-		struct symbol *sym = lookup_symbol(token->ident, NS_SYMBOL);
-		if (!sym)
-			warn(token, "undefined identifier '%s'", token->ident->name);
 		expr = alloc_expression(token, EXPR_SYMBOL);
-		expr->symbol = sym;
+		expr->symbol = lookup_symbol(token->ident, NS_SYMBOL);
 		token = token->next;
 		break;
 	}
