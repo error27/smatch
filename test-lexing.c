@@ -20,37 +20,8 @@
 
 int main(int argc, char **argv)
 {
-	int fd = open(argv[1], O_RDONLY);
-	struct token *token;
-
-	if (fd < 0)
-		die("No such file: %s", argv[1]);
-
-	init_symbols();
-
-	// Initialize type system
-	init_ctype();
-
-	token = tokenize(argv[1], fd, NULL, includepath);
-	close(fd);
-	token = preprocess(token);
-
-	while (!eof_token(token)) {
-		int prec = 1;
-		struct token *next = token->next;
-		const char *separator = "";
-		if (next->pos.whitespace)
-			separator = " ";
-		if (next->pos.newline) {
-			separator = "\n\t\t\t\t\t";
-			prec = next->pos.pos;
-			if (prec > 4)
-				prec = 4;
-		}
-		printf("%s%.*s", show_token(token), prec, separator);
-		token = next;
-	}
-	putchar('\n');
+	preprocess_only = 1;
+	sparse(argc, argv);
 	show_identifier_stats();
 	return 0;
 }
