@@ -4,6 +4,7 @@
  * Let's see how hard this is to do.
  *
  * Copyright (C) 2003 Transmeta Corp.
+ *               2003 Linus Torvalds
  *
  *  Licensed under the Open Software License version 1.1
  */

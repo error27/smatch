@@ -1,8 +1,8 @@
 
 The 'sparse' C parser front-end library is copyrighted by Transmeta Corp
-and licensed under the "Open Software License v1.1" as obtained from
-www.opensource.org (and included here-in for easy reference) (that
-license itself is copyrighted by Larry Rosen). 
+and other authors and licensed under the "Open Software License v1.1" as
+obtained from www.opensource.org (and included here-in for easy
+reference) (that license itself is copyrighted by Larry Rosen). 
 
 Note that the "Original Work" that this license covers is only the
 front-end library itself, ie the code required to parse the source file
