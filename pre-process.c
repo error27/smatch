@@ -38,14 +38,16 @@ enum { ELIF_IGNORE = 1, ELIF_SEEN_ELSE = 2 };
 
 #define INCLUDEPATHS 300
 const char *includepath[INCLUDEPATHS+1] = {
+	"",
 	"/usr/include",
 	"/usr/local/include",
 	GCC_INTERNAL_INCLUDE,
 	NULL
 };
 
-static const char **sys_includepath = includepath + 0;
-static const char **gcc_includepath = includepath + 2;
+static const char **quote_includepath = includepath;
+static const char **angle_includepath = includepath + 1;
+static const char **sys_includepath   = includepath + 1;
 
 #define MARK_STREAM_NONCONST(pos) do {					\
 	if (stream->constant != CONSTANT_FILE_NOPE) {			\
@@ -613,9 +615,62 @@ static int already_tokenized(const char *path)
 	return 0;
 }
 
-static int try_include(const char *path, int plen, const char *filename, int flen, struct token **where, const char **next_path)
+/* Hande include of header files.
+ * The relevant options are made compatible with gcc. The only options that
+ * are not supported is -withprefix and friends.
+ *
+ * Three set of include paths are known:
+ * quote_includepath:	Path to search when using #include "file.h"
+ * angle_includepath:	Path to search when using #include <file.h>
+ * sys_includepath:	Built-in include paths
+ *
+ * The above is implmented as one array with pointes
+ *                         +--------------+
+ * quote_includepath --->  |              |
+ *                         +--------------+
+ *                         |              |
+ *                         +--------------+
+ * angle_includepath --->  |              |
+ *                         +--------------+
+ * sys_includepath   --->  |              |
+ *                         +--------------+
+ *                         |              |
+ *                         +--------------+
+ *
+ * -I dir insert dir just before sys_includepath and move the rest
+ * -I- makes all dirs specified with -I before to quote dirs only and
+ *   angle_includepath is set equal to sys_includepath.
+ * -nostdinc removes all sys dirs be storing NULL in entry pointed
+ *   to by * sys_includepath. Note this will reset all dirs built-in and added
+ *   before -nostdinc by -isystem and -dirafter
+ * -isystem dir adds dir where sys_includepath points adding this dir as
+ *   first systemdir
+ * -dirafter dir adds dir to the end of the list
+ **/
+
+static void set_stream_include_path(struct stream *stream)
+{
+	const char *path = stream->path;
+	if (!path) {
+		const char *p = strrchr(stream->name, '/');
+		path = "";
+		if (p) {
+			int len = p - stream->name + 1;
+			char *m = malloc(len+1);
+			/* This includes the final "/" */
+			memcpy(m, stream->name, len);
+			m[len] = 0;
+			path = m;
+		}
+		stream->path = path;
+	}
+	includepath[0] = path;
+}
+
+static int try_include(const char *path, const char *filename, int flen, struct token **where, const char **next_path)
 {
 	int fd;
+	int plen = strlen(path);
 	static char fullname[PATH_MAX];
 
 	memcpy(fullname, path, plen);
@@ -642,13 +697,12 @@ static int do_include_path(const char **pptr, struct token **list, struct token 
 	const char *path;
 
 	while ((path = *pptr++) != NULL) {
-		if (!try_include(path, strlen(path), filename, flen, list, pptr))
+		if (!try_include(path, filename, flen, list, pptr))
 			continue;
 		return 1;
 	}
 	return 0;
 }
-	
 
 static void do_include(int local, struct stream *stream, struct token **list, struct token *token, const char *filename, const char **path)
 {
@@ -656,24 +710,17 @@ static void do_include(int local, struct stream *stream, struct token **list, st
 
 	/* Absolute path? */
 	if (filename[0] == '/') {
-		if (try_include("", 0, filename, flen, list, includepath))
+		if (try_include("", filename, flen, list, includepath))
 			return;
 		goto out;
 	}
 
-	/* Same directory as current stream? */
-	if (local) {
-		const char *path;
-		char *slash;
-		int plen;
+	/* Dir of inputfile is first dir to search for quoted includes */
+	set_stream_include_path(stream);
 
-		path = stream->name;
-		slash = strrchr(path, '/');
-		plen = slash ? slash - path : 0;
-
-		if (try_include(path, plen, filename, flen, list, includepath))
-			return;
-	}
+	if (!path)
+		/* Do not search quote include if <> is in use */
+		path = local ? quote_includepath : angle_includepath;
 
 	/* Check the standard include paths.. */
 	if (do_include_path(path, list, token, filename, flen))
@@ -723,7 +770,7 @@ static int handle_include_path(struct stream *stream, struct token **list, struc
 
 static int handle_include(struct stream *stream, struct token **list, struct token *token)
 {
-	return handle_include_path(stream, list, token, includepath);
+	return handle_include_path(stream, list, token, NULL);
 }
 
 static int handle_include_next(struct stream *stream, struct token **list, struct token *token)
@@ -1328,8 +1375,6 @@ static int handle_error(struct stream *stream, struct token **line, struct token
 
 static int handle_nostdinc(struct stream *stream, struct token **line, struct token *token)
 {
-	int stdinc;
-
 	if (false_nesting)
 		return free_preprocessor_line(token);
 
@@ -1337,22 +1382,11 @@ static int handle_nostdinc(struct stream *stream, struct token **line, struct to
 	 * Do we have any non-system includes?
 	 * Clear them out if so..
 	 */
-	stdinc = gcc_includepath - sys_includepath;
-	if (stdinc) {
-		const char **src = gcc_includepath;
-		const char **dst = sys_includepath;
-		for (;;) {
-			if (!(*dst = *src))
-				break;
-			dst++;
-			src++;
-		}
-		gcc_includepath -= stdinc;
-	}
+	*sys_includepath = NULL;
 	return free_preprocessor_line(token);
 }
 
-static void add_path_entry(struct token *token, const char *path)
+static void add_path_entry(struct token *token, const char *path, const char ***where, const char **new_path)
 {
 	const char **dst;
 	const char *next;
@@ -1361,13 +1395,19 @@ static void add_path_entry(struct token *token, const char *path)
 	if (includepath[INCLUDEPATHS-2])
 		error_die(token->pos, "too many include path entries");
 
+	/* check that this is not a duplicate */
+	dst = includepath;
+	while (*dst) {
+		if (strcmp(*dst, path) == 0)
+			return;
+		dst++;
+	}
 	next = path;
-	dst = sys_includepath;
-	sys_includepath++;
-	gcc_includepath++;
+	dst = *where;
+	*where = new_path;
 
 	/*
-	 * Move them all up starting at "sys_includepath",
+	 * Move them all up starting at dst,
 	 * insert the new entry..
 	 */
 	for (;;) {
@@ -1390,8 +1430,75 @@ static int handle_add_include(struct stream *stream, struct token **line, struct
 			warning(token->pos, "expected path string");
 			return 1;
 		}
-		add_path_entry(token, token->string->data);
+		add_path_entry(token, token->string->data, &sys_includepath, sys_includepath + 1);
 	}
+}
+
+static int handle_add_isystem(struct stream *stream, struct token **line, struct token *token)
+{
+	for (;;) {
+		token = token->next;
+		if (eof_token(token))
+			return 1;
+		if (token_type(token) != TOKEN_STRING) {
+			warning(token->pos, "expected path string");
+			return 1;
+		}
+		add_path_entry(token, token->string->data, &sys_includepath, sys_includepath);
+	}
+}
+
+/* Add to end on includepath list - no pointer updates */
+static void add_dirafter_entry(struct token *token, const char *path)
+{
+	const char **dst = includepath;
+
+	/* Need one free entry.. */
+	if (includepath[INCLUDEPATHS-2])
+		error_die(token->pos, "too many include path entries");
+
+	/* Add to the end */
+	while (*dst)
+		dst++;
+	*dst = path;
+	dst++;
+	*dst = NULL;
+}
+
+static int handle_add_dirafter(struct stream *stream, struct token **line, struct token *token)
+{
+	for (;;) {
+		token = token->next;
+		if (eof_token(token))
+			return 1;
+		if (token_type(token) != TOKEN_STRING) {
+			warning(token->pos, "expected path string");
+			return 1;
+		}
+		add_dirafter_entry(token, token->string->data);
+	}
+}
+
+static int handle_split_include(struct stream *stream, struct token **line, struct token *token)
+{
+	if (false_nesting)
+		return free_preprocessor_line(token);
+
+	/*
+	 * -I-
+	 *  From info gcc:
+	 *  Split the include path.  Any directories specified with `-I'
+	 *  options before `-I-' are searched only for headers requested with
+	 *  `#include "FILE"'; they are not searched for `#include <FILE>'.
+	 *  If additional directories are specified with `-I' options after
+	 *  the `-I-', those directories are searched for all `#include'
+	 *  directives.
+	 *  In addition, `-I-' inhibits the use of the directory of the current
+	 *  file directory as the first search directory for `#include "FILE"'.
+	 */
+	quote_includepath = includepath+1;
+	angle_includepath = sys_includepath;
+	return free_preprocessor_line(token);
 }
 
 /*
@@ -1453,8 +1560,11 @@ void init_preprocessor(void)
 		{ "line",	handle_line },
 
 		// our internal preprocessor tokens
-		{ "nostdinc",	handle_nostdinc },
-		{ "add_include", handle_add_include },
+		{ "nostdinc",	   handle_nostdinc },
+		{ "add_include",   handle_add_include },
+		{ "add_isystem",   handle_add_isystem },
+		{ "add_dirafter",  handle_add_dirafter },
+		{ "split_include", handle_split_include },
 	};
 
 	for (i = 0; i < (sizeof (handlers) / sizeof (handlers[0])); i++) {

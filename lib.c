@@ -428,16 +428,8 @@ char **handle_switch_I(char *arg, char **next)
 
 	switch (arg[1]) {
 	case '-':
-		/* Explaining '-I-' with a google search:
-		 *
-		 *	"Specifying -I after -I- searches for #include directories.
-		 *	 If -I- is specified before, it searches for #include "file"
-		 *	 and not #include ."
-		 *
-		 * Which didn't explain it at all to me. Maybe somebody else can
-		 * explain it properly. We ignore it for now.
-		 */
-		return next;
+		add_pre_buffer("#split_include\n");
+		break;
 
 	case '\0':	/* Plain "-I" */
 		path = *++next;
@@ -465,7 +457,7 @@ char **handle_switch_i(char *arg, char **next)
 		char *path = *++next;
 		if (!path)
 			die("missing argument for -isystem option");
-		add_pre_buffer("#add_include \"%s/\"\n", path);
+		add_pre_buffer("#add_isystem \"%s/\"\n", path);
 	}
 	return next;
 }
@@ -559,6 +551,15 @@ char **handle_nostdinc(char *arg, char **next)
 	return next;
 }
 
+char **handle_dirafter(char *arg, char **next)
+{
+	char *path = *++next;
+	if (!path)
+		die("missing argument for -dirafter option");
+	add_pre_buffer("#add_dirafter \"%s/\"\n", path);
+	return next;
+}
+
 struct switches {
 	const char *name;
 	char **(*fn)(char *, char**);
@@ -569,6 +570,7 @@ char **handle_switch(char *arg, char **next)
 	char **rc = next;
 	static struct switches cmd[] = {
 		{ "nostdinc", handle_nostdinc },
+		{ "dirafter", handle_dirafter },
 		{ NULL, NULL }
 	};
 	struct switches *s;

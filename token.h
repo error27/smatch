@@ -35,6 +35,7 @@ extern const char *includepath[];
 struct stream {
 	int fd;
 	const char *name;
+	const char *path;    // inputfile path - see set_stream_include_path()
 	const char **next_path;
 
 	/* Use these to check for "already parsed" */

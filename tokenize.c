@@ -185,6 +185,7 @@ int init_stream(const char *name, int fd, const char **next_path)
 	current->name = name;
 	current->fd = fd;
 	current->next_path = next_path;
+	current->path = NULL;
 	current->constant = CONSTANT_FILE_MAYBE;
 	input_stream_nr = stream+1;
 	return stream;
