@@ -4,11 +4,18 @@
 OS=linux
 
 CC=gcc
-CFLAGS=-O -g -Wall -Wwrite-strings
+CFLAGS=-O -g -Wall -Wwrite-strings -fpic
 LDFLAGS=-g
 AR=ar
 
+#
+# If building with shared libraries, you might
+# want to add this
+#
+# LDFLAG += -Wl,-rpath,$(BINDIR)
+
 PREFIX=$(HOME)
+BINDIR=$(PREFIX)/bin
 PROGRAMS=test-lexing test-parsing obfuscate check compile test-linearize example
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
@@ -21,17 +28,19 @@ LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 	  flow.o cse.o simplify.o memops.o liveness.o storage.o
 
 LIB_FILE= sparse.a
+SLIB_FILE= libsparse.so
+
 LIBS=$(LIB_FILE)
 
-all: $(PROGRAMS)
+all: $(PROGRAMS) $(SLIB_FILE)
 
 #
 # Install the 'check' binary as 'sparse', just to confuse people.
 #
 #		"The better to keep you on your toes, my dear".
 #
-install: check bin-dir
-	if test $< -nt $(PREFIX)/bin/sparse ; then install -v $< $(PREFIX)/bin/sparse ; fi
+install: check $(SLIB_FILE) bin-dir
+	if test $< -nt $(PREFIX)/bin/sparse ; then install -v $< $(BINDIR)/sparse ; install -v $(SLIB_FILE) $(BINDIR) ; fi
 
 bin-dir:
 	@if ! test -d $(PREFIX)/bin; then \
@@ -42,32 +51,35 @@ bin-dir:
 
 .PHONY: bin-dir
 
-test-lexing: test-lexing.o $(LIB_FILE)
+test-lexing: test-lexing.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
-test-parsing: test-parsing.o $(LIB_FILE)
+test-parsing: test-parsing.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
-test-linearize: test-linearize.o $(LIB_FILE)
+test-linearize: test-linearize.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
-test-sort: test-sort.o $(LIB_FILE)
+test-sort: test-sort.o $(LIBS)
 	gcc $(LDFLAGS) -o $@ $< $(LIBS)
 
-compile: compile.o compile-i386.o $(LIB_FILE)
+compile: compile.o compile-i386.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< compile-i386.o $(LIBS)
 
-obfuscate: obfuscate.o $(LIB_FILE)
+obfuscate: obfuscate.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
-check: check.o $(LIB_FILE)
+check: check.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
-example: example.o $(LIB_FILE)
+example: example.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 $(LIB_FILE): $(LIB_OBJS)
-	$(AR) rcs $(LIB_FILE) $(LIB_OBJS)
+	$(AR) rcs $@ $(LIB_OBJS)
+
+$(SLIB_FILE): $(LIB_OBJS)
+	$(CC) -shared -o $@ $(LIB_OBJS)
 
 evaluate.o: $(LIB_H)
 expression.o: $(LIB_H)
