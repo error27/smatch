@@ -23,6 +23,9 @@ struct hardreg {
 #define TAG_DEAD 1
 #define TAG_DIRTY 2
 
+/* Our "switch" generation is very very stupid. */
+#define SWITCH_REG (1)
+
 static void output_bb(struct basic_block *bb, unsigned long generation);
 
 /*
@@ -122,8 +125,8 @@ static const char *show_memop(struct storage *storage)
 {
 	static char buffer[1000];
 	switch (storage->type) {
-	case REG_ARG:
-		sprintf(buffer, "%d(FP)", storage->regno * 4);
+	case REG_FRAME:
+		sprintf(buffer, "%d(FP)", storage->offset);
 		break;
 	case REG_STACK:
 		sprintf(buffer, "%d(SP)", storage->offset);
@@ -685,6 +688,16 @@ static void generate_branch(struct bb_state *state, struct instruction *br)
 	output_insn(state, "jmp .L%p", br->bb_true);
 }
 
+/* We've made sure that there is a dummy reg live for the output */
+static void generate_switch(struct bb_state *state, struct instruction *insn)
+{
+	struct hardreg *reg = hardregs + SWITCH_REG;
+
+	generate_output_storage(state);
+	output_insn(state, "switch on %s", reg->name);
+	output_insn(state, "unimplemented: %s", show_instruction(insn));
+}
+
 static void generate_ret(struct bb_state *state, struct instruction *ret)
 {
 	if (ret->src && ret->src != VOID) {
@@ -793,6 +806,10 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 
 	case OP_BR:
 		generate_branch(state, insn);
+		break;
+
+	case OP_SWITCH:
+		generate_switch(state, insn);
 		break;
 
 	case OP_CALL:
@@ -1109,6 +1126,100 @@ static void output_bb(struct basic_block *bb, unsigned long generation)
 	generate_list(bb->children, generation);
 }
 
+static void set_up_arch_entry(struct entrypoint *ep, struct instruction *entry)
+{
+	int i;
+	pseudo_t arg;
+
+	/*
+	 * We should set up argument sources here..
+	 *
+	 * Things like "first three arguments in registers" etc
+	 * are all for this place.
+	 */
+	i = 0;
+	FOR_EACH_PTR(entry->arg_list, arg) {
+		struct storage *in = lookup_storage(entry->bb, arg, STOR_IN);
+		if (!in) {
+			in = alloc_storage();
+			add_storage(in, entry->bb, arg, STOR_IN);
+		}
+		if (i < 3) {
+			in->type = REG_REG;
+			in->regno = i;
+		} else {
+			in->type = REG_FRAME;
+			in->offset = (i-3)*4;
+		}
+		i++;
+	} END_FOR_EACH_PTR(arg);
+}
+
+/*
+ * Set up storage information for "return"
+ *
+ * Not strictly necessary, since the code generator will
+ * certainly move the return value to the right register,
+ * but it can help register allocation if the allocator
+ * sees that the target register is going to return in %eax.
+ */
+static void set_up_arch_exit(struct basic_block *bb, struct instruction *ret)
+{
+	pseudo_t pseudo = ret->src;
+
+	if (pseudo && pseudo != VOID) {
+		struct storage *out = lookup_storage(bb, pseudo, STOR_OUT);
+		if (!out) {
+			out = alloc_storage();
+			add_storage(out, bb, pseudo, STOR_OUT);
+		}
+		out->type = REG_REG;
+		out->regno = 0;
+	}
+}
+
+/*
+ * Set up dummy/silly output storage information for a switch
+ * instruction. We need to make sure that a register is available
+ * when we generate code for switch, so force that by creating
+ * a dummy output rule.
+ */
+static void set_up_arch_switch(struct basic_block *bb, struct instruction *insn)
+{
+	pseudo_t pseudo = insn->cond;
+	struct storage *out = lookup_storage(bb, pseudo, STOR_OUT);
+	if (!out) {
+		out = alloc_storage();
+		add_storage(out, bb, pseudo, STOR_OUT);
+	}
+	out->type = REG_REG;
+	out->regno = SWITCH_REG;
+}
+
+static void arch_set_up_storage(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+
+	/* Argument storage etc.. */
+	set_up_arch_entry(ep, ep->entry);
+
+	FOR_EACH_PTR(ep->bbs, bb) {
+		struct instruction *insn = last_instruction(bb->insns);
+		if (!insn)
+			continue;
+		switch (insn->opcode) {
+		case OP_RET:
+			set_up_arch_exit(bb, insn);
+			break;
+		case OP_SWITCH:
+			set_up_arch_switch(bb, insn);
+			break;
+		default:
+			/* nothing */;
+		}
+	} END_FOR_EACH_PTR(bb);
+}
+
 static void output(struct entrypoint *ep)
 {
 	unsigned long generation = ++bb_generation;
@@ -1117,6 +1228,9 @@ static void output(struct entrypoint *ep)
 
 	/* Set up initial inter-bb storage links */
 	set_up_storage(ep);
+
+	/* Architecture-specific storage rules.. */
+	arch_set_up_storage(ep);
 
 	/* Show the results ... */
 	output_bb(ep->entry->bb, generation);
