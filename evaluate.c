@@ -459,7 +459,7 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expressio
 		return evaluate_ptr_add(expr, l, r);
 
 	ctype = ltype;
-	typediff = type_difference(ltype, rtype, MOD_IGN, MOD_IGN);
+	typediff = type_difference(ltype, rtype, ~MOD_SIZE, ~MOD_SIZE);
 	if (typediff) {
 		ctype = common_ptr_type(l, r);
 		if (!ctype) {
