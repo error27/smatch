@@ -242,6 +242,11 @@ static struct storage hardreg_storage_table[] = {
 
 DECLARE_BITMAP(regs_in_use, 256);
 
+static inline struct storage * reginfo_reg(struct reg_info *info)
+{
+	return hardreg_storage_table + info->own_regno;
+}
+
 struct storage * get_hardreg(struct storage *reg, int clear)
 {
 	struct reg_info *info = reg->reg;
@@ -1140,8 +1145,18 @@ static void emit_move(struct storage *src, struct storage *dest,
 		is_signed = 0;
 	}
 
+	/*
+	 * Are we moving from a register to a register?
+	 * Make the new reg to be the "cache".
+	 */
 	if ((dest->type == STOR_REG) && (src->type == STOR_REG)) {
-		struct storage *backing = src->reg->contains;
+		struct storage *backing;
+
+reg_reg_move:
+		if (dest == src)
+			return;
+
+		backing = src->reg->contains;
 		if (backing) {
 			/* Is it still valid? */
 			if (backing->reg != src->reg)
@@ -1154,15 +1169,28 @@ static void emit_move(struct storage *src, struct storage *dest,
 		return;
 	}
 
+	/*
+	 * Are we moving to a register from a non-reg?
+	 *
+	 * See if we have the non-reg source already cached
+	 * in a register..
+	 */
+	if (dest->type == STOR_REG) {
+		if (src->reg) {
+			struct reg_info *info = src->reg;
+			if (info->contains == src) {
+				src = reginfo_reg(info);
+				goto reg_reg_move;
+			}
+		}
+		dest->reg->contains = src;
+		src->reg = dest->reg;
+	}
+
 	if (src->type == STOR_REG) {
 		/* We could just mark the register dirty here and do lazy store.. */
 		src->reg->contains = dest;
 		dest->reg = src->reg;
-	}
-
-	if (dest->type == STOR_REG) {
-		dest->reg->contains = src;
-		src->reg = dest->reg;
 	}
 
 	if ((bits == 8) || (bits == 16)) {
