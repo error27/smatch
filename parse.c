@@ -166,11 +166,13 @@ struct token *typeof_specifier(struct token *token, struct ctype *ctype)
 
 static const char * handle_attribute(struct ctype *ctype, struct ident *attribute, struct expression *expr)
 {
-	if (match_string_ident(attribute, "packed")) {
+	if (match_string_ident(attribute, "packed") ||
+	    match_string_ident(attribute, "__packed__")) {
 		ctype->alignment = 1;
 		return NULL;
 	}
-	if (match_string_ident(attribute, "aligned")) {
+	if (match_string_ident(attribute, "aligned") ||
+	    match_string_ident(attribute, "__aligned__")) {
 		int alignment = MAX_ALIGNMENT;
 		if (expr)
 			alignment = get_expression_value(expr);
@@ -203,9 +205,29 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 		}
 		return "expected context mask and value";
 	}
+
+	/* Throw away for now.. */
+	if (match_string_ident(attribute, "format") ||
+	    match_string_ident(attribute, "__format__"))
+		return NULL;
+	if (match_string_ident(attribute, "section") ||
+	    match_string_ident(attribute, "__section__"))
+		return NULL;
+	if (match_string_ident(attribute, "unused") ||
+	    match_string_ident(attribute, "__unused__"))
+		return NULL;
+	if (match_string_ident(attribute, "const") ||
+	    match_string_ident(attribute, "__const__"))
+		return NULL;
+	if (match_string_ident(attribute, "noreturn"))
+		return NULL;
+	if (match_string_ident(attribute, "regparm"))
+		return NULL;
+	if (match_string_ident(attribute, "weak"))
+		return NULL;
+
 	return "unknown attribute";
 }
-
 
 struct token *attribute_specifier(struct token *token, struct ctype *ctype)
 {
