@@ -628,8 +628,12 @@ pseudo_t alloc_pseudo(struct instruction *def)
 
 static pseudo_t symbol_pseudo(struct entrypoint *ep, struct symbol *sym)
 {
-	pseudo_t pseudo = sym->pseudo;
+	pseudo_t pseudo;
 
+	if (!sym)
+		return VOID;
+
+	pseudo = sym->pseudo;
 	if (!pseudo) {
 		pseudo = __alloc_pseudo(0);
 		pseudo->type = PSEUDO_SYM;
