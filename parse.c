@@ -1072,16 +1072,14 @@ static void declare_argument(struct symbol *sym, void *data, int flags)
 static struct token *external_declaration(struct token *token, struct symbol_list **list)
 {
 	struct token *ident = NULL;
-	struct symbol *spec, *decl;
+	struct symbol *decl;
 	struct ctype ctype = { 0, };
 
 	/* Parse declaration-specifiers, if any */
 	token = declaration_specifiers(token, &ctype);
 
-	spec = alloc_symbol(token, SYM_TYPE);
-	spec->ctype = ctype;
-
-	decl = spec;
+	decl = alloc_symbol(token, SYM_TYPE);
+	token = pointer(token, &decl, &ctype);
 	token = declarator(token, &decl, &ident);
 
 	/* Just a type declaration? */
@@ -1089,8 +1087,8 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 		return expect(token, ';', "end of type declaration");
 
 	/* type define declaration? */
-	if (spec->ctype.modifiers & SYM_TYPEDEF) {
-		spec->ctype.modifiers &= ~SYM_TYPEDEF;
+	if (ctype.modifiers & SYM_TYPEDEF) {
+		ctype.modifiers &= ~SYM_TYPEDEF;
 		bind_symbol(indirect(decl, SYM_TYPEDEF), ident->ident, NS_TYPEDEF);
 		return expect(token, ';', "end of typedef");
 	}
@@ -1115,7 +1113,8 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 			break;
 
 		ident = NULL;
-		decl = spec;
+		decl = alloc_symbol(token, SYM_TYPE);
+		token = pointer(token, &decl, &ctype);
 		token = declarator(token->next, &decl, &ident);
 		if (!ident) {
 			warn(token, "expected identifier name in type definition");
