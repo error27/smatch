@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-g -Wall
 
-PROGRAMS=test-lexing test-parsing obfuscate
+PROGRAMS=test-lexing test-parsing obfuscate check
 
 HEADERS=token.h parse.h lib.h symbol.h scope.h expression.h target.h
 
@@ -17,6 +17,9 @@ test-parsing: test-parsing.o $(COMMON)
 	gcc -o $@ $< $(COMMON)
 
 obfuscate: obfuscate.o $(COMMON)
+	gcc -o $@ $< $(COMMON)
+
+check: check.o $(COMMON)
 	gcc -o $@ $< $(COMMON)
 
 evaluate.o: $(HEADERS)
