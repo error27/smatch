@@ -95,7 +95,8 @@ struct string {
 struct token {
 	unsigned int type:8,
 		     stream:8,
-		     pos:16;
+		     pos:15,
+		     newline:1;
 	unsigned int line;
 	struct token *next;
 	union {
@@ -127,5 +128,16 @@ extern struct token * tokenize(const char *, int);
 extern void die(const char *, ...);
 extern void warn(struct token *, const char *, ...);
 extern void show_identifier_stats(void);
+extern struct token *preprocess(struct token *);
+
+static inline int match_op(struct token *token, int op)
+{
+	return token->type == TOKEN_SPECIAL && token->special == op;
+}
+
+static inline int match_ident(struct token *token, struct ident *id)
+{
+	return token->type == TOKEN_IDENT && token->ident == id;
+}
 
 #endif

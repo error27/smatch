@@ -145,7 +145,7 @@ struct token * alloc_token(int stream, int line, int pos)
 
 #define BUFSIZE (4096)
 typedef struct {
-	int fd, line, pos, offset, size;
+	int fd, line, pos, offset, size, newline;
 	struct token **tokenlist;
 	struct token *token;
 	unsigned char buffer[BUFSIZE];
@@ -170,6 +170,7 @@ static int nextchar(action_t *action)
 	action->pos++;
 	if (c == '\n') {
 		action->line++;
+		action->newline = 1;
 		action->pos = 0;
 	}
 	return c;
@@ -196,10 +197,8 @@ static void add_token(action_t *action)
 
 static void drop_token(action_t *action)
 {
-	struct token *token = action->token;
-
+	action->newline |= action->token->newline;
 	action->token = NULL;
-	free(token);
 }
 
 static int get_base_number(unsigned int base, char **p, int next, action_t *action)
@@ -663,6 +662,7 @@ struct token * tokenize(const char *name, int fd)
 	action.tokenlist = &retval;
 	action.token = NULL;
 	action.line = 1;
+	action.newline = 1;
 	action.pos = 0;
 	action.fd = fd;
 	action.offset = 0;
@@ -670,9 +670,15 @@ struct token * tokenize(const char *name, int fd)
 
 	c = nextchar(&action);
 	while (c != EOF) {
+		if (c == '\\') {
+			c = nextchar(&action);
+			action.newline = 0;
+		}
 		if (!isspace(c)) {
-			action.token = alloc_token(stream, action.line, action.pos);
-
+			struct token *token = alloc_token(stream, action.line, action.pos);
+			token->newline = action.newline;
+			action.newline = 0;
+			action.token = token;
 			c = get_one_token(c, &action);
 			continue;
 		}

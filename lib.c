@@ -36,6 +36,17 @@ struct allocator_struct {
 	unsigned int allocations, total_bytes, useful_bytes;
 };
 
+void drop_all_allocations(struct allocator_struct *desc)
+{
+	struct allocation_blob *blob = desc->blobs;
+
+	while (blob) {
+		struct allocation_blob *next = blob->next;
+		free(blob);
+		blob = next;
+	}
+}
+
 void *allocate(struct allocator_struct *desc, unsigned int size)
 {
 	unsigned long alignment = desc->alignment;

@@ -71,16 +71,6 @@ struct statement *alloc_statement(struct token * token, int type)
 	return stmt;
 }
 
-static int match_op(struct token *token, int op)
-{
-	return token->type == TOKEN_SPECIAL && token->special == op;
-}
-
-static int match_ident(struct token *token, struct ident *id)
-{
-	return token->type == TOKEN_IDENT && token->ident == id;
-}
-
 static int match_oplist(int op, ...)
 {
 	va_list args;

@@ -17,6 +17,7 @@ int main(int argc, char **argv)
 		die("No such file: %s", argv[1]);
 
 	token = tokenize(argv[1], fd);
+	token = preprocess(token);
 	while (!eof_token(token)) {
 		struct token *next = token->next;
 		char separator = '\n';
