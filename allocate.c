@@ -96,7 +96,7 @@ void *allocate(struct allocator_struct *desc, unsigned int size)
 	return retval;
 }
 
-static void show_allocations(struct allocator_struct *x)
+void show_allocations(struct allocator_struct *x)
 {
 	fprintf(stderr, "%s: %d allocations, %d bytes (%d total bytes, "
 			"%6.2f%% usage, %6.2f average size)\n",
@@ -105,45 +105,18 @@ static void show_allocations(struct allocator_struct *x)
 		(double) x->useful_bytes / x->allocations);
 }
 
-struct allocator_struct ident_allocator = { "identifiers", NULL, __alignof__(struct ident), CHUNK };
-struct allocator_struct token_allocator = { "tokens", NULL, __alignof__(struct token), CHUNK };
-struct allocator_struct symbol_allocator = { "symbols", NULL, __alignof__(struct symbol), CHUNK };
-struct allocator_struct expression_allocator = { "expressions", NULL, __alignof__(struct expression), CHUNK };
-struct allocator_struct statement_allocator = { "statements", NULL, __alignof__(struct statement), CHUNK };
-struct allocator_struct string_allocator = { "strings", NULL, __alignof__(struct statement), CHUNK };
-struct allocator_struct scope_allocator = { "scopes", NULL, __alignof__(struct scope), CHUNK };
-struct allocator_struct bytes_allocator = { "bytes", NULL, 1, CHUNK };
-struct allocator_struct basic_block_allocator = { "basic_block", NULL, __alignof__(struct basic_block), CHUNK };
-struct allocator_struct entrypoint_allocator = { "entrypoint", NULL, __alignof__(struct entrypoint), CHUNK };
-struct allocator_struct instruction_allocator = { "instruction", NULL, __alignof__(struct instruction), CHUNK };
-struct allocator_struct multijmp_allocator = { "multijmp", NULL, __alignof__(struct multijmp), CHUNK };
-struct allocator_struct pseudo_allocator = { "pseudo", NULL, __alignof__(struct pseudo), CHUNK };
-
-#define __ALLOCATOR(type, size, x)				\
-	type *__alloc_##x(int extra)				\
-	{							\
-		return allocate(&x##_allocator, size+extra);	\
-	}							\
-	void __free_##x(type *entry)				\
-	{							\
-		return free_one_entry(&x##_allocator, entry);	\
-	}							\
-	void show_##x##_alloc(void)				\
-	{							\
-		show_allocations(&x##_allocator);		\
-	}							\
-	void clear_##x##_alloc(void)				\
-	{							\
-		drop_all_allocations(&x##_allocator);		\
-	}
-#define ALLOCATOR(x) __ALLOCATOR(struct x, sizeof(struct x), x)
-
-ALLOCATOR(ident); ALLOCATOR(token); ALLOCATOR(symbol);
-ALLOCATOR(expression); ALLOCATOR(statement); ALLOCATOR(string);
-ALLOCATOR(scope); __ALLOCATOR(void, 0, bytes);
-ALLOCATOR(basic_block); ALLOCATOR(entrypoint);
-ALLOCATOR(instruction);
-ALLOCATOR(multijmp);
-ALLOCATOR(pseudo);
+ALLOCATOR(ident, "identifiers");
+ALLOCATOR(token, "tokens");
+ALLOCATOR(symbol, "symbols");
+ALLOCATOR(expression, "expressions");
+ALLOCATOR(statement, "statements");
+ALLOCATOR(string, "strings");
+ALLOCATOR(scope, "scopes");
+__ALLOCATOR(void, 0, 1, "bytes", bytes);
+ALLOCATOR(basic_block, "basic_block");
+ALLOCATOR(entrypoint, "entrypoint");
+ALLOCATOR(instruction, "instruction");
+ALLOCATOR(multijmp, "multijmp");
+ALLOCATOR(pseudo, "pseudo");
 
 
