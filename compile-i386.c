@@ -2144,6 +2144,7 @@ static struct storage *x86_expression(struct expression *expr)
 	case EXPR_INITIALIZER:
 		x86_initializer_expr(expr, expr->ctype);
 		return NULL;
+	case EXPR_SELECT:
 	case EXPR_CONDITIONAL:
 		return emit_conditional_expr(expr);
 	case EXPR_STATEMENT:

@@ -676,6 +676,7 @@ static void expand_expression(struct expression *expr)
 		expand_expression(expr->address);
 		return;
 
+	case EXPR_SELECT:
 	case EXPR_CONDITIONAL:
 		expand_expression(expr->conditional);
 		expand_expression(expr->cond_false);

@@ -741,6 +741,7 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 	case EXPR_COMPARE:
 		return  linearize_compare(ep, expr);
 
+	case EXPR_SELECT:
 	case EXPR_CONDITIONAL:
 		return  linearize_conditional(ep, expr, expr->conditional,
 					      expr->cond_true, expr->cond_false);

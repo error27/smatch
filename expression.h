@@ -28,6 +28,7 @@ enum expression_type {
 	EXPR_SIZEOF,
 	EXPR_ALIGNOF,
 	EXPR_CONDITIONAL,
+	EXPR_SELECT,		// a "safe" conditional expression
 	EXPR_STATEMENT,
 	EXPR_CALL,
 	EXPR_COMMA,
@@ -83,6 +84,7 @@ struct expression {
 			struct expression *cast_expression;
 		};
 		// EXPR_CONDITIONAL
+		// EXPR_SELECT
 		struct /* conditional_expr */ {
 			struct expression *conditional, *cond_true, *cond_false;
 		};

@@ -130,6 +130,7 @@ static struct expression * copy_expression(struct expression *expr)
 	}
 
 	/* Conditional expression */
+	case EXPR_SELECT:
 	case EXPR_CONDITIONAL: {
 		struct expression *cond = copy_expression(expr->conditional);
 		struct expression *true = copy_expression(expr->cond_true);

@@ -986,6 +986,7 @@ int show_expression(struct expression *expr)
 		return show_bitfield_expr(expr);
 	case EXPR_INITIALIZER:
 		return show_initializer_expr(expr, expr->ctype);
+	case EXPR_SELECT:
 	case EXPR_CONDITIONAL:
 		return show_conditional_expr(expr);
 	case EXPR_STATEMENT:
