@@ -11,6 +11,7 @@ LIB_OBJS= parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 	  expression.o show-parse.o evaluate.o inline.o
 
 LIB_FILE= sparse.a
+LIBS=$(LIB_FILE)
 
 all: $(PROGRAMS)
 
@@ -23,16 +24,16 @@ install: check
 	install -C check $(PREFIX)/bin/sparse
 
 test-lexing: test-lexing.o $(LIB_FILE)
-	gcc -o $@ $< $(LIB_FILE)
+	gcc -o $@ $< $(LIBS)
 
 test-parsing: test-parsing.o $(LIB_FILE)
-	gcc -o $@ $< $(LIB_FILE)
+	gcc -o $@ $< $(LIBS)
 
 obfuscate: obfuscate.o $(LIB_FILE)
-	gcc -o $@ $< $(LIB_FILE)
+	gcc -o $@ $< $(LIBS)
 
 check: check.o $(LIB_FILE)
-	gcc -o $@ $< $(LIB_FILE)
+	gcc -o $@ $< $(LIBS)
 
 $(LIB_FILE): $(LIB_OBJS)
 	$(AR) rcs $(LIB_FILE) $(LIB_OBJS)
