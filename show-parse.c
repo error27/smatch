@@ -386,25 +386,26 @@ int show_statement(struct statement *stmt)
 		printf(".L%d:\n", target);
 		break;
 	}
-	case STMT_SWITCH:
-		printf("\tswitch (");
-		show_expression(stmt->switch_expression);
-		printf(")\n");
+	case STMT_SWITCH: {
+		int val = show_expression(stmt->switch_expression);
+		printf("\tswitch v%d\n", val);
 		show_statement(stmt->switch_statement);
+		if (stmt->switch_break->used)
+			printf(".L%p:\n", stmt->switch_break);
 		break;
+	}
 
 	case STMT_CASE:
 		if (!stmt->case_expression)
 			printf("default");
 		else {
-			printf("case ");
-			show_expression(stmt->case_expression);
+			printf("case %lld", stmt->case_expression->value);
 			if (stmt->case_to) {
-				printf(" ... ");
-				show_expression(stmt->case_to);
+				printf("...%lld", stmt->case_to->value);
 			}
+			
 		}
-		printf(":");
+		printf(":\n");
 		show_statement(stmt->case_statement);
 		break;
 
