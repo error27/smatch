@@ -670,8 +670,33 @@ char **handle_switch(char *arg, char **next)
 
 void create_builtin_stream(void)
 {
+#if defined(__linux__)
 	add_pre_buffer("#define __linux__ 1\n");
-	add_pre_buffer("#define linux linux\n");
+	add_pre_buffer("#define __linux 1\n");
+	add_pre_buffer("#define linux 1\n");
+
+	add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
+	add_pre_buffer("#define __builtin_va_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
+	add_pre_buffer("#define __builtin_va_arg(arg,type)  ((type)0)\n");
+	add_pre_buffer("#define __builtin_va_end(arg)\n");	
+#elif defined(__sun__)
+	add_pre_buffer("#define __sun__ 1\n");
+	add_pre_buffer("#define __sun 1\n");
+	add_pre_buffer("#define sun 1\n");
+	add_pre_buffer("#define __svr4__ 1\n");
+	add_pre_buffer("#define SVR4 1\n");
+	// The system definition (either 0 or 0L) is just not useful.
+	// Luckily, it is conditionally defined.
+	add_pre_buffer("#define NULL ((void *)0)\n");
+	// gcc specs define the following on solaris:
+	add_pre_buffer("#define _REENTRANT\n");
+	add_pre_buffer("#define _SOLARIS_THREADS\n");
+	// I'm just guessing here:
+	add_pre_buffer("#define __builtin_va_alist (*(void *)0)\n");
+	add_pre_buffer("#define __builtin_va_arg_incr(x) ((x) + 1)\n");
+#else
+#warning "System not recognized; hope for the best"
+#endif
 	add_pre_buffer("#define unix 1\n");
 	add_pre_buffer("#define __unix 1\n");
 	add_pre_buffer("#define __unix__ 1\n");
@@ -686,10 +711,6 @@ void create_builtin_stream(void)
 	// it is "long unsigned int".  In either case we can probably
 	// get away with this:
 	add_pre_buffer("#define __SIZE_TYPE__ long unsigned int\n");
-	add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
-	add_pre_buffer("#define __builtin_va_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
-	add_pre_buffer("#define __builtin_va_arg(arg,type)  ((type)0)\n");
-	add_pre_buffer("#define __builtin_va_end(arg)\n");	
 }
 
 #ifdef __sun__
