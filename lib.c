@@ -326,52 +326,74 @@ void add_pre_buffer(const char *fmt, ...)
 	va_end(args);
 }
 
-char **handle_switch(char *arg, char **next)
+char **handle_switch_D(char *arg, char **next)
 {
-	switch (*arg) {
-	case 'D': {
-		const char *name = arg+1;
-		const char *value = "";
-		for (;;) {
-			char c;
-			c = *++arg;
-			if (!c)
-				break;
-			if (isspace(c) || c == '=') {
-				*arg = '\0';
-				value = arg+1;
-				break;
-			}
+	const char *name = arg + 1;
+	const char *value = "";
+	for (;;) {
+		char c;
+		c = *++arg;
+		if (!c)
+			break;
+		if (isspace(c) || c == '=') {
+			*arg = '\0';
+			value = arg + 1;
+			break;
 		}
-		add_pre_buffer("#define %s %s\n", name, value);
-		return next;
 	}
+	add_pre_buffer("#define %s %s\n", name, value);
+	return next;
+}
 
-	case 'E':
-		preprocess_only = 1;
-		return next;
-	case 'v':
-		verbose = 1;
-		return next;
-	case 'I':
-		add_pre_buffer("#add_include \"%s/\"\n", arg+1);
-		return next;
-	case 'i':
-		if (*next && !strcmp(arg, "include")) {
-			char *name = *++next;
-			int fd = open(name, O_RDONLY);
-			include_fd = fd;
-			include = name;
-			if (fd < 0)
-				perror(name);
-			return next;
-		}
-	/* Fallthrough */
-	default:
-		/* Ignore unknown command line options - they're probably gcc switches */
-		break;
+char **handle_switch_E(char *arg, char **next)
+{
+	preprocess_only = 1;
+	return next;
+}
+
+char **handle_switch_v(char *arg, char **next)
+{
+	verbose = 1;
+	return next;
+}
+char **handle_switch_I(char *arg, char **next)
+{
+	add_pre_buffer("#add_include \"%s/\"\n", arg + 1);
+	return next;
+}
+
+char **handle_switch_i(char *arg, char **next)
+{
+	if (*next && !strcmp(arg, "include")) {
+		char *name = *++next;
+		int fd = open(name, O_RDONLY);
+
+		include_fd = fd;
+		include = name;
+		if (fd < 0)
+			perror(name);
 	}
 	return next;
+}
+
+char **handle_switch(char *arg, char **next)
+{
+	char **rc = next;
+
+	switch (*arg) {
+	case 'D': rc = handle_switch_D(arg, next); break;
+	case 'E': rc = handle_switch_E(arg, next); break;
+	case 'v': rc = handle_switch_v(arg, next); break;
+	case 'I': rc = handle_switch_I(arg, next); break;
+	case 'i': rc = handle_switch_i(arg, next); break;
+	default:
+		/*
+		 * Ignore unknown command line options:
+		 * they're probably gcc switches
+		 */
+		break;
+	}
+	return rc;
 }
 
 void create_builtin_stream(void)
