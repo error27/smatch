@@ -280,7 +280,7 @@ static void do_warn(const char *type, struct position pos, const char * fmt, va_
 	const char *name;
 
 	vsprintf(buffer, fmt, args);	
-	name = input_streams[pos.stream].name;
+	name = stream_name(pos.stream);
 		
 	fprintf(stderr, "%s:%d:%d: %s%s\n",
 		name, pos.line, pos.pos, type, buffer);

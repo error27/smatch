@@ -58,7 +58,7 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 		sym->bit_size, sym->ctype.alignment,
 		sym->ctype.modifiers, show_ident(sym->ident),
 		sym->ctype.as, sym->ctype.in_context, sym->ctype.out_context,
-		sym, input_streams[sym->pos.stream].name, sym->pos.line, sym->pos.pos);
+		sym, stream_name(sym->pos.stream), sym->pos.line, sym->pos.pos);
 	if (sym->type == SYM_FN) {
 		int i = 1;
 		struct symbol *arg;
@@ -961,7 +961,7 @@ int show_expression(struct expression *expr)
 	if (!expr->ctype) {
 		struct position *pos = &expr->pos;
 		printf("\tno type at %s:%d:%d\n",
-			input_streams[pos->stream].name,
+			stream_name(pos->stream),
 			pos->line, pos->pos);
 		return 0;
 	}

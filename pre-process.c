@@ -131,7 +131,7 @@ static int expand_one_symbol(struct token **list)
 	if (token->ident == &__LINE___ident) {
 		replace_with_integer(token, token->pos.line);
 	} else if (token->ident == &__FILE___ident) {
-		replace_with_string(token, (input_streams + token->pos.stream)->name);
+		replace_with_string(token, stream_name(token->pos.stream));
 	}
 	return 1;
 }
@@ -601,7 +601,7 @@ static int already_tokenized(const char *path)
 	int i;
 	struct stream *s = input_streams;
 
-	for (i = input_stream_nr-1; i >= 0; i--, s++) {
+	for (i = input_stream_nr; --i >= 0; s++) {
 		if (s->constant != CONSTANT_FILE_YES)
 			continue;
 		if (strcmp(path, s->name))

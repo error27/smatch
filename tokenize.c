@@ -37,6 +37,13 @@ typedef struct {
 	unsigned char *buffer;
 } stream_t;
 
+const char *stream_name(int stream)
+{
+	if (stream < 0 || stream > input_stream_nr)
+		return "<bad stream>";
+	return input_streams[stream].name;
+}
+
 struct position stream_pos(stream_t *stream)
 {
 	struct position pos;
@@ -149,11 +156,11 @@ const char *show_token(const struct token *token)
 	}
 
 	case TOKEN_STREAMBEGIN:
-		sprintf(buffer, "<beginning of '%s'>", (input_streams + token->pos.stream)->name);
+		sprintf(buffer, "<beginning of '%s'>", stream_name(token->pos.stream));
 		return buffer;
 
 	case TOKEN_STREAMEND:
-		sprintf(buffer, "<end of '%s'>", (input_streams + token->pos.stream)->name);
+		sprintf(buffer, "<end of '%s'>", stream_name(token->pos.stream));
 		return buffer;
 	
 	default:

@@ -439,7 +439,7 @@ void show_bb(struct basic_block *bb)
 	printf(".L%p:\n", bb);
 	if (verbose) {
 		pseudo_t needs, defines;
-		printf("%s:%d\n", input_streams[bb->pos.stream].name, bb->pos.line);
+		printf("%s:%d\n", stream_name(bb->pos.stream), bb->pos.line);
 
 		FOR_EACH_PTR(bb->needs, needs) {
 			struct instruction *def = needs->def;
@@ -467,7 +467,7 @@ void show_bb(struct basic_block *bb)
 			struct basic_block *from;
 			FOR_EACH_PTR(bb->parents, from) {
 				printf("  **from %p (%s:%d:%d)**\n", from,
-					input_streams[from->pos.stream].name, from->pos.line, from->pos.pos);
+					stream_name(from->pos.stream), from->pos.line, from->pos.pos);
 			} END_FOR_EACH_PTR(from);
 		}
 
@@ -475,7 +475,7 @@ void show_bb(struct basic_block *bb)
 			struct basic_block *to;
 			FOR_EACH_PTR(bb->children, to) {
 				printf("  **to %p (%s:%d:%d)**\n", to,
-					input_streams[to->pos.stream].name, to->pos.line, to->pos.pos);
+					stream_name(to->pos.stream), to->pos.line, to->pos.pos);
 			} END_FOR_EACH_PTR(to);
 		}
 	}

@@ -2317,7 +2317,7 @@ static struct storage *x86_expression(struct expression *expr)
 	if (!expr->ctype) {
 		struct position *pos = &expr->pos;
 		printf("\tno type at %s:%d:%d\n",
-			input_streams[pos->stream].name,
+			stream_name(pos->stream),
 			pos->line, pos->pos);
 		return NULL;
 	}

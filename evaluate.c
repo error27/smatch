@@ -2282,7 +2282,7 @@ static void check_duplicates(struct symbol *sym)
 		if (typediff) {
 			warning(sym->pos, "symbol '%s' redeclared with different type (originally declared at %s:%d) - %s",
 				show_ident(sym->ident),
-				input_streams[next->pos.stream].name, next->pos.line, typediff);
+				stream_name(next->pos.stream), next->pos.line, typediff);
 			return;
 		}
 	}

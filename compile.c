@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 
 	list = sparse(argc, argv);
 
-	filename = input_streams[1].name;
+	filename = stream_name(1);
 	basename = strrchr(filename, '/');
 	if (basename)
 		filename = basename+1;
