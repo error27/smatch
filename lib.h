@@ -133,6 +133,10 @@ extern int preprocess_only;
 
 extern void create_builtin_stream(void);
 
+#ifdef __sun__
+extern long double strtold (char const *str, char **end);
+#endif
+
 static inline int symbol_list_size(struct symbol_list* list)
 {
 	return ptr_list_size((struct ptr_list *)(list));

@@ -683,3 +683,35 @@ void create_builtin_stream(void)
 	add_pre_buffer("#define __builtin_va_arg(arg,type)  ((type)0)\n");
 	add_pre_buffer("#define __builtin_va_end(arg)\n");	
 }
+
+#ifdef __sun__
+#include <floatingpoint.h>
+#include <limits.h>
+#include <errno.h>
+
+long double
+strtold (char const *str, char **end)
+{
+	long double res;
+	decimal_record dr;
+	enum decimal_string_form form;
+	decimal_mode dm;
+	fp_exception_field_type excp;
+	char *echar;
+
+	string_to_decimal ((char **)&str, INT_MAX, 0,
+			   &dr, &form, &echar);
+	if (end) *end = (char *)str;
+
+	if (form == invalid_form) {
+		errno = EINVAL;
+		return 0.0;
+	}
+
+	dm.rd = fp_nearest;
+	decimal_to_quadruple (&res, &dm, &dr, &excp);
+        if (excp & ((1 << fp_overflow) | (1 << fp_underflow)))
+                errno = ERANGE;
+	return res;
+}
+#endif
