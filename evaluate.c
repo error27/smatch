@@ -848,10 +848,16 @@ static struct symbol *create_pointer(struct expression *expr, struct symbol *sym
 		warn(expr->pos, "taking address of 'register' variable '%s'", show_ident(sym->ident));
 		sym->ctype.modifiers &= ~MOD_REGISTER;
 	}
-	if (sym->type == SYM_NODE)
+	if (sym->type == SYM_NODE) {
+		ptr->ctype.as |= sym->ctype.as;
+		ptr->ctype.modifiers |= sym->ctype.modifiers;
 		sym = sym->ctype.base_type;
-	if (sym->type == SYM_ARRAY)
+	}
+	if (sym->type == SYM_ARRAY) {
+		ptr->ctype.as |= sym->ctype.as;
+		ptr->ctype.modifiers |= sym->ctype.modifiers;
 		sym = sym->ctype.base_type;
+	}
 	ptr->ctype.base_type = sym;
 
 	return ptr;
