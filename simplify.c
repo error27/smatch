@@ -659,7 +659,7 @@ static int simplify_range(struct instruction *insn)
 	src1 = insn->src1;
 	src2 = insn->src2;
 	src3 = insn->src3;
-	if (src2->type != PSEUDO_VAL || src2->type != PSEUDO_VAL)
+	if (src2->type != PSEUDO_VAL || src3->type != PSEUDO_VAL)
 		return 0;
 	if (is_in_range(src1, src2->value, src3->value)) {
 		kill_instruction(insn);
