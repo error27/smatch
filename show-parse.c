@@ -132,7 +132,7 @@ void show_type(struct symbol *sym)
 		return;
 
 	case SYM_ARRAY:
-		printf("<array>(");
+		printf("<array [%d] of>(", sym->array_size);
 		show_type(sym->ctype.base_type);
 		printf(")");
 		return;
@@ -196,10 +196,6 @@ void show_symbol(struct symbol *sym)
 			printf(", ...");
 		printf(")\n");
 		show_statement(type->stmt);
-		return;
-
-	case SYM_ARRAY:
-		printf("[%d]\n", type->array_size);
 		return;
 
 	default:
