@@ -789,7 +789,7 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 	if (expr->op != '=') {
 		rtype = evaluate_binop_assignment(expr, left, right);
 		if (!rtype)
-			return 0;
+			return NULL;
 		right = expr->right;
 	}
 
@@ -801,7 +801,7 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 	rtype = degenerate(right);
 
 	if (!compatible_assignment_types(expr, ltype, &expr->right, rtype, "assignment"))
-		return 0;
+		return NULL;
 
 	if (ltype->type == SYM_NODE)
 		ltype->ctype.modifiers |= MOD_ASSIGNED;
@@ -1165,12 +1165,12 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 		size = expr->cast_type->bit_size;
 	} else {
 		if (!evaluate_expression(expr->cast_expression))
-			return 0;
+			return NULL;
 		size = expr->cast_expression->ctype->bit_size;
 	}
 	if (size & 7) {
 		warn(expr->pos, "cannot size expression");
-		return 0;
+		return NULL;
 	}
 	expr->type = EXPR_VALUE;
 	expr->value = size >> 3;

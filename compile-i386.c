@@ -1759,7 +1759,7 @@ static void emit_loop(struct statement *stmt)
 static struct storage *x86_statement(struct statement *stmt)
 {
 	if (!stmt)
-		return 0;
+		return NULL;
 	switch (stmt->type) {
 	case STMT_RETURN:
 		return emit_return_stmt(stmt);
@@ -2090,14 +2090,14 @@ static void x86_initializer_expr(struct expression *expr, struct symbol *ctype)
 static struct storage *x86_expression(struct expression *expr)
 {
 	if (!expr)
-		return 0;
+		return NULL;
 
 	if (!expr->ctype) {
 		struct position *pos = &expr->pos;
 		printf("\tno type at %s:%d:%d\n",
 			input_streams[pos->stream].name,
 			pos->line, pos->pos);
-		return 0;
+		return NULL;
 	}
 
 	switch (expr->type) {
@@ -2122,7 +2122,7 @@ static struct storage *x86_expression(struct expression *expr)
 	case EXPR_DEREF:
 	case EXPR_SIZEOF:
 		warn(expr->pos, "invalid expression after evaluation");
-		return 0;
+		return NULL;
 	case EXPR_CAST:
 		return emit_cast_expr(expr);
 	case EXPR_VALUE:
@@ -2145,16 +2145,16 @@ static struct storage *x86_expression(struct expression *expr)
 	// valid as sub-expressions of initializers.
 	case EXPR_POS:
 		warn(expr->pos, "unable to show plain initializer position expression");
-		return 0;
+		return NULL;
 	case EXPR_IDENTIFIER:
 		warn(expr->pos, "unable to show identifier expression");
-		return 0;
+		return NULL;
 	case EXPR_INDEX:
 		warn(expr->pos, "unable to show index expression");
-		return 0;
+		return NULL;
 	case EXPR_TYPE:
 		warn(expr->pos, "unable to show type expression");
-		return 0;
+		return NULL;
 	}
-	return 0;
+	return NULL;
 }
