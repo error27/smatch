@@ -8,7 +8,6 @@
 
 struct instruction;
 struct pseudo_ptr_list;
-struct bb_ptr_list;
 
 enum pseudo_type {
 	PSEUDO_VOID,
@@ -184,7 +183,7 @@ struct basic_block {
 	int context;
 	struct basic_block_list *parents; /* sources */
 	struct basic_block_list *children; /* destinations */
-	struct bb_ptr_list *users;	/* users of this bb pointer */
+	struct phi_list *phinodes;	/* phi-nodes that need this bb */
 	struct instruction_list *insns;	/* Linear list of instructions */
 };
 
