@@ -47,6 +47,7 @@ static void examine_one_member(struct symbol *sym, void *_info, int flags)
 {
 	struct struct_union_info *info = _info;
 	unsigned long offset = info->offset;
+	unsigned long bit_size;
 
 	examine_symbol_type(sym);
 	if (sym->alignment > info->max_align)
@@ -57,7 +58,15 @@ static void examine_one_member(struct symbol *sym, void *_info, int flags)
 		sym->offset = offset;
 		info->offset = offset + (sym->bit_size >> 3);
 	}
-	info->bit_size = (offset << 3) + sym->bit_size;
+	bit_size = (offset << 3) + sym->bit_size;
+
+	/*
+	 * In the case of a union, we want to get the _biggest_ size.
+	 * For structures, this will always be true, since the offset
+	 * ends up being cumulative.
+	 */
+	if (bit_size > info->bit_size)
+		info->bit_size = bit_size;
 }
 
 static void examine_struct_union_type(struct symbol *sym, int advance)
