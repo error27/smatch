@@ -1240,7 +1240,7 @@ static const char *show_token_sequence(struct token *token)
 		const char *val = show_token(token);
 		int len = strlen(val);
 
-		if (ptr + whitespace + len > buffer + sizeof(buffer)) {
+		if (ptr + whitespace + len >= buffer + sizeof(buffer)) {
 			warn(token->pos, "too long token expansion");
 			break;
 		}
