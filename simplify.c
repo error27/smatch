@@ -146,29 +146,40 @@ static int clean_up_phi(struct instruction *insn)
 	return if_convert_phi(insn);
 }
 
-static void kill_use(pseudo_t pseudo)
+static inline void remove_usage(pseudo_t p, pseudo_t *usep)
 {
-	if (pseudo->type == PSEUDO_REG) {
-		if (ptr_list_size((struct ptr_list *)pseudo->users) == 1) {
-			kill_instruction(pseudo->def);
-		}
+	if (p && p->type != PSEUDO_VOID && p->type != PSEUDO_VAL) {
+		int deleted;
+		deleted = delete_ptr_list_entry((struct ptr_list **)&p->users, usep);
+		assert(deleted == 1);
+		if (!p->users)
+			kill_instruction(p->def);
+	}
+}
+
+void kill_use(pseudo_t *usep)
+{
+	if (usep) {
+		pseudo_t p = *usep;
+		*usep = VOID;
+		remove_usage(p, usep);
 	}
 }
 
 void kill_instruction(struct instruction *insn)
 {
-	if (!insn->bb)
+	if (!insn || !insn->bb)
 		return;
 
 	switch (insn->opcode) {
 	case OP_BINARY ... OP_BINCMP_END:
 		insn->bb = NULL;
-		kill_use(insn->src1);
-		kill_use(insn->src2);
+		kill_use(&insn->src1);
+		kill_use(&insn->src2);
 		return;
 	case OP_NOT: case OP_NEG:
 		insn->bb = NULL;
-		kill_use(insn->src1);
+		kill_use(&insn->src1);
 		return;
 
 	case OP_PHI: case OP_SETVAL:
@@ -180,7 +191,7 @@ void kill_instruction(struct instruction *insn)
 /*
  * Kill trivially dead instructions
  */
-static int dead_insn(struct instruction *insn, pseudo_t src1, pseudo_t src2)
+static int dead_insn(struct instruction *insn, pseudo_t *src1, pseudo_t *src2)
 {
 	pseudo_t *usep;
 	FOR_EACH_PTR(insn->target->users, usep) {
@@ -337,7 +348,7 @@ static int simplify_constant_binop(struct instruction *insn)
 
 static int simplify_binop(struct instruction *insn)
 {
-	if (dead_insn(insn, insn->src1, insn->src2))
+	if (dead_insn(insn, &insn->src1, &insn->src2))
 		return 1;
 	if (constant(insn->src1)) {
 		if (constant(insn->src2))
@@ -356,10 +367,24 @@ static int simplify_constant_unop(struct instruction *insn)
 
 static int simplify_unop(struct instruction *insn)
 {
-	if (dead_insn(insn, insn->src1, VOID))
+	if (dead_insn(insn, &insn->src1, NULL))
 		return 1;
 	if (constant(insn->src1))
 		return simplify_constant_unop(insn);
+	return 0;
+}
+
+static int simplify_memop(struct instruction *insn)
+{
+	pseudo_t addr = insn->src;
+	if (addr->type == PSEUDO_REG) {
+		struct instruction *def = addr->def;
+		if (def->opcode == OP_SETVAL && def->src) {
+			kill_use(&insn->src);
+			use_pseudo(def->src, &insn->src);
+			return 1;
+		}
+	}
 	return 0;
 }
 
@@ -371,25 +396,28 @@ int simplify_instruction(struct instruction *insn)
 
 	last_setcc = NULL;
 
+	if (!insn->bb)
+		return 0;
 	switch (insn->opcode) {
 	case OP_BINARY ... OP_BINCMP_END:
 		return simplify_binop(insn);
 
 	case OP_NOT: case OP_NEG:
 		return simplify_unop(insn);
-
+	case OP_LOAD: case OP_STORE:
+		return simplify_memop(insn);
 	case OP_SETVAL:
-		if (dead_insn(insn, VOID, VOID))
+		if (dead_insn(insn, NULL, NULL))
 			return 1;
 		break;
 	case OP_PHI:
-		if (dead_insn(insn, VOID, VOID)) {
+		if (dead_insn(insn, NULL, NULL)) {
 			clear_phi(insn);
 			return 1;
 		}
 		return clean_up_phi(insn);
 	case OP_PHISOURCE:
-		if (dead_insn(insn, insn->src1, VOID))
+		if (dead_insn(insn, &insn->src1, NULL))
 			return 1;
 		break;
 	case OP_SETCC:
@@ -397,7 +425,7 @@ int simplify_instruction(struct instruction *insn)
 		return 0;
 	case OP_SEL:
 		assert(setcc && setcc->bb);
-		if (dead_insn(insn, insn->src1, insn->src2)) {
+		if (dead_insn(insn, &insn->src1, &insn->src2)) {
 			setcc->bb = NULL;
 			return 1;
 		}
@@ -405,7 +433,7 @@ int simplify_instruction(struct instruction *insn)
 		if (!constant(cond) && insn->src1 != insn->src2)
 			return 0;
 		setcc->bb = NULL;
-		kill_use(cond);
+		kill_use(&setcc->cond);
 		replace_with_pseudo(insn, cond->value ? insn->src1 : insn->src2);
 		return 1;
 	case OP_BR:
