@@ -98,7 +98,9 @@ int main(int argc, char **argv)
 	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
 
+	add_pre_buffer("#define __i386__ 1\n");
 	add_pre_buffer("#define __linux__ 1\n");
+	add_pre_buffer("#define linux linux\n");
 	add_pre_buffer("#define __CHECKER__ 1\n");
 	add_pre_buffer("#define cond_syscall(x)\n");
 	add_pre_buffer("#define __GNUC__ 2\n");
