@@ -430,7 +430,6 @@ static struct token *expand(struct token *head, struct symbol *sym)
 {
 	struct token *arguments, *token, *last;
 
-	sym->busy++;
 	token = head->next;
 	last = token->next;
 
@@ -452,11 +451,12 @@ static struct token *expand(struct token *head, struct symbol *sym)
 	retokenize(head);
 
 	/* Finally, expand the expansion itself .. */
+	sym->busy++;
 	head = expand_list(head);
+	sym->busy--;
 
 	/* Put the rest of the stuff in place again */
 	head->next = last;
-	sym->busy--;
 	return head;
 }
 
