@@ -9,7 +9,7 @@ LDFLAGS=-g
 AR=ar
 
 PREFIX=$(HOME)
-PROGRAMS=test-lexing test-parsing obfuscate check compile test-linearize
+PROGRAMS=test-lexing test-parsing obfuscate check compile test-linearize example
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 	  linearize.h bitmap.h ident-list.h compat.h flow.h allocate.h
@@ -62,6 +62,9 @@ obfuscate: obfuscate.o $(LIB_FILE)
 check: check.o $(LIB_FILE)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
+example: example.o $(LIB_FILE)
+	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+
 $(LIB_FILE): $(LIB_OBJS)
 	$(AR) rcs $(LIB_FILE) $(LIB_OBJS)
 
@@ -92,6 +95,7 @@ compile-i386.o: $(LIB_H) compile.h
 tokenize.o: $(LIB_H)
 check.o: $(LIB_H)
 obfuscate.o: $(LIB_H)
+example.o: $(LIB_H)
 
 compat-linux.o: compat/strtold.c compat/id-files-stat.c compat/mmap-blob.c \
 	$(LIB_H)
