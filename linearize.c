@@ -281,11 +281,13 @@ void show_instruction(struct instruction *insn)
 		break;
 	case OP_CALL: {
 		struct pseudo *arg;
-		printf("\t%s <- CALL %s", show_pseudo(insn->target), show_pseudo(insn->func));
+		printf("\tCALL %s", show_pseudo(insn->func));
 		FOR_EACH_PTR(insn->arguments, arg) {
 			printf(", %s", show_pseudo(arg));
 		} END_FOR_EACH_PTR(arg);
 		printf("\n");
+		if (insn->target != VOID)
+			printf("\t%s <- %%retval\n", show_pseudo(insn->target));
 		break;
 	}
 	case OP_CAST:
