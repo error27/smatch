@@ -49,7 +49,7 @@ enum type {
 struct ctype {
 	unsigned long modifiers;
 	unsigned long alignment;
-	unsigned int typemask, type;
+	unsigned int contextmask, context, as;
 	struct symbol *base_type;
 };
 

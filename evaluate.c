@@ -21,7 +21,7 @@
 #include "target.h"
 #include "expression.h"
 
-static int current_type, current_typemask;
+static int current_context, current_contextmask;
 
 static struct symbol *evaluate_symbol_expression(struct expression *expr)
 {
@@ -34,7 +34,7 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 	}
 
 	examine_symbol_type(sym);
-	if ((sym->ctype.type ^ current_type) & (sym->ctype.typemask & current_typemask))
+	if ((sym->ctype.context ^ current_context) & (sym->ctype.contextmask & current_contextmask))
 		warn(expr->pos, "Using symbol '%s' in wrong context", show_ident(expr->symbol_name));
 
 	base_type = sym->ctype.base_type;
@@ -412,7 +412,7 @@ static int same_type(struct symbol *target, struct symbol *source)
 			return 0;
 		/*
 		 * Peel of per-node information.
-		 * FIXME! Check alignment and context too here!
+		 * FIXME! Check alignment, address space, and context too here!
 		 */
 		mod1 = target->ctype.modifiers;
 		mod2 = source->ctype.modifiers;
@@ -1013,8 +1013,8 @@ struct symbol *evaluate_symbol(struct symbol *sym)
 	if (base_type->type == SYM_FN) {
 		symbol_iterate(base_type->arguments, evaluate_one_symbol, NULL);
 		if (base_type->stmt) {
-			current_typemask = sym->ctype.typemask;
-			current_type = sym->ctype.type;
+			current_contextmask = sym->ctype.contextmask;
+			current_context = sym->ctype.context;
 			evaluate_statement(base_type->stmt);
 		}
 	}

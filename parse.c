@@ -176,7 +176,11 @@ static void handle_attribute(struct ctype *ctype, struct ident *attribute, struc
 		ctype->modifiers |= MOD_NODEREF;
 		return;
 	}
-	if (match_string_ident(attribute, "type")) {
+	if (match_string_ident(attribute, "address_space")) {
+		ctype->as = get_expression_value(expr);
+		return;
+	}
+	if (match_string_ident(attribute, "context")) {
 		if (expr->type == EXPR_COMMA) {
 			int mask = get_expression_value(expr->left);
 			int value = get_expression_value(expr->right);
@@ -184,8 +188,8 @@ static void handle_attribute(struct ctype *ctype, struct ident *attribute, struc
 				warn(expr->pos, "nonsense attribute types");
 				return;
 			}
-			ctype->typemask |= mask;
-			ctype->type |= value;
+			ctype->contextmask |= mask;
+			ctype->context |= value;
 			return;
 		}
 	}
@@ -225,31 +229,6 @@ struct token *attribute_specifier(struct token *token, struct ctype *ctype)
 }
 
 #define MOD_SPECIALBITS (MOD_STRUCTOF | MOD_UNIONOF | MOD_ENUMOF | MOD_ATTRIBUTE | MOD_TYPEOF)
-
-static struct token *type_qualifiers(struct token *next, struct ctype *ctype)
-{
-	struct token *token;
-	while ( (token = next) != NULL ) {
-		struct symbol *s, *base_type;
-		unsigned long mod;
-
-		next = token->next;
-		if (token_type(token) != TOKEN_IDENT) 
-			break;
-		s = lookup_symbol(token->ident, NS_TYPEDEF);
-		if (!s)
-			break;
-		mod = s->ctype.modifiers;
-		base_type = s->ctype.base_type;
-		if (base_type)
-			break;
-		if (mod & ~(MOD_CONST | MOD_VOLATILE))
-			break;
-		ctype->modifiers |= mod;
-	}
-	return token;
-}
-
 #define MOD_SPECIFIER (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG | MOD_SIGNED | MOD_UNSIGNED)
 
 struct symbol * ctype_integer(unsigned int spec)
@@ -287,7 +266,7 @@ struct symbol * ctype_fp(unsigned int spec)
 	return &float_ctype;
 }
 
-static struct token *declaration_specifiers(struct token *next, struct ctype *ctype)
+static struct token *declaration_specifiers(struct token *next, struct ctype *ctype, int qual)
 {
 	struct token *token;
 
@@ -307,6 +286,8 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 			break;
 		thistype = s->ctype;
 		mod = thistype.modifiers;
+		if (qual && (mod & ~(MOD_ATTRIBUTE | MOD_CONST | MOD_VOLATILE)))
+			break;
 		if (mod & MOD_SPECIALBITS) {
 			if (mod & MOD_STRUCTOF)
 				next = struct_or_union_specifier(SYM_STRUCT, next, &thistype);
@@ -323,6 +304,8 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 
 		type = thistype.base_type;
 		if (type) {
+			if (qual)
+				break;
 			if (type != ctype->base_type) {
 				if (ctype->base_type) {
 					warn(token->pos, "Strange mix of types");
@@ -346,20 +329,26 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 					modifier_string(dup));
 			ctype->modifiers = old | mod | extra;
 		}
-		if ((ctype->type ^ thistype.type) & (ctype->typemask & thistype.typemask)) {
-			warn(token->pos, "inconsistend attribute types");
-			thistype.type = 0;
-			thistype.typemask = 0;
-		}
-		ctype->type |= thistype.type;
-		ctype->typemask |= thistype.typemask;
 
+		/* Context mask and value */
+		if ((ctype->context ^ thistype.context) & (ctype->contextmask & thistype.contextmask)) {
+			warn(token->pos, "inconsistend attribute types");
+			thistype.context = 0;
+			thistype.contextmask = 0;
+		}
+		ctype->context |= thistype.context;
+		ctype->contextmask |= thistype.contextmask;
+
+		/* Alignment */
 		if (thistype.alignment & (thistype.alignment-1)) {
 			warn(token->pos, "I don't like non-power-of-2 alignments");
 			thistype.alignment = 0;
 		}
 		if (thistype.alignment > ctype->alignment)
 			ctype->alignment = thistype.alignment;
+
+		/* Address space */
+		ctype->as = thistype.as;
 	}
 
 	/* Turn the "virtual types" into real types with real sizes etc */
@@ -479,7 +468,7 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 		ctype->modifiers = modifiers & MOD_STORAGE;
 		ctype->base_type = base_type;
 
-		token = type_qualifiers(token->next, ctype);
+		token = declaration_specifiers(token->next, ctype, 1);
 	}
 	return token;
 }
@@ -495,7 +484,7 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 	while (!match_op(token, '}')) {
 		struct ctype ctype = {0, };
 	
-		token = declaration_specifiers(token, &ctype);
+		token = declaration_specifiers(token, &ctype, 0);
 		for (;;) {
 			struct ident *ident = NULL;
 			struct symbol *decl = alloc_symbol(token->pos, SYM_NODE);
@@ -524,7 +513,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol **
 	struct symbol *sym;
 	struct ctype ctype = { 0, };
 
-	token = declaration_specifiers(token, &ctype);
+	token = declaration_specifiers(token, &ctype, 0);
 	sym = alloc_symbol(token->pos, SYM_NODE);
 	sym->ctype = ctype;
 	*tree = sym;
@@ -537,7 +526,7 @@ struct token *typename(struct token *token, struct symbol **p)
 {
 	struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
 	*p = sym;
-	token = declaration_specifiers(token, &sym->ctype);
+	token = declaration_specifiers(token, &sym->ctype, 0);
 	return declarator(token, &sym, NULL);
 }
 
@@ -870,7 +859,7 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	struct symbol *base_type;
 
 	/* Parse declaration-specifiers, if any */
-	token = declaration_specifiers(token, &ctype);
+	token = declaration_specifiers(token, &ctype, 0);
 	decl = alloc_symbol(token->pos, SYM_NODE);
 	decl->ctype = ctype;
 	token = pointer(token, &decl->ctype);
