@@ -831,8 +831,14 @@ static int expand_expression(struct expression *expr)
 	case EXPR_CONDITIONAL:
 		return expand_conditional(expr);
 
-	case EXPR_STATEMENT:
-		return expand_statement(expr->statement);
+	case EXPR_STATEMENT: {
+		struct statement *stmt = expr->statement;
+		int cost = expand_statement(stmt);
+
+		if (stmt->type == STMT_EXPRESSION)
+			*expr = *stmt->expression;
+		return cost;
+	}
 
 	case EXPR_LABEL:
 		return 0;
@@ -925,6 +931,48 @@ static int expand_if_statement(struct statement *stmt)
 	return SIDE_EFFECTS;
 }
 
+/*
+ * Expanding a compound statement is really just
+ * about adding up the costs of each individual
+ * statement.
+ *
+ * We also collapse a simple compound statement:
+ * this would trigger for simple inline functions,
+ * except we would have to check the "return"
+ * symbol usage. Next time.
+ */
+static int expand_compound(struct statement *stmt)
+{
+	struct symbol *sym;
+	struct statement *s, *last;
+	int cost, symbols, statements;
+
+	symbols = 0;
+	FOR_EACH_PTR(stmt->syms, sym) {
+		symbols++;
+		expand_symbol(sym);
+	} END_FOR_EACH_PTR(sym);
+
+	if (stmt->ret) {
+		symbols++;
+		expand_symbol(stmt->ret);
+	}
+
+	cost = 0;
+	last = NULL;
+	statements = 0;
+	FOR_EACH_PTR(stmt->stmts, s) {
+		statements++;
+		last = s;
+		cost += expand_statement(s);
+	} END_FOR_EACH_PTR(s);
+
+	if (!symbols && statements == 1)
+		*stmt = *last;
+
+	return cost;
+}
+
 static int expand_statement(struct statement *stmt)
 {
 	if (!stmt)
@@ -938,22 +986,8 @@ static int expand_statement(struct statement *stmt)
 	case STMT_EXPRESSION:
 		return expand_expression(stmt->expression);
 
-	case STMT_COMPOUND: {
-		struct symbol *sym;
-		struct statement *s;
-		int cost;
-
-		FOR_EACH_PTR(stmt->syms, sym) {
-			expand_symbol(sym);
-		} END_FOR_EACH_PTR(sym);
-		expand_symbol(stmt->ret);
-
-		cost = 0;
-		FOR_EACH_PTR(stmt->stmts, s) {
-			cost += expand_statement(s);
-		} END_FOR_EACH_PTR(s);
-		return cost;
-	}
+	case STMT_COMPOUND:
+		return expand_compound(stmt);
 
 	case STMT_IF:
 		return expand_if_statement(stmt);
