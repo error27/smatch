@@ -195,6 +195,7 @@ extern struct ident	__asm___ident,
 			__VA_ARGS___ident,
 			__LINE___ident,
 			__FILE___ident,
+			__func___ident,
 			pragma_ident;
 
 #define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)

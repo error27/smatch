@@ -713,7 +713,6 @@ void create_builtin_stream(void)
 	add_pre_buffer("#define __STDC__ 1\n");
 	add_pre_buffer("#define __GNUC__ 2\n");
 	add_pre_buffer("#define __GNUC_MINOR__ 95\n");
-	add_pre_buffer("#define __func__ \"function\"\n");
 	add_pre_buffer("#define __extension__\n");
 	add_pre_buffer("#define __pragma__\n");
 	// gcc defines __SIZE_TYPE__ to be size_t.  For linux/i86 and

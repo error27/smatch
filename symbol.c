@@ -532,6 +532,7 @@ __IDENT(pragma, "__pragma__");
 struct ident __VA_ARGS___ident = __INIT_IDENT("__VA_ARGS__");
 struct ident __LINE___ident = __INIT_IDENT("__LINE__");
 struct ident __FILE___ident = __INIT_IDENT("__FILE__");
+struct ident __func___ident = __INIT_IDENT("__func__");
 
 void init_symbols(void)
 {
@@ -565,6 +566,7 @@ void init_symbols(void)
 	hash_ident(&defined_ident);
 	hash_ident(&__LINE___ident);
 	hash_ident(&__FILE___ident);
+	hash_ident(&__func___ident);
 	hash_ident(&__VA_ARGS___ident);
 	hash_ident(&pragma_ident);
 	for (ptr = symbol_init_table; ptr->name; ptr++) {
