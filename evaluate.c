@@ -28,7 +28,7 @@
 static struct symbol *current_fn;
 static int current_context, current_contextmask;
 
-static struct symbol *evaluate_addressof(struct expression *expr, struct expression *op);
+static struct symbol *degenerate(struct expression *expr);
 
 static struct symbol *evaluate_symbol_expression(struct expression *expr)
 {
@@ -215,21 +215,6 @@ static inline int lvalue_expression(struct expression *expr)
 	while (expr->type == EXPR_CAST)
 		expr = expr->cast_expression;
 	return (expr->type == EXPR_PREOP && expr->op == '*') || expr->type == EXPR_BITFIELD;
-}
-
-/* Arrays degenerate into pointers on pointer arithmetic */
-static struct symbol *degenerate(struct expression *expr)
-{
-	struct symbol *ctype = expr->ctype;
-	struct symbol *base = ctype;
-
-	if (!ctype)
-		return NULL;
-	if (ctype->type == SYM_NODE)
-		base = ctype->ctype.base_type;
-	if (base->type == SYM_ARRAY || base->type == SYM_FN)
-		ctype = evaluate_addressof(expr, expr);
-	return ctype;
 }
 
 static struct symbol *evaluate_ptr_add(struct expression *expr, struct expression *ptr, struct expression *i)
@@ -822,7 +807,7 @@ static struct symbol *convert_to_as_mod(struct symbol *sym, int as, int mod)
 	return sym;
 }
 
-static struct symbol *create_pointer(struct expression *expr, struct symbol *sym)
+static struct symbol *create_pointer(struct expression *expr, struct symbol *sym, int degenerate)
 {
 	struct symbol *node = alloc_symbol(expr->pos, SYM_NODE);
 	struct symbol *ptr = alloc_symbol(expr->pos, SYM_PTR);
@@ -844,7 +829,7 @@ static struct symbol *create_pointer(struct expression *expr, struct symbol *sym
 		ptr->ctype.modifiers |= sym->ctype.modifiers;
 		sym = sym->ctype.base_type;
 	}
-	if (sym->type == SYM_ARRAY) {
+	if (degenerate && sym->type == SYM_ARRAY) {
 		ptr->ctype.as |= sym->ctype.as;
 		ptr->ctype.modifiers |= sym->ctype.modifiers;
 		sym = sym->ctype.base_type;
@@ -852,6 +837,31 @@ static struct symbol *create_pointer(struct expression *expr, struct symbol *sym
 	ptr->ctype.base_type = sym;
 
 	return node;
+}
+
+/* Arrays degenerate into pointers on pointer arithmetic */
+static struct symbol *degenerate(struct expression *expr)
+{
+	struct symbol *ctype = expr->ctype;
+	struct symbol *base = ctype;
+
+	if (!ctype)
+		return NULL;
+	if (ctype->type == SYM_NODE)
+		base = ctype->ctype.base_type;
+	/*
+	 * Arrays degenerate into pointers to the entries, while
+	 * functions degenerate into pointers to themselves
+	 */
+	switch (base->type) {
+	case SYM_FN:
+	case SYM_ARRAY:
+		ctype = create_pointer(expr, ctype, 1);
+		expr->ctype = ctype;
+	default:
+		/* nothing */;
+	}
+	return ctype;
 }
 
 static struct symbol *evaluate_addressof(struct expression *expr, struct expression *op)
@@ -871,7 +881,7 @@ static struct symbol *evaluate_addressof(struct expression *expr, struct express
 	 * the type here if so..
 	 */
 	if (!expr->ctype) {
-		ctype = create_pointer(expr, ctype);
+		ctype = create_pointer(expr, ctype, 0);
 		expr->ctype = ctype;
 	}
 	return expr->ctype;
