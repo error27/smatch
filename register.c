@@ -12,12 +12,32 @@
 #include "linearize.h"
 #include "flow.h"
 
+static int pseudo_in_list(struct pseudo_list *list, pseudo_t pseudo)
+{
+	pseudo_t old;
+	FOR_EACH_PTR(list,old) {
+		if (old == pseudo)
+			return 1;
+	} END_FOR_EACH_PTR(old);   
+	return 0;
+}
+
+static int liveness_changed;
+
+static void add_pseudo_exclusive(struct pseudo_list **list, pseudo_t pseudo)
+{
+	if (!pseudo_in_list(*list, pseudo)) {
+		liveness_changed = 1;
+		add_pseudo(list, pseudo);
+	}
+}
+
 static inline int trackable_pseudo(pseudo_t pseudo)
 {
 	return pseudo && (pseudo->type == PSEUDO_REG || pseudo->type == PSEUDO_PHI);
 }
 
-static void insn_uses(struct entrypoint *ep, struct instruction *insn, pseudo_t pseudo)
+static void insn_uses(struct basic_block *bb, struct instruction *insn, pseudo_t pseudo)
 {
 	if (trackable_pseudo(pseudo)) {
 		struct instruction *def = pseudo->def;
@@ -31,22 +51,22 @@ static void insn_uses(struct entrypoint *ep, struct instruction *insn, pseudo_t 
 		if (!def || !def->bb)
 			warning(insn->bb->pos, "undef pseudo ;(");
 #endif
-		add_instruction(&pseudo->insns, insn);
+		add_pseudo_exclusive(&bb->needs, pseudo);
 	}
 }
 
-static void insn_defines(struct entrypoint *ep, struct instruction *insn, pseudo_t pseudo)
+static void insn_defines(struct basic_block *bb, struct instruction *insn, pseudo_t pseudo)
 {
 	assert(trackable_pseudo(pseudo));
-	add_pseudo(&ep->pseudos, pseudo);
+	add_pseudo(&bb->defines, pseudo);
 }
 
-static void track_instruction_usage(struct entrypoint *ep, struct instruction *insn)
+static void track_instruction_usage(struct basic_block *bb, struct instruction *insn)
 {
 	pseudo_t pseudo;
 
-	#define USES(x) insn_uses(ep, insn, insn->x)
-	#define DEFINES(x) insn_defines(ep, insn, insn->x)
+	#define USES(x) insn_uses(bb, insn, insn->x)
+	#define DEFINES(x) insn_defines(bb, insn, insn->x)
 
 	switch (insn->opcode) {
 	case OP_RET:
@@ -96,9 +116,11 @@ static void track_instruction_usage(struct entrypoint *ep, struct instruction *i
 
 	/* Other */
 	case OP_PHI:
-		DEFINES(target);
+		/* Phi-nodes are "backwards" nodes. Their def doesn't matter */
 		FOR_EACH_PTR(insn->phi_list, pseudo) {
-			insn_uses(ep, insn, pseudo);
+			if (pseudo == VOID || !pseudo->def->bb)
+				continue;
+			insn_defines(pseudo->def->bb, pseudo->def, insn->target);
 		} END_FOR_EACH_PTR(pseudo);
 		break;
 
@@ -115,7 +137,7 @@ static void track_instruction_usage(struct entrypoint *ep, struct instruction *i
 		if (insn->target != VOID)
 			DEFINES(target);
 		FOR_EACH_PTR(insn->arguments, pseudo) {
-			insn_uses(ep, insn, pseudo);
+			insn_uses(bb, insn, pseudo);
 		} END_FOR_EACH_PTR(pseudo);
 		break;
 
@@ -140,17 +162,55 @@ static void track_instruction_usage(struct entrypoint *ep, struct instruction *i
 	}
 }
 
+static void track_pseudo_liveness(struct basic_block *bb)
+{
+	pseudo_t needs;
+
+	FOR_EACH_PTR(bb->needs, needs) {
+		if (!pseudo_in_list(bb->defines, needs)) {
+			struct basic_block *parent;
+			FOR_EACH_PTR(bb->parents, parent) {
+				if (!pseudo_in_list(parent->defines, needs)) {
+					add_pseudo_exclusive(&parent->needs, needs);
+				}
+			} END_FOR_EACH_PTR(parent);
+		}
+	} END_FOR_EACH_PTR(needs);
+}
+
+static inline void remove_pseudo(struct pseudo_list **list, pseudo_t pseudo)
+{
+	delete_ptr_list_entry((struct ptr_list **)list, pseudo, 0);
+}
+
 void track_pseudo_usage(struct entrypoint *ep)
 {
 	struct basic_block *bb;
 
+	/* Add all the bb pseudo usage */
 	FOR_EACH_PTR(ep->bbs, bb) {
 		struct instruction *insn;
 		FOR_EACH_PTR(bb->insns, insn) {
 			if (!insn->bb)
 				continue;
 			assert(insn->bb == bb);
-			track_instruction_usage(ep, insn);
+			track_instruction_usage(bb, insn);
 		} END_FOR_EACH_PTR(insn);
 	} END_FOR_EACH_PTR(bb);
+
+	/* Remove the pseudos from the "need" list that are defined internally */
+	FOR_EACH_PTR(ep->bbs, bb) {
+		pseudo_t def;
+		FOR_EACH_PTR(bb->defines, def) {
+			remove_pseudo(&bb->needs, def);
+		} END_FOR_EACH_PTR(def);
+	} END_FOR_EACH_PTR(bb);
+
+	/* Calculate liveness.. */
+	do {
+		liveness_changed = 0;
+		FOR_EACH_PTR(ep->bbs, bb) {
+			track_pseudo_liveness(bb);
+		} END_FOR_EACH_PTR(bb);
+	} while (liveness_changed);
 }

@@ -388,9 +388,26 @@ void show_instruction(struct instruction *insn)
 static void show_bb(struct basic_block *bb)
 {
 	struct instruction *insn;
+	pseudo_t needs;
 
 	printf(".L%p:\n", bb);
-
+	FOR_EACH_PTR(bb->needs, needs) {
+		struct instruction *def = needs->def;
+		if (def->opcode != OP_PHI) {
+			printf("  **uses %s (from .L%p)**\n", show_pseudo(needs), def->bb);
+		} else {
+			pseudo_t phi;
+			const char *sep = " ";
+			printf("  **uses %s (from", show_pseudo(needs));
+			FOR_EACH_PTR(def->phi_list, phi) {
+				if (phi == VOID)
+					continue;
+				printf("%s(%s:.L%p)", sep, show_pseudo(phi), phi->def->bb);
+				sep = ", ";
+			} END_FOR_EACH_PTR(phi);		
+			printf(")**\n");
+		}
+	} END_FOR_EACH_PTR(needs);
 	if (verbose) {
 		printf("%s:%d\n", input_streams[bb->pos.stream].name, bb->pos.line);
 		if (bb->parents) {

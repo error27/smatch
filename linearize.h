@@ -22,7 +22,6 @@ struct pseudo {
 	int nr;
 	enum pseudo_type type;
 	struct pseudo_ptr_list *users;
-	struct instruction_list *insns;
 	union {
 		struct symbol *sym;
 		struct instruction *def;
@@ -174,6 +173,7 @@ struct basic_block {
 	struct basic_block_list *parents; /* sources */
 	struct basic_block_list *children; /* destinations */
 	struct instruction_list *insns;	/* Linear list of instructions */
+	struct pseudo_list *needs, *defines;
 };
 
 static inline int is_branch_goto(struct instruction *br)
@@ -251,7 +251,6 @@ struct entrypoint {
 	struct basic_block_list *bbs;
 	struct basic_block *active;
 	struct basic_block *entry;
-	struct pseudo_list *pseudos;
 };
 
 extern void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi, pseudo_t true, pseudo_t false);
