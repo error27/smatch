@@ -84,3 +84,12 @@ A.  Yeah, well...  It parses a fairly complete subset of "extended C" as
     typed) constructs. Maybe somebody else who is working on projects
     where pre-ANSI C makes sense might be more inclined to care about
     ancient C.  It's open source, after all. Go wild.
+
+
+Q.  What other sparse resources are available?
+
+A.  Mailing list:  linux-sparse@vger.kernel.org
+    (email majordomo@vger.kernel.org to subscribe)
+
+    BitKeeper repository:  bk://sparse.bkbits.net/sparse
+
