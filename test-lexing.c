@@ -8,14 +8,8 @@
 
 #include "token.h"
 
-void callback(struct token *token)
-{
-	printf("%s ", show_token(token));
-}
-
 int main(int argc, char **argv)
 {
-	int line;
 	int fd = open(argv[1], O_RDONLY);
 	struct token *token;
 
@@ -23,14 +17,13 @@ int main(int argc, char **argv)
 		die("No such file: %s", argv[1]);
 
 	token = tokenize(argv[1], fd);
-	line = token->line;
 	while (token) {
-		callback(token);
-		token = token->next;
-		if (token && token->line != line) {
-			line = token->line;
-			putchar('\n');
-		}
+		struct token *next = token->next;
+		char separator = '\n';
+		if (next && next->line == token->line)
+			separator = ' ';
+		printf("%s%c", show_token(token), separator);
+		token = next;
 	}
 	putchar('\n');
 	show_identifier_stats();

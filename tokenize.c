@@ -57,7 +57,7 @@ const char *show_token(const struct token *token)
 
 		ptr = buffer;
 		*ptr++ = '"';
-		for (i = 0; i < string->length; i++) {
+		for (i = 0; i < string->length-1; i++) {
 			unsigned char c = string->data[i];
 			if (isprint(c) && c != '"') {
 				*ptr++ = c;
@@ -383,9 +383,10 @@ static int get_string_token(int next, action_t *action)
 	if (len > 256)
 		warn(action->token, "String too long");
 
-	string = malloc(sizeof(int)+len);
+	string = malloc(sizeof(int)+len+1);
 	memcpy(string->data, buffer, len);
-	string->length = len;
+	string->data[len] = '\0';
+	string->length = len+1;
 
 	/* Pass it on.. */
 	token = action->token;
