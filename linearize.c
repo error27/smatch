@@ -1061,13 +1061,55 @@ static pseudo_t linearize_postop(struct entrypoint *ep, struct expression *expr)
 	return linearize_inc_dec(ep, expr, 1);
 }	
 
+/*
+ * Casts to pointers are "less safe" than other casts, since
+ * they imply type-unsafe accesses. "void *" is a special
+ * case, since you can't access through it anyway without another
+ * cast.
+ */
+static struct instruction *alloc_cast_instruction(struct symbol *ctype)
+{
+	int opcode = OP_CAST;
+	struct symbol *base = ctype;
+
+	if (base->type == SYM_NODE)
+		base = base->ctype.base_type;
+	if (base->type == SYM_PTR) {
+		base = base->ctype.base_type;
+		if (base != &void_ctype)
+			opcode = OP_PTRCAST;
+	}
+	return alloc_typed_instruction(opcode, ctype);
+}
+
+static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *from, struct symbol *to)
+{
+	pseudo_t result;
+	struct instruction *insn;
+
+	if (src == VOID)
+		return VOID;
+	if (!from || !to)
+		return VOID;
+	if (from->bit_size < 0 || to->bit_size < 0)
+		return VOID;
+	insn = alloc_cast_instruction(to);
+	result = alloc_pseudo(insn);
+	insn->target = result;
+	insn->orig_type = from;
+	use_pseudo(src, &insn->src);
+	add_one_insn(ep, insn);
+	return result;
+}
+
 static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *expr)
 {
 	struct access_data ad = { NULL, };
 	struct expression *target = expr->left;
+	struct expression *src = expr->right;
 	pseudo_t value;
 
-	value = linearize_expression(ep, expr->right);
+	value = linearize_expression(ep, src);
 	if (!linearize_address_gen(ep, target, &ad))
 		return VOID;
 	if (expr->op != '=') {
@@ -1085,8 +1127,9 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 			[SPECIAL_OR_ASSIGN  - SPECIAL_BASE] = OP_OR,
 			[SPECIAL_XOR_ASSIGN - SPECIAL_BASE] = OP_XOR
 		};
-		dst = add_binary_op(ep, expr->ctype, op_trans[expr->op - SPECIAL_BASE], oldvalue, value);
-		value = dst;
+		oldvalue = cast_pseudo(ep, oldvalue, src->ctype, expr->ctype);
+		dst = add_binary_op(ep, src->ctype, op_trans[expr->op - SPECIAL_BASE], oldvalue, value);
+		value = cast_pseudo(ep, dst, expr->ctype, src->ctype);
 	}
 	value = linearize_store_gen(ep, value, &ad);
 	finish_address_gen(ep, &ad);
@@ -1349,47 +1392,13 @@ static pseudo_t linearize_logical_branch(struct entrypoint *ep, struct expressio
 	return VOID;
 }
 
-/*
- * Casts to pointers are "less safe" than other casts, since
- * they imply type-unsafe accesses. "void *" is a special
- * case, since you can't access through it anyway without another
- * cast.
- */
-static struct instruction *alloc_cast_instruction(struct symbol *ctype)
-{
-	int opcode = OP_CAST;
-	struct symbol *base = ctype;
-
-	if (base->type == SYM_NODE)
-		base = base->ctype.base_type;
-	if (base->type == SYM_PTR) {
-		base = base->ctype.base_type;
-		if (base != &void_ctype)
-			opcode = OP_PTRCAST;
-	}
-	return alloc_typed_instruction(opcode, ctype);
-}
-
 pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 {
-	pseudo_t src, result;
-	struct instruction *insn;
+	pseudo_t src;
+	struct expression *orig = expr->cast_expression;
 
-	src = linearize_expression(ep, expr->cast_expression);
-	if (src == VOID)
-		return VOID;
-	if (!expr->ctype)
-		return VOID;
-	if (expr->ctype->bit_size < 0)
-		return VOID;
-
-	insn = alloc_cast_instruction(expr->ctype);
-	result = alloc_pseudo(insn);
-	insn->target = result;
-	insn->orig_type = expr->cast_expression->ctype;
-	use_pseudo(src, &insn->src);
-	add_one_insn(ep, insn);
-	return result;
+	src = linearize_expression(ep, orig);
+	return cast_pseudo(ep, src, orig->ctype, expr->ctype);
 }
 
 pseudo_t linearize_position(struct entrypoint *ep, struct expression *pos, struct access_data *ad)
