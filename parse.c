@@ -391,13 +391,11 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 			if (ident == &__QI___ident ||
 			    ident == &QI_ident) {
 				ctype->modifiers |= MOD_CHAR;
-				ctype->base_type = ctype_integer(ctype->modifiers);
 				return NULL;
 			}
 			if (ident == &__HI___ident ||
 			    ident == &HI_ident) {
 				ctype->modifiers |= MOD_SHORT;
-				ctype->base_type = ctype_integer(ctype->modifiers);
 				return NULL;
 			}
 			if (ident == &__SI___ident ||
@@ -408,13 +406,11 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 			if (ident == &__DI___ident ||
 			    ident == &DI_ident) {
 				ctype->modifiers |= MOD_LONGLONG;
-				ctype->base_type = ctype_integer(ctype->modifiers);
 				return NULL;
 			}
 			if (ident == &__word___ident ||
 			    ident == &word_ident) {
 				ctype->modifiers |= MOD_LONG;
-				ctype->base_type = ctype_integer(ctype->modifiers);
 				return NULL;
 			}
 			return "unknown mode attribute";
