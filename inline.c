@@ -373,10 +373,7 @@ static struct symbol *create_copy_symbol(struct symbol *orig)
 	struct symbol *sym = orig;
 	if (orig) {
 		sym = alloc_symbol(orig->pos, orig->type);
-		sym->ident = orig->ident;
-		sym->ctype = orig->ctype;
-		sym->used = orig->used;
-		sym->initializer = NULL;
+		*sym = *orig;
 		set_replace(orig, sym);
 		orig = sym;
 	}
@@ -425,8 +422,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 
 		a->ctype.base_type = arg->ctype;
 		if (name) {
-			a->ident = name->ident;
-			a->ctype = name->ctype;
+			*a = *name;
 			set_replace(name, a);
 			add_symbol(&fn_symbol_list, a);
 		}
