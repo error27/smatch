@@ -348,7 +348,7 @@ void replace_ptr_list_entry(struct ptr_list **list, void *old_ptr, void *new_ptr
 	FOR_EACH_PTR(*list, ptr) {
 		if (ptr==old_ptr) {
 			REPLACE_CURRENT_PTR(ptr, new_ptr);
-			if (--count)
+			if (!--count)
 				return;
 		}
 	}END_FOR_EACH_PTR(ptr);
