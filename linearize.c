@@ -121,7 +121,8 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		
 		if (stmt->if_false) {
 			else_bb = new_basic_block(bbs);
-			else_bb = linearize_statement(syms, bbs, bb, stmt->if_false);
+			else_bb = linearize_statement(syms, bbs, else_bb, stmt->if_false);
+			goto_bb->bb_target = else_bb;
 			else_bb->next = last_bb;
 		}
 				
