@@ -36,7 +36,7 @@ struct expression {
 	struct symbol *ctype;
 	union {
 		// EXPR_VALUE
-		long long value;
+		unsigned long long value;
 
 		// EXPR_UNOP, EXPR_PREOP and EXPR_POSTOP
 		struct expression *unop;

@@ -186,13 +186,13 @@ static int cast_value(struct expression *expr, struct symbol *newtype,
 
 	// For pointers and integers, we can just move the value around
 	expr->type = EXPR_VALUE;
-	if (old_size >= new_size) {
+	if (old_size == new_size) {
 		expr->value = old->value;
 		return 1;
 	}
 
+	// expand it to the full "long long" value
 	is_signed = !(oldtype->ctype.modifiers & MOD_UNSIGNED);
-
 	mask = 1ULL << (old_size-1);
 	value = old->value;
 	if (!(value & mask))
@@ -201,7 +201,12 @@ static int cast_value(struct expression *expr, struct symbol *newtype,
 	ormask = ~andmask;
 	if (!is_signed)
 		ormask = 0;
-	expr->value = (value & andmask) | ormask;
+	value = (value & andmask) | ormask;
+
+	// Truncate it to the new size
+	mask = 1ULL << (new_size-1);
+	mask = mask | (mask-1);
+	expr->value = value & mask;
 	return 1;
 }
 
