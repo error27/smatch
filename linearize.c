@@ -621,6 +621,8 @@ static pseudo_t linearize_store_gen(struct entrypoint *ep,
 	/* Bogus tests, but you get the idea.. */
 	if (ad->bit_offset & (OFFSET_ALIGN-1))
 		goto unaligned;
+	if (ad->bit_size & (ad->bit_size-1))
+		goto unaligned;
 	if (ad->bit_size & (OFFSET_ALIGN-1))
 		goto unaligned;
 	if (MUST_ALIGN && ((ad->bit_size >> 3) & (ad->alignment-1)))
