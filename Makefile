@@ -58,8 +58,8 @@ linearize.o: $(LIB_H)
 test-lexing.o: $(LIB_H)
 test-parsing.o: $(LIB_H)
 test-linearize.o: $(LIB_H)
-compile.o: $(LIB_H)
-compile-i386.o: $(LIB_H)
+compile.o: $(LIB_H) compile.h
+compile-i386.o: $(LIB_H) compile.h
 tokenize.o: $(LIB_H)
 check.o: $(LIB_H)
 
