@@ -82,8 +82,9 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 
 	switch (stmt->type) {
 	case STMT_NONE:
-		return bb;
+		break;
 
+	case STMT_ASM:
 	case STMT_EXPRESSION:
 		add_statement(&bb->stmts, stmt);
 		break;
@@ -93,6 +94,7 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		bb = new_basic_block(bbs);
 		break;
 
+	case STMT_CASE:
 	case STMT_LABEL: {
 		struct basic_block *new_bb = new_basic_block(bbs);
 		struct symbol *sym = stmt->label_identifier;
@@ -135,7 +137,7 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		last_bb = new_basic_block(bbs);
 
 		goto_bb->bb_conditional = stmt->if_conditional;
-		goto_bb->bb_target = last_bb;
+		goto_bb->bb_target = target;
 
 		bb = linearize_statement(syms, bbs, bb, stmt->if_true);
 		bb->next = target;
@@ -147,11 +149,81 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 
 			else_target->bb_target = else_bb;
 			else_bb = linearize_statement(syms, bbs, else_bb, stmt->if_false);
-			goto_bb->bb_target = else_bb;
+			goto_bb->bb_target = else_target;
 			else_bb->next = target;
 		}
 				
 		bb = last_bb;
+		break;
+	}
+
+	case STMT_SWITCH:
+		add_statement(&bb->stmts, stmt);
+		bb = new_basic_block(bbs);
+		break;
+
+	case STMT_ITERATOR: {
+		struct statement  *pre_statement = stmt->iterator_pre_statement;
+		struct expression *pre_condition = stmt->iterator_pre_condition;
+		struct statement  *statement = stmt->iterator_statement;
+		struct statement  *post_statement = stmt->iterator_post_statement;
+		struct expression *post_condition = stmt->iterator_post_condition;
+		struct symbol *loop_top = NULL, *loop_bottom = NULL;
+
+		concat_symbol_list(stmt->iterator_syms, syms);
+		bb = linearize_statement(syms, bbs, bb, pre_statement);
+		if (pre_condition) {
+			if (pre_condition->type == EXPR_VALUE) {
+				if (!pre_condition->value) {
+					loop_bottom = alloc_symbol(stmt->pos, SYM_LABEL);
+					bb->next = loop_bottom;
+					bb = new_basic_block(bbs);
+				}
+			} else {
+				struct statement *pre_cond = alloc_statement(stmt->pos, STMT_GOTO_BB);
+				loop_bottom = alloc_symbol(stmt->pos, SYM_LABEL);
+				pre_cond->bb_conditional = pre_condition;
+				pre_cond->bb_target = loop_bottom;
+				add_statement(&bb->stmts, pre_cond);
+			}
+		}
+
+		if (!post_condition || post_condition->type != EXPR_VALUE || post_condition->value) {
+			struct basic_block *loop = new_basic_block(bbs);
+			loop_top = alloc_symbol(stmt->pos, SYM_LABEL);
+			loop_top->bb_target = loop;
+			bb->next = loop_top;
+			bb = loop;
+		}
+
+		bb = linearize_statement(syms, bbs, bb, statement);
+
+		if (stmt->iterator_continue->used) {
+			struct basic_block *cont = new_basic_block(bbs);
+			stmt->iterator_continue->bb_target = cont;
+			bb->next = stmt->iterator_continue;
+			bb = cont;
+		}
+
+		bb = linearize_statement(syms, bbs, bb, post_statement);
+
+		if (!post_condition) {
+			bb->next = loop_top;
+		} else {
+			if (post_condition->type != EXPR_VALUE || post_condition->value) {
+				struct statement *post_cond = alloc_statement(stmt->pos, STMT_GOTO_BB);
+				post_cond->bb_conditional = post_condition;
+				post_cond->bb_target = loop_top;
+				add_statement(&bb->stmts, post_cond);
+			}
+		}
+
+		if (stmt->iterator_break->used) {
+			struct basic_block *brk = new_basic_block(bbs);
+			stmt->iterator_break->bb_target = brk;
+			bb->next = stmt->iterator_break;
+			bb = brk;
+		}
 		break;
 	}
 

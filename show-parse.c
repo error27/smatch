@@ -380,14 +380,14 @@ static void show_switch_statement(struct statement *stmt)
 			} else
 				printf("    what?");
 		}
-		printf(": .L%p\n", sym);
+		printf(": .L%p\n", sym->bb_target);
 	} END_FOR_EACH_PTR;
 	printf("# end case table\n");
 
 	show_statement(stmt->switch_statement);
 
 	if (stmt->switch_break->used)
-		printf(".L%p:\n", stmt->switch_break);
+		printf(".L%p:\n", stmt->switch_break->bb_target);
 }
 
 static void show_symbol_decl(struct symbol_list *syms)
@@ -535,7 +535,7 @@ int show_statement(struct statement *stmt)
 
 	case STMT_GOTO_BB: {
 		int val = show_expression(stmt->bb_conditional);
-		printf("\tje v%d,.L%p\n", val, stmt->bb_target);
+		printf("\tje v%d,.L%p\n", val, stmt->bb_target->bb_target);
 		break;
 	}
 

@@ -84,7 +84,7 @@ struct statement {
 		};
 		struct /* goto_bb */ {
 			struct expression *bb_conditional;
-			struct basic_block *bb_target;
+			struct symbol *bb_target;
 		};
 	};
 };
