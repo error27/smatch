@@ -18,9 +18,11 @@
 #include "token.h"
 #include "symbol.h"
 
+#define MAXNEST (16)
 static int true_nesting = 0;
 static int false_nesting = 0;
 static struct token *unmatched_if = NULL;
+static int elif_ignore[MAXNEST];
 #define if_nesting (true_nesting + false_nesting)
 
 static void expand(struct token *head, struct symbol *sym)
@@ -178,6 +180,7 @@ static int preprocessor_if(struct token *token, int true)
 {
 	if (if_nesting == 0)
 		unmatched_if = token;
+	elif_ignore[if_nesting] = false_nesting || true;
 	if (false_nesting || !true) {
 		false_nesting++;
 		return 1;
@@ -329,28 +332,27 @@ static int expression_value(struct token *token)
 {
 	struct cpp_expression expr;
 	token = cpp_conditional(token, &expr);
-fprintf(stderr, "value=%lld, type=%x\n", expr.value, expr.type);
 	return expr.value != 0;
 }
 
 static int handle_if(struct token *head, struct token *token)
 {
-	if (false_nesting) {
-		false_nesting++;
-		return 1;
-	}
-	return preprocessor_if(token, expression_value(token->next));
+	int value = 0;
+	if (!false_nesting)
+		value = expression_value(token->next);
+	return preprocessor_if(token, value);
 }
 
 static int handle_elif(struct token *head, struct token *token)
 {
-	/* if we're deep inside a false, 'elif' is a no-op */
-	if (false_nesting > 1)
-		return 1;
-	if (false_nesting == 1) {
+	if (false_nesting) {
+		/* If this whole if-thing is if'ed out, an elif cannot help */
+		if (elif_ignore[if_nesting-1])
+			return 1;
 		if (expression_value(token->next)) {
 			false_nesting--;
 			true_nesting++;
+			elif_ignore[if_nesting-1] = 1;
 		}
 		return 1;
 	}
