@@ -384,6 +384,56 @@ static int expand_constant_p(struct expression *expr)
 }
 
 /*
+ * __builtin_warning() has type "int" and always returns 1,
+ * so that you can use it in conditionals or whatever
+ */
+static int evaluate_warning(struct expression *expr)
+{
+	expr->ctype = &int_ctype;
+	return 1;
+}
+
+static int expand_warning(struct expression *expr)
+{
+	struct expression *arg;
+	struct expression_list *arglist = expr->args;
+
+	FOR_EACH_PTR (arglist, arg) {
+		/*
+		 * Constant strings get printed out as a warning. By the
+		 * time we get here, the EXPR_STRING has been fully 
+		 * evaluated, so by now it's an anonymous symbol with a
+		 * string initializer.
+		 *
+		 * Just for the heck of it, allow any constant string
+		 * symbol.
+		 */
+		if (arg->type == EXPR_SYMBOL) {
+			struct symbol *sym = arg->symbol;
+			if (sym->initializer && sym->initializer->type == EXPR_STRING) {
+				struct string *string = sym->initializer->string;
+				warning(expr->pos, "%*s", string->length-1, string->data);
+			}
+			continue;
+		}
+
+		/*
+		 * Any other argument is a conditional. If it's
+		 * non-constant, or it is false, we exit and do
+		 * not print any warning.
+		 */
+		if (arg->type != EXPR_VALUE)
+			goto out;
+		if (!arg->value)
+			goto out;
+	} END_FOR_EACH_PTR(arg);
+out:
+	expr->type = EXPR_VALUE;
+	expr->value = 1;
+	return 0;
+}
+
+/*
  * Type and storage class keywords need to have the symbols
  * created for them, so that the parser can have enough semantic
  * information to do parsing.
@@ -456,9 +506,14 @@ struct sym_init {
 	{ NULL,		NULL,		0 }
 };
 
-struct symbol_op constant_p_op = {
+static struct symbol_op constant_p_op = {
 	.evaluate = evaluate_constant_p,
 	.expand = expand_constant_p
+};
+
+static struct symbol_op warning_op = {
+	.evaluate = evaluate_warning,
+	.expand = expand_warning
 };
 
 /*
@@ -467,6 +522,7 @@ struct symbol_op constant_p_op = {
 static struct symbol builtin_fn_type = { .type = SYM_FN /* , .variadic =1 */ };
 static struct sym_init eval_init_table[] = {
 	{ "__builtin_constant_p", &builtin_fn_type, MOD_TOPLEVEL, &constant_p_op },
+	{ "__builtin_warning", &builtin_fn_type, MOD_TOPLEVEL, &warning_op },
 	{ NULL,		NULL,		0 }
 };
 
