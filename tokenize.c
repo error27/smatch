@@ -87,6 +87,8 @@ const char *show_string(const struct string *string)
 	char *ptr;
 	int i;
 
+	if (!string->length)
+		return "<bad_string>";
 	ptr = buffer;
 	*ptr++ = '"';
 	for (i = 0; i < string->length-1; i++) {
