@@ -754,6 +754,37 @@ static int expand_pos_expression(struct expression *expr)
 	return expand_expression(nested);
 }
 
+static int compare_expressions(const void *_a, const void *_b)
+{
+	const struct expression *a = _a;
+	const struct expression *b = _b;
+
+	if (a->type != EXPR_POS)
+		return 1;
+	if (b->type != EXPR_POS)
+		return -1;
+	if (a->init_offset < b->init_offset)
+		return 1;
+	if (a->init_offset > b->init_offset)
+		return -1;
+	/* Check bitfield offset.. */
+	a = a->init_expr;
+	b = b->init_expr;
+	if (a && b) {
+		if (a->ctype && b->ctype) {
+			if (a->ctype->bit_offset < b->ctype->bit_offset)
+				return 1;
+			return -1;
+		}
+	}
+	return 0;
+}
+
+static void sort_expression_list(struct expression_list **list)
+{
+	sort_list((struct ptr_list **)list, compare_expressions);
+}
+
 static int expand_expression(struct expression *expr)
 {
 	if (!expr)
@@ -814,6 +845,7 @@ static int expand_expression(struct expression *expr)
 		return 0;
 
 	case EXPR_INITIALIZER:
+		sort_expression_list(&expr->expr_list);
 		return expand_expression_list(expr->expr_list);
 
 	case EXPR_IDENTIFIER:
