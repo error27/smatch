@@ -121,11 +121,14 @@ static int check_shift_count(struct expression *expr, struct symbol *ctype, unsi
  * CAREFUL! We need to get the size and sign of the
  * result right!
  */
+#define CONVERT(op,s)	(((op)<<1)+(s))
+#define SIGNED(op)	CONVERT(op, 1)
+#define UNSIGNED(op)	CONVERT(op, 0)
 static int simplify_int_binop(struct expression *expr, struct symbol *ctype)
 {
 	struct expression *left = expr->left, *right = expr->right;
 	unsigned long long v, l, r, mask;
-	signed long long s, sl, sr;
+	signed long long sl, sr;
 	int is_signed, shift;
 
 	if (left->type != EXPR_VALUE || right->type != EXPR_VALUE)
@@ -139,27 +142,92 @@ static int simplify_int_binop(struct expression *expr, struct symbol *ctype)
 	if (is_signed && (sr & mask))
 		sr |= ~(mask-1);
 	
-	switch (expr->op) {
-	case '+':		v = l + r; s = v; break;
-	case '-':		v = l - r; s = v; break;
-	case '&':		v = l & r; s = v; break;
-	case '|':		v = l | r; s = v; break;
-	case '^':		v = l ^ r; s = v; break;
-	case '*':		v = l * r; s = sl * sr; break;
-	case '/':		if (!r) goto Div; v = l / r; s = sl / sr; break;
-	case '%':		if (!r) goto Div; v = l % r; s = sl % sr; break;
-	case SPECIAL_LEFTSHIFT: shift = check_shift_count(expr, ctype, r); v = l << shift; s = v; break; 
-	case SPECIAL_RIGHTSHIFT:shift = check_shift_count(expr, ctype, r); v = l >> shift; s = sl >> shift; break;
-	default: return 0;
+	switch (CONVERT(expr->op,is_signed)) {
+	case SIGNED('+'):
+	case UNSIGNED('+'):
+		v = l + r;
+		break;
+
+	case SIGNED('-'):
+	case UNSIGNED('-'):
+		v = l - r;
+		break;
+
+	case SIGNED('&'):
+	case UNSIGNED('&'):
+		v = l & r;
+		break;
+
+	case SIGNED('|'):
+	case UNSIGNED('|'):
+		v = l | r;
+		break;
+
+	case SIGNED('^'):
+	case UNSIGNED('^'):
+		v = l ^ r;
+		break;
+
+	case SIGNED('*'):
+		v = sl * sr;
+		break;
+
+	case UNSIGNED('*'):
+		v = l * r;
+		break;
+
+	case SIGNED('/'):
+		if (!r)
+			goto Div;
+		if (l == mask && sr == -1)
+			goto Overflow;
+		v = sl / sr;
+		break;
+
+	case UNSIGNED('/'):
+		if (!r) goto Div;
+		v = l / r; 
+		break;
+
+	case SIGNED('%'):
+		if (!r)
+			goto Div;
+		v = sl % sr;
+		break;
+
+	case UNSIGNED('%'):
+		if (!r) goto Div;
+		v = l % r;
+		break;
+
+	case SIGNED(SPECIAL_LEFTSHIFT):
+	case UNSIGNED(SPECIAL_LEFTSHIFT):
+		shift = check_shift_count(expr, ctype, r);
+		v = l << shift;
+		break; 
+
+	case SIGNED(SPECIAL_RIGHTSHIFT):
+		shift = check_shift_count(expr, ctype, r);
+		v = sl >> shift;
+		break;
+
+	case UNSIGNED(SPECIAL_RIGHTSHIFT):
+		shift = check_shift_count(expr, ctype, r);
+		v = l >> shift;
+		break;
+
+	default:
+		return 0;
 	}
-	if (is_signed)
-		v = s;
 	mask = mask | (mask-1);
 	expr->value = v & mask;
 	expr->type = EXPR_VALUE;
 	return 1;
 Div:
 	warn(expr->pos, "division by zero");
+	return 0;
+Overflow:
+	warn(expr->pos, "constant integer operation overflow");
 	return 0;
 }
 
