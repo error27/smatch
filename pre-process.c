@@ -658,7 +658,7 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 		    token_list_different(sym->arglist, arglist)) {
 			warn(left->pos, "preprocessor token %.*s redefined",
 					name->len, name->name);
-			warn(sym->pos, "this was the original definition");
+			info(sym->pos, "this was the original definition");
 		}
 		return 1;
 	}
