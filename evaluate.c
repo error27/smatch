@@ -77,7 +77,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 	sym->array_size = length;
 	sym->bit_size = BITS_IN_CHAR * length;
 	sym->ctype.alignment = 1;
-	sym->ctype.modifiers = MOD_CONST;
+	sym->ctype.modifiers = 0;
 	sym->ctype.base_type = &char_ctype;
 	expr->ctype = sym;
 	return sym;
