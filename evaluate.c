@@ -209,7 +209,7 @@ static struct symbol *bad_expr_type(struct expression *expr)
 	return NULL;
 }
 
-static struct symbol * compatible_integer_binop(struct expression *expr, struct expression **lp, struct expression **rp)
+static struct symbol *compatible_integer_binop(struct expression **lp, struct expression **rp)
 {
 	struct expression *left = *lp, *right = *rp;
 	struct symbol *ltype = left->ctype, *rtype = right->ctype;
@@ -231,9 +231,9 @@ static struct symbol * compatible_integer_binop(struct expression *expr, struct 
 	return NULL;
 }
 
-static struct symbol *evaluate_int_binop(struct expression *expr)
+static struct symbol *evaluate_arith(struct expression *expr, int float_ok)
 {
-	struct symbol *ctype = compatible_integer_binop(expr, &expr->left, &expr->right);
+	struct symbol *ctype = compatible_integer_binop(&expr->left, &expr->right);
 	if (ctype) {
 		expr->ctype = ctype;
 		return ctype;
@@ -314,7 +314,7 @@ static struct symbol *evaluate_add(struct expression *expr)
 		return evaluate_ptr_add(expr, right, left);
 		
 	// FIXME! FP promotion
-	return evaluate_int_binop(expr);
+	return evaluate_arith(expr, 1);
 }
 
 #define MOD_SIZE (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG)
@@ -546,7 +546,7 @@ static struct symbol *evaluate_sub(struct expression *expr)
 		return evaluate_ptr_sub(expr, left, right);
 
 	// FIXME! FP promotion
-	return evaluate_int_binop(expr);
+	return evaluate_arith(expr, 1);
 }
 
 #define is_safe_type(type) ((type)->ctype.modifiers & MOD_SAFE)
@@ -601,12 +601,6 @@ static struct symbol *evaluate_shift(struct expression *expr)
 	return bad_expr_type(expr);
 }
 
-static struct symbol *evaluate_arithmetic(struct expression *expr)
-{
-	// FIXME! Floating-point promotion!
-	return evaluate_int_binop(expr);
-}
-
 static struct symbol *evaluate_binop(struct expression *expr)
 {
 	switch (expr->op) {
@@ -619,17 +613,17 @@ static struct symbol *evaluate_binop(struct expression *expr)
 		return evaluate_sub(expr);
 
 	// Arithmetic operations can take fp and int
-	case '*': case '/': case '%':
-		return evaluate_arithmetic(expr);
+	case '*': case '/':
+		return evaluate_arith(expr, 1);
 
 	// shifts do integer promotions, but that's it.
 	case SPECIAL_LEFTSHIFT: case SPECIAL_RIGHTSHIFT:
 		return evaluate_shift(expr);
 
-	// The rest are integer operations (bitops)
-	// '&', '^', '|'
+	// The rest are integer operations
+	// '%', '&', '^', '|'
 	default:
-		return evaluate_int_binop(expr);
+		return evaluate_arith(expr, 0);
 	}
 }
 
@@ -674,7 +668,7 @@ static struct symbol *evaluate_compare(struct expression *expr)
 		return &bool_ctype;
 	}
 
-	ctype = compatible_integer_binop(expr, &expr->left, &expr->right);
+	ctype = compatible_integer_binop(&expr->left, &expr->right);
 	if (ctype) {
 		if (ctype->ctype.modifiers & MOD_UNSIGNED)
 			expr->op = modify_for_unsigned(expr->op);
@@ -737,7 +731,7 @@ static struct symbol * evaluate_conditional_expression(struct expression *expr)
 	ctype = ltype;
 	typediff = type_difference(ltype, rtype, MOD_IGN, MOD_IGN);
 	if (typediff) {
-		ctype = compatible_integer_binop(expr, &true, &expr->cond_false);
+		ctype = compatible_integer_binop(&true, &expr->cond_false);
 		if (!ctype) {
 			ctype = compatible_ptr_type(true, expr->cond_false);
 			if (!ctype) {
