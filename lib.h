@@ -400,6 +400,7 @@ static inline void expression_iterate(struct expression_list *list, void (*callb
 		__this[0] = __this[1];							\
 		__this++;								\
 	}										\
+	*__this = (void *)0xf0f0f0f0;							\
 	__list->nr--; __nr--;								\
 } while (0)
 
