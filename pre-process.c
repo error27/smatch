@@ -152,7 +152,9 @@ struct token *expand_one_symbol(struct token *parent, struct token *head, struct
 	/* Avoid recursive expansion */
 	x = token;
 	while ((x = x->parent) != NULL) {
-		if (x->ident == parent->ident)
+		if (parent && x->ident == parent->ident)
+			return token;
+		if (x->ident == token->ident)
 			return token;
 	}
 
@@ -160,7 +162,7 @@ struct token *expand_one_symbol(struct token *parent, struct token *head, struct
 	if (sym) {
 		if (sym->arglist && !match_op(token->next, '('))
 			return token;
-		return expand(parent, head, sym);
+		return expand(token, head, sym);
 	}
 	if (!memcmp(token->ident->name, "__LINE__", 9)) {
 		replace_with_integer(token, token->pos.line);
