@@ -67,7 +67,7 @@ static void show_entry(struct entrypoint *ep)
 
 #define bb_reachable(bb) ((bb)->this != NULL)
 
-static struct basic_block * new_basic_block(struct basic_block_list **bbs, struct symbol *owner)
+static struct basic_block * new_basic_block(struct entrypoint *ep, struct symbol *owner)
 {
 	struct basic_block *bb;
 
@@ -77,7 +77,7 @@ static struct basic_block * new_basic_block(struct basic_block_list **bbs, struc
 	}
 		
 	bb = alloc_basic_block();
-	add_bb(bbs, bb);
+	add_bb(&ep->bbs, bb);
 	bb->this = owner;
 	if (owner->bb_target)
 		warn(owner->pos, "Symbol already has a basic block %p", owner->bb_target);
@@ -85,8 +85,7 @@ static struct basic_block * new_basic_block(struct basic_block_list **bbs, struc
 	return bb;
 }
 
-static struct basic_block * linearize_statement(struct symbol_list **syms,
-	struct basic_block_list **bbs,
+static struct basic_block * linearize_statement(struct entrypoint *ep,
 	struct basic_block *bb,
 	struct statement *stmt)
 {
@@ -104,30 +103,30 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 
 	case STMT_RETURN:
 		add_statement(&bb->stmts, stmt);
-		bb = new_basic_block(bbs, NULL);
+		bb = new_basic_block(ep, NULL);
 		break;
 
 	case STMT_CASE: {
 		struct symbol *sym = stmt->case_label;
-		struct basic_block *new_bb = new_basic_block(bbs, sym);
+		struct basic_block *new_bb = new_basic_block(ep, sym);
 
 		bb->next = sym;
-		bb = linearize_statement(syms, bbs, new_bb, stmt->case_statement);
+		bb = linearize_statement(ep, new_bb, stmt->case_statement);
 		break;
 	}
 
 	case STMT_LABEL: {
 		struct symbol *sym = stmt->label_identifier;
-		struct basic_block *new_bb = new_basic_block(bbs, sym);
+		struct basic_block *new_bb = new_basic_block(ep, sym);
 
 		bb->next = sym;
 
-		bb = linearize_statement(syms, bbs, new_bb, stmt->label_statement);
+		bb = linearize_statement(ep, new_bb, stmt->label_statement);
 		break;
 	}
 
 	case STMT_GOTO: {
-		struct basic_block *new_bb = new_basic_block(bbs, NULL);
+		struct basic_block *new_bb = new_basic_block(ep, NULL);
 		struct symbol *sym = stmt->goto_label;
 
 		bb->next = sym;
@@ -137,9 +136,9 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 
 	case STMT_COMPOUND: {
 		struct statement *s;
-		concat_symbol_list(stmt->syms, syms);
+		concat_symbol_list(stmt->syms, &ep->syms);
 		FOR_EACH_PTR(stmt->stmts, s) {
-			bb = linearize_statement(syms, bbs, bb, s);
+			bb = linearize_statement(ep, bb, s);
 		} END_FOR_EACH_PTR;
 		break;
 	}
@@ -162,15 +161,15 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 				always = stmt->if_false;
 			}
 			if (always)
-				bb = linearize_statement(syms, bbs, bb, always);
+				bb = linearize_statement(ep, bb, always);
 			if (never) {
-				struct basic_block *n = new_basic_block(bbs, NULL);
-				n = linearize_statement(syms, bbs, n, never);
+				struct basic_block *n = new_basic_block(ep, NULL);
+				n = linearize_statement(ep, n, never);
 				if (bb_reachable(n)) {
 					struct symbol *merge = alloc_symbol(never->pos, SYM_LABEL);
 					n->next = merge;
 					bb->next = merge;
-					bb = new_basic_block(bbs, merge);
+					bb = new_basic_block(ep, merge);
 				}
 			}
 			break;
@@ -181,19 +180,19 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		goto_bb = alloc_statement(stmt->pos, STMT_CONDFALSE);
 
 		add_statement(&bb->stmts, goto_bb);
-		last_bb = new_basic_block(bbs, target);
+		last_bb = new_basic_block(ep, target);
 
 		goto_bb->bb_conditional = cond;
 		goto_bb->bb_target = target;
 
-		bb = linearize_statement(syms, bbs, bb, stmt->if_true);
+		bb = linearize_statement(ep, bb, stmt->if_true);
 		bb->next = target;
 		
 		if (stmt->if_false) {
 			struct symbol *else_target = alloc_symbol(stmt->pos, SYM_LABEL);
-			struct basic_block *else_bb = new_basic_block(bbs, else_target);
+			struct basic_block *else_bb = new_basic_block(ep, else_target);
 
-			else_bb = linearize_statement(syms, bbs, else_bb, stmt->if_false);
+			else_bb = linearize_statement(ep, else_bb, stmt->if_false);
 			goto_bb->bb_target = else_target;
 			else_bb->next = target;
 		}
@@ -225,11 +224,11 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		bb->next = stmt->switch_break;
 
 		/* And linearize the actual statement */
-		bb = linearize_statement(syms, bbs, new_basic_block(bbs, NULL), stmt->switch_statement);
+		bb = linearize_statement(ep, new_basic_block(ep, NULL), stmt->switch_statement);
 
 		/* ..then tie it all together at the end.. */
 		bb->next = stmt->switch_break;
-		bb = new_basic_block(bbs, stmt->switch_break);
+		bb = new_basic_block(ep, stmt->switch_break);
 
 		break;
 	}
@@ -242,14 +241,14 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		struct expression *post_condition = stmt->iterator_post_condition;
 		struct symbol *loop_top = NULL, *loop_bottom = NULL;
 
-		concat_symbol_list(stmt->iterator_syms, syms);
-		bb = linearize_statement(syms, bbs, bb, pre_statement);
+		concat_symbol_list(stmt->iterator_syms, &ep->syms);
+		bb = linearize_statement(ep, bb, pre_statement);
 		if (pre_condition) {
 			if (pre_condition->type == EXPR_VALUE) {
 				if (!pre_condition->value) {
 					loop_bottom = alloc_symbol(stmt->pos, SYM_LABEL);
 					bb->next = loop_bottom;
-					bb = new_basic_block(bbs, loop_bottom);
+					bb = new_basic_block(ep, loop_bottom);
 				}
 			} else {
 				struct statement *pre_cond = alloc_statement(stmt->pos, STMT_CONDFALSE);
@@ -264,20 +263,20 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 			struct basic_block *loop;
 
 			loop_top = alloc_symbol(stmt->pos, SYM_LABEL);
-			loop = new_basic_block(bbs, loop_top);
+			loop = new_basic_block(ep, loop_top);
 			bb->next = loop_top;
 			bb = loop;
 		}
 
-		bb = linearize_statement(syms, bbs, bb, statement);
+		bb = linearize_statement(ep, bb, statement);
 
 		if (stmt->iterator_continue->used) {
-			struct basic_block *cont = new_basic_block(bbs, stmt->iterator_continue);
+			struct basic_block *cont = new_basic_block(ep, stmt->iterator_continue);
 			bb->next = stmt->iterator_continue;
 			bb = cont;
 		}
 
-		bb = linearize_statement(syms, bbs, bb, post_statement);
+		bb = linearize_statement(ep, bb, post_statement);
 
 		if (!post_condition) {
 			bb->next = loop_top;
@@ -291,7 +290,7 @@ static struct basic_block * linearize_statement(struct symbol_list **syms,
 		}
 
 		if (stmt->iterator_break->used) {
-			struct basic_block *brk = new_basic_block(bbs, stmt->iterator_break);
+			struct basic_block *brk = new_basic_block(ep, stmt->iterator_break);
 			bb->next = stmt->iterator_break;
 			bb = brk;
 		}
@@ -319,9 +318,9 @@ void linearize_symbol(struct symbol *sym)
 			struct basic_block *bb;
 
 			ep->name = sym;
-			bb = new_basic_block(&ep->bbs, sym);
+			bb = new_basic_block(ep, sym);
 			concat_symbol_list(base_type->arguments, &ep->syms);
-			linearize_statement(&ep->syms, &ep->bbs, bb, base_type->stmt);
+			linearize_statement(ep, bb, base_type->stmt);
 			show_entry(ep);
 		}
 	}
