@@ -446,40 +446,56 @@ static struct token *postfix_expression(struct token *token, struct expression *
 }
 
 static struct token *cast_expression(struct token *token, struct expression **tree);
+static struct token *unary_expression(struct token *token, struct expression **tree);
+
+static struct token *type_info_expression(struct token *token,
+	struct expression **tree, int type)
+{
+	struct expression *expr = alloc_expression(token->pos, type);
+
+	*tree = expr;
+	token = token->next;
+	if (!match_op(token, '(') || !lookup_type(token->next))
+		return unary_expression(token, &expr->cast_expression);
+	token = typename(token->next, &expr->cast_type);
+
+	if (!match_op(token, ')')) {
+		static const char * error[] = {
+			[EXPR_SIZEOF] = "at end of sizeof",
+			[EXPR_ALIGNOF] = "at end of __alignof__",
+			[EXPR_PTRSIZEOF] = "at end of __sizeof_ptr__"
+		};
+		return expect(token, ')', error[type]);
+	}
+
+	token = token->next;
+	/*
+	 * C99 ambiguity: the typename might have been the beginning
+	 * of a typed initializer expression..
+	 */
+	if (match_op(token, '{'))
+		token = initializer(&expr->cast_expression, token);
+	return token;
+}
+
 static struct token *unary_expression(struct token *token, struct expression **tree)
 {
 	if (token_type(token) == TOKEN_IDENT) {
-		if (token->ident == &sizeof_ident) {
-			struct expression *sizeof_ex 
-				= alloc_expression(token->pos, EXPR_SIZEOF);
-			*tree = sizeof_ex;
-			tree = &sizeof_ex->unop;
-			token = token->next;
-			if (!match_op(token, '(') || !lookup_type(token->next))
-				return unary_expression(token, &sizeof_ex->cast_expression);
-			token = typename(token->next, &sizeof_ex->cast_type);
-
-			if (!match_op(token, ')'))
-				return expect(token, ')', "at end of sizeof type-name");
-
-			token = token->next;
-			/*
-			 * C99 ambiguity: the typename might have been the beginning
-			 * of a typed initializer expression..
-			 */
-			if (match_op(token, '{'))
-				token = initializer(&sizeof_ex->cast_expression, token);
-			return token;
-		} else if (token->ident == &__alignof___ident) {
-			struct expression *alignof_ex 
-				= alloc_expression(token->pos, EXPR_ALIGNOF);
-			*tree = alignof_ex;
-			tree = &alignof_ex->unop;
-			token = token->next;
-			if (!match_op(token, '(') || !lookup_type(token->next))
-				return unary_expression(token, &alignof_ex->cast_expression);
-			token = typename(token->next, &alignof_ex->cast_type);
-			return expect(token, ')', "at end of alignof type-name");
+		struct ident *ident = token->ident;
+		if (ident->reserved) {
+			static const struct {
+				struct ident *id;
+				int type;
+			} type_information[] = {
+				{ &sizeof_ident, EXPR_SIZEOF },
+				{ &__alignof___ident, EXPR_ALIGNOF },
+				{ &__sizeof_ptr___ident, EXPR_PTRSIZEOF },
+			};
+			int i;
+			for (i = 0; i < 3; i++) {
+				if (ident == type_information[i].id)
+					return type_info_expression(token, tree, type_information[i].type);
+			}
 		}
 	}
 

@@ -135,6 +135,7 @@ static struct expression * copy_expression(struct expression *expr)
 	/* Cast/sizeof/__alignof__ */
 	case EXPR_CAST:
 	case EXPR_SIZEOF: 
+	case EXPR_PTRSIZEOF:
 	case EXPR_ALIGNOF: {
 		struct expression *cast = copy_expression(expr->cast_expression);
 		if (cast == expr->cast_expression)

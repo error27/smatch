@@ -1699,30 +1699,40 @@ static int is_promoted(struct expression *expr)
 
 static struct symbol *evaluate_cast(struct expression *);
 
+static struct symbol *evaluate_type_information(struct expression *expr)
+{
+	struct symbol *sym = expr->cast_type;
+	if (!sym) {
+		sym = evaluate_expression(expr->cast_expression);
+		if (!sym)
+			return NULL;
+		/*
+		 * Expressions of restricted types will possibly get
+		 * promoted - check that here
+		 */
+		if (is_restricted_type(sym)) {
+			if (sym->bit_size < bits_in_int && is_promoted(expr))
+				sym = &int_ctype;
+		}
+	}
+	examine_symbol_type(sym);
+	if (is_bitfield_type(sym)) {
+		warning(expr->pos, "trying to examine bitfield type");
+		return NULL;
+	}
+	return sym;
+}
+
 static struct symbol *evaluate_sizeof(struct expression *expr)
 {
-	struct expression *what = expr->cast_expression;
+	struct symbol *type;
 	int size;
 
-	if (expr->cast_type) {
-		if (what) {
-			struct symbol *sym = evaluate_cast(expr);
-			size = sym->bit_size;
-		} else {
-			examine_symbol_type(expr->cast_type);
-			size = expr->cast_type->bit_size;
-		}
-	} else {
-		if (!evaluate_expression(what))
-			return NULL;
-		size = what->ctype->bit_size;
-		if (is_restricted_type(what->ctype)) {
-			if (size < bits_in_int && is_promoted(what))
-				size = bits_in_int;
-		}
-		if (is_bitfield_type(what->ctype))
-			warning(expr->pos, "sizeof applied to bitfield type");
-	}
+	type = evaluate_type_information(expr);
+	if (!type)
+		return NULL;
+
+	size = type->bit_size;
 	if (size & 7)
 		warning(expr->pos, "cannot size expression");
 	expr->type = EXPR_VALUE;
@@ -1731,18 +1741,47 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 	return size_t_ctype;
 }
 
+static struct symbol *evaluate_ptrsizeof(struct expression *expr)
+{
+	struct symbol *type;
+	int size;
+
+	type = evaluate_type_information(expr);
+	if (!type)
+		return NULL;
+
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	if (!type)
+		return NULL;
+	switch (type->type) {
+	case SYM_ARRAY:
+		break;
+	case SYM_PTR:
+		type = type->ctype.base_type;
+		if (type)
+			break;
+	default:
+		warning(expr->pos, "expected pointer expression");
+		return NULL;
+	}
+	size = type->bit_size;
+	if (size & 7)
+		size = 0;
+	expr->type = EXPR_VALUE;
+	expr->value = size >> 3;
+	expr->ctype = size_t_ctype;
+	return size_t_ctype;
+}
+
 static struct symbol *evaluate_alignof(struct expression *expr)
 {
-	struct symbol *type = expr->cast_type;
+	struct symbol *type;
 
-	if (!type) {
-		type = evaluate_expression(expr->cast_expression);
-		if (!type)
-			return NULL;
-	}
-	if (is_bitfield_type(type))
-		warning(expr->pos, "alignof applied to bitfield type");
-	examine_symbol_type(type);
+	type = evaluate_type_information(expr);
+	if (!type)
+		return NULL;
+
 	expr->type = EXPR_VALUE;
 	expr->value = type->ctype.alignment;
 	expr->ctype = size_t_ctype;
@@ -2279,6 +2318,8 @@ struct symbol *evaluate_expression(struct expression *expr)
 		return evaluate_cast(expr);
 	case EXPR_SIZEOF:
 		return evaluate_sizeof(expr);
+	case EXPR_PTRSIZEOF:
+		return evaluate_ptrsizeof(expr);
 	case EXPR_ALIGNOF:
 		return evaluate_alignof(expr);
 	case EXPR_DEREF:

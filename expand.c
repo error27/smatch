@@ -854,6 +854,7 @@ static int expand_expression(struct expression *expr)
 		return expand_pos_expression(expr);
 
 	case EXPR_SIZEOF:
+	case EXPR_PTRSIZEOF:
 	case EXPR_ALIGNOF:
 		warning(expr->pos, "internal front-end error: sizeof in expansion?");
 		return UNSAFE;
