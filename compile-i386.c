@@ -2348,6 +2348,7 @@ static struct storage *x86_expression(struct expression *expr)
 		warning(expr->pos, "invalid expression after evaluation");
 		return NULL;
 	case EXPR_CAST:
+	case EXPR_IMPLIED_CAST:
 		return emit_cast_expr(expr);
 	case EXPR_VALUE:
 		return emit_value(expr);

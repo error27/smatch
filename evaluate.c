@@ -204,7 +204,7 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 		}
 		break;
 
-	case EXPR_CAST:
+	case EXPR_IMPLIED_CAST:
 		if (old->ctype->bit_size >= type->bit_size) {
 			if (old->ctype->bit_offset == type->bit_offset) {
 				old->ctype = type;
@@ -218,7 +218,7 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 		/* nothing */;
 	}
 
-	expr = alloc_expression(old->pos, EXPR_CAST);
+	expr = alloc_expression(old->pos, EXPR_IMPLIED_CAST);
 	expr->ctype = type;
 	expr->cast_type = type;
 	expr->cast_expression = old;
@@ -2206,6 +2206,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 			return NULL;
 		return evaluate_postop(expr);
 	case EXPR_CAST:
+	case EXPR_IMPLIED_CAST:
 		return evaluate_cast(expr);
 	case EXPR_SIZEOF:
 		return evaluate_sizeof(expr);
