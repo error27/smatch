@@ -391,6 +391,39 @@ static int simplify_binop(struct instruction *insn)
 	return 0;
 }
 
+static void switch_pseudo(pseudo_t *pp1, pseudo_t *pp2)
+{
+	pseudo_t p1 = *pp1, p2 = *pp2;
+
+	use_pseudo(p2, pp1);
+	use_pseudo(p1, pp2);
+	remove_usage(p1, pp1);
+	remove_usage(p2, pp2);
+}
+
+static int canonical_order(pseudo_t p1, pseudo_t p2)
+{
+	/* symbol/constants on the right */
+	if (p1->type == PSEUDO_VAL)
+		return p2->type == PSEUDO_VAL;
+
+	if (p1->type == PSEUDO_SYM)
+		return p2->type == PSEUDO_SYM || p2->type == PSEUDO_VAL;
+
+	return 1;
+}
+
+static int simplify_commutative_binop(struct instruction *insn)
+{
+	if (simplify_binop(insn))
+		return REPEAT_CSE;
+	if (!canonical_order(insn->src1, insn->src2)) {
+		switch_pseudo(&insn->src1, &insn->src2);
+		return REPEAT_CSE;
+	}
+	return 0;
+}
+
 static int simplify_constant_unop(struct instruction *insn)
 {
 	long long val = insn->src1->value;
@@ -641,7 +674,13 @@ int simplify_instruction(struct instruction *insn)
 	if (!insn->bb)
 		return 0;
 	switch (insn->opcode) {
-	case OP_BINARY ... OP_BINCMP_END:
+	case OP_ADD: case OP_MUL:
+	case OP_AND: case OP_OR: case OP_XOR:
+	case OP_AND_BOOL: case OP_OR_BOOL:
+		return simplify_commutative_binop(insn);
+
+	case OP_SUB: case OP_DIV: case OP_MOD:
+	case OP_SHL: case OP_SHR:
 		return simplify_binop(insn);
 
 	case OP_NOT: case OP_NEG:
