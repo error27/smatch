@@ -665,6 +665,16 @@ out:
 	error_die(token->pos, "unable to open '%s'", filename);
 }
 
+static int free_preprocessor_line(struct token *token)
+{
+	do {
+		struct token *free = token;
+		token = token->next;
+		__free_token(free);
+	} while (token_type(token) != TOKEN_EOF);
+	return 1;
+}
+
 static int handle_include_path(struct stream *stream, struct token **list, struct token *token, const char **path)
 {
 	const char *filename;
@@ -672,7 +682,7 @@ static int handle_include_path(struct stream *stream, struct token **list, struc
 	int expect;
 
 	if (false_nesting)
-		return 1;
+		return free_preprocessor_line(token);
 
 	if (stream->constant == CONSTANT_FILE_MAYBE)
 		MARK_STREAM_NONCONST(token->pos);
@@ -986,7 +996,7 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 		return 0;
 	}
 	if (false_nesting)
-		return 1;
+		return free_preprocessor_line(token);
 
 	if (stream->constant == CONSTANT_FILE_MAYBE)
 		MARK_STREAM_NONCONST(token->pos);
@@ -1052,7 +1062,7 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 		return 0;
 	}
 	if (false_nesting)
-		return 1;
+		return free_preprocessor_line(token);
 
 	if (stream->constant == CONSTANT_FILE_MAYBE)
 		MARK_STREAM_NONCONST(token->pos);
@@ -1066,7 +1076,7 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 		}
 		sym = &t->next_id;
 	}
-	return 1;
+	return free_preprocessor_line(token);
 }
 
 static int preprocessor_if(struct token *token, int true)
@@ -1078,10 +1088,10 @@ static int preprocessor_if(struct token *token, int true)
 	elif_ignore[if_nesting] = (false_nesting || true) ? ELIF_IGNORE : 0;
 	if (false_nesting || !true) {
 		false_nesting++;
-		return 1;
+		return free_preprocessor_line(token);
 	}
 	true_nesting++;
-	return 1;
+	return free_preprocessor_line(token);
 }
 
 static int handle_ifdef(struct stream *stream, struct token **line, struct token *token)
@@ -1206,7 +1216,7 @@ static int handle_elif(struct stream * stream, struct token **line, struct token
 		false_nesting = 1;
 		true_nesting--;
 	}
-	return 1;
+	return free_preprocessor_line(token);
 }
 
 static int handle_else(struct stream *stream, struct token **line, struct token *token)
@@ -1233,7 +1243,7 @@ static int handle_else(struct stream *stream, struct token **line, struct token 
 		true_nesting--;
 		false_nesting = 1;
 	}
-	return 1;
+	return free_preprocessor_line(token);
 }
 
 static int handle_endif(struct stream *stream, struct token **line, struct token *token)
@@ -1247,7 +1257,7 @@ static int handle_endif(struct stream *stream, struct token **line, struct token
 		false_nesting--;
 	else
 		true_nesting--;
-	return 1;
+	return free_preprocessor_line(token);
 }
 
 static const char *show_token_sequence(struct token *token)
@@ -1281,21 +1291,21 @@ static const char *show_token_sequence(struct token *token)
 static int handle_warning(struct stream *stream, struct token **line, struct token *token)
 {
 	if (false_nesting)
-		return 1;
+		return free_preprocessor_line(token);
 	if (stream->constant == CONSTANT_FILE_MAYBE)
 		MARK_STREAM_NONCONST(token->pos);
 	warning(token->pos, "%s", show_token_sequence(token->next));
-	return 1;
+	return free_preprocessor_line(token);
 }
 
 static int handle_error(struct stream *stream, struct token **line, struct token *token)
 {
 	if (false_nesting)
-		return 1;
+		return free_preprocessor_line(token);
 	if (stream->constant == CONSTANT_FILE_MAYBE)
 		MARK_STREAM_NONCONST(token->pos);
 	warning(token->pos, "%s", show_token_sequence(token->next));
-	return 1;
+	return free_preprocessor_line(token);
 }
 
 static int handle_nostdinc(struct stream *stream, struct token **line, struct token *token)
@@ -1303,7 +1313,7 @@ static int handle_nostdinc(struct stream *stream, struct token **line, struct to
 	int stdinc;
 
 	if (false_nesting)
-		return 1;
+		return free_preprocessor_line(token);
 
 	/*
 	 * Do we have any non-system includes?
@@ -1321,7 +1331,7 @@ static int handle_nostdinc(struct stream *stream, struct token **line, struct to
 		}
 		gcc_includepath -= stdinc;
 	}
-	return 1;
+	return free_preprocessor_line(token);
 }
 
 static void add_path_entry(struct token *token, const char *path)
@@ -1509,6 +1519,7 @@ static void do_preprocess(struct token **list)
 		default:
 			if (false_nesting) {
 				*list = next->next;
+				__free_token(next);
 				continue;
 			}
 
