@@ -233,6 +233,7 @@ static struct token *unary_expression(struct token *token, struct expression **t
 		    '&', '*', '+', '-', '~', '!', 0)) {
 			struct expression *unary = alloc_expression(token, EXPR_PREOP);
 			unary->op = token->special;
+			*tree = unary;
 			return unary_expression(token->next, &unary->unop);
 		}
 	}
@@ -735,6 +736,52 @@ default_statement:
 			token = expect(token, ')', "after 'case' expression");
 			return statement(token, &stmt->switch_statement);
 		}
+		if (token->ident == &for_ident) {
+			stmt->type = STMT_FOR;
+			token = expect(token->next, '(', "after 'for'");
+			token = parse_expression(token, &stmt->e1);
+			token = expect(token, ';', "in 'for'");
+			token = parse_expression(token, &stmt->e2);
+			token = expect(token, ';', "in 'for'");
+			token = parse_expression(token, &stmt->e3);
+			token = expect(token, ')', "in 'for'");
+			return statement(token, &stmt->iterate);
+		}
+		if (token->ident == &while_ident) {
+			stmt->type = STMT_WHILE;
+			token = expect(token->next, '(', "after 'while'");
+			token = parse_expression(token, &stmt->e1);
+			token = expect(token, ')', "in 'while'");
+			return statement(token, &stmt->iterate);
+		}
+		if (token->ident == &do_ident) {
+			stmt->type = STMT_DO;
+			token = statement(token->next, &stmt->iterate);
+			if (token && token->type == TOKEN_IDENT && token->ident == &while_ident)
+				token = token->next;
+			else
+				warn(token, "expected 'while' after 'do'");
+			token = expect(token, '(', "after 'do-while'");
+			token = parse_expression(token, &stmt->e1);
+			token = expect(token, ')', "after 'do-while'");
+			return expect(token, ';', "after statement");
+		}
+		if (token->ident == &goto_ident) {
+			stmt->type = STMT_GOTO;
+			token = token->next;			
+			if (token && token->type == TOKEN_IDENT) {
+				stmt->goto_label = token;
+				token = token->next;
+			} else
+				warn(token, "invalid label");
+			return expect(token, ';', "at end of statement");
+		}
+				
+		if (match_op(token->next, ':')) {
+			stmt->type = STMT_LABEL;
+			stmt->label_identifier = token;
+			return statement(token->next->next, &stmt->label_statement);
+		}
 	}
 
 	if (match_op(token, '{')) {
@@ -816,7 +863,7 @@ static struct token *initializer(struct token *token, struct symbol *sym)
 {
 	struct expression *expr;
 	if (match_op(token, '{')) {
-		token = initializer_list(token, sym);
+		token = initializer_list(token->next, sym);
 		return expect(token, '}', "at end of initializer");
 	}
 	return assignment_expression(token, &expr);

@@ -220,6 +220,7 @@ IDENT(sizeof);
 IDENT(if); IDENT(else); IDENT(return);
 IDENT(switch); IDENT(case); IDENT(default);
 IDENT(break); IDENT(continue);
+IDENT(for); IDENT(while); IDENT(do); IDENT(goto);
 
 void init_symbols(void)
 {
@@ -238,6 +239,10 @@ void init_symbols(void)
 	hash_ident(&default_ident);
 	hash_ident(&break_ident);
 	hash_ident(&continue_ident);
+	hash_ident(&for_ident);
+	hash_ident(&while_ident);
+	hash_ident(&do_ident);
+	hash_ident(&goto_ident);
 	for (ptr = symbol_init_table; ptr->name; ptr++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, ptr->name, SYM_TYPE);

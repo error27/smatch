@@ -89,6 +89,10 @@ extern struct ident	struct_ident,
 			default_ident,
 			break_ident,
 			continue_ident,
+			for_ident,
+			while_ident,
+			do_ident,
+			goto_ident,
 			return_ident;
 
 #define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)

@@ -42,6 +42,11 @@ enum statement_type {
 	STMT_CONTINUE,
 	STMT_CASE,
 	STMT_SWITCH,
+	STMT_FOR,
+	STMT_WHILE,
+	STMT_DO,
+	STMT_LABEL,
+	STMT_GOTO,
 };
 
 struct statement {
@@ -64,7 +69,10 @@ struct statement {
 			struct statement_list *stmts;
 		};
 		struct labeled_struct {
-			struct token *label_ideentifier;
+			struct token *label_identifier;
+			struct statement *label_statement;
+		};
+		struct case_struct {
 			struct expression *case_expression;
 			struct expression *case_to;
 			struct statement *case_statement;
@@ -72,6 +80,14 @@ struct statement {
 		struct switch_struct {
 			struct expression *switch_expression;
 			struct statement *switch_statement;
+		};
+		struct iteration_struct {
+			struct expression *e1, *e2, *e3;
+			struct statement *iterate;
+		};
+		struct goto_struct {
+			struct token *goto_label;
+			struct expression *goto_expression;
 		};
 	};
 };
