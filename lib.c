@@ -142,6 +142,7 @@ restart:
 				if (entry == head) {
 					*listp = next;
 					head = next;
+					entry = next;
 					goto restart;
 				}
 			}
