@@ -390,6 +390,7 @@ static struct symbol *evaluate_add(struct expression *expr)
 }
 
 #define MOD_SIZE (MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG)
+#define MOD_IGNORE (MOD_TOPLEVEL | MOD_STORAGE | MOD_ADDRESSABLE | MOD_SIGNED | MOD_UNSIGNED)
 
 static const char * type_difference(struct symbol *target, struct symbol *source,
 	unsigned long target_mod_ignore, unsigned long source_mod_ignore)
@@ -431,7 +432,7 @@ static const char * type_difference(struct symbol *target, struct symbol *source
 			return "different address spaces";
 
 		/* Ignore differences in storage types, sign, or addressability */
-		diff = (mod1 ^ mod2) & ~(MOD_STORAGE | MOD_ADDRESSABLE | MOD_SIGNED | MOD_UNSIGNED);
+		diff = (mod1 ^ mod2) & ~MOD_IGNORE;
 		if (diff) {
 			mod1 &= diff & ~target_mod_ignore;
 			mod2 &= diff & ~source_mod_ignore;
