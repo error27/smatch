@@ -25,18 +25,19 @@ static struct token *unmatched_if = NULL;
 static int elif_ignore[MAXNEST];
 #define if_nesting (true_nesting + false_nesting)
 
-static void expand(struct token *head, struct symbol *sym)
+static const char *show_token_sequence(struct token *token);
+
+static struct token *expand(struct token *head, struct symbol *sym)
 {
-	struct token *expansion, *token, **pptr, *next;
+	struct token *expansion, *pptr, *token, *next;
 	int newline;
 
 	sym->busy++;
 	token = head->next;
 	newline = token->newline;
-	fprintf(stderr, "expanding symbol '%s'\n", show_token(token));
 
 	expansion = sym->expansion;
-	pptr = &head->next;
+	pptr = head;
 	next = token->next;
 	while (!eof_token(expansion)) {
 		struct token *alloc = __alloc_token(0);
@@ -48,12 +49,30 @@ static void expand(struct token *head, struct symbol *sym)
 		alloc->line = token->line;
 		alloc->next = next;
 		alloc->integer = expansion->integer;
-		*pptr = alloc;
-		pptr = &alloc->next;
+		pptr->next = alloc;
+		pptr = alloc;
 		expansion = expansion->next;
 		newline = 0;
 	}
+	for (;;) {
+		struct token *next_recursive = head->next;
+
+		/* Did we hit the end of the current expansion? */
+		if (next_recursive == next)
+			break;
+
+		if (next_recursive->type == TOKEN_IDENT) {
+			struct symbol *sym = lookup_symbol(next_recursive->ident, NS_PREPROCESSOR);
+			if (sym && !sym->busy) {
+				head = expand(head, sym);
+				continue;
+			}
+		}
+		
+		head = next_recursive;
+	}
 	sym->busy--;
+	return head;
 }
 
 static const char *token_name_sequence(struct token *token, int endop, struct token *start)
@@ -504,11 +523,12 @@ static void do_preprocess(struct token *head)
 		}
 		if (next->type == TOKEN_IDENT) {
 			struct symbol *sym= lookup_symbol(next->ident, NS_PREPROCESSOR);
-			if (sym)
-				expand(head, sym);
-				
+			if (sym) {
+				head = expand(head, sym);
+				continue;
+			}
 		}
-		head = head->next;
+		head = next;
 	} while (!eof_token(head));
 }
 
