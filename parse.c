@@ -979,7 +979,7 @@ static struct token *parse_asm(struct token *token, struct statement *stmt)
 		token = token->next;
 	}
 	token = expect(token, '(', "after asm");
-	token = parse_expression(token->next, &stmt->asm_string);
+	token = parse_expression(token, &stmt->asm_string);
 	if (match_op(token, ':'))
 		token = parse_asm_operands(token, stmt, &stmt->asm_outputs);
 	if (match_op(token, ':'))
