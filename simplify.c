@@ -250,6 +250,20 @@ static int simplify_constant_rightside(struct instruction *insn)
 
 static int simplify_constant_leftside(struct instruction *insn)
 {
+	long long value = insn->src1->value;
+
+	switch (insn->opcode) {
+	case OP_ADD: case OP_OR: case OP_XOR:
+		if (!value)
+			return replace_with_pseudo(insn, insn->src2);
+		return 0;
+
+	case OP_SHL: case OP_SHR:
+	case OP_AND: case OP_MUL:
+		if (!value)
+			return replace_with_pseudo(insn, insn->src1);
+		return 0;
+	}
 	return 0;
 }
 
