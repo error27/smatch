@@ -882,6 +882,10 @@ static struct symbol *evaluate_postop(struct expression *expr)
 		warn(expr->pos, "need lvalue expression for ++/--");
 		return NULL;
 	}
+
+	if (ctype->type == SYM_NODE)
+		ctype->ctype.modifiers |= MOD_ASSIGNED;
+
 	expr->ctype = ctype;
 	return ctype;
 }
