@@ -29,6 +29,7 @@ struct statement_list;
 struct expression;
 struct expression_list;
 struct basic_block;
+struct basic_block_list;
 struct entrypoint;
 struct instruction;
 
@@ -91,6 +92,11 @@ extern void create_builtin_stream(void);
 #define expression_list_size(list) ptr_list_size((struct ptr_list *)(list))
 
 static inline void concat_symbol_list(struct symbol_list *from, struct symbol_list **to)
+{
+	concat_ptr_list((struct ptr_list *)from, (struct ptr_list **)to);
+}
+
+static inline void concat_basic_block_list(struct basic_block_list *from, struct basic_block_list **to)
 {
 	concat_ptr_list((struct ptr_list *)from, (struct ptr_list **)to);
 }

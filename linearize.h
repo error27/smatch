@@ -70,6 +70,8 @@ struct instruction_list;
  */
 #define BB_HASBRANCH	0x00000001
 
+#define EP_HASLABEL	0x00000001
+
 struct basic_block {
 	unsigned long flags;		/* BB status flags */
 	struct symbol *this;		/* Points to the symbol that owns "this" basic block - NULL if unreachable */
@@ -88,6 +90,7 @@ static inline void add_instruction(struct instruction_list **list, struct instru
 }
 
 struct entrypoint {
+	unsigned long flags;		/* entry point status flags */
 	struct symbol *name;
 	struct symbol_list *syms;
 	struct basic_block_list *bbs;

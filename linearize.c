@@ -162,6 +162,7 @@ static void show_entry(struct entrypoint *ep)
 }
 
 #define bb_reachable(bb) ((bb)->this != NULL)
+#define ep_haslabel(ep) ((ep)->flags & EP_HASLABEL)
 
 static struct basic_block * new_basic_block(struct entrypoint *ep, struct symbol *owner)
 {
@@ -573,6 +574,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 
 	case STMT_LABEL: {
 		add_label(ep, stmt->label_identifier);
+		ep->flags |= EP_HASLABEL;
 		linearize_statement(ep, stmt->label_statement);
 		break;
 	}
@@ -701,6 +703,13 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		struct statement  *post_statement = stmt->iterator_post_statement;
 		struct expression *post_condition = stmt->iterator_post_condition;
 		struct symbol *loop_top = NULL, *loop_bottom = NULL;
+		struct entrypoint *oldep = NULL;
+
+		if (!bb_reachable(ep->active)) {
+			oldep = ep;
+			ep = alloc_entrypoint();
+			ep->active = oldep->active;
+		}
 
 		concat_symbol_list(stmt->iterator_syms, &ep->syms);
 		linearize_statement(ep, pre_statement);
@@ -739,6 +748,13 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 			add_label(ep, stmt->iterator_break);
 		if (loop_bottom)
 			add_label(ep, loop_bottom);
+
+		if (oldep && ep_haslabel(ep)) {
+			concat_basic_block_list(ep->bbs, &oldep->bbs);
+			concat_symbol_list(ep->syms, &oldep->syms);
+			oldep->active = ep->active;
+			ep = oldep;
+		}
 		break;
 	}
 
