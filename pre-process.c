@@ -124,6 +124,8 @@ struct token *defined_one_symbol(struct token *head, struct token *next)
 	return next;
 }
 
+struct token variable_argument = { .next = &eof_token_entry };
+
 /* Expand symbol 'sym' between 'head->next' and 'head->next->next' */
 static struct token *expand(struct token *, struct token *, struct symbol *);
 
@@ -166,11 +168,11 @@ struct token *expand_one_symbol(struct token *parent, struct token *head, struct
 			return token;
 		return expand(token, head, sym);
 	}
-	if (!memcmp(token->ident->name, "__LINE__", 9)) {
+	if (token->ident == &__LINE___ident) {
 		replace_with_integer(token, token->pos.line);
-	} else if (!memcmp(token->ident->name, "__FILE__", 9)) {
+	} else if (token->ident == &__FILE___ident) {
 		replace_with_string(token, (input_streams + token->pos.stream)->name);
-	} else if (!memcmp(token->ident->name, "defined", 8)) {
+	} else if (token->ident == &defined_ident) {
 		return defined_one_symbol(head, token);
 	}
 	return token;
@@ -181,7 +183,7 @@ static struct token *expand_list(struct token *parent, struct token *head)
 	return for_each_ident(parent, head, expand_one_symbol);
 }
 
-static struct token *find_argument_end(struct token *start)
+static struct token *find_argument_end(struct token *start, struct token *arglist)
 {
 	int nesting = 0;
 
@@ -194,8 +196,11 @@ static struct token *find_argument_end(struct token *start)
 				start->next = &eof_token_entry;
 				return next->next;
 			}
-		} else if (!nesting && match_op(next, ','))
+		} else if (!nesting && match_op(next, ',') && arglist->next != &variable_argument
+				&& !match_op(arglist, SPECIAL_ELLIPSIS)) {
 			next->special = SPECIAL_ARG_SEPARATOR;
+			arglist = arglist->next;
+		}
 		start = next;
 	}
 	return start;
@@ -268,6 +273,8 @@ static int arg_number(struct token *arglist, struct ident *ident)
 	int nr = 0;
 
 	while (!eof_token(arglist)) {
+		if (match_op(arglist, SPECIAL_ELLIPSIS) && ident == &__VA_ARGS___ident)
+			return nr;
 		if (arglist->ident == ident)
 			return nr;
 		nr++;
@@ -456,7 +463,7 @@ static struct token *expand(struct token *parent, struct token *head, struct sym
 	arguments = NULL;
 	if (sym->arglist) {
 		arguments = last->next;
-		last = find_argument_end(last);
+		last = find_argument_end(last, sym->arglist);
 	}
 	token->next = &eof_token_entry;
 
@@ -623,6 +630,14 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 		arglist = expansion;
 		while (!eof_token(expansion)) {
 			struct token *next = expansion->next;
+			if (token_type(expansion) == TOKEN_IDENT) {
+				if (expansion->ident == &__VA_ARGS___ident)
+					warn(expansion->pos, "__VA_ARGS__ can only appear in the expansion of a C99 variadic macro");
+				if (match_op(next, SPECIAL_ELLIPSIS)) {
+					expansion->next = &variable_argument;
+					next = next->next;
+				}
+			}
 			if (match_op(next, ')')) {
 				// Terminate the arglist
 				expansion->next = &eof_token_entry;
@@ -641,7 +656,7 @@ static int handle_define(struct stream *stream, struct token *head, struct token
 		if (token_list_different(sym->expansion, expansion) || 
 		    token_list_different(sym->arglist, arglist)) {
 			warn(left->pos, "preprocessor token %.*s redefined",
-					name->ident->len, name->ident->name);
+					name->len, name->name);
 			warn(sym->pos, "this was the original definition");
 		}
 		return 1;

@@ -494,8 +494,9 @@ struct ctype_declare {
 };
 
 
+#define __INIT_IDENT(str) { .len = sizeof(str)-1, .name = str }
 #define __IDENT(n,str) \
-	struct ident n ## _ident = { len: sizeof(str)-1, name: str }
+	struct ident n ## _ident = __INIT_IDENT(str)
 #define IDENT(n) __IDENT(n, #n)
 
 IDENT(struct); IDENT(union); IDENT(enum);
@@ -509,8 +510,13 @@ IDENT(for); IDENT(while); IDENT(do); IDENT(goto);
 IDENT(__asm__); IDENT(__asm); IDENT(asm);
 IDENT(__volatile__); IDENT(__volatile); IDENT(volatile);
 IDENT(__attribute__); IDENT(__attribute);
+IDENT(defined);
 
 __IDENT(pragma, "__pragma__");
+
+struct ident __VA_ARGS___ident = __INIT_IDENT("__VA_ARGS__");
+struct ident __LINE___ident = __INIT_IDENT("__LINE__");
+struct ident __FILE___ident = __INIT_IDENT("__FILE__");
 
 void init_symbols(void)
 {
@@ -542,6 +548,10 @@ void init_symbols(void)
 	hash_ident(&__volatile___ident);
 	hash_ident(&__volatile_ident);
 	hash_ident(&volatile_ident);
+	hash_ident(&defined_ident);
+	hash_ident(&__LINE___ident);
+	hash_ident(&__FILE___ident);
+	hash_ident(&__VA_ARGS___ident);
 	hash_ident(&pragma_ident);
 	for (ptr = symbol_init_table; ptr->name; ptr++) {
 		struct symbol *sym;

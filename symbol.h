@@ -180,6 +180,10 @@ extern struct ident	__asm___ident,
 			volatile_ident,
 			__attribute___ident,
 			__attribute_ident,
+			defined_ident,
+			__VA_ARGS___ident,
+			__LINE___ident,
+			__FILE___ident,
 			pragma_ident;
 
 #define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)
