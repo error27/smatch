@@ -26,6 +26,7 @@
 #include "expression.h"
 
 /* Random cost numbers */
+#define SIDE_EFFECTS 10000	/* The expression has side effects */
 #define UNSAFE 100		/* The expression may be "infinitely costly" due to exceptions */
 #define SELECT_COST 20		/* Cut-off for turning a conditional into a select */
 #define BRANCH_COST 10		/* Cost of a conditional branch */
@@ -487,7 +488,7 @@ static int expand_assignment(struct expression *expr)
 {
 	expand_expression(expr->left);
 	expand_expression(expr->right);
-	return UNSAFE;
+	return SIDE_EFFECTS;
 }
 
 static int expand_addressof(struct expression *expr)
@@ -592,7 +593,7 @@ static int simplify_float_preop(struct expression *expr)
 static int expand_postop(struct expression *expr)
 {
 	expand_expression(expr->unop);
-	return UNSAFE;
+	return SIDE_EFFECTS;
 }
 
 static int expand_preop(struct expression *expr)
@@ -662,12 +663,12 @@ static int expand_symbol_call(struct expression *expr)
 	struct symbol *ctype = fn->ctype;
 
 	if (fn->type != EXPR_PREOP)
-		return UNSAFE;
+		return SIDE_EFFECTS;
 
 	if (ctype->op && ctype->op->expand)
 		return ctype->op->expand(expr);
 
-	return UNSAFE;
+	return SIDE_EFFECTS;
 }
 
 static int expand_call(struct expression *expr)
@@ -681,7 +682,7 @@ static int expand_call(struct expression *expr)
 	if (sym->type == SYM_NODE)
 		return expand_symbol_call(expr);
 
-	return UNSAFE;
+	return SIDE_EFFECTS;
 }
 
 static int expand_expression_list(struct expression_list *list)
@@ -774,7 +775,7 @@ static int expand_expression(struct expression *expr)
 		warn(expr->pos, "internal front-end error: sizeof in expansion?");
 		return UNSAFE;
 	}
-	return UNSAFE;
+	return SIDE_EFFECTS;
 }
 
 static void expand_const_expression(struct expression *expr, const char *where)
@@ -832,12 +833,12 @@ static int expand_if_statement(struct statement *stmt)
 		}
 		expand_statement(simple);
 		*stmt = *simple;
-		return UNSAFE;
+		return SIDE_EFFECTS;
 	}
 #endif
 	expand_statement(stmt->if_true);
 	expand_statement(stmt->if_false);
-	return UNSAFE;
+	return SIDE_EFFECTS;
 }
 
 static int expand_statement(struct statement *stmt)
@@ -848,7 +849,7 @@ static int expand_statement(struct statement *stmt)
 	switch (stmt->type) {
 	case STMT_RETURN:
 		expand_return_expression(stmt);
-		return UNSAFE;
+		return SIDE_EFFECTS;
 
 	case STMT_EXPRESSION:
 		return expand_expression(stmt->expression);
@@ -879,26 +880,26 @@ static int expand_statement(struct statement *stmt)
 		expand_statement(stmt->iterator_pre_statement);
 		expand_statement(stmt->iterator_statement);
 		expand_statement(stmt->iterator_post_statement);
-		return UNSAFE;
+		return SIDE_EFFECTS;
 
 	case STMT_SWITCH:
 		expand_expression(stmt->switch_expression);
 		expand_statement(stmt->switch_statement);
-		return UNSAFE;
+		return SIDE_EFFECTS;
 
 	case STMT_CASE:
 		expand_const_expression(stmt->case_expression, "case statement");
 		expand_const_expression(stmt->case_to, "case statement");
 		expand_statement(stmt->case_statement);
-		return UNSAFE;
+		return SIDE_EFFECTS;
 
 	case STMT_LABEL:
 		expand_statement(stmt->label_statement);
-		return UNSAFE;
+		return SIDE_EFFECTS;
 
 	case STMT_GOTO:
 		expand_expression(stmt->goto_expression);
-		return UNSAFE;
+		return SIDE_EFFECTS;
 
 	case STMT_NONE:
 		break;
@@ -906,7 +907,7 @@ static int expand_statement(struct statement *stmt)
 		/* FIXME! Do the asm parameter evaluation! */
 		break;
 	}
-	return UNSAFE;
+	return SIDE_EFFECTS;
 }
 
 long long get_expression_value(struct expression *expr)
