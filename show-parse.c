@@ -25,6 +25,7 @@
 #include "target.h"
 
 static int show_symbol_expr(struct symbol *sym);
+static int show_string_expr(struct expression *expr);
 
 static void do_debug_symbol(struct symbol *sym, int indent)
 {
@@ -794,6 +795,9 @@ static int show_postop(struct expression *expr)
 static int show_symbol_expr(struct symbol *sym)
 {
 	int new = new_pseudo();
+
+	if (sym->initializer && sym->initializer->type == EXPR_STRING)
+		return show_string_expr(sym->initializer);
 
 	if (sym->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN | MOD_STATIC)) {
 		printf("\tmovi.%d\t\tv%d,$%s\n", bits_in_pointer, new, show_ident(sym->ident));
