@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
@@ -351,7 +352,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct expressio
 		/* Leave 'add->op' as 'expr->op' - either '+' or '-' */
 		add->left = ptr;
 		add->right = mul;
-		simplify_int_binop(add, add->ctype);
+		simplify_int_binop(add, ctype);
 	}
 
 	expr->ctype = ctype;	
@@ -747,8 +748,11 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 		if (target->type == SYM_PTR) {
 			struct symbol *source_base = source->ctype.base_type;
 			struct symbol *target_base = target->ctype.base_type;
-			if (source_base == &void_ctype || target_base == &void_ctype)
-				return 1;
+			/* Even (void *) types have to match the address space */
+			if (source_base == &void_ctype || target_base == &void_ctype) {
+				if (source->ctype.as == target->ctype.as)
+					return 1;
+			}
 			warn(expr->pos, "incorrect type in %s (%s)", where, typediff);
 			return 1;
 		}
@@ -1022,10 +1026,11 @@ static struct expression *evaluate_offset(struct expression *expr, unsigned long
 static struct symbol *evaluate_member_dereference(struct expression *expr)
 {
 	int offset;
-	struct symbol *ctype, *member;
+	struct symbol *ctype, *member, *sym;
 	struct expression *deref = expr->deref, *add;
 	struct ident *ident = expr->member;
 	unsigned int mod;
+	int address_space;
 
 	if (!evaluate_expression(deref))
 		return NULL;
@@ -1036,6 +1041,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 
 	ctype = deref->ctype;
 	mod = ctype->ctype.modifiers;
+	address_space = ctype->ctype.as;
 	if (ctype->type == SYM_NODE) {
 		ctype = ctype->ctype.base_type;
 		mod |= ctype->ctype.modifiers;
@@ -1046,6 +1052,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 			warn(expr->pos, "expected a pointer to a struct/union");
 			return NULL;
 		}
+		address_space = ctype->ctype.as;
 		ctype = ctype->ctype.base_type;
 		mod |= ctype->ctype.modifiers;
 		if (ctype->type == SYM_NODE) {
@@ -1075,6 +1082,11 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 
 	add = evaluate_offset(deref, offset);
 
+	sym = alloc_symbol(expr->pos, SYM_NODE);
+	sym->bit_size = member->bit_size;
+	sym->array_size = member->array_size;
+	sym->ctype = member->ctype;
+	sym->ctype.as = address_space;
 	ctype = member->ctype.base_type;
 	if (ctype->type == SYM_BITFIELD) {
 		ctype = ctype->ctype.base_type;
@@ -1088,8 +1100,8 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		expr->unop = add;
 	}
 
-	expr->ctype = ctype;
-	return ctype;
+	expr->ctype = sym;
+	return sym;
 }
 
 static struct symbol *evaluate_sizeof(struct expression *expr)
