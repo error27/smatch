@@ -1758,6 +1758,7 @@ static int evaluate_one_array_initializer(struct symbol *ctype, struct expressio
 	if (offset) {
 		if (!reuse) reuse = alloc_expression(entry->pos, EXPR_POS);
 		reuse->type = EXPR_POS;
+		reuse->ctype = ctype;
 		reuse->init_offset = offset;
 		reuse->init_nr = to - from;
 		reuse->init_expr = entry;
@@ -1833,6 +1834,7 @@ static int evaluate_one_struct_initializer(struct symbol *ctype, struct expressi
 		if (!reuse)
 			reuse = alloc_expression(entry->pos, EXPR_POS);
 		reuse->type = EXPR_POS;
+		reuse->ctype = ctype;
 		reuse->init_offset = offset;
 		reuse->init_nr = 1;
 		reuse->init_expr = entry;
