@@ -1346,6 +1346,27 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 	return expect(token, '}', "at end of function");
 }
 
+static void apply_kr_types(struct symbol_list *argtypes, struct symbol *fn)
+{
+	struct symbol_list *real_args = fn->ctype.base_type->arguments;
+	struct symbol *arg, *type;
+
+	PREPARE_PTR_LIST(argtypes, type);
+	FOR_EACH_PTR(real_args, arg) {
+		if (!type) {
+			warn(arg->pos, "no K&R type for '%s'", show_ident(arg->ident));
+			return;
+		}
+		if (type->ident != arg->ident) {
+			warn(arg->pos, "K&R declaration disagrees on name of %s",
+				show_ident(arg->ident));
+		}
+		arg->ctype = type->ctype;
+		NEXT_PTR_LIST(type);
+	} END_FOR_EACH_PTR;
+	FINISH_PTR_LIST(type);
+}
+
 static struct token *parse_kr_arguments(struct token *token, struct symbol *decl,
 	struct symbol_list **list)
 {
@@ -1356,10 +1377,7 @@ static struct token *parse_kr_arguments(struct token *token, struct symbol *decl
 		token = external_declaration(token, &args);
 	} while (lookup_type(token));
 
-	/*
-	 * FIXME!! We should now apply these types to
-	 * the function arguments
-	 */
+	apply_kr_types(args, decl);
 
 	if (!match_op(token, '{')) {
 		warn(token->pos, "expected function body");
