@@ -60,9 +60,9 @@ A.  I don't know yet.  I originally thought it would be LGPL, but I'm
     previous question for why I think it's the _only_ thing that I will
     not allow). 
 
-    So I'm currently considering just taking the LGPL and removing the
-    GPL subsumption clause, and calling it the LLPL ("Lesser Linus
-    Public License" or something). In the meantime, you have no rights
-    at all, except to send me useful suggestions about a license that
-    still requires people who work on the front-end to work as open
-    source, while allowing arbitrary back-ends. 
+    The current front-runner is the OSL ("Open Software License", see
+    http://www.opensource.org/licenses/osl.php), together with a note on
+    what makes source derivative and what does not to make it clear that
+    people can write back-ends for it without having to make those
+    back-ends available under the OSL. 
+

@@ -10,12 +10,14 @@ properties:
    require that too in perpetuam (ie anti-GPL in that respects, and this
    means that it's almost certainly not going to be LGPL)
 
-and, if possible:
+At this point, the most likely candidate is the OSL:
 
- - it will be "open source(tm)" compatible as far as I can tell,
-   although if the anti-GPL part ends up being a problem, I may not care
-   enough to conform fully to OSI guidelines.  Will need to check with
-   the OSI guys. 
+	http://www.opensource.org/licenses/osl.php
+
+with an addendum of explaining the "derivative works" issue (ie making
+sure that pure back-ends are _not_ derivative works, and the only source
+that is derivative of this is the stuff needed to build a
+self-sufficient front-end that can parse the language). 
 
 In the meantime, if you agree with the above, and expect to agree with
 whatever license I will choose with the above in mind, you can play with
