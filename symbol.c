@@ -328,7 +328,7 @@ static struct symbol *create_symbol(int stream, const char *name, int type, int 
 	return sym;
 }
 
-struct symbol *evaluate_constant_p(struct expression *expr)
+static int evaluate_constant_p(struct expression *expr)
 {
 	struct expression *arg;
 	struct expression_list *arglist = expr->args;
@@ -342,7 +342,7 @@ struct symbol *evaluate_constant_p(struct expression *expr)
 	expr->ctype = &int_ctype;
 	expr->type = EXPR_VALUE;
 	expr->value = value;
-	return NULL;
+	return 1;
 }
 
 /*
@@ -356,7 +356,7 @@ struct sym_init {
 	const char *name;
 	struct symbol *base_type;
 	unsigned int modifiers;
-	struct symbol *(*evaluate)(struct expression *);
+	int (*evaluate)(struct expression *);
 } symbol_init_table[] = {
 	/* Storage class */
 	{ "auto",	NULL,		MOD_AUTO },

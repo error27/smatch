@@ -65,7 +65,7 @@ struct symbol {
 	struct symbol **id_list;	/* Backpointer to symbol list head */
 	struct scope	*scope;
 	struct symbol	*same_symbol;
-	struct symbol * (*evaluate)(struct expression *);
+	int (*evaluate)(struct expression *);
 
 	struct preprocessor_sym {
 		struct token *expansion;

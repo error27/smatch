@@ -1372,13 +1372,13 @@ static struct symbol *evaluate_cast(struct expression *expr)
  * should expand inline functions, and evaluate
  * builtins.
  */
-static struct symbol *evaluate_symbol_call(struct expression *expr)
+static int evaluate_symbol_call(struct expression *expr)
 {
 	struct expression *fn = expr->fn;
 	struct symbol *ctype = fn->ctype;
 
 	if (fn->type != EXPR_PREOP)
-		goto out;
+		return 0;
 
 	if (ctype->evaluate)
 		return ctype->evaluate(expr);
@@ -1390,8 +1390,7 @@ static struct symbol *evaluate_symbol_call(struct expression *expr)
 	 */
 	if (ctype->ctype.modifiers & MOD_INLINE)
 		access_symbol(ctype);
-out:
-	return ctype->ctype.base_type;
+	return 0;
 }
 
 static struct symbol *evaluate_call(struct expression *expr)
@@ -1404,13 +1403,14 @@ static struct symbol *evaluate_call(struct expression *expr)
 	if (!evaluate_expression(fn))
 		return NULL;
 	sym = ctype = fn->ctype;
+	if (ctype->type == SYM_NODE)
+		ctype = ctype->ctype.base_type;
 	if (ctype->type == SYM_PTR || ctype->type == SYM_ARRAY)
 		ctype = ctype->ctype.base_type;
 	if (!evaluate_arguments(sym, ctype, arglist))
 		return NULL;
 	if (sym->type == SYM_NODE) {
-		ctype = evaluate_symbol_call(expr);
-		if (!ctype)
+		if (evaluate_symbol_call(expr))
 			return expr->ctype;
 	}
 	if (ctype->type != SYM_FN) {
