@@ -68,6 +68,7 @@ struct symbol_op {
 struct symbol {
 	enum namespace namespace:8;
 	enum type type:8;
+	unsigned char used:1;
 	struct position pos;		/* Where this symbol was declared */
 	struct ident *ident;		/* What identifier this symbol is associated with */
 	struct symbol *next_id;		/* Next semantic symbol that shares this identifier */
@@ -92,7 +93,6 @@ struct symbol {
 					fieldwidth:8,
 					arg_count:10,
 					variadic:1,
-					used:1,
 					initialized:1,
 					expanding:1;
 			struct expression *array_size;
