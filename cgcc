@@ -4,19 +4,40 @@
 my $cc = $ENV{'REAL_CC'} || 'cc';
 my $check = $ENV{'CHECK'} || 'check';
 
-# Look for a .c file.  We don't want to run the checker on .o or .so files
-# in the link run.  (This simplistic check knows nothing about options
-# with arguments, but it seems to do the job.)
 my $seen_a_c_file = 0;
 foreach (@ARGV) {
-    if (/^[^-].*\.c/) {
-	$seen_a_c_file = 1;
-	last;
-    }
+    # Look for a .c file.  We don't want to run the checker on .o or .so files
+    # in the link run.  (This simplistic check knows nothing about options
+    # with arguments, but it seems to do the job.)
+    $seen_a_c_file = 1 if /^[^-].*\.c/;
+
+    my $this_arg = ' ' . &quote_arg ($_);
+    $cc .= $this_arg unless &check_only_option ($_);
+    $check .= $this_arg;
 }
 
-if ($seen_a_c_file) {
-    system ($check, @ARGV);
+system ($check) if $seen_a_c_file;
+exec ($cc);
+
+# -----------------------------------------------------------------------------
+# Check if an option is for "check" only.
+
+sub check_only_option {
+    my ($arg) = @_;
+    return 1 if $arg =~ /^-W(no-?)?default-bitfield-sign$/;
+    return 0;
 }
 
-exec ($cc, @ARGV);
+# -----------------------------------------------------------------------------
+# Simple arg-quoting function.  Just adds backslashes when needed.
+
+sub quote_arg {
+    my ($arg) = @_;
+    return "''" if $arg eq '';
+    return join ('',
+		 map {
+		     m|^[-a-zA-Z0-9._/,=]+$| ? $_ : "\\" . $_;
+		 } (split (//, $arg)));
+}
+
+# -----------------------------------------------------------------------------
