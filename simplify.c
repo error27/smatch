@@ -415,13 +415,36 @@ static int canonical_order(pseudo_t p1, pseudo_t p2)
 
 static int simplify_commutative_binop(struct instruction *insn)
 {
-	if (simplify_binop(insn))
-		return REPEAT_CSE;
 	if (!canonical_order(insn->src1, insn->src2)) {
 		switch_pseudo(&insn->src1, &insn->src2);
 		return REPEAT_CSE;
 	}
 	return 0;
+}
+
+static inline int simple_pseudo(pseudo_t pseudo)
+{
+	return pseudo->type == PSEUDO_VAL || pseudo->type == PSEUDO_SYM;
+}
+
+static int simplify_associative_binop(struct instruction *insn)
+{
+	struct instruction *def;
+	pseudo_t pseudo = insn->src1;
+
+	if (!simple_pseudo(insn->src2))
+		return 0;
+	if (pseudo->type != PSEUDO_REG)
+		return 0;
+	def = pseudo->def;
+	if (def->opcode != insn->opcode)
+		return 0;
+	if (!simple_pseudo(def->src2))
+		return 0;
+	if (ptr_list_size((struct ptr_list *)def->target->users) != 1)
+		return 0;
+	switch_pseudo(&def->src1, &insn->src2);
+	return REPEAT_CSE;
 }
 
 static int simplify_constant_unop(struct instruction *insn)
@@ -674,9 +697,22 @@ int simplify_instruction(struct instruction *insn)
 	if (!insn->bb)
 		return 0;
 	switch (insn->opcode) {
-	case OP_ADD: case OP_MUL:
+	case OP_ADD:
 	case OP_AND: case OP_OR: case OP_XOR:
 	case OP_AND_BOOL: case OP_OR_BOOL:
+		if (simplify_binop(insn))
+			return REPEAT_CSE;
+		if (simplify_commutative_binop(insn))
+			return REPEAT_CSE;
+		return simplify_associative_binop(insn);
+
+	/*
+	 * Multiplication isn't associative in 2's complement,
+	 * but we could do it if signed.
+	 */
+	case OP_MUL:
+		if (simplify_binop(insn))
+			return REPEAT_CSE;
 		return simplify_commutative_binop(insn);
 
 	case OP_SUB: case OP_DIV: case OP_MOD:
