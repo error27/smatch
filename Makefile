@@ -1,20 +1,23 @@
+CC=gcc
 CFLAGS=-g -Wall
 
 PROGRAMS=test-lexing test-parsing
+HEADERS=token.h parse.h lib.h symbol.h
+COMMON=parse.o tokenize.o pre-process.o symbol.o lib.o
 
 all: $(PROGRAMS)
 
-test-lexing: test-lexing.o parse.o tokenize.o pre-process.o symbol.o lib.o
-	gcc -o $@ test-lexing.o parse.o tokenize.o pre-process.o symbol.o lib.o
+test-lexing: test-lexing.o $(COMMON)
+	gcc -o $@ $< $(COMMON)
 
-test-parsing: test-parsing.o parse.o tokenize.o symbol.o pre-process.o lib.o 
-	gcc -o $@ test-parsing.o parse.o tokenize.o symbol.o pre-process.o lib.o
+test-parsing: test-parsing.o $(COMMON)
+	gcc -o $@ $< $(COMMON)
 
-test-parsing.o: token.h parse.h
-test-lexing.o: token.h
-tokenize.o: token.h
-parse.o: token.h parse.h
-symbol.o: symbol.h token.h parse.h
+test-parsing.o: $(HEADERS)
+test-lexing.o: $(HEADERS)
+tokenize.o: $(HEADERS)
+parse.o: $(HEADERS)
+symbol.o: $(HEADERS)
 
 clean:
 	rm -f *.[oasi] core core.[0-9]* $(PROGRAMS)
