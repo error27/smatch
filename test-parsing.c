@@ -23,6 +23,7 @@ char *includepath[] = {
 #if 1
 	"/home/torvalds/v2.5/linux/include/",
 	"/home/torvalds/v2.5/linux/include/asm-i386/mach-default/",
+	"/home/torvalds/v2.5/linux/drivers/scsi/",
 #else
 	"/usr/include/",
 	"/usr/local/include/",
@@ -69,9 +70,11 @@ int main(int argc, char **argv)
 	// Parse the resulting C code
 	translation_unit(token, &list);
 
+#if 0
 	// Show the end result.
 	show_symbol_list(list, "\n\n");
 	printf("\n\n");
+#endif
 
 	// And show the allocation statistics
 	show_ident_alloc();

@@ -694,15 +694,15 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 	if (!ident)
 		return expect(token, ';', "end of type declaration");
 
+	decl->ident = ident;
+
 	/* type define declaration? */
 	if (ctype.modifiers & MOD_TYPEDEF) {
 		bind_symbol(decl, ident->ident, NS_TYPEDEF);
-		return expect(token, ';', "end of typedef");
+	} else {
+		add_symbol(list, decl);
+		bind_symbol(decl, ident->ident, NS_SYMBOL);
 	}
-
-	decl->ident = ident;
-	add_symbol(list, decl);
-	bind_symbol(decl, ident->ident, NS_SYMBOL);
 
 	if (decl->type == SYM_FN && match_op(token, '{')) {
 		decl->stmt = alloc_statement(token, STMT_COMPOUND);
@@ -729,8 +729,12 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 			return token;
 		}
 
-		add_symbol(list, decl);
-		bind_symbol(decl, ident->ident, NS_SYMBOL);
+		if (ctype.modifiers & MOD_TYPEDEF) {
+			bind_symbol(decl, ident->ident, NS_TYPEDEF);
+		} else {
+			add_symbol(list, decl);
+			bind_symbol(decl, ident->ident, NS_SYMBOL);
+		}
 	}
 	return expect(token, ';', "at end of declaration");
 }
