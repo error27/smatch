@@ -47,8 +47,6 @@ struct stream {
 extern int input_stream_nr;
 extern struct stream *input_streams;
 
-extern int ident_hit, ident_miss;
-
 struct ident {
 	struct ident *next;	/* Hash chain of identifiers */
 	struct symbol *symbols;	/* Pointer to semantic meaning list */
