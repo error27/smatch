@@ -2449,7 +2449,7 @@ static void evaluate_asm_statement(struct statement *stmt)
 		case 1: /* Constraint */
 			state = 2;
 			if (!expr || expr->type != EXPR_STRING) {
-				warning(expr->pos, "asm output constraint is not a string");
+				warning(expr ? expr->pos : stmt->pos, "asm output constraint is not a string");
 				*THIS_ADDRESS(expr) = NULL;
 				continue;
 			}
@@ -2480,7 +2480,7 @@ static void evaluate_asm_statement(struct statement *stmt)
 		case 1:	/* Constraint */
 			state = 2;
 			if (!expr || expr->type != EXPR_STRING) {
-				warning(expr->pos, "asm input constraint is not a string");
+				warning(expr ? expr->pos : stmt->pos, "asm input constraint is not a string");
 				*THIS_ADDRESS(expr) = NULL;
 				continue;
 			}
