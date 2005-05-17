@@ -1354,7 +1354,7 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn,
 	if (match_op(token, ')')) {
 		// No warning for "void oink ();"
 		// Bug or feature: warns for "void oink () __attribute__ ((noreturn));"
-		if (!match_op(token->next, ';'))
+		if (*p && !match_op(token->next, ';'))
 			warning(token->pos, "non-ANSI function declaration of function '%s'", show_ident(*p));
 		return token;
 	}
