@@ -29,7 +29,7 @@
 
 static int true_nesting = 0;
 static int false_nesting = 0;
-static struct token *unmatched_if = NULL;
+static struct position unmatched_if_pos;
 #define if_nesting (true_nesting + false_nesting)
 
 #define MAX_NEST (256)
@@ -1146,7 +1146,7 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 static int preprocessor_if(struct token *token, int true)
 {
 	if (if_nesting == 0)
-		unmatched_if = token;
+		unmatched_if_pos = token->pos;
 	if (if_nesting >= MAX_NEST)
 		error_die(token->pos, "Maximum preprocessor conditional level exhausted");
 	elif_ignore[if_nesting] = (false_nesting || true) ? ELIF_IGNORE : 0;
@@ -1627,7 +1627,7 @@ static void do_preprocess(struct token **list)
 		switch (token_type(next)) {
 		case TOKEN_STREAMEND:
 			if (stream->nesting < if_nesting + 1) {
-				warning(unmatched_if->pos, "unterminated preprocessor conditional");
+				warning(unmatched_if_pos, "unterminated preprocessor conditional");
 				// Pretend to see a series of #endifs
 				MARK_STREAM_NONCONST(next->pos);
 				do {
