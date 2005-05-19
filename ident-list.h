@@ -71,6 +71,7 @@ IDENT_RESERVED(__range__);
 /* Magic function names we recognize */
 IDENT(memset); IDENT(memcpy);
 IDENT(copy_to_user); IDENT(copy_from_user);
+IDENT(main);
 
 #undef __IDENT
 #undef IDENT
