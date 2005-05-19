@@ -1321,6 +1321,8 @@ static int handle_endif(struct stream *stream, struct token **line, struct token
 		false_nesting--;
 	else
 		true_nesting--;
+	if (!token)
+		return 1;
 	return free_preprocessor_line(token);
 }
 
