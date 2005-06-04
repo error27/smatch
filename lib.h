@@ -19,6 +19,7 @@
 
 extern int verbose, optimize, preprocessing;
 extern int repeat_phase, merge_phi_sources;
+extern int gcc_major, gcc_minor;
 
 extern unsigned int hexval(unsigned int c);
 

@@ -29,6 +29,8 @@
 #include "target.h"
 
 int verbose, optimize, preprocessing;
+int gcc_major = 2;
+int gcc_minor = 95;
 
 struct token *skip_to(struct token *token, int op)
 {
@@ -409,8 +411,8 @@ void declare_builtin_functions(void)
 
 void create_builtin_stream(void)
 {
-	add_pre_buffer("#define __GNUC__ 2\n");
-	add_pre_buffer("#define __GNUC_MINOR__ 95\n");
+	add_pre_buffer("#define __GNUC__ %d\n", gcc_major);
+	add_pre_buffer("#define __GNUC_MINOR__ %d\n", gcc_minor);
 	add_pre_buffer("#define __extension__\n");
 	add_pre_buffer("#define __pragma__\n");
 
