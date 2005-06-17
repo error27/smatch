@@ -44,7 +44,7 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 
 	examine_symbol_type(sym);
 
-	base_type = sym->ctype.base_type;
+	base_type = get_base_type(sym);
 	if (!base_type) {
 		warning(expr->pos, "identifier '%s' has no type", show_ident(expr->symbol_name));
 		return NULL;
@@ -1235,7 +1235,7 @@ static struct symbol *degenerate(struct expression *expr)
 	ctype = expr->ctype;
 	if (!ctype)
 		return NULL;
-	base = ctype;
+	base = examine_symbol_type(ctype);
 	if (ctype->type == SYM_NODE)
 		base = ctype->ctype.base_type;
 	/*
@@ -1594,7 +1594,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	 * the "parent" type.
 	 */
 	member = convert_to_as_mod(member, address_space, mod);
-	ctype = member->ctype.base_type;
+	ctype = get_base_type(member);
 
 	if (!lvalue_expression(deref)) {
 		if (deref->type != EXPR_SLICE) {
