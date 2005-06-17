@@ -350,7 +350,6 @@ static struct symbol *examine_pointer_type(struct symbol *sym)
 		sym->bit_size = bits_in_pointer;
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = pointer_alignment;
-	examine_base_type(sym);
 	return sym;
 }
 
@@ -394,9 +393,8 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 				warning(base->pos, "typeof applied to bitfield type");
 			if (base->type == SYM_NODE)
 				base = base->ctype.base_type;
-			sym->type = SYM_NODE;
-			sym->ctype.base_type = base;
-			sym->bit_size = base->bit_size;
+			*sym = *base;
+			break;
 		}
 		break;
 	}

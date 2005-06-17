@@ -463,7 +463,7 @@ static int ptr_object_size(struct symbol *ptr_type)
 	if (ptr_type->type == SYM_NODE)
 		ptr_type = ptr_type->ctype.base_type;
 	if (ptr_type->type == SYM_PTR)
-		ptr_type = ptr_type->ctype.base_type;
+		ptr_type = get_base_type(ptr_type);
 	return ptr_type->bit_size;
 }
 
@@ -599,6 +599,7 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 		 * Pointers to functions compare as the function itself
 		 */
 		if (type1 == SYM_PTR && base1) {
+			base1 = examine_symbol_type(base1);
 			switch (base1->type) {
 			case SYM_FN:
 				type1 = SYM_FN;
@@ -609,6 +610,7 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 			}
 		}
 		if (type2 == SYM_PTR && base2) {
+			base2 = examine_symbol_type(base2);
 			switch (base2->type) {
 			case SYM_FN:
 				type2 = SYM_FN;
@@ -751,7 +753,7 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expressio
 		warning(expr->pos, "subtraction of functions? Share your drugs");
 		return NULL;
 	}
-	ctype = ctype->ctype.base_type;
+	ctype = get_base_type(ctype);
 
 	expr->ctype = ssize_t_ctype;
 	if (ctype->bit_size > bits_in_char) {
@@ -1093,8 +1095,8 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			source_as |= s->ctype.as;
 		}
 		if (source_as == target_as && (s->type == SYM_PTR || s->type == SYM_ARRAY)) {
-			s = s->ctype.base_type;
-			t = t->ctype.base_type;
+			s = get_base_type(s);
+			t = get_base_type(t);
 			if (s == &void_ctype || t == &void_ctype)
 				goto Cast;
 		}
@@ -1713,7 +1715,7 @@ static struct symbol *evaluate_ptrsizeof(struct expression *expr)
 	case SYM_ARRAY:
 		break;
 	case SYM_PTR:
-		type = type->ctype.base_type;
+		type = get_base_type(type);
 		if (type)
 			break;
 	default:
@@ -1954,7 +1956,7 @@ static void evaluate_initializer(struct symbol *ctype, struct expression **ep)
 		switch (ctype->type) {
 		case SYM_ARRAY:
 		case SYM_PTR:
-			evaluate_array_initializer(ctype->ctype.base_type, expr);
+			evaluate_array_initializer(get_base_type(ctype), expr);
 			return;
 		case SYM_UNION:
 			evaluate_struct_or_union_initializer(ctype, expr, 0);
@@ -2022,7 +2024,7 @@ static int get_as(struct symbol *sym)
 		return -1;
 
 	if (sym && sym->type == SYM_PTR) {
-		sym = sym->ctype.base_type;
+		sym = get_base_type(sym);
 		as |= sym->ctype.as;
 		mod |= sym->ctype.modifiers;
 	}
@@ -2176,7 +2178,7 @@ static struct symbol *evaluate_call(struct expression *expr)
 	if (ctype->type == SYM_NODE)
 		ctype = ctype->ctype.base_type;
 	if (ctype->type == SYM_PTR || ctype->type == SYM_ARRAY)
-		ctype = ctype->ctype.base_type;
+		ctype = get_base_type(ctype);
 	if (!evaluate_arguments(sym, ctype, arglist))
 		return NULL;
 	if (ctype->type != SYM_FN) {
@@ -2328,7 +2330,7 @@ static struct symbol *evaluate_symbol(struct symbol *sym)
 		return sym;
 
 	sym = examine_symbol_type(sym);
-	base_type = sym->ctype.base_type;
+	base_type = get_base_type(sym);
 	if (!base_type)
 		return NULL;
 

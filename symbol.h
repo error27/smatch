@@ -222,6 +222,11 @@ extern void debug_symbol(struct symbol *);
 extern void merge_type(struct symbol *sym, struct symbol *base_type);
 extern void check_declaration(struct symbol *sym);
 
+static inline struct symbol *get_base_type(const struct symbol *sym)
+{
+	return examine_symbol_type(sym->ctype.base_type);
+}
+
 static inline int is_int_type(const struct symbol *type)
 {
 	if (type->type == SYM_NODE)
