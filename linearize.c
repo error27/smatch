@@ -1306,11 +1306,15 @@ static pseudo_t linearize_short_conditional(struct entrypoint *ep, struct expres
 					    struct expression *expr_false)
 {
 	pseudo_t src1, src2;
-	struct basic_block *bb_false = alloc_basic_block(ep, expr_false->pos);
+	struct basic_block *bb_false;
 	struct basic_block *merge = alloc_basic_block(ep, expr->pos);
 	pseudo_t phi1, phi2;
 	int size = type_size(expr->ctype);
 
+	if (!expr_false)
+		return VOID;
+
+	bb_false = alloc_basic_block(ep, expr_false->pos);
 	src1 = linearize_expression(ep, cond);
 	phi1 = alloc_phi(ep->active, src1, size);
 	add_branch(ep, expr, src1, merge, bb_false);
