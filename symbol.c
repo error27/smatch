@@ -489,6 +489,22 @@ static int evaluate_to_integer(struct expression *expr)
 	return 1;
 }
 
+static int evaluate_expect(struct expression *expr)
+{
+	/* Should we evaluate it to return the type of the first argument? */
+	expr->ctype = &int_ctype;
+	return 1;
+}
+
+static int expand_expect(struct expression *expr)
+{
+	struct expression *arg = first_ptr_list((struct ptr_list *) expr->args);
+
+	if (arg)
+		*expr = *arg;
+	return 0;
+}
+
 /*
  * __builtin_warning() has type "int" and always returns 1,
  * so that you can use it in conditionals or whatever
@@ -622,6 +638,11 @@ static struct symbol_op warning_op = {
 	.expand = expand_warning
 };
 
+static struct symbol_op expect_op = {
+	.evaluate = evaluate_expect,
+	.expand = expand_expect
+};
+
 /*
  * Builtin functions
  */
@@ -630,6 +651,7 @@ static struct sym_init eval_init_table[] = {
 	{ "__builtin_constant_p", &builtin_fn_type, MOD_TOPLEVEL, &constant_p_op },
 	{ "__builtin_safe_p", &builtin_fn_type, MOD_TOPLEVEL, &safe_p_op },
 	{ "__builtin_warning", &builtin_fn_type, MOD_TOPLEVEL, &warning_op },
+	{ "__builtin_expect", &builtin_fn_type, MOD_TOPLEVEL, &expect_op },
 	{ NULL,		NULL,		0 }
 };
 
