@@ -80,6 +80,7 @@ extern int Wptr_subtraction_blows;
 extern int Wdefault_bitfield_sign;
 extern int Wundefined_preprocessor;
 extern int Wbitwise, Wtypesign, Wcontext;
+extern int Wtransparent_union;
 
 extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);

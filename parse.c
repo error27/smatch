@@ -373,7 +373,8 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 		ctype->modifiers |= MOD_FORCE;
 		return NULL;
 	}
-	if (attribute == &bitwise_ident) {
+	if (attribute == &bitwise_ident ||
+            attribute == &__bitwise___ident) {
 		if (Wbitwise)
 			ctype->modifiers |= MOD_BITWISE;
 		return NULL;
@@ -437,6 +438,21 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 	}
 
 	/* Throw away for now.. */
+	if (attribute == &__transparent_union___ident) {
+		if (Wtransparent_union)
+		    return "ignoring attribute __transparent_union__";
+		return NULL;
+	}
+	if (attribute == &nothrow_ident ||
+	    attribute == &__nothrow_ident ||
+	    attribute == &__nothrow___ident)
+		return NULL;
+	if (attribute == &__malloc___ident)
+		return NULL;
+	if (attribute == &nonnull_ident ||
+	    attribute == &__nonnull_ident ||
+	    attribute == &__nonnull___ident)
+		return NULL;
 	if (attribute == &format_ident ||
 	    attribute == &__format___ident ||
 	    attribute == &__format_arg___ident)
@@ -456,11 +472,13 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 		return NULL;
 	if (attribute == &regparm_ident)
 		return NULL;
-	if (attribute == &weak_ident)
+	if (attribute == &weak_ident ||
+	    attribute == &__weak___ident)
 		return NULL;
 	if (attribute == &alias_ident)
 		return NULL;
-	if (attribute == &pure_ident)
+	if (attribute == &pure_ident ||
+	    attribute == &__pure___ident)
 		return NULL;
 	if (attribute == &always_inline_ident)
 		return NULL;
@@ -468,13 +486,15 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 		return NULL;
 	if (attribute == &visibility_ident)
 		return NULL;
-	if (attribute == &deprecated_ident)
+	if (attribute == &deprecated_ident ||
+	    attribute == &__deprecated___ident)
 		return NULL;
 	if (attribute == &noinline_ident)
 		return NULL;
 	if (attribute == &__used___ident)
 		return NULL;
-	if (attribute == &warn_unused_result_ident)
+	if (attribute == &warn_unused_result_ident ||
+	    attribute == &__warn_unused_result___ident)
 		return NULL;
 	if (attribute == &model_ident ||
 	    attribute == &__model___ident)

@@ -170,6 +170,7 @@ int Wtypesign = 0;
 int Wcontext = 0;
 int Wundefined_preprocessor = 0;
 int Wptr_subtraction_blows = 0;
+int Wtransparent_union = 1;
 int preprocess_only;
 char *include;
 int include_fd = -1;
@@ -300,6 +301,7 @@ static const struct warning {
 	{ "bitwise", &Wbitwise },
 	{ "typesign", &Wtypesign },
 	{ "context", &Wcontext },
+	{ "transparent-union", &Wtransparent_union },
 };
 
 

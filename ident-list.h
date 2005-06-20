@@ -52,12 +52,19 @@ IDENT(warn_unused_result);
 IDENT(noinline);
 IDENT(deprecated);
 IDENT(__const); IDENT(__const__); IDENT(noreturn);
-IDENT(__noreturn__); IDENT(regparm); IDENT(weak);
+IDENT(__noreturn__); IDENT(regparm); IDENT(weak); IDENT(__weak__);
 IDENT(alias); IDENT(pure); IDENT(always_inline);
 IDENT(syscall_linkage); IDENT(visibility);
-IDENT(bitwise);
+IDENT(bitwise); IDENT(__bitwise__);
 IDENT(model); IDENT(__model__);
 IDENT(__format_arg__);
+IDENT(nothrow); IDENT(__nothrow); IDENT(__nothrow__);
+IDENT(__transparent_union__);
+IDENT(__pure__);
+IDENT(__malloc__);
+IDENT(nonnull); IDENT(__nonnull); IDENT(__nonnull__);
+IDENT(__deprecated__);
+IDENT(__warn_unused_result__);
 
 /* Preprocessor idents */
 __IDENT(pragma_ident, "__pragma__", 0);
