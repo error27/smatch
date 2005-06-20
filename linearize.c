@@ -1141,8 +1141,8 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 	pseudo_t value;
 
 	value = linearize_expression(ep, src);
-	if (!linearize_address_gen(ep, target, &ad))
-		return VOID;
+	if (!target || !linearize_address_gen(ep, target, &ad))
+		return value;
 	if (expr->op != '=') {
 		pseudo_t oldvalue = linearize_load_gen(ep, &ad);
 		pseudo_t dst;
