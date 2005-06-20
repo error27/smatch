@@ -29,8 +29,14 @@
 #include "target.h"
 
 int verbose, optimize, preprocessing;
-int gcc_major = 2;
-int gcc_minor = 95;
+
+#ifndef __GNUC__
+# define __GNUC__ 2
+# define __GNUC_MINOR__ 95
+#endif
+
+int gcc_major = __GNUC__;
+int gcc_minor = __GNUC_MINOR__;
 
 struct token *skip_to(struct token *token, int op)
 {
