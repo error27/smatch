@@ -696,7 +696,7 @@ static struct token *logical_or_expression(struct token *token, struct expressio
 struct token *conditional_expression(struct token *token, struct expression **tree)
 {
 	token = logical_or_expression(token, tree);
-	if (match_op(token, '?')) {
+	if (*tree && match_op(token, '?')) {
 		struct expression *expr = alloc_expression(token->pos, EXPR_CONDITIONAL);
 		expr->op = token->special;
 		expr->left = *tree;
@@ -711,7 +711,7 @@ struct token *conditional_expression(struct token *token, struct expression **tr
 struct token *assignment_expression(struct token *token, struct expression **tree)
 {
 	token = conditional_expression(token, tree);
-	if (token_type(token) == TOKEN_SPECIAL) {
+	if (*tree && token_type(token) == TOKEN_SPECIAL) {
 		static const int assignments[] = {
 			'=',
 			SPECIAL_ADD_ASSIGN, SPECIAL_SUB_ASSIGN,
