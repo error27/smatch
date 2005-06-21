@@ -1334,10 +1334,14 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 {
 	pseudo_t src1, src2;
 	pseudo_t phi1, phi2;
-	struct basic_block *bb_true = alloc_basic_block(ep, expr_true->pos);
-	struct basic_block *bb_false = alloc_basic_block(ep, expr_false->pos);
-	struct basic_block *merge = alloc_basic_block(ep, expr->pos);
+	struct basic_block *bb_true, *bb_false, *merge;
 	int size = type_size(expr->ctype);
+
+	if (!cond || !expr_true || !expr_false)
+		return VOID;
+	bb_true = alloc_basic_block(ep, expr_true->pos);
+	bb_false = alloc_basic_block(ep, expr_false->pos);
+	merge = alloc_basic_block(ep, expr->pos);
 
 	linearize_cond_branch(ep, cond, bb_true, bb_false);
 
