@@ -496,7 +496,7 @@ static int evaluate_expect(struct expression *expr)
 	return 1;
 }
 
-static int expand_expect(struct expression *expr)
+static int expand_expect(struct expression *expr, int cost)
 {
 	struct expression *arg = first_ptr_list((struct ptr_list *) expr->args);
 
