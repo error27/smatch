@@ -1160,6 +1160,9 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 		};
 		int opcode;
 
+		if (!src)
+			return VOID;
+
 		oldvalue = cast_pseudo(ep, oldvalue, src->ctype, expr->ctype);
 		opcode = opcode_sign(op_trans[expr->op - SPECIAL_BASE], src->ctype);
 		dst = add_binary_op(ep, src->ctype, opcode, oldvalue, value);
