@@ -1311,7 +1311,7 @@ static pseudo_t linearize_short_conditional(struct entrypoint *ep, struct expres
 	pseudo_t phi1, phi2;
 	int size = type_size(expr->ctype);
 
-	if (!expr_false)
+	if (!expr_false || !ep->active)
 		return VOID;
 
 	bb_false = alloc_basic_block(ep, expr_false->pos);
@@ -1337,7 +1337,7 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 	struct basic_block *bb_true, *bb_false, *merge;
 	int size = type_size(expr->ctype);
 
-	if (!cond || !expr_true || !expr_false)
+	if (!cond || !expr_true || !expr_false || !ep->active)
 		return VOID;
 	bb_true = alloc_basic_block(ep, expr_true->pos);
 	bb_false = alloc_basic_block(ep, expr_false->pos);
