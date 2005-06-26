@@ -1452,6 +1452,9 @@ pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 	pseudo_t src;
 	struct expression *orig = expr->cast_expression;
 
+	if (!orig)
+		return VOID;
+
 	src = linearize_expression(ep, orig);
 	return cast_pseudo(ep, src, orig->ctype, expr->ctype);
 }
