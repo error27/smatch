@@ -1676,7 +1676,7 @@ static void add_asm_output(struct entrypoint *ep, struct instruction *insn, stru
 	pseudo_t pseudo = alloc_pseudo(insn);
 	struct asm_constraint *rule;
 
-	if (!linearize_address_gen(ep, expr, &ad))
+	if (!expr || !linearize_address_gen(ep, expr, &ad))
 		return;
 	linearize_store_gen(ep, pseudo, &ad);
 	finish_address_gen(ep, &ad);
