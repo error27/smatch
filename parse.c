@@ -1473,6 +1473,10 @@ static struct token *single_initializer(struct expression **ep, struct token *to
 		} else if (match_op(token, '[')) {
 			struct expression *from = NULL, *to = NULL, *expr;
 			token = constant_expression(token->next, &from);
+			if (!from) {
+				warning(token->pos, "Expected constant expression");
+				break;
+			}
 			if (match_op(token, SPECIAL_ELLIPSIS))
 				token = constant_expression(token->next, &to);
 			expr = index_expression(from, to);
