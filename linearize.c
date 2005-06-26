@@ -1738,7 +1738,7 @@ pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 
 		case 1:	/* Constraint */
 			state = 2;
-			constraint = expr->string->data;
+			constraint = expr ? expr->string->data : "";
 			continue;
 
 		case 2:
