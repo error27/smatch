@@ -1,6 +1,3 @@
-#ifndef TARGET_H
-#define TARGET_H
-
 #include <stdio.h>
 
 #include "symbol.h"
@@ -46,5 +43,3 @@ int pointer_alignment = 4;
  */
 int bits_in_enum = 32;
 int enum_alignment = 4;
-
-#endif
