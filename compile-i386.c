@@ -169,8 +169,8 @@ struct atom {
 };
 
 
-struct function *current_func = NULL;
-struct textbuf *unit_post_text = NULL;
+static struct function *current_func = NULL;
+static struct textbuf *unit_post_text = NULL;
 static const char *current_section;
 
 static void emit_comment(const char * fmt, ...);
@@ -256,7 +256,7 @@ static inline struct storage * reginfo_reg(struct reg_info *info)
 	return hardreg_storage_table + info->own_regno;
 }
 
-struct storage * get_hardreg(struct storage *reg, int clear)
+static struct storage * get_hardreg(struct storage *reg, int clear)
 {
 	struct reg_info *info = reg->reg;
 	const unsigned char *aliases;
@@ -278,7 +278,7 @@ busy:
 	exit(1);
 }
 
-void put_reg(struct storage *reg)
+static void put_reg(struct storage *reg)
 {
 	struct reg_info *info = reg->reg;
 	int regno = info->own_regno;
@@ -298,7 +298,7 @@ static struct regclass regclass_16 = { "16-bit", { AX, DX, CX, BX, SI, DI, BP }}
 static struct regclass regclass_32 = { "32-bit", { EAX, EDX, ECX, EBX, ESI, EDI, EBP }};
 static struct regclass regclass_64 = { "64-bit", { EAX_EDX, ECX_EBX, ESI_EDI }};
 
-struct regclass regclass_32_8 = { "32-bit bytes", { EAX, EDX, ECX, EBX }};
+static struct regclass regclass_32_8 = { "32-bit bytes", { EAX, EDX, ECX, EBX }};
 
 static struct regclass *get_regclass_bits(int bits)
 {
@@ -332,7 +332,7 @@ busy:
 	return 1;
 }
 
-struct storage *get_reg(struct regclass *class)
+static struct storage *get_reg(struct regclass *class)
 {
 	const unsigned char *regs = class->regs;
 	int regno;
@@ -347,7 +347,7 @@ struct storage *get_reg(struct regclass *class)
 	exit(1);
 }
 
-struct storage *get_reg_value(struct storage *value, struct regclass *class)
+static struct storage *get_reg_value(struct storage *value, struct regclass *class)
 {
 	struct reg_info *info;
 	struct storage *reg;

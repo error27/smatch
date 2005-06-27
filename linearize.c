@@ -1447,7 +1447,7 @@ static pseudo_t linearize_logical_branch(struct entrypoint *ep, struct expressio
 	return VOID;
 }
 
-pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
+static pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 {
 	pseudo_t src;
 	struct expression *orig = expr->cast_expression;
@@ -1459,7 +1459,7 @@ pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 	return cast_pseudo(ep, src, orig->ctype, expr->ctype);
 }
 
-pseudo_t linearize_position(struct entrypoint *ep, struct expression *pos, struct access_data *ad)
+static pseudo_t linearize_position(struct entrypoint *ep, struct expression *pos, struct access_data *ad)
 {
 	struct expression *init_expr = pos->init_expr;
 
@@ -1493,7 +1493,7 @@ pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initial
 	return VOID;
 }
 
-void linearize_argument(struct entrypoint *ep, struct symbol *arg, int nr)
+static void linearize_argument(struct entrypoint *ep, struct symbol *arg, int nr)
 {
 	struct access_data ad = { NULL, };
 
@@ -1629,7 +1629,7 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 	return pseudo;
 }
 
-pseudo_t linearize_context(struct entrypoint *ep, struct statement *stmt)
+static pseudo_t linearize_context(struct entrypoint *ep, struct statement *stmt)
 {
 	struct instruction *insn = alloc_instruction(OP_CONTEXT, 0);
 	struct expression *expr = stmt->expression;
@@ -1643,7 +1643,7 @@ pseudo_t linearize_context(struct entrypoint *ep, struct statement *stmt)
 	return VOID;
 }
 
-pseudo_t linearize_range(struct entrypoint *ep, struct statement *stmt)
+static pseudo_t linearize_range(struct entrypoint *ep, struct statement *stmt)
 {
 	struct instruction *insn = alloc_instruction(OP_RANGE, 0);
 
@@ -1687,7 +1687,7 @@ static void add_asm_output(struct entrypoint *ep, struct instruction *insn, stru
 	add_ptr_list(&insn->asm_rules->outputs, rule);
 }
 
-pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
+static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 {
 	int state;
 	struct expression *expr;

@@ -19,7 +19,7 @@ ALLOCATOR(storage, "storages");
 ALLOCATOR(storage_hash, "storage hash");
 
 #define MAX_STORAGE_HASH 64
-struct storage_hash_list *storage_hash_table[MAX_STORAGE_HASH];
+static struct storage_hash_list *storage_hash_table[MAX_STORAGE_HASH];
 
 static inline unsigned int storage_hash(struct basic_block *bb, pseudo_t pseudo, enum inout_enum inout)
 {
@@ -128,7 +128,7 @@ static int storage_hash_cmp(const void *_a, const void *_b)
 	return 0;
 }
 
-void vrfy_storage(struct storage_hash_list **listp)
+static void vrfy_storage(struct storage_hash_list **listp)
 {
 	struct storage_hash *entry, *last;
 
