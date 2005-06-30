@@ -91,5 +91,6 @@ Q.  What other sparse resources are available?
 A.  Mailing list:  linux-sparse@vger.kernel.org
     (email majordomo@vger.kernel.org to subscribe)
 
+    Git repository:  devel/sparse/sparse.git under http://kernel.org/git/
     BitKeeper repository:  bk://sparse.bkbits.net/sparse
 
