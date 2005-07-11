@@ -195,13 +195,29 @@ static struct symbol *base_type(struct symbol *node, unsigned long *modp, unsign
 static int is_same_type(struct expression *expr, struct symbol *new)
 {
 	struct symbol *old = expr->ctype;
-	unsigned long oldmod, newmod, difmod, oldas, newas;
+	unsigned long oldmod, newmod, oldas, newas;
 
 	old = base_type(old, &oldmod, &oldas);
 	new = base_type(new, &newmod, &newas);
-	difmod = (oldmod ^ newmod) & ~MOD_NOCAST;
-	if (old == new && oldas == newas && !difmod)
-		return 1;
+
+	/* Same base type, same address space? */
+	if (old == new && oldas == newas) {
+		unsigned long difmod;
+
+		/* Check the modifier bits. */
+		difmod = (oldmod ^ newmod) & ~MOD_NOCAST;
+
+		/* Exact same type? */
+		if (!difmod)
+			return 1;
+
+		/*
+		 * Not the same type, but differs only in "const".
+		 * Don't warn about MOD_NOCAST.
+		 */
+		if (difmod == MOD_CONST)
+			return 0;
+	}
 	if ((oldmod | newmod) & MOD_NOCAST) {
 		const char *tofrom = "to/from";
 		if (!(newmod & MOD_NOCAST))
