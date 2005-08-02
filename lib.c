@@ -491,6 +491,7 @@ struct symbol_list *sparse(int argc, char **argv)
 	}
 
 	// Tokenize the input stream
+	start_file_scope();
 	token = tokenize(filename, fd, NULL, includepath);
 	close(fd);
 

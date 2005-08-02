@@ -15,16 +15,18 @@ struct scope {
 	struct scope *next;
 };
 
-static inline int toplevel(struct scope *scope)
-{
-	return scope->next == scope;
-}
-
 extern struct scope
 		*block_scope,
 		*function_scope,
-		*file_scope;
+		*file_scope,
+		*global_scope;
 
+static inline int toplevel(struct scope *scope)
+{
+	return scope == file_scope || scope == global_scope;
+}
+
+extern void start_file_scope(void);
 extern void start_symbol_scope(void);
 extern void end_symbol_scope(void);
 

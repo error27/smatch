@@ -16,11 +16,12 @@
 #include "symbol.h"
 #include "scope.h"
 
-static struct scope toplevel_scope = { .next = &toplevel_scope };
+static struct scope builtin_scope = { .next = &builtin_scope };
 
-struct scope	*block_scope = &toplevel_scope,
-		*function_scope = &toplevel_scope,
-		*file_scope = &toplevel_scope;
+struct scope	*block_scope = &builtin_scope,		// regular automatic variables etc
+		*function_scope = &builtin_scope,	// labels, arguments etc
+		*file_scope = &builtin_scope,		// static
+		*global_scope = &builtin_scope;		// externally visible
 
 void bind_scope(struct symbol *sym, struct scope *scope)
 {
@@ -34,6 +35,18 @@ static void start_scope(struct scope **s)
 	memset(scope, 0, sizeof(*scope));
 	scope->next = *s;
 	*s = scope;
+}
+
+void start_file_scope(void)
+{
+	struct scope *scope = __alloc_scope(0);
+	memset(scope, 0, sizeof(*scope));
+	scope->next = &builtin_scope;
+	file_scope = scope;
+
+	/* top-level stuff defaults to global, "static" will choose file scope */
+	function_scope = global_scope;
+	block_scope = global_scope;
 }
 
 void start_symbol_scope(void)
