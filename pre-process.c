@@ -1676,7 +1676,8 @@ struct token * preprocess(struct token *token)
 	do_preprocess(&token);
 
 	// Drop all expressions from pre-processing, they're not used any more.
-	clear_expression_alloc();
+	// This is not true when we have multiple files, though ;/
+	// clear_expression_alloc();
 	preprocessing = 0;
 
 	return token;
