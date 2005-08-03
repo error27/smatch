@@ -17,6 +17,7 @@ struct allocator_struct {
 	unsigned int allocations, total_bytes, useful_bytes;
 };
 
+extern void protect_allocations(struct allocator_struct *desc);
 extern void drop_all_allocations(struct allocator_struct *desc);
 extern void *allocate(struct allocator_struct *desc, unsigned int size);
 extern void free_one_entry(struct allocator_struct *desc, void *entry);
@@ -26,11 +27,12 @@ extern void show_allocations(struct allocator_struct *);
 	extern type *__alloc_##x(int);		\
 	extern void __free_##x(type *);		\
 	extern void show_##x##_alloc(void);	\
-	extern void clear_##x##_alloc(void);
+	extern void clear_##x##_alloc(void);	\
+	extern void protect_##x##_alloc(void);
 #define DECLARE_ALLOCATOR(x) __DECLARE_ALLOCATOR(struct x, x)
 
 #define __ALLOCATOR(type, objsize, objalign, objname, x)	\
-	struct allocator_struct x##_allocator = {		\
+	static struct allocator_struct x##_allocator = {	\
 		.name = objname,				\
 		.alignment = objalign,				\
 		.chunking = CHUNK };				\
@@ -49,6 +51,10 @@ extern void show_allocations(struct allocator_struct *);
 	void clear_##x##_alloc(void)				\
 	{							\
 		drop_all_allocations(&x##_allocator);		\
+	}							\
+	void protect_##x##_alloc(void)				\
+	{							\
+		protect_allocations(&x##_allocator);		\
 	}
 
 #define ALLOCATOR(x, n) __ALLOCATOR(struct x, sizeof(struct x), __alignof__(struct x), n, x)

@@ -27,6 +27,11 @@
 #include "expression.h"
 #include "linearize.h"
 
+void protect_allocations(struct allocator_struct *desc)
+{
+	desc->blobs = NULL;
+}
+
 void drop_all_allocations(struct allocator_struct *desc)
 {
 	struct allocation_blob *blob = desc->blobs;
