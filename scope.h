@@ -27,6 +27,8 @@ static inline int toplevel(struct scope *scope)
 }
 
 extern void start_file_scope(void);
+extern void end_file_scope(void);
+
 extern void start_symbol_scope(void);
 extern void end_symbol_scope(void);
 

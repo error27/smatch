@@ -469,6 +469,8 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 		else
 			sym->ctype.modifiers |= MOD_ADDRESSABLE;
 	}
+	if (ns == NS_MACRO)
+		scope = file_scope;
 	if (ns == NS_LABEL)
 		scope = function_scope;
 	bind_scope(sym, scope);

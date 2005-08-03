@@ -10,6 +10,7 @@
  */
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "lib.h"
 #include "allocate.h"
@@ -64,8 +65,12 @@ static void remove_symbol_scope(struct symbol *sym)
 {
 	struct symbol **ptr = sym->id_list;
 
-	while (*ptr != sym)
+	while (*ptr != sym) {
+		/* Macros can get removed from scope early with #undef! */
+		if (!*ptr)
+			return;
 		ptr = &(*ptr)->next_id;
+	}
 	*ptr = sym->next_id;
 }
 
@@ -80,6 +85,11 @@ static void end_scope(struct scope **s)
 	FOR_EACH_PTR(symbols, sym) {
 		remove_symbol_scope(sym);
 	} END_FOR_EACH_PTR(sym);
+}
+
+void end_file_scope(void)
+{
+	end_scope(&file_scope);
 }
 
 void end_symbol_scope(void)
