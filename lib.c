@@ -368,7 +368,6 @@ struct switches {
 
 char **handle_switch(char *arg, char **next)
 {
-	char **rc = next;
 	static struct switches cmd[] = {
 		{ "nostdinc", handle_nostdinc },
 		{ "dirafter", handle_dirafter },
@@ -377,17 +376,17 @@ char **handle_switch(char *arg, char **next)
 	struct switches *s;
 
 	switch (*arg) {
-	case 'D': rc = handle_switch_D(arg, next); break;
-	case 'E': rc = handle_switch_E(arg, next); break;
-	case 'I': rc = handle_switch_I(arg, next); break;
-	case 'i': rc = handle_switch_i(arg, next); break;
-	case 'M': rc = handle_switch_M(arg, next); break;
-	case 'm': rc = handle_switch_m(arg, next); break;
-	case 'o': rc = handle_switch_o(arg, next); break;
-	case 'U': rc = handle_switch_U(arg, next); break;
-	case 'v': rc = handle_switch_v(arg, next); break;
-	case 'W': rc = handle_switch_W(arg, next); break;
-	case 'O': rc = handle_switch_O(arg, next); break;
+	case 'D': return handle_switch_D(arg, next);
+	case 'E': return handle_switch_E(arg, next);
+	case 'I': return handle_switch_I(arg, next);
+	case 'i': return handle_switch_i(arg, next);
+	case 'M': return handle_switch_M(arg, next);
+	case 'm': return handle_switch_m(arg, next);
+	case 'o': return handle_switch_o(arg, next);
+	case 'U': return handle_switch_U(arg, next);
+	case 'v': return handle_switch_v(arg, next);
+	case 'W': return handle_switch_W(arg, next);
+	case 'O': return handle_switch_O(arg, next);
 	default:
 		break;
 	}
@@ -403,7 +402,7 @@ char **handle_switch(char *arg, char **next)
 	 * Ignore unknown command line options:
 	 * they're probably gcc switches
 	 */
-	return rc;
+	return next;
 }
 
 void declare_builtin_functions(void)
@@ -439,48 +438,17 @@ void create_builtin_stream(void)
 	add_pre_buffer("#define __builtin_va_arg_incr(x) ((x) + 1)\n");
 	add_pre_buffer("#define __builtin_va_end(arg)\n");
 	add_pre_buffer("#define __builtin_offsetof(type, name) ((__SIZE_TYPE__)&((type *)(0ul))->name)\n");
-}
 
-static void do_predefined(char *filename)
-{
-	add_pre_buffer("#define __BASE_FILE__ \"%s\"\n", filename);
+	/* FIXME! We need to do these as special magic macros at expansion time! */
+	add_pre_buffer("#define __BASE_FILE__ \"base_file.c\"\n");
 	add_pre_buffer("#define __DATE__ \"??? ?? ????\"\n");
 	add_pre_buffer("#define __TIME__ \"??:??:??\"\n");
 }
 
-struct symbol_list *sparse(int argc, char **argv)
+struct symbol_list *sparse_file(const char *filename)
 {
 	int fd;
-	char *filename = NULL, **args;
 	struct token *token;
-
-	// Initialize symbol stream first, so that we can add defines etc
-	init_symbols();
-
-	args = argv;
-	for (;;) {
-		char *arg = *++args;
-		if (!arg)
-			break;
-		if (arg[0] == '-' && arg[1]) {
-			args = handle_switch(arg+1, args);
-			continue;
-		}
-		filename = arg;
-	}
-
-	if (!filename)
-		die("no input files given");
-
-	// Initialize type system
-	init_ctype();
-
-	create_builtin_stream();
-	add_pre_buffer("#define __CHECKER__ 1\n");
-	if (!preprocess_only)
-		declare_builtin_functions();
-
-	do_predefined(filename);
 
 	if (strcmp (filename, "-") == 0) {
 		fd = 0;
@@ -491,7 +459,6 @@ struct symbol_list *sparse(int argc, char **argv)
 	}
 
 	// Tokenize the input stream
-	start_file_scope();
 	token = tokenize(filename, fd, NULL, includepath);
 	close(fd);
 
@@ -528,4 +495,54 @@ struct symbol_list *sparse(int argc, char **argv)
 
 	// Parse the resulting C code
 	return translation_unit(token);
+}
+
+struct symbol_list *sparse(int argc, char **argv)
+{
+	int i;
+	struct symbol_list *res;
+	char **args;
+	int files = 0;
+
+	// Initialize symbol stream first, so that we can add defines etc
+	init_symbols();
+
+	args = argv;
+	for (;;) {
+		char *arg = *++args;
+		if (!arg)
+			break;
+
+		if (arg[0] == '-' && arg[1]) {
+			args = handle_switch(arg+1, args);
+			continue;
+		}
+
+		/*
+		 * Hacky hacky hacky: we re-use the argument space
+		 * to save the filenames.
+		 */
+		argv[files++] = arg;
+	}
+
+	if (!files)
+		die("no input files given");
+
+	// Initialize type system
+	init_ctype();
+
+	create_builtin_stream();
+	add_pre_buffer("#define __CHECKER__ 1\n");
+	if (!preprocess_only)
+		declare_builtin_functions();
+
+	res = NULL;
+	for (i = 0; i < files ; i++) {
+		char *filename = argv[i];
+
+		start_file_scope();
+		res = sparse_file(filename);
+		end_file_scope();
+	}
+	return res;
 }
