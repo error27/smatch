@@ -35,6 +35,7 @@ void drop_all_allocations(struct allocator_struct *desc)
 	desc->allocations = 0;
 	desc->total_bytes = 0;
 	desc->useful_bytes = 0;
+	desc->freelist = NULL;
 	while (blob) {
 		struct allocation_blob *next = blob->next;
 		blob_free(blob, desc->chunking);
