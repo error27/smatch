@@ -463,11 +463,13 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 
 	scope = block_scope;
 	if (ns == NS_SYMBOL && toplevel(scope)) {
-		sym->ctype.modifiers |= MOD_TOPLEVEL;
-		if (sym->ctype.modifiers & MOD_STATIC)
+		unsigned mod = MOD_ADDRESSABLE | MOD_TOPLEVEL;
+		scope = global_scope;
+		if (sym->ctype.modifiers & MOD_STATIC) {
 			scope = file_scope;
-		else
-			sym->ctype.modifiers |= MOD_ADDRESSABLE;
+			mod = MOD_TOPLEVEL;
+		}
+		sym->ctype.modifiers |= mod;
 	}
 	if (ns == NS_MACRO)
 		scope = file_scope;
