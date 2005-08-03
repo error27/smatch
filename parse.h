@@ -117,7 +117,7 @@ extern int show_statement(struct statement *);
 extern void show_statement_list(struct statement_list *, const char *);
 extern int show_expression(struct expression *);
 
-extern struct symbol_list *translation_unit(struct token *);
+extern struct token *external_declaration(struct token *token, struct symbol_list **list);
 
 extern struct symbol *ctype_integer(unsigned long spec);
 extern struct symbol *ctype_fp(unsigned long spec);

@@ -34,7 +34,6 @@ struct symbol_list *function_computed_target_list;
 struct statement_list *function_computed_goto_list;
 
 static struct token *statement(struct token *token, struct statement **tree);
-static struct token *external_declaration(struct token *token, struct symbol_list **list);
 
 // Add a symbol to the list of function-local symbols
 static void fn_local_symbol(struct symbol *sym)
@@ -1651,7 +1650,7 @@ static struct token *parse_k_r_arguments(struct token *token, struct symbol *dec
 }
 
 
-static struct token *external_declaration(struct token *token, struct symbol_list **list)
+struct token *external_declaration(struct token *token, struct symbol_list **list)
 {
 	struct ident *ident = NULL;
 	struct symbol *decl;
@@ -1753,16 +1752,4 @@ static struct token *external_declaration(struct token *token, struct symbol_lis
 		}
 	}
 	return expect(token, ';', "at end of declaration");
-}
-
-struct symbol_list *translation_unit(struct token *token)
-{
-	while (!eof_token(token))
-		token = external_declaration(token, &translation_unit_used_list);
-	// They aren't needed any more
-	clear_token_alloc();
-
-	/* Evaluate the symbol list */
-	evaluate_symbol_list(translation_unit_used_list);
-	return translation_unit_used_list;
 }

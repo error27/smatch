@@ -445,30 +445,8 @@ void create_builtin_stream(void)
 	add_pre_buffer("#define __TIME__ \"??:??:??\"\n");
 }
 
-struct symbol_list *sparse_file(const char *filename)
+static struct symbol_list *sparse_tokenstream(struct token *token)
 {
-	int fd;
-	struct token *token;
-
-	if (strcmp (filename, "-") == 0) {
-		fd = 0;
-	} else {
-		fd = open(filename, O_RDONLY);
-		if (fd < 0)
-			die("No such file: %s", filename);
-	}
-
-	// Tokenize the input stream
-	token = tokenize(filename, fd, NULL, includepath);
-	close(fd);
-
-	// Prepend any "include" file to the stream.
-	if (include_fd >= 0)
-		token = tokenize(include, include_fd, token, includepath);
-
-	// Prepend the initial built-in stream
-	token = tokenize_buffer(pre_buffer, pre_buffer_size, token);
-
 	// Pre-process the stream
 	token = preprocess(token);
 
@@ -494,7 +472,53 @@ struct symbol_list *sparse_file(const char *filename)
 	} 
 
 	// Parse the resulting C code
-	return translation_unit(token);
+	while (!eof_token(token))
+		token = external_declaration(token, &translation_unit_used_list);
+	return translation_unit_used_list;
+}
+
+static struct symbol_list *sparse_file(const char *filename)
+{
+	int fd;
+	struct token *token;
+
+	if (strcmp (filename, "-") == 0) {
+		fd = 0;
+	} else {
+		fd = open(filename, O_RDONLY);
+		if (fd < 0)
+			die("No such file: %s", filename);
+	}
+
+	// Tokenize the input stream
+	token = tokenize(filename, fd, NULL, includepath);
+	close(fd);
+
+	return sparse_tokenstream(token);
+}
+
+/*
+ * This handles the "-include" directive etc: we're in global
+ * scope, and all types/macros etc will affect all the following
+ * files.
+ *
+ * NOTE NOTE NOTE! "#undef" of anything in this stage will
+ * affect all subsequent files too, ie we can have non-local
+ * behaviour between files!
+ */
+static void sparse_initial(void)
+{
+	struct token *token;
+
+	// Prepend any "include" file to the stream.
+	// We're in global scope, it will affect all files!
+	token = NULL;
+	if (include_fd >= 0)
+		token = tokenize(include, include_fd, NULL, includepath);
+
+	// Prepend the initial built-in stream
+	token = tokenize_buffer(pre_buffer, pre_buffer_size, token);
+	sparse_tokenstream(token);
 }
 
 struct symbol_list *sparse(int argc, char **argv)
@@ -536,6 +560,14 @@ struct symbol_list *sparse(int argc, char **argv)
 	if (!preprocess_only)
 		declare_builtin_functions();
 
+	sparse_initial();
+
+	/*
+	 * Protect the initial token allocations, since
+	 * they need to survive all the others
+	 */
+	protect_token_alloc();
+
 	res = NULL;
 	for (i = 0; i < files ; i++) {
 		char *filename = argv[i];
@@ -543,6 +575,13 @@ struct symbol_list *sparse(int argc, char **argv)
 		start_file_scope();
 		res = sparse_file(filename);
 		end_file_scope();
+
+		/* Drop the tokens for this file now */
+		clear_token_alloc();
 	}
+
+	/* Evaluate the complete symbol list */
+	evaluate_symbol_list(res);
+
 	return res;
 }
