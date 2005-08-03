@@ -9,6 +9,11 @@ LDFLAGS=-g
 AR=ar
 
 #
+# For debugging, uncomment the next one
+#
+CFLAGS += -DDEBUG
+
+#
 # If building with shared libraries, you might
 # want to add this
 #

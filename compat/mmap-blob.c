@@ -29,5 +29,9 @@ void blob_free(void *addr, unsigned long size)
 {
 	if (!size || (size & ~CHUNK) || ((unsigned long) addr & 512))
 		die("internal error: bad blob free (%lu bytes at %p)", size, addr);
+#ifndef DEBUG
 	munmap(addr, size);
+#else
+	mprotect(addr, size, PROT_NONE);
+#endif
 }
