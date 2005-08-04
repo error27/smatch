@@ -26,6 +26,7 @@
 #include "token.h"
 #include "symbol.h"
 #include "expression.h"
+#include "scope.h"
 
 static int true_nesting = 0;
 static int false_nesting = 0;
@@ -93,10 +94,18 @@ static void replace_with_integer(struct token *token, unsigned int val)
 	token->number = buf;
 }
 
+struct symbol *lookup_macro(struct ident *ident)
+{
+	struct symbol *sym = lookup_symbol(ident, NS_MACRO | NS_INVISIBLEMACRO);
+	if (sym && sym->namespace != NS_MACRO)
+		sym = NULL;
+	return sym;
+}
+
 static int token_defined(struct token *token)
 {
 	if (token_type(token) == TOKEN_IDENT) {
-		struct symbol *sym = lookup_symbol(token->ident, NS_MACRO);
+		struct symbol *sym = lookup_macro(token->ident);
 		if (sym) {
 			sym->weak = 0;
 			return 1;
@@ -125,7 +134,7 @@ static int expand_one_symbol(struct token **list)
 	if (token->pos.noexpand)
 		return 1;
 
-	sym = lookup_symbol(token->ident, NS_MACRO);
+	sym = lookup_macro(token->ident);
 	if (sym) {
 		sym->weak = 0;
 		return expand(list, sym);
@@ -607,7 +616,7 @@ static int already_tokenized(const char *path)
 			continue;
 		if (strcmp(path, s->name))
 			continue;
-		if (!lookup_symbol(s->protect, NS_MACRO))
+		if (!lookup_macro(s->protect))
 			continue;
 		return 1;
 	}
@@ -1080,7 +1089,7 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 	if (!expansion)
 		return 1;
 
-	sym = lookup_symbol(name, NS_MACRO);
+	sym = lookup_macro(name);
 	if (sym) {
 		if (token_list_different(sym->expansion, expansion) || 
 		    token_list_different(sym->arglist, arglist)) {
@@ -1091,11 +1100,16 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 			warning(left->pos, "preprocessor token %.*s redefined",
 					name->len, name->name);
 			info(sym->pos, "this was the original definition");
+
+			/* Don't overwrite global defs */
+			if (sym->scope != file_scope)
+				goto allocate_new;
 			sym->expansion = expansion;
 			sym->arglist = arglist;
 		}
 		return 1;
 	}
+allocate_new:
 	sym = alloc_symbol(left->pos, SYM_NODE);
 	bind_symbol(sym, name, NS_MACRO);
 
@@ -1134,7 +1148,7 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 	sym = &left->ident->symbols;
 	while (*sym) {
 		struct symbol *t = *sym;
-		if (t->namespace == NS_MACRO) {
+		if (t->namespace & (NS_MACRO | NS_INVISIBLEMACRO)) {
 			t->namespace = NS_INVISIBLEMACRO;
 			return 1;
 		}
