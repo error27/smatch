@@ -41,6 +41,8 @@ static void start_scope(struct scope **s)
 void start_file_scope(void)
 {
 	struct scope *scope = __alloc_scope(0);
+	struct symbol *sym;
+
 	memset(scope, 0, sizeof(*scope));
 	scope->next = &builtin_scope;
 	file_scope = scope;
@@ -48,6 +50,12 @@ void start_file_scope(void)
 	/* top-level stuff defaults to file scopt, "extern" etc will choose global scope */
 	function_scope = scope;
 	block_scope = scope;
+
+	/* Make the builtin macros visible again */
+	FOR_EACH_PTR(builtin_scope.symbols, sym) {
+		if (sym->namespace == NS_INVISIBLEMACRO)
+			sym->namespace = NS_MACRO;
+	} END_FOR_EACH_PTR(sym);
 }
 
 void start_symbol_scope(void)
@@ -65,12 +73,8 @@ static void remove_symbol_scope(struct symbol *sym)
 {
 	struct symbol **ptr = sym->id_list;
 
-	while (*ptr != sym) {
-		/* Macros can get removed from scope early with #undef! */
-		if (!*ptr)
-			return;
+	while (*ptr != sym)
 		ptr = &(*ptr)->next_id;
-	}
 	*ptr = sym->next_id;
 }
 

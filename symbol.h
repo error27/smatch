@@ -32,6 +32,7 @@ enum namespace {
 	NS_SYMBOL = 16,
 	NS_ITERATOR = 32,
 	NS_PREPROCESSOR = 64,
+	NS_INVISIBLEMACRO = 128,
 };
 
 enum type {

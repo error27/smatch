@@ -1587,7 +1587,7 @@ static void fill_output(struct bb_state *state, pseudo_t pseudo, struct storage 
 	default:
 		if (out == in->storage)
 			break;
-		if (out->type == in->storage->type == out->regno == in->storage->regno)
+		if ((out->type == in->storage->type) && (out->regno == in->storage->regno))
 			break;
 		output_insn(state, "movl %s,%s", show_memop(in->storage), show_memop(out));
 		break;
@@ -1958,6 +1958,9 @@ static int compile(struct symbol_list *list)
 
 int main(int argc, char **argv)
 {
-	return compile(sparse(argc, argv));
+	sparse_initialize(argc, argv);
+	while (*argv)
+		compile(sparse(argv));
+	return 0;
 }
 

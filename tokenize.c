@@ -112,7 +112,7 @@ const char *show_string(const struct string *string)
 	ptr = buffer;
 	*ptr++ = '"';
 	for (i = 0; i < string->length-1; i++) {
-		const unsigned char *p = string->data + i;
+		const char *p = string->data + i;
 		ptr = charstr(ptr, p[0], '"', p[1]);
 	}
 	*ptr++ = '"';
@@ -620,7 +620,7 @@ static int get_one_special(int c, stream_t *stream)
 	struct token *token;
 	unsigned char c1, c2, c3;
 	int next, value, i;
-	char *comb;
+	unsigned char *comb;
 
 	next = nextchar(stream);
 
@@ -881,7 +881,7 @@ static void tokenize_stream(stream_t *stream, struct token *endtoken)
 	mark_eof(stream, endtoken);
 }
 
-struct token * tokenize_buffer(unsigned char *buffer, unsigned long size, struct token *endtoken)
+struct token * tokenize_buffer(void *buffer, unsigned long size, struct token *endtoken)
 {
 	stream_t stream;
 	struct token *begin;

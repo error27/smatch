@@ -1983,6 +1983,8 @@ static struct storage *x86_statement(struct statement *stmt)
 	if (!stmt)
 		return NULL;
 	switch (stmt->type) {
+	default:
+		return NULL;
 	case STMT_RETURN:
 		return emit_return_stmt(stmt);
 	case STMT_COMPOUND: {
@@ -2323,6 +2325,8 @@ static struct storage *x86_expression(struct expression *expr)
 	}
 
 	switch (expr->type) {
+	default:
+		return NULL;
 	case EXPR_CALL:
 		return x86_call_expression(expr);
 

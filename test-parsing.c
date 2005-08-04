@@ -34,16 +34,19 @@ static void clean_up_symbols(struct symbol_list *list)
 
 int main(int argc, char **argv)
 {
-	struct symbol_list *list = sparse(argc, argv);
+	sparse_initialize(argc, argv);
+	while (*argv) {
+		struct symbol_list *list = sparse(argv);
 
-	// Simplification
-	clean_up_symbols(list);
+		// Simplification
+		clean_up_symbols(list);
 
 #if 1
-	// Show the end result.
-	show_symbol_list(list, "\n\n");
-	printf("\n\n");
+		// Show the end result.
+		show_symbol_list(list, "\n\n");
+		printf("\n\n");
 #endif
+	}
 
 #if 0
 	// And show the allocation statistics

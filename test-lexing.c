@@ -21,7 +21,9 @@
 int main(int argc, char **argv)
 {
 	preprocess_only = 1;
-	sparse(argc, argv);
+	sparse_initialize(argc, argv);
+	while (*argv)
+		sparse(argv);
 	show_identifier_stats();
 	return 0;
 }

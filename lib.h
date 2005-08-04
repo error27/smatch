@@ -71,8 +71,6 @@ extern void error_die(struct position, const char *, ...) FORMAT_ATTR(2);
 extern char **handle_switch(char *arg, char **next);
 extern void add_pre_buffer(const char *fmt, ...);
 
-extern unsigned int pre_buffer_size;
-extern unsigned char pre_buffer[8192];
 extern int include_fd;
 extern char *include;
 extern int preprocess_only;
@@ -84,7 +82,8 @@ extern int Wtransparent_union;
 
 extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);
-extern struct symbol_list *sparse(int argc, char **argv);
+extern int sparse_initialize(int argc, char **argv);
+extern struct symbol_list *sparse(char **argv);
 
 static inline int symbol_list_size(struct symbol_list* list)
 {

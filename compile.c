@@ -37,20 +37,21 @@ static void clean_up_symbols(struct symbol_list *list)
 
 int main(int argc, char **argv)
 {
-	const char *basename, *filename;
-	struct symbol_list *list;
+	const char *filename;
 
-	list = sparse(argc, argv);
+	sparse_initialize(argc, argv);
+	while ((filename = *argv) != NULL) {
+		struct symbol_list *list;
+		const char *basename = strrchr(filename, '/');
+		if (basename)
+			filename = basename+1;
+		list = sparse(argv);
 
-	filename = stream_name(1);
-	basename = strrchr(filename, '/');
-	if (basename)
-		filename = basename+1;
-
-	// Do type evaluation and simplification
-	emit_unit_begin(filename);
-	clean_up_symbols(list);
-	emit_unit_end();
+		// Do type evaluation and simplification
+		emit_unit_begin(filename);
+		clean_up_symbols(list);
+		emit_unit_end();
+	}
 
 #if 0
 	// And show the allocation statistics

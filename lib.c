@@ -161,8 +161,8 @@ void die(const char *fmt, ...)
 	exit(1);
 }
 
-unsigned int pre_buffer_size;
-unsigned char pre_buffer[8192];
+static unsigned int pre_buffer_size;
+static char pre_buffer[8192];
 
 int Wdefault_bitfield_sign = 0;
 int Wbitwise = 0;
@@ -521,10 +521,8 @@ static void sparse_initial(void)
 	sparse_tokenstream(token);
 }
 
-struct symbol_list *sparse(int argc, char **argv)
+int sparse_initialize(int argc, char **argv)
 {
-	int i;
-	struct symbol_list *res;
 	char **args;
 	int files = 0;
 
@@ -549,39 +547,53 @@ struct symbol_list *sparse(int argc, char **argv)
 		argv[files++] = arg;
 	}
 
-	if (!files)
-		die("no input files given");
+	argv[files] = NULL;
+	if (files) {
+		// Initialize type system
+		init_ctype();
 
-	// Initialize type system
-	init_ctype();
+		create_builtin_stream();
+		add_pre_buffer("#define __CHECKER__ 1\n");
+		if (!preprocess_only)
+			declare_builtin_functions();
 
-	create_builtin_stream();
-	add_pre_buffer("#define __CHECKER__ 1\n");
-	if (!preprocess_only)
-		declare_builtin_functions();
+		sparse_initial();
 
-	sparse_initial();
-
-	/*
-	 * Protect the initial token allocations, since
-	 * they need to survive all the others
-	 */
-	protect_token_alloc();
-
-	res = NULL;
-	for (i = 0; i < files ; i++) {
-		char *filename = argv[i];
-
-		start_file_scope();
-		res = sparse_file(filename);
-		end_file_scope();
-
-		/* Drop the tokens for this file now */
-		clear_token_alloc();
+		/*
+		 * Protect the initial token allocations, since
+		 * they need to survive all the others
+		 */
+		protect_token_alloc();
 	}
+	return files;
+}
+
+struct symbol_list * sparse(char **argv)
+{
+	struct symbol_list *res;
+	char *filename, *next;
+
+	/* Clear previous symbol list */
+	translation_unit_used_list = NULL;
+
+	filename = *argv;
+	if (!filename)
+		return NULL;
+	do {
+		next = argv[1];
+		*argv++ = next;
+	} while (next);
+
+	start_file_scope();
+	res = sparse_file(filename);
+	end_file_scope();
+
+	/* Drop the tokens for this file after parsing */
+	clear_token_alloc();
 
 	/* Evaluate the complete symbol list */
 	evaluate_symbol_list(res);
 
+	/* And return it */
 	return res;
 }

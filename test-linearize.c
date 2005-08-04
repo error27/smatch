@@ -38,6 +38,8 @@ static void clean_up_symbols(struct symbol_list *list)
 
 int main(int argc, char **argv)
 {
-	clean_up_symbols(sparse(argc, argv));
+	sparse_initialize(argc, argv);
+	while (*argv)
+		clean_up_symbols(sparse(argv));
 	return 0;
 }

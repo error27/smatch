@@ -1135,7 +1135,7 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 	while (*sym) {
 		struct symbol *t = *sym;
 		if (t->namespace == NS_MACRO) {
-			*sym = t->next_id;
+			t->namespace = NS_INVISIBLEMACRO;
 			return 1;
 		}
 		sym = &t->next_id;
