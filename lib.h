@@ -25,10 +25,10 @@ extern unsigned int hexval(unsigned int c);
 
 struct position {
 	unsigned int type:6,
-		     stream:10,
+		     stream:14,
 		     newline:1,
 		     whitespace:1,
-		     pos:14;
+		     pos:10;
 	unsigned int line:31,
 		     noexpand:1;
 };
