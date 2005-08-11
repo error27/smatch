@@ -177,6 +177,27 @@ out:
 	return count;
 }
 
+/* This removes the last entry, but doesn't pack the ptr list */
+void * undo_ptr_list_last(struct ptr_list **head)
+{
+	struct ptr_list *last, *first = *head;
+
+	if (!first)
+		return NULL;
+	last = first;
+	do {
+		last = last->prev;
+		if (last->nr) {
+			void *ptr;
+			int nr = --last->nr;
+			ptr = last->list[nr];
+			last->list[nr] = (void *)0xf1f1f1f1;
+			return ptr;
+		}
+	} while (last != first);
+	return NULL;
+}
+
 void * delete_ptr_list_last(struct ptr_list **head)
 {
 	void *ptr = NULL;
