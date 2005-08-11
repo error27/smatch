@@ -122,7 +122,7 @@ static inline void free_instruction_list(struct instruction_list **head)
 
 static inline struct instruction * delete_last_instruction(struct instruction_list **head)
 {
-	return delete_ptr_list_last((struct ptr_list **)head);
+	return undo_ptr_list_last((struct ptr_list **)head);
 }
 
 static inline struct basic_block * delete_last_basic_block(struct basic_block_list **head)
