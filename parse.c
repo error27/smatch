@@ -1699,7 +1699,11 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	bind_symbol(decl, ident, is_typedef ? NS_TYPEDEF: NS_SYMBOL);
 
 	base_type = decl->ctype.base_type;
-	if (!is_typedef && base_type && base_type->type == SYM_FN) {
+
+	if (is_typedef) {
+		if (base_type && !base_type->ident)
+			base_type->ident = ident;
+	} else if (base_type && base_type->type == SYM_FN) {
 		/* K&R argument declaration? */
 		if (lookup_type(token))
 			return parse_k_r_arguments(token, decl, list);
@@ -1708,7 +1712,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 
 		if (!(decl->ctype.modifiers & MOD_STATIC))
 			decl->ctype.modifiers |= MOD_EXTERN;
-	} else if (!is_typedef && base_type == &void_ctype && !(decl->ctype.modifiers & MOD_EXTERN)) {
+	} else if (base_type == &void_ctype && !(decl->ctype.modifiers & MOD_EXTERN)) {
 		warning(token->pos, "void declaration");
 	}
 
