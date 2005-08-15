@@ -17,7 +17,7 @@
 #include "compat.h"
 #include "ptrlist.h"
 
-extern int verbose, optimize, preprocessing;
+extern int verbose, optimize, optimize_size, preprocessing;
 extern int repeat_phase, merge_phi_sources;
 extern int gcc_major, gcc_minor;
 

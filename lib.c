@@ -28,7 +28,7 @@
 #include "linearize.h"
 #include "target.h"
 
-int verbose, optimize, preprocessing;
+int verbose, optimize, optimize_size, preprocessing;
 
 #ifndef __GNUC__
 # define __GNUC__ 2
@@ -343,6 +343,20 @@ static char **handle_switch_O(char *arg, char **next)
 	if (arg[1] >= '0' && arg[1] <= '9')
 		level = arg[1] - '0';
 	optimize = level;
+	optimize_size = arg[1] == 's';
+	return next;
+}
+
+static char **handle_switch_f(char *arg, char **next)
+{
+	int flag = 1;
+
+	arg++;
+	if (!strncmp(arg, "no-", 3)) {
+		flag = 0;
+		arg += 3;
+	}
+	/* handle switch here.. */
 	return next;
 }
 
@@ -387,6 +401,7 @@ char **handle_switch(char *arg, char **next)
 	case 'v': return handle_switch_v(arg, next);
 	case 'W': return handle_switch_W(arg, next);
 	case 'O': return handle_switch_O(arg, next);
+	case 'f': return handle_switch_f(arg, next);
 	default:
 		break;
 	}
@@ -443,6 +458,11 @@ void create_builtin_stream(void)
 	add_pre_buffer("#define __BASE_FILE__ \"base_file.c\"\n");
 	add_pre_buffer("#define __DATE__ \"??? ?? ????\"\n");
 	add_pre_buffer("#define __TIME__ \"??:??:??\"\n");
+
+	if (optimize)
+		add_pre_buffer("#define __OPTIMIZE__\n");
+	if (optimize_size)
+		add_pre_buffer("#define __OPTIMIZE_SIZE__\n");
 }
 
 static struct symbol_list *sparse_tokenstream(struct token *token)
