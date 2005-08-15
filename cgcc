@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 
 my $cc = $ENV{'REAL_CC'} || 'cc';
-my $check = $ENV{'CHECK'} || 'check';
+my $check = $ENV{'CHECK'} || 'sparse';
 
 my $m64 = 0;
 my $has_specs = 0;
