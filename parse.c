@@ -1200,7 +1200,7 @@ static struct token *parse_for_statement(struct token *token, struct statement *
 	stmt->iterator_pre_statement = make_statement(e1);
 	stmt->iterator_pre_condition = e2;
 	stmt->iterator_post_statement = make_statement(e3);
-	stmt->iterator_post_condition = e2;
+	stmt->iterator_post_condition = NULL;
 	stmt->iterator_statement = iterator;
 	end_iterator(stmt);
 
@@ -1217,7 +1217,7 @@ static struct token *parse_while_statement(struct token *token, struct statement
 	token = statement(token, &iterator);
 
 	stmt->iterator_pre_condition = expr;
-	stmt->iterator_post_condition = expr;
+	stmt->iterator_post_condition = NULL;
 	stmt->iterator_statement = iterator;
 	end_iterator(stmt);
 

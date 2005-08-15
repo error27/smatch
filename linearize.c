@@ -1998,7 +1998,8 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
  		loop_continue = alloc_basic_block(ep, stmt->pos);
  		loop_end = alloc_basic_block(ep, stmt->pos);
  
-		if (pre_condition == post_condition) {
+		/* An empty post-condition means that it's the same as the pre-condition */
+		if (!post_condition) {
 			loop_top = alloc_basic_block(ep, stmt->pos);
 			set_activeblock(ep, loop_top);
 		}
@@ -2015,7 +2016,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 
 		set_activeblock(ep, loop_continue);
 		linearize_statement(ep, post_statement);
-		if (!post_condition || pre_condition == post_condition)
+		if (!post_condition)
 			add_goto(ep, loop_top);
 		else
  			linearize_cond_branch(ep, post_condition, loop_top, loop_end);
