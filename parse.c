@@ -1660,18 +1660,16 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 
 	/* Top-level inline asm? */
 	if (match_idents(token, &asm_ident, &__asm___ident, &__asm_ident, NULL)) {
-		struct symbol_list **old_symbol_list;
 		struct symbol *anon = alloc_symbol(token->pos, SYM_NODE);
 		struct symbol *fn = alloc_symbol(token->pos, SYM_FN);
 		struct statement *stmt;
 
 		anon->ctype.base_type = fn;
-		old_symbol_list = function_symbol_list;
-		function_symbol_list = &anon->symbol_list;
-		stmt = start_function(anon);
+		stmt = alloc_statement(token->pos, STMT_NONE);
+		fn->stmt = stmt;
+		
 		token = parse_asm(token->next, stmt);
-		end_function(anon);
-		function_symbol_list = old_symbol_list;
+
 		add_symbol(list, anon);
 		return token;
 	}
