@@ -323,11 +323,6 @@ static struct symbol *examine_enum_type(struct symbol *sym)
 {
 	struct symbol *base_type = examine_base_type(sym);
 
-	if (base_type == &bad_ctype) {
-		warning(sym->pos, "invalid enum type");
-		sym->bit_size = -1;
-		return sym;
-	}
 	sym->ctype.modifiers |= (base_type->ctype.modifiers & MOD_SIGNEDNESS);
 	sym->bit_size = bits_in_enum;
 	if (base_type->bit_size > sym->bit_size)
