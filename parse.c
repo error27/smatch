@@ -317,7 +317,13 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 
 static struct token *enum_specifier(struct token *token, struct ctype *ctype)
 {
-	return struct_union_enum_specifier(SYM_ENUM, token, ctype, parse_enum_declaration);
+	struct token *ret = struct_union_enum_specifier(SYM_ENUM, token, ctype, parse_enum_declaration);
+
+	ctype = &ctype->base_type->ctype;
+	if (!ctype->base_type)
+		ctype->base_type = &incomplete_ctype;
+
+	return ret;
 }
 
 static struct token *typeof_specifier(struct token *token, struct ctype *ctype)

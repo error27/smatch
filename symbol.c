@@ -323,7 +323,7 @@ static struct symbol *examine_enum_type(struct symbol *sym)
 {
 	struct symbol *base_type = examine_base_type(sym);
 
-	if (!base_type || base_type == &bad_ctype) {
+	if (base_type == &bad_ctype) {
 		warning(sym->pos, "invalid enum type");
 		sym->bit_size = -1;
 		return sym;
