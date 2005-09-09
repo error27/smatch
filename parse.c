@@ -636,7 +636,8 @@ static void apply_ctype(struct position pos, struct ctype *thistype, struct ctyp
 		ctype->alignment = thistype->alignment;
 
 	/* Address space */
-	ctype->as = thistype->as;
+	if (thistype->as)
+		ctype->as = thistype->as;
 }
 
 static void check_modifiers(struct position *pos, struct symbol *s, unsigned long mod)
