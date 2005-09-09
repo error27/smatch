@@ -187,6 +187,8 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			string_ctype, ptr_ctype, lazy_ptr_ctype,
 			incomplete_ctype, label_ctype, bad_ctype;
 
+/* Special internal symbols */
+extern struct symbol	zero_int;
 
 #define __IDENT(n,str,res) \
 	extern struct ident n

@@ -675,6 +675,7 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		string_ctype, ptr_ctype, lazy_ptr_ctype,
 		incomplete_ctype, label_ctype, bad_ctype;
 
+struct symbol	zero_int;
 
 #define __INIT_IDENT(str, res) { .len = sizeof(str)-1, .name = str, .reserved = res }
 #define __IDENT(n,str,res) \

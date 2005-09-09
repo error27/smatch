@@ -301,6 +301,15 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		token = token->next;
 		break;
 
+	case TOKEN_ZERO_IDENT: {
+		expr = alloc_expression(token->pos, EXPR_SYMBOL);
+		expr->ctype = &int_ctype;
+		expr->symbol = &zero_int;
+		expr->symbol_name = token->ident;
+		token = token->next;
+		break;
+	}
+
 	case TOKEN_IDENT: {
 		struct symbol *sym = lookup_symbol(token->ident, NS_SYMBOL | NS_TYPEDEF);
 		struct token *next = token->next;

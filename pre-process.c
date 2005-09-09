@@ -1217,9 +1217,7 @@ static int expression_value(struct token **where)
 				continue;
 			if (token_type(p) != TOKEN_IDENT)
 				break;
-			if (Wundefined_preprocessor)
-				warning(p->pos, "undefined preprocessor identifier '%s'", show_ident(p->ident));
-			replace_with_integer(p, 0);
+			token_type(p) = TOKEN_ZERO_IDENT;
 			break;
 		case 1:
 			if (match_op(p, '(')) {
