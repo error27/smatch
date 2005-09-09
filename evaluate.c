@@ -2049,11 +2049,27 @@ static int get_as(struct symbol *sym)
 	return as;
 }
 
+static void cast_to_as(struct expression *e, int as)
+{
+	struct expression *v = e->cast_expression;
+
+	if (!Wcast_to_address_space)
+		return;
+
+	/* cast from constant 0 to pointer is OK */
+	if (v->type == EXPR_VALUE && is_int_type(v->ctype) && !v->value)
+		return;
+
+	warning(e->pos, "cast adds address space to expression (<asn:%d>)", as);
+}
+
 static struct symbol *evaluate_cast(struct expression *expr)
 {
 	struct expression *target = expr->cast_expression;
 	struct symbol *ctype = examine_symbol_type(expr->cast_type);
-	enum type type;
+	struct symbol *t1, *t2;
+	enum type type1, type2;
+	int as1, as2;
 
 	if (!target)
 		return NULL;
@@ -2092,50 +2108,53 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	evaluate_expression(target);
 	degenerate(target);
 
+	t1 = ctype;
+	if (t1->type == SYM_NODE)
+		t1 = t1->ctype.base_type;
+	if (t1->type == SYM_ENUM)
+		t1 = t1->ctype.base_type;
+
 	/*
 	 * You can always throw a value away by casting to
 	 * "void" - that's an implicit "force". Note that
 	 * the same is _not_ true of "void *".
 	 */
-	if (ctype == &void_ctype)
+	if (t1 == &void_ctype)
 		goto out;
 
-	type = ctype->type;
-	if (type == SYM_NODE) {
-		type = ctype->ctype.base_type->type;
-		if (ctype->ctype.base_type == &void_ctype)
-			goto out;
-	}
-	if (type == SYM_ARRAY || type == SYM_UNION || type == SYM_STRUCT)
+	type1 = t1->type;
+	if (type1 == SYM_ARRAY || type1 == SYM_UNION || type1 == SYM_STRUCT)
 		warning(expr->pos, "cast to non-scalar");
 
-	if (!target->ctype) {
+	t2 = target->ctype;
+	if (!t2) {
 		warning(expr->pos, "cast from unknown type");
 		goto out;
 	}
+	if (t2->type == SYM_NODE)
+		t2 = t2->ctype.base_type;
+	if (t2->type == SYM_ENUM)
+		t2 = t2->ctype.base_type;
 
-	type = target->ctype->type;
-	if (type == SYM_NODE)
-		type = target->ctype->ctype.base_type->type;
-	if (type == SYM_ARRAY || type == SYM_UNION || type == SYM_STRUCT)
+	type2 = t2->type;
+	if (type2 == SYM_ARRAY || type2 == SYM_UNION || type2 == SYM_STRUCT)
 		warning(expr->pos, "cast from non-scalar");
 
-	if (!get_as(ctype) && get_as(target->ctype) > 0)
-		warning(expr->pos, "cast removes address space of expression");
-
-	if (!(ctype->ctype.modifiers & MOD_FORCE)) {
-		struct symbol *t1 = ctype, *t2 = target->ctype;
-		if (t1->type == SYM_NODE)
-			t1 = t1->ctype.base_type;
-		if (t2->type == SYM_NODE)
-			t2 = t2->ctype.base_type;
-		if (t1 != t2) {
-			if (t1->type == SYM_RESTRICT)
-				warning(expr->pos, "cast to restricted type");
-			if (t2->type == SYM_RESTRICT)
-				warning(expr->pos, "cast from restricted type");
-		}
+	if (!(ctype->ctype.modifiers & MOD_FORCE) && t1 != t2) {
+		if (t1->type == SYM_RESTRICT)
+			warning(expr->pos, "cast to restricted type");
+		if (t2->type == SYM_RESTRICT)
+			warning(expr->pos, "cast from restricted type");
 	}
+
+	as1 = get_as(ctype);
+	as2 = get_as(target->ctype);
+	if (!as1 && as2 > 0)
+		warning(expr->pos, "cast removes address space of expression");
+	if (as1 > 0 && as2 > 0 && as1 != as2)
+		warning(expr->pos, "cast between address spaces (<asn:%d>-><asn:%d>)", as2, as1);
+	if (as1 > 0 && !as2)
+		cast_to_as(expr, as1);
 
 	/*
 	 * Casts of constant values are special: they
