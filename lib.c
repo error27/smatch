@@ -33,10 +33,12 @@ int verbose, optimize, optimize_size, preprocessing;
 #ifndef __GNUC__
 # define __GNUC__ 2
 # define __GNUC_MINOR__ 95
+# define __GNUC_PATCHLEVEL__ 0
 #endif
 
 int gcc_major = __GNUC__;
 int gcc_minor = __GNUC_MINOR__;
+int gcc_patchlevel = __GNUC_PATCHLEVEL__;
 
 struct token *skip_to(struct token *token, int op)
 {
@@ -437,6 +439,7 @@ void create_builtin_stream(void)
 {
 	add_pre_buffer("#define __GNUC__ %d\n", gcc_major);
 	add_pre_buffer("#define __GNUC_MINOR__ %d\n", gcc_minor);
+	add_pre_buffer("#define __GNUC_PATCHLEVEL__ %d\n", gcc_patchlevel);
 	add_pre_buffer("#define __extension__\n");
 	add_pre_buffer("#define __pragma__\n");
 
