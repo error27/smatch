@@ -71,8 +71,6 @@ extern void error_die(struct position, const char *, ...) FORMAT_ATTR(2);
 extern char **handle_switch(char *arg, char **next);
 extern void add_pre_buffer(const char *fmt, ...);
 
-extern int include_fd;
-extern char *include;
 extern int preprocess_only;
 extern int Wptr_subtraction_blows;
 extern int Wdefault_bitfield_sign;

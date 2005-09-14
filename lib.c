@@ -256,6 +256,15 @@ static char **handle_switch_i(char *arg, char **next)
 		if (fd < 0)
 			perror(name);
 	}
+	if (*next && !strcmp(arg, "imacros")) {
+		char *name = *++next;
+		int fd = open(name, O_RDONLY);
+
+		include_fd = fd;
+		include = name;
+		if (fd < 0)
+			perror(name);
+	}
 	else if (*next && !strcmp(arg, "isystem")) {
 		char *path = *++next;
 		if (!path)
