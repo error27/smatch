@@ -435,10 +435,19 @@ char **handle_switch(char *arg, char **next)
 
 void declare_builtin_functions(void)
 {
+	/* Gaah. gcc knows tons of builtin <string.h> functions */
 	add_pre_buffer("extern void *__builtin_memcpy(void *, const void *, __SIZE_TYPE__);\n");
+	add_pre_buffer("extern void *__builtin_memset(void *, int, __SIZE_TYPE__);\n");	
+	add_pre_buffer("extern int __builtin_strcmp(const char *, const char *);\n");
+	add_pre_buffer("extern char *__builtin_strchr(const char *, int);\n");
+	add_pre_buffer("extern char *__builtin_strcpy(char *, const char *);\n");
+	add_pre_buffer("extern char *__builtin_strncpy(char *, const char *, __SIZE_TYPE__);\n");
+	add_pre_buffer("extern __SIZE_TYPE__ __builtin_strspn(const char *, const char *);\n");
+	add_pre_buffer("extern __SIZE_TYPE__ __builtin_strcspn(const char *, const char *);\n");
+
+	/* And some random ones.. */
 	add_pre_buffer("extern void *__builtin_return_address(unsigned int);\n");
 	add_pre_buffer("extern void *__builtin_frame_address(unsigned int);\n");
-	add_pre_buffer("extern void *__builtin_memset(void *, int, __SIZE_TYPE__);\n");	
 	add_pre_buffer("extern void __builtin_trap(void);\n");
 	add_pre_buffer("extern int __builtin_ffs(int);\n");
 	add_pre_buffer("extern void *__builtin_alloca(__SIZE_TYPE__);\n");
