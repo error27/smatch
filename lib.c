@@ -474,9 +474,9 @@ void create_builtin_stream(void)
 	add_pre_buffer("#define __TIME__ \"??:??:??\"\n");
 
 	if (optimize)
-		add_pre_buffer("#define __OPTIMIZE__\n");
+		add_pre_buffer("#define __OPTIMIZE__ 1\n");
 	if (optimize_size)
-		add_pre_buffer("#define __OPTIMIZE_SIZE__\n");
+		add_pre_buffer("#define __OPTIMIZE_SIZE__ 1\n");
 }
 
 static struct symbol_list *sparse_tokenstream(struct token *token)
