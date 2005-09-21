@@ -38,7 +38,7 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 	struct symbol *base_type;
 
 	if (!sym) {
-		warning(expr->pos, "undefined identifier '%s'", show_ident(expr->symbol_name));
+		error(expr->pos, "undefined identifier '%s'", show_ident(expr->symbol_name));
 		return NULL;
 	}
 
@@ -46,7 +46,7 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 
 	base_type = get_base_type(sym);
 	if (!base_type) {
-		warning(expr->pos, "identifier '%s' has no type", show_ident(expr->symbol_name));
+		error(expr->pos, "identifier '%s' has no type", show_ident(expr->symbol_name));
 		return NULL;
 	}
 
@@ -312,7 +312,7 @@ static inline int is_string_type(struct symbol *type)
 
 static struct symbol *bad_expr_type(struct expression *expr)
 {
-	warning(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
+	error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
 	switch (expr->type) {
 	case EXPR_BINOP:
 	case EXPR_COMPARE:
@@ -498,7 +498,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *c
 	examine_symbol_type(ctype);
 
 	if (!ctype->ctype.base_type) {
-		warning(expr->pos, "missing type information");
+		error(expr->pos, "missing type information");
 		return NULL;
 	}
 
@@ -756,7 +756,7 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expressio
 	if (typediff) {
 		ctype = common_ptr_type(l, r);
 		if (!ctype) {
-			warning(expr->pos, "subtraction of different types can't work (%s)", typediff);
+			error(expr->pos, "subtraction of different types can't work (%s)", typediff);
 			return NULL;
 		}
 	}
@@ -766,7 +766,7 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expressio
 	if (ctype->type == SYM_NODE)
 		ctype = ctype->ctype.base_type;
 	if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
-		warning(expr->pos, "subtraction of functions? Share your drugs");
+		error(expr->pos, "subtraction of functions? Share your drugs");
 		return NULL;
 	}
 	ctype = get_base_type(ctype);
@@ -1023,7 +1023,7 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 	typediff = type_difference(ltype, rtype, MOD_IGN, MOD_IGN);
 	if (!typediff)
 		goto out;
-	warning(expr->pos, "incompatible types in conditional expression (%s)", typediff);
+	error(expr->pos, "incompatible types in conditional expression (%s)", typediff);
 	return NULL;
 
 out:
@@ -1055,7 +1055,7 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			goto Cast;
 	} else if (is_float_type(target)) {
 		if (!compatible_float_op(op)) {
-			warning(expr->pos, "invalid assignment");
+			error(expr->pos, "invalid assignment");
 			return 0;
 		}
 		if (is_int_type(source))
@@ -1064,7 +1064,7 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			goto Cast;
 	} else if (is_restricted_type(target)) {
 		if (restricted_binop(op, target)) {
-			warning(expr->pos, "bad restricted assignment");
+			error(expr->pos, "bad restricted assignment");
 			return 0;
 		}
 		if (!restricted_value(*rp, target))
@@ -1075,11 +1075,11 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			return 1;
 		}
 		if (op != '=') {
-			warning(expr->pos, "invalid pointer assignment");
+			error(expr->pos, "invalid pointer assignment");
 			return 0;
 		}
 	} else if (op != '=') {
-		warning(expr->pos, "invalid assignment");
+		error(expr->pos, "invalid assignment");
 		return 0;
 	}
 
@@ -1118,7 +1118,7 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 		}
 	}
 
-	warning(expr->pos, "incorrect type in %s (%s)", where, typediff);
+	error(expr->pos, "incorrect type in %s (%s)", where, typediff);
 	info(expr->pos, "   expected %s", show_typename(target));
 	info(expr->pos, "   got %s", show_typename(source));
 	*rp = cast_to(*rp, target);
@@ -1131,7 +1131,7 @@ Cast:
 static void evaluate_assign_to(struct expression *left, struct symbol *type)
 {
 	if (type->ctype.modifiers & MOD_CONST)
-		warning(left->pos, "assignment to const expression");
+		error(left->pos, "assignment to const expression");
 	if (type->type == SYM_NODE)
 		type->ctype.modifiers |= MOD_ASSIGNED;
 }
@@ -1143,7 +1143,7 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 	struct symbol *ltype, *rtype;
 
 	if (!lvalue_expression(left)) {
-		warning(expr->pos, "not an lvalue");
+		error(expr->pos, "not an lvalue");
 		return NULL;
 	}
 
@@ -1308,7 +1308,7 @@ static struct symbol *degenerate(struct expression *expr)
 		}
 	case SYM_FN:
 		if (expr->op != '*' || expr->type != EXPR_PREOP) {
-			warning(expr->pos, "strange non-value function or array");
+			error(expr->pos, "strange non-value function or array");
 			return &bad_ctype;
 		}
 		*expr = *expr->unop;
@@ -1326,7 +1326,7 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 	struct symbol *ctype;
 
 	if (op->op != '*' || op->type != EXPR_PREOP) {
-		warning(expr->pos, "not addressable");
+		error(expr->pos, "not addressable");
 		return NULL;
 	}
 	ctype = op->ctype;
@@ -1370,7 +1370,7 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 
 	switch (ctype->type) {
 	default:
-		warning(expr->pos, "cannot derefence this type");
+		error(expr->pos, "cannot derefence this type");
 		return NULL;
 	case SYM_PTR:
 		node->ctype.modifiers = target->ctype.modifiers & MOD_SPECIFIER;
@@ -1379,7 +1379,7 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 
 	case SYM_ARRAY:
 		if (!lvalue_expression(op)) {
-			warning(op->pos, "non-lvalue array??");
+			error(op->pos, "non-lvalue array??");
 			return NULL;
 		}
 
@@ -1411,11 +1411,11 @@ static struct symbol *evaluate_postop(struct expression *expr)
 	struct symbol *ctype = op->ctype;
 
 	if (!lvalue_expression(expr->unop)) {
-		warning(expr->pos, "need lvalue expression for ++/--");
+		error(expr->pos, "need lvalue expression for ++/--");
 		return NULL;
 	}
 	if (is_restricted_type(ctype) && restricted_unop(expr->op, ctype)) {
-		warning(expr->pos, "bad operation on restricted");
+		error(expr->pos, "bad operation on restricted");
 		return NULL;
 	}
 
@@ -1574,7 +1574,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	if (!evaluate_expression(deref))
 		return NULL;
 	if (!ident) {
-		warning(expr->pos, "bad member name");
+		error(expr->pos, "bad member name");
 		return NULL;
 	}
 
@@ -1587,7 +1587,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		mod |= ctype->ctype.modifiers;
 	}
 	if (!ctype || (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION)) {
-		warning(expr->pos, "expected structure or union");
+		error(expr->pos, "expected structure or union");
 		return NULL;
 	}
 	offset = 0;
@@ -1600,7 +1600,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 			name = ctype->ident->name;
 			namelen = ctype->ident->len;
 		}
-		warning(expr->pos, "no member '%s' in %s %.*s",
+		error(expr->pos, "no member '%s' in %s %.*s",
 			show_ident(ident), type, namelen, name);
 		return NULL;
 	}
@@ -1690,7 +1690,7 @@ static struct symbol *evaluate_type_information(struct expression *expr)
 	}
 	examine_symbol_type(sym);
 	if (is_bitfield_type(sym)) {
-		warning(expr->pos, "trying to examine bitfield type");
+		error(expr->pos, "trying to examine bitfield type");
 		return NULL;
 	}
 	return sym;
@@ -1707,7 +1707,7 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 
 	size = type->bit_size;
 	if ((size < 0) || (size & 7))
-		warning(expr->pos, "cannot size expression");
+		error(expr->pos, "cannot size expression");
 	expr->type = EXPR_VALUE;
 	expr->value = size >> 3;
 	expr->ctype = size_t_ctype;
@@ -1735,7 +1735,7 @@ static struct symbol *evaluate_ptrsizeof(struct expression *expr)
 		if (type)
 			break;
 	default:
-		warning(expr->pos, "expected pointer expression");
+		error(expr->pos, "expected pointer expression");
 		return NULL;
 	}
 	size = type->bit_size;
@@ -1854,7 +1854,7 @@ static void evaluate_array_initializer(struct symbol *ctype, struct expression *
 static void evaluate_scalar_initializer(struct symbol *ctype, struct expression *expr)
 {
 	if (expression_list_size(expr->expr_list) != 1) {
-		warning(expr->pos, "unexpected compound initializer");
+		error(expr->pos, "unexpected compound initializer");
 		return;
 	}
 	evaluate_array_initializer(ctype, expr);
@@ -2128,7 +2128,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 
 	t2 = target->ctype;
 	if (!t2) {
-		warning(expr->pos, "cast from unknown type");
+		error(expr->pos, "cast from unknown type");
 		goto out;
 	}
 	if (t2->type == SYM_NODE)
@@ -2217,15 +2217,15 @@ static struct symbol *evaluate_call(struct expression *expr)
 	if (!evaluate_arguments(sym, ctype, arglist))
 		return NULL;
 	if (ctype->type != SYM_FN) {
-		warning(expr->pos, "not a function %s", show_ident(sym->ident));
+		error(expr->pos, "not a function %s", show_ident(sym->ident));
 		return NULL;
 	}
 	args = expression_list_size(expr->args);
 	fnargs = symbol_list_size(ctype->arguments);
 	if (args < fnargs)
-		warning(expr->pos, "not enough arguments for function %s", show_ident(sym->ident));
+		error(expr->pos, "not enough arguments for function %s", show_ident(sym->ident));
 	if (args > fnargs && !ctype->variadic)
-		warning(expr->pos, "too many arguments for function %s", show_ident(sym->ident));
+		error(expr->pos, "too many arguments for function %s", show_ident(sym->ident));
 	if (sym->type == SYM_NODE) {
 		if (evaluate_symbol_call(expr))
 			return expr->ctype;
@@ -2244,7 +2244,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 	switch (expr->type) {
 	case EXPR_VALUE:
 	case EXPR_FVALUE:
-		warning(expr->pos, "value expression without a type");
+		error(expr->pos, "value expression without a type");
 		return NULL;
 	case EXPR_STRING:
 		return evaluate_string(expr);
@@ -2319,10 +2319,10 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_IDENTIFIER:
 	case EXPR_INDEX:
 	case EXPR_POS:
-		warning(expr->pos, "internal front-end error: initializer in expression");
+		error(expr->pos, "internal front-end error: initializer in expression");
 		return NULL;
 	case EXPR_SLICE:
-		warning(expr->pos, "internal front-end error: SLICE re-evaluated");
+		error(expr->pos, "internal front-end error: SLICE re-evaluated");
 		return NULL;
 	}
 	return NULL;
@@ -2339,7 +2339,7 @@ static void check_duplicates(struct symbol *sym)
 		declared++;
 		typediff = type_difference(sym, next, 0, 0);
 		if (typediff) {
-			warning(sym->pos, "symbol '%s' redeclared with different type (originally declared at %s:%d) - %s",
+			error(sym->pos, "symbol '%s' redeclared with different type (originally declared at %s:%d) - %s",
 				show_ident(sym->ident),
 				stream_name(next->pos.stream), next->pos.line, typediff);
 			return;
@@ -2411,12 +2411,12 @@ static struct symbol *evaluate_return_expression(struct statement *stmt)
 	fntype = current_fn->ctype.base_type;
 	if (!fntype || fntype == &void_ctype) {
 		if (expr && ctype != &void_ctype)
-			warning(expr->pos, "return expression in %s function", fntype?"void":"typeless");
+			error(expr->pos, "return expression in %s function", fntype?"void":"typeless");
 		return NULL;
 	}
 
 	if (!expr) {
-		warning(stmt->pos, "return with no return value");
+		error(stmt->pos, "return with no return value");
 		return NULL;
 	}
 	if (!ctype)
@@ -2451,7 +2451,7 @@ static void verify_output_constraint(struct expression *expr, const char *constr
 	case '+':	/* Update */
 		break;
 	default:
-		warning(expr->pos, "output constraint is not an assignment constraint (\"%s\")", constraint);
+		error(expr->pos, "output constraint is not an assignment constraint (\"%s\")", constraint);
 	}
 }
 
@@ -2460,7 +2460,7 @@ static void verify_input_constraint(struct expression *expr, const char *constra
 	switch (*constraint) {
 	case '=':	/* Assignment */
 	case '+':	/* Update */
-		warning(expr->pos, "input constraint with assignment (\"%s\")", constraint);
+		error(expr->pos, "input constraint with assignment (\"%s\")", constraint);
 	}
 }
 
@@ -2471,7 +2471,7 @@ static void evaluate_asm_statement(struct statement *stmt)
 
 	expr = stmt->asm_string;
 	if (!expr || expr->type != EXPR_STRING) {
-		warning(stmt->pos, "need constant string for inline asm");
+		error(stmt->pos, "need constant string for inline asm");
 		return;
 	}
 
@@ -2488,7 +2488,7 @@ static void evaluate_asm_statement(struct statement *stmt)
 		case 1: /* Constraint */
 			state = 2;
 			if (!expr || expr->type != EXPR_STRING) {
-				warning(expr ? expr->pos : stmt->pos, "asm output constraint is not a string");
+				error(expr ? expr->pos : stmt->pos, "asm output constraint is not a string");
 				*THIS_ADDRESS(expr) = NULL;
 				continue;
 			}
@@ -2519,7 +2519,7 @@ static void evaluate_asm_statement(struct statement *stmt)
 		case 1:	/* Constraint */
 			state = 2;
 			if (!expr || expr->type != EXPR_STRING) {
-				warning(expr ? expr->pos : stmt->pos, "asm input constraint is not a string");
+				error(expr ? expr->pos : stmt->pos, "asm input constraint is not a string");
 				*THIS_ADDRESS(expr) = NULL;
 				continue;
 			}
@@ -2536,12 +2536,12 @@ static void evaluate_asm_statement(struct statement *stmt)
 
 	FOR_EACH_PTR(stmt->asm_clobbers, expr) {
 		if (!expr) {
-			warning(stmt->pos, "bad asm output");
+			error(stmt->pos, "bad asm output");
 			return;
 		}
 		if (expr->type == EXPR_STRING)
 			continue;
-		warning(expr->pos, "asm clobber is not a string");
+		error(expr->pos, "asm clobber is not a string");
 	} END_FOR_EACH_PTR(expr);
 }
 

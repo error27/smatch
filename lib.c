@@ -29,6 +29,7 @@
 #include "target.h"
 
 int verbose, optimize, optimize_size, preprocessing;
+int die_if_error = 0;
 
 #ifndef __GNUC__
 # define __GNUC__ 2
@@ -53,8 +54,8 @@ struct token *expect(struct token *token, int op, const char *where)
 		static struct token bad_token;
 		if (token != &bad_token) {
 			bad_token.next = token;
-			warning(token->pos, "Expected %s %s", show_special(op), where);
-			warning(token->pos, "got %s", show_token(token));
+			error(token->pos, "Expected %s %s", show_special(op), where);
+			error(token->pos, "got %s", show_token(token));
 		}
 		if (op == ';')
 			return skip_to(token, op);
@@ -124,7 +125,7 @@ void error(struct position pos, const char * fmt, ...)
 {
 	static int errors = 0;
 	va_list args;
-
+        die_if_error = 1;
 	/* Shut up warnings after an error */
 	max_warnings = 0;
 	if (errors > 100) {
@@ -177,6 +178,7 @@ int Wtransparent_union = 1;
 int preprocess_only;
 char *include;
 int include_fd = -1;
+
 
 void add_pre_buffer(const char *fmt, ...)
 {

@@ -394,16 +394,16 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		break;
 	}
 	case SYM_PREPROCESSOR:
-		warning(sym->pos, "ctype on preprocessor command? (%s)", show_ident(sym->ident));
+		error(sym->pos, "ctype on preprocessor command? (%s)", show_ident(sym->ident));
 		return NULL;
 	case SYM_UNINITIALIZED:
-		warning(sym->pos, "ctype on uninitialized symbol %p", sym);
+		error(sym->pos, "ctype on uninitialized symbol %p", sym);
 		return NULL;
 	case SYM_RESTRICT:
 		examine_base_type(sym);
 		return sym;
 	default:
-		warning(sym->pos, "Examining unknown symbol type %d", sym->type);
+		error(sym->pos, "Examining unknown symbol type %d", sym->type);
 		break;
 	}
 	return sym;
@@ -441,11 +441,11 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 {
 	struct scope *scope;
 	if (sym->id_list) {
-		warning(sym->pos, "internal error: symbol type already bound");
+		error(sym->pos, "internal error: symbol type already bound");
 		return;
 	}
 	if (ident->reserved && (ns & (NS_TYPEDEF | NS_STRUCT | NS_LABEL | NS_SYMBOL))) {
-		warning(sym->pos, "Trying to use reserved word '%s' as identifier", show_ident(ident));
+		error(sym->pos, "Trying to use reserved word '%s' as identifier", show_ident(ident));
 		return;
 	}
 	sym->namespace = ns;

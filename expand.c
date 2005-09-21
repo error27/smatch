@@ -900,7 +900,7 @@ static int expand_expression(struct expression *expr)
 	case EXPR_SIZEOF:
 	case EXPR_PTRSIZEOF:
 	case EXPR_ALIGNOF:
-		warning(expr->pos, "internal front-end error: sizeof in expansion?");
+		error(expr->pos, "internal front-end error: sizeof in expansion?");
 		return UNSAFE;
 	}
 	return SIDE_EFFECTS;
@@ -911,7 +911,7 @@ static void expand_const_expression(struct expression *expr, const char *where)
 	if (expr) {
 		expand_expression(expr);
 		if (expr->type != EXPR_VALUE)
-			warning(expr->pos, "Expected constant expression in %s", where);
+			error(expr->pos, "Expected constant expression in %s", where);
 	}
 }
 
@@ -1083,12 +1083,12 @@ long long get_expression_value(struct expression *expr)
 		return 0;
 	ctype = evaluate_expression(expr);
 	if (!ctype) {
-		warning(expr->pos, "bad constant expression type");
+		error(expr->pos, "bad constant expression type");
 		return 0;
 	}
 	expand_expression(expr);
 	if (expr->type != EXPR_VALUE) {
-		warning(expr->pos, "bad constant expression");
+		error(expr->pos, "bad constant expression");
 		return 0;
 	}
 

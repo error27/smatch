@@ -522,7 +522,7 @@ static int get_char_token(int next, stream_t *stream)
 
 	next = escapechar(next, '\'', stream, &value);
 	if (value == '\'' || next != '\'') {
-		warning(stream_pos(stream), "Bad character constant");
+		error(stream_pos(stream), "Bad character constant");
 		drop_token(stream);
 		return next;
 	}
