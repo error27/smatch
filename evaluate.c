@@ -1118,7 +1118,7 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 		}
 	}
 
-	error(expr->pos, "incorrect type in %s (%s)", where, typediff);
+	warning(expr->pos, "incorrect type in %s (%s)", where, typediff);
 	info(expr->pos, "   expected %s", show_typename(target));
 	info(expr->pos, "   got %s", show_typename(source));
 	*rp = cast_to(*rp, target);
