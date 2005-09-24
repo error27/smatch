@@ -84,6 +84,19 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 		hash += hashval(insn->symbol);
 		break;
 
+	case OP_CAST:
+	case OP_SCAST:
+	case OP_PTRCAST:
+		/*
+		 * This is crap! Many "orig_types" are the
+		 * same as far as casts go, we should generate
+		 * some kind of "type hash" that is identical
+		 * for identical casts
+		 */
+		hash += hashval(insn->orig_type);
+		hash += hashval(insn->src);
+		break;
+
 	/* Other */
 	case OP_PHI: {
 		pseudo_t phi;
@@ -208,6 +221,18 @@ static int insn_compare(const void *_i1, const void *_i2)
 	/* Other */
 	case OP_PHI:
 		return phi_list_compare(i1->phi_list, i2->phi_list);
+
+	case OP_CAST:
+	case OP_SCAST:
+	case OP_PTRCAST:
+		/*
+		 * This is crap! See the comments on hashing.
+		 */
+		if (i1->orig_type != i2->orig_type)
+			return i1->orig_type < i2->orig_type ? -1 : 1;
+		if (i1->src != i2->src)
+			return i1->src < i2->src ? -1 : 1;
+		break;
 
 	default:
 		warning(i1->pos, "bad instruction on hash chain");
