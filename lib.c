@@ -375,6 +375,14 @@ static char **handle_switch_f(char *arg, char **next)
 	return next;
 }
 
+static char **handle_switch_G(char *arg, char **next)
+{
+	if (!strcmp (arg, "G") && *next)
+		return next + 1; // "-G 0"
+	else
+		return next;     // "-G0" or (bogus) terminal "-G"
+}
+
 static char **handle_nostdinc(char *arg, char **next)
 {
 	add_pre_buffer("#nostdinc\n");
@@ -417,6 +425,7 @@ char **handle_switch(char *arg, char **next)
 	case 'W': return handle_switch_W(arg, next);
 	case 'O': return handle_switch_O(arg, next);
 	case 'f': return handle_switch_f(arg, next);
+	case 'G': return handle_switch_G(arg, next);
 	default:
 		break;
 	}
