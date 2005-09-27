@@ -513,14 +513,45 @@ static int expand_addressof(struct expression *expr)
 	return expand_expression(expr->unop);
 }
 
-static inline struct expression *constant_symbol_value(struct symbol *sym)
+/*
+ * Look up a trustable initializer value at the requested offset.
+ *
+ * Return NULL if no such value can be found or statically trusted.
+ *
+ * FIXME!! We should check that the size is right!
+ */
+static struct expression *constant_symbol_value(struct symbol *sym, int offset)
 {
-	return (sym->ctype.modifiers & (MOD_ASSIGNED | MOD_ADDRESSABLE)) ? NULL : sym->initializer;
+	struct expression *value;
+
+	if (sym->ctype.modifiers & (MOD_ASSIGNED | MOD_ADDRESSABLE))
+		return NULL;
+	value = sym->initializer;
+	if (!value)
+		return NULL;
+	if (value->type == EXPR_INITIALIZER) {
+		struct expression *entry;
+		FOR_EACH_PTR(value->expr_list, entry) {
+			if (entry->type != EXPR_POS) {
+				if (offset)
+					continue;
+				return entry;
+			}
+			if (entry->init_offset < offset)
+				continue;
+			if (entry->init_offset > offset)
+				return NULL;
+			return entry->init_expr;
+		} END_FOR_EACH_PTR(entry);
+		return NULL;
+	}
+	return value;
 }
 
 static int expand_dereference(struct expression *expr)
 {
 	struct expression *unop = expr->unop;
+	unsigned int offset;
 
 	expand_expression(unop);
 
@@ -535,9 +566,21 @@ static int expand_dereference(struct expression *expr)
 	if (expr->ctype->ctype.modifiers & MOD_NODEREF)
 		warning(unop->pos, "dereference of noderef expression");
 
+	/*
+	 * Is it "symbol" or "symbol + offset"?
+	 */
+	offset = 0;
+	if (unop->type == EXPR_BINOP && unop->op == '+') {
+		struct expression *right = unop->right;
+		if (right->type == EXPR_VALUE) {
+			offset = right->value;
+			unop = unop->left;
+		}
+	}
+
 	if (unop->type == EXPR_SYMBOL) {
 		struct symbol *sym = unop->symbol;
-		struct expression *value = constant_symbol_value(sym);
+		struct expression *value = constant_symbol_value(sym, offset);
 
 		/* Const symbol with a constant initializer? */
 		if (value) {
@@ -555,42 +598,6 @@ static int expand_dereference(struct expression *expr)
 
 		/* Direct symbol dereference? Cheap and safe */
 		return (sym->ctype.modifiers & (MOD_STATIC | MOD_EXTERN)) ? 2 : 1;
-	}
-
-	/*
-	 * Is it a constant array deref?
-	 */
-	if (unop->type == EXPR_BINOP && unop->op == '+') {
-		struct expression *left = unop->left;
-		struct expression *right = unop->right;
-
-		if (left->type == EXPR_SYMBOL && right->type == EXPR_VALUE) {
-			struct symbol *sym = left->symbol;
-			struct expression *initializer = constant_symbol_value(sym);
-
-			if (initializer) {
-				if (initializer->type == EXPR_INITIALIZER) {
-					struct expression *entry;
-					FOR_EACH_PTR(initializer->expr_list, entry) {
-						struct expression *value;
-						if (entry->type != EXPR_POS)
-							continue;
-						if (entry->init_offset != right->value)
-							continue;
-						value = entry->init_expr;
-						if (value->type != EXPR_VALUE)
-							continue;
-
-						/* FIXME!! We should check that the size is right! */
-						expr->type = EXPR_VALUE;
-						expr->value = value->value;
-						return 0;
-					} END_FOR_EACH_PTR(entry);
-				}
-			}
-
-			/* FIXME! If it's within the symbol size, it should be cheap and safe! */
-		}
 	}
 
 	return UNSAFE;
