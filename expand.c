@@ -513,6 +513,11 @@ static int expand_addressof(struct expression *expr)
 	return expand_expression(expr->unop);
 }
 
+static inline struct expression *constant_symbol_value(struct symbol *sym)
+{
+	return (sym->ctype.modifiers & (MOD_ASSIGNED | MOD_ADDRESSABLE)) ? NULL : sym->initializer;
+}
+
 static int expand_dereference(struct expression *expr)
 {
 	struct expression *unop = expr->unop;
@@ -532,26 +537,62 @@ static int expand_dereference(struct expression *expr)
 
 	if (unop->type == EXPR_SYMBOL) {
 		struct symbol *sym = unop->symbol;
+		struct expression *value = constant_symbol_value(sym);
 
 		/* Const symbol with a constant initializer? */
-		if (!(sym->ctype.modifiers & (MOD_ASSIGNED | MOD_ADDRESSABLE))) {
-			struct expression *value = sym->initializer;
-			if (value) {
-				if (value->type == EXPR_VALUE) {
-					expr->type = EXPR_VALUE;
-					expr->value = value->value;
-					return 0;
-				} else if (value->type == EXPR_FVALUE) {
-					expr->type = EXPR_FVALUE;
-					expr->fvalue = value->fvalue;
-					return 0;
-				}
+		if (value) {
+			/* FIXME! We should check that the size is right! */
+			if (value->type == EXPR_VALUE) {
+				expr->type = EXPR_VALUE;
+				expr->value = value->value;
+				return 0;
+			} else if (value->type == EXPR_FVALUE) {
+				expr->type = EXPR_FVALUE;
+				expr->fvalue = value->fvalue;
+				return 0;
 			}
 		}
 
 		/* Direct symbol dereference? Cheap and safe */
 		return (sym->ctype.modifiers & (MOD_STATIC | MOD_EXTERN)) ? 2 : 1;
 	}
+
+	/*
+	 * Is it a constant array deref?
+	 */
+	if (unop->type == EXPR_BINOP && unop->op == '+') {
+		struct expression *left = unop->left;
+		struct expression *right = unop->right;
+
+		if (left->type == EXPR_SYMBOL && right->type == EXPR_VALUE) {
+			struct symbol *sym = left->symbol;
+			struct expression *initializer = constant_symbol_value(sym);
+
+			if (initializer) {
+				if (initializer->type == EXPR_INITIALIZER) {
+					struct expression *entry;
+					FOR_EACH_PTR(initializer->expr_list, entry) {
+						struct expression *value;
+						if (entry->type != EXPR_POS)
+							continue;
+						if (entry->init_offset != right->value)
+							continue;
+						value = entry->init_expr;
+						if (value->type != EXPR_VALUE)
+							continue;
+
+						/* FIXME!! We should check that the size is right! */
+						expr->type = EXPR_VALUE;
+						expr->value = value->value;
+						return 0;
+					} END_FOR_EACH_PTR(entry);
+				}
+			}
+
+			/* FIXME! If it's within the symbol size, it should be cheap and safe! */
+		}
+	}
+
 	return UNSAFE;
 }
 
