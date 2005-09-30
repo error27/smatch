@@ -1128,12 +1128,45 @@ Cast:
 	return 1;
 }
 
+static void mark_assigned(struct expression *expr)
+{
+	struct symbol *sym;
+
+	if (!expr)
+		return;
+	switch (expr->type) {
+	case EXPR_SYMBOL:
+		sym = expr->symbol;
+		if (!sym)
+			return;
+		if (sym->type != SYM_NODE)
+			return;
+		sym->ctype.modifiers |= MOD_ASSIGNED;
+		return;
+
+	case EXPR_BINOP:
+		mark_assigned(expr->left);
+		mark_assigned(expr->right);
+		return;
+	case EXPR_CAST:
+		mark_assigned(expr->cast_expression);
+		return;
+	case EXPR_SLICE:
+		mark_assigned(expr->base);
+		return;
+	default:
+		/* Hmm? */
+		return;
+	}
+}
+
 static void evaluate_assign_to(struct expression *left, struct symbol *type)
 {
 	if (type->ctype.modifiers & MOD_CONST)
 		error(left->pos, "assignment to const expression");
-	if (type->type == SYM_NODE)
-		type->ctype.modifiers |= MOD_ASSIGNED;
+
+	/* We know left is an lvalue, so it's a "preop-*" */
+	mark_assigned(left->unop);
 }
 
 static struct symbol *evaluate_assignment(struct expression *expr)
