@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 {
 	const char *filename;
 
-	sparse_initialize(argc, argv);
+	clean_up_symbols(sparse_initialize(argc, argv));
 	while ((filename = *argv) != NULL) {
 		struct symbol_list *list;
 		const char *basename = strrchr(filename, '/');

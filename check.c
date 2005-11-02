@@ -266,7 +266,7 @@ static void check_symbols(struct symbol_list *list)
 int main(int argc, char **argv)
 {
 	// Expand, linearize and show it.
-	sparse_initialize(argc, argv);
+	check_symbols(sparse_initialize(argc, argv));
 	while (*argv)
 		check_symbols(sparse(argv));
 	return 0;

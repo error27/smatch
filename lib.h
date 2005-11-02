@@ -81,7 +81,7 @@ extern int Wcast_to_address_space;
 
 extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);
-extern int sparse_initialize(int argc, char **argv);
+extern struct symbol_list *sparse_initialize(int argc, char **argv);
 extern struct symbol_list *sparse(char **argv);
 
 static inline int symbol_list_size(struct symbol_list* list)

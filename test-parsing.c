@@ -34,9 +34,20 @@ static void clean_up_symbols(struct symbol_list *list)
 
 int main(int argc, char **argv)
 {
-	sparse_initialize(argc, argv);
+	struct symbol_list * list;
+
+	list = sparse_initialize(argc, argv);
+
+	// Simplification
+	clean_up_symbols(list);
+
+#if 1
+	show_symbol_list(list, "\n\n");
+	printf("\n\n");
+#endif
+
 	while (*argv) {
-		struct symbol_list *list = sparse(argv);
+		list = sparse(argv);
 
 		// Simplification
 		clean_up_symbols(list);

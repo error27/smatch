@@ -49,7 +49,7 @@ static void emit_symbol_list(struct symbol_list *list)
 
 int main(int argc, char **argv)
 {
-	sparse_initialize(argc, argv);
+	emit_symbol_list(sparse_initialize(argc, argv));
 	while (*argv)
 		emit_symbol_list(sparse(argv));
 	return 0;

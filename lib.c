@@ -560,7 +560,7 @@ static struct symbol_list *sparse_file(const char *filename)
  * affect all subsequent files too, ie we can have non-local
  * behaviour between files!
  */
-static void sparse_initial(void)
+static struct symbol_list *sparse_initial(void)
 {
 	struct token *token;
 
@@ -572,13 +572,14 @@ static void sparse_initial(void)
 
 	// Prepend the initial built-in stream
 	token = tokenize_buffer(pre_buffer, pre_buffer_size, token);
-	sparse_tokenstream(token);
+	return sparse_tokenstream(token);
 }
 
-int sparse_initialize(int argc, char **argv)
+struct symbol_list *sparse_initialize(int argc, char **argv)
 {
 	char **args;
 	int files = 0;
+	struct symbol_list *list;
 
 	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
@@ -601,6 +602,7 @@ int sparse_initialize(int argc, char **argv)
 		argv[files++] = arg;
 	}
 
+	list = NULL;
 	argv[files] = NULL;
 	if (files) {
 		// Initialize type system
@@ -611,7 +613,7 @@ int sparse_initialize(int argc, char **argv)
 		if (!preprocess_only)
 			declare_builtin_functions();
 
-		sparse_initial();
+		list = sparse_initial();
 
 		/*
 		 * Protect the initial token allocations, since
@@ -619,7 +621,7 @@ int sparse_initialize(int argc, char **argv)
 		 */
 		protect_token_alloc();
 	}
-	return files;
+	return list;
 }
 
 struct symbol_list * sparse(char **argv)

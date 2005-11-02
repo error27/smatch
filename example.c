@@ -1958,7 +1958,7 @@ static int compile(struct symbol_list *list)
 
 int main(int argc, char **argv)
 {
-	sparse_initialize(argc, argv);
+	compile(sparse_initialize(argc, argv));
 	while (*argv)
 		compile(sparse(argv));
 	return 0;
