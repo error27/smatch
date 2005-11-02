@@ -1,0 +1,17 @@
+# generic
+.*
+*.o
+*.a
+*.so
+
+# generated
+pre-process.h
+
+# programs
+test-lexing
+test-parsing
+obfuscate
+check
+compile
+test-linearize
+example
