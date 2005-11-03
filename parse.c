@@ -219,11 +219,28 @@ static struct symbol *bigger_enum_type(struct symbol *s1, struct symbol *s2)
 	return s1;
 }
 
+static void cast_enum_list(struct symbol_list *list, struct symbol *base_type)
+{
+	struct symbol *sym;
+
+	FOR_EACH_PTR(list, sym) {
+		struct expression *expr = sym->initializer;
+		struct symbol *ctype;
+		if (expr->type != EXPR_VALUE)
+			continue;
+		ctype = expr->ctype;
+		if (ctype->bit_size == base_type->bit_size)
+			continue;
+		cast_value(expr, base_type, expr, ctype);
+	} END_FOR_EACH_PTR(sym);
+}
+
 static struct token *parse_enum_declaration(struct token *token, struct symbol *parent)
 {
 	unsigned long long lastval = 0;
 	struct symbol *ctype = NULL, *base_type = NULL;
 	Num upper = {-1, 0}, lower = {1, 0};
+	struct symbol_list *entries = NULL;
 
 	parent->examined = 1;
 	parent->ctype.base_type = &int_ctype;
@@ -258,6 +275,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 
 		sym->initializer = expr;
 		sym->ctype.base_type = parent;
+		add_ptr_list(&entries, sym);
 
 		if (base_type != &bad_ctype) {
 			if (ctype->type == SYM_NODE)
@@ -329,6 +347,10 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 	parent->ctype.base_type = base_type;
 	parent->ctype.modifiers |= (base_type->ctype.modifiers & MOD_UNSIGNED);
 	parent->examined = 0;
+
+	cast_enum_list(entries, base_type);
+	free_ptr_list(&entries);
+
 	return token;
 }
 
