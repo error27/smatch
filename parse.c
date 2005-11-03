@@ -206,6 +206,19 @@ static int type_is_ok(struct symbol *type, Num *upper, Num *lower)
 	return 0;
 }
 
+static struct symbol *bigger_enum_type(struct symbol *s1, struct symbol *s2)
+{
+	if (s1->bit_size < s2->bit_size) {
+		s1 = s2;
+	} else if (s1->bit_size == s2->bit_size) {
+		if (s2->ctype.modifiers & MOD_UNSIGNED)
+			s1 = s2;
+	}
+	if (s1->bit_size < bits_in_int)
+		return &int_ctype;
+	return s1;
+}
+
 static struct token *parse_enum_declaration(struct token *token, struct symbol *parent)
 {
 	unsigned long long lastval = 0;
@@ -240,6 +253,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 		if (!expr) {
 			expr = alloc_expression(token->pos, EXPR_VALUE);
 			expr->value = lastval;
+			expr->ctype = ctype;
 		}
 
 		sym->initializer = expr;
@@ -261,7 +275,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 			 *    cases)
 			 *  - if enums are of different types, they
 			 *    all have to be integer types, and the
-			 *    base type is "int_ctype".
+			 *    base type is at least "int_ctype".
 			 *  - otherwise the base_type is "bad_ctype".
 			 */
 			if (!base_type) {
@@ -269,9 +283,10 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 			} else if (ctype == base_type) {
 				/* nothing */
 			} else if (is_int_type(base_type) && is_int_type(ctype)) {
-				base_type = &int_ctype;
+				base_type = bigger_enum_type(base_type, ctype);
 			} else
 				base_type = &bad_ctype;
+			parent->ctype.base_type = base_type;
 		}
 		if (is_int_type(base_type)) {
 			Num v = {.y = lastval};
