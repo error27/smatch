@@ -2578,6 +2578,45 @@ static void evaluate_asm_statement(struct statement *stmt)
 	} END_FOR_EACH_PTR(expr);
 }
 
+static void evaluate_case_statement(struct statement *stmt)
+{
+	evaluate_expression(stmt->case_expression);
+	evaluate_expression(stmt->case_to);
+	evaluate_statement(stmt->case_statement);
+}
+
+static void check_case_type(struct expression *switch_expr, struct expression *case_expr)
+{
+	struct symbol *switch_type, *case_type;
+	if (!case_expr)
+		return;
+	switch_type = switch_expr->ctype;
+	case_type = case_expr->ctype;
+
+	/* Both integer types? */
+	if (is_int_type(switch_type) && is_int_type(case_type))
+		return;
+	if (compatible_restricted_binop(SPECIAL_EQUAL, &switch_expr, &case_expr))
+		return;
+
+	error(case_expr->pos, "incompatible types for 'case' statement");
+}
+
+static void evaluate_switch_statement(struct statement *stmt)
+{
+	struct symbol *sym;
+
+	evaluate_expression(stmt->switch_expression);
+	evaluate_statement(stmt->switch_statement);
+	if (!stmt->switch_expression)
+		return;
+	FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
+		struct statement *case_stmt = sym->stmt;
+		check_case_type(stmt->switch_expression, case_stmt->case_expression);
+		check_case_type(stmt->switch_expression, case_stmt->case_to);
+	} END_FOR_EACH_PTR(sym);
+}
+
 struct symbol *evaluate_statement(struct statement *stmt)
 {
 	if (!stmt)
@@ -2622,13 +2661,10 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		evaluate_iterator(stmt);
 		return NULL;
 	case STMT_SWITCH:
-		evaluate_expression(stmt->switch_expression);
-		evaluate_statement(stmt->switch_statement);
+		evaluate_switch_statement(stmt);
 		return NULL;
 	case STMT_CASE:
-		evaluate_expression(stmt->case_expression);
-		evaluate_expression(stmt->case_to);
-		evaluate_statement(stmt->case_statement);
+		evaluate_case_statement(stmt);
 		return NULL;
 	case STMT_LABEL:
 		return evaluate_statement(stmt->label_statement);
