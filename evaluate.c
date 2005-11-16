@@ -99,6 +99,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 
 static inline struct symbol *integer_promotion(struct symbol *type)
 {
+	struct symbol *orig_type = type;
 	unsigned long mod =  type->ctype.modifiers;
 	int width;
 
@@ -107,19 +108,27 @@ static inline struct symbol *integer_promotion(struct symbol *type)
 	if (type->type == SYM_ENUM)
 		type = type->ctype.base_type;
 	width = type->bit_size;
-	if (type->type == SYM_BITFIELD)
+
+	/*
+	 * Bitfields always promote to the base type,
+	 * even if the bitfield might be bigger than
+	 * an "int".
+	 */
+	if (type->type == SYM_BITFIELD) {
 		type = type->ctype.base_type;
+		orig_type = type;
+	}
 	mod = type->ctype.modifiers;
 	if (width < bits_in_int)
 		return &int_ctype;
 
 	/* If char/short has as many bits as int, it still gets "promoted" */
 	if (mod & (MOD_CHAR | MOD_SHORT)) {
-		type = &int_ctype;
 		if (mod & MOD_UNSIGNED)
-			type = &uint_ctype;
+			return &uint_ctype;
+		return &int_ctype;
 	}
-	return type;
+	return orig_type;
 }
 
 /*
