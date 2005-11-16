@@ -2405,6 +2405,9 @@ static struct symbol *evaluate_symbol(struct symbol *sym)
 
 	if (!sym)
 		return sym;
+	if (sym->evaluated)
+		return sym;
+	sym->evaluated = 1;
 
 	sym = examine_symbol_type(sym);
 	base_type = get_base_type(sym);
