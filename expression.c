@@ -326,7 +326,7 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		 *	if (typeof(a) == int) ..
 		 */
 		if (sym && sym->namespace == NS_TYPEDEF) {
-			error(token->pos, "typename in expression");
+			sparse_error(token->pos, "typename in expression");
 			sym = NULL;
 		}
 		expr->symbol_name = token->ident;
@@ -428,7 +428,7 @@ static struct token *postfix_expression(struct token *token, struct expression *
 			deref->deref = expr;
 			token = token->next;
 			if (token_type(token) != TOKEN_IDENT) {
-				error(token->pos, "Expected member name");
+				sparse_error(token->pos, "Expected member name");
 				break;
 			}
 			deref->member = token->ident;
@@ -520,7 +520,7 @@ static struct token *unary_expression(struct token *token, struct expression **t
 
 			next = cast_expression(token->next, &unop);
 			if (!unop) {
-				error(token->pos, "Syntax error in unary expression");
+				sparse_error(token->pos, "Syntax error in unary expression");
 				return next;
 			}
 			unary = alloc_expression(token->pos, EXPR_PREOP);
@@ -607,7 +607,7 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 			top = alloc_expression(next->pos, type);	\
 			next = inner(next->next, &right);		\
 			if (!right) {					\
-				error(next->pos, "No right hand side of '%s'-expression", show_special(op));	\
+				sparse_error(next->pos, "No right hand side of '%s'-expression", show_special(op));	\
 				break;					\
 			}						\
 			top->op = op;					\

@@ -469,7 +469,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	struct expression *arg;
 
 	if (!fn->inline_stmt) {
-		error(fn->pos, "marked inline, but without a definition");
+		sparse_error(fn->pos, "marked inline, but without a definition");
 		return 0;
 	}
 	if (fn->expanding)

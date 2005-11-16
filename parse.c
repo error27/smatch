@@ -142,7 +142,7 @@ static struct token *struct_union_enum_specifier(enum type type,
 
 	// private struct/union/enum type
 	if (!match_op(token, '{')) {
-		error(token->pos, "expected declaration");
+		sparse_error(token->pos, "expected declaration");
 		ctype->base_type = &bad_ctype;
 		return token;
 	}
@@ -323,7 +323,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 		token = token->next;
 	}
 	if (!base_type) {
-		error(token->pos, "bad enum definition");
+		sparse_error(token->pos, "bad enum definition");
 		base_type = &bad_ctype;
 	}
 	else if (!is_int_type(base_type))
@@ -370,7 +370,7 @@ static struct token *typeof_specifier(struct token *token, struct ctype *ctype)
 	struct symbol *sym;
 
 	if (!match_op(token, '(')) {
-		error(token->pos, "expected '(' after typeof");
+		sparse_error(token->pos, "expected '(' after typeof");
 		return token;
 	}
 	if (lookup_type(token->next)) {
@@ -571,7 +571,7 @@ static struct token *attribute_specifier(struct token *token, struct ctype *ctyp
 			token = parens_expression(token, &attribute_expr, "in attribute");
 		error_str = handle_attribute(ctype, attribute_name, attribute_expr);
 		if (error_str)
-			error(token->pos, "attribute '%s': %s", show_ident(attribute_name), error_str);
+			sparse_error(token->pos, "attribute '%s': %s", show_ident(attribute_name), error_str);
 		if (!match_op(token, ','))
 			break;
 		token = token->next;
@@ -640,22 +640,22 @@ static void apply_ctype(struct position pos, struct ctype *thistype, struct ctyp
 		}
 		dup = (mod & old) | (extra & old) | (extra & mod);
 		if (dup)
-			error(pos, "Just how %sdo you want this type to be?",
+			sparse_error(pos, "Just how %sdo you want this type to be?",
 				modifier_string(dup));
 
 		conflict = !(~mod & ~old & (MOD_LONG | MOD_SHORT));
 		if (conflict)
-			error(pos, "You cannot have both long and short modifiers.");
+			sparse_error(pos, "You cannot have both long and short modifiers.");
 
 		conflict = !(~mod & ~old & (MOD_SIGNED | MOD_UNSIGNED));
 		if (conflict)
-			error(pos, "You cannot have both signed and unsigned modifiers.");
+			sparse_error(pos, "You cannot have both signed and unsigned modifiers.");
 
 		// Only one storage modifier allowed, except that "inline" doesn't count.
 		conflict = (mod | old) & (MOD_STORAGE & ~MOD_INLINE);
 		conflict &= (conflict - 1);
 		if (conflict)
-			error(pos, "multiple storage classes");
+			sparse_error(pos, "multiple storage classes");
 
 		ctype->modifiers = old | mod | extra;
 	}
@@ -702,7 +702,7 @@ static void check_modifiers(struct position *pos, struct symbol *s, unsigned lon
 
 	wrong = mod & banned;
 	if (wrong)
-		error(*pos, "modifier %sis invalid in this context",
+		sparse_error(*pos, "modifier %sis invalid in this context",
 		     modifier_string (wrong));
 }
 
@@ -784,7 +784,7 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 		struct symbol *type;
 		ctype->modifiers &= ~(MOD_BITWISE | MOD_SPECIFIER);
 		if (!is_int_type(ctype->base_type)) {
-			error(token->pos, "invalid modifier");
+			sparse_error(token->pos, "invalid modifier");
 			return token;
 		}
 		type = alloc_symbol(token->pos, SYM_BASETYPE);
@@ -930,7 +930,7 @@ static struct token *handle_bitfield(struct token *token, struct symbol *decl)
 	long long width;
 
 	if (!is_int_type(ctype->base_type)) {
-		error(token->pos, "invalid bitfield specifier for type %s.",
+		sparse_error(token->pos, "invalid bitfield specifier for type %s.",
 			show_typename(ctype->base_type));
 		// Parse this to recover gracefully.
 		return conditional_expression(token->next, &expr);
@@ -942,10 +942,10 @@ static struct token *handle_bitfield(struct token *token, struct symbol *decl)
 	bitfield->bit_size = width;
 
 	if (width < 0 || width > INT_MAX) {
-		error(token->pos, "invalid bitfield width, %lld.", width);
+		sparse_error(token->pos, "invalid bitfield width, %lld.", width);
 		width = -1;
 	} else if (decl->ident && width == 0) {
-		error(token->pos, "invalid named zero-width bitfield `%s'",
+		sparse_error(token->pos, "invalid named zero-width bitfield `%s'",
 		     show_ident(decl->ident));
 		width = -1;
 	} else if (decl->ident) {
@@ -954,14 +954,14 @@ static struct token *handle_bitfield(struct token *token, struct symbol *decl)
 		if (width == 1 && is_signed) {
 			// Valid values are either {-1;0} or {0}, depending on integer
 			// representation.  The latter makes for very efficient code...
-			error(token->pos, "dubious one-bit signed bitfield");
+			sparse_error(token->pos, "dubious one-bit signed bitfield");
 		}
 		if (Wdefault_bitfield_sign &&
 		    base_type->type != SYM_ENUM &&
 		    !(base_type->ctype.modifiers & MOD_EXPLICITLY_SIGNED) &&
 		    is_signed) {
 			// The sign of bitfields is unspecified by default.
-			error (token->pos, "dubious bitfield without explicit `signed' or `unsigned'");
+			sparse_error(token->pos, "dubious bitfield without explicit `signed' or `unsigned'");
 		}
 	}
 	bitfield->bit_size = width;
@@ -990,7 +990,7 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 			token = token->next;
 		}
 		if (!match_op(token, ';')) {
-			error(token->pos, "expected ; at end of declaration");
+			sparse_error(token->pos, "expected ; at end of declaration");
 			break;
 		}
 		token = token->next;
@@ -1196,7 +1196,7 @@ static void add_case_statement(struct statement *stmt)
 	struct symbol *sym;
 
 	if (!target) {
-		error(stmt->pos, "not in switch scope");
+		sparse_error(stmt->pos, "not in switch scope");
 		stmt->type = STMT_NONE;
 		return;
 	}
@@ -1280,7 +1280,7 @@ static struct token *parse_do_statement(struct token *token, struct statement *s
 	if (token_type(token) == TOKEN_IDENT && token->ident == &while_ident)
 		token = token->next;
 	else
-		error(token->pos, "expected 'while' after 'do'");
+		sparse_error(token->pos, "expected 'while' after 'do'");
 	token = parens_expression(token, &expr, "after 'do-while'");
 
 	stmt->iterator_post_condition = expr;
@@ -1315,7 +1315,7 @@ static struct token *statement(struct token *token, struct statement **tree)
 			stmt->type = STMT_GOTO;
 			stmt->goto_label = target;
 			if (!target)
-				error(stmt->pos, "break/continue not in iterator scope");
+				sparse_error(stmt->pos, "break/continue not in iterator scope");
 			return expect(token->next, ';', "at end of statement");
 		}
 		if (token->ident == &default_ident) {
@@ -1359,7 +1359,7 @@ default_statement:
 				stmt->goto_label = label_symbol(token);
 				token = token->next;
 			} else {
-				error(token->pos, "Expected identifier or goto expression");
+				sparse_error(token->pos, "Expected identifier or goto expression");
 			}
 			return expect(token, ';', "at end of statement");
 		}
@@ -1519,7 +1519,7 @@ static struct token *single_initializer(struct expression **ep, struct token *to
 			struct expression *from = NULL, *to = NULL, *expr;
 			token = constant_expression(token->next, &from);
 			if (!from) {
-				error(token->pos, "Expected constant expression");
+				sparse_error(token->pos, "Expected constant expression");
 				break;
 			}
 			if (match_op(token, SPECIAL_ELLIPSIS))
@@ -1579,7 +1579,7 @@ struct token *initializer(struct expression **tree, struct token *token)
 static void declare_argument(struct symbol *sym, struct symbol *fn)
 {
 	if (!sym->ident) {
-		error(sym->pos, "no identifier for function argument");
+		sparse_error(sym->pos, "no identifier for function argument");
 		return;
 	}
 	bind_symbol(sym, sym->ident, NS_SYMBOL);
@@ -1659,7 +1659,7 @@ static void apply_k_r_types(struct symbol_list *argtypes, struct symbol *fn)
 			if (type->ident == arg->ident)
 				goto match;
 		} END_FOR_EACH_PTR(type);
-		error(arg->pos, "missing type declaration for parameter '%s'", show_ident(arg->ident));
+		sparse_error(arg->pos, "missing type declaration for parameter '%s'", show_ident(arg->ident));
 		continue;
 match:
 		type->used = 1;
@@ -1687,7 +1687,7 @@ static struct token *parse_k_r_arguments(struct token *token, struct symbol *dec
 		token = parameter_declaration(token, &sym);
 		add_symbol(&args, sym);
 		if (!match_op(token, ';')) {
-			error(token->pos, "expected ';' at end of parameter declaration");
+			sparse_error(token->pos, "expected ';' at end of parameter declaration");
 			break;
 		}
 		token = token->next;
@@ -1696,7 +1696,7 @@ static struct token *parse_k_r_arguments(struct token *token, struct symbol *dec
 	apply_k_r_types(args, decl);
 
 	if (!match_op(token, '{')) {
-		error(token->pos, "expected function body");
+		sparse_error(token->pos, "expected function body");
 		return token;
 	}
 	return parse_function_body(token, decl, list);
@@ -1764,7 +1764,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		if (!(decl->ctype.modifiers & MOD_STATIC))
 			decl->ctype.modifiers |= MOD_EXTERN;
 	} else if (base_type == &void_ctype && !(decl->ctype.modifiers & MOD_EXTERN)) {
-		error(token->pos, "void declaration");
+		sparse_error(token->pos, "void declaration");
 	}
 
 	for (;;) {
@@ -1793,7 +1793,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		token = declaration_specifiers(token, &decl->ctype, 1);
 		token = declarator(token, decl, &ident);
 		if (!ident) {
-			error(token->pos, "expected identifier name in type definition");
+			sparse_error(token->pos, "expected identifier name in type definition");
 			return token;
 		}
 

@@ -410,7 +410,7 @@ static int get_one_number(int c, int next, stream_t *stream)
 	}
 
 	if (p == buffer_end) {
-		error(stream_pos(stream), "number token exceeds %td characters",
+		sparse_error(stream_pos(stream), "number token exceeds %td characters",
 		      buffer_end - buffer);
 		// Pretend we saw just "1".
 		buffer[0] = '1';
@@ -522,7 +522,7 @@ static int get_char_token(int next, stream_t *stream)
 
 	next = escapechar(next, '\'', stream, &value);
 	if (value == '\'' || next != '\'') {
-		error(stream_pos(stream), "Bad character constant");
+		sparse_error(stream_pos(stream), "Bad character constant");
 		drop_token(stream);
 		return next;
 	}

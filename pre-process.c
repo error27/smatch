@@ -113,7 +113,7 @@ static int token_defined(struct token *token)
 		return 0;
 	}
 
-	error(token->pos, "expected preprocessor identifier");
+	sparse_error(token->pos, "expected preprocessor identifier");
 	return 0;
 }
 
@@ -257,7 +257,7 @@ static int collect_arguments(struct token *start, struct token *arglist, struct 
 	return 1;
 
 Efew:
-	error(what->pos, "macro \"%s\" requires %d arguments, but only %d given",
+	sparse_error(what->pos, "macro \"%s\" requires %d arguments, but only %d given",
 		show_token(what), wanted, count);
 	goto out;
 Emany:
@@ -267,11 +267,11 @@ Emany:
 	}
 	if (eof_token(next))
 		goto Eclosing;
-	error(what->pos, "macro \"%s\" passed %d arguments, but takes just %d",
+	sparse_error(what->pos, "macro \"%s\" passed %d arguments, but takes just %d",
 		show_token(what), count, wanted);
 	goto out;
 Eclosing:
-	error(what->pos, "unterminated argument list invoking macro \"%s\"",
+	sparse_error(what->pos, "unterminated argument list invoking macro \"%s\"",
 		show_token(what));
 out:
 	what->next = next->next;
@@ -421,7 +421,7 @@ static int merge(struct token *left, struct token *right)
 	default:
 		;
 	}
-	error(left->pos, "'##' failed: concatenation is not a valid token");
+	sparse_error(left->pos, "'##' failed: concatenation is not a valid token");
 	return 0;
 }
 
@@ -602,7 +602,7 @@ static const char *token_name_sequence(struct token *token, int endop, struct to
 	}
 	*ptr = 0;
 	if (endop && !match_op(token, endop))
-		error(start->pos, "expected '>' at end of filename");
+		sparse_error(start->pos, "expected '>' at end of filename");
 	return buffer;
 }
 
@@ -938,20 +938,20 @@ static struct token *parse_arguments(struct token *list)
 
 
 Emissing:
-	error(arg->pos, "parameter name missing");
+	sparse_error(arg->pos, "parameter name missing");
 	return NULL;
 Ebadstuff:
-	error(arg->pos, "\"%s\" may not appear in macro parameter list",
+	sparse_error(arg->pos, "\"%s\" may not appear in macro parameter list",
 		show_token(arg));
 	return NULL;
 Enotclosed:
-	error(arg->pos, "missing ')' in macro parameter list");
+	sparse_error(arg->pos, "missing ')' in macro parameter list");
 	return NULL;
 Eva_args:
-	error(arg->pos, "__VA_ARGS__ can only appear in the expansion of a C99 variadic macro");
+	sparse_error(arg->pos, "__VA_ARGS__ can only appear in the expansion of a C99 variadic macro");
 	return NULL;
 Eargs:
-	error(arg->pos, "too many arguments in macro definition");
+	sparse_error(arg->pos, "too many arguments in macro definition");
 	return NULL;
 }
 
@@ -1045,14 +1045,14 @@ static struct token *parse_expansion(struct token *expansion, struct token *argl
 	return expansion;
 
 Equote:
-	error(token->pos, "'#' is not followed by a macro parameter");
+	sparse_error(token->pos, "'#' is not followed by a macro parameter");
 	return NULL;
 
 Econcat:
-	error(token->pos, "'##' cannot appear at the ends of macro expansion");
+	sparse_error(token->pos, "'##' cannot appear at the ends of macro expansion");
 	return NULL;
 Earg:
-	error(token->pos, "too many instances of argument in body");
+	sparse_error(token->pos, "too many instances of argument in body");
 	return NULL;
 }
 
@@ -1064,7 +1064,7 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 	struct ident *name;
 
 	if (token_type(left) != TOKEN_IDENT) {
-		error(token->pos, "expected identifier to 'define'");
+		sparse_error(token->pos, "expected identifier to 'define'");
 		return 0;
 	}
 	if (false_nesting)
@@ -1136,7 +1136,7 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 	struct symbol **sym;
 
 	if (token_type(left) != TOKEN_IDENT) {
-		error(token->pos, "expected identifier to 'undef'");
+		sparse_error(token->pos, "expected identifier to 'undef'");
 		return 0;
 	}
 	if (false_nesting)
@@ -1239,7 +1239,7 @@ static int expression_value(struct token **where)
 		case 3:
 			state = 0;
 			if (!match_op(p, ')'))
-				error(p->pos, "missing ')' after \"defined\"");
+				sparse_error(p->pos, "missing ')' after \"defined\"");
 			*list = p->next;
 			continue;
 		}
@@ -1248,7 +1248,7 @@ static int expression_value(struct token **where)
 
 	p = constant_expression(*where, &expr);
 	if (!eof_token(p))
-		error(p->pos, "garbage at end: %s", show_token_sequence(p));
+		sparse_error(p->pos, "garbage at end: %s", show_token_sequence(p));
 	value = get_expression_value(expr);
 	return value != 0;
 }
@@ -1274,10 +1274,10 @@ static int handle_elif(struct stream * stream, struct token **line, struct token
 		MARK_STREAM_NONCONST(token->pos);
 
 	if (stream->nesting > if_nesting)
-		error(token->pos, "unmatched #elif within stream");
+		sparse_error(token->pos, "unmatched #elif within stream");
 
 	if (elif_ignore[if_nesting-1] & ELIF_SEEN_ELSE)
-		error(token->pos, "#elif after #else");
+		sparse_error(token->pos, "#elif after #else");
 
 	if (false_nesting) {
 		/* If this whole if-thing is if'ed out, an elif cannot help */
@@ -1301,10 +1301,10 @@ static int handle_else(struct stream *stream, struct token **line, struct token 
 		MARK_STREAM_NONCONST(token->pos);
 
 	if (stream->nesting > if_nesting)
-		error(token->pos, "unmatched #else within stream");
+		sparse_error(token->pos, "unmatched #else within stream");
 
 	if (elif_ignore[if_nesting-1] & ELIF_SEEN_ELSE)
-		error(token->pos, "#else after #else");
+		sparse_error(token->pos, "#else after #else");
 	else
 		elif_ignore[if_nesting-1] |= ELIF_SEEN_ELSE;
 
@@ -1328,7 +1328,7 @@ static int handle_endif(struct stream *stream, struct token **line, struct token
 		stream->constant = CONSTANT_FILE_MAYBE;
 
 	if (stream->nesting > if_nesting)
-		error(token->pos, "unmatched #endif in stream");
+		sparse_error(token->pos, "unmatched #endif in stream");
 	if (false_nesting)
 		false_nesting--;
 	else
@@ -1351,7 +1351,7 @@ static const char *show_token_sequence(struct token *token)
 		int len = strlen(val);
 
 		if (ptr + whitespace + len >= buffer + sizeof(buffer)) {
-			error(token->pos, "too long token expansion");
+			sparse_error(token->pos, "too long token expansion");
 			break;
 		}
 
@@ -1382,7 +1382,7 @@ static int handle_error(struct stream *stream, struct token **line, struct token
 		return free_preprocessor_line(token);
 	if (stream->constant == CONSTANT_FILE_MAYBE)
 		MARK_STREAM_NONCONST(token->pos);
-	error(token->pos, "%s", show_token_sequence(token->next));
+	sparse_error(token->pos, "%s", show_token_sequence(token->next));
 	return free_preprocessor_line(token);
 }
 
@@ -1454,7 +1454,7 @@ static int handle_add_isystem(struct stream *stream, struct token **line, struct
 		if (eof_token(token))
 			return 1;
 		if (token_type(token) != TOKEN_STRING) {
-			error(token->pos, "expected path string");
+			sparse_error(token->pos, "expected path string");
 			return 1;
 		}
 		add_path_entry(token, token->string->data, &sys_includepath, sys_includepath);
@@ -1485,7 +1485,7 @@ static int handle_add_dirafter(struct stream *stream, struct token **line, struc
 		if (eof_token(token))
 			return 1;
 		if (token_type(token) != TOKEN_STRING) {
-			error(token->pos, "expected path string");
+			sparse_error(token->pos, "expected path string");
 			return 1;
 		}
 		add_dirafter_entry(token, token->string->data);
@@ -1604,7 +1604,7 @@ static void handle_preprocessor_line(struct stream *stream, struct token **line,
 			return;
 	}
 
-	error(token->pos, "unrecognized preprocessor line '%s'", show_token_sequence(token));
+	sparse_error(token->pos, "unrecognized preprocessor line '%s'", show_token_sequence(token));
 }
 
 static void preprocessor_line(struct stream *stream, struct token **line)
@@ -1641,7 +1641,7 @@ static void do_preprocess(struct token **list)
 		switch (token_type(next)) {
 		case TOKEN_STREAMEND:
 			if (stream->nesting < if_nesting + 1) {
-				error(unmatched_if_pos, "unterminated preprocessor conditional");
+				sparse_error(unmatched_if_pos, "unterminated preprocessor conditional");
 				// Pretend to see a series of #endifs
 				MARK_STREAM_NONCONST(next->pos);
 				do {

@@ -54,8 +54,8 @@ struct token *expect(struct token *token, int op, const char *where)
 		static struct token bad_token;
 		if (token != &bad_token) {
 			bad_token.next = token;
-			error(token->pos, "Expected %s %s", show_special(op), where);
-			error(token->pos, "got %s", show_token(token));
+			sparse_error(token->pos, "Expected %s %s", show_special(op), where);
+			sparse_error(token->pos, "got %s", show_token(token));
 		}
 		if (op == ';')
 			return skip_to(token, op);
@@ -121,7 +121,7 @@ void warning(struct position pos, const char * fmt, ...)
 	va_end(args);
 }	
 
-void error(struct position pos, const char * fmt, ...)
+void sparse_error(struct position pos, const char * fmt, ...)
 {
 	static int errors = 0;
 	va_list args;

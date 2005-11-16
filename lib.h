@@ -64,7 +64,7 @@ struct token *expect(struct token *, int, const char *);
 extern void die(const char *, ...) FORMAT_ATTR(1);
 extern void info(struct position, const char *, ...) FORMAT_ATTR(2);
 extern void warning(struct position, const char *, ...) FORMAT_ATTR(2);
-extern void error(struct position, const char *, ...) FORMAT_ATTR(2);
+extern void sparse_error(struct position, const char *, ...) FORMAT_ATTR(2);
 extern void error_die(struct position, const char *, ...) FORMAT_ATTR(2);
 #undef FORMAT_ATTR
 
