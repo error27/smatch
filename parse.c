@@ -1683,7 +1683,14 @@ static struct token *parse_k_r_arguments(struct token *token, struct symbol *dec
 
 	warning(token->pos, "non-ANSI function declaration of function '%s'", show_ident(decl->ident));
 	do {
-		token = external_declaration(token, &args);
+		struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
+		token = parameter_declaration(token, &sym);
+		add_symbol(&args, sym);
+		if (!match_op(token, ';')) {
+			error(token->pos, "expected ';' at end of parameter declaration");
+			break;
+		}
+		token = token->next;
 	} while (lookup_type(token));
 
 	apply_k_r_types(args, decl);
