@@ -968,27 +968,33 @@ static struct token *handle_bitfield(struct token *token, struct symbol *decl)
 	return token;
 }
 
+static struct token *declaration_list(struct token *token, struct symbol_list **list)
+{
+	struct ctype ctype = {0, };
+
+	token = declaration_specifiers(token, &ctype, 0);
+	for (;;) {
+		struct ident *ident = NULL;
+		struct symbol *decl = alloc_symbol(token->pos, SYM_NODE);
+		decl->ctype = ctype;
+		token = declarator(token, decl, &ident);
+		decl->ident = ident;
+		if (match_op(token, ':')) {
+			token = handle_bitfield(token, decl);
+			token = handle_attributes(token, &decl->ctype);
+		}
+		add_symbol(list, decl);
+		if (!match_op(token, ','))
+			break;
+		token = token->next;
+	}
+	return token;
+}
+
 static struct token *struct_declaration_list(struct token *token, struct symbol_list **list)
 {
 	while (!match_op(token, '}')) {
-		struct ctype ctype = {0, };
-	
-		token = declaration_specifiers(token, &ctype, 0);
-		for (;;) {
-			struct ident *ident = NULL;
-			struct symbol *decl = alloc_symbol(token->pos, SYM_NODE);
-			decl->ctype = ctype;
-			token = declarator(token, decl, &ident);
-			decl->ident = ident;
-			if (match_op(token, ':')) {
-				token = handle_bitfield(token, decl);
-				token = handle_attributes(token, &decl->ctype);
-			}
-			add_symbol(list, decl);
-			if (!match_op(token, ','))
-				break;
-			token = token->next;
-		}
+		token = declaration_list(token, list);
 		if (!match_op(token, ';')) {
 			sparse_error(token->pos, "expected ; at end of declaration");
 			break;
@@ -1681,11 +1687,9 @@ static struct token *parse_k_r_arguments(struct token *token, struct symbol *dec
 {
 	struct symbol_list *args = NULL;
 
-	warning(token->pos, "non-ANSI function declaration of function '%s'", show_ident(decl->ident));
+	warning(token->pos, "non-ANSI definition of function '%s'", show_ident(decl->ident));
 	do {
-		struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
-		token = parameter_declaration(token, &sym);
-		add_symbol(&args, sym);
+		token = declaration_list(token, &args);
 		if (!match_op(token, ';')) {
 			sparse_error(token->pos, "expected ';' at end of parameter declaration");
 			break;
