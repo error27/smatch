@@ -2603,13 +2603,15 @@ static void check_case_type(struct expression *switch_expr, struct expression *c
 	if (!case_expr)
 		return;
 	switch_type = switch_expr->ctype;
-	case_type = case_expr->ctype;
+	case_type = evaluate_expression(case_expr);
 
-	/* Both integer types? */
-	if (is_int_type(switch_type) && is_int_type(case_type))
-		return;
-	if (compatible_restricted_binop(SPECIAL_EQUAL, &switch_expr, &case_expr))
-		return;
+	if (case_type && switch_type) {
+		/* Both integer types? */
+		if (is_int_type(switch_type) && is_int_type(case_type))
+			return;
+		if (compatible_restricted_binop(SPECIAL_EQUAL, &switch_expr, &case_expr))
+			return;
+	}
 
 	sparse_error(case_expr->pos, "incompatible types for 'case' statement");
 }
