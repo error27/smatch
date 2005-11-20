@@ -247,14 +247,19 @@ static int simplify_constant_rightside(struct instruction *insn)
 	/* Fallthrough */
 	case OP_ADD:
 	case OP_OR: case OP_XOR:
+	case OP_OR_BOOL:
 	case OP_SHL:
 	case OP_LSR: case OP_ASR:
 		if (!value)
 			return replace_with_pseudo(insn, insn->src1);
 		return 0;
 
-	case OP_AND:
 	case OP_MULU: case OP_MULS:
+	case OP_AND_BOOL:
+		if (value == 1)
+			return replace_with_pseudo(insn, insn->src1);
+	/* Fallthrough */
+	case OP_AND:
 		if (!value)
 			return replace_with_pseudo(insn, insn->src2);
 		return 0;
@@ -559,6 +564,19 @@ static int simplify_memop(struct instruction *insn)
 	return ret;
 }
 
+static long long get_cast_value(long long val, int old_size, int new_size, int sign)
+{
+	long long mask;
+
+	if (sign && new_size > old_size) {
+		mask = 1 << (old_size-1);
+		if (val & mask)
+			val |= ~(mask | (mask-1));
+	}
+	mask = 1 << (new_size-1);
+	return val & (mask | (mask-1));
+}
+
 static int simplify_cast(struct instruction *insn)
 {
 	struct symbol *orig_type;
@@ -574,6 +592,14 @@ static int simplify_cast(struct instruction *insn)
 	orig_size = orig_type->bit_size;
 	size = insn->size;
 	src = insn->src;
+
+	/* A cast of a constant? */
+	if (constant(src)) {
+		int sign = orig_type->ctype.modifiers & MOD_SIGNED;
+		long long val = get_cast_value(src->value, orig_size, size, sign);
+		src = value_pseudo(val);
+		goto simplify;
+	}
 
 	/* A cast of a "and" might be a no-op.. */
 	if (src->type == PSEUDO_REG) {
@@ -597,7 +623,7 @@ static int simplify_cast(struct instruction *insn)
 	return 0;
 
 simplify:
-	return replace_with_pseudo(insn, insn->src);
+	return replace_with_pseudo(insn, src);
 }
 
 static int simplify_select(struct instruction *insn)
