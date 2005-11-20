@@ -331,19 +331,6 @@ static void track_pseudo_death_bb(struct basic_block *bb)
 		if (!insn->bb)
 			continue;
 
-		/*
-		 * A "def" of a pseudo removes it from the liveness
-		 * list. However, we only bother doing that for
-		 * phi-nodes, since no other pseudos should ever
-		 * be even used before they are def'ed.
-		 */
-		if (insn->opcode == OP_PHISOURCE) {
-			struct instruction *phi;
-			FOR_EACH_PTR(insn->phi_users, phi) {
-				remove_pseudo(live_list, phi->target);
-			} END_FOR_EACH_PTR(phi);
-		}
-
 		dead_list = NULL;
 		track_instruction_usage(bb, insn, death_def, death_use);
 		if (dead_list) {
