@@ -168,6 +168,7 @@ static unsigned int pre_buffer_size;
 static char pre_buffer[8192];
 
 int Wdefault_bitfield_sign = 0;
+int Wone_bit_signed_bitfield = 1;
 int Wbitwise = 0;
 int Wtypesign = 0;
 int Wcontext = 0;
@@ -312,6 +313,7 @@ static const struct warning {
 } warnings[] = {
 	{ "cast-to-as", &Wcast_to_address_space },
 	{ "decl", &Wdecl },
+	{ "one-bit-signed-bitfield", &Wone_bit_signed_bitfield },
 	{ "ptr-subtraction-blows", &Wptr_subtraction_blows },
 	{ "default-bitfield-sign", &Wdefault_bitfield_sign },
 	{ "undef", &Wundefined_preprocessor },

@@ -79,6 +79,7 @@ extern int Wbitwise, Wtypesign, Wcontext;
 extern int Wtransparent_union;
 extern int Wcast_to_address_space;
 extern int Wdecl;
+extern int Wone_bit_signed_bitfield;
 
 extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);

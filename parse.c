@@ -951,7 +951,7 @@ static struct token *handle_bitfield(struct token *token, struct symbol *decl)
 	} else if (decl->ident) {
 		struct symbol *base_type = bitfield->ctype.base_type;
 		int is_signed = !(base_type->ctype.modifiers & MOD_UNSIGNED);
-		if (width == 1 && is_signed) {
+		if (Wone_bit_signed_bitfield && width == 1 && is_signed) {
 			// Valid values are either {-1;0} or {0}, depending on integer
 			// representation.  The latter makes for very efficient code...
 			sparse_error(token->pos, "dubious one-bit signed bitfield");
