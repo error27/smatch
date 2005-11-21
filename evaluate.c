@@ -2395,6 +2395,8 @@ static void check_duplicates(struct symbol *sym)
 			return;
 		if (!(mod & MOD_TOPLEVEL))
 			return;
+		if (!Wdecl)
+			return;
 		if (sym->ident == &main_ident)
 			return;
 		warning(sym->pos, "symbol '%s' was not declared. Should it be static?", show_ident(sym->ident));

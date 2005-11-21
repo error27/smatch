@@ -174,6 +174,7 @@ int Wcontext = 0;
 int Wundefined_preprocessor = 0;
 int Wptr_subtraction_blows = 0;
 int Wcast_to_address_space = 0;
+int Wdecl = 0;
 int Wtransparent_union = 1;
 int preprocess_only;
 char *include;
@@ -310,6 +311,7 @@ static const struct warning {
 	int *flag;
 } warnings[] = {
 	{ "cast-to-as", &Wcast_to_address_space },
+	{ "decl", &Wdecl },
 	{ "ptr-subtraction-blows", &Wptr_subtraction_blows },
 	{ "default-bitfield-sign", &Wdefault_bitfield_sign },
 	{ "undef", &Wundefined_preprocessor },
