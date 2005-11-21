@@ -21,7 +21,7 @@ CFLAGS += -DDEBUG
 
 PREFIX=$(HOME)
 BINDIR=$(PREFIX)/bin
-PROGRAMS=test-lexing test-parsing obfuscate check compile test-linearize example
+PROGRAMS=test-lexing test-parsing obfuscate check compile test-linearize example test-unssa
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 	  linearize.h bitmap.h ident-list.h compat.h flow.h allocate.h \
@@ -30,7 +30,7 @@ LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 	  expression.o show-parse.o evaluate.o expand.o inline.o linearize.o \
 	  sort.o allocate.o compat-$(OS).o ptrlist.o \
-	  flow.o cse.o simplify.o memops.o liveness.o storage.o
+	  flow.o cse.o simplify.o memops.o liveness.o storage.o unssa.o
 
 LIB_FILE= libsparse.a
 SLIB_FILE= libsparse.so
@@ -78,6 +78,9 @@ check: check.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 example: example.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+
+test-unssa: test-unssa.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 $(LIB_FILE): $(LIB_OBJS)

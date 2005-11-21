@@ -306,6 +306,7 @@ pseudo_t alloc_pseudo(struct instruction *def);
 pseudo_t value_pseudo(long long val);
 
 struct entrypoint *linearize_symbol(struct symbol *sym);
+int unssa(struct entrypoint *ep);
 void show_entry(struct entrypoint *ep);
 const char *show_pseudo(pseudo_t pseudo);
 void show_bb(struct basic_block *bb);
