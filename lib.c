@@ -449,6 +449,7 @@ void declare_builtin_functions(void)
 	/* Gaah. gcc knows tons of builtin <string.h> functions */
 	add_pre_buffer("extern void *__builtin_memcpy(void *, const void *, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern void *__builtin_memset(void *, int, __SIZE_TYPE__);\n");	
+	add_pre_buffer("extern int __builtin_memcmp(const void *, const void *, __SIZE_TYPE__);\n");	
 	add_pre_buffer("extern int __builtin_strcmp(const char *, const char *);\n");
 	add_pre_buffer("extern char *__builtin_strchr(const char *, int);\n");
 	add_pre_buffer("extern char *__builtin_strcpy(char *, const char *);\n");
