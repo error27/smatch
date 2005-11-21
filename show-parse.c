@@ -622,6 +622,12 @@ static int show_call_expression(struct expression *expr)
 	return retval;
 }
 
+static int show_comma(struct expression *expr)
+{
+	show_expression(expr->left);
+	return show_expression(expr->right);
+}
+
 static int show_binop(struct expression *expr)
 {
 	int left = show_expression(expr->left);
@@ -980,8 +986,9 @@ int show_expression(struct expression *expr)
 	case EXPR_ASSIGNMENT:
 		return show_assignment(expr);
 
-	case EXPR_BINOP:
 	case EXPR_COMMA:
+		return show_comma(expr);
+	case EXPR_BINOP:
 	case EXPR_COMPARE:
 	case EXPR_LOGICAL:
 		return show_binop(expr);
