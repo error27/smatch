@@ -198,6 +198,9 @@ enum opcode {
 	/* Sparse tagging (line numbers, context, whatever) */
 	OP_CONTEXT,
 	OP_RANGE,
+
+	/* Needed to translate SSA back to normal form */
+	OP_COPY,
 };
 
 struct basic_block_list;

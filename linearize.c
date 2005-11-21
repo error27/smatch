@@ -235,6 +235,8 @@ static const char* opcodes[] = {
 	/* Sparse tagging (line numbers, context, whatever) */
 	[OP_CONTEXT] = "context",
 	[OP_RANGE] = "range-check",
+
+	[OP_COPY] = "copy",
 };
 
 static char *show_asm_constraints(char *buf, const char *sep, struct asm_constraint_list *list)
@@ -444,6 +446,9 @@ const char *show_instruction(struct instruction *insn)
 		break;
 	case OP_ASM:
 		buf = show_asm(buf, insn);
+		break;
+	case OP_COPY:
+		buf += sprintf(buf, "%s <- %s", show_pseudo(insn->target), show_pseudo(insn->src));
 		break;
 	default:
 		break;
