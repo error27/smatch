@@ -135,6 +135,15 @@ static struct expression * copy_expression(struct expression *expr)
 
 	/* Cast/sizeof/__alignof__ */
 	case EXPR_CAST:
+		if (expr->cast_expression->type == EXPR_INITIALIZER) {
+			struct expression *cast = expr->cast_expression;
+			struct symbol *sym = expr->cast_type;
+			expr = dup_expression(expr);
+			expr->cast_expression = copy_expression(cast);
+			expr->cast_type = alloc_symbol(sym->pos, sym->type);
+			*expr->cast_type = *sym;
+			break;
+		}
 	case EXPR_IMPLIED_CAST:
 	case EXPR_SIZEOF: 
 	case EXPR_PTRSIZEOF:
