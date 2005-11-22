@@ -1061,12 +1061,13 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 	struct symbol *sym;
 	struct ident *name;
 
+	if (false_nesting)
+		return free_preprocessor_line(token);
+
 	if (token_type(left) != TOKEN_IDENT) {
 		sparse_error(token->pos, "expected identifier to 'define'");
 		return 0;
 	}
-	if (false_nesting)
-		return free_preprocessor_line(token);
 
 	if (stream->constant == CONSTANT_FILE_MAYBE)
 		MARK_STREAM_NONCONST(token->pos);
@@ -1133,12 +1134,13 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 	struct token *left = token->next;
 	struct symbol **sym;
 
+	if (false_nesting)
+		return free_preprocessor_line(token);
+
 	if (token_type(left) != TOKEN_IDENT) {
 		sparse_error(token->pos, "expected identifier to 'undef'");
 		return 0;
 	}
-	if (false_nesting)
-		return free_preprocessor_line(token);
 
 	if (stream->constant == CONSTANT_FILE_MAYBE)
 		MARK_STREAM_NONCONST(token->pos);
@@ -1601,6 +1603,9 @@ static void handle_preprocessor_line(struct stream *stream, struct token **line,
 		if (sym && sym->handler(stream, line, token))
 			return;
 	}
+
+	if (false_nesting)
+		return;
 
 	sparse_error(token->pos, "unrecognized preprocessor line '%s'", show_token_sequence(token));
 }
