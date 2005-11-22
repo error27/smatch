@@ -1251,6 +1251,8 @@ static struct symbol *convert_to_as_mod(struct symbol *sym, int as, int mod)
 	return sym;
 }
 
+#define MOD_PTRINHERIT (MOD_VOLATILE | MOD_CONST | MOD_STORAGE)
+
 static struct symbol *create_pointer(struct expression *expr, struct symbol *sym, int degenerate)
 {
 	struct symbol *node = alloc_symbol(expr->pos, SYM_NODE);
@@ -1270,12 +1272,12 @@ static struct symbol *create_pointer(struct expression *expr, struct symbol *sym
 	}
 	if (sym->type == SYM_NODE) {
 		ptr->ctype.as |= sym->ctype.as;
-		ptr->ctype.modifiers |= sym->ctype.modifiers;
+		ptr->ctype.modifiers |= sym->ctype.modifiers & MOD_PTRINHERIT;
 		sym = sym->ctype.base_type;
 	}
 	if (degenerate && sym->type == SYM_ARRAY) {
 		ptr->ctype.as |= sym->ctype.as;
-		ptr->ctype.modifiers |= sym->ctype.modifiers;
+		ptr->ctype.modifiers |= sym->ctype.modifiers & MOD_PTRINHERIT;
 		sym = sym->ctype.base_type;
 	}
 	ptr->ctype.base_type = sym;
