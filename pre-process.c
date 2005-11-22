@@ -1024,8 +1024,6 @@ static struct token *parse_expansion(struct token *expansion, struct token *argl
 				}
 			} else if (match_op(next, SPECIAL_HASHHASH))
 				token = next;
-			else if (match_op(next, ','))
-				token = next;
 			else if (eof_token(next))
 				goto Econcat;
 		} else if (match_op(token->next, SPECIAL_HASHHASH)) {
