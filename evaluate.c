@@ -1251,7 +1251,7 @@ static struct symbol *convert_to_as_mod(struct symbol *sym, int as, int mod)
 	return sym;
 }
 
-#define MOD_PTRINHERIT (MOD_VOLATILE | MOD_CONST | MOD_STORAGE)
+#define MOD_PTRINHERIT (MOD_VOLATILE | MOD_CONST | MOD_NODEREF | MOD_STORAGE)
 
 static struct symbol *create_pointer(struct expression *expr, struct symbol *sym, int degenerate)
 {
