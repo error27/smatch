@@ -79,6 +79,7 @@ static const char* opcodes[] = {
 	/* Other */
 	[OP_PHI] = "phi",
 	[OP_PHISOURCE] = "phisrc",
+	[OP_COPY] = "copy",
 	[OP_CAST] = "cast",
 	[OP_SCAST] = "scast",
 	[OP_FPCAST] = "fpcast",
@@ -623,7 +624,7 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 	case PSEUDO_ARG:
 	case PSEUDO_REG:
 		def = pseudo->def;
-		if (def->opcode == OP_SETVAL) {
+		if (def && def->opcode == OP_SETVAL) {
 			output_insn(state, "movl $<%s>,%s", show_pseudo(def->target), hardreg->name);
 			break;
 		}
@@ -980,32 +981,6 @@ static void kill_dead_pseudos(struct bb_state *state)
 	}
 }
 
-/*
- * A PHI source can define a pseudo that we already
- * have in another register. We need to invalidate the
- * old register so that we don't end up with the same
- * pseudo in "two places".
- */
-static void remove_pseudo_reg(struct bb_state *state, pseudo_t pseudo)
-{
-	int i;
-
-	output_comment(state, "pseudo %s died", show_pseudo(pseudo));
-	for (i = 0; i < REGNO; i++) {
-		struct hardreg *reg = hardregs + i;
-		pseudo_t p;
-		FOR_EACH_PTR(reg->contains, p) {
-			if (p != pseudo)
-				continue;
-			if (CURRENT_TAG(p) & TAG_DEAD)
-				reg->dead--;
-			DELETE_CURRENT_PTR(p);
-			output_comment(state, "removed pseudo %s from reg %s", show_pseudo(pseudo), reg->name);
-		} END_FOR_EACH_PTR(p);
-		PACK_PTR_LIST(&reg->contains);
-	}
-}
-
 static void generate_store(struct instruction *insn, struct bb_state *state)
 {
 	output_insn(state, "mov.%d %s,%s", insn->size, reg_or_imm(state, insn->target), address(state, insn));
@@ -1021,23 +996,10 @@ static void generate_load(struct instruction *insn, struct bb_state *state)
 	output_insn(state, "mov.%d %s,%s", insn->size, input, dst->name);
 }
 
-static void generate_phisource(struct instruction *insn, struct bb_state *state)
+static void generate_copy(struct bb_state *state, struct instruction *insn)
 {
-	struct instruction *user;
-	struct hardreg *reg;
-
-	/* Mark all the target pseudos dead first */
-	FOR_EACH_PTR(insn->phi_users, user) {
-		mark_pseudo_dead(state, user->target);
-	} END_FOR_EACH_PTR(user);
-
-	reg = NULL;
-	FOR_EACH_PTR(insn->phi_users, user) {
-		if (!reg)
-			reg = getreg(state, insn->phi_src, user->target);
-		remove_pseudo_reg(state, user->target);
-		add_pseudo_reg(state, user->target, reg);
-	} END_FOR_EACH_PTR(user);
+	struct hardreg *src = getreg(state, insn->src, insn->target);
+	add_pseudo_reg(state, insn->target, src);
 }
 
 static void generate_cast(struct bb_state *state, struct instruction *insn)
@@ -1394,17 +1356,6 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 	}
 
 	/*
-	 * OP_PHI doesn't actually generate any code. It has been
-	 * done by the storage allocator and the OP_PHISOURCE.
-	 */
-	case OP_PHI:
-		break;
-
-	case OP_PHISOURCE:
-		generate_phisource(insn, state);
-		break;
-
-	/*
 	 * OP_SETVAL likewise doesn't actually generate any
 	 * code. On use, the "def" of the pseudo will be
 	 * looked up.
@@ -1423,6 +1374,10 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 	case OP_DEATHNOTE:
 		mark_pseudo_dead(state, insn->target);
 		return;
+
+	case OP_COPY:
+		generate_copy(state, insn);
+		break;
 
 	case OP_ADD: case OP_MULU: case OP_MULS:
 	case OP_AND: case OP_OR: case OP_XOR:
@@ -1468,6 +1423,8 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 		generate_asm(state, insn);
 		break;
 
+	case OP_PHI:
+	case OP_PHISOURCE:
 	default:
 		output_insn(state, "unimplemented: %s", show_instruction(insn));
 		break;
@@ -1928,6 +1885,9 @@ static void output(struct entrypoint *ep)
 
 	last_reg = -1;
 	stack_offset = 0;
+
+	/* Get rid of SSA form (phinodes etc) */
+	unssa(ep);
 
 	/* Set up initial inter-bb storage links */
 	set_up_storage(ep);
