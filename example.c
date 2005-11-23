@@ -996,9 +996,33 @@ static void generate_load(struct instruction *insn, struct bb_state *state)
 	output_insn(state, "mov.%d %s,%s", insn->size, input, dst->name);
 }
 
+static void kill_pseudo(struct bb_state *state, pseudo_t pseudo)
+{
+	int i;
+	struct hardreg *reg;
+
+	output_comment(state, "killing pseudo %s", show_pseudo(pseudo));
+	for (i = 0; i < REGNO; i++) {
+		pseudo_t p;
+
+		reg = hardregs + i;
+		FOR_EACH_PTR(reg->contains, p) {
+			if (p != pseudo)
+				continue;
+			if (CURRENT_TAG(p) & TAG_DEAD)
+				reg->dead--;
+			output_comment(state, "removing pseudo %s from reg %s", 
+				show_pseudo(pseudo), reg->name);
+			DELETE_CURRENT_PTR(p);
+		} END_FOR_EACH_PTR(p);
+		PACK_PTR_LIST(&reg->contains);
+	}
+}
+
 static void generate_copy(struct bb_state *state, struct instruction *insn)
 {
 	struct hardreg *src = getreg(state, insn->src, insn->target);
+	kill_pseudo(state, insn->target);
 	add_pseudo_reg(state, insn->target, src);
 }
 
