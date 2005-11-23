@@ -28,80 +28,80 @@
 #include "allocate.h"
 #include <assert.h>
 
-static struct instruction *alloc_copy_insn(struct instruction *phisrc)
+static void replace_phi_node(struct instruction *phi)
 {
-	struct instruction *insn = __alloc_instruction(0);
-	insn->opcode = OP_COPY;
-	insn->size = phisrc->size;
-	insn->pos = phisrc->pos;
-	return insn;
-}
-
-// Is there a better way to do this ???
-static void insert_insn_before(struct instruction *old, struct instruction *new)
-{
-	struct instruction *insn;
-
-	FOR_EACH_PTR_REVERSE(old->bb->insns, insn) {
-		if (insn == old)
-			INSERT_CURRENT(new, insn);
-	}
-	END_FOR_EACH_PTR_REVERSE(insn);
-}
-
-static void insert_copy(struct instruction *phisrc, pseudo_t tmp)
-{
-	struct instruction *cpy;
-
-	assert(phisrc->opcode == OP_PHISOURCE);
-
-	cpy =  alloc_copy_insn(phisrc);
-	cpy->target = tmp;
-	cpy->src = phisrc->phi_src;
-	cpy->bb = phisrc->bb;
-	insert_insn_before(phisrc, cpy);
-}
-
-static void copy_phi_args(struct instruction *phi, struct pseudo_list **list)
-{
-	pseudo_t tmp, orig = phi->target;
-	pseudo_t phisrc;
+	pseudo_t tmp;
 
 	tmp = alloc_pseudo(NULL);
-	tmp->type = orig->type;
-	tmp->def = phi;			// wrongly set to the phi-node !!!
-					// but used later
-	add_pseudo(list, tmp);
+	tmp->type = phi->target->type;
+	tmp->def = NULL;		// defined by all the phisrc
 
-	FOR_EACH_PTR(phi->phi_list, phisrc) {
-		if (!phisrc->def)
-			continue;
-		insert_copy(phisrc->def, tmp);
-	} END_FOR_EACH_PTR(phisrc);
+	phi->opcode = OP_COPY;
+	phi->src = tmp;
+
+	// FIXME: free phi->phi_list;
+	// FIXME: remove the %phi from bb->needs
+	// FIXME: add tmp to bb->needs
+	// FIXME: same but more tricky for bb->defines
 }
 
-static void unssa_bb(struct basic_block *bb)
+static void rewrite_phi_bb(struct basic_block *bb)
 {
-	struct pseudo_list *list = NULL;
-	struct pseudo *tmp;
 	struct instruction *insn;
 
-	// copy all the phi nodes arguments to a new temporary pseudo
+	// Replace all the phi-nodes by copies of a temporary
+	// (which represent the set of all the %phi that feed them).
+	// The target pseudo doesn't change.
 	FOR_EACH_PTR(bb->insns, insn) {
+		if (!insn->bb)
+			continue;
 		if (insn->opcode != OP_PHI)
 			continue;
-		copy_phi_args(insn, &list);
+		replace_phi_node(insn);
 	} END_FOR_EACH_PTR(insn);
+}
 
-	// now replace all the phi nodes themselves by copies of the
-	// temporaries to the phi nodes targets
-	FOR_EACH_PTR(list, tmp) {
-		struct instruction *phi = tmp->def;
+static void rewrite_phisrc_bb(struct basic_block *bb)
+{
+	struct instruction *insn;
 
-		phi->opcode = OP_COPY;
-		phi->src = tmp;
-	} END_FOR_EACH_PTR(tmp);
-	free_ptr_list(&list);
+	// Replace all the phisrc by one or several copies to
+	// the temporaries associated to each phi-node it defines.
+	FOR_EACH_PTR_REVERSE(bb->insns, insn) {
+		struct instruction *phi;
+		int i;
+
+		if (!insn->bb)
+			continue;
+		if (insn->opcode != OP_PHISOURCE)
+			continue;
+
+		i = 0;
+		FOR_EACH_PTR(insn->phi_users, phi) {
+			pseudo_t tmp = phi->src;
+			pseudo_t src = insn->phi_src;
+
+			if (i == 0) {	// first phi: we overwrite the phisrc
+				insn->opcode = OP_COPY;
+				insn->target = tmp;
+				insn->src = src;
+			} else {
+				struct instruction *copy = __alloc_instruction(0);
+
+				copy->bb = bb;
+				copy->opcode = OP_COPY;
+				copy->size = insn->size;
+				copy->pos = insn->pos;
+				copy->target = tmp;
+				copy->src = src;
+
+				INSERT_CURRENT(copy, insn);
+			}
+
+			i++;
+		} END_FOR_EACH_PTR(phi);
+
+	} END_FOR_EACH_PTR_REVERSE(insn);
 }
 
 int unssa(struct entrypoint *ep)
@@ -109,7 +109,11 @@ int unssa(struct entrypoint *ep)
 	struct basic_block *bb;
 
 	FOR_EACH_PTR(ep->bbs, bb) {
-		unssa_bb(bb);
+		rewrite_phi_bb(bb);
+	} END_FOR_EACH_PTR(bb);
+
+	FOR_EACH_PTR(ep->bbs, bb) {
+		rewrite_phisrc_bb(bb);
 	} END_FOR_EACH_PTR(bb);
 
 	return 0;
