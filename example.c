@@ -1529,7 +1529,7 @@ static void fill_output(struct bb_state *state, pseudo_t pseudo, struct storage 
 		return;
 	case PSEUDO_REG:
 		def = pseudo->def;
-		if (def->opcode == OP_SETVAL) {
+		if (def && def->opcode == OP_SETVAL) {
 			write_val_to_storage(state, pseudo, out);
 			return;
 		}
