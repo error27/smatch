@@ -56,9 +56,6 @@ static void replace_phi_node(struct instruction *phi)
 	phi->src = tmp;
 
 	// FIXME: free phi->phi_list;
-	// FIXME: remove the %phi from bb->needs
-	// FIXME: add tmp to bb->needs
-	// FIXME: same but more tricky for bb->defines
 }
 
 static void rewrite_phi_bb(struct basic_block *bb)
