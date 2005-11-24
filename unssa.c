@@ -28,13 +28,29 @@
 #include "allocate.h"
 #include <assert.h>
 
+
+static void remove_phisrc_defines(struct instruction *phisrc)
+{
+	struct instruction *phi;
+	struct basic_block *bb = phisrc->bb;
+
+	FOR_EACH_PTR(phisrc->phi_users, phi) {
+		remove_pseudo(&bb->defines, phi->target);
+	} END_FOR_EACH_PTR(phi);
+}
+
 static void replace_phi_node(struct instruction *phi)
 {
 	pseudo_t tmp;
 
 	tmp = alloc_pseudo(NULL);
 	tmp->type = phi->target->type;
+	tmp->ident = phi->target->ident;
 	tmp->def = NULL;		// defined by all the phisrc
+	
+	// update the current liveness
+	remove_pseudo(&phi->bb->needs, phi->target);
+	add_pseudo(&phi->bb->needs, tmp);
 
 	phi->opcode = OP_COPY;
 	phi->src = tmp;
@@ -97,6 +113,10 @@ static void rewrite_phisrc_bb(struct basic_block *bb)
 
 				INSERT_CURRENT(copy, insn);
 			}
+			// update the liveness info
+			remove_phisrc_defines(insn);
+			// FIXME: should really something like add_pseudo_exclusive()
+			add_pseudo(&bb->defines, tmp);
 
 			i++;
 		} END_FOR_EACH_PTR(phi);
