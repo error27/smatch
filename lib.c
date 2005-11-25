@@ -471,9 +471,9 @@ void declare_builtin_functions(void)
 
 void create_builtin_stream(void)
 {
-	add_pre_buffer("#define __GNUC__ %d\n", gcc_major);
-	add_pre_buffer("#define __GNUC_MINOR__ %d\n", gcc_minor);
-	add_pre_buffer("#define __GNUC_PATCHLEVEL__ %d\n", gcc_patchlevel);
+	add_pre_buffer("#weak_define __GNUC__ %d\n", gcc_major);
+	add_pre_buffer("#weak_define __GNUC_MINOR__ %d\n", gcc_minor);
+	add_pre_buffer("#weak_define __GNUC_PATCHLEVEL__ %d\n", gcc_patchlevel);
 	add_pre_buffer("#define __extension__\n");
 	add_pre_buffer("#define __pragma__\n");
 
