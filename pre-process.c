@@ -1065,7 +1065,7 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 
 	if (token_type(left) != TOKEN_IDENT) {
 		sparse_error(token->pos, "expected identifier to 'define'");
-		return 0;
+		return 1;
 	}
 
 	if (stream->constant == CONSTANT_FILE_MAYBE)
@@ -1138,7 +1138,7 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 
 	if (token_type(left) != TOKEN_IDENT) {
 		sparse_error(token->pos, "expected identifier to 'undef'");
-		return 0;
+		return 1;
 	}
 
 	if (stream->constant == CONSTANT_FILE_MAYBE)
