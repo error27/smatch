@@ -107,7 +107,7 @@ static void replace_with_integer(struct token *token, unsigned int val)
 	token->number = buf;
 }
 
-struct symbol *lookup_macro(struct ident *ident)
+static struct symbol *lookup_macro(struct ident *ident)
 {
 	struct symbol *sym = lookup_symbol(ident, NS_MACRO | NS_INVISIBLEMACRO);
 	if (sym && sym->namespace != NS_MACRO)
