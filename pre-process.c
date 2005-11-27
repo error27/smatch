@@ -752,12 +752,6 @@ static int handle_include_path(struct stream *stream, struct token **list, struc
 	struct token *next;
 	int expect;
 
-	if (false_nesting)
-		return 1;
-
-	if (stream->constant == CONSTANT_FILE_MAYBE)
-		MARK_STREAM_NONCONST(token->pos);
-
 	next = token->next;
 	expect = '>';
 	if (!match_op(next, '<')) {
@@ -1060,16 +1054,10 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 	struct symbol *sym;
 	struct ident *name;
 
-	if (false_nesting)
-		return 1;
-
 	if (token_type(left) != TOKEN_IDENT) {
 		sparse_error(token->pos, "expected identifier to 'define'");
 		return 1;
 	}
-
-	if (stream->constant == CONSTANT_FILE_MAYBE)
-		MARK_STREAM_NONCONST(token->pos);
 
 	name = left->ident;
 
@@ -1132,16 +1120,10 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 	struct token *left = token->next;
 	struct symbol **sym;
 
-	if (false_nesting)
-		return 1;
-
 	if (token_type(left) != TOKEN_IDENT) {
 		sparse_error(token->pos, "expected identifier to 'undef'");
 		return 1;
 	}
-
-	if (stream->constant == CONSTANT_FILE_MAYBE)
-		MARK_STREAM_NONCONST(token->pos);
 
 	sym = &left->ident->symbols;
 	while (*sym) {
@@ -1375,29 +1357,18 @@ static const char *show_token_sequence(struct token *token)
 
 static int handle_warning(struct stream *stream, struct token **line, struct token *token)
 {
-	if (false_nesting)
-		return 1;
-	if (stream->constant == CONSTANT_FILE_MAYBE)
-		MARK_STREAM_NONCONST(token->pos);
 	warning(token->pos, "%s", show_token_sequence(token->next));
 	return 1;
 }
 
 static int handle_error(struct stream *stream, struct token **line, struct token *token)
 {
-	if (false_nesting)
-		return 1;
-	if (stream->constant == CONSTANT_FILE_MAYBE)
-		MARK_STREAM_NONCONST(token->pos);
 	sparse_error(token->pos, "%s", show_token_sequence(token->next));
 	return 1;
 }
 
 static int handle_nostdinc(struct stream *stream, struct token **line, struct token *token)
 {
-	if (false_nesting)
-		return 1;
-
 	/*
 	 * Do we have any non-system includes?
 	 * Clear them out if so..
@@ -1501,9 +1472,6 @@ static int handle_add_dirafter(struct stream *stream, struct token **line, struc
 
 static int handle_split_include(struct stream *stream, struct token **line, struct token *token)
 {
-	if (false_nesting)
-		return 1;
-
 	/*
 	 * -I-
 	 *  From info gcc:
@@ -1556,8 +1524,6 @@ static int handle_line(struct stream *stream, struct token **line, struct token 
 
 static int handle_nondirective(struct stream *stream, struct token **line, struct token *token)
 {
-	if (false_nesting)
-		return 1;
 	sparse_error(token->pos, "unrecognized preprocessor line '%s'", show_token_sequence(token));
 	return 1;
 }
@@ -1570,16 +1536,10 @@ static void init_preprocessor(void)
 	static struct {
 		const char *name;
 		int (*handler)(struct stream *, struct token **, struct token *);
-	} handlers[] = {
+	} normal[] = {
 		{ "define",	handle_define },
 		{ "weak_define",handle_weak_define },
 		{ "undef",	handle_undef },
-		{ "ifdef",	handle_ifdef },
-		{ "ifndef",	handle_ifndef },
-		{ "else",	handle_else },
-		{ "endif",	handle_endif },
-		{ "if",		handle_if },
-		{ "elif",	handle_elif },
 		{ "warning",	handle_warning },
 		{ "error",	handle_error },
 		{ "include",	handle_include },
@@ -1593,38 +1553,63 @@ static void init_preprocessor(void)
 		{ "add_isystem",   handle_add_isystem },
 		{ "add_dirafter",  handle_add_dirafter },
 		{ "split_include", handle_split_include },
+	}, special[] = {
+		{ "ifdef",	handle_ifdef },
+		{ "ifndef",	handle_ifndef },
+		{ "else",	handle_else },
+		{ "endif",	handle_endif },
+		{ "if",		handle_if },
+		{ "elif",	handle_elif },
 	};
 
-	for (i = 0; i < (sizeof (handlers) / sizeof (handlers[0])); i++) {
+	for (i = 0; i < (sizeof (normal) / sizeof (normal[0])); i++) {
 		struct symbol *sym;
-		sym = create_symbol(stream, handlers[i].name, SYM_PREPROCESSOR, NS_PREPROCESSOR);
-		sym->handler = handlers[i].handler;
+		sym = create_symbol(stream, normal[i].name, SYM_PREPROCESSOR, NS_PREPROCESSOR);
+		sym->handler = normal[i].handler;
+		sym->normal = 1;
 	}
+	for (i = 0; i < (sizeof (special) / sizeof (special[0])); i++) {
+		struct symbol *sym;
+		sym = create_symbol(stream, special[i].name, SYM_PREPROCESSOR, NS_PREPROCESSOR);
+		sym->handler = special[i].handler;
+		sym->normal = 0;
+	}
+
 }
 
 static void handle_preprocessor_line(struct stream *stream, struct token **line, struct token *start)
 {
 	int (*handler)(struct stream *, struct token **, struct token *);
 	struct token *token = start->next;
+	int is_normal = 1;
 
 	if (!token)
 		return;
 
 	if (token_type(token) == TOKEN_IDENT) {
 		struct symbol *sym = lookup_symbol(token->ident, NS_PREPROCESSOR);
-		if (sym)
+		if (sym) {
 			handler = sym->handler;
-		else
+			is_normal = sym->normal;
+		} else {
 			handler = handle_nondirective;
+		}
 	} else if (token_type(token) == TOKEN_NUMBER) {
 		handler = handle_line;
 	} else {
 		handler = handle_nondirective;
 	}
 
+	if (is_normal) {
+		if (false_nesting)
+			goto out;
+		if (stream->constant == CONSTANT_FILE_MAYBE)
+			MARK_STREAM_NONCONST(token->pos);
+	}
 	if (!handler(stream, line, token))	/* all set */
 		return;
 
+out:
 	free_preprocessor_line(token);
 }
 

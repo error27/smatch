@@ -90,6 +90,7 @@ struct symbol {
 		};
 		struct /* NS_PREPROCESSOR */ {
 			int (*handler)(struct stream *, struct token **, struct token *);
+			int normal;
 		};
 		struct /* NS_SYMBOL */ {
 			unsigned long	offset;
