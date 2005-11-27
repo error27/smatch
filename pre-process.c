@@ -28,10 +28,9 @@
 #include "expression.h"
 #include "scope.h"
 
-static int true_nesting = 0;
 static int false_nesting = 0;
+static int if_nesting = 0;
 static struct position unmatched_if_pos;
-#define if_nesting (true_nesting + false_nesting)
 
 #define MAX_NEST (256)
 static unsigned char elif_ignore[MAX_NEST];
@@ -1163,12 +1162,9 @@ static int preprocessor_if(struct token *token, int true)
 		unmatched_if_pos = token->pos;
 	if (if_nesting >= MAX_NEST)
 		error_die(token->pos, "Maximum preprocessor conditional level exhausted");
-	elif_ignore[if_nesting] = (false_nesting || true) ? ELIF_IGNORE : 0;
-	if (false_nesting || !true) {
+	elif_ignore[if_nesting++] = (false_nesting || true) ? ELIF_IGNORE : 0;
+	if (false_nesting || !true)
 		false_nesting++;
-		return free_preprocessor_line(token);
-	}
-	true_nesting++;
 	return free_preprocessor_line(token);
 }
 
@@ -1285,12 +1281,10 @@ static int handle_elif(struct stream * stream, struct token **line, struct token
 			return 1;
 		if (expression_value(&token->next)) {
 			false_nesting = 0;
-			true_nesting++;
 			elif_ignore[if_nesting-1] |= ELIF_IGNORE;
 		}
 	} else {
 		false_nesting = 1;
-		true_nesting--;
 	}
 	return free_preprocessor_line(token);
 }
@@ -1313,10 +1307,8 @@ static int handle_else(struct stream *stream, struct token **line, struct token 
 		if (elif_ignore[if_nesting-1] & ELIF_IGNORE)
 			return 1;
 		false_nesting = 0;
-		true_nesting++;
 		elif_ignore[if_nesting-1] |= ELIF_IGNORE;
 	} else {
-		true_nesting--;
 		false_nesting = 1;
 	}
 	return free_preprocessor_line(token);
@@ -1331,8 +1323,7 @@ static int handle_endif(struct stream *stream, struct token **line, struct token
 		sparse_error(token->pos, "unmatched #endif in stream");
 	if (false_nesting)
 		false_nesting--;
-	else
-		true_nesting--;
+	if_nesting--;
 	if (!token)
 		return 1;
 	return free_preprocessor_line(token);
