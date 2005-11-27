@@ -1065,13 +1065,12 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 
 	if (token_type(left) != TOKEN_IDENT) {
 		sparse_error(token->pos, "expected identifier to 'define'");
-		return 0;
+		return 1;
 	}
 
 	if (stream->constant == CONSTANT_FILE_MAYBE)
 		MARK_STREAM_NONCONST(token->pos);
 
-	__free_token(token);		/* Free the "define" token, but not the rest of the line */
 	name = left->ident;
 
 	arglist = NULL;
@@ -1080,12 +1079,12 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 		arglist = expansion;
 		expansion = parse_arguments(expansion);
 		if (!expansion)
-			return 0;
+			return 1;
 	}
 
 	expansion = parse_expansion(expansion, arglist, name);
 	if (!expansion)
-		return 0;
+		return 1;
 
 	sym = lookup_macro(name);
 	if (sym) {
@@ -1094,7 +1093,7 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 			if (sym->weak)
 				goto replace_it;
 			if (weak)
-				return 0;
+				return 1;
 			warning(left->pos, "preprocessor token %.*s redefined",
 					name->len, name->name);
 			info(sym->pos, "this was the original definition");
@@ -1102,10 +1101,9 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 			/* Don't overwrite global defs */
 			if (sym->scope != file_scope)
 				goto allocate_new;
-			sym->expansion = expansion;
-			sym->arglist = arglist;
+			goto replace_it;
 		}
-		return 0;
+		return 1;
 	}
 allocate_new:
 	sym = alloc_symbol(left->pos, SYM_NODE);
@@ -1115,6 +1113,7 @@ replace_it:
 	sym->expansion = expansion;
 	sym->arglist = arglist;
 	sym->weak = weak;
+	__free_token(token);		/* Free the "define" token, but not the rest of the line */
 	return 0;
 }
 
@@ -1138,7 +1137,7 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 
 	if (token_type(left) != TOKEN_IDENT) {
 		sparse_error(token->pos, "expected identifier to 'undef'");
-		return 0;
+		return 1;
 	}
 
 	if (stream->constant == CONSTANT_FILE_MAYBE)
@@ -1149,7 +1148,7 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 		struct symbol *t = *sym;
 		if (t->namespace & (NS_MACRO | NS_INVISIBLEMACRO)) {
 			t->namespace = NS_INVISIBLEMACRO;
-			return 0;
+			return 1;
 		}
 		sym = &t->next_id;
 	}
@@ -1297,7 +1296,7 @@ static int handle_elif(struct stream * stream, struct token **line, struct token
 	if (false_nesting) {
 		/* If this whole if-thing is if'ed out, an elif cannot help */
 		if (elif_ignore[if_nesting-1] & ELIF_IGNORE)
-			return 0;
+			return 1;
 		if (expression_value(&token->next)) {
 			false_nesting = 0;
 			elif_ignore[if_nesting-1] |= ELIF_IGNORE;
@@ -1324,7 +1323,7 @@ static int handle_else(struct stream *stream, struct token **line, struct token 
 	if (false_nesting) {
 		/* If this whole if-thing is if'ed out, an else cannot help */
 		if (elif_ignore[if_nesting-1] & ELIF_IGNORE)
-			return 0;
+			return 1;
 		false_nesting = 0;
 		elif_ignore[if_nesting-1] |= ELIF_IGNORE;
 	} else {
@@ -1446,10 +1445,10 @@ static int handle_add_include(struct stream *stream, struct token **line, struct
 	for (;;) {
 		token = token->next;
 		if (eof_token(token))
-			return 0;
+			return 1;
 		if (token_type(token) != TOKEN_STRING) {
 			warning(token->pos, "expected path string");
-			return 0;
+			return 1;
 		}
 		add_path_entry(token, token->string->data, &sys_includepath, sys_includepath + 1);
 	}
@@ -1460,10 +1459,10 @@ static int handle_add_isystem(struct stream *stream, struct token **line, struct
 	for (;;) {
 		token = token->next;
 		if (eof_token(token))
-			return 0;
+			return 1;
 		if (token_type(token) != TOKEN_STRING) {
 			sparse_error(token->pos, "expected path string");
-			return 0;
+			return 1;
 		}
 		add_path_entry(token, token->string->data, &sys_includepath, sys_includepath);
 	}
@@ -1491,10 +1490,10 @@ static int handle_add_dirafter(struct stream *stream, struct token **line, struc
 	for (;;) {
 		token = token->next;
 		if (eof_token(token))
-			return 0;
+			return 1;
 		if (token_type(token) != TOKEN_STRING) {
 			sparse_error(token->pos, "expected path string");
-			return 0;
+			return 1;
 		}
 		add_dirafter_entry(token, token->string->data);
 	}
@@ -1552,7 +1551,15 @@ static int handle_pragma(struct stream *stream, struct token **line, struct toke
  */
 static int handle_line(struct stream *stream, struct token **line, struct token *token)
 {
-	return 0;
+	return 1;
+}
+
+static int handle_nondirective(struct stream *stream, struct token **line, struct token *token)
+{
+	if (false_nesting)
+		return 1;
+	sparse_error(token->pos, "unrecognized preprocessor line '%s'", show_token_sequence(token));
+	return 1;
 }
 
 
@@ -1597,28 +1604,28 @@ static void init_preprocessor(void)
 
 static void handle_preprocessor_line(struct stream *stream, struct token **line, struct token *start)
 {
+	int (*handler)(struct stream *, struct token **, struct token *);
 	struct token *token = start->next;
 
 	if (!token)
 		return;
 
-	if (token_type(token) == TOKEN_NUMBER)
-		if (handle_line(stream, line, start))
-			return;
-
 	if (token_type(token) == TOKEN_IDENT) {
 		struct symbol *sym = lookup_symbol(token->ident, NS_PREPROCESSOR);
-		if (sym) {
-			if (sym->handler(stream, line, token))
-				free_preprocessor_line(token);
-		}
-		return;
+		if (sym)
+			handler = sym->handler;
+		else
+			handler = handle_nondirective;
+	} else if (token_type(token) == TOKEN_NUMBER) {
+		handler = handle_line;
+	} else {
+		handler = handle_nondirective;
 	}
 
-	if (false_nesting)
+	if (!handler(stream, line, token))	/* all set */
 		return;
 
-	sparse_error(token->pos, "unrecognized preprocessor line '%s'", show_token_sequence(token));
+	free_preprocessor_line(token);
 }
 
 static void preprocessor_line(struct stream *stream, struct token **line)
