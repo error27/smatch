@@ -1269,11 +1269,15 @@ static int handle_elif(struct stream * stream, struct token **line, struct token
 	if (stream->nesting == if_nesting)
 		MARK_STREAM_NONCONST(token->pos);
 
-	if (stream->nesting > if_nesting)
+	if (stream->nesting > if_nesting) {
 		sparse_error(token->pos, "unmatched #elif within stream");
+		return 1;
+	}
 
-	if (elif_ignore[if_nesting-1] & ELIF_SEEN_ELSE)
+	if (elif_ignore[if_nesting-1] & ELIF_SEEN_ELSE) {
 		sparse_error(token->pos, "#elif after #else");
+		return 1;
+	}
 
 	if (false_nesting) {
 		/* If this whole if-thing is if'ed out, an elif cannot help */
@@ -1294,13 +1298,17 @@ static int handle_else(struct stream *stream, struct token **line, struct token 
 	if (stream->nesting == if_nesting)
 		MARK_STREAM_NONCONST(token->pos);
 
-	if (stream->nesting > if_nesting)
+	if (stream->nesting > if_nesting) {
 		sparse_error(token->pos, "unmatched #else within stream");
+		return 1;
+	}
 
-	if (elif_ignore[if_nesting-1] & ELIF_SEEN_ELSE)
+	if (elif_ignore[if_nesting-1] & ELIF_SEEN_ELSE) {
 		sparse_error(token->pos, "#else after #else");
-	else
-		elif_ignore[if_nesting-1] |= ELIF_SEEN_ELSE;
+		return 1;
+	}
+
+	elif_ignore[if_nesting-1] |= ELIF_SEEN_ELSE;
 
 	if (false_nesting) {
 		/* If this whole if-thing is if'ed out, an else cannot help */
@@ -1319,8 +1327,10 @@ static int handle_endif(struct stream *stream, struct token **line, struct token
 	if (stream->constant == CONSTANT_FILE_IFNDEF && stream->nesting == if_nesting)
 		stream->constant = CONSTANT_FILE_MAYBE;
 
-	if (stream->nesting > if_nesting)
+	if (stream->nesting > if_nesting) {
 		sparse_error(token->pos, "unmatched #endif in stream");
+		return 1;
+	}
 	if (false_nesting)
 		false_nesting--;
 	if_nesting--;
@@ -1650,9 +1660,8 @@ static void do_preprocess(struct token **list)
 				sparse_error(unmatched_if_pos, "unterminated preprocessor conditional");
 				// Pretend to see a series of #endifs
 				MARK_STREAM_NONCONST(next->pos);
-				do {
-					handle_endif (stream, NULL, NULL);
-				} while (stream->nesting < if_nesting + 1);
+				if_nesting = stream->nesting - 1;
+				false_nesting = 0;
 			}
 			if (stream->constant == CONSTANT_FILE_MAYBE && stream->protect) {
 				stream->constant = CONSTANT_FILE_YES;
