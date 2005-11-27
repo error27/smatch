@@ -1606,7 +1606,7 @@ static void handle_preprocessor_line(struct stream *stream, struct token **line,
 	struct token *token = start->next;
 	int is_normal = 1;
 
-	if (!token)
+	if (eof_token(token))
 		return;
 
 	if (token_type(token) == TOKEN_IDENT) {
