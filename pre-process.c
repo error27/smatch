@@ -29,12 +29,6 @@
 #include "scope.h"
 
 static int false_nesting = 0;
-static int if_nesting = 0;
-static struct position unmatched_if_pos;
-
-#define MAX_NEST (256)
-static unsigned char elif_ignore[MAX_NEST];
-enum { ELIF_IGNORE = 1, ELIF_SEEN_ELSE = 2 };
 
 #define INCLUDEPATHS 300
 const char *includepath[INCLUDEPATHS+1] = {
@@ -56,20 +50,20 @@ static const char **sys_includepath   = includepath + 1;
 			stream->protect = NULL;	\
 	} while(0)
 
-#define end_group(stream)			\
-	do if (stream->ifndef == if_nesting) {	\
-		stream->ifndef = 0;		\
-		if (!stream->dirty)		\
-			stream->protect = NULL;	\
-		else if (stream->protect)	\
-			stream->dirty = 0;	\
+#define end_group(stream)				\
+	do if (stream->ifndef == stream->top_if) {	\
+		stream->ifndef = NULL;			\
+		if (!stream->dirty)			\
+			stream->protect = NULL;		\
+		else if (stream->protect)		\
+			stream->dirty = 0;		\
 	} while(0)
 
-#define nesting_error(stream)			\
-	do {					\
-		stream->dirty = 1;		\
-		stream->ifndef = 0;		\
-		stream->protect = NULL;		\
+#define nesting_error(stream)		\
+	do {				\
+		stream->dirty = 1;	\
+		stream->ifndef = NULL;	\
+		stream->protect = NULL;	\
 	} while(0)
 
 static struct token *alloc_token(struct position *pos)
@@ -1151,16 +1145,15 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 	return 1;
 }
 
-static int preprocessor_if(struct token *token, int true)
+static int preprocessor_if(struct stream *stream, struct token *token, int true)
 {
-	if (if_nesting == 0)
-		unmatched_if_pos = token->pos;
-	if (if_nesting >= MAX_NEST)
-		error_die(token->pos, "Maximum preprocessor conditional level exhausted");
-	elif_ignore[if_nesting++] = (false_nesting || true) ? ELIF_IGNORE : 0;
+	token_type(token) = false_nesting ? TOKEN_SKIP_GROUPS : TOKEN_IF;
+	free_preprocessor_line(token->next);
+	token->next = stream->top_if;
+	stream->top_if = token;
 	if (false_nesting || true != 1)
 		false_nesting++;
-	return 1;
+	return 0;
 }
 
 static int handle_ifdef(struct stream *stream, struct token **line, struct token *token)
@@ -1175,7 +1168,7 @@ static int handle_ifdef(struct stream *stream, struct token **line, struct token
 			sparse_error(token->pos, "expected preprocessor identifier");
 		arg = -1;
 	}
-	return preprocessor_if(token, arg);
+	return preprocessor_if(stream, token, arg);
 }
 
 static int handle_ifndef(struct stream *stream, struct token **line, struct token *token)
@@ -1185,10 +1178,10 @@ static int handle_ifndef(struct stream *stream, struct token **line, struct toke
 	if (token_type(next) == TOKEN_IDENT) {
 		if (!stream->dirty && !stream->ifndef) {
 			if (!stream->protect) {
-				stream->ifndef = if_nesting + 1;
+				stream->ifndef = token;
 				stream->protect = next->ident;
 			} else if (stream->protect == next->ident) {
-				stream->ifndef = if_nesting + 1;
+				stream->ifndef = token;
 				stream->dirty = 1;
 			}
 		}
@@ -1200,7 +1193,7 @@ static int handle_ifndef(struct stream *stream, struct token **line, struct toke
 		arg = -1;
 	}
 
-	return preprocessor_if(token, arg);
+	return preprocessor_if(stream, token, arg);
 }
 
 /*
@@ -1272,81 +1265,79 @@ static int handle_if(struct stream *stream, struct token **line, struct token *t
 		value = expression_value(&token->next);
 
 	dirty_stream(stream);
-	return preprocessor_if(token, value);
+	return preprocessor_if(stream, token, value);
 }
 
 static int handle_elif(struct stream * stream, struct token **line, struct token *token)
 {
+	struct token *top_if = stream->top_if;
 	end_group(stream);
 
-	if (stream->nesting > if_nesting) {
+	if (!top_if) {
 		nesting_error(stream);
 		sparse_error(token->pos, "unmatched #elif within stream");
 		return 1;
 	}
 
-	if (elif_ignore[if_nesting-1] & ELIF_SEEN_ELSE) {
+	if (token_type(top_if) == TOKEN_ELSE) {
 		nesting_error(stream);
 		sparse_error(token->pos, "#elif after #else");
+		if (!false_nesting)
+			false_nesting = 1;
 		return 1;
 	}
 
 	dirty_stream(stream);
+	if (token_type(top_if) != TOKEN_IF)
+		return 1;
 	if (false_nesting) {
-		/* If this whole if-thing is if'ed out, an elif cannot help */
-		if (elif_ignore[if_nesting-1] & ELIF_IGNORE)
-			return 1;
-		if (expression_value(&token->next)) {
+		if (expression_value(&token->next))
 			false_nesting = 0;
-			elif_ignore[if_nesting-1] |= ELIF_IGNORE;
-		}
 	} else {
 		false_nesting = 1;
+		token_type(top_if) = TOKEN_SKIP_GROUPS;
 	}
 	return 1;
 }
 
 static int handle_else(struct stream *stream, struct token **line, struct token *token)
 {
+	struct token *top_if = stream->top_if;
 	end_group(stream);
 
-	if (stream->nesting > if_nesting) {
+	if (!top_if) {
 		nesting_error(stream);
 		sparse_error(token->pos, "unmatched #else within stream");
 		return 1;
 	}
 
-	if (elif_ignore[if_nesting-1] & ELIF_SEEN_ELSE) {
+	if (token_type(top_if) == TOKEN_ELSE) {
 		nesting_error(stream);
 		sparse_error(token->pos, "#else after #else");
-		return 1;
 	}
-
-	elif_ignore[if_nesting-1] |= ELIF_SEEN_ELSE;
-
 	if (false_nesting) {
-		/* If this whole if-thing is if'ed out, an else cannot help */
-		if (elif_ignore[if_nesting-1] & ELIF_IGNORE)
-			return 1;
-		false_nesting = 0;
-		elif_ignore[if_nesting-1] |= ELIF_IGNORE;
+		if (token_type(top_if) == TOKEN_IF)
+			false_nesting = 0;
 	} else {
 		false_nesting = 1;
 	}
+	token_type(top_if) = TOKEN_ELSE;
 	return 1;
 }
 
 static int handle_endif(struct stream *stream, struct token **line, struct token *token)
 {
+	struct token *top_if = stream->top_if;
 	end_group(stream);
-	if (stream->nesting > if_nesting) {
+	if (!top_if) {
 		nesting_error(stream);
 		sparse_error(token->pos, "unmatched #endif in stream");
 		return 1;
 	}
 	if (false_nesting)
 		false_nesting--;
-	if_nesting--;
+	stream->top_if = top_if->next;
+	__free_token(top_if);
 	return 1;
 }
 
@@ -1668,10 +1659,10 @@ static void do_preprocess(struct token **list)
 
 		switch (token_type(next)) {
 		case TOKEN_STREAMEND:
-			if (stream->nesting < if_nesting + 1) {
+			if (stream->top_if) {
 				nesting_error(stream);
-				sparse_error(unmatched_if_pos, "unterminated preprocessor conditional");
-				if_nesting = stream->nesting - 1;
+				sparse_error(stream->top_if->pos, "unterminated preprocessor conditional");
+				stream->top_if = NULL;
 				false_nesting = 0;
 			}
 			if (!stream->dirty)
@@ -1679,7 +1670,6 @@ static void do_preprocess(struct token **list)
 			*list = next->next;
 			continue;
 		case TOKEN_STREAMBEGIN:
-			stream->nesting = if_nesting + 1;
 			*list = next->next;
 			continue;
 

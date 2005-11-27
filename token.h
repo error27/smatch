@@ -40,10 +40,10 @@ struct stream {
 
 	/* Use these to check for "already parsed" */
 	enum constantfile constant;
-	int nesting;
-	int ifndef;
 	int dirty;
 	struct ident *protect;
+	struct token *ifndef;
+	struct token *top_if;
 };
 
 extern int input_stream_nr;
@@ -76,6 +76,9 @@ enum token_type {
 	TOKEN_GNU_KLUDGE,
 	TOKEN_UNTAINT,
 	TOKEN_ARG_COUNT,
+	TOKEN_IF,
+	TOKEN_SKIP_GROUPS,
+	TOKEN_ELSE,
 };
 
 /* Combination tokens */
