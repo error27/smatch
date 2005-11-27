@@ -1163,28 +1163,47 @@ static int preprocessor_if(struct token *token, int true)
 	if (if_nesting >= MAX_NEST)
 		error_die(token->pos, "Maximum preprocessor conditional level exhausted");
 	elif_ignore[if_nesting++] = (false_nesting || true) ? ELIF_IGNORE : 0;
-	if (false_nesting || !true)
+	if (false_nesting || true != 1)
 		false_nesting++;
 	return free_preprocessor_line(token);
 }
 
 static int handle_ifdef(struct stream *stream, struct token **line, struct token *token)
 {
-	return preprocessor_if(token, token_defined(token->next));
+	struct token *next = token->next;
+	int arg;
+	if (token_type(next) == TOKEN_IDENT) {
+		arg = token_defined(next);
+	} else {
+		if (!false_nesting)
+			sparse_error(token->pos, "expected preprocessor identifier");
+		arg = -1;
+	}
+	return preprocessor_if(token, arg);
 }
 
 static int handle_ifndef(struct stream *stream, struct token **line, struct token *token)
 {
 	struct token *next = token->next;
-	if (stream->constant == CONSTANT_FILE_MAYBE) {
-		if (token_type(next) == TOKEN_IDENT &&
-		    (!stream->protect || stream->protect == next->ident)) {
-			stream->constant = CONSTANT_FILE_IFNDEF;
-			stream->protect = next->ident;
-		} else
+	int arg;
+	if (token_type(next) == TOKEN_IDENT) {
+		if (stream->constant == CONSTANT_FILE_MAYBE) {
+			if (!stream->protect || stream->protect == next->ident) {
+				stream->constant = CONSTANT_FILE_IFNDEF;
+				stream->protect = next->ident;
+			} else
+				MARK_STREAM_NONCONST(token->pos);
+		}
+		arg = !token_defined(next);
+	} else {
+		if (stream->constant == CONSTANT_FILE_MAYBE)
 			MARK_STREAM_NONCONST(token->pos);
+		if (!false_nesting)
+			sparse_error(token->pos, "expected preprocessor identifier");
+		arg = -1;
 	}
-	return preprocessor_if(token, !token_defined(next));
+
+	return preprocessor_if(token, arg);
 }
 
 /*
