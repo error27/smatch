@@ -41,6 +41,8 @@ struct stream {
 	/* Use these to check for "already parsed" */
 	enum constantfile constant;
 	int nesting;
+	int ifndef;
+	int dirty;
 	struct ident *protect;
 };
 

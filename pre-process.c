@@ -49,14 +49,28 @@ static const char **quote_includepath = includepath;
 static const char **angle_includepath = includepath + 1;
 static const char **sys_includepath   = includepath + 1;
 
-#define MARK_STREAM_NONCONST(pos) do {					\
-	if (stream->constant != CONSTANT_FILE_NOPE) {			\
-		if (0)							\
-			info(pos, "%s triggers non-const", __func__);	\
-		stream->constant = CONSTANT_FILE_NOPE;			\
-	}								\
-} while (0)
+#define dirty_stream(stream)			\
+	do if (!stream->dirty) {		\
+		stream->dirty = 1;		\
+		if (!stream->ifndef)		\
+			stream->protect = NULL;	\
+	} while(0)
 
+#define end_group(stream)			\
+	do if (stream->ifndef == if_nesting) {	\
+		stream->ifndef = 0;		\
+		if (!stream->dirty)		\
+			stream->protect = NULL;	\
+		else if (stream->protect)	\
+			stream->dirty = 0;	\
+	} while(0)
+
+#define nesting_error(stream)			\
+	do {					\
+		stream->dirty = 1;		\
+		stream->ifndef = 0;		\
+		stream->protect = NULL;		\
+	} while(0)
 
 static struct token *alloc_token(struct position *pos)
 {
@@ -615,7 +629,7 @@ static int already_tokenized(const char *path)
 			continue;
 		if (strcmp(path, s->name))
 			continue;
-		if (!lookup_macro(s->protect))
+		if (s->protect && !lookup_macro(s->protect))
 			continue;
 		return 1;
 	}
@@ -1156,6 +1170,7 @@ static int handle_ifdef(struct stream *stream, struct token **line, struct token
 	if (token_type(next) == TOKEN_IDENT) {
 		arg = token_defined(next);
 	} else {
+		dirty_stream(stream);
 		if (!false_nesting)
 			sparse_error(token->pos, "expected preprocessor identifier");
 		arg = -1;
@@ -1168,17 +1183,18 @@ static int handle_ifndef(struct stream *stream, struct token **line, struct toke
 	struct token *next = token->next;
 	int arg;
 	if (token_type(next) == TOKEN_IDENT) {
-		if (stream->constant == CONSTANT_FILE_MAYBE) {
-			if (!stream->protect || stream->protect == next->ident) {
-				stream->constant = CONSTANT_FILE_IFNDEF;
+		if (!stream->dirty && !stream->ifndef) {
+			if (!stream->protect) {
+				stream->ifndef = if_nesting + 1;
 				stream->protect = next->ident;
-			} else
-				MARK_STREAM_NONCONST(token->pos);
+			} else if (stream->protect == next->ident) {
+				stream->ifndef = if_nesting + 1;
+				stream->dirty = 1;
+			}
 		}
 		arg = !token_defined(next);
 	} else {
-		if (stream->constant == CONSTANT_FILE_MAYBE)
-			MARK_STREAM_NONCONST(token->pos);
+		dirty_stream(stream);
 		if (!false_nesting)
 			sparse_error(token->pos, "expected preprocessor identifier");
 		arg = -1;
@@ -1255,30 +1271,27 @@ static int handle_if(struct stream *stream, struct token **line, struct token *t
 	if (!false_nesting)
 		value = expression_value(&token->next);
 
-	// This is an approximation.  We really only need this if the
-	// condition does depends on a pre-processor symbol.  Note, that
-	// the important #ifndef case has already changed ->constant.
-	if (stream->constant == CONSTANT_FILE_MAYBE)
-		MARK_STREAM_NONCONST(token->pos);
-
+	dirty_stream(stream);
 	return preprocessor_if(token, value);
 }
 
 static int handle_elif(struct stream * stream, struct token **line, struct token *token)
 {
-	if (stream->nesting == if_nesting)
-		MARK_STREAM_NONCONST(token->pos);
+	end_group(stream);
 
 	if (stream->nesting > if_nesting) {
+		nesting_error(stream);
 		sparse_error(token->pos, "unmatched #elif within stream");
 		return 1;
 	}
 
 	if (elif_ignore[if_nesting-1] & ELIF_SEEN_ELSE) {
+		nesting_error(stream);
 		sparse_error(token->pos, "#elif after #else");
 		return 1;
 	}
 
+	dirty_stream(stream);
 	if (false_nesting) {
 		/* If this whole if-thing is if'ed out, an elif cannot help */
 		if (elif_ignore[if_nesting-1] & ELIF_IGNORE)
@@ -1295,15 +1308,16 @@ static int handle_elif(struct stream * stream, struct token **line, struct token
 
 static int handle_else(struct stream *stream, struct token **line, struct token *token)
 {
-	if (stream->nesting == if_nesting)
-		MARK_STREAM_NONCONST(token->pos);
+	end_group(stream);
 
 	if (stream->nesting > if_nesting) {
+		nesting_error(stream);
 		sparse_error(token->pos, "unmatched #else within stream");
 		return 1;
 	}
 
 	if (elif_ignore[if_nesting-1] & ELIF_SEEN_ELSE) {
+		nesting_error(stream);
 		sparse_error(token->pos, "#else after #else");
 		return 1;
 	}
@@ -1324,10 +1338,9 @@ static int handle_else(struct stream *stream, struct token **line, struct token 
 
 static int handle_endif(struct stream *stream, struct token **line, struct token *token)
 {
-	if (stream->constant == CONSTANT_FILE_IFNDEF && stream->nesting == if_nesting)
-		stream->constant = CONSTANT_FILE_MAYBE;
-
+	end_group(stream);
 	if (stream->nesting > if_nesting) {
+		nesting_error(stream);
 		sparse_error(token->pos, "unmatched #endif in stream");
 		return 1;
 	}
@@ -1611,10 +1624,9 @@ static void handle_preprocessor_line(struct stream *stream, struct token **line,
 	}
 
 	if (is_normal) {
+		dirty_stream(stream);
 		if (false_nesting)
 			goto out;
-		if (stream->constant == CONSTANT_FILE_MAYBE)
-			MARK_STREAM_NONCONST(token->pos);
 	}
 	if (!handler(stream, line, token))	/* all set */
 		return;
@@ -1657,15 +1669,13 @@ static void do_preprocess(struct token **list)
 		switch (token_type(next)) {
 		case TOKEN_STREAMEND:
 			if (stream->nesting < if_nesting + 1) {
+				nesting_error(stream);
 				sparse_error(unmatched_if_pos, "unterminated preprocessor conditional");
-				// Pretend to see a series of #endifs
-				MARK_STREAM_NONCONST(next->pos);
 				if_nesting = stream->nesting - 1;
 				false_nesting = 0;
 			}
-			if (stream->constant == CONSTANT_FILE_MAYBE && stream->protect) {
+			if (!stream->dirty)
 				stream->constant = CONSTANT_FILE_YES;
-			}
 			*list = next->next;
 			continue;
 		case TOKEN_STREAMBEGIN:
@@ -1674,6 +1684,7 @@ static void do_preprocess(struct token **list)
 			continue;
 
 		default:
+			dirty_stream(stream);
 			if (false_nesting) {
 				*list = next->next;
 				__free_token(next);
@@ -1683,15 +1694,6 @@ static void do_preprocess(struct token **list)
 			if (token_type(next) != TOKEN_IDENT ||
 			    expand_one_symbol(list))
 				list = &next->next;
-		}
-
-		if (stream->constant == CONSTANT_FILE_MAYBE) {
-			/*
-			 * Any token expansion (even if it ended up being an
-			 * empty expansion) in this stream implies it can't
-			 * be constant.
-			 */
-			MARK_STREAM_NONCONST(next->pos);
 		}
 	}
 }
