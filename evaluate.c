@@ -1634,6 +1634,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		sparse_error(expr->pos, "expected structure or union");
 		return NULL;
 	}
+	examine_symbol_type(ctype);
 	offset = 0;
 	member = find_identifier(ident, ctype->symbol_list, &offset);
 	if (!member) {
