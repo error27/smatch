@@ -629,7 +629,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv)
 	return list;
 }
 
-struct symbol_list * sparse(char **argv)
+struct symbol_list * __sparse(char **argv)
 {
 	struct symbol_list *res;
 	char *filename, *next;
@@ -652,9 +652,16 @@ struct symbol_list * sparse(char **argv)
 	/* Drop the tokens for this file after parsing */
 	clear_token_alloc();
 
+	/* And return it */
+	return res;
+}
+
+struct symbol_list * sparse(char **argv)
+{
+	struct symbol_list *res = __sparse(argv);
+
 	/* Evaluate the complete symbol list */
 	evaluate_symbol_list(res);
 
-	/* And return it */
 	return res;
 }

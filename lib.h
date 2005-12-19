@@ -84,6 +84,7 @@ extern int Wone_bit_signed_bitfield;
 extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);
 extern struct symbol_list *sparse_initialize(int argc, char **argv);
+extern struct symbol_list *__sparse(char **argv);
 extern struct symbol_list *sparse(char **argv);
 
 static inline int symbol_list_size(struct symbol_list* list)
