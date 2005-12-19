@@ -21,7 +21,7 @@ CFLAGS += -DDEBUG
 
 PREFIX=$(HOME)
 BINDIR=$(PREFIX)/bin
-PROGRAMS=test-lexing test-parsing obfuscate check compile test-linearize example test-unssa
+PROGRAMS=test-lexing test-parsing obfuscate check compile test-linearize example test-unssa test-dissect
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 	  linearize.h bitmap.h ident-list.h compat.h flow.h allocate.h \
@@ -30,7 +30,7 @@ LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 	  expression.o show-parse.o evaluate.o expand.o inline.o linearize.o \
 	  sort.o allocate.o compat-$(OS).o ptrlist.o \
-	  flow.o cse.o simplify.o memops.o liveness.o storage.o unssa.o
+	  flow.o cse.o simplify.o memops.o liveness.o storage.o unssa.o dissect.o
 
 LIB_FILE= libsparse.a
 SLIB_FILE= libsparse.so
@@ -83,6 +83,9 @@ example: example.o $(LIBS)
 test-unssa: test-unssa.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
+test-dissect: test-dissect.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+
 $(LIB_FILE): $(LIB_OBJS)
 	$(AR) rcs $@ $(LIB_OBJS)
 
@@ -111,6 +114,7 @@ target.o: $(LIB_H)
 test-lexing.o: $(LIB_H)
 test-parsing.o: $(LIB_H)
 test-linearize.o: $(LIB_H)
+test-dissect.o: $(LIB_H) dissect.h
 compile.o: $(LIB_H) compile.h
 compile-i386.o: $(LIB_H) compile.h
 tokenize.o: $(LIB_H)
@@ -118,6 +122,7 @@ check.o: $(LIB_H)
 obfuscate.o: $(LIB_H)
 example.o: $(LIB_H)
 storage.o: $(LIB_H) storage.h
+dissect.o: $(LIB_H) dissect.h
 
 compat-linux.o: compat/strtold.c compat/mmap-blob.c \
 	$(LIB_H)
