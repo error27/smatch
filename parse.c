@@ -109,6 +109,7 @@ static struct token *struct_union_enum_specifier(enum type type,
 	struct token *(*parse)(struct token *, struct symbol *))
 {
 	struct symbol *sym;
+	struct position *repos;
 
 	ctype->modifiers = 0;
 	if (token_type(token) == TOKEN_IDENT) {
@@ -123,14 +124,16 @@ static struct token *struct_union_enum_specifier(enum type type,
 		}
 		if (sym->type != type)
 			error_die(token->pos, "invalid tag applied to %s", show_typename (sym));
-		token = token->next;
 		ctype->base_type = sym;
+		repos = &token->pos;
+		token = token->next;
 		if (match_op(token, '{')) {
 			// The following test is actually wrong for empty
 			// structs, but (1) they are not C99, (2) gcc does
 			// the same thing, and (3) it's easier.
 			if (sym->symbol_list)
 				error_die(token->pos, "redefinition of %s", show_typename (sym));
+			sym->pos = *repos;
 			token = parse(token->next, sym);
 			token = expect(token, '}', "at end of struct-union-enum-specifier");
 
