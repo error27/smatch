@@ -1987,11 +1987,13 @@ static struct storage *x86_statement(struct statement *stmt)
 		return NULL;
 	case STMT_RETURN:
 		return emit_return_stmt(stmt);
+	case STMT_DECLARATION:
+		x86_symbol_decl(stmt->declaration);
+		break;
 	case STMT_COMPOUND: {
 		struct statement *s;
 		struct storage *last = NULL;
 
-		x86_symbol_decl(stmt->syms);
 		FOR_EACH_PTR(stmt->stmts, s) {
 			last = x86_statement(s);
 		} END_FOR_EACH_PTR(s);

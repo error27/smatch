@@ -963,22 +963,24 @@ static void expand_const_expression(struct expression *expr, const char *where)
 	}
 }
 
-void expand_symbol(struct symbol *sym)
+int expand_symbol(struct symbol *sym)
 {
+	int retval;
 	struct symbol *base_type;
 
 	if (!sym)
-		return;
+		return 0;
 	base_type = sym->ctype.base_type;
 	if (!base_type)
-		return;
+		return 0;
 
-	expand_expression(sym->initializer);
+	retval = expand_expression(sym->initializer);
 	/* expand the body of the symbol */
 	if (base_type->type == SYM_FN) {
 		if (base_type->stmt)
 			expand_statement(base_type->stmt);
 	}
+	return retval;
 }
 
 static void expand_return_expression(struct statement *stmt)
@@ -1029,20 +1031,11 @@ static int expand_if_statement(struct statement *stmt)
  */
 static int expand_compound(struct statement *stmt)
 {
-	struct symbol *sym;
 	struct statement *s, *last;
-	int cost, symbols, statements;
+	int cost, statements;
 
-	symbols = 0;
-	FOR_EACH_PTR(stmt->syms, sym) {
-		symbols++;
-		expand_symbol(sym);
-	} END_FOR_EACH_PTR(sym);
-
-	if (stmt->ret) {
-		symbols++;
+	if (stmt->ret)
 		expand_symbol(stmt->ret);
-	}
 
 	cost = 0;
 	last = NULL;
@@ -1053,7 +1046,7 @@ static int expand_compound(struct statement *stmt)
 		cost += expand_statement(s);
 	} END_FOR_EACH_PTR(s);
 
-	if (!symbols && statements == 1)
+	if (statements == 1 && !stmt->ret)
 		*stmt = *last;
 
 	return cost;
@@ -1065,6 +1058,14 @@ static int expand_statement(struct statement *stmt)
 		return 0;
 
 	switch (stmt->type) {
+	case STMT_DECLARATION: {
+		struct symbol *sym;
+		FOR_EACH_PTR(stmt->declaration, sym) {
+			expand_symbol(sym);
+		} END_FOR_EACH_PTR(sym);
+		return SIDE_EFFECTS;
+	}
+
 	case STMT_RETURN:
 		expand_return_expression(stmt);
 		return SIDE_EFFECTS;

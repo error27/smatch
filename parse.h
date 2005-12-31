@@ -13,6 +13,7 @@
 
 enum statement_type {
 	STMT_NONE,
+	STMT_DECLARATION,
 	STMT_EXPRESSION,
 	STMT_COMPOUND,
 	STMT_IF,
@@ -31,6 +32,9 @@ struct statement {
 	enum statement_type type;
 	struct position pos;
 	union {
+		struct /* declaration */ {
+			struct symbol_list *declaration;
+		};
 		struct /* label_arg */ {
 			struct symbol *label;
 			struct statement *label_statement;
@@ -46,7 +50,6 @@ struct statement {
 			struct statement *if_false;
 		};
 		struct /* compound_struct */ {
-			struct symbol_list *syms;
 			struct statement_list *stmts;
 			struct symbol *ret;
 		};

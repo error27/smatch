@@ -299,6 +299,19 @@ static struct statement *copy_one_statement(struct statement *stmt)
 	switch(stmt->type) {
 	case STMT_NONE:
 		break;
+	case STMT_DECLARATION: {
+		struct symbol *sym;
+		struct statement *newstmt = dup_statement(stmt);
+		newstmt->declaration = NULL;
+		FOR_EACH_PTR(stmt->declaration, sym) {
+			struct symbol *newsym = copy_symbol(stmt->pos, sym);
+			if (newsym != sym)
+				newsym->initializer = copy_expression(sym->initializer);
+			add_symbol(&newstmt->declaration, newsym);
+		} END_FOR_EACH_PTR(sym);
+		stmt = newstmt;
+		break;
+	}
 	case STMT_CONTEXT:
 	case STMT_EXPRESSION: {
 		struct expression *expr = copy_expression(stmt->expression);
@@ -425,14 +438,6 @@ static struct statement *copy_one_statement(struct statement *stmt)
 void copy_statement(struct statement *src, struct statement *dst)
 {
 	struct statement *stmt;
-	struct symbol *sym;
-
-	FOR_EACH_PTR(src->syms, sym) {
-		struct symbol *newsym = copy_symbol(src->pos, sym);
-		if (newsym != sym)
-			newsym->initializer = copy_expression(sym->initializer);
-		add_symbol(&dst->syms, newsym);
-	} END_FOR_EACH_PTR(sym);
 
 	FOR_EACH_PTR(src->stmts, stmt) {
 		add_statement(&dst->stmts, copy_one_statement(stmt));
@@ -473,7 +478,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	struct symbol *fn = sym->ctype.base_type;
 	struct expression_list *arg_list = expr->args;
 	struct statement *stmt = alloc_statement(expr->pos, STMT_COMPOUND);
-	struct symbol_list *name_list;
+	struct symbol_list *name_list, *arg_decl;
 	struct symbol *name;
 	struct expression *arg;
 
@@ -493,6 +498,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 
 	fn_symbol_list = create_symbol_list(sym->inline_symbol_list);
 
+	arg_decl = NULL;
 	PREPARE_PTR_LIST(name_list, name);
 	FOR_EACH_PTR(arg_list, arg) {
 		struct symbol *a = alloc_symbol(arg->pos, SYM_NODE);
@@ -504,11 +510,17 @@ int inline_function(struct expression *expr, struct symbol *sym)
 			add_symbol(&fn_symbol_list, a);
 		}
 		a->initializer = arg;
-		add_symbol(&stmt->syms, a);
+		add_symbol(&arg_decl, a);
 
 		NEXT_PTR_LIST(name);
 	} END_FOR_EACH_PTR(arg);
 	FINISH_PTR_LIST(name);
+
+	if (arg_decl) {
+		struct statement *decl = alloc_statement(expr->pos, STMT_DECLARATION);
+		decl->declaration = arg_decl;
+		add_statement(&stmt->stmts, decl);
+	}
 
 	copy_statement(fn->inline_stmt, stmt);
 

@@ -437,13 +437,15 @@ int show_statement(struct statement *stmt)
 	if (!stmt)
 		return 0;
 	switch (stmt->type) {
+	case STMT_DECLARATION:
+		show_symbol_decl(stmt->declaration);
+		return 0;
 	case STMT_RETURN:
 		return show_return_stmt(stmt);
 	case STMT_COMPOUND: {
 		struct statement *s;
 		int last = 0;
 
-		show_symbol_decl(stmt->syms);
 		FOR_EACH_PTR(stmt->stmts, s) {
 			last = show_statement(s);
 		} END_FOR_EACH_PTR(s);

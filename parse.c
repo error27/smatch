@@ -1409,8 +1409,9 @@ default_statement:
 	return expression_statement(token, &stmt->expression);
 }
 
-static struct token * statement_list(struct token *token, struct statement_list **list, struct symbol_list **syms)
+static struct token * statement_list(struct token *token, struct statement_list **list)
 {
+	int seen_statement = 0;
 	for (;;) {
 		struct statement * stmt;
 		if (eof_token(token))
@@ -1418,12 +1419,16 @@ static struct token * statement_list(struct token *token, struct statement_list 
 		if (match_op(token, '}'))
 			break;
 		if (lookup_type(token)) {
-			if (warn_on_mixed && *list)
+			if (seen_statement) {
 				warning(token->pos, "mixing declarations and code");
-			token = external_declaration(token, syms);
-			continue;
+				seen_statement = 0;
+			}
+			stmt = alloc_statement(token->pos, STMT_DECLARATION);
+			token = external_declaration(token, &stmt->declaration);
+		} else {
+			seen_statement = warn_on_mixed;
+			token = statement(token, &stmt);
 		}
-		token = statement(token, &stmt);
 		add_statement(list, stmt);
 	}
 	return token;
@@ -1471,7 +1476,7 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn,
 
 struct token *compound_statement(struct token *token, struct statement *stmt)
 {
-	token = statement_list(token, &stmt->stmts, &stmt->syms);
+	token = statement_list(token, &stmt->stmts);
 	return token;
 }
 

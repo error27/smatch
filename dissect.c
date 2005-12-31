@@ -442,6 +442,9 @@ static struct symbol *do_statement(usage_t mode, struct statement *stmt)
 	case STMT_RANGE:
 	case STMT_CONTEXT:
 
+	break; case STMT_DECLARATION:
+		do_sym_list(stmt->declaration);
+
 	break; case STMT_EXPRESSION:
 		ret = do_expression(mode, stmt->expression);
 
@@ -456,7 +459,6 @@ static struct symbol *do_statement(usage_t mode, struct statement *stmt)
 	break; case STMT_COMPOUND: {
 		int count;
 
-		do_sym_list(stmt->syms);
 		count = statement_list_size(stmt->stmts);
 		DO_LIST(stmt->stmts, st,
 			ret = do_statement(--count ? U_VOID : mode, st));

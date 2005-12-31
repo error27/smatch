@@ -2642,6 +2642,14 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		return NULL;
 
 	switch (stmt->type) {
+	case STMT_DECLARATION: {
+		struct symbol *s;
+		FOR_EACH_PTR(stmt->declaration, s) {
+			evaluate_symbol(s);
+		} END_FOR_EACH_PTR(s);
+		return NULL;
+	}
+
 	case STMT_RETURN:
 		return evaluate_return_expression(stmt);
 
@@ -2653,12 +2661,8 @@ struct symbol *evaluate_statement(struct statement *stmt)
 	case STMT_COMPOUND: {
 		struct statement *s;
 		struct symbol *type = NULL;
-		struct symbol *sym;
 
-		/* Evaluate each symbol in the compound statement */
-		FOR_EACH_PTR(stmt->syms, sym) {
-			evaluate_symbol(sym);
-		} END_FOR_EACH_PTR(sym);
+		/* Evaluate the return symbol in the compound statement */
 		evaluate_symbol(stmt->ret);
 
 		/*

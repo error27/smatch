@@ -143,7 +143,7 @@ extern void evaluate_symbol_list(struct symbol_list *list);
 extern struct symbol *evaluate_statement(struct statement *stmt);
 extern struct symbol *evaluate_expression(struct expression *);
 
-extern void expand_symbol(struct symbol *);
+extern int expand_symbol(struct symbol *);
 
 static inline struct expression *alloc_expression(struct position pos, int type)
 {

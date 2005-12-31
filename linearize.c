@@ -1603,14 +1603,7 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 {
 	pseudo_t pseudo;
 	struct statement *s;
-	struct symbol *sym;
 	struct symbol *ret = stmt->ret;
-
-	concat_symbol_list(stmt->syms, &ep->syms);
-
-	FOR_EACH_PTR(stmt->syms, sym) {
-		linearize_one_symbol(ep, sym);
-	} END_FOR_EACH_PTR(sym);
 
 	pseudo = VOID;
 	FOR_EACH_PTR(stmt->stmts, s) {
@@ -1787,6 +1780,18 @@ static void sort_switch_cases(struct instruction *insn)
 	sort_list((struct ptr_list **)&insn->multijmp_list, multijmp_cmp);
 }
 
+static pseudo_t linearize_declaration(struct entrypoint *ep, struct statement *stmt)
+{
+	struct symbol *sym;
+
+	concat_symbol_list(stmt->declaration, &ep->syms);
+
+	FOR_EACH_PTR(stmt->declaration, sym) {
+		linearize_one_symbol(ep, sym);
+	} END_FOR_EACH_PTR(sym);
+	return VOID;
+}
+
 pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 {
 	struct basic_block *bb;
@@ -1802,6 +1807,9 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	switch (stmt->type) {
 	case STMT_NONE:
 		break;
+
+	case STMT_DECLARATION:
+		return linearize_declaration(ep, stmt);
 
 	case STMT_CONTEXT:
 		return linearize_context(ep, stmt);
