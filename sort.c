@@ -186,10 +186,10 @@ merge_block_seqs (struct ptr_list *b1, int n,
 			// Element from b2 is smaller
 			buffer[nbuf++] = d2;
 			if (++i2 >= b2->nr) {
+				struct ptr_list *l = b2;
 				BEEN_THERE('M');
 				// Ok, we finished with b2.  Pull it out
 				// and plug it in before b1.
-				struct ptr_list *l = b2;
 
 				b2 = b2->next;
 				b2->prev = l->prev;
@@ -224,14 +224,13 @@ merge_block_seqs (struct ptr_list *b1, int n,
 
 void sort_list(struct ptr_list **plist, int (*cmp)(const void *, const void *))
 {
-	struct ptr_list *head = *plist;
+	struct ptr_list *head = *plist, *list = head;
 	int blocks = 1;
 
 	if (!head)
 		return;
 
 	// Sort all the sub-lists
-	struct ptr_list *list = head;
 	do {
 		array_sort(list->list, list->nr, cmp);
 #ifdef PARANOIA
