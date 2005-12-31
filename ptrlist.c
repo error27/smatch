@@ -72,6 +72,7 @@ restart:
 			if (!entry->nr) {
 				struct ptr_list *prev;
 				if (next == entry) {
+					free(entry);
 					*listp = NULL;
 					return;
 				}
