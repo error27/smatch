@@ -1088,14 +1088,14 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 		return 1;
 
 	ret = 1;
-	sym = lookup_macro(name);
+	sym = lookup_symbol(name, NS_MACRO | NS_UNDEF);
 	if (sym) {
 		int clean;
 
 		if (attr < sym->attr)
 			goto out;
 
-		clean = (attr == sym->attr);
+		clean = (attr == sym->attr && sym->namespace == NS_MACRO);
 
 		if (token_list_different(sym->expansion, expansion) ||
 		    token_list_different(sym->arglist, arglist)) {
@@ -1122,6 +1122,7 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 		__free_token(token);	/* Free the "define" token, but not the rest of the line */
 	}
 
+	sym->namespace = NS_MACRO;
 	sym->used_in = NULL;
 	sym->attr = attr;
 out:
@@ -1143,7 +1144,7 @@ static int handle_strong_define(struct stream *stream, struct token **line, stru
 	return do_handle_define(stream, line, token, SYM_ATTR_STRONG);
 }
 
-static int handle_undef(struct stream *stream, struct token **line, struct token *token)
+static int do_handle_undef(struct stream *stream, struct token **line, struct token *token, int attr)
 {
 	struct token *left = token->next;
 	struct symbol *sym;
@@ -1153,19 +1154,35 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 		return 1;
 	}
 
-	sym = lookup_macro(left->ident);
-	if (!sym || sym->attr > SYM_ATTR_NORMAL)
+	sym = lookup_symbol(left->ident, NS_MACRO | NS_UNDEF);
+	if (sym) {
+		if (attr < sym->attr)
+			return 1;
+		if (attr == sym->attr && sym->namespace == NS_UNDEF)
+			return 1;
+	} else if (attr <= SYM_ATTR_NORMAL)
 		return 1;
 
-	if (sym->scope != file_scope) {
+	if (!sym || sym->scope != file_scope) {
 		sym = alloc_symbol(left->pos, SYM_NODE);
 		bind_symbol(sym, left->ident, NS_MACRO);
 	}
 
 	sym->namespace = NS_UNDEF;
 	sym->used_in = NULL;
+	sym->attr = attr;
 
 	return 1;
+}
+
+static int handle_undef(struct stream *stream, struct token **line, struct token *token)
+{
+	return do_handle_undef(stream, line, token, SYM_ATTR_NORMAL);
+}
+
+static int handle_strong_undef(struct stream *stream, struct token **line, struct token *token)
+{
+	return do_handle_undef(stream, line, token, SYM_ATTR_STRONG);
 }
 
 static int preprocessor_if(struct stream *stream, struct token *token, int true)
@@ -1578,6 +1595,7 @@ static void init_preprocessor(void)
 		{ "weak_define",	handle_weak_define },
 		{ "strong_define",	handle_strong_define },
 		{ "undef",		handle_undef },
+		{ "strong_undef",	handle_strong_undef },
 		{ "warning",		handle_warning },
 		{ "error",		handle_error },
 		{ "include",		handle_include },
