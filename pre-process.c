@@ -118,7 +118,7 @@ static int token_defined(struct token *token)
 	if (token_type(token) == TOKEN_IDENT) {
 		struct symbol *sym = lookup_macro(token->ident);
 		if (sym) {
-			sym->weak = 0;
+			sym->used_in = file_scope;
 			return 1;
 		}
 		return 0;
@@ -147,7 +147,7 @@ static int expand_one_symbol(struct token **list)
 
 	sym = lookup_macro(token->ident);
 	if (sym) {
-		sym->weak = 0;
+		sym->used_in = file_scope;
 		return expand(list, sym);
 	}
 	if (token->ident == &__LINE___ident) {
@@ -1100,7 +1100,7 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 		if (token_list_different(sym->expansion, expansion) ||
 		    token_list_different(sym->arglist, arglist)) {
 			ret = 0;
-			if (clean && !weak) {
+			if ((clean && !weak) || sym->used_in == file_scope) {
 				warning(left->pos, "preprocessor token %.*s redefined",
 						name->len, name->name);
 				info(sym->pos, "this was the original definition");
@@ -1121,6 +1121,7 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 		__free_token(token);	/* Free the "define" token, but not the rest of the line */
 	}
 
+	sym->used_in = NULL;
 	sym->weak = weak;
 out:
 	return ret;
@@ -1156,6 +1157,7 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 	}
 
 	sym->namespace = NS_UNDEF;
+	sym->used_in = NULL;
 
 	return 1;
 }

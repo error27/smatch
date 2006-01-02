@@ -99,6 +99,7 @@ struct symbol {
 		struct /* NS_MACRO */ {
 			struct token *expansion;
 			struct token *arglist;
+			struct scope *used_in;
 		};
 		struct /* NS_PREPROCESSOR */ {
 			int (*handler)(struct stream *, struct token **, struct token *);
