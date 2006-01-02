@@ -1059,7 +1059,7 @@ Earg:
 	return NULL;
 }
 
-static int do_handle_define(struct stream *stream, struct token **line, struct token *token, int weak)
+static int do_handle_define(struct stream *stream, struct token **line, struct token *token, int attr)
 {
 	struct token *arglist, *expansion;
 	struct token *left = token->next;
@@ -1092,15 +1092,16 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 	if (sym) {
 		int clean;
 
-		if (weak > sym->weak)
+		if (attr > sym->attr)
 			goto out;
 
-		clean = (weak == sym->weak);
+		clean = (attr == sym->attr);
 
 		if (token_list_different(sym->expansion, expansion) ||
 		    token_list_different(sym->arglist, arglist)) {
 			ret = 0;
-			if ((clean && !weak) || sym->used_in == file_scope) {
+			if ((clean && attr == SYM_ATTR_NORMAL)
+					|| sym->used_in == file_scope) {
 				warning(left->pos, "preprocessor token %.*s redefined",
 						name->len, name->name);
 				info(sym->pos, "this was the original definition");
@@ -1122,19 +1123,19 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 	}
 
 	sym->used_in = NULL;
-	sym->weak = weak;
+	sym->attr = attr;
 out:
 	return ret;
 }
 
 static int handle_define(struct stream *stream, struct token **line, struct token *token)
 {
-	return do_handle_define(stream, line, token, 0);
+	return do_handle_define(stream, line, token, SYM_ATTR_NORMAL);
 }
 
 static int handle_weak_define(struct stream *stream, struct token **line, struct token *token)
 {
-	return do_handle_define(stream, line, token, 1);
+	return do_handle_define(stream, line, token, SYM_ATTR_WEAK);
 }
 
 static int handle_undef(struct stream *stream, struct token **line, struct token *token)

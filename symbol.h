@@ -82,10 +82,13 @@ struct symbol_op {
 extern int expand_safe_p(struct expression *expr, int cost);
 extern int expand_constant_p(struct expression *expr, int cost);
 
+#define SYM_ATTR_WEAK		1
+#define SYM_ATTR_NORMAL		0
+
 struct symbol {
 	enum namespace namespace:8;
 	enum type type:8;
-	unsigned char used:1, weak:1;
+	unsigned char used:1, attr:1;
 	struct position pos;		/* Where this symbol was declared */
 	struct ident *ident;		/* What identifier this symbol is associated with */
 	struct symbol *next_id;		/* Next semantic symbol that shares this identifier */
