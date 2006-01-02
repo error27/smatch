@@ -1130,22 +1130,17 @@ static int handle_weak_define(struct stream *stream, struct token **line, struct
 static int handle_undef(struct stream *stream, struct token **line, struct token *token)
 {
 	struct token *left = token->next;
-	struct symbol **sym;
+	struct symbol *sym;
 
 	if (token_type(left) != TOKEN_IDENT) {
 		sparse_error(token->pos, "expected identifier to 'undef'");
 		return 1;
 	}
 
-	sym = &left->ident->symbols;
-	while (*sym) {
-		struct symbol *t = *sym;
-		if (t->namespace & (NS_MACRO | NS_INVISIBLEMACRO)) {
-			t->namespace = NS_INVISIBLEMACRO;
-			return 1;
-		}
-		sym = &t->next_id;
-	}
+	sym = lookup_macro(left->ident);
+	if (sym)
+		sym->namespace = NS_INVISIBLEMACRO;
+
 	return 1;
 }
 
