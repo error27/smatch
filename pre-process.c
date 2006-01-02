@@ -107,7 +107,7 @@ static void replace_with_integer(struct token *token, unsigned int val)
 
 static struct symbol *lookup_macro(struct ident *ident)
 {
-	struct symbol *sym = lookup_symbol(ident, NS_MACRO | NS_INVISIBLEMACRO);
+	struct symbol *sym = lookup_symbol(ident, NS_MACRO | NS_UNDEF);
 	if (sym && sym->namespace != NS_MACRO)
 		sym = NULL;
 	return sym;
@@ -1138,8 +1138,15 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 	}
 
 	sym = lookup_macro(left->ident);
-	if (sym)
-		sym->namespace = NS_INVISIBLEMACRO;
+	if (!sym)
+		return 1;
+
+	if (sym->scope != file_scope) {
+		sym = alloc_symbol(left->pos, SYM_NODE);
+		bind_symbol(sym, left->ident, NS_MACRO);
+	}
+
+	sym->namespace = NS_UNDEF;
 
 	return 1;
 }
