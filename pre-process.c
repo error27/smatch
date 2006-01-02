@@ -1092,7 +1092,7 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 	if (sym) {
 		int clean;
 
-		if (attr > sym->attr)
+		if (attr < sym->attr)
 			goto out;
 
 		clean = (attr == sym->attr);
@@ -1138,6 +1138,11 @@ static int handle_weak_define(struct stream *stream, struct token **line, struct
 	return do_handle_define(stream, line, token, SYM_ATTR_WEAK);
 }
 
+static int handle_strong_define(struct stream *stream, struct token **line, struct token *token)
+{
+	return do_handle_define(stream, line, token, SYM_ATTR_STRONG);
+}
+
 static int handle_undef(struct stream *stream, struct token **line, struct token *token)
 {
 	struct token *left = token->next;
@@ -1149,7 +1154,7 @@ static int handle_undef(struct stream *stream, struct token **line, struct token
 	}
 
 	sym = lookup_macro(left->ident);
-	if (!sym)
+	if (!sym || sym->attr > SYM_ATTR_NORMAL)
 		return 1;
 
 	if (sym->scope != file_scope) {
@@ -1569,15 +1574,16 @@ static void init_preprocessor(void)
 		const char *name;
 		int (*handler)(struct stream *, struct token **, struct token *);
 	} normal[] = {
-		{ "define",	handle_define },
-		{ "weak_define",handle_weak_define },
-		{ "undef",	handle_undef },
-		{ "warning",	handle_warning },
-		{ "error",	handle_error },
-		{ "include",	handle_include },
-		{ "include_next",handle_include_next },
-		{ "pragma",	handle_pragma },
-		{ "line",	handle_line },
+		{ "define",		handle_define },
+		{ "weak_define",	handle_weak_define },
+		{ "strong_define",	handle_strong_define },
+		{ "undef",		handle_undef },
+		{ "warning",		handle_warning },
+		{ "error",		handle_error },
+		{ "include",		handle_include },
+		{ "include_next",	handle_include_next },
+		{ "pragma",		handle_pragma },
+		{ "line",		handle_line },
 
 		// our internal preprocessor tokens
 		{ "nostdinc",	   handle_nostdinc },
