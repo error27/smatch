@@ -1065,6 +1065,7 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 	struct token *left = token->next;
 	struct symbol *sym;
 	struct ident *name;
+	int ret;
 
 	if (token_type(left) != TOKEN_IDENT) {
 		sparse_error(token->pos, "expected identifier to 'define'");
@@ -1086,35 +1087,43 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 	if (!expansion)
 		return 1;
 
+	ret = 1;
 	sym = lookup_macro(name);
 	if (sym) {
-		if (token_list_different(sym->expansion, expansion) || 
+		int clean;
+
+		if (weak > sym->weak)
+			goto out;
+
+		clean = (weak == sym->weak);
+
+		if (token_list_different(sym->expansion, expansion) ||
 		    token_list_different(sym->arglist, arglist)) {
-			if (sym->weak)
-				goto replace_it;
-			if (weak)
-				return 1;
-			warning(left->pos, "preprocessor token %.*s redefined",
-					name->len, name->name);
-			info(sym->pos, "this was the original definition");
-
-			/* Don't overwrite global defs */
-			if (sym->scope != file_scope)
-				goto allocate_new;
-			goto replace_it;
-		}
-		return 1;
+			ret = 0;
+			if (clean && !weak) {
+				warning(left->pos, "preprocessor token %.*s redefined",
+						name->len, name->name);
+				info(sym->pos, "this was the original definition");
+			}
+		} else if (clean)
+			goto out;
 	}
-allocate_new:
-	sym = alloc_symbol(left->pos, SYM_NODE);
-	bind_symbol(sym, name, NS_MACRO);
 
-replace_it:
-	sym->expansion = expansion;
-	sym->arglist = arglist;
+	if (!sym || sym->scope != file_scope) {
+		sym = alloc_symbol(left->pos, SYM_NODE);
+		bind_symbol(sym, name, NS_MACRO);
+		ret = 0;
+	}
+
+	if (!ret) {
+		sym->expansion = expansion;
+		sym->arglist = arglist;
+		__free_token(token);	/* Free the "define" token, but not the rest of the line */
+	}
+
 	sym->weak = weak;
-	__free_token(token);		/* Free the "define" token, but not the rest of the line */
-	return 0;
+out:
+	return ret;
 }
 
 static int handle_define(struct stream *stream, struct token **line, struct token *token)
