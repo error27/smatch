@@ -257,6 +257,8 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 	 */
 	switch (old->type) {
 	case EXPR_PREOP:
+		if (old->ctype->bit_size < type->bit_size)
+			break;
 		if (old->op == '~') {
 			old->ctype = type;
 			old->unop = cast_to(old->unop, type);
