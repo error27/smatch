@@ -490,41 +490,44 @@ static int restricted_unop(int op, struct symbol *type)
 	return 1;
 }
 
+static struct symbol *restricted_binop_type(int op,
+					struct expression *left,
+					struct expression *right,
+					int lclass, int rclass,
+					struct symbol *ltype,
+					struct symbol *rtype)
+{
+	struct symbol *ctype = NULL;
+	if (lclass & TYPE_RESTRICT) {
+		if (rclass & TYPE_RESTRICT) {
+			if (ltype == rtype)
+				ctype = ltype;
+		} else {
+			if (!restricted_value(right, ltype))
+				ctype = ltype;
+		}
+	} else if (!restricted_value(left, rtype))
+		ctype = rtype;
+
+	if (ctype && restricted_binop(op, ctype))
+		ctype = NULL;
+	return ctype;
+}
+
 static struct symbol *compatible_restricted_binop(int op, struct expression **lp, struct expression **rp)
 {
 	struct expression *left = *lp, *right = *rp;
-	struct symbol *ltype = left->ctype, *rtype = right->ctype;
-	struct symbol *type = NULL;
+	struct symbol *ltype, *rtype;
+	int lclass = classify_type(left->ctype, &ltype);
+	int rclass = classify_type(right->ctype, &rtype);
 
-	if (ltype->type == SYM_NODE)
-		ltype = ltype->ctype.base_type;
-	if (rtype->type == SYM_NODE)
-		rtype = rtype->ctype.base_type;
+	warn_for_different_enum_types(right->pos, left->ctype, right->ctype);
 
-	warn_for_different_enum_types(right->pos, ltype, rtype);
-
-	if (ltype->type == SYM_ENUM)
-		ltype = ltype->ctype.base_type;
-	if (rtype->type == SYM_ENUM)
-		rtype = rtype->ctype.base_type;
-
-	if (is_restricted_type(ltype)) {
-		if (is_restricted_type(rtype)) {
-			if (ltype == rtype)
-				type = ltype;
-		} else {
-			if (!restricted_value(right, ltype))
-				type = ltype;
-		}
-	} else if (is_restricted_type(rtype)) {
-		if (!restricted_value(left, rtype))
-			type = rtype;
-	}
-	if (!type)
+	if (!(lclass & rclass & TYPE_RESTRICT))
 		return NULL;
-	if (restricted_binop(op, type))
-		return NULL;
-	return type;
+
+	return restricted_binop_type(op, left, right,
+				     lclass, rclass, ltype, rtype);
 }
 
 static struct symbol *evaluate_arith(struct expression *expr, int float_ok)
@@ -2653,26 +2656,43 @@ static void check_case_type(struct expression *switch_expr,
 			    struct expression **enumcase)
 {
 	struct symbol *switch_type, *case_type;
+	int sclass, cclass;
+
 	if (!case_expr)
 		return;
+
 	switch_type = switch_expr->ctype;
 	case_type = evaluate_expression(case_expr);
 
-	if (case_type && switch_type) {
-		if (enumcase) {
-			if (*enumcase)
-				warn_for_different_enum_types(case_expr->pos, case_type, (*enumcase)->ctype);
-			else if (is_enum_type(case_type))
-				*enumcase = case_expr;
-		}
-
-		/* Both integer types? */
-		if (compatible_restricted_binop(SPECIAL_EQUAL, &switch_expr, &case_expr))
-			return;
-		if (is_int_type(switch_type) && is_int_type(case_type)) 
-			return;
+	if (!switch_type || !case_type)
+		goto Bad;
+	if (enumcase) {
+		if (*enumcase)
+			warn_for_different_enum_types(case_expr->pos, case_type, (*enumcase)->ctype);
+		else if (is_enum_type(case_type))
+			*enumcase = case_expr;
 	}
 
+	sclass = classify_type(switch_type, &switch_type);
+	cclass = classify_type(case_type, &case_type);
+
+	/* both should be arithmetic */
+	if (!(sclass & cclass & TYPE_NUM))
+		goto Bad;
+
+	/* neither should be floating */
+	if ((sclass | cclass) & TYPE_FLOAT)
+		goto Bad;
+
+	/* if neither is restricted, we are OK */
+	if (!((sclass | cclass) & TYPE_RESTRICT))
+		return;
+
+	if (restricted_binop_type(SPECIAL_EQUAL, case_expr, switch_expr,
+				   cclass, sclass, case_type, switch_type))
+		return;
+
+Bad:
 	sparse_error(case_expr->pos, "incompatible types for 'case' statement");
 }
 
