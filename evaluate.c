@@ -999,26 +999,11 @@ static struct symbol *evaluate_compare(struct expression *expr)
 		goto OK;
 	}
 
-	ctype = compatible_integer_binop(&expr->left, &expr->right);
+	ctype = evaluate_arith(expr, 1);
 	if (ctype) {
 		if (ctype->ctype.modifiers & MOD_UNSIGNED)
 			expr->op = modify_for_unsigned(expr->op);
-		goto OK;
 	}
-
-	ctype = compatible_float_binop(&expr->left, &expr->right);
-	if (ctype)
-		goto OK;
-
-	ctype = compatible_restricted_binop(expr->op, &expr->left, &expr->right);
-	if (ctype) {
-		if (ctype->ctype.modifiers & MOD_UNSIGNED)
-			expr->op = modify_for_unsigned(expr->op);
-		goto OK;
-	}
-
-	bad_expr_type(expr);
-
 OK:
 	expr->ctype = &bool_ctype;
 	return &bool_ctype;
