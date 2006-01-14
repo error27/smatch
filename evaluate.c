@@ -2126,14 +2126,25 @@ static int get_as(struct symbol *sym)
 static void cast_to_as(struct expression *e, int as)
 {
 	struct expression *v = e->cast_expression;
+	struct symbol *type = v->ctype;
 
 	if (!Wcast_to_address_space)
 		return;
 
+	if (v->type != EXPR_VALUE || v->value)
+		goto out;
+
 	/* cast from constant 0 to pointer is OK */
-	if (v->type == EXPR_VALUE && is_int_type(v->ctype) && !v->value)
+	if (is_int_type(type))
 		return;
 
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+
+	if (type->type == SYM_PTR && type->ctype.base_type == &void_ctype)
+		return;
+
+out:
 	warning(e->pos, "cast adds address space to expression (<asn:%d>)", as);
 }
 
