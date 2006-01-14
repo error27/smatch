@@ -473,6 +473,7 @@ static struct symbol *usual_conversions(int op,
 	if ((lclass | rclass) & TYPE_RESTRICT)
 		goto Restr;
 
+Normal:
 	if (!(lclass & TYPE_FLOAT)) {
 		if (!(rclass & TYPE_FLOAT))
 			ctype = bigger_int_type(ltype, rtype);
@@ -499,7 +500,15 @@ Restr:
 	if (ctype)
 		goto Convert;
 
-	return NULL;
+	if (lclass & TYPE_RESTRICT) {
+		warning((*left)->pos, "restricted degrades to integer");
+		ltype = ltype->ctype.base_type;
+	}
+	if (rclass & TYPE_RESTRICT) {
+		warning((*right)->pos, "restricted degrades to integer");
+		rtype = rtype->ctype.base_type;
+	}
+	goto Normal;
 }
 
 static struct symbol *evaluate_arith(struct expression *expr, int float_ok)
@@ -517,10 +526,8 @@ static struct symbol *evaluate_arith(struct expression *expr, int float_ok)
 
 	ctype = usual_conversions(expr->op, &expr->left, &expr->right,
 				  lclass, rclass, ltype, rtype);
-	if (ctype) {
-		expr->ctype = ctype;
-		return ctype;
-	}
+	expr->ctype = ctype;
+	return ctype;
 
 Bad:
 	return bad_expr_type(expr);
@@ -1055,8 +1062,7 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 	if (lclass & rclass & TYPE_NUM) {
 		ctype = usual_conversions('?', true, &expr->cond_false,
 					  lclass, rclass, ltype, rtype);
-		if (ctype)
-			goto out;
+		goto out;
 	}
 	ctype = compatible_ptr_type(*true, expr->cond_false);
 	if (ctype)
@@ -2670,9 +2676,11 @@ static void check_case_type(struct expression *switch_expr,
 	if (!((sclass | cclass) & TYPE_RESTRICT))
 		return;
 
-	if (restricted_binop_type(SPECIAL_EQUAL, case_expr, switch_expr,
+	if (!restricted_binop_type(SPECIAL_EQUAL, case_expr, switch_expr,
 				   cclass, sclass, case_type, switch_type))
-		return;
+		warning(case_expr->pos, "restricted degrades to integer");
+
+	return;
 
 Bad:
 	sparse_error(case_expr->pos, "incompatible types for 'case' statement");
