@@ -242,6 +242,13 @@ static inline int is_int_type(const struct symbol *type)
 	       type->ctype.base_type == &int_type;
 }
 
+static inline int is_enum_type(const struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return (type->type == SYM_ENUM);
+}
+
 static inline int get_sym_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)

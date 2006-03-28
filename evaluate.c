@@ -238,6 +238,23 @@ static int is_same_type(struct expression *expr, struct symbol *new)
 	return 0;
 }
 
+static void
+warn_for_different_enum_types (struct position pos,
+			       struct symbol *typea,
+			       struct symbol *typeb)
+{
+	if (typea->type == SYM_NODE)
+		typea = typea->ctype.base_type;
+	if (typeb->type == SYM_NODE)
+		typeb = typeb->ctype.base_type;
+
+	if (typea == typeb)
+		return;
+
+	if (typea->type == SYM_ENUM && typeb->type == SYM_ENUM)
+		warning(pos, "mixing different enum types");
+}
+
 /*
  * This gets called for implicit casts in assignments and
  * integer promotion. We often want to try to move the
@@ -248,6 +265,8 @@ static int is_same_type(struct expression *expr, struct symbol *new)
 static struct expression * cast_to(struct expression *old, struct symbol *type)
 {
 	struct expression *expr;
+
+	warn_for_different_enum_types (old->pos, old->ctype, type);
 
 	if (is_same_type(old, type))
 		return old;
@@ -267,6 +286,8 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 		break;
 
 	case EXPR_IMPLIED_CAST:
+		warn_for_different_enum_types(old->pos, old->ctype, type);
+
 		if (old->ctype->bit_size >= type->bit_size) {
 			struct expression *orig = old->cast_expression;
 			if (same_cast_type(orig->ctype, type))
@@ -441,12 +462,16 @@ static struct symbol *compatible_restricted_binop(int op, struct expression **lp
 
 	if (ltype->type == SYM_NODE)
 		ltype = ltype->ctype.base_type;
-	if (ltype->type == SYM_ENUM)
-		ltype = ltype->ctype.base_type;
 	if (rtype->type == SYM_NODE)
 		rtype = rtype->ctype.base_type;
+
+	warn_for_different_enum_types(right->pos, ltype, rtype);
+
+	if (ltype->type == SYM_ENUM)
+		ltype = ltype->ctype.base_type;
 	if (rtype->type == SYM_ENUM)
 		rtype = rtype->ctype.base_type;
+
 	if (is_restricted_type(ltype)) {
 		if (is_restricted_type(rtype)) {
 			if (ltype == rtype)
@@ -2604,7 +2629,9 @@ static void evaluate_case_statement(struct statement *stmt)
 	evaluate_statement(stmt->case_statement);
 }
 
-static void check_case_type(struct expression *switch_expr, struct expression *case_expr)
+static void check_case_type(struct expression *switch_expr,
+			    struct expression *case_expr,
+			    struct expression **enumcase)
 {
 	struct symbol *switch_type, *case_type;
 	if (!case_expr)
@@ -2613,10 +2640,17 @@ static void check_case_type(struct expression *switch_expr, struct expression *c
 	case_type = evaluate_expression(case_expr);
 
 	if (case_type && switch_type) {
+		if (enumcase) {
+			if (*enumcase)
+				warn_for_different_enum_types(case_expr->pos, case_type, (*enumcase)->ctype);
+			else if (is_enum_type(case_type))
+				*enumcase = case_expr;
+		}
+
 		/* Both integer types? */
-		if (is_int_type(switch_type) && is_int_type(case_type))
-			return;
 		if (compatible_restricted_binop(SPECIAL_EQUAL, &switch_expr, &case_expr))
+			return;
+		if (is_int_type(switch_type) && is_int_type(case_type)) 
 			return;
 	}
 
@@ -2626,15 +2660,21 @@ static void check_case_type(struct expression *switch_expr, struct expression *c
 static void evaluate_switch_statement(struct statement *stmt)
 {
 	struct symbol *sym;
+	struct expression *enumcase = NULL;
+	struct expression **enumcase_holder;
 
 	evaluate_expression(stmt->switch_expression);
 	evaluate_statement(stmt->switch_statement);
 	if (!stmt->switch_expression)
 		return;
+	enumcase_holder = is_enum_type(stmt->switch_expression->ctype)
+		? NULL /* Only check cases against switch */
+		: &enumcase;
+
 	FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
 		struct statement *case_stmt = sym->stmt;
-		check_case_type(stmt->switch_expression, case_stmt->case_expression);
-		check_case_type(stmt->switch_expression, case_stmt->case_to);
+		check_case_type(stmt->switch_expression, case_stmt->case_expression, enumcase_holder);
+		check_case_type(stmt->switch_expression, case_stmt->case_to, enumcase_holder);
 	} END_FOR_EACH_PTR(sym);
 }
 
