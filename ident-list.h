@@ -53,6 +53,7 @@ IDENT(noinline);
 IDENT(deprecated);
 IDENT(__const); IDENT(__const__); IDENT(noreturn);
 IDENT(__noreturn__); IDENT(regparm); IDENT(weak); IDENT(__weak__);
+IDENT(__sentinel__); IDENT(sentinel);
 IDENT(alias); IDENT(pure); IDENT(always_inline);
 IDENT(syscall_linkage); IDENT(visibility);
 IDENT(bitwise); IDENT(__bitwise__);

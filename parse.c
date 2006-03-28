@@ -517,6 +517,9 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 	if (attribute == &noreturn_ident ||
 	    attribute == &__noreturn___ident)
 		return NULL;
+	if (attribute == &sentinel_ident ||
+	    attribute == &__sentinel___ident)
+		return NULL;
 	if (attribute == &regparm_ident)
 		return NULL;
 	if (attribute == &weak_ident ||
