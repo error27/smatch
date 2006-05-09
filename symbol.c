@@ -252,31 +252,47 @@ void merge_type(struct symbol *sym, struct symbol *base_type)
 	sym->ctype.base_type = base_type->ctype.base_type;
 }
 
-static int count_array_initializer(struct expression *expr)
+static int count_array_initializer(struct symbol *t, struct expression *expr)
 {
 	int nr = 0;
+	int is_char = 0;
+
+	/*
+	 * Arrays of character types are special; they can be initialized by
+	 * string literal _or_ by string literal in braces.  The latter means
+	 * that with T x[] = {<string literal>} number of elements in x depends
+	 * on T - if it's a character type, we get the length of string literal
+	 * (including NUL), otherwise we have one element here.
+	 */
+	if (t->ctype.base_type == &int_type && t->ctype.modifiers & MOD_CHAR)
+		is_char = 1;
 
 	switch (expr->type) {
-	case EXPR_STRING:
-		nr = expr->string->length;
-		break;
 	case EXPR_INITIALIZER: {
 		struct expression *entry;
+		int count = 0;
+		int str_len = 0;
 		FOR_EACH_PTR(expr->expr_list, entry) {
+			count++;
 			switch (entry->type) {
-			case EXPR_STRING:
-				nr += entry->string->length;
-				break;
 			case EXPR_INDEX:
 				if (entry->idx_to >= nr)
 					nr = entry->idx_to+1;
 				break;
+			case EXPR_STRING:
+				if (is_char)
+					str_len = entry->string->length;
 			default:
 				nr++;
 			}
 		} END_FOR_EACH_PTR(entry);
+		if (count == 1 && str_len)
+			nr = str_len;
 		break;
 	}
+	case EXPR_STRING:
+		if (is_char)
+			nr = expr->string->length;
 	default:
 		break;
 	}
@@ -308,8 +324,8 @@ static struct symbol * examine_node_type(struct symbol *sym)
 
 	/* Unsized array? The size might come from the initializer.. */
 	if (bit_size < 0 && base_type->type == SYM_ARRAY && sym->initializer) {
-		int count = count_array_initializer(sym->initializer);
 		struct symbol *node_type = base_type->ctype.base_type;
+		int count = count_array_initializer(node_type, sym->initializer);
 
 		if (node_type && node_type->bit_size >= 0)
 			bit_size = node_type->bit_size * count;
