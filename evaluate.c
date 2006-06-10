@@ -359,7 +359,7 @@ static struct symbol *bad_expr_type(struct expression *expr)
 		break;
 	}
 
-	return NULL;
+	return expr->ctype = &bad_ctype;
 }
 
 static struct symbol *compatible_float_binop(struct expression **lp, struct expression **rp)
