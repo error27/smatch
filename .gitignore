@@ -13,6 +13,7 @@ test-parsing
 obfuscate
 check
 compile
+test-dissect
 test-linearize
 example
 test-unssa
