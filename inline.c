@@ -79,6 +79,7 @@ static struct expression * copy_expression(struct expression *expr)
 	case EXPR_VALUE:
 	case EXPR_STRING:
 	case EXPR_FVALUE:
+	case EXPR_TYPE:
 		break;
 
 	/* Unops: check if the subexpression is unique */
