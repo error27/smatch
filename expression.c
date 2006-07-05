@@ -114,6 +114,45 @@ static int convert_function(struct token *next)
 	return retval;
 }
 
+static struct token *parse_type(struct token *token, struct expression **tree)
+{
+	struct symbol *sym;
+	*tree = alloc_expression(token->pos, EXPR_TYPE);
+	token = typename(token, &sym);
+	if (sym->ident)
+		sparse_error(token->pos,
+			     "type expression should not include identifier "
+			     "\"%s\"", sym->ident->name);
+	(*tree)->symbol = sym;
+	return token;
+}
+
+static struct token *builtin_types_compatible_p_expr(struct token *token,
+						     struct expression **tree)
+{
+	struct expression *expr = alloc_expression(
+		token->pos, EXPR_COMPARE);
+	expr->op = SPECIAL_EQUAL;
+	token = token->next;
+	if (!match_op(token, '('))
+		return expect(token, '(',
+			      "after __builtin_types_compatible_p");
+	token = token->next;
+	token = parse_type(token, &expr->left);
+	if (!match_op(token, ','))
+		return expect(token, ',',
+			      "in __builtin_types_compatible_p");
+	token = token->next;
+	token = parse_type(token, &expr->right);
+	if (!match_op(token, ')'))
+		return expect(token, ')',
+			      "at end of __builtin_types_compatible_p");
+	token = token->next;
+	
+	*tree = expr;
+	return token;
+}
+
 static struct token *string_expression(struct token *token, struct expression *expr)
 {
 	struct string *string = token->string;
@@ -314,8 +353,14 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		struct symbol *sym = lookup_symbol(token->ident, NS_SYMBOL | NS_TYPEDEF);
 		struct token *next = token->next;
 
-		if (!sym && convert_function(token))
-			goto handle_string;
+		if (!sym) {
+			if (convert_function(token))
+				goto handle_string;
+			if (token->ident == &__builtin_types_compatible_p_ident) {
+				token = builtin_types_compatible_p_expr(token, &expr);
+				break;
+			}
+		}
 
 		expr = alloc_expression(token->pos, EXPR_SYMBOL);
 

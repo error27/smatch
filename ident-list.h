@@ -35,6 +35,7 @@ IDENT_RESERVED(__asm);
 IDENT_RESERVED(__alignof);
 IDENT_RESERVED(__alignof__); 
 IDENT_RESERVED(__sizeof_ptr__);
+IDENT_RESERVED(__builtin_types_compatible_p);
 
 /* Attribute names */
 IDENT(defined); IDENT(packed); IDENT(__packed__);
