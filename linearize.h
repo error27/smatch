@@ -237,7 +237,7 @@ static inline void add_multijmp(struct multijmp_list **list, struct multijmp *mu
 	add_ptr_list(list, multijmp);
 }
 
-static inline void *add_pseudo(struct pseudo_list **list, struct pseudo *pseudo)
+static inline pseudo_t *add_pseudo(struct pseudo_list **list, pseudo_t pseudo)
 {
 	return add_ptr_list(list, pseudo);
 }
