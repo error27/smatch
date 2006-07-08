@@ -16,6 +16,13 @@
 #define TYPEOF(head)			__typeof__(&(head)->list[0])
 #define VRFY_PTR_LIST(head)		(void)(sizeof((head)->list[0]))
 
+/*
+ * The "unnecessary" statement expression is there to shut up a totally 
+ * bogus gcc warning about unused expressions, brought on by the fact
+ * that we cast the result to the proper type.
+ */
+#define MKTYPE(head,expr)		({ (TYPEOF(head))(expr); })
+
 #define LIST_NODE_NR (29)
 
 struct ptr_list {
@@ -46,7 +53,7 @@ extern int linearize_ptr_list(struct ptr_list *, void **, int);
  * extensions..
  */
 #define add_ptr_list_tag(list,entry,tag) \
-	(TYPEOF(*(list))) (CHECK_TYPE(*(list),(entry)),__add_ptr_list((struct ptr_list **)(list), (entry), (tag)))
+	MKTYPE(*(list), (CHECK_TYPE(*(list),(entry)),__add_ptr_list((struct ptr_list **)(list), (entry), (tag))))
 #define add_ptr_list(list,entry) \
 	add_ptr_list_tag(list,entry,0)
 #define free_ptr_list(list) \
