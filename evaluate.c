@@ -2473,8 +2473,8 @@ void evaluate_symbol_list(struct symbol_list *list)
 	struct symbol *sym;
 
 	FOR_EACH_PTR(list, sym) {
-		check_duplicates(sym);
 		evaluate_symbol(sym);
+		check_duplicates(sym);
 	} END_FOR_EACH_PTR(sym);
 }
 
