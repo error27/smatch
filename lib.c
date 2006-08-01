@@ -342,30 +342,53 @@ static const struct warning {
 	{ "uninitialized", &Wuninitialized },
 };
 
+enum {
+	WARNING_OFF,
+	WARNING_ON,
+	WARNING_FORCE_OFF
+};
+
 
 static char **handle_switch_W(char *arg, char **next)
 {
-	int no = 0;
+	int flag = WARNING_ON;
 	char *p = arg + 1;
 	unsigned i;
+
+	if (!strcmp(p, "all")) {
+		for (i = 0; i < sizeof(warnings) / sizeof(warnings[0]); i++) {
+			if (*warnings[i].flag != WARNING_FORCE_OFF)
+				*warnings[i].flag = WARNING_ON;
+		}
+	}
 
 	// Prefixes "no" and "no-" mean to turn warning off.
 	if (p[0] == 'n' && p[1] == 'o') {
 		p += 2;
 		if (p[0] == '-')
 			p++;
-		no = 1;
+		flag = WARNING_FORCE_OFF;
 	}
 
 	for (i = 0; i < sizeof(warnings) / sizeof(warnings[0]); i++) {
 		if (!strcmp(p,warnings[i].name)) {
-			*warnings[i].flag = !no;
+			*warnings[i].flag = flag;
 			return next;
 		}
 	}
 
 	// Unknown.
 	return next;
+}
+
+static void handle_switch_W_finalize(void)
+{
+	unsigned i;
+
+	for (i = 0; i < sizeof(warnings) / sizeof(warnings[0]); i++) {
+		if (*warnings[i].flag == WARNING_FORCE_OFF)
+			*warnings[i].flag = WARNING_OFF;
+	}
 }
 
 static char **handle_switch_U(char *arg, char **next)
@@ -632,6 +655,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 		}
 		add_ptr_list_notag(filelist, arg);
 	}
+	handle_switch_W_finalize();
 
 	list = NULL;
 	if (!ptr_list_empty(filelist)) {
