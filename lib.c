@@ -177,6 +177,7 @@ int Wptr_subtraction_blows = 0;
 int Wcast_to_address_space = 0;
 int Wdecl = 0;
 int Wtransparent_union = 1;
+int Wshadow = 0;
 int preprocess_only;
 char *include;
 int include_fd = -1;
@@ -321,6 +322,7 @@ static const struct warning {
 	{ "typesign", &Wtypesign },
 	{ "context", &Wcontext },
 	{ "transparent-union", &Wtransparent_union },
+	{ "shadow", &Wshadow },
 };
 
 

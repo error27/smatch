@@ -427,6 +427,7 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 
 void check_declaration(struct symbol *sym)
 {
+	int warned = 0;
 	struct symbol *next = sym;
 
 	while ((next = next->next_id) != NULL) {
@@ -440,16 +441,14 @@ void check_declaration(struct symbol *sym)
 			sym->same_symbol = next;
 			return;
 		}
-#if 0
-		// This may make sense from a warning standpoint:
-		//  consider top-level symbols to clash with everything
-		//  (but the scoping rules will mean that we actually
-		//  _use_ the innermost version)
-		if (toplevel(next->scope)) {
-			sym->same_symbol = next;
-			return;
-		}
-#endif
+
+		if (!Wshadow || warned)
+			continue;
+		if (get_sym_type(next) == SYM_FN)
+			continue;
+		warned = 1;
+		warning(sym->pos, "symbol '%s' shadows an earlier one", show_ident(sym->ident));
+		info(next->pos, "originally declared here");
 	}
 }
 
