@@ -84,6 +84,7 @@ extern int Wdecl;
 extern int Wone_bit_signed_bitfield;
 extern int Wshadow;
 extern int Wcast_truncate;
+extern int Wuninitialized;
 
 extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);
