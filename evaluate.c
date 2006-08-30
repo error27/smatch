@@ -243,6 +243,8 @@ warn_for_different_enum_types (struct position pos,
 			       struct symbol *typea,
 			       struct symbol *typeb)
 {
+	if (!Wenum_mismatch)
+		return;
 	if (typea->type == SYM_NODE)
 		typea = typea->ctype.base_type;
 	if (typeb->type == SYM_NODE)

@@ -79,6 +79,7 @@ extern int Wbitwise, Wtypesign, Wcontext;
 extern int Wtransparent_union;
 extern int Waddress_space;
 extern int Wcast_to_address_space;
+extern int Wenum_mismatch;
 extern int Wdecl;
 extern int Wone_bit_signed_bitfield;
 extern int Wshadow;
