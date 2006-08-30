@@ -45,11 +45,11 @@ all: $(PROGRAMS) $(SLIB_FILE)
 #		"The better to keep you on your toes, my dear".
 #
 install: check $(SLIB_FILE) bin-dir
-	if test $< -nt $(PREFIX)/bin/sparse ; then install -v $< $(BINDIR)/sparse ; install -v $(SLIB_FILE) $(BINDIR) ; fi
+	if test $< -nt $(BINDIR)/sparse ; then install -v $< $(BINDIR)/sparse ; install -v $(SLIB_FILE) $(BINDIR) ; fi
 
 bin-dir:
-	@if ! test -d $(PREFIX)/bin; then \
-		echo "No '$(PREFIX)/bin' directory to install in"; \
+	@if ! test -d $(BINDIR); then \
+		echo "No '$(BINDIR)' directory to install in"; \
 		echo "Please create it and add it to your PATH"; \
 		exit 1; \
 	fi
