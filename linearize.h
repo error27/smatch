@@ -105,6 +105,7 @@ struct instruction {
 		struct /* context */ {
 			int increment;
 			int check;
+			struct expression *context_expr;
 		};
 		struct /* asm */ {
 			const char *string;

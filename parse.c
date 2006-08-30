@@ -434,10 +434,17 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 	}
 	if (attribute == &context_ident) {
 		if (expr && expr->type == EXPR_COMMA) {
-			int input = get_expression_value(expr->left);
-			int output = get_expression_value(expr->right);
-			ctype->in_context = input;
-			ctype->out_context = output;
+			struct context *context = alloc_context();
+			if(expr->left->type == EXPR_COMMA) {
+				context->context = expr->left->left;
+				context->in = get_expression_value(
+					expr->left->right);
+			} else {
+				context->context = NULL;
+				context->in = get_expression_value(expr->left);
+			}
+			context->out = get_expression_value(expr->right);
+			add_ptr_list(&ctype->contexts, context);
 			return NULL;
 		}
 		return "expected context input/output values";
@@ -669,9 +676,9 @@ static void apply_ctype(struct position pos, struct ctype *thistype, struct ctyp
 		ctype->modifiers = old | mod | extra;
 	}
 
-	/* Context mask and value */
-	ctype->in_context += thistype->in_context;
-	ctype->out_context += thistype->out_context;
+	/* Context */
+	concat_ptr_list((struct ptr_list *)thistype->contexts,
+	                (struct ptr_list **)&ctype->contexts);
 
 	/* Alignment */
 	if (thistype->alignment & (thistype->alignment-1)) {
@@ -908,16 +915,15 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 		struct symbol *ptr = alloc_symbol(token->pos, SYM_PTR);
 		ptr->ctype.modifiers = modifiers & ~MOD_STORAGE;
 		ptr->ctype.as = ctype->as;
-		ptr->ctype.in_context += ctype->in_context;
-		ptr->ctype.out_context += ctype->out_context;
+		concat_ptr_list((struct ptr_list *)ctype->contexts,
+				(struct ptr_list **)&ptr->ctype.contexts);
 		ptr->ctype.base_type = base_type;
 
 		base_type = ptr;
 		ctype->modifiers = modifiers & MOD_STORAGE;
 		ctype->base_type = base_type;
 		ctype->as = 0;
-		ctype->in_context = 0;
-		ctype->out_context = 0;
+		free_ptr_list(&ctype->contexts);
 
 		token = declaration_specifiers(token->next, ctype, 1);
 		modifiers = ctype->modifiers;
@@ -1384,6 +1390,14 @@ default_statement:
 		if (token->ident == &__context___ident) {
 			stmt->type = STMT_CONTEXT;
 			token = parse_expression(token->next, &stmt->expression);
+			if(stmt->expression->type == EXPR_PREOP
+			   && stmt->expression->op == '('
+			   && stmt->expression->unop->type == EXPR_COMMA) {
+				struct expression *expr;
+				expr = stmt->expression->unop;
+				stmt->context = expr->left;
+				stmt->expression = expr->right;
+			}
 			return expect(token, ';', "at end of statement");
 		}
 		if (token->ident == &__range___ident) {

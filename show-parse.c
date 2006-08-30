@@ -50,18 +50,27 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 		[SYM_RESTRICT] = "rstr",
 		[SYM_BAD] = "bad.",
 	};
+	struct context *context;
+	int i;
 
 	if (!sym)
 		return;
-	fprintf(stderr, "%.*s%s%3d:%lu %lx %s (as: %d, context: %x:%x) %p (%s:%d:%d)\n",
+	fprintf(stderr, "%.*s%s%3d:%lu %lx %s (as: %d) %p (%s:%d:%d)\n",
 		indent, indent_string, typestr[sym->type],
 		sym->bit_size, sym->ctype.alignment,
-		sym->ctype.modifiers, show_ident(sym->ident),
-		sym->ctype.as, sym->ctype.in_context, sym->ctype.out_context,
+		sym->ctype.modifiers, show_ident(sym->ident), sym->ctype.as,
 		sym, stream_name(sym->pos.stream), sym->pos.line, sym->pos.pos);
+	i = 0;
+	FOR_EACH_PTR(sym->ctype.contexts, context) {
+		/* FIXME: should print context expression */
+		fprintf(stderr, "< context%d: in=%d, out=%d\n",
+			i, context->in, context->out);
+		fprintf(stderr, "  end context%d >\n", i);
+		i++;
+	} END_FOR_EACH_PTR(context);
 	if (sym->type == SYM_FN) {
-		int i = 1;
 		struct symbol *arg;
+		i = 0;
 		FOR_EACH_PTR(sym->arguments, arg) {
 			fprintf(stderr, "< arg%d:\n", i);
 			do_debug_symbol(arg, 0);

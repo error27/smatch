@@ -53,6 +53,11 @@ struct symbol *lookup_symbol(struct ident *ident, enum namespace ns)
 	return sym;
 }
 
+struct context *alloc_context(void)
+{
+	return __alloc_context(0);
+}
+
 struct symbol *alloc_symbol(struct position pos, int type)
 {
 	struct symbol *sym = __alloc_symbol(0);
@@ -247,8 +252,8 @@ void merge_type(struct symbol *sym, struct symbol *base_type)
 {
 	sym->ctype.as |= base_type->ctype.as;
 	sym->ctype.modifiers |= (base_type->ctype.modifiers & ~MOD_STORAGE);
-	sym->ctype.in_context += base_type->ctype.in_context;
-	sym->ctype.out_context += base_type->ctype.out_context;
+	concat_ptr_list((struct ptr_list *)base_type->ctype.contexts,
+	                (struct ptr_list **)&sym->ctype.contexts);
 	sym->ctype.base_type = base_type->ctype.base_type;
 }
 

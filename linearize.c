@@ -1183,7 +1183,8 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	struct expression *arg, *fn;
 	struct instruction *insn = alloc_typed_instruction(OP_CALL, expr->ctype);
 	pseudo_t retval, call;
-	int context_diff, check;
+	struct ctype *ctype = NULL;
+	struct context *context;
 
 	if (!expr->ctype) {
 		warning(expr->pos, "call with no type!");
@@ -1197,21 +1198,8 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 
 	fn = expr->fn;
 
-	check = 0;
-	context_diff = 0;
-	if (fn->ctype) {
-		int in = fn->ctype->ctype.in_context;
-		int out = fn->ctype->ctype.out_context;
-		if (in < 0) {
-			check = 1;
-			in = 0;
-		}
-		if (out < 0) {
-			check = 0;
-			out = 0;
-		}
-		context_diff = out - in;
-	}
+	if (fn->ctype)
+		ctype = &fn->ctype->ctype;
 
 	if (fn->type == EXPR_PREOP) {
 		if (fn->unop->type == EXPR_SYMBOL) {
@@ -1232,11 +1220,29 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	insn->target = retval;
 	add_one_insn(ep, insn);
 
-	if (check || context_diff) {
-		insn = alloc_instruction(OP_CONTEXT, 0);
-		insn->increment = context_diff;
-		insn->check = check;
-		add_one_insn(ep, insn);
+	if (ctype) {
+		FOR_EACH_PTR(ctype->contexts, context) {
+			int in = context->in;
+			int out = context->out;
+			int check = 0;
+			int context_diff;
+			if (in < 0) {
+				check = 1;
+				in = 0;
+			}
+			if (out < 0) {
+				check = 0;
+				out = 0;
+			}
+			context_diff = out - in;
+			if (check || context_diff) {
+				insn = alloc_instruction(OP_CONTEXT, 0);
+				insn->increment = context_diff;
+				insn->check = check;
+				insn->context_expr = context->context;
+				add_one_insn(ep, insn);
+			}
+		} END_FOR_EACH_PTR(context);
 	}
 
 	return retval;
@@ -1637,6 +1643,7 @@ static pseudo_t linearize_context(struct entrypoint *ep, struct statement *stmt)
 		value = expr->value;
 
 	insn->increment = value;
+	insn->context_expr = stmt->context;
 	add_one_insn(ep, insn);
 	return VOID;
 }

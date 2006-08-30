@@ -234,6 +234,8 @@ static void check_instructions(struct entrypoint *ep)
 static void check_context(struct entrypoint *ep)
 {
 	struct symbol *sym = ep->name;
+	struct context *context;
+	unsigned int in_context = 0, out_context = 0;
 
 	if (verbose && ep->entry->bb->needs) {
 		pseudo_t pseudo;
@@ -246,7 +248,11 @@ static void check_context(struct entrypoint *ep)
 
 	check_instructions(ep);
 
-	check_bb_context(ep, ep->entry->bb, sym->ctype.in_context, sym->ctype.out_context);
+	FOR_EACH_PTR(sym->ctype.contexts, context) {
+		in_context += context->in;
+		out_context += context->out;
+	} END_FOR_EACH_PTR(context);
+	check_bb_context(ep, ep->entry->bb, in_context, out_context);
 }
 
 static void check_symbols(struct symbol_list *list)

@@ -39,7 +39,10 @@ struct statement {
 			struct symbol *label;
 			struct statement *label_statement;
 		};
-		struct expression *expression;
+		struct {
+			struct expression *expression;
+			struct expression *context;
+		};
 		struct /* return_statement */ {
 			struct expression *ret_value;
 			struct symbol *ret_target;

@@ -55,10 +55,20 @@ enum type {
 	SYM_BAD,
 };
 
+struct context {
+	struct expression *context;
+	unsigned int in, out;
+};
+
+extern struct context *alloc_context(void);
+
+DECLARE_PTR_LIST(context_list, struct context);
+
 struct ctype {
 	unsigned long modifiers;
 	unsigned long alignment;
-	unsigned int in_context, out_context, as;
+	struct context_list *contexts;
+	unsigned int as;
 	struct symbol *base_type;
 };
 
