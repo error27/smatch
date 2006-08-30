@@ -13,6 +13,7 @@ test-parsing
 obfuscate
 check
 compile
+graph
 test-dissect
 test-linearize
 example

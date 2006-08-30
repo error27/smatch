@@ -21,7 +21,7 @@ CFLAGS += -DDEBUG
 
 PREFIX=$(HOME)
 BINDIR=$(PREFIX)/bin
-PROGRAMS=test-lexing test-parsing obfuscate check compile test-linearize example test-unssa test-dissect
+PROGRAMS=test-lexing test-parsing obfuscate check compile graph test-linearize example test-unssa test-dissect
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 	  linearize.h bitmap.h ident-list.h compat.h flow.h allocate.h \
@@ -77,6 +77,9 @@ obfuscate: obfuscate.o $(LIBS)
 check: check.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
+graph: graph.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+
 example: example.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
@@ -123,6 +126,7 @@ obfuscate.o: $(LIB_H)
 example.o: $(LIB_H)
 storage.o: $(LIB_H) storage.h
 dissect.o: $(LIB_H) dissect.h
+graph.o: $(LIB_H)
 
 compat-linux.o: compat/strtold.c compat/mmap-blob.c \
 	$(LIB_H)
