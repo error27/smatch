@@ -94,6 +94,10 @@ Int:
 	mask = signmask | (signmask-1);
 	expr->value = value & mask;
 
+	// Stop here unless checking for truncation
+	if (!Wcast_truncate)
+		return;
+	
 	// Check if we dropped any bits..
 	oldsignmask = 1ULL << (old_size-1);
 	oldmask = oldsignmask | (oldsignmask-1);
