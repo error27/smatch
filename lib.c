@@ -185,6 +185,7 @@ int Wcast_to_address_space = 0;
 int Wdecl = 0;
 int Wtransparent_union = 1;
 int Wshadow = 0;
+int Waddress_space = 1;
 int preprocess_only;
 char *include;
 int include_fd = -1;
@@ -330,6 +331,7 @@ static const struct warning {
 	{ "context", &Wcontext },
 	{ "transparent-union", &Wtransparent_union },
 	{ "shadow", &Wshadow },
+	{ "address-space", &Waddress_space },
 };
 
 

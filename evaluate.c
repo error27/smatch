@@ -681,7 +681,7 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 			return "different base types";
 
 		/* Must be same address space to be comparable */
-		if (as1 != as2)
+		if (Waddress_space && as1 != as2)
 			return "different address spaces";
 
 		/* Ignore differences in storage types or addressability */

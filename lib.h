@@ -77,6 +77,7 @@ extern int Wdefault_bitfield_sign;
 extern int Wundefined_preprocessor;
 extern int Wbitwise, Wtypesign, Wcontext;
 extern int Wtransparent_union;
+extern int Waddress_space;
 extern int Wcast_to_address_space;
 extern int Wdecl;
 extern int Wone_bit_signed_bitfield;
