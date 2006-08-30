@@ -94,12 +94,13 @@ static void do_warn(const char *type, struct position pos, const char * fmt, va_
 }
 
 static int max_warnings = 100;
+static int show_info = 1;
 
 void info(struct position pos, const char * fmt, ...)
 {
 	va_list args;
 
-	if (!max_warnings)
+	if (!show_info)
 		return;
 	va_start(args, fmt);
 	do_warn("", pos, fmt, args);
@@ -110,11 +111,15 @@ void warning(struct position pos, const char * fmt, ...)
 {
 	va_list args;
 
-	if (!max_warnings)
+	if (!max_warnings) {
+		show_info = 0;
 		return;
+	}
 
-	if (!--max_warnings)
+	if (!--max_warnings) {
+		show_info = 0;
 		fmt = "too many warnings";
+	}
 
 	va_start(args, fmt);
 	do_warn("warning: ", pos, fmt, args);
@@ -126,10 +131,12 @@ void sparse_error(struct position pos, const char * fmt, ...)
 	static int errors = 0;
 	va_list args;
         die_if_error = 1;
+	show_info = 1;
 	/* Shut up warnings after an error */
 	max_warnings = 0;
 	if (errors > 100) {
 		static int once = 0;
+		show_info = 0;
 		if (once)
 			return;
 		fmt = "too many errors";
