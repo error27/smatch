@@ -465,6 +465,7 @@ void declare_builtin_functions(void)
 
 	/* And some random ones.. */
 	add_pre_buffer("extern void *__builtin_return_address(unsigned int);\n");
+	add_pre_buffer("extern void *__builtin_extract_return_addr(void *);\n");
 	add_pre_buffer("extern void *__builtin_frame_address(unsigned int);\n");
 	add_pre_buffer("extern void __builtin_trap(void);\n");
 	add_pre_buffer("extern int __builtin_ffs(int);\n");
