@@ -27,7 +27,8 @@ static void graph_ep(struct entrypoint *ep)
 	printf("ep%p [label=\"%s\",shape=ellipse];\n",
 	       ep, show_ident(ep->name->ident));
 	FOR_EACH_PTR(ep->bbs, bb) {
-		printf("bb%p [shape=record,label=\"bb at %p\"]\n", bb, bb);
+		printf("bb%p [shape=record,label=\"%s:%d:%d\"]\n", bb,
+		       stream_name(bb->pos.stream), bb->pos.line, bb->pos.pos);
 	} END_FOR_EACH_PTR(bb);
 	FOR_EACH_PTR(ep->bbs, bb) {
 		struct basic_block *child;
