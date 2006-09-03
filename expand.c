@@ -839,35 +839,48 @@ static int expand_pos_expression(struct expression *expr)
 	return expand_expression(nested);
 }
 
+static unsigned long bit_offset(const struct expression *expr)
+{
+	unsigned long offset = 0;
+	if (expr->type == EXPR_POS) {
+		offset = expr->init_offset << 3;
+		expr = expr->init_expr;
+	}
+	if (expr && expr->ctype)
+		offset += expr->ctype->bit_offset;
+	return offset;
+}
+
 static int compare_expressions(const void *_a, const void *_b)
 {
 	const struct expression *a = _a;
 	const struct expression *b = _b;
-	int r;
+	unsigned long a_pos = bit_offset(a);
+	unsigned long b_pos = bit_offset(b);
 
-	r = (b->type != EXPR_POS) - (a->type != EXPR_POS);
-	if (r) return r;
-
-	if (a->init_offset < b->init_offset)
-		return -1;
-	if (a->init_offset > b->init_offset)
-		return +1;
-	/* Check bitfield offset.. */
-	a = a->init_expr;
-	b = b->init_expr;
-	if (a && b) {
-		if (a->ctype && b->ctype) {
-			if (a->ctype->bit_offset < b->ctype->bit_offset)
-				return -1;
-			return +1;
-		}
-	}
-	return 0;
+	return (a_pos < b_pos) ? -1 : (a_pos == b_pos) ? 0 : 1;
 }
 
 static void sort_expression_list(struct expression_list **list)
 {
 	sort_list((struct ptr_list **)list, compare_expressions);
+}
+
+static void verify_nonoverlapping(struct expression_list **list)
+{
+	struct expression *a = NULL;
+	struct expression *b;
+
+	FOR_EACH_PTR(*list, b) {
+		if (a) {
+			if (bit_offset(a) == bit_offset(b)) {
+				sparse_error(a->pos, "Initializer entry defined twice");
+				info(b->pos, "  also defined here");
+				return;
+			}
+		}
+		a = b;
+	} END_FOR_EACH_PTR(b);
 }
 
 static int expand_expression(struct expression *expr)
@@ -935,6 +948,7 @@ static int expand_expression(struct expression *expr)
 
 	case EXPR_INITIALIZER:
 		sort_expression_list(&expr->expr_list);
+		verify_nonoverlapping(&expr->expr_list);
 		return expand_expression_list(expr->expr_list);
 
 	case EXPR_IDENTIFIER:
