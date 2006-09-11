@@ -253,8 +253,11 @@ warn_for_different_enum_types (struct position pos,
 	if (typea == typeb)
 		return;
 
-	if (typea->type == SYM_ENUM && typeb->type == SYM_ENUM)
+	if (typea->type == SYM_ENUM && typeb->type == SYM_ENUM) {
 		warning(pos, "mixing different enum types");
+		info(pos, "    %s versus", show_typename(typea));
+		info(pos, "    %s", show_typename(typeb));
+	}
 }
 
 /*
