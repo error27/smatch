@@ -872,12 +872,10 @@ static void verify_nonoverlapping(struct expression_list **list)
 	struct expression *b;
 
 	FOR_EACH_PTR(*list, b) {
-		if (a) {
-			if (bit_offset(a) == bit_offset(b)) {
-				sparse_error(a->pos, "Initializer entry defined twice");
-				info(b->pos, "  also defined here");
-				return;
-			}
+		if (a && a->ctype->bit_size && bit_offset(a) == bit_offset(b)) {
+			sparse_error(a->pos, "Initializer entry defined twice");
+			info(b->pos, "  also defined here");
+			return;
 		}
 		a = b;
 	} END_FOR_EACH_PTR(b);
