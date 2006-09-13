@@ -272,4 +272,4 @@ static inline int get_sym_type(struct symbol *type)
 #define is_bitfield_type(type)   (get_sym_type(type) == SYM_BITFIELD)
 extern int is_ptr_type(struct symbol *);
 
-#endif /* SEMANTIC_H */
+#endif /* SYMBOL_H */
