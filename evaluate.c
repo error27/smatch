@@ -2663,20 +2663,20 @@ static void evaluate_switch_statement(struct statement *stmt)
 {
 	struct symbol *sym;
 	struct expression *enumcase = NULL;
-	struct expression **enumcase_holder;
+	struct expression **enumcase_holder = &enumcase;
+	struct expression *sel = stmt->switch_expression;
 
-	evaluate_expression(stmt->switch_expression);
+	evaluate_expression(sel);
 	evaluate_statement(stmt->switch_statement);
-	if (!stmt->switch_expression)
+	if (!sel)
 		return;
-	enumcase_holder = is_enum_type(stmt->switch_expression->ctype)
-		? NULL /* Only check cases against switch */
-		: &enumcase;
+	if (sel->ctype && is_enum_type(sel->ctype))
+		enumcase_holder = NULL; /* Only check cases against switch */
 
 	FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
 		struct statement *case_stmt = sym->stmt;
-		check_case_type(stmt->switch_expression, case_stmt->case_expression, enumcase_holder);
-		check_case_type(stmt->switch_expression, case_stmt->case_to, enumcase_holder);
+		check_case_type(sel, case_stmt->case_expression, enumcase_holder);
+		check_case_type(sel, case_stmt->case_to, enumcase_holder);
 	} END_FOR_EACH_PTR(sym);
 }
 
