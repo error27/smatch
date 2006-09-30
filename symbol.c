@@ -515,6 +515,45 @@ static int evaluate_expect(struct expression *expr)
 	return 1;
 }
 
+static int arguments_choose(struct expression *expr)
+{
+	struct expression_list *arglist = expr->args;
+	struct expression *arg;
+	int i = 0;
+
+	FOR_EACH_PTR (arglist, arg) {
+		if (!evaluate_expression(arg))
+			return 0;
+		i++;
+	} END_FOR_EACH_PTR(arg);
+	if (i < 3) {
+		sparse_error(expr->pos,
+			     "not enough arguments for __builtin_choose_expr");
+		return 0;
+	} if (i > 3) {
+		sparse_error(expr->pos,
+			     "too many arguments for __builtin_choose_expr");
+		return 0;
+	}
+	return 1;
+}
+
+static int evaluate_choose(struct expression *expr)
+{
+	struct expression_list *list = expr->args;
+	struct expression *arg, *args[3];
+	int n = 0;
+
+	/* there will be exactly 3; we'd already verified that */
+	FOR_EACH_PTR(list, arg) {
+		args[n++] = arg;
+	} END_FOR_EACH_PTR(arg);
+
+	*expr = get_expression_value(args[0]) ? *args[1] : *args[2];
+
+	return 1;
+}
+
 static int expand_expect(struct expression *expr, int cost)
 {
 	struct expression *arg = first_ptr_list((struct ptr_list *) expr->args);
@@ -662,6 +701,11 @@ static struct symbol_op expect_op = {
 	.expand = expand_expect
 };
 
+static struct symbol_op choose_op = {
+	.evaluate = evaluate_choose,
+	.args = arguments_choose,
+};
+
 /*
  * Builtin functions
  */
@@ -671,6 +715,7 @@ static struct sym_init eval_init_table[] = {
 	{ "__builtin_safe_p", &builtin_fn_type, MOD_TOPLEVEL, &safe_p_op },
 	{ "__builtin_warning", &builtin_fn_type, MOD_TOPLEVEL, &warning_op },
 	{ "__builtin_expect", &builtin_fn_type, MOD_TOPLEVEL, &expect_op },
+	{ "__builtin_choose_expr", &builtin_fn_type, MOD_TOPLEVEL, &choose_op },
 	{ NULL,		NULL,		0 }
 };
 

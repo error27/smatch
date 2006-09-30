@@ -75,6 +75,7 @@ struct ctype {
 struct symbol_op {
 	int (*evaluate)(struct expression *);
 	int (*expand)(struct expression *, int);
+	int (*args)(struct expression *);
 };	
 
 extern int expand_safe_p(struct expression *expr, int cost);

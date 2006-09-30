@@ -2288,18 +2288,30 @@ static struct symbol *evaluate_call(struct expression *expr)
 		ctype = ctype->ctype.base_type;
 	if (ctype->type == SYM_PTR || ctype->type == SYM_ARRAY)
 		ctype = get_base_type(ctype);
-	if (!evaluate_arguments(sym, ctype, arglist))
-		return NULL;
-	if (ctype->type != SYM_FN) {
-		sparse_error(expr->pos, "not a function %s", show_ident(sym->ident));
-		return NULL;
+
+        if (sym->type == SYM_NODE && fn->type == EXPR_PREOP &&
+	    sym->op && sym->op->args) {
+		if (!sym->op->args(expr))
+			return NULL;
+	} else {
+		if (!evaluate_arguments(sym, ctype, arglist))
+			return NULL;
+		if (ctype->type != SYM_FN) {
+			sparse_error(expr->pos, "not a function %s",
+				     show_ident(sym->ident));
+			return NULL;
+		}
+		args = expression_list_size(expr->args);
+		fnargs = symbol_list_size(ctype->arguments);
+		if (args < fnargs)
+			sparse_error(expr->pos,
+				     "not enough arguments for function %s",
+				     show_ident(sym->ident));
+		if (args > fnargs && !ctype->variadic)
+			sparse_error(expr->pos,
+				     "too many arguments for function %s",
+				     show_ident(sym->ident));
 	}
-	args = expression_list_size(expr->args);
-	fnargs = symbol_list_size(ctype->arguments);
-	if (args < fnargs)
-		sparse_error(expr->pos, "not enough arguments for function %s", show_ident(sym->ident));
-	if (args > fnargs && !ctype->variadic)
-		sparse_error(expr->pos, "too many arguments for function %s", show_ident(sym->ident));
 	if (sym->type == SYM_NODE) {
 		if (evaluate_symbol_call(expr))
 			return expr->ctype;
