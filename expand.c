@@ -842,8 +842,8 @@ static int expand_pos_expression(struct expression *expr)
 static unsigned long bit_offset(const struct expression *expr)
 {
 	unsigned long offset = 0;
-	if (expr->type == EXPR_POS) {
-		offset = expr->init_offset << 3;
+	while (expr->type == EXPR_POS) {
+		offset += expr->init_offset << 3;
 		expr = expr->init_expr;
 	}
 	if (expr && expr->ctype)
