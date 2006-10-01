@@ -188,6 +188,7 @@ int Wtransparent_union = 1;
 int Wshadow = 0;
 int Waddress_space = 1;
 int Wenum_mismatch = 1;
+int Wdo_while = 1;
 int preprocess_only;
 char *include;
 int include_fd = -1;
@@ -336,6 +337,7 @@ static const struct warning {
 	{ "shadow", &Wshadow },
 	{ "address-space", &Waddress_space },
 	{ "enum-mismatch", &Wenum_mismatch },
+	{ "do-while", &Wdo_while },
 };
 
 

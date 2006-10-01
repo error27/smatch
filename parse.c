@@ -1308,6 +1308,9 @@ static struct token *parse_do_statement(struct token *token, struct statement *s
 	stmt->iterator_statement = iterator;
 	end_iterator(stmt);
 
+	if (iterator && iterator->type != STMT_COMPOUND && Wdo_while)
+		warning(iterator->pos, "do-while statement is not a compound statement");
+
 	return expect(token, ';', "after statement");
 }
 
