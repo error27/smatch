@@ -487,6 +487,16 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern void __builtin_trap(void);\n");
 	add_pre_buffer("extern int __builtin_ffs(int);\n");
 	add_pre_buffer("extern void *__builtin_alloca(__SIZE_TYPE__);\n");
+	add_pre_buffer("extern int __builtin_popcount(unsigned int);\n");
+	add_pre_buffer("extern int __builtin_popcountl(unsigned long);\n");
+	add_pre_buffer("extern void __builtin_prefetch (const void *, ...);\n");
+	add_pre_buffer("extern long __builtin_alpha_extbl(long, long);\n");
+	add_pre_buffer("extern long __builtin_alpha_extwl(long, long);\n");
+	add_pre_buffer("extern long __builtin_alpha_insbl(long, long);\n");
+	add_pre_buffer("extern long __builtin_alpha_inswl(long, long);\n");
+	add_pre_buffer("extern long __builtin_alpha_insql(long, long);\n");
+	add_pre_buffer("extern long __builtin_alpha_inslh(long, long);\n");
+	add_pre_buffer("extern long __builtin_alpha_cmpbge(long, long);\n");
 }
 
 void create_builtin_stream(void)
