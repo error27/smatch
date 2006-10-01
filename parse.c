@@ -809,6 +809,7 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 		type->type = SYM_RESTRICT;
 		type->ctype.modifiers &= ~MOD_SPECIFIER;
 		ctype->base_type = type;
+		create_fouled(type);
 	}
 	return token;
 }

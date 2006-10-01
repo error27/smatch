@@ -48,6 +48,7 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 		[SYM_BITFIELD] = "bitf",
 		[SYM_LABEL] = "labl",
 		[SYM_RESTRICT] = "rstr",
+		[SYM_FOULED] = "foul",
 		[SYM_BAD] = "bad.",
 	};
 	struct context *context;
@@ -257,6 +258,9 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 	case SYM_RESTRICT:
 		break;
 
+	case SYM_FOULED:
+		break;
+
 	default:
 		prepend(name, "unknown type %d", sym->type);
 		return;
@@ -287,6 +291,10 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 
 	case SYM_RESTRICT:
 		prepend(name, "restricted ");
+		return;
+
+	case SYM_FOULED:
+		prepend(name, "fouled ");
 		return;
 
 	default:
