@@ -337,6 +337,42 @@ static inline int is_byte_type(struct symbol *type)
 	return type->bit_size == bits_in_char && type->type != SYM_BITFIELD;
 }
 
+enum {
+	TYPE_NUM = 1,
+	TYPE_BITFIELD = 2,
+	TYPE_RESTRICT = 4,
+	TYPE_FLOAT = 8,
+	TYPE_PTR = 16,
+	TYPE_COMPOUND = 32,
+	TYPE_FOULED = 64,
+};
+
+static inline int classify_type(struct symbol *type, struct symbol **base)
+{
+	static int type_class[SYM_BAD + 1] = {
+		[SYM_PTR] = TYPE_PTR,
+		[SYM_FN] = TYPE_PTR,
+		[SYM_ARRAY] = TYPE_PTR | TYPE_COMPOUND,
+		[SYM_STRUCT] = TYPE_COMPOUND,
+		[SYM_UNION] = TYPE_COMPOUND,
+		[SYM_BITFIELD] = TYPE_NUM | TYPE_BITFIELD,
+		[SYM_RESTRICT] = TYPE_NUM | TYPE_RESTRICT,
+		[SYM_FOULED] = TYPE_NUM | TYPE_RESTRICT | TYPE_FOULED,
+	};
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	if (type->type == SYM_ENUM)
+		type = type->ctype.base_type;
+	*base = type;
+	if (type->type == SYM_BASETYPE) {
+		if (type->ctype.base_type == &int_type)
+			return TYPE_NUM;
+		if (type->ctype.base_type == &fp_type)
+			return TYPE_NUM | TYPE_FLOAT;
+	}
+	return type_class[type->type];
+}
+
 static inline int is_string_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
@@ -364,61 +400,6 @@ static struct symbol *bad_expr_type(struct expression *expr)
 	return expr->ctype = &bad_ctype;
 }
 
-static struct symbol *compatible_float_binop(struct expression **lp, struct expression **rp)
-{
-	struct expression *left = *lp, *right = *rp;
-	struct symbol *ltype = left->ctype, *rtype = right->ctype;
-
-	if (ltype->type == SYM_NODE)
-		ltype = ltype->ctype.base_type;
-	if (rtype->type == SYM_NODE)
-		rtype = rtype->ctype.base_type;
-	if (is_float_type(ltype)) {
-		if (is_int_type(rtype))
-			goto Left;
-		if (is_float_type(rtype)) {
-			unsigned long lmod = ltype->ctype.modifiers;
-			unsigned long rmod = rtype->ctype.modifiers;
-			lmod &= MOD_LONG | MOD_LONGLONG;
-			rmod &= MOD_LONG | MOD_LONGLONG;
-			if (lmod == rmod)
-				return ltype;
-			if (lmod & ~rmod)
-				goto Left;
-			else
-				goto Right;
-		}
-		return NULL;
-	}
-	if (!is_float_type(rtype) || !is_int_type(ltype))
-		return NULL;
-Right:
-	*lp = cast_to(left, rtype);
-	return rtype;
-Left:
-	*rp = cast_to(right, ltype);
-	return ltype;
-}
-
-static struct symbol *compatible_integer_binop(struct expression **lp, struct expression **rp)
-{
-	struct expression *left = *lp, *right = *rp;
-	struct symbol *ltype = left->ctype, *rtype = right->ctype;
-
-	if (ltype->type == SYM_NODE)
-		ltype = ltype->ctype.base_type;
-	if (rtype->type == SYM_NODE)
-		rtype = rtype->ctype.base_type;
-	if (is_int_type(ltype) && is_int_type(rtype)) {
-		struct symbol *ctype = bigger_int_type(ltype, rtype);
-
-		*lp = cast_to(left, ctype);
-		*rp = cast_to(right, ctype);
-		return ctype;
-	}
-	return NULL;
-}
-
 static int restricted_value(struct expression *v, struct symbol *type)
 {
 	if (v->type != EXPR_VALUE)
@@ -432,78 +413,154 @@ static int restricted_binop(int op, struct symbol *type)
 {
 	switch (op) {
 		case '&':
-		case '|':
-		case '^':
-		case '?':
 		case '=':
-		case SPECIAL_EQUAL:
-		case SPECIAL_NOTEQUAL:
 		case SPECIAL_AND_ASSIGN:
 		case SPECIAL_OR_ASSIGN:
 		case SPECIAL_XOR_ASSIGN:
-			return 0;
+			return 1;	/* unfoul */
+		case '|':
+		case '^':
+		case '?':
+			return 2;	/* keep fouled */
+		case SPECIAL_EQUAL:
+		case SPECIAL_NOTEQUAL:
+			return 3;	/* warn if fouled */
 		default:
-			return 1;
+			return 0;	/* warn */
 	}
 }
 
-static int restricted_unop(int op, struct symbol *type)
+static int restricted_unop(int op, struct symbol **type)
 {
-	if (op == '~' && type->bit_size >= bits_in_int)
+	if (op == '~') {
+		if ((*type)->bit_size < bits_in_int)
+			*type = befoul(*type);
 		return 0;
-	if (op == '+')
+	} if (op == '+')
 		return 0;
 	return 1;
 }
 
-static struct symbol *compatible_restricted_binop(int op, struct expression **lp, struct expression **rp)
+static struct symbol *restricted_binop_type(int op,
+					struct expression *left,
+					struct expression *right,
+					int lclass, int rclass,
+					struct symbol *ltype,
+					struct symbol *rtype)
 {
-	struct expression *left = *lp, *right = *rp;
-	struct symbol *ltype = left->ctype, *rtype = right->ctype;
-	struct symbol *type = NULL;
-
-	if (ltype->type == SYM_NODE)
-		ltype = ltype->ctype.base_type;
-	if (rtype->type == SYM_NODE)
-		rtype = rtype->ctype.base_type;
-
-	warn_for_different_enum_types(right->pos, ltype, rtype);
-
-	if (ltype->type == SYM_ENUM)
-		ltype = ltype->ctype.base_type;
-	if (rtype->type == SYM_ENUM)
-		rtype = rtype->ctype.base_type;
-
-	if (is_restricted_type(ltype)) {
-		if (is_restricted_type(rtype)) {
-			if (ltype == rtype)
-				type = ltype;
+	struct symbol *ctype = NULL;
+	if (lclass & TYPE_RESTRICT) {
+		if (rclass & TYPE_RESTRICT) {
+			if (ltype == rtype) {
+				ctype = ltype;
+			} else if (lclass & TYPE_FOULED) {
+				if (ltype->ctype.base_type == rtype)
+					ctype = ltype;
+			} else if (rclass & TYPE_FOULED) {
+				if (rtype->ctype.base_type == ltype)
+					ctype = rtype;
+			}
 		} else {
 			if (!restricted_value(right, ltype))
-				type = ltype;
+				ctype = ltype;
 		}
-	} else if (is_restricted_type(rtype)) {
-		if (!restricted_value(left, rtype))
-			type = rtype;
+	} else if (!restricted_value(left, rtype))
+		ctype = rtype;
+
+	if (ctype) {
+		switch (restricted_binop(op, ctype)) {
+		case 1:
+			if ((lclass ^ rclass) & TYPE_FOULED)
+				ctype = ctype->ctype.base_type;
+			break;
+		case 3:
+			if (!(lclass & rclass & TYPE_FOULED))
+				break;
+		case 0:
+			ctype = NULL;
+		default:
+			break;
+		}
 	}
-	if (!type)
-		return NULL;
-	if (restricted_binop(op, type))
-		return NULL;
-	return type;
+
+	return ctype;
+}
+
+static struct symbol *usual_conversions(int op,
+					struct expression **left,
+					struct expression **right,
+					int lclass, int rclass,
+					struct symbol *ltype,
+					struct symbol *rtype)
+{
+	struct symbol *ctype;
+
+	warn_for_different_enum_types((*right)->pos, (*left)->ctype, (*right)->ctype);
+
+	if ((lclass | rclass) & TYPE_RESTRICT)
+		goto Restr;
+
+Normal:
+	if (!(lclass & TYPE_FLOAT)) {
+		if (!(rclass & TYPE_FLOAT))
+			ctype = bigger_int_type(ltype, rtype);
+		else
+			ctype = rtype;
+	} else if (rclass & TYPE_FLOAT) {
+		unsigned long lmod = ltype->ctype.modifiers;
+		unsigned long rmod = rtype->ctype.modifiers;
+		if (rmod & ~lmod & (MOD_LONG | MOD_LONGLONG))
+			ctype = rtype;
+		else
+			ctype = ltype;
+	} else
+		ctype = ltype;
+
+Convert:
+	*left = cast_to(*left, ctype);
+	*right = cast_to(*right, ctype);
+	return ctype;
+
+Restr:
+	ctype = restricted_binop_type(op, *left, *right,
+				      lclass, rclass, ltype, rtype);
+	if (ctype)
+		goto Convert;
+
+	if (lclass & TYPE_RESTRICT) {
+		warning((*left)->pos, "restricted degrades to integer");
+		ltype = ltype->ctype.base_type;
+		if (is_restricted_type(ltype)) /* was fouled */
+			ltype = ltype->ctype.base_type;
+	}
+	if (rclass & TYPE_RESTRICT) {
+		warning((*right)->pos, "restricted degrades to integer");
+		rtype = rtype->ctype.base_type;
+		if (is_restricted_type(rtype)) /* was fouled */
+			rtype = rtype->ctype.base_type;
+	}
+	goto Normal;
 }
 
 static struct symbol *evaluate_arith(struct expression *expr, int float_ok)
 {
-	struct symbol *ctype = compatible_integer_binop(&expr->left, &expr->right);
-	if (!ctype && float_ok)
-		ctype = compatible_float_binop(&expr->left, &expr->right);
-	if (!ctype)
-		ctype = compatible_restricted_binop(expr->op, &expr->left, &expr->right);
-	if (ctype) {
-		expr->ctype = ctype;
-		return ctype;
-	}
+	struct symbol *ltype, *rtype;
+	int lclass = classify_type(expr->left->ctype, &ltype);
+	int rclass = classify_type(expr->right->ctype, &rtype);
+	struct symbol *ctype;
+
+	if (!(lclass & rclass & TYPE_NUM))
+		goto Bad;
+
+	if (!float_ok && (lclass | rclass) & TYPE_FLOAT)
+		goto Bad;
+
+	ctype = usual_conversions(expr->op, &expr->left, &expr->right,
+				  lclass, rclass, ltype, rtype);
+	expr->ctype = ctype;
+	return ctype;
+
+Bad:
 	return bad_expr_type(expr);
 }
 
@@ -965,26 +1022,11 @@ static struct symbol *evaluate_compare(struct expression *expr)
 		goto OK;
 	}
 
-	ctype = compatible_integer_binop(&expr->left, &expr->right);
+	ctype = evaluate_arith(expr, 1);
 	if (ctype) {
 		if (ctype->ctype.modifiers & MOD_UNSIGNED)
 			expr->op = modify_for_unsigned(expr->op);
-		goto OK;
 	}
-
-	ctype = compatible_float_binop(&expr->left, &expr->right);
-	if (ctype)
-		goto OK;
-
-	ctype = compatible_restricted_binop(expr->op, &expr->left, &expr->right);
-	if (ctype) {
-		if (ctype->ctype.modifiers & MOD_UNSIGNED)
-			expr->op = modify_for_unsigned(expr->op);
-		goto OK;
-	}
-
-	bad_expr_type(expr);
-
 OK:
 	expr->ctype = &bool_ctype;
 	return &bool_ctype;
@@ -1026,6 +1068,7 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 {
 	struct expression **true;
 	struct symbol *ctype, *ltype, *rtype;
+	int lclass, rclass;
 	const char * typediff;
 
 	if (!evaluate_conditional(expr->conditional, 0))
@@ -1045,16 +1088,14 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 		true = &expr->cond_true;
 	}
 
-	ctype = compatible_integer_binop(true, &expr->cond_false);
-	if (ctype)
+	lclass = classify_type(ltype, &ltype);
+	rclass = classify_type(rtype, &rtype);
+	if (lclass & rclass & TYPE_NUM) {
+		ctype = usual_conversions('?', true, &expr->cond_false,
+					  lclass, rclass, ltype, rtype);
 		goto out;
+	}
 	ctype = compatible_ptr_type(*true, expr->cond_false);
-	if (ctype)
-		goto out;
-	ctype = compatible_float_binop(true, &expr->cond_false);
-	if (ctype)
-		goto out;
-	ctype = compatible_restricted_binop('?', true, &expr->cond_false);
 	if (ctype)
 		goto out;
 	ctype = ltype;
@@ -1083,31 +1124,29 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 	struct expression **rp, struct symbol *source, const char *where, int op)
 {
 	const char *typediff;
-	struct symbol *t;
+	struct symbol *t, *s;
 	int target_as;
+	int tclass = classify_type(target, &t);
+	int sclass = classify_type(source, &s);
 
-	if (is_int_type(target)) {
-		if (is_int_type(source))
-			goto Cast;
-		if (is_float_type(source))
-			goto Cast;
-	} else if (is_float_type(target)) {
-		if (!compatible_float_op(op)) {
+	if (tclass & sclass & TYPE_NUM) {
+		if (tclass & TYPE_FLOAT && !compatible_float_op(op)) {
 			sparse_error(expr->pos, "invalid assignment");
 			return 0;
 		}
-		if (is_int_type(source))
+		if (tclass & TYPE_RESTRICT) {
+			if (!restricted_binop(op, target)) {
+				sparse_error(expr->pos, "bad restricted assignment");
+				return 0;
+			}
+			/* allowed assignments unfoul */
+			if (sclass & TYPE_FOULED && s->ctype.base_type == t)
+				goto Cast;
+			if (!restricted_value(*rp, target))
+				return 1;
+		} else if (!(sclass & TYPE_RESTRICT))
 			goto Cast;
-		if (is_float_type(source))
-			goto Cast;
-	} else if (is_restricted_type(target)) {
-		if (restricted_binop(op, target)) {
-			sparse_error(expr->pos, "bad restricted assignment");
-			return 0;
-		}
-		if (!restricted_value(*rp, target))
-			return 1;
-	} else if (is_ptr_type(target)) {
+	} else if (tclass & TYPE_PTR) {
 		if (op == SPECIAL_ADD_ASSIGN || op == SPECIAL_SUB_ASSIGN) {
 			evaluate_ptr_add(expr, target, rp);
 			return 1;
@@ -1127,15 +1166,8 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 		return 1;
 
 	/* Pointer destination? */
-	t = target;
-	target_as = t->ctype.as;
-	if (t->type == SYM_NODE) {
-		t = t->ctype.base_type;
-		target_as |= t->ctype.as;
-	}
-	if (t->type == SYM_PTR || t->type == SYM_FN || t->type == SYM_ARRAY) {
+	if (tclass & TYPE_PTR) {
 		struct expression *right = *rp;
-		struct symbol *s = source;
 		int source_as;
 
 		// NULL pointer is always ok
@@ -1143,11 +1175,8 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			goto Cast;
 
 		/* "void *" matches anything as long as the address space is ok */
-		source_as = s->ctype.as;
-		if (s->type == SYM_NODE) {
-			s = s->ctype.base_type;
-			source_as |= s->ctype.as;
-		}
+		target_as = t->ctype.as | target->ctype.as;
+		source_as = s->ctype.as | source->ctype.as;
 		if (source_as == target_as && (s->type == SYM_PTR || s->type == SYM_ARRAY)) {
 			s = get_base_type(s);
 			t = get_base_type(t);
@@ -1487,7 +1516,10 @@ static struct symbol *evaluate_postop(struct expression *expr)
 		sparse_error(expr->pos, "need lvalue expression for ++/--");
 		return NULL;
 	}
-	if (is_restricted_type(ctype) && restricted_unop(expr->op, ctype)) {
+	if (is_restricted_type(ctype) && restricted_unop(expr->op, &ctype)) {
+		sparse_error(expr->pos, "bad operation on restricted");
+		return NULL;
+	} else if (is_fouled_type(ctype) && restricted_unop(expr->op, &ctype)) {
 		sparse_error(expr->pos, "bad operation on restricted");
 		return NULL;
 	}
@@ -1511,7 +1543,9 @@ static struct symbol *evaluate_sign(struct expression *expr)
 		ctype = rtype;
 	} else if (is_float_type(ctype) && expr->op != '~') {
 		/* no conversions needed */
-	} else if (is_restricted_type(ctype) && !restricted_unop(expr->op, ctype)) {
+	} else if (is_restricted_type(ctype) && !restricted_unop(expr->op, &ctype)) {
+		/* no conversions needed */
+	} else if (is_fouled_type(ctype) && !restricted_unop(expr->op, &ctype)) {
 		/* no conversions needed */
 	} else {
 		return bad_expr_type(expr);
@@ -1561,6 +1595,8 @@ static struct symbol *evaluate_preop(struct expression *expr)
 			expr->right = alloc_expression(expr->pos, EXPR_FVALUE);
 			expr->right->ctype = ctype;
 			expr->right->fvalue = 0;
+		} else if (is_fouled_type(ctype)) {
+			warning(expr->pos, "restricted degrades to integer");
 		}
 		ctype = &bool_ctype;
 		break;
@@ -1760,6 +1796,8 @@ static struct symbol *evaluate_type_information(struct expression *expr)
 		if (is_restricted_type(sym)) {
 			if (sym->bit_size < bits_in_int && is_promoted(expr))
 				sym = &int_ctype;
+		} else if (is_fouled_type(sym)) {
+			sym = &int_ctype;
 		}
 	}
 	examine_symbol_type(sym);
@@ -2126,14 +2164,25 @@ static int get_as(struct symbol *sym)
 static void cast_to_as(struct expression *e, int as)
 {
 	struct expression *v = e->cast_expression;
+	struct symbol *type = v->ctype;
 
 	if (!Wcast_to_address_space)
 		return;
 
+	if (v->type != EXPR_VALUE || v->value)
+		goto out;
+
 	/* cast from constant 0 to pointer is OK */
-	if (v->type == EXPR_VALUE && is_int_type(v->ctype) && !v->value)
+	if (is_int_type(type))
 		return;
 
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+
+	if (type->type == SYM_PTR && type->ctype.base_type == &void_ctype)
+		return;
+
+out:
 	warning(e->pos, "cast adds address space to expression (<asn:%d>)", as);
 }
 
@@ -2142,7 +2191,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	struct expression *target = expr->cast_expression;
 	struct symbol *ctype = examine_symbol_type(expr->cast_type);
 	struct symbol *t1, *t2;
-	enum type type1, type2;
+	int class1, class2;
 	int as1, as2;
 
 	if (!target)
@@ -2182,12 +2231,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	evaluate_expression(target);
 	degenerate(target);
 
-	t1 = ctype;
-	if (t1->type == SYM_NODE)
-		t1 = t1->ctype.base_type;
-	if (t1->type == SYM_ENUM)
-		t1 = t1->ctype.base_type;
-
+	class1 = classify_type(ctype, &t1);
 	/*
 	 * You can always throw a value away by casting to
 	 * "void" - that's an implicit "force". Note that
@@ -2196,8 +2240,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	if (t1 == &void_ctype)
 		goto out;
 
-	type1 = t1->type;
-	if (type1 == SYM_ARRAY || type1 == SYM_UNION || type1 == SYM_STRUCT)
+	if (class1 & TYPE_COMPOUND)
 		warning(expr->pos, "cast to non-scalar");
 
 	t2 = target->ctype;
@@ -2205,19 +2248,19 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		sparse_error(expr->pos, "cast from unknown type");
 		goto out;
 	}
-	if (t2->type == SYM_NODE)
-		t2 = t2->ctype.base_type;
-	if (t2->type == SYM_ENUM)
-		t2 = t2->ctype.base_type;
+	class2 = classify_type(t2, &t2);
 
-	type2 = t2->type;
-	if (type2 == SYM_ARRAY || type2 == SYM_UNION || type2 == SYM_STRUCT)
+	if (class2 & TYPE_COMPOUND)
 		warning(expr->pos, "cast from non-scalar");
 
+	/* allowed cast unfouls */
+	if (class2 & TYPE_FOULED)
+		t2 = t2->ctype.base_type;
+
 	if (!(ctype->ctype.modifiers & MOD_FORCE) && t1 != t2) {
-		if (t1->type == SYM_RESTRICT)
+		if (class1 & TYPE_RESTRICT)
 			warning(expr->pos, "cast to restricted type");
-		if (t2->type == SYM_RESTRICT)
+		if (class2 & TYPE_RESTRICT)
 			warning(expr->pos, "cast from restricted type");
 	}
 
@@ -2648,26 +2691,45 @@ static void check_case_type(struct expression *switch_expr,
 			    struct expression **enumcase)
 {
 	struct symbol *switch_type, *case_type;
+	int sclass, cclass;
+
 	if (!case_expr)
 		return;
+
 	switch_type = switch_expr->ctype;
 	case_type = evaluate_expression(case_expr);
 
-	if (case_type && switch_type) {
-		if (enumcase) {
-			if (*enumcase)
-				warn_for_different_enum_types(case_expr->pos, case_type, (*enumcase)->ctype);
-			else if (is_enum_type(case_type))
-				*enumcase = case_expr;
-		}
-
-		/* Both integer types? */
-		if (compatible_restricted_binop(SPECIAL_EQUAL, &switch_expr, &case_expr))
-			return;
-		if (is_int_type(switch_type) && is_int_type(case_type)) 
-			return;
+	if (!switch_type || !case_type)
+		goto Bad;
+	if (enumcase) {
+		if (*enumcase)
+			warn_for_different_enum_types(case_expr->pos, case_type, (*enumcase)->ctype);
+		else if (is_enum_type(case_type))
+			*enumcase = case_expr;
 	}
 
+	sclass = classify_type(switch_type, &switch_type);
+	cclass = classify_type(case_type, &case_type);
+
+	/* both should be arithmetic */
+	if (!(sclass & cclass & TYPE_NUM))
+		goto Bad;
+
+	/* neither should be floating */
+	if ((sclass | cclass) & TYPE_FLOAT)
+		goto Bad;
+
+	/* if neither is restricted, we are OK */
+	if (!((sclass | cclass) & TYPE_RESTRICT))
+		return;
+
+	if (!restricted_binop_type(SPECIAL_EQUAL, case_expr, switch_expr,
+				   cclass, sclass, case_type, switch_type))
+		warning(case_expr->pos, "restricted degrades to integer");
+
+	return;
+
+Bad:
 	sparse_error(case_expr->pos, "incompatible types for 'case' statement");
 }
 

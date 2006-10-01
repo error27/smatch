@@ -423,11 +423,49 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 	case SYM_RESTRICT:
 		examine_base_type(sym);
 		return sym;
+	case SYM_FOULED:
+		examine_base_type(sym);
+		return sym;
 	default:
 		sparse_error(sym->pos, "Examining unknown symbol type %d", sym->type);
 		break;
 	}
 	return sym;
+}
+
+static struct symbol_list *restr, *fouled;
+
+void create_fouled(struct symbol *type)
+{
+	if (type->bit_size < bits_in_int) {
+		struct symbol *new = alloc_symbol(type->pos, type->type);
+		*new = *type;
+		new->bit_size = bits_in_int;
+		new->type = SYM_FOULED;
+		new->ctype.base_type = type;
+		add_symbol(&restr, type);
+		add_symbol(&fouled, new);
+	}
+}
+
+struct symbol *befoul(struct symbol *type)
+{
+	struct symbol *t1, *t2;
+	while (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	PREPARE_PTR_LIST(restr, t1);
+	PREPARE_PTR_LIST(fouled, t2);
+	for (;;) {
+		if (t1 == type)
+			return t2;
+		if (!t1)
+			break;
+		NEXT_PTR_LIST(t1);
+		NEXT_PTR_LIST(t2);
+	}
+	FINISH_PTR_LIST(t2);
+	FINISH_PTR_LIST(t1);
+	return NULL;
 }
 
 void check_declaration(struct symbol *sym)

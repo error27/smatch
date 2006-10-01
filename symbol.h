@@ -52,6 +52,7 @@ enum type {
 	SYM_BITFIELD,
 	SYM_LABEL,
 	SYM_RESTRICT,
+	SYM_FOULED,
 	SYM_BAD,
 };
 
@@ -270,7 +271,11 @@ static inline int get_sym_type(struct symbol *type)
 }
 
 #define is_restricted_type(type) (get_sym_type(type) == SYM_RESTRICT)
+#define is_fouled_type(type) (get_sym_type(type) == SYM_FOULED)
 #define is_bitfield_type(type)   (get_sym_type(type) == SYM_BITFIELD)
 extern int is_ptr_type(struct symbol *);
+
+void create_fouled(struct symbol *type);
+struct symbol *befoul(struct symbol *type);
 
 #endif /* SEMANTIC_H */
