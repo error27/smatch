@@ -88,13 +88,13 @@ enum token_type {
 	"*=",			\
 	"/=",			\
 	"%=",			\
-	"..", "...",		\
-	"<=", "<<", "<<=",	\
-	">=", ">>", ">>=",	\
+	"<=", ">=",		\
 	"==", "!=",		\
 	"&&", "&=",		\
 	"||", "|=",		\
 	"^=", "##",		\
+	"<<", ">>", "..",	\
+	"<<=", ">>=", "..."	\
 	"",			\
 	"<", ">", "<=", ">="	\
 }
@@ -111,14 +111,8 @@ enum special_token {
 	SPECIAL_MUL_ASSIGN,
 	SPECIAL_DIV_ASSIGN,
 	SPECIAL_MOD_ASSIGN,
-	SPECIAL_DOTDOT,
-	SPECIAL_ELLIPSIS,
 	SPECIAL_LTE,
-	SPECIAL_LEFTSHIFT,
-	SPECIAL_SHL_ASSIGN,
 	SPECIAL_GTE,
-	SPECIAL_RIGHTSHIFT,
-	SPECIAL_SHR_ASSIGN,
 	SPECIAL_EQUAL,
 	SPECIAL_NOTEQUAL,
 	SPECIAL_LOGICAL_AND,
@@ -127,6 +121,12 @@ enum special_token {
 	SPECIAL_OR_ASSIGN,
 	SPECIAL_XOR_ASSIGN,
 	SPECIAL_HASHHASH,
+	SPECIAL_LEFTSHIFT,
+	SPECIAL_RIGHTSHIFT,
+	SPECIAL_DOTDOT,
+	SPECIAL_SHL_ASSIGN,
+	SPECIAL_SHR_ASSIGN,
+	SPECIAL_ELLIPSIS,
 	SPECIAL_ARG_SEPARATOR,
 	SPECIAL_UNSIGNED_LT,
 	SPECIAL_UNSIGNED_GT,
