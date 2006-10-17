@@ -1,3 +1,5 @@
+#define __cond_lock(c) ((c) ? ({ __context__(1); 1; }) : 0)
+
 void a(void) __attribute__((context(0,1)))
 {
 	__context__(1);
@@ -7,6 +9,9 @@ void r(void) __attribute__((context(1,0)))
 {
 	__context__(-1);
 }
+
+extern void _ca(int fail);
+#define ca(fail) __cond_lock(_ca(fail))
 
 void good_paired1(void)
 {
@@ -292,5 +297,20 @@ void warn_goto3(void)
         goto label;
     r();
 label:
+    r();
+}
+
+void good_cond_lock1(void)
+{
+    if(ca(condition)) {
+        condition2 = 1; /* do stuff */
+        r();
+    }
+}
+
+void warn_cond_lock1(void)
+{
+    if(ca(condition))
+        condition2 = 1; /* do stuff */
     r();
 }
