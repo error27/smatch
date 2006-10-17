@@ -278,4 +278,4 @@ extern int is_ptr_type(struct symbol *);
 void create_fouled(struct symbol *type);
 struct symbol *befoul(struct symbol *type);
 
-#endif /* SEMANTIC_H */
+#endif /* SYMBOL_H */
