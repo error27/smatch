@@ -237,7 +237,7 @@ static void check_context(struct entrypoint *ep)
 	struct context *context;
 	unsigned int in_context = 0, out_context = 0;
 
-	if (verbose && ep->entry->bb->needs) {
+	if (Wuninitialized && verbose && ep->entry->bb->needs) {
 		pseudo_t pseudo;
 		FOR_EACH_PTR(ep->entry->bb->needs, pseudo) {
 			if (pseudo->type != PSEUDO_ARG)
