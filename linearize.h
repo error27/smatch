@@ -254,7 +254,8 @@ static inline int bb_terminated(struct basic_block *bb)
 	if (!bb)
 		return 0;
 	insn = last_instruction(bb->insns);
-	return insn && insn->opcode >= OP_RET && insn->opcode <= OP_UNWIND;
+	return insn && insn->opcode >= OP_TERMINATOR
+	            && insn->opcode <= OP_TERMINATOR_END;
 }
 
 static inline int bb_reachable(struct basic_block *bb)
