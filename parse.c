@@ -535,7 +535,8 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 	if (attribute == &weak_ident ||
 	    attribute == &__weak___ident)
 		return NULL;
-	if (attribute == &alias_ident)
+	if (attribute == &alias_ident ||
+	    attribute == &__alias___ident)
 		return NULL;
 	if (attribute == &pure_ident ||
 	    attribute == &__pure___ident)
@@ -544,7 +545,8 @@ static const char * handle_attribute(struct ctype *ctype, struct ident *attribut
 		return NULL;
 	if (attribute == &syscall_linkage_ident)
 		return NULL;
-	if (attribute == &visibility_ident)
+	if (attribute == &visibility_ident ||
+	    attribute == &__visibility___ident)
 		return NULL;
 	if (attribute == &deprecated_ident ||
 	    attribute == &__deprecated___ident)
