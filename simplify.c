@@ -550,7 +550,7 @@ offset:
 
 /*
  * We walk the whole chain of adds/subs backwards. That's not
- * only more efficient, but it allows us to find looops.
+ * only more efficient, but it allows us to find loops.
  */
 static int simplify_memop(struct instruction *insn)
 {

@@ -1475,7 +1475,7 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 
 	switch (ctype->type) {
 	default:
-		sparse_error(expr->pos, "cannot derefence this type");
+		sparse_error(expr->pos, "cannot dereference this type");
 		return NULL;
 	case SYM_PTR:
 		node->ctype.modifiers = target->ctype.modifiers & MOD_SPECIFIER;

@@ -562,7 +562,7 @@ static int expand_dereference(struct expression *expr)
 	/*
 	 * NOTE! We get a bogus warning right now for some special
 	 * cases: apparently I've screwed up the optimization of
-	 * a zero-offset derefence, and the ctype is wrong.
+	 * a zero-offset dereference, and the ctype is wrong.
 	 *
 	 * Leave the warning in anyway, since this is also a good
 	 * test for me to get the type evaluation right..

@@ -69,7 +69,7 @@ found_dominator:
  * we can no longer really use "container()" to get from a user to
  * the instruction that uses it.
  *
- * This happens to work, simply because the likelyhood of the
+ * This happens to work, simply because the likelihood of the
  * (possibly non-instruction) containing the right bitpattern
  * in the right place is pretty low. But this is still wrong.
  *

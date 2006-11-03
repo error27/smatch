@@ -630,7 +630,7 @@ static int already_tokenized(const char *path)
 	return 0;
 }
 
-/* Hande include of header files.
+/* Handle include of header files.
  * The relevant options are made compatible with gcc. The only options that
  * are not supported is -withprefix and friends.
  *

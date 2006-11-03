@@ -942,7 +942,7 @@ static void generate_commutative_binop(struct bb_state *state, struct instructio
 	if (!is_dead_reg(state, src1, reg1))
 		goto do_switch;
 
-	/* Both are dead. Is one preferrable? */
+	/* Both are dead. Is one preferable? */
 	if (reg2 != preferred_reg(state, insn->target))
 		goto dont_switch;
 
@@ -1493,7 +1493,7 @@ static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, ps
 
 		/* Fall back on stack allocation ... */
 		alloc_stack(state, storage);
-		/* Fallthroigh */
+		/* Fallthrough */
 	default:
 		output_insn(state, "movl %s,%s", reg->name, show_memop(storage));
 		return;

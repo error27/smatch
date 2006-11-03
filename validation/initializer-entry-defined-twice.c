@@ -29,7 +29,7 @@ struct has_union union_error = {
 };
 
 /* Empty structures can make two fields have the same offset in a struct.
- * Initialzing both should not trigger the warning. */
+ * Initializing both should not trigger the warning. */
 struct empty { };
 
 struct same_offset {

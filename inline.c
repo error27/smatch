@@ -428,7 +428,7 @@ static struct statement *copy_one_statement(struct statement *stmt)
 }
 
 /*
- * Copy a stateemnt tree from 'src' to 'dst', where both
+ * Copy a statement tree from 'src' to 'dst', where both
  * source and destination are of type STMT_COMPOUND.
  *
  * We do this for the tree-level inliner.
