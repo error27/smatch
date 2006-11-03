@@ -21,7 +21,7 @@ CFLAGS += -DDEBUG
 
 PREFIX=$(HOME)
 BINDIR=$(PREFIX)/bin
-PROGRAMS=test-lexing test-parsing obfuscate check compile graph test-linearize example test-unssa test-dissect
+PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse test-linearize example test-unssa test-dissect
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 	  linearize.h bitmap.h ident-list.h compat.h flow.h allocate.h \
@@ -39,12 +39,7 @@ LIBS=$(LIB_FILE)
 
 all: $(PROGRAMS) $(SLIB_FILE)
 
-#
-# Install the 'check' binary as 'sparse', just to confuse people.
-#
-#		"The better to keep you on your toes, my dear".
-#
-install: check $(SLIB_FILE) bin-dir
+install: sparse $(SLIB_FILE) bin-dir
 	if test $< -nt $(BINDIR)/sparse ; then install -v $< $(BINDIR)/sparse ; install -v $(SLIB_FILE) $(BINDIR) ; fi
 
 bin-dir:
@@ -74,7 +69,7 @@ compile: compile.o compile-i386.o $(LIBS)
 obfuscate: obfuscate.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
-check: check.o $(LIBS)
+sparse: check.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 graph: graph.o $(LIBS)
