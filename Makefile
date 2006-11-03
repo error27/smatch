@@ -22,6 +22,7 @@ CFLAGS += -DDEBUG
 PREFIX=$(HOME)
 BINDIR=$(PREFIX)/bin
 PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse test-linearize example test-unssa test-dissect
+INST_PROGRAMS=sparse cgcc
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 	  linearize.h bitmap.h ident-list.h compat.h flow.h allocate.h \
@@ -39,8 +40,10 @@ LIBS=$(LIB_FILE)
 
 all: $(PROGRAMS) $(SLIB_FILE)
 
-install: sparse $(SLIB_FILE) bin-dir
-	if test $< -nt $(BINDIR)/sparse ; then install -v $< $(BINDIR)/sparse ; install -v $(SLIB_FILE) $(BINDIR) ; fi
+install: $(INST_PROGRAMS) $(SLIB_FILE) bin-dir
+	for f in $(INST_PROGRAMS) $(SLIB_FILE); do \
+		install -v $$f $(BINDIR)/$$f || exit 1; \
+	done
 
 bin-dir:
 	@if ! test -d $(BINDIR); then \
