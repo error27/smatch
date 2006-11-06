@@ -38,10 +38,10 @@ SLIB_FILE= libsparse.so
 
 LIBS=$(LIB_FILE)
 
-all: $(PROGRAMS) $(SLIB_FILE)
+all: $(PROGRAMS)
 
-install: $(INST_PROGRAMS) $(SLIB_FILE) bin-dir
-	for f in $(INST_PROGRAMS) $(SLIB_FILE); do \
+install: $(INST_PROGRAMS) bin-dir
+	for f in $(INST_PROGRAMS); do \
 		install -v $$f $(BINDIR)/$$f || exit 1; \
 	done
 
