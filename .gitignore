@@ -18,3 +18,15 @@ test-dissect
 test-linearize
 example
 test-unssa
+
+# tags
+tags
+TAGS
+
+# stgit generated dirs
+patches-*
+
+# quilt's files
+patches
+series
+
