@@ -43,20 +43,24 @@ static const char **quote_includepath = includepath;
 static const char **angle_includepath = includepath + 1;
 static const char **sys_includepath   = includepath + 1;
 
-#define dirty_stream(stream)			\
-	do if (!stream->dirty) {		\
-		stream->dirty = 1;		\
-		if (!stream->ifndef)		\
-			stream->protect = NULL;	\
+#define dirty_stream(stream)				\
+	do {						\
+		if (!stream->dirty) {			\
+			stream->dirty = 1;		\
+			if (!stream->ifndef)		\
+				stream->protect = NULL;	\
+		}					\
 	} while(0)
 
-#define end_group(stream)				\
-	do if (stream->ifndef == stream->top_if) {	\
-		stream->ifndef = NULL;			\
-		if (!stream->dirty)			\
-			stream->protect = NULL;		\
-		else if (stream->protect)		\
-			stream->dirty = 0;		\
+#define end_group(stream)					\
+	do {							\
+		if (stream->ifndef == stream->top_if) {		\
+			stream->ifndef = NULL;			\
+			if (!stream->dirty)			\
+				stream->protect = NULL;		\
+			else if (stream->protect)		\
+				stream->dirty = 0;		\
+		}						\
 	} while(0)
 
 #define nesting_error(stream)		\
