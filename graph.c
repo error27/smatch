@@ -55,10 +55,15 @@ static void graph_symbols(struct symbol_list *list)
 
 int main(int argc, char **argv)
 {
+	struct string_list *filelist = NULL;
+	char *file;
+
 	printf("digraph control_flow {\n");
-	graph_symbols(sparse_initialize(argc, argv));
-	while (*argv)
-		graph_symbols(sparse(argv));
+	graph_symbols(sparse_initialize(argc, argv, &filelist));
+
+	FOR_EACH_PTR_NOTAG(filelist, file) {
+		graph_symbols(sparse(file));
+	} END_FOR_EACH_PTR_NOTAG(file);
 	printf("}\n");
 	return 0;
 }

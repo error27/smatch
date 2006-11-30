@@ -49,8 +49,12 @@ static void emit_symbol_list(struct symbol_list *list)
 
 int main(int argc, char **argv)
 {
-	emit_symbol_list(sparse_initialize(argc, argv));
-	while (*argv)
-		emit_symbol_list(sparse(argv));
+	struct string_list *filelist = NULL;
+	char *file;
+
+	emit_symbol_list(sparse_initialize(argc, argv, &filelist));
+	FOR_EACH_PTR_NOTAG(filelist, file) {
+		emit_symbol_list(sparse(file));
+	} END_FOR_EACH_PTR_NOTAG(file);
 	return 0;
 }

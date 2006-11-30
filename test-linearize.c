@@ -38,8 +38,12 @@ static void clean_up_symbols(struct symbol_list *list)
 
 int main(int argc, char **argv)
 {
-	clean_up_symbols(sparse_initialize(argc, argv));
-	while (*argv)
-		clean_up_symbols(sparse(argv));
+	struct string_list *filelist = NULL;
+	char *file;
+
+	clean_up_symbols(sparse_initialize(argc, argv, &filelist));
+	FOR_EACH_PTR_NOTAG(filelist, file) {
+		clean_up_symbols(sparse(file));
+	} END_FOR_EACH_PTR_NOTAG(file);
 	return 0;
 }

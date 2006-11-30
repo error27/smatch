@@ -51,6 +51,7 @@ DECLARE_PTR_LIST(basic_block_list, struct basic_block);
 DECLARE_PTR_LIST(instruction_list, struct instruction);
 DECLARE_PTR_LIST(multijmp_list, struct multijmp);
 DECLARE_PTR_LIST(pseudo_list, struct pseudo);
+DECLARE_PTR_LIST(string_list, char);
 
 typedef struct pseudo *pseudo_t;
 
@@ -89,9 +90,9 @@ extern int Wuninitialized;
 
 extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);
-extern struct symbol_list *sparse_initialize(int argc, char **argv);
-extern struct symbol_list *__sparse(char **argv);
-extern struct symbol_list *sparse(char **argv);
+extern struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list** files);
+extern struct symbol_list *__sparse(char *filename);
+extern struct symbol_list *sparse(char *filename);
 
 static inline int symbol_list_size(struct symbol_list* list)
 {

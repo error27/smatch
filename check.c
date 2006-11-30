@@ -271,9 +271,13 @@ static void check_symbols(struct symbol_list *list)
 
 int main(int argc, char **argv)
 {
+	struct string_list *filelist = NULL;
+	char *file;
+
 	// Expand, linearize and show it.
-	check_symbols(sparse_initialize(argc, argv));
-	while (*argv)
-		check_symbols(sparse(argv));
+	check_symbols(sparse_initialize(argc, argv, &filelist));
+	FOR_EACH_PTR_NOTAG(filelist, file) {
+		check_symbols(sparse(file));
+	} END_FOR_EACH_PTR_NOTAG(file);
 	return 0;
 }

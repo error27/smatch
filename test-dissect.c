@@ -83,13 +83,15 @@ int main(int argc, char **argv)
 		.r_symbol = r_symbol,
 		.r_member = r_member,
 	};
+	struct string_list *filelist = NULL;
+	char *file;
 
-	sparse_initialize(argc, argv);
+	sparse_initialize(argc, argv, &filelist);
 
-	while (*argv) {
+	FOR_EACH_PTR_NOTAG(filelist, file) {
 		dotc_stream = input_stream_nr;
-		dissect(__sparse(argv), &reporter);
-	}
+		dissect(__sparse(file), &reporter);
+	} END_FOR_EACH_PTR_NOTAG(file);
 
 	return 0;
 }

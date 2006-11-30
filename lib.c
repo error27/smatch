@@ -612,10 +612,9 @@ static struct symbol_list *sparse_initial(void)
 	return sparse_tokenstream(token);
 }
 
-struct symbol_list *sparse_initialize(int argc, char **argv)
+struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list **filelist)
 {
 	char **args;
-	int files = 0;
 	struct symbol_list *list;
 
 	// Initialize symbol stream first, so that we can add defines etc
@@ -631,17 +630,11 @@ struct symbol_list *sparse_initialize(int argc, char **argv)
 			args = handle_switch(arg+1, args);
 			continue;
 		}
-
-		/*
-		 * Hacky hacky hacky: we re-use the argument space
-		 * to save the filenames.
-		 */
-		argv[files++] = arg;
+		add_ptr_list_notag(filelist, arg);
 	}
 
 	list = NULL;
-	argv[files] = NULL;
-	if (files) {
+	if (!ptr_list_empty(filelist)) {
 		// Initialize type system
 		init_ctype();
 
@@ -661,21 +654,12 @@ struct symbol_list *sparse_initialize(int argc, char **argv)
 	return list;
 }
 
-struct symbol_list * __sparse(char **argv)
+struct symbol_list * __sparse(char *filename)
 {
 	struct symbol_list *res;
-	char *filename, *next;
 
 	/* Clear previous symbol list */
 	translation_unit_used_list = NULL;
-
-	filename = *argv;
-	if (!filename)
-		return NULL;
-	do {
-		next = argv[1];
-		*argv++ = next;
-	} while (next);
 
 	new_file_scope();
 	res = sparse_file(filename);
@@ -687,9 +671,9 @@ struct symbol_list * __sparse(char **argv)
 	return res;
 }
 
-struct symbol_list * sparse(char **argv)
+struct symbol_list * sparse(char *filename)
 {
-	struct symbol_list *res = __sparse(argv);
+	struct symbol_list *res = __sparse(filename);
 
 	/* Evaluate the complete symbol list */
 	evaluate_symbol_list(res);

@@ -1942,9 +1942,13 @@ static int compile(struct symbol_list *list)
 
 int main(int argc, char **argv)
 {
-	compile(sparse_initialize(argc, argv));
-	while (*argv)
-		compile(sparse(argv));
+	struct string_list *filelist = NULL;
+	char *file;
+
+	compile(sparse_initialize(argc, argv, &filelist));
+	FOR_EACH_PTR_NOTAG(filelist, file) {
+		compile(sparse(file));
+	} END_FOR_EACH_PTR_NOTAG(file);
 	return 0;
 }
 

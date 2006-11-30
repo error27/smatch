@@ -35,8 +35,10 @@ static void clean_up_symbols(struct symbol_list *list)
 int main(int argc, char **argv)
 {
 	struct symbol_list * list;
+	struct string_list * filelist = NULL;
+	char *file;
 
-	list = sparse_initialize(argc, argv);
+	list = sparse_initialize(argc, argv, &filelist);
 
 	// Simplification
 	clean_up_symbols(list);
@@ -46,8 +48,8 @@ int main(int argc, char **argv)
 	printf("\n\n");
 #endif
 
-	while (*argv) {
-		list = sparse(argv);
+	FOR_EACH_PTR_NOTAG(filelist, file) {
+		list = sparse(file);
 
 		// Simplification
 		clean_up_symbols(list);
@@ -57,7 +59,7 @@ int main(int argc, char **argv)
 		show_symbol_list(list, "\n\n");
 		printf("\n\n");
 #endif
-	}
+	} END_FOR_EACH_PTR_NOTAG(file);
 
 #if 0
 	// And show the allocation statistics

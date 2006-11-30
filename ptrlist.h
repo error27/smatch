@@ -40,7 +40,7 @@ int delete_ptr_list_entry(struct ptr_list **, void *, int);
 int replace_ptr_list_entry(struct ptr_list **, void *old, void *new, int);
 extern void sort_list(struct ptr_list **, int (*)(const void *, const void *));
 
-extern void **__add_ptr_list(struct ptr_list **, void *, unsigned long tag);
+extern void **__add_ptr_list(struct ptr_list **, void *, unsigned long);
 extern void concat_ptr_list(struct ptr_list *a, struct ptr_list **b);
 extern void __free_ptr_list(struct ptr_list **);
 extern int ptr_list_size(struct ptr_list *);
@@ -54,12 +54,17 @@ extern int linearize_ptr_list(struct ptr_list *, void **, int);
  */
 #define add_ptr_list_tag(list,entry,tag) \
 	MKTYPE(*(list), (CHECK_TYPE(*(list),(entry)),__add_ptr_list((struct ptr_list **)(list), (entry), (tag))))
+#define add_ptr_list_notag(list,entry)										\
+	MKTYPE(*(list), (CHECK_TYPE(*(list),(entry)),__add_ptr_list((struct ptr_list **)(list),			\
+								    (void*)((unsigned long)(entry) & ~3UL), 	\
+								    (unsigned long)(entry) & 3)))
 #define add_ptr_list(list,entry) \
 	add_ptr_list_tag(list,entry,0)
 #define free_ptr_list(list) \
 	do { VRFY_PTR_LIST(*(list)); __free_ptr_list((struct ptr_list **)(list)); } while (0)
 
-#define PTR_ENTRY(h,i)	(void *)(~3UL & (unsigned long)(h)->list[i])
+#define PTR_ENTRY_NOTAG(h,i)	((h)->list[i])
+#define PTR_ENTRY(h,i)	(void *)(~3UL & (unsigned long)PTR_ENTRY_NOTAG(h,i))
 
 static inline void *first_ptr_list(struct ptr_list *list)
 {
@@ -77,7 +82,7 @@ static inline void *last_ptr_list(struct ptr_list *list)
 	return PTR_ENTRY(list, list->nr-1);
 }
 
-#define DO_PREPARE(head, ptr, __head, __list, __nr)					\
+#define DO_PREPARE(head, ptr, __head, __list, __nr, PTR_ENTRY)				\
 	do {										\
 		struct ptr_list *__head = (struct ptr_list *) (head);			\
 		struct ptr_list *__list = __head;					\
@@ -86,7 +91,7 @@ static inline void *last_ptr_list(struct ptr_list *list)
 		if (__head) ptr = PTR_ENTRY(__head, 0);					\
 		else ptr = NULL
 
-#define DO_NEXT(ptr, __head, __list, __nr)						\
+#define DO_NEXT(ptr, __head, __list, __nr, PTR_ENTRY)					\
 		if (ptr) {								\
 			if (++__nr < __list->nr) {					\
 				ptr = PTR_ENTRY(__list,__nr);				\
@@ -100,7 +105,7 @@ static inline void *last_ptr_list(struct ptr_list *list)
 			}								\
 		}
 
-#define DO_RESET(ptr, __head, __list, __nr)						\
+#define DO_RESET(ptr, __head, __list, __nr, PTR_ENTRY)					\
 	do {										\
 		__nr = 0;								\
 		__list = __head;							\
@@ -112,18 +117,18 @@ static inline void *last_ptr_list(struct ptr_list *list)
 	} while (0)
 
 #define PREPARE_PTR_LIST(head, ptr) \
-	DO_PREPARE(head, ptr, __head##ptr, __list##ptr, __nr##ptr)
+	DO_PREPARE(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY)
 
 #define NEXT_PTR_LIST(ptr) \
-	DO_NEXT(ptr, __head##ptr, __list##ptr, __nr##ptr)
+	DO_NEXT(ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY)
 
 #define RESET_PTR_LIST(ptr) \
-	DO_RESET(ptr, __head##ptr, __list##ptr, __nr##ptr)
+	DO_RESET(ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY)
 
 #define FINISH_PTR_LIST(ptr) \
 	DO_FINISH(ptr, __head##ptr, __list##ptr, __nr##ptr)
 
-#define DO_FOR_EACH(head, ptr, __head, __list, __nr) do {				\
+#define DO_FOR_EACH(head, ptr, __head, __list, __nr, PTR_ENTRY) do {			\
 	struct ptr_list *__head = (struct ptr_list *) (head);				\
 	struct ptr_list *__list = __head;						\
 	CHECK_TYPE(head,ptr);								\
@@ -142,7 +147,7 @@ static inline void *last_ptr_list(struct ptr_list *list)
 	}										\
 } while (0)
 
-#define DO_FOR_EACH_REVERSE(head, ptr, __head, __list, __nr) do {			\
+#define DO_FOR_EACH_REVERSE(head, ptr, __head, __list, __nr, PTR_ENTRY) do {		\
 	struct ptr_list *__head = (struct ptr_list *) (head);				\
 	struct ptr_list *__list = __head;						\
 	CHECK_TYPE(head,ptr);								\
@@ -164,7 +169,8 @@ static inline void *last_ptr_list(struct ptr_list *list)
 	}										\
 } while (0)
 
-#define DO_REVERSE(ptr, __head, __list, __nr, new, __newhead, __newlist, __newnr) do {	\
+#define DO_REVERSE(ptr, __head, __list, __nr, new, __newhead,				\
+		   __newlist, __newnr, PTR_ENTRY) do { 					\
 	struct ptr_list *__newhead = __head;						\
 	struct ptr_list *__newlist = __list;						\
 	int __newnr = __nr;								\
@@ -182,22 +188,32 @@ static inline void *last_ptr_list(struct ptr_list *list)
 
 #define RECURSE_PTR_REVERSE(ptr, new)							\
 	DO_REVERSE(ptr, __head##ptr, __list##ptr, __nr##ptr,				\
-		   new, __head##new, __list##new, __nr##new)
+		   new, __head##new, __list##new, __nr##new, PTR_ENTRY)
 
 #define DO_THIS_ADDRESS(ptr, __head, __list, __nr)					\
 	((__typeof__(&(ptr))) (__list->list + __nr))
 
 #define FOR_EACH_PTR(head, ptr) \
-	DO_FOR_EACH(head, ptr, __head##ptr, __list##ptr, __nr##ptr)
+	DO_FOR_EACH(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY)
 
 #define END_FOR_EACH_PTR(ptr) \
 	DO_END_FOR_EACH(ptr, __head##ptr, __list##ptr, __nr##ptr)
 
+#define FOR_EACH_PTR_NOTAG(head, ptr) \
+	DO_FOR_EACH(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_NOTAG)
+
+#define END_FOR_EACH_PTR_NOTAG(ptr) END_FOR_EACH_PTR(ptr)
+
 #define FOR_EACH_PTR_REVERSE(head, ptr) \
-	DO_FOR_EACH_REVERSE(head, ptr, __head##ptr, __list##ptr, __nr##ptr)
+	DO_FOR_EACH_REVERSE(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY)
 
 #define END_FOR_EACH_PTR_REVERSE(ptr) \
 	DO_END_FOR_EACH_REVERSE(ptr, __head##ptr, __list##ptr, __nr##ptr)
+
+#define FOR_EACH_PTR_REVERSE_NOTAG(head, ptr) \
+	DO_FOR_EACH_REVERSE(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_NOTAG)
+
+#define END_FOR_EACH_PTR_REVERSE_NOTAG(ptr) END_FOR_EACH_PTR_REVERSE(ptr)
 
 #define THIS_ADDRESS(ptr) \
 	DO_THIS_ADDRESS(ptr, __head##ptr, __list##ptr, __nr##ptr)
