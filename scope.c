@@ -96,6 +96,13 @@ void end_file_scope(void)
 	end_scope(&file_scope);
 }
 
+void new_file_scope(void)
+{
+	if (file_scope != &builtin_scope)
+		end_file_scope();
+	start_file_scope();
+}
+
 void end_symbol_scope(void)
 {
 	end_scope(&block_scope);

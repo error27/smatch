@@ -677,9 +677,8 @@ struct symbol_list * __sparse(char **argv)
 		*argv++ = next;
 	} while (next);
 
-	start_file_scope();
+	new_file_scope();
 	res = sparse_file(filename);
-	end_file_scope();
 
 	/* Drop the tokens for this file after parsing */
 	clear_token_alloc();
