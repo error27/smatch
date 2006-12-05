@@ -13,20 +13,17 @@ AR=ar
 #
 CFLAGS += -DDEBUG
 
-#
-# If building with shared libraries, you might
-# want to add this
-#
-# LDFLAGS += -Wl,-rpath,$(BINDIR)
-
 PREFIX=$(HOME)
 BINDIR=$(PREFIX)/bin
+LIBDIR=$(PREFIX)/lib
+INCLUDEDIR=$(PREFIX)/include/sparse
+
 PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse test-linearize example test-unssa test-dissect
 INST_PROGRAMS=sparse cgcc
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 	  linearize.h bitmap.h ident-list.h compat.h flow.h allocate.h \
-	  storage.h ptrlist.h
+	  storage.h ptrlist.h dissect.h
 
 LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 	  expression.o show-parse.o evaluate.o expand.o inline.o linearize.o \
@@ -40,19 +37,19 @@ LIBS=$(LIB_FILE)
 
 all: $(PROGRAMS)
 
-install: $(INST_PROGRAMS) bin-dir
+install: $(INST_PROGRAMS) $(LIBS) $(LIB_H)
+	install -d $(BINDIR)
+	install -d $(LIBDIR)
+	install -d $(INCLUDEDIR)
 	for f in $(INST_PROGRAMS); do \
 		install -v $$f $(BINDIR)/$$f || exit 1; \
 	done
-
-bin-dir:
-	@if ! test -d $(BINDIR); then \
-		echo "No '$(BINDIR)' directory to install in"; \
-		echo "Please create it and add it to your PATH"; \
-		exit 1; \
-	fi
-
-.PHONY: bin-dir
+	for f in $(LIBS); do \
+		install -m 644 -v $$f $(LIBDIR)/$$f || exit 1; \
+	done
+	for f in $(LIB_H); do \
+		install -m 644 -v $$f $(INCLUDEDIR)/$$f || exit 1; \
+	done
 
 test-lexing: test-lexing.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
@@ -115,15 +112,15 @@ target.o: $(LIB_H)
 test-lexing.o: $(LIB_H)
 test-parsing.o: $(LIB_H)
 test-linearize.o: $(LIB_H)
-test-dissect.o: $(LIB_H) dissect.h
+test-dissect.o: $(LIB_H)
 compile.o: $(LIB_H) compile.h
 compile-i386.o: $(LIB_H) compile.h
 tokenize.o: $(LIB_H)
 sparse.o: $(LIB_H)
 obfuscate.o: $(LIB_H)
 example.o: $(LIB_H)
-storage.o: $(LIB_H) storage.h
-dissect.o: $(LIB_H) dissect.h
+storage.o: $(LIB_H)
+dissect.o: $(LIB_H)
 graph.o: $(LIB_H)
 
 compat-linux.o: compat/strtold.c compat/mmap-blob.c \
