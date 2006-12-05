@@ -72,7 +72,7 @@ compile: compile.o compile-i386.o $(LIBS)
 obfuscate: obfuscate.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
-sparse: check.o $(LIBS)
+sparse: sparse.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 graph: graph.o $(LIBS)
@@ -119,7 +119,7 @@ test-dissect.o: $(LIB_H) dissect.h
 compile.o: $(LIB_H) compile.h
 compile-i386.o: $(LIB_H) compile.h
 tokenize.o: $(LIB_H)
-check.o: $(LIB_H)
+sparse.o: $(LIB_H)
 obfuscate.o: $(LIB_H)
 example.o: $(LIB_H)
 storage.o: $(LIB_H) storage.h

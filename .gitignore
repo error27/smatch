@@ -11,7 +11,7 @@ pre-process.h
 test-lexing
 test-parsing
 obfuscate
-check
+sparse
 compile
 graph
 test-dissect
