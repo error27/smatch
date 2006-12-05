@@ -6,6 +6,7 @@
 
 # generated
 pre-process.h
+sparse.pc
 
 # programs
 test-lexing

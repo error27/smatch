@@ -1,6 +1,8 @@
 #
 # Turkey time!
 #
+VERSION=0.2
+
 OS=linux
 
 CC=gcc
@@ -13,10 +15,12 @@ AR=ar
 #
 CFLAGS += -DDEBUG
 
+DESTDIR=
 PREFIX=$(HOME)
 BINDIR=$(PREFIX)/bin
 LIBDIR=$(PREFIX)/lib
-INCLUDEDIR=$(PREFIX)/include/sparse
+INCLUDEDIR=$(PREFIX)/include
+PKGCONFIGDIR=$(PREFIX)/share/pkgconfig
 
 PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse test-linearize example test-unssa test-dissect
 INST_PROGRAMS=sparse cgcc
@@ -35,21 +39,26 @@ SLIB_FILE= libsparse.so
 
 LIBS=$(LIB_FILE)
 
-all: $(PROGRAMS)
+all: $(PROGRAMS) sparse.pc
 
-install: $(INST_PROGRAMS) $(LIBS) $(LIB_H)
-	install -d $(BINDIR)
-	install -d $(LIBDIR)
-	install -d $(INCLUDEDIR)
+install: $(INST_PROGRAMS) $(LIBS) $(LIB_H) sparse.pc
+	install -d $(DESTDIR)$(BINDIR)
+	install -d $(DESTDIR)$(LIBDIR)
+	install -d $(DESTDIR)$(INCLUDEDIR)/sparse
+	install -d $(DESTDIR)$(PKGCONFIGDIR)
 	for f in $(INST_PROGRAMS); do \
-		install -v $$f $(BINDIR)/$$f || exit 1; \
+		install -v $$f $(DESTDIR)$(BINDIR)/$$f || exit 1; \
 	done
 	for f in $(LIBS); do \
-		install -m 644 -v $$f $(LIBDIR)/$$f || exit 1; \
+		install -m 644 -v $$f $(DESTDIR)$(LIBDIR)/$$f || exit 1; \
 	done
 	for f in $(LIB_H); do \
-		install -m 644 -v $$f $(INCLUDEDIR)/$$f || exit 1; \
+		install -m 644 -v $$f $(DESTDIR)$(INCLUDEDIR)/sparse/$$f || exit 1; \
 	done
+	install -m 644 -v sparse.pc $(DESTDIR)$(PKGCONFIGDIR)/sparse.pc
+
+sparse.pc: sparse.pc.in
+	sed 's|@version@|$(VERSION)|g;s|@prefix@|$(PREFIX)|g;s|@libdir@|$(LIBDIR)|g;s|@includedir@|$(INCLUDEDIR)|g' sparse.pc.in > sparse.pc
 
 test-lexing: test-lexing.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
@@ -133,6 +142,6 @@ pre-process.h:
 	echo "#define GCC_INTERNAL_INCLUDE \"`$(CC) -print-file-name=include`\"" > pre-process.h
 
 clean:
-	rm -f *.[oasi] core core.[0-9]* $(PROGRAMS) $(SLIB_FILE) pre-process.h
+	rm -f *.[oasi] core core.[0-9]* $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
 
 % : SCCS/s.%s
