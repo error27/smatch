@@ -143,5 +143,3 @@ pre-process.h:
 
 clean:
 	rm -f *.[oasi] core core.[0-9]* $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
-
-% : SCCS/s.%s
