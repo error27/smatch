@@ -88,9 +88,10 @@ A.  Yeah, well...  It parses a fairly complete subset of "extended C" as
 
 Q.  What other sparse resources are available?
 
-A.  Mailing list:  linux-sparse@vger.kernel.org
+A.  Website: http://kernel.org/pub/linux/kernel/people/josh/sparse/
+
+    Mailing list:  linux-sparse@vger.kernel.org
     (email majordomo@vger.kernel.org to subscribe)
 
-    Git repository:  devel/sparse/sparse.git under http://kernel.org/git/
-    BitKeeper repository:  bk://sparse.bkbits.net/sparse
-
+    Git repo: git://git.kernel.org/pub/scm/linux/kernel/git/josh/sparse.git
+    gitweb: http://kernel.org/git/?p=linux/kernel/git/josh/sparse.git
