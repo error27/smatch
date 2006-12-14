@@ -130,12 +130,14 @@ static void report_implicit(usage_t mode, struct position *pos, struct symbol *t
 	if (type->type != SYM_STRUCT && type->type != SYM_UNION)
 		return;
 
-	if (reporter->r_member) {
+	if (!reporter->r_member)
+		return;
+
+	if (type->ident != NULL)
 		reporter->r_member(mode, pos, type, NULL);
 
-		DO_LIST(type->symbol_list, mem,
-			report_implicit(mode, pos, base_type(mem)));
-	}
+	DO_LIST(type->symbol_list, mem,
+		report_implicit(mode, pos, base_type(mem)));
 }
 
 static inline struct symbol *expr_symbol(struct expression *expr)
