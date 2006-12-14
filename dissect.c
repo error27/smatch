@@ -509,10 +509,13 @@ static struct symbol *do_initializer(struct symbol *type, struct expression *exp
 	default:
 		do_expression(u_lval(type), expr);
 
+	break; case EXPR_INDEX:
+		do_initializer(base_type(type), expr->idx_expression);
+
 	break; case EXPR_INITIALIZER:
 		m_addr = 0;
 		FOR_EACH_PTR(expr->expr_list, m_expr)
-			if(type->type == SYM_ARRAY) {
+			if (type->type == SYM_ARRAY) {
 				m_type = base_type(type);
 				if (m_expr->type == EXPR_INDEX)
 					m_expr = m_expr->idx_expression;
