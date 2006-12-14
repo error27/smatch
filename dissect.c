@@ -212,13 +212,16 @@ static void examine_sym_node(struct symbol *node, struct ident *root)
 		case SYM_STRUCT: case SYM_UNION: //case SYM_ENUM:
 			if (base->evaluated)
 				return;
+			if (!base->symbol_list)
+				return;
+			base->evaluated = 1;
+
 			if (!base->ident && name)
 				base->ident = mk_name(root, name);
-			if (!base->ident || !base->symbol_list)
-				return;
-			if (reporter->r_symdef)
+			if (base->ident && reporter->r_symdef)
 				reporter->r_symdef(base);
-			base->evaluated = 1;
+			DO_LIST(base->symbol_list, mem,
+				examine_sym_node(mem, base->ident ?: root));
 		default:
 			return;
 		}
@@ -265,14 +268,8 @@ found:
 
 static struct symbol *lookup_member(struct symbol *type, struct ident *name, int *addr)
 {
-	struct symbol *node = __lookup_member(type, name, addr);
-
-	if (node != NULL)
-		examine_sym_node(node, type->ident);
-	else
-		node = no_member(name);
-
-	return node;
+	return __lookup_member(type, name, addr)
+		?: no_member(name);
 }
 
 static struct expression *peek_preop(struct expression *expr, int op)
