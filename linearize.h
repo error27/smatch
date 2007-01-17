@@ -9,6 +9,15 @@
 struct instruction;
 DECLARE_PTR_LIST(pseudo_ptr_list, pseudo_t);
 
+struct pseudo_user {
+	struct instruction *insn;
+	pseudo_t *userp;
+};
+
+DECLARE_ALLOCATOR(pseudo_user);
+DECLARE_PTR_LIST(pseudo_user_list, struct pseudo_user);
+
+
 enum pseudo_type {
 	PSEUDO_VOID,
 	PSEUDO_REG,
@@ -21,7 +30,7 @@ enum pseudo_type {
 struct pseudo {
 	int nr;
 	enum pseudo_type type;
-	struct pseudo_ptr_list *users;
+	struct pseudo_user_list *users;
 	struct ident *ident;
 	union {
 		struct symbol *sym;
@@ -268,16 +277,29 @@ static inline void add_pseudo_ptr(pseudo_t *ptr, struct pseudo_ptr_list **list)
 	add_ptr_list(list, ptr);
 }
 
+static inline void add_pseudo_user_ptr(struct pseudo_user *user, struct pseudo_user_list **list)
+{
+	add_ptr_list(list, user);
+}
+
 static inline int has_use_list(pseudo_t p)
 {
 	return (p && p->type != PSEUDO_VOID && p->type != PSEUDO_VAL);
 }
 
-static inline void use_pseudo(pseudo_t p, pseudo_t *pp)
+static inline struct pseudo_user* alloc_pseudo_user(struct instruction *insn, pseudo_t *pp)
+{
+	struct pseudo_user *user = __alloc_pseudo_user(0);
+	user->userp = pp;
+	user->insn = insn;
+	return user;
+}
+
+static inline void use_pseudo(struct instruction *insn, pseudo_t p, pseudo_t *pp)
 {
 	*pp = p;
 	if (has_use_list(p))
-		add_pseudo_ptr(pp, &p->users);
+		add_pseudo_user_ptr(alloc_pseudo_user(insn, pp), &p->users);
 }
 
 static inline void remove_bb_from_list(struct basic_block_list **list, struct basic_block *entry, int count)

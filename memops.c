@@ -59,31 +59,19 @@ found_dominator:
 		phi = alloc_phi(parent, one->target, one->size);
 		phi->ident = phi->ident ? : one->target->ident;
 		add_instruction(&parent->insns, br);
-		use_pseudo(phi, add_pseudo(dominators, phi));
+		use_pseudo(insn, phi, add_pseudo(dominators, phi));
 	} END_FOR_EACH_PTR(parent);
 	return 1;
 }		
 
-/*
- * FIXME! This is wrong. Since we now distribute out the OP_SYMADDR,
- * we can no longer really use "container()" to get from a user to
- * the instruction that uses it.
- *
- * This happens to work, simply because the likelihood of the
- * (possibly non-instruction) containing the right bitpattern
- * in the right place is pretty low. But this is still wrong.
- *
- * We should make symbol-pseudos count non-load/store usage,
- * or something.
- */
 static int address_taken(pseudo_t pseudo)
 {
-	pseudo_t *usep;
-	FOR_EACH_PTR(pseudo->users, usep) {
-		struct instruction *insn = container(usep, struct instruction, src);
+	struct pseudo_user *pu;
+	FOR_EACH_PTR(pseudo->users, pu) {
+		struct instruction *insn = pu->insn;
 		if (insn->bb && (insn->opcode != OP_LOAD || insn->opcode != OP_STORE))
 			return 1;
-	} END_FOR_EACH_PTR(usep);
+	} END_FOR_EACH_PTR(pu);
 	return 0;
 }
 

@@ -146,10 +146,27 @@ static int clean_up_phi(struct instruction *insn)
 	return if_convert_phi(insn);
 }
 
+int delete_pseudo_user_list_entry(struct pseudo_user_list **list, pseudo_t *entry, int count)
+{
+	struct pseudo_user *pu;
+
+	FOR_EACH_PTR(*list, pu) {
+		if (pu->userp == entry) {
+			DELETE_CURRENT_PTR(pu);
+			if (!--count)
+				goto out;
+		}
+	} END_FOR_EACH_PTR(pu);
+	assert(count <= 0);
+out:
+	pack_ptr_list((struct ptr_list **)list);
+	return count;
+}
+
 static inline void remove_usage(pseudo_t p, pseudo_t *usep)
 {
 	if (has_use_list(p)) {
-		delete_ptr_list_entry((struct ptr_list **)&p->users, usep, 1);
+		delete_pseudo_user_list_entry(&p->users, usep, 1);
 		if (!p->users)
 			kill_instruction(p->def);
 	}
@@ -208,11 +225,11 @@ void kill_instruction(struct instruction *insn)
  */
 static int dead_insn(struct instruction *insn, pseudo_t *src1, pseudo_t *src2, pseudo_t *src3)
 {
-	pseudo_t *usep;
-	FOR_EACH_PTR(insn->target->users, usep) {
-		if (*usep != VOID)
+	struct pseudo_user *pu;
+	FOR_EACH_PTR(insn->target->users, pu) {
+		if (*pu->userp != VOID)
 			return 0;
-	} END_FOR_EACH_PTR(usep);
+	} END_FOR_EACH_PTR(pu);
 
 	insn->bb = NULL;
 	kill_use(src1);
@@ -419,12 +436,12 @@ static int simplify_binop(struct instruction *insn)
 	return 0;
 }
 
-static void switch_pseudo(pseudo_t *pp1, pseudo_t *pp2)
+static void switch_pseudo(struct instruction *insn1, pseudo_t *pp1, struct instruction *insn2, pseudo_t *pp2)
 {
 	pseudo_t p1 = *pp1, p2 = *pp2;
 
-	use_pseudo(p2, pp1);
-	use_pseudo(p1, pp2);
+	use_pseudo(insn1, p2, pp1);
+	use_pseudo(insn2, p1, pp2);
 	remove_usage(p1, pp1);
 	remove_usage(p2, pp2);
 }
@@ -444,7 +461,7 @@ static int canonical_order(pseudo_t p1, pseudo_t p2)
 static int simplify_commutative_binop(struct instruction *insn)
 {
 	if (!canonical_order(insn->src1, insn->src2)) {
-		switch_pseudo(&insn->src1, &insn->src2);
+		switch_pseudo(insn, &insn->src1, insn, &insn->src2);
 		return REPEAT_CSE;
 	}
 	return 0;
@@ -473,7 +490,7 @@ static int simplify_associative_binop(struct instruction *insn)
 		return 0;
 	if (ptr_list_size((struct ptr_list *)def->target->users) != 1)
 		return 0;
-	switch_pseudo(&def->src1, &insn->src2);
+	switch_pseudo(def, &def->src1, insn, &insn->src2);
 	return REPEAT_CSE;
 }
 
@@ -517,7 +534,7 @@ static int simplify_one_memop(struct instruction *insn, pseudo_t orig)
 		struct instruction *def = addr->def;
 		if (def->opcode == OP_SYMADDR && def->src) {
 			kill_use(&insn->src);
-			use_pseudo(def->src, &insn->src);
+			use_pseudo(insn, def->src, &insn->src);
 			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 		}
 		if (def->opcode == OP_ADD) {
@@ -543,7 +560,7 @@ offset:
 		warning(insn->pos, "crazy programmer");
 	}
 	insn->offset += off->value;
-	use_pseudo(new, &insn->src);
+	use_pseudo(insn, new, &insn->src);
 	remove_usage(addr, &insn->src);
 	return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 }
@@ -699,7 +716,7 @@ static int simplify_range(struct instruction *insn)
  */
 static int simplify_cond_branch(struct instruction *br, pseudo_t cond, struct instruction *def, pseudo_t *pp)
 {
-	use_pseudo(*pp, &br->cond);
+	use_pseudo(br, *pp, &br->cond);
 	remove_usage(cond, &br->cond);
 	if (def->opcode == OP_SET_EQ) {
 		struct basic_block *true = br->bb_true;
@@ -763,7 +780,7 @@ static int simplify_branch(struct instruction *insn)
 					insn->bb_false = true;
 					insn->bb_true = false;
 				}
-				use_pseudo(def->src1, &insn->cond);
+				use_pseudo(insn, def->src1, &insn->cond);
 				remove_usage(cond, &insn->cond);
 				return REPEAT_CSE;
 			}
@@ -771,7 +788,7 @@ static int simplify_branch(struct instruction *insn)
 		if (def->opcode == OP_CAST || def->opcode == OP_SCAST) {
 			int orig_size = def->orig_type ? def->orig_type->bit_size : 0;
 			if (def->size > orig_size) {
-				use_pseudo(def->src, &insn->cond);
+				use_pseudo(insn, def->src, &insn->cond);
 				remove_usage(cond, &insn->cond);
 				return REPEAT_CSE;
 			}

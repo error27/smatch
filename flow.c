@@ -229,27 +229,27 @@ int simplify_flow(struct entrypoint *ep)
 	return simplify_branch_nodes(ep);
 }
 
-static inline void concat_user_list(struct pseudo_ptr_list *src, struct pseudo_ptr_list **dst)
+static inline void concat_user_list(struct pseudo_user_list *src, struct pseudo_user_list **dst)
 {
 	concat_ptr_list((struct ptr_list *)src, (struct ptr_list **)dst);
 }
 
 void convert_instruction_target(struct instruction *insn, pseudo_t src)
 {
-	pseudo_t target, *usep;
-
+	pseudo_t target;
+	struct pseudo_user *pu;
 	/*
 	 * Go through the "insn->users" list and replace them all..
 	 */
 	target = insn->target;
 	if (target == src)
 		return;
-	FOR_EACH_PTR(target->users, usep) {
-		if (*usep != VOID) {
-			assert(*usep == target);
-			*usep = src;
+	FOR_EACH_PTR(target->users, pu) {
+		if (*pu->userp != VOID) {
+			assert(*pu->userp == target);
+			*pu->userp = src;
 		}
-	} END_FOR_EACH_PTR(usep);
+	} END_FOR_EACH_PTR(pu);
 	concat_user_list(target->users, &src->users);
 	target->users = NULL;
 }
@@ -360,7 +360,7 @@ found_dominator:
 		phi = alloc_phi(parent, one->target, one->size);
 		phi->ident = phi->ident ? : pseudo->ident;
 		add_instruction(&parent->insns, br);
-		use_pseudo(phi, add_pseudo(dominators, phi));
+		use_pseudo(insn, phi, add_pseudo(dominators, phi));
 	} END_FOR_EACH_PTR(parent);
 	return 1;
 }		
@@ -592,7 +592,8 @@ void check_access(struct instruction *insn)
 
 static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 {
-	pseudo_t pseudo, src, *pp;
+	pseudo_t pseudo, src;
+	struct pseudo_user *pu;
 	struct instruction *def;
 	unsigned long mod;
 	int all, stores, complex;
@@ -614,9 +615,9 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 	def = NULL;
 	stores = 0;
 	complex = 0;
-	FOR_EACH_PTR(pseudo->users, pp) {
+	FOR_EACH_PTR(pseudo->users, pu) {
 		/* We know that the symbol-pseudo use is the "src" in the instruction */
-		struct instruction *insn = container(pp, struct instruction, src);
+		struct instruction *insn = pu->insn;
 
 		switch (insn->opcode) {
 		case OP_STORE:
@@ -639,7 +640,7 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 			warning(sym->pos, "symbol '%s' pseudo used in unexpected way", show_ident(sym->ident));
 		}
 		complex |= insn->offset;
-	} END_FOR_EACH_PTR(pp);
+	} END_FOR_EACH_PTR(pu);
 
 	if (complex)
 		goto complex_def;
@@ -655,13 +656,13 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 	if (def)
 		src = def->target;
 
-	FOR_EACH_PTR(pseudo->users, pp) {
-		struct instruction *insn = container(pp, struct instruction, src);
+	FOR_EACH_PTR(pseudo->users, pu) {
+		struct instruction *insn = pu->insn;
 		if (insn->opcode == OP_LOAD) {
 			check_access(insn);
 			convert_load_instruction(insn, src);
 		}
-	} END_FOR_EACH_PTR(pp);
+	} END_FOR_EACH_PTR(pu);
 
 	/* Turn the store into a no-op */
 	kill_store(def);
@@ -671,29 +672,29 @@ multi_def:
 complex_def:
 external_visibility:
 	all = 1;
-	FOR_EACH_PTR_REVERSE(pseudo->users, pp) {
-		struct instruction *insn = container(pp, struct instruction, src);
+	FOR_EACH_PTR_REVERSE(pseudo->users, pu) {
+		struct instruction *insn = pu->insn;
 		if (insn->opcode == OP_LOAD)
 			all &= find_dominating_stores(pseudo, insn, ++bb_generation, !mod);
-	} END_FOR_EACH_PTR_REVERSE(pp);
+	} END_FOR_EACH_PTR_REVERSE(pu);
 
 	/* If we converted all the loads, remove the stores. They are dead */
 	if (all && !mod) {
-		FOR_EACH_PTR(pseudo->users, pp) {
-			struct instruction *insn = container(pp, struct instruction, src);
+		FOR_EACH_PTR(pseudo->users, pu) {
+			struct instruction *insn = pu->insn;
 			if (insn->opcode == OP_STORE)
 				kill_store(insn);
-		} END_FOR_EACH_PTR(pp);
+		} END_FOR_EACH_PTR(pu);
 	} else {
 		/*
 		 * If we couldn't take the shortcut, see if we can at least kill some
 		 * of them..
 		 */
-		FOR_EACH_PTR(pseudo->users, pp) {
-			struct instruction *insn = container(pp, struct instruction, src);
+		FOR_EACH_PTR(pseudo->users, pu) {
+			struct instruction *insn = pu->insn;
 			if (insn->opcode == OP_STORE)
 				kill_dominated_stores(pseudo, insn, ++bb_generation, insn->bb, !mod, 0);
-		} END_FOR_EACH_PTR(pp);
+		} END_FOR_EACH_PTR(pu);
 
 		if (!(mod & (MOD_NONLOCAL | MOD_STATIC))) {
 			struct basic_block *bb;
