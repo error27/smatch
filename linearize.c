@@ -735,11 +735,11 @@ pseudo_t alloc_pseudo(struct instruction *def)
 
 static void clear_symbol_pseudos(struct entrypoint *ep)
 {
-	struct symbol *sym;
+	pseudo_t pseudo;
 
-	FOR_EACH_PTR(ep->accesses, sym) {
-		sym->pseudo = NULL;
-	} END_FOR_EACH_PTR(sym);
+	FOR_EACH_PTR(ep->accesses, pseudo) {
+		pseudo->sym->pseudo = NULL;
+	} END_FOR_EACH_PTR(pseudo);
 }
 
 static pseudo_t symbol_pseudo(struct entrypoint *ep, struct symbol *sym)
@@ -757,7 +757,7 @@ static pseudo_t symbol_pseudo(struct entrypoint *ep, struct symbol *sym)
 		pseudo->sym = sym;
 		pseudo->ident = sym->ident;
 		sym->pseudo = pseudo;
-		add_symbol(&ep->accesses, sym);
+		add_pseudo(&ep->accesses, pseudo);
 	}
 	/* Symbol pseudos have neither nr, usage nor def */
 	return pseudo;

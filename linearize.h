@@ -294,7 +294,7 @@ static inline void replace_bb_in_list(struct basic_block_list **list,
 struct entrypoint {
 	struct symbol *name;
 	struct symbol_list *syms;
-	struct symbol_list *accesses;
+	struct pseudo_list *accesses;
 	struct basic_block_list *bbs;
 	struct basic_block *active;
 	struct instruction *entry;

@@ -709,11 +709,11 @@ external_visibility:
 
 void simplify_symbol_usage(struct entrypoint *ep)
 {
-	struct symbol *sym;
+	pseudo_t pseudo;
 
-	FOR_EACH_PTR(ep->accesses, sym) {
-		simplify_one_symbol(ep, sym);
-	} END_FOR_EACH_PTR(sym);
+	FOR_EACH_PTR(ep->accesses, pseudo) {
+		simplify_one_symbol(ep, pseudo->sym);
+	} END_FOR_EACH_PTR(pseudo);
 }
 
 static void mark_bb_reachable(struct basic_block *bb, unsigned long generation)
