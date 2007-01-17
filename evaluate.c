@@ -74,6 +74,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 	sym->array_size = alloc_const_expression(expr->pos, length);
 	sym->bit_size = bits_in_char * length;
 	sym->ctype.alignment = 1;
+	sym->string = 1;
 	sym->ctype.modifiers = MOD_STATIC;
 	sym->ctype.base_type = array;
 	sym->initializer = initstr;
