@@ -70,6 +70,50 @@ struct statement *alloc_statement(struct position pos, int type)
 
 static struct token *struct_declaration_list(struct token *token, struct symbol_list **list);
 
+static int apply_modifiers(struct position pos, struct ctype *ctype)
+{
+	struct symbol *base;
+
+	while ((base = ctype->base_type)) {
+		switch (base->type) {
+		case SYM_FN:
+		case SYM_ENUM:
+		case SYM_ARRAY:
+		case SYM_BITFIELD:
+		case SYM_PTR:
+			ctype = &base->ctype;
+			continue;
+		}
+		break;
+	}
+
+	/* Turn the "virtual types" into real types with real sizes etc */
+	if (ctype->base_type == &int_type) {
+		ctype->base_type = ctype_integer(ctype->modifiers);
+		ctype->modifiers &= ~MOD_SPECIFIER;
+	} else if (ctype->base_type == &fp_type) {
+		ctype->base_type = ctype_fp(ctype->modifiers);
+		ctype->modifiers &= ~MOD_SPECIFIER;
+	}
+
+	if (ctype->modifiers & MOD_BITWISE) {
+		struct symbol *type;
+		ctype->modifiers &= ~(MOD_BITWISE | MOD_SPECIFIER);
+		if (!is_int_type(ctype->base_type)) {
+			sparse_error(pos, "invalid modifier");
+			return 1;
+		}
+		type = alloc_symbol(pos, SYM_BASETYPE);
+		*type = *ctype->base_type;
+		type->ctype.base_type = ctype->base_type;
+		type->type = SYM_RESTRICT;
+		type->ctype.modifiers &= ~MOD_SPECIFIER;
+		ctype->base_type = type;
+		create_fouled(type);
+	}
+	return 0;
+}
+
 static struct symbol * indirect(struct position pos, struct ctype *ctype, int type)
 {
 	struct symbol *sym = alloc_symbol(pos, type);
@@ -724,7 +768,6 @@ static void check_modifiers(struct position *pos, struct symbol *s, unsigned lon
 		     modifier_string (wrong));
 }
 
-
 static struct token *declaration_specifiers(struct token *next, struct ctype *ctype, int qual)
 {
 	struct token *token;
@@ -778,7 +821,6 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 		apply_ctype(token->pos, &thistype, ctype);
 	}
 
-	/* Turn the "virtual types" into real types with real sizes etc */
 	if (!ctype->base_type) {
 		struct symbol *base = &incomplete_ctype;
 
@@ -790,28 +832,6 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 		if (ctype->modifiers & MOD_SPECIFIER)
 			base = &int_type;
 		ctype->base_type = base;
-	}
-	if (ctype->base_type == &int_type) {
-		ctype->base_type = ctype_integer(ctype->modifiers);
-		ctype->modifiers &= ~MOD_SPECIFIER;
-	} else if (ctype->base_type == &fp_type) {
-		ctype->base_type = ctype_fp(ctype->modifiers);
-		ctype->modifiers &= ~MOD_SPECIFIER;
-	}
-	if (ctype->modifiers & MOD_BITWISE) {
-		struct symbol *type;
-		ctype->modifiers &= ~(MOD_BITWISE | MOD_SPECIFIER);
-		if (!is_int_type(ctype->base_type)) {
-			sparse_error(token->pos, "invalid modifier");
-			return token;
-		}
-		type = alloc_symbol(token->pos, SYM_BASETYPE);
-		*type = *ctype->base_type;
-		type->ctype.base_type = ctype->base_type;
-		type->type = SYM_RESTRICT;
-		type->ctype.modifiers &= ~MOD_SPECIFIER;
-		ctype->base_type = type;
-		create_fouled(type);
 	}
 	return token;
 }
@@ -947,7 +967,7 @@ static struct token *handle_bitfield(struct token *token, struct symbol *decl)
 	struct symbol *bitfield;
 	long long width;
 
-	if (!is_int_type(ctype->base_type)) {
+	if (ctype->base_type != &int_type && !is_int_type(ctype->base_type)) {
 		sparse_error(token->pos, "invalid bitfield specifier for type %s.",
 			show_typename(ctype->base_type));
 		// Parse this to recover gracefully.
@@ -968,15 +988,16 @@ static struct token *handle_bitfield(struct token *token, struct symbol *decl)
 		width = -1;
 	} else if (decl->ident) {
 		struct symbol *base_type = bitfield->ctype.base_type;
-		int is_signed = !(base_type->ctype.modifiers & MOD_UNSIGNED);
+		struct symbol *bitfield_type = base_type == &int_type ? bitfield : base_type;
+		int is_signed = !(bitfield_type->ctype.modifiers & MOD_UNSIGNED);
 		if (Wone_bit_signed_bitfield && width == 1 && is_signed) {
 			// Valid values are either {-1;0} or {0}, depending on integer
 			// representation.  The latter makes for very efficient code...
 			sparse_error(token->pos, "dubious one-bit signed bitfield");
 		}
 		if (Wdefault_bitfield_sign &&
-		    base_type->type != SYM_ENUM &&
-		    !(base_type->ctype.modifiers & MOD_EXPLICITLY_SIGNED) &&
+		    bitfield_type->type != SYM_ENUM &&
+		    !(bitfield_type->ctype.modifiers & MOD_EXPLICITLY_SIGNED) &&
 		    is_signed) {
 			// The sign of bitfields is unspecified by default.
 			sparse_error(token->pos, "dubious bitfield without explicit `signed' or `unsigned'");
@@ -1001,6 +1022,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 			token = handle_bitfield(token, decl);
 			token = handle_attributes(token, &decl->ctype);
 		}
+		apply_modifiers(token->pos, &decl->ctype);
 		add_symbol(list, decl);
 		if (!match_op(token, ','))
 			break;
@@ -1034,6 +1056,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol **
 	*tree = sym;
 	token = declarator(token, sym, &ident);
 	sym->ident = ident;
+	apply_modifiers(token->pos, &sym->ctype);
 	return token;
 }
 
@@ -1042,7 +1065,9 @@ struct token *typename(struct token *token, struct symbol **p)
 	struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
 	*p = sym;
 	token = declaration_specifiers(token, &sym->ctype, 0);
-	return declarator(token, sym, NULL);
+	token = declarator(token, sym, NULL);
+	apply_modifiers(token->pos, &sym->ctype);
+	return token;
 }
 
 static struct token *expression_statement(struct token *token, struct expression **tree)
@@ -1770,6 +1795,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	decl = alloc_symbol(token->pos, SYM_NODE);
 	decl->ctype = ctype;
 	token = declarator(token, decl, &ident);
+	apply_modifiers(token->pos, &decl->ctype);
 
 	/* Just a type declaration? */
 	if (!ident)
@@ -1830,6 +1856,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		decl->ctype = ctype;
 		token = declaration_specifiers(token, &decl->ctype, 1);
 		token = declarator(token, decl, &ident);
+		apply_modifiers(token->pos, &decl->ctype);
 		if (!ident) {
 			sparse_error(token->pos, "expected identifier name in type definition");
 			return token;
