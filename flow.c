@@ -987,7 +987,7 @@ out:
 			replace_bb_in_list(&child->parents, bb, parent, 0);
 		} END_FOR_EACH_PTR(child);
 
-		delete_last_instruction(&parent->insns);
+		kill_instruction(delete_last_instruction(&parent->insns));
 		FOR_EACH_PTR(bb->insns, insn) {
 			if (insn->bb) {
 				assert(insn->bb == bb);
