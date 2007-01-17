@@ -195,6 +195,7 @@ try_to_rewrite_target:
 	if (bb_list_size(target->parents) != 1)
 		return retval;
 	insert_branch(target, insn, final);
+	kill_instruction(insn);
 	return 1;
 }
 

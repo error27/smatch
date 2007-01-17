@@ -217,6 +217,11 @@ void kill_instruction(struct instruction *insn)
 		kill_use(&insn->src2);
 		kill_use(&insn->src3);
 		return;
+	case OP_BR:
+		insn->bb = NULL;
+		repeat_phase |= REPEAT_CSE;
+		if (insn->cond)
+			kill_use(&insn->cond);
 	}
 }
 
