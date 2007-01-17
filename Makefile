@@ -22,7 +22,8 @@ LIBDIR=$(PREFIX)/lib
 INCLUDEDIR=$(PREFIX)/include
 PKGCONFIGDIR=$(PREFIX)/share/pkgconfig
 
-PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse test-linearize example test-unssa test-dissect
+PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse test-linearize example \
+	 test-unssa test-dissect ctags
 INST_PROGRAMS=sparse cgcc
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
@@ -93,6 +94,9 @@ test-unssa: test-unssa.o $(LIBS)
 test-dissect: test-dissect.o $(LIBS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
+ctags: ctags.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+
 $(LIB_FILE): $(LIB_OBJS)
 	$(AR) rcs $@ $(LIB_OBJS)
 
@@ -122,6 +126,7 @@ test-lexing.o: $(LIB_H)
 test-parsing.o: $(LIB_H)
 test-linearize.o: $(LIB_H)
 test-dissect.o: $(LIB_H)
+ctags.o: $(LIB_H)
 compile.o: $(LIB_H) compile.h
 compile-i386.o: $(LIB_H) compile.h
 tokenize.o: $(LIB_H)

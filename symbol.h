@@ -133,6 +133,10 @@ struct symbol {
 	union /* backend */ {
 		struct basic_block *bb_target;	/* label */
 		void *aux;			/* Auxiliary info, eg. backend information */
+		struct {			/* sparse ctags */
+			char kind;
+			unsigned char visited:1;
+		};
 	};
 	pseudo_t pseudo;
 };
