@@ -192,7 +192,10 @@ int Wdo_while = 1;
 int Wuninitialized = 1;
 int preprocess_only;
 char *include;
-int include_fd = -1;
+
+#define CMDLINE_INCLUDE 20
+int cmdline_include_nr = 0;
+struct cmdline_include cmdline_include[CMDLINE_INCLUDE];
 
 
 void add_pre_buffer(const char *fmt, ...)
@@ -262,26 +265,26 @@ static char **handle_switch_I(char *arg, char **next)
 	return next;
 }
 
+static void add_cmdline_include(char *filename)
+{
+	int fd = open(filename, O_RDONLY);
+	if (fd < 0) {
+		perror(filename);
+		return;
+	}
+	if (cmdline_include_nr >= CMDLINE_INCLUDE)
+		die("too many include files for %s\n", filename);
+	cmdline_include[cmdline_include_nr].filename = filename;
+	cmdline_include[cmdline_include_nr].fd = fd;
+	cmdline_include_nr++;
+}
+
 static char **handle_switch_i(char *arg, char **next)
 {
-	if (*next && !strcmp(arg, "include")) {
-		char *name = *++next;
-		int fd = open(name, O_RDONLY);
-
-		include_fd = fd;
-		include = name;
-		if (fd < 0)
-			perror(name);
-	}
-	if (*next && !strcmp(arg, "imacros")) {
-		char *name = *++next;
-		int fd = open(name, O_RDONLY);
-
-		include_fd = fd;
-		include = name;
-		if (fd < 0)
-			perror(name);
-	}
+	if (*next && !strcmp(arg, "include"))
+		add_cmdline_include(*++next);
+	else if (*next && !strcmp(arg, "imacros"))
+		add_cmdline_include(*++next);
 	else if (*next && !strcmp(arg, "isystem")) {
 		char *path = *++next;
 		if (!path)
@@ -623,12 +626,14 @@ static struct symbol_list *sparse_file(const char *filename)
 static struct symbol_list *sparse_initial(void)
 {
 	struct token *token;
+	int i;
 
 	// Prepend any "include" file to the stream.
 	// We're in global scope, it will affect all files!
 	token = NULL;
-	if (include_fd >= 0)
-		token = tokenize(include, include_fd, NULL, includepath);
+	for (i = cmdline_include_nr - 1; i >= 0; i--)
+		token = tokenize(cmdline_include[i].filename, cmdline_include[i].fd,
+				 token, includepath);
 
 	// Prepend the initial built-in stream
 	token = tokenize_buffer(pre_buffer, pre_buffer_size, token);

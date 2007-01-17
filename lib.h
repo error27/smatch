@@ -33,6 +33,15 @@ struct position {
 		     noexpand:1;
 };
 
+struct cmdline_include {
+	char *filename;
+	int fd;
+};
+
+extern struct cmdline_include cmdline_include[];
+extern int cmdline_include_nr;
+
+
 struct ident;
 struct token;
 struct symbol;
