@@ -119,7 +119,7 @@ ALLOCATOR(expression, "expressions");
 ALLOCATOR(statement, "statements");
 ALLOCATOR(string, "strings");
 ALLOCATOR(scope, "scopes");
-__ALLOCATOR(void, 0, 1, "bytes", bytes);
+__DO_ALLOCATOR(void, 0, 1, "bytes", bytes);
 ALLOCATOR(basic_block, "basic_block");
 ALLOCATOR(entrypoint, "entrypoint");
 ALLOCATOR(instruction, "instruction");

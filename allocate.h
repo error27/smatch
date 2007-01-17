@@ -31,7 +31,7 @@ extern void show_allocations(struct allocator_struct *);
 	extern void protect_##x##_alloc(void);
 #define DECLARE_ALLOCATOR(x) __DECLARE_ALLOCATOR(struct x, x)
 
-#define __ALLOCATOR(type, objsize, objalign, objname, x)	\
+#define __DO_ALLOCATOR(type, objsize, objalign, objname, x)	\
 	static struct allocator_struct x##_allocator = {	\
 		.name = objname,				\
 		.alignment = objalign,				\
@@ -57,7 +57,10 @@ extern void show_allocations(struct allocator_struct *);
 		protect_allocations(&x##_allocator);		\
 	}
 
-#define ALLOCATOR(x, n) __ALLOCATOR(struct x, sizeof(struct x), __alignof__(struct x), n, x)
+#define __ALLOCATOR(t, n, x) 					\
+	__DO_ALLOCATOR(t, sizeof(t), __alignof__(t), n, x)
+
+#define ALLOCATOR(x, n) __ALLOCATOR(struct x, n, x)
 
 DECLARE_ALLOCATOR(ident);
 DECLARE_ALLOCATOR(token);

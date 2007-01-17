@@ -10,6 +10,11 @@
 #include <assert.h>
 
 #include "ptrlist.h"
+#include "allocate.h"
+#include "compat.h"
+
+__DECLARE_ALLOCATOR(struct ptr_list, ptrlist);
+__ALLOCATOR(struct ptr_list, "ptr list", ptrlist);
 
 int ptr_list_size(struct ptr_list *head)
 {
@@ -72,14 +77,14 @@ restart:
 			if (!entry->nr) {
 				struct ptr_list *prev;
 				if (next == entry) {
-					free(entry);
+					__free_ptrlist(entry);
 					*listp = NULL;
 					return;
 				}
 				prev = entry->prev;
 				prev->next = next;
 				next->prev = prev;
-				free(entry);
+				__free_ptrlist(entry);
 				if (entry == head) {
 					*listp = next;
 					head = next;
@@ -95,7 +100,7 @@ restart:
 void split_ptr_list_head(struct ptr_list *head)
 {
 	int old = head->nr, nr = old / 2;
-	struct ptr_list *newlist = malloc(sizeof(*newlist));
+	struct ptr_list *newlist = __alloc_ptrlist(0);
 	struct ptr_list *next = head->next;
 
 	old -= nr;
@@ -122,9 +127,7 @@ void **__add_ptr_list(struct ptr_list **listp, void *ptr, unsigned long tag)
 	ptr = (void *)(tag | (unsigned long)ptr);
 
 	if (!list || (nr = (last = list->prev)->nr) >= LIST_NODE_NR) {
-		struct ptr_list *newlist = malloc(sizeof(*newlist));
-		assert(newlist);
-		memset(newlist, 0, sizeof(*newlist));
+		struct ptr_list *newlist = __alloc_ptrlist(0);
 		if (!list) {
 			newlist->next = newlist;
 			newlist->prev = newlist;
@@ -214,7 +217,7 @@ void * delete_ptr_list_last(struct ptr_list **head)
 		last->prev->next = first;
 		if (last == first)
 			*head = NULL;
-		free(last);
+		__free_ptrlist(last);
 	}
 	return ptr;
 }
@@ -238,7 +241,7 @@ void __free_ptr_list(struct ptr_list **listp)
 	while (list) {
 		tmp = list;
 		list = list->next;
-		free(tmp);
+		__free_ptrlist(tmp);
 	}
 
 	*listp = NULL;
