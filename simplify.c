@@ -222,6 +222,7 @@ void kill_instruction(struct instruction *insn)
 		repeat_phase |= REPEAT_CSE;
 		if (insn->cond)
 			kill_use(&insn->cond);
+		return;
 	}
 }
 
