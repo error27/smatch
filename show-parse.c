@@ -56,11 +56,12 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 
 	if (!sym)
 		return;
-	fprintf(stderr, "%.*s%s%3d:%lu %lx %s (as: %d) %p (%s:%d:%d)\n",
+	fprintf(stderr, "%.*s%s%3d:%lu %s %s (as: %d) %p (%s:%d:%d) %s\n",
 		indent, indent_string, typestr[sym->type],
 		sym->bit_size, sym->ctype.alignment,
-		sym->ctype.modifiers, show_ident(sym->ident), sym->ctype.as,
-		sym, stream_name(sym->pos.stream), sym->pos.line, sym->pos.pos);
+		modifier_string(sym->ctype.modifiers), show_ident(sym->ident), sym->ctype.as,
+		sym, stream_name(sym->pos.stream), sym->pos.line, sym->pos.pos,
+		builtin_typename(sym) ?: "");
 	i = 0;
 	FOR_EACH_PTR(sym->ctype.contexts, context) {
 		/* FIXME: should print context expression */
@@ -98,7 +99,7 @@ const char *modifier_string(unsigned long mod)
 	const char *res,**ptr, *names[] = {
 		"auto", "register", "static", "extern",
 		"const", "volatile", "[signed]", "[unsigned]",
-		"[char]", "[short]", "[long]", "[long]",
+		"[char]", "[short]", "[long]", "[long long]",
 		"[typdef]", "[structof]", "[unionof]", "[enum]",
 		"[typeof]", "[attribute]", "inline", "[addressable]",
 		"[nocast]", "[noderef]", "[accessed]", "[toplevel]",
@@ -171,53 +172,74 @@ static void append(struct type_name *name, const char *fmt, ...)
 	name->end += n;
 }
 
+static struct ctype_name {
+	struct symbol *sym;
+	const char *name;
+} typenames[] = {
+	{ & char_ctype,  "char" },
+	{ &schar_ctype,  "signed char" },
+	{ &uchar_ctype,  "unsigned char" },
+	{ & short_ctype, "short" },
+	{ &sshort_ctype, "signed short" },
+	{ &ushort_ctype, "unsigned short" },
+	{ & int_ctype,   "int" },
+	{ &sint_ctype,   "signed int" },
+	{ &uint_ctype,   "unsigned int" },
+	{ &slong_ctype,  "signed long" },
+	{ & long_ctype,  "long" },
+	{ &ulong_ctype,  "unsigned long" },
+	{ & llong_ctype, "long long" },
+	{ &sllong_ctype, "signed long long" },
+	{ &ullong_ctype, "unsigned long long" },
+
+	{ &void_ctype,   "void" },
+	{ &bool_ctype,   "bool" },
+	{ &string_ctype, "string" },
+
+	{ &float_ctype,  "float" },
+	{ &double_ctype, "double" },
+	{ &ldouble_ctype,"long double" },
+	{ &incomplete_ctype, "incomplete type" },
+	{ &int_type, "abstract int" },
+	{ &fp_type, "abstract fp" },
+	{ &label_ctype, "label type" },
+	{ &bad_ctype, "bad type" },
+};
+
+const char *builtin_typename(struct symbol *sym)
+{
+	int i;
+
+	for (i = 0; i < sizeof(typenames)/sizeof(typenames[0]); i++)
+		if (typenames[i].sym == sym)
+			return typenames[i].name;
+	return NULL;
+}
+
+const char *builtin_ctypename(struct ctype *ctype)
+{
+	int i;
+
+	for (i = 0; i < sizeof(typenames)/sizeof(typenames[0]); i++)
+		if (&typenames[i].sym->ctype == ctype)
+			return typenames[i].name;
+	return NULL;
+}
+
 static void do_show_type(struct symbol *sym, struct type_name *name)
 {
-	int i, modlen;
+	int modlen;
 	const char *mod;
-	static struct ctype_name {
-		struct symbol *sym;
-		const char *name;
-	} typenames[] = {
-		{ & char_ctype,  "char" },
-		{ &schar_ctype,  "signed char" },
-		{ &uchar_ctype,  "unsigned char" },
-		{ & short_ctype, "short" },
-		{ &sshort_ctype, "signed short" },
-		{ &ushort_ctype, "unsigned short" },
-		{ & int_ctype,   "int" },
-		{ &sint_ctype,   "signed int" },
-		{ &uint_ctype,   "unsigned int" },
-		{ &slong_ctype,  "signed long" },
-		{ & long_ctype,  "long" },
-		{ &ulong_ctype,  "unsigned long" },
-		{ & llong_ctype, "long long" },
-		{ &sllong_ctype, "signed long long" },
-		{ &ullong_ctype, "unsigned long long" },
-
-		{ &void_ctype,   "void" },
-		{ &bool_ctype,   "bool" },
-		{ &string_ctype, "string" },
-
-		{ &float_ctype,  "float" },
-		{ &double_ctype, "double" },
-		{ &ldouble_ctype,"long double" },
-		{ &incomplete_ctype, "incomplete type" },
-		{ &label_ctype, "label type" },
-		{ &bad_ctype, "bad type" },
-	};
-
+	const char *typename;
 	if (!sym)
 		return;
 
-	for (i = 0; i < sizeof(typenames)/sizeof(typenames[0]); i++) {
-		if (typenames[i].sym == sym) {
-			int len = strlen(typenames[i].name);
-			*--name->start = ' ';
-			name->start -= len;
-			memcpy(name->start, typenames[i].name, len);
-			return;
-		}
+	if ((typename = builtin_typename(sym))) {
+		int len = strlen(typename);
+		*--name->start = ' ';
+		name->start -= len;
+		memcpy(name->start, typename, len);
+		return;
 	}
 
 	/* Prepend */
