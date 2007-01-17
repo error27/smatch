@@ -19,6 +19,7 @@ test-dissect
 test-linearize
 example
 test-unssa
+ctags
 
 # tags
 tags
