@@ -287,7 +287,7 @@ static inline int has_use_list(pseudo_t p)
 	return (p && p->type != PSEUDO_VOID && p->type != PSEUDO_VAL);
 }
 
-static inline struct pseudo_user* alloc_pseudo_user(struct instruction *insn, pseudo_t *pp)
+static inline struct pseudo_user *alloc_pseudo_user(struct instruction *insn, pseudo_t *pp)
 {
 	struct pseudo_user *user = __alloc_pseudo_user(0);
 	user->userp = pp;

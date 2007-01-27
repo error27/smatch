@@ -56,7 +56,7 @@ extern int linearize_ptr_list(struct ptr_list *, void **, int);
 	MKTYPE(*(list), (CHECK_TYPE(*(list),(entry)),__add_ptr_list((struct ptr_list **)(list), (entry), (tag))))
 #define add_ptr_list_notag(list,entry)										\
 	MKTYPE(*(list), (CHECK_TYPE(*(list),(entry)),__add_ptr_list((struct ptr_list **)(list),			\
-								    (void*)((unsigned long)(entry) & ~3UL), 	\
+								    (void *)((unsigned long)(entry) & ~3UL), 	\
 								    (unsigned long)(entry) & 3)))
 #define add_ptr_list(list,entry) \
 	add_ptr_list_tag(list,entry,0)

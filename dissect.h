@@ -18,13 +18,13 @@
 
 struct reporter
 {
-	void (*r_symdef)(struct symbol*);
+	void (*r_symdef)(struct symbol *);
 
-	void (*r_symbol)(unsigned, struct position*, struct symbol*);
-	void (*r_member)(unsigned, struct position*, struct symbol*, struct symbol*);
+	void (*r_symbol)(unsigned, struct position *, struct symbol *);
+	void (*r_member)(unsigned, struct position *, struct symbol *, struct symbol *);
 };
 
-extern void dissect(struct symbol_list*, struct reporter*);
+extern void dissect(struct symbol_list *, struct reporter *);
 
 #define	MK_IDENT(s)	({				\
 	static struct {					\

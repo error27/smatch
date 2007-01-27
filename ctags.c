@@ -22,14 +22,14 @@ static void examine_symbol(struct symbol *sym);
 
 #define MAX(_x,_y) ((_x) > (_y) ? (_x) : (_y))
 
-static int cmp_sym(const void* m, const void*n)
+static int cmp_sym(const void *m, const void *n)
 {
-	struct ident *a = ((struct symbol*)m)->ident;
-	struct ident *b = ((struct symbol*)n)->ident;
+	struct ident *a = ((struct symbol *)m)->ident;
+	struct ident *b = ((struct symbol *)n)->ident;
 	int ret = strncmp(a->name, b->name, MAX(a->len, b->len));
 	if (!ret) {
-		struct position a = ((struct symbol*)m)->pos;
-		struct position b = ((struct symbol*)n)->pos;
+		struct position a = ((struct symbol *)m)->pos;
+		struct position b = ((struct symbol *)n)->pos;
 
 		ret = strcmp(stream_name(a.stream), stream_name(b.stream));
 		if (!ret)
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
 		examine_symbol_list(file_scope->symbols);
 	} END_FOR_EACH_PTR_NOTAG(file);
 	examine_symbol_list(global_scope->symbols);
-	sort_list((struct ptr_list**)&taglist, cmp_sym);
+	sort_list((struct ptr_list **)&taglist, cmp_sym);
 	show_tags(taglist);
 	return 0;
 }

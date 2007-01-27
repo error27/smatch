@@ -37,7 +37,7 @@ main (int argc, char **argv)
   do {
     l2->nr = MIN (l2->nr, rand () % 3);
     for (i = 0; i < l2->nr; i++)
-      *((int*)(l2->list[i])) = rand();
+      *((int *)(l2->list[i])) = rand();
     l2 = l2->next;
   } while (l2 != l);
   sort_list (&l, int_cmp);

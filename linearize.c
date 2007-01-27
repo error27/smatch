@@ -72,7 +72,7 @@ static struct basic_block *alloc_basic_block(struct entrypoint *ep, struct posit
 	return bb;
 }
 
-static struct multijmp* alloc_multijmp(struct basic_block *target, int begin, int end)
+static struct multijmp *alloc_multijmp(struct basic_block *target, int begin, int end)
 {
 	struct multijmp *multijmp = __alloc_multijmp(0);
 	multijmp->target = target;
@@ -154,7 +154,7 @@ const char *show_pseudo(pseudo_t pseudo)
 	return buf;
 }
 
-static const char* opcodes[] = {
+static const char *opcodes[] = {
 	[OP_BADOP] = "bad_op",
 
 	/* Fn entrypoint */

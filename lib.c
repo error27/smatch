@@ -449,7 +449,7 @@ static char **handle_dirafter(char *arg, char **next)
 
 struct switches {
 	const char *name;
-	char **(*fn)(char *, char**);
+	char **(*fn)(char *, char **);
 };
 
 char **handle_switch(char *arg, char **next)

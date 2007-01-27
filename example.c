@@ -14,7 +14,7 @@
 #include "storage.h"
 #include "target.h"
 
-static const char* opcodes[] = {
+static const char *opcodes[] = {
 	[OP_BADOP] = "bad_op",
 
 	/* Fn entrypoint */

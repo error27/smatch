@@ -99,36 +99,36 @@ extern int Wuninitialized;
 
 extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);
-extern struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list** files);
+extern struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list **files);
 extern struct symbol_list *__sparse(char *filename);
 extern struct symbol_list *sparse(char *filename);
 
-static inline int symbol_list_size(struct symbol_list* list)
+static inline int symbol_list_size(struct symbol_list *list)
 {
 	return ptr_list_size((struct ptr_list *)(list));
 }
 
-static inline int statement_list_size(struct statement_list* list)
+static inline int statement_list_size(struct statement_list *list)
 {
 	return ptr_list_size((struct ptr_list *)(list));
 }
 
-static inline int expression_list_size(struct expression_list* list)
+static inline int expression_list_size(struct expression_list *list)
 {
 	return ptr_list_size((struct ptr_list *)(list));
 }
 
-static inline int instruction_list_size(struct instruction_list* list)
+static inline int instruction_list_size(struct instruction_list *list)
 {
 	return ptr_list_size((struct ptr_list *)(list));
 }
 
-static inline int pseudo_list_size(struct pseudo_list* list)
+static inline int pseudo_list_size(struct pseudo_list *list)
 {
 	return ptr_list_size((struct ptr_list *)(list));
 }
 
-static inline int bb_list_size(struct basic_block_list* list)
+static inline int bb_list_size(struct basic_block_list *list)
 {
 	return ptr_list_size((struct ptr_list *)(list));
 }

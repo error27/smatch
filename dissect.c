@@ -42,7 +42,7 @@ static void do_sym_list(struct symbol_list *list);
 
 static struct symbol
 	*base_type(struct symbol *sym),
-	*do_initializer(struct symbol *type, struct expression* expr),
+	*do_initializer(struct symbol *type, struct expression *expr),
 	*do_expression(usage_t mode, struct expression *expr),
 	*do_statement(usage_t mode, struct statement *stmt);
 
@@ -497,7 +497,7 @@ static struct symbol *do_statement(usage_t mode, struct statement *stmt)
 	return ret;
 }
 
-static struct symbol *do_initializer(struct symbol *type, struct expression* expr)
+static struct symbol *do_initializer(struct symbol *type, struct expression *expr)
 {
 	struct symbol *m_type;
 	struct expression *m_expr;

@@ -1,5 +1,5 @@
 int
-foo (int (*func) (undef, void*), void* data)
+foo (int (*func) (undef, void *), void *data)
 {
   int err = 0;
   while (cur) {
