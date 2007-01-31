@@ -1036,7 +1036,8 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 static struct token *struct_declaration_list(struct token *token, struct symbol_list **list)
 {
 	while (!match_op(token, '}')) {
-		token = declaration_list(token, list);
+		if (!match_op(token, ';'))
+			token = declaration_list(token, list);
 		if (!match_op(token, ';')) {
 			sparse_error(token->pos, "expected ; at end of declaration");
 			break;
