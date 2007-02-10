@@ -99,6 +99,7 @@ extern int Wdo_while;
 extern int Wuninitialized;
 
 extern int dbg_entry;
+extern int dbg_dead;
 
 extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);

@@ -2139,7 +2139,8 @@ repeat:
 	}
 
 	/* Finally, add deathnotes to pseudos now that we have them */
-	track_pseudo_death(ep);
+	if (dbg_dead)
+		track_pseudo_death(ep);
 
 	return ep;
 }

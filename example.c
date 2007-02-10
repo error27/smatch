@@ -1946,6 +1946,7 @@ int main(int argc, char **argv)
 	char *file;
 
 	compile(sparse_initialize(argc, argv, &filelist));
+	dbg_dead = 1;
 	FOR_EACH_PTR_NOTAG(filelist, file) {
 		compile(sparse(file));
 	} END_FOR_EACH_PTR_NOTAG(file);

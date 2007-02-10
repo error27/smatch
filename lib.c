@@ -205,7 +205,8 @@ int Wenum_mismatch = 1;
 int Wdo_while = 1;
 int Wuninitialized = 1;
 
-int dbg_entry;
+int dbg_entry = 0;
+int dbg_dead = 0;
 
 int preprocess_only;
 char *include;
@@ -405,6 +406,7 @@ static char **handle_switch_W(char *arg, char **next)
 
 static struct warning debugs[] = {
 	{ "entry", &dbg_entry},
+	{ "dead", &dbg_dead},
 };
 
 
