@@ -272,7 +272,7 @@ static char *show_asm(char *buf, struct instruction *insn)
 const char *show_instruction(struct instruction *insn)
 {
 	int opcode = insn->opcode;
-	static char buffer[1024];
+	static char buffer[4096];
 	char *buf;
 
 	buf = buffer;
@@ -457,6 +457,9 @@ const char *show_instruction(struct instruction *insn)
 	default:
 		break;
 	}
+
+	if (buf >= buffer + sizeof buffer)
+		die("instruction buffer overflowed %d\n", buf - buffer);
 	do { --buf; } while (*buf == ' ');
 	*++buf = 0;
 	return buffer;
