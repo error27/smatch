@@ -116,14 +116,16 @@ const char *show_pseudo(pseudo_t pseudo)
 		}
 		expr = sym->initializer;
 		snprintf(buf, 64, "<anon symbol:%p>", sym);
-		switch (expr->type) {
-		case EXPR_VALUE:
-			snprintf(buf, 64, "<symbol value: %lld>", expr->value);
-			break;
-		case EXPR_STRING:
-			return show_string(expr->string);
-		default:
-			break;
+		if (expr) {
+			switch (expr->type) {
+			case EXPR_VALUE:
+				snprintf(buf, 64, "<symbol value: %lld>", expr->value);
+				break;
+			case EXPR_STRING:
+				return show_string(expr->string);
+			default:
+				break;
+			}
 		}
 		break;
 	}
