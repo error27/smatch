@@ -1282,11 +1282,11 @@ static void examine_fn_arguments(struct symbol *fn)
 				else
 					ptr->ctype.base_type = arg;
 				ptr->ctype.as |= s->ctype.as;
-				ptr->ctype.modifiers |= s->ctype.modifiers;
+				ptr->ctype.modifiers |= s->ctype.modifiers & MOD_PTRINHERIT;
 
 				s->ctype.base_type = ptr;
 				s->ctype.as = 0;
-				s->ctype.modifiers = 0;
+				s->ctype.modifiers &= ~MOD_PTRINHERIT;
 				s->bit_size = 0;
 				s->examined = 0;
 				examine_symbol_type(s);
@@ -1312,8 +1312,6 @@ static struct symbol *convert_to_as_mod(struct symbol *sym, int as, int mod)
 	}
 	return sym;
 }
-
-#define MOD_PTRINHERIT (MOD_VOLATILE | MOD_CONST | MOD_NODEREF | MOD_STORAGE)
 
 static struct symbol *create_pointer(struct expression *expr, struct symbol *sym, int degenerate)
 {
@@ -2309,7 +2307,6 @@ static int evaluate_symbol_call(struct expression *expr)
 		int ret;
 		struct symbol *curr = current_fn;
 		current_fn = ctype->ctype.base_type;
-		examine_fn_arguments(current_fn);
 
 		ret = inline_function(expr, ctype);
 
@@ -2336,6 +2333,7 @@ static struct symbol *evaluate_call(struct expression *expr)
 	if (ctype->type == SYM_PTR || ctype->type == SYM_ARRAY)
 		ctype = get_base_type(ctype);
 
+	examine_fn_arguments(ctype);
         if (sym->type == SYM_NODE && fn->type == EXPR_PREOP &&
 	    sym->op && sym->op->args) {
 		if (!sym->op->args(expr))
