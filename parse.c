@@ -34,6 +34,7 @@ struct symbol_list *function_computed_target_list;
 struct statement_list *function_computed_goto_list;
 
 static struct token *statement(struct token *token, struct statement **tree);
+static struct token *handle_attributes(struct token *token, struct ctype *ctype);
 
 // Add a symbol to the list of function-local symbols
 static void fn_local_symbol(struct symbol *sym)
@@ -156,6 +157,7 @@ static struct token *struct_union_enum_specifier(enum type type,
 	struct position *repos;
 
 	ctype->modifiers = 0;
+	token = handle_attributes(token, ctype);
 	if (token_type(token) == TOKEN_IDENT) {
 		sym = lookup_symbol(token->ident, NS_STRUCT);
 		if (!sym ||
