@@ -861,7 +861,7 @@ static struct token *handle_attributes(struct token *token, struct ctype *ctype)
 			apply_ctype(token->pos, &thistype, ctype);
 			continue;
 		}
-		if (match_idents(token, &asm_ident, &__asm_ident, &__asm___ident)) {
+		if (match_idents(token, &asm_ident, &__asm_ident, &__asm___ident, NULL)) {
 			struct expression *expr;
 			token = expect(token->next, '(', "after asm");
 			token = parse_expression(token->next, &expr);
