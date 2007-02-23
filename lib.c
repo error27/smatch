@@ -190,6 +190,9 @@ int Waddress_space = 1;
 int Wenum_mismatch = 1;
 int Wdo_while = 1;
 int Wuninitialized = 1;
+
+int dbg_entry;
+
 int preprocess_only;
 char *include;
 
@@ -234,14 +237,6 @@ static char **handle_switch_D(char *arg, char **next)
 static char **handle_switch_E(char *arg, char **next)
 {
 	preprocess_only = 1;
-	return next;
-}
-
-static char **handle_switch_v(char *arg, char **next)
-{
-	do {
-		verbose++;
-	} while (*++arg == 'v');
 	return next;
 }
 
@@ -352,14 +347,14 @@ enum {
 };
 
 
-static char **handle_switch_W(char *arg, char **next)
+static char **handle_onoff_switch(char *arg, char **next, const struct warning warnings[], int n)
 {
 	int flag = WARNING_ON;
 	char *p = arg + 1;
 	unsigned i;
 
 	if (!strcmp(p, "all")) {
-		for (i = 0; i < sizeof(warnings) / sizeof(warnings[0]); i++) {
+		for (i = 0; i < n; i++) {
 			if (*warnings[i].flag != WARNING_FORCE_OFF)
 				*warnings[i].flag = WARNING_ON;
 		}
@@ -373,7 +368,7 @@ static char **handle_switch_W(char *arg, char **next)
 		flag = WARNING_FORCE_OFF;
 	}
 
-	for (i = 0; i < sizeof(warnings) / sizeof(warnings[0]); i++) {
+	for (i = 0; i < n; i++) {
 		if (!strcmp(p,warnings[i].name)) {
 			*warnings[i].flag = flag;
 			return next;
@@ -381,17 +376,56 @@ static char **handle_switch_W(char *arg, char **next)
 	}
 
 	// Unknown.
+	return NULL;
+}
+
+static char **handle_switch_W(char *arg, char **next)
+{
+	char ** ret = handle_onoff_switch(arg, next, warnings, sizeof warnings/sizeof warnings[0]);
+	if (ret)
+		return ret;
+
+	// Unknown.
 	return next;
+}
+
+static struct warning debugs[] = {
+	{ "entry", &dbg_entry},
+};
+
+
+static char **handle_switch_v(char *arg, char **next)
+{
+	char ** ret = handle_onoff_switch(arg, next, debugs, sizeof debugs/sizeof debugs[0]);
+	if (ret)
+		return ret;
+
+	// Unknown.
+	do {
+		verbose++;
+	} while (*++arg == 'v');
+	return next;
+}
+
+
+static void handle_onoff_switch_finalize(const struct warning warnings[], int n)
+{
+	unsigned i;
+
+	for (i = 0; i < n; i++) {
+		if (*warnings[i].flag == WARNING_FORCE_OFF)
+			*warnings[i].flag = WARNING_OFF;
+	}
 }
 
 static void handle_switch_W_finalize(void)
 {
-	unsigned i;
+	handle_onoff_switch_finalize(warnings, sizeof(warnings) / sizeof(warnings[0]));
+}
 
-	for (i = 0; i < sizeof(warnings) / sizeof(warnings[0]); i++) {
-		if (*warnings[i].flag == WARNING_FORCE_OFF)
-			*warnings[i].flag = WARNING_OFF;
-	}
+static void handle_switch_v_finalize(void)
+{
+	handle_onoff_switch_finalize(debugs, sizeof(debugs) / sizeof(debugs[0]));
 }
 
 static char **handle_switch_U(char *arg, char **next)
@@ -661,6 +695,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 		add_ptr_list_notag(filelist, arg);
 	}
 	handle_switch_W_finalize();
+	handle_switch_v_finalize();
 
 	list = NULL;
 	if (!ptr_list_empty(filelist)) {

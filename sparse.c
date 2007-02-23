@@ -264,8 +264,12 @@ static void check_symbols(struct symbol_list *list)
 
 		expand_symbol(sym);
 		ep = linearize_symbol(sym);
-		if (ep)
+		if (ep) {
+			if (dbg_entry)
+				show_entry(ep);
+
 			check_context(ep);
+		}
 	} END_FOR_EACH_PTR(sym);
 }
 

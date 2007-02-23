@@ -97,6 +97,8 @@ extern int Wcast_truncate;
 extern int Wdo_while;
 extern int Wuninitialized;
 
+extern int dbg_entry;
+
 extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);
 extern struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list **files);
