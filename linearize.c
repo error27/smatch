@@ -458,7 +458,7 @@ const char *show_instruction(struct instruction *insn)
 		break;
 	}
 
-	if (buf >= buffer + sizeof buffer)
+	if (buf >= buffer + sizeof(buffer))
 		die("instruction buffer overflowed %d\n", buf - buffer);
 	do { --buf; } while (*buf == ' ');
 	*++buf = 0;
