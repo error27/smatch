@@ -76,6 +76,7 @@ extern void info(struct position, const char *, ...) FORMAT_ATTR(2);
 extern void warning(struct position, const char *, ...) FORMAT_ATTR(2);
 extern void sparse_error(struct position, const char *, ...) FORMAT_ATTR(2);
 extern void error_die(struct position, const char *, ...) FORMAT_ATTR(2);
+extern void expression_error(struct expression *, const char *, ...) FORMAT_ATTR(2);
 #undef FORMAT_ATTR
 
 extern char **handle_switch(char *arg, char **next);

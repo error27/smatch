@@ -765,7 +765,7 @@ static int expand_call(struct expression *expr)
 	cost = expand_arguments(expr->args);
 	sym = fn->ctype;
 	if (!sym) {
-		sparse_error(expr->pos, "function has no type");
+		expression_error(expr, "function has no type");
 		return SIDE_EFFECTS;
 	}
 	if (sym->type == SYM_NODE)
@@ -885,7 +885,7 @@ static int expand_expression(struct expression *expr)
 {
 	if (!expr)
 		return 0;
-	if (!expr->ctype)
+	if (!expr->ctype || expr->ctype == &bad_ctype)
 		return UNSAFE;
 
 	switch (expr->type) {
@@ -964,7 +964,7 @@ static int expand_expression(struct expression *expr)
 	case EXPR_SIZEOF:
 	case EXPR_PTRSIZEOF:
 	case EXPR_ALIGNOF:
-		sparse_error(expr->pos, "internal front-end error: sizeof in expansion?");
+		expression_error(expr, "internal front-end error: sizeof in expansion?");
 		return UNSAFE;
 	}
 	return SIDE_EFFECTS;
@@ -975,7 +975,7 @@ static void expand_const_expression(struct expression *expr, const char *where)
 	if (expr) {
 		expand_expression(expr);
 		if (expr->type != EXPR_VALUE)
-			sparse_error(expr->pos, "Expected constant expression in %s", where);
+			expression_error(expr, "Expected constant expression in %s", where);
 	}
 }
 
@@ -1008,7 +1008,7 @@ static int expand_if_statement(struct statement *stmt)
 {
 	struct expression *expr = stmt->if_conditional;
 
-	if (!expr || !expr->ctype)
+	if (!expr || !expr->ctype || expr->ctype == &bad_ctype)
 		return UNSAFE;
 
 	expand_expression(expr);
@@ -1148,12 +1148,12 @@ long long get_expression_value(struct expression *expr)
 		return 0;
 	ctype = evaluate_expression(expr);
 	if (!ctype) {
-		sparse_error(expr->pos, "bad constant expression type");
+		expression_error(expr, "bad constant expression type");
 		return 0;
 	}
 	expand_expression(expr);
 	if (expr->type != EXPR_VALUE) {
-		sparse_error(expr->pos, "bad constant expression");
+		expression_error(expr, "bad constant expression");
 		return 0;
 	}
 

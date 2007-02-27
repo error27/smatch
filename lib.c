@@ -126,10 +126,9 @@ void warning(struct position pos, const char * fmt, ...)
 	va_end(args);
 }	
 
-void sparse_error(struct position pos, const char * fmt, ...)
+void do_error(struct position pos, const char * fmt, va_list args)
 {
 	static int errors = 0;
-	va_list args;
         die_if_error = 1;
 	show_info = 1;
 	/* Shut up warnings after an error */
@@ -143,11 +142,26 @@ void sparse_error(struct position pos, const char * fmt, ...)
 		once = 1;
 	}
 
-	va_start(args, fmt);
 	do_warn("error: ", pos, fmt, args);
-	va_end(args);
 	errors++;
 }	
+
+void sparse_error(struct position pos, const char * fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	do_error(pos, fmt, args);
+	va_end(args);
+}
+
+void expression_error(struct expression *expr, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	do_error(expr->pos, fmt, args);
+	va_end(args);
+	expr->ctype = &bad_ctype;
+}
 
 void error_die(struct position pos, const char * fmt, ...)
 {
