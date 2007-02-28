@@ -9,7 +9,7 @@ struct y {
 	int a[2];
 };
 
-void h(void)
+static void h(void)
 {
 	char __A *p;
 	char __A * * q1;

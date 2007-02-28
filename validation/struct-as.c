@@ -10,7 +10,7 @@ struct hello {
 
 extern int test(int __user *ip);
 
-int broken(struct hello __user *sp)
+static int broken(struct hello __user *sp)
 {
 	test(&sp->a);
 }

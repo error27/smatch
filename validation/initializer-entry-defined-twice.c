@@ -6,7 +6,7 @@ struct normal {
 	int field2;
 };
 
-struct normal struct_error = {
+static struct normal struct_error = {
 	.field1 = 0,
 	.field1 = 0
 };
@@ -21,7 +21,7 @@ struct has_union {
 	int z;
 };
 
-struct has_union union_error = {
+static struct has_union union_error = {
 	.y = {
 		.a = 0,
 		.b = 0
@@ -37,7 +37,7 @@ struct same_offset {
 	int field2;
 };
 
-struct same_offset not_an_error = {
+static struct same_offset not_an_error = {
 	.field1 = { },
 	.field2 = 0
 };

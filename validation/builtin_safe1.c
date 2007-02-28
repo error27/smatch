@@ -7,7 +7,7 @@ int g(int);
 int h(int) __attribute__((pure));
 int i(int) __attribute__((const));
 
-int foo(int x, int y)
+static int foo(int x, int y)
 {
   /* unsafe: */
   MY_MACRO(x++);

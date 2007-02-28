@@ -18,7 +18,7 @@ struct hello {
 	char array[10];
 };
 
-int test(struct hello *arg)
+static int test(struct hello *arg)
 {
 	return deref(arg->array);
 }

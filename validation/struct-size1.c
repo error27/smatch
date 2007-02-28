@@ -7,7 +7,7 @@ struct E {
   struct A **pA;
   struct C *pC;
 };
-void f(struct E *pE, struct B *pB)
+static void f(struct E *pE, struct B *pB)
 {
   pB->pA = pE->pA[0];
 }

@@ -1,7 +1,7 @@
 // This actually isn't allowed in C99, but sparse and gcc will take it:
 enum Foo;
 
-void
+static void
 f (void)
 {
   enum Foo *pefoo;         // Pointer to incomplete type

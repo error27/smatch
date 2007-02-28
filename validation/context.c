@@ -1,11 +1,11 @@
 #define __cond_lock(c) ((c) ? ({ __context__(1); 1; }) : 0)
 
-void a(void) __attribute__((context(0,1)))
+static void a(void) __attribute__((context(0,1)))
 {
 	__context__(1);
 }
 
-void r(void) __attribute__((context(1,0)))
+static void r(void) __attribute__((context(1,0)))
 {
 	__context__(-1);
 }
@@ -13,13 +13,13 @@ void r(void) __attribute__((context(1,0)))
 extern void _ca(int fail);
 #define ca(fail) __cond_lock(_ca(fail))
 
-void good_paired1(void)
+static void good_paired1(void)
 {
 	a();
 	r();
 }
 
-void good_paired2(void)
+static void good_paired2(void)
 {
 	a();
 	r();
@@ -27,7 +27,7 @@ void good_paired2(void)
 	r();
 }
 
-void good_paired3(void)
+static void good_paired3(void)
 {
 	a();
 	a();
@@ -35,62 +35,62 @@ void good_paired3(void)
 	r();
 }
 
-void good_lock1(void) __attribute__((context(0,1)))
+static void good_lock1(void) __attribute__((context(0,1)))
 {
 	a();
 }
 
-void good_lock2(void) __attribute__((context(0,1)))
-{
-	a();
-	r();
-	a();
-}
-
-void good_lock3(void) __attribute__((context(0,1)))
-{
-	a();
-	a();
-	r();
-}
-
-void good_unlock1(void) __attribute__((context(1,0)))
-{
-	r();
-}
-
-void good_unlock2(void) __attribute__((context(1,0)))
-{
-	a();
-	r();
-	r();
-}
-
-void warn_lock1(void)
-{
-	a();
-}
-
-void warn_lock2(void)
+static void good_lock2(void) __attribute__((context(0,1)))
 {
 	a();
 	r();
 	a();
 }
 
-void warn_lock3(void)
+static void good_lock3(void) __attribute__((context(0,1)))
 {
 	a();
 	a();
 	r();
 }
 
-void warn_unlock1(void)
+static void good_unlock1(void) __attribute__((context(1,0)))
 {
 	r();
 }
 
-void warn_unlock2(void)
+static void good_unlock2(void) __attribute__((context(1,0)))
+{
+	a();
+	r();
+	r();
+}
+
+static void warn_lock1(void)
+{
+	a();
+}
+
+static void warn_lock2(void)
+{
+	a();
+	r();
+	a();
+}
+
+static void warn_lock3(void)
+{
+	a();
+	a();
+	r();
+}
+
+static void warn_unlock1(void)
+{
+	r();
+}
+
+static void warn_unlock2(void)
 {
 	a();
 	r();
@@ -99,7 +99,7 @@ void warn_unlock2(void)
 
 extern int condition, condition2;
 
-int good_if1(void)
+static int good_if1(void)
 {
 	a();
 	if(condition) {
@@ -110,7 +110,7 @@ int good_if1(void)
 	return 0;
 }
 
-void good_if2(void)
+static void good_if2(void)
 {
 	if(condition) {
 		a();
@@ -118,7 +118,7 @@ void good_if2(void)
 	}
 }
 
-void good_if3(void)
+static void good_if3(void)
 {
 	a();
 	if(condition) {
@@ -128,7 +128,7 @@ void good_if3(void)
 	r();
 }
 
-int warn_if1(void)
+static int warn_if1(void)
 {
 	a();
 	if(condition)
@@ -137,7 +137,7 @@ int warn_if1(void)
 	return 0;
 }
 
-int warn_if2(void)
+static int warn_if2(void)
 {
 	a();
 	if(condition) {
@@ -147,7 +147,7 @@ int warn_if2(void)
 	return 0;
 }
 
-void good_while1(void)
+static void good_while1(void)
 {
 	a();
 	while(condition)
@@ -155,7 +155,7 @@ void good_while1(void)
 	r();
 }
 
-void good_while2(void)
+static void good_while2(void)
 {
 	while(condition) {
 		a();
@@ -163,7 +163,7 @@ void good_while2(void)
 	}
 }
 
-void good_while3(void)
+static void good_while3(void)
 {
 	while(condition) {
 		a();
@@ -175,7 +175,7 @@ void good_while3(void)
 	}
 }
 
-void good_while4(void)
+static void good_while4(void)
 {
 	a();
 	while(1) {
@@ -186,7 +186,7 @@ void good_while4(void)
 	}
 }
 
-void good_while5(void)
+static void good_while5(void)
 {
 	a();
 	while(1) {
@@ -197,21 +197,21 @@ void good_while5(void)
 	}
 }
 
-void warn_while1(void)
+static void warn_while1(void)
 {
 	while(condition) {
 		a();
 	}
 }
 
-void warn_while2(void)
+static void warn_while2(void)
 {
 	while(condition) {
 		r();
 	}
 }
 
-void warn_while3(void)
+static void warn_while3(void)
 {
 	while(condition) {
 		a();
@@ -221,7 +221,7 @@ void warn_while3(void)
 	}
 }
 
-void good_goto1(void)
+static void good_goto1(void)
 {
     a();
     goto label;
@@ -229,7 +229,7 @@ label:
     r();
 }
 
-void good_goto2(void)
+static void good_goto2(void)
 {
     a();
     goto label;
@@ -239,7 +239,7 @@ label:
     r();
 }
 
-void good_goto3(void)
+static void good_goto3(void)
 {
     a();
     if(condition)
@@ -250,7 +250,7 @@ label:
     r();
 }
 
-void good_goto4(void)
+static void good_goto4(void)
 {
     if(condition)
         goto label;
@@ -260,7 +260,7 @@ label:
     ;
 }
 
-void good_goto5(void)
+static void good_goto5(void)
 {
     a();
     if(condition)
@@ -271,7 +271,7 @@ label:
     r();
 }
 
-void warn_goto1(void)
+static void warn_goto1(void)
 {
     a();
     goto label;
@@ -280,7 +280,7 @@ label:
     ;
 }
 
-void warn_goto2(void)
+static void warn_goto2(void)
 {
     a();
     goto label;
@@ -290,7 +290,7 @@ label:
     r();
 }
 
-void warn_goto3(void)
+static void warn_goto3(void)
 {
     a();
     if(condition)
@@ -300,7 +300,7 @@ label:
     r();
 }
 
-void good_cond_lock1(void)
+static void good_cond_lock1(void)
 {
     if(ca(condition)) {
         condition2 = 1; /* do stuff */
@@ -308,7 +308,7 @@ void good_cond_lock1(void)
     }
 }
 
-void warn_cond_lock1(void)
+static void warn_cond_lock1(void)
 {
     if(ca(condition))
         condition2 = 1; /* do stuff */

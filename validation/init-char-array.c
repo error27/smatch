@@ -1,11 +1,11 @@
 /*
  * for array of char {<string>} gets special treatment in initializer.
  */
-char *s[] = {"aaaaaaaaa"};
-char t[][10] = {"aaaaaaaaa"};
-char u[] = {"aaaaaaaaa"};
-char v[] = "aaaaaaaaa";
-void f(void)
+static char *s[] = {"aaaaaaaaa"};
+static char t[][10] = {"aaaaaaaaa"};
+static char u[] = {"aaaaaaaaa"};
+static char v[] = "aaaaaaaaa";
+static void f(void)
 {
 	char x[1/(sizeof(s) == sizeof(char *))];
 	char y[1/(sizeof(u) == 10)];

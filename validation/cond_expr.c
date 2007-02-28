@@ -3,8 +3,8 @@
  *  (real_v == 0 ? real_v == 0 : x), which gives the wrong type (and no
  *  warning from the testcase below).
  */
-int x;
-double y;
+static int x;
+static double y;
 int a(void)
 {
 	return ~(y ? : x);	/* should warn */
