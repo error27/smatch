@@ -20,7 +20,7 @@ PREFIX=$(HOME)
 BINDIR=$(PREFIX)/bin
 LIBDIR=$(PREFIX)/lib
 INCLUDEDIR=$(PREFIX)/include
-PKGCONFIGDIR=$(PREFIX)/share/pkgconfig
+PKGCONFIGDIR=$(LIBDIR)/pkgconfig
 
 PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse test-linearize example \
 	 test-unssa test-dissect ctags
