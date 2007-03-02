@@ -443,8 +443,9 @@ void copy_statement(struct statement *src, struct statement *dst)
 	FOR_EACH_PTR(src->stmts, stmt) {
 		add_statement(&dst->stmts, copy_one_statement(stmt));
 	} END_FOR_EACH_PTR(stmt);
-
+	dst->args = copy_one_statement(src->args);
 	dst->ret = copy_symbol(src->pos, src->ret);
+	dst->inline_fn = src->inline_fn;
 }
 
 static struct symbol *create_copy_symbol(struct symbol *orig)
@@ -489,6 +490,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	}
 	if (fn->expanding)
 		return 0;
+
 	fn->expanding = 1;
 
 	name_list = fn->arguments;
@@ -517,13 +519,14 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	} END_FOR_EACH_PTR(arg);
 	FINISH_PTR_LIST(name);
 
+	copy_statement(fn->inline_stmt, stmt);
+
 	if (arg_decl) {
 		struct statement *decl = alloc_statement(expr->pos, STMT_DECLARATION);
 		decl->declaration = arg_decl;
-		add_statement(&stmt->stmts, decl);
+		stmt->args = decl;
 	}
-
-	copy_statement(fn->inline_stmt, stmt);
+	stmt->inline_fn = sym;
 
 	unset_replace_list(fn_symbol_list);
 

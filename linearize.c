@@ -27,11 +27,11 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr);
 
 static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int op, pseudo_t left, pseudo_t right);
 static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct expression *val);
-static void linearize_one_symbol(struct entrypoint *ep, struct symbol *sym);
+static pseudo_t linearize_one_symbol(struct entrypoint *ep, struct symbol *sym);
 
 struct access_data;
 static pseudo_t add_load(struct entrypoint *ep, struct access_data *);
-pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initializer, struct access_data *);
+static pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initializer, struct access_data *);
 
 struct pseudo void_pseudo = {};
 
@@ -226,6 +226,7 @@ static const char *opcodes[] = {
 	[OP_SCAST] = "scast",
 	[OP_FPCAST] = "fpcast",
 	[OP_PTRCAST] = "ptrcast",
+	[OP_INLINED_CALL] = "# call",
 	[OP_CALL] = "call",
 	[OP_VANEXT] = "va_next",
 	[OP_VAARG] = "va_arg",
@@ -399,6 +400,7 @@ const char *show_instruction(struct instruction *insn)
 	case OP_STORE: case OP_SNOP:
 		buf += sprintf(buf, "%s -> %d[%s]", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
 		break;
+	case OP_INLINED_CALL:
 	case OP_CALL: {
 		struct pseudo *arg;
 		if (insn->target && insn->target != VOID)
@@ -1487,7 +1489,7 @@ static pseudo_t linearize_position(struct entrypoint *ep, struct expression *pos
 	return linearize_initializer(ep, init_expr, ad);
 }
 
-pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initializer, struct access_data *ad)
+static pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initializer, struct access_data *ad)
 {
 	switch (initializer->type) {
 	case EXPR_INITIALIZER: {
@@ -1505,6 +1507,7 @@ pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initial
 		ad->source_type = base_type(initializer->ctype);
 		ad->result_type = initializer->ctype;
 		linearize_store_gen(ep, value, ad);
+		return value;
 	}
 	}
 
@@ -1595,21 +1598,23 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 	return VOID;
 }
 
-static void linearize_one_symbol(struct entrypoint *ep, struct symbol *sym)
+static pseudo_t linearize_one_symbol(struct entrypoint *ep, struct symbol *sym)
 {
 	struct access_data ad = { NULL, };
+	pseudo_t value;
 
 	if (!sym || !sym->initializer || sym->initialized)
-		return;
+		return VOID;
 
 	/* We need to output these puppies some day too.. */
 	if (sym->ctype.modifiers & (MOD_STATIC | MOD_TOPLEVEL))
-		return;
+		return VOID;
 
 	sym->initialized = 1;
 	ad.address = symbol_pseudo(ep, sym);
-	linearize_initializer(ep, sym->initializer, &ad);
+	value = linearize_initializer(ep, sym->initializer, &ad);
 	finish_address_gen(ep, &ad);
+	return value;
 }
 
 static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct statement *stmt)
@@ -1637,6 +1642,29 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 		}
 		return phi_node->target;
 	}
+
+	return pseudo;
+}
+
+static pseudo_t linearize_inlined_call(struct entrypoint *ep, struct statement *stmt)
+{
+	struct instruction *insn = alloc_instruction(OP_INLINED_CALL, 0);
+	struct statement *args = stmt->args;
+	pseudo_t pseudo;
+
+	if (args) {
+		struct symbol *sym;
+
+		concat_symbol_list(args->declaration, &ep->syms);
+		FOR_EACH_PTR(args->declaration, sym) {
+			pseudo_t value = linearize_one_symbol(ep, sym);
+			use_pseudo(insn, value, add_pseudo(&insn->arguments, value));
+		} END_FOR_EACH_PTR(sym);
+	}
+
+	insn->target = pseudo = linearize_compound_statement(ep, stmt);
+	use_pseudo(insn, symbol_pseudo(ep, stmt->inline_fn), &insn->func);
+	add_one_insn(ep, insn);
 	return pseudo;
 }
 
@@ -1920,6 +1948,8 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	}
 
 	case STMT_COMPOUND:
+		if (stmt->inline_fn)
+			return linearize_inlined_call(ep, stmt);
 		return linearize_compound_statement(ep, stmt);
 
 	/*

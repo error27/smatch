@@ -485,6 +485,10 @@ int show_statement(struct statement *stmt)
 		struct statement *s;
 		int last = 0;
 
+		if (stmt->inline_fn) {
+			show_statement(stmt->args);
+			printf("\tbegin_inline \t%s\n", show_ident(stmt->inline_fn->ident));
+		}
 		FOR_EACH_PTR(stmt->stmts, s) {
 			last = show_statement(s);
 		} END_FOR_EACH_PTR(s);
@@ -496,6 +500,8 @@ int show_statement(struct statement *stmt)
 			last = new_pseudo();
 			printf("\tld.%d\t\tv%d,[v%d]\n", bits, last, addr);
 		}
+		if (stmt->inline_fn)
+			printf("\tend_inlined\t%s\n", show_ident(stmt->inline_fn->ident));
 		return last;
 	}
 

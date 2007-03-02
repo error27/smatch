@@ -1053,9 +1053,9 @@ static int expand_compound(struct statement *stmt)
 	if (stmt->ret)
 		expand_symbol(stmt->ret);
 
-	cost = 0;
-	last = NULL;
-	statements = 0;
+	last = stmt->args;
+	cost = expand_statement(last);
+	statements = last != NULL;
 	FOR_EACH_PTR(stmt->stmts, s) {
 		statements++;
 		last = s;

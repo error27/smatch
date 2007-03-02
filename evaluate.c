@@ -2789,7 +2789,7 @@ struct symbol *evaluate_statement(struct statement *stmt)
 		 * Then, evaluate each statement, making the type of the
 		 * compound statement be the type of the last statement
 		 */
-		type = NULL;
+		type = evaluate_statement(stmt->args);
 		FOR_EACH_PTR(stmt->stmts, s) {
 			type = evaluate_statement(s);
 		} END_FOR_EACH_PTR(s);

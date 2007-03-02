@@ -55,6 +55,8 @@ struct statement {
 		struct /* compound_struct */ {
 			struct statement_list *stmts;
 			struct symbol *ret;
+			struct symbol *inline_fn;
+			struct statement *args;
 		};
 		struct /* labeled_struct */ {
 			struct symbol *label_identifier;
