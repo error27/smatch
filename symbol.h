@@ -65,6 +65,8 @@ enum keyword {
 	KW_ATTRIBUTE	= 1 << 3,
 	KW_TYPEOF	= 1 << 4,
 	KW_STATEMENT	= 1 << 5,
+	KW_ASM		= 1 << 6,
+	KW_MODE		= 1 << 7,
 };
 
 struct context {
@@ -94,6 +96,7 @@ struct symbol_op {
 	struct token *(*declarator)(struct token *token, struct ctype *ctype);
 	struct token *(*statement)(struct token *token, struct statement *stmt);
 	struct token *(*toplevel)(struct token *token, struct symbol_list **list);
+	struct token *(*attribute)(struct token *token, struct symbol *attr, struct ctype *ctype);
 };
 
 extern int expand_safe_p(struct expression *expr, int cost);
