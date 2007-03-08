@@ -54,7 +54,8 @@ struct ident {
 	struct symbol *symbols;	/* Pointer to semantic meaning list */
 	unsigned char len;	/* Length of identifier name */
 	unsigned char tainted:1,
-	              reserved:1;
+	              reserved:1,
+		      keyword:1;
 	char name[];		/* Actual identifier */
 };
 

@@ -678,42 +678,8 @@ static struct sym_init {
 	{ "__label__",	&label_ctype,	MOD_LABEL | MOD_UNSIGNED },
 	{ "_Bool",	&bool_ctype,	MOD_UNSIGNED },
 
-	/* Type qualifiers */
-	{ "const",	NULL,		MOD_CONST },
-	{ "__const",	NULL,		MOD_CONST },
-	{ "__const__",	NULL,		MOD_CONST },
-	{ "volatile",	NULL,		MOD_VOLATILE },
-	{ "__volatile",	NULL,		MOD_VOLATILE },
-	{ "__volatile__", NULL,		MOD_VOLATILE },
-
 	/* Predeclared types */
 	{ "__builtin_va_list", &int_type, 0 },
-
-	/* Typedef.. */
-	{ "typedef",	NULL,		MOD_TYPEDEF },
-
-	/* Extended types */
-	{ "typeof",	NULL,		MOD_TYPEOF },
-	{ "__typeof",	NULL,		MOD_TYPEOF },
-	{ "__typeof__",	NULL,		MOD_TYPEOF },
-
-#if 0
-	{ "attribute",	NULL,		MOD_ATTRIBUTE },
-#endif
-	{ "__attribute", NULL,		MOD_ATTRIBUTE },
-	{ "__attribute__", NULL,	MOD_ATTRIBUTE },
-
-	{ "struct",	NULL,		MOD_STRUCTOF },
-	{ "union",	NULL,		MOD_UNIONOF },
-	{ "enum",	NULL,		MOD_ENUMOF },
-
-	{ "inline",	NULL,		MOD_INLINE },
-	{ "__inline",	NULL,		MOD_INLINE },
-	{ "__inline__",	NULL,		MOD_INLINE },
-
-	/* Ignored for now.. */
-	{ "restrict",	NULL,		0 },
-	{ "__restrict",	NULL,		0 },
 
 	{ NULL,		NULL,		0 }
 };
@@ -794,6 +760,7 @@ void init_symbols(void)
 	hash_ident(&n)
 #include "ident-list.h"
 
+	init_parser(stream);
 	for (ptr = symbol_init_table; ptr->name; ptr++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, ptr->name, SYM_NODE, NS_TYPEDEF);

@@ -133,5 +133,6 @@ extern struct symbol *ctype_fp(unsigned long spec);
 extern void copy_statement(struct statement *src, struct statement *dst);
 extern int inline_function(struct expression *expr, struct symbol *sym);
 extern void uninline(struct symbol *sym);
+extern void init_parser(int);
 
 #endif /* PARSE_H */

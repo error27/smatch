@@ -5,6 +5,7 @@
  *
  * Copyright (C) 2003 Transmeta Corp.
  *               2003-2004 Linus Torvalds
+ * Copyright (C) 2004 Christopher Li
  *
  *  Licensed under the Open Software License version 1.1
  */
@@ -35,6 +36,96 @@ struct statement_list *function_computed_goto_list;
 
 static struct token *statement(struct token *token, struct statement **tree);
 static struct token *handle_attributes(struct token *token, struct ctype *ctype);
+
+static struct token *struct_specifier(struct token *token, struct ctype *ctype);
+static struct token *union_specifier(struct token *token, struct ctype *ctype);
+static struct token *enum_specifier(struct token *token, struct ctype *ctype);
+static struct token *attribute_specifier(struct token *token, struct ctype *ctype);
+static struct token *typeof_specifier(struct token *token, struct ctype *ctype);
+
+
+static struct symbol_op modifier_op = {
+	.type = KW_MODIFIER,
+};
+
+static struct symbol_op qualifier_op = {
+	.type = KW_QUALIFIER,
+};
+
+static struct symbol_op typeof_op = {
+	.type = KW_TYPEOF,
+	.declarator = typeof_specifier,
+};
+
+static struct symbol_op attribute_op = {
+	.type = KW_ATTRIBUTE,
+	.declarator = attribute_specifier,
+};
+
+static struct symbol_op struct_op = {
+	.type = KW_SPECIFIER,
+	.declarator = struct_specifier,
+};
+
+static struct symbol_op union_op = {
+	.type = KW_SPECIFIER,
+	.declarator = union_specifier,
+};
+
+static struct symbol_op enum_op = {
+	.type = KW_SPECIFIER,
+	.declarator = enum_specifier,
+};
+
+static struct init_keyword {
+	const char *name;
+	enum namespace ns;
+	unsigned long modifiers;
+	struct symbol_op *op;
+} keyword_table[] = {
+	/* Type qualifiers */
+	{ "const",	NS_TYPEDEF, MOD_CONST, .op = &qualifier_op },
+	{ "__const",	NS_TYPEDEF, MOD_CONST, .op = &qualifier_op },
+	{ "__const__",	NS_TYPEDEF, MOD_CONST, .op = &qualifier_op },
+	{ "volatile",	NS_TYPEDEF, MOD_VOLATILE, .op = &qualifier_op },
+	{ "__volatile",		NS_TYPEDEF, MOD_VOLATILE, .op = &qualifier_op },
+	{ "__volatile__", 	NS_TYPEDEF, MOD_VOLATILE, .op = &qualifier_op },
+
+	/* Typedef.. */
+	{ "typedef",	NS_TYPEDEF, MOD_TYPEDEF, .op = &modifier_op },
+
+	/* Extended types */
+	{ "typeof", 	NS_TYPEDEF, .op = &typeof_op },
+	{ "__typeof", 	NS_TYPEDEF, .op = &typeof_op },
+	{ "__typeof__",	NS_TYPEDEF, .op = &typeof_op },
+
+	{ "__attribute",   NS_TYPEDEF, .op = &attribute_op },
+	{ "__attribute__", NS_TYPEDEF, .op = &attribute_op },
+
+	{ "struct",	NS_TYPEDEF, .op = &struct_op },
+	{ "union", 	NS_TYPEDEF, .op = &union_op },
+	{ "enum", 	NS_TYPEDEF, .op = &enum_op },
+
+	{ "inline",	NS_TYPEDEF, MOD_INLINE, .op = &modifier_op },
+	{ "__inline",	NS_TYPEDEF, MOD_INLINE, .op = &modifier_op },
+	{ "__inline__",	NS_TYPEDEF, MOD_INLINE, .op = &modifier_op },
+
+	/* Ignored for now.. */
+	{ "restrict",	NS_TYPEDEF, .op = &qualifier_op},
+	{ "__restrict",	NS_TYPEDEF, .op = &qualifier_op},
+};
+
+void init_parser(int stream)
+{
+	int i;
+	for (i = 0; i < sizeof keyword_table/sizeof keyword_table[0]; i++) {
+		struct init_keyword *ptr = keyword_table + i;
+		struct symbol *sym = create_symbol(stream, ptr->name, SYM_KEYWORD, ptr->ns);
+		sym->ident->keyword = 1;
+		sym->ctype.modifiers = ptr->modifiers;
+		sym->op = ptr->op;
+	}
+}
 
 // Add a symbol to the list of function-local symbols
 static void fn_local_symbol(struct symbol *sym)
@@ -115,7 +206,7 @@ static int apply_modifiers(struct position pos, struct ctype *ctype)
 	return 0;
 }
 
-static struct symbol * indirect(struct position pos, struct ctype *ctype, int type)
+static struct symbol * alloc_indirect_symbol(struct position pos, struct ctype *ctype, int type)
 {
 	struct symbol *sym = alloc_symbol(pos, type);
 
@@ -207,10 +298,16 @@ static struct token *parse_struct_declaration(struct token *token, struct symbol
 	return struct_declaration_list(token, &sym->symbol_list);
 }
 
-static struct token *struct_or_union_specifier(enum type type, struct token *token, struct ctype *ctype)
+static struct token *struct_specifier(struct token *token, struct ctype *ctype)
 {
-	return struct_union_enum_specifier(type, token, ctype, parse_struct_declaration);
+	return struct_union_enum_specifier(SYM_STRUCT, token, ctype, parse_struct_declaration);
 }
+
+static struct token *union_specifier(struct token *token, struct ctype *ctype)
+{
+	return struct_union_enum_specifier(SYM_UNION, token, ctype, parse_struct_declaration);
+}
+
 
 typedef struct {
 	int x;
@@ -744,14 +841,11 @@ static void apply_ctype(struct position pos, struct ctype *thistype, struct ctyp
 static void check_modifiers(struct position *pos, struct symbol *s, unsigned long mod)
 {
 	unsigned long banned, wrong;
-	unsigned long this_mod = s->ctype.modifiers;
 	const unsigned long BANNED_SIZE = MOD_LONG | MOD_LONGLONG | MOD_SHORT;
 	const unsigned long BANNED_SIGN = MOD_SIGNED | MOD_UNSIGNED;
 
-	if (this_mod & (MOD_STRUCTOF | MOD_UNIONOF | MOD_ENUMOF))
-		banned = BANNED_SIZE | BANNED_SIGN;
-	else if (this_mod & MOD_SPECIALBITS)
-		banned = 0;
+	if (s->type == SYM_KEYWORD)
+		banned = s->op->type == KW_SPECIFIER ? (BANNED_SIZE | BANNED_SIGN) : 0;
 	else if (s->ctype.base_type == &fp_type)
 		banned = BANNED_SIGN;
 	else if (s->ctype.base_type == &int_type || !s->ctype.base_type || is_int_type (s))
@@ -790,19 +884,14 @@ static struct token *declaration_specifiers(struct token *next, struct ctype *ct
 			break;
 		thistype = s->ctype;
 		mod = thistype.modifiers;
-		if (qual && (mod & ~(MOD_ATTRIBUTE | MOD_CONST | MOD_VOLATILE)))
-			break;
-		if (mod & MOD_SPECIALBITS) {
-			if (mod & MOD_STRUCTOF)
-				next = struct_or_union_specifier(SYM_STRUCT, next, &thistype);
-			else if (mod & MOD_UNIONOF)
-				next = struct_or_union_specifier(SYM_UNION, next, &thistype);
-			else if (mod & MOD_ENUMOF)
-				next = enum_specifier(next, &thistype);
-			else if (mod & MOD_ATTRIBUTE)
-				next = attribute_specifier(next, &thistype);
-			else if (mod & MOD_TYPEOF)
-				next = typeof_specifier(next, &thistype);
+		if (qual) {
+			if (s->type != SYM_KEYWORD)
+				break;
+			if (!(s->op->type & (KW_ATTRIBUTE | KW_QUALIFIER)))
+				break;
+		}
+		if (s->type == SYM_KEYWORD && s->op->declarator) {
+			next = s->op->declarator(next, &thistype);
 			mod = thistype.modifiers;
 		}
 		type = thistype.base_type;
@@ -910,13 +999,13 @@ static struct token *direct_declarator(struct token *token, struct symbol *decl,
 				continue;
 			}
 
-			sym = indirect(token->pos, ctype, SYM_FN);
+			sym = alloc_indirect_symbol(token->pos, ctype, SYM_FN);
 			token = parameter_type_list(next, sym, p);
 			token = expect(token, ')', "in function declarator");
 			continue;
 		}
 		if (token->special == '[') {
-			struct symbol *array = indirect(token->pos, ctype, SYM_ARRAY);
+			struct symbol *array = alloc_indirect_symbol(token->pos, ctype, SYM_ARRAY);
 			token = abstract_array_declarator(token->next, array);
 			token = expect(token, ']', "in abstract_array_declarator");
 			ctype = &array->ctype;
@@ -932,10 +1021,10 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 	unsigned long modifiers;
 	struct symbol *base_type;
 
-	modifiers = ctype->modifiers & ~(MOD_TYPEDEF | MOD_ATTRIBUTE);
+	modifiers = ctype->modifiers & ~MOD_TYPEDEF;
 	base_type = ctype->base_type;
 	ctype->modifiers = modifiers;
-	
+
 	while (match_op(token,'*')) {
 		struct symbol *ptr = alloc_symbol(token->pos, SYM_PTR);
 		ptr->ctype.modifiers = modifiers & ~MOD_STORAGE;
@@ -976,7 +1065,7 @@ static struct token *handle_bitfield(struct token *token, struct symbol *decl)
 		return conditional_expression(token->next, &expr);
 	}
 
-	bitfield = indirect(token->pos, ctype, SYM_BITFIELD);
+	bitfield = alloc_indirect_symbol(token->pos, ctype, SYM_BITFIELD);
 	token = conditional_expression(token->next, &expr);
 	width = get_expression_value(expr);
 	bitfield->bit_size = width;

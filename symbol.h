@@ -33,6 +33,7 @@ enum namespace {
 	NS_ITERATOR = 32,
 	NS_PREPROCESSOR = 64,
 	NS_UNDEF = 128,
+	NS_KEYWORD = 256,
 };
 
 enum type {
@@ -53,7 +54,16 @@ enum type {
 	SYM_LABEL,
 	SYM_RESTRICT,
 	SYM_FOULED,
+	SYM_KEYWORD,
 	SYM_BAD,
+};
+
+enum keyword {
+	KW_SPECIFIER 	= 1 << 0,
+	KW_MODIFIER	= 1 << 1,
+	KW_QUALIFIER	= 1 << 2,
+	KW_ATTRIBUTE	= 1 << 3,
+	KW_TYPEOF	= 1 << 4,
 };
 
 struct context {
@@ -74,10 +84,14 @@ struct ctype {
 };
 
 struct symbol_op {
+	enum keyword type;
 	int (*evaluate)(struct expression *);
 	int (*expand)(struct expression *, int);
 	int (*args)(struct expression *);
-};	
+
+	/* keywrods */
+	struct token *(*declarator)(struct token *token, struct ctype *ctype);
+};
 
 extern int expand_safe_p(struct expression *expr, int cost);
 extern int expand_constant_p(struct expression *expr, int cost);
@@ -87,8 +101,8 @@ extern int expand_constant_p(struct expression *expr, int cost);
 #define SYM_ATTR_STRONG		2
 
 struct symbol {
-	enum namespace namespace:8;
 	enum type type:8;
+	enum namespace namespace:9;
 	unsigned char used:1, attr:2;
 	struct position pos;		/* Where this symbol was declared */
 	struct ident *ident;		/* What identifier this symbol is associated with */
@@ -159,12 +173,7 @@ struct symbol {
 #define MOD_LONGLONG	0x0800
 
 #define MOD_TYPEDEF	0x1000
-#define MOD_STRUCTOF	0x2000
-#define MOD_UNIONOF	0x4000
-#define MOD_ENUMOF	0x8000
 
-#define MOD_TYPEOF	0x10000
-#define MOD_ATTRIBUTE	0x20000
 #define MOD_INLINE	0x40000
 #define MOD_ADDRESSABLE	0x80000
 
@@ -185,7 +194,6 @@ struct symbol {
 
 #define MOD_NONLOCAL	(MOD_EXTERN | MOD_TOPLEVEL)
 #define MOD_STORAGE	(MOD_AUTO | MOD_REGISTER | MOD_STATIC | MOD_EXTERN | MOD_INLINE | MOD_TOPLEVEL)
-#define MOD_SPECIALBITS (MOD_STRUCTOF | MOD_UNIONOF | MOD_ENUMOF | MOD_ATTRIBUTE | MOD_TYPEOF)
 #define MOD_SIGNEDNESS	(MOD_SIGNED | MOD_UNSIGNED | MOD_EXPLICITLY_SIGNED)
 #define MOD_SPECIFIER	(MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG | MOD_SIGNEDNESS)
 #define MOD_SIZE	(MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG)
