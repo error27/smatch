@@ -90,7 +90,7 @@ struct symbol_op {
 	int (*expand)(struct expression *, int);
 	int (*args)(struct expression *);
 
-	/* keywrods */
+	/* keywords */
 	struct token *(*declarator)(struct token *token, struct ctype *ctype);
 	struct token *(*statement)(struct token *token, struct statement *stmt);
 	struct token *(*toplevel)(struct token *token, struct symbol_list **list);
