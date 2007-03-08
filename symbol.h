@@ -93,6 +93,7 @@ struct symbol_op {
 	/* keywrods */
 	struct token *(*declarator)(struct token *token, struct ctype *ctype);
 	struct token *(*statement)(struct token *token, struct statement *stmt);
+	struct token *(*toplevel)(struct token *token, struct symbol_list **list);
 };
 
 extern int expand_safe_p(struct expression *expr, int cost);

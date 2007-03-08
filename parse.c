@@ -56,6 +56,7 @@ static struct token *parse_goto_statement(struct token *token, struct statement 
 static struct token *parse_context_statement(struct token *token, struct statement *stmt);
 static struct token *parse_range_statement(struct token *token, struct statement *stmt);
 static struct token *parse_asm(struct token *token, struct statement *stmt);
+static struct token *toplevel_asm_declaration(struct token *token, struct symbol_list **list);
 
 
 static struct symbol_op modifier_op = {
@@ -143,6 +144,7 @@ static struct symbol_op range_op = {
 
 static struct symbol_op asm_op = {
 	.statement = parse_asm,
+	.toplevel = toplevel_asm_declaration,
 };
 
 static struct init_keyword {
@@ -1977,8 +1979,11 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	int is_typedef;
 
 	/* Top-level inline asm? */
-	if (match_idents(token, &asm_ident, &__asm___ident, &__asm_ident, NULL))
-		return toplevel_asm_declaration(token, list);
+	if (token_type(token) == TOKEN_IDENT) {
+		struct symbol *s = lookup_keyword(token->ident, NS_KEYWORD);
+		if (s && s->op->toplevel)
+			return s->op->toplevel(token, list);
+	}
 
 	/* Parse declaration-specifiers, if any */
 	token = declaration_specifiers(token, &ctype, 0);
