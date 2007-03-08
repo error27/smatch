@@ -64,6 +64,7 @@ enum keyword {
 	KW_QUALIFIER	= 1 << 2,
 	KW_ATTRIBUTE	= 1 << 3,
 	KW_TYPEOF	= 1 << 4,
+	KW_STATEMENT	= 1 << 5,
 };
 
 struct context {
@@ -91,6 +92,7 @@ struct symbol_op {
 
 	/* keywrods */
 	struct token *(*declarator)(struct token *token, struct ctype *ctype);
+	struct token *(*statement)(struct token *token, struct statement *stmt);
 };
 
 extern int expand_safe_p(struct expression *expr, int cost);
@@ -289,6 +291,13 @@ static inline int get_sym_type(struct symbol *type)
 	if (type->type == SYM_ENUM)
 		type = type->ctype.base_type;
 	return type->type;
+}
+
+static inline struct symbol *lookup_keyword(struct ident *ident, enum namespace ns)
+{
+	if (!ident->keyword)
+		return NULL;
+	return lookup_symbol(ident, ns);
 }
 
 #define is_restricted_type(type) (get_sym_type(type) == SYM_RESTRICT)
