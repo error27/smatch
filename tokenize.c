@@ -1,6 +1,6 @@
 /*
  * This is a really stupid C tokenizer. It doesn't do any include
- * files or anything complex at all. That's the pre-processor.
+ * files or anything complex at all. That's the preprocessor.
  *
  * Copyright (C) 2003 Transmeta Corp.
  *               2003 Linus Torvalds
@@ -503,7 +503,7 @@ static int escapechar(int first, int type, stream_t *stream, int *valp)
 					break;
 				}
 			}
-			/* Fallthrough */
+			/* Fall through */
 			default:
 				warning(stream_pos(stream), "Unknown escape '%c'", value);
 			}

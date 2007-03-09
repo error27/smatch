@@ -103,7 +103,7 @@ Int:
 	oldmask = oldsignmask | (oldsignmask-1);
 	dropped = oldmask & ~mask;
 
-	// Ok if the bits were (and still are) purely sign bits
+	// OK if the bits were (and still are) purely sign bits
 	if (value & dropped) {
 		if (!(value & oldsignmask) || !(value & signmask) || (value & dropped) != dropped)
 			warning(old->pos, "cast truncates bits from constant value (%llx becomes %llx)",
@@ -679,7 +679,7 @@ static int expand_preop(struct expression *expr)
 	case SPECIAL_INCREMENT:
 	case SPECIAL_DECREMENT:
 		/*
-		 * From a type evaluation standpoint the pre-ops are
+		 * From a type evaluation standpoint the preops are
 		 * the same as the postops
 		 */
 		return expand_postop(expr);

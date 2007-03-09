@@ -92,7 +92,7 @@ static int if_convert_phi(struct instruction *insn)
 	}
 
 	/*
-	 * Ok, we can now replace that last
+	 * OK, we can now replace that last
 	 *
 	 *	br cond, a, b
 	 *
@@ -267,7 +267,7 @@ static int simplify_constant_rightside(struct instruction *insn)
 			insn->src2 = value_pseudo(-value);
 			return REPEAT_CSE;
 		}
-	/* Fallthrough */
+	/* Fall through */
 	case OP_ADD:
 	case OP_OR: case OP_XOR:
 	case OP_OR_BOOL:
@@ -281,7 +281,7 @@ static int simplify_constant_rightside(struct instruction *insn)
 	case OP_AND_BOOL:
 		if (value == 1)
 			return replace_with_pseudo(insn, insn->src1);
-	/* Fallthrough */
+	/* Fall through */
 	case OP_AND:
 		if (!value)
 			return replace_with_pseudo(insn, insn->src2);

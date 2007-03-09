@@ -46,7 +46,7 @@ void start_file_scope(void)
 	scope->next = &builtin_scope;
 	file_scope = scope;
 
-	/* top-level stuff defaults to file scopt, "extern" etc will choose global scope */
+	/* top-level stuff defaults to file scope, "extern" etc will choose global scope */
 	function_scope = scope;
 	block_scope = scope;
 }

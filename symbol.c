@@ -192,7 +192,7 @@ static struct symbol *examine_base_type(struct symbol *sym)
 {
 	struct symbol *base_type;
 
-	/* Check the basetype */
+	/* Check the base type */
 	base_type = sym->ctype.base_type;
 	if (base_type) {
 		base_type = examine_symbol_type(base_type);
@@ -730,7 +730,7 @@ struct symbol	int_type,
 		fp_type;
 
 /*
- * C types (ie actual instances that the abstract types
+ * C types (i.e. actual instances that the abstract types
  * can map onto)
  */
 struct symbol	bool_ctype, void_ctype, type_ctype,

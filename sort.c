@@ -188,7 +188,7 @@ merge_block_seqs (struct ptr_list *b1, int n,
 			if (++i2 >= b2->nr) {
 				struct ptr_list *l = b2;
 				BEEN_THERE('M');
-				// Ok, we finished with b2.  Pull it out
+				// OK, we finished with b2.  Pull it out
 				// and plug it in before b1.
 
 				b2 = b2->next;

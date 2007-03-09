@@ -113,7 +113,7 @@ struct symbol {
 	struct position pos;		/* Where this symbol was declared */
 	struct ident *ident;		/* What identifier this symbol is associated with */
 	struct symbol *next_id;		/* Next semantic symbol that shares this identifier */
-	struct symbol **id_list;	/* Backpointer to symbol list head */
+	struct symbol **id_list;	/* Back pointer to symbol list head */
 	struct symbol	*replace;	/* What is this symbol shadowed by in copy-expression */
 	struct scope	*scope;
 	struct symbol	*same_symbol;
@@ -153,7 +153,7 @@ struct symbol {
 	};
 	union /* backend */ {
 		struct basic_block *bb_target;	/* label */
-		void *aux;			/* Auxiliary info, eg. backend information */
+		void *aux;			/* Auxiliary info, e.g. backend information */
 		struct {			/* sparse ctags */
 			char kind;
 			unsigned char visited:1;

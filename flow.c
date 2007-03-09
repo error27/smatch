@@ -130,7 +130,7 @@ static int bb_has_side_effects(struct basic_block *bb)
 	FOR_EACH_PTR(bb->insns, insn) {
 		switch (insn->opcode) {
 		case OP_CALL:
-			/* Fixme! This should take "const" etc into account */
+			/* FIXME! This should take "const" etc into account */
 			return 1;
 
 		case OP_STORE:
@@ -138,7 +138,7 @@ static int bb_has_side_effects(struct basic_block *bb)
 			return 1;
 
 		case OP_ASM:
-			/* Fixme! This should take "volatile" etc into account */
+			/* FIXME! This should take "volatile" etc into account */
 			return 1;
 
 		default:
@@ -449,7 +449,7 @@ found:
 		return 1;
 	}
 
-	/* Ok, go find the parents */
+	/* OK, go find the parents */
 	bb->generation = generation;
 
 	dominators = NULL;
@@ -752,8 +752,7 @@ void kill_bb(struct basic_block *bb)
 		kill_defs(insn);
 		/*
 		 * We kill unreachable instructions even if they
-		 * otherwise aren't "killable". Eg volatile loads
-		 * etc.
+		 * otherwise aren't "killable" (e.g. volatile loads)
 		 */
 		insn->bb = NULL;
 	} END_FOR_EACH_PTR(insn);

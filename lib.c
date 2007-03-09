@@ -268,7 +268,7 @@ static char **handle_switch_I(char *arg, char **next)
 		path = *++next;
 		if (!path)
 			die("missing argument for -I option");
-		/* Fallthrough */
+		/* Fall through */
 	default:
 		add_pre_buffer("#add_include \"%s/\"\n", path);
 	}
@@ -614,7 +614,7 @@ void create_builtin_stream(void)
 
 static struct symbol_list *sparse_tokenstream(struct token *token)
 {
-	// Pre-process the stream
+	// Preprocess the stream
 	token = preprocess(token);
 
 	if (preprocess_only) {
@@ -670,7 +670,7 @@ static struct symbol_list *sparse_file(const char *filename)
  * files.
  *
  * NOTE NOTE NOTE! "#undef" of anything in this stage will
- * affect all subsequent files too, ie we can have non-local
+ * affect all subsequent files too, i.e. we can have non-local
  * behaviour between files!
  */
 static struct symbol_list *sparse_initial(void)

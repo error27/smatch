@@ -1,5 +1,5 @@
 /*	
- * Mingw Compatibility functions	
+ * MinGW Compatibility functions	
  *	
  *	
  *  Licensed under the Open Software License version 1.1	

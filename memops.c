@@ -117,7 +117,7 @@ static void simplify_loads(struct basic_block *bb)
 				}
 			} END_FOR_EACH_PTR_REVERSE(dom);
 
-			/* Ok, go find the parents */
+			/* OK, go find the parents */
 			generation = ++bb_generation;
 			bb->generation = generation;
 			dominators = NULL;
@@ -175,7 +175,7 @@ static void kill_dominated_stores(struct basic_block *bb)
 				}
 			} END_FOR_EACH_PTR_REVERSE(dom);
 
-			/* Ok, we should check the parents now */
+			/* OK, we should check the parents now */
 		}
 next_store:
 		/* Do the next one */;

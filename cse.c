@@ -47,7 +47,7 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 	switch (insn->opcode) {
 	case OP_SEL:
 		hash += hashval(insn->src3);
-		/* Fallthrough */	
+		/* Fall through */	
 
 	/* Binary arithmetic */
 	case OP_ADD: case OP_SUB:
@@ -69,7 +69,7 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 	case OP_SET_B:  case OP_SET_A:
 	case OP_SET_BE: case OP_SET_AE:
 		hash += hashval(insn->src2);
-		/* Fallthrough */
+		/* Fall through */
 	
 	/* Unary */
 	case OP_NOT: case OP_NEG:
@@ -200,7 +200,7 @@ static int insn_compare(const void *_i1, const void *_i2)
 	case OP_SET_BE: case OP_SET_AE:
 		if (i1->src2 != i2->src2)
 			return i1->src2 < i2->src2 ? -1 : 1;
-		/* Fall-through to unops */
+		/* Fall through to unops */
 
 	/* Unary */
 	case OP_NOT: case OP_NEG:
@@ -310,7 +310,7 @@ static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction
 	struct basic_block *b1, *b2, *common;
 
 	/*
-	 * Ok, i1 and i2 are the same instruction, modulo "target".
+	 * OK, i1 and i2 are the same instruction, modulo "target".
 	 * We should now see if we can combine them.
 	 */
 	b1 = i1->bb;

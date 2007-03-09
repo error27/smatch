@@ -1,6 +1,6 @@
 /*
  * Example trivial client program that uses the sparse library
- * to tokenize, pre-process and parse a C file, and prints out
+ * to tokenize, preprocess and parse a C file, and prints out
  * the results.
  *
  * Copyright (C) 2003 Transmeta Corp.

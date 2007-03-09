@@ -3,7 +3,7 @@
 
 /*
  * The "storage" that underlies an incoming/outgoing pseudo. It's
- * basically the backing store for a pseudo, and may be a real hw
+ * basically the backing store for a pseudo, and may be a real hardware
  * register, a stack slot or a static symbol. Or nothing at all,
  * since some pseudos can just be recalculated on the fly.
  */

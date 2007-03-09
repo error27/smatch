@@ -6,9 +6,9 @@
  * we create a small compat library for them.
  *
  *  - zeroed anonymous mmap
- *	Missing in mingw
+ *	Missing in MinGW
  *  - "string to long double" (C99 strtold())
- *	Missing in Solaris and mingw
+ *	Missing in Solaris and MinGW
  */
 struct stream;
 struct stat;

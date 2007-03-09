@@ -643,7 +643,7 @@ static int already_tokenized(const char *path)
  * angle_includepath:	Path to search when using #include <file.h>
  * sys_includepath:	Built-in include paths
  *
- * The above is implmented as one array with pointes
+ * The above is implemented as one array with pointers
  *                         +--------------+
  * quote_includepath --->  |              |
  *                         +--------------+
@@ -734,7 +734,7 @@ static void do_include(int local, struct stream *stream, struct token **list, st
 		goto out;
 	}
 
-	/* Dir of inputfile is first dir to search for quoted includes */
+	/* Dir of input file is first dir to search for quoted includes */
 	set_stream_include_path(stream);
 
 	if (!path)
@@ -1549,7 +1549,7 @@ static int handle_split_include(struct stream *stream, struct token **line, stru
  *
  * We'll just #define that away for now, but the theory here
  * is that we can use this to insert arbitrary token sequences
- * to turn the pragma's into internal front-end sequences for
+ * to turn the pragmas into internal front-end sequences for
  * when we actually start caring about them.
  *
  * So eventually this will turn into some kind of extended
@@ -1736,7 +1736,7 @@ struct token * preprocess(struct token *token)
 	init_preprocessor();
 	do_preprocess(&token);
 
-	// Drop all expressions from pre-processing, they're not used any more.
+	// Drop all expressions from preprocessing, they're not used any more.
 	// This is not true when we have multiple files, though ;/
 	// clear_expression_alloc();
 	preprocessing = 0;

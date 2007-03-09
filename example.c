@@ -610,10 +610,10 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 		case REG_REG:
 			/* Aiaiaiaiaii! Need to flush it to temporary memory */
 			src = find_or_create_hash(pseudo, &state->internal);
-			/* Fallthrough */
+			/* Fall through */
 		default:
 			alloc_stack(state, src->storage);
-			/* Fallthrough */
+			/* Fall through */
 		case REG_STACK:
 		case REG_FRAME:
 			flush_pseudo(state, pseudo, src->storage);
@@ -1493,7 +1493,7 @@ static void write_reg_to_storage(struct bb_state *state, struct hardreg *reg, ps
 
 		/* Fall back on stack allocation ... */
 		alloc_stack(state, storage);
-		/* Fallthrough */
+		/* Fall through */
 	default:
 		output_insn(state, "movl %s,%s", reg->name, show_memop(storage));
 		return;

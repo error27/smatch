@@ -465,7 +465,7 @@ static struct token *postfix_expression(struct token *token, struct expression *
 			inner->unop = expr;
 			expr = inner;
 		}
-		/* Fallthrough!! */
+		/* Fall through!! */
 		case '.': {			/* Structure member dereference */
 			struct expression *deref = alloc_expression(token->pos, EXPR_DEREF);
 			deref->op = '.';

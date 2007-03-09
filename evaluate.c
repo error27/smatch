@@ -759,7 +759,7 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 			/* Differs in signedness only.. */
 			if (Wtypesign) {
 				/*
-				 * Warn if both are explicitly signed ("unsigned" is obvously
+				 * Warn if both are explicitly signed ("unsigned" is obviously
 				 * always explicit, and since we know one of them has to be
 				 * unsigned, we check if the signed one was explicit).
 				 */
@@ -1066,7 +1066,7 @@ static struct symbol *compatible_ptr_type(struct expression *left, struct expres
  * have a true case, this will possibly promote "x" to the
  * same type as "y", and thus _change_ the conditional
  * test in the expression. But since promotion is "safe"
- * for testing, that's ok.
+ * for testing, that's OK.
  */
 static struct symbol *evaluate_conditional_expression(struct expression *expr)
 {
@@ -1164,7 +1164,7 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 		return 0;
 	}
 
-	/* It's ok if the target is more volatile or const than the source */
+	/* It's OK if the target is more volatile or const than the source */
 	typediff = type_difference(target, source, MOD_VOLATILE | MOD_CONST, 0);
 	if (!typediff)
 		return 1;
@@ -1174,11 +1174,11 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 		struct expression *right = *rp;
 		int source_as;
 
-		// NULL pointer is always ok
+		// NULL pointer is always OK
 		if (is_null_ptr(right))
 			goto Cast;
 
-		/* "void *" matches anything as long as the address space is ok */
+		/* "void *" matches anything as long as the address space is OK */
 		target_as = t->ctype.as | target->ctype.as;
 		source_as = s->ctype.as | source->ctype.as;
 		if (source_as == target_as && (s->type == SYM_PTR || s->type == SYM_ARRAY)) {
@@ -1581,7 +1581,7 @@ static struct symbol *evaluate_preop(struct expression *expr)
 	case SPECIAL_INCREMENT:
 	case SPECIAL_DECREMENT:
 		/*
-		 * From a type evaluation standpoint the pre-ops are
+		 * From a type evaluation standpoint the preops are
 		 * the same as the postops
 		 */
 		return evaluate_postop(expr);

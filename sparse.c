@@ -1,6 +1,6 @@
 /*
  * Example trivial client program that uses the sparse library
- * to tokenize, pre-process and parse a C file, and prints out
+ * to tokenize, preprocess and parse a C file, and prints out
  * the results.
  *
  * Copyright (C) 2003 Transmeta Corp.
@@ -142,7 +142,7 @@ static void check_byte_count(struct instruction *insn, pseudo_t count)
 				show_ident(insn->func->sym->ident), val);
 		return;
 	}
-	/* Ok, we could try to do the range analysis here */
+	/* OK, we could try to do the range analysis here */
 }
 
 static pseudo_t argument(struct instruction *call, unsigned int argno)

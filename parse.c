@@ -643,7 +643,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 			}
 			/*
 			 * base_type rules:
-			 *  - if all enum's are of the same type, then
+			 *  - if all enums are of the same type, then
 			 *    the base_type is that type (two first
 			 *    cases)
 			 *  - if enums are of different types, they
@@ -2068,7 +2068,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	/* type define declaration? */
 	is_typedef = (ctype.modifiers & MOD_TYPEDEF) != 0;
 
-	/* Typedef's don't have meaningful storage */
+	/* Typedefs don't have meaningful storage */
 	if (is_typedef) {
 		ctype.modifiers &= ~MOD_STORAGE;
 		decl->ctype.modifiers &= ~MOD_STORAGE;
