@@ -173,7 +173,7 @@ static struct function *current_func = NULL;
 static struct textbuf *unit_post_text = NULL;
 static const char *current_section;
 
-static void emit_comment(const char * fmt, ...);
+static void emit_comment(const char * fmt, ...) FORMAT_ATTR(1);
 static void emit_move(struct storage *src, struct storage *dest,
 		      struct symbol *ctype, const char *comment);
 static int type_is_signed(struct symbol *sym);

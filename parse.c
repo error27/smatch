@@ -343,7 +343,7 @@ static void fn_local_symbol(struct symbol *sym)
 		add_symbol(function_symbol_list, sym);
 }
 
-static int match_idents(struct token *token, ...)
+static int SENTINEL_ATTR match_idents(struct token *token, ...)
 {
 	va_list args;
 

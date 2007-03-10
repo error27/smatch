@@ -144,7 +144,7 @@ struct type_name {
 	char *end;
 };
 
-static void prepend(struct type_name *name, const char *fmt, ...)
+static void FORMAT_ATTR(2) prepend(struct type_name *name, const char *fmt, ...)
 {
 	static char buffer[512];
 	int n;
@@ -158,7 +158,7 @@ static void prepend(struct type_name *name, const char *fmt, ...)
 	memcpy(name->start, buffer, n);
 }
 
-static void append(struct type_name *name, const char *fmt, ...)
+static void FORMAT_ATTR(2) append(struct type_name *name, const char *fmt, ...)
 {
 	static char buffer[512];
 	int n;

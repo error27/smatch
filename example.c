@@ -236,7 +236,7 @@ static struct storage_hash *find_or_create_hash(pseudo_t pseudo, struct storage_
 }
 
 /* Eventually we should just build it up in memory */
-static void output_line(struct bb_state *state, const char *fmt, ...)
+static void FORMAT_ATTR(2) output_line(struct bb_state *state, const char *fmt, ...)
 {
 	va_list args;
 
@@ -245,7 +245,7 @@ static void output_line(struct bb_state *state, const char *fmt, ...)
 	va_end(args);
 }
 
-static void output_label(struct bb_state *state, const char *fmt, ...)
+static void FORMAT_ATTR(2) output_label(struct bb_state *state, const char *fmt, ...)
 {
 	static char buffer[512];
 	va_list args;
@@ -257,7 +257,7 @@ static void output_label(struct bb_state *state, const char *fmt, ...)
 	output_line(state, "%s:\n", buffer);
 }
 
-static void output_insn(struct bb_state *state, const char *fmt, ...)
+static void FORMAT_ATTR(2) output_insn(struct bb_state *state, const char *fmt, ...)
 {
 	static char buffer[512];
 	va_list args;
@@ -272,7 +272,7 @@ static void output_insn(struct bb_state *state, const char *fmt, ...)
 #define output_insn(state, fmt, arg...) \
 	output_insn(state, fmt "\t\t# %s" , ## arg , __FUNCTION__)
 
-static void output_comment(struct bb_state *state, const char *fmt, ...)
+static void FORMAT_ATTR(2) output_comment(struct bb_state *state, const char *fmt, ...)
 {
 	static char buffer[512];
 	va_list args;
