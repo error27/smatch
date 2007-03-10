@@ -179,8 +179,8 @@ static inline struct ident *mk_name(struct ident *root, struct ident *node)
 	char name[256];
 
 	snprintf(name, sizeof(name), "%.*s:%.*s",
-			root ? root->len : 0, root->name,
-			node ? node->len : 0, node->name);
+			root ? root->len : 0, root ? root->name : "",
+			node ? node->len : 0, node ? node->name : "");
 
 	return built_in_ident(name);
 }
