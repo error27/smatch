@@ -472,7 +472,7 @@ static int expand_compare(struct expression *expr)
 	}
 	if (simplify_cmp_binop(expr, left->ctype))
 		return 0;
-	if  (simplify_float_cmp(expr, left->ctype))
+	if (simplify_float_cmp(expr, left->ctype))
 		return 0;
 	return cost + 1;
 }
