@@ -291,7 +291,7 @@ out:
 
 static struct token *dup_list(struct token *list)
 {
-	struct token *res;
+	struct token *res = NULL;
 	struct token **p = &res;
 
 	while (!eof_token(list)) {
