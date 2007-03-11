@@ -463,17 +463,19 @@ static int expand_compare(struct expression *expr)
 	cost = expand_expression(left);
 	cost += expand_expression(right);
 
-	/* Type comparison? */
-	if (left && right && left->type == EXPR_TYPE && right->type == EXPR_TYPE) {
-		int op = expr->op;
-		expr->type = EXPR_VALUE;
-		expr->value = compare_types(op, left->symbol, right->symbol);
-		return 0;
+	if (left && right) {
+		/* Type comparison? */
+		if (left->type == EXPR_TYPE && right->type == EXPR_TYPE) {
+			int op = expr->op;
+			expr->type = EXPR_VALUE;
+			expr->value = compare_types(op, left->symbol, right->symbol);
+			return 0;
+		}
+		if (simplify_cmp_binop(expr, left->ctype))
+			return 0;
+		if (simplify_float_cmp(expr, left->ctype))
+			return 0;
 	}
-	if (simplify_cmp_binop(expr, left->ctype))
-		return 0;
-	if (simplify_float_cmp(expr, left->ctype))
-		return 0;
 	return cost + 1;
 }
 
