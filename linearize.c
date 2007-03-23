@@ -1650,6 +1650,7 @@ static pseudo_t linearize_inlined_call(struct entrypoint *ep, struct statement *
 {
 	struct instruction *insn = alloc_instruction(OP_INLINED_CALL, 0);
 	struct statement *args = stmt->args;
+	struct basic_block *bb;
 	pseudo_t pseudo;
 
 	if (args) {
@@ -1664,6 +1665,9 @@ static pseudo_t linearize_inlined_call(struct entrypoint *ep, struct statement *
 
 	insn->target = pseudo = linearize_compound_statement(ep, stmt);
 	use_pseudo(insn, symbol_pseudo(ep, stmt->inline_fn), &insn->func);
+	bb = ep->active;
+	if (bb && !bb->insns)
+		bb->pos = stmt->pos;
 	add_one_insn(ep, insn);
 	return pseudo;
 }
