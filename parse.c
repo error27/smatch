@@ -1702,7 +1702,8 @@ static struct token *statement(struct token *token, struct statement **tree)
 		if (match_op(token->next, ':')) {
 			stmt->type = STMT_LABEL;
 			stmt->label_identifier = label_symbol(token);
-			return statement(token->next->next, &stmt->label_statement);
+			token = handle_attributes(token->next->next, &stmt->label_identifier->ctype);
+			return statement(token, &stmt->label_statement);
 		}
 	}
 
