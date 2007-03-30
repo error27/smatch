@@ -4,6 +4,7 @@
 my $cc = $ENV{'REAL_CC'} || 'cc';
 my $check = $ENV{'CHECK'} || 'sparse';
 
+my $m32 = 0;
 my $m64 = 0;
 my $has_specs = 0;
 my $do_check = 0;
@@ -19,6 +20,7 @@ foreach (@ARGV) {
     # Ditto for stdin.
     $do_check = 1 if $_ eq '-';
 
+    $m32 = 1 if /^-m32$/;
     $m64 = 1 if /^-m64$/;
 
     if (/^-specs=(.*)$/) {
@@ -222,6 +224,11 @@ sub add_specs {
 		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
 		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
 		&define_size_t ($m64 ? "long unsigned int" : "unsigned int"));
+    } elsif ($spec eq 'x86_64') {
+	return (' -Dx86_64=1 -D__x86_64=1 -D__x86_64__=1' .
+		&integer_types (8, 16, 32, $m32 ? 32 : 64, 64) .
+		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
+		&define_size_t ($m32 ? "unsigned int" : "long unsigned int"));
     } elsif ($spec eq 'host_os_specs') {
 	my $os = `uname -s`;
 	chomp $os;
@@ -233,6 +240,8 @@ sub add_specs {
 	    return &add_specs ('i86');
 	} elsif ($arch =~ /^(sun4u)$/i) {
 	    return &add_specs ('sparc');
+	} elsif ($arch =~ /^(x86_64)$/i) {
+	    return &add_specs ('x86_64');
 	}
     } else {
 	die "$0: invalid specs: $spec\n";
