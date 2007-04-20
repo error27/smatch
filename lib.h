@@ -20,7 +20,7 @@
 extern int verbose, optimize, optimize_size, preprocessing;
 extern int die_if_error;
 extern int repeat_phase, merge_phi_sources;
-extern int gcc_major, gcc_minor;
+extern int gcc_major, gcc_minor, gcc_patchlevel;
 
 extern unsigned int hexval(unsigned int c);
 
