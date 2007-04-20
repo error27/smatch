@@ -209,7 +209,6 @@ int dbg_entry = 0;
 int dbg_dead = 0;
 
 int preprocess_only;
-char *include;
 
 #define CMDLINE_INCLUDE 20
 int cmdline_include_nr = 0;
