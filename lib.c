@@ -587,7 +587,7 @@ void create_builtin_stream(void)
 	// gcc defines __SIZE_TYPE__ to be size_t.  For linux/i86 and
 	// solaris/sparc that is really "unsigned int" and for linux/x86_64
 	// it is "long unsigned int".  In either case we can probably
-	// get away with this.  We need the #ifndef as cgcc will define
+	// get away with this.  We need the #weak_define as cgcc will define
 	// the right __SIZE_TYPE__.
 	add_pre_buffer("#weak_define __SIZE_TYPE__ long unsigned int\n");
 	add_pre_buffer("#weak_define __STDC__ 1\n");
