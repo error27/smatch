@@ -249,7 +249,7 @@ static struct storage hardreg_storage_table[] = {
 #define REG_AL	(&hardreg_storage_table[AL])
 #define REG_AX	(&hardreg_storage_table[AX])
 
-DECLARE_BITMAP(regs_in_use, 256);
+static DECLARE_BITMAP(regs_in_use, 256);
 
 static inline struct storage * reginfo_reg(struct reg_info *info)
 {
