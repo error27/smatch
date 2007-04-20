@@ -68,16 +68,18 @@ struct token *skip_to(struct token *, int);
 struct token *expect(struct token *, int, const char *);
 #ifdef __GNUC__
 #define FORMAT_ATTR(pos) __attribute__ ((__format__ (__printf__, pos, pos+1)))
+#define NORETURN_ATTR __attribute__ ((__noreturn__))
 #define SENTINEL_ATTR __attribute__ ((__sentinel__))
 #else
 #define FORMAT_ATTR(pos)
+#define NORETURN_ATTR
 #define SENTINEL_ATTR
 #endif
-extern void die(const char *, ...) FORMAT_ATTR(1);
+extern void die(const char *, ...) FORMAT_ATTR(1) NORETURN_ATTR;
 extern void info(struct position, const char *, ...) FORMAT_ATTR(2);
 extern void warning(struct position, const char *, ...) FORMAT_ATTR(2);
 extern void sparse_error(struct position, const char *, ...) FORMAT_ATTR(2);
-extern void error_die(struct position, const char *, ...) FORMAT_ATTR(2);
+extern void error_die(struct position, const char *, ...) FORMAT_ATTR(2) NORETURN_ATTR;
 extern void expression_error(struct expression *, const char *, ...) FORMAT_ATTR(2);
 
 extern char **handle_switch(char *arg, char **next);
