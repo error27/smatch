@@ -64,7 +64,7 @@ exit 0;
 
 sub check_only_option {
     my ($arg) = @_;
-    return 1 if $arg =~ /^-W(no-?)?(default-bitfield-sig|bitwise|typesign)$/;
+    return 1 if $arg =~ /^-W(no-?)?(default-bitfield-sig|bitwise|typesign|transparent-union)$/;
     return 0;
 }
 
