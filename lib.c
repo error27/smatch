@@ -126,7 +126,7 @@ void warning(struct position pos, const char * fmt, ...)
 	va_end(args);
 }	
 
-void do_error(struct position pos, const char * fmt, va_list args)
+static void do_error(struct position pos, const char * fmt, va_list args)
 {
 	static int errors = 0;
         die_if_error = 1;
