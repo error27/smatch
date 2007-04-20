@@ -55,6 +55,7 @@ struct asm_constraint {
 	const struct ident *ident;
 };
 
+DECLARE_ALLOCATOR(asm_constraint);
 DECLARE_PTR_LIST(asm_constraint_list, struct asm_constraint);
 
 struct asm_rules {
@@ -62,6 +63,8 @@ struct asm_rules {
 	struct asm_constraint_list *outputs;
 	struct asm_constraint_list *clobbers;
 };
+
+DECLARE_ALLOCATOR(asm_rules);
 
 struct instruction {
 	unsigned opcode:8,
