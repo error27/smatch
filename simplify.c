@@ -146,7 +146,7 @@ static int clean_up_phi(struct instruction *insn)
 	return if_convert_phi(insn);
 }
 
-int delete_pseudo_user_list_entry(struct pseudo_user_list **list, pseudo_t *entry, int count)
+static int delete_pseudo_user_list_entry(struct pseudo_user_list **list, pseudo_t *entry, int count)
 {
 	struct pseudo_user *pu;
 
