@@ -304,6 +304,7 @@ static struct init_keyword {
 	{ "sentinel",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__sentinel__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "regparm",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "__regparm__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "weak",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__weak__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "alias",	NS_KEYWORD,	.op = &ignore_attr_op },
