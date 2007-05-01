@@ -59,13 +59,12 @@ static struct position stream_pos(stream_t *stream)
 
 const char *show_special(int val)
 {
-	static const char *combinations[] = COMBINATION_STRINGS;
 	static char buffer[4];
 
 	buffer[0] = val;
 	buffer[1] = 0;
 	if (val >= SPECIAL_BASE)
-		strcpy(buffer, combinations[val - SPECIAL_BASE]);
+		strcpy(buffer, (char *) combinations[val - SPECIAL_BASE]);
 	return buffer;
 }
 
@@ -611,7 +610,7 @@ static int drop_stream_comment(stream_t *stream)
 	return nextchar(stream);
 }
 
-unsigned char combinations[][3] = COMBINATION_STRINGS;
+unsigned char combinations[][4] = COMBINATION_STRINGS;
 
 #define NR_COMBINATIONS (SPECIAL_ARG_SEPARATOR - SPECIAL_BASE)
 

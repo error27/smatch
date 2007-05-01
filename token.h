@@ -100,7 +100,7 @@ enum token_type {
 	"<", ">", "<=", ">="	\
 }
 
-extern unsigned char combinations[][3];
+extern unsigned char combinations[][4];
 
 enum special_token {
 	SPECIAL_BASE = 256,
