@@ -1954,7 +1954,6 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 		if (!function_computed_target_list)
 			warning(decl->pos, "function '%s' has computed goto but no targets?", show_ident(decl->ident));
 		else {
-			struct statement *stmt;
 			FOR_EACH_PTR(function_computed_goto_list, stmt) {
 				stmt->target_list = function_computed_target_list;
 			} END_FOR_EACH_PTR(stmt);

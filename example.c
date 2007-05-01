@@ -679,7 +679,7 @@ static struct hardreg *copy_reg(struct bb_state *state, struct hardreg *src, pse
 	}
 
 	for (i = 0; i < REGNO; i++) {
-		struct hardreg *reg = hardregs + i;
+		reg = hardregs + i;
 		if (!reg->contains) {
 			output_comment(state, "copying %s to %s", show_pseudo(target), reg->name);
 			output_insn(state, "movl %s,%s", src->name, reg->name);

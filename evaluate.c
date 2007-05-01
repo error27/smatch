@@ -785,11 +785,11 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 			PREPARE_PTR_LIST(source->arguments, arg2);
 			i = 1;
 			for (;;) {
-				const char *diff;
-				diff = type_difference(arg1, arg2, 0, 0);
-				if (diff) {
+				const char *diffstr;
+				diffstr = type_difference(arg1, arg2, 0, 0);
+				if (diffstr) {
 					static char argdiff[80];
-					sprintf(argdiff, "incompatible argument %d (%s)", i, diff);
+					sprintf(argdiff, "incompatible argument %d (%s)", i, diffstr);
 					return argdiff;
 				}
 				if (!arg1)

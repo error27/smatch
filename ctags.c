@@ -28,12 +28,13 @@ static int cmp_sym(const void *m, const void *n)
 	struct ident *b = ((struct symbol *)n)->ident;
 	int ret = strncmp(a->name, b->name, MAX(a->len, b->len));
 	if (!ret) {
-		struct position a = ((struct symbol *)m)->pos;
-		struct position b = ((struct symbol *)n)->pos;
+		struct position a_pos = ((struct symbol *)m)->pos;
+		struct position b_pos = ((struct symbol *)n)->pos;
 
-		ret = strcmp(stream_name(a.stream), stream_name(b.stream));
+		ret = strcmp(stream_name(a_pos.stream),
+		             stream_name(b_pos.stream));
 		if (!ret)
-			return a.line < b.line;
+			return a_pos.line < b_pos.line;
 	}
 	return ret;
 }

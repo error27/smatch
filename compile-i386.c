@@ -1006,8 +1006,6 @@ static void sort_array(struct expression *expr)
 				list[0] = entry;
 				sorted = 1;
 			} else {
-				unsigned int i;
-
 				for (i = 0; i < sorted; i++)
 					if (sort_array_cmp(entry, list[i]) <= 0)
 						break;
