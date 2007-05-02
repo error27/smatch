@@ -3,4 +3,6 @@
 static void f(void)
 {
 	barrier();
+l:
+	barrier();
 }
