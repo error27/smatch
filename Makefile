@@ -1,6 +1,3 @@
-#
-# Turkey time!
-#
 VERSION=0.3
 
 OS=linux
