@@ -35,7 +35,7 @@ struct symbol_list *function_computed_target_list;
 struct statement_list *function_computed_goto_list;
 
 static struct token *statement(struct token *token, struct statement **tree);
-static struct token *handle_attributes(struct token *token, struct ctype *ctype, int allow_asm);
+static struct token *handle_attributes(struct token *token, struct ctype *ctype, unsigned int keywords);
 
 static struct token *struct_specifier(struct token *token, struct ctype *ctype);
 static struct token *union_specifier(struct token *token, struct ctype *ctype);
@@ -458,7 +458,7 @@ static struct token *struct_union_enum_specifier(enum type type,
 	struct position *repos;
 
 	ctype->modifiers = 0;
-	token = handle_attributes(token, ctype, 1);
+	token = handle_attributes(token, ctype, KW_ATTRIBUTE | KW_ASM);
 	if (token_type(token) == TOKEN_IDENT) {
 		sym = lookup_symbol(token->ident, NS_STRUCT);
 		if (!sym ||
@@ -1094,7 +1094,7 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 static struct token *parameter_type_list(struct token *, struct symbol *, struct ident **p);
 static struct token *declarator(struct token *token, struct symbol *sym, struct ident **p);
 
-static struct token *handle_attributes(struct token *token, struct ctype *ctype, int allow_asm)
+static struct token *handle_attributes(struct token *token, struct ctype *ctype, unsigned int keywords)
 {
 	struct symbol *keyword;
 	for (;;) {
@@ -1104,7 +1104,7 @@ static struct token *handle_attributes(struct token *token, struct ctype *ctype,
 		keyword = lookup_keyword(token->ident, NS_KEYWORD | NS_TYPEDEF);
 		if (!keyword || keyword->type != SYM_KEYWORD)
 			break;
-		if (!(keyword->op->type & (KW_ATTRIBUTE | (allow_asm ? KW_ASM : 0))))
+		if (!(keyword->op->type & keywords))
 			break;
 		token = keyword->op->declarator(token->next, &thistype);
 		apply_ctype(token->pos, &thistype, ctype);
@@ -1122,7 +1122,7 @@ static struct token *direct_declarator(struct token *token, struct symbol *decl,
 	}
 
 	for (;;) {
-		token = handle_attributes(token, ctype, 1);
+		token = handle_attributes(token, ctype, KW_ATTRIBUTE | KW_ASM);
 
 		if (token_type(token) != TOKEN_SPECIAL)
 			return token;
@@ -1261,7 +1261,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 		decl->ident = ident;
 		if (match_op(token, ':')) {
 			token = handle_bitfield(token, decl);
-			token = handle_attributes(token, &decl->ctype, 1);
+			token = handle_attributes(token, &decl->ctype, KW_ATTRIBUTE | KW_ASM);
 		}
 		apply_modifiers(token->pos, &decl->ctype);
 		add_symbol(list, decl);
@@ -1702,7 +1702,7 @@ static struct token *statement(struct token *token, struct statement **tree)
 		if (match_op(token->next, ':')) {
 			stmt->type = STMT_LABEL;
 			stmt->label_identifier = label_symbol(token);
-			token = handle_attributes(token->next->next, &stmt->label_identifier->ctype, 0);
+			token = handle_attributes(token->next->next, &stmt->label_identifier->ctype, KW_ATTRIBUTE);
 			return statement(token, &stmt->label_statement);
 		}
 	}
