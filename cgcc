@@ -39,7 +39,7 @@ foreach (@ARGV) {
 
     my $this_arg = ' ' . &quote_arg ($_);
     $cc .= $this_arg unless &check_only_option ($_);
-    $check .= $this_arg;
+    $check .= $this_arg unless &cc_only_option ($_);
 }
 
 if ($do_check) {
@@ -65,6 +65,19 @@ exit 0;
 sub check_only_option {
     my ($arg) = @_;
     return 1 if $arg =~ /^-W(no-?)?(default-bitfield-sig|bitwise|typesign|transparent-union)$/;
+    return 0;
+}
+
+# -----------------------------------------------------------------------------
+# Check if an option is for "cc" only.
+
+sub cc_only_option {
+    my ($arg) = @_;
+    # -Wall turns on all Sparse warnings, including experimental and noisy
+    # ones.  Don't include it just because a project wants to pass -Wall to cc.
+    # If you really want cgcc to run sparse with -Wall, use
+    # CHECK="sparse -Wall".
+    return 1 if $arg =~ /^-Wall$/;
     return 0;
 }
 
