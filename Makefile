@@ -145,3 +145,10 @@ pre-process.h:
 
 clean:
 	rm -f *.[oasi] core core.[0-9]* $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
+
+dist:
+	@if test "`git describe`" != "$(VERSION)" ; then \
+		echo 'Update VERSION in the Makefile before running "make dist".' ; \
+		exit 1 ; \
+	fi
+	git archive --format=tar --prefix=sparse-$(VERSION)/ HEAD^{tree} | gzip -9 > sparse-$(VERSION).tar.gz
