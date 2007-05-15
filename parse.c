@@ -323,6 +323,10 @@ static struct init_keyword {
 	{ "__warn_unused_result__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "model",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__model__",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "cdecl",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "__cdecl__",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "stdcall",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "__stdcall__",	NS_KEYWORD,	.op = &ignore_attr_op },
 };
 
 void init_parser(int stream)
