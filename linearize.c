@@ -2107,6 +2107,7 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	bb = alloc_basic_block(ep, sym->pos);
 	
 	ep->name = sym;
+	sym->ep = ep;
 	set_activeblock(ep, bb);
 
 	entry = alloc_instruction(OP_ENTRY, 0);

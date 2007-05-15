@@ -148,6 +148,7 @@ struct symbol {
 			struct statement *inline_stmt;
 			struct symbol_list *inline_symbol_list;
 			struct expression *initializer;
+			struct entrypoint *ep;
 			long long value;		/* Initial value */
 		};
 	};
