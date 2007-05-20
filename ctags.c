@@ -45,7 +45,7 @@ static void show_tag_header(FILE *fp)
 	fprintf(fp, "!_TAG_FILE_SORTED\t0\t/0=unsorted, 1=sorted, 2=foldcase/\n");
 	fprintf(fp, "!_TAG_PROGRAM_AUTHOR\tChristopher Li\t/sparse@chrisli.org/\n");
 	fprintf(fp, "!_TAG_PROGRAM_NAME\tSparse Ctags\t//\n");
-	fprintf(fp, "!_TAG_PROGRAM_URL\thttp://kernel.org/pub/linux/kernel/people/josh/sparse/\t/official site/\n");
+	fprintf(fp, "!_TAG_PROGRAM_URL\thttp://www.kernel.org/pub/software/devel/sparse/\t/official site/\n");
 	fprintf(fp, "!_TAG_PROGRAM_VERSION\t0.01\t//\n");
 }
 
