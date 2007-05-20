@@ -602,8 +602,6 @@ void create_builtin_stream(void)
 
 	/* FIXME! We need to do these as special magic macros at expansion time! */
 	add_pre_buffer("#define __BASE_FILE__ \"base_file.c\"\n");
-	add_pre_buffer("#define __DATE__ \"??? ?? ????\"\n");
-	add_pre_buffer("#define __TIME__ \"??:??:??\"\n");
 
 	if (optimize)
 		add_pre_buffer("#define __OPTIMIZE__ 1\n");

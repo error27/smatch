@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <time.h>
 
 #include "pre-process.h"
 #include "lib.h"
@@ -141,6 +142,8 @@ static int expand_one_symbol(struct token **list)
 {
 	struct token *token = *list;
 	struct symbol *sym;
+	static char buffer[12]; /* __DATE__: 3 + ' ' + 2 + ' ' + 4 + '\0' */
+	static time_t t = 0;
 
 	if (token->pos.noexpand)
 		return 1;
@@ -154,6 +157,16 @@ static int expand_one_symbol(struct token **list)
 		replace_with_integer(token, token->pos.line);
 	} else if (token->ident == &__FILE___ident) {
 		replace_with_string(token, stream_name(token->pos.stream));
+	} else if (token->ident == &__DATE___ident) {
+		if (!t)
+			time(&t);
+		strftime(buffer, 12, "%b %e %Y", localtime(&t));
+		replace_with_string(token, buffer);
+	} else if (token->ident == &__TIME___ident) {
+		if (!t)
+			time(&t);
+		strftime(buffer, 9, "%T", localtime(&t));
+		replace_with_string(token, buffer);
 	}
 	return 1;
 }
