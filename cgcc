@@ -214,6 +214,16 @@ sub add_specs {
 	    ' -D__STDC__=1';
     } elsif ($spec eq 'unix') {
 	return ' -Dunix=1 -D__unix=1 -D__unix__=1';
+    } elsif ( $spec =~ /^cygwin/) {
+	return &add_specs ('unix') .
+	    ' -D__STDC__=1 -D__CYGWIN__=1 -D__CYGWIN32__=1' .
+	    " -D'_cdecl=__attribute__((__cdecl__))'" .
+	    " -D'__cdecl=__attribute__((__cdecl__))'" .
+	    " -D'_stdcall=__attribute__((__stdcall__))'" .
+	    " -D'__stdcall=__attribute__((__stdcall__))'" .
+	    " -D'_fastcall=__attribute__((__fastcall__))'" .
+	    " -D'__fastcall=__attribute__((__fastcall__))'" .
+	    " -D'__declspec(x)=__attribute__((x))'";
     } elsif ($spec eq 'i86') {
 	return (' -Di386=1 -D__i386=1 -D__i386__=1' .
 		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
