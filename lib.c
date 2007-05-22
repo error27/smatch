@@ -205,6 +205,7 @@ int Wenum_mismatch = 1;
 int Wdo_while = 1;
 int Wuninitialized = 1;
 int Wold_initializer = 1;
+int Wnon_pointer_null = 1;
 
 int dbg_entry = 0;
 int dbg_dead = 0;
@@ -354,6 +355,7 @@ static const struct warning {
 	{ "do-while", &Wdo_while },
 	{ "uninitialized", &Wuninitialized },
 	{ "old-initializer", &Wold_initializer },
+	{ "non-pointer-null", &Wnon_pointer_null },
 };
 
 enum {

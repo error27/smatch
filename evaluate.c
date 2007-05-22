@@ -812,7 +812,7 @@ static int is_null_ptr(struct expression *expr)
 {
 	if (expr->type != EXPR_VALUE || expr->value)
 		return 0;
-	if (!is_ptr_type(expr->ctype))
+	if (Wnon_pointer_null && !is_ptr_type(expr->ctype))
 		warning(expr->pos, "Using plain integer as NULL pointer");
 	return 1;
 }
