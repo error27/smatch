@@ -37,68 +37,81 @@ SLIB_FILE= libsparse.so
 
 LIBS=$(LIB_FILE)
 
+#
+# Pretty print
+#
+V	      = @
+Q	      = $(V:1=)
+QUIET_CC      = $(Q:@=@echo    '     CC     '$@;)
+QUIET_AR      = $(Q:@=@echo    '     AR     '$@;)
+QUIET_GEN     = $(Q:@=@echo    '     GEN    '$@;)
+QUIET_LD      = $(Q:@=@echo    '     LD     '$@;)
+# We rely on the -v switch of install to print 'file -> $ install_dir/file'
+QUIET_INST_SH = $(Q:@=echo -n  '     INSTALL  ';)
+QUIET_INST    = $(Q:@=@echo -n '     INSTALL  ';)
+
 all: $(PROGRAMS) sparse.pc
 
 install: $(INST_PROGRAMS) $(LIBS) $(LIB_H) sparse.pc
-	install -d $(DESTDIR)$(BINDIR)
-	install -d $(DESTDIR)$(LIBDIR)
-	install -d $(DESTDIR)$(INCLUDEDIR)/sparse
-	install -d $(DESTDIR)$(PKGCONFIGDIR)
-	for f in $(INST_PROGRAMS); do \
-		install -v $$f $(DESTDIR)$(BINDIR)/$$f || exit 1; \
+	$(Q)install -d $(DESTDIR)$(BINDIR)
+	$(Q)install -d $(DESTDIR)$(LIBDIR)
+	$(Q)install -d $(DESTDIR)$(INCLUDEDIR)/sparse
+	$(Q)install -d $(DESTDIR)$(PKGCONFIGDIR)
+	$(Q)for f in $(INST_PROGRAMS); do \
+		$(QUIET_INST_SH)install -v $$f $(DESTDIR)$(BINDIR)/$$f || exit 1; \
 	done
-	for f in $(LIBS); do \
-		install -m 644 -v $$f $(DESTDIR)$(LIBDIR)/$$f || exit 1; \
+	$(Q)for f in $(LIBS); do \
+		$(QUIET_INST_SH)install -m 644 -v $$f $(DESTDIR)$(LIBDIR)/$$f || exit 1; \
 	done
-	for f in $(LIB_H); do \
-		install -m 644 -v $$f $(DESTDIR)$(INCLUDEDIR)/sparse/$$f || exit 1; \
+	$(Q)for f in $(LIB_H); do \
+		$(QUIET_INST_SH)install -m 644 -v $$f $(DESTDIR)$(INCLUDEDIR)/sparse/$$f || exit 1; \
 	done
-	install -m 644 -v sparse.pc $(DESTDIR)$(PKGCONFIGDIR)/sparse.pc
+	$(QUIET_INST)install -m 644 -v sparse.pc $(DESTDIR)$(PKGCONFIGDIR)/sparse.pc
 
 sparse.pc: sparse.pc.in
-	sed 's|@version@|$(VERSION)|g;s|@prefix@|$(PREFIX)|g;s|@libdir@|$(LIBDIR)|g;s|@includedir@|$(INCLUDEDIR)|g' sparse.pc.in > sparse.pc
+	$(QUIET_GEN)sed 's|@version@|$(VERSION)|g;s|@prefix@|$(PREFIX)|g;s|@libdir@|$(LIBDIR)|g;s|@includedir@|$(INCLUDEDIR)|g' sparse.pc.in > sparse.pc
 
 test-lexing: test-lexing.o $(LIBS)
-	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 test-parsing: test-parsing.o $(LIBS)
-	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 test-linearize: test-linearize.o $(LIBS)
-	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 test-sort: test-sort.o $(LIBS)
-	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 compile: compile.o compile-i386.o $(LIBS)
-	$(CC) $(LDFLAGS) -o $@ $< compile-i386.o $(LIBS)
+	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< compile-i386.o $(LIBS)
 
 obfuscate: obfuscate.o $(LIBS)
-	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 sparse: sparse.o $(LIBS)
-	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 graph: graph.o $(LIBS)
-	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 example: example.o $(LIBS)
-	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 test-unssa: test-unssa.o $(LIBS)
-	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 test-dissect: test-dissect.o $(LIBS)
-	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 ctags: ctags.o $(LIBS)
-	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 $(LIB_FILE): $(LIB_OBJS)
-	$(AR) rcs $@ $(LIB_OBJS)
+	$(QUIET_AR)$(AR) rcs $@ $(LIB_OBJS)
 
 $(SLIB_FILE): $(LIB_OBJS)
-	$(CC) -shared -o $@ $(LIB_OBJS)
+	$(QUIET_LD)$(CC) -shared -o $@ $(LIB_OBJS)
 
 evaluate.o: $(LIB_H)
 expression.o: $(LIB_H)
@@ -141,7 +154,10 @@ compat-mingw.o: $(LIB_H)
 compat-cygwin.o: $(LIB_H)
 
 pre-process.h:
-	echo "#define GCC_INTERNAL_INCLUDE \"`$(CC) -print-file-name=include`\"" > pre-process.h
+	$(QUIET_GEN)echo "#define GCC_INTERNAL_INCLUDE \"`$(CC) -print-file-name=include`\"" > pre-process.h
+
+.c.o:
+	$(QUIET_CC)$(CC) -o $@ -c $(CFLAGS) $<
 
 clean:
 	rm -f *.[oasi] core core.[0-9]* $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
