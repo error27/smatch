@@ -1830,7 +1830,8 @@ static struct token *single_initializer(struct expression **ep, struct token *to
 
 	if ((token_type(token) == TOKEN_IDENT) && match_op(next, ':')) {
 		struct expression *expr = identifier_expression(token);
-		warning(token->pos, "obsolete struct initializer, use C99 syntax");
+		if (Wold_initializer)
+			warning(token->pos, "obsolete struct initializer, use C99 syntax");
 		token = initializer(&expr->ident_expression, next->next);
 		if (expr->ident_expression)
 			*ep = expr;

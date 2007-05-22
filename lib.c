@@ -204,6 +204,7 @@ int Waddress_space = 1;
 int Wenum_mismatch = 1;
 int Wdo_while = 1;
 int Wuninitialized = 1;
+int Wold_initializer = 1;
 
 int dbg_entry = 0;
 int dbg_dead = 0;
@@ -352,6 +353,7 @@ static const struct warning {
 	{ "enum-mismatch", &Wenum_mismatch },
 	{ "do-while", &Wdo_while },
 	{ "uninitialized", &Wuninitialized },
+	{ "old-initializer", &Wold_initializer },
 };
 
 enum {
