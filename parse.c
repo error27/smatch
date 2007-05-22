@@ -1141,7 +1141,10 @@ static struct token *direct_declarator(struct token *token, struct symbol *decl,
 		if (token->special == '(') {
 			struct symbol *sym;
 			struct token *next = token->next;
-			int fn = (p && *p) || match_op(next, ')') || lookup_type(next);
+			int fn;
+
+			next = handle_attributes(next, ctype, KW_ATTRIBUTE);
+			fn = (p && *p) || match_op(next, ')') || lookup_type(next);
 
 			if (!fn) {
 				struct symbol *base_type = ctype->base_type;
