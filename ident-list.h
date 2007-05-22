@@ -70,6 +70,13 @@ IDENT(nonnull); IDENT(__nonnull); IDENT(__nonnull__);
 IDENT(__deprecated__);
 IDENT(__warn_unused_result__);
 
+/* WIN32 specific Attribute names */
+IDENT(cdecl); IDENT(__cdecl__);
+IDENT(stdcall); IDENT(__stdcall__);
+IDENT(fastcall); IDENT(__fastcall__);
+IDENT(dllimport); IDENT(__dllimport__);
+IDENT(dllexport); IDENT(__dllexport__);
+
 /* Preprocessor idents */
 __IDENT(pragma_ident, "__pragma__", 0);
 __IDENT(__VA_ARGS___ident, "__VA_ARGS__", 0);

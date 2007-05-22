@@ -327,6 +327,12 @@ static struct init_keyword {
 	{ "__cdecl__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "stdcall",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__stdcall__",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "fastcall",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "__fastcall__",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "dllimport",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "__dllimport__",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "dllexport",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "__dllexport__",	NS_KEYWORD,	.op = &ignore_attr_op },
 };
 
 void init_parser(int stream)
