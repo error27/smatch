@@ -1,7 +1,8 @@
+#!/usr/bin/gvpr -f
 // Split call sites into call site and return site nodes and add
 // return edges
 //
-// Run with graph ... | gvpr -f return-paths
+// Run with graph ... | return-paths
 
 BEGIN {
 	// Find the immediate parent subgraph of this object

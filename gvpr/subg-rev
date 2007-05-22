@@ -1,6 +1,7 @@
+#!/usr/bin/gvpr -f
 // Compute the reverse partition of the chosen function
 //
-// Run with graph ... | gvpr -f return-paths | gvpr -f subg-rev -a functionname
+// Run with graph ... | return-paths | subg-rev -a functionname
 
 
 BEGIN {

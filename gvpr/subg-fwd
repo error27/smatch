@@ -1,7 +1,8 @@
+#!/usr/bin/gvpr -f
 // Compute the forward partition of the chosen function
 //
-// Run with graph ... | gvpr -f return-paths | gvpr -f subg-fwd -a functionname
-//       or graph ... | gvpr -f subg-fwd
+// Run with graph ... | return-paths | subg-fwd -a functionname
+//       or graph ... | subg-fwd
 
 
 BEGIN {
