@@ -38,7 +38,7 @@ IDENT_RESERVED(__sizeof_ptr__);
 IDENT_RESERVED(__builtin_types_compatible_p);
 
 /* Attribute names */
-IDENT(defined); IDENT(packed); IDENT(__packed__);
+IDENT(packed); IDENT(__packed__);
 IDENT(aligned); IDENT(__aligned__); IDENT(nocast);
 IDENT(noderef); IDENT(safe); IDENT(force);
 IDENT(address_space); IDENT(context); IDENT(mode);
@@ -78,6 +78,7 @@ IDENT(dllimport); IDENT(__dllimport__);
 IDENT(dllexport); IDENT(__dllexport__);
 
 /* Preprocessor idents */
+IDENT(defined);
 __IDENT(pragma_ident, "__pragma__", 0);
 __IDENT(__VA_ARGS___ident, "__VA_ARGS__", 0);
 __IDENT(__LINE___ident, "__LINE__", 0);
