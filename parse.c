@@ -333,6 +333,10 @@ static struct init_keyword {
 	{ "__dllimport__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "dllexport",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__dllexport__",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "constructor",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "__constructor__",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "destructor",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "__destructor__",	NS_KEYWORD,	.op = &ignore_attr_op },
 };
 
 void init_parser(int stream)
