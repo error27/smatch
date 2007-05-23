@@ -51,7 +51,7 @@ IDENT(unused); IDENT(__unused__);
 IDENT(const); IDENT(__const); IDENT(__const__);
 IDENT(__used__);
 IDENT(warn_unused_result); IDENT(__warn_unused_result__);
-IDENT(noinline);
+IDENT(noinline); IDENT(__noinline__);
 IDENT(deprecated); IDENT(__deprecated__);
 IDENT(noreturn); IDENT(__noreturn__);
 IDENT(regparm); IDENT(__regparm__);
