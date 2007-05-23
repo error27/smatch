@@ -312,6 +312,7 @@ static struct init_keyword {
 	{ "pure",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__pure__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "always_inline",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "__always_inline__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "syscall_linkage",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "visibility",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__visibility__",	NS_KEYWORD,	.op = &ignore_attr_op },

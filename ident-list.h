@@ -60,7 +60,7 @@ IDENT(no_instrument_function); IDENT(__no_instrument_function__);
 IDENT(sentinel); IDENT(__sentinel__);
 IDENT(alias); IDENT(__alias__);
 IDENT(pure); IDENT(__pure__);
-IDENT(always_inline);
+IDENT(always_inline); IDENT(__always_inline__);
 IDENT(syscall_linkage);
 IDENT(visibility); IDENT(__visibility__);
 IDENT(bitwise); IDENT(__bitwise__);
