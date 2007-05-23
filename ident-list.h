@@ -61,7 +61,7 @@ IDENT(sentinel); IDENT(__sentinel__);
 IDENT(alias); IDENT(__alias__);
 IDENT(pure); IDENT(__pure__);
 IDENT(always_inline); IDENT(__always_inline__);
-IDENT(syscall_linkage);
+IDENT(syscall_linkage); IDENT(__syscall_linkage__);
 IDENT(visibility); IDENT(__visibility__);
 IDENT(bitwise); IDENT(__bitwise__);
 IDENT(model); IDENT(__model__);
