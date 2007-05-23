@@ -71,8 +71,6 @@ IDENT(__deprecated__);
 IDENT(__warn_unused_result__);
 IDENT(constructor); IDENT(__constructor__);
 IDENT(destructor); IDENT(__destructor__);
-
-/* WIN32 specific Attribute names */
 IDENT(cdecl); IDENT(__cdecl__);
 IDENT(stdcall); IDENT(__stdcall__);
 IDENT(fastcall); IDENT(__fastcall__);
