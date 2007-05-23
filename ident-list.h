@@ -78,7 +78,9 @@ IDENT(fastcall); IDENT(__fastcall__);
 IDENT(dllimport); IDENT(__dllimport__);
 IDENT(dllexport); IDENT(__dllexport__);
 
-/* Preprocessor idents */
+/* Preprocessor idents.  Direct use of __IDENT avoids mentioning the keyword
+ * itself by name, preventing these tokens from expanding when compiling
+ * sparse. */
 IDENT(defined);
 __IDENT(pragma_ident, "__pragma__", 0);
 __IDENT(__VA_ARGS___ident, "__VA_ARGS__", 0);
