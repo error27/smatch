@@ -65,7 +65,7 @@ IDENT(syscall_linkage); IDENT(__syscall_linkage__);
 IDENT(visibility); IDENT(__visibility__);
 IDENT(bitwise); IDENT(__bitwise__);
 IDENT(model); IDENT(__model__);
-IDENT(__format_arg__);
+IDENT(format_arg); IDENT(__format_arg__);
 IDENT(nothrow); IDENT(__nothrow); IDENT(__nothrow__);
 IDENT(__transparent_union__);
 IDENT(__malloc__);

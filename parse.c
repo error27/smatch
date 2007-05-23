@@ -289,6 +289,7 @@ static struct init_keyword {
 	{ "__nonnull__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "format",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__format__",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "format_arg",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__format_arg__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "section",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__section__",NS_KEYWORD,	.op = &ignore_attr_op },
