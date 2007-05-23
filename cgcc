@@ -210,13 +210,12 @@ sub add_specs {
 	    ' -DNULL="((void *)0)"';
     } elsif ($spec eq 'linux') {
 	return &add_specs ('unix') .
-	    ' -D__linux__=1 -D__linux=1 -Dlinux=linux' .
-	    ' -D__STDC__=1';
+	    ' -D__linux__=1 -D__linux=1 -Dlinux=linux';
     } elsif ($spec eq 'unix') {
 	return ' -Dunix=1 -D__unix=1 -D__unix__=1';
     } elsif ( $spec =~ /^cygwin/) {
 	return &add_specs ('unix') .
-	    ' -D__STDC__=1 -D__CYGWIN__=1 -D__CYGWIN32__=1' .
+	    ' -D__CYGWIN__=1 -D__CYGWIN32__=1' .
 	    " -D'_cdecl=__attribute__((__cdecl__))'" .
 	    " -D'__cdecl=__attribute__((__cdecl__))'" .
 	    " -D'_stdcall=__attribute__((__stdcall__))'" .
