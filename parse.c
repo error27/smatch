@@ -320,6 +320,7 @@ static struct init_keyword {
 	{ "__deprecated__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "noinline",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__noinline__",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "used",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__used__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "warn_unused_result",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__warn_unused_result__",	NS_KEYWORD,	.op = &ignore_attr_op },

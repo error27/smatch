@@ -49,7 +49,7 @@ IDENT(format); IDENT(__format__);
 IDENT(section); IDENT(__section__);
 IDENT(unused); IDENT(__unused__);
 IDENT(const); IDENT(__const); IDENT(__const__);
-IDENT(__used__);
+IDENT(used); IDENT(__used__);
 IDENT(warn_unused_result); IDENT(__warn_unused_result__);
 IDENT(noinline); IDENT(__noinline__);
 IDENT(deprecated); IDENT(__deprecated__);
