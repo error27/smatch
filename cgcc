@@ -113,7 +113,7 @@ sub integer_types {
     while (@types) {
 	my $bits = shift @_;
 	my ($name,$suffix) = @{ shift @types };
-	die "$0: wierd number of bits." unless exists $pow2m1{$bits};
+	die "$0: weird number of bits." unless exists $pow2m1{$bits};
 	$result .= " -D__${name}_MAX__=" . $pow2m1{$bits} . $suffix;
     }
     return $result;
@@ -164,7 +164,7 @@ sub float_types {
 	my ($name,$suffix) = @{ shift @types };
 
 	my $h = $constants{$mant_bits};
-	die "$0: wierd number of mantissa bits." unless $h;
+	die "$0: weird number of mantissa bits." unless $h;
 
 	my $mant_dig = int (($mant_bits - 1) * log (2) / log (10));
 	my $max_exp = 1 << ($exp_bits - 1);
