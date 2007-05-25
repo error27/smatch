@@ -601,11 +601,8 @@ static inline int want_int(struct expression **expr, struct symbol **ctype)
 static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *ctype, struct expression **ip)
 {
 	struct expression *i = *ip;
-	struct symbol *ptr_type = ctype, *itype;
+	struct symbol *itype;
 	int bit_size;
-
-	if (ptr_type->type == SYM_NODE)
-		ptr_type = ptr_type->ctype.base_type;
 
 	if (!want_int(&i, &itype))
 		return bad_expr_type(expr);
