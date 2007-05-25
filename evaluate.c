@@ -582,16 +582,32 @@ static int ptr_object_size(struct symbol *ptr_type)
 	return ptr_type->bit_size;
 }
 
+static inline int want_int(struct expression **expr, struct symbol **ctype)
+{
+	int class = classify_type((*expr)->ctype, ctype);
+
+	if (!(class & TYPE_NUM))
+		return 0;
+	if (!(class & TYPE_RESTRICT))
+		return 1;
+	warning((*expr)->pos, "restricted degrades to integer");
+	if (class & TYPE_FOULED)	/* unfoul it first */
+		(*ctype) = (*ctype)->ctype.base_type;
+	(*ctype) = (*ctype)->ctype.base_type;	/* get to arithmetic type */
+	*expr = cast_to(*expr, *ctype);
+	return 1;
+}
+
 static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *ctype, struct expression **ip)
 {
 	struct expression *i = *ip;
-	struct symbol *ptr_type = ctype;
+	struct symbol *ptr_type = ctype, *itype;
 	int bit_size;
 
 	if (ptr_type->type == SYM_NODE)
 		ptr_type = ptr_type->ctype.base_type;
 
-	if (!is_int_type(i->ctype))
+	if (!want_int(&i, &itype))
 		return bad_expr_type(expr);
 
 	examine_symbol_type(ctype);
@@ -943,14 +959,9 @@ static struct symbol *evaluate_logical(struct expression *expr)
 
 static struct symbol *evaluate_shift(struct expression *expr)
 {
-	struct expression *left = expr->left, *right = expr->right;
-	struct symbol *ltype = left->ctype, *rtype = right->ctype;
+	struct symbol *ltype, *rtype;
 
-	if (ltype->type == SYM_NODE)
-		ltype = ltype->ctype.base_type;
-	if (rtype->type == SYM_NODE)
-		rtype = rtype->ctype.base_type;
-	if (is_int_type(ltype) && is_int_type(rtype)) {
+	if (want_int(&expr->left, &ltype) && want_int(&expr->right, &rtype)) {
 		struct symbol *ctype = integer_promotion(ltype);
 		expr->left = cast_to(expr->left, ctype);
 		expr->ctype = ctype;
