@@ -1089,11 +1089,16 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 
 	arglist = NULL;
 	expansion = left->next;
-	if (!expansion->pos.whitespace && match_op(expansion, '(')) {
-		arglist = expansion;
-		expansion = parse_arguments(expansion);
-		if (!expansion)
-			return 1;
+	if (!expansion->pos.whitespace) {
+		if (match_op(expansion, '(')) {
+			arglist = expansion;
+			expansion = parse_arguments(expansion);
+			if (!expansion)
+				return 1;
+		} else if (!eof_token(expansion)) {
+			warning(expansion->pos,
+				"no whitespace before object-like macro body");
+		}
 	}
 
 	expansion = parse_expansion(expansion, arglist, name);
