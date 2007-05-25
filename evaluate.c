@@ -833,16 +833,6 @@ static int is_null_ptr(struct expression *expr)
 	return 1;
 }
 
-static struct symbol *common_ptr_type(struct expression *l, struct expression *r)
-{
-	/* NULL expression? Just return the type of the "other side" */
-	if (is_null_ptr(r))
-		return l->ctype;
-	if (is_null_ptr(l))
-		return r->ctype;
-	return NULL;
-}
-
 /*
  * Ignore differences in "volatile" and "const"ness when
  * subtracting pointers
@@ -868,13 +858,8 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expressio
 
 	ctype = ltype;
 	typediff = type_difference(ltype, rtype, ~MOD_SIZE, ~MOD_SIZE);
-	if (typediff) {
-		ctype = common_ptr_type(l, r);
-		if (!ctype) {
-			expression_error(expr, "subtraction of different types can't work (%s)", typediff);
-			return NULL;
-		}
-	}
+	if (typediff)
+		expression_error(expr, "subtraction of different types can't work (%s)", typediff);
 	examine_symbol_type(ctype);
 
 	/* Figure out the base type we point to */
