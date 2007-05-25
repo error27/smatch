@@ -544,6 +544,7 @@ static struct token *unary_expression(struct token *token, struct expression **t
 			} type_information[] = {
 				{ &sizeof_ident, EXPR_SIZEOF },
 				{ &__alignof___ident, EXPR_ALIGNOF },
+				{ &__alignof_ident, EXPR_ALIGNOF },
 				{ &__sizeof_ptr___ident, EXPR_PTRSIZEOF },
 			};
 			int i;
