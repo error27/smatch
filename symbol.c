@@ -408,6 +408,12 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 				warning(base->pos, "typeof applied to bitfield type");
 			if (base->type == SYM_NODE)
 				base = base->ctype.base_type;
+			if (base->type == SYM_RESTRICT) {
+				sym->type = SYM_NODE;
+				sym->ctype.modifiers = 0;
+				sym->ctype.base_type = base;
+				return examine_node_type(sym);
+			}
 			*sym = *base;
 			break;
 		}
