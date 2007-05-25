@@ -836,12 +836,12 @@ static int is_null_ptr(struct expression *expr)
  */
 #define MOD_IGN (MOD_VOLATILE | MOD_CONST)
 
-static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expression *l, struct expression **rp)
+static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expression *l)
 {
 	const char *typediff;
 	struct symbol *ctype;
 	struct symbol *ltype, *rtype;
-	struct expression *r = *rp;
+	struct expression *r = expr->right;
 
 	ltype = degenerate(l);
 	rtype = degenerate(r);
@@ -851,7 +851,7 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr, struct expressio
 	 * right thing.
 	 */
 	if (!is_ptr_type(rtype))
-		return evaluate_ptr_add(expr, degenerate(l), rp);
+		return evaluate_ptr_add(expr, degenerate(l), &expr->right);
 
 	ctype = ltype;
 	typediff = type_difference(ltype, rtype, ~MOD_SIZE, ~MOD_SIZE);
@@ -902,7 +902,7 @@ static struct symbol *evaluate_sub(struct expression *expr)
 	struct symbol *ltype = left->ctype;
 
 	if (is_ptr_type(ltype))
-		return evaluate_ptr_sub(expr, left, &expr->right);
+		return evaluate_ptr_sub(expr, left);
 
 	return evaluate_arith(expr, 1);
 }
