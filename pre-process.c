@@ -763,11 +763,11 @@ out:
 
 static int free_preprocessor_line(struct token *token)
 {
-	do {
+	while (token_type(token) != TOKEN_EOF) {
 		struct token *free = token;
 		token = token->next;
 		__free_token(free);
-	} while (token_type(token) != TOKEN_EOF);
+	};
 	return 1;
 }
 
