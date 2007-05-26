@@ -559,26 +559,11 @@ static int ptr_object_size(struct symbol *ptr_type)
 	return ptr_type->bit_size;
 }
 
-static inline void want_int(struct expression **expr, struct symbol **ctype)
+static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *ctype, struct symbol *itype)
 {
-	int class = classify_type((*expr)->ctype, ctype);
-
-	if (!(class & TYPE_RESTRICT))
-		return;
-	warning((*expr)->pos, "restricted degrades to integer");
-	if (class & TYPE_FOULED)	/* unfoul it first */
-		(*ctype) = (*ctype)->ctype.base_type;
-	(*ctype) = (*ctype)->ctype.base_type;	/* get to arithmetic type */
-	*expr = cast_to(*expr, *ctype);
-}
-
-static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *ctype, struct expression **ip)
-{
-	struct expression *i = *ip;
-	struct symbol *itype;
+	struct expression *index = expr->right;
+	int multiply;
 	int bit_size;
-
-	want_int(&i, &itype);
 
 	examine_symbol_type(ctype);
 
@@ -589,31 +574,48 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *c
 
 	/* Get the size of whatever the pointer points to */
 	bit_size = ptr_object_size(ctype);
+	multiply = bit_size >> 3;
 
-	if (bit_size > bits_in_char) {
-		int multiply = bit_size >> 3;
+	expr->ctype = ctype;
+
+	if (multiply == 1 && itype->bit_size >= bits_in_pointer)
+		return ctype;
+
+	if (index->type == EXPR_VALUE) {
 		struct expression *val = alloc_expression(expr->pos, EXPR_VALUE);
-
-		if (i->type == EXPR_VALUE) {
-			val->value = i->value * multiply;
-			val->ctype = size_t_ctype;
-			*ip = val;
-		} else {
-			struct expression *mul = alloc_expression(expr->pos, EXPR_BINOP);
-
-			val->ctype = size_t_ctype;
-			val->value = bit_size >> 3;
-
-			mul->op = '*';
-			mul->ctype = size_t_ctype;
-			mul->left = i;
-			mul->right = val;
-
-			*ip = mul;
-		}
+		unsigned long long v = index->value, mask;
+		mask = 1ULL << (itype->bit_size - 1);
+		if (v & mask)
+			v |= -mask;
+		else
+			v &= mask - 1;
+		v *= multiply;
+		mask = 1ULL << (bits_in_pointer - 1);
+		v &= mask | (mask - 1);
+		val->value = v;
+		val->ctype = ssize_t_ctype;
+		expr->right = val;
+		return ctype;
 	}
 
-	expr->ctype = ctype;	
+	if (itype->bit_size < bits_in_pointer)
+		index = cast_to(index, ssize_t_ctype);
+
+	if (multiply > 1) {
+		struct expression *val = alloc_expression(expr->pos, EXPR_VALUE);
+		struct expression *mul = alloc_expression(expr->pos, EXPR_BINOP);
+
+		val->ctype = ssize_t_ctype;
+		val->value = multiply;
+
+		mul->op = '*';
+		mul->ctype = ssize_t_ctype;
+		mul->left = index;
+		mul->right = val;
+		index = mul;
+	}
+
+	expr->right = index;
 	return ctype;
 }
 
@@ -919,14 +921,19 @@ static struct symbol *evaluate_binop(struct expression *expr)
 	}
 
 	/* pointer (+|-) integer */
-	if (lclass & TYPE_PTR && is_int(rclass) && (op == '+' || op == '-'))
-		return evaluate_ptr_add(expr, degenerate(expr->left),
-					&expr->right);
+	if (lclass & TYPE_PTR && is_int(rclass) && (op == '+' || op == '-')) {
+		unrestrict(expr->right, rclass, &rtype);
+		return evaluate_ptr_add(expr, degenerate(expr->left), rtype);
+	}
 
 	/* integer + pointer */
-	if (rclass & TYPE_PTR && is_int(lclass) && op == '+')
-		return evaluate_ptr_add(expr, degenerate(expr->right),
-					&expr->left);
+	if (rclass & TYPE_PTR && is_int(lclass) && op == '+') {
+		struct expression *index = expr->left;
+		unrestrict(index, lclass, &ltype);
+		expr->left = expr->right;
+		expr->right = index;
+		return evaluate_ptr_add(expr, degenerate(expr->left), ltype);
+	}
 
 	/* pointer - pointer */
 	if (lclass & rclass & TYPE_PTR && expr->op == '-')
@@ -1118,7 +1125,8 @@ static int evaluate_assign_op(struct expression *expr)
 	}
 	if (tclass & TYPE_PTR && is_int(sclass)) {
 		if (op == SPECIAL_ADD_ASSIGN || op == SPECIAL_SUB_ASSIGN) {
-			evaluate_ptr_add(expr, target, &expr->right);
+			unrestrict(expr->right, sclass, &s);
+			evaluate_ptr_add(expr, target, s);
 			return 1;
 		}
 		expression_error(expr, "invalid pointer assignment");
