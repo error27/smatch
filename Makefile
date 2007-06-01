@@ -45,7 +45,7 @@ Q	      = $(V:1=)
 QUIET_CC      = $(Q:@=@echo    '     CC     '$@;)
 QUIET_AR      = $(Q:@=@echo    '     AR     '$@;)
 QUIET_GEN     = $(Q:@=@echo    '     GEN    '$@;)
-QUIET_LD      = $(Q:@=@echo    '     LD     '$@;)
+QUIET_LINK    = $(Q:@=@echo    '     LINK   '$@;)
 # We rely on the -v switch of install to print 'file -> $install_dir/file'
 QUIET_INST_SH = $(Q:@=echo -n  '     INSTALL  ';)
 QUIET_INST    = $(Q:@=@echo -n '     INSTALL  ';)
@@ -72,46 +72,46 @@ sparse.pc: sparse.pc.in
 	$(QUIET_GEN)sed 's|@version@|$(VERSION)|g;s|@prefix@|$(PREFIX)|g;s|@libdir@|$(LIBDIR)|g;s|@includedir@|$(INCLUDEDIR)|g' sparse.pc.in > sparse.pc
 
 test-lexing: test-lexing.o $(LIBS)
-	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 test-parsing: test-parsing.o $(LIBS)
-	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 test-linearize: test-linearize.o $(LIBS)
-	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 test-sort: test-sort.o $(LIBS)
-	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 compile: compile.o compile-i386.o $(LIBS)
-	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< compile-i386.o $(LIBS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< compile-i386.o $(LIBS)
 
 obfuscate: obfuscate.o $(LIBS)
-	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 sparse: sparse.o $(LIBS)
-	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 graph: graph.o $(LIBS)
-	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 example: example.o $(LIBS)
-	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 test-unssa: test-unssa.o $(LIBS)
-	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 test-dissect: test-dissect.o $(LIBS)
-	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 ctags: ctags.o $(LIBS)
-	$(QUIET_LD)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 $(LIB_FILE): $(LIB_OBJS)
 	$(QUIET_AR)$(AR) rcs $@ $(LIB_OBJS)
 
 $(SLIB_FILE): $(LIB_OBJS)
-	$(QUIET_LD)$(CC) -shared -o $@ $(LIB_OBJS)
+	$(QUIET_LINK)$(CC) -shared -o $@ $(LIB_OBJS)
 
 evaluate.o: $(LIB_H)
 expression.o: $(LIB_H)
