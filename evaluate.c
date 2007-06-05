@@ -1723,8 +1723,13 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 			name = ctype->ident->name;
 			namelen = ctype->ident->len;
 		}
-		expression_error(expr, "no member '%s' in %s %.*s",
-			show_ident(ident), type, namelen, name);
+		if (ctype->symbol_list)
+			expression_error(expr, "no member '%s' in %s %.*s",
+				show_ident(ident), type, namelen, name);
+		else
+			expression_error(expr, "using member '%s' in "
+				"incomplete %s %.*s", show_ident(ident),
+				type, namelen, name);
 		return NULL;
 	}
 
