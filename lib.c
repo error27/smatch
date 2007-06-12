@@ -252,7 +252,8 @@ static char **handle_switch_D(char *arg, char **next)
 
 static char **handle_switch_E(char *arg, char **next)
 {
-	preprocess_only = 1;
+	if (arg[1] == '\0')
+		preprocess_only = 1;
 	return next;
 }
 
