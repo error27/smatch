@@ -524,6 +524,24 @@ static struct token *struct_union_enum_specifier(enum type type,
 
 static struct token *parse_struct_declaration(struct token *token, struct symbol *sym)
 {
+	struct symbol *field, *last = NULL;
+	struct token *res;
+	res = struct_declaration_list(token, &sym->symbol_list);
+	FOR_EACH_PTR(sym->symbol_list, field) {
+		if (!field->ident) {
+			struct symbol *base = field->ctype.base_type;
+			if (base && base->type == SYM_BITFIELD)
+				continue;
+		}
+		if (last)
+			last->next_subobject = field;
+		last = field;
+	} END_FOR_EACH_PTR(field);
+	return res;
+}
+
+static struct token *parse_union_declaration(struct token *token, struct symbol *sym)
+{
 	return struct_declaration_list(token, &sym->symbol_list);
 }
 
@@ -534,7 +552,7 @@ static struct token *struct_specifier(struct token *token, struct ctype *ctype)
 
 static struct token *union_specifier(struct token *token, struct ctype *ctype)
 {
-	return struct_union_enum_specifier(SYM_UNION, token, ctype, parse_struct_declaration);
+	return struct_union_enum_specifier(SYM_UNION, token, ctype, parse_union_declaration);
 }
 
 

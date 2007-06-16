@@ -116,7 +116,11 @@ struct symbol {
 	struct symbol **id_list;	/* Back pointer to symbol list head */
 	struct symbol	*replace;	/* What is this symbol shadowed by in copy-expression */
 	struct scope	*scope;
-	struct symbol	*same_symbol;
+	union {
+		struct symbol	*same_symbol;
+		struct symbol	*next_subobject;
+	};
+
 	struct symbol_op *op;
 
 	union {
