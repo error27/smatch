@@ -218,8 +218,6 @@ static struct expression * copy_expression(struct expression *expr)
 
 	case EXPR_INDEX: {
 		struct expression *sub_expr = copy_expression(expr->idx_expression);
-		if (sub_expr == expr->idx_expression)
-			break;
 		expr = dup_expression(expr);
 		expr->idx_expression = sub_expr;
 		break;
