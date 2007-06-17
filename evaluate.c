@@ -1926,71 +1926,6 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 	return 1;
 }
 
-static void evaluate_initializer(struct symbol *ctype, struct expression **ep);
-
-static int evaluate_one_array_initializer(struct symbol *ctype, struct expression **ep, int current)
-{
-	struct expression *entry = *ep;
-	struct expression **parent, *reuse = NULL;
-	unsigned long offset;
-	struct symbol *sym;
-	unsigned long from, to;
-	int accept_string = is_byte_type(ctype);
-
-	from = current;
-	to = from+1;
-	parent = ep;
-	if (entry->type == EXPR_INDEX) {
-		from = entry->idx_from;
-		to = entry->idx_to+1;
-		parent = &entry->idx_expression;
-		reuse = entry;
-		entry = entry->idx_expression;
-	}
-
-	offset = from * (ctype->bit_size>>3);
-	if (offset) {
-		if (!reuse) reuse = alloc_expression(entry->pos, EXPR_POS);
-		reuse->type = EXPR_POS;
-		reuse->ctype = ctype;
-		reuse->init_offset = offset;
-		reuse->init_nr = to - from;
-		reuse->init_expr = entry;
-		parent = &reuse->init_expr;
-		entry = reuse;
-	}
-	*ep = entry;
-
-	if (accept_string && entry->type == EXPR_STRING) {
-		sym = evaluate_expression(entry);
-		to = from + get_expression_value(sym->array_size);
-	} else {
-		evaluate_initializer(ctype, parent);
-	}
-	return to;
-}
-
-static void evaluate_array_initializer(struct symbol *ctype, struct expression *expr)
-{
-	struct expression *entry;
-	int current = 0;
-
-	FOR_EACH_PTR(expr->expr_list, entry) {
-		current = evaluate_one_array_initializer(ctype, THIS_ADDRESS(entry), current);
-	} END_FOR_EACH_PTR(entry);
-}
-
-/* A scalar initializer is allowed, and acts pretty much like an array of one */
-static void evaluate_scalar_initializer(struct symbol *ctype, struct expression *expr)
-{
-	if (expression_list_size(expr->expr_list) != 1) {
-		expression_error(expr, "unexpected compound initializer");
-		return;
-	}
-	evaluate_array_initializer(ctype, expr);
-	return;
-}
-
 static struct symbol *find_struct_ident(struct symbol *ctype, struct ident *ident)
 {
 	struct symbol *sym;
@@ -2002,148 +1937,432 @@ static struct symbol *find_struct_ident(struct symbol *ctype, struct ident *iden
 	return NULL;
 }
 
-static int evaluate_one_struct_initializer(struct symbol *ctype, struct expression **ep, struct symbol *sym)
+static void convert_index(struct expression *e)
 {
-	struct expression *entry = *ep;
-	struct expression **parent;
-	struct expression *reuse = NULL;
-	unsigned long offset;
-
-	if (!sym) {
-		expression_error(entry, "unknown named initializer");
-		return -1;
-	}
-
-	if (entry->type == EXPR_IDENTIFIER) {
-		reuse = entry;
-		entry = entry->ident_expression;
-	}
-
-	parent = ep;
-	offset = sym->offset;
-	if (offset) {
-		if (!reuse)
-			reuse = alloc_expression(entry->pos, EXPR_POS);
-		reuse->type = EXPR_POS;
-		reuse->ctype = sym;
-		reuse->init_offset = offset;
-		reuse->init_nr = 1;
-		reuse->init_expr = entry;
-		parent = &reuse->init_expr;
-		entry = reuse;
-	}
-	*ep = entry;
-	evaluate_initializer(sym, parent);
-	return 0;
+	struct expression *child = e->idx_expression;
+	unsigned from = e->idx_from;
+	unsigned to = e->idx_to + 1;
+	e->type = EXPR_POS;
+	e->init_offset = from * (e->ctype->bit_size>>3);
+	e->init_nr = to - from;
+	e->init_expr = child;
 }
 
-static void evaluate_struct_or_union_initializer(struct symbol *ctype, struct expression *expr, int multiple)
+static void convert_ident(struct expression *e)
 {
-	struct expression *entry;
-	struct symbol *sym;
+	struct expression *child = e->ident_expression;
+	struct symbol *sym = e->field;
+	e->type = EXPR_POS;
+	e->init_offset = sym->offset;
+	e->init_nr = 1;
+	e->init_expr = child;
+}
 
-	PREPARE_PTR_LIST(ctype->symbol_list, sym);
-	FOR_EACH_PTR(expr->expr_list, entry) {
-		if (entry->type == EXPR_IDENTIFIER) {
-			struct ident *ident = entry->expr_ident;
-			/* We special-case the "already right place" case */
-			if (!sym || sym->ident != ident) {
-				RESET_PTR_LIST(sym);
-				for (;;) {
-					if (!sym)
-						break;
-					if (sym->ident == ident)
-						break;
-					NEXT_PTR_LIST(sym);
-				}
-			}
-		}
-		if (evaluate_one_struct_initializer(ctype, THIS_ADDRESS(entry), sym))
-			return;
-		NEXT_PTR_LIST(sym);
-	} END_FOR_EACH_PTR(entry);
-	FINISH_PTR_LIST(sym);
+static void convert_designators(struct expression *e)
+{
+	while (e) {
+		if (e->type == EXPR_INDEX)
+			convert_index(e);
+		else if (e->type == EXPR_IDENTIFIER)
+			convert_ident(e);
+		else
+			break;
+		e = e->init_expr;
+	}
+}
+
+static void excess(struct expression *e, const char *s)
+{
+	warning(e->pos, "excessive elements in %s initializer", s);
 }
 
 /*
- * Initializers are kind of like assignments. Except
- * they can be a hell of a lot more complex.
+ * implicit designator for the first element
  */
-static void evaluate_initializer(struct symbol *ctype, struct expression **ep)
+static struct expression *first_subobject(struct symbol *ctype, int class,
+					  struct expression **v)
 {
-	struct expression *expr = *ep;
+	struct expression *e = *v, *new;
+
+	if (ctype->type == SYM_NODE)
+		ctype = ctype->ctype.base_type;
+
+	if (class & TYPE_PTR) { /* array */
+		if (!ctype->bit_size)
+			return NULL;
+		new = alloc_expression(e->pos, EXPR_INDEX);
+		new->idx_expression = e;
+		new->ctype = ctype->ctype.base_type;
+	} else  {
+		struct symbol *field, *p;
+		PREPARE_PTR_LIST(ctype->symbol_list, p);
+		while (p && !p->ident && is_bitfield_type(p))
+			NEXT_PTR_LIST(p);
+		field = p;
+		FINISH_PTR_LIST(p);
+		if (!field)
+			return NULL;
+		new = alloc_expression(e->pos, EXPR_IDENTIFIER);
+		new->ident_expression = e;
+		new->field = new->ctype = field;
+	}
+	*v = new;
+	return new;
+}
+
+/*
+ * sanity-check explicit designators; return the innermost one or NULL
+ * in case of error.  Assign types.
+ */
+static struct expression *check_designators(struct expression *e,
+					    struct symbol *ctype)
+{
+	struct expression *last = NULL;
+	const char *err;
+	while (1) {
+		if (ctype->type == SYM_NODE)
+			ctype = ctype->ctype.base_type;
+		if (e->type == EXPR_INDEX) {
+			struct symbol *type;
+			if (ctype->type != SYM_ARRAY) {
+				err = "array index in non-array";
+				break;
+			}
+			type = ctype->ctype.base_type;
+			if (ctype->bit_size >= 0 && type->bit_size >= 0) {
+				unsigned offset = e->idx_to * type->bit_size;
+				if (offset >= ctype->bit_size) {
+					err = "index out of bounds in";
+					break;
+				}
+			}
+			e->ctype = ctype = type;
+			ctype = type;
+			last = e;
+			e = e->idx_expression;
+		} else if (e->type == EXPR_IDENTIFIER) {
+			if (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION) {
+				err = "field name not in struct or union";
+				break;
+			}
+			ctype = find_struct_ident(ctype, e->expr_ident);
+			if (!ctype) {
+				err = "unknown field name in";
+				break;
+			}
+			e->field = e->ctype = ctype;
+			last = e;
+			e = e->ident_expression;
+		} else if (e->type == EXPR_POS) {
+			err = "internal front-end error: EXPR_POS in";
+			break;
+		} else
+			return last;
+	}
+	expression_error(e, "%s initializer", err);
+	return NULL;
+}
+
+/*
+ * choose the next subobject to initialize.
+ *
+ * Get designators for next element, switch old ones to EXPR_POS.
+ * Return the resulting expression or NULL if we'd run out of subobjects.
+ * The innermost designator is returned in *v.  Designators in old
+ * are assumed to be already sanity-checked.
+ */
+static struct expression *next_designators(struct expression *old,
+			     struct symbol *ctype,
+			     struct expression *e, struct expression **v)
+{
+	struct expression *new = NULL;
+
+	if (!old)
+		return NULL;
+	if (old->type == EXPR_INDEX) {
+		struct expression *copy;
+		unsigned n;
+
+		copy = next_designators(old->idx_expression,
+					old->ctype, e, v);
+		if (!copy) {
+			n = old->idx_to + 1;
+			if (n * old->ctype->bit_size == ctype->bit_size) {
+				convert_index(old);
+				return NULL;
+			}
+			copy = e;
+			*v = new = alloc_expression(e->pos, EXPR_INDEX);
+		} else {
+			n = old->idx_to;
+			new = alloc_expression(e->pos, EXPR_INDEX);
+		}
+
+		new->idx_from = new->idx_to = n;
+		new->idx_expression = copy;
+		new->ctype = old->ctype;
+		convert_index(old);
+	} else if (old->type == EXPR_IDENTIFIER) {
+		struct expression *copy;
+		struct symbol *field;
+
+		copy = next_designators(old->ident_expression,
+					old->ctype, e, v);
+		if (!copy) {
+			field = old->field->next_subobject;
+			if (!field) {
+				convert_ident(old);
+				return NULL;
+			}
+			copy = e;
+			*v = new = alloc_expression(e->pos, EXPR_IDENTIFIER);
+		} else {
+			field = old->field;
+			new = alloc_expression(e->pos, EXPR_IDENTIFIER);
+		}
+
+		new->field = field;
+		new->expr_ident = field->ident;
+		new->ident_expression = copy;
+		new->ctype = field;
+		convert_ident(old);
+	}
+	return new;
+}
+
+static int handle_simple_initializer(struct expression **ep, int nested,
+				     int class, struct symbol *ctype);
+
+/*
+ * deal with traversing subobjects [6.7.8(17,18,20)]
+ */
+static void handle_list_initializer(struct expression *expr,
+				    int class, struct symbol *ctype)
+{
+	struct expression *e, *last = NULL, *top = NULL, *next;
+	int jumped = 0;
+
+	FOR_EACH_PTR(expr->expr_list, e) {
+		struct expression **v;
+		struct symbol *type;
+		int lclass;
+
+		if (e->type != EXPR_INDEX && e->type != EXPR_IDENTIFIER) {
+			if (!top) {
+				top = e;
+				last = first_subobject(ctype, class, &top);
+			} else {
+				last = next_designators(last, ctype, e, &top);
+			}
+			if (!last) {
+				excess(e, class & TYPE_PTR ? "array" :
+							"struct or union");
+				DELETE_CURRENT_PTR(e);
+				continue;
+			}
+			if (jumped) {
+				warning(e->pos, "advancing past deep designator");
+				jumped = 0;
+			}
+			REPLACE_CURRENT_PTR(e, last);
+		} else {
+			next = check_designators(e, ctype);
+			if (!next) {
+				DELETE_CURRENT_PTR(e);
+				continue;
+			}
+			top = next;
+			/* deeper than one designator? */
+			jumped = top != e;
+			convert_designators(last);
+			last = e;
+		}
+
+found:
+		lclass = classify_type(top->ctype, &type);
+		if (top->type == EXPR_INDEX)
+			v = &top->idx_expression;
+		else
+			v = &top->ident_expression;
+
+		if (handle_simple_initializer(v, 1, lclass, top->ctype))
+			continue;
+
+		if (!(lclass & TYPE_COMPOUND)) {
+			warning(e->pos, "bogus scalar initializer");
+			DELETE_CURRENT_PTR(e);
+			continue;
+		}
+
+		next = first_subobject(type, lclass, v);
+		if (next) {
+			warning(e->pos, "missing braces around initializer");
+			top = next;
+			goto found;
+		}
+
+		DELETE_CURRENT_PTR(e);
+		excess(e, lclass & TYPE_PTR ? "array" : "struct or union");
+
+	} END_FOR_EACH_PTR(e);
+
+	convert_designators(last);
+	expr->ctype = ctype;
+}
+
+static int is_string_literal(struct expression **v)
+{
+	struct expression *e = *v;
+	while (e->type == EXPR_PREOP && e->op == '(')
+		e = e->unop;
+	if (e->type != EXPR_STRING)
+		return 0;
+	if (e != *v && Wparen_string)
+		warning(e->pos,
+			"array initialized from parenthesized string constant");
+	*v = e;
+	return 1;
+}
+
+/*
+ * We want a normal expression, possibly in one layer of braces.  Warn
+ * if the latter happens inside a list (it's legal, but likely to be
+ * an effect of screwup).  In case of anything not legal, we are definitely
+ * having an effect of screwup, so just fail and let the caller warn.
+ */
+static struct expression *handle_scalar(struct expression *e, int nested)
+{
+	struct expression *v = NULL, *p;
+	int count = 0;
+
+	/* normal case */
+	if (e->type != EXPR_INITIALIZER)
+		return e;
+
+	FOR_EACH_PTR(e->expr_list, p) {
+		if (!v)
+			v = p;
+		count++;
+	} END_FOR_EACH_PTR(p);
+	if (count != 1)
+		return NULL;
+	switch(v->type) {
+	case EXPR_INITIALIZER:
+	case EXPR_INDEX:
+	case EXPR_IDENTIFIER:
+		return NULL;
+	default:
+		break;
+	}
+	if (nested)
+		warning(e->pos, "braces around scalar initializer");
+	return v;
+}
+
+/*
+ * deal with the cases that don't care about subobjects:
+ * scalar <- assignment expression, possibly in braces [6.7.8(11)]
+ * character array <- string literal, possibly in braces [6.7.8(14)]
+ * struct or union <- assignment expression of compatible type [6.7.8(13)]
+ * compound type <- initializer list in braces [6.7.8(16)]
+ * The last one punts to handle_list_initializer() which, in turn will call
+ * us for individual elements of the list.
+ *
+ * We do not handle 6.7.8(15) (wide char array <- wide string literal) for
+ * the lack of support of wide char stuff in general.
+ *
+ * One note: we need to take care not to evaluate a string literal until
+ * we know that we *will* handle it right here.  Otherwise we would screw
+ * the cases like struct { struct {char s[10]; ...} ...} initialized with
+ * { "string", ...} - we need to preserve that string literal recognizable
+ * until we dig into the inner struct.
+ */
+static int handle_simple_initializer(struct expression **ep, int nested,
+				     int class, struct symbol *ctype)
+{
+	int is_string = is_string_type(ctype);
+	struct expression *e = *ep, *p;
+	struct symbol *type;
+
+	/* scalar */
+	if (!(class & TYPE_COMPOUND)) {
+		e = handle_scalar(e, nested);
+		if (!e)
+			return 0;
+		*ep = e;
+		type = evaluate_expression(e);
+		if (!e->ctype)
+			return 1;
+		compatible_assignment_types(e, ctype, ep, degenerate(e),
+					    "initializer", '=');
+		return 1;
+	}
 
 	/*
-	 * Simple non-structure/array initializers are the simple 
-	 * case, and look (and parse) largely like assignments.
+	 * sublist; either a string, or we dig in; the latter will deal with
+	 * pathologies, so we don't need anything fancy here.
 	 */
-	switch (expr->type) {
-	default: {
-		int is_string = expr->type == EXPR_STRING;
-		struct symbol *rtype = evaluate_expression(expr);
-		if (rtype) {
-			/*
-			 * Special case:
-			 * 	char array[] = "string"
-			 * should _not_ degenerate.
-			 */
-			if (!is_string || !is_string_type(ctype))
-				rtype = degenerate(expr);
-			compatible_assignment_types(expr, ctype, ep, rtype, "initializer", '=');
+	if (e->type == EXPR_INITIALIZER) {
+		if (is_string) {
+			struct expression *v = NULL;
+			int count = 0;
+
+			FOR_EACH_PTR(e->expr_list, p) {
+				if (!v)
+					v = p;
+				count++;
+			} END_FOR_EACH_PTR(p);
+			if (count == 1 && is_string_literal(&v)) {
+				*ep = e = v;
+				goto String;
+			}
 		}
-		return;
+		handle_list_initializer(e, class, ctype);
+		return 1;
 	}
 
-	case EXPR_INITIALIZER:
-		expr->ctype = ctype;
-		if (ctype->type == SYM_NODE)
-			ctype = ctype->ctype.base_type;
-	
-		switch (ctype->type) {
-		case SYM_ARRAY:
-		case SYM_PTR:
-			evaluate_array_initializer(get_base_type(ctype), expr);
-			return;
-		case SYM_UNION:
-			evaluate_struct_or_union_initializer(ctype, expr, 0);
-			return;
-		case SYM_STRUCT:
-			evaluate_struct_or_union_initializer(ctype, expr, 1);
-			return;
-		default:
-			evaluate_scalar_initializer(ctype, expr);
-			return;
+	/* string */
+	if (is_string_literal(&e)) {
+		/* either we are doing array of char, or we'll have to dig in */
+		if (is_string) {
+			*ep = e;
+			goto String;
 		}
-
-	case EXPR_IDENTIFIER:
-		if (ctype->type == SYM_NODE)
-			ctype = ctype->ctype.base_type;
-		if (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION) {
-			expression_error(expr, "expected structure or union for '%s' dereference", show_ident(expr->expr_ident));
-			show_symbol(ctype);
-			return;
-		}
-		evaluate_one_struct_initializer(ctype, ep,
-			find_struct_ident(ctype, expr->expr_ident));
-		return;
-
-	case EXPR_INDEX:
-		if (ctype->type == SYM_NODE)
-			ctype = ctype->ctype.base_type;
-		if (ctype->type != SYM_ARRAY) {
-			expression_error(expr, "expected array");
-			return;
-		}
-		evaluate_one_array_initializer(ctype->ctype.base_type, ep, 0);
-		return;
-
-	case EXPR_POS:
-		/*
-		 * An EXPR_POS expression has already been evaluated, and we don't
-		 * need to do anything more
-		 */
-		return;
+		return 0;
 	}
+	/* struct or union can be initialized by compatible */
+	if (class != TYPE_COMPOUND)
+		return 0;
+	type = evaluate_expression(e);
+	if (!type)
+		return 0;
+	if (ctype->type == SYM_NODE)
+		ctype = ctype->ctype.base_type;
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	if (ctype == type)
+		return 1;
+	return 0;
+
+String:
+	p = alloc_expression(e->pos, EXPR_STRING);
+	*p = *e;
+	type = evaluate_expression(p);
+	if (ctype->bit_size != -1 &&
+	    ctype->bit_size + bits_in_char < type->bit_size) {
+		warning(e->pos,
+			"too long initializer-string for array of char");
+	}
+	*ep = p;
+	return 1;
+}
+
+static void evaluate_initializer(struct symbol *ctype, struct expression **ep)
+{
+	struct symbol *type;
+	int class = classify_type(ctype, &type);
+	if (!handle_simple_initializer(ep, 0, class, ctype))
+		expression_error(*ep, "invalid initializer");
 }
 
 static int get_as(struct symbol *sym)

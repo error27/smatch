@@ -103,6 +103,7 @@ extern int Wdo_while;
 extern int Wuninitialized;
 extern int Wold_initializer;
 extern int Wnon_pointer_null;
+extern int Wparen_string;
 
 extern int dbg_entry;
 extern int dbg_dead;

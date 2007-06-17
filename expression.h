@@ -114,6 +114,7 @@ struct expression {
 		// EXPR_IDENTIFIER
 		struct /* ident_expr */ {
 			struct ident *expr_ident;
+			struct symbol *field;
 			struct expression *ident_expression;
 		};
 		// EXPR_INDEX
