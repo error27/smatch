@@ -254,6 +254,8 @@ void merge_type(struct symbol *sym, struct symbol *base_type)
 	concat_ptr_list((struct ptr_list *)base_type->ctype.contexts,
 	                (struct ptr_list **)&sym->ctype.contexts);
 	sym->ctype.base_type = base_type->ctype.base_type;
+	if (sym->ctype.base_type->type == SYM_NODE)
+		merge_type(sym, sym->ctype.base_type);
 }
 
 static int count_array_initializer(struct symbol *t, struct expression *expr)
@@ -408,7 +410,10 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 				warning(base->pos, "typeof applied to bitfield type");
 			if (base->type == SYM_NODE)
 				base = base->ctype.base_type;
-			if (base->type == SYM_RESTRICT) {
+			switch (base->type) {
+			case SYM_RESTRICT:
+			case SYM_UNION:
+			case SYM_STRUCT:
 				sym->type = SYM_NODE;
 				sym->ctype.modifiers = 0;
 				sym->ctype.base_type = base;
