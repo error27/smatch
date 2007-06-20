@@ -207,6 +207,7 @@ int Wuninitialized = 1;
 int Wold_initializer = 1;
 int Wnon_pointer_null = 1;
 int Wparen_string = 0;
+int Wreturn_void = 0;
 
 int dbg_entry = 0;
 int dbg_dead = 0;
@@ -359,6 +360,7 @@ static const struct warning {
 	{ "old-initializer", &Wold_initializer },
 	{ "non-pointer-null", &Wnon_pointer_null },
 	{ "paren-string", &Wparen_string },
+	{ "return-void", &Wreturn_void },
 };
 
 enum {

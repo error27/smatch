@@ -2790,6 +2790,8 @@ static struct symbol *evaluate_return_expression(struct statement *stmt)
 	if (!fntype || fntype == &void_ctype) {
 		if (expr && expr->ctype != &void_ctype)
 			expression_error(expr, "return expression in %s function", fntype?"void":"typeless");
+		if (expr && Wreturn_void)
+			warning(stmt->pos, "returning void-valued expression");
 		return NULL;
 	}
 
