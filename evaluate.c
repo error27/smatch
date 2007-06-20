@@ -2433,16 +2433,13 @@ out:
 static struct symbol *evaluate_cast(struct expression *expr)
 {
 	struct expression *target = expr->cast_expression;
-	struct symbol *ctype = examine_symbol_type(expr->cast_type);
+	struct symbol *ctype;
 	struct symbol *t1, *t2;
 	int class1, class2;
 	int as1, as2;
 
 	if (!target)
 		return NULL;
-
-	expr->ctype = ctype;
-	expr->cast_type = ctype;
 
 	/*
 	 * Special case: a cast can be followed by an
@@ -2458,7 +2455,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		struct symbol *sym = expr->cast_type;
 		struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
 
-		sym->initializer = expr->cast_expression;
+		sym->initializer = target;
 		evaluate_symbol(sym);
 
 		addr->ctype = &lazy_ptr_ctype;	/* Lazy eval */
@@ -2471,6 +2468,10 @@ static struct symbol *evaluate_cast(struct expression *expr)
 
 		return sym;
 	}
+
+	ctype = examine_symbol_type(expr->cast_type);
+	expr->ctype = ctype;
+	expr->cast_type = ctype;
 
 	evaluate_expression(target);
 	degenerate(target);
