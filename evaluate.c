@@ -2039,6 +2039,10 @@ static struct expression *check_designators(struct expression *e,
 			e->ctype = ctype = type;
 			ctype = type;
 			last = e;
+			if (!e->idx_expression) {
+				err = "invalid";
+				break;
+			}
 			e = e->idx_expression;
 		} else if (e->type == EXPR_IDENTIFIER) {
 			if (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION) {
@@ -2052,6 +2056,10 @@ static struct expression *check_designators(struct expression *e,
 			}
 			e->field = e->ctype = ctype;
 			last = e;
+			if (!e->ident_expression) {
+				err = "invalid";
+				break;
+			}
 			e = e->ident_expression;
 		} else if (e->type == EXPR_POS) {
 			err = "internal front-end error: EXPR_POS in";
@@ -2213,9 +2221,9 @@ found:
 static int is_string_literal(struct expression **v)
 {
 	struct expression *e = *v;
-	while (e->type == EXPR_PREOP && e->op == '(')
+	while (e && e->type == EXPR_PREOP && e->op == '(')
 		e = e->unop;
-	if (e->type != EXPR_STRING)
+	if (!e || e->type != EXPR_STRING)
 		return 0;
 	if (e != *v && Wparen_string)
 		warning(e->pos,
@@ -2283,6 +2291,9 @@ static int handle_simple_initializer(struct expression **ep, int nested,
 	int is_string = is_string_type(ctype);
 	struct expression *e = *ep, *p;
 	struct symbol *type;
+
+	if (!e)
+		return 0;
 
 	/* scalar */
 	if (!(class & TYPE_COMPOUND)) {
