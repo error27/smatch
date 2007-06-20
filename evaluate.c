@@ -1897,15 +1897,24 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 		if (!ctype)
 			return 0;
 
-		ctype = degenerate(expr);
-
 		target = argtype;
-		if (!target && ctype->bit_size < bits_in_int)
-			target = &int_ctype;
-		if (target) {
+		if (!target) {
+			struct symbol *type;
+			int class = classify_type(ctype, &type);
+			if (is_int(class)) {
+				*p = cast_to(expr, integer_promotion(type));
+			} else if (class & TYPE_FLOAT) {
+				unsigned long mod = type->ctype.modifiers;
+				if (!(mod & (MOD_LONG|MOD_LONGLONG)))
+					*p = cast_to(expr, &double_ctype);
+			} else if (class & TYPE_PTR) {
+				degenerate(expr);
+			}
+		} else {
 			static char where[30];
 			examine_symbol_type(target);
 			sprintf(where, "argument %d", i);
+			ctype = degenerate(expr);
 			compatible_assignment_types(expr, target, p, ctype, where);
 		}
 
