@@ -24,12 +24,12 @@ static void examine_symbol(struct symbol *sym);
 
 static int cmp_sym(const void *m, const void *n)
 {
-	struct ident *a = ((struct symbol *)m)->ident;
-	struct ident *b = ((struct symbol *)n)->ident;
+	const struct ident *a = ((const struct symbol *)m)->ident;
+	const struct ident *b = ((const struct symbol *)n)->ident;
 	int ret = strncmp(a->name, b->name, MAX(a->len, b->len));
 	if (!ret) {
-		struct position a_pos = ((struct symbol *)m)->pos;
-		struct position b_pos = ((struct symbol *)n)->pos;
+		const struct position a_pos = ((const struct symbol *)m)->pos;
+		const struct position b_pos = ((const struct symbol *)n)->pos;
 
 		ret = strcmp(stream_name(a_pos.stream),
 		             stream_name(b_pos.stream));
