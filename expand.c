@@ -1144,7 +1144,7 @@ static int expand_statement(struct statement *stmt)
 	return SIDE_EFFECTS;
 }
 
-long long get_expression_value(struct expression *expr)
+static long long __get_expression_value(struct expression *expr, int strict)
 {
 	long long value, mask;
 	struct symbol *ctype;
@@ -1161,6 +1161,10 @@ long long get_expression_value(struct expression *expr)
 		expression_error(expr, "bad constant expression");
 		return 0;
 	}
+	if (strict && !(expr->flags & Int_const_expr)) {
+		expression_error(expr, "bad integer constant expression");
+		return 0;
+	}
 
 	value = expr->value;
 	mask = 1ULL << (ctype->bit_size-1);
@@ -1172,4 +1176,14 @@ long long get_expression_value(struct expression *expr)
 			value = value | mask | ~(mask-1);
 	}
 	return value;
+}
+
+long long get_expression_value(struct expression *expr)
+{
+	return __get_expression_value(expr, 0);
+}
+
+long long const_expression_value(struct expression *expr)
+{
+	return __get_expression_value(expr, 1);
 }
