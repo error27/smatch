@@ -359,6 +359,13 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 				token = builtin_types_compatible_p_expr(token, &expr);
 				break;
 			}
+		} else if (sym->enum_member) {
+			expr = alloc_expression(token->pos, EXPR_VALUE);
+			*expr = *sym->initializer;
+			/* we want the right position reported, thus the copy */
+			expr->pos = token->pos;
+			token = next;
+			break;
 		}
 
 		expr = alloc_expression(token->pos, EXPR_SYMBOL);

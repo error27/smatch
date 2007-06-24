@@ -667,6 +667,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 		}
 
 		sym->initializer = expr;
+		sym->enum_member = 1;
 		sym->ctype.base_type = parent;
 		add_ptr_list(&entries, sym);
 

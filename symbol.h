@@ -109,7 +109,7 @@ extern int expand_constant_p(struct expression *expr, int cost);
 struct symbol {
 	enum type type:8;
 	enum namespace namespace:9;
-	unsigned char used:1, attr:2;
+	unsigned char used:1, attr:2, enum_member:1;
 	struct position pos;		/* Where this symbol was declared */
 	struct ident *ident;		/* What identifier this symbol is associated with */
 	struct symbol *next_id;		/* Next semantic symbol that shares this identifier */
