@@ -1,4 +1,4 @@
 typedef unsigned __attribute__((bitwise)) A;
-A x;
-__typeof__(x) y;
-A *p = &y;
+static A x;
+static __typeof__(x) y;
+static A *p = &y;
