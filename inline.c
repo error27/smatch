@@ -237,7 +237,23 @@ static struct expression * copy_expression(struct expression *expr)
 		expr->init_expr = val;
 		break;
 	}
-
+	case EXPR_OFFSETOF: {
+		struct expression *val = copy_expression(expr->down);
+		if (expr->op == '.') {
+			if (expr->down != val) {
+				expr = dup_expression(expr);
+				expr->down = val;
+			}
+		} else {
+			struct expression *idx = copy_expression(expr->index);
+			if (expr->down != val || expr->index != idx) {
+				expr = dup_expression(expr);
+				expr->down = val;
+				expr->index = idx;
+			}
+		}
+		break;
+	}
 	default:
 		warning(expr->pos, "trying to copy expression type %d", expr->type);
 	}

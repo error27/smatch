@@ -311,6 +311,7 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 	}
 
 	expr = alloc_expression(old->pos, EXPR_IMPLIED_CAST);
+	expr->flags = old->flags;
 	expr->ctype = type;
 	expr->cast_type = type;
 	expr->cast_expression = old;
@@ -403,6 +404,7 @@ static struct symbol *bad_expr_type(struct expression *expr)
 		break;
 	}
 
+	expr->flags = 0;
 	return expr->ctype = &bad_ctype;
 }
 
@@ -880,6 +882,10 @@ static struct symbol *evaluate_logical(struct expression *expr)
 		return NULL;
 
 	expr->ctype = &bool_ctype;
+	if (expr->flags) {
+		if (!(expr->left->flags & expr->right->flags & Int_const_expr))
+			expr->flags = 0;
+	}
 	return &bool_ctype;
 }
 
@@ -889,6 +895,11 @@ static struct symbol *evaluate_binop(struct expression *expr)
 	int lclass = classify_type(expr->left->ctype, &ltype);
 	int rclass = classify_type(expr->right->ctype, &rtype);
 	int op = expr->op;
+
+	if (expr->flags) {
+		if (!(expr->left->flags & expr->right->flags & Int_const_expr))
+			expr->flags = 0;
+	}
 
 	/* number op number */
 	if (lclass & rclass & TYPE_NUM) {
@@ -967,6 +978,11 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	struct symbol *ltype = left->ctype, *rtype = right->ctype;
 	struct symbol *ctype;
 	int lclass, rclass;
+
+	if (expr->flags) {
+		if (!(expr->left->flags & expr->right->flags & Int_const_expr))
+			expr->flags = 0;
+	}
 
 	/* Type types? */
 	if (is_type_type(ltype) && is_type_type(rtype))
@@ -1055,6 +1071,13 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 			return NULL;
 		ltype = degenerate(expr->cond_true);
 		true = &expr->cond_true;
+	}
+
+	if (expr->flags) {
+		int flags = expr->conditional->flags & Int_const_expr;
+		flags &= (*true)->flags & expr->cond_false->flags;
+		if (!flags)
+			expr->flags = 0;
 	}
 
 	lclass = classify_type(ltype, &ltype);
@@ -1436,6 +1459,7 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 	}
 	ctype = op->ctype;
 	*expr = *op->unop;
+	expr->flags = 0;
 
 	if (expr->type == EXPR_SYMBOL) {
 		struct symbol *sym = expr->symbol;
@@ -1463,6 +1487,7 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	/* Simplify: *&(expr) => (expr) */
 	if (op->type == EXPR_PREOP && op->op == '&') {
 		*expr = *op->unop;
+		expr->flags = 0;
 		return expr->ctype;
 	}
 
@@ -1540,6 +1565,8 @@ static struct symbol *evaluate_postop(struct expression *expr)
 static struct symbol *evaluate_sign(struct expression *expr)
 {
 	struct symbol *ctype = expr->unop->ctype;
+	if (expr->flags && !(expr->unop->flags & Int_const_expr))
+		expr->flags = 0;
 	if (is_int_type(ctype)) {
 		struct symbol *rtype = rtype = integer_promotion(ctype);
 		expr->unop = cast_to(expr->unop, rtype);
@@ -1588,6 +1615,8 @@ static struct symbol *evaluate_preop(struct expression *expr)
 		return evaluate_postop(expr);
 
 	case '!':
+		if (expr->flags && !(expr->unop->flags & Int_const_expr))
+			expr->flags = 0;
 		if (is_safe_type(ctype))
 			warning(expr->pos, "testing a 'safe expression'");
 		if (is_float_type(ctype)) {
@@ -2477,6 +2506,15 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	degenerate(target);
 
 	class1 = classify_type(ctype, &t1);
+
+	/* cast to non-integer type -> not an integer constant expression */
+	if (!is_int(class1))
+		expr->flags = 0;
+	/* if argument turns out to be not an integer constant expression *and*
+	   it was not a floating literal to start with -> too bad */
+	else if (expr->flags == Int_const_expr &&
+		!(target->flags & Int_const_expr))
+		expr->flags = 0;
 	/*
 	 * You can always throw a value away by casting to
 	 * "void" - that's an implicit "force". Note that
@@ -2608,6 +2646,92 @@ static struct symbol *evaluate_call(struct expression *expr)
 	return expr->ctype;
 }
 
+static struct symbol *evaluate_offsetof(struct expression *expr)
+{
+	struct expression *e = expr->down;
+	struct symbol *ctype = expr->in;
+	int class;
+
+	if (expr->op == '.') {
+		struct symbol *field;
+		int offset = 0;
+		if (!ctype) {
+			expression_error(expr, "expected structure or union");
+			return NULL;
+		}
+		examine_symbol_type(ctype);
+		class = classify_type(ctype, &ctype);
+		if (class != TYPE_COMPOUND) {
+			expression_error(expr, "expected structure or union");
+			return NULL;
+		}
+
+		field = find_identifier(expr->ident, ctype->symbol_list, &offset);
+		if (!field) {
+			expression_error(expr, "unknown member");
+			return NULL;
+		}
+		ctype = field;
+		expr->type = EXPR_VALUE;
+		expr->flags = Int_const_expr;
+		expr->value = offset;
+		expr->ctype = size_t_ctype;
+	} else {
+		if (!ctype) {
+			expression_error(expr, "expected structure or union");
+			return NULL;
+		}
+		examine_symbol_type(ctype);
+		class = classify_type(ctype, &ctype);
+		if (class != (TYPE_COMPOUND | TYPE_PTR)) {
+			expression_error(expr, "expected array");
+			return NULL;
+		}
+		ctype = ctype->ctype.base_type;
+		if (!expr->index) {
+			expr->type = EXPR_VALUE;
+			expr->flags = Int_const_expr;
+			expr->value = 0;
+			expr->ctype = size_t_ctype;
+		} else {
+			struct expression *idx = expr->index, *m;
+			struct symbol *i_type = evaluate_expression(idx);
+			int i_class = classify_type(i_type, &i_type);
+			if (!is_int(i_class)) {
+				expression_error(expr, "non-integer index");
+				return NULL;
+			}
+			unrestrict(idx, i_class, &i_type);
+			idx = cast_to(idx, size_t_ctype);
+			m = alloc_const_expression(expr->pos,
+						   ctype->bit_size >> 3);
+			m->ctype = size_t_ctype;
+			m->flags = Int_const_expr;
+			expr->type = EXPR_BINOP;
+			expr->left = idx;
+			expr->right = m;
+			expr->op = '*';
+			expr->ctype = size_t_ctype;
+			expr->flags = m->flags & idx->flags & Int_const_expr;
+		}
+	}
+	if (e) {
+		struct expression *copy = __alloc_expression(0);
+		*copy = *expr;
+		if (e->type == EXPR_OFFSETOF)
+			e->in = ctype;
+		if (!evaluate_expression(e))
+			return NULL;
+		expr->type = EXPR_BINOP;
+		expr->flags = e->flags & copy->flags & Int_const_expr;
+		expr->op = '+';
+		expr->ctype = size_t_ctype;
+		expr->left = copy;
+		expr->right = e;
+	}
+	return size_t_ctype;
+}
+
 struct symbol *evaluate_expression(struct expression *expr)
 {
 	if (!expr)
@@ -2687,6 +2811,9 @@ struct symbol *evaluate_expression(struct expression *expr)
 		/* .. but the type of the _expression_ is a "type" */
 		expr->ctype = &type_ctype;
 		return &type_ctype;
+
+	case EXPR_OFFSETOF:
+		return evaluate_offsetof(expr);
 
 	/* These can not exist as stand-alone expressions */
 	case EXPR_INITIALIZER:

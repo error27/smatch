@@ -802,7 +802,7 @@ static struct token *attribute_aligned(struct token *token, struct symbol *attr,
 	if (match_op(token, '(')) {
 		token = parens_expression(token, &expr, "in attribute");
 		if (expr)
-			alignment = get_expression_value(expr);
+			alignment = const_expression_value(expr);
 	}
 	ctype->alignment = alignment;
 	return token;
@@ -820,7 +820,7 @@ static struct token *attribute_address_space(struct token *token, struct symbol 
 	token = expect(token, '(', "after address_space attribute");
 	token = conditional_expression(token, &expr);
 	if (expr)
-		ctype->as = get_expression_value(expr);
+		ctype->as = const_expression_value(expr);
 	token = expect(token, ')', "after address_space attribute");
 	return token;
 }
@@ -1258,7 +1258,7 @@ static struct token *handle_bitfield(struct token *token, struct symbol *decl)
 
 	bitfield = alloc_indirect_symbol(token->pos, ctype, SYM_BITFIELD);
 	token = conditional_expression(token->next, &expr);
-	width = get_expression_value(expr);
+	width = const_expression_value(expr);
 	bitfield->bit_size = width;
 
 	if (width < 0 || width > INT_MAX) {
@@ -1844,10 +1844,10 @@ static struct expression *index_expression(struct expression *from, struct expre
 	int idx_from, idx_to;
 	struct expression *expr = alloc_expression(from->pos, EXPR_INDEX);
 
-	idx_from = get_expression_value(from);
+	idx_from = const_expression_value(from);
 	idx_to = idx_from;
 	if (to) {
-		idx_to = get_expression_value(to);
+		idx_to = const_expression_value(to);
 		if (idx_to < idx_from || idx_from < 0)
 			warning(from->pos, "nonsense array initializer index range");
 	}

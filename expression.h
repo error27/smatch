@@ -44,10 +44,17 @@ enum expression_type {
 	EXPR_POS,		// position in initializer
 	EXPR_FVALUE,
 	EXPR_SLICE,
+	EXPR_OFFSETOF,
 };
 
+enum {
+	Int_const_expr = 1,
+	Float_literal = 2,
+}; /* for expr->flags */
+
 struct expression {
-	enum expression_type type;
+	enum expression_type type:8;
+	unsigned flags:8;
 	int op;
 	struct position pos;
 	struct symbol *ctype;
@@ -127,11 +134,21 @@ struct expression {
 			unsigned int init_offset, init_nr;
 			struct expression *init_expr;
 		};
+		// EXPR_OFFSETOF
+		struct {
+			struct symbol *in;
+			struct expression *down;
+			union {
+				struct ident *ident;
+				struct expression *index;
+			};
+		};
 	};
 };
 
 /* Constant expression values */
 long long get_expression_value(struct expression *);
+long long const_expression_value(struct expression *);
 
 /* Expression parsing */
 struct token *parse_expression(struct token *token, struct expression **tree);
