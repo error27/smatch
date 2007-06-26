@@ -325,6 +325,11 @@ static char **handle_switch_m(char *arg, char **next)
 		max_int_alignment = 8;
 		bits_in_pointer = 64;
 		pointer_alignment = 8;
+		size_t_ctype = &ulong_ctype;
+		ssize_t_ctype = &long_ctype;
+	} else if (!strcmp(arg, "msize-long")) {
+		size_t_ctype = &ulong_ctype;
+		ssize_t_ctype = &long_ctype;
 	}
 	return next;
 }
@@ -599,7 +604,10 @@ void create_builtin_stream(void)
 	// it is "long unsigned int".  In either case we can probably
 	// get away with this.  We need the #weak_define as cgcc will define
 	// the right __SIZE_TYPE__.
-	add_pre_buffer("#weak_define __SIZE_TYPE__ long unsigned int\n");
+	if (size_t_ctype == &ulong_ctype)
+		add_pre_buffer("#weak_define __SIZE_TYPE__ long unsigned int\n");
+	else
+		add_pre_buffer("#weak_define __SIZE_TYPE__ unsigned int\n");
 	add_pre_buffer("#weak_define __STDC__ 1\n");
 
 	add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");

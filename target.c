@@ -3,8 +3,8 @@
 #include "symbol.h"
 #include "target.h"
 
-struct symbol *size_t_ctype = &ulong_ctype;
-struct symbol *ssize_t_ctype = &long_ctype;
+struct symbol *size_t_ctype = &uint_ctype;
+struct symbol *ssize_t_ctype = &int_ctype;
 
 /*
  * For "__attribute__((aligned))"
