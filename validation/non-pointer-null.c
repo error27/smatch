@@ -1,1 +1,1 @@
-void *p = 0;
+static void *p = 0;
