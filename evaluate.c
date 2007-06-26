@@ -2608,6 +2608,87 @@ static struct symbol *evaluate_call(struct expression *expr)
 	return expr->ctype;
 }
 
+static struct symbol *evaluate_offsetof(struct expression *expr)
+{
+	struct expression *e = expr->down;
+	struct symbol *ctype = expr->in;
+	int class;
+
+	if (expr->op == '.') {
+		struct symbol *field;
+		int offset = 0;
+		if (!ctype) {
+			expression_error(expr, "expected structure or union");
+			return NULL;
+		}
+		examine_symbol_type(ctype);
+		class = classify_type(ctype, &ctype);
+		if (class != TYPE_COMPOUND) {
+			expression_error(expr, "expected structure or union");
+			return NULL;
+		}
+
+		field = find_identifier(expr->ident, ctype->symbol_list, &offset);
+		if (!field) {
+			expression_error(expr, "unknown member");
+			return NULL;
+		}
+		ctype = field;
+		expr->type = EXPR_VALUE;
+		expr->value = offset;
+		expr->ctype = size_t_ctype;
+	} else {
+		if (!ctype) {
+			expression_error(expr, "expected structure or union");
+			return NULL;
+		}
+		examine_symbol_type(ctype);
+		class = classify_type(ctype, &ctype);
+		if (class != (TYPE_COMPOUND | TYPE_PTR)) {
+			expression_error(expr, "expected array");
+			return NULL;
+		}
+		ctype = ctype->ctype.base_type;
+		if (!expr->index) {
+			expr->type = EXPR_VALUE;
+			expr->value = 0;
+			expr->ctype = size_t_ctype;
+		} else {
+			struct expression *idx = expr->index, *m;
+			struct symbol *i_type = evaluate_expression(idx);
+			int i_class = classify_type(i_type, &i_type);
+			if (!is_int(i_class)) {
+				expression_error(expr, "non-integer index");
+				return NULL;
+			}
+			unrestrict(idx, i_class, &i_type);
+			idx = cast_to(idx, size_t_ctype);
+			m = alloc_const_expression(expr->pos,
+						   ctype->bit_size >> 3);
+			m->ctype = size_t_ctype;
+			expr->type = EXPR_BINOP;
+			expr->left = idx;
+			expr->right = m;
+			expr->op = '*';
+			expr->ctype = size_t_ctype;
+		}
+	}
+	if (e) {
+		struct expression *copy = __alloc_expression(0);
+		*copy = *expr;
+		if (e->type == EXPR_OFFSETOF)
+			e->in = ctype;
+		if (!evaluate_expression(e))
+			return NULL;
+		expr->type = EXPR_BINOP;
+		expr->op = '+';
+		expr->ctype = size_t_ctype;
+		expr->left = copy;
+		expr->right = e;
+	}
+	return size_t_ctype;
+}
+
 struct symbol *evaluate_expression(struct expression *expr)
 {
 	if (!expr)
@@ -2687,6 +2768,9 @@ struct symbol *evaluate_expression(struct expression *expr)
 		/* .. but the type of the _expression_ is a "type" */
 		expr->ctype = &type_ctype;
 		return &type_ctype;
+
+	case EXPR_OFFSETOF:
+		return evaluate_offsetof(expr);
 
 	/* These can not exist as stand-alone expressions */
 	case EXPR_INITIALIZER:

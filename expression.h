@@ -44,6 +44,7 @@ enum expression_type {
 	EXPR_POS,		// position in initializer
 	EXPR_FVALUE,
 	EXPR_SLICE,
+	EXPR_OFFSETOF,
 };
 
 struct expression {
@@ -126,6 +127,15 @@ struct expression {
 		struct /* initpos_expr */ {
 			unsigned int init_offset, init_nr;
 			struct expression *init_expr;
+		};
+		// EXPR_OFFSETOF
+		struct {
+			struct symbol *in;
+			struct expression *down;
+			union {
+				struct ident *ident;
+				struct expression *index;
+			};
 		};
 	};
 };

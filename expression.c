@@ -152,6 +152,69 @@ static struct token *builtin_types_compatible_p_expr(struct token *token,
 	return token;
 }
 
+static struct token *builtin_offsetof_expr(struct token *token,
+					   struct expression **tree)
+{
+	struct expression *expr = NULL;
+	struct expression **p = &expr;
+	struct symbol *sym;
+	int op = '.';
+
+	token = token->next;
+	if (!match_op(token, '('))
+		return expect(token, '(', "after __builtin_offset");
+
+	token = token->next;
+	token = typename(token, &sym);
+	if (sym->ident)
+		sparse_error(token->pos,
+			     "type expression should not include identifier "
+			     "\"%s\"", sym->ident->name);
+
+	if (!match_op(token, ','))
+		return expect(token, ',', "in __builtin_offset");
+
+	while (1) {
+		struct expression *e;
+		switch (op) {
+		case ')':
+			expr->in = sym;
+			*tree = expr;
+		default:
+			return expect(token, ')', "at end of __builtin_offset");
+		case SPECIAL_DEREFERENCE:
+			e = alloc_expression(token->pos, EXPR_OFFSETOF);
+			e->op = '[';
+			*p = e;
+			p = &e->down;
+			/* fall through */
+		case '.':
+			token = token->next;
+			e = alloc_expression(token->pos, EXPR_OFFSETOF);
+			e->op = '.';
+			if (token_type(token) != TOKEN_IDENT) {
+				sparse_error(token->pos, "Expected member name");
+				return token;
+			}
+			e->ident = token->ident;
+			token = token->next;
+			break;
+		case '[':
+			token = token->next;
+			e = alloc_expression(token->pos, EXPR_OFFSETOF);
+			e->op = '[';
+			token = parse_expression(token, &e->index);
+			token = expect(token, ']',
+					"at end of array dereference");
+			if (!e->index)
+				return token;
+		}
+		*p = e;
+		p = &e->down;
+		op = token_type(token) == TOKEN_SPECIAL ? token->special : 0;
+	}
+}
+
 static struct token *string_expression(struct token *token, struct expression *expr)
 {
 	struct string *string = token->string;
@@ -357,6 +420,10 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 				goto handle_string;
 			if (token->ident == &__builtin_types_compatible_p_ident) {
 				token = builtin_types_compatible_p_expr(token, &expr);
+				break;
+			}
+			if (token->ident == &__builtin_offsetof_ident) {
+				token = builtin_offsetof_expr(token, &expr);
 				break;
 			}
 		} else if (sym->enum_member) {
