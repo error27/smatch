@@ -5,13 +5,13 @@
  *
  * "warning: a.c:16:10: incompatible types for operation"
  */
-struct {
+static struct {
 	int x:4;
 } y;
 
 extern int a[];
 
-int b(void)
+static int b(void)
 {
 	return a[y.x];
 }
