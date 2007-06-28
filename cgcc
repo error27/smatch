@@ -50,8 +50,11 @@ if ($do_check) {
 	$check .= &add_specs ('host_os_specs');
     }
     print "$check\n" if $verbose;
-#    exit 1;
-    system ($check);
+    if ($do_compile) {
+	system ($check);
+    } else {
+	exec ($check);
+    }
 }
 
 if ($do_compile) {
