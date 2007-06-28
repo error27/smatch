@@ -1282,7 +1282,7 @@ static struct token *handle_bitfield(struct token *token, struct symbol *decl)
 		    !(bitfield_type->ctype.modifiers & MOD_EXPLICITLY_SIGNED) &&
 		    is_signed) {
 			// The sign of bitfields is unspecified by default.
-			sparse_error(token->pos, "dubious bitfield without explicit `signed' or `unsigned'");
+			warning(token->pos, "dubious bitfield without explicit `signed' or `unsigned'");
 		}
 	}
 	bitfield->bit_size = width;
