@@ -1,4 +1,4 @@
-#include <string.h>
+extern void *memset (void *s, int c, int n);
 static void test(void)
 {
 	struct { int foo;; } val;

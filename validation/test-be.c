@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
+int printf(char *c, ...);
+void exit(int c);
 
 #undef PRINT_OUTPUTS
 
