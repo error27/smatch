@@ -749,7 +749,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	return list;
 }
 
-struct symbol_list * __sparse(char *filename)
+struct symbol_list * sparse_keep_tokens(char *filename)
 {
 	struct symbol_list *res;
 
@@ -758,6 +758,17 @@ struct symbol_list * __sparse(char *filename)
 
 	new_file_scope();
 	res = sparse_file(filename);
+
+	/* And return it */
+	return res;
+}
+
+
+struct symbol_list * __sparse(char *filename)
+{
+	struct symbol_list *res;
+
+	res = sparse_keep_tokens(filename);
 
 	/* Drop the tokens for this file after parsing */
 	clear_token_alloc();
