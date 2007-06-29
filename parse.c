@@ -505,6 +505,7 @@ static struct token *struct_union_enum_specifier(enum type type,
 
 			// Mark the structure as needing re-examination
 			sym->examined = 0;
+			sym->endpos = token->pos;
 		}
 		return token;
 	}
@@ -519,7 +520,10 @@ static struct token *struct_union_enum_specifier(enum type type,
 	sym = alloc_symbol(token->pos, type);
 	token = parse(token->next, sym);
 	ctype->base_type = sym;
-	return expect(token, '}', "at end of specifier");
+	token =  expect(token, '}', "at end of specifier");
+	sym->endpos = token->pos;
+
+	return token;
 }
 
 static struct token *parse_struct_declaration(struct token *token, struct symbol *sym)
@@ -712,6 +716,9 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 			lower_boundary(&lower, &v);
 		}
 		token = next;
+
+		sym->endpos = token->pos;
+
 		if (!match_op(token, ','))
 			break;
 		token = token->next;
@@ -775,6 +782,7 @@ static struct token *typeof_specifier(struct token *token, struct ctype *ctype)
 		token = parse_expression(token->next, &typeof_sym->initializer);
 
 		ctype->modifiers = 0;
+		typeof_sym->endpos = token->pos;
 		ctype->base_type = typeof_sym;
 	}		
 	return expect(token, ')', "after typeof");
@@ -1193,12 +1201,14 @@ static struct token *direct_declarator(struct token *token, struct symbol *decl,
 			sym = alloc_indirect_symbol(token->pos, ctype, SYM_FN);
 			token = parameter_type_list(next, sym, p);
 			token = expect(token, ')', "in function declarator");
+			sym->endpos = token->pos;
 			continue;
 		}
 		if (token->special == '[') {
 			struct symbol *array = alloc_indirect_symbol(token->pos, ctype, SYM_ARRAY);
 			token = abstract_array_declarator(token->next, array);
 			token = expect(token, ']', "in abstract_array_declarator");
+			array->endpos = token->pos;
 			ctype = &array->ctype;
 			continue;
 		}
@@ -1232,6 +1242,7 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 
 		token = declaration_specifiers(token->next, ctype, 1);
 		modifiers = ctype->modifiers;
+		ctype->base_type->endpos = token->pos;
 	}
 	return token;
 }
@@ -1286,6 +1297,7 @@ static struct token *handle_bitfield(struct token *token, struct symbol *decl)
 		}
 	}
 	bitfield->bit_size = width;
+	bitfield->endpos = token->pos;
 	return token;
 }
 
@@ -1306,6 +1318,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 		}
 		apply_modifiers(token->pos, &decl->ctype);
 		add_symbol(list, decl);
+		decl->endpos = token->pos;
 		if (!match_op(token, ','))
 			break;
 		token = token->next;
@@ -1340,6 +1353,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol **
 	token = declarator(token, sym, &ident);
 	sym->ident = ident;
 	apply_modifiers(token->pos, &sym->ctype);
+	sym->endpos = token->pos;
 	return token;
 }
 
@@ -1353,6 +1367,7 @@ struct token *typename(struct token *token, struct symbol **p, int mod)
 	if (sym->ctype.modifiers & MOD_STORAGE & ~mod)
 		warning(sym->pos, "storage class in typename (%s)",
 			show_typename(sym));
+	sym->endpos = token->pos;
 	return token;
 }
 
@@ -1821,6 +1836,7 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn,
 			warning(token->pos, "void parameter");
 		}
 		add_symbol(list, sym);
+		sym->endpos = token->pos;
 		if (!match_op(token, ','))
 			break;
 		token = token->next;
@@ -2107,6 +2123,8 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	token = declarator(token, decl, &ident);
 	apply_modifiers(token->pos, &decl->ctype);
 
+	decl->endpos = token->pos;
+
 	/* Just a type declaration? */
 	if (!ident)
 		return expect(token, ';', "end of type declaration");
@@ -2167,6 +2185,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		token = declaration_specifiers(token, &decl->ctype, 1);
 		token = declarator(token, decl, &ident);
 		apply_modifiers(token->pos, &decl->ctype);
+		decl->endpos = token->pos;
 		if (!ident) {
 			sparse_error(token->pos, "expected identifier name in type definition");
 			return token;

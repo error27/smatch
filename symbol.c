@@ -62,6 +62,7 @@ struct symbol *alloc_symbol(struct position pos, int type)
 	struct symbol *sym = __alloc_symbol(0);
 	sym->type = type;
 	sym->pos = pos;
+	sym->endpos.type = 0;
 	return sym;
 }
 
