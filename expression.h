@@ -154,6 +154,7 @@ struct expression {
 };
 
 /* Constant expression values */
+int is_zero_constant(struct expression *);
 long long get_expression_value(struct expression *);
 long long const_expression_value(struct expression *);
 

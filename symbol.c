@@ -753,7 +753,8 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		llong_ctype, sllong_ctype, ullong_ctype,
 		float_ctype, double_ctype, ldouble_ctype,
 		string_ctype, ptr_ctype, lazy_ptr_ctype,
-		incomplete_ctype, label_ctype, bad_ctype;
+		incomplete_ctype, label_ctype, bad_ctype,
+		null_ctype;
 
 struct symbol	zero_int;
 
@@ -829,6 +830,7 @@ static const struct ctype_declare {
 
 	{ &string_ctype,    SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &char_ctype },
 	{ &ptr_ctype,	    SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
+	{ &null_ctype,	    SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
 	{ &label_ctype,	    SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
 	{ &lazy_ptr_ctype,  SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
 	{ NULL, }

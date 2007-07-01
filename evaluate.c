@@ -274,7 +274,7 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 
 	warn_for_different_enum_types (old->pos, old->ctype, type);
 
-	if (is_same_type(old, type))
+	if (old->ctype != &null_ctype && is_same_type(old, type))
 		return old;
 
 	/*
@@ -567,6 +567,9 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *c
 	int multiply;
 	int bit_size;
 
+	if (ctype == &null_ctype)
+		ctype = &ptr_ctype;
+
 	examine_symbol_type(ctype);
 
 	if (!ctype->ctype.base_type) {
@@ -784,13 +787,10 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 	return NULL;
 }
 
-static int is_null_ptr(struct expression *expr)
+static void bad_null(struct expression *expr)
 {
-	if (expr->type != EXPR_VALUE || expr->value)
-		return 0;
-	if (Wnon_pointer_null && !is_ptr_type(expr->ctype))
+	if (Wnon_pointer_null)
 		warning(expr->pos, "Using plain integer as NULL pointer");
-	return 1;
 }
 
 /*
@@ -973,12 +973,23 @@ static int modify_for_unsigned(int op)
 	return op;
 }
 
+static inline int is_null_pointer_constant(struct expression *e)
+{
+	if (e->ctype == &null_ctype)
+		return 1;
+	if (!(e->flags & Int_const_expr))
+		return 0;
+	return is_zero_constant(e) ? 2 : 0;
+}
+
 static struct symbol *evaluate_compare(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
-	struct symbol *ltype = left->ctype, *rtype = right->ctype;
+	struct symbol *ltype, *rtype;
+	int lclass = classify_type(degenerate(left), &ltype);
+	int rclass = classify_type(degenerate(right), &rtype);
 	struct symbol *ctype;
-	int lclass, rclass;
+	const char *typediff;
 
 	if (expr->flags) {
 		if (!(expr->left->flags & expr->right->flags & Int_const_expr))
@@ -989,29 +1000,69 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	if (is_type_type(ltype) && is_type_type(rtype))
 		goto OK;
 
-	if (is_safe_type(ltype) || is_safe_type(rtype))
+	if (is_safe_type(left->ctype) || is_safe_type(right->ctype))
 		warning(expr->pos, "testing a 'safe expression'");
 
-	lclass = classify_type(ltype, &ltype);
-	rclass = classify_type(rtype, &rtype);
-
-	/* Pointer types? */
-	if ((lclass | rclass) & TYPE_PTR) {
-		// FIXME! Check the types for compatibility
-		expr->op = modify_for_unsigned(expr->op);
+	/* number on number */
+	if (lclass & rclass & TYPE_NUM) {
+		ctype = usual_conversions(expr->op, expr->left, expr->right,
+					  lclass, rclass, ltype, rtype);
+		expr->left = cast_to(expr->left, ctype);
+		expr->right = cast_to(expr->right, ctype);
+		if (ctype->ctype.modifiers & MOD_UNSIGNED)
+			expr->op = modify_for_unsigned(expr->op);
 		goto OK;
 	}
 
-	/* Both should be numbers */
-	if (!(lclass & rclass & TYPE_NUM))
+	/* at least one must be a pointer */
+	if (!((lclass | rclass) & TYPE_PTR))
 		return bad_expr_type(expr);
 
-	ctype = usual_conversions(expr->op, expr->left, expr->right,
-				  lclass, rclass, ltype, rtype);
-	expr->left = cast_to(expr->left, ctype);
-	expr->right = cast_to(expr->right, ctype);
-	if (ctype->ctype.modifiers & MOD_UNSIGNED)
-		expr->op = modify_for_unsigned(expr->op);
+	/* equality comparisons can be with null pointer constants */
+	if (expr->op == SPECIAL_EQUAL || expr->op == SPECIAL_NOTEQUAL) {
+		int is_null1 = is_null_pointer_constant(left);
+		int is_null2 = is_null_pointer_constant(right);
+		if (is_null1 == 2)
+			bad_null(left);
+		if (is_null2 == 2)
+			bad_null(right);
+		if (is_null1 && is_null2) {
+			int positive = expr->op == SPECIAL_EQUAL;
+			expr->type = EXPR_VALUE;
+			expr->value = positive;
+			goto OK;
+		}
+		if (is_null1) {
+			left = cast_to(left, rtype);
+			goto OK;
+		}
+		if (is_null2) {
+			right = cast_to(right, ltype);
+			goto OK;
+		}
+		/* they also have special treatment for pointers to void */
+		if (lclass & rclass & TYPE_PTR) {
+			if (get_base_type(ltype) == &void_ctype) {
+				right = cast_to(right, ltype);
+				goto OK;
+			}
+			if (get_base_type(rtype) == &void_ctype) {
+				left = cast_to(left, rtype);
+				goto OK;
+			}
+		}
+	}
+	/* both should be pointers */
+	if (!(lclass & rclass & TYPE_PTR))
+		return bad_expr_type(expr);
+
+	expr->op = modify_for_unsigned(expr->op);
+	typediff = type_difference(ltype, rtype, MOD_IGN, MOD_IGN);
+	if (!typediff)
+		goto OK;
+
+	expression_error(expr, "incompatible types in comparison expression (%s)", typediff);
+	return NULL;
 
 OK:
 	expr->ctype = &bool_ctype;
@@ -1032,12 +1083,12 @@ static struct symbol *compatible_ptr_type(struct expression *left, struct expres
 		rtype = rtype->ctype.base_type;
 
 	if (ltype->type == SYM_PTR) {
-		if (is_null_ptr(right) || rtype->ctype.base_type == &void_ctype)
+		if (rtype->ctype.base_type == &void_ctype)
 			return ltype;
 	}
 
 	if (rtype->type == SYM_PTR) {
-		if (is_null_ptr(left) || ltype->ctype.base_type == &void_ctype)
+		if (ltype->ctype.base_type == &void_ctype)
 			return rtype;
 	}
 	return NULL;
@@ -1090,13 +1141,45 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 		expr->cond_false = cast_to(expr->cond_false, ctype);
 		goto out;
 	}
-	ctype = compatible_ptr_type(*true, expr->cond_false);
-	if (ctype)
-		goto out;
+	if ((lclass | rclass) & TYPE_PTR) {
+		int is_null1 = is_null_pointer_constant(*true);
+		int is_null2 = is_null_pointer_constant(expr->cond_false);
+		if (is_null1 && is_null2) {
+			*true = cast_to(*true, &ptr_ctype);
+			expr->cond_false = cast_to(expr->cond_false, &ptr_ctype);
+			ctype = &ptr_ctype;
+			goto out;
+		}
+		if (is_null1 && (rclass & TYPE_PTR)) {
+			if (is_null1 == 2)
+				bad_null(*true);
+			*true = cast_to(*true, rtype);
+			ctype = rtype;
+			goto out;
+		}
+		if (is_null2 && (lclass & TYPE_PTR)) {
+			if (is_null2 == 2)
+				bad_null(expr->cond_false);
+			expr->cond_false = cast_to(expr->cond_false, ltype);
+			ctype = ltype;
+			goto out;
+		}
+		if (!(lclass & rclass & TYPE_PTR)) {
+			typediff = "different types";
+			goto Err;
+		}
+		/* OK, it's pointer on pointer */
+		/* XXX - we need to handle qualifiers */
+		ctype = compatible_ptr_type(*true, expr->cond_false);
+		if (ctype)
+			goto out;
+	}
 	ctype = ltype;
 	typediff = type_difference(ltype, rtype, MOD_IGN, MOD_IGN);
 	if (!typediff)
 		goto out;
+
+Err:
 	expression_error(expr, "incompatible types in conditional expression (%s)", typediff);
 	return NULL;
 
@@ -1185,6 +1268,16 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			goto Cast;
 	}
 
+	if (tclass & TYPE_PTR) {
+		// NULL pointer is always OK
+		int is_null = is_null_pointer_constant(*rp);
+		if (is_null) {
+			if (is_null == 2)
+				bad_null(*rp);
+			goto Cast;
+		}
+	}
+
 	/* It's OK if the target is more volatile or const than the source */
 	typediff = type_difference(target, source, MOD_VOLATILE | MOD_CONST, 0);
 	if (!typediff)
@@ -1192,13 +1285,8 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 
 	/* Pointer destination? */
 	if (tclass & TYPE_PTR) {
-		struct expression *right = *rp;
 		int source_as;
 		int target_as;
-
-		// NULL pointer is always OK
-		if (is_null_ptr(right))
-			goto Cast;
 
 		/* "void *" matches anything as long as the address space is OK */
 		target_as = t->ctype.as | target->ctype.as;
@@ -1941,7 +2029,10 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 				if (!(mod & (MOD_LONG|MOD_LONGLONG)))
 					*p = cast_to(expr, &double_ctype);
 			} else if (class & TYPE_PTR) {
-				degenerate(expr);
+				if (expr->ctype == &null_ctype)
+					*p = cast_to(expr, &ptr_ctype);
+				else
+					degenerate(expr);
 			}
 		} else {
 			static char where[30];
@@ -2438,31 +2529,6 @@ static int get_as(struct symbol *sym)
 	return as;
 }
 
-static void cast_to_as(struct expression *e, int as)
-{
-	struct expression *v = e->cast_expression;
-	struct symbol *type = v->ctype;
-
-	if (!Wcast_to_address_space)
-		return;
-
-	if (v->type != EXPR_VALUE || v->value)
-		goto out;
-
-	/* cast from constant 0 to pointer is OK */
-	if (is_int_type(type))
-		return;
-
-	if (type->type == SYM_NODE)
-		type = type->ctype.base_type;
-
-	if (type->type == SYM_PTR && type->ctype.base_type == &void_ctype)
-		return;
-
-out:
-	warning(e->pos, "cast adds address space to expression (<asn:%d>)", as);
-}
-
 static struct symbol *evaluate_cast(struct expression *expr)
 {
 	struct expression *target = expr->cast_expression;
@@ -2557,17 +2623,23 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		warning(expr->pos, "cast removes address space of expression");
 	if (as1 > 0 && as2 > 0 && as1 != as2)
 		warning(expr->pos, "cast between address spaces (<asn:%d>-><asn:%d>)", as2, as1);
-	if (as1 > 0 && !as2)
-		cast_to_as(expr, as1);
+	if (as1 > 0 && !as2 &&
+	    !is_null_pointer_constant(target) && Wcast_to_address_space)
+		warning(expr->pos,
+			"cast adds address space to expression (<asn:%d>)", as1);
 
-	/*
-	 * Casts of constant values are special: they
-	 * can be NULL, and thus need to be simplified
-	 * early.
-	 */
-	if (target->type == EXPR_VALUE)
-		cast_value(expr, ctype, target, target->ctype);
-
+	if (!(ctype->ctype.modifiers & MOD_PTRINHERIT) && class1 == TYPE_PTR &&
+	    !as1 && (target->flags & Int_const_expr)) {
+		if (t1->ctype.base_type == &void_ctype) {
+			if (is_zero_constant(target)) {
+				/* NULL */
+				expr->type = EXPR_VALUE;
+				expr->ctype = &null_ctype;
+				expr->value = 0;
+				return ctype;
+			}
+		}
+	}
 out:
 	return ctype;
 }
@@ -3153,6 +3225,8 @@ struct symbol *evaluate_statement(struct statement *stmt)
 	case STMT_EXPRESSION:
 		if (!evaluate_expression(stmt->expression))
 			return NULL;
+		if (stmt->expression->ctype == &null_ctype)
+			stmt->expression = cast_to(stmt->expression, &ptr_ctype);
 		return degenerate(stmt->expression);
 
 	case STMT_COMPOUND: {

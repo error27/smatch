@@ -34,6 +34,7 @@
 
 static int expand_expression(struct expression *);
 static int expand_statement(struct statement *);
+static int conservative;
 
 static int expand_symbol_expression(struct expression *expr)
 {
@@ -97,7 +98,7 @@ Int:
 	expr->value = value & mask;
 
 	// Stop here unless checking for truncation
-	if (!Wcast_truncate)
+	if (!Wcast_truncate || conservative)
 		return;
 	
 	// Check if we dropped any bits..
@@ -138,10 +139,8 @@ Float:
 
 static int check_shift_count(struct expression *expr, struct symbol *ctype, unsigned int count)
 {
-	if (count >= ctype->bit_size) {
-		warning(expr->pos, "shift too big (%u) for type %s", count, show_typename(ctype));
-		count &= ctype->bit_size-1;
-	}
+	warning(expr->pos, "shift too big (%u) for type %s", count, show_typename(ctype));
+	count &= ctype->bit_size-1;
 	return count;
 }
 
@@ -163,8 +162,12 @@ static int simplify_int_binop(struct expression *expr, struct symbol *ctype)
 		return 0;
 	r = right->value;
 	if (expr->op == SPECIAL_LEFTSHIFT || expr->op == SPECIAL_RIGHTSHIFT) {
-		r = check_shift_count(expr, ctype, r);
-		right->value = r;
+		if (r >= ctype->bit_size) {
+			if (conservative)
+				return 0;
+			r = check_shift_count(expr, ctype, r);
+			right->value = r;
+		}
 	}
 	if (left->type != EXPR_VALUE)
 		return 0;
@@ -257,10 +260,12 @@ static int simplify_int_binop(struct expression *expr, struct symbol *ctype)
 	expr->taint = left->taint | right->taint;
 	return 1;
 Div:
-	warning(expr->pos, "division by zero");
+	if (!conservative)
+		warning(expr->pos, "division by zero");
 	return 0;
 Overflow:
-	warning(expr->pos, "constant integer operation overflow");
+	if (!conservative)
+		warning(expr->pos, "constant integer operation overflow");
 	return 0;
 }
 
@@ -340,7 +345,8 @@ static int simplify_float_binop(struct expression *expr)
 	expr->fvalue = res;
 	return 1;
 Div:
-	warning(expr->pos, "division by zero");
+	if (!conservative)
+		warning(expr->pos, "division by zero");
 	return 0;
 }
 
@@ -660,7 +666,8 @@ static int simplify_preop(struct expression *expr)
 	return 1;
 
 Overflow:
-	warning(expr->pos, "constant integer operation overflow");
+	if (!conservative)
+		warning(expr->pos, "constant integer operation overflow");
 	return 0;
 }
 
@@ -1221,4 +1228,13 @@ long long get_expression_value(struct expression *expr)
 long long const_expression_value(struct expression *expr)
 {
 	return __get_expression_value(expr, 1);
+}
+
+int is_zero_constant(struct expression *expr)
+{
+	int saved = conservative;
+	conservative = 1;
+	expand_expression(expr);
+	conservative = saved;
+	return expr->type == EXPR_VALUE && !expr->value;
 }
