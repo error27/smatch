@@ -652,6 +652,7 @@ static int expand_warning(struct expression *expr, int cost)
 out:
 	expr->type = EXPR_VALUE;
 	expr->value = 1;
+	expr->taint = 0;
 	return 0;
 }
 

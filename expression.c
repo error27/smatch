@@ -751,7 +751,7 @@ static struct token *cast_expression(struct token *token, struct expression **tr
  * than create a data structure for it.
  */
 
-#define __LR_BINOP_EXPRESSION(__token, tree, type, inner, compare, is_const)	\
+#define LR_BINOP_EXPRESSION(__token, tree, type, inner, compare)	\
 	struct expression *left = NULL;					\
 	struct token * next = inner(__token, &left);			\
 									\
@@ -768,8 +768,7 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 				sparse_error(next->pos, "No right hand side of '%s'-expression", show_special(op));	\
 				break;					\
 			}						\
-			if (is_const)					\
-				top->flags = left->flags & right->flags \
+			top->flags = left->flags & right->flags		\
 						& Int_const_expr;	\
 			top->op = op;					\
 			top->left = left;				\
@@ -780,13 +779,6 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 out:									\
 	*tree = left;							\
 	return next;							\
-
-#define LR_BINOP_EXPRESSION(token, tree, type, inner, compare) \
-	__LR_BINOP_EXPRESSION((token), (tree), (type), (inner), (compare), 1)
-
-#define LR_BINOP_EXPRESSION_NONCONST(token, tree, type, inner, compare) \
-	__LR_BINOP_EXPRESSION((token), (tree), (type), (inner), (compare), 0)
-
 
 static struct token *multiplicative_expression(struct token *token, struct expression **tree)
 {
@@ -918,7 +910,7 @@ struct token *assignment_expression(struct token *token, struct expression **tre
 
 static struct token *comma_expression(struct token *token, struct expression **tree)
 {
-	LR_BINOP_EXPRESSION_NONCONST(
+	LR_BINOP_EXPRESSION(
 		token, tree, EXPR_COMMA, assignment_expression,
 		(op == ',')
 	);

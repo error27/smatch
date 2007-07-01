@@ -52,6 +52,10 @@ enum {
 	Float_literal = 2,
 }; /* for expr->flags */
 
+enum {
+	Taint_comma = 1,
+};
+
 struct expression {
 	enum expression_type type:8;
 	unsigned flags:8;
@@ -60,7 +64,10 @@ struct expression {
 	struct symbol *ctype;
 	union {
 		// EXPR_VALUE
-		unsigned long long value;
+		struct {
+			unsigned long long value;
+			unsigned taint;
+		};
 
 		// EXPR_FVALUE
 		long double fvalue;

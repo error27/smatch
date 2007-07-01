@@ -44,6 +44,7 @@ static int expand_symbol_expression(struct expression *expr)
 			warning(expr->pos, "undefined preprocessor identifier '%s'", show_ident(expr->symbol_name));
 		expr->type = EXPR_VALUE;
 		expr->value = 0;
+		expr->taint = 0;
 		return 0;
 	}
 	/* The cost of a symbol expression is lower for on-stack symbols */
@@ -80,6 +81,7 @@ void cast_value(struct expression *expr, struct symbol *newtype,
 
 	// For pointers and integers, we can just move the value around
 	expr->type = EXPR_VALUE;
+	expr->taint = old->taint;
 	if (old_size == new_size) {
 		expr->value = old->value;
 		return;
@@ -116,6 +118,7 @@ Float:
 	if (newtype->ctype.base_type != &fp_type) {
 		value = (long long)old->fvalue;
 		expr->type = EXPR_VALUE;
+		expr->taint = 0;
 		goto Int;
 	}
 
@@ -251,6 +254,7 @@ static int simplify_int_binop(struct expression *expr, struct symbol *ctype)
 	mask = mask | (mask-1);
 	expr->value = v & mask;
 	expr->type = EXPR_VALUE;
+	expr->taint = left->taint | right->taint;
 	return 1;
 Div:
 	warning(expr->pos, "division by zero");
@@ -288,6 +292,7 @@ static int simplify_cmp_binop(struct expression *expr, struct symbol *ctype)
 	case SPECIAL_UNSIGNED_GTE:expr->value = l >= r; break;
 	}
 	expr->type = EXPR_VALUE;
+	expr->taint = left->taint | right->taint;
 	return 1;
 }
 
@@ -358,6 +363,7 @@ static int simplify_float_cmp(struct expression *expr, struct symbol *ctype)
 	case SPECIAL_NOTEQUAL:	expr->value = l != r; break;
 	}
 	expr->type = EXPR_VALUE;
+	expr->taint = 0;
 	return 1;
 }
 
@@ -387,12 +393,14 @@ static int expand_logical(struct expression *expr)
 			if (!left->value) {
 				expr->type = EXPR_VALUE;
 				expr->value = 0;
+				expr->taint = left->taint;
 				return 0;
 			}
 		} else {
 			if (left->value) {
 				expr->type = EXPR_VALUE;
 				expr->value = 1;
+				expr->taint = left->taint;
 				return 0;
 			}
 		}
@@ -407,6 +415,7 @@ static int expand_logical(struct expression *expr)
 		 */
 		expr->type = EXPR_VALUE;
 		expr->value = right->value != 0;
+		expr->taint = left->taint | right->taint;
 		return 0;
 	}
 
@@ -429,8 +438,15 @@ static int expand_comma(struct expression *expr)
 
 	cost = expand_expression(expr->left);
 	cost += expand_expression(expr->right);
-	if (expr->left->type == EXPR_VALUE || expr->left->type == EXPR_FVALUE)
+	if (expr->left->type == EXPR_VALUE || expr->left->type == EXPR_FVALUE) {
+		unsigned flags = expr->flags;
+		unsigned taint;
+		taint = expr->left->type == EXPR_VALUE ? expr->left->taint : 0;
 		*expr = *expr->right;
+		expr->flags = flags;
+		if (expr->type == EXPR_VALUE)
+			expr->taint |= Taint_comma | taint;
+	}
 	return cost;
 }
 
@@ -469,6 +485,7 @@ static int expand_compare(struct expression *expr)
 			int op = expr->op;
 			expr->type = EXPR_VALUE;
 			expr->value = compare_types(op, left->symbol, right->symbol);
+			expr->taint = 0;
 			return 0;
 		}
 		if (simplify_cmp_binop(expr, left->ctype))
@@ -488,12 +505,17 @@ static int expand_conditional(struct expression *expr)
 
 	cond_cost = expand_expression(cond);
 	if (cond->type == EXPR_VALUE) {
+		unsigned flags = expr->flags;
 		if (!cond->value)
 			true = false;
 		if (!true)
 			true = cond;
+		cost = expand_expression(true);
 		*expr = *true;
-		return expand_expression(expr);
+		expr->flags = flags;
+		if (expr->type == EXPR_VALUE)
+			expr->taint |= cond->taint;
+		return cost;
 	}
 
 	cost = expand_expression(true);
@@ -594,6 +616,7 @@ static int expand_dereference(struct expression *expr)
 			if (value->type == EXPR_VALUE) {
 				expr->type = EXPR_VALUE;
 				expr->value = value->value;
+				expr->taint = 0;
 				return 0;
 			} else if (value->type == EXPR_FVALUE) {
 				expr->type = EXPR_FVALUE;
@@ -633,6 +656,7 @@ static int simplify_preop(struct expression *expr)
 	mask = mask | (mask-1);
 	expr->value = v & mask;
 	expr->type = EXPR_VALUE;
+	expr->taint = op->taint;
 	return 1;
 
 Overflow:
@@ -729,6 +753,7 @@ int expand_constant_p(struct expression *expr, int cost)
 {
 	expr->type = EXPR_VALUE;
 	expr->value = !cost;
+	expr->taint = 0;
 	return 0;
 }
 
@@ -737,6 +762,7 @@ int expand_safe_p(struct expression *expr, int cost)
 {
 	expr->type = EXPR_VALUE;
 	expr->value = (cost < SIDE_EFFECTS);
+	expr->taint = 0;
 	return 0;
 }
 
@@ -1144,6 +1170,15 @@ static int expand_statement(struct statement *stmt)
 	return SIDE_EFFECTS;
 }
 
+static inline int bad_integer_constant_expression(struct expression *expr)
+{
+	if (!(expr->flags & Int_const_expr))
+		return 1;
+	if (expr->taint & Taint_comma)
+		return 1;
+	return 0;
+}
+
 static long long __get_expression_value(struct expression *expr, int strict)
 {
 	long long value, mask;
@@ -1161,7 +1196,7 @@ static long long __get_expression_value(struct expression *expr, int strict)
 		expression_error(expr, "bad constant expression");
 		return 0;
 	}
-	if (strict && !(expr->flags & Int_const_expr)) {
+	if (strict && bad_integer_constant_expression(expr)) {
 		expression_error(expr, "bad integer constant expression");
 		return 0;
 	}

@@ -956,6 +956,7 @@ static struct symbol *evaluate_binop(struct expression *expr)
 static struct symbol *evaluate_comma(struct expression *expr)
 {
 	expr->ctype = expr->right->ctype;
+	expr->flags &= expr->left->flags & expr->right->flags;
 	return expr->ctype;
 }
 
@@ -1859,6 +1860,7 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 		expression_error(expr, "cannot size expression");
 	expr->type = EXPR_VALUE;
 	expr->value = size >> 3;
+	expr->taint = 0;
 	expr->ctype = size_t_ctype;
 	return size_t_ctype;
 }
@@ -1892,6 +1894,7 @@ static struct symbol *evaluate_ptrsizeof(struct expression *expr)
 		size = 0;
 	expr->type = EXPR_VALUE;
 	expr->value = size >> 3;
+	expr->taint = 0;
 	expr->ctype = size_t_ctype;
 	return size_t_ctype;
 }
@@ -1906,6 +1909,7 @@ static struct symbol *evaluate_alignof(struct expression *expr)
 
 	expr->type = EXPR_VALUE;
 	expr->value = type->ctype.alignment;
+	expr->taint = 0;
 	expr->ctype = size_t_ctype;
 	return size_t_ctype;
 }
@@ -2675,6 +2679,7 @@ static struct symbol *evaluate_offsetof(struct expression *expr)
 		expr->type = EXPR_VALUE;
 		expr->flags = Int_const_expr;
 		expr->value = offset;
+		expr->taint = 0;
 		expr->ctype = size_t_ctype;
 	} else {
 		if (!ctype) {
@@ -2692,6 +2697,7 @@ static struct symbol *evaluate_offsetof(struct expression *expr)
 			expr->type = EXPR_VALUE;
 			expr->flags = Int_const_expr;
 			expr->value = 0;
+			expr->taint = 0;
 			expr->ctype = size_t_ctype;
 		} else {
 			struct expression *idx = expr->index, *m;
