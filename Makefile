@@ -7,6 +7,8 @@ CFLAGS=-O -g -Wall -Wwrite-strings -fpic
 LDFLAGS=-g
 AR=ar
 
+HAVE_LIBXML=$(shell pkg-config --exists libxml-2.0 && echo 'yes')
+
 #
 # For debugging, uncomment the next one
 #
@@ -21,7 +23,14 @@ PKGCONFIGDIR=$(LIBDIR)/pkgconfig
 
 PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse test-linearize example \
 	 test-unssa test-dissect ctags
+
+
 INST_PROGRAMS=sparse cgcc
+
+ifeq ($(HAVE_LIBXML),yes)
+PROGRAMS+=c2xml
+INST_PROGRAMS+=c2xml
+endif
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 	  linearize.h bitmap.h ident-list.h compat.h flow.h allocate.h \
@@ -106,6 +115,12 @@ test-dissect: test-dissect.o $(LIBS)
 
 ctags: ctags.o $(LIBS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+
+ifeq ($(HAVE_LIBXML),yes)
+c2xml: c2xml.c $(LIBS) $(LIB_H)
+	$(CC) $(LDFLAGS) `pkg-config --cflags --libs libxml-2.0` -o $@ $< $(LIBS)
+
+endif
 
 $(LIB_FILE): $(LIB_OBJS)
 	$(QUIET_AR)$(AR) rcs $@ $(LIB_OBJS)
