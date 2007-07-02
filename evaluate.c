@@ -1671,17 +1671,19 @@ static struct symbol *evaluate_postop(struct expression *expr)
 static struct symbol *evaluate_sign(struct expression *expr)
 {
 	struct symbol *ctype = expr->unop->ctype;
+	int class = classify_type(ctype, &ctype);
 	if (expr->flags && !(expr->unop->flags & Int_const_expr))
 		expr->flags = 0;
-	if (is_int_type(ctype)) {
-		struct symbol *rtype = rtype = integer_promotion(ctype);
+	/* should be an arithmetic type */
+	if (!(class & TYPE_NUM))
+		return bad_expr_type(expr);
+	if (!(class & (TYPE_FLOAT|TYPE_RESTRICT))) {
+		struct symbol *rtype = integer_promotion(ctype);
 		expr->unop = cast_to(expr->unop, rtype);
 		ctype = rtype;
-	} else if (is_float_type(ctype) && expr->op != '~') {
+	} else if ((class & TYPE_FLOAT) && expr->op != '~') {
 		/* no conversions needed */
-	} else if (is_restricted_type(ctype) && !restricted_unop(expr->op, &ctype)) {
-		/* no conversions needed */
-	} else if (is_fouled_type(ctype) && !restricted_unop(expr->op, &ctype)) {
+	} else if ((class & TYPE_RESTRICT) && !restricted_unop(expr->op, &ctype)) {
 		/* no conversions needed */
 	} else {
 		return bad_expr_type(expr);
