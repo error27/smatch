@@ -98,17 +98,12 @@ static struct symbol *evaluate_string(struct expression *expr)
 	return sym;
 }
 
+/* type has come from classify_type and is an integer type */
 static inline struct symbol *integer_promotion(struct symbol *type)
 {
 	struct symbol *orig_type = type;
 	unsigned long mod =  type->ctype.modifiers;
-	int width;
-
-	if (type->type == SYM_NODE)
-		type = type->ctype.base_type;
-	if (type->type == SYM_ENUM)
-		type = type->ctype.base_type;
-	width = type->bit_size;
+	int width = type->bit_size;
 
 	/*
 	 * Bitfields always promote to the base type,
