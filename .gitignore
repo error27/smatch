@@ -32,3 +32,8 @@ patches-*
 patches
 series
 
+# test-suite
+*.diff
+*.got
+*.expected
+

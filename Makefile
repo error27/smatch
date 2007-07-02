@@ -168,3 +168,10 @@ dist:
 		exit 1 ; \
 	fi
 	git archive --format=tar --prefix=sparse-$(VERSION)/ HEAD^{tree} | gzip -9 > sparse-$(VERSION).tar.gz
+
+check: all
+	$(Q)cd validation && ./test-suite
+
+clean-check:
+	find validation/ -name "*.c.[egd]*" -exec rm {} \;
+
