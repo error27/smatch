@@ -35,3 +35,17 @@ A()                     // B ( )
 SCAN( A() )             // A ( )
 SCAN(SCAN( A() ))       // B ( )
 SCAN(SCAN(SCAN( A() ))) // A ( )
+/*
+ * check-name: Preprocessor #3
+ *
+ * check-command: sparse -E $file
+ * check-exit-value: 0
+ *
+ * check-output-start
+
+B ( )
+A ( )
+B ( )
+A ( )
+ * check-output-end
+ */
