@@ -444,6 +444,35 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 	return sym;
 }
 
+const char* get_type_name(enum type type)
+{
+	const char *type_lookup[] = {
+	[SYM_UNINITIALIZED] = "uninitialized",
+	[SYM_PREPROCESSOR] = "preprocessor",
+	[SYM_BASETYPE] = "basetype",
+	[SYM_NODE] = "node",
+	[SYM_PTR] = "pointer",
+	[SYM_FN] = "function",
+	[SYM_ARRAY] = "array",
+	[SYM_STRUCT] = "struct",
+	[SYM_UNION] = "union",
+	[SYM_ENUM] = "enum",
+	[SYM_TYPEDEF] = "typedef",
+	[SYM_TYPEOF] = "typeof",
+	[SYM_MEMBER] = "member",
+	[SYM_BITFIELD] = "bitfield",
+	[SYM_LABEL] = "label",
+	[SYM_RESTRICT] = "restrict",
+	[SYM_FOULED] = "fouled",
+	[SYM_KEYWORD] = "keyword",
+	[SYM_BAD] = "bad"};
+
+	if (type <= SYM_BAD)
+		return type_lookup[type];
+	else
+		return NULL;
+}
+
 static struct symbol_list *restr, *fouled;
 
 void create_fouled(struct symbol *type)

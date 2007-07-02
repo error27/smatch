@@ -268,6 +268,7 @@ extern void examine_simple_symbol_type(struct symbol *);
 extern const char *show_typename(struct symbol *sym);
 extern const char *builtin_typename(struct symbol *sym);
 extern const char *builtin_ctypename(struct ctype *ctype);
+extern const char* get_type_name(enum type type);
 
 extern void debug_symbol(struct symbol *);
 extern void merge_type(struct symbol *sym, struct symbol *base_type);
