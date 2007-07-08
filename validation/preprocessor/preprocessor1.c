@@ -6,7 +6,6 @@ foo )
  * check-name: Preprocessor #1
  * check-description: Used to cause infinite recursion.
  * check-command: sparse -E $file
- * check-exit-value: 0
  *
  * check-output-start
 

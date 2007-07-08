@@ -16,7 +16,5 @@ static int broken(struct hello __user *sp)
 }
 /*
  * check-name: Address space of a struct member
- *
  * check-command: sparse $file
- * check-exit-value: 0
  */

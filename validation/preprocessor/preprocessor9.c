@@ -6,9 +6,7 @@ A
 X
 /*
  * check-name: Preprocessor #9
- *
  * check-command: sparse -E $file
- * check-exit-value: 0
  *
  * check-output-start
 

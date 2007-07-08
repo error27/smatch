@@ -10,5 +10,4 @@ l:
  * check-name: Label followed by __asm__
  * check-description: Sparse used to parse the __asm__ as modifying the label.
  * check-command: sparse $file
- * check-exit-value: 0
  */

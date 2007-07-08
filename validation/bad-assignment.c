@@ -6,7 +6,6 @@ static int foo(int a)
 }
 /*
  * check-name: bad assignment
- *
  * check-command: sparse $file
  * check-exit-value: 1
  *

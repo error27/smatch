@@ -5,9 +5,7 @@
 A
 /*
  * check-name: Preprocessor #19
- *
  * check-command: sparse -E $file
- * check-exit-value: 0
  *
  * check-output-start
 preprocessor/preprocessor19.c:4:9: warning: preprocessor token A redefined

@@ -7,9 +7,7 @@
 #endif
 /*
  * check-name: Preprocessor #17
- *
  * check-command: sparse -E $file
- * check-exit-value: 0
  * check-output-start
 
 

@@ -10,9 +10,7 @@ undefined
 #endif
 /*
  * check-name: Preprocessor #10
- *
  * check-command: sparse -E $file
- * check-exit-value: 0
  *
  * check-output-start
 

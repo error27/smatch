@@ -21,7 +21,6 @@ SCAN(SCAN(SCAN( A() ))) // A ( )
  * check-name: Preprocessor #3
  * check-description: Sparse used to get this wrong, outputting A third, not B.
  * check-command: sparse -E $file
- * check-exit-value: 0
  *
  * check-output-start
 

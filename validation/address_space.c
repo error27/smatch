@@ -8,9 +8,7 @@ static int sys_do_stuff(void __user *user_addr)
 }
 /*
  * check-name: address_space attribute
- *
  * check-command: sparse $file
- * check-exit-value: 0
  *
  * check-output-start
 address_space.c:7:21: warning: incorrect type in argument 1 (different address spaces)

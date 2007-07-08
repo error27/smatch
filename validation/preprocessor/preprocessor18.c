@@ -3,7 +3,6 @@
 #undef 1
 /*
  * check-name: Preprocessor #18
- *
  * check-command: sparse -E $file
  * check-exit-value: 1
  *
