@@ -1,24 +1,6 @@
 /*
- * We get this one wrong too.
- *
- * It should result in a sequence
- *
- *	B ( )
- *	A ( )
- *	B ( )
- *	A ( )
- *
- * because each iteration of the scanning of "SCAN()"
- * should re-evaluate the recursive B->A->B expansion.
- * But we never re-evaluate something that we noticed
- * was recursive. So we will cause it to evaluate to
- *
- *	B ( )
- *	A ( )
- *	A ( )
- *	A ( )
- *
- * Which is really quite wrong.
+ * Each iteration of the scanning of "SCAN()" re-evaluates the recursive
+ * B->A->B expansion.
  *
  * Did I already mention that the C preprocessor language
  * is a perverse thing?
@@ -37,7 +19,7 @@ SCAN(SCAN( A() ))       // B ( )
 SCAN(SCAN(SCAN( A() ))) // A ( )
 /*
  * check-name: Preprocessor #3
- *
+ * check-description: Sparse used to get this wrong, outputting A third, not B.
  * check-command: sparse -E $file
  * check-exit-value: 0
  *
