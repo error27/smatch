@@ -31,9 +31,3 @@ patches-*
 # quilt's files
 patches
 series
-
-# test-suite
-*.diff
-*.got
-*.expected
-
