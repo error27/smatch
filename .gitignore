@@ -1,5 +1,4 @@
 # generic
-.*
 *.o
 *.a
 *.so
