@@ -1276,28 +1276,28 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 				bad_null(*rp);
 			goto Cast;
 		}
+		if (sclass & TYPE_PTR && t->ctype.as == s->ctype.as) {
+			/* we should be more lazy here */
+			int mod1 = t->ctype.modifiers;
+			int mod2 = s->ctype.modifiers;
+			s = get_base_type(s);
+			t = get_base_type(t);
+
+			/*
+			 * assignments to/from void * are OK, provided that
+			 * we do not remove qualifiers from pointed to [C]
+			 * or mix address spaces [sparse].
+			 */
+			if (!(mod2 & ~mod1 & (MOD_VOLATILE | MOD_CONST)))
+				if (s == &void_ctype || t == &void_ctype)
+					goto Cast;
+		}
 	}
 
 	/* It's OK if the target is more volatile or const than the source */
 	typediff = type_difference(target, source, MOD_VOLATILE | MOD_CONST, 0);
 	if (!typediff)
 		return 1;
-
-	/* Pointer destination? */
-	if (tclass & TYPE_PTR) {
-		int source_as;
-		int target_as;
-
-		/* "void *" matches anything as long as the address space is OK */
-		target_as = t->ctype.as | target->ctype.as;
-		source_as = s->ctype.as | source->ctype.as;
-		if (source_as == target_as && (s->type == SYM_PTR || s->type == SYM_ARRAY)) {
-			s = get_base_type(s);
-			t = get_base_type(t);
-			if (s == &void_ctype || t == &void_ctype)
-				goto Cast;
-		}
-	}
 
 	warning(expr->pos, "incorrect type in %s (%s)", where, typediff);
 	info(expr->pos, "   expected %s", show_typename(target));
@@ -1330,6 +1330,7 @@ static void mark_assigned(struct expression *expr)
 		mark_assigned(expr->right);
 		return;
 	case EXPR_CAST:
+	case EXPR_FORCE_CAST:
 		mark_assigned(expr->cast_expression);
 		return;
 	case EXPR_SLICE:
@@ -2496,46 +2497,13 @@ static void evaluate_initializer(struct symbol *ctype, struct expression **ep)
 		expression_error(*ep, "invalid initializer");
 }
 
-static int get_as(struct symbol *sym)
-{
-	int as;
-	unsigned long mod;
-
-	if (!sym)
-		return 0;
-	as = sym->ctype.as;
-	mod = sym->ctype.modifiers;
-	if (sym->type == SYM_NODE) {
-		sym = sym->ctype.base_type;
-		as |= sym->ctype.as;
-		mod |= sym->ctype.modifiers;
-	}
-
-	/*
-	 * At least for now, allow casting to a "unsigned long".
-	 * That's how we do things like pointer arithmetic and
-	 * store pointers to registers.
-	 */
-	if (sym == &ulong_ctype)
-		return -1;
-
-	if (sym && sym->type == SYM_PTR) {
-		sym = get_base_type(sym);
-		as |= sym->ctype.as;
-		mod |= sym->ctype.modifiers;
-	}
-	if (mod & MOD_FORCE)
-		return -1;
-	return as;
-}
-
 static struct symbol *evaluate_cast(struct expression *expr)
 {
 	struct expression *target = expr->cast_expression;
 	struct symbol *ctype;
 	struct symbol *t1, *t2;
 	int class1, class2;
-	int as1, as2;
+	int as1 = 0, as2 = 0;
 
 	if (!target)
 		return NULL;
@@ -2596,6 +2564,9 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	if (class1 & TYPE_COMPOUND)
 		warning(expr->pos, "cast to non-scalar");
 
+	if (class1 == TYPE_PTR)
+		get_base_type(t1);
+
 	t2 = target->ctype;
 	if (!t2) {
 		expression_error(expr, "cast from unknown type");
@@ -2606,19 +2577,30 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	if (class2 & TYPE_COMPOUND)
 		warning(expr->pos, "cast from non-scalar");
 
+	if (expr->type == EXPR_FORCE_CAST)
+		goto out;
+
 	/* allowed cast unfouls */
 	if (class2 & TYPE_FOULED)
 		t2 = t2->ctype.base_type;
 
-	if (!(ctype->ctype.modifiers & MOD_FORCE) && t1 != t2) {
+	if (t1 != t2) {
 		if (class1 & TYPE_RESTRICT)
 			warning(expr->pos, "cast to restricted type");
 		if (class2 & TYPE_RESTRICT)
 			warning(expr->pos, "cast from restricted type");
 	}
 
-	as1 = get_as(ctype);
-	as2 = get_as(target->ctype);
+	if (t1 == &ulong_ctype)
+		as1 = -1;
+	else if (class1 == TYPE_PTR)
+		as1 = t1->ctype.as;
+
+	if (t2 == &ulong_ctype)
+		as2 = -1;
+	else if (class2 == TYPE_PTR)
+		as2 = t2->ctype.as;
+
 	if (!as1 && as2 > 0)
 		warning(expr->pos, "cast removes address space of expression");
 	if (as1 > 0 && as2 > 0 && as1 != as2)
@@ -2628,7 +2610,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		warning(expr->pos,
 			"cast adds address space to expression (<asn:%d>)", as1);
 
-	if (!(ctype->ctype.modifiers & MOD_PTRINHERIT) && class1 == TYPE_PTR &&
+	if (!(t1->ctype.modifiers & MOD_PTRINHERIT) && class1 == TYPE_PTR &&
 	    !as1 && (target->flags & Int_const_expr)) {
 		if (t1->ctype.base_type == &void_ctype) {
 			if (is_zero_constant(target)) {
@@ -2860,6 +2842,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 			return NULL;
 		return evaluate_postop(expr);
 	case EXPR_CAST:
+	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
 		return evaluate_cast(expr);
 	case EXPR_SIZEOF:

@@ -1581,6 +1581,7 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 		return linearize_postop(ep, expr);
 
 	case EXPR_CAST:
+	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
 		return linearize_cast(ep, expr);
 	

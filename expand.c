@@ -955,6 +955,7 @@ static int expand_expression(struct expression *expr)
 		return expand_postop(expr);
 
 	case EXPR_CAST:
+	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
 		return expand_cast(expr);
 

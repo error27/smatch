@@ -145,6 +145,7 @@ static struct expression * copy_expression(struct expression *expr)
 			*expr->cast_type = *sym;
 			break;
 		}
+	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
 	case EXPR_SIZEOF: 
 	case EXPR_PTRSIZEOF:

@@ -317,7 +317,7 @@ again:
 		do_expression(U_VOID, expr->left);
 		ret = do_expression(mode, expr->right);
 
-	break; case EXPR_CAST: //case EXPR_IMPLIED_CAST:
+	break; case EXPR_CAST: case EXPR_FORCE_CAST: //case EXPR_IMPLIED_CAST:
 		ret = base_type(expr->cast_type);
 		do_initializer(ret, expr->cast_expression);
 

@@ -768,7 +768,7 @@ static struct token *typeof_specifier(struct token *token, struct ctype *ctype)
 		return token;
 	}
 	if (lookup_type(token->next)) {
-		token = typename(token->next, &sym);
+		token = typename(token->next, &sym, 0);
 		*ctype = sym->ctype;
 	} else {
 		struct symbol *typeof_sym = alloc_symbol(token->pos, SYM_TYPEOF);
@@ -1343,13 +1343,16 @@ static struct token *parameter_declaration(struct token *token, struct symbol **
 	return token;
 }
 
-struct token *typename(struct token *token, struct symbol **p)
+struct token *typename(struct token *token, struct symbol **p, int mod)
 {
 	struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
 	*p = sym;
 	token = declaration_specifiers(token, &sym->ctype, 0);
 	token = declarator(token, sym, NULL);
 	apply_modifiers(token->pos, &sym->ctype);
+	if (sym->ctype.modifiers & MOD_STORAGE & ~mod)
+		warning(sym->pos, "storage class in typename (%s)",
+			show_typename(sym));
 	return token;
 }
 

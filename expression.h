@@ -27,6 +27,7 @@ enum expression_type {
 	EXPR_PREOP,
 	EXPR_POSTOP,
 	EXPR_CAST,
+	EXPR_FORCE_CAST,
 	EXPR_IMPLIED_CAST,
 	EXPR_SIZEOF,
 	EXPR_ALIGNOF,
@@ -190,7 +191,7 @@ static inline struct expression *alloc_const_expression(struct position pos, int
 }
 
 /* Type name parsing */
-struct token *typename(struct token *, struct symbol **);
+struct token *typename(struct token *, struct symbol **, int);
 
 static inline int lookup_type(struct token *token)
 {
