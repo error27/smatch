@@ -1070,31 +1070,6 @@ OK:
 }
 
 /*
- * FIXME!! This should do casts, array degeneration etc..
- */
-static struct symbol *compatible_ptr_type(struct expression *left, struct expression *right)
-{
-	struct symbol *ltype = left->ctype, *rtype = right->ctype;
-
-	if (ltype->type == SYM_NODE)
-		ltype = ltype->ctype.base_type;
-
-	if (rtype->type == SYM_NODE)
-		rtype = rtype->ctype.base_type;
-
-	if (ltype->type == SYM_PTR) {
-		if (rtype->ctype.base_type == &void_ctype)
-			return ltype;
-	}
-
-	if (rtype->type == SYM_PTR) {
-		if (ltype->ctype.base_type == &void_ctype)
-			return rtype;
-	}
-	return NULL;
-}
-
-/*
  * NOTE! The degenerate case of "x ? : y", where we don't
  * have a true case, this will possibly promote "x" to the
  * same type as "y", and thus _change_ the conditional
@@ -1104,9 +1079,10 @@ static struct symbol *compatible_ptr_type(struct expression *left, struct expres
 static struct symbol *evaluate_conditional_expression(struct expression *expr)
 {
 	struct expression **true;
-	struct symbol *ctype, *ltype, *rtype;
+	struct symbol *ctype, *ltype, *rtype, *lbase, *rbase;
 	int lclass, rclass;
 	const char * typediff;
+	int qual;
 
 	if (!evaluate_conditional(expr->conditional, 0))
 		return NULL;
@@ -1141,9 +1117,11 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 		expr->cond_false = cast_to(expr->cond_false, ctype);
 		goto out;
 	}
+
 	if ((lclass | rclass) & TYPE_PTR) {
 		int is_null1 = is_null_pointer_constant(*true);
 		int is_null2 = is_null_pointer_constant(expr->cond_false);
+
 		if (is_null1 && is_null2) {
 			*true = cast_to(*true, &ptr_ctype);
 			expr->cond_false = cast_to(expr->cond_false, &ptr_ctype);
@@ -1169,15 +1147,42 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 			goto Err;
 		}
 		/* OK, it's pointer on pointer */
-		/* XXX - we need to handle qualifiers */
-		ctype = compatible_ptr_type(*true, expr->cond_false);
-		if (ctype)
-			goto out;
+		if (ltype->ctype.as != rtype->ctype.as) {
+			typediff = "different address spaces";
+			goto Err;
+		}
+
+		/* need to be lazier here */
+		lbase = get_base_type(ltype);
+		rbase = get_base_type(rtype);
+		qual = ltype->ctype.modifiers | rtype->ctype.modifiers;
+		qual &= MOD_CONST | MOD_VOLATILE;
+
+		if (lbase == &void_ctype) {
+			/* XXX: pointers to function should warn here */
+			ctype = ltype;
+			goto Qual;
+
+		}
+		if (rbase == &void_ctype) {
+			/* XXX: pointers to function should warn here */
+			ctype = rtype;
+			goto Qual;
+		}
+		/* XXX: that should be pointer to composite */
+		ctype = ltype;
+		typediff = type_difference(lbase, rbase, MOD_IGN, MOD_IGN);
+		if (!typediff)
+			goto Qual;
+		goto Err;
 	}
-	ctype = ltype;
-	typediff = type_difference(ltype, rtype, MOD_IGN, MOD_IGN);
-	if (!typediff)
+
+	/* void on void, struct on same struct, union on same union */
+	if (ltype == rtype) {
+		ctype = ltype;
 		goto out;
+	}
+	typediff = "different base types";
 
 Err:
 	expression_error(expr, "incompatible types in conditional expression (%s)", typediff);
@@ -1186,6 +1191,17 @@ Err:
 out:
 	expr->ctype = ctype;
 	return ctype;
+
+Qual:
+	if (qual & ~ctype->ctype.modifiers) {
+		struct symbol *sym = alloc_symbol(ctype->pos, SYM_PTR);
+		*sym = *ctype;
+		sym->ctype.modifiers |= qual;
+		ctype = sym;
+	}
+	*true = cast_to(*true, ctype);
+	expr->cond_false = cast_to(expr->cond_false, ctype);
+	goto out;
 }
 
 /* FP assignments can not do modulo or bit operations */
