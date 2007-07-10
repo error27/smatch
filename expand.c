@@ -460,11 +460,13 @@ static int expand_comma(struct expression *expr)
 
 static int compare_types(int op, struct symbol *left, struct symbol *right)
 {
+	struct ctype c1 = {.base_type = left};
+	struct ctype c2 = {.base_type = right};
 	switch (op) {
 	case SPECIAL_EQUAL:
-		return !type_difference(left, right, MOD_IGN, MOD_IGN);
+		return !type_difference(&c1, &c2, MOD_IGN, MOD_IGN);
 	case SPECIAL_NOTEQUAL:
-		return type_difference(left, right, MOD_IGN, MOD_IGN) != NULL;
+		return type_difference(&c1, &c2, MOD_IGN, MOD_IGN) != NULL;
 	case '<':
 		return left->bit_size < right->bit_size;
 	case '>':

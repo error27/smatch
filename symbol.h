@@ -246,8 +246,8 @@ extern struct symbol_list *translation_unit_used_list;
 
 extern void access_symbol(struct symbol *);
 
-extern const char * type_difference(struct symbol *target, struct symbol *source,
-	unsigned long target_mod_ignore, unsigned long source_mod_ignore);
+extern const char * type_difference(struct ctype *c1, struct ctype *c2,
+	unsigned long mod1, unsigned long mod2);
 
 extern struct symbol *lookup_symbol(struct ident *, enum namespace);
 extern struct symbol *create_symbol(int stream, const char *name, int type, int namespace);
