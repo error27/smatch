@@ -785,24 +785,25 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr)
 	struct symbol *ltype, *rtype;
 	struct expression *l = expr->left;
 	struct expression *r = expr->right;
+	struct symbol *lbase, *rbase;
 
-	ltype = degenerate(l);
-	rtype = degenerate(r);
+	classify_type(degenerate(l), &ltype);
+	classify_type(degenerate(r), &rtype);
 
-	ctype = ltype;
+	lbase = get_base_type(ltype);
+	rbase = get_base_type(rtype);
 	typediff = type_difference(ltype, rtype, ~MOD_SIZE, ~MOD_SIZE);
 	if (typediff)
 		expression_error(expr, "subtraction of different types can't work (%s)", typediff);
-	examine_symbol_type(ctype);
 
+	ctype = lbase;
 	/* Figure out the base type we point to */
 	if (ctype->type == SYM_NODE)
 		ctype = ctype->ctype.base_type;
-	if (ctype->type != SYM_PTR && ctype->type != SYM_ARRAY) {
+	if (ctype->type == SYM_FN) {
 		expression_error(expr, "subtraction of functions? Share your drugs");
 		return NULL;
 	}
-	ctype = get_base_type(ctype);
 
 	expr->ctype = ssize_t_ctype;
 	if (ctype->bit_size > bits_in_char) {
