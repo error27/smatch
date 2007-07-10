@@ -619,6 +619,8 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *c
 	return ctype;
 }
 
+static void examine_fn_arguments(struct symbol *fn);
+
 const char * type_difference(struct symbol *target, struct symbol *source,
 	unsigned long target_mod_ignore, unsigned long source_mod_ignore)
 {
@@ -687,34 +689,14 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 		/*
 		 * Pointers to functions compare as the function itself
 		 */
-		if (type1 == SYM_PTR && base1) {
+		if (type1 == SYM_PTR && base1)
 			base1 = examine_symbol_type(base1);
-			switch (base1->type) {
-			case SYM_FN:
-				type1 = SYM_FN;
-				target = base1;
-				base1 = base1->ctype.base_type;
-			default:
-				/* nothing */;
-			}
-		}
-		if (type2 == SYM_PTR && base2) {
+
+		if (type2 == SYM_PTR && base2)
 			base2 = examine_symbol_type(base2);
-			switch (base2->type) {
-			case SYM_FN:
-				type2 = SYM_FN;
-				source = base2;
-				base2 = base2->ctype.base_type;
-			default:
-				/* nothing */;
-			}
-		}
 
-		/* Arrays degenerate to pointers for type comparisons */
-		type1 = (type1 == SYM_ARRAY) ? SYM_PTR : type1;
-		type2 = (type2 == SYM_ARRAY) ? SYM_PTR : type2;
-
-		if (type1 != type2 || type1 == SYM_RESTRICT)
+		if (type1 != type2 || type1 == SYM_RESTRICT ||
+		    type1 == SYM_UNION || type1 == SYM_STRUCT)
 			return "different base types";
 
 		/* Must be same address space to be comparable */
@@ -755,6 +737,8 @@ const char * type_difference(struct symbol *target, struct symbol *source,
 			struct symbol *arg1, *arg2;
 			if (base1->variadic != base2->variadic)
 				return "incompatible variadic arguments";
+			examine_fn_arguments(target);
+			examine_fn_arguments(source);
 			PREPARE_PTR_LIST(target->arguments, arg1);
 			PREPARE_PTR_LIST(source->arguments, arg2);
 			i = 1;
