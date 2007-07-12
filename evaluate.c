@@ -444,6 +444,12 @@ static int restricted_unop(int op, struct symbol **type)
 	return 1;
 }
 
+/* type should be SYM_FOULED */
+static inline struct symbol *unfoul(struct symbol *type)
+{
+	return type->ctype.base_type;
+}
+
 static struct symbol *restricted_binop_type(int op,
 					struct expression *left,
 					struct expression *right,
@@ -457,10 +463,10 @@ static struct symbol *restricted_binop_type(int op,
 			if (ltype == rtype) {
 				ctype = ltype;
 			} else if (lclass & TYPE_FOULED) {
-				if (ltype->ctype.base_type == rtype)
+				if (unfoul(ltype) == rtype)
 					ctype = ltype;
 			} else if (rclass & TYPE_FOULED) {
-				if (rtype->ctype.base_type == ltype)
+				if (unfoul(rtype) == ltype)
 					ctype = rtype;
 			}
 		} else {
@@ -474,7 +480,7 @@ static struct symbol *restricted_binop_type(int op,
 		switch (restricted_binop(op, ctype)) {
 		case 1:
 			if ((lclass ^ rclass) & TYPE_FOULED)
-				ctype = ctype->ctype.base_type;
+				ctype = unfoul(ctype);
 			break;
 		case 3:
 			if (!(lclass & rclass & TYPE_FOULED))
@@ -494,8 +500,8 @@ static inline void unrestrict(struct expression *expr,
 {
 	if (class & TYPE_RESTRICT) {
 		warning(expr->pos, "restricted degrades to integer");
-		if (class & TYPE_FOULED)	/* unfoul it first */
-			*ctype = (*ctype)->ctype.base_type;
+		if (class & TYPE_FOULED)
+			*ctype = unfoul(*ctype);
 		*ctype = (*ctype)->ctype.base_type; /* get to arithmetic type */
 	}
 }
@@ -1249,7 +1255,7 @@ static int evaluate_assign_op(struct expression *expr)
 				return 0;
 			}
 			/* allowed assignments unfoul */
-			if (sclass & TYPE_FOULED && s->ctype.base_type == t)
+			if (sclass & TYPE_FOULED && unfoul(s) == t)
 				goto Cast;
 			if (!restricted_value(expr->right, t))
 				return 1;
@@ -1292,7 +1298,7 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 	if (tclass & sclass & TYPE_NUM) {
 		if (tclass & TYPE_RESTRICT) {
 			/* allowed assignments unfoul */
-			if (sclass & TYPE_FOULED && s->ctype.base_type == t)
+			if (sclass & TYPE_FOULED && unfoul(s) == t)
 				goto Cast;
 			if (!restricted_value(*rp, target))
 				return 1;
@@ -2640,7 +2646,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 
 	/* allowed cast unfouls */
 	if (class2 & TYPE_FOULED)
-		t2 = t2->ctype.base_type;
+		t2 = unfoul(t2);
 
 	if (t1 != t2) {
 		if (class1 & TYPE_RESTRICT)
