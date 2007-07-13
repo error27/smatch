@@ -194,13 +194,16 @@ static struct symbol *examine_base_type(struct symbol *sym)
 	struct symbol *base_type;
 
 	/* Check the base type */
-	base_type = sym->ctype.base_type;
-	if (base_type) {
-		base_type = examine_symbol_type(base_type);
-
-		/* "typeof" can cause this */
-		if (base_type && base_type->type == SYM_NODE)
-			merge_type(sym, base_type);
+	base_type = examine_symbol_type(sym->ctype.base_type);
+	if (!base_type || base_type->type == SYM_PTR)
+		return base_type;
+	sym->ctype.as |= base_type->ctype.as;
+	sym->ctype.modifiers |= base_type->ctype.modifiers & MOD_PTRINHERIT;
+	concat_ptr_list((struct ptr_list *)base_type->ctype.contexts,
+			(struct ptr_list **)&sym->ctype.contexts);
+	if (base_type->type == SYM_NODE) {
+		base_type = base_type->ctype.base_type;
+		sym->ctype.base_type = base_type;
 	}
 	return base_type;
 }
@@ -411,17 +414,10 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 				warning(base->pos, "typeof applied to bitfield type");
 			if (base->type == SYM_NODE)
 				base = base->ctype.base_type;
-			switch (base->type) {
-			case SYM_RESTRICT:
-			case SYM_UNION:
-			case SYM_STRUCT:
-				sym->type = SYM_NODE;
-				sym->ctype.modifiers = 0;
-				sym->ctype.base_type = base;
-				return examine_node_type(sym);
-			}
-			*sym = *base;
-			break;
+			sym->type = SYM_NODE;
+			sym->ctype.modifiers = 0;
+			sym->ctype.base_type = base;
+			return examine_node_type(sym);
 		}
 		break;
 	}
@@ -471,6 +467,11 @@ const char* get_type_name(enum type type)
 		return type_lookup[type];
 	else
 		return NULL;
+}
+
+struct symbol *examine_pointer_target(struct symbol *sym)
+{
+	return examine_base_type(sym);
 }
 
 static struct symbol_list *restr, *fouled;

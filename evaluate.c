@@ -703,12 +703,12 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 			if ((mod1 ^ mod2) & ~MOD_IGNORE & ~MOD_SPECIFIER)
 				return "different modifiers";
 			/* we could be lazier here */
+			base1 = examine_pointer_target(t1);
+			base2 = examine_pointer_target(t2);
 			mod1 = t1->ctype.modifiers;
 			as1 = t1->ctype.as;
 			mod2 = t2->ctype.modifiers;
 			as2 = t2->ctype.as;
-			base1 = examine_symbol_type(base1);
-			base2 = examine_symbol_type(base2);
 			break;
 		case SYM_FN: {
 			struct symbol *arg1, *arg2;
@@ -801,10 +801,17 @@ static void bad_null(struct expression *expr)
 		warning(expr->pos, "Using plain integer as NULL pointer");
 }
 
+static unsigned long target_qualifiers(struct symbol *type)
+{
+	unsigned long mod = type->ctype.modifiers & MOD_IGN;
+	if (type->ctype.base_type && type->ctype.base_type->type == SYM_ARRAY)
+		mod = 0;
+	return mod;
+}
+
 static struct symbol *evaluate_ptr_sub(struct expression *expr)
 {
 	const char *typediff;
-	struct symbol *ctype;
 	struct symbol *ltype, *rtype;
 	struct expression *l = expr->left;
 	struct expression *r = expr->right;
@@ -813,28 +820,25 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr)
 	classify_type(degenerate(l), &ltype);
 	classify_type(degenerate(r), &rtype);
 
-	lbase = get_base_type(ltype);
-	rbase = get_base_type(rtype);
+	lbase = examine_pointer_target(ltype);
+	rbase = examine_pointer_target(rtype);
 	typediff = type_difference(&ltype->ctype, &rtype->ctype,
-				   MOD_IGN, MOD_IGN);
+				   target_qualifiers(rtype),
+				   target_qualifiers(ltype));
 	if (typediff)
 		expression_error(expr, "subtraction of different types can't work (%s)", typediff);
 
-	ctype = lbase;
-	/* Figure out the base type we point to */
-	if (ctype->type == SYM_NODE)
-		ctype = ctype->ctype.base_type;
-	if (ctype->type == SYM_FN) {
+	if (lbase->type == SYM_FN) {
 		expression_error(expr, "subtraction of functions? Share your drugs");
 		return NULL;
 	}
 
 	expr->ctype = ssize_t_ctype;
-	if (ctype->bit_size > bits_in_char) {
+	if (lbase->bit_size > bits_in_char) {
 		struct expression *sub = alloc_expression(expr->pos, EXPR_BINOP);
 		struct expression *div = expr;
 		struct expression *val = alloc_expression(expr->pos, EXPR_VALUE);
-		unsigned long value = ctype->bit_size >> 3;
+		unsigned long value = lbase->bit_size >> 3;
 
 		val->ctype = size_t_ctype;
 		val->value = value;
@@ -1050,8 +1054,8 @@ static struct symbol *evaluate_compare(struct expression *expr)
 		return bad_expr_type(expr);
 	expr->op = modify_for_unsigned(expr->op);
 
-	lbase = get_base_type(ltype);
-	rbase = get_base_type(rtype);
+	lbase = examine_pointer_target(ltype);
+	rbase = examine_pointer_target(rtype);
 
 	/* they also have special treatment for pointers to void */
 	if (expr->op == SPECIAL_EQUAL || expr->op == SPECIAL_NOTEQUAL) {
@@ -1068,7 +1072,8 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	}
 
 	typediff = type_difference(&ltype->ctype, &rtype->ctype,
-				   MOD_IGN, MOD_IGN);
+				   target_qualifiers(rtype),
+				   target_qualifiers(ltype));
 	if (!typediff)
 		goto OK;
 
@@ -1164,10 +1169,9 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 		}
 
 		/* need to be lazier here */
-		lbase = get_base_type(ltype);
-		rbase = get_base_type(rtype);
-		qual = ltype->ctype.modifiers | rtype->ctype.modifiers;
-		qual &= MOD_CONST | MOD_VOLATILE;
+		lbase = examine_pointer_target(ltype);
+		rbase = examine_pointer_target(rtype);
+		qual = target_qualifiers(ltype) | target_qualifiers(rtype);
 
 		if (lbase == &void_ctype) {
 			/* XXX: pointers to function should warn here */
@@ -1183,7 +1187,7 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 		/* XXX: that should be pointer to composite */
 		ctype = ltype;
 		typediff = type_difference(&ltype->ctype, &rtype->ctype,
-					   MOD_IGN, MOD_IGN);
+					   qual, qual);
 		if (!typediff)
 			goto Qual;
 		goto Err;
@@ -1314,11 +1318,10 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			typediff = "different base types";
 			goto Err;
 		}
-		/* we should be more lazy here */
-		mod1 = t->ctype.modifiers;
-		mod2 = s->ctype.modifiers;
-		b1 = get_base_type(t);
-		b2 = get_base_type(s);
+		b1 = examine_pointer_target(t);
+		b2 = examine_pointer_target(s);
+		mod1 = target_qualifiers(t);
+		mod2 = target_qualifiers(s);
 		if (b1 == &void_ctype || b2 == &void_ctype) {
 			/*
 			 * assignments to/from void * are OK, provided that
@@ -1329,15 +1332,14 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 				typediff = "different address spaces";
 				goto Err;
 			}
-			if (mod2 & ~mod1 & MOD_IGN) {
+			if (mod2 & ~mod1) {
 				typediff = "different modifiers";
 				goto Err;
 			}
 			goto Cast;
 		}
 		/* It's OK if the target is more volatile or const than the source */
-		typediff = type_difference(&t->ctype, &s->ctype,
-					   0, mod1 & MOD_IGN);
+		typediff = type_difference(&t->ctype, &s->ctype, 0, mod1);
 		if (typediff)
 			goto Err;
 		return 1;
@@ -2623,9 +2625,6 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	if (class1 & TYPE_COMPOUND)
 		warning(expr->pos, "cast to non-scalar");
 
-	if (class1 == TYPE_PTR)
-		get_base_type(t1);
-
 	t2 = target->ctype;
 	if (!t2) {
 		expression_error(expr, "cast from unknown type");
@@ -2652,13 +2651,17 @@ static struct symbol *evaluate_cast(struct expression *expr)
 
 	if (t1 == &ulong_ctype)
 		as1 = -1;
-	else if (class1 == TYPE_PTR)
+	else if (class1 == TYPE_PTR) {
+		examine_pointer_target(t1);
 		as1 = t1->ctype.as;
+	}
 
 	if (t2 == &ulong_ctype)
 		as2 = -1;
-	else if (class2 == TYPE_PTR)
+	else if (class2 == TYPE_PTR) {
+		examine_pointer_target(t2);
 		as2 = t2->ctype.as;
+	}
 
 	if (!as1 && as2 > 0)
 		warning(expr->pos, "cast removes address space of expression");
