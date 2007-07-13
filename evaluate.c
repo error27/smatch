@@ -2731,8 +2731,19 @@ static struct symbol *evaluate_call(struct expression *expr)
 	sym = ctype = fn->ctype;
 	if (ctype->type == SYM_NODE)
 		ctype = ctype->ctype.base_type;
-	if (ctype->type == SYM_PTR || ctype->type == SYM_ARRAY)
+	if (ctype->type == SYM_PTR)
 		ctype = get_base_type(ctype);
+
+	if (ctype->type != SYM_FN) {
+		struct expression *arg;
+		expression_error(expr, "not a function %s",
+			     show_ident(sym->ident));
+		/* do typechecking in arguments */
+		FOR_EACH_PTR (arglist, arg) {
+			evaluate_expression(arg);
+		} END_FOR_EACH_PTR(arg);
+		return NULL;
+	}
 
 	examine_fn_arguments(ctype);
         if (sym->type == SYM_NODE && fn->type == EXPR_PREOP &&
@@ -2742,11 +2753,6 @@ static struct symbol *evaluate_call(struct expression *expr)
 	} else {
 		if (!evaluate_arguments(sym, ctype, arglist))
 			return NULL;
-		if (ctype->type != SYM_FN) {
-			expression_error(expr, "not a function %s",
-				     show_ident(sym->ident));
-			return NULL;
-		}
 		args = expression_list_size(expr->args);
 		fnargs = symbol_list_size(ctype->arguments);
 		if (args < fnargs)
