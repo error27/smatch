@@ -12,6 +12,8 @@
  */
 
 #include "allocate.h"
+#include "lib.h"
+#include "symbol.h"
 
 struct expression_list;
 
