@@ -21,11 +21,9 @@
 #include "scope.h"
 #include "symbol.h"
 
-xmlDocPtr doc = NULL;       /* document pointer */
-xmlNodePtr root_node = NULL;/* root node pointer */
-xmlDtdPtr dtd = NULL;       /* DTD pointer */
-xmlNsPtr ns = NULL;         /* namespace pointer */
-int idcount = 0;
+static xmlDocPtr doc = NULL;       /* document pointer */
+static xmlNodePtr root_node = NULL;/* root node pointer */
+static int idcount = 0;
 
 static void examine_symbol(struct symbol *sym, xmlNodePtr node);
 
