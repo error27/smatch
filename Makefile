@@ -116,11 +116,8 @@ test-dissect: test-dissect.o $(LIBS)
 ctags: ctags.o $(LIBS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
-ifeq ($(HAVE_LIBXML),yes)
-c2xml: c2xml.c $(LIBS) $(LIB_H)
-	$(CC) $(LDFLAGS) `pkg-config --cflags --libs libxml-2.0` -o $@ $< $(LIBS)
-
-endif
+c2xml: c2xml.o $(LIBS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS) `pkg-config --libs libxml-2.0` -o $@ $< $(LIBS)
 
 $(LIB_FILE): $(LIB_OBJS)
 	$(QUIET_AR)$(AR) rcs $@ $(LIB_OBJS)
@@ -161,6 +158,9 @@ example.o: $(LIB_H)
 storage.o: $(LIB_H)
 dissect.o: $(LIB_H)
 graph.o: $(LIB_H)
+
+c2xml.o: c2xml.c $(LIB_H)
+	$(QUIET_CC)$(CC) `pkg-config --cflags libxml-2.0` -o $@ -c $(CFLAGS) $<
 
 compat-linux.o: compat/strtold.c compat/mmap-blob.c \
 	$(LIB_H)
