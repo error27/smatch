@@ -19,6 +19,7 @@ test-linearize
 example
 test-unssa
 ctags
+c2xml
 
 # tags
 tags
