@@ -16,6 +16,7 @@
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 
+#include "expression.h"
 #include "parse.h"
 #include "scope.h"
 #include "symbol.h"
@@ -26,22 +27,25 @@ xmlDtdPtr dtd = NULL;       /* DTD pointer */
 xmlNsPtr ns = NULL;         /* namespace pointer */
 int idcount = 0;
 
-static struct symbol_list *taglist = NULL;
-
 static void examine_symbol(struct symbol *sym, xmlNodePtr node);
 
-static xmlAttrPtr newNumProp(xmlNodePtr node, const xmlChar * name, int value)
+static xmlAttrPtr newProp(xmlNodePtr node, const char *name, const char *value)
+{
+	return xmlNewProp(node, BAD_CAST name, BAD_CAST value);
+}
+
+static xmlAttrPtr newNumProp(xmlNodePtr node, const char *name, int value)
 {
 	char buf[256];
 	snprintf(buf, 256, "%d", value);
-	return xmlNewProp(node, name, buf);
+	return newProp(node, name, buf);
 }
 
-static xmlAttrPtr newIdProp(xmlNodePtr node, const xmlChar * name, unsigned int id)
+static xmlAttrPtr newIdProp(xmlNodePtr node, const char *name, unsigned int id)
 {
 	char buf[256];
 	snprintf(buf, 256, "_%d", id);
-	return xmlNewProp(node, name, buf);
+	return newProp(node, name, buf);
 }
 
 static xmlNodePtr new_sym_node(struct symbol *sym, const char *name, xmlNodePtr parent)
@@ -53,15 +57,15 @@ static xmlNodePtr new_sym_node(struct symbol *sym, const char *name, xmlNodePtr 
 	assert(sym != NULL);
 	assert(parent != NULL);
 
-	node = xmlNewChild(parent, NULL, "symbol", NULL);
+	node = xmlNewChild(parent, NULL, BAD_CAST "symbol", NULL);
 
-	xmlNewProp(node, "type",  name);
+	newProp(node, "type", name);
 
 	newIdProp(node, "id", idcount);
 
 	if (sym->ident && ident)
-		xmlNewProp(node, "ident", ident);
-	xmlNewProp(node, "file", stream_name(sym->pos.stream));
+		newProp(node, "ident", ident);
+	newProp(node, "file", stream_name(sym->pos.stream));
 
 	newNumProp(node, "start-line", sym->pos.line);
 	newNumProp(node, "start-col", sym->pos.pos);
@@ -70,7 +74,7 @@ static xmlNodePtr new_sym_node(struct symbol *sym, const char *name, xmlNodePtr 
 		newNumProp(node, "end-line", sym->endpos.line);
 		newNumProp(node, "end-col", sym->endpos.pos);
 		if (sym->pos.stream != sym->endpos.stream)
-			xmlNewProp(node, "end-file", stream_name(sym->endpos.stream));
+			newProp(node, "end-file", stream_name(sym->endpos.stream));
         }
 	sym->aux = node;
 
@@ -82,8 +86,6 @@ static xmlNodePtr new_sym_node(struct symbol *sym, const char *name, xmlNodePtr 
 static inline void examine_members(struct symbol_list *list, xmlNodePtr node)
 {
 	struct symbol *sym;
-	xmlNodePtr child;
-	char buf[256];
 
 	FOR_EACH_PTR(list, sym) {
 		examine_symbol(sym, node);
@@ -134,15 +136,13 @@ static void examine_modifiers(struct symbol *sym, xmlNodePtr node)
 	/*iterate over the 32 bit bitfield*/
 	for (i=0; i < 32; i++) {
 		if ((sym->ctype.modifiers & 1<<i) && modifiers[i])
-			xmlNewProp(node, modifiers[i], "1");
+			newProp(node, modifiers[i], "1");
 	}
 }
 
 static void
 examine_layout(struct symbol *sym, xmlNodePtr node)
 {
-	char buf[256];
-
 	examine_symbol_type(sym);
 
 	newNumProp(node, "bit-size", sym->bit_size);
@@ -158,7 +158,6 @@ static void examine_symbol(struct symbol *sym, xmlNodePtr node)
 	xmlNodePtr child = NULL;
 	const char *base;
 	int array_size;
-	char buf[256];
 
 	if (!sym)
 		return;
@@ -177,10 +176,10 @@ static void examine_symbol(struct symbol *sym, xmlNodePtr node)
 			if (!sym->ctype.base_type->aux) {
 				examine_symbol(sym->ctype.base_type, root_node);
 			}
-			xmlNewProp(child, "base-type",
-				xmlGetProp((xmlNodePtr)sym->ctype.base_type->aux, "id"));
+			xmlNewProp(child, BAD_CAST "base-type",
+			           xmlGetProp((xmlNodePtr)sym->ctype.base_type->aux, BAD_CAST "id"));
 		} else {
-			xmlNewProp(child, "base-type-builtin", base);
+			newProp(child, "base-type-builtin", base);
 		}
 	}
 	if (sym->array_size) {
@@ -199,7 +198,7 @@ static void examine_symbol(struct symbol *sym, xmlNodePtr node)
 		examine_members(sym->arguments, child);
 		break;
 	case SYM_UNINITIALIZED:
-		xmlNewProp(child, "base-type-builtin", builtin_typename(sym));
+		newProp(child, "base-type-builtin", builtin_typename(sym));
 		break;
 	}
 	return;
@@ -223,7 +222,6 @@ static void examine_macro(struct symbol *sym, xmlNodePtr node)
 {
 	xmlNodePtr child;
 	struct position *pos;
-	char buf[256];
 
 	/* this should probably go in the main codebase*/
 	pos = get_expansion_end(sym->expansion);
@@ -237,8 +235,6 @@ static void examine_macro(struct symbol *sym, xmlNodePtr node)
 
 static void examine_namespace(struct symbol *sym)
 {
-	xmlChar *namespace_type = NULL;
-
 	if (sym->ident && sym->ident->reserved)
 		return;
 
@@ -293,8 +289,8 @@ int main(int argc, char **argv)
 	struct symbol_list *symlist = NULL;
 	char *file;
 
-	doc = xmlNewDoc("1.0");
-	root_node = xmlNewNode(NULL, "parse");
+	doc = xmlNewDoc(BAD_CAST "1.0");
+	root_node = xmlNewNode(NULL, BAD_CAST "parse");
 	xmlDocSetRootElement(doc, root_node);
 
 /* - A DTD is probably unnecessary for something like this
