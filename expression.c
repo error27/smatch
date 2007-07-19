@@ -30,15 +30,15 @@
 static int match_oplist(int op, ...)
 {
 	va_list args;
+	int nextop;
 
 	va_start(args, op);
-	for (;;) {
-		int nextop = va_arg(args, int);
-		if (!nextop)
-			return 0;
-		if (op == nextop)
-			return 1;
-	}
+	do {
+		nextop = va_arg(args, int);
+	} while (nextop != 0 && nextop != op);
+	va_end(args);
+
+	return nextop != 0;
 }
 
 static struct token *comma_expression(struct token *, struct expression **);
