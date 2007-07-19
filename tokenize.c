@@ -578,15 +578,14 @@ static int get_string_token(int next, stream_t *stream)
 
 static int drop_stream_eoln(stream_t *stream)
 {
-	int next = nextchar(stream);
 	drop_token(stream);
 	for (;;) {
-		int curr = next;
-		if (curr == EOF)
-			return next;
-		next = nextchar(stream);
-		if (curr == '\n')
-			return next;
+		switch (nextchar(stream)) {
+		case EOF:
+			return EOF;
+		case '\n':
+			return nextchar(stream);
+		}
 	}
 }
 
