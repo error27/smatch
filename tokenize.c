@@ -792,16 +792,9 @@ static struct ident *create_hashed_ident(const char *name, int len, unsigned lon
 	p = &hash_table[hash];
 	while ((ident = *p) != NULL) {
 		if (ident->len == (unsigned char) len) {
-			const char *n = name;
-			const char *m = ident->name;
-			int l = len;
-			do {
-				if (*n != *m)
-					goto next;
-				n++;
-				m++;
-			} while (--l);
-				
+			if (strncmp(name, ident->name, len) != 0)
+				goto next;
+
 			ident_hit++;
 			return ident;
 		}
