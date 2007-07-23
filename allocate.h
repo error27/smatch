@@ -42,7 +42,7 @@ extern void show_allocations(struct allocator_struct *);
 	}							\
 	void __free_##x(type *entry)				\
 	{							\
-		return free_one_entry(&x##_allocator, entry);	\
+		free_one_entry(&x##_allocator, entry);		\
 	}							\
 	void show_##x##_alloc(void)				\
 	{							\
