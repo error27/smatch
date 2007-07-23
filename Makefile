@@ -175,7 +175,7 @@ pre-process.h:
 	$(QUIET_CC)$(CC) -o $@ -c $(CFLAGS) $<
 
 clean: clean-check
-	rm -f *.[oasi] core core.[0-9]* $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
+	rm -f *.[oa] $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
 
 dist:
 	@if test "`git describe`" != "$(VERSION)" ; then \
