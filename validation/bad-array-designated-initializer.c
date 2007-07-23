@@ -4,14 +4,10 @@ static int a[] = {
 };
 /*
  * check-name: Bad array designated initializer
- * check-command: sparse $file
- * check-exit-value: 1
  *
- * check-output-start
+ * check-error-start
 bad-array-designated-initializer.c:3:3: error: Expected constant expression
 bad-array-designated-initializer.c:3:3: error: Expected } at end of initializer
 bad-array-designated-initializer.c:3:3: error: got \
- * check-output-end
- *
- * check-known-to-fail
+ * check-error-end
  */

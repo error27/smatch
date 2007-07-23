@@ -10,14 +10,13 @@ static void f(void)
 /*
  * check-name: type of conditional expression
  * check-description: Used to miss qualifier mixing and mishandle void *
- * check-command: sparse $file
  *
- * check-output-start
+ * check-error-start
 cond_expr2.c:6:4: warning: incorrect type in assignment (different modifiers)
 cond_expr2.c:6:4:    expected void volatile *extern [addressable] [toplevel] q
 cond_expr2.c:6:4:    got void const volatile *
 cond_expr2.c:8:4: warning: incorrect type in assignment (different modifiers)
 cond_expr2.c:8:4:    expected int volatile *extern [addressable] [toplevel] [assigned] r
 cond_expr2.c:8:4:    got int const volatile *
- * check-output-end
+ * check-error-end
  */

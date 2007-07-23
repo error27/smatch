@@ -116,18 +116,22 @@ do_test()
 
 	# grab the expected output
 	sed -n '/check-output-start/,/check-output-end/p' $file \
-		| grep -v check-output > "$file".expected
+		| grep -v check-output > "$file".output.expected
+	sed -n '/check-error-start/,/check-error-end/p' $file \
+		| grep -v check-error > "$file".error.expected
 
 	# grab the actual output & exit value
-	$cmd 1> $file.got 2>&1
+	$cmd 1> $file.output.got 2> $file.error.got
 	actual_exit_value=$?
 
-	diff -u "$file".expected "$file".got > "$file".diff
-	if [ "$?" -ne "0" ]; then
-		error "actual output does not match the expected one."
-		error  "see $file.* for further investigation."
-		test_failed=1
-	fi
+	for stream in output error; do
+		diff -u "$file".$stream.expected "$file".$stream.got > "$file".$stream.diff
+		if [ "$?" -ne "0" ]; then
+			error "actual $stream text does not match expected $stream text."
+			error  "see $file.$stream.* for further investigation."
+			test_failed=1
+		fi
+	done
 
 	if [ "$actual_exit_value" -ne "$expected_exit_value" ]; then
 		error "Actual exit value does not match the expected one."
@@ -177,36 +181,27 @@ do_format()
 	fi
 	file="$1"
 	cmd=`eval echo $default_path/$fcmd`
-	$cmd 1> $file.got 2>&1
+	$cmd 1> $file.output.got 2> $file.error.got
 	fexit_value=$?
-	#foutput=`sed -e "s/^\(.*\)/ * check-output:\1/" $file.got`
-	foutput=`cat $file.got`
-	if [ -z "$foutput" ]; then
-	format=`cat <<_EOF
+	cat <<_EOF
 /*
  * check-name: $fname
- *
- * check-command: $fcmd
- * check-exit-value: $fexit_value
- */
 _EOF
-`
-	else
-	format=`cat <<_EOF
-/*
- * check-name: $fname
- *
- * check-command: $fcmd
- * check-exit-value: $fexit_value
- *
- * check-output-start
-$foutput
- * check-output-end
- */
-_EOF
-`
+	if [ "$fcmd" != "$default_cmd" ]; then
+		echo " * check-command: $fcmd"
 	fi
-	echo "$format"
+	if [ "$fexit_value" -ne "0" ]; then
+		echo " * check-exit-value: $fexit_value"
+	fi
+	for stream in output error; do
+		if [ -s "$file.$stream.got" ]; then
+			echo " *"
+			echo " * check-$stream-start"
+			cat "$file.$stream.got"
+			echo " * check-$stream-end"
+		fi
+	done
+	echo " */"
 	return 0
 }
 
