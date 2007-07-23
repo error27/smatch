@@ -41,3 +41,13 @@ static struct same_offset not_an_error = {
 	.field1 = { },
 	.field2 = 0
 };
+/*
+ * check-name: Initializer entry defined twice
+ *
+ * check-error-start
+initializer-entry-defined-twice.c:10:3: error: Initializer entry defined twice
+initializer-entry-defined-twice.c:11:3:   also defined here
+initializer-entry-defined-twice.c:26:4: error: Initializer entry defined twice
+initializer-entry-defined-twice.c:27:4:   also defined here
+ * check-error-end
+ */
