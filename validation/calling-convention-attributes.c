@@ -21,3 +21,6 @@ typedef f2 f2ptr;
 extern void __attribute__((__fastcall__)) f_1(void);
 typedef void (__attribute__((__fastcall__)) *f_2)(void);
 typedef f_2 f_2ptr;
+/*
+ * check-name: Calling convention attributes
+ */
