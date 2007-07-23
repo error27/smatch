@@ -56,7 +56,7 @@ test-suite comes with a format command to make a test easier to write:
 name:
 	check-name value. If no name is provided, it defaults to the file name.
 cmd:
-	check-command value. It no cmd if provided, it defaults to
+	check-command value. If no cmd is provided, it defaults to
 	"sparse $file".
 
 The output of the test-suite format command can be redirected into the
