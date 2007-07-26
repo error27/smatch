@@ -366,18 +366,18 @@ static void fn_local_symbol(struct symbol *sym)
 static int SENTINEL_ATTR match_idents(struct token *token, ...)
 {
 	va_list args;
+	struct ident * next;
 
 	if (token_type(token) != TOKEN_IDENT)
 		return 0;
 
 	va_start(args, token);
-	for (;;) {
-		struct ident * next = va_arg(args, struct ident *);
-		if (!next)
-			return 0;
-		if (token->ident == next)
-			return 1;
-	}
+	do {
+		next = va_arg(args, struct ident *);
+	} while (next && token->ident != next);
+	va_end(args);
+
+	return next && token->ident == next;
 }
 
 
