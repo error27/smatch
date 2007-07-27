@@ -1,5 +1,5 @@
 #define MY_MACRO(a) do { \
-  __builtin_warning(!__builtin_safe_p(a), "Macro argument with side effects"); \
+  __builtin_warning(!__builtin_safe_p(a), "Macro argument with side effects: " #a); \
     a;	\
   } while (0)
 
