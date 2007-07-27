@@ -4,3 +4,6 @@ static int foo(void)
 rtattr_failure: __attribute__ ((unused))
        return -1;
 }
+/*
+ * check-name: Label attribute
+ */
