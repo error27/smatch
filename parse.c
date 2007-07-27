@@ -481,7 +481,7 @@ static struct token *struct_union_enum_specifier(enum type type,
 	if (token_type(token) == TOKEN_IDENT) {
 		sym = lookup_symbol(token->ident, NS_STRUCT);
 		if (!sym ||
-		    (sym->scope != block_scope &&
+		    (is_outer_scope(sym->scope) &&
 		     (match_op(token->next,';') || match_op(token->next,'{')))) {
 			// Either a new symbol, or else an out-of-scope
 			// symbol being redefined.

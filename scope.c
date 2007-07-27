@@ -106,3 +106,13 @@ void end_function_scope(void)
 	end_scope(&block_scope);
 	end_scope(&function_scope);
 }
+
+int is_outer_scope(struct scope *scope)
+{
+	if (scope == block_scope)
+		return 0;
+	if (scope == &builtin_scope && block_scope->next == &builtin_scope)
+		return 0;
+	return 1;
+}
+
