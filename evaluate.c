@@ -1877,6 +1877,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	}
 
 	ctype = deref->ctype;
+	examine_symbol_type(ctype);
 	address_space = ctype->ctype.as;
 	mod = ctype->ctype.modifiers;
 	if (ctype->type == SYM_NODE) {
@@ -1888,7 +1889,6 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		expression_error(expr, "expected structure or union");
 		return NULL;
 	}
-	examine_symbol_type(ctype);
 	offset = 0;
 	member = find_identifier(ident, ctype->symbol_list, &offset);
 	if (!member) {
