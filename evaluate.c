@@ -559,15 +559,6 @@ static inline int is_function(struct symbol *type)
 	return type && type->type == SYM_FN;
 }
 
-static int ptr_object_size(struct symbol *ptr_type)
-{
-	if (ptr_type->type == SYM_NODE)
-		ptr_type = ptr_type->ctype.base_type;
-	if (ptr_type->type == SYM_PTR)
-		ptr_type = get_base_type(ptr_type);
-	return ptr_type->bit_size;
-}
-
 static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *itype)
 {
 	struct expression *index = expr->right;
@@ -1705,27 +1696,36 @@ static struct symbol *evaluate_postop(struct expression *expr)
 {
 	struct expression *op = expr->unop;
 	struct symbol *ctype = op->ctype;
+	int class = classify_type(op->ctype, &ctype);
+	int multiply = 0;
 
 	if (!lvalue_expression(expr->unop)) {
 		expression_error(expr, "need lvalue expression for ++/--");
 		return NULL;
 	}
-	if (is_restricted_type(ctype) && restricted_unop(expr->op, &ctype)) {
-		expression_error(expr, "bad operation on restricted");
-		return NULL;
-	} else if (is_fouled_type(ctype) && restricted_unop(expr->op, &ctype)) {
+
+	if ((class & TYPE_RESTRICT) && restricted_unop(expr->op, &ctype)) {
 		expression_error(expr, "bad operation on restricted");
 		return NULL;
 	}
 
-	evaluate_assign_to(op, ctype);
+	if (class & TYPE_NUM) {
+		multiply = 1;
+	} else if (class == TYPE_PTR) {
+		struct symbol *target = examine_pointer_target(ctype);
+		if (!is_function(target))
+			multiply = target->bit_size >> 3;
+	}
 
-	expr->ctype = ctype;
-	expr->op_value = 1;
-	if (is_ptr_type(ctype))
-		expr->op_value = ptr_object_size(ctype) >> 3;
+	if (multiply) {
+		evaluate_assign_to(op, op->ctype);
+		expr->op_value = multiply;
+		expr->ctype = ctype;
+		return ctype;
+	}
 
-	return ctype;
+	expression_error(expr, "bad argument type for ++/--");
+	return NULL;
 }
 
 static struct symbol *evaluate_sign(struct expression *expr)
