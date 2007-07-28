@@ -345,13 +345,14 @@ enum {
 	TYPE_PTR = 16,
 	TYPE_COMPOUND = 32,
 	TYPE_FOULED = 64,
+	TYPE_FN = 128,
 };
 
 static inline int classify_type(struct symbol *type, struct symbol **base)
 {
 	static int type_class[SYM_BAD + 1] = {
 		[SYM_PTR] = TYPE_PTR,
-		[SYM_FN] = TYPE_PTR,
+		[SYM_FN] = TYPE_PTR | TYPE_FN,
 		[SYM_ARRAY] = TYPE_PTR | TYPE_COMPOUND,
 		[SYM_STRUCT] = TYPE_COMPOUND,
 		[SYM_UNION] = TYPE_COMPOUND,
@@ -553,6 +554,11 @@ static inline int lvalue_expression(struct expression *expr)
 	return expr->type == EXPR_PREOP && expr->op == '*';
 }
 
+static inline int is_function(struct symbol *type)
+{
+	return type && type->type == SYM_FN;
+}
+
 static int ptr_object_size(struct symbol *ptr_type)
 {
 	if (ptr_type->type == SYM_NODE)
@@ -562,26 +568,29 @@ static int ptr_object_size(struct symbol *ptr_type)
 	return ptr_type->bit_size;
 }
 
-static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *ctype, struct symbol *itype)
+static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *itype)
 {
 	struct expression *index = expr->right;
+	struct symbol *ctype, *base;
 	int multiply;
-	int bit_size;
 
-	if (ctype == &null_ctype)
-		ctype = &ptr_ctype;
+	classify_type(degenerate(expr->left), &ctype);
+	base = examine_pointer_target(ctype);
 
-	examine_symbol_type(ctype);
-
-	if (!ctype->ctype.base_type) {
+	if (!base) {
 		expression_error(expr, "missing type information");
+		return NULL;
+	}
+	if (is_function(base)) {
+		expression_error(expr, "arithmetics on pointers to functions");
 		return NULL;
 	}
 
 	/* Get the size of whatever the pointer points to */
-	bit_size = ptr_object_size(ctype);
-	multiply = bit_size >> 3;
+	multiply = base->bit_size >> 3;
 
+	if (ctype == &null_ctype)
+		ctype = &ptr_ctype;
 	expr->ctype = ctype;
 
 	if (multiply == 1 && itype->bit_size >= bits_in_pointer)
@@ -834,7 +843,7 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr)
 	if (typediff)
 		expression_error(expr, "subtraction of different types can't work (%s)", typediff);
 
-	if (lbase->type == SYM_FN) {
+	if (is_function(lbase)) {
 		expression_error(expr, "subtraction of functions? Share your drugs");
 		return NULL;
 	}
@@ -948,7 +957,7 @@ static struct symbol *evaluate_binop(struct expression *expr)
 	/* pointer (+|-) integer */
 	if (lclass & TYPE_PTR && is_int(rclass) && (op == '+' || op == '-')) {
 		unrestrict(expr->right, rclass, &rtype);
-		return evaluate_ptr_add(expr, degenerate(expr->left), rtype);
+		return evaluate_ptr_add(expr, rtype);
 	}
 
 	/* integer + pointer */
@@ -957,7 +966,7 @@ static struct symbol *evaluate_binop(struct expression *expr)
 		unrestrict(index, lclass, &ltype);
 		expr->left = expr->right;
 		expr->right = index;
-		return evaluate_ptr_add(expr, degenerate(expr->left), ltype);
+		return evaluate_ptr_add(expr, ltype);
 	}
 
 	/* pointer - pointer */
@@ -1270,10 +1279,10 @@ static int evaluate_assign_op(struct expression *expr)
 		expr->right = cast_to(expr->right, target);
 		return 0;
 	}
-	if (tclass & TYPE_PTR && is_int(sclass)) {
+	if (tclass == TYPE_PTR && is_int(sclass)) {
 		if (op == SPECIAL_ADD_ASSIGN || op == SPECIAL_SUB_ASSIGN) {
 			unrestrict(expr->right, sclass, &s);
-			evaluate_ptr_add(expr, target, s);
+			evaluate_ptr_add(expr, s);
 			return 1;
 		}
 		expression_error(expr, "invalid pointer assignment");
@@ -2630,7 +2639,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	if (t1 == &void_ctype)
 		goto out;
 
-	if (class1 & TYPE_COMPOUND)
+	if (class1 & (TYPE_COMPOUND | TYPE_FN))
 		warning(expr->pos, "cast to non-scalar");
 
 	t2 = target->ctype;
