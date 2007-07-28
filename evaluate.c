@@ -768,28 +768,10 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 				return NULL;
 			if (diff & MOD_SIZE)
 				return "different type sizes";
-			if (diff & ~MOD_SIGNEDNESS)
+			else if (diff & ~MOD_SIGNEDNESS)
 				return "different modifiers";
-
-			/* Differs in signedness only.. */
-			if (Wtypesign) {
-				/*
-				 * Warn if both are explicitly signed ("unsigned" is obviously
-				 * always explicit, and since we know one of them has to be
-				 * unsigned, we check if the signed one was explicit).
-				 */
-				if ((mod1 | mod2) & MOD_EXPLICITLY_SIGNED)
-					return "different explicit signedness";
-
-				/*
-				 * "char" matches both "unsigned char" and "signed char",
-				 * so if the explicit test didn't trigger, then we should
-				 * not warn about a char.
-				 */
-				if (!(mod1 & MOD_CHAR))
-					return "different signedness";
-			}
-			return NULL;
+			else
+				return "different signedness";
 		}
 		t1 = base1;
 		t2 = base2;
@@ -1288,6 +1270,27 @@ Cast:
 	return 1;
 }
 
+static int whitelist_pointers(struct symbol *t1, struct symbol *t2)
+{
+	if (t1 == t2)
+		return 0;	/* yes, 0 - we don't want a cast_to here */
+	if (t1 == &void_ctype)
+		return 1;
+	if (t2 == &void_ctype)
+		return 1;
+	if (classify_type(t1, &t1) != TYPE_NUM)
+		return 0;
+	if (classify_type(t2, &t2) != TYPE_NUM)
+		return 0;
+	if (t1 == t2)
+		return 1;
+	if (t1->ctype.modifiers & t2->ctype.modifiers & MOD_CHAR)
+		return 1;
+	if ((t1->ctype.modifiers ^ t2->ctype.modifiers) & MOD_SIZE)
+		return 0;
+	return !Wtypesign;
+}
+
 static int compatible_assignment_types(struct expression *expr, struct symbol *target,
 	struct expression **rp, const char *where)
 {
@@ -1330,7 +1333,7 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 		b2 = examine_pointer_target(s);
 		mod1 = target_qualifiers(t);
 		mod2 = target_qualifiers(s);
-		if (b1 == &void_ctype || b2 == &void_ctype) {
+		if (whitelist_pointers(b1, b2)) {
 			/*
 			 * assignments to/from void * are OK, provided that
 			 * we do not remove qualifiers from pointed to [C]
