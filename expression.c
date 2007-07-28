@@ -880,7 +880,7 @@ struct token *conditional_expression(struct token *token, struct expression **tr
 		token = parse_expression(token->next, &expr->cond_true);
 		token = expect(token, ':', "in conditional expression");
 		token = conditional_expression(token, &expr->cond_false);
-		if (expr->left && expr->cond_true) {
+		if (expr->left && expr->cond_false) {
 			int is_const = expr->left->flags &
 					expr->cond_false->flags &
 					Int_const_expr;
