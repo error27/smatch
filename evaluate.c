@@ -1057,11 +1057,11 @@ static struct symbol *evaluate_compare(struct expression *expr)
 			expr->value = positive;
 			goto OK;
 		}
-		if (is_null1) {
+		if (is_null1 && (rclass & TYPE_PTR)) {
 			left = cast_to(left, rtype);
 			goto OK;
 		}
-		if (is_null2) {
+		if (is_null2 && (lclass & TYPE_PTR)) {
 			right = cast_to(right, ltype);
 			goto OK;
 		}
