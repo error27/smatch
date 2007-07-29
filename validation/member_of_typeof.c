@@ -7,8 +7,4 @@ static void bar(void)
 /*
  * check-name: Expansion of typeof when dealing with member of struct
  * check-description: Used to expand SYM_TYPEOF too late
- * check-command: sparse $file
- *
- * check-output-start
- * check-output-end
  */
