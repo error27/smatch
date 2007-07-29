@@ -13,7 +13,4 @@ static int test(struct st *s)
  * check-name: There is no scope boundary between global and file scope
  * check-description: Used to mess scopes with -include
  * check-command: sparse -include $file $file
- *
- * check-output-start
- * check-output-end
  */
