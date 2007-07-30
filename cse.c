@@ -17,7 +17,7 @@
 #include "linearize.h"
 #include "flow.h"
 
-#define INSN_HASH_SIZE 65536
+#define INSN_HASH_SIZE 256
 static struct instruction_list *insn_hash_table[INSN_HASH_SIZE];
 
 int repeat_phase;
