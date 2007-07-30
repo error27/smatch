@@ -129,6 +129,7 @@ evaluate.o: $(LIB_H)
 expression.o: $(LIB_H)
 lib.o: $(LIB_H)
 allocate.o: $(LIB_H)
+ptrlist.o: $(LIB_H)
 parse.o: $(LIB_H)
 pre-process.o: $(LIB_H) pre-process.h
 scope.o: $(LIB_H)
@@ -148,6 +149,7 @@ test-lexing.o: $(LIB_H)
 test-parsing.o: $(LIB_H)
 test-linearize.o: $(LIB_H)
 test-dissect.o: $(LIB_H)
+test-unssa.o: $(LIB_H)
 ctags.o: $(LIB_H)
 compile.o: $(LIB_H) compile.h
 compile-i386.o: $(LIB_H) compile.h
