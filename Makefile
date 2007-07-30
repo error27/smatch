@@ -3,7 +3,7 @@ VERSION=0.3
 OS=linux
 
 CC=gcc
-CFLAGS=-O -g -Wall -Wwrite-strings -fpic
+CFLAGS=-O2 -finline-functions -g -Wall -Wwrite-strings -fpic
 LDFLAGS=-g
 AR=ar
 
