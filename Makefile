@@ -3,7 +3,7 @@ VERSION=0.3
 OS=linux
 
 CC=gcc
-CFLAGS=-O2 -finline-functions -g -Wall -Wwrite-strings -fpic
+CFLAGS=-O2 -finline-functions -g -Wall -Wwrite-strings
 LDFLAGS=-g
 AR=ar
 
@@ -44,6 +44,12 @@ LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 LIB_FILE= libsparse.a
 SLIB_FILE= libsparse.so
 
+# If you add $(SLIB_FILE) to this, you also need to add -fpic to CFLAGS above.
+# Doing so incurs a noticeable performance hit, and Sparse does not have a
+# stable shared library interface, so this does not occur by default.  If you
+# really want a shared library, you may want to build Sparse twice: once
+# without -fpic to get all the Sparse tools, and again with -fpic to get the
+# shared library.
 LIBS=$(LIB_FILE)
 
 #
