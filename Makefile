@@ -2,9 +2,10 @@ VERSION=0.3
 
 OS=linux
 
-CC=gcc
-CFLAGS=-O2 -finline-functions -g -Wall -Wwrite-strings
-LDFLAGS=-g
+CC ?= gcc
+CFLAGS ?= -O2 -finline-functions -g
+CFLAGS += -Wall -Wwrite-strings
+LDFLAGS ?= -g
 AR=ar
 
 HAVE_LIBXML=$(shell pkg-config --exists libxml-2.0 && echo 'yes')
@@ -129,7 +130,7 @@ $(LIB_FILE): $(LIB_OBJS)
 	$(QUIET_AR)$(AR) rcs $@ $(LIB_OBJS)
 
 $(SLIB_FILE): $(LIB_OBJS)
-	$(QUIET_LINK)$(CC) -shared -o $@ $(LIB_OBJS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS) -Wl,-soname,$@ -shared -o $@ $(LIB_OBJS)
 
 evaluate.o: $(LIB_H)
 expression.o: $(LIB_H)
