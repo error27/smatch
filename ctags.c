@@ -111,6 +111,8 @@ static void examine_symbol(struct symbol *sym)
 		return;
 	if (sym->ident && sym->ident->reserved)
 		return;
+	if (sym->type == SYM_KEYWORD || sym->type == SYM_PREPROCESSOR)
+		return;
 
 	add_tag(sym);
 	base = sym->ctype.base_type;
@@ -158,10 +160,11 @@ static void examine_namespace(struct symbol *sym)
 		return;
 
 	switch(sym->namespace) {
+	case NS_KEYWORD:
+	case NS_PREPROCESSOR:
+		return;
 	case NS_LABEL:
 		sym->kind = 'l';
-		break;
-	case NS_PREPROCESSOR:
 		break;
 	case NS_MACRO:
 	case NS_UNDEF:
