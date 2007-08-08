@@ -124,7 +124,7 @@ ctags: ctags.o $(LIBS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
 c2xml: c2xml.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) `pkg-config --libs libxml-2.0` -o $@ $< $(LIBS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS)  -o $@ $< $(LIBS) `pkg-config --libs libxml-2.0`
 
 $(LIB_FILE): $(LIB_OBJS)
 	$(QUIET_AR)$(AR) rcs $@ $(LIB_OBJS)
