@@ -590,6 +590,7 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern long __builtin_alpha_insql(long, long);\n");
 	add_pre_buffer("extern long __builtin_alpha_inslh(long, long);\n");
 	add_pre_buffer("extern long __builtin_alpha_cmpbge(long, long);\n");
+	add_pre_buffer("extern long __builtin_labs(long);\n");
 }
 
 void create_builtin_stream(void)
