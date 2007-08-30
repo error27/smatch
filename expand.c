@@ -1235,7 +1235,7 @@ long long const_expression_value(struct expression *expr)
 
 int is_zero_constant(struct expression *expr)
 {
-	int saved = conservative;
+	const int saved = conservative;
 	conservative = 1;
 	expand_expression(expr);
 	conservative = saved;
