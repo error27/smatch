@@ -19,6 +19,8 @@ DESTDIR=
 PREFIX=$(HOME)
 BINDIR=$(PREFIX)/bin
 LIBDIR=$(PREFIX)/lib
+MANDIR=$(PREFIX)/share/man
+MAN1DIR=$(MANDIR)/man1
 INCLUDEDIR=$(PREFIX)/include
 PKGCONFIGDIR=$(LIBDIR)/pkgconfig
 
@@ -27,6 +29,7 @@ PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse test-linearize 
 
 
 INST_PROGRAMS=sparse cgcc
+INST_MAN1=sparse.1
 
 ifeq ($(HAVE_LIBXML),yes)
 PROGRAMS+=c2xml
@@ -71,10 +74,14 @@ all: $(PROGRAMS) sparse.pc
 install: $(INST_PROGRAMS) $(LIBS) $(LIB_H) sparse.pc
 	$(Q)install -d $(DESTDIR)$(BINDIR)
 	$(Q)install -d $(DESTDIR)$(LIBDIR)
+	$(Q)install -d $(DESTDIR)$(MAN1DIR)
 	$(Q)install -d $(DESTDIR)$(INCLUDEDIR)/sparse
 	$(Q)install -d $(DESTDIR)$(PKGCONFIGDIR)
 	$(Q)for f in $(INST_PROGRAMS); do \
 		$(QUIET_INST_SH)install -v $$f $(DESTDIR)$(BINDIR)/$$f || exit 1; \
+	done
+	$(Q)for f in $(INST_MAN1); do \
+		$(QUIET_INST_SH)install -v $$f $(DESTDIR)$(MAN1DIR)/$$f || exit 1; \
 	done
 	$(Q)for f in $(LIBS); do \
 		$(QUIET_INST_SH)install -m 644 -v $$f $(DESTDIR)$(LIBDIR)/$$f || exit 1; \
