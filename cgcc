@@ -69,7 +69,7 @@ exit 0;
 
 sub check_only_option {
     my ($arg) = @_;
-    return 1 if $arg =~ /^-W(no-?)?(default-bitfield-sign|one-bit-signed-bitfield|cast-truncate|bitwise|typesign|context|undefined-preprocessor|ptr-subtraction-blows|cast-to-address-space|decl|transparent-union|address-space|enum-mismatch|do-while|old-initializer|non-pointer-null|paren-string|return-void)$/;
+    return 1 if $arg =~ /^-W(no-?)?(default-bitfield-sign|one-bit-signed-bitfield|cast-truncate|bitwise|typesign|context|undefined-preprocessor|ptr-subtraction-blows|cast-to-as|decl|transparent-union|address-space|enum-mismatch|do-while|old-initializer|non-pointer-null|paren-string|return-void)$/;
     return 1 if $arg =~ /^-v(no-?)?(entry|dead)$/;
     return 0;
 }
