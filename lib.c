@@ -190,7 +190,7 @@ static char pre_buffer[8192];
 
 int Waddress_space = 1;
 int Wbitwise = 0;
-int Wcast_to_address_space = 0;
+int Wcast_to_as = 0;
 int Wcast_truncate = 1;
 int Wcontext = 1;
 int Wdecl = 1;
@@ -348,7 +348,7 @@ static const struct warning {
 } warnings[] = {
 	{ "address-space", &Waddress_space },
 	{ "bitwise", &Wbitwise },
-	{ "cast-to-as", &Wcast_to_address_space },
+	{ "cast-to-as", &Wcast_to_as },
 	{ "cast-truncate", &Wcast_truncate },
 	{ "context", &Wcontext },
 	{ "decl", &Wdecl },

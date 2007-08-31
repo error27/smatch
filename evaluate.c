@@ -2688,7 +2688,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	if (as1 > 0 && as2 > 0 && as1 != as2)
 		warning(expr->pos, "cast between address spaces (<asn:%d>-><asn:%d>)", as2, as1);
 	if (as1 > 0 && !as2 &&
-	    !is_null_pointer_constant(target) && Wcast_to_address_space)
+	    !is_null_pointer_constant(target) && Wcast_to_as)
 		warning(expr->pos,
 			"cast adds address space to expression (<asn:%d>)", as1);
 
