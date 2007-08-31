@@ -87,24 +87,27 @@ extern char **handle_switch(char *arg, char **next);
 extern void add_pre_buffer(const char *fmt, ...) FORMAT_ATTR(1);
 
 extern int preprocess_only;
-extern int Wptr_subtraction_blows;
-extern int Wdefault_bitfield_sign;
-extern int Wundefined_preprocessor;
-extern int Wbitwise, Wtypesign, Wcontext;
-extern int Wtransparent_union;
+
 extern int Waddress_space;
+extern int Wbitwise;
 extern int Wcast_to_address_space;
-extern int Wenum_mismatch;
-extern int Wdecl;
-extern int Wone_bit_signed_bitfield;
-extern int Wshadow;
 extern int Wcast_truncate;
+extern int Wcontext;
+extern int Wdecl;
+extern int Wdefault_bitfield_sign;
 extern int Wdo_while;
-extern int Wuninitialized;
-extern int Wold_initializer;
+extern int Wenum_mismatch;
 extern int Wnon_pointer_null;
+extern int Wold_initializer;
+extern int Wone_bit_signed_bitfield;
 extern int Wparen_string;
+extern int Wptr_subtraction_blows;
 extern int Wreturn_void;
+extern int Wshadow;
+extern int Wtransparent_union;
+extern int Wtypesign;
+extern int Wundefined_preprocessor;
+extern int Wuninitialized;
 
 extern int dbg_entry;
 extern int dbg_dead;

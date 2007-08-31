@@ -188,26 +188,26 @@ void die(const char *fmt, ...)
 static unsigned int pre_buffer_size;
 static char pre_buffer[8192];
 
-int Wdefault_bitfield_sign = 0;
-int Wone_bit_signed_bitfield = 1;
-int Wcast_truncate = 1;
-int Wbitwise = 0;
-int Wtypesign = 0;
-int Wcontext = 1;
-int Wundefined_preprocessor = 0;
-int Wptr_subtraction_blows = 0;
-int Wcast_to_address_space = 0;
-int Wdecl = 1;
-int Wtransparent_union = 1;
-int Wshadow = 0;
 int Waddress_space = 1;
-int Wenum_mismatch = 1;
+int Wbitwise = 0;
+int Wcast_to_address_space = 0;
+int Wcast_truncate = 1;
+int Wcontext = 1;
+int Wdecl = 1;
+int Wdefault_bitfield_sign = 0;
 int Wdo_while = 0;
-int Wuninitialized = 1;
-int Wold_initializer = 1;
+int Wenum_mismatch = 1;
 int Wnon_pointer_null = 1;
+int Wold_initializer = 1;
+int Wone_bit_signed_bitfield = 1;
 int Wparen_string = 0;
+int Wptr_subtraction_blows = 0;
 int Wreturn_void = 0;
+int Wshadow = 0;
+int Wtransparent_union = 1;
+int Wtypesign = 0;
+int Wundefined_preprocessor = 0;
+int Wuninitialized = 1;
 
 int dbg_entry = 0;
 int dbg_dead = 0;
@@ -346,26 +346,26 @@ static const struct warning {
 	const char *name;
 	int *flag;
 } warnings[] = {
-	{ "cast-to-as", &Wcast_to_address_space },
-	{ "decl", &Wdecl },
-	{ "one-bit-signed-bitfield", &Wone_bit_signed_bitfield },
-	{ "cast-truncate", &Wcast_truncate },
-	{ "ptr-subtraction-blows", &Wptr_subtraction_blows },
-	{ "default-bitfield-sign", &Wdefault_bitfield_sign },
-	{ "undef", &Wundefined_preprocessor },
-	{ "bitwise", &Wbitwise },
-	{ "typesign", &Wtypesign },
-	{ "context", &Wcontext },
-	{ "transparent-union", &Wtransparent_union },
-	{ "shadow", &Wshadow },
 	{ "address-space", &Waddress_space },
-	{ "enum-mismatch", &Wenum_mismatch },
+	{ "bitwise", &Wbitwise },
+	{ "cast-to-as", &Wcast_to_address_space },
+	{ "cast-truncate", &Wcast_truncate },
+	{ "context", &Wcontext },
+	{ "decl", &Wdecl },
+	{ "default-bitfield-sign", &Wdefault_bitfield_sign },
 	{ "do-while", &Wdo_while },
-	{ "uninitialized", &Wuninitialized },
-	{ "old-initializer", &Wold_initializer },
+	{ "enum-mismatch", &Wenum_mismatch },
 	{ "non-pointer-null", &Wnon_pointer_null },
+	{ "old-initializer", &Wold_initializer },
+	{ "one-bit-signed-bitfield", &Wone_bit_signed_bitfield },
 	{ "paren-string", &Wparen_string },
+	{ "ptr-subtraction-blows", &Wptr_subtraction_blows },
 	{ "return-void", &Wreturn_void },
+	{ "shadow", &Wshadow },
+	{ "transparent-union", &Wtransparent_union },
+	{ "typesign", &Wtypesign },
+	{ "undef", &Wundefined_preprocessor },
+	{ "uninitialized", &Wuninitialized },
 };
 
 enum {
