@@ -206,7 +206,7 @@ int Wreturn_void = 0;
 int Wshadow = 0;
 int Wtransparent_union = 1;
 int Wtypesign = 0;
-int Wundefined_preprocessor = 0;
+int Wundef = 0;
 int Wuninitialized = 1;
 
 int dbg_entry = 0;
@@ -364,7 +364,7 @@ static const struct warning {
 	{ "shadow", &Wshadow },
 	{ "transparent-union", &Wtransparent_union },
 	{ "typesign", &Wtypesign },
-	{ "undef", &Wundefined_preprocessor },
+	{ "undef", &Wundef },
 	{ "uninitialized", &Wuninitialized },
 };
 

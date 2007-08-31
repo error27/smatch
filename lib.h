@@ -106,7 +106,7 @@ extern int Wreturn_void;
 extern int Wshadow;
 extern int Wtransparent_union;
 extern int Wtypesign;
-extern int Wundefined_preprocessor;
+extern int Wundef;
 extern int Wuninitialized;
 
 extern int dbg_entry;

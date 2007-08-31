@@ -41,7 +41,7 @@ static int expand_symbol_expression(struct expression *expr)
 	struct symbol *sym = expr->symbol;
 
 	if (sym == &zero_int) {
-		if (Wundefined_preprocessor)
+		if (Wundef)
 			warning(expr->pos, "undefined preprocessor identifier '%s'", show_ident(expr->symbol_name));
 		expr->type = EXPR_VALUE;
 		expr->value = 0;
