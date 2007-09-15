@@ -1,12 +1,12 @@
 VERSION=0.3
 
-OS=linux
+OS ?= linux
 
 CC ?= gcc
 CFLAGS ?= -O2 -finline-functions -fno-strict-aliasing -g
 CFLAGS += -Wall -Wwrite-strings
 LDFLAGS ?= -g
-AR=ar
+AR ?= ar
 
 HAVE_LIBXML=$(shell pkg-config --exists libxml-2.0 && echo 'yes')
 
