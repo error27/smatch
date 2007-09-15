@@ -15,3 +15,6 @@ f (void)
 }
 
 enum Foo { FOO };
+/*
+ * check-name: struct namespaces #1
+ */
