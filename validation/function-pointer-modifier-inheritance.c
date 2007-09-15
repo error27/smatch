@@ -13,3 +13,6 @@ int skb_append_datato_frags(struct sock *sk, struct sk_buff *skb,
 {
     return 0;
 }
+/*
+ * check-name: Function pointer modifier inheritance
+ */
