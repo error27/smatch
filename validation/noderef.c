@@ -40,3 +40,12 @@ static void h(void)
 	r = py->a+1;
 	r = &py->a[0];
 }
+/*
+ * check-name: noderef attribute
+ *
+ * check-error-start
+noderef.c:24:5: warning: incorrect type in assignment (different modifiers)
+noderef.c:24:5:    expected char *[noderef] *q2
+noderef.c:24:5:    got char [noderef] **<noident>
+ * check-error-end
+ */
