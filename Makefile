@@ -29,7 +29,7 @@ PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse test-linearize 
 
 
 INST_PROGRAMS=sparse cgcc
-INST_MAN1=sparse.1
+INST_MAN1=sparse.1 cgcc.1
 
 ifeq ($(HAVE_LIBXML),yes)
 PROGRAMS+=c2xml
