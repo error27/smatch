@@ -90,8 +90,9 @@ Q.  What other sparse resources are available?
 
 A.  Website: http://www.kernel.org/pub/software/devel/sparse/
 
-    Mailing list:  linux-sparse@vger.kernel.org
-    (email majordomo@vger.kernel.org to subscribe)
+    Mailing list: linux-sparse@vger.kernel.org
+    See http://vger.kernel.org/vger-lists.html#linux-sparse for subscription
+    instructions and links to archives
 
     Git repo: git://git.kernel.org/pub/scm/devel/sparse/sparse.git
     gitweb: http://git.kernel.org/?p=devel/sparse/sparse.git
