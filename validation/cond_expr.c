@@ -9,3 +9,11 @@ int a(void)
 {
 	return ~(y ? : x);	/* should warn */
 }
+/*
+ * check-name: Two-argument conditional expression types
+ *
+ * check-error-start
+cond_expr.c:10:9: error: incompatible types for operation (~)
+cond_expr.c:10:9:    argument has type double 
+ * check-error-end
+ */
