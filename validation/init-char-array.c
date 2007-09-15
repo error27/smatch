@@ -13,3 +13,6 @@ static void f(void)
 	char w[1/(sizeof(t) == 10)];
 }
 
+/*
+ * check-name: char array initializers
+ */
