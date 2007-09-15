@@ -1,12 +1,11 @@
 /*
- * We get this wrong for some strange reason.
+ * Sparse used to get this wrong.
  *
- * When evaluating the argument to the inline
- * function for the array, we don't properly
- * demote the "char []" to a "char *", but instead
- * we follow the dereference and get a "struct hello".
+ * When evaluating the argument to the inline function for the array, Sparse
+ * didn't properly demote the "char []" to a "char *", but instead it would
+ * follow the dereference and get a "struct hello".
  *
- * Which makes no sense at all.
+ * Which made no sense at all.
  */
 
 static inline int deref(const char *s)
