@@ -81,7 +81,7 @@ install: $(INST_PROGRAMS) $(LIBS) $(LIB_H) sparse.pc
 		$(QUIET_INST_SH)install -v $$f $(DESTDIR)$(BINDIR)/$$f || exit 1; \
 	done
 	$(Q)for f in $(INST_MAN1); do \
-		$(QUIET_INST_SH)install -v $$f $(DESTDIR)$(MAN1DIR)/$$f || exit 1; \
+		$(QUIET_INST_SH)install -m 644 -v $$f $(DESTDIR)$(MAN1DIR)/$$f || exit 1; \
 	done
 	$(Q)for f in $(LIBS); do \
 		$(QUIET_INST_SH)install -m 644 -v $$f $(DESTDIR)$(LIBDIR)/$$f || exit 1; \
