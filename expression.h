@@ -57,7 +57,7 @@ enum {
 
 enum {
 	Taint_comma = 1,
-};
+}; /* for expr->taint */
 
 struct expression {
 	enum expression_type type:8;
