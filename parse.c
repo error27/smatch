@@ -459,6 +459,16 @@ static struct symbol *lookup_or_create_symbol(enum namespace ns, enum type type,
 	return sym;
 }
 
+static struct symbol * local_label(struct token *token)
+{
+	struct symbol *sym = lookup_symbol(token->ident, NS_SYMBOL);
+
+	if (sym && sym->ctype.modifiers & MOD_LABEL)
+		return sym;
+
+	return NULL;
+}
+
 /*
  * NOTE! NS_LABEL is not just a different namespace,
  * it also ends up using function scope instead of the
@@ -466,6 +476,9 @@ static struct symbol *lookup_or_create_symbol(enum namespace ns, enum type type,
  */
 struct symbol *label_symbol(struct token *token)
 {
+	struct symbol *sym = local_label(token);
+	if (sym)
+		return sym;
 	return lookup_or_create_symbol(NS_LABEL, SYM_LABEL, token);
 }
 
