@@ -6,3 +6,6 @@ static void g(void)
        }
        f(({ __label__ x; x: (unsigned long)&&x; }));
 }
+/*
+ * check-name: Local label
+ */
