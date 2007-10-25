@@ -69,6 +69,7 @@ IDENT(model); IDENT(__model__);
 IDENT(format_arg); IDENT(__format_arg__);
 IDENT(nothrow); IDENT(__nothrow); IDENT(__nothrow__);
 IDENT(__transparent_union__);
+IDENT(malloc);
 IDENT(__malloc__);
 IDENT(nonnull); IDENT(__nonnull); IDENT(__nonnull__);
 IDENT(constructor); IDENT(__constructor__);

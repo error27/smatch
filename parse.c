@@ -283,6 +283,7 @@ static struct init_keyword {
 	{ "nothrow",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__nothrow",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__nothrow__",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "malloc",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__malloc__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "nonnull",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__nonnull",	NS_KEYWORD,	.op = &ignore_attr_op },
