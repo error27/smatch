@@ -14,6 +14,6 @@ int a(void)
  *
  * check-error-start
 cond_expr.c:10:9: error: incompatible types for operation (~)
-cond_expr.c:10:9:    argument has type double 
+cond_expr.c:10:9:    argument has type double
  * check-error-end
  */

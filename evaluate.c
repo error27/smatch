@@ -502,7 +502,7 @@ static inline void unrestrict(struct expression *expr,
 	if (class & TYPE_RESTRICT) {
 		if (class & TYPE_FOULED)
 			*ctype = unfoul(*ctype);
-		warning(expr->pos, "%sdegrades to integer",
+		warning(expr->pos, "%s degrades to integer",
 			show_typename(*ctype));
 		*ctype = (*ctype)->ctype.base_type; /* get to arithmetic type */
 	}
@@ -1802,7 +1802,7 @@ static struct symbol *evaluate_preop(struct expression *expr)
 			expr->right->ctype = ctype;
 			expr->right->fvalue = 0;
 		} else if (is_fouled_type(ctype)) {
-			warning(expr->pos, "%sdegrades to integer",
+			warning(expr->pos, "%s degrades to integer",
 				show_typename(ctype->ctype.base_type));
 		}
 		ctype = &bool_ctype;

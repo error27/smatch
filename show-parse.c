@@ -226,12 +226,16 @@ const char *builtin_ctypename(struct ctype *ctype)
 	return NULL;
 }
 
-static void do_show_type(struct symbol *sym, struct type_name *name,
-			 unsigned long mod, int as, int was_ptr)
+static void do_show_type(struct symbol *sym, struct type_name *name)
 {
 	const char *typename;
-	int is_ptr = was_ptr;
+	unsigned long mod = 0;
+	int as = 0;
+	int was_ptr = 0;
+	int restr = 0;
+	int fouled = 0;
 
+deeper:
 	if (!sym || (sym->type != SYM_NODE && sym->type != SYM_ARRAY &&
 		     sym->type != SYM_BITFIELD)) {
 		const char *s;
@@ -249,14 +253,15 @@ static void do_show_type(struct symbol *sym, struct type_name *name,
 	}
 
 	if (!sym)
-		return;
+		goto out;
 
 	if ((typename = builtin_typename(sym))) {
 		int len = strlen(typename);
-		*--name->start = ' ';
+		if (name->start != name->end)
+			*--name->start = ' ';
 		name->start -= len;
 		memcpy(name->start, typename, len);
-		return;
+		goto out;
 	}
 
 	/* Prepend */
@@ -265,20 +270,29 @@ static void do_show_type(struct symbol *sym, struct type_name *name,
 		prepend(name, "*");
 		mod = sym->ctype.modifiers;
 		as = sym->ctype.as;
-		is_ptr = 1;
+		was_ptr = 1;
 		break;
+
 	case SYM_FN:
-		if (was_ptr)
+		if (was_ptr) {
 			prepend(name, "( ");
-		is_ptr = 0;
+			append(name, " )");
+			was_ptr = 0;
+		}
+		append(name, "( ... )");
 		break;
+
 	case SYM_STRUCT:
-		prepend(name, "struct %s ", show_ident(sym->ident));
-		return;
+		if (name->start != name->end)
+			*--name->start = ' ';
+		prepend(name, "struct %s", show_ident(sym->ident));
+		goto out;
 
 	case SYM_UNION:
-		prepend(name, "union %s ", show_ident(sym->ident));
-		return;
+		if (name->start != name->end)
+			*--name->start = ' ';
+		prepend(name, "union %s", show_ident(sym->ident));
+		goto out;
 
 	case SYM_ENUM:
 		prepend(name, "enum %s ", show_ident(sym->ident));
@@ -298,60 +312,48 @@ static void do_show_type(struct symbol *sym, struct type_name *name,
 
 	case SYM_LABEL:
 		append(name, "label(%s:%p)", show_ident(sym->ident), sym);
-		break;
+		return;
 
 	case SYM_ARRAY:
 		mod |= sym->ctype.modifiers;
 		as |= sym->ctype.as;
-		if (was_ptr)
+		if (was_ptr) {
 			prepend(name, "( ");
-		is_ptr = 0;
-		break;
-
-	case SYM_RESTRICT:
-		if (sym->ident) {
-			prepend(name, "restricted %s ", show_ident(sym->ident));
-			return;
+			append(name, " )");
+			was_ptr = 0;
 		}
-		break;
-
-	case SYM_FOULED:
-		break;
-
-	default:
-		prepend(name, "unknown type %d", sym->type);
-		return;
-	}
-
-	do_show_type(sym->ctype.base_type, name, mod, as, is_ptr);
-
-	switch (sym->type) {
-	case SYM_PTR:
-		return;
-
-	case SYM_FN:
-		if (was_ptr)
-			append(name, " )");
-		append(name, "( ... )");
-		return;
-
-	case SYM_ARRAY:
-		if (was_ptr)
-			append(name, " )");
 		append(name, "[%lld]", get_expression_value(sym->array_size));
-		return;
+		break;
 
 	case SYM_RESTRICT:
-		prepend(name, "restricted ");
-		return;
+		if (!sym->ident) {
+			restr = 1;
+			break;
+		}
+		if (name->start != name->end)
+			*--name->start = ' ';
+		prepend(name, "restricted %s", show_ident(sym->ident));
+		goto out;
 
 	case SYM_FOULED:
-		prepend(name, "fouled ");
-		return;
+		fouled = 1;
+		break;
 
 	default:
-		break;
+		if (name->start != name->end)
+			*--name->start = ' ';
+		prepend(name, "unknown type %d", sym->type);
+		goto out;
 	}
+
+	sym = sym->ctype.base_type;
+	goto deeper;
+
+out:
+	if (restr)
+		prepend(name, "restricted ");
+	if (fouled)
+		prepend(name, "fouled ");
 }
 
 void show_type(struct symbol *sym)
@@ -360,7 +362,7 @@ void show_type(struct symbol *sym)
 	struct type_name name;
 
 	name.start = name.end = array+100;
-	do_show_type(sym, &name, 0, 0, 0);
+	do_show_type(sym, &name);
 	*name.end = 0;
 	printf("%s", name.start);
 }
@@ -371,7 +373,7 @@ const char *show_typename(struct symbol *sym)
 	struct type_name name;
 
 	name.start = name.end = array+100;
-	do_show_type(sym, &name, 0, 0, 0);
+	do_show_type(sym, &name);
 	*name.end = 0;
 	return name.start;
 }
