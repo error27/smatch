@@ -500,9 +500,10 @@ static inline void unrestrict(struct expression *expr,
 			      int class, struct symbol **ctype)
 {
 	if (class & TYPE_RESTRICT) {
-		warning(expr->pos, "restricted degrades to integer");
 		if (class & TYPE_FOULED)
 			*ctype = unfoul(*ctype);
+		warning(expr->pos, "%sdegrades to integer",
+			show_typename(*ctype));
 		*ctype = (*ctype)->ctype.base_type; /* get to arithmetic type */
 	}
 }
@@ -1235,7 +1236,9 @@ static int evaluate_assign_op(struct expression *expr)
 		}
 		if (tclass & TYPE_RESTRICT) {
 			if (!restricted_binop(op, t)) {
-				expression_error(expr, "bad restricted assignment");
+				warning(expr->pos, "bad assignment (%s) to %s",
+					show_special(op), show_typename(t));
+				expr->right = cast_to(expr->right, target);
 				return 0;
 			}
 			/* allowed assignments unfoul */
@@ -1248,7 +1251,9 @@ static int evaluate_assign_op(struct expression *expr)
 		/* source and target would better be identical restricted */
 		if (t == s)
 			return 1;
-		warning(expr->pos, "invalid restricted assignment");
+		warning(expr->pos, "invalid assignment: %s", show_special(op));
+		info(expr->pos, "   left side has type %s", show_typename(t));
+		info(expr->pos, "   right side has type %s", show_typename(s));
 		expr->right = cast_to(expr->right, target);
 		return 0;
 	}
@@ -1707,10 +1712,8 @@ static struct symbol *evaluate_postop(struct expression *expr)
 		return NULL;
 	}
 
-	if ((class & TYPE_RESTRICT) && restricted_unop(expr->op, &ctype)) {
-		expression_error(expr, "bad operation on restricted");
-		return NULL;
-	}
+	if ((class & TYPE_RESTRICT) && restricted_unop(expr->op, &ctype))
+		return bad_expr_type(expr);
 
 	if (class & TYPE_NUM) {
 		multiply = 1;
@@ -1799,7 +1802,8 @@ static struct symbol *evaluate_preop(struct expression *expr)
 			expr->right->ctype = ctype;
 			expr->right->fvalue = 0;
 		} else if (is_fouled_type(ctype)) {
-			warning(expr->pos, "restricted degrades to integer");
+			warning(expr->pos, "%sdegrades to integer",
+				show_typename(ctype->ctype.base_type));
 		}
 		ctype = &bool_ctype;
 		break;
@@ -2664,9 +2668,11 @@ static struct symbol *evaluate_cast(struct expression *expr)
 
 	if (t1 != t2) {
 		if (class1 & TYPE_RESTRICT)
-			warning(expr->pos, "cast to restricted type");
+			warning(expr->pos, "cast to %s",
+				show_typename(t1));
 		if (class2 & TYPE_RESTRICT)
-			warning(expr->pos, "cast from restricted type");
+			warning(expr->pos, "cast from %s",
+				show_typename(t2));
 	}
 
 	if (t1 == &ulong_ctype)
@@ -3246,9 +3252,10 @@ static void check_case_type(struct expression *switch_expr,
 		return;
 
 	if (!restricted_binop_type(SPECIAL_EQUAL, case_expr, switch_expr,
-				   cclass, sclass, case_type, switch_type))
-		warning(case_expr->pos, "restricted degrades to integer");
-
+				   cclass, sclass, case_type, switch_type)) {
+		unrestrict(case_expr, cclass, &case_type);
+		unrestrict(switch_expr, sclass, &switch_type);
+	}
 	return;
 
 Bad:

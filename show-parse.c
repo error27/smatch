@@ -309,6 +309,10 @@ static void do_show_type(struct symbol *sym, struct type_name *name,
 		break;
 
 	case SYM_RESTRICT:
+		if (sym->ident) {
+			prepend(name, "restricted %s ", show_ident(sym->ident));
+			return;
+		}
 		break;
 
 	case SYM_FOULED:

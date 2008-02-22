@@ -2158,8 +2158,15 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	base_type = decl->ctype.base_type;
 
 	if (is_typedef) {
-		if (base_type && !base_type->ident)
-			base_type->ident = ident;
+		if (base_type && !base_type->ident) {
+			switch (base_type->type) {
+			case SYM_STRUCT:
+			case SYM_UNION:
+			case SYM_ENUM:
+			case SYM_RESTRICT:
+				base_type->ident = ident;
+			}
+		}
 	} else if (base_type && base_type->type == SYM_FN) {
 		/* K&R argument declaration? */
 		if (lookup_type(token))
