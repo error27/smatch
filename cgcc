@@ -241,6 +241,11 @@ sub add_specs {
 		&integer_types (8, 16, 32, $m32 ? 32 : 64, 64) .
 		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
 		&define_size_t ($m32 ? "unsigned int" : "long unsigned int"));
+    } elsif ($spec eq 'ppc') {
+	return (' -D__powerpc__=1 -D_BIG_ENDIAN -D_STRING_ARCH_unaligned=1' .
+		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
+		&float_types (1, 1, 21, [24,8], [53,11], [113,15]) .
+		&define_size_t ($m64 ? "long unsigned int" : "unsigned int"));
     } elsif ($spec eq 'host_os_specs') {
 	my $os = `uname -s`;
 	chomp $os;
@@ -254,6 +259,8 @@ sub add_specs {
 	    return &add_specs ('sparc');
 	} elsif ($arch =~ /^(x86_64)$/i) {
 	    return &add_specs ('x86_64');
+	} elsif ($arch =~ /^(ppc)$/i) {
+	    return &add_specs ('ppc');
 	}
     } else {
 	die "$0: invalid specs: $spec\n";
