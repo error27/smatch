@@ -640,6 +640,22 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern long __builtin_alpha_inslh(long, long);\n");
 	add_pre_buffer("extern long __builtin_alpha_cmpbge(long, long);\n");
 	add_pre_buffer("extern long __builtin_labs(long);\n");
+
+	/* And some __FORTIFY_SOURCE ones.. */
+	add_pre_buffer ("extern __SIZE_TYPE__ __builtin_object_size(void *, int);\n");
+	add_pre_buffer ("extern void * __builtin___memcpy_chk(void *, const void *, __SIZE_TYPE__, __SIZE_TYPE__);\n");
+	add_pre_buffer ("extern void * __builtin___memmove_chk(void *, const void *, __SIZE_TYPE__, __SIZE_TYPE__);\n");
+	add_pre_buffer ("extern void * __builtin___mempcpy_chk(void *, const void *, __SIZE_TYPE__, __SIZE_TYPE__);\n");
+	add_pre_buffer ("extern void * __builtin___memset_chk(void *, int, __SIZE_TYPE__, __SIZE_TYPE__);\n");
+	add_pre_buffer ("extern int __builtin___sprintf_chk(char *, int, __SIZE_TYPE__, const char *, ...);\n");
+	add_pre_buffer ("extern int __builtin___snprintf_chk(char *, __SIZE_TYPE__, int , __SIZE_TYPE__, const char *, ...);\n");
+	add_pre_buffer ("extern char * __builtin___stpcpy_chk(char *, const char *, __SIZE_TYPE__);\n");
+	add_pre_buffer ("extern char * __builtin___strcat_chk(char *, const char *, __SIZE_TYPE__);\n");
+	add_pre_buffer ("extern char * __builtin___strcpy_chk(char *, const char *, __SIZE_TYPE__);\n");
+	add_pre_buffer ("extern char * __builtin___strncat_chk(char *, const char *, __SIZE_TYPE__, __SIZE_TYPE__);\n");
+	add_pre_buffer ("extern char * __builtin___strncpy_chk(char *, const char *, __SIZE_TYPE__, __SIZE_TYPE__);\n");
+	add_pre_buffer ("extern int __builtin___vsprintf_chk(char *, int, __SIZE_TYPE__, const char *, __builtin_va_list);\n");
+	add_pre_buffer ("extern int __builtin___vsnprintf_chk(char *, __SIZE_TYPE__, int, __SIZE_TYPE__, const char *, __builtin_va_list ap);\n");
 }
 
 void create_builtin_stream(void)
