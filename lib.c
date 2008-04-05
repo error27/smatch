@@ -214,6 +214,12 @@ int dbg_dead = 0;
 
 int preprocess_only;
 
+static enum { STANDARD_C89,
+              STANDARD_C94,
+              STANDARD_C99,
+              STANDARD_GNU89,
+              STANDARD_GNU99, } standard = STANDARD_GNU89;
+
 #define CMDLINE_INCLUDE 20
 int cmdline_include_nr = 0;
 struct cmdline_include cmdline_include[CMDLINE_INCLUDE];
@@ -495,6 +501,46 @@ static char **handle_switch_G(char *arg, char **next)
 		return next;     // "-G0" or (bogus) terminal "-G"
 }
 
+static char **handle_switch_a(char *arg, char **next)
+{
+	if (!strcmp (arg, "ansi"))
+		standard = STANDARD_C89;
+
+	return next;
+}
+
+static char **handle_switch_s(char *arg, char **next)
+{
+	if (!strncmp (arg, "std=", 4))
+	{
+		arg += 4;
+
+		if (!strcmp (arg, "c89") ||
+		    !strcmp (arg, "iso9899:1990"))
+			standard = STANDARD_C89;
+
+		else if (!strcmp (arg, "iso9899:199409"))
+			standard = STANDARD_C94;
+
+		else if (!strcmp (arg, "c99") ||
+			 !strcmp (arg, "c9x") ||
+			 !strcmp (arg, "iso9899:1999") ||
+			 !strcmp (arg, "iso9899:199x"))
+			standard = STANDARD_C99;
+
+		else if (!strcmp (arg, "gnu89"))
+			standard = STANDARD_GNU89;
+
+		else if (!strcmp (arg, "gnu99") || !strcmp (arg, "gnu9x"))
+			standard = STANDARD_GNU99;
+
+		else
+			die ("Unsupported C dialect");
+	}
+
+	return next;
+}
+
 static char **handle_nostdinc(char *arg, char **next)
 {
 	add_pre_buffer("#nostdinc\n");
@@ -538,6 +584,8 @@ char **handle_switch(char *arg, char **next)
 	case 'O': return handle_switch_O(arg, next);
 	case 'f': return handle_switch_f(arg, next);
 	case 'G': return handle_switch_G(arg, next);
+	case 'a': return handle_switch_a(arg, next);
+	case 's': return handle_switch_s(arg, next);
 	default:
 		break;
 	}
@@ -612,6 +660,33 @@ void create_builtin_stream(void)
 	else
 		add_pre_buffer("#weak_define __SIZE_TYPE__ unsigned int\n");
 	add_pre_buffer("#weak_define __STDC__ 1\n");
+
+	switch (standard)
+	{
+		case STANDARD_C89:
+			add_pre_buffer("#weak_define __STRICT_ANSI__\n");
+			break;
+
+		case STANDARD_C94:
+			add_pre_buffer("#weak_define __STDC_VERSION__ 199409L\n");
+			add_pre_buffer("#weak_define __STRICT_ANSI__\n");
+			break;
+
+		case STANDARD_C99:
+			add_pre_buffer("#weak_define __STDC_VERSION__ 199901L\n");
+			add_pre_buffer("#weak_define __STRICT_ANSI__\n");
+			break;
+
+		case STANDARD_GNU89:
+			break;
+
+		case STANDARD_GNU99:
+			add_pre_buffer("#weak_define __STDC_VERSION__ 199901L\n");
+			break;
+
+		default:
+			assert (0);
+	}
 
 	add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
 	add_pre_buffer("#define __builtin_va_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
