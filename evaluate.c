@@ -697,8 +697,12 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 				     type);
 			return "bad types";
 		case SYM_RESTRICT:
+			return "different base types";
 		case SYM_UNION:
 		case SYM_STRUCT:
+			/* allow definition of incomplete structs and unions */
+			if (t1->ident == t2->ident)
+			  return NULL;
 			return "different base types";
 		case SYM_ARRAY:
 			/* XXX: we ought to compare sizes */
