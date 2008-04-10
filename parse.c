@@ -66,6 +66,7 @@ static struct token *attribute_address_space(struct token *token, struct symbol 
 static struct token *attribute_aligned(struct token *token, struct symbol *attr, struct ctype *ctype);
 static struct token *attribute_mode(struct token *token, struct symbol *attr, struct ctype *ctype);
 static struct token *attribute_context(struct token *token, struct symbol *attr, struct ctype *ctype);
+static struct token *attribute_exact_context(struct token *token, struct symbol *attr, struct ctype *ctype);
 static struct token *attribute_transparent_union(struct token *token, struct symbol *attr, struct ctype *ctype);
 static struct token *ignore_attribute(struct token *token, struct symbol *attr, struct ctype *ctype);
 
@@ -184,6 +185,10 @@ static struct symbol_op context_op = {
 	.attribute = attribute_context,
 };
 
+static struct symbol_op exact_context_op = {
+	.attribute = attribute_exact_context,
+};
+
 static struct symbol_op transparent_union_op = {
 	.attribute = attribute_transparent_union,
 };
@@ -265,6 +270,7 @@ static struct init_keyword {
 	{ "address_space",NS_KEYWORD,	.op = &address_space_op },
 	{ "mode",	NS_KEYWORD,	.op = &mode_op },
 	{ "context",	NS_KEYWORD,	.op = &context_op },
+	{ "exact_context",	NS_KEYWORD,	.op = &exact_context_op },
 	{ "__transparent_union__",	NS_KEYWORD,	.op = &transparent_union_op },
 
 	{ "__mode__",	NS_KEYWORD,	.op = &mode_op },
@@ -863,7 +869,7 @@ static struct token *attribute_mode(struct token *token, struct symbol *attr, st
 	return token;
 }
 
-static struct token *attribute_context(struct token *token, struct symbol *attr, struct ctype *ctype)
+static struct token *_attribute_context(struct token *token, struct symbol *attr, struct ctype *ctype, int exact)
 {
 	struct context *context = alloc_context();
 	struct expression *args[3];
@@ -877,6 +883,8 @@ static struct token *attribute_context(struct token *token, struct symbol *attr,
 			break;
 		if (argc < 3)
 			args[argc++] = expr;
+		else
+			argc++;
 		if (!match_op(token, ','))
 			break;
 		token = token->next;
@@ -898,13 +906,28 @@ static struct token *attribute_context(struct token *token, struct symbol *attr,
 		context->in = get_expression_value(args[1]);
 		context->out = get_expression_value(args[2]);
 		break;
+	default:
+		sparse_error(token->pos, "too many arguments to context attribute");
+		break;
 	}
+
+	context->exact = exact;
 
 	if (argc)
 		add_ptr_list(&ctype->contexts, context);
 
 	token = expect(token, ')', "after context attribute");
 	return token;
+}
+
+static struct token *attribute_context(struct token *token, struct symbol *attr, struct ctype *ctype)
+{
+	return _attribute_context(token, attr, ctype, 0);
+}
+
+static struct token *attribute_exact_context(struct token *token, struct symbol *attr, struct ctype *ctype)
+{
+	return _attribute_context(token, attr, ctype, 1);
 }
 
 static struct token *attribute_transparent_union(struct token *token, struct symbol *attr, struct ctype *ctype)
@@ -1738,17 +1761,56 @@ static struct token *parse_goto_statement(struct token *token, struct statement 
 
 static struct token *parse_context_statement(struct token *token, struct statement *stmt)
 {
+	struct expression *args[3];
+	int argc = 0;
+
 	stmt->type = STMT_CONTEXT;
-	token = parse_expression(token->next, &stmt->expression);
-	if(stmt->expression->type == EXPR_PREOP
-	   && stmt->expression->op == '('
-	   && stmt->expression->unop->type == EXPR_COMMA) {
-		struct expression *expr;
-		expr = stmt->expression->unop;
-		stmt->context = expr->left;
-		stmt->expression = expr->right;
+	token = token->next;
+	token = expect(token, '(', "after __context__ statement");
+	while (!match_op(token, ')')) {
+		struct expression *expr = NULL;
+		token = conditional_expression(token, &expr);
+		if (!expr)
+			break;
+		if (argc < 3)
+			args[argc++] = expr;
+		else
+			argc++;
+		if (!match_op(token, ','))
+			break;
+		token = token->next;
 	}
-	return expect(token, ';', "at end of statement");
+
+	stmt->expression = args[0];
+	stmt->context = NULL;
+
+	switch (argc) {
+	case 0:
+		sparse_error(token->pos, "__context__ statement needs argument(s)");
+		return token;
+	case 1:
+		/* already done */
+		break;
+	case 2:
+		if (args[0]->type != STMT_EXPRESSION) {
+			stmt->context = args[0];
+			stmt->expression = args[1];
+		} else {
+			stmt->expression = args[0];
+			stmt->required = args[1];
+		}
+		break;
+	case 3:
+		stmt->context = args[0];
+		stmt->expression = args[1];
+		stmt->required = args[2];
+		break;
+	default:
+		sparse_error(token->pos, "too many arguments for __context__ statement");
+		return token->next;
+	}
+
+	return expect(token, ')', "at end of __context__");
 }
 
 static struct token *parse_range_statement(struct token *token, struct statement *stmt)

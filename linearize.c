@@ -1247,6 +1247,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 			if (check || context_diff) {
 				insn = alloc_instruction(OP_CONTEXT, 0);
 				insn->increment = context_diff;
+				/* what's check for? */
 				insn->check = check;
 				insn->context_expr = context->context;
 				add_one_insn(ep, insn);
@@ -1683,6 +1684,15 @@ static pseudo_t linearize_context(struct entrypoint *ep, struct statement *stmt)
 		value = expr->value;
 
 	insn->increment = value;
+
+	expr = stmt->required;
+	value = 0;
+
+	if (expr && expr->type == EXPR_VALUE)
+		value = expr->value;
+
+	insn->required = value;
+
 	insn->context_expr = stmt->context;
 	add_one_insn(ep, insn);
 	return VOID;

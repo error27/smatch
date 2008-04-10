@@ -314,23 +314,35 @@ static void warn_cond_lock1(void)
         condition2 = 1; /* do stuff */
     r();
 }
+
+static void warn_odd_looping(void)
+{
+    int i;
+
+    for (i = 0; i < 2; i++)
+        a();
+    for (i = 0; i < 2; i++)
+        r();
+}
+
 /*
  * check-name: Check -Wcontext
  *
  * check-error-start
-context.c:69:13: warning: context imbalance in 'warn_lock1' - wrong count at exit
-context.c:74:13: warning: context imbalance in 'warn_lock2' - wrong count at exit
-context.c:81:13: warning: context imbalance in 'warn_lock3' - wrong count at exit
-context.c:88:13: warning: context imbalance in 'warn_unlock1' - unexpected unlock
-context.c:93:13: warning: context imbalance in 'warn_unlock2' - unexpected unlock
-context.c:131:12: warning: context imbalance in 'warn_if1' - wrong count at exit
-context.c:140:12: warning: context imbalance in 'warn_if2' - different lock contexts for basic block
-context.c:202:2: warning: context imbalance in 'warn_while1' - different lock contexts for basic block
-context.c:210:3: warning: context imbalance in 'warn_while2' - unexpected unlock
-context.c:216:2: warning: context imbalance in 'warn_while3' - wrong count at exit
-context.c:274:13: warning: context imbalance in 'warn_goto1' - wrong count at exit
-context.c:283:13: warning: context imbalance in 'warn_goto2' - wrong count at exit
-context.c:300:5: warning: context imbalance in 'warn_goto3' - different lock contexts for basic block
-context.c:315:5: warning: context imbalance in 'warn_cond_lock1' - different lock contexts for basic block
+context.c:71:3: warning: context imbalance in 'warn_lock1' - wrong count at exit
+context.c:78:3: warning: context imbalance in 'warn_lock2' - wrong count at exit
+context.c:85:3: warning: context imbalance in 'warn_lock3' - wrong count at exit
+context.c:90:3: warning: context problem in 'warn_unlock1' - function 'r' expected different context
+context.c:97:3: warning: context problem in 'warn_unlock2' - function 'r' expected different context
+context.c:137:9: warning: context imbalance in 'warn_if1' - wrong count at exit
+context.c:147:9: warning: context imbalance in 'warn_if2' - wrong count at exit
+context.c:203:4: warning: context imbalance in 'warn_while1' - wrong count at exit
+context.c:210:4: warning: context problem in 'warn_while2' - function 'r' expected different context
+context.c:220:4: warning: context imbalance in 'warn_while3' - wrong count at exit
+context.c:280:5: warning: context imbalance in 'warn_goto1' - wrong count at exit
+context.c:290:6: warning: context imbalance in 'warn_goto2' - wrong count at exit
+context.c:300:6: warning: context problem in 'warn_goto3' - function 'r' expected different context
+context.c:315:6: warning: context problem in 'warn_cond_lock1' - function 'r' expected different context
+context.c:325:10: warning: context problem in 'warn_odd_looping' - function 'r' expected different context
  * check-error-end
  */

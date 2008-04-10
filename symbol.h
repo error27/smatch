@@ -72,6 +72,7 @@ enum keyword {
 struct context {
 	struct expression *context;
 	unsigned int in, out;
+	int exact;
 };
 
 extern struct context *alloc_context(void);
