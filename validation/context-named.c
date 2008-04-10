@@ -465,6 +465,27 @@ static void warn_exact_fn2(void)
     r2();
 }
 
+#define __acquire(x)	__context__(x,1)
+#define __release(x)	__context__(x,-1)
+
+#define rl() \
+  do { __acquire(RCU); } while (0)
+
+#define ru() \
+  do { __release(RCU); } while (0)
+
+static void good_mixed_with_if(void)
+{
+    rl();
+
+    if (condition) {
+        a();
+        r();
+    }
+
+    ru();
+}
+
 /*
  * check-name: Check -Wcontext with lock names
  *
