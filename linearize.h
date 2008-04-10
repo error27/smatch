@@ -116,8 +116,7 @@ struct instruction {
 			struct pseudo_list *arguments;
 		};
 		struct /* context */ {
-			int increment, required;
-			int check;
+			int increment, required, inc_false;
 			struct expression *context_expr;
 		};
 		struct /* asm */ {

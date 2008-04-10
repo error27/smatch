@@ -94,6 +94,15 @@ There currently is no corresponding
 .BI __exact_context__( [expression , ]adjust_value[ , required] )
 statement.
 
+To indicate that a certain function acquires a context depending on its
+return value, use
+.BI __attribute__((conditional_context( [expression ,] in_context , out_success , out_failure ))
+where \fIout_success\fR and \fIout_failure\fR indicate the context change
+done depending on success (non-zero) or failure (zero) return of the
+function. Note that currently, using this attribute on a function means that
+the function itself won't be checked for context handling at all. See the
+testsuite for examples.
+
 Sparse will warn when it sees a function change a
 context without indicating this with a \fBcontext\fR or \fBexact_context\fR attribute, either by
 decreasing a context below zero (such as by releasing a lock without acquiring

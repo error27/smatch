@@ -439,7 +439,7 @@ const char *show_instruction(struct instruction *insn)
 		break;
 
 	case OP_CONTEXT:
-		buf += sprintf(buf, "%s%d", insn->check ? "check: " : "", insn->increment);
+		buf += sprintf(buf, "%s%d,%d", "", insn->increment, insn->inc_false);
 		break;
 	case OP_RANGE:
 		buf += sprintf(buf, "%s between %s..%s", show_pseudo(insn->src1), show_pseudo(insn->src2), show_pseudo(insn->src3));
@@ -1233,23 +1233,12 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 		FOR_EACH_PTR(ctype->contexts, context) {
 			int in = context->in;
 			int out = context->out;
-			int check = 0;
-			int context_diff;
-			if (in < 0) {
-				check = 1;
-				in = 0;
-			}
-			if (out < 0) {
-				check = 0;
-				out = 0;
-			}
-			context_diff = out - in;
-			if (check || context_diff) {
+
+			if (out - in || context->out_false - in) {
 				insn = alloc_instruction(OP_CONTEXT, 0);
-				insn->increment = context_diff;
-				/* what's check for? */
-				insn->check = check;
+				insn->increment = out - in;
 				insn->context_expr = context->context;
+				insn->inc_false = context->out_false - in;
 				add_one_insn(ep, insn);
 			}
 		} END_FOR_EACH_PTR(context);
@@ -1684,6 +1673,7 @@ static pseudo_t linearize_context(struct entrypoint *ep, struct statement *stmt)
 		value = expr->value;
 
 	insn->increment = value;
+	insn->inc_false = value;
 
 	expr = stmt->required;
 	value = 0;

@@ -66,6 +66,7 @@ static struct token *attribute_address_space(struct token *token, struct symbol 
 static struct token *attribute_aligned(struct token *token, struct symbol *attr, struct ctype *ctype);
 static struct token *attribute_mode(struct token *token, struct symbol *attr, struct ctype *ctype);
 static struct token *attribute_context(struct token *token, struct symbol *attr, struct ctype *ctype);
+static struct token *attribute_conditional_context(struct token *token, struct symbol *attr, struct ctype *ctype);
 static struct token *attribute_exact_context(struct token *token, struct symbol *attr, struct ctype *ctype);
 static struct token *attribute_transparent_union(struct token *token, struct symbol *attr, struct ctype *ctype);
 static struct token *ignore_attribute(struct token *token, struct symbol *attr, struct ctype *ctype);
@@ -185,6 +186,10 @@ static struct symbol_op context_op = {
 	.attribute = attribute_context,
 };
 
+static struct symbol_op conditional_context_op = {
+	.attribute = attribute_conditional_context,
+};
+
 static struct symbol_op exact_context_op = {
 	.attribute = attribute_exact_context,
 };
@@ -270,6 +275,7 @@ static struct init_keyword {
 	{ "address_space",NS_KEYWORD,	.op = &address_space_op },
 	{ "mode",	NS_KEYWORD,	.op = &mode_op },
 	{ "context",	NS_KEYWORD,	.op = &context_op },
+	{ "conditional_context",	NS_KEYWORD,	.op = &conditional_context_op },
 	{ "exact_context",	NS_KEYWORD,	.op = &exact_context_op },
 	{ "__transparent_union__",	NS_KEYWORD,	.op = &transparent_union_op },
 
@@ -912,6 +918,7 @@ static struct token *_attribute_context(struct token *token, struct symbol *attr
 	}
 
 	context->exact = exact;
+	context->out_false = context->out;
 
 	if (argc)
 		add_ptr_list(&ctype->contexts, context);
@@ -928,6 +935,51 @@ static struct token *attribute_context(struct token *token, struct symbol *attr,
 static struct token *attribute_exact_context(struct token *token, struct symbol *attr, struct ctype *ctype)
 {
 	return _attribute_context(token, attr, ctype, 1);
+}
+
+static struct token *attribute_conditional_context(struct token *token, struct symbol *attr, struct ctype *ctype)
+{
+	struct context *context = alloc_context();
+	struct expression *args[4];
+	int argc = 0;
+
+	token = expect(token, '(', "after conditional_context attribute");
+	while (!match_op(token, ')')) {
+		struct expression *expr = NULL;
+		token = conditional_expression(token, &expr);
+		if (!expr)
+			break;
+		if (argc < 4)
+			args[argc++] = expr;
+		else
+			argc++;
+		if (!match_op(token, ','))
+			break;
+		token = token->next;
+	}
+
+	switch(argc) {
+	case 3:
+		context->in = get_expression_value(args[0]);
+		context->out = get_expression_value(args[1]);
+		context->out_false = get_expression_value(args[2]);
+		break;
+	case 4:
+		context->context = args[0];
+		context->in = get_expression_value(args[1]);
+		context->out = get_expression_value(args[2]);
+		context->out_false = get_expression_value(args[3]);
+		break;
+	default:
+		sparse_error(token->pos, "invalid number of arguments to conditional_context attribute");
+		break;
+	}
+
+	if (argc)
+		add_ptr_list(&ctype->contexts, context);
+
+	token = expect(token, ')', "after conditional_context attribute");
+	return token;
 }
 
 static struct token *attribute_transparent_union(struct token *token, struct symbol *attr, struct ctype *ctype)

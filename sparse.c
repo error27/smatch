@@ -25,7 +25,7 @@
 #include "linearize.h"
 
 struct context_check {
-	int val;
+	int val, val_false;
 	char name[32];
 };
 
@@ -42,7 +42,7 @@ static const char *context_name(struct context *context)
 	return unnamed_context;
 }
 
-static void context_add(struct context_check_list **ccl, const char *name, int offs)
+static void context_add(struct context_check_list **ccl, const char *name, int offs, int offs_false)
 {
 	struct context_check *check, *found = NULL;
 
@@ -60,6 +60,7 @@ static void context_add(struct context_check_list **ccl, const char *name, int o
 		add_ptr_list(ccl, found);
 	}
 	found->val += offs;
+	found->val_false += offs_false;
 }
 
 static int imbalance(struct entrypoint *ep, struct position pos, const char *name, const char *why)
@@ -83,7 +84,7 @@ static int context_list_check(struct entrypoint *ep, struct position pos,
 
 	/* make sure the loop below checks all */
 	FOR_EACH_PTR(ccl_target, c1) {
-		context_add(&ccl_cur, c1->name, 0);
+		context_add(&ccl_cur, c1->name, 0, 0);
 	} END_FOR_EACH_PTR(c1);
 
 	FOR_EACH_PTR(ccl_cur, c1) {
@@ -108,12 +109,13 @@ static int context_list_check(struct entrypoint *ep, struct position pos,
 
 static int check_bb_context(struct entrypoint *ep, struct basic_block *bb,
 			    struct context_check_list *ccl_in,
-			    struct context_check_list *ccl_target)
+			    struct context_check_list *ccl_target,
+			    int in_false)
 {
 	struct context_check_list *combined = NULL;
 	struct context_check *c;
 	struct instruction *insn;
-	struct basic_block *child;
+	struct multijmp *mj;
 	struct context *ctx;
 	const char *name;
 	int ok, val;
@@ -125,7 +127,10 @@ static int check_bb_context(struct entrypoint *ep, struct basic_block *bb,
 	bb->context++;
 
 	FOR_EACH_PTR(ccl_in, c) {
-		context_add(&combined, c->name, c->val);
+		if (in_false)
+			context_add(&combined, c->name, c->val_false, c->val_false);
+		else
+			context_add(&combined, c->name, c->val, c->val);
 	} END_FOR_EACH_PTR(c);
 
 	FOR_EACH_PTR(bb->insns, insn) {
@@ -182,7 +187,23 @@ static int check_bb_context(struct entrypoint *ep, struct basic_block *bb,
 				free((void *)name);
 				return -1;
 			}
-			context_add(&combined, name, insn->increment);
+
+			context_add(&combined, name, insn->increment, insn->inc_false);
+			break;
+		case OP_BR:
+			if (insn->bb_true)
+				if (check_bb_context(ep, insn->bb_true, combined, ccl_target, 0))
+					return -1;
+			if (insn->bb_false)
+				if (check_bb_context(ep, insn->bb_false, combined, ccl_target, 1))
+					return -1;
+			break;
+		case OP_SWITCH:
+		case OP_COMPUTEDGOTO:
+			FOR_EACH_PTR(insn->multijmp_list, mj) {
+				if (check_bb_context(ep, mj->target, combined, ccl_target, 0))
+					return -1;
+			} END_FOR_EACH_PTR(mj);
 			break;
 		}
 	} END_FOR_EACH_PTR(insn);
@@ -193,10 +214,12 @@ static int check_bb_context(struct entrypoint *ep, struct basic_block *bb,
 	if (insn->opcode == OP_RET)
 		return context_list_check(ep, insn->pos, combined, ccl_target);
 
-	FOR_EACH_PTR(bb->children, child) {
-		if (check_bb_context(ep, child, combined, ccl_target))
-			return -1;
-	} END_FOR_EACH_PTR(child);
+	FOR_EACH_PTR(bb->insns, insn) {
+		if (!insn->bb)
+			continue;
+		switch (insn->opcode) {
+		}
+	} END_FOR_EACH_PTR(insn);
 
 	/* contents will be freed once we return out of recursion */
 	free_ptr_list(&combined);
@@ -358,11 +381,14 @@ static void check_context(struct entrypoint *ep)
 	FOR_EACH_PTR(sym->ctype.contexts, context) {
 		const char *name = context_name(context);
 
-		context_add(&ccl_in, name, context->in);
-		context_add(&ccl_target, name, context->out);
+		context_add(&ccl_in, name, context->in, context->in);
+		context_add(&ccl_target, name, context->out, context->out_false);
+		/* we don't currently check the body of trylock functions */
+		if (context->out != context->out_false)
+			return;
 	} END_FOR_EACH_PTR(context);
 
-	check_bb_context(ep, ep->entry->bb, ccl_in, ccl_target);
+	check_bb_context(ep, ep->entry->bb, ccl_in, ccl_target, 0);
 	free_ptr_list(&ccl_in);
 	free_ptr_list(&ccl_target);
 	clear_context_check_alloc();

@@ -71,7 +71,7 @@ enum keyword {
 
 struct context {
 	struct expression *context;
-	unsigned int in, out;
+	unsigned int in, out, out_false;
 	int exact;
 };
 
