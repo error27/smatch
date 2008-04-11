@@ -137,6 +137,7 @@ static int check_bb_context(struct entrypoint *ep, struct basic_block *bb,
 		if (!insn->bb)
 			continue;
 		switch (insn->opcode) {
+		case OP_INLINED_CALL:
 		case OP_CALL:
 			if (!insn->func || !insn->func->sym || insn->func->type != PSEUDO_SYM)
 				break;

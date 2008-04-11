@@ -465,6 +465,17 @@ static void warn_exact_fn2(void)
     r2();
 }
 
+static inline void need_lock3(void) __attribute__((context(TEST,1,1)))
+{
+}
+
+static void warn_fn3(void)
+{
+    a2();
+    need_lock3();
+    r2();
+}
+
 #define __acquire(x)	__context__(x,1)
 #define __release(x)	__context__(x,-1)
 
@@ -513,5 +524,6 @@ context-named.c:434:14: warning: context problem in 'warn_fn' - function 'need_l
 context-named.c:441:15: warning: context problem in 'warn_fn2' - function 'need_lock2' expected different context
 context-named.c:456:20: warning: context problem in 'warn_exact_fn1' - function 'need_lock_exact' expected different context
 context-named.c:464:20: warning: context problem in 'warn_exact_fn2' - function 'need_lock_exact' expected different context
+context-named.c:475:15: warning: context problem in 'warn_fn3' - function 'need_lock3' expected different context
  * check-error-end
  */
