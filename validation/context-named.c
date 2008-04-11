@@ -501,29 +501,53 @@ static void good_mixed_with_if(void)
  * check-name: Check -Wcontext with lock names
  *
  * check-error-start
-context-named.c:86:3: warning: context imbalance in 'warn_lock1' - wrong count at exit (TEST)
-context-named.c:93:3: warning: context imbalance in 'warn_lock2' - wrong count at exit (TEST)
-context-named.c:100:3: warning: context imbalance in 'warn_lock3' - wrong count at exit (TEST)
-context-named.c:105:3: warning: context problem in 'warn_unlock1' - function 'r' expected different context
-context-named.c:112:3: warning: context problem in 'warn_unlock2' - function 'r' expected different context
-context-named.c:152:9: warning: context imbalance in 'warn_if1' - wrong count at exit (TEST)
-context-named.c:162:9: warning: context imbalance in 'warn_if2' - wrong count at exit (TEST)
-context-named.c:218:4: warning: context imbalance in 'warn_while1' - wrong count at exit (TEST)
-context-named.c:225:4: warning: context problem in 'warn_while2' - function 'r' expected different context
-context-named.c:235:4: warning: context imbalance in 'warn_while3' - wrong count at exit (TEST)
-context-named.c:295:5: warning: context imbalance in 'warn_goto1' - wrong count at exit (TEST)
-context-named.c:305:6: warning: context imbalance in 'warn_goto2' - wrong count at exit (TEST)
-context-named.c:315:6: warning: context problem in 'warn_goto3' - function 'r' expected different context
-context-named.c:321:7: warning: context imbalance in 'warn_multiple1' - wrong count at exit (TEST)
-context-named.c:327:6: warning: context imbalance in 'warn_multiple2' - wrong count at exit (TEST2)
-context-named.c:333:6: warning: context problem in 'warn_mixed1' - function 'r' expected different context
-context-named.c:343:6: warning: context problem in 'warn_mixed2' - function 'r' expected different context
-context-named.c:353:6: warning: context problem in 'warn_mixed3' - function 'r' expected different context
-context-named.c:364:6: warning: context imbalance in 'warn_mixed4' - wrong count at exit (TEST2)
-context-named.c:434:14: warning: context problem in 'warn_fn' - function 'need_lock' expected different context
-context-named.c:441:15: warning: context problem in 'warn_fn2' - function 'need_lock2' expected different context
-context-named.c:456:20: warning: context problem in 'warn_exact_fn1' - function 'need_lock_exact' expected different context
-context-named.c:464:20: warning: context problem in 'warn_exact_fn2' - function 'need_lock_exact' expected different context
-context-named.c:475:15: warning: context problem in 'warn_fn3' - function 'need_lock3' expected different context
+context-named.c:86:3: warning: context imbalance in 'warn_lock1': wrong count at exit
+context-named.c:86:3:    context 'TEST': wanted 0, got 1
+context-named.c:93:3: warning: context imbalance in 'warn_lock2': wrong count at exit
+context-named.c:93:3:    context 'TEST': wanted 0, got 1
+context-named.c:100:3: warning: context imbalance in 'warn_lock3': wrong count at exit
+context-named.c:100:3:    context 'TEST': wanted 0, got 1
+context-named.c:105:3: warning: context problem in 'warn_unlock1': 'r' expected different context
+context-named.c:105:3:    context 'TEST': wanted >= 1, got 0
+context-named.c:112:3: warning: context problem in 'warn_unlock2': 'r' expected different context
+context-named.c:112:3:    context 'TEST': wanted >= 1, got 0
+context-named.c:152:9: warning: context imbalance in 'warn_if1': wrong count at exit
+context-named.c:152:9:    context 'TEST': wanted 0, got 1
+context-named.c:162:9: warning: context imbalance in 'warn_if2': wrong count at exit
+context-named.c:162:9:    context 'TEST': wanted 0, got 1
+context-named.c:218:4: warning: context imbalance in 'warn_while1': wrong count at exit
+context-named.c:218:4:    context 'TEST': wanted 0, got 1
+context-named.c:225:4: warning: context problem in 'warn_while2': 'r' expected different context
+context-named.c:225:4:    context 'TEST': wanted >= 1, got 0
+context-named.c:235:4: warning: context imbalance in 'warn_while3': wrong count at exit
+context-named.c:235:4:    context 'TEST': wanted 0, got 1
+context-named.c:295:5: warning: context imbalance in 'warn_goto1': wrong count at exit
+context-named.c:295:5:    context 'TEST': wanted 0, got 1
+context-named.c:305:6: warning: context imbalance in 'warn_goto2': wrong count at exit
+context-named.c:305:6:    context 'TEST': wanted 0, got 1
+context-named.c:315:6: warning: context problem in 'warn_goto3': 'r' expected different context
+context-named.c:315:6:    context 'TEST': wanted >= 1, got 0
+context-named.c:321:7: warning: context imbalance in 'warn_multiple1': wrong count at exit
+context-named.c:321:7:    context 'TEST': wanted 0, got 1
+context-named.c:327:6: warning: context imbalance in 'warn_multiple2': wrong count at exit
+context-named.c:327:6:    context 'TEST2': wanted 0, got 1
+context-named.c:333:6: warning: context problem in 'warn_mixed1': 'r' expected different context
+context-named.c:333:6:    context 'TEST': wanted >= 1, got 0
+context-named.c:343:6: warning: context problem in 'warn_mixed2': 'r' expected different context
+context-named.c:343:6:    context 'TEST': wanted >= 1, got 0
+context-named.c:353:6: warning: context problem in 'warn_mixed3': 'r' expected different context
+context-named.c:353:6:    context 'TEST': wanted >= 1, got 0
+context-named.c:364:6: warning: context imbalance in 'warn_mixed4': wrong count at exit
+context-named.c:364:6:    context 'TEST2': wanted 0, got 1
+context-named.c:434:14: warning: context problem in 'warn_fn': 'need_lock' expected different context
+context-named.c:434:14:    context 'TEST': wanted >= 1, got 0
+context-named.c:441:15: warning: context problem in 'warn_fn2': 'need_lock2' expected different context
+context-named.c:441:15:    context 'TEST': wanted >= 1, got 0
+context-named.c:456:20: warning: context problem in 'warn_exact_fn1': 'need_lock_exact' expected different context
+context-named.c:456:20:    context 'TEST': wanted 1, got 2
+context-named.c:464:20: warning: context problem in 'warn_exact_fn2': 'need_lock_exact' expected different context
+context-named.c:464:20:    context 'TEST': wanted 1, got 0
+context-named.c:475:15: warning: context problem in 'warn_fn3': 'need_lock3' expected different context
+context-named.c:475:15:    context 'TEST': wanted >= 1, got 0
  * check-error-end
  */

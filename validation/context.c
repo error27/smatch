@@ -325,24 +325,84 @@ static void warn_odd_looping(void)
         r();
 }
 
+static void warn_huge_switch(void)
+{
+    a();
+
+    switch(condition) {
+    case 1:
+        r();
+        break;
+    case 2:
+        r();
+        break;
+    case 3:
+        r();
+        break;
+    case 4:
+        r();
+        break;
+    case 5:
+        r();
+        break;
+    case 11:
+        r();
+        break;
+    case 12:
+        r();
+        break;
+    case 13:
+        r();
+        break;
+    case 14:
+        r();
+    case 15:
+        r();
+        break;
+    case 16:
+        r();
+        break;
+    case 17:
+        r();
+        break;
+    }
+}
+
 /*
  * check-name: Check -Wcontext
  *
  * check-error-start
-context.c:71:3: warning: context imbalance in 'warn_lock1' - wrong count at exit
-context.c:78:3: warning: context imbalance in 'warn_lock2' - wrong count at exit
-context.c:85:3: warning: context imbalance in 'warn_lock3' - wrong count at exit
-context.c:90:3: warning: context problem in 'warn_unlock1' - function 'r' expected different context
-context.c:97:3: warning: context problem in 'warn_unlock2' - function 'r' expected different context
-context.c:137:9: warning: context imbalance in 'warn_if1' - wrong count at exit
-context.c:147:9: warning: context imbalance in 'warn_if2' - wrong count at exit
-context.c:203:4: warning: context imbalance in 'warn_while1' - wrong count at exit
-context.c:210:4: warning: context problem in 'warn_while2' - function 'r' expected different context
-context.c:220:4: warning: context imbalance in 'warn_while3' - wrong count at exit
-context.c:280:5: warning: context imbalance in 'warn_goto1' - wrong count at exit
-context.c:290:6: warning: context imbalance in 'warn_goto2' - wrong count at exit
-context.c:300:6: warning: context problem in 'warn_goto3' - function 'r' expected different context
-context.c:315:6: warning: context problem in 'warn_cond_lock1' - function 'r' expected different context
-context.c:325:10: warning: context problem in 'warn_odd_looping' - function 'r' expected different context
+context.c:71:3: warning: context imbalance in 'warn_lock1': wrong count at exit
+context.c:71:3:    default context: wanted 0, got 1
+context.c:78:3: warning: context imbalance in 'warn_lock2': wrong count at exit
+context.c:78:3:    default context: wanted 0, got 1
+context.c:85:3: warning: context imbalance in 'warn_lock3': wrong count at exit
+context.c:85:3:    default context: wanted 0, got 1
+context.c:90:3: warning: context problem in 'warn_unlock1': 'r' expected different context
+context.c:90:3:    default context: wanted >= 1, got 0
+context.c:97:3: warning: context problem in 'warn_unlock2': 'r' expected different context
+context.c:97:3:    default context: wanted >= 1, got 0
+context.c:137:9: warning: context imbalance in 'warn_if1': wrong count at exit
+context.c:137:9:    default context: wanted 0, got 1
+context.c:147:9: warning: context imbalance in 'warn_if2': wrong count at exit
+context.c:147:9:    default context: wanted 0, got 1
+context.c:203:4: warning: context imbalance in 'warn_while1': wrong count at exit
+context.c:203:4:    default context: wanted 0, got 1
+context.c:210:4: warning: context problem in 'warn_while2': 'r' expected different context
+context.c:210:4:    default context: wanted >= 1, got 0
+context.c:220:4: warning: context imbalance in 'warn_while3': wrong count at exit
+context.c:220:4:    default context: wanted 0, got 1
+context.c:280:5: warning: context imbalance in 'warn_goto1': wrong count at exit
+context.c:280:5:    default context: wanted 0, got 1
+context.c:290:6: warning: context imbalance in 'warn_goto2': wrong count at exit
+context.c:290:6:    default context: wanted 0, got 1
+context.c:300:6: warning: context problem in 'warn_goto3': 'r' expected different context
+context.c:300:6:    default context: wanted >= 1, got 0
+context.c:315:6: warning: context problem in 'warn_cond_lock1': 'r' expected different context
+context.c:315:6:    default context: wanted >= 1, got 0
+context.c:325:10: warning: context problem in 'warn_odd_looping': 'r' expected different context
+context.c:325:10:    default context: wanted >= 1, got 0
+context.c:360:10: warning: context problem in 'warn_huge_switch': 'r' expected different context
+context.c:360:10:    default context: wanted >= 1, got 0
  * check-error-end
  */

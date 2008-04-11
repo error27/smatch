@@ -151,11 +151,21 @@ static int good_switch(void)
     r();
 }
 
+static void bad_lock1(void)
+{
+    r();
+    a();
+}
+
 /*
  * check-name: Check -Wcontext with lock trylocks
  *
  * check-error-start
-context-dynamic.c:83:6: warning: context problem in 'bad_trylock1' - function 'r' expected different context
-context-dynamic.c:133:6: warning: context problem in 'bad_trylock2' - function 'r' expected different context
+context-dynamic.c:83:6: warning: context problem in 'bad_trylock1': 'r' expected different context
+context-dynamic.c:83:6:    context 'A': wanted >= 1, got 0
+context-dynamic.c:133:6: warning: context problem in 'bad_trylock2': 'r' expected different context
+context-dynamic.c:133:6:    context 'A': wanted >= 1, got 0
+context-dynamic.c:156:6: warning: context problem in 'bad_lock1': 'r' expected different context
+context-dynamic.c:156:6:    context 'A': wanted >= 1, got 0
  * check-error-end
  */
