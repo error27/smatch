@@ -108,6 +108,7 @@ extern int Wtransparent_union;
 extern int Wtypesign;
 extern int Wundef;
 extern int Wuninitialized;
+extern int Wdeclarationafterstatement;
 
 extern int dbg_entry;
 extern int dbg_dead;

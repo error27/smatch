@@ -135,6 +135,16 @@ Sparse issues these warnings by default.  To turn them off, use
 \fB\-Wno\-decl\fR.
 .
 .TP
+.B \-Wdeclaration-after-statement
+Warn about declarations that are not at the start of a block.
+
+These declarations are permitted in C99 but not in C89.
+
+Sparse issues these warnings by default only when the C dialect is
+C89 (i.e. -ansi or -std=c89).  To turn them off, use
+\fB\-Wno\-declaration\-after\-statement\fR.
+.
+.TP
 .B \-Wdefault\-bitfield\-sign
 Warn about any bitfield with no explicit signedness.
 

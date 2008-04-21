@@ -28,8 +28,6 @@
 #include "expression.h"
 #include "target.h"
 
-#define warn_on_mixed (1)
-
 static struct symbol_list **function_symbol_list;
 struct symbol_list *function_computed_target_list;
 struct statement_list *function_computed_goto_list;
@@ -1924,7 +1922,7 @@ static struct token * statement_list(struct token *token, struct statement_list 
 			stmt = alloc_statement(token->pos, STMT_DECLARATION);
 			token = external_declaration(token, &stmt->declaration);
 		} else {
-			seen_statement = warn_on_mixed;
+			seen_statement = Wdeclarationafterstatement;
 			token = statement(token, &stmt);
 		}
 		add_statement(list, stmt);

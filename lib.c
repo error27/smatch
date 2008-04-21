@@ -208,6 +208,7 @@ int Wtransparent_union = 1;
 int Wtypesign = 0;
 int Wundef = 0;
 int Wuninitialized = 1;
+int Wdeclarationafterstatement = -1;
 
 int dbg_entry = 0;
 int dbg_dead = 0;
@@ -372,6 +373,7 @@ static const struct warning {
 	{ "typesign", &Wtypesign },
 	{ "undef", &Wundef },
 	{ "uninitialized", &Wuninitialized },
+	{ "declaration-after-statement", &Wdeclarationafterstatement },
 };
 
 enum {
@@ -456,6 +458,28 @@ static void handle_onoff_switch_finalize(const struct warning warnings[], int n)
 static void handle_switch_W_finalize(void)
 {
 	handle_onoff_switch_finalize(warnings, sizeof(warnings) / sizeof(warnings[0]));
+
+	/* default Wdeclarationafterstatement based on the C dialect */
+	if (-1 == Wdeclarationafterstatement)
+	{
+		switch (standard)
+		{
+			case STANDARD_C89:
+			case STANDARD_C94:
+				Wdeclarationafterstatement = 1;
+				break;
+
+			case STANDARD_C99:
+			case STANDARD_GNU89:
+			case STANDARD_GNU99:
+				Wdeclarationafterstatement = 0;
+				break;
+
+			default:
+				assert (0);
+		}
+
+	}
 }
 
 static void handle_switch_v_finalize(void)
