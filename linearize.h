@@ -219,11 +219,13 @@ enum opcode {
 
 struct basic_block_list;
 struct instruction_list;
+struct context_list_list;
 
 struct basic_block {
 	struct position pos;
 	unsigned long generation;
-	int context;
+	int context_check_recursion;
+	struct context_list_list *checked_contexts;
 	struct entrypoint *ep;
 	struct basic_block_list *parents; /* sources */
 	struct basic_block_list *children; /* destinations */

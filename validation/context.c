@@ -368,6 +368,18 @@ static void warn_huge_switch(void)
     }
 }
 
+static int warn_conditional(void)
+{
+    if (condition)
+        return 0;
+
+    a();
+    if (condition == 0)
+        return 1;
+    r();
+    return 0;
+}
+
 /*
  * check-name: Check -Wcontext
  *
@@ -404,5 +416,7 @@ context.c:325:10: warning: context problem in 'warn_odd_looping': 'r' expected d
 context.c:325:10:    default context: wanted >= 1, got 0
 context.c:360:10: warning: context problem in 'warn_huge_switch': 'r' expected different context
 context.c:360:10:    default context: wanted >= 1, got 0
+context.c:380:12: warning: context imbalance in 'warn_conditional': wrong count at exit
+context.c:380:12:    default context: wanted 0, got 1
  * check-error-end
  */

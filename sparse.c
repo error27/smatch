@@ -31,6 +31,7 @@ struct context_check {
 
 DECLARE_ALLOCATOR(context_check);
 DECLARE_PTR_LIST(context_check_list, struct context_check);
+DECLARE_PTR_LIST(context_list_list, struct context_check_list);
 ALLOCATOR(context_check, "context check list");
 
 static const char *unnamed_context = "<unnamed>";
@@ -62,6 +63,54 @@ static void context_add(struct context_check_list **ccl, const char *name,
 	}
 	found->val += offs;
 	found->val_false += offs_false;
+}
+
+static int context_list_has(struct context_check_list *ccl,
+			    struct context_check *c)
+{
+	struct context_check *check;
+
+	FOR_EACH_PTR(ccl, check) {
+		if (strcmp(c->name, check->name))
+			continue;
+		return check->val == c->val &&
+		       check->val_false == c->val_false;
+	} END_FOR_EACH_PTR(check);
+
+	/* not found is equal to 0 */
+	return c->val == 0 && c->val_false == 0;
+}
+
+static int context_lists_equal(struct context_check_list *ccl1,
+			       struct context_check_list *ccl2)
+{
+	struct context_check *check;
+
+	/* can be optimised... */
+
+	FOR_EACH_PTR(ccl1, check) {
+		if (!context_list_has(ccl2, check))
+			return 0;
+	} END_FOR_EACH_PTR(check);
+
+	FOR_EACH_PTR(ccl2, check) {
+		if (!context_list_has(ccl1, check))
+			return 0;
+	} END_FOR_EACH_PTR(check);
+
+	return 1;
+}
+
+static struct context_check_list *checked_copy(struct context_check_list *ccl)
+{
+	struct context_check_list *result = NULL;
+	struct context_check *c;
+
+	FOR_EACH_PTR(ccl, c) {
+		context_add(&result, c->name, c->val_false, c->val_false);
+	} END_FOR_EACH_PTR(c);
+
+	return result;
 }
 
 #define IMBALANCE_IN "context imbalance in '%s': "
@@ -234,18 +283,26 @@ static int check_bb_context(struct entrypoint *ep, struct basic_block *bb,
 			    struct context_check_list *ccl_target,
 			    int in_false)
 {
-	struct context_check_list *combined = NULL;
+	struct context_check_list *combined = NULL, *done;
 	struct context_check *c;
 	struct instruction *insn;
 	struct multijmp *mj;
+	int err = -1;
 
 	/*
-	 * recurse in once to catch bad loops,
-	 * bb->context is initialised to -1.
+	 * Recurse in once to catch bad loops.
 	 */
-	if (bb->context > 0)
+	if (bb->context_check_recursion > 1)
 		return 0;
-	bb->context++;
+	bb->context_check_recursion++;
+
+	/*
+	 * Abort if we have already checked this block out of the same context.
+	 */
+	FOR_EACH_PTR(bb->checked_contexts, done) {
+		if (context_lists_equal(done, ccl_in))
+			return 0;
+	} END_FOR_EACH_PTR(done);
 
 	/*
 	 * We're starting with a completely new local list of contexts, so
@@ -260,6 +317,10 @@ static int check_bb_context(struct entrypoint *ep, struct basic_block *bb,
 			context_add(&combined, c->name, c->val, c->val);
 	} END_FOR_EACH_PTR(c);
 
+	/* Add the new context to the list of already-checked contexts */
+	done = checked_copy(combined);
+	add_ptr_list(&bb->checked_contexts, done);
+
 	/*
 	 * Now walk the instructions for this block, recursing into any
 	 * instructions that have children. We need to have the right
@@ -270,28 +331,28 @@ static int check_bb_context(struct entrypoint *ep, struct basic_block *bb,
 		case OP_INLINED_CALL:
 		case OP_CALL:
 			if (handle_call(ep, bb, insn, combined))
-				return -1;
+				goto out;
 			break;
 		case OP_CONTEXT:
 			if (handle_context(ep, bb, insn, &combined))
-				return -1;
+				goto out;
 			break;
 		case OP_BR:
 			if (insn->bb_true)
 				if (check_bb_context(ep, insn->bb_true,
 						     combined, ccl_target, 0))
-					return -1;
+					goto out;
 			if (insn->bb_false)
 				if (check_bb_context(ep, insn->bb_false,
 						     combined, ccl_target, 1))
-					return -1;
+					goto out;
 			break;
 		case OP_SWITCH:
 		case OP_COMPUTEDGOTO:
 			FOR_EACH_PTR(insn->multijmp_list, mj) {
 				if (check_bb_context(ep, mj->target,
 					             combined, ccl_target, 0))
-					return -1;
+					goto out;
 			} END_FOR_EACH_PTR(mj);
 			break;
 		}
@@ -299,15 +360,53 @@ static int check_bb_context(struct entrypoint *ep, struct basic_block *bb,
 
 	insn = last_instruction(bb->insns);
 	if (!insn)
-		return 0;
+		goto out_good;
 
-	if (insn->opcode == OP_RET)
-		return context_list_check(ep, insn->pos, combined, ccl_target);
+	if (insn->opcode == OP_RET) {
+		err = context_list_check(ep, insn->pos, combined, ccl_target);
+		goto out;
+	}
 
+ out_good:
+	err = 0;
+ out:
 	/* contents will be freed once we return out of recursion */
 	free_ptr_list(&combined);
+	bb->context_check_recursion--;
+	return err;
+}
 
-	return 0;
+static void free_bb_context_lists(struct basic_block *bb)
+{
+	struct context_check_list *done;
+	struct instruction *insn;
+	struct multijmp *mj;
+
+	if (!bb->checked_contexts)
+		return;
+
+	FOR_EACH_PTR(bb->checked_contexts, done) {
+		free_ptr_list(&done);
+	} END_FOR_EACH_PTR(done);
+
+	free_ptr_list(&bb->checked_contexts);
+
+	FOR_EACH_PTR(bb->insns, insn) {
+		switch (insn->opcode) {
+		case OP_BR:
+			if (insn->bb_true)
+				free_bb_context_lists(insn->bb_true);
+			if (insn->bb_false)
+				free_bb_context_lists(insn->bb_false);
+			break;
+		case OP_SWITCH:
+		case OP_COMPUTEDGOTO:
+			FOR_EACH_PTR(insn->multijmp_list, mj) {
+				free_bb_context_lists(mj->target);
+			} END_FOR_EACH_PTR(mj);
+			break;
+		}
+	} END_FOR_EACH_PTR(insn);
 }
 
 static void check_cast_instruction(struct instruction *insn)
@@ -474,6 +573,7 @@ static void check_context(struct entrypoint *ep)
 	check_bb_context(ep, ep->entry->bb, ccl_in, ccl_target, 0);
 	free_ptr_list(&ccl_in);
 	free_ptr_list(&ccl_target);
+	free_bb_context_lists(ep->entry->bb);
 	clear_context_check_alloc();
 }
 

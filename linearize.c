@@ -66,7 +66,6 @@ static struct entrypoint *alloc_entrypoint(void)
 static struct basic_block *alloc_basic_block(struct entrypoint *ep, struct position pos)
 {
 	struct basic_block *bb = __alloc_basic_block(0);
-	bb->context = -1;
 	bb->pos = pos;
 	bb->ep = ep;
 	return bb;
