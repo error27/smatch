@@ -1097,10 +1097,10 @@ static pseudo_t linearize_postop(struct entrypoint *ep, struct expression *expr)
  * case, since you can't access through it anyway without another
  * cast.
  */
-static struct instruction *alloc_cast_instruction(struct symbol *ctype)
+static struct instruction *alloc_cast_instruction(struct symbol *src, struct symbol *ctype)
 {
 	int opcode = OP_CAST;
-	struct symbol *base = ctype;
+	struct symbol *base = src;
 
 	if (base->ctype.modifiers & MOD_SIGNED)
 		opcode = OP_SCAST;
@@ -1127,7 +1127,7 @@ static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *
 		return VOID;
 	if (from->bit_size < 0 || to->bit_size < 0)
 		return VOID;
-	insn = alloc_cast_instruction(to);
+	insn = alloc_cast_instruction(from, to);
 	result = alloc_pseudo(insn);
 	insn->target = result;
 	insn->orig_type = from;
