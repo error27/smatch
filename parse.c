@@ -353,6 +353,10 @@ static struct init_keyword {
 	{ "__constructor__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "destructor",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__destructor__",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "cold",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "__cold__",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "hot",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "__hot__",	NS_KEYWORD,	.op = &ignore_attr_op },
 };
 
 void init_parser(int stream)

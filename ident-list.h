@@ -74,6 +74,8 @@ IDENT(__malloc__);
 IDENT(nonnull); IDENT(__nonnull); IDENT(__nonnull__);
 IDENT(constructor); IDENT(__constructor__);
 IDENT(destructor); IDENT(__destructor__);
+IDENT(cold); IDENT(__cold__);
+IDENT(hot); IDENT(__hot__);
 IDENT(cdecl); IDENT(__cdecl__);
 IDENT(stdcall); IDENT(__stdcall__);
 IDENT(fastcall); IDENT(__fastcall__);
