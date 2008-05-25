@@ -213,6 +213,8 @@ restart:
 
 repeat:
 	if (offset >= size) {
+		if (stream->fd < 0)
+			goto got_eof;
 		size = read(stream->fd, stream->buffer, BUFSIZE);
 		if (size <= 0)
 			goto got_eof;
