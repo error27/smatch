@@ -654,6 +654,7 @@ static struct token *unary_expression(struct token *token, struct expression **t
 			next = cast_expression(token->next, &unop);
 			if (!unop) {
 				sparse_error(token->pos, "Syntax error in unary expression");
+				*tree = NULL;
 				return next;
 			}
 			unary = alloc_expression(token->pos, EXPR_PREOP);
@@ -671,6 +672,7 @@ static struct token *unary_expression(struct token *token, struct expression **t
 			next = cast_expression(token->next, &unop);
 			if (!unop) {
 				sparse_error(token->pos, "Syntax error in unary expression");
+				*tree = NULL;
 				return next;
 			}
 			unary = alloc_expression(token->pos, EXPR_PREOP);
