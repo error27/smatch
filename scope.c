@@ -64,7 +64,7 @@ void start_function_scope(void)
 
 static void remove_symbol_scope(struct symbol *sym)
 {
-	struct symbol **ptr = sym->id_list;
+	struct symbol **ptr = &sym->ident->symbols;
 
 	while (*ptr != sym)
 		ptr = &(*ptr)->next_id;

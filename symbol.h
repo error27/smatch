@@ -110,12 +110,11 @@ extern int expand_constant_p(struct expression *expr, int cost);
 struct symbol {
 	enum type type:8;
 	enum namespace namespace:9;
-	unsigned char used:1, attr:2, enum_member:1;
+	unsigned char used:1, attr:2, enum_member:1, bound:1;
 	struct position pos;		/* Where this symbol was declared */
 	struct position endpos;		/* Where this symbol ends*/
 	struct ident *ident;		/* What identifier this symbol is associated with */
 	struct symbol *next_id;		/* Next semantic symbol that shares this identifier */
-	struct symbol **id_list;	/* Back pointer to symbol list head */
 	struct symbol	*replace;	/* What is this symbol shadowed by in copy-expression */
 	struct scope	*scope;
 	union {

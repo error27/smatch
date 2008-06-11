@@ -539,7 +539,7 @@ void check_declaration(struct symbol *sym)
 void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 {
 	struct scope *scope;
-	if (sym->id_list) {
+	if (sym->bound) {
 		sparse_error(sym->pos, "internal error: symbol type already bound");
 		return;
 	}
@@ -550,10 +550,10 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 	sym->namespace = ns;
 	sym->next_id = ident->symbols;
 	ident->symbols = sym;
-	sym->id_list = &ident->symbols;
 	if (sym->ident && sym->ident != ident)
 		warning(sym->pos, "Symbol '%s' already bound", show_ident(sym->ident));
 	sym->ident = ident;
+	sym->bound = 1;
 
 	scope = block_scope;
 	if (ns == NS_SYMBOL && toplevel(scope)) {
