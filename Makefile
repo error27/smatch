@@ -14,6 +14,8 @@ HAVE_LIBXML=$(shell pkg-config --exists libxml-2.0 && echo 'yes')
 # For debugging, uncomment the next one
 #
 CFLAGS += -DDEBUG
+#CFLAGS += -DNDEBUG
+#CFLAGS += -DDEBUGSTATES
 
 DESTDIR=
 PREFIX=$(HOME)
@@ -25,7 +27,9 @@ INCLUDEDIR=$(PREFIX)/include
 PKGCONFIGDIR=$(LIBDIR)/pkgconfig
 
 PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse test-linearize example \
-	 test-unssa test-dissect ctags
+	 test-unssa test-dissect ctags smatch
+SMATCH_FILES=smatch_flow.o smatch_states.o smatch_helper.o smatch_hooks.o smatch_extra.o
+SMATCH_CHECKS=check_derefed_params.o check_null_deref.o check_overflow.o
 
 
 INST_PROGRAMS=sparse cgcc
@@ -133,6 +137,9 @@ ctags: ctags.o $(LIBS)
 c2xml: c2xml.o $(LIBS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS)  -o $@ $< $(LIBS) `pkg-config --libs libxml-2.0`
 
+smatch: smatch.o $(SMATCH_FILES) $(SMATCH_CHECKS) $(LIBS) 
+	$(CC) $(LDFLAGS) -o $@ $< $(SMATCH_FILES) $(SMATCH_CHECKS) $(LIBS) 
+
 $(LIB_FILE): $(LIB_OBJS)
 	$(QUIET_AR)$(AR) rcs $@ $(LIB_OBJS)
 
@@ -163,6 +170,11 @@ test-lexing.o: $(LIB_H)
 test-parsing.o: $(LIB_H)
 test-linearize.o: $(LIB_H)
 test-dissect.o: $(LIB_H)
+smatch_flow.o: $(LIB_H) smatch.h
+smatch_hooks.o: $(LIB_H) smatch.h
+smatch_helper.o: $(LIB_H) smatch.h
+smatch_states.o: $(LIB_H) smatch.h
+smatch.o: $(LIB_H) smatch.h
 test-unssa.o: $(LIB_H)
 ctags.o: $(LIB_H)
 compile.o: $(LIB_H) compile.h
