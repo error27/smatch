@@ -37,12 +37,11 @@ static void match_function_def(struct symbol *sym)
 		params[i] = __alloc_param(0);
 		params[i]->sym = arg;
 		params[i]->used = 0;
-		if (i > MAX_PARAMS - 2) {
+		i++;
+		if (i >= MAX_PARAMS - 1) {
 			printf("Error function has too many params.\n");
-			i++;
 			break;
 		}
-		i++;
 	} END_FOR_EACH_PTR(arg);
 	params[i] = NULL;
 }
