@@ -493,17 +493,17 @@ static void split_functions(struct symbol_list *sym_list)
 
 void smatch (int argc, char **argv) 
 {
+
+	struct string_list *filelist = NULL;
 	struct symbol_list *sym_list;
 	
 	if (argc < 2) {
 		printf("Usage:  smatch <filename.c>\n");
 		exit(1);
 	}
-	sparse_initialize(argc, argv);
-	while (*argv) {
-		filename = *argv;
-		sym_list = __sparse(argv);
+	sparse_initialize(argc, argv, &filelist);
+	FOR_EACH_PTR_NOTAG(filelist, filename) {
+		sym_list = __sparse(filename);
 		split_functions(sym_list);
-	}
+	} END_FOR_EACH_PTR_NOTAG(filename);
 }
-
