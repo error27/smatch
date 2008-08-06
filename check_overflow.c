@@ -138,7 +138,7 @@ static void match_fn_call(struct expression *expr)
 		dest_name = alloc_string(dest_name);
 		
 		data = get_argument_from_call_expr(expr->args, 2);
-		needed = get_value(data, NULL) + 1;
+		needed = get_value(data, NULL);
 		has = get_state(dest_name, my_id, NULL);
 		if (has > 0 && has < needed)
 			smatch_msg("Error %s too small for %d bytes.", 
