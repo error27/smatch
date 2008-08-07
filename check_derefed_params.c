@@ -27,16 +27,27 @@ ALLOCATOR(param, "parameters");
 #define MAX_PARAMS 16
 struct param *params[MAX_PARAMS];
 
+static struct param *new_param(struct symbol *arg)
+{
+	struct param *new;
+
+	new = __alloc_param(0);
+	if (!new) {
+		printf("Internal error:  Unable to allocate memory in new_param()\n");
+		exit(1);
+	}
+	new->sym = arg;
+	new->used = 0;
+       	return new;
+}
+
 static void match_function_def(struct symbol *sym)
 {
 	struct symbol *arg;
 	int i = 0;
-
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
 		set_state("", my_id, arg, ARGUMENT);
-		params[i] = __alloc_param(0);
-		params[i]->sym = arg;
-		params[i]->used = 0;
+		params[i] = new_param(arg);
 		i++;
 		if (i >= MAX_PARAMS - 1) {
 			printf("Error function has too many params.\n");
@@ -47,12 +58,14 @@ static void match_function_def(struct symbol *sym)
 }
 
 static void print_unchecked_param(struct symbol *sym) {
-	int i;
-	for (i = 0; i < (sizeof(*params)/sizeof(params[0])) ; i++) {
+	int i = 0;
+
+	while (params[i]) {
 		if (params[i]->sym == sym && !params[i]->used) {
 			smatch_msg("unchecked param:  %s %d", get_function(),
 				   i);
 		}
+		i++;
 	}
 }
 
@@ -81,12 +94,11 @@ static void match_function_call_after(struct expression *expr)
 {
 	struct expression *tmp;
 	struct symbol *sym;
-	char *name;
 	int state;
 
 	FOR_EACH_PTR(expr->args, tmp) {
 		if (tmp->op == '&') {
-			name = get_variable_from_expr(tmp, &sym);
+			get_variable_from_expr(tmp, &sym);
 			state = get_state("", my_id, sym);
 			if (state != NOTFOUND) {
 				set_state("", my_id, sym, NONNULL);
@@ -153,6 +165,7 @@ static void match_condition(struct expression *expr)
 static void end_of_func_cleanup(struct symbol *sym)
 {
 	int i = 0;
+
 	while (params[i]) {
 		__free_param(params[i]);
 		i++;
