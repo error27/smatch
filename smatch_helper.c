@@ -13,6 +13,8 @@
 #include "smatch.h"
 
 static int star_count;
+#define VAR_LEN 512
+
 
 char *alloc_string(char *str)
 {
@@ -40,6 +42,7 @@ static void prepend(char *dest, const char *data, int buff_len)
 		dest[i + space_needed] = dest[i];
 	for (i = 0; i < space_needed % buff_len ; i++)
 		dest[i] = data[i];
+	dest[buff_len - 1] = '\0';
 }
 
 /*
@@ -107,9 +110,11 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			prepend(buf, tmp, len);
 		}
 
-		if (tmp[0] == '(')
+		if (tmp[0] == '(') {
 			strncat(buf, ")", len);
-		
+			buf[len - 1] = '\0';
+		}
+
 		if ((!strcmp(tmp, "--")) || (!strcmp(tmp, "++")))
 			(*complicated)++;
 
@@ -202,7 +207,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 
 char *get_variable_from_expr(struct expression *expr, struct symbol **sym_ptr)
 {
-	static char var_name[512];
+	static char var_name[VAR_LEN];
 	int junk;
 
 	if (sym_ptr)
@@ -222,7 +227,7 @@ char *get_variable_from_expr(struct expression *expr, struct symbol **sym_ptr)
 char *get_variable_from_expr_simple(struct expression *expr, 
 				    struct symbol **sym_ptr)
 {
-	static char var_name[512];
+	static char var_name[VAR_LEN];
 	int complicated = 0;
 
 	if (sym_ptr)
