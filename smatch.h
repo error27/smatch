@@ -107,6 +107,8 @@ unsigned int get_path_id();
 
 /* smatch_states.c */
 
+extern int debug_states;
+
 void __first_and_clump();
 void __merge_and_clump();
 void __use_and_clumps();

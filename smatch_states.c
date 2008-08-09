@@ -11,12 +11,6 @@
 #include <stdio.h>
 #include "smatch.h"
 
-#ifdef DEBUGSTATES
-#define SM_DEBUG(msg...) do { printf(msg); } while (0)
-#else
-#define SM_DEBUG(msg...) do { } while (0)
-#endif
-
 ALLOCATOR(smatch_state, "smatch state");
 DECLARE_PTR_LIST(state_list, struct smatch_state);
 DECLARE_PTR_LIST(state_list_stack, struct state_list);
@@ -38,6 +32,9 @@ struct slist_head {
 ALLOCATOR(slist_head, "goto stack");
 DECLARE_PTR_LIST(slist_stack, struct slist_head);
 static struct slist_stack *goto_stack;
+
+int debug_states;
+#define SM_DEBUG(msg...) do { if (debug_states) printf(msg); } while (0)
 
 void __print_cur_slist()
 {
@@ -272,6 +269,20 @@ static int get_state_slist(struct state_list *slist, const char *name,
 int get_state(const char *name, int owner, struct symbol *sym)
 {
 	return get_state_slist(cur_slist, name, owner, sym);
+}
+
+struct state_list *get_current_states(int owner)
+{
+	struct state_list *slist;
+	struct smatch_state *tmp;
+
+	FOR_EACH_PTR(cur_slist, tmp) {
+		if (tmp->owner == owner) {
+			add_ptr_list(&slist, tmp);
+		}
+	} END_FOR_EACH_PTR(tmp);
+
+	return slist;
 }
 
 void set_true_false_states(const char *name, int owner, struct symbol *sym, 
