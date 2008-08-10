@@ -180,8 +180,8 @@ static void merge_state_slist(struct state_list **slist, const char *name,
 			s = merge_states(name, owner, sym, tmp->state, state);
 			if (tmp->state != s) {
 				add_history(tmp);
-				SM_DEBUG("%d merging %s: %d and %d\n", 
-					 get_lineno(), name, tmp->state, s);
+				SM_DEBUG("%d merge name='%s' owner=%d: %d + %d => %d\n", 
+					 get_lineno(), name, owner, tmp->state, state, s);
 			}
 			tmp->state = s;
 			return;
@@ -234,17 +234,18 @@ void set_state(const char *name, int owner, struct symbol *sym, int state)
 	if (!name)
 		return;
 
-	SM_DEBUG("%d set_state %s. ", get_lineno(), name);
 	FOR_EACH_PTR(cur_slist, tmp) {
 		if (tmp->owner == owner && tmp->sym == sym 
 		    && !strcmp(tmp->name, name)){
-			SM_DEBUG("  Was %d.  Now %d\n", tmp->state, state);
+			SM_DEBUG("%d state change name='%s' owner=%d: %d => %d\n"
+				 , get_lineno(), name, owner, tmp->state, state);
 			add_history(tmp);
 			tmp->state = state;
 			return;
 		}
 	} END_FOR_EACH_PTR(tmp);
-	SM_DEBUG("  New state %d\n", state);
+	SM_DEBUG("%d new state. name='%s' owner=%d: %d\n", get_lineno(), name,
+		 owner, state);
 	tmp = alloc_state(name, owner, sym, state);
 	add_state_slist(&cur_slist, tmp);
 
