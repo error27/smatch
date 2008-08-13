@@ -13,11 +13,17 @@
 static int my_id;
 
 enum states {
-	ARGUMENT,
 	ISNULL,
 	NONNULL,
 	IGNORE,
 };
+
+static int merge_func(const char *name, struct symbol *sym, int s1, int s2)
+{
+	if (s2 == IGNORE)
+		return IGNORE;
+	return UNDEFINED;
+}
 
 static void match_function_call_after(struct expression *expr)
 {
@@ -130,6 +136,7 @@ static void match_condition(struct expression *expr)
 			return;
 		left = alloc_string(left);
 		set_true_false_states(left, my_id, sym_left, NONNULL, ISNULL);
+		SM_DEBUG("set the blasted states\n");
 		return;
 	case EXPR_ASSIGNMENT:
 		match_condition(expr->left);
@@ -218,6 +225,7 @@ static void match_dereferences(struct expression *expr)
 void register_null_deref(int id)
 {
 	my_id = id;
+	add_merge_hook(my_id, &merge_func);
 	add_hook(&match_function_call_after, FUNCTION_CALL_AFTER_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_AFTER_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
