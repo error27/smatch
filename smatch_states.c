@@ -159,11 +159,10 @@ static inline void set_state_stack(struct state_list_stack **stack,
 static int merge_states(const char *name, int owner, struct symbol *sym,
 			int state1, int state2)
 {
-	if (__has_merge_function(owner))
-		return __client_merge_function(owner, name, sym, state1, 
-					       state2);
 	if (state1 == state2)
 		return state1;
+	if (__has_merge_function(owner))
+		return __client_merge_function(owner, name, sym, (state1 < state2?state1:state2), (state1 > state2?state1:state2));
 	return UNDEFINED;
 }
 
