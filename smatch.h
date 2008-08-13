@@ -61,6 +61,8 @@ do {                                                          \
         printf("\n");                                         \
 } while (0)
 
+#define SM_DEBUG(msg...) do { if (debug_states) printf(msg); } while (0)
+
 #define NOTFOUND -2
 #define UNDEFINED -1
 
