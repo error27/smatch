@@ -325,6 +325,7 @@ static void split_statements(struct statement *stmt)
 	if (!stmt)
 		return;
 	
+	__smatch_lineno = stmt->pos.line;
 	__pass_to_client(stmt, STMT_HOOK);
 
 	switch (stmt->type) {
