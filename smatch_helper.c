@@ -190,6 +190,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		return;
 	}
 	default:
+		(*complicated)++;
 		//printf("unknown type = %d\n", expr->type);
 		return;
 	}
