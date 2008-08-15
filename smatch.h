@@ -61,6 +61,8 @@ do {                                                          \
         printf("\n");                                         \
 } while (0)
 
+#define SM_DEBUG(msg...) do { if (debug_states) printf(msg); } while (0)
+
 #define NOTFOUND -2
 #define UNDEFINED -1
 
@@ -146,6 +148,8 @@ void __overwrite_true_states();
 
 void __save_gotos(const char *name);
 void __merge_gotos(const char *name);
+
+void __print_cur_slist();
 
 /* smatch_hooks.c */
 void __pass_to_client(void *data, enum hook_type type);

@@ -27,6 +27,15 @@ ALLOCATOR(param, "parameters");
 #define MAX_PARAMS 16
 struct param *params[MAX_PARAMS];
 
+static int merge_func(const char *name, struct symbol *sym, int s1, int s2)
+{
+	if (s2 == IGNORE)
+		return IGNORE;
+	if (s1 == ARGUMENT)
+		return s2;
+	return UNDEFINED;
+}
+
 static struct param *new_param(struct symbol *arg)
 {
 	struct param *new;
@@ -175,6 +184,7 @@ static void end_of_func_cleanup(struct symbol *sym)
 void register_derefed_params(int id)
 {
 	my_id = id;
+	add_merge_hook(my_id, &merge_func);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_function_call_after, FUNCTION_CALL_AFTER_HOOK);
 	add_hook(&match_deref, DEREF_HOOK);

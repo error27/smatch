@@ -284,7 +284,6 @@ static void handle_pre_loop(struct statement *stmt)
 		__pop_false_states();
 		nullify_path();		
 	} else {
-		nullify_path();
 		__merge_false_states();
 		__merge_continues();
 	}
@@ -325,6 +324,7 @@ static void split_statements(struct statement *stmt)
 	if (!stmt)
 		return;
 	
+	__smatch_lineno = stmt->pos.line;
 	__pass_to_client(stmt, STMT_HOOK);
 
 	switch (stmt->type) {
@@ -478,6 +478,7 @@ static void split_functions(struct symbol_list *sym_list)
 				line_func_start = base_type->stmt->pos.line;
 			if (sym->ident)
 				cur_func = sym->ident->name;
+			__smatch_lineno = sym->pos.line;
 			__pass_to_client(sym, FUNC_DEF_HOOK);
 			split_statements(base_type->stmt);
 			__pass_to_client(sym, END_FUNC_HOOK);
