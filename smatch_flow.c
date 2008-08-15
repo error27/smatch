@@ -193,7 +193,7 @@ static void split_expr(struct expression *expr)
 	__smatch_lineno = expr->pos.line;
 	__pass_to_client(expr, EXPR_HOOK);
 
-	//printf("Debug expr_type %d\n", expr->type);
+	// printf("%d Debug expr_type %d\n", get_lineno(), expr->type);
 
 	switch (expr->type) {
 	case EXPR_PREOP: 
@@ -267,12 +267,23 @@ static void split_expr(struct expression *expr)
 	};
 }
 
-static int is_forever_loop(struct expression *expr)
+static int is_forever_loop(struct statement *stmt)
 {
 	
+	struct expression *expr;
+
+	expr = stmt->iterator_pre_condition;
+	if (!expr)
+		expr = stmt->iterator_post_condition;
+	if (!expr) {
+		// this is a for(;;) loop...
+		return 1;
+	}
+
 	if (expr->type == EXPR_VALUE && expr->value == 1) {
 		return 1;
 	}
+
 	return 0;
 }
 
@@ -289,14 +300,16 @@ static void handle_pre_loop(struct statement *stmt)
 	__split_true_false_paths();
 	__push_continues();
 	__push_breaks();
-	__pass_to_client(stmt->iterator_pre_condition, WHOLE_CONDITION_HOOK);
-	split_conditions(stmt->iterator_pre_condition);
+	if (stmt->iterator_pre_condition) {
+		__pass_to_client(stmt->iterator_pre_condition, WHOLE_CONDITION_HOOK);
+		split_conditions(stmt->iterator_pre_condition);
+	}
 	path_orig = split_path_id();
 	__use_true_states();
 
 	split_statements(stmt->iterator_statement);
 	split_statements(stmt->iterator_post_statement);
-	if (is_forever_loop(stmt->iterator_pre_condition)) {
+	if (is_forever_loop(stmt)) {
 		__pop_continues();
 		__pop_false_states();
 		nullify_path();		
@@ -325,7 +338,7 @@ static void handle_post_loop(struct statement *stmt)
 	__use_false_states();
 	__pop_true_states();
 
-	if (is_forever_loop(stmt->iterator_post_condition)) {
+	if (is_forever_loop(stmt)) {
 		__pop_continues();
 		nullify_path();
 	} else {
@@ -382,6 +395,10 @@ static void split_statements(struct statement *stmt)
 			handle_pre_loop(stmt);
 		else if (stmt->iterator_post_condition)
 			handle_post_loop(stmt);
+		else {
+			// these are for(;;) type loops.
+			handle_pre_loop(stmt);
+		}
 		return;
 	case STMT_SWITCH:
 		split_expr(stmt->switch_expression);
