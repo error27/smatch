@@ -89,6 +89,34 @@ static void dec_ands_ors(struct expression *expr)
 		__ors--;
 }
 
+void special_kernel_macros(struct expression *expr)
+{
+#ifdef KERNEL
+	struct expression *tmp;
+
+	tmp = first_ptr_list((struct ptr_list *) expr->args);
+	if (tmp->op == '!' && tmp->unop->op == '!' 
+	    && tmp->unop->unop->op == '(') {
+		tmp = tmp->unop->unop->unop;
+		if (tmp->type == EXPR_COMPARE && 
+		    tmp->op == SPECIAL_NOTEQUAL &&
+		    tmp->right->type == EXPR_VALUE &&
+		    tmp->right->value == 0) {
+			// BUG_ON()
+			split_conditions(tmp->left);
+		} else {
+			// unlikely()
+			split_conditions(tmp);
+		}
+	} else {
+		__pass_to_client(expr, CONDITION_HOOK);	
+		split_expr(expr);
+		return;
+	}
+
+#endif
+}
+
 void split_conditions(struct expression *expr)
 {
 	/*
@@ -142,9 +170,7 @@ void split_conditions(struct expression *expr)
 		return;
 	} else if (expr->type == EXPR_PREOP && expr->op == '(') {
 		split_conditions(expr->unop);
-#ifdef KERNEL
 	} else if (expr->type == EXPR_CALL) {
-		struct expression *arg;
 
 		if (expr->fn->type != EXPR_SYMBOL || 
 		    strcmp("__builtin_expect", expr->fn->symbol_name->name)) {
@@ -152,16 +178,7 @@ void split_conditions(struct expression *expr)
 			split_expr(expr);
 			return;
 		}
-		arg = first_ptr_list((struct ptr_list *) expr->args);
-		if (arg->op == '!' && arg->unop->op == '!' 
-		    && arg->unop->unop->op == '(')
-			split_conditions(arg->unop->unop->unop);
-		else {
-			__pass_to_client(expr, CONDITION_HOOK);	
-			split_expr(expr);
-			return;
-		}
-#endif 
+		special_kernel_macros(expr);
 	} else {
 		__pass_to_client(expr, CONDITION_HOOK);	
 		split_expr(expr);
