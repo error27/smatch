@@ -223,6 +223,11 @@ char *get_variable_from_expr(struct expression *expr, struct symbol **sym_ptr)
 	return var_name;
 }
 
+/*
+ * get_variable_from_expr_simple() only returns simple variables.
+ * If it's a complicated variable like a->foo instead of just 'a'
+ * then it returns NULL.
+ */
 
 char *get_variable_from_expr_simple(struct expression *expr, 
 				    struct symbol **sym_ptr)
