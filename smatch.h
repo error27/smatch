@@ -149,6 +149,8 @@ void __overwrite_true_states();
 void __save_gotos(const char *name);
 void __merge_gotos(const char *name);
 
+void __print_cur_slist();
+
 /* smatch_hooks.c */
 void __pass_to_client(void *data, enum hook_type type);
 void __pass_declarations_to_client(struct symbol_list *sym_list);
