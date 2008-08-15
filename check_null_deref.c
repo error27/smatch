@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2006 Dan Carpenter.
  *
- *  Licensed under the Open Software License version 1.1
+ * Licensed under the Open Software License version 1.1
  *
  */
 
@@ -104,7 +104,7 @@ static void set_new_true_false_states(const char *name, int my_id,
 
 	SM_DEBUG("set_new_stuff called at %d value=%d\n", get_lineno(), tmp);
 
-	if (tmp == NOTFOUND || tmp == UNDEFINED)
+	if (tmp == NOTFOUND || tmp == UNDEFINED || tmp == ISNULL)
 		set_true_false_states(name, my_id, sym, true_state, false_state);
 }
 
