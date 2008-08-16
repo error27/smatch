@@ -110,54 +110,17 @@ static void set_new_true_false_states(const char *name, int my_id,
 
 static void match_condition(struct expression *expr)
 {
-	struct symbol *sym_left;
-	struct symbol *sym_right;
-	char *left;
-	char *right;
+	struct symbol *sym;
+	char *name;
 
 	switch(expr->type) {
-	case EXPR_COMPARE:
-		left = get_variable_from_expr_simple(expr->left, &sym_left);
-		if (!left)
-			return;
-		left = alloc_string(left);
-		right = get_variable_from_expr_simple(expr->right, &sym_right);
-		if (!right)
-			return;
-		right = alloc_string(right);
-
-		if (is_null(expr->right)) {
-			if (expr->op == SPECIAL_EQUAL)
-				set_new_true_false_states(left, my_id, sym_left, 
-						      ISNULL, NONNULL);
-			else if (expr->op == SPECIAL_NOTEQUAL)
-				set_new_true_false_states(left, my_id, sym_left, 
-						      NONNULL, ISNULL);
-			free_string(right);
-			return;
-		}
-
-		if (is_null(expr->left)) {
-			if (expr->op == SPECIAL_EQUAL)
-				set_new_true_false_states(right, my_id, sym_right, 
-						      ISNULL, NONNULL);
-			else if (expr->op == SPECIAL_NOTEQUAL)
-				set_new_true_false_states(right, my_id, sym_right, 
-						      NONNULL, ISNULL);
-			free_string(left);
-			return;
-		}
-
-		free_string(left);
-		free_string(right);
-		return;
 	case EXPR_SYMBOL:
 	case EXPR_DEREF:
-		left = get_variable_from_expr_simple(expr, &sym_left);
-		if (!left)
+		name = get_variable_from_expr_simple(expr, &sym);
+		if (!name)
 			return;
-		left = alloc_string(left);
-		set_new_true_false_states(left, my_id, sym_left, NONNULL, ISNULL);
+		name = alloc_string(name);
+		set_new_true_false_states(name, my_id, sym, NONNULL, ISNULL);
 		return;
 	case EXPR_ASSIGNMENT:
 		match_condition(expr->left);
