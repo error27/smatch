@@ -89,7 +89,7 @@ static void dec_ands_ors(struct expression *expr)
 		__ors--;
 }
 
-void special_kernel_macros(struct expression *expr)
+static void special_kernel_macros(struct expression *expr)
 {
 #ifdef KERNEL
 	struct expression *tmp;
@@ -97,17 +97,7 @@ void special_kernel_macros(struct expression *expr)
 	tmp = first_ptr_list((struct ptr_list *) expr->args);
 	if (tmp->op == '!' && tmp->unop->op == '!' 
 	    && tmp->unop->unop->op == '(') {
-		tmp = tmp->unop->unop->unop;
-		if (tmp->type == EXPR_COMPARE && 
-		    tmp->op == SPECIAL_NOTEQUAL &&
-		    tmp->right->type == EXPR_VALUE &&
-		    tmp->right->value == 0) {
-			// BUG_ON()
-			split_conditions(tmp->left);
-		} else {
-			// unlikely()
-			split_conditions(tmp);
-		}
+		split_conditions(tmp->unop->unop->unop);
 	} else {
 		__pass_to_client(expr, CONDITION_HOOK);	
 		split_expr(expr);
@@ -115,6 +105,42 @@ void special_kernel_macros(struct expression *expr)
 	}
 
 #endif
+}
+
+static int is_zero(struct expression *expr)
+{
+	if (expr->type == EXPR_VALUE && expr->value == 0)
+		return 1;
+	return 0;
+}
+
+static int handle_zero_comparisons(struct expression *expr)
+{
+	struct expression *tmp = NULL;
+
+	// if left is zero or right is zero
+	if (is_zero(expr->left))
+		tmp = expr->right;
+	else if (is_zero(expr->right))
+		tmp = expr->left;
+	else
+		return 0;
+
+	// "if (foo != 0)" is the same as "if (foo)"
+	if (expr->op == SPECIAL_NOTEQUAL) {
+		split_conditions(tmp);
+		return 1;
+	}
+
+	// "if (foo == 0)" is the same as "if (!foo)"
+	if (expr->op == SPECIAL_EQUAL) {
+		__negate = (__negate +  1)%2;
+		split_conditions(tmp);
+		__negate = (__negate +  1)%2;
+		return 1;
+	}
+
+	return 0;
 }
 
 void split_conditions(struct expression *expr)
@@ -129,6 +155,10 @@ void split_conditions(struct expression *expr)
 
 	static int __ors_reached;
   
+	if (expr->type == EXPR_COMPARE)
+		if (handle_zero_comparisons(expr))
+			return;
+
 	if (expr->type == EXPR_LOGICAL) {
 		unsigned int path_orig;
 
