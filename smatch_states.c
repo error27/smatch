@@ -159,11 +159,20 @@ static inline void set_state_stack(struct state_list_stack **stack,
 static int merge_states(const char *name, int owner, struct symbol *sym,
 			int state1, int state2)
 {
+	int ret;
+
+
 	if (state1 == state2)
-		return state1;
-	if (__has_merge_function(owner))
-		return __client_merge_function(owner, name, sym, (state1 < state2?state1:state2), (state1 > state2?state1:state2));
-	return UNDEFINED;
+		ret = state1;
+	else if (__has_merge_function(owner))
+		ret = __client_merge_function(owner, name, sym, (state1 < state2?state1:state2), (state1 > state2?state1:state2));
+	else 
+		ret = UNDEFINED;
+
+	SM_DEBUG("%d merge name='%s' owner=%d: %d + %d => %d\n", 
+		 get_lineno(), name, owner, state1, state2, ret);
+
+	return ret;
 }
 
 static void merge_state_slist(struct state_list **slist, const char *name, 
@@ -178,8 +187,6 @@ static void merge_state_slist(struct state_list **slist, const char *name,
 			s = merge_states(name, owner, sym, tmp->state, state);
 			if (tmp->state != s) {
 				add_history(tmp);
-				SM_DEBUG("%d merge name='%s' owner=%d: %d + %d => %d\n", 
-					 get_lineno(), name, owner, tmp->state, state, s);
 			}
 			tmp->state = s;
 			return;
@@ -346,7 +353,7 @@ void clear_all_states()
 void __first_and_clump()
 {
 	and_clumps[0] = and_clumps[1];
-	and_clumps[1] = NULL;
+	del_slist(&and_clumps[1]);
 }
 
 void __merge_and_clump()
