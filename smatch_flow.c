@@ -96,7 +96,6 @@ void __split_expr(struct expression *expr)
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
 		__split_true_false_paths();
-		__pass_to_client(expr->conditional, WHOLE_CONDITION_HOOK);
 		__split_whole_condition(expr->conditional);
 		__use_true_states();
 		__split_expr(expr->cond_true);
@@ -166,7 +165,6 @@ static void handle_pre_loop(struct statement *stmt)
 	__push_continues();
 	__push_breaks();
 	if (stmt->iterator_pre_condition) {
-		__pass_to_client(stmt->iterator_pre_condition, WHOLE_CONDITION_HOOK);
 		__split_whole_condition(stmt->iterator_pre_condition);
 	}
 	path_orig = __split_path_id();
@@ -196,7 +194,6 @@ static void handle_post_loop(struct statement *stmt)
 	split_statements(stmt->iterator_statement);
 	
 	__split_true_false_paths();
-	__pass_to_client(stmt->iterator_post_condition, WHOLE_CONDITION_HOOK);
 	__split_whole_condition(stmt->iterator_post_condition);
 	/* It would prossibly be cleaner to make this all one function */
 	__use_true_states();
@@ -244,7 +241,6 @@ static void split_statements(struct statement *stmt)
 	}
 	case STMT_IF:
 		__split_true_false_paths();
-		__pass_to_client(stmt->if_conditional, WHOLE_CONDITION_HOOK);
 		__split_whole_condition(stmt->if_conditional);
 		path_orig = __split_path_id();
 		__use_true_states();

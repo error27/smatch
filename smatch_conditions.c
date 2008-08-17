@@ -217,6 +217,7 @@ static void split_conditions(struct expression *expr)
 void __split_whole_condition(struct expression *expr)
 {
 
+	__pass_to_client(expr, WHOLE_CONDITION_HOOK);
 	split_conditions(expr);
 	SM_DEBUG("%d __ands = %d __ors = %d __negate = %d\n", get_lineno(),
 		 __ands, __ors, __negate);
