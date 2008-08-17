@@ -305,7 +305,7 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 		printf("Error:  missing true/false stacks\n");
 		return;
 	}
-	if (__negate) {
+	if (__negate()) {
 		int tmp = true_state;
 		
 		true_state = false_state;

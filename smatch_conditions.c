@@ -48,9 +48,14 @@
 
 #define KERNEL
 
-int __negate = 0;
 int __ors = 0;
 int __ands = 0;
+
+static int negative = 0;
+int __negate()
+{
+	return negative;
+}
 
 static void split_conditions(struct expression *expr);
 
@@ -60,16 +65,16 @@ static int is_logical_and(struct expression *expr)
 	 * if (!a || !b).  Logically those are the same.
 	 */
 
-	if ((!__negate && expr->op == SPECIAL_LOGICAL_AND) ||
-	    (__negate && expr->op == SPECIAL_LOGICAL_OR))
+	if ((!__negate() && expr->op == SPECIAL_LOGICAL_AND) ||
+	    (__negate() && expr->op == SPECIAL_LOGICAL_OR))
 		return 1;
 	return 0;
 }
 
 static int is_logical_or(struct expression *expr)
 {
-	if ((!__negate && expr->op == SPECIAL_LOGICAL_OR) ||
-	     (__negate && expr->op == SPECIAL_LOGICAL_AND))
+	if ((!__negate() && expr->op == SPECIAL_LOGICAL_OR) ||
+	     (__negate() && expr->op == SPECIAL_LOGICAL_AND))
 		return 1;
 	return 0;
 }
@@ -139,9 +144,9 @@ static int handle_zero_comparisons(struct expression *expr)
 
 	// "if (foo == 0)" is the same as "if (!foo)"
 	if (expr->op == SPECIAL_EQUAL) {
-		__negate = (__negate +  1)%2;
+		negative = (negative +  1)%2;
 		split_conditions(tmp);
-		__negate = (__negate +  1)%2;
+		negative = (negative +  1)%2;
 		return 1;
 	}
 
@@ -193,9 +198,9 @@ static void split_conditions(struct expression *expr)
 		__restore_path_id(path_orig);
 		return;
 	} else if (expr->type == EXPR_PREOP && expr->op == '!') {
-		__negate = (__negate +  1)%2;
+		negative = (negative +  1)%2;
 		split_conditions(expr->unop);
-		__negate = (__negate +  1)%2;
+		negative = (negative +  1)%2;
 		return;
 	} else if (expr->type == EXPR_PREOP && expr->op == '(') {
 		split_conditions(expr->unop);
@@ -219,6 +224,6 @@ void __split_whole_condition(struct expression *expr)
 
 	__pass_to_client(expr, WHOLE_CONDITION_HOOK);
 	split_conditions(expr);
-	SM_DEBUG("%d __ands = %d __ors = %d __negate = %d\n", get_lineno(),
-		 __ands, __ors, __negate);
+	SM_DEBUG("%d __ands = %d __ors = %d __negate() = %d\n", get_lineno(),
+		 __ands, __ors, __negate());
 }
