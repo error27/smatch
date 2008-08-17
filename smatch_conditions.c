@@ -7,6 +7,43 @@
  *
  */
 
+/*
+ * The simplest type of condition is
+ * if (a) { ...
+ *
+ * The next simplest kind of conditions is
+ * if (a && b) { c;
+ * In that case 'a' is true when we get to 'b' and both are true
+ * when we get to c.
+ *
+ * Or's are a little more complicated.
+ * if (a || b) { c;
+ * We know 'a' is not true when we get to 'b' but it may be true
+ * when we get to c.  
+ *
+ * If we mix and's and or's that's even more complicated.
+ * if (a && b && c || a && d) { d ;
+ * 'a' is true when we get to 'b', 'c' and 'd'.
+ * 'b' is true when we reach 'c' but otherwise we don't know.
+ * 
+ * The other thing that complicates matters is if we negate
+ * some if conditions.
+ * if (!a) { ...
+ * We pass the un-negated version to the client and flip the true
+ * and false values internally.
+ * 
+ * And negations can be part of a compound.
+ * if (a && !(b || c)) { d;
+ * In that situation we multiply the negative through to simplify
+ * stuff so that we can remove the parens like this:
+ * if (a && !b && !c) { d;
+ *
+ * One other thing is that:
+ * if ((a) != 0){ ...
+ * that's basically the same as testing for just 'a' so we simplify
+ * it before passing it to the script.
+ */
+
 #include "smatch.h"
 
 #define KERNEL
@@ -113,14 +150,6 @@ static int handle_zero_comparisons(struct expression *expr)
 
 static void split_conditions(struct expression *expr)
 {
-	/*
-	 * If you have if ((a || a = foo()), we know a is
-	 * non-null on the true state because 'a' is checked in both and
-	 * groups.  __ors_reached helps with that.  Unfortunately
-	 * smatch doesn't handle stuff like if (a && a = foo())
-	 * because it never occured to me that people would do that...
-	 */
-
 	static int __ors_reached;
 
 	SM_DEBUG("%d in split_conditions type=%d\n", get_lineno(), expr->type);
