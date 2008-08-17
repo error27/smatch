@@ -94,6 +94,7 @@ char * get_variable_from_expr(struct expression * expr,
 			      struct symbol **sym_ptr);
 char * get_variable_from_expr_simple(struct expression * expr,
 			      struct symbol **sym_ptr);
+int sym_name_is(const char *name, struct expression *expr);
 
 /* ----------------------------------------------------------------
    The stuff below is all used internally and shouldn't 

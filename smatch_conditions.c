@@ -199,9 +199,7 @@ static void split_conditions(struct expression *expr)
 	} else if (expr->type == EXPR_PREOP && expr->op == '(') {
 		split_conditions(expr->unop);
 	} else if (expr->type == EXPR_CALL) {
-
-		if (expr->fn->type != EXPR_SYMBOL || 
-		    strcmp("__builtin_expect", expr->fn->symbol_name->name)) {
+		if (!sym_name_is("__builtin_expect", expr->fn)) {
 			__pass_to_client(expr, CONDITION_HOOK);	
 			__split_expr(expr);
 			return;
