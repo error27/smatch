@@ -17,6 +17,8 @@
 #include "parse.h"
 #include "expression.h"
 
+#define KERNEL
+
 struct state_history {
 	unsigned int loc;
 };
@@ -104,8 +106,13 @@ extern int __negate;
 extern int __ands;
 extern int __ors;
 void smatch (int argc, char **argv);
-void split_conditions(struct expression *expr);
+void __split_expr(struct expression *expr);
+unsigned int __split_path_id();
+void __restore_path_id(int old_id);
 unsigned int get_path_id();
+
+/* smatch_conditions */
+void __split_whole_condition(struct expression *expr);
 
 /* smatch_states.c */
 
