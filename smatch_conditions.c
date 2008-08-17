@@ -95,24 +95,6 @@ static void dec_ands_ors(struct expression *expr)
 		__ors--;
 }
 
-static void special_kernel_macros(struct expression *expr)
-{
-#ifdef KERNEL
-	struct expression *tmp;
-
-	tmp = first_ptr_list((struct ptr_list *) expr->args);
-	if (tmp->op == '!' && tmp->unop->op == '!' 
-	    && tmp->unop->unop->op == '(') {
-		split_conditions(tmp->unop->unop->unop);
-	} else {
-		__pass_to_client(expr, CONDITION_HOOK);	
-		__split_expr(expr);
-		return;
-	}
-
-#endif
-}
-
 static int is_zero(struct expression *expr)
 {
 	if (expr->type == EXPR_VALUE && expr->value == 0)
@@ -199,12 +181,13 @@ static void split_conditions(struct expression *expr)
 	} else if (expr->type == EXPR_PREOP && expr->op == '(') {
 		split_conditions(expr->unop);
 	} else if (expr->type == EXPR_CALL) {
-		if (!sym_name_is("__builtin_expect", expr->fn)) {
+		if (sym_name_is("__builtin_expect", expr->fn)) {
+			split_conditions(first_ptr_list((struct ptr_list *) expr->args));
+		} else{
 			__pass_to_client(expr, CONDITION_HOOK);	
 			__split_expr(expr);
 			return;
 		}
-		special_kernel_macros(expr);
 	} else {
 		__pass_to_client(expr, CONDITION_HOOK);	
 		__split_expr(expr);
