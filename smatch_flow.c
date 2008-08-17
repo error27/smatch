@@ -1,7 +1,7 @@
 /*
- * sparse/check_string_ret.c
+ * sparse/smatch_flow.c
  *
- * Copyright (C) 2006 Dan Carpenter.
+ * Copyright (C) 2006,2008 Dan Carpenter.
  *
  *  Licensed under the Open Software License version 1.1
  *
@@ -11,12 +11,7 @@
 #include "token.h"
 #include "smatch.h"
 
-#define KERNEL
-
 int __smatch_lineno = 0;
-int __negate = 0;
-int __ors = 0;
-int __ands = 0;
 
 static char *filename;
 static char *cur_func;
@@ -32,14 +27,13 @@ int get_func_pos() { return __smatch_lineno - line_func_start; }
 static void split_statements(struct statement *stmt);
 static void split_symlist(struct symbol_list *sym_list);
 static void split_expr_list(struct expression_list *expr_list);
-static void split_expr(struct expression *expr);
 
 unsigned int get_path_id() 
 {
 	return path_id;
 }
 
-static unsigned int split_path_id()
+unsigned int __split_path_id()
 {
 	int tmp = path_id;
 
@@ -47,189 +41,14 @@ static unsigned int split_path_id()
 	return tmp;
 }
 
-static void restore_path_id(int old_id)
+void __restore_path_id(int old_id)
 {
 	path_id = old_id;
 }
 
 
-static int is_logical_and(struct expression *expr)
-{
-	/* If you have if (!(a && b)) smatch translates that to 
-	 * if (!a || !b).  Logically those are the same.
-	 */
 
-	if ((!__negate && expr->op == SPECIAL_LOGICAL_AND) ||
-	    (__negate && expr->op == SPECIAL_LOGICAL_OR))
-		return 1;
-	return 0;
-}
-
-static int is_logical_or(struct expression *expr)
-{
-	if ((!__negate && expr->op == SPECIAL_LOGICAL_OR) ||
-	     (__negate && expr->op == SPECIAL_LOGICAL_AND))
-		return 1;
-	return 0;
-}
-
-static void inc_ands_ors(struct expression *expr)
-{
-	if (is_logical_and(expr))
-		__ands++;
-	else if (is_logical_or(expr))
-		__ors++;
-}
-
-static void dec_ands_ors(struct expression *expr)
-{
-	if (is_logical_and(expr))
-		__ands--;
-	else if (is_logical_or(expr))
-		__ors--;
-}
-
-static void special_kernel_macros(struct expression *expr)
-{
-#ifdef KERNEL
-	struct expression *tmp;
-
-	tmp = first_ptr_list((struct ptr_list *) expr->args);
-	if (tmp->op == '!' && tmp->unop->op == '!' 
-	    && tmp->unop->unop->op == '(') {
-		split_conditions(tmp->unop->unop->unop);
-	} else {
-		__pass_to_client(expr, CONDITION_HOOK);	
-		split_expr(expr);
-		return;
-	}
-
-#endif
-}
-
-static int is_zero(struct expression *expr)
-{
-	if (expr->type == EXPR_VALUE && expr->value == 0)
-		return 1;
-	if (expr->op == '(')
-		return is_zero(expr->unop);
-	if (expr->type == EXPR_CAST) 
-		return is_zero(expr->cast_expression);
-	return 0;
-}
-
-static int handle_zero_comparisons(struct expression *expr)
-{
-	struct expression *tmp = NULL;
-
-	// if left is zero or right is zero
-	if (is_zero(expr->left))
-		tmp = expr->right;
-	else if (is_zero(expr->right))
-		tmp = expr->left;
-	else
-		return 0;
-
-	// "if (foo != 0)" is the same as "if (foo)"
-	if (expr->op == SPECIAL_NOTEQUAL) {
-		split_conditions(tmp);
-		return 1;
-	}
-
-	// "if (foo == 0)" is the same as "if (!foo)"
-	if (expr->op == SPECIAL_EQUAL) {
-		__negate = (__negate +  1)%2;
-		split_conditions(tmp);
-		__negate = (__negate +  1)%2;
-		return 1;
-	}
-
-	return 0;
-}
-
-void split_conditions(struct expression *expr)
-{
-	/*
-	 * If you have if ((a || a = foo()), we know a is
-	 * non-null on the true state because 'a' is checked in both and
-	 * groups.  __ors_reached helps with that.  Unfortunately
-	 * smatch doesn't handle stuff like if (a && a = foo())
-	 * because it never occured to me that people would do that...
-	 */
-
-	static int __ors_reached;
-
-	SM_DEBUG("%d in split_conditions type=%d\n", get_lineno(), expr->type);
-  
-	if (expr->type == EXPR_COMPARE)
-		if (handle_zero_comparisons(expr))
-			return;
-
-	if (expr->type == EXPR_LOGICAL) {
-		unsigned int path_orig;
-
-		inc_ands_ors(expr);
-		path_orig = split_path_id();
-		__split_false_states_mini();
-
-		split_conditions(expr->left);
-		
-		if (is_logical_and(expr)) {
-			split_path_id();
-			__pop_false_states_mini();
-			split_conditions(expr->right);
-		} else if (is_logical_or(expr)) {
-			if (!__ors_reached) {
-				__ors_reached = 1;
-				__first_and_clump();
-			} else {
-				__merge_and_clump();
-			}
-			split_path_id();
-			__use_false_states_mini();
-			split_conditions(expr->right);
-		}
-		dec_ands_ors(expr);
-		
-		if (__ands + __ors == 0) {
-			__merge_and_clump();
-			__use_and_clumps();
-			__ors_reached = 0;
-		}
-
-		restore_path_id(path_orig);
-		return;
-	} else if (expr->type == EXPR_PREOP && expr->op == '!') {
-		__negate = (__negate +  1)%2;
-		split_conditions(expr->unop);
-		__negate = (__negate +  1)%2;
-		return;
-	} else if (expr->type == EXPR_PREOP && expr->op == '(') {
-		split_conditions(expr->unop);
-	} else if (expr->type == EXPR_CALL) {
-
-		if (expr->fn->type != EXPR_SYMBOL || 
-		    strcmp("__builtin_expect", expr->fn->symbol_name->name)) {
-			__pass_to_client(expr, CONDITION_HOOK);	
-			split_expr(expr);
-			return;
-		}
-		special_kernel_macros(expr);
-	} else {
-		__pass_to_client(expr, CONDITION_HOOK);	
-		split_expr(expr);
-	}
-}
-
-static void split_whole_condition(struct expression *expr)
-{
-
-	split_conditions(expr);
-	SM_DEBUG("%d __ands = %d __ors = %d __negate = %d\n", get_lineno(),
-		 __ands, __ors, __negate);
-}
-
-static void split_expr(struct expression *expr)
+void __split_expr(struct expression *expr)
 {
 	if (!expr)
 		return;
@@ -244,7 +63,7 @@ static void split_expr(struct expression *expr)
 	case EXPR_POSTOP:
 		if (expr->op == '*')
 			__pass_to_client(expr, DEREF_HOOK);
-		split_expr(expr->unop);
+		__split_expr(expr->unop);
 		return;
 	case EXPR_STATEMENT:
 		split_statements(expr->statement);
@@ -256,20 +75,20 @@ static void split_expr(struct expression *expr)
 	case EXPR_ASSIGNMENT:
 		if (expr->type == EXPR_ASSIGNMENT)
 			__pass_to_client(expr, ASSIGNMENT_HOOK);
-		split_expr(expr->left);
-		split_expr(expr->right);
+		__split_expr(expr->left);
+		__split_expr(expr->right);
 		if (expr->type == EXPR_ASSIGNMENT)
 			__pass_to_client(expr, ASSIGNMENT_AFTER_HOOK);
 		return;
 	case EXPR_DEREF:
 		__pass_to_client(expr, DEREF_HOOK);
-		split_expr(expr->deref);
+		__split_expr(expr->deref);
 		return;
 	case EXPR_SLICE:
-		split_expr(expr->base);
+		__split_expr(expr->base);
 		return;
 	case EXPR_CAST:
-		split_expr(expr->cast_expression);
+		__split_expr(expr->cast_expression);
 		return;
 	case EXPR_SIZEOF:
 		/* there isn't anything to pass a client from inside a sizeof() */
@@ -278,16 +97,16 @@ static void split_expr(struct expression *expr)
 	case EXPR_SELECT:
 		__split_true_false_paths();
 		__pass_to_client(expr->conditional, WHOLE_CONDITION_HOOK);
-		split_whole_condition(expr->conditional);
+		__split_whole_condition(expr->conditional);
 		__use_true_states();
-		split_expr(expr->cond_true);
+		__split_expr(expr->cond_true);
 		__use_false_states();
-		split_expr(expr->cond_false);
+		__split_expr(expr->cond_false);
 		__merge_true_states();
 		return;
 	case EXPR_CALL:
 		__pass_to_client(expr, FUNCTION_CALL_HOOK);
-		split_expr(expr->fn);
+		__split_expr(expr->fn);
 		split_expr_list(expr->args);
 		__pass_to_client(expr, FUNCTION_CALL_AFTER_HOOK);
 #ifdef KERNEL
@@ -300,13 +119,13 @@ static void split_expr(struct expression *expr)
 		split_expr_list(expr->expr_list);
 		return;
 	case EXPR_IDENTIFIER:
-		split_expr(expr->ident_expression);
+		__split_expr(expr->ident_expression);
 		return;
 	case EXPR_INDEX:
-		split_expr(expr->idx_expression);
+		__split_expr(expr->idx_expression);
 		return;
 	case EXPR_POS:
-		split_expr(expr->init_expr);
+		__split_expr(expr->init_expr);
 		return;
 	default:
 		return;
@@ -348,9 +167,9 @@ static void handle_pre_loop(struct statement *stmt)
 	__push_breaks();
 	if (stmt->iterator_pre_condition) {
 		__pass_to_client(stmt->iterator_pre_condition, WHOLE_CONDITION_HOOK);
-		split_whole_condition(stmt->iterator_pre_condition);
+		__split_whole_condition(stmt->iterator_pre_condition);
 	}
-	path_orig = split_path_id();
+	path_orig = __split_path_id();
 	__use_true_states();
 
 	split_statements(stmt->iterator_statement);
@@ -364,7 +183,7 @@ static void handle_pre_loop(struct statement *stmt)
 		__merge_continues();
 	}
 	__merge_breaks();
-	restore_path_id(path_orig);
+	__restore_path_id(path_orig);
 }
 
 /*
@@ -378,7 +197,7 @@ static void handle_post_loop(struct statement *stmt)
 	
 	__split_true_false_paths();
 	__pass_to_client(stmt->iterator_post_condition, WHOLE_CONDITION_HOOK);
-	split_whole_condition(stmt->iterator_post_condition);
+	__split_whole_condition(stmt->iterator_post_condition);
 	/* It would prossibly be cleaner to make this all one function */
 	__use_true_states();
 	__use_false_states();
@@ -410,11 +229,11 @@ static void split_statements(struct statement *stmt)
 		return;
 	case STMT_RETURN:
 		__pass_to_client(stmt, RETURN_HOOK);
-		split_expr(stmt->ret_value);
+		__split_expr(stmt->ret_value);
 		nullify_path();
 		return;
 	case STMT_EXPRESSION:
-		split_expr(stmt->expression);
+		__split_expr(stmt->expression);
 		return;
 	case STMT_COMPOUND: {
 		struct statement *s;
@@ -426,15 +245,15 @@ static void split_statements(struct statement *stmt)
 	case STMT_IF:
 		__split_true_false_paths();
 		__pass_to_client(stmt->if_conditional, WHOLE_CONDITION_HOOK);
-		split_whole_condition(stmt->if_conditional);
-		path_orig = split_path_id();
+		__split_whole_condition(stmt->if_conditional);
+		path_orig = __split_path_id();
 		__use_true_states();
 		split_statements(stmt->if_true);
-		split_path_id();
+		__split_path_id();
 		__use_false_states();
 		split_statements(stmt->if_false);
 		__merge_true_states();
-		restore_path_id(path_orig);
+		__restore_path_id(path_orig);
 		return;
 	case STMT_ITERATOR:
 		if (stmt->iterator_pre_condition)
@@ -447,7 +266,7 @@ static void split_statements(struct statement *stmt)
 		}
 		return;
 	case STMT_SWITCH:
-		split_expr(stmt->switch_expression);
+		__split_expr(stmt->switch_expression);
 		__save_switch_states();
 		__push_default();
 		__push_breaks();
@@ -458,15 +277,15 @@ static void split_statements(struct statement *stmt)
 			__merge_switches();
 		__pop_switches();
 		__merge_breaks();
-		restore_path_id(path_orig);
+		__restore_path_id(path_orig);
 		return;
 	case STMT_CASE:
-		split_path_id();
+		__split_path_id();
 		__merge_switches();
 		if (!stmt->case_expression)
 			__set_default();
-		split_expr(stmt->case_expression);
-		split_expr(stmt->case_to);
+		__split_expr(stmt->case_expression);
+		__split_expr(stmt->case_to);
 		split_statements(stmt->case_statement);
 		return;
 	case STMT_LABEL:
@@ -478,7 +297,7 @@ static void split_statements(struct statement *stmt)
 		split_statements(stmt->label_statement);
 		return;
 	case STMT_GOTO:
-		split_expr(stmt->goto_expression);
+		__split_expr(stmt->goto_expression);
 		if (stmt->goto_label && stmt->goto_label->type == SYM_NODE) {
 			if (!strcmp(stmt->goto_label->ident->name, "break")) {
 				__process_breaks();
@@ -496,17 +315,17 @@ static void split_statements(struct statement *stmt)
 	case STMT_NONE:
 		return;
 	case STMT_ASM:
-		split_expr(stmt->asm_string);
-		//split_expr(stmt->asm_outputs);
-		//split_expr(stmt->asm_inputs);
-		//split_expr(stmt->asm_clobbers);
+		__split_expr(stmt->asm_string);
+		//__split_expr(stmt->asm_outputs);
+		//__split_expr(stmt->asm_inputs);
+		//__split_expr(stmt->asm_clobbers);
 		return;
 	case STMT_CONTEXT:
 		return;
 	case STMT_RANGE:
-		split_expr(stmt->range_expression);
-		split_expr(stmt->range_low);
-		split_expr(stmt->range_high);
+		__split_expr(stmt->range_expression);
+		__split_expr(stmt->range_low);
+		__split_expr(stmt->range_high);
 		return;
 	}
 }
@@ -515,7 +334,7 @@ static void split_expr_list(struct expression_list *expr_list)
 {
 	struct expression *expr;
 	FOR_EACH_PTR(expr_list, expr) {
-		split_expr(expr);
+		__split_expr(expr);
 	} END_FOR_EACH_PTR(expr);
 }
 
@@ -529,12 +348,12 @@ static void split_sym(struct symbol *sym)
 
 	__pass_to_client(sym, SYM_HOOK);
 	split_statements(sym->stmt);
-	split_expr(sym->array_size);
+	__split_expr(sym->array_size);
 	split_symlist(sym->arguments);
 	split_symlist(sym->symbol_list);
 	split_statements(sym->inline_stmt);
 	split_symlist(sym->inline_symbol_list);
-	split_expr(sym->initializer);
+	__split_expr(sym->initializer);
 }
 
 static void split_symlist(struct symbol_list *sym_list)
