@@ -269,8 +269,10 @@ static void split_expr(struct expression *expr)
 		split_expr(expr->base);
 		return;
 	case EXPR_CAST:
-	case EXPR_SIZEOF:
 		split_expr(expr->cast_expression);
+		return;
+	case EXPR_SIZEOF:
+		/* there isn't anything to pass a client from inside a sizeof() */
 		return;
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
