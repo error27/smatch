@@ -352,8 +352,9 @@ void clear_all_states()
 
 void __first_and_clump()
 {
+	del_slist(&and_clumps[0]);
 	and_clumps[0] = and_clumps[1];
-	del_slist(&and_clumps[1]);
+	and_clumps[1] = NULL;
 }
 
 void __merge_and_clump()
