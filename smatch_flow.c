@@ -16,8 +16,6 @@ int __smatch_lineno = 0;
 static char *filename;
 static char *cur_func;
 static int line_func_start;
-static unsigned int path_id = 0;
-static unsigned int path_id_next = 1;
 
 char *get_filename() {	return filename; }
 char *get_function() { return cur_func; }
@@ -27,26 +25,6 @@ int get_func_pos() { return __smatch_lineno - line_func_start; }
 static void split_statements(struct statement *stmt);
 static void split_symlist(struct symbol_list *sym_list);
 static void split_expr_list(struct expression_list *expr_list);
-
-unsigned int get_path_id() 
-{
-	return path_id;
-}
-
-unsigned int __split_path_id()
-{
-	int tmp = path_id;
-
-	path_id = path_id_next++;
-	return tmp;
-}
-
-void __restore_path_id(int old_id)
-{
-	path_id = old_id;
-}
-
-
 
 void __split_expr(struct expression *expr)
 {
@@ -157,8 +135,6 @@ static int is_forever_loop(struct statement *stmt)
 
 static void handle_pre_loop(struct statement *stmt)
 {
-	unsigned int path_orig;
-
 	split_statements(stmt->iterator_pre_statement);
 
 	__split_true_false_paths();
@@ -167,7 +143,6 @@ static void handle_pre_loop(struct statement *stmt)
 	if (stmt->iterator_pre_condition) {
 		__split_whole_condition(stmt->iterator_pre_condition);
 	}
-	path_orig = __split_path_id();
 	__use_true_states();
 
 	split_statements(stmt->iterator_statement);
@@ -181,7 +156,6 @@ static void handle_pre_loop(struct statement *stmt)
 		__merge_continues();
 	}
 	__merge_breaks();
-	__restore_path_id(path_orig);
 }
 
 /*
@@ -211,8 +185,6 @@ static void handle_post_loop(struct statement *stmt)
 
 static void split_statements(struct statement *stmt)
 {
-	unsigned int path_orig;
-
 	if (!stmt)
 		return;
 	
@@ -242,14 +214,11 @@ static void split_statements(struct statement *stmt)
 	case STMT_IF:
 		__split_true_false_paths();
 		__split_whole_condition(stmt->if_conditional);
-		path_orig = __split_path_id();
 		__use_true_states();
 		split_statements(stmt->if_true);
-		__split_path_id();
 		__use_false_states();
 		split_statements(stmt->if_false);
 		__merge_true_states();
-		__restore_path_id(path_orig);
 		return;
 	case STMT_ITERATOR:
 		if (stmt->iterator_pre_condition)
@@ -267,16 +236,13 @@ static void split_statements(struct statement *stmt)
 		__push_default();
 		__push_breaks();
 		nullify_path();
-		path_orig = get_path_id();
 		split_statements(stmt->switch_statement);
 		if (!__pop_default())
 			__merge_switches();
 		__pop_switches();
 		__merge_breaks();
-		__restore_path_id(path_orig);
 		return;
 	case STMT_CASE:
-		__split_path_id();
 		__merge_switches();
 		if (!stmt->case_expression)
 			__set_default();

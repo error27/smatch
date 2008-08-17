@@ -164,16 +164,12 @@ static void split_conditions(struct expression *expr)
 			return;
 
 	if (expr->type == EXPR_LOGICAL) {
-		unsigned int path_orig;
-
 		inc_ands_ors(expr);
-		path_orig = __split_path_id();
 		__split_false_states_mini();
 
 		split_conditions(expr->left);
 		
 		if (is_logical_and(expr)) {
-			__split_path_id();
 			__pop_false_states_mini();
 			split_conditions(expr->right);
 		} else if (is_logical_or(expr)) {
@@ -183,7 +179,6 @@ static void split_conditions(struct expression *expr)
 			} else {
 				__merge_and_clump();
 			}
-			__split_path_id();
 			__use_false_states_mini();
 			split_conditions(expr->right);
 		}
@@ -195,7 +190,6 @@ static void split_conditions(struct expression *expr)
 			__ors_reached = 0;
 		}
 
-		__restore_path_id(path_orig);
 		return;
 	} else if (expr->type == EXPR_PREOP && expr->op == '!') {
 		negative = (negative +  1)%2;

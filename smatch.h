@@ -104,9 +104,6 @@ char * get_variable_from_expr_simple(struct expression * expr,
 
 void smatch (int argc, char **argv);
 void __split_expr(struct expression *expr);
-unsigned int __split_path_id();
-void __restore_path_id(int old_id);
-unsigned int get_path_id();
 
 /* smatch_conditions */
 extern int __ands;

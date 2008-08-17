@@ -55,9 +55,6 @@ static void add_history(struct smatch_state *state)
 	tmp = malloc(sizeof(*tmp));
 	tmp->loc = get_lineno();
 	add_ptr_list(&state->line_history, tmp);
-	tmp = malloc(sizeof(*tmp));
-	tmp->loc = get_path_id();
-	add_ptr_list(&state->line_history, tmp);
 }
 
 struct smatch_state *alloc_state(const char *name, int owner, 
