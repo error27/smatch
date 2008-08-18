@@ -152,8 +152,9 @@ static void handle_pre_loop(struct statement *stmt)
 		__pop_false_states();
 		nullify_path();		
 	} else {
+		nullify_path();
+		__pop_continues();
 		__merge_false_states();
-		__merge_continues();
 	}
 	__merge_breaks();
 }
