@@ -140,6 +140,8 @@ static void handle_pre_loop(struct statement *stmt)
 	__split_true_false_paths();
 	__push_continues();
 	__push_breaks();
+	__prep_false_only_stack();
+
 	if (stmt->iterator_pre_condition) {
 		__split_whole_condition(stmt->iterator_pre_condition);
 	}
@@ -148,13 +150,14 @@ static void handle_pre_loop(struct statement *stmt)
 	split_statements(stmt->iterator_statement);
 	split_statements(stmt->iterator_post_statement);
 	if (is_forever_loop(stmt)) {
+		__use_false_only_stack();
 		__pop_continues();
 		__pop_false_states();
 		nullify_path();		
 	} else {
-		nullify_path();
-		__pop_continues();
+		__merge_continues();
 		__merge_false_states();
+		__use_false_only_stack();
 	}
 	__merge_breaks();
 }

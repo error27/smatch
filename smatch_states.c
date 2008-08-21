@@ -23,6 +23,8 @@ static struct state_list_stack *switch_stack;
 static struct state_list_stack *default_stack;
 static struct state_list_stack *continue_stack;
 static struct state_list_stack *mini_false_stack;
+static struct state_list_stack *false_only_stack;
+static int false_only_prepped = 0;
 static struct state_list *and_clumps[2];
 
 struct slist_head {
@@ -142,6 +144,9 @@ static void set_state_slist(struct state_list **slist, const char *name,
 	add_state_slist(slist, tmp);
 }
 
+/*
+ * set_state_stack() sets the state for the top slist on the stack.
+ */
 static inline void set_state_stack(struct state_list_stack **stack, 
 				    const char *name, int owner, 
 				   struct symbol *sym, int state)
@@ -315,6 +320,8 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 			(__ors?merged:true_state));
 	set_state_stack(&false_stack, name, owner, sym,
 			(__ands?merged:false_state));
+	if (false_only_prepped)
+		set_state_stack(&false_only_stack, name, owner, sym, false_state);
 }
 
 void delete_state(const char *name, int owner, struct symbol *sym)
@@ -370,7 +377,6 @@ void __use_and_clumps()
 {
 	struct smatch_state *tmp;
 
-	return;
 	FOR_EACH_PTR(and_clumps[0], tmp) {
 		if (tmp) 
 			set_state_stack(&true_stack, tmp->name, tmp->owner,
@@ -400,6 +406,25 @@ void __pop_false_states_mini()
 
 	slist = pop_slist(&mini_false_stack);
 	del_slist(&slist);
+}
+
+void __prep_false_only_stack()
+{
+	push_slist(&false_only_stack, NULL);
+	false_only_prepped = 1;
+}
+
+void __use_false_only_stack()
+{
+	struct state_list *slist;
+	struct smatch_state *tmp;
+
+	slist = pop_slist(&false_only_stack);
+	FOR_EACH_PTR(slist, tmp) {
+		set_state(tmp->name, tmp->owner, tmp->sym, tmp->state);
+	} END_FOR_EACH_PTR(tmp);
+	del_slist(&slist);
+	false_only_prepped = 0;
 }
 
 void __split_true_false_paths()

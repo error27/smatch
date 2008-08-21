@@ -123,6 +123,8 @@ void __split_true_false_paths();
 void __split_false_states_mini();
 void __use_false_states_mini();
 void __pop_false_states_mini();
+void __prep_false_only_stack();
+void __use_false_only_stack();
 void __use_true_states();
 void __use_false_states();
 void __pop_false_states();
