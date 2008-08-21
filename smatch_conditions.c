@@ -135,63 +135,92 @@ static int handle_zero_comparisons(struct expression *expr)
 	return 0;
 }
 
-static void split_conditions(struct expression *expr)
+/*
+ * This function is for handling calls to likely/unlikely
+ */
+
+static int ignore_builtin_expect(struct expression *expr)
+{
+	if (sym_name_is("__builtin_expect", expr->fn)) {
+		split_conditions(first_ptr_list((struct ptr_list *) expr->args));
+		return 1;
+	}
+	return 0;
+}
+
+static int handle_preop(struct expression *expr)
+{
+	if (expr->op == '!') {
+		negative = (negative +  1)%2;
+		split_conditions(expr->unop);
+		negative = (negative +  1)%2;
+		return 1;
+	}
+	if (expr->op == '(') {
+		split_conditions(expr->unop);
+		return 1;
+	}
+	return 0;
+}
+
+static void handle_logical(struct expression *expr)
 {
 	static int __ors_reached;
 
+	inc_ands_ors(expr);
+	__split_false_states_mini();
+
+	split_conditions(expr->left);
+		
+	if (is_logical_and(expr)) {
+		SM_DEBUG("%d and\n", get_lineno());
+		__pop_false_states_mini();
+		split_conditions(expr->right);
+	} else if (is_logical_or(expr)) {
+		SM_DEBUG("%d or\n", get_lineno());
+		if (!__ors_reached) {
+			__ors_reached = 1;
+			__first_and_clump();
+		} else {
+			__merge_and_clump();
+		}
+		__use_false_states_mini();
+		split_conditions(expr->right);
+	}
+	dec_ands_ors(expr);
+	
+	if (__ands + __ors == 0) {
+		__merge_and_clump();
+		__use_and_clumps();
+		__ors_reached = 0;
+	}
+}
+
+static void split_conditions(struct expression *expr)
+{
+
 	SM_DEBUG("%d in split_conditions type=%d\n", get_lineno(), expr->type);
   
-	if (expr->type == EXPR_COMPARE)
+	switch(expr->type) {
+	case EXPR_LOGICAL:
+		handle_logical(expr);
+		return;
+	case EXPR_COMPARE:
 		if (handle_zero_comparisons(expr))
 			return;
-
-	if (expr->type == EXPR_LOGICAL) {
-		inc_ands_ors(expr);
-		__split_false_states_mini();
-
-		split_conditions(expr->left);
-		
-		if (is_logical_and(expr)) {
-			__pop_false_states_mini();
-			split_conditions(expr->right);
-		} else if (is_logical_or(expr)) {
-			if (!__ors_reached) {
-				__ors_reached = 1;
-				__first_and_clump();
-			} else {
-				__merge_and_clump();
-			}
-			__use_false_states_mini();
-			split_conditions(expr->right);
-		}
-		dec_ands_ors(expr);
-		
-		if (__ands + __ors == 0) {
-			__merge_and_clump();
-			__use_and_clumps();
-			__ors_reached = 0;
-		}
-
-		return;
-	} else if (expr->type == EXPR_PREOP && expr->op == '!') {
-		negative = (negative +  1)%2;
-		split_conditions(expr->unop);
-		negative = (negative +  1)%2;
-		return;
-	} else if (expr->type == EXPR_PREOP && expr->op == '(') {
-		split_conditions(expr->unop);
-	} else if (expr->type == EXPR_CALL) {
-		if (sym_name_is("__builtin_expect", expr->fn)) {
-			split_conditions(first_ptr_list((struct ptr_list *) expr->args));
-		} else{
-			__pass_to_client(expr, CONDITION_HOOK);	
-			__split_expr(expr);
+		break;
+	case EXPR_CALL:
+		if (ignore_builtin_expect(expr))
 			return;
-		}
-	} else {
-		__pass_to_client(expr, CONDITION_HOOK);	
-		__split_expr(expr);
+		break;
+	case EXPR_PREOP:
+		if (handle_preop(expr))
+			return;
+		break;
 	}
+
+	__pass_to_client(expr, CONDITION_HOOK);	
+	__split_expr(expr);
 }
 
 void __split_whole_condition(struct expression *expr)
