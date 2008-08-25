@@ -7,6 +7,7 @@ my $check = $ENV{'CHECK'} || 'sparse';
 my $m32 = 0;
 my $m64 = 0;
 my $has_specs = 0;
+my $gendeps = 0;
 my $do_check = 0;
 my $do_compile = 1;
 my $verbose = 0;
@@ -22,6 +23,7 @@ foreach (@ARGV) {
 
     $m32 = 1 if /^-m32$/;
     $m64 = 1 if /^-m64$/;
+    $gendeps = 1 if /^-M$/;
 
     if (/^-specs=(.*)$/) {
 	$check .= &add_specs ($1);
@@ -42,6 +44,11 @@ foreach (@ARGV) {
     my $this_arg = ' ' . &quote_arg ($_);
     $cc .= $this_arg unless &check_only_option ($_);
     $check .= $this_arg unless &cc_only_option ($_);
+}
+
+if ($gendeps) {
+    $do_compile = 1;
+    $do_check = 0;
 }
 
 if ($do_check) {
