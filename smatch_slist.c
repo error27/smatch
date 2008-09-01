@@ -108,7 +108,7 @@ int get_state_slist(struct state_list *slist, const char *name, int owner,
 	if (!name)
 		return NOTFOUND;
 
-	FOR_EACH_PTR(cur_slist, state) {
+	FOR_EACH_PTR(slist, state) {
 		if (state->owner == owner && state->sym == sym 
 		    && !strcmp(state->name, name))
 			return state->state;
@@ -247,7 +247,8 @@ void and_slist_stack(struct state_list_stack **slist_stack,
 		tmp_state = get_state_stack(*slist_stack, tmp->name,
 					    tmp->owner, tmp->sym);
 		if (tmp_state >= 0 && tmp_state != tmp->state) {
-			smatch_msg("wierdness merging 'and' conditions states.");
+			smatch_msg("wierdness merging 'and' conditions states '%s': %d & %d.\n",
+				   tmp->name, tmp_state, tmp->state);
 			tmp->state = merge_states(tmp->name, tmp->owner, 
 						  tmp->sym, tmp->state,
 						  tmp_state);
@@ -295,5 +296,14 @@ struct state_list *get_slist_from_slist_stack(const char *name)
 			return tmp->slist;
 	} END_FOR_EACH_PTR(tmp);
 	return NULL;
+}
+
+void overwrite_slist(struct state_list *from, struct state_list *to)
+{
+	struct smatch_state *tmp;
+
+	FOR_EACH_PTR(from, tmp) {
+		set_state_slist(&to, tmp->name, tmp->owner, tmp->sym, tmp->state);
+	} END_FOR_EACH_PTR(tmp);
 }
 

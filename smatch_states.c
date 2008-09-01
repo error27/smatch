@@ -31,17 +31,21 @@ struct slist_stack *goto_stack;
 
 int debug_states;
 
-void __print_cur_slist()
+void __print_slist(struct state_list *slist)
 {
 	struct smatch_state *state;
 
 	printf("dumping slist at %d\n", get_lineno());
-	FOR_EACH_PTR(cur_slist, state) {
+	FOR_EACH_PTR(slist, state) {
 		printf("%s=%d\n", state->name, state->state);
 	} END_FOR_EACH_PTR(state);
 	printf("---\n");
 }
 
+void __print_cur_slist()
+{
+	__print_slist(cur_slist);
+}
 
 void set_state(const char *name, int owner, struct symbol *sym, int state)
 {
@@ -179,11 +183,15 @@ void __use_cond_false_states()
 
 void __negate_cond_stacks()
 {
-	struct state_list *tmp;
+	struct state_list *old_false, *old_true;
 	
-	tmp = pop_slist(&cond_false_stack);
-	push_slist(&cond_false_stack, pop_slist(&cond_true_stack));
-	push_slist(&cond_true_stack, tmp);
+	old_false = pop_slist(&cond_false_stack);
+	old_true = pop_slist(&cond_true_stack);
+
+	overwrite_slist(old_false, cur_slist);
+
+	push_slist(&cond_false_stack, old_true);
+	push_slist(&cond_true_stack, old_false);
 }
 
 
@@ -223,15 +231,6 @@ static int false_only_prepped = 0;
 void __prep_false_only_stack()
 {
 	false_only_prepped = 1;
-}
-
-static void overwrite_slist(struct state_list *from, struct state_list *to)
-{
-	struct smatch_state *tmp;
-
-	FOR_EACH_PTR(from, tmp) {
-		set_state_slist(&to, tmp->name, tmp->owner, tmp->sym, tmp->state);
-	} END_FOR_EACH_PTR(tmp);
 }
 
 void __use_false_only_stack()
