@@ -148,6 +148,7 @@ static void handle_logical(struct expression *expr)
 		__use_cond_false_states();
 	}
 	
+	__save_pre_cond_states();
 	__push_cond_stacks();
 
 	split_conditions(expr->right);
@@ -158,6 +159,7 @@ static void handle_logical(struct expression *expr)
 		__or_cond_states();
 	}
 
+	__pop_pre_cond_states();
 	__use_cond_true_states();
 }
 

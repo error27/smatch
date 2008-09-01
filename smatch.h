@@ -132,6 +132,7 @@ void __push_cond_stacks();
 void __and_cond_states();
 void __or_cond_states();
 void __save_pre_cond_states();
+void __pop_pre_cond_states();
 void __use_cond_states();
 
 void __push_continues();

@@ -211,6 +211,13 @@ void __save_pre_cond_states()
 	push_slist(&pre_cond_stack, clone_slist(cur_slist));
 }
 
+void __pop_pre_cond_states()
+{
+	struct state_list *tmp;
+	
+	tmp = pop_slist(&pre_cond_stack);
+	del_slist(&tmp);
+}
 
 static int false_only_prepped = 0;
 void __prep_false_only_stack()
