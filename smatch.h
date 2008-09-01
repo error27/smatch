@@ -17,6 +17,8 @@
 #include "parse.h"
 #include "expression.h"
 
+#define KERNEL
+
 struct state_history {
 	unsigned int loc;
 };
@@ -92,6 +94,7 @@ char * get_variable_from_expr(struct expression * expr,
 			      struct symbol **sym_ptr);
 char * get_variable_from_expr_simple(struct expression * expr,
 			      struct symbol **sym_ptr);
+int sym_name_is(const char *name, struct expression *expr);
 
 /* ----------------------------------------------------------------
    The stuff below is all used internally and shouldn't 
@@ -100,30 +103,37 @@ char * get_variable_from_expr_simple(struct expression * expr,
 
 /* smatch_flow.c */
 
-extern int __negate;
+void smatch (int argc, char **argv);
+void __split_expr(struct expression *expr);
+
+/* smatch_conditions */
 extern int __ands;
 extern int __ors;
-void smatch (int argc, char **argv);
-void split_conditions(struct expression *expr);
-unsigned int get_path_id();
+int __negate();
+void __split_whole_condition(struct expression *expr);
 
 /* smatch_states.c */
 
 extern int debug_states;
 
-void __first_and_clump();
-void __merge_and_clump();
-void __use_and_clumps();
-void __split_true_false_paths();
-void __split_false_states_mini();
-void __use_false_states_mini();
-void __pop_false_states_mini();
+void __prep_false_only_stack();
+void __use_false_only_stack();
 void __use_true_states();
 void __use_false_states();
 void __pop_false_states();
 void __merge_false_states();
 void __merge_true_states();
 void __pop_true_states();
+
+void __negate_cond_stacks();
+void __use_cond_true_states();
+void __use_cond_false_states();
+void __push_cond_stacks();
+void __and_cond_states();
+void __or_cond_states();
+void __save_pre_cond_states();
+void __pop_pre_cond_states();
+void __use_cond_states();
 
 void __push_continues();
 void __pop_continues();

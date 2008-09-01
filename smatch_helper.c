@@ -190,6 +190,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		return;
 	}
 	default:
+		(*complicated)++;
 		//printf("unknown type = %d\n", expr->type);
 		return;
 	}
@@ -251,4 +252,15 @@ char *get_variable_from_expr_simple(struct expression *expr,
 		return NULL;
 	}
 	return var_name;
+}
+
+int sym_name_is(const char *name, struct expression *expr)
+{
+	if (!expr)
+		return 0;
+	if (expr->type != EXPR_SYMBOL)
+		return 0;
+	if (!strcmp(expr->symbol_name->name, name))
+		return 1;
+	return 0;
 }
