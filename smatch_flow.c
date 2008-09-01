@@ -31,10 +31,10 @@ void __split_expr(struct expression *expr)
 	if (!expr)
 		return;
 
+	// printf("%d Debug expr_type %d\n", get_lineno(), expr->type);
+
 	__smatch_lineno = expr->pos.line;
 	__pass_to_client(expr, EXPR_HOOK);
-
-	// printf("%d Debug expr_type %d\n", get_lineno(), expr->type);
 
 	switch (expr->type) {
 	case EXPR_PREOP: 
@@ -73,7 +73,6 @@ void __split_expr(struct expression *expr)
 		return;
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
-		__split_true_false_paths();
 		__split_whole_condition(expr->conditional);
 		__use_true_states();
 		__split_expr(expr->cond_true);
@@ -137,14 +136,11 @@ static void handle_pre_loop(struct statement *stmt)
 {
 	split_statements(stmt->iterator_pre_statement);
 
-	__split_true_false_paths();
 	__push_continues();
 	__push_breaks();
 	__prep_false_only_stack();
 
-	if (stmt->iterator_pre_condition) {
-		__split_whole_condition(stmt->iterator_pre_condition);
-	}
+	__split_whole_condition(stmt->iterator_pre_condition);
 	__use_true_states();
 
 	split_statements(stmt->iterator_statement);
@@ -171,7 +167,6 @@ static void handle_post_loop(struct statement *stmt)
 	__push_breaks();
 	split_statements(stmt->iterator_statement);
 	
-	__split_true_false_paths();
 	__split_whole_condition(stmt->iterator_post_condition);
 	/* It would prossibly be cleaner to make this all one function */
 	__use_true_states();
@@ -216,7 +211,6 @@ static void split_statements(struct statement *stmt)
 		return;
 	}
 	case STMT_IF:
-		__split_true_false_paths();
 		__split_whole_condition(stmt->if_conditional);
 		__use_true_states();
 		split_statements(stmt->if_true);

@@ -116,13 +116,6 @@ void __split_whole_condition(struct expression *expr);
 
 extern int debug_states;
 
-void __first_and_clump();
-void __merge_and_clump();
-void __use_and_clumps();
-void __split_true_false_paths();
-void __split_false_states_mini();
-void __use_false_states_mini();
-void __pop_false_states_mini();
 void __prep_false_only_stack();
 void __use_false_only_stack();
 void __use_true_states();
@@ -131,6 +124,15 @@ void __pop_false_states();
 void __merge_false_states();
 void __merge_true_states();
 void __pop_true_states();
+
+void __negate_cond_stacks();
+void __use_cond_true_states();
+void __use_cond_false_states();
+void __push_cond_stacks();
+void __and_cond_states();
+void __or_cond_states();
+void __save_pre_cond_states();
+void __use_cond_states();
 
 void __push_continues();
 void __pop_continues();

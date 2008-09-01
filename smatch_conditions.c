@@ -48,51 +48,13 @@
 
 #define KERNEL
 
-int __ors = 0;
-int __ands = 0;
-
-static int negative = 0;
-int __negate()
-{
-	return negative;
-}
-
 static void split_conditions(struct expression *expr);
 
 static int is_logical_and(struct expression *expr)
 {
-	/* If you have if (!(a && b)) smatch translates that to 
-	 * if (!a || !b).  Logically those are the same.
-	 */
-
-	if ((!__negate() && expr->op == SPECIAL_LOGICAL_AND) ||
-	    (__negate() && expr->op == SPECIAL_LOGICAL_OR))
+	if (expr->op == SPECIAL_LOGICAL_AND)
 		return 1;
 	return 0;
-}
-
-static int is_logical_or(struct expression *expr)
-{
-	if ((!__negate() && expr->op == SPECIAL_LOGICAL_OR) ||
-	     (__negate() && expr->op == SPECIAL_LOGICAL_AND))
-		return 1;
-	return 0;
-}
-
-static void inc_ands_ors(struct expression *expr)
-{
-	if (is_logical_and(expr))
-		__ands++;
-	else if (is_logical_or(expr))
-		__ors++;
-}
-
-static void dec_ands_ors(struct expression *expr)
-{
-	if (is_logical_and(expr))
-		__ands--;
-	else if (is_logical_or(expr))
-		__ors--;
 }
 
 static int is_zero(struct expression *expr)
@@ -126,9 +88,8 @@ static int handle_zero_comparisons(struct expression *expr)
 
 	// "if (foo == 0)" is the same as "if (!foo)"
 	if (expr->op == SPECIAL_EQUAL) {
-		negative = (negative +  1)%2;
 		split_conditions(tmp);
-		negative = (negative +  1)%2;
+		__negate_cond_stacks();
 		return 1;
 	}
 
@@ -151,9 +112,8 @@ static int ignore_builtin_expect(struct expression *expr)
 static int handle_preop(struct expression *expr)
 {
 	if (expr->op == '!') {
-		negative = (negative +  1)%2;
 		split_conditions(expr->unop);
-		negative = (negative +  1)%2;
+		__negate_cond_stacks();
 		return 1;
 	}
 	if (expr->op == '(') {
@@ -165,35 +125,40 @@ static int handle_preop(struct expression *expr)
 
 static void handle_logical(struct expression *expr)
 {
-	static int __ors_reached;
-
-	inc_ands_ors(expr);
-	__split_false_states_mini();
+	/*
+	 * If we come to an "and" expr then:
+	 * We split the left side.
+	 * We keep all the current states.
+	 * We split the right side.
+	 * We keep all the states from both true sides.
+	 *
+	 * If it's an "or" expr then:
+	 * We save the current slist.
+	 * We split the left side.
+	 * We use the false states for the right side.
+	 * We split the right side.
+	 * We save all the states that are the same on both sides.
+	 */
 
 	split_conditions(expr->left);
-		
+
 	if (is_logical_and(expr)) {
-		SM_DEBUG("%d and\n", get_lineno());
-		__pop_false_states_mini();
-		split_conditions(expr->right);
-	} else if (is_logical_or(expr)) {
-		SM_DEBUG("%d or\n", get_lineno());
-		if (!__ors_reached) {
-			__ors_reached = 1;
-			__first_and_clump();
-		} else {
-			__merge_and_clump();
-		}
-		__use_false_states_mini();
-		split_conditions(expr->right);
+		__use_cond_true_states();
+	} else {
+		__use_cond_false_states();
 	}
-	dec_ands_ors(expr);
 	
-	if (__ands + __ors == 0) {
-		__merge_and_clump();
-		__use_and_clumps();
-		__ors_reached = 0;
+	__push_cond_stacks();
+
+	split_conditions(expr->right);
+
+	if (is_logical_and(expr)) {
+		__and_cond_states();
+	} else {
+		__or_cond_states();
 	}
+
+	__use_cond_true_states();
 }
 
 static void split_conditions(struct expression *expr)
@@ -225,9 +190,11 @@ static void split_conditions(struct expression *expr)
 
 void __split_whole_condition(struct expression *expr)
 {
-
+	SM_DEBUG("%d in __split_whole_condition\n", get_lineno());
 	__pass_to_client(expr, WHOLE_CONDITION_HOOK);
-	split_conditions(expr);
-	SM_DEBUG("%d __ands = %d __ors = %d __negate() = %d\n", get_lineno(),
-		 __ands, __ors, __negate());
+	__save_pre_cond_states();
+	__push_cond_stacks();
+	if (expr)
+		split_conditions(expr);
+	__use_cond_states();
 }
