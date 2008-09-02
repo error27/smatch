@@ -57,17 +57,6 @@ static int is_logical_and(struct expression *expr)
 	return 0;
 }
 
-static int is_zero(struct expression *expr)
-{
-	if (expr->type == EXPR_VALUE && expr->value == 0)
-		return 1;
-	if (expr->op == '(')
-		return is_zero(expr->unop);
-	if (expr->type == EXPR_CAST) 
-		return is_zero(expr->cast_expression);
-	return 0;
-}
-
 static int handle_zero_comparisons(struct expression *expr)
 {
 	struct expression *tmp = NULL;

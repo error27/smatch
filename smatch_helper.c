@@ -264,3 +264,54 @@ int sym_name_is(const char *name, struct expression *expr)
 		return 1;
 	return 0;
 }
+
+int get_value(struct expression *expr, int *discard)
+{
+	int dis = 0;
+	int ret = 0;
+
+	if (!expr)
+		return 0;
+	if (!discard)
+		discard = &dis;
+	if (*discard)
+		return 0;
+
+ 	switch (expr->type){
+	case EXPR_VALUE:
+		ret = expr->value;
+		break;
+	case EXPR_BINOP:
+		if (show_special(expr->op) && 
+		    !strcmp("*", show_special(expr->op)))
+			ret = get_value(expr->left, discard) 
+				* get_value(expr->right, discard);
+		break;
+	case EXPR_SIZEOF:
+		if (expr->cast_type && get_base_type(expr->cast_type))
+			ret = (get_base_type(expr->cast_type))->bit_size / 8;
+		if (expr->cast_expression)
+			;//printf("debugs %d\n", expr->cast_expression->type);
+		break;
+	default:
+		//printf("ouchies-->%d\n", expr->type);
+		*discard = 1;
+	}
+	if (*discard)
+		return 0;
+	return ret;
+}
+
+int is_zero(struct expression *expr)
+{
+	if (expr->type == EXPR_VALUE && expr->value == 0)
+		return 1;
+	if (expr->op == '(')
+		return is_zero(expr->unop);
+	if (expr->type == EXPR_CAST) 
+		return is_zero(expr->cast_expression);
+	return 0;	
+}
+
+
+

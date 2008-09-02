@@ -60,17 +60,6 @@ static void match_function_call_after(struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
-static int is_null(struct expression *expr)
-{
-	if (expr->type == EXPR_VALUE && expr->value == 0)
-		return 1;
-	if (expr->op == '(')
-		return is_null(expr->unop);
-	if (expr->type == EXPR_CAST) 
-		return is_null(expr->cast_expression);
-	return 0;	
-}
-
 static void match_assign(struct expression *expr)
 {
 	struct symbol *sym;
@@ -80,7 +69,7 @@ static void match_assign(struct expression *expr)
 	if (!name)
 		return;
 	name = alloc_string(name);
-	if (is_null(expr->right))
+	if (is_zero(expr->right))
 		set_state(name, my_id, sym, ISNULL);
 	else
 		set_state(name, my_id, sym, NONNULL);
@@ -135,7 +124,7 @@ static void match_declarations(struct symbol *sym)
 	if (sym->ident) {
 		const char * name;
 		name = sym->ident->name;
-		if (sym->initializer && is_null(sym->initializer))
+		if (sym->initializer && is_zero(sym->initializer))
 			set_state(name, my_id, sym, ISNULL);
 	}
 }

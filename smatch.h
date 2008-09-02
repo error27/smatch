@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 #include "lib.h"
 #include "allocate.h"
 #include "parse.h"
@@ -95,6 +96,8 @@ char * get_variable_from_expr(struct expression * expr,
 char * get_variable_from_expr_simple(struct expression * expr,
 			      struct symbol **sym_ptr);
 int sym_name_is(const char *name, struct expression *expr);
+int get_value(struct expression *expr, int *discard);
+int is_zero(struct expression *expr);
 
 /* ----------------------------------------------------------------
    The stuff below is all used internally and shouldn't 
@@ -107,10 +110,10 @@ void smatch (int argc, char **argv);
 void __split_expr(struct expression *expr);
 
 /* smatch_conditions */
-extern int __ands;
-extern int __ors;
-int __negate();
 void __split_whole_condition(struct expression *expr);
+
+/* smatch_extras.c */
+int known_condition_true(struct expression *expr);
 
 /* smatch_states.c */
 
