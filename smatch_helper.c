@@ -268,14 +268,14 @@ int sym_name_is(const char *name, struct expression *expr)
 int get_value(struct expression *expr, int *discard)
 {
 	int dis = 0;
-	int ret = 0;
+	int ret = UNDEFINED;
 
 	if (!expr)
-		return 0;
+		return UNDEFINED;
 	if (!discard)
 		discard = &dis;
 	if (*discard)
-		return 0;
+		return UNDEFINED;
 
  	switch (expr->type){
 	case EXPR_VALUE:
@@ -298,7 +298,7 @@ int get_value(struct expression *expr, int *discard)
 		*discard = 1;
 	}
 	if (*discard)
-		return 0;
+		return UNDEFINED;
 	return ret;
 }
 

@@ -45,6 +45,7 @@ enum hook_type {
 	WHOLE_CONDITION_HOOK,
 	FUNCTION_CALL_HOOK,
 	FUNCTION_CALL_AFTER_HOOK,
+	OP_HOOK,
 	DEREF_HOOK,
 	BASE_HOOK,
 	FUNC_DEF_HOOK,
@@ -66,8 +67,8 @@ do {                                                          \
 
 #define SM_DEBUG(msg...) do { if (debug_states) printf(msg); } while (0)
 
-#define NOTFOUND -2
-#define UNDEFINED -1
+#define NOTFOUND INT_MIN
+#define UNDEFINED INT_MIN + 1
 
 int get_state(const char *name, int owner, struct symbol *sym);
 void add_state(const char *name, int owner, struct symbol *sym, int state);
@@ -121,6 +122,7 @@ extern int debug_states;
 
 void __prep_false_only_stack();
 void __use_false_only_stack();
+void __pop_false_only_stack();
 void __use_true_states();
 void __use_false_states();
 void __pop_false_states();

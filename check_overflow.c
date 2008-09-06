@@ -13,43 +13,6 @@
 
 static int my_id;
 
-static int get_value(struct expression *expr, int *discard)
-{
-	int dis = 0;
-	int ret = 0;
-
-	if (!expr)
-		return 0;
-	if (!discard)
-		discard = &dis;
-	if (*discard)
-		return 0;
-
- 	switch (expr->type){
-	case EXPR_VALUE:
-		ret = expr->value;
-		break;
-	case EXPR_BINOP:
-		if (show_special(expr->op) && 
-		    !strcmp("*", show_special(expr->op)))
-			ret = get_value(expr->left, discard) 
-				* get_value(expr->right, discard);
-		break;
-	case EXPR_SIZEOF:
-		if (expr->cast_type && get_base_type(expr->cast_type))
-			ret = (get_base_type(expr->cast_type))->bit_size / 8;
-		if (expr->cast_expression)
-			;//printf("debugs %d\n", expr->cast_expression->type);
-		break;
-	default:
-		//printf("ouchies-->%d\n", expr->type);
-		*discard = 1;
-	}
-	if (*discard)
-		return 0;
-	return ret;
-}
-
 static int malloc_size(struct expression *expr)
 {
 	char *name;
@@ -86,7 +49,7 @@ static void match_declaration(struct symbol *sym)
 		set_state(name, my_id, NULL, base_type->bit_size / 8);
 	else {
 		size = malloc_size(sym->initializer);
-		if (size)
+		if (size > 0)
 			set_state(name, my_id, NULL, size);
 	}
 }
@@ -98,7 +61,7 @@ static void match_assignment(struct expression *expr)
 	name = alloc_string(name);
 	if (!name)
 		return;
-	if (malloc_size(expr->right))
+	if (malloc_size(expr->right) > 0)
 		set_state(name, my_id, NULL, malloc_size(expr->right));
 }
 

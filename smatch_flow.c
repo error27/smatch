@@ -39,6 +39,7 @@ void __split_expr(struct expression *expr)
 	switch (expr->type) {
 	case EXPR_PREOP: 
 	case EXPR_POSTOP:
+		__pass_to_client(expr, OP_HOOK);
 		if (expr->op == '*')
 			__pass_to_client(expr, DEREF_HOOK);
 		__split_expr(expr->unop);
@@ -117,7 +118,7 @@ static int is_forever_loop(struct statement *stmt)
 	if (!expr)
 		expr = stmt->iterator_post_condition;
 	if (!expr) {
-		// this is a for(;;) loop...
+		/* this is a for(;;) loop... */
 		return 1;
 	}
 
@@ -134,7 +135,11 @@ static int is_forever_loop(struct statement *stmt)
 
 static void handle_pre_loop(struct statement *stmt)
 {
+	int once_through; /* we go through the loop at least once */
+
 	split_statements(stmt->iterator_pre_statement);
+
+	once_through = known_condition_true(stmt->iterator_pre_condition);
 
 	__push_continues();
 	__push_breaks();
@@ -150,6 +155,10 @@ static void handle_pre_loop(struct statement *stmt)
 		__pop_continues();
 		__pop_false_states();
 		nullify_path();		
+	} else if (once_through) {
+		__merge_continues();
+		__pop_false_states();
+		__use_false_only_stack();
 	} else {
 		__merge_continues();
 		__merge_false_states();
