@@ -170,6 +170,7 @@ test-linearize.o: $(LIB_H)
 test-dissect.o: $(LIB_H)
 smatch_flow.o: $(LIB_H) smatch.h
 smatch_conditions.o: $(LIB_H) smatch.h
+smatch_extra.o: $(LIB_H) smatch.h
 smatch_hooks.o: $(LIB_H) smatch.h
 smatch_helper.o: $(LIB_H) smatch.h
 smatch_slist.o: $(LIB_H) smatch.h
