@@ -1,5 +1,5 @@
 /*
- * sparse/smatch_states.c
+ * sparse/smatch_slist.c
  *
  * Copyright (C) 2008 Dan Carpenter.
  *
@@ -298,12 +298,12 @@ struct state_list *get_slist_from_slist_stack(const char *name)
 	return NULL;
 }
 
-void overwrite_slist(struct state_list *from, struct state_list *to)
+void overwrite_slist(struct state_list *from, struct state_list **to)
 {
 	struct smatch_state *tmp;
 
 	FOR_EACH_PTR(from, tmp) {
-		set_state_slist(&to, tmp->name, tmp->owner, tmp->sym, tmp->state);
+		set_state_slist(to, tmp->name, tmp->owner, tmp->sym, tmp->state);
 	} END_FOR_EACH_PTR(tmp);
 }
 

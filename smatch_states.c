@@ -128,6 +128,7 @@ void clear_all_states()
 	nullify_path();
 	del_slist_stack(&true_stack);
 	del_slist_stack(&false_stack);
+	del_slist_stack(&false_only_stack);
 	del_slist_stack(&pre_cond_stack);
 	del_slist_stack(&cond_true_stack);
 	del_slist_stack(&cond_false_stack);
@@ -188,7 +189,7 @@ void __negate_cond_stacks()
 	old_false = pop_slist(&cond_false_stack);
 	old_true = pop_slist(&cond_true_stack);
 
-	overwrite_slist(old_false, cur_slist);
+	overwrite_slist(old_false, &cur_slist);
 
 	push_slist(&cond_false_stack, old_true);
 	push_slist(&cond_true_stack, old_false);
@@ -238,7 +239,16 @@ void __use_false_only_stack()
 	struct state_list *slist;
 
 	slist = pop_slist(&false_only_stack);
-	overwrite_slist(slist, cur_slist);
+	overwrite_slist(slist, &cur_slist);
+	del_slist(&slist);
+	false_only_prepped = 0;
+}
+
+void __pop_false_only_stack()
+{
+	struct state_list *slist;
+
+	slist = pop_slist(&false_only_stack);
 	del_slist(&slist);
 	false_only_prepped = 0;
 }
@@ -258,11 +268,11 @@ void __use_cond_states()
 	tmp = pop_slist(&pre_cond_stack);
 	tmp3 = clone_slist(tmp);
 	tmp2 = pop_slist(&cond_true_stack);
-	overwrite_slist(tmp2, tmp3);
+	overwrite_slist(tmp2, &tmp3);
 	push_slist(&true_stack, tmp3);
 
 	tmp2 = pop_slist(&cond_false_stack);
-	overwrite_slist(tmp2, tmp);
+	overwrite_slist(tmp2, &tmp);
 	push_slist(&false_stack, tmp);
 }
 
@@ -279,7 +289,7 @@ void __use_true_states()
 void __use_false_states()
 {
 	struct state_list *slist;
-	
+
 	push_slist(&true_stack, clone_slist(cur_slist));
 	nullify_path();
 	slist = pop_slist(&false_stack);
