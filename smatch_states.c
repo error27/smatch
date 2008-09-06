@@ -228,12 +228,6 @@ void __pop_pre_cond_states()
 	del_slist(&tmp);
 }
 
-static int false_only_prepped = 0;
-void __prep_false_only_stack()
-{
-	false_only_prepped = 1;
-}
-
 void __use_false_only_stack()
 {
 	struct state_list *slist;
@@ -241,7 +235,6 @@ void __use_false_only_stack()
 	slist = pop_slist(&false_only_stack);
 	overwrite_slist(slist, &cur_slist);
 	del_slist(&slist);
-	false_only_prepped = 0;
 }
 
 void __pop_false_only_stack()
@@ -250,18 +243,15 @@ void __pop_false_only_stack()
 
 	slist = pop_slist(&false_only_stack);
 	del_slist(&slist);
-	false_only_prepped = 0;
 }
 
 void __use_cond_states()
 {
 	struct state_list *tmp, *tmp2, *tmp3;
 
-	if (false_only_prepped) {
-		tmp = pop_slist(&cond_false_stack);	
-		push_slist(&false_only_stack, clone_slist(tmp));
-		push_slist(&cond_false_stack, tmp);
-	}
+	tmp = pop_slist(&cond_false_stack);	
+	push_slist(&false_only_stack, clone_slist(tmp));
+	push_slist(&cond_false_stack, tmp);
 
 	/* Everyone calls __use_true_states so setting up
 	   the true stack is enough here */

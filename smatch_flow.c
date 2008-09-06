@@ -80,6 +80,7 @@ void __split_expr(struct expression *expr)
 		__use_false_states();
 		__split_expr(expr->cond_false);
 		__merge_true_states();
+		__pop_false_only_stack();
 		return;
 	case EXPR_CALL:
 		__pass_to_client(expr, FUNCTION_CALL_HOOK);
@@ -143,7 +144,6 @@ static void handle_pre_loop(struct statement *stmt)
 
 	__push_continues();
 	__push_breaks();
-	__prep_false_only_stack();
 
 	__split_whole_condition(stmt->iterator_pre_condition);
 	__use_true_states();
@@ -189,6 +189,7 @@ static void handle_post_loop(struct statement *stmt)
 		__merge_continues();
 	}
 	__merge_breaks();
+	__pop_false_only_stack();
 }
 
 static void split_statements(struct statement *stmt)
@@ -226,6 +227,7 @@ static void split_statements(struct statement *stmt)
 		__use_false_states();
 		split_statements(stmt->if_false);
 		__merge_true_states();
+		__pop_false_only_stack();
 		return;
 	case STMT_ITERATOR:
 		if (stmt->iterator_pre_condition)

@@ -120,7 +120,6 @@ int known_condition_true(struct expression *expr);
 
 extern int debug_states;
 
-void __prep_false_only_stack();
 void __use_false_only_stack();
 void __pop_false_only_stack();
 void __use_true_states();
