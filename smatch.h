@@ -79,7 +79,9 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 int state_defined(const char *name, int owner, struct symbol *sym);
 
 struct state_list *get_all_states();
+extern int __null_path;
 void nullify_path();	   
+void __unnullify_path();	   
 void clear_all_states();
 
 char *get_filename();
@@ -122,12 +124,11 @@ extern int debug_states;
 
 void __use_false_only_stack();
 void __pop_false_only_stack();
-void __use_true_states();
+void __push_true_states();
 void __use_false_states();
 void __pop_false_states();
 void __merge_false_states();
 void __merge_true_states();
-void __pop_true_states();
 
 void __negate_cond_stacks();
 void __use_cond_true_states();
