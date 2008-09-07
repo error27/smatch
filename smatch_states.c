@@ -243,7 +243,8 @@ void __use_cond_states()
 	push_slist(&cond_false_stack, tmp);
 
 	/* Everyone calls __use_true_states so setting up
-	   the true stack is enough here */
+	   the true stack is enough here.  (We don't need
+	   to set up cur_slist)	*/
 	tmp = pop_slist(&pre_cond_stack);
 	tmp3 = clone_slist(tmp);
 	tmp2 = pop_slist(&cond_true_stack);
@@ -434,9 +435,10 @@ void __save_gotos(const char *name)
 {
 	struct state_list *slist;
 
-	slist = get_slist_from_slist_stack(name);
+	slist = get_slist_from_slist_stack(goto_stack, name);
 	if (slist) {
 		struct smatch_state *state;
+
 		FOR_EACH_PTR(cur_slist, state) {
 			merge_state_slist(&slist, state->name, state->owner,
 					  state->sym, state->state);
@@ -445,6 +447,7 @@ void __save_gotos(const char *name)
 	} else {
 		struct state_list *slist;
 		struct named_slist *named_slist;
+
 		slist = clone_slist(cur_slist);
 		named_slist = alloc_named_slist(name, slist);
 		add_ptr_list(&goto_stack, named_slist);
@@ -455,6 +458,6 @@ void __merge_gotos(const char *name)
 {
 	struct state_list *slist;
 	
-	slist = get_slist_from_slist_stack(name);
+	slist = get_slist_from_slist_stack(goto_stack, name);
 	merge_slist(slist);
 }

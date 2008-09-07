@@ -286,12 +286,12 @@ void or_slist_stack(struct state_list_stack **slist_stack)
 //	del_slist(&two);
 }
 
-extern struct slist_stack *goto_stack;
-struct state_list *get_slist_from_slist_stack(const char *name)
+struct state_list *get_slist_from_slist_stack(struct slist_stack *stack,
+					      const char *name)
 {
 	struct named_slist *tmp;
 
-	FOR_EACH_PTR(goto_stack, tmp) {
+	FOR_EACH_PTR(stack, tmp) {
 		if (!strcmp(tmp->name, name))
 			return tmp->slist;
 	} END_FOR_EACH_PTR(tmp);

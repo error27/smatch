@@ -62,6 +62,7 @@ void and_slist_stack(struct state_list_stack **slist_stack,
 
 void or_slist_stack(struct state_list_stack **slist_stack);
 
-struct state_list *get_slist_from_slist_stack(const char *name);
+struct state_list *get_slist_from_slist_stack(struct slist_stack *stack,
+					      const char *name);
 
 void overwrite_slist(struct state_list *from, struct state_list **to);
