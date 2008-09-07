@@ -154,17 +154,18 @@ static void handle_pre_loop(struct statement *stmt)
 		__use_false_only_stack();
 		__pop_continues();
 		__pop_false_states();
-		nullify_path();		
+		__use_breaks();
 	} else if (once_through) {
 		__merge_continues();
 		__pop_false_states();
 		__use_false_only_stack();
+		__merge_breaks();
 	} else {
 		__merge_continues();
 		__merge_false_states();
 		__use_false_only_stack();
+		__merge_breaks();
 	}
-	__merge_breaks();
 }
 
 /*
@@ -184,11 +185,12 @@ static void handle_post_loop(struct statement *stmt)
 
 	if (is_forever_loop(stmt)) {
 		__pop_continues();
-		nullify_path();
+		__use_breaks();
+
 	} else {
 		__merge_continues();
+		__merge_breaks();
 	}
-	__merge_breaks();
 	__pop_false_only_stack();
 }
 

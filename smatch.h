@@ -148,6 +148,7 @@ void __push_breaks();
 void __pop_breaks();
 void __process_breaks();
 void __merge_breaks();
+void __use_breaks();
 
 void __save_switch_states();
 void __pop_switches();

@@ -49,26 +49,21 @@ void __print_cur_slist()
 
 void set_state(const char *name, int owner, struct symbol *sym, int state)
 {
-	struct smatch_state *tmp;
-
 	if (!name)
 		return;
 	
-	FOR_EACH_PTR(cur_slist, tmp) {
-		if (tmp->owner == owner && tmp->sym == sym 
-		    && !strcmp(tmp->name, name)){
-			SM_DEBUG("%d state change name='%s' owner=%d: %d => %d\n"
-				 , get_lineno(), name, owner, tmp->state, state);
-			add_history(tmp);
-			tmp->state = state;
-			return;
-		}
-	} END_FOR_EACH_PTR(tmp);
-	SM_DEBUG("%d new state. name='%s' owner=%d: %d\n", get_lineno(), name,
-		 owner, state);
-	tmp = alloc_state(name, owner, sym, state);
-	add_state_slist(&cur_slist, tmp);
-
+	if (debug_states) {
+		int s;
+		
+		s = get_state(name, owner, sym);
+		if (s == NOTFOUND)
+			printf("%d new state. name='%s' owner=%d: %d\n", 
+			       get_lineno(), name, owner, state);
+		else
+			printf("%d state change name='%s' owner=%d: %d => %d\n",
+			       get_lineno(), name, owner, s, state);
+	}
+	set_state_slist(&cur_slist, name, owner, sym, state);
 }
 
 int get_state(const char *name, int owner, struct symbol *sym)
@@ -154,21 +149,15 @@ static void __use_cond_stack(struct state_list_stack **stack)
 	struct state_list *slist;
 	struct smatch_state *tmp;
 	
-	nullify_path();
-
-	slist = pop_slist(&pre_cond_stack);
-	merge_slist(slist);
-	push_slist(&pre_cond_stack, slist);
+	del_slist(&cur_slist);
+	cur_slist = pop_slist(&pre_cond_stack);
+	push_slist(&pre_cond_stack, clone_slist(cur_slist));
 
 	slist = pop_slist(stack);
-
 	FOR_EACH_PTR(slist, tmp) {
 		set_state(tmp->name, tmp->owner, tmp->sym, tmp->state);
 	} END_FOR_EACH_PTR(tmp);
-	
-
 	push_slist(stack, slist);
-
 }
 
 
@@ -268,23 +257,15 @@ void __use_cond_states()
 
 void __use_true_states()
 {
-	struct state_list *slist;
-
-	nullify_path();
-	slist = pop_slist(&true_stack);
-	merge_slist(slist);
-	del_slist(&slist);
+	del_slist(&cur_slist);
+	cur_slist = pop_slist(&true_stack);
 }
 
 void __use_false_states()
 {
-	struct state_list *slist;
-
 	push_slist(&true_stack, clone_slist(cur_slist));
-	nullify_path();
-	slist = pop_slist(&false_stack);
-	merge_slist(slist);
-	del_slist(&slist);
+	del_slist(&cur_slist);
+	cur_slist = pop_slist(&false_stack);
 }
 
 void __pop_false_states()
@@ -375,6 +356,12 @@ void __merge_breaks()
 	slist = pop_slist(&break_stack);
 	merge_slist(slist);
 	del_slist(&slist);
+}
+
+void __use_breaks()
+{
+	del_slist(&cur_slist);
+	cur_slist = pop_slist(&break_stack);
 }
 
 void __pop_breaks() 
