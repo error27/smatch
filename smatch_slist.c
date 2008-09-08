@@ -266,24 +266,23 @@ void or_slist_stack(struct state_list_stack **slist_stack)
 	struct state_list *one;
 	struct state_list *two;
 	struct state_list *res = NULL;
- 
-	struct smatch_state *tmp;
+ 	struct smatch_state *tmp;
+	int s;
 
 	one = pop_slist(slist_stack);
 	two = pop_slist(slist_stack);
- 
+
 	FOR_EACH_PTR(one, tmp) {
-		if (tmp && 
-		    get_state_slist(two, tmp->name, tmp->owner, tmp->sym)) {
-			set_state_slist(&res, tmp->name, tmp->owner, tmp->sym,
-					tmp->state);
-		}
+		s = get_state_slist(two, tmp->name, tmp->owner, tmp->sym);
+		s = merge_states(tmp->name, tmp->owner, tmp->sym,
+				 tmp->state, s);
+		set_state_slist(&res, tmp->name, tmp->owner, tmp->sym, s);
 	} END_FOR_EACH_PTR(tmp);
 
 	push_slist(slist_stack, res);
 
-//	del_slist(&one);
-//	del_slist(&two);
+	del_slist(&one);
+	del_slist(&two);
 }
 
 struct state_list *get_slist_from_slist_stack(struct slist_stack *stack,
