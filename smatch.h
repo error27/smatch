@@ -80,6 +80,7 @@ int state_defined(const char *name, int owner, struct symbol *sym);
 
 struct state_list *get_all_states();
 extern int __null_path;
+void set_null_path();
 void nullify_path();	   
 void __unnullify_path();	   
 void clear_all_states();

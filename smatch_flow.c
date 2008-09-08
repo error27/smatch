@@ -79,6 +79,7 @@ void __split_expr(struct expression *expr)
 		__push_true_states();
 		__use_false_states();
 		__split_expr(expr->cond_false);
+		printf("expr_select\n");
 		__merge_true_states();
 		__pop_false_only_stack();
 		return;
@@ -150,7 +151,7 @@ static void handle_pre_loop(struct statement *stmt)
 	split_statements(stmt->iterator_statement);
 	split_statements(stmt->iterator_post_statement);
 	if (is_forever_loop(stmt)) {
-		__use_false_only_stack();
+		__pop_false_only_stack();
 		__pop_continues();
 		__pop_false_states();
 		__use_breaks();
@@ -184,8 +185,10 @@ static void handle_post_loop(struct statement *stmt)
 		__use_breaks();
 
 	} else {
+		set_null_path();
 		__merge_continues();
 		__merge_breaks();
+		__unnullify_path();
 	}
 	__pop_false_only_stack();
 }
@@ -206,6 +209,7 @@ static void split_statements(struct statement *stmt)
 	case STMT_RETURN:
 		__pass_to_client(stmt, RETURN_HOOK);
 		__split_expr(stmt->ret_value);
+		//set_null_path();
 		nullify_path();
 		return;
 	case STMT_EXPRESSION:
@@ -224,6 +228,7 @@ static void split_statements(struct statement *stmt)
 		__push_true_states();
 		__use_false_states();
 		split_statements(stmt->if_false);
+		printf("stmt_if\n");
 		__merge_true_states();
 		__unnullify_path();
 		__pop_false_only_stack();
@@ -243,6 +248,7 @@ static void split_statements(struct statement *stmt)
 		__save_switch_states();
 		__push_default();
 		__push_breaks();
+		//set_null_path();
 		nullify_path();
 		split_statements(stmt->switch_statement);
 		if (!__pop_default())
@@ -281,6 +287,7 @@ static void split_statements(struct statement *stmt)
 			   stmt->goto_label->ident) {
 			__save_gotos(stmt->goto_label->ident->name);
 		}
+		//set_null_path();
 		nullify_path();
 		return;
 	case STMT_NONE:

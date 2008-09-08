@@ -57,6 +57,7 @@ void merge_state_stack(struct state_list_stack **stack, const char *name,
 		       int owner, struct symbol *sym, int state);
 
 void merge_slist(struct state_list *slist);
+void merge_slist_new(struct state_list *slist);
 void and_slist_stack(struct state_list_stack **slist_stack, 
 		     struct state_list *tmp_slist);
 

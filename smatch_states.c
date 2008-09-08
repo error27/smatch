@@ -112,11 +112,16 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 }
 
 int __null_path;
-void nullify_path()
+void set_null_path()
 {
 	printf("debug.  nullifying path\n");
-	del_slist(&cur_slist);
  	__null_path = 1;
+}
+
+void nullify_path()
+{
+	del_slist(&cur_slist);
+	set_null_path();
 }
 
 void __unnullify_path()
@@ -152,6 +157,15 @@ void __push_cond_stacks()
 	push_slist(&cond_true_stack, NULL);
 	push_slist(&cond_false_stack, NULL);
 }
+
+/*
+ * This combines the pre cond states with either the true or false states.
+ * For example:
+ * a = kmalloc() ; if (a !! foo(a)
+ * In the pre state a is possibly null.  In the true state it is non null.
+ * In the false state it is null.  Combine the pre and the false to get
+ * that when we call 'foo', 'a' is null.
+ */
 
 static void __use_cond_stack(struct state_list_stack **stack)
 {
@@ -289,7 +303,8 @@ void __merge_false_states()
 	struct state_list *slist;
 
 	slist = pop_slist(&false_stack);
-	merge_slist(slist);
+	printf("%d in __merge_false_states\n", get_lineno());
+	merge_slist_new(slist);
 	del_slist(&slist);
 }
 
@@ -298,7 +313,8 @@ void __merge_true_states()
 	struct state_list *slist;
 
 	slist = pop_slist(&true_stack);
-	merge_slist(slist);
+	printf("%d in __merge_true_states\n", get_lineno());
+	merge_slist_new(slist);
 	del_slist(&slist);
 }
 
