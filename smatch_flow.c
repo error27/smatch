@@ -75,8 +75,8 @@ void __split_expr(struct expression *expr)
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
 		__split_whole_condition(expr->conditional);
-		__use_true_states();
 		__split_expr(expr->cond_true);
+		__push_true_states();
 		__use_false_states();
 		__split_expr(expr->cond_false);
 		__merge_true_states();
@@ -146,7 +146,6 @@ static void handle_pre_loop(struct statement *stmt)
 	__push_breaks();
 
 	__split_whole_condition(stmt->iterator_pre_condition);
-	__use_true_states();
 
 	split_statements(stmt->iterator_statement);
 	split_statements(stmt->iterator_post_statement);
@@ -178,10 +177,7 @@ static void handle_post_loop(struct statement *stmt)
 	split_statements(stmt->iterator_statement);
 	
 	__split_whole_condition(stmt->iterator_post_condition);
-	/* It would prossibly be cleaner to make this all one function */
-	__use_true_states();
 	__use_false_states();
-	__pop_true_states();
 
 	if (is_forever_loop(stmt)) {
 		__pop_continues();
@@ -224,11 +220,12 @@ static void split_statements(struct statement *stmt)
 	}
 	case STMT_IF:
 		__split_whole_condition(stmt->if_conditional);
-		__use_true_states();
 		split_statements(stmt->if_true);
+		__push_true_states();
 		__use_false_states();
 		split_statements(stmt->if_false);
 		__merge_true_states();
+		__unnullify_path();
 		__pop_false_only_stack();
 		return;
 	case STMT_ITERATOR:
@@ -255,6 +252,7 @@ static void split_statements(struct statement *stmt)
 		return;
 	case STMT_CASE:
 		__merge_switches();
+		__unnullify_path();
 		if (!stmt->case_expression)
 			__set_default();
 		__split_expr(stmt->case_expression);
@@ -351,7 +349,9 @@ static void split_functions(struct symbol_list *sym_list)
 			if (sym->ident)
 				cur_func = sym->ident->name;
 			__smatch_lineno = sym->pos.line;
+			SM_DEBUG("new function:  %s\n", cur_func);
 			__pass_to_client(sym, FUNC_DEF_HOOK);
+			__unnullify_path();
 			split_statements(base_type->stmt);
 			__pass_to_client(sym, END_FUNC_HOOK);
 			cur_func = NULL;
