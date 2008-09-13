@@ -264,8 +264,6 @@ void and_slist_stack(struct state_list_stack **slist_stack,
 	int tmp_state;
 
 	FOR_EACH_PTR(tmp_slist, tmp) {
-		if (!tmp)
-			continue;
 		tmp_state = get_state_stack(*slist_stack, tmp->name,
 					    tmp->owner, tmp->sym);
 		if (tmp_state >= 0 && tmp_state != tmp->state) {
