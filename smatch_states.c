@@ -338,12 +338,14 @@ void __merge_continues()
 void __push_breaks() 
 { 
 	push_slist(&break_stack, NULL);
+	set_state_stack(&break_stack, "__smatch_break_used", 0, NULL, 0);
 }
 
 void __process_breaks()
 {
 	struct smatch_state *state;
 
+	set_state_stack(&break_stack, "__smatch_break_used", 0, NULL, 1);
 	FOR_EACH_PTR(cur_slist, state) {
 		merge_state_stack(&break_stack, state->name, state->owner, 
 				  state->sym, state->state);
@@ -353,16 +355,31 @@ void __process_breaks()
 void __merge_breaks()
 {
 	struct state_list *slist;
+	int tmp;
 
 	slist = pop_slist(&break_stack);
-	merge_slist(slist);
+	tmp = get_state_slist(slist, "__smatch_break_used", 0, NULL);
+	delete_state_slist(&slist, "__smatch_break_used", 0, NULL);
+	if (tmp == 1)
+		merge_slist(slist);
 	del_slist(&slist);
 }
 
 void __use_breaks()
 {
+	struct state_list *slist;
+	int tmp;
+
 	del_slist(&cur_slist);
-	cur_slist = pop_slist(&break_stack);
+	slist = pop_slist(&break_stack);
+
+	tmp = get_state_slist(slist, "__smatch_break_used", 0, NULL);
+	delete_state_slist(&slist, "__smatch_break_used", 0, NULL);
+
+	if (tmp == 1)
+		cur_slist = slist;
+	else
+		del_slist(&slist);
 }
 
 void __pop_breaks() 
