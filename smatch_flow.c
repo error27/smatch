@@ -154,6 +154,10 @@ static void handle_pre_loop(struct statement *stmt)
 		__pop_false_only_stack();
 		__pop_continues();
 		__pop_false_states();
+		if (!__break_called()) {
+			printf("%d forever loop\n", get_lineno());
+			set_null_path();
+		}
 		__use_breaks();
 	} else if (once_through) {
 		__merge_continues();

@@ -321,6 +321,7 @@ void __merge_true_states()
 void __push_continues() 
 { 
 	push_slist(&continue_stack, NULL);
+	set_state_stack(&continue_stack, "__smatch_continue_used", 0, NULL, 0);
 }
 
 void __pop_continues() 
@@ -335,6 +336,7 @@ void __process_continues()
 {
 	struct smatch_state *state;
 
+	set_state_stack(&continue_stack, "__smatch_continue_used", 1, NULL, 0);
 	FOR_EACH_PTR(cur_slist, state) {
 		merge_state_stack(&continue_stack, state->name, state->owner,
 				  state->sym, state->state);
@@ -344,10 +346,21 @@ void __process_continues()
 void __merge_continues()
 {
 	struct state_list *slist;
+	int tmp;
 
 	slist = pop_slist(&continue_stack);
-	merge_slist(slist);
+	tmp = get_state_slist(slist, "__smatch_continue_used", 0, NULL);
+	delete_state_slist(&slist, "__smatch_continue_used", 0, NULL);
+	if (tmp == 1)
+		merge_slist(slist);
 	del_slist(&slist);
+}
+
+int __break_called()
+{
+	if (get_state_stack(break_stack, "__smatch_break_used", 0, NULL) == 1)
+		return 1;
+	return 0;
 }
 
 void __push_breaks() 

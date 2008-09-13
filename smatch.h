@@ -146,6 +146,7 @@ void __pop_continues();
 void __process_continues();
 void __merge_continues();
 
+int __break_called();
 void __push_breaks();
 void __pop_breaks();
 void __process_breaks();
