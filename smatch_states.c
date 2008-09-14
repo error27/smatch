@@ -170,16 +170,14 @@ void __push_cond_stacks()
 static void __use_cond_stack(struct state_list_stack **stack)
 {
 	struct state_list *slist;
-	struct smatch_state *tmp;
 	
 	del_slist(&cur_slist);
+
 	cur_slist = pop_slist(&pre_cond_stack);
 	push_slist(&pre_cond_stack, clone_slist(cur_slist));
 
 	slist = pop_slist(stack);
-	FOR_EACH_PTR(slist, tmp) {
-		set_state(tmp->name, tmp->owner, tmp->sym, tmp->state);
-	} END_FOR_EACH_PTR(tmp);
+	overwrite_slist(slist, &cur_slist);
 	push_slist(stack, slist);
 }
 
@@ -259,24 +257,22 @@ void __pop_false_only_stack()
 
 void __use_cond_states()
 {
-	struct state_list *tmp, *tmp2, *tmp3;
+	struct state_list *pre, *pre_clone, *false_states, *true_states;
 
-	tmp = pop_slist(&cond_false_stack);	
-	push_slist(&false_only_stack, clone_slist(tmp));
-	push_slist(&cond_false_stack, tmp);
+	pre = pop_slist(&pre_cond_stack);
+	pre_clone = clone_slist(pre);
+	true_states = pop_slist(&cond_true_stack);
+	false_states = pop_slist(&cond_false_stack);
 
-	tmp = pop_slist(&pre_cond_stack);
-	tmp3 = clone_slist(tmp);
-	tmp2 = pop_slist(&cond_true_stack);
-	overwrite_slist(tmp2, &tmp3);
+	push_slist(&false_only_stack, clone_slist(false_states));
 
 	/* we use the true states right away */
 	del_slist(&cur_slist);
-	cur_slist = tmp3;
+	overwrite_slist(true_states, &pre);
+	cur_slist = pre;
 
-	tmp2 = pop_slist(&cond_false_stack);
-	overwrite_slist(tmp2, &tmp);
-	push_slist(&false_stack, tmp);
+	overwrite_slist(false_states, &pre_clone);
+	push_slist(&false_stack, pre_clone);
 }
 
 void __push_true_states()
