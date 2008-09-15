@@ -79,7 +79,6 @@ void __split_expr(struct expression *expr)
 		__push_true_states();
 		__use_false_states();
 		__split_expr(expr->cond_false);
-		printf("expr_select\n");
 		__merge_true_states();
 		__pop_false_only_stack();
 		return;
@@ -155,7 +154,6 @@ static void handle_pre_loop(struct statement *stmt)
 		__pop_continues();
 		__pop_false_states();
 		if (!__break_called()) {
-			printf("%d forever loop\n", get_lineno());
 			set_null_path();
 		}
 		__use_breaks();
@@ -192,7 +190,6 @@ static void handle_post_loop(struct statement *stmt)
 		set_null_path();
 		__merge_continues();
 		__merge_breaks();
-		__unnullify_path();
 	}
 	__pop_false_only_stack();
 }
@@ -232,9 +229,7 @@ static void split_statements(struct statement *stmt)
 		__push_true_states();
 		__use_false_states();
 		split_statements(stmt->if_false);
-		printf("stmt_if\n");
 		__merge_true_states();
-		__unnullify_path();
 		__pop_false_only_stack();
 		return;
 	case STMT_ITERATOR:
@@ -262,7 +257,6 @@ static void split_statements(struct statement *stmt)
 		return;
 	case STMT_CASE:
 		__merge_switches();
-		__unnullify_path();
 		if (!stmt->case_expression)
 			__set_default();
 		__split_expr(stmt->case_expression);

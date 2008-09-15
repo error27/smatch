@@ -17,8 +17,7 @@ void register_smatch_extra(int id);
 void register_overflow(int id);
 
 const reg_func reg_funcs[] = {
-	&register_smatch_extra, /* Smatch extra is hard coded to
-				   0. Don't touch.*/
+	&register_smatch_extra,
 	&register_derefed_params,
 	&register_null_deref,
 	&register_overflow,
@@ -29,8 +28,10 @@ int main(int argc, char **argv)
 {
 	int i;
 	reg_func func;
-
-	for(i = 0; (func = reg_funcs[i]); i++){
+	
+	/* The script IDs start at 1.
+	   0 is used for internal stuff. */
+	for(i = 1; (func = reg_funcs[i]); i++){
 		func(i);
 	}
 	

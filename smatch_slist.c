@@ -225,32 +225,23 @@ void merge_slist(struct state_list *slist)
 {
 	struct smatch_state *state;
 
-	FOR_EACH_PTR(slist, state) {
-		merge_state_slist(&cur_slist, state->name, state->owner,
-				  state->sym, state->state);
-	} END_FOR_EACH_PTR(state);
-}
-
-void merge_slist_new(struct state_list *slist)
-{
-	struct smatch_state *state;
-
-	FOR_EACH_PTR(slist, state) {
-		merge_state_slist(&cur_slist, state->name, state->owner,
-				  state->sym, state->state);
-	} END_FOR_EACH_PTR(state);
-
-	if (!__null_path) {
-		printf("messing with unnull path\n");
-		FOR_EACH_PTR(cur_slist, state) {
-			if (get_state_slist(slist, state->name, state->owner,
-					    state->sym) == NOTFOUND) {
-				printf("%s not found in the new path\n", state->name);
-				merge_state_slist(&cur_slist, state->name, state->owner,
-						  state->sym, NOTFOUND);
-			}
-		} END_FOR_EACH_PTR(state);
+	if (get_state_slist(slist, "null_path", 0, NULL) == 1) {
+		SM_DEBUG("%d ignoring merge of null path\n", get_lineno());
+		return;
 	}
+
+	FOR_EACH_PTR(slist, state) {
+		merge_state_slist(&cur_slist, state->name, state->owner,
+				  state->sym, state->state);
+	} END_FOR_EACH_PTR(state);
+
+	FOR_EACH_PTR(cur_slist, state) {
+		if (get_state_slist(slist, state->name, state->owner,
+				    state->sym) == NOTFOUND) {
+			merge_state_slist(&cur_slist, state->name, state->owner,
+					  state->sym, NOTFOUND);
+		}
+	} END_FOR_EACH_PTR(state);
 }
 
 /*

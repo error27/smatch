@@ -111,11 +111,9 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 
 }
 
-int __null_path;
 void set_null_path()
 {
-	printf("debug.  nullifying path\n");
- 	__null_path = 1;
+	set_state("null_path", 0, NULL, 1);
 }
 
 void nullify_path()
@@ -126,8 +124,7 @@ void nullify_path()
 
 void __unnullify_path()
 {
-	printf("debug.  path is now nonnull\n");
- 	__null_path = 0;
+	set_state("null_path", 0, NULL, 0);
 }
 
 void clear_all_states()
@@ -257,20 +254,19 @@ void __pop_false_only_stack()
 
 void __use_cond_states()
 {
-	struct state_list *pre, *pre_clone, *false_states, *true_states;
+	struct state_list *pre, *pre_clone, *true_states, *false_states;
 
 	pre = pop_slist(&pre_cond_stack);
 	pre_clone = clone_slist(pre);
+
 	true_states = pop_slist(&cond_true_stack);
-	false_states = pop_slist(&cond_false_stack);
-
-	push_slist(&false_only_stack, clone_slist(false_states));
-
+	overwrite_slist(true_states, &pre);
 	/* we use the true states right away */
 	del_slist(&cur_slist);
-	overwrite_slist(true_states, &pre);
 	cur_slist = pre;
 
+	false_states = pop_slist(&cond_false_stack);	
+	push_slist(&false_only_stack, clone_slist(false_states));
 	overwrite_slist(false_states, &pre_clone);
 	push_slist(&false_stack, pre_clone);
 }
@@ -299,8 +295,7 @@ void __merge_false_states()
 	struct state_list *slist;
 
 	slist = pop_slist(&false_stack);
-	printf("%d in __merge_false_states\n", get_lineno());
-	merge_slist_new(slist);
+	merge_slist(slist);
 	del_slist(&slist);
 }
 
@@ -309,8 +304,7 @@ void __merge_true_states()
 	struct state_list *slist;
 
 	slist = pop_slist(&true_stack);
-	printf("%d in __merge_true_states\n", get_lineno());
-	merge_slist_new(slist);
+	merge_slist(slist);
 	del_slist(&slist);
 }
 
@@ -500,5 +494,6 @@ void __merge_gotos(const char *name)
 	struct state_list *slist;
 	
 	slist = get_slist_from_slist_stack(goto_stack, name);
-	merge_slist(slist);
+	if (slist)
+		merge_slist(slist);
 }
