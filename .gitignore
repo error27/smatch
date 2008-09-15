@@ -20,6 +20,7 @@ example
 test-unssa
 ctags
 c2xml
+smatch
 
 # tags
 tags
