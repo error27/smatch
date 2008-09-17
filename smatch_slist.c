@@ -12,10 +12,10 @@
 #include "smatch.h"
 #include "smatch_slist.h"
 
-ALLOCATOR(smatch_state, "smatch state");
+ALLOCATOR(sm_state, "smatch state");
 ALLOCATOR(named_slist, "named slist");
 
-void add_history(struct smatch_state *state)
+void add_history(struct sm_state *state)
 {
 	struct state_history *tmp;
 
@@ -26,10 +26,10 @@ void add_history(struct smatch_state *state)
 	add_ptr_list(&state->line_history, tmp);
 }
 
-struct smatch_state *alloc_state(const char *name, int owner, 
+struct sm_state *alloc_state(const char *name, int owner, 
 				 struct symbol *sym, int state)
 {
-	struct smatch_state *sm_state = __alloc_smatch_state(0);
+	struct sm_state *sm_state = __alloc_sm_state(0);
 
 	sm_state->name = (char *)name;
 	sm_state->owner = owner;
@@ -41,15 +41,15 @@ struct smatch_state *alloc_state(const char *name, int owner,
 	return sm_state;
 }
 
-struct smatch_state *clone_state(struct smatch_state *s)
+struct sm_state *clone_state(struct sm_state *s)
 {
 	return alloc_state(s->name, s->owner, s->sym, s->state);
 }
 
 struct state_list *clone_slist(struct state_list *from_slist)
 {
-	struct smatch_state *state;
-	struct smatch_state *tmp;
+	struct sm_state *state;
+	struct sm_state *tmp;
 	struct state_list *to_slist = NULL;
 
 	FOR_EACH_PTR(from_slist, state) {
@@ -82,7 +82,7 @@ int merge_states(const char *name, int owner, struct symbol *sym,
 void merge_state_slist(struct state_list **slist, const char *name, int owner,
 		       struct symbol *sym, int state)
 {
-	struct smatch_state *tmp;
+	struct sm_state *tmp;
 	int s;
 
 	FOR_EACH_PTR(*slist, tmp) {
@@ -103,7 +103,7 @@ void merge_state_slist(struct state_list **slist, const char *name, int owner,
 int get_state_slist(struct state_list *slist, const char *name, int owner,
 		    struct symbol *sym)
 {
-	struct smatch_state *state;
+	struct sm_state *state;
 
 	if (!name)
 		return NOTFOUND;
@@ -116,7 +116,7 @@ int get_state_slist(struct state_list *slist, const char *name, int owner,
 	return NOTFOUND;
 }
 
-void add_state_slist(struct state_list **slist, struct smatch_state *state)
+void add_state_slist(struct state_list **slist, struct sm_state *state)
 {
 	add_ptr_list(slist, state);
 }
@@ -124,7 +124,7 @@ void add_state_slist(struct state_list **slist, struct smatch_state *state)
 void set_state_slist(struct state_list **slist, const char *name, int owner,
 		     struct symbol *sym, int state)
 {
-	struct smatch_state *tmp;
+	struct sm_state *tmp;
 
 	FOR_EACH_PTR(*slist, tmp) {
 		if (tmp->owner == owner && tmp->sym == sym 
@@ -140,14 +140,14 @@ void set_state_slist(struct state_list **slist, const char *name, int owner,
 void delete_state_slist(struct state_list **slist, const char *name, int owner,
 			struct symbol *sym)
 {
-	struct smatch_state *state;
+	struct sm_state *state;
 
 	FOR_EACH_PTR(*slist, state) {
 		if (state->owner == owner && state->sym == sym 
 		    && !strcmp(state->name, name)){
 			delete_ptr_list_entry((struct ptr_list **)slist,
 					      state, 1);
-			__free_smatch_state(state);
+			__free_sm_state(state);
 			return;
 		}
 	} END_FOR_EACH_PTR(state);
@@ -223,7 +223,7 @@ void merge_state_stack(struct state_list_stack **stack, const char *name,
 
 void merge_slist(struct state_list *slist)
 {
-	struct smatch_state *state;
+	struct sm_state *state;
 
 	if (!slist) {
 		return;
@@ -250,7 +250,7 @@ void merge_slist(struct state_list *slist)
 void and_slist_stack(struct state_list_stack **slist_stack,
 		     struct state_list *tmp_slist)
 {
-	struct smatch_state *tmp;
+	struct sm_state *tmp;
 	int tmp_state;
 
 	FOR_EACH_PTR(tmp_slist, tmp) {
@@ -276,7 +276,7 @@ void or_slist_stack(struct state_list_stack **slist_stack)
 	struct state_list *one;
 	struct state_list *two;
 	struct state_list *res = NULL;
- 	struct smatch_state *tmp;
+ 	struct sm_state *tmp;
 	int s;
 
 	one = pop_slist(slist_stack);
@@ -309,7 +309,7 @@ struct state_list *get_slist_from_slist_stack(struct slist_stack *stack,
 
 void overwrite_slist(struct state_list *from, struct state_list **to)
 {
-	struct smatch_state *tmp;
+	struct sm_state *tmp;
 
 	FOR_EACH_PTR(from, tmp) {
 		set_state_slist(to, tmp->name, tmp->owner, tmp->sym, tmp->state);

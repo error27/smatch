@@ -33,7 +33,7 @@ int debug_states;
 
 void __print_slist(struct state_list *slist)
 {
-	struct smatch_state *state;
+	struct sm_state *state;
 
 	printf("dumping slist at %d\n", get_lineno());
 	FOR_EACH_PTR(slist, state) {
@@ -84,7 +84,7 @@ void delete_state(const char *name, int owner, struct symbol *sym)
 struct state_list *get_current_states(int owner)
 {
 	struct state_list *slist;
-	struct smatch_state *tmp;
+	struct sm_state *tmp;
 
 	FOR_EACH_PTR(cur_slist, tmp) {
 		if (tmp->owner == owner) {
@@ -330,7 +330,7 @@ void __pop_continues()
 
 void __process_continues()
 {
-	struct smatch_state *state;
+	struct sm_state *state;
 
 	set_state_stack(&continue_stack, "__smatch_continue_used", 1, NULL, 0);
 	FOR_EACH_PTR(cur_slist, state) {
@@ -360,7 +360,7 @@ void __push_breaks()
 
 void __process_breaks()
 {
-	struct smatch_state *state;
+	struct sm_state *state;
 
 	set_state_stack(&break_stack, "__smatch_break_used", 0, NULL, 1);
 	FOR_EACH_PTR(cur_slist, state) {
@@ -443,7 +443,7 @@ void __set_default()
 int __pop_default()
 {
 	struct state_list *slist;
-	struct smatch_state *state;
+	struct sm_state *state;
 
 	int ret = -1;
 	slist = pop_slist(&default_stack);
@@ -471,7 +471,7 @@ void __save_gotos(const char *name)
 
 	slist = get_slist_from_slist_stack(goto_stack, name);
 	if (slist) {
-		struct smatch_state *state;
+		struct sm_state *state;
 
 		FOR_EACH_PTR(cur_slist, state) {
 			merge_state_slist(&slist, state->name, state->owner,

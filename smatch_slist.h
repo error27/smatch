@@ -1,5 +1,19 @@
-DECLARE_ALLOCATOR(smatch_state);
-DECLARE_PTR_LIST(state_list, struct smatch_state);
+struct state_history {
+	unsigned int loc;
+};
+DECLARE_PTR_LIST(history_list, struct state_history);
+
+struct sm_state {
+        char *name;
+	unsigned int owner;
+	struct symbol *sym;
+  	int state;
+	struct history_list *line_history;
+	struct history_list *path_history;
+};
+
+DECLARE_ALLOCATOR(sm_state);
+DECLARE_PTR_LIST(state_list, struct sm_state);
 DECLARE_PTR_LIST(state_list_stack, struct state_list);
 struct named_slist {
 	char *name;
@@ -10,11 +24,11 @@ DECLARE_PTR_LIST(slist_stack, struct named_slist);
 
 extern struct state_list *cur_slist; /* current states */
 
-void add_history(struct smatch_state *state);
-struct smatch_state *alloc_state(const char *name, int owner, 
+void add_history(struct sm_state *state);
+struct sm_state *alloc_state(const char *name, int owner, 
 				 struct symbol *sym, int state);
 
-struct smatch_state *clone_state(struct smatch_state *s);
+struct sm_state *clone_state(struct sm_state *s);
 struct state_list *clone_slist(struct state_list *from_slist);
 
 int merge_states(const char *name, int owner, struct symbol *sym,
@@ -25,7 +39,7 @@ void merge_state_slist(struct state_list **slist, const char *name, int owner,
 int get_state_slist(struct state_list *slist, const char *name, int owner,
 		    struct symbol *sym);
 
-void add_state_slist(struct state_list **slist, struct smatch_state *state);
+void add_state_slist(struct state_list **slist, struct sm_state *state);
 
 void set_state_slist(struct state_list **slist, const char *name, int owner,
 		     struct symbol *sym, int state);

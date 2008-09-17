@@ -20,20 +20,6 @@
 
 #define KERNEL
 
-struct state_history {
-	unsigned int loc;
-};
-DECLARE_PTR_LIST(history_list, struct state_history);
-
-struct smatch_state {
-        char *name;
-	unsigned int owner;
-	struct symbol *sym;
-  	int state;
-	struct history_list *line_history;
-	struct history_list *path_history;
-};
-
 enum hook_type {
 	EXPR_HOOK,
 	STMT_HOOK,
