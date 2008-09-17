@@ -79,7 +79,6 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 int state_defined(const char *name, int owner, struct symbol *sym);
 
 struct state_list *get_all_states();
-void set_null_path();
 void nullify_path();	   
 void __unnullify_path();	   
 void clear_all_states();
@@ -145,7 +144,6 @@ void __pop_continues();
 void __process_continues();
 void __merge_continues();
 
-int __break_called();
 void __push_breaks();
 void __pop_breaks();
 void __process_breaks();

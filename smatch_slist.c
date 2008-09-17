@@ -225,8 +225,7 @@ void merge_slist(struct state_list *slist)
 {
 	struct smatch_state *state;
 
-	if (get_state_slist(slist, "null_path", 0, NULL) == 1) {
-		SM_DEBUG("%d ignoring merge of null path\n", get_lineno());
+	if (!slist) {
 		return;
 	}
 

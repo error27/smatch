@@ -116,20 +116,21 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 
 }
 
-void set_null_path()
-{
-	set_state("null_path", 0, NULL, 1);
-}
-
 void nullify_path()
 {
 	del_slist(&cur_slist);
-	set_null_path();
 }
+
+/*
+ * At the start of every function we mark the path
+ * as unnull.  That there is always at least one state
+ * in the cur_slist until nullify_path is called.  This
+ * is used in merge_slist() for the first null check.
+ */
 
 void __unnullify_path()
 {
-	set_state("null_path", 0, NULL, 0);
+	set_state("unnull_path", 0, NULL, 1);
 }
 
 void clear_all_states()
@@ -349,13 +350,6 @@ void __merge_continues()
 	if (tmp == 1)
 		merge_slist(slist);
 	del_slist(&slist);
-}
-
-int __break_called()
-{
-	if (get_state_stack(break_stack, "__smatch_break_used", 0, NULL) == 1)
-		return 1;
-	return 0;
 }
 
 void __push_breaks() 
