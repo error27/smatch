@@ -123,9 +123,14 @@ static void match_declarations(struct symbol *sym)
 {
 	if (sym->ident) {
 		const char * name;
+
 		name = sym->ident->name;
-		if (sym->initializer && is_zero(sym->initializer))
-			set_state(name, my_id, sym, ISNULL);
+		if (sym->initializer) {
+			if (is_zero(sym->initializer))
+				set_state(name, my_id, sym, ISNULL);
+			else
+				set_state(name, my_id, sym, NONNULL);
+		}
 	}
 }
 
