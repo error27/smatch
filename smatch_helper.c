@@ -89,7 +89,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			prepend(buf, expr->symbol_name->name, len);
 		if (sym_ptr) {
 			if (*sym_ptr)
-				(*complicated)++;
+				*complicated = 1;
 			*sym_ptr = expr->symbol;
 		}
 		return;
@@ -116,7 +116,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		}
 
 		if ((!strcmp(tmp, "--")) || (!strcmp(tmp, "++")))
-			(*complicated)++;
+			*complicated = 1;
 
 		return;
 	}
@@ -129,14 +129,14 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 						 len, complicated);
 
 		if ((!strcmp(tmp, "--")) || (!strcmp(tmp, "++")))
-			(*complicated)++;
+			*complicated = 1;
 
 		return;
 	}
 	case EXPR_BINOP: {
 		const char *tmp;
 
-		(*complicated)++;
+		*complicated = 1;
 		prepend(buf, ")", len); 
 		__get_variable_from_expr(NULL, buf, expr->right, len,
 					 complicated);
@@ -161,7 +161,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		struct expression *tmp;
 		int i = 0;
 		
-		(*complicated)++;
+		*complicated = 1;
 		prepend(buf, ")", len);
 		FOR_EACH_PTR_REVERSE(expr->args, tmp) {
 			if (i++)
@@ -191,7 +191,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		return;
 	}
 	default:
-		(*complicated)++;
+		*complicated = 1;
 		//printf("unknown type = %d\n", expr->type);
 		return;
 	}
