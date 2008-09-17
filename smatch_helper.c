@@ -136,6 +136,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	case EXPR_BINOP: {
 		const char *tmp;
 
+		(*complicated)++;
 		prepend(buf, ")", len); 
 		__get_variable_from_expr(NULL, buf, expr->right, len,
 					 complicated);
