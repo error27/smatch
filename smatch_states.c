@@ -64,6 +64,11 @@ void set_state(const char *name, int owner, struct symbol *sym, int state)
 			       get_lineno(), name, owner, s, state);
 	}
 	set_state_slist(&cur_slist, name, owner, sym, state);
+
+	if (cond_true_stack) {
+		set_state_stack(&cond_true_stack, name, owner, sym, state);
+		set_state_stack(&cond_false_stack, name, owner, sym, state);
+	}
 }
 
 int get_state(const char *name, int owner, struct symbol *sym)
