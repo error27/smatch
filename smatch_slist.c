@@ -166,7 +166,7 @@ struct state_list *pop_slist(struct state_list_stack **list_stack)
 	struct state_list *slist;
 
 	slist = last_ptr_list((struct ptr_list *)*list_stack);
-	delete_ptr_list_entry((struct ptr_list **)list_stack, slist, 1);
+	delete_ptr_list_last((struct ptr_list **)list_stack);
 	return slist;
 }
 
