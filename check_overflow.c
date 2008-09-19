@@ -89,7 +89,8 @@ static void match_fn_call(struct expression *expr)
 		return;
 
 	if (!strcmp(fn_name, "strcpy")) {
-		struct smatch_state *state;
+		struct smatch_state *dest_state;
+		struct smatch_state *data_state;
 
 		dest = get_argument_from_call_expr(expr->args, 0);
 		dest_name = get_variable_from_expr(dest, NULL);
@@ -99,16 +100,16 @@ static void match_fn_call(struct expression *expr)
 		data_name = get_variable_from_expr(data, NULL);
 		data_name = alloc_string(data_name);
 		
-		state = get_state(dest_name, my_id, NULL);
-		if (!state)
+		dest_state = get_state(dest_name, my_id, NULL);
+		if (!dest_state || !dest_state->data) {
 			return;
-
-		if (!state->data) {
-			printf("Strange...  Didn't expect a NULL there.\n");
+		}
+		data_state = get_state(data_name, my_id, NULL);
+		if (!data_state || !data_state->data) {
 			return;
 		}
 
-		if (*(int *)state->data < *(int *)(get_state(data_name, my_id, NULL))->data)
+		if (*(int *)dest_state->data < *(int *)data_state->data)
 		    smatch_msg("Error %s too large for %s", data_name, 
 			       dest_name);
 	} else if (!strcmp(fn_name, "strncpy")) {
