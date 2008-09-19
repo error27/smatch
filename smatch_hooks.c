@@ -147,14 +147,24 @@ int __has_merge_function(int client_id)
 	return 0;
 }
 
-int __client_merge_function(int owner, const char *name, struct symbol *sym, 
-			    int s1, int s2)
+struct smatch_state *__client_merge_function(int owner, const char *name,
+					     struct symbol *sym, 
+					     struct smatch_state *s1,
+					     struct smatch_state *s2)
 {
+	struct smatch_state *tmp_state;
 	struct hook_container *tmp;
+
+	/* Pass NULL states first and the rest alphabetically by name */
+       	if (!s2 || (s1 && strcmp(s2->name, s1->name) < 0)) {
+		tmp_state = s1;
+		s1 = s2;
+		s2 = tmp_state;
+	}
 
 	FOR_EACH_PTR(merge_funcs, tmp) {
 		if (tmp->data_type == owner)
 			return ((merge_func_t *) tmp->fn)(name, sym, s1, s2);
 	} END_FOR_EACH_PTR(tmp);
-	return UNDEFINED;
+	return &undefined;
 }

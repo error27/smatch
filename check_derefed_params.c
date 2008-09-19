@@ -12,12 +12,10 @@
 
 static int my_id;
 
-enum states {
-	ARGUMENT,
-	ISNULL,
-	NONNULL,
-	IGNORE,
-};
+STATE(argument);
+STATE(ignore);
+STATE(isnull);
+STATE(nonnull);
 
 struct param {
 	struct symbol *sym;
@@ -27,13 +25,15 @@ ALLOCATOR(param, "parameters");
 #define MAX_PARAMS 16
 struct param *params[MAX_PARAMS];
 
-static int merge_func(const char *name, struct symbol *sym, int s1, int s2)
+static struct smatch_state *merge_func(const char *name, struct symbol *sym,
+				       struct smatch_state *s1,
+				       struct smatch_state *s2)
 {
-	if (s2 == IGNORE)
-		return IGNORE;
-	if (s1 == ARGUMENT)
+	if (s1 == &ignore || s2 == &ignore)
+		return &ignore;
+	if (s1 == &argument)
 		return s2;
-	return UNDEFINED;
+	return &undefined;
 }
 
 static struct param *new_param(struct symbol *arg)
@@ -55,7 +55,7 @@ static void match_function_def(struct symbol *sym)
 	struct symbol *arg;
 	int i = 0;
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
-		set_state("", my_id, arg, ARGUMENT);
+		set_state("", my_id, arg, &argument);
 		params[i] = new_param(arg);
 		i++;
 		if (i >= MAX_PARAMS - 1) {
@@ -82,35 +82,31 @@ static void match_deref(struct expression *expr)
 {
 	char *deref = NULL;
 	struct symbol *sym = NULL;
+	struct smatch_state *state;
 
 	deref = get_variable_from_expr(expr->deref, &sym);
-	switch(get_state("", my_id, sym)) {
-	case ARGUMENT:
+	state = get_state("", my_id, sym);
+	if (state == &argument) {
 		print_unchecked_param(sym);
 		/* this doesn't actually work because we'll still see
 		   the same variable get derefed on other paths */
-		set_state("", my_id, sym, IGNORE);
-		break;
-	case ISNULL:
+		set_state("", my_id, sym, &ignore);
+	} else if (state == &isnull)
 		smatch_msg("Error dereferencing NULL:  %s", deref);
-		break;
-	default:
-		break;
-	}
 }
 
 static void match_function_call_after(struct expression *expr)
 {
 	struct expression *tmp;
 	struct symbol *sym;
-	int state;
+	struct smatch_state *state;
 
 	FOR_EACH_PTR(expr->args, tmp) {
 		if (tmp->op == '&') {
 			get_variable_from_expr(tmp, &sym);
 			state = get_state("", my_id, sym);
-			if (state != NOTFOUND) {
-				set_state("", my_id, sym, NONNULL);
+			if (state) {
+				set_state("", my_id, sym, &nonnull);
 			}
 		}
 	} END_FOR_EACH_PTR(tmp);
@@ -118,17 +114,17 @@ static void match_function_call_after(struct expression *expr)
 
 static void match_assign(struct expression *expr)
 {
-	int state;
+	struct smatch_state *state;
 
 	/* Since we're only tracking arguments, we only want 
 	   EXPR_SYMBOLs.  */
 	if (expr->left->type != EXPR_SYMBOL)
 		return;
 	state = get_state("", my_id, expr->left->symbol);
-	if (state == NOTFOUND)
+	if (!state)
 		return;
 	/* probably it's non null */
-	set_state("", my_id, expr->left->symbol, NONNULL);
+	set_state("", my_id, expr->left->symbol, &nonnull);
 }
 
 static void match_condition(struct expression *expr)
@@ -153,17 +149,17 @@ static void match_condition(struct expression *expr)
 			return;
 
 		if (expr->op == SPECIAL_EQUAL)
-			set_true_false_states("", my_id, sym, ISNULL,
-					      NONNULL);
+			set_true_false_states("", my_id, sym, &isnull,
+					      &nonnull);
 		else if (expr->op == SPECIAL_NOTEQUAL)
-			set_true_false_states("", my_id, sym, NONNULL,
-					      ISNULL);
+			set_true_false_states("", my_id, sym, &nonnull,
+					      &isnull);
 		return;
 	}
 	case EXPR_SYMBOL:
-		if (get_state("", my_id, expr->symbol) == ARGUMENT) {
+		if (get_state("", my_id, expr->symbol) == &argument) {
 			set_true_false_states("", my_id, expr->symbol, 
-		  			      NONNULL, ISNULL);
+		  			      &nonnull, &isnull);
 		}
 		return;
 	default:

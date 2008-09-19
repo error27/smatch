@@ -13,6 +13,17 @@
 
 static int my_id;
 
+static struct smatch_state *alloc_state(int val)
+{
+	struct smatch_state *state;
+
+	state = malloc(sizeof(*state));
+	state->name = "value";
+	state->data = malloc(sizeof(int));
+	*(int *)state->data = val;
+	return state;
+}
+
 static int malloc_size(struct expression *expr)
 {
 	char *name;
@@ -46,11 +57,11 @@ static void match_declaration(struct symbol *sym)
 	base_type = get_base_type(sym);
 	
 	if (base_type->type == SYM_ARRAY && base_type->bit_size > 0)
-		set_state(name, my_id, NULL, base_type->bit_size / 8);
+		set_state(name, my_id, NULL, alloc_state(base_type->bit_size / 8));
 	else {
 		size = malloc_size(sym->initializer);
 		if (size > 0)
-			set_state(name, my_id, NULL, size);
+			set_state(name, my_id, NULL, alloc_state(size));
 	}
 }
 
@@ -62,7 +73,7 @@ static void match_assignment(struct expression *expr)
 	if (!name)
 		return;
 	if (malloc_size(expr->right) > 0)
-		set_state(name, my_id, NULL, malloc_size(expr->right));
+		set_state(name, my_id, NULL, alloc_state(malloc_size(expr->right)));
 }
 
 static void match_fn_call(struct expression *expr)
@@ -78,6 +89,8 @@ static void match_fn_call(struct expression *expr)
 		return;
 
 	if (!strcmp(fn_name, "strcpy")) {
+		struct smatch_state *state;
+
 		dest = get_argument_from_call_expr(expr->args, 0);
 		dest_name = get_variable_from_expr(dest, NULL);
 		dest_name = alloc_string(dest_name);
@@ -85,14 +98,21 @@ static void match_fn_call(struct expression *expr)
 		data = get_argument_from_call_expr(expr->args, 1);
 		data_name = get_variable_from_expr(data, NULL);
 		data_name = alloc_string(data_name);
-
-		if (get_state(dest_name, my_id, NULL) < 0)
+		
+		state = get_state(dest_name, my_id, NULL);
+		if (!state)
 			return;
-		if (get_state(dest_name, my_id, NULL)
-		    < get_state(data_name, my_id, NULL))
+
+		if (!state->data) {
+			printf("Strange...  Didn't expect a NULL there.\n");
+			return;
+		}
+
+		if (*(int *)state->data < *(int *)(get_state(data_name, my_id, NULL))->data)
 		    smatch_msg("Error %s too large for %s", data_name, 
 			       dest_name);
 	} else if (!strcmp(fn_name, "strncpy")) {
+		struct smatch_state *state;
 		int needed;
 		int has;
 
@@ -102,8 +122,11 @@ static void match_fn_call(struct expression *expr)
 		
 		data = get_argument_from_call_expr(expr->args, 2);
 		needed = get_value(data, NULL);
-		has = get_state(dest_name, my_id, NULL);
-		if (has > 0 && has < needed)
+		state = get_state(dest_name, my_id, NULL);
+		if (!state || !state->data)
+			return;
+		has = *(int *)state->data;
+		if (has < needed)
 			smatch_msg("Error %s too small for %d bytes.", 
 				   dest_name, needed);
 	}

@@ -19,6 +19,14 @@
 #include "expression.h"
 
 #define KERNEL
+struct smatch_state {
+	const char *name;
+	void *data;
+};
+#define STATE(_x) static struct smatch_state _x = { .name = #_x }
+extern struct smatch_state undefined;
+extern struct smatch_state true_state;
+extern struct smatch_state false_state;
 
 enum hook_type {
 	EXPR_HOOK,
@@ -39,8 +47,8 @@ enum hook_type {
 	RETURN_HOOK,
 };
 void add_hook(void *func, enum hook_type type);
-typedef int (merge_func_t)(const char *name, struct symbol *sym, int s1, 
-			   int s2);
+typedef struct smatch_state *(merge_func_t)(const char *name, struct symbol *sym, struct smatch_state *s1, 
+			   struct smatch_state *s2);
 void add_merge_hook(int client_id, merge_func_t *func);
 
 #define smatch_msg(msg...) \
@@ -53,15 +61,14 @@ do {                                                          \
 
 #define SM_DEBUG(msg...) do { if (debug_states) printf(msg); } while (0)
 
-#define NOTFOUND INT_MIN
-#define UNDEFINED INT_MIN + 1
+#define UNDEFINED INT_MIN
 
-int get_state(const char *name, int owner, struct symbol *sym);
-void add_state(const char *name, int owner, struct symbol *sym, int state);
-void set_state(const char *name, int owner, struct symbol *sym, int state);
+struct smatch_state *get_state(const char *name, int owner, struct symbol *sym);
+void add_state(const char *name, int owner, struct symbol *sym, struct smatch_state *state);
+void set_state(const char *name, int owner, struct symbol *sym, struct smatch_state *state);
 void delete_state(const char *name, int owner, struct symbol *sym);
 void set_true_false_states(const char *name, int owner, struct symbol *sym, 
-			   int true_state, int false_state);
+			   struct smatch_state *true_state, struct smatch_state *false_state);
 int state_defined(const char *name, int owner, struct symbol *sym);
 
 struct state_list *get_all_states();
@@ -131,7 +138,6 @@ void __process_continues();
 void __merge_continues();
 
 void __push_breaks();
-void __pop_breaks();
 void __process_breaks();
 void __merge_breaks();
 void __use_breaks();
@@ -156,7 +162,7 @@ void __print_cur_slist();
 void __pass_to_client(void *data, enum hook_type type);
 void __pass_declarations_to_client(struct symbol_list *sym_list);
 int __has_merge_function(int client_id);
-int __client_merge_function(int owner, const char *name, struct symbol *sym, 
-			    int s1, int s2);
+struct smatch_state *__client_merge_function(int owner, const char *name, struct symbol *sym, 
+			    struct smatch_state *s1, struct smatch_state *s2);
 
 #endif 	    /* !SMATCH_H_ */

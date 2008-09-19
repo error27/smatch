@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "smatch.h"
+#include "smatch.h"
 #include "smatch_slist.h"
 
 ALLOCATOR(sm_state, "smatch state");
@@ -27,7 +28,7 @@ void add_history(struct sm_state *state)
 }
 
 struct sm_state *alloc_state(const char *name, int owner, 
-				 struct symbol *sym, int state)
+				 struct symbol *sym, struct smatch_state *state)
 {
 	struct sm_state *sm_state = __alloc_sm_state(0);
 
@@ -59,31 +60,32 @@ struct state_list *clone_slist(struct state_list *from_slist)
 	return to_slist;
 }
 
-int merge_states(const char *name, int owner, struct symbol *sym,
-		 int state1, int state2)
+struct smatch_state *merge_states(const char *name, int owner,
+				  struct symbol *sym,
+				  struct smatch_state *state1,
+				  struct smatch_state *state2)
 {
-	int ret;
+	struct smatch_state *ret;
 
 	if (state1 == state2)
 		ret = state1;
 	else if (__has_merge_function(owner))
-		ret = __client_merge_function(owner, name, sym, 
-					      (state1 < state2?state1:state2), 
-					      (state1 > state2?state1:state2));
+		ret = __client_merge_function(owner, name, sym, state1, state2); 
 	else 
-		ret = UNDEFINED;
+		ret = &undefined;
 
-	SM_DEBUG("%d merge name='%s' owner=%d: %d + %d => %d\n", 
-		 get_lineno(), name, owner, state1, state2, ret);
+	SM_DEBUG("%d merge name='%s' owner=%d: %s + %s => %s\n", 
+		 get_lineno(), name, owner, (state1?state1->name:NULL), 
+		 (state2?state2->name:NULL), ret->name);
 
 	return ret;
 }
 
 void merge_state_slist(struct state_list **slist, const char *name, int owner,
-		       struct symbol *sym, int state)
+		       struct symbol *sym, struct smatch_state *state)
 {
 	struct sm_state *tmp;
-	int s;
+	struct smatch_state *s;
 
 	FOR_EACH_PTR(*slist, tmp) {
 		if (tmp->owner == owner && tmp->sym == sym 
@@ -100,20 +102,20 @@ void merge_state_slist(struct state_list **slist, const char *name, int owner,
 	add_state_slist(slist, tmp);
 }
 
-int get_state_slist(struct state_list *slist, const char *name, int owner,
+struct smatch_state *get_state_slist(struct state_list *slist, const char *name, int owner,
 		    struct symbol *sym)
 {
 	struct sm_state *state;
 
 	if (!name)
-		return NOTFOUND;
+		return NULL;
 
 	FOR_EACH_PTR(slist, state) {
 		if (state->owner == owner && state->sym == sym 
 		    && !strcmp(state->name, name))
 			return state->state;
 	} END_FOR_EACH_PTR(state);
-	return NOTFOUND;
+	return NULL;
 }
 
 void add_state_slist(struct state_list **slist, struct sm_state *state)
@@ -122,7 +124,7 @@ void add_state_slist(struct state_list **slist, struct sm_state *state)
 }
 
 void set_state_slist(struct state_list **slist, const char *name, int owner,
-		     struct symbol *sym, int state)
+		     struct symbol *sym, struct smatch_state *state)
 {
 	struct sm_state *tmp;
 
@@ -187,7 +189,7 @@ void del_slist_stack(struct state_list_stack **slist_stack)
  * set_state_stack() sets the state for the top slist on the stack.
  */
 void set_state_stack(struct state_list_stack **stack, const char *name,
-		     int owner, struct symbol *sym, int state)
+		     int owner, struct symbol *sym, struct smatch_state *state)
 {
 	struct state_list *slist;
 
@@ -199,11 +201,11 @@ void set_state_stack(struct state_list_stack **stack, const char *name,
 /*
  * get_state_stack() gets the state for the top slist on the stack.
  */
-int get_state_stack(struct state_list_stack *stack, const char *name,
+struct smatch_state *get_state_stack(struct state_list_stack *stack, const char *name,
 		    int owner, struct symbol *sym)
 {
 	struct state_list *slist;
-	int ret;
+	struct smatch_state *ret;
 
 	slist = pop_slist(&stack);
 	ret = get_state_slist(slist, name, owner, sym);
@@ -212,7 +214,7 @@ int get_state_stack(struct state_list_stack *stack, const char *name,
 }
 
 void merge_state_stack(struct state_list_stack **stack, const char *name,
-		       int owner, struct symbol *sym, int state)
+		       int owner, struct symbol *sym, struct smatch_state *state)
 {
 	struct state_list *slist;
 
@@ -221,7 +223,7 @@ void merge_state_stack(struct state_list_stack **stack, const char *name,
 	push_slist(stack, slist);
 }
 
-void merge_slist(struct state_list *slist)
+void merge_slist(struct state_list **to, struct state_list *slist)
 {
 	struct sm_state *state;
 
@@ -230,15 +232,15 @@ void merge_slist(struct state_list *slist)
 	}
 
 	FOR_EACH_PTR(slist, state) {
-		merge_state_slist(&cur_slist, state->name, state->owner,
+		merge_state_slist(to, state->name, state->owner,
 				  state->sym, state->state);
 	} END_FOR_EACH_PTR(state);
 
-	FOR_EACH_PTR(cur_slist, state) {
-		if (get_state_slist(slist, state->name, state->owner,
-				    state->sym) == NOTFOUND) {
-			merge_state_slist(&cur_slist, state->name, state->owner,
-					  state->sym, NOTFOUND);
+	FOR_EACH_PTR(*to, state) {
+		if (!get_state_slist(slist, state->name, state->owner,
+				    state->sym)) {
+			merge_state_slist(to, state->name, state->owner,
+					  state->sym, NULL);
 		}
 	} END_FOR_EACH_PTR(state);
 }
@@ -251,14 +253,15 @@ void and_slist_stack(struct state_list_stack **slist_stack,
 		     struct state_list *tmp_slist)
 {
 	struct sm_state *tmp;
-	int tmp_state;
+	struct smatch_state *tmp_state;
 
 	FOR_EACH_PTR(tmp_slist, tmp) {
 		tmp_state = get_state_stack(*slist_stack, tmp->name,
 					    tmp->owner, tmp->sym);
-		if (tmp_state >= 0 && tmp_state != tmp->state) {
-			smatch_msg("wierdness merging 'and' conditions states '%s': %d & %d.\n",
-				   tmp->name, tmp_state, tmp->state);
+		if (tmp_state && tmp_state != &undefined && tmp_state != tmp->state) {
+			smatch_msg("wierdness merging 'and' conditions states '%s': %s & %s.\n",
+				   tmp->name, (tmp_state?tmp_state->name:NULL),
+				   (tmp->state?tmp->state->name:NULL));
 			tmp->state = merge_states(tmp->name, tmp->owner, 
 						  tmp->sym, tmp->state,
 						  tmp_state);
@@ -268,7 +271,7 @@ void and_slist_stack(struct state_list_stack **slist_stack,
 				tmp->state);
 
 	} END_FOR_EACH_PTR(tmp);
-//	del_slist(&tmp_slist);
+	del_slist(&tmp_slist);
 }
 
 void or_slist_stack(struct state_list_stack **slist_stack)
@@ -277,7 +280,7 @@ void or_slist_stack(struct state_list_stack **slist_stack)
 	struct state_list *two;
 	struct state_list *res = NULL;
  	struct sm_state *tmp;
-	int s;
+	struct smatch_state *s;
 
 	one = pop_slist(slist_stack);
 	two = pop_slist(slist_stack);

@@ -12,6 +12,10 @@
 #include "smatch.h"
 #include "smatch_slist.h"
 
+struct smatch_state undefined = { .name = "undefined" };
+struct smatch_state true_state = { .name = "true" };
+struct smatch_state false_state = { .name = "false" };
+
 struct state_list *cur_slist; /* current states */
 
 static struct state_list_stack *true_stack; /* states after a t/f branch */
@@ -37,7 +41,7 @@ void __print_slist(struct state_list *slist)
 
 	printf("dumping slist at %d\n", get_lineno());
 	FOR_EACH_PTR(slist, state) {
-		printf("%s=%d\n", state->name, state->state);
+		printf("'%s'=%s\n", state->name, state->state->name);
 	} END_FOR_EACH_PTR(state);
 	printf("---\n");
 }
@@ -47,21 +51,21 @@ void __print_cur_slist()
 	__print_slist(cur_slist);
 }
 
-void set_state(const char *name, int owner, struct symbol *sym, int state)
+void set_state(const char *name, int owner, struct symbol *sym, struct smatch_state *state)
 {
 	if (!name)
 		return;
 	
 	if (debug_states) {
-		int s;
+		struct smatch_state *s;
 		
 		s = get_state(name, owner, sym);
-		if (s == NOTFOUND)
-			printf("%d new state. name='%s' owner=%d: %d\n", 
-			       get_lineno(), name, owner, state);
+		if (!s)
+			printf("%d new state. name='%s' owner=%d: %s\n", 
+			       get_lineno(), name, owner, state->name);
 		else
-			printf("%d state change name='%s' owner=%d: %d => %d\n",
-			       get_lineno(), name, owner, s, state);
+			printf("%d state change name='%s' owner=%d: %s => %s\n",
+			       get_lineno(), name, owner, s->name, state->name);
 	}
 	set_state_slist(&cur_slist, name, owner, sym, state);
 
@@ -71,7 +75,7 @@ void set_state(const char *name, int owner, struct symbol *sym, int state)
 	}
 }
 
-int get_state(const char *name, int owner, struct symbol *sym)
+struct smatch_state *get_state(const char *name, int owner, struct symbol *sym)
 {
 	return get_state_slist(cur_slist, name, owner, sym);
 }
@@ -96,14 +100,18 @@ struct state_list *get_current_states(int owner)
 }
 
 void set_true_false_states(const char *name, int owner, struct symbol *sym, 
-			   int true_state, int false_state)
+			   struct smatch_state *true_state, struct smatch_state *false_state)
 {
-
 	/* fixme.  save history */
 
-  	SM_DEBUG("%d set_true_false %s.  Was %d.  Now T:%d F:%d\n",
-		 get_lineno(), name, get_state(name, owner, sym), true_state, 
-		 false_state);
+	if (debug_states) {
+		struct smatch_state *tmp;
+
+		tmp = get_state(name, owner, sym);
+		SM_DEBUG("%d set_true_false %s.  Was %s.  Now T:%s F:%s\n",
+			 get_lineno(), name, (tmp?tmp->name:NULL), true_state->name, 
+			 false_state->name);
+	}
 
 	if (!cond_false_stack || !cond_true_stack) {
 		printf("Error:  missing true/false stacks\n");
@@ -130,7 +138,7 @@ void nullify_path()
 
 void __unnullify_path()
 {
-	set_state("unnull_path", 0, NULL, 1);
+	set_state("unnull_path", 0, NULL, &true_state);
 }
 
 void clear_all_states()
@@ -301,7 +309,7 @@ void __merge_false_states()
 	struct state_list *slist;
 
 	slist = pop_slist(&false_stack);
-	merge_slist(slist);
+	merge_slist(&cur_slist, slist);
 	del_slist(&slist);
 }
 
@@ -310,14 +318,13 @@ void __merge_true_states()
 	struct state_list *slist;
 
 	slist = pop_slist(&true_stack);
-	merge_slist(slist);
+	merge_slist(&cur_slist, slist);
 	del_slist(&slist);
 }
 
 void __push_continues() 
 { 
 	push_slist(&continue_stack, NULL);
-	set_state_stack(&continue_stack, "__smatch_continue_used", 0, NULL, 0);
 }
 
 void __pop_continues() 
@@ -332,7 +339,6 @@ void __process_continues()
 {
 	struct sm_state *state;
 
-	set_state_stack(&continue_stack, "__smatch_continue_used", 1, NULL, 0);
 	FOR_EACH_PTR(cur_slist, state) {
 		merge_state_stack(&continue_stack, state->name, state->owner,
 				  state->sym, state->state);
@@ -342,69 +348,44 @@ void __process_continues()
 void __merge_continues()
 {
 	struct state_list *slist;
-	int tmp;
 
 	slist = pop_slist(&continue_stack);
-	tmp = get_state_slist(slist, "__smatch_continue_used", 0, NULL);
-	delete_state_slist(&slist, "__smatch_continue_used", 0, NULL);
-	if (tmp == 1)
-		merge_slist(slist);
+	merge_slist(&cur_slist, slist);
 	del_slist(&slist);
 }
 
 void __push_breaks() 
 { 
 	push_slist(&break_stack, NULL);
-	set_state_stack(&break_stack, "__smatch_break_used", 0, NULL, 0);
 }
 
 void __process_breaks()
 {
-	struct sm_state *state;
+	struct state_list *slist;
+	
+	slist = pop_slist(&break_stack);
 
-	set_state_stack(&break_stack, "__smatch_break_used", 0, NULL, 1);
-	FOR_EACH_PTR(cur_slist, state) {
-		merge_state_stack(&break_stack, state->name, state->owner, 
-				  state->sym, state->state);
-	} END_FOR_EACH_PTR(state);
+	if (!slist) {
+		overwrite_slist(cur_slist, &slist);
+	} else {
+		merge_slist(&slist, cur_slist);
+	}
+	push_slist(&break_stack, slist);
 }
 
 void __merge_breaks()
 {
 	struct state_list *slist;
-	int tmp;
 
 	slist = pop_slist(&break_stack);
-	tmp = get_state_slist(slist, "__smatch_break_used", 0, NULL);
-	delete_state_slist(&slist, "__smatch_break_used", 0, NULL);
-	if (tmp == 1)
-		merge_slist(slist);
+	merge_slist(&cur_slist, slist);
 	del_slist(&slist);
 }
 
 void __use_breaks()
 {
-	struct state_list *slist;
-	int tmp;
-
 	del_slist(&cur_slist);
-	slist = pop_slist(&break_stack);
-
-	tmp = get_state_slist(slist, "__smatch_break_used", 0, NULL);
-	delete_state_slist(&slist, "__smatch_break_used", 0, NULL);
-
-	if (tmp == 1)
-		cur_slist = slist;
-	else
-		del_slist(&slist);
-}
-
-void __pop_breaks() 
-{ 
-	struct state_list *slist;
-
-	slist = pop_slist(&break_stack);
-	del_slist(&slist);
+	cur_slist = pop_slist(&break_stack);
 }
 
 void __save_switch_states() 
@@ -417,7 +398,7 @@ void __merge_switches()
 	struct state_list *slist;
 
 	slist = pop_slist(&switch_stack);
-	merge_slist(slist);
+	merge_slist(&cur_slist, slist);
 	push_slist(&switch_stack, slist);
 }
 
@@ -432,27 +413,23 @@ void __pop_switches()
 void __push_default()
 {
 	push_slist(&default_stack, NULL);
-	set_state_stack(&default_stack, "has_default", 0, NULL, 0);
 }
 
 void __set_default()
 {
-	set_state_stack(&default_stack, "has_default", 0, NULL, 1);
+	set_state_stack(&default_stack, "has_default", 0, NULL, &true_state);
 }
 
 int __pop_default()
 {
 	struct state_list *slist;
-	struct sm_state *state;
 
-	int ret = -1;
 	slist = pop_slist(&default_stack);
-	FOR_EACH_PTR(slist, state) {
-		if (!strcmp(state->name, "has_default"))
-			ret = state->state;
-	} END_FOR_EACH_PTR(state);
-	del_slist(&slist);
-	return ret;
+	if (slist) {
+		del_slist(&slist);
+		return 1;
+	}
+	return 0;
 }
 
 static struct named_slist *alloc_named_slist(const char *name, 
@@ -494,5 +471,5 @@ void __merge_gotos(const char *name)
 	
 	slist = get_slist_from_slist_stack(goto_stack, name);
 	if (slist)
-		merge_slist(slist);
+		merge_slist(&cur_slist, slist);
 }

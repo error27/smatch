@@ -12,17 +12,17 @@
 
 static int my_id;
 
-enum states {
-	ISNULL,
-	NONNULL,
-	IGNORE,
-};
+STATE(ignore);
+STATE(isnull);
+STATE(nonnull);
 
-static int merge_func(const char *name, struct symbol *sym, int s1, int s2)
+static struct smatch_state *merge_func(const char *name, struct symbol *sym,
+				       struct smatch_state *s1,
+				       struct smatch_state *s2)
 {
-	if (s2 == IGNORE)
-		return IGNORE;
-	return UNDEFINED;
+	if (s1 == &ignore || s2 == &ignore)
+		return &ignore;
+	return &undefined;
 }
 
 static void match_function_call_after(struct expression *expr)
@@ -42,16 +42,16 @@ static void match_function_call_after(struct expression *expr)
 			name = get_variable_from_expr_simple(tmp->unop, &sym);
 			if (name) {
 				name = alloc_string(name);
-				set_state(name, my_id, sym, NONNULL);
+				set_state(name, my_id, sym, &nonnull);
 			}
 		} else {
 			name = get_variable_from_expr_simple(tmp, &sym);
 			if (name && sym) {
-				int state = get_state(name, my_id, sym);
-				if ( state == ISNULL)
+				struct smatch_state *state = get_state(name, my_id, sym);
+				if ( state == &isnull)
 					smatch_msg("Null param %s %d", 
 						   func, i);
-				else if (state == UNDEFINED)
+				else if (state == &undefined)
 					smatch_msg("Undefined param %s %d", 
 						   func, i);
 			}
@@ -70,9 +70,9 @@ static void match_assign(struct expression *expr)
 		return;
 	name = alloc_string(name);
 	if (is_zero(expr->right))
-		set_state(name, my_id, sym, ISNULL);
+		set_state(name, my_id, sym, &isnull);
 	else
-		set_state(name, my_id, sym, NONNULL);
+		set_state(name, my_id, sym, &nonnull);
 }
 
 /*
@@ -84,16 +84,16 @@ static void match_assign(struct expression *expr)
  */
 
 static void set_new_true_false_states(const char *name, int my_id, 
-				      struct symbol *sym, int true_state,
-				      int false_state)
+				      struct symbol *sym, struct smatch_state *true_state,
+				      struct smatch_state *false_state)
 {
-	int tmp;
+	struct smatch_state *tmp;
 
 	tmp = get_state(name, my_id, sym);
+	
+	SM_DEBUG("set_new_stuff called at %d value='%s'\n", get_lineno(), (tmp?tmp->name:NULL));
 
-	SM_DEBUG("set_new_stuff called at %d value=%d\n", get_lineno(), tmp);
-
-	if (tmp == NOTFOUND || tmp == UNDEFINED || tmp == ISNULL)
+	if (!tmp || tmp == &undefined || tmp == &isnull)
 		set_true_false_states(name, my_id, sym, true_state, false_state);
 }
 
@@ -109,7 +109,7 @@ static void match_condition(struct expression *expr)
 		if (!name)
 			return;
 		name = alloc_string(name);
-		set_new_true_false_states(name, my_id, sym, NONNULL, ISNULL);
+		set_new_true_false_states(name, my_id, sym, &nonnull, &isnull);
 		return;
 	case EXPR_ASSIGNMENT:
 		match_condition(expr->left);
@@ -127,9 +127,9 @@ static void match_declarations(struct symbol *sym)
 		name = sym->ident->name;
 		if (sym->initializer) {
 			if (is_zero(sym->initializer))
-				set_state(name, my_id, sym, ISNULL);
+				set_state(name, my_id, sym, &isnull);
 			else
-				set_state(name, my_id, sym, NONNULL);
+				set_state(name, my_id, sym, &nonnull);
 		}
 	}
 }
@@ -164,6 +164,7 @@ static void match_dereferences(struct expression *expr)
 {
 	char *deref = NULL;
 	struct symbol *sym = NULL;
+	struct smatch_state *state;
 
 	if (expr->op == '*') {
 		expr = expr->unop;
@@ -183,20 +184,17 @@ static void match_dereferences(struct expression *expr)
 		return;
 	deref = alloc_string(deref);
 	
-	switch(get_state(deref, my_id, sym)) {
-	case UNDEFINED:
+	state = get_state(deref, my_id, sym);
+	if (state == &undefined) {
 		smatch_msg("Dereferencing Undefined:  %s", deref);
-		set_state(deref, my_id, sym, IGNORE);
-		break;
-	case ISNULL:
+		set_state(deref, my_id, sym, &ignore);
+	} else if (state == &isnull) {
 		/* It turns out that you only get false positives from 
 		   this.  Mostly foo = NULL; sizeof(*foo); */
 		/* smatch_msg("Error dereferencing NULL:  %s", deref); */
-		set_state(deref, my_id, sym, IGNORE);
-		break;
-	default:
+		set_state(deref, my_id, sym, &ignore);
+	} else {
 		free_string(deref);
-		break;
 	}
 }
 

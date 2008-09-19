@@ -13,9 +13,22 @@
 
 static int my_id;
 
-static int merge_func(const char *name, struct symbol *sym, int s1, int s2)
+static struct smatch_state *alloc_state(int val)
 {
-	return UNDEFINED;
+	struct smatch_state *state;
+
+	state = malloc(sizeof(*state));
+	state->name = "value";
+	state->data = malloc(sizeof(int));
+	*(int *)state->data = val;
+	return state;
+}
+
+static struct smatch_state *merge_func(const char *name, struct symbol *sym,
+				       struct smatch_state *s1,
+				       struct smatch_state *s2)
+{
+	return &undefined;
 }
 
 static void match_function_call_after(struct expression *expr)
@@ -30,7 +43,7 @@ static void match_function_call_after(struct expression *expr)
 			name = get_variable_from_expr_simple(tmp->unop, &sym);
 			if (name) {
 				name = alloc_string(name);
-				set_state(name, my_id, sym, UNDEFINED);
+				set_state(name, my_id, sym, &undefined);
 			}
 		}
 		i++;
@@ -46,7 +59,7 @@ static void match_assign(struct expression *expr)
 	if (!name)
 		return;
 	name = alloc_string(name);
-	set_state(name, my_id, sym, get_value(expr->right, NULL));
+	set_state(name, my_id, sym, alloc_state(get_value(expr->right, NULL)));
 }
 
 static void undef_expr(struct expression *expr)
@@ -57,10 +70,10 @@ static void undef_expr(struct expression *expr)
 	name = get_variable_from_expr_simple(expr->unop, &sym);
 	if (!name)
 		return;
-	if (get_state(name, my_id, sym) == NOTFOUND)
+	if (!get_state(name, my_id, sym))
 		return;
 	name = alloc_string(name);
-	set_state(name, my_id, sym, UNDEFINED);
+	set_state(name, my_id, sym, &undefined);
 }
 
 static void match_declarations(struct symbol *sym)
@@ -70,7 +83,7 @@ static void match_declarations(struct symbol *sym)
 	if (sym->ident) {
 		name = sym->ident->name;
 		if (sym->initializer) {
-			set_state(name, my_id, sym, get_value(sym->initializer, NULL));
+			set_state(name, my_id, sym, alloc_state(get_value(sym->initializer, NULL)));
 		}
 	}
 }
@@ -87,6 +100,7 @@ void register_smatch_extra(int id)
 
 static int expr_to_val(struct expression *expr)
 {
+	struct smatch_state *state;
 	int val;
 	struct symbol *sym;
 	char *name;
@@ -98,10 +112,10 @@ static int expr_to_val(struct expression *expr)
 	name = get_variable_from_expr_simple(expr, &sym);
 	if (!name)
 		return UNDEFINED;
-	val = get_state(name, my_id, sym);
-	if (val == NOTFOUND)
-		val = UNDEFINED;
-	return val;
+	state = get_state(name, my_id, sym);
+	if (!state || !state->data)
+		return UNDEFINED;
+	return *(int *)state->data;
 }
 
 static int true_comparison(int left, int comparison, int right)
