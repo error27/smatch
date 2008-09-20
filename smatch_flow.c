@@ -40,8 +40,6 @@ void __split_expr(struct expression *expr)
 	case EXPR_PREOP: 
 	case EXPR_POSTOP:
 		__pass_to_client(expr, OP_HOOK);
-		if (expr->op == '*')
-			__pass_to_client(expr, DEREF_HOOK);
 		__split_expr(expr->unop);
 		return;
 	case EXPR_STATEMENT:

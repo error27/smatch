@@ -170,24 +170,14 @@ static void match_dereferences(struct expression *expr)
 	struct symbol *sym = NULL;
 	struct smatch_state *state;
 
-	if (expr->op == '*') {
-		expr = expr->unop;
-	} else if (expr->type == EXPR_DEREF && expr->deref->op == '*')
-		expr = expr->deref->unop;
+	if (strcmp(show_special(expr->deref->op), "*"))
+		return;
 
-	/* 
-	 * Say you have foo->bar.baz.n 
-	 * In that case we really only care about part to the
-	 * left of the ->.
-	 */
-	while (expr->type == EXPR_DEREF && expr->deref->op != '*')
-		expr = expr->deref;
-
-	deref = get_variable_from_expr_simple(expr, &sym);
+	deref = get_variable_from_expr_simple(expr->deref->unop, &sym);
 	if (!deref)
 		return;
 	deref = alloc_string(deref);
-	
+
 	state = get_state(deref, my_id, sym);
 	if (state == &undefined) {
 		smatch_msg("Dereferencing Undefined:  %s", deref);
