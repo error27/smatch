@@ -27,6 +27,13 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 	return &undefined;
 }
 
+static struct expression *strip_casts(struct expression *expr)
+{
+	if (expr->type == EXPR_CAST) 
+		return strip_casts(expr->cast_expression);
+	return expr;
+}
+
 static void match_function_call_after(struct expression *expr)
 {
 	struct expression *tmp;
@@ -40,6 +47,7 @@ static void match_function_call_after(struct expression *expr)
 	}
 
 	FOR_EACH_PTR(expr->args, tmp) {
+		tmp = strip_casts(tmp);
 		if (tmp->op == '&') {
 			name = get_variable_from_expr_simple(tmp->unop, &sym);
 			if (name) {
