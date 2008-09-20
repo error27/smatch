@@ -314,5 +314,10 @@ int is_zero(struct expression *expr)
 	return 0;	
 }
 
-
+const char *show_state(struct smatch_state *state)
+{
+	if (!state)
+		return NULL;
+	return state->name;
+}
 

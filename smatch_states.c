@@ -41,7 +41,7 @@ void __print_slist(struct state_list *slist)
 
 	printf("dumping slist at %d\n", get_lineno());
 	FOR_EACH_PTR(slist, state) {
-		printf("'%s'=%s\n", state->name, state->state->name);
+		printf("'%s'=%s\n", state->name, show_state(state->state));
 	} END_FOR_EACH_PTR(state);
 	printf("---\n");
 }
@@ -62,10 +62,11 @@ void set_state(const char *name, int owner, struct symbol *sym, struct smatch_st
 		s = get_state(name, owner, sym);
 		if (!s)
 			printf("%d new state. name='%s' owner=%d: %s\n", 
-			       get_lineno(), name, owner, state->name);
+			       get_lineno(), name, owner, show_state(state));
 		else
 			printf("%d state change name='%s' owner=%d: %s => %s\n",
-			       get_lineno(), name, owner, s->name, state->name);
+			       get_lineno(), name, owner, show_state(s),
+			       show_state(state));
 	}
 	set_state_slist(&cur_slist, name, owner, sym, state);
 
@@ -109,8 +110,8 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 
 		tmp = get_state(name, owner, sym);
 		SM_DEBUG("%d set_true_false %s.  Was %s.  Now T:%s F:%s\n",
-			 get_lineno(), name, (tmp?tmp->name:NULL), true_state->name, 
-			 false_state->name);
+			 get_lineno(), name, show_state(tmp),
+			 show_state(true_state), show_state(false_state));
 	}
 
 	if (!cond_false_stack || !cond_true_stack) {

@@ -93,6 +93,7 @@ char * get_variable_from_expr_simple(struct expression * expr,
 int sym_name_is(const char *name, struct expression *expr);
 int get_value(struct expression *expr, int *discard);
 int is_zero(struct expression *expr);
+const char *show_state(struct smatch_state *state);
 
 /* ----------------------------------------------------------------
    The stuff below is all used internally and shouldn't 

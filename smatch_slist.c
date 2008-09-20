@@ -75,8 +75,8 @@ struct smatch_state *merge_states(const char *name, int owner,
 		ret = &undefined;
 
 	SM_DEBUG("%d merge name='%s' owner=%d: %s + %s => %s\n", 
-		 get_lineno(), name, owner, (state1?state1->name:NULL), 
-		 (state2?state2->name:NULL), ret->name);
+		 get_lineno(), name, owner, show_state(state1), 
+		 show_state(state2), show_state(ret));
 
 	return ret;
 }
@@ -260,8 +260,8 @@ void and_slist_stack(struct state_list_stack **slist_stack,
 					    tmp->owner, tmp->sym);
 		if (tmp_state && tmp_state != &undefined && tmp_state != tmp->state) {
 			smatch_msg("wierdness merging 'and' conditions states '%s': %s & %s.\n",
-				   tmp->name, (tmp_state?tmp_state->name:NULL),
-				   (tmp->state?tmp->state->name:NULL));
+				   tmp->name, show_state(tmp_state),
+				   show_state(tmp->state));
 			tmp->state = merge_states(tmp->name, tmp->owner, 
 						  tmp->sym, tmp->state,
 						  tmp_state);
