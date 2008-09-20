@@ -22,6 +22,8 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 {
 	if (s1 == &ignore || s2 == &ignore)
 		return &ignore;
+	if (s1 == NULL && s2 == &nonnull)
+		return &nonnull;
 	return &undefined;
 }
 
@@ -130,6 +132,8 @@ static void match_declarations(struct symbol *sym)
 				set_state(name, my_id, sym, &isnull);
 			else
 				set_state(name, my_id, sym, &nonnull);
+		} else {
+			set_state(name, my_id, sym, &undefined);
 		}
 	}
 }
