@@ -112,6 +112,10 @@ void __split_whole_condition(struct expression *expr);
 /* smatch_extras.c */
 int known_condition_true(struct expression *expr);
 
+/* smatch_ignore.c */
+void add_ignore(const char *name, int owner, struct symbol *sym);
+int is_ignored(const char *name, int owner, struct symbol *sym);
+
 /* smatch_states.c */
 
 extern int debug_states;

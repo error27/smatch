@@ -14,10 +14,12 @@ typedef void (*reg_func) (int id);
 void register_derefed_params(int id);
 void register_null_deref(int id);
 void register_smatch_extra(int id);
+void register_smatch_ignore(int id);
 void register_overflow(int id);
 
 const reg_func reg_funcs[] = {
 	&register_smatch_extra,
+	&register_smatch_ignore,
 	&register_derefed_params,
 	&register_null_deref,
 	&register_overflow,
