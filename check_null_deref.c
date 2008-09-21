@@ -27,13 +27,6 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 	return &undefined;
 }
 
-static struct expression *strip_casts(struct expression *expr)
-{
-	if (expr->type == EXPR_CAST) 
-		return strip_casts(expr->cast_expression);
-	return expr;
-}
-
 static void match_function_call_after(struct expression *expr)
 {
 	struct expression *tmp;
@@ -47,7 +40,7 @@ static void match_function_call_after(struct expression *expr)
 	}
 
 	FOR_EACH_PTR(expr->args, tmp) {
-		tmp = strip_casts(tmp);
+		tmp = strip_expr(tmp);
 		if (tmp->op == '&') {
 			name = get_variable_from_expr_simple(tmp->unop, &sym);
 			if (name) {
@@ -72,10 +65,12 @@ static void match_function_call_after(struct expression *expr)
 
 static void match_assign(struct expression *expr)
 {
+	struct expression *left;
 	struct symbol *sym;
 	char *name;
 	
-	name = get_variable_from_expr_simple(expr->left, &sym);
+	left = strip_expr(expr->left);
+	name = get_variable_from_expr_simple(left, &sym);
 	if (!name)
 		return;
 	name = alloc_string(name);
@@ -101,7 +96,7 @@ static void set_new_true_false_states(const char *name, int my_id,
 
 	tmp = get_state(name, my_id, sym);
 	
-	SM_DEBUG("set_new_stuff called at %d value='%s'\n", get_lineno(), (tmp?tmp->name:NULL));
+	SM_DEBUG("set_new_stuff called at %d value='%s'\n", get_lineno(), show_state(tmp));
 
 	if (!tmp || tmp == &undefined || tmp == &isnull)
 		set_true_false_states(name, my_id, sym, true_state, false_state);
@@ -188,7 +183,7 @@ static void match_dereferences(struct expression *expr)
 
 	state = get_state(deref, my_id, sym);
 	if (state == &undefined) {
-		smatch_msg("Dereferencing Undefined:  %s", deref);
+		smatch_msg("Dereferencing Undefined:  '%s'", deref);
 		set_state(deref, my_id, sym, &ignore);
 	} else if (state == &isnull) {
 		/* It turns out that you only get false positives from 

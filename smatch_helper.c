@@ -244,6 +244,7 @@ char *get_variable_from_expr_simple(struct expression *expr,
 
 	if (!expr)
 		return NULL;
+	expr = strip_expr(expr);
 	__get_variable_from_expr(sym_ptr, var_name, expr, sizeof(var_name),
 				 &complicated);
 	
@@ -321,3 +322,15 @@ const char *show_state(struct smatch_state *state)
 	return state->name;
 }
 
+struct expression *strip_expr(struct expression *expr)
+{
+	
+	switch(expr->type) {
+	case EXPR_CAST:
+		return strip_expr(expr->cast_expression);
+	case EXPR_PREOP:
+		if (expr->op == '(')
+			return strip_expr(expr->unop);
+	}
+	return expr;
+}
