@@ -52,10 +52,12 @@ static void match_function_call_after(struct expression *expr)
 
 static void match_assign(struct expression *expr)
 {
+	struct expression *left;
 	struct symbol *sym;
 	char *name;
 	
-	name = get_variable_from_expr_simple(expr->left, &sym);
+	left = strip_expr(expr->left);
+	name = get_variable_from_expr_simple(left, &sym);
 	if (!name)
 		return;
 	name = alloc_string(name);
