@@ -28,7 +28,7 @@ void add_history(struct sm_state *state)
 }
 
 struct sm_state *alloc_state(const char *name, int owner, 
-				 struct symbol *sym, struct smatch_state *state)
+			     struct symbol *sym, struct smatch_state *state)
 {
 	struct sm_state *sm_state = __alloc_sm_state(0);
 
@@ -201,8 +201,9 @@ void set_state_stack(struct state_list_stack **stack, const char *name,
 /*
  * get_state_stack() gets the state for the top slist on the stack.
  */
-struct smatch_state *get_state_stack(struct state_list_stack *stack, const char *name,
-		    int owner, struct symbol *sym)
+struct smatch_state *get_state_stack(struct state_list_stack *stack,
+				     const char *name, int owner,
+				     struct symbol *sym)
 {
 	struct state_list *slist;
 	struct smatch_state *ret;
@@ -214,7 +215,8 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack, const char 
 }
 
 void merge_state_stack(struct state_list_stack **stack, const char *name,
-		       int owner, struct symbol *sym, struct smatch_state *state)
+		       int owner, struct symbol *sym,
+		       struct smatch_state *state)
 {
 	struct state_list *slist;
 

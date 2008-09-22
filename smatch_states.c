@@ -7,6 +7,23 @@
  *
  */
 
+/*
+ * You have a lists of states.  kernel = locked, foo = NULL, ...
+ * When you hit an if {} else {} statement then you swap the list
+ * of states for a different list of states.  The lists are stored
+ * on stacks.
+ *
+ * At the beginning of this file there are list of the stacks that
+ * we use.  Each function in this file does something to one of
+ * of the stacks.
+ *
+ * So the smatch_flow.c understands code but it doesn't understand states.
+ * smatch_flow calls functions in this file.  This file calls functions
+ * in smatch_slist.c which just has boring generic plumbing for handling
+ * state lists.  But really it's this file where all the magic happens.
+ */
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "smatch.h"
@@ -51,7 +68,8 @@ void __print_cur_slist()
 	__print_slist(cur_slist);
 }
 
-void set_state(const char *name, int owner, struct symbol *sym, struct smatch_state *state)
+void set_state(const char *name, int owner, struct symbol *sym,
+	       struct smatch_state *state)
 {
 	if (!name)
 		return;
@@ -101,7 +119,8 @@ struct state_list *get_current_states(int owner)
 }
 
 void set_true_false_states(const char *name, int owner, struct symbol *sym, 
-			   struct smatch_state *true_state, struct smatch_state *false_state)
+			   struct smatch_state *true_state,
+			   struct smatch_state *false_state)
 {
 	/* fixme.  save history */
 
@@ -436,7 +455,7 @@ int __pop_default()
 }
 
 static struct named_slist *alloc_named_slist(const char *name, 
-					 struct state_list *slist)
+					     struct state_list *slist)
 {
 	struct named_slist *named_slist = __alloc_named_slist(0);
 
