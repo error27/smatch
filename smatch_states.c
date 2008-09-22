@@ -451,12 +451,7 @@ void __save_gotos(const char *name)
 
 	slist = get_slist_from_slist_stack(goto_stack, name);
 	if (slist) {
-		struct sm_state *state;
-
-		FOR_EACH_PTR(cur_slist, state) {
-			merge_state_slist(&slist, state->name, state->owner,
-					  state->sym, state->state);
-		} END_FOR_EACH_PTR(state);
+		merge_slist(&slist, cur_slist);
 		return;
 	} else {
 		struct state_list *slist;
