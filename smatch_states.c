@@ -338,12 +338,15 @@ void __pop_continues()
 
 void __process_continues()
 {
-	struct sm_state *state;
+	struct state_list *slist;
 
-	FOR_EACH_PTR(cur_slist, state) {
-		merge_state_stack(&continue_stack, state->name, state->owner,
-				  state->sym, state->state);
-	} END_FOR_EACH_PTR(state);
+	slist = pop_slist(&continue_stack);
+	if (!slist) {
+		overwrite_slist(cur_slist, &slist);
+	} else {
+		merge_slist(&slist, cur_slist);
+	}
+	push_slist(&continue_stack, slist);
 }
 
 void __merge_continues()
@@ -365,7 +368,6 @@ void __process_breaks()
 	struct state_list *slist;
 	
 	slist = pop_slist(&break_stack);
-
 	if (!slist) {
 		overwrite_slist(cur_slist, &slist);
 	} else {
