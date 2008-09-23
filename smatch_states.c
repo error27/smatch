@@ -33,7 +33,7 @@ struct smatch_state undefined = { .name = "undefined" };
 struct smatch_state true_state = { .name = "true" };
 struct smatch_state false_state = { .name = "false" };
 
-struct state_list *cur_slist; /* current states */
+static struct state_list *cur_slist; /* current states */
 
 static struct state_list_stack *true_stack; /* states after a t/f branch */
 static struct state_list_stack *false_stack;

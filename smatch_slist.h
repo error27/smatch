@@ -22,8 +22,6 @@ struct named_slist {
 DECLARE_ALLOCATOR(named_slist);
 DECLARE_PTR_LIST(slist_stack, struct named_slist);
 
-extern struct state_list *cur_slist; /* current states */
-
 void add_history(struct sm_state *state);
 struct sm_state *alloc_state(const char *name, int owner, 
 			     struct symbol *sym, 
