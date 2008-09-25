@@ -126,45 +126,22 @@ static void match_condition(struct expression *expr)
 
 static void match_declarations(struct symbol *sym)
 {
-	if (sym->ident) {
-		const char * name;
+	const char * name;
 
-		name = sym->ident->name;
-		if (sym->initializer) {
-			if (is_zero(sym->initializer))
-				set_state(name, my_id, sym, &isnull);
-			else
-				set_state(name, my_id, sym, &nonnull);
-		} else {
-			set_state(name, my_id, sym, &undefined);
-		}
+	if ((get_base_type(sym))->type == SYM_ARRAY) {
+		return;
 	}
-}
 
-static int is_array(struct expression *expr)
-{
-	struct symbol *tmp = NULL;
-	char *name;
-	
-	name = get_variable_from_expr_simple(expr, NULL);
-	if (expr->ctype)
-		tmp = get_base_type(expr->ctype);
-	if (!tmp || !name)
-		return 0;
-	if (tmp->type == SYM_PTR)
-		tmp = get_base_type(tmp);
-	if (!tmp)
-		return 0;
-	printf("debug: %s %d\n", name, tmp->type);
-	if (tmp->ident)
-		printf("name %s\n", tmp->ident->name);
+	name = sym->ident->name;
 
-	return 0;
-	if (expr->type != EXPR_BINOP || expr->op != '+')
-		return 0;
-	//if (expr->left->ctype && expr->left->ctype.base_type == &ptr_ctype)
-	//       return 1;
-	return 0;
+	if (sym->initializer) {
+		if (is_zero(sym->initializer))
+			set_state(name, my_id, sym, &isnull);
+		else
+			set_state(name, my_id, sym, &nonnull);
+	} else {
+		set_state(name, my_id, sym, &undefined);
+	}
 }
 
 static void match_dereferences(struct expression *expr)
