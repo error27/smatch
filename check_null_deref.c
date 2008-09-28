@@ -112,6 +112,7 @@ static void match_condition(struct expression *expr)
 	struct symbol *sym;
 	char *name;
 
+	expr = strip_expr(expr);
 	switch(expr->type) {
 	case EXPR_SYMBOL:
 	case EXPR_DEREF:
