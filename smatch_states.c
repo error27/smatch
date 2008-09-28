@@ -138,10 +138,12 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 		return;
 	}
 
-	set_state_slist(&cur_slist, name, owner, sym, true_state);
-	set_state_stack(&cond_true_stack, name, owner, sym, true_state);
-	set_state_stack(&cond_false_stack, name, owner, sym, false_state);
-
+	if (true_state) {
+		set_state_slist(&cur_slist, name, owner, sym, true_state);
+		set_state_stack(&cond_true_stack, name, owner, sym, true_state);
+	}
+	if (false_state)
+		set_state_stack(&cond_false_stack, name, owner, sym, false_state);
 }
 
 void nullify_path()

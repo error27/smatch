@@ -63,12 +63,17 @@ static void match_function_call_after(struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
+static int assign_seen;
 static void match_assign(struct expression *expr)
 {
 	struct expression *left;
 	struct symbol *sym;
 	char *name;
 	
+	if (assign_seen) {
+		assign_seen--;
+		return;
+	}
 	left = strip_expr(expr->left);
 	name = get_variable_from_expr_simple(left, &sym);
 	if (!name)
@@ -117,6 +122,21 @@ static void match_condition(struct expression *expr)
 		set_new_true_false_states(name, my_id, sym, &nonnull, &isnull);
 		return;
 	case EXPR_ASSIGNMENT:
+		assign_seen++;
+                /*
+		 * There is a kernel macro that does
+		 *  for ( ... ; ... || x = NULL ; ) ...
+		 */
+		if (is_zero(expr->right)) {
+			name = get_variable_from_expr_simple(expr->left, &sym);
+			if (!name)
+				return;
+			name = alloc_string(name);
+			set_new_true_false_states(name, my_id, sym, NULL, &isnull);
+			return;
+		}
+		 /* You have to deal with stuff like if (a = b = c) */
+		match_condition(expr->right);
 		match_condition(expr->left);
 		return;
 	default:
