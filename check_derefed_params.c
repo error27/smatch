@@ -84,7 +84,12 @@ static void match_deref(struct expression *expr)
 	struct symbol *sym = NULL;
 	struct smatch_state *state;
 
-	deref = get_variable_from_expr(expr->deref, &sym);
+	if (strcmp(show_special(expr->deref->op), "*"))
+		return;
+
+	deref = get_variable_from_expr_simple(expr->deref->unop, &sym);
+	if (!deref)
+		return;
 	state = get_state("", my_id, sym);
 	if (state == &argument) {
 		print_unchecked_param(sym);
