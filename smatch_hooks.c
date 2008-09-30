@@ -73,6 +73,9 @@ void add_hook(void *func, enum hook_type type)
 	case RETURN_HOOK:
 		container->data_type = STMT_HOOK;
 		break;
+	case END_FILE_HOOK:
+		/* nothing needed... */
+		break;
 	}
 	add_ptr_list(&hook_funcs, container);
 }
@@ -85,6 +88,12 @@ void add_merge_hook(int client_id, merge_func_t *func)
 	add_ptr_list(&merge_funcs, container);
 }
 
+
+static void pass_to_client(void * fn)
+{
+	typedef void (expr_func)();
+	((expr_func *) fn)();
+}
 
 static void pass_expr_to_client(void * fn, void * data)
 {
@@ -125,6 +134,16 @@ void __pass_to_client(void *data, enum hook_type type)
 				break;
 			}
 		}
+	} END_FOR_EACH_PTR(container);
+}
+
+void __pass_to_client_no_data(enum hook_type type)
+{
+	struct hook_container *container;
+
+	FOR_EACH_PTR(hook_funcs, container) {
+		if (container->hook_type == type)
+			pass_to_client(container->fn);
 	} END_FOR_EACH_PTR(container);
 }
 

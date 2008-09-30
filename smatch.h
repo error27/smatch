@@ -45,6 +45,7 @@ enum hook_type {
 	FUNC_DEF_HOOK,
 	END_FUNC_HOOK,
 	RETURN_HOOK,
+	END_FILE_HOOK,
 };
 void add_hook(void *func, enum hook_type type);
 typedef struct smatch_state *(merge_func_t)(const char *name, struct symbol *sym, struct smatch_state *s1, 
@@ -166,6 +167,7 @@ void __print_cur_slist();
 
 /* smatch_hooks.c */
 void __pass_to_client(void *data, enum hook_type type);
+void __pass_to_client_no_data(enum hook_type type);
 void __pass_declarations_to_client(struct symbol_list *sym_list);
 int __has_merge_function(int client_id);
 struct smatch_state *__client_merge_function(int owner, const char *name, struct symbol *sym, 

@@ -358,6 +358,7 @@ static void split_functions(struct symbol_list *sym_list)
 			__pass_to_client(sym, BASE_HOOK);
 		}
 	} END_FOR_EACH_PTR(sym);
+	__pass_to_client_no_data(END_FILE_HOOK);
 }
 
 void smatch (int argc, char **argv) 
