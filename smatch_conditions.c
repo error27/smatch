@@ -179,13 +179,21 @@ static void split_conditions(struct expression *expr)
 	__split_expr(expr);
 }
 
+static int inside_condition;
 void __split_whole_condition(struct expression *expr)
 {
 	SM_DEBUG("%d in __split_whole_condition\n", get_lineno());
+	inside_condition++;
 	__pass_to_client(expr, WHOLE_CONDITION_HOOK);
 	__save_pre_cond_states();
 	__push_cond_stacks();
 	if (expr)
 		split_conditions(expr);
 	__use_cond_states();
+	inside_condition--;
+}
+
+int in_condition()
+{
+	return inside_condition;
 }

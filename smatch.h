@@ -54,7 +54,7 @@ void add_merge_hook(int client_id, merge_func_t *func);
 
 #define smatch_msg(msg...) \
 do {                                                          \
-	printf("%s %d %s(%d) ", get_filename(), get_lineno(), \
+	printf("%s +%d %s(%d) ", get_filename(), get_lineno(), \
 	       get_function(), get_func_pos());               \
         printf(msg);                                          \
         printf("\n");                                         \
@@ -108,6 +108,7 @@ void smatch (int argc, char **argv);
 void __split_expr(struct expression *expr);
 
 /* smatch_conditions */
+int in_condition();
 void __split_whole_condition(struct expression *expr);
 
 /* smatch_extras.c */

@@ -20,7 +20,6 @@ void register_overflow(int id);
 const reg_func reg_funcs[] = {
 	&register_smatch_extra,
 	&register_smatch_ignore,
-	&register_derefed_params,
 	&register_null_deref,
 	&register_overflow,
 	NULL
