@@ -70,8 +70,7 @@ void merge_state_stack(struct state_list_stack **stack, const char *name,
 		       int owner, struct symbol *sym, struct smatch_state *state);
 
 void merge_slist(struct state_list **to, struct state_list *slist);
-void and_slist_stack(struct state_list_stack **slist_stack, 
-		     struct state_list *tmp_slist);
+void and_slist_stack(struct state_list_stack **slist_stack);
 
 void or_slist_stack(struct state_list_stack **slist_stack);
 

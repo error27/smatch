@@ -238,25 +238,17 @@ void __negate_cond_stacks()
 	push_slist(&cond_true_stack, old_false);
 }
 
-
 void __and_cond_states()
 {
-	struct state_list *tmp_slist;
-
-	tmp_slist = pop_slist(&cond_true_stack);
-	and_slist_stack(&cond_true_stack, tmp_slist);
+	and_slist_stack(&cond_true_stack);
 	or_slist_stack(&cond_false_stack);
 }
 
 void __or_cond_states()
 {
-	struct state_list *tmp_slist;
-
 	or_slist_stack(&cond_true_stack);
-	tmp_slist = pop_slist(&cond_false_stack);
-	and_slist_stack(&cond_false_stack, tmp_slist);
+	and_slist_stack(&cond_false_stack);
 }
-
 
 void __save_pre_cond_states()
 {

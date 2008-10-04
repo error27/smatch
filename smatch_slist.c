@@ -248,27 +248,30 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 }
 
 /*
- * and_slist_stack() ands an slist with the top slist in an slist stack.
+ * This function is basically the same as popping the top two slists,
+ * overwriting the one with the other and pushing it back on the stack.
+ * The difference is that it checks to see that a mutually exclusive
+ * state isn't included in both stacks.
  */
 
-void and_slist_stack(struct state_list_stack **slist_stack,
-		     struct state_list *tmp_slist)
+void and_slist_stack(struct state_list_stack **slist_stack)
 {
-	struct sm_state *tmp;
+     	struct sm_state *tmp;
 	struct smatch_state *tmp_state;
+	struct state_list *tmp_slist = pop_slist(slist_stack);
 
 	FOR_EACH_PTR(tmp_slist, tmp) {
 		tmp_state = get_state_stack(*slist_stack, tmp->name,
 					    tmp->owner, tmp->sym);
-		if (tmp_state && tmp_state != &undefined && tmp_state != tmp->state) {
-			smatch_msg("wierdness merging 'and' conditions states '%s': %s & %s.\n",
+		if (tmp_state && tmp_state != tmp->state) {
+			smatch_msg("mutually exclusive 'and' conditions states "
+				   "'%s': %s & %s.\n",
 				   tmp->name, show_state(tmp_state),
 				   show_state(tmp->state));
 			tmp->state = merge_states(tmp->name, tmp->owner, 
 						  tmp->sym, tmp->state,
 						  tmp_state);
 		}
-			
 		set_state_stack(slist_stack, tmp->name, tmp->owner, tmp->sym,
 				tmp->state);
 
@@ -289,6 +292,14 @@ void or_slist_stack(struct state_list_stack **slist_stack)
 
 	FOR_EACH_PTR(one, tmp) {
 		s = get_state_slist(two, tmp->name, tmp->owner, tmp->sym);
+		s = merge_states(tmp->name, tmp->owner, tmp->sym,
+				 tmp->state, s);
+		set_state_slist(&res, tmp->name, tmp->owner, tmp->sym, s);
+	} END_FOR_EACH_PTR(tmp);
+
+
+	FOR_EACH_PTR(two, tmp) {
+		s = get_state_slist(one, tmp->name, tmp->owner, tmp->sym);
 		s = merge_states(tmp->name, tmp->owner, tmp->sym,
 				 tmp->state, s);
 		set_state_slist(&res, tmp->name, tmp->owner, tmp->sym, s);
