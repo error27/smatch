@@ -10,6 +10,13 @@
 #include "token.h"
 #include "smatch.h"
 
+/* 
+ * TODO:  The return_null list of functions should be determined automatically
+ */
+const char *return_null[] = {
+	"kmalloc",
+};
+
 struct func_n_param {
 	struct symbol *func;
 	int param;
@@ -155,10 +162,39 @@ static void match_function_call_after(struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
+static char *get_function_call(struct expression *expr)
+{
+	if (expr->type != EXPR_CALL)
+		return NULL;
+	if (expr->fn->type == EXPR_SYMBOL) {
+		return expr->fn->symbol->ident->name;
+	}
+	return NULL;
+}
+
+static int check_null_returns(const char *name, struct symbol *sym,
+			       struct expression *right)
+{
+	int i;
+	char *func_name;
+
+	func_name = get_function_call(right);
+	if (!func_name)
+		return 0;
+
+	for(i = 0; i < sizeof(*return_null)/sizeof(return_null[0]); i++) {
+		if (!strcmp(func_name,return_null[i])) {
+			set_state(name, my_id, sym, &undefined);
+			return 1;
+		}
+	}
+	return 0;
+}
+
 static int assign_seen;
 static void match_assign(struct expression *expr)
 {
-	struct expression *left;
+	struct expression *left, *right;
 	struct symbol *sym;
 	char *name;
 	
@@ -171,10 +207,16 @@ static void match_assign(struct expression *expr)
 	if (!name)
 		return;
 	name = alloc_string(name);
-	if (is_zero(expr->right))
+	right = strip_expr(expr->right);
+	if (is_zero(right)) {
 		set_state(name, my_id, sym, &isnull);
-	else
-		set_state(name, my_id, sym, &assumed_nonnull);
+		return;
+	}
+	if (check_null_returns(name, sym, right))
+		return;
+	
+	/* by default we assume it's assigned something nonnull */
+	set_state(name, my_id, sym, &assumed_nonnull);
 }
 
 /*
@@ -239,7 +281,7 @@ static void match_condition(struct expression *expr)
 
 static void match_declarations(struct symbol *sym)
 {
-	const char * name;
+	const char *name;
 
 	if ((get_base_type(sym))->type == SYM_ARRAY) {
 		return;
@@ -248,10 +290,13 @@ static void match_declarations(struct symbol *sym)
 	name = sym->ident->name;
 
 	if (sym->initializer) {
-		if (is_zero(sym->initializer))
+		if (is_zero(sym->initializer)) {
 			set_state(name, my_id, sym, &isnull);
-		else
-			set_state(name, my_id, sym, &assumed_nonnull);
+			return;
+		}
+		if (check_null_returns(name, sym, strip_expr(sym->initializer)))
+			return;
+		set_state(name, my_id, sym, &assumed_nonnull);
 	} else {
 		set_state(name, my_id, sym, &undefined);
 	}
