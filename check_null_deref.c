@@ -248,6 +248,7 @@ static void match_condition(struct expression *expr)
 
 	expr = strip_expr(expr);
 	switch(expr->type) {
+	case EXPR_PREOP:
 	case EXPR_SYMBOL:
 	case EXPR_DEREF:
 		name = get_variable_from_expr_simple(expr, &sym);
