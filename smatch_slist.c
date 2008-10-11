@@ -16,6 +16,8 @@
 ALLOCATOR(sm_state, "smatch state");
 ALLOCATOR(named_slist, "named slist");
 
+#define CHECKORDER 1
+
 void add_history(struct sm_state *state)
 {
 	struct state_history *tmp;
@@ -47,6 +49,61 @@ struct sm_state *clone_state(struct sm_state *s)
 	return alloc_state(s->name, s->owner, s->sym, s->state);
 }
 
+/* NULL states go at the end to simplify merge_slist */
+static int cmp_sm_states(const void *_a, const void *_b)
+{
+	const struct sm_state *a = _a;
+	const struct sm_state *b = _b;
+	int ret;
+
+	if (!a && !b)
+		return 0;
+	if (!b)
+		return -1;
+	if (!a)
+		return 1;
+	
+	if (a->owner > b->owner)
+		return -1;
+	if (a->owner < b->owner)
+		return 1;
+	
+	ret = strcmp(a->name, b->name);
+	if (ret)
+		return ret;
+ 
+	if (!b->sym && a->sym)
+		return -1;
+	if (!a->sym && b->sym)
+		return 1;
+	if (a->sym > b->sym)
+		return -1;
+	if (a->sym < b->sym)
+		return 1;
+
+	return 0;
+}
+
+static void check_order(struct state_list *slist)
+{
+	struct sm_state *state;
+	struct sm_state *last = NULL;
+	int printed = 0;
+
+	FOR_EACH_PTR(slist, state) {
+		if (last && cmp_sm_states(state, last) <= 0) {
+			printf("Error.  Unsorted slist %d vs %d, %p vs %p, "
+			       "%s vs %s\n", last->owner, state->owner, 
+			       last->sym, state->sym, last->name, state->name);
+		printed = 1;
+		}
+		last = state;
+	} END_FOR_EACH_PTR(state);
+
+	if (printed)
+		printf("======\n");
+}
+
 struct state_list *clone_slist(struct state_list *from_slist)
 {
 	struct sm_state *state;
@@ -57,6 +114,7 @@ struct state_list *clone_slist(struct state_list *from_slist)
 		tmp = clone_state(state);
 		add_ptr_list(&to_slist, tmp);
 	} END_FOR_EACH_PTR(state);
+	check_order(to_slist);
 	return to_slist;
 }
 
@@ -98,8 +156,7 @@ void merge_state_slist(struct state_list **slist, const char *name, int owner,
 			return;
 		}
 	} END_FOR_EACH_PTR(tmp);
-	tmp = alloc_state(name, owner, sym, state);
-	add_state_slist(slist, tmp);
+	set_state_slist(slist, name, owner, sym, state);
 }
 
 struct smatch_state *get_state_slist(struct state_list *slist, const char *name, int owner,
@@ -118,25 +175,28 @@ struct smatch_state *get_state_slist(struct state_list *slist, const char *name,
 	return NULL;
 }
 
-void add_state_slist(struct state_list **slist, struct sm_state *state)
-{
-	add_ptr_list(slist, state);
-}
-
 void set_state_slist(struct state_list **slist, const char *name, int owner,
-		     struct symbol *sym, struct smatch_state *state)
+ 		     struct symbol *sym, struct smatch_state *state)
 {
-	struct sm_state *tmp;
-
-	FOR_EACH_PTR(*slist, tmp) {
-		if (tmp->owner == owner && tmp->sym == sym 
-		    && !strcmp(tmp->name, name)){
+ 	struct sm_state *tmp;
+	struct sm_state *new = alloc_state(name, owner, sym, state);
+ 
+ 	FOR_EACH_PTR(*slist, tmp) {
+		if (cmp_sm_states(tmp, new) < 0)
+			continue;
+		else if (cmp_sm_states(tmp, new) == 0) {
+			__free_sm_state(new);
 			tmp->state = state;
+			check_order(*slist);
+			return;
+		} else {
+			INSERT_CURRENT(new, tmp);
+			check_order(*slist);
 			return;
 		}
 	} END_FOR_EACH_PTR(tmp);
-	tmp = alloc_state(name, owner, sym, state);
-	add_state_slist(slist, tmp);
+	add_ptr_list(slist, new);
+	check_order(*slist);
 }
 
 void delete_state_slist(struct state_list **slist, const char *name, int owner,
@@ -217,6 +277,11 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack,
 void merge_slist(struct state_list **to, struct state_list *slist)
 {
 	struct sm_state *state;
+
+#ifdef CHECKORDER
+	check_order(*to);
+	check_order(slist);
+#endif
 
 	if (!slist) {
 		return;

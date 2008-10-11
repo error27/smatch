@@ -38,8 +38,6 @@ void merge_state_slist(struct state_list **slist, const char *name, int owner,
 struct smatch_state *get_state_slist(struct state_list *slist, const char *name, int owner,
 		    struct symbol *sym);
 
-void add_state_slist(struct state_list **slist, struct sm_state *state);
-
 void set_state_slist(struct state_list **slist, const char *name, int owner,
 		     struct symbol *sym, struct smatch_state *state);
 
