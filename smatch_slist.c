@@ -214,17 +214,6 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack,
 	return ret;
 }
 
-void merge_state_stack(struct state_list_stack **stack, const char *name,
-		       int owner, struct symbol *sym,
-		       struct smatch_state *state)
-{
-	struct state_list *slist;
-
-	slist = pop_slist(stack);
-	merge_state_slist(&slist, name, owner, sym, state);
-	push_slist(stack, slist);
-}
-
 void merge_slist(struct state_list **to, struct state_list *slist)
 {
 	struct sm_state *state;
