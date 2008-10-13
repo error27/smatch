@@ -48,7 +48,7 @@ static struct state_list_stack *default_stack;
 static struct state_list_stack *continue_stack;
 static struct state_list_stack *false_only_stack;
 
-struct slist_stack *goto_stack;
+static struct slist_stack *goto_stack;
 
 int debug_states;
 
