@@ -16,7 +16,7 @@
 ALLOCATOR(sm_state, "smatch state");
 ALLOCATOR(named_slist, "named slist");
 
-#define CHECKORDER 1
+#undef CHECKORDER
 
 void add_history(struct sm_state *state)
 {
@@ -84,6 +84,7 @@ static int cmp_sm_states(const void *_a, const void *_b)
 	return 0;
 }
 
+#ifdef CHECKORDER
 static void check_order(struct state_list *slist)
 {
 	struct sm_state *state;
@@ -103,6 +104,7 @@ static void check_order(struct state_list *slist)
 	if (printed)
 		printf("======\n");
 }
+#endif
 
 struct state_list *clone_slist(struct state_list *from_slist)
 {
@@ -114,10 +116,13 @@ struct state_list *clone_slist(struct state_list *from_slist)
 		tmp = clone_state(state);
 		add_ptr_list(&to_slist, tmp);
 	} END_FOR_EACH_PTR(state);
+#ifdef CHECKORDER
 	check_order(to_slist);
+#endif
 	return to_slist;
 }
 
+// FIXME...  shouldn't we free some of these state pointers?
 struct smatch_state *merge_states(const char *name, int owner,
 				  struct symbol *sym,
 				  struct smatch_state *state1,
@@ -137,26 +142,6 @@ struct smatch_state *merge_states(const char *name, int owner,
 		 show_state(state2), show_state(ret));
 
 	return ret;
-}
-
-void merge_state_slist(struct state_list **slist, const char *name, int owner,
-		       struct symbol *sym, struct smatch_state *state)
-{
-	struct sm_state *tmp;
-	struct smatch_state *s;
-
-	FOR_EACH_PTR(*slist, tmp) {
-		if (tmp->owner == owner && tmp->sym == sym 
-		    && !strcmp(tmp->name, name)){
-			s = merge_states(name, owner, sym, tmp->state, state);
-			if (tmp->state != s) {
-				add_history(tmp);
-			}
-			tmp->state = s;
-			return;
-		}
-	} END_FOR_EACH_PTR(tmp);
-	set_state_slist(slist, name, owner, sym, state);
 }
 
 struct smatch_state *get_state_slist(struct state_list *slist, const char *name, int owner,
@@ -187,16 +172,13 @@ void set_state_slist(struct state_list **slist, const char *name, int owner,
 		else if (cmp_sm_states(tmp, new) == 0) {
 			__free_sm_state(new);
 			tmp->state = state;
-			check_order(*slist);
 			return;
 		} else {
 			INSERT_CURRENT(new, tmp);
-			check_order(*slist);
 			return;
 		}
 	} END_FOR_EACH_PTR(tmp);
 	add_ptr_list(slist, new);
-	check_order(*slist);
 }
 
 void delete_state_slist(struct state_list **slist, const char *name, int owner,
@@ -276,29 +258,105 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack,
 
 void merge_slist(struct state_list **to, struct state_list *slist)
 {
-	struct sm_state *state;
+	struct sm_state *to_state, *state, *tmp;
+	struct state_list **results;
+	struct smatch_state *s;
 
 #ifdef CHECKORDER
 	check_order(*to);
 	check_order(slist);
 #endif
 
+	/* merging a null and nonnull path gives you only the nonnull path */
 	if (!slist) {
 		return;
 	}
+	if (!*to) {
+		*to = clone_slist(slist);
+		return;
+	}
 
-	FOR_EACH_PTR(slist, state) {
-		merge_state_slist(to, state->name, state->owner,
-				  state->sym, state->state);
-	} END_FOR_EACH_PTR(state);
+	results = malloc(sizeof(*results));
+	*results = NULL;
 
-	FOR_EACH_PTR(*to, state) {
-		if (!get_state_slist(slist, state->name, state->owner,
-				    state->sym)) {
-			merge_state_slist(to, state->name, state->owner,
-					  state->sym, NULL);
+	PREPARE_PTR_LIST(*to, to_state);
+	PREPARE_PTR_LIST(slist, state);
+	for (;;) {
+		if (!to_state && !state)
+			break;
+		if (cmp_sm_states(to_state, state) < 0) {
+			s = merge_states(to_state->name, to_state->owner,
+					 to_state->sym, to_state->state, NULL);
+			tmp = alloc_state(to_state->name, to_state->owner,
+					  to_state->sym, s);
+			add_ptr_list(results, tmp);
+			NEXT_PTR_LIST(to_state);
+		} else if (cmp_sm_states(to_state, state) == 0) {
+			s = merge_states(to_state->name, to_state->owner,
+					 to_state->sym, to_state->state,
+					 state->state);
+			tmp = alloc_state(to_state->name, to_state->owner,
+					  to_state->sym, s);
+			add_ptr_list(results, tmp);
+			NEXT_PTR_LIST(to_state);
+			NEXT_PTR_LIST(state);
+		} else {
+			s = merge_states(state->name, state->owner,
+					 state->sym, state->state, NULL);
+			tmp = alloc_state(state->name, state->owner,
+					  state->sym, s);
+			add_ptr_list(results, tmp);
+			NEXT_PTR_LIST(state);
 		}
-	} END_FOR_EACH_PTR(state);
+	}
+	FINISH_PTR_LIST(state);
+	FINISH_PTR_LIST(to_state);
+
+	del_slist(to);
+	*to = *results;
+}
+
+void filter(struct state_list **slist, struct state_list *filter)
+{
+	struct sm_state *s_one, *s_two;
+	struct state_list **results;
+
+#ifdef CHECKORDER
+	check_order(*slist);
+	check_order(filter);
+#endif
+
+	results = malloc(sizeof(*results));
+	*results = NULL;
+
+	PREPARE_PTR_LIST(*slist, s_one);
+	PREPARE_PTR_LIST(filter, s_two);
+	for (;;) {
+		if (!s_one || !s_two)
+			break;
+		if (cmp_sm_states(s_one, s_two) < 0) {
+			SM_DEBUG("different missing in new %s\n", s_one->name);
+			NEXT_PTR_LIST(s_one);
+		} else if (cmp_sm_states(s_one, s_two) == 0) {
+			if (s_one->state == s_two->state) {
+				add_ptr_list(results, s_one);
+				SM_DEBUG("same %s\n", s_one->name);
+			} else
+				SM_DEBUG("different %s %s vs %s\n", s_one->name,
+				       show_state(s_one->state), 
+				       show_state(s_two->state));
+			NEXT_PTR_LIST(s_one);
+			NEXT_PTR_LIST(s_two);
+		} else {
+			SM_DEBUG("different missing in old%s\n", s_two->name);
+			NEXT_PTR_LIST(s_two);
+		}
+	}
+	FINISH_PTR_LIST(s_two);
+	FINISH_PTR_LIST(s_one);
+
+	del_slist(slist);
+	*slist = *results;
 }
 
 /*
@@ -365,14 +423,14 @@ void or_slist_stack(struct state_list_stack **slist_stack)
 	del_slist(&two);
 }
 
-struct state_list *get_slist_from_slist_stack(struct slist_stack *stack,
+struct state_list **get_slist_from_slist_stack(struct slist_stack *stack,
 					      const char *name)
 {
 	struct named_slist *tmp;
 
 	FOR_EACH_PTR(stack, tmp) {
 		if (!strcmp(tmp->name, name))
-			return tmp->slist;
+			return &tmp->slist;
 	} END_FOR_EACH_PTR(tmp);
 	return NULL;
 }

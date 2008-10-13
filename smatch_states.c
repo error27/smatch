@@ -460,11 +460,11 @@ static struct named_slist *alloc_named_slist(const char *name,
 
 void __save_gotos(const char *name)
 {
-	struct state_list *slist;
+	struct state_list **slist;
 
 	slist = get_slist_from_slist_stack(goto_stack, name);
 	if (slist) {
-		merge_slist(&slist, cur_slist);
+		merge_slist(slist, cur_slist);
 		return;
 	} else {
 		struct state_list *slist;
@@ -478,9 +478,9 @@ void __save_gotos(const char *name)
 
 void __merge_gotos(const char *name)
 {
-	struct state_list *slist;
+	struct state_list **slist;
 	
 	slist = get_slist_from_slist_stack(goto_stack, name);
 	if (slist)
-		merge_slist(&cur_slist, slist);
+		merge_slist(&cur_slist, *slist);
 }
