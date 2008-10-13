@@ -9,7 +9,6 @@ struct sm_state {
 	struct symbol *sym;
   	struct smatch_state *state;
 	struct history_list *line_history;
-	struct history_list *path_history;
 };
 
 DECLARE_ALLOCATOR(sm_state);

@@ -39,7 +39,6 @@ struct sm_state *alloc_state(const char *name, int owner,
 	sm_state->sym = sym;
 	sm_state->state = state;
 	sm_state->line_history = NULL;
-	sm_state->path_history = NULL;
 	add_history(sm_state);
 	return sm_state;
 }
