@@ -98,6 +98,7 @@ void register_smatch_extra(int id)
 	add_hook(&match_function_call_after, FUNCTION_CALL_AFTER_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_AFTER_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
+	add_hook(&__implied_states_hook, WHOLE_CONDITION_HOOK);
 }
 
 static int expr_to_val(struct expression *expr)
@@ -169,7 +170,12 @@ int known_condition_true(struct expression *expr)
 		return 0;
 	
 	ret = true_comparison(left, expr->op, right);
-	smatch_msg("known condition: %d & %d => %s", left, right, (ret?"true":"false"));
+	if (ret)
+		SM_DEBUG("%d known condition: %d %s %d => true", get_lineno(),
+			 left, show_special(expr->op), right);
+	else
+		smatch_msg("known condition: %d %s %d => false", left, 
+			   show_special(expr->op), right);
 
 	return ret;
 }

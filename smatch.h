@@ -111,7 +111,11 @@ void __split_expr(struct expression *expr);
 int in_condition();
 void __split_whole_condition(struct expression *expr);
 
+/* smatch_implied.c */
+void __implied_states_hook(struct expression *expr);
+
 /* smatch_extras.c */
+#define SMATCH_EXTRA 1 /* this is my_id from smatch extra set in smatch.c */
 int known_condition_true(struct expression *expr);
 
 /* smatch_ignore.c */
@@ -121,6 +125,8 @@ int is_ignored(const char *name, int owner, struct symbol *sym);
 /* smatch_states.c */
 
 extern int debug_states;
+
+struct sm_state *__get_sm_state(const char *name, int owner, struct symbol *sym);
 
 void __use_false_only_stack();
 void __pop_false_only_stack();

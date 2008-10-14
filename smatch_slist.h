@@ -9,6 +9,7 @@ struct sm_state {
 	struct symbol *sym;
   	struct smatch_state *state;
 	struct history_list *line_history;
+	struct state_list_stack *pools;
 };
 
 DECLARE_ALLOCATOR(sm_state);
@@ -20,6 +21,8 @@ struct named_slist {
 };
 DECLARE_ALLOCATOR(named_slist);
 DECLARE_PTR_LIST(slist_stack, struct named_slist);
+
+extern struct state_list_stack *implied_pools;
 
 void add_history(struct sm_state *state);
 struct sm_state *alloc_state(const char *name, int owner, 
@@ -35,6 +38,9 @@ struct smatch_state *merge_states(const char *name, int owner,
 				  struct smatch_state *state2);
 
 struct smatch_state *get_state_slist(struct state_list *slist, const char *name, int owner,
+		    struct symbol *sym);
+
+struct sm_state *get_sm_state_slist(struct state_list *slist, const char *name, int owner,
 		    struct symbol *sym);
 
 void set_state_slist(struct state_list **slist, const char *name, int owner,

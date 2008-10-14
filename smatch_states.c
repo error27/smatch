@@ -50,6 +50,8 @@ static struct state_list_stack *false_only_stack;
 
 static struct slist_stack *goto_stack;
 
+struct state_list_stack *implied_pools;
+
 int debug_states;
 
 void __print_slist(struct state_list *slist)
@@ -97,6 +99,11 @@ void set_state(const char *name, int owner, struct symbol *sym,
 struct smatch_state *get_state(const char *name, int owner, struct symbol *sym)
 {
 	return get_state_slist(cur_slist, name, owner, sym);
+}
+
+struct sm_state *__get_sm_state(const char *name, int owner, struct symbol *sym)
+{
+	return get_sm_state_slist(cur_slist, name, owner, sym);
 }
 
 void delete_state(const char *name, int owner, struct symbol *sym)
@@ -177,6 +184,7 @@ void clear_all_states()
 	del_slist_stack(&break_stack);
 	del_slist_stack(&switch_stack);
 	del_slist_stack(&continue_stack);
+	del_slist_stack(&implied_pools);
 
 	FOR_EACH_PTR(goto_stack, named_slist) {
 		del_slist(&named_slist->slist);

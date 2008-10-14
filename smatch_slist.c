@@ -40,6 +40,7 @@ struct sm_state *alloc_state(const char *name, int owner,
 	sm_state->state = state;
 	sm_state->line_history = NULL;
 	add_history(sm_state);
+	sm_state->pools = NULL;
 	return sm_state;
 }
 
@@ -159,6 +160,22 @@ struct smatch_state *get_state_slist(struct state_list *slist, const char *name,
 	return NULL;
 }
 
+struct sm_state *get_sm_state_slist(struct state_list *slist, const char *name, int owner,
+		    struct symbol *sym)
+{
+	struct sm_state *state;
+
+	if (!name)
+		return NULL;
+
+	FOR_EACH_PTR(slist, state) {
+		if (state->owner == owner && state->sym == sym 
+		    && !strcmp(state->name, name))
+			return state;
+	} END_FOR_EACH_PTR(state);
+	return NULL;
+}
+
 void set_state_slist(struct state_list **slist, const char *name, int owner,
  		     struct symbol *sym, struct smatch_state *state)
 {
@@ -255,11 +272,19 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack,
 	return ret;
 }
 
+static void add_pool(struct sm_state *state, struct state_list **pool)
+{
+	add_ptr_list(pool, state);
+	push_slist(&state->pools, *pool);
+}
+
 void merge_slist(struct state_list **to, struct state_list *slist)
 {
 	struct sm_state *to_state, *state, *tmp;
 	struct state_list **results;
 	struct smatch_state *s;
+	struct state_list *implied_to = NULL;
+	struct state_list *implied_from = NULL;
 
 #ifdef CHECKORDER
 	check_order(*to);
@@ -289,11 +314,19 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			tmp = alloc_state(to_state->name, to_state->owner,
 					  to_state->sym, s);
 			add_ptr_list(results, tmp);
+			add_pool(to_state, &implied_to);
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_sm_states(to_state, state) == 0) {
-			s = merge_states(to_state->name, to_state->owner,
-					 to_state->sym, to_state->state,
-					 state->state);
+			if (to_state->state == state->state) {
+				s = to_state->state;
+			} else {
+				s = merge_states(to_state->name,
+						 to_state->owner,
+						 to_state->sym, to_state->state,
+						 state->state);
+				add_pool(to_state, &implied_to);
+				add_pool(state, &implied_from);
+			}
 			tmp = alloc_state(to_state->name, to_state->owner,
 					  to_state->sym, s);
 			add_ptr_list(results, tmp);
@@ -305,6 +338,7 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			tmp = alloc_state(state->name, state->owner,
 					  state->sym, s);
 			add_ptr_list(results, tmp);
+			add_pool(state, &implied_from);
 			NEXT_PTR_LIST(state);
 		}
 	}
@@ -313,6 +347,11 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 
 	del_slist(to);
 	*to = *results;
+
+	if (implied_from)
+		push_slist(&implied_pools, implied_from);
+	if (implied_to)
+		push_slist(&implied_pools, implied_to);
 }
 
 void filter(struct state_list **slist, struct state_list *filter)
