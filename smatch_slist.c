@@ -281,7 +281,7 @@ static void add_pool(struct sm_state *state, struct state_list **pool)
 void merge_slist(struct state_list **to, struct state_list *slist)
 {
 	struct sm_state *to_state, *state, *tmp;
-	struct state_list **results;
+	struct state_list *results = NULL;
 	struct smatch_state *s;
 	struct state_list *implied_to = NULL;
 	struct state_list *implied_from = NULL;
@@ -300,9 +300,6 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 		return;
 	}
 
-	results = malloc(sizeof(*results));
-	*results = NULL;
-
 	PREPARE_PTR_LIST(*to, to_state);
 	PREPARE_PTR_LIST(slist, state);
 	for (;;) {
@@ -313,7 +310,7 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 					 to_state->sym, to_state->state, NULL);
 			tmp = alloc_state(to_state->name, to_state->owner,
 					  to_state->sym, s);
-			add_ptr_list(results, tmp);
+			add_ptr_list(&results, tmp);
 			add_pool(to_state, &implied_to);
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_sm_states(to_state, state) == 0) {
@@ -329,7 +326,7 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			}
 			tmp = alloc_state(to_state->name, to_state->owner,
 					  to_state->sym, s);
-			add_ptr_list(results, tmp);
+			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(to_state);
 			NEXT_PTR_LIST(state);
 		} else {
@@ -337,7 +334,7 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 					 state->sym, state->state, NULL);
 			tmp = alloc_state(state->name, state->owner,
 					  state->sym, s);
-			add_ptr_list(results, tmp);
+			add_ptr_list(&results, tmp);
 			add_pool(state, &implied_from);
 			NEXT_PTR_LIST(state);
 		}
@@ -346,7 +343,7 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 	FINISH_PTR_LIST(to_state);
 
 	del_slist(to);
-	*to = *results;
+	*to = results;
 
 	if (implied_from)
 		push_slist(&implied_pools, implied_from);
