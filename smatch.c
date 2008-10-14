@@ -32,8 +32,8 @@ int main(int argc, char **argv)
 	
 	/* The script IDs start at 1.
 	   0 is used for internal stuff. */
-	for(i = 1; (func = reg_funcs[i]); i++){
-		func(i);
+	for(i = 0; (func = reg_funcs[i]); i++){
+		func(i + 1);
 	}
 	
 	if (argc >= 2 && !strcmp(argv[1], "--debug")) {
