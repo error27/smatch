@@ -278,10 +278,14 @@ static int _get_value(struct expression *expr, int *discard)
 		discard = &dis;
 	if (*discard)
 		return UNDEFINED;
-
+	
  	switch (expr->type){
 	case EXPR_VALUE:
 		ret = expr->value;
+		break;
+	case EXPR_PREOP:
+		if (!strcmp("-", show_special(expr->op)))
+			ret = - _get_value(expr->unop, discard);
 		break;
 	case EXPR_BINOP:
 		if (show_special(expr->op) && 
