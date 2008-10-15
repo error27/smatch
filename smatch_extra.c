@@ -61,7 +61,7 @@ static void match_assign(struct expression *expr)
 	if (!name)
 		return;
 	name = alloc_string(name);
-	set_state(name, my_id, sym, alloc_state(get_value(expr->right, NULL)));
+	set_state(name, my_id, sym, alloc_state(get_value(expr->right)));
 }
 
 static void undef_expr(struct expression *expr)
@@ -85,7 +85,7 @@ static void match_declarations(struct symbol *sym)
 	if (sym->ident) {
 		name = sym->ident->name;
 		if (sym->initializer) {
-			set_state(name, my_id, sym, alloc_state(get_value(sym->initializer, NULL)));
+			set_state(name, my_id, sym, alloc_state(get_value(sym->initializer)));
 		}
 	}
 }
@@ -108,7 +108,7 @@ static int expr_to_val(struct expression *expr)
 	struct symbol *sym;
 	char *name;
 	
-	val = get_value(expr, NULL);
+	val = get_value(expr);
 	if (val != UNDEFINED)
 		return val;
 

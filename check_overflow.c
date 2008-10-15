@@ -36,7 +36,7 @@ static int malloc_size(struct expression *expr)
 		name = get_variable_from_expr_simple(expr->fn, NULL);
 		if (name && !strcmp(name, "kmalloc")) {
 			arg = get_argument_from_call_expr(expr->args, 0);
-			return get_value(arg, NULL);
+			return get_value(arg);
 		}
 	} else if (expr->type == EXPR_STRING && expr->string) {
 		return expr->string->length * 8;
@@ -122,7 +122,7 @@ static void match_fn_call(struct expression *expr)
 		dest_name = alloc_string(dest_name);
 		
 		data = get_argument_from_call_expr(expr->args, 2);
-		needed = get_value(data, NULL);
+		needed = get_value(data);
 		state = get_state(dest_name, my_id, NULL);
 		if (!state || !state->data)
 			return;

@@ -90,7 +90,7 @@ char * get_variable_from_expr(struct expression * expr,
 char * get_variable_from_expr_simple(struct expression * expr,
 				     struct symbol **sym_ptr);
 int sym_name_is(const char *name, struct expression *expr);
-int get_value(struct expression *expr, int *discard);
+int get_value(struct expression *expr);
 int is_zero(struct expression *expr);
 const char *show_state(struct smatch_state *state);
 struct expression *strip_expr(struct expression *expr);

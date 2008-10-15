@@ -267,7 +267,7 @@ int sym_name_is(const char *name, struct expression *expr)
 	return 0;
 }
 
-int get_value(struct expression *expr, int *discard)
+static int _get_value(struct expression *expr, int *discard)
 {
 	int dis = 0;
 	int ret = UNDEFINED;
@@ -286,8 +286,8 @@ int get_value(struct expression *expr, int *discard)
 	case EXPR_BINOP:
 		if (show_special(expr->op) && 
 		    !strcmp("*", show_special(expr->op)))
-			ret = get_value(expr->left, discard) 
-				* get_value(expr->right, discard);
+			ret = _get_value(expr->left, discard) 
+				* _get_value(expr->right, discard);
 		break;
 	case EXPR_SIZEOF:
 		if (expr->cast_type && get_base_type(expr->cast_type))
@@ -302,6 +302,11 @@ int get_value(struct expression *expr, int *discard)
 	if (*discard)
 		return UNDEFINED;
 	return ret;
+}
+
+int get_value(struct expression *expr)
+{
+	return _get_value(expr, NULL);
 }
 
 int is_zero(struct expression *expr)
