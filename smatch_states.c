@@ -113,7 +113,7 @@ void delete_state(const char *name, int owner, struct symbol *sym)
 
 struct state_list *get_all_states(int owner)
 {
-	struct state_list *slist;
+	struct state_list *slist = NULL;
 	struct sm_state *tmp;
 
 	FOR_EACH_PTR(cur_slist, tmp) {
