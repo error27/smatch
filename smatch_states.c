@@ -111,7 +111,7 @@ void delete_state(const char *name, int owner, struct symbol *sym)
 	delete_state_slist(&cur_slist, name, owner, sym);
 }
 
-struct state_list *get_current_states(int owner)
+struct state_list *get_all_states(int owner)
 {
 	struct state_list *slist;
 	struct sm_state *tmp;
