@@ -48,8 +48,10 @@ enum hook_type {
 	END_FILE_HOOK,
 };
 void add_hook(void *func, enum hook_type type);
-typedef struct smatch_state *(merge_func_t)(const char *name, struct symbol *sym, struct smatch_state *s1, 
-			   struct smatch_state *s2);
+typedef struct smatch_state *(merge_func_t)(const char *name, 
+					    struct symbol *sym,
+					    struct smatch_state *s1, 
+					    struct smatch_state *s2);
 void add_merge_hook(int client_id, merge_func_t *func);
 
 #define smatch_msg(msg...) \
@@ -65,18 +67,14 @@ do {                                                          \
 #define UNDEFINED INT_MIN
 
 struct smatch_state *get_state(const char *name, int owner, struct symbol *sym);
-void add_state(const char *name, int owner, struct symbol *sym, struct smatch_state *state);
-void set_state(const char *name, int owner, struct symbol *sym, struct smatch_state *state);
+void set_state(const char *name, int owner, struct symbol *sym,
+	       struct smatch_state *state);
 void delete_state(const char *name, int owner, struct symbol *sym);
 void set_true_false_states(const char *name, int owner, struct symbol *sym, 
-			   struct smatch_state *true_state, struct smatch_state *false_state);
-int state_defined(const char *name, int owner, struct symbol *sym);
+			   struct smatch_state *true_state,
+			   struct smatch_state *false_state);
 
 struct state_list *get_all_states();
-void nullify_path();	   
-void __unnullify_path();	   
-void clear_all_states();
-
 char *get_filename();
 char *get_function();
 int get_lineno();
@@ -90,12 +88,19 @@ struct expression *get_argument_from_call_expr(struct expression_list *args,
 char * get_variable_from_expr(struct expression * expr,
 			      struct symbol **sym_ptr);
 char * get_variable_from_expr_simple(struct expression * expr,
-			      struct symbol **sym_ptr);
+				     struct symbol **sym_ptr);
 int sym_name_is(const char *name, struct expression *expr);
 int get_value(struct expression *expr, int *discard);
 int is_zero(struct expression *expr);
 const char *show_state(struct smatch_state *state);
 struct expression *strip_expr(struct expression *expr);
+
+/* smatch_ignore.c */
+void add_ignore(const char *name, int owner, struct symbol *sym);
+int is_ignored(const char *name, int owner, struct symbol *sym);
+
+/* smatch_conditions */
+int in_condition();
 
 /* ----------------------------------------------------------------
    The stuff below is all used internally and shouldn't 
@@ -108,7 +113,6 @@ void smatch (int argc, char **argv);
 void __split_expr(struct expression *expr);
 
 /* smatch_conditions */
-int in_condition();
 void __split_whole_condition(struct expression *expr);
 
 /* smatch_implied.c */
@@ -118,16 +122,15 @@ void __implied_states_hook(struct expression *expr);
 #define SMATCH_EXTRA 1 /* this is my_id from smatch extra set in smatch.c */
 int known_condition_true(struct expression *expr);
 
-/* smatch_ignore.c */
-void add_ignore(const char *name, int owner, struct symbol *sym);
-int is_ignored(const char *name, int owner, struct symbol *sym);
-
 /* smatch_states.c */
-
 extern int debug_states;
 
-struct sm_state *__get_sm_state(const char *name, int owner, struct symbol *sym);
+void nullify_path();	   
+void __unnullify_path();	   
+void clear_all_states();
 
+struct sm_state *__get_sm_state(const char *name, int owner,
+				struct symbol *sym);
 void __use_false_only_stack();
 void __pop_false_only_stack();
 void __push_true_states();
