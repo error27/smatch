@@ -36,6 +36,24 @@ static int my_id;
 STATE(lock);
 STATE(unlock);
 
+/*
+ * merge_func() can go away when we fix the core to just store all the possible 
+ * states.
+ *
+ * The parameters are passed in alphabetical order with NULL at the beginning
+ * of the alphabet.  (s2 is never NULL).
+ */
+
+static struct smatch_state *merge_func(const char *name, struct symbol *sym,
+				       struct smatch_state *s1,
+				       struct smatch_state *s2)
+{
+	if (s1 == NULL)
+		return s2;
+	return &undefined;
+
+}
+
 static void match_call(struct expression *expr)
 {
 	char *fn_name;
@@ -81,6 +99,7 @@ static void match_return(struct statement *stmt)
 void register_template(int id)
 {
 	my_id = id;
+	add_merge_hook(my_id, &merge_func);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 }
