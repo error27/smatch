@@ -40,9 +40,8 @@ static void match_function_call_after(struct expression *expr)
 
 	FOR_EACH_PTR(expr->args, tmp) {
 		if (tmp->op == '&') {
-			name = get_variable_from_expr_simple(tmp->unop, &sym);
+			name = get_variable_from_expr(tmp->unop, &sym);
 			if (name) {
-				name = alloc_string(name);
 				set_state(name, my_id, sym, &undefined);
 			}
 		}
@@ -57,10 +56,9 @@ static void match_assign(struct expression *expr)
 	char *name;
 	
 	left = strip_expr(expr->left);
-	name = get_variable_from_expr_simple(left, &sym);
+	name = get_variable_from_expr(left, &sym);
 	if (!name)
 		return;
-	name = alloc_string(name);
 	set_state(name, my_id, sym, alloc_state(get_value(expr->right)));
 }
 
@@ -69,12 +67,13 @@ static void undef_expr(struct expression *expr)
 	struct symbol *sym;
 	char *name;
 	
-	name = get_variable_from_expr_simple(expr->unop, &sym);
+	name = get_variable_from_expr(expr->unop, &sym);
 	if (!name)
 		return;
-	if (!get_state(name, my_id, sym))
+	if (!get_state(name, my_id, sym)) {
+		free_string(name);
 		return;
-	name = alloc_string(name);
+	}
 	set_state(name, my_id, sym, &undefined);
 }
 
@@ -112,10 +111,11 @@ static int expr_to_val(struct expression *expr)
 	if (val != UNDEFINED)
 		return val;
 
-	name = get_variable_from_expr_simple(expr, &sym);
+	name = get_variable_from_expr(expr, &sym);
 	if (!name)
 		return UNDEFINED;
 	state = get_state(name, my_id, sym);
+	free_string(name);
 	if (!state || !state->data)
 		return UNDEFINED;
 	return *(int *)state->data;

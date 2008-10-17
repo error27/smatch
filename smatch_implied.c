@@ -64,6 +64,7 @@ void __implied_states_hook(struct expression *expr)
 	if (expr->type != EXPR_COMPARE || expr->op != SPECIAL_EQUAL)
 		return;
 
-	name = get_variable_from_expr_simple(expr->left, &sym);
+	name = get_variable_from_expr(expr->left, &sym);
 	state = __get_sm_state(name, SMATCH_EXTRA, sym);
+	free_string(name);
 }

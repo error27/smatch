@@ -207,7 +207,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
  *
  */
 
-char *get_variable_from_expr(struct expression *expr, struct symbol **sym_ptr)
+char *get_variable_from_expr_complex(struct expression *expr, struct symbol **sym_ptr)
 {
 	static char var_name[VAR_LEN];
 	int junk;
@@ -231,7 +231,7 @@ char *get_variable_from_expr(struct expression *expr, struct symbol **sym_ptr)
  * then it returns NULL.
  */
 
-char *get_variable_from_expr_simple(struct expression *expr, 
+char *get_variable_from_expr(struct expression *expr, 
 				    struct symbol **sym_ptr)
 {
 	static char var_name[VAR_LEN];
@@ -253,7 +253,7 @@ char *get_variable_from_expr_simple(struct expression *expr,
 			*sym_ptr = NULL;
 		return NULL;
 	}
-	return var_name;
+	return alloc_string(var_name);
 }
 
 int sym_name_is(const char *name, struct expression *expr)

@@ -147,16 +147,18 @@ static void match_function_call_after(struct expression *expr)
 	FOR_EACH_PTR(expr->args, tmp) {
 		tmp = strip_expr(tmp);
 		if (tmp->op == '&') {
-			name = get_variable_from_expr_simple(tmp->unop, &sym);
+			name = get_variable_from_expr(tmp->unop, &sym);
 			if (name) {
-				name = alloc_string(name);
 				set_state(name, my_id, sym, &assumed_nonnull);
 			}
 		} else {
-			name = get_variable_from_expr_simple(tmp, &sym);
-			if (func && name && sym)
+			name = get_variable_from_expr(tmp, &sym);
+			if (func && name && sym) {
 				if (get_state(name, my_id, sym) == &undefined)
 					add_param(&calls, func, i, get_lineno());
+			} else
+				free_string(name);
+			
 		}
 		i++;
 	} END_FOR_EACH_PTR(tmp);
@@ -203,10 +205,9 @@ static void match_assign(struct expression *expr)
 		return;
 	}
 	left = strip_expr(expr->left);
-	name = get_variable_from_expr_simple(left, &sym);
+	name = get_variable_from_expr(left, &sym);
 	if (!name)
 		return;
-	name = alloc_string(name);
 	right = strip_expr(expr->right);
 	if (is_zero(right)) {
 		set_state(name, my_id, sym, &isnull);
@@ -251,10 +252,9 @@ static void match_condition(struct expression *expr)
 	case EXPR_PREOP:
 	case EXPR_SYMBOL:
 	case EXPR_DEREF:
-		name = get_variable_from_expr_simple(expr, &sym);
+		name = get_variable_from_expr(expr, &sym);
 		if (!name)
 			return;
-		name = alloc_string(name);
 		set_new_true_false_states(name, my_id, sym, &nonnull, &isnull);
 		return;
 	case EXPR_ASSIGNMENT:
@@ -264,10 +264,9 @@ static void match_condition(struct expression *expr)
 		 *  for ( ... ; ... || x = NULL ; ) ...
 		 */
 		if (is_zero(expr->right)) {
-			name = get_variable_from_expr_simple(expr->left, &sym);
+			name = get_variable_from_expr(expr->left, &sym);
 			if (!name)
 				return;
-			name = alloc_string(name);
 			set_new_true_false_states(name, my_id, sym, NULL, &isnull);
 			return;
 		}
@@ -312,10 +311,9 @@ static void match_dereferences(struct expression *expr)
 	if (strcmp(show_special(expr->deref->op), "*"))
 		return;
 
-	deref = get_variable_from_expr_simple(expr->deref->unop, &sym);
+	deref = get_variable_from_expr(expr->deref->unop, &sym);
 	if (!deref)
 		return;
-	deref = alloc_string(deref);
 
 	state = get_state(deref, my_id, sym);
 	if (state == &undefined) {

@@ -51,7 +51,7 @@ static void match_call(struct expression *expr)
 
 
 	sem_expr = get_argument_from_call_expr(expr->args, 0);
-	sem_name = alloc_string(get_variable_from_expr_simple(sem_expr, NULL));
+	sem_name = get_variable_from_expr(sem_expr, NULL);
 	if (down) {
 		set_state(sem_name, my_id, NULL, &lock);
 	} else {

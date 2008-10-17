@@ -85,10 +85,10 @@ char *alloc_string(char *str);
 void free_string(char *str);
 struct expression *get_argument_from_call_expr(struct expression_list *args,
 					       int num);
-char * get_variable_from_expr(struct expression * expr,
-			      struct symbol **sym_ptr);
-char * get_variable_from_expr_simple(struct expression * expr,
+char *get_variable_from_expr_complex(struct expression *expr,
 				     struct symbol **sym_ptr);
+char *get_variable_from_expr(struct expression *expr,
+			     struct symbol **sym_ptr);
 int sym_name_is(const char *name, struct expression *expr);
 int get_value(struct expression *expr);
 int is_zero(struct expression *expr);

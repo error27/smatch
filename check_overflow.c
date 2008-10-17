@@ -33,7 +33,7 @@ static int malloc_size(struct expression *expr)
 		return 0;
 
 	if (expr->type == EXPR_CALL) {
-		name = get_variable_from_expr_simple(expr->fn, NULL);
+		name = get_variable_from_expr(expr->fn, NULL);
 		if (name && !strcmp(name, "kmalloc")) {
 			arg = get_argument_from_call_expr(expr->args, 0);
 			return get_value(arg);
@@ -68,8 +68,7 @@ static void match_declaration(struct symbol *sym)
 static void match_assignment(struct expression *expr)
 {
 	char *name;
-	name = get_variable_from_expr_simple(expr->left, NULL);
-	name = alloc_string(name);
+	name = get_variable_from_expr(expr->left, NULL);
 	if (!name)
 		return;
 	if (malloc_size(expr->right) > 0)
@@ -94,11 +93,9 @@ static void match_fn_call(struct expression *expr)
 
 		dest = get_argument_from_call_expr(expr->args, 0);
 		dest_name = get_variable_from_expr(dest, NULL);
-		dest_name = alloc_string(dest_name);
 
 		data = get_argument_from_call_expr(expr->args, 1);
 		data_name = get_variable_from_expr(data, NULL);
-		data_name = alloc_string(data_name);
 		
 		dest_state = get_state(dest_name, my_id, NULL);
 		if (!dest_state || !dest_state->data) {
@@ -119,7 +116,6 @@ static void match_fn_call(struct expression *expr)
 
 		dest = get_argument_from_call_expr(expr->args, 0);
 		dest_name = get_variable_from_expr(dest, NULL);
-		dest_name = alloc_string(dest_name);
 		
 		data = get_argument_from_call_expr(expr->args, 2);
 		needed = get_value(data);
