@@ -44,7 +44,7 @@ static void match_call(struct expression *expr)
 	char *sem_name;
 
 	fn_name = get_variable_from_expr(expr->fn, NULL);
-	if (strcmp(fn_name, "down") && strcmp(fn_name, "up"))
+	if (!fn_name || (strcmp(fn_name, "down") && strcmp(fn_name, "up")))
 		return;
 	if (!strcmp(fn_name, "down"))
 		down = 1;
