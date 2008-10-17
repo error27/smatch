@@ -39,20 +39,22 @@ STATE(unlock);
 static void match_call(struct expression *expr)
 {
 	char *fn_name;
+	int down = 0;
 	struct expression *sem_expr;
 	char *sem_name;
 
 	fn_name = get_variable_from_expr(expr->fn, NULL);
 	if (strcmp(fn_name, "down") && strcmp(fn_name, "up"))
 		return;
+	if (!strcmp(fn_name, "down"))
+		down = 1;
+
 
 	sem_expr = get_argument_from_call_expr(expr->args, 0);
-	sem_name = get_variable_from_expr_simple(sem_expr, NULL);
-	if (strcmp(fn_name, "down")) {
-		printf("%d %s locked\n", get_lineno(), sem_name);
+	sem_name = alloc_string(get_variable_from_expr_simple(sem_expr, NULL));
+	if (down) {
 		set_state(sem_name, my_id, NULL, &lock);
 	} else {
-		printf("%d %s unlocked\n", get_lineno(), sem_name);
 		set_state(sem_name, my_id, NULL, &unlock);
 	}
 }
@@ -68,8 +70,6 @@ static void match_return(struct statement *stmt)
 		return;
 	
 	slist = get_all_states(my_id);
-
-	__print_slist(slist);
 
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state != &unlock)
