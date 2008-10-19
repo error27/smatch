@@ -13,9 +13,29 @@
 
 static int my_id;
 
+static int _zero = 0;
+static int _one = 1;
+
+static struct smatch_state zero = {
+	.name = "zero",
+	.data = &_zero,
+};
+
+static struct smatch_state one = {
+	.name = "one",
+	.data = &_one,
+};
+
 static struct smatch_state *alloc_state(int val)
 {
 	struct smatch_state *state;
+
+	if (val == 0)
+		return &zero;
+	if (val == 1)
+		return &one;
+	if (val == UNDEFINED)
+		return &undefined;
 
 	state = malloc(sizeof(*state));
 	state->name = "value";
