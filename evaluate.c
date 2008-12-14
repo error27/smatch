@@ -3106,6 +3106,7 @@ static void evaluate_if_statement(struct statement *stmt)
 
 static void evaluate_iterator(struct statement *stmt)
 {
+	evaluate_symbol_list(stmt->iterator_syms);
 	evaluate_conditional(stmt->iterator_pre_condition, 1);
 	evaluate_conditional(stmt->iterator_post_condition,1);
 	evaluate_statement(stmt->iterator_pre_statement);
