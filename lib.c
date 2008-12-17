@@ -248,6 +248,10 @@ static char **handle_switch_D(char *arg, char **next)
 {
 	const char *name = arg + 1;
 	const char *value = "1";
+
+	if (!*name || isspace(*name))
+		die("argument to `-D' is missing");
+
 	for (;;) {
 		char c;
 		c = *++arg;
