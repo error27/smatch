@@ -987,7 +987,7 @@ static struct token *attribute_conditional_context(struct token *token, struct s
 static struct token *attribute_transparent_union(struct token *token, struct symbol *attr, struct ctype *ctype)
 {
 	if (Wtransparent_union)
-		sparse_error(token->pos, "ignoring attribute __transparent_union__");
+		warning(token->pos, "ignoring attribute __transparent_union__");
 	return token;
 }
 
