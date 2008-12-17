@@ -390,8 +390,10 @@ void show_symbol(struct symbol *sym)
 
 	show_type(sym);
 	type = sym->ctype.base_type;
-	if (!type)
+	if (!type) {
+		printf("\n");
 		return;
+	}
 
 	/*
 	 * Show actual implementation information
@@ -410,9 +412,9 @@ void show_symbol(struct symbol *sym)
 
 	case SYM_FN: {
 		struct statement *stmt = type->stmt;
+		printf("\n");
 		if (stmt) {
 			int val;
-			printf("\n");		
 			val = show_statement(stmt);
 			if (val)
 				printf("\tmov.%d\t\tretval,%d\n", stmt->ret->bit_size, val);
@@ -422,6 +424,7 @@ void show_symbol(struct symbol *sym)
 	}
 
 	default:
+		printf("\n");
 		break;
 	}
 
