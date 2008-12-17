@@ -347,10 +347,13 @@ static char **handle_switch_m(char *arg, char **next)
 
 static char **handle_switch_o(char *arg, char **next)
 {
-	if (!strcmp (arg, "o") && *next)
-		return next + 1; // "-o foo"
-	else
-		return next;     // "-ofoo" or (bogus) terminal "-o"
+	if (!strcmp (arg, "o")) {       // "-o foo"
+		if (!*++next)
+			die("argument to '-o' is missing");
+	}
+	// else "-ofoo"
+
+	return next;
 }
 
 static const struct warning {
