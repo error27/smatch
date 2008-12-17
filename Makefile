@@ -1,19 +1,21 @@
 VERSION=0.4.1
 
-OS ?= linux
+OS = linux
 
-CC ?= gcc
-CFLAGS ?= -O2 -finline-functions -fno-strict-aliasing -g
+
+CC = gcc
+CFLAGS = -O2 -finline-functions -fno-strict-aliasing -g
 CFLAGS += -Wall -Wwrite-strings
-LDFLAGS ?= -g
-AR ?= ar
-
-HAVE_LIBXML=$(shell pkg-config --exists libxml-2.0 && echo 'yes')
+LDFLAGS += -g
+AR = ar
 
 #
 # For debugging, uncomment the next one
 #
-CFLAGS += -DDEBUG
+#CFLAGS += -O0 -DDEBUG -g3 -gdwarf-2
+
+HAVE_LIBXML=$(shell pkg-config --exists libxml-2.0 && echo 'yes')
+
 
 DESTDIR=
 PREFIX=$(HOME)
@@ -191,7 +193,7 @@ pre-process.h:
 	$(QUIET_CC)$(CC) -o $@ -c $(CFLAGS) $<
 
 clean: clean-check
-	rm -f *.[oa] $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
+	rm -f *.[oa] *.so $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
 
 dist:
 	@if test "`git describe`" != "$(VERSION)" ; then \
