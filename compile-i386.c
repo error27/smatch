@@ -2081,7 +2081,7 @@ static struct storage *x86_call_expression(struct expression *expr)
 		insn("pushl", new, NULL,
 		     !framesize ? "begin function call" : NULL);
 
-		framesize += size >> 3;
+		framesize += bits_to_bytes(size);
 	} END_FOR_EACH_PTR_REVERSE(arg);
 
 	fn = expr->fn;

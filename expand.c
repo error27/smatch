@@ -880,7 +880,7 @@ static unsigned long bit_offset(const struct expression *expr)
 {
 	unsigned long offset = 0;
 	while (expr->type == EXPR_POS) {
-		offset += expr->init_offset << 3;
+		offset += bytes_to_bits(expr->init_offset);
 		expr = expr->init_expr;
 	}
 	if (expr && expr->ctype)

@@ -128,7 +128,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		base_size = 0;
 	}
 
-	align_bit_mask = (sym->ctype.alignment << 3) - 1;
+	align_bit_mask = bytes_to_bits(sym->ctype.alignment) - 1;
 
 	/*
 	 * Bitfields have some very special rules..
@@ -143,7 +143,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 			bit_size = (bit_size + align_bit_mask) & ~align_bit_mask;
 			bit_offset = 0;
 		}
-		sym->offset = (bit_size - bit_offset) >> 3;
+		sym->offset = bits_to_bytes(bit_size - bit_offset);
 		sym->bit_offset = bit_offset;
 		sym->ctype.base_type->bit_offset = bit_offset;
 		info->bit_size = bit_size + width;
@@ -156,7 +156,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 	 * Otherwise, just align it right and add it up..
 	 */
 	bit_size = (bit_size + align_bit_mask) & ~align_bit_mask;
-	sym->offset = bit_size >> 3;
+	sym->offset = bits_to_bytes(bit_size);
 
 	info->bit_size = bit_size + base_size;
 	// warning (sym->pos, "regular: offset=%d", sym->offset);
@@ -182,7 +182,7 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 		sym->ctype.alignment = info.max_align;
 	bit_size = info.bit_size;
 	if (info.align_size) {
-		bit_align = (sym->ctype.alignment << 3)-1;
+		bit_align = bytes_to_bits(sym->ctype.alignment)-1;
 		bit_size = (bit_size + bit_align) & ~bit_align;
 	}
 	sym->bit_size = bit_size;
@@ -877,7 +877,7 @@ void init_ctype(void)
 		struct symbol *sym = ctype->ptr;
 		unsigned long bit_size = ctype->bit_size ? *ctype->bit_size : -1;
 		unsigned long maxalign = ctype->maxalign ? *ctype->maxalign : 0;
-		unsigned long alignment = (bit_size + 7) >> 3;
+		unsigned long alignment = bits_to_bytes(bit_size + bits_in_char - 1);
 
 		if (alignment > maxalign)
 			alignment = maxalign;

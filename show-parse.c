@@ -673,7 +673,7 @@ static int show_call_expression(struct expression *expr)
 		int new = show_expression(arg);
 		int size = arg->ctype->bit_size;
 		printf("\tpush.%d\t\tv%d\n", size, new);
-		framesize += size >> 3;
+		framesize += bits_to_bytes(size);
 	} END_FOR_EACH_PTR_REVERSE(arg);
 
 	fn = expr->fn;

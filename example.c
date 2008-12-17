@@ -1830,7 +1830,7 @@ static void set_up_arch_entry(struct entrypoint *ep, struct instruction *entry)
 			in->type = REG_FRAME;
 			in->offset = offset;
 			
-			offset += bits >> 3;
+			offset += bits_to_bytes(bits);
 		}
 		i++;
 		NEXT_PTR_LIST(argtype);

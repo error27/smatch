@@ -16,6 +16,7 @@
 #include "expression.h"
 #include "linearize.h"
 #include "flow.h"
+#include "target.h"
 
 unsigned long bb_generation;
 
@@ -265,8 +266,8 @@ void convert_load_instruction(struct instruction *insn, pseudo_t src)
 
 static int overlapping_memop(struct instruction *a, struct instruction *b)
 {
-	unsigned int a_start = a->offset << 3;
-	unsigned int b_start = b->offset << 3;
+	unsigned int a_start = bytes_to_bits(a->offset);
+	unsigned int b_start = bytes_to_bits(b->offset);
 	unsigned int a_size = a->size;
 	unsigned int b_size = b->size;
 
@@ -581,13 +582,14 @@ void check_access(struct instruction *insn)
 	pseudo_t pseudo = insn->src;
 
 	if (insn->bb && pseudo->type == PSEUDO_SYM) {
-		int offset = insn->offset, bit = (offset << 3) + insn->size;
+		int offset = insn->offset, bit = bytes_to_bits(offset) + insn->size;
 		struct symbol *sym = pseudo->sym;
 
 		if (sym->bit_size > 0 && (offset < 0 || bit > sym->bit_size))
 			warning(insn->pos, "invalid access %s '%s' (%d %d)",
 				offset < 0 ? "below" : "past the end of",
-				show_ident(sym->ident), offset, sym->bit_size >> 3);
+				show_ident(sym->ident), offset,
+				bits_to_bytes(sym->bit_size));
 	}
 }
 

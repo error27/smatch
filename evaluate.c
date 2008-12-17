@@ -72,7 +72,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 	unsigned int length = expr->string->length;
 
 	sym->array_size = alloc_const_expression(expr->pos, length);
-	sym->bit_size = bits_in_char * length;
+	sym->bit_size = bytes_to_bits(length);
 	sym->ctype.alignment = 1;
 	sym->string = 1;
 	sym->ctype.modifiers = MOD_STATIC;
@@ -83,7 +83,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 	initstr->string = expr->string;
 
 	array->array_size = sym->array_size;
-	array->bit_size = bits_in_char * length;
+	array->bit_size = bytes_to_bits(length);
 	array->ctype.alignment = 1;
 	array->ctype.modifiers = MOD_STATIC;
 	array->ctype.base_type = &char_ctype;
@@ -579,7 +579,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *i
 	}
 
 	/* Get the size of whatever the pointer points to */
-	multiply = base->bit_size >> 3;
+	multiply = bits_to_bytes(base->bit_size);
 
 	if (ctype == &null_ctype)
 		ctype = &ptr_ctype;
@@ -831,7 +831,7 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr)
 		struct expression *sub = alloc_expression(expr->pos, EXPR_BINOP);
 		struct expression *div = expr;
 		struct expression *val = alloc_expression(expr->pos, EXPR_VALUE);
-		unsigned long value = lbase->bit_size >> 3;
+		unsigned long value = bits_to_bytes(lbase->bit_size);
 
 		val->ctype = size_t_ctype;
 		val->value = value;
@@ -1591,7 +1591,7 @@ static struct symbol *degenerate(struct expression *expr)
 				e3->op = '+';
 				e3->left = e0;
 				e3->right = alloc_const_expression(expr->pos,
-							expr->r_bitpos >> 3);
+							bits_to_bytes(expr->r_bitpos));
 				e3->ctype = &lazy_ptr_ctype;
 			} else {
 				e3 = e0;
@@ -1727,7 +1727,7 @@ static struct symbol *evaluate_postop(struct expression *expr)
 	} else if (class == TYPE_PTR) {
 		struct symbol *target = examine_pointer_target(ctype);
 		if (!is_function(target))
-			multiply = target->bit_size >> 3;
+			multiply = bits_to_bytes(target->bit_size);
 	}
 
 	if (multiply) {
@@ -1949,7 +1949,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 			expr->base = deref->base;
 			expr->r_bitpos = deref->r_bitpos;
 		}
-		expr->r_bitpos += offset << 3;
+		expr->r_bitpos += bytes_to_bits(offset);
 		expr->type = EXPR_SLICE;
 		expr->r_nrbits = member->bit_size;
 		expr->r_bitpos += member->bit_offset;
@@ -2037,10 +2037,10 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 		return NULL;
 
 	size = type->bit_size;
-	if ((size < 0) || (size & 7))
+	if ((size < 0) || (size & (bits_in_char - 1)))
 		expression_error(expr, "cannot size expression");
 	expr->type = EXPR_VALUE;
-	expr->value = size >> 3;
+	expr->value = bits_to_bytes(size);
 	expr->taint = 0;
 	expr->ctype = size_t_ctype;
 	return size_t_ctype;
@@ -2071,10 +2071,10 @@ static struct symbol *evaluate_ptrsizeof(struct expression *expr)
 		return NULL;
 	}
 	size = type->bit_size;
-	if (size & 7)
+	if (size & (bits_in_char-1))
 		size = 0;
 	expr->type = EXPR_VALUE;
-	expr->value = size >> 3;
+	expr->value = bits_to_bytes(size);
 	expr->taint = 0;
 	expr->ctype = size_t_ctype;
 	return size_t_ctype;
@@ -2158,7 +2158,7 @@ static void convert_index(struct expression *e)
 	unsigned from = e->idx_from;
 	unsigned to = e->idx_to + 1;
 	e->type = EXPR_POS;
-	e->init_offset = from * (e->ctype->bit_size>>3);
+	e->init_offset = from * bits_to_bytes(e->ctype->bit_size);
 	e->init_nr = to - from;
 	e->init_expr = child;
 }
@@ -2865,7 +2865,7 @@ static struct symbol *evaluate_offsetof(struct expression *expr)
 			unrestrict(idx, i_class, &i_type);
 			idx = cast_to(idx, size_t_ctype);
 			m = alloc_const_expression(expr->pos,
-						   ctype->bit_size >> 3);
+						   bits_to_bytes(ctype->bit_size));
 			m->ctype = size_t_ctype;
 			m->flags = Int_const_expr;
 			expr->type = EXPR_BINOP;
