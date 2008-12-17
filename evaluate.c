@@ -921,9 +921,16 @@ static struct symbol *evaluate_binop(struct expression *expr)
 			rtype = integer_promotion(rtype);
 		} else {
 			// The rest do usual conversions
-			if (op == '&' && expr->left->type == EXPR_PREOP &&
-			    expr->left->op == '!')
-				warning(expr->pos, "dubious: !x & y");
+			const unsigned left_not  = expr->left->type == EXPR_PREOP
+			                           && expr->left->op == '!';
+			const unsigned right_not = expr->right->type == EXPR_PREOP
+			                           && expr->right->op == '!';
+			if ((op == '&' || op == '|') && (left_not || right_not))
+				warning(expr->pos, "dubious: %sx %c %sy",
+				        left_not ? "!" : "",
+					op,
+					right_not ? "!" : "");
+
 			ltype = usual_conversions(op, expr->left, expr->right,
 						  lclass, rclass, ltype, rtype);
 			ctype = rtype = ltype;
