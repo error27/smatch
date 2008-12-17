@@ -665,7 +665,6 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 	unsigned long long lastval = 0;
 	struct symbol *ctype = NULL, *base_type = NULL;
 	Num upper = {-1, 0}, lower = {1, 0};
-	struct symbol_list *entries = NULL;
 
 	parent->examined = 1;
 	parent->ctype.base_type = &int_ctype;
@@ -701,7 +700,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 		sym->initializer = expr;
 		sym->enum_member = 1;
 		sym->ctype.base_type = parent;
-		add_ptr_list(&entries, sym);
+		add_ptr_list(&parent->symbol_list, sym);
 
 		if (base_type != &bad_ctype) {
 			if (ctype->type == SYM_NODE)
@@ -777,8 +776,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 	parent->ctype.modifiers |= (base_type->ctype.modifiers & MOD_UNSIGNED);
 	parent->examined = 0;
 
-	cast_enum_list(entries, base_type);
-	free_ptr_list(&entries);
+	cast_enum_list(parent->symbol_list, base_type);
 
 	return token;
 }
