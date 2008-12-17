@@ -83,7 +83,6 @@ extern void sparse_error(struct position, const char *, ...) FORMAT_ATTR(2);
 extern void error_die(struct position, const char *, ...) FORMAT_ATTR(2) NORETURN_ATTR;
 extern void expression_error(struct expression *, const char *, ...) FORMAT_ATTR(2);
 
-extern char **handle_switch(char *arg, char **next);
 extern void add_pre_buffer(const char *fmt, ...) FORMAT_ATTR(1);
 
 extern int preprocess_only;

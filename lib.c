@@ -592,7 +592,7 @@ struct switches {
 	char **(*fn)(char *, char **);
 };
 
-char **handle_switch(char *arg, char **next)
+static char **handle_switch(char *arg, char **next)
 {
 	static struct switches cmd[] = {
 		{ "nostdinc", handle_nostdinc },
