@@ -71,6 +71,7 @@ struct instruction {
 		 size:24;
 	struct basic_block *bb;
 	struct position pos;
+	struct symbol *type;
 	union {
 		pseudo_t target;
 		pseudo_t cond;		/* for branch and switch */

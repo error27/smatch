@@ -55,7 +55,9 @@ static inline int type_size(struct symbol *type)
 
 static struct instruction *alloc_typed_instruction(int opcode, struct symbol *type)
 {
-	return alloc_instruction(opcode, type_size(type));
+	struct instruction *insn = alloc_instruction(opcode, type_size(type));
+	insn->type = type;
+	return insn;
 }
 
 static struct entrypoint *alloc_entrypoint(void)
