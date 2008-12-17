@@ -49,7 +49,7 @@ struct symbol *lookup_symbol(struct ident *ident, enum namespace ns)
 			return sym;
 		}
 	}
-	return sym;
+	return NULL;
 }
 
 struct context *alloc_context(void)
