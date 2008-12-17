@@ -25,7 +25,7 @@ foreach (@ARGV) {
     $m64 = 1 if /^-m64$/;
     $gendeps = 1 if /^-M$/;
 
-    if (/^-specs=(.*)$/) {
+    if (/^-target=(.*)$/) {
 	$check .= &add_specs ($1);
 	$has_specs = 1;
 	next;
