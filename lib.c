@@ -185,8 +185,8 @@ void die(const char *fmt, ...)
 	exit(1);
 }
 
-static unsigned int pre_buffer_size;
-static char pre_buffer[8192];
+static struct token *pre_buffer_begin = NULL;
+static struct token *pre_buffer_end = NULL;
 
 int Waddress_space = 1;
 int Wbitwise = 0;
@@ -230,14 +230,18 @@ void add_pre_buffer(const char *fmt, ...)
 {
 	va_list args;
 	unsigned int size;
+	struct token *begin, *end;
+	char buffer[4096];
 
 	va_start(args, fmt);
-	size = pre_buffer_size;
-	size += vsnprintf(pre_buffer + size,
-		sizeof(pre_buffer) - size,
-		fmt, args);
-	pre_buffer_size = size;
+	size = vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
+	begin = tokenize_buffer(buffer, size, &end);
+	if (!pre_buffer_begin)
+		pre_buffer_begin = begin;
+	if (pre_buffer_end)
+		pre_buffer_end->next = begin;
+	pre_buffer_end = end;
 }
 
 static char **handle_switch_D(char *arg, char **next)
@@ -819,8 +823,9 @@ static struct symbol_list *sparse_initial(void)
 				 token, includepath);
 
 	// Prepend the initial built-in stream
-	token = tokenize_buffer(pre_buffer, pre_buffer_size, token);
-	return sparse_tokenstream(token);
+	if (token)
+		pre_buffer_end->next = token;
+	return sparse_tokenstream(pre_buffer_begin);
 }
 
 struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list **filelist)

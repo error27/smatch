@@ -304,7 +304,7 @@ static inline int nextchar(stream_t *stream)
 
 struct token eof_token_entry;
 
-static void mark_eof(stream_t *stream, struct token *end_token)
+static struct token *mark_eof(stream_t *stream)
 {
 	struct token *end;
 
@@ -315,11 +315,10 @@ static void mark_eof(stream_t *stream, struct token *end_token)
 	eof_token_entry.next = &eof_token_entry;
 	eof_token_entry.pos.newline = 1;
 
-	if (!end_token)
-		end_token =  &eof_token_entry;
-	end->next = end_token;
+	end->next =  &eof_token_entry;
 	*stream->tokenlist = end;
 	stream->tokenlist = NULL;
+	return end;
 }
 
 static void add_token(stream_t *stream)
@@ -912,7 +911,7 @@ static struct token *setup_stream(stream_t *stream, int idx, int fd,
 	return begin;
 }
 
-static void tokenize_stream(stream_t *stream, struct token *endtoken)
+static struct token *tokenize_stream(stream_t *stream)
 {
 	int c = nextchar(stream);
 	while (c != EOF) {
@@ -927,22 +926,22 @@ static void tokenize_stream(stream_t *stream, struct token *endtoken)
 		stream->whitespace = 1;
 		c = nextchar(stream);
 	}
-	mark_eof(stream, endtoken);
+	return mark_eof(stream);
 }
 
-struct token * tokenize_buffer(void *buffer, unsigned long size, struct token *endtoken)
+struct token * tokenize_buffer(void *buffer, unsigned long size, struct token **endtoken)
 {
 	stream_t stream;
 	struct token *begin;
 
 	begin = setup_stream(&stream, 0, -1, buffer, size);
-	tokenize_stream(&stream, endtoken);
+	*endtoken = tokenize_stream(&stream);
 	return begin;
 }
 
 struct token * tokenize(const char *name, int fd, struct token *endtoken, const char **next_path)
 {
-	struct token *begin;
+	struct token *begin, *end;
 	stream_t stream;
 	unsigned char buffer[BUFSIZE];
 	int idx;
@@ -954,6 +953,8 @@ struct token * tokenize(const char *name, int fd, struct token *endtoken, const 
 	}
 
 	begin = setup_stream(&stream, idx, fd, buffer, 0);
-	tokenize_stream(&stream, endtoken);
+	end = tokenize_stream(&stream);
+	if (endtoken)
+		end->next = endtoken;
 	return begin;
 }
