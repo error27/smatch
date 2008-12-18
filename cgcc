@@ -10,9 +10,11 @@ my $has_specs = 0;
 my $gendeps = 0;
 my $do_check = 0;
 my $do_compile = 1;
+my $gcc_base_dir;
 my $verbose = 0;
 
-foreach (@ARGV) {
+while (@ARGV) {
+    $_ = shift(@ARGV);
     # Look for a .c file.  We don't want to run the checker on .o or .so files
     # in the link run.  (This simplistic check knows nothing about options
     # with arguments, but it seems to do the job.)
@@ -36,6 +38,12 @@ foreach (@ARGV) {
 	next;
     }
 
+    if (/^-gcc-base-dir$/) {
+        $gcc_base_dir = shift @ARGV;
+        die ("$0: missing argument for -gcc-base-dir option") if !$gcc_base_dir;
+        next;
+    }
+
     # If someone adds "-E", don't pre-process twice.
     $do_compile = 0 if $_ eq '-E';
 
@@ -56,6 +64,10 @@ if ($do_check) {
 	$check .= &add_specs ('host_arch_specs');
 	$check .= &add_specs ('host_os_specs');
     }
+
+    $gcc_base_dir = qx($cc -print-file-name=) if !$gcc_base_dir;
+    $check .= " -gcc-base-dir " . $gcc_base_dir if $gcc_base_dir;
+
     print "$check\n" if $verbose;
     if ($do_compile) {
 	system ($check);
