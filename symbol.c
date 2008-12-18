@@ -834,7 +834,7 @@ static const struct ctype_declare {
 	struct symbol *base_type;
 } ctype_declaration[] = {
 	{ &bool_ctype,	    SYM_BASETYPE, MOD_UNSIGNED,		    &bits_in_bool,	     &max_int_alignment, &int_type },
-	{ &void_ctype,	    SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
+	{ &void_ctype,	    SYM_BASETYPE, 0,			    &bits_in_char,	     NULL,		 NULL },
 	{ &type_ctype,	    SYM_BASETYPE, MOD_TYPE,		    NULL,		     NULL,		 NULL },
 	{ &incomplete_ctype,SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
 	{ &bad_ctype,	    SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
