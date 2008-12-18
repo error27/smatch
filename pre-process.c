@@ -20,7 +20,6 @@
 #include <limits.h>
 #include <time.h>
 
-#include "pre-process.h"
 #include "lib.h"
 #include "allocate.h"
 #include "parse.h"
@@ -36,13 +35,14 @@ const char *includepath[INCLUDEPATHS+1] = {
 	"",
 	"/usr/include",
 	"/usr/local/include",
-	GCC_INTERNAL_INCLUDE,
 	NULL
 };
 
 static const char **quote_includepath = includepath;
 static const char **angle_includepath = includepath + 1;
+static const char **isys_includepath   = includepath + 1;
 static const char **sys_includepath   = includepath + 1;
+static const char **dirafter_includepath = includepath + 3;
 
 #define dirty_stream(stream)				\
 	do {						\
@@ -653,8 +653,14 @@ static int already_tokenized(const char *path)
  *
  * Three set of include paths are known:
  * quote_includepath:	Path to search when using #include "file.h"
- * angle_includepath:	Path to search when using #include <file.h>
- * sys_includepath:	Built-in include paths
+ * angle_includepath:	Paths to search when using #include <file.h>
+ * isys_includepath:	Paths specified with -isystem, come before the
+ *			built-in system include paths. Gcc would suppress
+ *			warnings from system headers. Here we separate
+ *			them from the angle_ ones to keep search ordering.
+ *
+ * sys_includepath:	Built-in include paths.
+ * dirafter_includepath Paths added with -dirafter.
  *
  * The above is implemented as one array with pointers
  *                         +--------------+
@@ -664,21 +670,23 @@ static int already_tokenized(const char *path)
  *                         +--------------+
  * angle_includepath --->  |              |
  *                         +--------------+
+ * isys_includepath  --->  |              |
+ *                         +--------------+
  * sys_includepath   --->  |              |
  *                         +--------------+
- *                         |              |
+ * dirafter_includepath -> |              |
  *                         +--------------+
  *
- * -I dir insert dir just before sys_includepath and move the rest
+ * -I dir insert dir just before isys_includepath and move the rest
  * -I- makes all dirs specified with -I before to quote dirs only and
- *   angle_includepath is set equal to sys_includepath.
- * -nostdinc removes all sys dirs be storing NULL in entry pointed
- *   to by * sys_includepath. Note this will reset all dirs built-in and added
- *   before -nostdinc by -isystem and -dirafter
- * -isystem dir adds dir where sys_includepath points adding this dir as
+ *   angle_includepath is set equal to isys_includepath.
+ * -nostdinc removes all sys dirs by storing NULL in entry pointed
+ *   to by * sys_includepath. Note that this will reset all dirs built-in
+ *   and added before -nostdinc by -isystem and -dirafter.
+ * -isystem dir adds dir where isys_includepath points adding this dir as
  *   first systemdir
  * -dirafter dir adds dir to the end of the list
- **/
+ */
 
 static void set_stream_include_path(struct stream *stream)
 {
@@ -1449,7 +1457,41 @@ static int handle_nostdinc(struct stream *stream, struct token **line, struct to
 	return 1;
 }
 
-static void add_path_entry(struct token *token, const char *path, const char ***where, const char **new_path)
+static inline void update_inc_ptrs(const char ***where)
+{
+
+	if (*where <= dirafter_includepath) {
+		dirafter_includepath++;
+		/* If this was the entry that we prepend, don't
+		 * rise the lower entries, even if they are at
+		 * the same level. */
+		if (where == &dirafter_includepath)
+			return;
+	}
+	if (*where <= sys_includepath) {
+		sys_includepath++;
+		if (where == &sys_includepath)
+			return;
+	}
+	if (*where <= isys_includepath) {
+		isys_includepath++;
+		if (where == &isys_includepath)
+			return;
+	}
+
+	/* angle_includepath is actually never updated, since we
+	 * don't suppport -iquote rught now. May change some day. */
+	if (*where <= angle_includepath) {
+		angle_includepath++;
+		if (where == &angle_includepath)
+			return;
+	}
+}
+
+/* Add a path before 'where' and update the pointers associated with the
+ * includepath array */
+static void add_path_entry(struct token *token, const char *path,
+	const char ***where)
 {
 	const char **dst;
 	const char *next;
@@ -1467,20 +1509,19 @@ static void add_path_entry(struct token *token, const char *path, const char ***
 	}
 	next = path;
 	dst = *where;
-	*where = new_path;
+
+	update_inc_ptrs(where);
 
 	/*
 	 * Move them all up starting at dst,
 	 * insert the new entry..
 	 */
-	for (;;) {
+	do {
 		const char *tmp = *dst;
 		*dst = next;
-		if (!next)
-			break;
 		next = tmp;
 		dst++;
-	}
+	} while (next);
 }
 
 static int handle_add_include(struct stream *stream, struct token **line, struct token *token)
@@ -1493,7 +1534,7 @@ static int handle_add_include(struct stream *stream, struct token **line, struct
 			warning(token->pos, "expected path string");
 			return 1;
 		}
-		add_path_entry(token, token->string->data, &sys_includepath, sys_includepath + 1);
+		add_path_entry(token, token->string->data, &isys_includepath);
 	}
 }
 
@@ -1507,7 +1548,21 @@ static int handle_add_isystem(struct stream *stream, struct token **line, struct
 			sparse_error(token->pos, "expected path string");
 			return 1;
 		}
-		add_path_entry(token, token->string->data, &sys_includepath, sys_includepath);
+		add_path_entry(token, token->string->data, &sys_includepath);
+	}
+}
+
+static int handle_add_system(struct stream *stream, struct token **line, struct token *token)
+{
+	for (;;) {
+		token = token->next;
+		if (eof_token(token))
+			return 1;
+		if (token_type(token) != TOKEN_STRING) {
+			sparse_error(token->pos, "expected path string");
+			return 1;
+		}
+		add_path_entry(token, token->string->data, &dirafter_includepath);
 	}
 }
 
@@ -1625,6 +1680,7 @@ static void init_preprocessor(void)
 		{ "nostdinc",	   handle_nostdinc },
 		{ "add_include",   handle_add_include },
 		{ "add_isystem",   handle_add_isystem },
+		{ "add_system",    handle_add_system },
 		{ "add_dirafter",  handle_add_dirafter },
 		{ "split_include", handle_split_include },
 	}, special[] = {

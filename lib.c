@@ -41,6 +41,8 @@ int gcc_major = __GNUC__;
 int gcc_minor = __GNUC_MINOR__;
 int gcc_patchlevel = __GNUC_PATCHLEVEL__;
 
+static const char *gcc_base_dir = GCC_BASE;
+
 struct token *skip_to(struct token *token, int op)
 {
 	while (!match_op(token, op) && !eof_token(token))
@@ -591,6 +593,14 @@ static char **handle_dirafter(char *arg, char **next)
 	return next;
 }
 
+static char **handle_base_dir(char *arg, char **next)
+{
+	gcc_base_dir = *++next;
+	if (!gcc_base_dir)
+		die("missing argument for -gcc-base-dir option");
+	return next;
+}
+
 struct switches {
 	const char *name;
 	char **(*fn)(char *, char **);
@@ -601,6 +611,7 @@ static char **handle_switch(char *arg, char **next)
 	static struct switches cmd[] = {
 		{ "nostdinc", handle_nostdinc },
 		{ "dirafter", handle_dirafter },
+		{ "gcc-base-dir", handle_base_dir},
 		{ NULL, NULL }
 	};
 	struct switches *s;
@@ -644,8 +655,8 @@ void declare_builtin_functions(void)
 	/* Gaah. gcc knows tons of builtin <string.h> functions */
 	add_pre_buffer("extern void *__builtin_memcpy(void *, const void *, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern void *__builtin_mempcpy(void *, const void *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern void *__builtin_memset(void *, int, __SIZE_TYPE__);\n");	
-	add_pre_buffer("extern int __builtin_memcmp(const void *, const void *, __SIZE_TYPE__);\n");	
+	add_pre_buffer("extern void *__builtin_memset(void *, int, __SIZE_TYPE__);\n");
+	add_pre_buffer("extern int __builtin_memcmp(const void *, const void *, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern char *__builtin_strcat(char *, const char *);\n");
 	add_pre_buffer("extern char *__builtin_strncat(char *, const char *, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern int __builtin_strcmp(const char *, const char *);\n");
@@ -698,6 +709,12 @@ void create_builtin_stream(void)
 	add_pre_buffer("#weak_define __GNUC__ %d\n", gcc_major);
 	add_pre_buffer("#weak_define __GNUC_MINOR__ %d\n", gcc_minor);
 	add_pre_buffer("#weak_define __GNUC_PATCHLEVEL__ %d\n", gcc_patchlevel);
+
+	/* We add compiler headers path here because we have to parse
+	 * the arguments to get it, falling back to default. */
+	add_pre_buffer("#add_system \"%s/include\"\n", gcc_base_dir);
+	add_pre_buffer("#add_system \"%s/include-fixed\"\n", gcc_base_dir);
+
 	add_pre_buffer("#define __extension__\n");
 	add_pre_buffer("#define __pragma__\n");
 
@@ -780,7 +797,7 @@ static struct symbol_list *sparse_tokenstream(struct token *token)
 		putchar('\n');
 
 		return NULL;
-	} 
+	}
 
 	// Parse the resulting C code
 	while (!eof_token(token))

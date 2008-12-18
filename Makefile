@@ -17,6 +17,8 @@ AR = ar
 HAVE_LIBXML=$(shell pkg-config --exists libxml-2.0 && echo 'yes')
 
 
+CFLAGS += -DGCC_BASE=\"$(shell $(CC) --print-file-name=)\"
+
 DESTDIR=
 PREFIX=$(HOME)
 BINDIR=$(PREFIX)/bin
@@ -147,7 +149,7 @@ lib.o: $(LIB_H)
 allocate.o: $(LIB_H)
 ptrlist.o: $(LIB_H)
 parse.o: $(LIB_H)
-pre-process.o: $(LIB_H) pre-process.h
+pre-process.o: $(LIB_H)
 scope.o: $(LIB_H)
 show-parse.o: $(LIB_H)
 symbol.o: $(LIB_H)
@@ -185,9 +187,6 @@ compat-linux.o: compat/strtold.c compat/mmap-blob.c \
 compat-solaris.o: compat/mmap-blob.c $(LIB_H)
 compat-mingw.o: $(LIB_H)
 compat-cygwin.o: $(LIB_H)
-
-pre-process.h:
-	$(QUIET_GEN)echo "#define GCC_INTERNAL_INCLUDE \"`$(CC) -print-file-name=include`\"" > pre-process.h
 
 .c.o:
 	$(QUIET_CC)$(CC) -o $@ -c $(CFLAGS) $<
