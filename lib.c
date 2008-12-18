@@ -321,6 +321,11 @@ static char **handle_switch_i(char *arg, char **next)
 		if (!path)
 			die("missing argument for -isystem option");
 		add_pre_buffer("#add_isystem \"%s/\"\n", path);
+	} else if (*next && !strcmp(arg, "idirafter")) {
+		char *path = *++next;
+		if (!path)
+			die("missing argument for -idirafter option");
+		add_pre_buffer("#add_dirafter \"%s/\"\n", path);
 	}
 	return next;
 }
@@ -584,15 +589,6 @@ static char **handle_nostdinc(char *arg, char **next)
 	return next;
 }
 
-static char **handle_dirafter(char *arg, char **next)
-{
-	char *path = *++next;
-	if (!path)
-		die("missing argument for -dirafter option");
-	add_pre_buffer("#add_dirafter \"%s/\"\n", path);
-	return next;
-}
-
 static char **handle_base_dir(char *arg, char **next)
 {
 	gcc_base_dir = *++next;
@@ -610,7 +606,6 @@ static char **handle_switch(char *arg, char **next)
 {
 	static struct switches cmd[] = {
 		{ "nostdinc", handle_nostdinc },
-		{ "dirafter", handle_dirafter },
 		{ "gcc-base-dir", handle_base_dir},
 		{ NULL, NULL }
 	};

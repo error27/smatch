@@ -682,10 +682,10 @@ static int already_tokenized(const char *path)
  *   angle_includepath is set equal to isys_includepath.
  * -nostdinc removes all sys dirs by storing NULL in entry pointed
  *   to by * sys_includepath. Note that this will reset all dirs built-in
- *   and added before -nostdinc by -isystem and -dirafter.
+ *   and added before -nostdinc by -isystem and -idirafter.
  * -isystem dir adds dir where isys_includepath points adding this dir as
  *   first systemdir
- * -dirafter dir adds dir to the end of the list
+ * -idirafter dir adds dir to the end of the list
  */
 
 static void set_stream_include_path(struct stream *stream)
