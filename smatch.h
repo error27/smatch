@@ -67,6 +67,8 @@ do {                                                          \
 #define UNDEFINED INT_MIN
 
 struct smatch_state *get_state(const char *name, int owner, struct symbol *sym);
+struct state_list *get_possible_states(const char *name, int owner,
+				       struct symbol *sym);
 void set_state(const char *name, int owner, struct symbol *sym,
 	       struct smatch_state *state);
 void delete_state(const char *name, int owner, struct symbol *sym);
@@ -131,6 +133,7 @@ void clear_all_states();
 
 struct sm_state *__get_sm_state(const char *name, int owner,
 				struct symbol *sym);
+void __overwrite_cur_slist(struct state_list *slist);
 void __use_false_only_stack();
 void __pop_false_only_stack();
 void __push_true_states();
