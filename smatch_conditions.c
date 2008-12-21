@@ -184,12 +184,12 @@ void __split_whole_condition(struct expression *expr)
 {
 	SM_DEBUG("%d in __split_whole_condition\n", get_lineno());
 	inside_condition++;
-	__pass_to_client(expr, WHOLE_CONDITION_HOOK);
 	__save_pre_cond_states();
 	__push_cond_stacks();
 	if (expr)
 		split_conditions(expr);
 	__use_cond_states();
+	__pass_to_client(expr, WHOLE_CONDITION_HOOK);
 	inside_condition--;
 }
 
