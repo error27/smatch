@@ -18,6 +18,17 @@ ALLOCATOR(named_slist, "named slist");
 
 #undef CHECKORDER
 
+void __print_slist(struct state_list *slist)
+{
+	struct sm_state *state;
+
+	printf("dumping slist at %d\n", get_lineno());
+	FOR_EACH_PTR(slist, state) {
+		printf("'%s'=%s\n", state->name, show_state(state->state));
+	} END_FOR_EACH_PTR(state);
+	printf("---\n");
+}
+
 void add_history(struct sm_state *state)
 {
 	struct state_history *tmp;
@@ -46,7 +57,11 @@ struct sm_state *alloc_state(const char *name, int owner,
 
 struct sm_state *clone_state(struct sm_state *s)
 {
-	return alloc_state(s->name, s->owner, s->sym, s->state);
+	struct sm_state *tmp;
+
+	tmp = alloc_state(s->name, s->owner, s->sym, s->state);
+	tmp->pools = clone_stack(s->pools);
+	return tmp;
 }
 
 /* NULL states go at the end to simplify merge_slist */
@@ -122,6 +137,17 @@ struct state_list *clone_slist(struct state_list *from_slist)
 	return to_slist;
 }
 
+struct state_list_stack *clone_stack(struct state_list_stack *from_stack)
+{
+	struct state_list *slist;
+	struct state_list_stack *to_stack = NULL;
+
+	FOR_EACH_PTR(from_stack, slist) {
+		push_slist(&to_stack, slist);
+	} END_FOR_EACH_PTR(slist);
+	return to_stack;
+}
+
 // FIXME...  shouldn't we free some of these state pointers?
 struct smatch_state *merge_states(const char *name, int owner,
 				  struct symbol *sym,
@@ -176,6 +202,28 @@ struct sm_state *get_sm_state_slist(struct state_list *slist, const char *name, 
 	return NULL;
 }
 
+static void overwrite_sm_state(struct state_list **slist,
+			       struct sm_state *state)
+{
+ 	struct sm_state *tmp;
+	struct sm_state *new = clone_state(state);
+ 
+ 	FOR_EACH_PTR(*slist, tmp) {
+		if (cmp_sm_states(tmp, new) < 0)
+			continue;
+		else if (cmp_sm_states(tmp, new) == 0) {
+			tmp->state = new->state;
+			tmp->pools = new->pools;
+			__free_sm_state(new);
+			return;
+		} else {
+			INSERT_CURRENT(new, tmp);
+			return;
+		}
+	} END_FOR_EACH_PTR(tmp);
+	add_ptr_list(slist, new);
+}
+
 void set_state_slist(struct state_list **slist, const char *name, int owner,
  		     struct symbol *sym, struct smatch_state *state)
 {
@@ -188,6 +236,7 @@ void set_state_slist(struct state_list **slist, const char *name, int owner,
 		else if (cmp_sm_states(tmp, new) == 0) {
 			__free_sm_state(new);
 			tmp->state = state;
+			tmp->pools = NULL;
 			return;
 		} else {
 			INSERT_CURRENT(new, tmp);
@@ -475,7 +524,7 @@ void overwrite_slist(struct state_list *from, struct state_list **to)
 	struct sm_state *tmp;
 
 	FOR_EACH_PTR(from, tmp) {
-		set_state_slist(to, tmp->name, tmp->owner, tmp->sym, tmp->state);
+		overwrite_sm_state(to, tmp);
 	} END_FOR_EACH_PTR(tmp);
 }
 

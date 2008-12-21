@@ -54,17 +54,6 @@ struct state_list_stack *implied_pools;
 
 int debug_states;
 
-void __print_slist(struct state_list *slist)
-{
-	struct sm_state *state;
-
-	printf("dumping slist at %d\n", get_lineno());
-	FOR_EACH_PTR(slist, state) {
-		printf("'%s'=%s\n", state->name, show_state(state->state));
-	} END_FOR_EACH_PTR(state);
-	printf("---\n");
-}
-
 void __print_cur_slist()
 {
 	__print_slist(cur_slist);
@@ -300,6 +289,7 @@ void __use_cond_states()
 	/* we use the true states right away */
 	del_slist(&cur_slist);
 	cur_slist = pre;
+
 
 	false_states = pop_slist(&cond_false_stack);	
 	push_slist(&false_only_stack, clone_slist(false_states));

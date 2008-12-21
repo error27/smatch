@@ -24,6 +24,7 @@ DECLARE_PTR_LIST(slist_stack, struct named_slist);
 
 extern struct state_list_stack *implied_pools;
 
+void __print_slist(struct state_list *slist);
 void add_history(struct sm_state *state);
 struct sm_state *alloc_state(const char *name, int owner, 
 			     struct symbol *sym, 
@@ -31,6 +32,7 @@ struct sm_state *alloc_state(const char *name, int owner,
 
 struct sm_state *clone_state(struct sm_state *s);
 struct state_list *clone_slist(struct state_list *from_slist);
+struct state_list_stack *clone_stack(struct state_list_stack *from_stack);
 
 struct smatch_state *merge_states(const char *name, int owner,
 				  struct symbol *sym,
