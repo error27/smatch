@@ -117,7 +117,8 @@ struct instruction {
 			struct pseudo_list *arguments;
 		};
 		struct /* context */ {
-			int increment, required, inc_false;
+			int increment;
+			int check;
 			struct expression *context_expr;
 		};
 		struct /* asm */ {
@@ -220,13 +221,11 @@ enum opcode {
 
 struct basic_block_list;
 struct instruction_list;
-struct context_list_list;
 
 struct basic_block {
 	struct position pos;
 	unsigned long generation;
-	int context_check_recursion;
-	struct context_list_list *checked_contexts;
+	int context;
 	struct entrypoint *ep;
 	struct basic_block_list *parents; /* sources */
 	struct basic_block_list *children; /* destinations */

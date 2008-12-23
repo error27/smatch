@@ -68,6 +68,7 @@ static struct entrypoint *alloc_entrypoint(void)
 static struct basic_block *alloc_basic_block(struct entrypoint *ep, struct position pos)
 {
 	struct basic_block *bb = __alloc_basic_block(0);
+	bb->context = -1;
 	bb->pos = pos;
 	bb->ep = ep;
 	return bb;
@@ -440,7 +441,7 @@ const char *show_instruction(struct instruction *insn)
 		break;
 
 	case OP_CONTEXT:
-		buf += sprintf(buf, "%s%d,%d", "", insn->increment, insn->inc_false);
+		buf += sprintf(buf, "%s%d", insn->check ? "check: " : "", insn->increment);
 		break;
 	case OP_RANGE:
 		buf += sprintf(buf, "%s between %s..%s", show_pseudo(insn->src1), show_pseudo(insn->src2), show_pseudo(insn->src3));
@@ -1234,12 +1235,22 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 		FOR_EACH_PTR(ctype->contexts, context) {
 			int in = context->in;
 			int out = context->out;
-
-			if (out - in || context->out_false - in) {
+			int check = 0;
+			int context_diff;
+			if (in < 0) {
+				check = 1;
+				in = 0;
+			}
+			if (out < 0) {
+				check = 0;
+				out = 0;
+			}
+			context_diff = out - in;
+			if (check || context_diff) {
 				insn = alloc_instruction(OP_CONTEXT, 0);
-				insn->increment = out - in;
+				insn->increment = context_diff;
+				insn->check = check;
 				insn->context_expr = context->context;
-				insn->inc_false = context->out_false - in;
 				add_one_insn(ep, insn);
 			}
 		} END_FOR_EACH_PTR(context);
@@ -1674,16 +1685,6 @@ static pseudo_t linearize_context(struct entrypoint *ep, struct statement *stmt)
 		value = expr->value;
 
 	insn->increment = value;
-	insn->inc_false = value;
-
-	expr = stmt->required;
-	value = 0;
-
-	if (expr && expr->type == EXPR_VALUE)
-		value = expr->value;
-
-	insn->required = value;
-
 	insn->context_expr = stmt->context;
 	add_one_insn(ep, insn);
 	return VOID;
