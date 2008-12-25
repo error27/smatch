@@ -2061,6 +2061,12 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 		warning(expr->pos, "expression using sizeof(void)");
 		size = bits_in_char;
 	}
+
+	if (is_function(type->ctype.base_type)) {
+		warning(expr->pos, "expression using sizeof on a function");
+		size = bits_in_char;
+	}
+
 	if ((size < 0) || (size & (bits_in_char - 1)))
 		expression_error(expr, "cannot size expression");
 
