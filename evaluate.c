@@ -362,6 +362,11 @@ static inline int classify_type(struct symbol *type, struct symbol **base)
 	};
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
+	if (type->type == SYM_TYPEOF) {
+		type = evaluate_expression(type->initializer);
+		if (type->type == SYM_NODE)
+			type = type->ctype.base_type;
+	}
 	if (type->type == SYM_ENUM)
 		type = type->ctype.base_type;
 	*base = type;
