@@ -78,6 +78,17 @@ QUIET_LINK    = $(Q:@=@echo    '     LINK     '$@;)
 QUIET_INST_SH = $(Q:@=echo -n  '     INSTALL  ';)
 QUIET_INST    = $(Q:@=@echo -n '     INSTALL  ';)
 
+define INSTALL_CMD
+	$(Q)$(QUIET_INST_SH)install -v $1 $(DESTDIR)$2/$1 || exit 1;
+
+endef
+
+SED_PC_CMD = 's|@version@|$(VERSION)|g;		\
+	      s|@prefix@|$(PREFIX)|g;		\
+	      s|@libdir@|$(LIBDIR)|g;		\
+	      s|@includedir@|$(INCLUDEDIR)|g'
+
+
 all: $(PROGRAMS) sparse.pc
 
 install: $(INST_PROGRAMS) $(LIBS) $(LIB_H) sparse.pc
@@ -86,22 +97,14 @@ install: $(INST_PROGRAMS) $(LIBS) $(LIB_H) sparse.pc
 	$(Q)install -d $(DESTDIR)$(MAN1DIR)
 	$(Q)install -d $(DESTDIR)$(INCLUDEDIR)/sparse
 	$(Q)install -d $(DESTDIR)$(PKGCONFIGDIR)
-	$(Q)for f in $(INST_PROGRAMS); do \
-		$(QUIET_INST_SH)install -v $$f $(DESTDIR)$(BINDIR)/$$f || exit 1; \
-	done
-	$(Q)for f in $(INST_MAN1); do \
-		$(QUIET_INST_SH)install -m 644 -v $$f $(DESTDIR)$(MAN1DIR)/$$f || exit 1; \
-	done
-	$(Q)for f in $(LIBS); do \
-		$(QUIET_INST_SH)install -m 644 -v $$f $(DESTDIR)$(LIBDIR)/$$f || exit 1; \
-	done
-	$(Q)for f in $(LIB_H); do \
-		$(QUIET_INST_SH)install -m 644 -v $$f $(DESTDIR)$(INCLUDEDIR)/sparse/$$f || exit 1; \
-	done
-	$(QUIET_INST)install -m 644 -v sparse.pc $(DESTDIR)$(PKGCONFIGDIR)/sparse.pc
+	$(foreach f,$(INST_PROGRAMS),$(call INSTALL_CMD,$f,$(BINDIR)))
+	$(foreach f,$(INST_MAN1),$(call INSTALL_CMD,$f,$(MAN1DIR)))
+	$(foreach f,$(LIBS),$(call INSTALL_CMD,$f,$(LIBDIR)))
+	$(foreach f,$(LIB_H),$(call INSTALL_CMD,$f,$(INCLUDEDIR)/sparse))
+	$(call INSTALL_CMD,sparse.pc,$(PKGCONFIGDIR))
 
 sparse.pc: sparse.pc.in
-	$(QUIET_GEN)sed 's|@version@|$(VERSION)|g;s|@prefix@|$(PREFIX)|g;s|@libdir@|$(LIBDIR)|g;s|@includedir@|$(INCLUDEDIR)|g' sparse.pc.in > sparse.pc
+	$(QUIET_GEN)sed $(SED_PC_CMD) sparse.pc.in > sparse.pc
 
 
 compile_EXTRA_DEPS = compile-i386.o
