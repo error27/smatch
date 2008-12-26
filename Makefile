@@ -15,9 +15,15 @@ AR = ar
 #CFLAGS += -O0 -DDEBUG -g3 -gdwarf-2
 
 HAVE_LIBXML=$(shell pkg-config --exists libxml-2.0 && echo 'yes')
-
+HAVE_GCC_DEP=$(shell touch .gcc-test.c && 				\
+		$(CC) -c -Wp,-MD,.gcc-test.d .gcc-test.c 2>/dev/null && \
+		echo 'yes'; rm -f .gcc-test.d .gcc-test.o .gcc-test.c)
 
 CFLAGS += -DGCC_BASE=\"$(shell $(CC) --print-file-name=)\"
+
+ifeq ($(HAVE_GCC_DEP),yes)
+CFLAGS += -Wp,-MD,$(@D)/.$(@F).d
+endif
 
 DESTDIR=
 PREFIX=$(HOME)
@@ -28,16 +34,15 @@ MAN1DIR=$(MANDIR)/man1
 INCLUDEDIR=$(PREFIX)/include
 PKGCONFIGDIR=$(LIBDIR)/pkgconfig
 
-PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse test-linearize example \
-	 test-unssa test-dissect ctags
-
-
+PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse \
+	 test-linearize example test-unssa test-dissect ctags
 INST_PROGRAMS=sparse cgcc
 INST_MAN1=sparse.1 cgcc.1
 
 ifeq ($(HAVE_LIBXML),yes)
 PROGRAMS+=c2xml
 INST_PROGRAMS+=c2xml
+c2xml_EXTRA_OBJS = `pkg-config --libs libxml-2.0`
 endif
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
@@ -98,44 +103,17 @@ install: $(INST_PROGRAMS) $(LIBS) $(LIB_H) sparse.pc
 sparse.pc: sparse.pc.in
 	$(QUIET_GEN)sed 's|@version@|$(VERSION)|g;s|@prefix@|$(PREFIX)|g;s|@libdir@|$(LIBDIR)|g;s|@includedir@|$(INCLUDEDIR)|g' sparse.pc.in > sparse.pc
 
-test-lexing: test-lexing.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
-test-parsing: test-parsing.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+compile_EXTRA_DEPS = compile-i386.o
 
-test-linearize: test-linearize.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+PROG_LINK_CMD = $(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $^ $($@_EXTRA_OBJS) 
 
-test-sort: test-sort.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+define BUILD_PROGRAM
+$(prog): $(prog).o $$($(prog)_EXTRA_DEPS) $$(LIBS)
+	$$(PROG_LINK_CMD)
+endef
 
-compile: compile.o compile-i386.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< compile-i386.o $(LIBS)
-
-obfuscate: obfuscate.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-sparse: sparse.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-graph: graph.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-example: example.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-test-unssa: test-unssa.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-test-dissect: test-dissect.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-ctags: ctags.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-c2xml: c2xml.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS)  -o $@ $< $(LIBS) `pkg-config --libs libxml-2.0`
+$(foreach prog,$(PROGRAMS),$(eval $(BUILD_PROGRAM)))
 
 $(LIB_FILE): $(LIB_OBJS)
 	$(QUIET_AR)$(AR) rcs $@ $(LIB_OBJS)
@@ -143,47 +121,13 @@ $(LIB_FILE): $(LIB_OBJS)
 $(SLIB_FILE): $(LIB_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) -Wl,-soname,$@ -shared -o $@ $(LIB_OBJS)
 
-evaluate.o: $(LIB_H)
-expression.o: $(LIB_H)
-lib.o: $(LIB_H)
-allocate.o: $(LIB_H)
-ptrlist.o: $(LIB_H)
-parse.o: $(LIB_H)
-pre-process.o: $(LIB_H)
-scope.o: $(LIB_H)
-show-parse.o: $(LIB_H)
-symbol.o: $(LIB_H)
-expand.o: $(LIB_H)
-linearize.o: $(LIB_H)
-flow.o: $(LIB_H)
-cse.o: $(LIB_H)
-simplify.o: $(LIB_H)
-memops.o: $(LIB_H)
-liveness.o: $(LIB_H)
-sort.o: $(LIB_H)
-inline.o: $(LIB_H)
-target.o: $(LIB_H)
-test-lexing.o: $(LIB_H)
-test-parsing.o: $(LIB_H)
-test-linearize.o: $(LIB_H)
-test-dissect.o: $(LIB_H)
-test-unssa.o: $(LIB_H)
-ctags.o: $(LIB_H)
-compile.o: $(LIB_H) compile.h
-compile-i386.o: $(LIB_H) compile.h
-tokenize.o: $(LIB_H)
-sparse.o: $(LIB_H)
-obfuscate.o: $(LIB_H)
-example.o: $(LIB_H)
-storage.o: $(LIB_H)
-dissect.o: $(LIB_H)
-graph.o: $(LIB_H)
+DEP_FILES := $(wildcard .*.o.d)
+$(if $(DEP_FILES),$(eval include $(DEP_FILES)))
 
 c2xml.o: c2xml.c $(LIB_H)
 	$(QUIET_CC)$(CC) `pkg-config --cflags libxml-2.0` -o $@ -c $(CFLAGS) $<
 
-compat-linux.o: compat/strtold.c compat/mmap-blob.c \
-	$(LIB_H)
+compat-linux.o: compat/strtold.c compat/mmap-blob.c $(LIB_H)
 compat-solaris.o: compat/mmap-blob.c $(LIB_H)
 compat-mingw.o: $(LIB_H)
 compat-cygwin.o: $(LIB_H)
@@ -192,7 +136,7 @@ compat-cygwin.o: $(LIB_H)
 	$(QUIET_CC)$(CC) -o $@ -c $(CFLAGS) $<
 
 clean: clean-check
-	rm -f *.[oa] *.so $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
+	rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
 
 dist:
 	@if test "`git describe`" != "$(VERSION)" ; then \
