@@ -337,6 +337,13 @@ static inline int is_byte_type(struct symbol *type)
 	return type->bit_size == bits_in_char && type->type != SYM_BITFIELD;
 }
 
+static inline int is_void_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type == &void_ctype;
+}
+
 enum {
 	TYPE_NUM = 1,
 	TYPE_BITFIELD = 2,
@@ -584,7 +591,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *i
 	}
 
 	/* Get the size of whatever the pointer points to */
-	multiply = bits_to_bytes(base->bit_size);
+	multiply = is_void_type(base) ? 1 : bits_to_bytes(base->bit_size);
 
 	if (ctype == &null_ctype)
 		ctype = &ptr_ctype;
@@ -2049,8 +2056,14 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 		return NULL;
 
 	size = type->bit_size;
+
+	if (size < 0 && is_void_type(type)) {
+		warning(expr->pos, "expression using sizeof(void)");
+		size = bits_in_char;
+	}
 	if ((size < 0) || (size & (bits_in_char - 1)))
 		expression_error(expr, "cannot size expression");
+
 	expr->type = EXPR_VALUE;
 	expr->value = bits_to_bytes(size);
 	expr->taint = 0;
