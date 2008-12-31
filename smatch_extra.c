@@ -109,6 +109,22 @@ static void match_declarations(struct symbol *sym)
 	}
 }
 
+static void match_unop(struct expression *expr)
+{
+	struct symbol *sym;
+	char *name;
+	const char *tmp;
+	
+
+	name = get_variable_from_expr(expr->unop, &sym);
+	if (!name)
+		return;
+
+	tmp = show_special(expr->op);
+	if ((!strcmp(tmp, "--")) || (!strcmp(tmp, "++")))
+		set_state(name, my_id, sym, &undefined);
+}
+
 void register_smatch_extra(int id)
 {
 	my_id = id;
@@ -117,6 +133,7 @@ void register_smatch_extra(int id)
 	add_hook(&match_function_call_after, FUNCTION_CALL_AFTER_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_AFTER_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
+	add_hook(&match_unop, OP_HOOK);
 	add_hook(&__implied_states_hook, WHOLE_CONDITION_HOOK);
 }
 
