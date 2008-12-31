@@ -8,7 +8,7 @@ static void foo(void *a)
  * check-name: Segfault in check_byte_count after syntax error
  *
  * check-error-start
-check_byte_count-ice.c:5:18: error: Bad character constant
-check_byte_count-ice.c:5:8: error: not enough arguments for function memset
+check_byte_count-ice.c:5:25: error: Bad character constant
+check_byte_count-ice.c:5:15: error: not enough arguments for function memset
  * check-error-end
  */

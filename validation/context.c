@@ -325,9 +325,9 @@ context.c:88:13: warning: context imbalance in 'warn_unlock1' - unexpected unloc
 context.c:93:13: warning: context imbalance in 'warn_unlock2' - unexpected unlock
 context.c:131:12: warning: context imbalance in 'warn_if1' - wrong count at exit
 context.c:140:12: warning: context imbalance in 'warn_if2' - different lock contexts for basic block
-context.c:202:2: warning: context imbalance in 'warn_while1' - different lock contexts for basic block
-context.c:210:3: warning: context imbalance in 'warn_while2' - unexpected unlock
-context.c:216:2: warning: context imbalance in 'warn_while3' - wrong count at exit
+context.c:202:9: warning: context imbalance in 'warn_while1' - different lock contexts for basic block
+context.c:210:17: warning: context imbalance in 'warn_while2' - unexpected unlock
+context.c:216:9: warning: context imbalance in 'warn_while3' - wrong count at exit
 context.c:274:13: warning: context imbalance in 'warn_goto1' - wrong count at exit
 context.c:283:13: warning: context imbalance in 'warn_goto2' - wrong count at exit
 context.c:300:5: warning: context imbalance in 'warn_goto3' - different lock contexts for basic block
