@@ -118,6 +118,17 @@ static int cmp_sm_states(const void *_a, const void *_b)
 	return 0;
 }
 
+int slist_has_state(struct state_list *slist, struct smatch_state *state)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(slist, tmp) {
+		if (tmp->state == state)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
 #ifdef CHECKORDER
 static void check_order(struct state_list *slist)
 {

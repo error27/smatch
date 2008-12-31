@@ -35,6 +35,7 @@ struct sm_state *clone_state(struct sm_state *s);
 struct state_list *clone_slist(struct state_list *from_slist);
 struct state_list_stack *clone_stack(struct state_list_stack *from_stack);
 
+int slist_has_state(struct state_list *slist, struct smatch_state *state);
 struct smatch_state *merge_states(const char *name, int owner,
 				  struct symbol *sym,
 				  struct smatch_state *state1,
