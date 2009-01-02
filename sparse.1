@@ -269,6 +269,13 @@ Sparse does not issue these warnings by default.
 .B \-gcc-base-dir \fIdir\fR
 Look for compiler-provided system headers in \fIdir\fR/include/ and \fIdir\fR/include-fixed/.
 .
+.SH OTHER OPTIONS
+.TP
+.B \-ftabstop=WIDTH
+Set the distance between tab stops.  This helps sparse report correct
+column numbers in warnings or errors.  If the value is less than 1 or
+greater than 100, the option is ignored.  The default is 8.
+.
 .SH SEE ALSO
 .BR cgcc (1)
 .

@@ -25,6 +25,7 @@
 int input_stream_nr = 0;
 struct stream *input_streams;
 static int input_streams_allocated;
+unsigned int tabstop = 8;
 
 #define BUFSIZE (8192)
 
@@ -232,7 +233,7 @@ repeat:
 		goto repeat;
 	}
 
-	stream->pos++;
+	stream->pos += (c == '\t') ? (tabstop - stream->pos % tabstop) : 1;
 
 	if (c == '\n') {
 		stream->line++;
@@ -291,7 +292,7 @@ static inline int nextchar(stream_t *stream)
 	if (offset < stream->size) {
 		int c = stream->buffer[offset++];
 		static const char special[256] = {
-			['\r'] = 1, ['\n'] = 1, ['\\'] = 1
+			['\t'] = 1, ['\r'] = 1, ['\n'] = 1, ['\\'] = 1
 		};
 		if (!special[c]) {
 			stream->offset = offset;

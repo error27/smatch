@@ -527,7 +527,20 @@ static char **handle_switch_f(char *arg, char **next)
 	int flag = 1;
 
 	arg++;
-	if (!strncmp(arg, "no-", 3)) {
+
+	if (!strncmp(arg, "tabstop=", 8)) {
+		char *end;
+		unsigned long val;
+		arg += 8;
+
+		if (*arg == '\0')
+			die("error: missing argument to \"-ftabstop=\"");
+
+		/* we silently ignore silly values */
+		val = strtoul(arg, &end, 10);
+		if (*end == '\0' && 1 <= val && val <= 100)
+			tabstop = val;
+	} else if (!strncmp(arg, "no-", 3)) {
 		flag = 0;
 		arg += 3;
 	}
