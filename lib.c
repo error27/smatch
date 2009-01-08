@@ -522,25 +522,34 @@ static char **handle_switch_O(char *arg, char **next)
 	return next;
 }
 
+static char **handle_switch_ftabstop(char *arg, char **next)
+{
+	char *end;
+	unsigned long val;
+
+	if (*arg == '\0')
+		die("error: missing argument to \"-ftabstop=\"");
+
+	/* we silently ignore silly values */
+	val = strtoul(arg, &end, 10);
+	if (*end == '\0' && 1 <= val && val <= 100)
+		tabstop = val;
+
+	return next;
+}
+
 static char **handle_switch_f(char *arg, char **next)
 {
 	int flag = 1;
 
 	arg++;
 
-	if (!strncmp(arg, "tabstop=", 8)) {
-		char *end;
-		unsigned long val;
-		arg += 8;
+	if (!strncmp(arg, "tabstop=", 8))
+		return handle_switch_ftabstop(arg+8, next);
 
-		if (*arg == '\0')
-			die("error: missing argument to \"-ftabstop=\"");
+	/* handle switches w/ arguments above, boolean and only boolean below */
 
-		/* we silently ignore silly values */
-		val = strtoul(arg, &end, 10);
-		if (*end == '\0' && 1 <= val && val <= 100)
-			tabstop = val;
-	} else if (!strncmp(arg, "no-", 3)) {
+	if (!strncmp(arg, "no-", 3)) {
 		flag = 0;
 		arg += 3;
 	}
