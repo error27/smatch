@@ -135,7 +135,7 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 		struct smatch_state *tmp;
 
 		tmp = get_state(name, owner, sym);
-		SM_DEBUG("%d set_true_false %s.  Was %s.  Now T:%s F:%s\n",
+		SM_DEBUG("%d set_true_false '%s'.  Was %s.  Now T:%s F:%s\n",
 			 get_lineno(), name, show_state(tmp),
 			 show_state(true_state), show_state(false_state));
 	}
