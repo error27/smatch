@@ -45,10 +45,18 @@ void __split_expr(struct expression *expr)
 	case EXPR_STATEMENT:
 		split_statements(expr->statement);
 		return;
+	case EXPR_LOGICAL:
+		__split_whole_condition(expr);
+		__push_true_states();
+		__use_false_states();
+		__merge_true_states();
+		__pop_false_only_stack();
+		return;
+
+		return;
 	case EXPR_BINOP: 
 	case EXPR_COMMA:
 	case EXPR_COMPARE:
-	case EXPR_LOGICAL:
 	case EXPR_ASSIGNMENT:
 		if (expr->type == EXPR_ASSIGNMENT)
 			__pass_to_client(expr, ASSIGNMENT_HOOK);
