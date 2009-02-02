@@ -2771,6 +2771,10 @@ static int evaluate_symbol_call(struct expression *expr)
 	if (ctype->ctype.modifiers & MOD_INLINE) {
 		int ret;
 		struct symbol *curr = current_fn;
+
+		if (ctype->definition)
+			ctype = ctype->definition;
+
 		current_fn = ctype->ctype.base_type;
 
 		ret = inline_function(expr, ctype);
@@ -3075,6 +3079,9 @@ static struct symbol *evaluate_symbol(struct symbol *sym)
 	/* And finally, evaluate the body of the symbol too */
 	if (base_type->type == SYM_FN) {
 		struct symbol *curr = current_fn;
+
+		if (sym->definition && sym->definition != sym)
+			return evaluate_symbol(sym->definition);
 
 		current_fn = base_type;
 

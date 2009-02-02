@@ -1991,6 +1991,7 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 	struct symbol_list **old_symbol_list;
 	struct symbol *base_type = decl->ctype.base_type;
 	struct statement *stmt, **p;
+	struct symbol *prev;
 	struct symbol *arg;
 
 	old_symbol_list = function_symbol_list;
@@ -2024,6 +2025,18 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 	if (!(decl->ctype.modifiers & MOD_INLINE))
 		add_symbol(list, decl);
 	check_declaration(decl);
+	decl->definition = decl;
+	prev = decl->same_symbol;
+	if (prev && prev->definition) {
+		warning(decl->pos, "multiple definitions for function '%s'",
+			show_ident(decl->ident));
+		info(prev->definition->pos, " the previous one is here");
+	} else {
+		while (prev) {
+			prev->definition = decl;
+			prev = prev->same_symbol;
+		}
+	}
 	function_symbol_list = old_symbol_list;
 	if (function_computed_goto_list) {
 		if (!function_computed_target_list)
@@ -2195,6 +2208,8 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 			}
 		}
 		check_declaration(decl);
+		if (decl->same_symbol)
+			decl->definition = decl->same_symbol->definition;
 
 		if (!match_op(token, ','))
 			break;

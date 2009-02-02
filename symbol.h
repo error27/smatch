@@ -154,6 +154,7 @@ struct symbol {
 			struct expression *initializer;
 			struct entrypoint *ep;
 			long long value;		/* Initial value */
+			struct symbol *definition;
 		};
 	};
 	union /* backend */ {
