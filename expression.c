@@ -594,12 +594,14 @@ static struct token *type_info_expression(struct token *token,
 	struct expression **tree, int type)
 {
 	struct expression *expr = alloc_expression(token->pos, type);
+	struct token *p;
 
 	*tree = expr;
 	expr->flags = Int_const_expr; /* XXX: VLA support will need that changed */
 	token = token->next;
 	if (!match_op(token, '(') || !lookup_type(token->next))
 		return unary_expression(token, &expr->cast_expression);
+	p = token;
 	token = typename(token->next, &expr->cast_type, 0);
 
 	if (!match_op(token, ')')) {
@@ -616,8 +618,14 @@ static struct token *type_info_expression(struct token *token,
 	 * C99 ambiguity: the typename might have been the beginning
 	 * of a typed initializer expression..
 	 */
-	if (match_op(token, '{'))
-		token = initializer(&expr->cast_expression, token);
+	if (match_op(token, '{')) {
+		struct expression *cast = alloc_expression(p->pos, EXPR_CAST);
+		cast->cast_type = expr->cast_type;
+		expr->cast_type = NULL;
+		expr->cast_expression = cast;
+		token = initializer(&cast->cast_expression, token);
+		token = postfix_expression(token, &expr->cast_expression, cast);
+	}
 	return token;
 }
 
