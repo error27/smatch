@@ -40,6 +40,23 @@ void add_history(struct sm_state *state)
 	add_ptr_list(&state->line_history, tmp);
 }
 
+static void add_possible(struct sm_state *sm, struct sm_state *new)
+{
+ 	struct sm_state *tmp;
+
+ 	FOR_EACH_PTR(sm->possible, tmp) {
+		if (tmp->state < new->state)
+			continue;
+		else if (tmp->state == new->state) {
+			return;
+		} else {
+			INSERT_CURRENT(new, tmp);
+			return;
+		}
+	} END_FOR_EACH_PTR(tmp);
+	add_ptr_list(&sm->possible, new);
+}
+
 struct sm_state *alloc_state(const char *name, int owner, 
 			     struct symbol *sym, struct smatch_state *state)
 {
@@ -52,6 +69,8 @@ struct sm_state *alloc_state(const char *name, int owner,
 	sm_state->line_history = NULL;
 	add_history(sm_state);
 	sm_state->pools = NULL;
+	sm_state->possible = NULL;
+	add_possible(sm_state, sm_state);
 	return sm_state;
 }
 
@@ -214,6 +233,7 @@ static void overwrite_sm_state(struct state_list **slist,
 		else if (cmp_sm_states(tmp, new) == 0) {
 			tmp->state = new->state;
 			tmp->pools = new->pools;
+			tmp->possible = new->possible;
 			__free_sm_state(new);
 			return;
 		} else {
@@ -234,9 +254,10 @@ void set_state_slist(struct state_list **slist, const char *name, int owner,
 		if (cmp_sm_states(tmp, new) < 0)
 			continue;
 		else if (cmp_sm_states(tmp, new) == 0) {
-			__free_sm_state(new);
 			tmp->state = state;
 			tmp->pools = NULL;
+			tmp->possible = new->possible;
+			__free_sm_state(new);
 			return;
 		} else {
 			INSERT_CURRENT(new, tmp);
@@ -360,6 +381,7 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			tmp = alloc_state(to_state->name, to_state->owner,
 					  to_state->sym, s);
 			add_ptr_list(&results, tmp);
+			//add_possible(to_state, NULL);
 			add_pool(to_state, &implied_to);
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_sm_states(to_state, state) == 0) {
@@ -375,6 +397,8 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			}
 			tmp = alloc_state(to_state->name, to_state->owner,
 					  to_state->sym, s);
+			add_possible(tmp, to_state);
+			add_possible(tmp, state);
 			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(to_state);
 			NEXT_PTR_LIST(state);
@@ -384,6 +408,7 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			tmp = alloc_state(state->name, state->owner,
 					  state->sym, s);
 			add_ptr_list(&results, tmp);
+			//add_possible(state, NULL);
 			add_pool(state, &implied_from);
 			NEXT_PTR_LIST(state);
 		}

@@ -10,6 +10,7 @@ struct sm_state {
   	struct smatch_state *state;
 	struct history_list *line_history;
 	struct state_list_stack *pools;
+	struct state_list *possible;
 };
 
 DECLARE_ALLOCATOR(sm_state);

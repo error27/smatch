@@ -93,19 +93,12 @@ struct smatch_state *get_state(const char *name, int owner, struct symbol *sym)
 struct state_list *get_possible_states(const char *name, int owner,
 				       struct symbol *sym)
 {
-	struct sm_state *sms, *tmp;
-	struct state_list *slist;
-	struct state_list *ret = NULL;
+	struct sm_state *sms;
 
 	sms = get_sm_state_slist(cur_slist, name, owner, sym);
-	if (!sms)
-		return NULL;
-	add_ptr_list(&ret, sms);
-	FOR_EACH_PTR(sms->pools, slist) {
-		tmp = get_sm_state_slist(slist, name, owner, sym);
-		add_ptr_list(&ret, tmp);
-	} END_FOR_EACH_PTR(slist);
-	return ret;
+	if (sms)
+		return sms->possible;
+	return NULL;
 }
 
 void __overwrite_cur_slist(struct state_list *slist)
