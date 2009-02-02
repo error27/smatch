@@ -19,12 +19,24 @@
 
 #include "parse.h"
 #include "smatch.h"
-#include "smatch_slist.h"  // blast this was supposed to be internal only stuff
+#include "smatch_slist.h"
+
+static const char *lock_funcs[] = {
+	"_spin_lock",
+	"down",
+	NULL,
+};
+
+static const char *unlock_funcs[] = {
+	"_spin_unlock",
+	"up",
+	NULL,
+};
 
 static int my_id;
 
-STATE(lock);
-STATE(unlock);
+STATE(locked);
+STATE(unlocked);
 
 /*
  * merge_func() can go away when we fix the core to just store all the possible 
@@ -44,24 +56,50 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 
 }
 
+static char *match_lock_func(char *fn_name, struct expression_list *args)
+{
+	struct expression *lock_expr;
+	int i;
+
+	for (i = 0; lock_funcs[i]; i++) {
+		if (!strcmp(fn_name, lock_funcs[i])) {
+			lock_expr = get_argument_from_call_expr(args, 0);
+			return get_variable_from_expr(lock_expr, NULL);
+		}
+	}
+	return NULL;
+}
+
+static char *match_unlock_func(char *fn_name, struct expression_list *args)
+{
+	struct expression *lock_expr;
+	int i;
+
+	for (i = 0; unlock_funcs[i]; i++) {
+		if (!strcmp(fn_name, unlock_funcs[i])) {
+			lock_expr = get_argument_from_call_expr(args, 0);
+			return get_variable_from_expr(lock_expr, NULL);
+		}
+	}
+	return NULL;
+}
+
 static void match_call(struct expression *expr)
 {
 	char *fn_name;
-	struct expression *spin_expr;
-	char *spin_name;
+	char *lock_name;
 
 	fn_name = get_variable_from_expr(expr->fn, NULL);
-	if (!fn_name || (strcmp(fn_name, "_spin_lock") && strcmp(fn_name, "_spin_unlock")))
+	if (!fn_name)
 		return;
 
-	spin_expr = get_argument_from_call_expr(expr->args, 0);
-	spin_name = get_variable_from_expr(spin_expr, NULL);
-	if (!strcmp(fn_name, "_spin_lock")) {
-		set_state(spin_name, my_id, NULL, &lock);
-	} else {
-		set_state(spin_name, my_id, NULL, &unlock);
+	if ((lock_name = match_lock_func(fn_name, expr->args))) {
+		set_state(lock_name, my_id, NULL, &locked);
+	} else if ((lock_name = match_unlock_func(fn_name, expr->args))) {
+		set_state(lock_name, my_id, NULL, &unlocked);
 	}
 	free_string(fn_name);
+	return;
 }
 
 static void match_condition(struct expression *expr)
@@ -89,7 +127,6 @@ static int possibly_negative(struct expression *expr)
 		if (value < 0) {
 			return 1;
 		}
-		1;
 	} END_FOR_EACH_PTR(tmp);
 	return 0;
 }
@@ -111,7 +148,7 @@ static void match_return(struct statement *stmt)
 
 	slist = get_all_states(my_id);
 	FOR_EACH_PTR(slist, tmp) {
-		if (tmp->state != &unlock)
+		if (tmp->state != &unlocked)
 			smatch_msg("returned negative with %s spinlock held",
 				   tmp->name);
 	} END_FOR_EACH_PTR(tmp);
