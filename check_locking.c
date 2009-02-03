@@ -67,6 +67,8 @@ static char *match_lock_func(char *fn_name, struct expression_list *args)
 			return get_variable_from_expr(lock_expr, NULL);
 		}
 	}
+	if (!strcmp(fn_name, "lock_kernel"))
+		return "kernel";
 	return NULL;
 }
 
@@ -81,6 +83,8 @@ static char *match_unlock_func(char *fn_name, struct expression_list *args)
 			return get_variable_from_expr(lock_expr, NULL);
 		}
 	}
+	if (!strcmp(fn_name, "unlock_kernel"))
+		return "kernel";
 	return NULL;
 }
 
@@ -149,7 +153,7 @@ static void match_return(struct statement *stmt)
 	slist = get_all_states(my_id);
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state != &unlocked)
-			smatch_msg("returned negative with %s spinlock held",
+			smatch_msg("returned negative with %s lock held",
 				   tmp->name);
 	} END_FOR_EACH_PTR(tmp);
 }
