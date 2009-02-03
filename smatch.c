@@ -17,6 +17,7 @@ void register_smatch_extra(int id);
 void register_smatch_ignore(int id);
 void register_overflow(int id);
 void register_locking(int id);
+void register_memory(int id);
 /* <- your test goes here */
 /* void register_template(int id); */
 
@@ -26,6 +27,7 @@ const reg_func reg_funcs[] = {
 	&register_null_deref,
 	&register_overflow,
 	&register_locking,
+	&register_memory,
 	/* <- your test goes here */
 	/* &register_template, */
 	NULL
