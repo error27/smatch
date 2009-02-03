@@ -175,6 +175,13 @@ void __unnullify_path()
 	set_state("unnull_path", 0, NULL, &true_state);
 }
 
+int __path_is_null()
+{
+	if (cur_slist)
+		return 0;
+	return 1;
+}
+
 void clear_all_states()
 {
 	struct named_slist *named_slist;

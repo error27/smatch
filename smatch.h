@@ -129,6 +129,7 @@ extern int debug_states;
 
 void nullify_path();	   
 void __unnullify_path();	   
+int __path_is_null();
 void clear_all_states();
 
 struct sm_state *__get_sm_state(const char *name, int owner,

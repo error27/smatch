@@ -196,12 +196,38 @@ static void handle_post_loop(struct statement *stmt)
 	__pop_false_only_stack();
 }
 
+static void print_unreached(struct statement *stmt)
+{
+
+	/* 
+	 * GCC insists on a return statement even where it is never
+         * reached.  Also BUG() sometimes is a forever loop and
+	 * sometimes not so people put code after a BUG().  There 
+	 * are way to many false positives.
+	 */
+#ifdef KERNEL
+	return;
+#endif
+	if (__path_is_null()) {
+		switch(stmt->type) {
+		case STMT_COMPOUND: /* after a switch before a case stmt */
+		case STMT_CASE:
+		case STMT_LABEL:
+		case STMT_DECLARATION: /* switch(x) { int a; case foo: ... */
+			break;
+		default:
+			smatch_msg("unreachable code. %d", stmt->type);
+		}
+	}
+}
+
 static void split_statements(struct statement *stmt)
 {
 	if (!stmt)
 		return;
 	
 	__smatch_lineno = stmt->pos.line;
+	print_unreached(stmt);
 	__pass_to_client(stmt, STMT_HOOK);
 
 	switch (stmt->type) {
