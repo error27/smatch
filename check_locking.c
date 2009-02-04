@@ -33,6 +33,15 @@ static const char *unlock_funcs[] = {
 	NULL,
 };
 
+struct locked_call {
+	const char *function;
+	const char *lock;
+};
+
+static struct locked_call lock_needed[] = { 
+	{"tty_ldisc_ref_wait", "tty_ldisc_lock"},
+};
+
 static int my_id;
 
 STATE(locked);
@@ -88,6 +97,23 @@ static char *match_unlock_func(char *fn_name, struct expression_list *args)
 	return NULL;
 }
 
+static void check_locks_needed(const char *fn_name)
+{
+	struct smatch_state *state;
+	int i;
+
+	for (i = 0; i < sizeof(lock_needed)/sizeof(struct locked_call); i++) {
+		if (!strcmp(fn_name, lock_needed[i].function)) {
+			state = get_state(lock_needed[i].lock, my_id, NULL);
+			if (state != &locked) {
+				smatch_msg("%s called without holding %s lock",
+					lock_needed[i].function,
+					lock_needed[i].lock);
+			}
+		}
+	}
+}
+
 static void match_call(struct expression *expr)
 {
 	char *fn_name;
@@ -97,11 +123,12 @@ static void match_call(struct expression *expr)
 	if (!fn_name)
 		return;
 
-	if ((lock_name = match_lock_func(fn_name, expr->args))) {
+	if ((lock_name = match_lock_func(fn_name, expr->args)))
 		set_state(lock_name, my_id, NULL, &locked);
-	} else if ((lock_name = match_unlock_func(fn_name, expr->args))) {
+	else if ((lock_name = match_unlock_func(fn_name, expr->args)))
 		set_state(lock_name, my_id, NULL, &unlocked);
-	}
+	else
+		check_locks_needed(fn_name);
 	free_string(fn_name);
 	return;
 }
