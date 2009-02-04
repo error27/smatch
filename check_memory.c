@@ -14,39 +14,74 @@
 static int my_id;
 
 STATE(allocated);
+STATE(assigned);
 STATE(isfree);
+STATE(returned);
+STATE(unfree);
 
 static void match_assign(struct expression *expr)
 {
 	struct expression *left, *right;
-	char *right_name, *left_name;
-	
+	char *left_name, *right_name;
+	struct symbol *left_sym, *right_sym;
+	struct smatch_state *state;
 
 	left = strip_expr(expr->left);
-	left_name = get_variable_from_expr(left, NULL);
+	left_name = get_variable_from_expr(left, &left_sym);
 	if (!left_name)
 		return;
+	if (!left_sym) {
+		free_string(left_name);
+		return;
+	}
 
 	right = strip_expr(expr->right);
 
-       	right_name = get_variable_from_expr(expr->fn, NULL);
+	right_name = NULL;
+	if (right->type == EXPR_CALL)
+		right_name = get_variable_from_expr(expr->fn, NULL);
 	if (right_name && !strcmp(right_name, "kmalloc")) {
-		if (get_state(left_name, my_id, NULL) == &allocated) {
-			/* fixme.  malloc can fail and be called twice. */
-			/* smatch_msg("possible memory leak."  
-			   "  double allocation of %s",
-			   name); */
-		}
-		set_state(left_name, my_id, NULL, &allocated);
+		if (left_sym->ctype.modifiers & (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))
+			return;
+		set_state(left_name, my_id, left_sym, &allocated);
 		free_string(right_name);
 		return;
 	}
 	free_string(right_name);
 
-	
-	if (get_state(left_name, my_id, NULL) == &isfree) {
-		set_state(left_name, my_id, NULL, &allocated);
+	right_name = get_variable_from_expr(right, &right_sym);
+	if (right_name && (state = get_state(right_name, my_id, right_sym))) {
+		if (state == &isfree)
+			smatch_msg("assigning freed pointer");
+		set_state(right_name, my_id, right_sym, &assigned);
+		free_string(right_name);
+		return;
 	}
+	free_string(right_name);
+
+	if (is_zero(right))
+		return;
+
+	if (get_state(left_name, my_id, left_sym) == &isfree) {
+		set_state(left_name, my_id, left_sym, &unfree);
+	}
+}
+
+static int is_null(char *name, struct symbol *sym)
+{
+	struct smatch_state *state;
+
+	/* 
+	 * FIXME.  Ha ha ha... This is so wrong.
+	 * I'm pulling in data from the check_null_deref script.  
+	 * I just happen to know that its ID is 3.
+	 * The correct approved way to do this is to get the data from
+	 * smatch_extra.  But right now smatch_extra doesn't track it.
+	 */
+	state = get_state(name, 3, sym);
+	if (state && !strcmp(state->name, "isnull"))
+		return 1;
+	return 0;
 }
 
 static void match_kfree(struct expression *expr)
@@ -55,6 +90,7 @@ static void match_kfree(struct expression *expr)
 	struct state_list *slist;
 	char *fn_name;
 	char *ptr_name;
+	struct symbol *ptr_sym;
 
 
 	fn_name = get_variable_from_expr(expr->fn, NULL);
@@ -63,14 +99,58 @@ static void match_kfree(struct expression *expr)
 		return;
 
 	ptr_expr = get_argument_from_call_expr(expr->args, 0);
-	ptr_name = get_variable_from_expr(ptr_expr, NULL);
-	slist = get_possible_states(ptr_name, my_id, NULL);
-	if (slist_has_state(slist, &isfree)) {
+	ptr_name = get_variable_from_expr(ptr_expr, &ptr_sym);
+	slist = get_possible_states(ptr_name, my_id, ptr_sym);
+	if (slist_has_state(slist, &isfree) && !is_null(ptr_name, ptr_sym)) {
 		smatch_msg("double free of %s", ptr_name);
 	}
-	set_state(ptr_name, my_id, NULL, &isfree);
+	set_state(ptr_name, my_id, ptr_sym, &isfree);
 
 	free_string(fn_name);
+}
+
+static int possibly_allocated(struct state_list *slist)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(slist, tmp) {
+		if (tmp->state == &allocated)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
+static void check_for_allocated()
+{
+	struct state_list *slist;
+	struct sm_state *tmp;
+
+	slist = get_all_states(my_id);
+	FOR_EACH_PTR(slist, tmp) {
+		if (possibly_allocated(tmp->possible) && 
+			!is_null(tmp->name, tmp->sym))
+			smatch_msg("possible memery leak of %s", tmp->name);
+	} END_FOR_EACH_PTR(tmp);
+
+}
+
+static void match_return(struct statement *stmt)
+{
+	char *name;
+	struct symbol *sym;
+	struct smatch_state *state;
+
+	name = get_variable_from_expr(stmt->ret_value, &sym);
+	if ((state = get_state(name, my_id, sym))) {
+		set_state(name, my_id, sym, &returned);
+	}
+
+	check_for_allocated();
+}
+
+static void match_end_func(struct symbol *sym)
+{
+	check_for_allocated();
 }
 
 void register_memory(int id)
@@ -78,4 +158,6 @@ void register_memory(int id)
 	my_id = id;
 	add_hook(&match_kfree, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_return, RETURN_HOOK);
+	add_hook(&match_end_func, END_FUNC_HOOK);
 }
