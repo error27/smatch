@@ -402,7 +402,7 @@ void smatch (int argc, char **argv)
 	struct symbol_list *sym_list;
 	
 	if (argc < 2) {
-		printf("Usage:  smatch <filename.c>\n");
+		printf("Usage:  smatch [--debug] <filename.c>\n");
 		exit(1);
 	}
 	sparse_initialize(argc, argv, &filelist);
