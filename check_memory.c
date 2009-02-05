@@ -19,6 +19,33 @@ STATE(isfree);
 STATE(returned);
 STATE(unfree);
 
+static const char *allocation_funcs[] = {
+	"malloc",
+	"kmalloc",
+	NULL,
+};
+
+static int is_allocation(struct expression *expr)
+{
+	char *fn_name;
+	int i;
+
+	if (expr->type != EXPR_CALL)
+		return 0;
+
+	if (!(fn_name = get_variable_from_expr(expr->fn, NULL)))
+		return 0;
+
+	for (i = 0; allocation_funcs[i]; i++) {
+		if (!strcmp(fn_name, allocation_funcs[i])) {
+			free_string(fn_name);
+			return 1;
+		}
+	}
+	free_string(fn_name);
+	return 0;
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct expression *left, *right;
@@ -36,18 +63,12 @@ static void match_assign(struct expression *expr)
 	}
 
 	right = strip_expr(expr->right);
-
-	right_name = NULL;
-	if (right->type == EXPR_CALL)
-		right_name = get_variable_from_expr(expr->fn, NULL);
-	if (right_name && !strcmp(right_name, "kmalloc")) {
+	if (is_allocation(right)) {
 		if (left_sym->ctype.modifiers & (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))
 			return;
 		set_state(left_name, my_id, left_sym, &allocated);
-		free_string(right_name);
 		return;
 	}
-	free_string(right_name);
 
 	right_name = get_variable_from_expr(right, &right_sym);
 	if (right_name && (state = get_state(right_name, my_id, right_sym))) {
