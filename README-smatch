@@ -1,0 +1,64 @@
+    ***Compiling Smatch***
+
+make
+
+This compiles creates a binary called "smatch".
+
+    ***Using Smatch***
+
+./smatch filename.c
+
+For the kernel use:  make -k CHECK=/path/to/smatch C=y bzImage | tee warns.txt
+
+Most of the things that smatch prints out is not actually warnings.
+What I was trying to do with that was catch errors where a NULL is
+passed to a function that dereferences the parameter without checking.
+There is a script that parses that information.
+
+      smatch_scripts/find_null_params.sh
+
+Sorry the output is a mess right now.  This needs to be cleaned up.
+
+Sometimes you it is not obvious why smatch is printing an error.
+The --debug option is usefull here.  It prints a message on each state change.
+
+Sometimes smatch segfaults.  Use valgrind to get a stack dump.  For the kernel
+do:  make -k CHECK="valgrind /path/to/smatch" C=y failing/file.o
+
+    ***How Smatch Works***
+
+It's basically a state machine that tracks the flow of code.
+
+int a;  <- state is unitialized.
+
+if (b) {
+       a = foo();  <- state is initialized. 
+       if (a) {
+       	      bar(a);  <- state is non zero.
+       }
+}
+baz(a);  <- state is undefined.  possibly unitialized, zero, or non-zero
+
+The core parts of smatch understand how code flows, if conditions, loops,
+and merging states back together.  The checker bits keep track of states
+that they are interested in and print error messages and so on.
+
+    ***Coding Smatch***
+
+The core smatch files start with "smatch_" the check scripts are named 
+"check_*.c".  There is a template check script called check_template.c
+that is designed to teach the basics.  Rename it and edit out the bits
+you want.
+
+
+The first file you should look at is smatch.h.  All the
+functions for check scripts are at the top.
+
+Smatch is based on sparse.  You will want to understand a couple sparse 
+data types: 
+     struct expression from expression.h
+     struct symbol from symbol.h
+     struct statement from parse.h
+
+More complicated scripts are also going to need functions from smatch_slist.h
+
