@@ -168,9 +168,8 @@ static char *get_function_call(struct expression *expr)
 {
 	if (expr->type != EXPR_CALL)
 		return NULL;
-	if (expr->fn->type == EXPR_SYMBOL) {
+	if (expr->fn->type == EXPR_SYMBOL && expr->fn->symbol)
 		return expr->fn->symbol->ident->name;
-	}
 	return NULL;
 }
 
