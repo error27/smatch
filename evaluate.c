@@ -313,37 +313,6 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 	return expr;
 }
 
-static int is_type_type(struct symbol *type)
-{
-	return (type->ctype.modifiers & MOD_TYPE) != 0;
-}
-
-int is_ptr_type(struct symbol *type)
-{
-	if (type->type == SYM_NODE)
-		type = type->ctype.base_type;
-	return type->type == SYM_PTR || type->type == SYM_ARRAY || type->type == SYM_FN;
-}
-
-static inline int is_float_type(struct symbol *type)
-{
-	if (type->type == SYM_NODE)
-		type = type->ctype.base_type;
-	return type->ctype.base_type == &fp_type;
-}
-
-static inline int is_byte_type(struct symbol *type)
-{
-	return type->bit_size == bits_in_char && type->type != SYM_BITFIELD;
-}
-
-static inline int is_void_type(struct symbol *type)
-{
-	if (type->type == SYM_NODE)
-		type = type->ctype.base_type;
-	return type == &void_ctype;
-}
-
 enum {
 	TYPE_NUM = 1,
 	TYPE_BITFIELD = 2,
