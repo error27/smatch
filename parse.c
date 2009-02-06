@@ -1152,7 +1152,7 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 }
 
 static struct token *parameter_type_list(struct token *, struct symbol *, struct ident **p);
-static struct token *declarator(struct token *token, struct symbol *sym, struct ident **p);
+static struct token *declarator(struct token *token, struct symbol *sym, struct ident **p, int);
 
 static struct token *handle_attributes(struct token *token, struct ctype *ctype, unsigned int keywords)
 {
@@ -1172,13 +1172,15 @@ static struct token *handle_attributes(struct token *token, struct ctype *ctype,
 	return token;
 }
 
-static struct token *direct_declarator(struct token *token, struct symbol *decl, struct ident **p)
+static struct token *direct_declarator(struct token *token, struct symbol *decl, struct ident **p, int prefer_abstract)
 {
 	struct ctype *ctype = &decl->ctype;
+	int dont_nest = 0;
 
 	if (p && token_type(token) == TOKEN_IDENT) {
 		*p = token->ident;
 		token = token->next;
+		dont_nest = 1;
 	}
 
 	for (;;) {
@@ -1200,14 +1202,16 @@ static struct token *direct_declarator(struct token *token, struct symbol *decl,
 			int fn;
 
 			next = handle_attributes(next, ctype, KW_ATTRIBUTE);
-			fn = (p && *p) || match_op(next, ')') || lookup_type(next);
+			fn = dont_nest || match_op(next, ')') ||
+				(prefer_abstract && lookup_type(next));
 
 			if (!fn) {
 				struct symbol *base_type = ctype->base_type;
-				token = declarator(next, decl, p);
+				token = declarator(next, decl, p, prefer_abstract);
 				token = expect(token, ')', "in nested declarator");
 				while (ctype->base_type != base_type)
 					ctype = &ctype->base_type->ctype;
+				dont_nest = 1;
 				p = NULL;
 				continue;
 			}
@@ -1261,10 +1265,10 @@ static struct token *pointer(struct token *token, struct ctype *ctype)
 	return token;
 }
 
-static struct token *declarator(struct token *token, struct symbol *sym, struct ident **p)
+static struct token *declarator(struct token *token, struct symbol *sym, struct ident **p, int prefer_abstract)
 {
 	token = pointer(token, &sym->ctype);
-	return direct_declarator(token, sym, p);
+	return direct_declarator(token, sym, p, prefer_abstract);
 }
 
 static struct token *handle_bitfield(struct token *token, struct symbol *decl)
@@ -1324,7 +1328,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 		struct ident *ident = NULL;
 		struct symbol *decl = alloc_symbol(token->pos, SYM_NODE);
 		decl->ctype = ctype;
-		token = declarator(token, decl, &ident);
+		token = declarator(token, decl, &ident, 0);
 		decl->ident = ident;
 		if (match_op(token, ':')) {
 			token = handle_bitfield(token, decl);
@@ -1364,7 +1368,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol **
 	sym = alloc_symbol(token->pos, SYM_NODE);
 	sym->ctype = ctype;
 	*tree = sym;
-	token = declarator(token, sym, &ident);
+	token = declarator(token, sym, &ident, 1);
 	sym->ident = ident;
 	apply_modifiers(token->pos, &sym->ctype);
 	sym->endpos = token->pos;
@@ -1376,7 +1380,7 @@ struct token *typename(struct token *token, struct symbol **p, int mod)
 	struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
 	*p = sym;
 	token = declaration_specifiers(token, &sym->ctype, 0);
-	token = declarator(token, sym, NULL);
+	token = declarator(token, sym, NULL, 1);
 	apply_modifiers(token->pos, &sym->ctype);
 	if (sym->ctype.modifiers & MOD_STORAGE & ~mod)
 		warning(sym->pos, "storage class in typename (%s)",
@@ -2147,7 +2151,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	token = declaration_specifiers(token, &ctype, 0);
 	decl = alloc_symbol(token->pos, SYM_NODE);
 	decl->ctype = ctype;
-	token = declarator(token, decl, &ident);
+	token = declarator(token, decl, &ident, 0);
 	apply_modifiers(token->pos, &decl->ctype);
 
 	decl->endpos = token->pos;
@@ -2219,7 +2223,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		decl = alloc_symbol(token->pos, SYM_NODE);
 		decl->ctype = ctype;
 		token = declaration_specifiers(token, &decl->ctype, 1);
-		token = declarator(token, decl, &ident);
+		token = declarator(token, decl, &ident, 0);
 		apply_modifiers(token->pos, &decl->ctype);
 		decl->endpos = token->pos;
 		if (!ident) {
