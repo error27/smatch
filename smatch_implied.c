@@ -69,8 +69,6 @@ static struct state_list *get_non_zero_filtered(struct sm_state *sm_state)
 			return NULL;
 		}
 		if (s->data && *(int *)s->data != 0) {
-			printf("debug %s is %d\n", s->name, *(int *)s->data);
-
 			if (!ret)
 				ret = clone_slist(list);
 			else
@@ -93,17 +91,14 @@ void __implied_states_hook(struct expression *expr)
 	struct sm_state *state;
 	struct state_list *implied_states;
 
-	if (expr->type != EXPR_COMPARE)
-		return;
-
 	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		return;
 	state = __get_sm_state(name, SMATCH_EXTRA, sym);
 	if (!state)
 		return;
-	if (!state->pools) {
-		printf("no pools for %s\n", state->name);
+	if (!state->pools)
 		return;
-	}
 	implied_states = get_non_zero_filtered(state);
 	if (debug_states) {
 		printf("Setting the following implied states\n");
