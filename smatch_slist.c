@@ -1,7 +1,7 @@
 /*
  * sparse/smatch_slist.c
  *
- * Copyright (C) 2008 Dan Carpenter.
+ * Copyright (C) 2008,2009 Dan Carpenter.
  *
  *  Licensed under the Open Software License version 1.1
  *
@@ -24,7 +24,8 @@ void __print_slist(struct state_list *slist)
 
 	printf("dumping slist at %d\n", get_lineno());
 	FOR_EACH_PTR(slist, state) {
-		printf("%d '%s'=%s\n", state->owner, state->name, show_state(state->state));
+		printf("%d '%s'=%s\n", state->owner, state->name,
+			show_state(state->state));
 	} END_FOR_EACH_PTR(state);
 	printf("---\n");
 }
@@ -45,9 +46,9 @@ static void add_possible(struct sm_state *sm, struct sm_state *new)
  	struct sm_state *tmp;
 
  	FOR_EACH_PTR(sm->possible, tmp) {
-		if (tmp->state < new->state)
+		if (tmp->state < new->state) {
 			continue;
-		else if (tmp->state == new->state) {
+		} else if (tmp->state == new->state) {
 			return;
 		} else {
 			INSERT_CURRENT(new, tmp);
@@ -84,10 +85,8 @@ struct sm_state *clone_state(struct sm_state *s)
 }
 
 /* NULL states go at the end to simplify merge_slist */
-static int cmp_sm_states(const void *_a, const void *_b)
+static int cmp_sm_states(const struct sm_state *a, const struct sm_state *b)
 {
-	const struct sm_state *a = _a;
-	const struct sm_state *b = _b;
 	int ret;
 
 	if (!a && !b)
@@ -96,16 +95,16 @@ static int cmp_sm_states(const void *_a, const void *_b)
 		return -1;
 	if (!a)
 		return 1;
-	
+
 	if (a->owner > b->owner)
 		return -1;
 	if (a->owner < b->owner)
 		return 1;
-	
+
 	ret = strcmp(a->name, b->name);
 	if (ret)
 		return ret;
- 
+
 	if (!b->sym && a->sym)
 		return -1;
 	if (!a->sym && b->sym)
@@ -141,7 +140,7 @@ static void check_order(struct state_list *slist)
 			printf("Error.  Unsorted slist %d vs %d, %p vs %p, "
 			       "%s vs %s\n", last->owner, state->owner, 
 			       last->sym, state->sym, last->name, state->name);
-		printed = 1;
+			printed = 1;
 		}
 		last = state;
 	} END_FOR_EACH_PTR(state);
@@ -200,8 +199,9 @@ struct smatch_state *merge_states(const char *name, int owner,
 	return ret;
 }
 
-struct smatch_state *get_state_slist(struct state_list *slist, const char *name, int owner,
-		    struct symbol *sym)
+struct smatch_state *get_state_slist(struct state_list *slist, 
+				const char *name, int owner,
+				struct symbol *sym)
 {
 	struct sm_state *state;
 
@@ -216,8 +216,8 @@ struct smatch_state *get_state_slist(struct state_list *slist, const char *name,
 	return NULL;
 }
 
-struct sm_state *get_sm_state_slist(struct state_list *slist, const char *name, int owner,
-		    struct symbol *sym)
+struct sm_state *get_sm_state_slist(struct state_list *slist, const char *name,
+				int owner, struct symbol *sym)
 {
 	struct sm_state *state;
 
@@ -381,7 +381,6 @@ static void copy_pools(struct sm_state *to, struct sm_state *sm)
 {
 	struct state_list *tmp;
 
-
  	FOR_EACH_PTR(sm->pools, tmp) {
 		add_single_pool(to, tmp);
 	} END_FOR_EACH_PTR(tmp);
@@ -473,6 +472,15 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 	if (implied_to)
 		push_slist(&implied_pools, implied_to);
 }
+
+/*
+ * filter() is used to find what states are the same across
+ * a series of slists.
+ * It takes a **slist and a *filter.  
+ * It removes everything from **slist that isn't in *filter.
+ * The reason you would want to do this is if you want to 
+ * know what other states are true if one state is true.  (smatch_implied).
+ */
 
 void filter(struct state_list **slist, struct state_list *filter)
 {
