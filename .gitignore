@@ -33,3 +33,7 @@ patches-*
 # quilt's files
 patches
 series
+
+#cscope
+cscope.files
+cscope.out
