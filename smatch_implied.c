@@ -49,6 +49,39 @@
 #include "smatch_slist.h"
 
 /*
+ * This function gets all the states which are implied by a non zero value.
+ * So for example for the code:
+ * if (c) {
+ * We would want to know what was implied by c is non zero.
+ */ 
+
+static struct state_list *get_non_zero_filtered(struct sm_state *sm_state)
+{
+	struct state_list *list;
+	struct smatch_state *s;
+	struct state_list *ret = NULL;
+
+	FOR_EACH_PTR(sm_state->pools, list) {
+		s = get_state_slist(list, sm_state->name, sm_state->owner,
+				    sm_state->sym);
+		if (s == &undefined) {
+			del_slist(&ret);
+			return NULL;
+		}
+		if (s->data && *(int *)s->data != 0) {
+			printf("debug %s is %d\n", s->name, *(int *)s->data);
+
+			if (!ret)
+				ret = clone_slist(list);
+			else
+				filter(&ret, list);
+		}
+	} END_FOR_EACH_PTR(list);
+	return ret;
+}
+
+
+/*
  * This condition hook is very connected to smatch_extra.c.
  * It's registered there.
  */
@@ -58,13 +91,24 @@ void __implied_states_hook(struct expression *expr)
 	struct symbol *sym;
 	char *name;
 	struct sm_state *state;
+	struct state_list *implied_states;
 
-	//printf("type = %d\n", expr->type);
-
-	if (expr->type != EXPR_COMPARE || expr->op != SPECIAL_EQUAL)
+	if (expr->type != EXPR_COMPARE)
 		return;
 
-	name = get_variable_from_expr(expr->left, &sym);
+	name = get_variable_from_expr(expr, &sym);
 	state = __get_sm_state(name, SMATCH_EXTRA, sym);
+	if (!state)
+		return;
+	if (!state->pools) {
+		printf("no pools for %s\n", state->name);
+		return;
+	}
+	implied_states = get_non_zero_filtered(state);
+	if (debug_states) {
+		printf("Setting the following implied states\n");
+		__print_slist(implied_states);
+	}
+	__overwrite_cur_slist(implied_states);
 	free_string(name);
 }
