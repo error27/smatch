@@ -23,12 +23,38 @@
 
 static const char *lock_funcs[] = {
 	"_spin_lock",
+	"_spin_lock_irqsave",
+	"_spin_lock_irq",
+	"_spin_lock_bh",
+	"_spin_lock_nested",
+	"_spin_lock_irqsave_nested",
+	"_raw_spin_lock",
+	"_read_lock",
+	"_read_lock_irqsave",
+	"_read_lock_irq",
+	"_read_lock_bh",
+	"_write_lock",
+	"_write_lock_irqsave",
+	"_write_lock_irq",
+	"_write_lock_bh",
 	"down",
 	NULL,
 };
 
 static const char *unlock_funcs[] = {
 	"_spin_unlock",
+	"_spin_unlock_irqrestore",
+	"_spin_unlock_irq",
+	"_spin_unlock_bh",
+	"_raw_spin_unlock",
+	"_read_unlock",
+	"_read_unlock_irqrestore",
+	"_read_unlock_irq",
+	"_read_unlock_bh",
+	"_write_unlock",
+	"_write_unlock_irqrestore",
+	"_write_unlock_irq",
+	"_write_unlock_bh",
 	"up",
 	NULL,
 };
