@@ -64,7 +64,8 @@ static void match_assign(struct expression *expr)
 
 	right = strip_expr(expr->right);
 	if (is_allocation(right)) {
-		if (left_sym->ctype.modifiers & (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))
+		if (left_sym->ctype.modifiers &
+			(MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))
 			return;
 		set_state(left_name, my_id, left_sym, &allocated);
 		return;
@@ -168,6 +169,13 @@ static void match_return(struct statement *stmt)
 
 	check_for_allocated();
 }
+
+static void match_function_call(struct expression *expr)
+{
+
+
+}
+
 
 static void match_end_func(struct symbol *sym)
 {
