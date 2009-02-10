@@ -1,12 +1,5 @@
 #include "smatch.h"
 
-struct tracker {
-	const char *name;
-	int owner;
-	struct symbol *sym;
-};
-DECLARE_PTR_LIST(tracker_list, struct tracker);
-
 static struct tracker_list *ignored;
 
 void add_ignore(const char *name, int owner, struct symbol *sym)

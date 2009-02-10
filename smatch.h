@@ -98,6 +98,13 @@ const char *show_state(struct smatch_state *state);
 struct expression *strip_expr(struct expression *expr);
 
 /* smatch_ignore.c */
+struct tracker {
+	const char *name;
+	int owner;
+	struct symbol *sym;
+};
+DECLARE_PTR_LIST(tracker_list, struct tracker);
+
 void add_ignore(const char *name, int owner, struct symbol *sym);
 int is_ignored(const char *name, int owner, struct symbol *sym);
 
