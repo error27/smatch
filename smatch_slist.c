@@ -199,23 +199,6 @@ struct smatch_state *merge_states(const char *name, int owner,
 	return ret;
 }
 
-struct smatch_state *get_state_slist(struct state_list *slist, 
-				const char *name, int owner,
-				struct symbol *sym)
-{
-	struct sm_state *state;
-
-	if (!name)
-		return NULL;
-
-	FOR_EACH_PTR(slist, state) {
-		if (state->owner == owner && state->sym == sym 
-		    && !strcmp(state->name, name))
-			return state->state;
-	} END_FOR_EACH_PTR(state);
-	return NULL;
-}
-
 struct sm_state *get_sm_state_slist(struct state_list *slist, const char *name,
 				int owner, struct symbol *sym)
 {
@@ -229,6 +212,18 @@ struct sm_state *get_sm_state_slist(struct state_list *slist, const char *name,
 		    && !strcmp(state->name, name))
 			return state;
 	} END_FOR_EACH_PTR(state);
+	return NULL;
+}
+
+struct smatch_state *get_state_slist(struct state_list *slist, 
+				const char *name, int owner,
+				struct symbol *sym)
+{
+	struct sm_state *state;
+
+	state = get_sm_state_slist(slist, name, owner, sym);
+	if (state)
+		return state->state;
 	return NULL;
 }
 
