@@ -25,6 +25,7 @@ struct smatch_state {
 };
 #define STATE(_x) static struct smatch_state _x = { .name = #_x }
 extern struct smatch_state undefined;
+extern struct smatch_state merged;
 extern struct smatch_state true_state;
 extern struct smatch_state false_state;
 

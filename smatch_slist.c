@@ -190,7 +190,7 @@ struct smatch_state *merge_states(const char *name, int owner,
 	else if (__has_merge_function(owner))
 		ret = __client_merge_function(owner, name, sym, state1, state2); 
 	else 
-		ret = &undefined;
+		ret = &merged;
 
 	SM_DEBUG("%d merge name='%s' owner=%d: %s + %s => %s\n", 
 		 get_lineno(), name, owner, show_state(state1), 

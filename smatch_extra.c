@@ -44,13 +44,6 @@ static struct smatch_state *alloc_state(int val)
 	return state;
 }
 
-static struct smatch_state *merge_func(const char *name, struct symbol *sym,
-				       struct smatch_state *s1,
-				       struct smatch_state *s2)
-{
-	return &undefined;
-}
-
 static void match_function_call_after(struct expression *expr)
 {
 	struct expression *tmp;
@@ -128,7 +121,6 @@ static void match_unop(struct expression *expr)
 void register_smatch_extra(int id)
 {
 	my_id = id;
-	add_merge_hook(my_id, &merge_func);
 	add_hook(&undef_expr, OP_HOOK);
 	add_hook(&match_function_call_after, FUNCTION_CALL_AFTER_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_AFTER_HOOK);
