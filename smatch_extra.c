@@ -126,7 +126,7 @@ void register_smatch_extra(int id)
 	add_hook(&match_assign, ASSIGNMENT_AFTER_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_hook(&match_unop, OP_HOOK);
-	add_hook(&__implied_states_hook, WHOLE_CONDITION_HOOK);
+	add_hook(&__implied_states_hook, CONDITION_HOOK);
 }
 
 static int expr_to_val(struct expression *expr)

@@ -78,6 +78,36 @@ static struct state_list *get_non_zero_filtered(struct sm_state *sm_state)
 	return ret;
 }
 
+/*
+ * What are the implications if (foo == num) ...
+ */
+
+static struct state_list *get_equals_filtered(struct sm_state *sm_state, int num)
+{
+	struct state_list *list;
+	struct smatch_state *s;
+	struct state_list *ret = NULL;
+
+	FOR_EACH_PTR(sm_state->pools, list) {
+		s = get_state_slist(list, sm_state->name, sm_state->owner,
+				    sm_state->sym);
+		if (s == &undefined) {
+			printf("undefined\n");
+			del_slist(&ret);
+			return NULL;
+		}
+		if (s->data && *(int *)s->data == num) {
+			printf("here\n");
+
+			if (!ret)
+				ret = clone_slist(list);
+			else
+				filter(&ret, list);
+		}
+	} END_FOR_EACH_PTR(list);
+	return ret;
+}
+
 
 /*
  * This condition hook is very connected to smatch_extra.c.
@@ -89,7 +119,8 @@ void __implied_states_hook(struct expression *expr)
 	struct symbol *sym;
 	char *name;
 	struct sm_state *state;
-	struct state_list *implied_states;
+	struct state_list *implied_true;
+	struct state_list *implied_false;
 
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
@@ -99,11 +130,28 @@ void __implied_states_hook(struct expression *expr)
 		return;
 	if (!state->pools)
 		return;
-	implied_states = get_non_zero_filtered(state);
+	implied_true = get_non_zero_filtered(state);
+	implied_false = get_equals_filtered(state, 0);
 	if (debug_states) {
-		printf("Setting the following implied states\n");
-		__print_slist(implied_states);
+		printf("Setting the following implied states for the true path.\n");
+		__print_slist(implied_true);
 	}
-	__overwrite_cur_slist(implied_states);
+
+	/* FIXME.  We lose the ->pools by doing this. */
+	FOR_EACH_PTR(implied_true, state) {
+		set_true_false_states(state->name, state->owner, state->sym,
+				state->state, NULL);
+	} END_FOR_EACH_PTR(state);
+
+	if (debug_states) {
+		printf("Setting the following implied states for the false path.\n");
+		__print_slist(implied_false);
+	}
+
+	FOR_EACH_PTR(implied_false, state) {
+		set_true_false_states(state->name, state->owner, state->sym,
+				NULL, state->state);
+	} END_FOR_EACH_PTR(state);
+
 	free_string(name);
 }
