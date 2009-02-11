@@ -231,7 +231,7 @@ static void overwrite_sm_state(struct state_list **slist,
 			       struct sm_state *state)
 {
  	struct sm_state *tmp;
-	struct sm_state *new = clone_state(state);
+	struct sm_state *new = clone_state(state); //fixme. why?
  
  	FOR_EACH_PTR(*slist, tmp) {
 		if (cmp_sm_states(tmp, new) < 0)
@@ -348,14 +348,7 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack,
 	return ret;
 }
 
-static void add_pool(struct sm_state *state, struct state_list **pool)
-{
-	add_ptr_list(pool, state);
-	push_slist(&state->pools, *pool);
-}
-
-/* fixme.  rename.  heck cleanup this whole file */
-static void add_single_pool(struct sm_state *to, struct state_list *new)
+static void add_pool(struct sm_state *to, struct state_list *new)
 {
 	struct state_list *tmp;
 
@@ -377,7 +370,7 @@ static void copy_pools(struct sm_state *to, struct sm_state *sm)
 	struct state_list *tmp;
 
  	FOR_EACH_PTR(sm->pools, tmp) {
-		add_single_pool(to, tmp);
+		add_pool(to, tmp);
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -413,10 +406,11 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 					 to_state->sym, to_state->state, NULL);
 			tmp = alloc_state(to_state->name, to_state->owner,
 					  to_state->sym, s);
-			//add_possible(to_state, NULL);
-			add_pool(to_state, &implied_to);
 			copy_pools(tmp, to_state);
-			add_single_pool(tmp, implied_to);
+
+			add_ptr_list(&implied_to, to_state);
+			add_pool(tmp, implied_to);
+
 			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_sm_states(to_state, state) == 0) {
@@ -425,6 +419,8 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 				tmp = alloc_state(to_state->name, 
 						to_state->owner,
 						to_state->sym, s);
+				copy_pools(tmp, to_state);
+				copy_pools(tmp, state);
 
 			} else {
 				s = merge_states(to_state->name,
@@ -435,14 +431,14 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 				tmp = alloc_state(to_state->name,
 						to_state->owner,
 						to_state->sym, s);
-
-
-				add_ptr_list(&implied_to, to_state);
-				add_ptr_list(&implied_from, state);
 				copy_pools(tmp, to_state);
 				copy_pools(tmp, state);
-				add_single_pool(tmp, implied_to);
-				add_single_pool(tmp, implied_from);
+
+				add_ptr_list(&implied_to, to_state);
+				add_pool(tmp, implied_to);
+
+				add_ptr_list(&implied_from, state);
+				add_pool(tmp, implied_from);
 			}
 			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(to_state);
@@ -452,10 +448,11 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 					 state->sym, state->state, NULL);
 			tmp = alloc_state(state->name, state->owner,
 					  state->sym, s);
-			//add_possible(state, NULL);
-			add_pool(state, &implied_from);
 			copy_pools(tmp, state);
-			add_single_pool(tmp, implied_from);
+
+			add_ptr_list(&implied_from, state);
+			add_pool(tmp, implied_from);
+
 			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(state);
 		}
