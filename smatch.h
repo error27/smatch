@@ -142,7 +142,6 @@ void clear_all_states();
 
 struct sm_state *__get_sm_state(const char *name, int owner,
 				struct symbol *sym);
-void __overwrite_cur_slist(struct state_list *slist);
 void __use_false_only_stack();
 void __pop_false_only_stack();
 void __push_true_states();
@@ -180,7 +179,6 @@ int __pop_default();
 
 void __push_conditions();
 void __pop_conditions();
-void __overwrite_true_states();
 
 void __save_gotos(const char *name);
 void __merge_gotos(const char *name);

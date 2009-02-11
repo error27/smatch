@@ -105,11 +105,6 @@ struct state_list *get_possible_states(const char *name, int owner,
 	return NULL;
 }
 
-void __overwrite_cur_slist(struct state_list *slist)
-{
-	overwrite_slist(slist, &cur_slist);
-}
-
 struct sm_state *__get_sm_state(const char *name, int owner, struct symbol *sym)
 {
 	return get_sm_state_slist(cur_slist, name, owner, sym);
