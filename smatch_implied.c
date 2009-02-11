@@ -92,13 +92,10 @@ static struct state_list *get_equals_filtered(struct sm_state *sm_state, int num
 		s = get_state_slist(list, sm_state->name, sm_state->owner,
 				    sm_state->sym);
 		if (s == &undefined) {
-			printf("undefined\n");
 			del_slist(&ret);
 			return NULL;
 		}
 		if (s->data && *(int *)s->data == num) {
-			printf("here\n");
-
 			if (!ret)
 				ret = clone_slist(list);
 			else
