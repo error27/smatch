@@ -348,6 +348,10 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack,
 	return ret;
 }
 
+/*
+ * add_pool() adds a slist to ->pools. If the slist has already been
+ * added earlier then it doesn't get added a second time.
+ */
 static void add_pool(struct sm_state *to, struct state_list *new)
 {
 	struct state_list *tmp;
@@ -374,6 +378,10 @@ static void copy_pools(struct sm_state *to, struct sm_state *sm)
 	} END_FOR_EACH_PTR(tmp);
 }
 
+/*
+ * merge_slist() is called whenever paths merge, such as after
+ * an if statement.  It takes the two slists and creates one.
+ */
 void merge_slist(struct state_list **to, struct state_list *slist)
 {
 	struct sm_state *to_state, *state, *tmp;
@@ -486,7 +494,6 @@ void remove_from_pools(struct sm_state *old)
 	} END_FOR_EACH_PTR(slist);
 }
 
-
 /*
  * filter() is used to find what states are the same across
  * a series of slists.
@@ -495,7 +502,6 @@ void remove_from_pools(struct sm_state *old)
  * The reason you would want to do this is if you want to 
  * know what other states are true if one state is true.  (smatch_implied).
  */
-
 void filter(struct state_list **slist, struct state_list *filter)
 {
 	struct sm_state *s_one, *s_two;
@@ -515,20 +521,15 @@ void filter(struct state_list **slist, struct state_list *filter)
 		if (!s_one || !s_two)
 			break;
 		if (cmp_sm_states(s_one, s_two) < 0) {
-			SM_DEBUG("different missing in new %s\n", s_one->name);
 			NEXT_PTR_LIST(s_one);
 		} else if (cmp_sm_states(s_one, s_two) == 0) {
-			if (s_one->state == s_two->state) {
+			/* todo.  pointer comparison works fine for most things
+			   except smatch_extra.  we may need a hook here. */
+			if (s_one->state == s_two->state)
 				add_ptr_list(results, s_one);
-				SM_DEBUG("same %s\n", s_one->name);
-			} else
-				SM_DEBUG("different %s %s vs %s\n", s_one->name,
-				       show_state(s_one->state), 
-				       show_state(s_two->state));
 			NEXT_PTR_LIST(s_one);
 			NEXT_PTR_LIST(s_two);
 		} else {
-			SM_DEBUG("different missing in old%s\n", s_two->name);
 			NEXT_PTR_LIST(s_two);
 		}
 	}
