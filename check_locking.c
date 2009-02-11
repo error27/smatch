@@ -91,6 +91,7 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 
 }
 
+static char kernel[] = "kernel";
 static char *match_lock_func(char *fn_name, struct expression_list *args)
 {
 	struct expression *lock_expr;
@@ -103,7 +104,7 @@ static char *match_lock_func(char *fn_name, struct expression_list *args)
 		}
 	}
 	if (!strcmp(fn_name, "lock_kernel"))
-		return "kernel";
+		return kernel;
 	return NULL;
 }
 
@@ -119,7 +120,7 @@ static char *match_unlock_func(char *fn_name, struct expression_list *args)
 		}
 	}
 	if (!strcmp(fn_name, "unlock_kernel"))
-		return "kernel";
+		return kernel;
 	return NULL;
 }
 
