@@ -505,15 +505,12 @@ void remove_from_pools(struct sm_state *old)
 void filter(struct state_list **slist, struct state_list *filter)
 {
 	struct sm_state *s_one, *s_two;
-	struct state_list **results;
+	struct state_list *results = NULL;
 
 #ifdef CHECKORDER
 	check_order(*slist);
 	check_order(filter);
 #endif
-
-	results = malloc(sizeof(*results));
-	*results = NULL;
 
 	PREPARE_PTR_LIST(*slist, s_one);
 	PREPARE_PTR_LIST(filter, s_two);
@@ -526,7 +523,7 @@ void filter(struct state_list **slist, struct state_list *filter)
 			/* todo.  pointer comparison works fine for most things
 			   except smatch_extra.  we may need a hook here. */
 			if (s_one->state == s_two->state)
-				add_ptr_list(results, s_one);
+				add_ptr_list(&results, s_one);
 			NEXT_PTR_LIST(s_one);
 			NEXT_PTR_LIST(s_two);
 		} else {
@@ -537,7 +534,7 @@ void filter(struct state_list **slist, struct state_list *filter)
 	FINISH_PTR_LIST(s_one);
 
 	del_slist(slist);
-	*slist = *results;
+	*slist = results;
 }
 
 /*
