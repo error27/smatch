@@ -418,9 +418,11 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 					 to_state->sym, to_state->state, NULL);
 			tmp = alloc_state(to_state->name, to_state->owner,
 					  to_state->sym, s);
-			add_ptr_list(&results, tmp);
 			//add_possible(to_state, NULL);
 			add_pool(to_state, &implied_to);
+			copy_pools(tmp, to_state);
+			add_single_pool(tmp, implied_to);
+			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_sm_states(to_state, state) == 0) {
 			if (to_state->state == state->state) {
@@ -455,9 +457,11 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 					 state->sym, state->state, NULL);
 			tmp = alloc_state(state->name, state->owner,
 					  state->sym, s);
-			add_ptr_list(&results, tmp);
 			//add_possible(state, NULL);
 			add_pool(state, &implied_from);
+			copy_pools(tmp, state);
+			add_single_pool(tmp, implied_from);
+			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(state);
 		}
 	}
