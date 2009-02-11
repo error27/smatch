@@ -49,7 +49,7 @@ static struct state_list_stack *default_stack;
 static struct state_list_stack *continue_stack;
 static struct state_list_stack *false_only_stack;
 
-static struct slist_stack *goto_stack;
+static struct named_stack *goto_stack;
 
 struct state_list_stack *implied_pools;
 
@@ -483,7 +483,7 @@ void __save_gotos(const char *name)
 {
 	struct state_list **slist;
 
-	slist = get_slist_from_slist_stack(goto_stack, name);
+	slist = get_slist_from_named_stack(goto_stack, name);
 	if (slist) {
 		merge_slist(slist, cur_slist);
 		return;
@@ -501,7 +501,7 @@ void __merge_gotos(const char *name)
 {
 	struct state_list **slist;
 	
-	slist = get_slist_from_slist_stack(goto_stack, name);
+	slist = get_slist_from_named_stack(goto_stack, name);
 	if (slist)
 		merge_slist(&cur_slist, *slist);
 }

@@ -538,12 +538,12 @@ void filter(struct state_list **slist, struct state_list *filter)
 }
 
 /*
- * This function is basically the same as popping the top two slists,
+ * and_slist_stack() is basically the same as popping the top two slists,
  * overwriting the one with the other and pushing it back on the stack.
  * The difference is that it checks to see that a mutually exclusive
- * state isn't included in both stacks.
+ * state isn't included in both stacks.  If smatch sees something like
+ * "if (a && !a)" it prints a warning.
  */
-
 void and_slist_stack(struct state_list_stack **slist_stack)
 {
      	struct sm_state *tmp;
@@ -564,11 +564,18 @@ void and_slist_stack(struct state_list_stack **slist_stack)
 		}
 		set_state_stack(slist_stack, tmp->name, tmp->owner, tmp->sym,
 				tmp->state);
-
 	} END_FOR_EACH_PTR(tmp);
 	del_slist(&tmp_slist);
 }
 
+/* 
+ * or_slist_stack() is for if we have:  if (foo || bar) { foo->baz;
+ * It pops the two slists from the top of the stack and merges them
+ * together in a way that preserves the things they have in common
+ * but creates a merged state for most of the rest.
+ * You could have code that had:  if (foo || foo) { foo->baz;
+ * It's this function which ensures smatch does the right thing.
+ */
 void or_slist_stack(struct state_list_stack **slist_stack)
 {
 	struct state_list *one;
@@ -587,7 +594,6 @@ void or_slist_stack(struct state_list_stack **slist_stack)
 		set_state_slist(&res, tmp->name, tmp->owner, tmp->sym, s);
 	} END_FOR_EACH_PTR(tmp);
 
-
 	FOR_EACH_PTR(two, tmp) {
 		s = get_state_slist(one, tmp->name, tmp->owner, tmp->sym);
 		s = merge_states(tmp->name, tmp->owner, tmp->sym,
@@ -601,7 +607,10 @@ void or_slist_stack(struct state_list_stack **slist_stack)
 	del_slist(&two);
 }
 
-struct state_list **get_slist_from_slist_stack(struct slist_stack *stack,
+/*
+ * get_slist_from_named_stack() is only used for gotos.
+ */
+struct state_list **get_slist_from_named_stack(struct named_stack *stack,
 					      const char *name)
 {
 	struct named_slist *tmp;
@@ -621,4 +630,3 @@ void overwrite_slist(struct state_list *from, struct state_list **to)
 		overwrite_sm_state(to, tmp);
 	} END_FOR_EACH_PTR(tmp);
 }
-

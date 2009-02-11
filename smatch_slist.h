@@ -21,7 +21,7 @@ struct named_slist {
 	struct state_list *slist;
 };
 DECLARE_ALLOCATOR(named_slist);
-DECLARE_PTR_LIST(slist_stack, struct named_slist);
+DECLARE_PTR_LIST(named_stack, struct named_slist);
 
 extern struct state_list_stack *implied_pools;
 
@@ -80,7 +80,7 @@ void and_slist_stack(struct state_list_stack **slist_stack);
 
 void or_slist_stack(struct state_list_stack **slist_stack);
 
-struct state_list **get_slist_from_slist_stack(struct slist_stack *stack,
+struct state_list **get_slist_from_named_stack(struct named_stack *stack,
 					      const char *name);
 
 void overwrite_slist(struct state_list *from, struct state_list **to);
