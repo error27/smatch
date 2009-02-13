@@ -74,7 +74,6 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack, const char 
 		    int owner, struct symbol *sym);
 
 void merge_slist(struct state_list **to, struct state_list *slist);
-void remove_from_pools(struct sm_state *old);
 void filter(struct state_list **slist, struct state_list *filter);
 void and_slist_stack(struct state_list_stack **slist_stack);
 

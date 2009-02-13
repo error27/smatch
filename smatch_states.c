@@ -63,24 +63,21 @@ void __print_cur_slist()
 void set_state(const char *name, int owner, struct symbol *sym,
 	       struct smatch_state *state)
 {
-	struct sm_state *old;
-
 	if (!name)
 		return;
 	
-	old = __get_sm_state(name, owner, sym);
-
 	if (debug_states) {
-		if (!old)
+		struct smatch_state *s;
+		
+		s = get_state(name, owner, sym);
+		if (!s)
 			printf("%d new state. name='%s' owner=%d: %s\n", 
 			       get_lineno(), name, owner, show_state(state));
 		else
 			printf("%d state change name='%s' owner=%d: %s => %s\n",
-				get_lineno(), name, owner,
-				show_state(old->state), show_state(state));
+			       get_lineno(), name, owner, show_state(s),
+			       show_state(state));
 	}
-
-	remove_from_pools(old);
 	set_state_slist(&cur_slist, name, owner, sym, state);
 
 	if (cond_true_stack) {
@@ -133,22 +130,21 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state)
 {
-	struct sm_state *old;
 	/* fixme.  save history */
 
-	old = __get_sm_state(name, owner, sym);
 	if (debug_states) {
+		struct smatch_state *tmp;
+
+		tmp = get_state(name, owner, sym);
 		SM_DEBUG("%d set_true_false '%s'.  Was %s.  Now T:%s F:%s\n",
-			get_lineno(), name, (old?show_state(old->state):NULL),
-			show_state(true_state), show_state(false_state));
+			 get_lineno(), name, show_state(tmp),
+			 show_state(true_state), show_state(false_state));
 	}
 
 	if (!cond_false_stack || !cond_true_stack) {
 		printf("Error:  missing true/false stacks\n");
 		return;
 	}
-
-	remove_from_pools(old);
 
 	if (true_state) {
 		set_state_slist(&cur_slist, name, owner, sym, true_state);

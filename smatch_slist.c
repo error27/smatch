@@ -478,23 +478,6 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 }
 
 /*
- * If you call set_state() then you need to remove
- * the state from any pools it's in.  Just setting ->pools
- * to NULL isn't enough.
- */
-void remove_from_pools(struct sm_state *old)
-{
-	struct state_list *slist;
-
-	if (!old)
-		return;
-
-	FOR_EACH_PTR(old->pools, slist) {
-		delete_state_slist(&slist, old->name, old->owner, old->sym);
-	} END_FOR_EACH_PTR(slist);
-}
-
-/*
  * filter() is used to find what states are the same across
  * a series of slists.
  * It takes a **slist and a *filter.  
