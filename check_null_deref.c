@@ -67,7 +67,7 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 		return &assumed_nonnull;
 	if (s1 == &argument && s2 == &nonnull)
 		return &nonnull;
-	return &undefined;
+	return &merged;
 }
 
 static struct func_n_param *alloc_func_n_param(struct symbol *func, int param,
@@ -154,7 +154,8 @@ static void match_function_call_after(struct expression *expr)
 		} else {
 			name = get_variable_from_expr(tmp, &sym);
 			if (func && name && sym) {
-				if (get_state(name, my_id, sym) == &undefined)
+				if (get_state(name, my_id, sym) == &undefined ||
+					get_state(name, my_id, sym) == &merged)
 					add_param(&calls, func, i, get_lineno());
 			} else
 				free_string(name);
@@ -237,7 +238,7 @@ static void set_new_true_false_states(const char *name, int my_id,
 	
 	SM_DEBUG("set_new_stuff called at %d value='%s'\n", get_lineno(), show_state(tmp));
 
-	if (!tmp || tmp == &undefined || tmp == &isnull || tmp == &argument)
+	if (!tmp || tmp == &undefined || tmp == &merged || tmp == &isnull || tmp == &argument)
 		set_true_false_states(name, my_id, sym, true_state, false_state);
 }
 
@@ -315,7 +316,7 @@ static void match_dereferences(struct expression *expr)
 		return;
 
 	state = get_state(deref, my_id, sym);
-	if (state == &undefined) {
+	if (state == &undefined || state == &merged) {
 		smatch_msg("Dereferencing Undefined:  '%s'", deref);
 		set_state(deref, my_id, sym, &ignore);
 	} else if (state == &isnull) {
