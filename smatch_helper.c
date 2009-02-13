@@ -279,6 +279,8 @@ static int _get_value(struct expression *expr, int *discard)
 	if (*discard)
 		return UNDEFINED;
 	
+	expr = strip_expr(expr);
+
  	switch (expr->type){
 	case EXPR_VALUE:
 		ret = expr->value;
@@ -286,18 +288,29 @@ static int _get_value(struct expression *expr, int *discard)
 	case EXPR_PREOP:
 		if (!strcmp("-", show_special(expr->op)))
 			ret = - _get_value(expr->unop, discard);
+		else
+			*discard = 1;
 		break;
 	case EXPR_BINOP:
-		if (show_special(expr->op) && 
-		    !strcmp("*", show_special(expr->op)))
+		if (!show_special(expr->op)) {
+			*discard = 1;
+			break;
+		}
+		if (!strcmp("*", show_special(expr->op))) {
 			ret = _get_value(expr->left, discard) 
 				* _get_value(expr->right, discard);
+		} else if (!strcmp("|", show_special(expr->op))) {
+			ret = _get_value(expr->left, discard) 
+				| _get_value(expr->right, discard);
+		} else {
+			*discard = 1;
+		}
 		break;
 	case EXPR_SIZEOF:
 		if (expr->cast_type && get_base_type(expr->cast_type))
 			ret = (get_base_type(expr->cast_type))->bit_size / 8;
-		if (expr->cast_expression)
-			;//printf("debugs %d\n", expr->cast_expression->type);
+		else
+			*discard = 1;
 		break;
 	default:
 		//printf("ouchies-->%d\n", expr->type);
