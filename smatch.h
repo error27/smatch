@@ -135,6 +135,7 @@ int known_condition_true(struct expression *expr);
 /* smatch_states.c */
 extern int debug_states;
 
+struct state_list *__get_cur_slist();
 void nullify_path();	   
 void __unnullify_path();	   
 int __path_is_null();

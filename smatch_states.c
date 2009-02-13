@@ -126,6 +126,11 @@ struct state_list *get_all_states(int owner)
 	return slist;
 }
 
+struct state_list *__get_cur_slist()
+{
+	return cur_slist;
+}
+
 void set_true_false_states(const char *name, int owner, struct symbol *sym, 
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state)

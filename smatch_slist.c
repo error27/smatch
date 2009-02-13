@@ -478,6 +478,56 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 }
 
 /*
+ * is_currently_in_pool() is used because we remove states from pools.
+ * When set_state() is called then we set ->pools to NULL, but on 
+ * other paths the state is still a member of those pools.
+ * Confusing huh?
+ * if (foo) {
+ *        bar = 1;
+ *        a = malloc();
+ * }
+ * if (!a)
+ *        return;
+ * if (bar)
+ *        a->b = x;
+ */
+static int is_currently_in_pool(struct sm_state *sm, struct state_list *pool,
+			struct state_list *cur_slist)
+{
+	struct sm_state *cur_state;
+	struct state_list *tmp;
+	
+	cur_state = get_sm_state_slist(cur_slist, sm->name, sm->owner, sm->sym);
+	if (!cur_state)
+		return 0;
+
+	FOR_EACH_PTR(cur_state->pools, tmp) {
+		if (tmp == pool)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
+struct state_list *clone_states_in_pool(struct state_list *pool,
+				struct state_list *cur_slist)
+{
+	struct sm_state *state;
+	struct sm_state *tmp;
+	struct state_list *to_slist = NULL;
+
+	FOR_EACH_PTR(pool, state) {
+		if (is_currently_in_pool(state, pool, cur_slist)) {
+			tmp = clone_state(state);
+			add_ptr_list(&to_slist, tmp);
+		}
+	} END_FOR_EACH_PTR(state);
+#ifdef CHECKORDER
+	check_order(to_slist);
+#endif
+	return to_slist;
+}
+
+/*
  * filter() is used to find what states are the same across
  * a series of slists.
  * It takes a **slist and a *filter.  
@@ -485,7 +535,8 @@ void merge_slist(struct state_list **to, struct state_list *slist)
  * The reason you would want to do this is if you want to 
  * know what other states are true if one state is true.  (smatch_implied).
  */
-void filter(struct state_list **slist, struct state_list *filter)
+void filter(struct state_list **slist, struct state_list *filter,
+	struct state_list *cur_slist)
 {
 	struct sm_state *s_one, *s_two;
 	struct state_list *results = NULL;
@@ -505,8 +556,10 @@ void filter(struct state_list **slist, struct state_list *filter)
 		} else if (cmp_sm_states(s_one, s_two) == 0) {
 			/* todo.  pointer comparison works fine for most things
 			   except smatch_extra.  we may need a hook here. */
-			if (s_one->state == s_two->state)
+			if (s_one->state == s_two->state && 
+				is_currently_in_pool(s_two, filter, cur_slist)) {
 				add_ptr_list(&results, s_one);
+			}
 			NEXT_PTR_LIST(s_one);
 			NEXT_PTR_LIST(s_two);
 		} else {

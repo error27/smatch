@@ -48,41 +48,15 @@
 #include "smatch.h"
 #include "smatch_slist.h"
 
-/*
- * This function gets all the states which are implied by a non zero value.
- * So for example for the code:
- * if (c) {
- * We would want to know what was implied by c is non zero.
- */ 
-
-static struct state_list *get_non_zero_filtered(struct sm_state *sm_state)
-{
-	struct state_list *list;
-	struct smatch_state *s;
-	struct state_list *ret = NULL;
-
-	FOR_EACH_PTR(sm_state->pools, list) {
-		s = get_state_slist(list, sm_state->name, sm_state->owner,
-				    sm_state->sym);
-		if (s == &undefined) {
-			del_slist(&ret);
-			return NULL;
-		}
-		if (s->data && *(int *)s->data != 0) {
-			if (!ret)
-				ret = clone_slist(list);
-			else
-				filter(&ret, list);
-		}
-	} END_FOR_EACH_PTR(list);
-	return ret;
-}
+#define EQUALS 0
+#define NOTEQUALS 1
 
 /*
  * What are the implications if (foo == num) ...
  */
 
-static struct state_list *get_equals_filtered(struct sm_state *sm_state, int num)
+static struct state_list *get_eq_neq_filtered(struct sm_state *sm_state,
+					int eq_neq, int num)
 {
 	struct state_list *list;
 	struct smatch_state *s;
@@ -95,11 +69,12 @@ static struct state_list *get_equals_filtered(struct sm_state *sm_state, int num
 			del_slist(&ret);
 			return NULL;
 		}
-		if (s->data && *(int *)s->data == num) {
+		if (s->data && ((eq_neq == EQUALS && *(int *)s->data == num) ||
+				(eq_neq == NOTEQUALS && *(int *)s->data != num))) {
 			if (!ret)
-				ret = clone_slist(list);
+				ret = clone_states_in_pool(list, __get_cur_slist());
 			else
-				filter(&ret, list);
+				filter(&ret, list, __get_cur_slist());
 		}
 	} END_FOR_EACH_PTR(list);
 	return ret;
@@ -127,8 +102,8 @@ void __implied_states_hook(struct expression *expr)
 		return;
 	if (!state->pools)
 		return;
-	implied_true = get_non_zero_filtered(state);
-	implied_false = get_equals_filtered(state, 0);
+	implied_true = get_eq_neq_filtered(state, NOTEQUALS, 0);
+	implied_false = get_eq_neq_filtered(state, EQUALS, 0);
 	if (debug_states) {
 		printf("Setting the following implied states for the true path.\n");
 		__print_slist(implied_true);

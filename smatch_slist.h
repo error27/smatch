@@ -74,7 +74,10 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack, const char 
 		    int owner, struct symbol *sym);
 
 void merge_slist(struct state_list **to, struct state_list *slist);
-void filter(struct state_list **slist, struct state_list *filter);
+struct state_list *clone_states_in_pool(struct state_list *pool,
+				struct state_list *cur_slist);
+void filter(struct state_list **slist, struct state_list *filter,
+	struct state_list *cur_slist);
 void and_slist_stack(struct state_list_stack **slist_stack);
 
 void or_slist_stack(struct state_list_stack **slist_stack);
