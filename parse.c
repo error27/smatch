@@ -1196,8 +1196,16 @@ static enum kind which_kind(struct token *token, struct token **p,
 	if (token_type(next) == TOKEN_IDENT) {
 		if (lookup_type(next))
 			return (dont_nest || prefer_abstract) ? Proto : Nested;
-		if (dont_nest)
-			return (next == token->next) ? K_R : Bad_Func;
+		if (dont_nest) {
+			/* attributes in the K&R identifier list */
+			if (next != token->next)
+				return Bad_Func;
+			/* identifier list not in definition; complain */
+			if (prefer_abstract)
+				warning(token->pos,
+					"identifier list not in definition");
+			return K_R;
+		}
 		return Nested;
 	}
 
