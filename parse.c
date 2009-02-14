@@ -1151,7 +1151,7 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 	return token;
 }
 
-static struct token *parameter_type_list(struct token *, struct symbol *);
+static struct token *parameter_type_list(struct token *, struct symbol *, struct ctype *);
 static struct token *identifier_list(struct token *, struct symbol *);
 static struct token *declarator(struct token *token, struct symbol *sym, struct ident **p, int);
 
@@ -1249,13 +1249,16 @@ static struct token *direct_declarator(struct token *token, struct symbol *decl,
 		if (token->special == '(') {
 			struct symbol *sym;
 			struct token *next;
-			enum kind kind = which_kind(token, &next, p, ctype,
+			struct ctype thistype = {0, };
+			enum kind kind = which_kind(token, &next, p, &thistype,
 						dont_nest, prefer_abstract);
 
 			dont_nest = 1;
 
 			if (kind == Nested) {
 				struct symbol *base_type = ctype->base_type;
+				if (token->next != next)
+					apply_ctype(token->pos, &thistype, ctype);
 				token = declarator(next, decl, p, prefer_abstract);
 				token = expect(token, ')', "in nested declarator");
 				while (ctype->base_type != base_type)
@@ -1275,7 +1278,9 @@ static struct token *direct_declarator(struct token *token, struct symbol *decl,
 			if (kind == K_R) {
 				next = identifier_list(next, sym);
 			} else if (kind == Proto) {
-				next = parameter_type_list(next, sym);
+				struct ctype *t;
+				t = (token->next == next ? NULL : &thistype);
+				next = parameter_type_list(next, sym, t);
 			}
 			token = expect(next, ')', "in function declarator");
 			sym->endpos = token->pos;
@@ -1420,12 +1425,14 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 	return token;
 }
 
-static struct token *parameter_declaration(struct token *token, struct symbol **tree)
+static struct token *parameter_declaration(struct token *token, struct symbol **tree, struct ctype *pending)
 {
 	struct ident *ident = NULL;
 	struct symbol *sym;
-	struct ctype ctype = { 0, };
+	struct ctype ctype = {0, };
 
+	if (pending)
+		apply_ctype(token->pos, pending, &ctype);
 	token = declaration_specifiers(token, &ctype, 0);
 	sym = alloc_symbol(token->pos, SYM_NODE);
 	sym->ctype = ctype;
@@ -1903,7 +1910,7 @@ static struct token *identifier_list(struct token *token, struct symbol *fn)
 	return token;
 }
 
-static struct token *parameter_type_list(struct token *token, struct symbol *fn)
+static struct token *parameter_type_list(struct token *token, struct symbol *fn, struct ctype *pending)
 {
 	struct symbol_list **list = &fn->arguments;
 
@@ -1917,7 +1924,7 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn)
 		}
 
 		sym = alloc_symbol(token->pos, SYM_NODE);
-		token = parameter_declaration(token, &sym);
+		token = parameter_declaration(token, &sym, pending);
 		if (sym->ctype.base_type == &void_ctype) {
 			/* Special case: (void) */
 			if (!*list && !sym->ident)
@@ -1929,7 +1936,7 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn)
 		if (!match_op(token, ','))
 			break;
 		token = token->next;
-
+		pending = NULL;
 	}
 	return token;
 }
