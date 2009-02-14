@@ -1834,12 +1834,36 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn,
 		return token;
 	}
 
+	if (match_op(token, SPECIAL_ELLIPSIS)) {
+		warning(token->pos, "variadic functions must have one named argument");
+		fn->variadic = 1;
+		return token->next;
+	}
+
+	if (token_type(token) != TOKEN_IDENT)
+		return token;
+
+	if (!lookup_type(token)) {
+		/* K&R */
+		for (;;) {
+			struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
+			sym->ident = token->ident;
+			token = token->next;
+			sym->endpos = token->pos;
+			add_symbol(list, sym);
+			if (!match_op(token, ',') ||
+			    token_type(token->next) != TOKEN_IDENT ||
+			    lookup_type(token->next))
+				break;
+			token = token->next;
+		}
+		return token;
+	}
+
 	for (;;) {
 		struct symbol *sym;
 
 		if (match_op(token, SPECIAL_ELLIPSIS)) {
-			if (!*list)
-				warning(token->pos, "variadic functions must have one named argument");
 			fn->variadic = 1;
 			token = token->next;
 			break;
