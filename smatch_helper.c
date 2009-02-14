@@ -291,21 +291,30 @@ static int _get_value(struct expression *expr, int *discard)
 		else
 			*discard = 1;
 		break;
-	case EXPR_BINOP:
+	case EXPR_BINOP: {
+		int left, right;
+
 		if (!show_special(expr->op)) {
 			*discard = 1;
 			break;
 		}
+		left = _get_value(expr->left, discard);
+		right = _get_value(expr->right, discard);
 		if (!strcmp("*", show_special(expr->op))) {
-			ret = _get_value(expr->left, discard) 
-				* _get_value(expr->right, discard);
+			ret =  left * right;
+		} else if (!strcmp("/", show_special(expr->op))) {
+			ret = left / right;
+		} else if (!strcmp("+", show_special(expr->op))) {
+			ret = left + right;
+		} else if (!strcmp("-", show_special(expr->op))) {
+			ret = left - right;
 		} else if (!strcmp("|", show_special(expr->op))) {
-			ret = _get_value(expr->left, discard) 
-				| _get_value(expr->right, discard);
+			ret = left | right;
 		} else {
 			*discard = 1;
 		}
 		break;
+	}
 	case EXPR_SIZEOF:
 		if (expr->cast_type && get_base_type(expr->cast_type))
 			ret = (get_base_type(expr->cast_type))->bit_size / 8;
