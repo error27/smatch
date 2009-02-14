@@ -1220,6 +1220,7 @@ static struct token *direct_declarator(struct token *token, struct symbol *decl,
 			token = parameter_type_list(next, sym, p);
 			token = expect(token, ')', "in function declarator");
 			sym->endpos = token->pos;
+			dont_nest = 1;
 			continue;
 		}
 		if (token->special == '[') {
@@ -1228,6 +1229,7 @@ static struct token *direct_declarator(struct token *token, struct symbol *decl,
 			token = expect(token, ']', "in abstract_array_declarator");
 			array->endpos = token->pos;
 			ctype = &array->ctype;
+			dont_nest = 1;
 			continue;
 		}
 		break;
