@@ -493,7 +493,7 @@ static struct token *struct_union_enum_specifier(enum type type,
 	struct position *repos;
 
 	ctype->modifiers = 0;
-	token = handle_attributes(token, ctype, KW_ATTRIBUTE | KW_ASM);
+	token = handle_attributes(token, ctype, KW_ATTRIBUTE);
 	if (token_type(token) == TOKEN_IDENT) {
 		sym = lookup_symbol(token->ident, NS_STRUCT);
 		if (!sym ||
@@ -1168,6 +1168,7 @@ static struct token *handle_attributes(struct token *token, struct ctype *ctype,
 			break;
 		token = keyword->op->declarator(token->next, &thistype);
 		apply_ctype(token->pos, &thistype, ctype);
+		keywords &= KW_ATTRIBUTE;
 	}
 	return token;
 }
@@ -1184,8 +1185,6 @@ static struct token *direct_declarator(struct token *token, struct symbol *decl,
 	}
 
 	for (;;) {
-		token = handle_attributes(token, ctype, KW_ATTRIBUTE | KW_ASM);
-
 		if (token_type(token) != TOKEN_SPECIAL)
 			return token;
 
@@ -1331,11 +1330,12 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 		struct symbol *decl = alloc_symbol(token->pos, SYM_NODE);
 		decl->ctype = ctype;
 		token = declarator(token, decl, &ident, 0);
+
 		decl->ident = ident;
-		if (match_op(token, ':')) {
+		if (match_op(token, ':'))
 			token = handle_bitfield(token, decl);
-			token = handle_attributes(token, &decl->ctype, KW_ATTRIBUTE | KW_ASM);
-		}
+
+		token = handle_attributes(token, &decl->ctype, KW_ATTRIBUTE);
 		apply_modifiers(token->pos, &decl->ctype);
 		add_symbol(list, decl);
 		decl->endpos = token->pos;
@@ -1371,6 +1371,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol **
 	sym->ctype = ctype;
 	*tree = sym;
 	token = declarator(token, sym, &ident, 1);
+	token = handle_attributes(token, &sym->ctype, KW_ATTRIBUTE);
 	sym->ident = ident;
 	apply_modifiers(token->pos, &sym->ctype);
 	sym->endpos = token->pos;
@@ -2184,6 +2185,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	}
 
 	token = declarator(token, decl, &ident, 0);
+	token = handle_attributes(token, &decl->ctype, KW_ATTRIBUTE | KW_ASM);
 	apply_modifiers(token->pos, &decl->ctype);
 
 	decl->endpos = token->pos;
@@ -2256,8 +2258,9 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		ident = NULL;
 		decl = alloc_symbol(token->pos, SYM_NODE);
 		decl->ctype = ctype;
-		token = declaration_specifiers(token, &decl->ctype, 1);
+		token = handle_attributes(token, &decl->ctype, KW_ATTRIBUTE);
 		token = declarator(token, decl, &ident, 0);
+		token = handle_attributes(token, &decl->ctype, KW_ATTRIBUTE | KW_ASM);
 		apply_modifiers(token->pos, &decl->ctype);
 		decl->endpos = token->pos;
 		if (!ident) {
