@@ -109,10 +109,6 @@ static int handle_preop(struct expression *expr)
 		__negate_cond_stacks();
 		return 1;
 	}
-	if (expr->op == '(') {
-		split_conditions(expr->unop);
-		return 1;
-	}
 	return 0;
 }
 
@@ -160,7 +156,9 @@ static void split_conditions(struct expression *expr)
 {
 
 	SM_DEBUG("%d in split_conditions type=%d\n", get_lineno(), expr->type);
-  
+
+	expr = strip_expr(expr);
+
 	switch(expr->type) {
 	case EXPR_LOGICAL:
 		handle_logical(expr);
