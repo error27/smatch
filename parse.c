@@ -2151,14 +2151,22 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	token = declaration_specifiers(token, &ctype, 0);
 	decl = alloc_symbol(token->pos, SYM_NODE);
 	decl->ctype = ctype;
+	/* Just a type declaration? */
+	if (match_op(token, ';')) {
+		apply_modifiers(token->pos, &decl->ctype);
+		return token->next;
+	}
+
 	token = declarator(token, decl, &ident, 0);
 	apply_modifiers(token->pos, &decl->ctype);
 
 	decl->endpos = token->pos;
 
 	/* Just a type declaration? */
-	if (!ident)
+	if (!ident) {
+		warning(token->pos, "missing identifier in declaration");
 		return expect(token, ';', "end of type declaration");
+	}
 
 	/* type define declaration? */
 	is_typedef = (ctype.modifiers & MOD_TYPEDEF) != 0;
