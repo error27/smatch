@@ -442,6 +442,9 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 				copy_pools(tmp, to_state);
 				copy_pools(tmp, state);
 
+				add_possible(tmp, state);
+				add_possible(tmp, to_state);
+				
 				add_ptr_list(&implied_to, to_state);
 				add_pool(tmp, implied_to);
 
