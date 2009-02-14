@@ -1151,7 +1151,8 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 	return token;
 }
 
-static struct token *parameter_type_list(struct token *, struct symbol *, struct ident **p);
+static struct token *parameter_type_list(struct token *, struct symbol *);
+static struct token *identifier_list(struct token *, struct symbol *);
 static struct token *declarator(struct token *token, struct symbol *sym, struct ident **p, int);
 
 static struct token *handle_attributes(struct token *token, struct ctype *ctype, unsigned int keywords)
@@ -1173,6 +1174,55 @@ static struct token *handle_attributes(struct token *token, struct ctype *ctype,
 	return token;
 }
 
+enum kind {
+	Nested, Empty, K_R, Proto, Bad_Func, Bad_Nested
+};
+
+static enum kind which_kind(struct token *token, struct token **p,
+			    struct ident **n, struct ctype *ctype,
+			    int dont_nest, int prefer_abstract)
+{
+	/*
+	 * This can be either a parameter list or a grouping.
+	 * For the direct (non-abstract) case, we know if must be
+	 * a parameter list if we already saw the identifier.
+	 * For the abstract case, we know if must be a parameter
+	 * list if it is empty or starts with a type.
+	 */
+	struct token *next = token->next;
+
+	*p = next = handle_attributes(next, ctype, KW_ATTRIBUTE);
+
+	if (token_type(next) == TOKEN_IDENT) {
+		if (lookup_type(next))
+			return (dont_nest || prefer_abstract) ? Proto : Nested;
+		if (dont_nest)
+			return (next == token->next) ? K_R : Bad_Func;
+		return Nested;
+	}
+
+	if (token_type(next) != TOKEN_SPECIAL)
+		return dont_nest ? Bad_Nested : Bad_Func;
+
+	if (next->special == ')') {
+		/* don't complain about those */
+		if (!n || match_op(next->next, ';'))
+			return Empty;
+		warning(next->pos,
+			"non-ANSI function declaration of function '%s'",
+			show_ident(*n));
+		return Empty;
+	}
+
+	if (next->special == SPECIAL_ELLIPSIS) {
+		warning(next->pos,
+			"variadic functions must have one named argument");
+		return Proto;
+	}
+
+	return dont_nest ? Bad_Func : Nested;
+}
+
 static struct token *direct_declarator(struct token *token, struct symbol *decl, struct ident **p, int prefer_abstract)
 {
 	struct ctype *ctype = &decl->ctype;
@@ -1188,40 +1238,42 @@ static struct token *direct_declarator(struct token *token, struct symbol *decl,
 		if (token_type(token) != TOKEN_SPECIAL)
 			return token;
 
-		/*
-		 * This can be either a parameter list or a grouping.
-		 * For the direct (non-abstract) case, we know if must be
-		 * a parameter list if we already saw the identifier.
-		 * For the abstract case, we know if must be a parameter
-		 * list if it is empty or starts with a type.
-		 */
 		if (token->special == '(') {
 			struct symbol *sym;
-			struct token *next = token->next;
-			int fn;
+			struct token *next;
+			enum kind kind = which_kind(token, &next, p, ctype,
+						dont_nest, prefer_abstract);
 
-			next = handle_attributes(next, ctype, KW_ATTRIBUTE);
-			fn = dont_nest || match_op(next, ')') ||
-				(prefer_abstract && lookup_type(next));
+			dont_nest = 1;
 
-			if (!fn) {
+			if (kind == Nested) {
 				struct symbol *base_type = ctype->base_type;
 				token = declarator(next, decl, p, prefer_abstract);
 				token = expect(token, ')', "in nested declarator");
 				while (ctype->base_type != base_type)
 					ctype = &ctype->base_type->ctype;
-				dont_nest = 1;
 				p = NULL;
 				continue;
 			}
 
+			if (kind == Bad_Nested) {
+				token = expect(token, ')', "in nested declarator");
+				p = NULL;
+				continue;
+			}
+
+			/* otherwise we have a function */
 			sym = alloc_indirect_symbol(token->pos, ctype, SYM_FN);
-			token = parameter_type_list(next, sym, p);
-			token = expect(token, ')', "in function declarator");
+			if (kind == K_R) {
+				next = identifier_list(next, sym);
+			} else if (kind == Proto) {
+				next = parameter_type_list(next, sym);
+			}
+			token = expect(next, ')', "in function declarator");
 			sym->endpos = token->pos;
-			dont_nest = 1;
 			continue;
 		}
+
 		if (token->special == '[') {
 			struct symbol *array = alloc_indirect_symbol(token->pos, ctype, SYM_ARRAY);
 			token = abstract_array_declarator(token->next, array);
@@ -1825,43 +1877,27 @@ static struct token * statement_list(struct token *token, struct statement_list 
 	return token;
 }
 
-static struct token *parameter_type_list(struct token *token, struct symbol *fn, struct ident **p)
+static struct token *identifier_list(struct token *token, struct symbol *fn)
 {
 	struct symbol_list **list = &fn->arguments;
-
-	if (match_op(token, ')')) {
-		// No warning for "void oink ();"
-		// Bug or feature: warns for "void oink () __attribute__ ((noreturn));"
-		if (p && !match_op(token->next, ';'))
-			warning(token->pos, "non-ANSI function declaration of function '%s'", show_ident(*p));
-		return token;
+	for (;;) {
+		struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
+		sym->ident = token->ident;
+		token = token->next;
+		sym->endpos = token->pos;
+		add_symbol(list, sym);
+		if (!match_op(token, ',') ||
+		    token_type(token->next) != TOKEN_IDENT ||
+		    lookup_type(token->next))
+			break;
+		token = token->next;
 	}
+	return token;
+}
 
-	if (match_op(token, SPECIAL_ELLIPSIS)) {
-		warning(token->pos, "variadic functions must have one named argument");
-		fn->variadic = 1;
-		return token->next;
-	}
-
-	if (token_type(token) != TOKEN_IDENT)
-		return token;
-
-	if (!lookup_type(token)) {
-		/* K&R */
-		for (;;) {
-			struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
-			sym->ident = token->ident;
-			token = token->next;
-			sym->endpos = token->pos;
-			add_symbol(list, sym);
-			if (!match_op(token, ',') ||
-			    token_type(token->next) != TOKEN_IDENT ||
-			    lookup_type(token->next))
-				break;
-			token = token->next;
-		}
-		return token;
-	}
+static struct token *parameter_type_list(struct token *token, struct symbol *fn)
+{
+	struct symbol_list **list = &fn->arguments;
 
 	for (;;) {
 		struct symbol *sym;
