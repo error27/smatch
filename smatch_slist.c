@@ -262,7 +262,7 @@ void set_state_slist(struct state_list **slist, const char *name, int owner,
 		else if (cmp_sm_states(tmp, new) == 0) {
 			tmp->state = state;
 			tmp->pools = NULL;
-			tmp->possible = new->possible;
+			tmp->possible = NULL;
 			__free_sm_state(new);
 			return;
 		} else {
