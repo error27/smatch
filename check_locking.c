@@ -220,6 +220,20 @@ static void check_returns_consistently(struct tracker *lock,
 
 }
 
+static void clear_lists()
+{
+	struct locks_on_return *tmp;
+
+	__free_ptr_list((struct ptr_list **)&starts_locked);
+	__free_ptr_list((struct ptr_list **)&starts_unlocked);
+
+	FOR_EACH_PTR(all_returns, tmp) {
+		__free_ptr_list((struct ptr_list **)&tmp->locked);
+		__free_ptr_list((struct ptr_list **)&tmp->unlocked);
+	} END_FOR_EACH_PTR(tmp);
+	__free_ptr_list((struct ptr_list **)&all_returns);
+}
+
 static void check_consistency(struct symbol *sym)
 {
 	struct tracker *tmp;
@@ -239,6 +253,8 @@ static void check_consistency(struct symbol *sym)
 	FOR_EACH_PTR(starts_unlocked, tmp) {
 		check_returns_consistently(tmp, &unlocked);
 	} END_FOR_EACH_PTR(tmp);
+
+	clear_lists();
 }
 
 void register_locking(int id)
