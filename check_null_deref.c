@@ -9,6 +9,7 @@
 
 #include "token.h"
 #include "smatch.h"
+#include "smatch_slist.h"
 
 /* 
  * TODO:  The return_null list of functions should be determined automatically
@@ -32,6 +33,8 @@ static struct param_list *calls;
 static int my_id;
 
 STATE(argument);
+STATE(arg_nonnull);
+STATE(arg_null);
 STATE(assumed_nonnull);
 STATE(ignore);
 STATE(isnull);
@@ -39,35 +42,38 @@ STATE(nonnull);
 
 static struct symbol *func_sym;
 
-static struct smatch_state *merge_func(const char *name, struct symbol *sym,
-				       struct smatch_state *s1,
-				       struct smatch_state *s2)
+static int is_maybe_null(const char *name, struct symbol *sym)
 {
-	/* 
-	 * conditions are a special case.  In the cond_(true|false)_stack
-	 * we expect to be merging null with a new specified state all the
-	 * time.  Outside of a condition we have things where the code
-	 * assumes a global variable is non null.  That gets merged with
-	 * other code and it becomes undefined.  But really it should be 
-	 * non-null.
-	 * In theory we could test for that latter case by printing a message
-	 * when someone checks a variable we already had marked as non-null.
-	 * In practise that didn't work really well because a lot of macros
-	 * have "unneeded" checks for null.
-	 */
-	if (!in_condition() && s1 == NULL)
-		return s2;
-	if (s1 == &ignore || s2 == &ignore)
-		return &ignore;
-	if (s1 == NULL && s2 == &assumed_nonnull)
-		return &assumed_nonnull;
-	if (s1 == &assumed_nonnull && s2 == &nonnull)
-		return &assumed_nonnull;
-	if (s1 == &argument && s2 == &assumed_nonnull)
-		return &assumed_nonnull;
-	if (s1 == &argument && s2 == &nonnull)
-		return &nonnull;
-	return &merged;
+	struct state_list *slist;
+	struct sm_state *tmp;
+	int ret = 0;
+
+	slist = get_possible_states(name, my_id, sym);
+	FOR_EACH_PTR(slist, tmp) {
+		if (tmp->state == &ignore)
+			return 0;
+		if (tmp->state == &isnull)
+			ret = 1;
+		if (tmp->state == &undefined)
+			ret = 1;
+		if (tmp->state == &arg_null)
+			ret = 1;
+	} END_FOR_EACH_PTR(tmp);
+	return ret;
+}
+
+static int is_argument(char *name, struct symbol *sym)
+{
+	struct state_list *slist;
+	struct sm_state *tmp;
+
+	slist = get_possible_states(name, my_id, sym);
+	FOR_EACH_PTR(slist, tmp) {
+		if (tmp->state != &argument && tmp->state != &arg_null && 
+			tmp->state != &arg_nonnull && tmp->state !=  &merged)
+			return 0;
+	} END_FOR_EACH_PTR(tmp);
+	return 1;
 }
 
 static struct func_n_param *alloc_func_n_param(struct symbol *func, int param,
@@ -131,6 +137,15 @@ static void match_function_def(struct symbol *sym)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static char *get_function_call(struct expression *expr)
+{
+	if (expr->type != EXPR_CALL)
+		return NULL;
+	if (expr->fn->type == EXPR_SYMBOL && expr->fn->symbol)
+		return expr->fn->symbol->ident->name;
+	return NULL;
+}
+
 static void match_function_call_after(struct expression *expr)
 {
 	struct expression *tmp;
@@ -139,9 +154,8 @@ static void match_function_call_after(struct expression *expr)
 	struct symbol *func = NULL;
 	int i;
 
-	if (expr->fn->type == EXPR_SYMBOL) {
+	if (expr->fn->type == EXPR_SYMBOL)
 		func = expr->fn->symbol;
-	}
 
 	i = 0;
 	FOR_EACH_PTR(expr->args, tmp) {
@@ -151,27 +165,16 @@ static void match_function_call_after(struct expression *expr)
 			if (name) {
 				set_state(name, my_id, sym, &assumed_nonnull);
 			}
-		} else {
+		} else if (func) {
 			name = get_variable_from_expr(tmp, &sym);
-			if (func && name && sym) {
-				if (get_state(name, my_id, sym) == &undefined ||
-					get_state(name, my_id, sym) == &merged)
-					add_param(&calls, func, i, get_lineno());
-			} else
+			if (name && is_maybe_null(name, sym))
+				add_param(&calls, func, i, get_lineno());
+			else
 				free_string(name);
 			
 		}
 		i++;
 	} END_FOR_EACH_PTR(tmp);
-}
-
-static char *get_function_call(struct expression *expr)
-{
-	if (expr->type != EXPR_CALL)
-		return NULL;
-	if (expr->fn->type == EXPR_SYMBOL && expr->fn->symbol)
-		return expr->fn->symbol->ident->name;
-	return NULL;
 }
 
 static int check_null_returns(const char *name, struct symbol *sym,
@@ -221,26 +224,38 @@ static void match_assign(struct expression *expr)
 }
 
 /*
- * set_new_true_false_states is used in the following conditions
+ * set_new_true_false_paths() is used in the following conditions
  * if (a) { ... if (a) { ... } } 
  * The problem is that after the second blog a is set to undefined
  * even though the second condition is meaning less.  (The second test
  * could be a macro for example).
+ *
+ * Also, stuff passed to the condition hook is processed behind the scenes
+ * a bit.  Instead of a condition like (foo == 0) which is true when foo is
+ * null, we get just (foo) and the true and false states are adjusted later.
+ * Basically the important thing to remember, is that for us, true is always
+ * non null and false is always null.
  */
-
-static void set_new_true_false_states(const char *name, int my_id, 
-				      struct symbol *sym, struct smatch_state *true_state,
-				      struct smatch_state *false_state)
+static void set_new_true_false_paths(const char *name, struct symbol *sym)
 {
 	struct smatch_state *tmp;
 
 	tmp = get_state(name, my_id, sym);
 	
-	SM_DEBUG("set_new_stuff called at %d value='%s'\n", get_lineno(), show_state(tmp));
+	SM_DEBUG("set_new_stuff called at for %s on line %d value='%s'\n", 
+		name, get_lineno(), show_state(tmp));
 
-	if (!tmp || tmp == &undefined || tmp == &merged || tmp == &isnull || tmp == &argument)
-		set_true_false_states(name, my_id, sym, true_state, false_state);
+	if (tmp == &argument) {
+		set_true_false_states(name, my_id, sym, &arg_nonnull, &arg_null);
+		return;
+	}
+
+	if (!tmp || is_maybe_null(name, sym)) {
+		set_true_false_states(name, my_id, sym, &nonnull, &isnull);
+		return;
+	}
 }
+
 
 static void match_condition(struct expression *expr)
 {
@@ -255,7 +270,7 @@ static void match_condition(struct expression *expr)
 		name = get_variable_from_expr(expr, &sym);
 		if (!name)
 			return;
-		set_new_true_false_states(name, my_id, sym, &nonnull, &isnull);
+		set_new_true_false_paths(name, sym);
 		return;
 	case EXPR_ASSIGNMENT:
 		assign_seen++;
@@ -267,7 +282,7 @@ static void match_condition(struct expression *expr)
 			name = get_variable_from_expr(expr->left, &sym);
 			if (!name)
 				return;
-			set_new_true_false_states(name, my_id, sym, NULL, &isnull);
+			set_true_false_states(name, my_id, sym, NULL, &isnull);
 			return;
 		}
 		 /* You have to deal with stuff like if (a = b = c) */
@@ -306,7 +321,6 @@ static void match_dereferences(struct expression *expr)
 {
 	char *deref = NULL;
 	struct symbol *sym = NULL;
-	struct smatch_state *state;
 
 	if (strcmp(show_special(expr->deref->op), "*"))
 		return;
@@ -315,21 +329,12 @@ static void match_dereferences(struct expression *expr)
 	if (!deref)
 		return;
 
-	state = get_state(deref, my_id, sym);
-	if (state == &undefined || state == &merged) {
-		smatch_msg("Dereferencing Undefined:  '%s'", deref);
-		set_state(deref, my_id, sym, &ignore);
-	} else if (state == &isnull) {
-		/* 
-		 * It turns out that you only get false positives from 
-		 * this.  Mostly foo = NULL; sizeof(*foo);
-		 * And even if it wasn't always a false positive you'd think
-		 * it would get caught in testing if it failed every time.
-		 */
-		set_state(deref, my_id, sym, &ignore);
-	} else if (state == &argument) {
+	if (is_argument(deref, sym)) {
 		add_do_not_call(sym, get_lineno());
 		set_state(deref, my_id, sym, &assumed_nonnull);
+	} else if  (is_maybe_null(deref, sym)) {
+		smatch_msg("Dereferencing Undefined:  '%s'", deref);
+		set_state(deref, my_id, sym, &ignore);
 	} else {
 		free_string(deref);
 	}
@@ -377,7 +382,6 @@ static void end_file_processing()
 void register_null_deref(int id)
 {
 	my_id = id;
-	add_merge_hook(my_id, &merge_func);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_function_call_after, FUNCTION_CALL_AFTER_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_AFTER_HOOK);
