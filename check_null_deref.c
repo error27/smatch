@@ -90,14 +90,19 @@ static int is_argument(char *name, struct symbol *sym)
 {
 	struct state_list *slist;
 	struct sm_state *tmp;
+	int maybe_null = 0;
 
 	slist = get_possible_states(name, my_id, sym);
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state != &argument && tmp->state != &arg_null && 
 			tmp->state != &arg_nonnull && tmp->state !=  &merged)
 			return 0;
+		if (tmp->state == &argument || tmp->state == &arg_null)
+			maybe_null = 1;
 	} END_FOR_EACH_PTR(tmp);
-	return 1;
+
+	/* We really only care about arguments if they are null */
+	return maybe_null;
 }
 
 static struct func_n_param *alloc_func_n_param(struct symbol *func, int param,
