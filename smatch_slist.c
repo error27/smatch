@@ -112,10 +112,12 @@ static void add_possible(struct sm_state *sm, struct sm_state *new)
 {
 	struct sm_state *tmp;
 
+
 	if (!new) {
-		if (slist_has_state(sm->possible, &undefined))
-			return;
-		tmp = alloc_state(sm->name, sm->owner, sm->sym, &undefined);
+		struct smatch_state *s;
+
+		s = merge_states(sm->name, sm->owner, sm->sym, sm->state, NULL);
+		tmp = alloc_state(sm->name, sm->owner, sm->sym, s);
 		add_sm_state_slist(&sm->possible, tmp);
 		return;
 	}
