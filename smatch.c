@@ -18,18 +18,22 @@ void register_smatch_ignore(int id);
 void register_overflow(int id);
 void register_locking(int id);
 void register_memory(int id);
+void register_implications(int id);
 /* <- your test goes here */
 /* void register_template(int id); */
 
 const reg_func reg_funcs[] = {
-	&register_smatch_extra,
+	&register_smatch_extra, /* smatch_extra always has to be first */
 	&register_smatch_ignore,
 	&register_null_deref,
 	&register_overflow,
 	&register_locking,
 	&register_memory,
+
 	/* <- your test goes here */
 	/* &register_template, */
+
+	&register_implications, /* implications always has to be last */
 	NULL
 };
 

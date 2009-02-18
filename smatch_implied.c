@@ -80,10 +80,8 @@ static struct state_list *get_eq_neq_filtered(struct sm_state *sm_state,
 	return ret;
 }
 
-
 /*
  * This condition hook is very connected to smatch_extra.c.
- * It's registered there.
  */
 
 void __implied_states_hook(struct expression *expr)
@@ -126,4 +124,9 @@ void __implied_states_hook(struct expression *expr)
 	} END_FOR_EACH_PTR(state);
 
 	free_string(name);
+}
+
+void register_implications(int id)
+{
+	add_hook(&__implied_states_hook, CONDITION_HOOK);
 }
