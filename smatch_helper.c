@@ -355,7 +355,9 @@ const char *show_state(struct smatch_state *state)
 
 struct expression *strip_expr(struct expression *expr)
 {
-	
+	if (!expr)
+		return NULL;
+
 	switch(expr->type) {
 	case EXPR_CAST:
 		return strip_expr(expr->cast_expression);
