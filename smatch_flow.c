@@ -121,7 +121,7 @@ static int is_forever_loop(struct statement *stmt)
 	
 	struct expression *expr;
 
-	expr = stmt->iterator_pre_condition;
+	expr = strip_expr(stmt->iterator_pre_condition);
 	if (!expr)
 		expr = stmt->iterator_post_condition;
 	if (!expr) {
