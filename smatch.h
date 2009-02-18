@@ -109,6 +109,13 @@ DECLARE_PTR_LIST(tracker_list, struct tracker);
 void add_ignore(const char *name, int owner, struct symbol *sym);
 int is_ignored(const char *name, int owner, struct symbol *sym);
 
+/* smatch_tracker */
+void add_tracker(struct tracker_list **list, const char *name, int owner, 
+		struct symbol *sym);
+int in_tracker_list(struct tracker_list *list, const char *name, int owner,
+		struct symbol *sym);
+
+
 /* smatch_conditions */
 int in_condition();
 
