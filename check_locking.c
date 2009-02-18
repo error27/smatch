@@ -8,13 +8,10 @@
  */
 
 /*
- * For this test let's look for functions that return a negative value
- * with a spinlock held.
- *
- * One short coming is that it assumes a function isn't supposed
- * to return negative with a lock held.  Perhaps the function was
- * called with the lock held.  A more complicated script could check that.
- *
+ * This test checks that locks are held the same across all returns.
+ * 
+ * Of course, some functions are designed to only hold the locks on success.
+ * Oh well... We can rewrite it later if we want.
  */
 
 #include "parse.h"
@@ -70,26 +67,19 @@ static struct locked_call lock_needed[] = {
 
 static int my_id;
 
+static struct tracker_list *starts_locked;
+static struct tracker_list *starts_unlocked;
+
+struct locks_on_return {
+	int line;
+	struct tracker_list *locked;
+	struct tracker_list *unlocked;
+};
+DECLARE_PTR_LIST(return_list, struct locks_on_return);
+static struct return_list *all_returns;
+
 STATE(locked);
 STATE(unlocked);
-
-/*
- * merge_func() can go away when we fix the core to just store all the possible 
- * states.
- *
- * The parameters are passed in alphabetical order with NULL at the beginning
- * of the alphabet.  (s2 is never NULL).
- */
-
-static struct smatch_state *merge_func(const char *name, struct symbol *sym,
-				       struct smatch_state *s1,
-				       struct smatch_state *s2)
-{
-	if (s1 == NULL)
-		return s2;
-	return &undefined;
-
-}
 
 static char kernel[] = "kernel";
 static char *match_lock_func(char *fn_name, struct expression_list *args)
@@ -133,7 +123,7 @@ static void check_locks_needed(const char *fn_name)
 		if (!strcmp(fn_name, lock_needed[i].function)) {
 			state = get_state(lock_needed[i].lock, my_id, NULL);
 			if (state != &locked) {
-				smatch_msg("%s called without holding %s lock",
+				smatch_msg("%s called without holding '%s' lock",
 					lock_needed[i].function,
 					lock_needed[i].lock);
 			}
@@ -150,11 +140,15 @@ static void match_call(struct expression *expr)
 	if (!fn_name)
 		return;
 
-	if ((lock_name = match_lock_func(fn_name, expr->args)))
+	if ((lock_name = match_lock_func(fn_name, expr->args))) {
+		if (!get_state(lock_name, my_id, NULL))
+			add_tracker(&starts_unlocked, lock_name, my_id, NULL);
 		set_state(lock_name, my_id, NULL, &locked);
-	else if ((lock_name = match_unlock_func(fn_name, expr->args)))
+	} else if ((lock_name = match_unlock_func(fn_name, expr->args))) {
+		if (!get_state(lock_name, my_id, NULL))
+			add_tracker(&starts_locked, lock_name, my_id, NULL);
 		set_state(lock_name, my_id, NULL, &unlocked);
-	else
+	} else
 		check_locks_needed(fn_name);
 	free_string(fn_name);
 	return;
@@ -165,57 +159,92 @@ static void match_condition(struct expression *expr)
 	/* __raw_spin_is_locked */
 }
 
-static int possibly_negative(struct expression *expr)
+static struct locks_on_return *alloc_return(int line)
 {
-	char *name;
-	struct symbol *sym;
-	struct state_list *slist;
-	struct sm_state *tmp;
+	struct locks_on_return *ret;
 
-	name = get_variable_from_expr(expr, &sym);
-	if (!name || !sym)
-		return 0;
-	slist = get_possible_states(name, SMATCH_EXTRA, sym);
-	FOR_EACH_PTR(slist, tmp) {
-		int value = 0;
-		
-		if (tmp->state->data) 
-			value =  *(int *)tmp->state->data;
-
-		if (value < 0) {
-			return 1;
-		}
-	} END_FOR_EACH_PTR(tmp);
-	return 0;
+	ret = malloc(sizeof(*ret));
+	ret->line = line;
+	ret->locked = NULL;
+	ret->unlocked = NULL;
+	return ret;
 }
 
 static void match_return(struct statement *stmt)
 {
-	int ret_val;
+	struct locks_on_return *ret;
 	struct state_list *slist;
 	struct sm_state *tmp;
-
-	ret_val = get_value(stmt->ret_value);
-	if (ret_val >= 0) {
-		return;
-	}
-	if (ret_val == UNDEFINED) {
-		if (!possibly_negative(stmt->ret_value))
-			return;
-	}
+	
+	ret = alloc_return(get_lineno());
 
 	slist = get_all_states(my_id);
 	FOR_EACH_PTR(slist, tmp) {
-		if (tmp->state != &unlocked)
-			smatch_msg("returned negative with %s lock held",
-				   tmp->name);
+		if (tmp->state == &locked) {
+			add_tracker(&ret->locked, tmp->name, tmp->owner,
+				tmp->sym);
+		} else if (tmp->state == &unlocked) {
+			add_tracker(&ret->unlocked, tmp->name, tmp->owner,
+				tmp->sym);
+		} else {
+			smatch_msg("Unclear if '%s' is locked or unlocked.",
+				tmp->name);
+		}
+	} END_FOR_EACH_PTR(tmp);
+	add_ptr_list(&all_returns, ret);
+}
+
+static void check_returns_consistently(struct tracker *lock,
+				struct smatch_state *start)
+{
+	int returns_locked = 0;
+	int returns_unlocked = 0;
+	struct locks_on_return *tmp;
+
+	FOR_EACH_PTR(all_returns, tmp) {
+		if (in_tracker_list(tmp->unlocked, lock->name, lock->owner,
+					lock->sym))
+			returns_unlocked = tmp->line;
+		else if (in_tracker_list(tmp->locked, lock->name, lock->owner,
+						lock->sym))
+			returns_locked = tmp->line;
+		else if (start == &locked)
+			returns_locked = tmp->line;
+		else if (start == &unlocked)
+			returns_unlocked = tmp->line;
+	} END_FOR_EACH_PTR(tmp);
+
+	if (returns_locked && returns_unlocked)
+		smatch_msg("Lock '%s' held on line %d but not on %d.",
+			lock->name, returns_locked, returns_unlocked);
+
+}
+
+static void check_consistency(struct symbol *sym)
+{
+	struct tracker *tmp;
+
+	FOR_EACH_PTR(starts_locked, tmp) {
+		if (in_tracker_list(starts_unlocked, tmp->name, tmp->owner,
+					tmp->sym))
+			smatch_msg("Locking inconsistency.  We assume '%s' is "
+				"both locked and unlocked at the start.",
+				tmp->name);
+	} END_FOR_EACH_PTR(tmp);
+
+	FOR_EACH_PTR(starts_locked, tmp) {
+		check_returns_consistently(tmp, &locked);
+	} END_FOR_EACH_PTR(tmp);
+
+	FOR_EACH_PTR(starts_unlocked, tmp) {
+		check_returns_consistently(tmp, &unlocked);
 	} END_FOR_EACH_PTR(tmp);
 }
 
 void register_locking(int id)
 {
 	my_id = id;
-	add_merge_hook(my_id, &merge_func);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
+	add_hook(&check_consistency, END_FUNC_HOOK);
 }
