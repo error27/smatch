@@ -42,6 +42,24 @@ STATE(nonnull);
 
 static struct symbol *func_sym;
 
+/*
+ * merge_func() is to handle assumed_nonnull.
+ *
+ * Assumed_nonnull is a funny state.  It's almost the same as 
+ * no state.  Maybe it would be better to delete it completely...
+ */
+static struct smatch_state *merge_func(const char *name, struct symbol *sym,
+				       struct smatch_state *s1,
+				       struct smatch_state *s2)
+{
+	if (s1 == &ignore || s2 == &ignore)
+		return &ignore;
+	if (s1 == NULL && s2 == &assumed_nonnull)
+		return &assumed_nonnull;
+	return &merged;
+
+}
+
 static int is_maybe_null(const char *name, struct symbol *sym)
 {
 	struct state_list *slist;
@@ -52,12 +70,18 @@ static int is_maybe_null(const char *name, struct symbol *sym)
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state == &ignore)
 			return 0;
-		if (tmp->state == &isnull)
+		if (tmp->state == &isnull) {
+			SM_DEBUG("is_maybe_null() says %s &isnull\n", name);
 			ret = 1;
-		if (tmp->state == &undefined)
+		} 
+		if (tmp->state == &undefined) {
+			SM_DEBUG("is_maybe_null() says %s &undefined\n", name);
 			ret = 1;
-		if (tmp->state == &arg_null)
+		}
+		if (tmp->state == &arg_null) {
+			SM_DEBUG("is_maybe_null() says %s &arg_null\n", name);
 			ret = 1;
+		}
 	} END_FOR_EACH_PTR(tmp);
 	return ret;
 }
@@ -382,6 +406,7 @@ static void end_file_processing()
 void register_null_deref(int id)
 {
 	my_id = id;
+	add_merge_hook(my_id, &merge_func);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_function_call_after, FUNCTION_CALL_AFTER_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_AFTER_HOOK);
