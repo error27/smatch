@@ -46,6 +46,17 @@ static int is_allocation(struct expression *expr)
 	return 0;
 }
 
+static int is_freed(const char *name, struct symbol *sym)
+{
+	struct state_list *slist;
+
+	slist = get_possible_states(name, my_id, sym);
+	if (slist_has_state(slist, &isfree)) {
+		return 1;
+	}
+	return 0;
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct expression *left, *right;
@@ -63,10 +74,8 @@ static void match_assign(struct expression *expr)
 	}
 
 	right = strip_expr(expr->right);
-	if (is_allocation(right)) {
-		if (left_sym->ctype.modifiers &
-			(MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))
-			return;
+	if (is_allocation(right) && !(left_sym->ctype.modifiers &
+			(MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))) {
 		set_state(left_name, my_id, left_sym, &allocated);
 		return;
 	}
@@ -76,15 +85,10 @@ static void match_assign(struct expression *expr)
 		if (state == &isfree)
 			smatch_msg("assigning freed pointer");
 		set_state(right_name, my_id, right_sym, &assigned);
-		free_string(right_name);
-		return;
 	}
 	free_string(right_name);
 
-	if (is_zero(right))
-		return;
-
-	if (get_state(left_name, my_id, left_sym) == &isfree) {
+	if (is_freed(left_name, left_sym)) {
 		set_state(left_name, my_id, left_sym, &unfree);
 	}
 }
@@ -109,7 +113,6 @@ static int is_null(char *name, struct symbol *sym)
 static void match_kfree(struct expression *expr)
 {
 	struct expression *ptr_expr;
-	struct state_list *slist;
 	char *fn_name;
 	char *ptr_name;
 	struct symbol *ptr_sym;
@@ -122,8 +125,7 @@ static void match_kfree(struct expression *expr)
 
 	ptr_expr = get_argument_from_call_expr(expr->args, 0);
 	ptr_name = get_variable_from_expr(ptr_expr, &ptr_sym);
-	slist = get_possible_states(ptr_name, my_id, ptr_sym);
-	if (slist_has_state(slist, &isfree) && !is_null(ptr_name, ptr_sym)) {
+	if (is_freed(ptr_name, ptr_sym) && !is_null(ptr_name, ptr_sym)) {
 		smatch_msg("double free of %s", ptr_name);
 	}
 	set_state(ptr_name, my_id, ptr_sym, &isfree);
