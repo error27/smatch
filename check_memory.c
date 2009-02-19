@@ -149,6 +149,8 @@ static void check_for_allocated()
 	struct state_list *slist;
 	struct sm_state *tmp;
 
+	return;
+
 	slist = get_all_states(my_id);
 	FOR_EACH_PTR(slist, tmp) {
 		if (possibly_allocated(tmp->possible) && 
