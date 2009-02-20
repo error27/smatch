@@ -225,13 +225,10 @@ struct smatch_state *merge_states(const char *name, int owner,
 		ret = state1;
 	else if (__has_merge_function(owner))
 		ret = __client_merge_function(owner, name, sym, state1, state2); 
+	else if (!state1 || !state2)
+		ret = &undefined;
 	else 
 		ret = &merged;
-
-	SM_DEBUG("%d merge name='%s' owner=%d: %s + %s => %s\n", 
-		 get_lineno(), name, owner, show_state(state1), 
-		 show_state(state2), show_state(ret));
-
 	return ret;
 }
 
@@ -245,6 +242,25 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	result = alloc_state(one->name, one->owner, one->sym, s);
 	add_possible(result, one);
 	add_possible(result, two);
+
+	if (debug_states) {
+		struct sm_state *tmp;
+		int i = 0;
+
+		printf("%d merge name='%s' owner=%d: %s + %s => %s (", 
+			get_lineno(), one->name, one->owner,
+			show_state(one->state), show_state(two?two->state:NULL),
+			show_state(s));
+
+		FOR_EACH_PTR(result->possible, tmp) {
+			if (i++) {
+				printf(", ");
+			}
+			printf("%s", show_state(tmp->state));
+		} END_FOR_EACH_PTR(tmp);
+		printf(")\n");
+	}
+
 	return result;
 }
 
@@ -470,7 +486,7 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_tracker(to_state, state) == 0) {
 			if (to_state->state == state->state) {
-				tmp = to_state;
+				tmp = merge_sm_states(to_state, state);
 			} else {
 				tmp = merge_sm_states(to_state, state);
 
@@ -622,13 +638,16 @@ void and_slist_stack(struct state_list_stack **slist_stack)
 		tmp_state = get_state_stack(*slist_stack, tmp->name,
 					    tmp->owner, tmp->sym);
 		if (tmp_state && tmp_state != tmp->state) {
+			struct smatch_state *s;
+
+			s = merge_states(tmp->name, tmp->owner, tmp->sym,
+					tmp->state, tmp_state);
 			smatch_msg("mutually exclusive 'and' conditions states "
-				   "'%s': %s & %s.\n",
-				   tmp->name, show_state(tmp_state),
-				   show_state(tmp->state));
-			tmp->state = merge_states(tmp->name, tmp->owner, 
-						  tmp->sym, tmp->state,
-						  tmp_state);
+				"'%s': %s + %s => %s",
+				tmp->name, show_state(tmp_state),
+				show_state(tmp->state), show_state(s));
+			tmp->state = s;
+
 		}
 		set_state_stack(slist_stack, tmp->name, tmp->owner, tmp->sym,
 				tmp->state);

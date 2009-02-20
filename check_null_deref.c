@@ -56,6 +56,8 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 		return &ignore;
 	if (s1 == NULL && s2 == &assumed_nonnull)
 		return &assumed_nonnull;
+	if (s1 == NULL)
+		return &undefined;
 	return &merged;
 
 }
