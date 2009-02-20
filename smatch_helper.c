@@ -337,6 +337,9 @@ int get_value(struct expression *expr)
 
 int is_zero(struct expression *expr)
 {
+	if (!expr)
+		return 0;
+
 	if (expr->type == EXPR_VALUE && expr->value == 0)
 		return 1;
 	if (expr->op == '(')

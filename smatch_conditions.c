@@ -152,12 +152,57 @@ static void handle_logical(struct expression *expr)
 	__use_cond_true_states();
 }
 
+static void handle_select(struct expression *expr)
+{
+	/*
+	 * if ((aaa()?bbb():ccc())) { ...
+	 *
+	 * This is almost the same as:
+	 * if ((aaa() && bbb()) || (!aaa() && ccc())) { ...
+	 *
+	 * It's a bit complicated because we shouldn't pass aaa()
+	 * to the clients more than once.
+	 */
+
+	split_conditions(expr->conditional);
+
+	__save_false_states_for_later();
+	__use_cond_true_states();
+
+	if (known_condition_true(expr->cond_true)) {
+		__split_expr(expr->cond_true);
+	} else {
+		__push_cond_stacks();
+		split_conditions(expr->cond_true);
+		__and_cond_states();
+		__pop_pre_cond_states();
+	}
+
+	if (is_zero(expr->cond_false)) {
+		__pop_pre_cond_states();
+		__use_cond_true_states();
+		return;
+	}
+
+	__use_previously_stored_false_states();
+
+	__save_pre_cond_states();
+	__push_cond_stacks();
+	split_conditions(expr->cond_false);
+	__or_cond_states();
+	__pop_pre_cond_states();
+
+	__use_cond_true_states();
+}
+
 static void split_conditions(struct expression *expr)
 {
 
 	SM_DEBUG("%d in split_conditions type=%d\n", get_lineno(), expr->type);
 
 	expr = strip_expr(expr);
+	if (!expr)
+		return;
 
 	switch(expr->type) {
 	case EXPR_LOGICAL:
@@ -175,6 +220,10 @@ static void split_conditions(struct expression *expr)
 		if (handle_preop(expr))
 			return;
 		break;
+	case EXPR_CONDITIONAL:
+	case EXPR_SELECT:
+		handle_select(expr);
+		return;
 	}
 
 	__pass_to_client(expr, CONDITION_HOOK);	

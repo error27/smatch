@@ -184,12 +184,9 @@ static int true_comparison(int left, int comparison, int right)
 	return 0;
 }
 
-int known_condition_true(struct expression *expr)
+static int compare_true(struct expression *expr)
 {
 	int left, right, ret;
-
-	if (!expr || expr->type != EXPR_COMPARE)
-		return 0;
 
 	if ((left = expr_to_val(expr->left)) == UNDEFINED)
 		return 0;
@@ -206,4 +203,57 @@ int known_condition_true(struct expression *expr)
 			   show_special(expr->op), right);
 
 	return ret;
+	
+}
+
+struct statement *get_block_thing(struct expression *expr)
+{
+	/* What are those things called? if (({....; ret;})) { ...*/
+
+	if (expr->type != EXPR_PREOP)
+		return NULL;
+	if (expr->op != '(')
+		return NULL;
+	if (expr->unop->type != EXPR_STATEMENT)
+		return NULL;
+	if (expr->unop->statement->type != STMT_COMPOUND)
+		return NULL;
+	return expr->unop->statement;
+}
+
+int block_thing_true(struct statement *stmt)
+{
+	struct expression *expr;
+
+	stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
+	if (stmt->type != STMT_EXPRESSION)
+		return 0;
+	expr = stmt->expression;
+	if (get_value(expr) == 1)
+		return 1;
+	return 0;
+}
+
+int known_condition_true(struct expression *expr)
+{
+	if (!expr)
+		return 0;
+
+	switch(expr->type) {
+	case EXPR_COMPARE:
+		return compare_true(expr);
+	case EXPR_PREOP: {
+		struct statement *stmt;
+		struct expression *tmp;
+
+		stmt = get_block_thing(expr);
+		if (stmt)
+			return block_thing_true(stmt);
+		tmp = strip_expr(expr);
+		if (tmp != expr)
+			return known_condition_true(tmp);
+		break;
+	}
+	}
+	return 0;
 }

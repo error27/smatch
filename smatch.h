@@ -159,6 +159,8 @@ void __merge_false_states();
 void __merge_true_states();
 
 void __negate_cond_stacks();
+void __save_false_states_for_later();
+void __use_previously_stored_false_states();
 void __use_cond_true_states();
 void __use_cond_false_states();
 void __push_cond_stacks();

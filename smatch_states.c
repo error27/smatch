@@ -235,6 +235,28 @@ static void __use_cond_stack(struct state_list_stack **stack)
 	push_slist(stack, slist);
 }
 
+void __save_false_states_for_later()
+{
+	struct state_list *pre_conditions;
+	struct state_list *false_states;
+	struct state_list *tmp;
+
+	pre_conditions = pop_slist(&pre_cond_stack);
+	false_states = pop_slist(&cond_false_stack);
+	tmp = clone_slist(pre_conditions);
+
+	overwrite_slist(false_states, &tmp);
+
+	push_slist(&pre_cond_stack, tmp);
+	push_slist(&pre_cond_stack, pre_conditions);
+	push_slist(&cond_false_stack, false_states);
+}
+
+void __use_previously_stored_false_states()
+{
+	del_slist(&cur_slist);
+	cur_slist = pop_slist(&pre_cond_stack);
+}
 
 void __use_cond_true_states()
 {
