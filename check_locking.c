@@ -56,6 +56,24 @@ static const char *unlock_funcs[] = {
 	NULL,
 };
 
+static const char *conditional_funcs[] = {
+	"_spin_trylock",
+	"_read_trylock",
+	"_write_trylock",
+	"generic__raw_read_trylock",
+	"_raw_spin_trylock",
+	"_raw_read_trylock",
+	"_raw_write_trylock",
+	"__raw_spin_trylock",
+	"__raw_read_trylock",
+	"__raw_write_trylock",
+	"__raw_write_trylock",
+	NULL,
+};
+
+/* todo still need to handle__raw_spin_is_locked */
+
+
 struct locked_call {
 	const char *function;
 	const char *lock;
@@ -114,6 +132,20 @@ static char *match_unlock_func(char *fn_name, struct expression_list *args)
 	return NULL;
 }
 
+static char *match_conditional_func(char *fn_name, struct expression_list *args)
+{
+	struct expression *lock_expr;
+	int i;
+
+	for (i = 0; conditional_funcs[i]; i++) {
+		if (!strcmp(fn_name, conditional_funcs[i])) {
+			lock_expr = get_argument_from_call_expr(args, 0);
+			return get_variable_from_expr(lock_expr, NULL);
+		}
+	}
+	return NULL;
+}
+
 static void check_locks_needed(const char *fn_name)
 {
 	struct smatch_state *state;
@@ -156,7 +188,23 @@ static void match_call(struct expression *expr)
 
 static void match_condition(struct expression *expr)
 {
-	/* __raw_spin_is_locked */
+	char *fn_name;
+	char *lock_name;
+
+	if (expr->type != EXPR_CALL)
+		return;
+
+	fn_name = get_variable_from_expr(expr->fn, NULL);
+	if (!fn_name)
+		return;
+
+	if ((lock_name = match_conditional_func(fn_name, expr->args))) {
+		if (!get_state(lock_name, my_id, NULL))
+			add_tracker(&starts_unlocked, lock_name, my_id, NULL);
+		set_true_false_states(lock_name, my_id, NULL, &locked, &unlocked);
+	}
+	free_string(fn_name);
+	return;
 }
 
 static struct locks_on_return *alloc_return(int line)
@@ -260,6 +308,7 @@ static void check_consistency(struct symbol *sym)
 void register_locking(int id)
 {
 	my_id = id;
+	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&check_consistency, END_FUNC_HOOK);
