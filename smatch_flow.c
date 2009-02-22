@@ -382,8 +382,8 @@ static void split_functions(struct symbol_list *sym_list)
 				cur_func = sym->ident->name;
 			__smatch_lineno = sym->pos.line;
 			SM_DEBUG("new function:  %s\n", cur_func);
-			__pass_to_client(sym, FUNC_DEF_HOOK);
 			__unnullify_path();
+			__pass_to_client(sym, FUNC_DEF_HOOK);
 			split_statements(base_type->stmt);
 			__pass_to_client(sym, END_FUNC_HOOK);
 			cur_func = NULL;

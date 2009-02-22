@@ -60,6 +60,21 @@ void __print_cur_slist()
 	__print_slist(cur_slist);
 }
 
+static int unreachable()
+{
+	static int reset_warnings = 1;
+
+	if (cur_slist) {
+		reset_warnings = 1;
+		return 0;
+	}
+
+	if (reset_warnings || debug_states) 
+		smatch_msg("ignoring unreachable code.");
+	reset_warnings = 0;
+	return 1;
+}
+
 void set_state(const char *name, int owner, struct symbol *sym,
 	       struct smatch_state *state)
 {
@@ -78,6 +93,10 @@ void set_state(const char *name, int owner, struct symbol *sym,
 			       get_lineno(), name, owner, show_state(s),
 			       show_state(state));
 	}
+
+	if (owner != -1 && unreachable())
+		return;
+
 	set_state_slist(&cur_slist, name, owner, sym, state);
 
 	if (cond_true_stack) {
@@ -146,6 +165,9 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 			 show_state(true_state), show_state(false_state));
 	}
 
+	if (unreachable())
+		return;
+
 	if (!cond_false_stack || !cond_true_stack) {
 		printf("Error:  missing true/false stacks\n");
 		return;
@@ -173,7 +195,7 @@ void nullify_path()
 
 void __unnullify_path()
 {
-	set_state("unnull_path", 0, NULL, &true_state);
+	set_state("unnull_path", -1, NULL, &true_state);
 }
 
 int __path_is_null()
