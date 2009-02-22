@@ -175,10 +175,9 @@ static void handle_select(struct expression *expr)
 		__push_cond_stacks();
 		split_conditions(expr->cond_true);
 		__and_cond_states();
-		__pop_pre_cond_states();
 	}
 
-	if (is_zero(expr->cond_false)) {
+	if (known_condition_false(expr->cond_false)) {
 		__pop_pre_cond_states();
 		__use_cond_true_states();
 		return;

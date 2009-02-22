@@ -138,6 +138,7 @@ void __implied_states_hook(struct expression *expr);
 /* smatch_extras.c */
 #define SMATCH_EXTRA 1 /* this is my_id from smatch extra set in smatch.c */
 int known_condition_true(struct expression *expr);
+int known_condition_false(struct expression *expr);
 
 /* smatch_states.c */
 extern int debug_states;

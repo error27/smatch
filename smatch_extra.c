@@ -180,30 +180,30 @@ static int true_comparison(int left, int comparison, int right)
 		return 0;
 	default:
 		smatch_msg("unhandled comparison %d\n", comparison);
+		return UNDEFINED;
 	}
 	return 0;
 }
 
-static int compare_true(struct expression *expr)
+static int do_comparison(struct expression *expr)
 {
 	int left, right, ret;
 
 	if ((left = expr_to_val(expr->left)) == UNDEFINED)
-		return 0;
+		return UNDEFINED;
 
 	if ((right = expr_to_val(expr->right)) == UNDEFINED)
-		return 0;
+		return UNDEFINED;
 	
 	ret = true_comparison(left, expr->op, right);
-	if (ret)
-		SM_DEBUG("%d known condition: %d %s %d => true", get_lineno(),
-			 left, show_special(expr->op), right);
-	else
-		smatch_msg("known condition: %d %s %d => false", left, 
-			   show_special(expr->op), right);
-
+	if (ret == 1) {
+		SM_DEBUG("%d known condition: %d %s %d => true\n",
+			get_lineno(), left, show_special(expr->op), right);
+	} else if (ret == 0) {
+		SM_DEBUG("%d known condition: %d %s %d => false\n",
+			get_lineno(), left, show_special(expr->op), right);
+	}
 	return ret;
-	
 }
 
 struct statement *get_block_thing(struct expression *expr)
@@ -221,17 +221,15 @@ struct statement *get_block_thing(struct expression *expr)
 	return expr->unop->statement;
 }
 
-int block_thing_true(struct statement *stmt)
+int last_stmt_val(struct statement *stmt)
 {
 	struct expression *expr;
 
 	stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
 	if (stmt->type != STMT_EXPRESSION)
-		return 0;
+		return UNDEFINED;
 	expr = stmt->expression;
-	if (get_value(expr) == 1)
-		return 1;
-	return 0;
+	return get_value(expr);
 }
 
 int known_condition_true(struct expression *expr)
@@ -241,17 +239,46 @@ int known_condition_true(struct expression *expr)
 
 	switch(expr->type) {
 	case EXPR_COMPARE:
-		return compare_true(expr);
+		if (do_comparison(expr) == 1)
+			return 1;
 	case EXPR_PREOP: {
 		struct statement *stmt;
 		struct expression *tmp;
 
 		stmt = get_block_thing(expr);
-		if (stmt)
-			return block_thing_true(stmt);
+		if (stmt && (last_stmt_val(stmt) == 1))
+			return 1;
 		tmp = strip_expr(expr);
 		if (tmp != expr)
 			return known_condition_true(tmp);
+		break;
+	}
+	}
+	return 0;
+}
+
+int known_condition_false(struct expression *expr)
+{
+	if (!expr)
+		return 0;
+
+	if (is_zero(expr))
+		return 1;
+
+	switch(expr->type) {
+	case EXPR_COMPARE:
+		if (do_comparison(expr) == 0)
+			return 1;
+	case EXPR_PREOP: {
+		struct statement *stmt;
+		struct expression *tmp;
+
+		stmt = get_block_thing(expr);
+		if (stmt && (last_stmt_val(stmt) == 0))
+			return 1;
+		tmp = strip_expr(expr);
+		if (tmp != expr)
+			return known_condition_false(tmp);
 		break;
 	}
 	}
