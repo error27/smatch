@@ -399,7 +399,7 @@ void __process_continues()
 
 	slist = pop_slist(&continue_stack);
 	if (!slist) {
-		overwrite_slist(cur_slist, &slist);
+		slist = clone_slist(cur_slist);
 	} else {
 		merge_slist(&slist, cur_slist);
 	}
@@ -426,7 +426,7 @@ void __process_breaks()
 	
 	slist = pop_slist(&break_stack);
 	if (!slist) {
-		overwrite_slist(cur_slist, &slist);
+		slist = clone_slist(cur_slist);
 	} else {
 		merge_slist(&slist, cur_slist);
 	}
