@@ -183,16 +183,14 @@ static void handle_post_loop(struct statement *stmt)
 	__push_continues();
 	__push_breaks();
 	split_statements(stmt->iterator_statement);
-	
-	__split_whole_condition(stmt->iterator_post_condition);
-	__use_false_states();
-
 	if (is_forever_loop(stmt)) {
 		__pop_continues();
 		__use_breaks();
 
 	} else {
 		__merge_continues();
+		__split_whole_condition(stmt->iterator_post_condition);
+		__use_false_states();
 		__merge_breaks();
 	}
 	__pop_false_only_stack();
