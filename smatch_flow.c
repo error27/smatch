@@ -154,19 +154,21 @@ static void handle_pre_loop(struct statement *stmt)
 	__split_whole_condition(stmt->iterator_pre_condition);
 
 	split_statements(stmt->iterator_statement);
-	split_statements(stmt->iterator_post_statement);
 	if (is_forever_loop(stmt)) {
 		__pop_false_only_stack();
+		/* forever loops don't have an iterator_post_statement */
 		__pop_continues();
 		__pop_false_states();
 		__use_breaks();
 	} else if (once_through) {
 		__merge_continues();
+		split_statements(stmt->iterator_post_statement);
 		__pop_false_states();
 		__use_false_only_stack();
 		__merge_breaks();
 	} else {
 		__merge_continues();
+		split_statements(stmt->iterator_post_statement);
 		__merge_false_states();
 		__use_false_only_stack();
 		__merge_breaks();
