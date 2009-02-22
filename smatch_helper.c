@@ -337,16 +337,9 @@ int get_value(struct expression *expr)
 
 int is_zero(struct expression *expr)
 {
-	if (!expr)
-		return 0;
-
-	if (expr->type == EXPR_VALUE && expr->value == 0)
+	if (get_value(expr) == 0)
 		return 1;
-	if (expr->op == '(')
-		return is_zero(expr->unop);
-	if (expr->type == EXPR_CAST) 
-		return is_zero(expr->cast_expression);
-	return 0;	
+	return 0;
 }
 
 const char *show_state(struct smatch_state *state)
