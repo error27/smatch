@@ -274,7 +274,6 @@ static void split_statements(struct statement *stmt)
 		__save_switch_states();
 		__push_default();
 		__push_breaks();
-		nullify_path();
 		split_statements(stmt->switch_statement);
 		if (!__pop_default())
 			__merge_switches();
