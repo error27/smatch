@@ -58,6 +58,7 @@ static const char *unlock_funcs[] = {
 
 static const char *conditional_funcs[] = {
 	"_spin_trylock",
+	"_spin_trylock_bh",
 	"_read_trylock",
 	"_write_trylock",
 	"generic__raw_read_trylock",
@@ -68,6 +69,13 @@ static const char *conditional_funcs[] = {
 	"__raw_read_trylock",
 	"__raw_write_trylock",
 	"__raw_write_trylock",
+	NULL,
+};
+
+/* These functions return 0 on success */
+static const char *reverse_cond_funcs[] = {
+	"down_trylock",
+	"down_interruptible",
 	NULL,
 };
 
@@ -99,18 +107,29 @@ static struct return_list *all_returns;
 STATE(locked);
 STATE(unlocked);
 
-static char kernel[] = "kernel";
-static char *match_lock_func(char *fn_name, struct expression_list *args)
+static char *match_func(const char *list[], char *fn_name,
+			struct expression_list *args)
 {
 	struct expression *lock_expr;
 	int i;
 
-	for (i = 0; lock_funcs[i]; i++) {
-		if (!strcmp(fn_name, lock_funcs[i])) {
+	for (i = 0; list[i]; i++) {
+		if (!strcmp(fn_name, list[i])) {
 			lock_expr = get_argument_from_call_expr(args, 0);
 			return get_variable_from_expr(lock_expr, NULL);
 		}
 	}
+	return NULL;
+}
+
+static char kernel[] = "kernel";
+static char *match_lock_func(char *fn_name, struct expression_list *args)
+{
+	char *arg;
+
+	arg = match_func(lock_funcs, fn_name, args);
+	if (arg)
+		return arg;
 	if (!strcmp(fn_name, "lock_kernel"))
 		return kernel;
 	return NULL;
@@ -118,31 +137,13 @@ static char *match_lock_func(char *fn_name, struct expression_list *args)
 
 static char *match_unlock_func(char *fn_name, struct expression_list *args)
 {
-	struct expression *lock_expr;
-	int i;
+	char *arg;
 
-	for (i = 0; unlock_funcs[i]; i++) {
-		if (!strcmp(fn_name, unlock_funcs[i])) {
-			lock_expr = get_argument_from_call_expr(args, 0);
-			return get_variable_from_expr(lock_expr, NULL);
-		}
-	}
+	arg = match_func(unlock_funcs, fn_name, args);
+	if (arg)
+		return arg;
 	if (!strcmp(fn_name, "unlock_kernel"))
 		return kernel;
-	return NULL;
-}
-
-static char *match_conditional_func(char *fn_name, struct expression_list *args)
-{
-	struct expression *lock_expr;
-	int i;
-
-	for (i = 0; conditional_funcs[i]; i++) {
-		if (!strcmp(fn_name, conditional_funcs[i])) {
-			lock_expr = get_argument_from_call_expr(args, 0);
-			return get_variable_from_expr(lock_expr, NULL);
-		}
-	}
 	return NULL;
 }
 
@@ -205,10 +206,15 @@ static void match_condition(struct expression *expr)
 	if (!fn_name)
 		return;
 
-	if ((lock_name = match_conditional_func(fn_name, expr->args))) {
+	if ((lock_name = match_func(conditional_funcs, fn_name, expr->args))) {
 		if (!get_state(lock_name, my_id, NULL))
 			add_tracker(&starts_unlocked, lock_name, my_id, NULL);
 		set_true_false_states(lock_name, my_id, NULL, &locked, &unlocked);
+	}
+	if ((lock_name = match_func(reverse_cond_funcs, fn_name, expr->args))) {
+		if (!get_state(lock_name, my_id, NULL))
+			add_tracker(&starts_unlocked, lock_name, my_id, NULL);
+		set_true_false_states(lock_name, my_id, NULL, &unlocked, &locked);
 	}
 	free_string(fn_name);
 	return;
