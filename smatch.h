@@ -96,6 +96,7 @@ int sym_name_is(const char *name, struct expression *expr);
 int get_value(struct expression *expr);
 int is_zero(struct expression *expr);
 const char *show_state(struct smatch_state *state);
+struct statement *get_block_thing(struct expression *expr);
 struct expression *strip_expr(struct expression *expr);
 
 /* smatch_ignore.c */
@@ -128,6 +129,7 @@ int in_condition();
 
 void smatch (int argc, char **argv);
 void __split_expr(struct expression *expr);
+void __split_statements(struct statement *stmt);
 
 /* smatch_conditions */
 void __split_whole_condition(struct expression *expr);

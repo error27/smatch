@@ -349,6 +349,21 @@ const char *show_state(struct smatch_state *state)
 	return state->name;
 }
 
+struct statement *get_block_thing(struct expression *expr)
+{
+	/* What are those things called? if (({....; ret;})) { ...*/
+
+	if (expr->type != EXPR_PREOP)
+		return NULL;
+	if (expr->op != '(')
+		return NULL;
+	if (expr->unop->type != EXPR_STATEMENT)
+		return NULL;
+	if (expr->unop->statement->type != STMT_COMPOUND)
+		return NULL;
+	return expr->unop->statement;
+}
+
 struct expression *strip_expr(struct expression *expr)
 {
 	if (!expr)
@@ -358,6 +373,9 @@ struct expression *strip_expr(struct expression *expr)
 	case EXPR_CAST:
 		return strip_expr(expr->cast_expression);
 	case EXPR_PREOP:
+		if (expr->op == '(' && expr->unop->type == EXPR_STATEMENT &&
+			expr->unop->statement->type == STMT_COMPOUND)
+			return expr;
 		if (expr->op == '(')
 			return strip_expr(expr->unop);
 	}

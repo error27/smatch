@@ -206,21 +206,6 @@ static int do_comparison(struct expression *expr)
 	return ret;
 }
 
-struct statement *get_block_thing(struct expression *expr)
-{
-	/* What are those things called? if (({....; ret;})) { ...*/
-
-	if (expr->type != EXPR_PREOP)
-		return NULL;
-	if (expr->op != '(')
-		return NULL;
-	if (expr->unop->type != EXPR_STATEMENT)
-		return NULL;
-	if (expr->unop->statement->type != STMT_COMPOUND)
-		return NULL;
-	return expr->unop->statement;
-}
-
 int last_stmt_val(struct statement *stmt)
 {
 	struct expression *expr;
@@ -237,20 +222,19 @@ int known_condition_true(struct expression *expr)
 	if (!expr)
 		return 0;
 
+	expr = strip_expr(expr);
+
 	switch(expr->type) {
 	case EXPR_COMPARE:
 		if (do_comparison(expr) == 1)
 			return 1;
+		break;
 	case EXPR_PREOP: {
 		struct statement *stmt;
-		struct expression *tmp;
 
 		stmt = get_block_thing(expr);
 		if (stmt && (last_stmt_val(stmt) == 1))
 			return 1;
-		tmp = strip_expr(expr);
-		if (tmp != expr)
-			return known_condition_true(tmp);
 		break;
 	}
 	}

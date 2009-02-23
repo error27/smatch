@@ -22,7 +22,6 @@ char *get_function() { return cur_func; }
 int get_lineno() { return __smatch_lineno; }
 int get_func_pos() { return __smatch_lineno - line_func_start; }
 
-static void split_statements(struct statement *stmt);
 static void split_symlist(struct symbol_list *sym_list);
 static void split_expr_list(struct expression_list *expr_list);
 
@@ -43,7 +42,7 @@ void __split_expr(struct expression *expr)
 		__split_expr(expr->unop);
 		return;
 	case EXPR_STATEMENT:
-		split_statements(expr->statement);
+		__split_statements(expr->statement);
 		return;
 	case EXPR_LOGICAL:
 		__split_whole_condition(expr);
@@ -144,7 +143,7 @@ static void handle_pre_loop(struct statement *stmt)
 {
 	int once_through; /* we go through the loop at least once */
 
-	split_statements(stmt->iterator_pre_statement);
+	__split_statements(stmt->iterator_pre_statement);
 
 	once_through = known_condition_true(stmt->iterator_pre_condition);
 
@@ -153,7 +152,7 @@ static void handle_pre_loop(struct statement *stmt)
 
 	__split_whole_condition(stmt->iterator_pre_condition);
 
-	split_statements(stmt->iterator_statement);
+	__split_statements(stmt->iterator_statement);
 	if (is_forever_loop(stmt)) {
 		__pop_false_only_stack();
 		/* forever loops don't have an iterator_post_statement */
@@ -162,13 +161,13 @@ static void handle_pre_loop(struct statement *stmt)
 		__use_breaks();
 	} else if (once_through) {
 		__merge_continues();
-		split_statements(stmt->iterator_post_statement);
+		__split_statements(stmt->iterator_post_statement);
 		__pop_false_states();
 		__use_false_only_stack();
 		__merge_breaks();
 	} else {
 		__merge_continues();
-		split_statements(stmt->iterator_post_statement);
+		__split_statements(stmt->iterator_post_statement);
 		__merge_false_states();
 		__use_false_only_stack();
 		__merge_breaks();
@@ -182,7 +181,7 @@ static void handle_post_loop(struct statement *stmt)
 {
 	__push_continues();
 	__push_breaks();
-	split_statements(stmt->iterator_statement);
+	__split_statements(stmt->iterator_statement);
 	if (is_forever_loop(stmt)) {
 		__pop_continues();
 		__use_breaks();
@@ -221,7 +220,7 @@ static void print_unreached(struct statement *stmt)
 	}
 }
 
-static void split_statements(struct statement *stmt)
+void __split_statements(struct statement *stmt)
 {
 	if (!stmt)
 		return;
@@ -246,16 +245,16 @@ static void split_statements(struct statement *stmt)
 	case STMT_COMPOUND: {
 		struct statement *s;
 		FOR_EACH_PTR(stmt->stmts, s) {
-			split_statements(s);
+			__split_statements(s);
 		} END_FOR_EACH_PTR(s);
 		return;
 	}
 	case STMT_IF:
 		__split_whole_condition(stmt->if_conditional);
-		split_statements(stmt->if_true);
+		__split_statements(stmt->if_true);
 		__push_true_states();
 		__use_false_states();
-		split_statements(stmt->if_false);
+		__split_statements(stmt->if_false);
 		__merge_true_states();
 		__pop_false_only_stack();
 		return;
@@ -274,7 +273,7 @@ static void split_statements(struct statement *stmt)
 		__save_switch_states();
 		__push_default();
 		__push_breaks();
-		split_statements(stmt->switch_statement);
+		__split_statements(stmt->switch_statement);
 		if (!__pop_default())
 			__merge_switches();
 		__pop_switches();
@@ -286,7 +285,7 @@ static void split_statements(struct statement *stmt)
 			__set_default();
 		__split_expr(stmt->case_expression);
 		__split_expr(stmt->case_to);
-		split_statements(stmt->case_statement);
+		__split_statements(stmt->case_statement);
 		return;
 	case STMT_LABEL:
 		if (stmt->label && 
@@ -294,7 +293,7 @@ static void split_statements(struct statement *stmt)
 		    stmt->label->ident) {
 			__merge_gotos(stmt->label->ident->name);
 		}
-		split_statements(stmt->label_statement);
+		__split_statements(stmt->label_statement);
 		return;
 	case STMT_GOTO:
 		__split_expr(stmt->goto_expression);
@@ -347,11 +346,11 @@ static void split_sym(struct symbol *sym)
 		return;
 
 	__pass_to_client(sym, SYM_HOOK);
-	split_statements(sym->stmt);
+	__split_statements(sym->stmt);
 	__split_expr(sym->array_size);
 	split_symlist(sym->arguments);
 	split_symlist(sym->symbol_list);
-	split_statements(sym->inline_stmt);
+	__split_statements(sym->inline_stmt);
 	split_symlist(sym->inline_symbol_list);
 	__split_expr(sym->initializer);
 }
@@ -381,7 +380,7 @@ static void split_functions(struct symbol_list *sym_list)
 			SM_DEBUG("new function:  %s\n", cur_func);
 			__unnullify_path();
 			__pass_to_client(sym, FUNC_DEF_HOOK);
-			split_statements(base_type->stmt);
+			__split_statements(base_type->stmt);
 			__pass_to_client(sym, END_FUNC_HOOK);
 			cur_func = NULL;
 			line_func_start = 0;

@@ -102,11 +102,38 @@ static int ignore_builtin_expect(struct expression *expr)
 	return 0;
 }
 
+static void handle_compound_stmt(struct statement *stmt)
+{
+	struct expression *expr = NULL;
+	struct statement *last;
+	struct statement *s;
+
+	last = last_ptr_list((struct ptr_list *)stmt->stmts);
+	if (last->type != STMT_EXPRESSION) {
+		last = NULL;
+        } else { 
+		expr = last->expression;
+	}
+	FOR_EACH_PTR(stmt->stmts, s) {
+		if (s != last)
+			__split_statements(s);
+	} END_FOR_EACH_PTR(s);
+	split_conditions(expr);
+	return;
+}
+
 static int handle_preop(struct expression *expr)
 {
+	struct statement *stmt;
+
 	if (expr->op == '!') {
 		split_conditions(expr->unop);
 		__negate_cond_stacks();
+		return 1;
+	}
+	stmt = get_block_thing(expr);
+	if (stmt) {
+		handle_compound_stmt(stmt);
 		return 1;
 	}
 	return 0;
