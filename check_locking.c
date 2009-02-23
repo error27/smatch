@@ -218,6 +218,22 @@ static struct locks_on_return *alloc_return(int line)
 	return ret;
 }
 
+static void check_possible(struct sm_state *sm)
+{
+	struct sm_state *tmp;
+	int islocked = 0;
+	int isunlocked = 0;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (tmp->state == &locked)
+			islocked = 1;
+		else if (tmp->state == &unlocked)
+			isunlocked = 1;
+	} END_FOR_EACH_PTR(tmp);
+	if (islocked && isunlocked)
+		smatch_msg("Unclear if '%s' is locked or unlocked.", tmp->name);
+}
+
 static void match_return(struct statement *stmt)
 {
 	struct locks_on_return *ret;
@@ -235,8 +251,7 @@ static void match_return(struct statement *stmt)
 			add_tracker(&ret->unlocked, tmp->name, tmp->owner,
 				tmp->sym);
 		} else {
-			smatch_msg("Unclear if '%s' is locked or unlocked.",
-				tmp->name);
+			check_possible(tmp);
 		}
 	} END_FOR_EACH_PTR(tmp);
 	add_ptr_list(&all_returns, ret);
