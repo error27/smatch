@@ -230,14 +230,17 @@ static void check_possible(struct sm_state *sm)
 	struct sm_state *tmp;
 	int islocked = 0;
 	int isunlocked = 0;
+	int undef = 0;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (tmp->state == &locked)
 			islocked = 1;
 		else if (tmp->state == &unlocked)
 			isunlocked = 1;
+		else if (tmp->state == &undefined)
+			undef = 1;
 	} END_FOR_EACH_PTR(tmp);
-	if (islocked && isunlocked)
+	if (islocked && (isunlocked || undef))
 		smatch_msg("Unclear if '%s' is locked or unlocked.", tmp->name);
 }
 
