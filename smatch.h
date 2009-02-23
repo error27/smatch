@@ -151,7 +151,7 @@ void __unnullify_path();
 int __path_is_null();
 void clear_all_states();
 
-struct sm_state *__get_sm_state(const char *name, int owner,
+struct sm_state *get_sm_state(const char *name, int owner,
 				struct symbol *sym);
 void __use_false_only_stack();
 void __pop_false_only_stack();

@@ -95,7 +95,7 @@ void __implied_states_hook(struct expression *expr)
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
 		return;
-	state = __get_sm_state(name, SMATCH_EXTRA, sym);
+	state = get_sm_state(name, SMATCH_EXTRA, sym);
 	if (!state)
 		return;
 	if (!state->pools)
