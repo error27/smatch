@@ -219,11 +219,16 @@ int last_stmt_val(struct statement *stmt)
 
 int known_condition_true(struct expression *expr)
 {
+	int tmp;
+
 	if (!expr)
 		return 0;
 
+	tmp = get_value(expr);
+	if (tmp && tmp != UNDEFINED)
+		return 1;
+	
 	expr = strip_expr(expr);
-
 	switch(expr->type) {
 	case EXPR_COMPARE:
 		if (do_comparison(expr) == 1)
