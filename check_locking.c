@@ -179,14 +179,14 @@ static void match_call(struct expression *expr)
 		if (!sm)
 			add_tracker(&starts_unlocked, lock_name, my_id, NULL);
 		if (sm && slist_has_state(sm->possible, &locked))
-			smatch_msg("double lock.");
+			smatch_msg("double lock '%s'", lock_name);
 		set_state(lock_name, my_id, NULL, &locked);
 	} else if ((lock_name = match_unlock_func(fn_name, expr->args))) {
 		sm = get_sm_state(lock_name, my_id, NULL);
 		if (!sm)
 			add_tracker(&starts_locked, lock_name, my_id, NULL);
 		if (sm && slist_has_state(sm->possible, &unlocked))
-			smatch_msg("double unlock.");
+			smatch_msg("double unlock '%s'", lock_name);
 		set_state(lock_name, my_id, NULL, &unlocked);
 	} else
 		check_locks_needed(fn_name);
