@@ -549,6 +549,8 @@ struct state_list *clone_states_in_pool(struct state_list *pool,
 	struct state_list *to_slist = NULL;
 
 	FOR_EACH_PTR(pool, state) {
+		if (state->state == &merged)
+			continue;
 		if (is_currently_in_pool(state, pool, cur_slist)) {
 			tmp = clone_state(state);
 			add_ptr_list(&to_slist, tmp);
@@ -590,7 +592,8 @@ void filter(struct state_list **slist, struct state_list *filter,
 			/* todo.  pointer comparison works fine for most things
 			   except smatch_extra.  we may need a hook here. */
 			if (s_one->state == s_two->state && 
-				is_currently_in_pool(s_two, filter, cur_slist)) {
+				is_currently_in_pool(s_two, filter, cur_slist)
+				&& s_one->state != &merged) {
 				add_ptr_list(&results, s_one);
 			}
 			NEXT_PTR_LIST(s_one);
