@@ -232,6 +232,39 @@ struct smatch_state *merge_states(const char *name, int owner,
 	return ret;
 }
 
+/*
+ * add_pool() adds a slist to ->pools. If the slist has already been
+ * added earlier then it doesn't get added a second time.
+ */
+static void add_pool(struct sm_state *to, struct state_list *new)
+{
+	struct state_list *tmp;
+
+	FOR_EACH_PTR(to->pools, tmp) {
+		if (tmp < new)
+			continue;
+		else if (tmp == new) {
+			return;
+		} else {
+			INSERT_CURRENT(new, tmp);
+			return;
+		}
+	} END_FOR_EACH_PTR(tmp);
+	add_ptr_list(&to->pools, new);
+}
+
+static void copy_pools(struct sm_state *to, struct sm_state *sm)
+{
+	struct state_list *tmp;
+
+	if (!sm)
+		return;
+
+ 	FOR_EACH_PTR(sm->pools, tmp) {
+		add_pool(to, tmp);
+	} END_FOR_EACH_PTR(tmp);
+}
+
 struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 {
 	struct smatch_state *s;
@@ -242,6 +275,8 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	result = alloc_state(one->name, one->owner, one->sym, s);
 	add_possible(result, one);
 	add_possible(result, two);
+	copy_pools(result, one);
+	copy_pools(result, two);
 
 	if (debug_states) {
 		struct sm_state *tmp;
@@ -415,36 +450,6 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack,
 }
 
 /*
- * add_pool() adds a slist to ->pools. If the slist has already been
- * added earlier then it doesn't get added a second time.
- */
-static void add_pool(struct sm_state *to, struct state_list *new)
-{
-	struct state_list *tmp;
-
-	FOR_EACH_PTR(to->pools, tmp) {
-		if (tmp < new)
-			continue;
-		else if (tmp == new) {
-			return;
-		} else {
-			INSERT_CURRENT(new, tmp);
-			return;
-		}
-	} END_FOR_EACH_PTR(tmp);
-	add_ptr_list(&to->pools, new);
-}
-
-static void copy_pools(struct sm_state *to, struct sm_state *sm)
-{
-	struct state_list *tmp;
-
- 	FOR_EACH_PTR(sm->pools, tmp) {
-		add_pool(to, tmp);
-	} END_FOR_EACH_PTR(tmp);
-}
-
-/*
  * merge_slist() is called whenever paths merge, such as after
  * an if statement.  It takes the two slists and creates one.
  */
@@ -469,6 +474,9 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 		return;
 	}
 
+	implied_to = clone_slist(*to);
+	implied_from = clone_slist(slist);
+
 	PREPARE_PTR_LIST(*to, to_state);
 	PREPARE_PTR_LIST(slist, state);
 	for (;;) {
@@ -476,39 +484,19 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			break;
 		if (cmp_tracker(to_state, state) < 0) {
 			tmp = merge_sm_states(to_state, NULL);
-
-			copy_pools(tmp, to_state);
-
-			add_ptr_list(&implied_to, to_state);
 			add_pool(tmp, implied_to);
-
 			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_tracker(to_state, state) == 0) {
-			if (to_state->state == state->state) {
-				tmp = merge_sm_states(to_state, state);
-			} else {
-				tmp = merge_sm_states(to_state, state);
-
-				copy_pools(tmp, to_state);
-				copy_pools(tmp, state);
-
-				add_ptr_list(&implied_to, to_state);
-				add_pool(tmp, implied_to);
-				add_ptr_list(&implied_from, state);
-				add_pool(tmp, implied_from);
-			}
+			tmp = merge_sm_states(to_state, state);
+			add_pool(tmp, implied_to);
+			add_pool(tmp, implied_from);
 			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(to_state);
 			NEXT_PTR_LIST(state);
 		} else {
 			tmp = merge_sm_states(state, NULL);
-
-			copy_pools(tmp, state);
-
-			add_ptr_list(&implied_from, state);
 			add_pool(tmp, implied_from);
-
 			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(state);
 		}
@@ -519,10 +507,8 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 	del_slist(to);
 	*to = results;
 
-	if (implied_from)
-		push_slist(&implied_pools, implied_from);
-	if (implied_to)
-		push_slist(&implied_pools, implied_to);
+	push_slist(&implied_pools, implied_from);
+	push_slist(&implied_pools, implied_to);
 }
 
 /*
