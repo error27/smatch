@@ -27,6 +27,7 @@ extern struct state_list_stack *implied_pools;
 
 void __print_slist(struct state_list *slist);
 void add_history(struct sm_state *state);
+int cmp_tracker(const struct sm_state *a, const struct sm_state *b);
 struct sm_state *alloc_state(const char *name, int owner, 
 			     struct symbol *sym, 
 			     struct smatch_state *state);

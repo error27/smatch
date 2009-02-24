@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "smatch.h"
-#include "smatch.h"
 #include "smatch_slist.h"
 
 #undef CHECKORDER
@@ -43,7 +42,7 @@ void add_history(struct sm_state *state)
 
 
 /* NULL states go at the end to simplify merge_slist */
-static int cmp_tracker(const struct sm_state *a, const struct sm_state *b)
+int cmp_tracker(const struct sm_state *a, const struct sm_state *b)
 {
 	int ret;
 
