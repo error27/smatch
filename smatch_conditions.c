@@ -158,11 +158,8 @@ static void handle_logical(struct expression *expr)
 
 	split_conditions(expr->left);
 
-	if (is_logical_and(expr)) {
-		__use_cond_true_states();
-	} else {
+	if (!is_logical_and(expr)) 
 		__use_cond_false_states();
-	}
 	
 	__save_pre_cond_states();
 	__push_cond_stacks();
@@ -194,7 +191,6 @@ static void handle_select(struct expression *expr)
 	split_conditions(expr->conditional);
 
 	__save_false_states_for_later();
-	__use_cond_true_states();
 
 	if (known_condition_true(expr->cond_true)) {
 		__split_expr(expr->cond_true);
@@ -206,7 +202,6 @@ static void handle_select(struct expression *expr)
 
 	if (known_condition_false(expr->cond_false)) {
 		__pop_pre_cond_states();
-		__use_cond_true_states();
 		return;
 	}
 
