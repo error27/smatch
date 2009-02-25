@@ -81,8 +81,38 @@ static struct state_list *get_eq_neq_filtered(struct sm_state *sm_state,
 }
 
 /*
- * This condition hook is very connected to smatch_extra.c.
+ * We have to check that we have both a true and false state and that the
+ * two are different.  Otherwise compound conditions end up giving &undefined
+ * a lot.
  */
+void harmonize_states(struct state_list **imp_true, struct state_list **imp_false)
+{
+	struct sm_state *sm_true;
+	struct sm_state *sm_false;
+
+	PREPARE_PTR_LIST(*imp_true, sm_true);
+	PREPARE_PTR_LIST(*imp_false, sm_false);
+	for (;;) {
+		if (!sm_true && !sm_false)
+			break;
+		if (cmp_tracker(sm_true, sm_false) < 0) {
+			DELETE_CURRENT_PTR(sm_true);
+			NEXT_PTR_LIST(sm_true);
+		} else if (cmp_tracker(sm_true, sm_false) == 0) {
+			if (sm_true->state == sm_false->state) {
+				DELETE_CURRENT_PTR(sm_true);
+				DELETE_CURRENT_PTR(sm_false);
+			}
+			NEXT_PTR_LIST(sm_true);
+			NEXT_PTR_LIST(sm_false);
+		} else {
+			DELETE_CURRENT_PTR(sm_false);
+			NEXT_PTR_LIST(sm_false);
+		}
+	}
+	FINISH_PTR_LIST(sm_false);
+	FINISH_PTR_LIST(sm_true);
+}
 
 void __implied_states_hook(struct expression *expr)
 {
@@ -102,6 +132,7 @@ void __implied_states_hook(struct expression *expr)
 		return;
 	implied_true = get_eq_neq_filtered(state, NOTEQUALS, 0);
 	implied_false = get_eq_neq_filtered(state, EQUALS, 0);
+	harmonize_states(&implied_true, &implied_false);
 	if (debug_states) {
 		printf("Setting the following implied states for the true path.\n");
 		__print_slist(implied_true);
