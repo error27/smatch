@@ -201,6 +201,7 @@ static void handle_select(struct expression *expr)
 	}
 
 	if (known_condition_false(expr->cond_false)) {
+		__split_expr(expr->cond_false);
 		__pop_pre_cond_states();
 		return;
 	}
