@@ -556,9 +556,6 @@ struct state_list *clone_states_in_pool(struct state_list *pool,
 			add_ptr_list(&to_slist, tmp);
 		}
 	} END_FOR_EACH_PTR(state);
-#ifdef CHECKORDER
-	check_order(to_slist);
-#endif
 	return to_slist;
 }
 
