@@ -533,6 +533,14 @@ static int is_currently_in_pool(struct sm_state *sm, struct state_list *pool,
 	cur_state = get_sm_state_slist(cur_slist, sm->name, sm->owner, sm->sym);
 	if (!cur_state)
 		return 0;
+	
+	/* if it's the current state return false because then it's the state
+	   itself, not the state in the pool.  */
+	/* fixme:  The above confusing comment is a load of rubbish.  
+	   this doesn't belong here, it belongs somewhere else. */
+	if (sm->state == cur_state->state)
+		return 0;
+
 
 	FOR_EACH_PTR(cur_state->pools, tmp) {
 		if (tmp == pool)
