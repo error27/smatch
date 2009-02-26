@@ -449,6 +449,42 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack,
 }
 
 /*
+ * We want to find which states have been modified inside a branch.
+ * If you have 2 &merged states they could be different states really 
+ * and maybe one or both were modified.  We say it is unchanged if
+ * the ->state pointers are the same and they belong to the same pools.
+ * If they have been modified on both sides of a branch to the same thing,
+ * it's still OK to say they are the same, because that means they won't
+ * belong to any pools.
+ */
+static int is_really_same(struct sm_state *one, struct sm_state *two)
+{
+	struct state_list *tmp1;
+	struct state_list *tmp2;
+
+	if (one->state != two->state)
+		return 0;
+
+	PREPARE_PTR_LIST(one->pools, tmp1);
+	PREPARE_PTR_LIST(two->pools, tmp2);
+	for (;;) {
+		if (!tmp1 && !tmp2)
+			return 1;
+		if (tmp1 < tmp2) {
+			return 0;
+		} else if (tmp1 == tmp2) {
+			NEXT_PTR_LIST(tmp1);
+			NEXT_PTR_LIST(tmp2);
+		} else {
+			return 0;
+		}
+	}
+	FINISH_PTR_LIST(tmp2);
+	FINISH_PTR_LIST(tmp1);
+	return 1;
+}
+
+/*
  * merge_slist() is called whenever paths merge, such as after
  * an if statement.  It takes the two slists and creates one.
  */
@@ -488,8 +524,10 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_tracker(to_state, state) == 0) {
 			tmp = merge_sm_states(to_state, state);
-			add_pool(tmp, implied_to);
-			add_pool(tmp, implied_from);
+			if (!is_really_same(to_state, state)) {
+				add_pool(tmp, implied_to);
+				add_pool(tmp, implied_from);
+			}
 			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(to_state);
 			NEXT_PTR_LIST(state);
