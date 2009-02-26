@@ -55,35 +55,47 @@
  * What are the implications if (foo == num) ...
  */
 
-static struct state_list *get_eq_neq_filtered(struct sm_state *sm_state,
+static struct state_list_stack *get_eq_neq(struct sm_state *sm_state,
 					int eq_neq, int num)
 {
 	struct state_list *list;
 	struct smatch_state *s;
-	struct state_list *ret = NULL;
+	struct state_list_stack *ret = NULL;
 
 	FOR_EACH_PTR(sm_state->pools, list) {
 		s = get_state_slist(list, sm_state->name, sm_state->owner,
 				    sm_state->sym);
 		if (s == &undefined) {
-			del_slist(&ret);
+			__free_ptr_list((struct ptr_list **)&ret);	
 			return NULL;
 		}
 		if (s->data && ((eq_neq == EQUALS && *(int *)s->data == num) ||
 				(eq_neq == NOTEQUALS && *(int *)s->data != num))) {
-			if (!ret)
-				ret = clone_states_in_pool(list, __get_cur_slist());
-			else
-				filter(&ret, list, __get_cur_slist());
+			push_slist(&ret, list);
 		}
 	} END_FOR_EACH_PTR(list);
 	return ret;
 }
 
+static struct state_list *filter_stack(struct state_list_stack *stack)
+{
+	struct state_list *tmp;
+	struct state_list *ret = NULL;
+	int i = 0;
+
+	FOR_EACH_PTR(stack, tmp) {
+		if (!i++)
+			ret = clone_states_in_pool(tmp, __get_cur_slist());
+		else
+			filter(&ret, tmp, __get_cur_slist());
+	} END_FOR_EACH_PTR(tmp);
+	return ret;
+}
+
 /*
- * We have to check that we have both a true and false state and that the
- * two are different.  Otherwise compound conditions end up giving &undefined
- * a lot.
+ * Make sure that the implied true and implied false states are different.
+ * No need to set the states if they're just going to be the same on both
+ * sides.
  */
 void harmonize_states(struct state_list **imp_true, struct state_list **imp_false)
 {
@@ -96,7 +108,6 @@ void harmonize_states(struct state_list **imp_true, struct state_list **imp_fals
 		if (!sm_true && !sm_false)
 			break;
 		if (cmp_tracker(sm_true, sm_false) < 0) {
-			DELETE_CURRENT_PTR(sm_true);
 			NEXT_PTR_LIST(sm_true);
 		} else if (cmp_tracker(sm_true, sm_false) == 0) {
 			if (sm_true->state == sm_false->state) {
@@ -106,7 +117,6 @@ void harmonize_states(struct state_list **imp_true, struct state_list **imp_fals
 			NEXT_PTR_LIST(sm_true);
 			NEXT_PTR_LIST(sm_false);
 		} else {
-			DELETE_CURRENT_PTR(sm_false);
 			NEXT_PTR_LIST(sm_false);
 		}
 	}
@@ -119,6 +129,8 @@ void __implied_states_hook(struct expression *expr)
 	struct symbol *sym;
 	char *name;
 	struct sm_state *state;
+	struct state_list_stack *true_pools;
+	struct state_list_stack *false_pools;
 	struct state_list *implied_true;
 	struct state_list *implied_false;
 
@@ -130,8 +142,11 @@ void __implied_states_hook(struct expression *expr)
 		return;
 	if (!state->pools)
 		return;
-	implied_true = get_eq_neq_filtered(state, NOTEQUALS, 0);
-	implied_false = get_eq_neq_filtered(state, EQUALS, 0);
+
+	true_pools = get_eq_neq(state, NOTEQUALS, 0);
+	false_pools = get_eq_neq(state, EQUALS, 0);
+	implied_true = filter_stack(true_pools);
+	implied_false = filter_stack(false_pools);
 	harmonize_states(&implied_true, &implied_false);
 	if (debug_states) {
 		printf("Setting the following implied states for the true path.\n");
