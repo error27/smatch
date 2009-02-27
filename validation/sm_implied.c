@@ -20,3 +20,11 @@ x:
 	aa->a = 1;
 	return;
 }
+/*
+ * check-name: Smatch implied #1
+ * check-command: smatch sm_implied.c
+ *
+ * check-output-start
+sm_implied.c +20 func(12) Dereferencing Undefined:  'aa'
+ * check-output-end
+ */
