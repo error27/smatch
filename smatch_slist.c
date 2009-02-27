@@ -678,16 +678,10 @@ void and_slist_stack(struct state_list_stack **slist_stack)
 		tmp_state = get_state_stack(*slist_stack, tmp->name,
 					    tmp->owner, tmp->sym);
 		if (tmp_state && tmp_state != tmp->state) {
-			struct smatch_state *s;
-
-			s = merge_states(tmp->name, tmp->owner, tmp->sym,
-					tmp->state, tmp_state);
 			smatch_msg("mutually exclusive 'and' conditions states "
-				"'%s': %s + %s => %s",
+				"'%s': %s + %s",
 				tmp->name, show_state(tmp_state),
-				show_state(tmp->state), show_state(s));
-			tmp->state = s;
-
+				show_state(tmp->state));
 		}
 		set_state_stack(slist_stack, tmp->name, tmp->owner, tmp->sym,
 				tmp->state);
