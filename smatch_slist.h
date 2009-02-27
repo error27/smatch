@@ -3,16 +3,6 @@ struct state_history {
 };
 DECLARE_PTR_LIST(history_list, struct state_history);
 
-struct sm_state {
-        char *name;
-	unsigned int owner;
-	struct symbol *sym;
-  	struct smatch_state *state;
-	struct history_list *line_history;
-	struct state_list_stack *pools;
-	struct state_list *possible;
-};
-
 DECLARE_ALLOCATOR(sm_state);
 DECLARE_PTR_LIST(state_list, struct sm_state);
 DECLARE_PTR_LIST(state_list_stack, struct state_list);
@@ -48,6 +38,9 @@ struct smatch_state *get_state_slist(struct state_list *slist, const char *name,
 struct sm_state *get_sm_state_slist(struct state_list *slist, const char *name, int owner,
 		    struct symbol *sym);
 
+void overwrite_sm_state(struct state_list **slist, struct sm_state *state);
+void overwrite_sm_state_stack(struct state_list_stack **stack,
+			struct sm_state *state);
 void set_state_slist(struct state_list **slist, const char *name, int owner,
 		     struct symbol *sym, struct smatch_state *state);
 

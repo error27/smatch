@@ -326,8 +326,7 @@ struct smatch_state *get_state_slist(struct state_list *slist,
 	return NULL;
 }
 
-static void overwrite_sm_state(struct state_list **slist,
-			       struct sm_state *state)
+void overwrite_sm_state(struct state_list **slist, struct sm_state *state)
 {
  	struct sm_state *tmp;
 	struct sm_state *new = clone_state(state); //fixme. why?
@@ -347,6 +346,16 @@ static void overwrite_sm_state(struct state_list **slist,
 		}
 	} END_FOR_EACH_PTR(tmp);
 	add_ptr_list(slist, new);
+}
+
+void overwrite_sm_state_stack(struct state_list_stack **stack,
+			struct sm_state *state)
+{
+	struct state_list *slist;
+
+	slist = pop_slist(stack);
+	overwrite_sm_state(&slist, state);
+	push_slist(stack, slist);
 }
 
 void set_state_slist(struct state_list **slist, const char *name, int owner,

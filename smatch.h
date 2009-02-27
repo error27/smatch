@@ -29,6 +29,16 @@ extern struct smatch_state merged;
 extern struct smatch_state true_state;
 extern struct smatch_state false_state;
 
+struct sm_state {
+        char *name;
+	unsigned int owner;
+	struct symbol *sym;
+  	struct smatch_state *state;
+	struct history_list *line_history;
+	struct state_list_stack *pools;
+	struct state_list *possible;
+};
+
 enum hook_type {
 	EXPR_HOOK,
 	STMT_HOOK,
@@ -146,6 +156,8 @@ int known_condition_false(struct expression *expr);
 extern int debug_states;
 
 struct state_list *__get_cur_slist();
+void __set_true_false_sm(struct sm_state *true_state, 
+			struct sm_state *false_state);
 void nullify_path();	   
 void __unnullify_path();	   
 int __path_is_null();

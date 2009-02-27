@@ -181,6 +181,25 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 		set_state_stack(&cond_false_stack, name, owner, sym, false_state);
 }
 
+void __set_true_false_sm(struct sm_state *true_state, 
+			struct sm_state *false_state)
+{
+	if (unreachable())
+		return;
+
+	if (!cond_false_stack || !cond_true_stack) {
+		printf("Error:  missing true/false stacks\n");
+		return;
+	}
+
+	if (true_state) {
+		overwrite_sm_state(&cur_slist, true_state);
+		overwrite_sm_state_stack(&cond_true_stack, true_state);
+	}
+	if (false_state)
+		overwrite_sm_state_stack(&cond_false_stack, false_state);
+}
+
 void nullify_path()
 {
 	del_slist(&cur_slist);
