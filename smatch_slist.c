@@ -557,39 +557,12 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 	push_slist(&implied_pools, implied_to);
 }
 
-/*
- * is_currently_in_pool() is used because we remove states from pools.
- * When set_state() is called then we set ->pools to NULL, but on 
- * other paths the state is still a member of those pools.
- * Confusing huh?
- * if (foo) {
- *        bar = 1;
- *        a = malloc();
- * }
- * if (!a)
- *        return;
- * if (bar)
- *        a->b = x;
- */
-static int is_currently_in_pool(struct sm_state *sm, struct state_list *pool,
-			struct state_list *cur_slist)
+static int pool_in_pools(struct state_list_stack *pools,
+			struct state_list *pool)
 {
-	struct sm_state *cur_state;
 	struct state_list *tmp;
-	
-	cur_state = get_sm_state_slist(cur_slist, sm->name, sm->owner, sm->sym);
-	if (!cur_state)
-		return 0;
-	
-	/* if it's the current state return false because then it's the state
-	   itself, not the state in the pool.  */
-	/* fixme:  The above confusing comment is a load of rubbish.  
-	   this doesn't belong here, it belongs somewhere else. */
-	if (sm->state == cur_state->state)
-		return 0;
 
-
-	FOR_EACH_PTR(cur_state->pools, tmp) {
+	FOR_EACH_PTR(pools, tmp) {
 		if (tmp == pool)
 			return 1;
 	} END_FOR_EACH_PTR(tmp);
@@ -600,18 +573,44 @@ struct state_list *clone_states_in_pool(struct state_list *pool,
 				struct state_list *cur_slist)
 {
 	struct sm_state *state;
+	struct sm_state *cur_state;
 	struct sm_state *tmp;
 	struct state_list *to_slist = NULL;
 
 	FOR_EACH_PTR(pool, state) {
-		if (state->state == &merged)
+		cur_state = get_sm_state_slist(cur_slist, state->name,
+					state->owner, state->sym);
+		if (!cur_state)
 			continue;
-		if (is_currently_in_pool(state, pool, cur_slist)) {
+		if (is_really_same(state, cur_state))
+			continue;
+		if (pool_in_pools(cur_state->pools, pool)) {
 			tmp = clone_state(state);
 			add_ptr_list(&to_slist, tmp);
 		}
 	} END_FOR_EACH_PTR(state);
 	return to_slist;
+}
+
+/*
+ * merge_implied() takes an implied state and another possibly implied state
+ * from another pool.  It checks that the second pool is reachable from 
+ * cur_slist then merges the two states and returns the result.
+ */
+struct sm_state *merge_implied(struct sm_state *one, struct sm_state *two,
+				struct state_list *pool,
+				struct state_list *cur_slist)
+{
+	struct sm_state *cur_state;
+
+	// fixme:  do we not need to check this?
+	cur_state = get_sm_state_slist(cur_slist, two->name, two->owner,
+				two->sym);
+	if (!cur_state)
+		return NULL;  /* this can't actually happen */
+	if (!pool_in_pools(cur_state->pools, pool))
+		return NULL;
+	return merge_sm_states(one, two);
 }
 
 /*
@@ -627,6 +626,7 @@ void filter(struct state_list **slist, struct state_list *filter,
 {
 	struct sm_state *s_one, *s_two;
 	struct state_list *results = NULL;
+	struct sm_state *tmp;
 
 #ifdef CHECKORDER
 	check_order(*slist);
@@ -641,13 +641,9 @@ void filter(struct state_list **slist, struct state_list *filter,
 		if (cmp_tracker(s_one, s_two) < 0) {
 			NEXT_PTR_LIST(s_one);
 		} else if (cmp_tracker(s_one, s_two) == 0) {
-			/* todo.  pointer comparison works fine for most things
-			   except smatch_extra.  we may need a hook here. */
-			if (s_one->state == s_two->state && 
-				is_currently_in_pool(s_two, filter, cur_slist)
-				&& s_one->state != &merged) {
-				add_ptr_list(&results, s_one);
-			}
+			tmp = merge_implied(s_one, s_two, filter, cur_slist);
+			if (tmp)
+				add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(s_one);
 			NEXT_PTR_LIST(s_two);
 		} else {

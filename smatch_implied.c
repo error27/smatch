@@ -122,8 +122,7 @@ void __implied_states_hook(struct expression *expr)
 
 	/* FIXME.  We lose the ->pools by doing this. */
 	FOR_EACH_PTR(implied_true, state) {
-		set_true_false_states(state->name, state->owner, state->sym,
-				state->state, NULL);
+		__set_true_false_sm(state, NULL);
 	} END_FOR_EACH_PTR(state);
 
 	if (debug_states) {
@@ -132,8 +131,7 @@ void __implied_states_hook(struct expression *expr)
 	}
 
 	FOR_EACH_PTR(implied_false, state) {
-		set_true_false_states(state->name, state->owner, state->sym,
-				NULL, state->state);
+		__set_true_false_sm(NULL, state);
 	} END_FOR_EACH_PTR(state);
 
 	free_string(name);
