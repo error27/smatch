@@ -92,38 +92,6 @@ static struct state_list *filter_stack(struct state_list_stack *stack)
 	return ret;
 }
 
-/*
- * Make sure that the implied true and implied false states are different.
- * No need to set the states if they're just going to be the same on both
- * sides.
- */
-void harmonize_states(struct state_list **imp_true, struct state_list **imp_false)
-{
-	struct sm_state *sm_true;
-	struct sm_state *sm_false;
-
-	PREPARE_PTR_LIST(*imp_true, sm_true);
-	PREPARE_PTR_LIST(*imp_false, sm_false);
-	for (;;) {
-		if (!sm_true && !sm_false)
-			break;
-		if (cmp_tracker(sm_true, sm_false) < 0) {
-			NEXT_PTR_LIST(sm_true);
-		} else if (cmp_tracker(sm_true, sm_false) == 0) {
-			if (sm_true->state == sm_false->state) {
-				DELETE_CURRENT_PTR(sm_true);
-				DELETE_CURRENT_PTR(sm_false);
-			}
-			NEXT_PTR_LIST(sm_true);
-			NEXT_PTR_LIST(sm_false);
-		} else {
-			NEXT_PTR_LIST(sm_false);
-		}
-	}
-	FINISH_PTR_LIST(sm_false);
-	FINISH_PTR_LIST(sm_true);
-}
-
 void __implied_states_hook(struct expression *expr)
 {
 	struct symbol *sym;
@@ -147,7 +115,6 @@ void __implied_states_hook(struct expression *expr)
 	false_pools = get_eq_neq(state, EQUALS, 0);
 	implied_true = filter_stack(true_pools);
 	implied_false = filter_stack(false_pools);
-	harmonize_states(&implied_true, &implied_false);
 	if (debug_states) {
 		printf("Setting the following implied states for the true path.\n");
 		__print_slist(implied_true);
