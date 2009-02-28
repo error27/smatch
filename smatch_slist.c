@@ -20,11 +20,20 @@ ALLOCATOR(named_slist, "named slist");
 void __print_slist(struct state_list *slist)
 {
 	struct sm_state *state;
+	struct sm_state *poss;
+	int i;
 
 	printf("dumping slist at %d\n", get_lineno());
 	FOR_EACH_PTR(slist, state) {
-		printf("%d '%s'=%s\n", state->owner, state->name,
+		printf("%d '%s'=%s (", state->owner, state->name,
 			show_state(state->state));
+		i = 0;
+		FOR_EACH_PTR(state->possible, poss) {
+			if (i++)
+				printf(", ");
+			printf("%s", show_state(poss->state));
+		} END_FOR_EACH_PTR(poss);
+		printf(")\n");
 	} END_FOR_EACH_PTR(state);
 	printf("---\n");
 }
