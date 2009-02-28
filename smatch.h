@@ -35,7 +35,8 @@ struct sm_state {
 	struct symbol *sym;
   	struct smatch_state *state;
 	struct history_list *line_history;
-	struct state_list_stack *pools;
+	struct state_list_stack *my_pools;
+	struct state_list_stack *all_pools;
 	struct state_list *possible;
 };
 

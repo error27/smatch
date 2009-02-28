@@ -62,7 +62,7 @@ static struct state_list_stack *get_eq_neq(struct sm_state *sm_state,
 	struct smatch_state *s;
 	struct state_list_stack *ret = NULL;
 
-	FOR_EACH_PTR(sm_state->pools, list) {
+	FOR_EACH_PTR(sm_state->my_pools, list) {
 		s = get_state_slist(list, sm_state->name, sm_state->owner,
 				    sm_state->sym);
 		if (s == &undefined) {
@@ -108,7 +108,7 @@ void __implied_states_hook(struct expression *expr)
 	state = get_sm_state(name, SMATCH_EXTRA, sym);
 	if (!state)
 		return;
-	if (!state->pools)
+	if (!state->my_pools)
 		return;
 
 	true_pools = get_eq_neq(state, NOTEQUALS, 0);
@@ -120,7 +120,6 @@ void __implied_states_hook(struct expression *expr)
 		__print_slist(implied_true);
 	}
 
-	/* FIXME.  We lose the ->pools by doing this. */
 	FOR_EACH_PTR(implied_true, state) {
 		__set_true_false_sm(state, NULL);
 	} END_FOR_EACH_PTR(state);
