@@ -60,7 +60,7 @@ struct state_list *pop_slist(struct state_list_stack **list_stack);
 
 void free_slist(struct state_list **slist);
 
-void del_slist_stack(struct state_list_stack **slist_stack);
+void free_stack_and_slists(struct state_list_stack **slist_stack);
 
 void set_state_stack(struct state_list_stack **stack, const char *name, 
 		     int owner, struct symbol *sym, struct smatch_state *state);

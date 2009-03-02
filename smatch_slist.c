@@ -460,7 +460,7 @@ void free_slist(struct state_list **slist)
 	__free_ptr_list((struct ptr_list **)slist);
 }
 
-void del_slist_stack(struct state_list_stack **slist_stack)
+void free_stack_and_slists(struct state_list_stack **slist_stack)
 {
 	struct state_list *slist;
 	

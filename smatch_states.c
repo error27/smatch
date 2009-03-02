@@ -229,16 +229,16 @@ void clear_all_states()
 	struct named_slist *named_slist;
 
 	nullify_path();
-	del_slist_stack(&true_stack);
-	del_slist_stack(&false_stack);
-	del_slist_stack(&false_only_stack);
-	del_slist_stack(&pre_cond_stack);
-	del_slist_stack(&cond_true_stack);
-	del_slist_stack(&cond_false_stack);
-	del_slist_stack(&break_stack);
-	del_slist_stack(&switch_stack);
-	del_slist_stack(&continue_stack);
-	del_slist_stack(&implied_pools);
+	free_stack_and_slists(&true_stack);
+	free_stack_and_slists(&false_stack);
+	free_stack_and_slists(&false_only_stack);
+	free_stack_and_slists(&pre_cond_stack);
+	free_stack_and_slists(&cond_true_stack);
+	free_stack_and_slists(&cond_false_stack);
+	free_stack_and_slists(&break_stack);
+	free_stack_and_slists(&switch_stack);
+	free_stack_and_slists(&continue_stack);
+	free_stack_and_slists(&implied_pools);
 
 	FOR_EACH_PTR(goto_stack, named_slist) {
 		free_slist(&named_slist->slist);
