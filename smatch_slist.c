@@ -633,7 +633,6 @@ struct sm_state *merge_implied(struct sm_state *one, struct sm_state *two,
 {
 	struct sm_state *cur_state;
 
-	// fixme:  do we not need to check this?
 	cur_state = get_sm_state_slist(cur_slist, two->name, two->owner,
 				two->sym);
 	if (!cur_state)
