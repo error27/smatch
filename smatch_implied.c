@@ -133,6 +133,10 @@ void __implied_states_hook(struct expression *expr)
 		__set_true_false_sm(NULL, state);
 	} END_FOR_EACH_PTR(state);
 
+	free_stack(&true_pools);
+	free_stack(&false_pools);
+	free_slist(&implied_true);
+	free_slist(&implied_false);
 	free_string(name);
 }
 
