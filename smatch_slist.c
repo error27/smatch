@@ -167,15 +167,13 @@ void free_every_single_sm_state()
 struct sm_state *clone_state(struct sm_state *s)
 {
 	struct sm_state *ret;
-	struct sm_state *tmp;
 	struct sm_state *poss;
 
 	ret = alloc_state(s->name, s->owner, s->sym, s->state);
 	ret->my_pools = clone_stack(s->my_pools);
 	ret->all_pools = clone_stack(s->all_pools);
 	FOR_EACH_PTR(s->possible, poss) {
-		tmp = alloc_state(s->name, s->owner, s->sym, poss->state);
-		add_sm_state_slist(&ret->possible, tmp);	
+		add_sm_state_slist(&ret->possible, poss);
 	} END_FOR_EACH_PTR(poss);
 	return ret;
 }
@@ -396,12 +394,7 @@ void set_state_slist(struct state_list **slist, const char *name, int owner,
 		if (cmp_tracker(tmp, new) < 0)
 			continue;
 		else if (cmp_tracker(tmp, new) == 0) {
-			tmp->state = state;
-			tmp->my_pools = NULL;
-			tmp->all_pools = NULL;
-			tmp->possible = NULL;
-			add_ptr_list(&tmp->possible, tmp);
-			__free_sm_state(new);
+			REPLACE_CURRENT_PTR(tmp, new);
 			return;
 		} else {
 			INSERT_CURRENT(new, tmp);
