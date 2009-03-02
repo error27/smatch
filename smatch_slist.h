@@ -58,7 +58,7 @@ void push_slist(struct state_list_stack **list_stack, struct state_list *slist);
 
 struct state_list *pop_slist(struct state_list_stack **list_stack);
 
-void del_slist(struct state_list **slist);
+void free_slist(struct state_list **slist);
 
 void del_slist_stack(struct state_list_stack **slist_stack);
 

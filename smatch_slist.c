@@ -169,7 +169,7 @@ void free_every_single_sm_state()
 		struct allocation_blob *next = blob->next;
 		struct sm_state *sm = (struct sm_state *)blob->data;
 
-		del_slist(&sm->possible);
+		free_slist(&sm->possible);
 		__free_ptr_list((struct ptr_list **)&sm->my_pools);
 		__free_ptr_list((struct ptr_list **)&sm->all_pools);
 		blob_free(blob, desc->chunking);
@@ -455,7 +455,7 @@ struct state_list *pop_slist(struct state_list_stack **list_stack)
 	return slist;
 }
 
-void del_slist(struct state_list **slist)
+void free_slist(struct state_list **slist)
 {
 	__free_ptr_list((struct ptr_list **)slist);
 }
@@ -596,7 +596,7 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 	FINISH_PTR_LIST(state);
 	FINISH_PTR_LIST(to_state);
 
-	del_slist(to);
+	free_slist(to);
 	*to = results;
 
 	push_slist(&implied_pools, implied_from);
@@ -699,7 +699,7 @@ void filter(struct state_list **slist, struct state_list *filter,
 	FINISH_PTR_LIST(s_two);
 	FINISH_PTR_LIST(s_one);
 
-	del_slist(slist);
+	free_slist(slist);
 	*slist = results;
 }
 
@@ -728,7 +728,7 @@ void and_slist_stack(struct state_list_stack **slist_stack)
 		set_state_stack(slist_stack, tmp->name, tmp->owner, tmp->sym,
 				tmp->state);
 	} END_FOR_EACH_PTR(tmp);
-	del_slist(&tmp_slist);
+	free_slist(&tmp_slist);
 }
 
 /* 
@@ -765,8 +765,8 @@ void or_slist_stack(struct state_list_stack **slist_stack)
 
 	push_slist(slist_stack, res);
 
-	del_slist(&one);
-	del_slist(&two);
+	free_slist(&one);
+	free_slist(&two);
 }
 
 /*

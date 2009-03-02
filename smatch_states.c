@@ -202,7 +202,7 @@ void __set_true_false_sm(struct sm_state *true_state,
 
 void nullify_path()
 {
-	del_slist(&cur_slist);
+	free_slist(&cur_slist);
 }
 
 /*
@@ -241,7 +241,7 @@ void clear_all_states()
 	del_slist_stack(&implied_pools);
 
 	FOR_EACH_PTR(goto_stack, named_slist) {
-		del_slist(&named_slist->slist);
+		free_slist(&named_slist->slist);
 	} END_FOR_EACH_PTR(named_slist);
 	__free_ptr_list((struct ptr_list **)&goto_stack);
 	free_every_single_sm_state();
@@ -267,7 +267,7 @@ static void __use_cond_stack(struct state_list_stack **stack)
 {
 	struct state_list *slist;
 	
-	del_slist(&cur_slist);
+	free_slist(&cur_slist);
 
 	cur_slist = pop_slist(&pre_cond_stack);
 	push_slist(&pre_cond_stack, clone_slist(cur_slist));
@@ -296,7 +296,7 @@ void __save_false_states_for_later()
 
 void __use_previously_stored_false_states()
 {
-	del_slist(&cur_slist);
+	free_slist(&cur_slist);
 	cur_slist = pop_slist(&pre_cond_stack);
 }
 
@@ -345,7 +345,7 @@ void __pop_pre_cond_states()
 	struct state_list *tmp;
 	
 	tmp = pop_slist(&pre_cond_stack);
-	del_slist(&tmp);
+	free_slist(&tmp);
 }
 
 void __use_false_only_stack()
@@ -354,7 +354,7 @@ void __use_false_only_stack()
 
 	slist = pop_slist(&false_only_stack);
 	overwrite_slist(slist, &cur_slist);
-	del_slist(&slist);
+	free_slist(&slist);
 }
 
 void __pop_false_only_stack()
@@ -362,7 +362,7 @@ void __pop_false_only_stack()
 	struct state_list *slist;
 
 	slist = pop_slist(&false_only_stack);
-	del_slist(&slist);
+	free_slist(&slist);
 }
 
 void __use_cond_states()
@@ -375,7 +375,7 @@ void __use_cond_states()
 	true_states = pop_slist(&cond_true_stack);
 	overwrite_slist(true_states, &pre);
 	/* we use the true states right away */
-	del_slist(&cur_slist);
+	free_slist(&cur_slist);
 	cur_slist = pre;
 
 
@@ -392,7 +392,7 @@ void __push_true_states()
 
 void __use_false_states()
 {
-	del_slist(&cur_slist);
+	free_slist(&cur_slist);
 	cur_slist = pop_slist(&false_stack);
 }
 
@@ -401,7 +401,7 @@ void __pop_false_states()
 	struct state_list *slist;
 
 	slist = pop_slist(&false_stack);
-	del_slist(&slist);
+	free_slist(&slist);
 }
 
 void __merge_false_states()
@@ -410,7 +410,7 @@ void __merge_false_states()
 
 	slist = pop_slist(&false_stack);
 	merge_slist(&cur_slist, slist);
-	del_slist(&slist);
+	free_slist(&slist);
 }
 
 void __merge_true_states()
@@ -419,7 +419,7 @@ void __merge_true_states()
 
 	slist = pop_slist(&true_stack);
 	merge_slist(&cur_slist, slist);
-	del_slist(&slist);
+	free_slist(&slist);
 }
 
 void __push_continues() 
@@ -432,7 +432,7 @@ void __pop_continues()
 	struct state_list *slist;
 
 	slist = pop_slist(&continue_stack);
-	del_slist(&slist);
+	free_slist(&slist);
 }
 
 void __process_continues()
@@ -454,7 +454,7 @@ void __merge_continues()
 
 	slist = pop_slist(&continue_stack);
 	merge_slist(&cur_slist, slist);
-	del_slist(&slist);
+	free_slist(&slist);
 }
 
 void __push_breaks() 
@@ -481,12 +481,12 @@ void __merge_breaks()
 
 	slist = pop_slist(&break_stack);
 	merge_slist(&cur_slist, slist);
-	del_slist(&slist);
+	free_slist(&slist);
 }
 
 void __use_breaks()
 {
-	del_slist(&cur_slist);
+	free_slist(&cur_slist);
 	cur_slist = pop_slist(&break_stack);
 }
 
@@ -509,7 +509,7 @@ void __pop_switches()
 	struct state_list *slist;
 
 	slist = pop_slist(&switch_stack);
-	del_slist(&slist);
+	free_slist(&slist);
 }
 
 void __push_default()
@@ -528,7 +528,7 @@ int __pop_default()
 
 	slist = pop_slist(&default_stack);
 	if (slist) {
-		del_slist(&slist);
+		free_slist(&slist);
 		return 1;
 	}
 	return 0;
