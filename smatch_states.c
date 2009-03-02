@@ -244,6 +244,7 @@ void clear_all_states()
 		del_slist(&named_slist->slist);
 	} END_FOR_EACH_PTR(named_slist);
 	__free_ptr_list((struct ptr_list **)&goto_stack);
+	free_every_single_sm_state();
 }
 
 

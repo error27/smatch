@@ -119,7 +119,7 @@ void add_sm_state_slist(struct state_list **slist, struct sm_state *new)
 static void add_possible(struct sm_state *sm, struct sm_state *new)
 {
 	struct sm_state *tmp;
-
+	struct sm_state *tmp2;
 
 	if (!new) {
 		struct smatch_state *s;
@@ -129,8 +129,10 @@ static void add_possible(struct sm_state *sm, struct sm_state *new)
 		add_sm_state_slist(&sm->possible, tmp);
 		return;
 	}
+
 	FOR_EACH_PTR(new->possible, tmp) {
-		add_sm_state_slist(&sm->possible, tmp);
+		tmp2 = alloc_state(tmp->name, tmp->owner, tmp->sym, tmp->state);
+		add_sm_state_slist(&sm->possible, tmp2);
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -152,15 +154,43 @@ struct sm_state *alloc_state(const char *name, int owner,
 	return sm_state;
 }
 
+/* At the end of every function we free all the sm_states */
+void free_every_single_sm_state()
+{
+	struct allocator_struct *desc = &sm_state_allocator;
+	struct allocation_blob *blob = desc->blobs;
+
+	desc->blobs = NULL;
+	desc->allocations = 0;
+	desc->total_bytes = 0;
+	desc->useful_bytes = 0;
+	desc->freelist = NULL;
+	while (blob) {
+		struct allocation_blob *next = blob->next;
+		struct sm_state *sm = (struct sm_state *)blob->data;
+
+		del_slist(&sm->possible);
+		__free_ptr_list((struct ptr_list **)&sm->my_pools);
+		__free_ptr_list((struct ptr_list **)&sm->all_pools);
+		blob_free(blob, desc->chunking);
+		blob = next;
+	}
+}
+
 struct sm_state *clone_state(struct sm_state *s)
 {
+	struct sm_state *ret;
 	struct sm_state *tmp;
+	struct sm_state *poss;
 
-	tmp = alloc_state(s->name, s->owner, s->sym, s->state);
-	tmp->my_pools = clone_stack(s->my_pools);
-	tmp->all_pools = clone_stack(s->all_pools);
-	tmp->possible = s->possible;
-	return tmp;
+	ret = alloc_state(s->name, s->owner, s->sym, s->state);
+	ret->my_pools = clone_stack(s->my_pools);
+	ret->all_pools = clone_stack(s->all_pools);
+	FOR_EACH_PTR(s->possible, poss) {
+		tmp = alloc_state(s->name, s->owner, s->sym, poss->state);
+		add_sm_state_slist(&ret->possible, tmp);	
+	} END_FOR_EACH_PTR(poss);
+	return ret;
 }
 
 int slist_has_state(struct state_list *slist, struct smatch_state *state)
@@ -223,7 +253,6 @@ struct state_list_stack *clone_stack(struct state_list_stack *from_stack)
 	return to_stack;
 }
 
-// FIXME...  shouldn't we free some of these state pointers?
 struct smatch_state *merge_states(const char *name, int owner,
 				  struct symbol *sym,
 				  struct smatch_state *state1,
@@ -350,11 +379,7 @@ void overwrite_sm_state(struct state_list **slist, struct sm_state *state)
 		if (cmp_tracker(tmp, new) < 0)
 			continue;
 		else if (cmp_tracker(tmp, new) == 0) {
-			tmp->state = new->state;
-			tmp->my_pools = new->my_pools;
-			tmp->all_pools = new->all_pools;
-			tmp->possible = new->possible;
-			__free_sm_state(new);
+			REPLACE_CURRENT_PTR(tmp, new);
 			return;
 		} else {
 			INSERT_CURRENT(new, tmp);
