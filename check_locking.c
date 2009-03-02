@@ -270,6 +270,7 @@ static void match_return(struct statement *stmt)
 			check_possible(tmp);
 		}
 	} END_FOR_EACH_PTR(tmp);
+	free_slist(&slist);
 	add_ptr_list(&all_returns, ret);
 }
 

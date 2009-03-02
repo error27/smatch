@@ -157,7 +157,7 @@ static void check_for_allocated()
 			!is_null(tmp->name, tmp->sym))
 			smatch_msg("possible memery leak of %s", tmp->name);
 	} END_FOR_EACH_PTR(tmp);
-
+	free_slist(&slist);
 }
 
 static void match_return(struct statement *stmt)
