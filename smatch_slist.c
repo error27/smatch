@@ -38,17 +38,6 @@ void __print_slist(struct state_list *slist)
 	printf("---\n");
 }
 
-void add_history(struct sm_state *state)
-{
-	struct state_history *tmp;
-
-	if (!state)
-		return;
-	tmp = malloc(sizeof(*tmp));
-	tmp->loc = get_lineno();
-	add_ptr_list(&state->line_history, tmp);
-}
-
 
 /* NULL states go at the end to simplify merge_slist */
 int cmp_tracker(const struct sm_state *a, const struct sm_state *b)
@@ -145,8 +134,6 @@ struct sm_state *alloc_state(const char *name, int owner,
 	sm_state->owner = owner;
 	sm_state->sym = sym;
 	sm_state->state = state;
-	sm_state->line_history = NULL;
-	add_history(sm_state);
 	sm_state->my_pools = NULL;
 	sm_state->all_pools = NULL;
 	sm_state->possible = NULL;

@@ -1,8 +1,3 @@
-struct state_history {
-	unsigned int loc;
-};
-DECLARE_PTR_LIST(history_list, struct state_history);
-
 DECLARE_ALLOCATOR(sm_state);
 DECLARE_PTR_LIST(state_list, struct sm_state);
 DECLARE_PTR_LIST(state_list_stack, struct state_list);

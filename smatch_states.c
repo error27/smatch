@@ -154,8 +154,6 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state)
 {
-	/* fixme.  save history */
-
 	if (debug_states) {
 		struct smatch_state *tmp;
 
