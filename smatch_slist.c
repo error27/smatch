@@ -414,7 +414,6 @@ void delete_state_slist(struct state_list **slist, const char *name, int owner,
 		    && !strcmp(state->name, name)){
 			delete_ptr_list_entry((struct ptr_list **)slist,
 					      state, 1);
-			__free_sm_state(state);
 			return;
 		}
 	} END_FOR_EACH_PTR(state);
