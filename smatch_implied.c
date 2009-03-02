@@ -66,7 +66,7 @@ static struct state_list_stack *get_eq_neq(struct sm_state *sm_state,
 		s = get_state_slist(list, sm_state->name, sm_state->owner,
 				    sm_state->sym);
 		if (s == &undefined) {
-			__free_ptr_list((struct ptr_list **)&ret);	
+			free_stack(&ret);	
 			return NULL;
 		}
 		if (s->data && ((eq_neq == EQUALS && *(int *)s->data == num) ||

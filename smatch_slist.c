@@ -170,8 +170,8 @@ void free_every_single_sm_state()
 		struct sm_state *sm = (struct sm_state *)blob->data;
 
 		free_slist(&sm->possible);
-		__free_ptr_list((struct ptr_list **)&sm->my_pools);
-		__free_ptr_list((struct ptr_list **)&sm->all_pools);
+		free_stack(&sm->my_pools);
+		free_stack(&sm->all_pools);
 		blob_free(blob, desc->chunking);
 		blob = next;
 	}
@@ -460,14 +460,19 @@ void free_slist(struct state_list **slist)
 	__free_ptr_list((struct ptr_list **)slist);
 }
 
+void free_stack(struct state_list_stack **stack)
+{
+	__free_ptr_list((struct ptr_list **)stack);
+}
+
 void free_stack_and_slists(struct state_list_stack **slist_stack)
 {
 	struct state_list *slist;
 	
 	FOR_EACH_PTR(*slist_stack, slist) {
-		__free_ptr_list((struct ptr_list **)&slist);
+		free_slist(&slist);
 	} END_FOR_EACH_PTR(slist);
-	__free_ptr_list((struct ptr_list **)slist_stack);	
+	free_stack(slist_stack);	
 }
 
 /*

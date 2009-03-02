@@ -59,7 +59,7 @@ void push_slist(struct state_list_stack **list_stack, struct state_list *slist);
 struct state_list *pop_slist(struct state_list_stack **list_stack);
 
 void free_slist(struct state_list **slist);
-
+void free_stack(struct state_list_stack **stack);
 void free_stack_and_slists(struct state_list_stack **slist_stack);
 
 void set_state_stack(struct state_list_stack **stack, const char *name, 
