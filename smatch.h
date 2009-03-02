@@ -126,7 +126,8 @@ void add_tracker(struct tracker_list **list, const char *name, int owner,
 		struct symbol *sym);
 int in_tracker_list(struct tracker_list *list, const char *name, int owner,
 		struct symbol *sym);
-
+void free_tracker_list(struct tracker_list **list);
+void free_trackers_and_list(struct tracker_list **list);
 
 /* smatch_conditions */
 int in_condition();

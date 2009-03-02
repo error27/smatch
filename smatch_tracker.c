@@ -1,5 +1,7 @@
 #include "smatch.h"
 
+ALLOCATOR(tracker, "trackers");
+
 void add_tracker(struct tracker_list **list, const char *name, int owner, 
 		struct symbol *sym)
 {
@@ -8,7 +10,7 @@ void add_tracker(struct tracker_list **list, const char *name, int owner,
 	if (in_tracker_list(*list, name, owner, sym))
 		return;
 
-	tmp = malloc(sizeof(*tmp));
+	tmp = __alloc_tracker(0);
 	tmp->name = name;
 	tmp->owner = owner;
 	tmp->sym = sym;
@@ -27,3 +29,19 @@ int in_tracker_list(struct tracker_list *list, const char *name, int owner,
 	} END_FOR_EACH_PTR(tmp);
 	return 0;
 }
+
+void free_tracker_list(struct tracker_list **list)
+{
+	__free_ptr_list((struct ptr_list **)list);
+}
+
+void free_trackers_and_list(struct tracker_list **list)
+{
+	struct tracker *tmp;
+
+	FOR_EACH_PTR(*list, tmp) {
+		__free_tracker(tmp);
+	} END_FOR_EACH_PTR(tmp);
+	free_tracker_list(list);
+}
+
