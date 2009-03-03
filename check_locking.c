@@ -249,7 +249,7 @@ static void check_possible(struct sm_state *sm)
 			undef = 1;
 	} END_FOR_EACH_PTR(tmp);
 	if (islocked && (isunlocked || undef))
-		smatch_msg("Unclear if '%s' is locked or unlocked.", tmp->name);
+		smatch_msg("Unclear if '%s' is locked or unlocked.", sm->name);
 }
 
 static void match_return(struct statement *stmt)
