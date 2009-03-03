@@ -89,6 +89,7 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 			   struct smatch_state *false_state);
 
 struct state_list *get_all_states(int id);
+int is_reachable();
 char *get_filename();
 char *get_function();
 int get_lineno();

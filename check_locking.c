@@ -320,6 +320,9 @@ static void check_consistency(struct symbol *sym)
 {
 	struct tracker *tmp;
 
+	if (is_reachable())
+		match_return(NULL);
+
 	FOR_EACH_PTR(starts_locked, tmp) {
 		if (in_tracker_list(starts_unlocked, tmp->name, tmp->owner,
 					tmp->sym))

@@ -145,6 +145,13 @@ struct state_list *get_all_states(int owner)
 	return slist;
 }
 
+int is_reachable()
+{
+	if (cur_slist)
+		return 1;
+	return 0;
+}
+
 struct state_list *__get_cur_slist()
 {
 	return cur_slist;
