@@ -324,12 +324,12 @@ void __negate_cond_stacks()
 void __and_cond_states()
 {
 	and_slist_stack(&cond_true_stack);
-	or_slist_stack(&cond_false_stack);
+	or_slist_stack(&pre_cond_stack, cur_slist, &cond_false_stack);
 }
 
 void __or_cond_states()
 {
-	or_slist_stack(&cond_true_stack);
+	or_slist_stack(&pre_cond_stack, cur_slist, &cond_true_stack);
 	and_slist_stack(&cond_false_stack);
 }
 

@@ -733,34 +733,45 @@ void and_slist_stack(struct state_list_stack **slist_stack)
  * You could have code that had:  if (foo || foo) { foo->baz;
  * It's this function which ensures smatch does the right thing.
  */
-void or_slist_stack(struct state_list_stack **slist_stack)
+void or_slist_stack(struct state_list_stack **pre_conds,
+		    struct state_list *cur_slist,
+		    struct state_list_stack **slist_stack)
 {
-	struct state_list *one;
-	struct state_list *two;
+	struct state_list *new;
+	struct state_list *old;
 	struct state_list *res = NULL;
+	struct state_list *tmp_slist;
+	struct state_list *tmp_slist2;
  	struct sm_state *tmp;
  	struct sm_state *sm;
  	struct sm_state *new_sm;
 
-	one = pop_slist(slist_stack);
-	two = pop_slist(slist_stack);
+	new = pop_slist(slist_stack);
+	old = pop_slist(slist_stack);
 
-	FOR_EACH_PTR(one, tmp) {
-		sm = get_sm_state_slist(two, tmp->name, tmp->owner, tmp->sym);
+	tmp_slist = pop_slist(pre_conds);
+	tmp_slist2 = clone_slist(tmp_slist);
+	push_slist(pre_conds, tmp_slist);
+	overwrite_slist(old, &tmp_slist2);
+	FOR_EACH_PTR(new, tmp) {
+		sm = get_sm_state_slist(tmp_slist2, tmp->name, tmp->owner,
+					tmp->sym);
 		new_sm = merge_sm_states(tmp, sm);
 		add_ptr_list(&res, new_sm);
 	} END_FOR_EACH_PTR(tmp);
+	free_slist(&tmp_slist2);
 
-	FOR_EACH_PTR(two, tmp) {
-		sm = get_sm_state_slist(one, tmp->name, tmp->owner, tmp->sym);
+	FOR_EACH_PTR(old, tmp) {
+		sm = get_sm_state_slist(cur_slist, tmp->name, tmp->owner,
+					tmp->sym);
 		new_sm = merge_sm_states(tmp, sm);
 		add_ptr_list(&res, new_sm);
 	} END_FOR_EACH_PTR(tmp);
 
 	push_slist(slist_stack, res);
 
-	free_slist(&one);
-	free_slist(&two);
+	free_slist(&new);
+	free_slist(&old);
 }
 
 /*

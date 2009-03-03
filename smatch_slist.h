@@ -70,7 +70,9 @@ void filter(struct state_list **slist, struct state_list *filter,
 	struct state_list *cur_slist);
 void and_slist_stack(struct state_list_stack **slist_stack);
 
-void or_slist_stack(struct state_list_stack **slist_stack);
+void or_slist_stack(struct state_list_stack **pre_conds,
+		    struct state_list *cur_slist,
+		    struct state_list_stack **slist_stack);
 
 struct state_list **get_slist_from_named_stack(struct named_stack *stack,
 					      const char *name);
