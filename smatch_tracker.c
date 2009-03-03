@@ -11,7 +11,7 @@ void add_tracker(struct tracker_list **list, const char *name, int owner,
 		return;
 
 	tmp = __alloc_tracker(0);
-	tmp->name = name;
+	tmp->name = alloc_string(name);
 	tmp->owner = owner;
 	tmp->sym = sym;
 	add_ptr_list(list, tmp);
@@ -40,6 +40,7 @@ void free_trackers_and_list(struct tracker_list **list)
 	struct tracker *tmp;
 
 	FOR_EACH_PTR(*list, tmp) {
+		free_string(tmp->name);
 		__free_tracker(tmp);
 	} END_FOR_EACH_PTR(tmp);
 	free_tracker_list(list);

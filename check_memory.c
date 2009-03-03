@@ -77,6 +77,7 @@ static void match_assign(struct expression *expr)
 	if (is_allocation(right) && !(left_sym->ctype.modifiers &
 			(MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))) {
 		set_state(left_name, my_id, left_sym, &allocated);
+		free_string(left_name);
 		return;
 	}
 
@@ -91,6 +92,7 @@ static void match_assign(struct expression *expr)
 	if (is_freed(left_name, left_sym)) {
 		set_state(left_name, my_id, left_sym, &unfree);
 	}
+	free_string(left_name);
 }
 
 static int is_null(char *name, struct symbol *sym)
@@ -120,8 +122,10 @@ static void match_kfree(struct expression *expr)
 
 	fn_name = get_variable_from_expr(expr->fn, NULL);
 
-	if (!fn_name || strcmp(fn_name, "kfree"))
+	if (!fn_name || strcmp(fn_name, "kfree")) {
+		free_string(fn_name);
 		return;
+	}
 
 	ptr_expr = get_argument_from_call_expr(expr->args, 0);
 	ptr_name = get_variable_from_expr(ptr_expr, &ptr_sym);
@@ -129,7 +133,7 @@ static void match_kfree(struct expression *expr)
 		smatch_msg("double free of %s", ptr_name);
 	}
 	set_state(ptr_name, my_id, ptr_sym, &isfree);
-
+	free_string(ptr_name);
 	free_string(fn_name);
 }
 
@@ -170,7 +174,7 @@ static void match_return(struct statement *stmt)
 	if ((state = get_state(name, my_id, sym))) {
 		set_state(name, my_id, sym, &returned);
 	}
-
+	free_string(name);
 	check_for_allocated();
 }
 

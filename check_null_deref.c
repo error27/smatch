@@ -196,20 +196,19 @@ static void match_function_call_after(struct expression *expr)
 			if (name) {
 				set_state(name, my_id, sym, &assumed_nonnull);
 			}
+			free_string(name);
 		} else if (func) {
 			name = get_variable_from_expr(tmp, &sym);
 			if (name && is_maybe_null(name, sym))
 				add_param(&calls, func, i, get_lineno());
-			else
-				free_string(name);
-			
+			free_string(name);
 		}
 		i++;
 	} END_FOR_EACH_PTR(tmp);
 }
 
 static int check_null_returns(const char *name, struct symbol *sym,
-			       struct expression *right)
+			struct expression *right)
 {
 	int i;
 	char *func_name;
@@ -219,7 +218,7 @@ static int check_null_returns(const char *name, struct symbol *sym,
 		return 0;
 
 	for(i = 0; i < sizeof(*return_null)/sizeof(return_null[0]); i++) {
-		if (!strcmp(func_name,return_null[i])) {
+		if (!strcmp(func_name, return_null[i])) {
 			set_state(name, my_id, sym, &undefined);
 			return 1;
 		}
@@ -245,13 +244,17 @@ static void match_assign(struct expression *expr)
 	right = strip_expr(expr->right);
 	if (is_zero(right)) {
 		set_state(name, my_id, sym, &isnull);
+		free_string(name);
 		return;
 	}
-	if (check_null_returns(name, sym, right))
+	if (check_null_returns(name, sym, right)) {
+		free_string(name);
 		return;
-	
+	}
+
 	/* by default we assume it's assigned something nonnull */
 	set_state(name, my_id, sym, &assumed_nonnull);
+	free_string(name);
 }
 
 /*
@@ -302,6 +305,7 @@ static void match_condition(struct expression *expr)
 		if (!name)
 			return;
 		set_new_true_false_paths(name, sym);
+		free_string(name);
 		return;
 	case EXPR_ASSIGNMENT:
 		assign_seen++;
@@ -314,6 +318,7 @@ static void match_condition(struct expression *expr)
 			if (!name)
 				return;
 			set_true_false_states(name, my_id, sym, NULL, &isnull);
+			free_string(name);
 			return;
 		}
 		 /* You have to deal with stuff like if (a = b = c) */
@@ -366,9 +371,8 @@ static void match_dereferences(struct expression *expr)
 	} else if  (is_maybe_null(deref, sym)) {
 		smatch_msg("Dereferencing Undefined:  '%s'", deref);
 		set_state(deref, my_id, sym, &ignore);
-	} else {
-		free_string(deref);
 	}
+	free_string(deref);
 }
 
 static void end_file_processing()

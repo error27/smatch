@@ -79,6 +79,7 @@ static void match_call(struct expression *expr)
 	} else {
 		set_state(sem_name, my_id, NULL, &unlock);
 	}
+	free_string(sem_name);
 	free_string(fn_name);
 }
 

@@ -16,7 +16,7 @@ static int star_count;
 #define VAR_LEN 512
 
 
-char *alloc_string(char *str)
+char *alloc_string(const char *str)
 {
 	char *tmp;
 

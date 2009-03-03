@@ -94,7 +94,7 @@ int get_lineno();
 int get_func_pos();
 
 /* smatch_helper.c */
-char *alloc_string(char *str);
+char *alloc_string(const char *str);
 void free_string(char *str);
 struct expression *get_argument_from_call_expr(struct expression_list *args,
 					       int num);
@@ -111,7 +111,7 @@ struct expression *strip_expr(struct expression *expr);
 
 /* smatch_ignore.c */
 struct tracker {
-	const char *name;
+	char *name;
 	int owner;
 	struct symbol *sym;
 };

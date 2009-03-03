@@ -57,6 +57,7 @@ static void match_function_call_after(struct expression *expr)
 			if (name) {
 				set_state(name, my_id, sym, &undefined);
 			}
+			free_string(name);
 		}
 		i++;
 	} END_FOR_EACH_PTR(tmp);
@@ -73,6 +74,7 @@ static void match_assign(struct expression *expr)
 	if (!name)
 		return;
 	set_state(name, my_id, sym, alloc_state(get_value(expr->right)));
+	free_string(name);
 }
 
 static void undef_expr(struct expression *expr)
@@ -88,6 +90,7 @@ static void undef_expr(struct expression *expr)
 		return;
 	}
 	set_state(name, my_id, sym, &undefined);
+	free_string(name);
 }
 
 static void match_declarations(struct symbol *sym)
@@ -116,6 +119,7 @@ static void match_unop(struct expression *expr)
 	tmp = show_special(expr->op);
 	if ((!strcmp(tmp, "--")) || (!strcmp(tmp, "++")))
 		set_state(name, my_id, sym, &undefined);
+	free_string(name);
 }
 
 void register_smatch_extra(int id)

@@ -131,7 +131,7 @@ static char *match_lock_func(char *fn_name, struct expression_list *args)
 	if (arg)
 		return arg;
 	if (!strcmp(fn_name, "lock_kernel"))
-		return kernel;
+		return alloc_string(kernel);
 	return NULL;
 }
 
@@ -143,7 +143,7 @@ static char *match_unlock_func(char *fn_name, struct expression_list *args)
 	if (arg)
 		return arg;
 	if (!strcmp(fn_name, "unlock_kernel"))
-		return kernel;
+		return alloc_string(kernel);
 	return NULL;
 }
 
@@ -190,6 +190,7 @@ static void match_call(struct expression *expr)
 		set_state(lock_name, my_id, NULL, &unlocked);
 	} else
 		check_locks_needed(fn_name);
+	free_string(lock_name);
 	free_string(fn_name);
 	return;
 }
@@ -216,6 +217,7 @@ static void match_condition(struct expression *expr)
 			add_tracker(&starts_unlocked, lock_name, my_id, NULL);
 		set_true_false_states(lock_name, my_id, NULL, &unlocked, &locked);
 	}
+	free_string(lock_name);
 	free_string(fn_name);
 	return;
 }

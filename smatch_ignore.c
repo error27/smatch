@@ -7,7 +7,7 @@ void add_ignore(const char *name, int owner, struct symbol *sym)
 	struct tracker *tmp;
 
 	tmp = malloc(sizeof(*tmp));
-	tmp->name = name;
+	tmp->name = alloc_string(name);
 	tmp->owner = owner;
 	tmp->sym = sym;
 	add_ptr_list(&ignored, tmp);

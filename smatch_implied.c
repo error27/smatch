@@ -103,9 +103,12 @@ void __implied_states_hook(struct expression *expr)
 	struct state_list *implied_false;
 
 	name = get_variable_from_expr(expr, &sym);
-	if (!name || !sym)
+	if (!name || !sym) {
+		free_string(name);
 		return;
+	}
 	state = get_sm_state(name, SMATCH_EXTRA, sym);
+	free_string(name);
 	if (!state)
 		return;
 	if (!state->my_pools)
@@ -137,7 +140,6 @@ void __implied_states_hook(struct expression *expr)
 	free_stack(&false_pools);
 	free_slist(&implied_true);
 	free_slist(&implied_false);
-	free_string(name);
 }
 
 void register_implications(int id)

@@ -36,8 +36,10 @@ static int malloc_size(struct expression *expr)
 		name = get_variable_from_expr(expr->fn, NULL);
 		if (name && !strcmp(name, "kmalloc")) {
 			arg = get_argument_from_call_expr(expr->args, 0);
+			free_string(name);
 			return get_value(arg);
 		}
+		free_string(name);
 	} else if (expr->type == EXPR_STRING && expr->string) {
 		return expr->string->length * 8;
 	}
@@ -73,6 +75,7 @@ static void match_assignment(struct expression *expr)
 		return;
 	if (malloc_size(expr->right) > 0)
 		set_state(name, my_id, NULL, alloc_state(malloc_size(expr->right)));
+	free_string(name);
 }
 
 static void match_fn_call(struct expression *expr)
@@ -99,16 +102,22 @@ static void match_fn_call(struct expression *expr)
 		
 		dest_state = get_state(dest_name, my_id, NULL);
 		if (!dest_state || !dest_state->data) {
+			free_string(dest_name);
+			free_string(data_name);
 			return;
 		}
 		data_state = get_state(data_name, my_id, NULL);
 		if (!data_state || !data_state->data) {
+			free_string(dest_name);
+			free_string(data_name);
 			return;
 		}
 
 		if (*(int *)dest_state->data < *(int *)data_state->data)
 		    smatch_msg("Error %s too large for %s", data_name, 
 			       dest_name);
+		free_string(dest_name);
+		free_string(data_name);
 	} else if (!strcmp(fn_name, "strncpy")) {
 		struct smatch_state *state;
 		int needed;
@@ -126,7 +135,9 @@ static void match_fn_call(struct expression *expr)
 		if (has < needed)
 			smatch_msg("Error %s too small for %d bytes.", 
 				   dest_name, needed);
+		free_string(dest_name);
 	}
+	free_string(fn_name);
 }
 
 void register_overflow(int id)

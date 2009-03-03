@@ -130,7 +130,7 @@ struct sm_state *alloc_state(const char *name, int owner,
 {
 	struct sm_state *sm_state = __alloc_sm_state(0);
 
-	sm_state->name = (char *)name;
+	sm_state->name = alloc_string(name);
 	sm_state->owner = owner;
 	sm_state->sym = sym;
 	sm_state->state = state;
@@ -139,6 +139,22 @@ struct sm_state *alloc_state(const char *name, int owner,
 	sm_state->possible = NULL;
 	add_ptr_list(&sm_state->possible, sm_state);
 	return sm_state;
+}
+
+static void free_sm_state_lists(struct allocation_blob *blob)
+{
+	unsigned int size = sizeof(struct sm_state);
+	unsigned int offset = 0;
+
+	while (offset < blob->offset) {
+		struct sm_state *sm = (struct sm_state *)(blob->data + offset);
+
+		free_string(sm->name);
+		free_slist(&sm->possible);
+		free_stack(&sm->my_pools);
+		free_stack(&sm->all_pools);
+		offset += size;
+	}
 }
 
 /* At the end of every function we free all the sm_states */
@@ -154,11 +170,7 @@ void free_every_single_sm_state()
 	desc->freelist = NULL;
 	while (blob) {
 		struct allocation_blob *next = blob->next;
-		struct sm_state *sm = (struct sm_state *)blob->data;
-
-		free_slist(&sm->possible);
-		free_stack(&sm->my_pools);
-		free_stack(&sm->all_pools);
+		free_sm_state_lists(blob);
 		blob_free(blob, desc->chunking);
 		blob = next;
 	}
