@@ -19,6 +19,7 @@
 #include "expression.h"
 
 #define KERNEL
+#define MAXSMSTATES 1000000 /* Limits RAM use.  Give up on big functions */
 struct smatch_state {
 	const char *name;
 	void *data;

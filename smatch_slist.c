@@ -797,3 +797,8 @@ void overwrite_slist(struct state_list *from, struct state_list **to)
 		overwrite_sm_state(to, tmp);
 	} END_FOR_EACH_PTR(tmp);
 }
+
+unsigned int __get_allocations()
+{
+	return sm_state_allocator.allocations;
+}

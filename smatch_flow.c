@@ -25,6 +25,8 @@ int get_func_pos() { return __smatch_lineno - line_func_start; }
 static void split_symlist(struct symbol_list *sym_list);
 static void split_expr_list(struct expression_list *expr_list);
 
+unsigned int __get_allocations();
+
 void __split_expr(struct expression *expr)
 {
 	if (!expr)
@@ -225,6 +227,15 @@ void __split_statements(struct statement *stmt)
 	if (!stmt)
 		return;
 	
+	if (__get_allocations() > MAXSMSTATES) {
+		static char *printed = NULL;
+
+		if (printed != cur_func)
+			smatch_msg("Function too big.  Giving up.");
+		printed = cur_func;
+		return;
+	}
+
 	__smatch_lineno = stmt->pos.line;
 	print_unreached(stmt);
 	__pass_to_client(stmt, STMT_HOOK);

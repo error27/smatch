@@ -1,4 +1,3 @@
-DECLARE_ALLOCATOR(sm_state);
 DECLARE_PTR_LIST(state_list, struct sm_state);
 DECLARE_PTR_LIST(state_list_stack, struct state_list);
 struct named_slist {
