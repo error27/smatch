@@ -236,7 +236,7 @@ static void match_function_call(struct expression *expr)
 
 	fn_name = get_variable_from_expr(expr->fn, NULL);
 
-	if (!strcmp(fn_name, "kfree")) {
+	if (fn_name && !strcmp(fn_name, "kfree")) {
 		match_kfree(expr);
 	}
 
