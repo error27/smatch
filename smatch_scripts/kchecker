@@ -1,0 +1,30 @@
+#!/bin/bash
+
+function useage {
+    echo "Usage:  $0 [--debug][--valgrind] path/to/file.c"
+    exit 1
+}
+
+while true ; do
+    if [[ "$1" == "--debug" ]] ; then
+      	POST="$POST --debug"
+	shift
+    elif [[ "$1" == "--valgrind" ]] ; then
+	PRE="valgrind"
+	shift
+    else
+	break
+    fi
+done
+
+cname=$1
+if [[ "$cname" == "" ]] ; then
+    useage
+fi
+if ! test -e $cname ; then
+    useage
+fi
+
+oname=$(echo ${cname/.c/.o})
+rm -f $oname
+make C=y CHECK="$PRE smatch $POST" $oname
