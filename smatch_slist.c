@@ -744,38 +744,22 @@ void or_slist_stack(struct state_list_stack **pre_conds,
 	struct state_list *old;
 	struct state_list *res = NULL;
 	struct state_list *tmp_slist;
-	struct state_list *tmp_slist2;
- 	struct sm_state *tmp;
- 	struct sm_state *sm;
- 	struct sm_state *new_sm;
 
 	new = pop_slist(slist_stack);
 	old = pop_slist(slist_stack);
 
 	tmp_slist = pop_slist(pre_conds);
-	tmp_slist2 = clone_slist(tmp_slist);
+	res = clone_slist(tmp_slist);
 	push_slist(pre_conds, tmp_slist);
-	overwrite_slist(old, &tmp_slist2);
-	FOR_EACH_PTR(new, tmp) {
-		sm = get_sm_state_slist(tmp_slist2, tmp->name, tmp->owner,
-					tmp->sym);
-		new_sm = merge_sm_states(tmp, sm);
-		add_ptr_list(&res, new_sm);
-	} END_FOR_EACH_PTR(tmp);
-	free_slist(&tmp_slist2);
+	overwrite_slist(old, &res);
 
-	tmp_slist2 = clone_slist(cur_slist);
-	overwrite_slist(new, &tmp_slist2);
-	FOR_EACH_PTR(old, tmp) {
-		sm = get_sm_state_slist(tmp_slist2, tmp->name, tmp->owner,
-					tmp->sym);
-		new_sm = merge_sm_states(tmp, sm);
-		add_ptr_list(&res, new_sm);
-	} END_FOR_EACH_PTR(tmp);
-	free_slist(&tmp_slist2);
+	tmp_slist = clone_slist(cur_slist);
+	overwrite_slist(new, &tmp_slist);
+
+	merge_slist(&res, tmp_slist);
 
 	push_slist(slist_stack, res);
-
+	free_slist(&tmp_slist);
 	free_slist(&new);
 	free_slist(&old);
 }
