@@ -211,9 +211,9 @@ int slist_has_state(struct state_list *slist, struct smatch_state *state)
 	return 0;
 }
 
-#ifdef CHECKORDER
 static void check_order(struct state_list *slist)
 {
+#ifdef CHECKORDER
 	struct sm_state *state;
 	struct sm_state *last = NULL;
 	int printed = 0;
@@ -230,8 +230,8 @@ static void check_order(struct state_list *slist)
 
 	if (printed)
 		printf("======\n");
-}
 #endif
+}
 #ifdef CHECKMYPOOLS
 static void check_my_pools(struct sm_state *sm)
 {
@@ -256,16 +256,18 @@ found:
                continue;
        } END_FOR_EACH_PTR(poss);
 }
+#endif
 
 static void sanity_check_pools(struct state_list *slist)
 {
+#ifdef CHECKMYPOOLS
        struct sm_state *tmp;
 
        FOR_EACH_PTR(slist, tmp) {
                check_my_pools(tmp);
        } END_FOR_EACH_PTR(tmp);
-}
 #endif
+}
 
 struct state_list *clone_slist(struct state_list *from_slist)
 {
@@ -277,9 +279,7 @@ struct state_list *clone_slist(struct state_list *from_slist)
 		tmp = clone_state(state);
 		add_ptr_list(&to_slist, tmp);
 	} END_FOR_EACH_PTR(state);
-#ifdef CHECKORDER
 	check_order(to_slist);
-#endif
 	return to_slist;
 }
 
@@ -585,14 +585,10 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 	struct state_list *implied_to = NULL;
 	struct state_list *implied_from = NULL;
 
-#ifdef CHECKORDER
 	check_order(*to);
 	check_order(slist);
-#endif
-#ifdef CHECKMYPOOLS
 	sanity_check_pools(*to);
 	sanity_check_pools(slist);
-#endif
 
 	/* merging a null and nonnull path gives you only the nonnull path */
 	if (!slist) {
@@ -716,10 +712,8 @@ void filter(struct state_list **slist, struct state_list *filter,
 	struct state_list *results = NULL;
 	struct sm_state *tmp;
 
-#ifdef CHECKORDER
 	check_order(*slist);
 	check_order(filter);
-#endif
 
 	PREPARE_PTR_LIST(*slist, s_one);
 	PREPARE_PTR_LIST(filter, s_two);
