@@ -13,6 +13,7 @@
 #include "smatch_slist.h"
 
 #undef CHECKORDER
+#undef CHECKMYPOOLS
 
 ALLOCATOR(sm_state, "smatch state");
 ALLOCATOR(named_slist, "named slist");
@@ -229,6 +230,40 @@ static void check_order(struct state_list *slist)
 
 	if (printed)
 		printf("======\n");
+}
+#endif
+#ifdef CHECKMYPOOLS
+static void check_my_pools(struct sm_state *sm)
+{
+       struct sm_state *poss;
+       struct state_list *slist;
+
+       if (sm->state != &merged)
+	       return;
+
+       FOR_EACH_PTR(sm->possible, poss) {
+               if (poss->state == &merged)
+                       continue;
+               FOR_EACH_PTR(sm->my_pools, slist) {
+                       if (get_state_slist(slist, sm->name, sm->owner, sm->sym)
+                           == poss->state)
+                               goto found;
+               } END_FOR_EACH_PTR(slist);
+               printf("%d pool not found for '%s' possible state \"%s\".\n",
+                      get_lineno(), sm->name, show_state(poss->state));
+               return;
+found:
+               continue;
+       } END_FOR_EACH_PTR(poss);
+}
+
+static void sanity_check_pools(struct state_list *slist)
+{
+       struct sm_state *tmp;
+
+       FOR_EACH_PTR(slist, tmp) {
+               check_my_pools(tmp);
+       } END_FOR_EACH_PTR(tmp);
 }
 #endif
 
@@ -553,6 +588,10 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 #ifdef CHECKORDER
 	check_order(*to);
 	check_order(slist);
+#endif
+#ifdef CHECKMYPOOLS
+	sanity_check_pools(*to);
+	sanity_check_pools(slist);
 #endif
 
 	/* merging a null and nonnull path gives you only the nonnull path */
