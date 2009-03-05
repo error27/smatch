@@ -75,6 +75,7 @@ do {                                                          \
 } while (0)
 
 #define SM_DEBUG(msg...) do { if (debug_states) printf(msg); } while (0)
+#define DIMPLIED(msg...) do { if (debug_implied_states) printf(msg); } while (0)
 
 #define UNDEFINED INT_MIN
 
@@ -148,6 +149,7 @@ void __split_statements(struct statement *stmt);
 void __split_whole_condition(struct expression *expr);
 
 /* smatch_implied.c */
+extern int debug_implied_states;
 void __implied_states_hook(struct expression *expr);
 
 /* smatch_extras.c */

@@ -9,6 +9,9 @@ while true ; do
     if [[ "$1" == "--debug" ]] ; then
       	POST="$POST --debug"
 	shift
+    elif [[ "$1" == "--debug-implied" ]] ; then
+      	POST="$POST --debug-implied"
+	shift
     elif [[ "$1" == "--valgrind" ]] ; then
 	PRE="valgrind"
 	shift

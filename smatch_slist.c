@@ -679,11 +679,14 @@ void filter(struct state_list **slist, struct state_list *filter,
 		if (!s_one || !s_two)
 			break;
 		if (cmp_tracker(s_one, s_two) < 0) {
+			DIMPLIED("removed %s\n", s_one->name);
 			NEXT_PTR_LIST(s_one);
 		} else if (cmp_tracker(s_one, s_two) == 0) {
 			tmp = merge_implied(s_one, s_two, filter, cur_slist);
 			if (tmp)
 				add_ptr_list(&results, tmp);
+			else
+				DIMPLIED("removed %s\n", s_one->name);
 			NEXT_PTR_LIST(s_one);
 			NEXT_PTR_LIST(s_two);
 		} else {

@@ -51,6 +51,8 @@
 #define EQUALS 0
 #define NOTEQUALS 1
 
+int debug_implied_states = 0;
+
 /*
  * What are the implications if (foo == num) ...
  */
@@ -66,11 +68,15 @@ static struct state_list_stack *get_eq_neq(struct sm_state *sm_state,
 		s = get_state_slist(list, sm_state->name, sm_state->owner,
 				    sm_state->sym);
 		if (s == &undefined) {
-			free_stack(&ret);	
+			free_stack(&ret);
+			DIMPLIED("%d '%s' is undefined\n", get_lineno(), 
+				 sm_state->name);
 			return NULL;
 		}
 		if (s->data && ((eq_neq == EQUALS && *(int *)s->data == num) ||
 				(eq_neq == NOTEQUALS && *(int *)s->data != num))) {
+			DIMPLIED("added pool where %s is %s\n", sm_state->name,
+				 show_state(s)); 
 			push_slist(&ret, list);
 		}
 	} END_FOR_EACH_PTR(list);
@@ -84,10 +90,16 @@ static struct state_list *filter_stack(struct state_list_stack *stack)
 	int i = 0;
 
 	FOR_EACH_PTR(stack, tmp) {
-		if (!i++)
+		if (!i++) {
 			ret = clone_states_in_pool(tmp, __get_cur_slist());
-		else
+			if (debug_implied_states) {
+				printf("The first implied pool is:\n");
+				__print_slist(ret);
+			}
+		} else {
 			filter(&ret, tmp, __get_cur_slist());
+			DIMPLIED("filtered\n");
+   		}
 	} END_FOR_EACH_PTR(tmp);
 	return ret;
 }
@@ -111,34 +123,45 @@ void __implied_states_hook(struct expression *expr)
 	free_string(name);
 	if (!state)
 		return;
-	if (!state->my_pools)
+	if (!state->my_pools) {
+		DIMPLIED("%d '%s' has no pools.\n", get_lineno(), state->name);
 		return;
+	}
 
+	if (debug_implied_states) {
+		printf("%s has the following possible states:\n", state->name);
+		__print_slist(state->possible);
+	}
+
+	DIMPLIED("Gettin the implied states for (%s != 0)\n", state->name);
 	true_pools = get_eq_neq(state, NOTEQUALS, 0);
-	false_pools = get_eq_neq(state, EQUALS, 0);
+	DIMPLIED("There are %s implied pools for (%s != 0).\n", (true_pools?"some":"no"), state->name);
 	implied_true = filter_stack(true_pools);
-	implied_false = filter_stack(false_pools);
-	if (debug_states) {
-		printf("Setting the following implied states for the true path.\n");
+	if (implied_true && (debug_states || debug_implied_states)) {
+		printf("Setting the following implied states for (%s != 0).\n",
+		       state->name);
 		__print_slist(implied_true);
+	}
+	DIMPLIED("Gettin the implied states for (%s == 0)\n", state->name);
+	false_pools = get_eq_neq(state, EQUALS, 0);
+	DIMPLIED("There are %s implied pools for (%s == 0).\n", (true_pools?"some":"no"), state->name);
+	implied_false = filter_stack(false_pools);
+	if (implied_false && (debug_states || debug_implied_states)) {
+		printf("Setting the following implied states for (%s == 0).\n",
+		       state->name);
+		__print_slist(implied_false);
 	}
 
 	FOR_EACH_PTR(implied_true, state) {
 		__set_true_false_sm(state, NULL);
 	} END_FOR_EACH_PTR(state);
-
-	if (debug_states) {
-		printf("Setting the following implied states for the false path.\n");
-		__print_slist(implied_false);
-	}
+	free_stack(&true_pools);
+	free_slist(&implied_true);
 
 	FOR_EACH_PTR(implied_false, state) {
 		__set_true_false_sm(NULL, state);
 	} END_FOR_EACH_PTR(state);
-
-	free_stack(&true_pools);
 	free_stack(&false_pools);
-	free_slist(&implied_true);
 	free_slist(&implied_false);
 }
 

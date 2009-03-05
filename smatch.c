@@ -37,6 +37,13 @@ const reg_func reg_funcs[] = {
 	NULL
 };
 
+void help()
+{
+	printf("Usage:  smatch [--debug][--debug-implied][sparse arguments]"
+	       " file.c\n");
+	exit(1);
+}
+
 int main(int argc, char **argv)
 {
 	int i;
@@ -48,12 +55,20 @@ int main(int argc, char **argv)
 		func(i + 1);
 	}
 	
-	if (argc >= 2 && !strcmp(argv[1], "--debug")) {
-		debug_states = 1;
+	while(argc >= 2) {
+		if (!strcmp(argv[1], "--debug")) {
+			debug_states = 1;
+		} else if (!strcmp(argv[1], "--debug-implied")) {
+			debug_implied_states = 1;
+		} else if (!strcmp(argv[1], "--help")) {
+			help();
+		} else {
+			break;
+		}
 		argc--;
 		argv++;
 	}
-		
+	
     	smatch(argc, argv);
 	return 0;
 }
