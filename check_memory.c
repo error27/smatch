@@ -16,7 +16,17 @@ static int my_id;
 STATE(allocated);
 STATE(assigned);
 STATE(isfree);
+STATE(malloced);
+STATE(isnull);
 STATE(unfree);
+
+/*
+  malloced --> allocated --> assigned --> isfree +
+            \-> isnull.    \-> isfree +
+
+  isfree --> unfree.
+          \-> isnull.
+*/
 
 /* If we pass a parent to a function that sets all the 
    children to assigned.  frob(x) means x->data is assigned. */
@@ -133,7 +143,7 @@ static void match_assign(struct expression *expr)
 	right = strip_expr(expr->right);
 	if (is_allocation(right) && !(left_sym->ctype.modifiers &
 			(MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))) {
-		set_state(left_name, my_id, left_sym, &allocated);
+		set_state(left_name, my_id, left_sym, &malloced);
 		add_parent_to_parents(left_name, left_sym);
 		free_string(left_name);
 		return;
@@ -164,7 +174,7 @@ static int is_null(char *name, struct symbol *sym)
 	 * The correct approved way to do this is to get the data from
 	 * smatch_extra.  But right now smatch_extra doesn't track it.
 	 */
-	state = get_state(name, 3, sym);
+	state = get_state(name, my_id, sym);
 	if (state && !strcmp(state->name, "isnull"))
 		return 1;
 	return 0;
@@ -191,6 +201,8 @@ static int possibly_allocated(struct state_list *slist)
 
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state == &allocated)
+			return 1;
+		if (tmp->state == &malloced)
 			return 1;
 	} END_FOR_EACH_PTR(tmp);
 	return 0;
@@ -226,13 +238,53 @@ static void match_return(struct statement *stmt)
 	check_for_allocated();
 }
 
+static void set_new_true_false_paths(const char *name, struct symbol *sym)
+{
+	struct smatch_state *tmp;
+
+	tmp = get_state(name, my_id, sym);
+
+	if (!tmp) {
+		return;
+	}
+
+	if (tmp == &isfree) {
+		smatch_msg("why do you care about freed memory?");
+	}
+
+	if (tmp == &malloced) {
+		set_true_false_states(name, my_id, sym, &allocated, &isnull);
+	}
+}
+
+static void match_condition(struct expression *expr)
+{
+	struct symbol *sym;
+	char *name;
+
+	expr = strip_expr(expr);
+	switch(expr->type) {
+	case EXPR_PREOP:
+	case EXPR_SYMBOL:
+	case EXPR_DEREF:
+		name = get_variable_from_expr(expr, &sym);
+		if (!name)
+			return;
+		set_new_true_false_paths(name, sym);
+		free_string(name);
+		return;
+	default:
+		return;
+	}
+}
+
 static void match_function_call(struct expression *expr)
 {
 	struct expression *tmp;
 	struct symbol *sym;
 	char *name;
 	char *fn_name;
-	struct smatch_state *state;
+	struct sm_state *state;
 
 	fn_name = get_variable_from_expr(expr->fn, NULL);
 
@@ -245,8 +297,8 @@ static void match_function_call(struct expression *expr)
 		name = get_variable_from_expr(tmp, &sym);
 		if (!name)
 			continue;
-		if ((state = get_state(name, my_id, sym))) {
-			if (state == &allocated) {
+		if ((state = get_sm_state(name, my_id, sym))) {
+			if (possibly_allocated(state->possible)) {
 				set_state(name, my_id, sym, &assigned);
 			}
 		}
@@ -275,6 +327,7 @@ void register_memory(int id)
 {
 	my_id = id;
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
+	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
