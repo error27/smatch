@@ -602,13 +602,15 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 	implied_to = clone_slist(*to);
 	implied_from = clone_slist(slist);
 
-	PREPARE_PTR_LIST(*to, to_state);
-	PREPARE_PTR_LIST(slist, state);
+	PREPARE_PTR_LIST(implied_to, to_state);
+	PREPARE_PTR_LIST(implied_from, state);
 	for (;;) {
 		if (!to_state && !state)
 			break;
 		if (cmp_tracker(to_state, state) < 0) {
 			tmp = merge_sm_states(to_state, NULL);
+			add_pool(&to_state->my_pools, implied_to);
+			add_pool(&to_state->all_pools, implied_to);
 			add_pool(&tmp->my_pools, implied_to);
 			add_pool(&tmp->all_pools, implied_to);
 			add_ptr_list(&results, tmp);
@@ -616,16 +618,22 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 		} else if (cmp_tracker(to_state, state) == 0) {
 			tmp = merge_sm_states(to_state, state);
 			if (!is_really_same(to_state, state)) {
+				add_pool(&to_state->my_pools, implied_to);
+				add_pool(&state->my_pools, implied_from);
 				add_pool(&tmp->my_pools, implied_to);
 				add_pool(&tmp->my_pools, implied_from);
 			}
 			add_pool(&tmp->all_pools, implied_to);
 			add_pool(&tmp->all_pools, implied_from);
+			add_pool(&to_state->all_pools, implied_to);
+			add_pool(&state->all_pools, implied_from);
 			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(to_state);
 			NEXT_PTR_LIST(state);
 		} else {
 			tmp = merge_sm_states(state, NULL);
+			add_pool(&state->my_pools, implied_from);
+			add_pool(&state->all_pools, implied_from);
 			add_pool(&tmp->my_pools, implied_from);
 			add_pool(&tmp->all_pools, implied_from);
 			add_ptr_list(&results, tmp);
@@ -674,6 +682,7 @@ struct state_list *clone_states_in_pool(struct state_list *pool,
 			add_ptr_list(&to_slist, tmp);
 		}
 	} END_FOR_EACH_PTR(state);
+	sanity_check_pools(to_slist);
 	return to_slist;
 }
 
@@ -738,6 +747,7 @@ void filter(struct state_list **slist, struct state_list *filter,
 	FINISH_PTR_LIST(s_two);
 	FINISH_PTR_LIST(s_one);
 
+	sanity_check_pools(results);
 	free_slist(slist);
 	*slist = results;
 }
