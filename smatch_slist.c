@@ -574,6 +574,20 @@ static int is_really_same(struct sm_state *one, struct sm_state *two)
 	return 1;
 }
 
+static void register_implied_pool(struct state_list *pool)
+{
+	struct sm_state *sm;
+	
+ 	FOR_EACH_PTR(pool, sm) {
+		if (!sm->my_pools) {
+			add_pool(&sm->my_pools, pool);
+		}
+		add_pool(&sm->all_pools, pool);
+	} END_FOR_EACH_PTR(sm);
+
+ 	push_slist(&implied_pools, pool);
+}
+
 /*
  * merge_slist() is called whenever paths merge, such as after
  * an if statement.  It takes the two slists and creates one.
@@ -602,6 +616,9 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 	implied_to = clone_slist(*to);
 	implied_from = clone_slist(slist);
 
+	register_implied_pool(implied_to);
+	register_implied_pool(implied_from);
+
 	PREPARE_PTR_LIST(implied_to, to_state);
 	PREPARE_PTR_LIST(implied_from, state);
 	for (;;) {
@@ -609,33 +626,19 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			break;
 		if (cmp_tracker(to_state, state) < 0) {
 			tmp = merge_sm_states(to_state, NULL);
-			add_pool(&to_state->my_pools, implied_to);
-			add_pool(&to_state->all_pools, implied_to);
-			add_pool(&tmp->my_pools, implied_to);
-			add_pool(&tmp->all_pools, implied_to);
 			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_tracker(to_state, state) == 0) {
 			tmp = merge_sm_states(to_state, state);
 			if (!is_really_same(to_state, state)) {
-				add_pool(&to_state->my_pools, implied_to);
-				add_pool(&state->my_pools, implied_from);
 				add_pool(&tmp->my_pools, implied_to);
 				add_pool(&tmp->my_pools, implied_from);
 			}
-			add_pool(&tmp->all_pools, implied_to);
-			add_pool(&tmp->all_pools, implied_from);
-			add_pool(&to_state->all_pools, implied_to);
-			add_pool(&state->all_pools, implied_from);
 			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(to_state);
 			NEXT_PTR_LIST(state);
 		} else {
 			tmp = merge_sm_states(state, NULL);
-			add_pool(&state->my_pools, implied_from);
-			add_pool(&state->all_pools, implied_from);
-			add_pool(&tmp->my_pools, implied_from);
-			add_pool(&tmp->all_pools, implied_from);
 			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(state);
 		}
@@ -645,9 +648,6 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 
 	free_slist(to);
 	*to = results;
-
-	push_slist(&implied_pools, implied_from);
-	push_slist(&implied_pools, implied_to);
 }
 
 static int pool_in_pools(struct state_list_stack *pools,
