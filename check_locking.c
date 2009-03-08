@@ -107,6 +107,33 @@ static struct return_list *all_returns;
 STATE(locked);
 STATE(unlocked);
 
+/*
+ * merge_func() is used merging NULL and a state should be merge plus
+ * the state that the function was originally called with.  This way
+ * we can sometimes avoid being &undefined.
+ */
+static struct smatch_state *merge_func(const char *name, struct symbol *sym,
+				       struct smatch_state *s1,
+				       struct smatch_state *s2)
+{
+	int is_locked = 0;
+	int is_unlocked = 0;
+
+	if (s1)
+		return &merged;
+	if (in_tracker_list(starts_locked, name, my_id, sym))
+		is_locked = 1;
+	if (in_tracker_list(starts_unlocked, name, my_id, sym))
+		is_unlocked = 1;
+	if (is_locked && is_unlocked)
+		return &undefined;
+	if (s2 == &locked && is_locked)
+		return &locked;
+	if (s2 == &unlocked && is_unlocked)
+		return &unlocked;
+	return &undefined;
+}
+
 static char *match_func(const char *list[], char *fn_name,
 			struct expression_list *args)
 {
@@ -248,7 +275,7 @@ static void check_possible(struct sm_state *sm)
 		else if (tmp->state == &undefined)
 			undef = 1;
 	} END_FOR_EACH_PTR(tmp);
-	if (islocked && (isunlocked || undef))
+	if ((islocked && isunlocked) || undef)
 		smatch_msg("Unclear if '%s' is locked or unlocked.", sm->name);
 }
 
@@ -345,6 +372,7 @@ static void check_consistency(struct symbol *sym)
 void register_locking(int id)
 {
 	my_id = id;
+	add_merge_hook(my_id, &merge_func);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
