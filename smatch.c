@@ -39,8 +39,10 @@ const reg_func reg_funcs[] = {
 
 void help()
 {
-	printf("Usage:  smatch [--debug][--debug-implied][sparse arguments]"
-	       " file.c\n");
+	printf("Usage:  smatch [smatch arguments][sparse arguments] file.c\n");
+	printf("--debug:  print lots of debug output.\n");
+	printf("--debug-implied:  print debug output about implications.\n");
+	printf("--assume-loops:  assume loops always go through at least once.\n");
 	exit(1);
 }
 
@@ -62,6 +64,8 @@ int main(int argc, char **argv)
 			debug_implied_states = 1;
 		} else if (!strcmp(argv[1], "--no-implied")) {
 			option_no_implied = 1;
+		} else if (!strcmp(argv[1], "--assume-loops")) {
+			option_assume_loops = 1;
 		} else if (!strcmp(argv[1], "--help")) {
 			help();
 		} else {

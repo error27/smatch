@@ -27,6 +27,8 @@ static void split_expr_list(struct expression_list *expr_list);
 
 unsigned int __get_allocations();
 
+int option_assume_loops = 0;
+
 void __split_expr(struct expression *expr)
 {
 	if (!expr)
@@ -148,6 +150,8 @@ static void handle_pre_loop(struct statement *stmt)
 	__split_statements(stmt->iterator_pre_statement);
 
 	once_through = known_condition_true(stmt->iterator_pre_condition);
+	if (option_assume_loops)
+		once_through = 1;
 
 	__push_continues();
 	__push_breaks();

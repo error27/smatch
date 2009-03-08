@@ -144,6 +144,7 @@ int in_condition();
 void smatch (int argc, char **argv);
 void __split_expr(struct expression *expr);
 void __split_statements(struct statement *stmt);
+extern int option_assume_loops;
 
 /* smatch_conditions */
 void __split_whole_condition(struct expression *expr);
