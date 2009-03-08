@@ -60,6 +60,8 @@ int main(int argc, char **argv)
 			debug_states = 1;
 		} else if (!strcmp(argv[1], "--debug-implied")) {
 			debug_implied_states = 1;
+		} else if (!strcmp(argv[1], "--no-implied")) {
+			option_no_implied = 1;
 		} else if (!strcmp(argv[1], "--help")) {
 			help();
 		} else {

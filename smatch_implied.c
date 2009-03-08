@@ -52,6 +52,7 @@
 #define NOTEQUALS 1
 
 int debug_implied_states = 0;
+int option_no_implied = 0;
 
 /*
  * What are the implications if (foo == num) ...
@@ -113,6 +114,9 @@ void __implied_states_hook(struct expression *expr)
 	struct state_list_stack *false_pools;
 	struct state_list *implied_true;
 	struct state_list *implied_false;
+
+	if (option_no_implied)
+		return;
 
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym) {

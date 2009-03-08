@@ -150,6 +150,7 @@ void __split_whole_condition(struct expression *expr);
 
 /* smatch_implied.c */
 extern int debug_implied_states;
+extern int option_no_implied;
 void __implied_states_hook(struct expression *expr);
 
 /* smatch_extras.c */
