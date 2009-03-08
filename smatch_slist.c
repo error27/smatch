@@ -135,6 +135,7 @@ struct sm_state *alloc_state(const char *name, int owner,
 	sm_state->owner = owner;
 	sm_state->sym = sym;
 	sm_state->state = state;
+	sm_state->line = get_lineno();
 	sm_state->my_pools = NULL;
 	sm_state->all_pools = NULL;
 	sm_state->possible = NULL;
@@ -192,6 +193,7 @@ struct sm_state *clone_state(struct sm_state *s)
 	struct sm_state *poss;
 
 	ret = alloc_state(s->name, s->owner, s->sym, s->state);
+	ret->line = s->line;
 	ret->my_pools = clone_stack(s->my_pools);
 	ret->all_pools = clone_stack(s->all_pools);
 	FOR_EACH_PTR(s->possible, poss) {

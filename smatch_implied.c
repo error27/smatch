@@ -76,8 +76,9 @@ static struct state_list_stack *get_eq_neq(struct sm_state *sm_state,
 		}
 		if (s->data && ((eq_neq == EQUALS && *(int *)s->data == num) ||
 				(eq_neq == NOTEQUALS && *(int *)s->data != num))) {
-			DIMPLIED("added pool where %s is %s\n", sm_state->name,
-				 show_state(s)); 
+			DIMPLIED("added pool where %s is %s from line %d.\n",
+				 sm_state->name, show_state(s),
+				 sm_state->line); 
 			push_slist(&ret, list);
 		}
 	} END_FOR_EACH_PTR(list);
