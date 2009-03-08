@@ -633,10 +633,6 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_tracker(to_state, state) == 0) {
 			tmp = merge_sm_states(to_state, state);
-			if (!is_really_same(to_state, state)) {
-				add_pool(&tmp->my_pools, implied_to);
-				add_pool(&tmp->my_pools, implied_from);
-			}
 			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(to_state);
 			NEXT_PTR_LIST(state);
