@@ -579,9 +579,10 @@ static void register_implied_pool(struct state_list *pool)
 	struct sm_state *sm;
 	
  	FOR_EACH_PTR(pool, sm) {
-		if (!sm->my_pools) {
+		if (sm->state != &merged)
+			free_stack(&sm->my_pools);
+		if (!sm->my_pools)
 			add_pool(&sm->my_pools, pool);
-		}
 		add_pool(&sm->all_pools, pool);
 	} END_FOR_EACH_PTR(sm);
 
