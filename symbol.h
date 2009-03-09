@@ -207,7 +207,6 @@ struct symbol {
 #define MOD_ACCESSED	0x400000
 #define MOD_TOPLEVEL	0x800000	// scoping..
 
-#define MOD_LABEL	0x1000000
 #define MOD_ASSIGNED	0x2000000
 #define MOD_TYPE	0x4000000
 #define MOD_SAFE	0x8000000	// non-null/non-trapping pointer

@@ -372,8 +372,6 @@ static struct init_keyword {
 	{ "_Bool",	NS_TYPEDEF, .type = &bool_ctype, .op = &spec_op },
 
 	/* Predeclared types */
-	{ "__label__",	NS_TYPEDEF, MOD_LABEL,
-		.type =&label_ctype, .op = &spec_op },
 	{ "__builtin_va_list", NS_TYPEDEF, .type = &ptr_ctype, .op = &spec_op },
 
 	/* Extended types */
@@ -594,28 +592,6 @@ static struct symbol * alloc_indirect_symbol(struct position pos, struct ctype *
 	return sym;
 }
 
-static struct symbol *lookup_or_create_symbol(enum namespace ns, enum type type, struct token *token)
-{
-	struct symbol *sym = lookup_symbol(token->ident, ns);
-	if (!sym) {
-		sym = alloc_symbol(token->pos, type);
-		bind_symbol(sym, token->ident, ns);
-		if (type == SYM_LABEL)
-			fn_local_symbol(sym);
-	}
-	return sym;
-}
-
-static struct symbol * local_label(struct token *token)
-{
-	struct symbol *sym = lookup_symbol(token->ident, NS_SYMBOL);
-
-	if (sym && sym->ctype.modifiers & MOD_LABEL)
-		return sym;
-
-	return NULL;
-}
-
 /*
  * NOTE! NS_LABEL is not just a different namespace,
  * it also ends up using function scope instead of the
@@ -623,10 +599,13 @@ static struct symbol * local_label(struct token *token)
  */
 struct symbol *label_symbol(struct token *token)
 {
-	struct symbol *sym = local_label(token);
-	if (sym)
-		return sym;
-	return lookup_or_create_symbol(NS_LABEL, SYM_LABEL, token);
+	struct symbol *sym = lookup_symbol(token->ident, NS_LABEL);
+	if (!sym) {
+		sym = alloc_symbol(token->pos, SYM_LABEL);
+		bind_symbol(sym, token->ident, NS_LABEL);
+		fn_local_symbol(sym);
+	}
+	return sym;
 }
 
 static struct token *struct_union_enum_specifier(enum type type,
@@ -2149,9 +2128,29 @@ static struct token *statement(struct token *token, struct statement **tree)
 	return expression_statement(token, &stmt->expression);
 }
 
+/* gcc extension - __label__ ident-list; in the beginning of compound stmt */
+static struct token *label_statement(struct token *token)
+{
+	while (token_type(token) == TOKEN_IDENT) {
+		struct symbol *sym = alloc_symbol(token->pos, SYM_LABEL);
+		/* it's block-scope, but we want label namespace */
+		bind_symbol(sym, token->ident, NS_SYMBOL);
+		sym->namespace = NS_LABEL;
+		fn_local_symbol(sym);
+		token = token->next;
+		if (!match_op(token, ','))
+			break;
+		token = token->next;
+	}
+	return expect(token, ';', "at end of label declaration");
+}
+
 static struct token * statement_list(struct token *token, struct statement_list **list)
 {
 	int seen_statement = 0;
+	while (token_type(token) == TOKEN_IDENT &&
+	       token->ident == &__label___ident)
+		token = label_statement(token->next);
 	for (;;) {
 		struct statement * stmt;
 		if (eof_token(token))
