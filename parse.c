@@ -232,7 +232,7 @@ static struct init_keyword {
 		.op = &spec_op },
 
 	/* Predeclared types */
-	{ "__builtin_va_list", NS_TYPEDEF, .type = &int_type, .op = &spec_op },
+	{ "__builtin_va_list", NS_TYPEDEF, .type = &ptr_ctype, .op = &spec_op },
 
 	/* Extended types */
 	{ "typeof", 	NS_TYPEDEF, .op = &typeof_op },
