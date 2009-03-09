@@ -67,6 +67,11 @@ static attr_t
 	attribute_transparent_union, ignore_attribute,
 	attribute_mode;
 
+typedef struct symbol *to_mode_t(struct symbol *);
+
+static to_mode_t
+	to_QI_mode, to_HI_mode, to_SI_mode, to_DI_mode, to_word_mode;
+
 enum {
 	Set_T = 1,
 	Set_S = 2,
@@ -309,8 +314,29 @@ static struct symbol_op ignore_attr_op = {
 	.attribute = ignore_attribute,
 };
 
-static struct symbol_op mode_spec_op = {
+static struct symbol_op mode_QI_op = {
 	.type = KW_MODE,
+	.to_mode = to_QI_mode
+};
+
+static struct symbol_op mode_HI_op = {
+	.type = KW_MODE,
+	.to_mode = to_HI_mode
+};
+
+static struct symbol_op mode_SI_op = {
+	.type = KW_MODE,
+	.to_mode = to_SI_mode
+};
+
+static struct symbol_op mode_DI_op = {
+	.type = KW_MODE,
+	.to_mode = to_DI_mode
+};
+
+static struct symbol_op mode_word_op = {
+	.type = KW_MODE,
+	.to_mode = to_word_mode
 };
 
 static struct init_keyword {
@@ -411,16 +437,16 @@ static struct init_keyword {
 	{ "__transparent_union__",	NS_KEYWORD,	.op = &transparent_union_op },
 
 	{ "__mode__",	NS_KEYWORD,	.op = &mode_op },
-	{ "QI",		NS_KEYWORD,	MOD_CHAR,	.op = &mode_spec_op },
-	{ "__QI__",	NS_KEYWORD,	MOD_CHAR,	.op = &mode_spec_op },
-	{ "HI",		NS_KEYWORD,	MOD_SHORT,	.op = &mode_spec_op },
-	{ "__HI__",	NS_KEYWORD,	MOD_SHORT,	.op = &mode_spec_op },
-	{ "SI",		NS_KEYWORD,			.op = &mode_spec_op },
-	{ "__SI__",	NS_KEYWORD,			.op = &mode_spec_op },
-	{ "DI",		NS_KEYWORD,	MOD_LONGLONG,	.op = &mode_spec_op },
-	{ "__DI__",	NS_KEYWORD,	MOD_LONGLONG,	.op = &mode_spec_op },
-	{ "word",	NS_KEYWORD,	MOD_LONG,	.op = &mode_spec_op },
-	{ "__word__",	NS_KEYWORD,	MOD_LONG,	.op = &mode_spec_op },
+	{ "QI",		NS_KEYWORD,	MOD_CHAR,	.op = &mode_QI_op },
+	{ "__QI__",	NS_KEYWORD,	MOD_CHAR,	.op = &mode_QI_op },
+	{ "HI",		NS_KEYWORD,	MOD_SHORT,	.op = &mode_HI_op },
+	{ "__HI__",	NS_KEYWORD,	MOD_SHORT,	.op = &mode_HI_op },
+	{ "SI",		NS_KEYWORD,			.op = &mode_SI_op },
+	{ "__SI__",	NS_KEYWORD,			.op = &mode_SI_op },
+	{ "DI",		NS_KEYWORD,	MOD_LONGLONG,	.op = &mode_DI_op },
+	{ "__DI__",	NS_KEYWORD,	MOD_LONGLONG,	.op = &mode_DI_op },
+	{ "word",	NS_KEYWORD,	MOD_LONG,	.op = &mode_word_op },
+	{ "__word__",	NS_KEYWORD,	MOD_LONG,	.op = &mode_word_op },
 
 	/* Ignored attributes */
 	{ "nothrow",	NS_KEYWORD,	.op = &ignore_attr_op },
@@ -542,10 +568,18 @@ struct statement *alloc_statement(struct position pos, int type)
 
 static struct token *struct_declaration_list(struct token *token, struct symbol_list **list);
 
-static int apply_modifiers(struct position pos, struct ctype *ctype)
+static void apply_modifiers(struct position pos, struct decl_state *ctx)
 {
-	/* not removing it; application of delayed attributes will be here */
-	return 0;
+	struct symbol *ctype;
+	if (!ctx->mode)
+		return;
+	ctype = ctx->mode->to_mode(ctx->ctype.base_type);
+	if (!ctype)
+		sparse_error(pos, "don't know how to apply mode to %s",
+				show_typename(ctx->ctype.base_type));
+	else
+		ctx->ctype.base_type = ctype;
+	
 }
 
 static struct symbol * alloc_indirect_symbol(struct position pos, struct ctype *ctype, int type)
@@ -974,13 +1008,55 @@ static struct token *attribute_address_space(struct token *token, struct symbol 
 	return token;
 }
 
+static struct symbol *to_QI_mode(struct symbol *ctype)
+{
+	if (ctype->ctype.base_type != &int_type)
+		return NULL;
+	if (ctype == &char_ctype)
+		return ctype;
+	return ctype->ctype.modifiers & MOD_UNSIGNED ? &uchar_ctype
+						     : &schar_ctype;
+}
+
+static struct symbol *to_HI_mode(struct symbol *ctype)
+{
+	if (ctype->ctype.base_type != &int_type)
+		return NULL;
+	return ctype->ctype.modifiers & MOD_UNSIGNED ? &ushort_ctype
+						     : &sshort_ctype;
+}
+
+static struct symbol *to_SI_mode(struct symbol *ctype)
+{
+	if (ctype->ctype.base_type != &int_type)
+		return NULL;
+	return ctype->ctype.modifiers & MOD_UNSIGNED ? &uint_ctype
+						     : &sint_ctype;
+}
+
+static struct symbol *to_DI_mode(struct symbol *ctype)
+{
+	if (ctype->ctype.base_type != &int_type)
+		return NULL;
+	return ctype->ctype.modifiers & MOD_UNSIGNED ? &ullong_ctype
+						     : &sllong_ctype;
+}
+
+static struct symbol *to_word_mode(struct symbol *ctype)
+{
+	if (ctype->ctype.base_type != &int_type)
+		return NULL;
+	return ctype->ctype.modifiers & MOD_UNSIGNED ? &ulong_ctype
+						     : &slong_ctype;
+}
+
 static struct token *attribute_mode(struct token *token, struct symbol *attr, struct decl_state *ctx)
 {
 	token = expect(token, '(', "after mode attribute");
 	if (token_type(token) == TOKEN_IDENT) {
 		struct symbol *mode = lookup_keyword(token->ident, NS_KEYWORD);
 		if (mode && mode->op->type == KW_MODE)
-			ctx->ctype.modifiers |= mode->ctype.modifiers;
+			ctx->mode = mode->op;
 		else
 			sparse_error(token->pos, "unknown mode attribute %s\n", show_ident(token->ident));
 		token = token->next;
@@ -1608,7 +1684,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 			token = handle_bitfield(token, &ctx);
 
 		token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
-		apply_modifiers(token->pos, &ctx.ctype);
+		apply_modifiers(token->pos, &ctx);
 
 		decl->ctype = ctx.ctype;
 		decl->endpos = token->pos;
@@ -1643,7 +1719,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol *s
 	ctx.ident = &sym->ident;
 	token = declarator(token, &ctx);
 	token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
-	apply_modifiers(token->pos, &ctx.ctype);
+	apply_modifiers(token->pos, &ctx);
 	sym->ctype = ctx.ctype;
 	sym->endpos = token->pos;
 	return token;
@@ -1656,7 +1732,7 @@ struct token *typename(struct token *token, struct symbol **p, int mod)
 	*p = sym;
 	token = declaration_specifiers(token, &ctx);
 	token = declarator(token, &ctx);
-	apply_modifiers(token->pos, &ctx.ctype);
+	apply_modifiers(token->pos, &ctx);
 	if (ctx.ctype.modifiers & MOD_STORAGE & ~mod)
 		warning(sym->pos, "storage class in typename (%s)",
 			show_typename(sym));
@@ -2435,14 +2511,14 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	decl = alloc_symbol(token->pos, SYM_NODE);
 	/* Just a type declaration? */
 	if (match_op(token, ';')) {
-		apply_modifiers(token->pos, &ctx.ctype);
+		apply_modifiers(token->pos, &ctx);
 		return token->next;
 	}
 
 	saved = ctx.ctype;
 	token = declarator(token, &ctx);
 	token = handle_attributes(token, &ctx, KW_ATTRIBUTE | KW_ASM);
-	apply_modifiers(token->pos, &ctx.ctype);
+	apply_modifiers(token->pos, &ctx);
 
 	decl->ctype = ctx.ctype;
 	decl->endpos = token->pos;
@@ -2518,7 +2594,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
 		token = declarator(token, &ctx);
 		token = handle_attributes(token, &ctx, KW_ATTRIBUTE | KW_ASM);
-		apply_modifiers(token->pos, &ctx.ctype);
+		apply_modifiers(token->pos, &ctx);
 		decl->ctype = ctx.ctype;
 		decl->endpos = token->pos;
 		if (!ident) {

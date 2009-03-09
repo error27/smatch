@@ -91,8 +91,9 @@ struct ctype {
 
 struct decl_state {
 	struct ctype ctype;
-	int prefer_abstract;
 	struct ident **ident;
+	int prefer_abstract;
+	struct symbol_op *mode;
 };
 
 struct symbol_op {
@@ -106,6 +107,7 @@ struct symbol_op {
 	struct token *(*statement)(struct token *token, struct statement *stmt);
 	struct token *(*toplevel)(struct token *token, struct symbol_list **list);
 	struct token *(*attribute)(struct token *token, struct symbol *attr, struct decl_state *ctx);
+	struct symbol *(*to_mode)(struct symbol *);
 
 	int test, set, class;
 };
