@@ -804,10 +804,6 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 		struct token *next = token->next;
 		struct symbol *sym;
 
-		sym = alloc_symbol(token->pos, SYM_NODE);
-		bind_symbol(sym, token->ident, NS_SYMBOL);
-		sym->ctype.modifiers &= ~MOD_ADDRESSABLE;
-
 		if (match_op(next, '=')) {
 			next = constant_expression(next->next, &expr);
 			lastval = get_expression_value(expr);
@@ -828,6 +824,9 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 			expr->ctype = ctype;
 		}
 
+		sym = alloc_symbol(token->pos, SYM_NODE);
+		bind_symbol(sym, token->ident, NS_SYMBOL);
+		sym->ctype.modifiers &= ~MOD_ADDRESSABLE;
 		sym->initializer = expr;
 		sym->enum_member = 1;
 		sym->ctype.base_type = parent;
