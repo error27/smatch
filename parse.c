@@ -2365,6 +2365,9 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 			return token;
 		}
 
+		if (is_typedef)
+			decl->ctype.modifiers |= MOD_USERTYPE;
+
 		bind_symbol(decl, ident, is_typedef ? NS_TYPEDEF: NS_SYMBOL);
 
 		/* Function declarations are automatically extern unless specifically static */
