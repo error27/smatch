@@ -1105,29 +1105,31 @@ static struct token *declaration_specifiers(struct token *next, struct decl_stat
 		s = lookup_symbol(ident, NS_TYPEDEF);
 		if (!s)
 			break;
-		thistype = s->ctype;
-		mod = thistype.modifiers;
 		if (qual) {
 			if (s->type != SYM_KEYWORD)
 				break;
 			if (!(s->op->type & (KW_ATTRIBUTE | KW_QUALIFIER)))
 				break;
 		}
+		if (s->ctype.modifiers & MOD_USERTYPE) {
+			if (ctx->ctype.base_type)
+				break;
+			if (ctx->ctype.modifiers & MOD_SPECIFIER)
+				break;
+			ctx->ctype.base_type = s->ctype.base_type;
+			apply_ctype(token->pos, &s->ctype, &ctx->ctype);
+			continue;
+		}
+		thistype = s->ctype;
+		mod = thistype.modifiers;
 		if (s->type == SYM_KEYWORD && s->op->declarator) {
 			next = s->op->declarator(next, &thistype);
 			mod = thistype.modifiers;
 		}
 		type = thistype.base_type;
 		if (type) {
-			if (qual)
-				break;
 			if (ctx->ctype.base_type)
 				break;
-			/* User types only mix with qualifiers */
-			if (mod & MOD_USERTYPE) {
-				if (ctx->ctype.modifiers & MOD_SPECIFIER)
-					break;
-			}
 			ctx->ctype.base_type = type;
 		}
 
