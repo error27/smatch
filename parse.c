@@ -354,6 +354,8 @@ void init_parser(int stream)
 		struct init_keyword *ptr = keyword_table + i;
 		struct symbol *sym = create_symbol(stream, ptr->name, SYM_KEYWORD, ptr->ns);
 		sym->ident->keyword = 1;
+		if (ptr->ns == NS_TYPEDEF)
+			sym->ident->reserved = 1;
 		sym->ctype.modifiers = ptr->modifiers;
 		sym->op = ptr->op;
 	}
