@@ -105,7 +105,7 @@ struct symbol_op {
 	struct token *(*declarator)(struct token *token, struct decl_state *ctx);
 	struct token *(*statement)(struct token *token, struct statement *stmt);
 	struct token *(*toplevel)(struct token *token, struct symbol_list **list);
-	struct token *(*attribute)(struct token *token, struct symbol *attr, struct ctype *ctype);
+	struct token *(*attribute)(struct token *token, struct symbol *attr, struct decl_state *ctx);
 
 	int test, set, class;
 };
