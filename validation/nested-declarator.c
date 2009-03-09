@@ -16,12 +16,14 @@ int j(int [2](*));
 /*
  * check-name: nested declarator vs. parameters
  * check-error-start:
-nested-declarator.c:11:29: warning: missing identifier in declaration
-nested-declarator.c:13:16: error: Expected ) in function declarator
-nested-declarator.c:13:16: error: got *
-nested-declarator.c:14:19: error: Expected ) in function declarator
-nested-declarator.c:14:19: error: got *
-nested-declarator.c:15:15: error: Expected ) in function declarator
-nested-declarator.c:15:15: error: got *
+nested-declarator.c:11:23: warning: missing identifier in declaration
+nested-declarator.c:11:23: error: Expected ; at the end of type declaration
+nested-declarator.c:11:23: error: got (
+nested-declarator.c:13:15: error: Expected ; at the end of type declaration
+nested-declarator.c:13:15: error: got (
+nested-declarator.c:14:18: error: Expected ) in function declarator
+nested-declarator.c:14:18: error: got (
+nested-declarator.c:15:14: error: Expected ) in function declarator
+nested-declarator.c:15:14: error: got (
  * check-error-end:
  */
