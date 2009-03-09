@@ -1321,8 +1321,9 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 	int size = 0;
 
 	while (token_type(token) == TOKEN_IDENT) {
-		struct symbol *s = lookup_symbol(token->ident, NS_TYPEDEF);
-		if (!s)
+		struct symbol *s = lookup_symbol(token->ident,
+						 NS_TYPEDEF | NS_SYMBOL);
+		if (!s || !(s->namespace & NS_TYPEDEF))
 			break;
 		if (s->type != SYM_KEYWORD) {
 			if (seen & Set_Any)
