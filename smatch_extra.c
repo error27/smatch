@@ -153,7 +153,7 @@ static int expr_to_val(struct expression *expr)
 	return *(int *)state->data;
 }
 
-static int true_comparison(int left, int comparison, int right)
+int true_comparison(int left, int comparison, int right)
 {
 	switch(comparison){
 	case '<':

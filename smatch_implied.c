@@ -54,37 +54,6 @@
 int debug_implied_states = 0;
 int option_no_implied = 0;
 
-/*
- * What are the implications if (foo == num) ...
- */
-
-static struct state_list_stack *get_eq_neq(struct sm_state *sm_state,
-					int eq_neq, int num)
-{
-	struct state_list *list;
-	struct smatch_state *s;
-	struct state_list_stack *ret = NULL;
-
-	FOR_EACH_PTR(sm_state->my_pools, list) {
-		s = get_state_slist(list, sm_state->name, sm_state->owner,
-				    sm_state->sym);
-		if (s == &undefined) {
-			free_stack(&ret);
-			DIMPLIED("%d '%s' is undefined\n", get_lineno(), 
-				 sm_state->name);
-			return NULL;
-		}
-		if (s->data && ((eq_neq == EQUALS && *(int *)s->data == num) ||
-				(eq_neq == NOTEQUALS && *(int *)s->data != num))) {
-			DIMPLIED("added pool where %s is %s from line %d.\n",
-				 sm_state->name, show_state(s),
-				 sm_state->line); 
-			push_slist(&ret, list);
-		}
-	} END_FOR_EACH_PTR(list);
-	return ret;
-}
-
 static struct state_list *filter_stack(struct state_list_stack *stack)
 {
 	struct state_list *tmp;
@@ -106,18 +75,90 @@ static struct state_list *filter_stack(struct state_list_stack *stack)
 	return ret;
 }
 
-void __implied_states_hook(struct expression *expr)
+static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
+		       int left, struct state_list **true_states,
+		       struct state_list **false_states)
+{
+	struct state_list *list;
+	struct smatch_state *s;
+	struct state_list_stack *true_stack = NULL;
+	struct state_list_stack *false_stack = NULL;
+	int tf;
+
+	FOR_EACH_PTR(sm_state->my_pools, list) {
+		s = get_state_slist(list, sm_state->name, sm_state->owner,
+				    sm_state->sym);
+		if (s == &undefined || !s->data) {
+			free_stack(&true_stack);
+			free_stack(&false_stack);
+			DIMPLIED("%d '%s' is undefined\n", get_lineno(), 
+				 sm_state->name);
+			return;
+		}
+		if (left)
+			tf = true_comparison(*(int *)s->data,  comparison, num);
+		else
+			tf = true_comparison(num,  comparison, *(int *)s->data);
+		if (tf) {
+			push_slist(&true_stack, list);
+		} else {
+			push_slist(&false_stack, list);
+		}
+	} END_FOR_EACH_PTR(list);
+	*true_states = filter_stack(true_stack);
+	*false_states = filter_stack(false_stack);
+	free_stack(&true_stack);
+	free_stack(&false_stack);
+}
+
+static void handle_comparison(struct expression *expr,
+			      struct state_list **implied_true,
+			      struct state_list **implied_false)
 {
 	struct symbol *sym;
 	char *name;
 	struct sm_state *state;
-	struct state_list_stack *true_pools;
-	struct state_list_stack *false_pools;
-	struct state_list *implied_true;
-	struct state_list *implied_false;
+	int value;
+	int left = 0;
 
-	if (option_no_implied)
+	value = get_value(expr->left);
+	if (value == UNDEFINED) {
+		value = get_value(expr->right);
+		if (value == UNDEFINED)
+			return;
+		left = 1;
+	}
+	if (left)
+		name = get_variable_from_expr(expr->left, &sym);
+	else 
+		name = get_variable_from_expr(expr->right, &sym);
+	if (!name || !sym) {
+		free_string(name);
 		return;
+	}
+	state = get_sm_state(name, SMATCH_EXTRA, sym);
+	free_string(name);
+	if (!state)
+		return;
+	if (!state->my_pools) {
+		DIMPLIED("%d '%s' has no pools.\n", get_lineno(), state->name);
+		return;
+	}
+	get_eq_neq(state, expr->op, value, left, implied_true, implied_false);
+}
+
+static void get_tf_states(struct expression *expr,
+			  struct state_list **implied_true,
+			  struct state_list **implied_false)
+{
+	struct symbol *sym;
+	char *name;
+	struct sm_state *state;
+
+	if (expr->type == EXPR_COMPARE) {
+		handle_comparison(expr, implied_true, implied_false);
+		return;
+	}
 
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym) {
@@ -132,45 +173,32 @@ void __implied_states_hook(struct expression *expr)
 		DIMPLIED("%d '%s' has no pools.\n", get_lineno(), state->name);
 		return;
 	}
+	get_eq_neq(state, SPECIAL_NOTEQUAL, 0, 1, implied_true, implied_false);
+}
 
-	if (debug_implied_states) {
-		printf("%s has the following possible states:\n", state->name);
-		__print_slist(state->possible);
-	}
+static void implied_states_hook(struct expression *expr)
+{
+	struct sm_state *state;
+	struct state_list *implied_true = NULL;
+	struct state_list *implied_false = NULL;
 
-	DIMPLIED("Gettin the implied states for (%s != 0)\n", state->name);
-	true_pools = get_eq_neq(state, NOTEQUALS, 0);
-	DIMPLIED("There are %s implied pools for (%s != 0).\n", (true_pools?"some":"no"), state->name);
-	implied_true = filter_stack(true_pools);
-	if (implied_true && (debug_states || debug_implied_states)) {
-		printf("Setting the following implied states for (%s != 0).\n",
-		       state->name);
-		__print_slist(implied_true);
-	}
-	DIMPLIED("Gettin the implied states for (%s == 0)\n", state->name);
-	false_pools = get_eq_neq(state, EQUALS, 0);
-	DIMPLIED("There are %s implied pools for (%s == 0).\n", (true_pools?"some":"no"), state->name);
-	implied_false = filter_stack(false_pools);
-	if (implied_false && (debug_states || debug_implied_states)) {
-		printf("Setting the following implied states for (%s == 0).\n",
-		       state->name);
-		__print_slist(implied_false);
-	}
+	if (option_no_implied)
+		return;
+
+	get_tf_states(expr, &implied_true, &implied_false);
 
 	FOR_EACH_PTR(implied_true, state) {
 		__set_true_false_sm(state, NULL);
 	} END_FOR_EACH_PTR(state);
-	free_stack(&true_pools);
 	free_slist(&implied_true);
 
 	FOR_EACH_PTR(implied_false, state) {
 		__set_true_false_sm(NULL, state);
 	} END_FOR_EACH_PTR(state);
-	free_stack(&false_pools);
 	free_slist(&implied_false);
 }
 
 void register_implications(int id)
 {
-	add_hook(&__implied_states_hook, CONDITION_HOOK);
+	add_hook(&implied_states_hook, CONDITION_HOOK);
 }

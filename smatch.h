@@ -153,10 +153,10 @@ void __split_whole_condition(struct expression *expr);
 /* smatch_implied.c */
 extern int debug_implied_states;
 extern int option_no_implied;
-void __implied_states_hook(struct expression *expr);
 
 /* smatch_extras.c */
 #define SMATCH_EXTRA 1 /* this is my_id from smatch extra set in smatch.c */
+int true_comparison(int left, int comparison, int right);
 int known_condition_true(struct expression *expr);
 int known_condition_false(struct expression *expr);
 
