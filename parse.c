@@ -101,7 +101,9 @@ static struct symbol_op enum_op = {
 	.declarator = enum_specifier,
 };
 
-
+static struct symbol_op spec_op = {
+	.type = KW_SPEC,
+};
 
 static struct symbol_op if_op = {
 	.statement = parse_if_statement,
@@ -199,6 +201,7 @@ static struct init_keyword {
 	enum namespace ns;
 	unsigned long modifiers;
 	struct symbol_op *op;
+	struct symbol *type;
 } keyword_table[] = {
 	/* Type qualifiers */
 	{ "const",	NS_TYPEDEF, MOD_CONST, .op = &qualifier_op },
@@ -210,6 +213,26 @@ static struct init_keyword {
 
 	/* Typedef.. */
 	{ "typedef",	NS_TYPEDEF, MOD_TYPEDEF, .op = &modifier_op },
+
+	/* Type specifiers */
+	{ "void",	NS_TYPEDEF, .type = &void_ctype, .op = &spec_op},
+	{ "char",	NS_TYPEDEF, MOD_CHAR, .op = &spec_op },
+	{ "short",	NS_TYPEDEF, MOD_SHORT, .op = &spec_op },
+	{ "int",	NS_TYPEDEF, .type = &int_type, .op = &spec_op },
+	{ "long",	NS_TYPEDEF, MOD_LONG, .op = &spec_op },
+	{ "float",	NS_TYPEDEF, .type = &fp_type, .op = &spec_op },
+	{ "double",	NS_TYPEDEF, MOD_LONG, .type = &fp_type, .op = &spec_op },
+	{ "signed",	NS_TYPEDEF, MOD_SIGNED | MOD_EXPLICITLY_SIGNED, .op = &spec_op },
+	{ "__signed",	NS_TYPEDEF, MOD_SIGNED | MOD_EXPLICITLY_SIGNED, .op = &spec_op },
+	{ "__signed__",	NS_TYPEDEF, MOD_SIGNED | MOD_EXPLICITLY_SIGNED, .op = &spec_op },
+	{ "unsigned",	NS_TYPEDEF, MOD_UNSIGNED, .op = &spec_op },
+	{ "__label__",	NS_TYPEDEF, MOD_LABEL | MOD_UNSIGNED,
+		.type =&label_ctype, .op = &spec_op },
+	{ "_Bool",	NS_TYPEDEF, MOD_UNSIGNED, .type = &bool_ctype,
+		.op = &spec_op },
+
+	/* Predeclared types */
+	{ "__builtin_va_list", NS_TYPEDEF, .type = &int_type, .op = &spec_op },
 
 	/* Extended types */
 	{ "typeof", 	NS_TYPEDEF, .op = &typeof_op },
@@ -363,6 +386,7 @@ void init_parser(int stream)
 		if (ptr->ns == NS_TYPEDEF)
 			sym->ident->reserved = 1;
 		sym->ctype.modifiers = ptr->modifiers;
+		sym->ctype.base_type = ptr->type;
 		sym->op = ptr->op;
 	}
 }
@@ -1067,7 +1091,7 @@ static void check_modifiers(struct position *pos, struct symbol *s, unsigned lon
 	const unsigned long BANNED_SIZE = MOD_LONG | MOD_LONGLONG | MOD_SHORT;
 	const unsigned long BANNED_SIGN = MOD_SIGNED | MOD_UNSIGNED;
 
-	if (s->type == SYM_KEYWORD)
+	if (!(s->op->type & KW_SPEC))
 		banned = s->op->type == KW_SPECIFIER ? (BANNED_SIZE | BANNED_SIGN) : 0;
 	else if (s->ctype.base_type == &fp_type)
 		banned = BANNED_SIGN;

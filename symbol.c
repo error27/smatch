@@ -687,40 +687,6 @@ out:
 	return 0;
 }
 
-/*
- * Type and storage class keywords need to have the symbols
- * created for them, so that the parser can have enough semantic
- * information to do parsing.
- *
- * "double" == "long float", "long double" == "long long float"
- */
-static struct sym_init {
-	const char *name;
-	struct symbol *base_type;
-	unsigned int modifiers;
-	struct symbol_op *op;
-} symbol_init_table[] = {
-	/* Type specifiers */
-	{ "void",	&void_ctype,	0 },
-	{ "char",	NULL,		MOD_CHAR },
-	{ "short",	NULL,		MOD_SHORT },
-	{ "int",	&int_type,	0 },
-	{ "long",	NULL,		MOD_LONG },
-	{ "float",	&fp_type,	0 },
-	{ "double",	&fp_type,	MOD_LONG },
-	{ "signed",	NULL,		MOD_SIGNED | MOD_EXPLICITLY_SIGNED },
-	{ "__signed",	NULL,		MOD_SIGNED | MOD_EXPLICITLY_SIGNED },
-	{ "__signed__",	NULL,		MOD_SIGNED | MOD_EXPLICITLY_SIGNED },
-	{ "unsigned",	NULL,		MOD_UNSIGNED },
-	{ "__label__",	&label_ctype,	MOD_LABEL | MOD_UNSIGNED },
-	{ "_Bool",	&bool_ctype,	MOD_UNSIGNED },
-
-	/* Predeclared types */
-	{ "__builtin_va_list", &int_type, 0 },
-
-	{ NULL,		NULL,		0 }
-};
-
 static struct symbol_op constant_p_op = {
 	.evaluate = evaluate_to_integer,
 	.expand = expand_constant_p
@@ -750,7 +716,12 @@ static struct symbol_op choose_op = {
  * Builtin functions
  */
 static struct symbol builtin_fn_type = { .type = SYM_FN /* , .variadic =1 */ };
-static struct sym_init eval_init_table[] = {
+static struct sym_init {
+	const char *name;
+	struct symbol *base_type;
+	unsigned int modifiers;
+	struct symbol_op *op;
+} eval_init_table[] = {
 	{ "__builtin_constant_p", &builtin_fn_type, MOD_TOPLEVEL, &constant_p_op },
 	{ "__builtin_safe_p", &builtin_fn_type, MOD_TOPLEVEL, &safe_p_op },
 	{ "__builtin_warning", &builtin_fn_type, MOD_TOPLEVEL, &warning_op },
@@ -799,13 +770,6 @@ void init_symbols(void)
 #include "ident-list.h"
 
 	init_parser(stream);
-	for (ptr = symbol_init_table; ptr->name; ptr++) {
-		struct symbol *sym;
-		sym = create_symbol(stream, ptr->name, SYM_NODE, NS_TYPEDEF);
-		sym->ident->reserved = 1;
-		sym->ctype.base_type = ptr->base_type;
-		sym->ctype.modifiers = ptr->modifiers;
-	}
 
 	builtin_fn_type.variadic = 1;
 	for (ptr = eval_init_table; ptr->name; ptr++) {

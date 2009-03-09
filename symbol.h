@@ -68,6 +68,7 @@ enum keyword {
 	KW_STATEMENT	= 1 << 5,
 	KW_ASM		= 1 << 6,
 	KW_MODE		= 1 << 7,
+	KW_SPEC		= 1 << 8,
 };
 
 struct context {
