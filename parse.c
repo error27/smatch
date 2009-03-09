@@ -1260,7 +1260,7 @@ static enum kind which_kind(struct token *token, struct token **p,
 	}
 
 	if (token_type(next) != TOKEN_SPECIAL)
-		return dont_nest ? Bad_Nested : Bad_Func;
+		return !dont_nest ? Bad_Nested : Bad_Func;
 
 	if (next->special == ')') {
 		/* don't complain about those */
