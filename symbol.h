@@ -87,6 +87,12 @@ struct ctype {
 	struct symbol *base_type;
 };
 
+struct decl_state {
+	struct ctype ctype;
+	int prefer_abstract;
+	struct ident **ident;
+};
+
 struct symbol_op {
 	enum keyword type;
 	int (*evaluate)(struct expression *);
