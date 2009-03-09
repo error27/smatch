@@ -700,12 +700,6 @@ static struct sym_init {
 	unsigned int modifiers;
 	struct symbol_op *op;
 } symbol_init_table[] = {
-	/* Storage class */
-	{ "auto",	NULL,		MOD_AUTO },
-	{ "register",	NULL,		MOD_REGISTER },
-	{ "static",	NULL,		MOD_STATIC },
-	{ "extern",	NULL,		MOD_EXTERN },
-
 	/* Type specifiers */
 	{ "void",	&void_ctype,	0 },
 	{ "char",	NULL,		MOD_CHAR },

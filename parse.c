@@ -231,6 +231,12 @@ static struct init_keyword {
 	{ "restrict",	NS_TYPEDEF, .op = &qualifier_op},
 	{ "__restrict",	NS_TYPEDEF, .op = &qualifier_op},
 
+	/* Storage class */
+	{ "auto",	NS_TYPEDEF, MOD_AUTO, .op = &modifier_op },
+	{ "register",	NS_TYPEDEF, MOD_REGISTER, .op = &modifier_op },
+	{ "static",	NS_TYPEDEF, MOD_STATIC, .op = &modifier_op },
+	{ "extern",	NS_TYPEDEF, MOD_EXTERN, .op = &modifier_op },
+
 	/* Statement */
 	{ "if",		NS_KEYWORD, .op = &if_op },
 	{ "return",	NS_KEYWORD, .op = &return_op },
