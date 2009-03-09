@@ -176,6 +176,16 @@ static void handle_logical(struct expression *expr)
 	__use_cond_true_states();
 }
 
+static int handle_rostedt_if(struct expression *expr)
+{
+	if (expr->type != EXPR_CALL)
+		return 0;
+	if (!sym_name_is("__builtin_constant_p", expr->fn))
+		return 0;
+	split_conditions(expr);
+	return 1;
+}
+
 static void handle_select(struct expression *expr)
 {
 	/*
@@ -187,6 +197,9 @@ static void handle_select(struct expression *expr)
 	 * It's a bit complicated because we shouldn't pass aaa()
 	 * to the clients more than once.
 	 */
+
+	if (handle_rostedt_if(expr->conditional))
+		return;
 
 	split_conditions(expr->conditional);
 
