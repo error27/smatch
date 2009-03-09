@@ -67,6 +67,24 @@ static struct token *attribute_context(struct token *token, struct symbol *attr,
 static struct token *attribute_transparent_union(struct token *token, struct symbol *attr, struct ctype *ctype);
 static struct token *ignore_attribute(struct token *token, struct symbol *attr, struct ctype *ctype);
 
+enum {
+	Set_T = 1,
+	Set_S = 2,
+	Set_Char = 4,
+	Set_Int = 8,
+	Set_Double = 16,
+	Set_Float = 32,
+	Set_Signed = 64,
+	Set_Unsigned = 128,
+	Set_Short = 256,
+	Set_Long = 512,
+	Set_Vlong = 1024,
+	Set_Any = Set_T | Set_Short | Set_Long | Set_Signed | Set_Unsigned
+};
+
+enum {
+	CInt = 0, CSInt, CUInt, CReal, CChar, CSChar, CUChar
+};
 
 static struct symbol_op modifier_op = {
 	.type = KW_MODIFIER,
@@ -77,8 +95,10 @@ static struct symbol_op qualifier_op = {
 };
 
 static struct symbol_op typeof_op = {
-	.type = KW_TYPEOF,
+	.type = KW_SPECIFIER,
 	.declarator = typeof_specifier,
+	.test = Set_Any,
+	.set = Set_S|Set_T,
 };
 
 static struct symbol_op attribute_op = {
@@ -89,20 +109,81 @@ static struct symbol_op attribute_op = {
 static struct symbol_op struct_op = {
 	.type = KW_SPECIFIER,
 	.declarator = struct_specifier,
+	.test = Set_Any,
+	.set = Set_S|Set_T,
 };
 
 static struct symbol_op union_op = {
 	.type = KW_SPECIFIER,
 	.declarator = union_specifier,
+	.test = Set_Any,
+	.set = Set_S|Set_T,
 };
 
 static struct symbol_op enum_op = {
 	.type = KW_SPECIFIER,
 	.declarator = enum_specifier,
+	.test = Set_Any,
+	.set = Set_S|Set_T,
 };
 
 static struct symbol_op spec_op = {
-	.type = KW_SPEC,
+	.type = KW_SPECIFIER,
+	.test = Set_Any,
+	.set = Set_S|Set_T,
+};
+
+static struct symbol_op char_op = {
+	.type = KW_SPECIFIER,
+	.test = Set_T|Set_Long|Set_Short,
+	.set = Set_T|Set_Char,
+	.class = CChar,
+};
+
+static struct symbol_op int_op = {
+	.type = KW_SPECIFIER,
+	.test = Set_T,
+	.set = Set_T|Set_Int,
+};
+
+static struct symbol_op double_op = {
+	.type = KW_SPECIFIER,
+	.test = Set_T|Set_Signed|Set_Unsigned|Set_Short|Set_Vlong,
+	.set = Set_T|Set_Double,
+	.class = CReal,
+};
+
+static struct symbol_op float_op = {
+	.type = KW_SPECIFIER | KW_SHORT,
+	.test = Set_T|Set_Signed|Set_Unsigned|Set_Short|Set_Long,
+	.set = Set_T|Set_Float,
+	.class = CReal,
+};
+
+static struct symbol_op short_op = {
+	.type = KW_SPECIFIER | KW_SHORT,
+	.test = Set_S|Set_Char|Set_Float|Set_Double|Set_Long|Set_Short,
+	.set = Set_Short,
+};
+
+static struct symbol_op signed_op = {
+	.type = KW_SPECIFIER,
+	.test = Set_S|Set_Float|Set_Double|Set_Signed|Set_Unsigned,
+	.set = Set_Signed,
+	.class = CSInt,
+};
+
+static struct symbol_op unsigned_op = {
+	.type = KW_SPECIFIER,
+	.test = Set_S|Set_Float|Set_Double|Set_Signed|Set_Unsigned,
+	.set = Set_Unsigned,
+	.class = CUInt,
+};
+
+static struct symbol_op long_op = {
+	.type = KW_SPECIFIER | KW_LONG,
+	.test = Set_S|Set_Char|Set_Float|Set_Short|Set_Vlong,
+	.set = Set_Long,
 };
 
 static struct symbol_op if_op = {
@@ -216,22 +297,21 @@ static struct init_keyword {
 
 	/* Type specifiers */
 	{ "void",	NS_TYPEDEF, .type = &void_ctype, .op = &spec_op},
-	{ "char",	NS_TYPEDEF, MOD_CHAR, .op = &spec_op },
-	{ "short",	NS_TYPEDEF, MOD_SHORT, .op = &spec_op },
-	{ "int",	NS_TYPEDEF, .type = &int_type, .op = &spec_op },
-	{ "long",	NS_TYPEDEF, MOD_LONG, .op = &spec_op },
-	{ "float",	NS_TYPEDEF, .type = &fp_type, .op = &spec_op },
-	{ "double",	NS_TYPEDEF, MOD_LONG, .type = &fp_type, .op = &spec_op },
-	{ "signed",	NS_TYPEDEF, MOD_SIGNED | MOD_EXPLICITLY_SIGNED, .op = &spec_op },
-	{ "__signed",	NS_TYPEDEF, MOD_SIGNED | MOD_EXPLICITLY_SIGNED, .op = &spec_op },
-	{ "__signed__",	NS_TYPEDEF, MOD_SIGNED | MOD_EXPLICITLY_SIGNED, .op = &spec_op },
-	{ "unsigned",	NS_TYPEDEF, MOD_UNSIGNED, .op = &spec_op },
-	{ "__label__",	NS_TYPEDEF, MOD_LABEL | MOD_UNSIGNED,
-		.type =&label_ctype, .op = &spec_op },
-	{ "_Bool",	NS_TYPEDEF, MOD_UNSIGNED, .type = &bool_ctype,
-		.op = &spec_op },
+	{ "char",	NS_TYPEDEF, .op = &char_op },
+	{ "short",	NS_TYPEDEF, .op = &short_op },
+	{ "int",	NS_TYPEDEF, .op = &int_op },
+	{ "long",	NS_TYPEDEF, .op = &long_op },
+	{ "float",	NS_TYPEDEF, .op = &float_op },
+	{ "double",	NS_TYPEDEF, .op = &double_op },
+	{ "signed",	NS_TYPEDEF, .op = &signed_op },
+	{ "__signed",	NS_TYPEDEF, .op = &signed_op },
+	{ "__signed__",	NS_TYPEDEF, .op = &signed_op },
+	{ "unsigned",	NS_TYPEDEF, .op = &unsigned_op },
+	{ "_Bool",	NS_TYPEDEF, .type = &bool_ctype, .op = &spec_op },
 
 	/* Predeclared types */
+	{ "__label__",	NS_TYPEDEF, MOD_LABEL,
+		.type =&label_ctype, .op = &spec_op },
 	{ "__builtin_va_list", NS_TYPEDEF, .type = &ptr_ctype, .op = &spec_op },
 
 	/* Extended types */
@@ -428,45 +508,7 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 
 static int apply_modifiers(struct position pos, struct ctype *ctype)
 {
-	struct symbol *base;
-
-	while ((base = ctype->base_type)) {
-		switch (base->type) {
-		case SYM_FN:
-		case SYM_ENUM:
-		case SYM_ARRAY:
-		case SYM_BITFIELD:
-		case SYM_PTR:
-			ctype = &base->ctype;
-			continue;
-		}
-		break;
-	}
-
-	/* Turn the "virtual types" into real types with real sizes etc */
-	if (ctype->base_type == &int_type) {
-		ctype->base_type = ctype_integer(ctype->modifiers);
-		ctype->modifiers &= ~MOD_SPECIFIER;
-	} else if (ctype->base_type == &fp_type) {
-		ctype->base_type = ctype_fp(ctype->modifiers);
-		ctype->modifiers &= ~MOD_SPECIFIER;
-	}
-
-	if (ctype->modifiers & MOD_BITWISE) {
-		struct symbol *type;
-		ctype->modifiers &= ~(MOD_BITWISE | MOD_SPECIFIER);
-		if (!is_int_type(ctype->base_type)) {
-			sparse_error(pos, "invalid modifier");
-			return 1;
-		}
-		type = alloc_symbol(pos, SYM_BASETYPE);
-		*type = *ctype->base_type;
-		type->ctype.base_type = ctype->base_type;
-		type->type = SYM_RESTRICT;
-		type->ctype.modifiers &= ~MOD_SPECIFIER;
-		ctype->base_type = type;
-		create_fouled(type);
-	}
+	/* not removing it; application of delayed attributes will be here */
 	return 0;
 }
 
@@ -990,74 +1032,18 @@ static struct token *attribute_specifier(struct token *token, struct ctype *ctyp
 	return token;
 }
 
-struct symbol * ctype_integer(unsigned long spec)
-{
-	static struct symbol *const integer_ctypes[][3] = {
-		{ &llong_ctype, &sllong_ctype, &ullong_ctype },
-		{ &long_ctype,  &slong_ctype,  &ulong_ctype  },
-		{ &short_ctype, &sshort_ctype, &ushort_ctype },
-		{ &char_ctype,  &schar_ctype,  &uchar_ctype  },
-		{ &int_ctype,   &sint_ctype,   &uint_ctype   },
-	};
-	struct symbol *const (*ctype)[3];
-	int sub;
-
-	ctype = integer_ctypes;
-	if (!(spec & MOD_LONGLONG)) {
-		ctype++;
-		if (!(spec & MOD_LONG)) {
-			ctype++;
-			if (!(spec & MOD_SHORT)) {
-				ctype++;
-				if (!(spec & MOD_CHAR))
-					ctype++;
-			}
-		}
-	}
-
-	sub = ((spec & MOD_UNSIGNED)
-	       ? 2
-	       : ((spec & MOD_EXPLICITLY_SIGNED)
-		  ? 1
-		  : 0));
-
-	return ctype[0][sub];
-}
-
-struct symbol * ctype_fp(unsigned long spec)
-{
-	if (spec & MOD_LONGLONG)
-		return &ldouble_ctype;
-	if (spec & MOD_LONG)
-		return &double_ctype;
-	return &float_ctype;
-}
-
 static void apply_ctype(struct position pos, struct ctype *thistype, struct ctype *ctype)
 {
 	unsigned long mod = thistype->modifiers;
 
 	if (mod) {
 		unsigned long old = ctype->modifiers;
-		unsigned long extra = 0, dup, conflict;
+		unsigned long dup, conflict;
 
-		if (mod & old & MOD_LONG) {
-			extra = MOD_LONGLONG | MOD_LONG;
-			mod &= ~MOD_LONG;
-			old &= ~MOD_LONG;
-		}
-		dup = (mod & old) | (extra & old) | (extra & mod);
+		dup = mod & old;
 		if (dup)
 			sparse_error(pos, "Just how %sdo you want this type to be?",
 				modifier_string(dup));
-
-		conflict = !(~mod & ~old & (MOD_LONG | MOD_SHORT));
-		if (conflict)
-			sparse_error(pos, "You cannot have both long and short modifiers.");
-
-		conflict = !(~mod & ~old & (MOD_SIGNED | MOD_UNSIGNED));
-		if (conflict)
-			sparse_error(pos, "You cannot have both signed and unsigned modifiers.");
 
 		// Only one storage modifier allowed, except that "inline" doesn't count.
 		conflict = (mod | old) & (MOD_STORAGE & ~MOD_INLINE);
@@ -1065,7 +1051,7 @@ static void apply_ctype(struct position pos, struct ctype *thistype, struct ctyp
 		if (conflict)
 			sparse_error(pos, "multiple storage classes");
 
-		ctype->modifiers = old | mod | extra;
+		ctype->modifiers = old | mod;
 	}
 
 	/* Context */
@@ -1085,41 +1071,76 @@ static void apply_ctype(struct position pos, struct ctype *thistype, struct ctyp
 		ctype->as = thistype->as;
 }
 
-static void check_modifiers(struct position *pos, struct symbol *s, unsigned long mod)
+static void specifier_conflict(struct position pos, int what, struct ident *new)
 {
-	unsigned long banned, wrong;
-	const unsigned long BANNED_SIZE = MOD_LONG | MOD_LONGLONG | MOD_SHORT;
-	const unsigned long BANNED_SIGN = MOD_SIGNED | MOD_UNSIGNED;
+	const char *old;
+	if (what & (Set_S | Set_T))
+		goto Catch_all;
+	if (what & Set_Char)
+		old = "char";
+	else if (what & Set_Double)
+		old = "double";
+	else if (what & Set_Float)
+		old = "float";
+	else if (what & Set_Signed)
+		old = "signed";
+	else if (what & Set_Unsigned)
+		old = "unsigned";
+	else if (what & Set_Short)
+		old = "short";
+	else if (what & Set_Long)
+		old = "long";
+	else
+		old = "long long";
+	sparse_error(pos, "impossible combination of type specifiers: %s %s",
+			old, show_ident(new));
+	return;
 
-	if (!(s->op->type & KW_SPEC))
-		banned = s->op->type == KW_SPECIFIER ? (BANNED_SIZE | BANNED_SIGN) : 0;
-	else if (s->ctype.base_type == &fp_type)
-		banned = BANNED_SIGN;
-	else if (s->ctype.base_type == &int_type || !s->ctype.base_type || is_int_type (s))
-		banned = 0;
-	else {
-		// label_type
-		// void_type
-		// bad_type
-		// vector_type <-- whatever that is
-		banned = BANNED_SIZE | BANNED_SIGN;
-	}
+Catch_all:
+	sparse_error(pos, "two or more data types in declaration specifiers");
+}
 
-	wrong = mod & banned;
-	if (wrong)
-		sparse_error(*pos, "modifier %sis invalid in this context",
-		     modifier_string (wrong));
+static struct symbol * const int_types[] =
+	{&short_ctype, &int_ctype, &long_ctype, &llong_ctype};
+static struct symbol * const signed_types[] =
+	{&sshort_ctype, &sint_ctype, &slong_ctype, &sllong_ctype};
+static struct symbol * const unsigned_types[] =
+	{&ushort_ctype, &uint_ctype, &ulong_ctype, &ullong_ctype};
+static struct symbol * const real_types[] =
+	{&float_ctype, &double_ctype, &ldouble_ctype};
+static struct symbol * const char_types[] =
+	{&char_ctype, &schar_ctype, &uchar_ctype};
+static struct symbol * const * const types[] = {
+	int_types + 1, signed_types + 1, unsigned_types + 1,
+	real_types + 1, char_types, char_types + 1, char_types + 2
+};
+
+struct symbol *ctype_integer(unsigned long spec)
+{
+	int size;
+
+	if (spec & MOD_LONGLONG)
+		size = 2;
+	else if (spec & MOD_LONG)
+		size = 1;
+	else
+		size = 0;
+
+	return types[spec & MOD_UNSIGNED ? CUInt : CInt][size];
 }
 
 static struct token *declaration_specifiers(struct token *next, struct decl_state *ctx, int qual)
 {
+
 	struct token *token;
+	int seen = 0;
+	int class = CInt;
+	int size = 0;
 
 	while ( (token = next) != NULL ) {
 		struct ctype thistype;
 		struct ident *ident;
 		struct symbol *s, *type;
-		unsigned long mod;
 
 		next = token->next;
 		if (token_type(token) != TOKEN_IDENT)
@@ -1136,42 +1157,68 @@ static struct token *declaration_specifiers(struct token *next, struct decl_stat
 				break;
 		}
 		if (s->ctype.modifiers & MOD_USERTYPE) {
-			if (ctx->ctype.base_type)
+			if (seen & Set_Any)
 				break;
-			if (ctx->ctype.modifiers & MOD_SPECIFIER)
-				break;
+			seen |= Set_S | Set_T;
 			ctx->ctype.base_type = s->ctype.base_type;
 			apply_ctype(token->pos, &s->ctype, &ctx->ctype);
 			continue;
 		}
-		thistype = s->ctype;
-		mod = thistype.modifiers;
-		if (s->type == SYM_KEYWORD && s->op->declarator) {
-			next = s->op->declarator(next, &thistype);
-			mod = thistype.modifiers;
-		}
-		type = thistype.base_type;
-		if (type) {
-			if (ctx->ctype.base_type)
+		if (s->type != SYM_KEYWORD)
+			break;
+		if (s->op->type & KW_SPECIFIER) {
+			if (seen & s->op->test) {
+				specifier_conflict(token->pos,
+						   seen & s->op->test,
+						   ident);
 				break;
-			ctx->ctype.base_type = type;
+			}
+			seen |= s->op->set;
+			class += s->op->class;
+			if (s->op->type & KW_SHORT) {
+				size = -1;
+			} else if (s->op->type & KW_LONG && size++) {
+				if (class == CReal) {
+					specifier_conflict(token->pos,
+							   Set_Vlong,
+							   &double_ident);
+					break;
+				}
+				seen |= Set_Vlong;
+			}
 		}
-
-		check_modifiers(&token->pos, s, ctx->ctype.modifiers);
+		thistype = s->ctype;
+		if (s->op->declarator)
+			next = s->op->declarator(next, &thistype);
+		type = thistype.base_type;
+		if (type)
+			ctx->ctype.base_type = type;
 		apply_ctype(token->pos, &thistype, &ctx->ctype);
 	}
+	if (qual)
+		return token;
 
-	if (!ctx->ctype.base_type) {
+	if (!(seen & Set_S)) {	/* not set explicitly? */
 		struct symbol *base = &incomplete_ctype;
-
-		/*
-		 * If we have modifiers, we'll default to an integer
-		 * type, and "ctype_integer()" will turn this into
-		 * a specific one.
-		 */
-		if (ctx->ctype.modifiers & MOD_SPECIFIER)
-			base = &int_type;
+		if (seen & Set_Any)
+			base = types[class][size];
 		ctx->ctype.base_type = base;
+	}
+
+	if (ctx->ctype.modifiers & MOD_BITWISE) {
+		struct symbol *type;
+		ctx->ctype.modifiers &= ~MOD_BITWISE;
+		if (!is_int_type(ctx->ctype.base_type)) {
+			sparse_error(token->pos, "invalid modifier");
+			return token;
+		}
+		type = alloc_symbol(token->pos, SYM_BASETYPE);
+		*type = *ctx->ctype.base_type;
+		type->ctype.modifiers &= ~MOD_SPECIFIER;
+		type->ctype.base_type = ctx->ctype.base_type;
+		type->type = SYM_RESTRICT;
+		ctx->ctype.base_type = type;
+		create_fouled(type);
 	}
 	return token;
 }

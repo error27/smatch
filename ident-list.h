@@ -23,6 +23,7 @@ IDENT(union);
 IDENT(enum);
 IDENT(__attribute); IDENT(__attribute__);
 IDENT(volatile); IDENT(__volatile); IDENT(__volatile__);
+IDENT(double);
 
 /* Extended gcc identifiers */
 IDENT(asm); IDENT_RESERVED(__asm); IDENT_RESERVED(__asm__);

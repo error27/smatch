@@ -128,7 +128,6 @@ extern int show_expression(struct expression *);
 extern struct token *external_declaration(struct token *token, struct symbol_list **list);
 
 extern struct symbol *ctype_integer(unsigned long spec);
-extern struct symbol *ctype_fp(unsigned long spec);
 
 extern void copy_statement(struct statement *src, struct statement *dst);
 extern int inline_function(struct expression *expr, struct symbol *sym);
