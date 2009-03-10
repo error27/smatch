@@ -62,6 +62,29 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 
 }
 
+static int is_maybe_null_no_arg(const char *name, struct symbol *sym)
+{
+	struct state_list *slist;
+	struct sm_state *tmp;
+	int ret = 0;
+
+	slist = get_possible_states(name, my_id, sym);
+	FOR_EACH_PTR(slist, tmp) {
+		if (tmp->state == &ignore)
+			return 0;
+		if (tmp->state == &isnull) {
+			SM_DEBUG("is_maybe_null_no_arg() says %s &isnull\n", name);
+			ret = 1;
+		} 
+		if (tmp->state == &undefined) {
+			SM_DEBUG("is_maybe_null_no_arg() says %s &undefined\n", name);
+			ret = 1;
+		}
+	} END_FOR_EACH_PTR(tmp);
+	return ret;
+}
+
+
 static int is_maybe_null(const char *name, struct symbol *sym)
 {
 	struct state_list *slist;
@@ -88,7 +111,7 @@ static int is_maybe_null(const char *name, struct symbol *sym)
 	return ret;
 }
 
-static int is_argument(char *name, struct symbol *sym)
+static int is_maybe_null_arg(char *name, struct symbol *sym)
 {
 	struct state_list *slist;
 	struct sm_state *tmp;
@@ -97,7 +120,8 @@ static int is_argument(char *name, struct symbol *sym)
 	slist = get_possible_states(name, my_id, sym);
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state != &argument && tmp->state != &arg_null && 
-			tmp->state != &arg_nonnull && tmp->state !=  &merged)
+		    tmp->state != &arg_nonnull && tmp->state !=  &merged &&
+		    tmp->state != &assumed_nonnull)
 			return 0;
 		if (tmp->state == &argument || tmp->state == &arg_null)
 			maybe_null = 1;
@@ -199,7 +223,7 @@ static void match_function_call_after(struct expression *expr)
 			free_string(name);
 		} else if (func) {
 			name = get_variable_from_expr(tmp, &sym);
-			if (name && is_maybe_null(name, sym))
+			if (name && is_maybe_null_no_arg(name, sym))
 				add_param(&calls, func, i, get_lineno());
 			free_string(name);
 		}
@@ -365,7 +389,7 @@ static void match_dereferences(struct expression *expr)
 	if (!deref)
 		return;
 
-	if (is_argument(deref, sym)) {
+	if (is_maybe_null_arg(deref, sym)) {
 		add_do_not_call(sym, get_lineno());
 		set_state(deref, my_id, sym, &assumed_nonnull);
 	} else if  (is_maybe_null(deref, sym)) {
