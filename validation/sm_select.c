@@ -29,9 +29,9 @@ void func (void)
  * check-command: smatch sm_select.c
  *
  * check-output-start
-sm_select.c +17 func(6) Dereferencing Undefined:  'a'
-sm_select.c +18 func(7) Dereferencing Undefined:  'b'
-sm_select.c +21 func(10) Dereferencing Undefined:  'c'
-sm_select.c +23 func(12) Dereferencing Undefined:  'e'
+sm_select.c +17 func(6) error: dereferencing undefined:  'a'
+sm_select.c +18 func(7) error: dereferencing undefined:  'b'
+sm_select.c +21 func(10) error: dereferencing undefined:  'c'
+sm_select.c +23 func(12) error: dereferencing undefined:  'e'
  * check-output-end
  */

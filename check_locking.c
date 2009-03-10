@@ -183,7 +183,7 @@ static void check_locks_needed(const char *fn_name)
 		if (!strcmp(fn_name, lock_needed[i].function)) {
 			state = get_state(lock_needed[i].lock, my_id, NULL);
 			if (state != &locked) {
-				smatch_msg("%s called without holding '%s' lock",
+				smatch_msg("error: %s called without holding '%s' lock",
 					lock_needed[i].function,
 					lock_needed[i].lock);
 			}
@@ -206,14 +206,14 @@ static void match_call(struct expression *expr)
 		if (!sm)
 			add_tracker(&starts_unlocked, lock_name, my_id, NULL);
 		if (sm && slist_has_state(sm->possible, &locked))
-			smatch_msg("double lock '%s'", lock_name);
+			smatch_msg("error: double lock '%s'", lock_name);
 		set_state(lock_name, my_id, NULL, &locked);
 	} else if ((lock_name = match_unlock_func(fn_name, expr->args))) {
 		sm = get_sm_state(lock_name, my_id, NULL);
 		if (!sm)
 			add_tracker(&starts_locked, lock_name, my_id, NULL);
 		if (sm && slist_has_state(sm->possible, &unlocked))
-			smatch_msg("double unlock '%s'", lock_name);
+			smatch_msg("error: double unlock '%s'", lock_name);
 		set_state(lock_name, my_id, NULL, &unlocked);
 	} else
 		check_locks_needed(fn_name);
@@ -276,7 +276,8 @@ static void check_possible(struct sm_state *sm)
 			undef = 1;
 	} END_FOR_EACH_PTR(tmp);
 	if ((islocked && isunlocked) || undef)
-		smatch_msg("Unclear if '%s' is locked or unlocked.", sm->name);
+		smatch_msg("warn: '%s' is sometimes locked here and "
+			   "sometimes unlocked.", sm->name);
 }
 
 static void match_return(struct statement *stmt)
@@ -324,7 +325,7 @@ static void check_returns_consistently(struct tracker *lock,
 	} END_FOR_EACH_PTR(tmp);
 
 	if (returns_locked && returns_unlocked)
-		smatch_msg("Lock '%s' held on line %d but not on %d.",
+		smatch_msg("warn: lock '%s' held on line %d but not on %d.",
 			lock->name, returns_locked, returns_unlocked);
 
 }
@@ -353,8 +354,9 @@ static void check_consistency(struct symbol *sym)
 	FOR_EACH_PTR(starts_locked, tmp) {
 		if (in_tracker_list(starts_unlocked, tmp->name, tmp->owner,
 					tmp->sym))
-			smatch_msg("Locking inconsistency.  We assume '%s' is "
-				"both locked and unlocked at the start.",
+			smatch_msg("error:  locking inconsistency.  We assume "
+				   "'%s' is both locked and unlocked at the "
+				   "start.",
 				tmp->name);
 	} END_FOR_EACH_PTR(tmp);
 

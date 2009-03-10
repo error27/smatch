@@ -114,7 +114,7 @@ static void match_fn_call(struct expression *expr)
 		}
 
 		if (*(int *)dest_state->data < *(int *)data_state->data)
-		    smatch_msg("Error %s too large for %s", data_name, 
+		    smatch_msg("error: %s too large for %s", data_name, 
 			       dest_name);
 		free_string(dest_name);
 		free_string(data_name);
@@ -133,7 +133,7 @@ static void match_fn_call(struct expression *expr)
 			return;
 		has = *(int *)state->data;
 		if (has < needed)
-			smatch_msg("Error %s too small for %d bytes.", 
+			smatch_msg("error: %s too small for %d bytes.", 
 				   dest_name, needed);
 		free_string(dest_name);
 	}

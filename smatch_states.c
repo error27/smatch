@@ -70,7 +70,7 @@ static int unreachable()
 	}
 
 	if (reset_warnings || debug_states) 
-		smatch_msg("ignoring unreachable code.");
+		smatch_msg("info: ignoring unreachable code.");
 	reset_warnings = 0;
 	return 1;
 }

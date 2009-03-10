@@ -25,6 +25,6 @@ x:
  * check-command: smatch sm_implied.c
  *
  * check-output-start
-sm_implied.c +20 func(12) Dereferencing Undefined:  'aa'
+sm_implied.c +20 func(12) error: dereferencing undefined:  'aa'
  * check-output-end
  */

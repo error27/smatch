@@ -53,9 +53,9 @@ static void func (void)
  * check-command: smatch sm_null_deref.c
  *
  * check-output-start
-sm_null_deref.c +18 func(6) Dereferencing Undefined:  'aa'
-sm_null_deref.c +23 func(11) Dereferencing Undefined:  'a'
-sm_null_deref.c +30 func(18) Dereferencing Undefined:  'b'
-sm_null_deref.c +48 func(36) Dereferencing Undefined:  'd'
+sm_null_deref.c +18 func(6) error: dereferencing undefined:  'aa'
+sm_null_deref.c +23 func(11) error: dereferencing undefined:  'a'
+sm_null_deref.c +30 func(18) error: dereferencing undefined:  'b'
+sm_null_deref.c +48 func(36) error: dereferencing undefined:  'd'
  * check-output-end
  */

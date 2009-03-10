@@ -31,7 +31,7 @@ int func (void)
  * check-command: smatch sm_locking2.c
  *
  * check-output-start
-sm_locking2.c +21 func(14) double unlock 'mylock'
-sm_locking2.c +26 func(19) Lock 'mylock3' held on line 26 but not on 25.
+sm_locking2.c +21 func(14) error: double unlock 'mylock'
+sm_locking2.c +26 func(19) warn: lock 'mylock3' held on line 26 but not on 25.
  * check-output-end
  */

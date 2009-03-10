@@ -96,7 +96,7 @@ static void match_return(struct statement *stmt)
 	slist = get_all_states(my_id);
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state != &unlock)
-			smatch_msg("returned negative with %s semaphore held",
+			smatch_msg("warn: returned negative with %s semaphore held",
 				   tmp->name);
 	} END_FOR_EACH_PTR(tmp);
 	free_slist(&slist);

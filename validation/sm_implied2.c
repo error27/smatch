@@ -36,6 +36,6 @@ void func (void)
  * check-command: smatch sm_implied2.c
  *
  * check-output-start
-sm_implied2.c +28 func(19) Dereferencing Undefined:  'aa'
+sm_implied2.c +28 func(19) error: dereferencing undefined:  'aa'
  * check-output-end
  */

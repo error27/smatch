@@ -22,6 +22,6 @@ void func (void)
  * check-command: smatch sm_compound_condition.c
  *
  * check-output-start
-sm_compound_condition.c +18 func(10) Dereferencing Undefined:  'b'
+sm_compound_condition.c +18 func(10) error: dereferencing undefined:  'b'
  * check-output-end
  */

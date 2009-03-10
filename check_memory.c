@@ -152,7 +152,7 @@ static void match_assign(struct expression *expr)
 	right_name = get_variable_from_expr(right, &right_sym);
 	if (right_name && (state = get_state(right_name, my_id, right_sym))) {
 		if (state == &isfree)
-			smatch_msg("assigning freed pointer");
+			smatch_msg("error: assigning freed pointer");
 		set_state(right_name, my_id, right_sym, &assigned);
 	}
 	free_string(right_name);
@@ -189,7 +189,7 @@ static void match_kfree(struct expression *expr)
 	ptr_expr = get_argument_from_call_expr(expr->args, 0);
 	ptr_name = get_variable_from_expr(ptr_expr, &ptr_sym);
 	if (is_freed(ptr_name, ptr_sym) && !is_null(ptr_name, ptr_sym)) {
-		smatch_msg("double free of %s", ptr_name);
+		smatch_msg("error: double free of %s", ptr_name);
 	}
 	set_state(ptr_name, my_id, ptr_sym, &isfree);
 	free_string(ptr_name);
@@ -219,7 +219,7 @@ static void check_for_allocated()
 	FOR_EACH_PTR(slist, tmp) {
 		if (possibly_allocated(tmp->possible) && 
 			!is_null(tmp->name, tmp->sym))
-			smatch_msg("possible memery leak of %s", tmp->name);
+			smatch_msg("error: memery leak of %s", tmp->name);
 	} END_FOR_EACH_PTR(tmp);
 	free_slist(&slist);
 }
@@ -249,7 +249,7 @@ static void set_new_true_false_paths(const char *name, struct symbol *sym)
 	}
 
 	if (tmp == &isfree) {
-		smatch_msg("why do you care about freed memory?");
+		smatch_msg("warn: why do you care about freed memory?");
 	}
 
 	if (tmp == &malloced) {

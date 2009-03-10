@@ -7,8 +7,8 @@ if [[ "$file" = "" ]] ; then
     exit 1
 fi
 
-grep " unchecked " $file | cut -d ' ' -f 5- | sort -u > unchecked
-grep " undefined " $file | cut -d ' ' -f 5- | sort -u > null_calls.txt
+grep " unchecked " $file | cut -d ' ' -f 6- | sort -u > unchecked
+grep " undefined " $file | cut -d ' ' -f 6- | sort -u > null_calls.txt
 cat null_calls.txt unchecked | sort | uniq -d > null_params.txt
 IFS="
 "
