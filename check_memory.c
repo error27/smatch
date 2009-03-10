@@ -28,6 +28,8 @@ STATE(unfree);
           \-> isnull.
 */
 
+struct tracker_list *arguments;
+
 /* If we pass a parent to a function that sets all the 
    children to assigned.  frob(x) means x->data is assigned. */
 struct parent {
@@ -124,6 +126,26 @@ static int is_freed(const char *name, struct symbol *sym)
 	return 0;
 }
 
+static int is_argument(struct symbol *sym)
+{
+	struct tracker *arg;
+
+	FOR_EACH_PTR(arguments, arg) {
+		if (arg->sym == sym)
+			return 1;
+	} END_FOR_EACH_PTR(arg);
+	return 0;
+}
+
+static void match_function_def(struct symbol *sym)
+{
+	struct symbol *arg;
+
+	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
+		add_tracker(&arguments, arg->ident->name, my_id, arg);
+	} END_FOR_EACH_PTR(arg);
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct expression *left, *right;
@@ -213,12 +235,11 @@ static void check_for_allocated()
 	struct state_list *slist;
 	struct sm_state *tmp;
 
-	return;
-
 	slist = get_all_states(my_id);
 	FOR_EACH_PTR(slist, tmp) {
 		if (possibly_allocated(tmp->possible) && 
-			!is_null(tmp->name, tmp->sym))
+			!is_null(tmp->name, tmp->sym) &&
+			!is_argument(tmp->sym))
 			smatch_msg("error: memery leak of %s", tmp->name);
 	} END_FOR_EACH_PTR(tmp);
 	free_slist(&slist);
@@ -233,6 +254,7 @@ static void match_return(struct statement *stmt)
 	name = get_variable_from_expr(stmt->ret_value, &sym);
 	if ((state = get_state(name, my_id, sym))) {
 		set_state(name, my_id, sym, &assigned);
+		add_parent_to_parents(name, sym);
 	}
 	free_string(name);
 	check_for_allocated();
@@ -326,6 +348,7 @@ static void match_end_func(struct symbol *sym)
 void register_memory(int id)
 {
 	my_id = id;
+	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
