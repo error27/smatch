@@ -34,7 +34,7 @@ struct tracker_list *arguments;
    children to assigned.  frob(x) means x->data is assigned. */
 struct parent {
 	struct symbol *sym;
-	struct tracker_list *children;
+	int assigned;
 };
 ALLOCATOR(parent, "parents");
 DECLARE_PTR_LIST(parent_list, struct parent);
@@ -46,52 +46,48 @@ static const char *allocation_funcs[] = {
 	NULL,
 };
 
+/*
+ * This is not totally the right idea.  We should track the state
+ * of the parent...
+ */
 static void add_parent_to_parents(char *name, struct symbol *sym)
 {
 	struct parent *tmp;
 
 	FOR_EACH_PTR(parents, tmp) {
 		if (tmp->sym == sym) {
-			add_tracker(&tmp->children, name, my_id, sym);
 			return;
 		}
 	} END_FOR_EACH_PTR(tmp);
 
 	tmp = __alloc_parent(0);
 	tmp->sym = sym;
-	tmp->children = NULL;
-	add_tracker(&tmp->children, name, my_id, sym);
+	tmp->assigned = 0;
 	add_ptr_list(&parents, tmp);
 }
 
-static void set_list_assigned(struct tracker_list *children)
-{
-	struct tracker *child;
-
-	FOR_EACH_PTR(children, child) {
-		set_state(child->name, my_id, child->sym, &assigned);
-	} END_FOR_EACH_PTR(child);
-}
-
-static struct tracker_list *get_children(struct symbol *sym)
+static void set_parent_assigned(struct symbol *sym)
 {
 	struct parent *tmp;
 
 	FOR_EACH_PTR(parents, tmp) {
 		if (tmp->sym == sym) {
-			return tmp->children;
+			tmp->assigned = 1;
+			return;
 		}
 	} END_FOR_EACH_PTR(tmp);
-	return NULL;
 }
 
-static void set_children_assigned(struct symbol *sym)
+static int parent_is_assigned(struct symbol *sym)
 {
-	struct tracker_list *children;
+	struct parent *tmp;
 
-	if ((children = get_children(sym))) {
-		set_list_assigned(children);
-	}
+	FOR_EACH_PTR(parents, tmp) {
+		if (tmp->sym == sym) {
+			return tmp->assigned;
+		}
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
 }
 
 static int is_allocation(struct expression *expr)
@@ -146,6 +142,7 @@ static void match_function_def(struct symbol *sym)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static int assign_seen;
 static void match_assign(struct expression *expr)
 {
 	struct expression *left, *right;
@@ -153,6 +150,10 @@ static void match_assign(struct expression *expr)
 	struct symbol *left_sym, *right_sym;
 	struct smatch_state *state;
 
+	if (assign_seen) {
+		assign_seen--;
+		return;
+	}
 	left = strip_expr(expr->left);
 	left_name = get_variable_from_expr(left, &left_sym);
 	if (!left_name)
@@ -238,8 +239,9 @@ static void check_for_allocated()
 	slist = get_all_states(my_id);
 	FOR_EACH_PTR(slist, tmp) {
 		if (possibly_allocated(tmp->possible) && 
-			!is_null(tmp->name, tmp->sym) &&
-			!is_argument(tmp->sym))
+		    !is_null(tmp->name, tmp->sym) &&
+		    !is_argument(tmp->sym) && 
+		    !parent_is_assigned(tmp->sym))
 			smatch_msg("error: memery leak of %s", tmp->name);
 	} END_FOR_EACH_PTR(tmp);
 	free_slist(&slist);
@@ -249,13 +251,10 @@ static void match_return(struct statement *stmt)
 {
 	char *name;
 	struct symbol *sym;
-	struct smatch_state *state;
 
 	name = get_variable_from_expr(stmt->ret_value, &sym);
-	if ((state = get_state(name, my_id, sym))) {
-		set_state(name, my_id, sym, &assigned);
-		add_parent_to_parents(name, sym);
-	}
+	if (sym)
+		set_parent_assigned(sym);
 	free_string(name);
 	check_for_allocated();
 }
@@ -274,9 +273,11 @@ static void set_new_true_false_paths(const char *name, struct symbol *sym)
 		smatch_msg("warn: why do you care about freed memory?");
 	}
 
-	if (tmp == &malloced) {
-		set_true_false_states(name, my_id, sym, &allocated, &isnull);
+	if (tmp == &assigned) {
+		/* we don't care about assigned pointers any more */
+		return;
 	}
+	set_true_false_states(name, my_id, sym, &allocated, &isnull);
 }
 
 static void match_condition(struct expression *expr)
@@ -294,6 +295,12 @@ static void match_condition(struct expression *expr)
 			return;
 		set_new_true_false_paths(name, sym);
 		free_string(name);
+		return;
+	case EXPR_ASSIGNMENT:
+		assign_seen++;
+		 /* You have to deal with stuff like if (a = b = c) */
+		match_condition(expr->right);
+		match_condition(expr->left);
 		return;
 	default:
 		return;
@@ -324,8 +331,7 @@ static void match_function_call(struct expression *expr)
 				set_state(name, my_id, sym, &assigned);
 			}
 		}
-		set_children_assigned(sym);
-		/* get parent.  set children to assigned */
+		set_parent_assigned(sym);
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -334,7 +340,7 @@ static void free_the_parents()
 	struct parent *tmp;
 
 	FOR_EACH_PTR(parents, tmp) {
-		free_trackers_and_list(&tmp->children);
+		__free_parent(tmp);
 	} END_FOR_EACH_PTR(tmp);
 	__free_ptr_list((struct ptr_list **)&parents);
 }
