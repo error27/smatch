@@ -50,7 +50,7 @@ static const char *allocation_funcs[] = {
  * This is not totally the right idea.  We should track the state
  * of the parent...
  */
-static void add_parent_to_parents(char *name, struct symbol *sym)
+static void add_parent_to_parents(struct symbol *sym)
 {
 	struct parent *tmp;
 
@@ -142,6 +142,26 @@ static void match_function_def(struct symbol *sym)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static void match_declarations(struct symbol *sym)
+{
+	const char *name;
+
+	if ((get_base_type(sym))->type == SYM_ARRAY) {
+		return;
+	}
+
+	name = sym->ident->name;
+
+	if (sym->initializer) {
+		add_parent_to_parents(sym);
+		if (is_allocation(sym->initializer)) {
+			set_state(name, my_id, sym, &malloced);
+		} else {
+			set_parent_assigned(sym);
+		}
+	}
+}
+
 static int assign_seen;
 static void match_assign(struct expression *expr)
 {
@@ -167,7 +187,7 @@ static void match_assign(struct expression *expr)
 	if (is_allocation(right) && !(left_sym->ctype.modifiers &
 			(MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))) {
 		set_state(left_name, my_id, left_sym, &malloced);
-		add_parent_to_parents(left_name, left_sym);
+		add_parent_to_parents(left_sym);
 		free_string(left_name);
 		return;
 	}
@@ -355,6 +375,7 @@ void register_memory(int id)
 {
 	my_id = id;
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
+	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
