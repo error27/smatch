@@ -1262,18 +1262,9 @@ static struct symbol * const * const types[] = {
 	real_types + 1, char_types, char_types + 1, char_types + 2
 };
 
-struct symbol *ctype_integer(unsigned long spec)
+struct symbol *ctype_integer(int size, int want_unsigned)
 {
-	int size;
-
-	if (spec & MOD_LONGLONG)
-		size = 2;
-	else if (spec & MOD_LONG)
-		size = 1;
-	else
-		size = 0;
-
-	return types[spec & MOD_UNSIGNED ? CUInt : CInt][size];
+	return types[want_unsigned ? CUInt : CInt][size];
 }
 
 static struct token *handle_qualifiers(struct token *t, struct decl_state *ctx)

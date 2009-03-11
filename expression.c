@@ -272,7 +272,7 @@ static void get_number_value(struct expression *expr, struct token *token)
 	const char *str = token->number;
 	unsigned long long value;
 	char *end;
-	unsigned long modifiers = 0;
+	int size = 0, want_unsigned = 0;
 	int overflow = 0, do_warn = 0;
 	int try_unsigned = 1;
 	int bits;
@@ -284,55 +284,55 @@ static void get_number_value(struct expression *expr, struct token *token)
 	if (value == ULLONG_MAX && errno == ERANGE)
 		overflow = 1;
 	while (1) {
-		unsigned long added;
 		char c = *end++;
 		if (!c) {
 			break;
 		} else if (c == 'u' || c == 'U') {
-			added = MOD_UNSIGNED;
+			if (want_unsigned)
+				goto Enoint;
+			want_unsigned = 1;
 		} else if (c == 'l' || c == 'L') {
-			added = MOD_LONG;
+			if (size)
+				goto Enoint;
+			size = 1;
 			if (*end == c) {
-				added |= MOD_LONGLONG;
+				size = 2;
 				end++;
 			}
 		} else
 			goto Float;
-		if (modifiers & added)
-			goto Enoint;
-		modifiers |= added;
 	}
 	if (overflow)
 		goto Eoverflow;
 	/* OK, it's a valid integer */
 	/* decimals can be unsigned only if directly specified as such */
-	if (str[0] != '0' && !(modifiers & MOD_UNSIGNED))
+	if (str[0] != '0' && !want_unsigned)
 		try_unsigned = 0;
-	if (!(modifiers & MOD_LONG)) {
+	if (!size) {
 		bits = bits_in_int - 1;
 		if (!(value & (~1ULL << bits))) {
 			if (!(value & (1ULL << bits))) {
 				goto got_it;
 			} else if (try_unsigned) {
-				modifiers |= MOD_UNSIGNED;
+				want_unsigned = 1;
 				goto got_it;
 			}
 		}
-		modifiers |= MOD_LONG;
+		size = 1;
 		do_warn = 1;
 	}
-	if (!(modifiers & MOD_LONGLONG)) {
+	if (size < 2) {
 		bits = bits_in_long - 1;
 		if (!(value & (~1ULL << bits))) {
 			if (!(value & (1ULL << bits))) {
 				goto got_it;
 			} else if (try_unsigned) {
-				modifiers |= MOD_UNSIGNED;
+				want_unsigned = 1;
 				goto got_it;
 			}
 			do_warn |= 2;
 		}
-		modifiers |= MOD_LONGLONG;
+		size = 2;
 		do_warn |= 1;
 	}
 	bits = bits_in_longlong - 1;
@@ -343,14 +343,14 @@ static void get_number_value(struct expression *expr, struct token *token)
 	if (!try_unsigned)
 		warning(expr->pos, "decimal constant %s is too big for long long",
 			show_token(token));
-	modifiers |= MOD_UNSIGNED;
+	want_unsigned = 1;
 got_it:
 	if (do_warn)
 		warning(expr->pos, "constant %s is so big it is%s%s%s",
 			show_token(token),
-			(modifiers & MOD_UNSIGNED) ? " unsigned":"",
-			(modifiers & MOD_LONG) ? " long":"",
-			(modifiers & MOD_LONGLONG) ? " long":"");
+			want_unsigned ? " unsigned":"",
+			size > 0 ? " long":"",
+			size > 1 ? " long":"");
 	if (do_warn & 2)
 		warning(expr->pos,
 			"decimal constant %s is between LONG_MAX and ULONG_MAX."
@@ -359,7 +359,7 @@ got_it:
 			show_token(token));
         expr->type = EXPR_VALUE;
 	expr->flags = Int_const_expr;
-        expr->ctype = ctype_integer(modifiers);
+        expr->ctype = ctype_integer(size, want_unsigned);
         expr->value = value;
 	return;
 Eoverflow:
