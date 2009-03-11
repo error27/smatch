@@ -30,63 +30,19 @@ STATE(unfree);
 
 struct tracker_list *arguments;
 
-/* If we pass a parent to a function that sets all the 
-   children to assigned.  frob(x) means x->data is assigned. */
-struct parent {
-	struct symbol *sym;
-	int assigned;
-};
-ALLOCATOR(parent, "parents");
-DECLARE_PTR_LIST(parent_list, struct parent);
-static struct parent_list *parents;
-
 static const char *allocation_funcs[] = {
 	"malloc",
 	"kmalloc",
 	NULL,
 };
 
-/*
- * This is not totally the right idea.  We should track the state
- * of the parent...
- */
-static void add_parent_to_parents(struct symbol *sym)
-{
-	struct parent *tmp;
-
-	FOR_EACH_PTR(parents, tmp) {
-		if (tmp->sym == sym) {
-			return;
-		}
-	} END_FOR_EACH_PTR(tmp);
-
-	tmp = __alloc_parent(0);
-	tmp->sym = sym;
-	tmp->assigned = 0;
-	add_ptr_list(&parents, tmp);
-}
-
-static void set_parent_assigned(struct symbol *sym)
-{
-	struct parent *tmp;
-
-	FOR_EACH_PTR(parents, tmp) {
-		if (tmp->sym == sym) {
-			tmp->assigned = 1;
-			return;
-		}
-	} END_FOR_EACH_PTR(tmp);
-}
-
 static int parent_is_assigned(struct symbol *sym)
 {
-	struct parent *tmp;
+	struct smatch_state *state;
 
-	FOR_EACH_PTR(parents, tmp) {
-		if (tmp->sym == sym) {
-			return tmp->assigned;
-		}
-	} END_FOR_EACH_PTR(tmp);
+	state = get_state("-", my_id, sym);
+	if (state == &assigned)
+		return 1;
 	return 0;
 }
 
@@ -153,20 +109,51 @@ static void match_declarations(struct symbol *sym)
 	name = sym->ident->name;
 
 	if (sym->initializer) {
-		add_parent_to_parents(sym);
 		if (is_allocation(sym->initializer)) {
 			set_state(name, my_id, sym, &malloced);
 		} else {
-			set_parent_assigned(sym);
+			set_state("-", my_id, sym, &assigned);
 		}
 	}
 }
 
+static int is_parent(struct expression *expr)
+{
+	if (expr->type == EXPR_DEREF)
+		return 0;
+	return 1;
+}
+
 static int assign_seen;
+static int handle_double_assign(struct expression *expr)
+{
+	struct symbol *sym;
+	char *name;
+
+	if (expr->right->type != EXPR_ASSIGNMENT)
+		return 0;
+	assign_seen++;
+	
+	name = get_variable_from_expr(expr->left, &sym);
+	if (name && is_parent(expr->left))
+		set_state("-", my_id, sym, &assigned);
+
+	name = get_variable_from_expr(expr->right->left, &sym);
+	if (name && is_parent(expr->right->left))
+		set_state("-", my_id, sym, &assigned);
+
+	name = get_variable_from_expr(expr->right->right, &sym);
+	if (name && is_parent(expr->right->right))
+		set_state("-", my_id, sym, &assigned);
+
+	return 1;
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct expression *left, *right;
-	char *left_name, *right_name;
+	char *left_name = NULL;
+	char *right_name = NULL;
 	struct symbol *left_sym, *right_sym;
 	struct smatch_state *state;
 
@@ -174,38 +161,40 @@ static void match_assign(struct expression *expr)
 		assign_seen--;
 		return;
 	}
-	left = strip_expr(expr->left);
-	left_name = get_variable_from_expr(left, &left_sym);
-	if (!left_name)
-		return;
-	if (!left_sym) {
-		free_string(left_name);
+
+	if (handle_double_assign(expr)) {
 		return;
 	}
 
+	left = strip_expr(expr->left);
+	left_name = get_variable_from_expr(left, &left_sym);
+
 	right = strip_expr(expr->right);
-	if (is_allocation(right) && !(left_sym->ctype.modifiers &
-			(MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))) {
+	if (left_name && left_sym && is_allocation(right) && 
+	    !(left_sym->ctype.modifiers & 
+	      (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))) {
 		set_state(left_name, my_id, left_sym, &malloced);
-		add_parent_to_parents(left_sym);
-		free_string(left_name);
-		return;
+		goto exit;
 	}
 
 	right_name = get_variable_from_expr(right, &right_sym);
+
 	if (right_name && (state = get_state(right_name, my_id, right_sym))) {
 		if (state == &isfree)
 			smatch_msg("error: assigning freed pointer");
 		set_state(right_name, my_id, right_sym, &assigned);
 	}
-	free_string(right_name);
 
 	if (is_freed(left_name, left_sym)) {
 		set_state(left_name, my_id, left_sym, &unfree);
 	}
-	add_parent_to_parents(left_sym);
-	set_parent_assigned(left_sym);
+	if (left_name && is_parent(left))
+		set_state("-", my_id, left_sym, &assigned);
+	if (right_name && is_parent(right))
+		set_state("-", my_id, right_sym, &assigned);
+exit:
 	free_string(left_name);
+	free_string(right_name);
 }
 
 static int is_null(char *name, struct symbol *sym)
@@ -276,7 +265,7 @@ static void match_return(struct statement *stmt)
 
 	name = get_variable_from_expr(stmt->ret_value, &sym);
 	if (sym)
-		set_parent_assigned(sym);
+		set_state("-", my_id, sym, &assigned);
 	free_string(name);
 	check_for_allocated();
 }
@@ -353,24 +342,14 @@ static void match_function_call(struct expression *expr)
 				set_state(name, my_id, sym, &assigned);
 			}
 		}
-		set_parent_assigned(sym);
+		set_state("-", my_id, sym, &assigned);
 	} END_FOR_EACH_PTR(tmp);
-}
-
-static void free_the_parents()
-{
-	struct parent *tmp;
-
-	FOR_EACH_PTR(parents, tmp) {
-		__free_parent(tmp);
-	} END_FOR_EACH_PTR(tmp);
-	__free_ptr_list((struct ptr_list **)&parents);
 }
 
 static void match_end_func(struct symbol *sym)
 {
 	check_for_allocated();
-	free_the_parents();
+	free_trackers_and_list(&arguments);
 }
 
 void register_memory(int id)
