@@ -118,7 +118,7 @@ static struct token *parse_type(struct token *token, struct expression **tree)
 	struct symbol *sym;
 	*tree = alloc_expression(token->pos, EXPR_TYPE);
 	(*tree)->flags = Int_const_expr; /* sic */
-	token = typename(token, &sym, 0);
+	token = typename(token, &sym, NULL);
 	if (sym->ident)
 		sparse_error(token->pos,
 			     "type expression should not include identifier "
@@ -167,7 +167,7 @@ static struct token *builtin_offsetof_expr(struct token *token,
 		return expect(token, '(', "after __builtin_offset");
 
 	token = token->next;
-	token = typename(token, &sym, 0);
+	token = typename(token, &sym, NULL);
 	if (sym->ident)
 		sparse_error(token->pos,
 			     "type expression should not include identifier "
@@ -482,7 +482,7 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		if (token->special == '[' && lookup_type(token->next)) {
 			expr = alloc_expression(token->pos, EXPR_TYPE);
 			expr->flags = Int_const_expr; /* sic */
-			token = typename(token->next, &expr->symbol, 0);
+			token = typename(token->next, &expr->symbol, NULL);
 			token = expect(token, ']', "in type expression");
 			break;
 		}
@@ -602,7 +602,7 @@ static struct token *type_info_expression(struct token *token,
 	if (!match_op(token, '(') || !lookup_type(token->next))
 		return unary_expression(token, &expr->cast_expression);
 	p = token;
-	token = typename(token->next, &expr->cast_type, 0);
+	token = typename(token->next, &expr->cast_type, NULL);
 
 	if (!match_op(token, ')')) {
 		static const char * error[] = {
@@ -727,10 +727,8 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 			struct symbol *sym;
 			int is_force;
 
-			token = typename(next, &sym, MOD_FORCE);
+			token = typename(next, &sym, &is_force);
 			cast->cast_type = sym;
-			is_force = sym->ctype.modifiers & MOD_FORCE;
-			sym->ctype.modifiers &= ~MOD_FORCE;
 			token = expect(token, ')', "at end of cast operator");
 			if (match_op(token, '{')) {
 				if (is_force)

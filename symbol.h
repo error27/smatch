@@ -92,8 +92,8 @@ struct ctype {
 struct decl_state {
 	struct ctype ctype;
 	struct ident **ident;
-	int prefer_abstract;
 	struct symbol_op *mode;
+	unsigned char prefer_abstract, is_inline, storage_class;
 };
 
 struct symbol_op {
@@ -212,12 +212,11 @@ struct symbol {
 #define MOD_SAFE	0x8000000	// non-null/non-trapping pointer
 
 #define MOD_USERTYPE	0x10000000
-#define MOD_FORCE	0x20000000
 #define MOD_EXPLICITLY_SIGNED	0x40000000
 #define MOD_BITWISE	0x80000000
 
 #define MOD_NONLOCAL	(MOD_EXTERN | MOD_TOPLEVEL)
-#define MOD_STORAGE	(MOD_AUTO | MOD_REGISTER | MOD_STATIC | MOD_EXTERN | MOD_INLINE | MOD_TOPLEVEL | MOD_FORCE)
+#define MOD_STORAGE	(MOD_AUTO | MOD_REGISTER | MOD_STATIC | MOD_EXTERN | MOD_INLINE | MOD_TOPLEVEL)
 #define MOD_SIGNEDNESS	(MOD_SIGNED | MOD_UNSIGNED | MOD_EXPLICITLY_SIGNED)
 #define MOD_SPECIFIER	(MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG | MOD_SIGNEDNESS)
 #define MOD_SIZE	(MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG)

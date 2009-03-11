@@ -65,7 +65,7 @@ static attr_t
 	attribute_packed, attribute_aligned, attribute_modifier,
 	attribute_address_space, attribute_context,
 	attribute_transparent_union, ignore_attribute,
-	attribute_mode;
+	attribute_mode, attribute_force;
 
 typedef struct symbol *to_mode_t(struct symbol *);
 
@@ -89,6 +89,10 @@ enum {
 
 enum {
 	CInt = 0, CSInt, CUInt, CReal, CChar, CSChar, CUChar
+};
+
+enum {
+	SNone = 0, STypedef, SAuto, SRegister, SExtern, SStatic, SForced
 };
 
 static struct symbol_op typedef_op = {
@@ -294,6 +298,10 @@ static struct symbol_op attr_mod_op = {
 	.attribute = attribute_modifier,
 };
 
+static struct symbol_op attr_force_op = {
+	.attribute = attribute_force,
+};
+
 static struct symbol_op address_space_op = {
 	.attribute = attribute_address_space,
 };
@@ -426,7 +434,7 @@ static struct init_keyword {
 	{ "nocast",	NS_KEYWORD,	MOD_NOCAST,	.op = &attr_mod_op },
 	{ "noderef",	NS_KEYWORD,	MOD_NODEREF,	.op = &attr_mod_op },
 	{ "safe",	NS_KEYWORD,	MOD_SAFE, 	.op = &attr_mod_op },
-	{ "force",	NS_KEYWORD,	MOD_FORCE,	.op = &attr_mod_op },
+	{ "force",	NS_KEYWORD,	.op = &attr_force_op },
 	{ "bitwise",	NS_KEYWORD,	MOD_BITWISE,	.op = &attr_mod_op },
 	{ "__bitwise__",NS_KEYWORD,	MOD_BITWISE,	.op = &attr_mod_op },
 	{ "address_space",NS_KEYWORD,	.op = &address_space_op },
@@ -585,10 +593,10 @@ static struct symbol * alloc_indirect_symbol(struct position pos, struct ctype *
 	struct symbol *sym = alloc_symbol(pos, type);
 
 	sym->ctype.base_type = ctype->base_type;
-	sym->ctype.modifiers = ctype->modifiers & ~MOD_STORAGE;
+	sym->ctype.modifiers = ctype->modifiers;
 
 	ctype->base_type = sym;
-	ctype->modifiers &= MOD_STORAGE;
+	ctype->modifiers = 0;
 	return sym;
 }
 
@@ -912,7 +920,7 @@ static struct token *typeof_specifier(struct token *token, struct decl_state *ct
 		return token;
 	}
 	if (lookup_type(token->next)) {
-		token = typename(token->next, &sym, 0);
+		token = typename(token->next, &sym, NULL);
 		ctx->ctype.base_type = sym->ctype.base_type;
 		apply_ctype(token->pos, &sym->ctype, &ctx->ctype);
 	} else {
@@ -1138,51 +1146,79 @@ static struct token *attribute_specifier(struct token *token, struct decl_state 
 	return token;
 }
 
-static void apply_modifier(struct position *pos, struct ctype *ctx, unsigned long modifier)
+static const char *storage_class[] = 
 {
-	if (!(ctx->modifiers & MOD_STORAGE & ~MOD_INLINE)) {
-		ctx->modifiers |= modifier;
+	[STypedef] = "typedef",
+	[SAuto] = "auto",
+	[SExtern] = "extern",
+	[SStatic] = "static",
+	[SRegister] = "register",
+	[SForced] = "[force]"
+};
+
+static unsigned long storage_modifiers(struct decl_state *ctx)
+{
+	static unsigned long mod[] = 
+	{
+		[SAuto] = MOD_AUTO,
+		[SExtern] = MOD_EXTERN,
+		[SStatic] = MOD_STATIC,
+		[SRegister] = MOD_REGISTER
+	};
+	return mod[ctx->storage_class] | (ctx->is_inline ? MOD_INLINE : 0);
+}
+
+static void set_storage_class(struct position *pos, struct decl_state *ctx, int class)
+{
+	if (!ctx->storage_class) {
+		ctx->storage_class = class;
 		return;
 	}
-	if (ctx->modifiers & modifier)
-		sparse_error(*pos, "duplicate %s", modifier_string(modifier));
+	if (ctx->storage_class == class)
+		sparse_error(*pos, "duplicate %s", storage_class[class]);
 	else
 		sparse_error(*pos, "multiple storage classes");
 }
 
 static struct token *typedef_specifier(struct token *next, struct decl_state *ctx)
 {
-	apply_modifier(&next->pos, &ctx->ctype, MOD_TYPEDEF);
+	set_storage_class(&next->pos, ctx, STypedef);
 	return next;
 }
 
 static struct token *auto_specifier(struct token *next, struct decl_state *ctx)
 {
-	apply_modifier(&next->pos, &ctx->ctype, MOD_AUTO);
+	set_storage_class(&next->pos, ctx, SAuto);
 	return next;
 }
 
 static struct token *register_specifier(struct token *next, struct decl_state *ctx)
 {
-	apply_modifier(&next->pos, &ctx->ctype, MOD_REGISTER);
+	set_storage_class(&next->pos, ctx, SRegister);
 	return next;
 }
 
 static struct token *static_specifier(struct token *next, struct decl_state *ctx)
 {
-	apply_modifier(&next->pos, &ctx->ctype, MOD_STATIC);
+	set_storage_class(&next->pos, ctx, SStatic);
 	return next;
 }
 
 static struct token *extern_specifier(struct token *next, struct decl_state *ctx)
 {
-	apply_modifier(&next->pos, &ctx->ctype, MOD_EXTERN);
+	set_storage_class(&next->pos, ctx, SExtern);
 	return next;
+}
+
+static struct token *attribute_force(struct token *token, struct symbol *attr, struct decl_state *ctx)
+{
+	set_storage_class(&token->pos, ctx, SForced);
+	return token;
 }
 
 static struct token *inline_specifier(struct token *next, struct decl_state *ctx)
 {
-	ctx->ctype.modifiers |= MOD_INLINE;
+	ctx->is_inline = 1;
 	return next;
 }
 
@@ -1559,20 +1595,19 @@ static struct token *pointer(struct token *token, struct decl_state *ctx)
 	unsigned long modifiers;
 	struct symbol *base_type;
 
-	modifiers = ctx->ctype.modifiers & ~MOD_TYPEDEF;
+	modifiers = ctx->ctype.modifiers;
 	base_type = ctx->ctype.base_type;
-	ctx->ctype.modifiers = modifiers;
 
 	while (match_op(token,'*')) {
 		struct symbol *ptr = alloc_symbol(token->pos, SYM_PTR);
-		ptr->ctype.modifiers = modifiers & ~MOD_STORAGE;
+		ptr->ctype.modifiers = modifiers;
 		ptr->ctype.as = ctx->ctype.as;
 		concat_ptr_list((struct ptr_list *)ctx->ctype.contexts,
 				(struct ptr_list **)&ptr->ctype.contexts);
 		ptr->ctype.base_type = base_type;
 
 		base_type = ptr;
-		ctx->ctype.modifiers = modifiers & MOD_STORAGE;
+		ctx->ctype.modifiers = 0;
 		ctx->ctype.base_type = base_type;
 		ctx->ctype.as = 0;
 		free_ptr_list(&ctx->ctype.contexts);
@@ -1642,8 +1677,10 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 {
 	struct decl_state ctx = {.prefer_abstract = 0};
 	struct ctype saved;
+	unsigned long mod;
 
 	token = declaration_specifiers(token, &ctx);
+	mod = storage_modifiers(&ctx);
 	saved = ctx.ctype;
 	for (;;) {
 		struct symbol *decl = alloc_symbol(token->pos, SYM_NODE);
@@ -1657,6 +1694,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 		apply_modifiers(token->pos, &ctx);
 
 		decl->ctype = ctx.ctype;
+		decl->ctype.modifiers |= mod;
 		decl->endpos = token->pos;
 		add_symbol(list, decl);
 		if (!match_op(token, ','))
@@ -1691,23 +1729,33 @@ static struct token *parameter_declaration(struct token *token, struct symbol *s
 	token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
 	apply_modifiers(token->pos, &ctx);
 	sym->ctype = ctx.ctype;
+	sym->ctype.modifiers |= storage_modifiers(&ctx);
 	sym->endpos = token->pos;
 	return token;
 }
 
-struct token *typename(struct token *token, struct symbol **p, int mod)
+struct token *typename(struct token *token, struct symbol **p, int *forced)
 {
 	struct decl_state ctx = {.prefer_abstract = 1};
+	int class;
 	struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
 	*p = sym;
 	token = declaration_specifiers(token, &ctx);
 	token = declarator(token, &ctx);
 	apply_modifiers(token->pos, &ctx);
-	if (ctx.ctype.modifiers & MOD_STORAGE & ~mod)
-		warning(sym->pos, "storage class in typename (%s)",
-			show_typename(sym));
 	sym->ctype = ctx.ctype;
 	sym->endpos = token->pos;
+	class = ctx.storage_class;
+	if (forced) {
+		*forced = 0;
+		if (class == SForced) {
+			*forced = 1;
+			class = 0;
+		}
+	}
+	if (class)
+		warning(sym->pos, "storage class in typename (%s %s)",
+			storage_class[class], show_typename(sym));
 	return token;
 }
 
@@ -2487,6 +2535,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	struct decl_state ctx = { .ident = &ident };
 	struct ctype saved;
 	struct symbol *base_type;
+	unsigned long mod;
 	int is_typedef;
 
 	/* Top-level inline asm? */
@@ -2498,6 +2547,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 
 	/* Parse declaration-specifiers, if any */
 	token = declaration_specifiers(token, &ctx);
+	mod = storage_modifiers(&ctx);
 	decl = alloc_symbol(token->pos, SYM_NODE);
 	/* Just a type declaration? */
 	if (match_op(token, ';')) {
@@ -2511,6 +2561,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	apply_modifiers(token->pos, &ctx);
 
 	decl->ctype = ctx.ctype;
+	decl->ctype.modifiers |= mod;
 	decl->endpos = token->pos;
 
 	/* Just a type declaration? */
@@ -2520,14 +2571,11 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	}
 
 	/* type define declaration? */
-	is_typedef = (saved.modifiers & MOD_TYPEDEF) != 0;
+	is_typedef = ctx.storage_class == STypedef;
 
 	/* Typedefs don't have meaningful storage */
-	if (is_typedef) {
-		saved.modifiers &= ~MOD_STORAGE;
-		decl->ctype.modifiers &= ~MOD_STORAGE;
+	if (is_typedef)
 		decl->ctype.modifiers |= MOD_USERTYPE;
-	}
 
 	bind_symbol(decl, ident, is_typedef ? NS_TYPEDEF: NS_SYMBOL);
 
@@ -2586,6 +2634,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		token = handle_attributes(token, &ctx, KW_ATTRIBUTE | KW_ASM);
 		apply_modifiers(token->pos, &ctx);
 		decl->ctype = ctx.ctype;
+		decl->ctype.modifiers |= mod;
 		decl->endpos = token->pos;
 		if (!ident) {
 			sparse_error(token->pos, "expected identifier name in type definition");

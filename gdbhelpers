@@ -158,9 +158,6 @@ define gdb_show_ctype
 	if ($arg0->modifiers & MOD_USERTYPE)
 		printf "MOD_USERTYPE "
 	end
-	if ($arg0->modifiers & MOD_FORCE)
-		printf "MOD_FORCE "
-	end
 	if ($arg0->modifiers & MOD_EXPLICITLY_SIGNED)
 		printf "MOD_EXPLICITLY_SIGNED"
 	end
