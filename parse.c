@@ -1592,28 +1592,18 @@ static struct token *direct_declarator(struct token *token, struct decl_state *c
 
 static struct token *pointer(struct token *token, struct decl_state *ctx)
 {
-	unsigned long modifiers;
-	struct symbol *base_type;
-
-	modifiers = ctx->ctype.modifiers;
-	base_type = ctx->ctype.base_type;
-
 	while (match_op(token,'*')) {
 		struct symbol *ptr = alloc_symbol(token->pos, SYM_PTR);
-		ptr->ctype.modifiers = modifiers;
+		ptr->ctype.modifiers = ctx->ctype.modifiers;
+		ptr->ctype.base_type = ctx->ctype.base_type;
 		ptr->ctype.as = ctx->ctype.as;
-		concat_ptr_list((struct ptr_list *)ctx->ctype.contexts,
-				(struct ptr_list **)&ptr->ctype.contexts);
-		ptr->ctype.base_type = base_type;
-
-		base_type = ptr;
+		ptr->ctype.contexts = ctx->ctype.contexts;
 		ctx->ctype.modifiers = 0;
-		ctx->ctype.base_type = base_type;
+		ctx->ctype.base_type = ptr;
 		ctx->ctype.as = 0;
-		free_ptr_list(&ctx->ctype.contexts);
+		ctx->ctype.contexts = NULL;
 
 		token = handle_qualifiers(token->next, ctx);
-		modifiers = ctx->ctype.modifiers;
 		ctx->ctype.base_type->endpos = token->pos;
 	}
 	return token;
