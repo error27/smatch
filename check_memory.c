@@ -203,6 +203,8 @@ static void match_assign(struct expression *expr)
 	if (is_freed(left_name, left_sym)) {
 		set_state(left_name, my_id, left_sym, &unfree);
 	}
+	add_parent_to_parents(left_sym);
+	set_parent_assigned(left_sym);
 	free_string(left_name);
 }
 
