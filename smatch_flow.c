@@ -250,8 +250,8 @@ void __split_statements(struct statement *stmt)
 		split_symlist(stmt->declaration);
 		return;
 	case STMT_RETURN:
-		__pass_to_client(stmt, RETURN_HOOK);
 		__split_expr(stmt->ret_value);
+		__pass_to_client(stmt, RETURN_HOOK);
 		nullify_path();
 		return;
 	case STMT_EXPRESSION:
