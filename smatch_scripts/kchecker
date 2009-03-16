@@ -5,6 +5,8 @@ function useage {
     exit 1
 }
 
+CMD=smatch
+
 while true ; do
     if [[ "$1" == "--debug" ]] ; then
       	POST="$POST --debug"
@@ -14,6 +16,9 @@ while true ; do
 	shift
     elif [[ "$1" == "--valgrind" ]] ; then
 	PRE="valgrind"
+	shift
+    elif [[ "$1" == "--sparse" ]] ; then
+	CMD="sparse"
 	shift
     else
 	break
@@ -30,4 +35,4 @@ fi
 
 oname=$(echo ${cname/.c/.o})
 rm -f $oname
-make C=y CHECK="$PRE smatch $POST" $oname
+make C=y CHECK="$PRE $CMD $POST" $oname
