@@ -159,6 +159,7 @@ static void handle_pre_loop(struct statement *stmt)
 	__split_whole_condition(stmt->iterator_pre_condition);
 
 	__split_statements(stmt->iterator_statement);
+	__warn_on_silly_pre_loops();	
 	if (is_forever_loop(stmt)) {
 		__pop_false_only_stack();
 		/* forever loops don't have an iterator_post_statement */

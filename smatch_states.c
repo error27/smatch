@@ -453,6 +453,34 @@ void __process_continues()
 	push_slist(&continue_stack, slist);
 }
 
+static int top_slist_empty(struct state_list_stack **stack)
+{
+	struct state_list *tmp;
+	int empty = 0;
+
+	tmp = pop_slist(stack);
+	if (!tmp)
+		empty = 1;
+	push_slist(stack, tmp);
+	return empty;
+}
+
+/* a silly loop does this:  while(i--) { return; } */
+void __warn_on_silly_pre_loops()
+{
+	if (!__path_is_null())
+		return;
+	if (!top_slist_empty(&continue_stack))
+		return;
+	if (!top_slist_empty(&break_stack))
+		return;
+	/* if the path was nullified before the loop, then we already
+	   printed an error earlier */
+	if (top_slist_empty(&false_stack))
+		return;
+	smatch_msg("info: loop could be replaced with if statement.");
+}
+
 void __merge_continues()
 {
 	struct state_list *slist;
