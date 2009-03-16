@@ -184,7 +184,7 @@ static void match_assign(struct expression *expr)
 	}
 
 	left = strip_expr(expr->left);
-	left_name = get_variable_from_expr(left, &left_sym);
+	left_name = get_variable_from_expr_complex(left, &left_sym);
 
 	right = strip_expr(expr->right);
 	if (left_name && left_sym && is_allocation(right) && 
@@ -195,7 +195,7 @@ static void match_assign(struct expression *expr)
 		goto exit;
 	}
 
-	right_name = get_variable_from_expr(right, &right_sym);
+	right_name = get_variable_from_expr_complex(right, &right_sym);
 
 	if (right_name && (state = get_state(right_name, my_id, right_sym))) {
 		if (state == &isfree)

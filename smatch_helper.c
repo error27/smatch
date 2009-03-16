@@ -222,7 +222,7 @@ char *get_variable_from_expr_complex(struct expression *expr, struct symbol **sy
 	__get_variable_from_expr(sym_ptr, var_name, expr, sizeof(var_name),
 				 &junk);
 
-	return var_name;
+	return alloc_string(var_name);
 }
 
 /*
