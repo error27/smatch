@@ -36,6 +36,23 @@ static const char *allocation_funcs[] = {
 	NULL,
 };
 
+static struct smatch_state *merge_func(const char *name, struct symbol *sym,
+				       struct smatch_state *s1,
+				       struct smatch_state *s2)
+{
+	if (!strcmp(name, "-"))
+		return &assigned;
+	/* this is normal merge */
+	if (!s1 || !s2)
+		return &undefined;
+	return &merged;
+}
+
+static void assign_parent(struct symbol *sym)
+{
+	set_state("-", my_id, sym, &assigned);
+}
+
 static int parent_is_assigned(struct symbol *sym)
 {
 	struct smatch_state *state;
@@ -112,7 +129,7 @@ static void match_declarations(struct symbol *sym)
 		if (is_allocation(sym->initializer)) {
 			set_state(name, my_id, sym, &malloced);
 		} else {
-			set_state("-", my_id, sym, &assigned);
+			assign_parent(sym);
 		}
 	}
 }
@@ -136,15 +153,15 @@ static int handle_double_assign(struct expression *expr)
 	
 	name = get_variable_from_expr(expr->left, &sym);
 	if (name && is_parent(expr->left))
-		set_state("-", my_id, sym, &assigned);
+		assign_parent(sym);
 
 	name = get_variable_from_expr(expr->right->left, &sym);
 	if (name && is_parent(expr->right->left))
-		set_state("-", my_id, sym, &assigned);
+		assign_parent(sym);
 
 	name = get_variable_from_expr(expr->right->right, &sym);
 	if (name && is_parent(expr->right->right))
-		set_state("-", my_id, sym, &assigned);
+		assign_parent(sym);
 
 	return 1;
 }
@@ -172,7 +189,8 @@ static void match_assign(struct expression *expr)
 	right = strip_expr(expr->right);
 	if (left_name && left_sym && is_allocation(right) && 
 	    !(left_sym->ctype.modifiers & 
-	      (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))) {
+	      (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE)) &&
+	    !parent_is_assigned(left_sym)) {
 		set_state(left_name, my_id, left_sym, &malloced);
 		goto exit;
 	}
@@ -189,9 +207,9 @@ static void match_assign(struct expression *expr)
 		set_state(left_name, my_id, left_sym, &unfree);
 	}
 	if (left_name && is_parent(left))
-		set_state("-", my_id, left_sym, &assigned);
+		assign_parent(left_sym);
 	if (right_name && is_parent(right))
-		set_state("-", my_id, right_sym, &assigned);
+		assign_parent(right_sym);
 exit:
 	free_string(left_name);
 	free_string(right_name);
@@ -265,7 +283,7 @@ static void match_return(struct statement *stmt)
 
 	name = get_variable_from_expr(stmt->ret_value, &sym);
 	if (sym)
-		set_state("-", my_id, sym, &assigned);
+		assign_parent(sym);
 	free_string(name);
 	check_for_allocated();
 }
@@ -342,7 +360,7 @@ static void match_function_call(struct expression *expr)
 				set_state(name, my_id, sym, &assigned);
 			}
 		}
-		set_state("-", my_id, sym, &assigned);
+		assign_parent(sym);
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -355,6 +373,7 @@ static void match_end_func(struct symbol *sym)
 void register_memory(int id)
 {
 	my_id = id;
+	add_merge_hook(my_id, &merge_func);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
