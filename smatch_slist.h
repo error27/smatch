@@ -27,6 +27,7 @@ struct smatch_state *merge_states(const char *name, int owner,
 				  struct smatch_state *state1,
 				  struct smatch_state *state2);
 
+struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two);
 struct smatch_state *get_state_slist(struct state_list *slist, const char *name, int owner,
 		    struct symbol *sym);
 
@@ -63,10 +64,6 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack, const char 
 		    int owner, struct symbol *sym);
 
 void merge_slist(struct state_list **to, struct state_list *slist);
-struct state_list *clone_states_in_pool(struct state_list *pool,
-				struct state_list *cur_slist);
-void filter(struct state_list **slist, struct state_list *filter,
-	struct state_list *cur_slist);
 void and_slist_stack(struct state_list_stack **slist_stack);
 
 void or_slist_stack(struct state_list_stack **pre_conds,
