@@ -35,6 +35,8 @@ static const char *lock_funcs[] = {
 	"_write_lock_irq",
 	"_write_lock_bh",
 	"down",
+	"mutex_lock_nested",
+	"mutex_lock",
 	NULL,
 };
 
@@ -53,9 +55,11 @@ static const char *unlock_funcs[] = {
 	"_write_unlock_irq",
 	"_write_unlock_bh",
 	"up",
+	"mutex_unlock",
 	NULL,
 };
 
+/* These are return 1 if they aquire the lock */
 static const char *conditional_funcs[] = {
 	"_spin_trylock",
 	"_spin_trylock_bh",
@@ -69,6 +73,7 @@ static const char *conditional_funcs[] = {
 	"__raw_read_trylock",
 	"__raw_write_trylock",
 	"__raw_write_trylock",
+	"mutex_trylock",
 	NULL,
 };
 
