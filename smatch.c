@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2006 Dan Carpenter.
  *
- *  Licensed under the Open Software License version 1.1
+ * Licensed under the Open Software License version 1.1
  *
  */
 
@@ -19,6 +19,7 @@ void register_overflow(int id);
 void register_locking(int id);
 void register_memory(int id);
 void register_implications(int id);
+void register_frees_argument(int id);
 /* <- your test goes here */
 /* void register_template(int id); */
 
@@ -29,6 +30,7 @@ const reg_func reg_funcs[] = {
 	&register_overflow,
 	&register_locking,
 	&register_memory,
+	// &register_frees_argument,
 
 	/* <- your test goes here */
 	/* &register_template, */
