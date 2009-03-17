@@ -101,8 +101,22 @@ static void match_declarations(struct symbol *sym)
 		name = sym->ident->name;
 		if (sym->initializer) {
 			set_state(name, my_id, sym, alloc_state(get_value(sym->initializer)));
+		} else {
+			set_state(name, my_id, sym, &undefined);
 		}
 	}
+}
+
+static void match_function_def(struct symbol *sym)
+{
+	struct symbol *arg;
+
+	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
+		if (!arg->ident) {
+			continue;
+		}
+		set_state(arg->ident->name, my_id, arg, &undefined);
+	} END_FOR_EACH_PTR(arg);
 }
 
 static void match_unop(struct expression *expr)
@@ -120,16 +134,6 @@ static void match_unop(struct expression *expr)
 	if ((!strcmp(tmp, "--")) || (!strcmp(tmp, "++")))
 		set_state(name, my_id, sym, &undefined);
 	free_string(name);
-}
-
-void register_smatch_extra(int id)
-{
-	my_id = id;
-	add_hook(&undef_expr, OP_HOOK);
-	add_hook(&match_function_call_after, FUNCTION_CALL_AFTER_HOOK);
-	add_hook(&match_assign, ASSIGNMENT_AFTER_HOOK);
-	add_hook(&match_declarations, DECLARATION_HOOK);
-	add_hook(&match_unop, OP_HOOK);
 }
 
 static int expr_to_val(struct expression *expr)
@@ -276,4 +280,15 @@ int known_condition_false(struct expression *expr)
 	}
 	}
 	return 0;
+}
+
+void register_smatch_extra(int id)
+{
+	my_id = id;
+	add_hook(&undef_expr, OP_HOOK);
+	add_hook(&match_function_def, FUNC_DEF_HOOK);
+	add_hook(&match_function_call_after, FUNCTION_CALL_AFTER_HOOK);
+	add_hook(&match_assign, ASSIGNMENT_AFTER_HOOK);
+	add_hook(&match_declarations, DECLARATION_HOOK);
+	add_hook(&match_unop, OP_HOOK);
 }

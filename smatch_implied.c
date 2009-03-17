@@ -222,12 +222,17 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 	FOR_EACH_PTR(sm_state->my_pools, list) {
 		s = get_state_slist(list, sm_state->name, sm_state->owner,
 				    sm_state->sym);
-		if (s == &undefined || !s->data) {
+		if (s == &merged) {
 			free_stack(&true_stack);
 			free_stack(&false_stack);
-			DIMPLIED("%d '%s' is undefined\n", get_lineno(), 
+			DIMPLIED("%d '%s' is merged.\n", get_lineno(), 
 				 sm_state->name);
 			return;
+		}
+		if (s == &undefined) {
+			push_slist(&true_stack, list);
+			push_slist(&false_stack, list);
+			continue;
 		}
 		if (left)
 			tf = true_comparison(*(int *)s->data,  comparison, num);
