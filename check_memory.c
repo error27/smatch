@@ -33,6 +33,7 @@ struct tracker_list *arguments;
 static const char *allocation_funcs[] = {
 	"malloc",
 	"kmalloc",
+	"kzalloc",
 	NULL,
 };
 
@@ -151,15 +152,15 @@ static int handle_double_assign(struct expression *expr)
 		return 0;
 	assign_seen++;
 	
-	name = get_variable_from_expr(expr->left, &sym);
+	name = get_variable_from_expr_complex(expr->left, &sym);
 	if (name && is_parent(expr->left))
 		assign_parent(sym);
 
-	name = get_variable_from_expr(expr->right->left, &sym);
+	name = get_variable_from_expr_complex(expr->right->left, &sym);
 	if (name && is_parent(expr->right->left))
 		assign_parent(sym);
 
-	name = get_variable_from_expr(expr->right->right, &sym);
+	name = get_variable_from_expr_complex(expr->right->right, &sym);
 	if (name && is_parent(expr->right->right))
 		assign_parent(sym);
 
@@ -239,7 +240,7 @@ static void match_kfree(struct expression *expr)
 	struct symbol *ptr_sym;
 
 	ptr_expr = get_argument_from_call_expr(expr->args, 0);
-	ptr_name = get_variable_from_expr(ptr_expr, &ptr_sym);
+	ptr_name = get_variable_from_expr_complex(ptr_expr, &ptr_sym);
 	if (is_freed(ptr_name, ptr_sym) && !is_null(ptr_name, ptr_sym)) {
 		smatch_msg("error: double free of %s", ptr_name);
 	}
@@ -281,7 +282,7 @@ static void match_return(struct statement *stmt)
 	char *name;
 	struct symbol *sym;
 
-	name = get_variable_from_expr(stmt->ret_value, &sym);
+	name = get_variable_from_expr_complex(stmt->ret_value, &sym);
 	if (sym)
 		assign_parent(sym);
 	free_string(name);
@@ -319,7 +320,7 @@ static void match_condition(struct expression *expr)
 	case EXPR_PREOP:
 	case EXPR_SYMBOL:
 	case EXPR_DEREF:
-		name = get_variable_from_expr(expr, &sym);
+		name = get_variable_from_expr_complex(expr, &sym);
 		if (!name)
 			return;
 		set_new_true_false_paths(name, sym);
@@ -352,7 +353,7 @@ static void match_function_call(struct expression *expr)
 
 	FOR_EACH_PTR(expr->args, tmp) {
 		tmp = strip_expr(tmp);
-		name = get_variable_from_expr(tmp, &sym);
+		name = get_variable_from_expr_complex(tmp, &sym);
 		if (!name)
 			continue;
 		if ((state = get_sm_state(name, my_id, sym))) {

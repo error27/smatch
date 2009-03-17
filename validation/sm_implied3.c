@@ -17,7 +17,7 @@ void func (void)
 
 	if (c) {}
 
-	ab = kzalloc();
+	ab = some_func();
 	if (NULL == ab) {
 		ret = -1;
 		goto foo;
