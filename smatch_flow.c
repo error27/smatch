@@ -266,6 +266,16 @@ void __split_statements(struct statement *stmt)
 		return;
 	}
 	case STMT_IF:
+		if (known_condition_true(stmt->if_conditional)) {
+			smatch_msg("info: this condition is true.");
+			__split_statements(stmt->if_true);
+			return;
+		}
+		if (known_condition_false(stmt->if_conditional)) {
+			smatch_msg("info: this condition is false.");
+			__split_statements(stmt->if_false);
+			return;
+		}
 		__split_whole_condition(stmt->if_conditional);
 		__split_statements(stmt->if_true);
 		__push_true_states();

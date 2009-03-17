@@ -41,7 +41,7 @@ static void func (void)
 	d = 0;
 	if (c) {
 		d = malloc(sizeof(*d));
-		ac = 1;
+		ac = 2;
 	}
 
 	if (ac) {

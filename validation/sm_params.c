@@ -15,13 +15,13 @@ void func1 (struct foo *ab)
 		printf("Error ad is not ALLOWED to be NULL\n");
 	ab->a = 1;
 }
-
+int x;
 void bar (void)
 {
 	struct foo *ac = returns_nonnull(sizeof(*ac));
 	struct foo *ad;
 
-	if(1)
+	if(x)
 		ac = 0;
 	func(ac);
 	func1(ad);

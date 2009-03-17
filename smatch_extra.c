@@ -225,8 +225,28 @@ int last_stmt_val(struct statement *stmt)
 	return get_value(expr);
 }
 
+static int variable_non_zero(struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+	struct smatch_state *state;
+	int ret = UNDEFINED;
+
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto exit;
+	state = get_state(name, my_id, sym);
+	if (!state || !state->data)
+		goto exit;
+	ret = true_comparison(*(int *)state->data, SPECIAL_NOTEQUAL, 0);
+exit:
+	free_string(name);
+	return ret;
+}
+
 int known_condition_true(struct expression *expr)
 {
+	struct statement *stmt;
 	int tmp;
 
 	if (!expr)
@@ -242,20 +262,29 @@ int known_condition_true(struct expression *expr)
 		if (do_comparison(expr) == 1)
 			return 1;
 		break;
-	case EXPR_PREOP: {
-		struct statement *stmt;
-
+	case EXPR_PREOP:
+		if (expr->op == '!') {
+			if (known_condition_false(expr->unop))
+				return 1;
+			break;
+		}
 		stmt = get_block_thing(expr);
 		if (stmt && (last_stmt_val(stmt) == 1))
 			return 1;
 		break;
-	}
+	default:
+		if (variable_non_zero(expr) == 1)
+			return 1;
+		break;
 	}
 	return 0;
 }
 
 int known_condition_false(struct expression *expr)
 {
+	struct statement *stmt;
+	struct expression *tmp;
+
 	if (!expr)
 		return 0;
 
@@ -266,10 +295,12 @@ int known_condition_false(struct expression *expr)
 	case EXPR_COMPARE:
 		if (do_comparison(expr) == 0)
 			return 1;
-	case EXPR_PREOP: {
-		struct statement *stmt;
-		struct expression *tmp;
-
+	case EXPR_PREOP:
+		if (expr->op == '!') {
+			if (known_condition_true(expr->unop))
+				return 1;
+			break;
+		}
 		stmt = get_block_thing(expr);
 		if (stmt && (last_stmt_val(stmt) == 0))
 			return 1;
@@ -277,7 +308,10 @@ int known_condition_false(struct expression *expr)
 		if (tmp != expr)
 			return known_condition_false(tmp);
 		break;
-	}
+	default:
+		if (variable_non_zero(expr) == 0)
+			return 1;
+		break;
 	}
 	return 0;
 }
