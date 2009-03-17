@@ -28,7 +28,7 @@ STATE(unfree);
           \-> isnull.
 */
 
-struct tracker_list *arguments;
+static struct tracker_list *arguments;
 
 static const char *allocation_funcs[] = {
 	"malloc",
