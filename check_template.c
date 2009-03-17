@@ -3,7 +3,7 @@
  *
  * Copyright (C) 20XX Your Name.
  *
- *  Licensed under the Open Software License version 1.1
+ * Licensed under the Open Software License version 1.1
  *
  */
 
@@ -16,26 +16,19 @@
  * with a semaphore held.
  *
  * This is just a template check.  It's designed for teaching
- * only and is deliberately less useful than it could be.
+ * only and is deliberately less useful than it could be.  check_locking.c
+ * is a better real world test.
  *
- * This test could be a lot better if it handled the stuff like this:
- * ret = -ENOMEM;
- * return ret;
- * The correct way to handle that is to let smatch_extra store the
- * value of ret.  Then to use a *future* version of smatch that has
- * the get_possible_states(name, SMATCH_EXTRA, sym) function.  The
- * possible states will be saved in merge_slist() in that future version.
- * 
- * Another short coming is that it assumes a function isn't supposed
- * to return negative with a lock held.  Perhaps the function was
- * called with the lock held.  A more complicated script could check that.
- *
- * Also it would be more effective to check for other types of locks
- * especially spinlocks.
+ * The biggest short coming is that it assumes a function isn't supposed
+ * to return negative with a lock held.  Also it assumes the function was
+ * called without the lock held. It would be better if it handled the stuff
+ * like this:
+ *     ret = -ENOMEM;
+ *     return ret;
+ * Another idea would be to test other kinds of locks besides just semaphores.
  *
  */
 
-#include "parse.h"
 #include "smatch.h"
 #include "smatch_slist.h"  // blast this was supposed to be internal only stuff
 
