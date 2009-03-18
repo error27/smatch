@@ -16,7 +16,7 @@ struct sm_state *alloc_state(const char *name, int owner,
 			     struct symbol *sym, 
 			     struct smatch_state *state);
 
-void free_every_single_sm_state();
+void free_every_single_sm_state(void);
 struct sm_state *clone_state(struct sm_state *s);
 struct state_list *clone_slist(struct state_list *from_slist);
 struct state_list_stack *clone_stack(struct state_list_stack *from_stack);

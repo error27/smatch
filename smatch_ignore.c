@@ -25,7 +25,7 @@ int is_ignored(const char *name, int owner, struct symbol *sym)
 	return 0;
 }
 
-static void clear_ignores()
+static void clear_ignores(void)
 {
 	__free_ptr_list((struct ptr_list **)&ignored);
 }

@@ -11,16 +11,16 @@
 #include "token.h"
 #include "smatch.h"
 
-int __smatch_lineno = 0;
+static int __smatch_lineno = 0;
 
 static char *filename;
 static char *cur_func;
 static int line_func_start;
 
-char *get_filename() {	return filename; }
-char *get_function() { return cur_func; }
-int get_lineno() { return __smatch_lineno; }
-int get_func_pos() { return __smatch_lineno - line_func_start; }
+char *get_filename(void) {	return filename; }
+char *get_function(void) { return cur_func; }
+int get_lineno(void) { return __smatch_lineno; }
+int get_func_pos(void) { return __smatch_lineno - line_func_start; }
 
 static void split_symlist(struct symbol_list *sym_list);
 static void split_expr_list(struct expression_list *expr_list);

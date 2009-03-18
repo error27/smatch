@@ -256,7 +256,7 @@ static int possibly_allocated(struct state_list *slist)
 	return 0;
 }
 
-static void check_for_allocated()
+static void check_for_allocated(void)
 {
 	struct state_list *slist;
 	struct sm_state *tmp;

@@ -102,8 +102,8 @@ static int pool_in_pools(struct state_list_stack *pools,
 	return 0;
 }
 
-struct state_list *clone_states_in_pool(struct state_list *pool,
-				struct state_list *cur_slist)
+static struct state_list *clone_states_in_pool(struct state_list *pool,
+					       struct state_list *cur_slist)
 {
 	struct sm_state *state;
 	struct sm_state *cur_state;

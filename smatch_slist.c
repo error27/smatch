@@ -169,7 +169,7 @@ static void free_all_sm_states(struct allocation_blob *blob)
 }
 
 /* At the end of every function we free all the sm_states */
-void free_every_single_sm_state()
+void free_every_single_sm_state(void)
 {
 	struct allocator_struct *desc = &sm_state_allocator;
 	struct allocation_blob *blob = desc->blobs;
@@ -359,6 +359,8 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	s = merge_states(one->name, one->owner, one->sym, one->state,
 			(two?two->state:NULL));
 	result = alloc_state(one->name, one->owner, one->sym, s);
+	if (two && one->line == two->line)
+		result->line = one->line;
 	add_possible(result, one);
 	add_possible(result, two);
 	copy_pools(result, one);

@@ -14,7 +14,7 @@
 /* 
  * TODO:  The return_null list of functions should be determined automatically
  */
-const char *return_null[] = {
+static const char *return_null[] = {
 	"kmalloc",
 };
 
@@ -402,7 +402,7 @@ static void match_dereferences(struct expression *expr)
 	free_string(deref);
 }
 
-static void end_file_processing()
+static void end_file_processing(void)
 {
 	struct func_n_param *param1, *param2;
 

@@ -330,7 +330,7 @@ static void check_returns_consistently(struct tracker *lock,
 
 }
 
-static void clear_lists()
+static void clear_lists(void)
 {
 	struct locks_on_return *tmp;
 

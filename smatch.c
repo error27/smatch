@@ -22,7 +22,7 @@ void check_frees_argument(int id);
 /* <- your test goes here */
 /* void register_template(int id); */
 
-const reg_func reg_funcs[] = {
+static const reg_func reg_funcs[] = {
 	&register_smatch_extra, /* smatch_extra always has to be first */
 	&register_smatch_ignore,
 	&check_null_deref,
@@ -38,7 +38,7 @@ const reg_func reg_funcs[] = {
 	NULL
 };
 
-void help()
+static void help(void)
 {
 	printf("Usage:  smatch [smatch arguments][sparse arguments] file.c\n");
 	printf("--debug:  print lots of debug output.\n");
