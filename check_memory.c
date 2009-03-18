@@ -37,16 +37,11 @@ static const char *allocation_funcs[] = {
 	NULL,
 };
 
-static struct smatch_state *merge_func(const char *name, struct symbol *sym,
-				       struct smatch_state *s1,
-				       struct smatch_state *s2)
+static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
-	if (!strcmp(name, "-"))
+	if (!strcmp(sm->name, "-"))
 		return &assigned;
-	/* this is normal merge */
-	if (!s1 || !s2)
-		return &undefined;
-	return &merged;
+	return &undefined;
 }
 
 static void assign_parent(struct symbol *sym)
@@ -374,7 +369,7 @@ static void match_end_func(struct symbol *sym)
 void check_memory(int id)
 {
 	my_id = id;
-	add_merge_hook(my_id, &merge_func);
+	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);

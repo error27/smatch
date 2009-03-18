@@ -65,7 +65,9 @@ typedef struct smatch_state *(merge_func_t)(const char *name,
 					    struct symbol *sym,
 					    struct smatch_state *s1, 
 					    struct smatch_state *s2);
+typedef struct smatch_state *(unmatched_func_t)(struct sm_state *state);
 void add_merge_hook(int client_id, merge_func_t *func);
+void add_unmatched_state_hook(int client_id, unmatched_func_t *func);
 
 #define smatch_msg(msg...) \
 do {                                                          \
@@ -226,7 +228,10 @@ void __pass_to_client(void *data, enum hook_type type);
 void __pass_to_client_no_data(enum hook_type type);
 void __pass_declarations_to_client(struct symbol_list *sym_list);
 int __has_merge_function(int client_id);
-struct smatch_state *__client_merge_function(int owner, const char *name, struct symbol *sym, 
-			    struct smatch_state *s1, struct smatch_state *s2);
+struct smatch_state *__client_merge_function(int owner, const char *name,
+					     struct symbol *sym,
+					     struct smatch_state *s1,
+					     struct smatch_state *s2);
+struct smatch_state *__client_unmatched_state_function(struct sm_state *sm);
 
 #endif 	    /* !SMATCH_H_ */

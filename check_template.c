@@ -38,21 +38,18 @@ STATE(lock);
 STATE(unlock);
 
 /*
- * merge_func() can go away when we fix the core to just store all the possible 
- * states.
- *
- * The parameters are passed in alphabetical order with NULL at the beginning
- * of the alphabet.  (s2 is never NULL).
+ * unmatched_state() deals with the case where code is known to be
+ * locked on one path but not known on the other side of a merge.  Here
+ * we assume it's the opposite.
  */
 
-static struct smatch_state *merge_func(const char *name, struct symbol *sym,
-				       struct smatch_state *s1,
-				       struct smatch_state *s2)
+static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
-	if (s1 == NULL)
-		return s2;
+	if (sm->state == &lock)
+		return &unlock;
+	if (sm->state == &unlock)
+		return &lock;
 	return &undefined;
-
 }
 
 static void match_call(struct expression *expr)
@@ -99,7 +96,7 @@ static void match_return(struct statement *stmt)
 void check_template(int id)
 {
 	my_id = id;
-	add_merge_hook(my_id, &merge_func);
+	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 }

@@ -555,6 +555,44 @@ static void register_implied_pool(struct state_list *pool)
  	push_slist(&implied_pools, pool);
 }
 
+static void match_states(struct state_list **one, struct state_list **two)
+{
+	struct sm_state *one_state;
+	struct sm_state *two_state;
+	struct sm_state *tmp;
+	struct smatch_state *tmp_state;
+	struct state_list *add_to_one = NULL;
+	struct state_list *add_to_two = NULL;
+
+	PREPARE_PTR_LIST(*one, one_state);
+	PREPARE_PTR_LIST(*two, two_state);
+	for (;;) {
+		if (!one_state && !two_state)
+			break;
+		if (cmp_tracker(one_state, two_state) < 0) {
+			tmp_state = __client_unmatched_state_function(one_state);
+			tmp = alloc_state(one_state->name, one_state->owner,
+					  one_state->sym, tmp_state);
+			add_ptr_list(&add_to_two, tmp);
+			NEXT_PTR_LIST(one_state);
+		} else if (cmp_tracker(one_state, two_state) == 0) {
+			NEXT_PTR_LIST(one_state);
+			NEXT_PTR_LIST(two_state);
+		} else {
+			tmp_state = __client_unmatched_state_function(two_state);
+			tmp = alloc_state(two_state->name, two_state->owner,
+					  two_state->sym, tmp_state);
+			add_ptr_list(&add_to_one, tmp);
+			NEXT_PTR_LIST(two_state);
+		}
+	}
+	FINISH_PTR_LIST(two_state);
+	FINISH_PTR_LIST(one_state);
+
+	overwrite_slist(add_to_one, one);
+	overwrite_slist(add_to_two, two);
+}
+
 /*
  * merge_slist() is called whenever paths merge, such as after
  * an if statement.  It takes the two slists and creates one.
@@ -583,6 +621,8 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 	implied_to = clone_slist(*to);
 	implied_from = clone_slist(slist);
 
+	match_states(&implied_to, &implied_from);
+
 	register_implied_pool(implied_to);
 	register_implied_pool(implied_from);
 
@@ -592,8 +632,7 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 		if (!to_state && !state)
 			break;
 		if (cmp_tracker(to_state, state) < 0) {
-			tmp = merge_sm_states(to_state, NULL);
-			add_ptr_list(&results, tmp);
+			smatch_msg("error:  Internal smatch error.");
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_tracker(to_state, state) == 0) {
 			tmp = merge_sm_states(to_state, state);
@@ -601,8 +640,7 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			NEXT_PTR_LIST(to_state);
 			NEXT_PTR_LIST(state);
 		} else {
-			tmp = merge_sm_states(state, NULL);
-			add_ptr_list(&results, tmp);
+			smatch_msg("error:  Internal smatch error.");
 			NEXT_PTR_LIST(state);
 		}
 	}

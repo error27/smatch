@@ -54,12 +54,15 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 {
 	if (s1 == &ignore || s2 == &ignore)
 		return &ignore;
-	if (s1 == NULL && s2 == &assumed_nonnull)
-		return &assumed_nonnull;
-	if (s1 == NULL)
-		return &undefined;
 	return &merged;
 
+}
+
+static struct smatch_state *unmatched_state(struct sm_state *sm)
+{
+	if (sm->state == &assumed_nonnull)
+		return &assumed_nonnull;
+	return &undefined;
 }
 
 static int is_maybe_null_no_arg(const char *name, struct symbol *sym)
@@ -442,6 +445,7 @@ void check_null_deref(int id)
 {
 	my_id = id;
 	add_merge_hook(my_id, &merge_func);
+	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_function_call_after, FUNCTION_CALL_AFTER_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_AFTER_HOOK);
