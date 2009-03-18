@@ -11,25 +11,24 @@
 #include "smatch.h"
 
 typedef void (*reg_func) (int id);
-void register_derefed_params(int id);
-void register_null_deref(int id);
 void register_smatch_extra(int id);
 void register_smatch_ignore(int id);
-void register_overflow(int id);
-void register_locking(int id);
-void register_memory(int id);
 void register_implications(int id);
-void register_frees_argument(int id);
+void check_null_deref(int id);
+void check_overflow(int id);
+void check_locking(int id);
+void check_memory(int id);
+void check_frees_argument(int id);
 /* <- your test goes here */
 /* void register_template(int id); */
 
 const reg_func reg_funcs[] = {
 	&register_smatch_extra, /* smatch_extra always has to be first */
 	&register_smatch_ignore,
-	&register_null_deref,
-	&register_overflow,
-	&register_locking,
-	&register_memory,
+	&check_null_deref,
+	&check_overflow,
+	&check_locking,
+	&check_memory,
 	// &register_frees_argument,
 
 	/* <- your test goes here */

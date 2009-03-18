@@ -96,7 +96,7 @@ static void match_return(struct statement *stmt)
 	free_slist(&slist);
 }
 
-void register_template(int id)
+void check_template(int id)
 {
 	my_id = id;
 	add_merge_hook(my_id, &merge_func);

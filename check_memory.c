@@ -371,7 +371,7 @@ static void match_end_func(struct symbol *sym)
 	free_trackers_and_list(&arguments);
 }
 
-void register_memory(int id)
+void check_memory(int id)
 {
 	my_id = id;
 	add_merge_hook(my_id, &merge_func);

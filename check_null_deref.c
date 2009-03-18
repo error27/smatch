@@ -438,7 +438,7 @@ static void end_file_processing()
 	} END_FOR_EACH_PTR(param1);
 }
 
-void register_null_deref(int id)
+void check_null_deref(int id)
 {
 	my_id = id;
 	add_merge_hook(my_id, &merge_func);

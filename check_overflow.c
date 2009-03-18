@@ -140,7 +140,7 @@ static void match_fn_call(struct expression *expr)
 	free_string(fn_name);
 }
 
-void register_overflow(int id)
+void check_overflow(int id)
 {
 	my_id = id;
 	add_hook(&match_declaration, DECLARATION_HOOK);

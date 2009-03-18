@@ -380,7 +380,7 @@ static void check_consistency(struct symbol *sym)
 	clear_lists();
 }
 
-void register_locking(int id)
+void check_locking(int id)
 {
 	my_id = id;
 	add_merge_hook(my_id, &merge_func);

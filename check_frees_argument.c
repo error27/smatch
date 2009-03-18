@@ -58,7 +58,7 @@ free:
 	free_string(fn_name);
 }
 
-void register_frees_argument(int id)
+void check_frees_argument(int id)
 {
 	my_id = id;
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
