@@ -45,6 +45,7 @@ void help()
 	printf("--debug:  print lots of debug output.\n");
 	printf("--debug-implied:  print debug output about implications.\n");
 	printf("--assume-loops:  assume loops always go through at least once.\n");
+	printf("--known-conditions:  don't branch for known conditions.");
 	exit(1);
 }
 
@@ -68,6 +69,8 @@ int main(int argc, char **argv)
 			option_no_implied = 1;
 		} else if (!strcmp(argv[1], "--assume-loops")) {
 			option_assume_loops = 1;
+		} else if (!strcmp(argv[1], "--known-conditions")) {
+			option_known_conditions = 1;
 		} else if (!strcmp(argv[1], "--help")) {
 			help();
 		} else {

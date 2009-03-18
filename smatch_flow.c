@@ -28,6 +28,7 @@ static void split_expr_list(struct expression_list *expr_list);
 unsigned int __get_allocations();
 
 int option_assume_loops = 0;
+int option_known_conditions = 0;
 
 void __split_expr(struct expression *expr)
 {
@@ -266,12 +267,14 @@ void __split_statements(struct statement *stmt)
 		return;
 	}
 	case STMT_IF:
-		if (known_condition_true(stmt->if_conditional)) {
+		if (option_known_conditions && 
+		    known_condition_true(stmt->if_conditional)) {
 			smatch_msg("info: this condition is true.");
 			__split_statements(stmt->if_true);
 			return;
 		}
-		if (known_condition_false(stmt->if_conditional)) {
+		if (option_known_conditions &&
+		    known_condition_false(stmt->if_conditional)) {
 			smatch_msg("info: this condition is false.");
 			__split_statements(stmt->if_false);
 			return;
