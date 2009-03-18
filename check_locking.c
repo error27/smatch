@@ -81,6 +81,10 @@ static const char *conditional_funcs[] = {
 static const char *reverse_cond_funcs[] = {
 	"down_trylock",
 	"down_interruptible",
+	"mutex_lock_interruptible",
+	"mutex_lock_interruptible_nested",
+	"mutex_lock_killable",
+	"mutex_lock_killable_nested",
 	NULL,
 };
 
