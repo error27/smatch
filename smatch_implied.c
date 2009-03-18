@@ -219,17 +219,25 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 	struct state_list_stack *false_stack = NULL;
 	int tf;
 
+	if (left)
+		DIMPLIED("checking implications: (%s %s %d)\n", sm_state->name,
+			 show_special(comparison), num);
+	else
+		DIMPLIED("checking implications: (%d %s %s)\n", num,
+			 show_special(comparison), sm_state->name);
+
 	FOR_EACH_PTR(sm_state->my_pools, list) {
 		s = get_state_slist(list, sm_state->name, sm_state->owner,
 				    sm_state->sym);
 		if (s == &merged) {
 			free_stack(&true_stack);
 			free_stack(&false_stack);
-			DIMPLIED("%d '%s' is merged.\n", get_lineno(), 
-				 sm_state->name);
+			DIMPLIED("'%s' is merged.\n", sm_state->name);
 			return;
 		}
 		if (s == &undefined) {
+			DIMPLIED("'%s' from %d is undefined.\n",
+				 sm_state->name, sm_state->line);
 			push_slist(&true_stack, list);
 			push_slist(&false_stack, list);
 			continue;
@@ -239,15 +247,27 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 		else
 			tf = true_comparison(num,  comparison, *(int *)s->data);
 		if (tf) {
+			DIMPLIED("'%s' from %d is true.\n", sm_state->name,
+				 sm_state->line);
 			push_slist(&true_stack, list);
 		} else {
+			DIMPLIED("'%s' from %d is false.\n", sm_state->name,
+				 sm_state->line);
 			push_slist(&false_stack, list);
 		}
 	} END_FOR_EACH_PTR(list);
+	DIMPLIED("filtering true stack.\n");
 	*true_states = filter_stack(true_stack);
+	DIMPLIED("filtering false stack.\n");
 	*false_states = filter_stack(false_stack);
 	free_stack(&true_stack);
 	free_stack(&false_stack);
+	if (debug_implied_states) {
+		printf("These are the implied states for the true path:\n");
+		__print_slist(*true_states);
+		printf("These are the implied states for the false path:\n");
+		__print_slist(*false_states);
+	}
 }
 
 static void handle_comparison(struct expression *expr,
