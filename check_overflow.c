@@ -78,66 +78,61 @@ static void match_assignment(struct expression *expr)
 	free_string(name);
 }
 
-static void match_fn_call(struct expression *expr)
+static void match_strcpy(struct expression *expr, void *unused)
 {
 	struct expression *dest;
 	struct expression *data;
-	char *fn_name;
-	char *dest_name;
-	char *data_name;
+	char *dest_name = NULL;
+	char *data_name = NULL;
+	struct smatch_state *dest_state;
+	struct smatch_state *data_state;
 
-	fn_name = get_variable_from_expr(expr->fn, NULL);
-	if (!fn_name)
-		return;
+	dest = get_argument_from_call_expr(expr->args, 0);
+	dest_name = get_variable_from_expr(dest, NULL);
 
-	if (!strcmp(fn_name, "strcpy")) {
-		struct smatch_state *dest_state;
-		struct smatch_state *data_state;
-
-		dest = get_argument_from_call_expr(expr->args, 0);
-		dest_name = get_variable_from_expr(dest, NULL);
-
-		data = get_argument_from_call_expr(expr->args, 1);
-		data_name = get_variable_from_expr(data, NULL);
+	data = get_argument_from_call_expr(expr->args, 1);
+	data_name = get_variable_from_expr(data, NULL);
 		
-		dest_state = get_state(dest_name, my_id, NULL);
-		if (!dest_state || !dest_state->data) {
-			free_string(dest_name);
-			free_string(data_name);
-			return;
-		}
-		data_state = get_state(data_name, my_id, NULL);
-		if (!data_state || !data_state->data) {
-			free_string(dest_name);
-			free_string(data_name);
-			return;
-		}
+	dest_state = get_state(dest_name, my_id, NULL);
+	if (!dest_state || !dest_state->data)
+		goto free;
 
-		if (*(int *)dest_state->data < *(int *)data_state->data)
-		    smatch_msg("error: %s too large for %s", data_name, 
-			       dest_name);
-		free_string(dest_name);
-		free_string(data_name);
-	} else if (!strcmp(fn_name, "strncpy")) {
-		struct smatch_state *state;
-		int needed;
-		int has;
+	data_state = get_state(data_name, my_id, NULL);
+	if (!data_state || !data_state->data)
+		goto free;
 
-		dest = get_argument_from_call_expr(expr->args, 0);
-		dest_name = get_variable_from_expr(dest, NULL);
-		
-		data = get_argument_from_call_expr(expr->args, 2);
-		needed = get_value(data);
-		state = get_state(dest_name, my_id, NULL);
-		if (!state || !state->data)
-			return;
-		has = *(int *)state->data;
-		if (has < needed)
-			smatch_msg("error: %s too small for %d bytes.", 
-				   dest_name, needed);
-		free_string(dest_name);
-	}
-	free_string(fn_name);
+	if (*(int *)dest_state->data < *(int *)data_state->data)
+		smatch_msg("error: %s (%d) too large for %s (%d)", data_name,
+			   *(int *)data_state->data,
+			   dest_name, *(int *)dest_state->data);
+free:
+	free_string(dest_name);
+	free_string(data_name);
+}
+
+static void match_strncpy(struct expression *expr, void *unused)
+{
+	struct expression *dest;
+	struct expression *data;
+	char *dest_name = NULL;
+	struct smatch_state *state;
+	int needed;
+	int has;
+
+	dest = get_argument_from_call_expr(expr->args, 0);
+	dest_name = get_variable_from_expr(dest, NULL);
+
+	data = get_argument_from_call_expr(expr->args, 2);
+	needed = get_value(data);
+	state = get_state(dest_name, my_id, NULL);
+	if (!state || !state->data)
+		goto free;
+	has = *(int *)state->data;
+	if (has < needed)
+		smatch_msg("error: %s too small for %d bytes.", dest_name,
+			   needed);
+free:
+	free_string(dest_name);
 }
 
 void check_overflow(int id)
@@ -145,5 +140,6 @@ void check_overflow(int id)
 	my_id = id;
 	add_hook(&match_declaration, DECLARATION_HOOK);
 	add_hook(&match_assignment, ASSIGNMENT_HOOK);
-	add_hook(&match_fn_call, FUNCTION_CALL_HOOK);
+	add_function_hook("strcpy", &match_strcpy, NULL);
+	add_function_hook("strncpy", &match_strncpy, NULL);
 }
