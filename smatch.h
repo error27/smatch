@@ -68,6 +68,7 @@ typedef struct smatch_state *(merge_func_t)(const char *name,
 typedef struct smatch_state *(unmatched_func_t)(struct sm_state *state);
 void add_merge_hook(int client_id, merge_func_t *func);
 void add_unmatched_state_hook(int client_id, unmatched_func_t *func);
+void add_function_hook(const char *lock_for, void *call_back, void *data);
 
 #define smatch_msg(msg...) \
 do {                                                          \
