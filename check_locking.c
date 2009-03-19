@@ -90,7 +90,6 @@ static const char *reverse_cond_funcs[] = {
 
 /* todo still need to handle__raw_spin_is_locked */
 
-
 struct locked_call {
 	const char *function;
 	const char *lock;
@@ -114,9 +113,10 @@ DECLARE_PTR_LIST(return_list, struct locks_on_return);
 static struct return_list *all_returns;
 
 STATE(locked);
+STATE(start_state);
 STATE(unlocked);
 
-static struct smatch_state *unmatched_state(struct sm_state *sm)
+static struct smatch_state *get_start_state(struct sm_state *sm)
 {
        int is_locked = 0;
        int is_unlocked = 0;
@@ -132,6 +132,11 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
        if (is_unlocked)
 	       return &unlocked;
 	return &undefined;
+}
+
+static struct smatch_state *unmatched_state(struct sm_state *sm)
+{
+	return &start_state;
 }
 
 static char *match_func(const char *list[], char *fn_name,
@@ -270,10 +275,21 @@ static void check_possible(struct sm_state *sm)
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (tmp->state == &locked)
 			islocked = 1;
-		else if (tmp->state == &unlocked)
+		if (tmp->state == &unlocked)
 			isunlocked = 1;
-		else if (tmp->state == &undefined)
-			undef = 1;
+		if (tmp->state == &start_state) {
+			struct smatch_state *s;
+
+			s = get_start_state(tmp);
+			if (s == &locked)
+				islocked = 1;
+			else if (s == &unlocked)
+				isunlocked = 1;
+			else
+				undef = 1;
+		}		
+		if (tmp->state == &undefined)
+			undef = 1;  // i don't think this is possible any more.
 	} END_FOR_EACH_PTR(tmp);
 	if ((islocked && isunlocked) || undef)
 		smatch_msg("warn: '%s' is sometimes locked here and "
@@ -296,7 +312,17 @@ static void match_return(struct statement *stmt)
 		} else if (tmp->state == &unlocked) {
 			add_tracker(&ret->unlocked, tmp->name, tmp->owner,
 				tmp->sym);
-		} else {
+		} else if (tmp->state == &start_state) {
+			struct smatch_state *s;
+
+			s = get_start_state(tmp);
+			if (s == &locked)
+				add_tracker(&ret->locked, tmp->name, tmp->owner,
+					    tmp->sym);
+			if (s == &unlocked)
+				add_tracker(&ret->unlocked, tmp->name,
+					    tmp->owner, tmp->sym);
+		}else {
 			check_possible(tmp);
 		}
 	} END_FOR_EACH_PTR(tmp);
@@ -330,20 +356,6 @@ static void check_returns_consistently(struct tracker *lock,
 
 }
 
-static void clear_lists(void)
-{
-	struct locks_on_return *tmp;
-
-	free_trackers_and_list(&starts_locked);
-	free_trackers_and_list(&starts_unlocked);
-
-	FOR_EACH_PTR(all_returns, tmp) {
-		free_trackers_and_list(&tmp->locked);
-		free_trackers_and_list(&tmp->unlocked);
-	} END_FOR_EACH_PTR(tmp);
-	__free_ptr_list((struct ptr_list **)&all_returns);
-}
-
 static void check_consistency(struct symbol *sym)
 {
 	struct tracker *tmp;
@@ -368,6 +380,25 @@ static void check_consistency(struct symbol *sym)
 		check_returns_consistently(tmp, &unlocked);
 	} END_FOR_EACH_PTR(tmp);
 
+}
+
+static void clear_lists(void)
+{
+	struct locks_on_return *tmp;
+
+	free_trackers_and_list(&starts_locked);
+	free_trackers_and_list(&starts_unlocked);
+
+	FOR_EACH_PTR(all_returns, tmp) {
+		free_trackers_and_list(&tmp->locked);
+		free_trackers_and_list(&tmp->unlocked);
+	} END_FOR_EACH_PTR(tmp);
+	__free_ptr_list((struct ptr_list **)&all_returns);
+}
+
+static void match_func_end(struct symbol *sym)
+{
+	check_consistency(sym);
 	clear_lists();
 }
 
@@ -378,5 +409,5 @@ void check_locking(int id)
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
-	add_hook(&check_consistency, END_FUNC_HOOK);
+	add_hook(&match_func_end, END_FUNC_HOOK);
 }
