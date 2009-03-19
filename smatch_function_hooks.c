@@ -36,7 +36,7 @@ void add_function_hook(const char *lock_for, void *call_back, void *data)
 	hsearch(e, ENTER);
 }
 
-typedef void (expr_func)(struct expression *expr, void *data);
+typedef void (call_back_func)(struct expression *expr, void *data);
 static void match_function_call(struct expression *expr)
 {
 	ENTRY e, *ep;
@@ -51,7 +51,7 @@ static void match_function_call(struct expression *expr)
 		return;
 
 	FOR_EACH_PTR((struct call_back_list *)ep->data, tmp) {
-		((expr_func *) tmp->call_back)(expr, tmp->data);
+		((call_back_func *) tmp->call_back)(expr, tmp->data);
 	} END_FOR_EACH_PTR(tmp);
 }
 

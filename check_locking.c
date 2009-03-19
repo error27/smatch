@@ -154,77 +154,68 @@ static char *match_func(const char *list[], char *fn_name,
 	return NULL;
 }
 
-static char kernel[] = "kernel";
-static char *match_lock_func(char *fn_name, struct expression_list *args)
+static char *get_lock_name(struct expression *expr, void *data)
 {
-	char *arg;
+	struct expression *lock_expr;
 
-	arg = match_func(lock_funcs, fn_name, args);
-	if (arg)
-		return arg;
-	if (!strcmp(fn_name, "lock_kernel"))
-		return alloc_string(kernel);
-	return NULL;
-}
-
-static char *match_unlock_func(char *fn_name, struct expression_list *args)
-{
-	char *arg;
-
-	arg = match_func(unlock_funcs, fn_name, args);
-	if (arg)
-		return arg;
-	if (!strcmp(fn_name, "unlock_kernel"))
-		return alloc_string(kernel);
-	return NULL;
-}
-
-static void check_locks_needed(const char *fn_name)
-{
-	struct smatch_state *state;
-	int i;
-
-	for (i = 0; i < sizeof(lock_needed)/sizeof(struct locked_call); i++) {
-		if (!strcmp(fn_name, lock_needed[i].function)) {
-			state = get_state(lock_needed[i].lock, my_id, NULL);
-			if (state != &locked) {
-				smatch_msg("error: %s called without holding '%s' lock",
-					lock_needed[i].function,
-					lock_needed[i].lock);
-			}
-		}
+	if (data) {
+		return alloc_string((char *)data);
+	} else {
+		lock_expr = get_argument_from_call_expr(expr->args, 0);
+		return get_variable_from_expr(lock_expr, NULL);
 	}
 }
 
-static void match_call(struct expression *expr)
+static void match_lock_func(struct expression *expr, void *data)
 {
-	char *fn_name;
 	char *lock_name;
 	struct sm_state *sm;
 
-	fn_name = get_variable_from_expr(expr->fn, NULL);
-	if (!fn_name)
+	lock_name = get_lock_name(expr, data);
+	if (!lock_name)
 		return;
-
-	if ((lock_name = match_lock_func(fn_name, expr->args))) {
-		sm = get_sm_state(lock_name, my_id, NULL);
-		if (!sm)
-			add_tracker(&starts_unlocked, lock_name, my_id, NULL);
-		if (sm && slist_has_state(sm->possible, &locked))
-			smatch_msg("error: double lock '%s'", lock_name);
-		set_state(lock_name, my_id, NULL, &locked);
-	} else if ((lock_name = match_unlock_func(fn_name, expr->args))) {
-		sm = get_sm_state(lock_name, my_id, NULL);
-		if (!sm)
-			add_tracker(&starts_locked, lock_name, my_id, NULL);
-		if (sm && slist_has_state(sm->possible, &unlocked))
-			smatch_msg("error: double unlock '%s'", lock_name);
-		set_state(lock_name, my_id, NULL, &unlocked);
-	} else
-		check_locks_needed(fn_name);
+	sm = get_sm_state(lock_name, my_id, NULL);
+	if (!sm)
+		add_tracker(&starts_unlocked, lock_name, my_id, NULL);
+	if (sm && slist_has_state(sm->possible, &locked))
+		smatch_msg("error: double lock '%s'", lock_name);
+	set_state(lock_name, my_id, NULL, &locked);
 	free_string(lock_name);
+}
+
+static void match_unlock_func(struct expression *expr, void *data)
+{
+	char *lock_name;
+	struct sm_state *sm;
+
+	lock_name = get_lock_name(expr, data);
+	if (!lock_name)
+		return;
+	sm = get_sm_state(lock_name, my_id, NULL);
+	if (!sm)
+		add_tracker(&starts_locked, lock_name, my_id, NULL);
+	if (sm && slist_has_state(sm->possible, &unlocked))
+		smatch_msg("error: double unlock '%s'", lock_name);
+	set_state(lock_name, my_id, NULL, &unlocked);
+	free_string(lock_name);
+}
+
+static void match_lock_needed(struct expression *expr, void *data)
+{
+	struct smatch_state *state;
+	char *fn_name;
+
+	state = get_state((char *)data, my_id, NULL);
+	if (state == &locked) 
+		return;
+	fn_name = get_variable_from_expr(expr->fn, NULL);
+	if (!fn_name) {
+		smatch_msg("Internal error.");
+		exit(1);
+	}
+	smatch_msg("error: %s called without holding '%s' lock", fn_name,
+		   (char *)data);
 	free_string(fn_name);
-	return;
 }
 
 static void match_condition(struct expression *expr)
@@ -404,10 +395,24 @@ static void match_func_end(struct symbol *sym)
 
 void check_locking(int id)
 {
+	int i;
+
 	my_id = id;
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&match_condition, CONDITION_HOOK);
-	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_func_end, END_FUNC_HOOK);
+
+	for (i = 0; lock_funcs[i]; i++) {
+		add_function_hook(lock_funcs[i], &match_lock_func, NULL);
+	}
+	add_function_hook("lock_kernel", &match_lock_func, (void *)"kernel");
+	for (i = 0; unlock_funcs[i]; i++) {
+		add_function_hook(unlock_funcs[i], &match_unlock_func, NULL);
+	}
+	add_function_hook("unlock_kernel", &match_unlock_func, (void *)"kernel");
+	for (i = 0; i < sizeof(lock_needed)/sizeof(struct locked_call); i++) {
+		add_function_hook(lock_needed[i].function, &match_lock_needed, 
+				  (void *)lock_needed[i].lock);
+	}
 }
