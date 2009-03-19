@@ -2210,6 +2210,7 @@ static struct token *identifier_list(struct token *token, struct symbol *fn)
 		sym->ident = token->ident;
 		token = token->next;
 		sym->endpos = token->pos;
+		sym->ctype.base_type = &incomplete_ctype;
 		add_symbol(list, sym);
 		if (!match_op(token, ',') ||
 		    token_type(token->next) != TOKEN_IDENT ||
