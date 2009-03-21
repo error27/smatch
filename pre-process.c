@@ -193,13 +193,36 @@ static void expand_list(struct token **list)
 	}
 }
 
+static void preprocessor_line(struct stream *stream, struct token **line);
+
 static struct token *collect_arg(struct token *prev, int vararg, struct position *pos)
 {
+	struct stream *stream = input_streams + prev->pos.stream;
 	struct token **p = &prev->next;
 	struct token *next;
 	int nesting = 0;
 
 	while (!eof_token(next = scan_next(p))) {
+		if (next->pos.newline && match_op(next, '#')) {
+			if (!next->pos.noexpand) {
+				sparse_error(next->pos,
+					     "directive in argument list");
+				preprocessor_line(stream, p);
+				__free_token(next);	/* Free the '#' token */
+				continue;
+			}
+		}
+		switch (token_type(next)) {
+		case TOKEN_STREAMEND:
+		case TOKEN_STREAMBEGIN:
+			*p = &eof_token_entry;
+			return next;
+		}
+		if (false_nesting) {
+			*p = next->next;
+			__free_token(next);
+			continue;
+		}
 		if (match_op(next, '(')) {
 			nesting++;
 		} else if (match_op(next, ')')) {
@@ -1357,8 +1380,9 @@ static int handle_elif(struct stream * stream, struct token **line, struct token
 	if (token_type(top_if) != TOKEN_IF)
 		return 1;
 	if (false_nesting) {
-		if (expression_value(&token->next))
-			false_nesting = 0;
+		false_nesting = 0;
+		if (!expression_value(&token->next))
+			false_nesting = 1;
 	} else {
 		false_nesting = 1;
 		token_type(top_if) = TOKEN_SKIP_GROUPS;
