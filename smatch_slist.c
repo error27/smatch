@@ -527,19 +527,32 @@ void set_state_stack(struct state_list_stack **stack, const char *name,
 }
 
 /*
- * get_state_stack() gets the state for the top slist on the stack.
+ * get_sm_state_stack() gets the state for the top slist on the stack.
  */
+struct sm_state *get_sm_state_stack(struct state_list_stack *stack,
+				    const char *name, int owner,
+				    struct symbol *sym)
+{
+	struct state_list *slist;
+	struct sm_state *ret;
+
+	slist = pop_slist(&stack);
+	ret = get_sm_state_slist(slist, name, owner, sym);
+	push_slist(&stack, slist);
+	return ret;
+}
+
+
 struct smatch_state *get_state_stack(struct state_list_stack *stack,
 				     const char *name, int owner,
 				     struct symbol *sym)
 {
-	struct state_list *slist;
-	struct smatch_state *ret;
+	struct sm_state *state;
 
-	slist = pop_slist(&stack);
-	ret = get_state_slist(slist, name, owner, sym);
-	push_slist(&stack, slist);
-	return ret;
+	state = get_sm_state_stack(stack, name, owner, sym);
+	if (state)
+		return state->state;
+	return NULL;
 }
 
 static void register_implied_pool(struct state_list *pool)
@@ -653,6 +666,64 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 	*to = results;
 }
 
+static struct sm_state *find_intersection(struct sm_state *one,
+					  struct sm_state *two)
+{
+	struct state_list *tmp1, *tmp2;
+	struct state_list_stack *stack = NULL;
+	struct sm_state *tmp_state;
+	struct sm_state *ret;
+	
+	if (!one)
+		return two;
+	if (one->state != &merged) {
+		if (one->state == two->state)
+			return one;
+		if (two->state != &merged) {
+			smatch_msg("mutually exclusive 'and' conditions states "
+				   "'%s': %s + %s", one->name,
+				   show_state(one->state),
+				   show_state(two->state));
+			return two;
+		}
+	}
+
+	PREPARE_PTR_LIST(one->my_pools, tmp1);
+	PREPARE_PTR_LIST(two->my_pools, tmp2);
+	for (;;) {
+		if (!tmp1 && !tmp2)
+			break;
+		if (!tmp2 || (tmp1 && tmp1 < tmp2)) {
+			NEXT_PTR_LIST(tmp1);
+		} else if (tmp1 == tmp2) {
+			push_slist(&stack, tmp1);
+			NEXT_PTR_LIST(tmp1);
+			NEXT_PTR_LIST(tmp2);
+		} else {
+			NEXT_PTR_LIST(tmp2);
+		}
+	}
+	FINISH_PTR_LIST(tmp2);
+	FINISH_PTR_LIST(tmp1);
+
+	if (!stack) {
+		smatch_msg("mutually eXclusive 'and' conditions states "
+			   "'%s': %s + %s", one->name, show_state(one->state),
+			   show_state(two->state));
+		return two;
+	}
+
+	ret = alloc_state(one->name, one->owner, one->sym, &merged);
+	FOR_EACH_PTR(stack, tmp1) {
+		tmp_state = get_sm_state_slist(tmp1, one->name, one->owner,
+					       one->sym);
+		add_possible(ret, tmp_state);
+	} END_FOR_EACH_PTR(tmp1);
+	ret->my_pools = stack;
+	ret->all_pools = clone_stack(stack);
+	return ret;
+}
+
 /*
  * and_slist_stack() is basically the same as popping the top two slists,
  * overwriting the one with the other and pushing it back on the stack.
@@ -663,22 +734,17 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 void and_slist_stack(struct state_list_stack **slist_stack)
 {
      	struct sm_state *tmp;
-	struct smatch_state *tmp_state;
-	struct state_list *tmp_slist = pop_slist(slist_stack);
+	struct sm_state *left_state;
+	struct sm_state *res;
+	struct state_list *right_slist = pop_slist(slist_stack);
 
-	FOR_EACH_PTR(tmp_slist, tmp) {
-		tmp_state = get_state_stack(*slist_stack, tmp->name,
-					    tmp->owner, tmp->sym);
-		if (tmp_state && tmp_state != tmp->state) {
-			SM_DEBUG("mutually exclusive 'and' conditions states "
-				 "'%s': %s + %s",
-				 tmp->name, show_state(tmp_state),
-				 show_state(tmp->state));
-		}
-		set_state_stack(slist_stack, tmp->name, tmp->owner, tmp->sym,
-				tmp->state);
+	FOR_EACH_PTR(right_slist, tmp) {
+		left_state = get_sm_state_stack(*slist_stack, tmp->name,
+						tmp->owner, tmp->sym);
+		res = find_intersection(left_state, tmp);
+		overwrite_sm_state_stack(slist_stack, res);
 	} END_FOR_EACH_PTR(tmp);
-	free_slist(&tmp_slist);
+	free_slist(&right_slist);
 }
 
 /* 

@@ -209,15 +209,22 @@ static struct state_list *filter_stack(struct state_list_stack *stack)
 	return ret;
 }
 
+static int is_true(int comparison, int num, int var, int left)
+{
+	if (left)
+		return true_comparison(var, comparison, num);
+	else
+		return true_comparison(num,  comparison, var);
+}
+
 static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 		       int left, struct state_list **true_states,
 		       struct state_list **false_states)
 {
 	struct state_list *list;
-	struct smatch_state *s;
+	struct sm_state *s;
 	struct state_list_stack *true_stack = NULL;
 	struct state_list_stack *false_stack = NULL;
-	int tf;
 
 	if (left)
 		DIMPLIED("checking implications: (%s %s %d)\n", sm_state->name,
@@ -227,32 +234,20 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 			 show_special(comparison), sm_state->name);
 
 	FOR_EACH_PTR(sm_state->my_pools, list) {
-		s = get_state_slist(list, sm_state->name, sm_state->owner,
+		s = get_sm_state_slist(list, sm_state->name, sm_state->owner,
 				    sm_state->sym);
-		if (s == &merged) {
-			free_stack(&true_stack);
-			free_stack(&false_stack);
-			DIMPLIED("'%s' is merged.\n", sm_state->name);
-			return;
-		}
-		if (s == &undefined) {
-			DIMPLIED("'%s' from %d is undefined.\n",
-				 sm_state->name, sm_state->line);
-			push_slist(&true_stack, list);
+		if (s->state == &undefined || s->state == &merged) {
+			DIMPLIED("'%s' from %d is %s.\n", s->name, s->line,
+				 show_state(s->state));
 			push_slist(&false_stack, list);
+			push_slist(&true_stack, list);
 			continue;
 		}
-		if (left)
-			tf = true_comparison(*(int *)s->data,  comparison, num);
-		else
-			tf = true_comparison(num,  comparison, *(int *)s->data);
-		if (tf) {
-			DIMPLIED("'%s' from %d is true.\n", sm_state->name,
-				 sm_state->line);
+		if (is_true(comparison, num, *(int *)s->state->data, left)) {
+			DIMPLIED("'%s' from %d is true.\n", s->name, s->line);
 			push_slist(&true_stack, list);
 		} else {
-			DIMPLIED("'%s' from %d is false.\n", sm_state->name,
-				 sm_state->line);
+			DIMPLIED("'%s' from %d is false.\n", s->name, s->line);
 			push_slist(&false_stack, list);
 		}
 	} END_FOR_EACH_PTR(list);
