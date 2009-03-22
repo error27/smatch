@@ -17,6 +17,21 @@ void add_tracker(struct tracker_list **list, const char *name, int owner,
 	add_ptr_list(list, tmp);
 }
 
+void del_tracker(struct tracker_list **list, const char *name, int owner,
+		 struct symbol *sym)
+{
+	struct tracker *tmp;
+
+	FOR_EACH_PTR(*list, tmp) {
+		if (tmp->owner == owner && tmp->sym == sym 
+		    && !strcmp(tmp->name, name)) {
+			DELETE_CURRENT_PTR(tmp);
+			__free_tracker(tmp);
+			return;
+		}
+	} END_FOR_EACH_PTR(tmp);
+}
+
 int in_tracker_list(struct tracker_list *list, const char *name, int owner,
 		struct symbol *sym)
 {

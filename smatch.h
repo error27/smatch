@@ -130,6 +130,8 @@ int is_ignored(const char *name, int owner, struct symbol *sym);
 /* smatch_tracker */
 void add_tracker(struct tracker_list **list, const char *name, int owner, 
 		struct symbol *sym);
+void del_tracker(struct tracker_list **list, const char *name, int owner, 
+		struct symbol *sym);
 int in_tracker_list(struct tracker_list *list, const char *name, int owner,
 		struct symbol *sym);
 void free_tracker_list(struct tracker_list **list);
