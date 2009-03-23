@@ -61,10 +61,12 @@ void __split_expr(struct expression *expr)
 	case EXPR_BINOP: 
 	case EXPR_COMMA:
 	case EXPR_COMPARE:
+		__split_expr(expr->left);
+		__split_expr(expr->right);		
+		return;
 	case EXPR_ASSIGNMENT:
 		__split_expr(expr->right);
-		if (expr->type == EXPR_ASSIGNMENT)
-			__pass_to_client(expr, ASSIGNMENT_HOOK);
+		__pass_to_client(expr, ASSIGNMENT_HOOK);
 		__split_expr(expr->left);
 		return;
 	case EXPR_DEREF:
