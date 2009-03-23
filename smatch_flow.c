@@ -62,12 +62,10 @@ void __split_expr(struct expression *expr)
 	case EXPR_COMMA:
 	case EXPR_COMPARE:
 	case EXPR_ASSIGNMENT:
+		__split_expr(expr->right);
 		if (expr->type == EXPR_ASSIGNMENT)
 			__pass_to_client(expr, ASSIGNMENT_HOOK);
 		__split_expr(expr->left);
-		__split_expr(expr->right);
-		if (expr->type == EXPR_ASSIGNMENT)
-			__pass_to_client(expr, ASSIGNMENT_AFTER_HOOK);
 		return;
 	case EXPR_DEREF:
 		__pass_to_client(expr, DEREF_HOOK);

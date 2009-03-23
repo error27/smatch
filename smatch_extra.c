@@ -322,7 +322,7 @@ void register_smatch_extra(int id)
 	add_hook(&undef_expr, OP_HOOK);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_function_call_after, FUNCTION_CALL_AFTER_HOOK);
-	add_hook(&match_assign, ASSIGNMENT_AFTER_HOOK);
+	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_hook(&match_unop, OP_HOOK);
 }

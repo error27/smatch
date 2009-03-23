@@ -44,9 +44,6 @@ void add_hook(void *func, enum hook_type type)
 	case OP_HOOK:
 		container->data_type = EXPR_HOOK;
 		break;
-	case ASSIGNMENT_AFTER_HOOK:
-		container->data_type = EXPR_HOOK;
-		break;
 	case CONDITION_HOOK:
 		container->data_type = EXPR_HOOK;
 		break;
