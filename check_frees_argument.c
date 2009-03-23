@@ -87,7 +87,7 @@ static void print_arg(struct symbol *sym)
 
 	FOR_EACH_PTR(this_func->ctype.base_type->arguments, arg) {
 		if (sym == arg) {
-			smatch_msg("info: frees argument %d", i);
+			printf("info: free_arg %s %d\n", get_function(), i);
 			return;
 		}
 		i++;
