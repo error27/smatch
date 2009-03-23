@@ -7,6 +7,8 @@
  *
  */
 
+#include <fcntl.h>
+#include <unistd.h>
 #include "parse.h"
 #include "smatch.h"
 #include "smatch_slist.h"
@@ -215,26 +217,20 @@ static int is_null(char *name, struct symbol *sym)
 {
 	struct smatch_state *state;
 
-	/* 
-	 * FIXME.  Ha ha ha... This is so wrong.
-	 * I'm pulling in data from the check_null_deref script.  
-	 * I just happen to know that its ID is 3.
-	 * The correct approved way to do this is to get the data from
-	 * smatch_extra.  But right now smatch_extra doesn't track it.
-	 */
 	state = get_state(name, my_id, sym);
 	if (state && !strcmp(state->name, "isnull"))
 		return 1;
 	return 0;
 }
 
-static void match_kfree(struct expression *expr)
+static void match_free_func(struct expression *expr, void *data)
 {
 	struct expression *ptr_expr;
 	char *ptr_name;
 	struct symbol *ptr_sym;
+	int arg_num = (int)data;
 
-	ptr_expr = get_argument_from_call_expr(expr->args, 0);
+	ptr_expr = get_argument_from_call_expr(expr->args, arg_num);
 	ptr_name = get_variable_from_expr_complex(ptr_expr, &ptr_sym);
 	if (is_freed(ptr_name, ptr_sym) && !is_null(ptr_name, ptr_sym)) {
 		smatch_msg("error: double free of %s", ptr_name);
@@ -342,10 +338,6 @@ static void match_function_call(struct expression *expr)
 
 	fn_name = get_variable_from_expr(expr->fn, NULL);
 
-	if (fn_name && !strcmp(fn_name, "kfree")) {
-		match_kfree(expr);
-	}
-
 	FOR_EACH_PTR(expr->args, tmp) {
 		tmp = strip_expr(tmp);
 		name = get_variable_from_expr_complex(tmp, &sym);
@@ -360,10 +352,55 @@ static void match_function_call(struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
+static void match_dereferences(struct expression *expr)
+{
+	char *deref = NULL;
+	struct symbol *sym = NULL;
+
+	deref = get_variable_from_expr(expr->deref->unop, &sym);
+	if (!deref)
+		return;
+	if (is_freed(deref, sym)) {
+		smatch_msg("error: dereferencing freed memory '%s'", deref);
+		set_state(deref, my_id, sym, &unfree);
+	}
+	free_string(deref);
+}
+
 static void match_end_func(struct symbol *sym)
 {
 	check_for_allocated();
 	free_trackers_and_list(&arguments);
+}
+
+static void register_funcs_from_file(void)
+{
+	const char *filename = "frees";
+	int fd;
+	struct token *token;
+	const char *func;
+	int arg;
+
+	fd = open(filename, O_RDONLY);
+	if (fd < 0)
+		return;
+	token = tokenize(filename, fd, NULL, NULL);
+	close(fd);
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = show_ident(token->ident);
+		token = token->next;
+		if (token_type(token) != TOKEN_NUMBER)
+			return;
+		arg = atoi(token->number);
+		add_function_hook(func, &match_free_func, (void *)arg);
+		token = token->next;
+	}
+	clear_token_alloc();
 }
 
 void check_memory(int id)
@@ -374,7 +411,10 @@ void check_memory(int id)
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
+	add_hook(&match_dereferences, DEREF_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
+	add_function_hook("kfree", &match_free_func, (void *)0);
+	register_funcs_from_file();
 }
