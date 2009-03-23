@@ -41,7 +41,7 @@ static int malloc_size(struct expression *expr)
 		}
 		free_string(name);
 	} else if (expr->type == EXPR_STRING && expr->string) {
-		return expr->string->length * 8;
+		return expr->string->length;
 	}
 	return 0;
 }
@@ -58,12 +58,13 @@ static void match_declaration(struct symbol *sym)
 	name = sym->ident->name;
 	base_type = get_base_type(sym);
 	
-	if (base_type->type == SYM_ARRAY && base_type->bit_size > 0)
+	if (base_type->type == SYM_ARRAY && base_type->bit_size > 0) {
 		set_state(name, my_id, NULL, alloc_state(base_type->bit_size / 8));
-	else {
+	} else {
 		size = malloc_size(sym->initializer);
 		if (size > 0)
 			set_state(name, my_id, NULL, alloc_state(size));
+
 	}
 }
 
