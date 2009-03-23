@@ -139,31 +139,6 @@ static int is_parent(struct expression *expr)
 	return 1;
 }
 
-static int assign_seen;
-static int handle_double_assign(struct expression *expr)
-{
-	struct symbol *sym;
-	char *name;
-
-	if (expr->right->type != EXPR_ASSIGNMENT)
-		return 0;
-	assign_seen++;
-	
-	name = get_variable_from_expr_complex(expr->left, &sym);
-	if (name && is_parent(expr->left))
-		assign_parent(sym);
-
-	name = get_variable_from_expr_complex(expr->right->left, &sym);
-	if (name && is_parent(expr->right->left))
-		assign_parent(sym);
-
-	name = get_variable_from_expr_complex(expr->right->right, &sym);
-	if (name && is_parent(expr->right->right))
-		assign_parent(sym);
-
-	return 1;
-}
-
 static void match_assign(struct expression *expr)
 {
 	struct expression *left, *right;
@@ -171,15 +146,6 @@ static void match_assign(struct expression *expr)
 	char *right_name = NULL;
 	struct symbol *left_sym, *right_sym;
 	struct smatch_state *state;
-
-	if (assign_seen) {
-		assign_seen--;
-		return;
-	}
-
-	if (handle_double_assign(expr)) {
-		return;
-	}
 
 	left = strip_expr(expr->left);
 	left_name = get_variable_from_expr_complex(left, &left_sym);
@@ -318,7 +284,6 @@ static void match_condition(struct expression *expr)
 		free_string(name);
 		return;
 	case EXPR_ASSIGNMENT:
-		assign_seen++;
 		 /* You have to deal with stuff like if (a = b = c) */
 		match_condition(expr->right);
 		match_condition(expr->left);

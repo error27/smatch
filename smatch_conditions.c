@@ -261,8 +261,8 @@ static void split_conditions(struct expression *expr)
 		return;
 	}
 
-	__pass_to_client(expr, CONDITION_HOOK);	
 	__split_expr(expr);
+	__pass_to_client(expr, CONDITION_HOOK);	
 }
 
 static int inside_condition;

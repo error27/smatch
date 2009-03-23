@@ -253,17 +253,12 @@ static int check_null_returns(const char *name, struct symbol *sym,
 	return 0;
 }
 
-static int assign_seen;
 static void match_assign(struct expression *expr)
 {
 	struct expression *left, *right;
 	struct symbol *sym;
 	char *name;
 	
-	if (assign_seen) {
-		assign_seen--;
-		return;
-	}
 	left = strip_expr(expr->left);
 	name = get_variable_from_expr(left, &sym);
 	if (!name)
@@ -310,11 +305,7 @@ static void set_new_true_false_paths(const char *name, struct symbol *sym)
 		set_true_false_states(name, my_id, sym, &arg_nonnull, &arg_null);
 		return;
 	}
-
-	if (!tmp || is_maybe_null(name, sym)) {
-		set_true_false_states(name, my_id, sym, &nonnull, &isnull);
-		return;
-	}
+	set_true_false_states(name, my_id, sym, &nonnull, &isnull);
 }
 
 
@@ -335,7 +326,6 @@ static void match_condition(struct expression *expr)
 		free_string(name);
 		return;
 	case EXPR_ASSIGNMENT:
-		assign_seen++;
                 /*
 		 * There is a kernel macro that does
 		 *  for ( ... ; ... || x = NULL ; ) ...
@@ -395,7 +385,7 @@ static void match_dereferences(struct expression *expr)
 	if (is_maybe_null_arg(deref, sym)) {
 		add_do_not_call(sym, get_lineno());
 		set_state(deref, my_id, sym, &assumed_nonnull);
-	} else if  (is_maybe_null(deref, sym)) {
+	} else if (is_maybe_null(deref, sym)) {
 		smatch_msg("error: dereferencing undefined:  '%s'", deref);
 		set_state(deref, my_id, sym, &ignore);
 	}
