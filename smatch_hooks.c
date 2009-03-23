@@ -53,9 +53,6 @@ void add_hook(void *func, enum hook_type type)
 	case FUNCTION_CALL_HOOK:
 		container->data_type = EXPR_HOOK;
 		break;
-	case FUNCTION_CALL_AFTER_HOOK:
-		container->data_type = EXPR_HOOK;
-		break;
 	case DEREF_HOOK:
 		container->data_type = EXPR_HOOK;
 		break;

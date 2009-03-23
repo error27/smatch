@@ -91,10 +91,9 @@ void __split_expr(struct expression *expr)
 		__pop_false_only_stack();
 		return;
 	case EXPR_CALL:
-		__pass_to_client(expr, FUNCTION_CALL_HOOK);
-		__split_expr(expr->fn);
 		split_expr_list(expr->args);
-		__pass_to_client(expr, FUNCTION_CALL_AFTER_HOOK);
+		__split_expr(expr->fn);
+		__pass_to_client(expr, FUNCTION_CALL_HOOK);
 #ifdef KERNEL
 		if (expr->fn->type == EXPR_SYMBOL && 
 		    !strcmp(expr->fn->symbol_name->name, "panic"))

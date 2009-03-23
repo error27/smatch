@@ -437,7 +437,7 @@ void check_null_deref(int id)
 	add_merge_hook(my_id, &merge_func);
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
-	add_hook(&match_function_call_after, FUNCTION_CALL_AFTER_HOOK);
+	add_hook(&match_function_call_after, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_dereferences, DEREF_HOOK);
