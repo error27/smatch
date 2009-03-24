@@ -96,6 +96,11 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	case EXPR_PREOP: {
 		const char *tmp;
 
+		if (get_block_thing(expr)) {
+			*complicated = 2;
+			return;
+		}
+
 		if (expr->op == '*')
 			star_count++;
 
@@ -210,7 +215,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 char *get_variable_from_expr_complex(struct expression *expr, struct symbol **sym_ptr)
 {
 	static char var_name[VAR_LEN];
-	int junk;
+	int complicated = 0;
 
 	if (sym_ptr)
 		*sym_ptr = NULL;
@@ -220,9 +225,11 @@ char *get_variable_from_expr_complex(struct expression *expr, struct symbol **sy
 	if (!expr)
 		return NULL;
 	__get_variable_from_expr(sym_ptr, var_name, expr, sizeof(var_name),
-				 &junk);
-
-	return alloc_string(var_name);
+				 &complicated);
+	if (complicated < 2)
+		return alloc_string(var_name);
+	else
+		return NULL;
 }
 
 /*
