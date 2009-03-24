@@ -96,11 +96,6 @@ void __split_expr(struct expression *expr)
 		split_expr_list(expr->args);
 		__split_expr(expr->fn);
 		__pass_to_client(expr, FUNCTION_CALL_HOOK);
-#ifdef KERNEL
-		if (expr->fn->type == EXPR_SYMBOL && 
-		    !strcmp(expr->fn->symbol_name->name, "panic"))
-			nullify_path();
-#endif 
 		return;
 	case EXPR_INITIALIZER:
 		split_expr_list(expr->expr_list);

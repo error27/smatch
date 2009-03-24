@@ -210,6 +210,10 @@ void nullify_path()
 	free_slist(&cur_slist);
 }
 
+void __match_nullify_path_hook(struct expression *expr, void *unused)
+{
+	nullify_path();
+}
 /*
  * At the start of every function we mark the path
  * as unnull.  That there is always at least one state

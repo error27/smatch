@@ -171,6 +171,7 @@ struct state_list *__get_cur_slist();
 void __set_true_false_sm(struct sm_state *true_state, 
 			struct sm_state *false_state);
 void nullify_path();	   
+void __match_nullify_path_hook(struct expression *expr, void *unused);	   
 void __unnullify_path();	   
 int __path_is_null();
 void clear_all_states();

@@ -26,7 +26,6 @@ void check_frees_argument(int id);
 static const reg_func reg_funcs[] = {
 	&register_smatch_extra, /* smatch_extra always has to be first */
 	&register_smatch_ignore,
-	&register_function_hooks,
 	&check_null_deref,
 	&check_overflow,
 	&check_locking,
@@ -55,6 +54,7 @@ int main(int argc, char **argv)
 	int i;
 	reg_func func;
 	
+	register_function_hooks(-1);
 	/* The script IDs start at 1.
 	   0 is used for internal stuff. */
 	for(i = 0; (func = reg_funcs[i]); i++){
