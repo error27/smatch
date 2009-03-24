@@ -44,7 +44,7 @@ static struct smatch_state *alloc_state(int val)
 	return state;
 }
 
-static void match_function_call_after(struct expression *expr)
+static void match_function_call(struct expression *expr)
 {
 	struct expression *tmp;
 	struct symbol *sym;
@@ -321,8 +321,8 @@ void register_smatch_extra(int id)
 	my_id = id;
 	add_hook(&undef_expr, OP_HOOK);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
-	add_hook(&match_function_call_after, FUNCTION_CALL_AFTER_HOOK);
-	add_hook(&match_assign, ASSIGNMENT_AFTER_HOOK);
+	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
+	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_hook(&match_unop, OP_HOOK);
 }

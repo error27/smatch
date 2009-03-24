@@ -61,13 +61,13 @@ void __split_expr(struct expression *expr)
 	case EXPR_BINOP: 
 	case EXPR_COMMA:
 	case EXPR_COMPARE:
-	case EXPR_ASSIGNMENT:
-		if (expr->type == EXPR_ASSIGNMENT)
-			__pass_to_client(expr, ASSIGNMENT_HOOK);
 		__split_expr(expr->left);
+		__split_expr(expr->right);		
+		return;
+	case EXPR_ASSIGNMENT:
 		__split_expr(expr->right);
-		if (expr->type == EXPR_ASSIGNMENT)
-			__pass_to_client(expr, ASSIGNMENT_AFTER_HOOK);
+		__pass_to_client(expr, ASSIGNMENT_HOOK);
+		__split_expr(expr->left);
 		return;
 	case EXPR_DEREF:
 		__pass_to_client(expr, DEREF_HOOK);
@@ -93,10 +93,9 @@ void __split_expr(struct expression *expr)
 		__pop_false_only_stack();
 		return;
 	case EXPR_CALL:
-		__pass_to_client(expr, FUNCTION_CALL_HOOK);
-		__split_expr(expr->fn);
 		split_expr_list(expr->args);
-		__pass_to_client(expr, FUNCTION_CALL_AFTER_HOOK);
+		__split_expr(expr->fn);
+		__pass_to_client(expr, FUNCTION_CALL_HOOK);
 #ifdef KERNEL
 		if (expr->fn->type == EXPR_SYMBOL && 
 		    !strcmp(expr->fn->symbol_name->name, "panic"))

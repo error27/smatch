@@ -41,7 +41,7 @@ static int malloc_size(struct expression *expr)
 		}
 		free_string(name);
 	} else if (expr->type == EXPR_STRING && expr->string) {
-		return expr->string->length * 8;
+		return expr->string->length;
 	}
 	return 0;
 }
@@ -58,12 +58,13 @@ static void match_declaration(struct symbol *sym)
 	name = sym->ident->name;
 	base_type = get_base_type(sym);
 	
-	if (base_type->type == SYM_ARRAY && base_type->bit_size > 0)
+	if (base_type->type == SYM_ARRAY && base_type->bit_size > 0) {
 		set_state(name, my_id, NULL, alloc_state(base_type->bit_size / 8));
-	else {
+	} else {
 		size = malloc_size(sym->initializer);
 		if (size > 0)
 			set_state(name, my_id, NULL, alloc_state(size));
+
 	}
 }
 
@@ -110,7 +111,7 @@ free:
 	free_string(data_name);
 }
 
-static void match_strncpy(struct expression *expr, void *unused)
+static void match_limitted(struct expression *expr, void *limit_arg)
 {
 	struct expression *dest;
 	struct expression *data;
@@ -122,7 +123,7 @@ static void match_strncpy(struct expression *expr, void *unused)
 	dest = get_argument_from_call_expr(expr->args, 0);
 	dest_name = get_variable_from_expr(dest, NULL);
 
-	data = get_argument_from_call_expr(expr->args, 2);
+	data = get_argument_from_call_expr(expr->args, (int)limit_arg);
 	needed = get_value(data);
 	state = get_state(dest_name, my_id, NULL);
 	if (!state || !state->data)
@@ -141,5 +142,7 @@ void check_overflow(int id)
 	add_hook(&match_declaration, DECLARATION_HOOK);
 	add_hook(&match_assignment, ASSIGNMENT_HOOK);
 	add_function_hook("strcpy", &match_strcpy, NULL);
-	add_function_hook("strncpy", &match_strncpy, NULL);
+	add_function_hook("strncpy", &match_limitted, (void *)2);
+	add_function_hook("copy_to_user", &match_limitted, (void *)2);
+	add_function_hook("copy_from_user", &match_limitted, (void *)2);
 }

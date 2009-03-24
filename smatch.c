@@ -31,7 +31,7 @@ static const reg_func reg_funcs[] = {
 	&check_overflow,
 	&check_locking,
 	&check_memory,
-	// &register_frees_argument,
+	// &check_frees_argument,
 
 	/* <- your test goes here */
 	/* &register_template, */

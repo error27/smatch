@@ -59,5 +59,5 @@ void register_function_hooks(int id)
 {
 	my_id = id;
 	hcreate(1000);  // We will track maybe 1000 functions.
-	add_hook(&match_function_call, FUNCTION_CALL_AFTER_HOOK);
+	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 }
