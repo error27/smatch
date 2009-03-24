@@ -79,7 +79,8 @@ static void match_assignment(struct expression *expr)
 	free_string(name);
 }
 
-static void match_strcpy(struct expression *expr, void *unused)
+static void match_strcpy(const char *fn, struct expression *expr,
+			 void *unused)
 {
 	struct expression *dest;
 	struct expression *data;
@@ -111,7 +112,8 @@ free:
 	free_string(data_name);
 }
 
-static void match_limitted(struct expression *expr, void *limit_arg)
+static void match_limitted(const char *fn, struct expression *expr,
+			   void *limit_arg)
 {
 	struct expression *dest;
 	struct expression *data;

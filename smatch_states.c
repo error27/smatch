@@ -210,7 +210,8 @@ void nullify_path()
 	free_slist(&cur_slist);
 }
 
-void __match_nullify_path_hook(struct expression *expr, void *unused)
+void __match_nullify_path_hook(const char *fn, struct expression *expr,
+			       void *unused)
 {
 	nullify_path();
 }

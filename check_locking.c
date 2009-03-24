@@ -166,7 +166,7 @@ static char *get_lock_name(struct expression *expr, void *data)
 	}
 }
 
-static void match_lock_func(struct expression *expr, void *data)
+static void match_lock_func(const char *fn, struct expression *expr, void *data)
 {
 	char *lock_name;
 	struct sm_state *sm;
@@ -183,7 +183,8 @@ static void match_lock_func(struct expression *expr, void *data)
 	free_string(lock_name);
 }
 
-static void match_unlock_func(struct expression *expr, void *data)
+static void match_unlock_func(const char *fn, struct expression *expr,
+			      void *data)
 {
 	char *lock_name;
 	struct sm_state *sm;
@@ -200,7 +201,8 @@ static void match_unlock_func(struct expression *expr, void *data)
 	free_string(lock_name);
 }
 
-static void match_lock_needed(struct expression *expr, void *data)
+static void match_lock_needed(const char *fn, struct expression *expr,
+			      void *data)
 {
 	struct smatch_state *state;
 	char *fn_name;

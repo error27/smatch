@@ -66,7 +66,8 @@ typedef struct smatch_state *(merge_func_t)(const char *name,
 typedef struct smatch_state *(unmatched_func_t)(struct sm_state *state);
 void add_merge_hook(int client_id, merge_func_t *func);
 void add_unmatched_state_hook(int client_id, unmatched_func_t *func);
-void add_function_hook(const char *lock_for, void *call_back, void *data);
+typedef void (func_hook)(const char *fn, struct expression *expr, void *data);
+void add_function_hook(const char *lock_for, func_hook *call_back, void *data);
 
 #define smatch_msg(msg...) \
 do {                                                          \
@@ -171,7 +172,8 @@ struct state_list *__get_cur_slist();
 void __set_true_false_sm(struct sm_state *true_state, 
 			struct sm_state *false_state);
 void nullify_path();	   
-void __match_nullify_path_hook(struct expression *expr, void *unused);	   
+void __match_nullify_path_hook(const char *fn, struct expression *expr,
+			       void *unused);	   
 void __unnullify_path();	   
 int __path_is_null();
 void clear_all_states();

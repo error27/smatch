@@ -4,14 +4,14 @@
 #include "smatch.h"
 
 struct fcall_back {
-	void *call_back;
+	func_hook *call_back;
 	void *data;
 };
 
 ALLOCATOR(fcall_back, "call backs");
 DECLARE_PTR_LIST(call_back_list, struct fcall_back);
 
-void add_function_hook(const char *look_for, void *call_back, void *data)
+void add_function_hook(const char *look_for, func_hook *call_back, void *data)
 {
 	ENTRY e, *ep;
 	struct fcall_back *cb;
@@ -34,7 +34,6 @@ void add_function_hook(const char *look_for, void *call_back, void *data)
 	hsearch(e, ENTER);
 }
 
-typedef void (call_back_func)(struct expression *expr, void *data);
 static void match_function_call(struct expression *expr)
 {
 	ENTRY e, *ep;
@@ -49,7 +48,7 @@ static void match_function_call(struct expression *expr)
 		return;
 
 	FOR_EACH_PTR((struct call_back_list *)ep->data, tmp) {
-		((call_back_func *) tmp->call_back)(expr, tmp->data);
+		(tmp->call_back)(e.key, expr, tmp->data);
 	} END_FOR_EACH_PTR(tmp);
 }
 

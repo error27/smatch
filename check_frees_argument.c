@@ -40,7 +40,7 @@ static int is_arg(char *name, struct symbol *sym)
 	return 0;
 }
 
-static void match_kfree(struct expression *expr, void *data)
+static void match_kfree(const char *fn, struct expression *expr, void *data)
 {
 	struct expression *tmp;
 	struct symbol *sym;

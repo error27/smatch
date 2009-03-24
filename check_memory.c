@@ -189,7 +189,7 @@ static int is_null(char *name, struct symbol *sym)
 	return 0;
 }
 
-static void match_free_func(struct expression *expr, void *data)
+static void match_free_func(const char *fn, struct expression *expr, void *data)
 {
 	struct expression *ptr_expr;
 	char *ptr_name;
