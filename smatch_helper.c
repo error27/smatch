@@ -337,6 +337,7 @@ static int _get_value(struct expression *expr, int *discard)
 	return ret;
 }
 
+/* returns UNDEFINED on error */
 int get_value(struct expression *expr)
 {
 	return _get_value(expr, NULL);
