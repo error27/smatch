@@ -245,10 +245,12 @@ struct smatch_state *__client_unmatched_state_function(struct sm_state *sm);
 
 /* smatch_function_hooks.c */
 struct fcall_back {
+	int type;
 	func_hook *call_back;
-	void *data;
+	void *info;
 };
 DECLARE_ALLOCATOR(fcall_back);
 DECLARE_PTR_LIST(call_back_list, struct fcall_back);
+void create_function_hash(void);
 
 #endif 	    /* !SMATCH_H_ */
