@@ -1,15 +1,12 @@
+#define _GNU_SOURCE
 #include <search.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "smatch.h"
 
-struct fcall_back {
-	func_hook *call_back;
-	void *data;
-};
-
 ALLOCATOR(fcall_back, "call backs");
-DECLARE_PTR_LIST(call_back_list, struct fcall_back);
+
+static struct hsearch_data func_hash;
 
 void add_function_hook(const char *look_for, func_hook *call_back, void *data)
 {
@@ -20,7 +17,7 @@ void add_function_hook(const char *look_for, func_hook *call_back, void *data)
 	cb->call_back = call_back;
 	cb->data = data;
 	e.key = alloc_string(look_for);
-	ep = hsearch(e, FIND);
+	hsearch_r(e, FIND, &ep, &func_hash);
 	if (!ep) {
 		struct call_back_list *list = NULL;
 		
@@ -31,7 +28,7 @@ void add_function_hook(const char *look_for, func_hook *call_back, void *data)
 		add_ptr_list((struct call_back_list **)&ep->data, cb);
 		e.data = ep->data;
 	}
-	hsearch(e, ENTER);
+	hsearch_r(e, ENTER, &ep, &func_hash);
 }
 
 static void match_function_call(struct expression *expr)
@@ -43,7 +40,7 @@ static void match_function_call(struct expression *expr)
 		return;
 
 	e.key = expr->fn->symbol->ident->name;
-	ep = hsearch(e, FIND);
+	hsearch_r(e, FIND, &ep, &func_hash);
 	if (!ep)
 		return;
 
@@ -54,6 +51,6 @@ static void match_function_call(struct expression *expr)
 
 void register_function_hooks(int id)
 {
-	hcreate(1000);  // We will track maybe 1000 functions.
+	hcreate_r(1000, &func_hash);  // We will track maybe 1000 functions.
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 }

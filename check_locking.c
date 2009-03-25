@@ -139,21 +139,6 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	return &start_state;
 }
 
-static char *match_func(const char *list[], char *fn_name,
-			struct expression_list *args)
-{
-	struct expression *lock_expr;
-	int i;
-
-	for (i = 0; list[i]; i++) {
-		if (!strcmp(fn_name, list[i])) {
-			lock_expr = get_argument_from_call_expr(args, 0);
-			return get_variable_from_expr(lock_expr, NULL);
-		}
-	}
-	return NULL;
-}
-
 static char *get_lock_name(struct expression *expr, void *data)
 {
 	struct expression *lock_expr;
@@ -220,31 +205,36 @@ static void match_lock_needed(const char *fn, struct expression *expr,
 	free_string(fn_name);
 }
 
-static void match_condition(struct expression *expr)
+static void match_locks_on_zero(const char *fn, struct expression *expr,
+				void *data)
 {
-	char *fn_name;
 	char *lock_name;
+	struct sm_state *sm;
 
-	if (expr->type != EXPR_CALL)
+	lock_name = get_lock_name(expr, data);
+	if (!lock_name)
 		return;
-
-	fn_name = get_variable_from_expr(expr->fn, NULL);
-	if (!fn_name)
-		return;
-
-	if ((lock_name = match_func(conditional_funcs, fn_name, expr->args))) {
-		if (!get_state(lock_name, my_id, NULL))
-			add_tracker(&starts_unlocked, lock_name, my_id, NULL);
-		set_true_false_states(lock_name, my_id, NULL, &locked, &unlocked);
-	}
-	if ((lock_name = match_func(reverse_cond_funcs, fn_name, expr->args))) {
-		if (!get_state(lock_name, my_id, NULL))
-			add_tracker(&starts_unlocked, lock_name, my_id, NULL);
-		set_true_false_states(lock_name, my_id, NULL, &unlocked, &locked);
-	}
+	sm = get_sm_state(lock_name, my_id, NULL);
+	if (!sm)
+		add_tracker(&starts_unlocked, lock_name, my_id, NULL);
+	set_cond_states(lock_name, my_id, NULL, &unlocked, &locked);
 	free_string(lock_name);
-	free_string(fn_name);
-	return;
+}
+
+static void match_locks_on_non_zero(const char *fn, struct expression *expr,
+				   void *data)
+{
+	char *lock_name;
+	struct sm_state *sm;
+
+	lock_name = get_lock_name(expr, data);
+	if (!lock_name)
+		return;
+	sm = get_sm_state(lock_name, my_id, NULL);
+	if (!sm)
+		add_tracker(&starts_unlocked, lock_name, my_id, NULL);
+	set_cond_states(lock_name, my_id, NULL, &locked, &unlocked);
+	free_string(lock_name);
 }
 
 static struct locks_on_return *alloc_return(int line)
@@ -401,7 +391,6 @@ void check_locking(int id)
 
 	my_id = id;
 	add_unmatched_state_hook(my_id, &unmatched_state);
-	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_func_end, END_FUNC_HOOK);
 
@@ -416,5 +405,15 @@ void check_locking(int id)
 	for (i = 0; i < sizeof(lock_needed)/sizeof(struct locked_call); i++) {
 		add_function_hook(lock_needed[i].function, &match_lock_needed, 
 				  (void *)lock_needed[i].lock);
+	}
+
+	for (i = 0; conditional_funcs[i]; i++) {
+		add_conditional_hook(conditional_funcs[i],
+				  &match_locks_on_non_zero, NULL);
+	}
+
+	for (i = 0; reverse_cond_funcs[i]; i++) {
+		add_conditional_hook(reverse_cond_funcs[i],
+				     &match_locks_on_zero, NULL);
 	}
 }

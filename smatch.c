@@ -15,6 +15,7 @@ void register_smatch_extra(int id);
 void register_smatch_ignore(int id);
 void register_implications(int id);
 void register_function_hooks(int id);
+void register_conditional_function_hooks(int id);
 void check_null_deref(int id);
 void check_overflow(int id);
 void check_locking(int id);
@@ -55,6 +56,7 @@ int main(int argc, char **argv)
 	reg_func func;
 	
 	register_function_hooks(-1);
+	register_conditional_function_hooks(-1);
 	/* The script IDs start at 1.
 	   0 is used for internal stuff. */
 	for(i = 0; (func = reg_funcs[i]); i++){

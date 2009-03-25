@@ -69,6 +69,11 @@ void add_unmatched_state_hook(int client_id, unmatched_func_t *func);
 typedef void (func_hook)(const char *fn, struct expression *expr, void *data);
 void add_function_hook(const char *lock_for, func_hook *call_back, void *data);
 
+void add_conditional_hook(const char *look_for, func_hook *call_back, void *data);
+void set_cond_states(const char *name, int owner, struct symbol *sym, 
+		     struct smatch_state *true_state,
+		     struct smatch_state *false_state);
+
 #define smatch_msg(msg...) \
 do {                                                          \
 	printf("%s +%d %s(%d) ", get_filename(), get_lineno(), \
@@ -237,5 +242,13 @@ struct smatch_state *__client_merge_function(int owner, const char *name,
 					     struct smatch_state *s1,
 					     struct smatch_state *s2);
 struct smatch_state *__client_unmatched_state_function(struct sm_state *sm);
+
+/* smatch_function_hooks.c */
+struct fcall_back {
+	func_hook *call_back;
+	void *data;
+};
+DECLARE_ALLOCATOR(fcall_back);
+DECLARE_PTR_LIST(call_back_list, struct fcall_back);
 
 #endif 	    /* !SMATCH_H_ */
