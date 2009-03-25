@@ -28,6 +28,17 @@ static struct fcall_back *alloc_fcall_back(int type, func_hook *call_back,
 	return cb;
 }
 
+static struct call_back_list *get_call_backs(const char *look_for)
+{
+	ENTRY e, *ep;
+
+	e.key = (char *)look_for;
+	hsearch_r(e, FIND, &ep, &func_hash);
+	if (!ep)
+		return NULL;
+	return (struct call_back_list *)ep->data;
+}
+
 static void add_cb_hook(const char *look_for, struct fcall_back *cb)
 {
 	ENTRY e, *ep;
@@ -44,7 +55,10 @@ static void add_cb_hook(const char *look_for, struct fcall_back *cb)
 		add_ptr_list((struct call_back_list **)&ep->data, cb);
 		e.data = ep->data;
 	}
-	hsearch_r(e, ENTER, &ep, &func_hash);
+	if (!hsearch_r(e, ENTER, &ep, &func_hash)) {
+		printf("Error hash table too small in smatch_function_hooks.c\n");
+		exit(1);
+	}
 }
 
 void add_function_hook(const char *look_for, func_hook *call_back, void *info)
@@ -82,17 +96,6 @@ static void call_call_backs(struct call_back_list *list, int type,
 		if (tmp->type == type)
 			(tmp->call_back)(fn, expr, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
-}
-
-static struct call_back_list *get_call_backs(const char *look_for)
-{
-	ENTRY e, *ep;
-
-	e.key = (char *)look_for;
-	hsearch_r(e, FIND, &ep, &func_hash);
-	if (!ep)
-		return NULL;
-	return (struct call_back_list *)ep->data;
 }
 
 static void match_function_call(struct expression *expr)
@@ -147,9 +150,10 @@ static void match_assign_call(struct expression *expr)
 
 static void match_conditional_call(struct expression *expr)
 {
-	ENTRY e, *ep;
+	struct call_back_list *call_backs;
 	struct fcall_back *tmp;
 	struct sm_state *sm;
+	const char *fn;
 
 	if (expr->type != EXPR_CALL)
 		return;
@@ -157,16 +161,16 @@ static void match_conditional_call(struct expression *expr)
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
 		return;
 
-	e.key = expr->fn->symbol->ident->name;
-	hsearch_r(e, FIND, &ep, &func_hash);
-	if (!ep)
+	fn = expr->fn->symbol->ident->name;
+	call_backs = get_call_backs(fn);
+	if (!call_backs)
 		return;
 	in_hook = 1;
-	FOR_EACH_PTR((struct call_back_list *)ep->data, tmp) {
+	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != CONDITIONAL_CALL)
 			continue;
 
-		(tmp->call_back)(e.key, expr, tmp->info);
+		(tmp->call_back)(fn, expr, tmp->info);
 
 		FOR_EACH_PTR(cond_true, sm) {
 			__set_true_false_sm(sm, NULL);
@@ -210,7 +214,7 @@ void set_cond_states(const char *name, int owner, struct symbol *sym,
 
 void create_function_hash(void)
 {
-	hcreate_r(1000, &func_hash);  // We will track maybe 1000 functions.
+	hcreate_r(10000, &func_hash);  // Apparently 1000 is too few...
 }
 
 void register_function_hooks(int id)
