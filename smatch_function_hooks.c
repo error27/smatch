@@ -14,6 +14,7 @@ static struct state_list *cond_false = NULL;
 static int in_hook = 0;
 #define REGULAR_CALL 0
 #define CONDITIONAL_CALL 1
+#define ASSIGN_CALL 2
 
 static struct fcall_back *alloc_fcall_back(int type, func_hook *call_back,
 					   void *info)
@@ -44,7 +45,6 @@ static void add_cb_hook(const char *look_for, struct fcall_back *cb)
 		e.data = ep->data;
 	}
 	hsearch_r(e, ENTER, &ep, &func_hash);
-
 }
 
 void add_function_hook(const char *look_for, func_hook *call_back, void *info)
@@ -64,23 +64,85 @@ void add_conditional_hook(const char *look_for, func_hook *call_back,
 	add_cb_hook(look_for, cb);
 }
 
-static void match_function_call(struct expression *expr)
+void add_function_assign_hook(const char *look_for, func_hook *call_back,
+			      void *info)
+{
+	struct fcall_back *cb;
+
+	cb = alloc_fcall_back(ASSIGN_CALL, call_back, info);
+	add_cb_hook(look_for, cb);
+}
+
+static void call_call_backs(struct call_back_list *list, int type,
+			    const char *fn, struct expression *expr)
+{
+	struct fcall_back *tmp;
+
+	FOR_EACH_PTR(list, tmp) {
+		if (tmp->type == type)
+			(tmp->call_back)(fn, expr, tmp->info);
+	} END_FOR_EACH_PTR(tmp);
+}
+
+static struct call_back_list *get_call_backs(const char *look_for)
 {
 	ENTRY e, *ep;
-	struct fcall_back *tmp;
+
+	e.key = (char *)look_for;
+	hsearch_r(e, FIND, &ep, &func_hash);
+	if (!ep)
+		return NULL;
+	return (struct call_back_list *)ep->data;
+}
+
+static void match_function_call(struct expression *expr)
+{
+	struct call_back_list *call_backs;
 
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
 		return;
+	call_backs = get_call_backs(expr->fn->symbol->ident->name);
+	if (!call_backs)
+		return;
+	call_call_backs(call_backs, REGULAR_CALL, expr->fn->symbol->ident->name,
+			expr);
+}
 
-	e.key = expr->fn->symbol->ident->name;
-	hsearch_r(e, FIND, &ep, &func_hash);
-	if (!ep)
+void __match_initializer_call(struct symbol *sym)
+{
+	struct call_back_list *call_backs;
+	struct expression *initializer = sym->initializer;
+	struct expression *e_assign, *e_symbol;
+
+	if (initializer->fn->type != EXPR_SYMBOL
+	    || !initializer->fn->symbol)
+		return;
+	call_backs = get_call_backs(initializer->fn->symbol->ident->name);
+	if (!call_backs)
 		return;
 
-	FOR_EACH_PTR((struct call_back_list *)ep->data, tmp) {
-		if (tmp->type == REGULAR_CALL)
-			(tmp->call_back)(e.key, expr, tmp->info);
-	} END_FOR_EACH_PTR(tmp);
+	e_assign = alloc_expression(initializer->pos, EXPR_ASSIGNMENT);
+	e_symbol = alloc_expression(initializer->pos, EXPR_SYMBOL);
+	e_symbol->symbol = sym;
+	e_symbol->symbol_name = sym->ident;
+	e_assign->left = e_symbol;
+	e_assign->right = initializer;
+	call_call_backs(call_backs, ASSIGN_CALL,
+			initializer->fn->symbol->ident->name, e_assign);
+}
+
+static void match_assign_call(struct expression *expr)
+{
+	struct call_back_list *call_backs;
+	const char *fn;
+
+	if (expr->right->fn->type != EXPR_SYMBOL || !expr->right->fn->symbol)
+		return;
+	fn = expr->right->fn->symbol->ident->name;
+	call_backs = get_call_backs(fn);
+	if (!call_backs)
+		return;
+	call_call_backs(call_backs, ASSIGN_CALL, fn, expr);
 }
 
 static void match_conditional_call(struct expression *expr)
@@ -154,5 +216,6 @@ void create_function_hash(void)
 void register_function_hooks(int id)
 {
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
+	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_conditional_call, CONDITION_HOOK);
 }

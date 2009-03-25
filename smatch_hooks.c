@@ -41,6 +41,9 @@ void add_hook(void *func, enum hook_type type)
 	case ASSIGNMENT_HOOK:
 		container->data_type = EXPR_HOOK;
 		break;
+	case CALL_ASSIGNMENT_HOOK:
+		container->data_type = EXPR_HOOK;
+		break;
 	case OP_HOOK:
 		container->data_type = EXPR_HOOK;
 		break;
@@ -147,14 +150,6 @@ void __pass_to_client_no_data(enum hook_type type)
 		if (container->hook_type == type)
 			pass_to_client(container->fn);
 	} END_FOR_EACH_PTR(container);
-}
-
-void __pass_declarations_to_client(struct symbol_list *sym_list)
-{
-	struct symbol *sym;
-	FOR_EACH_PTR(sym_list, sym) {
-		__pass_to_client(sym, DECLARATION_HOOK);
-	} END_FOR_EACH_PTR(sym);
 }
 
 int __has_merge_function(int client_id)

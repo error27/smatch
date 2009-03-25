@@ -23,6 +23,7 @@ int get_lineno(void) { return __smatch_lineno; }
 int get_func_pos(void) { return __smatch_lineno - line_func_start; }
 
 static void split_symlist(struct symbol_list *sym_list);
+static void split_declaration(struct symbol_list *sym_list);
 static void split_expr_list(struct expression_list *expr_list);
 
 unsigned int __get_allocations();
@@ -64,11 +65,17 @@ void __split_expr(struct expression *expr)
 		__split_expr(expr->left);
 		__split_expr(expr->right);		
 		return;
-	case EXPR_ASSIGNMENT:
+	case EXPR_ASSIGNMENT: {
+		struct expression *tmp;
+
 		__split_expr(expr->right);
 		__pass_to_client(expr, ASSIGNMENT_HOOK);
+		tmp = strip_expr(expr->right);
+		if (tmp->type == EXPR_CALL)
+			__pass_to_client(expr, CALL_ASSIGNMENT_HOOK);
 		__split_expr(expr->left);
 		return;
+	}
 	case EXPR_DEREF:
 		__pass_to_client(expr, DEREF_HOOK);
 		__split_expr(expr->deref);
@@ -242,8 +249,7 @@ void __split_statements(struct statement *stmt)
 
 	switch (stmt->type) {
 	case STMT_DECLARATION:
-		__pass_declarations_to_client(stmt->declaration);
-		split_symlist(stmt->declaration);
+		split_declaration(stmt->declaration);
 		return;
 	case STMT_RETURN:
 		__split_expr(stmt->ret_value);
@@ -383,6 +389,20 @@ static void split_symlist(struct symbol_list *sym_list)
 	struct symbol *sym;
 
 	FOR_EACH_PTR(sym_list, sym) {
+		split_sym(sym);
+	} END_FOR_EACH_PTR(sym);
+}
+
+static void split_declaration(struct symbol_list *sym_list)
+{
+	struct symbol *sym;
+
+	FOR_EACH_PTR(sym_list, sym) {
+		__pass_to_client(sym, DECLARATION_HOOK);
+		__split_expr(sym->initializer);
+		if(sym->initializer && sym->initializer->type == EXPR_CALL) {
+			__match_initializer_call(sym);
+		}
 		split_sym(sym);
 	} END_FOR_EACH_PTR(sym);
 }

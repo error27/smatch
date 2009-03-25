@@ -50,6 +50,7 @@ enum hook_type {
 	CONDITION_HOOK,
 	WHOLE_CONDITION_HOOK,
 	FUNCTION_CALL_HOOK,
+	CALL_ASSIGNMENT_HOOK,
 	OP_HOOK,
 	DEREF_HOOK,
 	BASE_HOOK,
@@ -73,6 +74,8 @@ void add_conditional_hook(const char *look_for, func_hook *call_back, void *data
 void set_cond_states(const char *name, int owner, struct symbol *sym, 
 		     struct smatch_state *true_state,
 		     struct smatch_state *false_state);
+void add_function_assign_hook(const char *look_for, func_hook *call_back,
+			      void *info);
 
 #define smatch_msg(msg...) \
 do {                                                          \
@@ -235,7 +238,6 @@ void __print_cur_slist();
 /* smatch_hooks.c */
 void __pass_to_client(void *data, enum hook_type type);
 void __pass_to_client_no_data(enum hook_type type);
-void __pass_declarations_to_client(struct symbol_list *sym_list);
 int __has_merge_function(int client_id);
 struct smatch_state *__client_merge_function(int owner, const char *name,
 					     struct symbol *sym,
@@ -252,5 +254,6 @@ struct fcall_back {
 DECLARE_ALLOCATOR(fcall_back);
 DECLARE_PTR_LIST(call_back_list, struct fcall_back);
 void create_function_hash(void);
+void __match_initializer_call(struct symbol *sym);
 
 #endif 	    /* !SMATCH_H_ */

@@ -195,15 +195,6 @@ static void match_function_def(struct symbol *sym)
 	} END_FOR_EACH_PTR(arg);
 }
 
-static char *get_function_call(struct expression *expr)
-{
-	if (expr->type != EXPR_CALL)
-		return NULL;
-	if (expr->fn->type == EXPR_SYMBOL && expr->fn->symbol)
-		return expr->fn->symbol->ident->name;
-	return NULL;
-}
-
 static void match_function_call_after(struct expression *expr)
 {
 	struct expression *tmp;
@@ -234,23 +225,19 @@ static void match_function_call_after(struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
-static int check_null_returns(const char *name, struct symbol *sym,
-			struct expression *right)
+static void match_assign_returns_null(const char *fn, struct expression *expr,
+				      void *unused)
 {
-	int i;
-	char *func_name;
-
-	func_name = get_function_call(right);
-	if (!func_name)
-		return 0;
-
-	for(i = 0; i < sizeof(*return_null)/sizeof(return_null[0]); i++) {
-		if (!strcmp(func_name, return_null[i])) {
-			set_state(name, my_id, sym, &undefined);
-			return 1;
-		}
-	}
-	return 0;
+	struct expression *left;
+	struct symbol *sym;
+	char *name;
+	
+	left = strip_expr(expr->left);
+	name = get_variable_from_expr(left, &sym);
+	if (!name)
+		return;
+	set_state(name, my_id, sym, &undefined);
+	free_string(name);	
 }
 
 static void match_assign(struct expression *expr)
@@ -269,12 +256,9 @@ static void match_assign(struct expression *expr)
 		free_string(name);
 		return;
 	}
-	if (check_null_returns(name, sym, right)) {
-		free_string(name);
-		return;
-	}
-
-	/* by default we assume it's assigned something nonnull */
+	/* hack alert.  we set the state to here but it might get
+	   set later to &undefined in match_function_assign().
+	   By default we assume it's assigned something nonnull here. */
 	set_state(name, my_id, sym, &assumed_nonnull);
 	free_string(name);
 }
@@ -370,8 +354,6 @@ static void match_declarations(struct symbol *sym)
 			set_state(name, my_id, sym, &isnull);
 			return;
 		}
-		if (check_null_returns(name, sym, strip_expr(sym->initializer)))
-			return;
 		set_state(name, my_id, sym, &assumed_nonnull);
 	} else {
 		set_state(name, my_id, sym, &undefined);
@@ -441,6 +423,8 @@ static void end_file_processing(void)
 
 void check_null_deref(int id)
 {
+	int i;
+
 	my_id = id;
 	add_merge_hook(my_id, &merge_func);
 	add_unmatched_state_hook(my_id, &unmatched_state);
@@ -451,4 +435,9 @@ void check_null_deref(int id)
 	add_hook(&match_dereferences, DEREF_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_hook(&end_file_processing, END_FILE_HOOK);
+
+	for(i = 0; i < sizeof(*return_null)/sizeof(return_null[0]); i++) {
+		add_function_assign_hook(return_null[i],
+					 &match_assign_returns_null, NULL);
+	}
 }
