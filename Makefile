@@ -26,7 +26,7 @@ PKGCONFIGDIR=$(LIBDIR)/pkgconfig
 
 PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse test-linearize example \
 	 test-unssa test-dissect ctags smatch
-SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o smatch_helper.o smatch_hooks.o smatch_function_hooks.o smatch_extra.o smatch_implied.o smatch_ignore.o smatch_tracker.o
+SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o smatch_helper.o smatch_hooks.o smatch_function_hooks.o smatch_extra.o smatch_implied.o smatch_ignore.o smatch_tracker.o smatch_files.o
 SMATCH_CHECKS=$(shell ls check_*.c | sed -e 's/\.c/.o/')
 
 
@@ -174,6 +174,7 @@ smatch_extra.o: $(LIB_H) smatch.h
 smatch_implied.o: $(LIB_H) smatch.h smatch_slist.h
 smatch_ignore.o: $(LIB_H) smatch.h
 smatch_tracker.o: $(LIB_H) smatch.h
+smatch_files.o: $(LIB_H) smatch.h
 smatch_hooks.o: $(LIB_H) smatch.h
 smatch_function_hooks.o: $(LIB_H) smatch.h
 smatch_helper.o: $(LIB_H) smatch.h

@@ -340,17 +340,13 @@ static void match_end_func(struct symbol *sym)
 
 static void register_funcs_from_file(void)
 {
-	const char *filename = "frees";
-	int fd;
 	struct token *token;
 	const char *func;
 	int arg;
 
-	fd = open(filename, O_RDONLY);
-	if (fd < 0)
+	token = get_tokens_file("kernel.frees_argument");
+	if (!token)
 		return;
-	token = tokenize(filename, fd, NULL, NULL);
-	close(fd);
 	if (token_type(token) != TOKEN_STREAMBEGIN)
 		return;
 	token = token->next;

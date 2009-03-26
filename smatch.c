@@ -8,7 +8,10 @@
  */
 
 #include <stdio.h>
+#include <libgen.h>
 #include "smatch.h"
+
+char *bin_dir;
 
 typedef void (*reg_func) (int id);
 void register_smatch_extra(int id);
@@ -55,7 +58,9 @@ int main(int argc, char **argv)
 {
 	int i;
 	reg_func func;
-	
+
+	bin_dir = dirname(alloc_string(argv[0]));
+
 	/* The script IDs start at 1.
 	   0 is used for internal stuff. */
 	create_function_hash();

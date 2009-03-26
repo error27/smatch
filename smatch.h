@@ -259,4 +259,10 @@ DECLARE_PTR_LIST(call_back_list, struct fcall_back);
 void create_function_hash(void);
 void __match_initializer_call(struct symbol *sym);
 
+/* smatch_files.c */
+struct token *get_tokens_file(const char *filename);
+
+/* smatch.c */
+extern char *bin_dir;
+
 #endif 	    /* !SMATCH_H_ */
