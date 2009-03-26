@@ -20,6 +20,7 @@ void check_overflow(int id);
 void check_locking(int id);
 void check_memory(int id);
 void check_frees_argument(int id);
+void check_leaks(int id);
 /* <- your test goes here */
 /* void register_template(int id); */
 
@@ -30,6 +31,7 @@ static const reg_func reg_funcs[] = {
 	&check_overflow,
 	&check_locking,
 	&check_memory,
+	// &check_leaks,
 	// &check_frees_argument,
 
 	/* <- your test goes here */
