@@ -227,11 +227,11 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 	struct state_list_stack *false_stack = NULL;
 
 	if (left)
-		DIMPLIED("checking implications: (%s %s %d)\n", sm_state->name,
-			 show_special(comparison), num);
+		DIMPLIED("%d checking implications: (%s %s %d)\n", get_lineno(),
+			 sm_state->name, show_special(comparison), num);
 	else
-		DIMPLIED("checking implications: (%d %s %s)\n", num,
-			 show_special(comparison), sm_state->name);
+		DIMPLIED("%d checking implications: (%d %s %s)\n", get_lineno(),
+			 num, show_special(comparison), sm_state->name);
 
 	FOR_EACH_PTR(sm_state->my_pools, list) {
 		s = get_sm_state_slist(list, sm_state->name, sm_state->owner,
@@ -350,6 +350,20 @@ static void implied_states_hook(struct expression *expr)
 		__set_true_false_sm(NULL, state);
 	} END_FOR_EACH_PTR(state);
 	free_slist(&implied_false);
+}
+
+void get_implications(char *name, struct symbol *sym, int comparison, int num,
+		      struct state_list **true_states,
+		      struct state_list **false_states)
+{
+	struct sm_state *sm;
+
+	sm = get_sm_state(name, SMATCH_EXTRA, sym);
+	if (!sm)
+		return;
+	if (slist_has_state(sm->possible, &undefined))
+		return;
+	get_eq_neq(sm, comparison, num, 1, true_states, false_states);
 }
 
 void register_implications(int id)

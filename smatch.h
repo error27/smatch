@@ -166,6 +166,9 @@ void __split_whole_condition(struct expression *expr);
 /* smatch_implied.c */
 extern int debug_implied_states;
 extern int option_no_implied;
+void get_implications(char *name, struct symbol *sym, int comparison, int num,
+		      struct state_list **true_states,
+		      struct state_list **false_states);
 
 /* smatch_extras.c */
 #define SMATCH_EXTRA 1 /* this is my_id from smatch extra set in smatch.c */
