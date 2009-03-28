@@ -61,7 +61,8 @@ static void match_function_def(struct symbol *sym)
 static void check_allocated(struct sm_state *sm)
 {
 	if (slist_has_state(sm->possible, &allocated))
-		smatch_msg("warn: %s possibly leaked on error path", sm->name);
+		smatch_msg("warn: '%s' possibly leaked on error path",
+			   sm->name);
 }
 
 static void check_for_allocated(void)
@@ -115,13 +116,17 @@ static void match_free(const char *fn, struct expression *expr, void *data)
 static void check_slist(struct state_list *slist)
 {
 	struct sm_state *sm;
+	struct sm_state *poss;
 
 	FOR_EACH_PTR(slist, sm) {
 		if (sm->owner != my_id)
 			continue;
-		if (slist_has_state(sm->possible, &allocated))
-			smatch_msg("warn: %s possibly leaked on error path (implied)",
-				   sm->name);
+		FOR_EACH_PTR(sm->possible, poss) {
+			if (poss->state == &allocated)
+				smatch_msg("warn: '%s' possibly leaked on error"
+					   "path (implied from line %d)",
+					   sm->name, poss->line);
+		} END_FOR_EACH_PTR(poss);
 	} END_FOR_EACH_PTR(sm);
 }
 
@@ -195,17 +200,13 @@ static void match_end_func(struct symbol *sym)
 
 static void register_funcs_from_file(void)
 {
-	const char *filename = "frees";
-	int fd;
 	struct token *token;
 	const char *func;
 	int arg;
 
-	fd = open(filename, O_RDONLY);
-	if (fd < 0)
+	token = get_tokens_file("kernel.frees_argument");
+	if (!token)
 		return;
-	token = tokenize(filename, fd, NULL, NULL);
-	close(fd);
 	if (token_type(token) != TOKEN_STREAMBEGIN)
 		return;
 	token = token->next;
@@ -218,6 +219,27 @@ static void register_funcs_from_file(void)
 			return;
 		arg = atoi(token->number);
 		add_function_hook(func, &match_free, (void *)arg);
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
+static void register_allocation_funcs(void)
+{
+	struct token *token;
+	const char *func;
+
+	token = get_tokens_file("kernel.allocation_funcs");
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = show_ident(token->ident);
+		add_function_assign_hook(func, &match_allocation, NULL);
 		token = token->next;
 	}
 	clear_token_alloc();
@@ -238,4 +260,5 @@ void check_leaks(int id)
 		add_function_assign_hook(allocation_funcs[i],
 					 &match_allocation, NULL);
 	}
+	register_allocation_funcs();
 }
