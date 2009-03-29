@@ -42,6 +42,7 @@ static struct call_back_list *get_call_backs(const char *look_for)
 static void add_cb_hook(const char *look_for, struct fcall_back *cb)
 {
 	ENTRY e, *ep;
+	char *old_key = NULL;
 
 	e.key = alloc_string(look_for);
 	hsearch_r(e, FIND, &ep, &func_hash);
@@ -51,7 +52,8 @@ static void add_cb_hook(const char *look_for, struct fcall_back *cb)
 		add_ptr_list(&list, cb);
 		e.data = list;
 	} else {
-		free_string(ep->key);
+		old_key = e.key;
+		e.key = ep->key;
 		add_ptr_list((struct call_back_list **)&ep->data, cb);
 		e.data = ep->data;
 	}
@@ -59,6 +61,7 @@ static void add_cb_hook(const char *look_for, struct fcall_back *cb)
 		printf("Error hash table too small in smatch_function_hooks.c\n");
 		exit(1);
 	}
+	free_string(old_key);
 }
 
 void add_function_hook(const char *look_for, func_hook *call_back, void *info)
