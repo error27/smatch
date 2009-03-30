@@ -179,7 +179,7 @@ exit:
 	free_string(right_name);
 }
 
-static int is_null(char *name, struct symbol *sym)
+static int is_null(const char *name, struct symbol *sym)
 {
 	struct smatch_state *state;
 

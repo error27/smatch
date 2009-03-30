@@ -31,7 +31,7 @@ extern struct smatch_state true_state;
 extern struct smatch_state false_state;
 
 struct sm_state {
-        char *name;
+        const char *name;
 	unsigned int owner;
 	struct symbol *sym;
   	struct smatch_state *state;

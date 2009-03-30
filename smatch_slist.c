@@ -17,6 +17,7 @@
 
 ALLOCATOR(sm_state, "smatch state");
 ALLOCATOR(named_slist, "named slist");
+__DO_ALLOCATOR(char, 0, 1, "state names", sname);
 
 void __print_slist(struct state_list *slist)
 {
@@ -89,6 +90,17 @@ static int cmp_sm_states(const struct sm_state *a, const struct sm_state *b)
 	return 0;
 }
 
+static struct sm_state *alloc_state_no_name(const char *name, int owner, 
+				     struct symbol *sym,
+				     struct smatch_state *state)
+{
+	struct sm_state *tmp;
+
+	tmp = alloc_state(NULL, owner, sym, state);
+	tmp->name = name;
+	return tmp;
+}
+
 void add_sm_state_slist(struct state_list **slist, struct sm_state *new)
 {
  	struct sm_state *tmp;
@@ -115,15 +127,27 @@ static void add_possible(struct sm_state *sm, struct sm_state *new)
 		struct smatch_state *s;
 
 		s = merge_states(sm->name, sm->owner, sm->sym, sm->state, NULL);
-		tmp = alloc_state(sm->name, sm->owner, sm->sym, s);
+		tmp = alloc_state_no_name(sm->name, sm->owner, sm->sym, s);
 		add_sm_state_slist(&sm->possible, tmp);
 		return;
 	}
 
 	FOR_EACH_PTR(new->possible, tmp) {
-		tmp2 = alloc_state(tmp->name, tmp->owner, tmp->sym, tmp->state);
+		tmp2 = alloc_state_no_name(tmp->name, tmp->owner, tmp->sym,
+					   tmp->state);
 		add_sm_state_slist(&sm->possible, tmp2);
 	} END_FOR_EACH_PTR(tmp);
+}
+
+char *alloc_sname(const char *str)
+{
+	char *tmp;
+
+	if (!str)
+		return NULL;
+	tmp = __alloc_sname(strlen(str) + 1);
+	strcpy(tmp, str);
+	return tmp;
 }
 
 struct sm_state *alloc_state(const char *name, int owner, 
@@ -131,7 +155,7 @@ struct sm_state *alloc_state(const char *name, int owner,
 {
 	struct sm_state *sm_state = __alloc_sm_state(0);
 
-	sm_state->name = alloc_string(name);
+	sm_state->name = alloc_sname(name);
 	sm_state->owner = owner;
 	sm_state->sym = sym;
 	sm_state->state = state;
@@ -145,16 +169,15 @@ struct sm_state *alloc_state(const char *name, int owner,
 
 static void free_sm_state(struct sm_state *sm)
 {
-		free_string(sm->name);
-		free_slist(&sm->possible);
-		free_stack(&sm->my_pools);
-		free_stack(&sm->all_pools);
-		/* 
-		 * fixme.  Free the actual state.
-		 * Right now we leave it until the end of the function
-		 * because we don't want to double free it.
-		 * Use the freelist to not double free things 
-		 */
+	free_slist(&sm->possible);
+	free_stack(&sm->my_pools);
+	free_stack(&sm->all_pools);
+	/* 
+	 * fixme.  Free the actual state.
+	 * Right now we leave it until the end of the function
+	 * because we don't want to double free it.
+	 * Use the freelist to not double free things 
+	 */
 }
 
 static void free_all_sm_states(struct allocation_blob *blob)
@@ -185,6 +208,7 @@ void free_every_single_sm_state(void)
 		blob_free(blob, desc->chunking);
 		blob = next;
 	}
+	clear_sname_alloc();
 }
 
 struct sm_state *clone_state(struct sm_state *s)
@@ -192,7 +216,7 @@ struct sm_state *clone_state(struct sm_state *s)
 	struct sm_state *ret;
 	struct sm_state *poss;
 
-	ret = alloc_state(s->name, s->owner, s->sym, s->state);
+	ret = alloc_state_no_name(s->name, s->owner, s->sym, s->state);
 	ret->line = s->line;
 	ret->my_pools = clone_stack(s->my_pools);
 	ret->all_pools = clone_stack(s->all_pools);
@@ -358,7 +382,7 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 
 	s = merge_states(one->name, one->owner, one->sym, one->state,
 			(two?two->state:NULL));
-	result = alloc_state(one->name, one->owner, one->sym, s);
+	result = alloc_state_no_name(one->name, one->owner, one->sym, s);
 	if (two && one->line == two->line)
 		result->line = one->line;
 	add_possible(result, one);
@@ -586,8 +610,9 @@ static void match_states(struct state_list **one, struct state_list **two)
 			break;
 		if (cmp_tracker(one_state, two_state) < 0) {
 			tmp_state = __client_unmatched_state_function(one_state);
-			tmp = alloc_state(one_state->name, one_state->owner,
-					  one_state->sym, tmp_state);
+			tmp = alloc_state_no_name(one_state->name,
+						  one_state->owner,
+						  one_state->sym, tmp_state);
 			add_ptr_list(&add_to_two, tmp);
 			NEXT_PTR_LIST(one_state);
 		} else if (cmp_tracker(one_state, two_state) == 0) {
@@ -595,8 +620,9 @@ static void match_states(struct state_list **one, struct state_list **two)
 			NEXT_PTR_LIST(two_state);
 		} else {
 			tmp_state = __client_unmatched_state_function(two_state);
-			tmp = alloc_state(two_state->name, two_state->owner,
-					  two_state->sym, tmp_state);
+			tmp = alloc_state_no_name(two_state->name,
+						  two_state->owner,
+						  two_state->sym, tmp_state);
 			add_ptr_list(&add_to_one, tmp);
 			NEXT_PTR_LIST(two_state);
 		}
@@ -713,7 +739,7 @@ static struct sm_state *find_intersection(struct sm_state *one,
 		return two;
 	}
 
-	ret = alloc_state(one->name, one->owner, one->sym, &merged);
+	ret = alloc_state_no_name(one->name, one->owner, one->sym, &merged);
 	FOR_EACH_PTR(stack, tmp1) {
 		tmp_state = get_sm_state_slist(tmp1, one->name, one->owner,
 					       one->sym);
