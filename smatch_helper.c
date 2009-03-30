@@ -263,6 +263,86 @@ char *get_variable_from_expr(struct expression *expr,
 	return alloc_string(var_name);
 }
 
+struct symbol *get_ptr_type_ptr(struct symbol *sym)
+{
+	if (!sym) {
+		return NULL;
+	}
+	
+	if (sym->type != SYM_NODE)
+		return NULL;
+	sym = get_base_type(sym);
+	if (sym->type != SYM_PTR)
+		return NULL;
+	sym = get_base_type(sym);
+	return sym;
+}
+
+static struct symbol *get_struct_sym(struct expression *expr)
+{
+	struct symbol *base_type;
+	struct symbol *parent_struct;
+	struct symbol *tmp;
+
+	if (expr->type != EXPR_PREOP)
+		return NULL;
+
+	expr = expr->unop;
+	if (expr->type == EXPR_DEREF) {
+		parent_struct = get_struct_sym(expr->deref);
+		if (!parent_struct)
+			return NULL;
+		tmp = NULL;
+		FOR_EACH_PTR(parent_struct->symbol_list, tmp) {
+			if (tmp->ident == expr->member)
+				break;
+		} END_FOR_EACH_PTR(tmp);
+		if (!tmp || tmp->ident != expr->member)
+			return NULL;
+		base_type = get_base_type(tmp);
+	} else if (expr->type == EXPR_SYMBOL) {
+		base_type = get_base_type(expr->symbol);
+	} else {
+		return NULL;
+	}
+	if (base_type->type != SYM_PTR)
+		return NULL;
+	base_type = get_base_type(base_type);
+	if (base_type->type != SYM_STRUCT && base_type->type != SYM_UNION)
+		return NULL;
+	return base_type;
+}
+
+struct symbol *get_deref_type(struct expression *expr)
+{
+	struct ident *member = expr->member;
+	struct symbol *struct_sym;
+	struct symbol *tmp;
+
+	struct_sym = get_struct_sym(expr->deref);
+	if (!struct_sym || (struct_sym->type != SYM_STRUCT 
+			    && struct_sym->type != SYM_UNION))
+		return NULL;
+	FOR_EACH_PTR(struct_sym->symbol_list, tmp) {
+		if (tmp->ident == member)
+			return get_ptr_type_ptr(tmp);
+	} END_FOR_EACH_PTR(tmp);
+	return NULL;
+}
+
+struct symbol *get_ptr_type(struct expression *expr)
+{
+	struct symbol *ptr_type = NULL;
+
+	if (!expr)
+		return NULL;
+	if (expr->type == EXPR_DEREF)
+		ptr_type = get_deref_type(expr);
+	if (expr->type == EXPR_SYMBOL)
+		ptr_type = get_ptr_type_ptr(expr->symbol);
+	return ptr_type;
+}
+
 int sym_name_is(const char *name, struct expression *expr)
 {
 	if (!expr)
