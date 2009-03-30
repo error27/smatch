@@ -40,7 +40,32 @@ static int is_arg(char *name, struct symbol *sym)
 	return 0;
 }
 
-static void match_kfree(const char *fn, struct expression *expr, void *data)
+static int parent_is_arg(struct symbol *sym)
+{
+	struct symbol *arg;
+
+	FOR_EACH_PTR(this_func->ctype.base_type->arguments, arg) {
+		if (sym == arg)
+			return 1;
+	} END_FOR_EACH_PTR(arg);
+	return 0;
+}
+
+static void match_put(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *tmp;
+	struct symbol *sym;
+	char *name;
+
+	tmp = get_argument_from_call_expr(expr->args, 0);
+	tmp = strip_expr(tmp);
+	name = get_variable_from_expr(tmp, &sym);
+	free_string(name);
+	if (parent_is_arg(sym) && sym->ident)
+		set_state(sym->ident->name, my_id, sym, &freed);
+}
+
+static void match_kfree(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *tmp;
 	struct symbol *sym;
@@ -52,6 +77,7 @@ static void match_kfree(const char *fn, struct expression *expr, void *data)
 	if (is_arg(name, sym)) {
 		set_state(name, my_id, sym, &freed);
 	}
+	free_string(name);
 }
 
 static int return_count = 0;
@@ -114,6 +140,8 @@ void check_frees_argument(int id)
 	my_id = id;
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_function_hook("kfree", &match_kfree, NULL);
+	add_function_hook("kobject_put", &match_put, NULL);
+	add_function_hook("kref_put", &match_put, NULL);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
 }
