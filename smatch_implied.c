@@ -257,7 +257,7 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 	*false_states = filter_stack(false_stack);
 	free_stack(&true_stack);
 	free_stack(&false_stack);
-	if (debug_implied_states) {
+	if (debug_implied_states || debug_states) {
 		printf("These are the implied states for the true path:\n");
 		__print_slist(*true_states);
 		printf("These are the implied states for the false path:\n");
