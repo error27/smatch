@@ -666,10 +666,11 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			if (to_state == state && !state->my_pools) {
 				add_pool(&state->my_pools, implied_to);
 				add_pool(&state->my_pools, implied_from);
-			} else if (!to_state->my_pools) {
-				add_pool(&to_state->my_pools, implied_to);
-			} else if (!state->my_pools) {
-				add_pool(&state->my_pools, implied_from);
+			} else {
+				if (!to_state->my_pools)
+					add_pool(&to_state->my_pools, implied_to);
+				if (!state->my_pools)
+					add_pool(&state->my_pools, implied_from);
 			}
 
 			add_pool(&to_state->all_pools, implied_to);
