@@ -53,8 +53,10 @@ static void help(void)
 	printf("Usage:  smatch [smatch arguments][sparse arguments] file.c\n");
 	printf("--debug:  print lots of debug output.\n");
 	printf("--debug-implied:  print debug output about implications.\n");
+	printf("--no-implied:  ignore implications.\n");
 	printf("--assume-loops:  assume loops always go through at least once.\n");
-	printf("--known-conditions:  don't branch for known conditions.");
+	printf("--known-conditions:  don't branch for known conditions.\n");
+	printf("--help:  print this helpfull message.\n");
 	exit(1);
 }
 
