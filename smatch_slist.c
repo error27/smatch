@@ -298,12 +298,10 @@ static void sanity_check_pools(struct state_list *slist)
 struct state_list *clone_slist(struct state_list *from_slist)
 {
 	struct sm_state *state;
-	struct sm_state *tmp;
 	struct state_list *to_slist = NULL;
 
 	FOR_EACH_PTR(from_slist, state) {
-		tmp = clone_state(state);
-		add_ptr_list(&to_slist, tmp);
+		add_ptr_list(&to_slist, state);
 	} END_FOR_EACH_PTR(state);
 	check_order(to_slist);
 	return to_slist;
@@ -380,6 +378,8 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	struct smatch_state *s;
 	struct sm_state *result;
 
+	if (one == two)
+		return one;
 	s = merge_states(one->name, one->owner, one->sym, one->state,
 			(two?two->state:NULL));
 	result = alloc_state_no_name(one->name, one->owner, one->sym, s);
@@ -579,21 +579,6 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack,
 	return NULL;
 }
 
-static void register_implied_pool(struct state_list *pool)
-{
-	struct sm_state *sm;
-	
- 	FOR_EACH_PTR(pool, sm) {
-		if (sm->state != &merged)
-			free_stack(&sm->my_pools);
-		if (!sm->my_pools)
-			add_pool(&sm->my_pools, pool);
-		add_pool(&sm->all_pools, pool);
-	} END_FOR_EACH_PTR(sm);
-
- 	push_slist(&implied_pools, pool);
-}
-
 static void match_states(struct state_list **one, struct state_list **two)
 {
 	struct sm_state *one_state;
@@ -664,9 +649,6 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 
 	match_states(&implied_to, &implied_from);
 
-	register_implied_pool(implied_to);
-	register_implied_pool(implied_from);
-
 	PREPARE_PTR_LIST(implied_to, to_state);
 	PREPARE_PTR_LIST(implied_from, state);
 	for (;;) {
@@ -676,6 +658,23 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			smatch_msg("error:  Internal smatch error.");
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_tracker(to_state, state) == 0) {
+			if (to_state->state != &merged)
+				free_stack(&to_state->my_pools);
+			if (state->state != &merged)
+				free_stack(&state->my_pools);
+
+			if (to_state == state && !state->my_pools) {
+				add_pool(&state->my_pools, implied_to);
+				add_pool(&state->my_pools, implied_from);
+			} else if (!to_state->my_pools) {
+				add_pool(&to_state->my_pools, implied_to);
+			} else if (!state->my_pools) {
+				add_pool(&state->my_pools, implied_from);
+			}
+
+			add_pool(&to_state->all_pools, implied_to);
+			add_pool(&state->all_pools, implied_from);
+
 			tmp = merge_sm_states(to_state, state);
 			add_ptr_list(&results, tmp);
 			NEXT_PTR_LIST(to_state);
