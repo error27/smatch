@@ -421,6 +421,28 @@ static void end_file_processing(void)
 	} END_FOR_EACH_PTR(param1);
 }
 
+static void register_allocation_funcs(void)
+{
+	struct token *token;
+	const char *func;
+
+	token = get_tokens_file("kernel.allocation_funcs");
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = show_ident(token->ident);
+		add_function_assign_hook(func, &match_assign_returns_null,
+					 NULL);
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
 void check_null_deref(int id)
 {
 	int i;
@@ -440,4 +462,5 @@ void check_null_deref(int id)
 		add_function_assign_hook(return_null[i],
 					 &match_assign_returns_null, NULL);
 	}
+	register_allocation_funcs();
 }
