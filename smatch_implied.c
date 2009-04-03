@@ -55,42 +55,6 @@
 int debug_implied_states = 0;
 int option_no_implied = 0;
 
-/*
- * We want to find which states have been modified inside a branch.
- * If you have 2 &merged states they could be different states really 
- * and maybe one or both were modified.  We say it is unchanged if
- * the ->state pointers are the same and they belong to the same pools.
- * If they have been modified on both sides of a branch to the same thing,
- * it's still OK to say they are the same, because that means they won't
- * belong to any pools.
- */
-static int is_really_same(struct sm_state *one, struct sm_state *two)
-{
-	struct state_list *tmp1;
-	struct state_list *tmp2;
-
-	if (one->state != two->state)
-		return 0;
-
-	PREPARE_PTR_LIST(one->my_pools, tmp1);
-	PREPARE_PTR_LIST(two->my_pools, tmp2);
-	for (;;) {
-		if (!tmp1 && !tmp2)
-			return 1;
-		if (tmp1 < tmp2) {
-			return 0;
-		} else if (tmp1 == tmp2) {
-			NEXT_PTR_LIST(tmp1);
-			NEXT_PTR_LIST(tmp2);
-		} else {
-			return 0;
-		}
-	}
-	FINISH_PTR_LIST(tmp2);
-	FINISH_PTR_LIST(tmp1);
-	return 1;
-}
-
 static int pool_in_pools(struct state_list_stack *pools,
 			struct state_list *pool)
 {
@@ -116,7 +80,7 @@ static struct state_list *clone_states_in_pool(struct state_list *pool,
 					state->owner, state->sym);
 		if (!cur_state)
 			continue;
-		if (is_really_same(state, cur_state))
+		if (state == cur_state)
 			continue;
 		if (pool_in_pools(cur_state->all_pools, pool)) {
 			tmp = clone_state(state);

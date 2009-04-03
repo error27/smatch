@@ -47,7 +47,7 @@ int cmp_tracker(const struct sm_state *a, const struct sm_state *b)
 {
 	int ret;
 
-	if (!a && !b)
+	if (a == b)
 		return 0;
 	if (!b)
 		return -1;
