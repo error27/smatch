@@ -102,6 +102,33 @@ struct sm_state *__extra_merge(struct sm_state *one, struct state_list *slist1,
 	return merge_sm_states(one, two);
 }
 
+struct sm_state *__extra_and_merge(struct sm_state *sm,
+				     struct state_list_stack *stack)
+{
+	struct state_list *slist;
+	struct sm_state *ret = NULL;
+	struct sm_state *tmp;
+	int i = 0;
+
+	FOR_EACH_PTR(stack, slist) {
+		if (!i++) {
+			ret = get_sm_state_slist(slist, sm->name, sm->owner,
+						 sm->sym);
+		} else {
+			tmp = get_sm_state_slist(slist, sm->name, sm->owner,
+						 sm->sym);
+			ret = merge_sm_states(ret, tmp);
+		}
+	} END_FOR_EACH_PTR(slist);
+	if (!ret) {
+		smatch_msg("Internal error in __extra_and_merge");
+		return NULL;
+	}
+	ret->my_pools = stack;
+	ret->all_pools = clone_stack(stack);
+	return ret;
+}
+
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	return &extra_undefined;

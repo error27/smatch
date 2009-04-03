@@ -75,5 +75,3 @@ struct state_list **get_slist_from_named_stack(struct named_stack *stack,
 					      const char *name);
 
 void overwrite_slist(struct state_list *from, struct state_list **to);
-struct sm_state *__extra_merge(struct sm_state *one, struct state_list *slist1,
-			       struct sm_state *two, struct state_list *slist2);

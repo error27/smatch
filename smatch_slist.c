@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 
 #undef CHECKORDER
 #undef CHECKMYPOOLS
@@ -708,10 +709,12 @@ static struct sm_state *find_intersection(struct sm_state *one,
 	struct state_list_stack *stack = NULL;
 	struct sm_state *tmp_state;
 	struct sm_state *ret;
+	int count = 0;
 	
 	if (!one)
 		return two;
-	if (one->state != &merged) {
+
+	if (one->owner != SMATCH_EXTRA && one->state != &merged) {
 		if (one->state == two->state)
 			return one;
 		if (two->state != &merged) {
@@ -721,6 +724,24 @@ static struct sm_state *find_intersection(struct sm_state *one,
 				   show_state(two->state));
 			return two;
 		}
+	}
+	if (one->owner == SMATCH_EXTRA) {
+		if (one->state == two->state)
+			return one;
+
+		ret = NULL;
+		if (!one->my_pools) {
+			smatch_msg("debug:  huh? no pools for %s %s",
+				   one->name, show_state(one->state));
+			ret = one;
+		}
+		if (!two->my_pools) {
+			smatch_msg("debug:  what? no pools for %s %s",
+				   two->name, show_state(two->state));
+			ret = two;
+		}
+		if (ret)
+			return ret;
 	}
 
 	PREPARE_PTR_LIST(one->my_pools, tmp1);
@@ -732,6 +753,7 @@ static struct sm_state *find_intersection(struct sm_state *one,
 			NEXT_PTR_LIST(tmp1);
 		} else if (tmp1 == tmp2) {
 			push_slist(&stack, tmp1);
+			count++;
 			NEXT_PTR_LIST(tmp1);
 			NEXT_PTR_LIST(tmp2);
 		} else {
@@ -741,12 +763,18 @@ static struct sm_state *find_intersection(struct sm_state *one,
 	FINISH_PTR_LIST(tmp2);
 	FINISH_PTR_LIST(tmp1);
 
-	if (!stack) {
+	if (count == 0) {
 		smatch_msg("mutually eXclusive 'and' conditions states "
 			   "'%s': %s + %s", one->name, show_state(one->state),
 			   show_state(two->state));
 		return two;
 	}
+	if (count == 1)
+		return get_sm_state_stack(stack, one->name, one->owner, 
+					  one->sym);
+
+	if (one->owner == SMATCH_EXTRA)
+		return __extra_and_merge(one, stack);
 
 	ret = alloc_state_no_name(one->name, one->owner, one->sym, &merged);
 	FOR_EACH_PTR(stack, tmp1) {

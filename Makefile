@@ -179,7 +179,7 @@ smatch_files.o: $(LIB_H) smatch.h
 smatch_hooks.o: $(LIB_H) smatch.h
 smatch_function_hooks.o: $(LIB_H) smatch.h
 smatch_helper.o: $(LIB_H) smatch.h
-smatch_slist.o: $(LIB_H) smatch.h smatch_slist.h
+smatch_slist.o: $(LIB_H) smatch.h smatch_slist.h smatch_extra.h
 smatch_states.o: $(LIB_H) smatch.h smatch_slist.h
 smatch.o: $(LIB_H) smatch.h
 $(SMATCH_CHECKS): smatch.h smatch_slist.h

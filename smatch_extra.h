@@ -28,3 +28,10 @@ int num_matches(struct data_info *dinfo, long long num);
 long long get_single_value(struct data_info *dinfo);
 int possibly_true(int comparison, struct data_info *dinfo, int num, int left);
 int possibly_false(int comparison, struct data_info *dinfo, int num, int left);
+
+/* used in smatch_slist.  implemented in smatch_extra.c */
+struct sm_state *__extra_merge(struct sm_state *one, struct state_list *slist1,
+			       struct sm_state *two, struct state_list *slist2);
+struct sm_state *__extra_and_merge(struct sm_state *sm,
+				     struct state_list_stack *stack);
+
