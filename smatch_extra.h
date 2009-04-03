@@ -1,37 +1,30 @@
+/*
+ * sparse/smatch_extra.h
+ *
+ * Copyright (C) 2009 Dan Carpenter.
+ *
+ * Licensed under the Open Software License version 1.1
+ *
+ */
+
 enum data_type {
 	DATA_NUM,
-//	DATA_RETURN,
-//	DATA_POINTER,
-//	DATA_BITFIELD,
 };
 
-struct num_range {
-	long long min;
-	long long max;
-};
-
-DECLARE_PTR_LIST(range_list, struct int_range);
+DECLARE_PTR_LIST(num_list, long long);
 
 struct data_info {
-	data_type type;
-	bool initialized;
-	union {
-		// DATA_NUM
-		struct {
-			struct range_list *ranges;
-			struct range_list *filters;
-		};
-	};
+	enum data_type type;
+	int merged;
+	struct num_list *values;
 };
-
+DECLARE_ALLOCATOR(data_info);
 
 /* these are implimented in smatch_extra_helper.c */
-void remove_num(struct range_list **range, const int num);
-void remove_range(struct range_list **range, const range_list *cutter);
-
-void add_to_range(struct range_list **range, const int num);
-void combine_range(struct range_list **range, const range_list *new);
-
-void in_range(struct range_list *list, long long num);
-int ranges_overlap(struct range_list *a, struct range_list *b);
-
+struct data_info *alloc_data_info(long long num);
+void add_num(struct num_list **list, long long num);
+struct num_list *num_list_union(struct num_list *one, struct num_list *two);
+int num_matches(struct data_info *dinfo, long long num);
+long long get_single_value(struct data_info *dinfo);
+int possibly_true(int comparison, struct data_info *dinfo, int num, int left);
+int possibly_false(int comparison, struct data_info *dinfo, int num, int left);

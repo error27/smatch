@@ -15,7 +15,8 @@
 #undef CHECKORDER
 #undef CHECKMYPOOLS
 
-ALLOCATOR(sm_state, "smatch state");
+ALLOCATOR(smatch_state, "smatch state");
+ALLOCATOR(sm_state, "sm state");
 ALLOCATOR(named_slist, "named slist");
 __DO_ALLOCATOR(char, 0, 1, "state names", sname);
 
@@ -340,7 +341,7 @@ struct smatch_state *merge_states(const char *name, int owner,
  * add_pool() adds a slist to ->pools. If the slist has already been
  * added earlier then it doesn't get added a second time.
  */
-static void add_pool(struct state_list_stack **pools, struct state_list *new)
+void add_pool(struct state_list_stack **pools, struct state_list *new)
 {
 	struct state_list *tmp;
 
@@ -658,6 +659,14 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			smatch_msg("error:  Internal smatch error.");
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_tracker(to_state, state) == 0) {
+			if (state->owner == SMATCH_EXTRA) {
+				tmp = __extra_merge(to_state, implied_to,
+						    state, implied_from);
+				add_ptr_list(&results, tmp);
+				NEXT_PTR_LIST(to_state);
+				NEXT_PTR_LIST(state);
+				continue;
+			}
 			if (to_state->state != &merged)
 				free_stack(&to_state->my_pools);
 			if (state->state != &merged)

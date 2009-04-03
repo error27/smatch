@@ -3,45 +3,108 @@
  *
  * Copyright (C) 2008 Dan Carpenter.
  *
- *  Licensed under the Open Software License version 1.1
+ * Licensed under the Open Software License version 1.1
  *
  */
 
 #include <stdlib.h>
 #include "parse.h"
 #include "smatch.h"
+#include "smatch_slist.h"
+#include "smatch_extra.h"
 
 static int my_id;
 
-static int _zero = 0;
-static int _one = 1;
-
-static struct smatch_state zero = {
-	.name = "zero",
-	.data = &_zero,
+struct data_info unknown_num = {
+	.type = DATA_NUM,
+	.merged = 0,
+	.values = NULL,
 };
 
-static struct smatch_state one = {
-	.name = "one",
-	.data = &_one,
+static struct smatch_state extra_undefined = {
+	.name = "unknown",
+	.data = &unknown_num,
 };
 
-static struct smatch_state *alloc_state(int val)
+static struct smatch_state *alloc_extra_state_no_name(int val)
 {
 	struct smatch_state *state;
 
-	if (val == 0)
-		return &zero;
-	if (val == 1)
-		return &one;
-	if (val == UNDEFINED)
-		return &undefined;
-
-	state = malloc(sizeof(*state));
-	state->name = "value";
-	state->data = malloc(sizeof(int));
-	*(int *)state->data = val;
+	state = __alloc_smatch_state(0);
+	state->data = (void *)alloc_data_info(val);
 	return state;
+}
+
+static struct smatch_state *alloc_extra_state(int val)
+{
+	struct smatch_state *state;
+	static char name[20];
+
+	if (val == UNDEFINED)
+		return &extra_undefined;
+
+	state = alloc_extra_state_no_name(val);
+	snprintf(name, 20, "%d", val);
+	state->name = alloc_string(name);
+	return state;
+}
+
+static struct smatch_state *merge_func(const char *name, struct symbol *sym,
+				       struct smatch_state *s1,
+				       struct smatch_state *s2)
+{
+	struct data_info *info1 = (struct data_info *)s1->data;
+	struct data_info *info2 = (struct data_info *)s2->data;
+	struct smatch_state *tmp;
+
+	tmp = alloc_extra_state_no_name(UNDEFINED);
+	tmp->name = "extra_merged";
+	((struct data_info *)tmp->data)->merged = 1;
+	((struct data_info *)tmp->data)->values = 
+		num_list_union(info1->values, info2->values);
+	return tmp;
+}
+
+struct sm_state *__extra_merge(struct sm_state *one, struct state_list *slist1,
+			       struct sm_state *two, struct state_list *slist2)
+{
+	struct data_info *info1;
+	struct data_info *info2;
+
+	if (!one->state->data || !two->state->data) {
+		smatch_msg("internal error in smatch extra '%s = %s or %s'",
+			   one->name, show_state(one->state),
+			   show_state(two->state));
+		return alloc_state(one->name, one->owner, one->sym,
+				   &extra_undefined);
+	}
+
+	info1 = (struct data_info *)one->state->data;
+	info2 = (struct data_info *)two->state->data;
+
+	if (!info1->merged)
+		free_stack(&one->my_pools);
+	if (!info2->merged)
+		free_stack(&two->my_pools);
+
+	if (one == two && !one->my_pools) {
+		add_pool(&one->my_pools, slist1);
+		add_pool(&one->my_pools, slist2);
+	} else {
+		if (!one->my_pools)
+			add_pool(&one->my_pools, slist1);
+		if (!two->my_pools)
+			add_pool(&two->my_pools, slist2);
+	}
+
+	add_pool(&one->all_pools, slist1);
+	add_pool(&two->all_pools, slist2);
+	return merge_sm_states(one, two);
+}
+
+static struct smatch_state *unmatched_state(struct sm_state *sm)
+{
+	return &extra_undefined;
 }
 
 static void match_function_call(struct expression *expr)
@@ -55,7 +118,7 @@ static void match_function_call(struct expression *expr)
 		if (tmp->op == '&') {
 			name = get_variable_from_expr(tmp->unop, &sym);
 			if (name) {
-				set_state(name, my_id, sym, &undefined);
+				set_state(name, my_id, sym, &extra_undefined);
 			}
 			free_string(name);
 		}
@@ -73,7 +136,7 @@ static void match_assign(struct expression *expr)
 	name = get_variable_from_expr(left, &sym);
 	if (!name)
 		return;
-	set_state(name, my_id, sym, alloc_state(get_value(expr->right)));
+	set_state(name, my_id, sym, alloc_extra_state(get_value(expr->right)));
 	free_string(name);
 }
 
@@ -89,7 +152,7 @@ static void undef_expr(struct expression *expr)
 		free_string(name);
 		return;
 	}
-	set_state(name, my_id, sym, &undefined);
+	set_state(name, my_id, sym, &extra_undefined);
 	free_string(name);
 }
 
@@ -100,9 +163,9 @@ static void match_declarations(struct symbol *sym)
 	if (sym->ident) {
 		name = sym->ident->name;
 		if (sym->initializer) {
-			set_state(name, my_id, sym, alloc_state(get_value(sym->initializer)));
+			set_state(name, my_id, sym, alloc_extra_state(get_value(sym->initializer)));
 		} else {
-			set_state(name, my_id, sym, &undefined);
+			set_state(name, my_id, sym, &extra_undefined);
 		}
 	}
 }
@@ -115,7 +178,7 @@ static void match_function_def(struct symbol *sym)
 		if (!arg->ident) {
 			continue;
 		}
-		set_state(arg->ident->name, my_id, arg, &undefined);
+		set_state(arg->ident->name, my_id, arg, &extra_undefined);
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -132,7 +195,7 @@ static void match_unop(struct expression *expr)
 
 	tmp = show_special(expr->op);
 	if ((!strcmp(tmp, "--")) || (!strcmp(tmp, "++")))
-		set_state(name, my_id, sym, &undefined);
+		set_state(name, my_id, sym, &extra_undefined);
 	free_string(name);
 }
 
@@ -154,7 +217,7 @@ static int expr_to_val(struct expression *expr)
 	free_string(name);
 	if (!state || !state->data)
 		return UNDEFINED;
-	return *(int *)state->data;
+	return get_single_value((struct data_info *)state->data);
 }
 
 int true_comparison(int left, int comparison, int right)
@@ -238,7 +301,8 @@ static int variable_non_zero(struct expression *expr)
 	state = get_state(name, my_id, sym);
 	if (!state || !state->data)
 		goto exit;
-	ret = true_comparison(*(int *)state->data, SPECIAL_NOTEQUAL, 0);
+	ret = true_comparison(get_single_value((struct data_info *)state->data),
+			      SPECIAL_NOTEQUAL, 0);
 exit:
 	free_string(name);
 	return ret;
@@ -319,6 +383,8 @@ int known_condition_false(struct expression *expr)
 void register_smatch_extra(int id)
 {
 	my_id = id;
+	add_merge_hook(my_id, &merge_func);
+	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&undef_expr, OP_HOOK);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);

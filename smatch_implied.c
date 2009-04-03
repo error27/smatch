@@ -47,6 +47,7 @@
 
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 
 #define EQUALS 0
 #define NOTEQUALS 1
@@ -209,14 +210,6 @@ static struct state_list *filter_stack(struct state_list_stack *stack)
 	return ret;
 }
 
-static int is_true(int comparison, int num, int var, int left)
-{
-	if (left)
-		return true_comparison(var, comparison, num);
-	else
-		return true_comparison(num,  comparison, var);
-}
-
 static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 		       int left, struct state_list **true_states,
 		       struct state_list **false_states)
@@ -236,17 +229,15 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 	FOR_EACH_PTR(sm_state->my_pools, list) {
 		s = get_sm_state_slist(list, sm_state->name, sm_state->owner,
 				    sm_state->sym);
-		if (s->state == &undefined || s->state == &merged) {
-			DIMPLIED("'%s' from %d is %s.\n", s->name, s->line,
-				 show_state(s->state));
-			push_slist(&false_stack, list);
-			push_slist(&true_stack, list);
-			continue;
-		}
-		if (is_true(comparison, num, *(int *)s->state->data, left)) {
+		if (possibly_true(comparison,
+				  (struct data_info *)s->state->data, num, 
+				  left)) {
 			DIMPLIED("'%s' from %d is true.\n", s->name, s->line);
 			push_slist(&true_stack, list);
-		} else {
+		}
+		if (possibly_false(comparison,
+				   (struct data_info *)s->state->data, num,
+				   left)) {
 			DIMPLIED("'%s' from %d is false.\n", s->name, s->line);
 			push_slist(&false_stack, list);
 		}

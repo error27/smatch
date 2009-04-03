@@ -29,6 +29,7 @@ extern struct smatch_state undefined;
 extern struct smatch_state merged;
 extern struct smatch_state true_state;
 extern struct smatch_state false_state;
+DECLARE_ALLOCATOR(smatch_state);
 
 struct sm_state {
         const char *name;
