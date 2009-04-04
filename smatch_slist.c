@@ -718,8 +718,8 @@ static struct sm_state *find_intersection(struct sm_state *one,
 		if (one->state == two->state)
 			return one;
 		if (two->state != &merged) {
-			smatch_msg("mutually exclusive 'and' conditions states "
-				   "'%s': %s + %s", one->name,
+			SM_DEBUG("mutually exclusive 'and' conditions states "
+				   "'%s': %s + %s\n", one->name,
 				   show_state(one->state),
 				   show_state(two->state));
 			return two;
@@ -764,8 +764,8 @@ static struct sm_state *find_intersection(struct sm_state *one,
 	FINISH_PTR_LIST(tmp1);
 
 	if (count == 0) {
-		smatch_msg("mutually eXclusive 'and' conditions states "
-			   "'%s': %s + %s", one->name, show_state(one->state),
+		SM_DEBUG("mutually eXclusive 'and' conditions states "
+			   "'%s': %s + %s\n", one->name, show_state(one->state),
 			   show_state(two->state));
 		return two;
 	}
