@@ -418,6 +418,8 @@ void register_smatch_extra(int id)
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_hook(&match_unop, OP_HOOK);
+	add_hook(&free_data_info_allocs, END_FUNC_HOOK);
+
 #ifdef KERNEL
 	/* I don't know how to test for the ATTRIB_NORET attribute. :( */
 	add_function_hook("panic", &__match_nullify_path_hook, NULL);

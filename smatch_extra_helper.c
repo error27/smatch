@@ -155,3 +155,39 @@ int possibly_false(int comparison, struct data_info *dinfo, int num, int left)
 	} END_FOR_EACH_PTR(tmp);
 	return ret;
 }
+
+static void free_single_dinfo(struct data_info *dinfo)
+{
+	__free_ptr_list((struct ptr_list **)&dinfo->values);
+}
+
+static void free_dinfos(struct allocation_blob *blob)
+{
+	unsigned int size = sizeof(struct data_info);
+	unsigned int offset = 0;
+
+	while (offset < blob->offset) {
+		free_single_dinfo((struct data_info *)(blob->data + offset));
+		offset += size;
+	}
+}
+
+void free_data_info_allocs(void)
+{
+	struct allocator_struct *desc = &data_info_allocator;
+	struct allocation_blob *blob = desc->blobs;
+
+	desc->blobs = NULL;
+	desc->allocations = 0;
+	desc->total_bytes = 0;
+	desc->useful_bytes = 0;
+	desc->freelist = NULL;
+	while (blob) {
+		struct allocation_blob *next = blob->next;
+		free_dinfos(blob);
+		blob_free(blob, desc->chunking);
+		blob = next;
+	}
+	clear_sm_num_alloc();
+}
+
