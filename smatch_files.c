@@ -21,9 +21,10 @@ static int open_file(const char *filename)
 	fd = open(filename, O_RDONLY);
 	if (fd >= 0)
 		goto exit;
-	strncpy(buf, bin_dir, 254);
+	if (!data_dir)
+		goto exit;
+	strncpy(buf, data_dir, 254);
 	buf[255] = '\0';
-	strncat(buf, "/smatch_data/", 254);
 	strncat(buf, filename, 254);
 	fd = open(buf, O_RDONLY);
 	if (fd >= 0)
@@ -39,6 +40,8 @@ struct token *get_tokens_file(const char *filename)
 	int fd;
 	struct token *token;
 
+	if (option_no_data)
+		return NULL;
 	fd = open_file(filename);
 	if (fd < 0)
 		return NULL;

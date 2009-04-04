@@ -265,6 +265,7 @@ void __match_initializer_call(struct symbol *sym);
 struct token *get_tokens_file(const char *filename);
 
 /* smatch.c */
-extern char *bin_dir;
+extern char *data_dir;
+extern int option_no_data;
 
 #endif 	    /* !SMATCH_H_ */

@@ -8,10 +8,12 @@
  */
 
 #include <stdio.h>
+#include <unistd.h>
 #include <libgen.h>
 #include "smatch.h"
 
-char *bin_dir;
+char *data_dir;
+int option_no_data = 0;
 
 typedef void (*reg_func) (int id);
 void register_smatch_extra(int id);
@@ -56,8 +58,61 @@ static void help(void)
 	printf("--no-implied:  ignore implications.\n");
 	printf("--assume-loops:  assume loops always go through at least once.\n");
 	printf("--known-conditions:  don't branch for known conditions.\n");
+	printf("--no-data:  do not use the /smatch_data/ directory.\n");
 	printf("--help:  print this helpfull message.\n");
 	exit(1);
+}
+
+void parse_args(int *argcp, char ***argvp)
+{
+	while(*argcp >= 2) {
+		if (!strcmp((*argvp)[1], "--debug")) {
+			debug_states = 1;
+			(*argvp)[1] = (*argvp)[0];
+		} else if (!strcmp((*argvp)[1], "--debug-implied")) {
+			debug_implied_states = 1;
+			(*argvp)[1] = (*argvp)[0];
+		} else if (!strcmp((*argvp)[1], "--no-implied")) {
+			option_no_implied = 1;
+			(*argvp)[1] = (*argvp)[0];
+		} else if (!strcmp((*argvp)[1], "--assume-loops")) {
+			option_assume_loops = 1;
+			(*argvp)[1] = (*argvp)[0];
+		} else if (!strcmp((*argvp)[1], "--known-conditions")) {
+			option_known_conditions = 1;
+			(*argvp)[1] = (*argvp)[0];
+		} else if (!strcmp((*argvp)[1], "--no-data")) {
+			option_no_data = 1;
+			(*argvp)[1] = (*argvp)[0];
+		} else if (!strcmp((*argvp)[1], "--help")) {
+			help();
+		} else {
+			break;
+		}
+		(*argcp)--;
+		(*argvp)++;
+	}
+}
+
+static char *get_data_dir(char *arg0)
+{
+	char *bin_dir;
+	char buf[256];
+	char *dir;
+
+	if (option_no_data) {
+		return NULL;
+	}
+	bin_dir = dirname(alloc_string(arg0));
+	strncpy(buf, bin_dir, 254);
+	buf[255] = '\0';
+	strncat(buf, "/smatch_data/", 254);
+	dir = alloc_string(buf);
+	if (!access(dir, R_OK))
+		return dir;
+	printf("Warning: %s is not accessible.\n", dir);
+	printf("Use --no-data to suppress this message.\n");
+	return NULL;
 }
 
 int main(int argc, char **argv)
@@ -65,7 +120,9 @@ int main(int argc, char **argv)
 	int i;
 	reg_func func;
 
-	bin_dir = dirname(alloc_string(argv[0]));
+	parse_args(&argc, &argv);
+
+	data_dir = get_data_dir(argv[0]);
 
 	/* The script IDs start at 1.
 	   0 is used for internal stuff. */
@@ -74,27 +131,7 @@ int main(int argc, char **argv)
 		func(i + 1);
 	}
 	register_function_hooks(-1);
-	
-	while(argc >= 2) {
-		if (!strcmp(argv[1], "--debug")) {
-			debug_states = 1;
-		} else if (!strcmp(argv[1], "--debug-implied")) {
-			debug_implied_states = 1;
-		} else if (!strcmp(argv[1], "--no-implied")) {
-			option_no_implied = 1;
-		} else if (!strcmp(argv[1], "--assume-loops")) {
-			option_assume_loops = 1;
-		} else if (!strcmp(argv[1], "--known-conditions")) {
-			option_known_conditions = 1;
-		} else if (!strcmp(argv[1], "--help")) {
-			help();
-		} else {
-			break;
-		}
-		argc--;
-		argv++;
-	}
-	
-    	smatch(argc, argv);
+
+	smatch(argc, argv);
 	return 0;
 }
