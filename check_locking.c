@@ -375,6 +375,7 @@ static void clear_lists(void)
 	FOR_EACH_PTR(all_returns, tmp) {
 		free_trackers_and_list(&tmp->locked);
 		free_trackers_and_list(&tmp->unlocked);
+		free(tmp);
 	} END_FOR_EACH_PTR(tmp);
 	__free_ptr_list((struct ptr_list **)&all_returns);
 }

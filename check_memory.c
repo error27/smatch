@@ -298,10 +298,7 @@ static void match_function_call(struct expression *expr)
 	struct expression *tmp;
 	struct symbol *sym;
 	char *name;
-	char *fn_name;
 	struct sm_state *state;
-
-	fn_name = get_variable_from_expr(expr->fn, NULL);
 
 	FOR_EACH_PTR(expr->args, tmp) {
 		tmp = strip_expr(tmp);
@@ -314,6 +311,7 @@ static void match_function_call(struct expression *expr)
 			}
 		}
 		assign_parent(sym);
+		free_string(name);
 	} END_FOR_EACH_PTR(tmp);
 }
 
