@@ -59,6 +59,9 @@ void add_hook(void *func, enum hook_type type)
 	case DEREF_HOOK:
 		container->data_type = EXPR_HOOK;
 		break;
+	case CASE_HOOK:
+		/* nothing needed */
+		break;
 	case BASE_HOOK:
 		container->data_type = SYM_HOOK;
 		break;
@@ -149,6 +152,20 @@ void __pass_to_client_no_data(enum hook_type type)
 	FOR_EACH_PTR(hook_funcs, container) {
 		if (container->hook_type == type)
 			pass_to_client(container->fn);
+	} END_FOR_EACH_PTR(container);
+}
+
+void __pass_case_to_client(struct expression *switch_expr,
+			   struct expression *case_expr)
+{
+	typedef void (case_func)(struct expression *switch_expr,
+				 struct expression *case_expr);
+	struct hook_container *container;
+
+	FOR_EACH_PTR(hook_funcs, container) {
+		if (container->hook_type == CASE_HOOK) {
+			((case_func *) container->fn)(switch_expr, case_expr);
+		}
 	} END_FOR_EACH_PTR(container);
 }
 

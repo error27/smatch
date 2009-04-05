@@ -54,6 +54,7 @@ enum hook_type {
 	CALL_ASSIGNMENT_HOOK,
 	OP_HOOK,
 	DEREF_HOOK,
+	CASE_HOOK,
 	BASE_HOOK,
 	FUNC_DEF_HOOK,
 	END_FUNC_HOOK,
@@ -243,6 +244,8 @@ void __print_cur_slist();
 /* smatch_hooks.c */
 void __pass_to_client(void *data, enum hook_type type);
 void __pass_to_client_no_data(enum hook_type type);
+void __pass_case_to_client(struct expression *switch_expr,
+			   struct expression *case_expr);
 int __has_merge_function(int client_id);
 struct smatch_state *__client_merge_function(int owner, const char *name,
 					     struct symbol *sym,

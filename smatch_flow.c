@@ -10,12 +10,14 @@
 #include <stdio.h>
 #include "token.h"
 #include "smatch.h"
+#include "smatch_expression_stacks.h"
 
 static int __smatch_lineno = 0;
 
 static char *filename;
 static char *cur_func;
 static int line_func_start;
+static struct expression_stack *switch_expr_stack = NULL;
 
 char *get_filename(void) {	return filename; }
 char *get_function(void) { return cur_func; }
@@ -299,6 +301,7 @@ void __split_statements(struct statement *stmt)
 		return;
 	case STMT_SWITCH:
 		__split_expr(stmt->switch_expression);
+		push_expression(&switch_expr_stack, stmt->switch_expression);
 		__save_switch_states();
 		__push_default();
 		__push_breaks();
@@ -307,9 +310,12 @@ void __split_statements(struct statement *stmt)
 			__merge_switches();
 		__pop_switches();
 		__merge_breaks();
+		pop_expression(&switch_expr_stack);
 		return;
 	case STMT_CASE:
 		__merge_switches();
+		__pass_case_to_client(top_expression(switch_expr_stack),
+				      stmt->case_expression);
 		if (!stmt->case_expression)
 			__set_default();
 		__split_expr(stmt->case_expression);
@@ -428,7 +434,7 @@ static void split_functions(struct symbol_list *sym_list)
 			cur_func = NULL;
 			line_func_start = 0;
 			clear_all_states();
-
+			free_expression_stack(&switch_expr_stack);
 		} else {
 			__pass_to_client(sym, BASE_HOOK);
 		}
