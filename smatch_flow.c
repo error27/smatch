@@ -269,6 +269,14 @@ void __split_statements(struct statement *stmt)
 		return;
 	}
 	case STMT_IF:
+		if (get_value(stmt->if_conditional) == 1) {
+			__split_statements(stmt->if_true);
+			return;
+		}
+		if (get_value(stmt->if_conditional) == 0) {
+			__split_statements(stmt->if_false);
+			return;
+		}
 		if (option_known_conditions && 
 		    known_condition_true(stmt->if_conditional)) {
 			smatch_msg("info: this condition is true.");

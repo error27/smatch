@@ -4,7 +4,6 @@ void _spin_unlock(int name);
 void frob(void){}
 int a;
 int b;
-int c;
 int func (void)
 {
 	int mylock = 1;
@@ -13,19 +12,23 @@ int func (void)
 	if (1)
 	      	_spin_unlock(mylock);
 	frob();
+	if (a)
+		return;
 	if (1)
 	      	_spin_lock(mylock);
 	if (0)
 	      	_spin_unlock(mylock);
-	frob();
+	if (b)
+		return;
 	if (0)
 	      	_spin_lock(mylock);
 	return 0;
 }
-
 /*
- * smatch currently has --known-conditions off by default so it 
- * trips up over this check.  Smatch extra needs to be improved, smatch needs
- * to do a 2 pass check, and then known conditions can be enabled by default.
+ * check-name: Locking #4
+ * check-command: smatch sm_locking4.c
+ *
+ * check-output-start
+sm_locking4.c +25 func(18) warn: lock 'mylock' held on line 25 but not on 16.
+ * check-output-end
  */
-  
