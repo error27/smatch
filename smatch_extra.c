@@ -45,7 +45,7 @@ static struct smatch_state *alloc_extra_state(int val)
 
 	state = alloc_extra_state_no_name(val);
 	snprintf(name, 20, "%d", val);
-	state->name = alloc_string(name);
+	state->name = alloc_sname(name);
 	return state;
 }
 
@@ -62,7 +62,7 @@ struct smatch_state *add_filter(struct smatch_state *orig, long long num)
 	ret = alloc_extra_state_no_name(UNDEFINED);
 	snprintf(buf, 254, "%s f%lld", orig?orig->name:"any", num);
 	buf[255] = '\0';
-	ret->name = alloc_string(buf);
+	ret->name = alloc_sname(buf);
 	ret_info = (struct data_info *)ret->data;
 	ret_info->values = NULL;
 	if (orig)
