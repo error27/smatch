@@ -7,6 +7,7 @@
  *
  */
 
+#include "parse.h"
 #include "smatch.h"
 #include "smatch_extra.h"
 
@@ -37,6 +38,7 @@ struct data_info *alloc_data_info(long long num)
 	ret->values = NULL;
 	if (num != UNDEFINED)
 		add_num(&ret->values, num);
+	ret->filter = NULL;
 	return ret;
 }
 
@@ -62,12 +64,23 @@ void add_num(struct num_list **list, long long num)
 	add_ptr_list(list, new);
 }
 
+struct num_list *clone_num_list(struct num_list *list)
+{
+	long long *tmp;
+	struct num_list *ret = NULL;
+
+	FOR_EACH_PTR(list, tmp) {
+		add_ptr_list(&ret, tmp);
+	} END_FOR_EACH_PTR(tmp);
+	return ret;
+}
+
 struct num_list *num_list_union(struct num_list *one, struct num_list *two)
 {
 	long long *tmp;
 	struct num_list *ret = NULL;
 
-	if (!one || !two)
+	if (!one || !two)  /*having nothing in a list means everything is in */
 		return NULL;
 
 	FOR_EACH_PTR(one, tmp) {
@@ -76,6 +89,33 @@ struct num_list *num_list_union(struct num_list *one, struct num_list *two)
 	FOR_EACH_PTR(two, tmp) {
 		add_num(&ret, *tmp);
 	} END_FOR_EACH_PTR(tmp);
+	return ret;
+}
+
+struct num_list *num_list_intersection(struct num_list *one,
+				       struct num_list *two)
+{
+	long long *one_val;
+	long long *two_val;
+	struct num_list *ret = NULL;
+
+	PREPARE_PTR_LIST(one, one_val);
+	PREPARE_PTR_LIST(two, two_val);
+	for (;;) {
+		if (!one_val || !two_val)
+			break;
+		if (*one_val < *two_val) {
+			NEXT_PTR_LIST(one_val);
+		} else if (*one_val == *two_val) {
+			add_ptr_list(&ret, one_val);
+			NEXT_PTR_LIST(one_val);
+			NEXT_PTR_LIST(two_val);
+		} else {
+			NEXT_PTR_LIST(two_val);
+		}
+	}
+	FINISH_PTR_LIST(two_val);
+	FINISH_PTR_LIST(one_val);
 	return ret;
 }
 
@@ -123,6 +163,11 @@ int possibly_true(int comparison, struct data_info *dinfo, int num, int left)
 	long long *tmp;
 	int ret = 0;
 
+	if (comparison == SPECIAL_EQUAL && num_in_list(dinfo->filter, num))
+		return 0;
+	if (comparison == SPECIAL_NOTEQUAL && num_in_list(dinfo->filter, num))
+		return 1;
+
 	if (!dinfo->values)
 		return 1;
 
@@ -142,6 +187,12 @@ int possibly_false(int comparison, struct data_info *dinfo, int num, int left)
 	long long *tmp;
 	int ret = 0;
 
+	if (comparison == SPECIAL_EQUAL && num_in_list(dinfo->filter, num))
+		return 1;
+
+	if (comparison == SPECIAL_NOTEQUAL && num_in_list(dinfo->filter, num))
+		return 0;
+
 	if (!dinfo->values)
 		return 1;
 
@@ -159,6 +210,7 @@ int possibly_false(int comparison, struct data_info *dinfo, int num, int left)
 static void free_single_dinfo(struct data_info *dinfo)
 {
 	__free_ptr_list((struct ptr_list **)&dinfo->values);
+	__free_ptr_list((struct ptr_list **)&dinfo->filter);
 }
 
 static void free_dinfos(struct allocation_blob *blob)

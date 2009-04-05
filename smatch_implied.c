@@ -191,18 +191,38 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 			 num, show_special(comparison), sm_state->name);
 
 	FOR_EACH_PTR(sm_state->my_pools, list) {
+		int istrue, isfalse;
 		s = get_sm_state_slist(list, sm_state->name, sm_state->owner,
 				    sm_state->sym);
-		if (possibly_true(comparison,
-				  (struct data_info *)s->state->data, num, 
-				  left)) {
-			DIMPLIED("'%s' from %d is true.\n", s->name, s->line);
+		istrue = possibly_true(comparison,
+				       (struct data_info *)s->state->data, num, 
+				       left);
+		isfalse = possibly_false(comparison,
+					 (struct data_info *)s->state->data,
+					 num, left);
+		if (debug_implied_states) {
+			if (istrue && isfalse) {
+				DIMPLIED("'%s = %s' from %d could be true or "
+					 "false.\n", s->name,
+					 show_state(s->state), s->line);
+			} else if (istrue) {
+				DIMPLIED("'%s = %s' from %d is true.\n",
+					 s->name, show_state(s->state),
+					 s->line);
+			} else if (isfalse) {
+				DIMPLIED("'%s = %s' from %d is false.\n",
+					 s->name, show_state(s->state),
+					 s->line);
+			} else {
+				DIMPLIED("'%s = %s' from %d does not exist.\n",
+					 s->name, show_state(s->state),
+					 s->line);
+			}
+		}
+		if (istrue) {
 			push_slist(&true_stack, list);
 		}
-		if (possibly_false(comparison,
-				   (struct data_info *)s->state->data, num,
-				   left)) {
-			DIMPLIED("'%s' from %d is false.\n", s->name, s->line);
+		if (isfalse) {
 			push_slist(&false_stack, list);
 		}
 	} END_FOR_EACH_PTR(list);
@@ -321,7 +341,9 @@ void get_implications(char *name, struct symbol *sym, int comparison, int num,
 	get_eq_neq(sm, comparison, num, 1, true_states, false_states);
 }
 
+void __extra_match_condition(struct expression *expr);
 void register_implications(int id)
 {
 	add_hook(&implied_states_hook, CONDITION_HOOK);
+	add_hook(&__extra_match_condition, CONDITION_HOOK);
 }

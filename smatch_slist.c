@@ -731,13 +731,9 @@ static struct sm_state *find_intersection(struct sm_state *one,
 
 		ret = NULL;
 		if (!one->my_pools) {
-			smatch_msg("debug:  huh? no pools for %s %s",
-				   one->name, show_state(one->state));
 			ret = one;
 		}
 		if (!two->my_pools) {
-			smatch_msg("debug:  what? no pools for %s %s",
-				   two->name, show_state(two->state));
 			ret = two;
 		}
 		if (ret)

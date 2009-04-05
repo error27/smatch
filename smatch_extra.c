@@ -49,19 +49,46 @@ static struct smatch_state *alloc_extra_state(int val)
 	return state;
 }
 
+struct smatch_state *add_filter(struct smatch_state *orig, long long num)
+{
+
+	struct smatch_state *ret;
+	struct data_info *orig_info = NULL;
+	struct data_info *ret_info;
+	char buf[256];
+
+	if (orig)
+		orig_info = (struct data_info *)orig->data;
+	ret = alloc_extra_state_no_name(UNDEFINED);
+	snprintf(buf, 254, "%s f%lld", orig?orig->name:"any", num);
+	buf[255] = '\0';
+	ret->name = alloc_string(buf);
+	ret_info = (struct data_info *)ret->data;
+	ret_info->values = NULL;
+	if (orig)
+		ret_info->values = clone_num_list(orig_info->values);
+	ret_info->filter = NULL;
+	if (orig)
+		ret_info->filter = clone_num_list(orig_info->filter);
+	add_num(&ret_info->filter, num);
+	return ret;
+}
+
 static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 				       struct smatch_state *s1,
 				       struct smatch_state *s2)
 {
 	struct data_info *info1 = (struct data_info *)s1->data;
 	struct data_info *info2 = (struct data_info *)s2->data;
+	struct data_info *ret_info;
 	struct smatch_state *tmp;
 
 	tmp = alloc_extra_state_no_name(UNDEFINED);
 	tmp->name = "extra_merged";
-	((struct data_info *)tmp->data)->merged = 1;
-	((struct data_info *)tmp->data)->values = 
-		num_list_union(info1->values, info2->values);
+	ret_info = (struct data_info *)tmp->data;
+	ret_info->merged = 1;
+	ret_info->values = num_list_union(info1->values, info2->values);
+	ret_info->filter = num_list_intersection(info1->values, info2->values);
 	return tmp;
 }
 
@@ -313,6 +340,33 @@ int last_stmt_val(struct statement *stmt)
 		return UNDEFINED;
 	expr = stmt->expression;
 	return get_value(expr);
+}
+
+/* this is actually hooked from smatch_implied.c...  it's hacky, yes */
+void __extra_match_condition(struct expression *expr)
+{
+	struct symbol *sym;
+	char *name;
+	struct smatch_state *pre_state;
+	struct smatch_state *true_state;
+	struct smatch_state *false_state;
+
+	expr = strip_expr(expr);
+	switch(expr->type) {
+	case EXPR_PREOP:
+	case EXPR_SYMBOL:
+	case EXPR_DEREF:
+		name = get_variable_from_expr(expr, &sym);
+		if (!name)
+			return;
+		pre_state = get_state(name, my_id, sym);
+		true_state = add_filter(pre_state, 0);
+		false_state = alloc_extra_state(0);
+		set_true_false_states(name, my_id, sym, true_state, false_state);
+		free_string(name);
+		return;
+//	case EXPR_COMPARE:  // later
+	}
 }
 
 static int variable_non_zero(struct expression *expr)
