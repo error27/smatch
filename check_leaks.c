@@ -124,7 +124,7 @@ static void check_slist(struct state_list *slist)
 		FOR_EACH_PTR(sm->possible, poss) {
 			if (poss->state == &allocated)
 				smatch_msg("warn: '%s' possibly leaked on error"
-					   "path (implied from line %d)",
+					   " path (implied from line %d)",
 					   sm->name, poss->line);
 		} END_FOR_EACH_PTR(poss);
 	} END_FOR_EACH_PTR(sm);
@@ -198,13 +198,39 @@ static void match_end_func(struct symbol *sym)
 	free_trackers_and_list(&arguments);
 }
 
-static void register_funcs_from_file(void)
+static void register_free_funcs(void)
 {
 	struct token *token;
 	const char *func;
 	int arg;
 
 	token = get_tokens_file("kernel.frees_argument");
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = show_ident(token->ident);
+		token = token->next;
+		if (token_type(token) != TOKEN_NUMBER)
+			return;
+		arg = atoi(token->number);
+		add_function_hook(func, &match_free, (void *)arg);
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
+static void register_put_funcs(void)
+{
+	struct token *token;
+	const char *func;
+	int arg;
+
+	token = get_tokens_file("kernel.puts_argument");
 	if (!token)
 		return;
 	if (token_type(token) != TOKEN_STREAMBEGIN)
@@ -255,7 +281,8 @@ void check_leaks(int id)
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
 	add_function_hook("kfree", &match_free, (void *)0);
-	register_funcs_from_file();
+	register_free_funcs();
+	register_put_funcs();
 	for(i = 0; allocation_funcs[i]; i++) {
 		add_function_assign_hook(allocation_funcs[i],
 					 &match_allocation, NULL);

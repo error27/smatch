@@ -25,6 +25,7 @@ void check_overflow(int id);
 void check_locking(int id);
 void check_memory(int id);
 void check_frees_argument(int id);
+void check_puts_argument(int id);
 void check_leaks(int id);
 void check_type(int id);
 void check_allocation_funcs(int id);
@@ -43,6 +44,7 @@ static const reg_func reg_funcs[] = {
 	// &check_allocation_funcs,
 	// &check_leaks,
 	// &check_frees_argument,
+	// &check_puts_argument,
 	// &check_err_ptr,
 
 	/* <- your test goes here */

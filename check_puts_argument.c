@@ -1,5 +1,5 @@
 /*
- * sparse/check_frees_argument.c
+ * sparse/check_puts_argument.c
  *
  * Copyright (C) 2009 Dan Carpenter.
  *
@@ -17,30 +17,28 @@
 
 static int my_id;
 
-STATE(freed);
+STATE(putted);
 
 static struct symbol *this_func;
-static struct tracker_list *freed_args = NULL;
+static struct tracker_list *putted_args = NULL;
 
 static void match_function_def(struct symbol *sym)
 {
 	this_func = sym;
 }
 
-static int is_arg(char *name, struct symbol *sym)
+static int parent_is_arg(struct symbol *sym)
 {
 	struct symbol *arg;
-	const char *arg_name;
 
 	FOR_EACH_PTR(this_func->ctype.base_type->arguments, arg) {
-		arg_name = (arg->ident?arg->ident->name:"-");
-		if (sym == arg && !strcmp(name, arg_name))
+		if (sym == arg)
 			return 1;
 	} END_FOR_EACH_PTR(arg);
 	return 0;
 }
 
-static void match_kfree(const char *fn, struct expression *expr, void *info)
+static void match_put(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *tmp;
 	struct symbol *sym;
@@ -49,10 +47,9 @@ static void match_kfree(const char *fn, struct expression *expr, void *info)
 	tmp = get_argument_from_call_expr(expr->args, 0);
 	tmp = strip_expr(tmp);
 	name = get_variable_from_expr(tmp, &sym);
-	if (is_arg(name, sym)) {
-		set_state(name, my_id, sym, &freed);
-	}
 	free_string(name);
+	if (parent_is_arg(sym) && sym->ident)
+		set_state(sym->ident->name, my_id, sym, &putted);
 }
 
 static int return_count = 0;
@@ -65,16 +62,16 @@ static void match_return(struct statement *stmt)
 	if (!return_count) {
 		slist = get_all_states(my_id);
 		FOR_EACH_PTR(slist, tmp) {
-			if (tmp->state == &freed)
-				add_tracker(&freed_args, tmp->name, my_id,
+			if (tmp->state == &putted)
+				add_tracker(&putted_args, tmp->name, my_id,
 					    tmp->sym);
 		} END_FOR_EACH_PTR(tmp);
 		free_slist(&slist);
 	} else {
-		FOR_EACH_PTR(freed_args, tracker) {
+		FOR_EACH_PTR(putted_args, tracker) {
 			tmp = get_sm_state(tracker->name, my_id, tracker->sym);
-			if (tmp && tmp->state != &freed)
-				del_tracker(&freed_args, tracker->name, my_id,
+			if (tmp && tmp->state != &putted)
+				del_tracker(&putted_args, tracker->name, my_id,
 					    tracker->sym);
 		} END_FOR_EACH_PTR(tracker);
 		
@@ -88,7 +85,7 @@ static void print_arg(struct symbol *sym)
 
 	FOR_EACH_PTR(this_func->ctype.base_type->arguments, arg) {
 		if (sym == arg) {
-			printf("info: free_arg %s %d\n", get_function(), i);
+			printf("info: puts_arg %s %d\n", get_function(), i);
 			return;
 		}
 		i++;
@@ -102,19 +99,20 @@ static void match_end_func(struct symbol *sym)
 	if (is_reachable())
 		match_return(NULL);
 
-	FOR_EACH_PTR(freed_args, tracker) {
+	FOR_EACH_PTR(putted_args, tracker) {
 		print_arg(tracker->sym);
 	} END_FOR_EACH_PTR(tracker);
 
-	free_trackers_and_list(&freed_args);
+	free_trackers_and_list(&putted_args);
 	return_count = 0;
 }
 
-void check_frees_argument(int id)
+void check_puts_argument(int id)
 {
 	my_id = id;
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
-	add_function_hook("kfree", &match_kfree, NULL);
+	add_function_hook("kobject_put", &match_put, NULL);
+	add_function_hook("kref_put", &match_put, NULL);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
 }
