@@ -253,7 +253,7 @@ static void match_unop(struct expression *expr)
 	free_string(name);
 }
 
-static int expr_to_val(struct expression *expr)
+int expr_to_val(struct expression *expr)
 {
 	struct smatch_state *state;
 	int val;

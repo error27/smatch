@@ -28,6 +28,7 @@ void check_frees_argument(int id);
 void check_leaks(int id);
 void check_type(int id);
 void check_allocation_funcs(int id);
+void check_err_ptr(int id);
 /* <- your test goes here */
 /* void register_template(int id); */
 
@@ -42,6 +43,7 @@ static const reg_func reg_funcs[] = {
 	// &check_allocation_funcs,
 	// &check_leaks,
 	// &check_frees_argument,
+	// &check_err_ptr,
 
 	/* <- your test goes here */
 	/* &register_template, */
