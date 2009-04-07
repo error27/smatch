@@ -205,7 +205,7 @@ static void handle_select(struct expression *expr)
 
 	__save_false_states_for_later();
 
-	if (known_condition_true(expr->cond_true)) {
+	if (implied_condition_true(expr->cond_true)) {
 		__split_expr(expr->cond_true);
 	} else {
 		__push_cond_stacks();
@@ -213,7 +213,7 @@ static void handle_select(struct expression *expr)
 		__and_cond_states();
 	}
 
-	if (known_condition_false(expr->cond_false)) {
+	if (implied_condition_false(expr->cond_false)) {
 		__split_expr(expr->cond_false);
 		__pop_pre_cond_states();
 		return;

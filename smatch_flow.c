@@ -153,7 +153,7 @@ static void handle_pre_loop(struct statement *stmt)
 
 	__split_statements(stmt->iterator_pre_statement);
 
-	once_through = known_condition_true(stmt->iterator_pre_condition);
+	once_through = implied_condition_true(stmt->iterator_pre_condition);
 	if (option_assume_loops)
 		once_through = 1;
 
@@ -278,13 +278,13 @@ void __split_statements(struct statement *stmt)
 			return;
 		}
 		if (option_known_conditions && 
-		    known_condition_true(stmt->if_conditional)) {
+		    implied_condition_true(stmt->if_conditional)) {
 			smatch_msg("info: this condition is true.");
 			__split_statements(stmt->if_true);
 			return;
 		}
 		if (option_known_conditions &&
-		    known_condition_false(stmt->if_conditional)) {
+		    implied_condition_false(stmt->if_conditional)) {
 			smatch_msg("info: this condition is false.");
 			__split_statements(stmt->if_false);
 			return;

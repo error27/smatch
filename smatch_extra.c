@@ -389,7 +389,7 @@ exit:
 	return ret;
 }
 
-int known_condition_true(struct expression *expr)
+int implied_condition_true(struct expression *expr)
 {
 	struct statement *stmt;
 	int tmp;
@@ -409,7 +409,7 @@ int known_condition_true(struct expression *expr)
 		break;
 	case EXPR_PREOP:
 		if (expr->op == '!') {
-			if (known_condition_false(expr->unop))
+			if (implied_condition_false(expr->unop))
 				return 1;
 			break;
 		}
@@ -425,7 +425,7 @@ int known_condition_true(struct expression *expr)
 	return 0;
 }
 
-int known_condition_false(struct expression *expr)
+int implied_condition_false(struct expression *expr)
 {
 	struct statement *stmt;
 	struct expression *tmp;
@@ -442,7 +442,7 @@ int known_condition_false(struct expression *expr)
 			return 1;
 	case EXPR_PREOP:
 		if (expr->op == '!') {
-			if (known_condition_true(expr->unop))
+			if (implied_condition_true(expr->unop))
 				return 1;
 			break;
 		}
@@ -451,7 +451,7 @@ int known_condition_false(struct expression *expr)
 			return 1;
 		tmp = strip_expr(expr);
 		if (tmp != expr)
-			return known_condition_false(tmp);
+			return implied_condition_false(tmp);
 		break;
 	default:
 		if (variable_non_zero(expr) == 0)
