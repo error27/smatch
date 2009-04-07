@@ -479,6 +479,7 @@ void register_smatch_extra(int id)
 	add_function_hook("panic", &__match_nullify_path_hook, NULL);
 	add_function_hook("do_exit", &__match_nullify_path_hook, NULL);
 	add_function_hook("complete_and_exit", &__match_nullify_path_hook, NULL);
+	add_function_hook("__module_put_and_exit", &__match_nullify_path_hook, NULL);
 	add_function_hook("do_group_exit", &__match_nullify_path_hook, NULL);
 #endif
 }
