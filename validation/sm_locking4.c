@@ -14,13 +14,13 @@ int func (void)
 	frob();
 	if (a)
 		return;
-	if (1)
+	if (!0)
 	      	_spin_lock(mylock);
 	if (0)
 	      	_spin_unlock(mylock);
 	if (b)
 		return;
-	if (0)
+	if (!1)
 	      	_spin_lock(mylock);
 	return 0;
 }

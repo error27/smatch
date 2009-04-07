@@ -269,11 +269,11 @@ void __split_statements(struct statement *stmt)
 		return;
 	}
 	case STMT_IF:
-		if (get_value(stmt->if_conditional) == 1) {
+		if (known_condition_true(stmt->if_conditional)) {
 			__split_statements(stmt->if_true);
 			return;
 		}
-		if (get_value(stmt->if_conditional) == 0) {
+		if (known_condition_false(stmt->if_conditional)) {
 			__split_statements(stmt->if_false);
 			return;
 		}

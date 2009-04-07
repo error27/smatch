@@ -389,6 +389,54 @@ exit:
 	return ret;
 }
 
+int known_condition_true(struct expression *expr)
+{
+	int tmp;
+
+	if (!expr)
+		return 0;
+
+	tmp = get_value(expr);
+	if (tmp && tmp != UNDEFINED)
+		return 1;
+	
+	expr = strip_expr(expr);
+	switch(expr->type) {
+	case EXPR_PREOP:
+		if (expr->op == '!') {
+			if (known_condition_false(expr->unop))
+				return 1;
+			break;
+		}
+		break;
+	default:
+		break;
+	}
+	return 0;
+}
+
+int known_condition_false(struct expression *expr)
+{
+	if (!expr)
+		return 0;
+
+	if (is_zero(expr))
+		return 1;
+
+	switch(expr->type) {
+	case EXPR_PREOP:
+		if (expr->op == '!') {
+			if (known_condition_true(expr->unop))
+				return 1;
+			break;
+		}
+		break;
+	default:
+		break;
+	}
+	return 0;
+}
+
 int implied_condition_true(struct expression *expr)
 {
 	struct statement *stmt;
