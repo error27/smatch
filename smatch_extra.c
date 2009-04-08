@@ -253,7 +253,7 @@ static void match_unop(struct expression *expr)
 	free_string(name);
 }
 
-int expr_to_val(struct expression *expr)
+int get_implied_value(struct expression *expr)
 {
 	struct smatch_state *state;
 	int val;
@@ -314,10 +314,10 @@ static int do_comparison(struct expression *expr)
 {
 	int left, right, ret;
 
-	if ((left = expr_to_val(expr->left)) == UNDEFINED)
+	if ((left = get_implied_value(expr->left)) == UNDEFINED)
 		return UNDEFINED;
 
-	if ((right = expr_to_val(expr->right)) == UNDEFINED)
+	if ((right = get_implied_value(expr->right)) == UNDEFINED)
 		return UNDEFINED;
 	
 	ret = true_comparison(left, expr->op, right);

@@ -34,7 +34,7 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *info)
 
 static void match_return(struct statement *stmt)
 {
-	if (expr_to_val(stmt->ret_value) != 0)
+	if (get_implied_value(stmt->ret_value) != 0)
 		return;
 	if (!returns_null)
 		smatch_msg("info:  returns_null");

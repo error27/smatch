@@ -175,7 +175,7 @@ void get_implications(char *name, struct symbol *sym, int comparison, int num,
 
 /* smatch_extras.c */
 #define SMATCH_EXTRA 1 /* this is my_id from smatch extra set in smatch.c */
-int expr_to_val(struct expression *expr);
+int get_implied_value(struct expression *expr);
 int true_comparison(int left, int comparison, int right);
 int known_condition_true(struct expression *expr);
 int known_condition_false(struct expression *expr);
