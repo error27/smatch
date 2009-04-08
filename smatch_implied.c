@@ -288,6 +288,12 @@ static void get_tf_states(struct expression *expr,
 		handle_comparison(expr, implied_true, implied_false);
 		return;
 	}
+	if (expr->type == EXPR_ASSIGNMENT) {
+		/* most of the time ->my_pools will be empty here because we
+ 		   just set the state, but if have assigned a conditional
+		   function there are implications. */ 
+		expr = expr->left;
+	}
 
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym) {
