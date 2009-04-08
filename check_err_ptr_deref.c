@@ -45,6 +45,8 @@ static void match_is_err(const char *fn, struct expression *expr,
 	struct symbol *sym;
 
 	expr = get_argument_from_call_expr(expr->args, 0);
+	if (expr->type == EXPR_ASSIGNMENT)
+		expr = expr->left;
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
 		goto free;
