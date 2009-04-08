@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 
 ALLOCATOR(fcall_back, "call backs");
 
@@ -114,16 +115,63 @@ static void match_function_call(struct expression *expr)
 			expr);
 }
 
+static void assign_condition_funcs(const char *fn, struct expression *expr,
+				 struct call_back_list *call_backs)
+{
+	struct fcall_back *tmp;
+	struct sm_state *sm;
+	int conditional = 0;
+	char *var_name;
+	struct symbol *sym;
+	struct smatch_state *zero_state, *non_zero_state;
+
+	var_name = get_variable_from_expr(expr->left, &sym);
+	if (!var_name || !sym)
+		goto free;
+
+	in_hook = 1;
+	FOR_EACH_PTR(call_backs, tmp) {
+		if (tmp->type != CONDITIONAL_CALL)
+			continue;
+
+		conditional = 1;
+		(tmp->call_back)(fn, expr->right, tmp->info);
+	} END_FOR_EACH_PTR(tmp);
+	if (conditional) {
+		zero_state = alloc_extra_state(0);
+		non_zero_state = alloc_extra_state(UNDEFINED);
+		non_zero_state = add_filter(non_zero_state, 0);
+		set_cond_states(var_name, SMATCH_EXTRA, sym, non_zero_state, zero_state);
+	}
+  	in_hook = 0;
+
+	if (!conditional)
+		goto free;
+
+	merge_slist(&cond_true, cond_false);
+
+	FOR_EACH_PTR(cond_true, sm) {
+		__set_state(sm);
+	} END_FOR_EACH_PTR(sm);
+	free_slist(&cond_true);
+	free_slist(&cond_false);
+free:
+	free_string(var_name);
+
+}
+
 void __match_initializer_call(struct symbol *sym)
 {
 	struct call_back_list *call_backs;
 	struct expression *initializer = sym->initializer;
 	struct expression *e_assign, *e_symbol;
+	const char *fn;
 
 	if (initializer->fn->type != EXPR_SYMBOL
 	    || !initializer->fn->symbol)
 		return;
-	call_backs = get_call_backs(initializer->fn->symbol->ident->name);
+	fn = initializer->fn->symbol->ident->name;
+	call_backs = get_call_backs(fn);
 	if (!call_backs)
 		return;
 
@@ -133,8 +181,8 @@ void __match_initializer_call(struct symbol *sym)
 	e_symbol->symbol_name = sym->ident;
 	e_assign->left = e_symbol;
 	e_assign->right = initializer;
-	call_call_backs(call_backs, ASSIGN_CALL,
-			initializer->fn->symbol->ident->name, e_assign);
+	call_call_backs(call_backs, ASSIGN_CALL, fn, e_assign);
+	assign_condition_funcs(fn, e_assign, call_backs);
 }
 
 static void match_assign_call(struct expression *expr)
@@ -149,6 +197,7 @@ static void match_assign_call(struct expression *expr)
 	if (!call_backs)
 		return;
 	call_call_backs(call_backs, ASSIGN_CALL, fn, expr);
+	assign_condition_funcs(fn, expr, call_backs);
 }
 
 static void match_conditional_call(struct expression *expr)

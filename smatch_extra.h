@@ -40,3 +40,6 @@ struct sm_state *__extra_merge(struct sm_state *one, struct state_list *slist1,
 struct sm_state *__extra_and_merge(struct sm_state *sm,
 				     struct state_list_stack *stack);
 
+/* also implemented in smatch_extra */
+struct smatch_state *alloc_extra_state(int val);
+struct smatch_state *add_filter(struct smatch_state *orig, long long filter);

@@ -105,6 +105,32 @@ void set_state(const char *name, int owner, struct symbol *sym,
 	}
 }
 
+void __set_state(struct sm_state *sm)
+{
+	if (debug_states) {
+		struct smatch_state *s;
+		
+		s = get_state(sm->name, sm->owner, sm->sym);
+		if (!s)
+			printf("%d new state. name='%s' owner=%d: %s\n", 
+			       get_lineno(), sm->name, sm->owner, show_state(sm->state));
+		else
+			printf("%d state change name='%s' owner=%d: %s => %s\n",
+			       get_lineno(), sm->name, sm->owner, show_state(s),
+			       show_state(sm->state));
+	}
+
+	if (unreachable())
+		return;
+
+	overwrite_sm_state(&cur_slist, sm);
+
+	if (cond_true_stack) {
+		overwrite_sm_state_stack(&cond_true_stack, sm);
+		overwrite_sm_state_stack(&cond_false_stack, sm);
+	}
+}
+
 struct smatch_state *get_state(const char *name, int owner, struct symbol *sym)
 {
 	return get_state_slist(cur_slist, name, owner, sym);

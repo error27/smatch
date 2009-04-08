@@ -35,7 +35,7 @@ static struct smatch_state *alloc_extra_state_no_name(int val)
 	return state;
 }
 
-static struct smatch_state *alloc_extra_state(int val)
+struct smatch_state *alloc_extra_state(int val)
 {
 	struct smatch_state *state;
 	static char name[20];

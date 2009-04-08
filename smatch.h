@@ -185,6 +185,7 @@ int implied_condition_false(struct expression *expr);
 /* smatch_states.c */
 extern int debug_states;
 
+void __set_state(struct sm_state *sm);
 struct state_list *__get_cur_slist();
 void __set_true_false_sm(struct sm_state *true_state, 
 			struct sm_state *false_state);
