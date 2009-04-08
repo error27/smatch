@@ -10,17 +10,17 @@ int func (void)
 	int mylock = 1;
 	int mylock2 = 2;
 
-	if (!a)
+	if (a == 3)
 	      	_spin_lock(mylock);
 	if (b)
 		frob();
-	if (!a)
+	if (a == 3)
 	      	_spin_unlock(mylock);
 	if (a)
 	      	_spin_lock(mylock);
 	if (c)
 		return 0;
-	if (a)
+	if (!!a)
 	      	_spin_unlock(mylock);
 	return 0;
 }

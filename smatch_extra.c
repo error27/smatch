@@ -342,6 +342,36 @@ int last_stmt_val(struct statement *stmt)
 	return get_value(expr);
 }
 
+static void match_comparison(struct expression *expr)
+{
+	int value;
+	char *name = NULL;
+	struct symbol *sym;
+	struct smatch_state *eq_state;
+	struct smatch_state *neq_state;
+
+	if (expr->op != SPECIAL_EQUAL && expr->op != SPECIAL_NOTEQUAL)
+		return;
+	value = get_value(expr->left);
+	if (value != UNDEFINED) {
+		name = get_variable_from_expr(expr->right, &sym);
+	} else {
+		value = get_value(expr->right);
+		name = get_variable_from_expr(expr->left, &sym);
+	}
+	if (value == UNDEFINED || !name || !sym)
+		goto free;
+	eq_state =  alloc_extra_state(value);
+	neq_state = alloc_extra_state(UNDEFINED);
+	neq_state = add_filter(neq_state, value);
+	if (expr->op == SPECIAL_EQUAL)
+		set_true_false_states(name, my_id, sym, eq_state, neq_state);
+	else
+		set_true_false_states(name, my_id, sym, neq_state, eq_state);
+free:
+	free_string(name);
+}
+
 /* this is actually hooked from smatch_implied.c...  it's hacky, yes */
 void __extra_match_condition(struct expression *expr)
 {
@@ -365,7 +395,9 @@ void __extra_match_condition(struct expression *expr)
 		set_true_false_states(name, my_id, sym, true_state, false_state);
 		free_string(name);
 		return;
-//	case EXPR_COMPARE:  // later
+	case EXPR_COMPARE:
+		match_comparison(expr);
+		return;
 	}
 }
 
