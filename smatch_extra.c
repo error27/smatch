@@ -8,6 +8,8 @@
  */
 
 #include <stdlib.h>
+#define __USE_ISOC99 
+#include <limits.h>
 #include "parse.h"
 #include "smatch.h"
 #include "smatch_slist.h"
@@ -15,15 +17,9 @@
 
 static int my_id;
 
-struct data_info unknown_num = {
-	.type = DATA_NUM,
-	.merged = 0,
-	.values = NULL,
-};
-
-static struct smatch_state extra_undefined = {
-	.name = "unknown",
-	.data = &unknown_num,
+struct data_range whole_range = {
+	.min = LLONG_MIN,
+	.max = LLONG_MAX,	
 };
 
 static struct smatch_state *alloc_extra_state_no_name(int val)
@@ -31,7 +27,7 @@ static struct smatch_state *alloc_extra_state_no_name(int val)
 	struct smatch_state *state;
 
 	state = __alloc_smatch_state(0);
-	state->data = (void *)alloc_data_info(val);
+	state->data = (void *)alloc_dinfo_range(val, val);
 	return state;
 }
 
@@ -40,38 +36,46 @@ struct smatch_state *alloc_extra_state(int val)
 	struct smatch_state *state;
 	static char name[20];
 
-	if (val == UNDEFINED)
-		return &extra_undefined;
-
 	state = alloc_extra_state_no_name(val);
 	snprintf(name, 20, "%d", val);
 	state->name = alloc_sname(name);
 	return state;
 }
 
+
+/* We do this because ->value_ranges is a list */
+struct smatch_state *extra_undefined()
+{
+	static struct data_info *dinfo;
+	static struct smatch_state *ret;
+
+	dinfo = alloc_dinfo_range(whole_range.min, whole_range.max);
+	ret = __alloc_smatch_state(0);
+	ret->name = "unknown";
+	ret->data = dinfo;
+	return ret;
+}
+
+struct smatch_state *filter_ranges(struct smatch_state *orig,
+				 long long filter_min, long long filter_max)
+{
+	struct smatch_state *ret;
+	struct data_info *orig_info;
+	struct data_info *ret_info;
+
+	if (!orig)
+		orig = extra_undefined();
+	orig_info = (struct data_info *)orig->data;
+	ret = alloc_extra_state_no_name(UNDEFINED);
+	ret_info = (struct data_info *)ret->data;
+	ret_info->value_ranges = remove_range(orig_info->value_ranges, filter_min, filter_max);
+	ret->name = show_ranges(ret_info->value_ranges);
+	return ret;
+}
+
 struct smatch_state *add_filter(struct smatch_state *orig, long long num)
 {
-
-	struct smatch_state *ret;
-	struct data_info *orig_info = NULL;
-	struct data_info *ret_info;
-	char buf[256];
-
-	if (orig)
-		orig_info = (struct data_info *)orig->data;
-	ret = alloc_extra_state_no_name(UNDEFINED);
-	snprintf(buf, 254, "%s f%lld", orig?orig->name:"any", num);
-	buf[255] = '\0';
-	ret->name = alloc_sname(buf);
-	ret_info = (struct data_info *)ret->data;
-	ret_info->values = NULL;
-	if (orig)
-		ret_info->values = clone_num_list(orig_info->values);
-	ret_info->filter = NULL;
-	if (orig)
-		ret_info->filter = clone_num_list(orig_info->filter);
-	add_num(&ret_info->filter, num);
-	return ret;
+	return filter_ranges(orig, num, num);
 }
 
 static struct smatch_state *merge_func(const char *name, struct symbol *sym,
@@ -87,8 +91,7 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 	tmp->name = "extra_merged";
 	ret_info = (struct data_info *)tmp->data;
 	ret_info->merged = 1;
-	ret_info->values = num_list_union(info1->values, info2->values);
-	ret_info->filter = num_list_intersection(info1->values, info2->values);
+	ret_info->value_ranges = range_list_union(info1->value_ranges, info2->value_ranges);
 	return tmp;
 }
 
@@ -103,7 +106,7 @@ struct sm_state *__extra_merge(struct sm_state *one, struct state_list *slist1,
 			   one->name, show_state(one->state),
 			   show_state(two->state));
 		return alloc_state(one->name, one->owner, one->sym,
-				   &extra_undefined);
+				   extra_undefined());
 	}
 
 	info1 = (struct data_info *)one->state->data;
@@ -158,7 +161,7 @@ struct sm_state *__extra_and_merge(struct sm_state *sm,
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
-	return &extra_undefined;
+	return extra_undefined();
 }
 
 static void match_function_call(struct expression *expr)
@@ -172,7 +175,7 @@ static void match_function_call(struct expression *expr)
 		if (tmp->op == '&') {
 			name = get_variable_from_expr(tmp->unop, &sym);
 			if (name) {
-				set_state(name, my_id, sym, &extra_undefined);
+				set_state(name, my_id, sym, extra_undefined());
 			}
 			free_string(name);
 		}
@@ -206,7 +209,7 @@ static void undef_expr(struct expression *expr)
 		free_string(name);
 		return;
 	}
-	set_state(name, my_id, sym, &extra_undefined);
+	set_state(name, my_id, sym, extra_undefined());
 	free_string(name);
 }
 
@@ -219,7 +222,7 @@ static void match_declarations(struct symbol *sym)
 		if (sym->initializer) {
 			set_state(name, my_id, sym, alloc_extra_state(get_value(sym->initializer)));
 		} else {
-			set_state(name, my_id, sym, &extra_undefined);
+			set_state(name, my_id, sym, extra_undefined());
 		}
 	}
 }
@@ -232,7 +235,7 @@ static void match_function_def(struct symbol *sym)
 		if (!arg->ident) {
 			continue;
 		}
-		set_state(arg->ident->name, my_id, arg, &extra_undefined);
+		set_state(arg->ident->name, my_id, arg, extra_undefined());
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -249,7 +252,7 @@ static void match_unop(struct expression *expr)
 
 	tmp = show_special(expr->op);
 	if ((!strcmp(tmp, "--")) || (!strcmp(tmp, "++")))
-		set_state(name, my_id, sym, &extra_undefined);
+		set_state(name, my_id, sym, extra_undefined());
 	free_string(name);
 }
 
@@ -271,7 +274,7 @@ int get_implied_value(struct expression *expr)
 	free_string(name);
 	if (!state || !state->data)
 		return UNDEFINED;
-	return get_single_value((struct data_info *)state->data);
+	return get_single_value_from_range((struct data_info *)state->data);
 }
 
 int true_comparison(int left, int comparison, int right)
@@ -301,6 +304,48 @@ int true_comparison(int left, int comparison, int right)
 		return 0;
 	case SPECIAL_NOTEQUAL:
 		if (left != right)
+			return 1;
+		return 0;
+	default:
+		smatch_msg("unhandled comparison %d\n", comparison);
+		return UNDEFINED;
+	}
+	return 0;
+}
+
+int true_comparison_range(struct data_range *left, int comparison, struct data_range *right)
+{
+	switch(comparison){
+	case '<':
+	case SPECIAL_UNSIGNED_LT:
+		if (left->min < right->max)
+			return 1;
+		return 0;
+	case SPECIAL_UNSIGNED_LTE:
+	case SPECIAL_LTE:
+		if (left->min <= right->max)
+			return 1;
+		return 0;
+	case SPECIAL_EQUAL:
+		if (left->max < right->min)
+			return 0;
+		if (left->min > right->max)
+			return 0;
+		return 1;
+	case SPECIAL_UNSIGNED_GTE:
+	case SPECIAL_GTE:
+		if (left->max >= right->min)
+			return 1;
+		return 0;
+	case '>':
+	case SPECIAL_UNSIGNED_GT:
+		if (left->max > right->min)
+			return 1;
+		return 0;
+	case SPECIAL_NOTEQUAL:
+		if (left->max < right->min)
+			return 1;
+		if (left->min > right->max)
 			return 1;
 		return 0;
 	default:
@@ -362,8 +407,7 @@ static void match_comparison(struct expression *expr)
 	if (value == UNDEFINED || !name || !sym)
 		goto free;
 	eq_state =  alloc_extra_state(value);
-	neq_state = alloc_extra_state(UNDEFINED);
-	neq_state = add_filter(neq_state, value);
+	neq_state = add_filter(extra_undefined(), value);
 	if (expr->op == SPECIAL_EQUAL)
 		set_true_false_states(name, my_id, sym, eq_state, neq_state);
 	else
@@ -414,7 +458,7 @@ static int variable_non_zero(struct expression *expr)
 	state = get_state(name, my_id, sym);
 	if (!state || !state->data)
 		goto exit;
-	ret = true_comparison(get_single_value((struct data_info *)state->data),
+	ret = true_comparison(get_single_value_from_range((struct data_info *)state->data),
 			      SPECIAL_NOTEQUAL, 0);
 exit:
 	free_string(name);

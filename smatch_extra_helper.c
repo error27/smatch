@@ -12,62 +12,68 @@
 #include "smatch_extra.h"
 
 ALLOCATOR(data_info, "smatch extra data");
-__DO_ALLOCATOR(long long, sizeof(long long), __alignof__(long long), "numbers", sm_num);
+ALLOCATOR(data_range, "data range");
 
-void print_num_list(struct num_list *list)
+char *show_ranges(struct range_list *list)
 {
-	long long *tmp;
-	int i = 0;
-
-	printf("(");
-	FOR_EACH_PTR(list, tmp) {
-		if (i++)
-			printf(", ");
-		printf("%lld", *tmp);
-	} END_FOR_EACH_PTR(tmp);
-	printf(")\n");
+	return alloc_string("range");
 }
 
-struct data_info *alloc_data_info(long long num)
+struct data_range *alloc_range(long long min, long long max)
+{
+	struct data_range *ret;
+
+	if (min > max) {
+		printf("Error invalid range %lld to %lld\n", min, max);
+	}
+
+	ret = __alloc_data_range(0);
+	ret->min = min;
+	ret->max = max;
+	return ret;
+}
+
+struct data_info *alloc_dinfo_range(long long min, long long max)
 {
 	struct data_info *ret;
 
 	ret = __alloc_data_info(0);
-	ret->type = DATA_NUM;
+	ret->type = DATA_RANGE;
 	ret->merged = 0;
-	ret->values = NULL;
-	if (num != UNDEFINED)
-		add_num(&ret->values, num);
-	ret->filter = NULL;
+	ret->value_ranges = NULL;
+	add_range(&ret->value_ranges, min, max);
 	return ret;
 }
 
-void add_num(struct num_list **list, long long num)
+void add_range(struct range_list **list, long long min, long long max)
 {
- 	long long *tmp;
- 	long long *new;
+	struct data_range *tmp = NULL;
+	struct data_range *new;
 
  	FOR_EACH_PTR(*list, tmp) {
-		if (*tmp < num)
+		if (tmp->min < min) {
 			continue;
-		else if (*tmp == num) {
-			return;
 		} else {
-			new = __alloc_sm_num(0);
-			*new = num;
+			if (tmp->max >= max)
+				return;
+			if (tmp->max >= min) {
+				new = alloc_range(tmp->min, max);
+				REPLACE_CURRENT_PTR(tmp, new);
+				return;
+			}
+			new = alloc_range(min, max);
 			INSERT_CURRENT(new, tmp);
 			return;
 		}
 	} END_FOR_EACH_PTR(tmp);
-	new = __alloc_sm_num(0);
-	*new = num;
+	new = alloc_range(min, max);
 	add_ptr_list(list, new);
 }
 
-struct num_list *clone_num_list(struct num_list *list)
+struct range_list *clone_range_list(struct range_list *list)
 {
-	long long *tmp;
-	struct num_list *ret = NULL;
+	struct data_range *tmp;
+	struct range_list *ret = NULL;
 
 	FOR_EACH_PTR(list, tmp) {
 		add_ptr_list(&ret, tmp);
@@ -75,107 +81,125 @@ struct num_list *clone_num_list(struct num_list *list)
 	return ret;
 }
 
-struct num_list *num_list_union(struct num_list *one, struct num_list *two)
+struct range_list *range_list_union(struct range_list *one, struct range_list *two)
 {
-	long long *tmp;
-	struct num_list *ret = NULL;
+	struct data_range *tmp;
+	struct range_list *ret = NULL;
 
 	if (!one || !two)  /*having nothing in a list means everything is in */
 		return NULL;
 
 	FOR_EACH_PTR(one, tmp) {
-		add_num(&ret, *tmp);
+		add_range(&ret, tmp->min, tmp->max);
 	} END_FOR_EACH_PTR(tmp);
 	FOR_EACH_PTR(two, tmp) {
-		add_num(&ret, *tmp);
+		add_range(&ret, tmp->min, tmp->max);
 	} END_FOR_EACH_PTR(tmp);
 	return ret;
 }
 
-struct num_list *num_list_intersection(struct num_list *one,
-				       struct num_list *two)
+struct range_list *range_list_intersection(struct range_list *one,
+				       	struct range_list *two)
 {
-	long long *one_val;
-	long long *two_val;
-	struct num_list *ret = NULL;
+	struct data_range *one_range;
+	struct data_range *two_range;
+	long long min, max;
+	struct range_list *ret = NULL;
 
-	PREPARE_PTR_LIST(one, one_val);
-	PREPARE_PTR_LIST(two, two_val);
+	PREPARE_PTR_LIST(one, one_range);
+	PREPARE_PTR_LIST(two, two_range);
 	for (;;) {
-		if (!one_val || !two_val)
+		if (!one_range || !two_range)
 			break;
-		if (*one_val < *two_val) {
-			NEXT_PTR_LIST(one_val);
-		} else if (*one_val == *two_val) {
-			add_ptr_list(&ret, one_val);
-			NEXT_PTR_LIST(one_val);
-			NEXT_PTR_LIST(two_val);
+		if (one_range->max < two_range->min) {
+			NEXT_PTR_LIST(one_range);
+		} else if (two_range->max < one_range->min) {
+			NEXT_PTR_LIST(two_range);
 		} else {
-			NEXT_PTR_LIST(two_val);
+			if (one_range->min < two_range->min)
+				min = two_range->min;
+			else
+				min = one_range->min;
+			if (one_range->max < two_range->max)
+				max = one_range->max;
+			else
+				max = two_range->max;
+			add_range(&ret, min, max);
+			NEXT_PTR_LIST(one_range);
+			NEXT_PTR_LIST(two_range);
 		}
 	}
-	FINISH_PTR_LIST(two_val);
-	FINISH_PTR_LIST(one_val);
+	FINISH_PTR_LIST(two_range);
+	FINISH_PTR_LIST(one_range);
 	return ret;
 }
 
-static int num_in_list(struct num_list *list, long long num)
+struct range_list *remove_range(struct range_list *list, long long min, long long max)
 {
-	long long *tmp;
+	struct data_range *tmp;
+	struct range_list *ret = NULL;
 
 	FOR_EACH_PTR(list, tmp) {
-		if (*tmp == num)
-			return 1;
+		if (tmp->max < min) {
+			add_range(&ret, tmp->min, tmp->max);
+			continue;
+		}
+		if (tmp->min > max) {
+			add_range(&ret, tmp->min, tmp->max);
+			continue;
+		}
+		if (tmp->min >= min && tmp->max <= max)
+			continue;
+		if (tmp->min >= min) {
+			add_range(&ret, max + 1, tmp->max);
+		} else if (tmp->max <= max) {
+			add_range(&ret, tmp->min, min - 1);
+		} else {
+			add_range(&ret, tmp->min, min - 1);
+			add_range(&ret, max + 1, tmp->max);
+		}
 	} END_FOR_EACH_PTR(tmp);
-	return 0;
-}
-
-int num_matches(struct data_info *dinfo, long long num)
-{
-	if (num_in_list(dinfo->values, num))
-		return 1;
-	return 0;
+	return ret;
 }
 
 /* 
  * if it can be only one value return that, else return UNDEFINED
  */
-long long get_single_value(struct data_info *dinfo)
+long long get_single_value_from_range(struct data_info *dinfo)
 {
-	long long *tmp;
+	struct data_range *tmp;
 	int count = 0;
 	long long ret = UNDEFINED;
 
-	if (dinfo->type != DATA_NUM)
+	if (dinfo->type != DATA_RANGE)
 		return UNDEFINED;
 
-	FOR_EACH_PTR(dinfo->values, tmp) {
-		if (!count++)
-			ret = *tmp;
-		else
+	FOR_EACH_PTR(dinfo->value_ranges, tmp) {
+		if (!count++) {
+			if (tmp->min != tmp->max)
+				return UNDEFINED;
+			ret = tmp->min;
+		} else {
 			return UNDEFINED;
+		}
 	} END_FOR_EACH_PTR(tmp);
 	return ret;
 }
 
 int possibly_true(int comparison, struct data_info *dinfo, int num, int left)
 {
-	long long *tmp;
+	struct data_range *tmp;
 	int ret = 0;
+	struct data_range drange;
 
-	if (comparison == SPECIAL_EQUAL && num_in_list(dinfo->filter, num))
-		return 0;
-	if (comparison == SPECIAL_NOTEQUAL && num_in_list(dinfo->filter, num))
-		return 1;
+	drange.min = num;
+	drange.max = num;
 
-	if (!dinfo->values)
-		return 1;
-
-	FOR_EACH_PTR(dinfo->values, tmp) {
+	FOR_EACH_PTR(dinfo->value_ranges, tmp) {
 		if (left)
-			ret = true_comparison(*tmp, comparison, num);
+			ret = true_comparison_range(tmp, comparison, &drange);
 		else
-			ret = true_comparison(num,  comparison, *tmp);
+			ret = true_comparison_range(&drange,  comparison, tmp);
 		if (ret)
 			return ret;
 	} END_FOR_EACH_PTR(tmp);
@@ -184,23 +208,18 @@ int possibly_true(int comparison, struct data_info *dinfo, int num, int left)
 
 int possibly_false(int comparison, struct data_info *dinfo, int num, int left)
 {
-	long long *tmp;
+	struct data_range *tmp;
 	int ret = 0;
+	struct data_range drange;
 
-	if (comparison == SPECIAL_EQUAL && num_in_list(dinfo->filter, num))
-		return 1;
+	drange.min = num;
+	drange.max = num;
 
-	if (comparison == SPECIAL_NOTEQUAL && num_in_list(dinfo->filter, num))
-		return 0;
-
-	if (!dinfo->values)
-		return 1;
-
-	FOR_EACH_PTR(dinfo->values, tmp) {
+	FOR_EACH_PTR(dinfo->value_ranges, tmp) {
 		if (left)
-			ret = !true_comparison(*tmp, comparison, num);
+			ret = !true_comparison_range(tmp, comparison, &drange);
 		else
-			ret = !true_comparison(num,  comparison, *tmp);
+			ret = !true_comparison_range(&drange,  comparison, tmp);
 		if (ret)
 			return ret;
 	} END_FOR_EACH_PTR(tmp);
@@ -209,8 +228,8 @@ int possibly_false(int comparison, struct data_info *dinfo, int num, int left)
 
 static void free_single_dinfo(struct data_info *dinfo)
 {
-	__free_ptr_list((struct ptr_list **)&dinfo->values);
-	__free_ptr_list((struct ptr_list **)&dinfo->filter);
+	if (dinfo->type == DATA_RANGE)
+		__free_ptr_list((struct ptr_list **)&dinfo->value_ranges);
 }
 
 static void free_dinfos(struct allocation_blob *blob)
@@ -240,6 +259,6 @@ void free_data_info_allocs(void)
 		blob_free(blob, desc->chunking);
 		blob = next;
 	}
-	clear_sm_num_alloc();
+	clear_data_range_alloc();
 }
 

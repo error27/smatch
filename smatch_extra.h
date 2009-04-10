@@ -8,31 +8,33 @@
  */
 
 enum data_type {
-	DATA_NUM,
+	DATA_RANGE,
 };
 
-DECLARE_PTR_LIST(num_list, long long);
+struct data_range {
+	long long min;
+	long long max;
+};
+
+DECLARE_PTR_LIST(range_list, struct data_range);
 
 struct data_info {
-	enum data_type type;
 	int merged;
-	struct num_list *values;
-	struct num_list *filter;
+	enum data_type type;
+	struct range_list *value_ranges;
 };
 DECLARE_ALLOCATOR(data_info);
 
+extern struct data_info unknown_num;
+
 /* these are implimented in smatch_extra_helper.c */
-struct data_info *alloc_data_info(long long num);
-void add_num(struct num_list **list, long long num);
-struct num_list *clone_num_list(struct num_list *list);
-struct num_list *num_list_union(struct num_list *one, struct num_list *two);
-struct num_list *num_list_intersection(struct num_list *one,
-				       struct num_list *two);
-int num_matches(struct data_info *dinfo, long long num);
-long long get_single_value(struct data_info *dinfo);
+void add_range(struct range_list **list, long long min, long long max);
 int possibly_true(int comparison, struct data_info *dinfo, int num, int left);
 int possibly_false(int comparison, struct data_info *dinfo, int num, int left);
 void free_data_info_allocs(void);
+struct range_list *clone_range_list(struct range_list *list);
+char *show_ranges(struct range_list *list);
+struct range_list *remove_range(struct range_list *list, long long min, long long max);
 
 /* used in smatch_slist.  implemented in smatch_extra.c */
 struct sm_state *__extra_merge(struct sm_state *one, struct state_list *slist1,
@@ -43,3 +45,8 @@ struct sm_state *__extra_and_merge(struct sm_state *sm,
 /* also implemented in smatch_extra */
 struct smatch_state *alloc_extra_state(int val);
 struct smatch_state *add_filter(struct smatch_state *orig, long long filter);
+
+struct data_info *alloc_dinfo_range(long long min, long long max);
+struct range_list *range_list_union(struct range_list *one, struct range_list *two);
+int true_comparison_range(struct data_range *left, int comparison, struct data_range *right);
+long long get_single_value_from_range(struct data_info *dinfo);
