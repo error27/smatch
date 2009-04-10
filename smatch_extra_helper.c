@@ -10,13 +10,48 @@
 #include "parse.h"
 #include "smatch.h"
 #include "smatch_extra.h"
+#include "smatch_slist.h"
 
 ALLOCATOR(data_info, "smatch extra data");
 ALLOCATOR(data_range, "data range");
 
+static char *show_num(long long num)
+{
+	static char buff[256];
+
+	if (num == whole_range.min) {
+		snprintf(buff, 255, "min");
+	} else if (num == whole_range.max) {
+		snprintf(buff, 255, "max");
+	} else if (num < 0) {
+		snprintf(buff, 255, "(%lld)", num);
+	} else {
+		snprintf(buff, 255, "%lld", num);
+	}
+	buff[255] = '\0';
+	return buff;
+}
+
 char *show_ranges(struct range_list *list)
 {
-	return alloc_string("range");
+	struct data_range *tmp;
+	char full[256];
+	int i = 0;
+
+	full[0] = '\0';
+ 	FOR_EACH_PTR(list, tmp) {
+		if (i++)
+			strncat(full, ",", 254);
+		if (tmp->min == tmp->max) {
+			strncat(full, show_num(tmp->min), 254);
+			continue;
+		}
+		strncat(full, show_num(tmp->min), 254);
+		strncat(full, "-", 254);
+		strncat(full, show_num(tmp->max), 254);
+	} END_FOR_EACH_PTR(tmp);
+	full[255] = '\0';
+	return alloc_sname(full);
 }
 
 struct data_range *alloc_range(long long min, long long max)

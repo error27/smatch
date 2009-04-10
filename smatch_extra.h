@@ -25,7 +25,7 @@ struct data_info {
 };
 DECLARE_ALLOCATOR(data_info);
 
-extern struct data_info unknown_num;
+extern struct data_range whole_range;
 
 /* these are implimented in smatch_extra_helper.c */
 void add_range(struct range_list **list, long long min, long long max);
