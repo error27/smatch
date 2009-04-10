@@ -27,18 +27,19 @@ static struct smatch_state *alloc_extra_state_no_name(int val)
 	struct smatch_state *state;
 
 	state = __alloc_smatch_state(0);
-	state->data = (void *)alloc_dinfo_range(val, val);
+	if (val == UNDEFINED)
+		state->data = (void *)alloc_dinfo_range(whole_range.min, whole_range.max);
+	else
+		state->data = (void *)alloc_dinfo_range(val, val);
 	return state;
 }
 
 struct smatch_state *alloc_extra_state(int val)
 {
 	struct smatch_state *state;
-	static char name[20];
 
 	state = alloc_extra_state_no_name(val);
-	snprintf(name, 20, "%d", val);
-	state->name = alloc_sname(name);
+	state->name = show_ranges(((struct data_info *)state->data)->value_ranges);
 	return state;
 }
 
