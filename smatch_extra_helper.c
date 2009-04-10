@@ -133,42 +133,6 @@ struct range_list *range_list_union(struct range_list *one, struct range_list *t
 	return ret;
 }
 
-struct range_list *range_list_intersection(struct range_list *one,
-				       	struct range_list *two)
-{
-	struct data_range *one_range;
-	struct data_range *two_range;
-	long long min, max;
-	struct range_list *ret = NULL;
-
-	PREPARE_PTR_LIST(one, one_range);
-	PREPARE_PTR_LIST(two, two_range);
-	for (;;) {
-		if (!one_range || !two_range)
-			break;
-		if (one_range->max < two_range->min) {
-			NEXT_PTR_LIST(one_range);
-		} else if (two_range->max < one_range->min) {
-			NEXT_PTR_LIST(two_range);
-		} else {
-			if (one_range->min < two_range->min)
-				min = two_range->min;
-			else
-				min = one_range->min;
-			if (one_range->max < two_range->max)
-				max = one_range->max;
-			else
-				max = two_range->max;
-			add_range(&ret, min, max);
-			NEXT_PTR_LIST(one_range);
-			NEXT_PTR_LIST(two_range);
-		}
-	}
-	FINISH_PTR_LIST(two_range);
-	FINISH_PTR_LIST(one_range);
-	return ret;
-}
-
 struct range_list *remove_range(struct range_list *list, long long min, long long max)
 {
 	struct data_range *tmp;
