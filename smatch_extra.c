@@ -22,6 +22,20 @@ struct data_range whole_range = {
 	.max = LLONG_MAX,	
 };
 
+static struct smatch_state *alloc_extra_state_empty()
+{
+	struct smatch_state *state;
+	struct data_info *dinfo;
+
+	dinfo = __alloc_data_info(0);
+	dinfo->type = DATA_RANGE;
+	dinfo->merged = 0;
+	dinfo->value_ranges = NULL;
+	state = __alloc_smatch_state(0);
+	state->data = dinfo;
+	return state;
+}
+
 static struct smatch_state *alloc_extra_state_no_name(int val)
 {
 	struct smatch_state *state;
@@ -68,7 +82,7 @@ struct smatch_state *filter_ranges(struct smatch_state *orig,
 	if (!orig)
 		orig = extra_undefined();
 	orig_info = (struct data_info *)orig->data;
-	ret = alloc_extra_state_no_name(UNDEFINED);
+	ret = alloc_extra_state_empty();
 	ret_info = (struct data_info *)ret->data;
 	ret_info->value_ranges = remove_range(orig_info->value_ranges, filter_min, filter_max);
 	ret->name = show_ranges(ret_info->value_ranges);
@@ -89,7 +103,7 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 	struct data_info *ret_info;
 	struct smatch_state *tmp;
 
-	tmp = alloc_extra_state_no_name(UNDEFINED);
+	tmp = alloc_extra_state_empty();
 	tmp->name = "extra_merged";
 	ret_info = (struct data_info *)tmp->data;
 	ret_info->merged = 1;
