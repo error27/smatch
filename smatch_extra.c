@@ -79,7 +79,17 @@ struct smatch_state *alloc_extra_state(int val)
 	return state;
 }
 
-struct smatch_state *filter_ranges(struct smatch_state *orig,
+struct smatch_state *alloc_extra_state_range(long long min, long long max)
+{
+	struct smatch_state *state;
+
+	state = __alloc_smatch_state(0);
+	state->data = (void *)alloc_dinfo_range(min, max);
+	state->name = show_ranges(((struct data_info *)state->data)->value_ranges);
+	return state;
+}
+
+struct smatch_state *filter_range(struct smatch_state *orig,
 				 long long filter_min, long long filter_max)
 {
 	struct smatch_state *ret;
@@ -98,7 +108,7 @@ struct smatch_state *filter_ranges(struct smatch_state *orig,
 
 struct smatch_state *add_filter(struct smatch_state *orig, long long num)
 {
-	return filter_ranges(orig, num, num);
+	return filter_range(orig, num, num);
 }
 
 static struct smatch_state *merge_func(const char *name, struct symbol *sym,
@@ -317,26 +327,83 @@ static void match_comparison(struct expression *expr)
 	long long value;
 	char *name = NULL;
 	struct symbol *sym;
-	struct smatch_state *eq_state;
-	struct smatch_state *neq_state;
+	struct smatch_state *one_state;
+	struct smatch_state *two_state;
+	struct smatch_state *orig;
+	int left;
+	int comparison = expr->op;
 
-	if (expr->op != SPECIAL_EQUAL && expr->op != SPECIAL_NOTEQUAL)
-		return;
 	value = get_value(expr->left);
-	if (value != UNDEFINED) {
-		name = get_variable_from_expr(expr->right, &sym);
-	} else {
+	if (value == UNDEFINED) {
 		value = get_value(expr->right);
-		name = get_variable_from_expr(expr->left, &sym);
+		if (value == UNDEFINED)
+			return;
+		left = 1;
 	}
-	if (value == UNDEFINED || !name || !sym)
+	if (left)
+		name = get_variable_from_expr(expr->left, &sym);
+	else 
+		name = get_variable_from_expr(expr->right, &sym);
+	if (!name || !sym)
 		goto free;
-	eq_state =  alloc_extra_state(value);
-	neq_state = add_filter(extra_undefined(), value);
-	if (expr->op == SPECIAL_EQUAL)
-		set_true_false_states(name, my_id, sym, eq_state, neq_state);
-	else
-		set_true_false_states(name, my_id, sym, neq_state, eq_state);
+
+	orig = get_state(name, my_id, sym);
+	if (!orig)
+		orig = extra_undefined();
+
+	switch(comparison){
+	case '<':
+	case SPECIAL_UNSIGNED_LT:
+		one_state = filter_range(orig, whole_range.min, value - 1);
+		two_state = filter_range(orig, value, whole_range.max); 
+		if (left)		
+			set_true_false_states(name, my_id, sym, one_state, two_state);
+		else
+			set_true_false_states(name, my_id, sym, two_state, one_state);
+		return;
+	case SPECIAL_UNSIGNED_LTE:
+	case SPECIAL_LTE:
+		one_state = filter_range(orig, whole_range.min, value);
+		two_state = filter_range(orig, value + 1, whole_range.max); 
+		if (left)		
+			set_true_false_states(name, my_id, sym, one_state, two_state);
+		else
+			set_true_false_states(name, my_id, sym, two_state, one_state);
+		return;
+	case SPECIAL_EQUAL:
+		// todo.  print a warning here for impossible conditions.
+		one_state = alloc_extra_state(value);
+		two_state = filter_range(orig, value, value); 
+		set_true_false_states(name, my_id, sym, one_state, two_state);
+		return;
+	case SPECIAL_UNSIGNED_GTE:
+	case SPECIAL_GTE:
+		one_state = filter_range(orig, whole_range.min, value - 1);
+		two_state = filter_range(orig, value, whole_range.max); 
+		if (left)		
+			set_true_false_states(name, my_id, sym, two_state, one_state);
+		else
+			set_true_false_states(name, my_id, sym, one_state, two_state);
+		return;
+	case '>':
+	case SPECIAL_UNSIGNED_GT:
+		one_state = filter_range(orig, whole_range.min, value);
+		two_state = filter_range(orig, value + 1, whole_range.max); 
+		if (left)		
+			set_true_false_states(name, my_id, sym, two_state, one_state);
+		else
+			set_true_false_states(name, my_id, sym, one_state, two_state);
+		return;
+	case SPECIAL_NOTEQUAL:
+		one_state = filter_range(orig, value, value);
+		two_state = filter_range(orig, value, value); 
+		set_true_false_states(name, my_id, sym, two_state, one_state);
+		return;
+	default:
+		smatch_msg("unhandled comparison %d\n", comparison);
+		return;
+	}
+	return;
 free:
 	free_string(name);
 }
