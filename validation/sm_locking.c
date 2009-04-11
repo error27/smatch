@@ -26,11 +26,11 @@ int func (void)
 	return;
 }
 /*
- * check-name: Locking #1
+ * check-name: Smatch locking #1
  * check-command: smatch sm_locking.c
  *
  * check-output-start
 sm_locking.c +26 func(20) warn: 'mylock3' is sometimes locked here and sometimes unlocked.
-sm_locking.c +26 func(20) warn: lock 'mylock2' held on line 26 but not on 21.
+sm_locking.c +26 func(20) warn: inconsistent returns mylock2: locked (13,26) unlocked (21)
  * check-output-end
  */

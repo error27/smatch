@@ -25,10 +25,10 @@ int func (void)
 	return 0;
 }
 /*
- * check-name: Locking #4
+ * check-name: Smatch locking #4
  * check-command: smatch sm_locking4.c
  *
  * check-output-start
-sm_locking4.c +25 func(18) warn: lock 'mylock' held on line 25 but not on 16.
+sm_locking4.c +25 func(18) warn: inconsistent returns mylock: locked (22,25) unlocked (16)
  * check-output-end
  */

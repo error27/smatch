@@ -25,13 +25,12 @@ int func (void)
 		return;
 	return;
 }
-
 /*
- * check-name: Locking #2
+ * check-name: Smatch locking #2
  * check-command: smatch sm_locking2.c
  *
  * check-output-start
 sm_locking2.c +21 func(14) error: double unlock 'mylock'
-sm_locking2.c +26 func(19) warn: lock 'mylock3' held on line 26 but not on 25.
+sm_locking2.c +26 func(19) warn: inconsistent returns mylock3: locked (26) unlocked (14,25)
  * check-output-end
  */

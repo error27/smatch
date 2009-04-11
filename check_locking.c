@@ -313,6 +313,53 @@ static void match_return(struct statement *stmt)
 	add_ptr_list(&all_returns, ret);
 }
 
+static void print_inconsistent_returns(struct tracker *lock,
+				struct smatch_state *start)
+{
+	struct locks_on_return *tmp;
+	int i;
+
+	printf("%s +%d %s(%d) ", get_filename(), get_lineno(), get_function(), get_func_pos());
+	printf("warn: inconsistent returns %s:", lock->name);
+	printf(" locked (");
+	i = 0;
+	FOR_EACH_PTR(all_returns, tmp) {
+		if (in_tracker_list(tmp->unlocked, lock->name, lock->owner, lock->sym))
+			continue;
+		if (in_tracker_list(tmp->locked, lock->name, lock->owner, lock->sym)) {
+			if (i++)
+				printf(",");
+			printf("%d", tmp->line);
+			continue;
+		}
+		if (start == &locked) {
+			if (i++)
+				printf(",");
+			printf("%d", tmp->line);
+		}
+	} END_FOR_EACH_PTR(tmp);
+
+	printf(") unlocked (");
+	i = 0;
+	FOR_EACH_PTR(all_returns, tmp) {
+		if (in_tracker_list(tmp->unlocked, lock->name, lock->owner, lock->sym)) {
+			if (i++)
+				printf(",");
+			printf("%d", tmp->line);
+			continue;
+		}
+		if (in_tracker_list(tmp->locked, lock->name, lock->owner, lock->sym)) {
+			continue;
+		}
+		if (start == &unlocked) {
+			if (i++)
+				printf(",");
+			printf("%d", tmp->line);
+		}
+	} END_FOR_EACH_PTR(tmp);
+	printf(")\n");
+}
+
 static void check_returns_consistently(struct tracker *lock,
 				struct smatch_state *start)
 {
@@ -334,9 +381,7 @@ static void check_returns_consistently(struct tracker *lock,
 	} END_FOR_EACH_PTR(tmp);
 
 	if (returns_locked && returns_unlocked)
-		smatch_msg("warn: lock '%s' held on line %d but not on %d.",
-			lock->name, returns_locked, returns_unlocked);
-
+		print_inconsistent_returns(lock, start);
 }
 
 static void check_consistency(struct symbol *sym)
