@@ -1,27 +1,32 @@
 #!/bin/bash
 
 function useage {
-    echo "Usage:  $0 [--debug][--valgrind] path/to/file.c"
+    echo "Usage:  $0 [--sparse][--valgrind][--debug] path/to/file.c"
     exit 1
 }
 
 CMD=smatch
 
 while true ; do
-    if [[ "$1" == "--debug" ]] ; then
-      	POST="$POST --debug"
-	shift
-    elif [[ "$1" == "--debug-implied" ]] ; then
-      	POST="$POST --debug-implied"
+    if [[ "$1" == "--sparse" ]] ; then
+	CMD="sparse"
 	shift
     elif [[ "$1" == "--valgrind" ]] ; then
 	PRE="valgrind"
 	shift
-    elif [[ "$1" == "--sparse" ]] ; then
-	CMD="sparse"
-	shift
-    else
+    elif [[ "$1" == "" ]] ; then
 	break
+    else
+	if [[ "$1" == "--help" ]] ; then
+		$CMD --help
+		exit 1
+	fi
+	if echo $1 | grep -q ^- ; then
+		POST="$POST $1"
+	else
+		break
+	fi
+	shift
     fi
 done
 
