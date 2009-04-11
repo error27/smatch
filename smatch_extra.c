@@ -17,6 +17,8 @@
 
 static int my_id;
 
+static struct symbol *cur_func;
+
 struct data_range whole_range = {
 	.min = LLONG_MIN,
 	.max = LLONG_MAX,	
@@ -51,8 +53,13 @@ static struct smatch_state *alloc_extra_state_no_name(int val)
 /* We do this because ->value_ranges is a list */
 struct smatch_state *extra_undefined()
 {
-	static struct data_info *dinfo;
+	struct data_info *dinfo;
 	static struct smatch_state *ret;
+	static struct symbol *prev_func;
+
+	if  (prev_func == cur_func)
+		return ret;
+	prev_func = cur_func;
 
 	dinfo = alloc_dinfo_range(whole_range.min, whole_range.max);
 	ret = __alloc_smatch_state(0);
@@ -247,6 +254,7 @@ static void match_function_def(struct symbol *sym)
 {
 	struct symbol *arg;
 
+	cur_func = sym;
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
 		if (!arg->ident) {
 			continue;
