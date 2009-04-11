@@ -48,6 +48,4 @@ struct smatch_state *add_filter(struct smatch_state *orig, long long filter);
 
 struct data_info *alloc_dinfo_range(long long min, long long max);
 struct range_list *range_list_union(struct range_list *one, struct range_list *two);
-int true_comparison_range(struct data_range *left, int comparison, struct data_range *right);
-int false_comparison_range(struct data_range *left, int comparison, struct data_range *right);
 long long get_single_value_from_range(struct data_info *dinfo);

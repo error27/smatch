@@ -185,6 +185,94 @@ long long get_single_value_from_range(struct data_info *dinfo)
 	return ret;
 }
 
+static int true_comparison_range(struct data_range *left, int comparison, struct data_range *right)
+{
+	switch(comparison){
+	case '<':
+	case SPECIAL_UNSIGNED_LT:
+		if (left->min < right->max)
+			return 1;
+		return 0;
+	case SPECIAL_UNSIGNED_LTE:
+	case SPECIAL_LTE:
+		if (left->min <= right->max)
+			return 1;
+		return 0;
+	case SPECIAL_EQUAL:
+		if (left->max < right->min)
+			return 0;
+		if (left->min > right->max)
+			return 0;
+		return 1;
+	case SPECIAL_UNSIGNED_GTE:
+	case SPECIAL_GTE:
+		if (left->max >= right->min)
+			return 1;
+		return 0;
+	case '>':
+	case SPECIAL_UNSIGNED_GT:
+		if (left->max > right->min)
+			return 1;
+		return 0;
+	case SPECIAL_NOTEQUAL:
+		if (left->min != left->max)
+			return 1;
+		if (right->min != right->max)
+			return 1;
+		if (left->min != right->min)
+			return 1;
+		return 0;
+	default:
+		smatch_msg("unhandled comparison %d\n", comparison);
+		return UNDEFINED;
+	}
+	return 0;
+}
+
+static int false_comparison_range(struct data_range *left, int comparison, struct data_range *right)
+{
+	switch(comparison){
+	case '<':
+	case SPECIAL_UNSIGNED_LT:
+		if (left->max >= right->min)
+			return 1;
+		return 0;
+	case SPECIAL_UNSIGNED_LTE:
+	case SPECIAL_LTE:
+		if (left->max > right->min)
+			return 1;
+		return 0;
+	case SPECIAL_EQUAL:
+		if (left->min != left->max)
+			return 1;
+		if (right->min != right->max)
+			return 1;
+		if (left->min != right->min)
+			return 1;
+		return 0;
+	case SPECIAL_UNSIGNED_GTE:
+	case SPECIAL_GTE:
+		if (left->min < right->max)
+			return 1;
+		return 0;
+	case '>':
+	case SPECIAL_UNSIGNED_GT:
+		if (left->min >= right->max)
+			return 1;
+		return 0;
+	case SPECIAL_NOTEQUAL:
+		if (left->max < right->min)
+			return 0;
+		if (left->min > right->max)
+			return 0;
+		return 1;
+	default:
+		smatch_msg("unhandled comparison %d\n", comparison);
+		return UNDEFINED;
+	}
+	return 0;
+}
+
 int possibly_true(int comparison, struct data_info *dinfo, int num, int left)
 {
 	struct data_range *tmp;
