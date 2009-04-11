@@ -279,63 +279,6 @@ int get_implied_value(struct expression *expr)
 	return get_single_value_from_range((struct data_info *)state->data);
 }
 
-int true_comparison(int left, int comparison, int right)
-{
-	switch(comparison){
-	case '<':
-	case SPECIAL_UNSIGNED_LT:
-		if (left < right)
-			return 1;
-		return 0;
-	case SPECIAL_UNSIGNED_LTE:
-	case SPECIAL_LTE:
-		if (left < right)
-			return 1;
-	case SPECIAL_EQUAL:
-		if (left == right)
-			return 1;
-		return 0;
-	case SPECIAL_UNSIGNED_GTE:
-	case SPECIAL_GTE:
-		if (left == right)
-			return 1;
-	case '>':
-	case SPECIAL_UNSIGNED_GT:
-		if (left > right)
-			return 1;
-		return 0;
-	case SPECIAL_NOTEQUAL:
-		if (left != right)
-			return 1;
-		return 0;
-	default:
-		smatch_msg("unhandled comparison %d\n", comparison);
-		return UNDEFINED;
-	}
-	return 0;
-}
-
-static int do_comparison(struct expression *expr)
-{
-	int left, right, ret;
-
-	if ((left = get_implied_value(expr->left)) == UNDEFINED)
-		return UNDEFINED;
-
-	if ((right = get_implied_value(expr->right)) == UNDEFINED)
-		return UNDEFINED;
-	
-	ret = true_comparison(left, expr->op, right);
-	if (ret == 1) {
-		SM_DEBUG("%d known condition: %d %s %d => true\n",
-			get_lineno(), left, show_special(expr->op), right);
-	} else if (ret == 0) {
-		SM_DEBUG("%d known condition: %d %s %d => false\n",
-			get_lineno(), left, show_special(expr->op), right);
-	}
-	return ret;
-}
-
 int last_stmt_val(struct statement *stmt)
 {
 	struct expression *expr;
@@ -418,8 +361,7 @@ static int variable_non_zero(struct expression *expr)
 	state = get_state(name, my_id, sym);
 	if (!state || !state->data)
 		goto exit;
-	ret = true_comparison(get_single_value_from_range((struct data_info *)state->data),
-			      SPECIAL_NOTEQUAL, 0);
+	ret = !possibly_false(SPECIAL_NOTEQUAL, (struct data_info *)state->data, 0, 1);
 exit:
 	free_string(name);
 	return ret;
@@ -473,6 +415,46 @@ int known_condition_false(struct expression *expr)
 	return 0;
 }
 
+static int do_comparison_range(struct expression *expr)
+{
+	struct symbol *sym;
+	char *name;
+	struct smatch_state *state;
+	long long value;
+	int left = 0;
+	int poss_true, poss_false;
+
+	value = get_value(expr->left);
+	if (value == UNDEFINED) {
+		value = get_value(expr->right);
+		if (value == UNDEFINED)
+			return 3;
+		left = 1;
+	}
+	if (left)
+		name = get_variable_from_expr(expr->left, &sym);
+	else 
+		name = get_variable_from_expr(expr->right, &sym);
+	if (!name || !sym)
+		goto free;
+	state = get_state(name, SMATCH_EXTRA, sym);
+	if (!state)
+		goto free;
+	poss_true = possibly_true(expr->op, (struct data_info *)state->data, value, left);
+	poss_false = possibly_false(expr->op, (struct data_info *)state->data, value, left);
+	if (!poss_true && !poss_false)
+		return 0;
+	if (poss_true && !poss_false)
+		return 1;
+	if (!poss_true && poss_false)
+		return 2;
+	if (poss_true && poss_false)
+		return 3;
+free:
+	free_string(name);
+	return 3;
+}
+
 int implied_condition_true(struct expression *expr)
 {
 	struct statement *stmt;
@@ -488,7 +470,7 @@ int implied_condition_true(struct expression *expr)
 	expr = strip_expr(expr);
 	switch(expr->type) {
 	case EXPR_COMPARE:
-		if (do_comparison(expr) == 1)
+		if (do_comparison_range(expr) == 1)
 			return 1;
 		break;
 	case EXPR_PREOP:
@@ -522,7 +504,7 @@ int implied_condition_false(struct expression *expr)
 
 	switch(expr->type) {
 	case EXPR_COMPARE:
-		if (do_comparison(expr) == 0)
+		if (do_comparison_range(expr) == 2)
 			return 1;
 	case EXPR_PREOP:
 		if (expr->op == '!') {
