@@ -34,16 +34,6 @@ static struct smatch_state *alloc_extra_state_no_name(int val)
 	return state;
 }
 
-struct smatch_state *alloc_extra_state(int val)
-{
-	struct smatch_state *state;
-
-	state = alloc_extra_state_no_name(val);
-	state->name = show_ranges(((struct data_info *)state->data)->value_ranges);
-	return state;
-}
-
-
 /* We do this because ->value_ranges is a list */
 struct smatch_state *extra_undefined()
 {
@@ -55,6 +45,17 @@ struct smatch_state *extra_undefined()
 	ret->name = "unknown";
 	ret->data = dinfo;
 	return ret;
+}
+
+struct smatch_state *alloc_extra_state(int val)
+{
+	struct smatch_state *state;
+
+	if (val == UNDEFINED)
+		return extra_undefined();
+	state = alloc_extra_state_no_name(val);
+	state->name = show_ranges(((struct data_info *)state->data)->value_ranges);
+	return state;
 }
 
 struct smatch_state *filter_ranges(struct smatch_state *orig,
@@ -344,11 +345,57 @@ int true_comparison_range(struct data_range *left, int comparison, struct data_r
 			return 1;
 		return 0;
 	case SPECIAL_NOTEQUAL:
-		if (left->max < right->min)
+		if (left->min != left->max)
 			return 1;
-		if (left->min > right->max)
+		if (right->min != right->max)
+			return 1;
+		if (left->min != right->min)
 			return 1;
 		return 0;
+	default:
+		smatch_msg("unhandled comparison %d\n", comparison);
+		return UNDEFINED;
+	}
+	return 0;
+}
+
+int false_comparison_range(struct data_range *left, int comparison, struct data_range *right)
+{
+	switch(comparison){
+	case '<':
+	case SPECIAL_UNSIGNED_LT:
+		if (left->max >= right->min)
+			return 1;
+		return 0;
+	case SPECIAL_UNSIGNED_LTE:
+	case SPECIAL_LTE:
+		if (left->max > right->min)
+			return 1;
+		return 0;
+	case SPECIAL_EQUAL:
+		if (left->min != left->max)
+			return 1;
+		if (right->min != right->max)
+			return 1;
+		if (left->min != right->min)
+			return 1;
+		return 0;
+	case SPECIAL_UNSIGNED_GTE:
+	case SPECIAL_GTE:
+		if (left->min < right->max)
+			return 1;
+		return 0;
+	case '>':
+	case SPECIAL_UNSIGNED_GT:
+		if (left->min >= right->max)
+			return 1;
+		return 0;
+	case SPECIAL_NOTEQUAL:
+		if (left->max < right->min)
+			return 0;
+		if (left->min > right->max)
+			return 0;
+		return 1;
 	default:
 		smatch_msg("unhandled comparison %d\n", comparison);
 		return UNDEFINED;
@@ -390,7 +437,7 @@ int last_stmt_val(struct statement *stmt)
 
 static void match_comparison(struct expression *expr)
 {
-	int value;
+	long long value;
 	char *name = NULL;
 	struct symbol *sym;
 	struct smatch_state *eq_state;

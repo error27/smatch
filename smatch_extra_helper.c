@@ -216,9 +216,9 @@ int possibly_false(int comparison, struct data_info *dinfo, int num, int left)
 
 	FOR_EACH_PTR(dinfo->value_ranges, tmp) {
 		if (left)
-			ret = !true_comparison_range(tmp, comparison, &drange);
+			ret = false_comparison_range(tmp, comparison, &drange);
 		else
-			ret = !true_comparison_range(&drange,  comparison, tmp);
+			ret = false_comparison_range(&drange,  comparison, tmp);
 		if (ret)
 			return ret;
 	} END_FOR_EACH_PTR(tmp);
