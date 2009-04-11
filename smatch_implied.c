@@ -183,12 +183,14 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 	struct state_list_stack *true_stack = NULL;
 	struct state_list_stack *false_stack = NULL;
 
-	if (left)
-		DIMPLIED("%d checking implications: (%s %s %d)\n", get_lineno(),
-			 sm_state->name, show_special(comparison), num);
-	else
-		DIMPLIED("%d checking implications: (%d %s %s)\n", get_lineno(),
-			 num, show_special(comparison), sm_state->name);
+	if (debug_implied_states || debug_states) {
+		if (left)
+			smatch_msg("checking implications: (%s %s %d)",
+				sm_state->name, show_special(comparison), num);
+		else
+			smatch_msg("checking implications: (%d %s %s)",
+				num, show_special(comparison), sm_state->name);
+	}
 
 	FOR_EACH_PTR(sm_state->my_pools, list) {
 		int istrue, isfalse;
@@ -200,21 +202,21 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 		isfalse = possibly_false(comparison,
 					 (struct data_info *)s->state->data,
 					 num, left);
-		if (debug_implied_states) {
+		if (debug_implied_states || debug_states) {
 			if (istrue && isfalse) {
-				DIMPLIED("'%s = %s' from %d could be true or "
+				printf("'%s = %s' from %d could be true or "
 					 "false.\n", s->name,
 					 show_state(s->state), s->line);
 			} else if (istrue) {
-				DIMPLIED("'%s = %s' from %d is true.\n",
+				printf("'%s = %s' from %d is true.\n",
 					 s->name, show_state(s->state),
 					 s->line);
 			} else if (isfalse) {
-				DIMPLIED("'%s = %s' from %d is false.\n",
+				printf("'%s = %s' from %d is false.\n",
 					 s->name, show_state(s->state),
 					 s->line);
 			} else {
-				DIMPLIED("'%s = %s' from %d does not exist.\n",
+				printf("'%s = %s' from %d does not exist.\n",
 					 s->name, show_state(s->state),
 					 s->line);
 			}
