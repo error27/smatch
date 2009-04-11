@@ -291,6 +291,11 @@ static void set_new_true_false_paths(const char *name, struct symbol *sym,
 		return;
 	}
 
+	if (tmp == &ignore) {
+		set_true_false_states(name, my_id, sym, &ignore, &ignore);
+		return;
+	}
+
 	if (!tmp || recently_assigned || is_maybe_null(name, sym)) {
 		set_true_false_states(name, my_id, sym, &nonnull, &isnull);
 		return;
