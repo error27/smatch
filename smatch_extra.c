@@ -357,18 +357,18 @@ static void match_comparison(struct expression *expr)
 		one_state = filter_range(orig, whole_range.min, value - 1);
 		two_state = filter_range(orig, value, whole_range.max); 
 		if (left)		
-			set_true_false_states(name, my_id, sym, one_state, two_state);
-		else
 			set_true_false_states(name, my_id, sym, two_state, one_state);
+		else
+			set_true_false_states(name, my_id, sym, one_state, two_state);
 		return;
 	case SPECIAL_UNSIGNED_LTE:
 	case SPECIAL_LTE:
 		one_state = filter_range(orig, whole_range.min, value);
 		two_state = filter_range(orig, value + 1, whole_range.max); 
 		if (left)		
-			set_true_false_states(name, my_id, sym, one_state, two_state);
-		else
 			set_true_false_states(name, my_id, sym, two_state, one_state);
+		else
+			set_true_false_states(name, my_id, sym, one_state, two_state);
 		return;
 	case SPECIAL_EQUAL:
 		// todo.  print a warning here for impossible conditions.
@@ -381,18 +381,18 @@ static void match_comparison(struct expression *expr)
 		one_state = filter_range(orig, whole_range.min, value - 1);
 		two_state = filter_range(orig, value, whole_range.max); 
 		if (left)		
-			set_true_false_states(name, my_id, sym, two_state, one_state);
-		else
 			set_true_false_states(name, my_id, sym, one_state, two_state);
+		else
+			set_true_false_states(name, my_id, sym, two_state, one_state);
 		return;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
 		one_state = filter_range(orig, whole_range.min, value);
 		two_state = filter_range(orig, value + 1, whole_range.max); 
 		if (left)		
-			set_true_false_states(name, my_id, sym, two_state, one_state);
-		else
 			set_true_false_states(name, my_id, sym, one_state, two_state);
+		else
+			set_true_false_states(name, my_id, sym, two_state, one_state);
 		return;
 	case SPECIAL_NOTEQUAL:
 		one_state = filter_range(orig, value, value);
