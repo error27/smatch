@@ -257,7 +257,7 @@ static int false_comparison_range(struct data_range *left, int comparison, struc
 		return 0;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
-		if (left->min >= right->max)
+		if (left->min <= right->max)
 			return 1;
 		return 0;
 	case SPECIAL_NOTEQUAL:
