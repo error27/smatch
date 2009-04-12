@@ -84,20 +84,26 @@ void add_range(struct range_list **list, long long min, long long max)
 {
 	struct data_range *tmp = NULL;
 	struct data_range *new;
-
+	
  	FOR_EACH_PTR(*list, tmp) {
-		if (tmp->min < min) {
-			continue;
-		} else {
-			if (tmp->max >= max)
-				return;
-			if (tmp->max >= min) {
-				new = alloc_range(tmp->min, max);
-				REPLACE_CURRENT_PTR(tmp, new);
-				return;
-			}
+		if (max < tmp->min) {
 			new = alloc_range(min, max);
 			INSERT_CURRENT(new, tmp);
+			return;
+		}
+		if (min < tmp->min) {
+			if (max < tmp->max)
+				max = tmp->max;
+			new = alloc_range(min, max);
+			REPLACE_CURRENT_PTR(tmp, new);
+			return;
+		}
+		if (max <= tmp->max)
+			return;
+		if (min <= tmp->max) {
+			min = tmp->min;
+			new = alloc_range(min, max);
+			REPLACE_CURRENT_PTR(tmp, new);
 			return;
 		}
 	} END_FOR_EACH_PTR(tmp);

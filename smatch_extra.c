@@ -121,10 +121,10 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 	struct smatch_state *tmp;
 
 	tmp = alloc_extra_state_empty();
-	tmp->name = "extra_merged";
 	ret_info = (struct data_info *)tmp->data;
 	ret_info->merged = 1;
 	ret_info->value_ranges = range_list_union(info1->value_ranges, info2->value_ranges);
+	tmp->name = show_ranges(ret_info->value_ranges);
 	return tmp;
 }
 
