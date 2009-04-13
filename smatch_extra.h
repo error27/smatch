@@ -41,6 +41,11 @@ struct sm_state *__extra_merge(struct sm_state *one, struct state_list *slist1,
 			       struct sm_state *two, struct state_list *slist2);
 struct sm_state *__extra_and_merge(struct sm_state *sm,
 				     struct state_list_stack *stack);
+struct sm_state *__extra_pre_loop_hook_before(struct statement *iterator_pre_statement);
+int __iterator_unchanged(struct sm_state *sm, struct statement *iterator);
+void __extra_pre_loop_hook_after(struct sm_state *sm,
+				struct statement *iterator,
+				struct expression *condition);
 
 /* also implemented in smatch_extra */
 struct smatch_state *alloc_extra_state(int val);
@@ -48,4 +53,6 @@ struct smatch_state *add_filter(struct smatch_state *orig, long long filter);
 
 struct data_info *alloc_dinfo_range(long long min, long long max);
 struct range_list *range_list_union(struct range_list *one, struct range_list *two);
+long long get_dinfo_min(struct data_info *dinfo);
+long long get_dinfo_max(struct data_info *dinfo);
 long long get_single_value_from_range(struct data_info *dinfo);

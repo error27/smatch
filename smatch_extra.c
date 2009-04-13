@@ -192,6 +192,110 @@ struct sm_state *__extra_and_merge(struct sm_state *sm,
 	return ret;
 }
 
+struct sm_state *__extra_pre_loop_hook_before(struct statement *iterator_pre_statement)
+{
+	struct expression *expr;
+	char *name;
+	struct symbol *sym;
+	struct sm_state *ret = NULL;
+
+	if (!iterator_pre_statement)
+		return NULL;
+ 	if (iterator_pre_statement->type != STMT_EXPRESSION)
+		return NULL;
+	expr = iterator_pre_statement->expression;
+	if (expr->type != EXPR_ASSIGNMENT)
+		return NULL;
+	name = get_variable_from_expr(expr->left, &sym);
+	if (!name || !sym)
+		goto free;
+	ret = get_sm_state(name, my_id, sym);
+free:
+	free_string(name);
+	return ret;
+}
+
+static const char *get_iter_op(struct expression *expr)
+{
+	if (expr->type != EXPR_POSTOP && expr->type != EXPR_PREOP)
+		return NULL;
+        return show_special(expr->op);
+}
+
+int __iterator_unchanged(struct sm_state *sm, struct statement *iterator)
+{
+	struct expression *iter_expr;
+	const char *op;
+	char *name;
+	struct symbol *sym;
+	int ret = 0;
+
+	if (!iterator)
+		return 0;
+	if (iterator->type != STMT_EXPRESSION)
+		return 0;
+	iter_expr = iterator->expression;
+        op = get_iter_op(iter_expr);
+	if (!op || (strcmp(op, "--") && strcmp(op, "++")))
+		return 0;
+	name = get_variable_from_expr(iter_expr->unop, &sym);
+	if (!name || !sym)
+		goto free;
+	if (get_sm_state(name, my_id, sym) == sm)
+		ret = 1;
+free:
+	free_string(name);
+	return ret;
+}
+
+void __extra_pre_loop_hook_after(struct sm_state *sm,
+				struct statement *iterator,
+				struct expression *condition)
+{
+	struct expression *iter_expr;
+	char *name;
+	struct symbol *sym;
+	long long value;
+	int left;
+	const char *op;
+	struct smatch_state *state;
+	struct data_info *dinfo;
+	long long min, max;
+
+	iter_expr = iterator->expression;
+
+	if (condition->type != EXPR_COMPARE)
+		return;
+	value = get_value(condition->left);
+	if (value == UNDEFINED) {
+		value = get_value(condition->right);
+		if (value == UNDEFINED)
+			return;
+		left = 1;
+	}
+	if (left)
+		name = get_variable_from_expr(condition->left, &sym);
+	else 
+		name = get_variable_from_expr(condition->right, &sym);
+	if (!name || !sym)
+		goto free;
+	if (sym != sm->sym || strcmp(name, sm->name))
+		goto free;
+	op = get_iter_op(iter_expr);
+	state = get_state(name, my_id, sym);
+	dinfo = (struct data_info *)state->data;
+	min = get_dinfo_min(dinfo);
+	max = get_dinfo_max(dinfo);
+	if (!strcmp(op, "++") && min != whole_range.min && max == whole_range.max) {
+		set_state(name, my_id, sym, alloc_extra_state(min));
+	} else if (min == whole_range.min && max != whole_range.max) {
+		set_state(name, my_id, sym, alloc_extra_state(max));
+	}
+free:
+	free_string(name);
+	return;
+}
+
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	return extra_undefined();

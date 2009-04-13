@@ -171,7 +171,7 @@ test-lexing.o: $(LIB_H)
 test-parsing.o: $(LIB_H)
 test-linearize.o: $(LIB_H)
 test-dissect.o: $(LIB_H)
-smatch_flow.o: $(LIB_H) smatch.h
+smatch_flow.o: $(LIB_H) smatch.h smatch_expression_stacks.h smatch_extra.h
 smatch_conditions.o: $(LIB_H) smatch.h
 smatch_extra.o: $(LIB_H) smatch.h smatch_extra.h
 smatch_extra_helper.o: $(LIB_H) smatch.h smatch_extra.h

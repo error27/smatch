@@ -167,6 +167,26 @@ struct range_list *remove_range(struct range_list *list, long long min, long lon
 	return ret;
 }
 
+long long get_dinfo_min(struct data_info *dinfo)
+{
+	struct data_range *drange;
+
+	if (!dinfo || !dinfo->value_ranges)
+		return whole_range.min;
+	drange = first_ptr_list((struct ptr_list *)dinfo->value_ranges);
+	return drange->min;
+}
+
+long long get_dinfo_max(struct data_info *dinfo)
+{
+	struct data_range *drange;
+
+	if (!dinfo || !dinfo->value_ranges)
+		return whole_range.max;
+	drange = first_ptr_list((struct ptr_list *)dinfo->value_ranges);
+	return drange->max;
+}
+
 /* 
  * if it can be only one value return that, else return UNDEFINED
  */

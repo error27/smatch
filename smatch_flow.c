@@ -11,6 +11,7 @@
 #include "token.h"
 #include "smatch.h"
 #include "smatch_expression_stacks.h"
+#include "smatch_extra.h"
 
 static int __smatch_lineno = 0;
 
@@ -150,17 +151,22 @@ static int is_forever_loop(struct statement *stmt)
 static void handle_pre_loop(struct statement *stmt)
 {
 	int once_through; /* we go through the loop at least once */
+	struct sm_state *extra_state = NULL;
+	int unchanged = 0;
+
 
 	__split_statements(stmt->iterator_pre_statement);
 
 	once_through = implied_condition_true(stmt->iterator_pre_condition);
-	if (option_assume_loops)
-		once_through = 1;
 
 	__push_continues();
 	__push_breaks();
 
 	__split_whole_condition(stmt->iterator_pre_condition);
+	if (once_through)
+		extra_state = __extra_pre_loop_hook_before(stmt->iterator_pre_statement);
+	if (option_assume_loops)
+		once_through = 1;
 	__split_statements(stmt->iterator_statement);
 
 	__warn_on_silly_pre_loops();	
@@ -172,10 +178,15 @@ static void handle_pre_loop(struct statement *stmt)
 		__use_breaks();
 	} else if (once_through) {
 		__merge_continues();
+		if (extra_state)
+			unchanged = __iterator_unchanged(extra_state, stmt->iterator_post_statement);
 		__split_statements(stmt->iterator_post_statement);
 		__split_whole_condition(stmt->iterator_pre_condition);
 		nullify_path();
 		__merge_false_states();
+		if (extra_state && unchanged)
+			__extra_pre_loop_hook_after(extra_state,
+				stmt->iterator_post_statement, stmt->iterator_pre_condition);
 		__pop_false_states();
 		__pop_false_only_stack();
 		__pop_false_only_stack();
