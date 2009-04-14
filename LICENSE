@@ -1,4 +1,45 @@
 
+Novafora Corporation, successor in interest to Transmeta Corporation,
+hereby licenses any portions of the program "sparse", a C semantic
+parser, for which the copyright previously was held by Transmeta
+Corporation and which were present in checkin
+1bcc92138dcdf718dc3e0c694565f56e669d6ee3 with an author timestamp date
+of June 24, 2003 of the git repository at
+git://git.kernel.org/pub/scm/devel/sparse/sparse.git as retrieved on
+March 1, 2009, under the following license:
+
+Copyright (c) 2003 Transmeta Corporation
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+Robert Bedichek
+Vice President of Engineering
+Novafora Corporation
+San Jose, CA
+April 14, 2009
+
+
+The original file follows:
+
+
 The 'sparse' C parser front-end library is copyrighted by Transmeta Corp
 and licensed under the "Open Software License v1.1" as obtained from
 www.opensource.org (and included here-in for easy reference) (that
