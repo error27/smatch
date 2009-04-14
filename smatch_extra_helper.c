@@ -101,23 +101,35 @@ void add_range(struct range_list **list, long long min, long long max)
 	struct data_range *new;
 	
  	FOR_EACH_PTR(*list, tmp) {
-		if (max < tmp->min) {
+		if (max != whole_range.max && max + 1 == tmp->min) {
+			/* join 2 ranges into a big range */
+			new = alloc_range(min, tmp->max);
+			REPLACE_CURRENT_PTR(tmp, new);
+			return;
+		}
+		if (max < tmp->min) {  /* new range entirely below */
 			new = alloc_range(min, max);
 			INSERT_CURRENT(new, tmp);
 			return;
 		}
-		if (min < tmp->min) {
+		if (min < tmp->min) { /* new range partially below */
 			if (max < tmp->max)
 				max = tmp->max;
 			new = alloc_range(min, max);
 			REPLACE_CURRENT_PTR(tmp, new);
 			return;
 		}
-		if (max <= tmp->max)
+		if (max <= tmp->max) /* new range already included */
 			return;
-		if (min <= tmp->max) {
+		if (min <= tmp->max) { /* new range partially above */
 			min = tmp->min;
 			new = alloc_range(min, max);
+			REPLACE_CURRENT_PTR(tmp, new);
+			return;
+		}
+		if (min != whole_range.min && min - 1 == tmp->max) {
+			/* join 2 ranges into a big range */
+			new = alloc_range(tmp->min, max);
 			REPLACE_CURRENT_PTR(tmp, new);
 			return;
 		}
