@@ -125,7 +125,7 @@ static void match_limitted(const char *fn, struct expression *expr,
 	dest = get_argument_from_call_expr(expr->args, 0);
 	dest_name = get_variable_from_expr(dest, NULL);
 
-	data = get_argument_from_call_expr(expr->args, (int)limit_arg);
+	data = get_argument_from_call_expr(expr->args, PTR_INT(limit_arg));
 	needed = get_value(data);
 	state = get_state(dest_name, my_id, NULL);
 	if (!state || !state->data)

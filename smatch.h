@@ -31,6 +31,16 @@ extern struct smatch_state true_state;
 extern struct smatch_state false_state;
 DECLARE_ALLOCATOR(smatch_state);
 
+static inline void *INT_PTR(int i)
+{
+	return (void *)(long)i;
+}
+
+static inline int PTR_INT(void *p)
+{
+	return (int)(long)p;
+}
+
 struct sm_state {
         const char *name;
 	unsigned int owner;

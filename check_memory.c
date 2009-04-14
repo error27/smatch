@@ -194,7 +194,7 @@ static void match_free_func(const char *fn, struct expression *expr, void *data)
 	struct expression *ptr_expr;
 	char *ptr_name;
 	struct symbol *ptr_sym;
-	int arg_num = (int)data;
+	int arg_num = PTR_INT(data);
 
 	ptr_expr = get_argument_from_call_expr(expr->args, arg_num);
 	ptr_name = get_variable_from_expr_complex(ptr_expr, &ptr_sym);
@@ -356,7 +356,7 @@ static void register_funcs_from_file(void)
 		if (token_type(token) != TOKEN_NUMBER)
 			return;
 		arg = atoi(token->number);
-		add_function_hook(func, &match_free_func, (void *)arg);
+		add_function_hook(func, &match_free_func, INT_PTR(arg));
 		token = token->next;
 	}
 	clear_token_alloc();
