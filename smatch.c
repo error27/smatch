@@ -112,7 +112,7 @@ static char *get_data_dir(char *arg0)
 	bin_dir = dirname(alloc_string(arg0));
 	strncpy(buf, bin_dir, 254);
 	buf[255] = '\0';
-	strncat(buf, "/smatch_data/", 254);
+	strncat(buf, "/smatch_data/", 254 - strlen(buf));
 	dir = alloc_string(buf);
 	if (!access(dir, R_OK))
 		return dir;

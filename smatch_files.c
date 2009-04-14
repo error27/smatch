@@ -25,7 +25,7 @@ static int open_file(const char *filename)
 		goto exit;
 	strncpy(buf, data_dir, 254);
 	buf[255] = '\0';
-	strncat(buf, filename, 254);
+	strncat(buf, filename, 254 - strlen(buf));
 	fd = open(buf, O_RDONLY);
 	if (fd >= 0)
 		goto exit;

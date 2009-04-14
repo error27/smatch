@@ -39,18 +39,18 @@ char *show_ranges(struct range_list *list)
 	int i = 0;
 
 	full[0] = '\0';
+	full[255] = '\0';
  	FOR_EACH_PTR(list, tmp) {
 		if (i++)
-			strncat(full, ",", 254);
+			strncat(full, ",", 254 - strlen(full));
 		if (tmp->min == tmp->max) {
-			strncat(full, show_num(tmp->min), 254);
+			strncat(full, show_num(tmp->min), 254 - strlen(full));
 			continue;
 		}
-		strncat(full, show_num(tmp->min), 254);
-		strncat(full, "-", 254);
-		strncat(full, show_num(tmp->max), 254);
+		strncat(full, show_num(tmp->min), 254 - strlen(full));
+		strncat(full, "-", 254 - strlen(full));
+		strncat(full, show_num(tmp->max), 254 - strlen(full));
 	} END_FOR_EACH_PTR(tmp);
-	full[255] = '\0';
 	return alloc_sname(full);
 }
 
