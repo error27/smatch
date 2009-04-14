@@ -50,7 +50,7 @@ static void match_is_err(const char *fn, struct expression *expr,
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
 		goto free;
-	set_cond_states(name, my_id, sym, &err_ptr, &checked);
+	set_true_false_states(name, my_id, sym, &err_ptr, &checked);
 free:
 	free_string(name);
 }

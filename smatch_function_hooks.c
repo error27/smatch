@@ -10,9 +10,6 @@ ALLOCATOR(fcall_back, "call backs");
 
 static struct hsearch_data func_hash;
 
-static struct state_list *cond_true = NULL;
-static struct state_list *cond_false = NULL;
-static int in_hook = 0;
 #define REGULAR_CALL 0
 #define CONDITIONAL_CALL 1
 #define ASSIGN_CALL 2
@@ -129,7 +126,7 @@ static void assign_condition_funcs(const char *fn, struct expression *expr,
 	if (!var_name || !sym)
 		goto free;
 
-	in_hook = 1;
+	__fake_conditions = 1;
 	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != CONDITIONAL_CALL)
 			continue;
@@ -140,20 +137,20 @@ static void assign_condition_funcs(const char *fn, struct expression *expr,
 	if (conditional) {
 		zero_state = alloc_extra_state(0);
 		non_zero_state = add_filter(extra_undefined(), 0);
-		set_cond_states(var_name, SMATCH_EXTRA, sym, non_zero_state, zero_state);
+		set_true_false_states(var_name, SMATCH_EXTRA, sym, non_zero_state, zero_state);
 	}
-  	in_hook = 0;
+  	__fake_conditions = 0;
 
 	if (!conditional)
 		goto free;
 
-	merge_slist(&cond_true, cond_false);
+	merge_slist(&__fake_cond_true, __fake_cond_false);
 
-	FOR_EACH_PTR(cond_true, sm) {
+	FOR_EACH_PTR(__fake_cond_true, sm) {
 		__set_state(sm);
 	} END_FOR_EACH_PTR(sm);
-	free_slist(&cond_true);
-	free_slist(&cond_false);
+	free_slist(&__fake_cond_true);
+	free_slist(&__fake_cond_false);
 free:
 	free_string(var_name);
 
@@ -216,51 +213,25 @@ static void match_conditional_call(struct expression *expr)
 	call_backs = get_call_backs(fn);
 	if (!call_backs)
 		return;
-	in_hook = 1;
+	__fake_conditions = 1;
 	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != CONDITIONAL_CALL)
 			continue;
 
 		(tmp->call_back)(fn, expr, tmp->info);
 
-		FOR_EACH_PTR(cond_true, sm) {
+		FOR_EACH_PTR(__fake_cond_true, sm) {
 			__set_true_false_sm(sm, NULL);
 		} END_FOR_EACH_PTR(sm);
-		free_slist(&cond_true);
+		free_slist(&__fake_cond_true);
 
-		FOR_EACH_PTR(cond_false, sm) {
+		FOR_EACH_PTR(__fake_cond_false, sm) {
 			__set_true_false_sm(NULL, sm);
 		} END_FOR_EACH_PTR(sm);
-		free_slist(&cond_false);
+		free_slist(&__fake_cond_false);
 
 	} END_FOR_EACH_PTR(tmp);
-	in_hook = 0;
-}
-
-void set_cond_states(const char *name, int owner, struct symbol *sym, 
-		     struct smatch_state *true_state,
-		     struct smatch_state *false_state)
-{
-	if (!in_hook) {
-		printf("Error:  call set_true_false_states() not"
-		       "set_cond_states()\n");
-		return;
-	}
-
-	if (debug_states) {
-		struct smatch_state *tmp;
-
-		tmp = get_state(name, owner, sym);
-		SM_DEBUG("%d set_true_false '%s'.  Was %s.  Now T:%s F:%s\n",
-			 get_lineno(), name, show_state(tmp),
-			 show_state(true_state), show_state(false_state));
-	}
-
-	if (true_state) {
-		set_state_slist(&cond_true, name, owner, sym, true_state);
-	}
-	if (false_state)
-		set_state_slist(&cond_false, name, owner, sym, false_state);
+	__fake_conditions = 0;
 }
 
 void create_function_hash(void)

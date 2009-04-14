@@ -217,7 +217,7 @@ static void match_locks_on_zero(const char *fn, struct expression *expr,
 	sm = get_sm_state(lock_name, my_id, NULL);
 	if (!sm)
 		add_tracker(&starts_unlocked, lock_name, my_id, NULL);
-	set_cond_states(lock_name, my_id, NULL, &unlocked, &locked);
+	set_true_false_states(lock_name, my_id, NULL, &unlocked, &locked);
 	free_string(lock_name);
 }
 
@@ -233,7 +233,7 @@ static void match_locks_on_non_zero(const char *fn, struct expression *expr,
 	sm = get_sm_state(lock_name, my_id, NULL);
 	if (!sm)
 		add_tracker(&starts_unlocked, lock_name, my_id, NULL);
-	set_cond_states(lock_name, my_id, NULL, &locked, &unlocked);
+	set_true_false_states(lock_name, my_id, NULL, &locked, &unlocked);
 	free_string(lock_name);
 }
 

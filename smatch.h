@@ -83,9 +83,6 @@ typedef void (func_hook)(const char *fn, struct expression *expr, void *data);
 void add_function_hook(const char *lock_for, func_hook *call_back, void *data);
 
 void add_conditional_hook(const char *look_for, func_hook *call_back, void *data);
-void set_cond_states(const char *name, int owner, struct symbol *sym, 
-		     struct smatch_state *true_state,
-		     struct smatch_state *false_state);
 void add_function_assign_hook(const char *look_for, func_hook *call_back,
 			      void *info);
 
@@ -194,6 +191,10 @@ int implied_condition_false(struct expression *expr);
 
 /* smatch_states.c */
 extern int debug_states;
+extern int __fake_conditions;
+extern struct state_list *__fake_cond_true;
+extern struct state_list *__fake_cond_false;
+
 
 void __set_state(struct sm_state *sm);
 struct state_list *__get_cur_slist();
