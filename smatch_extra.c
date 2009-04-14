@@ -68,6 +68,26 @@ struct smatch_state *extra_undefined()
 	return ret;
 }
 
+
+/* This is like extra_undefined() except merged. */
+struct smatch_state *min_max_merged()
+{
+	struct data_info *dinfo;
+	static struct smatch_state *ret;
+	static struct symbol *prev_func;
+
+	if  (prev_func == cur_func)
+		return ret;
+	prev_func = cur_func;
+
+	dinfo = alloc_dinfo_range(whole_range.min, whole_range.max);
+	dinfo->merged = 1;
+	ret = __alloc_smatch_state(0);
+	ret->name = "whole_range";
+	ret->data = dinfo;
+	return ret;
+}
+
 struct smatch_state *alloc_extra_state(int val)
 {
 	struct smatch_state *state;
@@ -83,6 +103,8 @@ struct smatch_state *alloc_extra_state_range(long long min, long long max)
 {
 	struct smatch_state *state;
 
+	if (min == whole_range.min && max == whole_range.max)
+		return extra_undefined();
 	state = __alloc_smatch_state(0);
 	state->data = (void *)alloc_dinfo_range(min, max);
 	state->name = show_ranges(((struct data_info *)state->data)->value_ranges);
@@ -119,11 +141,15 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 	struct data_info *info2 = (struct data_info *)s2->data;
 	struct data_info *ret_info;
 	struct smatch_state *tmp;
+	struct range_list *value_ranges;
 
+	value_ranges = range_list_union(info1->value_ranges, info2->value_ranges);
+	if (is_whole_range(value_ranges))
+		return min_max_merged();
 	tmp = alloc_extra_state_empty();
 	ret_info = (struct data_info *)tmp->data;
 	ret_info->merged = 1;
-	ret_info->value_ranges = range_list_union(info1->value_ranges, info2->value_ranges);
+	ret_info->value_ranges = value_ranges;
 	tmp->name = show_ranges(ret_info->value_ranges);
 	return tmp;
 }

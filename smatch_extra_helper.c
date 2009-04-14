@@ -54,6 +54,16 @@ char *show_ranges(struct range_list *list)
 	return alloc_sname(full);
 }
 
+static struct data_range range_zero = {
+	.min = 0,
+	.max = 0,
+};
+
+static struct data_range range_one = {
+	.min = 1,
+	.max = 1,
+};
+
 struct data_range *alloc_range(long long min, long long max)
 {
 	struct data_range *ret;
@@ -61,7 +71,12 @@ struct data_range *alloc_range(long long min, long long max)
 	if (min > max) {
 		printf("Error invalid range %lld to %lld\n", min, max);
 	}
-
+	if (min == whole_range.min && max == whole_range.max)
+		return &whole_range;
+	if (min == 0 && max == 0)
+		return &range_zero;
+	if (min == 1 && max == 1)
+		return &range_one;
 	ret = __alloc_data_range(0);
 	ret->min = min;
 	ret->max = max;
@@ -185,6 +200,19 @@ long long get_dinfo_max(struct data_info *dinfo)
 		return whole_range.max;
 	drange = first_ptr_list((struct ptr_list *)dinfo->value_ranges);
 	return drange->max;
+}
+
+int is_whole_range(struct range_list *ranges)
+{
+	struct data_range *drange;
+
+	if (!ranges)
+		return 0;
+
+	drange = first_ptr_list((struct ptr_list *)ranges);
+	if (drange->min == whole_range.min && drange->max == whole_range.max)
+		return 1;
+	return 0;
 }
 
 /* 
