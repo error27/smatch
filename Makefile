@@ -28,7 +28,7 @@ PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse test-linearize 
 	 test-unssa test-dissect ctags smatch
 SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	 smatch_helper.o smatch_hooks.o smatch_function_hooks.o smatch_extra.o \
-	 smatch_extra_helper.o smatch_implied.o smatch_ignore.o \
+	 smatch_ranges.o smatch_implied.o smatch_ignore.o \
 	 smatch_tracker.o smatch_files.o smatch_expression_stacks.o
 SMATCH_CHECKS=$(shell ls check_*.c | sed -e 's/\.c/.o/')
 
@@ -174,7 +174,7 @@ test-dissect.o: $(LIB_H)
 smatch_flow.o: $(LIB_H) smatch.h smatch_expression_stacks.h smatch_extra.h
 smatch_conditions.o: $(LIB_H) smatch.h
 smatch_extra.o: $(LIB_H) smatch.h smatch_extra.h
-smatch_extra_helper.o: $(LIB_H) smatch.h smatch_extra.h
+smatch_ranges.o: $(LIB_H) smatch.h smatch_extra.h
 smatch_implied.o: $(LIB_H) smatch.h smatch_slist.h smatch_extra.h
 smatch_ignore.o: $(LIB_H) smatch.h
 smatch_tracker.o: $(LIB_H) smatch.h
