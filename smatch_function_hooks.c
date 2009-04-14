@@ -139,8 +139,7 @@ static void assign_condition_funcs(const char *fn, struct expression *expr,
 	} END_FOR_EACH_PTR(tmp);
 	if (conditional) {
 		zero_state = alloc_extra_state(0);
-		non_zero_state = alloc_extra_state(UNDEFINED);
-		non_zero_state = add_filter(non_zero_state, 0);
+		non_zero_state = add_filter(extra_undefined(), 0);
 		set_cond_states(var_name, SMATCH_EXTRA, sym, non_zero_state, zero_state);
 	}
   	in_hook = 0;

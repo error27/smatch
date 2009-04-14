@@ -50,6 +50,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 /* also implemented in smatch_extra */
 struct smatch_state *alloc_extra_state(int val);
 struct smatch_state *add_filter(struct smatch_state *orig, long long filter);
+struct smatch_state *extra_undefined();
 
 struct data_info *alloc_dinfo_range(long long min, long long max);
 struct range_list *range_list_union(struct range_list *one, struct range_list *two);
