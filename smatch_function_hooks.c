@@ -164,7 +164,64 @@ static void assign_condition_funcs(const char *fn, struct expression *expr,
 	free_slist(&__fake_cond_false);
 free:
 	free_string(var_name);
+}
 
+static struct call_back_list *get_same_ranged_call_backs(struct call_back_list *list,
+						struct data_range *drange)
+{
+	struct call_back_list *ret = NULL;
+	struct fcall_back *tmp;
+
+	FOR_EACH_PTR(list, tmp) {
+		if (tmp->range->min == drange->min && tmp->range->max == drange->max)
+			add_ptr_list(&ret, tmp);
+	} END_FOR_EACH_PTR(tmp);
+	return ret;
+}
+
+static void assign_ranged_funcs(const char *fn, struct expression *expr,
+				 struct call_back_list *call_backs)
+{
+	struct fcall_back *tmp;
+	struct sm_state *sm;
+	char *var_name;
+	struct symbol *sym;
+	struct smatch_state *extra_state;
+	struct state_list *final_states = NULL;
+	struct range_list *handled_ranges = NULL;
+	struct call_back_list *same_range_call_backs = NULL;
+
+	var_name = get_variable_from_expr(expr->left, &sym);
+	if (!var_name || !sym)
+		goto free;
+
+	__fake_cur = 1;
+	FOR_EACH_PTR(call_backs, tmp) {
+		if (tmp->type != RANGED_CALL)
+			continue;
+		if (in_list_exact(handled_ranges, tmp->range))
+			continue;
+		tack_on(&handled_ranges, tmp->range);
+
+		same_range_call_backs = get_same_ranged_call_backs(call_backs, tmp->range);
+		call_call_backs(same_range_call_backs, RANGED_CALL, fn, expr->right);
+ 		__free_ptr_list((struct ptr_list **)&same_range_call_backs);
+
+		extra_state = alloc_extra_state_range(tmp->range->min, tmp->range->max);
+		set_state(var_name, SMATCH_EXTRA, sym, extra_state);
+
+		merge_slist(&final_states, __fake_cur_slist);
+		free_slist(&__fake_cur_slist);
+	} END_FOR_EACH_PTR(tmp);
+  	__fake_cur = 0;
+
+	FOR_EACH_PTR(final_states, sm) {
+		__set_state(sm);
+	} END_FOR_EACH_PTR(sm);
+
+	free_slist(&final_states);
+free:
+	free_string(var_name);
 }
 
 void function_comparison(int comparison, struct expression *expr, long long value, int left)
@@ -241,6 +298,7 @@ void __match_initializer_call(struct symbol *sym)
 	e_assign->right = initializer;
 	call_call_backs(call_backs, ASSIGN_CALL, fn, e_assign);
 	assign_condition_funcs(fn, e_assign, call_backs);
+	assign_ranged_funcs(fn, e_assign, call_backs);
 }
 
 static void match_assign_call(struct expression *expr)
@@ -256,6 +314,7 @@ static void match_assign_call(struct expression *expr)
 		return;
 	call_call_backs(call_backs, ASSIGN_CALL, fn, expr);
 	assign_condition_funcs(fn, expr, call_backs);
+	assign_ranged_funcs(fn, expr, call_backs);
 }
 
 static void match_conditional_call(struct expression *expr)

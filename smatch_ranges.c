@@ -418,6 +418,23 @@ int possibly_false(int comparison, struct data_info *dinfo, int num, int left)
 	return ret;
 }
 
+void tack_on(struct range_list **list, struct data_range *drange)
+{
+	add_ptr_list(list, drange);
+}
+
+int in_list_exact(struct range_list *list, struct data_range *drange)
+{
+	struct data_range *tmp;
+
+	FOR_EACH_PTR(list, tmp) {
+		if (tmp->min == drange->min && tmp->max == drange->max)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+
+}
+
 static void free_single_dinfo(struct data_info *dinfo)
 {
 	if (dinfo->type == DATA_RANGE)

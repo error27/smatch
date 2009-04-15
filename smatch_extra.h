@@ -59,3 +59,7 @@ void function_comparison(int comparison, struct expression *expr, long long valu
 int true_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
 int false_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
 struct data_range *alloc_range(long long min, long long max);
+void tack_on(struct range_list **list, struct data_range *drange);
+int in_list_exact(struct range_list *list, struct data_range *drange);
+
+struct smatch_state *alloc_extra_state_range(long long min, long long max);
