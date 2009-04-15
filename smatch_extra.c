@@ -557,6 +557,9 @@ void __extra_match_condition(struct expression *expr)
 
 	expr = strip_expr(expr);
 	switch(expr->type) {
+	case EXPR_CALL:
+		function_comparison(SPECIAL_NOTEQUAL, expr, 0, 1);
+		return;
 	case EXPR_PREOP:
 	case EXPR_SYMBOL:
 	case EXPR_DEREF:
