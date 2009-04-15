@@ -14,6 +14,8 @@
 
 ALLOCATOR(data_info, "smatch extra data");
 ALLOCATOR(data_range, "data range");
+__DO_ALLOCATOR(struct data_range, sizeof(struct data_range), __alignof__(struct data_range),
+			 "permanent ranges", perm_data_range);
 
 static char *show_num(long long num)
 {
@@ -78,6 +80,25 @@ struct data_range *alloc_range(long long min, long long max)
 	if (min == 1 && max == 1)
 		return &range_one;
 	ret = __alloc_data_range(0);
+	ret->min = min;
+	ret->max = max;
+	return ret;
+}
+
+struct data_range *alloc_range_perm(long long min, long long max)
+{
+	struct data_range *ret;
+
+	if (min > max) {
+		printf("Error invalid range %lld to %lld\n", min, max);
+	}
+	if (min == whole_range.min && max == whole_range.max)
+		return &whole_range;
+	if (min == 0 && max == 0)
+		return &range_zero;
+	if (min == 1 && max == 1)
+		return &range_one;
+	ret = __alloc_perm_data_range(0);
 	ret->min = min;
 	ret->max = max;
 	return ret;
@@ -251,7 +272,7 @@ long long get_single_value_from_range(struct data_info *dinfo)
 	return ret;
 }
 
-static int true_comparison_range(struct data_range *left, int comparison, struct data_range *right)
+int true_comparison_range(struct data_range *left, int comparison, struct data_range *right)
 {
 	switch(comparison){
 	case '<':
@@ -293,6 +314,14 @@ static int true_comparison_range(struct data_range *left, int comparison, struct
 		return UNDEFINED;
 	}
 	return 0;
+}
+
+int true_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left)
+{
+	if (left)
+		return true_comparison_range(var, comparison, val);
+	else
+		return true_comparison_range(val, comparison, var);
 }
 
 static int false_comparison_range(struct data_range *left, int comparison, struct data_range *right)
@@ -338,6 +367,16 @@ static int false_comparison_range(struct data_range *left, int comparison, struc
 	}
 	return 0;
 }
+
+int false_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left)
+{
+	if (left)
+		return false_comparison_range(var, comparison, val);
+	else
+		return false_comparison_range(val, comparison, var);
+}
+
+
 
 int possibly_true(int comparison, struct data_info *dinfo, int num, int left)
 {

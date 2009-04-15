@@ -43,6 +43,8 @@ static struct state_list_stack *pre_cond_stack; /* states before a t/f branch */
 static struct state_list_stack *cond_true_stack; /* states affected by a branch */
 static struct state_list_stack *cond_false_stack;
 
+int __fake_cur = 0;
+struct state_list *__fake_cur_slist = NULL;
 int __fake_conditions = 0;
 struct state_list *__fake_cond_true = NULL;
 struct state_list *__fake_cond_false = NULL;
@@ -100,6 +102,11 @@ void set_state(const char *name, int owner, struct symbol *sym,
 
 	if (owner != -1 && unreachable())
 		return;
+	
+	if (__fake_cur) {
+		set_state_slist(&__fake_cur_slist, name, owner, sym, state);
+		return;
+	}
 
 	set_state_slist(&cur_slist, name, owner, sym, state);
 

@@ -77,7 +77,7 @@ static const char *conditional_funcs[] = {
 	NULL,
 };
 
-/* These functions return 0 on success */
+/* These functions return 0 on success and negative on failure */
 static const char *reverse_cond_funcs[] = {
 	"down_trylock",
 	"down_interruptible",
@@ -186,6 +186,38 @@ static void match_unlock_func(const char *fn, struct expression *expr,
 	free_string(lock_name);
 }
 
+static void match_lock_failed(const char *fn, struct expression *expr, void *data)
+{
+	char *lock_name;
+	struct sm_state *sm;
+
+	lock_name = get_lock_name(expr, data);
+	if (!lock_name)
+		return;
+	sm = get_sm_state(lock_name, my_id, NULL);
+	if (!sm)
+		add_tracker(&starts_unlocked, lock_name, my_id, NULL);
+	set_state(lock_name, my_id, NULL, &unlocked);
+	free_string(lock_name);
+}
+
+static void match_lock_aquired(const char *fn, struct expression *expr, void *data)
+{
+	char *lock_name;
+	struct sm_state *sm;
+
+	lock_name = get_lock_name(expr, data);
+	if (!lock_name)
+		return;
+	sm = get_sm_state(lock_name, my_id, NULL);
+	if (!sm)
+		add_tracker(&starts_unlocked, lock_name, my_id, NULL);
+	if (sm && slist_has_state(sm->possible, &locked))
+		smatch_msg("error: double lock '%s'", lock_name);
+	set_state(lock_name, my_id, NULL, &locked);
+	free_string(lock_name);
+}
+
 static void match_lock_needed(const char *fn, struct expression *expr,
 			      void *data)
 {
@@ -203,22 +235,6 @@ static void match_lock_needed(const char *fn, struct expression *expr,
 	smatch_msg("error: %s called without holding '%s' lock", fn_name,
 		   (char *)data);
 	free_string(fn_name);
-}
-
-static void match_locks_on_zero(const char *fn, struct expression *expr,
-				void *data)
-{
-	char *lock_name;
-	struct sm_state *sm;
-
-	lock_name = get_lock_name(expr, data);
-	if (!lock_name)
-		return;
-	sm = get_sm_state(lock_name, my_id, NULL);
-	if (!sm)
-		add_tracker(&starts_unlocked, lock_name, my_id, NULL);
-	set_true_false_states(lock_name, my_id, NULL, &unlocked, &locked);
-	free_string(lock_name);
 }
 
 static void match_locks_on_non_zero(const char *fn, struct expression *expr,
@@ -459,7 +475,10 @@ void check_locking(int id)
 	}
 
 	for (i = 0; reverse_cond_funcs[i]; i++) {
-		add_conditional_hook(reverse_cond_funcs[i],
-				     &match_locks_on_zero, NULL);
+		return_implies_state(reverse_cond_funcs[i], whole_range.min, -1,
+				     &match_lock_failed, NULL);
+		return_implies_state(reverse_cond_funcs[i], 0, 0,
+				     &match_lock_aquired, NULL);
+
 	}
 }

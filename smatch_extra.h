@@ -11,11 +11,6 @@ enum data_type {
 	DATA_RANGE,
 };
 
-struct data_range {
-	long long min;
-	long long max;
-};
-
 DECLARE_PTR_LIST(range_list, struct data_range);
 
 struct data_info {
@@ -25,10 +20,10 @@ struct data_info {
 };
 DECLARE_ALLOCATOR(data_info);
 
-extern struct data_range whole_range;
-
 /* these are implimented in smatch_extra_helper.c */
+struct data_range *alloc_range_perm(long long min, long long max);
 void add_range(struct range_list **list, long long min, long long max);
+int true_comparison_range(struct data_range *left, int comparison, struct data_range *right);
 int possibly_true(int comparison, struct data_info *dinfo, int num, int left);
 int possibly_false(int comparison, struct data_info *dinfo, int num, int left);
 void free_data_info_allocs(void);
@@ -58,3 +53,9 @@ long long get_dinfo_min(struct data_info *dinfo);
 long long get_dinfo_max(struct data_info *dinfo);
 int is_whole_range(struct range_list *ranges);
 long long get_single_value_from_range(struct data_info *dinfo);
+
+void function_comparison(int comparison, struct expression *expr, long long value, int left);
+
+int true_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
+int false_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
+struct data_range *alloc_range(long long min, long long max);

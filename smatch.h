@@ -85,6 +85,8 @@ void add_function_hook(const char *lock_for, func_hook *call_back, void *data);
 void add_conditional_hook(const char *look_for, func_hook *call_back, void *data);
 void add_function_assign_hook(const char *look_for, func_hook *call_back,
 			      void *info);
+void return_implies_state(const char *look_for, long long start, long long end,
+			 func_hook *call_back, void *info);
 
 #define smatch_msg(msg...) \
 do {                                                          \
@@ -182,6 +184,13 @@ void get_implications(char *name, struct symbol *sym, int comparison, int num,
 
 /* smatch_extras.c */
 #define SMATCH_EXTRA 1 /* this is my_id from smatch extra set in smatch.c */
+
+struct data_range {
+	long long min;
+	long long max;
+};
+extern struct data_range whole_range;
+
 int get_implied_value(struct expression *expr);
 int true_comparison(int left, int comparison, int right);
 int known_condition_true(struct expression *expr);
@@ -191,6 +200,9 @@ int implied_condition_false(struct expression *expr);
 
 /* smatch_states.c */
 extern int debug_states;
+
+extern int __fake_cur;
+extern struct state_list *__fake_cur_slist;
 extern int __fake_conditions;
 extern struct state_list *__fake_cond_true;
 extern struct state_list *__fake_cond_false;
@@ -271,6 +283,7 @@ struct smatch_state *__client_unmatched_state_function(struct sm_state *sm);
 /* smatch_function_hooks.c */
 struct fcall_back {
 	int type;
+	struct data_range *range;
 	func_hook *call_back;
 	void *info;
 };

@@ -10,9 +10,10 @@ ALLOCATOR(fcall_back, "call backs");
 
 static struct hsearch_data func_hash;
 
-#define REGULAR_CALL 0
+#define REGULAR_CALL     0
 #define CONDITIONAL_CALL 1
-#define ASSIGN_CALL 2
+#define ASSIGN_CALL      2
+#define RANGED_CALL      3
 
 static struct fcall_back *alloc_fcall_back(int type, func_hook *call_back,
 					   void *info)
@@ -88,6 +89,16 @@ void add_function_assign_hook(const char *look_for, func_hook *call_back,
 	add_cb_hook(look_for, cb);
 }
 
+void return_implies_state(const char *look_for, long long start, long long end,
+			 func_hook *call_back, void *info)
+{
+	struct fcall_back *cb;
+
+	cb = alloc_fcall_back(RANGED_CALL, call_back, info);
+	cb->range = alloc_range_perm(start, end);
+	add_cb_hook(look_for, cb); 
+}
+
 static void call_call_backs(struct call_back_list *list, int type,
 			    const char *fn, struct expression *expr)
 {
@@ -154,6 +165,57 @@ static void assign_condition_funcs(const char *fn, struct expression *expr,
 free:
 	free_string(var_name);
 
+}
+
+void function_comparison(int comparison, struct expression *expr, long long value, int left)
+{
+	struct call_back_list *call_backs;
+	struct fcall_back *tmp;
+	const char *fn;
+	struct data_range *value_range;
+	struct state_list *true_states = NULL;
+	struct state_list *false_states = NULL;
+	struct sm_state *sm;
+
+	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
+		return;
+	fn = expr->fn->symbol->ident->name;
+	call_backs = get_call_backs(expr->fn->symbol->ident->name);
+	if (!call_backs)
+		return;
+	value_range = alloc_range(value, value);
+
+	__fake_cur = 1;
+	FOR_EACH_PTR(call_backs, tmp) {
+		if (tmp->type == RANGED_CALL && 
+				true_comparison_range_lr(comparison, tmp->range, value_range, left))
+			(tmp->call_back)(fn, expr, tmp->info);
+		merge_slist(&true_states, __fake_cur_slist);
+		free_slist(&__fake_cur_slist);
+	} END_FOR_EACH_PTR(tmp);
+
+	FOR_EACH_PTR(call_backs, tmp) {
+		if (tmp->type == RANGED_CALL && 
+				false_comparison_range_lr(comparison, tmp->range, value_range, left))
+			(tmp->call_back)(fn, expr, tmp->info);
+		merge_slist(&false_states, __fake_cur_slist);
+		free_slist(&__fake_cur_slist);
+	} END_FOR_EACH_PTR(tmp);
+	__fake_cur = 0;
+
+	FOR_EACH_PTR(true_states, sm) {
+		__set_true_false_sm(sm, NULL);
+	} END_FOR_EACH_PTR(sm);
+	FOR_EACH_PTR(false_states, sm) {
+		__set_true_false_sm(NULL, sm);
+	} END_FOR_EACH_PTR(sm);
+
+	if (true_states && !false_states)
+		smatch_msg("warning:  unhandled false condition.");
+	if (!true_states && false_states)
+		smatch_msg("warning:  unhandled true condition.");
+	free_slist(&true_states);
+	free_slist(&false_states);
 }
 
 void __match_initializer_call(struct symbol *sym)

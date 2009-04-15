@@ -470,6 +470,14 @@ static void match_comparison(struct expression *expr)
 			return;
 		left = 1;
 	}
+	if (left && expr->left->type == EXPR_CALL) {
+		function_comparison(comparison, expr->left, value, left);
+		return;
+	}
+	if (!left && expr->right->type == EXPR_CALL) {
+		function_comparison(comparison, expr->right, value, left);
+		return;
+	}
 	if (left)
 		name = get_variable_from_expr(expr->left, &sym);
 	else 
