@@ -27,13 +27,6 @@ static void match_function_def(struct symbol *sym)
 
 static void match_err_ptr(const char *fn, struct expression *expr, void *info)
 {
-	struct expression *arg;
-	int value;
-
-	arg = get_argument_from_call_expr(expr->args, 0);
-	value = get_implied_value(arg);
-	if (value != UNDEFINED && value < -4095)
-		smatch_msg("error: the error code is too large for ERR_PTR"); 
 	if (!err_ptr)
 		smatch_msg("info:  returns_err_ptr");
 	err_ptr = 1;

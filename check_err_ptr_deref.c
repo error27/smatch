@@ -9,6 +9,7 @@
 
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 
 static int my_id;
 
@@ -93,10 +94,47 @@ static void register_err_ptr_funcs(void)
 	clear_token_alloc();
 }
 
+static void match_err_ptr(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	char *name;
+	struct symbol *sym;
+	struct sm_state *sm;
+	struct sm_state *tmp;
+	long long tmp_min;
+	long long tmp_max;
+	long long min = whole_range.max;
+	long long max = whole_range.min;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	name = get_variable_from_expr(arg, &sym);
+	if (!name || !sym)
+		goto free;	
+	sm = get_sm_state(name, SMATCH_EXTRA, sym);
+	if (!sm)
+		goto free;
+	FOR_EACH_PTR(sm->possible, tmp) {
+		tmp_min = get_dinfo_min((struct data_info *)tmp->state->data);
+		if (tmp_min != whole_range.min && tmp_min < min)
+			min = tmp_min;
+		tmp_max = get_dinfo_max((struct data_info *)tmp->state->data);
+		if (tmp_max != whole_range.max && tmp_max > max)
+			max = tmp_max;
+	} END_FOR_EACH_PTR(tmp);
+	if (min < -4095)
+		smatch_msg("error: %lld too low for ERR_PTR", min);
+	if (max > 0)
+		smatch_msg("error: passing non neg %lld to ERR_PTR", max);
+free:
+	free_string(name);
+}
+
 void check_err_ptr_deref(int id)
 {
 	my_id = id;
 	add_conditional_hook("IS_ERR", &match_is_err, NULL);
 	register_err_ptr_funcs();
 	add_hook(&match_dereferences, DEREF_HOOK);
+	add_function_hook("ERR_PTR", &match_err_ptr, NULL);
 }
+
