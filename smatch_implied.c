@@ -246,6 +246,14 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 	}
 }
 
+static char *get_implication_variable(struct expression *expr, struct symbol **symp)
+{
+	expr = strip_expr(expr);
+	if (expr->type == EXPR_ASSIGNMENT)
+		return get_implication_variable(expr->left, symp);
+	return get_variable_from_expr(expr, symp);
+}
+
 static void handle_comparison(struct expression *expr,
 			      struct state_list **implied_true,
 			      struct state_list **implied_false)
@@ -264,9 +272,9 @@ static void handle_comparison(struct expression *expr,
 		left = 1;
 	}
 	if (left)
-		name = get_variable_from_expr(expr->left, &sym);
+		name = get_implication_variable(expr->left, &sym);
 	else 
-		name = get_variable_from_expr(expr->right, &sym);
+		name = get_implication_variable(expr->right, &sym);
 	if (!name || !sym) {
 		free_string(name);
 		return;
