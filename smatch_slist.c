@@ -668,9 +668,9 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 				NEXT_PTR_LIST(state);
 				continue;
 			}
-			if (to_state->state != &merged)
+			if (!__is_merged(to_state))
 				free_stack(&to_state->my_pools);
-			if (state->state != &merged)
+			if (!__is_merged(state))
 				free_stack(&state->my_pools);
 
 			if (to_state == state && !state->my_pools) {

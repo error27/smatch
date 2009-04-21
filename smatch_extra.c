@@ -69,6 +69,11 @@ struct smatch_state *extra_undefined()
 }
 
 
+static int is_merged(struct smatch_state *state)
+{
+	return ((struct data_info *)state->data)->merged;
+}
+
 /* This is like extra_undefined() except merged. */
 struct smatch_state *min_max_merged()
 {
@@ -764,6 +769,7 @@ void register_smatch_extra(int id)
 {
 	my_id = id;
 	add_merge_hook(my_id, &merge_func);
+	add_is_merged_hook(my_id, &is_merged);
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&undef_expr, OP_HOOK);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
