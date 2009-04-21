@@ -364,6 +364,9 @@ static void undef_expr(struct expression *expr)
 {
 	struct symbol *sym;
 	char *name;
+
+	if (expr->op == '*')
+		return;
 	
 	name = get_variable_from_expr(expr->unop, &sym);
 	if (!name)
