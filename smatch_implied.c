@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2008 Dan Carpenter.
  *
- *  Licensed under the Open Software License version 1.1
+ * Licensed under the Open Software License version 1.1
  *
  */
 
@@ -153,7 +153,8 @@ static void filter(struct state_list **slist, struct state_list *filter,
 	*slist = results;
 }
 
-static struct state_list *filter_stack(struct state_list_stack *stack)
+static struct state_list *filter_stack(struct state_list *pre_list,
+				struct state_list_stack *stack)
 {
 	struct state_list *tmp;
 	struct state_list *ret = NULL;
@@ -161,13 +162,13 @@ static struct state_list *filter_stack(struct state_list_stack *stack)
 
 	FOR_EACH_PTR(stack, tmp) {
 		if (!i++) {
-			ret = clone_states_in_pool(tmp, __get_cur_slist());
+			ret = clone_states_in_pool(tmp, pre_list);
 			if (debug_implied_states) {
 				printf("The first implied pool is:\n");
 				__print_slist(ret);
 			}
 		} else {
-			filter(&ret, tmp, __get_cur_slist());
+			filter(&ret, tmp, pre_list);
 			DIMPLIED("filtered\n");
    		}
 	} END_FOR_EACH_PTR(tmp);
@@ -175,8 +176,10 @@ static struct state_list *filter_stack(struct state_list_stack *stack)
 }
 
 static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
-		       int left, struct state_list **true_states,
-		       struct state_list **false_states)
+		int left,
+		struct state_list *pre_list,
+		struct state_list **true_states,
+		struct state_list **false_states)
 {
 	struct state_list *list;
 	struct sm_state *s;
@@ -229,9 +232,9 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 		}
 	} END_FOR_EACH_PTR(list);
 	DIMPLIED("filtering true stack.\n");
-	*true_states = filter_stack(true_stack);
+	*true_states = filter_stack(pre_list, true_stack);
 	DIMPLIED("filtering false stack.\n");
-	*false_states = filter_stack(false_stack);
+	*false_states = filter_stack(pre_list, false_stack);
 	free_stack(&true_stack);
 	free_stack(&false_stack);
 	if (debug_implied_states || debug_states) {
@@ -283,7 +286,7 @@ static void handle_comparison(struct expression *expr,
 		DIMPLIED("%d '%s' has no pools.\n", get_lineno(), state->name);
 		return;
 	}
-	get_eq_neq(state, expr->op, value, left, implied_true, implied_false);
+	get_eq_neq(state, expr->op, value, left, __get_cur_slist(), implied_true, implied_false);
 }
 
 static void get_tf_states(struct expression *expr,
@@ -318,7 +321,7 @@ static void get_tf_states(struct expression *expr,
 		DIMPLIED("%d '%s' has no pools.\n", get_lineno(), state->name);
 		return;
 	}
-	get_eq_neq(state, SPECIAL_NOTEQUAL, 0, 1, implied_true, implied_false);
+	get_eq_neq(state, SPECIAL_NOTEQUAL, 0, 1, __get_cur_slist(), implied_true, implied_false);
 }
 
 static void implied_states_hook(struct expression *expr)
@@ -354,7 +357,48 @@ void get_implications(char *name, struct symbol *sym, int comparison, int num,
 		return;
 	if (slist_has_state(sm->possible, &undefined))
 		return;
-	get_eq_neq(sm, comparison, num, 1, true_states, false_states);
+	get_eq_neq(sm, comparison, num, 1, __get_cur_slist(), true_states, false_states);
+}
+
+struct state_list *__implied_case_slist(struct expression *switch_expr,
+					struct expression *case_expr,
+					struct state_list **raw_slist)
+{
+	char *name = NULL;
+	struct symbol *sym;
+	struct sm_state *sm;
+	struct sm_state *false_sm;
+	struct state_list *true_states = NULL;
+	struct state_list *false_states = NULL;
+	struct state_list *ret = clone_slist(*raw_slist);
+	long long val;
+
+	if (!case_expr)
+		return ret;
+	name = get_variable_from_expr(switch_expr, &sym);
+	if (!name || !sym)
+		goto free;
+	sm = get_sm_state_slist(*raw_slist, name, SMATCH_EXTRA, sym);
+	val = get_value(case_expr);
+	if (val == UNDEFINED)
+		goto free;
+	if (sm) {
+		get_eq_neq(sm, SPECIAL_EQUAL, val, 1, *raw_slist, &true_states, &false_states);
+	} else {
+		true_states = clone_slist(*raw_slist);
+	}
+	set_state_slist(&true_states, name, SMATCH_EXTRA, sym, alloc_extra_state(val));
+	false_sm = get_sm_state_slist(false_states, name, SMATCH_EXTRA, sym);
+	if (false_sm)
+		overwrite_sm_state(raw_slist, false_sm);
+	else
+		set_state_slist(raw_slist, name, SMATCH_EXTRA, sym, add_filter(sm?sm->state:NULL, val));
+	overwrite_slist(true_states, &ret);
+	free_slist(&true_states);
+	free_slist(&false_states);
+free:
+	free_string(name);
+	return ret;
 }
 
 void __extra_match_condition(struct expression *expr);

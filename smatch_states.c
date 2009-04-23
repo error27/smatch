@@ -578,12 +578,15 @@ void __save_switch_states()
 	push_slist(&switch_stack, clone_slist(cur_slist));
 }
 
-void __merge_switches()
+void __merge_switches(struct expression *switch_expr, struct expression *case_expr)
 {
 	struct state_list *slist;
+	struct state_list *implied_slist;
 
 	slist = pop_slist(&switch_stack);
-	merge_slist(&cur_slist, slist);
+	implied_slist = __implied_case_slist(switch_expr, case_expr, &slist);
+	merge_slist(&cur_slist, implied_slist);
+	free_slist(&implied_slist);
 	push_slist(&switch_stack, slist);
 }
 

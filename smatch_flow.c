@@ -326,17 +326,20 @@ void __split_statements(struct statement *stmt)
 		__split_expr(stmt->switch_expression);
 		push_expression(&switch_expr_stack, stmt->switch_expression);
 		__save_switch_states();
+		nullify_path();
 		__push_default();
 		__push_breaks();
 		__split_statements(stmt->switch_statement);
 		if (!__pop_default())
-			__merge_switches();
+			__merge_switches(top_expression(switch_expr_stack),
+				      NULL);
 		__pop_switches();
 		__merge_breaks();
 		pop_expression(&switch_expr_stack);
 		return;
 	case STMT_CASE:
-		__merge_switches();
+		__merge_switches(top_expression(switch_expr_stack),
+				      stmt->case_expression);
 		__pass_case_to_client(top_expression(switch_expr_stack),
 				      stmt->case_expression);
 		if (!stmt->case_expression)
