@@ -67,9 +67,8 @@ static int pool_in_pools(struct state_list_stack *pools,
 	return 0;
 }
 
-static struct state_list *clone_states_in_pool(struct sm_state *implication_state,
-					struct state_list *pool,
-					struct state_list *cur_slist)
+static struct state_list *clone_states_in_pool(struct state_list *pool,
+					       struct state_list *cur_slist)
 {
 	struct sm_state *state;
 	struct sm_state *cur_state;
@@ -77,8 +76,6 @@ static struct state_list *clone_states_in_pool(struct sm_state *implication_stat
 	struct state_list *to_slist = NULL;
 
 	FOR_EACH_PTR(pool, state) {
-		if (!cmp_tracker(state, implication_state))
-			continue;
 		cur_state = get_sm_state_slist(cur_slist, state->name,
 					state->owner, state->sym);
 		if (!cur_state)
@@ -123,7 +120,7 @@ static struct sm_state *merge_implied(struct sm_state *one,
  * know what other states are true if one state is true.  (smatch_implied).
  */
 static void filter(struct state_list **slist, struct state_list *filter,
-		struct state_list *cur_slist)
+		   struct state_list *cur_slist)
 {
 	struct sm_state *s_one, *s_two;
 	struct state_list *results = NULL;
@@ -156,8 +153,7 @@ static void filter(struct state_list **slist, struct state_list *filter,
 	*slist = results;
 }
 
-static struct state_list *filter_stack(struct sm_state *implication_state,
-				struct state_list_stack *stack)
+static struct state_list *filter_stack(struct state_list_stack *stack)
 {
 	struct state_list *tmp;
 	struct state_list *ret = NULL;
@@ -165,7 +161,7 @@ static struct state_list *filter_stack(struct sm_state *implication_state,
 
 	FOR_EACH_PTR(stack, tmp) {
 		if (!i++) {
-			ret = clone_states_in_pool(implication_state, tmp, __get_cur_slist());
+			ret = clone_states_in_pool(tmp, __get_cur_slist());
 			if (debug_implied_states) {
 				printf("The first implied pool is:\n");
 				__print_slist(ret);
@@ -233,9 +229,9 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 		}
 	} END_FOR_EACH_PTR(list);
 	DIMPLIED("filtering true stack.\n");
-	*true_states = filter_stack(sm_state, true_stack);
+	*true_states = filter_stack(true_stack);
 	DIMPLIED("filtering false stack.\n");
-	*false_states = filter_stack(sm_state, false_stack);
+	*false_states = filter_stack(false_stack);
 	free_stack(&true_stack);
 	free_stack(&false_stack);
 	if (debug_implied_states || debug_states) {
