@@ -274,19 +274,20 @@ static void handle_comparison(struct expression *expr,
 		name = get_implication_variable(expr->left, &sym);
 	else 
 		name = get_implication_variable(expr->right, &sym);
-	if (!name || !sym) {
-		free_string(name);
-		return;
-	}
+	if (!name || !sym)
+		goto free;
 	state = get_sm_state(name, SMATCH_EXTRA, sym);
-	free_string(name);
 	if (!state)
-		return;
+		goto free;
 	if (!state->my_pools) {
 		DIMPLIED("%d '%s' has no pools.\n", get_lineno(), state->name);
-		return;
+		goto free;
 	}
 	get_eq_neq(state, expr->op, value, left, __get_cur_slist(), implied_true, implied_false);
+	delete_state_slist(implied_true, name, SMATCH_EXTRA, sym);
+	delete_state_slist(implied_false, name, SMATCH_EXTRA, sym);
+free:
+	free_string(name);
 }
 
 static void get_tf_states(struct expression *expr,
@@ -309,19 +310,20 @@ static void get_tf_states(struct expression *expr,
 	}
 
 	name = get_variable_from_expr(expr, &sym);
-	if (!name || !sym) {
-		free_string(name);
-		return;
-	}
+	if (!name || !sym)
+		goto free;
 	state = get_sm_state(name, SMATCH_EXTRA, sym);
-	free_string(name);
 	if (!state)
-		return;
+		goto free;
 	if (!state->my_pools) {
 		DIMPLIED("%d '%s' has no pools.\n", get_lineno(), state->name);
-		return;
+		goto free;
 	}
 	get_eq_neq(state, SPECIAL_NOTEQUAL, 0, 1, __get_cur_slist(), implied_true, implied_false);
+	delete_state_slist(implied_true, name, SMATCH_EXTRA, sym);
+	delete_state_slist(implied_false, name, SMATCH_EXTRA, sym);
+free:
+	free_string(name);
 }
 
 static void implied_states_hook(struct expression *expr)

@@ -497,8 +497,7 @@ void delete_state_slist(struct state_list **slist, const char *name, int owner,
 	FOR_EACH_PTR(*slist, state) {
 		if (state->owner == owner && state->sym == sym 
 		    && !strcmp(state->name, name)){
-			delete_ptr_list_entry((struct ptr_list **)slist,
-					      state, 1);
+			DELETE_CURRENT_PTR(state);
 			return;
 		}
 	} END_FOR_EACH_PTR(state);
