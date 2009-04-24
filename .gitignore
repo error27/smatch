@@ -1,7 +1,9 @@
 # generic
 *.o
+*.o.d
 *.a
 *.so
+.*.swp
 
 # generated
 pre-process.h
