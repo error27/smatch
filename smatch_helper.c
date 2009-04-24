@@ -397,6 +397,12 @@ static int _get_value(struct expression *expr, int *discard)
 			ret = left - right;
 		} else if (!strcmp("|", show_special(expr->op))) {
 			ret = left | right;
+		} else if (!strcmp("&", show_special(expr->op))) {
+			ret = left & right;
+		} else if (!strcmp(">>", show_special(expr->op))) {
+			ret = left >> right;
+		} else if (!strcmp("<<", show_special(expr->op))) {
+			ret = left << right;
 		} else {
 			*discard = 1;
 		}
