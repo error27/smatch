@@ -987,7 +987,7 @@ static struct token *attribute_address_space(struct token *token, struct symbol 
 	token = conditional_expression(token, &expr);
 	if (expr) {
 		as = const_expression_value(expr);
-		if (as)
+		if (Waddress_space && as)
 			ctx->ctype.as = as;
 	}
 	token = expect(token, ')', "after address_space attribute");

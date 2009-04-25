@@ -689,7 +689,7 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 			/* XXX: we ought to compare sizes */
 			break;
 		case SYM_PTR:
-			if (Waddress_space && as1 != as2)
+			if (as1 != as2)
 				return "different address spaces";
 			/* MOD_SPECIFIER is due to idiocy in parse.c */
 			if ((mod1 ^ mod2) & ~MOD_IGNORE & ~MOD_SPECIFIER)
@@ -706,7 +706,7 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 			struct symbol *arg1, *arg2;
 			int i;
 
-			if (Waddress_space && as1 != as2)
+			if (as1 != as2)
 				return "different address spaces";
 			if ((mod1 ^ mod2) & ~MOD_IGNORE & ~MOD_SIGNEDNESS)
 				return "different modifiers";
@@ -745,7 +745,7 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 			break;
 		}
 		case SYM_BASETYPE:
-			if (Waddress_space && as1 != as2)
+			if (as1 != as2)
 				return "different address spaces";
 			if (base1 != base2)
 				return "different base types";
@@ -762,7 +762,7 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 		t1 = base1;
 		t2 = base2;
 	}
-	if (Waddress_space && as1 != as2)
+	if (as1 != as2)
 		return "different address spaces";
 	if ((mod1 ^ mod2) & ~MOD_IGNORE & ~MOD_SIGNEDNESS)
 		return "different modifiers";
