@@ -928,8 +928,12 @@ static struct token *typeof_specifier(struct token *token, struct decl_state *ct
 		token = parse_expression(token->next, &typeof_sym->initializer);
 
 		typeof_sym->endpos = token->pos;
+		if (!typeof_sym->initializer) {
+			sparse_error(token->pos, "expected expression after the '(' token");
+			typeof_sym = &bad_ctype;
+		}
 		ctx->ctype.base_type = typeof_sym;
-	}		
+	}
 	return expect(token, ')', "after typeof");
 }
 
