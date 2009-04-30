@@ -162,9 +162,18 @@ const char *show_token(const struct token *token)
 	case TOKEN_STREAMEND:
 		sprintf(buffer, "<end of '%s'>", stream_name(token->pos.stream));
 		return buffer;
-	
+
+	case TOKEN_UNTAINT:
+		sprintf(buffer, "<untaint>");
+		return buffer;
+
+	case TOKEN_ARG_COUNT:
+		sprintf(buffer, "<argcnt>");
+		return buffer;
+
 	default:
-		return "WTF???";
+		sprintf(buffer, "unhandled token type '%d' ", token_type(token));
+		return buffer;
 	}
 }
 
