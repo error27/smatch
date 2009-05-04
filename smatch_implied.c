@@ -9,170 +9,194 @@
 
 /*
  * Imagine we have this code:
- * foo = 0;
+ * foo = 1;
  * if (bar)
- *         foo = 1;
- *                   //  <-- point #1
+ *         foo = 99;
  * else
  *         frob();
- *                   //  <-- point #2
- * if (foo == 1)     //  <-- point #3
- *         bar->baz; //  <-- point #4
+ *                   //  <-- point #1
+ * if (foo == 99)    //  <-- point #2
+ *         bar->baz; //  <-- point #3
  *
- * Currently (Oct 2008) in smatch when we merge bar states
- * null and nonnull, at point #2, the state becomes undefined.
- * As a result we get an error at point #3.
  *
- * The idea behind "implied state pools" is to fix that.
+ * At point #3 bar is non null and can be dereferenced.
  *
- * The implied pools get created in merge_slist().  Whatever 
- * is unique to one slist being merged gets put into a pool.
+ * It's smatch_implied.c which sets bar to non null at point #2.
  *
- * If we set a state that removes it from all pools.
+ * At point #1 merge_slist() stores the list of states from both
+ * the true and false paths.  On the true path foo == 99 and on
+ * the false path foo == 1.  merge_slist() sets their my_pools
+ * list to show the other states which were there when foo == 99.
+ *
+ * When it comes to the if (foo == 99) the smatch implied hook
+ * looks for all the pools where foo was not 99.  It makes a list
+ * of those.
  * 
- * When we come to an if statement where "foo" has some pools
- * associated we take all the pools where "foo == 1" and keep
- * all the states that are consistent across those pools.
+ * Then for bar (and all the other states) it says, ok bar is a
+ * merged state that came from these previous states.  We'll 
+ * chop out all the states where it came from a pool where 
+ * foo != 99 and merge it all back together.
  *
- * The point of doing this is to turn an undefined state into
- * a defined state.  This hopefully gets rid of some false positives.
- * What it doesn't do is find new errors that were
- * missed before.
- * 
- * There are quite a few implementation details I haven't figured
- * out.  How do you create implied state pools inside a 
- * complex condition?  How do you determine what is implied 
- * from a complex condition?  The initial patch is extremely rudimentary...
+ * That is the implied state of bar.
+ *
+ * merge_slist() sets up ->my_pools.
+ * merge_sm_state() sets ->pre_merge.
+ * If an sm_state is not the same on both sides of a merge, it
+ *    gets a ->my_pool set for both sides.  The result is a merged
+ *    state that has it's ->pre_merge pointers set.  Merged states
+ *    do not immediately have any my_pools set, but maybe will later
+ *    when they themselves are merged.
+ * A pool is a list of all the states that were set at the time.
  */
 
 #include "smatch.h"
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-#define EQUALS 0
-#define NOTEQUALS 1
-
 int debug_implied_states = 0;
 int option_no_implied = 0;
 
-static int pool_in_pools(struct state_list_stack *pools,
-			struct state_list *pool)
+static int pools_overlap(struct state_list_stack *pools1,
+			struct state_list_stack *pools2)
 {
-	struct state_list *tmp;
+	struct state_list *one;
+	struct state_list *two;
 
-	FOR_EACH_PTR(pools, tmp) {
-		if (tmp == pool)
+	PREPARE_PTR_LIST(pools1, one);
+	PREPARE_PTR_LIST(pools2, two);
+	for (;;) {
+		if (!one || !two)
+			return 0;
+
+		if (one < two) {
+			NEXT_PTR_LIST(one);
+		} else if (one == two) {
 			return 1;
-	} END_FOR_EACH_PTR(tmp);
+		} else {
+			NEXT_PTR_LIST(two);
+		}
+	}
+	FINISH_PTR_LIST(two);
+	FINISH_PTR_LIST(one);
 	return 0;
 }
 
-static struct state_list *clone_states_in_pool(struct state_list *pool,
-					       struct state_list *cur_slist)
+struct sm_state *remove_my_pools(struct sm_state *sm,
+				struct state_list_stack *pools, int *modified)
 {
-	struct sm_state *state;
-	struct sm_state *cur_state;
-	struct sm_state *tmp;
-	struct state_list *to_slist = NULL;
+	struct sm_state *ret = NULL;
+	struct sm_state *pre;
+	struct sm_state *tmp_keep;
+	struct state_list *keep = NULL;
 
-	FOR_EACH_PTR(pool, state) {
-		cur_state = get_sm_state_slist(cur_slist, state->name,
-					state->owner, state->sym);
-		if (!cur_state)
-			continue;
-		if (state == cur_state)
-			continue;
-		if (pool_in_pools(cur_state->all_pools, pool)) {
-			tmp = clone_state(state);
-			add_ptr_list(&to_slist, tmp);
-		}
-	} END_FOR_EACH_PTR(state);
-	return to_slist;
-}
-
-/*
- * merge_implied() takes an implied state and another possibly implied state
- * from another pool.  It checks that the second pool is reachable from 
- * cur_slist then merges the two states and returns the result.
- */
-static struct sm_state *merge_implied(struct sm_state *one,
-				      struct sm_state *two,
-				      struct state_list *pool,
-				      struct state_list *cur_slist)
-{
-	struct sm_state *cur_state;
-
-	cur_state = get_sm_state_slist(cur_slist, two->name, two->owner,
-				two->sym);
-	if (!cur_state)
-		return NULL;  /* this can't actually happen */
-	if (!pool_in_pools(cur_state->all_pools, pool))
+	if (pools_overlap(sm->my_pools, pools)) {
+		DIMPLIED("removed %s = %s from %d\n", sm->name,
+			show_state(sm->state), sm->line);
+		*modified = 1;
 		return NULL;
-	return merge_sm_states(one, two);
-}
-
-/*
- * filter() is used to find what states are the same across
- * a series of slists.
- * It takes a **slist and a *filter.  
- * It removes everything from **slist that isn't in *filter.
- * The reason you would want to do this is if you want to 
- * know what other states are true if one state is true.  (smatch_implied).
- */
-static void filter(struct state_list **slist, struct state_list *filter,
-		   struct state_list *cur_slist)
-{
-	struct sm_state *s_one, *s_two;
-	struct state_list *results = NULL;
-	struct sm_state *tmp;
-
-	PREPARE_PTR_LIST(*slist, s_one);
-	PREPARE_PTR_LIST(filter, s_two);
-	for (;;) {
-		if (!s_one || !s_two)
-			break;
-		if (cmp_tracker(s_one, s_two) < 0) {
-			DIMPLIED("removed %s\n", s_one->name);
-			NEXT_PTR_LIST(s_one);
-		} else if (cmp_tracker(s_one, s_two) == 0) {
-			tmp = merge_implied(s_one, s_two, filter, cur_slist);
-			if (tmp)
-				add_ptr_list(&results, tmp);
-			else
-				DIMPLIED("removed %s\n", s_one->name);
-			NEXT_PTR_LIST(s_one);
-			NEXT_PTR_LIST(s_two);
-		} else {
-			NEXT_PTR_LIST(s_two);
-		}
 	}
-	FINISH_PTR_LIST(s_two);
-	FINISH_PTR_LIST(s_one);
 
-	free_slist(slist);
-	*slist = results;
+	if (is_merged(sm)) {
+		int removed = 0;
+
+		DIMPLIED("checking %s = %s from %d\n", sm->name,
+			show_state(sm->state), sm->line);
+		FOR_EACH_PTR(sm->pre_merge, pre) {
+			tmp_keep = remove_my_pools(pre, pools, &removed);
+			if (tmp_keep)
+				add_ptr_list(&keep, tmp_keep);
+		} END_FOR_EACH_PTR(pre);
+		if (!removed) {
+			DIMPLIED("kept %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
+			return sm;
+		}
+		*modified = 1;
+		if (!keep) {
+			DIMPLIED("removed %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
+			return NULL;
+		}
+
+		FOR_EACH_PTR(keep, tmp_keep) {
+			if (!ret)
+				ret = tmp_keep;
+			else
+				ret = merge_sm_states(ret, tmp_keep);
+		} END_FOR_EACH_PTR(tmp_keep);
+		merge_pools(&ret->my_pools, sm->my_pools);
+		DIMPLIED("partial %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
+		return ret;
+	}
+	DIMPLIED("kept %s = %s from %d\n", sm->name, show_state(sm->state),
+		sm->line);
+	return sm;
 }
 
 static struct state_list *filter_stack(struct state_list *pre_list,
 				struct state_list_stack *stack)
 {
-	struct state_list *tmp;
 	struct state_list *ret = NULL;
-	int i = 0;
+	struct sm_state *tmp;
+	struct sm_state *filtered_state;
+	int modified = 0;
 
-	FOR_EACH_PTR(stack, tmp) {
-		if (!i++) {
-			ret = clone_states_in_pool(tmp, pre_list);
-			if (debug_implied_states) {
-				printf("The first implied pool is:\n");
-				__print_slist(ret);
-			}
-		} else {
-			filter(&ret, tmp, pre_list);
-			DIMPLIED("filtered\n");
-   		}
+	if (!stack)
+		return NULL;
+
+	FOR_EACH_PTR(pre_list, tmp) {
+		filtered_state = remove_my_pools(tmp, stack, &modified);
+		if (filtered_state && modified)
+			add_ptr_list(&ret, filtered_state);
 	} END_FOR_EACH_PTR(tmp);
 	return ret;
+}
+
+static void separate_pools(struct sm_state *sm_state, int comparison, int num,
+		int left,
+		struct state_list_stack **true_stack,
+		struct state_list_stack **false_stack)
+{
+	struct state_list *list;
+	struct sm_state *s;
+	int istrue, isfalse;
+
+	FOR_EACH_PTR(sm_state->my_pools, list) {
+		s = get_sm_state_slist(list, sm_state->name, sm_state->owner,
+				    sm_state->sym);
+		istrue = !possibly_false(comparison,
+				       (struct data_info *)s->state->data, num, 
+				       left);
+		isfalse = !possibly_true(comparison,
+					 (struct data_info *)s->state->data,
+					 num, left);
+		if (debug_implied_states || debug_states) {
+			if (istrue && isfalse) {
+				printf("'%s = %s' from %d does not exist.\n",
+					 s->name, show_state(s->state),
+					 s->line);
+			} else if (istrue) {
+				printf("'%s = %s' from %d is true. %p\n",
+					s->name, show_state(s->state),
+					s->line, list);
+			} else if (isfalse) {
+				printf("'%s = %s' from %d is false. %p\n",
+					s->name, show_state(s->state),
+					s->line, list);
+			} else {
+				printf("'%s = %s' from %d could be true or "
+					 "false.\n", s->name,
+					 show_state(s->state), s->line);
+			}
+		}
+		if (istrue) {
+			add_pool(true_stack, list);
+		}
+		if (isfalse) {
+			add_pool(false_stack, list);
+		}
+	} END_FOR_EACH_PTR(list);
+	FOR_EACH_PTR(sm_state->pre_merge, s) {
+		separate_pools(s, comparison, num, left, true_stack, false_stack);
+	} END_FOR_EACH_PTR(s);
 }
 
 static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
@@ -181,8 +205,6 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 		struct state_list **true_states,
 		struct state_list **false_states)
 {
-	struct state_list *list;
-	struct sm_state *s;
 	struct state_list_stack *true_stack = NULL;
 	struct state_list_stack *false_stack = NULL;
 
@@ -195,46 +217,12 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 				num, show_special(comparison), sm_state->name);
 	}
 
-	FOR_EACH_PTR(sm_state->my_pools, list) {
-		int istrue, isfalse;
-		s = get_sm_state_slist(list, sm_state->name, sm_state->owner,
-				    sm_state->sym);
-		istrue = possibly_true(comparison,
-				       (struct data_info *)s->state->data, num, 
-				       left);
-		isfalse = possibly_false(comparison,
-					 (struct data_info *)s->state->data,
-					 num, left);
-		if (debug_implied_states || debug_states) {
-			if (istrue && isfalse) {
-				printf("'%s = %s' from %d could be true or "
-					 "false.\n", s->name,
-					 show_state(s->state), s->line);
-			} else if (istrue) {
-				printf("'%s = %s' from %d is true.\n",
-					 s->name, show_state(s->state),
-					 s->line);
-			} else if (isfalse) {
-				printf("'%s = %s' from %d is false.\n",
-					 s->name, show_state(s->state),
-					 s->line);
-			} else {
-				printf("'%s = %s' from %d does not exist.\n",
-					 s->name, show_state(s->state),
-					 s->line);
-			}
-		}
-		if (istrue) {
-			push_slist(&true_stack, list);
-		}
-		if (isfalse) {
-			push_slist(&false_stack, list);
-		}
-	} END_FOR_EACH_PTR(list);
+	separate_pools(sm_state, comparison, num, left, &true_stack, &false_stack);
+
 	DIMPLIED("filtering true stack.\n");
-	*true_states = filter_stack(pre_list, true_stack);
+	*true_states = filter_stack(pre_list, false_stack);
 	DIMPLIED("filtering false stack.\n");
-	*false_states = filter_stack(pre_list, false_stack);
+	*false_states = filter_stack(pre_list, true_stack);
 	free_stack(&true_stack);
 	free_stack(&false_stack);
 	if (debug_implied_states || debug_states) {
@@ -279,8 +267,8 @@ static void handle_comparison(struct expression *expr,
 	state = get_sm_state(name, SMATCH_EXTRA, sym);
 	if (!state)
 		goto free;
-	if (!state->my_pools) {
-		DIMPLIED("%d '%s' has no pools.\n", get_lineno(), state->name);
+	if (!is_merged(state)) {
+		DIMPLIED("%d '%s' is not merged.\n", get_lineno(), state->name);
 		goto free;
 	}
 	get_eq_neq(state, expr->op, value, left, __get_cur_slist(), implied_true, implied_false);
@@ -315,7 +303,7 @@ static void get_tf_states(struct expression *expr,
 	state = get_sm_state(name, SMATCH_EXTRA, sym);
 	if (!state)
 		goto free;
-	if (!state->my_pools) {
+	if (!is_merged(state)) {
 		DIMPLIED("%d '%s' has no pools.\n", get_lineno(), state->name);
 		goto free;
 	}
@@ -369,6 +357,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	char *name = NULL;
 	struct symbol *sym;
 	struct sm_state *sm;
+	struct sm_state *true_sm;
 	struct sm_state *false_sm;
 	struct state_list *true_states = NULL;
 	struct state_list *false_states = NULL;
@@ -386,15 +375,15 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 		goto free;
 	if (sm) {
 		get_eq_neq(sm, SPECIAL_EQUAL, val, 1, *raw_slist, &true_states, &false_states);
-	} else {
-		true_states = clone_slist(*raw_slist);
 	}
-	set_state_slist(&true_states, name, SMATCH_EXTRA, sym, alloc_extra_state(val));
+	
+	true_sm = get_sm_state_slist(true_states, name, SMATCH_EXTRA, sym);
+	if (!true_sm)
+		set_state_slist(&true_states, name, SMATCH_EXTRA, sym, alloc_extra_state(val));
 	false_sm = get_sm_state_slist(false_states, name, SMATCH_EXTRA, sym);
-	if (false_sm)
-		overwrite_sm_state(raw_slist, false_sm);
-	else
-		set_state_slist(raw_slist, name, SMATCH_EXTRA, sym, add_filter(sm?sm->state:NULL, val));
+      	if (!false_sm)
+		set_state_slist(&false_states, name, SMATCH_EXTRA, sym, add_filter(sm?sm->state:NULL, val));
+	overwrite_slist(false_states, raw_slist);
 	overwrite_slist(true_states, &ret);
 	free_slist(&true_states);
 	free_slist(&false_states);

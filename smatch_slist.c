@@ -14,7 +14,6 @@
 #include "smatch_extra.h"
 
 #undef CHECKORDER
-#undef CHECKMYPOOLS
 
 ALLOCATOR(smatch_state, "smatch state");
 ALLOCATOR(sm_state, "sm state");
@@ -162,8 +161,9 @@ struct sm_state *alloc_state(const char *name, int owner,
 	sm_state->sym = sym;
 	sm_state->state = state;
 	sm_state->line = get_lineno();
+	sm_state->merged = 0;
 	sm_state->my_pools = NULL;
-	sm_state->all_pools = NULL;
+	sm_state->pre_merge = NULL;
 	sm_state->possible = NULL;
 	add_ptr_list(&sm_state->possible, sm_state);
 	return sm_state;
@@ -172,8 +172,8 @@ struct sm_state *alloc_state(const char *name, int owner,
 static void free_sm_state(struct sm_state *sm)
 {
 	free_slist(&sm->possible);
+	free_slist(&sm->pre_merge);
 	free_stack(&sm->my_pools);
-	free_stack(&sm->all_pools);
 	/* 
 	 * fixme.  Free the actual state.
 	 * Right now we leave it until the end of the function
@@ -216,16 +216,19 @@ void free_every_single_sm_state(void)
 struct sm_state *clone_state(struct sm_state *s)
 {
 	struct sm_state *ret;
-	struct sm_state *poss;
 
 	ret = alloc_state_no_name(s->name, s->owner, s->sym, s->state);
 	ret->line = s->line;
+	ret->merged = s->merged;
 	ret->my_pools = clone_stack(s->my_pools);
-	ret->all_pools = clone_stack(s->all_pools);
-	FOR_EACH_PTR(s->possible, poss) {
-		add_sm_state_slist(&ret->possible, poss);
-	} END_FOR_EACH_PTR(poss);
+	ret->possible = clone_slist(s->possible);
+	ret->pre_merge = clone_slist(s->pre_merge);
 	return ret;
+}
+
+int is_merged(struct sm_state *sm)
+{
+	return sm->merged;
 }
 
 int slist_has_state(struct state_list *slist, struct smatch_state *state)
@@ -260,42 +263,6 @@ static void check_order(struct state_list *slist)
 		printf("======\n");
 #endif
 }
-#ifdef CHECKMYPOOLS
-static void check_my_pools(struct sm_state *sm)
-{
-       struct sm_state *poss;
-       struct state_list *slist;
-
-       if (sm->state != &merged)
-	       return;
-
-       FOR_EACH_PTR(sm->possible, poss) {
-               if (poss->state == &merged)
-                       continue;
-               FOR_EACH_PTR(sm->my_pools, slist) {
-                       if (get_state_slist(slist, sm->name, sm->owner, sm->sym)
-                           == poss->state)
-                               goto found;
-               } END_FOR_EACH_PTR(slist);
-               printf("%d pool not found for '%s' possible state \"%s\".\n",
-                      get_lineno(), sm->name, show_state(poss->state));
-               return;
-found:
-               continue;
-       } END_FOR_EACH_PTR(poss);
-}
-#endif
-
-static void sanity_check_pools(struct state_list *slist)
-{
-#ifdef CHECKMYPOOLS
-       struct sm_state *tmp;
-
-       FOR_EACH_PTR(slist, tmp) {
-               check_my_pools(tmp);
-       } END_FOR_EACH_PTR(tmp);
-#endif
-}
 
 struct state_list *clone_slist(struct state_list *from_slist)
 {
@@ -304,6 +271,20 @@ struct state_list *clone_slist(struct state_list *from_slist)
 
 	FOR_EACH_PTR(from_slist, state) {
 		add_ptr_list(&to_slist, state);
+	} END_FOR_EACH_PTR(state);
+	check_order(to_slist);
+	return to_slist;
+}
+
+struct state_list *clone_slist_and_states(struct state_list *from_slist)
+{
+	struct sm_state *state;
+	struct sm_state *tmp;
+	struct state_list *to_slist = NULL;
+
+	FOR_EACH_PTR(from_slist, state) {
+		tmp = clone_state(state);
+		add_ptr_list(&to_slist, tmp);
 	} END_FOR_EACH_PTR(state);
 	check_order(to_slist);
 	return to_slist;
@@ -359,19 +340,12 @@ void add_pool(struct state_list_stack **pools, struct state_list *new)
 	add_ptr_list(pools, new);
 }
 
-static void copy_pools(struct sm_state *to, struct sm_state *sm)
+void merge_pools(struct state_list_stack **to, struct state_list_stack *from)
 {
 	struct state_list *tmp;
 
-	if (!sm)
-		return;
-
- 	FOR_EACH_PTR(sm->my_pools, tmp) {
-		add_pool(&to->my_pools, tmp);
-	} END_FOR_EACH_PTR(tmp);
-
- 	FOR_EACH_PTR(sm->all_pools, tmp) {
-		add_pool(&to->all_pools, tmp);
+ 	FOR_EACH_PTR(from, tmp) {
+		add_pool(to, tmp);
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -387,10 +361,11 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	result = alloc_state_no_name(one->name, one->owner, one->sym, s);
 	if (two && one->line == two->line)
 		result->line = one->line;
+	result->merged = 1;
+	add_ptr_list(&result->pre_merge, one);
+	add_ptr_list(&result->pre_merge, two);
 	add_possible(result, one);
 	add_possible(result, two);
-	copy_pools(result, one);
-	copy_pools(result, two);
 
 	if (debug_states) {
 		struct sm_state *tmp;
@@ -633,8 +608,6 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 
 	check_order(*to);
 	check_order(slist);
-	sanity_check_pools(*to);
-	sanity_check_pools(slist);
 
 	/* merging a null and nonnull path gives you only the nonnull path */
 	if (!slist) {
@@ -659,31 +632,10 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			smatch_msg("error:  Internal smatch error.");
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_tracker(to_state, state) == 0) {
-			if (state->owner == SMATCH_EXTRA) {
-				tmp = __extra_merge(to_state, implied_to,
-						    state, implied_from);
-				add_ptr_list(&results, tmp);
-				NEXT_PTR_LIST(to_state);
-				NEXT_PTR_LIST(state);
-				continue;
-			}
-			if (!__is_merged(to_state))
-				free_stack(&to_state->my_pools);
-			if (!__is_merged(state))
-				free_stack(&state->my_pools);
-
-			if (to_state == state && !state->my_pools) {
-				add_pool(&state->my_pools, implied_to);
+			if (to_state != state) {
+				add_pool(&to_state->my_pools, implied_to);
 				add_pool(&state->my_pools, implied_from);
-			} else {
-				if (!to_state->my_pools)
-					add_pool(&to_state->my_pools, implied_to);
-				if (!state->my_pools)
-					add_pool(&state->my_pools, implied_from);
 			}
-
-			add_pool(&to_state->all_pools, implied_to);
-			add_pool(&state->all_pools, implied_from);
 
 			tmp = merge_sm_states(to_state, state);
 			add_ptr_list(&results, tmp);
@@ -778,7 +730,6 @@ static struct sm_state *find_intersection(struct sm_state *one,
 		add_possible(ret, tmp_state);
 	} END_FOR_EACH_PTR(tmp1);
 	ret->my_pools = stack;
-	ret->all_pools = clone_stack(stack);
 	return ret;
 }
 

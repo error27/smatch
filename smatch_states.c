@@ -581,12 +581,15 @@ void __save_switch_states()
 void __merge_switches(struct expression *switch_expr, struct expression *case_expr)
 {
 	struct state_list *slist;
+	struct state_list *cloned;
 	struct state_list *implied_slist;
 
 	slist = pop_slist(&switch_stack);
 	implied_slist = __implied_case_slist(switch_expr, case_expr, &slist);
-	merge_slist(&cur_slist, implied_slist);
+	cloned = clone_slist_and_states(implied_slist);
+	merge_slist(&cur_slist, cloned);
 	free_slist(&implied_slist);
+	free_slist(&cloned);
 	push_slist(&switch_stack, slist);
 }
 
@@ -633,17 +636,18 @@ static struct named_slist *alloc_named_slist(const char *name,
 void __save_gotos(const char *name)
 {
 	struct state_list **slist;
+	struct state_list *clone;
 
 	slist = get_slist_from_named_stack(goto_stack, name);
 	if (slist) {
-		merge_slist(slist, cur_slist);
+		clone = clone_slist_and_states(cur_slist);
+		merge_slist(slist, clone);
 		return;
 	} else {
-		struct state_list *slist;
 		struct named_slist *named_slist;
 
-		slist = clone_slist(cur_slist);
-		named_slist = alloc_named_slist(name, slist);
+		clone = clone_slist(cur_slist);
+		named_slist = alloc_named_slist(name, clone);
 		add_ptr_list(&goto_stack, named_slist);
 	}
 }

@@ -47,8 +47,9 @@ struct sm_state {
 	struct symbol *sym;
   	struct smatch_state *state;
 	int line;
+	int merged;
 	struct state_list_stack *my_pools;
-	struct state_list_stack *all_pools;
+	struct state_list *pre_merge;
 	struct state_list *possible;
 };
 
@@ -76,11 +77,9 @@ typedef struct smatch_state *(merge_func_t)(const char *name,
 					    struct symbol *sym,
 					    struct smatch_state *s1, 
 					    struct smatch_state *s2);
-typedef int (is_merged_func_t)(struct smatch_state *state);
 typedef struct smatch_state *(unmatched_func_t)(struct sm_state *state);
 void add_merge_hook(int client_id, merge_func_t *func);
 void add_unmatched_state_hook(int client_id, unmatched_func_t *func);
-void add_is_merged_hook(int client_id, is_merged_func_t *func);
 typedef void (func_hook)(const char *fn, struct expression *expr, void *data);
 void add_function_hook(const char *lock_for, func_hook *call_back, void *data);
 
@@ -283,7 +282,6 @@ struct smatch_state *__client_merge_function(int owner, const char *name,
 					     struct symbol *sym,
 					     struct smatch_state *s1,
 					     struct smatch_state *s2);
-int __is_merged(struct sm_state *sm);
 struct smatch_state *__client_unmatched_state_function(struct sm_state *sm);
 
 /* smatch_function_hooks.c */

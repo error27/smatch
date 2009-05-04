@@ -110,7 +110,6 @@ struct data_info *alloc_dinfo_range(long long min, long long max)
 
 	ret = __alloc_data_info(0);
 	ret->type = DATA_RANGE;
-	ret->merged = 0;
 	ret->value_ranges = NULL;
 	add_range(&ret->value_ranges, min, max);
 	return ret;
@@ -233,19 +232,6 @@ long long get_dinfo_max(struct data_info *dinfo)
 		return whole_range.max;
 	drange = first_ptr_list((struct ptr_list *)dinfo->value_ranges);
 	return drange->max;
-}
-
-int is_whole_range(struct range_list *ranges)
-{
-	struct data_range *drange;
-
-	if (!ranges)
-		return 0;
-
-	drange = first_ptr_list((struct ptr_list *)ranges);
-	if (drange->min == whole_range.min && drange->max == whole_range.max)
-		return 1;
-	return 0;
 }
 
 /* 

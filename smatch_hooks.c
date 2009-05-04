@@ -18,7 +18,6 @@ ALLOCATOR(hook_container, "hook functions");
 DECLARE_PTR_LIST(hook_func_list, struct hook_container);
 static struct hook_func_list *hook_funcs;
 static struct hook_func_list *merge_funcs;
-static struct hook_func_list *is_merged_funcs;
 static struct hook_func_list *unmatched_state_funcs;
 
 void add_hook(void *func, enum hook_type type)
@@ -88,14 +87,6 @@ void add_merge_hook(int client_id, merge_func_t *func)
 	container->data_type = client_id;
 	container->fn = func;
 	add_ptr_list(&merge_funcs, container);
-}
-
-void add_is_merged_hook(int client_id, is_merged_func_t *func)
-{
-	struct hook_container *container = __alloc_hook_container(0);
-	container->data_type = client_id;
-	container->fn = func;
-	add_ptr_list(&is_merged_funcs, container);
 }
 
 void add_unmatched_state_hook(int client_id, unmatched_func_t *func)
@@ -209,19 +200,6 @@ struct smatch_state *__client_merge_function(int owner, const char *name,
 			return ((merge_func_t *) tmp->fn)(name, sym, s1, s2);
 	} END_FOR_EACH_PTR(tmp);
 	return &undefined;
-}
-
-int __is_merged(struct sm_state *sm)
-{
-	struct hook_container *tmp;
-
-	FOR_EACH_PTR(is_merged_funcs, tmp) {
-		if (tmp->data_type == sm->owner)
-			return ((is_merged_func_t *) tmp->fn)(sm->state);
-	} END_FOR_EACH_PTR(tmp);
-	if (sm->state == &merged)
-		return 1;
-	return 0;
 }
 
 struct smatch_state *__client_unmatched_state_function(struct sm_state *sm)

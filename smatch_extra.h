@@ -14,7 +14,6 @@ enum data_type {
 DECLARE_PTR_LIST(range_list, struct data_range);
 
 struct data_info {
-	int merged;
 	enum data_type type;
 	struct range_list *value_ranges;
 };
@@ -51,7 +50,6 @@ struct data_info *alloc_dinfo_range(long long min, long long max);
 struct range_list *range_list_union(struct range_list *one, struct range_list *two);
 long long get_dinfo_min(struct data_info *dinfo);
 long long get_dinfo_max(struct data_info *dinfo);
-int is_whole_range(struct range_list *ranges);
 long long get_single_value_from_range(struct data_info *dinfo);
 
 void function_comparison(int comparison, struct expression *expr, long long value, int left);
