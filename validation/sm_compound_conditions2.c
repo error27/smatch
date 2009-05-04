@@ -43,12 +43,10 @@ void func (void)
 		__smatch_print_value("aaa");
 	if (x || y)
 		__smatch_print_value("aaa");
-/* these last ones are broken 
 	else
 		__smatch_print_value("aaa");
 	if (!x && !y)
 		__smatch_print_value("aaa");
-*/
 }
 /*
  * check-name: Compound Conditions #2
@@ -69,5 +67,7 @@ sm_compound_conditions2.c +38 func(32) aaa = 2
 sm_compound_conditions2.c +40 func(34) aaa = 0
 sm_compound_conditions2.c +43 func(37) aaa = 2
 sm_compound_conditions2.c +45 func(39) aaa = 1-2
+sm_compound_conditions2.c +47 func(41) aaa = 0
+sm_compound_conditions2.c +49 func(43) aaa = 0
  * check-output-end
  */

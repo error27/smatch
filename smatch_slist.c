@@ -653,86 +653,6 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 	*to = results;
 }
 
-static struct sm_state *find_intersection(struct sm_state *one,
-					  struct sm_state *two)
-{
-	struct state_list *tmp1, *tmp2;
-	struct state_list_stack *stack = NULL;
-	struct sm_state *tmp_state;
-	struct sm_state *ret;
-	int count = 0;
-	
-	if (!one)
-		return two;
-
-	if (one->owner != SMATCH_EXTRA && one->state != &merged) {
-		if (one->state == two->state)
-			return one;
-		if (two->state != &merged) {
-			SM_DEBUG("mutually exclusive 'and' conditions states "
-				   "'%s': %s + %s\n", one->name,
-				   show_state(one->state),
-				   show_state(two->state));
-			return two;
-		}
-	}
-	if (one->owner == SMATCH_EXTRA) {
-		if (one->state == two->state)
-			return one;
-
-		ret = NULL;
-		if (!one->my_pools) {
-			ret = one;
-		}
-		if (!two->my_pools) {
-			ret = two;
-		}
-		if (ret)
-			return ret;
-	}
-
-	PREPARE_PTR_LIST(one->my_pools, tmp1);
-	PREPARE_PTR_LIST(two->my_pools, tmp2);
-	for (;;) {
-		if (!tmp1 && !tmp2)
-			break;
-		if (!tmp2 || (tmp1 && tmp1 < tmp2)) {
-			NEXT_PTR_LIST(tmp1);
-		} else if (tmp1 == tmp2) {
-			push_slist(&stack, tmp1);
-			count++;
-			NEXT_PTR_LIST(tmp1);
-			NEXT_PTR_LIST(tmp2);
-		} else {
-			NEXT_PTR_LIST(tmp2);
-		}
-	}
-	FINISH_PTR_LIST(tmp2);
-	FINISH_PTR_LIST(tmp1);
-
-	if (count == 0) {
-		SM_DEBUG("mutually eXclusive 'and' conditions states "
-			   "'%s': %s + %s\n", one->name, show_state(one->state),
-			   show_state(two->state));
-		return two;
-	}
-	if (count == 1)
-		return get_sm_state_stack(stack, one->name, one->owner, 
-					  one->sym);
-
-	if (one->owner == SMATCH_EXTRA)
-		return __extra_and_merge(one, stack);
-
-	ret = alloc_state_no_name(one->name, one->owner, one->sym, &merged);
-	FOR_EACH_PTR(stack, tmp1) {
-		tmp_state = get_sm_state_slist(tmp1, one->name, one->owner,
-					       one->sym);
-		add_possible(ret, tmp_state);
-	} END_FOR_EACH_PTR(tmp1);
-	ret->my_pools = stack;
-	return ret;
-}
-
 /*
  * and_slist_stack() is basically the same as popping the top two slists,
  * overwriting the one with the other and pushing it back on the stack.
@@ -743,15 +663,10 @@ static struct sm_state *find_intersection(struct sm_state *one,
 void and_slist_stack(struct state_list_stack **slist_stack)
 {
      	struct sm_state *tmp;
-	struct sm_state *left_state;
-	struct sm_state *res;
 	struct state_list *right_slist = pop_slist(slist_stack);
 
 	FOR_EACH_PTR(right_slist, tmp) {
-		left_state = get_sm_state_stack(*slist_stack, tmp->name,
-						tmp->owner, tmp->sym);
-		res = find_intersection(left_state, tmp);
-		overwrite_sm_state_stack(slist_stack, res);
+		overwrite_sm_state_stack(slist_stack, tmp);
 	} END_FOR_EACH_PTR(tmp);
 	free_slist(&right_slist);
 }
