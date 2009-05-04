@@ -31,8 +31,6 @@ char *show_ranges(struct range_list *list);
 struct range_list *remove_range(struct range_list *list, long long min, long long max);
 
 /* used in smatch_slist.  implemented in smatch_extra.c */
-struct sm_state *__extra_merge(struct sm_state *one, struct state_list *slist1,
-			       struct sm_state *two, struct state_list *slist2);
 struct sm_state *__extra_pre_loop_hook_before(struct statement *iterator_pre_statement);
 int __iterator_unchanged(struct sm_state *sm, struct statement *iterator);
 void __extra_pre_loop_hook_after(struct sm_state *sm,
