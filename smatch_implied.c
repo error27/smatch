@@ -317,6 +317,7 @@ free:
 static void implied_states_hook(struct expression *expr)
 {
 	struct sm_state *state;
+	struct sm_state *clone;
 	struct state_list *implied_true = NULL;
 	struct state_list *implied_false = NULL;
 
@@ -326,12 +327,14 @@ static void implied_states_hook(struct expression *expr)
 	get_tf_states(expr, &implied_true, &implied_false);
 
 	FOR_EACH_PTR(implied_true, state) {
-		__set_true_false_sm(state, NULL);
+		clone = clone_state(state);
+		__set_true_false_sm(clone, NULL);
 	} END_FOR_EACH_PTR(state);
 	free_slist(&implied_true);
 
 	FOR_EACH_PTR(implied_false, state) {
-		__set_true_false_sm(NULL, state);
+		clone = clone_state(state);
+		__set_true_false_sm(NULL, clone);
 	} END_FOR_EACH_PTR(state);
 	free_slist(&implied_false);
 }
