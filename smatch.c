@@ -20,6 +20,7 @@ void register_smatch_extra(int id);
 void register_smatch_ignore(int id);
 void register_implications(int id);
 void register_function_hooks(int id);
+void check_debug(int id);
 void check_null_deref(int id);
 void check_overflow(int id);
 void check_locking(int id);
@@ -37,6 +38,7 @@ void check_err_ptr_deref(int id);
 static const reg_func reg_funcs[] = {
 	&register_smatch_extra, /* smatch_extra always has to be first */
 	&register_smatch_ignore,
+	&check_debug,
 	&check_null_deref,
 	&check_overflow,
 	&check_locking,
