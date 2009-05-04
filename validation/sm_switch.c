@@ -41,7 +41,7 @@ void func (void)
 		c->a = 4;
 		break;
 	case 4:
-		//d->a = 5; this doesn't work
+		d->a = 5;
 		break;
 	}
 }
