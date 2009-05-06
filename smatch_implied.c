@@ -150,29 +150,60 @@ static struct state_list *filter_stack(struct state_list *pre_list,
 	return ret;
 }
 
+static int is_checked(struct state_list *checked, struct sm_state *sm)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(checked, tmp) {
+		if (tmp == sm)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
 static void separate_pools(struct sm_state *sm_state, int comparison, int num,
-		int left,
-		struct state_list_stack **true_stack,
-		struct state_list_stack **false_stack)
+			int left,
+			struct state_list_stack **true_stack,
+			struct state_list_stack **false_stack,
+			struct state_list **checked)
 {
 	struct state_list *list;
 	struct sm_state *s;
 	int istrue, isfalse;
+	int free_checked = 0;
+	struct state_list *checked_states = NULL;
+	static int stopper;
+ 
+	if (checked == NULL) {
+		stopper = 0;
+		checked = &checked_states;
+		free_checked = 1;
+	}
+	if (is_checked(*checked, sm_state)) {
+		return;
+	}
+	add_ptr_list(checked, sm_state);
+	
+	if (stopper++ >= 500) {
+		smatch_msg("internal error:  too much recursion going on here");
+		return;
+	}
 
 	FOR_EACH_PTR(sm_state->my_pools, list) {
 		s = get_sm_state_slist(list, sm_state->name, sm_state->owner,
 				    sm_state->sym);
 		istrue = !possibly_false(comparison,
-				       (struct data_info *)s->state->data, num, 
-				       left);
+					(struct data_info *)s->state->data, num, 
+					left);
 		isfalse = !possibly_true(comparison,
-					 (struct data_info *)s->state->data,
-					 num, left);
+					(struct data_info *)s->state->data,
+					num, left);
+
 		if (debug_implied_states || debug_states) {
 			if (istrue && isfalse) {
-				printf("'%s = %s' from %d does not exist.\n",
-					 s->name, show_state(s->state),
-					 s->line);
+				printf("'%s = %s' from %d does not exist. %p\n",
+					s->name, show_state(s->state),
+					s->line, list);
 			} else if (istrue) {
 				printf("'%s = %s' from %d is true. %p\n",
 					s->name, show_state(s->state),
@@ -183,8 +214,8 @@ static void separate_pools(struct sm_state *sm_state, int comparison, int num,
 					s->line, list);
 			} else {
 				printf("'%s = %s' from %d could be true or "
-					 "false.\n", s->name,
-					 show_state(s->state), s->line);
+					"false. %p\n", s->name,
+					show_state(s->state), s->line, list);
 			}
 		}
 		if (istrue) {
@@ -195,8 +226,10 @@ static void separate_pools(struct sm_state *sm_state, int comparison, int num,
 		}
 	} END_FOR_EACH_PTR(list);
 	FOR_EACH_PTR(sm_state->pre_merge, s) {
-		separate_pools(s, comparison, num, left, true_stack, false_stack);
+		separate_pools(s, comparison, num, left, true_stack, false_stack, checked);
 	} END_FOR_EACH_PTR(s);
+	if (free_checked)
+		free_slist(checked);
 }
 
 static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
@@ -217,7 +250,7 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 				num, show_special(comparison), sm_state->name);
 	}
 
-	separate_pools(sm_state, comparison, num, left, &true_stack, &false_stack);
+	separate_pools(sm_state, comparison, num, left, &true_stack, &false_stack, NULL);
 
 	DIMPLIED("filtering true stack.\n");
 	*true_states = filter_stack(pre_list, false_stack);
