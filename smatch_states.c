@@ -642,6 +642,7 @@ void __save_gotos(const char *name)
 	if (slist) {
 		clone = clone_slist_and_states(cur_slist);
 		merge_slist(slist, clone);
+		free_slist(&clone);
 		return;
 	} else {
 		struct named_slist *named_slist;
