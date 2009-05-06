@@ -43,11 +43,11 @@ static inline int PTR_INT(void *p)
 
 struct sm_state {
         const char *name;
-	unsigned int owner;
+	unsigned short owner;
+	unsigned int merged:1;
 	struct symbol *sym;
   	struct smatch_state *state;
-	int line;
-	int merged;
+	unsigned int line;
 	struct state_list_stack *my_pools;
 	struct state_list *pre_merge;
 	struct state_list *possible;
