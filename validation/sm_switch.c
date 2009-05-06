@@ -15,6 +15,7 @@ void func (void)
 	a = 0;
 	b = 0;
 	c = 0;
+	d = 0;
 
 	switch(x) {
 	case 1:
@@ -50,7 +51,7 @@ void func (void)
  * check-command: smatch sm_switch.c
  *
  * check-output-start
-sm_switch.c +37 func(24) error: dereferencing undefined:  'a'
-sm_switch.c +38 func(25) error: dereferencing undefined:  'b'
+sm_switch.c +38 func(25) error: dereferencing undefined:  'a'
+sm_switch.c +39 func(26) error: dereferencing undefined:  'b'
  * check-output-end
  */
