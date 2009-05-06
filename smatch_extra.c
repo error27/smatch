@@ -279,6 +279,8 @@ static void undef_expr(struct expression *expr)
 
 	if (expr->op == '*')
 		return;
+	if (expr->op == '(')
+		return;
 	
 	name = get_variable_from_expr(expr->unop, &sym);
 	if (!name)
@@ -316,23 +318,6 @@ static void match_function_def(struct symbol *sym)
 		}
 		set_state(arg->ident->name, my_id, arg, extra_undefined());
 	} END_FOR_EACH_PTR(arg);
-}
-
-static void match_unop(struct expression *expr)
-{
-	struct symbol *sym;
-	char *name;
-	const char *tmp;
-	
-
-	name = get_variable_from_expr(expr->unop, &sym);
-	if (!name)
-		return;
-
-	tmp = show_special(expr->op);
-	if ((!strcmp(tmp, "--")) || (!strcmp(tmp, "++")))
-		set_state(name, my_id, sym, extra_undefined());
-	free_string(name);
 }
 
 int get_implied_value(struct expression *expr)
@@ -682,7 +667,6 @@ void register_smatch_extra(int id)
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
-	add_hook(&match_unop, OP_HOOK);
 	add_hook(&free_data_info_allocs, END_FUNC_HOOK);
 
 #ifdef KERNEL
