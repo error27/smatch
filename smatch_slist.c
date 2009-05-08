@@ -594,11 +594,46 @@ static void match_states(struct state_list **one, struct state_list **two)
 	overwrite_slist(add_to_two, two);
 }
 
+static void clone_modified(struct state_list **one, struct state_list **two)
+{
+	struct sm_state *one_state;
+	struct sm_state *two_state;
+	struct sm_state *clone;
+	struct state_list *add_to_one = NULL;
+	struct state_list *add_to_two = NULL;
+
+	PREPARE_PTR_LIST(*one, one_state);
+	PREPARE_PTR_LIST(*two, two_state);
+	for (;;) {
+		if (!one_state && !two_state)
+			break;
+		if (cmp_tracker(one_state, two_state) < 0) {
+			NEXT_PTR_LIST(one_state);
+		} else if (cmp_tracker(one_state, two_state) == 0) {
+			if (one_state != two_state) {
+				clone = clone_state(one_state);
+				add_ptr_list(&add_to_one, clone);
+				clone = clone_state(two_state);
+				add_ptr_list(&add_to_two, clone);
+			}
+			NEXT_PTR_LIST(one_state);
+			NEXT_PTR_LIST(two_state);
+		} else {
+			NEXT_PTR_LIST(two_state);
+		}
+	}
+	FINISH_PTR_LIST(two_state);
+	FINISH_PTR_LIST(one_state);
+
+	overwrite_slist(add_to_one, one);
+	overwrite_slist(add_to_two, two);
+}
+
 /*
  * merge_slist() is called whenever paths merge, such as after
  * an if statement.  It takes the two slists and creates one.
  */
-void merge_slist(struct state_list **to, struct state_list *slist)
+static void __merge_slist(struct state_list **to, struct state_list *slist, int clone)
 {
 	struct sm_state *to_state, *state, *tmp;
 	struct state_list *results = NULL;
@@ -621,6 +656,8 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 	implied_from = clone_slist(slist);
 
 	match_states(&implied_to, &implied_from);
+	if (clone)
+		clone_modified(&implied_to, &implied_from);
 
 	PREPARE_PTR_LIST(implied_to, to_state);
 	PREPARE_PTR_LIST(implied_from, state);
@@ -650,6 +687,16 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 
 	free_slist(to);
 	*to = results;
+}
+
+void merge_slist(struct state_list **to, struct state_list *slist)
+{
+	__merge_slist(to, slist, 0);
+}
+
+void merge_slist_clone(struct state_list **to, struct state_list *slist)
+{
+	__merge_slist(to, slist, 1);
 }
 
 /*

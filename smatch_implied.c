@@ -397,6 +397,8 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	struct sm_state *false_sm;
 	struct state_list *true_states = NULL;
 	struct state_list *false_states = NULL;
+	struct state_list *true_clone;
+	struct state_list *false_clone;
 	struct state_list *ret = clone_slist(*raw_slist);
 	long long val;
 
@@ -419,8 +421,12 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	false_sm = get_sm_state_slist(false_states, name, SMATCH_EXTRA, sym);
       	if (!false_sm)
 		set_state_slist(&false_states, name, SMATCH_EXTRA, sym, add_filter(sm?sm->state:NULL, val));
-	overwrite_slist(false_states, raw_slist);
-	overwrite_slist(true_states, &ret);
+	true_clone = clone_slist_and_states(true_states);
+	false_clone = clone_slist_and_states(false_states);
+	overwrite_slist(false_clone, raw_slist);
+	overwrite_slist(true_clone, &ret);
+	free_slist(&true_clone);
+	free_slist(&false_clone);
 	free_slist(&true_states);
 	free_slist(&false_states);
 free:

@@ -553,7 +553,7 @@ void __process_breaks()
 	if (!slist) {
 		slist = clone_slist(cur_slist);
 	} else {
-		merge_slist(&slist, cur_slist);
+		merge_slist_clone(&slist, cur_slist);
 	}
 	push_slist(&break_stack, slist);
 }
@@ -581,15 +581,12 @@ void __save_switch_states()
 void __merge_switches(struct expression *switch_expr, struct expression *case_expr)
 {
 	struct state_list *slist;
-	struct state_list *cloned;
 	struct state_list *implied_slist;
 
 	slist = pop_slist(&switch_stack);
 	implied_slist = __implied_case_slist(switch_expr, case_expr, &slist);
-	cloned = clone_slist_and_states(implied_slist);
-	merge_slist(&cur_slist, cloned);
+	merge_slist_clone(&cur_slist, implied_slist);
 	free_slist(&implied_slist);
-	free_slist(&cloned);
 	push_slist(&switch_stack, slist);
 }
 

@@ -49,6 +49,7 @@ void func (void)
 /*
  * check-name: Smatch switch handling
  * check-command: smatch sm_switch.c
+ * check-known-to-fail
  *
  * check-output-start
 sm_switch.c +38 func(25) error: dereferencing undefined:  'a'
