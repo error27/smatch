@@ -51,6 +51,7 @@ struct state_list *__fake_cond_false = NULL;
 
 static struct state_list_stack *break_stack;
 static struct state_list_stack *switch_stack;
+static struct state_list_stack *is_switch_stack;
 static struct state_list_stack *default_stack;
 static struct state_list_stack *continue_stack;
 static struct state_list_stack *false_only_stack;
@@ -540,6 +541,28 @@ void __merge_continues()
 	free_slist(&slist);
 }
 
+void __push_switch_info(struct smatch_state *state)
+{
+	push_slist(&is_switch_stack, NULL);
+	if (state == &true_state)
+		set_state_stack(&is_switch_stack, "is_switch", 0, NULL, &true_state);
+}
+
+static int is_switch()
+{
+	if (last_ptr_list((struct ptr_list *)is_switch_stack))
+		return 1;
+	return 0;
+}
+
+void __pop_switch_info()
+{
+	struct state_list *slist;
+
+	slist = pop_slist(&is_switch_stack);
+	free_slist(&slist);
+}
+
 void __push_breaks() 
 { 
 	push_slist(&break_stack, NULL);
@@ -553,7 +576,10 @@ void __process_breaks()
 	if (!slist) {
 		slist = clone_slist(cur_slist);
 	} else {
-		merge_slist_clone(&slist, cur_slist);
+		if (is_switch())
+			merge_slist_clone(&slist, cur_slist);
+		else
+			merge_slist(&slist, cur_slist);
 	}
 	push_slist(&break_stack, slist);
 }
