@@ -93,7 +93,7 @@ struct decl_state {
 	struct ctype ctype;
 	struct ident **ident;
 	struct symbol_op *mode;
-	unsigned char prefer_abstract, is_inline, storage_class;
+	unsigned char prefer_abstract, is_inline, storage_class, is_tls;
 };
 
 struct symbol_op {
@@ -199,6 +199,7 @@ struct symbol {
 
 #define MOD_TYPEDEF	0x1000
 
+#define MOD_TLS		0x20000
 #define MOD_INLINE	0x40000
 #define MOD_ADDRESSABLE	0x80000
 

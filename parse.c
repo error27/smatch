@@ -41,7 +41,7 @@ static declarator_t
 	attribute_specifier, typeof_specifier, parse_asm_declarator,
 	typedef_specifier, inline_specifier, auto_specifier,
 	register_specifier, static_specifier, extern_specifier,
-	const_qualifier, volatile_qualifier;
+	thread_specifier, const_qualifier, volatile_qualifier;
 
 static struct token *parse_if_statement(struct token *token, struct statement *stmt);
 static struct token *parse_return_statement(struct token *token, struct statement *stmt);
@@ -123,6 +123,11 @@ static struct symbol_op static_op = {
 static struct symbol_op extern_op = {
 	.type = KW_MODIFIER,
 	.declarator = extern_specifier,
+};
+
+static struct symbol_op thread_op = {
+	.type = KW_MODIFIER,
+	.declarator = thread_specifier,
 };
 
 static struct symbol_op const_op = {
@@ -407,6 +412,7 @@ static struct init_keyword {
 	{ "register",	NS_TYPEDEF, .op = &register_op },
 	{ "static",	NS_TYPEDEF, .op = &static_op },
 	{ "extern",	NS_TYPEDEF, .op = &extern_op },
+	{ "__thread",	NS_TYPEDEF, .op = &thread_op },
 
 	/* Statement */
 	{ "if",		NS_KEYWORD, .op = &if_op },
@@ -1169,11 +1175,19 @@ static unsigned long storage_modifiers(struct decl_state *ctx)
 		[SStatic] = MOD_STATIC,
 		[SRegister] = MOD_REGISTER
 	};
-	return mod[ctx->storage_class] | (ctx->is_inline ? MOD_INLINE : 0);
+	return mod[ctx->storage_class] | (ctx->is_inline ? MOD_INLINE : 0)
+		| (ctx->is_tls ? MOD_TLS : 0);
 }
 
 static void set_storage_class(struct position *pos, struct decl_state *ctx, int class)
 {
+	/* __thread can be used alone, or with extern or static */
+	if (ctx->is_tls && (class != SStatic && class != SExtern)) {
+		sparse_error(*pos, "__thread can only be used alone, or with "
+				"extern or static");
+		return;
+	}
+
 	if (!ctx->storage_class) {
 		ctx->storage_class = class;
 		return;
@@ -1211,6 +1225,20 @@ static struct token *static_specifier(struct token *next, struct decl_state *ctx
 static struct token *extern_specifier(struct token *next, struct decl_state *ctx)
 {
 	set_storage_class(&next->pos, ctx, SExtern);
+	return next;
+}
+
+static struct token *thread_specifier(struct token *next, struct decl_state *ctx)
+{
+	/* This GCC extension can be used alone, or with extern or static */
+	if (!ctx->storage_class || ctx->storage_class == SStatic
+			|| ctx->storage_class == SExtern) {
+		ctx->is_tls = 1;
+	} else {
+		sparse_error(next->pos, "__thread can only be used alone, or "
+				"with extern or static");
+	}
+
 	return next;
 }
 
@@ -1875,7 +1903,7 @@ static struct statement *start_function(struct symbol *sym)
 	start_function_scope();
 	ret = alloc_symbol(sym->pos, SYM_NODE);
 	ret->ctype = sym->ctype.base_type->ctype;
-	ret->ctype.modifiers &= ~(MOD_STORAGE | MOD_CONST | MOD_VOLATILE | MOD_INLINE | MOD_ADDRESSABLE | MOD_NOCAST | MOD_NODEREF | MOD_ACCESSED | MOD_TOPLEVEL);
+	ret->ctype.modifiers &= ~(MOD_STORAGE | MOD_CONST | MOD_VOLATILE | MOD_TLS | MOD_INLINE | MOD_ADDRESSABLE | MOD_NOCAST | MOD_NODEREF | MOD_ACCESSED | MOD_TOPLEVEL);
 	ret->ctype.modifiers |= (MOD_AUTO | MOD_REGISTER);
 	bind_symbol(ret, &return_ident, NS_ITERATOR);
 	stmt->ret = ret;
