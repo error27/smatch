@@ -48,7 +48,8 @@ struct sm_state {
   	struct smatch_state *state;
 	unsigned int line;
 	struct state_list_stack *my_pools;
-	struct state_list *pre_merge;
+	struct sm_state *pre_left;
+	struct sm_state *pre_right;
 	struct state_list *possible;
 };
 

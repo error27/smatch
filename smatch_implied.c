@@ -85,7 +85,6 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 				struct state_list_stack *pools, int *modified)
 {
 	struct sm_state *ret = NULL;
-	struct sm_state *pre;
 	struct sm_state *tmp_keep;
 	struct state_list *keep = NULL;
 
@@ -101,11 +100,13 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 
 		DIMPLIED("checking %s = %s from %d\n", sm->name,
 			show_state(sm->state), sm->line);
-		FOR_EACH_PTR(sm->pre_merge, pre) {
-			tmp_keep = remove_my_pools(pre, pools, &removed);
-			if (tmp_keep)
-				add_ptr_list(&keep, tmp_keep);
-		} END_FOR_EACH_PTR(pre);
+		
+		tmp_keep = remove_my_pools(sm->pre_left, pools, &removed);
+		if (tmp_keep)
+			add_ptr_list(&keep, tmp_keep);
+		tmp_keep = remove_my_pools(sm->pre_right, pools, &removed);
+		if (tmp_keep)
+			add_ptr_list(&keep, tmp_keep);
 		if (!removed) {
 			DIMPLIED("kept %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
 			return sm;
@@ -176,6 +177,9 @@ static void separate_pools(struct sm_state *sm_state, int comparison, int num,
 	struct state_list *checked_states = NULL;
 	static int stopper;
  
+	if (!sm_state)
+		return;
+
 	if (checked == NULL) {
 		stopper = 0;
 		checked = &checked_states;
@@ -227,9 +231,8 @@ static void separate_pools(struct sm_state *sm_state, int comparison, int num,
 			add_pool(false_stack, list);
 		}
 	} END_FOR_EACH_PTR(list);
-	FOR_EACH_PTR(sm_state->pre_merge, s) {
-		separate_pools(s, comparison, num, left, true_stack, false_stack, checked);
-	} END_FOR_EACH_PTR(s);
+	separate_pools(sm_state->pre_left, comparison, num, left, true_stack, false_stack, checked);
+	separate_pools(sm_state->pre_right, comparison, num, left, true_stack, false_stack, checked);
 	if (free_checked)
 		free_slist(checked);
 }

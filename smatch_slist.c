@@ -162,7 +162,8 @@ struct sm_state *alloc_state(const char *name, int owner,
 	sm_state->line = get_lineno();
 	sm_state->merged = 0;
 	sm_state->my_pools = NULL;
-	sm_state->pre_merge = NULL;
+	sm_state->pre_left = NULL;
+	sm_state->pre_right = NULL;
 	sm_state->possible = NULL;
 	add_ptr_list(&sm_state->possible, sm_state);
 	return sm_state;
@@ -171,7 +172,6 @@ struct sm_state *alloc_state(const char *name, int owner,
 static void free_sm_state(struct sm_state *sm)
 {
 	free_slist(&sm->possible);
-	free_slist(&sm->pre_merge);
 	free_stack(&sm->my_pools);
 	/* 
 	 * fixme.  Free the actual state.
@@ -221,7 +221,8 @@ struct sm_state *clone_state(struct sm_state *s)
 	ret->merged = s->merged;
 	ret->my_pools = clone_stack(s->my_pools);
 	ret->possible = clone_slist(s->possible);
-	ret->pre_merge = clone_slist(s->pre_merge);
+	ret->pre_left = s->pre_left;
+	ret->pre_right = s->pre_right;
 	return ret;
 }
 
@@ -361,8 +362,8 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	if (two && one->line == two->line)
 		result->line = one->line;
 	result->merged = 1;
-	add_ptr_list(&result->pre_merge, one);
-	add_ptr_list(&result->pre_merge, two);
+	result->pre_left = one;
+	result->pre_right = two;
 	add_possible(result, one);
 	add_possible(result, two);
 
