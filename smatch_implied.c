@@ -143,6 +143,8 @@ static struct state_list *filter_stack(struct state_list *pre_list,
 		return NULL;
 
 	FOR_EACH_PTR(pre_list, tmp) {
+		if (out_of_memory())
+			return NULL;
 		filtered_state = remove_my_pools(tmp, stack, &modified);
 		if (filtered_state && modified)
 			add_ptr_list(&ret, filtered_state);

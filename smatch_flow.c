@@ -29,8 +29,6 @@ static void split_symlist(struct symbol_list *sym_list);
 static void split_declaration(struct symbol_list *sym_list);
 static void split_expr_list(struct expression_list *expr_list);
 
-unsigned int __get_allocations();
-
 int option_assume_loops = 0;
 int option_known_conditions = 0;
 
@@ -251,7 +249,7 @@ void __split_statements(struct statement *stmt)
 	if (!stmt)
 		return;
 	
-	if (__get_allocations() > MAXSMSTATES) {
+	if (out_of_memory()) {
 		static char *printed = NULL;
 
 		if (printed != cur_func)

@@ -63,6 +63,7 @@ static void help(void)
 	printf("Usage:  smatch [smatch arguments][sparse arguments] file.c\n");
 	printf("--debug:  print lots of debug output.\n");
 	printf("--debug-implied:  print debug output about implications.\n");
+	printf("--oom <num>:  number of mB memory to use before giving up.\n");
 	printf("--no-implied:  ignore implications.\n");
 	printf("--assume-loops:  assume loops always go through at least once.\n");
 	printf("--known-conditions:  don't branch for known conditions.\n");
@@ -80,6 +81,11 @@ void parse_args(int *argcp, char ***argvp)
 		} else if (!strcmp((*argvp)[1], "--debug-implied")) {
 			debug_implied_states = 1;
 			(*argvp)[1] = (*argvp)[0];
+		} else if (!strcmp((*argvp)[1], "--oom")) {
+			option_oom_kb = atoi((*argvp)[2]) * 1000;
+			(*argvp)[2] = (*argvp)[0];
+			(*argcp)--;
+			(*argvp)++;
 		} else if (!strcmp((*argvp)[1], "--no-implied")) {
 			option_no_implied = 1;
 			(*argvp)[1] = (*argvp)[0];

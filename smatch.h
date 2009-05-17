@@ -19,7 +19,6 @@
 #include "expression.h"
 
 #define KERNEL
-#define MAXSMSTATES 1000000 /* Limits RAM use.  Give up on big functions */
 struct smatch_state {
 	const char *name;
 	void *data;
@@ -301,6 +300,10 @@ void __match_initializer_call(struct symbol *sym);
 
 /* smatch_files.c */
 struct token *get_tokens_file(const char *filename);
+
+/* smatch_oom.c */
+extern int option_oom_kb;
+int out_of_memory();
 
 /* smatch.c */
 extern char *data_dir;
