@@ -355,10 +355,9 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 
 	if (one == two)
 		return one;
-	s = merge_states(one->name, one->owner, one->sym, one->state,
-			(two?two->state:NULL));
+	s = merge_states(one->name, one->owner, one->sym, one->state, two->state);
 	result = alloc_state_no_name(one->name, one->owner, one->sym, s);
-	if (two && one->line == two->line)
+	if (one->line == two->line)
 		result->line = one->line;
 	result->merged = 1;
 	add_ptr_list(&result->pre_merge, one);
@@ -372,7 +371,7 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 
 		printf("%d merge name='%s' owner=%d: %s + %s => %s (", 
 			get_lineno(), one->name, one->owner,
-			show_state(one->state), show_state(two?two->state:NULL),
+			show_state(one->state), show_state(two->state),
 			show_state(s));
 
 		FOR_EACH_PTR(result->possible, tmp) {
