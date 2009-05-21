@@ -31,7 +31,6 @@ struct smatch_state *merge_states(const char *name, int owner,
 				  struct smatch_state *state2);
 
 void add_pool(struct state_list_stack **pools, struct state_list *new);
-void merge_pools(struct state_list_stack **to, struct state_list_stack *from);
 struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two);
 struct smatch_state *get_state_slist(struct state_list *slist, const char *name, int owner,
 		    struct symbol *sym);

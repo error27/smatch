@@ -340,15 +340,6 @@ void add_pool(struct state_list_stack **pools, struct state_list *new)
 	add_ptr_list(pools, new);
 }
 
-void merge_pools(struct state_list_stack **to, struct state_list_stack *from)
-{
-	struct state_list *tmp;
-
- 	FOR_EACH_PTR(from, tmp) {
-		add_pool(to, tmp);
-	} END_FOR_EACH_PTR(tmp);
-}
-
 struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 {
 	struct smatch_state *s;
