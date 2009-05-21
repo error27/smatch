@@ -56,28 +56,17 @@
 int debug_implied_states = 0;
 int option_no_implied = 0;
 
-static int pools_overlap(struct state_list_stack *pools1,
-			struct state_list_stack *pools2)
+static int pool_in_pools(struct state_list *pool,
+			struct state_list_stack *pools)
 {
-	struct state_list *one;
-	struct state_list *two;
+	struct state_list *tmp;
 
-	PREPARE_PTR_LIST(pools1, one);
-	PREPARE_PTR_LIST(pools2, two);
-	for (;;) {
-		if (!one || !two)
-			return 0;
-
-		if (one < two) {
-			NEXT_PTR_LIST(one);
-		} else if (one == two) {
+	FOR_EACH_PTR(pools, tmp) {
+		if (tmp == pool)
 			return 1;
-		} else {
-			NEXT_PTR_LIST(two);
-		}
-	}
-	FINISH_PTR_LIST(two);
-	FINISH_PTR_LIST(one);
+		if (tmp > pool)
+			return 0;
+	} END_FOR_EACH_PTR(tmp);
 	return 0;
 }
 
@@ -92,7 +81,7 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 	if (!sm)
 		return NULL;
 
-	if (pools_overlap(sm->my_pools, pools)) {
+	if (pool_in_pools(sm->my_pool, pools)) {
 		DIMPLIED("removed %s = %s from %d\n", sm->name,
 			show_state(sm->state), sm->line);
 		*modified = 1;
@@ -123,16 +112,16 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 		ret->merged = 1;
 		ret->pre_right = right;
 		ret->pre_left = NULL;
-		ret->my_pools = clone_stack(sm->my_pools);
+		ret->my_pool = sm->my_pool;
 	} else if (!right) {
 		ret = clone_state(left);
 		ret->merged = 1;
 		ret->pre_left = left;
 		ret->pre_right = NULL;
-		ret->my_pools = clone_stack(sm->my_pools);
+		ret->my_pool = sm->my_pool;
 	} else {
 		ret = merge_sm_states(left, right);
-		ret->my_pools = clone_stack(sm->my_pools);
+		ret->my_pool = sm->my_pool;
 	}
 	DIMPLIED("partial %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
 	return ret;
@@ -201,9 +190,12 @@ static void separate_pools(struct sm_state *sm_state, int comparison, int num,
 		return;
 	}
 
-	FOR_EACH_PTR(sm_state->my_pools, list) {
-		s = get_sm_state_slist(list, sm_state->name, sm_state->owner,
-				    sm_state->sym);
+	if (sm_state->my_pool) {
+		s = get_sm_state_slist(sm_state->my_pool, sm_state->name, sm_state->owner,
+				sm_state->sym);
+
+		list = sm_state->my_pool;
+
 		istrue = !possibly_false(comparison,
 					(struct data_info *)s->state->data, num, 
 					left);
@@ -236,7 +228,7 @@ static void separate_pools(struct sm_state *sm_state, int comparison, int num,
 		if (isfalse) {
 			add_pool(false_stack, list);
 		}
-	} END_FOR_EACH_PTR(list);
+	}
 	separate_pools(sm_state->pre_left, comparison, num, left, true_stack, false_stack, checked);
 	separate_pools(sm_state->pre_right, comparison, num, left, true_stack, false_stack, checked);
 	if (free_checked)

@@ -161,7 +161,7 @@ struct sm_state *alloc_state(const char *name, int owner,
 	sm_state->state = state;
 	sm_state->line = get_lineno();
 	sm_state->merged = 0;
-	sm_state->my_pools = NULL;
+	sm_state->my_pool = NULL;
 	sm_state->pre_left = NULL;
 	sm_state->pre_right = NULL;
 	sm_state->possible = NULL;
@@ -172,7 +172,6 @@ struct sm_state *alloc_state(const char *name, int owner,
 static void free_sm_state(struct sm_state *sm)
 {
 	free_slist(&sm->possible);
-	free_stack(&sm->my_pools);
 	/* 
 	 * fixme.  Free the actual state.
 	 * Right now we leave it until the end of the function
@@ -637,7 +636,7 @@ static void clone_pool_havers(struct state_list *slist)
 	struct sm_state *new;
 
 	FOR_EACH_PTR(slist, state) {
-		if (state->my_pools) {
+		if (state->my_pool) {
 			new = clone_state(state);
 			REPLACE_CURRENT_PTR(state, new);
 		}
@@ -686,12 +685,12 @@ static void __merge_slist(struct state_list **to, struct state_list *slist, int 
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_tracker(to_state, state) == 0) {
 			if (to_state != state) {
-				if (to_state->my_pools)
+				if (to_state->my_pool)
 					smatch_msg("to_state '%s' has pools", to_state->name);
-				if (state->my_pools)
+				if (state->my_pool)
 					smatch_msg("state '%s' has pools", state->name);
-				add_pool(&to_state->my_pools, implied_to);
-				add_pool(&state->my_pools, implied_from);
+				to_state->my_pool = implied_to;
+				state->my_pool = implied_from;
 			}
 
 			tmp = merge_sm_states(to_state, state);
