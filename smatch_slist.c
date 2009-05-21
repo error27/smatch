@@ -219,7 +219,8 @@ struct sm_state *clone_state(struct sm_state *s)
 	ret = alloc_state_no_name(s->name, s->owner, s->sym, s->state);
 	ret->line = s->line;
 	ret->merged = s->merged;
-	ret->my_pools = clone_stack(s->my_pools);
+	/* clone_state() doesn't copy the my_pools.  Each state needs to have
+	   only one my_pool. */
 	ret->possible = clone_slist(s->possible);
 	ret->pre_left = s->pre_left;
 	ret->pre_right = s->pre_right;
