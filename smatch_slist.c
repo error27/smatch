@@ -631,6 +631,19 @@ static void clone_modified(struct state_list **one, struct state_list **two)
 	overwrite_slist(add_to_two, two);
 }
 
+static void clone_pool_havers(struct state_list *slist)
+{
+	struct sm_state *state;
+	struct sm_state *new;
+
+	FOR_EACH_PTR(slist, state) {
+		if (state->my_pools) {
+			new = clone_state(state);
+			REPLACE_CURRENT_PTR(state, new);
+		}
+	} END_FOR_EACH_PTR(state);
+}
+
 /*
  * merge_slist() is called whenever paths merge, such as after
  * an if statement.  It takes the two slists and creates one.
@@ -660,6 +673,8 @@ static void __merge_slist(struct state_list **to, struct state_list *slist, int 
 	match_states(&implied_to, &implied_from);
 	if (clone)
 		clone_modified(&implied_to, &implied_from);
+	clone_pool_havers(implied_to);
+	clone_pool_havers(implied_from);
 
 	PREPARE_PTR_LIST(implied_to, to_state);
 	PREPARE_PTR_LIST(implied_from, state);
@@ -671,6 +686,10 @@ static void __merge_slist(struct state_list **to, struct state_list *slist, int 
 			NEXT_PTR_LIST(to_state);
 		} else if (cmp_tracker(to_state, state) == 0) {
 			if (to_state != state) {
+				if (to_state->my_pools)
+					smatch_msg("to_state '%s' has pools", to_state->name);
+				if (state->my_pools)
+					smatch_msg("state '%s' has pools", state->name);
 				add_pool(&to_state->my_pools, implied_to);
 				add_pool(&state->my_pools, implied_from);
 			}

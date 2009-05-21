@@ -361,7 +361,6 @@ free:
 static void implied_states_hook(struct expression *expr)
 {
 	struct sm_state *state;
-	struct sm_state *clone;
 	struct state_list *implied_true = NULL;
 	struct state_list *implied_false = NULL;
 
@@ -371,14 +370,12 @@ static void implied_states_hook(struct expression *expr)
 	get_tf_states(expr, &implied_true, &implied_false);
 
 	FOR_EACH_PTR(implied_true, state) {
-		clone = clone_state(state);
-		__set_true_false_sm(clone, NULL);
+		__set_true_false_sm(state, NULL);
 	} END_FOR_EACH_PTR(state);
 	free_slist(&implied_true);
 
 	FOR_EACH_PTR(implied_false, state) {
-		clone = clone_state(state);
-		__set_true_false_sm(NULL, clone);
+		__set_true_false_sm(NULL, state);
 	} END_FOR_EACH_PTR(state);
 	free_slist(&implied_false);
 }
@@ -408,7 +405,6 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	struct sm_state *false_sm;
 	struct state_list *true_states = NULL;
 	struct state_list *false_states = NULL;
-	struct state_list *true_clone;
 	struct state_list *ret = clone_slist(*raw_slist);
 	long long val;
 
@@ -431,10 +427,8 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	false_sm = get_sm_state_slist(false_states, name, SMATCH_EXTRA, sym);
       	if (!false_sm)
 		set_state_slist(&false_states, name, SMATCH_EXTRA, sym, add_filter(sm?sm->state:NULL, val));
-	true_clone = clone_slist_and_states(true_states);
 	overwrite_slist(false_states, raw_slist);
-	overwrite_slist(true_clone, &ret);
-	free_slist(&true_clone);
+	overwrite_slist(true_states, &ret);
 	free_slist(&true_states);
 	free_slist(&false_states);
 free:
