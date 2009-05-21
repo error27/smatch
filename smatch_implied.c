@@ -85,8 +85,12 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 				struct state_list_stack *pools, int *modified)
 {
 	struct sm_state *ret = NULL;
-	struct sm_state *tmp_keep;
-	struct state_list *keep = NULL;
+	struct sm_state *left;
+	struct sm_state *right;
+	int removed = 0;
+
+	if (!sm)
+		return NULL;
 
 	if (pools_overlap(sm->my_pools, pools)) {
 		DIMPLIED("removed %s = %s from %d\n", sm->name,
@@ -95,41 +99,43 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 		return NULL;
 	}
 
-	if (is_merged(sm)) {
-		int removed = 0;
-
-		DIMPLIED("checking %s = %s from %d\n", sm->name,
-			show_state(sm->state), sm->line);
-		
-		tmp_keep = remove_my_pools(sm->pre_left, pools, &removed);
-		if (tmp_keep)
-			add_ptr_list(&keep, tmp_keep);
-		tmp_keep = remove_my_pools(sm->pre_right, pools, &removed);
-		if (tmp_keep)
-			add_ptr_list(&keep, tmp_keep);
-		if (!removed) {
-			DIMPLIED("kept %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
-			return sm;
-		}
-		*modified = 1;
-		if (!keep) {
-			DIMPLIED("removed %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
-			return NULL;
-		}
-
-		FOR_EACH_PTR(keep, tmp_keep) {
-			if (!ret)
-				ret = tmp_keep;
-			else
-				ret = merge_sm_states(ret, tmp_keep);
-		} END_FOR_EACH_PTR(tmp_keep);
-		merge_pools(&ret->my_pools, sm->my_pools);
-		DIMPLIED("partial %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
-		return ret;
+	if (!is_merged(sm)) {
+		DIMPLIED("kept %s = %s from %d\n", sm->name, show_state(sm->state),
+			sm->line);
+		return sm;
 	}
-	DIMPLIED("kept %s = %s from %d\n", sm->name, show_state(sm->state),
-		sm->line);
-	return sm;
+
+	DIMPLIED("checking %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
+	left = remove_my_pools(sm->pre_left, pools, &removed);
+	right = remove_my_pools(sm->pre_right, pools, &removed);
+	if (!removed) {
+		DIMPLIED("kept %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
+		return sm;
+	}
+	*modified = 1;
+	if (!left && !right) {
+		DIMPLIED("removed %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
+		return NULL;
+	}
+
+	if (!left) {
+		ret = clone_state(right);
+		ret->merged = 1;
+		ret->pre_right = right;
+		ret->pre_left = NULL;
+		ret->my_pools = clone_stack(sm->my_pools);
+	} else if (!right) {
+		ret = clone_state(left);
+		ret->merged = 1;
+		ret->pre_left = left;
+		ret->pre_right = NULL;
+		ret->my_pools = clone_stack(sm->my_pools);
+	} else {
+		ret = merge_sm_states(left, right);
+		ret->my_pools = clone_stack(sm->my_pools);
+	}
+	DIMPLIED("partial %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
+	return ret;
 }
 
 static struct state_list *filter_stack(struct state_list *pre_list,
