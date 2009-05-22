@@ -276,20 +276,6 @@ struct state_list *clone_slist(struct state_list *from_slist)
 	return to_slist;
 }
 
-struct state_list *clone_slist_and_states(struct state_list *from_slist)
-{
-	struct sm_state *state;
-	struct sm_state *tmp;
-	struct state_list *to_slist = NULL;
-
-	FOR_EACH_PTR(from_slist, state) {
-		tmp = clone_state(state);
-		add_ptr_list(&to_slist, tmp);
-	} END_FOR_EACH_PTR(state);
-	check_order(to_slist);
-	return to_slist;
-}
-
 struct state_list_stack *clone_stack(struct state_list_stack *from_stack)
 {
 	struct state_list *slist;
@@ -585,41 +571,6 @@ static void match_states(struct state_list **one, struct state_list **two)
 	overwrite_slist(add_to_two, two);
 }
 
-static void clone_modified(struct state_list **one, struct state_list **two)
-{
-	struct sm_state *one_state;
-	struct sm_state *two_state;
-	struct sm_state *clone;
-	struct state_list *add_to_one = NULL;
-	struct state_list *add_to_two = NULL;
-
-	PREPARE_PTR_LIST(*one, one_state);
-	PREPARE_PTR_LIST(*two, two_state);
-	for (;;) {
-		if (!one_state && !two_state)
-			break;
-		if (cmp_tracker(one_state, two_state) < 0) {
-			NEXT_PTR_LIST(one_state);
-		} else if (cmp_tracker(one_state, two_state) == 0) {
-			if (one_state != two_state) {
-				clone = clone_state(one_state);
-				add_ptr_list(&add_to_one, clone);
-				clone = clone_state(two_state);
-				add_ptr_list(&add_to_two, clone);
-			}
-			NEXT_PTR_LIST(one_state);
-			NEXT_PTR_LIST(two_state);
-		} else {
-			NEXT_PTR_LIST(two_state);
-		}
-	}
-	FINISH_PTR_LIST(two_state);
-	FINISH_PTR_LIST(one_state);
-
-	overwrite_slist(add_to_one, one);
-	overwrite_slist(add_to_two, two);
-}
-
 static void clone_pool_havers(struct state_list *slist)
 {
 	struct sm_state *state;
@@ -637,7 +588,7 @@ static void clone_pool_havers(struct state_list *slist)
  * merge_slist() is called whenever paths merge, such as after
  * an if statement.  It takes the two slists and creates one.
  */
-static void __merge_slist(struct state_list **to, struct state_list *slist, int clone)
+void merge_slist(struct state_list **to, struct state_list *slist)
 {
 	struct sm_state *to_state, *state, *tmp;
 	struct state_list *results = NULL;
@@ -660,8 +611,7 @@ static void __merge_slist(struct state_list **to, struct state_list *slist, int 
 	implied_from = clone_slist(slist);
 
 	match_states(&implied_to, &implied_from);
-	if (clone)
-		clone_modified(&implied_to, &implied_from);
+
 	clone_pool_havers(implied_to);
 	clone_pool_havers(implied_from);
 
@@ -697,16 +647,6 @@ static void __merge_slist(struct state_list **to, struct state_list *slist, int 
 
 	free_slist(to);
 	*to = results;
-}
-
-void merge_slist(struct state_list **to, struct state_list *slist)
-{
-	__merge_slist(to, slist, 0);
-}
-
-void merge_slist_clone(struct state_list **to, struct state_list *slist)
-{
-	__merge_slist(to, slist, 1);
 }
 
 /*

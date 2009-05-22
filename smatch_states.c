@@ -553,7 +553,7 @@ void __process_breaks()
 	if (!slist) {
 		slist = clone_slist(cur_slist);
 	} else {
-		merge_slist_clone(&slist, cur_slist);
+		merge_slist(&slist, cur_slist);
 	}
 	push_slist(&break_stack, slist);
 }
@@ -585,7 +585,7 @@ void __merge_switches(struct expression *switch_expr, struct expression *case_ex
 
 	slist = pop_slist(&switch_stack);
 	implied_slist = __implied_case_slist(switch_expr, case_expr, &slist);
-	merge_slist_clone(&cur_slist, implied_slist);
+	merge_slist(&cur_slist, implied_slist);
 	free_slist(&implied_slist);
 	push_slist(&switch_stack, slist);
 }
@@ -637,7 +637,7 @@ void __save_gotos(const char *name)
 
 	slist = get_slist_from_named_stack(goto_stack, name);
 	if (slist) {
-		clone = clone_slist_and_states(cur_slist);
+		clone = clone_slist(cur_slist);
 		merge_slist(slist, clone);
 		free_slist(&clone);
 		return;
