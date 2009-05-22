@@ -252,9 +252,6 @@ void __pop_continues();
 void __process_continues();
 void __merge_continues();
 
-void __push_switch_info(struct smatch_state *state);
-void __pop_switch_info();
-
 void __push_breaks();
 void __process_breaks();
 void __merge_breaks();

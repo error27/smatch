@@ -311,7 +311,6 @@ void __split_statements(struct statement *stmt)
 		__pop_false_only_stack();
 		return;
 	case STMT_ITERATOR:
-		__push_switch_info(NULL);
 		if (stmt->iterator_pre_condition)
 			handle_pre_loop(stmt);
 		else if (stmt->iterator_post_condition)
@@ -320,10 +319,8 @@ void __split_statements(struct statement *stmt)
 			// these are for(;;) type loops.
 			handle_pre_loop(stmt);
 		}
-		__pop_switch_info();
 		return;
 	case STMT_SWITCH:
-		__push_switch_info(&true_state);
 		__split_expr(stmt->switch_expression);
 		push_expression(&switch_expr_stack, stmt->switch_expression);
 		__save_switch_states();
@@ -337,7 +334,6 @@ void __split_statements(struct statement *stmt)
 		__pop_switches();
 		__merge_breaks();
 		pop_expression(&switch_expr_stack);
-		__pop_switch_info();
 		return;
 	case STMT_CASE:
 		__merge_switches(top_expression(switch_expr_stack),
