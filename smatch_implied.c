@@ -133,12 +133,13 @@ static struct state_list *filter_stack(struct state_list *pre_list,
 	struct state_list *ret = NULL;
 	struct sm_state *tmp;
 	struct sm_state *filtered_state;
-	int modified = 0;
+	int modified;
 
 	if (!stack)
 		return NULL;
 
 	FOR_EACH_PTR(pre_list, tmp) {
+		modified = 0;
 		if (out_of_memory())
 			return NULL;
 		filtered_state = remove_my_pools(tmp, stack, &modified);
