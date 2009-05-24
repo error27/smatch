@@ -590,10 +590,10 @@ static void clone_pool_havers(struct state_list *slist)
  */
 void merge_slist(struct state_list **to, struct state_list *slist)
 {
-	struct sm_state *to_state, *state, *tmp;
+	struct sm_state *one_state, *two_state, *tmp;
 	struct state_list *results = NULL;
-	struct state_list *implied_to = NULL;
-	struct state_list *implied_from = NULL;
+	struct state_list *implied_one = NULL;
+	struct state_list *implied_two = NULL;
 
 	check_order(*to);
 	check_order(slist);
@@ -607,43 +607,39 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 		return;
 	}
 
-	implied_to = clone_slist(*to);
-	implied_from = clone_slist(slist);
+	implied_one = clone_slist(*to);
+	implied_two = clone_slist(slist);
 
-	match_states(&implied_to, &implied_from);
+	match_states(&implied_one, &implied_two);
 
-	clone_pool_havers(implied_to);
-	clone_pool_havers(implied_from);
+	clone_pool_havers(implied_one);
+	clone_pool_havers(implied_two);
 
-	PREPARE_PTR_LIST(implied_to, to_state);
-	PREPARE_PTR_LIST(implied_from, state);
+	PREPARE_PTR_LIST(implied_one, one_state);
+	PREPARE_PTR_LIST(implied_two, two_state);
 	for (;;) {
-		if (!to_state && !state)
+		if (!one_state && !two_state)
 			break;
-		if (cmp_tracker(to_state, state) < 0) {
+		if (cmp_tracker(one_state, two_state) < 0) {
 			smatch_msg("error:  Internal smatch error.");
-			NEXT_PTR_LIST(to_state);
-		} else if (cmp_tracker(to_state, state) == 0) {
-			if (to_state != state) {
-				if (to_state->my_pool)
-					smatch_msg("to_state '%s' has pools", to_state->name);
-				if (state->my_pool)
-					smatch_msg("state '%s' has pools", state->name);
-				to_state->my_pool = implied_to;
-				state->my_pool = implied_from;
+			NEXT_PTR_LIST(one_state);
+		} else if (cmp_tracker(one_state, two_state) == 0) {
+			if (one_state != two_state) {
+				one_state->my_pool = implied_one;
+				two_state->my_pool = implied_two;
 			}
 
-			tmp = merge_sm_states(to_state, state);
+			tmp = merge_sm_states(one_state, two_state);
 			add_ptr_list(&results, tmp);
-			NEXT_PTR_LIST(to_state);
-			NEXT_PTR_LIST(state);
+			NEXT_PTR_LIST(one_state);
+			NEXT_PTR_LIST(two_state);
 		} else {
 			smatch_msg("error:  Internal smatch error.");
-			NEXT_PTR_LIST(state);
+			NEXT_PTR_LIST(two_state);
 		}
 	}
-	FINISH_PTR_LIST(state);
-	FINISH_PTR_LIST(to_state);
+	FINISH_PTR_LIST(two_state);
+	FINISH_PTR_LIST(one_state);
 
 	free_slist(to);
 	*to = results;
