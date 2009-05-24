@@ -134,17 +134,20 @@ static struct state_list *filter_stack(struct state_list *pre_list,
 	struct sm_state *tmp;
 	struct sm_state *filtered_state;
 	int modified;
+	int counter = 0;
 
 	if (!stack)
 		return NULL;
 
 	FOR_EACH_PTR(pre_list, tmp) {
 		modified = 0;
-		if (out_of_memory())
-			return NULL;
 		filtered_state = remove_my_pools(tmp, stack, &modified);
-		if (filtered_state && modified)
+		if (filtered_state && modified) {
 			add_ptr_list(&ret, filtered_state);
+			if ((counter++)%10 && out_of_memory())
+				return NULL;
+
+		}
 	} END_FOR_EACH_PTR(tmp);
 	return ret;
 }
