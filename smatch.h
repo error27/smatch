@@ -44,6 +44,7 @@ struct sm_state {
         const char *name;
 	unsigned short owner;
 	unsigned int merged:1;
+	unsigned int implied:1;
 	struct symbol *sym;
   	struct smatch_state *state;
 	unsigned int line;

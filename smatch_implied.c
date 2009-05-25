@@ -123,6 +123,7 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 		ret = merge_sm_states(left, right);
 		ret->my_pool = sm->my_pool;
 	}
+	ret->implied = 1;
 	DIMPLIED("partial %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
 	return ret;
 }
@@ -194,8 +195,13 @@ static void separate_pools(struct sm_state *sm_state, int comparison, int num,
 	}
 
 	if (sm_state->my_pool) {
-		s = get_sm_state_slist(sm_state->my_pool, sm_state->name, sm_state->owner,
-				sm_state->sym);
+		if (is_implied(sm_state)) {
+			s = get_sm_state_slist(sm_state->my_pool,
+					sm_state->name, sm_state->owner,
+					sm_state->sym);
+		} else { 
+			s = sm_state;
+		}
 
 		istrue = !possibly_false(comparison,
 					(struct data_info *)s->state->data, num, 

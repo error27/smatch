@@ -161,6 +161,7 @@ struct sm_state *alloc_state(const char *name, int owner,
 	sm_state->state = state;
 	sm_state->line = get_lineno();
 	sm_state->merged = 0;
+	sm_state->implied = 0;
 	sm_state->my_pool = NULL;
 	sm_state->pre_left = NULL;
 	sm_state->pre_right = NULL;
@@ -218,6 +219,7 @@ struct sm_state *clone_state(struct sm_state *s)
 	ret = alloc_state_no_name(s->name, s->owner, s->sym, s->state);
 	ret->line = s->line;
 	ret->merged = s->merged;
+	ret->implied = s->implied;
 	/* clone_state() doesn't copy the my_pools.  Each state needs to have
 	   only one my_pool. */
 	ret->possible = clone_slist(s->possible);
@@ -229,6 +231,11 @@ struct sm_state *clone_state(struct sm_state *s)
 int is_merged(struct sm_state *sm)
 {
 	return sm->merged;
+}
+
+int is_implied(struct sm_state *sm)
+{
+	return sm->implied;
 }
 
 int slist_has_state(struct state_list *slist, struct smatch_state *state)
