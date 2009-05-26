@@ -362,46 +362,34 @@ int false_comparison_range_lr(int comparison, struct data_range *var, struct dat
 		return false_comparison_range(val, comparison, var);
 }
 
-
-
 int possibly_true(int comparison, struct data_info *dinfo, int num, int left)
 {
 	struct data_range *tmp;
-	int ret = 0;
 	struct data_range drange;
 
 	drange.min = num;
 	drange.max = num;
 
 	FOR_EACH_PTR(dinfo->value_ranges, tmp) {
-		if (left)
-			ret = true_comparison_range(tmp, comparison, &drange);
-		else
-			ret = true_comparison_range(&drange,  comparison, tmp);
-		if (ret)
-			return ret;
+		if (true_comparison_range_lr(comparison, tmp, &drange, left))
+			return 1;
 	} END_FOR_EACH_PTR(tmp);
-	return ret;
+	return 0;
 }
 
 int possibly_false(int comparison, struct data_info *dinfo, int num, int left)
 {
 	struct data_range *tmp;
-	int ret = 0;
 	struct data_range drange;
 
 	drange.min = num;
 	drange.max = num;
 
 	FOR_EACH_PTR(dinfo->value_ranges, tmp) {
-		if (left)
-			ret = false_comparison_range(tmp, comparison, &drange);
-		else
-			ret = false_comparison_range(&drange,  comparison, tmp);
-		if (ret)
-			return ret;
+		if (false_comparison_range_lr(comparison, tmp, &drange, left))
+			return 1;
 	} END_FOR_EACH_PTR(tmp);
-	return ret;
+	return 0;
 }
 
 void tack_on(struct range_list **list, struct data_range *drange)
