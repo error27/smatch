@@ -56,6 +56,8 @@
 int debug_implied_states = 0;
 int option_no_implied = 0;
 
+static int print_once = 0;
+
 static int pool_in_pools(struct state_list *pool,
 			struct state_list_stack *pools)
 {
@@ -80,6 +82,14 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 
 	if (!sm)
 		return NULL;
+
+	if (sm->nr_children > 5000) {
+		if (!print_once++) {
+			smatch_msg("debug: remove_my_pools %s nr_children %d",
+				sm->name, sm->nr_children);
+		}
+		return NULL;
+	}
 
 	if (pool_in_pools(sm->my_pool, pools)) {
 		DIMPLIED("removed %s = %s from %d\n", sm->name,
@@ -174,13 +184,24 @@ static void separate_pools(struct sm_state *sm_state, int comparison, int num,
 	int istrue, isfalse;
 	int free_checked = 0;
 	struct state_list *checked_states = NULL;
-	static int stopper;
  
 	if (!sm_state)
 		return;
 
+	/* 
+	   Sometimes the implications are just too big to deal with
+	   so we bail.  Theoretically, implications only get rid of 
+	   false positives and don't affect actual bugs.
+	*/
+	if (sm_state->nr_children > 5000) {
+		if (!print_once) {
+			smatch_msg("debug: seperate_pools %s nr_children %d",
+				sm_state->name, sm_state->nr_children);
+		}
+		return;
+	}
+
 	if (checked == NULL) {
-		stopper = 0;
 		checked = &checked_states;
 		free_checked = 1;
 	}
@@ -189,11 +210,6 @@ static void separate_pools(struct sm_state *sm_state, int comparison, int num,
 	}
 	add_ptr_list(checked, sm_state);
 	
-	if (stopper++ >= 500) {
-		smatch_msg("internal error:  too much recursion going on here");
-		return;
-	}
-
 	if (sm_state->my_pool) {
 		if (is_implied(sm_state)) {
 			s = get_sm_state_slist(sm_state->my_pool,
@@ -435,9 +451,15 @@ free:
 	return ret;
 }
 
+static void clear_print_once(struct symbol *sym)
+{
+	print_once = 0;
+}
+
 void __extra_match_condition(struct expression *expr);
 void register_implications(int id)
 {
 	add_hook(&implied_states_hook, CONDITION_HOOK);
 	add_hook(&__extra_match_condition, CONDITION_HOOK);
+	add_hook(&clear_print_once, END_FUNC_HOOK);
 }

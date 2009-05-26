@@ -51,6 +51,7 @@ struct sm_state {
 	struct state_list *my_pool;
 	struct sm_state *pre_left;
 	struct sm_state *pre_right;
+	unsigned int nr_children;
 	struct state_list *possible;
 };
 
