@@ -49,8 +49,8 @@ struct sm_state {
   	struct smatch_state *state;
 	unsigned int line;
 	struct state_list *my_pool;
-	struct sm_state *pre_left;
-	struct sm_state *pre_right;
+	struct sm_state *left;
+	struct sm_state *right;
 	unsigned int nr_children;
 	struct state_list *possible;
 };

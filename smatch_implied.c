@@ -25,7 +25,7 @@
  *
  * At point #1 merge_slist() stores the list of states from both
  * the true and false paths.  On the true path foo == 99 and on
- * the false path foo == 1.  merge_slist() sets their my_pools
+ * the false path foo == 1.  merge_slist() sets their my_pool
  * list to show the other states which were there when foo == 99.
  *
  * When it comes to the if (foo == 99) the smatch implied hook
@@ -39,12 +39,15 @@
  *
  * That is the implied state of bar.
  *
- * merge_slist() sets up ->my_pools.
- * merge_sm_state() sets ->pre_merge.
+ * merge_slist() sets up ->my_pool.  An sm_state only has one ->my_pool and
+ *    that is the pool where it was first set.  Implied states sometimes have a 
+ *    my_pool to reflect that the code flowed through that path.
+ * merge_sm_state() sets ->left and ->right.  (These are the states which were
+ *    merged to form the current state.)
  * If an sm_state is not the same on both sides of a merge, it
  *    gets a ->my_pool set for both sides.  The result is a merged
- *    state that has it's ->pre_merge pointers set.  Merged states
- *    do not immediately have any my_pools set, but maybe will later
+ *    state that has it's ->left and ->right pointers set.  Merged states
+ *    do not immediately have any my_pool set, but maybe will later
  *    when they themselves are merged.
  * A pool is a list of all the states that were set at the time.
  */
@@ -105,8 +108,8 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 	}
 
 	DIMPLIED("checking %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
-	left = remove_my_pools(sm->pre_left, pools, &removed);
-	right = remove_my_pools(sm->pre_right, pools, &removed);
+	left = remove_my_pools(sm->left, pools, &removed);
+	right = remove_my_pools(sm->right, pools, &removed);
 	if (!removed) {
 		DIMPLIED("kept %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
 		return sm;
@@ -120,14 +123,14 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 	if (!left) {
 		ret = clone_state(right);
 		ret->merged = 1;
-		ret->pre_right = right;
-		ret->pre_left = NULL;
+		ret->right = right;
+		ret->left = NULL;
 		ret->my_pool = sm->my_pool;
 	} else if (!right) {
 		ret = clone_state(left);
 		ret->merged = 1;
-		ret->pre_left = left;
-		ret->pre_right = NULL;
+		ret->left = left;
+		ret->right = NULL;
 		ret->my_pool = sm->my_pool;
 	} else {
 		ret = merge_sm_states(left, right);
@@ -252,8 +255,8 @@ static void separate_pools(struct sm_state *sm_state, int comparison, int num,
 			add_pool(false_stack, s->my_pool);
 		}
 	}
-	separate_pools(sm_state->pre_left, comparison, num, left, true_stack, false_stack, checked);
-	separate_pools(sm_state->pre_right, comparison, num, left, true_stack, false_stack, checked);
+	separate_pools(sm_state->left, comparison, num, left, true_stack, false_stack, checked);
+	separate_pools(sm_state->right, comparison, num, left, true_stack, false_stack, checked);
 	if (free_checked)
 		free_slist(checked);
 }

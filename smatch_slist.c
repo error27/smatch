@@ -163,8 +163,8 @@ struct sm_state *alloc_state(const char *name, int owner,
 	sm_state->merged = 0;
 	sm_state->implied = 0;
 	sm_state->my_pool = NULL;
-	sm_state->pre_left = NULL;
-	sm_state->pre_right = NULL;
+	sm_state->left = NULL;
+	sm_state->right = NULL;
 	sm_state->nr_children = 1;
 	sm_state->possible = NULL;
 	add_ptr_list(&sm_state->possible, sm_state);
@@ -223,8 +223,8 @@ struct sm_state *clone_state(struct sm_state *s)
 	/* clone_state() doesn't copy the my_pools.  Each state needs to have
 	   only one my_pool. */
 	ret->possible = clone_slist(s->possible);
-	ret->pre_left = s->pre_left;
-	ret->pre_right = s->pre_right;
+	ret->left = s->left;
+	ret->right = s->right;
 	ret->nr_children = s->nr_children;
 	return ret;
 }
@@ -346,8 +346,8 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	if (one->line == two->line)
 		result->line = one->line;
 	result->merged = 1;
-	result->pre_left = one;
-	result->pre_right = two;
+	result->left = one;
+	result->right = two;
 	result->nr_children = one->nr_children + two->nr_children;
 	add_possible(result, one);
 	add_possible(result, two);
