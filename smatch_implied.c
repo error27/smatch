@@ -61,6 +61,21 @@ int option_no_implied = 0;
 
 static int print_once = 0;
 
+static struct range_list *my_list = NULL;
+static struct data_range *my_range;
+
+static struct range_list *tmp_range_list(long num)
+{
+	if (!my_list) {
+		my_range = alloc_range(num, num);
+		add_ptr_list(&my_list, my_range);
+	}
+
+	my_range->min = num;
+	my_range->max = num;
+	return my_list;
+}
+
 static int pool_in_pools(struct state_list *pool,
 			struct state_list_stack *pools)
 {
@@ -177,7 +192,7 @@ static int is_checked(struct state_list *checked, struct sm_state *sm)
 	return 0;
 }
 
-static void separate_pools(struct sm_state *sm_state, int comparison, int num,
+static void separate_pools(struct sm_state *sm_state, int comparison, struct range_list *vals,
 			int left,
 			struct state_list_stack **true_stack,
 			struct state_list_stack **false_stack,
@@ -222,13 +237,13 @@ static void separate_pools(struct sm_state *sm_state, int comparison, int num,
 			s = sm_state;
 		}
 
-		istrue = !possibly_false(comparison,
-					(struct data_info *)s->state->data, num, 
-					left);
-		isfalse = !possibly_true(comparison,
-					(struct data_info *)s->state->data,
-					num, left);
-
+		istrue = !possibly_false_range_list(comparison,
+						(struct data_info *)s->state->data,
+						vals, left);
+		isfalse = !possibly_true_range_list(comparison,
+						(struct data_info *)s->state->data,
+						vals, left);
+		
 		if (debug_implied_states || debug_states) {
 			if (istrue && isfalse) {
 				printf("'%s = %s' from %d does not exist.\n",
@@ -255,13 +270,13 @@ static void separate_pools(struct sm_state *sm_state, int comparison, int num,
 			add_pool(false_stack, s->my_pool);
 		}
 	}
-	separate_pools(sm_state->left, comparison, num, left, true_stack, false_stack, checked);
-	separate_pools(sm_state->right, comparison, num, left, true_stack, false_stack, checked);
+	separate_pools(sm_state->left, comparison, vals, left, true_stack, false_stack, checked);
+	separate_pools(sm_state->right, comparison, vals, left, true_stack, false_stack, checked);
 	if (free_checked)
 		free_slist(checked);
 }
 
-static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
+static void get_eq_neq(struct sm_state *sm_state, int comparison, struct range_list *vals,
 		int left,
 		struct state_list *pre_list,
 		struct state_list **true_states,
@@ -272,14 +287,14 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, int num,
 
 	if (debug_implied_states || debug_states) {
 		if (left)
-			smatch_msg("checking implications: (%s %s %d)",
-				sm_state->name, show_special(comparison), num);
+			smatch_msg("checking implications: (%s %s %s)",
+				sm_state->name, show_special(comparison), show_ranges(vals));
 		else
-			smatch_msg("checking implications: (%d %s %s)",
-				num, show_special(comparison), sm_state->name);
+			smatch_msg("checking implications: (%s %s %s)",
+				show_ranges(vals), show_special(comparison), sm_state->name);
 	}
 
-	separate_pools(sm_state, comparison, num, left, &true_stack, &false_stack, NULL);
+	separate_pools(sm_state, comparison, vals, left, &true_stack, &false_stack, NULL);
 
 	DIMPLIED("filtering true stack.\n");
 	*true_states = filter_stack(pre_list, false_stack);
@@ -333,7 +348,7 @@ static void handle_comparison(struct expression *expr,
 		DIMPLIED("%d '%s' is not merged.\n", get_lineno(), state->name);
 		goto free;
 	}
-	get_eq_neq(state, expr->op, value, left, __get_cur_slist(), implied_true, implied_false);
+	get_eq_neq(state, expr->op, tmp_range_list(value), left, __get_cur_slist(), implied_true, implied_false);
 	delete_state_slist(implied_true, name, SMATCH_EXTRA, sym);
 	delete_state_slist(implied_false, name, SMATCH_EXTRA, sym);
 free:
@@ -369,7 +384,7 @@ static void get_tf_states(struct expression *expr,
 		DIMPLIED("%d '%s' has no pools.\n", get_lineno(), state->name);
 		goto free;
 	}
-	get_eq_neq(state, SPECIAL_NOTEQUAL, 0, 1, __get_cur_slist(), implied_true, implied_false);
+	get_eq_neq(state, SPECIAL_NOTEQUAL, tmp_range_list(0), 1, __get_cur_slist(), implied_true, implied_false);
 	delete_state_slist(implied_true, name, SMATCH_EXTRA, sym);
 	delete_state_slist(implied_false, name, SMATCH_EXTRA, sym);
 free:
@@ -398,6 +413,27 @@ static void implied_states_hook(struct expression *expr)
 	free_slist(&implied_false);
 }
 
+struct range_list *__get_implied_values(struct expression *switch_expr)
+{
+	char *name;
+	struct symbol *sym;
+	struct smatch_state *state;
+	struct range_list *ret = NULL;
+
+	name = get_variable_from_expr(switch_expr, &sym);
+	if (!name || !sym)
+		goto free;
+	state = get_state(name, SMATCH_EXTRA, sym);
+	if (!state)
+		goto free;
+	ret = clone_range_list(((struct data_info *)state->data)->value_ranges);
+free:
+	free_string(name);
+	if (!ret)
+		add_range(&ret, whole_range.min, whole_range.max);
+	return ret;
+}
+
 void get_implications(char *name, struct symbol *sym, int comparison, int num,
 		      struct state_list **true_states,
 		      struct state_list **false_states)
@@ -409,43 +445,48 @@ void get_implications(char *name, struct symbol *sym, int comparison, int num,
 		return;
 	if (slist_has_state(sm->possible, &undefined))
 		return;
-	get_eq_neq(sm, comparison, num, 1, __get_cur_slist(), true_states, false_states);
+	get_eq_neq(sm, comparison, tmp_range_list(num), 1, __get_cur_slist(), true_states, false_states);
 }
 
 struct state_list *__implied_case_slist(struct expression *switch_expr,
 					struct expression *case_expr,
+					struct range_list_stack **remaining_cases,
 					struct state_list **raw_slist)
 {
 	char *name = NULL;
 	struct symbol *sym;
 	struct sm_state *sm;
 	struct sm_state *true_sm;
-	struct sm_state *false_sm;
 	struct state_list *true_states = NULL;
 	struct state_list *false_states = NULL;
 	struct state_list *ret = clone_slist(*raw_slist);
 	long long val;
+	struct data_range *range;
+	struct range_list *vals = NULL;
 
-	if (!case_expr)
-		return ret;
 	name = get_variable_from_expr(switch_expr, &sym);
 	if (!name || !sym)
 		goto free;
 	sm = get_sm_state_slist(*raw_slist, name, SMATCH_EXTRA, sym);
-	val = get_value(case_expr);
-	if (val == UNDEFINED)
-		goto free;
+	if (!case_expr) {
+		vals = top_range_list(*remaining_cases);
+	} else {
+		val = get_value(case_expr);
+		if (val == UNDEFINED) {
+			goto free;
+		} else {
+			filter_top_range_list(remaining_cases, val);
+			range = alloc_range(val, val);
+			add_ptr_list(&vals, range);
+		}
+	}
 	if (sm) {
-		get_eq_neq(sm, SPECIAL_EQUAL, val, 1, *raw_slist, &true_states, &false_states);
+		get_eq_neq(sm, SPECIAL_EQUAL, vals, 1, *raw_slist, &true_states, &false_states);
 	}
 	
 	true_sm = get_sm_state_slist(true_states, name, SMATCH_EXTRA, sym);
 	if (!true_sm)
-		set_state_slist(&true_states, name, SMATCH_EXTRA, sym, alloc_extra_state(val));
-	false_sm = get_sm_state_slist(false_states, name, SMATCH_EXTRA, sym);
-      	if (!false_sm)
-		set_state_slist(&false_states, name, SMATCH_EXTRA, sym, add_filter(sm?sm->state:NULL, val));
-	overwrite_slist(false_states, raw_slist);
+		set_state_slist(&true_states, name, SMATCH_EXTRA, sym, alloc_extra_state_range_list(vals));
 	overwrite_slist(true_states, &ret);
 	free_slist(&true_states);
 	free_slist(&false_states);

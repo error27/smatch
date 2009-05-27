@@ -323,7 +323,7 @@ void __split_statements(struct statement *stmt)
 	case STMT_SWITCH:
 		__split_expr(stmt->switch_expression);
 		push_expression(&switch_expr_stack, stmt->switch_expression);
-		__save_switch_states();
+		__save_switch_states(top_expression(switch_expr_stack));
 		nullify_path();
 		__push_default();
 		__push_breaks();

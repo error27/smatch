@@ -115,6 +115,16 @@ struct data_info *alloc_dinfo_range(long long min, long long max)
 	return ret;
 }
 
+struct data_info *alloc_dinfo_range_list(struct range_list *rl)
+{
+	struct data_info *ret;
+
+	ret = __alloc_data_info(0);
+	ret->type = DATA_RANGE;
+	ret->value_ranges = rl;
+	return ret;
+}
+
 void add_range(struct range_list **list, long long min, long long max)
 {
 	struct data_range *tmp = NULL;
@@ -392,6 +402,32 @@ int possibly_false(int comparison, struct data_info *dinfo, int num, int left)
 	return 0;
 }
 
+int possibly_true_range_list(int comparison, struct data_info *dinfo, struct range_list *values, int left)
+{
+	struct data_range *tmp, *tmp2;
+
+	FOR_EACH_PTR(dinfo->value_ranges, tmp) {
+		FOR_EACH_PTR(values, tmp2) {
+			if (true_comparison_range_lr(comparison, tmp, tmp2, left))
+				return 1;
+		} END_FOR_EACH_PTR(tmp2);
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
+int possibly_false_range_list(int comparison, struct data_info *dinfo, struct range_list *values, int left)
+{
+	struct data_range *tmp, *tmp2;
+
+	FOR_EACH_PTR(dinfo->value_ranges, tmp) {
+		FOR_EACH_PTR(values, tmp2) {
+			if (false_comparison_range_lr(comparison, tmp, tmp2, left))
+				return 1;
+		} END_FOR_EACH_PTR(tmp2);
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
 void tack_on(struct range_list **list, struct data_range *drange)
 {
 	add_ptr_list(list, drange);
@@ -407,6 +443,37 @@ int in_list_exact(struct range_list *list, struct data_range *drange)
 	} END_FOR_EACH_PTR(tmp);
 	return 0;
 
+}
+
+void push_range_list(struct range_list_stack **rl_stack, struct range_list *rl)
+{
+	add_ptr_list(rl_stack, rl);
+}
+
+struct range_list *pop_range_list(struct range_list_stack **rl_stack)
+{
+	struct range_list *rl;
+
+	rl = last_ptr_list((struct ptr_list *)*rl_stack);
+	delete_ptr_list_last((struct ptr_list **)rl_stack);
+	return rl;
+}
+
+struct range_list *top_range_list(struct range_list_stack *rl_stack)
+{
+	struct range_list *rl;
+
+	rl = last_ptr_list((struct ptr_list *)rl_stack);
+	return rl;
+}
+
+void filter_top_range_list(struct range_list_stack **rl_stack, long long num)
+{
+	struct range_list *rl;
+
+	rl = pop_range_list(rl_stack);
+	rl = remove_range(rl, num, num);
+	push_range_list(rl_stack, rl);
 }
 
 static void free_single_dinfo(struct data_info *dinfo)

@@ -184,9 +184,12 @@ extern int option_no_implied;
 void get_implications(char *name, struct symbol *sym, int comparison, int num,
 		      struct state_list **true_states,
 		      struct state_list **false_states);
+struct range_list_stack;
 struct state_list *__implied_case_slist(struct expression *switch_expr,
 					struct expression *case_expr,
+					struct range_list_stack **remaining_cases,
 					struct state_list **raw_slist);
+struct range_list *__get_implied_values(struct expression *switch_expr);
 
 /* smatch_extras.c */
 #define SMATCH_EXTRA 1 /* this is my_id from smatch extra set in smatch.c */
@@ -259,7 +262,7 @@ void __process_breaks();
 void __merge_breaks();
 void __use_breaks();
 
-void __save_switch_states();
+void __save_switch_states(struct expression *switch_expr);
 void __pop_switches();
 void __merge_switches(struct expression *switch_expr, struct expression *case_expr);
 void __push_default();

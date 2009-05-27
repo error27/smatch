@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 
 struct smatch_state undefined = { .name = "undefined" };
 struct smatch_state merged = { .name = "merged" };
@@ -51,6 +52,7 @@ struct state_list *__fake_cond_false = NULL;
 
 static struct state_list_stack *break_stack;
 static struct state_list_stack *switch_stack;
+static struct range_list_stack *remaining_cases;
 static struct state_list_stack *default_stack;
 static struct state_list_stack *continue_stack;
 static struct state_list_stack *false_only_stack;
@@ -573,8 +575,9 @@ void __use_breaks()
 	cur_slist = pop_slist(&break_stack);
 }
 
-void __save_switch_states() 
+void __save_switch_states(struct expression *switch_expr)
 { 
+	push_range_list(&remaining_cases, __get_implied_values(switch_expr));
 	push_slist(&switch_stack, clone_slist(cur_slist));
 }
 
@@ -584,7 +587,7 @@ void __merge_switches(struct expression *switch_expr, struct expression *case_ex
 	struct state_list *implied_slist;
 
 	slist = pop_slist(&switch_stack);
-	implied_slist = __implied_case_slist(switch_expr, case_expr, &slist);
+	implied_slist = __implied_case_slist(switch_expr, case_expr, &remaining_cases, &slist);
 	merge_slist(&cur_slist, implied_slist);
 	free_slist(&implied_slist);
 	push_slist(&switch_stack, slist);
@@ -594,6 +597,7 @@ void __pop_switches()
 { 
 	struct state_list *slist;
 
+	pop_range_list(&remaining_cases);
 	slist = pop_slist(&switch_stack);
 	free_slist(&slist);
 }
