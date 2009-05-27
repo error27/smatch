@@ -60,13 +60,15 @@ int debug_implied_states = 0;
 int option_no_implied = 0;
 
 static int print_once = 0;
+static int tmp_range_allocated = 0;
 
 static struct range_list *my_list = NULL;
 static struct data_range *my_range;
 
 static struct range_list *tmp_range_list(long num)
 {
-	if (!my_list) {
+	if (!tmp_range_allocated++) {
+		__free_ptr_list((struct ptr_list **)&my_list);
 		my_range = alloc_range(num, num);
 		add_ptr_list(&my_list, my_range);
 	}
@@ -495,9 +497,10 @@ free:
 	return ret;
 }
 
-static void clear_print_once(struct symbol *sym)
+static void match_end_func(struct symbol *sym)
 {
 	print_once = 0;
+	tmp_range_allocated = 0;
 }
 
 void __extra_match_condition(struct expression *expr);
@@ -505,5 +508,5 @@ void register_implications(int id)
 {
 	add_hook(&implied_states_hook, CONDITION_HOOK);
 	add_hook(&__extra_match_condition, CONDITION_HOOK);
-	add_hook(&clear_print_once, END_FUNC_HOOK);
+	add_hook(&match_end_func, END_FUNC_HOOK);
 }
