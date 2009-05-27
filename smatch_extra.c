@@ -90,6 +90,16 @@ struct smatch_state *alloc_extra_state_range(long long min, long long max)
 	return state;
 }
 
+struct smatch_state *alloc_extra_state_range_list(struct range_list *rl)
+{
+	struct smatch_state *state;
+
+	state = __alloc_smatch_state(0);
+	state->data = (void *)alloc_dinfo_range_list(rl);
+	state->name = show_ranges(((struct data_info *)state->data)->value_ranges);
+	return state;
+}
+
 struct smatch_state *filter_range(struct smatch_state *orig,
 				 long long filter_min, long long filter_max)
 {

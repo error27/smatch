@@ -20,8 +20,8 @@ struct sm_state *alloc_state(const char *name, int owner,
 void free_every_single_sm_state(void);
 struct sm_state *clone_state(struct sm_state *s);
 int is_merged(struct sm_state *sm);
+int is_implied(struct sm_state *sm);
 struct state_list *clone_slist(struct state_list *from_slist);
-struct state_list *clone_slist_and_states(struct state_list *from_slist);
 struct state_list_stack *clone_stack(struct state_list_stack *from_stack);
 
 int slist_has_state(struct state_list *slist, struct smatch_state *state);
@@ -31,7 +31,6 @@ struct smatch_state *merge_states(const char *name, int owner,
 				  struct smatch_state *state2);
 
 void add_pool(struct state_list_stack **pools, struct state_list *new);
-void merge_pools(struct state_list_stack **to, struct state_list_stack *from);
 struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two);
 struct smatch_state *get_state_slist(struct state_list *slist, const char *name, int owner,
 		    struct symbol *sym);
@@ -69,7 +68,6 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack, const char 
 		    int owner, struct symbol *sym);
 
 void merge_slist(struct state_list **to, struct state_list *slist);
-void merge_slist_clone(struct state_list **to, struct state_list *slist);
 void and_slist_stack(struct state_list_stack **slist_stack);
 
 void or_slist_stack(struct state_list_stack **pre_conds,

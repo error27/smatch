@@ -39,23 +39,53 @@ static const char *allocation_funcs[] = {
 	NULL,
 };
 
+static char *get_parent_name(struct symbol *sym)
+{
+	static char buf[256];
+
+	if (!sym || !sym->ident)
+		return NULL;
+
+	snprintf(buf, 255, "-%s", sym->ident->name);
+	buf[255] = '\0';
+	return alloc_string(buf);
+}
+
+static int is_parent_sym(const char *name)
+{
+	if (!strncmp(name, "-", 1))
+		return 1;
+	return 0;
+}
+
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
-	if (!strcmp(sm->name, "-"))
+	if (!is_parent_sym(sm->name))
 		return &assigned;
 	return &undefined;
 }
 
 static void assign_parent(struct symbol *sym)
 {
-	set_state("-", my_id, sym, &assigned);
+	char *name;
+
+	name = get_parent_name(sym);
+	if (!name)
+		return;
+	set_state(name, my_id, sym, &assigned);
+	free_string(name);
 }
 
 static int parent_is_assigned(struct symbol *sym)
 {
 	struct smatch_state *state;
+	char *name;
 
-	state = get_state("-", my_id, sym);
+	name = get_parent_name(sym);
+	if (!name)
+		return 0;
+	state = get_state(name, my_id, sym);
+	free_string(name);
 	if (state == &assigned)
 		return 1;
 	return 0;

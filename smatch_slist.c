@@ -161,8 +161,11 @@ struct sm_state *alloc_state(const char *name, int owner,
 	sm_state->state = state;
 	sm_state->line = get_lineno();
 	sm_state->merged = 0;
-	sm_state->my_pools = NULL;
-	sm_state->pre_merge = NULL;
+	sm_state->implied = 0;
+	sm_state->my_pool = NULL;
+	sm_state->left = NULL;
+	sm_state->right = NULL;
+	sm_state->nr_children = 1;
 	sm_state->possible = NULL;
 	add_ptr_list(&sm_state->possible, sm_state);
 	return sm_state;
@@ -171,8 +174,6 @@ struct sm_state *alloc_state(const char *name, int owner,
 static void free_sm_state(struct sm_state *sm)
 {
 	free_slist(&sm->possible);
-	free_slist(&sm->pre_merge);
-	free_stack(&sm->my_pools);
 	/* 
 	 * fixme.  Free the actual state.
 	 * Right now we leave it until the end of the function
@@ -217,17 +218,25 @@ struct sm_state *clone_state(struct sm_state *s)
 	struct sm_state *ret;
 
 	ret = alloc_state_no_name(s->name, s->owner, s->sym, s->state);
-	ret->line = s->line;
 	ret->merged = s->merged;
-	ret->my_pools = clone_stack(s->my_pools);
+	ret->implied = s->implied;
+	/* clone_state() doesn't copy the my_pools.  Each state needs to have
+	   only one my_pool. */
 	ret->possible = clone_slist(s->possible);
-	ret->pre_merge = clone_slist(s->pre_merge);
+	ret->left = s->left;
+	ret->right = s->right;
+	ret->nr_children = s->nr_children;
 	return ret;
 }
 
 int is_merged(struct sm_state *sm)
 {
 	return sm->merged;
+}
+
+int is_implied(struct sm_state *sm)
+{
+	return sm->implied;
 }
 
 int slist_has_state(struct state_list *slist, struct smatch_state *state)
@@ -270,20 +279,6 @@ struct state_list *clone_slist(struct state_list *from_slist)
 
 	FOR_EACH_PTR(from_slist, state) {
 		add_ptr_list(&to_slist, state);
-	} END_FOR_EACH_PTR(state);
-	check_order(to_slist);
-	return to_slist;
-}
-
-struct state_list *clone_slist_and_states(struct state_list *from_slist)
-{
-	struct sm_state *state;
-	struct sm_state *tmp;
-	struct state_list *to_slist = NULL;
-
-	FOR_EACH_PTR(from_slist, state) {
-		tmp = clone_state(state);
-		add_ptr_list(&to_slist, tmp);
 	} END_FOR_EACH_PTR(state);
 	check_order(to_slist);
 	return to_slist;
@@ -339,15 +334,6 @@ void add_pool(struct state_list_stack **pools, struct state_list *new)
 	add_ptr_list(pools, new);
 }
 
-void merge_pools(struct state_list_stack **to, struct state_list_stack *from)
-{
-	struct state_list *tmp;
-
- 	FOR_EACH_PTR(from, tmp) {
-		add_pool(to, tmp);
-	} END_FOR_EACH_PTR(tmp);
-}
-
 struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 {
 	struct smatch_state *s;
@@ -360,8 +346,9 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	if (one->line == two->line)
 		result->line = one->line;
 	result->merged = 1;
-	add_ptr_list(&result->pre_merge, one);
-	add_ptr_list(&result->pre_merge, two);
+	result->left = one;
+	result->right = two;
+	result->nr_children = one->nr_children + two->nr_children;
 	add_possible(result, one);
 	add_possible(result, two);
 
@@ -369,9 +356,10 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 		struct sm_state *tmp;
 		int i = 0;
 
-		printf("%d merge name='%s' owner=%d: %s + %s => %s (", 
+		printf("%d merge name='%s' owner=%d: %s(L %d) + %s(L %d) => %s (", 
 			get_lineno(), one->name, one->owner,
-			show_state(one->state), show_state(two->state),
+			show_state(one->state), one->line,
+			show_state(two->state), two->line,
 			show_state(s));
 
 		FOR_EACH_PTR(result->possible, tmp) {
@@ -593,51 +581,29 @@ static void match_states(struct state_list **one, struct state_list **two)
 	overwrite_slist(add_to_two, two);
 }
 
-static void clone_modified(struct state_list **one, struct state_list **two)
+static void clone_pool_havers(struct state_list *slist)
 {
-	struct sm_state *one_state;
-	struct sm_state *two_state;
-	struct sm_state *clone;
-	struct state_list *add_to_one = NULL;
-	struct state_list *add_to_two = NULL;
+	struct sm_state *state;
+	struct sm_state *new;
 
-	PREPARE_PTR_LIST(*one, one_state);
-	PREPARE_PTR_LIST(*two, two_state);
-	for (;;) {
-		if (!one_state && !two_state)
-			break;
-		if (cmp_tracker(one_state, two_state) < 0) {
-			NEXT_PTR_LIST(one_state);
-		} else if (cmp_tracker(one_state, two_state) == 0) {
-			if (one_state != two_state) {
-				clone = clone_state(one_state);
-				add_ptr_list(&add_to_one, clone);
-				clone = clone_state(two_state);
-				add_ptr_list(&add_to_two, clone);
-			}
-			NEXT_PTR_LIST(one_state);
-			NEXT_PTR_LIST(two_state);
-		} else {
-			NEXT_PTR_LIST(two_state);
+	FOR_EACH_PTR(slist, state) {
+		if (state->my_pool) {
+			new = clone_state(state);
+			REPLACE_CURRENT_PTR(state, new);
 		}
-	}
-	FINISH_PTR_LIST(two_state);
-	FINISH_PTR_LIST(one_state);
-
-	overwrite_slist(add_to_one, one);
-	overwrite_slist(add_to_two, two);
+	} END_FOR_EACH_PTR(state);
 }
 
 /*
  * merge_slist() is called whenever paths merge, such as after
  * an if statement.  It takes the two slists and creates one.
  */
-static void __merge_slist(struct state_list **to, struct state_list *slist, int clone)
+void merge_slist(struct state_list **to, struct state_list *slist)
 {
-	struct sm_state *to_state, *state, *tmp;
+	struct sm_state *one_state, *two_state, *tmp;
 	struct state_list *results = NULL;
-	struct state_list *implied_to = NULL;
-	struct state_list *implied_from = NULL;
+	struct state_list *implied_one = NULL;
+	struct state_list *implied_two = NULL;
 
 	check_order(*to);
 	check_order(slist);
@@ -651,51 +617,42 @@ static void __merge_slist(struct state_list **to, struct state_list *slist, int 
 		return;
 	}
 
-	implied_to = clone_slist(*to);
-	implied_from = clone_slist(slist);
+	implied_one = clone_slist(*to);
+	implied_two = clone_slist(slist);
 
-	match_states(&implied_to, &implied_from);
-	if (clone)
-		clone_modified(&implied_to, &implied_from);
+	match_states(&implied_one, &implied_two);
 
-	PREPARE_PTR_LIST(implied_to, to_state);
-	PREPARE_PTR_LIST(implied_from, state);
+	clone_pool_havers(implied_one);
+	clone_pool_havers(implied_two);
+
+	PREPARE_PTR_LIST(implied_one, one_state);
+	PREPARE_PTR_LIST(implied_two, two_state);
 	for (;;) {
-		if (!to_state && !state)
+		if (!one_state && !two_state)
 			break;
-		if (cmp_tracker(to_state, state) < 0) {
+		if (cmp_tracker(one_state, two_state) < 0) {
 			smatch_msg("error:  Internal smatch error.");
-			NEXT_PTR_LIST(to_state);
-		} else if (cmp_tracker(to_state, state) == 0) {
-			if (to_state != state) {
-				add_pool(&to_state->my_pools, implied_to);
-				add_pool(&state->my_pools, implied_from);
+			NEXT_PTR_LIST(one_state);
+		} else if (cmp_tracker(one_state, two_state) == 0) {
+			if (one_state != two_state) {
+				one_state->my_pool = implied_one;
+				two_state->my_pool = implied_two;
 			}
 
-			tmp = merge_sm_states(to_state, state);
+			tmp = merge_sm_states(one_state, two_state);
 			add_ptr_list(&results, tmp);
-			NEXT_PTR_LIST(to_state);
-			NEXT_PTR_LIST(state);
+			NEXT_PTR_LIST(one_state);
+			NEXT_PTR_LIST(two_state);
 		} else {
 			smatch_msg("error:  Internal smatch error.");
-			NEXT_PTR_LIST(state);
+			NEXT_PTR_LIST(two_state);
 		}
 	}
-	FINISH_PTR_LIST(state);
-	FINISH_PTR_LIST(to_state);
+	FINISH_PTR_LIST(two_state);
+	FINISH_PTR_LIST(one_state);
 
 	free_slist(to);
 	*to = results;
-}
-
-void merge_slist(struct state_list **to, struct state_list *slist)
-{
-	__merge_slist(to, slist, 0);
-}
-
-void merge_slist_clone(struct state_list **to, struct state_list *slist)
-{
-	__merge_slist(to, slist, 1);
 }
 
 /*

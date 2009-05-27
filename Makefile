@@ -183,7 +183,7 @@ smatch_hooks.o: $(LIB_H) smatch.h
 smatch_function_hooks.o: $(LIB_H) smatch.h
 smatch_helper.o: $(LIB_H) smatch.h
 smatch_slist.o: $(LIB_H) smatch.h smatch_slist.h
-smatch_states.o: $(LIB_H) smatch.h smatch_slist.h
+smatch_states.o: $(LIB_H) smatch.h smatch_slist.h smatch_extra.h
 smatch_expression_stacks.o: $(LIB_H) smatch.h
 smatch_oom.c: $(LIB_H) smatch.h
 smatch.o: $(LIB_H) smatch.h
