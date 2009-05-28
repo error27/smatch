@@ -60,7 +60,7 @@ static int is_parent_sym(const char *name)
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
-	if (!is_parent_sym(sm->name))
+	if (is_parent_sym(sm->name))
 		return &assigned;
 	return &undefined;
 }
