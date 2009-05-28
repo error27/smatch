@@ -60,21 +60,17 @@ int debug_implied_states = 0;
 int option_no_implied = 0;
 
 static int print_once = 0;
-static int tmp_range_allocated = 0;
 
 static struct range_list *my_list = NULL;
 static struct data_range *my_range;
 
 static struct range_list *tmp_range_list(long num)
 {
-	if (!tmp_range_allocated++) {
-		__free_ptr_list((struct ptr_list **)&my_list);
-		my_range = alloc_range(num, num);
-		add_ptr_list(&my_list, my_range);
-	}
-
+	__free_ptr_list((struct ptr_list **)&my_list);
+	my_range = alloc_range(num, num);
 	my_range->min = num;
 	my_range->max = num;
+	add_ptr_list(&my_list, my_range);
 	return my_list;
 }
 
@@ -500,7 +496,6 @@ free:
 static void match_end_func(struct symbol *sym)
 {
 	print_once = 0;
-	tmp_range_allocated = 0;
 }
 
 void __extra_match_condition(struct expression *expr);
