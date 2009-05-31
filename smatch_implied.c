@@ -210,7 +210,7 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 	   false positives and don't affect actual bugs.
 	*/
 	if (sm_state->nr_children > 5000) {
-		if (!print_once) {
+		if (!print_once++) {
 			smatch_msg("debug: seperate_pools %s nr_children %d",
 				sm_state->name, sm_state->nr_children);
 		}
