@@ -443,7 +443,7 @@ static void match_comparison(struct expression *expr)
 			set_true_false_states(name, my_id, sym, two_state, one_state);
 		return;
 	case SPECIAL_NOTEQUAL:
-		one_state = filter_range(orig, value, value);
+		one_state = alloc_extra_state(value);
 		two_state = filter_range(orig, value, value); 
 		set_true_false_states(name, my_id, sym, two_state, one_state);
 		return;
