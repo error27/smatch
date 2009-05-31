@@ -129,8 +129,27 @@ void add_range(struct range_list **list, long long min, long long max)
 {
 	struct data_range *tmp = NULL;
 	struct data_range *new;
+	int check_next = 0;
 	
  	FOR_EACH_PTR(*list, tmp) {
+		if (check_next) {
+			/* Sometimes we overlap with more than one range
+			   so we have to delete or modify the next range. */
+
+			/* Doesn't overlap with the next one. */
+			if (max < tmp->min)
+				return;
+			/* Partially overlaps with the next one. */
+			if (max < tmp->max) {
+				tmp->min = max + 1;
+				return;
+			}
+			/* Completely overlaps with the next one. */
+			if (max > tmp->max) {
+				DELETE_CURRENT_PTR(tmp);
+				continue;
+			}
+		}
 		if (max != whole_range.max && max + 1 == tmp->min) {
 			/* join 2 ranges into a big range */
 			new = alloc_range(min, tmp->max);
@@ -145,9 +164,12 @@ void add_range(struct range_list **list, long long min, long long max)
 		if (min < tmp->min) { /* new range partially below */
 			if (max < tmp->max)
 				max = tmp->max;
+			else
+				check_next = 1;
 			new = alloc_range(min, max);
 			REPLACE_CURRENT_PTR(tmp, new);
-			return;
+			if (!check_next)
+				return;
 		}
 		if (max <= tmp->max) /* new range already included */
 			return;
@@ -155,15 +177,17 @@ void add_range(struct range_list **list, long long min, long long max)
 			min = tmp->min;
 			new = alloc_range(min, max);
 			REPLACE_CURRENT_PTR(tmp, new);
-			return;
+			check_next = 1;
 		}
 		if (min != whole_range.min && min - 1 == tmp->max) {
 			/* join 2 ranges into a big range */
 			new = alloc_range(tmp->min, max);
 			REPLACE_CURRENT_PTR(tmp, new);
-			return;
+			check_next = 1;
 		}
 	} END_FOR_EACH_PTR(tmp);
+	if (check_next)
+		return;
 	new = alloc_range(min, max);
 	add_ptr_list(list, new);
 }
