@@ -33,3 +33,7 @@ patches-*
 # quilt's files
 patches
 series
+
+# local makefile
+local.mk
+

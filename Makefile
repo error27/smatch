@@ -10,9 +10,10 @@ LDFLAGS += -g
 AR = ar
 
 #
-# For debugging, uncomment the next one
+# For debugging, put this in local.mk:
 #
-#CFLAGS += -O0 -DDEBUG -g3 -gdwarf-2
+#     CFLAGS += -O0 -DDEBUG -g3 -gdwarf-2
+#
 
 HAVE_LIBXML=$(shell pkg-config --exists libxml-2.0 && echo 'yes')
 HAVE_GCC_DEP=$(shell touch .gcc-test.c && 				\
@@ -87,6 +88,11 @@ SED_PC_CMD = 's|@version@|$(VERSION)|g;		\
 	      s|@prefix@|$(PREFIX)|g;		\
 	      s|@libdir@|$(LIBDIR)|g;		\
 	      s|@includedir@|$(INCLUDEDIR)|g'
+
+
+
+# Allow users to override build settings without dirtying their trees
+-include local.mk
 
 
 all: $(PROGRAMS) sparse.pc
