@@ -241,10 +241,10 @@ static int nextchar_slow(stream_t *stream)
 	int offset = stream->offset;
 	int size = stream->size;
 	int c;
-	int spliced = 0, had_cr, had_backslash, complain;
+	int spliced = 0, had_cr, had_backslash;
 
 restart:
-	had_cr = had_backslash = complain = 0;
+	had_cr = had_backslash = 0;
 
 repeat:
 	if (offset >= size) {
@@ -258,47 +258,52 @@ repeat:
 	}
 
 	c = stream->buffer[offset++];
-
-	if (had_cr && c != '\n')
-		complain = 1;
+	if (had_cr)
+		goto check_lf;
 
 	if (c == '\r') {
 		had_cr = 1;
 		goto repeat;
 	}
 
-	stream->pos += (c == '\t') ? (tabstop - stream->pos % tabstop) : 1;
-
-	if (c == '\n') {
-		stream->line++;
-		stream->pos = 0;
-	}
-
+norm:
 	if (!had_backslash) {
-		if (c == '\\') {
-			had_backslash = 1;
-			goto repeat;
-		}
-		if (c == '\n')
+		switch (c) {
+		case '\t':
+			stream->pos += tabstop - stream->pos % tabstop;
+			break;
+		case '\n':
+			stream->line++;
+			stream->pos = 0;
 			stream->newline = 1;
+			break;
+		case '\\':
+			had_backslash = 1;
+			stream->pos++;
+			goto repeat;
+		default:
+			stream->pos++;
+		}
 	} else {
 		if (c == '\n') {
-			if (complain)
-				warning(stream_pos(stream), "non-ASCII data stream");
+			stream->line++;
+			stream->pos = 0;
 			spliced = 1;
 			goto restart;
 		}
-		stream->pos--;
 		offset--;
 		c = '\\';
 	}
-
 out:
 	stream->offset = offset;
-	if (complain)
-		warning(stream_pos(stream), "non-ASCII data stream");
 
 	return c;
+
+check_lf:
+	if (c != '\n')
+		offset--;
+	c = '\n';
+	goto norm;
 
 got_eof:
 	if (had_backslash) {
@@ -307,8 +312,6 @@ got_eof:
 	}
 	if (stream->pos)
 		warning(stream_pos(stream), "no newline at end of file");
-	else if (had_cr)
-		warning(stream_pos(stream), "non-ASCII data stream");
 	else if (spliced)
 		warning(stream_pos(stream), "backslash-newline at end of file");
 	return EOF;
