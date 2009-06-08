@@ -143,26 +143,6 @@ static void match_function_def(struct symbol *sym)
 	} END_FOR_EACH_PTR(arg);
 }
 
-static void match_declarations(struct symbol *sym)
-{
-	const char *name;
-
-	if ((get_base_type(sym))->type == SYM_ARRAY) {
-		return;
-	}
-
-	name = sym->ident->name;
-
-	if (sym->initializer) {
-		if (is_allocation(sym->initializer)) {
-			set_state(name, my_id, sym, &malloced);
-			scoped_state(name, my_id, sym);
-		} else {
-			assign_parent(sym);
-		}
-	}
-}
-
 static int is_parent(struct expression *expr)
 {
 	if (expr->type == EXPR_DEREF)
@@ -249,6 +229,47 @@ static int possibly_allocated(struct state_list *slist)
 	return 0;
 }
 
+static void check_sm_is_leaked(struct sm_state *sm)
+{
+	if (possibly_allocated(sm->possible) && 
+		!is_null(sm->name, sm->sym) &&
+		!is_argument(sm->sym) && 
+		!parent_is_assigned(sm->sym))
+		smatch_msg("error: memery leak of %s", sm->name);
+}
+
+static void check_tracker_is_leaked(struct tracker *t)
+{
+	struct sm_state *sm;
+
+	sm = get_sm_state(t->name, t->owner, t->sym);
+	if (sm)
+		check_sm_is_leaked(sm);
+	__free_tracker(t);
+}
+
+static void match_declarations(struct symbol *sym)
+{
+	const char *name;
+
+	if ((get_base_type(sym))->type == SYM_ARRAY) {
+		return;
+	}
+
+	name = sym->ident->name;
+
+	if (sym->initializer) {
+		if (is_allocation(sym->initializer)) {
+			set_state(name, my_id, sym, &malloced);
+			add_scope_hook((scope_hook *)&check_tracker_is_leaked,
+				alloc_tracker(name, my_id, sym));
+			scoped_state(name, my_id, sym);
+		} else {
+			assign_parent(sym);
+		}
+	}
+}
+
 static void check_for_allocated(void)
 {
 	struct state_list *slist;
@@ -256,11 +277,7 @@ static void check_for_allocated(void)
 
 	slist = get_all_states(my_id);
 	FOR_EACH_PTR(slist, tmp) {
-		if (possibly_allocated(tmp->possible) && 
-		    !is_null(tmp->name, tmp->sym) &&
-		    !is_argument(tmp->sym) && 
-		    !parent_is_assigned(tmp->sym))
-			smatch_msg("error: memery leak of %s", tmp->name);
+		check_sm_is_leaked(tmp);
 	} END_FOR_EACH_PTR(tmp);
 	free_slist(&slist);
 }
