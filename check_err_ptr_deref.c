@@ -94,7 +94,7 @@ static void register_err_ptr_funcs(void)
 	clear_token_alloc();
 }
 
-static void match_err_ptr(const char *fn, struct expression *expr, void *info)
+static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *arg;
 	char *name;
@@ -129,6 +129,29 @@ free:
 	free_string(name);
 }
 
+static void match_ptr_err(const char *fn, struct expression *expr, void *unused)
+{
+	struct expression *arg;
+	char *name = NULL;
+	struct symbol *sym;
+	char *left_name = NULL;
+	struct symbol *left_sym;
+
+	arg = get_argument_from_call_expr(expr->right->args, 0);
+	name = get_variable_from_expr(arg, &sym);
+	if (!name || !sym)
+		goto free;
+	left_name = get_variable_from_expr(expr->left, &left_sym);
+	if (!left_name || !left_sym)
+		goto free;
+	if (get_state(name, my_id, sym) == &err_ptr) {
+		set_state(left_name, SMATCH_EXTRA, left_sym, alloc_extra_state_range(-4095, -1));
+	}
+free:
+	free_string(name);
+	free_string(left_name);
+}
+
 void check_err_ptr_deref(int id)
 {
 	my_id = id;
@@ -136,5 +159,6 @@ void check_err_ptr_deref(int id)
 	register_err_ptr_funcs();
 	add_hook(&match_dereferences, DEREF_HOOK);
 	add_function_hook("ERR_PTR", &match_err_ptr, NULL);
+	add_function_assign_hook("PTR_ERR", &match_ptr_err, NULL);
 }
 
