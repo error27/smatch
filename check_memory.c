@@ -156,6 +156,7 @@ static void match_declarations(struct symbol *sym)
 	if (sym->initializer) {
 		if (is_allocation(sym->initializer)) {
 			set_state(name, my_id, sym, &malloced);
+			scoped_state(name, my_id, sym);
 		} else {
 			assign_parent(sym);
 		}

@@ -12,13 +12,22 @@
 struct hook_container {
 	int hook_type;
 	int data_type;
-	void * fn;
+	void *fn;
 };
 ALLOCATOR(hook_container, "hook functions");
 DECLARE_PTR_LIST(hook_func_list, struct hook_container);
 static struct hook_func_list *hook_funcs;
 static struct hook_func_list *merge_funcs;
 static struct hook_func_list *unmatched_state_funcs;
+
+struct scope_container {
+	void *fn;
+	void *data;
+};
+ALLOCATOR(scope_container, "scope hook functions");
+DECLARE_PTR_LIST(scope_hook_list, struct scope_container);
+DECLARE_PTR_LIST(scope_hook_stack, struct scope_hook_list);
+static struct scope_hook_stack *scope_hooks;
 
 void add_hook(void *func, enum hook_type type)
 {
@@ -211,4 +220,53 @@ struct smatch_state *__client_unmatched_state_function(struct sm_state *sm)
 			return ((unmatched_func_t *) tmp->fn)(sm);
 	} END_FOR_EACH_PTR(tmp);
 	return &undefined;
+}
+
+static struct scope_hook_list *pop_scope_hook_list(struct scope_hook_stack **stack)
+{	
+	struct scope_hook_list *hook_list;
+
+	hook_list = last_ptr_list((struct ptr_list *)*stack);
+	delete_ptr_list_last((struct ptr_list **)stack);
+	return hook_list;
+}
+
+static void push_scope_hook_list(struct scope_hook_stack **stack, struct scope_hook_list *l)
+{
+	add_ptr_list(stack, l);
+}
+
+void add_scope_hook(scope_hook *fn, void *data)
+{
+	struct scope_hook_list *hook_list;
+	struct scope_container *new;
+
+	if (!scope_hooks)
+		return;
+	hook_list = pop_scope_hook_list(&scope_hooks);
+	new = __alloc_scope_container(0);
+	new->fn = fn;
+	new->data = data;
+	add_ptr_list(&hook_list, new);
+	push_scope_hook_list(&scope_hooks, hook_list);
+}
+
+void __push_scope_hooks(void)
+{
+	push_scope_hook_list(&scope_hooks, NULL);
+}
+
+void __call_scope_hooks(void)
+{
+	struct scope_hook_list *hook_list;
+	struct scope_container *tmp;
+
+	if (!scope_hooks)
+		return;
+
+	hook_list = pop_scope_hook_list(&scope_hooks);
+	FOR_EACH_PTR(hook_list, tmp) {
+		((scope_hook *) tmp->fn)(tmp->data);
+		__free_scope_container(tmp);
+	} END_FOR_EACH_PTR(tmp);
 }

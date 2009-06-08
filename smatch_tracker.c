@@ -2,6 +2,17 @@
 
 ALLOCATOR(tracker, "trackers");
 
+struct tracker *alloc_tracker(const char *name, int owner, struct symbol *sym)
+{
+	struct tracker *tmp;
+
+	tmp = __alloc_tracker(0);
+	tmp->name = alloc_string(name);
+	tmp->owner = owner;
+	tmp->sym = sym;
+	return tmp;
+}
+
 void add_tracker(struct tracker_list **list, const char *name, int owner, 
 		struct symbol *sym)
 {
@@ -9,11 +20,7 @@ void add_tracker(struct tracker_list **list, const char *name, int owner,
 
 	if (in_tracker_list(*list, name, owner, sym))
 		return;
-
-	tmp = __alloc_tracker(0);
-	tmp->name = alloc_string(name);
-	tmp->owner = owner;
-	tmp->sym = sym;
+	tmp = alloc_tracker(name, owner, sym);
 	add_ptr_list(list, tmp);
 }
 

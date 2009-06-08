@@ -311,8 +311,10 @@ static void match_declarations(struct symbol *sym)
 		name = sym->ident->name;
 		if (sym->initializer) {
 			set_state(name, my_id, sym, alloc_extra_state(get_value(sym->initializer)));
+			scoped_state(name, my_id, sym);
 		} else {
 			set_state(name, my_id, sym, extra_undefined());
+			scoped_state(name, my_id, sym);
 		}
 	}
 }

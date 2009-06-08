@@ -357,11 +357,14 @@ static void match_declarations(struct symbol *sym)
 	if (sym->initializer) {
 		if (is_zero(sym->initializer)) {
 			set_state(name, my_id, sym, &isnull);
+			scoped_state(name, my_id, sym);
 			return;
 		}
 		set_state(name, my_id, sym, &assumed_nonnull);
+		scoped_state(name, my_id, sym);
 	} else {
 		set_state(name, my_id, sym, &undefined);
+		scoped_state(name, my_id, sym);
 	}
 }
 

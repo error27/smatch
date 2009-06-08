@@ -55,6 +55,14 @@ struct sm_state {
 	struct state_list *possible;
 };
 
+struct tracker {
+	char *name;
+	int owner;
+	struct symbol *sym;
+};
+DECLARE_ALLOCATOR(tracker);
+DECLARE_PTR_LIST(tracker_list, struct tracker);
+
 enum hook_type {
 	EXPR_HOOK,
 	STMT_HOOK,
@@ -82,6 +90,8 @@ typedef struct smatch_state *(merge_func_t)(const char *name,
 typedef struct smatch_state *(unmatched_func_t)(struct sm_state *state);
 void add_merge_hook(int client_id, merge_func_t *func);
 void add_unmatched_state_hook(int client_id, unmatched_func_t *func);
+typedef void (scope_hook)(void *data);
+void add_scope_hook(scope_hook *hook, void *data);
 typedef void (func_hook)(const char *fn, struct expression *expr, void *data);
 void add_function_hook(const char *lock_for, func_hook *call_back, void *data);
 
@@ -137,19 +147,14 @@ int is_zero(struct expression *expr);
 const char *show_state(struct smatch_state *state);
 struct statement *get_block_thing(struct expression *expr);
 struct expression *strip_expr(struct expression *expr);
+void scoped_state(const char *name, int my_id, struct symbol *sym);
 
 /* smatch_ignore.c */
-struct tracker {
-	char *name;
-	int owner;
-	struct symbol *sym;
-};
-DECLARE_PTR_LIST(tracker_list, struct tracker);
-
 void add_ignore(const char *name, int owner, struct symbol *sym);
 int is_ignored(const char *name, int owner, struct symbol *sym);
 
 /* smatch_tracker */
+struct tracker *alloc_tracker(const char *name, int owner, struct symbol *sym);
 void add_tracker(struct tracker_list **list, const char *name, int owner, 
 		struct symbol *sym);
 void del_tracker(struct tracker_list **list, const char *name, int owner, 
@@ -288,6 +293,8 @@ struct smatch_state *__client_merge_function(int owner, const char *name,
 					     struct smatch_state *s1,
 					     struct smatch_state *s2);
 struct smatch_state *__client_unmatched_state_function(struct sm_state *sm);
+void __push_scope_hooks(void);
+void __call_scope_hooks(void);
 
 /* smatch_function_hooks.c */
 struct fcall_back {

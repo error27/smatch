@@ -276,9 +276,11 @@ void __split_statements(struct statement *stmt)
 		return;
 	case STMT_COMPOUND: {
 		struct statement *s;
+		__push_scope_hooks();
 		FOR_EACH_PTR(stmt->stmts, s) {
 			__split_statements(s);
 		} END_FOR_EACH_PTR(s);
+		__call_scope_hooks();
 		return;
 	}
 	case STMT_IF:
