@@ -116,7 +116,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		}
 
 		if (tmp[0] == '(') {
-			strncat(buf, ")", len - strlen(buf));
+			strncat(buf, ")", len - strlen(buf) - 1);
 			buf[len - 1] = '\0';
 		}
 
