@@ -12,7 +12,6 @@
 #include "allocate.h"
 #include "smatch.h"
 
-static int star_count;
 #define VAR_LEN 512
 
 
@@ -74,15 +73,14 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	switch(expr->type) {
 	case EXPR_DEREF:
 		prepend(buf, expr->member->name, len);
-		if (!strcmp(show_special(expr->deref->op), "*"))
+		expr = expr->deref;
+		if (!strcmp(show_special(expr->op), "*"))  {
 			prepend(buf, "->", len);
-		else
-			prepend(buf, ".", len);		
-
-		//printf("debug:  %d\n", expr->deref
-
-		__get_variable_from_expr(sym_ptr, buf, expr->deref, 
-						 len, complicated);
+			expr = expr->unop;
+		} else {
+			prepend(buf, ".", len);
+		}		
+		__get_variable_from_expr(sym_ptr, buf, expr, len, complicated);
 		return;
 	case EXPR_SYMBOL:
 		if (expr->symbol_name)
@@ -101,19 +99,10 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			return;
 		}
 
-		if (expr->op == '*')
-			star_count++;
-
 		__get_variable_from_expr(sym_ptr, buf, expr->unop, 
 						 len, complicated);
 		tmp = show_special(expr->op);
-		if (tmp[0] == '*') {
-			if (star_count-- >= 0) {
-				prepend(buf, tmp, len);
-			}
-		} else {
-			prepend(buf, tmp, len);
-		}
+		prepend(buf, tmp, len);
 
 		if (tmp[0] == '(') {
 			strncat(buf, ")", len - strlen(buf) - 1);
@@ -219,7 +208,6 @@ char *get_variable_from_expr_complex(struct expression *expr, struct symbol **sy
 
 	if (sym_ptr)
 		*sym_ptr = NULL;
-	star_count = 0;
 	var_name[0] = '\0';
 
 	if (!expr)
@@ -246,7 +234,6 @@ char *get_variable_from_expr(struct expression *expr,
 
 	if (sym_ptr)
 		*sym_ptr = NULL;
-	star_count = 0;
 	var_name[0] = '\0';
 
 	if (!expr)
