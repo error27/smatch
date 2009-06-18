@@ -1431,6 +1431,8 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 {
 	struct expression *expr = NULL;
 
+	if (match_idents(token, &restrict_ident, &__restrict_ident, NULL))
+		token = token->next;
 	token = parse_expression(token, &expr);
 	sym->array_size = expr;
 	return token;
