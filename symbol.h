@@ -340,6 +340,18 @@ static inline int is_void_type(struct symbol *type)
 	return type == &void_ctype;
 }
 
+static inline int is_function(struct symbol *type)
+{
+	return type && type->type == SYM_FN;
+}
+
+static inline int is_extern_inline(struct symbol *sym)
+{
+	return (sym->ctype.modifiers & MOD_EXTERN) &&
+		(sym->ctype.modifiers & MOD_INLINE) &&
+		is_function(sym->ctype.base_type);
+}
+
 static inline int get_sym_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)

@@ -522,6 +522,8 @@ void check_declaration(struct symbol *sym)
 			return;
 		}
 		if (sym->ctype.modifiers & next->ctype.modifiers & MOD_EXTERN) {
+			if ((sym->ctype.modifiers ^ next->ctype.modifiers) & MOD_INLINE)
+				continue;
 			sym->same_symbol = next;
 			return;
 		}
@@ -558,8 +560,10 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 	scope = block_scope;
 	if (ns == NS_SYMBOL && toplevel(scope)) {
 		unsigned mod = MOD_ADDRESSABLE | MOD_TOPLEVEL;
+
 		scope = global_scope;
-		if (sym->ctype.modifiers & MOD_STATIC) {
+		if (sym->ctype.modifiers & MOD_STATIC ||
+		    is_extern_inline(sym)) {
 			scope = file_scope;
 			mod = MOD_TOPLEVEL;
 		}

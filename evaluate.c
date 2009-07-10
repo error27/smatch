@@ -536,11 +536,6 @@ static inline int lvalue_expression(struct expression *expr)
 	return expr->type == EXPR_PREOP && expr->op == '*';
 }
 
-static inline int is_function(struct symbol *type)
-{
-	return type && type->type == SYM_FN;
-}
-
 static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *itype)
 {
 	struct expression *index = expr->right;
