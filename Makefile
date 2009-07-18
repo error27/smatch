@@ -15,7 +15,7 @@ AR = ar
 #     CFLAGS += -O0 -DDEBUG -g3 -gdwarf-2
 #
 
-HAVE_LIBXML=$(shell pkg-config --exists libxml-2.0 && echo 'yes')
+HAVE_LIBXML=$(shell pkg-config --exists libxml-2.0 2>/dev/null && echo 'yes')
 HAVE_GCC_DEP=$(shell touch .gcc-test.c && 				\
 		$(CC) -c -Wp,-MD,.gcc-test.d .gcc-test.c 2>/dev/null && \
 		echo 'yes'; rm -f .gcc-test.d .gcc-test.o .gcc-test.c)
