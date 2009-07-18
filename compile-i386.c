@@ -1913,6 +1913,10 @@ static void emit_loop(struct statement *stmt)
 
 	x86_symbol_decl(stmt->iterator_syms);
 	x86_statement(pre_statement);
+	if (!post_condition || post_condition->type != EXPR_VALUE || post_condition->value) {
+		loop_top = new_label();
+		emit_label(loop_top, "loop top");
+	}
 	if (pre_condition) {
 		if (pre_condition->type == EXPR_VALUE) {
 			if (!pre_condition->value) {
@@ -1935,10 +1939,6 @@ static void emit_loop(struct statement *stmt)
 			insn("test", REG_EAX, REG_EAX, NULL);
 			insn("jz", lbv, NULL, NULL);
 		}
-	}
-	if (!post_condition || post_condition->type != EXPR_VALUE || post_condition->value) {
-		loop_top = new_label();
-		emit_label(loop_top, "loop top");
 	}
 	x86_statement(statement);
 	if (stmt->iterator_continue->used)
