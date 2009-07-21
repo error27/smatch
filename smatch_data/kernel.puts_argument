@@ -30,6 +30,7 @@ edac_mc_unregister_sysfs_main_kobj 0
 edac_pci_unregister_sysfs_instance_kobj 0
 edac_remove_sysfs_mci_device 0
 elevator_exit 0
+eventfd_ctx_put 0
 export_rdev 0
 free_mad 0
 fscache_withdraw_cache 0
