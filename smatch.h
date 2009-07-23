@@ -100,6 +100,10 @@ void add_function_assign_hook(const char *look_for, func_hook *call_back,
 			      void *info);
 void return_implies_state(const char *look_for, long long start, long long end,
 			 func_hook *call_back, void *info);
+typedef void (modification_hook)(const char *name, struct symbol *sym,
+				struct expression *expr, void *data);
+void add_modification_hook(const char *variable, modification_hook *hook,
+			void *data);
 
 #define smatch_msg(msg...) \
 do {                                                          \
