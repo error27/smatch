@@ -6,7 +6,15 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+struct fcall_back {
+	int type;
+	struct data_range *range;
+	func_hook *call_back;
+	void *info;
+};
+
 ALLOCATOR(fcall_back, "call backs");
+DECLARE_PTR_LIST(call_back_list, struct fcall_back);
 
 static struct hsearch_data func_hash;
 

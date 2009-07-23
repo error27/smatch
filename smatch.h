@@ -297,14 +297,6 @@ void __push_scope_hooks(void);
 void __call_scope_hooks(void);
 
 /* smatch_function_hooks.c */
-struct fcall_back {
-	int type;
-	struct data_range *range;
-	func_hook *call_back;
-	void *info;
-};
-DECLARE_ALLOCATOR(fcall_back);
-DECLARE_PTR_LIST(call_back_list, struct fcall_back);
 void create_function_hash(void);
 void __match_initializer_call(struct symbol *sym);
 
