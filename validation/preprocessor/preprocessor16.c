@@ -19,3 +19,12 @@ they hit before we get to the level of groups.
 #bullshit
 
 #endif
+/*
+ * check-name: Preprocessor #16
+ * check-command: sparse -E $file
+ *
+ * check-output-start
+
+
+ * check-output-end
+ */

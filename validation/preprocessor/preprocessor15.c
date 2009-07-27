@@ -5,3 +5,12 @@
 #if D(A,B) B
 D(1,2)
 #endif
+/*
+ * check-name: Preprocessor #15
+ * check-command: sparse -E $file
+ *
+ * check-output-start
+
+12
+ * check-output-end
+ */

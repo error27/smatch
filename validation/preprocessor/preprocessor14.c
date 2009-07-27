@@ -5,3 +5,13 @@
 A(,1)
 #define B(x,y,...) x##,##__VA_ARGS__
 B(,1)
+/*
+ * check-name: Preprocessor #14
+ * check-known-to-fail
+ * check-command: sparse -E $file
+ *
+ * check-output-start
+
+
+ * check-output-end
+ */
