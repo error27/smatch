@@ -18,6 +18,9 @@ STATE(checked);
 
 static void check_is_err_ptr(struct sm_state *sm)
 {
+	if (!sm)
+		return;
+
 	if (slist_has_state(sm->possible, &err_ptr)) {
 		smatch_msg("error: '%s' dereferencing possible ERR_PTR()",
 			   sm->name);
@@ -28,49 +31,24 @@ static void check_is_err_ptr(struct sm_state *sm)
 static void match_returns_err_ptr(const char *fn, struct expression *expr,
 				void *info)
 {
-	char *left_name = NULL;
-	struct symbol *left_sym;
-
-	left_name = get_variable_from_expr(expr->left, &left_sym);
-	if (!left_name || !left_sym)
-		goto free;
-	set_state(left_name, my_id, left_sym, &err_ptr);
-free:
-	free_string(left_name);
+	set_state_expr(my_id, expr->left, &err_ptr);
 }
 
 static void match_is_err(const char *fn, struct expression *expr,
 				void *data)
 {
-	char *name;
-	struct symbol *sym;
-
 	expr = get_argument_from_call_expr(expr->args, 0);
 	if (expr->type == EXPR_ASSIGNMENT)
 		expr = expr->left;
-	name = get_variable_from_expr(expr, &sym);
-	if (!name || !sym)
-		goto free;
-	set_true_false_states(name, my_id, sym, &err_ptr, &checked);
-free:
-	free_string(name);
+	set_true_false_states_expr(my_id, expr, &err_ptr, &checked);
 }
 
 static void match_dereferences(struct expression *expr)
 {
-	char *deref = NULL;
-	struct symbol *sym = NULL;
 	struct sm_state *sm;
 
-	deref = get_variable_from_expr(expr->deref->unop, &sym);
-	if (!deref || !sym)
-		goto free;
-
-	sm = get_sm_state(deref, my_id, sym);
-	if (sm)
-		check_is_err_ptr(sm);
-free:
-        free_string(deref);
+	sm = get_sm_state_expr(my_id, expr->deref->unop);
+	check_is_err_ptr(sm);
 }
 
 static void register_err_ptr_funcs(void)
@@ -97,8 +75,6 @@ static void register_err_ptr_funcs(void)
 static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *arg;
-	char *name;
-	struct symbol *sym;
 	struct sm_state *sm;
 	struct sm_state *tmp;
 	long long tmp_min;
@@ -107,12 +83,9 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
 	long long max = whole_range.min;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	name = get_variable_from_expr(arg, &sym);
-	if (!name || !sym)
-		goto free;	
-	sm = get_sm_state(name, SMATCH_EXTRA, sym);
+	sm = get_sm_state_expr(SMATCH_EXTRA, arg);
 	if (!sm)
-		goto free;
+		return;
 	FOR_EACH_PTR(sm->possible, tmp) {
 		tmp_min = get_dinfo_min((struct data_info *)tmp->state->data);
 		if (tmp_min != whole_range.min && tmp_min < min)
@@ -125,31 +98,16 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
 		smatch_msg("error: %lld too low for ERR_PTR", min);
 	if (max > 0)
 		smatch_msg("error: passing non neg %lld to ERR_PTR", max);
-free:
-	free_string(name);
 }
 
 static void match_ptr_err(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *arg;
-	char *name = NULL;
-	struct symbol *sym;
-	char *left_name = NULL;
-	struct symbol *left_sym;
 
 	arg = get_argument_from_call_expr(expr->right->args, 0);
-	name = get_variable_from_expr(arg, &sym);
-	if (!name || !sym)
-		goto free;
-	left_name = get_variable_from_expr(expr->left, &left_sym);
-	if (!left_name || !left_sym)
-		goto free;
-	if (get_state(name, my_id, sym) == &err_ptr) {
-		set_state(left_name, SMATCH_EXTRA, left_sym, alloc_extra_state_range(-4095, -1));
+	if (get_state_expr(my_id, arg) == &err_ptr) {
+		set_state_expr(SMATCH_EXTRA, expr->left, alloc_extra_state_range(-4095, -1));
 	}
-free:
-	free_string(name);
-	free_string(left_name);
 }
 
 void check_err_ptr_deref(int id)

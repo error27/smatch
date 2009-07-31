@@ -99,18 +99,12 @@ free:
 static void match_free(const char *fn, struct expression *expr, void *data)
 {
 	struct expression *ptr_expr;
-	char *ptr_name;
-	struct symbol *ptr_sym;
 	long arg_num = PTR_INT(data);
 
 	ptr_expr = get_argument_from_call_expr(expr->args, arg_num);
-	ptr_name = get_variable_from_expr(ptr_expr, &ptr_sym);
-	if (!ptr_name)
+	if (!get_state_expr(my_id, ptr_expr))
 		return;
-	if (!get_state(ptr_name, my_id, ptr_sym))
-		return;
-	set_state(ptr_name, my_id, ptr_sym, &freed);
-	free_string(ptr_name);
+	set_state_expr(my_id, ptr_expr, &freed);
 }
 
 static void check_slist(struct state_list *slist)

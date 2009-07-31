@@ -119,12 +119,20 @@ do {                                                          \
 #define UNDEFINED INT_MIN
 
 struct smatch_state *get_state(const char *name, int owner, struct symbol *sym);
+struct smatch_state *get_state_expr(int owner, struct expression *expr);
 struct state_list *get_possible_states(const char *name, int owner,
 				       struct symbol *sym);
+struct state_list *get_possible_states_expr(int owner, struct expression *expr);
 void set_state(const char *name, int owner, struct symbol *sym,
 	       struct smatch_state *state);
+void set_state_expr(int owner, struct expression *expr,
+		struct smatch_state *state);
 void delete_state(const char *name, int owner, struct symbol *sym);
+void delete_state_expr(int owner, struct expression *expr);
 void set_true_false_states(const char *name, int owner, struct symbol *sym, 
+			   struct smatch_state *true_state,
+			   struct smatch_state *false_state);
+void set_true_false_states_expr(int owner, struct expression *expr, 
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state);
 
@@ -239,6 +247,7 @@ void clear_all_states();
 
 struct sm_state *get_sm_state(const char *name, int owner,
 				struct symbol *sym);
+struct sm_state *get_sm_state_expr(int owner, struct expression *expr);
 void __use_false_only_stack();
 void __pop_false_only_stack();
 void __push_true_states();

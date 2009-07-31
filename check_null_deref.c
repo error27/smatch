@@ -210,11 +210,7 @@ static void match_function_call_after(struct expression *expr)
 	FOR_EACH_PTR(expr->args, tmp) {
 		tmp = strip_expr(tmp);
 		if (tmp->op == '&') {
-			name = get_variable_from_expr(tmp->unop, &sym);
-			if (name) {
-				set_state(name, my_id, sym, &assumed_nonnull);
-			}
-			free_string(name);
+			set_state_expr(my_id, tmp->unop, &assumed_nonnull);
 		} else if (func) {
 			name = get_variable_from_expr(tmp, &sym);
 			if (name && is_maybe_null_no_arg(name, sym))
@@ -228,39 +224,19 @@ static void match_function_call_after(struct expression *expr)
 static void match_assign_returns_null(const char *fn, struct expression *expr,
 				      void *unused)
 {
-	struct expression *left;
-	struct symbol *sym;
-	char *name;
-	
-	left = strip_expr(expr->left);
-	name = get_variable_from_expr(left, &sym);
-	if (!name)
-		return;
-	set_state(name, my_id, sym, &undefined);
-	free_string(name);	
+	set_state_expr(my_id, expr->left, &undefined);
 }
 
 static void match_assign(struct expression *expr)
 {
-	struct expression *left, *right;
-	struct symbol *sym;
-	char *name;
-	
-	left = strip_expr(expr->left);
-	name = get_variable_from_expr(left, &sym);
-	if (!name)
-		return;
-	right = strip_expr(expr->right);
-	if (is_zero(right)) {
-		set_state(name, my_id, sym, &isnull);
-		free_string(name);
+	if (is_zero(expr->right)) {
+		set_state_expr(my_id, expr->left, &isnull);
 		return;
 	}
 	/* hack alert.  we set the state to here but it might get
 	   set later to &undefined in match_function_assign().
 	   By default we assume it's assigned something nonnull here. */
-	set_state(name, my_id, sym, &assumed_nonnull);
-	free_string(name);
+	set_state_expr(my_id, expr->left, &assumed_nonnull);
 }
 
 /*

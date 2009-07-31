@@ -118,6 +118,22 @@ void set_state(const char *name, int owner, struct symbol *sym,
 	}
 }
 
+void set_state_expr(int owner, struct expression *expr,
+	       struct smatch_state *state)
+{
+	char *name;
+	struct symbol *sym;
+
+	expr = strip_expr(expr);
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	set_state(name, owner, sym, state);
+free:
+	free_string(name);
+
+}
+
 void __set_state(struct sm_state *sm)
 {
 	if (debug_states) {
@@ -149,6 +165,22 @@ struct smatch_state *get_state(const char *name, int owner, struct symbol *sym)
 	return get_state_slist(cur_slist, name, owner, sym);
 }
 
+struct smatch_state *get_state_expr(int owner, struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+	struct smatch_state *ret = NULL;
+
+	expr = strip_expr(expr);
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	ret = get_state(name, owner, sym);
+free:
+	free_string(name);
+	return ret;
+}
+
 struct state_list *get_possible_states(const char *name, int owner,
 				       struct symbol *sym)
 {
@@ -160,14 +192,60 @@ struct state_list *get_possible_states(const char *name, int owner,
 	return NULL;
 }
 
+struct state_list *get_possible_states_expr(int owner, struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+	struct state_list *ret = NULL;
+
+	expr = strip_expr(expr);
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	ret = get_possible_states(name, owner, sym);
+free:
+	free_string(name);
+	return ret;
+}
+
 struct sm_state *get_sm_state(const char *name, int owner, struct symbol *sym)
 {
 	return get_sm_state_slist(cur_slist, name, owner, sym);
 }
 
+struct sm_state *get_sm_state_expr(int owner, struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+	struct sm_state *ret = NULL;
+
+	expr = strip_expr(expr);
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	ret = get_sm_state(name, owner, sym);
+free:
+	free_string(name);
+	return ret;
+}
+
 void delete_state(const char *name, int owner, struct symbol *sym)
 {
 	delete_state_slist(&cur_slist, name, owner, sym);
+}
+
+void delete_state_expr(int owner, struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+
+	expr = strip_expr(expr);
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	delete_state(name, owner, sym);
+free:
+	free_string(name);
 }
 
 struct state_list *get_all_states(int owner)
@@ -231,6 +309,22 @@ void set_true_false_states(const char *name, int owner, struct symbol *sym,
 	}
 	if (false_state)
 		set_state_stack(&cond_false_stack, name, owner, sym, false_state);
+}
+
+void set_true_false_states_expr(int owner, struct expression *expr, 
+			   struct smatch_state *true_state,
+			   struct smatch_state *false_state)
+{
+	char *name;
+	struct symbol *sym;
+
+	expr = strip_expr(expr);
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	set_true_false_states(name, owner, sym, true_state, false_state);
+free:
+	free_string(name);
 }
 
 void __set_true_false_sm(struct sm_state *true_state, 
