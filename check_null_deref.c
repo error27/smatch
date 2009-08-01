@@ -252,55 +252,48 @@ static void match_assign(struct expression *expr)
  * Basically the important thing to remember, is that for us, true is always
  * non null and false is always null.
  */
-static void set_new_true_false_paths(const char *name, struct symbol *sym,
-	int recently_assigned)
+static void set_new_true_false_paths(struct expression *expr, int recently_assigned)
 {
 	struct smatch_state *tmp;
+	char *name;
+	struct symbol *sym;
 
-	tmp = get_state(name, my_id, sym);
-	
+
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	tmp = get_state_expr(my_id, expr);
 	SM_DEBUG("set_new_stuff called at for %s on line %d value='%s'\n", 
 		name, get_lineno(), show_state(tmp));
-
+       
 	if (tmp == &argument) {
-		set_true_false_states(name, my_id, sym, &arg_nonnull, &arg_null);
-		return;
+		set_true_false_states_expr(my_id, expr, &arg_nonnull, &arg_null);
+		goto free;
 	}
 
 	if (tmp == &ignore) {
-		set_true_false_states(name, my_id, sym, &ignore, &ignore);
-		return;
+		set_true_false_states_expr(my_id, expr, &ignore, &ignore);
+		goto free;
 	}
 
 	if (!tmp || recently_assigned || is_maybe_null(name, sym)) {
-		set_true_false_states(name, my_id, sym, &nonnull, &isnull);
-		return;
+		set_true_false_states_expr(my_id, expr, &nonnull, &isnull);
+		goto free;
 	}
-}
-
-static void match_var_null_nonnull(struct expression *expr,
-				   int recently_assigned)
-{
-	struct symbol *sym;
-	char *name;
-
-	name = get_variable_from_expr(expr, &sym);
-	if (!name)
-		return;
-	set_new_true_false_paths(name, sym, recently_assigned);
+free:
 	free_string(name);
+
 }
 
 static void match_condition(struct expression *expr)
 {
-	struct symbol *sym;
-	char *name;
 	expr = strip_expr(expr);
 	switch(expr->type) {
 	case EXPR_PREOP:
 	case EXPR_SYMBOL:
 	case EXPR_DEREF:
-		match_var_null_nonnull(expr, 0);
+		set_new_true_false_paths(expr, 0);
 		return;
 	case EXPR_ASSIGNMENT:
                 /*
@@ -308,14 +301,10 @@ static void match_condition(struct expression *expr)
 		 *  for ( ... ; ... || x = NULL ; ) ...
 		 */
 		if (is_zero(expr->right)) {
-			name = get_variable_from_expr(expr->left, &sym);
-			if (!name)
-				return;
-			set_true_false_states(name, my_id, sym, NULL, &isnull);
-			free_string(name);
+			set_true_false_states_expr(my_id, expr->left, NULL, &isnull);
 			return;
 		}
-		match_var_null_nonnull(expr->left, 1);
+		set_new_true_false_paths(expr->left, 1);
 		return;
 	}
 }
@@ -432,6 +421,7 @@ void check_null_deref(int id)
 	int i;
 
 	my_id = id;
+	set_default_state(my_id, &assumed_nonnull);
 	add_merge_hook(my_id, &merge_func);
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);

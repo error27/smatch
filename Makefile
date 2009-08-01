@@ -30,7 +30,8 @@ SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	 smatch_helper.o smatch_hooks.o smatch_function_hooks.o \
 	 smatch_modification_hooks.o smatch_extra.o \
 	 smatch_ranges.o smatch_implied.o smatch_ignore.o \
-	 smatch_tracker.o smatch_files.o smatch_expression_stacks.o smatch_oom.o
+	 smatch_tracker.o smatch_files.o smatch_expression_stacks.o smatch_oom.o \
+	 smatch_containers.o
 SMATCH_CHECKS=$(shell ls check_*.c | sed -e 's/\.c/.o/')
 
 
@@ -183,11 +184,13 @@ smatch_files.o: $(LIB_H) smatch.h
 smatch_hooks.o: $(LIB_H) smatch.h
 smatch_function_hooks.o: $(LIB_H) smatch.h smatch_slist.h smatch_extra.h
 smatch_modification_hooks.o: $(LIB_H) smatch.h
+smatch_containers.o: $(LIB_H) smatch.h
 smatch_helper.o: $(LIB_H) smatch.h
 smatch_slist.o: $(LIB_H) smatch.h smatch_slist.h
 smatch_states.o: $(LIB_H) smatch.h smatch_slist.h smatch_extra.h
 smatch_expression_stacks.o: $(LIB_H) smatch.h
 smatch_oom.c: $(LIB_H) smatch.h
+smatch_redefine.c: $(LIB_H) smatch.h
 smatch.o: $(LIB_H) smatch.h
 $(SMATCH_CHECKS): smatch.h smatch_slist.h
 test-unssa.o: $(LIB_H)

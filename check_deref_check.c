@@ -22,44 +22,40 @@ static void underef(const char *name, struct symbol *sym, struct expression *exp
 static void match_dereference(struct expression *expr)
 {
 	char *name;
-	struct symbol *sym;
 
 	if (strcmp(show_special(expr->deref->op), "*"))
 		return;
+	expr = expr->deref->unop;
+	expr = strip_expr(expr);
 
-	name = get_variable_from_expr(expr->deref->unop, &sym);
-	if (!name || !sym)
-		goto free;
-	set_state(name, my_id, sym, &derefed);
+	set_state_expr(my_id, expr, &derefed);
+
+	name = get_variable_from_expr(expr, NULL);
+	if (!name)
+		return;
 	add_modification_hook(name, &underef, NULL);
-free:
 	free_string(name);
 }
 
 
 static void match_condition(struct expression *expr)
 {
-	struct symbol *sym;
-	char *name;
+	if (get_state_expr(my_id, expr) == &derefed) {
+		char *name;
 
-	expr = strip_expr(expr);
-	name = get_variable_from_expr(expr, &sym);
-	if (!name || !sym)
-		goto free;
-
-	if (get_state(name, my_id, sym) == &derefed) {
+		name = get_variable_from_expr(expr, NULL);
 		smatch_msg("warning: variable derefenced before check '%s'",
 			name);
-		set_state(name, my_id, sym, &oktocheck);
+		set_state_expr(my_id, expr, &oktocheck);
+		free_string(name);
 	}
-free:
-	free_string(name);
 }
 
 
 void check_deref_check(int id)
 {
 	my_id = id;
+	set_default_state(my_id, &oktocheck);
 	add_hook(&match_dereference, DEREF_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 }

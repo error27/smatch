@@ -113,6 +113,7 @@ static void match_ptr_err(const char *fn, struct expression *expr, void *unused)
 void check_err_ptr_deref(int id)
 {
 	my_id = id;
+	set_default_state(my_id, &checked);
 	add_conditional_hook("IS_ERR", &match_is_err, NULL);
 	register_err_ptr_funcs();
 	add_hook(&match_dereferences, DEREF_HOOK);

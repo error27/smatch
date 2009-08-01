@@ -32,7 +32,7 @@ static void record_dereferenced_vars(struct expression *expr)
 	if (!strcmp(show_special(expr->op), "*"))  {
 		name = get_variable_from_expr(expr->unop, &sym);
 		if (name && sym) {
-			set_state(name, my_id, sym, &derefed);
+			set_state_expr(my_id, expr->unop, &derefed);
 			add_modification_hook(name, &underef, NULL);
 		}
 		free_string(name);
@@ -58,10 +58,10 @@ static void match_condition(struct expression *expr)
 	if (!name || !sym)
 		goto free;
 
-	if (get_state(name, my_id, sym) == &derefed) {
+	if (get_state_expr(my_id, expr) == &derefed) {
 		smatch_msg("warning: variable derefenced in initializer '%s'",
 			name);
-		set_state(name, my_id, sym, &oktocheck);
+		set_state_expr(my_id, expr, &oktocheck);
 	}
 free:
 	free_string(name);
@@ -71,6 +71,7 @@ free:
 void check_initializer_deref(int id)
 {
 	my_id = id;
+	set_default_state(my_id, &oktocheck);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 }

@@ -104,6 +104,9 @@ typedef void (modification_hook)(const char *name, struct symbol *sym,
 				struct expression *expr, void *data);
 void add_modification_hook(const char *variable, modification_hook *hook,
 			void *data);
+int is_member(struct expression *expr);
+void reset_on_container_modified(int owner, struct expression *expr);
+void set_default_state(int owner, struct smatch_state *state);
 
 #define smatch_msg(msg...) \
 do {                                                          \
@@ -323,5 +326,6 @@ int out_of_memory();
 /* smatch.c */
 extern char *data_dir;
 extern int option_no_data;
+extern struct smatch_state *default_state[];
 
 #endif 	    /* !SMATCH_H_ */

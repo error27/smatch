@@ -21,6 +21,7 @@ void register_smatch_ignore(int id);
 void register_implications(int id);
 void register_function_hooks(int id);
 void register_modification_hooks(int id);
+void register_containers(int id);
 void check_debug(int id);
 void check_null_deref(int id);
 void check_overflow(int id);
@@ -62,9 +63,12 @@ static const reg_func reg_funcs[] = {
 	/* &register_template, */
 
 	&register_modification_hooks,
+	&register_containers,
 	&register_implications, /* implications always has to be last */
 	NULL
 };
+
+struct smatch_state *default_state[sizeof(reg_funcs)/sizeof(reg_func)];
 
 static void help(void)
 {

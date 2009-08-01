@@ -91,7 +91,7 @@ static void match_allocation(const char *fn, struct expression *expr,
 	if (left_sym->ctype.modifiers & 
 	    (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))
 		goto free;
-	set_state(left_name, my_id, left_sym, &allocated);
+	set_state_expr(my_id, expr->left, &allocated);
 free:
 	free_string(left_name);
 }
@@ -156,28 +156,21 @@ static void match_return(struct statement *stmt)
 	check_for_allocated();
 }
 
-static void set_new_true_false_paths(const char *name, struct symbol *sym)
+static void set_old_true_false_paths(struct expression *expr)
 {
-	if (!get_state(name, my_id, sym))
+	if (!get_state_expr(my_id, expr))
 		return;
-	set_true_false_states(name, my_id, sym, &allocated, &isnull);
+	set_true_false_states_expr(my_id, expr, &allocated, &isnull);
 }
 
 static void match_condition(struct expression *expr)
 {
-	struct symbol *sym;
-	char *name;
-
 	expr = strip_expr(expr);
 	switch(expr->type) {
 	case EXPR_PREOP:
 	case EXPR_SYMBOL:
 	case EXPR_DEREF:
-		name = get_variable_from_expr(expr, &sym);
-		if (!name)
-			return;
-		set_new_true_false_paths(name, sym);
-		free_string(name);
+		set_old_true_false_paths(expr);
 		return;
 	case EXPR_ASSIGNMENT:
 		match_condition(expr->left);
@@ -270,6 +263,7 @@ void check_leaks(int id)
 	int i;
 
 	my_id = id;
+	set_default_state(my_id, &undefined);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
