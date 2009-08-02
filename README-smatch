@@ -10,6 +10,8 @@ This compiles creates a binary called "smatch".
 
 For the kernel use:  make -k CHECK=/path/to/smatch C=y bzImage | tee warns.txt
 
+There is also a smatch_scripts/kchecker script for checking individual .c kernel files.
+
 Most of the things that smatch prints out is not actually warnings.
 What I was trying to do with that was catch errors where a NULL is
 passed to a function that dereferences the parameter without checking.
