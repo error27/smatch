@@ -55,7 +55,7 @@ static void func (void)
  * check-output-start
 sm_null_deref.c +18 func(6) error: dereferencing undefined:  'aa'
 sm_null_deref.c +23 func(11) error: dereferencing undefined:  'a'
-sm_null_deref.c +25 func(13) warning: variable derefenced before check 'a'
+sm_null_deref.c +25 func(13) warn: variable derefenced before check 'a'
 sm_null_deref.c +30 func(18) error: dereferencing undefined:  'b'
 sm_null_deref.c +48 func(36) error: dereferencing undefined:  'd'
  * check-output-end

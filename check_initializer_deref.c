@@ -59,7 +59,7 @@ static void match_condition(struct expression *expr)
 		goto free;
 
 	if (get_state_expr(my_id, expr) == &derefed) {
-		smatch_msg("warning: variable derefenced in initializer '%s'",
+		smatch_msg("warn: variable derefenced in initializer '%s'",
 			name);
 		set_state_expr(my_id, expr, &oktocheck);
 	}

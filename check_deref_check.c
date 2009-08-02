@@ -44,7 +44,7 @@ static void match_condition(struct expression *expr)
 		char *name;
 
 		name = get_variable_from_expr(expr, NULL);
-		smatch_msg("warning: variable derefenced before check '%s'",
+		smatch_msg("warn: variable derefenced before check '%s'",
 			name);
 		set_state_expr(my_id, expr, &oktocheck);
 		free_string(name);

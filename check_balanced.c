@@ -55,7 +55,7 @@ static void match_left(const char *fn, struct expression *expr, void *data)
 	if (!sm)
 		add_tracker(&starts_right, name, my_id, NULL);
 	if (sm && slist_has_state(sm->possible, &left))
-		smatch_msg("warning: double '%s'", fn);
+		smatch_msg("warn: double '%s'", fn);
 	set_state((char *)data, my_id, NULL, &left);
 }
 
@@ -68,7 +68,7 @@ static void match_right(const char *fn, struct expression *expr, void *data)
 	if (!sm)
 		add_tracker(&starts_left, name, my_id, NULL);
 	if (sm && slist_has_state(sm->possible, &right))
-		smatch_msg("warning: double '%s'", fn);
+		smatch_msg("warn: double '%s'", fn);
 	set_state((char *)data, my_id, NULL, &right);
 }
 
