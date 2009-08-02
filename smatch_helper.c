@@ -423,6 +423,31 @@ int is_zero(struct expression *expr)
 	return 0;
 }
 
+int is_array(struct expression *expr)
+{
+	expr = strip_expr(expr);
+	if (expr->type != EXPR_PREOP || strcmp(show_special(expr->op), "*"))
+		return 0;
+	expr = expr->unop;
+	if (strcmp(show_special(expr->op), "+"))
+		return 0;
+	return 1;
+}
+
+struct expression *get_array_name(struct expression *expr)
+{
+	if (!is_array(expr))
+		return NULL;
+	return expr->unop->left;
+}
+
+struct expression *get_array_offset(struct expression *expr)
+{
+	if (!is_array(expr))
+		return NULL;
+	return expr->unop->right;
+}
+
 const char *show_state(struct smatch_state *state)
 {
 	if (!state)

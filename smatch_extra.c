@@ -332,7 +332,11 @@ static void match_function_def(struct symbol *sym)
 	} END_FOR_EACH_PTR(arg);
 }
 
-int get_implied_value(struct expression *expr)
+#define VAL_SINGLE 0
+#define VAL_MAX    1
+#define VAL_MIN    2
+
+static int get_implied_value_helper(struct expression *expr, int what)
 {
 	struct smatch_state *state;
 	int val;
@@ -350,7 +354,26 @@ int get_implied_value(struct expression *expr)
 	free_string(name);
 	if (!state || !state->data)
 		return UNDEFINED;
-	return get_single_value_from_range((struct data_info *)state->data);
+	if (what == VAL_SINGLE)
+		return get_single_value_from_range((struct data_info *)state->data);
+	if (what == VAL_MAX)
+		return get_dinfo_max((struct data_info *)state->data);
+	return get_dinfo_min((struct data_info *)state->data);
+}
+
+int get_implied_value(struct expression *expr)
+{
+	return get_implied_value_helper(expr, VAL_SINGLE);
+}
+
+int get_implied_max(struct expression *expr)
+{
+	return get_implied_value_helper(expr, VAL_MAX);
+}
+
+int get_implied_min(struct expression *expr)
+{
+	return get_implied_value_helper(expr, VAL_MIN);
 }
 
 int last_stmt_val(struct statement *stmt)
