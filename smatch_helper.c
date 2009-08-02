@@ -341,7 +341,10 @@ int sym_name_is(const char *name, struct expression *expr)
 	return 0;
 }
 
-static int _get_value(struct expression *expr, int *discard)
+#define NOTIMPLIED 0
+#define IMPLIED 1
+
+static int _get_value(struct expression *expr, int *discard, int implied)
 {
 	int dis = 0;
 	int ret = UNDEFINED;
@@ -361,7 +364,7 @@ static int _get_value(struct expression *expr, int *discard)
 		break;
 	case EXPR_PREOP:
 		if (!strcmp("-", show_special(expr->op)))
-			ret = - _get_value(expr->unop, discard);
+			ret = - _get_value(expr->unop, discard, implied);
 		else
 			*discard = 1;
 		break;
@@ -372,8 +375,8 @@ static int _get_value(struct expression *expr, int *discard)
 			*discard = 1;
 			break;
 		}
-		left = _get_value(expr->left, discard);
-		right = _get_value(expr->right, discard);
+		left = _get_value(expr->left, discard, implied);
+		right = _get_value(expr->right, discard, implied);
 		if (!strcmp("*", show_special(expr->op))) {
 			ret =  left * right;
 		} else if (!strcmp("/", show_special(expr->op))) {
@@ -402,8 +405,13 @@ static int _get_value(struct expression *expr, int *discard)
 			*discard = 1;
 		break;
 	default:
-		//printf("ouchies-->%d\n", expr->type);
-		*discard = 1;
+		if (implied) {
+			ret = get_implied_single_val(expr);
+			if (ret == UNDEFINED)
+				*discard = 1;
+		} else {
+			*discard = 1;
+		}
 	}
 	if (*discard)
 		return UNDEFINED;
@@ -413,7 +421,12 @@ static int _get_value(struct expression *expr, int *discard)
 /* returns UNDEFINED on error */
 int get_value(struct expression *expr)
 {
-	return _get_value(expr, NULL);
+	return _get_value(expr, NULL, NOTIMPLIED);
+}
+
+int get_implied_value(struct expression *expr)
+{
+	return _get_value(expr, NULL, IMPLIED);
 }
 
 int is_zero(struct expression *expr)

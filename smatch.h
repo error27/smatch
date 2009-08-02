@@ -158,6 +158,7 @@ char *get_variable_from_expr(struct expression *expr,
 struct symbol *get_ptr_type(struct expression *expr);
 int sym_name_is(const char *name, struct expression *expr);
 int get_value(struct expression *expr);
+int get_implied_value(struct expression *expr);
 int is_zero(struct expression *expr);
 int is_array(struct expression *expr);
 struct expression *get_array_name(struct expression *expr);
@@ -223,7 +224,7 @@ struct data_range {
 };
 extern struct data_range whole_range;
 
-int get_implied_value(struct expression *expr);
+int get_implied_single_val(struct expression *expr);
 int get_implied_max(struct expression *expr);
 int get_implied_min(struct expression *expr);
 int true_comparison(int left, int comparison, int right);

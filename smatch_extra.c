@@ -361,7 +361,7 @@ static int get_implied_value_helper(struct expression *expr, int what)
 	return get_dinfo_min((struct data_info *)state->data);
 }
 
-int get_implied_value(struct expression *expr)
+int get_implied_single_val(struct expression *expr)
 {
 	return get_implied_value_helper(expr, VAL_SINGLE);
 }
