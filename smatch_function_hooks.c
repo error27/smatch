@@ -313,10 +313,12 @@ static void match_assign_call(struct expression *expr)
 {
 	struct call_back_list *call_backs;
 	const char *fn;
+	struct expression *right;
 
-	if (expr->right->fn->type != EXPR_SYMBOL || !expr->right->fn->symbol)
+	right = strip_expr(expr->right);
+	if (right->fn->type != EXPR_SYMBOL || !right->fn->symbol)
 		return;
-	fn = expr->right->fn->symbol->ident->name;
+	fn = right->fn->symbol->ident->name;
 	call_backs = get_call_backs(fn);
 	if (!call_backs)
 		return;
@@ -332,6 +334,7 @@ static void match_conditional_call(struct expression *expr)
 	struct sm_state *sm;
 	const char *fn;
 
+	expr = strip_expr(expr);
 	if (expr->type != EXPR_CALL)
 		return;
 

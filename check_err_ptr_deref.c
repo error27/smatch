@@ -103,8 +103,10 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
 static void match_ptr_err(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *arg;
+	struct expression *right;
 
-	arg = get_argument_from_call_expr(expr->right->args, 0);
+	right = strip_expr(expr->right);
+	arg = get_argument_from_call_expr(right->args, 0);
 	if (get_state_expr(my_id, arg) == &err_ptr) {
 		set_state_expr(SMATCH_EXTRA, expr->left, alloc_extra_state_range(-4095, -1));
 	}

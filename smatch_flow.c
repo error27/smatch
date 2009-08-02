@@ -37,7 +37,7 @@ void __split_expr(struct expression *expr)
 	if (!expr)
 		return;
 
-	// printf("%d Debug expr_type %d\n", get_lineno(), expr->type);
+	// printf("%d Debug expr_type %d %s\n", get_lineno(), expr->type, show_special(expr->op));
 
 	__smatch_lineno = expr->pos.line;
 	__pass_to_client(expr, EXPR_HOOK);
