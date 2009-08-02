@@ -336,7 +336,7 @@ static void match_function_def(struct symbol *sym)
 #define VAL_MAX    1
 #define VAL_MIN    2
 
-static int get_implied_value_helper(struct expression *expr, int what)
+static long long get_implied_value_helper(struct expression *expr, int what)
 {
 	struct smatch_state *state;
 	int val;
@@ -368,12 +368,22 @@ int get_implied_single_val(struct expression *expr)
 
 int get_implied_max(struct expression *expr)
 {
-	return get_implied_value_helper(expr, VAL_MAX);
+	long long ret;
+
+	ret = get_implied_value_helper(expr, VAL_MAX);
+	if (ret == whole_range.max)
+		return UNDEFINED;
+	return ret;
 }
 
 int get_implied_min(struct expression *expr)
 {
-	return get_implied_value_helper(expr, VAL_MIN);
+	long long ret;
+
+	ret = get_implied_value_helper(expr, VAL_MIN);
+	if (ret == whole_range.min)
+		return UNDEFINED;
+	return ret;
 }
 
 int last_stmt_val(struct statement *stmt)
