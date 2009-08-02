@@ -398,11 +398,9 @@ static int _get_value(struct expression *expr, int *discard, int implied)
 		}
 		break;
 	}
+	case EXPR_PTRSIZEOF:
 	case EXPR_SIZEOF:
-		if (expr->cast_type && get_base_type(expr->cast_type))
-			ret = (get_base_type(expr->cast_type))->bit_size / 8;
-		else
-			*discard = 1;
+		ret = get_expression_value(expr);
 		break;
 	default:
 		if (implied) {
