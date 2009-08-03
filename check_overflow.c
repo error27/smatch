@@ -12,7 +12,47 @@
 #include "smatch.h"
 #include "smatch_slist.h"
 
+struct bound {
+	int param;
+	int size;
+};
+
 static int my_id;
+
+static struct symbol *this_func;
+
+static void match_function_def(struct symbol *sym)
+{
+	this_func = sym;
+}
+
+static void print_args(struct expression *expr, int size)
+{
+	struct symbol *sym;
+	char *name;
+	struct symbol *arg;
+	const char *arg_name;
+	int i;
+
+	if (!option_spammy)
+		return;
+
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	i = 0;
+	FOR_EACH_PTR(this_func->ctype.base_type->arguments, arg) {
+		arg_name = (arg->ident?arg->ident->name:"-");
+		if (sym == arg && !strcmp(name, arg_name)) {
+			smatch_msg("param %d array index. size %d", i, size);
+			goto free;
+		}
+		i++;
+	} END_FOR_EACH_PTR(arg);
+free:
+	free_string(name);
+}
 
 static char *alloc_num(long long num)
 {
@@ -42,29 +82,6 @@ static struct smatch_state *alloc_my_state(int val)
 	return state;
 }
 
-static int malloc_size(struct expression *expr)
-{
-	char *name;
-	struct expression *arg;
-
-	if (!expr)
-		return 0;
-
-	expr = strip_expr(expr);
-	if (expr->type == EXPR_CALL) {
-		name = get_variable_from_expr(expr->fn, NULL);
-		if (name && !strcmp(name, "kmalloc")) {
-			arg = get_argument_from_call_expr(expr->args, 0);
-			free_string(name);
-			return get_value(arg) * 8;
-		}
-		free_string(name);
-	} else if (expr->type == EXPR_STRING && expr->string) {
-		return expr->string->length * 8;
-	}
-	return 0;
-}
-
 static void match_declaration(struct symbol *sym)
 {
 	struct symbol *base_type;
@@ -80,10 +97,12 @@ static void match_declaration(struct symbol *sym)
 	if (base_type->type == SYM_ARRAY && base_type->bit_size > 0) {
 		set_state(name, my_id, NULL, alloc_my_state(base_type->bit_size));
 	} else {
-		size = malloc_size(sym->initializer);
-		if (size > 0)
+		if (sym->initializer &&
+ 			sym->initializer->type == EXPR_STRING &&
+			sym->initializer->string) {
+			size = sym->initializer->string->length * 8;
 			set_state(name, my_id, NULL, alloc_my_state(size));
-
+		}
 	}
 }
 
@@ -96,19 +115,43 @@ static int get_array_size(struct expression *expr)
 
 	if (expr->type != EXPR_SYMBOL)
 		return 0;
+	tmp = get_base_type(expr->symbol);
+	if (tmp->type == SYM_ARRAY) {
+		ret = get_expression_value(tmp->array_size);
+		if (ret)
+			return ret;
+	}
 	name = get_variable_from_expr(expr, NULL);
 	if (!name)
 		return 0;
 	state = get_state(name, my_id, NULL);
 	if (!state || !state->data)
 		goto free;
-	tmp = get_base_type(expr->symbol);
 	if (tmp->type == SYM_PTR)
 		tmp = get_base_type(tmp);
 	ret = *(int *)state->data / 8 / tmp->ctype.alignment;
 free:
 	free_string(name);
 	return ret;
+}
+
+extern int check_assigned_expr_id;
+void print_assigned_expr(struct expression *expr)
+{
+#if 0
+	struct state_list *slist;
+	struct sm_state *tmp;
+	char *name;
+
+	name = get_variable_from_expr(expr, NULL);
+	slist = get_possible_states_expr(check_assigned_expr_id, expr);
+	FOR_EACH_PTR(slist, tmp) {
+		if (tmp->state == &undefined || tmp->state == &merged)
+			continue;
+		smatch_msg("debug: unknown initializer %s = %s", name, show_state(tmp->state));
+	} END_FOR_EACH_PTR(tmp);
+	free_string(name);
+#endif
 }
 
 static void array_check(struct expression *expr)
@@ -125,26 +168,67 @@ static void array_check(struct expression *expr)
 
 	dest = get_array_name(expr);
 	array_size = get_array_size(dest);
-	if (!array_size)
+	if (!array_size) {
+		name = get_variable_from_expr(dest, NULL);
+		if (!name)
+			return;
+//		smatch_msg("debug: array '%s' unknown size", name);
+		print_assigned_expr(dest);
 		return;
+	}
 
 	offset = get_array_offset(expr);
 	max = get_implied_max(offset);
-	if (array_size <= max) {
+	if (max == UNDEFINED) {
+		name = get_variable_from_expr(dest, NULL);
+//		smatch_msg("debug: offset '%s' unknown", name);
+		print_args(offset, array_size);
+	}
+
+	if (max != UNDEFINED && array_size <= max) {
 		name = get_variable_from_expr(dest, NULL);
 		smatch_msg("error: buffer overflow '%s' %d <= %d", name, array_size, max);
 		free_string(name);
 	}
 }
 
-static void match_assignment(struct expression *expr)
+static void match_string_assignment(struct expression *expr)
+{
+	struct expression *left;
+	struct expression *right;
+	char *name;
+
+	left = strip_expr(expr->left);
+	right = strip_expr(expr->right);
+	name = get_variable_from_expr(left, NULL);
+	if (!name)
+		return;
+	if (right->type != EXPR_STRING || !right->string)
+		goto free;
+	set_state(name, my_id, NULL, 
+		alloc_my_state(right->string->length * 8));
+free:
+	free_string(name);
+}
+
+static void match_malloc(const char *fn, struct expression *expr, void *unused)
 {
 	char *name;
+	struct expression *right;
+	struct expression *arg;
+	int bytes;
+
 	name = get_variable_from_expr(expr->left, NULL);
 	if (!name)
 		return;
-	if (malloc_size(expr->right) > 0)
-		set_state(name, my_id, NULL, alloc_my_state(malloc_size(expr->right)));
+
+	right = strip_expr(expr->right);
+	arg = get_argument_from_call_expr(right->args, 0);
+	bytes = get_implied_value(arg);
+	if (bytes == UNDEFINED)
+		goto free;
+	set_state(name, my_id, NULL, alloc_my_state(bytes * 8));
+free:
 	free_string(name);
 }
 
@@ -209,14 +293,65 @@ free:
 	free_string(dest_name);
 }
 
+static void match_array_func(const char *fn, struct expression *expr, void *info)
+{
+	struct bound *bound_info = (struct bound *)info;
+	struct expression *arg;
+	int offset;
+
+	arg = get_argument_from_call_expr(expr->args, bound_info->param);
+	offset = get_implied_value(arg);
+	if (offset == UNDEFINED)
+		return;
+	if (offset >= bound_info->size)
+		smatch_msg("buffer overflow calling %s. param %d.  %d >= %d", fn, bound_info->param, offset, bound_info->size);
+}
+
+static void register_array_funcs(void)
+{
+	struct token *token;
+	const char *func;
+	struct bound *bound_info;
+
+	token = get_tokens_file("kernel.array_bounds");
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		bound_info = malloc(sizeof(*bound_info));
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = show_ident(token->ident);
+		token = token->next;
+		if (token_type(token) != TOKEN_NUMBER)
+			return;
+		bound_info->param = atoi(token->number);
+		token = token->next;
+		if (token_type(token) != TOKEN_NUMBER)
+			return;
+		bound_info->size = atoi(token->number);
+		add_function_hook(func, &match_array_func, bound_info);
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
 void check_overflow(int id)
 {
 	my_id = id;
+	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_declaration, DECLARATION_HOOK);
 	add_hook(&array_check, OP_HOOK);
-	add_hook(&match_assignment, ASSIGNMENT_HOOK);
+	add_hook(&match_string_assignment, ASSIGNMENT_HOOK);
+	add_function_assign_hook("malloc", &match_malloc, NULL);
+	add_function_assign_hook("kmalloc", &match_malloc, NULL);
+	add_function_assign_hook("kzalloc", &match_malloc, NULL);
+	add_function_assign_hook("vmalloc", &match_malloc, NULL);
 	add_function_hook("strcpy", &match_strcpy, NULL);
 	add_function_hook("strncpy", &match_limitted, (void *)2);
 	add_function_hook("copy_to_user", &match_limitted, (void *)2);
 	add_function_hook("copy_from_user", &match_limitted, (void *)2);
+	register_array_funcs();
 }
