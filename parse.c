@@ -530,6 +530,8 @@ static struct init_keyword {
 	{ "__hot__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "warning",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__warning__",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "bounded",	NS_KEYWORD,	.op = &ignore_attr_op },
+	{ "__bounded__",	NS_KEYWORD,	.op = &ignore_attr_op },
 };
 
 void init_parser(int stream)
