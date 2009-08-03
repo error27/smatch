@@ -49,6 +49,9 @@ static void match_end_func(struct symbol *sym)
 
 void check_err_ptr(int id)
 {
+	if (!option_spammy)
+		return;
+
 	my_id = id;
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_function_hook("ERR_PTR", &match_err_ptr, NULL);

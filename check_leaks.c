@@ -262,6 +262,9 @@ void check_leaks(int id)
 {
 	int i;
 
+	if (!option_spammy)
+		return;
+
 	my_id = id;
 	set_default_state(my_id, &undefined);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);

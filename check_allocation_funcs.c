@@ -79,6 +79,9 @@ void check_allocation_funcs(int id)
 {
 	int i;
 
+	if (!option_spammy)
+		return;
+
 	my_id = id;
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);

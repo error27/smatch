@@ -14,6 +14,7 @@
 
 char *data_dir;
 int option_no_data = 0;
+int option_spammy = 0;
 
 typedef void (*reg_func) (int id);
 void register_smatch_extra(int id);
@@ -50,12 +51,12 @@ static const reg_func reg_funcs[] = {
 	&check_overflow,
 	&check_locking,
 	&check_memory,
-	// &check_type,
-	// &check_allocation_funcs,
-	// &check_leaks,
-	// &check_frees_argument,
-	// &check_puts_argument,
-	// &check_err_ptr,
+	&check_type,
+	&check_allocation_funcs,
+	&check_leaks,
+	&check_frees_argument,
+	&check_puts_argument,
+	&check_err_ptr,
 	&check_err_ptr_deref,
 	&check_balanced,
 	&check_initializer_deref,
@@ -82,6 +83,7 @@ static void help(void)
 	printf("--assume-loops:  assume loops always go through at least once.\n");
 	printf("--known-conditions:  don't branch for known conditions.\n");
 	printf("--no-data:  do not use the /smatch_data/ directory.\n");
+	printf("--spammy:  print superfluous crap.\n");
 	printf("--help:  print this helpfull message.\n");
 	exit(1);
 }
@@ -111,6 +113,9 @@ void parse_args(int *argcp, char ***argvp)
 			(*argvp)[1] = (*argvp)[0];
 		} else if (!strcmp((*argvp)[1], "--no-data")) {
 			option_no_data = 1;
+			(*argvp)[1] = (*argvp)[0];
+		} else if (!strcmp((*argvp)[1], "--spammy")) {
+			option_spammy = 1;
 			(*argvp)[1] = (*argvp)[0];
 		} else if (!strcmp((*argvp)[1], "--help")) {
 			help();

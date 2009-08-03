@@ -332,6 +332,7 @@ int out_of_memory();
 /* smatch.c */
 extern char *data_dir;
 extern int option_no_data;
+extern int option_spammy;
 extern struct smatch_state *default_state[];
 
 #endif 	    /* !SMATCH_H_ */
