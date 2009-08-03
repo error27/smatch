@@ -29,6 +29,8 @@ void reset_on_container_modified(int owner, struct expression *expr)
 	char *name;
 	struct symbol *sym;
 
+	return;  /* this stuff is taking too long */
+
 	if (!is_member(expr))
 		return;
 
