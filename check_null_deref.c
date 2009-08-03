@@ -359,14 +359,6 @@ static void end_file_processing(void)
 {
 	struct func_n_param *param1, *param2;
 
-	// if a function is not static print it out...
-	FOR_EACH_PTR(do_not_call, param1) {
-		if (!(param1->func->ctype.modifiers & MOD_STATIC))
-			printf("%s +%d info: unchecked param %s %d\n", 
-			       get_filename(), param1->line,
-			       param1->func->ident->name, param1->param);
-	} END_FOR_EACH_PTR(param1);
-	
 	// if there is an error print it out...
 	FOR_EACH_PTR(calls, param1) {
 		FOR_EACH_PTR(do_not_call, param2) {
@@ -379,6 +371,17 @@ static void end_file_processing(void)
 		} END_FOR_EACH_PTR(param2);
 	} END_FOR_EACH_PTR(param1);
 
+	if (!option_spammy)
+		return;
+
+	// if a function is not static print it out...
+	FOR_EACH_PTR(do_not_call, param1) {
+		if (!(param1->func->ctype.modifiers & MOD_STATIC))
+			printf("%s +%d info: unchecked param %s %d\n", 
+			       get_filename(), param1->line,
+			       param1->func->ident->name, param1->param);
+	} END_FOR_EACH_PTR(param1);
+	
 	// if someone calls a non-static function print that..
 	FOR_EACH_PTR(calls, param1) {
 		int defined = 0;
