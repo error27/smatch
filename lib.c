@@ -685,15 +685,26 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern char * __builtin_strpbrk(const char *, const char *);\n");
 	add_pre_buffer("extern __SIZE_TYPE__ __builtin_strlen(const char *);\n");
 
+	/* And bitwise operations.. */
+	add_pre_buffer("extern int __builtin_clz(int);\n");
+	add_pre_buffer("extern int __builtin_clzl(long);\n");
+	add_pre_buffer("extern int __builtin_clzll(long long);\n");
+	add_pre_buffer("extern int __builtin_ctz(int);\n");
+	add_pre_buffer("extern int __builtin_ctzl(long);\n");
+	add_pre_buffer("extern int __builtin_ctzll(long long);\n");
+	add_pre_buffer("extern int __builtin_ffs(int);\n");
+	add_pre_buffer("extern int __builtin_ffsl(long);\n");
+	add_pre_buffer("extern int __builtin_ffsll(long long);\n");
+	add_pre_buffer("extern int __builtin_popcount(unsigned int);\n");
+	add_pre_buffer("extern int __builtin_popcountl(unsigned long);\n");
+	add_pre_buffer("extern int __builtin_popcountll(unsigned long long);\n");
+
 	/* And some random ones.. */
 	add_pre_buffer("extern void *__builtin_return_address(unsigned int);\n");
 	add_pre_buffer("extern void *__builtin_extract_return_addr(void *);\n");
 	add_pre_buffer("extern void *__builtin_frame_address(unsigned int);\n");
 	add_pre_buffer("extern void __builtin_trap(void);\n");
-	add_pre_buffer("extern int __builtin_ffs(int);\n");
 	add_pre_buffer("extern void *__builtin_alloca(__SIZE_TYPE__);\n");
-	add_pre_buffer("extern int __builtin_popcount(unsigned int);\n");
-	add_pre_buffer("extern int __builtin_popcountl(unsigned long);\n");
 	add_pre_buffer("extern void __builtin_prefetch (const void *, ...);\n");
 	add_pre_buffer("extern long __builtin_alpha_extbl(long, long);\n");
 	add_pre_buffer("extern long __builtin_alpha_extwl(long, long);\n");
@@ -703,6 +714,14 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern long __builtin_alpha_inslh(long, long);\n");
 	add_pre_buffer("extern long __builtin_alpha_cmpbge(long, long);\n");
 	add_pre_buffer("extern long __builtin_labs(long);\n");
+
+	/* And some floating point stuff.. */
+	add_pre_buffer("extern int __builtin_isgreater(float, float);\n");
+	add_pre_buffer("extern int __builtin_isgreaterequal(float, float);\n");
+	add_pre_buffer("extern int __builtin_isless(float, float);\n");
+	add_pre_buffer("extern int __builtin_islessequal(float, float);\n");
+	add_pre_buffer("extern int __builtin_islessgreater(float, float);\n");
+	add_pre_buffer("extern int __builtin_isunordered(float, float);\n");
 
 	/* And some __FORTIFY_SOURCE ones.. */
 	add_pre_buffer ("extern __SIZE_TYPE__ __builtin_object_size(void *, int);\n");
