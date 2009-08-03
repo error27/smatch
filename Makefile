@@ -3,7 +3,7 @@ VERSION=0.4.1
 OS ?= linux
 
 CC ?= gcc
-CFLAGS ?= -O2 -finline-functions -fno-strict-aliasing -g
+CFLAGS ?= -finline-functions -fno-strict-aliasing -g
 CFLAGS += -Wall -Wwrite-strings
 LDFLAGS ?= -g
 AR ?= ar
