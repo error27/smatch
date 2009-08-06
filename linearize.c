@@ -666,7 +666,7 @@ void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic
 }
 	
 
-void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi_node, pseudo_t true, pseudo_t false)
+void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi_node, pseudo_t if_true, pseudo_t if_false)
 {
 	pseudo_t target;
 	struct instruction *select;
@@ -685,8 +685,8 @@ void insert_select(struct basic_block *bb, struct instruction *br, struct instru
 	select->target = target;
 	target->def = select;
 
-	use_pseudo(select, true, &select->src2);
-	use_pseudo(select, false, &select->src3);
+	use_pseudo(select, if_true, &select->src2);
+	use_pseudo(select, if_false, &select->src3);
 
 	add_instruction(&bb->insns, select);
 	add_instruction(&bb->insns, br);
