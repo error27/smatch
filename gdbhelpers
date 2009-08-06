@@ -125,6 +125,9 @@ define gdb_show_ctype
 	if ($arg0->modifiers & MOD_LONGLONG)
 		printf "MOD_LONGLONG "
 	end
+	if ($arg0->modifiers & MOD_LONGLONGLONG)
+		printf "MOD_LONGLONGLONG "
+	end
 	if ($arg0->modifiers & MOD_TYPEDEF)
 		printf "MOD_TYPEDEF "
 	end

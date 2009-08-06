@@ -70,7 +70,7 @@ static attr_t
 typedef struct symbol *to_mode_t(struct symbol *);
 
 static to_mode_t
-	to_QI_mode, to_HI_mode, to_SI_mode, to_DI_mode, to_word_mode;
+	to_QI_mode, to_HI_mode, to_SI_mode, to_DI_mode, to_TI_mode, to_word_mode;
 
 enum {
 	Set_T = 1,
@@ -347,6 +347,11 @@ static struct symbol_op mode_DI_op = {
 	.to_mode = to_DI_mode
 };
 
+static struct symbol_op mode_TI_op = {
+	.type = KW_MODE,
+	.to_mode = to_TI_mode
+};
+
 static struct symbol_op mode_word_op = {
 	.type = KW_MODE,
 	.to_mode = to_word_mode
@@ -386,6 +391,8 @@ static struct init_keyword {
 
 	/* Predeclared types */
 	{ "__builtin_va_list", NS_TYPEDEF, .type = &ptr_ctype, .op = &spec_op },
+	{ "__int128_t",	NS_TYPEDEF, .type = &lllong_ctype, .op = &spec_op },
+	{ "__uint128_t",NS_TYPEDEF, .type = &ulllong_ctype, .op = &spec_op },
 
 	/* Extended types */
 	{ "typeof", 	NS_TYPEDEF, .op = &typeof_op },
@@ -457,6 +464,8 @@ static struct init_keyword {
 	{ "__SI__",	NS_KEYWORD,			.op = &mode_SI_op },
 	{ "DI",		NS_KEYWORD,	MOD_LONGLONG,	.op = &mode_DI_op },
 	{ "__DI__",	NS_KEYWORD,	MOD_LONGLONG,	.op = &mode_DI_op },
+	{ "TI",		NS_KEYWORD,	MOD_LONGLONGLONG,	.op = &mode_TI_op },
+	{ "__TI__",	NS_KEYWORD,	MOD_LONGLONGLONG,	.op = &mode_TI_op },
 	{ "word",	NS_KEYWORD,	MOD_LONG,	.op = &mode_word_op },
 	{ "__word__",	NS_KEYWORD,	MOD_LONG,	.op = &mode_word_op },
 
@@ -1042,6 +1051,14 @@ static struct symbol *to_DI_mode(struct symbol *ctype)
 						     : &sllong_ctype;
 }
 
+static struct symbol *to_TI_mode(struct symbol *ctype)
+{
+	if (ctype->ctype.base_type != &int_type)
+		return NULL;
+	return ctype->ctype.modifiers & MOD_UNSIGNED ? &ulllong_ctype
+						     : &slllong_ctype;
+}
+
 static struct symbol *to_word_mode(struct symbol *ctype)
 {
 	if (ctype->ctype.base_type != &int_type)
@@ -1322,9 +1339,11 @@ Catch_all:
 static struct symbol * const int_types[] =
 	{&short_ctype, &int_ctype, &long_ctype, &llong_ctype};
 static struct symbol * const signed_types[] =
-	{&sshort_ctype, &sint_ctype, &slong_ctype, &sllong_ctype};
+	{&sshort_ctype, &sint_ctype, &slong_ctype, &sllong_ctype,
+	 &slllong_ctype};
 static struct symbol * const unsigned_types[] =
-	{&ushort_ctype, &uint_ctype, &ulong_ctype, &ullong_ctype};
+	{&ushort_ctype, &uint_ctype, &ulong_ctype, &ullong_ctype,
+	 &ulllong_ctype};
 static struct symbol * const real_types[] =
 	{&float_ctype, &double_ctype, &ldouble_ctype};
 static struct symbol * const char_types[] =

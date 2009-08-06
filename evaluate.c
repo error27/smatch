@@ -165,7 +165,7 @@ static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 	if ((lmod ^ rmod) & MOD_UNSIGNED) {
 		if (lmod & MOD_UNSIGNED)
 			goto left;
-	} else if ((lmod & ~rmod) & (MOD_LONG | MOD_LONGLONG))
+	} else if ((lmod & ~rmod) & (MOD_LONG_ALL))
 		goto left;
 right:
 	left = right;
@@ -512,7 +512,7 @@ Normal:
 	} else if (rclass & TYPE_FLOAT) {
 		unsigned long lmod = ltype->ctype.modifiers;
 		unsigned long rmod = rtype->ctype.modifiers;
-		if (rmod & ~lmod & (MOD_LONG | MOD_LONGLONG))
+		if (rmod & ~lmod & (MOD_LONG_ALL))
 			return rtype;
 		else
 			return ltype;
@@ -2114,7 +2114,7 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 				*p = cast_to(expr, integer_promotion(type));
 			} else if (class & TYPE_FLOAT) {
 				unsigned long mod = type->ctype.modifiers;
-				if (!(mod & (MOD_LONG|MOD_LONGLONG)))
+				if (!(mod & (MOD_LONG_ALL)))
 					*p = cast_to(expr, &double_ctype);
 			} else if (class & TYPE_PTR) {
 				if (expr->ctype == &null_ctype)

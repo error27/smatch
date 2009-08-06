@@ -128,8 +128,9 @@ sub integer_types {
 	 16 => '32767',
 	 32 => '2147483647',
 	 64 => '9223372036854775807',
+	 128 => '170141183460469231731687303715884105727',
 	 );
-    my @types = (['SCHAR',''], ['SHRT',''], ['INT',''], ['LONG','L'], ['LONG_LONG','LL']);
+    my @types = (['SCHAR',''], ['SHRT',''], ['INT',''], ['LONG','L'], ['LONG_LONG','LL'], ['LONG_LONG_LONG','LLL']);
 
     my $result = " -D__CHAR_BIT__=$char";
     while (@types) {
@@ -260,12 +261,12 @@ sub add_specs {
 		&define_size_t ($m64 ? "long unsigned int" : "unsigned int"));
     } elsif ($spec eq 'sparc64') {
 	return (' -Dsparc=1 -D__sparc=1 -D__sparc__=1 -D__sparcv9__=1 -D__sparc64__=1 -D__arch64__=1 -D__LP64__=1' .
-		&integer_types (8, 16, 32, 64, 64) .
+		&integer_types (8, 16, 32, 64, 64, 128) .
 		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
 		&define_size_t ("long unsigned int"));
     } elsif ($spec eq 'x86_64') {
 	return (' -Dx86_64=1 -D__x86_64=1 -D__x86_64__=1' .
-		&integer_types (8, 16, 32, $m32 ? 32 : 64, 64) .
+		&integer_types (8, 16, 32, $m32 ? 32 : 64, 64, 128) .
 		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
 		&define_size_t ($m32 ? "unsigned int" : "long unsigned int"));
     } elsif ($spec eq 'ppc') {

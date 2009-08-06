@@ -751,6 +751,7 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		int_ctype, sint_ctype, uint_ctype,
 		long_ctype, slong_ctype, ulong_ctype,
 		llong_ctype, sllong_ctype, ullong_ctype,
+		lllong_ctype, slllong_ctype, ulllong_ctype,
 		float_ctype, double_ctype, ldouble_ctype,
 		string_ctype, ptr_ctype, lazy_ptr_ctype,
 		incomplete_ctype, label_ctype, bad_ctype,
@@ -787,6 +788,7 @@ void init_symbols(void)
 
 #define MOD_ESIGNED (MOD_SIGNED | MOD_EXPLICITLY_SIGNED)
 #define MOD_LL (MOD_LONG | MOD_LONGLONG)
+#define MOD_LLL MOD_LONGLONGLONG
 static const struct ctype_declare {
 	struct symbol *ptr;
 	enum type type;
@@ -816,6 +818,9 @@ static const struct ctype_declare {
 	{ &llong_ctype,	    SYM_BASETYPE, MOD_SIGNED | MOD_LL,	    &bits_in_longlong,       &max_int_alignment, &int_type },
 	{ &sllong_ctype,    SYM_BASETYPE, MOD_ESIGNED | MOD_LL,	    &bits_in_longlong,       &max_int_alignment, &int_type },
 	{ &ullong_ctype,    SYM_BASETYPE, MOD_UNSIGNED | MOD_LL,    &bits_in_longlong,       &max_int_alignment, &int_type },
+	{ &lllong_ctype,    SYM_BASETYPE, MOD_SIGNED | MOD_LLL,	    &bits_in_longlonglong,   &max_int_alignment, &int_type },
+	{ &slllong_ctype,   SYM_BASETYPE, MOD_ESIGNED | MOD_LLL,    &bits_in_longlonglong,   &max_int_alignment, &int_type },
+	{ &ulllong_ctype,   SYM_BASETYPE, MOD_UNSIGNED | MOD_LLL,   &bits_in_longlonglong,   &max_int_alignment, &int_type },
 
 	{ &float_ctype,	    SYM_BASETYPE,  0,			    &bits_in_float,          &max_fp_alignment,  &fp_type },
 	{ &double_ctype,    SYM_BASETYPE, MOD_LONG,		    &bits_in_double,         &max_fp_alignment,  &fp_type },
@@ -828,6 +833,7 @@ static const struct ctype_declare {
 	{ &lazy_ptr_ctype,  SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
 	{ NULL, }
 };
+#undef MOD_LLL
 #undef MOD_LL
 #undef MOD_ESIGNED
 

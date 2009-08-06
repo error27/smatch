@@ -128,7 +128,8 @@ Float:
 	else
 		expr->fvalue = old->fvalue;
 
-	if (!(newtype->ctype.modifiers & MOD_LONGLONG)) {
+	if (!(newtype->ctype.modifiers & MOD_LONGLONG) && \
+	    !(newtype->ctype.modifiers & MOD_LONGLONGLONG)) {
 		if ((newtype->ctype.modifiers & MOD_LONG))
 			expr->fvalue = (double)expr->fvalue;
 		else

@@ -196,8 +196,9 @@ struct symbol {
 #define MOD_SHORT	0x0200
 #define MOD_LONG	0x0400
 #define MOD_LONGLONG	0x0800
+#define MOD_LONGLONGLONG	0x1000
 
-#define MOD_TYPEDEF	0x1000
+#define MOD_TYPEDEF	0x10000
 
 #define MOD_TLS		0x20000
 #define MOD_INLINE	0x40000
@@ -219,8 +220,9 @@ struct symbol {
 #define MOD_NONLOCAL	(MOD_EXTERN | MOD_TOPLEVEL)
 #define MOD_STORAGE	(MOD_AUTO | MOD_REGISTER | MOD_STATIC | MOD_EXTERN | MOD_INLINE | MOD_TOPLEVEL)
 #define MOD_SIGNEDNESS	(MOD_SIGNED | MOD_UNSIGNED | MOD_EXPLICITLY_SIGNED)
-#define MOD_SPECIFIER	(MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG | MOD_SIGNEDNESS)
-#define MOD_SIZE	(MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG)
+#define MOD_LONG_ALL	(MOD_LONG | MOD_LONGLONG | MOD_LONGLONGLONG)
+#define MOD_SPECIFIER	(MOD_CHAR | MOD_SHORT | MOD_LONG_ALL | MOD_SIGNEDNESS)
+#define MOD_SIZE	(MOD_CHAR | MOD_SHORT | MOD_LONG_ALL)
 #define MOD_IGNORE (MOD_TOPLEVEL | MOD_STORAGE | MOD_ADDRESSABLE |	\
 	MOD_ASSIGNED | MOD_USERTYPE | MOD_ACCESSED | MOD_EXPLICITLY_SIGNED)
 #define MOD_PTRINHERIT (MOD_VOLATILE | MOD_CONST | MOD_NODEREF | MOD_STORAGE)
@@ -240,6 +242,7 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			int_ctype, sint_ctype, uint_ctype,
 			long_ctype, slong_ctype, ulong_ctype,
 			llong_ctype, sllong_ctype, ullong_ctype,
+			lllong_ctype, slllong_ctype, ulllong_ctype,
 			float_ctype, double_ctype, ldouble_ctype,
 			string_ctype, ptr_ctype, lazy_ptr_ctype,
 			incomplete_ctype, label_ctype, bad_ctype,
