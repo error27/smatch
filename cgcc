@@ -265,7 +265,7 @@ sub add_specs {
 		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
 		&define_size_t ("long unsigned int"));
     } elsif ($spec eq 'x86_64') {
-	return (' -Dx86_64=1 -D__x86_64=1 -D__x86_64__=1' .
+	return (' -Dx86_64=1 -D__x86_64=1 -D__x86_64__=1' . ($m32 ? '' : ' -D__LP64__=1') .
 		&integer_types (8, 16, 32, $m32 ? 32 : 64, 64, 128) .
 		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
 		&define_size_t ($m32 ? "unsigned int" : "long unsigned int"));
