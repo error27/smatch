@@ -136,7 +136,7 @@ free:
 }
 
 extern int check_assigned_expr_id;
-void print_assigned_expr(struct expression *expr)
+static void print_assigned_expr(struct expression *expr)
 {
 #if 0
 	struct state_list *slist;
