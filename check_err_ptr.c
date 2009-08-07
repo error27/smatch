@@ -16,33 +16,47 @@
 
 static int my_id;
 
-static struct symbol *this_func;
 static int err_ptr = 0;
 static int returns_null = 0;
 
-static void match_function_def(struct symbol *sym)
+static void match_err_ptr(struct expression *expr)
 {
-	this_func = sym;
+	expr = strip_expr(expr);
+	if (!expr)
+		return;
+	if (expr->type != EXPR_CALL)
+		return;
+
+	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
+		return;
+	if (!strcmp(expr->fn->symbol->ident->name, "ERR_PTR"))
+		err_ptr = 1;
 }
 
-static void match_err_ptr(const char *fn, struct expression *expr, void *info)
-{
-	if (!err_ptr)
-		smatch_msg("info:  returns_err_ptr");
-	err_ptr = 1;
-}
-
+extern int check_assigned_expr_id;
 static void match_return(struct statement *stmt)
 {
-	if (get_implied_value(stmt->ret_value) != 0)
-		return;
-	if (!returns_null)
-		smatch_msg("info:  returns_null");
-	returns_null = 1;
+	struct state_list *slist;
+	struct sm_state *tmp;
+
+	match_err_ptr(stmt->ret_value);
+	slist = get_possible_states_expr(check_assigned_expr_id, stmt->ret_value);
+	FOR_EACH_PTR(slist, tmp) {
+		if (tmp->state == &undefined || tmp->state == &merged)
+			continue;
+		match_err_ptr((struct expression *)tmp->state->data);
+	} END_FOR_EACH_PTR(tmp);
+
+	if (get_implied_value(stmt->ret_value) == 0)
+		returns_null = 1;
 }
 
 static void match_end_func(struct symbol *sym)
 {
+	if (returns_null && err_ptr)
+		smatch_msg("warn:  returns both null and ERR_PTR.");
+	if (err_ptr)
+		smatch_msg("info:  returns_err_ptr");
 	err_ptr = 0;
 	returns_null = 0;
 }
@@ -53,8 +67,6 @@ void check_err_ptr(int id)
 		return;
 
 	my_id = id;
-	add_hook(&match_function_def, FUNC_DEF_HOOK);
-	add_function_hook("ERR_PTR", &match_err_ptr, NULL);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
 }
