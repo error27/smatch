@@ -317,13 +317,6 @@ static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction
 	b2 = i2->bb;
 
 	/*
-	 * PHI-nodes do not care where they are - the only thing that matters
-	 * are the PHI _sources_.
-	 */
-	if (i1->opcode == OP_PHI)
-		return cse_one_instruction(i1, i2);
-
-	/*
 	 * Currently we only handle the uninteresting degenerate case where
 	 * the CSE is inside one basic-block.
 	 */
