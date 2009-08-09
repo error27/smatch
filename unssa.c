@@ -26,6 +26,7 @@
 #include "lib.h"
 #include "linearize.h"
 #include "allocate.h"
+#include "flow.h"
 #include <assert.h>
 
 
@@ -51,6 +52,7 @@ static void replace_phi_node(struct instruction *phi)
 	// update the current liveness
 	remove_pseudo(&phi->bb->needs, phi->target);
 	add_pseudo(&phi->bb->needs, tmp);
+	track_phi_uses(phi);
 
 	phi->opcode = OP_COPY;
 	phi->src = tmp;

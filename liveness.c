@@ -279,7 +279,7 @@ static void merge_pseudo_list(struct pseudo_list *src, struct pseudo_list **dest
 	} END_FOR_EACH_PTR(pseudo);
 }
 
-static void track_phi_uses(struct instruction *insn)
+void track_phi_uses(struct instruction *insn)
 {
 	pseudo_t phi;
 	FOR_EACH_PTR(insn->phi_list, phi) {
