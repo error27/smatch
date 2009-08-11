@@ -1,10 +1,15 @@
 #ifndef FLOW_H
 #define FLOW_H
 
+#include "lib.h"
+
 extern unsigned long bb_generation;
 
 #define REPEAT_CSE		1
 #define REPEAT_SYMBOL_CLEANUP	2
+
+struct entrypoint;
+struct instruction;
 
 extern int simplify_flow(struct entrypoint *ep);
 

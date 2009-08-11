@@ -1,6 +1,9 @@
 #ifndef STORAGE_H
 #define STORAGE_H
 
+#include "allocate.h"
+#include "lib.h"
+
 /*
  * The "storage" that underlies an incoming/outgoing pseudo. It's
  * basically the backing store for a pseudo, and may be a real hardware

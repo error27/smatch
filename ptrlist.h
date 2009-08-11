@@ -1,6 +1,8 @@
 #ifndef PTR_LIST_H
 #define PTR_LIST_H
 
+#include <stdlib.h>
+
 /*
  * Generic pointer list manipulation code. 
  *
