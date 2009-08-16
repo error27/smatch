@@ -17,6 +17,9 @@
 #include "compat.h"
 #include "ptrlist.h"
 
+#define DO_STRINGIFY(x) #x
+#define STRINGIFY(x) DO_STRINGIFY(x)
+
 extern int verbose, optimize, optimize_size, preprocessing;
 extern int die_if_error;
 extern int repeat_phase, merge_phi_sources;
