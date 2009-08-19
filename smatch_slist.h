@@ -13,7 +13,7 @@ void __print_slist(struct state_list *slist);
 void add_history(struct sm_state *state);
 int cmp_tracker(const struct sm_state *a, const struct sm_state *b);
 char *alloc_sname(const char *str);
-struct sm_state *alloc_state(const char *name, int owner, 
+struct sm_state *alloc_state(int owner, const char *name, 
 			     struct symbol *sym, 
 			     struct smatch_state *state);
 
@@ -25,33 +25,27 @@ struct state_list *clone_slist(struct state_list *from_slist);
 struct state_list_stack *clone_stack(struct state_list_stack *from_stack);
 
 int slist_has_state(struct state_list *slist, struct smatch_state *state);
-struct smatch_state *merge_states(const char *name, int owner,
+struct smatch_state *merge_states(int owner, const char *name, 
 				  struct symbol *sym,
 				  struct smatch_state *state1,
 				  struct smatch_state *state2);
 
 void add_pool(struct state_list_stack **pools, struct state_list *new);
 struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two);
-struct smatch_state *get_state_slist(struct state_list *slist, const char *name, int owner,
+struct smatch_state *get_state_slist(struct state_list *slist, int owner, const char *name, 
 		    struct symbol *sym);
 
-struct sm_state *get_sm_state_slist(struct state_list *slist, const char *name, int owner,
+struct sm_state *get_sm_state_slist(struct state_list *slist, int owner, const char *name, 
 		    struct symbol *sym);
 
 void overwrite_sm_state(struct state_list **slist, struct sm_state *state);
 void overwrite_sm_state_stack(struct state_list_stack **stack,
 			struct sm_state *state);
-void set_state_slist(struct state_list **slist, const char *name, int owner,
+void set_state_slist(struct state_list **slist, int owner, const char *name, 
 		     struct symbol *sym, struct smatch_state *state);
 
-void merge_state_slist(struct state_list **slist, const char *name, int owner,
-		       struct symbol *sym, struct smatch_state *state);
-
-void delete_state_slist(struct state_list **slist, const char *name, int owner,
+void delete_state_slist(struct state_list **slist, int owner, const char *name, 
 			struct symbol *sym);
-
-struct smatch_state *get_state_slist(struct state_list *slist, const char *name, int owner,
-		    struct symbol *sym);
 
 void push_slist(struct state_list_stack **list_stack, struct state_list *slist);
 
@@ -61,11 +55,11 @@ void free_slist(struct state_list **slist);
 void free_stack(struct state_list_stack **stack);
 void free_stack_and_slists(struct state_list_stack **slist_stack);
 
-void set_state_stack(struct state_list_stack **stack, const char *name, 
-		     int owner, struct symbol *sym, struct smatch_state *state);
+void set_state_stack(struct state_list_stack **stack, int owner, 
+		const char *name, struct symbol *sym, struct smatch_state *state);
 
-struct smatch_state *get_state_stack(struct state_list_stack *stack, const char *name,
-		    int owner, struct symbol *sym);
+struct smatch_state *get_state_stack(struct state_list_stack *stack, int owner, 
+				const char *name, struct symbol *sym);
 
 void merge_slist(struct state_list **to, struct state_list *slist);
 void and_slist_stack(struct state_list_stack **slist_stack);

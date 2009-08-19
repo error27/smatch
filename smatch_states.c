@@ -106,15 +106,15 @@ void set_state(int owner, const char *name, struct symbol *sym,
 		return;
 	
 	if (__fake_cur) {
-		set_state_slist(&__fake_cur_slist, name, owner, sym, state);
+		set_state_slist(&__fake_cur_slist, owner, name, sym, state);
 		return;
 	}
 
-	set_state_slist(&cur_slist, name, owner, sym, state);
+	set_state_slist(&cur_slist, owner, name, sym, state);
 
 	if (cond_true_stack) {
-		set_state_stack(&cond_true_stack, name, owner, sym, state);
-		set_state_stack(&cond_false_stack, name, owner, sym, state);
+		set_state_stack(&cond_true_stack, owner, name, sym, state);
+		set_state_stack(&cond_false_stack, owner, name, sym, state);
 	}
 }
 
@@ -163,7 +163,7 @@ void __set_state(struct sm_state *sm)
 
 struct smatch_state *get_state(int owner, const char *name, struct symbol *sym)
 {
-	return get_state_slist(cur_slist, name, owner, sym);
+	return get_state_slist(cur_slist, owner, name, sym);
 }
 
 struct smatch_state *get_state_expr(int owner, struct expression *expr)
@@ -187,7 +187,7 @@ struct state_list *get_possible_states(int owner, const char *name,
 {
 	struct sm_state *sms;
 
-	sms = get_sm_state_slist(cur_slist, name, owner, sym);
+	sms = get_sm_state_slist(cur_slist, owner, name, sym);
 	if (sms)
 		return sms->possible;
 	return NULL;
@@ -211,7 +211,7 @@ free:
 
 struct sm_state *get_sm_state(int owner, const char *name, struct symbol *sym)
 {
-	return get_sm_state_slist(cur_slist, name, owner, sym);
+	return get_sm_state_slist(cur_slist, owner, name, sym);
 }
 
 struct sm_state *get_sm_state_expr(int owner, struct expression *expr)
@@ -232,7 +232,7 @@ free:
 
 void delete_state(int owner, const char *name, struct symbol *sym)
 {
-	delete_state_slist(&cur_slist, name, owner, sym);
+	delete_state_slist(&cur_slist, owner, name, sym);
 }
 
 void delete_state_expr(int owner, struct expression *expr)
@@ -293,9 +293,9 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 
 	if (__fake_conditions) {
 		if (true_state)
-			set_state_slist(&__fake_cond_true, name, owner, sym, true_state);
+			set_state_slist(&__fake_cond_true, owner, name, sym, true_state);
 		if (false_state)
-			set_state_slist(&__fake_cond_false, name, owner, sym, false_state);
+			set_state_slist(&__fake_cond_false, owner, name, sym, false_state);
 		return;
 	}
 
@@ -305,11 +305,11 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 	}
 
 	if (true_state) {
-		set_state_slist(&cur_slist, name, owner, sym, true_state);
-		set_state_stack(&cond_true_stack, name, owner, sym, true_state);
+		set_state_slist(&cur_slist, owner, name, sym, true_state);
+		set_state_stack(&cond_true_stack, owner, name, sym, true_state);
 	}
 	if (false_state)
-		set_state_stack(&cond_false_stack, name, owner, sym, false_state);
+		set_state_stack(&cond_false_stack, owner, name, sym, false_state);
 }
 
 void set_true_false_states_expr(int owner, struct expression *expr, 
@@ -705,7 +705,7 @@ void __push_default()
 
 void __set_default()
 {
-	set_state_stack(&default_stack, "has_default", 0, NULL, &true_state);
+	set_state_stack(&default_stack, 0, "has_default", NULL, &true_state);
 }
 
 int __pop_default()

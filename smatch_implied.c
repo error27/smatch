@@ -229,7 +229,7 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 	if (sm_state->my_pool) {
 		if (is_implied(sm_state)) {
 			s = get_sm_state_slist(sm_state->my_pool,
-					sm_state->name, sm_state->owner,
+					sm_state->owner, sm_state->name, 
 					sm_state->sym);
 		} else { 
 			s = sm_state;
@@ -347,8 +347,8 @@ static void handle_comparison(struct expression *expr,
 		goto free;
 	}
 	get_eq_neq(state, expr->op, tmp_range_list(value), left, __get_cur_slist(), implied_true, implied_false);
-	delete_state_slist(implied_true, name, SMATCH_EXTRA, sym);
-	delete_state_slist(implied_false, name, SMATCH_EXTRA, sym);
+	delete_state_slist(implied_true, SMATCH_EXTRA, name, sym);
+	delete_state_slist(implied_false, SMATCH_EXTRA, name, sym);
 free:
 	free_string(name);
 }
@@ -383,8 +383,8 @@ static void get_tf_states(struct expression *expr,
 		goto free;
 	}
 	get_eq_neq(state, SPECIAL_NOTEQUAL, tmp_range_list(0), 1, __get_cur_slist(), implied_true, implied_false);
-	delete_state_slist(implied_true, name, SMATCH_EXTRA, sym);
-	delete_state_slist(implied_false, name, SMATCH_EXTRA, sym);
+	delete_state_slist(implied_true, SMATCH_EXTRA, name, sym);
+	delete_state_slist(implied_false, SMATCH_EXTRA, name, sym);
 free:
 	free_string(name);
 }
@@ -465,7 +465,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	name = get_variable_from_expr(switch_expr, &sym);
 	if (!name || !sym)
 		goto free;
-	sm = get_sm_state_slist(*raw_slist, name, SMATCH_EXTRA, sym);
+	sm = get_sm_state_slist(*raw_slist, SMATCH_EXTRA, name, sym);
 	if (!case_expr) {
 		vals = top_range_list(*remaining_cases);
 	} else {
@@ -482,9 +482,9 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 		get_eq_neq(sm, SPECIAL_EQUAL, vals, 1, *raw_slist, &true_states, &false_states);
 	}
 	
-	true_sm = get_sm_state_slist(true_states, name, SMATCH_EXTRA, sym);
+	true_sm = get_sm_state_slist(true_states, SMATCH_EXTRA, name, sym);
 	if (!true_sm)
-		set_state_slist(&true_states, name, SMATCH_EXTRA, sym, alloc_extra_state_range_list(vals));
+		set_state_slist(&true_states, SMATCH_EXTRA, name, sym, alloc_extra_state_range_list(vals));
 	overwrite_slist(true_states, &ret);
 	free_slist(&true_states);
 	free_slist(&false_states);
