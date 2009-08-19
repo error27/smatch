@@ -452,7 +452,7 @@ static void split_functions(struct symbol_list *sym_list)
 			if (sym->ident)
 				cur_func = sym->ident->name;
 			__smatch_lineno = sym->pos.line;
-			SM_DEBUG("new function:  %s\n", cur_func);
+			sm_debug("new function:  %s\n", cur_func);
 			__unnullify_path();
 			__pass_to_client(sym, FUNC_DEF_HOOK);
 			__split_statements(base_type->stmt);

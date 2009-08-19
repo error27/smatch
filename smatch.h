@@ -116,7 +116,7 @@ do {                                                          \
         printf("\n");                                         \
 } while (0)
 
-#define SM_DEBUG(msg...) do { if (debug_states) printf(msg); } while (0)
+#define sm_debug(msg...) do { if (debug_states) printf(msg); } while (0)
 #define DIMPLIED(msg...) do { if (debug_implied_states) printf(msg); } while (0)
 
 #define UNDEFINED INT_MIN

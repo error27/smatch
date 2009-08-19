@@ -76,11 +76,11 @@ static int is_maybe_null_no_arg(const char *name, struct symbol *sym)
 		if (tmp->state == &ignore)
 			return 0;
 		if (tmp->state == &isnull) {
-			SM_DEBUG("is_maybe_null_no_arg() says %s &isnull\n", name);
+			sm_debug("is_maybe_null_no_arg() says %s &isnull\n", name);
 			ret = 1;
 		} 
 		if (tmp->state == &undefined) {
-			SM_DEBUG("is_maybe_null_no_arg() says %s &undefined\n", name);
+			sm_debug("is_maybe_null_no_arg() says %s &undefined\n", name);
 			ret = 1;
 		}
 	} END_FOR_EACH_PTR(tmp);
@@ -99,15 +99,15 @@ static int is_maybe_null(const char *name, struct symbol *sym)
 		if (tmp->state == &ignore)
 			return 0;
 		if (tmp->state == &isnull) {
-			SM_DEBUG("is_maybe_null() says %s &isnull\n", name);
+			sm_debug("is_maybe_null() says %s &isnull\n", name);
 			ret = 1;
 		} 
 		if (tmp->state == &undefined) {
-			SM_DEBUG("is_maybe_null() says %s &undefined\n", name);
+			sm_debug("is_maybe_null() says %s &undefined\n", name);
 			ret = 1;
 		}
 		if (tmp->state == &arg_null) {
-			SM_DEBUG("is_maybe_null() says %s &arg_null\n", name);
+			sm_debug("is_maybe_null() says %s &arg_null\n", name);
 			ret = 1;
 		}
 	} END_FOR_EACH_PTR(tmp);
@@ -264,7 +264,7 @@ static void set_new_true_false_paths(struct expression *expr, int recently_assig
 		goto free;
 
 	tmp = get_state_expr(my_id, expr);
-	SM_DEBUG("set_new_stuff called at for %s on line %d value='%s'\n", 
+	sm_debug("set_new_stuff called at for %s on line %d value='%s'\n", 
 		name, get_lineno(), show_state(tmp));
        
 	if (tmp == &argument) {

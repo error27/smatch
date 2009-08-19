@@ -233,7 +233,7 @@ static void handle_select(struct expression *expr)
 static void split_conditions(struct expression *expr)
 {
 
-	SM_DEBUG("%d in split_conditions type=%d\n", get_lineno(), expr->type);
+	sm_debug("%d in split_conditions type=%d\n", get_lineno(), expr->type);
 
 	expr = strip_expr(expr);
 	if (!expr)
@@ -268,7 +268,7 @@ static void split_conditions(struct expression *expr)
 static int inside_condition;
 void __split_whole_condition(struct expression *expr)
 {
-	SM_DEBUG("%d in __split_whole_condition\n", get_lineno());
+	sm_debug("%d in __split_whole_condition\n", get_lineno());
 	inside_condition++;
 	__save_pre_cond_states();
 	__push_cond_stacks();
