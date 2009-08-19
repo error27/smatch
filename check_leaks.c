@@ -61,7 +61,7 @@ static void match_function_def(struct symbol *sym)
 static void check_allocated(struct sm_state *sm)
 {
 	if (slist_has_state(sm->possible, &allocated))
-		smatch_msg("warn: '%s' possibly leaked on error path",
+		sm_msg("warn: '%s' possibly leaked on error path",
 			   sm->name);
 }
 
@@ -117,7 +117,7 @@ static void check_slist(struct state_list *slist)
 			continue;
 		FOR_EACH_PTR(sm->possible, poss) {
 			if (poss->state == &allocated)
-				smatch_msg("warn: '%s' possibly leaked on error"
+				sm_msg("warn: '%s' possibly leaked on error"
 					   " path (implied from line %d)",
 					   sm->name, poss->line);
 		} END_FOR_EACH_PTR(poss);

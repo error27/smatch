@@ -54,9 +54,9 @@ static void match_return(struct statement *stmt)
 static void match_end_func(struct symbol *sym)
 {
 	if (returns_null && err_ptr)
-		smatch_msg("warn:  returns both null and ERR_PTR.");
+		sm_msg("warn:  returns both null and ERR_PTR.");
 	if (err_ptr)
-		smatch_msg("info:  returns_err_ptr");
+		sm_msg("info:  returns_err_ptr");
 	err_ptr = 0;
 	returns_null = 0;
 }

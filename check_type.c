@@ -24,7 +24,7 @@ static void match_free(const char *fn, struct expression *expr, void *data)
 		goto exit;
 	type = get_ptr_type(arg_expr);
 	if (type && type->ident && !strcmp("sk_buff", type->ident->name))
-		smatch_msg("error: use kfree_skb() here instead of kfree()");
+		sm_msg("error: use kfree_skb() here instead of kfree()");
 exit:
 	free_string(name);
 }

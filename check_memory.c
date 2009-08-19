@@ -174,7 +174,7 @@ static void match_assign(struct expression *expr)
 
 	if (right_name && (state = get_state(my_id, right_name, right_sym))) {
 		if (state == &isfree)
-			smatch_msg("error: assigning freed pointer");
+			sm_msg("error: assigning freed pointer");
 		set_state(my_id, right_name, right_sym, &assigned);
 	}
 
@@ -210,7 +210,7 @@ static void match_free_func(const char *fn, struct expression *expr, void *data)
 	ptr_expr = get_argument_from_call_expr(expr->args, arg_num);
 	ptr_name = get_variable_from_expr_complex(ptr_expr, &ptr_sym);
 	if (is_freed(ptr_name, ptr_sym) && !is_null(ptr_name, ptr_sym)) {
-		smatch_msg("error: double free of %s", ptr_name);
+		sm_msg("error: double free of %s", ptr_name);
 	}
 	set_state(my_id, ptr_name, ptr_sym, &isfree);
 	free_string(ptr_name);
@@ -235,7 +235,7 @@ static void check_sm_is_leaked(struct sm_state *sm)
 		!is_null(sm->name, sm->sym) &&
 		!is_argument(sm->sym) && 
 		!parent_is_assigned(sm->sym))
-		smatch_msg("error: memery leak of %s", sm->name);
+		sm_msg("error: memery leak of %s", sm->name);
 }
 
 static void check_tracker_is_leaked(struct tracker *t)
@@ -305,7 +305,7 @@ static void set_new_true_false_paths(const char *name, struct symbol *sym)
 	}
 
 	if (tmp == &isfree) {
-		smatch_msg("warn: why do you care about freed memory?");
+		sm_msg("warn: why do you care about freed memory?");
 	}
 
 	if (tmp == &assigned) {
@@ -372,7 +372,7 @@ static void match_dereferences(struct expression *expr)
 	if (!deref)
 		return;
 	if (is_freed(deref, sym)) {
-		smatch_msg("error: dereferencing freed memory '%s'", deref);
+		sm_msg("error: dereferencing freed memory '%s'", deref);
 		set_state(my_id, deref, sym, &unfree);
 	}
 	free_string(deref);

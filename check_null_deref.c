@@ -349,7 +349,7 @@ static void match_dereferences(struct expression *expr)
 		add_do_not_call(sym, get_lineno());
 		set_state(my_id, deref, sym, &assumed_nonnull);
 	} else if (is_maybe_null(deref, sym)) {
-		smatch_msg("error: dereferencing undefined:  '%s'", deref);
+		sm_msg("error: dereferencing undefined:  '%s'", deref);
 		set_state(my_id, deref, sym, &ignore);
 	}
 	free_string(deref);

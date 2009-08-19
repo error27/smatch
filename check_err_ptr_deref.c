@@ -22,7 +22,7 @@ static void check_is_err_ptr(struct sm_state *sm)
 		return;
 
 	if (slist_has_state(sm->possible, &err_ptr)) {
-		smatch_msg("error: '%s' dereferencing possible ERR_PTR()",
+		sm_msg("error: '%s' dereferencing possible ERR_PTR()",
 			   sm->name);
 		set_state(my_id, sm->name, sm->sym, &checked);
 	}
@@ -95,9 +95,9 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
 			max = tmp_max;
 	} END_FOR_EACH_PTR(tmp);
 	if (min < -4095)
-		smatch_msg("error: %lld too low for ERR_PTR", min);
+		sm_msg("error: %lld too low for ERR_PTR", min);
 	if (max > 0)
-		smatch_msg("error: passing non neg %lld to ERR_PTR", max);
+		sm_msg("error: passing non neg %lld to ERR_PTR", max);
 }
 
 static void match_ptr_err(const char *fn, struct expression *expr, void *unused)

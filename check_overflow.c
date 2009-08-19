@@ -45,7 +45,7 @@ static void print_args(struct expression *expr, int size)
 	FOR_EACH_PTR(this_func->ctype.base_type->arguments, arg) {
 		arg_name = (arg->ident?arg->ident->name:"-");
 		if (sym == arg && !strcmp(name, arg_name)) {
-			smatch_msg("param %d array index. size %d", i, size);
+			sm_msg("param %d array index. size %d", i, size);
 			goto free;
 		}
 		i++;
@@ -187,7 +187,7 @@ static void array_check(struct expression *expr)
 
 	if (max != UNDEFINED && array_size <= max) {
 		name = get_variable_from_expr(dest, NULL);
-		smatch_msg("error: buffer overflow '%s' %d <= %d", name, array_size, max);
+		sm_msg("error: buffer overflow '%s' %d <= %d", name, array_size, max);
 		free_string(name);
 	}
 }
@@ -260,7 +260,7 @@ static void match_strcpy(const char *fn, struct expression *expr,
 	dest_size = *(int *)dest_state->data / 8;
 	data_size = *(int *)data_state->data / 8;
 	if (dest_size < data_size)
-		smatch_msg("error: %s (%d) too large for %s (%d)", data_name,
+		sm_msg("error: %s (%d) too large for %s (%d)", data_name,
 			   data_size, dest_name, dest_size);
 free:
 	free_string(dest_name);
@@ -287,7 +287,7 @@ static void match_limitted(const char *fn, struct expression *expr,
 		goto free;
 	has = *(int *)state->data / 8;
 	if (has < needed)
-		smatch_msg("error: %s too small for %d bytes.", dest_name,
+		sm_msg("error: %s too small for %d bytes.", dest_name,
 			   needed);
 free:
 	free_string(dest_name);
@@ -304,7 +304,7 @@ static void match_array_func(const char *fn, struct expression *expr, void *info
 	if (offset == UNDEFINED)
 		return;
 	if (offset >= bound_info->size)
-		smatch_msg("buffer overflow calling %s. param %d.  %d >= %d", fn, bound_info->param, offset, bound_info->size);
+		sm_msg("buffer overflow calling %s. param %d.  %d >= %d", fn, bound_info->param, offset, bound_info->size);
 }
 
 static void register_array_funcs(void)

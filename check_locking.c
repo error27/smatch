@@ -163,7 +163,7 @@ static void match_lock_func(const char *fn, struct expression *expr, void *data)
 	if (!sm)
 		add_tracker(&starts_unlocked, my_id, lock_name, NULL);
 	if (sm && slist_has_state(sm->possible, &locked))
-		smatch_msg("error: double lock '%s'", lock_name);
+		sm_msg("error: double lock '%s'", lock_name);
 	set_state(my_id, lock_name, NULL, &locked);
 	free_string(lock_name);
 }
@@ -181,7 +181,7 @@ static void match_unlock_func(const char *fn, struct expression *expr,
 	if (!sm)
 		add_tracker(&starts_locked, my_id, lock_name, NULL);
 	if (sm && slist_has_state(sm->possible, &unlocked))
-		smatch_msg("error: double unlock '%s'", lock_name);
+		sm_msg("error: double unlock '%s'", lock_name);
 	set_state(my_id, lock_name, NULL, &unlocked);
 	free_string(lock_name);
 }
@@ -213,7 +213,7 @@ static void match_lock_aquired(const char *fn, struct expression *expr, void *da
 	if (!sm)
 		add_tracker(&starts_unlocked, my_id, lock_name, NULL);
 	if (sm && slist_has_state(sm->possible, &locked))
-		smatch_msg("error: double lock '%s'", lock_name);
+		sm_msg("error: double lock '%s'", lock_name);
 	set_state(my_id, lock_name, NULL, &locked);
 	free_string(lock_name);
 }
@@ -229,10 +229,10 @@ static void match_lock_needed(const char *fn, struct expression *expr,
 		return;
 	fn_name = get_variable_from_expr(expr->fn, NULL);
 	if (!fn_name) {
-		smatch_msg("Internal error.");
+		sm_msg("Internal error.");
 		exit(1);
 	}
-	smatch_msg("error: %s called without holding '%s' lock", fn_name,
+	sm_msg("error: %s called without holding '%s' lock", fn_name,
 		   (char *)data);
 	free_string(fn_name);
 }
@@ -291,7 +291,7 @@ static void check_possible(struct sm_state *sm)
 			undef = 1;  // i don't think this is possible any more.
 	} END_FOR_EACH_PTR(tmp);
 	if ((islocked && isunlocked) || undef)
-		smatch_msg("warn: '%s' is sometimes locked here and "
+		sm_msg("warn: '%s' is sometimes locked here and "
 			   "sometimes unlocked.", sm->name);
 }
 
@@ -410,7 +410,7 @@ static void check_consistency(struct symbol *sym)
 	FOR_EACH_PTR(starts_locked, tmp) {
 		if (in_tracker_list(starts_unlocked, tmp->owner, tmp->name, 
 					tmp->sym))
-			smatch_msg("error:  locking inconsistency.  We assume "
+			sm_msg("error:  locking inconsistency.  We assume "
 				   "'%s' is both locked and unlocked at the "
 				   "start.",
 				tmp->name);

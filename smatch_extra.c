@@ -483,7 +483,7 @@ static void match_comparison(struct expression *expr)
 		set_true_false_states(my_id, name, sym, two_state, one_state);
 		return;
 	default:
-		smatch_msg("unhandled comparison %d\n", comparison);
+		sm_msg("unhandled comparison %d\n", comparison);
 		return;
 	}
 	return;

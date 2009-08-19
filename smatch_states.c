@@ -78,7 +78,7 @@ static int unreachable()
 	}
 
 	if (reset_warnings || debug_states) 
-		smatch_msg("info: ignoring unreachable code.");
+		sm_msg("info: ignoring unreachable code.");
 	reset_warnings = 0;
 	return 1;
 }
@@ -626,7 +626,7 @@ void __warn_on_silly_pre_loops()
 	   printed an error earlier */
 	if (top_slist_empty(&false_stack))
 		return;
-	smatch_msg("info: loop could be replaced with if statement.");
+	sm_msg("info: loop could be replaced with if statement.");
 }
 
 void __merge_continues()

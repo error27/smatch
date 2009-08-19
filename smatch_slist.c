@@ -629,7 +629,7 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 		if (!one_state && !two_state)
 			break;
 		if (cmp_tracker(one_state, two_state) < 0) {
-			smatch_msg("error:  Internal smatch error.");
+			sm_msg("error:  Internal smatch error.");
 			NEXT_PTR_LIST(one_state);
 		} else if (cmp_tracker(one_state, two_state) == 0) {
 			if (one_state != two_state) {
@@ -642,7 +642,7 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			NEXT_PTR_LIST(one_state);
 			NEXT_PTR_LIST(two_state);
 		} else {
-			smatch_msg("error:  Internal smatch error.");
+			sm_msg("error:  Internal smatch error.");
 			NEXT_PTR_LIST(two_state);
 		}
 	}

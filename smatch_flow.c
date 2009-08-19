@@ -239,7 +239,7 @@ static void print_unreached(struct statement *stmt)
 		case STMT_DECLARATION: /* switch(x) { int a; case foo: ... */
 			break;
 		default:
-			smatch_msg("unreachable code. %d", stmt->type);
+			sm_msg("unreachable code. %d", stmt->type);
 		}
 	}
 }
@@ -253,7 +253,7 @@ void __split_statements(struct statement *stmt)
 		static char *printed = NULL;
 
 		if (printed != cur_func)
-			smatch_msg("Function too big.  Giving up.");
+			sm_msg("Function too big.  Giving up.");
 		printed = cur_func;
 		return;
 	}
@@ -294,13 +294,13 @@ void __split_statements(struct statement *stmt)
 		}
 		if (option_known_conditions && 
 		    implied_condition_true(stmt->if_conditional)) {
-			smatch_msg("info: this condition is true.");
+			sm_msg("info: this condition is true.");
 			__split_statements(stmt->if_true);
 			return;
 		}
 		if (option_known_conditions &&
 		    implied_condition_false(stmt->if_conditional)) {
-			smatch_msg("info: this condition is false.");
+			sm_msg("info: this condition is false.");
 			__split_statements(stmt->if_false);
 			return;
 		}

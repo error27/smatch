@@ -108,7 +108,7 @@ int is_member(struct expression *expr);
 void reset_on_container_modified(int owner, struct expression *expr);
 void set_default_state(int owner, struct smatch_state *state);
 
-#define smatch_msg(msg...) \
+#define sm_msg(msg...) \
 do {                                                          \
 	printf("%s +%d %s(%d) ", get_filename(), get_lineno(), \
 	       get_function(), get_func_pos());               \

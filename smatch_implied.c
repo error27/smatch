@@ -101,7 +101,7 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 
 	if (sm->nr_children > 5000) {
 		if (!print_once++) {
-			smatch_msg("debug: remove_my_pools %s nr_children %d",
+			sm_msg("debug: remove_my_pools %s nr_children %d",
 				sm->name, sm->nr_children);
 		}
 		return NULL;
@@ -211,7 +211,7 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 	*/
 	if (sm_state->nr_children > 5000) {
 		if (!print_once++) {
-			smatch_msg("debug: seperate_pools %s nr_children %d",
+			sm_msg("debug: seperate_pools %s nr_children %d",
 				sm_state->name, sm_state->nr_children);
 		}
 		return;
@@ -285,10 +285,10 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, struct range_l
 
 	if (debug_implied_states || debug_states) {
 		if (left)
-			smatch_msg("checking implications: (%s %s %s)",
+			sm_msg("checking implications: (%s %s %s)",
 				sm_state->name, show_special(comparison), show_ranges(vals));
 		else
-			smatch_msg("checking implications: (%s %s %s)",
+			sm_msg("checking implications: (%s %s %s)",
 				show_ranges(vals), show_special(comparison), sm_state->name);
 	}
 

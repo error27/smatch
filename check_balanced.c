@@ -55,7 +55,7 @@ static void match_left(const char *fn, struct expression *expr, void *data)
 	if (!sm)
 		add_tracker(&starts_right, my_id, name, NULL);
 	if (sm && slist_has_state(sm->possible, &left))
-		smatch_msg("warn: double '%s'", fn);
+		sm_msg("warn: double '%s'", fn);
 	set_state(my_id, (char *)data, NULL, &left);
 }
 
@@ -68,7 +68,7 @@ static void match_right(const char *fn, struct expression *expr, void *data)
 	if (!sm)
 		add_tracker(&starts_left, my_id, name, NULL);
 	if (sm && slist_has_state(sm->possible, &right))
-		smatch_msg("warn: double '%s'", fn);
+		sm_msg("warn: double '%s'", fn);
 	set_state(my_id, (char *)data, NULL, &right);
 }
 
@@ -99,7 +99,7 @@ static void check_possible(struct sm_state *sm)
 			undef = 1;  // i don't think this is possible any more.
 	} END_FOR_EACH_PTR(tmp);
 	if ((is_left && is_right) || undef)
-		smatch_msg("warn: returning with unbalanced %s", sm->name);
+		sm_msg("warn: returning with unbalanced %s", sm->name);
 }
 
 static void match_return(struct statement *stmt)

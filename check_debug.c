@@ -29,14 +29,14 @@ static void match_print_value(const char *fn, struct expression *expr, void *inf
 
 	arg_expr = get_argument_from_call_expr(expr->args, 0);
 	if (arg_expr->type != EXPR_STRING) {
-		smatch_msg("error:  the argument to %s is supposed to be a string literal", fn);
+		sm_msg("error:  the argument to %s is supposed to be a string literal", fn);
 		return;
 	}
 	
 	slist = get_all_states(SMATCH_EXTRA);
 	FOR_EACH_PTR(slist, tmp) {
 		if (!strcmp(tmp->name, arg_expr->string->data))
-			smatch_msg("%s = %s", tmp->name, tmp->state->name);
+			sm_msg("%s = %s", tmp->name, tmp->state->name);
 	} END_FOR_EACH_PTR(tmp);
 	free_slist(&slist);
 }

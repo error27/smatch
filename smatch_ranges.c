@@ -330,7 +330,7 @@ int true_comparison_range(struct data_range *left, int comparison, struct data_r
 			return 1;
 		return 0;
 	default:
-		smatch_msg("unhandled comparison %d\n", comparison);
+		sm_msg("unhandled comparison %d\n", comparison);
 		return UNDEFINED;
 	}
 	return 0;
@@ -382,7 +382,7 @@ static int false_comparison_range(struct data_range *left, int comparison, struc
 			return 0;
 		return 1;
 	default:
-		smatch_msg("unhandled comparison %d\n", comparison);
+		sm_msg("unhandled comparison %d\n", comparison);
 		return UNDEFINED;
 	}
 	return 0;
