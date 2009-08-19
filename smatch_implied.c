@@ -56,6 +56,8 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+#define DIMPLIED(msg...) do { if (debug_implied_states) printf(msg); } while (0)
+
 int debug_implied_states = 0;
 int option_no_implied = 0;
 
