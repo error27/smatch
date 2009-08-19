@@ -16,7 +16,7 @@ STATE(oktocheck);
 
 static void underef(const char *name, struct symbol *sym, struct expression *expr, void *unused)
 {
-	set_state(name, my_id, sym, &oktocheck);
+	set_state(my_id, name, sym, &oktocheck);
 }
 
 static void record_dereferenced_vars(struct expression *expr)

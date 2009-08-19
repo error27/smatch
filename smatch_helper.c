@@ -501,7 +501,7 @@ struct expression *strip_expr(struct expression *expr)
 
 static void delete_state_tracker(struct tracker *t)
 {
-	delete_state(t->name, t->owner, t->sym);
+	delete_state(t->owner, t->name, t->sym);
 	__free_tracker(t);
 }
 
@@ -509,6 +509,6 @@ void scoped_state(const char *name, int my_id, struct symbol *sym)
 {
 	struct tracker *t;
 
-	t = alloc_tracker(name, my_id, sym);
+	t = alloc_tracker(my_id, name, sym);
 	add_scope_hook((scope_hook *)&delete_state_tracker, t); 
 }

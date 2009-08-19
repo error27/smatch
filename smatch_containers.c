@@ -38,7 +38,7 @@ void reset_on_container_modified(int owner, struct expression *expr)
 	name = get_variable_from_expr(expr, &sym);
 	if (!name  || !sym)
 		goto free;
-	add_tracker(&member_list, name, owner, sym);
+	add_tracker(&member_list, owner, name, sym);
 free:
 	free_string(name);
 }
@@ -60,7 +60,7 @@ static void match_assign_call(struct expression *expr)
 			continue;
 		if (tmp->sym == sym 
 			&& !strncmp(tmp->name, name, strlen(name))) {
-			set_state(tmp->name, tmp->owner, tmp->sym, default_state[tmp->owner]);
+			set_state(tmp->owner, tmp->name, tmp->sym, default_state[tmp->owner]);
 			goto free;
 		}
 	} END_FOR_EACH_PTR(tmp);

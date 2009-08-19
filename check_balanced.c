@@ -28,9 +28,9 @@ static struct smatch_state *get_start_state(struct sm_state *sm)
        int is_left = 0;
        int is_right = 0;
 
-       if (in_tracker_list(starts_left, sm->name, my_id, sm->sym))
+       if (in_tracker_list(starts_left, my_id, sm->name, sm->sym))
                is_left = 1;
-       if (in_tracker_list(starts_right, sm->name, my_id, sm->sym))
+       if (in_tracker_list(starts_right, my_id, sm->name, sm->sym))
                is_right = 1;
        if (is_left && is_right)
                return &undefined;
@@ -51,12 +51,12 @@ static void match_left(const char *fn, struct expression *expr, void *data)
 	struct sm_state *sm;
 	char *name = (char *)data;
 
-	sm = get_sm_state(name, my_id, NULL);
+	sm = get_sm_state(my_id, name, NULL);
 	if (!sm)
-		add_tracker(&starts_right, name, my_id, NULL);
+		add_tracker(&starts_right, my_id, name, NULL);
 	if (sm && slist_has_state(sm->possible, &left))
 		smatch_msg("warn: double '%s'", fn);
-	set_state((char *)data, my_id, NULL, &left);
+	set_state(my_id, (char *)data, NULL, &left);
 }
 
 static void match_right(const char *fn, struct expression *expr, void *data)
@@ -64,12 +64,12 @@ static void match_right(const char *fn, struct expression *expr, void *data)
 	struct sm_state *sm;
 	char *name = (char *)data;
 
-	sm = get_sm_state(name, my_id, NULL);
+	sm = get_sm_state(my_id, name, NULL);
 	if (!sm)
-		add_tracker(&starts_left, name, my_id, NULL);
+		add_tracker(&starts_left, my_id, name, NULL);
 	if (sm && slist_has_state(sm->possible, &right))
 		smatch_msg("warn: double '%s'", fn);
-	set_state((char *)data, my_id, NULL, &right);
+	set_state(my_id, (char *)data, NULL, &right);
 }
 
 static void check_possible(struct sm_state *sm)

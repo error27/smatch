@@ -2,7 +2,7 @@
 
 ALLOCATOR(tracker, "trackers");
 
-struct tracker *alloc_tracker(const char *name, int owner, struct symbol *sym)
+struct tracker *alloc_tracker(int owner, const char *name, struct symbol *sym)
 {
 	struct tracker *tmp;
 
@@ -13,19 +13,19 @@ struct tracker *alloc_tracker(const char *name, int owner, struct symbol *sym)
 	return tmp;
 }
 
-void add_tracker(struct tracker_list **list, const char *name, int owner, 
+void add_tracker(struct tracker_list **list, int owner, const char *name, 
 		struct symbol *sym)
 {
 	struct tracker *tmp;
 
-	if (in_tracker_list(*list, name, owner, sym))
+	if (in_tracker_list(*list, owner, name, sym))
 		return;
-	tmp = alloc_tracker(name, owner, sym);
+	tmp = alloc_tracker(owner, name, sym);
 	add_ptr_list(list, tmp);
 }
 
-void del_tracker(struct tracker_list **list, const char *name, int owner,
-		 struct symbol *sym)
+void del_tracker(struct tracker_list **list, int owner, const char *name, 
+		struct symbol *sym)
 {
 	struct tracker *tmp;
 
@@ -39,7 +39,7 @@ void del_tracker(struct tracker_list **list, const char *name, int owner,
 	} END_FOR_EACH_PTR(tmp);
 }
 
-int in_tracker_list(struct tracker_list *list, const char *name, int owner,
+int in_tracker_list(struct tracker_list *list, int owner, const char *name, 
 		struct symbol *sym)
 {
 	struct tracker *tmp;

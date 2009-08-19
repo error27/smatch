@@ -2,7 +2,7 @@
 
 static struct tracker_list *ignored;
 
-void add_ignore(const char *name, int owner, struct symbol *sym)
+void add_ignore(int owner, const char *name, struct symbol *sym)
 {
 	struct tracker *tmp;
 
@@ -13,7 +13,7 @@ void add_ignore(const char *name, int owner, struct symbol *sym)
 	add_ptr_list(&ignored, tmp);
 }
 
-int is_ignored(const char *name, int owner, struct symbol *sym)
+int is_ignored(int owner, const char *name, struct symbol *sym)
 {
 	struct tracker *tmp;
 

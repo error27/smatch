@@ -339,7 +339,7 @@ static void handle_comparison(struct expression *expr,
 		name = get_implication_variable(expr->right, &sym);
 	if (!name || !sym)
 		goto free;
-	state = get_sm_state(name, SMATCH_EXTRA, sym);
+	state = get_sm_state(SMATCH_EXTRA, name, sym);
 	if (!state)
 		goto free;
 	if (!is_merged(state)) {
@@ -375,7 +375,7 @@ static void get_tf_states(struct expression *expr,
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
 		goto free;
-	state = get_sm_state(name, SMATCH_EXTRA, sym);
+	state = get_sm_state(SMATCH_EXTRA, name, sym);
 	if (!state)
 		goto free;
 	if (!is_merged(state)) {
@@ -421,7 +421,7 @@ struct range_list *__get_implied_values(struct expression *switch_expr)
 	name = get_variable_from_expr(switch_expr, &sym);
 	if (!name || !sym)
 		goto free;
-	state = get_state(name, SMATCH_EXTRA, sym);
+	state = get_state(SMATCH_EXTRA, name, sym);
 	if (!state)
 		goto free;
 	ret = clone_range_list(((struct data_info *)state->data)->value_ranges);
@@ -438,7 +438,7 @@ void get_implications(char *name, struct symbol *sym, int comparison, int num,
 {
 	struct sm_state *sm;
 
-	sm = get_sm_state(name, SMATCH_EXTRA, sym);
+	sm = get_sm_state(SMATCH_EXTRA, name, sym);
 	if (!sm)
 		return;
 	if (slist_has_state(sm->possible, &undefined))

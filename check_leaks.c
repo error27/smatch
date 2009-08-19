@@ -54,7 +54,7 @@ static void match_function_def(struct symbol *sym)
 	struct symbol *arg;
 
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
-		add_tracker(&arguments, (arg->ident?arg->ident->name:"NULL"), my_id, arg);
+		add_tracker(&arguments, my_id, (arg->ident?arg->ident->name:"NULL"), arg);
 	} END_FOR_EACH_PTR(arg);
 }
 

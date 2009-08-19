@@ -49,7 +49,7 @@ static void match_put(const char *fn, struct expression *expr, void *info)
 	name = get_variable_from_expr(tmp, &sym);
 	free_string(name);
 	if (parent_is_arg(sym) && sym->ident)
-		set_state(sym->ident->name, my_id, sym, &putted);
+		set_state(my_id, sym->ident->name, sym, &putted);
 }
 
 static int return_count = 0;
@@ -63,15 +63,15 @@ static void match_return(struct statement *stmt)
 		slist = get_all_states(my_id);
 		FOR_EACH_PTR(slist, tmp) {
 			if (tmp->state == &putted)
-				add_tracker(&putted_args, tmp->name, my_id,
+				add_tracker(&putted_args, my_id, tmp->name, 
 					    tmp->sym);
 		} END_FOR_EACH_PTR(tmp);
 		free_slist(&slist);
 	} else {
 		FOR_EACH_PTR(putted_args, tracker) {
-			tmp = get_sm_state(tracker->name, my_id, tracker->sym);
+			tmp = get_sm_state(my_id, tracker->name, tracker->sym);
 			if (tmp && tmp->state != &putted)
-				del_tracker(&putted_args, tracker->name, my_id,
+				del_tracker(&putted_args, my_id, tracker->name, 
 					    tracker->sym);
 		} END_FOR_EACH_PTR(tracker);
 		

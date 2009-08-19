@@ -40,7 +40,7 @@ static void match_allocation(const char *fn, struct expression *expr,
 	if (left_sym->ctype.modifiers & 
 	    (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))
 		goto free;
-	add_tracker(&allocated, left_name, my_id, left_sym);
+	add_tracker(&allocated, my_id, left_name, left_sym);
 free:
 	free_string(left_name);
 }
@@ -60,7 +60,7 @@ static void match_return(struct statement *stmt)
 		returns_old_stuff = 1;
 		goto free;
 	}
-	if (!in_tracker_list(allocated, name, my_id, sym))
+	if (!in_tracker_list(allocated, my_id, name, sym))
 		returns_old_stuff = 1;
 free:
 	free_string(name);

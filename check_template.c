@@ -65,9 +65,9 @@ static void match_call(struct expression *expr)
 	sem_expr = get_argument_from_call_expr(expr->args, 0);
 	sem_name = get_variable_from_expr(sem_expr, NULL);
 	if (!strcmp(fn_name, "down")) {
-		set_state(sem_name, my_id, NULL, &lock);
+		set_state(my_id, sem_name, NULL, &lock);
 	} else {
-		set_state(sem_name, my_id, NULL, &unlock);
+		set_state(my_id, sem_name, NULL, &unlock);
 	}
 	free_string(sem_name);
 free_fn:

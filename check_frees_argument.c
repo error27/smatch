@@ -50,7 +50,7 @@ static void match_kfree(const char *fn, struct expression *expr, void *info)
 	tmp = strip_expr(tmp);
 	name = get_variable_from_expr(tmp, &sym);
 	if (is_arg(name, sym)) {
-		set_state(name, my_id, sym, &freed);
+		set_state(my_id, name, sym, &freed);
 	}
 	free_string(name);
 }
@@ -66,15 +66,15 @@ static void match_return(struct statement *stmt)
 		slist = get_all_states(my_id);
 		FOR_EACH_PTR(slist, tmp) {
 			if (tmp->state == &freed)
-				add_tracker(&freed_args, tmp->name, my_id,
+				add_tracker(&freed_args, my_id, tmp->name, 
 					    tmp->sym);
 		} END_FOR_EACH_PTR(tmp);
 		free_slist(&slist);
 	} else {
 		FOR_EACH_PTR(freed_args, tracker) {
-			tmp = get_sm_state(tracker->name, my_id, tracker->sym);
+			tmp = get_sm_state(my_id, tracker->name, tracker->sym);
 			if (tmp && tmp->state != &freed)
-				del_tracker(&freed_args, tracker->name, my_id,
+				del_tracker(&freed_args, my_id, tracker->name, 
 					    tracker->sym);
 		} END_FOR_EACH_PTR(tracker);
 		

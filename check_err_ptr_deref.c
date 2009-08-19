@@ -24,7 +24,7 @@ static void check_is_err_ptr(struct sm_state *sm)
 	if (slist_has_state(sm->possible, &err_ptr)) {
 		smatch_msg("error: '%s' dereferencing possible ERR_PTR()",
 			   sm->name);
-		set_state(sm->name, my_id, sm->sym, &checked);
+		set_state(my_id, sm->name, sm->sym, &checked);
 	}
 }
 

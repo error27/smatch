@@ -95,13 +95,13 @@ static void match_declaration(struct symbol *sym)
 	base_type = get_base_type(sym);
 	
 	if (base_type->type == SYM_ARRAY && base_type->bit_size > 0) {
-		set_state(name, my_id, NULL, alloc_my_state(base_type->bit_size));
+		set_state(my_id, name, NULL, alloc_my_state(base_type->bit_size));
 	} else {
 		if (sym->initializer &&
  			sym->initializer->type == EXPR_STRING &&
 			sym->initializer->string) {
 			size = sym->initializer->string->length * 8;
-			set_state(name, my_id, NULL, alloc_my_state(size));
+			set_state(my_id, name, NULL, alloc_my_state(size));
 		}
 	}
 }
@@ -124,7 +124,7 @@ static int get_array_size(struct expression *expr)
 	name = get_variable_from_expr(expr, NULL);
 	if (!name)
 		return 0;
-	state = get_state(name, my_id, NULL);
+	state = get_state(my_id, name, NULL);
 	if (!state || !state->data)
 		goto free;
 	if (tmp->type == SYM_PTR)
@@ -205,7 +205,7 @@ static void match_string_assignment(struct expression *expr)
 		return;
 	if (right->type != EXPR_STRING || !right->string)
 		goto free;
-	set_state(name, my_id, NULL, 
+	set_state(my_id, name, NULL, 
 		alloc_my_state(right->string->length * 8));
 free:
 	free_string(name);
@@ -227,7 +227,7 @@ static void match_malloc(const char *fn, struct expression *expr, void *unused)
 	bytes = get_implied_value(arg);
 	if (bytes == UNDEFINED)
 		goto free;
-	set_state(name, my_id, NULL, alloc_my_state(bytes * 8));
+	set_state(my_id, name, NULL, alloc_my_state(bytes * 8));
 free:
 	free_string(name);
 }
@@ -250,11 +250,11 @@ static void match_strcpy(const char *fn, struct expression *expr,
 	data = get_argument_from_call_expr(expr->args, 1);
 	data_name = get_variable_from_expr(data, NULL);
 		
-	dest_state = get_state(dest_name, my_id, NULL);
+	dest_state = get_state(my_id, dest_name, NULL);
 	if (!dest_state || !dest_state->data)
 		goto free;
 
-	data_state = get_state(data_name, my_id, NULL);
+	data_state = get_state(my_id, data_name, NULL);
 	if (!data_state || !data_state->data)
 		goto free;
 	dest_size = *(int *)dest_state->data / 8;
@@ -282,7 +282,7 @@ static void match_limitted(const char *fn, struct expression *expr,
 
 	data = get_argument_from_call_expr(expr->args, PTR_INT(limit_arg));
 	needed = get_value(data);
-	state = get_state(dest_name, my_id, NULL);
+	state = get_state(my_id, dest_name, NULL);
 	if (!state || !state->data)
 		goto free;
 	has = *(int *)state->data / 8;

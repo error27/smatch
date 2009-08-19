@@ -41,10 +41,10 @@ static inline int PTR_INT(void *p)
 }
 
 struct sm_state {
-        const char *name;
 	unsigned short owner;
 	unsigned int merged:1;
 	unsigned int implied:1;
+        const char *name;
 	struct symbol *sym;
   	struct smatch_state *state;
 	unsigned int line;
@@ -56,8 +56,8 @@ struct sm_state {
 };
 
 struct tracker {
-	char *name;
 	int owner;
+	char *name;
 	struct symbol *sym;
 };
 DECLARE_ALLOCATOR(tracker);
@@ -121,18 +121,18 @@ do {                                                          \
 
 #define UNDEFINED INT_MIN
 
-struct smatch_state *get_state(const char *name, int owner, struct symbol *sym);
+struct smatch_state *get_state(int owner, const char *name, struct symbol *sym);
 struct smatch_state *get_state_expr(int owner, struct expression *expr);
-struct state_list *get_possible_states(const char *name, int owner,
+struct state_list *get_possible_states(int owner, const char *name, 
 				       struct symbol *sym);
 struct state_list *get_possible_states_expr(int owner, struct expression *expr);
-void set_state(const char *name, int owner, struct symbol *sym,
+void set_state(int owner, const char *name, struct symbol *sym, 
 	       struct smatch_state *state);
 void set_state_expr(int owner, struct expression *expr,
 		struct smatch_state *state);
-void delete_state(const char *name, int owner, struct symbol *sym);
+void delete_state(int owner, const char *name, struct symbol *sym);
 void delete_state_expr(int owner, struct expression *expr);
-void set_true_false_states(const char *name, int owner, struct symbol *sym, 
+void set_true_false_states(int owner, const char *name, struct symbol *sym, 
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state);
 void set_true_false_states_expr(int owner, struct expression *expr, 
@@ -169,16 +169,16 @@ struct expression *strip_expr(struct expression *expr);
 void scoped_state(const char *name, int my_id, struct symbol *sym);
 
 /* smatch_ignore.c */
-void add_ignore(const char *name, int owner, struct symbol *sym);
-int is_ignored(const char *name, int owner, struct symbol *sym);
+void add_ignore(int owner, const char *name, struct symbol *sym);
+int is_ignored(int owner, const char *name, struct symbol *sym);
 
 /* smatch_tracker */
-struct tracker *alloc_tracker(const char *name, int owner, struct symbol *sym);
-void add_tracker(struct tracker_list **list, const char *name, int owner, 
+struct tracker *alloc_tracker(int owner, const char *name, struct symbol *sym);
+void add_tracker(struct tracker_list **list, int owner, const char *name, 
 		struct symbol *sym);
-void del_tracker(struct tracker_list **list, const char *name, int owner, 
+void del_tracker(struct tracker_list **list, int owner, const char *name, 
 		struct symbol *sym);
-int in_tracker_list(struct tracker_list *list, const char *name, int owner,
+int in_tracker_list(struct tracker_list *list, int owner, const char *name, 
 		struct symbol *sym);
 void free_tracker_list(struct tracker_list **list);
 void free_trackers_and_list(struct tracker_list **list);
@@ -254,7 +254,7 @@ void __unnullify_path();
 int __path_is_null();
 void clear_all_states();
 
-struct sm_state *get_sm_state(const char *name, int owner,
+struct sm_state *get_sm_state(int owner, const char *name, 
 				struct symbol *sym);
 struct sm_state *get_sm_state_expr(int owner, struct expression *expr);
 void __use_false_only_stack();

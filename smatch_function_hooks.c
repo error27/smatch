@@ -156,7 +156,7 @@ static void assign_condition_funcs(const char *fn, struct expression *expr,
 	if (conditional) {
 		zero_state = alloc_extra_state(0);
 		non_zero_state = add_filter(extra_undefined(), 0);
-		set_true_false_states(var_name, SMATCH_EXTRA, sym, non_zero_state, zero_state);
+		set_true_false_states(SMATCH_EXTRA, var_name, sym, non_zero_state, zero_state);
 	}
   	__fake_conditions = 0;
 
@@ -216,7 +216,7 @@ static void assign_ranged_funcs(const char *fn, struct expression *expr,
  		__free_ptr_list((struct ptr_list **)&same_range_call_backs);
 
 		extra_state = alloc_extra_state_range(tmp->range->min, tmp->range->max);
-		set_state(var_name, SMATCH_EXTRA, sym, extra_state);
+		set_state(SMATCH_EXTRA, var_name, sym, extra_state);
 
 		merge_slist(&final_states, __fake_cur_slist);
 		free_slist(&__fake_cur_slist);

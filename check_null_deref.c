@@ -71,7 +71,7 @@ static int is_maybe_null_no_arg(const char *name, struct symbol *sym)
 	struct sm_state *tmp;
 	int ret = 0;
 
-	slist = get_possible_states(name, my_id, sym);
+	slist = get_possible_states(my_id, name, sym);
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state == &ignore)
 			return 0;
@@ -94,7 +94,7 @@ static int is_maybe_null(const char *name, struct symbol *sym)
 	struct sm_state *tmp;
 	int ret = 0;
 
-	slist = get_possible_states(name, my_id, sym);
+	slist = get_possible_states(my_id, name, sym);
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state == &ignore)
 			return 0;
@@ -120,7 +120,7 @@ static int is_maybe_null_arg(char *name, struct symbol *sym)
 	struct sm_state *tmp;
 	int maybe_null = 0;
 
-	slist = get_possible_states(name, my_id, sym);
+	slist = get_possible_states(my_id, name, sym);
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state != &argument && tmp->state != &arg_null && 
 		    tmp->state != &arg_nonnull && tmp->state !=  &merged &&
@@ -191,7 +191,7 @@ static void match_function_def(struct symbol *sym)
 		if (!arg->ident) {
 			continue;
 		}
-		set_state(arg->ident->name, my_id, arg, &argument);
+		set_state(my_id, arg->ident->name, arg, &argument);
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -321,14 +321,14 @@ static void match_declarations(struct symbol *sym)
 
 	if (sym->initializer) {
 		if (is_zero(sym->initializer)) {
-			set_state(name, my_id, sym, &isnull);
+			set_state(my_id, name, sym, &isnull);
 			scoped_state(name, my_id, sym);
 			return;
 		}
-		set_state(name, my_id, sym, &assumed_nonnull);
+		set_state(my_id, name, sym, &assumed_nonnull);
 		scoped_state(name, my_id, sym);
 	} else {
-		set_state(name, my_id, sym, &undefined);
+		set_state(my_id, name, sym, &undefined);
 		scoped_state(name, my_id, sym);
 	}
 }
@@ -347,10 +347,10 @@ static void match_dereferences(struct expression *expr)
 
 	if (is_maybe_null_arg(deref, sym)) {
 		add_do_not_call(sym, get_lineno());
-		set_state(deref, my_id, sym, &assumed_nonnull);
+		set_state(my_id, deref, sym, &assumed_nonnull);
 	} else if (is_maybe_null(deref, sym)) {
 		smatch_msg("error: dereferencing undefined:  '%s'", deref);
-		set_state(deref, my_id, sym, &ignore);
+		set_state(my_id, deref, sym, &ignore);
 	}
 	free_string(deref);
 }

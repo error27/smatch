@@ -72,7 +72,7 @@ static void assign_parent(struct symbol *sym)
 	name = get_parent_name(sym);
 	if (!name)
 		return;
-	set_state(name, my_id, sym, &assigned);
+	set_state(my_id, name, sym, &assigned);
 	free_string(name);
 }
 
@@ -84,7 +84,7 @@ static int parent_is_assigned(struct symbol *sym)
 	name = get_parent_name(sym);
 	if (!name)
 		return 0;
-	state = get_state(name, my_id, sym);
+	state = get_state(my_id, name, sym);
 	free_string(name);
 	if (state == &assigned)
 		return 1;
@@ -116,7 +116,7 @@ static int is_freed(const char *name, struct symbol *sym)
 {
 	struct state_list *slist;
 
-	slist = get_possible_states(name, my_id, sym);
+	slist = get_possible_states(my_id, name, sym);
 	if (slist_has_state(slist, &isfree)) {
 		return 1;
 	}
@@ -139,7 +139,7 @@ static void match_function_def(struct symbol *sym)
 	struct symbol *arg;
 
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
-		add_tracker(&arguments, (arg->ident?arg->ident->name:"NULL"), my_id, arg);
+		add_tracker(&arguments, my_id, (arg->ident?arg->ident->name:"NULL"), arg);
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -166,20 +166,20 @@ static void match_assign(struct expression *expr)
 	    !(left_sym->ctype.modifiers & 
 	      (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE)) &&
 	    !parent_is_assigned(left_sym)) {
-		set_state(left_name, my_id, left_sym, &malloced);
+		set_state(my_id, left_name, left_sym, &malloced);
 		goto exit;
 	}
 
 	right_name = get_variable_from_expr_complex(right, &right_sym);
 
-	if (right_name && (state = get_state(right_name, my_id, right_sym))) {
+	if (right_name && (state = get_state(my_id, right_name, right_sym))) {
 		if (state == &isfree)
 			smatch_msg("error: assigning freed pointer");
-		set_state(right_name, my_id, right_sym, &assigned);
+		set_state(my_id, right_name, right_sym, &assigned);
 	}
 
 	if (is_freed(left_name, left_sym)) {
-		set_state(left_name, my_id, left_sym, &unfree);
+		set_state(my_id, left_name, left_sym, &unfree);
 	}
 	if (left_name && is_parent(left))
 		assign_parent(left_sym);
@@ -194,7 +194,7 @@ static int is_null(const char *name, struct symbol *sym)
 {
 	struct smatch_state *state;
 
-	state = get_state(name, my_id, sym);
+	state = get_state(my_id, name, sym);
 	if (state && !strcmp(state->name, "isnull"))
 		return 1;
 	return 0;
@@ -212,7 +212,7 @@ static void match_free_func(const char *fn, struct expression *expr, void *data)
 	if (is_freed(ptr_name, ptr_sym) && !is_null(ptr_name, ptr_sym)) {
 		smatch_msg("error: double free of %s", ptr_name);
 	}
-	set_state(ptr_name, my_id, ptr_sym, &isfree);
+	set_state(my_id, ptr_name, ptr_sym, &isfree);
 	free_string(ptr_name);
 }
 
@@ -242,7 +242,7 @@ static void check_tracker_is_leaked(struct tracker *t)
 {
 	struct sm_state *sm;
 
-	sm = get_sm_state(t->name, t->owner, t->sym);
+	sm = get_sm_state(t->owner, t->name, t->sym);
 	if (sm)
 		check_sm_is_leaked(sm);
 	__free_tracker(t);
@@ -260,9 +260,9 @@ static void match_declarations(struct symbol *sym)
 
 	if (sym->initializer) {
 		if (is_allocation(sym->initializer)) {
-			set_state(name, my_id, sym, &malloced);
+			set_state(my_id, name, sym, &malloced);
 			add_scope_hook((scope_hook *)&check_tracker_is_leaked,
-				alloc_tracker(name, my_id, sym));
+				alloc_tracker(my_id, name, sym));
 			scoped_state(name, my_id, sym);
 		} else {
 			assign_parent(sym);
@@ -298,7 +298,7 @@ static void set_new_true_false_paths(const char *name, struct symbol *sym)
 {
 	struct smatch_state *tmp;
 
-	tmp = get_state(name, my_id, sym);
+	tmp = get_state(my_id, name, sym);
 
 	if (!tmp) {
 		return;
@@ -312,7 +312,7 @@ static void set_new_true_false_paths(const char *name, struct symbol *sym)
 		/* we don't care about assigned pointers any more */
 		return;
 	}
-	set_true_false_states(name, my_id, sym, &allocated, &isnull);
+	set_true_false_states(my_id, name, sym, &allocated, &isnull);
 }
 
 static void match_condition(struct expression *expr)
@@ -353,9 +353,9 @@ static void match_function_call(struct expression *expr)
 		name = get_variable_from_expr_complex(tmp, &sym);
 		if (!name)
 			continue;
-		if ((state = get_sm_state(name, my_id, sym))) {
+		if ((state = get_sm_state(my_id, name, sym))) {
 			if (possibly_allocated(state->possible)) {
-				set_state(name, my_id, sym, &assigned);
+				set_state(my_id, name, sym, &assigned);
 			}
 		}
 		assign_parent(sym);
@@ -373,7 +373,7 @@ static void match_dereferences(struct expression *expr)
 		return;
 	if (is_freed(deref, sym)) {
 		smatch_msg("error: dereferencing freed memory '%s'", deref);
-		set_state(deref, my_id, sym, &unfree);
+		set_state(my_id, deref, sym, &unfree);
 	}
 	free_string(deref);
 }

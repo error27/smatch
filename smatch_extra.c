@@ -157,7 +157,7 @@ struct sm_state *__extra_pre_loop_hook_before(struct statement *iterator_pre_sta
 	name = get_variable_from_expr(expr->left, &sym);
 	if (!name || !sym)
 		goto free;
-	ret = get_sm_state(name, my_id, sym);
+	ret = get_sm_state(my_id, name, sym);
 free:
 	free_string(name);
 	return ret;
@@ -189,7 +189,7 @@ int __iterator_unchanged(struct sm_state *sm, struct statement *iterator)
 	name = get_variable_from_expr(iter_expr->unop, &sym);
 	if (!name || !sym)
 		goto free;
-	if (get_sm_state(name, my_id, sym) == sm)
+	if (get_sm_state(my_id, name, sym) == sm)
 		ret = 1;
 free:
 	free_string(name);
@@ -230,14 +230,14 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	if (sym != sm->sym || strcmp(name, sm->name))
 		goto free;
 	op = get_iter_op(iter_expr);
-	state = get_state(name, my_id, sym);
+	state = get_state(my_id, name, sym);
 	dinfo = (struct data_info *)state->data;
 	min = get_dinfo_min(dinfo);
 	max = get_dinfo_max(dinfo);
 	if (!strcmp(op, "++") && min != whole_range.min && max == whole_range.max) {
-		set_state(name, my_id, sym, alloc_extra_state(min));
+		set_state(my_id, name, sym, alloc_extra_state(min));
 	} else if (min == whole_range.min && max != whole_range.max) {
-		set_state(name, my_id, sym, alloc_extra_state(max));
+		set_state(my_id, name, sym, alloc_extra_state(max));
 	}
 free:
 	free_string(name);
@@ -260,7 +260,7 @@ static void match_function_call(struct expression *expr)
 		if (tmp->op == '&') {
 			name = get_variable_from_expr(tmp->unop, &sym);
 			if (name) {
-				set_state(name, my_id, sym, extra_undefined());
+				set_state(my_id, name, sym, extra_undefined());
 			}
 			free_string(name);
 		}
@@ -278,7 +278,7 @@ static void match_assign(struct expression *expr)
 	name = get_variable_from_expr(left, &sym);
 	if (!name)
 		return;
-	set_state(name, my_id, sym, alloc_extra_state(get_value(expr->right)));
+	set_state(my_id, name, sym, alloc_extra_state(get_value(expr->right)));
 	free_string(name);
 }
 
@@ -295,11 +295,11 @@ static void undef_expr(struct expression *expr)
 	name = get_variable_from_expr(expr->unop, &sym);
 	if (!name)
 		return;
-	if (!get_state(name, my_id, sym)) {
+	if (!get_state(my_id, name, sym)) {
 		free_string(name);
 		return;
 	}
-	set_state(name, my_id, sym, extra_undefined());
+	set_state(my_id, name, sym, extra_undefined());
 	free_string(name);
 }
 
@@ -310,10 +310,10 @@ static void match_declarations(struct symbol *sym)
 	if (sym->ident) {
 		name = sym->ident->name;
 		if (sym->initializer) {
-			set_state(name, my_id, sym, alloc_extra_state(get_value(sym->initializer)));
+			set_state(my_id, name, sym, alloc_extra_state(get_value(sym->initializer)));
 			scoped_state(name, my_id, sym);
 		} else {
-			set_state(name, my_id, sym, extra_undefined());
+			set_state(my_id, name, sym, extra_undefined());
 			scoped_state(name, my_id, sym);
 		}
 	}
@@ -328,7 +328,7 @@ static void match_function_def(struct symbol *sym)
 		if (!arg->ident) {
 			continue;
 		}
-		set_state(arg->ident->name, my_id, arg, extra_undefined());
+		set_state(my_id, arg->ident->name, arg, extra_undefined());
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -350,7 +350,7 @@ static long long get_implied_value_helper(struct expression *expr, int what)
 	name = get_variable_from_expr(expr, &sym);
 	if (!name)
 		return UNDEFINED;
-	state = get_state(name, my_id, sym);
+	state = get_state(my_id, name, sym);
 	free_string(name);
 	if (!state || !state->data)
 		return UNDEFINED;
@@ -430,7 +430,7 @@ static void match_comparison(struct expression *expr)
 	if (!name || !sym)
 		goto free;
 
-	orig = get_state(name, my_id, sym);
+	orig = get_state(my_id, name, sym);
 	if (!orig)
 		orig = extra_undefined();
 
@@ -440,47 +440,47 @@ static void match_comparison(struct expression *expr)
 		one_state = filter_range(orig, whole_range.min, value - 1);
 		two_state = filter_range(orig, value, whole_range.max); 
 		if (left)		
-			set_true_false_states(name, my_id, sym, two_state, one_state);
+			set_true_false_states(my_id, name, sym, two_state, one_state);
 		else
-			set_true_false_states(name, my_id, sym, one_state, two_state);
+			set_true_false_states(my_id, name, sym, one_state, two_state);
 		return;
 	case SPECIAL_UNSIGNED_LTE:
 	case SPECIAL_LTE:
 		one_state = filter_range(orig, whole_range.min, value);
 		two_state = filter_range(orig, value + 1, whole_range.max); 
 		if (left)		
-			set_true_false_states(name, my_id, sym, two_state, one_state);
+			set_true_false_states(my_id, name, sym, two_state, one_state);
 		else
-			set_true_false_states(name, my_id, sym, one_state, two_state);
+			set_true_false_states(my_id, name, sym, one_state, two_state);
 		return;
 	case SPECIAL_EQUAL:
 		// todo.  print a warning here for impossible conditions.
 		one_state = alloc_extra_state(value);
 		two_state = filter_range(orig, value, value); 
-		set_true_false_states(name, my_id, sym, one_state, two_state);
+		set_true_false_states(my_id, name, sym, one_state, two_state);
 		return;
 	case SPECIAL_UNSIGNED_GTE:
 	case SPECIAL_GTE:
 		one_state = filter_range(orig, whole_range.min, value - 1);
 		two_state = filter_range(orig, value, whole_range.max); 
 		if (left)		
-			set_true_false_states(name, my_id, sym, one_state, two_state);
+			set_true_false_states(my_id, name, sym, one_state, two_state);
 		else
-			set_true_false_states(name, my_id, sym, two_state, one_state);
+			set_true_false_states(my_id, name, sym, two_state, one_state);
 		return;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
 		one_state = filter_range(orig, whole_range.min, value);
 		two_state = filter_range(orig, value + 1, whole_range.max); 
 		if (left)		
-			set_true_false_states(name, my_id, sym, one_state, two_state);
+			set_true_false_states(my_id, name, sym, one_state, two_state);
 		else
-			set_true_false_states(name, my_id, sym, two_state, one_state);
+			set_true_false_states(my_id, name, sym, two_state, one_state);
 		return;
 	case SPECIAL_NOTEQUAL:
 		one_state = alloc_extra_state(value);
 		two_state = filter_range(orig, value, value); 
-		set_true_false_states(name, my_id, sym, two_state, one_state);
+		set_true_false_states(my_id, name, sym, two_state, one_state);
 		return;
 	default:
 		smatch_msg("unhandled comparison %d\n", comparison);
@@ -511,10 +511,10 @@ void __extra_match_condition(struct expression *expr)
 		name = get_variable_from_expr(expr, &sym);
 		if (!name)
 			return;
-		pre_state = get_state(name, my_id, sym);
+		pre_state = get_state(my_id, name, sym);
 		true_state = add_filter(pre_state, 0);
 		false_state = alloc_extra_state(0);
-		set_true_false_states(name, my_id, sym, true_state, false_state);
+		set_true_false_states(my_id, name, sym, true_state, false_state);
 		free_string(name);
 		return;
 	case EXPR_COMPARE:
@@ -533,7 +533,7 @@ static int variable_non_zero(struct expression *expr)
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
 		goto exit;
-	state = get_state(name, my_id, sym);
+	state = get_state(my_id, name, sym);
 	if (!state || !state->data)
 		goto exit;
 	ret = !possibly_false(SPECIAL_NOTEQUAL, (struct data_info *)state->data, 0, 1);
@@ -612,7 +612,7 @@ static int do_comparison_range(struct expression *expr)
 		name = get_variable_from_expr(expr->right, &sym);
 	if (!name || !sym)
 		goto free;
-	state = get_state(name, SMATCH_EXTRA, sym);
+	state = get_state(SMATCH_EXTRA, name, sym);
 	if (!state)
 		goto free;
 	poss_true = possibly_true(expr->op, (struct data_info *)state->data, value, left);

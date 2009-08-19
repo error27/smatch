@@ -121,9 +121,9 @@ static struct smatch_state *get_start_state(struct sm_state *sm)
        int is_locked = 0;
        int is_unlocked = 0;
 
-       if (in_tracker_list(starts_locked, sm->name, my_id, sm->sym))
+       if (in_tracker_list(starts_locked, my_id, sm->name, sm->sym))
                is_locked = 1;
-       if (in_tracker_list(starts_unlocked, sm->name, my_id, sm->sym))
+       if (in_tracker_list(starts_unlocked, my_id, sm->name, sm->sym))
                is_unlocked = 1;
        if (is_locked && is_unlocked)
                return &undefined;
@@ -159,12 +159,12 @@ static void match_lock_func(const char *fn, struct expression *expr, void *data)
 	lock_name = get_lock_name(expr, data);
 	if (!lock_name)
 		return;
-	sm = get_sm_state(lock_name, my_id, NULL);
+	sm = get_sm_state(my_id, lock_name, NULL);
 	if (!sm)
-		add_tracker(&starts_unlocked, lock_name, my_id, NULL);
+		add_tracker(&starts_unlocked, my_id, lock_name, NULL);
 	if (sm && slist_has_state(sm->possible, &locked))
 		smatch_msg("error: double lock '%s'", lock_name);
-	set_state(lock_name, my_id, NULL, &locked);
+	set_state(my_id, lock_name, NULL, &locked);
 	free_string(lock_name);
 }
 
@@ -177,12 +177,12 @@ static void match_unlock_func(const char *fn, struct expression *expr,
 	lock_name = get_lock_name(expr, data);
 	if (!lock_name)
 		return;
-	sm = get_sm_state(lock_name, my_id, NULL);
+	sm = get_sm_state(my_id, lock_name, NULL);
 	if (!sm)
-		add_tracker(&starts_locked, lock_name, my_id, NULL);
+		add_tracker(&starts_locked, my_id, lock_name, NULL);
 	if (sm && slist_has_state(sm->possible, &unlocked))
 		smatch_msg("error: double unlock '%s'", lock_name);
-	set_state(lock_name, my_id, NULL, &unlocked);
+	set_state(my_id, lock_name, NULL, &unlocked);
 	free_string(lock_name);
 }
 
@@ -194,10 +194,10 @@ static void match_lock_failed(const char *fn, struct expression *expr, void *dat
 	lock_name = get_lock_name(expr, data);
 	if (!lock_name)
 		return;
-	sm = get_sm_state(lock_name, my_id, NULL);
+	sm = get_sm_state(my_id, lock_name, NULL);
 	if (!sm)
-		add_tracker(&starts_unlocked, lock_name, my_id, NULL);
-	set_state(lock_name, my_id, NULL, &unlocked);
+		add_tracker(&starts_unlocked, my_id, lock_name, NULL);
+	set_state(my_id, lock_name, NULL, &unlocked);
 	free_string(lock_name);
 }
 
@@ -209,12 +209,12 @@ static void match_lock_aquired(const char *fn, struct expression *expr, void *da
 	lock_name = get_lock_name(expr, data);
 	if (!lock_name)
 		return;
-	sm = get_sm_state(lock_name, my_id, NULL);
+	sm = get_sm_state(my_id, lock_name, NULL);
 	if (!sm)
-		add_tracker(&starts_unlocked, lock_name, my_id, NULL);
+		add_tracker(&starts_unlocked, my_id, lock_name, NULL);
 	if (sm && slist_has_state(sm->possible, &locked))
 		smatch_msg("error: double lock '%s'", lock_name);
-	set_state(lock_name, my_id, NULL, &locked);
+	set_state(my_id, lock_name, NULL, &locked);
 	free_string(lock_name);
 }
 
@@ -224,7 +224,7 @@ static void match_lock_needed(const char *fn, struct expression *expr,
 	struct smatch_state *state;
 	char *fn_name;
 
-	state = get_state((char *)data, my_id, NULL);
+	state = get_state(my_id, (char *)data, NULL);
 	if (state == &locked) 
 		return;
 	fn_name = get_variable_from_expr(expr->fn, NULL);
@@ -246,10 +246,10 @@ static void match_locks_on_non_zero(const char *fn, struct expression *expr,
 	lock_name = get_lock_name(expr, data);
 	if (!lock_name)
 		return;
-	sm = get_sm_state(lock_name, my_id, NULL);
+	sm = get_sm_state(my_id, lock_name, NULL);
 	if (!sm)
-		add_tracker(&starts_unlocked, lock_name, my_id, NULL);
-	set_true_false_states(lock_name, my_id, NULL, &locked, &unlocked);
+		add_tracker(&starts_unlocked, my_id, lock_name, NULL);
+	set_true_false_states(my_id, lock_name, NULL, &locked, &unlocked);
 	free_string(lock_name);
 }
 
@@ -306,21 +306,21 @@ static void match_return(struct statement *stmt)
 	slist = get_all_states(my_id);
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state == &locked) {
-			add_tracker(&ret->locked, tmp->name, tmp->owner,
+			add_tracker(&ret->locked, tmp->owner, tmp->name, 
 				tmp->sym);
 		} else if (tmp->state == &unlocked) {
-			add_tracker(&ret->unlocked, tmp->name, tmp->owner,
+			add_tracker(&ret->unlocked, tmp->owner, tmp->name, 
 				tmp->sym);
 		} else if (tmp->state == &start_state) {
 			struct smatch_state *s;
 
 			s = get_start_state(tmp);
 			if (s == &locked)
-				add_tracker(&ret->locked, tmp->name, tmp->owner,
+				add_tracker(&ret->locked, tmp->owner, tmp->name, 
 					    tmp->sym);
 			if (s == &unlocked)
-				add_tracker(&ret->unlocked, tmp->name,
-					    tmp->owner, tmp->sym);
+				add_tracker(&ret->unlocked, tmp->owner,tmp->name, 
+					     tmp->sym);
 		}else {
 			check_possible(tmp);
 		}
@@ -340,9 +340,9 @@ static void print_inconsistent_returns(struct tracker *lock,
 	printf(" locked (");
 	i = 0;
 	FOR_EACH_PTR(all_returns, tmp) {
-		if (in_tracker_list(tmp->unlocked, lock->name, lock->owner, lock->sym))
+		if (in_tracker_list(tmp->unlocked, lock->owner, lock->name, lock->sym))
 			continue;
-		if (in_tracker_list(tmp->locked, lock->name, lock->owner, lock->sym)) {
+		if (in_tracker_list(tmp->locked, lock->owner, lock->name, lock->sym)) {
 			if (i++)
 				printf(",");
 			printf("%d", tmp->line);
@@ -358,13 +358,13 @@ static void print_inconsistent_returns(struct tracker *lock,
 	printf(") unlocked (");
 	i = 0;
 	FOR_EACH_PTR(all_returns, tmp) {
-		if (in_tracker_list(tmp->unlocked, lock->name, lock->owner, lock->sym)) {
+		if (in_tracker_list(tmp->unlocked, lock->owner, lock->name, lock->sym)) {
 			if (i++)
 				printf(",");
 			printf("%d", tmp->line);
 			continue;
 		}
-		if (in_tracker_list(tmp->locked, lock->name, lock->owner, lock->sym)) {
+		if (in_tracker_list(tmp->locked, lock->owner, lock->name, lock->sym)) {
 			continue;
 		}
 		if (start == &unlocked) {
@@ -384,10 +384,10 @@ static void check_returns_consistently(struct tracker *lock,
 	struct locks_on_return *tmp;
 
 	FOR_EACH_PTR(all_returns, tmp) {
-		if (in_tracker_list(tmp->unlocked, lock->name, lock->owner,
+		if (in_tracker_list(tmp->unlocked, lock->owner, lock->name, 
 					lock->sym))
 			returns_unlocked = tmp->line;
-		else if (in_tracker_list(tmp->locked, lock->name, lock->owner,
+		else if (in_tracker_list(tmp->locked, lock->owner, lock->name, 
 						lock->sym))
 			returns_locked = tmp->line;
 		else if (start == &locked)
@@ -408,7 +408,7 @@ static void check_consistency(struct symbol *sym)
 		match_return(NULL);
 
 	FOR_EACH_PTR(starts_locked, tmp) {
-		if (in_tracker_list(starts_unlocked, tmp->name, tmp->owner,
+		if (in_tracker_list(starts_unlocked, tmp->owner, tmp->name, 
 					tmp->sym))
 			smatch_msg("error:  locking inconsistency.  We assume "
 				   "'%s' is both locked and unlocked at the "

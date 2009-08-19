@@ -83,7 +83,7 @@ static int unreachable()
 	return 1;
 }
 
-void set_state(const char *name, int owner, struct symbol *sym,
+void set_state(int owner, const char *name, struct symbol *sym, 
 	       struct smatch_state *state)
 {
 	if (!name)
@@ -92,7 +92,7 @@ void set_state(const char *name, int owner, struct symbol *sym,
 	if (debug_states) {
 		struct smatch_state *s;
 		
-		s = get_state(name, owner, sym);
+		s = get_state(owner, name, sym);
 		if (!s)
 			printf("%d new state. name='%s' owner=%d: %s\n", 
 			       get_lineno(), name, owner, show_state(state));
@@ -129,7 +129,7 @@ void set_state_expr(int owner, struct expression *expr,
 	if (!name || !sym)
 		goto free;
 	reset_on_container_modified(owner, expr);
-	set_state(name, owner, sym, state);
+	set_state(owner, name, sym, state);
 free:
 	free_string(name);
 
@@ -140,7 +140,7 @@ void __set_state(struct sm_state *sm)
 	if (debug_states) {
 		struct smatch_state *s;
 		
-		s = get_state(sm->name, sm->owner, sm->sym);
+		s = get_state(sm->owner, sm->name, sm->sym);
 		if (!s)
 			printf("%d new state. name='%s' owner=%d: %s\n", 
 			       get_lineno(), sm->name, sm->owner, show_state(sm->state));
@@ -161,7 +161,7 @@ void __set_state(struct sm_state *sm)
 	}
 }
 
-struct smatch_state *get_state(const char *name, int owner, struct symbol *sym)
+struct smatch_state *get_state(int owner, const char *name, struct symbol *sym)
 {
 	return get_state_slist(cur_slist, name, owner, sym);
 }
@@ -176,13 +176,13 @@ struct smatch_state *get_state_expr(int owner, struct expression *expr)
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
 		goto free;
-	ret = get_state(name, owner, sym);
+	ret = get_state(owner, name, sym);
 free:
 	free_string(name);
 	return ret;
 }
 
-struct state_list *get_possible_states(const char *name, int owner,
+struct state_list *get_possible_states(int owner, const char *name, 
 				       struct symbol *sym)
 {
 	struct sm_state *sms;
@@ -203,13 +203,13 @@ struct state_list *get_possible_states_expr(int owner, struct expression *expr)
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
 		goto free;
-	ret = get_possible_states(name, owner, sym);
+	ret = get_possible_states(owner, name, sym);
 free:
 	free_string(name);
 	return ret;
 }
 
-struct sm_state *get_sm_state(const char *name, int owner, struct symbol *sym)
+struct sm_state *get_sm_state(int owner, const char *name, struct symbol *sym)
 {
 	return get_sm_state_slist(cur_slist, name, owner, sym);
 }
@@ -224,13 +224,13 @@ struct sm_state *get_sm_state_expr(int owner, struct expression *expr)
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
 		goto free;
-	ret = get_sm_state(name, owner, sym);
+	ret = get_sm_state(owner, name, sym);
 free:
 	free_string(name);
 	return ret;
 }
 
-void delete_state(const char *name, int owner, struct symbol *sym)
+void delete_state(int owner, const char *name, struct symbol *sym)
 {
 	delete_state_slist(&cur_slist, name, owner, sym);
 }
@@ -244,7 +244,7 @@ void delete_state_expr(int owner, struct expression *expr)
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
 		goto free;
-	delete_state(name, owner, sym);
+	delete_state(owner, name, sym);
 free:
 	free_string(name);
 }
@@ -275,14 +275,14 @@ struct state_list *__get_cur_slist()
 	return cur_slist;
 }
 
-void set_true_false_states(const char *name, int owner, struct symbol *sym, 
+void set_true_false_states(int owner, const char *name, struct symbol *sym, 
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state)
 {
 	if (debug_states) {
 		struct smatch_state *tmp;
 
-		tmp = get_state(name, owner, sym);
+		tmp = get_state(owner, name, sym);
 		SM_DEBUG("%d set_true_false '%s'.  Was %s.  Now T:%s F:%s\n",
 			 get_lineno(), name, show_state(tmp),
 			 show_state(true_state), show_state(false_state));
@@ -324,7 +324,7 @@ void set_true_false_states_expr(int owner, struct expression *expr,
 	if (!name || !sym)
 		goto free;
 	reset_on_container_modified(owner, expr);
-	set_true_false_states(name, owner, sym, true_state, false_state);
+	set_true_false_states(owner, name, sym, true_state, false_state);
 free:
 	free_string(name);
 }
@@ -367,7 +367,7 @@ void __match_nullify_path_hook(const char *fn, struct expression *expr,
 
 void __unnullify_path()
 {
-	set_state("unnull_path", -1, NULL, &true_state);
+	set_state(-1, "unnull_path", NULL, &true_state);
 }
 
 int __path_is_null()
