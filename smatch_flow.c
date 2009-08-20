@@ -12,6 +12,7 @@
 #include "smatch.h"
 #include "smatch_expression_stacks.h"
 #include "smatch_extra.h"
+#include "smatch_slist.h" // just for sname.
 
 int final_pass;
 
@@ -144,6 +145,16 @@ static int is_forever_loop(struct statement *stmt)
 	return 0;
 }
 
+static int loop_num;
+static char *get_loop_name(int num)
+{
+	char buf[256];
+
+	snprintf(buf, 255, "-loop%d", num);
+	buf[255] = '\0';
+	return alloc_sname(buf);;
+}
+
 /*
  * Pre Loops are while and for loops.
  */
@@ -153,7 +164,10 @@ static void handle_pre_loop(struct statement *stmt)
 	int once_through; /* we go through the loop at least once */
 	struct sm_state *extra_state = NULL;
 	int unchanged = 0;
+	char *loop_name;
 
+ 	loop_name = get_loop_name(loop_num);
+	loop_num++;
 
 	__split_statements(stmt->iterator_pre_statement);
 
@@ -162,6 +176,7 @@ static void handle_pre_loop(struct statement *stmt)
 	__push_continues();
 	__push_breaks();
 
+	__merge_gotos(loop_name);
 	__split_whole_condition(stmt->iterator_pre_condition);
 	if (once_through)
 		extra_state = __extra_pre_loop_hook_before(stmt->iterator_pre_statement);
@@ -171,6 +186,7 @@ static void handle_pre_loop(struct statement *stmt)
 
 	__warn_on_silly_pre_loops();	
 	if (is_forever_loop(stmt)) {
+		__save_gotos(loop_name);
 		__pop_false_only_stack();
 		/* forever loops don't have an iterator_post_statement */
 		__pop_continues();
@@ -181,6 +197,7 @@ static void handle_pre_loop(struct statement *stmt)
 		if (extra_state)
 			unchanged = __iterator_unchanged(extra_state, stmt->iterator_post_statement);
 		__split_statements(stmt->iterator_post_statement);
+		__save_gotos(loop_name);
 		__split_whole_condition(stmt->iterator_pre_condition);
 		nullify_path();
 		__merge_false_states();
@@ -194,6 +211,7 @@ static void handle_pre_loop(struct statement *stmt)
 	} else {
 		__merge_continues();
 		__split_statements(stmt->iterator_post_statement);
+		__save_gotos(loop_name);
 		__merge_false_states();
 		__use_false_only_stack();
 		__merge_breaks();
@@ -205,15 +223,22 @@ static void handle_pre_loop(struct statement *stmt)
  */
 static void handle_post_loop(struct statement *stmt)
 {
+	char *loop_name;
+
+ 	loop_name = get_loop_name(loop_num);
+	loop_num++;
+
 	__push_continues();
 	__push_breaks();
+	__merge_gotos(loop_name);
 	__split_statements(stmt->iterator_statement);
-	if (is_forever_loop(stmt)) {
-		__pop_continues();
-		__use_breaks();
+	__merge_continues();
+	if (!is_zero(stmt->iterator_post_condition))
+		__save_gotos(loop_name);
 
+	if (is_forever_loop(stmt)) {
+		__use_breaks();
 	} else {
-		__merge_continues();
 		__split_whole_condition(stmt->iterator_post_condition);
 		__use_false_states();
 		__merge_breaks();
@@ -456,9 +481,11 @@ static void split_functions(struct symbol_list *sym_list)
 			__smatch_lineno = sym->pos.line;
 			sm_debug("new function:  %s\n", cur_func);
 			__unnullify_path();
+			loop_num = 0;
 			final_pass = 0;
 			__pass_to_client(sym, FUNC_DEF_HOOK);
 			__split_statements(base_type->stmt);
+			loop_num = 0;
 			final_pass = 1;
 			nullify_path();
 			__unnullify_path();
