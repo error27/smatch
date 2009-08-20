@@ -13,6 +13,8 @@
 #include "smatch_expression_stacks.h"
 #include "smatch_extra.h"
 
+int final_pass;
+
 static int __smatch_lineno = 0;
 
 static char *filename;
@@ -453,6 +455,12 @@ static void split_functions(struct symbol_list *sym_list)
 				cur_func = sym->ident->name;
 			__smatch_lineno = sym->pos.line;
 			sm_debug("new function:  %s\n", cur_func);
+			__unnullify_path();
+			final_pass = 0;
+			__pass_to_client(sym, FUNC_DEF_HOOK);
+			__split_statements(base_type->stmt);
+			final_pass = 1;
+			nullify_path();
 			__unnullify_path();
 			__pass_to_client(sym, FUNC_DEF_HOOK);
 			__split_statements(base_type->stmt);

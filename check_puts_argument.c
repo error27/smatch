@@ -85,7 +85,7 @@ static void print_arg(struct symbol *sym)
 
 	FOR_EACH_PTR(this_func->ctype.base_type->arguments, arg) {
 		if (sym == arg) {
-			printf("info: puts_arg %s %d\n", get_function(), i);
+			sm_printf("info: puts_arg %s %d\n", get_function(), i);
 			return;
 		}
 		i++;

@@ -213,7 +213,7 @@ static void match_function_call_after(struct expression *expr)
 			set_state_expr(my_id, tmp->unop, &assumed_nonnull);
 		} else if (func) {
 			name = get_variable_from_expr(tmp, &sym);
-			if (name && is_maybe_null_no_arg(name, sym))
+			if (final_pass && name && is_maybe_null_no_arg(name, sym))
 				add_param(&calls, func, i, get_lineno());
 			free_string(name);
 		}
@@ -364,7 +364,7 @@ static void end_file_processing(void)
 		FOR_EACH_PTR(do_not_call, param2) {
 			if (param1->func == param2->func && 
 			    param1->param == param2->param)
-				printf("%s +%d error: cross_func deref %s %d\n", 
+				sm_printf("%s +%d error: cross_func deref %s %d\n", 
 				       get_filename(), param1->line, 
 				       param1->func->ident->name,
 				       param1->param);
@@ -377,7 +377,7 @@ static void end_file_processing(void)
 	// if a function is not static print it out...
 	FOR_EACH_PTR(do_not_call, param1) {
 		if (!(param1->func->ctype.modifiers & MOD_STATIC))
-			printf("%s +%d info: unchecked param %s %d\n", 
+			sm_printf("%s +%d info: unchecked param %s %d\n", 
 			       get_filename(), param1->line,
 			       param1->func->ident->name, param1->param);
 	} END_FOR_EACH_PTR(param1);
@@ -391,7 +391,7 @@ static void end_file_processing(void)
 				defined = 1;
 		} END_FOR_EACH_PTR(param2);
 		if (!defined)
-			printf("%s +%d info: undefined param %s %d\n",
+			sm_printf("%s +%d info: undefined param %s %d\n",
 			       get_filename(), param1->line,
 			       param1->func->ident->name, param1->param);
 	} END_FOR_EACH_PTR(param1);

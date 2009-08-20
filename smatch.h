@@ -108,8 +108,14 @@ int is_member(struct expression *expr);
 void reset_on_container_modified(int owner, struct expression *expr);
 void set_default_state(int owner, struct smatch_state *state);
 
+extern int final_pass;
+
+#define sm_printf(msg...) do { if (final_pass) printf(msg); } while (0) \
+
 #define sm_msg(msg...) \
 do {                                                          \
+	if (!final_pass)                                      \
+		break;                                        \
 	printf("%s +%d %s(%d) ", get_filename(), get_lineno(), \
 	       get_function(), get_func_pos());               \
         printf(msg);                                          \
