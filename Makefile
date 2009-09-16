@@ -115,14 +115,9 @@ sparse.pc: sparse.pc.in
 
 compile_EXTRA_DEPS = compile-i386.o
 
-PROG_LINK_CMD = $(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $^ $($@_EXTRA_OBJS) 
-
-define BUILD_PROGRAM
-$(prog): $(prog).o $$($(prog)_EXTRA_DEPS) $$(LIBS)
-	$$(PROG_LINK_CMD)
-endef
-
-$(foreach prog,$(PROGRAMS),$(eval $(BUILD_PROGRAM)))
+$(foreach p,$(PROGRAMS),$(eval $(p): $($(p)_EXTRA_DEPS) $(LIBS)))
+$(PROGRAMS): % : %.o 
+	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $^ $($@_EXTRA_OBJS) 
 
 $(LIB_FILE): $(LIB_OBJS)
 	$(QUIET_AR)$(AR) rcs $@ $(LIB_OBJS)
