@@ -20,6 +20,10 @@
 #define DO_STRINGIFY(x) #x
 #define STRINGIFY(x) DO_STRINGIFY(x)
 
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
+#endif
+
 extern int verbose, optimize, optimize_size, preprocessing;
 extern int die_if_error;
 extern int repeat_phase, merge_phi_sources;
