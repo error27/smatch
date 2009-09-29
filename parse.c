@@ -454,6 +454,8 @@ static struct init_keyword {
 	{ "mode",	NS_KEYWORD,	.op = &mode_op },
 	{ "context",	NS_KEYWORD,	.op = &context_op },
 	{ "__transparent_union__",	NS_KEYWORD,	.op = &transparent_union_op },
+	{ "noreturn",	NS_KEYWORD,	MOD_NORETURN,	.op = &attr_mod_op },
+	{ "__noreturn__",	NS_KEYWORD,	MOD_NORETURN,	.op = &attr_mod_op },
 
 	{ "__mode__",	NS_KEYWORD,	.op = &mode_op },
 	{ "QI",		NS_KEYWORD,	MOD_CHAR,	.op = &mode_QI_op },
@@ -489,8 +491,6 @@ static struct init_keyword {
 	{ "const",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__const",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__const__",	NS_KEYWORD,	.op = &ignore_attr_op },
-	{ "noreturn",	NS_KEYWORD,	MOD_NORETURN,	.op = &attr_mod_op },
-	{ "__noreturn__",	NS_KEYWORD,	MOD_NORETURN,	.op = &attr_mod_op },
 	{ "no_instrument_function",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "__no_instrument_function__",	NS_KEYWORD,	.op = &ignore_attr_op },
 	{ "sentinel",	NS_KEYWORD,	.op = &ignore_attr_op },
