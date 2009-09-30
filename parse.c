@@ -391,6 +391,7 @@ static struct init_keyword {
 
 	/* Predeclared types */
 	{ "__builtin_va_list", NS_TYPEDEF, .type = &ptr_ctype, .op = &spec_op },
+	{ "__builtin_ms_va_list", NS_TYPEDEF, .type = &ptr_ctype, .op = &spec_op },
 	{ "__int128_t",	NS_TYPEDEF, .type = &lllong_ctype, .op = &spec_op },
 	{ "__uint128_t",NS_TYPEDEF, .type = &ulllong_ctype, .op = &spec_op },
 
