@@ -138,6 +138,30 @@ explicitly.
 Sparse does not issue these warnings by default.
 .
 .TP
+.B \-Wdesignated\-init
+Warn about positional initialization of structs marked as requiring designated
+initializers.
+
+Sparse allows an attribute
+.BI __attribute__((designated_init))
+which marks a struct as requiring designated initializers.  Sparse will warn
+about positional initialization of a struct variable or struct literal of a
+type that has this attribute.
+
+Requiring designated initializers for a particular struct type will insulate
+code using that struct type from changes to the layout of the type, avoiding
+the need to change initializers for that type unless they initialize a removed
+or incompatibly changed field.
+
+Common examples of this type of struct include collections of function pointers
+for the implementations of a class of related operations, for which the default
+NULL for an unmentioned field in a designated initializer will correctly
+indicate the absence of that operation.
+
+Sparse issues these warnings by default.  To turn them off, use
+\fB\-Wno\-designated\-init\fR.
+.
+.TP
 .B \-Wdo\-while
 Warn about do-while loops that do not delimit the loop body with braces.
 

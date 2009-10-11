@@ -156,7 +156,8 @@ struct symbol {
 					examined:1,
 					expanding:1,
 					evaluated:1,
-					string:1;
+					string:1,
+					designated_init:1;
 			struct expression *array_size;
 			struct ctype ctype;
 			struct symbol_list *arguments;

@@ -197,6 +197,7 @@ int Wcast_truncate = 1;
 int Wcontext = 1;
 int Wdecl = 1;
 int Wdefault_bitfield_sign = 0;
+int Wdesignated_init = 1;
 int Wdo_while = 0;
 int Wenum_mismatch = 1;
 int Wnon_pointer_null = 1;
@@ -378,6 +379,7 @@ static const struct warning {
 	{ "context", &Wcontext },
 	{ "decl", &Wdecl },
 	{ "default-bitfield-sign", &Wdefault_bitfield_sign },
+	{ "designated-init", &Wdesignated_init },
 	{ "do-while", &Wdo_while },
 	{ "enum-mismatch", &Wenum_mismatch },
 	{ "non-pointer-null", &Wnon_pointer_null },

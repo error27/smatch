@@ -2366,6 +2366,7 @@ static void handle_list_initializer(struct expression *expr,
 		int lclass;
 
 		if (e->type != EXPR_INDEX && e->type != EXPR_IDENTIFIER) {
+			struct symbol *struct_sym;
 			if (!top) {
 				top = e;
 				last = first_subobject(ctype, class, &top);
@@ -2378,6 +2379,15 @@ static void handle_list_initializer(struct expression *expr,
 				DELETE_CURRENT_PTR(e);
 				continue;
 			}
+			struct_sym = ctype->type == SYM_NODE ? ctype->ctype.base_type : ctype;
+			if (Wdesignated_init && struct_sym->designated_init)
+				warning(e->pos, "%s%.*s%spositional init of field in %s %s, declared with attribute designated_init",
+					ctype->ident ? "in initializer for " : "",
+					ctype->ident ? ctype->ident->len : 0,
+					ctype->ident ? ctype->ident->name : "",
+					ctype->ident ? ": " : "",
+					get_type_name(struct_sym->type),
+					show_ident(struct_sym->ident));
 			if (jumped) {
 				warning(e->pos, "advancing past deep designator");
 				jumped = 0;
