@@ -97,5 +97,5 @@ TEST2(double, long)
 }
 /*
  * check-name: valid specifier combinations
- * check-command: sparse -Wall $file
+ * check-command: sparse $file
  */
