@@ -101,6 +101,7 @@ extern int Wcast_truncate;
 extern int Wcontext;
 extern int Wdecl;
 extern int Wdefault_bitfield_sign;
+extern int Wdesignated_init;
 extern int Wdo_while;
 extern int Wenum_mismatch;
 extern int Wnon_pointer_null;
