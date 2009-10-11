@@ -1,4 +1,4 @@
-VERSION=0.4.1
+VERSION=0.4.2
 
 OS = linux
 
@@ -148,7 +148,7 @@ clean: clean-check
 	rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
 
 dist:
-	@if test "`git describe`" != "$(VERSION)" ; then \
+	@if test "`git describe`" != "v$(VERSION)" ; then \
 		echo 'Update VERSION in the Makefile before running "make dist".' ; \
 		exit 1 ; \
 	fi
