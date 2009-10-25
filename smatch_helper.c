@@ -31,17 +31,9 @@ void free_string(char *str)
 	free(str);
 }
 
-static void prepend(char *dest, const char *data, int buff_len)
+static void append(char *dest, const char *data, int buff_len)
 {
-	int space_needed;
-	int i;
-	
-	space_needed = strlen(data);
-	for (i = buff_len - space_needed - 1; i >= 0 ; i--)
-		dest[i + space_needed] = dest[i];
-	for (i = 0; i < space_needed % buff_len ; i++)
-		dest[i] = data[i];
-	dest[buff_len - 1] = '\0';
+	strncat(dest, data, buff_len - strlen(dest) - 1); 
 }
 
 /*
@@ -70,21 +62,28 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 				     struct expression *expr, int len,
 				     int *complicated)
 {
+	struct expression *tmp;
+
 	switch(expr->type) {
 	case EXPR_DEREF:
-		prepend(buf, expr->member->name, len);
-		expr = expr->deref;
-		if (!strcmp(show_special(expr->op), "*"))  {
-			prepend(buf, "->", len);
-			expr = expr->unop;
+		tmp = expr->deref;
+		if (!strcmp(show_special(tmp->op), "*"))  {
+			tmp = tmp->unop;
+		}
+		__get_variable_from_expr(sym_ptr, buf, tmp, len, complicated);
+
+		tmp = expr->deref;
+		if (!strcmp(show_special(tmp->op), "*"))  {
+			append(buf, "->", len);
 		} else {
-			prepend(buf, ".", len);
+			append(buf, ".", len);
 		}		
-		__get_variable_from_expr(sym_ptr, buf, expr, len, complicated);
+		append(buf, expr->member->name, len);
+
 		return;
 	case EXPR_SYMBOL:
 		if (expr->symbol_name)
-			prepend(buf, expr->symbol_name->name, len);
+			append(buf, expr->symbol_name->name, len);
 		if (sym_ptr) {
 			if (*sym_ptr)
 				*complicated = 1;
@@ -99,14 +98,14 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			return;
 		}
 
+
+		tmp = show_special(expr->op);
+		append(buf, tmp, len);
 		__get_variable_from_expr(sym_ptr, buf, expr->unop, 
 						 len, complicated);
-		tmp = show_special(expr->op);
-		prepend(buf, tmp, len);
 
 		if (tmp[0] == '(') {
-			strncat(buf, ")", len - strlen(buf) - 1);
-			buf[len - 1] = '\0';
+			append(buf, ")", len);
 		}
 
 		if ((!strcmp(tmp, "--")) || (!strcmp(tmp, "++")))
@@ -117,10 +116,10 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	case EXPR_POSTOP: {
 		const char *tmp;
 
-		tmp = show_special(expr->op);
-		prepend(buf, tmp, len);
 		__get_variable_from_expr(sym_ptr, buf, expr->unop, 
 						 len, complicated);
+		tmp = show_special(expr->op);
+		append(buf, tmp, len);
 
 		if ((!strcmp(tmp, "--")) || (!strcmp(tmp, "++")))
 			*complicated = 1;
@@ -131,41 +130,42 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		const char *tmp;
 
 		*complicated = 1;
-		prepend(buf, ")", len); 
-		__get_variable_from_expr(NULL, buf, expr->right, len,
+		append(buf, "(", len);
+		__get_variable_from_expr(NULL, buf, expr->left, len,
 					 complicated);
 		tmp = show_special(expr->op);
-		prepend(buf, tmp, len);
-		__get_variable_from_expr(sym_ptr, buf, expr->left, 
+		append(buf, tmp, len);
+		__get_variable_from_expr(sym_ptr, buf, expr->right, 
 						 len, complicated);
-		prepend(buf, "(", len);
+		append(buf, ")", len);
 		return;
 	}
 	case EXPR_VALUE: {
 		char tmp[25];
 
 		snprintf(tmp, 25, "%lld", expr->value);
-		prepend(buf, tmp, len);
+		append(buf, tmp, len);
 		return;
 	}
 	case EXPR_STRING:
-		prepend(buf, expr->string->data, len);
+		append(buf, expr->string->data, len);
 		return;
 	case EXPR_CALL: {
 		struct expression *tmp;
-		int i = 0;
+		int i;
 		
 		*complicated = 1;
-		prepend(buf, ")", len);
-		FOR_EACH_PTR_REVERSE(expr->args, tmp) {
-			if (i++)
-				prepend(buf, ", ", len);
-			__get_variable_from_expr(NULL, buf, tmp, len,
-						 complicated);
-		} END_FOR_EACH_PTR_REVERSE(tmp);
-		prepend(buf, "(", len);
 		__get_variable_from_expr(NULL, buf, expr->fn, len,
 					 complicated);
+		append(buf, "(", len);
+		i = 0;
+		FOR_EACH_PTR_REVERSE(expr->args, tmp) {
+			if (i++)
+				append(buf, ", ", len);
+			__get_variable_from_expr(NULL, buf, tmp, len,
+						complicated);
+		} END_FOR_EACH_PTR_REVERSE(tmp);
+		append(buf, ")", len);
 		return;
 	}
 	case EXPR_CAST:
@@ -180,7 +180,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		if (expr->cast_type && get_base_type(expr->cast_type)) {
 			size = (get_base_type(expr->cast_type))->bit_size;
 			snprintf(tmp, 25, "%d", size);
-			prepend(buf, tmp, len);
+			append(buf, tmp, len);
 		}
 		return;
 	}
