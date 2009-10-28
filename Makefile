@@ -79,8 +79,13 @@ QUIET_LINK    = $(Q:@=@echo    '     LINK     '$@;)
 QUIET_INST_SH = $(Q:@=echo -n  '     INSTALL  ';)
 QUIET_INST    = $(Q:@=@echo -n '     INSTALL  ';)
 
-define INSTALL_CMD
-	$(Q)$(QUIET_INST_SH)install -v $1 $(DESTDIR)$2/$1 || exit 1;
+define INSTALL_EXEC
+	$(QUIET_INST)install -v $1 $(DESTDIR)$2/$1 || exit 1;
+
+endef
+
+define INSTALL_FILE
+	$(QUIET_INST)install -v -m 644 $1 $(DESTDIR)$2/$1 || exit 1;
 
 endef
 
@@ -103,11 +108,11 @@ install: $(INST_PROGRAMS) $(LIBS) $(LIB_H) sparse.pc
 	$(Q)install -d $(DESTDIR)$(MAN1DIR)
 	$(Q)install -d $(DESTDIR)$(INCLUDEDIR)/sparse
 	$(Q)install -d $(DESTDIR)$(PKGCONFIGDIR)
-	$(foreach f,$(INST_PROGRAMS),$(call INSTALL_CMD,$f,$(BINDIR)))
-	$(foreach f,$(INST_MAN1),$(call INSTALL_CMD,$f,$(MAN1DIR)))
-	$(foreach f,$(LIBS),$(call INSTALL_CMD,$f,$(LIBDIR)))
-	$(foreach f,$(LIB_H),$(call INSTALL_CMD,$f,$(INCLUDEDIR)/sparse))
-	$(call INSTALL_CMD,sparse.pc,$(PKGCONFIGDIR))
+	$(foreach f,$(INST_PROGRAMS),$(call INSTALL_EXEC,$f,$(BINDIR)))
+	$(foreach f,$(INST_MAN1),$(call INSTALL_FILE,$f,$(MAN1DIR)))
+	$(foreach f,$(LIBS),$(call INSTALL_FILE,$f,$(LIBDIR)))
+	$(foreach f,$(LIB_H),$(call INSTALL_FILE,$f,$(INCLUDEDIR)/sparse))
+	$(call INSTALL_FILE,sparse.pc,$(PKGCONFIGDIR))
 
 sparse.pc: sparse.pc.in
 	$(QUIET_GEN)sed $(SED_PC_CMD) sparse.pc.in > sparse.pc
