@@ -204,7 +204,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	char *name;
 	struct symbol *sym;
 	long long value;
-	int left;
+	int left = 0;
 	const char *op;
 	struct smatch_state *state;
 	struct data_info *dinfo;
@@ -405,7 +405,7 @@ static void match_comparison(struct expression *expr)
 	struct smatch_state *one_state;
 	struct smatch_state *two_state;
 	struct smatch_state *orig;
-	int left;
+	int left = 0;
 	int comparison = expr->op;
 
 	value = get_value(expr->left);
