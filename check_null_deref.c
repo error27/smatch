@@ -209,7 +209,7 @@ static void match_function_call_after(struct expression *expr)
 	i = 0;
 	FOR_EACH_PTR(expr->args, tmp) {
 		tmp = strip_expr(tmp);
-		if (tmp->op == '&') {
+		if (tmp->type == EXPR_PREOP && tmp->op == '&') {
 			set_state_expr(my_id, tmp->unop, &assumed_nonnull);
 		} else if (func) {
 			name = get_variable_from_expr(tmp, &sym);
