@@ -31,6 +31,7 @@ while true ; do
 done
 
 cname=$1
+cname=$(echo ${cname/.o/.c})
 if [[ "$cname" == "" ]] ; then
     useage
 fi
