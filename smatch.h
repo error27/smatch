@@ -203,6 +203,7 @@ void __split_expr(struct expression *expr);
 void __split_statements(struct statement *stmt);
 extern int option_assume_loops;
 extern int option_known_conditions;
+extern int option_two_passes;
 
 /* smatch_conditions */
 void __split_whole_condition(struct expression *expr);

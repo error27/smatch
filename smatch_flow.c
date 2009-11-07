@@ -34,6 +34,7 @@ static void split_expr_list(struct expression_list *expr_list);
 
 int option_assume_loops = 0;
 int option_known_conditions = 0;
+int option_two_passes = 0;
 
 void __split_expr(struct expression *expr)
 {
@@ -480,15 +481,17 @@ static void split_functions(struct symbol_list *sym_list)
 				cur_func = sym->ident->name;
 			__smatch_lineno = sym->pos.line;
 			sm_debug("new function:  %s\n", cur_func);
+			if (option_two_passes) {
+				__unnullify_path();
+				loop_num = 0;
+				final_pass = 0;
+				__pass_to_client(sym, FUNC_DEF_HOOK);
+				__split_statements(base_type->stmt);
+				nullify_path();
+			}
 			__unnullify_path();
-			loop_num = 0;
-			final_pass = 0;
-			__pass_to_client(sym, FUNC_DEF_HOOK);
-			__split_statements(base_type->stmt);
 			loop_num = 0;
 			final_pass = 1;
-			nullify_path();
-			__unnullify_path();
 			__pass_to_client(sym, FUNC_DEF_HOOK);
 			__split_statements(base_type->stmt);
 			__pass_to_client(sym, END_FUNC_HOOK);

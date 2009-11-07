@@ -86,6 +86,7 @@ static void help(void)
 	printf("--known-conditions:  don't branch for known conditions.\n");
 	printf("--no-data:  do not use the /smatch_data/ directory.\n");
 	printf("--spammy:  print superfluous crap.\n");
+	printf("--two-passes:  use a two pass system for each function.\n");
 	printf("--help:  print this helpfull message.\n");
 	exit(1);
 }
@@ -118,6 +119,9 @@ void parse_args(int *argcp, char ***argvp)
 			(*argvp)[1] = (*argvp)[0];
 		} else if (!strcmp((*argvp)[1], "--spammy")) {
 			option_spammy = 1;
+			(*argvp)[1] = (*argvp)[0];
+		} else if (!strcmp((*argvp)[1], "--two-passes")) {
+			option_two_passes = 1;
 			(*argvp)[1] = (*argvp)[0];
 		} else if (!strcmp((*argvp)[1], "--help")) {
 			help();
