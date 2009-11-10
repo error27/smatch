@@ -107,13 +107,16 @@ static void match_free(const char *fn, struct expression *expr, void *data)
 	set_state_expr(my_id, ptr_expr, &freed);
 }
 
-static void check_slist(struct state_list *slist)
+static void check_slist(struct state_list *slist, const char *skip_name,
+			struct symbol *skip_sym)
 {
 	struct sm_state *sm;
 	struct sm_state *poss;
 
 	FOR_EACH_PTR(slist, sm) {
 		if (sm->owner != my_id)
+			continue;
+		if (sm->sym == skip_sym && !strcmp(sm->name, skip_name))
 			continue;
 		FOR_EACH_PTR(sm->possible, poss) {
 			if (poss->state == &allocated)
@@ -124,7 +127,8 @@ static void check_slist(struct state_list *slist)
 	} END_FOR_EACH_PTR(sm);
 }
 
-static void do_implication_check(struct expression *expr)
+static void do_implication_check(struct expression *expr, const char *skip_name,
+				struct symbol *skip_sym)
 {
 	struct state_list *lt_zero = NULL;
 	struct state_list *ge_zero = NULL;
@@ -135,7 +139,7 @@ static void do_implication_check(struct expression *expr)
 	if (!name || !sym)
 		goto free;
 	get_implications(name, sym, '<', 0, &lt_zero, &ge_zero);
-	check_slist(lt_zero);
+	check_slist(lt_zero, skip_name, skip_sym);
 free:
 	free_slist(&ge_zero);
 	free_slist(&lt_zero);
@@ -145,10 +149,13 @@ free:
 static void match_return(struct statement *stmt)
 {
 	int ret_val;
+	char *skip_name;
+	struct symbol *skip_sym;
 
 	ret_val = get_value(stmt->ret_value);
+	skip_name = get_variable_from_expr(stmt->ret_value, &skip_sym);
 	if (ret_val == UNDEFINED) {
-		do_implication_check(stmt->ret_value);
+		do_implication_check(stmt->ret_value, skip_name, skip_sym);
 		return;
 	}
 	if (ret_val >= 0)
