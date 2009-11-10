@@ -1,3 +1,21 @@
+/*
+ * sparse/smatch_function_hooks.c
+ *
+ * Copyright (C) 2009 Dan Carpenter.
+ *
+ * Licensed under the Open Software License version 1.1
+ *
+ */
+
+/*
+ * There are three types of function hooks:
+ * add_function_hook()        - For any time a function is called.
+ * add_function_assign_hook() - foo = the_function().
+ * add_conditional_hook()     - For when the return value implies something.
+ *                              For example a return value of 1 might mean
+ *                              a lock is held and 0 means it is not held.
+ */
+
 #define _GNU_SOURCE
 #include <search.h>
 #include <stdlib.h>
@@ -251,18 +269,24 @@ void function_comparison(int comparison, struct expression *expr, long long valu
 	value_range = alloc_range(value, value);
 
 	__fake_cur = 1;
+	/* set true states */
 	FOR_EACH_PTR(call_backs, tmp) {
-		if (tmp->type == RANGED_CALL && 
-				true_comparison_range_lr(comparison, tmp->range, value_range, left))
-			(tmp->call_back)(fn, expr, tmp->info);
+		if (tmp->type != RANGED_CALL)
+			continue;
+		if (!true_comparison_range_lr(comparison, tmp->range, value_range, left))
+			continue;
+		(tmp->call_back)(fn, expr, tmp->info);
 		merge_slist(&true_states, __fake_cur_slist);
 		free_slist(&__fake_cur_slist);
 	} END_FOR_EACH_PTR(tmp);
 
+	/* set false states */
 	FOR_EACH_PTR(call_backs, tmp) {
-		if (tmp->type == RANGED_CALL && 
-				false_comparison_range_lr(comparison, tmp->range, value_range, left))
-			(tmp->call_back)(fn, expr, tmp->info);
+		if (tmp->type != RANGED_CALL)
+			continue;
+		if (!false_comparison_range_lr(comparison, tmp->range, value_range, left))
+			continue;
+		(tmp->call_back)(fn, expr, tmp->info);
 		merge_slist(&false_states, __fake_cur_slist);
 		free_slist(&__fake_cur_slist);
 	} END_FOR_EACH_PTR(tmp);
