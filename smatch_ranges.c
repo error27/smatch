@@ -1,5 +1,5 @@
 /*
- * sparse/smatch_extra_helper.c
+ * sparse/smatch_ranges.c
  *
  * Copyright (C) 2009 Dan Carpenter.
  *

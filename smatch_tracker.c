@@ -1,3 +1,12 @@
+/*
+ * sparse/smatch_tracker.c
+ *
+ * Copyright (C) 2009 Dan Carpenter.
+ *
+ * Licensed under the Open Software License version 1.1
+ *
+ */
+
 #include "smatch.h"
 
 ALLOCATOR(tracker, "trackers");

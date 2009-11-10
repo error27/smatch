@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2006 Dan Carpenter.
  *
- *  Licensed under the Open Software License version 1.1
+ * Licensed under the Open Software License version 1.1
  *
  */
 

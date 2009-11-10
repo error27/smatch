@@ -7,6 +7,10 @@
  *
  */
 
+/*
+ * smatch_extra.c is supposed to track the value of every variable.
+ */
+
 #include <stdlib.h>
 #define __USE_ISOC99 
 #include <limits.h>

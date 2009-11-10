@@ -102,6 +102,10 @@ static int ignore_builtin_expect(struct expression *expr)
 	return 0;
 }
 
+/*
+ * handle_compound_stmt() is for: foo = ({blah; blah; blah; 1})
+ */
+
 static void handle_compound_stmt(struct statement *stmt)
 {
 	struct expression *expr = NULL;

@@ -7,6 +7,10 @@
  *
  */
 
+/*
+ * Miscellaneous helper functions.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "allocate.h"
