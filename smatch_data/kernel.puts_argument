@@ -6,18 +6,20 @@ bd_holder_grab_dirs 1
 bd_holder_release_dirs 0
 bd_release_from_disk 1
 blk_put_queue 0
+blk_unregister_queue 0
 btrfs_sysfs_del_root 0
 btrfs_sysfs_del_super 0
 bus_remove_driver 0
 cdev_del 0
 cfg80211_bss_update 1
+class_compat_unregister 0
 client_put 0
 cm_create_port_fs 0
 cm_remove_port_fs 0
 connect_request_upcall 0
+cpufreq_add_dev_interface 1
 cpufreq_cpu_put 0
 del_gendisk 0
-destroy_foo_obj 0
 destroy_nbp 0
 dlm_lock_put 0
 dlm_lockres_put 0
@@ -32,6 +34,7 @@ edac_remove_sysfs_mci_device 0
 elevator_exit 0
 eventfd_ctx_put 0
 export_rdev 0
+fc_exch_mgr_del 0
 free_mad 0
 fscache_withdraw_cache 0
 ftdi_elan_put_kref 0
@@ -65,6 +68,7 @@ relay_close 0
 relay_close_buf 0
 release_ep_resources 0
 release_lockspace 0
+remove_domain_devices 0
 rpc_free_auth 0
 rpc_release_client 0
 sbp2_target_put 0
@@ -78,6 +82,8 @@ svc_xprt_put 0
 sysdev_unregister 0
 sysfs_slab_add 0
 sysfs_slab_remove 0
+ttm_mem_global_init 0
+ttm_mem_global_release 0
 tty_driver_kref_put 0
 u132_ring_requeue_work 0
 uio_dev_del_attributes 0

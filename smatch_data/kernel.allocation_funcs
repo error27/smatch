@@ -16,6 +16,7 @@ agp_create_controller
 agp_create_memory
 agp_create_user_memory
 ahc_alloc
+ahc_alloc_tstate
 ahd_alloc
 ahd_alloc_tstate
 alloc_as_io_context
@@ -32,6 +33,7 @@ alloc_client
 alloc_context
 alloc_ctrl_packet
 alloc_data_packet
+alloc_dca_provider
 alloc_dev
 alloc_dma_iso_ctx
 alloc_dock_dependent_device
@@ -50,6 +52,7 @@ alloc_nilfs
 _alloc_path_selector
 alloc_pci_dev
 alloc_pcie_device
+alloc_pcie_link_state
 alloc_pcpu_chunk
 __alloc_pending_request
 alloc_pgpath
@@ -75,9 +78,10 @@ ap_auth_make_challenge
 append_internal
 argv_split
 ata_port_alloc
-ath9k_hw_newstate
+ath_gen_timer_alloc
 ath_rate_alloc_sta
 atif_add_device
+atom_parse
 audit_buffer_alloc
 audit_krule_to_data
 audit_krule_to_rule
@@ -87,7 +91,6 @@ ax25_create_cb
 b1_alloc_card
 b43_calibrate_lo_setting
 b43_generate_dyn_tssi2dbm_tab
-b43_generate_probe_resp
 b43legacy_generate_probe_resp
 b43legacy_setup_dmaring
 b43legacy_setup_pioqueue
@@ -102,6 +105,7 @@ __blk_queue_init_tags
 brd_alloc
 bsd_alloc
 bsg_alloc_device
+btmrvl_add_card
 build_path_from_dentry
 cachefiles_cook_key
 call_usermodehelper_setup
@@ -114,8 +118,9 @@ cdev_alloc
 cfi_read_pri
 cfi_staa_setup
 cifs_build_path_to_root
-cifs_get_share_name
+cifs_new_fileinfo
 cifs_strndup_from_ucs
+class_compat_register
 clusterip_config_init
 cmtp_application_add
 cnic_alloc_dev
@@ -129,7 +134,6 @@ cpqhp_slot_create
 create_a
 create_driver
 create_event
-create_foo_obj
 create_l2
 create_logical_pred
 create_port
@@ -140,7 +144,6 @@ create_serial
 create_unique_id
 create_uts_ns
 __create_workqueue_key
-cryptd_alloc_instance
 __crypto_alloc_tfm
 crypto_create_tfm
 cs46xx_dsp_spos_create
@@ -155,6 +158,7 @@ cxgb_alloc_mem
 cyberpro_alloc_fb_info
 cypress_buf_alloc
 DAC960_DetectController
+dca_allocate_domain
 dcookie_register
 debug_buffer_allocate
 device_alloc
@@ -166,6 +170,7 @@ dlm_allocate_rsb
 dlm_alloc_ctxt
 dlm_alloc_pagevec
 dm_alloc_md_mempools
+dma_pin_iovec_pages
 dm_dirty_log_create
 dn_dev_alloc_ifa
 dn_dev_create
@@ -187,17 +192,22 @@ edac_pci_alloc_ctl_info
 edge_buf_alloc
 efx_tsoh_heap_alloc
 eg_cache_add_entry
+ehci_qh_alloc
 ext3_htree_create_dir_info
 ext4_htree_create_dir_info
+ext4_init_io_end
+__fa_get_part
 fb_create_modedb
 fb_do_probe_ddc_edid
+fc_exch_mgr_add
 fc_exch_mgr_alloc
+fcoe_interface_create
 fc_rport_create
-fc_rport_rogue_create
 fdtv_alloc
 fib6_alloc_table
 fib_hash_table
 fl_create
+flex_array_alloc
 flexcop_device_kmalloc
 fnic_dev_register
 fn_new_zone
@@ -231,6 +241,7 @@ hci_conn_add
 hfs_btree_open
 hfsplus_btree_open
 hid_register_field
+__hostap_add_bss
 hpfs_get_4sectors
 hpfs_load_bitmap_directory
 hpfs_load_code_page
@@ -250,7 +261,6 @@ ib_ucm_ctx_alloc
 icn_initcard
 ics5342_init
 idt77252_init_est
-ieee80211_alloc_txb
 ieee80211_key_alloc
 in_cache_add_entry
 inetdev_init
@@ -260,6 +270,7 @@ init_send_hfcd
 input_allocate_device
 input_allocate_polled_device
 intel_crtc_mode_get
+ioat_dma_alloc_descriptor
 iommu_domain_alloc
 ipc_alloc
 ipc_rcu_alloc
@@ -322,6 +333,7 @@ lapb_create_cb
 lib80211_ccmp_init
 lib80211_tkip_init
 lib80211_wep_init
+libipw_alloc_txb
 linear_conf
 llc_sap_alloc
 loop_alloc
@@ -329,6 +341,7 @@ lpddr_cmdset
 lpddr_probe_chip
 lpfc_alloc_fast_evt
 lpfc_create_vport_work_array
+lpfc_ct_event_new
 lpfc_els_hbq_alloc
 lpfc_hba_alloc
 lpfc_sli4_create_rpi_hdr
@@ -336,6 +349,7 @@ lpfc_sli4_queue_alloc
 lpfc_sli4_rb_alloc
 make_8023_client
 make_acpi_ec
+make_bind_capture
 make_class_name
 make_cm_node
 make_driver_name
@@ -387,7 +401,6 @@ new_adapter
 new_inode_smack
 new_l3_process
 new_node
-new_pcm_stream
 new_plci
 new_pts_fs_info
 new_tape_buffer
@@ -402,8 +415,10 @@ nfs4_alloc_session
 nfs4_alloc_state_owner
 nfs4_alloc_unlockdata
 nfs4_opendata_alloc
+nfs_alloc_parsed_mount_data
 nfs_alloc_seqid
 nfs_alloc_server
+nfs_cache_defer_req_alloc
 n_hdlc_alloc
 nilfs_segctor_new
 niu_new_parent
@@ -414,6 +429,7 @@ nlmsvc_create_block
 nodemgr_create_node
 nodemgr_process_unit_directory
 nsm_create_handle
+ocfs2_allocate_refcount_tree
 ocfs2_alloc_quota_recovery
 ocfs2_new_dlm_debug
 ocfs2_new_path
@@ -428,16 +444,18 @@ path_rec_create
 pci_alloc_bus
 pcibios_get_irq_routing_table
 pci_create_slot
-pcie_aspm_setup_link_state
 pcie_init
 pciserial_init_ports
 pcmcia_device_add
+pcpu_get_vm_areas
+perf_mmap_data_alloc
 __phonet_device_alloc
 pkt_alloc_packet_data
 pkt_bio_alloc
 pkt_kobj_create
 pl2303_buf_alloc
 pm3393_mac_create
+pmcraid_alloc_sglist
 pneigh_lookup
 pnp_add_card_id
 pnp_add_id
@@ -472,6 +490,18 @@ queue_new
 r10bio_pool_alloc
 r1bio_pool_alloc
 r8a66597_make_td
+radeon_atombios_get_lvds_info
+radeon_atombios_get_primary_dac_info
+radeon_atombios_get_tv_dac_info
+radeon_atombios_set_dac_info
+radeon_atombios_set_dig_info
+radeon_combios_get_lvds_info
+radeon_combios_get_primary_dac_info
+radeon_combios_get_tmds_info
+radeon_combios_get_tv_dac_info
+radeon_i2c_create
+radeon_legacy_get_lvds_info_from_regs
+radeon_legacy_get_tmds_info
 rate_control_alloc
 rate_control_pid_alloc
 rate_control_pid_alloc_sta
@@ -495,7 +525,6 @@ rfcomm_session_add
 rfkill_alloc
 __ring_buffer_alloc
 ring_buffer_read_start
-RIOGetCmdBlk
 rndis_add_response
 rs_alloc_sta
 rs_init
@@ -504,6 +533,7 @@ rxrpc_alloc_connection
 rxrpc_alloc_local
 rxrpc_alloc_peer
 rxrpc_alloc_transport
+saa7164_buffer_alloc
 sas_ex_discover_end_dev
 sas_ex_discover_expander
 sas_phy_alloc
@@ -517,12 +547,15 @@ scsi_bios_ptable
 scsi_get_vpd_page
 scsi_host_alloc
 scsi_prep_async_scan
+sctp_association_new
 sctp_auth_create_key
 sctp_auth_make_key_vector
 sctp_auth_shkey_create
 sctp_datamsg_new
+sctp_endpoint_new
 sctp_pack_cookie
 sctp_ssnmap_new
+sctp_transport_new
 scx200_create_iface
 sdebug_device_create
 sdev_evt_alloc
@@ -533,7 +566,6 @@ sesInfoAlloc
 sf_sample_new
 sf_zone_new
 sg_add_sfp
-sk_prot_alloc
 slhc_init
 slvl_init
 smk_import_entry
@@ -574,6 +606,7 @@ sv11_init
 __svc_create
 svc_setup_socket
 synaptics_i2c_touch_create
+sysfs_init_inode_attrs
 t1_espi_create
 t1_sge_create
 t1_tp_create
@@ -592,8 +625,10 @@ tomoyo_alloc_element
 tpm_bios_log_setup
 tpm_register_hardware
 trace_create_file_ops
+ttm_tt_create
 tty_audit_buf_alloc
 tty_buffer_alloc
+_ubh_bread_
 ucma_alloc_ctx
 ucma_alloc_multicast
 udf_sb_alloc_bitmap
@@ -614,6 +649,7 @@ videobuf_dvb_alloc_frontend
 videocodec_attach
 vlan_group_alloc
 vlsi_alloc_ring
+vmxnet3_copy_mc
 vnic_dev_register
 vq_req_alloc
 vsc7326_mac_create
@@ -622,10 +658,13 @@ __vxge_hw_channel_allocate
 w1_alloc_dev
 wl_new_wavepoint
 wlp_create_wssid_e
+wpan_phy_alloc
 wusb_dev_alloc
 xfrm_hash_alloc
 xfrm_policy_alloc
 xfrm_state_alloc
+xhci_alloc_command
+xhci_alloc_container_ctx
 xhci_ring_alloc
 xhci_segment_alloc
 xt_alloc_table_info
