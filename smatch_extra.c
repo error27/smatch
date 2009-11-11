@@ -524,6 +524,10 @@ void __extra_match_condition(struct expression *expr)
 	case EXPR_COMPARE:
 		match_comparison(expr);
 		return;
+	case EXPR_ASSIGNMENT:
+		__extra_match_condition(expr->right);
+		__extra_match_condition(expr->left);
+		return;
 	}
 }
 
