@@ -40,6 +40,7 @@ void check_balanced(int id);
 void check_initializer_deref(int id);
 void check_deref_check(int id);
 void check_bitwise_or(int id);
+void check_hold_dev(int id);
 /* <- your test goes here */
 /* void register_template(int id); */
 
@@ -48,6 +49,7 @@ static const reg_func reg_funcs[] = {
 	&register_smatch_ignore,
 	&check_debug,
 	&check_assigned_expr,
+
 	&check_null_deref,
 	&check_overflow,
 	&check_locking,
@@ -63,6 +65,7 @@ static const reg_func reg_funcs[] = {
 	&check_initializer_deref,
 	&check_deref_check,
 	&check_bitwise_or,
+	&check_hold_dev,
 
 	/* <- your test goes here */
 	/* &register_template, */

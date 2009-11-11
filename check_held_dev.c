@@ -1,0 +1,132 @@
+/*
+ * sparse/check_hold_dev.c
+ *
+ * Copyright (C) 2009 Dan Carpenter.
+ *
+ * Licensed under the Open Software License version 1.1
+ *
+ */
+
+/*
+ * This check is supposed to find bugs in reference counting using dev_hold()
+ * and dev_put().
+ *
+ * When a device is first held, if an error happens later in the function
+ * it needs to be released on all the error paths.
+ *
+ */
+
+#include "smatch.h"
+#include "smatch_extra.h"
+#include "smatch_slist.h"
+
+static int my_id;
+
+STATE(held);
+STATE(released);
+
+static void match_dev_hold(const char *fn, struct expression *expr, void *data)
+{
+	struct expression *arg_expr;
+
+	arg_expr = get_argument_from_call_expr(expr->args, 0);
+	set_state_expr(my_id, arg_expr, &held);
+}
+
+static void match_dev_put(const char *fn, struct expression *expr, void *data)
+{
+	struct expression *arg_expr;
+
+	arg_expr = get_argument_from_call_expr(expr->args, 0);
+	set_state_expr(my_id, arg_expr, &released);
+}
+
+static void match_returns_held(const char *fn, struct expression *expr, void *unused)
+{
+	set_state_expr(my_id, expr->left, &held);
+}
+
+static int dev_is_null(struct sm_state *sm)
+{
+	struct smatch_state *state;
+
+	state = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	if (get_single_value_from_range(state->data) == 0)
+		return 1;
+	return 0;
+}
+
+
+static void check_for_held(void)
+{
+	struct state_list *slist;
+	struct sm_state *tmp;
+
+	slist = get_all_states(my_id);
+	FOR_EACH_PTR(slist, tmp) {
+		if (slist_has_state(tmp->possible, &held)) {
+			if (!dev_is_null(tmp)) {
+				sm_msg("warn: '%s' held on error path.",
+					tmp->name);
+			}
+		}
+	} END_FOR_EACH_PTR(tmp);
+	free_slist(&slist);
+}
+
+void print_returns_held(struct expression *expr)
+{
+	struct sm_state *sm;
+
+	if (!option_spammy)
+		return;
+	sm = get_sm_state_expr(my_id, expr);
+	if (!sm)
+		return;
+	if (slist_has_state(sm->possible, &held))
+		sm_msg("info: returned dev is held.");
+}
+
+static void match_return(struct statement *stmt)
+{
+	int ret_val;
+
+	print_returns_held(stmt->ret_value);
+	ret_val = get_value(stmt->ret_value);
+	if (ret_val == UNDEFINED)
+		return;
+	if (ret_val >= 0)
+		return;
+	check_for_held();
+}
+
+static void register_returns_held_funcs(void)
+{
+	struct token *token;
+	const char *func;
+
+	token = get_tokens_file("kernel.returns_held_funcs");
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = show_ident(token->ident);
+		add_function_assign_hook(func, &match_returns_held,
+					 NULL);
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
+void check_hold_dev(int id)
+{
+	my_id = id;
+	add_function_hook("dev_hold", &match_dev_hold, NULL);
+	add_function_hook("dev_put", &match_dev_put, NULL);
+	register_returns_held_funcs();
+	add_hook(&match_return, RETURN_HOOK);
+}
