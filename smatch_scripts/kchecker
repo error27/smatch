@@ -40,5 +40,8 @@ if ! test -e $cname ; then
 fi
 
 oname=$(echo ${cname/.c/.o})
+if ! echo $oname | grep .o$ > /dev/null ; then
+    useage
+fi
 rm -f $oname
 make C=y CHECK="$PRE $CMD $POST" $oname
