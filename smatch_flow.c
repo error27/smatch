@@ -35,6 +35,7 @@ static void split_expr_list(struct expression_list *expr_list);
 int option_assume_loops = 0;
 int option_known_conditions = 0;
 int option_two_passes = 0;
+struct symbol *cur_func_sym = NULL;
 
 void __split_expr(struct expression *expr)
 {
@@ -475,6 +476,7 @@ static void split_functions(struct symbol_list *sym_list)
 		struct symbol *base_type;
 		base_type = get_base_type(sym);
 		if (sym->type == SYM_NODE && base_type->type == SYM_FN) {
+			cur_func_sym = sym;
 			if (base_type->stmt)
 				line_func_start = base_type->stmt->pos.line;
 			if (sym->ident)

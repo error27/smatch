@@ -516,3 +516,28 @@ void scoped_state(const char *name, int my_id, struct symbol *sym)
 	t = alloc_tracker(my_id, name, sym);
 	add_scope_hook((scope_hook *)&delete_state_tracker, t); 
 }
+
+int is_error_return(struct expression *expr)
+{
+	struct symbol *cur_func = cur_func_sym;
+	int val;
+
+	if (!expr)
+		return 0;
+	if (cur_func->type != SYM_NODE)
+		return 0;
+	cur_func = get_base_type(cur_func);
+	if (cur_func->type != SYM_FN)
+		return 0;
+	cur_func = get_base_type(cur_func);
+	if (cur_func == &void_ctype)
+		return 0;
+	val = get_value(expr);
+	if (val == UNDEFINED)
+		return 0;
+	if (val < 0)
+		return 1;
+	if (cur_func->type == SYM_PTR && val == 0)
+		return 1;
+	return 0;
+}

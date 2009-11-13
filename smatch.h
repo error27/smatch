@@ -172,6 +172,7 @@ const char *show_state(struct smatch_state *state);
 struct statement *get_block_thing(struct expression *expr);
 struct expression *strip_expr(struct expression *expr);
 void scoped_state(const char *name, int my_id, struct symbol *sym);
+int is_error_return(struct expression *expr);
 
 /* smatch_ignore.c */
 void add_ignore(int owner, const char *name, struct symbol *sym);
@@ -204,6 +205,7 @@ void __split_statements(struct statement *stmt);
 extern int option_assume_loops;
 extern int option_known_conditions;
 extern int option_two_passes;
+extern struct symbol *cur_func_sym;
 
 /* smatch_conditions */
 void __split_whole_condition(struct expression *expr);

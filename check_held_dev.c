@@ -89,13 +89,8 @@ static void print_returns_held(struct expression *expr)
 
 static void match_return(struct statement *stmt)
 {
-	int ret_val;
-
 	print_returns_held(stmt->ret_value);
-	ret_val = get_value(stmt->ret_value);
-	if (ret_val == UNDEFINED)
-		return;
-	if (ret_val >= 0)
+	if (!is_error_return(stmt->ret_value))
 		return;
 	check_for_held();
 }
