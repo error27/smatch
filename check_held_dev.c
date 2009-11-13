@@ -74,7 +74,7 @@ static void check_for_held(void)
 	free_slist(&slist);
 }
 
-void print_returns_held(struct expression *expr)
+static void print_returns_held(struct expression *expr)
 {
 	struct sm_state *sm;
 
