@@ -500,6 +500,7 @@ static void split_functions(struct symbol_list *sym_list)
 			cur_func = NULL;
 			line_func_start = 0;
 			clear_all_states();
+			free_data_info_allocs();
 			free_expression_stack(&switch_expr_stack);
 		} else {
 			__pass_to_client(sym, BASE_HOOK);
