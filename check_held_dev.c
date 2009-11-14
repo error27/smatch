@@ -87,10 +87,10 @@ static void print_returns_held(struct expression *expr)
 		sm_msg("info: returned dev is held.");
 }
 
-static void match_return(struct statement *stmt)
+static void match_return(struct expression *ret_value)
 {
-	print_returns_held(stmt->ret_value);
-	if (!is_error_return(stmt->ret_value))
+	print_returns_held(ret_value);
+	if (!is_error_return(ret_value))
 		return;
 	check_for_held();
 }

@@ -102,7 +102,7 @@ static void check_possible(struct sm_state *sm)
 		sm_msg("warn: returning with unbalanced %s", sm->name);
 }
 
-static void match_return(struct statement *stmt)
+static void match_return(struct expression *expr)
 {
 	struct state_list *slist;
 	struct sm_state *tmp;

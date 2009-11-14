@@ -34,20 +34,20 @@ static void match_err_ptr(struct expression *expr)
 }
 
 extern int check_assigned_expr_id;
-static void match_return(struct statement *stmt)
+static void match_return(struct expression *ret_value)
 {
 	struct state_list *slist;
 	struct sm_state *tmp;
 
-	match_err_ptr(stmt->ret_value);
-	slist = get_possible_states_expr(check_assigned_expr_id, stmt->ret_value);
+	match_err_ptr(ret_value);
+	slist = get_possible_states_expr(check_assigned_expr_id, ret_value);
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state == &undefined || tmp->state == &merged)
 			continue;
 		match_err_ptr((struct expression *)tmp->state->data);
 	} END_FOR_EACH_PTR(tmp);
 
-	if (get_implied_value(stmt->ret_value) == 0)
+	if (get_implied_value(ret_value) == 0)
 		returns_null = 1;
 }
 

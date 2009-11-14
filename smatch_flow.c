@@ -297,7 +297,7 @@ void __split_statements(struct statement *stmt)
 		return;
 	case STMT_RETURN:
 		__split_expr(stmt->ret_value);
-		__pass_to_client(stmt, RETURN_HOOK);
+		__pass_to_client(stmt->ret_value, RETURN_HOOK);
 		nullify_path();
 		return;
 	case STMT_EXPRESSION:

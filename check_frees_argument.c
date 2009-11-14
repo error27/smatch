@@ -56,7 +56,7 @@ static void match_kfree(const char *fn, struct expression *expr, void *info)
 }
 
 static int return_count = 0;
-static void match_return(struct statement *stmt)
+static void match_return(struct expression *ret_value)
 {
 	struct state_list *slist;
 	struct sm_state *tmp;

@@ -74,13 +74,13 @@ free_fn:
 	free_string(fn_name);
 }
 
-static void match_return(struct statement *stmt)
+static void match_return(struct expression *ret_value)
 {
 	int ret_val;
 	struct state_list *slist;
 	struct sm_state *tmp;
 
-	ret_val = get_value(stmt->ret_value);
+	ret_val = get_value(ret_value);
 	if (ret_val == UNDEFINED || ret_val >= 0)
 		return;
 

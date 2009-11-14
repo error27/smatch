@@ -295,7 +295,7 @@ static void check_possible(struct sm_state *sm)
 			   "sometimes unlocked.", sm->name);
 }
 
-static void match_return(struct statement *stmt)
+static void match_return(struct expression *ret_value)
 {
 	struct locks_on_return *ret;
 	struct state_list *slist;
@@ -303,7 +303,7 @@ static void match_return(struct statement *stmt)
 
 	if (!final_pass)
 		return;
-	
+
 	ret = alloc_return(get_lineno());
 
 	slist = get_all_states(my_id);

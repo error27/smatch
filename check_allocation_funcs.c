@@ -47,15 +47,15 @@ free:
 
 static int returns_new_stuff = 0;
 static int returns_old_stuff = 0;
-static void match_return(struct statement *stmt)
+static void match_return(struct expression *ret_value)
 {
 	char *name;
 	struct symbol *sym;
 
-	if (get_value(stmt->ret_value) == 0)
+	if (get_value(ret_value) == 0)
 		return;
 	returns_new_stuff = 1;
-	name = get_variable_from_expr(stmt->ret_value, &sym);
+	name = get_variable_from_expr(ret_value, &sym);
 	if (!name || !sym) {
 		returns_old_stuff = 1;
 		goto free;

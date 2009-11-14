@@ -146,16 +146,16 @@ free:
 	free_string(name);
 }
 
-static void match_return(struct statement *stmt)
+static void match_return(struct expression *ret_value)
 {
 	int ret_val;
 	char *skip_name;
 	struct symbol *skip_sym;
 
-	ret_val = get_value(stmt->ret_value);
-	skip_name = get_variable_from_expr(stmt->ret_value, &skip_sym);
+	ret_val = get_value(ret_value);
+	skip_name = get_variable_from_expr(ret_value, &skip_sym);
 	if (ret_val == UNDEFINED) {
-		do_implication_check(stmt->ret_value, skip_name, skip_sym);
+		do_implication_check(ret_value, skip_name, skip_sym);
 		return;
 	}
 	if (ret_val >= 0)

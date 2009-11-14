@@ -81,7 +81,7 @@ void add_hook(void *func, enum hook_type type)
 		container->data_type = SYM_HOOK;
 		break;
 	case RETURN_HOOK:
-		container->data_type = STMT_HOOK;
+		container->data_type = EXPR_HOOK;
 		break;
 	case END_FILE_HOOK:
 		/* nothing needed... */
@@ -134,8 +134,8 @@ void __pass_to_client(void *data, enum hook_type type)
 {
 	struct hook_container *container;
 
-	if (!data)
-		return;
+//	if (!data)
+//		return;
 
 	FOR_EACH_PTR(hook_funcs, container) {
 		if (container->hook_type == type) {

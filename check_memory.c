@@ -282,12 +282,12 @@ static void check_for_allocated(void)
 	free_slist(&slist);
 }
 
-static void match_return(struct statement *stmt)
+static void match_return(struct expression *ret_value)
 {
 	char *name;
 	struct symbol *sym;
 
-	name = get_variable_from_expr_complex(stmt->ret_value, &sym);
+	name = get_variable_from_expr_complex(ret_value, &sym);
 	if (sym)
 		assign_parent(sym);
 	free_string(name);
