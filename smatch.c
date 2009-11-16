@@ -37,7 +37,6 @@ void check_allocation_funcs(int id);
 void check_err_ptr(int id);
 void check_err_ptr_deref(int id);
 void check_balanced(int id);
-void check_initializer_deref(int id);
 void check_deref_check(int id);
 void check_bitwise_or(int id);
 void check_hold_dev(int id);
@@ -62,7 +61,6 @@ static const reg_func reg_funcs[] = {
 	&check_err_ptr,
 	&check_err_ptr_deref,
 	&check_balanced,
-	&check_initializer_deref,
 	&check_deref_check,
 	&check_bitwise_or,
 	&check_hold_dev,
