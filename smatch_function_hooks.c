@@ -307,32 +307,6 @@ void function_comparison(int comparison, struct expression *expr, long long valu
 	free_slist(&false_states);
 }
 
-void __match_initializer_call(struct symbol *sym)
-{
-	struct call_back_list *call_backs;
-	struct expression *initializer = sym->initializer;
-	struct expression *e_assign, *e_symbol;
-	const char *fn;
-
-	if (initializer->fn->type != EXPR_SYMBOL
-	    || !initializer->fn->symbol)
-		return;
-	fn = initializer->fn->symbol->ident->name;
-	call_backs = get_call_backs(fn);
-	if (!call_backs)
-		return;
-
-	e_assign = alloc_expression(initializer->pos, EXPR_ASSIGNMENT);
-	e_symbol = alloc_expression(initializer->pos, EXPR_SYMBOL);
-	e_symbol->symbol = sym;
-	e_symbol->symbol_name = sym->ident;
-	e_assign->left = e_symbol;
-	e_assign->right = initializer;
-	call_call_backs(call_backs, ASSIGN_CALL, fn, e_assign);
-	assign_condition_funcs(fn, e_assign, call_backs);
-	assign_ranged_funcs(fn, e_assign, call_backs);
-}
-
 static void match_assign_call(struct expression *expr)
 {
 	struct call_back_list *call_backs;

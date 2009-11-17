@@ -319,15 +319,7 @@ static void match_declarations(struct symbol *sym)
 
 	name = sym->ident->name;
 
-	if (sym->initializer) {
-		if (is_zero(sym->initializer)) {
-			set_state(my_id, name, sym, &isnull);
-			scoped_state(name, my_id, sym);
-			return;
-		}
-		set_state(my_id, name, sym, &assumed_nonnull);
-		scoped_state(name, my_id, sym);
-	} else {
+	if (!sym->initializer) {
 		set_state(my_id, name, sym, &undefined);
 		scoped_state(name, my_id, sym);
 	}

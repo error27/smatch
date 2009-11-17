@@ -454,15 +454,33 @@ static void split_symlist(struct symbol_list *sym_list)
 	} END_FOR_EACH_PTR(sym);
 }
 
+static struct expression *fake_assign_expr(struct symbol *sym)
+{			
+	struct expression *e_assign, *e_symbol;
+
+	e_assign = alloc_expression(sym->initializer->pos, EXPR_ASSIGNMENT);
+	e_symbol = alloc_expression(sym->initializer->pos, EXPR_SYMBOL);
+	e_symbol->symbol = sym;
+	e_symbol->symbol_name = sym->ident;
+	e_assign->left = e_symbol;
+	e_assign->right = sym->initializer;
+	return e_assign;
+}
+
 static void split_declaration(struct symbol_list *sym_list)
 {
 	struct symbol *sym;
+	struct expression *assign, *tmp;
 
 	FOR_EACH_PTR(sym_list, sym) {
 		__pass_to_client(sym, DECLARATION_HOOK);
 		__split_expr(sym->initializer);
-		if(sym->initializer && sym->initializer->type == EXPR_CALL) {
-			__match_initializer_call(sym);
+		if(sym->initializer) {
+			assign = fake_assign_expr(sym);
+			__pass_to_client(assign, ASSIGNMENT_HOOK);
+			tmp = strip_expr(assign->right);
+			if (tmp->type == EXPR_CALL)
+				__pass_to_client(assign, CALL_ASSIGNMENT_HOOK);
 		}
 		split_sym(sym);
 	} END_FOR_EACH_PTR(sym);
