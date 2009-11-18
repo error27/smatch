@@ -116,11 +116,11 @@ void add_function_assign_hook(const char *look_for, func_hook *call_back,
 }
 
 void return_implies_state(const char *look_for, long long start, long long end,
-			 func_hook *call_back, void *info)
+			 implication_hook *call_back, void *info)
 {
 	struct fcall_back *cb;
 
-	cb = alloc_fcall_back(RANGED_CALL, call_back, info);
+	cb = alloc_fcall_back(RANGED_CALL, (func_hook *)call_back, info);
 	cb->range = alloc_range_perm(start, end);
 	add_cb_hook(look_for, cb); 
 }
@@ -133,6 +133,17 @@ static void call_call_backs(struct call_back_list *list, int type,
 	FOR_EACH_PTR(list, tmp) {
 		if (tmp->type == type)
 			(tmp->call_back)(fn, expr, tmp->info);
+	} END_FOR_EACH_PTR(tmp);
+}
+
+static void call_ranged_call_backs(struct call_back_list *list,
+				const char *fn, struct expression *call_expr,
+				struct expression *assign_expr)
+{
+	struct fcall_back *tmp;
+
+	FOR_EACH_PTR(list, tmp) {
+		((implication_hook *)(tmp->call_back))(fn, call_expr, assign_expr, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -230,7 +241,7 @@ static void assign_ranged_funcs(const char *fn, struct expression *expr,
 		tack_on(&handled_ranges, tmp->range);
 
 		same_range_call_backs = get_same_ranged_call_backs(call_backs, tmp->range);
-		call_call_backs(same_range_call_backs, RANGED_CALL, fn, expr->right);
+		call_ranged_call_backs(same_range_call_backs, fn, expr->right, expr);
  		__free_ptr_list((struct ptr_list **)&same_range_call_backs);
 
 		extra_state = alloc_extra_state_range(tmp->range->min, tmp->range->max);
@@ -275,7 +286,7 @@ void function_comparison(int comparison, struct expression *expr, long long valu
 			continue;
 		if (!true_comparison_range_lr(comparison, tmp->range, value_range, left))
 			continue;
-		(tmp->call_back)(fn, expr, tmp->info);
+		((implication_hook *)(tmp->call_back))(fn, expr, NULL, tmp->info);
 		merge_slist(&true_states, __fake_cur_slist);
 		free_slist(&__fake_cur_slist);
 	} END_FOR_EACH_PTR(tmp);
@@ -286,7 +297,7 @@ void function_comparison(int comparison, struct expression *expr, long long valu
 			continue;
 		if (!false_comparison_range_lr(comparison, tmp->range, value_range, left))
 			continue;
-		(tmp->call_back)(fn, expr, tmp->info);
+		((implication_hook *)(tmp->call_back))(fn, expr, NULL, tmp->info);
 		merge_slist(&false_states, __fake_cur_slist);
 		free_slist(&__fake_cur_slist);
 	} END_FOR_EACH_PTR(tmp);

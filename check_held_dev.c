@@ -41,21 +41,19 @@ static void match_dev_put(const char *fn, struct expression *expr, void *data)
 	set_state_expr(my_id, arg_expr, &released);
 }
 
-static void match_returns_held(const char *fn, struct expression *expr, void *unused)
+static void match_returns_held(const char *fn, struct expression *call_expr,
+			struct expression *assign_expr, void *unused)
 {
-	set_state_expr(my_id, expr->left, &held);
+	if (assign_expr)
+		set_state_expr(my_id, assign_expr->left, &held);
 }
 
-static int dev_is_null(struct sm_state *sm)
+static void match_returns_null(const char *fn, struct expression *call_expr,
+			struct expression *assign_expr, void *unused)
 {
-	struct smatch_state *state;
-
-	state = get_state(SMATCH_EXTRA, sm->name, sm->sym);
-	if (get_single_value_from_range(state->data) == 0)
-		return 1;
-	return 0;
+	if (assign_expr)
+		set_state_expr(my_id, assign_expr->left, &released);
 }
-
 
 static void check_for_held(void)
 {
@@ -65,10 +63,8 @@ static void check_for_held(void)
 	slist = get_all_states(my_id);
 	FOR_EACH_PTR(slist, tmp) {
 		if (slist_has_state(tmp->possible, &held)) {
-			if (!dev_is_null(tmp)) {
-				sm_msg("warn: '%s' held on error path.",
-					tmp->name);
-			}
+			sm_msg("warn: '%s' held on error path.",
+				tmp->name);
 		}
 	} END_FOR_EACH_PTR(tmp);
 	free_slist(&slist);
@@ -110,7 +106,9 @@ static void register_returns_held_funcs(void)
 		if (token_type(token) != TOKEN_IDENT)
 			return;
 		func = show_ident(token->ident);
-		add_function_assign_hook(func, &match_returns_held,
+		return_implies_state(func, 1, POINTER_MAX, &match_returns_held,
+					 NULL);
+		return_implies_state(func, 0, 0, &match_returns_null,
 					 NULL);
 		token = token->next;
 	}

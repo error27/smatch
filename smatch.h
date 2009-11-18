@@ -93,13 +93,15 @@ void add_unmatched_state_hook(int client_id, unmatched_func_t *func);
 typedef void (scope_hook)(void *data);
 void add_scope_hook(scope_hook *hook, void *data);
 typedef void (func_hook)(const char *fn, struct expression *expr, void *data);
+typedef void (implication_hook)(const char *fn, struct expression *call_expr,
+				struct expression *assign_expr, void *data);
 void add_function_hook(const char *lock_for, func_hook *call_back, void *data);
 
 void add_conditional_hook(const char *look_for, func_hook *call_back, void *data);
 void add_function_assign_hook(const char *look_for, func_hook *call_back,
 			      void *info);
 void return_implies_state(const char *look_for, long long start, long long end,
-			 func_hook *call_back, void *info);
+			 implication_hook *call_back, void *info);
 typedef void (modification_hook)(const char *name, struct symbol *sym,
 				struct expression *expr, void *data);
 void add_modification_hook(const char *variable, modification_hook *hook,
@@ -125,6 +127,7 @@ do {                                                          \
 #define sm_debug(msg...) do { if (debug_states) printf(msg); } while (0)
 
 #define UNDEFINED INT_MIN
+#define POINTER_MAX 0xffffffff
 
 struct smatch_state *get_state(int owner, const char *name, struct symbol *sym);
 struct smatch_state *get_state_expr(int owner, struct expression *expr);
