@@ -19,6 +19,7 @@
 #include "smatch_slist.h"
 
 static const char *lock_funcs[] = {
+	"__raw_spin_lock",
 	"_spin_lock",
 	"_spin_lock_irqsave",
 	"_spin_lock_irq",
@@ -41,6 +42,7 @@ static const char *lock_funcs[] = {
 };
 
 static const char *unlock_funcs[] = {
+	"__raw_spin_unlock",
 	"_spin_unlock",
 	"_spin_unlock_irqrestore",
 	"_spin_unlock_irq",
