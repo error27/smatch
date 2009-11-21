@@ -368,7 +368,13 @@ static void match_dereferences(struct expression *expr)
 	char *deref = NULL;
 	struct symbol *sym = NULL;
 
-	deref = get_variable_from_expr(expr->deref->unop, &sym);
+	if (expr->type == EXPR_PREOP) {
+		expr = strip_expr(expr->unop);
+	} else {
+		expr = strip_expr(expr->deref->unop);
+	}
+
+	deref = get_variable_from_expr(expr, &sym);
 	if (!deref)
 		return;
 	if (is_freed(deref, sym)) {

@@ -47,7 +47,13 @@ static void match_dereferences(struct expression *expr)
 {
 	struct sm_state *sm;
 
-	sm = get_sm_state_expr(my_id, expr->deref->unop);
+	if (expr->type == EXPR_PREOP) {
+		expr = strip_expr(expr->unop);
+	} else {
+		expr = strip_expr(expr->deref->unop);
+	}
+
+	sm = get_sm_state_expr(my_id, expr);
 	check_is_err_ptr(sm);
 }
 
