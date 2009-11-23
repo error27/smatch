@@ -290,6 +290,9 @@ static void undef_expr(struct expression *expr)
 {
 	struct symbol *sym;
 	char *name;
+	long long min = whole_range.min;
+	long long max = whole_range.max;
+	long long val;
 
 	if (expr->op == '*')
 		return;
@@ -298,12 +301,20 @@ static void undef_expr(struct expression *expr)
 	
 	name = get_variable_from_expr(expr->unop, &sym);
 	if (!name)
-		return;
-	if (!get_state(my_id, name, sym)) {
-		free_string(name);
-		return;
+		goto free;
+	if (!strcmp("++", show_special(expr->op))) {
+		val = get_implied_min(expr);
+		if (val != UNDEFINED)
+			min = val + 1;
 	}
-	set_state(my_id, name, sym, extra_undefined());
+	if (!strcmp("--", show_special(expr->op))) {
+		val = get_implied_max(expr);
+		sm_msg("%lld implied max", val);
+		if (val != UNDEFINED)
+			max = val - 1;
+	}
+	set_state(my_id, name, sym, alloc_extra_state_range(min, max));
+free:
 	free_string(name);
 }
 
