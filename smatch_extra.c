@@ -421,6 +421,9 @@ static void match_comparison(struct expression *expr)
 		varies = expr->left;
 		left = 1;
 	}
+	if (varies->type == EXPR_PREOP || varies->type == EXPR_POSTOP) {
+		varies = varies->unop;
+	}
 	if (varies->type == EXPR_CALL) {
 		function_comparison(comparison, varies, fixed, left);
 		return;

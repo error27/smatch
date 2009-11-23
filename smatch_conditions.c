@@ -265,8 +265,26 @@ static void split_conditions(struct expression *expr)
 		return;
 	}
 
-	__split_expr(expr);
-	__pass_to_client(expr, CONDITION_HOOK);	
+	/* fixme: this should be in smatch_flow.c
+	   but because of the funny stuff we do with conditions
+	   it's awkward to put it there.  We would need to 
+	   call CONDITION_HOOK in smatch_flow as well.
+	*/
+	if (expr->type == EXPR_COMPARE) {
+		if (expr->left->type != EXPR_POSTOP)
+			__split_expr(expr->left);
+		if (expr->right->type != EXPR_POSTOP)
+			__split_expr(expr->right);
+	} else {
+		__split_expr(expr);
+	}
+	__pass_to_client(expr, CONDITION_HOOK);
+	if (expr->type == EXPR_COMPARE) {
+		if (expr->left->type == EXPR_POSTOP)
+			__split_expr(expr->left);
+		if (expr->right->type == EXPR_POSTOP)
+			__split_expr(expr->right);
+	}	
 }
 
 static int inside_condition;
