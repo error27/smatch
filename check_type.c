@@ -31,9 +31,6 @@ exit:
 
 void check_type(int id)
 {
-	if (!option_spammy)
-		return;
-
 	my_id = id;
 	add_function_hook("kfree", &match_free, NULL);
 }
