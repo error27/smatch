@@ -303,13 +303,12 @@ static void undef_expr(struct expression *expr)
 	if (!name)
 		goto free;
 	if (!strcmp("++", show_special(expr->op))) {
-		val = get_implied_min(expr);
+		val = get_implied_min(expr->unop);
 		if (val != UNDEFINED)
 			min = val + 1;
 	}
 	if (!strcmp("--", show_special(expr->op))) {
-		val = get_implied_max(expr);
-		sm_msg("%lld implied max", val);
+		val = get_implied_max(expr->unop);
 		if (val != UNDEFINED)
 			max = val - 1;
 	}
