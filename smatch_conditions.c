@@ -46,8 +46,6 @@
 
 #include "smatch.h"
 
-#define KERNEL
-
 static void split_conditions(struct expression *expr);
 
 static int is_logical_and(struct expression *expr)

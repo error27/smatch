@@ -18,7 +18,6 @@
 #include "parse.h"
 #include "expression.h"
 
-#define KERNEL
 struct smatch_state {
 	const char *name;
 	void *data;
@@ -341,6 +340,7 @@ extern int option_oom_kb;
 int out_of_memory();
 
 /* smatch.c */
+extern char *option_project;
 extern char *data_dir;
 extern int option_no_data;
 extern int option_spammy;

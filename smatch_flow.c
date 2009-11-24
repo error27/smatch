@@ -259,9 +259,8 @@ static void print_unreached(struct statement *stmt)
 	 * sometimes not so people put code after a BUG().  There 
 	 * are way to many false positives.
 	 */
-#ifdef KERNEL
 	return;
-#endif
+
 	if (__path_is_null()) {
 		switch(stmt->type) {
 		case STMT_COMPOUND: /* after a switch before a case stmt */

@@ -12,6 +12,7 @@
 #include <libgen.h>
 #include "smatch.h"
 
+char *option_project = (char *)"";
 char *data_dir;
 int option_no_data = 0;
 int option_spammy = 0;
@@ -76,7 +77,8 @@ struct smatch_state *default_state[sizeof(reg_funcs)/sizeof(reg_func)];
 
 static void help(void)
 {
-	printf("Usage:  smatch [smatch arguments][sparse arguments] file.c\n");
+	printf("Usage:  smatch --project=<name> [smatch args][sparse args] file.c\n");
+	printf("--project=<name>: project specific tests\n");
 	printf("--debug:  print lots of debug output.\n");
 	printf("--debug-implied:  print debug output about implications.\n");
 	printf("--oom <num>:  number of mB memory to use before giving up.\n");
@@ -93,7 +95,10 @@ static void help(void)
 void parse_args(int *argcp, char ***argvp)
 {
 	while(*argcp >= 2) {
-		if (!strcmp((*argvp)[1], "--debug")) {
+		if (!strncmp((*argvp)[1], "--project=", 10)) {
+			option_project = (*argvp)[1] + 10;
+			(*argvp)[1] = (*argvp)[0];
+		} else if (!strcmp((*argvp)[1], "--debug")) {
 			debug_states = 1;
 			(*argvp)[1] = (*argvp)[0];
 		} else if (!strcmp((*argvp)[1], "--debug-implied")) {
