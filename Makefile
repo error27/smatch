@@ -35,7 +35,7 @@ SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 SMATCH_CHECKS=$(shell ls check_*.c | sed -e 's/\.c/.o/')
 
 
-INST_PROGRAMS=sparse cgcc
+INST_PROGRAMS=sparse cgcc smatch
 INST_MAN1=sparse.1 cgcc.1
 
 ifeq ($(HAVE_LIBXML),yes)
