@@ -534,12 +534,13 @@ void __extra_match_condition(struct expression *expr)
 	}
 }
 
+/* returns 1 if it is not possible for expr to be zero, otherwise returns 0 */
 static int variable_non_zero(struct expression *expr)
 {
 	char *name;
 	struct symbol *sym;
 	struct smatch_state *state;
-	int ret = UNDEFINED;
+	int ret = 0;
 
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
@@ -704,7 +705,7 @@ int implied_condition_false(struct expression *expr)
 			return implied_condition_false(tmp);
 		break;
 	default:
-		if (variable_non_zero(expr) == 0)
+		if (get_implied_value(expr, &val) && val == 0)
 			return 1;
 		break;
 	}
