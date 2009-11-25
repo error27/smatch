@@ -45,7 +45,7 @@ void check_hold_dev(int id);
 
 /* may as well put wine scripts all together */
 void check_wine_filehandles(int id);
-
+void check_wine_WtoA(int id);
 
 /* void register_template(int id); */
 
@@ -76,6 +76,8 @@ static const reg_func reg_funcs[] = {
 
 	/* wine specific stuff */
 	&check_wine_filehandles,
+	&check_wine_WtoA,
+
 
 	&register_modification_hooks,
 	&register_containers,
