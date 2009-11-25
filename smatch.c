@@ -41,6 +41,7 @@ void check_err_ptr_deref(int id);
 void check_balanced(int id);
 void check_deref_check(int id);
 void check_hold_dev(int id);
+void check_redundant_null_check(int id);
 /* <- your test goes here */
 
 /* may as well put wine scripts all together */
@@ -64,6 +65,8 @@ static const reg_func reg_funcs[] = {
 	&check_frees_argument,
 	&check_balanced,
 	&check_deref_check,
+	&check_redundant_null_check,
+
 	/* <- your test goes here */
 	/* &register_template, */
 
