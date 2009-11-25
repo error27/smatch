@@ -446,16 +446,12 @@ int get_value(struct expression *expr)
 		return ret;
 }
 
-int get_implied_value(struct expression *expr)
+int get_implied_value(struct expression *expr, long long *val)
 {
 	int undefined = 0;
-	int ret;
-	
-	ret =  _get_value(expr, NULL, &undefined, IMPLIED);
-	if (undefined)
-		return UNDEFINED;
-	else
-		return ret;
+
+	*val =  _get_value(expr, NULL, &undefined, IMPLIED);
+	return !undefined;
 }
 
 int is_zero(struct expression *expr)

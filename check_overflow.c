@@ -216,7 +216,7 @@ static void match_malloc(const char *fn, struct expression *expr, void *unused)
 	char *name;
 	struct expression *right;
 	struct expression *arg;
-	int bytes;
+	long long bytes;
 
 	name = get_variable_from_expr(expr->left, NULL);
 	if (!name)
@@ -224,8 +224,7 @@ static void match_malloc(const char *fn, struct expression *expr, void *unused)
 
 	right = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(right->args, 0);
-	bytes = get_implied_value(arg);
-	if (bytes == UNDEFINED)
+	if (!get_implied_value(arg, &bytes))
 		goto free;
 	set_state(my_id, name, NULL, alloc_my_state(bytes * 8));
 free:
@@ -297,14 +296,13 @@ static void match_array_func(const char *fn, struct expression *expr, void *info
 {
 	struct bound *bound_info = (struct bound *)info;
 	struct expression *arg;
-	int offset;
+	long long offset;
 
 	arg = get_argument_from_call_expr(expr->args, bound_info->param);
-	offset = get_implied_value(arg);
-	if (offset == UNDEFINED)
+	if (!get_implied_value(arg, &offset))
 		return;
 	if (offset >= bound_info->size)
-		sm_msg("buffer overflow calling %s. param %d.  %d >= %d", fn, bound_info->param, offset, bound_info->size);
+		sm_msg("buffer overflow calling %s. param %d.  %lld >= %d", fn, bound_info->param, offset, bound_info->size);
 }
 
 static void register_array_funcs(void)

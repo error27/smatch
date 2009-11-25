@@ -38,6 +38,7 @@ static void match_return(struct expression *ret_value)
 {
 	struct state_list *slist;
 	struct sm_state *tmp;
+	long long val;
 
 	match_err_ptr(ret_value);
 	slist = get_possible_states_expr(check_assigned_expr_id, ret_value);
@@ -47,8 +48,10 @@ static void match_return(struct expression *ret_value)
 		match_err_ptr((struct expression *)tmp->state->data);
 	} END_FOR_EACH_PTR(tmp);
 
-	if (get_implied_value(ret_value) == 0)
-		returns_null = 1;
+	if (get_implied_value(ret_value, &val)) {
+		if (val == 0)
+			returns_null = 1;
+	}
 }
 
 static void match_end_func(struct symbol *sym)
