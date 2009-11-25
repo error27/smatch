@@ -369,12 +369,12 @@ static int get_implied_value_helper(struct expression *expr, long long *val, int
 		return get_single_value_from_range((struct data_info *)state->data, val);
 	if (what == VAL_MAX) {
 		*val = get_dinfo_max((struct data_info *)state->data);
-		if (*val == UNDEFINED)
+		if (*val == whole_range.max) /* this means just guessing */
 			return 0;
 		return 1;
 	}
         *val = get_dinfo_min((struct data_info *)state->data);
-	if (*val == UNDEFINED)
+	if (*val == whole_range.min)
 		return 0;
 	return 1;
 }
@@ -386,20 +386,12 @@ int get_implied_single_val(struct expression *expr, long long *val)
 
 int get_implied_max(struct expression *expr, long long *val)
 {
-	if (!get_implied_value_helper(expr, val, VAL_MAX))
-		return 0;
-	if (*val == whole_range.max) /* this means just guessing */
-		return 0;
-	return 1;
+	return get_implied_value_helper(expr, val, VAL_MAX);
 }
 
 int get_implied_min(struct expression *expr, long long *val)
 {
-	if (!get_implied_value_helper(expr, val, VAL_MIN))
-		return 0;
-	if (*val == whole_range.min)
-		return 0;
-	return 1;
+	return get_implied_value_helper(expr, val, VAL_MIN);
 }
 
 int last_stmt_val(struct statement *stmt)
