@@ -17,7 +17,7 @@
 #include "smatch.h"
 
 #define VAR_LEN 512
-
+#define BOGUS 12345
 
 char *alloc_string(const char *str)
 {
@@ -348,17 +348,21 @@ int sym_name_is(const char *name, struct expression *expr)
 #define NOTIMPLIED 0
 #define IMPLIED 1
 
-static int _get_value(struct expression *expr, int *discard, int implied)
+static int _get_value(struct expression *expr, int *discard, int *undefined, int implied)
 {
 	int dis = 0;
-	int ret = UNDEFINED;
+	int ret = BOGUS;
 
-	if (!expr)
-		return UNDEFINED;
+	if (!expr) {
+		*undefined = 1;
+		return BOGUS;
+	}
 	if (!discard)
 		discard = &dis;
-	if (*discard)
-		return UNDEFINED;
+	if (*discard) {
+		*undefined = 1;
+		return BOGUS;
+	}
 	
 	expr = strip_expr(expr);
 
@@ -367,20 +371,23 @@ static int _get_value(struct expression *expr, int *discard, int implied)
 		ret = expr->value;
 		break;
 	case EXPR_PREOP:
-		if (!strcmp("-", show_special(expr->op)))
-			ret = - _get_value(expr->unop, discard, implied);
-		else
+		if (!strcmp("-", show_special(expr->op))) {
+			ret = - _get_value(expr->unop, discard, undefined, implied);
+		} else {
+			*undefined = 1;
 			*discard = 1;
+		}
 		break;
 	case EXPR_BINOP: {
 		int left, right;
 
 		if (!show_special(expr->op)) {
+			*undefined = 1;
 			*discard = 1;
 			break;
 		}
-		left = _get_value(expr->left, discard, implied);
-		right = _get_value(expr->right, discard, implied);
+		left = _get_value(expr->left, discard, undefined, implied);
+		right = _get_value(expr->right, discard, undefined, implied);
 		if (!strcmp("*", show_special(expr->op))) {
 			ret =  left * right;
 		} else if (!strcmp("/", show_special(expr->op))) {
@@ -398,6 +405,7 @@ static int _get_value(struct expression *expr, int *discard, int implied)
 		} else if (!strcmp("<<", show_special(expr->op))) {
 			ret = left << right;
 		} else {
+			*undefined = 1;
 			*discard = 1;
 		}
 		break;
@@ -409,26 +417,45 @@ static int _get_value(struct expression *expr, int *discard, int implied)
 	default:
 		if (implied) {
 			ret = get_implied_single_val(expr);
-			if (ret == UNDEFINED)
+			if (ret == UNDEFINED) {
+				*undefined = 1;
 				*discard = 1;
+			}
 		} else {
+			*undefined = 1;
 			*discard = 1;
 		}
 	}
-	if (*discard)
-		return UNDEFINED;
+	if (*discard) {
+		*undefined = 1;
+		return BOGUS;
+	}
 	return ret;
 }
 
 /* returns UNDEFINED on error */
 int get_value(struct expression *expr)
 {
-	return _get_value(expr, NULL, NOTIMPLIED);
+	int undefined = 0;
+	int ret;
+	
+	ret = _get_value(expr, NULL, &undefined, NOTIMPLIED);
+	if (undefined)
+		return UNDEFINED;
+	else
+		return ret;
 }
 
 int get_implied_value(struct expression *expr)
 {
-	return _get_value(expr, NULL, IMPLIED);
+	int undefined = 0;
+	int ret;
+	
+	ret =  _get_value(expr, NULL, &undefined, IMPLIED);
+	if (undefined)
+		return UNDEFINED;
+	else
+		return ret;
 }
 
 int is_zero(struct expression *expr)
