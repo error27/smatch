@@ -234,9 +234,9 @@ struct data_range {
 };
 extern struct data_range whole_range;
 
-int get_implied_single_val(struct expression *expr);
-int get_implied_max(struct expression *expr);
-int get_implied_min(struct expression *expr);
+int get_implied_single_val(struct expression *expr, long long *val);
+int get_implied_max(struct expression *expr, long long *val);
+int get_implied_min(struct expression *expr, long long *val);
 int true_comparison(int left, int comparison, int right);
 int known_condition_true(struct expression *expr);
 int known_condition_false(struct expression *expr);

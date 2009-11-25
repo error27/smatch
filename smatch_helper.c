@@ -351,7 +351,7 @@ int sym_name_is(const char *name, struct expression *expr)
 static int _get_value(struct expression *expr, int *discard, int *undefined, int implied)
 {
 	int dis = 0;
-	int ret = BOGUS;
+	long long ret = BOGUS;
 
 	if (!expr) {
 		*undefined = 1;
@@ -416,8 +416,7 @@ static int _get_value(struct expression *expr, int *discard, int *undefined, int
 		break;
 	default:
 		if (implied) {
-			ret = get_implied_single_val(expr);
-			if (ret == UNDEFINED) {
+			if (!get_implied_single_val(expr, &ret)) {
 				*undefined = 1;
 				*discard = 1;
 			}

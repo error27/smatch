@@ -159,7 +159,7 @@ static void array_check(struct expression *expr)
 	struct expression *dest;
 	int array_size;
 	struct expression *offset;
-	int max;
+	long long max;
 	char *name;
 
 	expr = strip_expr(expr);
@@ -178,14 +178,11 @@ static void array_check(struct expression *expr)
 	}
 
 	offset = get_array_offset(expr);
-	max = get_implied_max(offset);
-	if (max == UNDEFINED) {
+	if (!get_implied_max(offset, &max)) {
 		name = get_variable_from_expr(dest, NULL);
 //		smatch_msg("debug: offset '%s' unknown", name);
 		print_args(offset, array_size);
-	}
-
-	if (max != UNDEFINED && array_size <= max) {
+	} else if (array_size <= max) {
 		name = get_variable_from_expr(dest, NULL);
 		sm_msg("error: buffer overflow '%s' %d <= %d", name, array_size, max);
 		free_string(name);

@@ -303,13 +303,11 @@ static void undef_expr(struct expression *expr)
 	if (!name)
 		goto free;
 	if (!strcmp("++", show_special(expr->op))) {
-		val = get_implied_min(expr->unop);
-		if (val != UNDEFINED)
+		if (get_implied_min(expr->unop, &val))
 			min = val + 1;
 	}
 	if (!strcmp("--", show_special(expr->op))) {
-		val = get_implied_max(expr->unop);
-		if (val != UNDEFINED)
+		if (get_implied_max(expr->unop, &val))
 			max = val - 1;
 	}
 	set_state(my_id, name, sym, alloc_extra_state_range(min, max));
@@ -350,54 +348,62 @@ static void match_function_def(struct symbol *sym)
 #define VAL_MAX    1
 #define VAL_MIN    2
 
-static long long get_implied_value_helper(struct expression *expr, int what)
+static int get_implied_value_helper(struct expression *expr, long long *val, int what)
 {
 	struct smatch_state *state;
-	int val;
 	struct symbol *sym;
 	char *name;
 	
-	val = get_value(expr);
-	if (val != UNDEFINED)
-		return val;
+	*val = get_value(expr);
+	if (*val != UNDEFINED)
+		return 1;
 
 	name = get_variable_from_expr(expr, &sym);
 	if (!name)
-		return UNDEFINED;
+		return 0;
 	state = get_state(my_id, name, sym);
 	free_string(name);
 	if (!state || !state->data)
-		return UNDEFINED;
-	if (what == VAL_SINGLE)
-		return get_single_value_from_range((struct data_info *)state->data);
-	if (what == VAL_MAX)
-		return get_dinfo_max((struct data_info *)state->data);
-	return get_dinfo_min((struct data_info *)state->data);
+		return 0;
+	if (what == VAL_SINGLE) {
+		*val = get_single_value_from_range((struct data_info *)state->data);
+		if (*val == UNDEFINED)
+			return 0;
+		return 1;
+	}
+	if (what == VAL_MAX) {
+		*val = get_dinfo_max((struct data_info *)state->data);
+		if (*val == UNDEFINED)
+			return 0;
+		return 1;
+	}
+        *val = get_dinfo_min((struct data_info *)state->data);
+	if (*val == UNDEFINED)
+		return 0;
+	return 1;
 }
 
-int get_implied_single_val(struct expression *expr)
+int get_implied_single_val(struct expression *expr, long long *val)
 {
-	return get_implied_value_helper(expr, VAL_SINGLE);
+	return get_implied_value_helper(expr, val, VAL_SINGLE);
 }
 
-int get_implied_max(struct expression *expr)
+int get_implied_max(struct expression *expr, long long *val)
 {
-	long long ret;
-
-	ret = get_implied_value_helper(expr, VAL_MAX);
-	if (ret == whole_range.max)
-		return UNDEFINED;
-	return ret;
+	if (!get_implied_value_helper(expr, val, VAL_MAX))
+		return 0;
+	if (*val == whole_range.max) /* this means just guessing */
+		return 0;
+	return 1;
 }
 
-int get_implied_min(struct expression *expr)
+int get_implied_min(struct expression *expr, long long *val)
 {
-	long long ret;
-
-	ret = get_implied_value_helper(expr, VAL_MIN);
-	if (ret == whole_range.min)
-		return UNDEFINED;
-	return ret;
+	if (!get_implied_value_helper(expr, val, VAL_MIN))
+		return 0;
+	if (*val == whole_range.min)
+		return 0;
+	return 1;
 }
 
 int last_stmt_val(struct statement *stmt)
