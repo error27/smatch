@@ -46,10 +46,7 @@ static struct smatch_state *alloc_extra_state_no_name(int val)
 	struct smatch_state *state;
 
 	state = __alloc_smatch_state(0);
-	if (val == UNDEFINED)
-		state->data = (void *)alloc_dinfo_range(whole_range.min, whole_range.max);
-	else
-		state->data = (void *)alloc_dinfo_range(val, val);
+	state->data = (void *)alloc_dinfo_range(val, val);
 	return state;
 }
 
@@ -75,8 +72,6 @@ struct smatch_state *alloc_extra_state(int val)
 {
 	struct smatch_state *state;
 
-	if (val == UNDEFINED)
-		return extra_undefined();
 	state = alloc_extra_state_no_name(val);
 	state->name = show_ranges(((struct data_info *)state->data)->value_ranges);
 	return state;
@@ -218,10 +213,8 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 
 	if (condition->type != EXPR_COMPARE)
 		return;
-	value = get_value(condition->left);
-	if (value == UNDEFINED) {
-		value = get_value(condition->right);
-		if (value == UNDEFINED)
+	if (!get_value(condition->left, &value)) {
+		if (!get_value(condition->right, &value))
 			return;
 		left = 1;
 	}
@@ -277,12 +270,16 @@ static void match_assign(struct expression *expr)
 	struct expression *left;
 	struct symbol *sym;
 	char *name;
+	long long value;
 	
 	left = strip_expr(expr->left);
 	name = get_variable_from_expr(left, &sym);
 	if (!name)
 		return;
-	set_state(my_id, name, sym, alloc_extra_state(get_value(expr->right)));
+	if (get_value(expr->right, &value))
+		set_state(my_id, name, sym, alloc_extra_state(value));
+	else
+		set_state(my_id, name, sym, extra_undefined());
 	free_string(name);
 }
 
@@ -318,11 +315,15 @@ free:
 static void match_declarations(struct symbol *sym)
 {
 	const char *name;
+	long long val;
 
 	if (sym->ident) {
 		name = sym->ident->name;
 		if (sym->initializer) {
-			set_state(my_id, name, sym, alloc_extra_state(get_value(sym->initializer)));
+			if (get_value(sym->initializer, &val))
+				set_state(my_id, name, sym, alloc_extra_state(val));
+			else
+				set_state(my_id, name, sym, extra_undefined());
 			scoped_state(name, my_id, sym);
 		} else {
 			set_state(my_id, name, sym, extra_undefined());
@@ -354,8 +355,7 @@ static int get_implied_value_helper(struct expression *expr, long long *val, int
 	struct symbol *sym;
 	char *name;
 	
-	*val = get_value(expr);
-	if (*val != UNDEFINED)
+	if (get_value(expr, val))
 		return 1;
 
 	name = get_variable_from_expr(expr, &sym);
@@ -405,10 +405,7 @@ static int last_stmt_val(struct statement *stmt, long long *val)
 	if (stmt->type != STMT_EXPRESSION)
 		return 0;
 	expr = stmt->expression;
-	*val = get_value(expr);
-	if (*val == UNDEFINED)
-		return 0;
-	return 1;
+	return get_value(expr, val);
 }
 
 static void match_comparison(struct expression *expr)
@@ -423,10 +420,8 @@ static void match_comparison(struct expression *expr)
 	int comparison = expr->op;
 	struct expression *varies = expr->right;
 
-	fixed = get_value(expr->left);
-	if (fixed == UNDEFINED) {
-		fixed = get_value(expr->right);
-		if (fixed == UNDEFINED)
+	if (!get_value(expr->left, &fixed)) { 
+		if (!get_value(expr->right, &fixed))
 			return;
 		varies = expr->left;
 		left = 1;
@@ -560,13 +555,12 @@ exit:
 
 int known_condition_true(struct expression *expr)
 {
-	int tmp;
+	long long tmp;
 
 	if (!expr)
 		return 0;
 
-	tmp = get_value(expr);
-	if (tmp && tmp != UNDEFINED)
+	if (get_value(expr, &tmp) && tmp)
 		return 1;
 	
 	expr = strip_expr(expr);
@@ -615,10 +609,8 @@ static int do_comparison_range(struct expression *expr)
 	int left = 0;
 	int poss_true, poss_false;
 
-	value = get_value(expr->left);
-	if (value == UNDEFINED) {
-		value = get_value(expr->right);
-		if (value == UNDEFINED)
+	if (!get_value(expr->left, &value)) {
+		if (!get_value(expr->right, &value))
 			return 3;
 		left = 1;
 	}
@@ -649,14 +641,13 @@ free:
 int implied_condition_true(struct expression *expr)
 {
 	struct statement *stmt;
-	int tmp;
+	long long tmp;
 	long long val;
 
 	if (!expr)
 		return 0;
 
-	tmp = get_value(expr);
-	if (tmp && tmp != UNDEFINED)
+	if (get_value(expr, &tmp) && tmp)
 		return 1;
 	
 	expr = strip_expr(expr);

@@ -184,7 +184,7 @@ static void array_check(struct expression *expr)
 		print_args(offset, array_size);
 	} else if (array_size <= max) {
 		name = get_variable_from_expr(dest, NULL);
-		sm_msg("error: buffer overflow '%s' %d <= %d", name, array_size, max);
+		sm_msg("error: buffer overflow '%s' %d <= %lld", name, array_size, max);
 		free_string(name);
 	}
 }
@@ -270,20 +270,21 @@ static void match_limitted(const char *fn, struct expression *expr,
 	struct expression *data;
 	char *dest_name = NULL;
 	struct smatch_state *state;
-	int needed;
+	long long needed;
 	int has;
 
 	dest = get_argument_from_call_expr(expr->args, 0);
 	dest_name = get_variable_from_expr(dest, NULL);
 
 	data = get_argument_from_call_expr(expr->args, PTR_INT(limit_arg));
-	needed = get_value(data);
+	if (!get_value(data, &needed))
+		goto free;
 	state = get_state(my_id, dest_name, NULL);
 	if (!state || !state->data)
 		goto free;
 	has = *(int *)state->data / 8;
 	if (has < needed)
-		sm_msg("error: %s too small for %d bytes.", dest_name,
+		sm_msg("error: %s too small for %lld bytes.", dest_name,
 			   needed);
 free:
 	free_string(dest_name);

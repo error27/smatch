@@ -325,13 +325,11 @@ static void handle_comparison(struct expression *expr,
 	struct symbol *sym;
 	char *name;
 	struct sm_state *state;
-	int value;
+	long long value;
 	int left = 0;
 
-	value = get_value(expr->left);
-	if (value == UNDEFINED) {
-		value = get_value(expr->right);
-		if (value == UNDEFINED)
+	if (!get_value(expr->left, &value)) {
+		if (!get_value(expr->right, &value))
 			return;
 		left = 1;
 	}
@@ -471,8 +469,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	if (!case_expr) {
 		vals = top_range_list(*remaining_cases);
 	} else {
-		val = get_value(case_expr);
-		if (val == UNDEFINED) {
+		if (!get_value(case_expr, &val)) {
 			goto free;
 		} else {
 			filter_top_range_list(remaining_cases, val);

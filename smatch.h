@@ -164,7 +164,7 @@ char *get_variable_from_expr(struct expression *expr,
 			     struct symbol **sym_ptr);
 struct symbol *get_ptr_type(struct expression *expr);
 int sym_name_is(const char *name, struct expression *expr);
-int get_value(struct expression *expr);
+int get_value(struct expression *expr, long long *val);
 int get_implied_value(struct expression *expr, long long *val);
 int is_zero(struct expression *expr);
 int is_array(struct expression *expr);

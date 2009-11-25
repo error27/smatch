@@ -432,17 +432,15 @@ static int _get_value(struct expression *expr, int *discard, int *undefined, int
 	return ret;
 }
 
-/* returns UNDEFINED on error */
-int get_value(struct expression *expr)
+/* returns 1 if it can get a value literal or else returns 0 */
+int get_value(struct expression *expr, long long *val)
 {
 	int undefined = 0;
-	int ret;
 	
-	ret = _get_value(expr, NULL, &undefined, NOTIMPLIED);
+	*val = _get_value(expr, NULL, &undefined, NOTIMPLIED);
 	if (undefined)
-		return UNDEFINED;
-	else
-		return ret;
+		return 0;
+	return 1;
 }
 
 int get_implied_value(struct expression *expr, long long *val)
@@ -455,7 +453,9 @@ int get_implied_value(struct expression *expr, long long *val)
 
 int is_zero(struct expression *expr)
 {
-	if (get_value(expr) == 0)
+	long long val;
+
+	if (get_value(expr, &val) && val == 0)
 		return 1;
 	return 0;
 }
@@ -542,7 +542,7 @@ void scoped_state(const char *name, int my_id, struct symbol *sym)
 int is_error_return(struct expression *expr)
 {
 	struct symbol *cur_func = cur_func_sym;
-	int val;
+	long long val;
 
 	if (!expr)
 		return 0;
@@ -554,8 +554,7 @@ int is_error_return(struct expression *expr)
 	cur_func = get_base_type(cur_func);
 	if (cur_func == &void_ctype)
 		return 0;
-	val = get_value(expr);
-	if (val == UNDEFINED)
+	if (!get_value(expr, &val))
 		return 0;
 	if (val < 0)
 		return 1;
