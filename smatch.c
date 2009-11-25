@@ -42,6 +42,11 @@ void check_balanced(int id);
 void check_deref_check(int id);
 void check_hold_dev(int id);
 /* <- your test goes here */
+
+/* may as well put wine scripts all together */
+void check_wine_filehandles(int id);
+
+
 /* void register_template(int id); */
 
 static const reg_func reg_funcs[] = {
@@ -52,21 +57,25 @@ static const reg_func reg_funcs[] = {
 
 	&check_null_deref,
 	&check_overflow,
-	&check_locking,
 	&check_memory,
 	&check_type,
 	&check_allocation_funcs,
 	&check_leaks,
 	&check_frees_argument,
+	&check_balanced,
+	&check_deref_check,
+	/* <- your test goes here */
+	/* &register_template, */
+
+	/* kernel specific */
+	&check_locking,
 	&check_puts_argument,
 	&check_err_ptr,
 	&check_err_ptr_deref,
-	&check_balanced,
-	&check_deref_check,
 	&check_hold_dev,
 
-	/* <- your test goes here */
-	/* &register_template, */
+	/* wine specific stuff */
+	&check_wine_filehandles,
 
 	&register_modification_hooks,
 	&register_containers,
@@ -142,6 +151,8 @@ void parse_args(int *argcp, char ***argvp)
 
 	if (!strcmp(option_project_str, "kernel"))
 		option_project = PROJ_KERNEL;
+	if (!strcmp(option_project_str, "wine"))
+		option_project = PROJ_WINE;
 }
 
 static char *get_data_dir(char *arg0)

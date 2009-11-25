@@ -348,6 +348,7 @@ extern struct smatch_state *default_state[];
 enum project_type {
 	PROJ_NONE,
 	PROJ_KERNEL,
+	PROJ_WINE,
 };
 extern enum project_type option_project;
 
