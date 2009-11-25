@@ -125,7 +125,6 @@ do {                                                          \
 
 #define sm_debug(msg...) do { if (debug_states) printf(msg); } while (0)
 
-#define UNDEFINED INT_MIN
 #define POINTER_MAX 0xffffffff
 
 struct smatch_state *get_state(int owner, const char *name, struct symbol *sym);
