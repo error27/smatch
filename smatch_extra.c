@@ -394,15 +394,21 @@ int get_implied_min(struct expression *expr, long long *val)
 	return get_implied_value_helper(expr, val, VAL_MIN);
 }
 
-int last_stmt_val(struct statement *stmt)
+static int last_stmt_val(struct statement *stmt, long long *val)
 {
 	struct expression *expr;
 
+	if (!stmt)
+		return 0;
+
 	stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
 	if (stmt->type != STMT_EXPRESSION)
-		return UNDEFINED;
+		return 0;
 	expr = stmt->expression;
-	return get_value(expr);
+	*val = get_value(expr);
+	if (*val == UNDEFINED)
+		return 0;
+	return 1;
 }
 
 static void match_comparison(struct expression *expr)
@@ -644,6 +650,7 @@ int implied_condition_true(struct expression *expr)
 {
 	struct statement *stmt;
 	int tmp;
+	long long val;
 
 	if (!expr)
 		return 0;
@@ -665,7 +672,7 @@ int implied_condition_true(struct expression *expr)
 			break;
 		}
 		stmt = get_block_thing(expr);
-		if (stmt && (last_stmt_val(stmt) == 1))
+		if (last_stmt_val(stmt, &val) && val == 1)
 			return 1;
 		break;
 	default:
@@ -680,6 +687,7 @@ int implied_condition_false(struct expression *expr)
 {
 	struct statement *stmt;
 	struct expression *tmp;
+	long long val;
 
 	if (!expr)
 		return 0;
@@ -698,7 +706,7 @@ int implied_condition_false(struct expression *expr)
 			break;
 		}
 		stmt = get_block_thing(expr);
-		if (stmt && (last_stmt_val(stmt) == 0))
+		if (last_stmt_val(stmt, &val) && val == 0)
 			return 1;
 		tmp = strip_expr(expr);
 		if (tmp != expr)
