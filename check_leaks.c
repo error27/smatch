@@ -278,7 +278,10 @@ void check_leaks(int id)
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
-	add_function_hook("kfree", &match_free, (void *)0);
+	if (option_project == PROJ_KERNEL)
+		add_function_hook("kfree", &match_free, (void *)0);
+	else
+		add_function_hook("free", &match_free, (void *)0);
 	register_free_funcs();
 	register_put_funcs();
 	for(i = 0; allocation_funcs[i]; i++) {

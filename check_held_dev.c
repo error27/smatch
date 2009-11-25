@@ -117,6 +117,9 @@ static void register_returns_held_funcs(void)
 
 void check_hold_dev(int id)
 {
+	if (option_project != PROJ_KERNEL)
+		return;
+
 	my_id = id;
 	add_function_hook("dev_hold", &match_dev_hold, NULL);
 	add_function_hook("dev_put", &match_dev_put, NULL);

@@ -27,7 +27,7 @@ int func (void)
 
 /*
  * check-name: Smatch implied #4
- * check-command: smatch sm_implied4.c
+ * check-command: smatch --project=kernel sm_implied4.c
  *
  * check-output-start
 sm_implied4.c +22 func(14) warn: 'mylock' is sometimes locked here and sometimes unlocked.

@@ -32,5 +32,6 @@ exit:
 void check_type(int id)
 {
 	my_id = id;
-	add_function_hook("kfree", &match_free, NULL);
+	if (option_project == PROJ_KERNEL)
+		add_function_hook("kfree", &match_free, NULL);
 }

@@ -26,7 +26,7 @@ int func (void)
 }
 /*
  * check-name: Smatch locking #4
- * check-command: smatch sm_locking4.c
+ * check-command: smatch --project=kernel sm_locking4.c
  *
  * check-output-start
 sm_locking4.c +25 func(18) warn: inconsistent returns mylock: locked (22,25) unlocked (16)

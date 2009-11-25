@@ -729,7 +729,7 @@ void register_smatch_extra(int id)
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 
-	if (!strcmp(option_project, "kernel")) {
+	if (option_project == PROJ_KERNEL) {
 		/* I don't know how to test for the ATTRIB_NORET attribute. :( */
 		add_function_hook("panic", &__match_nullify_path_hook, NULL);
 		add_function_hook("do_exit", &__match_nullify_path_hook, NULL);

@@ -458,6 +458,9 @@ void check_locking(int id)
 {
 	int i;
 
+	if (option_project != PROJ_KERNEL)
+		return;
+
 	my_id = id;
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&match_return, RETURN_HOOK);

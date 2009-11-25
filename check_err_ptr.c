@@ -63,7 +63,7 @@ static void match_end_func(struct symbol *sym)
 
 void check_err_ptr(int id)
 {
-	if (!option_spammy)
+	if (!option_spammy || option_project != PROJ_KERNEL)
 		return;
 
 	my_id = id;

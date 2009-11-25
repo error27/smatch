@@ -340,10 +340,17 @@ extern int option_oom_kb;
 int out_of_memory();
 
 /* smatch.c */
-extern char *option_project;
+extern char *option_project_str;
 extern char *data_dir;
 extern int option_no_data;
 extern int option_spammy;
 extern struct smatch_state *default_state[];
+
+enum project_type {
+	PROJ_NONE,
+	PROJ_KERNEL,
+};
+extern enum project_type option_project;
+
 
 #endif 	    /* !SMATCH_H_ */

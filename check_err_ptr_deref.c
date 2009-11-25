@@ -120,6 +120,9 @@ static void match_ptr_err(const char *fn, struct expression *expr, void *unused)
 
 void check_err_ptr_deref(int id)
 {
+	if (option_project != PROJ_KERNEL)
+		return;
+
 	my_id = id;
 	set_default_state(my_id, &checked);
 	add_conditional_hook("IS_ERR", &match_is_err, NULL);

@@ -428,6 +428,9 @@ void check_memory(int id)
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
-	add_function_hook("kfree", &match_free_func, (void *)0);
+	if (option_project == PROJ_KERNEL)
+		add_function_hook("kfree", &match_free_func, (void *)0);
+	else
+		add_function_hook("free", &match_free_func, (void *)0);
 	register_funcs_from_file();
 }

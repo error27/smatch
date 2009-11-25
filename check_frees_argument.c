@@ -117,7 +117,10 @@ void check_frees_argument(int id)
 
 	my_id = id;
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
-	add_function_hook("kfree", &match_kfree, NULL);
+	if (option_project != PROJ_KERNEL)
+		add_function_hook("kfree", &match_kfree, NULL);
+	else
+		add_function_hook("free", &match_kfree, NULL);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
 }
