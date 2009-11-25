@@ -51,7 +51,7 @@ struct data_info *alloc_dinfo_range_list(struct range_list *rl);
 struct range_list *range_list_union(struct range_list *one, struct range_list *two);
 long long get_dinfo_min(struct data_info *dinfo);
 long long get_dinfo_max(struct data_info *dinfo);
-long long get_single_value_from_range(struct data_info *dinfo);
+int get_single_value_from_range(struct data_info *dinfo, long long *val);
 
 void function_comparison(int comparison, struct expression *expr, long long value, int left);
 

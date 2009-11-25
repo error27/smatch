@@ -269,27 +269,26 @@ long long get_dinfo_max(struct data_info *dinfo)
 }
 
 /* 
- * if it can be only one value return that, else return UNDEFINED
+ * if it can be only one and only value return 1, else return 0
  */
-long long get_single_value_from_range(struct data_info *dinfo)
+int get_single_value_from_range(struct data_info *dinfo, long long *val)
 {
 	struct data_range *tmp;
 	int count = 0;
-	long long ret = UNDEFINED;
 
 	if (dinfo->type != DATA_RANGE)
-		return UNDEFINED;
+		return 0;
 
 	FOR_EACH_PTR(dinfo->value_ranges, tmp) {
 		if (!count++) {
 			if (tmp->min != tmp->max)
-				return UNDEFINED;
-			ret = tmp->min;
+				return 0;
+			*val = tmp->min;
 		} else {
-			return UNDEFINED;
+			return 0;
 		}
 	} END_FOR_EACH_PTR(tmp);
-	return ret;
+	return 1;
 }
 
 int true_comparison_range(struct data_range *left, int comparison, struct data_range *right)
@@ -331,7 +330,7 @@ int true_comparison_range(struct data_range *left, int comparison, struct data_r
 		return 0;
 	default:
 		sm_msg("unhandled comparison %d\n", comparison);
-		return UNDEFINED;
+		return 0;
 	}
 	return 0;
 }
@@ -383,7 +382,7 @@ static int false_comparison_range(struct data_range *left, int comparison, struc
 		return 1;
 	default:
 		sm_msg("unhandled comparison %d\n", comparison);
-		return UNDEFINED;
+		return 0;
 	}
 	return 0;
 }

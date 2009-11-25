@@ -365,12 +365,8 @@ static int get_implied_value_helper(struct expression *expr, long long *val, int
 	free_string(name);
 	if (!state || !state->data)
 		return 0;
-	if (what == VAL_SINGLE) {
-		*val = get_single_value_from_range((struct data_info *)state->data);
-		if (*val == UNDEFINED)
-			return 0;
-		return 1;
-	}
+	if (what == VAL_SINGLE)
+		return get_single_value_from_range((struct data_info *)state->data, val);
 	if (what == VAL_MAX) {
 		*val = get_dinfo_max((struct data_info *)state->data);
 		if (*val == UNDEFINED)
