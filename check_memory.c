@@ -235,7 +235,7 @@ static void check_sm_is_leaked(struct sm_state *sm)
 		!is_null(sm->name, sm->sym) &&
 		!is_argument(sm->sym) && 
 		!parent_is_assigned(sm->sym))
-		sm_msg("error: memery leak of %s", sm->name);
+		sm_msg("error: memory leak of %s", sm->name);
 }
 
 static void check_tracker_is_leaked(struct tracker *t)
