@@ -109,7 +109,7 @@ static void match_end_func(struct symbol *sym)
 
 void check_puts_argument(int id)
 {
-	if (!option_spammy || option_project == PROJ_KERNEL)
+	if (!option_spammy || option_project != PROJ_KERNEL)
 		return;
 
 	my_id = id;
