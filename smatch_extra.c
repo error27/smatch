@@ -271,15 +271,44 @@ static void match_assign(struct expression *expr)
 	struct symbol *sym;
 	char *name;
 	long long value;
+	int known;
+	long long min = whole_range.min;
+	long long max = whole_range.max;
+	long long tmp;
 	
 	left = strip_expr(expr->left);
 	name = get_variable_from_expr(left, &sym);
 	if (!name)
 		return;
-	if (get_value(expr->right, &value))
-		set_state(my_id, name, sym, alloc_extra_state(value));
-	else
-		set_state(my_id, name, sym, extra_undefined());
+	known = get_value(expr->right, &value);
+
+	if (expr->op == '=') {
+		if (known)
+			set_state(my_id, name, sym, alloc_extra_state(value));
+		else
+			set_state(my_id, name, sym, extra_undefined());
+		goto free;
+	}
+	if (expr->op == SPECIAL_ADD_ASSIGN) {
+		if (get_implied_min(expr->unop, &tmp)) {
+			if (known)
+				min = tmp + value;
+			else
+				min = tmp;
+		}
+		
+	}
+	if (expr->op == SPECIAL_SUB_ASSIGN) {
+		if (get_implied_max(expr->unop, &tmp)) {
+			if (known)
+				max = tmp - value;
+			else
+				max = tmp;
+		}
+		
+	}
+	set_state(my_id, name, sym, alloc_extra_state_range(min, max));
+free:
 	free_string(name);
 }
 
