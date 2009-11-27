@@ -343,6 +343,7 @@ extern char *option_project_str;
 extern char *data_dir;
 extern int option_no_data;
 extern int option_spammy;
+extern int option_full_path;
 extern struct smatch_state *default_state[];
 
 enum project_type {

@@ -7,6 +7,8 @@
  *
  */
 
+#define _GNU_SOURCE 1
+#include <unistd.h>
 #include <stdio.h>
 #include "token.h"
 #include "smatch.h"
@@ -19,11 +21,12 @@ int final_pass;
 static int __smatch_lineno = 0;
 
 static char *filename;
+static char *pathname;
+static char *full_filename;
 static char *cur_func;
 static int line_func_start;
 static struct expression_stack *switch_expr_stack = NULL;
 
-char *get_filename(void) {	return filename; }
 char *get_function(void) { return cur_func; }
 int get_lineno(void) { return __smatch_lineno; }
 int get_func_pos(void) { return __smatch_lineno - line_func_start; }
@@ -36,6 +39,13 @@ int option_assume_loops = 0;
 int option_known_conditions = 0;
 int option_two_passes = 0;
 struct symbol *cur_func_sym = NULL;
+
+char *get_filename(void)
+{
+	if (option_full_path)
+		return full_filename;
+	return filename;
+}
 
 void __split_expr(struct expression *expr)
 {
@@ -540,7 +550,23 @@ void smatch (int argc, char **argv)
 	}
 	sparse_initialize(argc, argv, &filelist);
 	FOR_EACH_PTR_NOTAG(filelist, filename) {
+		int len;
+
+		pathname = get_current_dir_name();
+		if (pathname) {
+			len = strlen(pathname) + 1 + strlen(filename) + 1;
+			full_filename = malloc(len);
+			snprintf(full_filename, len, "%s/%s", pathname, filename);
+		} else {
+			full_filename = filename;
+		}
+
 		sym_list = __sparse(filename);
 		split_functions(sym_list);
+
+		if (pathname) {
+			free(full_filename);
+			free(pathname);
+		}
 	} END_FOR_EACH_PTR_NOTAG(filename);
 }

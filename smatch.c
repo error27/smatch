@@ -17,6 +17,7 @@ enum project_type option_project = PROJ_NONE;
 char *data_dir;
 int option_no_data = 0;
 int option_spammy = 0;
+int option_full_path = 0;
 
 typedef void (*reg_func) (int id);
 void register_smatch_extra(int id);
@@ -95,14 +96,15 @@ static void help(void)
 {
 	printf("Usage:  smatch [smatch arguments][sparse arguments] file.c\n");
 	printf("--project=<name> or -p=<name>: project specific tests\n");
+	printf("--spammy:  print superfluous crap.\n");
 	printf("--debug:  print lots of debug output.\n");
+	printf("--no-data:  do not use the /smatch_data/ directory.\n");
+	printf("--full-path:  print the full pathname.\n");
 	printf("--debug-implied:  print debug output about implications.\n");
 	printf("--oom <num>:  number of mB memory to use before giving up.\n");
 	printf("--no-implied:  ignore implications.\n");
 	printf("--assume-loops:  assume loops always go through at least once.\n");
 	printf("--known-conditions:  don't branch for known conditions.\n");
-	printf("--no-data:  do not use the /smatch_data/ directory.\n");
-	printf("--spammy:  print superfluous crap.\n");
 	printf("--two-passes:  use a two pass system for each function.\n");
 	printf("--help:  print this helpfull message.\n");
 	exit(1);
@@ -145,6 +147,9 @@ void parse_args(int *argcp, char ***argvp)
 			(*argvp)[1] = (*argvp)[0];
 		} else if (!strcmp((*argvp)[1], "--two-passes")) {
 			option_two_passes = 1;
+			(*argvp)[1] = (*argvp)[0];
+		} else if (!strcmp((*argvp)[1], "--full-path")) {
+			option_full_path = 1;
 			(*argvp)[1] = (*argvp)[0];
 		} else if (!strcmp((*argvp)[1], "--help")) {
 			help();
