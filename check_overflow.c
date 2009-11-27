@@ -184,7 +184,12 @@ static void array_check(struct expression *expr)
 		print_args(offset, array_size);
 	} else if (array_size <= max) {
 		name = get_variable_from_expr(dest, NULL);
-		sm_msg("error: buffer overflow '%s' %d <= %lld", name, array_size, max);
+		/*FIXME!!!!!!!!!!!
+		  blast.  smatch can't figure out glibc's strcmp __strcmp_cg()
+		  so it prints an error every time you compare to a string
+		  literal array with 4 or less chars. */
+		if (strcmp(name, "__s1") && strcmp(name, "__s2"))
+			sm_msg("error: buffer overflow '%s' %d <= %lld", name, array_size, max);
 		free_string(name);
 	}
 }
