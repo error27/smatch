@@ -450,8 +450,10 @@ static void match_comparison(struct expression *expr)
 	}
 	if (varies->type == EXPR_PREOP || varies->type == EXPR_POSTOP)
 		varies = varies->unop;
-	if (varies->type == EXPR_CALL)
-		return;
+	if (varies->type == EXPR_CALL) {
+		function_comparison(comparison, varies, fixed, left);
+                return;
+	}
 
 	name = get_variable_from_expr(varies, &sym);
 	if (!name || !sym)
