@@ -162,17 +162,9 @@ free:
 	return ret;
 }
 
-static const char *get_iter_op(struct expression *expr)
-{
-	if (expr->type != EXPR_POSTOP && expr->type != EXPR_PREOP)
-		return NULL;
-        return show_special(expr->op);
-}
-
 int __iterator_unchanged(struct sm_state *sm, struct statement *iterator)
 {
 	struct expression *iter_expr;
-	const char *op;
 	char *name;
 	struct symbol *sym;
 	int ret = 0;
@@ -182,8 +174,7 @@ int __iterator_unchanged(struct sm_state *sm, struct statement *iterator)
 	if (iterator->type != STMT_EXPRESSION)
 		return 0;
 	iter_expr = iterator->expression;
-        op = get_iter_op(iter_expr);
-	if (!op || (strcmp(op, "--") && strcmp(op, "++")))
+	if (iter_expr->op != SPECIAL_INCREMENT && iter_expr->op != SPECIAL_DECREMENT)
 		return 0;
 	name = get_variable_from_expr(iter_expr->unop, &sym);
 	if (!name || !sym)
@@ -204,7 +195,6 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	struct symbol *sym;
 	long long value;
 	int left = 0;
-	const char *op;
 	struct smatch_state *state;
 	struct data_info *dinfo;
 	long long min, max;
@@ -226,12 +216,11 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 		goto free;
 	if (sym != sm->sym || strcmp(name, sm->name))
 		goto free;
-	op = get_iter_op(iter_expr);
 	state = get_state(my_id, name, sym);
 	dinfo = (struct data_info *)state->data;
 	min = get_dinfo_min(dinfo);
 	max = get_dinfo_max(dinfo);
-	if (!strcmp(op, "++") && min != whole_range.min && max == whole_range.max) {
+	if (iter_expr->op == SPECIAL_INCREMENT && min != whole_range.min && max == whole_range.max) {
 		set_state(my_id, name, sym, alloc_extra_state(min));
 	} else if (min == whole_range.min && max != whole_range.max) {
 		set_state(my_id, name, sym, alloc_extra_state(max));
@@ -328,11 +317,11 @@ static void undef_expr(struct expression *expr)
 	name = get_variable_from_expr(expr->unop, &sym);
 	if (!name)
 		goto free;
-	if (!strcmp("++", show_special(expr->op))) {
+	if (expr->op == SPECIAL_INCREMENT) {
 		if (get_implied_min(expr->unop, &val))
 			min = val + 1;
 	}
-	if (!strcmp("--", show_special(expr->op))) {
+	if (expr->op == SPECIAL_DECREMENT) {
 		if (get_implied_max(expr->unop, &val))
 			max = val - 1;
 	}
