@@ -8,6 +8,7 @@
  */
 
 #include "smatch.h"
+#include "smatch_extra.h"
 
 static int my_id;
 
@@ -31,7 +32,9 @@ static void match_dereference(struct expression *expr)
 		expr = expr->deref->unop;
 		expr = strip_expr(expr);
 	}
-
+	if (implied_not_equal(expr, 0))
+		return;
+	
 	set_state_expr(my_id, expr, &derefed);
 
 	name = get_variable_from_expr(expr, NULL);
@@ -48,8 +51,8 @@ static void match_condition(struct expression *expr)
 		char *name;
 
 		name = get_variable_from_expr(expr, NULL);
-		sm_msg("warn: variable derefenced before check '%s'",
-			name);
+		if (!implied_not_equal(expr, 0))
+			sm_msg("warn: variable derefenced before check '%s'", name);
 		set_state_expr(my_id, expr, &oktocheck);
 		free_string(name);
 	}

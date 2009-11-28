@@ -20,7 +20,7 @@ struct data_info {
 };
 DECLARE_ALLOCATOR(data_info);
 
-/* these are implimented in smatch_extra_helper.c */
+/* these are implimented in smatch_ranges.c */
 struct data_range *alloc_range_perm(long long min, long long max);
 void add_range(struct range_list **list, long long min, long long max);
 int true_comparison_range(struct data_range *left, int comparison, struct data_range *right);
@@ -34,6 +34,7 @@ char *show_ranges(struct range_list *list);
 struct range_list *remove_range(struct range_list *list, long long min, long long max);
 
 /* used in smatch_slist.  implemented in smatch_extra.c */
+int implied_not_equal(struct expression *expr, long long val);
 struct sm_state *__extra_pre_loop_hook_before(struct statement *iterator_pre_statement);
 int __iterator_unchanged(struct sm_state *sm, struct statement *iterator);
 void __extra_pre_loop_hook_after(struct sm_state *sm,

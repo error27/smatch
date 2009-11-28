@@ -563,8 +563,8 @@ void __extra_match_condition(struct expression *expr)
 	}
 }
 
-/* returns 1 if it is not possible for expr to be zero, otherwise returns 0 */
-static int variable_non_zero(struct expression *expr)
+/* returns 1 if it is not possible for expr to be value, otherwise returns 0 */
+int implied_not_equal(struct expression *expr, long long val)
 {
 	char *name;
 	struct symbol *sym;
@@ -577,7 +577,7 @@ static int variable_non_zero(struct expression *expr)
 	state = get_state(my_id, name, sym);
 	if (!state || !state->data)
 		goto exit;
-	ret = !possibly_false(SPECIAL_NOTEQUAL, (struct data_info *)state->data, 0, 1);
+	ret = !possibly_false(SPECIAL_NOTEQUAL, (struct data_info *)state->data, val, 1);
 exit:
 	free_string(name);
 	return ret;
@@ -697,7 +697,7 @@ int implied_condition_true(struct expression *expr)
 			return 1;
 		break;
 	default:
-		if (variable_non_zero(expr) == 1)
+		if (implied_not_equal(expr, 0) == 1)
 			return 1;
 		break;
 	}
