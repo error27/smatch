@@ -354,7 +354,7 @@ static void match_dereferences(struct expression *expr)
 		return;
 	}
 
-	if (strcmp(show_special(expr->deref->op), "*"))
+	if (expr->deref->op != '*')
 		return;
 
 	deref = get_variable_from_expr(expr->deref->unop, &sym);

@@ -27,7 +27,7 @@ static void match_dereference(struct expression *expr)
 	if (expr->type == EXPR_PREOP) {
 		expr = strip_expr(expr->unop);
 	} else {
-		if (strcmp(show_special(expr->deref->op), "*"))
+		if (expr->deref->op != '*')
 			return;
 		expr = expr->deref->unop;
 		expr = strip_expr(expr);
