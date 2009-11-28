@@ -257,6 +257,7 @@ static void match_function_call(struct expression *expr)
 static void match_assign(struct expression *expr)
 {
 	struct expression *left;
+	struct expression *right;
 	struct symbol *sym;
 	char *name;
 	long long value;
@@ -269,7 +270,10 @@ static void match_assign(struct expression *expr)
 	name = get_variable_from_expr(left, &sym);
 	if (!name)
 		return;
-	known = get_value(expr->right, &value);
+	right = strip_expr(expr->right);
+	while (right->type == EXPR_ASSIGNMENT && right->op == '=')
+		right = strip_expr(right->left);
+	known = get_implied_value(right, &value);
 
 	if (expr->op == '=') {
 		if (known)
@@ -279,7 +283,7 @@ static void match_assign(struct expression *expr)
 		goto free;
 	}
 	if (expr->op == SPECIAL_ADD_ASSIGN) {
-		if (get_implied_min(expr->unop, &tmp)) {
+		if (get_implied_min(left, &tmp)) {
 			if (known)
 				min = tmp + value;
 			else
@@ -288,7 +292,7 @@ static void match_assign(struct expression *expr)
 		
 	}
 	if (expr->op == SPECIAL_SUB_ASSIGN) {
-		if (get_implied_max(expr->unop, &tmp)) {
+		if (get_implied_max(left, &tmp)) {
 			if (known)
 				max = tmp - value;
 			else
