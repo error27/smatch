@@ -263,7 +263,7 @@ static void match_declarations(struct symbol *sym)
 			set_state(my_id, name, sym, &malloced);
 			add_scope_hook((scope_hook *)&check_tracker_is_leaked,
 				alloc_tracker(my_id, name, sym));
-			scoped_state(name, my_id, sym);
+			scoped_state(my_id, name, sym);
 		} else {
 			assign_parent(sym);
 		}

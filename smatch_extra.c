@@ -342,10 +342,10 @@ static void match_declarations(struct symbol *sym)
 				set_state(my_id, name, sym, alloc_extra_state(val));
 			else
 				set_state(my_id, name, sym, extra_undefined());
-			scoped_state(name, my_id, sym);
+			scoped_state(my_id, name, sym);
 		} else {
 			set_state(my_id, name, sym, extra_undefined());
-			scoped_state(name, my_id, sym);
+			scoped_state(my_id, name, sym);
 		}
 	}
 }

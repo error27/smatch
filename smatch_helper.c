@@ -524,7 +524,7 @@ static void delete_state_tracker(struct tracker *t)
 	__free_tracker(t);
 }
 
-void scoped_state(const char *name, int my_id, struct symbol *sym)
+void scoped_state(int my_id, const char *name, struct symbol *sym)
 {
 	struct tracker *t;
 

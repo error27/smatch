@@ -321,7 +321,7 @@ static void match_declarations(struct symbol *sym)
 
 	if (!sym->initializer) {
 		set_state(my_id, name, sym, &undefined);
-		scoped_state(name, my_id, sym);
+		scoped_state(my_id, name, sym);
 	}
 }
 
