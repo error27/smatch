@@ -71,13 +71,13 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	switch(expr->type) {
 	case EXPR_DEREF:
 		tmp = expr->deref;
-		if (!strcmp(show_special(tmp->op), "*"))  {
+		if (tmp->op == '*')  {
 			tmp = tmp->unop;
 		}
 		__get_variable_from_expr(sym_ptr, buf, tmp, len, complicated);
 
 		tmp = expr->deref;
-		if (!strcmp(show_special(tmp->op), "*"))  {
+		if (tmp->op == '*')  {
 			append(buf, "->", len);
 		} else {
 			append(buf, ".", len);
@@ -102,17 +102,16 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			return;
 		}
 
-
 		tmp = show_special(expr->op);
 		append(buf, tmp, len);
 		__get_variable_from_expr(sym_ptr, buf, expr->unop, 
 						 len, complicated);
 
-		if (tmp[0] == '(') {
+		if (expr->op == '(') {
 			append(buf, ")", len);
 		}
 
-		if ((!strcmp(tmp, "--")) || (!strcmp(tmp, "++")))
+		if (expr->op == SPECIAL_DECREMENT || expr->op == SPECIAL_INCREMENT)
 			*complicated = 1;
 
 		return;
@@ -125,9 +124,8 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		tmp = show_special(expr->op);
 		append(buf, tmp, len);
 
-		if ((!strcmp(tmp, "--")) || (!strcmp(tmp, "++")))
+		if (expr->op == SPECIAL_DECREMENT || expr->op == SPECIAL_INCREMENT)
 			*complicated = 1;
-
 		return;
 	}
 	case EXPR_BINOP: {
@@ -371,7 +369,7 @@ static int _get_value(struct expression *expr, int *discard, int *undefined, int
 		ret = expr->value;
 		break;
 	case EXPR_PREOP:
-		if (!strcmp("-", show_special(expr->op))) {
+		if (expr->op == '-') {
 			ret = - _get_value(expr->unop, discard, undefined, implied);
 		} else {
 			*undefined = 1;
@@ -381,28 +379,23 @@ static int _get_value(struct expression *expr, int *discard, int *undefined, int
 	case EXPR_BINOP: {
 		int left, right;
 
-		if (!show_special(expr->op)) {
-			*undefined = 1;
-			*discard = 1;
-			break;
-		}
 		left = _get_value(expr->left, discard, undefined, implied);
 		right = _get_value(expr->right, discard, undefined, implied);
-		if (!strcmp("*", show_special(expr->op))) {
+		if (expr->op == '*') {
 			ret =  left * right;
-		} else if (!strcmp("/", show_special(expr->op))) {
+		} else if (expr->op == '/') {
 			ret = left / right;
-		} else if (!strcmp("+", show_special(expr->op))) {
+		} else if (expr->op == '+') {
 			ret = left + right;
-		} else if (!strcmp("-", show_special(expr->op))) {
+		} else if (expr->op == '-') {
 			ret = left - right;
-		} else if (!strcmp("|", show_special(expr->op))) {
+		} else if (expr->op == '|') {
 			ret = left | right;
-		} else if (!strcmp("&", show_special(expr->op))) {
+		} else if (expr->op == '&') {
 			ret = left & right;
-		} else if (!strcmp(">>", show_special(expr->op))) {
+		} else if (expr->op == SPECIAL_RIGHTSHIFT) {
 			ret = left >> right;
-		} else if (!strcmp("<<", show_special(expr->op))) {
+		} else if (expr->op == SPECIAL_LEFTSHIFT) {
 			ret = left << right;
 		} else {
 			*undefined = 1;
@@ -463,10 +456,10 @@ int is_zero(struct expression *expr)
 int is_array(struct expression *expr)
 {
 	expr = strip_expr(expr);
-	if (expr->type != EXPR_PREOP || strcmp(show_special(expr->op), "*"))
+	if (expr->type != EXPR_PREOP || expr->op != '*')
 		return 0;
 	expr = expr->unop;
-	if (strcmp(show_special(expr->op), "+"))
+	if (expr->op != '+')
 		return 0;
 	return 1;
 }
