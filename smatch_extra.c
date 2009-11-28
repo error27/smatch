@@ -301,7 +301,7 @@ free:
 	free_string(name);
 }
 
-static void undef_expr(struct expression *expr)
+static void unop_expr(struct expression *expr)
 {
 	struct symbol *sym;
 	char *name;
@@ -444,9 +444,8 @@ static void match_comparison(struct expression *expr)
 		varies = expr->left;
 		left = 1;
 	}
-	if (varies->type == EXPR_PREOP || varies->type == EXPR_POSTOP) {
+	if (varies->type == EXPR_PREOP || varies->type == EXPR_POSTOP)
 		varies = varies->unop;
-	}
 	if (varies->type == EXPR_CALL)
 		return;
 
@@ -733,7 +732,7 @@ void register_smatch_extra(int id)
 	my_id = id;
 	add_merge_hook(my_id, &merge_func);
 	add_unmatched_state_hook(my_id, &unmatched_state);
-	add_hook(&undef_expr, OP_HOOK);
+	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
