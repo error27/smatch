@@ -26,6 +26,6 @@ void func (void)
  * check-command: smatch sm_memory.c
  *
  * check-output-start
-sm_memory.c +19 func(12) error: memery leak of ac
+sm_memory.c +19 func(12) error: memory leak of ac
  * check-output-end
  */
