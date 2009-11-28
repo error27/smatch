@@ -17,4 +17,7 @@ void check_wine(int id)
 	if (option_project != PROJ_WINE)
 		return;
 	add_function_hook("RpcRaiseException", &__match_nullify_path_hook, NULL);
+	add_function_hook("ExitProcess", &__match_nullify_path_hook, NULL);
+	add_function_hook("exit", &__match_nullify_path_hook, NULL);
+
 }
