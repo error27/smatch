@@ -521,6 +521,8 @@ const char *ignored_attributes[] = {
 	"__model__",
 	"ms_abi",
 	"__ms_abi__",
+	"naked",
+	"__naked__",
 	"no_instrument_function",
 	"__no_instrument_function__",
 	"noinline",
