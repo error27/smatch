@@ -16,7 +16,15 @@ void check_wine(int id)
 
 	if (option_project != PROJ_WINE)
 		return;
+	add_function_hook("fatal", &__match_nullify_path_hook, NULL);
+	add_function_hook("fatal_error", &__match_nullify_path_hook, NULL);
+	add_function_hook("__assert_fail", &__match_nullify_path_hook, NULL);
+	add_function_hook("__assert_perror_fail", &__match_nullify_path_hook, NULL);
+	add_function_hook("raise_status", &__match_nullify_path_hook, NULL);
+	add_function_hook("RaiseException", &__match_nullify_path_hook, NULL);
 	add_function_hook("RpcRaiseException", &__match_nullify_path_hook, NULL);
+	add_function_hook("RtlRaiseException", &__match_nullify_path_hook, NULL);
+	add_function_hook("ExitThread", &__match_nullify_path_hook, NULL);
 	add_function_hook("ExitProcess", &__match_nullify_path_hook, NULL);
 	add_function_hook("exit", &__match_nullify_path_hook, NULL);
 
