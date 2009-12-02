@@ -658,7 +658,7 @@ void merge_slist(struct state_list **to, struct state_list *slist)
  * overwriting the one with the other and pushing it back on the stack.
  * The difference is that it checks to see that a mutually exclusive
  * state isn't included in both stacks.  If smatch sees something like
- * "if (a && !a)" it prints a warning.
+ * "if (a && !a)" it assumes the second one is true.
  */
 void and_slist_stack(struct state_list_stack **slist_stack)
 {
