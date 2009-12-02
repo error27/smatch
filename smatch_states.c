@@ -467,11 +467,9 @@ void __negate_cond_stacks()
 {
 	struct state_list *old_false, *old_true;
 	
+ 	__use_cond_stack(&cond_false_stack);
 	old_false = pop_slist(&cond_false_stack);
 	old_true = pop_slist(&cond_true_stack);
-
-	overwrite_slist(old_false, &cur_slist);
-
 	push_slist(&cond_false_stack, old_true);
 	push_slist(&cond_true_stack, old_false);
 }
