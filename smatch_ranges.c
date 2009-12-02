@@ -288,7 +288,7 @@ int get_single_value_from_range(struct data_info *dinfo, long long *val)
 			return 0;
 		}
 	} END_FOR_EACH_PTR(tmp);
-	return 1;
+	return count;
 }
 
 int true_comparison_range(struct data_range *left, int comparison, struct data_range *right)
