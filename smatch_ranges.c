@@ -170,6 +170,7 @@ void add_range(struct range_list **list, long long min, long long max)
 			REPLACE_CURRENT_PTR(tmp, new);
 			if (!check_next)
 				return;
+			continue;
 		}
 		if (max <= tmp->max) /* new range already included */
 			return;
@@ -178,12 +179,14 @@ void add_range(struct range_list **list, long long min, long long max)
 			new = alloc_range(min, max);
 			REPLACE_CURRENT_PTR(tmp, new);
 			check_next = 1;
+			continue;
 		}
 		if (min != whole_range.min && min - 1 == tmp->max) {
 			/* join 2 ranges into a big range */
 			new = alloc_range(tmp->min, max);
 			REPLACE_CURRENT_PTR(tmp, new);
 			check_next = 1;
+			continue;
 		}
 	} END_FOR_EACH_PTR(tmp);
 	if (check_next)
