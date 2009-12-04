@@ -1,6 +1,6 @@
 #include "check_debug.h"
 int some_func();
-int a, b, c, d;
+int a, b, c, d, e;
 int frob(void) {
 	if (a)
 		__smatch_print_value("a");
@@ -18,6 +18,12 @@ int frob(void) {
 	if (d < -3 || d > 99)
 		return;
 	__smatch_print_value("d");
+	if (d) {
+		if (!e)
+			return;
+	}
+	__smatch_print_value("d");
+	__smatch_print_value("e");
 }
 /*
  * check-name: Smatch range test #2
@@ -31,5 +37,7 @@ sm_range2.c +12 frob(8) b = 0
 sm_range2.c +14 frob(10) b = min-max
 sm_range2.c +17 frob(13) c = unknown
 sm_range2.c +20 frob(16) d = (-3)-99
+sm_range2.c +25 frob(21) d = (-3)-99
+sm_range2.c +26 frob(22) e = min-max
  * check-output-end
  */

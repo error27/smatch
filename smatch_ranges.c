@@ -135,6 +135,12 @@ void add_range(struct range_list **list, long long min, long long max)
 		if (check_next) {
 			/* Sometimes we overlap with more than one range
 			   so we have to delete or modify the next range. */
+			if (max + 1 == tmp->min) {
+				/* join 2 ranges here */
+				new->max = tmp->max;
+				DELETE_CURRENT_PTR(tmp);
+				return;
+			}
 
 			/* Doesn't overlap with the next one. */
 			if (max < tmp->min)
@@ -145,8 +151,9 @@ void add_range(struct range_list **list, long long min, long long max)
 				return;
 			}
 			/* Completely overlaps with the next one. */
-			if (max > tmp->max) {
+			if (max >= tmp->max) {
 				DELETE_CURRENT_PTR(tmp);
+				/* there could be more ranges to delete */
 				continue;
 			}
 		}
@@ -188,6 +195,7 @@ void add_range(struct range_list **list, long long min, long long max)
 			check_next = 1;
 			continue;
 		}
+		/* the new range is entirely above the existing ranges */
 	} END_FOR_EACH_PTR(tmp);
 	if (check_next)
 		return;
