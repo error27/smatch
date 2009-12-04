@@ -163,18 +163,17 @@ static void handle_logical(struct expression *expr)
 	if (!is_logical_and(expr)) 
 		__use_cond_false_states();
 	
-	__save_pre_cond_states();
 	__push_cond_stacks();
 
+	__save_pre_cond_states();
 	split_conditions(expr->right);
+	__pop_pre_cond_states();
 
 	if (is_logical_and(expr)) {
 		__and_cond_states();
 	} else {
 		__or_cond_states();
 	}
-
-	__pop_pre_cond_states();
 	__use_cond_true_states();
 }
 
