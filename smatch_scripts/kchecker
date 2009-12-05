@@ -6,6 +6,7 @@ function useage {
 }
 
 CMD=smatch
+POST="--project=kernel"
 
 while true ; do
     if [[ "$1" == "--sparse" ]] ; then
