@@ -13,7 +13,7 @@
  * Of course, some functions are designed to only hold the locks on success.
  * Oh well... We can rewrite it later if we want.
  *
- * The list of locking functions came from an earlier script written
+ * The list of wine locking functions came from an earlier script written
  * by Michael Stefaniuc.
  *
  */
@@ -48,7 +48,9 @@ struct lock_info {
 	const char *name;
 	int arg;
 	enum return_type return_type;
-} lock_table[] = {
+};
+
+static struct lock_info wine_lock_table[] = {
 	{"create_window_handle", LOCK, "create_window_handle", RETURN_VAL, ret_non_zero},
 	{"WIN_GetPtr", LOCK, "create_window_handle", RETURN_VAL, ret_non_zero},
 	{"WIN_ReleasePtr", UNLOCK, "create_window_handle", 0, ret_any},
@@ -83,6 +85,91 @@ struct lock_info {
 	{"X11DRV_DIB_Lock", LOCK, "X11DRV_DIB_Lock", 0, ret_any},
 	{"X11DRV_DIB_Unlock", UNLOCK, "X11DRV_DIB_Lock", 0, ret_any},
 };
+
+static struct lock_info kernel_lock_table[] = {
+	{"lock_kernel", LOCK, "BKL", NO_ARG, ret_any},
+	{"unlock_kernel", UNLOCK, "BKL", NO_ARG, ret_any},
+	{"__raw_spin_lock", LOCK, "spin_lock", 0, ret_any},
+	{"__raw_spin_unlock", UNLOCK, "spin_lock", 0, ret_any},
+	{"_raw_spin_lock", LOCK, "spin_lock", 0, ret_any},
+	{"_raw_spin_unlock", UNLOCK, "spin_lock", 0, ret_any},
+	{"_spin_lock_nested", LOCK, "spin_lock", 0, ret_any},
+	{"__raw_spin_trylock", LOCK, "spin_lock", 0, ret_non_zero},
+	{"_raw_spin_trylock", LOCK, "spin_lock", 0, ret_non_zero},
+	{"_spin_trylock", LOCK, "spin_lock", 0, ret_non_zero},
+	{"_spin_lock", LOCK, "spin_lock", 0, ret_any},
+	{"_spin_unlock", UNLOCK, "spin_lock", 0, ret_any},
+
+ 	{"_spin_lock_irqsave_nested", LOCK, "spin_lock", 0, ret_any},
+ 	{"_spin_lock_irqsave", LOCK, "spin_lock", 0, ret_any},
+ 	{"_spin_unlock_irqrestore", UNLOCK, "spin_lock", 0, ret_any},
+ 	{"_spin_lock_irq", LOCK, "spin_lock", 0, ret_any},
+ 	{"_spin_unlock_irq", UNLOCK, "spin_lock", 0, ret_any},
+
+	{"__raw_local_irq_save", LOCK, "irqsave", RETURN_VAL, ret_any},
+ 	{"_spin_lock_irqsave_nested", LOCK, "irqsave", 1, ret_any},
+ 	{"_spin_lock_irqsave", LOCK, "irqsave", 1, ret_any},
+ 	{"_spin_unlock_irqrestore", UNLOCK, "irqsave", 1, ret_any},
+ 	{"_spin_lock_irq", LOCK, "irq", NO_ARG, ret_any},
+ 	{"_spin_unlock_irq", UNLOCK, "irq", NO_ARG, ret_any},
+
+ 	{"_spin_trylock_bh", LOCK, "spin_lock_bh", 0, ret_non_zero},
+ 	{"_spin_lock_bh", LOCK, "spin_lock_bh", 0, ret_any},
+ 	{"_spin_unlock_bh", UNLOCK, "spin_lock_bh", 0, ret_any},
+ 	{"generic__raw_read_trylock", LOCK, "read_lock", 0, ret_non_zero},
+ 	{"__raw_read_trylock", LOCK, "read_lock", 0, ret_non_zero},
+ 	{"_raw_read_trylock", LOCK, "read_lock", 0, ret_non_zero},
+ 	{"_read_trylock", LOCK, "read_lock", 0, ret_non_zero},
+ 	{"_read_lock", LOCK, "read_lock", 0, ret_any},
+ 	{"_read_unlock", UNLOCK, "read_lock", 0, ret_any},
+
+ 	{"_read_lock_irqsave", LOCK, "read_lock", 0, ret_any},
+ 	{"_read_unlock_irqrestore", UNLOCK, "read_lock", 0, ret_any},
+ 	{"_read_lock_irq", LOCK, "read_lock", 0, ret_any},
+ 	{"_read_unlock_irq", UNLOCK, "read_lock", 0, ret_any},
+
+ 	{"_read_lock_irqsave", LOCK, "irqsave", 1, ret_any},
+ 	{"_read_unlock_irqrestore", UNLOCK, "irqsave", 1, ret_any},
+ 	{"_read_lock_irq", LOCK, "irq", NO_ARG, ret_any},
+ 	{"_read_unlock_irq", UNLOCK, "irq", NO_ARG, ret_any},
+
+ 	{"_read_lock_bh", LOCK, "read_lock_bh", 0, ret_any},
+ 	{"_read_unlock_bh", UNLOCK, "read_lock_bh", 0, ret_any},
+ 	{"_write_trylock", LOCK, "write_lock", 0, ret_non_zero},
+ 	{"__raw_write_trylock", LOCK, "write_lock", 0, ret_non_zero},
+ 	{"_raw_write_trylock", LOCK, "write_lock", 0, ret_non_zero},
+ 	{"_write_lock", LOCK, "write_lock", 0, ret_any},
+ 	{"_write_unlock", UNLOCK, "write_lock", 0, ret_any},
+
+ 	{"_write_lock_irqsave", LOCK, "write_lock", 0, ret_any},
+ 	{"_write_unlock_irqrestore", UNLOCK, "write_lock", 0, ret_any},
+ 	{"_write_lock_irq", LOCK, "write_lock", 0, ret_any},
+ 	{"_write_unlock_irq", UNLOCK, "write_lock", 0, ret_any},
+
+ 	{"_write_lock_irqsave", LOCK, "irqsave", 1, ret_any},
+ 	{"_write_unlock_irqrestore", UNLOCK, "irqsave", 1, ret_any},
+ 	{"_write_lock_irq", LOCK, "irq", NO_ARG, ret_any},
+ 	{"_write_unlock_irq", UNLOCK, "irq", NO_ARG, ret_any},
+
+ 	{"_write_lock_bh", LOCK, "write_lock_bh", 0, ret_any},
+ 	{"_write_unlock_bh", UNLOCK, "write_lock_bh", 0, ret_any},
+ 	{"down_trylock", LOCK, "sem", 0, ret_zero},
+ 	{"down_interruptible", LOCK, "sem", 0, ret_zero},
+ 	{"down", LOCK, "sem", 0, ret_any},
+ 	{"up", UNLOCK, "sem", 0, ret_any},
+ 	{"mutex_trylock", LOCK, "mutex", 0, ret_non_zero},
+ 	{"mutex_lock_interruptible", LOCK, "mutex", 0, ret_zero},
+ 	{"mutex_lock_interruptible_nested", LOCK, "mutex", 0, ret_zero},
+ 	{"mutex_lock_killable", LOCK, "mutex", 0, ret_zero},
+ 	{"mutex_lock_killable_nested", LOCK, "mutex", 0, ret_zero},
+ 	{"mutex_lock", LOCK, "mutex", 0, ret_any},
+ 	{"mutex_lock_nested", LOCK, "mutex", 0, ret_any},
+ 	{"mutex_unlock", UNLOCK, "mutex", 0, ret_any},
+};
+
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
+
+static struct lock_info *lock_table;
 
 static struct tracker_list *starts_locked;
 static struct tracker_list *starts_unlocked;
@@ -455,28 +542,38 @@ static void register_lock(int index)
 		return_implies_state(lock->function, 0, 0, &match_lock_failed, idx);
        	} else if (lock->return_type == ret_any) {
 		add_function_hook(lock->function, &match_lock_unlock, idx);
-	} else {
-		printf("Error:  Unhandled lock:  %s\n", lock->function);
+	} else if (lock->return_type == ret_zero) {
+		return_implies_state(lock->function, 0, 0, &match_lock_held, idx);
+		return_implies_state(lock->function, whole_range.min, -1, &match_lock_failed, idx);
 	} 
 }
 
-void check_wine_locking(int id)
+static void load_table(struct lock_info *_lock_table, int size)
 {
 	int i;
 
-	if (option_project != PROJ_WINE)
-		return;
+	lock_table = _lock_table;
 
-	my_id = id;
-
-	add_unmatched_state_hook(my_id, &unmatched_state);
-	add_hook(&match_return, RETURN_HOOK);
-	add_hook(&match_func_end, END_FUNC_HOOK);
-
-	for (i = 0; i < sizeof(lock_table)/sizeof(lock_table[0]); i++) {
+	for (i = 0; i < size; i++) {
 		if (lock_table[i].action == LOCK)
 			register_lock(i);
 		else
 			add_function_hook(lock_table[i].function, &match_lock_unlock, (void *)i);
 	}
+}
+
+void check_wine_locking(int id)
+{
+	my_id = id;
+
+	if (option_project == PROJ_WINE)
+		load_table(wine_lock_table, ARRAY_SIZE(wine_lock_table));
+	else if (option_project == PROJ_KERNEL && option_spammy)
+		load_table(kernel_lock_table, ARRAY_SIZE(kernel_lock_table));
+	else
+		return;
+
+	add_unmatched_state_hook(my_id, &unmatched_state);
+	add_hook(&match_return, RETURN_HOOK);
+	add_hook(&match_func_end, END_FUNC_HOOK);
 }
