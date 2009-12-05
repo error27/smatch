@@ -102,7 +102,7 @@ const char *check_name(int id)
 	return reg_funcs[id - 1].name;
 }
 
-struct smatch_state *default_state[sizeof(reg_funcs)/sizeof(reg_func)];
+struct smatch_state *default_state[ARRAY_SIZE(reg_funcs)];
 
 static void help(void)
 {

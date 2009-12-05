@@ -474,7 +474,7 @@ void check_locking(int id)
 		add_function_hook(unlock_funcs[i], &match_unlock_func, NULL);
 	}
 	add_function_hook("unlock_kernel", &match_unlock_func, (void *)"kernel");
-	for (i = 0; i < sizeof(lock_needed)/sizeof(struct locked_call); i++) {
+	for (i = 0; i < ARRAY_SIZE(lock_needed); i++) {
 		add_function_hook(lock_needed[i].function, &match_lock_needed, 
 				  (void *)lock_needed[i].lock);
 	}

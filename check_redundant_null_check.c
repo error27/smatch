@@ -99,7 +99,7 @@ void check_redundant_null_check(int id)
 	if (option_project == PROJ_KERNEL) {
 		add_function_hook("kfree", &dont_check, NULL);
 	} else if (option_project == PROJ_WINE) {
-		for(i = 0; i < sizeof(*wine_funcs)/sizeof(wine_funcs[0]); i++) {
+		for(i = 0; i < ARRAY_SIZE(wine_funcs); i++) {
 			add_function_hook(wine_funcs[i], &dont_check, NULL);
 		}
 	}

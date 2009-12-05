@@ -451,7 +451,7 @@ void check_null_deref(int id)
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_hook(&end_file_processing, END_FILE_HOOK);
 
-	for(i = 0; i < sizeof(*return_null)/sizeof(return_null[0]); i++) {
+	for(i = 0; i < ARRAY_SIZE(return_null); i++) {
 		add_function_assign_hook(return_null[i],
 					 &match_assign_returns_null, NULL);
 	}
