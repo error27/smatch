@@ -39,6 +39,8 @@ static inline int PTR_INT(void *p)
 	return (int)(long)p;
 }
 
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
+
 struct sm_state {
 	unsigned short owner;
 	unsigned int merged:1;
@@ -352,6 +354,6 @@ enum project_type {
 	PROJ_WINE,
 };
 extern enum project_type option_project;
-
+const char *check_name(int id);
 
 #endif 	    /* !SMATCH_H_ */

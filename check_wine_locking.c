@@ -167,8 +167,6 @@ static struct lock_info kernel_lock_table[] = {
  	{"mutex_unlock", UNLOCK, "mutex", 0, ret_any},
 };
 
-#define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
-
 static struct lock_info *lock_table;
 
 static struct tracker_list *starts_locked;

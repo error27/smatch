@@ -94,12 +94,12 @@ void set_state(int owner, const char *name, struct symbol *sym,
 		
 		s = get_state(owner, name, sym);
 		if (!s)
-			printf("%d new state. name='%s' owner=%d: %s\n", 
-			       get_lineno(), name, owner, show_state(state));
+			printf("%d new state. name='%s' [%s] %s\n", 
+				get_lineno(), name, check_name(owner), show_state(state));
 		else
-			printf("%d state change name='%s' owner=%d: %s => %s\n",
-			       get_lineno(), name, owner, show_state(s),
-			       show_state(state));
+			printf("%d state change name='%s' [%s] %s => %s\n",
+				get_lineno(), name, check_name(owner), show_state(s),
+				show_state(state));
 	}
 
 	if (owner != -1 && unreachable())
@@ -142,12 +142,13 @@ void __set_state(struct sm_state *sm)
 		
 		s = get_state(sm->owner, sm->name, sm->sym);
 		if (!s)
-			printf("%d new state. name='%s' owner=%d: %s\n", 
-			       get_lineno(), sm->name, sm->owner, show_state(sm->state));
+			printf("%d new state. name='%s' [%s] %s\n", 
+				get_lineno(), sm->name, check_name(sm->owner),
+				show_state(sm->state));
 		else
-			printf("%d state change name='%s' owner=%d: %s => %s\n",
-			       get_lineno(), sm->name, sm->owner, show_state(s),
-			       show_state(sm->state));
+			printf("%d state change name='%s' [%s] %s => %s\n",
+				get_lineno(), sm->name, check_name(sm->owner), show_state(s),
+				show_state(sm->state));
 	}
 
 	if (unreachable())

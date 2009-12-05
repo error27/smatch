@@ -53,44 +53,54 @@ void check_wine_locking(int id);
 
 /* void register_template(int id); */
 
-static const reg_func reg_funcs[] = {
-	&register_smatch_extra, /* smatch_extra always has to be first */
-	&register_smatch_ignore,
-	&check_debug,
-	&check_assigned_expr,
+#define CK(_x) {.name = #_x, .func = &_x}
+static struct reg_func_info {
+	const char *name;
+	reg_func func;
+} reg_funcs[] = {
+	CK(register_smatch_extra), /* smatch_extra always has to be first */
+	CK(register_smatch_ignore),
+	CK(check_debug),
+	CK(check_assigned_expr),
 
-	&check_null_deref,
-	&check_overflow,
-	&check_memory,
-	&check_type,
-	&check_allocation_funcs,
-	&check_leaks,
-	&check_frees_argument,
-	&check_balanced,
-	&check_deref_check,
-	&check_redundant_null_check,
+	CK(check_null_deref),
+	CK(check_overflow),
+	CK(check_memory),
+	CK(check_type),
+	CK(check_allocation_funcs),
+	CK(check_leaks),
+	CK(check_frees_argument),
+	CK(check_balanced),
+	CK(check_deref_check),
+	CK(check_redundant_null_check),
 
 	/* <- your test goes here */
 	/* &register_template, */
 
 	/* kernel specific */
-	&check_locking,
-	&check_puts_argument,
-	&check_err_ptr,
-	&check_err_ptr_deref,
-	&check_hold_dev,
+	CK(check_locking),
+	CK(check_puts_argument),
+	CK(check_err_ptr),
+	CK(check_err_ptr_deref),
+	CK(check_hold_dev),
 
 	/* wine specific stuff */
-	&check_wine,
-	&check_wine_filehandles,
-	&check_wine_WtoA,
-	&check_wine_locking,
+	CK(check_wine),
+	CK(check_wine_filehandles),
+	CK(check_wine_WtoA),
+	CK(check_wine_locking),
 
-	&register_modification_hooks,
-	&register_containers,
-	&register_implications, /* implications always has to be last */
-	NULL
+	CK(register_modification_hooks),
+	CK(register_containers),
+	CK(register_implications), /* implications always has to be last */
 };
+
+const char *check_name(int id)
+{
+	if (id < 1)
+		return "internal";
+	return reg_funcs[id - 1].name;
+}
 
 struct smatch_state *default_state[sizeof(reg_funcs)/sizeof(reg_func)];
 
@@ -198,10 +208,11 @@ int main(int argc, char **argv)
 
 	data_dir = get_data_dir(argv[0]);
 
-	/* The script IDs start at 1.
-	   0 is used for internal stuff. */
 	create_function_hash();
-	for(i = 0; (func = reg_funcs[i]); i++){
+	for(i = 0; i < ARRAY_SIZE(reg_funcs); i++){
+		func = reg_funcs[i].func;
+		/* The script IDs start at 1.
+		   0 is used for internal stuff. */
 		func(i + 1);
 	}
 	register_function_hooks(-1);

@@ -27,7 +27,7 @@ void __print_slist(struct state_list *slist)
 
 	printf("dumping slist at %d\n", get_lineno());
 	FOR_EACH_PTR(slist, state) {
-		printf("%d '%s'=%s (", state->owner, state->name,
+		printf("[%s] '%s'=%s (", check_name(state->owner), state->name,
 			show_state(state->state));
 		i = 0;
 		FOR_EACH_PTR(state->possible, poss) {
@@ -356,8 +356,8 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 		struct sm_state *tmp;
 		int i = 0;
 
-		printf("%d merge name='%s' owner=%d: %s(L %d) + %s(L %d) => %s (", 
-			get_lineno(), one->name, one->owner,
+		printf("%d merge name='%s' [%s] %s(L %d) + %s(L %d) => %s (", 
+			get_lineno(), one->name, check_name(one->owner),
 			show_state(one->state), one->line,
 			show_state(two->state), two->line,
 			show_state(s));
