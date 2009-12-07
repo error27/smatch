@@ -163,7 +163,6 @@ char *get_variable_from_expr_complex(struct expression *expr,
 				     struct symbol **sym_ptr);
 char *get_variable_from_expr(struct expression *expr,
 			     struct symbol **sym_ptr);
-struct symbol *get_ptr_type(struct expression *expr);
 int sym_name_is(const char *name, struct expression *expr);
 int get_value(struct expression *expr, long long *val);
 int get_implied_value(struct expression *expr, long long *val);
@@ -176,6 +175,10 @@ struct statement *get_block_thing(struct expression *expr);
 struct expression *strip_expr(struct expression *expr);
 void scoped_state(int my_id, const char *name, struct symbol *sym);
 int is_error_return(struct expression *expr);
+
+/* smatch_type.c */
+struct symbol *get_type(struct expression *expr);
+struct symbol *get_ptr_type(struct expression *expr);
 
 /* smatch_ignore.c */
 void add_ignore(int owner, const char *name, struct symbol *sym);

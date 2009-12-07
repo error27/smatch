@@ -43,6 +43,7 @@ void check_balanced(int id);
 void check_deref_check(int id);
 void check_hold_dev(int id);
 void check_redundant_null_check(int id);
+void check_signed(int id);
 /* <- your test goes here */
 
 /* may as well put wine scripts all together */
@@ -73,9 +74,10 @@ static struct reg_func_info {
 	CK(check_balanced),
 	CK(check_deref_check),
 	CK(check_redundant_null_check),
+	CK(check_signed),
 
 	/* <- your test goes here */
-	/* &register_template, */
+	/* CK(register_template), */
 
 	/* kernel specific */
 	CK(check_locking),
@@ -100,6 +102,17 @@ const char *check_name(int id)
 	if (id < 1)
 		return "internal";
 	return reg_funcs[id - 1].name;
+}
+
+int id_from_name(const char *name)
+{
+	int i;
+
+	for(i = 0; i < ARRAY_SIZE(reg_funcs); i++){
+		if (!strcmp(name, reg_funcs[i].name))
+			return i + 1;
+	}
+	return 0;
 }
 
 struct smatch_state *default_state[ARRAY_SIZE(reg_funcs)];
