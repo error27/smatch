@@ -178,7 +178,6 @@ int is_error_return(struct expression *expr);
 
 /* smatch_type.c */
 struct symbol *get_type(struct expression *expr);
-struct symbol *get_ptr_type(struct expression *expr);
 
 /* smatch_ignore.c */
 void add_ignore(int owner, const char *name, struct symbol *sym);

@@ -15,17 +15,17 @@ static void match_free(const char *fn, struct expression *expr, void *data)
 {
 	struct expression *arg_expr;
 	char *name;
-	struct symbol *sym;
 	struct symbol *type;
 
 	arg_expr = get_argument_from_call_expr(expr->args, 0);
-	name = get_variable_from_expr(arg_expr, &sym);
-	if (!name ||!sym)
-		goto exit;
-	type = get_ptr_type(arg_expr);
-	if (type && type->ident && !strcmp("sk_buff", type->ident->name))
-		sm_msg("error: use kfree_skb() here instead of kfree()");
-exit:
+	type = get_type(arg_expr);
+	if (!type || type->type != SYM_PTR)
+		return;
+	type = get_base_type(type);
+	if (!type || !type->ident || strcmp("sk_buff", type->ident->name)) 
+		return;
+	name = get_variable_from_expr_complex(arg_expr, NULL);
+	sm_msg("error: use kfree_skb() here instead of kfree(%s)", name);
 	free_string(name);
 }
 
