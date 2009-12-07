@@ -21,6 +21,11 @@ static void match_all_values(const char *fn, struct expression *expr, void *info
 	free_slist(&slist);
 }
 
+static void match_cur_slist(const char *fn, struct expression *expr, void *info)
+{
+	__print_cur_slist();
+}
+
 static void match_print_value(const char *fn, struct expression *expr, void *info)
 {
 	struct state_list *slist;
@@ -47,4 +52,5 @@ void check_debug(int id)
 	my_id = id;
 	add_function_hook("__smatch_all_values", &match_all_values, NULL);
 	add_function_hook("__smatch_print_value", &match_print_value, NULL);
+	add_function_hook("__smatch_cur_slist", &match_cur_slist, NULL);
 }
