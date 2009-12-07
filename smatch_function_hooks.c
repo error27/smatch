@@ -210,6 +210,8 @@ static struct call_back_list *get_same_ranged_call_backs(struct call_back_list *
 	struct fcall_back *tmp;
 
 	FOR_EACH_PTR(list, tmp) {
+		if (tmp->type != RANGED_CALL)
+			continue;
 		if (tmp->range->min == drange->min && tmp->range->max == drange->max)
 			add_ptr_list(&ret, tmp);
 	} END_FOR_EACH_PTR(tmp);
