@@ -1,19 +1,29 @@
-VERSION=0.4.1
+VERSION=0.4.2
 
-OS ?= linux
+OS = linux
 
-CC ?= gcc
-CFLAGS ?= -finline-functions -fno-strict-aliasing -g
+CC = gcc
+CFLAGS = -O2 -finline-functions -fno-strict-aliasing -g
 CFLAGS += -Wall -Wwrite-strings
-LDFLAGS ?= -g
-AR ?= ar
-
-HAVE_LIBXML=$(shell pkg-config --exists libxml-2.0 && echo 'yes')
+LDFLAGS += -g
+AR = ar
 
 #
-# For debugging, uncomment the next one
+# For debugging, put this in local.mk:
 #
-CFLAGS += -DDEBUG
+#     CFLAGS += -O0 -DDEBUG -g3 -gdwarf-2
+#
+
+HAVE_LIBXML=$(shell pkg-config --exists libxml-2.0 2>/dev/null && echo 'yes')
+HAVE_GCC_DEP=$(shell touch .gcc-test.c && 				\
+		$(CC) -c -Wp,-MD,.gcc-test.d .gcc-test.c 2>/dev/null && \
+		echo 'yes'; rm -f .gcc-test.d .gcc-test.o .gcc-test.c)
+
+CFLAGS += -DGCC_BASE=\"$(shell $(CC) --print-file-name=)\"
+
+ifeq ($(HAVE_GCC_DEP),yes)
+CFLAGS += -Wp,-MD,$(@D)/.$(@F).d
+endif
 
 DESTDIR=
 PREFIX=$(HOME)
@@ -24,8 +34,6 @@ MAN1DIR=$(MANDIR)/man1
 INCLUDEDIR=$(PREFIX)/include
 PKGCONFIGDIR=$(LIBDIR)/pkgconfig
 
-PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse test-linearize example \
-	 test-unssa test-dissect ctags smatch
 SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	 smatch_helper.o smatch_type.o smatch_hooks.o smatch_function_hooks.o \
 	 smatch_modification_hooks.o smatch_extra.o \
@@ -35,12 +43,16 @@ SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 SMATCH_CHECKS=$(shell ls check_*.c | sed -e 's/\.c/.o/')
 
 
+PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse \
+	 test-linearize example test-unssa test-dissect ctags
 INST_PROGRAMS=sparse cgcc smatch
+
 INST_MAN1=sparse.1 cgcc.1
 
 ifeq ($(HAVE_LIBXML),yes)
 PROGRAMS+=c2xml
 INST_PROGRAMS+=c2xml
+c2xml_EXTRA_OBJS = `pkg-config --libs libxml-2.0`
 endif
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
@@ -76,7 +88,28 @@ QUIET_LINK    = $(Q:@=@echo    '     LINK     '$@;)
 QUIET_INST_SH = $(Q:@=echo -n  '     INSTALL  ';)
 QUIET_INST    = $(Q:@=@echo -n '     INSTALL  ';)
 
-all: $(PROGRAMS) sparse.pc
+define INSTALL_EXEC
+	$(QUIET_INST)install -v $1 $(DESTDIR)$2/$1 || exit 1;
+
+endef
+
+define INSTALL_FILE
+	$(QUIET_INST)install -v -m 644 $1 $(DESTDIR)$2/$1 || exit 1;
+
+endef
+
+SED_PC_CMD = 's|@version@|$(VERSION)|g;		\
+	      s|@prefix@|$(PREFIX)|g;		\
+	      s|@libdir@|$(LIBDIR)|g;		\
+	      s|@includedir@|$(INCLUDEDIR)|g'
+
+
+
+# Allow users to override build settings without dirtying their trees
+-include local.mk
+
+
+all: $(PROGRAMS) sparse.pc smatch
 
 install: $(INST_PROGRAMS) $(LIBS) $(LIB_H) sparse.pc
 	$(Q)install -d $(DESTDIR)$(BINDIR)
@@ -84,61 +117,21 @@ install: $(INST_PROGRAMS) $(LIBS) $(LIB_H) sparse.pc
 	$(Q)install -d $(DESTDIR)$(MAN1DIR)
 	$(Q)install -d $(DESTDIR)$(INCLUDEDIR)/sparse
 	$(Q)install -d $(DESTDIR)$(PKGCONFIGDIR)
-	$(Q)for f in $(INST_PROGRAMS); do \
-		$(QUIET_INST_SH)install -v $$f $(DESTDIR)$(BINDIR)/$$f || exit 1; \
-	done
-	$(Q)for f in $(INST_MAN1); do \
-		$(QUIET_INST_SH)install -m 644 -v $$f $(DESTDIR)$(MAN1DIR)/$$f || exit 1; \
-	done
-	$(Q)for f in $(LIBS); do \
-		$(QUIET_INST_SH)install -m 644 -v $$f $(DESTDIR)$(LIBDIR)/$$f || exit 1; \
-	done
-	$(Q)for f in $(LIB_H); do \
-		$(QUIET_INST_SH)install -m 644 -v $$f $(DESTDIR)$(INCLUDEDIR)/sparse/$$f || exit 1; \
-	done
-	$(QUIET_INST)install -m 644 -v sparse.pc $(DESTDIR)$(PKGCONFIGDIR)/sparse.pc
+	$(foreach f,$(INST_PROGRAMS),$(call INSTALL_EXEC,$f,$(BINDIR)))
+	$(foreach f,$(INST_MAN1),$(call INSTALL_FILE,$f,$(MAN1DIR)))
+	$(foreach f,$(LIBS),$(call INSTALL_FILE,$f,$(LIBDIR)))
+	$(foreach f,$(LIB_H),$(call INSTALL_FILE,$f,$(INCLUDEDIR)/sparse))
+	$(call INSTALL_FILE,sparse.pc,$(PKGCONFIGDIR))
 
 sparse.pc: sparse.pc.in
-	$(QUIET_GEN)sed 's|@version@|$(VERSION)|g;s|@prefix@|$(PREFIX)|g;s|@libdir@|$(LIBDIR)|g;s|@includedir@|$(INCLUDEDIR)|g' sparse.pc.in > sparse.pc
+	$(QUIET_GEN)sed $(SED_PC_CMD) sparse.pc.in > sparse.pc
 
-test-lexing: test-lexing.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
 
-test-parsing: test-parsing.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+compile_EXTRA_DEPS = compile-i386.o
 
-test-linearize: test-linearize.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-test-sort: test-sort.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-compile: compile.o compile-i386.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< compile-i386.o $(LIBS)
-
-obfuscate: obfuscate.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-sparse: sparse.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-graph: graph.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-example: example.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-test-unssa: test-unssa.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-test-dissect: test-dissect.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-ctags: ctags.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
-
-c2xml: c2xml.o $(LIBS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS)  -o $@ $< $(LIBS) `pkg-config --libs libxml-2.0`
+$(foreach p,$(PROGRAMS),$(eval $(p): $($(p)_EXTRA_DEPS) $(LIBS)))
+$(PROGRAMS): % : %.o 
+	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $^ $($@_EXTRA_OBJS) 
 
 smatch: smatch.o $(SMATCH_FILES) $(SMATCH_CHECKS) $(LIBS) 
 	$(CC) $(LDFLAGS) -o $@ $< $(SMATCH_FILES) $(SMATCH_CHECKS) $(LIBS) 
@@ -149,30 +142,6 @@ $(LIB_FILE): $(LIB_OBJS)
 $(SLIB_FILE): $(LIB_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) -Wl,-soname,$@ -shared -o $@ $(LIB_OBJS)
 
-evaluate.o: $(LIB_H)
-expression.o: $(LIB_H)
-lib.o: $(LIB_H)
-allocate.o: $(LIB_H)
-ptrlist.o: $(LIB_H)
-parse.o: $(LIB_H)
-pre-process.o: $(LIB_H) pre-process.h
-scope.o: $(LIB_H)
-show-parse.o: $(LIB_H)
-symbol.o: $(LIB_H)
-expand.o: $(LIB_H)
-linearize.o: $(LIB_H)
-flow.o: $(LIB_H)
-cse.o: $(LIB_H)
-simplify.o: $(LIB_H)
-memops.o: $(LIB_H)
-liveness.o: $(LIB_H)
-sort.o: $(LIB_H)
-inline.o: $(LIB_H)
-target.o: $(LIB_H)
-test-lexing.o: $(LIB_H)
-test-parsing.o: $(LIB_H)
-test-linearize.o: $(LIB_H)
-test-dissect.o: $(LIB_H)
 smatch_flow.o: $(LIB_H) smatch.h smatch_expression_stacks.h smatch_extra.h
 smatch_conditions.o: $(LIB_H) smatch.h
 smatch_extra.o: $(LIB_H) smatch.h smatch_extra.h
@@ -205,27 +174,25 @@ example.o: $(LIB_H)
 storage.o: $(LIB_H)
 dissect.o: $(LIB_H)
 graph.o: $(LIB_H)
+DEP_FILES := $(wildcard .*.o.d)
+$(if $(DEP_FILES),$(eval include $(DEP_FILES)))
 
 c2xml.o: c2xml.c $(LIB_H)
 	$(QUIET_CC)$(CC) `pkg-config --cflags libxml-2.0` -o $@ -c $(CFLAGS) $<
 
-compat-linux.o: compat/strtold.c compat/mmap-blob.c \
-	$(LIB_H)
+compat-linux.o: compat/strtold.c compat/mmap-blob.c $(LIB_H)
 compat-solaris.o: compat/mmap-blob.c $(LIB_H)
 compat-mingw.o: $(LIB_H)
 compat-cygwin.o: $(LIB_H)
-
-pre-process.h:
-	$(QUIET_GEN)echo "#define GCC_INTERNAL_INCLUDE \"`$(CC) -print-file-name=include`\"" > pre-process.h
 
 .c.o:
 	$(QUIET_CC)$(CC) -o $@ -c $(CFLAGS) $<
 
 clean: clean-check
-	rm -f *.[oa] $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
+	rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
 
 dist:
-	@if test "`git describe`" != "$(VERSION)" ; then \
+	@if test "`git describe`" != "v$(VERSION)" ; then \
 		echo 'Update VERSION in the Makefile before running "make dist".' ; \
 		exit 1 ; \
 	fi

@@ -18,6 +18,7 @@ extern int bits_in_short;
 extern int bits_in_int;
 extern int bits_in_long;
 extern int bits_in_longlong;
+extern int bits_in_longlonglong;
 
 extern int max_int_alignment;
 
@@ -41,5 +42,19 @@ extern int pointer_alignment;
  */
 extern int bits_in_enum;
 extern int enum_alignment;
+
+/*
+ * Helper functions for converting bits to bytes and vice versa.
+ */
+
+static inline int bits_to_bytes(int bits)
+{
+	return bits >= 0 ? bits / bits_in_char : -1;
+}
+
+static inline int bytes_to_bits(int bytes)
+{
+	return bytes * bits_in_char;
+}
 
 #endif

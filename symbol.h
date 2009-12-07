@@ -10,6 +10,7 @@
  */
 
 #include "token.h"
+#include "target.h"
 
 /*
  * An identifier with semantic meaning is a "symbol".
@@ -63,16 +64,17 @@ enum keyword {
 	KW_MODIFIER	= 1 << 1,
 	KW_QUALIFIER	= 1 << 2,
 	KW_ATTRIBUTE	= 1 << 3,
-	KW_TYPEOF	= 1 << 4,
-	KW_STATEMENT	= 1 << 5,
-	KW_ASM		= 1 << 6,
-	KW_MODE		= 1 << 7,
+	KW_STATEMENT	= 1 << 4,
+	KW_ASM		= 1 << 5,
+	KW_MODE		= 1 << 6,
+	KW_SHORT	= 1 << 7,
+	KW_LONG		= 1 << 8,
+	KW_EXACT	= 1 << 9,
 };
 
 struct context {
 	struct expression *context;
-	unsigned int in, out, out_false;
-	int exact;
+	unsigned int in, out;
 };
 
 extern struct context *alloc_context(void);
@@ -87,6 +89,13 @@ struct ctype {
 	struct symbol *base_type;
 };
 
+struct decl_state {
+	struct ctype ctype;
+	struct ident **ident;
+	struct symbol_op *mode;
+	unsigned char prefer_abstract, is_inline, storage_class, is_tls;
+};
+
 struct symbol_op {
 	enum keyword type;
 	int (*evaluate)(struct expression *);
@@ -94,10 +103,13 @@ struct symbol_op {
 	int (*args)(struct expression *);
 
 	/* keywords */
-	struct token *(*declarator)(struct token *token, struct ctype *ctype);
+	struct token *(*declarator)(struct token *token, struct decl_state *ctx);
 	struct token *(*statement)(struct token *token, struct statement *stmt);
 	struct token *(*toplevel)(struct token *token, struct symbol_list **list);
-	struct token *(*attribute)(struct token *token, struct symbol *attr, struct ctype *ctype);
+	struct token *(*attribute)(struct token *token, struct symbol *attr, struct decl_state *ctx);
+	struct symbol *(*to_mode)(struct symbol *);
+
+	int test, set, class;
 };
 
 extern int expand_safe_p(struct expression *expr, int cost);
@@ -144,7 +156,8 @@ struct symbol {
 					examined:1,
 					expanding:1,
 					evaluated:1,
-					string:1;
+					string:1,
+					designated_init:1;
 			struct expression *array_size;
 			struct ctype ctype;
 			struct symbol_list *arguments;
@@ -155,6 +168,7 @@ struct symbol {
 			struct expression *initializer;
 			struct entrypoint *ep;
 			long long value;		/* Initial value */
+			struct symbol *definition;
 		};
 	};
 	union /* backend */ {
@@ -183,9 +197,11 @@ struct symbol {
 #define MOD_SHORT	0x0200
 #define MOD_LONG	0x0400
 #define MOD_LONGLONG	0x0800
+#define MOD_LONGLONGLONG	0x1000
 
-#define MOD_TYPEDEF	0x1000
+#define MOD_TYPEDEF	0x10000
 
+#define MOD_TLS		0x20000
 #define MOD_INLINE	0x40000
 #define MOD_ADDRESSABLE	0x80000
 
@@ -194,24 +210,25 @@ struct symbol {
 #define MOD_ACCESSED	0x400000
 #define MOD_TOPLEVEL	0x800000	// scoping..
 
-#define MOD_LABEL	0x1000000
 #define MOD_ASSIGNED	0x2000000
 #define MOD_TYPE	0x4000000
 #define MOD_SAFE	0x8000000	// non-null/non-trapping pointer
 
 #define MOD_USERTYPE	0x10000000
-#define MOD_FORCE	0x20000000
+#define MOD_NORETURN	0x20000000
 #define MOD_EXPLICITLY_SIGNED	0x40000000
 #define MOD_BITWISE	0x80000000
 
+
 #define MOD_NONLOCAL	(MOD_EXTERN | MOD_TOPLEVEL)
-#define MOD_STORAGE	(MOD_AUTO | MOD_REGISTER | MOD_STATIC | MOD_EXTERN | MOD_INLINE | MOD_TOPLEVEL | MOD_FORCE)
+#define MOD_STORAGE	(MOD_AUTO | MOD_REGISTER | MOD_STATIC | MOD_EXTERN | MOD_INLINE | MOD_TOPLEVEL)
 #define MOD_SIGNEDNESS	(MOD_SIGNED | MOD_UNSIGNED | MOD_EXPLICITLY_SIGNED)
-#define MOD_SPECIFIER	(MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG | MOD_SIGNEDNESS)
-#define MOD_SIZE	(MOD_CHAR | MOD_SHORT | MOD_LONG | MOD_LONGLONG)
+#define MOD_LONG_ALL	(MOD_LONG | MOD_LONGLONG | MOD_LONGLONGLONG)
+#define MOD_SPECIFIER	(MOD_CHAR | MOD_SHORT | MOD_LONG_ALL | MOD_SIGNEDNESS)
+#define MOD_SIZE	(MOD_CHAR | MOD_SHORT | MOD_LONG_ALL)
 #define MOD_IGNORE (MOD_TOPLEVEL | MOD_STORAGE | MOD_ADDRESSABLE |	\
 	MOD_ASSIGNED | MOD_USERTYPE | MOD_ACCESSED | MOD_EXPLICITLY_SIGNED)
-#define MOD_PTRINHERIT (MOD_VOLATILE | MOD_CONST | MOD_NODEREF | MOD_STORAGE)
+#define MOD_PTRINHERIT (MOD_VOLATILE | MOD_CONST | MOD_NODEREF | MOD_STORAGE | MOD_NORETURN)
 
 
 /* Current parsing/evaluation function */
@@ -228,6 +245,7 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			int_ctype, sint_ctype, uint_ctype,
 			long_ctype, slong_ctype, ulong_ctype,
 			llong_ctype, sllong_ctype, ullong_ctype,
+			lllong_ctype, slllong_ctype, ulllong_ctype,
 			float_ctype, double_ctype, ldouble_ctype,
 			string_ctype, ptr_ctype, lazy_ptr_ctype,
 			incomplete_ctype, label_ctype, bad_ctype,
@@ -295,6 +313,49 @@ static inline int is_enum_type(const struct symbol *type)
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
 	return (type->type == SYM_ENUM);
+}
+
+static inline int is_type_type(struct symbol *type)
+{
+	return (type->ctype.modifiers & MOD_TYPE) != 0;
+}
+
+static inline int is_ptr_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type->type == SYM_PTR || type->type == SYM_ARRAY || type->type == SYM_FN;
+}
+
+static inline int is_float_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type->ctype.base_type == &fp_type;
+}
+
+static inline int is_byte_type(struct symbol *type)
+{
+	return type->bit_size == bits_in_char && type->type != SYM_BITFIELD;
+}
+
+static inline int is_void_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type == &void_ctype;
+}
+
+static inline int is_function(struct symbol *type)
+{
+	return type && type->type == SYM_FN;
+}
+
+static inline int is_extern_inline(struct symbol *sym)
+{
+	return (sym->ctype.modifiers & MOD_EXTERN) &&
+		(sym->ctype.modifiers & MOD_INLINE) &&
+		is_function(sym->ctype.base_type);
 }
 
 static inline int get_sym_type(struct symbol *type)

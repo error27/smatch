@@ -9,6 +9,8 @@
  *  Licensed under the Open Software License version 1.1
  */
 
+struct symbol;
+
 struct scope {
 	struct token *token;		/* Scope start information */
 	struct symbol_list *symbols;	/* List of symbols in this scope */

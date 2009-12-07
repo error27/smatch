@@ -1,10 +1,15 @@
 #ifndef FLOW_H
 #define FLOW_H
 
+#include "lib.h"
+
 extern unsigned long bb_generation;
 
 #define REPEAT_CSE		1
 #define REPEAT_SYMBOL_CLEANUP	2
+
+struct entrypoint;
+struct instruction;
 
 extern int simplify_flow(struct entrypoint *ep);
 
@@ -29,6 +34,7 @@ int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom
 extern void clear_liveness(struct entrypoint *ep);
 extern void track_pseudo_liveness(struct entrypoint *ep);
 extern void track_pseudo_death(struct entrypoint *ep);
+extern void track_phi_uses(struct instruction *insn);
 
 extern void vrfy_flow(struct entrypoint *ep);
 extern int pseudo_in_list(struct pseudo_list *list, pseudo_t pseudo);

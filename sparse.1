@@ -20,6 +20,10 @@ off those warnings, pass the negation of the associated warning option,
 .
 .SH WARNING OPTIONS
 .TP
+.B \-Wsparse\-all
+Turn on all sparse warnings, except for those explicitly disabled via
+\fB\-Wno\-something\fR.
+.TP
 .B \-Waddress\-space
 Warn about code which mixes pointers to different address spaces.
 
@@ -73,43 +77,20 @@ Warn about potential errors in synchronization or other delimited contexts.
 Sparse supports several means of designating functions or statements that
 delimit contexts, such as synchronization.  Functions with the extended
 attribute
-.BI __attribute__((context( [expression ,] in_context , out_context ))
-require the context \fIexpression\fR (for instance, a lock) to have at least the value
+.BI __attribute__((context( expression , in_context , out_context ))
+require the context \fIexpression\fR (for instance, a lock) to have the value
 \fIin_context\fR (a constant nonnegative integer) when called, and return with
-the value adjusted by \fIout_context - in_context\fR (where
-\fIout_context\fR is a constant nonnegative integer).  To change the value
-of a context (for example in macros), use the statement
-.BI __context__( [expression , ]adjust_value[ , required] )
-where \fIadjust_value\fR is a constant integer and \fIrequired\fR is a
-constant nonnegative integer. Not giving \fIrequired\fR is equivalent to
-giving zero and means that the statement does not need the context as a
-precondition, when given it means that the context must at least have the
-value of \fIrequired\fR.
+the value \fIout_context\fR (a constant nonnegative integer).  For APIs
+defined via macros, use the statement form
+.BI __context__( expression , in_value , out_value )
+in the body of the macro.
 
-To indicate that a function requires
-.BI exactly
-a certain lock context (not "at least" as above), use the form
-.BI __attribute__((exact_context( [expression ,] in_context , out_context ))
-There currently is no corresponding
-.BI __exact_context__( [expression , ]adjust_value[ , required] )
-statement.
-
-To indicate that a certain function acquires a context depending on its
-return value, use
-.BI __attribute__((conditional_context( [expression ,] in_context , out_success , out_failure ))
-where \fIout_success\fR and \fIout_failure\fR indicate the context change
-done depending on success (non-zero) or failure (zero) return of the
-function. Note that currently, using this attribute on a function means that
-the function itself won't be checked for context handling at all. See the
-testsuite for examples.
-
-Sparse will warn when it sees a function change a
-context without indicating this with a \fBcontext\fR or \fBexact_context\fR attribute, either by
+With \fB-Wcontext\fR Sparse will warn when it sees a function change the
+context without indicating this with a \fBcontext\fR attribute, either by
 decreasing a context below zero (such as by releasing a lock without acquiring
 it), or returning with a changed context (such as by acquiring a lock without
 releasing it).  Sparse will also warn about blocks of code which may
-potentially execute with different contexts and about functions that are
-executed without a lock they require.
+potentially execute with different contexts.
 
 Sparse issues these warnings by default.  To turn them off, use
 \fB\-Wno\-context\fR.
@@ -155,6 +136,30 @@ To fix this, specify the bitfield type as \fBsigned\fR or \fBunsigned\fR
 explicitly.
 
 Sparse does not issue these warnings by default.
+.
+.TP
+.B \-Wdesignated\-init
+Warn about positional initialization of structs marked as requiring designated
+initializers.
+
+Sparse allows an attribute
+.BI __attribute__((designated_init))
+which marks a struct as requiring designated initializers.  Sparse will warn
+about positional initialization of a struct variable or struct literal of a
+type that has this attribute.
+
+Requiring designated initializers for a particular struct type will insulate
+code using that struct type from changes to the layout of the type, avoiding
+the need to change initializers for that type unless they initialize a removed
+or incompatibly changed field.
+
+Common examples of this type of struct include collections of function pointers
+for the implementations of a class of related operations, for which the default
+NULL for an unmentioned field in a designated initializer will correctly
+indicate the absence of that operation.
+
+Sparse issues these warnings by default.  To turn them off, use
+\fB\-Wno\-designated\-init\fR.
 .
 .TP
 .B \-Wdo\-while
@@ -286,6 +291,18 @@ symbol in preprocessor conditionals, and specifies it has have a value of 0.
 However, this behavior can lead to subtle errors.
 
 Sparse does not issue these warnings by default.
+.
+.SH MISC OPTIONS
+.TP
+.B \-gcc-base-dir \fIdir\fR
+Look for compiler-provided system headers in \fIdir\fR/include/ and \fIdir\fR/include-fixed/.
+.
+.SH OTHER OPTIONS
+.TP
+.B \-ftabstop=WIDTH
+Set the distance between tab stops.  This helps sparse report correct
+column numbers in warnings or errors.  If the value is less than 1 or
+greater than 100, the option is ignored.  The default is 8.
 .
 .SH SEE ALSO
 .BR cgcc (1)

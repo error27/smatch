@@ -55,7 +55,9 @@ static inline int type_size(struct symbol *type)
 
 static struct instruction *alloc_typed_instruction(int opcode, struct symbol *type)
 {
-	return alloc_instruction(opcode, type_size(type));
+	struct instruction *insn = alloc_instruction(opcode, type_size(type));
+	insn->type = type;
+	return insn;
 }
 
 static struct entrypoint *alloc_entrypoint(void)
@@ -66,6 +68,7 @@ static struct entrypoint *alloc_entrypoint(void)
 static struct basic_block *alloc_basic_block(struct entrypoint *ep, struct position pos)
 {
 	struct basic_block *bb = __alloc_basic_block(0);
+	bb->context = -1;
 	bb->pos = pos;
 	bb->ep = ep;
 	return bb;
@@ -438,7 +441,7 @@ const char *show_instruction(struct instruction *insn)
 		break;
 
 	case OP_CONTEXT:
-		buf += sprintf(buf, "%s%d,%d", "", insn->increment, insn->inc_false);
+		buf += sprintf(buf, "%s%d", insn->check ? "check: " : "", insn->increment);
 		break;
 	case OP_RANGE:
 		buf += sprintf(buf, "%s between %s..%s", show_pseudo(insn->src1), show_pseudo(insn->src2), show_pseudo(insn->src3));
@@ -663,7 +666,7 @@ void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic
 }
 	
 
-void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi_node, pseudo_t true, pseudo_t false)
+void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi_node, pseudo_t if_true, pseudo_t if_false)
 {
 	pseudo_t target;
 	struct instruction *select;
@@ -682,8 +685,8 @@ void insert_select(struct basic_block *bb, struct instruction *br, struct instru
 	select->target = target;
 	target->def = select;
 
-	use_pseudo(select, true, &select->src2);
-	use_pseudo(select, false, &select->src3);
+	use_pseudo(select, if_true, &select->src2);
+	use_pseudo(select, if_false, &select->src3);
 
 	add_instruction(&bb->insns, select);
 	add_instruction(&bb->insns, br);
@@ -1232,12 +1235,22 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 		FOR_EACH_PTR(ctype->contexts, context) {
 			int in = context->in;
 			int out = context->out;
-
-			if (out - in || context->out_false - in) {
+			int check = 0;
+			int context_diff;
+			if (in < 0) {
+				check = 1;
+				in = 0;
+			}
+			if (out < 0) {
+				check = 0;
+				out = 0;
+			}
+			context_diff = out - in;
+			if (check || context_diff) {
 				insn = alloc_instruction(OP_CONTEXT, 0);
-				insn->increment = out - in;
+				insn->increment = context_diff;
+				insn->check = check;
 				insn->context_expr = context->context;
-				insn->inc_false = context->out_false - in;
 				add_one_insn(ep, insn);
 			}
 		} END_FOR_EACH_PTR(context);
@@ -1376,7 +1389,9 @@ static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr
 
 	shortcut = alloc_const_expression(expr->pos, expr->op == SPECIAL_LOGICAL_OR);
 	shortcut->ctype = expr->ctype;
-	return  linearize_conditional(ep, expr, expr->left, shortcut, expr->right);
+	if (expr->op == SPECIAL_LOGICAL_OR)
+		return linearize_conditional(ep, expr, expr->left, shortcut, expr->right);
+	return linearize_conditional(ep, expr, expr->left, expr->right, shortcut);
 }
 
 static pseudo_t linearize_compare(struct entrypoint *ep, struct expression *expr)
@@ -1672,16 +1687,6 @@ static pseudo_t linearize_context(struct entrypoint *ep, struct statement *stmt)
 		value = expr->value;
 
 	insn->increment = value;
-	insn->inc_false = value;
-
-	expr = stmt->required;
-	value = 0;
-
-	if (expr && expr->type == EXPR_VALUE)
-		value = expr->value;
-
-	insn->required = value;
-
 	insn->context_expr = stmt->context;
 	add_one_insn(ep, insn);
 	return VOID;

@@ -72,7 +72,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 	unsigned int length = expr->string->length;
 
 	sym->array_size = alloc_const_expression(expr->pos, length);
-	sym->bit_size = bits_in_char * length;
+	sym->bit_size = bytes_to_bits(length);
 	sym->ctype.alignment = 1;
 	sym->string = 1;
 	sym->ctype.modifiers = MOD_STATIC;
@@ -83,7 +83,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 	initstr->string = expr->string;
 
 	array->array_size = sym->array_size;
-	array->bit_size = bits_in_char * length;
+	array->bit_size = bytes_to_bits(length);
 	array->ctype.alignment = 1;
 	array->ctype.modifiers = MOD_STATIC;
 	array->ctype.base_type = &char_ctype;
@@ -165,7 +165,7 @@ static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 	if ((lmod ^ rmod) & MOD_UNSIGNED) {
 		if (lmod & MOD_UNSIGNED)
 			goto left;
-	} else if ((lmod & ~rmod) & (MOD_LONG | MOD_LONGLONG))
+	} else if ((lmod & ~rmod) & (MOD_LONG_ALL))
 		goto left;
 right:
 	left = right;
@@ -313,30 +313,6 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 	return expr;
 }
 
-static int is_type_type(struct symbol *type)
-{
-	return (type->ctype.modifiers & MOD_TYPE) != 0;
-}
-
-int is_ptr_type(struct symbol *type)
-{
-	if (type->type == SYM_NODE)
-		type = type->ctype.base_type;
-	return type->type == SYM_PTR || type->type == SYM_ARRAY || type->type == SYM_FN;
-}
-
-static inline int is_float_type(struct symbol *type)
-{
-	if (type->type == SYM_NODE)
-		type = type->ctype.base_type;
-	return type->ctype.base_type == &fp_type;
-}
-
-static inline int is_byte_type(struct symbol *type)
-{
-	return type->bit_size == bits_in_char && type->type != SYM_BITFIELD;
-}
-
 enum {
 	TYPE_NUM = 1,
 	TYPE_BITFIELD = 2,
@@ -362,6 +338,11 @@ static inline int classify_type(struct symbol *type, struct symbol **base)
 	};
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
+	if (type->type == SYM_TYPEOF) {
+		type = evaluate_expression(type->initializer);
+		if (type->type == SYM_NODE)
+			type = type->ctype.base_type;
+	}
 	if (type->type == SYM_ENUM)
 		type = type->ctype.base_type;
 	*base = type;
@@ -531,7 +512,7 @@ Normal:
 	} else if (rclass & TYPE_FLOAT) {
 		unsigned long lmod = ltype->ctype.modifiers;
 		unsigned long rmod = rtype->ctype.modifiers;
-		if (rmod & ~lmod & (MOD_LONG | MOD_LONGLONG))
+		if (rmod & ~lmod & (MOD_LONG_ALL))
 			return rtype;
 		else
 			return ltype;
@@ -555,11 +536,6 @@ static inline int lvalue_expression(struct expression *expr)
 	return expr->type == EXPR_PREOP && expr->op == '*';
 }
 
-static inline int is_function(struct symbol *type)
-{
-	return type && type->type == SYM_FN;
-}
-
 static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *itype)
 {
 	struct expression *index = expr->right;
@@ -579,7 +555,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *i
 	}
 
 	/* Get the size of whatever the pointer points to */
-	multiply = base->bit_size >> 3;
+	multiply = is_void_type(base) ? 1 : bits_to_bytes(base->bit_size);
 
 	if (ctype == &null_ctype)
 		ctype = &ptr_ctype;
@@ -708,7 +684,7 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 			/* XXX: we ought to compare sizes */
 			break;
 		case SYM_PTR:
-			if (Waddress_space && as1 != as2)
+			if (as1 != as2)
 				return "different address spaces";
 			/* MOD_SPECIFIER is due to idiocy in parse.c */
 			if ((mod1 ^ mod2) & ~MOD_IGNORE & ~MOD_SPECIFIER)
@@ -725,7 +701,7 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 			struct symbol *arg1, *arg2;
 			int i;
 
-			if (Waddress_space && as1 != as2)
+			if (as1 != as2)
 				return "different address spaces";
 			if ((mod1 ^ mod2) & ~MOD_IGNORE & ~MOD_SIGNEDNESS)
 				return "different modifiers";
@@ -764,7 +740,7 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 			break;
 		}
 		case SYM_BASETYPE:
-			if (Waddress_space && as1 != as2)
+			if (as1 != as2)
 				return "different address spaces";
 			if (base1 != base2)
 				return "different base types";
@@ -781,7 +757,7 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 		t1 = base1;
 		t2 = base2;
 	}
-	if (Waddress_space && as1 != as2)
+	if (as1 != as2)
 		return "different address spaces";
 	if ((mod1 ^ mod2) & ~MOD_IGNORE & ~MOD_SIGNEDNESS)
 		return "different modifiers";
@@ -831,7 +807,7 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr)
 		struct expression *sub = alloc_expression(expr->pos, EXPR_BINOP);
 		struct expression *div = expr;
 		struct expression *val = alloc_expression(expr->pos, EXPR_VALUE);
-		unsigned long value = lbase->bit_size >> 3;
+		unsigned long value = bits_to_bytes(lbase->bit_size);
 
 		val->ctype = size_t_ctype;
 		val->value = value;
@@ -921,9 +897,16 @@ static struct symbol *evaluate_binop(struct expression *expr)
 			rtype = integer_promotion(rtype);
 		} else {
 			// The rest do usual conversions
-			if (op == '&' && expr->left->type == EXPR_PREOP &&
-			    expr->left->op == '!')
-				warning(expr->pos, "dubious: !x & y");
+			const unsigned left_not  = expr->left->type == EXPR_PREOP
+			                           && expr->left->op == '!';
+			const unsigned right_not = expr->right->type == EXPR_PREOP
+			                           && expr->right->op == '!';
+			if ((op == '&' || op == '|') && (left_not || right_not))
+				warning(expr->pos, "dubious: %sx %c %sy",
+				        left_not ? "!" : "",
+					op,
+					right_not ? "!" : "");
+
 			ltype = usual_conversions(op, expr->left, expr->right,
 						  lclass, rclass, ltype, rtype);
 			ctype = rtype = ltype;
@@ -1591,7 +1574,7 @@ static struct symbol *degenerate(struct expression *expr)
 				e3->op = '+';
 				e3->left = e0;
 				e3->right = alloc_const_expression(expr->pos,
-							expr->r_bitpos >> 3);
+							bits_to_bytes(expr->r_bitpos));
 				e3->ctype = &lazy_ptr_ctype;
 			} else {
 				e3 = e0;
@@ -1727,7 +1710,7 @@ static struct symbol *evaluate_postop(struct expression *expr)
 	} else if (class == TYPE_PTR) {
 		struct symbol *target = examine_pointer_target(ctype);
 		if (!is_function(target))
-			multiply = target->bit_size >> 3;
+			multiply = bits_to_bytes(target->bit_size);
 	}
 
 	if (multiply) {
@@ -1949,7 +1932,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 			expr->base = deref->base;
 			expr->r_bitpos = deref->r_bitpos;
 		}
-		expr->r_bitpos += offset << 3;
+		expr->r_bitpos += bytes_to_bits(offset);
 		expr->type = EXPR_SLICE;
 		expr->r_nrbits = member->bit_size;
 		expr->r_bitpos += member->bit_offset;
@@ -2037,10 +2020,22 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 		return NULL;
 
 	size = type->bit_size;
-	if ((size < 0) || (size & 7))
+
+	if (size < 0 && is_void_type(type)) {
+		warning(expr->pos, "expression using sizeof(void)");
+		size = bits_in_char;
+	}
+
+	if (is_function(type->ctype.base_type)) {
+		warning(expr->pos, "expression using sizeof on a function");
+		size = bits_in_char;
+	}
+
+	if ((size < 0) || (size & (bits_in_char - 1)))
 		expression_error(expr, "cannot size expression");
+
 	expr->type = EXPR_VALUE;
-	expr->value = size >> 3;
+	expr->value = bits_to_bytes(size);
 	expr->taint = 0;
 	expr->ctype = size_t_ctype;
 	return size_t_ctype;
@@ -2071,10 +2066,10 @@ static struct symbol *evaluate_ptrsizeof(struct expression *expr)
 		return NULL;
 	}
 	size = type->bit_size;
-	if (size & 7)
+	if (size & (bits_in_char-1))
 		size = 0;
 	expr->type = EXPR_VALUE;
-	expr->value = size >> 3;
+	expr->value = bits_to_bytes(size);
 	expr->taint = 0;
 	expr->ctype = size_t_ctype;
 	return size_t_ctype;
@@ -2119,7 +2114,7 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 				*p = cast_to(expr, integer_promotion(type));
 			} else if (class & TYPE_FLOAT) {
 				unsigned long mod = type->ctype.modifiers;
-				if (!(mod & (MOD_LONG|MOD_LONGLONG)))
+				if (!(mod & (MOD_LONG_ALL)))
 					*p = cast_to(expr, &double_ctype);
 			} else if (class & TYPE_PTR) {
 				if (expr->ctype == &null_ctype)
@@ -2158,7 +2153,7 @@ static void convert_index(struct expression *e)
 	unsigned from = e->idx_from;
 	unsigned to = e->idx_to + 1;
 	e->type = EXPR_POS;
-	e->init_offset = from * (e->ctype->bit_size>>3);
+	e->init_offset = from * bits_to_bytes(e->ctype->bit_size);
 	e->init_nr = to - from;
 	e->init_expr = child;
 }
@@ -2371,6 +2366,7 @@ static void handle_list_initializer(struct expression *expr,
 		int lclass;
 
 		if (e->type != EXPR_INDEX && e->type != EXPR_IDENTIFIER) {
+			struct symbol *struct_sym;
 			if (!top) {
 				top = e;
 				last = first_subobject(ctype, class, &top);
@@ -2383,6 +2379,15 @@ static void handle_list_initializer(struct expression *expr,
 				DELETE_CURRENT_PTR(e);
 				continue;
 			}
+			struct_sym = ctype->type == SYM_NODE ? ctype->ctype.base_type : ctype;
+			if (Wdesignated_init && struct_sym->designated_init)
+				warning(e->pos, "%s%.*s%spositional init of field in %s %s, declared with attribute designated_init",
+					ctype->ident ? "in initializer for " : "",
+					ctype->ident ? ctype->ident->len : 0,
+					ctype->ident ? ctype->ident->name : "",
+					ctype->ident ? ": " : "",
+					get_type_name(struct_sym->type),
+					show_ident(struct_sym->ident));
 			if (jumped) {
 				warning(e->pos, "advancing past deep designator");
 				jumped = 0;
@@ -2740,6 +2745,10 @@ static int evaluate_symbol_call(struct expression *expr)
 	if (ctype->ctype.modifiers & MOD_INLINE) {
 		int ret;
 		struct symbol *curr = current_fn;
+
+		if (ctype->definition)
+			ctype = ctype->definition;
+
 		current_fn = ctype->ctype.base_type;
 
 		ret = inline_function(expr, ctype);
@@ -2865,7 +2874,7 @@ static struct symbol *evaluate_offsetof(struct expression *expr)
 			unrestrict(idx, i_class, &i_type);
 			idx = cast_to(idx, size_t_ctype);
 			m = alloc_const_expression(expr->pos,
-						   ctype->bit_size >> 3);
+						   bits_to_bytes(ctype->bit_size));
 			m->ctype = size_t_ctype;
 			m->flags = Int_const_expr;
 			expr->type = EXPR_BINOP;
@@ -3045,6 +3054,9 @@ static struct symbol *evaluate_symbol(struct symbol *sym)
 	if (base_type->type == SYM_FN) {
 		struct symbol *curr = current_fn;
 
+		if (sym->definition && sym->definition != sym)
+			return evaluate_symbol(sym->definition);
+
 		current_fn = base_type;
 
 		examine_fn_arguments(base_type);
@@ -3106,6 +3118,7 @@ static void evaluate_if_statement(struct statement *stmt)
 
 static void evaluate_iterator(struct statement *stmt)
 {
+	evaluate_symbol_list(stmt->iterator_syms);
 	evaluate_conditional(stmt->iterator_pre_condition, 1);
 	evaluate_conditional(stmt->iterator_post_condition,1);
 	evaluate_statement(stmt->iterator_pre_statement);

@@ -49,7 +49,7 @@ struct symbol *lookup_symbol(struct ident *ident, enum namespace ns)
 			return sym;
 		}
 	}
-	return sym;
+	return NULL;
 }
 
 struct context *alloc_context(void)
@@ -128,7 +128,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		base_size = 0;
 	}
 
-	align_bit_mask = (sym->ctype.alignment << 3) - 1;
+	align_bit_mask = bytes_to_bits(sym->ctype.alignment) - 1;
 
 	/*
 	 * Bitfields have some very special rules..
@@ -143,7 +143,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 			bit_size = (bit_size + align_bit_mask) & ~align_bit_mask;
 			bit_offset = 0;
 		}
-		sym->offset = (bit_size - bit_offset) >> 3;
+		sym->offset = bits_to_bytes(bit_size - bit_offset);
 		sym->bit_offset = bit_offset;
 		sym->ctype.base_type->bit_offset = bit_offset;
 		info->bit_size = bit_size + width;
@@ -156,7 +156,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 	 * Otherwise, just align it right and add it up..
 	 */
 	bit_size = (bit_size + align_bit_mask) & ~align_bit_mask;
-	sym->offset = bit_size >> 3;
+	sym->offset = bits_to_bytes(bit_size);
 
 	info->bit_size = bit_size + base_size;
 	// warning (sym->pos, "regular: offset=%d", sym->offset);
@@ -182,7 +182,7 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 		sym->ctype.alignment = info.max_align;
 	bit_size = info.bit_size;
 	if (info.align_size) {
-		bit_align = (sym->ctype.alignment << 3)-1;
+		bit_align = bytes_to_bits(sym->ctype.alignment)-1;
 		bit_size = (bit_size + bit_align) & ~bit_align;
 	}
 	sym->bit_size = bit_size;
@@ -522,6 +522,8 @@ void check_declaration(struct symbol *sym)
 			return;
 		}
 		if (sym->ctype.modifiers & next->ctype.modifiers & MOD_EXTERN) {
+			if ((sym->ctype.modifiers ^ next->ctype.modifiers) & MOD_INLINE)
+				continue;
 			sym->same_symbol = next;
 			return;
 		}
@@ -558,8 +560,10 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 	scope = block_scope;
 	if (ns == NS_SYMBOL && toplevel(scope)) {
 		unsigned mod = MOD_ADDRESSABLE | MOD_TOPLEVEL;
+
 		scope = global_scope;
-		if (sym->ctype.modifiers & MOD_STATIC) {
+		if (sym->ctype.modifiers & MOD_STATIC ||
+		    is_extern_inline(sym)) {
 			scope = file_scope;
 			mod = MOD_TOPLEVEL;
 		}
@@ -687,46 +691,6 @@ out:
 	return 0;
 }
 
-/*
- * Type and storage class keywords need to have the symbols
- * created for them, so that the parser can have enough semantic
- * information to do parsing.
- *
- * "double" == "long float", "long double" == "long long float"
- */
-static struct sym_init {
-	const char *name;
-	struct symbol *base_type;
-	unsigned int modifiers;
-	struct symbol_op *op;
-} symbol_init_table[] = {
-	/* Storage class */
-	{ "auto",	NULL,		MOD_AUTO },
-	{ "register",	NULL,		MOD_REGISTER },
-	{ "static",	NULL,		MOD_STATIC },
-	{ "extern",	NULL,		MOD_EXTERN },
-
-	/* Type specifiers */
-	{ "void",	&void_ctype,	0 },
-	{ "char",	NULL,		MOD_CHAR },
-	{ "short",	NULL,		MOD_SHORT },
-	{ "int",	&int_type,	0 },
-	{ "long",	NULL,		MOD_LONG },
-	{ "float",	&fp_type,	0 },
-	{ "double",	&fp_type,	MOD_LONG },
-	{ "signed",	NULL,		MOD_SIGNED | MOD_EXPLICITLY_SIGNED },
-	{ "__signed",	NULL,		MOD_SIGNED | MOD_EXPLICITLY_SIGNED },
-	{ "__signed__",	NULL,		MOD_SIGNED | MOD_EXPLICITLY_SIGNED },
-	{ "unsigned",	NULL,		MOD_UNSIGNED },
-	{ "__label__",	&label_ctype,	MOD_LABEL | MOD_UNSIGNED },
-	{ "_Bool",	&bool_ctype,	MOD_UNSIGNED },
-
-	/* Predeclared types */
-	{ "__builtin_va_list", &int_type, 0 },
-
-	{ NULL,		NULL,		0 }
-};
-
 static struct symbol_op constant_p_op = {
 	.evaluate = evaluate_to_integer,
 	.expand = expand_constant_p
@@ -756,7 +720,12 @@ static struct symbol_op choose_op = {
  * Builtin functions
  */
 static struct symbol builtin_fn_type = { .type = SYM_FN /* , .variadic =1 */ };
-static struct sym_init eval_init_table[] = {
+static struct sym_init {
+	const char *name;
+	struct symbol *base_type;
+	unsigned int modifiers;
+	struct symbol_op *op;
+} eval_init_table[] = {
 	{ "__builtin_constant_p", &builtin_fn_type, MOD_TOPLEVEL, &constant_p_op },
 	{ "__builtin_safe_p", &builtin_fn_type, MOD_TOPLEVEL, &safe_p_op },
 	{ "__builtin_warning", &builtin_fn_type, MOD_TOPLEVEL, &warning_op },
@@ -782,6 +751,7 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		int_ctype, sint_ctype, uint_ctype,
 		long_ctype, slong_ctype, ulong_ctype,
 		llong_ctype, sllong_ctype, ullong_ctype,
+		lllong_ctype, slllong_ctype, ulllong_ctype,
 		float_ctype, double_ctype, ldouble_ctype,
 		string_ctype, ptr_ctype, lazy_ptr_ctype,
 		incomplete_ctype, label_ctype, bad_ctype,
@@ -805,13 +775,6 @@ void init_symbols(void)
 #include "ident-list.h"
 
 	init_parser(stream);
-	for (ptr = symbol_init_table; ptr->name; ptr++) {
-		struct symbol *sym;
-		sym = create_symbol(stream, ptr->name, SYM_NODE, NS_TYPEDEF);
-		sym->ident->reserved = 1;
-		sym->ctype.base_type = ptr->base_type;
-		sym->ctype.modifiers = ptr->modifiers;
-	}
 
 	builtin_fn_type.variadic = 1;
 	for (ptr = eval_init_table; ptr->name; ptr++) {
@@ -825,6 +788,7 @@ void init_symbols(void)
 
 #define MOD_ESIGNED (MOD_SIGNED | MOD_EXPLICITLY_SIGNED)
 #define MOD_LL (MOD_LONG | MOD_LONGLONG)
+#define MOD_LLL MOD_LONGLONGLONG
 static const struct ctype_declare {
 	struct symbol *ptr;
 	enum type type;
@@ -834,7 +798,7 @@ static const struct ctype_declare {
 	struct symbol *base_type;
 } ctype_declaration[] = {
 	{ &bool_ctype,	    SYM_BASETYPE, MOD_UNSIGNED,		    &bits_in_bool,	     &max_int_alignment, &int_type },
-	{ &void_ctype,	    SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
+	{ &void_ctype,	    SYM_BASETYPE, 0,			    NULL,	     NULL,		 NULL },
 	{ &type_ctype,	    SYM_BASETYPE, MOD_TYPE,		    NULL,		     NULL,		 NULL },
 	{ &incomplete_ctype,SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
 	{ &bad_ctype,	    SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
@@ -854,6 +818,9 @@ static const struct ctype_declare {
 	{ &llong_ctype,	    SYM_BASETYPE, MOD_SIGNED | MOD_LL,	    &bits_in_longlong,       &max_int_alignment, &int_type },
 	{ &sllong_ctype,    SYM_BASETYPE, MOD_ESIGNED | MOD_LL,	    &bits_in_longlong,       &max_int_alignment, &int_type },
 	{ &ullong_ctype,    SYM_BASETYPE, MOD_UNSIGNED | MOD_LL,    &bits_in_longlong,       &max_int_alignment, &int_type },
+	{ &lllong_ctype,    SYM_BASETYPE, MOD_SIGNED | MOD_LLL,	    &bits_in_longlonglong,   &max_int_alignment, &int_type },
+	{ &slllong_ctype,   SYM_BASETYPE, MOD_ESIGNED | MOD_LLL,    &bits_in_longlonglong,   &max_int_alignment, &int_type },
+	{ &ulllong_ctype,   SYM_BASETYPE, MOD_UNSIGNED | MOD_LLL,   &bits_in_longlonglong,   &max_int_alignment, &int_type },
 
 	{ &float_ctype,	    SYM_BASETYPE,  0,			    &bits_in_float,          &max_fp_alignment,  &fp_type },
 	{ &double_ctype,    SYM_BASETYPE, MOD_LONG,		    &bits_in_double,         &max_fp_alignment,  &fp_type },
@@ -866,6 +833,7 @@ static const struct ctype_declare {
 	{ &lazy_ptr_ctype,  SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
 	{ NULL, }
 };
+#undef MOD_LLL
 #undef MOD_LL
 #undef MOD_ESIGNED
 
@@ -877,7 +845,7 @@ void init_ctype(void)
 		struct symbol *sym = ctype->ptr;
 		unsigned long bit_size = ctype->bit_size ? *ctype->bit_size : -1;
 		unsigned long maxalign = ctype->maxalign ? *ctype->maxalign : 0;
-		unsigned long alignment = (bit_size + 7) >> 3;
+		unsigned long alignment = bits_to_bytes(bit_size + bits_in_char - 1);
 
 		if (alignment > maxalign)
 			alignment = maxalign;

@@ -71,6 +71,7 @@ struct instruction {
 		 size:24;
 	struct basic_block *bb;
 	struct position pos;
+	struct symbol *type;
 	union {
 		pseudo_t target;
 		pseudo_t cond;		/* for branch and switch */
@@ -116,7 +117,8 @@ struct instruction {
 			struct pseudo_list *arguments;
 		};
 		struct /* context */ {
-			int increment, required, inc_false;
+			int increment;
+			int check;
 			struct expression *context_expr;
 		};
 		struct /* asm */ {
@@ -219,13 +221,11 @@ enum opcode {
 
 struct basic_block_list;
 struct instruction_list;
-struct context_list_list;
 
 struct basic_block {
 	struct position pos;
 	unsigned long generation;
-	int context_check_recursion;
-	struct context_list_list *checked_contexts;
+	int context;
 	struct entrypoint *ep;
 	struct basic_block_list *parents; /* sources */
 	struct basic_block_list *children; /* destinations */
@@ -328,7 +328,7 @@ struct entrypoint {
 	struct instruction *entry;
 };
 
-extern void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi, pseudo_t true, pseudo_t false);
+extern void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi, pseudo_t if_true, pseudo_t if_false);
 extern void insert_branch(struct basic_block *bb, struct instruction *br, struct basic_block *target);
 
 pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo, int size);

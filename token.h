@@ -48,6 +48,7 @@ struct stream {
 
 extern int input_stream_nr;
 extern struct stream *input_streams;
+extern unsigned int tabstop;
 
 struct ident {
 	struct ident *next;	/* Hash chain of identifiers */
@@ -195,7 +196,7 @@ extern const char *show_ident(const struct ident *);
 extern const char *show_string(const struct string *string);
 extern const char *show_token(const struct token *);
 extern struct token * tokenize(const char *, int, struct token *, const char **next_path);
-extern struct token * tokenize_buffer(void *, unsigned long, struct token *);
+extern struct token * tokenize_buffer(void *, unsigned long, struct token **);
 
 extern void show_identifier_stats(void);
 extern struct token *preprocess(struct token *);

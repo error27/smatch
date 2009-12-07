@@ -191,6 +191,9 @@ static struct ctype_name {
 	{ & llong_ctype, "long long" },
 	{ &sllong_ctype, "signed long long" },
 	{ &ullong_ctype, "unsigned long long" },
+	{ & lllong_ctype, "long long long" },
+	{ &slllong_ctype, "signed long long long" },
+	{ &ulllong_ctype, "unsigned long long long" },
 
 	{ &void_ctype,   "void" },
 	{ &bool_ctype,   "bool" },
@@ -390,8 +393,10 @@ void show_symbol(struct symbol *sym)
 
 	show_type(sym);
 	type = sym->ctype.base_type;
-	if (!type)
+	if (!type) {
+		printf("\n");
 		return;
+	}
 
 	/*
 	 * Show actual implementation information
@@ -410,9 +415,9 @@ void show_symbol(struct symbol *sym)
 
 	case SYM_FN: {
 		struct statement *stmt = type->stmt;
+		printf("\n");
 		if (stmt) {
 			int val;
-			printf("\n");		
 			val = show_statement(stmt);
 			if (val)
 				printf("\tmov.%d\t\tretval,%d\n", stmt->ret->bit_size, val);
@@ -422,6 +427,7 @@ void show_symbol(struct symbol *sym)
 	}
 
 	default:
+		printf("\n");
 		break;
 	}
 
@@ -673,7 +679,7 @@ static int show_call_expression(struct expression *expr)
 		int new = show_expression(arg);
 		int size = arg->ctype->bit_size;
 		printf("\tpush.%d\t\tv%d\n", size, new);
-		framesize += size >> 3;
+		framesize += bits_to_bytes(size);
 	} END_FOR_EACH_PTR_REVERSE(arg);
 
 	fn = expr->fn;

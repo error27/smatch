@@ -118,7 +118,7 @@ static struct token *parse_type(struct token *token, struct expression **tree)
 	struct symbol *sym;
 	*tree = alloc_expression(token->pos, EXPR_TYPE);
 	(*tree)->flags = Int_const_expr; /* sic */
-	token = typename(token, &sym, 0);
+	token = typename(token, &sym, NULL);
 	if (sym->ident)
 		sparse_error(token->pos,
 			     "type expression should not include identifier "
@@ -167,7 +167,7 @@ static struct token *builtin_offsetof_expr(struct token *token,
 		return expect(token, '(', "after __builtin_offset");
 
 	token = token->next;
-	token = typename(token, &sym, 0);
+	token = typename(token, &sym, NULL);
 	if (sym->ident)
 		sparse_error(token->pos,
 			     "type expression should not include identifier "
@@ -272,7 +272,7 @@ static void get_number_value(struct expression *expr, struct token *token)
 	const char *str = token->number;
 	unsigned long long value;
 	char *end;
-	unsigned long modifiers = 0;
+	int size = 0, want_unsigned = 0;
 	int overflow = 0, do_warn = 0;
 	int try_unsigned = 1;
 	int bits;
@@ -284,55 +284,55 @@ static void get_number_value(struct expression *expr, struct token *token)
 	if (value == ULLONG_MAX && errno == ERANGE)
 		overflow = 1;
 	while (1) {
-		unsigned long added;
 		char c = *end++;
 		if (!c) {
 			break;
 		} else if (c == 'u' || c == 'U') {
-			added = MOD_UNSIGNED;
+			if (want_unsigned)
+				goto Enoint;
+			want_unsigned = 1;
 		} else if (c == 'l' || c == 'L') {
-			added = MOD_LONG;
+			if (size)
+				goto Enoint;
+			size = 1;
 			if (*end == c) {
-				added |= MOD_LONGLONG;
+				size = 2;
 				end++;
 			}
 		} else
 			goto Float;
-		if (modifiers & added)
-			goto Enoint;
-		modifiers |= added;
 	}
 	if (overflow)
 		goto Eoverflow;
 	/* OK, it's a valid integer */
 	/* decimals can be unsigned only if directly specified as such */
-	if (str[0] != '0' && !(modifiers & MOD_UNSIGNED))
+	if (str[0] != '0' && !want_unsigned)
 		try_unsigned = 0;
-	if (!(modifiers & MOD_LONG)) {
+	if (!size) {
 		bits = bits_in_int - 1;
 		if (!(value & (~1ULL << bits))) {
 			if (!(value & (1ULL << bits))) {
 				goto got_it;
 			} else if (try_unsigned) {
-				modifiers |= MOD_UNSIGNED;
+				want_unsigned = 1;
 				goto got_it;
 			}
 		}
-		modifiers |= MOD_LONG;
+		size = 1;
 		do_warn = 1;
 	}
-	if (!(modifiers & MOD_LONGLONG)) {
+	if (size < 2) {
 		bits = bits_in_long - 1;
 		if (!(value & (~1ULL << bits))) {
 			if (!(value & (1ULL << bits))) {
 				goto got_it;
 			} else if (try_unsigned) {
-				modifiers |= MOD_UNSIGNED;
+				want_unsigned = 1;
 				goto got_it;
 			}
 			do_warn |= 2;
 		}
-		modifiers |= MOD_LONGLONG;
+		size = 2;
 		do_warn |= 1;
 	}
 	bits = bits_in_longlong - 1;
@@ -343,14 +343,14 @@ static void get_number_value(struct expression *expr, struct token *token)
 	if (!try_unsigned)
 		warning(expr->pos, "decimal constant %s is too big for long long",
 			show_token(token));
-	modifiers |= MOD_UNSIGNED;
+	want_unsigned = 1;
 got_it:
 	if (do_warn)
 		warning(expr->pos, "constant %s is so big it is%s%s%s",
 			show_token(token),
-			(modifiers & MOD_UNSIGNED) ? " unsigned":"",
-			(modifiers & MOD_LONG) ? " long":"",
-			(modifiers & MOD_LONGLONG) ? " long":"");
+			want_unsigned ? " unsigned":"",
+			size > 0 ? " long":"",
+			size > 1 ? " long":"");
 	if (do_warn & 2)
 		warning(expr->pos,
 			"decimal constant %s is between LONG_MAX and ULONG_MAX."
@@ -359,7 +359,7 @@ got_it:
 			show_token(token));
         expr->type = EXPR_VALUE;
 	expr->flags = Int_const_expr;
-        expr->ctype = ctype_integer(modifiers);
+        expr->ctype = ctype_integer(size, want_unsigned);
         expr->value = value;
 	return;
 Eoverflow:
@@ -482,7 +482,7 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		if (token->special == '[' && lookup_type(token->next)) {
 			expr = alloc_expression(token->pos, EXPR_TYPE);
 			expr->flags = Int_const_expr; /* sic */
-			token = typename(token->next, &expr->symbol, 0);
+			token = typename(token->next, &expr->symbol, NULL);
 			token = expect(token, ']', "in type expression");
 			break;
 		}
@@ -594,13 +594,15 @@ static struct token *type_info_expression(struct token *token,
 	struct expression **tree, int type)
 {
 	struct expression *expr = alloc_expression(token->pos, type);
+	struct token *p;
 
 	*tree = expr;
 	expr->flags = Int_const_expr; /* XXX: VLA support will need that changed */
 	token = token->next;
 	if (!match_op(token, '(') || !lookup_type(token->next))
 		return unary_expression(token, &expr->cast_expression);
-	token = typename(token->next, &expr->cast_type, 0);
+	p = token;
+	token = typename(token->next, &expr->cast_type, NULL);
 
 	if (!match_op(token, ')')) {
 		static const char * error[] = {
@@ -616,8 +618,14 @@ static struct token *type_info_expression(struct token *token,
 	 * C99 ambiguity: the typename might have been the beginning
 	 * of a typed initializer expression..
 	 */
-	if (match_op(token, '{'))
-		token = initializer(&expr->cast_expression, token);
+	if (match_op(token, '{')) {
+		struct expression *cast = alloc_expression(p->pos, EXPR_CAST);
+		cast->cast_type = expr->cast_type;
+		expr->cast_type = NULL;
+		expr->cast_expression = cast;
+		token = initializer(&cast->cast_expression, token);
+		token = postfix_expression(token, &expr->cast_expression, cast);
+	}
 	return token;
 }
 
@@ -719,10 +727,8 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 			struct symbol *sym;
 			int is_force;
 
-			token = typename(next, &sym, MOD_FORCE);
+			token = typename(next, &sym, &is_force);
 			cast->cast_type = sym;
-			is_force = sym->ctype.modifiers & MOD_FORCE;
-			sym->ctype.modifiers &= ~MOD_FORCE;
 			token = expect(token, ')', "at end of cast operator");
 			if (match_op(token, '{')) {
 				if (is_force)

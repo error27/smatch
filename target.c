@@ -20,6 +20,7 @@ int bits_in_short = 16;
 int bits_in_int = 32;
 int bits_in_long = 32;
 int bits_in_longlong = 64;
+int bits_in_longlonglong = 128;
 
 int max_int_alignment = 4;
 

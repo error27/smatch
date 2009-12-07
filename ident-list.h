@@ -23,6 +23,7 @@ IDENT(union);
 IDENT(enum);
 IDENT(__attribute); IDENT(__attribute__);
 IDENT(volatile); IDENT(__volatile); IDENT(__volatile__);
+IDENT(double);
 
 /* Extended gcc identifiers */
 IDENT(asm); IDENT_RESERVED(__asm); IDENT_RESERVED(__asm__);
@@ -30,6 +31,7 @@ IDENT(alignof); IDENT_RESERVED(__alignof); IDENT_RESERVED(__alignof__);
 IDENT_RESERVED(__sizeof_ptr__);
 IDENT_RESERVED(__builtin_types_compatible_p);
 IDENT_RESERVED(__builtin_offsetof);
+IDENT_RESERVED(__label__);
 
 /* Attribute names */
 IDENT(packed); IDENT(__packed__);
@@ -81,6 +83,7 @@ IDENT(stdcall); IDENT(__stdcall__);
 IDENT(fastcall); IDENT(__fastcall__);
 IDENT(dllimport); IDENT(__dllimport__);
 IDENT(dllexport); IDENT(__dllexport__);
+IDENT(restrict); IDENT(__restrict);
 
 /* Preprocessor idents.  Direct use of __IDENT avoids mentioning the keyword
  * itself by name, preventing these tokens from expanding when compiling

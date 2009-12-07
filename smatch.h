@@ -39,8 +39,6 @@ static inline int PTR_INT(void *p)
 	return (int)(long)p;
 }
 
-#define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
-
 struct sm_state {
 	unsigned short owner;
 	unsigned int merged:1;

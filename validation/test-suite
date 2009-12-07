@@ -89,6 +89,7 @@ do_test()
 	# (it has to have a check-name key in it)
 	get_value "check-name" $file
 	if [ "$?" -eq 1 ]; then
+		echo "warning: test '$file' unhandled"
 		unhandled_tests=`expr $unhandled_tests + 1`
 		return 2
 	fi
@@ -142,7 +143,10 @@ do_test()
 	if [ "$test_failed" -eq "1" ]; then
 		ko_tests=`expr $ko_tests + 1`
 		get_tag "check-known-to-fail" $file
-		[ "$?" -eq "0" ] && known_ko_tests=`expr $known_ko_tests + 1`
+		if [ "$?" -eq "0" ]; then
+			echo "info: test '$file' is known to fail"
+			known_ko_tests=`expr $known_ko_tests + 1`
+		fi
 		return 1
 	else
 		ok_tests=`expr $ok_tests + 1`

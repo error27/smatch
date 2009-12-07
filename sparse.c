@@ -24,389 +24,77 @@
 #include "expression.h"
 #include "linearize.h"
 
-struct context_check {
-	int val, val_false;
-	char name[32];
-};
-
-DECLARE_ALLOCATOR(context_check);
-DECLARE_PTR_LIST(context_check_list, struct context_check);
-DECLARE_PTR_LIST(context_list_list, struct context_check_list);
-ALLOCATOR(context_check, "context check list");
-
-static const char *unnamed_context = "<unnamed>";
-
-static const char *context_name(struct context *context)
+static int context_increase(struct basic_block *bb, int entry)
 {
-	if (context->context && context->context->symbol_name)
-		return show_ident(context->context->symbol_name);
-	return unnamed_context;
-}
-
-static void context_add(struct context_check_list **ccl, const char *name,
-			int offs, int offs_false)
-{
-	struct context_check *check, *found = NULL;
-
-	FOR_EACH_PTR(*ccl, check) {
-		if (strcmp(name, check->name))
-			continue;
-		found = check;
-		break;
-	} END_FOR_EACH_PTR(check);
-
-	if (!found) {
-		found = __alloc_context_check(0);
-		strncpy(found->name, name, sizeof(found->name));
-		found->name[sizeof(found->name) - 1] = '\0';
-		add_ptr_list(ccl, found);
-	}
-	found->val += offs;
-	found->val_false += offs_false;
-}
-
-static int context_list_has(struct context_check_list *ccl,
-			    struct context_check *c)
-{
-	struct context_check *check;
-
-	FOR_EACH_PTR(ccl, check) {
-		if (strcmp(c->name, check->name))
-			continue;
-		return check->val == c->val &&
-		       check->val_false == c->val_false;
-	} END_FOR_EACH_PTR(check);
-
-	/* not found is equal to 0 */
-	return c->val == 0 && c->val_false == 0;
-}
-
-static int context_lists_equal(struct context_check_list *ccl1,
-			       struct context_check_list *ccl2)
-{
-	struct context_check *check;
-
-	/* can be optimised... */
-
-	FOR_EACH_PTR(ccl1, check) {
-		if (!context_list_has(ccl2, check))
-			return 0;
-	} END_FOR_EACH_PTR(check);
-
-	FOR_EACH_PTR(ccl2, check) {
-		if (!context_list_has(ccl1, check))
-			return 0;
-	} END_FOR_EACH_PTR(check);
-
-	return 1;
-}
-
-static struct context_check_list *checked_copy(struct context_check_list *ccl)
-{
-	struct context_check_list *result = NULL;
-	struct context_check *c;
-
-	FOR_EACH_PTR(ccl, c) {
-		context_add(&result, c->name, c->val_false, c->val_false);
-	} END_FOR_EACH_PTR(c);
-
-	return result;
-}
-
-#define IMBALANCE_IN "context imbalance in '%s': "
-#define DEFAULT_CONTEXT_DESCR "   default context: "
-
-static void get_context_string(char **buf, const char **name)
-{
-	if (strcmp(*name, unnamed_context)) {
-		*buf = malloc(strlen(*name) + 16);
-		sprintf(*buf, "   context '%s': ", *name);
-		*name = *buf;
-	} else {
-		*name = DEFAULT_CONTEXT_DESCR;
-		*buf = NULL;
-	}
-}
-
-static int context_list_check(struct entrypoint *ep, struct position pos,
-			      struct context_check_list *ccl_cur,
-			      struct context_check_list *ccl_target)
-{
-	struct context_check *c1, *c2;
-	int cur, tgt;
-	const char *name;
-	char *buf;
-
-	/* make sure the loop below checks all */
-	FOR_EACH_PTR(ccl_target, c1) {
-		context_add(&ccl_cur, c1->name, 0, 0);
-	} END_FOR_EACH_PTR(c1);
-
-	FOR_EACH_PTR(ccl_cur, c1) {
-		cur = c1->val;
-		tgt = 0;
-
-		FOR_EACH_PTR(ccl_target, c2) {
-			if (strcmp(c2->name, c1->name))
-				continue;
-			tgt = c2->val;
-			break;
-		} END_FOR_EACH_PTR(c2);
-
-		if (cur == tgt || !Wcontext)
-			continue;
-
-		if (cur > tgt)
-			warning(pos, IMBALANCE_IN "wrong count at exit",
-				show_ident(ep->name->ident));
-		else if (cur < tgt)
-			warning(pos, IMBALANCE_IN "unexpected unlock",
-				show_ident(ep->name->ident));
-
-		name = c1->name;
-		get_context_string(&buf, &name);
-
-		info(pos, "%swanted %d, got %d",
-		     name, tgt, cur);
-
-		free(buf);
-
-		return -1;
-	} END_FOR_EACH_PTR(c1);
-
-	return 0;
-}
-
-static int handle_call(struct entrypoint *ep, struct basic_block *bb,
-		       struct instruction *insn,
-		       struct context_check_list *combined)
-{
-	struct context *ctx;
-	struct context_check *c;
-	const char *name, *call, *cmp;
-	char *buf;
-	int val, ok;
-
-	if (!insn->func || !insn->func->sym ||
-	    insn->func->type != PSEUDO_SYM)
-		return 0;
-
-	/*
-	 * Check all contexts the function wants.
-	 */
-	FOR_EACH_PTR(insn->func->sym->ctype.contexts, ctx) {
-		name = context_name(ctx);
-		val = 0;
-
-		FOR_EACH_PTR(combined, c) {
-			if (strcmp(c->name, name) == 0) {
-				val = c->val;
-				break;
-			}
-		} END_FOR_EACH_PTR(c);
-
-		if (ctx->exact) {
-			ok = ctx->in == val;
-			cmp = "";
-		} else {
-			ok = ctx->in <= val;
-			cmp = ">= ";
-		}
-
-		if (!ok && Wcontext) {
-			get_context_string(&buf, &name);
-			call = strdup(show_ident(insn->func->ident));
-
-			warning(insn->pos, "context problem in '%s': "
-				"'%s' expected different context",
-				show_ident(ep->name->ident), call);
-
-			info(insn->pos, "%swanted %s%d, got %d",
-			     name, cmp, ctx->in, val);
-
-			free((void *)call);
-			free(buf);
-
-			return -1;
-		}
-	} END_FOR_EACH_PTR (ctx);
-
-	return 0;
-}
-
-static int handle_context(struct entrypoint *ep, struct basic_block *bb,
-			  struct instruction *insn,
-			  struct context_check_list **combined)
-{
-	struct context_check *c;
-	const char *name;
-	char *buf;
-	int val, ok;
-
-	val = 0;
-
-	name = unnamed_context;
-	if (insn->context_expr)
-		name = show_ident(insn->context_expr->symbol_name);
-
-	FOR_EACH_PTR(*combined, c) {
-		if (strcmp(c->name, name) == 0) {
-			val = c->val;
-			break;
-		}
-	} END_FOR_EACH_PTR(c);
-
-	ok = insn->required <= val;
-
-	if (!ok && Wcontext) {
-		get_context_string(&buf, &name);
-
-		warning(insn->pos,
-			IMBALANCE_IN
-			"__context__ statement expected different context",
-			show_ident(ep->name->ident));
-
-		info(insn->pos, "%swanted >= %d, got %d",
-		     name, insn->required, val);
-
-		free(buf);
-		return -1;
-	}
-
-	context_add(combined, name, insn->increment, insn->inc_false);
-
-	return 0;
-}
-
-static int check_bb_context(struct entrypoint *ep, struct basic_block *bb,
-			    struct context_check_list *ccl_in,
-			    struct context_check_list *ccl_target,
-			    int in_false)
-{
-	struct context_check_list *combined = NULL, *done;
-	struct context_check *c;
+	int sum = 0;
 	struct instruction *insn;
-	struct multijmp *mj;
-	int err = -1;
 
-	/*
-	 * Recurse in once to catch bad loops.
-	 */
-	if (bb->context_check_recursion > 1)
-		return 0;
-	bb->context_check_recursion++;
-
-	/*
-	 * Abort if we have already checked this block out of the same context.
-	 */
-	FOR_EACH_PTR(bb->checked_contexts, done) {
-		if (context_lists_equal(done, ccl_in))
-			return 0;
-	} END_FOR_EACH_PTR(done);
-
-	/*
-	 * We're starting with a completely new local list of contexts, so
-	 * initialise it according to what we got from the parent block.
-	 * That may use either the 'false' or the 'true' part of the context
-	 * for the conditional_context() attribute.
-	 */
-	FOR_EACH_PTR(ccl_in, c) {
-		if (in_false)
-			context_add(&combined, c->name, c->val_false, c->val_false);
-		else
-			context_add(&combined, c->name, c->val, c->val);
-	} END_FOR_EACH_PTR(c);
-
-	/* Add the new context to the list of already-checked contexts */
-	done = checked_copy(combined);
-	add_ptr_list(&bb->checked_contexts, done);
-
-	/*
-	 * Now walk the instructions for this block, recursing into any
-	 * instructions that have children. We need to have the right
-	 * order so we cannot iterate bb->children instead.
-	 */
 	FOR_EACH_PTR(bb->insns, insn) {
-		switch (insn->opcode) {
-		case OP_INLINED_CALL:
-		case OP_CALL:
-			if (handle_call(ep, bb, insn, combined))
-				goto out;
-			break;
-		case OP_CONTEXT:
-			if (handle_context(ep, bb, insn, &combined))
-				goto out;
-			break;
-		case OP_BR:
-			if (insn->bb_true)
-				if (check_bb_context(ep, insn->bb_true,
-						     combined, ccl_target, 0))
-					goto out;
-			if (insn->bb_false)
-				if (check_bb_context(ep, insn->bb_false,
-						     combined, ccl_target, 1))
-					goto out;
-			break;
-		case OP_SWITCH:
-		case OP_COMPUTEDGOTO:
-			FOR_EACH_PTR(insn->multijmp_list, mj) {
-				if (check_bb_context(ep, mj->target,
-					             combined, ccl_target, 0))
-					goto out;
-			} END_FOR_EACH_PTR(mj);
-			break;
+		int val;
+		if (insn->opcode != OP_CONTEXT)
+			continue;
+		val = insn->increment;
+		if (insn->check) {
+			int current = sum + entry;
+			if (!val) {
+				if (!current)
+					continue;
+			} else if (current >= val)
+				continue;
+			warning(insn->pos, "context check failure");
+			continue;
 		}
+		sum += val;
 	} END_FOR_EACH_PTR(insn);
+	return sum;
+}
+
+static int imbalance(struct entrypoint *ep, struct basic_block *bb, int entry, int exit, const char *why)
+{
+	if (Wcontext) {
+		struct symbol *sym = ep->name;
+		warning(bb->pos, "context imbalance in '%s' - %s", show_ident(sym->ident), why);
+	}
+	return -1;
+}
+
+static int check_bb_context(struct entrypoint *ep, struct basic_block *bb, int entry, int exit);
+
+static int check_children(struct entrypoint *ep, struct basic_block *bb, int entry, int exit)
+{
+	struct instruction *insn;
+	struct basic_block *child;
 
 	insn = last_instruction(bb->insns);
 	if (!insn)
-		goto out_good;
+		return 0;
+	if (insn->opcode == OP_RET)
+		return entry != exit ? imbalance(ep, bb, entry, exit, "wrong count at exit") : 0;
 
-	if (insn->opcode == OP_RET) {
-		err = context_list_check(ep, insn->pos, combined, ccl_target);
-		goto out;
-	}
-
- out_good:
-	err = 0;
- out:
-	/* contents will be freed once we return out of recursion */
-	free_ptr_list(&combined);
-	bb->context_check_recursion--;
-	return err;
+	FOR_EACH_PTR(bb->children, child) {
+		if (check_bb_context(ep, child, entry, exit))
+			return -1;
+	} END_FOR_EACH_PTR(child);
+	return 0;
 }
 
-static void free_bb_context_lists(struct basic_block *bb)
+static int check_bb_context(struct entrypoint *ep, struct basic_block *bb, int entry, int exit)
 {
-	struct context_check_list *done;
-	struct instruction *insn;
-	struct multijmp *mj;
+	if (!bb)
+		return 0;
+	if (bb->context == entry)
+		return 0;
 
-	if (!bb->checked_contexts)
-		return;
+	/* Now that's not good.. */
+	if (bb->context >= 0)
+		return imbalance(ep, bb, entry, bb->context, "different lock contexts for basic block");
 
-	FOR_EACH_PTR(bb->checked_contexts, done) {
-		free_ptr_list(&done);
-	} END_FOR_EACH_PTR(done);
+	bb->context = entry;
+	entry += context_increase(bb, entry);
+	if (entry < 0)
+		return imbalance(ep, bb, entry, exit, "unexpected unlock");
 
-	free_ptr_list(&bb->checked_contexts);
-
-	FOR_EACH_PTR(bb->insns, insn) {
-		switch (insn->opcode) {
-		case OP_BR:
-			if (insn->bb_true)
-				free_bb_context_lists(insn->bb_true);
-			if (insn->bb_false)
-				free_bb_context_lists(insn->bb_false);
-			break;
-		case OP_SWITCH:
-		case OP_COMPUTEDGOTO:
-			FOR_EACH_PTR(insn->multijmp_list, mj) {
-				free_bb_context_lists(mj->target);
-			} END_FOR_EACH_PTR(mj);
-			break;
-		}
-	} END_FOR_EACH_PTR(insn);
+	return check_children(ep, bb, entry, exit);
 }
 
 static void check_cast_instruction(struct instruction *insn)
@@ -547,7 +235,7 @@ static void check_context(struct entrypoint *ep)
 {
 	struct symbol *sym = ep->name;
 	struct context *context;
-	struct context_check_list *ccl_in = NULL, *ccl_target = NULL;
+	unsigned int in_context = 0, out_context = 0;
 
 	if (Wuninitialized && verbose && ep->entry->bb->needs) {
 		pseudo_t pseudo;
@@ -561,20 +249,10 @@ static void check_context(struct entrypoint *ep)
 	check_instructions(ep);
 
 	FOR_EACH_PTR(sym->ctype.contexts, context) {
-		const char *name = context_name(context);
-
-		context_add(&ccl_in, name, context->in, context->in);
-		context_add(&ccl_target, name, context->out, context->out_false);
-		/* we don't currently check the body of trylock functions */
-		if (context->out != context->out_false)
-			return;
+		in_context += context->in;
+		out_context += context->out;
 	} END_FOR_EACH_PTR(context);
-
-	check_bb_context(ep, ep->entry->bb, ccl_in, ccl_target, 0);
-	free_ptr_list(&ccl_in);
-	free_ptr_list(&ccl_target);
-	free_bb_context_lists(ep->entry->bb);
-	clear_context_check_alloc();
+	check_bb_context(ep, ep->entry->bb, in_context, out_context);
 }
 
 static void check_symbols(struct symbol_list *list)

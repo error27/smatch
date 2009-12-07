@@ -1,8 +1,10 @@
 # generic
 *.o
+*.o.d
 *.a
 *.so
 *~
+.*.swp
 
 # generated
 pre-process.h
@@ -37,3 +39,6 @@ series
 #cscope
 cscope.files
 cscope.out
+
+# local makefile
+local.mk

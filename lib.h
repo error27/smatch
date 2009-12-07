@@ -17,6 +17,13 @@
 #include "compat.h"
 #include "ptrlist.h"
 
+#define DO_STRINGIFY(x) #x
+#define STRINGIFY(x) DO_STRINGIFY(x)
+
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
+#endif
+
 extern int verbose, optimize, optimize_size, preprocessing;
 extern int die_if_error;
 extern int repeat_phase, merge_phi_sources;
@@ -83,7 +90,6 @@ extern void sparse_error(struct position, const char *, ...) FORMAT_ATTR(2);
 extern void error_die(struct position, const char *, ...) FORMAT_ATTR(2) NORETURN_ATTR;
 extern void expression_error(struct expression *, const char *, ...) FORMAT_ATTR(2);
 
-extern char **handle_switch(char *arg, char **next);
 extern void add_pre_buffer(const char *fmt, ...) FORMAT_ATTR(1);
 
 extern int preprocess_only;
@@ -95,6 +101,7 @@ extern int Wcast_truncate;
 extern int Wcontext;
 extern int Wdecl;
 extern int Wdefault_bitfield_sign;
+extern int Wdesignated_init;
 extern int Wdo_while;
 extern int Wenum_mismatch;
 extern int Wnon_pointer_null;

@@ -10,9 +10,11 @@ my $has_specs = 0;
 my $gendeps = 0;
 my $do_check = 0;
 my $do_compile = 1;
+my $gcc_base_dir;
 my $verbose = 0;
 
-foreach (@ARGV) {
+while (@ARGV) {
+    $_ = shift(@ARGV);
     # Look for a .c file.  We don't want to run the checker on .o or .so files
     # in the link run.  (This simplistic check knows nothing about options
     # with arguments, but it seems to do the job.)
@@ -25,7 +27,7 @@ foreach (@ARGV) {
     $m64 = 1 if /^-m64$/;
     $gendeps = 1 if /^-M$/;
 
-    if (/^-specs=(.*)$/) {
+    if (/^-target=(.*)$/) {
 	$check .= &add_specs ($1);
 	$has_specs = 1;
 	next;
@@ -36,6 +38,12 @@ foreach (@ARGV) {
 	next;
     }
 
+    if (/^-gcc-base-dir$/) {
+        $gcc_base_dir = shift @ARGV;
+        die ("$0: missing argument for -gcc-base-dir option") if !$gcc_base_dir;
+        next;
+    }
+
     # If someone adds "-E", don't pre-process twice.
     $do_compile = 0 if $_ eq '-E';
 
@@ -43,7 +51,7 @@ foreach (@ARGV) {
 
     my $this_arg = ' ' . &quote_arg ($_);
     $cc .= $this_arg unless &check_only_option ($_);
-    $check .= $this_arg unless &cc_only_option ($_);
+    $check .= $this_arg;
 }
 
 if ($gendeps) {
@@ -56,6 +64,10 @@ if ($do_check) {
 	$check .= &add_specs ('host_arch_specs');
 	$check .= &add_specs ('host_os_specs');
     }
+
+    $gcc_base_dir = qx($cc -print-file-name=) if !$gcc_base_dir;
+    $check .= " -gcc-base-dir " . $gcc_base_dir if $gcc_base_dir;
+
     print "$check\n" if $verbose;
     if ($do_compile) {
 	system ($check);
@@ -76,21 +88,8 @@ exit 0;
 
 sub check_only_option {
     my ($arg) = @_;
-    return 1 if $arg =~ /^-W(no-?)?(default-bitfield-sign|one-bit-signed-bitfield|cast-truncate|bitwise|typesign|context|undef|ptr-subtraction-blows|cast-to-as|decl|transparent-union|address-space|enum-mismatch|do-while|old-initializer|non-pointer-null|paren-string|return-void)$/;
+    return 1 if $arg =~ /^-W(no-?)?(default-bitfield-sign|one-bit-signed-bitfield|cast-truncate|bitwise|typesign|context|undef|ptr-subtraction-blows|cast-to-as|decl|transparent-union|address-space|enum-mismatch|do-while|old-initializer|non-pointer-null|paren-string|return-void|designated-init|sparse-all)$/;
     return 1 if $arg =~ /^-v(no-?)?(entry|dead)$/;
-    return 0;
-}
-
-# -----------------------------------------------------------------------------
-# Check if an option is for "cc" only.
-
-sub cc_only_option {
-    my ($arg) = @_;
-    # -Wall turns on all Sparse warnings, including experimental and noisy
-    # ones.  Don't include it just because a project wants to pass -Wall to cc.
-    # If you really want cgcc to run sparse with -Wall, use
-    # CHECK="sparse -Wall".
-    return 1 if $arg =~ /^-Wall$/;
     return 0;
 }
 
@@ -116,8 +115,9 @@ sub integer_types {
 	 16 => '32767',
 	 32 => '2147483647',
 	 64 => '9223372036854775807',
+	 128 => '170141183460469231731687303715884105727',
 	 );
-    my @types = (['SCHAR',''], ['SHRT',''], ['INT',''], ['LONG','L'], ['LONG_LONG','LL']);
+    my @types = (['SCHAR',''], ['SHRT',''], ['INT',''], ['LONG','L'], ['LONG_LONG','LL'], ['LONG_LONG_LONG','LLL']);
 
     my $result = " -D__CHAR_BIT__=$char";
     while (@types) {
@@ -221,6 +221,9 @@ sub add_specs {
     } elsif ($spec eq 'linux') {
 	return &add_specs ('unix') .
 	    ' -D__linux__=1 -D__linux=1 -Dlinux=linux';
+    } elsif ($spec eq 'openbsd') {
+	return &add_specs ('unix') .
+	    ' -D__OpenBSD__=1';
     } elsif ($spec eq 'unix') {
 	return ' -Dunix=1 -D__unix=1 -D__unix__=1';
     } elsif ( $spec =~ /^cygwin/) {
@@ -243,9 +246,14 @@ sub add_specs {
 		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
 		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
 		&define_size_t ($m64 ? "long unsigned int" : "unsigned int"));
+    } elsif ($spec eq 'sparc64') {
+	return (' -Dsparc=1 -D__sparc=1 -D__sparc__=1 -D__sparcv9__=1 -D__sparc64__=1 -D__arch64__=1 -D__LP64__=1' .
+		&integer_types (8, 16, 32, 64, 64, 128) .
+		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
+		&define_size_t ("long unsigned int"));
     } elsif ($spec eq 'x86_64') {
-	return (' -Dx86_64=1 -D__x86_64=1 -D__x86_64__=1' .
-		&integer_types (8, 16, 32, $m32 ? 32 : 64, 64) .
+	return (' -Dx86_64=1 -D__x86_64=1 -D__x86_64__=1' . ($m32 ? '' : ' -D__LP64__=1') .
+		&integer_types (8, 16, 32, $m32 ? 32 : 64, 64, 128) .
 		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
 		&define_size_t ($m32 ? "unsigned int" : "long unsigned int"));
     } elsif ($spec eq 'ppc') {
@@ -268,6 +276,8 @@ sub add_specs {
 	    return &add_specs ('x86_64');
 	} elsif ($arch =~ /^(ppc)$/i) {
 	    return &add_specs ('ppc');
+	} elsif ($arch =~ /^(sparc64)$/i) {
+	    return &add_specs ('sparc64');
 	}
     } else {
 	die "$0: invalid specs: $spec\n";

@@ -193,13 +193,13 @@ static inline struct expression *alloc_const_expression(struct position pos, int
 }
 
 /* Type name parsing */
-struct token *typename(struct token *, struct symbol **, int);
+struct token *typename(struct token *, struct symbol **, int *);
 
 static inline int lookup_type(struct token *token)
 {
 	if (token->pos.type == TOKEN_IDENT) {
 		struct symbol *sym = lookup_symbol(token->ident, NS_SYMBOL | NS_TYPEDEF);
-		return sym && sym->namespace == NS_TYPEDEF;
+		return sym && (sym->namespace & NS_TYPEDEF);
 	}
 	return 0;
 }

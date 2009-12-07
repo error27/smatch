@@ -41,6 +41,8 @@ int gcc_major = __GNUC__;
 int gcc_minor = __GNUC_MINOR__;
 int gcc_patchlevel = __GNUC_PATCHLEVEL__;
 
+static const char *gcc_base_dir = GCC_BASE;
+
 struct token *skip_to(struct token *token, int op)
 {
 	while (!match_op(token, op) && !eof_token(token))
@@ -185,8 +187,8 @@ void die(const char *fmt, ...)
 	exit(1);
 }
 
-static unsigned int pre_buffer_size;
-static char pre_buffer[8192];
+static struct token *pre_buffer_begin = NULL;
+static struct token *pre_buffer_end = NULL;
 
 int Waddress_space = 1;
 int Wbitwise = 0;
@@ -195,6 +197,7 @@ int Wcast_truncate = 1;
 int Wcontext = 1;
 int Wdecl = 1;
 int Wdefault_bitfield_sign = 0;
+int Wdesignated_init = 1;
 int Wdo_while = 0;
 int Wenum_mismatch = 1;
 int Wnon_pointer_null = 1;
@@ -204,7 +207,7 @@ int Wparen_string = 0;
 int Wptr_subtraction_blows = 0;
 int Wreturn_void = 0;
 int Wshadow = 0;
-int Wtransparent_union = 1;
+int Wtransparent_union = 0;
 int Wtypesign = 0;
 int Wundef = 0;
 int Wuninitialized = 1;
@@ -230,20 +233,28 @@ void add_pre_buffer(const char *fmt, ...)
 {
 	va_list args;
 	unsigned int size;
+	struct token *begin, *end;
+	char buffer[4096];
 
 	va_start(args, fmt);
-	size = pre_buffer_size;
-	size += vsnprintf(pre_buffer + size,
-		sizeof(pre_buffer) - size,
-		fmt, args);
-	pre_buffer_size = size;
+	size = vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
+	begin = tokenize_buffer(buffer, size, &end);
+	if (!pre_buffer_begin)
+		pre_buffer_begin = begin;
+	if (pre_buffer_end)
+		pre_buffer_end->next = begin;
+	pre_buffer_end = end;
 }
 
 static char **handle_switch_D(char *arg, char **next)
 {
 	const char *name = arg + 1;
 	const char *value = "1";
+
+	if (!*name || isspace(*name))
+		die("argument to `-D' is missing");
+
 	for (;;) {
 		char c;
 		c = *++arg;
@@ -311,6 +322,11 @@ static char **handle_switch_i(char *arg, char **next)
 		if (!path)
 			die("missing argument for -isystem option");
 		add_pre_buffer("#add_isystem \"%s/\"\n", path);
+	} else if (*next && !strcmp(arg, "idirafter")) {
+		char *path = *++next;
+		if (!path)
+			die("missing argument for -idirafter option");
+		add_pre_buffer("#add_dirafter \"%s/\"\n", path);
 	}
 	return next;
 }
@@ -343,10 +359,13 @@ static char **handle_switch_m(char *arg, char **next)
 
 static char **handle_switch_o(char *arg, char **next)
 {
-	if (!strcmp (arg, "o") && *next)
-		return next + 1; // "-o foo"
-	else
-		return next;     // "-ofoo" or (bogus) terminal "-o"
+	if (!strcmp (arg, "o")) {       // "-o foo"
+		if (!*++next)
+			die("argument to '-o' is missing");
+	}
+	// else "-ofoo"
+
+	return next;
 }
 
 static const struct warning {
@@ -360,6 +379,7 @@ static const struct warning {
 	{ "context", &Wcontext },
 	{ "decl", &Wdecl },
 	{ "default-bitfield-sign", &Wdefault_bitfield_sign },
+	{ "designated-init", &Wdesignated_init },
 	{ "do-while", &Wdo_while },
 	{ "enum-mismatch", &Wenum_mismatch },
 	{ "non-pointer-null", &Wnon_pointer_null },
@@ -389,7 +409,7 @@ static char **handle_onoff_switch(char *arg, char **next, const struct warning w
 	char *p = arg + 1;
 	unsigned i;
 
-	if (!strcmp(p, "all")) {
+	if (!strcmp(p, "sparse-all")) {
 		for (i = 0; i < n; i++) {
 			if (*warnings[i].flag != WARNING_FORCE_OFF)
 				*warnings[i].flag = WARNING_ON;
@@ -504,11 +524,33 @@ static char **handle_switch_O(char *arg, char **next)
 	return next;
 }
 
+static char **handle_switch_ftabstop(char *arg, char **next)
+{
+	char *end;
+	unsigned long val;
+
+	if (*arg == '\0')
+		die("error: missing argument to \"-ftabstop=\"");
+
+	/* we silently ignore silly values */
+	val = strtoul(arg, &end, 10);
+	if (*end == '\0' && 1 <= val && val <= 100)
+		tabstop = val;
+
+	return next;
+}
+
 static char **handle_switch_f(char *arg, char **next)
 {
 	int flag = 1;
 
 	arg++;
+
+	if (!strncmp(arg, "tabstop=", 8))
+		return handle_switch_ftabstop(arg+8, next);
+
+	/* handle switches w/ arguments above, boolean and only boolean below */
+
 	if (!strncmp(arg, "no-", 3)) {
 		flag = 0;
 		arg += 3;
@@ -571,12 +613,11 @@ static char **handle_nostdinc(char *arg, char **next)
 	return next;
 }
 
-static char **handle_dirafter(char *arg, char **next)
+static char **handle_base_dir(char *arg, char **next)
 {
-	char *path = *++next;
-	if (!path)
-		die("missing argument for -dirafter option");
-	add_pre_buffer("#add_dirafter \"%s/\"\n", path);
+	gcc_base_dir = *++next;
+	if (!gcc_base_dir)
+		die("missing argument for -gcc-base-dir option");
 	return next;
 }
 
@@ -585,11 +626,11 @@ struct switches {
 	char **(*fn)(char *, char **);
 };
 
-char **handle_switch(char *arg, char **next)
+static char **handle_switch(char *arg, char **next)
 {
 	static struct switches cmd[] = {
 		{ "nostdinc", handle_nostdinc },
-		{ "dirafter", handle_dirafter },
+		{ "gcc-base-dir", handle_base_dir},
 		{ NULL, NULL }
 	};
 	struct switches *s;
@@ -633,8 +674,8 @@ void declare_builtin_functions(void)
 	/* Gaah. gcc knows tons of builtin <string.h> functions */
 	add_pre_buffer("extern void *__builtin_memcpy(void *, const void *, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern void *__builtin_mempcpy(void *, const void *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern void *__builtin_memset(void *, int, __SIZE_TYPE__);\n");	
-	add_pre_buffer("extern int __builtin_memcmp(const void *, const void *, __SIZE_TYPE__);\n");	
+	add_pre_buffer("extern void *__builtin_memset(void *, int, __SIZE_TYPE__);\n");
+	add_pre_buffer("extern int __builtin_memcmp(const void *, const void *, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern char *__builtin_strcat(char *, const char *);\n");
 	add_pre_buffer("extern char *__builtin_strncat(char *, const char *, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern int __builtin_strcmp(const char *, const char *);\n");
@@ -646,15 +687,26 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern char * __builtin_strpbrk(const char *, const char *);\n");
 	add_pre_buffer("extern __SIZE_TYPE__ __builtin_strlen(const char *);\n");
 
+	/* And bitwise operations.. */
+	add_pre_buffer("extern int __builtin_clz(int);\n");
+	add_pre_buffer("extern int __builtin_clzl(long);\n");
+	add_pre_buffer("extern int __builtin_clzll(long long);\n");
+	add_pre_buffer("extern int __builtin_ctz(int);\n");
+	add_pre_buffer("extern int __builtin_ctzl(long);\n");
+	add_pre_buffer("extern int __builtin_ctzll(long long);\n");
+	add_pre_buffer("extern int __builtin_ffs(int);\n");
+	add_pre_buffer("extern int __builtin_ffsl(long);\n");
+	add_pre_buffer("extern int __builtin_ffsll(long long);\n");
+	add_pre_buffer("extern int __builtin_popcount(unsigned int);\n");
+	add_pre_buffer("extern int __builtin_popcountl(unsigned long);\n");
+	add_pre_buffer("extern int __builtin_popcountll(unsigned long long);\n");
+
 	/* And some random ones.. */
 	add_pre_buffer("extern void *__builtin_return_address(unsigned int);\n");
 	add_pre_buffer("extern void *__builtin_extract_return_addr(void *);\n");
 	add_pre_buffer("extern void *__builtin_frame_address(unsigned int);\n");
 	add_pre_buffer("extern void __builtin_trap(void);\n");
-	add_pre_buffer("extern int __builtin_ffs(int);\n");
 	add_pre_buffer("extern void *__builtin_alloca(__SIZE_TYPE__);\n");
-	add_pre_buffer("extern int __builtin_popcount(unsigned int);\n");
-	add_pre_buffer("extern int __builtin_popcountl(unsigned long);\n");
 	add_pre_buffer("extern void __builtin_prefetch (const void *, ...);\n");
 	add_pre_buffer("extern long __builtin_alpha_extbl(long, long);\n");
 	add_pre_buffer("extern long __builtin_alpha_extwl(long, long);\n");
@@ -664,6 +716,14 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern long __builtin_alpha_inslh(long, long);\n");
 	add_pre_buffer("extern long __builtin_alpha_cmpbge(long, long);\n");
 	add_pre_buffer("extern long __builtin_labs(long);\n");
+
+	/* And some floating point stuff.. */
+	add_pre_buffer("extern int __builtin_isgreater(float, float);\n");
+	add_pre_buffer("extern int __builtin_isgreaterequal(float, float);\n");
+	add_pre_buffer("extern int __builtin_isless(float, float);\n");
+	add_pre_buffer("extern int __builtin_islessequal(float, float);\n");
+	add_pre_buffer("extern int __builtin_islessgreater(float, float);\n");
+	add_pre_buffer("extern int __builtin_isunordered(float, float);\n");
 
 	/* And some __FORTIFY_SOURCE ones.. */
 	add_pre_buffer ("extern __SIZE_TYPE__ __builtin_object_size(void *, int);\n");
@@ -687,6 +747,12 @@ void create_builtin_stream(void)
 	add_pre_buffer("#weak_define __GNUC__ %d\n", gcc_major);
 	add_pre_buffer("#weak_define __GNUC_MINOR__ %d\n", gcc_minor);
 	add_pre_buffer("#weak_define __GNUC_PATCHLEVEL__ %d\n", gcc_patchlevel);
+
+	/* We add compiler headers path here because we have to parse
+	 * the arguments to get it, falling back to default. */
+	add_pre_buffer("#add_system \"%s/include\"\n", gcc_base_dir);
+	add_pre_buffer("#add_system \"%s/include-fixed\"\n", gcc_base_dir);
+
 	add_pre_buffer("#define __extension__\n");
 	add_pre_buffer("#define __pragma__\n");
 
@@ -730,11 +796,13 @@ void create_builtin_stream(void)
 
 	add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
 	add_pre_buffer("#define __builtin_va_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
+	add_pre_buffer("#define __builtin_ms_va_start(a,b) ((a) = (__builtin_ms_va_list)(&(b)))\n");
 	add_pre_buffer("#define __builtin_va_arg(arg,type)  ({ type __va_arg_ret = *(type *)(arg); arg += sizeof(type); __va_arg_ret; })\n");
 	add_pre_buffer("#define __builtin_va_alist (*(void *)0)\n");
 	add_pre_buffer("#define __builtin_va_arg_incr(x) ((x) + 1)\n");
 	add_pre_buffer("#define __builtin_va_copy(dest, src) ({ dest = src; (void)0; })\n");
 	add_pre_buffer("#define __builtin_va_end(arg)\n");
+	add_pre_buffer("#define __builtin_ms_va_end(arg)\n");
 
 	/* FIXME! We need to do these as special magic macros at expansion time! */
 	add_pre_buffer("#define __BASE_FILE__ \"base_file.c\"\n");
@@ -743,6 +811,14 @@ void create_builtin_stream(void)
 		add_pre_buffer("#define __OPTIMIZE__ 1\n");
 	if (optimize_size)
 		add_pre_buffer("#define __OPTIMIZE_SIZE__ 1\n");
+
+	/* GCC defines these for limits.h */
+	add_pre_buffer("#weak_define __SHRT_MAX__ " STRINGIFY(__SHRT_MAX__) "\n");
+	add_pre_buffer("#weak_define __SCHAR_MAX__ " STRINGIFY(__SCHAR_MAX__) "\n");
+	add_pre_buffer("#weak_define __INT_MAX__ " STRINGIFY(__INT_MAX__) "\n");
+	add_pre_buffer("#weak_define __LONG_MAX__ " STRINGIFY(__LONG_MAX__) "\n");
+	add_pre_buffer("#weak_define __LONG_LONG_MAX__ " STRINGIFY(__LONG_LONG_MAX__) "\n");
+	add_pre_buffer("#weak_define __WCHAR_MAX__ " STRINGIFY(__WCHAR_MAX__) "\n");
 }
 
 static struct symbol_list *sparse_tokenstream(struct token *token)
@@ -769,7 +845,7 @@ static struct symbol_list *sparse_tokenstream(struct token *token)
 		putchar('\n');
 
 		return NULL;
-	} 
+	}
 
 	// Parse the resulting C code
 	while (!eof_token(token))
@@ -819,8 +895,9 @@ static struct symbol_list *sparse_initial(void)
 				 token, includepath);
 
 	// Prepend the initial built-in stream
-	token = tokenize_buffer(pre_buffer, pre_buffer_size, token);
-	return sparse_tokenstream(token);
+	if (token)
+		pre_buffer_end->next = token;
+	return sparse_tokenstream(pre_buffer_begin);
 }
 
 struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list **filelist)

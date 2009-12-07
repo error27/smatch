@@ -116,19 +116,20 @@ Int:
 	return;
 
 Float:
-	if (newtype->ctype.base_type != &fp_type) {
+	if (!is_float_type(newtype)) {
 		value = (long long)old->fvalue;
 		expr->type = EXPR_VALUE;
 		expr->taint = 0;
 		goto Int;
 	}
 
-	if (oldtype->ctype.base_type != &fp_type)
+	if (!is_float_type(oldtype))
 		expr->fvalue = (long double)get_longlong(old);
 	else
-		expr->fvalue = old->value;
+		expr->fvalue = old->fvalue;
 
-	if (!(newtype->ctype.modifiers & MOD_LONGLONG)) {
+	if (!(newtype->ctype.modifiers & MOD_LONGLONG) && \
+	    !(newtype->ctype.modifiers & MOD_LONGLONGLONG)) {
 		if ((newtype->ctype.modifiers & MOD_LONG))
 			expr->fvalue = (double)expr->fvalue;
 		else
@@ -880,7 +881,7 @@ static unsigned long bit_offset(const struct expression *expr)
 {
 	unsigned long offset = 0;
 	while (expr->type == EXPR_POS) {
-		offset += expr->init_offset << 3;
+		offset += bytes_to_bits(expr->init_offset);
 		expr = expr->init_expr;
 	}
 	if (expr && expr->ctype)

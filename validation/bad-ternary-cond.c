@@ -6,7 +6,7 @@ static int foo(int a)
  * check-name: Bad ternary syntax
  * check-description: Once caused Sparse to segfault
  * check-error-start
-bad-ternary-cond.c:3:12: error: Expected : in conditional expression
-bad-ternary-cond.c:3:12: error: got ?
+bad-ternary-cond.c:3:19: error: Expected : in conditional expression
+bad-ternary-cond.c:3:19: error: got ?
  * check-error-end
  */
