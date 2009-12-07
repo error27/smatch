@@ -357,6 +357,6 @@ enum project_type {
 	PROJ_WINE,
 };
 extern enum project_type option_project;
-const char *check_name(int id);
+const char *check_name(unsigned short id);
 
 #endif 	    /* !SMATCH_H_ */

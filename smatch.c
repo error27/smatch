@@ -97,10 +97,11 @@ static struct reg_func_info {
 	CK(register_implications), /* implications always has to be last */
 };
 
-const char *check_name(int id)
+const char *check_name(unsigned short id)
 {
-	if (id < 1)
+	if (id > ARRAY_SIZE(reg_funcs)) {
 		return "internal";
+	}
 	return reg_funcs[id - 1].name;
 }
 
