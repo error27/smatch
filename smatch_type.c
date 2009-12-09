@@ -57,6 +57,20 @@ static struct symbol *get_return_type(struct expression *expr)
 	return get_base_type(tmp);
 }
 
+static struct symbol *fake_pointer_sym(struct expression *expr)
+{
+	struct symbol *sym;
+	struct symbol *base;
+
+	sym = alloc_symbol(expr->pos, SYM_PTR);
+	expr = expr->unop;
+	base = get_type(expr);
+	if (!base)
+		return NULL;
+	sym->ctype.base_type = base;
+	return sym;
+}
+
 struct symbol *get_type(struct expression *expr)
 {
 	struct symbol *tmp;
@@ -71,6 +85,8 @@ struct symbol *get_type(struct expression *expr)
 	case EXPR_DEREF:
 		return get_symbol_from_deref(expr);
 	case EXPR_PREOP:
+		if (expr->op == '&')
+			return fake_pointer_sym(expr);
 		return get_type(expr->unop);
 	case EXPR_BINOP:
 		if (expr->op != '+')
