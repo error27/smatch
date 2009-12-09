@@ -44,7 +44,6 @@ static void match_dereference(struct expression *expr)
 	free_string(name);
 }
 
-
 static void match_condition(struct expression *expr)
 {
 	if (get_state_expr(my_id, expr) == &derefed) {
@@ -57,7 +56,6 @@ static void match_condition(struct expression *expr)
 		free_string(name);
 	}
 }
-
 
 void check_deref_check(int id)
 {

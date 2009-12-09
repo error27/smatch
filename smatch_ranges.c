@@ -128,7 +128,7 @@ struct data_info *alloc_dinfo_range_list(struct range_list *rl)
 void add_range(struct range_list **list, long long min, long long max)
 {
 	struct data_range *tmp = NULL;
-	struct data_range *new;
+	struct data_range *new = NULL;
 	int check_next = 0;
 	
  	FOR_EACH_PTR(*list, tmp) {
