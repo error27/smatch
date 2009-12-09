@@ -46,6 +46,7 @@ static void match_assign(struct expression *expr)
 	struct symbol *sym;
 	long long val;
 	long long max;
+	char *name;
 
 	sym = get_type(expr->left);
 	if (!sym) {
@@ -57,8 +58,40 @@ static void match_assign(struct expression *expr)
 	if (!get_implied_value(expr->right, &val))
 		return;
 	max = max_size(sym);
-	if (max < val)
-		sm_msg("error: value %lld can't fit into %lld", val, max);
+	if (max < val) {
+		name = get_variable_from_expr_complex(expr->left, NULL);
+		sm_msg("error: value %lld can't fit into %lld %s", val, max, name);
+		free_string(name);
+	}
+}
+
+static void match_condition(struct expression *expr)
+{
+	long long known;
+	struct expression *var = NULL;
+	struct symbol *sym = NULL;
+	long long max;
+	char *name;
+
+	if (expr->type != EXPR_COMPARE)
+		return;
+	if (get_implied_value(expr->left, &known))
+		var = expr->right;
+	else if (get_implied_value(expr->right, &known))
+		var = expr->left;
+	if (!var)
+		return;
+	sym = get_type(var);
+
+	if (!sym || sym->bit_size >= 32)
+		return;
+	max = max_size(sym);
+	if (max < known) {
+		name = get_variable_from_expr_complex(var, NULL);
+		sm_msg("error: value %lld is higher than %lld so this is always false.",
+			known, max);
+		free_string(name);
+	}
 }
 
 void check_signed(int id)
@@ -66,4 +99,5 @@ void check_signed(int id)
 	my_id = id;
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_condition, CONDITION_HOOK);
 }
