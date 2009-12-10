@@ -102,9 +102,9 @@ static struct lock_info kernel_lock_table[] = {
  	{"__spin_lock_irq", LOCK, "spin_lock", 0, ret_any},
  	{"__spin_unlock_irq", UNLOCK, "spin_lock", 0, ret_any},
 
- 	{"__spin_trylock_bh", LOCK, "spin_lock_bh", 0, ret_non_zero},
- 	{"__spin_lock_bh", LOCK, "spin_lock_bh", 0, ret_any},
- 	{"__spin_unlock_bh", UNLOCK, "spin_lock_bh", 0, ret_any},
+ 	{"__spin_trylock_bh", LOCK, "spin_lock", 0, ret_non_zero},
+ 	{"__spin_lock_bh", LOCK, "spin_lock", 0, ret_any},
+ 	{"__spin_unlock_bh", UNLOCK, "spin_lock", 0, ret_any},
  	{"__raw_read_trylock", LOCK, "read_lock", 0, ret_non_zero},
  	{"__raw_read_trylock", LOCK, "read_lock", 0, ret_non_zero},
  	{"__read_trylock", LOCK, "read_lock", 0, ret_non_zero},
@@ -116,8 +116,8 @@ static struct lock_info kernel_lock_table[] = {
  	{"__read_lock_irq", LOCK, "read_lock", 0, ret_any},
  	{"__read_unlock_irq", UNLOCK, "read_lock", 0, ret_any},
 
- 	{"__read_lock_bh", LOCK, "read_lock_bh", 0, ret_any},
- 	{"__read_unlock_bh", UNLOCK, "read_lock_bh", 0, ret_any},
+ 	{"__read_lock_bh", LOCK, "read_lock", 0, ret_any},
+ 	{"__read_unlock_bh", UNLOCK, "read_lock", 0, ret_any},
  	{"__write_trylock", LOCK, "write_lock", 0, ret_non_zero},
  	{"__raw_write_trylock", LOCK, "write_lock", 0, ret_non_zero},
  	{"__raw_write_trylock", LOCK, "write_lock", 0, ret_non_zero},
@@ -129,8 +129,8 @@ static struct lock_info kernel_lock_table[] = {
  	{"__write_lock_irq", LOCK, "write_lock", 0, ret_any},
  	{"__write_unlock_irq", UNLOCK, "write_lock", 0, ret_any},
 
- 	{"__write_lock_bh", LOCK, "write_lock_bh", 0, ret_any},
- 	{"__write_unlock_bh", UNLOCK, "write_lock_bh", 0, ret_any},
+ 	{"__write_lock_bh", LOCK, "write_lock", 0, ret_any},
+ 	{"__write_unlock_bh", UNLOCK, "write_lock", 0, ret_any},
 
 	{"lock_kernel", LOCK, "BKL", NO_ARG, ret_any},
 	{"unlock_kernel", UNLOCK, "BKL", NO_ARG, ret_any},
@@ -148,9 +148,9 @@ static struct lock_info kernel_lock_table[] = {
  	{"_spin_lock_irq", LOCK, "spin_lock", 0, ret_any},
  	{"_spin_unlock_irq", UNLOCK, "spin_lock", 0, ret_any},
 
- 	{"_spin_trylock_bh", LOCK, "spin_lock_bh", 0, ret_non_zero},
- 	{"_spin_lock_bh", LOCK, "spin_lock_bh", 0, ret_any},
- 	{"_spin_unlock_bh", UNLOCK, "spin_lock_bh", 0, ret_any},
+ 	{"_spin_trylock_bh", LOCK, "spin_lock", 0, ret_non_zero},
+ 	{"_spin_lock_bh", LOCK, "spin_lock", 0, ret_any},
+ 	{"_spin_unlock_bh", UNLOCK, "spin_lock", 0, ret_any},
  	{"generic__raw_read_trylock", LOCK, "read_lock", 0, ret_non_zero},
  	{"_raw_read_trylock", LOCK, "read_lock", 0, ret_non_zero},
  	{"_read_trylock", LOCK, "read_lock", 0, ret_non_zero},
@@ -162,8 +162,8 @@ static struct lock_info kernel_lock_table[] = {
  	{"_read_lock_irq", LOCK, "read_lock", 0, ret_any},
  	{"_read_unlock_irq", UNLOCK, "read_lock", 0, ret_any},
 
- 	{"_read_lock_bh", LOCK, "read_lock_bh", 0, ret_any},
- 	{"_read_unlock_bh", UNLOCK, "read_lock_bh", 0, ret_any},
+ 	{"_read_lock_bh", LOCK, "read_lock", 0, ret_any},
+ 	{"_read_unlock_bh", UNLOCK, "read_lock", 0, ret_any},
  	{"_write_trylock", LOCK, "write_lock", 0, ret_non_zero},
  	{"_raw_write_trylock", LOCK, "write_lock", 0, ret_non_zero},
  	{"_write_lock", LOCK, "write_lock", 0, ret_any},
@@ -174,8 +174,8 @@ static struct lock_info kernel_lock_table[] = {
  	{"_write_lock_irq", LOCK, "write_lock", 0, ret_any},
  	{"_write_unlock_irq", UNLOCK, "write_lock", 0, ret_any},
 
- 	{"_write_lock_bh", LOCK, "write_lock_bh", 0, ret_any},
- 	{"_write_unlock_bh", UNLOCK, "write_lock_bh", 0, ret_any},
+ 	{"_write_lock_bh", LOCK, "write_lock", 0, ret_any},
+ 	{"_write_unlock_bh", UNLOCK, "write_lock", 0, ret_any},
  	{"down_trylock", LOCK, "sem", 0, ret_zero},
  	{"down_interruptible", LOCK, "sem", 0, ret_zero},
  	{"down", LOCK, "sem", 0, ret_any},
@@ -227,6 +227,21 @@ static struct lock_info kernel_lock_table[] = {
  	{"_write_unlock_irqrestore", UNLOCK, "irqsave", 1, ret_any},
  	{"_write_lock_irq", LOCK, "irq", NO_ARG, ret_any},
  	{"_write_unlock_irq", UNLOCK, "irq", NO_ARG, ret_any},
+
+ 	{"__spin_trylock_bh", LOCK, "bottom_half", NO_ARG, ret_non_zero},
+ 	{"__spin_lock_bh", LOCK, "bottom_half", NO_ARG, ret_any},
+ 	{"__spin_unlock_bh", UNLOCK, "bottom_half", NO_ARG, ret_any},
+ 	{"__read_lock_bh", LOCK, "bottom_half", NO_ARG, ret_any},
+ 	{"__read_unlock_bh", UNLOCK, "bottom_half", NO_ARG, ret_any},
+ 	{"__write_lock_bh", LOCK, "bottom_half", NO_ARG, ret_any},
+ 	{"__write_unlock_bh", UNLOCK, "bottom_half", NO_ARG, ret_any},
+ 	{"_spin_trylock_bh", LOCK, "bottom_half", NO_ARG, ret_non_zero},
+ 	{"_spin_lock_bh", LOCK, "bottom_half", NO_ARG, ret_any},
+ 	{"_spin_unlock_bh", UNLOCK, "bottom_half", NO_ARG, ret_any},
+ 	{"_read_lock_bh", LOCK, "bottom_half", NO_ARG, ret_any},
+ 	{"_read_unlock_bh", UNLOCK, "bottom_half", NO_ARG, ret_any},
+ 	{"_write_lock_bh", LOCK, "bottom_half", NO_ARG, ret_any},
+ 	{"_write_unlock_bh", UNLOCK, "bottom_half", NO_ARG, ret_any},
 };
 
 static struct lock_info *lock_table;
