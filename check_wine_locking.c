@@ -87,15 +87,57 @@ static struct lock_info wine_lock_table[] = {
 };
 
 static struct lock_info kernel_lock_table[] = {
-	{"lock_kernel", LOCK, "BKL", NO_ARG, ret_any},
-	{"unlock_kernel", UNLOCK, "BKL", NO_ARG, ret_any},
 	{"__raw_spin_lock", LOCK, "spin_lock", 0, ret_any},
 	{"__raw_spin_unlock", UNLOCK, "spin_lock", 0, ret_any},
+	{"__raw_spin_trylock", LOCK, "spin_lock", 0, ret_non_zero},
+
+	{"__spin_lock_nested", LOCK, "spin_lock", 0, ret_any},
+	{"__spin_trylock", LOCK, "spin_lock", 0, ret_non_zero},
+	{"__spin_lock", LOCK, "spin_lock", 0, ret_any},
+	{"__spin_unlock", UNLOCK, "spin_lock", 0, ret_any},
+
+ 	{"__spin_lock_irqsave_nested", LOCK, "spin_lock", 0, ret_any},
+ 	{"__spin_lock_irqsave", LOCK, "spin_lock", 0, ret_any},
+ 	{"__spin_unlock_irqrestore", UNLOCK, "spin_lock", 0, ret_any},
+ 	{"__spin_lock_irq", LOCK, "spin_lock", 0, ret_any},
+ 	{"__spin_unlock_irq", UNLOCK, "spin_lock", 0, ret_any},
+
+ 	{"__spin_trylock_bh", LOCK, "spin_lock_bh", 0, ret_non_zero},
+ 	{"__spin_lock_bh", LOCK, "spin_lock_bh", 0, ret_any},
+ 	{"__spin_unlock_bh", UNLOCK, "spin_lock_bh", 0, ret_any},
+ 	{"__raw_read_trylock", LOCK, "read_lock", 0, ret_non_zero},
+ 	{"__raw_read_trylock", LOCK, "read_lock", 0, ret_non_zero},
+ 	{"__read_trylock", LOCK, "read_lock", 0, ret_non_zero},
+ 	{"__read_lock", LOCK, "read_lock", 0, ret_any},
+ 	{"__read_unlock", UNLOCK, "read_lock", 0, ret_any},
+
+ 	{"__read_lock_irqsave", LOCK, "read_lock", 0, ret_any},
+ 	{"__read_unlock_irqrestore", UNLOCK, "read_lock", 0, ret_any},
+ 	{"__read_lock_irq", LOCK, "read_lock", 0, ret_any},
+ 	{"__read_unlock_irq", UNLOCK, "read_lock", 0, ret_any},
+
+ 	{"__read_lock_bh", LOCK, "read_lock_bh", 0, ret_any},
+ 	{"__read_unlock_bh", UNLOCK, "read_lock_bh", 0, ret_any},
+ 	{"__write_trylock", LOCK, "write_lock", 0, ret_non_zero},
+ 	{"__raw_write_trylock", LOCK, "write_lock", 0, ret_non_zero},
+ 	{"__raw_write_trylock", LOCK, "write_lock", 0, ret_non_zero},
+ 	{"__write_lock", LOCK, "write_lock", 0, ret_any},
+ 	{"__write_unlock", UNLOCK, "write_lock", 0, ret_any},
+
+ 	{"__write_lock_irqsave", LOCK, "write_lock", 0, ret_any},
+ 	{"__write_unlock_irqrestore", UNLOCK, "write_lock", 0, ret_any},
+ 	{"__write_lock_irq", LOCK, "write_lock", 0, ret_any},
+ 	{"__write_unlock_irq", UNLOCK, "write_lock", 0, ret_any},
+
+ 	{"__write_lock_bh", LOCK, "write_lock_bh", 0, ret_any},
+ 	{"__write_unlock_bh", UNLOCK, "write_lock_bh", 0, ret_any},
+
+	{"lock_kernel", LOCK, "BKL", NO_ARG, ret_any},
+	{"unlock_kernel", UNLOCK, "BKL", NO_ARG, ret_any},
 	{"_raw_spin_lock", LOCK, "spin_lock", 0, ret_any},
 	{"_raw_spin_unlock", UNLOCK, "spin_lock", 0, ret_any},
-	{"_spin_lock_nested", LOCK, "spin_lock", 0, ret_any},
-	{"__raw_spin_trylock", LOCK, "spin_lock", 0, ret_non_zero},
 	{"_raw_spin_trylock", LOCK, "spin_lock", 0, ret_non_zero},
+	{"_spin_lock_nested", LOCK, "spin_lock", 0, ret_any},
 	{"_spin_trylock", LOCK, "spin_lock", 0, ret_non_zero},
 	{"_spin_lock", LOCK, "spin_lock", 0, ret_any},
 	{"_spin_unlock", UNLOCK, "spin_lock", 0, ret_any},
@@ -106,18 +148,10 @@ static struct lock_info kernel_lock_table[] = {
  	{"_spin_lock_irq", LOCK, "spin_lock", 0, ret_any},
  	{"_spin_unlock_irq", UNLOCK, "spin_lock", 0, ret_any},
 
-	{"__raw_local_irq_save", LOCK, "irqsave", RETURN_VAL, ret_any},
- 	{"_spin_lock_irqsave_nested", LOCK, "irqsave", 1, ret_any},
- 	{"_spin_lock_irqsave", LOCK, "irqsave", 1, ret_any},
- 	{"_spin_unlock_irqrestore", UNLOCK, "irqsave", 1, ret_any},
- 	{"_spin_lock_irq", LOCK, "irq", NO_ARG, ret_any},
- 	{"_spin_unlock_irq", UNLOCK, "irq", NO_ARG, ret_any},
-
  	{"_spin_trylock_bh", LOCK, "spin_lock_bh", 0, ret_non_zero},
  	{"_spin_lock_bh", LOCK, "spin_lock_bh", 0, ret_any},
  	{"_spin_unlock_bh", UNLOCK, "spin_lock_bh", 0, ret_any},
  	{"generic__raw_read_trylock", LOCK, "read_lock", 0, ret_non_zero},
- 	{"__raw_read_trylock", LOCK, "read_lock", 0, ret_non_zero},
  	{"_raw_read_trylock", LOCK, "read_lock", 0, ret_non_zero},
  	{"_read_trylock", LOCK, "read_lock", 0, ret_non_zero},
  	{"_read_lock", LOCK, "read_lock", 0, ret_any},
@@ -128,15 +162,9 @@ static struct lock_info kernel_lock_table[] = {
  	{"_read_lock_irq", LOCK, "read_lock", 0, ret_any},
  	{"_read_unlock_irq", UNLOCK, "read_lock", 0, ret_any},
 
- 	{"_read_lock_irqsave", LOCK, "irqsave", 1, ret_any},
- 	{"_read_unlock_irqrestore", UNLOCK, "irqsave", 1, ret_any},
- 	{"_read_lock_irq", LOCK, "irq", NO_ARG, ret_any},
- 	{"_read_unlock_irq", UNLOCK, "irq", NO_ARG, ret_any},
-
  	{"_read_lock_bh", LOCK, "read_lock_bh", 0, ret_any},
  	{"_read_unlock_bh", UNLOCK, "read_lock_bh", 0, ret_any},
  	{"_write_trylock", LOCK, "write_lock", 0, ret_non_zero},
- 	{"__raw_write_trylock", LOCK, "write_lock", 0, ret_non_zero},
  	{"_raw_write_trylock", LOCK, "write_lock", 0, ret_non_zero},
  	{"_write_lock", LOCK, "write_lock", 0, ret_any},
  	{"_write_unlock", UNLOCK, "write_lock", 0, ret_any},
@@ -145,11 +173,6 @@ static struct lock_info kernel_lock_table[] = {
  	{"_write_unlock_irqrestore", UNLOCK, "write_lock", 0, ret_any},
  	{"_write_lock_irq", LOCK, "write_lock", 0, ret_any},
  	{"_write_unlock_irq", UNLOCK, "write_lock", 0, ret_any},
-
- 	{"_write_lock_irqsave", LOCK, "irqsave", 1, ret_any},
- 	{"_write_unlock_irqrestore", UNLOCK, "irqsave", 1, ret_any},
- 	{"_write_lock_irq", LOCK, "irq", NO_ARG, ret_any},
- 	{"_write_unlock_irq", UNLOCK, "irq", NO_ARG, ret_any},
 
  	{"_write_lock_bh", LOCK, "write_lock_bh", 0, ret_any},
  	{"_write_unlock_bh", UNLOCK, "write_lock_bh", 0, ret_any},
@@ -165,6 +188,45 @@ static struct lock_info kernel_lock_table[] = {
  	{"mutex_lock", LOCK, "mutex", 0, ret_any},
  	{"mutex_lock_nested", LOCK, "mutex", 0, ret_any},
  	{"mutex_unlock", UNLOCK, "mutex", 0, ret_any},
+
+	{"raw_local_irq_disable", LOCK, "irq", NO_ARG, ret_any},
+	{"__raw_local_irq_save", LOCK, "irqsave", RETURN_VAL, ret_any},
+	{"raw_local_irq_restore", UNLOCK, "irqsave", 0, ret_any},
+
+ 	{"__spin_lock_irqsave_nested", LOCK, "irqsave", 1, ret_any},
+ 	{"__spin_lock_irqsave", LOCK, "irqsave", 1, ret_any},
+ 	{"__spin_unlock_irqrestore", UNLOCK, "irqsave", 1, ret_any},
+ 	{"__spin_lock_irq", LOCK, "irq", NO_ARG, ret_any},
+ 	{"__spin_unlock_irq", UNLOCK, "irq", NO_ARG, ret_any},
+
+ 	{"__read_lock_irqsave", LOCK, "irqsave", RETURN_VAL, ret_any},
+ 	{"__read_unlock_irqrestore", UNLOCK, "irqsave", 1, ret_any},
+ 	{"__read_lock_irq", LOCK, "irq", NO_ARG, ret_any},
+ 	{"__read_unlock_irq", UNLOCK, "irq", NO_ARG, ret_any},
+
+ 	{"__write_lock_irqsave", LOCK, "irqsave", RETURN_VAL, ret_any},
+ 	{"__write_unlock_irqrestore", UNLOCK, "irqsave", 1, ret_any},
+ 	{"__write_lock_irq", LOCK, "irq", NO_ARG, ret_any},
+ 	{"__write_unlock_irq", UNLOCK, "irq", NO_ARG, ret_any},
+
+ 	{"_spin_lock_irqsave_nested", LOCK, "irqsave", RETURN_VAL, ret_any},
+ 	{"_spin_lock_irqsave", LOCK, "irqsave", RETURN_VAL, ret_any},
+ 	{"_spin_lock_irqsave", LOCK, "irqsave", 1, ret_any},
+ 	{"_spin_unlock_irqrestore", UNLOCK, "irqsave", 1, ret_any},
+ 	{"_spin_lock_irq", LOCK, "irq", NO_ARG, ret_any},
+ 	{"_spin_unlock_irq", UNLOCK, "irq", NO_ARG, ret_any},
+
+ 	{"_read_lock_irqsave", LOCK, "irqsave", RETURN_VAL, ret_any},
+ 	{"_read_lock_irqsave", LOCK, "irqsave", 1, ret_any},
+ 	{"_read_unlock_irqrestore", UNLOCK, "irqsave", 1, ret_any},
+ 	{"_read_lock_irq", LOCK, "irq", NO_ARG, ret_any},
+ 	{"_read_unlock_irq", UNLOCK, "irq", NO_ARG, ret_any},
+
+ 	{"_write_lock_irqsave", LOCK, "irqsave", RETURN_VAL, ret_any},
+ 	{"_write_lock_irqsave", LOCK, "irqsave", 1, ret_any},
+ 	{"_write_unlock_irqrestore", UNLOCK, "irqsave", 1, ret_any},
+ 	{"_write_lock_irq", LOCK, "irq", NO_ARG, ret_any},
+ 	{"_write_unlock_irq", UNLOCK, "irq", NO_ARG, ret_any},
 };
 
 static struct lock_info *lock_table;
@@ -205,6 +267,8 @@ static char *get_full_name(struct expression *expr, int index)
 		full_name = make_full_name(lock->name, "");
 	} else {
 		arg = get_argument_from_call_expr(expr->args, lock->arg);
+		if (!arg)
+			goto free;
 		name = get_variable_from_expr(arg, NULL);
 		if (!name)
 			goto free;
@@ -315,6 +379,19 @@ static void match_lock_failed(const char *fn, struct expression *call_expr,
 		return;
 	do_lock_failed(lock_name);
 	free_string(lock_name);
+}
+
+static void match_returns_locked(const char *fn, struct expression *expr,
+				      void *_index)
+{
+	char *full_name = NULL;
+	int index = (int)_index;
+	struct lock_info *lock = &lock_table[index];
+
+	if (lock->arg != RETURN_VAL)
+		return;
+	full_name = get_full_name(expr, index);
+	do_lock(full_name);
 }
 
 static void match_lock_unlock(const char *fn, struct expression *expr, void *_index)
@@ -538,7 +615,9 @@ static void register_lock(int index)
 	if (lock->return_type == ret_non_zero) {
 		return_implies_state(lock->function, 1, POINTER_MAX, &match_lock_held, idx);
 		return_implies_state(lock->function, 0, 0, &match_lock_failed, idx);
-       	} else if (lock->return_type == ret_any) {
+       	} else if (lock->return_type == ret_any && lock->arg == RETURN_VAL) {
+		add_function_assign_hook(lock->function, &match_returns_locked, idx);
+	} else if (lock->return_type == ret_any) {
 		add_function_hook(lock->function, &match_lock_unlock, idx);
 	} else if (lock->return_type == ret_zero) {
 		return_implies_state(lock->function, 0, 0, &match_lock_held, idx);
