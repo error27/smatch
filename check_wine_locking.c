@@ -275,8 +275,6 @@ static char *get_full_name(struct expression *expr, int index)
 
 	if (lock->arg == RETURN_VAL) {
 		name = get_variable_from_expr(expr->left, NULL);
-		if (!name)
-			goto free;
 		full_name = make_full_name(lock->name, name);
 	} else if (lock->arg == NO_ARG) {
 		full_name = make_full_name(lock->name, "");
