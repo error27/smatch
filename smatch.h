@@ -81,6 +81,10 @@ enum hook_type {
 	RETURN_HOOK,
 	END_FILE_HOOK,
 };
+
+#define TRUE 1
+#define FALSE 0
+
 void add_hook(void *func, enum hook_type type);
 typedef struct smatch_state *(merge_func_t)(const char *name, 
 					    struct symbol *sym,

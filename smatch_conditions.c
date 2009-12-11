@@ -47,6 +47,7 @@
  */
 
 #include "smatch.h"
+#include "smatch_slist.h"
 
 static void split_conditions(struct expression *expr);
 
@@ -189,18 +190,33 @@ static int handle_rostedt_if(struct expression *expr)
 	return 1;
 }
 
+static void move_cur_to_tf(int tf)
+{
+	struct sm_state *sm;
+
+	FOR_EACH_PTR(__fake_cur_slist, sm) {
+		if (tf)
+			__set_true_false_sm(sm, NULL);
+		else
+			__set_true_false_sm(NULL, sm);
+	} END_FOR_EACH_PTR(sm);
+	free_slist(&__fake_cur_slist);
+}
+
+
+/*
+ * handle_select()
+ * if ((aaa()?bbb():ccc())) { ...
+ *
+ * This is almost the same as:
+ * if ((aaa() && bbb()) || (!aaa() && ccc())) { ...
+ *
+ * It's a bit complicated because we shouldn't pass aaa()
+ * to the clients more than once.
+ */
+
 static void handle_select(struct expression *expr)
 {
-	/*
-	 * if ((aaa()?bbb():ccc())) { ...
-	 *
-	 * This is almost the same as:
-	 * if ((aaa() && bbb()) || (!aaa() && ccc())) { ...
-	 *
-	 * It's a bit complicated because we shouldn't pass aaa()
-	 * to the clients more than once.
-	 */
-
 	if (handle_rostedt_if(expr->conditional))
 		return;
 
@@ -208,6 +224,7 @@ static void handle_select(struct expression *expr)
 
 	__save_false_states_for_later();
 
+	__fake_cur++;
 	if (implied_condition_true(expr->cond_true)) {
 		__split_expr(expr->cond_true);
 	} else {
@@ -215,10 +232,13 @@ static void handle_select(struct expression *expr)
 		split_conditions(expr->cond_true);
 		__and_cond_states();
 	}
+	move_cur_to_tf(TRUE);
 
 	if (implied_condition_false(expr->cond_false)) {
 		__split_expr(expr->cond_false);
 		__pop_pre_cond_states();
+		move_cur_to_tf(FALSE);
+		__fake_cur--;
 		return;
 	}
 
@@ -227,6 +247,8 @@ static void handle_select(struct expression *expr)
 	__save_pre_cond_states();
 	__push_cond_stacks();
 	split_conditions(expr->cond_false);
+	move_cur_to_tf(FALSE);
+	__fake_cur--;
 	__or_cond_states();
 	__pop_pre_cond_states();
 

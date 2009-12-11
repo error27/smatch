@@ -143,7 +143,7 @@ $(SLIB_FILE): $(LIB_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) -Wl,-soname,$@ -shared -o $@ $(LIB_OBJS)
 
 smatch_flow.o: $(LIB_H) smatch.h smatch_expression_stacks.h smatch_extra.h
-smatch_conditions.o: $(LIB_H) smatch.h
+smatch_conditions.o: $(LIB_H) smatch.h smatch_slist.h
 smatch_extra.o: $(LIB_H) smatch.h smatch_extra.h
 smatch_ranges.o: $(LIB_H) smatch.h smatch_extra.h
 smatch_implied.o: $(LIB_H) smatch.h smatch_slist.h smatch_extra.h
