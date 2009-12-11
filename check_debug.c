@@ -46,6 +46,18 @@ static void match_print_value(const char *fn, struct expression *expr, void *inf
 	free_slist(&slist);
 }
 
+static void match_note(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg_expr;
+
+	arg_expr = get_argument_from_call_expr(expr->args, 0);
+	if (arg_expr->type != EXPR_STRING) {
+		sm_msg("error:  the argument to %s is supposed to be a string literal", fn);
+		return;
+	}
+	sm_msg("%s", arg_expr->string->data);
+}
+
 
 void check_debug(int id)
 {
@@ -53,4 +65,5 @@ void check_debug(int id)
 	add_function_hook("__smatch_all_values", &match_all_values, NULL);
 	add_function_hook("__smatch_print_value", &match_print_value, NULL);
 	add_function_hook("__smatch_cur_slist", &match_cur_slist, NULL);
+	add_function_hook("__smatch_note", &match_note, NULL);
 }
