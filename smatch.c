@@ -80,7 +80,7 @@ static struct reg_func_info {
 	/* CK(register_template), */
 
 	/* kernel specific */
-	CK(check_locking),
+//	CK(check_locking),
 	CK(check_puts_argument),
 	CK(check_err_ptr),
 	CK(check_err_ptr_deref),
