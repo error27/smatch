@@ -30,6 +30,6 @@ int func (void)
  * check-command: smatch --project=kernel sm_implied4.c
  *
  * check-output-start
-sm_implied4.c +22 func(14) warn: 'mylock' is sometimes locked here and sometimes unlocked.
+sm_implied4.c +22 func(14) warn: 'spin_lock:mylock' is sometimes locked here and sometimes unlocked.
  * check-output-end
  */

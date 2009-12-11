@@ -30,7 +30,7 @@ int func (void)
  * check-command: smatch --project=kernel sm_locking.c
  *
  * check-output-start
-sm_locking.c +26 func(20) warn: 'mylock3' is sometimes locked here and sometimes unlocked.
-sm_locking.c +26 func(20) warn: inconsistent returns mylock2: locked (13,26) unlocked (21)
+sm_locking.c +26 func(20) warn: 'spin_lock:mylock3' is sometimes locked here and sometimes unlocked.
+sm_locking.c +26 func(20) warn: inconsistent returns spin_lock:mylock2: locked (13,26) unlocked (21)
  * check-output-end
  */

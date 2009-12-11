@@ -50,7 +50,6 @@ void check_signed(int id);
 void check_wine(int id);
 void check_wine_filehandles(int id);
 void check_wine_WtoA(int id);
-void check_wine_locking(int id);
 
 /* void register_template(int id); */
 
@@ -80,7 +79,7 @@ static struct reg_func_info {
 	/* CK(register_template), */
 
 	/* kernel specific */
-//	CK(check_locking),
+	CK(check_locking),
 	CK(check_puts_argument),
 	CK(check_err_ptr),
 	CK(check_err_ptr_deref),
@@ -90,7 +89,6 @@ static struct reg_func_info {
 	CK(check_wine),
 	CK(check_wine_filehandles),
 	CK(check_wine_WtoA),
-	CK(check_wine_locking),
 
 	CK(register_modification_hooks),
 	CK(register_containers),

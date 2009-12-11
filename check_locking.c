@@ -1,5 +1,5 @@
 /*
- * sparse/check_wine_locking.c
+ * sparse/check_locking.c
  *
  * Copyright (C) 2009 Dan Carpenter.
  *
@@ -652,13 +652,13 @@ static void load_table(struct lock_info *_lock_table, int size)
 	}
 }
 
-void check_wine_locking(int id)
+void check_locking(int id)
 {
 	my_id = id;
 
 	if (option_project == PROJ_WINE)
 		load_table(wine_lock_table, ARRAY_SIZE(wine_lock_table));
-	else if (option_project == PROJ_KERNEL && option_spammy)
+	else if (option_project == PROJ_KERNEL)
 		load_table(kernel_lock_table, ARRAY_SIZE(kernel_lock_table));
 	else
 		return;

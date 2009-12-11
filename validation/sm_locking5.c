@@ -13,6 +13,6 @@ void frob(void) {
  * check-command: smatch -p=kernel sm_locking5.c
  *
  * check-output-start
-sm_locking5.c +9 frob(5) warn: inconsistent returns lock: locked (9) unlocked (8)
+sm_locking5.c +9 frob(5) warn: inconsistent returns mutex:lock: locked (9) unlocked (8)
  * check-output-end
  */
