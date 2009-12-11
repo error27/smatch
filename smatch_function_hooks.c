@@ -14,6 +14,9 @@
  * add_conditional_hook()     - For when the return value implies something.
  *                              For example a return value of 1 might mean
  *                              a lock is held and 0 means it is not held.
+ * return_implies_state()     - For when a return value of 1 implies locked
+ *                              and 0 implies unlocked. etc. etc.
+ *
  */
 
 #define _GNU_SOURCE

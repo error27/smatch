@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2006,2008 Dan Carpenter.
  *
- *  Licensed under the Open Software License version 1.1
+ * Licensed under the Open Software License version 1.1
  *
  */
 
@@ -23,14 +23,15 @@
  *
  * If we mix and's and or's that's even more complicated.
  * if (a && b && c || a && d) { d ;
- * 'a' is true when we get to 'b', 'c' and 'd'.
- * 'b' is true when we reach 'c' but otherwise we don't know.
+ * 'a' is true when we evaluate 'b', and 'd'.
+ * 'b' is true when we evaluate 'c' but otherwise we don't.
  * 
  * The other thing that complicates matters is if we negate
  * some if conditions.
  * if (!a) { ...
- * We pass the un-negated version to the client and flip the true
- * and false values internally.
+ * Smatch has passes the un-negated version to the client and flip 
+ * the true and false values internally.  This makes it easier
+ * to write checks.
  * 
  * And negations can be part of a compound.
  * if (a && !(b || c)) { d;
@@ -40,8 +41,9 @@
  *
  * One other thing is that:
  * if ((a) != 0){ ...
- * that's basically the same as testing for just 'a' so we simplify
- * it before passing it to the script.
+ * that's basically the same as testing for just 'a' and we simplify
+ * comparisons with zero before passing it to the script.
+ *
  */
 
 #include "smatch.h"
