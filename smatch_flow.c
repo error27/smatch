@@ -25,7 +25,7 @@ static char *pathname;
 static char *full_filename;
 static char *cur_func;
 static int line_func_start;
-static struct expression_stack *switch_expr_stack = NULL;
+static struct expression_list *switch_expr_stack = NULL;
 
 char *get_function(void) { return cur_func; }
 int get_lineno(void) { return __smatch_lineno; }
