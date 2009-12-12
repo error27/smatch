@@ -24,14 +24,9 @@ static void match_dereference(struct expression *expr)
 {
 	char *name;
 
-	if (expr->type == EXPR_PREOP) {
-		expr = strip_expr(expr->unop);
-	} else {
-		if (expr->deref->op != '*')
-			return;
-		expr = expr->deref->unop;
-		expr = strip_expr(expr);
-	}
+	if (expr->type != EXPR_PREOP)
+		return;
+	expr = strip_expr(expr->unop);
 	if (implied_not_equal(expr, 0))
 		return;
 	

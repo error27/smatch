@@ -325,39 +325,14 @@ static void match_declarations(struct symbol *sym)
 	}
 }
 
-static void match_preop_deref(struct expression *expr)
-{
-	char *deref = NULL;
-	struct symbol *sym = NULL;
-
-	deref = get_variable_from_expr(expr->unop, &sym);
-	if (!deref)
-		return;
-
-	if (is_maybe_null_arg(deref, sym)) {
-		add_do_not_call(sym, get_lineno());
-		set_state(my_id, deref, sym, &assumed_nonnull);
-	} else if (is_maybe_null(deref, sym)) {
-		sm_msg("error: dereferencing undefined:  '%s'", deref);
-		set_state(my_id, deref, sym, &ignore);
-	}
-	free_string(deref);
-}
-
 static void match_dereferences(struct expression *expr)
 {
 	char *deref = NULL;
 	struct symbol *sym = NULL;
 
-	if (expr->type == EXPR_PREOP) {
-		match_preop_deref(expr);
+	if (expr->type != EXPR_PREOP)
 		return;
-	}
-
-	if (expr->deref->op != '*')
-		return;
-
-	deref = get_variable_from_expr(expr->deref->unop, &sym);
+	deref = get_variable_from_expr(expr->unop, &sym);
 	if (!deref)
 		return;
 
