@@ -10,6 +10,8 @@
 #include "smatch.h"
 #include "smatch_extra.h"
 
+extern struct expression_list *big_expression_stack;
+
 static int my_id;
 
 STATE(derefed);
@@ -20,18 +22,39 @@ static void underef(const char *name, struct symbol *sym, struct expression *exp
 	set_state(my_id, name, sym, &oktocheck);
 }
 
+static int is_not_really_dereference()
+{
+	struct expression *tmp;
+	int i = 0;
+	int dot_ops = 0;
+
+	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
+		if (!i++)
+			continue;
+		if (tmp->op == '(')
+			continue;
+		if (tmp->op == '.' && !dot_ops++)
+			continue;
+		if (tmp->op == '&')
+			return 1;
+		return 0;
+	} END_FOR_EACH_PTR_REVERSE(tmp);
+	return 0;
+}
+
 static void match_dereference(struct expression *expr)
 {
 	char *name;
 
 	if (expr->type != EXPR_PREOP)
 		return;
+	if (is_not_really_dereference())
+		return;
+
 	expr = strip_expr(expr->unop);
 	if (implied_not_equal(expr, 0))
 		return;
-	
 	set_state_expr(my_id, expr, &derefed);
-
 	name = get_variable_from_expr(expr, NULL);
 	if (!name)
 		return;
@@ -46,7 +69,7 @@ static void match_condition(struct expression *expr)
 
 		name = get_variable_from_expr(expr, NULL);
 		if (!implied_not_equal(expr, 0))
-			sm_msg("warn: variable derefenced before check '%s'", name);
+			sm_msg("warn: variable dereferenced before check '%s'", name);
 		set_state_expr(my_id, expr, &oktocheck);
 		free_string(name);
 	}

@@ -26,6 +26,7 @@ static char *full_filename;
 static char *cur_func;
 static int line_func_start;
 static struct expression_list *switch_expr_stack = NULL;
+struct expression_list *big_expression_stack;
 
 char *get_function(void) { return cur_func; }
 int get_lineno(void) { return __smatch_lineno; }
@@ -54,6 +55,7 @@ void __split_expr(struct expression *expr)
 
 	// printf("%d Debug expr_type %d %s\n", get_lineno(), expr->type, show_special(expr->op));
 
+	push_expression(&big_expression_stack, expr);
 	__smatch_lineno = expr->pos.line;
 	__pass_to_client(expr, EXPR_HOOK);
 
@@ -298,6 +300,7 @@ void __split_statements(struct statement *stmt)
 		return;
 	}
 
+	free_expression_stack(&big_expression_stack);
 	__smatch_lineno = stmt->pos.line;
 	print_unreached(stmt);
 	__pass_to_client(stmt, STMT_HOOK);
