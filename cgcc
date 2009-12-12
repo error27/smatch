@@ -120,7 +120,7 @@ sub integer_types {
     my @types = (['SCHAR',''], ['SHRT',''], ['INT',''], ['LONG','L'], ['LONG_LONG','LL'], ['LONG_LONG_LONG','LLL']);
 
     my $result = " -D__CHAR_BIT__=$char";
-    while (@types) {
+    while (@types && @_) {
 	my $bits = shift @_;
 	my ($name,$suffix) = @{ shift @types };
 	die "$0: weird number of bits." unless exists $pow2m1{$bits};
