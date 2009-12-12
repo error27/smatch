@@ -190,6 +190,7 @@ static struct lock_info kernel_lock_table[] = {
  	{"mutex_unlock", UNLOCK, "mutex", 0, ret_any},
 
 	{"raw_local_irq_disable", LOCK, "irq", NO_ARG, ret_any},
+	{"raw_local_irq_enable", UNLOCK, "irq", NO_ARG, ret_any},
 	{"__raw_local_irq_save", LOCK, "irqsave", RETURN_VAL, ret_any},
 	{"raw_local_irq_restore", UNLOCK, "irqsave", 0, ret_any},
 
