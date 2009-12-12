@@ -98,6 +98,8 @@ void check_signed(int id)
 {
 	my_id = id;
 
+	if (!option_spammy)
+		return;
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 }
