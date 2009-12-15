@@ -136,6 +136,9 @@ void __split_expr(struct expression *expr)
 	case EXPR_POS:
 		__split_expr(expr->init_expr);
 		return;
+	case EXPR_SYMBOL:
+		__pass_to_client(expr, SYM_HOOK);
+		return;
 	default:
 		return;
 	};
@@ -449,7 +452,6 @@ static void split_sym(struct symbol *sym)
 	if (!(sym->namespace & NS_SYMBOL))
 		return;
 
-	__pass_to_client(sym, SYM_HOOK);
 	__split_statements(sym->stmt);
 	__split_expr(sym->array_size);
 	split_symlist(sym->arguments);

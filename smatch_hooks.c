@@ -48,7 +48,7 @@ void add_hook(void *func, enum hook_type type)
 		container->data_type = STMT_PTR;
 		break;
 	case SYM_HOOK:
-		container->data_type = SYMBOL_PTR;
+		container->data_type = EXPR_PTR;
 		break;
 	case DECLARATION_HOOK:
 		container->data_type = SYMBOL_PTR;
