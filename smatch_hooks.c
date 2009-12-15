@@ -9,9 +9,15 @@
 
 #include "smatch.h"
 
+enum data_type {
+	EXPR_PTR,
+	STMT_PTR,
+	SYMBOL_PTR,
+};
+
 struct hook_container {
 	int hook_type;
-	int data_type;
+	enum data_type data_type;
 	void *fn;
 };
 ALLOCATOR(hook_container, "hook functions");
@@ -36,52 +42,52 @@ void add_hook(void *func, enum hook_type type)
 	container->fn = func;
 	switch(type) {
 	case EXPR_HOOK:
-		container->data_type = EXPR_HOOK;
+		container->data_type = EXPR_PTR;
 		break;
 	case STMT_HOOK:
-		container->data_type = STMT_HOOK;
+		container->data_type = STMT_PTR;
 		break;
 	case SYM_HOOK:
-		container->data_type = SYM_HOOK;
+		container->data_type = SYMBOL_PTR;
 		break;
 	case DECLARATION_HOOK:
-		container->data_type = SYM_HOOK;
+		container->data_type = SYMBOL_PTR;
 		break;
 	case ASSIGNMENT_HOOK:
-		container->data_type = EXPR_HOOK;
+		container->data_type = EXPR_PTR;
 		break;
 	case CALL_ASSIGNMENT_HOOK:
-		container->data_type = EXPR_HOOK;
+		container->data_type = EXPR_PTR;
 		break;
 	case OP_HOOK:
-		container->data_type = EXPR_HOOK;
+		container->data_type = EXPR_PTR;
 		break;
 	case CONDITION_HOOK:
-		container->data_type = EXPR_HOOK;
+		container->data_type = EXPR_PTR;
 		break;
 	case WHOLE_CONDITION_HOOK:
-		container->data_type = EXPR_HOOK;
+		container->data_type = EXPR_PTR;
 		break;
 	case FUNCTION_CALL_HOOK:
-		container->data_type = EXPR_HOOK;
+		container->data_type = EXPR_PTR;
 		break;
 	case DEREF_HOOK:
-		container->data_type = EXPR_HOOK;
+		container->data_type = EXPR_PTR;
 		break;
 	case CASE_HOOK:
 		/* nothing needed */
 		break;
 	case BASE_HOOK:
-		container->data_type = SYM_HOOK;
+		container->data_type = SYMBOL_PTR;
 		break;
 	case FUNC_DEF_HOOK:
-		container->data_type = SYM_HOOK;
+		container->data_type = SYMBOL_PTR;
 		break;
 	case END_FUNC_HOOK:
-		container->data_type = SYM_HOOK;
+		container->data_type = SYMBOL_PTR;
 		break;
 	case RETURN_HOOK:
-		container->data_type = EXPR_HOOK;
+		container->data_type = EXPR_PTR;
 		break;
 	case END_FILE_HOOK:
 		/* nothing needed... */
@@ -140,13 +146,13 @@ void __pass_to_client(void *data, enum hook_type type)
 	FOR_EACH_PTR(hook_funcs, container) {
 		if (container->hook_type == type) {
 			switch(container->data_type) {
-			case EXPR_HOOK:
+			case EXPR_PTR:
 				pass_expr_to_client(container->fn, data);
 				break;
-			case STMT_HOOK:
+			case STMT_PTR:
 				pass_stmt_to_client(container->fn, data);
 				break;
-			case SYM_HOOK:
+			case SYMBOL_PTR:
 				pass_sym_to_client(container->fn, data);
 				break;
 			}
