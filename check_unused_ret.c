@@ -1,0 +1,166 @@
+/*
+ * sparse/check_unused_ret.c
+ *
+ * Copyright (C) 2009 Dan Carpenter.
+ *
+ * Licensed under the Open Software License version 1.1
+ *
+ */
+
+/*
+ * This check is supposed to find places like this:
+ * err = foo();
+ * err = bar();
+ * if (err)
+ *         return err;
+ * (the first assignment isn't used)
+ *
+ * How the check works is that every assignment gets an ID.
+ * We store that assignment ID in a list of assignments that 
+ * haven't been used.  We also set the state of 'err' from 
+ * the example above to be.  Then when we use 'err' we remove
+ * it from the list.  At the end of the function we print
+ * a list of assignments that still haven't been used.
+ *
+ * Note that this check only works for assignments to 
+ * EXPR_SYMBOL.  Maybe it could be modified to cover other
+ * assignments later but then you would have to deal with
+ * scope issues.
+ *
+ * Also this state is quite tied to the order the callbacks
+ * are called in smatch_flow.c.  (If the order changed it 
+ * would break).
+ *
+ */
+
+#include "smatch.h"
+#include "smatch_slist.h"
+
+static int my_id;
+
+struct assignment {
+	int assign_id;
+	char *name;
+	int line;
+};
+ALLOCATOR(assignment, "assignment id");
+DECLARE_PTR_LIST(assignment_list, struct assignment);
+static struct assignment_list *assignment_list;
+
+static struct expression *skip_this;
+static int assign_id;
+
+static struct smatch_state *my_alloc_state(int assign_id)
+{
+	struct smatch_state *state;
+	static char buff[256];
+
+	state = __alloc_smatch_state(0);
+	snprintf(buff, 255, "assign_%d", assign_id);
+	buff[255] = '\0';
+	state->name = alloc_string(buff);
+	state->data = (void *) assign_id;
+	return state;
+}
+
+static void match_assign_call(struct expression *expr)
+{
+	struct expression *left;
+	struct assignment *assign;
+	struct symbol *base;
+
+	if (final_pass)
+		return;
+	if (in_condition())
+		return;
+	if (expr->op != '=')
+		return;
+	left = strip_expr(expr->left);
+	if (!left || left->type != EXPR_SYMBOL)
+		return;
+	base = get_base_type(left->symbol);
+	if (!base->ctype.modifiers & MOD_AUTO)
+		return;
+
+	skip_this = left;
+
+	set_state_expr(my_id, left, my_alloc_state(assign_id));
+
+	assign = __alloc_assignment(0);
+	assign->assign_id = assign_id++;
+	assign->name = get_variable_from_expr(left, NULL);
+	assign->line = get_lineno();
+	add_ptr_list(&assignment_list, assign);
+}
+
+static void match_assign(struct expression *expr)
+{
+	struct expression *left;
+
+	if (expr->op != '=')
+		return;
+	left = strip_expr(expr->left);
+	if (!left || left->type != EXPR_SYMBOL)
+		return;
+	delete_state_expr(my_id, left);
+}
+
+static void delete_used(int assign_id)
+{
+	struct assignment *tmp;
+
+ 	FOR_EACH_PTR(assignment_list, tmp) {
+		if (tmp->assign_id == assign_id) {
+			DELETE_CURRENT_PTR(tmp);
+			return;
+		}
+	} END_FOR_EACH_PTR(tmp);
+}
+
+static void delete_used_symbols(struct state_list *possible)
+{
+	struct sm_state *tmp;
+
+ 	FOR_EACH_PTR(possible, tmp) {
+		delete_used((int)tmp->state->data);
+	} END_FOR_EACH_PTR(tmp);
+}
+
+static void match_symbol(struct expression *expr)
+{
+	struct sm_state *sm;
+
+	expr = strip_expr(expr);
+	if (expr == skip_this)
+		return;
+	sm = get_sm_state_expr(my_id, expr);
+	if (!sm)
+		return;
+	delete_used_symbols(sm->possible);
+	delete_state_expr(my_id, expr);
+}
+
+static void match_end_func(struct symbol *sym)
+{
+	struct assignment *tmp;
+
+ 	FOR_EACH_PTR(assignment_list, tmp) {
+		sm_printf("%s +%d %s ", get_filename(), tmp->line, get_function());
+		sm_printf("warning: assignment to '%s' was never used\n", tmp->name);
+	} END_FOR_EACH_PTR(tmp);
+	clear_assignment_alloc();
+	__free_ptr_list((struct ptr_list **)&assignment_list);
+}
+
+void check_unused_ret(int id)
+{
+	my_id = id;
+
+	/* It turns out that this test is worthless unless you use --two-passes.  */
+	if (!option_two_passes)
+		return;
+	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);
+	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_symbol, SYM_HOOK);
+	add_hook(&match_end_func, END_FUNC_HOOK);
+}

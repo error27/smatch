@@ -46,6 +46,7 @@ void check_redundant_null_check(int id);
 void check_signed(int id);
 void check_precedence(int id);
 void check_format_string(int id);
+void check_unused_ret(int id);
 /* <- your test goes here */
 
 /* may as well put wine scripts all together */
@@ -77,8 +78,9 @@ static struct reg_func_info {
 	CK(check_redundant_null_check),
 	CK(check_signed),
 	CK(check_precedence),
-    CK(check_format_string),
-    
+	CK(check_format_string),
+	CK(check_unused_ret),
+
 	/* <- your test goes here */
 	/* CK(register_template), */
 
