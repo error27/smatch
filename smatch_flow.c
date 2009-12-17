@@ -104,6 +104,7 @@ void __split_expr(struct expression *expr)
 		__split_expr(expr->base);
 		return;
 	case EXPR_CAST:
+	case EXPR_FORCE_CAST:
 		__split_expr(expr->cast_expression);
 		return;
 	case EXPR_SIZEOF:
