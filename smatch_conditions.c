@@ -180,16 +180,6 @@ static void handle_logical(struct expression *expr)
 	__use_cond_true_states();
 }
 
-static int handle_rostedt_if(struct expression *expr)
-{
-	if (expr->type != EXPR_CALL)
-		return 0;
-	if (!sym_name_is("__builtin_constant_p", expr->fn))
-		return 0;
-	split_conditions(expr);
-	return 1;
-}
-
 static void move_cur_to_tf(int tf)
 {
 	struct sm_state *sm;
@@ -217,9 +207,6 @@ static void move_cur_to_tf(int tf)
 
 static void handle_select(struct expression *expr)
 {
-	if (handle_rostedt_if(expr->conditional))
-		return;
-
 	split_conditions(expr->conditional);
 
 	__save_false_states_for_later();
