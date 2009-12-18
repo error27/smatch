@@ -118,13 +118,13 @@ extern int final_pass;
 #define sm_printf(msg...) do { if (final_pass) printf(msg); } while (0) \
 
 #define sm_msg(msg...) \
-do {                                                          \
+do {                                                           \
 	if (!debug_states && !final_pass)                      \
-		break;                                        \
+		break;                                         \
 	printf("%s +%d %s(%d) ", get_filename(), get_lineno(), \
-	       get_function(), get_func_pos());               \
-        printf(msg);                                          \
-        printf("\n");                                         \
+	       get_function(), get_func_pos());                \
+        printf(msg);                                           \
+        printf("\n");                                          \
 } while (0)
 
 #define sm_debug(msg...) do { if (debug_states) printf(msg); } while (0)
@@ -198,11 +198,6 @@ void free_trackers_and_list(struct tracker_list **list);
 
 /* smatch_conditions */
 int in_condition();
-
-/* ----------------------------------------------------------------
-   The stuff below is all used internally and shouldn't 
-   be called from other programs 
- -----------------------------------------------------------------*/
 
 /* smatch_flow.c */
 

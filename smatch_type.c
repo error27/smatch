@@ -20,7 +20,6 @@ static struct symbol *get_type_symbol(struct expression *expr)
 		return NULL;
 
 	return get_base_type(expr->symbol);
-
 }
 
 static struct symbol *get_symbol_from_deref(struct expression *expr)
