@@ -67,7 +67,6 @@ static void match_assign_call(struct expression *expr)
 {
 	struct expression *left;
 	struct assignment *assign;
-	struct symbol *base;
 
 	if (final_pass)
 		return;
@@ -80,8 +79,7 @@ static void match_assign_call(struct expression *expr)
 	left = strip_expr(expr->left);
 	if (!left || left->type != EXPR_SYMBOL)
 		return;
-	base = get_base_type(left->symbol);
-	if (!base->ctype.modifiers & MOD_AUTO)
+	if (left->symbol->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN | MOD_STATIC))
 		return;
 
 	skip_this = left;
