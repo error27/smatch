@@ -75,6 +75,8 @@ static void match_assign_call(struct expression *expr)
 		return;
 	if (expr->op != '=')
 		return;
+	if (unreachable())
+		return;
 	left = strip_expr(expr->left);
 	if (!left || left->type != EXPR_SYMBOL)
 		return;

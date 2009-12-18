@@ -68,7 +68,7 @@ void __print_cur_slist()
 	__print_slist(cur_slist);
 }
 
-static int unreachable()
+int unreachable()
 {
 	static int reset_warnings = 1;
 
