@@ -119,7 +119,7 @@ extern int final_pass;
 
 #define sm_msg(msg...) \
 do {                                                          \
-	if (!final_pass)                                      \
+	if (!debug_states && !final_pass)                      \
 		break;                                        \
 	printf("%s +%d %s(%d) ", get_filename(), get_lineno(), \
 	       get_function(), get_func_pos());               \
