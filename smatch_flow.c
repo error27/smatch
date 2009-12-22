@@ -77,9 +77,8 @@ void __split_expr(struct expression *expr)
 		__merge_true_states();
 		__pop_false_only_stack();
 		return;
-
-		return;
 	case EXPR_BINOP: 
+		__pass_to_client(expr, BINOP_HOOK);
 	case EXPR_COMMA:
 	case EXPR_COMPARE:
 		__split_expr(expr->left);

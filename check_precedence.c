@@ -20,9 +20,19 @@ static void match_condition(struct expression *expr)
 		sm_msg("warning: do you want parens here?");
 }
 
+static void match_binop(struct expression *expr)
+{
+	if (expr->op != '&')
+		return;
+	if (expr->left->op == '!')
+		sm_msg("warning: you probably want parens here.");
+}
+
+
 void check_precedence(int id)
 {
 	my_id = id;
 
 	add_hook(&match_condition, CONDITION_HOOK);
+	add_hook(&match_binop, BINOP_HOOK);
 }

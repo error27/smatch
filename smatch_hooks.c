@@ -59,6 +59,9 @@ void add_hook(void *func, enum hook_type type)
 	case CALL_ASSIGNMENT_HOOK:
 		container->data_type = EXPR_PTR;
 		break;
+	case BINOP_HOOK:
+		container->data_type = EXPR_PTR;
+		break;
 	case OP_HOOK:
 		container->data_type = EXPR_PTR;
 		break;
