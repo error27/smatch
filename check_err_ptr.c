@@ -7,10 +7,6 @@
  *
  */
 
-/* 
- * Functions should never return both NULL and ERR_PTR().
- */
-
 #include "smatch.h"
 #include "smatch_slist.h"
 
@@ -56,8 +52,6 @@ static void match_return(struct expression *ret_value)
 
 static void match_end_func(struct symbol *sym)
 {
-	if (returns_null && err_ptr)
-		sm_msg("warn:  returns both null and ERR_PTR.");
 	if (err_ptr)
 		sm_msg("info:  returns_err_ptr");
 	err_ptr = 0;
