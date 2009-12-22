@@ -289,11 +289,20 @@ static void print_unreached(struct statement *stmt)
 	}
 }
 
+static int empty_statement(struct statement *stmt)
+{
+	if (!stmt)
+		return 0;
+	if (stmt->type == STMT_EXPRESSION && !stmt->expression)
+		return 1;
+	return 0;
+}
+
 void __split_statements(struct statement *stmt)
 {
 	if (!stmt)
 		return;
-	
+
 	if (out_of_memory()) {
 		static char *printed = NULL;
 
@@ -352,6 +361,8 @@ void __split_statements(struct statement *stmt)
 		}
 		__split_whole_condition(stmt->if_conditional);
 		__split_statements(stmt->if_true);
+		if (empty_statement(stmt->if_true))
+			sm_msg("warning: if();");
 		__push_true_states();
 		__use_false_states();
 		__split_statements(stmt->if_false);
