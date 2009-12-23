@@ -3,11 +3,11 @@ unsigned int x, y;
 void func (void)
 {
 	if (x & y == 0)
-		;
+		frob();
 	if (x + y == 0)
-		;
+		frob();
 	if (x | y == 0)
-		;
+		frob();
 	return;
 }
 /*

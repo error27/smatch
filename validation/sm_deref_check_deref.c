@@ -16,13 +16,13 @@ void func (void)
 	int *d = &((*px)->a);
 
 	if (x)
-		;
+		frob();
 	if (px)
-		;
+		frob();
 	if (y->x)
-		;
+		frob();
 	if (y)
-		;
+		frob();
 
 	return;
 }
