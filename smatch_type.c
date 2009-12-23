@@ -38,7 +38,7 @@ static struct symbol *get_symbol_from_deref(struct expression *expr)
 		return NULL;
 	}
 	if (struct_sym->type == SYM_PTR)
-		struct_sym =  get_base_type(struct_sym);
+		struct_sym = get_base_type(struct_sym);
 	FOR_EACH_PTR(struct_sym->symbol_list, tmp) {
 		if (tmp->ident == member)
 			return get_base_type(tmp);

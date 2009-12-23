@@ -113,9 +113,9 @@ static int get_array_size(struct expression *expr)
 	struct smatch_state *state;
 	int ret = 0;
 
-	if (expr->type != EXPR_SYMBOL)
-		return 0;
-	tmp = get_base_type(expr->symbol);
+	tmp = get_type(expr);
+	if (!tmp)
+		return ret;
 	if (tmp->type == SYM_ARRAY) {
 		ret = get_expression_value(tmp->array_size);
 		if (ret)
