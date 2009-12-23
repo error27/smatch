@@ -243,7 +243,7 @@ static void match_function_call(struct expression *expr)
 	int i = 0;
 
 	FOR_EACH_PTR(expr->args, tmp) {
-		if (tmp->op == '&') {
+		if (tmp->type == EXPR_PREOP && tmp->op == '&') {
 			name = get_variable_from_expr(tmp->unop, &sym);
 			if (name) {
 				set_state(my_id, name, sym, extra_undefined());
