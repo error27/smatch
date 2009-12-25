@@ -33,6 +33,8 @@
  *
  */
 
+#define _GNU_SOURCE
+#include <search.h>
 #include "smatch.h"
 #include "smatch_slist.h"
 
@@ -50,6 +52,13 @@ static struct assignment_list *assignment_list;
 static struct expression *skip_this;
 static int assign_id;
 
+static struct hsearch_data ignored_funcs;
+static const char *kernel_ignored[] = {
+	"inb",
+	"inl",
+	"inw",
+};
+
 static struct smatch_state *my_alloc_state(int assign_id)
 {
 	struct smatch_state *state;
@@ -61,6 +70,24 @@ static struct smatch_state *my_alloc_state(int assign_id)
 	state->name = alloc_string(buff);
 	state->data = (void *) assign_id;
 	return state;
+}
+
+static int ignored_function(struct expression *func)
+{
+	ENTRY e, *ep;
+
+	func = strip_expr(func);
+	if (!func || func->type != EXPR_CALL)
+		return 0;
+	func = func->fn;
+	if (!func || func->type != EXPR_SYMBOL)
+		return 0;
+
+	e.key = func->symbol_name->name;
+	hsearch_r(e, FIND, &ep, &ignored_funcs);
+	if (!ep)
+		return 0;
+	return 1;
 }
 
 static void match_assign_call(struct expression *expr)
@@ -75,6 +102,8 @@ static void match_assign_call(struct expression *expr)
 	if (expr->op != '=')
 		return;
 	if (unreachable())
+		return;
+	if (ignored_function(expr->right))
 		return;
 	left = strip_expr(expr->left);
 	if (!left || left->type != EXPR_SYMBOL)
@@ -163,4 +192,19 @@ void check_unused_ret(int id)
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_symbol, SYM_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
+	hcreate_r(1000, &ignored_funcs);
+	if (option_project == PROJ_KERNEL) {
+		int i;
+
+		for (i = 0; i < ARRAY_SIZE(kernel_ignored); i++) {
+			ENTRY e, *ep;
+
+			e.key = (char *)kernel_ignored[i];
+			e.data = (void *)1;
+			if (!hsearch_r(e, ENTER, &ep, &ignored_funcs)) {
+				printf("check_unused_ret.c broke.\n");
+				exit(1);
+			}
+		}
+	}
 }
