@@ -33,6 +33,7 @@ edac_pci_unregister_sysfs_instance_kobj 0
 edac_remove_sysfs_mci_device 0
 elevator_exit 0
 eventfd_ctx_put 0
+exofs_io_execute 0
 export_rdev 0
 fc_exch_mgr_del 0
 free_mad 0
@@ -40,6 +41,7 @@ fscache_withdraw_cache 0
 ftdi_elan_put_kref 0
 gfs2_sys_fs_del 0
 hvc_remove 0
+i2400m_fw_put 0
 ib_dealloc_device 0
 ib_device_unregister_sysfs 0
 ipmi_destroy_user 0
@@ -87,7 +89,6 @@ ttm_mem_global_release 0
 tty_driver_kref_put 0
 u132_ring_requeue_work 0
 uio_dev_del_attributes 0
-__uld_put 0
 unhold_rsb 0
 usbatm_put_instance 0
 usb_serial_put 0

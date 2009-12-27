@@ -19,7 +19,6 @@ ahc_alloc
 ahc_alloc_tstate
 ahd_alloc
 ahd_alloc_tstate
-alloc_as_io_context
 alloc_async
 allocate_bitmap_node
 allocate_request
@@ -36,7 +35,6 @@ alloc_data_packet
 alloc_dca_provider
 alloc_dev
 alloc_dma_iso_ctx
-alloc_dock_dependent_device
 alloc_ebda_hpc
 alloc_ep
 alloc_error_bus
@@ -51,7 +49,6 @@ alloc_nfs_open_context
 alloc_nilfs
 _alloc_path_selector
 alloc_pci_dev
-alloc_pcie_device
 alloc_pcie_link_state
 alloc_pcpu_chunk
 __alloc_pending_request
@@ -65,11 +62,13 @@ alloc_read_gpt_entries
 alloc_read_gpt_header
 alloc_resources
 alloc_rootdomain
+alloc_sched_domains
 alloc_scq
 alloc_selector
 alloc_sglist
 alloc_sock_iocb
 alloc_super
+alloc_symbol_cache
 alloc_tree
 alloc_tty_driver
 alloc_urbs
@@ -147,6 +146,7 @@ __create_workqueue_key
 __crypto_alloc_tfm
 crypto_create_tfm
 cs46xx_dsp_spos_create
+cs5535_mfgpt_alloc_timer
 csr1212_create_csr
 csr1212_new_keyval
 ct_timer_instance_new
@@ -175,6 +175,7 @@ dm_dirty_log_create
 dn_dev_alloc_ifa
 dn_dev_create
 dn_new_zone
+drbd_new_device
 drm_agp_init
 drm_gem_object_alloc
 drm_get_edid
@@ -252,6 +253,7 @@ hpsb_iso_common_init
 hso_create_device
 hso_create_shared_int
 i1480u_tx_create
+__i2400m_work_setup
 i2c_matroxfb_probe
 i2c_new_device
 i2o_exec_wait_alloc
@@ -330,6 +332,7 @@ kvasprintf
 kvm_create_pic
 kvm_create_pit
 lapb_create_cb
+lc_create
 lib80211_ccmp_init
 lib80211_tkip_init
 lib80211_wep_init
@@ -445,6 +448,7 @@ pci_alloc_bus
 pcibios_get_irq_routing_table
 pci_create_slot
 pcie_init
+pci_mmconfig_add
 pciserial_init_ports
 pcmcia_device_add
 pcpu_get_vm_areas
@@ -455,6 +459,7 @@ pkt_bio_alloc
 pkt_kobj_create
 pl2303_buf_alloc
 pm3393_mac_create
+pm8001_alloc_task
 pmcraid_alloc_sglist
 pneigh_lookup
 pnp_add_card_id
@@ -473,8 +478,6 @@ publ_create
 pvr2_context_create
 pvr2_dvb_create
 pvr2_eeprom_fetch
-pvr2_full_eeprom_fetch
-pvr2_hdw_create
 pvr2_ioread_create
 pvr2_std_create_enum
 pvr2_stream_create
@@ -486,20 +489,23 @@ qdisc_class_hash_alloc
 qla2x00_alloc_fcport
 qla2x00_alloc_work
 qla84xx_get_chip
+qset_new_std
 queue_new
 r10bio_pool_alloc
 r1bio_pool_alloc
 r8a66597_make_td
 radeon_atombios_get_lvds_info
 radeon_atombios_get_primary_dac_info
+radeon_atombios_get_ss_info
 radeon_atombios_get_tv_dac_info
 radeon_atombios_set_dac_info
 radeon_atombios_set_dig_info
 radeon_combios_get_lvds_info
 radeon_combios_get_primary_dac_info
-radeon_combios_get_tmds_info
 radeon_combios_get_tv_dac_info
 radeon_i2c_create
+radeon_i2c_create_dp
+radeon_legacy_get_ext_tmds_info
 radeon_legacy_get_lvds_info_from_regs
 radeon_legacy_get_tmds_info
 rate_control_alloc
@@ -526,7 +532,6 @@ rfkill_alloc
 __ring_buffer_alloc
 ring_buffer_read_start
 rndis_add_response
-rs_alloc_sta
 rs_init
 rxrpc_alloc_bundle
 rxrpc_alloc_connection
@@ -625,6 +630,8 @@ tomoyo_alloc_element
 tpm_bios_log_setup
 tpm_register_hardware
 trace_create_file_ops
+ttm_object_device_init
+ttm_object_file_init
 ttm_tt_create
 tty_audit_buf_alloc
 tty_buffer_alloc
@@ -638,6 +645,7 @@ usb_alloc_urb
 usb_cache_string
 usb_create_hcd
 usbvision_alloc
+uvc_alloc_entity
 uvesafb_prep
 uvesafb_vbe_state_save
 __uwb_beca_add
@@ -656,7 +664,7 @@ vsc7326_mac_create
 vxfs_getfsh
 __vxge_hw_channel_allocate
 w1_alloc_dev
-wl_new_wavepoint
+wl1271_op_prepare_multicast
 wlp_create_wssid_e
 wpan_phy_alloc
 wusb_dev_alloc

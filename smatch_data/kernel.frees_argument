@@ -33,12 +33,13 @@ ahd_alloc 1
 ahd_dma_tag_destroy 1
 ahd_free 0
 aic3x_unregister 0
+ak4671_register 0
+ak4671_unregister 0
 amixer_mgr_destroy 0
 aoedev_freedev 0
 ap_free_sta 1
 argv_free 0
 ata_sas_port_destroy 0
-ath5k_hw_detach 0
 ath9k_hw_detach 0
 ath_gen_timer_free 1
 atm_mpoa_delete_qos 0
@@ -85,6 +86,7 @@ cat_destroy 0
 cat_destroy 1
 cdebbuf_free 0
 cfg80211_dev_free 0
+cfq_put_cfqg 0
 cgroup_drop_root 0
 cgroup_release_pid_array 0
 cipso_v4_cache_entry_free 0
@@ -127,6 +129,7 @@ crypto_gcm_free 0
 crypto_pcbc_free 0
 crypto_rfc4106_free 0
 crypto_rfc4309_free 0
+cs5535_mfgpt_free_timer 0
 csr1212_destroy_csr 0
 csr1212_remove_cache 1
 ct_atc_destroy 0
@@ -181,13 +184,14 @@ dm_region_hash_destroy 0
 dm_table_destroy 0
 dn_fib_free_info 0
 DoC2k_init 0
-dock_remove 0
 DoCMil_init 0
 DoCMilPlus_init 0
 do_emergency_remount 0
 do_laptop_sync 0
 do_sync_work 0
 do_thaw_all 0
+drbd_free_bc 0
+drbd_free_mdev 0
 drm_mode_destroy 1
 drm_mode_remove 1
 drm_pci_free 1
@@ -209,6 +213,7 @@ dynamic_kobj_release 0
 ebt_unregister_table 0
 edac_pci_release_main_kobj 0
 eeepc_cleanup_pci_hotplug 0
+efx_mtd_remove_device 0
 efx_tsoh_heap_free 1
 ep_aio_rwtail 1
 ep_free 0
@@ -217,6 +222,7 @@ erase_callback 0
 erase_worker 1
 evbug_disconnect 0
 eventfd_free_ctx 0
+exofs_free_sbi 0
 ext3_htree_free_dir_info 0
 ext4_free_io_end 0
 ext4_htree_free_dir_info 0
@@ -225,6 +231,7 @@ fb_destroy_modedb 0
 fc_destroy_bsgjob 0
 fc_exch_mgr_del 0
 filter_free_pred 0
+fixup_botched_add 1
 flex_array_free 0
 flexcop_device_kfree 0
 fl_free 0
@@ -232,7 +239,6 @@ flow_destroy_filter 1
 flush_entry_free 0
 framebuffer_release 0
 frame_delete 0
-free_as_io_context 0
 free_async 0
 free_bd_holder 0
 free_bitmap 1
@@ -253,6 +259,7 @@ free_fib_info 0
 free_fs_devices 0
 free_fs_root 0
 free_if_spi_card 0
+free_indirect_fetch_data 0
 free_ioapic_entries 0
 free_iommu 0
 free_ipc_ns 0
@@ -274,15 +281,19 @@ free_pl 0
 free_plci 1
 free_pool 0
 free_port 0
+__free_preds 0
 free_priority_group 0
 free_proc_entry 0
 free_recv_msg 0
 free_rootdomain 0
+free_sched_domains 0
 free_sched_group 0
 free_sect_attrs 0
 free_sglist 0
 free_smi_msg 0
+free_symbol_cache 0
 freetgt 1
+free_trace_probe 0
 free_trial_cpuset 0
 free_tty_struct 0
 free_usb_address 1
@@ -342,7 +353,6 @@ ide_port_free 0
 __ieee80211_key_destroy 0
 ieee80211_key_free 0
 ieee80211_rx_mgmt_auth 1
-if_spi_h2c 1
 ili9320_remove 0
 inet6_ifa_finish_destroy 0
 inet_frag_destroy 0
@@ -376,6 +386,7 @@ isdn_net_realrm 0
 isdn_v110_close 0
 iso_sched_free 1
 iwch_free_fastreg_pbl 0
+iwmct_dbgfs_unregister 0
 iwm_rx_handle_resp 3
 iwm_rx_process_packet 1
 iwm_rx_ticket_node_free 0
@@ -392,6 +403,7 @@ kvm_arch_destroy_vm 0
 kvm_free_assigned_device 1
 kvm_mmu_free_page 1
 lapb_free_cb 0
+lc_destroy 0
 ld_usb_delete 0
 led_trigger_unregister_simple 0
 lib80211_ccmp_deinit 0
@@ -489,6 +501,7 @@ p9_idpool_destroy 0
 parport_unregister_device 0
 path_free 1
 pciehp_release_ctrl 0
+pci_mmconfig_remove 0
 pci_release_bus_bridge_dev 0
 pciserial_remove_ports 0
 pcpu_free_vm_areas 0
@@ -501,6 +514,7 @@ pkt_bio_destructor 0
 pkt_free_packet_data 0
 pktgen_remove_device 1
 pm3393_destroy 0
+pm8001_free 0
 pmcraid_free_sglist 0
 pnp_free_resource 0
 pool_free_page 1
@@ -522,7 +536,6 @@ put_src_rsc 1
 put_sum_rsc 1
 pvr2_context_destroy 0
 pvr2_dvb_destroy 0
-pvr2_hdw_destroy 0
 pvr2_ioread_destroy 0
 pvr2_stream_destroy 0
 pvr2_sysfs_release 0
@@ -538,6 +551,7 @@ queue_delete 0
 r10bio_pool_free 0
 r1bio_pool_free 0
 radeon_connector_destroy 0
+radeon_dp_connector_destroy 0
 radeon_i2c_destroy 0
 rate_control_pid_free_sta 2
 rb_free_cpu_buffer 0
@@ -546,7 +560,6 @@ rds_ib_destroy_mr_pool 0
 rds_iw_destroy_mr_pool 0
 __rds_put_mr_final 0
 rds_rdma_free_op 0
-readpages_done 1
 realloc_argv 1
 __real_move_irq_desc 0
 recent_entry_remove 1
@@ -612,6 +625,7 @@ smscore_unregister_device 0
 smsdvb_unregister_client 0
 snd_ad1816a_free 0
 snd_ad1889_free 0
+snd_ak4113_free 0
 snd_ak4114_free 0
 snd_ak4117_free 0
 snd_ali_free 0
@@ -631,7 +645,6 @@ snd_emu10k1x_free 0
 snd_emu8000_free 0
 snd_emux_free 0
 snd_es1688_free 0
-snd_es18xx_free 0
 snd_es1938_free 0
 snd_es1968_free 0
 snd_fm801_free 0
@@ -681,6 +694,7 @@ snd_vx222_free 0
 snd_wss_free 0
 snd_ymfpci_free 0
 sock_kfree_s 1
+sparse_keymap_setup 1
 spidev_release 0
 squashfs_cache_delete 0
 srcimp_mgr_destroy 0
@@ -742,6 +756,7 @@ usb_se401_remove_disconnected 0
 usbvision_release 0
 user_destroy 0
 user_destroy 1
+uvc_delete 0
 video_device_release 0
 vlan_group_free 0
 vlsi_free_ring 0
@@ -750,16 +765,15 @@ vx_free_pipe 1
 __vxge_hw_channel_free 0
 w1_slave_detach 0
 wear_leveling_worker 1
-wl_del_wavepoint 0
+w_flush 1
 __wlp_neighbor_release 0
-wm831x_device_exit 0
-wm831x_device_init 0
-wm831x_i2c_probe 0
 wm8350_i2c_probe 0
 wm8523_register 0
 wm8523_unregister 0
 wm8580_register 0
 wm8580_unregister 0
+wm8711_register 0
+wm8711_unregister 0
 wm8731_register 0
 wm8731_unregister 0
 wm8753_register 0
@@ -777,10 +791,14 @@ wm8988_register 0
 wm8988_unregister 0
 wm9081_register 0
 wm9081_unregister 0
+wmi_dev_free 0
+w_ov_finished 1
+w_resync_finished 1
 xfrm_policy_destroy 0
 xfrm_state_gc_destroy 0
 xhci_free_command 1
 xhci_free_container_ctx 1
+xhci_giveback_urb_in_irq 1
 xhci_ring_free 1
 xhci_segment_free 1
 xprt_free_allocation 0
