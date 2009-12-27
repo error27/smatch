@@ -129,6 +129,8 @@ static int get_array_size(struct expression *expr)
 		goto free;
 	if (tmp->type == SYM_PTR)
 		tmp = get_base_type(tmp);
+	if (!tmp->ctype.alignment)
+		goto free;
 	ret = *(int *)state->data / 8 / tmp->ctype.alignment;
 free:
 	free_string(name);
