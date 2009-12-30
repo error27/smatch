@@ -56,9 +56,9 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-#define DIMPLIED(msg...) do { if (debug_implied_states) printf(msg); } while (0)
+#define DIMPLIED(msg...) do { if (option_debug_implied) printf(msg); } while (0)
 
-int debug_implied_states = 0;
+int option_debug_implied = 0;
 int option_no_implied = 0;
 
 static int print_once = 0;
@@ -244,7 +244,7 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 						(struct data_info *)s->state->data,
 						vals, left);
 		
-		if (debug_implied_states || option_debug) {
+		if (option_debug_implied || option_debug) {
 			if (istrue && isfalse) {
 				printf("'%s = %s' from %d does not exist.\n",
 					s->name, show_state(s->state),
@@ -285,7 +285,7 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, struct range_l
 	struct state_list_stack *true_stack = NULL;
 	struct state_list_stack *false_stack = NULL;
 
-	if (debug_implied_states || option_debug) {
+	if (option_debug_implied || option_debug) {
 		if (left)
 			sm_msg("checking implications: (%s %s %s)",
 				sm_state->name, show_special(comparison), show_ranges(vals));
@@ -302,7 +302,7 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, struct range_l
 	*false_states = filter_stack(pre_list, true_stack);
 	free_stack(&true_stack);
 	free_stack(&false_stack);
-	if (debug_implied_states || option_debug) {
+	if (option_debug_implied || option_debug) {
 		printf("These are the implied states for the true path:\n");
 		__print_slist(*true_states);
 		printf("These are the implied states for the false path:\n");

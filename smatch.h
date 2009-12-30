@@ -214,7 +214,7 @@ extern struct symbol *cur_func_sym;
 void __split_whole_condition(struct expression *expr);
 
 /* smatch_implied.c */
-extern int debug_implied_states;
+extern int option_debug_implied;
 extern int option_no_implied;
 void get_implications(char *name, struct symbol *sym, int comparison, int num,
 		      struct state_list **true_states,

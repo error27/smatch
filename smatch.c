@@ -159,7 +159,7 @@ void parse_args(int *argcp, char ***argvp)
 			option_debug = 1;
 			(*argvp)[1] = (*argvp)[0];
 		} else if (!strcmp((*argvp)[1], "--debug-implied")) {
-			debug_implied_states = 1;
+			option_debug_implied = 1;
 			(*argvp)[1] = (*argvp)[0];
 		} else if (!strcmp((*argvp)[1], "--oom")) {
 			option_oom_kb = atoi((*argvp)[2]) * 1000;
