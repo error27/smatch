@@ -146,55 +146,68 @@ static void help(void)
 	exit(1);
 }
 
+static int match_option(const char *arg, const char *option)
+{
+	char *str;
+	char *tmp;
+	int ret = 0;
+
+	str = malloc(strlen(option) + 3 - strlen("option_")); 
+	sprintf(str, "--%s", option + strlen("option_"));
+	tmp = str;
+	while (*tmp) {
+		if (*tmp == '_')
+			*tmp = '-';
+		tmp++;
+	}
+	if (!strcmp(arg, str))
+		ret = 1;
+	free(str);
+	return ret;
+} 
+
+#define OPTION(_x) do {					\
+	if (!found && match_option((*argvp)[1], #_x)) { \
+		found = 1;				\
+		_x = 1;					\
+		(*argvp)[1] = (*argvp)[0];		\
+	}                                               \
+} while (0)
+
 void parse_args(int *argcp, char ***argvp)
 {
 	while(*argcp >= 2) {
-		if (!strncmp((*argvp)[1], "--project=", 10)) {
+		int found = 0;
+		if (!strcmp((*argvp)[1], "--help")) {
+			help();
+		}
+		if (!found && !strncmp((*argvp)[1], "--project=", 10)) {
 			option_project_str = (*argvp)[1] + 10;
 			(*argvp)[1] = (*argvp)[0];
-		} else if (!strncmp((*argvp)[1], "-p=", 3)) {
+			found = 1;
+		}
+		if (!found && !strncmp((*argvp)[1], "-p=", 3)) {
 			option_project_str = (*argvp)[1] + 3;
 			(*argvp)[1] = (*argvp)[0];
-		} else if (!strcmp((*argvp)[1], "--debug")) {
-			option_debug = 1;
-			(*argvp)[1] = (*argvp)[0];
-		} else if (!strcmp((*argvp)[1], "--debug-implied")) {
-			option_debug_implied = 1;
-			(*argvp)[1] = (*argvp)[0];
-		} else if (!strcmp((*argvp)[1], "--oom")) {
+			found = 1;
+		}
+		if (!found && !strcmp((*argvp)[1], "--oom")) {
 			option_oom_kb = atoi((*argvp)[2]) * 1000;
 			(*argvp)[2] = (*argvp)[0];
 			(*argcp)--;
 			(*argvp)++;
-		} else if (!strcmp((*argvp)[1], "--no-implied")) {
-			option_no_implied = 1;
-			(*argvp)[1] = (*argvp)[0];
-		} else if (!strcmp((*argvp)[1], "--assume-loops")) {
-			option_assume_loops = 1;
-			(*argvp)[1] = (*argvp)[0];
-		} else if (!strcmp((*argvp)[1], "--known-conditions")) {
-			option_known_conditions = 1;
-			(*argvp)[1] = (*argvp)[0];
-		} else if (!strcmp((*argvp)[1], "--no-data")) {
-			option_no_data = 1;
-			(*argvp)[1] = (*argvp)[0];
-		} else if (!strcmp((*argvp)[1], "--spammy")) {
-			option_spammy = 1;
-			(*argvp)[1] = (*argvp)[0];
-		} else if (!strcmp((*argvp)[1], "--two-passes")) {
-			option_two_passes = 1;
-			(*argvp)[1] = (*argvp)[0];
-		} else if (!strcmp((*argvp)[1], "--full-path")) {
-			option_full_path = 1;
-			(*argvp)[1] = (*argvp)[0];
-		} else if (!strcmp((*argvp)[1], "--param-mapper")) {
-			option_param_mapper = 1;
-			(*argvp)[1] = (*argvp)[0];
-		} else if (!strcmp((*argvp)[1], "--help")) {
-			help();
-		} else {
-			break;
 		}
+		OPTION(option_debug);
+		OPTION(option_debug_implied);
+		OPTION(option_no_implied);
+		OPTION(option_assume_loops);
+		OPTION(option_known_conditions);
+		OPTION(option_no_data);
+		OPTION(option_spammy);
+		OPTION(option_two_passes);
+		OPTION(option_full_path);
+		if (!found)
+			break;
 		(*argcp)--;
 		(*argvp)++;
 	}
