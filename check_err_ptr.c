@@ -53,7 +53,7 @@ static void match_return(struct expression *ret_value)
 static void match_end_func(struct symbol *sym)
 {
 	if (err_ptr)
-		sm_msg("info:  returns_err_ptr");
+		sm_info("returns_err_ptr");
 	err_ptr = 0;
 	returns_null = 0;
 }

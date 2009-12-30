@@ -80,7 +80,7 @@ static void print_returns_held(struct expression *expr)
 	if (!sm)
 		return;
 	if (slist_has_state(sm->possible, &held))
-		sm_msg("info: returned dev is held.");
+		sm_info("returned dev is held.");
 }
 
 static void match_return(struct expression *ret_value)

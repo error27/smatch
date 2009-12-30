@@ -362,7 +362,7 @@ static void end_file_processing(void)
 		} END_FOR_EACH_PTR(param2);
 	} END_FOR_EACH_PTR(param1);
 
-	if (!option_spammy)
+	if (!option_info)
 		return;
 
 	// if a function is not static print it out...

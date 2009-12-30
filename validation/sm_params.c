@@ -29,7 +29,7 @@ void bar (void)
 }
 /*
  * check-name: Cross function dereferences
- * check-command: smatch --spammy sm_params.c
+ * check-command: smatch --info --spammy sm_params.c
  *
  * check-output-start
 sm_params.c +26 error: cross_func deref func 0

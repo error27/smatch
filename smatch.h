@@ -114,21 +114,37 @@ int is_member(struct expression *expr);
 void reset_on_container_modified(int owner, struct expression *expr);
 void set_default_state(int owner, struct smatch_state *state);
 
+char *get_filename();
+char *get_function();
+int get_lineno();
+int get_func_pos();
 extern int final_pass;
 
 #define sm_printf(msg...) do { if (final_pass) printf(msg); } while (0) \
+
+static inline void sm_prefix()
+{
+	printf("%s +%d %s(%d) ", get_filename(), get_lineno(), get_function(), get_func_pos());
+}
 
 #define sm_msg(msg...) \
 do {                                                           \
 	if (!option_debug && !final_pass)                      \
 		break;                                         \
-	printf("%s +%d %s(%d) ", get_filename(), get_lineno(), \
-	       get_function(), get_func_pos());                \
+	sm_prefix();					       \
         printf(msg);                                           \
         printf("\n");                                          \
 } while (0)
 
 #define sm_debug(msg...) do { if (option_debug) printf(msg); } while (0)
+
+#define sm_info(msg...) do {					\
+	if (option_debug || (option_info && final_pass)) {	\
+		sm_prefix();					\
+		printf("info: ");				\
+		printf(msg);					\
+	}							\
+} while(0)
 
 #define POINTER_MAX 0xffffffff
 
@@ -152,10 +168,6 @@ void set_true_false_states_expr(int owner, struct expression *expr,
 
 struct state_list *get_all_states(int id);
 int is_reachable();
-char *get_filename();
-char *get_function();
-int get_lineno();
-int get_func_pos();
 
 /* smatch_helper.c */
 char *alloc_string(const char *str);
@@ -348,6 +360,7 @@ extern int option_no_data;
 extern int option_spammy;
 extern int option_full_path;
 extern int option_param_mapper;
+extern int option_info;
 extern struct smatch_state *default_state[];
 
 enum project_type {

@@ -85,7 +85,7 @@ static void print_arg(struct symbol *sym)
 
 	FOR_EACH_PTR(this_func->ctype.base_type->arguments, arg) {
 		if (sym == arg) {
-			sm_printf("info: puts_arg %s %d\n", get_function(), i);
+			sm_info("puts_arg %s %d\n", get_function(), i);
 			return;
 		}
 		i++;
@@ -109,7 +109,7 @@ static void match_end_func(struct symbol *sym)
 
 void check_puts_argument(int id)
 {
-	if (!option_spammy || option_project != PROJ_KERNEL)
+	if (!option_info || option_project != PROJ_KERNEL)
 		return;
 
 	my_id = id;

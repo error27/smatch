@@ -17,6 +17,7 @@ enum project_type option_project = PROJ_NONE;
 char *data_dir;
 int option_no_data = 0;
 int option_spammy = 0;
+int option_info = 0;
 int option_full_path = 0;
 int option_param_mapper = 0;
 
@@ -132,6 +133,7 @@ static void help(void)
 	printf("Usage:  smatch [smatch arguments][sparse arguments] file.c\n");
 	printf("--project=<name> or -p=<name>: project specific tests\n");
 	printf("--spammy:  print superfluous crap.\n");
+	printf("--info:  print info used to fill smatch_data/.\n");
 	printf("--debug:  print lots of debug output.\n");
 	printf("--param-mapper:  enable param_mapper output.\n");
 	printf("--no-data:  do not use the /smatch_data/ directory.\n");
@@ -197,13 +199,14 @@ void parse_args(int *argcp, char ***argvp)
 			(*argcp)--;
 			(*argvp)++;
 		}
+		OPTION(option_spammy);
+		OPTION(option_info);
 		OPTION(option_debug);
 		OPTION(option_debug_implied);
 		OPTION(option_no_implied);
 		OPTION(option_assume_loops);
 		OPTION(option_known_conditions);
 		OPTION(option_no_data);
-		OPTION(option_spammy);
 		OPTION(option_two_passes);
 		OPTION(option_full_path);
 		if (!found)

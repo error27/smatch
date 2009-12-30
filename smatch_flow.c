@@ -349,13 +349,13 @@ void __split_statements(struct statement *stmt)
 		}
 		if (option_known_conditions && 
 		    implied_condition_true(stmt->if_conditional)) {
-			sm_msg("info: this condition is true.");
+			sm_info("this condition is true.");
 			__split_statements(stmt->if_true);
 			return;
 		}
 		if (option_known_conditions &&
 		    implied_condition_false(stmt->if_conditional)) {
-			sm_msg("info: this condition is false.");
+			sm_info("this condition is false.");
 			__split_statements(stmt->if_false);
 			return;
 		}

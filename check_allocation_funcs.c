@@ -70,7 +70,7 @@ free:
 static void match_end_func(struct symbol *sym)
 {
 	if (returns_new_stuff && !returns_old_stuff)
-		sm_msg("info: allocation func");
+		sm_info("allocation func");
 	free_trackers_and_list(&allocated);
 	returns_new_stuff = 0;
 	returns_old_stuff = 0;
