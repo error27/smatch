@@ -156,7 +156,7 @@ void parse_args(int *argcp, char ***argvp)
 			option_project_str = (*argvp)[1] + 3;
 			(*argvp)[1] = (*argvp)[0];
 		} else if (!strcmp((*argvp)[1], "--debug")) {
-			debug_states = 1;
+			option_debug = 1;
 			(*argvp)[1] = (*argvp)[0];
 		} else if (!strcmp((*argvp)[1], "--debug-implied")) {
 			debug_implied_states = 1;

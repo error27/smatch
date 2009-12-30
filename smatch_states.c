@@ -61,7 +61,7 @@ static struct named_stack *goto_stack;
 
 struct state_list_stack *implied_pools;
 
-int debug_states;
+int option_debug;
 
 void __print_cur_slist()
 {
@@ -77,7 +77,7 @@ int unreachable()
 		return 0;
 	}
 
-	if (reset_warnings || debug_states) 
+	if (reset_warnings || option_debug) 
 		sm_msg("info: ignoring unreachable code.");
 	reset_warnings = 0;
 	return 1;
@@ -89,7 +89,7 @@ void set_state(int owner, const char *name, struct symbol *sym,
 	if (!name)
 		return;
 	
-	if (debug_states) {
+	if (option_debug) {
 		struct smatch_state *s;
 		
 		s = get_state(owner, name, sym);
@@ -137,7 +137,7 @@ free:
 
 void __set_state(struct sm_state *sm)
 {
-	if (debug_states) {
+	if (option_debug) {
 		struct smatch_state *s;
 		
 		s = get_state(sm->owner, sm->name, sm->sym);
@@ -280,7 +280,7 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state)
 {
-	if (debug_states) {
+	if (option_debug) {
 		struct smatch_state *tmp;
 
 		tmp = get_state(owner, name, sym);

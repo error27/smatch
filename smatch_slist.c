@@ -352,7 +352,7 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	add_possible(result, one);
 	add_possible(result, two);
 
-	if (debug_states) {
+	if (option_debug) {
 		struct sm_state *tmp;
 		int i = 0;
 

@@ -120,7 +120,7 @@ extern int final_pass;
 
 #define sm_msg(msg...) \
 do {                                                           \
-	if (!debug_states && !final_pass)                      \
+	if (!option_debug && !final_pass)                      \
 		break;                                         \
 	printf("%s +%d %s(%d) ", get_filename(), get_lineno(), \
 	       get_function(), get_func_pos());                \
@@ -128,7 +128,7 @@ do {                                                           \
         printf("\n");                                          \
 } while (0)
 
-#define sm_debug(msg...) do { if (debug_states) printf(msg); } while (0)
+#define sm_debug(msg...) do { if (option_debug) printf(msg); } while (0)
 
 #define POINTER_MAX 0xffffffff
 
@@ -245,7 +245,7 @@ int implied_condition_true(struct expression *expr);
 int implied_condition_false(struct expression *expr);
 
 /* smatch_states.c */
-extern int debug_states;
+extern int option_debug;
 
 extern int __fake_cur;
 extern struct state_list *__fake_cur_slist;
