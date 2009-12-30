@@ -98,7 +98,7 @@ static void match_call(struct expression *expr)
 
 void check_param_mapper(int id)
 {
-	if (!option_spammy)
+	if (!option_param_mapper)
 		return;
 	my_id = id;
 	add_hook(&match_function_def, FUNC_DEF_HOOK);

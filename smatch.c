@@ -18,6 +18,7 @@ char *data_dir;
 int option_no_data = 0;
 int option_spammy = 0;
 int option_full_path = 0;
+int option_param_mapper = 0;
 
 typedef void (*reg_func) (int id);
 void register_smatch_extra(int id);
@@ -132,6 +133,7 @@ static void help(void)
 	printf("--project=<name> or -p=<name>: project specific tests\n");
 	printf("--spammy:  print superfluous crap.\n");
 	printf("--debug:  print lots of debug output.\n");
+	printf("--param-mapper:  enable param_mapper output.\n");
 	printf("--no-data:  do not use the /smatch_data/ directory.\n");
 	printf("--full-path:  print the full pathname.\n");
 	printf("--debug-implied:  print debug output about implications.\n");
@@ -184,6 +186,9 @@ void parse_args(int *argcp, char ***argvp)
 			(*argvp)[1] = (*argvp)[0];
 		} else if (!strcmp((*argvp)[1], "--full-path")) {
 			option_full_path = 1;
+			(*argvp)[1] = (*argvp)[0];
+		} else if (!strcmp((*argvp)[1], "--param-mapper")) {
+			option_param_mapper = 1;
 			(*argvp)[1] = (*argvp)[0];
 		} else if (!strcmp((*argvp)[1], "--help")) {
 			help();
