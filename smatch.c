@@ -154,8 +154,8 @@ static int match_option(const char *arg, const char *option)
 	char *tmp;
 	int ret = 0;
 
-	str = malloc(strlen(option) + 3 - strlen("option_")); 
-	sprintf(str, "--%s", option + strlen("option_"));
+	str = malloc(strlen(option) + 3); 
+	sprintf(str, "--%s", option);
 	tmp = str;
 	while (*tmp) {
 		if (*tmp == '_')
@@ -171,7 +171,7 @@ static int match_option(const char *arg, const char *option)
 #define OPTION(_x) do {					\
 	if (!found && match_option((*argvp)[1], #_x)) { \
 		found = 1;				\
-		_x = 1;					\
+		option_##_x = 1;					\
 		(*argvp)[1] = (*argvp)[0];		\
 	}                                               \
 } while (0)
@@ -199,16 +199,16 @@ void parse_args(int *argcp, char ***argvp)
 			(*argcp)--;
 			(*argvp)++;
 		}
-		OPTION(option_spammy);
-		OPTION(option_info);
-		OPTION(option_debug);
-		OPTION(option_debug_implied);
-		OPTION(option_no_implied);
-		OPTION(option_assume_loops);
-		OPTION(option_known_conditions);
-		OPTION(option_no_data);
-		OPTION(option_two_passes);
-		OPTION(option_full_path);
+		OPTION(spammy);
+		OPTION(info);
+		OPTION(debug);
+		OPTION(debug_implied);
+		OPTION(no_implied);
+		OPTION(assume_loops);
+		OPTION(known_conditions);
+		OPTION(no_data);
+		OPTION(two_passes);
+		OPTION(full_path);
 		if (!found)
 			break;
 		(*argcp)--;
