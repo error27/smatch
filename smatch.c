@@ -48,6 +48,7 @@ void check_precedence(int id);
 void check_format_string(int id);
 void check_unused_ret(int id);
 void check_dma_on_stack(int id);
+void check_param_mapper(int id);
 /* <- your test goes here */
 
 /* may as well put wine scripts all together */
@@ -82,6 +83,7 @@ static struct reg_func_info {
 	CK(check_format_string),
 	CK(check_unused_ret),
 	CK(check_dma_on_stack),
+	CK(check_param_mapper),
 
 	/* <- your test goes here */
 	/* CK(register_template), */
