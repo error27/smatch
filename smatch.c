@@ -209,6 +209,7 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(no_data);
 		OPTION(two_passes);
 		OPTION(full_path);
+		OPTION(param_mapper);
 		if (!found)
 			break;
 		(*argcp)--;
