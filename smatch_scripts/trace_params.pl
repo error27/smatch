@@ -89,7 +89,7 @@ sub print_found()
 
 	if (%{$tmp}->{found} == $FOUND) {
 	    my ($f, $p) = split(/%/, $func);
-	    print("\t{\"$f\", $p\},\n");
+	    print("$f $p\n");
 	}
     }
 }
