@@ -3,9 +3,6 @@
 # This script is supposed to help use the param_mapper output.
 # Give it a function and parameter and it lists the functions
 # and parameters which are basically equivelent.
-#
-# The problem is this script is DESPERATELY SLOW.  It needs 
-# a complete rewrite.
 
 use strict;
 
@@ -15,60 +12,85 @@ sub usage()
     exit(1);
 }
 
-my %found;
-my %looked_for;
+my %param_map;
 
-sub find_func($$)
+my $UNKNOWN  = 1;
+my $NOTFOUND = 2;
+my $FOUND    = 3;
+
+sub recurse($$)
 {
-    my $file = shift;
-    my $fp = shift;
-    my $func;
-    my $param;
+    my $link = shift;
+    my $target = shift;
+    my $found = 0;
 
-    $looked_for{$fp} = 1;
+    if ($link =~ /$target/) {
+	%{$param_map{$link}}->{found} = $FOUND;
+	return 1;
+    }
+    
+    if (%{$param_map{$link}}->{found} == $FOUND) {
+	return 1;
+    }
+    if (%{$param_map{$link}}->{found} == $NOTFOUND) {
+	return 0;
+    }
 
-    $func = (split(/%/, $fp))[0];
-    $param = (split(/%/, $fp))[1];
-
-    open(FILE, "<$file");
-    while (<FILE>) {
-	if (/.*? \+\d+ (.*?)\(\d+\) info: param_mapper (\d+) => $func $param/) {
-	    $found{"$1%$2"} = 1;
+    %{$param_map{$link}}->{found} = $NOTFOUND;
+    foreach my $l (@{%{$param_map{$link}}->{links}}){
+	$found = recurse($l, $target);
+	if ($found) {
+	    %{$param_map{$link}}->{found} = $FOUND;
+	    return 1;
 	}
+    }
+
+    return 0;
+}
+
+sub compress_all($$)
+{
+    my $f = shift;
+    my $p = shift;
+    my $target = "$f%$p";
+
+    foreach my $link (keys %param_map){
+	recurse($link, $target);
     }
 }
 
-sub find_all($$$)
+sub add_link($$)
+{
+    my $one = shift;
+    my $two = shift;
+
+    if (!defined($param_map{$one})) {
+	$param_map{$one} = {found => $UNKNOWN, links => []};
+    }
+    push @{$param_map{$one}->{links}}, $two;
+}
+
+sub load_all($)
 {
     my $file = shift;
-    my $func = shift;
-    my $param = shift;
 
-    $found{"$func%$param"} = 1;
-    while (1) {
-	my $new = "";
-	foreach $func (keys %found){
-	    if (defined($looked_for{$func})) {
-		next;
-	    } else {
-		$new = $func;
-		last;
-	    }
+    open(FILE, "<$file");
+    while (<FILE>) {
+	if (/.*? \+\d+ (.*?)\(\d+\) info: param_mapper (\d+) => (.*?) (\d+)/) {
+	    add_link("$1%$2", "$3%$4");
 	}
-	if ($new =~ /^$/) {
-	    last;
-	}
-	find_func($file, $new);
     }
 }
 
 sub print_found()
 {
-    foreach my $fp (keys %found){
-	my $func = (split(/%/, $fp))[0];
-	my $param = (split(/%/, $fp))[1];
+    foreach my $func (keys %param_map){
+	my $tmp = $param_map{$func};
 
-	print("\t{\"$func\", $param},\n"); 
+	if (%{$tmp}->{found} == $FOUND) {
+	    my ($f, $p) = split(/%/, $func);
+	    print("\t{\"$f\", $p\},\n");
+	}
     }
 }
 
@@ -85,5 +107,6 @@ if (! -e $file) {
     exit(1);
 }
 
-find_all($file, $func, $param);
+load_all($file);
+compress_all($func, $param);
 print_found();
