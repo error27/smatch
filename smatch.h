@@ -361,6 +361,8 @@ extern int option_spammy;
 extern int option_full_path;
 extern int option_param_mapper;
 extern int option_info;
+extern int option_call_tree;
+
 extern struct smatch_state *default_state[];
 
 enum project_type {

@@ -20,6 +20,7 @@ int option_spammy = 0;
 int option_info = 0;
 int option_full_path = 0;
 int option_param_mapper = 0;
+int option_call_tree = 0;
 
 typedef void (*reg_func) (int id);
 void register_smatch_extra(int id);
@@ -51,6 +52,7 @@ void check_format_string(int id);
 void check_unused_ret(int id);
 void check_dma_on_stack(int id);
 void check_param_mapper(int id);
+void check_call_tree(int id);
 /* <- your test goes here */
 
 /* may as well put wine scripts all together */
@@ -86,6 +88,7 @@ static struct reg_func_info {
 	CK(check_unused_ret),
 	CK(check_dma_on_stack),
 	CK(check_param_mapper),
+	CK(check_call_tree),
 
 	/* <- your test goes here */
 	/* CK(register_template), */
@@ -210,6 +213,7 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(two_passes);
 		OPTION(full_path);
 		OPTION(param_mapper);
+		OPTION(call_tree);
 		if (!found)
 			break;
 		(*argcp)--;
