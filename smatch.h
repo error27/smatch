@@ -143,6 +143,7 @@ do {                                                           \
 		sm_prefix();					\
 		printf("info: ");				\
 		printf(msg);					\
+		printf("\n");					\
 	}							\
 } while(0)
 
