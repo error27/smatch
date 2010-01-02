@@ -8,7 +8,7 @@ use strict;
 
 sub usage()
 {
-    print("call_tree.pl <smatch output file> <start function> <end function>\n");
+    print("call_tree.pl <smatch output file>\n");
     print("call_tree.pl finds paths between two functions\n"); 
     exit(1);
 }
@@ -31,6 +31,7 @@ sub print_path()
 	}
 	print("$func");
     }
+    print("\n");
     print("\n");
 }
 
@@ -102,12 +103,17 @@ sub load_all($)
     }
 }
 
+sub set_all_unknown()
+{
+    my $i = 0;
+
+    foreach my $func (keys %param_map){
+	%{$param_map{$func}}->{found} = $UNKNOWN;
+    }
+}
+
 my $file = shift();
-
-my $start_func = shift();
-my $end_func = shift();
-
-if (!$file or !$start_func or !$end_func) {
+if (!$file) {
     usage();
 }
 
@@ -116,5 +122,25 @@ if (! -e $file) {
     exit(1);
 }
 
+print("Loading functions...\n");
 load_all($file);
-search($start_func, $end_func);
+
+while (1) {
+    my $start_func;
+    my $end_func;
+
+    print("Enter the start function:  ");
+    $start_func = <STDIN>;
+    $start_func =~ s/^\s+|\s+$//g;
+    print("Enter the target function:  ");
+    $end_func = <STDIN>;
+    $end_func =~ s/^\s+|\s+$//g;
+
+
+    print("$start_func to $end_func\n");
+    if ($start_func =~ /./ && $end_func =~ /./) {
+	search($start_func, $end_func);
+    }
+
+    set_all_unknown();
+}
