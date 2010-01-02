@@ -265,6 +265,7 @@ static void match_assign(struct expression *expr)
 	long long min = whole_range.min;
 	long long max = whole_range.max;
 	long long tmp;
+	struct range_list *rl = NULL;
 	
 	left = strip_expr(expr->left);
 	name = get_variable_from_expr(left, &sym);
@@ -273,15 +274,17 @@ static void match_assign(struct expression *expr)
 	right = strip_expr(expr->right);
 	while (right->type == EXPR_ASSIGNMENT && right->op == '=')
 		right = strip_expr(right->left);
-	known = get_implied_value(right, &value);
 
+	known = get_implied_range_list(right, &rl);
 	if (expr->op == '=') {
-		if (known)
-			set_state(my_id, name, sym, alloc_extra_state(value));
+		if (known) 
+			set_state(my_id, name, sym, alloc_extra_state_range_list(rl));
 		else
 			set_state(my_id, name, sym, extra_undefined());
 		goto free;
 	}
+
+	known = get_implied_value(right, &value);
 	if (expr->op == SPECIAL_ADD_ASSIGN) {
 		if (get_implied_min(left, &tmp)) {
 			if (known)
@@ -730,6 +733,36 @@ int implied_condition_false(struct expression *expr)
 			return 1;
 		break;
 	}
+	return 0;
+}
+
+int get_implied_range_list(struct expression *expr, struct range_list **rl)
+{
+	long long val;
+	struct smatch_state *state;
+
+	expr = strip_expr(expr);
+
+	state = get_state_expr(my_id, expr);
+	if (state) {
+		*rl = clone_range_list(((struct data_info *)state->data)->value_ranges);
+		return 1;
+	}
+
+	if (get_implied_value(expr, &val)) {
+		*rl = NULL;
+		add_range(rl, val, val);
+		return 1;
+	}
+
+	if (expr->type == EXPR_BINOP && expr->op == '%') {
+		if (!get_implied_value(expr->right, &val))
+			return 0;
+		*rl = NULL;
+		add_range(rl, 0, val - 1);
+		return 1;
+	}
+
 	return 0;
 }
 

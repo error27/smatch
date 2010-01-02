@@ -68,3 +68,4 @@ void push_range_list(struct range_list_stack **rl_stack, struct range_list *rl);
 struct range_list *pop_range_list(struct range_list_stack **rl_stack);
 struct range_list *top_range_list(struct range_list_stack *rl_stack);
 void filter_top_range_list(struct range_list_stack **rl_stack, long long num);
+int get_implied_range_list(struct expression *expr, struct range_list **rl);
