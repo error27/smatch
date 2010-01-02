@@ -11,6 +11,7 @@
 #include "parse.h"
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 
 struct bound {
 	int param;
@@ -180,7 +181,7 @@ static void array_check(struct expression *expr)
 	}
 
 	offset = get_array_offset(expr);
-	if (!get_implied_max(offset, &max)) {
+	if (!get_fuzzy_max(offset, &max)) {
 		name = get_variable_from_expr(dest, NULL);
 //		smatch_msg("debug: offset '%s' unknown", name);
 		print_args(offset, array_size);

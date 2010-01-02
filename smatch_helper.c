@@ -265,6 +265,7 @@ int sym_name_is(const char *name, struct expression *expr)
 
 #define NOTIMPLIED 0
 #define IMPLIED 1
+#define FUZZYMAX 2
 
 static int _get_value(struct expression *expr, int *discard, int *undefined, int implied)
 {
@@ -328,8 +329,13 @@ static int _get_value(struct expression *expr, int *discard, int *undefined, int
 		ret = get_expression_value(expr);
 		break;
 	default:
-		if (implied) {
+		if (implied == IMPLIED) {
 			if (!get_implied_single_val(expr, &ret)) {
+				*undefined = 1;
+				*discard = 1;
+			}
+		} else if (implied == FUZZYMAX) {
+			if (!get_implied_single_fuzzy_max(expr, &ret)) {
 				*undefined = 1;
 				*discard = 1;
 			}
@@ -361,6 +367,14 @@ int get_implied_value(struct expression *expr, long long *val)
 	int undefined = 0;
 
 	*val =  _get_value(expr, NULL, &undefined, IMPLIED);
+	return !undefined;
+}
+
+int get_fuzzy_max(struct expression *expr, long long *val)
+{
+	int undefined = 0;
+
+	*val =  _get_value(expr, NULL, &undefined, FUZZYMAX);
 	return !undefined;
 }
 

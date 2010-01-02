@@ -182,6 +182,7 @@ char *get_variable_from_expr(struct expression *expr,
 int sym_name_is(const char *name, struct expression *expr);
 int get_value(struct expression *expr, long long *val);
 int get_implied_value(struct expression *expr, long long *val);
+int get_fuzzy_max(struct expression *expr, long long *max);
 int is_zero(struct expression *expr);
 int is_array(struct expression *expr);
 struct expression *get_array_name(struct expression *expr);
@@ -249,6 +250,7 @@ struct data_range {
 extern struct data_range whole_range;
 
 int get_implied_single_val(struct expression *expr, long long *val);
+int get_implied_single_fuzzy_max(struct expression *expr, long long *max);
 int get_implied_max(struct expression *expr, long long *val);
 int get_implied_min(struct expression *expr, long long *val);
 int true_comparison(int left, int comparison, int right);

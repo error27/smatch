@@ -419,6 +419,34 @@ int get_implied_min(struct expression *expr, long long *val)
 	return get_implied_value_helper(expr, val, VAL_MIN);
 }
 
+int get_implied_single_fuzzy_max(struct expression *expr, long long *max)
+{
+	struct sm_state *sm;
+	struct sm_state *tmp;
+
+	if (get_implied_max(expr, max))
+		return 1;
+
+	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
+	if (!sm)
+		return 0;
+
+	*max = whole_range.min;
+	FOR_EACH_PTR(sm->possible, tmp) {
+		long long new_min;
+
+		if (tmp->state == &merged)
+			continue;
+		new_min = get_dinfo_min((struct data_info *)tmp->state->data);
+		if (new_min > *max)
+			*max = new_min;
+	} END_FOR_EACH_PTR(tmp);
+
+	if (*max > whole_range.min)
+		return 1;
+	return 0;
+}
+
 static int last_stmt_val(struct statement *stmt, long long *val)
 {
 	struct expression *expr;
