@@ -59,19 +59,6 @@ static const char *kernel_ignored[] = {
 	"inw",
 };
 
-static struct smatch_state *my_alloc_state(int assign_id)
-{
-	struct smatch_state *state;
-	static char buff[256];
-
-	state = __alloc_smatch_state(0);
-	snprintf(buff, 255, "assign_%d", assign_id);
-	buff[255] = '\0';
-	state->name = alloc_string(buff);
-	state->data = (void *) assign_id;
-	return state;
-}
-
 static int ignored_function(struct expression *func)
 {
 	ENTRY e, *ep;
@@ -113,7 +100,7 @@ static void match_assign_call(struct expression *expr)
 
 	skip_this = left;
 
-	set_state_expr(my_id, left, my_alloc_state(assign_id));
+	set_state_expr(my_id, left, alloc_state_num(assign_id));
 
 	assign = __alloc_assignment(0);
 	assign->assign_id = assign_id++;

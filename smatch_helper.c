@@ -35,6 +35,19 @@ void free_string(char *str)
 	free(str);
 }
 
+struct smatch_state *alloc_state_num(int num)
+{
+	struct smatch_state *state;
+	static char buff[256];
+
+	state = __alloc_smatch_state(0);
+	snprintf(buff, 255, "%d", num);
+	buff[255] = '\0';
+	state->name = alloc_string(buff);
+	state->data = (void *)num;
+	return state;
+}
+
 static void append(char *dest, const char *data, int buff_len)
 {
 	strncat(dest, data, buff_len - strlen(dest) - 1); 
