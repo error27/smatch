@@ -184,6 +184,7 @@ static void array_check(struct expression *expr)
 	if (!get_fuzzy_max(offset, &max)) {
 		name = get_variable_from_expr(dest, NULL);
 //		smatch_msg("debug: offset '%s' unknown", name);
+		set_state_expr(my_id, offset, alloc_state_num(array_size));
 		print_args(offset, array_size);
 	} else if (array_size <= max) {
 		name = get_variable_from_expr_complex(dest, NULL);
@@ -195,6 +196,34 @@ static void array_check(struct expression *expr)
 			sm_msg("error: buffer overflow '%s' %d <= %lld", name, array_size, max);
 		free_string(name);
 	}
+}
+
+static void match_condition(struct expression *expr)
+{
+	int left;
+	long long val;
+	struct smatch_state *state;
+	int boundary;
+
+	if (!expr || !expr->type == EXPR_COMPARE)
+		return;
+	if (get_implied_value(expr->left, &val))
+		left = 1;
+	else if (get_implied_value(expr->right, &val))
+		left = 0;
+	else
+		return;
+
+	if (left)
+		state = get_state_expr(my_id, expr->right);
+	else
+		state = get_state_expr(my_id, expr->left);
+	if (!state)
+		return;
+	boundary = (int)state->data;
+	boundary -= val;
+	if (boundary < 1 && boundary > -1)
+		sm_msg("testing array offset after use.");
 }
 
 static void match_string_assignment(struct expression *expr)
@@ -349,6 +378,7 @@ void check_overflow(int id)
 	add_hook(&match_declaration, DECLARATION_HOOK);
 	add_hook(&array_check, OP_HOOK);
 	add_hook(&match_string_assignment, ASSIGNMENT_HOOK);
+	add_hook(&match_condition, CONDITION_HOOK);
 	add_function_assign_hook("malloc", &match_malloc, NULL);
 	add_function_hook("strcpy", &match_strcpy, NULL);
 	add_function_hook("strncpy", &match_limitted, (void *)2);
