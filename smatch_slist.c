@@ -96,7 +96,7 @@ static struct sm_state *alloc_state_no_name(int owner, const char *name,
 {
 	struct sm_state *tmp;
 
-	tmp = alloc_state(owner, NULL, sym, state);
+	tmp = alloc_sm_state(owner, NULL, sym, state);
 	tmp->name = name;
 	return tmp;
 }
@@ -150,7 +150,7 @@ char *alloc_sname(const char *str)
 	return tmp;
 }
 
-struct sm_state *alloc_state(int owner, const char *name, 
+struct sm_state *alloc_sm_state(int owner, const char *name, 
 			     struct symbol *sym, struct smatch_state *state)
 {
 	struct sm_state *sm_state = __alloc_sm_state(0);
@@ -434,7 +434,7 @@ void set_state_slist(struct state_list **slist, int owner, const char *name,
  		     struct symbol *sym, struct smatch_state *state)
 {
  	struct sm_state *tmp;
-	struct sm_state *new = alloc_state(owner, name, sym, state);
+	struct sm_state *new = alloc_sm_state(owner, name, sym, state);
 
  	FOR_EACH_PTR(*slist, tmp) {
 		if (cmp_tracker(tmp, new) < 0)

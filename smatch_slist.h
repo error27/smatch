@@ -13,7 +13,7 @@ void __print_slist(struct state_list *slist);
 void add_history(struct sm_state *state);
 int cmp_tracker(const struct sm_state *a, const struct sm_state *b);
 char *alloc_sname(const char *str);
-struct sm_state *alloc_state(int owner, const char *name, 
+struct sm_state *alloc_sm_state(int owner, const char *name, 
 			     struct symbol *sym, 
 			     struct smatch_state *state);
 
