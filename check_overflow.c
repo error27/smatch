@@ -18,7 +18,8 @@ struct bound {
 	int size;
 };
 
-static int my_id;
+static int my_decl_id;
+static int my_used_id;
 
 static struct symbol *this_func;
 
@@ -96,13 +97,13 @@ static void match_declaration(struct symbol *sym)
 	base_type = get_base_type(sym);
 	
 	if (base_type->type == SYM_ARRAY && base_type->bit_size > 0) {
-		set_state(my_id, name, NULL, alloc_my_state(base_type->bit_size));
+		set_state(my_decl_id, name, NULL, alloc_my_state(base_type->bit_size));
 	} else {
 		if (sym->initializer &&
  			sym->initializer->type == EXPR_STRING &&
 			sym->initializer->string) {
 			size = sym->initializer->string->length * 8;
-			set_state(my_id, name, NULL, alloc_my_state(size));
+			set_state(my_decl_id, name, NULL, alloc_my_state(size));
 		}
 	}
 }
@@ -125,7 +126,7 @@ static int get_array_size(struct expression *expr)
 	name = get_variable_from_expr(expr, NULL);
 	if (!name)
 		return 0;
-	state = get_state(my_id, name, NULL);
+	state = get_state(my_decl_id, name, NULL);
 	if (!state || !state->data)
 		goto free;
 	if (tmp->type == SYM_PTR)
@@ -184,7 +185,7 @@ static void array_check(struct expression *expr)
 	if (!get_fuzzy_max(offset, &max)) {
 		name = get_variable_from_expr(dest, NULL);
 //		smatch_msg("debug: offset '%s' unknown", name);
-		set_state_expr(my_id, offset, alloc_state_num(array_size));
+		set_state_expr(my_used_id, offset, alloc_state_num(array_size));
 		print_args(offset, array_size);
 	} else if (array_size <= max) {
 		name = get_variable_from_expr_complex(dest, NULL);
@@ -216,9 +217,9 @@ static void match_condition(struct expression *expr)
 		return;
 
 	if (left)
-		slist = get_possible_states_expr(my_id, expr->right);
+		slist = get_possible_states_expr(my_used_id, expr->right);
 	else
-		slist = get_possible_states_expr(my_id, expr->left);
+		slist = get_possible_states_expr(my_used_id, expr->left);
 	if (!slist)
 		return;
 	FOR_EACH_PTR(slist, tmp) {
@@ -247,7 +248,7 @@ static void match_string_assignment(struct expression *expr)
 		return;
 	if (right->type != EXPR_STRING || !right->string)
 		goto free;
-	set_state(my_id, name, NULL, 
+	set_state(my_decl_id, name, NULL, 
 		alloc_my_state(right->string->length * 8));
 free:
 	free_string(name);
@@ -268,7 +269,7 @@ static void match_malloc(const char *fn, struct expression *expr, void *unused)
 	arg = get_argument_from_call_expr(right->args, 0);
 	if (!get_implied_value(arg, &bytes))
 		goto free;
-	set_state(my_id, name, NULL, alloc_my_state(bytes * 8));
+	set_state(my_decl_id, name, NULL, alloc_my_state(bytes * 8));
 free:
 	free_string(name);
 }
@@ -291,11 +292,11 @@ static void match_strcpy(const char *fn, struct expression *expr,
 	data = get_argument_from_call_expr(expr->args, 1);
 	data_name = get_variable_from_expr(data, NULL);
 		
-	dest_state = get_state(my_id, dest_name, NULL);
+	dest_state = get_state(my_decl_id, dest_name, NULL);
 	if (!dest_state || !dest_state->data)
 		goto free;
 
-	data_state = get_state(my_id, data_name, NULL);
+	data_state = get_state(my_decl_id, data_name, NULL);
 	if (!data_state || !data_state->data)
 		goto free;
 	dest_size = *(int *)dest_state->data / 8;
@@ -324,7 +325,7 @@ static void match_limitted(const char *fn, struct expression *expr,
 	data = get_argument_from_call_expr(expr->args, PTR_INT(limit_arg));
 	if (!get_value(data, &needed))
 		goto free;
-	state = get_state(my_id, dest_name, NULL);
+	state = get_state(my_decl_id, dest_name, NULL);
 	if (!state || !state->data)
 		goto free;
 	has = *(int *)state->data / 8;
@@ -381,7 +382,7 @@ static void register_array_funcs(void)
 
 void check_overflow(int id)
 {
-	my_id = id;
+	my_decl_id = id;
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_declaration, DECLARATION_HOOK);
 	add_hook(&array_check, OP_HOOK);
@@ -398,4 +399,9 @@ void check_overflow(int id)
 		add_function_hook("copy_from_user", &match_limitted, (void *)2);
 	}
 	register_array_funcs();
+}
+
+void register_check_overflow_again(int id)
+{
+	my_used_id = id;
 }

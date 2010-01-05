@@ -1,3 +1,4 @@
+
 /*
  * sparse/smatch.c
  *
@@ -33,6 +34,7 @@ void check_debug(int id);
 void check_assigned_expr(int id);
 void check_null_deref(int id);
 void check_overflow(int id);
+void register_check_overflow_again(int id);
 void check_locking(int id);
 void check_memory(int id);
 void check_frees_argument(int id);
@@ -74,6 +76,7 @@ static struct reg_func_info {
 
 	CK(check_null_deref),
 	CK(check_overflow),
+	CK(register_check_overflow_again),
 	CK(check_memory),
 	CK(check_type),
 	CK(check_allocation_funcs),
