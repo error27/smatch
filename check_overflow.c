@@ -202,10 +202,11 @@ static void match_condition(struct expression *expr)
 {
 	int left;
 	long long val;
-	struct smatch_state *state;
+	struct state_list *slist;
+	struct sm_state *tmp;
 	int boundary;
 
-	if (!expr || !expr->type == EXPR_COMPARE)
+	if (!expr || expr->type != EXPR_COMPARE)
 		return;
 	if (get_implied_value(expr->left, &val))
 		left = 1;
@@ -215,15 +216,22 @@ static void match_condition(struct expression *expr)
 		return;
 
 	if (left)
-		state = get_state_expr(my_id, expr->right);
+		slist = get_possible_states_expr(my_id, expr->right);
 	else
-		state = get_state_expr(my_id, expr->left);
-	if (!state)
+		slist = get_possible_states_expr(my_id, expr->left);
+	if (!slist)
 		return;
-	boundary = (int)state->data;
-	boundary -= val;
-	if (boundary < 1 && boundary > -1)
-		sm_msg("testing array offset after use.");
+	FOR_EACH_PTR(slist, tmp) {
+		if (tmp->state == &merged)
+			continue;
+		boundary = (int)tmp->state->data;
+		boundary -= val;
+		if (boundary < 1 && boundary > -1) {
+			sm_msg("testing array offset after use.");
+			return;
+		}
+	} END_FOR_EACH_PTR(tmp);
+
 }
 
 static void match_string_assignment(struct expression *expr)
