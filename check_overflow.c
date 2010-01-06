@@ -73,6 +73,11 @@ static char *alloc_num(long long num)
 	return alloc_sname(buff);
 }
 
+static void delete(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+{
+	delete_state(my_used_id, name, sym);
+}
+
 static struct smatch_state *alloc_my_state(int val)
 {
 	struct smatch_state *state;
@@ -183,10 +188,14 @@ static void array_check(struct expression *expr)
 
 	offset = get_array_offset(expr);
 	if (!get_fuzzy_max(offset, &max)) {
-		name = get_variable_from_expr(dest, NULL);
+		name = get_variable_from_expr(offset, NULL);
+		if (!name)
+			return;
 //		smatch_msg("debug: offset '%s' unknown", name);
 		set_state_expr(my_used_id, offset, alloc_state_num(array_size));
+		add_modification_hook(name, &delete, NULL);
 		print_args(offset, array_size);
+		free_string(name);
 	} else if (array_size <= max) {
 		name = get_variable_from_expr_complex(dest, NULL);
 		/*FIXME!!!!!!!!!!!
@@ -228,7 +237,10 @@ static void match_condition(struct expression *expr)
 		boundary = (int)tmp->state->data;
 		boundary -= val;
 		if (boundary < 1 && boundary > -1) {
-			sm_msg("testing array offset after use.");
+			char *name;
+
+			name = get_variable_from_expr(left?expr->right:expr->left, NULL);
+			sm_msg("error: testing array offset '%s' after use.", name);
 			return;
 		}
 	} END_FOR_EACH_PTR(tmp);
