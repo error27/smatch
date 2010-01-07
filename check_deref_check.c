@@ -10,8 +10,6 @@
 #include "smatch.h"
 #include "smatch_extra.h"
 
-extern struct expression_list *big_expression_stack;
-
 static int my_id;
 
 STATE(derefed);

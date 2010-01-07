@@ -224,6 +224,7 @@ extern int option_assume_loops;
 extern int option_known_conditions;
 extern int option_two_passes;
 extern struct symbol *cur_func_sym;
+extern struct expression_list *big_expression_stack;
 
 /* smatch_conditions */
 void __split_whole_condition(struct expression *expr);
