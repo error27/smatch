@@ -362,7 +362,7 @@ void __split_statements(struct statement *stmt)
 		__split_whole_condition(stmt->if_conditional);
 		__split_statements(stmt->if_true);
 		if (empty_statement(stmt->if_true))
-			sm_msg("warning: if();");
+			sm_msg("warn: if();");
 		__push_true_states();
 		__use_false_states();
 		__split_statements(stmt->if_false);
