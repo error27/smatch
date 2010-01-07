@@ -110,6 +110,27 @@ free:
 	free_string(name);
 }
 
+static void unop_expr(struct expression *expr)
+{
+	struct mod_cb_list *call_backs;
+	struct symbol *sym;
+	char *name = NULL;
+
+	if (expr->op != SPECIAL_DECREMENT && expr->op != SPECIAL_INCREMENT)
+		return;
+
+	expr = strip_expr(expr->unop);
+	name = get_variable_from_expr(expr, &sym);
+	if (!name)
+		goto free;
+	call_backs = get_mcall_backs(name);
+	if (!call_backs)
+		goto free;
+	call_call_backs(call_backs, name, sym, expr);
+free:
+	free_string(name);
+}
+
 static void match_end_func(struct symbol *sym)
 {
 	hdestroy_r(&var_hash);
@@ -120,6 +141,7 @@ void register_modification_hooks(int id)
 {
 	hcreate_r(1000, &var_hash);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
 }
 
