@@ -193,6 +193,7 @@ struct statement *get_block_thing(struct expression *expr);
 struct expression *strip_expr(struct expression *expr);
 void scoped_state(int my_id, const char *name, struct symbol *sym);
 int is_error_return(struct expression *expr);
+int getting_address();
 
 /* smatch_type.c */
 struct symbol *get_type(struct expression *expr);

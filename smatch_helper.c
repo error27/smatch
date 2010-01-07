@@ -502,3 +502,24 @@ int is_error_return(struct expression *expr)
 		return 1;
 	return 0;
 }
+
+int getting_address()
+{
+	struct expression *tmp;
+	int i = 0;
+	int dot_ops = 0;
+
+	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
+		if (!i++)
+			continue;
+		if (tmp->op == '(')
+			continue;
+		if (tmp->op == '.' && !dot_ops++)
+			continue;
+		if (tmp->op == '&')
+			return 1;
+		return 0;
+	} END_FOR_EACH_PTR_REVERSE(tmp);
+	return 0;
+}
+

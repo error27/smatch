@@ -89,23 +89,6 @@ static struct smatch_state *alloc_my_state(int val)
 	return state;
 }
 
-static int is_not_really_used()
-{
-	struct expression *tmp;
-	int i = 0;
-
-	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
-		if (!i++)
-			continue;
-		if (tmp->op == '(')
-			continue;
-		if (tmp->op == '&')
-			return 1;
-		return 0;
-	} END_FOR_EACH_PTR_REVERSE(tmp);
-	return 0;
-}
-
 static void match_declaration(struct symbol *sym)
 {
 	struct symbol *base_type;
@@ -205,7 +188,7 @@ static void array_check(struct expression *expr)
 
 	offset = get_array_offset(expr);
 	if (!get_fuzzy_max(offset, &max)) {
-		if (is_not_really_used(expr))
+		if (getting_address())
 			return;
 		name = get_variable_from_expr(offset, NULL);
 		if (!name)
