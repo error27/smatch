@@ -47,7 +47,7 @@ static void print_args(struct expression *expr, int size)
 	FOR_EACH_PTR(this_func->ctype.base_type->arguments, arg) {
 		arg_name = (arg->ident?arg->ident->name:"-");
 		if (sym == arg && !strcmp(name, arg_name)) {
-			sm_msg("param %d array index. size %d", i, size);
+			sm_info("param %d array index. size %d", i, size);
 			goto free;
 		}
 		i++;
