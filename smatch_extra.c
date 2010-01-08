@@ -99,6 +99,14 @@ struct smatch_state *alloc_extra_state_range_list(struct range_list *rl)
 	return state;
 }
 
+struct data_info *get_dinfo(struct smatch_state *state)
+{
+	if (!state)
+		return NULL;
+	return (struct data_info *)state->data;
+
+}
+
 struct smatch_state *filter_range(struct smatch_state *orig,
 				 long long filter_min, long long filter_max)
 {

@@ -44,6 +44,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 /* also implemented in smatch_extra */
 struct smatch_state *alloc_extra_state(int val);
 struct smatch_state *alloc_extra_state_range_list(struct range_list *rl);
+struct data_info *get_dinfo(struct smatch_state *state);
 struct smatch_state *add_filter(struct smatch_state *orig, long long filter);
 struct smatch_state *extra_undefined();
 
