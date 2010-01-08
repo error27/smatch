@@ -435,8 +435,6 @@ int get_implied_single_fuzzy_max(struct expression *expr, long long *max)
 	FOR_EACH_PTR(sm->possible, tmp) {
 		long long new_min;
 
-		if (tmp->state == &merged)
-			continue;
 		new_min = get_dinfo_min((struct data_info *)tmp->state->data);
 		if (new_min > *max)
 			*max = new_min;
