@@ -113,6 +113,30 @@ static void match_declaration(struct symbol *sym)
 	}
 }
 
+static int is_last_struct_member(struct expression *expr)
+{
+	struct ident *member;
+	struct symbol *struct_sym;
+	struct symbol *tmp;
+
+	if (!expr || expr->type != EXPR_DEREF)
+		return 0;
+
+	member = expr->member;
+	struct_sym = get_type(expr->deref);
+	if (!struct_sym)
+		return 0;
+	if (struct_sym->type == SYM_PTR)
+		struct_sym = get_base_type(struct_sym);
+	FOR_EACH_PTR_REVERSE(struct_sym->symbol_list, tmp) {
+		if (tmp->ident == member)
+			return 1;
+		return 0;
+	} END_FOR_EACH_PTR_REVERSE(tmp);
+	return 0;
+
+}
+
 static int get_array_size(struct expression *expr)
 {
 	char *name;
@@ -125,8 +149,9 @@ static int get_array_size(struct expression *expr)
 		return ret;
 	if (tmp->type == SYM_ARRAY) {
 		ret = get_expression_value(tmp->array_size);
-		if (ret)
-			return ret;
+		if (ret == 1 && is_last_struct_member(expr))
+			return 0;
+		return ret;
 	}
 	name = get_variable_from_expr(expr, NULL);
 	if (!name)
