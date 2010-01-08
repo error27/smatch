@@ -219,9 +219,6 @@ struct range_list *range_list_union(struct range_list *one, struct range_list *t
 	struct data_range *tmp;
 	struct range_list *ret = NULL;
 
-	if (!one || !two)  /*having nothing in a list means everything is in */
-		return NULL;
-
 	FOR_EACH_PTR(one, tmp) {
 		add_range(&ret, tmp->min, tmp->max);
 	} END_FOR_EACH_PTR(tmp);
