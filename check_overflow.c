@@ -360,7 +360,7 @@ static void match_array_func(const char *fn, struct expression *expr, void *info
 	if (!get_implied_value(arg, &offset))
 		return;
 	if (offset >= bound_info->size)
-		sm_msg("buffer overflow calling %s. param %d.  %lld >= %d", fn, bound_info->param, offset, bound_info->size);
+		sm_msg("error: buffer overflow calling %s. param %d.  %lld >= %d", fn, bound_info->param, offset, bound_info->size);
 }
 
 static void register_array_funcs(void)
