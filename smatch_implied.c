@@ -237,12 +237,8 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 			s = sm_state;
 		}
 
-		istrue = !possibly_false_range_list(comparison,
-						(struct data_info *)s->state->data,
-						vals, left);
-		isfalse = !possibly_true_range_list(comparison,
-						(struct data_info *)s->state->data,
-						vals, left);
+		istrue = !possibly_false_range_list(comparison,	get_dinfo(s->state), vals, left);
+		isfalse = !possibly_true_range_list(comparison, get_dinfo(s->state), vals, left);
 		
 		if (option_debug_implied || option_debug) {
 			if (istrue && isfalse) {
@@ -424,7 +420,7 @@ struct range_list *__get_implied_values(struct expression *switch_expr)
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (!state)
 		goto free;
-	ret = clone_range_list(((struct data_info *)state->data)->value_ranges);
+	ret = clone_range_list(get_dinfo(state)->value_ranges);
 free:
 	free_string(name);
 	if (!ret)

@@ -73,7 +73,7 @@ struct smatch_state *alloc_extra_state(int val)
 	struct smatch_state *state;
 
 	state = alloc_extra_state_no_name(val);
-	state->name = show_ranges(((struct data_info *)state->data)->value_ranges);
+	state->name = show_ranges(get_dinfo(state)->value_ranges);
 	return state;
 }
 
@@ -85,7 +85,7 @@ struct smatch_state *alloc_extra_state_range(long long min, long long max)
 		return extra_undefined();
 	state = __alloc_smatch_state(0);
 	state->data = (void *)alloc_dinfo_range(min, max);
-	state->name = show_ranges(((struct data_info *)state->data)->value_ranges);
+	state->name = show_ranges(get_dinfo(state)->value_ranges);
 	return state;
 }
 
@@ -95,7 +95,7 @@ struct smatch_state *alloc_extra_state_range_list(struct range_list *rl)
 
 	state = __alloc_smatch_state(0);
 	state->data = (void *)alloc_dinfo_range_list(rl);
-	state->name = show_ranges(((struct data_info *)state->data)->value_ranges);
+	state->name = show_ranges(get_dinfo(state)->value_ranges);
 	return state;
 }
 
@@ -116,9 +116,9 @@ struct smatch_state *filter_range(struct smatch_state *orig,
 
 	if (!orig)
 		orig = extra_undefined();
-	orig_info = (struct data_info *)orig->data;
+	orig_info = get_dinfo(orig);
 	ret = alloc_extra_state_empty();
-	ret_info = (struct data_info *)ret->data;
+	ret_info = get_dinfo(ret);
 	ret_info->value_ranges = remove_range(orig_info->value_ranges, filter_min, filter_max);
 	ret->name = show_ranges(ret_info->value_ranges);
 	return ret;
@@ -133,15 +133,15 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 				       struct smatch_state *s1,
 				       struct smatch_state *s2)
 {
-	struct data_info *info1 = (struct data_info *)s1->data;
-	struct data_info *info2 = (struct data_info *)s2->data;
+	struct data_info *info1 = get_dinfo(s1);
+	struct data_info *info2 = get_dinfo(s2);
 	struct data_info *ret_info;
 	struct smatch_state *tmp;
 	struct range_list *value_ranges;
 
 	value_ranges = range_list_union(info1->value_ranges, info2->value_ranges);
 	tmp = alloc_extra_state_empty();
-	ret_info = (struct data_info *)tmp->data;
+	ret_info = get_dinfo(tmp);
 	ret_info->value_ranges = value_ranges;
 	tmp->name = show_ranges(ret_info->value_ranges);
 	return tmp;
@@ -225,7 +225,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	if (sym != sm->sym || strcmp(name, sm->name))
 		goto free;
 	state = get_state(my_id, name, sym);
-	dinfo = (struct data_info *)state->data;
+	dinfo = get_dinfo(state);
 	min = get_dinfo_min(dinfo);
 	max = get_dinfo_max(dinfo);
 	if (iter_expr->op == SPECIAL_INCREMENT && min != whole_range.min && max == whole_range.max) {
@@ -399,14 +399,14 @@ static int get_implied_value_helper(struct expression *expr, long long *val, int
 	if (!state || !state->data)
 		return 0;
 	if (what == VAL_SINGLE)
-		return get_single_value_from_range((struct data_info *)state->data, val);
+		return get_single_value_from_range(get_dinfo(state), val);
 	if (what == VAL_MAX) {
-		*val = get_dinfo_max((struct data_info *)state->data);
+		*val = get_dinfo_max(get_dinfo(state));
 		if (*val == whole_range.max) /* this means just guessing */
 			return 0;
 		return 1;
 	}
-        *val = get_dinfo_min((struct data_info *)state->data);
+        *val = get_dinfo_min(get_dinfo(state));
 	if (*val == whole_range.min)
 		return 0;
 	return 1;
@@ -443,7 +443,7 @@ int get_implied_single_fuzzy_max(struct expression *expr, long long *max)
 	FOR_EACH_PTR(sm->possible, tmp) {
 		long long new_min;
 
-		new_min = get_dinfo_min((struct data_info *)tmp->state->data);
+		new_min = get_dinfo_min(get_dinfo(tmp->state));
 		if (new_min > *max)
 			*max = new_min;
 	} END_FOR_EACH_PTR(tmp);
@@ -606,7 +606,7 @@ int implied_not_equal(struct expression *expr, long long val)
 	state = get_state(my_id, name, sym);
 	if (!state || !state->data)
 		goto exit;
-	ret = !possibly_false(SPECIAL_NOTEQUAL, (struct data_info *)state->data, val, 1);
+	ret = !possibly_false(SPECIAL_NOTEQUAL, get_dinfo(state), val, 1);
 exit:
 	free_string(name);
 	return ret;
@@ -682,8 +682,8 @@ static int do_comparison_range(struct expression *expr)
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (!state)
 		goto free;
-	poss_true = possibly_true(expr->op, (struct data_info *)state->data, value, left);
-	poss_false = possibly_false(expr->op, (struct data_info *)state->data, value, left);
+	poss_true = possibly_true(expr->op, get_dinfo(state), value, left);
+	poss_false = possibly_false(expr->op, get_dinfo(state), value, left);
 	if (!poss_true && !poss_false)
 		return 0;
 	if (poss_true && !poss_false)
@@ -779,7 +779,7 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 
 	state = get_state_expr(my_id, expr);
 	if (state) {
-		*rl = clone_range_list(((struct data_info *)state->data)->value_ranges);
+		*rl = clone_range_list(get_dinfo(state)->value_ranges);
 		return 1;
 	}
 
