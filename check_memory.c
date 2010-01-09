@@ -200,6 +200,11 @@ static int is_null(const char *name, struct symbol *sym)
 	return 0;
 }
 
+static void set_unfree(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+{
+	set_state(my_id, name, sym, &unfree);
+}
+
 static void match_free_func(const char *fn, struct expression *expr, void *data)
 {
 	struct expression *ptr_expr;
@@ -209,10 +214,13 @@ static void match_free_func(const char *fn, struct expression *expr, void *data)
 
 	ptr_expr = get_argument_from_call_expr(expr->args, arg_num);
 	ptr_name = get_variable_from_expr_complex(ptr_expr, &ptr_sym);
+	if (!ptr_name)
+		return;
 	if (is_freed(ptr_name, ptr_sym) && !is_null(ptr_name, ptr_sym)) {
 		sm_msg("error: double free of %s", ptr_name);
 	}
 	set_state(my_id, ptr_name, ptr_sym, &isfree);
+	add_modification_hook(ptr_name, &set_unfree, NULL);
 	free_string(ptr_name);
 }
 
