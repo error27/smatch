@@ -70,6 +70,8 @@ static struct reg_func_info {
 	reg_func func;
 } reg_funcs[] = {
 	CK(register_smatch_extra), /* smatch_extra always has to be first */
+	CK(register_modification_hooks),
+
 	CK(register_smatch_ignore),
 	CK(check_debug),
 	CK(check_assigned_expr),
@@ -108,7 +110,6 @@ static struct reg_func_info {
 	CK(check_wine_filehandles),
 	CK(check_wine_WtoA),
 
-	CK(register_modification_hooks),
 	CK(register_containers),
 	CK(register_implications), /* implications always has to be last */
 };
