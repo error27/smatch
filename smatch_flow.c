@@ -231,8 +231,12 @@ static void handle_pre_loop(struct statement *stmt)
 		__merge_continues();
 		__split_statements(stmt->iterator_post_statement);
 		__save_gotos(loop_name);
+		__split_whole_condition(stmt->iterator_pre_condition);
+		nullify_path();
 		__merge_false_states();
-		__use_false_only_stack();
+		__merge_false_states();
+		__pop_false_only_stack();
+		__pop_false_only_stack();
 		__merge_breaks();
 	}
 }
