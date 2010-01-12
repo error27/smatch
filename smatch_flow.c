@@ -75,7 +75,6 @@ void __split_expr(struct expression *expr)
 		__push_true_states();
 		__use_false_states();
 		__merge_true_states();
-		__pop_false_only_stack();
 		return;
 	case EXPR_BINOP: 
 		__pass_to_client(expr, BINOP_HOOK);
@@ -117,7 +116,6 @@ void __split_expr(struct expression *expr)
 		__use_false_states();
 		__split_expr(expr->cond_false);
 		__merge_true_states();
-		__pop_false_only_stack();
 		return;
 	case EXPR_CALL:
 		split_expr_list(expr->args);
@@ -206,7 +204,6 @@ static void handle_pre_loop(struct statement *stmt)
 	__warn_on_silly_pre_loops();	
 	if (is_forever_loop(stmt)) {
 		__save_gotos(loop_name);
-		__pop_false_only_stack();
 		/* forever loops don't have an iterator_post_statement */
 		__pop_continues();
 		__pop_false_states();
@@ -224,8 +221,6 @@ static void handle_pre_loop(struct statement *stmt)
 			__extra_pre_loop_hook_after(extra_state,
 				stmt->iterator_post_statement, stmt->iterator_pre_condition);
 		__pop_false_states();
-		__pop_false_only_stack();
-		__pop_false_only_stack();
 		__merge_breaks();
 	} else {
 		__merge_continues();
@@ -235,8 +230,6 @@ static void handle_pre_loop(struct statement *stmt)
 		nullify_path();
 		__merge_false_states();
 		__merge_false_states();
-		__pop_false_only_stack();
-		__pop_false_only_stack();
 		__merge_breaks();
 	}
 }
@@ -266,7 +259,6 @@ static void handle_post_loop(struct statement *stmt)
 		__use_false_states();
 		__merge_breaks();
 	}
-	__pop_false_only_stack();
 }
 
 static void print_unreached(struct statement *stmt)
@@ -371,7 +363,6 @@ void __split_statements(struct statement *stmt)
 		__use_false_states();
 		__split_statements(stmt->if_false);
 		__merge_true_states();
-		__pop_false_only_stack();
 		return;
 	case STMT_ITERATOR:
 		if (stmt->iterator_pre_condition)

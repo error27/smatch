@@ -55,7 +55,6 @@ static struct state_list_stack *switch_stack;
 static struct range_list_stack *remaining_cases;
 static struct state_list_stack *default_stack;
 static struct state_list_stack *continue_stack;
-static struct state_list_stack *false_only_stack;
 
 static struct named_stack *goto_stack;
 
@@ -385,7 +384,6 @@ void clear_all_states()
 	nullify_path();
 	free_stack_and_slists(&true_stack);
 	free_stack_and_slists(&false_stack);
-	free_stack_and_slists(&false_only_stack);
 	free_stack_and_slists(&pre_cond_stack);
 	free_stack_and_slists(&cond_true_stack);
 	free_stack_and_slists(&cond_false_stack);
@@ -500,23 +498,6 @@ void __pop_pre_cond_states()
 	free_slist(&tmp);
 }
 
-void __use_false_only_stack()
-{
-	struct state_list *slist;
-
-	slist = pop_slist(&false_only_stack);
-	overwrite_slist(slist, &cur_slist);
-	free_slist(&slist);
-}
-
-void __pop_false_only_stack()
-{
-	struct state_list *slist;
-
-	slist = pop_slist(&false_only_stack);
-	free_slist(&slist);
-}
-
 void __use_cond_states()
 {
 	struct state_list *pre, *pre_clone, *true_states, *false_states;
@@ -532,7 +513,6 @@ void __use_cond_states()
 
 
 	false_states = pop_slist(&cond_false_stack);	
-	push_slist(&false_only_stack, clone_slist(false_states));
 	overwrite_slist(false_states, &pre_clone);
 	push_slist(&false_stack, pre_clone);
 }

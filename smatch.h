@@ -287,8 +287,6 @@ void clear_all_states();
 struct sm_state *get_sm_state(int owner, const char *name, 
 				struct symbol *sym);
 struct sm_state *get_sm_state_expr(int owner, struct expression *expr);
-void __use_false_only_stack();
-void __pop_false_only_stack();
 void __push_true_states();
 void __use_false_states();
 void __pop_false_states();
