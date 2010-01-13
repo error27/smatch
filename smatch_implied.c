@@ -437,20 +437,6 @@ free:
 	return ret;
 }
 
-void get_implications(char *name, struct symbol *sym, int comparison, int num,
-		      struct state_list **true_states,
-		      struct state_list **false_states)
-{
-	struct sm_state *sm;
-
-	sm = get_sm_state(SMATCH_EXTRA, name, sym);
-	if (!sm)
-		return;
-	if (slist_has_state(sm->possible, &undefined))
-		return;
-	get_eq_neq(sm, comparison, tmp_range_list(num), LEFT, __get_cur_slist(), true_states, false_states);
-}
-
 struct state_list *__implied_case_slist(struct expression *switch_expr,
 					struct expression *case_expr,
 					struct range_list_stack **remaining_cases,
@@ -499,6 +485,23 @@ free:
 static void match_end_func(struct symbol *sym)
 {
 	print_count = 0;
+}
+
+/*
+ * get_implications() can be called by check_ scripts.
+ */
+void get_implications(char *name, struct symbol *sym, int comparison, int num,
+		      struct state_list **true_states,
+		      struct state_list **false_states)
+{
+	struct sm_state *sm;
+
+	sm = get_sm_state(SMATCH_EXTRA, name, sym);
+	if (!sm)
+		return;
+	if (slist_has_state(sm->possible, &undefined))
+		return;
+	get_eq_neq(sm, comparison, tmp_range_list(num), LEFT, __get_cur_slist(), true_states, false_states);
 }
 
 void __extra_match_condition(struct expression *expr);
