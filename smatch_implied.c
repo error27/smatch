@@ -333,7 +333,7 @@ static void handle_comparison(struct expression *expr,
 {
 	struct symbol *sym;
 	char *name;
-	struct sm_state *state;
+	struct sm_state *sm;
 	long long value;
 	int lr = RIGHT;
 
@@ -348,10 +348,10 @@ static void handle_comparison(struct expression *expr,
 		name = get_implication_variable(expr->right, &sym);
 	if (!name || !sym)
 		goto free;
-	state = get_sm_state(SMATCH_EXTRA, name, sym);
-	if (!state)
+	sm = get_sm_state(SMATCH_EXTRA, name, sym);
+	if (!sm)
 		goto free;
-	get_eq_neq(state, expr->op, tmp_range_list(value), lr, __get_cur_slist(), implied_true, implied_false);
+	get_eq_neq(sm, expr->op, tmp_range_list(value), lr, __get_cur_slist(), implied_true, implied_false);
 	delete_state_slist(implied_true, SMATCH_EXTRA, name, sym);
 	delete_state_slist(implied_false, SMATCH_EXTRA, name, sym);
 free:
