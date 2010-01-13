@@ -92,95 +92,6 @@ static int pool_in_pools(struct state_list *pool,
 	return 0;
 }
 
-struct sm_state *remove_my_pools(struct sm_state *sm,
-				struct state_list_stack *pools, int *modified)
-{
-	struct sm_state *ret = NULL;
-	struct sm_state *left;
-	struct sm_state *right;
-	int removed = 0;
-
-	if (!sm)
-		return NULL;
-
-	if (sm->nr_children > 5000) {
-		print_once("debug: remove_my_pools %s nr_children %d", sm->name,
-			sm->nr_children);
-		return NULL;
-	}
-
-	if (pool_in_pools(sm->my_pool, pools)) {
-		DIMPLIED("removed %s = %s from %d\n", sm->name,
-			show_state(sm->state), sm->line);
-		*modified = 1;
-		return NULL;
-	}
-
-	if (!is_merged(sm)) {
-		DIMPLIED("kept %s = %s from %d\n", sm->name, show_state(sm->state),
-			sm->line);
-		return sm;
-	}
-
-	DIMPLIED("checking %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
-	left = remove_my_pools(sm->left, pools, &removed);
-	right = remove_my_pools(sm->right, pools, &removed);
-	if (!removed) {
-		DIMPLIED("kept %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
-		return sm;
-	}
-	*modified = 1;
-	if (!left && !right) {
-		DIMPLIED("removed %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
-		return NULL;
-	}
-
-	if (!left) {
-		ret = clone_state(right);
-		ret->merged = 1;
-		ret->right = right;
-		ret->left = NULL;
-		ret->my_pool = sm->my_pool;
-	} else if (!right) {
-		ret = clone_state(left);
-		ret->merged = 1;
-		ret->left = left;
-		ret->right = NULL;
-		ret->my_pool = sm->my_pool;
-	} else {
-		ret = merge_sm_states(left, right);
-		ret->my_pool = sm->my_pool;
-	}
-	ret->implied = 1;
-	DIMPLIED("partial %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
-	return ret;
-}
-
-static struct state_list *filter_stack(struct state_list *pre_list,
-				struct state_list_stack *stack)
-{
-	struct state_list *ret = NULL;
-	struct sm_state *tmp;
-	struct sm_state *filtered_state;
-	int modified;
-	int counter = 0;
-
-	if (!stack)
-		return NULL;
-
-	FOR_EACH_PTR(pre_list, tmp) {
-		modified = 0;
-		filtered_state = remove_my_pools(tmp, stack, &modified);
-		if (filtered_state && modified) {
-			add_ptr_list(&ret, filtered_state);
-			if ((counter++)%10 && out_of_memory())
-				return NULL;
-
-		}
-	} END_FOR_EACH_PTR(tmp);
-	return ret;
-}
-
 static int is_checked(struct state_list *checked, struct sm_state *sm)
 {
 	struct sm_state *tmp;
@@ -276,6 +187,95 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 	separate_pools(sm_state->right, comparison, vals, left, true_stack, false_stack, checked);
 	if (free_checked)
 		free_slist(checked);
+}
+
+struct sm_state *remove_my_pools(struct sm_state *sm,
+				struct state_list_stack *pools, int *modified)
+{
+	struct sm_state *ret = NULL;
+	struct sm_state *left;
+	struct sm_state *right;
+	int removed = 0;
+
+	if (!sm)
+		return NULL;
+
+	if (sm->nr_children > 5000) {
+		print_once("debug: remove_my_pools %s nr_children %d", sm->name,
+			sm->nr_children);
+		return NULL;
+	}
+
+	if (pool_in_pools(sm->my_pool, pools)) {
+		DIMPLIED("removed %s = %s from %d\n", sm->name,
+			show_state(sm->state), sm->line);
+		*modified = 1;
+		return NULL;
+	}
+
+	if (!is_merged(sm)) {
+		DIMPLIED("kept %s = %s from %d\n", sm->name, show_state(sm->state),
+			sm->line);
+		return sm;
+	}
+
+	DIMPLIED("checking %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
+	left = remove_my_pools(sm->left, pools, &removed);
+	right = remove_my_pools(sm->right, pools, &removed);
+	if (!removed) {
+		DIMPLIED("kept %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
+		return sm;
+	}
+	*modified = 1;
+	if (!left && !right) {
+		DIMPLIED("removed %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
+		return NULL;
+	}
+
+	if (!left) {
+		ret = clone_state(right);
+		ret->merged = 1;
+		ret->right = right;
+		ret->left = NULL;
+		ret->my_pool = sm->my_pool;
+	} else if (!right) {
+		ret = clone_state(left);
+		ret->merged = 1;
+		ret->left = left;
+		ret->right = NULL;
+		ret->my_pool = sm->my_pool;
+	} else {
+		ret = merge_sm_states(left, right);
+		ret->my_pool = sm->my_pool;
+	}
+	ret->implied = 1;
+	DIMPLIED("partial %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
+	return ret;
+}
+
+static struct state_list *filter_stack(struct state_list *pre_list,
+				struct state_list_stack *stack)
+{
+	struct state_list *ret = NULL;
+	struct sm_state *tmp;
+	struct sm_state *filtered_state;
+	int modified;
+	int counter = 0;
+
+	if (!stack)
+		return NULL;
+
+	FOR_EACH_PTR(pre_list, tmp) {
+		modified = 0;
+		filtered_state = remove_my_pools(tmp, stack, &modified);
+		if (filtered_state && modified) {
+			add_ptr_list(&ret, filtered_state);
+			if ((counter++)%10 && out_of_memory())
+				return NULL;
+
+		}
+	} END_FOR_EACH_PTR(tmp);
+	return ret;
 }
 
 static void get_eq_neq(struct sm_state *sm_state, int comparison, struct range_list *vals,
