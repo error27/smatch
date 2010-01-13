@@ -106,14 +106,61 @@ static int is_checked(struct state_list *checked, struct sm_state *sm)
 }
 
 /*
+ * If 'foo' == 99 add it that pool to the true pools.  If it's false, add it to
+ * the false pools.  If we're not sure, then we don't add it to either.
+ */
+static void do_compare(struct sm_state *sm_state, int comparison, struct range_list *vals,
+			int lr,
+			struct state_list_stack **true_stack,
+			struct state_list_stack **false_stack)
+{
+	struct sm_state *s;
+	int istrue;
+	int isfalse;
+
+ 	if (!sm_state->my_pool)
+		return;
+
+	if (is_implied(sm_state)) {
+		s = get_sm_state_slist(sm_state->my_pool,
+				sm_state->owner, sm_state->name, 
+				sm_state->sym);
+	} else { 
+		s = sm_state;
+	}
+
+	istrue = !possibly_false_range_list(comparison,	get_dinfo(s->state), vals, lr);
+	isfalse = !possibly_true_range_list(comparison, get_dinfo(s->state), vals, lr);
+		
+	if (option_debug_implied || option_debug) {
+		if (istrue && isfalse) {
+			printf("'%s = %s' from %d does not exist.\n", s->name, 
+				show_state(s->state), s->line);
+		} else if (istrue) {
+			printf("'%s = %s' from %d is true.\n", s->name, show_state(s->state),
+				s->line);
+		} else if (isfalse) {
+			printf("'%s = %s' from %d is false.\n", s->name, show_state(s->state),
+				s->line);
+		} else {
+			printf("'%s = %s' from %d could be true or false.\n", s->name,
+				show_state(s->state), s->line);
+		}
+	}
+	if (istrue)
+		add_pool(true_stack, s->my_pool);
+
+	if (isfalse)
+		add_pool(false_stack, s->my_pool);
+}
+
+/*
  * separate_pools():
  * Example code:  if (foo == 99) {
  *
  * Say 'foo' is a merged state that has many possible values.  It is the combination
- * of merges.  separate_pools() iterates through the pools recursively and makes a 
- * list of pools where foo == 99 and where foo != 99.  If we don't know for sure which
- * list a pool should be added to, then we don't add it to either.
- *
+ * of merges.  separate_pools() iterates through the pools recursively and calls
+ * do_compare() for each time 'foo' was set.
  */
 static void separate_pools(struct sm_state *sm_state, int comparison, struct range_list *vals,
 			int lr,
@@ -121,8 +168,6 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 			struct state_list_stack **false_stack,
 			struct state_list **checked)
 {
-	struct sm_state *s;
-	int istrue, isfalse;
 	int free_checked = 0;
 	struct state_list *checked_states = NULL;
  
@@ -148,43 +193,8 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 		return;
 	add_ptr_list(checked, sm_state);
 	
-	if (sm_state->my_pool) {
-		if (is_implied(sm_state)) {
-			s = get_sm_state_slist(sm_state->my_pool,
-					sm_state->owner, sm_state->name, 
-					sm_state->sym);
-		} else { 
-			s = sm_state;
-		}
+	do_compare(sm_state, comparison, vals, lr, true_stack, false_stack);
 
-		istrue = !possibly_false_range_list(comparison,	get_dinfo(s->state), vals, lr);
-		isfalse = !possibly_true_range_list(comparison, get_dinfo(s->state), vals, lr);
-		
-		if (option_debug_implied || option_debug) {
-			if (istrue && isfalse) {
-				printf("'%s = %s' from %d does not exist.\n",
-					s->name, show_state(s->state),
-					s->line);
-			} else if (istrue) {
-				printf("'%s = %s' from %d is true.\n",
-					s->name, show_state(s->state),
-					s->line);
-			} else if (isfalse) {
-				printf("'%s = %s' from %d is false.\n",
-					s->name, show_state(s->state),
-					s->line);
-			} else {
-				printf("'%s = %s' from %d could be true or "
-					"false.\n", s->name,
-					show_state(s->state), s->line);
-			}
-		}
-		if (istrue)
-			add_pool(true_stack, s->my_pool);
-
-		if (isfalse)
-			add_pool(false_stack, s->my_pool);
-	}
 	separate_pools(sm_state->left, comparison, vals, lr, true_stack, false_stack, checked);
 	separate_pools(sm_state->right, comparison, vals, lr, true_stack, false_stack, checked);
 	if (free_checked)
