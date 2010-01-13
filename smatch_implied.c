@@ -387,7 +387,7 @@ static void get_tf_states(struct expression *expr,
 	sm = get_sm_state(SMATCH_EXTRA, name, sym);
 	if (!sm)
 		goto free;
-	get_eq_neq(sm, SPECIAL_NOTEQUAL, tmp_range_list(0), 1, __get_cur_slist(), implied_true, implied_false);
+	get_eq_neq(sm, SPECIAL_NOTEQUAL, tmp_range_list(0), LEFT, __get_cur_slist(), implied_true, implied_false);
 	delete_state_slist(implied_true, SMATCH_EXTRA, name, sym);
 	delete_state_slist(implied_false, SMATCH_EXTRA, name, sym);
 free:
@@ -448,7 +448,7 @@ void get_implications(char *name, struct symbol *sym, int comparison, int num,
 		return;
 	if (slist_has_state(sm->possible, &undefined))
 		return;
-	get_eq_neq(sm, comparison, tmp_range_list(num), 1, __get_cur_slist(), true_states, false_states);
+	get_eq_neq(sm, comparison, tmp_range_list(num), LEFT, __get_cur_slist(), true_states, false_states);
 }
 
 struct state_list *__implied_case_slist(struct expression *switch_expr,
@@ -483,7 +483,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 		}
 	}
 	if (sm)
-		get_eq_neq(sm, SPECIAL_EQUAL, vals, 1, *raw_slist, &true_states, &false_states);
+		get_eq_neq(sm, SPECIAL_EQUAL, vals, LEFT, *raw_slist, &true_states, &false_states);
 	
 	true_sm = get_sm_state_slist(true_states, SMATCH_EXTRA, name, sym);
 	if (!true_sm)
