@@ -56,12 +56,13 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+static int print_count = 0;
+#define print_once(msg...) do { if (!print_count++) sm_msg(msg); } while (0)
 #define DIMPLIED(msg...) do { if (option_debug_implied) printf(msg); } while (0)
 
 int option_debug_implied = 0;
 int option_no_implied = 0;
 
-static int print_once = 0;
 
 static struct range_list *tmp_range_list(long num)
 {
@@ -102,10 +103,8 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 		return NULL;
 
 	if (sm->nr_children > 5000) {
-		if (!print_once++) {
-			sm_msg("debug: remove_my_pools %s nr_children %d",
-				sm->name, sm->nr_children);
-		}
+		print_once("debug: remove_my_pools %s nr_children %d", sm->name,
+			sm->nr_children);
 		return NULL;
 	}
 
@@ -212,10 +211,8 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 	   false positives and don't affect actual bugs.
 	*/
 	if (sm_state->nr_children > 5000) {
-		if (!print_once++) {
-			sm_msg("debug: seperate_pools %s nr_children %d",
-				sm_state->name, sm_state->nr_children);
-		}
+		print_once("debug: seperate_pools %s nr_children %d", sm_state->name, 
+			sm_state->nr_children);
 		return;
 	}
 
@@ -487,7 +484,7 @@ free:
 
 static void match_end_func(struct symbol *sym)
 {
-	print_once = 0;
+	print_count = 0;
 }
 
 void __extra_match_condition(struct expression *expr);
