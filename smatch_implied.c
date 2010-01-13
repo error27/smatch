@@ -63,11 +63,11 @@ int option_no_implied = 0;
 
 static int print_once = 0;
 
-static struct range_list *my_list = NULL;
-static struct data_range *my_range;
-
 static struct range_list *tmp_range_list(long num)
 {
+	static struct range_list *my_list = NULL;
+	static struct data_range *my_range;
+
 	__free_ptr_list((struct ptr_list **)&my_list);
 	my_range = alloc_range(num, num);
 	my_range->min = num;
