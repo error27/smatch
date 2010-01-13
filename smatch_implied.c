@@ -80,31 +80,6 @@ static struct range_list *tmp_range_list(long num)
 	return my_list;
 }
 
-static int pool_in_pools(struct state_list *pool,
-			struct state_list_stack *pools)
-{
-	struct state_list *tmp;
-
-	FOR_EACH_PTR(pools, tmp) {
-		if (tmp == pool)
-			return 1;
-		if (tmp > pool)
-			return 0;
-	} END_FOR_EACH_PTR(tmp);
-	return 0;
-}
-
-static int is_checked(struct state_list *checked, struct sm_state *sm)
-{
-	struct sm_state *tmp;
-
-	FOR_EACH_PTR(checked, tmp) {
-		if (tmp == sm)
-			return 1;
-	} END_FOR_EACH_PTR(tmp);
-	return 0;
-}
-
 /*
  * If 'foo' == 99 add it that pool to the true pools.  If it's false, add it to
  * the false pools.  If we're not sure, then we don't add it to either.
@@ -152,6 +127,31 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 
 	if (isfalse)
 		add_pool(false_stack, s->my_pool);
+}
+
+static int pool_in_pools(struct state_list *pool,
+			struct state_list_stack *pools)
+{
+	struct state_list *tmp;
+
+	FOR_EACH_PTR(pools, tmp) {
+		if (tmp == pool)
+			return 1;
+		if (tmp > pool)
+			return 0;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
+static int is_checked(struct state_list *checked, struct sm_state *sm)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(checked, tmp) {
+		if (tmp == sm)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
 }
 
 /*
