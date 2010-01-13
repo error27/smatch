@@ -289,6 +289,11 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, struct range_l
 	struct state_list_stack *true_stack = NULL;
 	struct state_list_stack *false_stack = NULL;
 
+	if (!is_merged(sm_state)) {
+		DIMPLIED("%d '%s' is not merged.\n", get_lineno(), sm_state->name);
+		return;
+	}
+
 	if (option_debug_implied || option_debug) {
 		if (lr == LEFT)
 			sm_msg("checking implications: (%s %s %s)",
@@ -346,10 +351,6 @@ static void handle_comparison(struct expression *expr,
 	state = get_sm_state(SMATCH_EXTRA, name, sym);
 	if (!state)
 		goto free;
-	if (!is_merged(state)) {
-		DIMPLIED("%d '%s' is not merged.\n", get_lineno(), state->name);
-		goto free;
-	}
 	get_eq_neq(state, expr->op, tmp_range_list(value), lr, __get_cur_slist(), implied_true, implied_false);
 	delete_state_slist(implied_true, SMATCH_EXTRA, name, sym);
 	delete_state_slist(implied_false, SMATCH_EXTRA, name, sym);
@@ -382,10 +383,6 @@ static void get_tf_states(struct expression *expr,
 	sm = get_sm_state(SMATCH_EXTRA, name, sym);
 	if (!sm)
 		goto free;
-	if (!is_merged(sm)) {
-		DIMPLIED("%d '%s' has no pools.\n", get_lineno(), sm->name);
-		goto free;
-	}
 	get_eq_neq(sm, SPECIAL_NOTEQUAL, tmp_range_list(0), 1, __get_cur_slist(), implied_true, implied_false);
 	delete_state_slist(implied_true, SMATCH_EXTRA, name, sym);
 	delete_state_slist(implied_false, SMATCH_EXTRA, name, sym);
