@@ -59,6 +59,8 @@ static int print_count = 0;
 int option_debug_implied = 0;
 int option_no_implied = 0;
 
+#define RIGHT 0
+#define LEFT  1
 
 /*
  * tmp_range_list(): 
@@ -114,7 +116,7 @@ static int is_checked(struct state_list *checked, struct sm_state *sm)
  *
  */
 static void separate_pools(struct sm_state *sm_state, int comparison, struct range_list *vals,
-			int left,
+			int lr,
 			struct state_list_stack **true_stack,
 			struct state_list_stack **false_stack,
 			struct state_list **checked)
@@ -155,8 +157,8 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 			s = sm_state;
 		}
 
-		istrue = !possibly_false_range_list(comparison,	get_dinfo(s->state), vals, left);
-		isfalse = !possibly_true_range_list(comparison, get_dinfo(s->state), vals, left);
+		istrue = !possibly_false_range_list(comparison,	get_dinfo(s->state), vals, lr);
+		isfalse = !possibly_true_range_list(comparison, get_dinfo(s->state), vals, lr);
 		
 		if (option_debug_implied || option_debug) {
 			if (istrue && isfalse) {
@@ -183,8 +185,8 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 		if (isfalse)
 			add_pool(false_stack, s->my_pool);
 	}
-	separate_pools(sm_state->left, comparison, vals, left, true_stack, false_stack, checked);
-	separate_pools(sm_state->right, comparison, vals, left, true_stack, false_stack, checked);
+	separate_pools(sm_state->left, comparison, vals, lr, true_stack, false_stack, checked);
+	separate_pools(sm_state->right, comparison, vals, lr, true_stack, false_stack, checked);
 	if (free_checked)
 		free_slist(checked);
 }
@@ -279,7 +281,7 @@ static struct state_list *filter_stack(struct state_list *pre_list,
 }
 
 static void get_eq_neq(struct sm_state *sm_state, int comparison, struct range_list *vals,
-		int left,
+		int lr,
 		struct state_list *pre_list,
 		struct state_list **true_states,
 		struct state_list **false_states)
@@ -288,7 +290,7 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, struct range_l
 	struct state_list_stack *false_stack = NULL;
 
 	if (option_debug_implied || option_debug) {
-		if (left)
+		if (lr == LEFT)
 			sm_msg("checking implications: (%s %s %s)",
 				sm_state->name, show_special(comparison), show_ranges(vals));
 		else
@@ -296,7 +298,7 @@ static void get_eq_neq(struct sm_state *sm_state, int comparison, struct range_l
 				show_ranges(vals), show_special(comparison), sm_state->name);
 	}
 
-	separate_pools(sm_state, comparison, vals, left, &true_stack, &false_stack, NULL);
+	separate_pools(sm_state, comparison, vals, lr, &true_stack, &false_stack, NULL);
 
 	DIMPLIED("filtering true stack.\n");
 	*true_states = filter_stack(pre_list, false_stack);
@@ -328,14 +330,14 @@ static void handle_comparison(struct expression *expr,
 	char *name;
 	struct sm_state *state;
 	long long value;
-	int left = 0;
+	int lr = RIGHT;
 
 	if (!get_value(expr->left, &value)) {
 		if (!get_value(expr->right, &value))
 			return;
-		left = 1;
+		lr = LEFT;
 	}
-	if (left)
+	if (lr == LEFT)
 		name = get_implication_variable(expr->left, &sym);
 	else 
 		name = get_implication_variable(expr->right, &sym);
@@ -348,7 +350,7 @@ static void handle_comparison(struct expression *expr,
 		DIMPLIED("%d '%s' is not merged.\n", get_lineno(), state->name);
 		goto free;
 	}
-	get_eq_neq(state, expr->op, tmp_range_list(value), left, __get_cur_slist(), implied_true, implied_false);
+	get_eq_neq(state, expr->op, tmp_range_list(value), lr, __get_cur_slist(), implied_true, implied_false);
 	delete_state_slist(implied_true, SMATCH_EXTRA, name, sym);
 	delete_state_slist(implied_false, SMATCH_EXTRA, name, sym);
 free:
