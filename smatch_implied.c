@@ -290,7 +290,7 @@ static struct state_list *filter_stack(struct state_list *pre_list,
 	return ret;
 }
 
-static void get_eq_neq(struct sm_state *sm_state, int comparison, struct range_list *vals,
+static void separate_and_filter(struct sm_state *sm_state, int comparison, struct range_list *vals,
 		int lr,
 		struct state_list *pre_list,
 		struct state_list **true_states,
@@ -365,7 +365,7 @@ static void handle_comparison(struct expression *expr,
 	if (!sm)
 		goto free;
 
-	get_eq_neq(sm, expr->op, tmp_range_list(value), lr, __get_cur_slist(), implied_true, implied_false);
+	separate_and_filter(sm, expr->op, tmp_range_list(value), lr, __get_cur_slist(), implied_true, implied_false);
 	delete_state_slist(implied_true, SMATCH_EXTRA, name, sym);
 	delete_state_slist(implied_false, SMATCH_EXTRA, name, sym);
 free:
@@ -397,7 +397,7 @@ static void get_tf_states(struct expression *expr,
 	sm = get_sm_state(SMATCH_EXTRA, name, sym);
 	if (!sm)
 		goto free;
-	get_eq_neq(sm, SPECIAL_NOTEQUAL, tmp_range_list(0), LEFT, __get_cur_slist(), implied_true, implied_false);
+	separate_and_filter(sm, SPECIAL_NOTEQUAL, tmp_range_list(0), LEFT, __get_cur_slist(), implied_true, implied_false);
 	delete_state_slist(implied_true, SMATCH_EXTRA, name, sym);
 	delete_state_slist(implied_false, SMATCH_EXTRA, name, sym);
 free:
@@ -479,7 +479,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 		}
 	}
 	if (sm)
-		get_eq_neq(sm, SPECIAL_EQUAL, vals, LEFT, *raw_slist, &true_states, &false_states);
+		separate_and_filter(sm, SPECIAL_EQUAL, vals, LEFT, *raw_slist, &true_states, &false_states);
 	
 	true_sm = get_sm_state_slist(true_states, SMATCH_EXTRA, name, sym);
 	if (!true_sm)
@@ -511,7 +511,7 @@ void get_implications(char *name, struct symbol *sym, int comparison, int num,
 		return;
 	if (slist_has_state(sm->possible, &undefined))
 		return;
-	get_eq_neq(sm, comparison, tmp_range_list(num), LEFT, __get_cur_slist(), true_states, false_states);
+	separate_and_filter(sm, comparison, tmp_range_list(num), LEFT, __get_cur_slist(), true_states, false_states);
 }
 
 void __extra_match_condition(struct expression *expr);
