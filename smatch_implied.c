@@ -361,7 +361,7 @@ static void get_tf_states(struct expression *expr,
 {
 	struct symbol *sym;
 	char *name;
-	struct sm_state *state;
+	struct sm_state *sm;
 
 	if (expr->type == EXPR_COMPARE) {
 		handle_comparison(expr, implied_true, implied_false);
@@ -377,14 +377,14 @@ static void get_tf_states(struct expression *expr,
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
 		goto free;
-	state = get_sm_state(SMATCH_EXTRA, name, sym);
-	if (!state)
+	sm = get_sm_state(SMATCH_EXTRA, name, sym);
+	if (!sm)
 		goto free;
-	if (!is_merged(state)) {
-		DIMPLIED("%d '%s' has no pools.\n", get_lineno(), state->name);
+	if (!is_merged(sm)) {
+		DIMPLIED("%d '%s' has no pools.\n", get_lineno(), sm->name);
 		goto free;
 	}
-	get_eq_neq(state, SPECIAL_NOTEQUAL, tmp_range_list(0), 1, __get_cur_slist(), implied_true, implied_false);
+	get_eq_neq(sm, SPECIAL_NOTEQUAL, tmp_range_list(0), 1, __get_cur_slist(), implied_true, implied_false);
 	delete_state_slist(implied_true, SMATCH_EXTRA, name, sym);
 	delete_state_slist(implied_false, SMATCH_EXTRA, name, sym);
 free:
@@ -393,7 +393,7 @@ free:
 
 static void implied_states_hook(struct expression *expr)
 {
-	struct sm_state *state;
+	struct sm_state *sm;
 	struct state_list *implied_true = NULL;
 	struct state_list *implied_false = NULL;
 
@@ -402,14 +402,14 @@ static void implied_states_hook(struct expression *expr)
 
 	get_tf_states(expr, &implied_true, &implied_false);
 
-	FOR_EACH_PTR(implied_true, state) {
-		__set_true_false_sm(state, NULL);
-	} END_FOR_EACH_PTR(state);
+	FOR_EACH_PTR(implied_true, sm) {
+		__set_true_false_sm(sm, NULL);
+	} END_FOR_EACH_PTR(sm);
 	free_slist(&implied_true);
 
-	FOR_EACH_PTR(implied_false, state) {
-		__set_true_false_sm(NULL, state);
-	} END_FOR_EACH_PTR(state);
+	FOR_EACH_PTR(implied_false, sm) {
+		__set_true_false_sm(NULL, sm);
+	} END_FOR_EACH_PTR(sm);
 	free_slist(&implied_false);
 }
 
