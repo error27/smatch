@@ -40,16 +40,12 @@
  * That is the implied state of bar.
  *
  * merge_slist() sets up ->my_pool.  An sm_state only has one ->my_pool and
- *    that is the pool where it was first set.  Implied states sometimes have a 
- *    my_pool to reflect that the code flowed through that path.
+ *    that is the pool where it was first set.  The my pool gets set when
+ *    code paths merge.  States that have been set since the last merge do 
+ *    not have a ->my_pool.
  * merge_sm_state() sets ->left and ->right.  (These are the states which were
  *    merged to form the current state.)
- * If an sm_state is not the same on both sides of a merge, it
- *    gets a ->my_pool set for both sides.  The result is a merged
- *    state that has it's ->left and ->right pointers set.  Merged states
- *    do not immediately have any my_pool set, but maybe will later
- *    when they themselves are merged.
- * A pool is a list of all the states that were set at the time.
+ * a pool:  a pool is an slist that has been merged with another slist.
  */
 
 #include "smatch.h"
@@ -64,6 +60,11 @@ int option_debug_implied = 0;
 int option_no_implied = 0;
 
 
+/*
+ * tmp_range_list(): 
+ * It messes things up to free range list allocations.  This helper fuction
+ * lets us reuse memory instead of doing new allocations.
+ */
 static struct range_list *tmp_range_list(long num)
 {
 	static struct range_list *my_list = NULL;
@@ -191,6 +192,16 @@ static int is_checked(struct state_list *checked, struct sm_state *sm)
 	return 0;
 }
 
+/*
+ * separate_pools():
+ * Example code:  if (foo == 99) {
+ *
+ * Say 'foo' is a merged state that has many possible values.  It is the combination
+ * of merges.  separate_pools() iterates through the pools recursively and makes a 
+ * list of pools where foo == 99 and where foo != 99.  If we don't know for sure which
+ * list a pool should be added to, then we don't add it to either.
+ *
+ */
 static void separate_pools(struct sm_state *sm_state, int comparison, struct range_list *vals,
 			int left,
 			struct state_list_stack **true_stack,
@@ -207,8 +218,8 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 
 	/* 
 	   Sometimes the implications are just too big to deal with
-	   so we bail.  Theoretically, implications only get rid of 
-	   false positives and don't affect actual bugs.
+	   so we bail.  Theoretically, bailing out here can cause more false 
+	   positives but won't hide actual bugs.
 	*/
 	if (sm_state->nr_children > 5000) {
 		print_once("debug: seperate_pools %s nr_children %d", sm_state->name, 
