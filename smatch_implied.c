@@ -223,9 +223,8 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 		checked = &checked_states;
 		free_checked = 1;
 	}
-	if (is_checked(*checked, sm_state)) {
+	if (is_checked(*checked, sm_state))
 		return;
-	}
 	add_ptr_list(checked, sm_state);
 	
 	if (sm_state->my_pool) {
@@ -259,12 +258,11 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 					show_state(s->state), s->line);
 			}
 		}
-		if (istrue) {
+		if (istrue)
 			add_pool(true_stack, s->my_pool);
-		}
-		if (isfalse) {
+
+		if (isfalse)
 			add_pool(false_stack, s->my_pool);
-		}
 	}
 	separate_pools(sm_state->left, comparison, vals, left, true_stack, false_stack, checked);
 	separate_pools(sm_state->right, comparison, vals, left, true_stack, false_stack, checked);
@@ -473,9 +471,8 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 			add_ptr_list(&vals, range);
 		}
 	}
-	if (sm) {
+	if (sm)
 		get_eq_neq(sm, SPECIAL_EQUAL, vals, 1, *raw_slist, &true_states, &false_states);
-	}
 	
 	true_sm = get_sm_state_slist(true_states, SMATCH_EXTRA, name, sym);
 	if (!true_sm)
