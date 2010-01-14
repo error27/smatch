@@ -56,6 +56,7 @@ void check_unused_ret(int id);
 void check_dma_on_stack(int id);
 void check_param_mapper(int id);
 void check_call_tree(int id);
+void check_dev_queue_xmit(int id);
 /* <- your test goes here */
 
 /* may as well put wine scripts all together */
@@ -95,6 +96,7 @@ static struct reg_func_info {
 	CK(check_dma_on_stack),
 	CK(check_param_mapper),
 	CK(check_call_tree),
+	CK(check_dev_queue_xmit),
 
 	/* <- your test goes here */
 	/* CK(register_template), */
