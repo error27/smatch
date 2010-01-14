@@ -512,7 +512,7 @@ int getting_address()
 	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
 		if (!i++)
 			continue;
-		if (tmp->op == '(')
+		if (tmp->type == EXPR_PREOP && tmp->op == '(')
 			continue;
 		if (tmp->op == '.' && !dot_ops++)
 			continue;
