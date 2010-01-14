@@ -110,6 +110,7 @@ typedef void (modification_hook)(const char *name, struct symbol *sym,
 				struct expression *expr, void *data);
 void add_modification_hook(const char *variable, modification_hook *hook,
 			void *data);
+void add_modification_hook_expr(struct expression *expr, modification_hook *call_back, void *info);
 int is_member(struct expression *expr);
 void reset_on_container_modified(int owner, struct expression *expr);
 void set_default_state(int owner, struct smatch_state *state);

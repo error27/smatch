@@ -78,6 +78,20 @@ void add_modification_hook(const char *variable, modification_hook *call_back, v
 	add_mcall_back(variable, cb);
 }
 
+void add_modification_hook_expr(struct expression *expr, modification_hook *call_back, void *info)
+{
+	struct mcall_back *cb;
+	char *name;
+
+	expr = strip_expr(expr);
+	name = get_variable_from_expr(expr, NULL);
+	if (!name)
+		return;
+	cb = alloc_mcall_back(call_back, info);
+	add_mcall_back(name, cb);
+	free_string(name);
+}
+
 static void call_call_backs(struct mod_cb_list *list,
 			const char *variable,
 			struct symbol *sym,
