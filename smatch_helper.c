@@ -447,6 +447,21 @@ struct statement *get_block_thing(struct expression *expr)
 	return expr->unop->statement;
 }
 
+struct expression *strip_parens(struct expression *expr)
+{
+	if (!expr)
+		return NULL;
+
+	if (expr->type == EXPR_PREOP) {
+		if (expr->op == '(' && expr->unop->type == EXPR_STATEMENT &&
+			expr->unop->statement->type == STMT_COMPOUND)
+			return expr;
+		if (expr->op == '(')
+			return strip_parens(expr->unop);
+	}
+	return expr;
+}
+
 struct expression *strip_expr(struct expression *expr)
 {
 	if (!expr)

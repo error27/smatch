@@ -76,7 +76,7 @@ struct symbol *get_type(struct expression *expr)
 
 	if (!expr)
 		return NULL;
-	expr = strip_expr(expr);
+	expr = strip_parens(expr);
 
 	switch(expr->type) {
 	case EXPR_SYMBOL:
@@ -87,6 +87,10 @@ struct symbol *get_type(struct expression *expr)
 		if (expr->op == '&')
 			return fake_pointer_sym(expr);
 		return get_type(expr->unop);
+	case EXPR_CAST:
+	case EXPR_FORCE_CAST:
+	case EXPR_IMPLIED_CAST:
+		return expr->cast_type;
 	case EXPR_BINOP:
 		if (expr->op != '+')
 			return NULL;
