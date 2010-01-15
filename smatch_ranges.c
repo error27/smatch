@@ -301,7 +301,7 @@ int get_single_value_from_range(struct data_info *dinfo, long long *val)
 
 int true_comparison_range(struct data_range *left, int comparison, struct data_range *right)
 {
-	switch(comparison){
+	switch (comparison) {
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
 		if (left->min < right->max)
@@ -353,7 +353,7 @@ int true_comparison_range_lr(int comparison, struct data_range *var, struct data
 
 static int false_comparison_range(struct data_range *left, int comparison, struct data_range *right)
 {
-	switch(comparison){
+	switch (comparison) {
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
 		if (left->max >= right->min)

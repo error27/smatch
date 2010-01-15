@@ -251,7 +251,7 @@ static void split_conditions(struct expression *expr)
 	if (!expr)
 		return;
 
-	switch(expr->type) {
+	switch (expr->type) {
 	case EXPR_LOGICAL:
 		handle_logical(expr);
 		return;

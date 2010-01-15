@@ -40,7 +40,7 @@ void add_hook(void *func, enum hook_type type)
 	struct hook_container *container = __alloc_hook_container(0);
 	container->hook_type = type;
 	container->fn = func;
-	switch(type) {
+	switch (type) {
 	case EXPR_HOOK:
 		container->data_type = EXPR_PTR;
 		break;
@@ -148,7 +148,7 @@ void __pass_to_client(void *data, enum hook_type type)
 
 	FOR_EACH_PTR(hook_funcs, container) {
 		if (container->hook_type == type) {
-			switch(container->data_type) {
+			switch (container->data_type) {
 			case EXPR_PTR:
 				pass_expr_to_client(container->fn, data);
 				break;

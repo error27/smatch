@@ -78,7 +78,7 @@ struct symbol *get_type(struct expression *expr)
 		return NULL;
 	expr = strip_parens(expr);
 
-	switch(expr->type) {
+	switch (expr->type) {
 	case EXPR_SYMBOL:
 		return get_type_symbol(expr);
 	case EXPR_DEREF:

@@ -329,7 +329,7 @@ static void match_condition(struct expression *expr)
 	char *name;
 
 	expr = strip_expr(expr);
-	switch(expr->type) {
+	switch (expr->type) {
 	case EXPR_PREOP:
 	case EXPR_SYMBOL:
 	case EXPR_DEREF:

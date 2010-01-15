@@ -500,7 +500,7 @@ static void match_comparison(struct expression *expr)
 	if (!orig)
 		orig = extra_undefined();
 
-	switch(comparison){
+	switch (comparison) {
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
 		one_state = filter_range(orig, whole_range.min, fixed - 1);
@@ -567,7 +567,7 @@ void __extra_match_condition(struct expression *expr)
 	struct smatch_state *false_state;
 
 	expr = strip_expr(expr);
-	switch(expr->type) {
+	switch (expr->type) {
 	case EXPR_CALL:
 		function_comparison(SPECIAL_NOTEQUAL, expr, 0, 1);
 		return;
@@ -623,7 +623,7 @@ int known_condition_true(struct expression *expr)
 		return 1;
 	
 	expr = strip_expr(expr);
-	switch(expr->type) {
+	switch (expr->type) {
 	case EXPR_PREOP:
 		if (expr->op == '!') {
 			if (known_condition_false(expr->unop))
@@ -645,7 +645,7 @@ int known_condition_false(struct expression *expr)
 	if (is_zero(expr))
 		return 1;
 
-	switch(expr->type) {
+	switch (expr->type) {
 	case EXPR_PREOP:
 		if (expr->op == '!') {
 			if (known_condition_true(expr->unop))
@@ -710,7 +710,7 @@ int implied_condition_true(struct expression *expr)
 		return 1;
 	
 	expr = strip_expr(expr);
-	switch(expr->type) {
+	switch (expr->type) {
 	case EXPR_COMPARE:
 		if (do_comparison_range(expr) == 1)
 			return 1;
@@ -745,7 +745,7 @@ int implied_condition_false(struct expression *expr)
 	if (is_zero(expr))
 		return 1;
 
-	switch(expr->type) {
+	switch (expr->type) {
 	case EXPR_COMPARE:
 		if (do_comparison_range(expr) == 2)
 			return 1;

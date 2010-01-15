@@ -81,7 +81,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 {
 	struct expression *tmp;
 
-	switch(expr->type) {
+	switch (expr->type) {
 	case EXPR_DEREF:
 		tmp = expr->deref;
 		if (tmp->op == '*')  {
@@ -467,7 +467,7 @@ struct expression *strip_expr(struct expression *expr)
 	if (!expr)
 		return NULL;
 
-	switch(expr->type) {
+	switch (expr->type) {
 	case EXPR_CAST:
 		return strip_expr(expr->cast_expression);
 	case EXPR_PREOP:

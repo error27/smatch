@@ -273,11 +273,11 @@ static void print_unreached(struct statement *stmt)
 	return;
 
 	if (__path_is_null()) {
-		switch(stmt->type) {
+		switch (stmt->type) {
 		case STMT_COMPOUND: /* after a switch before a case stmt */
 		case STMT_CASE:
 		case STMT_LABEL:
-		case STMT_DECLARATION: /* switch(x) { int a; case foo: ... */
+		case STMT_DECLARATION: /* switch (x) { int a; case foo: ... */
 			break;
 		default:
 			sm_msg("unreachable code. %d", stmt->type);
