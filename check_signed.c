@@ -58,7 +58,7 @@ static void match_assign(struct expression *expr)
 	if (!get_implied_value(expr->right, &val))
 		return;
 	max = max_size(sym);
-	if (max < val) {
+	if (max && max < val) {
 		name = get_variable_from_expr_complex(expr->left, NULL);
 		sm_msg("error: value %lld can't fit into %lld %s", val, max, name);
 		free_string(name);
