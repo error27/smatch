@@ -70,7 +70,7 @@ static void match_assign(struct expression *expr)
 	max = max_size(sym);
 	if (max && max < val) {
 		name = get_variable_from_expr_complex(expr->left, NULL);
-		sm_msg("error: value %lld can't fit into %lld '%s'", val, max, name);
+		sm_msg("warn: value %lld can't fit into %lld '%s'", val, max, name);
 		free_string(name);
 	}
 }
@@ -116,10 +116,18 @@ static void match_condition(struct expression *expr)
 	if (known == 0) {
 		if (!is_unsigned(type))
 			goto free;
-		if (lr == LEFT && (expr->op == '<' || expr->op == SPECIAL_LTE))
-			sm_msg("error: unsigned '%s' cannot be less than 0", name);
-		if (lr == RIGHT && (expr->op == '>' || expr->op == SPECIAL_GTE))
-			sm_msg("error: unsigned '%s' cannot be less than 0", name);
+		if (lr == LEFT) {
+			if (expr->op == '<')
+				sm_msg("error: unsigned '%s' cannot be less than 0", name);
+			if (expr->op == SPECIAL_LTE)
+				sm_msg("warn: unsigned '%s' cannot be less than 0", name);
+		}
+		if (lr == RIGHT) {
+			if (expr->op == '>')
+				sm_msg("error: unsigned '%s' cannot be less than 0", name);
+			if (expr->op == SPECIAL_GTE)
+				sm_msg("warn: unsigned '%s' cannot be less than 0", name);
+		}
 		goto free;
 	}
 
