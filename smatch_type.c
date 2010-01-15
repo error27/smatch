@@ -90,7 +90,7 @@ struct symbol *get_type(struct expression *expr)
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
-		return expr->cast_type;
+		return get_base_type(expr->cast_type);
 	case EXPR_BINOP:
 		if (expr->op != '+')
 			return NULL;
