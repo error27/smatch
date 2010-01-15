@@ -296,7 +296,7 @@ static int _get_value(struct expression *expr, int *discard, int *undefined, int
 		return BOGUS;
 	}
 	
-	expr = strip_expr(expr);
+	expr = strip_parens(expr);
 
  	switch (expr->type){
 	case EXPR_VALUE:
@@ -310,6 +310,35 @@ static int _get_value(struct expression *expr, int *discard, int *undefined, int
 			*discard = 1;
 		}
 		break;
+	case EXPR_CAST:
+	case EXPR_FORCE_CAST:
+	case EXPR_IMPLIED_CAST:
+	{
+		struct symbol *type = get_base_type(expr->cast_type);
+
+		ret = _get_value(expr->cast_expression, discard, undefined, implied);
+		switch (type->bit_size) {
+		case 8:
+			if (type->ctype.modifiers & MOD_UNSIGNED)
+				ret = (int)(unsigned char) ret;
+			else
+				ret = (int)(char) ret;
+			break;
+		case 16:
+			if (type->ctype.modifiers & MOD_UNSIGNED)
+				ret = (int)(unsigned short) ret;
+			else
+				ret = (int)(short) ret;
+			break;
+		case 32:
+			if (type->ctype.modifiers & MOD_UNSIGNED)
+				ret = (int)(unsigned int) ret;
+			else
+				ret = (int)(int) ret;
+			break;
+		}
+		return ret;
+	}
 	case EXPR_BINOP: {
 		int left, right;
 
