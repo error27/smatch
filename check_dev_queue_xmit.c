@@ -24,7 +24,7 @@ static void ok_to_use(const char *name, struct symbol *sym, struct expression *e
 	delete_state(my_id, name, sym);
 }
 
-int valid_use()
+static int valid_use()
 {
 	struct expression *tmp;
 	int i = 0;
