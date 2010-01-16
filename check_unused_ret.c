@@ -162,7 +162,7 @@ static void match_end_func(struct symbol *sym)
 
  	FOR_EACH_PTR(assignment_list, tmp) {
 		sm_printf("%s +%d %s ", get_filename(), tmp->line, get_function());
-		sm_printf("warning: assignment to '%s' was never used\n", tmp->name);
+		sm_printf("warn: assignment to '%s' was never used\n", tmp->name);
 	} END_FOR_EACH_PTR(tmp);
 	clear_assignment_alloc();
 	__free_ptr_list((struct ptr_list **)&assignment_list);
