@@ -444,7 +444,7 @@ struct expression *get_array_name(struct expression *expr)
 {
 	if (!is_array(expr))
 		return NULL;
-	return expr->unop->left;
+	return strip_expr(expr->unop->left);
 }
 
 struct expression *get_array_offset(struct expression *expr)
