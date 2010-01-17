@@ -20,7 +20,7 @@ int final_pass;
 
 static int __smatch_lineno = 0;
 
-static char *filename;
+static const char *filename;
 static char *pathname;
 static char *full_filename;
 static char *cur_func;
@@ -41,11 +41,35 @@ int option_known_conditions = 0;
 int option_two_passes = 0;
 struct symbol *cur_func_sym = NULL;
 
-char *get_filename(void)
+const char *get_filename(void)
 {
 	if (option_full_path)
 		return full_filename;
 	return filename;
+}
+
+static void set_position(struct expression *expr)
+{
+	int len;
+	static int prev_stream = -1;
+
+	__smatch_lineno = expr->pos.line;
+
+	if (expr->pos.stream == prev_stream)
+		return;
+
+	filename = stream_name(expr->pos.stream);
+       
+	free(full_filename);
+	pathname = get_current_dir_name();
+	if (pathname) {
+		len = strlen(pathname) + 1 + strlen(filename) + 1;
+		full_filename = malloc(len);
+		snprintf(full_filename, len, "%s/%s", pathname, filename);
+	} else {
+		full_filename = alloc_string(filename);
+	}
+	free(pathname);
 }
 
 void __split_expr(struct expression *expr)
@@ -56,7 +80,7 @@ void __split_expr(struct expression *expr)
 	// printf("%d Debug expr_type %d %s\n", get_lineno(), expr->type, show_special(expr->op));
 
 	push_expression(&big_expression_stack, expr);
-	__smatch_lineno = expr->pos.line;
+	set_position(expr);
 	__pass_to_client(expr, EXPR_HOOK);
 
 	switch (expr->type) {
@@ -555,30 +579,15 @@ void smatch (int argc, char **argv)
 
 	struct string_list *filelist = NULL;
 	struct symbol_list *sym_list;
+	char *file;
 	
 	if (argc < 2) {
 		printf("Usage:  smatch [--debug] <filename.c>\n");
 		exit(1);
 	}
 	sparse_initialize(argc, argv, &filelist);
-	FOR_EACH_PTR_NOTAG(filelist, filename) {
-		int len;
-
-		pathname = get_current_dir_name();
-		if (pathname) {
-			len = strlen(pathname) + 1 + strlen(filename) + 1;
-			full_filename = malloc(len);
-			snprintf(full_filename, len, "%s/%s", pathname, filename);
-		} else {
-			full_filename = filename;
-		}
-
-		sym_list = __sparse(filename);
+	FOR_EACH_PTR_NOTAG(filelist, file) {
+		sym_list = __sparse(file);
 		split_functions(sym_list);
-
-		if (pathname) {
-			free(full_filename);
-			free(pathname);
-		}
-	} END_FOR_EACH_PTR_NOTAG(filename);
+	} END_FOR_EACH_PTR_NOTAG(file);
 }

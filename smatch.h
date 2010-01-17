@@ -115,7 +115,7 @@ int is_member(struct expression *expr);
 void reset_on_container_modified(int owner, struct expression *expr);
 void set_default_state(int owner, struct smatch_state *state);
 
-char *get_filename();
+const char *get_filename();
 char *get_function();
 int get_lineno();
 int get_func_pos();
