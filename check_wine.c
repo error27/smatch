@@ -24,6 +24,7 @@ void check_wine(int id)
 	add_function_hook("RaiseException", &__match_nullify_path_hook, NULL);
 	add_function_hook("RpcRaiseException", &__match_nullify_path_hook, NULL);
 	add_function_hook("RtlRaiseException", &__match_nullify_path_hook, NULL);
+	add_function_hook("pp_internal_error", &__match_nullify_path_hook, NULL);
 	add_function_hook("ExitThread", &__match_nullify_path_hook, NULL);
 	add_function_hook("ExitProcess", &__match_nullify_path_hook, NULL);
 	add_function_hook("exit", &__match_nullify_path_hook, NULL);
