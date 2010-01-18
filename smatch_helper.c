@@ -143,15 +143,22 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	}
 	case EXPR_BINOP: {
 		const char *tmp;
+		struct symbol *type;
 
+		type = get_type(expr->left);
 		*complicated = 1;
 		append(buf, "(", len);
 		__get_variable_from_expr(NULL, buf, expr->left, len,
 					 complicated);
 		tmp = show_special(expr->op);
-		append(buf, tmp, len);
+		if (expr->op == '+' && type && type->type == SYM_ARRAY)
+			append(buf, "[", len);
+		else
+			append(buf, tmp, len);
 		__get_variable_from_expr(sym_ptr, buf, expr->right, 
 						 len, complicated);
+		if (expr->op == '+' && type && type->type == SYM_ARRAY)
+			append(buf, "]", len);
 		append(buf, ")", len);
 		return;
 	}
