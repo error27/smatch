@@ -33,6 +33,7 @@ MANDIR=$(PREFIX)/share/man
 MAN1DIR=$(MANDIR)/man1
 INCLUDEDIR=$(PREFIX)/include
 PKGCONFIGDIR=$(LIBDIR)/pkgconfig
+SMATCHDATADIR=$(PREFIX)/share/smatch/
 
 SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	 smatch_helper.o smatch_type.o smatch_hooks.o smatch_function_hooks.o \
@@ -41,7 +42,10 @@ SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	 smatch_tracker.o smatch_files.o smatch_expression_stacks.o smatch_oom.o \
 	 smatch_containers.o
 SMATCH_CHECKS=$(shell ls check_*.c | sed -e 's/\.c/.o/')
-
+SMATCH_DATA=smatch_data/kernel.allocation_funcs smatch_data/kernel.balanced_funcs \
+	smatch_data/kernel.frees_argument smatch_data/kernel.puts_argument \
+	smatch_data/kernel.dev_queue_xmit smatch_data/kernel.returns_err_ptr \
+	smatch_data/kernel.dma_funcs smatch_data/kernel.returns_held_funcs
 
 PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse \
 	 test-linearize example test-unssa test-dissect ctags
@@ -117,11 +121,13 @@ install: $(INST_PROGRAMS) $(LIBS) $(LIB_H) sparse.pc
 	$(Q)install -d $(DESTDIR)$(MAN1DIR)
 	$(Q)install -d $(DESTDIR)$(INCLUDEDIR)/sparse
 	$(Q)install -d $(DESTDIR)$(PKGCONFIGDIR)
+	$(Q)install -d $(DESTDIR)$(SMATCHDATADIR)/smatch_data/
 	$(foreach f,$(INST_PROGRAMS),$(call INSTALL_EXEC,$f,$(BINDIR)))
 	$(foreach f,$(INST_MAN1),$(call INSTALL_FILE,$f,$(MAN1DIR)))
 	$(foreach f,$(LIBS),$(call INSTALL_FILE,$f,$(LIBDIR)))
 	$(foreach f,$(LIB_H),$(call INSTALL_FILE,$f,$(INCLUDEDIR)/sparse))
 	$(call INSTALL_FILE,sparse.pc,$(PKGCONFIGDIR))
+	$(foreach f,$(SMATCH_DATA),$(call INSTALL_FILE,$f,$(SMATCHDATADIR)))
 
 sparse.pc: sparse.pc.in
 	$(QUIET_GEN)sed $(SED_PC_CMD) sparse.pc.in > sparse.pc
@@ -161,7 +167,8 @@ smatch_states.o: $(LIB_H) smatch.h smatch_slist.h smatch_extra.h
 smatch_expression_stacks.o: $(LIB_H) smatch.h
 smatch_oom.c: $(LIB_H) smatch.h
 smatch_redefine.c: $(LIB_H) smatch.h
-smatch.o: $(LIB_H) smatch.h
+smatch.o: smatch.c $(LIB_H) smatch.h
+	$(CC) -c smatch.c -DSMATCHDATADIR='"$(SMATCHDATADIR)"'
 $(SMATCH_CHECKS): smatch.h smatch_slist.h smatch_extra.h
 test-unssa.o: $(LIB_H)
 ctags.o: $(LIB_H)

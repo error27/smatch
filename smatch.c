@@ -251,6 +251,11 @@ static char *get_data_dir(char *arg0)
 	dir = alloc_string(buf);
 	if (!access(dir, R_OK))
 		return dir;
+	free_string(dir);
+	snprintf(buf, 254, "%s/smatch_data/", SMATCHDATADIR);
+	dir = alloc_string(buf);
+	if (!access(dir, R_OK))
+		return dir;
 	printf("Warning: %s is not accessible.\n", dir);
 	printf("Use --no-data to suppress this message.\n");
 	return NULL;
