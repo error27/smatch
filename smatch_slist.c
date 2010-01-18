@@ -464,6 +464,15 @@ void delete_state_slist(struct state_list **slist, int owner, const char *name,
 	} END_FOR_EACH_PTR(state);
 }
 
+void delete_state_stack(struct state_list_stack **stack, int owner, const char *name, 
+			struct symbol *sym)
+{
+	struct state_list *slist;
+
+	slist = pop_slist(stack);
+	delete_state_slist(&slist, owner, name, sym);
+	push_slist(stack, slist);
+}
 
 void push_slist(struct state_list_stack **list_stack, struct state_list *slist)
 {

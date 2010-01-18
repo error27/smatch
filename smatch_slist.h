@@ -47,6 +47,8 @@ void set_state_slist(struct state_list **slist, int owner, const char *name,
 void delete_state_slist(struct state_list **slist, int owner, const char *name, 
 			struct symbol *sym);
 
+void delete_state_stack(struct state_list_stack **stack, int owner, const char *name, 
+			struct symbol *sym);
 void push_slist(struct state_list_stack **list_stack, struct state_list *slist);
 
 struct state_list *pop_slist(struct state_list_stack **list_stack);

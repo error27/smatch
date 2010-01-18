@@ -233,6 +233,11 @@ free:
 void delete_state(int owner, const char *name, struct symbol *sym)
 {
 	delete_state_slist(&cur_slist, owner, name, sym);
+	if (cond_true_stack) {
+		delete_state_stack(&pre_cond_stack, owner, name, sym);
+		delete_state_stack(&cond_true_stack, owner, name, sym);
+		delete_state_stack(&cond_false_stack, owner, name, sym);
+	}
 }
 
 void delete_state_expr(int owner, struct expression *expr)

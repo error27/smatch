@@ -111,7 +111,7 @@ static void match_assign(struct expression *expr)
 	struct expression *left;
 	struct symbol *sym;
 	char *name;
-	
+
 	left = strip_expr(expr->left);
 	name = get_variable_from_expr(left, &sym);
 	if (!name)
