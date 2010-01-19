@@ -109,7 +109,7 @@ static void match_condition(struct expression *expr)
 
 	if (known < 0) {
 		if (is_unsigned(type))
-			sm_msg("error: comparing '%s' to negative", name);
+			sm_msg("error: comparing unsigned '%s' to negative", name);
 		goto free;
 	}
 
