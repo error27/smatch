@@ -75,6 +75,19 @@ struct expression *get_argument_from_call_expr(struct expression_list *args,
 	return NULL;
 }
 
+static struct expression *get_array_expr(struct expression *expr)
+{
+	struct symbol *type;
+
+	if (expr->type != EXPR_BINOP || expr->op != '+')
+		return NULL;
+
+	type = get_type(expr->left);
+	if (!type || type->type != SYM_ARRAY)
+		return NULL;
+	return expr->left;
+}
+
 static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf, 
 				     struct expression *expr, int len,
 				     int *complicated)
@@ -115,8 +128,10 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			return;
 		}
 
-		tmp = show_special(expr->op);
-		append(buf, tmp, len);
+		if (expr->op != '*' || !get_array_expr(expr->unop)) {
+			tmp = show_special(expr->op);
+			append(buf, tmp, len);
+		}
 		__get_variable_from_expr(sym_ptr, buf, expr->unop, 
 						 len, complicated);
 
@@ -143,23 +158,26 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	}
 	case EXPR_BINOP: {
 		const char *tmp;
-		struct symbol *type;
+		struct expression *array_expr;
 
-		type = get_type(expr->left);
 		*complicated = 1;
-		append(buf, "(", len);
-		__get_variable_from_expr(NULL, buf, expr->left, len,
-					 complicated);
-		tmp = show_special(expr->op);
-		if (expr->op == '+' && type && type->type == SYM_ARRAY)
+		array_expr = get_array_expr(expr);
+		if (array_expr) {
+			__get_variable_from_expr(NULL, buf, array_expr, len, complicated);
 			append(buf, "[", len);
-		else
+		} else {
+			append(buf, "(", len);
+			__get_variable_from_expr(NULL, buf, expr->left, len,
+					 complicated);
+			tmp = show_special(expr->op);
 			append(buf, tmp, len);
+		}
 		__get_variable_from_expr(sym_ptr, buf, expr->right, 
 						 len, complicated);
-		if (expr->op == '+' && type && type->type == SYM_ARRAY)
+		if (array_expr)
 			append(buf, "]", len);
-		append(buf, ")", len);
+		else
+			append(buf, ")", len);
 		return;
 	}
 	case EXPR_VALUE: {
