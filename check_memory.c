@@ -58,6 +58,18 @@ static int is_parent_sym(const char *name)
 	return 0;
 }
 
+static int is_complex(struct expression *expr)
+{
+	char *name;
+	int ret = 1;
+
+	name = get_variable_from_expr(expr, NULL);
+	if (name)
+		ret = 0;
+	free_string(name);
+	return ret;
+}
+
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	if (is_parent_sym(sm->name))
@@ -173,8 +185,8 @@ static void match_assign(struct expression *expr)
 	right_name = get_variable_from_expr_complex(right, &right_sym);
 
 	if (right_name && (state = get_state(my_id, right_name, right_sym))) {
-		if (state == &isfree)
-			sm_msg("error: assigning freed pointer");
+		if (state == &isfree && !is_complex(right))
+			sm_msg("error: assigning freed pointer '%s'", right_name);
 		set_state(my_id, right_name, right_sym, &assigned);
 	}
 
@@ -213,7 +225,7 @@ static void match_free_func(const char *fn, struct expression *expr, void *data)
 	int arg_num = PTR_INT(data);
 
 	ptr_expr = get_argument_from_call_expr(expr->args, arg_num);
-	ptr_name = get_variable_from_expr_complex(ptr_expr, &ptr_sym);
+	ptr_name = get_variable_from_expr(ptr_expr, &ptr_sym);
 	if (!ptr_name)
 		return;
 	if (is_freed(ptr_name, ptr_sym) && !is_null(ptr_name, ptr_sym)) {
@@ -313,7 +325,7 @@ static void set_new_true_false_paths(const char *name, struct symbol *sym)
 	}
 
 	if (tmp == &isfree) {
-		sm_msg("warn: why do you care about freed memory?");
+		sm_msg("warn: why do you care about freed memory? '%s'", name);
 	}
 
 	if (tmp == &assigned) {
@@ -333,7 +345,7 @@ static void match_condition(struct expression *expr)
 	case EXPR_PREOP:
 	case EXPR_SYMBOL:
 	case EXPR_DEREF:
-		name = get_variable_from_expr_complex(expr, &sym);
+		name = get_variable_from_expr(expr, &sym);
 		if (!name)
 			return;
 		set_new_true_false_paths(name, sym);
