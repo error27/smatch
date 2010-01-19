@@ -305,7 +305,7 @@ int sym_name_is(const char *name, struct expression *expr)
 #define IMPLIED 1
 #define FUZZYMAX 2
 
-static int _get_value(struct expression *expr, int *discard, int *undefined, int implied)
+static long long _get_value(struct expression *expr, int *discard, int *undefined, int implied)
 {
 	int dis = 0;
 	long long ret = BOGUS;
