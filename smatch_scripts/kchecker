@@ -5,7 +5,16 @@ function useage {
     exit 1
 }
 
-CMD=smatch
+SCRIPT_DIR=$(dirname $0)
+if [ -e $SCRIPT_DIR/../smatch ] ; then
+    CMD=$SCRIPT_DIR/../smatch
+elif which smatch | grep smatch > /dev/null ; then
+    CMD=smatch
+else
+    echo "Smatch binary not found."
+    exit 1
+fi
+
 POST="--project=kernel"
 
 while true ; do
