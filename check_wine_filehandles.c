@@ -37,6 +37,11 @@ static const char *filehandle_funcs[] = {
 	NULL,
 };
 
+static void ok_to_use(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+{
+	delete_state(my_id, name, sym);
+}
+
 static void match_returns_handle(const char *fn, struct expression *expr,
 			     void *info)
 {
@@ -47,6 +52,7 @@ static void match_returns_handle(const char *fn, struct expression *expr,
 	if (!left_name || !left_sym)
 		goto free;
 	set_state_expr(my_id, expr->left, &filehandle);
+	add_modification_hook_expr(expr->left, ok_to_use, NULL);
 free:
 	free_string(left_name);
 }
