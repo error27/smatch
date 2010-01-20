@@ -26,8 +26,13 @@ static int in_w = 0;
 static void match_function_def(struct symbol *sym)
 {
 	char *func = get_function();
-	int len = strlen(func);
+	int len;
 
+	if (!func) {
+		in_w = 0;
+		return;
+	}
+	len = strlen(func);
 	if (func[len - 1] == 'W' && len > 2 && func[len - 2] != 'A' )
 		in_w = 1;
 	else
