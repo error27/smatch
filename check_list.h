@@ -1,5 +1,7 @@
 #ifndef CK
 #define CK(_x) void _x(int id);
+#define __undo_CK_def
+#endif
 
 CK(register_smatch_extra) /* smatch_extra always has to be first */
 CK(register_modification_hooks)
@@ -46,5 +48,7 @@ CK(check_wine_WtoA)
 CK(register_containers)
 CK(register_implications) /* implications always has to be last */
 
+#ifdef __undo_CK_def
 #undef CK
+#undef __undo_CK_def
 #endif
