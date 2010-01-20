@@ -22,28 +22,6 @@ static int my_id;
 #define RIGHT 0
 #define LEFT 1
 
-static unsigned long long max_size(struct symbol *base_type)
-{
-	/*
-	  I wanted to say:
-
-	  unsigned long long ret = 0xffffffffffffffff;
-
-	  But gcc complained that was too large.  What am I doing wrong?
-	  Oh well.  I expect most of the problems are with smaller 
-	  values anyway 
-	*/
-
-	unsigned long long ret = 0xffffffff;
-	int bits;
-
-	bits = base_type->bit_size;
-	if (base_type->ctype.modifiers & MOD_SIGNED)
-		bits--;
-	ret >>= (32 - bits);
-	return ret;
-}
-
 static int is_unsigned(struct symbol *base_type)
 {
 	if (base_type->ctype.modifiers & MOD_UNSIGNED)
@@ -67,7 +45,7 @@ static void match_assign(struct expression *expr)
 		return;
 	if (!get_implied_value(expr->right, &val))
 		return;
-	max = max_size(sym);
+	max = type_max(sym);
 	if (max && max < val) {
 		name = get_variable_from_expr_complex(expr->left, NULL);
 		sm_msg("warn: value %lld can't fit into %lld '%s'", val, max, name);
@@ -101,7 +79,7 @@ static void match_condition(struct expression *expr)
 	if (!type || type->bit_size >= 32)
 		return;
 
-	max = max_size(type);
+	max = type_max(type);
 	if (!max)
 		return;
 

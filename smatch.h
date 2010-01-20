@@ -199,6 +199,8 @@ int getting_address();
 
 /* smatch_type.c */
 struct symbol *get_type(struct expression *expr);
+long long type_max(struct symbol *base_type);
+long long type_min(struct symbol *base_type);
 
 /* smatch_ignore.c */
 void add_ignore(int owner, const char *name, struct symbol *sym);
