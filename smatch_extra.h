@@ -46,7 +46,7 @@ struct smatch_state *alloc_extra_state(int val);
 struct smatch_state *alloc_extra_state_range_list(struct range_list *rl);
 struct data_info *get_dinfo(struct smatch_state *state);
 struct smatch_state *add_filter(struct smatch_state *orig, long long filter);
-struct smatch_state *extra_undefined();
+struct smatch_state *extra_undefined(void);
 
 struct data_info *alloc_dinfo_range(long long min, long long max);
 struct data_info *alloc_dinfo_range_list(struct range_list *rl);

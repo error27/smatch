@@ -30,7 +30,7 @@ struct data_range whole_range = {
 	.max = LLONG_MAX,	
 };
 
-static struct smatch_state *alloc_extra_state_empty()
+static struct smatch_state *alloc_extra_state_empty(void)
 {
 	struct smatch_state *state;
 	struct data_info *dinfo;
@@ -53,7 +53,7 @@ static struct smatch_state *alloc_extra_state_no_name(int val)
 }
 
 /* We do this because ->value_ranges is a list */
-struct smatch_state *extra_undefined()
+struct smatch_state *extra_undefined(void)
 {
 	struct data_info *dinfo;
 	static struct smatch_state *ret;

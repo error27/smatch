@@ -115,15 +115,15 @@ int is_member(struct expression *expr);
 void reset_on_container_modified(int owner, struct expression *expr);
 void set_default_state(int owner, struct smatch_state *state);
 
-const char *get_filename();
-char *get_function();
-int get_lineno();
-int get_func_pos();
+const char *get_filename(void);
+char *get_function(void);
+int get_lineno(void);
+int get_func_pos(void);
 extern int final_pass;
 
 #define sm_printf(msg...) do { if (final_pass) printf(msg); } while (0) \
 
-static inline void sm_prefix()
+static inline void sm_prefix(void)
 {
 	printf("%s +%d %s(%d) ", get_filename(), get_lineno(), get_function(), get_func_pos());
 }
@@ -169,7 +169,7 @@ void set_true_false_states_expr(int owner, struct expression *expr,
 			   struct smatch_state *false_state);
 
 struct state_list *get_all_states(int id);
-int is_reachable();
+int is_reachable(void);
 
 /* smatch_helper.c */
 char *alloc_string(const char *str);
@@ -195,7 +195,7 @@ struct expression *strip_parens(struct expression *expr);
 struct expression *strip_expr(struct expression *expr);
 void scoped_state(int my_id, const char *name, struct symbol *sym);
 int is_error_return(struct expression *expr);
-int getting_address();
+int getting_address(void);
 
 /* smatch_type.c */
 struct symbol *get_type(struct expression *expr);
@@ -218,7 +218,7 @@ void free_tracker_list(struct tracker_list **list);
 void free_trackers_and_list(struct tracker_list **list);
 
 /* smatch_conditions */
-int in_condition();
+int in_condition(void);
 
 /* smatch_flow.c */
 
@@ -276,65 +276,65 @@ extern struct state_list *__fake_cond_true;
 extern struct state_list *__fake_cond_false;
 
 
-int unreachable();
+int unreachable(void);
 void __set_state(struct sm_state *sm);
-struct state_list *__get_cur_slist();
+struct state_list *__get_cur_slist(void);
 void __set_true_false_sm(struct sm_state *true_state, 
 			struct sm_state *false_state);
-void nullify_path();	   
+void nullify_path(void);	   
 void __match_nullify_path_hook(const char *fn, struct expression *expr,
 			       void *unused);	   
-void __unnullify_path();	   
-int __path_is_null();
-void clear_all_states();
+void __unnullify_path(void);	   
+int __path_is_null(void);
+void clear_all_states(void);
 
 struct sm_state *get_sm_state(int owner, const char *name, 
 				struct symbol *sym);
 struct sm_state *get_sm_state_expr(int owner, struct expression *expr);
-void __push_true_states();
-void __use_false_states();
-void __pop_false_states();
-void __merge_false_states();
-void __merge_true_states();
+void __push_true_states(void);
+void __use_false_states(void);
+void __pop_false_states(void);
+void __merge_false_states(void);
+void __merge_true_states(void);
 
-void __negate_cond_stacks();
-void __save_false_states_for_later();
-void __use_previously_stored_false_states();
-void __use_cond_true_states();
-void __use_cond_false_states();
-void __push_cond_stacks();
-void __and_cond_states();
-void __or_cond_states();
-void __save_pre_cond_states();
-void __pop_pre_cond_states();
-void __use_cond_states();
+void __negate_cond_stacks(void);
+void __save_false_states_for_later(void);
+void __use_previously_stored_false_states(void);
+void __use_cond_true_states(void);
+void __use_cond_false_states(void);
+void __push_cond_stacks(void);
+void __and_cond_states(void);
+void __or_cond_states(void);
+void __save_pre_cond_states(void);
+void __pop_pre_cond_states(void);
+void __use_cond_states(void);
 
-void __warn_on_silly_pre_loops();
+void __warn_on_silly_pre_loops(void);
 
-void __push_continues();
-void __pop_continues();
-void __process_continues();
-void __merge_continues();
+void __push_continues(void);
+void __pop_continues(void);
+void __process_continues(void);
+void __merge_continues(void);
 
-void __push_breaks();
-void __process_breaks();
-void __merge_breaks();
-void __use_breaks();
+void __push_breaks(void);
+void __process_breaks(void);
+void __merge_breaks(void);
+void __use_breaks(void);
 
 void __save_switch_states(struct expression *switch_expr);
-void __pop_switches();
+void __pop_switches(void);
 void __merge_switches(struct expression *switch_expr, struct expression *case_expr);
-void __push_default();
-void __set_default();
-int __pop_default();
+void __push_default(void);
+void __set_default(void);
+int __pop_default(void);
 
-void __push_conditions();
-void __pop_conditions();
+void __push_conditions(void);
+void __pop_conditions(void);
 
 void __save_gotos(const char *name);
 void __merge_gotos(const char *name);
 
-void __print_cur_slist();
+void __print_cur_slist(void);
 
 /* smatch_hooks.c */
 void __pass_to_client(void *data, enum hook_type type);
@@ -359,7 +359,7 @@ struct token *get_tokens_file(const char *filename);
 
 /* smatch_oom.c */
 extern int option_oom_kb;
-int out_of_memory();
+int out_of_memory(void);
 
 /* smatch.c */
 extern char *option_project_str;

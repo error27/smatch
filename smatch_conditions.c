@@ -309,7 +309,7 @@ void __split_whole_condition(struct expression *expr)
 	inside_condition--;
 }
 
-int in_condition()
+int in_condition(void)
 {
 	return inside_condition;
 }

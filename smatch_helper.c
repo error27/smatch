@@ -572,7 +572,7 @@ int is_error_return(struct expression *expr)
 	return 0;
 }
 
-int getting_address()
+int getting_address(void)
 {
 	struct expression *tmp;
 	int i = 0;
