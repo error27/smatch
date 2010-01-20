@@ -167,7 +167,7 @@ smatch_states.o: $(LIB_H) smatch.h smatch_slist.h smatch_extra.h
 smatch_expression_stacks.o: $(LIB_H) smatch.h
 smatch_oom.c: $(LIB_H) smatch.h
 smatch_redefine.c: $(LIB_H) smatch.h
-smatch.o: smatch.c $(LIB_H) smatch.h
+smatch.o: smatch.c $(LIB_H) smatch.h check_list.h
 	$(CC) -c smatch.c -DSMATCHDATADIR='"$(SMATCHDATADIR)"'
 $(SMATCH_CHECKS): smatch.h smatch_slist.h smatch_extra.h
 test-unssa.o: $(LIB_H)
