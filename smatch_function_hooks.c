@@ -292,9 +292,9 @@ void function_comparison(int comparison, struct expression *expr, long long valu
 		if (!true_comparison_range_lr(comparison, tmp->range, value_range, left))
 			continue;
 		((implication_hook *)(tmp->call_back))(fn, expr, NULL, tmp->info);
-		merge_slist(&true_states, __fake_cur_slist);
-		free_slist(&__fake_cur_slist);
 	} END_FOR_EACH_PTR(tmp);
+	merge_slist(&true_states, __fake_cur_slist);
+	free_slist(&__fake_cur_slist);
 
 	/* set false states */
 	FOR_EACH_PTR(call_backs, tmp) {
@@ -303,9 +303,9 @@ void function_comparison(int comparison, struct expression *expr, long long valu
 		if (!false_comparison_range_lr(comparison, tmp->range, value_range, left))
 			continue;
 		((implication_hook *)(tmp->call_back))(fn, expr, NULL, tmp->info);
-		merge_slist(&false_states, __fake_cur_slist);
-		free_slist(&__fake_cur_slist);
 	} END_FOR_EACH_PTR(tmp);
+	merge_slist(&false_states, __fake_cur_slist);
+	free_slist(&__fake_cur_slist);
 	__fake_cur = 0;
 
 	FOR_EACH_PTR(true_states, sm) {
