@@ -34,6 +34,7 @@ static void match_assign(struct expression *expr)
 	struct symbol *sym;
 	long long val;
 	long long max;
+	long long min;
 	char *name;
 
 	sym = get_type(expr->left);
@@ -51,6 +52,13 @@ static void match_assign(struct expression *expr)
 		sm_msg("warn: value %lld can't fit into %lld '%s'", val, max, name);
 		free_string(name);
 	}
+	min = type_min(sym);
+	if (min > val) {
+		name = get_variable_from_expr_complex(expr->left, NULL);
+		sm_msg("warn: value %lld can't fit into %lld '%s'", val, min, name);
+		free_string(name);
+	}
+
 }
 
 static void match_condition(struct expression *expr)
