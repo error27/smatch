@@ -5,7 +5,7 @@ OS = linux
 CC = gcc
 CFLAGS = -O2 -finline-functions -fno-strict-aliasing -g
 CFLAGS += -Wall -Wwrite-strings
-LDFLAGS += -g
+LDFLAGS += -g -lm
 AR = ar
 
 #
@@ -40,7 +40,7 @@ SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	 smatch_modification_hooks.o smatch_extra.o \
 	 smatch_ranges.o smatch_implied.o smatch_ignore.o \
 	 smatch_tracker.o smatch_files.o smatch_expression_stacks.o smatch_oom.o \
-	 smatch_containers.o
+	 smatch_containers.o cwchash/hashtable.o
 SMATCH_CHECKS=$(shell ls check_*.c | sed -e 's/\.c/.o/')
 SMATCH_DATA=smatch_data/kernel.allocation_funcs smatch_data/kernel.balanced_funcs \
 	smatch_data/kernel.frees_argument smatch_data/kernel.puts_argument \
@@ -196,7 +196,8 @@ compat-cygwin.o: $(LIB_H)
 	$(QUIET_CC)$(CC) -o $@ -c $(CFLAGS) $<
 
 clean: clean-check
-	rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
+	rm -f *.[oa] .*.d *.so cwchash/*.o cwchash/.*.d cwchash/tester \
+		$(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
 
 dist:
 	@if test "`git describe`" != "v$(VERSION)" ; then \
