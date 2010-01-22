@@ -7,11 +7,10 @@
  *
  */
 
-#define _GNU_SOURCE
-#include <search.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "smatch.h"
+#include "cwchash/hashtable.h"
 
 struct mcall_back {
 	modification_hook *call_back;
@@ -21,7 +20,30 @@ struct mcall_back {
 ALLOCATOR(mcall_back, "modification call backs");
 DECLARE_PTR_LIST(mod_cb_list, struct mcall_back);
 
-static struct hsearch_data var_hash;
+static struct hashtable *var_hash;
+
+static unsigned int
+djb2_hash(void *ky)
+{
+	char *str = (char *)ky;
+	unsigned long hash = 5381;
+        int c;
+
+        while ((c = *str++))
+		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+        return hash;
+}
+
+static int
+equalkeys(void *k1, void *k2)
+{
+	return !strcmp((char *)k1, (char *)k2);
+}
+
+DEFINE_HASHTABLE_INSERT(insert_cb_list, char, struct mod_cb_list);
+DEFINE_HASHTABLE_SEARCH(search_cb_list, char, struct mod_cb_list);
+DEFINE_HASHTABLE_REMOVE(remove_cb_list, char, struct mod_cb_list);
 
 static struct mcall_back *alloc_mcall_back(modification_hook *call_back,
 					   void *info)
@@ -36,38 +58,23 @@ static struct mcall_back *alloc_mcall_back(modification_hook *call_back,
 
 static struct mod_cb_list *get_mcall_backs(const char *look_for)
 {
-	ENTRY e, *ep;
-
-	e.key = (char *)look_for;
-	hsearch_r(e, FIND, &ep, &var_hash);
-	if (!ep)
-		return NULL;
-	return (struct mod_cb_list *)ep->data;
+	return search_cb_list(var_hash, (char *)look_for);
 }
 
 static void add_mcall_back(const char *look_for, struct mcall_back *cb)
 {
-	ENTRY e, *ep;
-	char *old_key = NULL;
+	struct mod_cb_list *list;
+	char *key;
 
-	e.key = alloc_string(look_for);
-	hsearch_r(e, FIND, &ep, &var_hash);
-	if (!ep) {
-		struct mod_cb_list *list = NULL;
-		
+	key = alloc_string(look_for);
+	list = search_cb_list(var_hash, key);
+	if (!list) {
 		add_ptr_list(&list, cb);
-		e.data = list;
 	} else {
-		old_key = e.key;
-		e.key = ep->key;
-		add_ptr_list((struct mod_cb_list **)&ep->data, cb);
-		e.data = ep->data;
+		remove_cb_list(var_hash, key);
+		add_ptr_list(&list, cb);
 	}
-	if (!hsearch_r(e, ENTER, &ep, &var_hash)) {
-		printf("Error hash table too small in smatch_modification_hooks.c\n");
-		exit(1);
-	}
-	free_string(old_key);
+	insert_cb_list(var_hash, key, list);
 }
 
 void add_modification_hook(const char *variable, modification_hook *call_back, void *info)
@@ -169,16 +176,15 @@ static void match_call(struct expression *expr)
 
 static void match_end_func(struct symbol *sym)
 {
-	hdestroy_r(&var_hash);
-	hcreate_r(1000, &var_hash);
+	hashtable_destroy(var_hash, 0);
+	var_hash = create_hashtable(100, djb2_hash, equalkeys);
 }
 
 void register_modification_hooks(int id)
 {
-	hcreate_r(1000, &var_hash);
+	var_hash = create_hashtable(100, djb2_hash, equalkeys);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
 }
-

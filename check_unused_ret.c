@@ -33,10 +33,9 @@
  *
  */
 
-#define _GNU_SOURCE
-#include <search.h>
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "cwchash/hashtable.h"
 
 static int my_id;
 
@@ -52,7 +51,29 @@ static struct assignment_list *assignment_list;
 static struct expression *skip_this;
 static int assign_id;
 
-static struct hsearch_data ignored_funcs;
+static struct hashtable *ignored_funcs;
+
+static unsigned int djb2_hash(void *ky)
+{
+	char *str = (char *)ky;
+	unsigned long hash = 5381;
+        int c;
+
+        while ((c = *str++))
+		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+        return hash;
+}
+
+static int equalkeys(void *k1, void *k2)
+{
+	return !strcmp((char *)k1, (char *)k2);
+}
+
+DEFINE_HASHTABLE_INSERT(insert_func, char, int);
+DEFINE_HASHTABLE_SEARCH(search_func, char, int);
+DEFINE_HASHTABLE_REMOVE(remove_func, char, int);
+
 static const char *kernel_ignored[] = {
 	"inb",
 	"inl",
@@ -61,20 +82,7 @@ static const char *kernel_ignored[] = {
 
 static int ignored_function(struct expression *func)
 {
-	ENTRY e, *ep;
-
-	func = strip_expr(func);
-	if (!func || func->type != EXPR_CALL)
-		return 0;
-	func = func->fn;
-	if (!func || func->type != EXPR_SYMBOL)
-		return 0;
-
-	e.key = func->symbol_name->name;
-	hsearch_r(e, FIND, &ep, &ignored_funcs);
-	if (!ep)
-		return 0;
-	return 1;
+	return !!search_func(ignored_funcs, (char *)func);
 }
 
 static void match_assign_call(struct expression *expr)
@@ -179,19 +187,11 @@ void check_unused_ret(int id)
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_symbol, SYM_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
-	hcreate_r(1000, &ignored_funcs);
+	ignored_funcs = create_hashtable(100, djb2_hash, equalkeys);
 	if (option_project == PROJ_KERNEL) {
 		int i;
 
-		for (i = 0; i < ARRAY_SIZE(kernel_ignored); i++) {
-			ENTRY e, *ep;
-
-			e.key = (char *)kernel_ignored[i];
-			e.data = (void *)1;
-			if (!hsearch_r(e, ENTER, &ep, &ignored_funcs)) {
-				printf("check_unused_ret.c broke.\n");
-				exit(1);
-			}
-		}
+		for (i = 0; i < ARRAY_SIZE(kernel_ignored); i++)
+			insert_func(ignored_funcs, (char *)kernel_ignored[i], (int *)1);
 	}
 }

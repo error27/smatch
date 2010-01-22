@@ -19,13 +19,12 @@
  *
  */
 
-#define _GNU_SOURCE
-#include <search.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "smatch.h"
 #include "smatch_slist.h"
 #include "smatch_extra.h"
+#include "cwchash/hashtable.h"
 
 struct fcall_back {
 	int type;
@@ -37,7 +36,30 @@ struct fcall_back {
 ALLOCATOR(fcall_back, "call backs");
 DECLARE_PTR_LIST(call_back_list, struct fcall_back);
 
-static struct hsearch_data func_hash;
+static struct hashtable *func_hash;
+
+static unsigned int
+djb2_hash(void *ky)
+{
+	char *str = (char *)ky;
+	unsigned long hash = 5381;
+        int c;
+
+        while ((c = *str++))
+		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+        return hash;
+}
+
+static int
+equalkeys(void *k1, void *k2)
+{
+	return !strcmp((char *)k1, (char *)k2);
+}
+
+DEFINE_HASHTABLE_INSERT(insert_call_back_list, char, struct call_back_list);
+DEFINE_HASHTABLE_SEARCH(search_call_back_list, char, struct call_back_list);
+DEFINE_HASHTABLE_REMOVE(remove_call_back_list, char, struct call_back_list);
 
 #define REGULAR_CALL     0
 #define CONDITIONAL_CALL 1
@@ -58,38 +80,23 @@ static struct fcall_back *alloc_fcall_back(int type, func_hook *call_back,
 
 static struct call_back_list *get_call_backs(const char *look_for)
 {
-	ENTRY e, *ep;
-
-	e.key = (char *)look_for;
-	hsearch_r(e, FIND, &ep, &func_hash);
-	if (!ep)
-		return NULL;
-	return (struct call_back_list *)ep->data;
+	return search_call_back_list(func_hash, (char *)look_for);
 }
 
 static void add_cb_hook(const char *look_for, struct fcall_back *cb)
 {
-	ENTRY e, *ep;
-	char *old_key = NULL;
+	struct call_back_list *list;
+	char *key;
 
-	e.key = alloc_string(look_for);
-	hsearch_r(e, FIND, &ep, &func_hash);
-	if (!ep) {
-		struct call_back_list *list = NULL;
-		
+	key = alloc_string(look_for);
+	list = search_call_back_list(func_hash, key);
+	if (!list) {
 		add_ptr_list(&list, cb);
-		e.data = list;
 	} else {
-		old_key = e.key;
-		e.key = ep->key;
-		add_ptr_list((struct call_back_list **)&ep->data, cb);
-		e.data = ep->data;
+		remove_call_back_list(func_hash, key);
+		add_ptr_list(&list, cb);
 	}
-	if (!hsearch_r(e, ENTER, &ep, &func_hash)) {
-		printf("Error hash table too small in smatch_function_hooks.c\n");
-		exit(1);
-	}
-	free_string(old_key);
+	insert_call_back_list(func_hash, key, list);
 }
 
 void add_function_hook(const char *look_for, func_hook *call_back, void *info)
@@ -382,7 +389,7 @@ static void match_conditional_call(struct expression *expr)
 
 void create_function_hash(void)
 {
-	hcreate_r(10000, &func_hash);  // Apparently 1000 is too few...
+	func_hash = create_hashtable(5000, djb2_hash, equalkeys);
 }
 
 void register_function_hooks(int id)
