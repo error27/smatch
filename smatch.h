@@ -351,7 +351,7 @@ void __push_scope_hooks(void);
 void __call_scope_hooks(void);
 
 /* smatch_function_hooks.c */
-void create_function_hash(void);
+void create_function_hook_hash(void);
 void __match_initializer_call(struct symbol *sym);
 
 /* smatch_files.c */

@@ -24,7 +24,7 @@
 #include "smatch.h"
 #include "smatch_slist.h"
 #include "smatch_extra.h"
-#include "cwchash/hashtable.h"
+#include "smatch_function_hashtable.h"
 
 struct fcall_back {
 	int type;
@@ -36,30 +36,8 @@ struct fcall_back {
 ALLOCATOR(fcall_back, "call backs");
 DECLARE_PTR_LIST(call_back_list, struct fcall_back);
 
+DEFINE_FUNCTION_HASHTABLE_STATIC(callback, struct fcall_back, struct call_back_list);
 static struct hashtable *func_hash;
-
-static unsigned int
-djb2_hash(void *ky)
-{
-	char *str = (char *)ky;
-	unsigned long hash = 5381;
-        int c;
-
-        while ((c = *str++))
-		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-        return hash;
-}
-
-static int
-equalkeys(void *k1, void *k2)
-{
-	return !strcmp((char *)k1, (char *)k2);
-}
-
-DEFINE_HASHTABLE_INSERT(insert_call_back_list, char, struct call_back_list);
-DEFINE_HASHTABLE_SEARCH(search_call_back_list, char, struct call_back_list);
-DEFINE_HASHTABLE_REMOVE(remove_call_back_list, char, struct call_back_list);
 
 #define REGULAR_CALL     0
 #define CONDITIONAL_CALL 1
@@ -78,33 +56,12 @@ static struct fcall_back *alloc_fcall_back(int type, func_hook *call_back,
 	return cb;
 }
 
-static struct call_back_list *get_call_backs(const char *look_for)
-{
-	return search_call_back_list(func_hash, (char *)look_for);
-}
-
-static void add_cb_hook(const char *look_for, struct fcall_back *cb)
-{
-	struct call_back_list *list;
-	char *key;
-
-	key = alloc_string(look_for);
-	list = search_call_back_list(func_hash, key);
-	if (!list) {
-		add_ptr_list(&list, cb);
-	} else {
-		remove_call_back_list(func_hash, key);
-		add_ptr_list(&list, cb);
-	}
-	insert_call_back_list(func_hash, key, list);
-}
-
 void add_function_hook(const char *look_for, func_hook *call_back, void *info)
 {
 	struct fcall_back *cb;
 
 	cb = alloc_fcall_back(REGULAR_CALL, call_back, info);
-	add_cb_hook(look_for, cb);
+	add_callback(func_hash, look_for, cb);
 }
 
 void add_conditional_hook(const char *look_for, func_hook *call_back,
@@ -113,7 +70,7 @@ void add_conditional_hook(const char *look_for, func_hook *call_back,
 	struct fcall_back *cb;
 
 	cb = alloc_fcall_back(CONDITIONAL_CALL, call_back, info);
-	add_cb_hook(look_for, cb);
+	add_callback(func_hash, look_for, cb);
 }
 
 void add_function_assign_hook(const char *look_for, func_hook *call_back,
@@ -122,7 +79,7 @@ void add_function_assign_hook(const char *look_for, func_hook *call_back,
 	struct fcall_back *cb;
 
 	cb = alloc_fcall_back(ASSIGN_CALL, call_back, info);
-	add_cb_hook(look_for, cb);
+	add_callback(func_hash, look_for, cb);
 }
 
 void return_implies_state(const char *look_for, long long start, long long end,
@@ -132,7 +89,7 @@ void return_implies_state(const char *look_for, long long start, long long end,
 
 	cb = alloc_fcall_back(RANGED_CALL, (func_hook *)call_back, info);
 	cb->range = alloc_range_perm(start, end);
-	add_cb_hook(look_for, cb); 
+	add_callback(func_hash, look_for, cb); 
 }
 
 static void call_call_backs(struct call_back_list *list, int type,
@@ -163,7 +120,7 @@ static void match_function_call(struct expression *expr)
 
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
 		return;
-	call_backs = get_call_backs(expr->fn->symbol->ident->name);
+	call_backs = search_callback(func_hash, (char *)expr->fn->symbol->ident->name);
 	if (!call_backs)
 		return;
 	call_call_backs(call_backs, REGULAR_CALL, expr->fn->symbol->ident->name,
@@ -286,7 +243,7 @@ void function_comparison(int comparison, struct expression *expr, long long valu
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
 		return;
 	fn = expr->fn->symbol->ident->name;
-	call_backs = get_call_backs(expr->fn->symbol->ident->name);
+	call_backs = search_callback(func_hash, (char *)expr->fn->symbol->ident->name);
 	if (!call_backs)
 		return;
 	value_range = alloc_range(value, value);
@@ -340,7 +297,7 @@ static void match_assign_call(struct expression *expr)
 	if (right->fn->type != EXPR_SYMBOL || !right->fn->symbol)
 		return;
 	fn = right->fn->symbol->ident->name;
-	call_backs = get_call_backs(fn);
+	call_backs = search_callback(func_hash, (char *)fn);
 	if (!call_backs)
 		return;
 	call_call_backs(call_backs, ASSIGN_CALL, fn, expr);
@@ -363,7 +320,7 @@ static void match_conditional_call(struct expression *expr)
 		return;
 
 	fn = expr->fn->symbol->ident->name;
-	call_backs = get_call_backs(fn);
+	call_backs = search_callback(func_hash, (char *)fn);
 	if (!call_backs)
 		return;
 	__fake_conditions = 1;
@@ -387,9 +344,9 @@ static void match_conditional_call(struct expression *expr)
 	__fake_conditions = 0;
 }
 
-void create_function_hash(void)
+void create_function_hook_hash(void)
 {
-	func_hash = create_hashtable(5000, djb2_hash, equalkeys);
+	func_hash = create_function_hashtable(5000);
 }
 
 void register_function_hooks(int id)

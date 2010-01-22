@@ -35,7 +35,7 @@
 
 #include "smatch.h"
 #include "smatch_slist.h"
-#include "cwchash/hashtable.h"
+#include "smatch_function_hashtable.h"
 
 static int my_id;
 
@@ -51,28 +51,9 @@ static struct assignment_list *assignment_list;
 static struct expression *skip_this;
 static int assign_id;
 
+static DEFINE_HASHTABLE_INSERT(insert_func, char, int);
+static DEFINE_HASHTABLE_SEARCH(search_func, char, int);
 static struct hashtable *ignored_funcs;
-
-static unsigned int djb2_hash(void *ky)
-{
-	char *str = (char *)ky;
-	unsigned long hash = 5381;
-        int c;
-
-        while ((c = *str++))
-		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-        return hash;
-}
-
-static int equalkeys(void *k1, void *k2)
-{
-	return !strcmp((char *)k1, (char *)k2);
-}
-
-DEFINE_HASHTABLE_INSERT(insert_func, char, int);
-DEFINE_HASHTABLE_SEARCH(search_func, char, int);
-DEFINE_HASHTABLE_REMOVE(remove_func, char, int);
 
 static const char *kernel_ignored[] = {
 	"inb",
@@ -187,7 +168,7 @@ void check_unused_ret(int id)
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_symbol, SYM_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
-	ignored_funcs = create_hashtable(100, djb2_hash, equalkeys);
+	ignored_funcs = create_function_hashtable(100);
 	if (option_project == PROJ_KERNEL) {
 		int i;
 

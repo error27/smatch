@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "smatch.h"
-#include "cwchash/hashtable.h"
+#include "smatch_function_hashtable.h"
 
 struct mcall_back {
 	modification_hook *call_back;
@@ -20,30 +20,8 @@ struct mcall_back {
 ALLOCATOR(mcall_back, "modification call backs");
 DECLARE_PTR_LIST(mod_cb_list, struct mcall_back);
 
+DEFINE_FUNCTION_HASHTABLE_STATIC(mcall, struct mcall_back, struct mod_cb_list);
 static struct hashtable *var_hash;
-
-static unsigned int
-djb2_hash(void *ky)
-{
-	char *str = (char *)ky;
-	unsigned long hash = 5381;
-        int c;
-
-        while ((c = *str++))
-		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-        return hash;
-}
-
-static int
-equalkeys(void *k1, void *k2)
-{
-	return !strcmp((char *)k1, (char *)k2);
-}
-
-DEFINE_HASHTABLE_INSERT(insert_cb_list, char, struct mod_cb_list);
-DEFINE_HASHTABLE_SEARCH(search_cb_list, char, struct mod_cb_list);
-DEFINE_HASHTABLE_REMOVE(remove_cb_list, char, struct mod_cb_list);
 
 static struct mcall_back *alloc_mcall_back(modification_hook *call_back,
 					   void *info)
@@ -56,33 +34,12 @@ static struct mcall_back *alloc_mcall_back(modification_hook *call_back,
 	return cb;
 }
 
-static struct mod_cb_list *get_mcall_backs(const char *look_for)
-{
-	return search_cb_list(var_hash, (char *)look_for);
-}
-
-static void add_mcall_back(const char *look_for, struct mcall_back *cb)
-{
-	struct mod_cb_list *list;
-	char *key;
-
-	key = alloc_string(look_for);
-	list = search_cb_list(var_hash, key);
-	if (!list) {
-		add_ptr_list(&list, cb);
-	} else {
-		remove_cb_list(var_hash, key);
-		add_ptr_list(&list, cb);
-	}
-	insert_cb_list(var_hash, key, list);
-}
-
 void add_modification_hook(const char *variable, modification_hook *call_back, void *info)
 {
 	struct mcall_back *cb;
 
 	cb = alloc_mcall_back(call_back, info);
-	add_mcall_back(variable, cb);
+	add_mcall(var_hash, variable, cb);
 }
 
 void add_modification_hook_expr(struct expression *expr, modification_hook *call_back, void *info)
@@ -95,7 +52,7 @@ void add_modification_hook_expr(struct expression *expr, modification_hook *call
 	if (!name)
 		return;
 	cb = alloc_mcall_back(call_back, info);
-	add_mcall_back(name, cb);
+	add_mcall(var_hash, name, cb);
 	free_string(name);
 }
 
@@ -123,7 +80,7 @@ static void match_assign(struct expression *expr)
 	name = get_variable_from_expr(left, &sym);
 	if (!name)
 		return;
-	call_backs = get_mcall_backs(name);
+	call_backs = search_mcall(var_hash, name);
 	if (!call_backs)
 		goto free;
 	call_call_backs(call_backs, name, sym, expr);
@@ -144,7 +101,7 @@ static void unop_expr(struct expression *expr)
 	name = get_variable_from_expr(expr, &sym);
 	if (!name)
 		goto free;
-	call_backs = get_mcall_backs(name);
+	call_backs = search_mcall(var_hash, name);
 	if (!call_backs)
 		goto free;
 	call_call_backs(call_backs, name, sym, expr);
@@ -167,7 +124,7 @@ static void match_call(struct expression *expr)
 		name = get_variable_from_expr(arg, &sym);
 		if (!name)
 			continue;
-		call_backs = get_mcall_backs(name);
+		call_backs = search_mcall(var_hash, name);
 		if (call_backs)
 			call_call_backs(call_backs, name, sym, expr);
 		free_string(name);
@@ -176,13 +133,13 @@ static void match_call(struct expression *expr)
 
 static void match_end_func(struct symbol *sym)
 {
-	hashtable_destroy(var_hash, 0);
-	var_hash = create_hashtable(100, djb2_hash, equalkeys);
+	destroy_function_hashtable(var_hash);
+	var_hash = create_function_hashtable(100);
 }
 
 void register_modification_hooks(int id)
 {
-	var_hash = create_hashtable(100, djb2_hash, equalkeys);
+	var_hash = create_function_hashtable(100);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
