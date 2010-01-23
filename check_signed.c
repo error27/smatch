@@ -19,8 +19,8 @@
 
 static int my_id;
 
-#define RIGHT 0
-#define LEFT 1
+#define VAR_ON_RIGHT 0
+#define VAR_ON_LEFT 1
 
 static int is_unsigned(struct symbol *base_type)
 {
@@ -61,12 +61,42 @@ static void match_assign(struct expression *expr)
 
 }
 
+static const char *get_tf(long long variable, long long known, int var_pos, char op)
+{
+	if (op == SPECIAL_EQUAL)
+		return "false";
+	if (op == SPECIAL_NOTEQUAL)
+		return "true";
+	if (var_pos == VAR_ON_LEFT) {
+		if (variable > known && (op == '<' || op == SPECIAL_LTE))
+			return "false";
+		if (variable > known && (op == '>' || op == SPECIAL_GTE))
+			return "true";
+		if (variable < known && (op == '<' || op == SPECIAL_LTE))
+			return "true";
+		if (variable < known && (op == '>' || op == SPECIAL_GTE))
+			return "false";
+	}
+	if (var_pos == VAR_ON_RIGHT) {
+		if (known > variable && (op == '<' || op == SPECIAL_LTE))
+			return "false";
+		if (known > variable && (op == '>' || op == SPECIAL_GTE))
+			return "true";
+		if (known < variable && (op == '<' || op == SPECIAL_LTE))
+			return "true";
+		if (known < variable && (op == '>' || op == SPECIAL_GTE))
+			return "false";
+	}
+	return "the same";
+}
+
 static void match_condition(struct expression *expr)
 {
 	long long known;
 	struct expression *var = NULL;
 	struct symbol *type = NULL;
 	long long max;
+	long long min;
 	int lr;
 	char *name;
 
@@ -74,10 +104,10 @@ static void match_condition(struct expression *expr)
 		return;
 
 	if (get_value(expr->left, &known)) {
-		lr = RIGHT;
+		lr = VAR_ON_RIGHT;
 		var = expr->right;
 	} else if (get_value(expr->right, &known)) {
-		lr = LEFT;
+		lr = VAR_ON_LEFT;
 		var = expr->left;
 	} else {
 		return;
@@ -90,25 +120,25 @@ static void match_condition(struct expression *expr)
 	max = type_max(type);
 	if (!max)
 		return;
+	min = type_min(type);
 
 	name = get_variable_from_expr_complex(var, NULL);
 
-	if (known < 0) {
-		if (is_unsigned(type))
-			sm_msg("error: comparing unsigned '%s' to negative", name);
+	if (known < 0 && is_unsigned(type)) {
+		sm_msg("error: comparing unsigned '%s' to negative", name);
 		goto free;
 	}
 
 	if (known == 0) {
 		if (!is_unsigned(type))
 			goto free;
-		if (lr == LEFT) {
+		if (lr == VAR_ON_LEFT) {
 			if (expr->op == '<')
 				sm_msg("error: unsigned '%s' cannot be less than 0", name);
 			if (expr->op == SPECIAL_LTE)
 				sm_msg("warn: unsigned '%s' cannot be less than 0", name);
 		}
-		if (lr == RIGHT) {
+		if (lr == VAR_ON_RIGHT) {
 			if (expr->op == '>')
 				sm_msg("error: unsigned '%s' cannot be less than 0", name);
 			if (expr->op == SPECIAL_GTE)
@@ -118,18 +148,17 @@ static void match_condition(struct expression *expr)
 	}
 
 	if (max < known) {
-		const char *tf = "the same";
+		const char *tf = get_tf(max, known, lr, expr->op);
 
-		if (expr->op == SPECIAL_EQUAL)
-			tf = "false";
-		if (expr->op == SPECIAL_NOTEQUAL)
-			tf = "true";
-		if (lr == LEFT && (expr->op == '<' || expr->op == SPECIAL_LTE))
-			tf = "true";
-		if (lr == RIGHT && (expr->op == '>' || expr->op == SPECIAL_GTE))
-			tf = "false";
-		sm_msg("warn: %lld is higher than %lld (max '%s' can be) so this is always %s.",
+		sm_msg("warn: %lld is more than %lld (max '%s' can be) so this is always %s.",
 			known, max, name, tf);
+	}
+
+	if (min > known) {
+		const char *tf = get_tf(max, known, lr, expr->op);
+
+		sm_msg("warn: %lld is less than %lld (min '%s' can be) so this is always %s.",
+			known, min, name, tf);
 	}
 free:
 	free_string(name);

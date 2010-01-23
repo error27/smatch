@@ -1,19 +1,35 @@
+void frob(void);
+
 static int options_write(void)
 {
 	char a;
 	unsigned char b;
+	char c;
 
 	a = (char)0xff;
 	a = 0xff;
 	(char)b = 0xff;
 	b = 0xff;
+	if (c > -400)
+		frob();
+	if (c < -400)
+		frob();
+	if (400 > c)
+		frob();
+	if (-400 > c)
+		frob();
+
 }
 /*
  * check-name: smatch cast handling
  * check-command: smatch sm_casts.c
  *
  * check-output-start
-sm_casts.c +7 options_write(6) warn: value 255 can't fit into 127 'a'
-sm_casts.c +8 options_write(7) warn: value 255 can't fit into 127 'b'
+sm_casts.c +10 options_write(7) warn: value 255 can't fit into 127 'a'
+sm_casts.c +11 options_write(8) warn: value 255 can't fit into 127 'b'
+sm_casts.c +13 options_write(10) warn: -400 is less than -128 (min 'c' can be) so this is always true.
+sm_casts.c +15 options_write(12) warn: -400 is less than -128 (min 'c' can be) so this is always false.
+sm_casts.c +17 options_write(14) warn: 400 is more than 127 (max 'c' can be) so this is always true.
+sm_casts.c +19 options_write(16) warn: -400 is less than -128 (min 'c' can be) so this is always false.
  * check-output-end
  */
