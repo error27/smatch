@@ -61,7 +61,7 @@ static void set_position(struct expression *expr)
 	filename = stream_name(expr->pos.stream);
        
 	free(full_filename);
-	pathname = get_current_dir_name();
+	pathname = getcwd(NULL, 0);
 	if (pathname) {
 		len = strlen(pathname) + 1 + strlen(filename) + 1;
 		full_filename = malloc(len);
