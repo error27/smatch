@@ -44,7 +44,6 @@ static void match_function_def(struct symbol *sym)
 			continue;
 		}
 		set_state(my_id, arg->ident->name, arg, &argument);
-		add_modification_hook(arg->ident->name, &delete, NULL);
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -101,6 +100,7 @@ void check_param_mapper(int id)
 	if (!option_param_mapper)
 		return;
 	my_id = id;
+	set_default_modification_hook(my_id, &delete);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 }

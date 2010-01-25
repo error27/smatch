@@ -103,7 +103,9 @@ void set_state(int owner, const char *name, struct symbol *sym,
 
 	if (owner != -1 && unreachable())
 		return;
-	
+
+	__use_default_modification_hook(owner, name);
+
 	if (__fake_cur) {
 		set_state_slist(&__fake_cur_slist, owner, name, sym, state);
 		return;

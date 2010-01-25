@@ -111,6 +111,8 @@ typedef void (modification_hook)(const char *name, struct symbol *sym,
 void add_modification_hook(const char *variable, modification_hook *hook,
 			void *data);
 void add_modification_hook_expr(struct expression *expr, modification_hook *call_back, void *info);
+void set_default_modification_hook(int owner, modification_hook *call_back);
+void __use_default_modification_hook(int owner, const char *variable);
 
 const char *get_filename(void);
 char *get_function(void);
@@ -368,6 +370,7 @@ extern int option_full_path;
 extern int option_param_mapper;
 extern int option_info;
 extern int option_call_tree;
+extern int num_checks;
 
 enum project_type {
 	PROJ_NONE,

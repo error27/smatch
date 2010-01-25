@@ -34,6 +34,7 @@ static struct reg_func_info {
 #include "check_list.h"
 };
 #undef CK
+int num_checks = ARRAY_SIZE(reg_funcs);
 
 const char *check_name(unsigned short id)
 {

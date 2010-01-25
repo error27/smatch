@@ -81,7 +81,6 @@ static void match_xmit(const char *fn, struct expression *expr, void *param)
 	if (!arg)
 		return;
 	set_state_expr(my_id, arg, &do_not_use);
-	add_modification_hook_expr(arg, ok_to_use, NULL);
 	if (!match_symbol_active++) {
 		add_hook(&match_symbol, SYM_HOOK);
 		add_function_hook("kfree_skb", &match_kfree_skb, NULL);
@@ -119,5 +118,6 @@ void check_dev_queue_xmit(int id)
 	if (option_project != PROJ_KERNEL || !option_rare)
 		return;
 	my_id = id;
+	set_default_modification_hook(my_id, ok_to_use);
 	register_funcs_from_file();
 }

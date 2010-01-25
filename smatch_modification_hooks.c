@@ -17,6 +17,8 @@ struct mcall_back {
 	void *info;
 };
 
+static modification_hook **default_hooks;
+
 ALLOCATOR(mcall_back, "modification call backs");
 DECLARE_PTR_LIST(mod_cb_list, struct mcall_back);
 
@@ -54,6 +56,18 @@ void add_modification_hook_expr(struct expression *expr, modification_hook *call
 	cb = alloc_mcall_back(call_back, info);
 	add_mcall(var_hash, name, cb);
 	free_string(name);
+}
+
+void set_default_modification_hook(int owner, modification_hook *call_back)
+{
+	default_hooks[owner] = call_back;
+}
+
+void __use_default_modification_hook(int owner, const char *variable)
+{
+	if (!default_hooks[owner])
+		return;
+	add_modification_hook(variable, default_hooks[owner], NULL);
 }
 
 static void call_call_backs(struct mod_cb_list *list,
@@ -139,7 +153,12 @@ static void match_end_func(struct symbol *sym)
 
 void register_modification_hooks(int id)
 {
+	int i;
+
 	var_hash = create_function_hashtable(100);
+	default_hooks = malloc(num_checks * sizeof(*default_hooks));
+	for (i = 0; i < num_checks; i++)
+		default_hooks[i] = NULL;
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
