@@ -22,9 +22,9 @@ static int my_id;
 static struct tracker_list *allocated;
 
 static const char *allocation_funcs[] = {
-	"malloc",
 	"kmalloc",
 	"kzalloc",
+	"kcalloc",
 	NULL,
 };
 
@@ -80,7 +80,7 @@ void check_allocation_funcs(int id)
 {
 	int i;
 
-	if (!option_spammy)
+	if (!option_info || option_project != PROJ_KERNEL)
 		return;
 
 	my_id = id;

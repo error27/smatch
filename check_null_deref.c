@@ -11,13 +11,6 @@
 #include "smatch.h"
 #include "smatch_slist.h"
 
-/* 
- * TODO:  The return_null list of functions should be determined automatically
- */
-static const char *return_null[] = {
-	"kmalloc",
-};
-
 struct func_n_param {
 	struct symbol *func;
 	int param;
@@ -426,9 +419,6 @@ void check_null_deref(int id)
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_hook(&end_file_processing, END_FILE_HOOK);
 
-	for(i = 0; i < ARRAY_SIZE(return_null); i++) {
-		add_function_assign_hook(return_null[i],
-					 &match_assign_returns_null, NULL);
-	}
-	register_allocation_funcs();
+	if (option_project == PROJ_KERNEL)
+		register_allocation_funcs();
 }
