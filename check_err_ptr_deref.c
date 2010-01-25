@@ -122,7 +122,6 @@ void check_err_ptr_deref(int id)
 		return;
 
 	my_id = id;
-	set_default_state(my_id, &checked);
 	add_conditional_hook("IS_ERR", &match_is_err, NULL);
 	register_err_ptr_funcs();
 	add_hook(&match_dereferences, DEREF_HOOK);

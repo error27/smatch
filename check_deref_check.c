@@ -56,7 +56,6 @@ static void match_condition(struct expression *expr)
 void check_deref_check(int id)
 {
 	my_id = id;
-	set_default_state(my_id, &oktocheck);
 	add_hook(&match_dereference, DEREF_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 }

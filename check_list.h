@@ -45,7 +45,6 @@ CK(check_wine)
 CK(check_wine_filehandles)
 CK(check_wine_WtoA)
 
-CK(register_containers)
 CK(register_implications) /* implications always has to be last */
 
 #ifdef __undo_CK_def

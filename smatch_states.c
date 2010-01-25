@@ -127,7 +127,6 @@ void set_state_expr(int owner, struct expression *expr,
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
 		goto free;
-	reset_on_container_modified(owner, expr);
 	set_state(owner, name, sym, state);
 free:
 	free_string(name);
@@ -328,7 +327,6 @@ void set_true_false_states_expr(int owner, struct expression *expr,
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
 		goto free;
-	reset_on_container_modified(owner, expr);
 	set_true_false_states(owner, name, sym, true_state, false_state);
 free:
 	free_string(name);

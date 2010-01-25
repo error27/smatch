@@ -80,7 +80,6 @@ void check_wine_filehandles(int id)
 		return;
 
 	my_id = id;
-	set_default_state(my_id, &oktocheck);
 	for(i = 0; filehandle_funcs[i]; i++) {
 		add_function_assign_hook(filehandle_funcs[i],
 					 &match_returns_handle, NULL);

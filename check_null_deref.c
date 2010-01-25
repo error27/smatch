@@ -405,10 +405,7 @@ static void register_allocation_funcs(void)
 
 void check_null_deref(int id)
 {
-	int i;
-
 	my_id = id;
-	set_default_state(my_id, &assumed_nonnull);
 	add_merge_hook(my_id, &merge_func);
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);

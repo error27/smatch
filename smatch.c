@@ -54,8 +54,6 @@ int id_from_name(const char *name)
 	return 0;
 }
 
-struct smatch_state *default_state[ARRAY_SIZE(reg_funcs)];
-
 static void help(void)
 {
 	printf("Usage:  smatch [smatch arguments][sparse arguments] file.c\n");

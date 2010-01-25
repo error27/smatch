@@ -272,7 +272,6 @@ void check_leaks(int id)
 		return;
 
 	my_id = id;
-	set_default_state(my_id, &undefined);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_return, RETURN_HOOK);

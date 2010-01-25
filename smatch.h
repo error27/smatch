@@ -111,9 +111,6 @@ typedef void (modification_hook)(const char *name, struct symbol *sym,
 void add_modification_hook(const char *variable, modification_hook *hook,
 			void *data);
 void add_modification_hook_expr(struct expression *expr, modification_hook *call_back, void *info);
-int is_member(struct expression *expr);
-void reset_on_container_modified(int owner, struct expression *expr);
-void set_default_state(int owner, struct smatch_state *state);
 
 const char *get_filename(void);
 char *get_function(void);
@@ -371,8 +368,6 @@ extern int option_full_path;
 extern int option_param_mapper;
 extern int option_info;
 extern int option_call_tree;
-
-extern struct smatch_state *default_state[];
 
 enum project_type {
 	PROJ_NONE,
