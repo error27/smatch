@@ -220,7 +220,7 @@ static void array_check(struct expression *expr)
 			return;
 //		smatch_msg("debug: offset '%s' unknown", name);
 		set_state_expr(my_used_id, offset, alloc_state_num(array_size));
-		add_modification_hook(name, &delete, NULL);
+		add_modification_hook(my_used_id, name, &delete, NULL);
 		print_args(offset, array_size);
 		free_string(name);
 	} else if (array_size <= max) {

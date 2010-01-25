@@ -108,9 +108,9 @@ void return_implies_state(const char *look_for, long long start, long long end,
 			 implication_hook *call_back, void *info);
 typedef void (modification_hook)(const char *name, struct symbol *sym,
 				struct expression *expr, void *data);
-void add_modification_hook(const char *variable, modification_hook *hook,
+void add_modification_hook(int owner, const char *variable, modification_hook *hook,
 			void *data);
-void add_modification_hook_expr(struct expression *expr, modification_hook *call_back, void *info);
+void add_modification_hook_expr(int owner, struct expression *expr, modification_hook *call_back, void *info);
 void set_default_modification_hook(int owner, modification_hook *call_back);
 void __use_default_modification_hook(int owner, const char *variable);
 

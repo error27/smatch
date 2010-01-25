@@ -36,7 +36,7 @@ static void match_dereference(struct expression *expr)
 	name = get_variable_from_expr(expr, NULL);
 	if (!name)
 		return;
-	add_modification_hook(name, &underef, NULL);
+	add_modification_hook(my_id, name, &underef, NULL);
 	free_string(name);
 }
 

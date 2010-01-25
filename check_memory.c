@@ -232,7 +232,7 @@ static void match_free_func(const char *fn, struct expression *expr, void *data)
 		sm_msg("error: double free of %s", ptr_name);
 	}
 	set_state(my_id, ptr_name, ptr_sym, &isfree);
-	add_modification_hook(ptr_name, &set_unfree, NULL);
+	add_modification_hook(my_id, ptr_name, &set_unfree, NULL);
 	free_string(ptr_name);
 }
 

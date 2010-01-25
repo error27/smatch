@@ -13,6 +13,7 @@
 #include "smatch_function_hashtable.h"
 
 struct mcall_back {
+	int owner;
 	modification_hook *call_back;
 	void *info;
 };
@@ -25,26 +26,42 @@ DECLARE_PTR_LIST(mod_cb_list, struct mcall_back);
 DEFINE_FUNCTION_HASHTABLE_STATIC(mcall, struct mcall_back, struct mod_cb_list);
 static struct hashtable *var_hash;
 
-static struct mcall_back *alloc_mcall_back(modification_hook *call_back,
+static struct mcall_back *alloc_mcall_back(int owner, modification_hook *call_back,
 					   void *info)
 {
 	struct mcall_back *cb;
 
 	cb = __alloc_mcall_back(0);
+	cb->owner = owner;
 	cb->call_back = call_back;
 	cb->info = info;
 	return cb;
 }
 
-void add_modification_hook(const char *variable, modification_hook *call_back, void *info)
+static int is_duplicate(int owner, const char *variable)
+{
+	struct mod_cb_list *call_backs;
+	struct mcall_back *cb;
+
+	call_backs = search_mcall(var_hash, (char *)variable);
+	FOR_EACH_PTR(call_backs, cb) {
+		if (cb->owner == owner)
+			return 1;
+	} END_FOR_EACH_PTR(cb);
+	return 0;
+}
+
+void add_modification_hook(int owner, const char *variable, modification_hook *call_back, void *info)
 {
 	struct mcall_back *cb;
 
-	cb = alloc_mcall_back(call_back, info);
+	if (is_duplicate(owner, variable))
+		return;
+	cb = alloc_mcall_back(owner, call_back, info);
 	add_mcall(var_hash, variable, cb);
 }
 
-void add_modification_hook_expr(struct expression *expr, modification_hook *call_back, void *info)
+void add_modification_hook_expr(int owner, struct expression *expr, modification_hook *call_back, void *info)
 {
 	struct mcall_back *cb;
 	char *name;
@@ -53,7 +70,9 @@ void add_modification_hook_expr(struct expression *expr, modification_hook *call
 	name = get_variable_from_expr(expr, NULL);
 	if (!name)
 		return;
-	cb = alloc_mcall_back(call_back, info);
+	if (is_duplicate(owner, name))
+		return;
+	cb = alloc_mcall_back(owner, call_back, info);
 	add_mcall(var_hash, name, cb);
 	free_string(name);
 }
@@ -65,9 +84,11 @@ void set_default_modification_hook(int owner, modification_hook *call_back)
 
 void __use_default_modification_hook(int owner, const char *variable)
 {
+	if (owner < 0 || owner >= num_checks)
+		return;
 	if (!default_hooks[owner])
 		return;
-	add_modification_hook(variable, default_hooks[owner], NULL);
+	add_modification_hook(owner, variable, default_hooks[owner], NULL);
 }
 
 static void call_call_backs(struct mod_cb_list *list,

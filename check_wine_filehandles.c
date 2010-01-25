@@ -52,7 +52,7 @@ static void match_returns_handle(const char *fn, struct expression *expr,
 	if (!left_name || !left_sym)
 		goto free;
 	set_state_expr(my_id, expr->left, &filehandle);
-	add_modification_hook_expr(expr->left, ok_to_use, NULL);
+	add_modification_hook_expr(my_id, expr->left, ok_to_use, NULL);
 free:
 	free_string(left_name);
 }
