@@ -1,0 +1,162 @@
+/*
+ * sparse/check_deref.c
+ *
+ * Copyright (C) 2010 Dan Carpenter.
+ *
+ * Licensed under the Open Software License version 1.1
+ *
+ */
+
+/*
+ * There was a previous null dereference test but it was too confusing and
+ * difficult to debug.  This test is much simpler in its goals and scope.
+ *
+ * This test only complains about:
+ * 1) dereferencing uninitialized variables
+ * 2) dereferencing variables which were assigned as null.
+ * 3) dereferencing variables which were assigned a function the returns 
+ *    null.
+ *
+ * If we dereference something then we complain if any of those three
+ * are possible.
+ *
+ */
+
+#include "smatch.h"
+#include "smatch_slist.h"
+
+static int my_id;
+
+STATE(null);
+STATE(ok);
+STATE(uninitialized);
+
+static struct smatch_state *alloc_my_state(const char *name)
+{
+	struct smatch_state *state;
+
+	state = malloc(sizeof(*state));
+	state->name = name;
+	return state;
+}
+
+static struct smatch_state *unmatched_state(struct sm_state *sm)
+{
+	return &ok;
+}
+
+static void is_ok(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+{
+	set_state(my_id, name, sym, &ok);
+}
+
+static void match_dereferences(struct expression *expr)
+{
+	struct sm_state *sm;
+	struct sm_state *tmp;
+
+	if (expr->type != EXPR_PREOP)
+		return;
+	expr = strip_expr(expr->unop);
+	sm = get_sm_state_expr(my_id, expr);
+	if (!sm)
+		return;
+	if (is_ignored(my_id, sm->name, sm->sym))
+		return;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (tmp->state == &merged)
+			continue;
+		if (tmp->state == &ok)
+			continue;
+		add_ignore(my_id, sm->name, sm->sym);
+		if (tmp->state == &null) {
+			sm_msg("error: potential null derefence '%s'.", tmp->name);
+			return;
+		}
+		if (tmp->state == &uninitialized) {
+			sm_msg("error: potentially derefencing uninitialized '%s'.", tmp->name);
+			return;
+		}
+		sm_msg("error: potential null dereference '%s'.  (%s returns null)",
+			tmp->name, tmp->state->name);
+		return;
+	} END_FOR_EACH_PTR(tmp);
+}
+
+static void match_declarations(struct symbol *sym)
+{
+	const char *name;
+
+	if ((get_base_type(sym))->type == SYM_ARRAY)
+		return;
+
+	name = sym->ident->name;
+	if (!sym->initializer) {
+		set_state(my_id, name, sym, &uninitialized);
+		scoped_state(my_id, name, sym);
+	}
+}
+
+static void match_assign(struct expression *expr)
+{
+	if (is_zero(expr->right)) {
+		set_state_expr(my_id, expr->left, &null);
+		return;
+	}
+}
+
+static void match_condition(struct expression *expr)
+{
+	if (expr->type == EXPR_ASSIGNMENT) {
+		match_condition(expr->right);
+		match_condition(expr->left);
+	}
+	if (!get_state_expr(my_id, expr))
+		return;
+	set_true_false_states_expr(my_id, expr, &ok, NULL);
+}
+
+static void match_assign_returns_null(const char *fn, struct expression *expr, void *unused)
+{
+	struct smatch_state *state;
+
+	state = alloc_my_state(fn);
+	set_state_expr(my_id, expr->left, state);
+}
+
+static void register_allocation_funcs(void)
+{
+	struct token *token;
+	const char *func;
+
+	token = get_tokens_file("kernel.allocation_funcs");
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = show_ident(token->ident);
+		add_function_assign_hook(func, &match_assign_returns_null, NULL);
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
+void check_deref(int id)
+{
+	my_id = id;
+
+	add_unmatched_state_hook(my_id, &unmatched_state);
+ 	set_default_modification_hook(my_id, &is_ok);
+
+	add_hook(&match_dereferences, DEREF_HOOK);
+	add_hook(&match_condition, CONDITION_HOOK);
+	add_hook(&match_declarations, DECLARATION_HOOK);
+	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	if (option_project == PROJ_KERNEL)
+		register_allocation_funcs();
+}

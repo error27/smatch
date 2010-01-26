@@ -16,7 +16,7 @@ void frob(void) {
 }
 /*
  * check-name: Dereferencing Undefined
- * check-command: smatch sm_null_deref2.c
+ * check-command: smatch --spammy sm_null_deref2.c
  *
  * check-output-start
 sm_null_deref2.c +15 frob(12) error: dereferencing undefined:  'ptr'

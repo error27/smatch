@@ -50,13 +50,15 @@ static void func (void)
 }
 /*
  * check-name: Null Dereferences
- * check-command: smatch sm_null_deref.c
+ * check-command: smatch --spammy sm_null_deref.c
  *
  * check-output-start
 sm_null_deref.c +18 func(6) error: dereferencing undefined:  'aa'
+sm_null_deref.c +18 func(6) error: potentially derefencing uninitialized 'aa'.
 sm_null_deref.c +23 func(11) error: dereferencing undefined:  'a'
 sm_null_deref.c +25 func(13) warn: variable dereferenced before check 'a'
 sm_null_deref.c +30 func(18) error: dereferencing undefined:  'b'
 sm_null_deref.c +48 func(36) error: dereferencing undefined:  'd'
+sm_null_deref.c +48 func(36) error: potential null derefence 'd'.
  * check-output-end
  */

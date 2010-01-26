@@ -11,6 +11,7 @@ CK(check_debug)
 CK(check_assigned_expr)
 
 CK(check_null_deref)
+CK(check_deref)
 CK(check_overflow)
 CK(register_check_overflow_again)
 CK(check_memory)

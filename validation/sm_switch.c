@@ -52,7 +52,7 @@ void func (void)
  * check-known-to-fail
  *
  * check-output-start
-sm_switch.c +38 func(25) error: dereferencing undefined:  'a'
-sm_switch.c +39 func(26) error: dereferencing undefined:  'b'
+sm_switch.c +38 func(25) error: potential null derefence 'a'.
+sm_switch.c +39 func(26) error: potential null derefence 'b'.
  * check-output-end
  */

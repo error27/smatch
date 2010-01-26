@@ -36,6 +36,6 @@ void func (void)
  * check-command: smatch sm_implied6.c
  *
  * check-output-start
-sm_implied6.c +29 func(18) error: dereferencing undefined:  'b'
+sm_implied6.c +29 func(18) error: potential null derefence 'b'.
  * check-output-end
  */

@@ -44,7 +44,7 @@ void func (void)
  * check-command: smatch sm_switch2.c
  *
  * check-output-start
-sm_switch2.c +31 func(20) error: dereferencing undefined:  'a'
-sm_switch2.c +32 func(21) error: dereferencing undefined:  'b'
+sm_switch2.c +31 func(20) error: potential null derefence 'a'.
+sm_switch2.c +32 func(21) error: potential null derefence 'b'.
  * check-output-end
  */

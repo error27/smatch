@@ -26,7 +26,7 @@ void func (void)
 
 /*
  * check-name: Ternary Conditions
- * check-command: smatch sm_select.c
+ * check-command: smatch --spammy sm_select.c
  *
  * check-output-start
 sm_select.c +17 func(6) error: dereferencing undefined:  'a'

@@ -22,6 +22,6 @@ void func (void)
  * check-command: smatch sm_implied5.c
  *
  * check-output-start
-sm_implied5.c +18 func(11) error: dereferencing undefined:  'aa'
+sm_implied5.c +18 func(11) error: potentially derefencing uninitialized 'aa'.
  * check-output-end
  */
