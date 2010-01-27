@@ -47,8 +47,13 @@ static void match_assign(struct expression *expr)
 	}
 	min = type_min(sym);
 	if (min > val) {
+		if (min == 0 && val == -1) /* assigning -1 to unsigned variables is idiomatic */
+			return; 
 		name = get_variable_from_expr_complex(expr->left, NULL);
-		sm_msg("warn: value %lld can't fit into %lld '%s'", val, min, name);
+		if (min == 0)
+			sm_msg("warn: assigning %lld to unsigned variable '%s'", val, name);
+		else
+			sm_msg("warn: value %lld can't fit into %lld '%s'", val, min, name);
 		free_string(name);
 	}
 
