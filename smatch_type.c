@@ -108,6 +108,13 @@ struct symbol *get_type(struct expression *expr)
 	return NULL;
 }
 
+int type_unsigned(struct symbol *base_type)
+{
+	if (base_type->ctype.modifiers & MOD_UNSIGNED)
+		return 1;
+	return 0;
+}
+
 long long type_max(struct symbol *base_type)
 {
 	long long ret = whole_range.max;
@@ -116,7 +123,7 @@ long long type_max(struct symbol *base_type)
 	if (!base_type || !base_type->bit_size)
 		return ret;
 	bits = base_type->bit_size;
-	if (base_type->ctype.modifiers & MOD_SIGNED)
+	if (!type_unsigned(base_type))
 		bits--;
 	ret >>= (63 - bits);
 	return ret;
@@ -129,7 +136,7 @@ long long type_min(struct symbol *base_type)
 
 	if (!base_type || !base_type->bit_size)
 		return ret;
-	if (base_type->ctype.modifiers & MOD_UNSIGNED)
+	if (type_unsigned(base_type))
 		return 0;
 	ret = whole_range.max;
 	bits = base_type->bit_size - 1;

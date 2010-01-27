@@ -198,6 +198,7 @@ int getting_address(void);
 
 /* smatch_type.c */
 struct symbol *get_type(struct expression *expr);
+int type_unsigned(struct symbol *base_type);
 long long type_max(struct symbol *base_type);
 long long type_min(struct symbol *base_type);
 

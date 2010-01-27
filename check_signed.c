@@ -22,13 +22,6 @@ static int my_id;
 #define VAR_ON_RIGHT 0
 #define VAR_ON_LEFT 1
 
-static int is_unsigned(struct symbol *base_type)
-{
-	if (base_type->ctype.modifiers & MOD_UNSIGNED)
-		return 1;
-	return 0;
-}
-
 static void match_assign(struct expression *expr)
 {
 	struct symbol *sym;
@@ -124,13 +117,13 @@ static void match_condition(struct expression *expr)
 
 	name = get_variable_from_expr_complex(var, NULL);
 
-	if (known < 0 && is_unsigned(type)) {
+	if (known < 0 && type_unsigned(type)) {
 		sm_msg("error: comparing unsigned '%s' to negative", name);
 		goto free;
 	}
 
 	if (known == 0) {
-		if (!is_unsigned(type))
+		if (!type_unsigned(type))
 			goto free;
 		if (lr == VAR_ON_LEFT) {
 			if (expr->op == '<')
