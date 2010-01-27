@@ -40,7 +40,7 @@ static void match_assign(struct expression *expr)
 	if (!get_implied_value(expr->right, &val))
 		return;
 	max = type_max(sym);
-	if (max && max < val) {
+	if (max < val) {
 		name = get_variable_from_expr_complex(expr->left, NULL);
 		sm_msg("warn: value %lld can't fit into %lld '%s'", val, max, name);
 		free_string(name);
@@ -116,8 +116,6 @@ static void match_condition(struct expression *expr)
 		return;
 
 	max = type_max(type);
-	if (!max)
-		return;
 	min = type_min(type);
 
 	name = get_variable_from_expr_complex(var, NULL);
