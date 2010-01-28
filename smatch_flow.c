@@ -27,6 +27,7 @@ static char *cur_func;
 static int line_func_start;
 static struct expression_list *switch_expr_stack = NULL;
 struct expression_list *big_expression_stack;
+struct statement_list *big_statement_stack;
 
 char *get_function(void) { return cur_func; }
 int get_lineno(void) { return __smatch_lineno; }
@@ -288,13 +289,10 @@ static void handle_post_loop(struct statement *stmt)
 static void print_unreached(struct statement *stmt)
 {
 
-	/* 
-	 * GCC insists on a return statement even where it is never
-         * reached.  Also BUG() sometimes is a forever loop and
-	 * sometimes not so people put code after a BUG().  There 
-	 * are way to many false positives.
-	 */
-	return;
+	static int print = 1;
+
+	if (!option_spammy && !option_debug)
+		return;
 
 	if (__path_is_null()) {
 		switch (stmt->type) {
@@ -304,9 +302,14 @@ static void print_unreached(struct statement *stmt)
 		case STMT_DECLARATION: /* switch (x) { int a; case foo: ... */
 			break;
 		default:
-			sm_msg("unreachable code. %d", stmt->type);
+			if (print)
+				sm_msg("info: ignoring unreachable code.");
+			print = 0;
 		}
+	} else {
+		print = 1;
 	}
+
 }
 
 static int empty_statement(struct statement *stmt)
@@ -332,6 +335,7 @@ void __split_statements(struct statement *stmt)
 		return;
 	}
 
+	add_ptr_list(&big_statement_stack, stmt);
 	free_expression_stack(&big_expression_stack);
 	__smatch_lineno = stmt->pos.line;
 	print_unreached(stmt);
@@ -567,6 +571,7 @@ static void split_functions(struct symbol_list *sym_list)
 			clear_all_states();
 			free_data_info_allocs();
 			free_expression_stack(&switch_expr_stack);
+			__free_ptr_list((struct ptr_list **)&big_statement_stack);
 		} else {
 			__pass_to_client(sym, BASE_HOOK);
 		}
