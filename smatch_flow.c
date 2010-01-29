@@ -28,6 +28,7 @@ static int line_func_start;
 static struct expression_list *switch_expr_stack = NULL;
 struct expression_list *big_expression_stack;
 struct statement_list *big_statement_stack;
+int __in_pre_condition = 0;
 
 char *get_function(void) { return cur_func; }
 int get_lineno(void) { return __smatch_lineno; }
@@ -219,7 +220,11 @@ static void handle_pre_loop(struct statement *stmt)
 	__push_breaks();
 
 	__merge_gotos(loop_name);
+
+	__in_pre_condition++;
 	__split_whole_condition(stmt->iterator_pre_condition);
+	__in_pre_condition--;
+
 	if (once_through)
 		extra_state = __extra_pre_loop_hook_before(stmt->iterator_pre_statement);
 	if (option_assume_loops)
