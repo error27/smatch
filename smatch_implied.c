@@ -48,6 +48,8 @@
  * a pool:  a pool is an slist that has been merged with another slist.
  */
 
+#include <sys/time.h>
+#include <time.h>
 #include "smatch.h"
 #include "smatch_slist.h"
 #include "smatch_extra.h"
@@ -298,6 +300,10 @@ static void separate_and_filter(struct sm_state *sm_state, int comparison, struc
 {
 	struct state_list_stack *true_stack = NULL;
 	struct state_list_stack *false_stack = NULL;
+	struct timeval time_before;
+	struct timeval time_after;
+
+	gettimeofday(&time_before, NULL);
 
 	if (!is_merged(sm_state)) {
 		DIMPLIED("%d '%s' is not merged.\n", get_lineno(), sm_state->name);
@@ -327,6 +333,10 @@ static void separate_and_filter(struct sm_state *sm_state, int comparison, struc
 		printf("These are the implied states for the false path:\n");
 		__print_slist(*false_states);
 	}
+
+	gettimeofday(&time_after, NULL);
+	if (time_after.tv_sec - time_before.tv_sec > 15)
+		__bail_on_rest_of_function = 1;
 }
 
 static char *get_implication_variable(struct expression *expr, struct symbol **symp)

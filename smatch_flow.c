@@ -29,7 +29,7 @@ static struct expression_list *switch_expr_stack = NULL;
 struct expression_list *big_expression_stack;
 struct statement_list *big_statement_stack;
 int __in_pre_condition = 0;
-
+int __bail_on_rest_of_function = 0;
 char *get_function(void) { return cur_func; }
 int get_lineno(void) { return __smatch_lineno; }
 int get_func_pos(void) { return __smatch_lineno - line_func_start; }
@@ -331,11 +331,11 @@ void __split_statements(struct statement *stmt)
 	if (!stmt)
 		return;
 
-	if (out_of_memory()) {
+	if (out_of_memory() || __bail_on_rest_of_function) {
 		static char *printed = NULL;
 
 		if (printed != cur_func)
-			sm_msg("Function too big.  Giving up.");
+			sm_msg("Function too hairy.  Giving up.");
 		printed = cur_func;
 		return;
 	}
@@ -577,6 +577,7 @@ static void split_functions(struct symbol_list *sym_list)
 			free_data_info_allocs();
 			free_expression_stack(&switch_expr_stack);
 			__free_ptr_list((struct ptr_list **)&big_statement_stack);
+			__bail_on_rest_of_function = 0;
 		} else {
 			__pass_to_client(sym, BASE_HOOK);
 		}
