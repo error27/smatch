@@ -1,33 +1,55 @@
-    ***Compiling Smatch***
+	***Compiling Smatch***
 
 make
 
 This compiles creates a binary called "smatch".
 
-    ***Using Smatch***
+	***Using Smatch***
 
-./smatch filename.c
+Normally you can do this:
 
-For the kernel use:  make -k CHECK=/path/to/smatch C=y bzImage | tee warns.txt
+	make CC=/path/to/cgcc CHECK="/path/to/smatch --full-path" | tee warns.txt
 
-There is also a smatch_scripts/kchecker script for checking individual .c kernel files.
+Smatch has specific checks for some projects which you can enable
+with the "-p" parameter.
 
-Most of the things that smatch prints out is not actually warnings.
-What I was trying to do with that was catch errors where a NULL is
-passed to a function that dereferences the parameter without checking.
-There is a script that parses that information.
+	make CC=/path/to/cgcc CHECK="/path/to/smatch --full-path -p=wine" | tee warns.txt
 
-      smatch_scripts/find_null_params.sh
+For the Linux kernel use this command:
+ 
+	make C=1 CHECK="/path/to/smatch --full-path -p=kernel" | tee warns.txt
 
-Sorry the output is a mess right now.  This needs to be cleaned up.
+After the compile finishes and you have a warns.txt file, you can view the errors 
+with the following command:
 
-Sometimes you it is not obvious why smatch is printing an error.
-The --debug option is usefull here.  It prints a message on each state change.
+	egrep '(warn|error):' warns.txt | tee err-list
 
-Sometimes smatch segfaults.  Use valgrind to get a stack dump.  For the kernel
-do:  make -k CHECK="valgrind /path/to/smatch" C=y failing/file.o
+There are also a couple helper scripts for specific types of errors in the 
+smatch_scripts/ directory.
 
-    ***How Smatch Works***
+	smatch_scripts/filter_kernel_deref_check.sh
+	smatch_scripts/show_unreachable.sh
+	smatch_scripts/show_ifs.sh
+
+BTW, if you are testing the kernel and only one to test one file you can do:
+
+	/path/to/smatch_scripts/kchecker drivers/whatever/file.c
+
+The kchecker script also has an option "--sparse" which runs sparse on the file
+instead of smatch.  So when I am writing kernel patches in vim I do:
+
+	:! kchecker % && kchecker --sparse %
+
+
+	***Debugging Hints***
+
+Sometimes you it is not obvious why smatch is printing an error.  The --debug 
+option is usefull here.  It prints a message on each state change.
+
+Also if smatch crashes use:  kchecker --valgrind drivers/whatever/file.c and 
+send me the stack dump.
+
+	***How Smatch Works***
 
 It's basically a state machine that tracks the flow of code.
 
@@ -45,22 +67,21 @@ The core parts of smatch understand how code flows, if conditions, loops,
 and merging states back together.  The checker bits keep track of states
 that they are interested in and print error messages and so on.
 
-    ***Coding Smatch***
+	***Coding Smatch***
 
 The core smatch files start with "smatch_" the check scripts are named 
 "check_*.c".  There is a template check script called check_template.c
 that is designed to teach the basics.  Rename it and edit out the bits
 you want.
 
-
 The first file you should look at is smatch.h.  All the
 functions for check scripts are at the top.
 
 Smatch is based on sparse.  You will want to understand a couple sparse 
 data types: 
-     struct expression from expression.h
-     struct symbol from symbol.h
-     struct statement from parse.h
+	struct expression from expression.h
+	struct symbol from symbol.h
+	struct statement from parse.h
 
 More complicated scripts are also going to need functions from smatch_slist.h
 
