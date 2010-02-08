@@ -31,6 +31,7 @@ CK(check_dma_on_stack)
 CK(check_param_mapper)
 CK(check_call_tree)
 CK(check_dev_queue_xmit)
+CK(check_stack)
 
 /* <- your test goes here */
 /* CK(register_template) */
