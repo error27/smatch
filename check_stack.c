@@ -19,6 +19,8 @@ static int my_id;
 
 static int total_size;
 static int max_size;
+static int max_lineno;
+static int max_func_pos;
 static int complained;
 
 static void scope_end(int size)
@@ -36,22 +38,29 @@ static void match_declarations(struct symbol *sym)
 		return;
 	name = sym->ident->name;
 	total_size += base->bit_size;
-	if (total_size > max_size)
+	if (total_size > max_size) {
 		max_size = total_size;
+		max_lineno = get_lineno();
+		max_func_pos = get_func_pos();
+	}
 	if (base->bit_size >= 500 * 8) {
 		complained = 1;
-		sm_msg("warn: %s puts %d bytes on stack", name, base->bit_size / 8);
+		sm_msg("warn: '%s' puts %d bytes on stack", name, base->bit_size / 8);
 	}
 	add_scope_hook((scope_hook *)&scope_end, (void *)base->bit_size); 
 }
 
 static void match_end_func(struct symbol *sym)
 {
-	if ((max_size >= 500 * 8) && !complained)
-		sm_msg("warn: function puts %d bytes on stack", max_size / 8);
+	if ((max_size >= 500 * 8) && !complained) {
+		sm_printf("%s +%d %s(%d) ", get_filename(), max_lineno, get_function(), max_func_pos);
+		sm_printf("warn: function puts %d bytes on stack\n", max_size / 8);
+	}
 	total_size = 0;
 	complained = 0;
 	max_size = 0;
+	max_lineno = 0;
+	max_func_pos = 0;
 }
 
 void check_stack(int id)
