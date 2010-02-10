@@ -1698,6 +1698,7 @@ static struct token *pointer(struct token *token, struct decl_state *ctx)
 		ctx->ctype.base_type = ptr;
 		ctx->ctype.as = 0;
 		ctx->ctype.contexts = NULL;
+		ctx->ctype.alignment = 0;
 
 		token = handle_qualifiers(token->next, ctx);
 		ctx->ctype.base_type->endpos = token->pos;
