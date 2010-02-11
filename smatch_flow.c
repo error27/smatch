@@ -291,6 +291,14 @@ static void handle_post_loop(struct statement *stmt)
 	}
 }
 
+static struct statement *last_stmt;
+static int is_last_stmt(struct statement *stmt)
+{
+	if (stmt == last_stmt)
+		return 1;
+	return 0;
+}
+
 static void print_unreached_initializers(struct symbol_list *sym_list)
 {
 	struct symbol *sym;
@@ -319,6 +327,9 @@ static void print_unreached(struct statement *stmt)
 		case STMT_DECLARATION: /* switch (x) { int a; case foo: ... */
 			print_unreached_initializers(stmt->declaration);
 			break;
+		case STMT_RETURN: /* gcc complains if you don't have a return statement */
+			if (is_last_stmt(stmt))
+				break;
 		default:
 			if (print)
 				sm_msg("info: ignoring unreachable code.");
@@ -373,6 +384,9 @@ void __split_statements(struct statement *stmt)
 		return;
 	case STMT_COMPOUND: {
 		struct statement *s;
+
+		if (!last_stmt)
+			last_stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
 		__push_scope_hooks();
 		FOR_EACH_PTR(stmt->stmts, s) {
 			__split_statements(s);
@@ -569,6 +583,7 @@ static void split_functions(struct symbol_list *sym_list)
 			if (sym->ident)
 				cur_func = sym->ident->name;
 			__smatch_lineno = sym->pos.line;
+			last_stmt = NULL;
 			sm_debug("new function:  %s\n", cur_func);
 			if (option_two_passes) {
 				__unnullify_path();
