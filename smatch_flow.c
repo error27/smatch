@@ -291,6 +291,17 @@ static void handle_post_loop(struct statement *stmt)
 	}
 }
 
+static void print_unreached_initializers(struct symbol_list *sym_list)
+{
+	struct symbol *sym;
+
+	FOR_EACH_PTR(sym_list, sym) {
+		if(sym->initializer)
+			sm_msg("error: '%s' is not actually initialized (unreached code).", 
+				(sym->ident ? sym->ident->name : "this variable"));
+	} END_FOR_EACH_PTR(sym);
+}
+
 static void print_unreached(struct statement *stmt)
 {
 
@@ -304,7 +315,9 @@ static void print_unreached(struct statement *stmt)
 		case STMT_COMPOUND: /* after a switch before a case stmt */
 		case STMT_CASE:
 		case STMT_LABEL:
+			break;
 		case STMT_DECLARATION: /* switch (x) { int a; case foo: ... */
+			print_unreached_initializers(stmt->declaration);
 			break;
 		default:
 			if (print)
