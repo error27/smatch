@@ -305,7 +305,7 @@ static void print_unreached_initializers(struct symbol_list *sym_list)
 
 	FOR_EACH_PTR(sym_list, sym) {
 		if(sym->initializer)
-			sm_msg("error: '%s' is not actually initialized (unreached code).", 
+			sm_msg("info: '%s' is not actually initialized (unreached code).", 
 				(sym->ident ? sym->ident->name : "this variable"));
 	} END_FOR_EACH_PTR(sym);
 }
@@ -314,9 +314,6 @@ static void print_unreached(struct statement *stmt)
 {
 
 	static int print = 1;
-
-	if (!option_spammy && !option_debug)
-		return;
 
 	if (__path_is_null()) {
 		switch (stmt->type) {
