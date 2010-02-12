@@ -34,13 +34,29 @@ static void match_returns_err_ptr(const char *fn, struct expression *expr,
 	set_state_expr(my_id, expr->left, &err_ptr);
 }
 
-static void match_is_err(const char *fn, struct expression *expr,
-				void *data)
+
+static void match_checked(const char *fn, struct expression *call_expr,
+			struct expression *assign_expr, void *unused)
 {
-	expr = get_argument_from_call_expr(expr->args, 0);
-	if (expr->type == EXPR_ASSIGNMENT)
-		expr = expr->left;
-	set_true_false_states_expr(my_id, expr, &err_ptr, &checked);
+	struct expression *arg;
+
+	arg = get_argument_from_call_expr(call_expr->args, 0);
+	arg = strip_expr(arg);
+	while (arg->type == EXPR_ASSIGNMENT)
+		arg = strip_expr(arg->left);
+	set_state_expr(my_id, arg, &checked);
+}
+
+static void match_err(const char *fn, struct expression *call_expr,
+			struct expression *assign_expr, void *unused)
+{
+	struct expression *arg;
+
+	arg = get_argument_from_call_expr(call_expr->args, 0);
+	arg = strip_expr(arg);
+	while (arg->type == EXPR_ASSIGNMENT)
+		arg = strip_expr(arg->left);
+	set_state_expr(my_id, arg, &err_ptr);
 }
 
 static void match_dereferences(struct expression *expr)
@@ -122,7 +138,8 @@ void check_err_ptr_deref(int id)
 		return;
 
 	my_id = id;
-	add_conditional_hook("IS_ERR", &match_is_err, NULL);
+	return_implies_state("IS_ERR", 0, 0, &match_checked, NULL);
+	return_implies_state("IS_ERR", 1, 1, &match_err, NULL);
 	register_err_ptr_funcs();
 	add_hook(&match_dereferences, DEREF_HOOK);
 	add_function_hook("ERR_PTR", &match_err_ptr, NULL);
