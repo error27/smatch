@@ -101,7 +101,6 @@ typedef void (implication_hook)(const char *fn, struct expression *call_expr,
 				struct expression *assign_expr, void *data);
 void add_function_hook(const char *lock_for, func_hook *call_back, void *data);
 
-void add_conditional_hook(const char *look_for, func_hook *call_back, void *data);
 void add_function_assign_hook(const char *look_for, func_hook *call_back,
 			      void *info);
 void return_implies_state(const char *look_for, long long start, long long end,

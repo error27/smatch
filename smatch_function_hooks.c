@@ -11,9 +11,6 @@
  * There are three types of function hooks:
  * add_function_hook()        - For any time a function is called.
  * add_function_assign_hook() - foo = the_function().
- * add_conditional_hook()     - For when the return value implies something.
- *                              For example a return value of 1 might mean
- *                              a lock is held and 0 means it is not held.
  * return_implies_state()     - For when a return value of 1 implies locked
  *                              and 0 implies unlocked. etc. etc.
  *
@@ -40,9 +37,8 @@ DEFINE_FUNCTION_HASHTABLE_STATIC(callback, struct fcall_back, struct call_back_l
 static struct hashtable *func_hash;
 
 #define REGULAR_CALL     0
-#define CONDITIONAL_CALL 1
-#define ASSIGN_CALL      2
-#define RANGED_CALL      3
+#define ASSIGN_CALL      1
+#define RANGED_CALL      2
 
 static struct fcall_back *alloc_fcall_back(int type, func_hook *call_back,
 					   void *info)
@@ -61,15 +57,6 @@ void add_function_hook(const char *look_for, func_hook *call_back, void *info)
 	struct fcall_back *cb;
 
 	cb = alloc_fcall_back(REGULAR_CALL, call_back, info);
-	add_callback(func_hash, look_for, cb);
-}
-
-void add_conditional_hook(const char *look_for, func_hook *call_back,
-			  void *info)
-{
-	struct fcall_back *cb;
-
-	cb = alloc_fcall_back(CONDITIONAL_CALL, call_back, info);
 	add_callback(func_hash, look_for, cb);
 }
 
@@ -125,49 +112,6 @@ static void match_function_call(struct expression *expr)
 		return;
 	call_call_backs(call_backs, REGULAR_CALL, expr->fn->symbol->ident->name,
 			expr);
-}
-
-static void assign_condition_funcs(const char *fn, struct expression *expr,
-				 struct call_back_list *call_backs)
-{
-	struct fcall_back *tmp;
-	struct sm_state *sm;
-	int conditional = 0;
-	char *var_name;
-	struct symbol *sym;
-	struct smatch_state *zero_state, *non_zero_state;
-
-	var_name = get_variable_from_expr(expr->left, &sym);
-	if (!var_name || !sym)
-		goto free;
-
-	__fake_conditions = 1;
-	FOR_EACH_PTR(call_backs, tmp) {
-		if (tmp->type != CONDITIONAL_CALL)
-			continue;
-
-		conditional = 1;
-		(tmp->call_back)(fn, expr->right, tmp->info);
-	} END_FOR_EACH_PTR(tmp);
-	if (conditional) {
-		zero_state = alloc_extra_state(0);
-		non_zero_state = add_filter(extra_undefined(), 0);
-		set_true_false_states(SMATCH_EXTRA, var_name, sym, non_zero_state, zero_state);
-	}
-  	__fake_conditions = 0;
-
-	if (!conditional)
-		goto free;
-
-	merge_slist(&__fake_cond_true, __fake_cond_false);
-
-	FOR_EACH_PTR(__fake_cond_true, sm) {
-		__set_state(sm);
-	} END_FOR_EACH_PTR(sm);
-	free_slist(&__fake_cond_true);
-	free_slist(&__fake_cond_false);
-free:
-	free_string(var_name);
 }
 
 static struct call_back_list *get_same_ranged_call_backs(struct call_back_list *list,
@@ -301,47 +245,7 @@ static void match_assign_call(struct expression *expr)
 	if (!call_backs)
 		return;
 	call_call_backs(call_backs, ASSIGN_CALL, fn, expr);
-	assign_condition_funcs(fn, expr, call_backs);
 	assign_ranged_funcs(fn, expr, call_backs);
-}
-
-static void match_conditional_call(struct expression *expr)
-{
-	struct call_back_list *call_backs;
-	struct fcall_back *tmp;
-	struct sm_state *sm;
-	const char *fn;
-
-	expr = strip_expr(expr);
-	if (expr->type != EXPR_CALL)
-		return;
-
-	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
-		return;
-
-	fn = expr->fn->symbol->ident->name;
-	call_backs = search_callback(func_hash, (char *)fn);
-	if (!call_backs)
-		return;
-	__fake_conditions = 1;
-	FOR_EACH_PTR(call_backs, tmp) {
-		if (tmp->type != CONDITIONAL_CALL)
-			continue;
-
-		(tmp->call_back)(fn, expr, tmp->info);
-
-		FOR_EACH_PTR(__fake_cond_true, sm) {
-			__set_true_false_sm(sm, NULL);
-		} END_FOR_EACH_PTR(sm);
-		free_slist(&__fake_cond_true);
-
-		FOR_EACH_PTR(__fake_cond_false, sm) {
-			__set_true_false_sm(NULL, sm);
-		} END_FOR_EACH_PTR(sm);
-		free_slist(&__fake_cond_false);
-
-	} END_FOR_EACH_PTR(tmp);
-	__fake_conditions = 0;
 }
 
 void create_function_hook_hash(void)
@@ -353,5 +257,4 @@ void register_function_hooks(int id)
 {
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);
-	add_hook(&match_conditional_call, CONDITION_HOOK);
 }
