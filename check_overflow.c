@@ -23,6 +23,8 @@ static int my_used_id;
 
 static struct symbol *this_func;
 
+static int get_array_size(struct expression *expr);
+
 static void match_function_def(struct symbol *sym)
 {
 	this_func = sym;
@@ -89,30 +91,6 @@ static struct smatch_state *alloc_my_state(int val)
 	return state;
 }
 
-static void match_declaration(struct symbol *sym)
-{
-	struct symbol *base_type;
-	char *name;
-	int size;
-
-	if (!sym->ident)
-		return;
-
-	name = sym->ident->name;
-	base_type = get_base_type(sym);
-	
-	if (base_type->type == SYM_ARRAY && base_type->bit_size > 0) {
-		set_state(my_decl_id, name, NULL, alloc_my_state(base_type->bit_size));
-	} else {
-		if (sym->initializer &&
- 			sym->initializer->type == EXPR_STRING &&
-			sym->initializer->string) {
-			size = sym->initializer->string->length * 8;
-			set_state(my_decl_id, name, NULL, alloc_my_state(size));
-		}
-	}
-}
-
 static int is_last_struct_member(struct expression *expr)
 {
 	struct ident *member;
@@ -137,35 +115,58 @@ static int is_last_struct_member(struct expression *expr)
 
 }
 
+static int get_initializer_bytes(struct expression *expr)
+{
+	switch(expr->type) {
+	case EXPR_STRING:
+		return expr->string->length;
+	case EXPR_INITIALIZER: {
+		struct expression *tmp;
+		int i = 0;
+
+		FOR_EACH_PTR(expr->expr_list, tmp) {
+			i++;
+		} END_FOR_EACH_PTR(tmp);
+		return i;
+	}
+	case EXPR_SYMBOL:
+		return get_array_size(expr);
+	}
+	return 0;
+}
+
 static int get_array_size(struct expression *expr)
 {
-	char *name;
 	struct symbol *tmp;
 	struct smatch_state *state;
 	int ret = 0;
 
+	if (expr->type == EXPR_STRING)
+		return expr->string->length;
+
 	tmp = get_type(expr);
 	if (!tmp)
 		return ret;
+
 	if (tmp->type == SYM_ARRAY) {
 		ret = get_expression_value(tmp->array_size);
 		if (ret == 1 && is_last_struct_member(expr))
 			return 0;
-		return ret;
+		if (ret)
+			return ret;
 	}
-	name = get_variable_from_expr(expr, NULL);
-	if (!name)
-		return 0;
-	state = get_state(my_decl_id, name, NULL);
+
+	if (expr->type == EXPR_SYMBOL && expr->symbol->initializer)
+		return get_initializer_bytes(expr->symbol->initializer);
+
+	state = get_state_expr(my_decl_id, expr);
 	if (!state || !state->data)
-		goto free;
+		return 0;
 	if (tmp->type == SYM_PTR)
 		tmp = get_base_type(tmp);
 	if (!tmp->ctype.alignment)
-		goto free;
+		return 0;
 	ret = *(int *)state->data / 8 / tmp->ctype.alignment;
-free:
-	free_string(name);
 	return ret;
 }
 
@@ -206,7 +207,6 @@ static void array_check(struct expression *expr)
 		name = get_variable_from_expr(dest, NULL);
 		if (!name)
 			return;
-//		smatch_msg("debug: array '%s' unknown size", name);
 		print_assigned_expr(dest);
 		return;
 	}
@@ -218,7 +218,6 @@ static void array_check(struct expression *expr)
 		name = get_variable_from_expr(offset, NULL);
 		if (!name)
 			return;
-//		smatch_msg("debug: offset '%s' unknown", name);
 		set_state_expr(my_used_id, offset, alloc_state_num(array_size));
 		add_modification_hook(my_used_id, name, &delete, NULL);
 		print_args(offset, array_size);
@@ -234,8 +233,10 @@ static void array_check(struct expression *expr)
 		  blast.  smatch can't figure out glibc's strcmp __strcmp_cg()
 		  so it prints an error every time you compare to a string
 		  literal array with 4 or less chars. */
-		if (name && strcmp(name, "__s1") && strcmp(name, "__s2"))
-			sm_msg("%s: buffer overflow '%s' %d <= %lld", level, name, array_size, max);
+		if (name && strcmp(name, "__s1") && strcmp(name, "__s2")) {
+			sm_msg("%s: buffer overflow '%s' %d <= %lld", 
+				level, name, array_size, max);
+		}
 		free_string(name);
 	}
 }
@@ -283,39 +284,46 @@ static void match_string_assignment(struct expression *expr)
 {
 	struct expression *left;
 	struct expression *right;
-	char *name;
 
 	left = strip_expr(expr->left);
 	right = strip_expr(expr->right);
-	name = get_variable_from_expr(left, NULL);
-	if (!name)
-		return;
 	if (right->type != EXPR_STRING || !right->string)
-		goto free;
-	set_state(my_decl_id, name, NULL, 
-		alloc_my_state(right->string->length * 8));
-free:
-	free_string(name);
+		return;
+	set_state_expr(my_decl_id, left, alloc_my_state(right->string->length * 8));
+}
+
+static void match_array_assignment(struct expression *expr)
+{
+	struct expression *left;
+	struct expression *right;
+	struct symbol *left_type;
+	int array_size;
+
+	left = strip_expr(expr->left);
+	left_type = get_type(left);
+	if (!left_type || left_type->type != SYM_PTR)
+		return;
+	left_type = get_base_type(left_type);
+	if (!left_type)
+		return;
+	right = strip_expr(expr->right);
+	array_size = get_array_size(right);
+	if (array_size)
+		set_state_expr(my_decl_id, left, 
+			alloc_my_state(array_size * left_type->ctype.alignment * 8));
 }
 
 static void match_malloc(const char *fn, struct expression *expr, void *unused)
 {
-	char *name;
 	struct expression *right;
 	struct expression *arg;
 	long long bytes;
 
-	name = get_variable_from_expr(expr->left, NULL);
-	if (!name)
-		return;
-
 	right = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(right->args, 0);
 	if (!get_implied_value(arg, &bytes))
-		goto free;
-	set_state(my_decl_id, name, NULL, alloc_my_state(bytes * 8));
-free:
-	free_string(name);
+		return;
+	set_state_expr(my_decl_id, expr->left, alloc_my_state(bytes * 8));
 }
 
 static void match_strcpy(const char *fn, struct expression *expr,
@@ -428,9 +436,9 @@ void check_overflow(int id)
 {
 	my_decl_id = id;
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
-	add_hook(&match_declaration, DECLARATION_HOOK);
 	add_hook(&array_check, OP_HOOK);
 	add_hook(&match_string_assignment, ASSIGNMENT_HOOK);
+	add_hook(&match_array_assignment, ASSIGNMENT_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_function_assign_hook("malloc", &match_malloc, NULL);
 	add_function_hook("strcpy", &match_strcpy, NULL);
