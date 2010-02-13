@@ -16,7 +16,7 @@
 
 static struct symbol *get_type_symbol(struct expression *expr)
 {
-	if (!expr || expr->type != EXPR_SYMBOL)
+	if (!expr || expr->type != EXPR_SYMBOL || !expr->symbol)
 		return NULL;
 
 	return get_base_type(expr->symbol);
