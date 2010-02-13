@@ -1,0 +1,5 @@
+panic
+do_exit
+complete_and_exit
+__module_put_and_exit
+do_group_exit

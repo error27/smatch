@@ -45,7 +45,8 @@ SMATCH_CHECKS=$(shell ls check_*.c | sed -e 's/\.c/.o/')
 SMATCH_DATA=smatch_data/kernel.allocation_funcs smatch_data/kernel.balanced_funcs \
 	smatch_data/kernel.frees_argument smatch_data/kernel.puts_argument \
 	smatch_data/kernel.dev_queue_xmit smatch_data/kernel.returns_err_ptr \
-	smatch_data/kernel.dma_funcs smatch_data/kernel.returns_held_funcs
+	smatch_data/kernel.dma_funcs smatch_data/kernel.returns_held_funcs \
+	smatch_data/kernel.no_return_funcs
 
 PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse \
 	 test-linearize example test-unssa test-dissect ctags
