@@ -197,7 +197,7 @@ static void print_assigned_expr(struct expression *expr)
 
 static void array_check(struct expression *expr)
 {
-	struct expression *dest;
+	struct expression *array_expr;
 	int array_size;
 	struct expression *offset;
 	long long max;
@@ -207,13 +207,13 @@ static void array_check(struct expression *expr)
 	if (!is_array(expr))
 		return;
 
-	dest = get_array_name(expr);
-	array_size = get_array_size(dest);
+	array_expr = get_array_name(expr);
+	array_size = get_array_size(array_expr);
 	if (!array_size) {
-		name = get_variable_from_expr(dest, NULL);
+		name = get_variable_from_expr(array_expr, NULL);
 		if (!name)
 			return;
-		print_assigned_expr(dest);
+		print_assigned_expr(array_expr);
 		return;
 	}
 
@@ -234,7 +234,7 @@ static void array_check(struct expression *expr)
 		if (getting_address())
 			level = "warn";
 
-		name = get_variable_from_expr_complex(dest, NULL);
+		name = get_variable_from_expr_complex(array_expr, NULL);
 		/*FIXME!!!!!!!!!!!
 		  blast.  smatch can't figure out glibc's strcmp __strcmp_cg()
 		  so it prints an error every time you compare to a string
