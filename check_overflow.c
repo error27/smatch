@@ -197,13 +197,9 @@ static void array_check(struct expression *expr)
 	if (!get_fuzzy_max(offset, &max)) {
 		if (getting_address())
 			return;
-		name = get_variable_from_expr(offset, NULL);
-		if (!name)
-			return;
 		set_state_expr(my_used_id, offset, alloc_state_num(array_size));
-		add_modification_hook(my_used_id, name, &delete, NULL);
+		add_modification_hook_expr(my_used_id, offset, &delete, NULL);
 		print_args(offset, array_size);
-		free_string(name);
 	} else if (array_size <= max) {
 		const char *level = "error";
 
