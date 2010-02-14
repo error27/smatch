@@ -183,6 +183,38 @@ static int get_array_size(struct expression *expr)
 	return ret;
 }
 
+static int definitely_just_used_as_limiter(struct expression *array, struct expression *offset)
+{
+	long long val;
+	struct expression *tmp;
+	int step = 0;
+	int dot_ops = 0;
+
+	if (!get_value(offset, &val))
+		return 0;
+	if (get_array_size(array) != val)
+		return 0;
+
+	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
+		if (step == 0) {
+			step = 1;
+			continue;
+		}
+		if (tmp->type == EXPR_PREOP && tmp->op == '(')
+			continue;
+		if (tmp->op == '.' && !dot_ops++)
+			continue;
+		if (step == 1 && tmp->op == '&') {
+			step = 2;
+			continue;
+		}
+		if (step == 2 && tmp->type == EXPR_COMPARE)
+			return 1;
+		return 0;
+	} END_FOR_EACH_PTR_REVERSE(tmp);
+	return 0;
+}
+
 static void array_check(struct expression *expr)
 {
 	struct expression *array_expr;
@@ -212,6 +244,9 @@ static void array_check(struct expression *expr)
 
 		if (getting_address())
 			level = "warn";
+
+		if (definitely_just_used_as_limiter(array_expr, offset))
+			return;
 
 		name = get_variable_from_expr_complex(array_expr, NULL);
 		/* Blast.  Smatch can't figure out glibc's strcmp __strcmp_cg()
