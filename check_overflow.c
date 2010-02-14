@@ -156,9 +156,10 @@ static int get_array_size(struct expression *expr)
 			return ret;
 	}
 
-	if (expr->type == EXPR_SYMBOL && expr->symbol->initializer)
-		return get_initializer_bytes(expr->symbol->initializer);
-
+	if (expr->type == EXPR_SYMBOL && expr->symbol->initializer) {
+		if (expr->symbol->initializer != expr) /* int a = a; */
+			return get_initializer_bytes(expr->symbol->initializer);
+	}
 	state = get_state_expr(my_decl_id, expr);
 	if (!state || !state->data)
 		return 0;
