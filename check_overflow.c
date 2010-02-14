@@ -115,7 +115,7 @@ static int is_last_struct_member(struct expression *expr)
 
 }
 
-static int get_initializer_bytes(struct expression *expr)
+static int get_initializer_size(struct expression *expr)
 {
 	switch(expr->type) {
 	case EXPR_STRING:
@@ -163,7 +163,7 @@ static int get_array_size(struct expression *expr)
 
 	if (expr->type == EXPR_SYMBOL && expr->symbol->initializer) {
 		if (expr->symbol->initializer != expr) /* int a = a; */
-			return get_initializer_bytes(expr->symbol->initializer);
+			return get_initializer_size(expr->symbol->initializer);
 	}
 	state = get_state_expr(my_decl_id, expr);
 	if (!state || !state->data)
