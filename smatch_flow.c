@@ -92,23 +92,23 @@ void __split_expr(struct expression *expr)
 	case EXPR_POSTOP:
 		__pass_to_client(expr, OP_HOOK);
 		__split_expr(expr->unop);
-		return;
+		break;
 	case EXPR_STATEMENT:
 		__split_statements(expr->statement);
-		return;
+		break;
 	case EXPR_LOGICAL:
 		__split_whole_condition(expr);
 		__push_true_states();
 		__use_false_states();
 		__merge_true_states();
-		return;
+		break;
 	case EXPR_BINOP: 
 		__pass_to_client(expr, BINOP_HOOK);
 	case EXPR_COMMA:
 	case EXPR_COMPARE:
 		__split_expr(expr->left);
 		__split_expr(expr->right);		
-		return;
+		break;
 	case EXPR_ASSIGNMENT: {
 		struct expression *tmp;
 
@@ -118,22 +118,22 @@ void __split_expr(struct expression *expr)
 		if (tmp->type == EXPR_CALL)
 			__pass_to_client(expr, CALL_ASSIGNMENT_HOOK);
 		__split_expr(expr->left);
-		return;
+		break;
 	}
 	case EXPR_DEREF:
 		__pass_to_client(expr, DEREF_HOOK);
 		__split_expr(expr->deref);
-		return;
+		break;
 	case EXPR_SLICE:
 		__split_expr(expr->base);
-		return;
+		break;
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 		__split_expr(expr->cast_expression);
-		return;
+		break;
 	case EXPR_SIZEOF:
 		/* there isn't anything to pass a client from inside a sizeof() */
-		return;
+		break;
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
 		__split_whole_condition(expr->conditional);
@@ -142,30 +142,31 @@ void __split_expr(struct expression *expr)
 		__use_false_states();
 		__split_expr(expr->cond_false);
 		__merge_true_states();
-		return;
+		break;
 	case EXPR_CALL:
 		split_expr_list(expr->args);
 		__split_expr(expr->fn);
 		__pass_to_client(expr, FUNCTION_CALL_HOOK);
-		return;
+		break;
 	case EXPR_INITIALIZER:
 		split_expr_list(expr->expr_list);
-		return;
+		break;
 	case EXPR_IDENTIFIER:
 		__split_expr(expr->ident_expression);
-		return;
+		break;
 	case EXPR_INDEX:
 		__split_expr(expr->idx_expression);
-		return;
+		break;
 	case EXPR_POS:
 		__split_expr(expr->init_expr);
-		return;
+		break;
 	case EXPR_SYMBOL:
 		__pass_to_client(expr, SYM_HOOK);
-		return;
+		break;
 	default:
-		return;
+		break;
 	};
+	pop_expression(&big_expression_stack);
 }
 
 static int is_forever_loop(struct statement *stmt)
