@@ -176,25 +176,6 @@ static int get_array_size(struct expression *expr)
 	return ret;
 }
 
-extern int check_assigned_expr_id;
-static void print_assigned_expr(struct expression *expr)
-{
-#if 0
-	struct state_list *slist;
-	struct sm_state *tmp;
-	char *name;
-
-	name = get_variable_from_expr(expr, NULL);
-	slist = get_possible_states_expr(check_assigned_expr_id, expr);
-	FOR_EACH_PTR(slist, tmp) {
-		if (tmp->state == &undefined || tmp->state == &merged)
-			continue;
-		smatch_msg("debug: unknown initializer %s = %s", name, show_state(tmp->state));
-	} END_FOR_EACH_PTR(tmp);
-	free_string(name);
-#endif
-}
-
 static void array_check(struct expression *expr)
 {
 	struct expression *array_expr;
@@ -209,13 +190,8 @@ static void array_check(struct expression *expr)
 
 	array_expr = get_array_name(expr);
 	array_size = get_array_size(array_expr);
-	if (!array_size) {
-		name = get_variable_from_expr(array_expr, NULL);
-		if (!name)
-			return;
-		print_assigned_expr(array_expr);
+	if (!array_size)
 		return;
-	}
 
 	offset = get_array_offset(expr);
 	if (!get_fuzzy_max(offset, &max)) {
