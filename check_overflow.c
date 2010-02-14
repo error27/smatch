@@ -123,10 +123,15 @@ static int get_initializer_bytes(struct expression *expr)
 	case EXPR_INITIALIZER: {
 		struct expression *tmp;
 		int i = 0;
+		int max = 0;
 
 		FOR_EACH_PTR(expr->expr_list, tmp) {
+			if (tmp->type == EXPR_INDEX && tmp->idx_to > max)
+				max = tmp->idx_to;
 			i++;
 		} END_FOR_EACH_PTR(tmp);
+		if (max)
+			return max + 1;
 		return i;
 	}
 	case EXPR_SYMBOL:
@@ -300,6 +305,8 @@ static void match_array_assignment(struct expression *expr)
 	struct symbol *left_type;
 	int array_size;
 
+	if (expr->op != '=')
+		return;
 	left = strip_expr(expr->left);
 	left_type = get_type(left);
 	if (!left_type || left_type->type != SYM_PTR)
