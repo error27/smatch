@@ -272,7 +272,7 @@ long long get_dinfo_max(struct data_info *dinfo)
 
 	if (!dinfo || !dinfo->value_ranges)
 		return whole_range.max;
-	drange = first_ptr_list((struct ptr_list *)dinfo->value_ranges);
+	drange = last_ptr_list((struct ptr_list *)dinfo->value_ranges);
 	return drange->max;
 }
 
