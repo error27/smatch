@@ -18,7 +18,15 @@ struct bound {
 	int size;
 };
 
-static int my_decl_id;
+/*
+ * This check has two smatch IDs.  
+ * my_size_id - used to store the size of arrays.  
+ * my_used_id - keeps a record of array offsets that have been used.  
+ *              If the code checks that they are within bounds later on,
+ *              we complain about using an array offset before checking 
+ *              that it is within bounds.
+ */
+static int my_size_id;
 static int my_used_id;
 
 static struct symbol *this_func;
@@ -164,7 +172,7 @@ static int get_array_size(struct expression *expr)
 		if (expr->symbol->initializer != expr) /* int a = a; */
 			return get_initializer_size(expr->symbol->initializer);
 	}
-	state = get_state_expr(my_decl_id, expr);
+	state = get_state_expr(my_size_id, expr);
 	if (!state || !state->data)
 		return 0;
 	if (tmp->type == SYM_PTR)
@@ -265,7 +273,7 @@ static void match_string_assignment(struct expression *expr)
 	right = strip_expr(expr->right);
 	if (right->type != EXPR_STRING || !right->string)
 		return;
-	set_state_expr(my_decl_id, left, alloc_my_state(right->string->length * 8));
+	set_state_expr(my_size_id, left, alloc_my_state(right->string->length * 8));
 }
 
 static void match_array_assignment(struct expression *expr)
@@ -287,7 +295,7 @@ static void match_array_assignment(struct expression *expr)
 	right = strip_expr(expr->right);
 	array_size = get_array_size(right);
 	if (array_size)
-		set_state_expr(my_decl_id, left, 
+		set_state_expr(my_size_id, left, 
 			alloc_my_state(array_size * left_type->ctype.alignment * 8));
 }
 
@@ -301,7 +309,7 @@ static void match_malloc(const char *fn, struct expression *expr, void *unused)
 	arg = get_argument_from_call_expr(right->args, 0);
 	if (!get_implied_value(arg, &bytes))
 		return;
-	set_state_expr(my_decl_id, expr->left, alloc_my_state(bytes * 8));
+	set_state_expr(my_size_id, expr->left, alloc_my_state(bytes * 8));
 }
 
 static void match_strcpy(const char *fn, struct expression *expr, void *unused)
@@ -321,11 +329,11 @@ static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 	data = get_argument_from_call_expr(expr->args, 1);
 	data_name = get_variable_from_expr(data, NULL);
 
-	dest_state = get_state(my_decl_id, dest_name, NULL);
+	dest_state = get_state(my_size_id, dest_name, NULL);
 	if (!dest_state || !dest_state->data)
 		goto free;
 
-	data_state = get_state(my_decl_id, data_name, NULL);
+	data_state = get_state(my_size_id, data_name, NULL);
 	if (!data_state || !data_state->data)
 		goto free;
 	dest_size = *(int *)dest_state->data / 8;
@@ -353,7 +361,7 @@ static void match_limitted(const char *fn, struct expression *expr, void *limit_
 	data = get_argument_from_call_expr(expr->args, PTR_INT(limit_arg));
 	if (!get_value(data, &needed))
 		goto free;
-	state = get_state(my_decl_id, dest_name, NULL);
+	state = get_state(my_size_id, dest_name, NULL);
 	if (!state || !state->data)
 		goto free;
 	has = *(int *)state->data / 8;
@@ -410,7 +418,7 @@ static void register_array_funcs(void)
 
 void check_overflow(int id)
 {
-	my_decl_id = id;
+	my_size_id = id;
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&array_check, OP_HOOK);
 	add_hook(&match_string_assignment, ASSIGNMENT_HOOK);
