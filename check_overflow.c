@@ -1,9 +1,9 @@
 /*
- * sparse/check_deference.c
+ * smatch/check_deference.c
  *
  * Copyright (C) 2006 Dan Carpenter.
  *
- *  Licensed under the Open Software License version 1.1
+ * Licensed under the Open Software License version 1.1
  *
  */
 
@@ -62,15 +62,15 @@ static char *alloc_num(long long num)
 {
 	static char buff[256];
 
-	if (num == whole_range.min) {
+	if (num == whole_range.min)
 		snprintf(buff, 255, "min");
-	} else if (num == whole_range.max) {
+	else if (num == whole_range.max)
 		snprintf(buff, 255, "max");
-	} else if (num < 0) {
+	else if (num < 0)
 		snprintf(buff, 255, "(%lld)", num);
-	} else {
+	else
 		snprintf(buff, 255, "%lld", num);
-	}
+
 	buff[255] = '\0';
 	return alloc_sname(buff);
 }
@@ -112,7 +112,6 @@ static int is_last_struct_member(struct expression *expr)
 		return 0;
 	} END_FOR_EACH_PTR_REVERSE(tmp);
 	return 0;
-
 }
 
 static int get_initializer_size(struct expression *expr)
@@ -207,10 +206,10 @@ static void array_check(struct expression *expr)
 			level = "warn";
 
 		name = get_variable_from_expr_complex(array_expr, NULL);
-		/*FIXME!!!!!!!!!!!
-		  blast.  smatch can't figure out glibc's strcmp __strcmp_cg()
-		  so it prints an error every time you compare to a string
-		  literal array with 4 or less chars. */
+		/* Blast.  Smatch can't figure out glibc's strcmp __strcmp_cg()
+		 * so it prints an error every time you compare to a string
+		 * literal array with 4 or less chars.
+		 */
 		if (name && strcmp(name, "__s1") && strcmp(name, "__s2")) {
 			sm_msg("%s: buffer overflow '%s' %d <= %lld", 
 				level, name, array_size, max);
@@ -250,12 +249,11 @@ static void match_condition(struct expression *expr)
 		if (boundary < 1 && boundary > -1) {
 			char *name;
 
-			name = get_variable_from_expr(left?expr->right:expr->left, NULL);
+			name = get_variable_from_expr((left ? expr->right : expr->left), NULL);
 			sm_msg("error: testing array offset '%s' after use.", name);
 			return;
 		}
 	} END_FOR_EACH_PTR(tmp);
-
 }
 
 static void match_string_assignment(struct expression *expr)
@@ -306,8 +304,7 @@ static void match_malloc(const char *fn, struct expression *expr, void *unused)
 	set_state_expr(my_decl_id, expr->left, alloc_my_state(bytes * 8));
 }
 
-static void match_strcpy(const char *fn, struct expression *expr,
-			 void *unused)
+static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *dest;
 	struct expression *data;
@@ -323,7 +320,7 @@ static void match_strcpy(const char *fn, struct expression *expr,
 
 	data = get_argument_from_call_expr(expr->args, 1);
 	data_name = get_variable_from_expr(data, NULL);
-		
+
 	dest_state = get_state(my_decl_id, dest_name, NULL);
 	if (!dest_state || !dest_state->data)
 		goto free;
@@ -334,15 +331,14 @@ static void match_strcpy(const char *fn, struct expression *expr,
 	dest_size = *(int *)dest_state->data / 8;
 	data_size = *(int *)data_state->data / 8;
 	if (dest_size < data_size)
-		sm_msg("error: %s (%d) too large for %s (%d)", data_name,
-			   data_size, dest_name, dest_size);
+		sm_msg("error: %s (%d) too large for %s (%d)", 
+			data_name, data_size, dest_name, dest_size);
 free:
 	free_string(dest_name);
 	free_string(data_name);
 }
 
-static void match_limitted(const char *fn, struct expression *expr,
-			   void *limit_arg)
+static void match_limitted(const char *fn, struct expression *expr, void *limit_arg)
 {
 	struct expression *dest;
 	struct expression *data;
@@ -362,8 +358,7 @@ static void match_limitted(const char *fn, struct expression *expr,
 		goto free;
 	has = *(int *)state->data / 8;
 	if (has < needed)
-		sm_msg("error: %s too small for %lld bytes.", dest_name,
-			   needed);
+		sm_msg("error: %s too small for %lld bytes.", dest_name, needed);
 free:
 	free_string(dest_name);
 }
@@ -378,7 +373,8 @@ static void match_array_func(const char *fn, struct expression *expr, void *info
 	if (!get_implied_value(arg, &offset))
 		return;
 	if (offset >= bound_info->size)
-		sm_msg("error: buffer overflow calling %s. param %d.  %lld >= %d", fn, bound_info->param, offset, bound_info->size);
+		sm_msg("error: buffer overflow calling %s. param %d.  %lld >= %d", 
+			fn, bound_info->param, offset, bound_info->size);
 }
 
 static void register_array_funcs(void)
