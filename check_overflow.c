@@ -38,7 +38,7 @@ static void print_args(struct expression *expr, int size)
 	const char *arg_name;
 	int i;
 
-	if (!option_spammy)
+	if (!option_info)
 		return;
 
 	name = get_variable_from_expr(expr, &sym);
