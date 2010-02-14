@@ -179,7 +179,7 @@ static int get_array_size(struct expression *expr)
 		tmp = get_base_type(tmp);
 	if (!tmp->ctype.alignment)
 		return 0;
-	ret = *(int *)state->data / 8 / tmp->ctype.alignment;
+	ret = *(int *)state->data / tmp->ctype.alignment;
 	return ret;
 }
 
@@ -308,7 +308,7 @@ static void match_string_assignment(struct expression *expr)
 	right = strip_expr(expr->right);
 	if (right->type != EXPR_STRING || !right->string)
 		return;
-	set_state_expr(my_size_id, left, alloc_my_state(right->string->length * 8));
+	set_state_expr(my_size_id, left, alloc_my_state(right->string->length));
 }
 
 static void match_array_assignment(struct expression *expr)
@@ -331,7 +331,7 @@ static void match_array_assignment(struct expression *expr)
 	array_size = get_array_size(right);
 	if (array_size)
 		set_state_expr(my_size_id, left, 
-			alloc_my_state(array_size * left_type->ctype.alignment * 8));
+			alloc_my_state(array_size * left_type->ctype.alignment));
 }
 
 static void match_malloc(const char *fn, struct expression *expr, void *unused)
@@ -344,7 +344,7 @@ static void match_malloc(const char *fn, struct expression *expr, void *unused)
 	arg = get_argument_from_call_expr(right->args, 0);
 	if (!get_implied_value(arg, &bytes))
 		return;
-	set_state_expr(my_size_id, expr->left, alloc_my_state(bytes * 8));
+	set_state_expr(my_size_id, expr->left, alloc_my_state(bytes));
 }
 
 static void match_strcpy(const char *fn, struct expression *expr, void *unused)
@@ -371,8 +371,8 @@ static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 	data_state = get_state(my_size_id, data_name, NULL);
 	if (!data_state || !data_state->data)
 		goto free;
-	dest_size = *(int *)dest_state->data / 8;
-	data_size = *(int *)data_state->data / 8;
+	dest_size = *(int *)dest_state->data;
+	data_size = *(int *)data_state->data;
 	if (dest_size < data_size)
 		sm_msg("error: %s (%d) too large for %s (%d)", 
 			data_name, data_size, dest_name, dest_size);
@@ -399,7 +399,7 @@ static void match_limitted(const char *fn, struct expression *expr, void *limit_
 	state = get_state(my_size_id, dest_name, NULL);
 	if (!state || !state->data)
 		goto free;
-	has = *(int *)state->data / 8;
+	has = *(int *)state->data;
 	if (has < needed)
 		sm_msg("error: %s too small for %lld bytes.", dest_name, needed);
 free:
