@@ -360,6 +360,20 @@ static void match_condition(struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
+static struct expression *strip_ampersands(struct expression *expr)
+{
+	struct symbol *type;
+
+	if (expr->type != EXPR_PREOP)
+		return expr;
+	if (expr->op != '&')
+		return expr;
+	type = get_type(expr->unop);
+	if (!type || type->type != SYM_ARRAY)
+		return expr;
+	return expr->unop;
+}
+
 static void match_array_assignment(struct expression *expr)
 {
 	struct expression *left;
@@ -370,6 +384,7 @@ static void match_array_assignment(struct expression *expr)
 		return;
 	left = strip_expr(expr->left);
 	right = strip_expr(expr->right);
+	right = strip_ampersands(right);
 	array_size = get_array_size_bytes(right);
 	if (array_size)
 		set_state_expr(my_size_id, left, alloc_my_state(array_size));
