@@ -320,39 +320,19 @@ static void match_condition(struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
-static void match_string_assignment(struct expression *expr)
-{
-	struct expression *left;
-	struct expression *right;
-
-	left = strip_expr(expr->left);
-	right = strip_expr(expr->right);
-	if (right->type != EXPR_STRING || !right->string)
-		return;
-	set_state_expr(my_size_id, left, alloc_my_state(right->string->length));
-}
-
 static void match_array_assignment(struct expression *expr)
 {
 	struct expression *left;
 	struct expression *right;
-	struct symbol *left_type;
 	int array_size;
 
 	if (expr->op != '=')
 		return;
 	left = strip_expr(expr->left);
-	left_type = get_type(left);
-	if (!left_type || left_type->type != SYM_PTR)
-		return;
-	left_type = get_base_type(left_type);
-	if (!left_type)
-		return;
 	right = strip_expr(expr->right);
-	array_size = get_array_size(right);
+	array_size = get_array_size_bytes(right);
 	if (array_size)
-		set_state_expr(my_size_id, left, 
-			alloc_my_state(array_size * left_type->ctype.alignment));
+		set_state_expr(my_size_id, left, alloc_my_state(array_size));
 }
 
 static void match_malloc(const char *fn, struct expression *expr, void *unused)
@@ -467,7 +447,6 @@ void check_overflow(int id)
 	my_size_id = id;
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&array_check, OP_HOOK);
-	add_hook(&match_string_assignment, ASSIGNMENT_HOOK);
 	add_hook(&match_array_assignment, ASSIGNMENT_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_function_assign_hook("malloc", &match_malloc, NULL);
