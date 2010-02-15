@@ -158,7 +158,7 @@ static int get_array_size(struct expression *expr)
 
 	tmp = get_type(expr);
 	if (!tmp)
-		return ret;
+		return 0;
 
 	if (tmp->type == SYM_ARRAY) {
 		ret = get_expression_value(tmp->array_size);
@@ -181,6 +181,21 @@ static int get_array_size(struct expression *expr)
 		return 0;
 	ret = *(int *)state->data / tmp->ctype.alignment;
 	return ret;
+}
+
+static int get_array_size_bytes(struct expression *expr)
+{
+	struct symbol *tmp;
+	int array_size;
+
+	if (expr->type == EXPR_STRING)
+		return expr->string->length;
+
+	tmp = get_type(expr);
+	if (!tmp)
+		return 0;
+	array_size = get_array_size(expr);
+	return array_size * tmp->ctype.alignment;
 }
 
 static int definitely_just_used_as_limiter(struct expression *array, struct expression *offset)
@@ -353,30 +368,22 @@ static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 	struct expression *data;
 	char *dest_name = NULL;
 	char *data_name = NULL;
-	struct smatch_state *dest_state;
-	struct smatch_state *data_state;
 	int dest_size;
 	int data_size;
 
 	dest = get_argument_from_call_expr(expr->args, 0);
-	dest_name = get_variable_from_expr(dest, NULL);
-
 	data = get_argument_from_call_expr(expr->args, 1);
-	data_name = get_variable_from_expr(data, NULL);
+	dest_size = get_array_size_bytes(dest);
+	data_size = get_array_size_bytes(data);
+	if (!dest_size || !data_size)
+		return;
+	if (dest_size >= data_size)
+		return;
 
-	dest_state = get_state(my_size_id, dest_name, NULL);
-	if (!dest_state || !dest_state->data)
-		goto free;
-
-	data_state = get_state(my_size_id, data_name, NULL);
-	if (!data_state || !data_state->data)
-		goto free;
-	dest_size = *(int *)dest_state->data;
-	data_size = *(int *)data_state->data;
-	if (dest_size < data_size)
-		sm_msg("error: %s (%d) too large for %s (%d)", 
-			data_name, data_size, dest_name, dest_size);
-free:
+	dest_name = get_variable_from_expr_complex(dest, NULL);
+	data_name = get_variable_from_expr_complex(data, NULL);
+	sm_msg("error: %s() %s too large for %s (%d vs %d)", 
+		fn, data_name, dest_name, data_size, dest_size);
 	free_string(dest_name);
 	free_string(data_name);
 }
@@ -386,23 +393,21 @@ static void match_limitted(const char *fn, struct expression *expr, void *limit_
 	struct expression *dest;
 	struct expression *data;
 	char *dest_name = NULL;
-	struct smatch_state *state;
 	long long needed;
 	int has;
 
 	dest = get_argument_from_call_expr(expr->args, 0);
-	dest_name = get_variable_from_expr(dest, NULL);
-
 	data = get_argument_from_call_expr(expr->args, PTR_INT(limit_arg));
-	if (!get_value(data, &needed))
-		goto free;
-	state = get_state(my_size_id, dest_name, NULL);
-	if (!state || !state->data)
-		goto free;
-	has = *(int *)state->data;
-	if (has < needed)
-		sm_msg("error: %s too small for %lld bytes.", dest_name, needed);
-free:
+	if (!get_fuzzy_max(data, &needed))
+		return;
+	has = get_array_size_bytes(dest);
+	if (!has)
+		return;
+	if (has >= needed)
+		return;
+
+	dest_name = get_variable_from_expr_complex(dest, NULL);
+	sm_msg("error: %s() %s too small (%d vs %lld)", fn, dest_name, has, needed);
 	free_string(dest_name);
 }
 
