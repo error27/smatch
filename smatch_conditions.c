@@ -279,6 +279,7 @@ static void split_conditions(struct expression *expr)
 	   it's awkward to put it there.  We would need to 
 	   call CONDITION_HOOK in smatch_flow as well.
 	*/
+	push_expression(&big_expression_stack, expr);
 	if (expr->type == EXPR_COMPARE) {
 		if (expr->left->type != EXPR_POSTOP)
 			__split_expr(expr->left);
@@ -294,6 +295,7 @@ static void split_conditions(struct expression *expr)
 		if (expr->right->type == EXPR_POSTOP)
 			__split_expr(expr->right);
 	}	
+	pop_expression(&big_expression_stack);
 }
 
 static int inside_condition;
