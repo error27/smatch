@@ -147,15 +147,38 @@ static int get_initializer_size(struct expression *expr)
 	return 0;
 }
 
+static float get_cast_ratio(struct expression *unstripped)
+{
+	struct expression *start_expr;
+	struct symbol *start_type;
+	struct symbol *end_type;
+
+	start_expr = strip_expr(unstripped);
+	start_type  =  get_type(start_expr);
+	end_type = get_type(unstripped);
+	if (!start_type || !end_type)
+		return 1;
+	if (start_type->type == SYM_PTR)
+		start_type = get_base_type(start_type);
+	if (end_type->type == SYM_PTR)
+		end_type = get_base_type(end_type);
+	if (!start_type->ctype.alignment || !end_type->ctype.alignment)
+		return 1;
+	return start_type->ctype.alignment / end_type->ctype.alignment;
+}
+
 static int get_array_size(struct expression *expr)
 {
 	struct symbol *tmp;
 	struct smatch_state *state;
 	int ret = 0;
+	float cast_ratio;
 
 	if (expr->type == EXPR_STRING)
 		return expr->string->length;
 
+	cast_ratio = get_cast_ratio(expr);
+	expr = strip_expr(expr);
 	tmp = get_type(expr);
 	if (!tmp)
 		return 0;
@@ -165,7 +188,7 @@ static int get_array_size(struct expression *expr)
 		if (ret == 1 && is_last_struct_member(expr))
 			return 0;
 		if (ret)
-			return ret;
+			return ret * cast_ratio;
 	}
 
 	state = get_state_expr(my_size_id, expr);
@@ -177,12 +200,12 @@ static int get_array_size(struct expression *expr)
 		if (!tmp->ctype.alignment)
 			return 0;
 		ret = *(int *)state->data / tmp->ctype.alignment;
-		return ret;
+		return ret * cast_ratio;
 	}
 
 	if (expr->type == EXPR_SYMBOL && expr->symbol->initializer) {
 		if (expr->symbol->initializer != expr) /* int a = a; */
-			return get_initializer_size(expr->symbol->initializer);
+			return get_initializer_size(expr->symbol->initializer) * cast_ratio;
 	}
 	return 0;
 }
@@ -248,7 +271,7 @@ static void array_check(struct expression *expr)
 	if (!is_array(expr))
 		return;
 
-	array_expr = get_array_name(expr);
+	array_expr = strip_parens(expr->unop->left);
 	array_size = get_array_size(array_expr);
 	if (!array_size)
 		return;

@@ -19,6 +19,8 @@ int main(void)
 	printf("%d\n", s[6]);
 	printf("%d\n", s[7]);
 	printf("%d\n", s[8]);
+	printf("%d\n", ((short *)a)[6]);
+	printf("%d\n", ((short *)a)[8]);
 	strcpy(buf, "1234");
 
 	return 0;
@@ -29,6 +31,7 @@ int main(void)
  *
  * check-output-start
 sm_array_overflow4.c +21 main(13) error: buffer overflow 's' 8 <= 8
-sm_array_overflow4.c +22 main(14) error: strcpy() "1234" too large for buf (5 vs 4)
+sm_array_overflow4.c +23 main(15) error: buffer overflow 'a' 8 <= 8
+sm_array_overflow4.c +24 main(16) error: strcpy() "1234" too large for buf (5 vs 4)
  * check-output-end
  */
