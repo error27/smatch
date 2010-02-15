@@ -198,6 +198,8 @@ static int get_array_size_bytes(struct expression *expr)
 	tmp = get_type(expr);
 	if (!tmp)
 		return 0;
+	if (tmp->type == SYM_PTR)
+		tmp = get_base_type(tmp);
 	array_size = get_array_size(expr);
 	return array_size * tmp->ctype.alignment;
 }
