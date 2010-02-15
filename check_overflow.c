@@ -152,19 +152,27 @@ static float get_cast_ratio(struct expression *unstripped)
 	struct expression *start_expr;
 	struct symbol *start_type;
 	struct symbol *end_type;
+	int start_bytes = 0;
+	int end_bytes = 0;
 
 	start_expr = strip_expr(unstripped);
 	start_type  =  get_type(start_expr);
 	end_type = get_type(unstripped);
 	if (!start_type || !end_type)
 		return 1;
+
 	if (start_type->type == SYM_PTR)
-		start_type = get_base_type(start_type);
+		start_bytes = (get_base_type(start_type))->ctype.alignment;
+	if (start_type->type == SYM_ARRAY)
+		start_bytes = (get_base_type(start_type))->bit_size / 8;
 	if (end_type->type == SYM_PTR)
-		end_type = get_base_type(end_type);
-	if (!start_type->ctype.alignment || !end_type->ctype.alignment)
+		end_bytes = (get_base_type(end_type))->ctype.alignment;
+	if (end_type->type == SYM_ARRAY)
+		end_bytes = (get_base_type(end_type))->bit_size / 8;
+
+	if (!start_bytes || !end_bytes)
 		return 1;
-	return start_type->ctype.alignment / end_type->ctype.alignment;
+	return start_bytes / end_bytes;
 }
 
 static int get_array_size(struct expression *expr)
@@ -214,6 +222,7 @@ static int get_array_size_bytes(struct expression *expr)
 {
 	struct symbol *tmp;
 	int array_size;
+	int element_size;
 
 	if (expr->type == EXPR_STRING)
 		return expr->string->length;
@@ -221,10 +230,18 @@ static int get_array_size_bytes(struct expression *expr)
 	tmp = get_type(expr);
 	if (!tmp)
 		return 0;
-	if (tmp->type == SYM_PTR)
+
+	if (tmp->type == SYM_ARRAY) {
 		tmp = get_base_type(tmp);
+		element_size = tmp->bit_size / 8;
+	} else if (tmp->type == SYM_PTR) {
+		tmp = get_base_type(tmp);
+		element_size = tmp->ctype.alignment;
+	} else {
+		return 0;
+	}
 	array_size = get_array_size(expr);
-	return array_size * tmp->ctype.alignment;
+	return array_size * element_size;
 }
 
 static int definitely_just_used_as_limiter(struct expression *array, struct expression *offset)

@@ -3,7 +3,7 @@
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 
-int a[] = {1, 2 , 3, 4};
+long long a[] = {1, 2};
 
 int main(void)
 {
