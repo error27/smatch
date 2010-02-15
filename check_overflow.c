@@ -168,19 +168,23 @@ static int get_array_size(struct expression *expr)
 			return ret;
 	}
 
+	state = get_state_expr(my_size_id, expr);
+	if (state == &merged)
+		return 0;
+	if (state && state->data) {
+		if (tmp->type == SYM_PTR)
+			tmp = get_base_type(tmp);
+		if (!tmp->ctype.alignment)
+			return 0;
+		ret = *(int *)state->data / tmp->ctype.alignment;
+		return ret;
+	}
+
 	if (expr->type == EXPR_SYMBOL && expr->symbol->initializer) {
 		if (expr->symbol->initializer != expr) /* int a = a; */
 			return get_initializer_size(expr->symbol->initializer);
 	}
-	state = get_state_expr(my_size_id, expr);
-	if (!state || !state->data)
-		return 0;
-	if (tmp->type == SYM_PTR)
-		tmp = get_base_type(tmp);
-	if (!tmp->ctype.alignment)
-		return 0;
-	ret = *(int *)state->data / tmp->ctype.alignment;
-	return ret;
+	return 0;
 }
 
 static int get_array_size_bytes(struct expression *expr)
