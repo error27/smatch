@@ -552,21 +552,30 @@ static struct expression *fake_assign_expr(struct symbol *sym)
 	return e_assign;
 }
 
+static void do_initializer_stuff(struct symbol *sym)
+{
+	struct expression *assign;
+	struct expression *tmp;
+
+	if(!sym->initializer)
+		return;
+	__split_expr(sym->initializer);
+	assign = fake_assign_expr(sym);
+	if (__handle_condition_assigns(assign))
+		return;
+	__pass_to_client(assign, ASSIGNMENT_HOOK);
+	tmp = strip_expr(assign->right);
+	if (tmp->type == EXPR_CALL)
+		__pass_to_client(assign, CALL_ASSIGNMENT_HOOK);
+}
+
 static void split_declaration(struct symbol_list *sym_list)
 {
 	struct symbol *sym;
-	struct expression *assign, *tmp;
 
 	FOR_EACH_PTR(sym_list, sym) {
 		__pass_to_client(sym, DECLARATION_HOOK);
-		__split_expr(sym->initializer);
-		if(sym->initializer) {
-			assign = fake_assign_expr(sym);
-			__pass_to_client(assign, ASSIGNMENT_HOOK);
-			tmp = strip_expr(assign->right);
-			if (tmp->type == EXPR_CALL)
-				__pass_to_client(assign, CALL_ASSIGNMENT_HOOK);
-		}
+		do_initializer_stuff(sym);
 		split_sym(sym);
 	} END_FOR_EACH_PTR(sym);
 }
