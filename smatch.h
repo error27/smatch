@@ -235,6 +235,7 @@ extern int __bail_on_rest_of_function;
 
 /* smatch_conditions */
 void __split_whole_condition(struct expression *expr);
+int __handle_condition_assigns(struct expression *expr);
 
 /* smatch_implied.c */
 extern int option_debug_implied;

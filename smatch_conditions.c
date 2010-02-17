@@ -48,6 +48,7 @@
 
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 #include "smatch_expression_stacks.h"
 
 static void split_conditions(struct expression *expr);
@@ -314,6 +315,35 @@ void __split_whole_condition(struct expression *expr)
 	__pass_to_client(expr, WHOLE_CONDITION_HOOK);
 	pop_expression(&big_expression_stack);
 	inside_condition--;
+}
+
+int __handle_condition_assigns(struct expression *expr)
+{
+	struct expression *right;
+
+	right = strip_expr(expr->right);
+	if (right->type != EXPR_PREOP)
+		return 0;
+	if (right->op != '!')
+		return 0;
+	sm_debug("%d in __handle_condition_assigns\n", get_lineno());
+	inside_condition++;
+	__save_pre_cond_states();
+	__push_cond_stacks();
+	/* it's a hack, but it's sometimes handy to have this stuff 
+	   on the big_expression_stack.  */
+	push_expression(&big_expression_stack, right);
+	split_conditions(right);
+	set_true_false_states_expr(SMATCH_EXTRA, expr->left, alloc_extra_state(1), alloc_extra_state(0));
+	__use_cond_states();
+	__pass_to_client(right, WHOLE_CONDITION_HOOK);
+	pop_expression(&big_expression_stack);
+	inside_condition--;
+
+	__push_true_states();
+	__use_false_states();
+	__merge_true_states();
+	return 1;
 }
 
 int in_condition(void)
