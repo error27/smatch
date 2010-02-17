@@ -507,12 +507,14 @@ void check_overflow(int id)
 	add_function_assign_hook("malloc", &match_malloc, NULL);
 	add_function_hook("strcpy", &match_strcpy, NULL);
 	add_function_hook("strncpy", &match_limitted, (void *)2);
+	add_function_hook("memset", &match_limitted, (void *)2);
 	if (option_project == PROJ_KERNEL) {
 		add_function_assign_hook("kmalloc", &match_malloc, NULL);
 		add_function_assign_hook("kzalloc", &match_malloc, NULL);
 		add_function_assign_hook("vmalloc", &match_malloc, NULL);
 		add_function_hook("copy_to_user", &match_limitted, (void *)2);
 		add_function_hook("copy_from_user", &match_limitted, (void *)2);
+		add_function_hook("__builtin_memset", &match_limitted, (void *)2);
 	}
 	register_array_funcs();
 }
