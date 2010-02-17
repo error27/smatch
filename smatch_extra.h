@@ -24,9 +24,9 @@ DECLARE_ALLOCATOR(data_info);
 struct data_range *alloc_range_perm(long long min, long long max);
 void add_range(struct range_list **list, long long min, long long max);
 int true_comparison_range(struct data_range *left, int comparison, struct data_range *right);
-int possibly_true(int comparison, struct data_info *dinfo, int num, int left);
+int possibly_true(int comparison, struct data_info *dinfo, long long num, int left);
 int possibly_true_range_list(int comparison, struct data_info *dinfo, struct range_list *values, int left);
-int possibly_false(int comparison, struct data_info *dinfo, int num, int left);
+int possibly_false(int comparison, struct data_info *dinfo, long long num, int left);
 int possibly_false_range_list(int comparison, struct data_info *dinfo, struct range_list *values, int left);
 void free_data_info_allocs(void);
 struct range_list *clone_range_list(struct range_list *list);
@@ -42,7 +42,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 				struct expression *condition);
 
 /* also implemented in smatch_extra */
-struct smatch_state *alloc_extra_state(int val);
+struct smatch_state *alloc_extra_state(long long val);
 struct smatch_state *alloc_extra_state_range_list(struct range_list *rl);
 struct data_info *get_dinfo(struct smatch_state *state);
 struct smatch_state *add_filter(struct smatch_state *orig, long long filter);

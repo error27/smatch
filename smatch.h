@@ -240,7 +240,7 @@ int __handle_condition_assigns(struct expression *expr);
 /* smatch_implied.c */
 extern int option_debug_implied;
 extern int option_no_implied;
-void get_implications(char *name, struct symbol *sym, int comparison, int num,
+void get_implications(char *name, struct symbol *sym, int comparison, long long num,
 		      struct state_list **true_states,
 		      struct state_list **false_states);
 struct range_list_stack;
@@ -263,7 +263,6 @@ int get_implied_single_val(struct expression *expr, long long *val);
 int get_implied_single_fuzzy_max(struct expression *expr, long long *max);
 int get_implied_max(struct expression *expr, long long *val);
 int get_implied_min(struct expression *expr, long long *val);
-int true_comparison(int left, int comparison, int right);
 int known_condition_true(struct expression *expr);
 int known_condition_false(struct expression *expr);
 int implied_condition_true(struct expression *expr);

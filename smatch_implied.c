@@ -69,7 +69,7 @@ int option_no_implied = 0;
  * It messes things up to free range list allocations.  This helper fuction
  * lets us reuse memory instead of doing new allocations.
  */
-static struct range_list *tmp_range_list(long num)
+static struct range_list *tmp_range_list(long long num)
 {
 	static struct range_list *my_list = NULL;
 	static struct data_range *my_range;
@@ -510,7 +510,7 @@ static void match_end_func(struct symbol *sym)
 /*
  * get_implications() can be called by check_ scripts.
  */
-void get_implications(char *name, struct symbol *sym, int comparison, int num,
+void get_implications(char *name, struct symbol *sym, int comparison, long long num,
 		      struct state_list **true_states,
 		      struct state_list **false_states)
 {

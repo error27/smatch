@@ -403,7 +403,7 @@ int false_comparison_range_lr(int comparison, struct data_range *var, struct dat
 		return false_comparison_range(val, comparison, var);
 }
 
-int possibly_true(int comparison, struct data_info *dinfo, int num, int left)
+int possibly_true(int comparison, struct data_info *dinfo, long long num, int left)
 {
 	struct data_range *tmp;
 	struct data_range drange;
@@ -418,7 +418,7 @@ int possibly_true(int comparison, struct data_info *dinfo, int num, int left)
 	return 0;
 }
 
-int possibly_false(int comparison, struct data_info *dinfo, int num, int left)
+int possibly_false(int comparison, struct data_info *dinfo, long long num, int left)
 {
 	struct data_range *tmp;
 	struct data_range drange;

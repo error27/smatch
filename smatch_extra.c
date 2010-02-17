@@ -70,7 +70,7 @@ struct smatch_state *extra_undefined(void)
 	return ret;
 }
 
-struct smatch_state *alloc_extra_state(int val)
+struct smatch_state *alloc_extra_state(long long val)
 {
 	struct smatch_state *state;
 
