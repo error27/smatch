@@ -330,6 +330,8 @@ static void unop_expr(struct expression *expr)
 		return;
 	if (expr->op == '(')
 		return;
+	if (expr->op == '!')
+		return;
 	
 	name = get_variable_from_expr(expr->unop, &sym);
 	if (!name)
