@@ -23,7 +23,6 @@
  * state lists.  But really it's this file where all the magic happens.
  */
 
-
 #include <stdlib.h>
 #include <stdio.h>
 #include "smatch.h"
@@ -98,8 +97,7 @@ int unreachable(void)
 	return 1;
 }
 
-void set_state(int owner, const char *name, struct symbol *sym, 
-	       struct smatch_state *state)
+void set_state(int owner, const char *name, struct symbol *sym, struct smatch_state *state)
 {
 	if (!name)
 		return;
@@ -135,8 +133,7 @@ void set_state(int owner, const char *name, struct symbol *sym,
 	}
 }
 
-void set_state_expr(int owner, struct expression *expr,
-	       struct smatch_state *state)
+void set_state_expr(int owner, struct expression *expr, struct smatch_state *state)
 {
 	char *name;
 	struct symbol *sym;
@@ -199,8 +196,7 @@ free:
 	return ret;
 }
 
-struct state_list *get_possible_states(int owner, const char *name, 
-				       struct symbol *sym)
+struct state_list *get_possible_states(int owner, const char *name, struct symbol *sym)
 {
 	struct sm_state *sms;
 
@@ -350,8 +346,7 @@ free:
 	free_string(name);
 }
 
-void __set_true_false_sm(struct sm_state *true_state, 
-			struct sm_state *false_state)
+void __set_true_false_sm(struct sm_state *true_state, struct sm_state *false_state)
 {
 	if (unreachable())
 		return;
@@ -379,13 +374,13 @@ void __match_nullify_path_hook(const char *fn, struct expression *expr,
 {
 	nullify_path();
 }
+
 /*
  * At the start of every function we mark the path
  * as unnull.  That there is always at least one state
  * in the cur_slist until nullify_path is called.  This
  * is used in merge_slist() for the first null check.
  */
-
 void __unnullify_path(void)
 {
 	set_state(-1, "unnull_path", NULL, &true_state);
@@ -420,7 +415,6 @@ void clear_all_states(void)
 	free_every_single_sm_state();
 }
 
-
 void __push_cond_stacks(void)
 {
 	push_slist(&cond_true_stack, NULL);
@@ -435,7 +429,6 @@ void __push_cond_stacks(void)
  * In the false state it is null.  Combine the pre and the false to get
  * that when we call 'foo', 'a' is null.
  */
-
 static void __use_cond_stack(struct state_list_stack **stack)
 {
 	struct state_list *slist;
@@ -531,7 +524,6 @@ void __use_cond_states(void)
 	/* we use the true states right away */
 	free_slist(&cur_slist);
 	cur_slist = pre;
-
 
 	false_states = pop_slist(&cond_false_stack);	
 	overwrite_slist(false_states, &pre_clone);
@@ -720,8 +712,7 @@ int __pop_default(void)
 	return 0;
 }
 
-static struct named_slist *alloc_named_slist(const char *name, 
-					     struct state_list *slist)
+static struct named_slist *alloc_named_slist(const char *name, struct state_list *slist)
 {
 	struct named_slist *named_slist = __alloc_named_slist(0);
 
