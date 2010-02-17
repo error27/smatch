@@ -15,14 +15,14 @@ fi
 # But the line numbers change quite frequently so
 # really we only want to see if the line numbers
 # have changed inside the function.
-# The 42 in this messae:
+# The 42 in this message:
 # file.c +123 some_func(42) warn: blah blah blah
 #
 
 IFS="
 "
 for err in $(diff -u $old $new | grep ^+ | cut -b 2- | \
-    egrep '(warn|error):' | grep " +") ; do
+    egrep '(warn|error):' | grep " +[1-9]") ; do
 
     # we are only interested in the last chunk.
     # "some_func(42) warn: blah blah blah"
