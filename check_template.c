@@ -1,5 +1,5 @@
 /*
- * sparse/check_template.c
+ * smatch/check_template.c
  *
  * Copyright (C) 20XX Your Name.
  *
@@ -30,7 +30,7 @@
  */
 
 #include "smatch.h"
-#include "smatch_slist.h"  // blast this was supposed to be internal only stuff
+#include "smatch_slist.h"
 
 static int my_id;
 
