@@ -149,38 +149,9 @@ $(LIB_FILE): $(LIB_OBJS)
 $(SLIB_FILE): $(LIB_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) -Wl,-soname,$@ -shared -o $@ $(LIB_OBJS)
 
-smatch_flow.o: $(LIB_H) smatch.h smatch_expression_stacks.h smatch_extra.h
-smatch_conditions.o: $(LIB_H) smatch.h smatch_slist.h
-smatch_extra.o: $(LIB_H) smatch.h smatch_extra.h
-smatch_ranges.o: $(LIB_H) smatch.h smatch_extra.h
-smatch_implied.o: $(LIB_H) smatch.h smatch_slist.h smatch_extra.h
-smatch_ignore.o: $(LIB_H) smatch.h
-smatch_tracker.o: $(LIB_H) smatch.h
-smatch_files.o: $(LIB_H) smatch.h
-smatch_hooks.o: $(LIB_H) smatch.h
-smatch_function_hooks.o: $(LIB_H) smatch.h smatch_slist.h smatch_extra.h
-smatch_modification_hooks.o: $(LIB_H) smatch.h
-smatch_helper.o: $(LIB_H) smatch.h
-smatch_type.o: $(LIB_H) smatch.h
-smatch_slist.o: $(LIB_H) smatch.h smatch_slist.h
-smatch_states.o: $(LIB_H) smatch.h smatch_slist.h smatch_extra.h
-smatch_expression_stacks.o: $(LIB_H) smatch.h
-smatch_oom.c: $(LIB_H) smatch.h
-smatch_redefine.c: $(LIB_H) smatch.h
 smatch.o: smatch.c $(LIB_H) smatch.h check_list.h
 	$(CC) -c smatch.c -DSMATCHDATADIR='"$(SMATCHDATADIR)"'
 $(SMATCH_CHECKS): smatch.h smatch_slist.h smatch_extra.h
-test-unssa.o: $(LIB_H)
-ctags.o: $(LIB_H)
-compile.o: $(LIB_H) compile.h
-compile-i386.o: $(LIB_H) compile.h
-tokenize.o: $(LIB_H)
-sparse.o: $(LIB_H)
-obfuscate.o: $(LIB_H)
-example.o: $(LIB_H)
-storage.o: $(LIB_H)
-dissect.o: $(LIB_H)
-graph.o: $(LIB_H)
 DEP_FILES := $(wildcard .*.o.d)
 $(if $(DEP_FILES),$(eval include $(DEP_FILES)))
 
