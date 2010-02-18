@@ -322,10 +322,18 @@ int __handle_condition_assigns(struct expression *expr)
 	struct expression *right;
 
 	right = strip_expr(expr->right);
-	if (right->type != EXPR_PREOP)
+	switch(right->type) {
+	case EXPR_LOGICAL:
+	case EXPR_COMPARE:
+		break;
+	case EXPR_PREOP:
+		if (right->op == '!')
+			break;
 		return 0;
-	if (right->op != '!')
+	default:
 		return 0;
+	}
+
 	sm_debug("%d in __handle_condition_assigns\n", get_lineno());
 	inside_condition++;
 	__save_pre_cond_states();

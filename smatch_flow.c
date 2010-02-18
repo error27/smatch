@@ -96,14 +96,9 @@ void __split_expr(struct expression *expr)
 	case EXPR_STATEMENT:
 		__split_statements(expr->statement);
 		break;
-	case EXPR_LOGICAL:
-		__split_whole_condition(expr);
-		__push_true_states();
-		__use_false_states();
-		__merge_true_states();
-		break;
 	case EXPR_BINOP: 
 		__pass_to_client(expr, BINOP_HOOK);
+	case EXPR_LOGICAL:
 	case EXPR_COMMA:
 	case EXPR_COMPARE:
 		__split_expr(expr->left);
