@@ -315,9 +315,10 @@ void __split_whole_condition(struct expression *expr)
 	__pass_to_client(expr, WHOLE_CONDITION_HOOK);
 	pop_expression(&big_expression_stack);
 	inside_condition--;
+	sm_debug("%d done __split_whole_condition\n", get_lineno());
 }
 
-int __handle_condition_assigns(struct expression *expr)
+static int is_condition_assign(struct expression *expr)
 {
 	struct expression *right;
 
@@ -333,6 +334,16 @@ int __handle_condition_assigns(struct expression *expr)
 	default:
 		return 0;
 	}
+	return 1;
+}
+
+int __handle_condition_assigns(struct expression *expr)
+{
+	struct expression *right;
+
+	right = strip_expr(expr->right);
+	if (!is_condition_assign(expr))
+		return 0;
 
 	sm_debug("%d in __handle_condition_assigns\n", get_lineno());
 	inside_condition++;
@@ -347,6 +358,7 @@ int __handle_condition_assigns(struct expression *expr)
 	__pass_to_client(right, WHOLE_CONDITION_HOOK);
 	pop_expression(&big_expression_stack);
 	inside_condition--;
+	sm_debug("%d done __handle_condition_assigns\n", get_lineno());
 
 	__push_true_states();
 	__use_false_states();
