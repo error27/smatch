@@ -291,6 +291,15 @@ static void handle_post_loop(struct statement *stmt)
 	}
 }
 
+static int empty_statement(struct statement *stmt)
+{
+	if (!stmt)
+		return 0;
+	if (stmt->type == STMT_EXPRESSION && !stmt->expression)
+		return 1;
+	return 0;
+}
+
 static struct statement *last_stmt;
 static int is_last_stmt(struct statement *stmt)
 {
@@ -315,36 +324,37 @@ static void print_unreached(struct statement *stmt)
 
 	static int print = 1;
 
-	if (__path_is_null()) {
-		switch (stmt->type) {
-		case STMT_COMPOUND: /* after a switch before a case stmt */
-		case STMT_CASE:
-		case STMT_LABEL:
-			break;
-		case STMT_DECLARATION: /* switch (x) { int a; case foo: ... */
-			print_unreached_initializers(stmt->declaration);
-			break;
-		case STMT_RETURN: /* gcc complains if you don't have a return statement */
-			if (is_last_stmt(stmt))
-				break;
-		default:
-			if (print)
-				sm_msg("info: ignoring unreachable code.");
-			print = 0;
-		}
-	} else {
+	if (!__path_is_null()) {
 		print = 1;
+		return;
 	}
+	if (!print)
+		return;
 
-}
-
-static int empty_statement(struct statement *stmt)
-{
-	if (!stmt)
-		return 0;
-	if (stmt->type == STMT_EXPRESSION && !stmt->expression)
-		return 1;
-	return 0;
+	switch (stmt->type) {
+	case STMT_COMPOUND: /* after a switch before a case stmt */
+	case STMT_RANGE:
+	case STMT_CASE:
+	case STMT_LABEL:
+		return;
+	case STMT_DECLARATION: /* switch (x) { int a; case foo: ... */
+		print_unreached_initializers(stmt->declaration);
+		return;
+	case STMT_RETURN: /* gcc complains if you don't have a return statement */
+		if (is_last_stmt(stmt))
+			return;
+		break;
+	case STMT_GOTO:
+		if (!option_spammy)
+			return;
+		break;
+	default:
+		break;
+	}
+	if (!option_spammy && empty_statement(stmt))
+		return;
+	sm_msg("info: ignoring unreachable code.");
+	print = 0;
 }
 
 void __split_statements(struct statement *stmt)
