@@ -521,7 +521,6 @@ static void split_sym(struct symbol *sym)
 	split_symlist(sym->symbol_list);
 	__split_statements(sym->inline_stmt);
 	split_symlist(sym->inline_symbol_list);
-	__split_expr(sym->initializer);
 }
 
 static void split_symlist(struct symbol_list *sym_list)
@@ -550,18 +549,11 @@ static struct expression *fake_assign_expr(struct symbol *sym)
 static void do_initializer_stuff(struct symbol *sym)
 {
 	struct expression *assign;
-	struct expression *tmp;
 
 	if(!sym->initializer)
 		return;
-	__split_expr(sym->initializer);
 	assign = fake_assign_expr(sym);
-	if (__handle_condition_assigns(assign))
-		return;
-	__pass_to_client(assign, ASSIGNMENT_HOOK);
-	tmp = strip_expr(assign->right);
-	if (tmp->type == EXPR_CALL)
-		__pass_to_client(assign, CALL_ASSIGNMENT_HOOK);
+	__split_expr(assign);
 }
 
 static void split_declaration(struct symbol_list *sym_list)
