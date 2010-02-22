@@ -1,6 +1,5 @@
 #!/bin/bash -e
 
-MY_SIGNOFF="Signed-off-by: Your Name <email@example.com>"
 TMP_DIR=/tmp
 
 help()
@@ -8,6 +7,15 @@ help()
     echo "Usage: $0 <filename>"
     echo "You must be at the base of the kernel tree to run this."
     exit 1
+}
+
+signoff()
+{
+    name=$(mutt -Q realname | cut -d '"' -f 2)
+    [ "$name" = "" ] && name="Your Name"
+    email=$(mutt -Q from | cut -d '"' -f 2)
+    [ "$email" = "" ] && email="address@example.com"
+    echo "Signed-off-by: $name <${email}>"
 }
 
 continue_yn()
@@ -34,6 +42,8 @@ qc()
 if [ ! -f $1 ] ; then
     help
 fi
+
+MY_SIGNOFF=$(signoff)
 
 fullname=$1
 filename=$(basename $fullname)
