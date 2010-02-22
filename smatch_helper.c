@@ -524,6 +524,7 @@ struct expression *strip_expr(struct expression *expr)
 		return NULL;
 
 	switch (expr->type) {
+	case EXPR_FORCE_CAST:
 	case EXPR_CAST:
 		return strip_expr(expr->cast_expression);
 	case EXPR_PREOP:
