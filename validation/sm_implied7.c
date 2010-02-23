@@ -4,11 +4,11 @@ int frob(void) {
 	if (a && b != 1)
 		return;
 
-	__smatch_print_value("a");
+	__smatch_value("a");
 	if (b == 0 && c) {
-		__smatch_print_value("a");
+		__smatch_value("a");
 	}
-	__smatch_print_value("a");
+	__smatch_value("a");
 }
 /*
  * check-name: Smatch implied #7

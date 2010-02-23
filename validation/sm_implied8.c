@@ -8,19 +8,19 @@ void func (void)
 	int test, test2;
 
 	if (({int test = !!x; frob(); frob(); frob(); test;}))
-		__smatch_print_value("x");
+		__smatch_value("x");
 	else
-		__smatch_print_value("x");
+		__smatch_value("x");
 	if (test)
-		__smatch_print_value("x");
+		__smatch_value("x");
 	if (({test2 = !(x == 3); frob(); frob(); frob(); test2;}))
-		__smatch_print_value("x");
+		__smatch_value("x");
 	else
-		__smatch_print_value("x");
+		__smatch_value("x");
 	test = !!(x == 10);
 	if (!test)
-		__smatch_print_value("x");
-	__smatch_print_value("x");
+		__smatch_value("x");
+	__smatch_value("x");
 }
 /*
  * check-name: smatch implied #8

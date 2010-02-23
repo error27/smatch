@@ -7,18 +7,18 @@ void func(int y)
 	int test2;
 
 	if (({int test2 = !!(y < 0 || y >= 10); frob(); frob(); frob(); test2;}))
-		__smatch_print_value("y");
+		__smatch_value("y");
 	else
-		__smatch_print_value("y");
+		__smatch_value("y");
 
 	test2 = (y < 3 || y >= 5);
 	if (test2)
-		__smatch_print_value("y");
+		__smatch_value("y");
 	else
-		__smatch_print_value("y");
+		__smatch_value("y");
 
 	if (({int test3 = y < -98; frob(); frob(); frob(); test3;}))
-		__smatch_print_value("y");
+		__smatch_value("y");
 }
 /*
  * check-name: smatch implied #9

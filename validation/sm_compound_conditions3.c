@@ -5,15 +5,15 @@ int aaa;
 void func (void)
 {
 	if (aaa > 0 && aaa < 100) {
-		__smatch_print_value("aaa");
+		__smatch_value("aaa");
 	} else {
-		__smatch_print_value("aaa");
+		__smatch_value("aaa");
 	}
 	if (aaa > 0 && aaa < 100 && aaa < 10) {
-		__smatch_print_value("aaa");
+		__smatch_value("aaa");
 	} else {
 		if (aaa != 42)
-			__smatch_print_value("aaa");
+			__smatch_value("aaa");
 	}
 }
 /*

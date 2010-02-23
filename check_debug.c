@@ -63,7 +63,7 @@ void check_debug(int id)
 {
 	my_id = id;
 	add_function_hook("__smatch_all_values", &match_all_values, NULL);
-	add_function_hook("__smatch_print_value", &match_print_value, NULL);
+	add_function_hook("__smatch_value", &match_print_value, NULL);
 	add_function_hook("__smatch_cur_slist", &match_cur_slist, NULL);
 	add_function_hook("__smatch_note", &match_note, NULL);
 }

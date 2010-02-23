@@ -12,41 +12,41 @@ void func (void)
 		aaa = 2;
 
 	if (x) {
-		__smatch_print_value("aaa");
+		__smatch_value("aaa");
 		if (y)
-			__smatch_print_value("aaa");
+			__smatch_value("aaa");
 		else
-			__smatch_print_value("aaa");
+			__smatch_value("aaa");
 	}
 	if (!x) {		
-		__smatch_print_value("aaa");
+		__smatch_value("aaa");
 		if (y)		
-			__smatch_print_value("aaa");
+			__smatch_value("aaa");
 		else
-			__smatch_print_value("aaa");
+			__smatch_value("aaa");
 	}
 	if (y) {
-		__smatch_print_value("aaa");
+		__smatch_value("aaa");
 		if (x)
-			__smatch_print_value("aaa");
+			__smatch_value("aaa");
 		else
-			__smatch_print_value("aaa");
+			__smatch_value("aaa");
 	}
 	if (!y) {
-		__smatch_print_value("aaa");
+		__smatch_value("aaa");
 		if (x)		
-			__smatch_print_value("aaa");
+			__smatch_value("aaa");
 		else
-			__smatch_print_value("aaa");
+			__smatch_value("aaa");
 	}
 	if (x && y)
-		__smatch_print_value("aaa");
+		__smatch_value("aaa");
 	if (x || y)
-		__smatch_print_value("aaa");
+		__smatch_value("aaa");
 	else
-		__smatch_print_value("aaa");
+		__smatch_value("aaa");
 	if (!x && !y)
-		__smatch_print_value("aaa");
+		__smatch_value("aaa");
 }
 /*
  * check-name: Compound Conditions #2

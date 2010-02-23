@@ -7,14 +7,14 @@ int offset;
 void func(int *y)
 {
 	if (({int test2 = !!(!y || !*y); frob(); frob(); frob(); test2;}))
-		__smatch_print_value("y");
+		__smatch_value("y");
 	else
-		__smatch_print_value("y");
+		__smatch_value("y");
 
 	if (({int test2 = !!(offset >= 10 || x[offset] == 1); frob(); frob(); frob(); test2;}))
-		__smatch_print_value("offset");
+		__smatch_value("offset");
 	else
-		__smatch_print_value("offset");
+		__smatch_value("offset");
 
 }
 /*

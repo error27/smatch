@@ -3,27 +3,27 @@ int some_func();
 int a, b, c, d, e;
 int frob(void) {
 	if (a)
-		__smatch_print_value("a");
+		__smatch_value("a");
 	else
-		__smatch_print_value("a");
-	__smatch_print_value("a");
+		__smatch_value("a");
+	__smatch_value("a");
 	if (a) {
 		b = 0;
-		__smatch_print_value("b");
+		__smatch_value("b");
 	}
-	__smatch_print_value("b");
+	__smatch_value("b");
 	c = 0;
 	c = some_func();
-	__smatch_print_value("c");
+	__smatch_value("c");
 	if (d < -3 || d > 99)
 		return;
-	__smatch_print_value("d");
+	__smatch_value("d");
 	if (d) {
 		if (!e)
 			return;
 	}
-	__smatch_print_value("d");
-	__smatch_print_value("e");
+	__smatch_value("d");
+	__smatch_value("e");
 }
 /*
  * check-name: Smatch range test #2
