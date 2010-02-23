@@ -83,7 +83,7 @@ static int match_option(const char *arg, const char *option)
 	int ret = 0;
 
 	str = malloc(strlen(option) + 3); 
-	sprintf(str, "--%s", option);
+	snprintf(str, strlen(option) + 3, "--%s", option);
 	tmp = str;
 	while (*tmp) {
 		if (*tmp == '_')
