@@ -37,6 +37,8 @@ static void match_condition(struct expression *expr)
 				return;
 			if (is_bool(expr->right))
 				return;
+			if (is_bool(expr->left->unop))
+				return;
 			print = 1;
 		}
 	}
