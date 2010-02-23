@@ -59,7 +59,7 @@ static void match_assign(struct expression *expr)
 
 }
 
-static const char *get_tf(long long variable, long long known, int var_pos, char op)
+static const char *get_tf(long long variable, long long known, int var_pos, int op)
 {
 	if (op == SPECIAL_EQUAL)
 		return "false";
