@@ -279,7 +279,7 @@ long long get_dinfo_max(struct data_info *dinfo)
 /* 
  * if it can be only one and only value return 1, else return 0
  */
-int get_single_value_from_range(struct data_info *dinfo, long long *val)
+int get_single_value_from_dinfo(struct data_info *dinfo, long long *val)
 {
 	struct data_range *tmp;
 	int count = 0;

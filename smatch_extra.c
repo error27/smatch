@@ -176,7 +176,7 @@ void __extra_handle_canonical_for_loop(struct statement *loop)
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
 		return;
-	if (!get_single_value_from_range(get_dinfo(sm->state), &start))
+	if (!get_single_value_from_dinfo(get_dinfo(sm->state), &start))
 		return;
 	if (!get_value(condition->right, &end))
 		return;
@@ -450,7 +450,7 @@ static int get_implied_value_helper(struct expression *expr, long long *val, int
 	if (!state || !state->data)
 		return 0;
 	if (what == VAL_SINGLE)
-		return get_single_value_from_range(get_dinfo(state), val);
+		return get_single_value_from_dinfo(get_dinfo(state), val);
 	if (what == VAL_MAX) {
 		*val = get_dinfo_max(get_dinfo(state));
 		if (*val == whole_range.max) /* this means just guessing */
