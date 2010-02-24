@@ -112,7 +112,7 @@ static void match_condition(struct expression *expr)
 	}
 
 	type = get_type(var);
-	if (!type || type->bit_size >= 32)
+	if (!type)
 		return;
 
 	max = type_max(type);
