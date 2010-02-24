@@ -56,6 +56,16 @@ static struct symbol *get_return_type(struct expression *expr)
 	return get_base_type(tmp);
 }
 
+static struct symbol *get_pointer_type(struct expression *expr)
+{
+	struct symbol *sym;
+
+	sym = get_type(expr);
+	if (sym->type != SYM_PTR)
+		return NULL;
+	return get_base_type(sym);
+}
+
 static struct symbol *fake_pointer_sym(struct expression *expr)
 {
 	struct symbol *sym;
@@ -86,6 +96,8 @@ struct symbol *get_type(struct expression *expr)
 	case EXPR_PREOP:
 		if (expr->op == '&')
 			return fake_pointer_sym(expr);
+		if (expr->op == '*')
+			return get_pointer_type(expr->unop);
 		return get_type(expr->unop);
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
