@@ -19,7 +19,6 @@ enum project_type option_project = PROJ_NONE;
 char *data_dir;
 int option_no_data = 0;
 int option_spammy = 0;
-int option_rare = 0;
 int option_info = 0;
 int option_full_path = 0;
 int option_param_mapper = 0;
@@ -60,7 +59,6 @@ static void help(void)
 	printf("Usage:  smatch [smatch arguments][sparse arguments] file.c\n");
 	printf("--project=<name> or -p=<name>: project specific tests\n");
 	printf("--spammy:  print superfluous crap.\n");
-	printf("--rare:  do checks for rare bugs.\n");
 	printf("--info:  print info used to fill smatch_data/.\n");
 	printf("--debug:  print lots of debug output.\n");
 	printf("--param-mapper:  enable param_mapper output.\n");
@@ -128,7 +126,6 @@ void parse_args(int *argcp, char ***argvp)
 			(*argvp)++;
 		}
 		OPTION(spammy);
-		OPTION(rare);
 		OPTION(info);
 		OPTION(debug);
 		OPTION(debug_implied);

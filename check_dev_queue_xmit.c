@@ -115,7 +115,7 @@ static void register_funcs_from_file(void)
 
 void check_dev_queue_xmit(int id)
 {
-	if (option_project != PROJ_KERNEL || !option_rare)
+	if (option_project != PROJ_KERNEL || !option_spammy)
 		return;
 	my_id = id;
 	set_default_modification_hook(my_id, ok_to_use);

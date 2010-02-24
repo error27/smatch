@@ -370,7 +370,6 @@ extern char *option_project_str;
 extern char *data_dir;
 extern int option_no_data;
 extern int option_spammy;
-extern int option_rare;
 extern int option_full_path;
 extern int option_param_mapper;
 extern int option_info;
