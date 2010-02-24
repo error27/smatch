@@ -149,6 +149,53 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 	return tmp;
 }
 
+void __extra_handle_canonical_for_loop(struct statement *loop)
+{
+	struct expression *iter_expr;
+	struct expression *iter_var;
+	struct expression *condition;
+	struct sm_state *sm;
+	long long start;
+	long long end;
+
+	if (!loop->iterator_post_statement)
+		return;
+	if (loop->iterator_post_statement->type != STMT_EXPRESSION)
+		return;
+	iter_expr = loop->iterator_post_statement->expression;
+	if (!loop->iterator_pre_condition)
+		return;
+	if (loop->iterator_pre_condition->type != EXPR_COMPARE)
+		return;
+	condition = loop->iterator_pre_condition;
+
+
+	if (iter_expr->op != SPECIAL_INCREMENT)
+		return;
+	iter_var = iter_expr->unop;
+	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
+	if (!sm)
+		return;
+	if (!get_single_value_from_range(get_dinfo(sm->state), &start))
+		return;
+	if (!get_value(condition->right, &end))
+		return;
+	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
+		return;
+
+	switch (condition->op) {
+	case SPECIAL_NOTEQUAL:
+		set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(start, end - 1));
+		break;
+	case '<':
+		set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(start, end - 1));
+		break;
+	case SPECIAL_LTE:
+		set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(start, end));
+		break;
+	}
+}
+
 struct sm_state *__extra_pre_loop_hook_before(struct statement *iterator_pre_statement)
 {
 	struct expression *expr;
