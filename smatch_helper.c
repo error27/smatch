@@ -368,7 +368,8 @@ static long long _get_value(struct expression *expr, int *discard, int *undefine
 		return ret;
 	}
 	case EXPR_BINOP: {
-		int left, right;
+		long long left;
+		long long right;
 
 		left = _get_value(expr->left, discard, undefined, implied);
 		right = _get_value(expr->right, discard, undefined, implied);
