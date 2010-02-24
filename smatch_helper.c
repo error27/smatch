@@ -348,21 +348,21 @@ static long long _get_value(struct expression *expr, int *discard, int *undefine
 		switch (type->bit_size) {
 		case 8:
 			if (type->ctype.modifiers & MOD_UNSIGNED)
-				ret = (int)(unsigned char) ret;
+				ret = (long long)(unsigned char) ret;
 			else
-				ret = (int)(char) ret;
+				ret = (long long)(char) ret;
 			break;
 		case 16:
 			if (type->ctype.modifiers & MOD_UNSIGNED)
-				ret = (int)(unsigned short) ret;
+				ret = (long long)(unsigned short) ret;
 			else
-				ret = (int)(short) ret;
+				ret = (long long)(short) ret;
 			break;
 		case 32:
 			if (type->ctype.modifiers & MOD_UNSIGNED)
-				ret = (int)(unsigned int) ret;
+				ret = (long long)(unsigned int) ret;
 			else
-				ret = (int)(int) ret;
+				ret = (long long)(int) ret;
 			break;
 		}
 		return ret;
