@@ -123,6 +123,8 @@ long long type_max(struct symbol *base_type)
 	if (!base_type || !base_type->bit_size)
 		return ret;
 	bits = base_type->bit_size;
+	if (bits == 64)
+		return ret;
 	if (!type_unsigned(base_type))
 		bits--;
 	ret >>= (63 - bits);
