@@ -61,7 +61,7 @@ static struct symbol *get_pointer_type(struct expression *expr)
 	struct symbol *sym;
 
 	sym = get_type(expr);
-	if (sym->type != SYM_PTR)
+	if (!sym || sym->type != SYM_PTR)
 		return NULL;
 	return get_base_type(sym);
 }
