@@ -22,6 +22,37 @@ static int my_id;
 #define VAR_ON_RIGHT 0
 #define VAR_ON_LEFT 1
 
+static long long eqneq_max(struct symbol *base_type)
+{
+	long long ret = whole_range.max;
+	int bits;
+
+	if (!base_type || !base_type->bit_size)
+		return ret;
+	bits = base_type->bit_size;
+	if (bits == 64)
+		return ret;
+	if (bits < 32)
+		return type_max(base_type);
+	ret >>= (63 - bits);
+	return ret;
+}
+
+static long long eqneq_min(struct symbol *base_type)
+{
+	long long ret = whole_range.min;
+	int bits;
+
+	if (!base_type || !base_type->bit_size)
+		return ret;
+	if (base_type->bit_size < 32)
+		return type_min(base_type);
+	ret = whole_range.max;
+	bits = base_type->bit_size - 1;
+	ret >>= (63 - bits);
+	return -(ret + 1);
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct symbol *sym;
@@ -114,34 +145,20 @@ static void match_condition(struct expression *expr)
 	type = get_type(var);
 	if (!type)
 		return;
-
-	max = type_max(type);
-	min = type_min(type);
+	if (type->bit_size >= 32 && !option_spammy)
+		return;
 
 	name = get_variable_from_expr_complex(var, NULL);
 
-	if (known < 0 && type_unsigned(type)) {
-		sm_msg("error: comparing unsigned '%s' to negative", name);
+	if (expr->op == SPECIAL_EQUAL || expr->op == SPECIAL_NOTEQUAL) {
+		if (eqneq_max(type) < known || eqneq_min(type) > known)
+			sm_msg("error: %s is never equal to %lld (wrong type %lld - %lld).",
+				name, known, eqneq_min(type), eqneq_max(type));
 		goto free;
 	}
 
-	if (known == 0) {
-		if (!type_unsigned(type))
-			goto free;
-		if (lr == VAR_ON_LEFT) {
-			if (expr->op == '<')
-				sm_msg("error: unsigned '%s' cannot be less than 0", name);
-			if (expr->op == SPECIAL_LTE)
-				sm_msg("warn: unsigned '%s' cannot be less than 0", name);
-		}
-		if (lr == VAR_ON_RIGHT) {
-			if (expr->op == '>')
-				sm_msg("error: unsigned '%s' cannot be less than 0", name);
-			if (expr->op == SPECIAL_GTE)
-				sm_msg("warn: unsigned '%s' cannot be less than 0", name);
-		}
-		goto free;
-	}
+	max = type_max(type);
+	min = type_min(type);
 
 	if (max < known) {
 		const char *tf = get_tf(max, known, lr, expr->op);
