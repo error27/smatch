@@ -35,8 +35,7 @@ struct range_list *remove_range(struct range_list *list, long long min, long lon
 
 /* used in smatch_slist.  implemented in smatch_extra.c */
 int implied_not_equal(struct expression *expr, long long val);
-struct sm_state *__extra_pre_loop_hook_before(struct statement *iterator_pre_statement);
-void __extra_handle_canonical_for_loop(struct statement *loop);
+struct sm_state *__extra_handle_canonical_for_loop(struct statement *loop);
 int __iterator_unchanged(struct sm_state *sm, struct statement *iterator);
 void __extra_pre_loop_hook_after(struct sm_state *sm,
 				struct statement *iterator,

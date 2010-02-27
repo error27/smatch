@@ -149,7 +149,7 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 	return tmp;
 }
 
-void __extra_handle_canonical_for_loop(struct statement *loop)
+struct sm_state *__extra_handle_canonical_for_loop(struct statement *loop)
 {
 	struct expression *iter_expr;
 	struct expression *iter_var;
@@ -159,29 +159,29 @@ void __extra_handle_canonical_for_loop(struct statement *loop)
 	long long end;
 
 	if (!loop->iterator_post_statement)
-		return;
+		return NULL;
 	if (loop->iterator_post_statement->type != STMT_EXPRESSION)
-		return;
+		return NULL;
 	iter_expr = loop->iterator_post_statement->expression;
 	if (!loop->iterator_pre_condition)
-		return;
+		return NULL;
 	if (loop->iterator_pre_condition->type != EXPR_COMPARE)
-		return;
+		return NULL;
 	condition = loop->iterator_pre_condition;
 
 
 	if (iter_expr->op != SPECIAL_INCREMENT)
-		return;
+		return NULL;
 	iter_var = iter_expr->unop;
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
-		return;
+		return NULL;
 	if (!get_single_value_from_dinfo(get_dinfo(sm->state), &start))
-		return;
+		return NULL;
 	if (!get_value(condition->right, &end))
-		return;
+		return NULL;
 	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
-		return;
+		return NULL;
 
 	switch (condition->op) {
 	case SPECIAL_NOTEQUAL:
@@ -193,30 +193,10 @@ void __extra_handle_canonical_for_loop(struct statement *loop)
 	case SPECIAL_LTE:
 		set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(start, end));
 		break;
+	default:
+		return NULL;
 	}
-}
-
-struct sm_state *__extra_pre_loop_hook_before(struct statement *iterator_pre_statement)
-{
-	struct expression *expr;
-	char *name;
-	struct symbol *sym;
-	struct sm_state *ret = NULL;
-
-	if (!iterator_pre_statement)
-		return NULL;
- 	if (iterator_pre_statement->type != STMT_EXPRESSION)
-		return NULL;
-	expr = iterator_pre_statement->expression;
-	if (expr->type != EXPR_ASSIGNMENT)
-		return NULL;
-	name = get_variable_from_expr(expr->left, &sym);
-	if (!name || !sym)
-		goto free;
-	ret = get_sm_state(my_id, name, sym);
-free:
-	free_string(name);
-	return ret;
+	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
 int __iterator_unchanged(struct sm_state *sm, struct statement *iterator)

@@ -225,9 +225,7 @@ static void handle_pre_loop(struct statement *stmt)
 	__split_whole_condition(stmt->iterator_pre_condition);
 	__in_pre_condition--;
 
-	__extra_handle_canonical_for_loop(stmt);
-	if (once_through)
-		extra_state = __extra_pre_loop_hook_before(stmt->iterator_pre_statement);
+	extra_state = __extra_handle_canonical_for_loop(stmt);
 	if (option_assume_loops)
 		once_through = 1;
 
