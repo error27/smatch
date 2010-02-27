@@ -549,8 +549,8 @@ static void match_comparison(struct expression *expr)
 	long long fixed;
 	char *name = NULL;
 	struct symbol *sym;
-	struct smatch_state *one_state;
-	struct smatch_state *two_state;
+	struct smatch_state *true_state;
+	struct smatch_state *false_state;
 	struct smatch_state *orig;
 	int left = 0;
 	int comparison = expr->op;
@@ -559,7 +559,7 @@ static void match_comparison(struct expression *expr)
 	if (!get_value(expr->left, &fixed)) { 
 		if (!get_value(expr->right, &fixed))
 			return;
-		varies = expr->left;
+		varies = strip_expr(expr->left);
 		left = 1;
 	}
 	if (varies->op == SPECIAL_INCREMENT || varies->op == SPECIAL_DECREMENT) 
@@ -580,56 +580,58 @@ static void match_comparison(struct expression *expr)
 	switch (comparison) {
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
-		one_state = filter_range(orig, whole_range.min, fixed - 1);
-		two_state = filter_range(orig, fixed, whole_range.max); 
-		if (left)		
-			set_true_false_states(my_id, name, sym, two_state, one_state);
-		else
-			set_true_false_states(my_id, name, sym, one_state, two_state);
-		return;
+		if (left) {
+			true_state = filter_range(orig, fixed, whole_range.max);
+			false_state = filter_range(orig, whole_range.min, fixed - 1);
+		} else {
+			true_state = filter_range(orig, whole_range.min, fixed);
+			false_state = filter_range(orig, fixed + 1, whole_range.max); 
+		}
+		break;
 	case SPECIAL_UNSIGNED_LTE:
 	case SPECIAL_LTE:
-		one_state = filter_range(orig, whole_range.min, fixed);
-		two_state = filter_range(orig, fixed + 1, whole_range.max); 
-		if (left)		
-			set_true_false_states(my_id, name, sym, two_state, one_state);
-		else
-			set_true_false_states(my_id, name, sym, one_state, two_state);
-		return;
+		if (left) {
+			true_state = filter_range(orig, fixed + 1, whole_range.max);
+			false_state = filter_range(orig, whole_range.min, fixed);
+		} else { 
+			true_state = filter_range(orig, whole_range.min, fixed - 1);
+			false_state = filter_range(orig, fixed, whole_range.max);
+		}
+		break;
 	case SPECIAL_EQUAL:
 		// todo.  print a warning here for impossible conditions.
-		one_state = alloc_extra_state(fixed);
-		two_state = filter_range(orig, fixed, fixed); 
-		set_true_false_states(my_id, name, sym, one_state, two_state);
-		return;
+		true_state = alloc_extra_state(fixed);
+		false_state = filter_range(orig, fixed, fixed);
+		break;
 	case SPECIAL_UNSIGNED_GTE:
 	case SPECIAL_GTE:
-		one_state = filter_range(orig, whole_range.min, fixed - 1);
-		two_state = filter_range(orig, fixed, whole_range.max); 
-		if (left)		
-			set_true_false_states(my_id, name, sym, one_state, two_state);
-		else
-			set_true_false_states(my_id, name, sym, two_state, one_state);
-		return;
+		if (left) {
+			true_state = filter_range(orig, whole_range.min, fixed - 1);
+			false_state = filter_range(orig, fixed, whole_range.max);
+		} else {
+			true_state = filter_range(orig, fixed + 1, whole_range.max);
+			false_state = filter_range(orig, whole_range.min, fixed);
+		}
+		break;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
-		one_state = filter_range(orig, whole_range.min, fixed);
-		two_state = filter_range(orig, fixed + 1, whole_range.max); 
-		if (left)		
-			set_true_false_states(my_id, name, sym, one_state, two_state);
-		else
-			set_true_false_states(my_id, name, sym, two_state, one_state);
-		return;
+		if (left) {
+			true_state = filter_range(orig, whole_range.min, fixed);
+			false_state = filter_range(orig, fixed + 1, whole_range.max);
+		} else {
+			true_state = filter_range(orig, fixed, whole_range.max);
+			false_state = filter_range(orig, whole_range.min, fixed - 1);
+		}
+		break;
 	case SPECIAL_NOTEQUAL:
-		one_state = alloc_extra_state(fixed);
-		two_state = filter_range(orig, fixed, fixed); 
-		set_true_false_states(my_id, name, sym, two_state, one_state);
-		return;
+		true_state = filter_range(orig, fixed, fixed); 
+		false_state = alloc_extra_state(fixed);
+		break;
 	default:
 		sm_msg("unhandled comparison %d\n", comparison);
-		return;
+		goto free;
 	}
-	return;
+	set_true_false_states(my_id, name, sym, true_state, false_state);
 free:
 	free_string(name);
 }
