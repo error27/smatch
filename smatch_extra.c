@@ -149,7 +149,41 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 	return tmp;
 }
 
-struct sm_state *__extra_handle_canonical_for_loop(struct statement *loop)
+static struct sm_state *handle_canonical_while_count_down(struct statement *loop)
+{
+	struct expression *iter_var;
+	struct expression *condition;
+	struct sm_state *sm;
+	long long start;
+
+	condition = strip_expr(loop->iterator_pre_condition);
+	if (!condition)
+		return NULL;
+	if (condition->type != EXPR_PREOP && condition->type != EXPR_POSTOP)
+		return NULL;
+	if (condition->op != SPECIAL_DECREMENT)
+		return NULL;
+
+	iter_var = condition->unop;
+	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
+	if (!sm)
+		return NULL;
+	/*
+	  Hack alert.  The other bits of smatch extra have just set the 
+	  iter var as "min to (original value - 1)"
+	*/
+	start = get_dinfo_max(get_dinfo(sm->state));
+	if  (start <= 0)
+		return NULL;
+
+	if (condition->type == EXPR_PREOP)
+		set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(1, start));
+	if (condition->type == EXPR_POSTOP)
+		set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(0, start));
+	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
+}
+
+static struct sm_state *handle_canonical_for_loops(struct statement *loop)
 {
 	struct expression *iter_expr;
 	struct expression *iter_var;
@@ -199,28 +233,38 @@ struct sm_state *__extra_handle_canonical_for_loop(struct statement *loop)
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
-int __iterator_unchanged(struct sm_state *sm, struct statement *iterator)
+struct sm_state *__extra_handle_canonical_loops(struct statement *loop)
 {
-	struct expression *iter_expr;
-	char *name;
-	struct symbol *sym;
-	int ret = 0;
+	if (!loop->iterator_post_statement)
+		return handle_canonical_while_count_down(loop);
+	else
+		return handle_canonical_for_loops(loop);
+}
 
-	if (!iterator)
+int __iterator_unchanged(struct sm_state *sm)
+{
+	if (!sm)
 		return 0;
-	if (iterator->type != STMT_EXPRESSION)
-		return 0;
-	iter_expr = iterator->expression;
-	if (iter_expr->op != SPECIAL_INCREMENT && iter_expr->op != SPECIAL_DECREMENT)
-		return 0;
-	name = get_variable_from_expr(iter_expr->unop, &sym);
-	if (!name || !sym)
-		goto free;
-	if (get_sm_state(my_id, name, sym) == sm)
-		ret = 1;
-free:
-	free_string(name);
-	return ret;
+	if (get_sm_state(my_id, sm->name, sm->sym) == sm)
+		return 1;
+	return 0;
+}
+
+static void while_count_down_after(struct sm_state *sm, struct expression *condition)
+{
+	long long after_value;
+
+	/* paranoid checking.  prolly not needed */
+	condition = strip_expr(condition);
+	if (!condition)
+		return;
+	if (condition->type != EXPR_PREOP && condition->type != EXPR_POSTOP)
+		return;
+	if (condition->op != SPECIAL_DECREMENT)
+		return;
+	after_value = get_dinfo_min(get_dinfo(sm->state));
+	after_value--;
+	set_state(SMATCH_EXTRA, sm->name, sm->sym, alloc_extra_state(after_value));
 }
 
 void __extra_pre_loop_hook_after(struct sm_state *sm,
@@ -235,6 +279,11 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	struct smatch_state *state;
 	struct data_info *dinfo;
 	long long min, max;
+
+	if (!iterator) {
+		while_count_down_after(sm, condition);
+		return;
+	}
 
 	iter_expr = iterator->expression;
 
@@ -765,8 +814,22 @@ int implied_condition_true(struct expression *expr)
 	if (!expr)
 		return 0;
 
-	if (get_value(expr, &tmp) && tmp)
+	if (get_implied_value(expr, &tmp) && tmp)
 		return 1;
+
+	if ((expr->type == EXPR_PREOP || expr->type == EXPR_POSTOP) && 
+		expr->op == SPECIAL_DECREMENT) {
+		struct smatch_state *state;
+
+		expr = strip_expr(expr->unop);
+		state = get_state_expr(SMATCH_EXTRA, expr);
+		if (!state)
+			return 0;
+		val = get_dinfo_max(get_dinfo(state));
+		if (val && val != whole_range.max)
+			return 1;
+		return 0;
+	}
 	
 	expr = strip_expr(expr);
 	switch (expr->type) {

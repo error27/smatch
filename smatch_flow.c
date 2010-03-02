@@ -205,7 +205,7 @@ static char *get_loop_name(int num)
 static void handle_pre_loop(struct statement *stmt)
 {
 	int once_through; /* we go through the loop at least once */
-	struct sm_state *extra_state = NULL;
+	struct sm_state *extra_sm = NULL;
 	int unchanged = 0;
 	char *loop_name;
 
@@ -225,7 +225,7 @@ static void handle_pre_loop(struct statement *stmt)
 	__split_whole_condition(stmt->iterator_pre_condition);
 	__in_pre_condition--;
 
-	extra_state = __extra_handle_canonical_for_loop(stmt);
+	extra_sm = __extra_handle_canonical_loops(stmt);
 	if (option_assume_loops)
 		once_through = 1;
 
@@ -239,15 +239,14 @@ static void handle_pre_loop(struct statement *stmt)
 		__use_breaks();
 	} else if (once_through) {
 		__merge_continues();
-		if (extra_state)
-			unchanged = __iterator_unchanged(extra_state, stmt->iterator_post_statement);
+		unchanged = __iterator_unchanged(extra_sm);
 		__split_statements(stmt->iterator_post_statement);
 		__save_gotos(loop_name);
 		__split_whole_condition(stmt->iterator_pre_condition);
 		nullify_path();
 		__merge_false_states();
-		if (extra_state && unchanged)
-			__extra_pre_loop_hook_after(extra_state,
+		if (extra_sm && unchanged)
+			__extra_pre_loop_hook_after(extra_sm,
 				stmt->iterator_post_statement, stmt->iterator_pre_condition);
 		__pop_false_states();
 		__merge_breaks();
