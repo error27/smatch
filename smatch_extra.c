@@ -687,7 +687,10 @@ void __extra_match_condition(struct expression *expr)
 			return;
 		pre_state = get_state(my_id, name, sym);
 		true_state = add_filter(pre_state, 0);
-		false_state = alloc_extra_state(0);
+		if (possibly_true(SPECIAL_EQUAL, get_dinfo(pre_state), 0, 0))
+			false_state = alloc_extra_state(0);
+		else
+			false_state = NULL;
 		set_true_false_states(my_id, name, sym, true_state, false_state);
 		free_string(name);
 		return;

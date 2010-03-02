@@ -408,6 +408,9 @@ int possibly_true(int comparison, struct data_info *dinfo, long long num, int le
 	struct data_range *tmp;
 	struct data_range drange;
 
+	if (!dinfo)
+		return 1;
+
 	drange.min = num;
 	drange.max = num;
 
@@ -422,6 +425,9 @@ int possibly_false(int comparison, struct data_info *dinfo, long long num, int l
 {
 	struct data_range *tmp;
 	struct data_range drange;
+
+	if (!dinfo)
+		return 1;
 
 	drange.min = num;
 	drange.max = num;
