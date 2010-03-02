@@ -251,7 +251,7 @@ static int definitely_just_used_as_limiter(struct expression *array, struct expr
 	int step = 0;
 	int dot_ops = 0;
 
-	if (!get_value(offset, &val))
+	if (!get_implied_value(offset, &val))
 		return 0;
 	if (get_array_size(array) != val)
 		return 0;
