@@ -209,15 +209,16 @@ static struct sm_state *handle_canonical_for_loops(struct statement *loop)
 		return NULL;
 	if (!get_single_value_from_dinfo(get_dinfo(sm->state), &start))
 		return NULL;
-	if (!get_value(condition->right, &end))
-		return NULL;
+	if (!get_implied_value(condition->right, &end))
+		end = whole_range.max;
 	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
 		return NULL;
 
 	switch (condition->op) {
 	case SPECIAL_NOTEQUAL:
 	case '<':
-		end--;
+		if (end != whole_range.max)
+			end--;
 		break;
 	case SPECIAL_LTE:
 		break;
