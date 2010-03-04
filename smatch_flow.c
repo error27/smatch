@@ -246,7 +246,7 @@ static void handle_pre_loop(struct statement *stmt)
 		__pop_continues();
 		__pop_false_states();
 		__use_breaks();
-	} else if (once_through) {
+	} else {
 		__merge_continues();
 		unchanged = __iterator_unchanged(extra_sm);
 		__split_statements(stmt->iterator_post_statement);
@@ -254,19 +254,16 @@ static void handle_pre_loop(struct statement *stmt)
 		__split_whole_condition(stmt->iterator_pre_condition);
 		nullify_path();
 		__merge_false_states();
-		if (extra_sm && unchanged)
-			__extra_pre_loop_hook_after(extra_sm,
-				stmt->iterator_post_statement, stmt->iterator_pre_condition);
-		__pop_false_states();
-		__merge_breaks();
-	} else {
-		__merge_continues();
-		__split_statements(stmt->iterator_post_statement);
-		__save_gotos(loop_name);
-		__split_whole_condition(stmt->iterator_pre_condition);
-		nullify_path();
-		__merge_false_states();
-		__merge_false_states();
+		if (once_through) {
+			if (extra_sm && unchanged)
+				__extra_pre_loop_hook_after(extra_sm, 
+							stmt->iterator_post_statement,
+							stmt->iterator_pre_condition);
+			__pop_false_states();
+		} else {
+			__merge_false_states();
+
+		}
 		__merge_breaks();
 	}
 }
