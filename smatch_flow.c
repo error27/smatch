@@ -14,7 +14,7 @@
 #include "smatch.h"
 #include "smatch_expression_stacks.h"
 #include "smatch_extra.h"
-#include "smatch_slist.h" // just for sname.
+#include "smatch_slist.h"
 
 int final_pass;
 
@@ -208,6 +208,8 @@ static void handle_pre_loop(struct statement *stmt)
 	struct sm_state *extra_sm = NULL;
 	int unchanged = 0;
 	char *loop_name;
+	struct state_list *slist = NULL;
+	struct sm_state *sm = NULL;
 
  	loop_name = get_loop_name(loop_num);
 	loop_num++;
@@ -221,11 +223,18 @@ static void handle_pre_loop(struct statement *stmt)
 
 	__merge_gotos(loop_name);
 
+
+	extra_sm = __extra_handle_canonical_loops(stmt, &slist);
 	__in_pre_condition++;
 	__split_whole_condition(stmt->iterator_pre_condition);
 	__in_pre_condition--;
+	FOR_EACH_PTR(slist, sm) {
+		set_state(sm->owner, sm->name, sm->sym, sm->state);
+	} END_FOR_EACH_PTR(sm);
+	free_slist(&slist);
+	if (extra_sm)
+		extra_sm = get_sm_state(extra_sm->owner, extra_sm->name, extra_sm->sym);
 
-	extra_sm = __extra_handle_canonical_loops(stmt);
 	if (option_assume_loops)
 		once_through = 1;
 

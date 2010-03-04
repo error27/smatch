@@ -168,13 +168,10 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
 		return NULL;
-	/*
-	  Hack alert.  The other bits of smatch extra have just set the 
-	  iter var as "min to (original value - 1)"
-	*/
 	start = get_dinfo_max(get_dinfo(sm->state));
-	if  (start <= 0)
+	if  (start <= 0 || start == whole_range.max)
 		return NULL;
+	start--;
 
 	if (condition->type == EXPR_PREOP)
 		set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(1, start));
@@ -219,26 +216,35 @@ static struct sm_state *handle_canonical_for_loops(struct statement *loop)
 
 	switch (condition->op) {
 	case SPECIAL_NOTEQUAL:
-		set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(start, end - 1));
-		break;
 	case '<':
-		set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(start, end - 1));
+		end--;
 		break;
 	case SPECIAL_LTE:
-		set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(start, end));
 		break;
 	default:
 		return NULL;
 	}
+	if (end < start) {
+		sm_msg("warn: this is a strange loop");
+		return NULL;
+	}
+	set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(start, end));
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
-struct sm_state *__extra_handle_canonical_loops(struct statement *loop)
+struct sm_state *__extra_handle_canonical_loops(struct statement *loop, struct state_list **slist)
 {
+	struct sm_state *ret;
+
+	__fake_cur = 1;
 	if (!loop->iterator_post_statement)
-		return handle_canonical_while_count_down(loop);
+		ret = handle_canonical_while_count_down(loop);
 	else
-		return handle_canonical_for_loops(loop);
+		ret = handle_canonical_for_loops(loop);
+	*slist = __fake_cur_slist;
+	__fake_cur_slist = NULL;
+	__fake_cur = 0;
+	return ret;
 }
 
 int __iterator_unchanged(struct sm_state *sm)
