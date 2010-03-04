@@ -828,19 +828,13 @@ int implied_condition_true(struct expression *expr)
 	if (get_implied_value(expr, &tmp) && tmp)
 		return 1;
 
-	if ((expr->type == EXPR_PREOP || expr->type == EXPR_POSTOP) && 
-		expr->op == SPECIAL_DECREMENT) {
-		struct smatch_state *state;
+	if (expr->type == EXPR_POSTOP)
+		return implied_condition_true(expr->unop);
 
-		expr = strip_expr(expr->unop);
-		state = get_state_expr(SMATCH_EXTRA, expr);
-		if (!state)
-			return 0;
-		val = get_dinfo_max(get_dinfo(state));
-		if (val && val != whole_range.max)
-			return 1;
-		return 0;
-	}
+	if (expr->type == EXPR_PREOP && expr->op == SPECIAL_DECREMENT)
+		return implied_not_equal(expr->unop, 1);
+	if (expr->type == EXPR_PREOP && expr->op == SPECIAL_INCREMENT)
+		return implied_not_equal(expr->unop, -1);
 	
 	expr = strip_expr(expr);
 	switch (expr->type) {
