@@ -169,9 +169,10 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 	if (!sm)
 		return NULL;
 	start = get_dinfo_max(get_dinfo(sm->state));
-	if  (start <= 0 || start == whole_range.max)
+	if  (start <= 0)
 		return NULL;
-	start--;
+	if (start != whole_range.max)
+		start--;
 
 	if (condition->type == EXPR_PREOP)
 		set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(1, start));
