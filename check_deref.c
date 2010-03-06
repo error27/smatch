@@ -50,14 +50,12 @@ static void is_ok(const char *name, struct symbol *sym, struct expression *expr,
 	set_state(my_id, name, sym, &ok);
 }
 
-static void match_dereferences(struct expression *expr)
+static void check_dereference(struct expression *expr)
 {
 	struct sm_state *sm;
 	struct sm_state *tmp;
 
-	if (expr->type != EXPR_PREOP)
-		return;
-	expr = strip_expr(expr->unop);
+	expr = strip_expr(expr);
 	sm = get_sm_state_expr(my_id, expr);
 	if (!sm)
 		return;
@@ -82,6 +80,20 @@ static void match_dereferences(struct expression *expr)
 			tmp->name, tmp->state->name);
 		return;
 	} END_FOR_EACH_PTR(tmp);
+}
+
+static void match_dereferences(struct expression *expr)
+{
+	if (expr->type != EXPR_PREOP)
+		return;
+	check_dereference(expr->unop);
+}
+
+static void match_pointer_as_array(struct expression *expr)
+{
+	if (!is_array(expr))
+		return;
+	check_dereference(expr->unop->left);
 }
 
 static void match_declarations(struct symbol *sym)
@@ -152,8 +164,8 @@ void check_deref(int id)
 
 	add_unmatched_state_hook(my_id, &unmatched_state);
  	set_default_modification_hook(my_id, &is_ok);
-
 	add_hook(&match_dereferences, DEREF_HOOK);
+	add_hook(&match_pointer_as_array, OP_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
