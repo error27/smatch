@@ -286,7 +286,7 @@ static void split_conditions(struct expression *expr)
 			__split_expr(expr->left);
 		if (expr->right->type != EXPR_POSTOP)
 			__split_expr(expr->right);
-	} else {
+	} else if (expr->type != EXPR_POSTOP) {
 		__split_expr(expr);
 	}
 	__pass_to_client(expr, CONDITION_HOOK);
@@ -295,7 +295,9 @@ static void split_conditions(struct expression *expr)
 			__split_expr(expr->left);
 		if (expr->right->type == EXPR_POSTOP)
 			__split_expr(expr->right);
-	}	
+	} else if (expr->type == EXPR_POSTOP) {
+		__split_expr(expr);
+	}
 	pop_expression(&big_expression_stack);
 }
 
