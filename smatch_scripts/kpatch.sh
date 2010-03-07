@@ -56,6 +56,9 @@ qc "Have you handled all the errors properly?"
 if git diff $fullname | grep ^+ | grep -qi alloc ; then
     qc "Have you freed all your mallocs?"
 fi
+if git diff $fullname | grep ^+ | grep -qi alloc ; then
+    qc "Have you check all your mallocs for NULL returns?"
+fi
 
 kchecker --spammy $fullname
 kchecker --sparse $fullname
