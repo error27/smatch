@@ -679,3 +679,6 @@ xt_alloc_table_info
 z_comp_alloc
 z_decomp_alloc
 zoran_setup_videocodec
+kmalloc
+kzalloc
+kcalloc

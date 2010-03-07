@@ -27,6 +27,8 @@
 
 static int my_id;
 
+#define __GFP_NOFAIL 0x800
+
 STATE(null);
 STATE(ok);
 STATE(uninitialized);
@@ -129,10 +131,29 @@ static void match_condition(struct expression *expr)
 	set_true_false_states_expr(my_id, expr, &ok, NULL);
 }
 
-static void match_assign_returns_null(const char *fn, struct expression *expr, void *unused)
+static int called_with_no_fail(struct expression *call, int param)
+{
+	struct expression *arg;
+	long long val;
+
+	if (param == -1)
+		return 0;
+	call = strip_expr(call);
+	if (call->type != EXPR_CALL)
+		return 0;
+	arg = get_argument_from_call_expr(call->args, param);
+	if (get_value(arg, &val) && (val & __GFP_NOFAIL))
+		return 1;
+	return 0;
+}
+
+static void match_assign_returns_null(const char *fn, struct expression *expr, void *_gfp)
 {
 	struct smatch_state *state;
+	int gfp_param = (int)_gfp;
 
+	if (called_with_no_fail(expr->right, gfp_param))
+		return;
 	state = alloc_my_state(fn);
 	set_state_expr(my_id, expr->left, state);
 }
@@ -141,8 +162,9 @@ static void register_allocation_funcs(void)
 {
 	struct token *token;
 	const char *func;
+	int arg;
 
-	token = get_tokens_file("kernel.allocation_funcs");
+	token = get_tokens_file("kernel.allocation_funcs_gfp");
 	if (!token)
 		return;
 	if (token_type(token) != TOKEN_STREAMBEGIN)
@@ -152,7 +174,14 @@ static void register_allocation_funcs(void)
 		if (token_type(token) != TOKEN_IDENT)
 			return;
 		func = show_ident(token->ident);
-		add_function_assign_hook(func, &match_assign_returns_null, NULL);
+		token = token->next;
+		if (token_type(token) == TOKEN_IDENT)
+			arg = -1;
+		else if (token_type(token) == TOKEN_NUMBER)
+			arg = atoi(token->number);
+		else
+			return;
+		add_function_assign_hook(func, &match_assign_returns_null, INT_PTR(arg));
 		token = token->next;
 	}
 	clear_token_alloc();
