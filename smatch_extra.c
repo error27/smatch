@@ -927,6 +927,20 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 	return 0;
 }
 
+int is_whole_range(struct smatch_state *state)
+{
+	struct data_info *dinfo;
+	struct data_range *drange;
+
+	if (!state)
+		return 0;
+	dinfo = get_dinfo(state);
+	drange = first_ptr_list((struct ptr_list *)dinfo->value_ranges);
+	if (drange->min == whole_range.min && drange->max == whole_range.max)
+		return 1;
+	return 0;
+}
+
 void register_smatch_extra(int id)
 {
 	my_id = id;

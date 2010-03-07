@@ -309,6 +309,14 @@ static void array_check(struct expression *expr)
 		if (definitely_just_used_as_limiter(array_expr, offset))
 			return;
 
+		if (!option_spammy) {
+			struct smatch_state *state;
+			
+			state = get_state_expr(SMATCH_EXTRA, offset);
+			if (state && is_whole_range(state))
+				return;
+		}
+
 		name = get_variable_from_expr_complex(array_expr, NULL);
 		/* Blast.  Smatch can't figure out glibc's strcmp __strcmp_cg()
 		 * so it prints an error every time you compare to a string
