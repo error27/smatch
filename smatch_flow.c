@@ -223,7 +223,6 @@ static void handle_pre_loop(struct statement *stmt)
 
 	__merge_gotos(loop_name);
 
-
 	extra_sm = __extra_handle_canonical_loops(stmt, &slist);
 	__in_pre_condition++;
 	__split_whole_condition(stmt->iterator_pre_condition);

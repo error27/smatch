@@ -390,6 +390,10 @@ static void get_tf_states(struct expression *expr,
 	char *name;
 	struct sm_state *sm;
 
+
+	if (expr->type == EXPR_POSTOP)
+		expr = strip_expr(expr->unop);
+
 	if (expr->type == EXPR_COMPARE) {
 		handle_comparison(expr, implied_true, implied_false);
 		return;
@@ -407,6 +411,7 @@ static void get_tf_states(struct expression *expr,
 	sm = get_sm_state(SMATCH_EXTRA, name, sym);
 	if (!sm)
 		goto free;
+
 	separate_and_filter(sm, SPECIAL_NOTEQUAL, tmp_range_list(0), LEFT, __get_cur_slist(), implied_true, implied_false);
 	delete_state_slist(implied_true, SMATCH_EXTRA, name, sym);
 	delete_state_slist(implied_false, SMATCH_EXTRA, name, sym);
