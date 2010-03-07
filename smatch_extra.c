@@ -226,10 +226,8 @@ static struct sm_state *handle_canonical_for_loops(struct statement *loop)
 	default:
 		return NULL;
 	}
-	if (end < start) {
-		sm_msg("warn: this is a strange loop");
+	if (end < start)
 		return NULL;
-	}
 	set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(start, end));
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
