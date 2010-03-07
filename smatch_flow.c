@@ -255,15 +255,15 @@ static void handle_pre_loop(struct statement *stmt)
 		nullify_path();
 		__merge_false_states();
 		if (once_through) {
-			if (extra_sm && unchanged)
-				__extra_pre_loop_hook_after(extra_sm, 
-							stmt->iterator_post_statement,
-							stmt->iterator_pre_condition);
 			__pop_false_states();
 		} else {
 			__merge_false_states();
 
 		}
+		if (extra_sm && unchanged)
+			__extra_pre_loop_hook_after(extra_sm, 
+						stmt->iterator_post_statement,
+						stmt->iterator_pre_condition);
 		__merge_breaks();
 	}
 }

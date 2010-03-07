@@ -168,6 +168,8 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
 		return NULL;
+	if (get_dinfo_min(get_dinfo(sm->state)) < 0)
+		return NULL;
 	start = get_dinfo_max(get_dinfo(sm->state));
 	if  (start <= 0)
 		return NULL;
