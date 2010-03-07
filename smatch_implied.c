@@ -347,6 +347,22 @@ static char *get_implication_variable(struct expression *expr, struct symbol **s
 	return get_variable_from_expr(expr, symp);
 }
 
+static int get_known_value(struct expression *expr, long long *val)
+{
+	struct sm_state *sm;
+
+	if (get_value(expr, val))
+		return 1;
+	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
+	if (!sm)
+		return 0;
+	if (!get_single_value_from_dinfo(get_dinfo(sm->state), val))
+		return 0;
+	if (!is_implied(sm))
+		return 1;
+	return 0;
+}
+
 static void handle_comparison(struct expression *expr,
 			      struct state_list **implied_true,
 			      struct state_list **implied_false)
@@ -357,9 +373,9 @@ static void handle_comparison(struct expression *expr,
 	long long value;
 	int lr;
 
-	if (get_value(expr->right, &value))
+	if (get_known_value(expr->right, &value))
 		lr = LEFT;
-	else if (get_value(expr->left, &value))
+	else if (get_known_value(expr->left, &value))
 		lr = RIGHT;
 	else
 		return;
