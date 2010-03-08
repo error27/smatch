@@ -68,7 +68,7 @@ static void dont_check(const char *fn, struct expression *expr, void *unused)
 	if (!condition_name)
 		goto free;
 	if (!strcmp(name, condition_name))
-		sm_msg("warn: redundant null check on %s calling %s()", name, fn);
+		sm_msg("info: redundant null check on %s calling %s()", name, fn);
 
 free:
 	free_string(name);
