@@ -23,6 +23,19 @@ static int is_bool(struct expression *expr)
 	return 0;
 }
 
+static int is_bool_op(struct expression *expr)
+{
+	expr = strip_expr(expr);
+
+	if (expr->type == EXPR_PREOP && expr->op == '!')
+		return 1;
+	if (expr->type == EXPR_COMPARE)
+		return 1;
+	if (expr->type == EXPR_LOGICAL)
+		return 1;
+	return is_bool(expr);
+}
+
 static void match_condition(struct expression *expr)
 {
 	int print = 0;
@@ -50,6 +63,17 @@ static void match_condition(struct expression *expr)
 
 	if (print)
 		sm_msg("warn: add some parenthesis here?");
+
+	if (expr->type == EXPR_BINOP && expr->op == '&') {
+		int i = 0;
+
+		if (is_bool_op(expr->left))
+			i++;
+		if (is_bool_op(expr->right))
+			i++;
+		if (i == 1)
+			sm_msg("warn: maybe use && instead of &");
+	}
 }
 
 static void match_binop(struct expression *expr)
