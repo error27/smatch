@@ -61,6 +61,9 @@ static void match_assign(struct expression *expr)
 	long long min;
 	char *name;
 
+	if (expr->op == SPECIAL_AND_ASSIGN || expr->op == SPECIAL_OR_ASSIGN)
+		return;
+
 	sym = get_type(expr->left);
 	if (!sym) {
 		//sm_msg("could not get type");
@@ -79,7 +82,9 @@ static void match_assign(struct expression *expr)
 	min = type_min(sym);
 	if (min > val) {
 		if (min == 0 && val == -1) /* assigning -1 to unsigned variables is idiomatic */
-			return; 
+			return;
+		if (expr->right->type == EXPR_PREOP && expr->right->op == '~')
+			return;
 		name = get_variable_from_expr_complex(expr->left, NULL);
 		if (min == 0)
 			sm_msg("warn: assigning %lld to unsigned variable '%s'", val, name);
