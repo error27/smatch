@@ -112,7 +112,8 @@ struct symbol *get_type(struct expression *expr)
 		return get_base_type(tmp);
 	case EXPR_CALL:
 		return get_return_type(expr);
-//	default:
+	default:
+		return expr->ctype;
 //		sm_msg("unhandled type %d", expr->type);
 	}
 

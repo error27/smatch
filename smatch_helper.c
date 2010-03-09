@@ -303,6 +303,36 @@ int sym_name_is(const char *name, struct expression *expr)
 	return 0;
 }
 
+static long long cast_to_type(struct expression *expr, long long val)
+{
+	struct symbol *type = get_type(expr);
+
+	if (!type)
+		return val;
+
+	switch (type->bit_size) {
+	case 8:
+		if (type->ctype.modifiers & MOD_UNSIGNED)
+			val = (long long)(unsigned char) val;
+		else
+			val = (long long)(char) val;
+		break;
+	case 16:
+		if (type->ctype.modifiers & MOD_UNSIGNED)
+			val = (long long)(unsigned short) val;
+		else
+			val = (long long)(short) val;
+		break;
+	case 32:
+		if (type->ctype.modifiers & MOD_UNSIGNED)
+			val = (long long)(unsigned int) val;
+		else
+			val = (long long)(int) val;
+		break;
+	}
+	return val;
+}
+
 #define NOTIMPLIED 0
 #define IMPLIED 1
 #define FUZZYMAX 2
@@ -329,11 +359,18 @@ static long long _get_value(struct expression *expr, int *discard, int *undefine
  	switch (expr->type){
 	case EXPR_VALUE:
 		ret = expr->value;
+		ret = cast_to_type(expr, ret);
 		break;
 	case EXPR_PREOP:
-		if (expr->op == '-') {
+		switch(expr->op) {
+		case '~':
+			ret = ~ _get_value(expr->unop, discard, undefined, implied);
+			ret = cast_to_type(expr->unop, ret);
+			break;
+		case '-':
 			ret = - _get_value(expr->unop, discard, undefined, implied);
-		} else {
+			break;
+		default:
 			*undefined = 1;
 			*discard = 1;
 		}
@@ -389,6 +426,8 @@ static long long _get_value(struct expression *expr, int *discard, int *undefine
 			ret = left >> right;
 		} else if (expr->op == SPECIAL_LEFTSHIFT) {
 			ret = left << right;
+		} else if (expr->op == '^') {
+			ret = left ^ right;
 		} else {
 			*undefined = 1;
 			*discard = 1;
