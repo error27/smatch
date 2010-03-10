@@ -15,11 +15,18 @@ else
     exit 1
 fi
 
-POST="--project=kernel"
-
 while true ; do
     if [[ "$1" == "--sparse" ]] ; then
 	CMD="sparse"
+	shift
+    elif [[ "$1" == "--test-parsing" ]] ; then
+	CMD="$SCRIPT_DIR/../test-parsing -no-lineno"
+	shift
+    elif echo "$1" | grep -q -- "--outfile=" ; then
+	outfile=$(echo "$1" | cut -d '=' -f 2)
+	if [ "outfile" != "" ] ; then
+	    POST="$POST > $outfile"
+	fi
 	shift
     elif [[ "$1" == "--valgrind" ]] ; then
 	PRE="valgrind"
@@ -39,6 +46,9 @@ while true ; do
 	shift
     fi
 done
+if echo $CMD | grep -q smatch ; then
+    POST="--project=kernel $POST"
+fi
 
 cname=$1
 cname=$(echo ${cname/.o/.c})
@@ -54,4 +64,5 @@ if ! echo $oname | grep .o$ > /dev/null ; then
     useage
 fi
 rm -f $oname
+
 make C=y CHECK="$PRE $CMD $POST" $oname
