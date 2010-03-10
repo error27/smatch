@@ -20,7 +20,7 @@ void func (void)
  * check-command: smatch sm_redundant_check.c
  *
  * check-output-start
-sm_redundant_check.c +8 func(3) warn: redundant null check on x calling free()
-sm_redundant_check.c +13 func(8) warn: redundant null check on z calling free()
+sm_redundant_check.c +8 func(3) info: redundant null check on x calling free()
+sm_redundant_check.c +13 func(8) info: redundant null check on z calling free()
  * check-output-end
  */
