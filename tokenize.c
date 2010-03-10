@@ -26,6 +26,7 @@ int input_stream_nr = 0;
 struct stream *input_streams;
 static int input_streams_allocated;
 unsigned int tabstop = 8;
+int no_lineno = 0;
 
 #define BUFSIZE (8192)
 
@@ -53,7 +54,11 @@ static struct position stream_pos(stream_t *stream)
 	pos.newline = stream->newline;
 	pos.whitespace = stream->whitespace;
 	pos.pos = stream->pos;
+
 	pos.line = stream->line;
+	if (no_lineno)
+		pos.line = 123456;
+
 	pos.noexpand = 0;
 	return pos;
 }

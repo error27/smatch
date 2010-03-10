@@ -49,6 +49,7 @@ struct stream {
 extern int input_stream_nr;
 extern struct stream *input_streams;
 extern unsigned int tabstop;
+extern int no_lineno;
 
 struct ident {
 	struct ident *next;	/* Hash chain of identifiers */

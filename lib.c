@@ -621,6 +621,12 @@ static char **handle_base_dir(char *arg, char **next)
 	return next;
 }
 
+static char **handle_no_lineno(char *arg, char **next)
+{
+	no_lineno = 1;
+	return next;
+}
+
 struct switches {
 	const char *name;
 	char **(*fn)(char *, char **);
@@ -631,6 +637,7 @@ static char **handle_switch(char *arg, char **next)
 	static struct switches cmd[] = {
 		{ "nostdinc", handle_nostdinc },
 		{ "gcc-base-dir", handle_base_dir},
+		{ "no-lineno", handle_no_lineno},
 		{ NULL, NULL }
 	};
 	struct switches *s;
