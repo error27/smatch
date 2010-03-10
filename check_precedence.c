@@ -61,8 +61,10 @@ static void match_condition(struct expression *expr)
 			print = 1;
 	}
 
-	if (print)
+	if (print) {
 		sm_msg("warn: add some parenthesis here?");
+		return;
+	}
 
 	if (expr->type == EXPR_BINOP && expr->op == '&') {
 		int i = 0;
