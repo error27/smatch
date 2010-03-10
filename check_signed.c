@@ -128,7 +128,8 @@ static void match_condition(struct expression *expr)
 {
 	long long known;
 	struct expression *var = NULL;
-	struct symbol *type = NULL;
+	struct symbol *var_type = NULL;
+	struct symbol *known_type = NULL;
 	long long max;
 	long long min;
 	int lr;
@@ -140,30 +141,32 @@ static void match_condition(struct expression *expr)
 	if (get_value(expr->left, &known)) {
 		lr = VAR_ON_RIGHT;
 		var = expr->right;
+		known_type = get_type(expr->left);
 	} else if (get_value(expr->right, &known)) {
 		lr = VAR_ON_LEFT;
 		var = expr->left;
+		known_type = get_type(expr->right);
 	} else {
 		return;
 	}
 
-	type = get_type(var);
-	if (!type)
+	var_type = get_type(var);
+	if (!var_type)
 		return;
-	if (type->bit_size >= 32 && !option_spammy)
+	if (var_type->bit_size >= 32 && !option_spammy)
 		return;
 
 	name = get_variable_from_expr_complex(var, NULL);
 
 	if (expr->op == SPECIAL_EQUAL || expr->op == SPECIAL_NOTEQUAL) {
-		if (eqneq_max(type) < known || eqneq_min(type) > known)
+		if (eqneq_max(var_type) < known || eqneq_min(var_type) > known)
 			sm_msg("error: %s is never equal to %lld (wrong type %lld - %lld).",
-				name, known, eqneq_min(type), eqneq_max(type));
+				name, known, eqneq_min(var_type), eqneq_max(var_type));
 		goto free;
 	}
 
-	max = type_max(type);
-	min = type_min(type);
+	max = type_max(var_type);
+	min = type_min(var_type);
 
 	if (max < known) {
 		const char *tf = get_tf(max, known, lr, expr->op);
@@ -172,8 +175,12 @@ static void match_condition(struct expression *expr)
 			known, max, name, tf);
 	}
 
-	if (min > known) {
-		const char *tf = get_tf(max, known, lr, expr->op);
+	if (type_unsigned(var_type) && known_type && !type_unsigned(known_type) && known < 0) {
+		sm_msg("warn: unsigned '%s' is never less than zero (%lld).", name, known);
+	}
+
+	if (min < 0 && min > known) {
+		const char *tf = get_tf(min, known, lr, expr->op);
 
 		sm_msg("warn: %lld is less than %lld (min '%s' can be) so this is always %s.",
 			known, min, name, tf);
