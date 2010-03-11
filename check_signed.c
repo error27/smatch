@@ -175,8 +175,15 @@ static void match_condition(struct expression *expr)
 			known, max, name, tf);
 	}
 
+	if (known == 0 && type_unsigned(var_type)) {
+		if ((lr && expr->op == '<') || (!lr && expr->op == '>'))
+			sm_msg("warn: unsigned '%s' is never less than zero.", name);
+		goto free;
+	}
+
 	if (type_unsigned(var_type) && known_type && !type_unsigned(known_type) && known < 0) {
 		sm_msg("warn: unsigned '%s' is never less than zero (%lld).", name, known);
+		goto free;
 	}
 
 	if (min < 0 && min > known) {
