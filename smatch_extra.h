@@ -15,6 +15,7 @@ DECLARE_PTR_LIST(range_list, struct data_range);
 DECLARE_PTR_LIST(range_list_stack, struct range_list);
 
 struct data_info {
+	struct tracker_list *equiv;
 	enum data_type type;
 	struct range_list *value_ranges;
 };
