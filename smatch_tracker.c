@@ -33,6 +33,19 @@ void add_tracker(struct tracker_list **list, int owner, const char *name,
 	add_ptr_list(list, tmp);
 }
 
+void add_tracker_expr(struct tracker_list **list, int owner, struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	add_tracker(list, owner, name, sym);
+free:
+	free_string(name);
+}
+
 void del_tracker(struct tracker_list **list, int owner, const char *name, 
 		struct symbol *sym)
 {

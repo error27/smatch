@@ -210,6 +210,7 @@ int is_ignored(int owner, const char *name, struct symbol *sym);
 struct tracker *alloc_tracker(int owner, const char *name, struct symbol *sym);
 void add_tracker(struct tracker_list **list, int owner, const char *name, 
 		struct symbol *sym);
+void add_tracker_expr(struct tracker_list **list, int owner, struct expression *expr);
 void del_tracker(struct tracker_list **list, int owner, const char *name, 
 		struct symbol *sym);
 int in_tracker_list(struct tracker_list *list, int owner, const char *name, 
