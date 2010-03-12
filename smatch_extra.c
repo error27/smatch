@@ -59,6 +59,26 @@ static struct data_info *alloc_dinfo_range_list(struct range_list *rl)
 	return ret;
 }
 
+static struct data_info *clone_dinfo(struct data_info *dinfo)
+{
+	struct data_info *ret;
+
+	ret = alloc_dinfo();
+	ret->equiv = clone_tracker_list(dinfo->equiv);
+	ret->value_ranges = dinfo->value_ranges;
+	return ret;
+}
+
+static struct smatch_state *clone_extra_state(struct smatch_state *state)
+{
+	struct smatch_state *ret;
+
+	ret = __alloc_smatch_state(0);
+	ret->name = state->name;
+	ret->data = clone_dinfo(get_dinfo(state));
+	return ret;
+}
+
 static struct smatch_state *alloc_extra_state_empty(void)
 {
 	struct smatch_state *state;
@@ -375,10 +395,50 @@ static void match_function_call(struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
+static void add_equiv(struct smatch_state *state, const char *name, struct symbol *sym)
+{
+	struct data_info *dinfo;
+
+	dinfo = get_dinfo(state);
+	add_tracker(&dinfo->equiv, SMATCH_EXTRA, name, sym);
+}
+
+static void add_equiv_expr(struct smatch_state *state, struct expression *expr)
+{
+	struct data_info *dinfo;
+
+	dinfo = get_dinfo(state);
+	add_tracker_expr(&dinfo->equiv, SMATCH_EXTRA, expr);
+}
+
+static void set_equiv(struct sm_state *right_sm, struct expression *left)
+{
+	struct smatch_state *state;
+	struct data_info *dinfo;
+	struct tracker *tracker;
+
+	state = clone_extra_state(right_sm->state);
+	dinfo = get_dinfo(state);
+
+	if (!set_state_expr(SMATCH_EXTRA, left, state))
+		return;
+
+	if (!dinfo->equiv) {
+		set_state(right_sm->owner, right_sm->name, right_sm->sym, state);
+		add_equiv(state, right_sm->name, right_sm->sym);
+	} else {
+		FOR_EACH_PTR(dinfo->equiv, tracker) {
+			set_state(tracker->owner, tracker->name, tracker->sym, state);
+		} END_FOR_EACH_PTR(tracker);
+	}
+	add_equiv_expr(state, left);
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct expression *left;
 	struct expression *right;
+	struct sm_state *right_sm;
 	struct symbol *sym;
 	char *name;
 	long long value;
@@ -395,6 +455,12 @@ static void match_assign(struct expression *expr)
 	right = strip_expr(expr->right);
 	while (right->type == EXPR_ASSIGNMENT && right->op == '=')
 		right = strip_expr(right->left);
+
+	right_sm = get_sm_state_expr(SMATCH_EXTRA, right);
+	if (expr->op == '=' && right_sm) {
+		set_equiv(right_sm, left);
+		goto free;
+	}
 
 	known = get_implied_range_list(right, &rl);
 	if (expr->op == '=') {
