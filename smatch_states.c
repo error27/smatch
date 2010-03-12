@@ -97,10 +97,12 @@ int unreachable(void)
 	return 1;
 }
 
-void set_state(int owner, const char *name, struct symbol *sym, struct smatch_state *state)
+struct sm_state *set_state(int owner, const char *name, struct symbol *sym, struct smatch_state *state)
 {
+	struct sm_state *ret;
+
 	if (!name)
-		return;
+		return NULL;
 	
 	if (option_debug) {
 		struct smatch_state *s;
@@ -116,36 +118,37 @@ void set_state(int owner, const char *name, struct symbol *sym, struct smatch_st
 	}
 
 	if (owner != -1 && unreachable())
-		return;
+		return NULL;
 
 	__use_default_modification_hook(owner, name);
 
 	if (__fake_cur) {
-		set_state_slist(&__fake_cur_slist, owner, name, sym, state);
-		return;
+		return set_state_slist(&__fake_cur_slist, owner, name, sym, state);
 	}
 
-	set_state_slist(&cur_slist, owner, name, sym, state);
+	ret =  set_state_slist(&cur_slist, owner, name, sym, state);
 
 	if (cond_true_stack) {
 		set_state_stack(&cond_true_stack, owner, name, sym, state);
 		set_state_stack(&cond_false_stack, owner, name, sym, state);
 	}
+	return ret;
 }
 
-void set_state_expr(int owner, struct expression *expr, struct smatch_state *state)
+struct sm_state *set_state_expr(int owner, struct expression *expr, struct smatch_state *state)
 {
 	char *name;
 	struct symbol *sym;
+	struct sm_state *ret = NULL;
 
 	expr = strip_expr(expr);
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
 		goto free;
-	set_state(owner, name, sym, state);
+	ret = set_state(owner, name, sym, state);
 free:
 	free_string(name);
-
+	return ret;
 }
 
 void __set_state(struct sm_state *sm)

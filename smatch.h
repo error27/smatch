@@ -153,9 +153,9 @@ struct smatch_state *get_state_expr(int owner, struct expression *expr);
 struct state_list *get_possible_states(int owner, const char *name, 
 				       struct symbol *sym);
 struct state_list *get_possible_states_expr(int owner, struct expression *expr);
-void set_state(int owner, const char *name, struct symbol *sym, 
+struct sm_state *set_state(int owner, const char *name, struct symbol *sym, 
 	       struct smatch_state *state);
-void set_state_expr(int owner, struct expression *expr,
+struct sm_state *set_state_expr(int owner, struct expression *expr,
 		struct smatch_state *state);
 void delete_state(int owner, const char *name, struct symbol *sym);
 void delete_state_expr(int owner, struct expression *expr);

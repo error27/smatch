@@ -430,7 +430,7 @@ void overwrite_sm_state_stack(struct state_list_stack **stack,
 	push_slist(stack, slist);
 }
 
-void set_state_slist(struct state_list **slist, int owner, const char *name, 
+struct sm_state *set_state_slist(struct state_list **slist, int owner, const char *name, 
  		     struct symbol *sym, struct smatch_state *state)
 {
  	struct sm_state *tmp;
@@ -441,13 +441,14 @@ void set_state_slist(struct state_list **slist, int owner, const char *name,
 			continue;
 		else if (cmp_tracker(tmp, new) == 0) {
 			REPLACE_CURRENT_PTR(tmp, new);
-			return;
+			return new;
 		} else {
 			INSERT_CURRENT(new, tmp);
-			return;
+			return new;
 		}
 	} END_FOR_EACH_PTR(tmp);
 	add_ptr_list(slist, new);
+	return new;
 }
 
 void delete_state_slist(struct state_list **slist, int owner, const char *name, 

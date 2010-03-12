@@ -41,7 +41,7 @@ struct sm_state *get_sm_state_slist(struct state_list *slist, int owner, const c
 void overwrite_sm_state(struct state_list **slist, struct sm_state *state);
 void overwrite_sm_state_stack(struct state_list_stack **stack,
 			struct sm_state *state);
-void set_state_slist(struct state_list **slist, int owner, const char *name, 
+struct sm_state *set_state_slist(struct state_list **slist, int owner, const char *name, 
 		     struct symbol *sym, struct smatch_state *state);
 
 void delete_state_slist(struct state_list **slist, int owner, const char *name, 
