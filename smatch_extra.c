@@ -30,6 +30,27 @@ struct data_range whole_range = {
 	.max = LLONG_MAX,	
 };
 
+static struct data_info *alloc_dinfo_range(long long min, long long max)
+{
+	struct data_info *ret;
+
+	ret = __alloc_data_info(0);
+	ret->type = DATA_RANGE;
+	ret->value_ranges = NULL;
+	add_range(&ret->value_ranges, min, max);
+	return ret;
+}
+
+static struct data_info *alloc_dinfo_range_list(struct range_list *rl)
+{
+	struct data_info *ret;
+
+	ret = __alloc_data_info(0);
+	ret->type = DATA_RANGE;
+	ret->value_ranges = rl;
+	return ret;
+}
+
 static struct smatch_state *alloc_extra_state_empty(void)
 {
 	struct smatch_state *state;

@@ -104,27 +104,6 @@ struct data_range *alloc_range_perm(long long min, long long max)
 	return ret;
 }
 
-struct data_info *alloc_dinfo_range(long long min, long long max)
-{
-	struct data_info *ret;
-
-	ret = __alloc_data_info(0);
-	ret->type = DATA_RANGE;
-	ret->value_ranges = NULL;
-	add_range(&ret->value_ranges, min, max);
-	return ret;
-}
-
-struct data_info *alloc_dinfo_range_list(struct range_list *rl)
-{
-	struct data_info *ret;
-
-	ret = __alloc_data_info(0);
-	ret->type = DATA_RANGE;
-	ret->value_ranges = rl;
-	return ret;
-}
-
 void add_range(struct range_list **list, long long min, long long max)
 {
 	struct data_range *tmp = NULL;

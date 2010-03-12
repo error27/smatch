@@ -48,8 +48,6 @@ struct data_info *get_dinfo(struct smatch_state *state);
 struct smatch_state *add_filter(struct smatch_state *orig, long long filter);
 struct smatch_state *extra_undefined(void);
 
-struct data_info *alloc_dinfo_range(long long min, long long max);
-struct data_info *alloc_dinfo_range_list(struct range_list *rl);
 struct range_list *range_list_union(struct range_list *one, struct range_list *two);
 long long get_dinfo_min(struct data_info *dinfo);
 long long get_dinfo_max(struct data_info *dinfo);
