@@ -65,7 +65,7 @@ static struct data_info *clone_dinfo(struct data_info *dinfo)
 
 	ret = alloc_dinfo();
 	ret->equiv = clone_tracker_list(dinfo->equiv);
-	ret->value_ranges = dinfo->value_ranges;
+	ret->value_ranges = clone_range_list(dinfo->value_ranges);
 	return ret;
 }
 
