@@ -735,6 +735,7 @@ static void match_comparison(struct expression *expr)
 	struct smatch_state *true_state;
 	struct smatch_state *false_state;
 	struct smatch_state *orig;
+	struct data_info *orig_dinfo;
 	int left = 0;
 	int comparison = expr->op;
 	struct expression *varies = expr->right;
@@ -812,6 +813,18 @@ static void match_comparison(struct expression *expr)
 		break;
 	default:
 		sm_msg("unhandled comparison %d\n", comparison);
+		goto free;
+	}
+	orig_dinfo = get_dinfo(orig);
+	if (orig_dinfo->equiv) {
+		struct tracker *tracker;
+
+		FOR_EACH_PTR(orig_dinfo->equiv, tracker) {
+			set_true_false_states(tracker->owner, tracker->name, tracker->sym, 
+					true_state, false_state);
+			add_equiv(true_state, tracker->name, tracker->sym);
+			add_equiv(false_state, tracker->name, tracker->sym);
+		} END_FOR_EACH_PTR(tracker);
 		goto free;
 	}
 	set_true_false_states(my_id, name, sym, true_state, false_state);
