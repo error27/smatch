@@ -148,6 +148,75 @@ struct smatch_state *alloc_extra_state_range_list(struct range_list *rl)
 	return state;
 }
 
+static void add_equiv(struct smatch_state *state, const char *name, struct symbol *sym)
+{
+	struct data_info *dinfo;
+
+	dinfo = get_dinfo(state);
+	add_tracker(&dinfo->equiv, SMATCH_EXTRA, name, sym);
+}
+
+static void add_equiv_expr(struct smatch_state *state, struct expression *expr)
+{
+	struct data_info *dinfo;
+
+	dinfo = get_dinfo(state);
+	add_tracker_expr(&dinfo->equiv, SMATCH_EXTRA, expr);
+}
+
+static void del_equiv(struct smatch_state *state, const char *name, struct symbol *sym)
+{
+	struct data_info *dinfo;
+
+	dinfo = get_dinfo(state);
+	del_tracker(&dinfo->equiv, SMATCH_EXTRA, name, sym);
+}
+
+static void remove_from_equiv(const char *name, struct symbol *sym)
+{
+	struct smatch_state *orig;
+	struct data_info *orig_dinfo;
+	struct tracker *tracker;
+	struct smatch_state *clone;
+
+	orig = get_state(SMATCH_EXTRA, name, sym);
+	if (!orig || !get_dinfo(orig)->equiv)
+		return;
+
+	orig_dinfo = get_dinfo(orig);
+	clone = clone_extra_state(orig);
+	del_equiv(clone, name, sym);
+
+	FOR_EACH_PTR(orig_dinfo->equiv, tracker) {
+		set_state(tracker->owner, tracker->name, tracker->sym, clone);
+	} END_FOR_EACH_PTR(tracker);
+}
+
+static void remove_from_equiv_expr(struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	remove_from_equiv(name, sym);
+free:
+	free_string(name);
+}
+
+struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state)
+{
+	remove_from_equiv(name, sym);
+	return set_state(SMATCH_EXTRA, name, sym, state);
+}
+
+struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state)
+{
+	remove_from_equiv_expr(expr);
+	return set_state_expr(SMATCH_EXTRA, expr, state);
+}
+
 struct data_info *get_dinfo(struct smatch_state *state)
 {
 	if (!state)
@@ -224,9 +293,9 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 		start--;
 
 	if (condition->type == EXPR_PREOP)
-		set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(1, start));
+		set_extra_expr_mod(iter_var, alloc_extra_state_range(1, start));
 	if (condition->type == EXPR_POSTOP)
-		set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(0, start));
+		set_extra_expr_mod(iter_var, alloc_extra_state_range(0, start));
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
@@ -277,7 +346,7 @@ static struct sm_state *handle_canonical_for_loops(struct statement *loop)
 	}
 	if (end < start)
 		return NULL;
-	set_state_expr(SMATCH_EXTRA, iter_var, alloc_extra_state_range(start, end));
+	set_extra_expr_mod(iter_var, alloc_extra_state_range(start, end));
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
@@ -319,7 +388,7 @@ static void while_count_down_after(struct sm_state *sm, struct expression *condi
 		return;
 	after_value = get_dinfo_min(get_dinfo(sm->state));
 	after_value--;
-	set_state(SMATCH_EXTRA, sm->name, sm->sym, alloc_extra_state(after_value));
+	set_extra_mod(sm->name, sm->sym, alloc_extra_state(after_value));
 }
 
 void __extra_pre_loop_hook_after(struct sm_state *sm,
@@ -362,9 +431,9 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	min = get_dinfo_min(dinfo);
 	max = get_dinfo_max(dinfo);
 	if (iter_expr->op == SPECIAL_INCREMENT && min != whole_range.min && max == whole_range.max) {
-		set_state(my_id, name, sym, alloc_extra_state(min));
+		set_extra_mod(name, sym, alloc_extra_state(min));
 	} else if (min == whole_range.min && max != whole_range.max) {
-		set_state(my_id, name, sym, alloc_extra_state(max));
+		set_extra_mod(name, sym, alloc_extra_state(max));
 	}
 free:
 	free_string(name);
@@ -387,28 +456,12 @@ static void match_function_call(struct expression *expr)
 		if (tmp->type == EXPR_PREOP && tmp->op == '&') {
 			name = get_variable_from_expr(tmp->unop, &sym);
 			if (name) {
-				set_state(my_id, name, sym, extra_undefined());
+				set_extra_mod(name, sym, extra_undefined());
 			}
 			free_string(name);
 		}
 		i++;
 	} END_FOR_EACH_PTR(tmp);
-}
-
-static void add_equiv(struct smatch_state *state, const char *name, struct symbol *sym)
-{
-	struct data_info *dinfo;
-
-	dinfo = get_dinfo(state);
-	add_tracker(&dinfo->equiv, SMATCH_EXTRA, name, sym);
-}
-
-static void add_equiv_expr(struct smatch_state *state, struct expression *expr)
-{
-	struct data_info *dinfo;
-
-	dinfo = get_dinfo(state);
-	add_tracker_expr(&dinfo->equiv, SMATCH_EXTRA, expr);
 }
 
 static void set_equiv(struct sm_state *right_sm, struct expression *left)
@@ -465,9 +518,9 @@ static void match_assign(struct expression *expr)
 	known = get_implied_range_list(right, &rl);
 	if (expr->op == '=') {
 		if (known) 
-			set_state(my_id, name, sym, alloc_extra_state_range_list(rl));
+			set_extra_mod(name, sym, alloc_extra_state_range_list(rl));
 		else
-			set_state(my_id, name, sym, extra_undefined());
+			set_extra_mod(name, sym, extra_undefined());
 		goto free;
 	}
 
@@ -490,7 +543,7 @@ static void match_assign(struct expression *expr)
 		}
 		
 	}
-	set_state(my_id, name, sym, alloc_extra_state_range(min, max));
+	set_extra_mod(name, sym, alloc_extra_state_range(min, max));
 free:
 	free_string(name);
 }
@@ -521,7 +574,7 @@ static void unop_expr(struct expression *expr)
 		if (get_implied_max(expr->unop, &val))
 			max = val - 1;
 	}
-	set_state(my_id, name, sym, alloc_extra_state_range(min, max));
+	set_extra_mod(name, sym, alloc_extra_state_range(min, max));
 free:
 	free_string(name);
 }
@@ -535,12 +588,12 @@ static void match_declarations(struct symbol *sym)
 		name = sym->ident->name;
 		if (sym->initializer) {
 			if (get_value(sym->initializer, &val))
-				set_state(my_id, name, sym, alloc_extra_state(val));
+				set_state(SMATCH_EXTRA, name, sym, alloc_extra_state(val));
 			else
-				set_state(my_id, name, sym, extra_undefined());
+				set_state(SMATCH_EXTRA, name, sym, extra_undefined());
 			scoped_state(my_id, name, sym);
 		} else {
-			set_state(my_id, name, sym, extra_undefined());
+			set_state(SMATCH_EXTRA, name, sym, extra_undefined());
 			scoped_state(my_id, name, sym);
 		}
 	}
