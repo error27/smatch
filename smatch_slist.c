@@ -213,14 +213,14 @@ void free_every_single_sm_state(void)
 	clear_sname_alloc();
 }
 
-struct sm_state *clone_state(struct sm_state *s)
+struct sm_state *clone_sm(struct sm_state *s)
 {
 	struct sm_state *ret;
 
 	ret = alloc_state_no_name(s->owner, s->name, s->sym, s->state);
 	ret->merged = s->merged;
 	ret->implied = s->implied;
-	/* clone_state() doesn't copy the my_pools.  Each state needs to have
+	/* clone_sm() doesn't copy the my_pools.  Each state needs to have
 	   only one my_pool. */
 	ret->possible = clone_slist(s->possible);
 	ret->left = s->left;
@@ -596,7 +596,7 @@ static void clone_pool_havers(struct state_list *slist)
 
 	FOR_EACH_PTR(slist, state) {
 		if (state->my_pool) {
-			new = clone_state(state);
+			new = clone_sm(state);
 			REPLACE_CURRENT_PTR(state, new);
 		}
 	} END_FOR_EACH_PTR(state);

@@ -247,13 +247,13 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 	}
 
 	if (!left) {
-		ret = clone_state(right);
+		ret = clone_sm(right);
 		ret->merged = 1;
 		ret->right = right;
 		ret->left = NULL;
 		ret->my_pool = sm->my_pool;
 	} else if (!right) {
-		ret = clone_state(left);
+		ret = clone_sm(left);
 		ret->merged = 1;
 		ret->left = left;
 		ret->right = NULL;
