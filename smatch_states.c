@@ -151,7 +151,7 @@ free:
 	return ret;
 }
 
-void __set_state(struct sm_state *sm)
+void __set_sm(struct sm_state *sm)
 {
 	if (option_debug) {
 		struct smatch_state *s;

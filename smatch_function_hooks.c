@@ -166,7 +166,7 @@ static void assign_ranged_funcs(const char *fn, struct expression *expr,
   	__fake_cur = 0;
 
 	FOR_EACH_PTR(final_states, sm) {
-		__set_state(sm);
+		__set_sm(sm);
 	} END_FOR_EACH_PTR(sm);
 
 	free_slist(&final_states);

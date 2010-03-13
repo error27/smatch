@@ -283,7 +283,7 @@ extern struct state_list *__fake_cond_false;
 
 
 int unreachable(void);
-void __set_state(struct sm_state *sm);
+void __set_sm(struct sm_state *sm);
 struct state_list *__get_cur_slist(void);
 void __set_true_false_sm(struct sm_state *true_state, 
 			struct sm_state *false_state);
