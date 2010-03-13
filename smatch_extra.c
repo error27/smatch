@@ -256,12 +256,17 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 	struct data_info *ret_info;
 	struct smatch_state *tmp;
 	struct range_list *value_ranges;
+	struct tracker *tracker;
 
 	value_ranges = range_list_union(info1->value_ranges, info2->value_ranges);
 	tmp = alloc_extra_state_empty();
 	ret_info = get_dinfo(tmp);
 	ret_info->value_ranges = value_ranges;
 	tmp->name = show_ranges(ret_info->value_ranges);
+	FOR_EACH_PTR(info1->equiv, tracker) {
+		if (in_tracker_list(info2->equiv, tracker->owner, tracker->name, tracker->sym))
+			add_equiv(tmp, tracker->name, tracker->sym);
+	} END_FOR_EACH_PTR(tracker);
 	return tmp;
 }
 
