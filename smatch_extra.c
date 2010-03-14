@@ -156,14 +156,6 @@ static void add_equiv(struct smatch_state *state, const char *name, struct symbo
 	add_tracker(&dinfo->equiv, SMATCH_EXTRA, name, sym);
 }
 
-static void add_equiv_expr(struct smatch_state *state, struct expression *expr)
-{
-	struct data_info *dinfo;
-
-	dinfo = get_dinfo(state);
-	add_tracker_expr(&dinfo->equiv, SMATCH_EXTRA, expr);
-}
-
 static void del_equiv(struct smatch_state *state, const char *name, struct symbol *sym)
 {
 	struct data_info *dinfo;
@@ -174,21 +166,25 @@ static void del_equiv(struct smatch_state *state, const char *name, struct symbo
 
 static void remove_from_equiv(const char *name, struct symbol *sym)
 {
-	struct smatch_state *orig;
-	struct data_info *orig_dinfo;
+	struct sm_state *orig_sm;
 	struct tracker *tracker;
-	struct smatch_state *clone;
+	struct smatch_state *state;
 
-	orig = get_state(SMATCH_EXTRA, name, sym);
-	if (!orig || !get_dinfo(orig)->equiv)
+	orig_sm = get_sm_state(SMATCH_EXTRA, name, sym);
+	if (!orig_sm || !get_dinfo(orig_sm->state)->equiv)
 		return;
 
-	orig_dinfo = get_dinfo(orig);
-	clone = clone_extra_state(orig);
-	del_equiv(clone, name, sym);
+	state = clone_extra_state(orig_sm->state);
+	del_equiv(state, name, sym);
 
-	FOR_EACH_PTR(orig_dinfo->equiv, tracker) {
-		set_state(tracker->owner, tracker->name, tracker->sym, clone);
+	FOR_EACH_PTR(get_dinfo(orig_sm->state)->equiv, tracker) {
+		struct sm_state *new_sm;
+
+		new_sm = clone_sm(orig_sm);
+		new_sm->name = tracker->name;
+		new_sm->sym = tracker->sym;
+		new_sm->state = state;
+		__set_sm(new_sm);
 	} END_FOR_EACH_PTR(tracker);
 }
 
@@ -474,22 +470,31 @@ static void set_equiv(struct sm_state *right_sm, struct expression *left)
 	struct smatch_state *state;
 	struct data_info *dinfo;
 	struct tracker *tracker;
+	char *name;
+	struct symbol *sym;
+
+	name = get_variable_from_expr(left, &sym);
+	if (!name || !sym)
+		goto free;
 
 	state = clone_extra_state(right_sm->state);
+
 	dinfo = get_dinfo(state);
-
-	if (!set_state_expr(SMATCH_EXTRA, left, state))
-		return;
-
-	if (!dinfo->equiv) {
-		set_state(right_sm->owner, right_sm->name, right_sm->sym, state);
+	if (!dinfo->equiv)
 		add_equiv(state, right_sm->name, right_sm->sym);
-	} else {
-		FOR_EACH_PTR(dinfo->equiv, tracker) {
-			set_state(tracker->owner, tracker->name, tracker->sym, state);
-		} END_FOR_EACH_PTR(tracker);
-	}
-	add_equiv_expr(state, left);
+	add_equiv(state, name, sym);
+
+	FOR_EACH_PTR(dinfo->equiv, tracker) {
+		struct sm_state *new_sm;
+
+		new_sm = clone_sm(right_sm);
+		new_sm->name = tracker->name;
+		new_sm->sym = tracker->sym;
+		new_sm->state = state;
+		__set_sm(new_sm);
+	} END_FOR_EACH_PTR(tracker);
+free:
+	free_string(name);
 }
 
 static void match_assign(struct expression *expr)
