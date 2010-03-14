@@ -363,6 +363,24 @@ static int get_known_value(struct expression *expr, long long *val)
 	return 0;
 }
 
+static void delete_equiv_slist(struct state_list **slist, const char *name, struct symbol *sym)
+{
+	struct smatch_state *state;
+	struct data_info *dinfo;
+	struct tracker *tracker;
+
+	state = get_state(SMATCH_EXTRA, name, sym);
+	dinfo = get_dinfo(state);
+	if (!dinfo->equiv) {
+		delete_state_slist(slist, SMATCH_EXTRA, name, sym);
+		return;
+	}
+
+	FOR_EACH_PTR(dinfo->equiv, tracker) {
+		delete_state_slist(slist, SMATCH_EXTRA, tracker->name, tracker->sym);
+	} END_FOR_EACH_PTR(tracker);
+}
+
 static void handle_comparison(struct expression *expr,
 			      struct state_list **implied_true,
 			      struct state_list **implied_false)
@@ -392,8 +410,8 @@ static void handle_comparison(struct expression *expr,
 		goto free;
 
 	separate_and_filter(sm, expr->op, tmp_range_list(value), lr, __get_cur_slist(), implied_true, implied_false);
-	delete_state_slist(implied_true, SMATCH_EXTRA, name, sym);
-	delete_state_slist(implied_false, SMATCH_EXTRA, name, sym);
+	delete_equiv_slist(implied_true, name, sym);
+	delete_equiv_slist(implied_false, name, sym);
 free:
 	free_string(name);
 }
@@ -429,8 +447,8 @@ static void get_tf_states(struct expression *expr,
 		goto free;
 
 	separate_and_filter(sm, SPECIAL_NOTEQUAL, tmp_range_list(0), LEFT, __get_cur_slist(), implied_true, implied_false);
-	delete_state_slist(implied_true, SMATCH_EXTRA, name, sym);
-	delete_state_slist(implied_false, SMATCH_EXTRA, name, sym);
+	delete_equiv_slist(implied_true, name, sym);
+	delete_equiv_slist(implied_false, name, sym);
 free:
 	free_string(name);
 }
