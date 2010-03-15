@@ -425,22 +425,17 @@ free:
 	free_string(name);
 }
 
-static void get_tf_states(struct expression *expr,
-			  struct state_list **implied_true,
-			  struct state_list **implied_false)
+static void handle_zero_comparison(struct expression *expr,
+				struct state_list **implied_true,
+				struct state_list **implied_false)
 {
 	struct symbol *sym;
 	char *name;
 	struct sm_state *sm;
 
-
 	if (expr->type == EXPR_POSTOP)
 		expr = strip_expr(expr->unop);
 
-	if (expr->type == EXPR_COMPARE) {
-		handle_comparison(expr, implied_true, implied_false);
-		return;
-	}
 	if (expr->type == EXPR_ASSIGNMENT) {
 		/* most of the time ->my_pools will be empty here because we
  		   just set the state, but if have assigned a conditional
@@ -460,6 +455,16 @@ static void get_tf_states(struct expression *expr,
 	delete_equiv_slist(implied_false, name, sym);
 free:
 	free_string(name);
+}
+
+static void get_tf_states(struct expression *expr,
+			  struct state_list **implied_true,
+			  struct state_list **implied_false)
+{
+	if (expr->type == EXPR_COMPARE)
+		handle_comparison(expr, implied_true, implied_false);
+	else
+		handle_zero_comparison(expr, implied_true, implied_false);
 }
 
 static void implied_states_hook(struct expression *expr)
