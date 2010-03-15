@@ -106,6 +106,13 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 		s = sm_state;
 	}
 
+	if (!s) {
+		if (option_debug_implied || option_debug)
+			sm_msg("%s from %d, has borrowed implications.",
+				sm_state->name, sm_state->line);
+		return;
+	}
+
 	istrue = !possibly_false_range_list(comparison,	get_dinfo(s->state), vals, lr);
 	isfalse = !possibly_true_range_list(comparison, get_dinfo(s->state), vals, lr);
 		
@@ -272,7 +279,7 @@ static struct state_list *filter_stack(struct state_list *pre_list,
 {
 	struct state_list *ret = NULL;
 	struct sm_state *tmp;
-	struct sm_state *filtered_state;
+	struct sm_state *filtered_sm;
 	int modified;
 	int counter = 0;
 
@@ -281,9 +288,11 @@ static struct state_list *filter_stack(struct state_list *pre_list,
 
 	FOR_EACH_PTR(pre_list, tmp) {
 		modified = 0;
-		filtered_state = remove_my_pools(tmp, stack, &modified);
-		if (filtered_state && modified) {
-			add_ptr_list(&ret, filtered_state);
+		filtered_sm = remove_my_pools(tmp, stack, &modified);
+		if (filtered_sm && modified) {
+			filtered_sm->name = tmp->name;
+			filtered_sm->sym = tmp->sym;
+			add_ptr_list(&ret, filtered_sm);
 			if ((counter++)%10 && out_of_memory())
 				return NULL;
 
