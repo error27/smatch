@@ -213,6 +213,28 @@ struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state
 	return set_state_expr(SMATCH_EXTRA, expr, state);
 }
 
+void set_extra_true_false(const char *name, struct symbol *sym,
+			struct smatch_state *true_state,
+			struct smatch_state *false_state)
+{
+	struct tracker *tracker;
+	struct smatch_state *orig_state;
+
+	orig_state = get_state(SMATCH_EXTRA, name, sym);
+
+	if (!orig_state || !get_dinfo(orig_state)->equiv) {
+		set_true_false_states(SMATCH_EXTRA, name, sym, true_state, false_state);
+		return;
+	}
+
+	FOR_EACH_PTR(get_dinfo(orig_state)->equiv, tracker) {
+		set_true_false_states(tracker->owner, tracker->name, tracker->sym, 
+				true_state, false_state);
+		add_equiv(true_state, tracker->name, tracker->sym);
+		add_equiv(false_state, tracker->name, tracker->sym);
+	} END_FOR_EACH_PTR(tracker);
+}
+
 struct data_info *get_dinfo(struct smatch_state *state)
 {
 	if (!state)
@@ -745,7 +767,6 @@ static void match_comparison(struct expression *expr)
 	struct smatch_state *true_state;
 	struct smatch_state *false_state;
 	struct smatch_state *orig;
-	struct data_info *orig_dinfo;
 	int left = 0;
 	int comparison = expr->op;
 	struct expression *varies = expr->right;
@@ -825,19 +846,7 @@ static void match_comparison(struct expression *expr)
 		sm_msg("unhandled comparison %d\n", comparison);
 		goto free;
 	}
-	orig_dinfo = get_dinfo(orig);
-	if (orig_dinfo->equiv) {
-		struct tracker *tracker;
-
-		FOR_EACH_PTR(orig_dinfo->equiv, tracker) {
-			set_true_false_states(tracker->owner, tracker->name, tracker->sym, 
-					true_state, false_state);
-			add_equiv(true_state, tracker->name, tracker->sym);
-			add_equiv(false_state, tracker->name, tracker->sym);
-		} END_FOR_EACH_PTR(tracker);
-		goto free;
-	}
-	set_true_false_states(my_id, name, sym, true_state, false_state);
+	set_extra_true_false(name, sym, true_state, false_state);
 free:
 	free_string(name);
 }
