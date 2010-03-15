@@ -230,8 +230,10 @@ void set_extra_true_false(const char *name, struct symbol *sym,
 	FOR_EACH_PTR(get_dinfo(orig_state)->equiv, tracker) {
 		set_true_false_states(tracker->owner, tracker->name, tracker->sym, 
 				true_state, false_state);
-		add_equiv(true_state, tracker->name, tracker->sym);
-		add_equiv(false_state, tracker->name, tracker->sym);
+		if (true_state)
+			add_equiv(true_state, tracker->name, tracker->sym);
+		if (false_state)
+			add_equiv(false_state, tracker->name, tracker->sym);
 	} END_FOR_EACH_PTR(tracker);
 }
 
