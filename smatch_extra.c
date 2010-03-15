@@ -877,7 +877,7 @@ void __extra_match_condition(struct expression *expr)
 			false_state = alloc_extra_state(0);
 		else
 			false_state = NULL;
-		set_true_false_states(my_id, name, sym, true_state, false_state);
+		set_extra_true_false(name, sym, true_state, false_state);
 		free_string(name);
 		return;
 	case EXPR_COMPARE:
