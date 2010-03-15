@@ -3,6 +3,8 @@
 acquire_group 2
 afs_make_call 2
 aligned_kmalloc 1
+allocator_allocate_dma 1
+alloc_bulk_urbs_generic 5
 alloc_ep 1
 alloc_mad 1
 __alloc_pending_request 0
@@ -62,6 +64,7 @@ drm_mm_split_at_start 2
 ehci_mem_init 1
 ehci_urb_enqueue 2
 eth_start 1
+ext4_init_io_end 1
 __fa_get_part 2
 flex_array_alloc 2
 flex_array_prealloc 3
@@ -90,6 +93,7 @@ ib_sa_path_rec_get 6
 ib_sa_service_rec_query 7
 ida_pre_get 1
 ieee80211_alloc_txb 2
+ieee80211_ibss_add_sta 4
 inet_csk_clone 2
 ioat2_alloc_ring 2
 ioat_dma_alloc_descriptor 1
@@ -124,7 +128,7 @@ new_writequeue_entry 1
 __nf_ct_ext_add 2
 nf_ct_ext_create 2
 nf_ct_helper_ext_add 1
-__nf_ct_try_assign_helper 1
+__nf_ct_try_assign_helper 2
 ohci_urb_enqueue 2
 _osd_request_alloc 0
 osd_start_request 1
@@ -255,7 +259,7 @@ uvc_init_video_bulk 2
 uvc_init_video_isoc 2
 wa_urb_enqueue 3
 xfrm_policy_alloc 1
-xhci_alloc_command 2
+xhci_alloc_command 3
 xhci_alloc_container_ctx 2
 xhci_alloc_virt_device 3
 xhci_endpoint_init 4

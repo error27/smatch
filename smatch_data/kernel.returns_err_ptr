@@ -39,6 +39,7 @@ alloc_vmap_area
 anon_inode_getfile
 anon_inode_mkinode
 ar9170_alloc
+arlan_probe
 arpt_register_table
 at1700_probe
 ath5k_txq_setup
@@ -72,6 +73,7 @@ blkiocg_create
 blk_make_request
 bnx2i_ep_connect
 bp_perf_event_init
+br_multicast_get_group
 bsg_add_device
 bsg_alloc_command
 bsg_get_device
@@ -104,6 +106,7 @@ c2_create_qp
 c2port_device_register
 c2_reg_phys_mr
 c2_reg_user_mr
+cachefiles_alloc_object
 cachefiles_check_active
 cachefiles_get_directory
 cciss_seq_start
@@ -141,6 +144,7 @@ copy_process
 copy_znode
 corkscrew_scan
 cpuacct_create
+cpu_cgroup_create
 cpuset_create
 cramfs_lookup
 create_empty_lvol
@@ -190,6 +194,7 @@ crypto_pcbc_alloc
 crypto_rfc3686_alloc
 crypto_rfc4106_alloc
 crypto_rfc4309_alloc
+crypto_rfc4543_alloc
 crypto_spawn_alg
 crypto_spawn_tfm
 ctnetlink_create_conntrack
@@ -226,7 +231,9 @@ do_create
 do_filp_open
 do_find_free_space
 do_kern_mount
+do_last
 do_open
+do_read_cache_page
 drbd_crypto_alloc_digest_safe
 drm_sysfs_create
 dsa_switch_setup
@@ -235,13 +242,13 @@ dup_mnt_ns
 dynamic_dname
 e100_request_firmware
 ebt_register_table
-ecryptfs_follow_link
 ecryptfs_lookup
 efs_get_parent
 efs_iget
 efs_nfs_get_inode
 el16_probe
 el1_probe
+emergency_read_begin
 enclosure_component_register
 enclosure_register
 eseqiv_alloc
@@ -290,14 +297,15 @@ ext4_orphan_get
 extract_hostname
 fat_build_inode
 fat_get_parent
+f_audio_buffer_alloc
 fcoe_if_create
 fib_create_info
 fib_rules_register
 find_alloc_undo
-find_fsidzero_export
 find_get_context
 find_keyring_by_name
 find_zlib_workspace
+finish_open
 flow_cache_lookup
 follow_huge_addr
 follow_page
@@ -331,13 +339,15 @@ get_new_cssid
 get_one_event
 get_phy_device
 _get_posix_acl
+get_raw_socket
+get_socket
 get_sysctl
+get_tap_socket
 gfs2_acl_get
 gfs2_createi
 gfs2_dirent_scan
 gfs2_dirent_search
 gfs2_dir_search
-gfs2_follow_link
 gfs2_get_dentry
 gfs2_inode_lookup
 gfs2_lookup
@@ -399,7 +409,6 @@ idr_replace
 iget_xattr
 inet_diag_lock_handler
 inet_gso_segment
-init_new_dentry
 inotify_init
 input_devices_seq_start
 input_handlers_seq_start
@@ -454,6 +463,7 @@ jffs2_setup_xattr_datum
 jffs2_write_dirent
 jffs2_write_dnode
 jfs_get_acl
+jfs_iget
 jfs_lookup
 jfs_nfs_get_inode
 journal_start
@@ -466,8 +476,6 @@ keyring_search
 keyring_search_aux
 __keyring_search_one
 key_type_lookup
-kfifo_alloc
-kfifo_init
 kmemleak_seq_start
 kvm_arch_create_vm
 kvm_create_vm
@@ -482,6 +490,11 @@ lease_alloc
 lg_find_vq
 load_module
 load_msg
+logfs_get_dd_page
+__logfs_iget
+logfs_new_inode
+logfs_new_meta_inode
+logfs_read_meta_inode
 lookup_bdev
 lookup_create
 lookup_extent_mapping
@@ -492,6 +505,7 @@ lookup_user_key
 lookup_znode
 ltpc_probe
 ltree_add_entry
+macvtap_get_socket
 make_cluster
 make_comm
 make_netconsole_target
@@ -501,6 +515,7 @@ _make_request
 make_send_sock
 make_space
 map_extent_mft_record
+maybe_deliver
 __mb_cache_entry_find
 mc32_probe
 md_import_device
@@ -555,6 +570,7 @@ nes_create_qp
 nes_reg_phys_mr
 nes_reg_user_mr
 net_create
+netfs_trans_add
 netlink_getsockbyfilp
 netlink_getsockbypid
 new_nbp
@@ -650,6 +666,7 @@ omfs_scan_list
 open_bdev_exclusive
 open_ctree
 open_exec
+open_mtd_by_chdev
 open_ubi
 open_xa_dir
 open_xa_root
@@ -666,10 +683,13 @@ p9_conn_create
 p9_fid_create
 p9_idpool_create
 p9_tag_alloc
+padata_get_next
 parse_path
 parse_priority_group
 pciserial_init_ports
 pcpu_build_alloc_info
+pcrypt_alloc
+pcrypt_alloc_instance
 perf_event_alloc
 perf_event_create_kernel_counter
 pfkey_msg2xfrm_state
@@ -677,9 +697,16 @@ pfkey_xfrm_policy2msg_prep
 __pfkey_xfrm_state2msg
 phy_attach
 phy_connect
+platform_create_bundle
 platform_device_register_data
 platform_device_register_simple
 pnode_lookup
+pohmelfs_create_entry_local
+pohmelfs_init_cipher
+pohmelfs_init_hash
+pohmelfs_lookup
+pohmelfs_mcache_alloc
+pohmelfs_new_inode
 posix_acl_from_disk
 posix_acl_from_mode
 posix_acl_from_xattr
@@ -696,7 +723,6 @@ proc_pident_instantiate
 proc_pident_lookup
 proc_pid_follow_link
 proc_pid_instantiate
-proc_self_follow_link
 proc_sys_lookup
 proc_task_instantiate
 proc_task_lookup
@@ -729,8 +755,6 @@ rds_message_map_pages
 rds_rdma_prepare
 read_add_inode
 __read_cache_page
-read_cache_page
-read_cache_page_async
 read_link
 read_page
 read_sb_page
@@ -855,6 +879,7 @@ try_location
 tty_init_dev
 tty_ldisc_get
 tty_register_device
+tun_get_socket
 uart_get
 ubifs_get_nnode
 ubifs_get_pnode
@@ -890,7 +915,6 @@ ufs_nfs_get_inode
 ultra32_probe
 unix_gid_find
 unx_create_cred
-user_dlm_register_context
 uwb_rc_neh_add
 V1_minix_iget
 V2_minix_iget
@@ -910,9 +934,12 @@ vxfs_get_page
 __vxfs_iget
 vxfs_iget
 vxfs_lookup
+wait_on_page_read
+wavelan_probe
 wimax_gnl_re_state_change_alloc
 wimax_msg_alloc
 wl1251_alloc_hw
+wl1271_alloc_hw
 xattr_lookup
 xfrm4_dst_lookup
 xfrm6_dst_lookup
@@ -940,4 +967,5 @@ xs_setup_xprt
 xt_find_match
 xt_find_table_lock
 xt_find_target
+xt_hook_link
 xt_register_table

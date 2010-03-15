@@ -27,6 +27,12 @@ au0828_readreg 1
 au0828_writereg 1
 au0828_writereg 2
 audiophile_skip_setting_quirk 1
+az6027_usb_in_op 2
+az6027_usb_in_op 3
+az6027_usb_in_op 5
+az6027_usb_out_op 2
+az6027_usb_out_op 3
+az6027_usb_out_op 5
 BoxDisable_SW_FlowCtrl 1
 BoxGetRegister 1
 BoxGetRegister 2
@@ -98,6 +104,7 @@ emi26_writememory 1
 emi26_writememory 3
 emi62_writememory 1
 emi62_writememory 3
+enter_gpio_mode 0
 et61x251_read_reg 1
 et61x251_write_reg 2
 ezusb_writememory 1
@@ -335,7 +342,6 @@ reg_w_riv 2
 reg_w_riv 3
 reg_w_val 1
 reg_w_val 2
-reg_w_var 1
 rj54n1_set_rect 1
 rj54n1_set_rect 2
 rj54n1_set_rect 3
@@ -376,6 +382,9 @@ RTUSBWriteMACRegister 1
 s2255_vendor_req 2
 s2255_vendor_req 3
 s2255_vendor_req 5
+sccb_read 1
+sccb_write 1
+sccb_write 2
 se401_get_feature 1
 se401_set_feature 1
 se401_set_feature 2
@@ -420,6 +429,7 @@ sn9c102_write_reg 2
 snd_ak4113_reg_write 1
 snd_ak4114_reg_write 1
 snd_ak4117_reg_write 1
+snd_usb_create_stream 2
 snd_usb_ctl_msg 4
 snd_usb_ctl_msg 5
 snd_usb_ctl_msg 7
@@ -439,6 +449,9 @@ spcp8x5_set_workMode 2
 sq905c_command 1
 sq905c_command 2
 sq905_command 1
+sq905c_read 1
+sq905c_read 2
+sq905c_read 3
 sq905_read_data 2
 sram_test_pass 1
 sram_test_word 1
@@ -466,6 +479,7 @@ ti_command_in_sync 5
 ti_command_out_sync 2
 ti_command_out_sync 3
 ti_command_out_sync 5
+ti_do_config 2
 ti_vread_sync 2
 ti_vread_sync 3
 ti_vread_sync 5

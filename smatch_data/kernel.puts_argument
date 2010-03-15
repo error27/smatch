@@ -21,6 +21,7 @@ cpufreq_add_dev_interface 1
 cpufreq_cpu_put 0
 del_gendisk 0
 destroy_nbp 0
+dlfb_free_urb_list 0
 dlm_lock_put 0
 dlm_lockres_put 0
 dlm_put 0
