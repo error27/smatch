@@ -10,6 +10,8 @@
 #include "smatch.h"
 #include "smatch_extra.h"
 
+static long long _get_value(struct expression *expr, int *discard, int *undefined, int implied);
+
 #define BOGUS 12345
 
 #define NOTIMPLIED 0
@@ -47,6 +49,25 @@ static long long cast_to_type(struct expression *expr, long long val)
 	return val;
 }
 
+static long long handle_preop(struct expression *expr, int *discard, int *undefined, int implied)
+{
+	long long ret = BOGUS;
+
+	switch(expr->op) {
+	case '~':
+		ret = ~ _get_value(expr->unop, discard, undefined, implied);
+		ret = cast_to_type(expr->unop, ret);
+		break;
+	case '-':
+		ret = - _get_value(expr->unop, discard, undefined, implied);
+		break;
+	default:
+		*undefined = 1;
+		*discard = 1;
+	}
+	return ret;
+}
+
 static long long _get_value(struct expression *expr, int *discard, int *undefined, int implied)
 {
 	int dis = 0;
@@ -71,18 +92,7 @@ static long long _get_value(struct expression *expr, int *discard, int *undefine
 		ret = cast_to_type(expr, ret);
 		break;
 	case EXPR_PREOP:
-		switch(expr->op) {
-		case '~':
-			ret = ~ _get_value(expr->unop, discard, undefined, implied);
-			ret = cast_to_type(expr->unop, ret);
-			break;
-		case '-':
-			ret = - _get_value(expr->unop, discard, undefined, implied);
-			break;
-		default:
-			*undefined = 1;
-			*discard = 1;
-		}
+		ret = handle_preop(expr, discard, undefined, implied);
 		break;
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
