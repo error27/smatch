@@ -82,25 +82,36 @@ static long long handle_binop(struct expression *expr, int *discard, int *undefi
 
 	left = _get_value(expr->left, discard, undefined, implied);
 	right = _get_value(expr->right, discard, undefined, implied);
-	if (expr->op == '*') {
+
+	switch (expr->op) {
+	case '*':
 		ret =  left * right;
-	} else if (expr->op == '/') {
+		break;
+	case '/':
 		ret = left / right;
-	} else if (expr->op == '+') {
+		break;
+	case '+':
 		ret = left + right;
-	} else if (expr->op == '-') {
+		break;
+	case '-':
 		ret = left - right;
-	} else if (expr->op == '|') {
+		break;
+	case '|':
 		ret = left | right;
-	} else if (expr->op == '&') {
+		break;
+	case '&':
 		ret = left & right;
-	} else if (expr->op == SPECIAL_RIGHTSHIFT) {
+		break;
+	case SPECIAL_RIGHTSHIFT:
 		ret = left >> right;
-	} else if (expr->op == SPECIAL_LEFTSHIFT) {
+		break;
+	case SPECIAL_LEFTSHIFT:
 		ret = left << right;
-	} else if (expr->op == '^') {
+		break;
+	case '^':
 		ret = left ^ right;
-	} else {
+		break;
+	default:
 		*undefined = 1;
 		*discard = 1;
 	}
