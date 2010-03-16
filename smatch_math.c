@@ -68,6 +68,45 @@ static long long handle_preop(struct expression *expr, int *discard, int *undefi
 	return ret;
 }
 
+static long long handle_binop(struct expression *expr, int *discard, int *undefined, int implied)
+{
+	long long left;
+	long long right;
+	long long ret = BOGUS;
+
+	if (expr->type != EXPR_BINOP) {
+		*undefined = 1;
+		*discard = 1;
+		return ret;
+	}
+
+	left = _get_value(expr->left, discard, undefined, implied);
+	right = _get_value(expr->right, discard, undefined, implied);
+	if (expr->op == '*') {
+		ret =  left * right;
+	} else if (expr->op == '/') {
+		ret = left / right;
+	} else if (expr->op == '+') {
+		ret = left + right;
+	} else if (expr->op == '-') {
+		ret = left - right;
+	} else if (expr->op == '|') {
+		ret = left | right;
+	} else if (expr->op == '&') {
+		ret = left & right;
+	} else if (expr->op == SPECIAL_RIGHTSHIFT) {
+		ret = left >> right;
+	} else if (expr->op == SPECIAL_LEFTSHIFT) {
+		ret = left << right;
+	} else if (expr->op == '^') {
+		ret = left ^ right;
+	} else {
+		*undefined = 1;
+		*discard = 1;
+	}
+	return ret;
+}
+
 static long long _get_value(struct expression *expr, int *discard, int *undefined, int implied)
 {
 	int dis = 0;
@@ -99,36 +138,9 @@ static long long _get_value(struct expression *expr, int *discard, int *undefine
 	case EXPR_IMPLIED_CAST:
 		ret = _get_value(expr->cast_expression, discard, undefined, implied);
 		return cast_to_type(expr, ret);
-	case EXPR_BINOP: {
-		long long left;
-		long long right;
-
-		left = _get_value(expr->left, discard, undefined, implied);
-		right = _get_value(expr->right, discard, undefined, implied);
-		if (expr->op == '*') {
-			ret =  left * right;
-		} else if (expr->op == '/') {
-			ret = left / right;
-		} else if (expr->op == '+') {
-			ret = left + right;
-		} else if (expr->op == '-') {
-			ret = left - right;
-		} else if (expr->op == '|') {
-			ret = left | right;
-		} else if (expr->op == '&') {
-			ret = left & right;
-		} else if (expr->op == SPECIAL_RIGHTSHIFT) {
-			ret = left >> right;
-		} else if (expr->op == SPECIAL_LEFTSHIFT) {
-			ret = left << right;
-		} else if (expr->op == '^') {
-			ret = left ^ right;
-		} else {
-			*undefined = 1;
-			*discard = 1;
-		}
+	case EXPR_BINOP:
+		ret = handle_binop(expr, discard, undefined, implied);
 		break;
-	}
 	case EXPR_PTRSIZEOF:
 	case EXPR_SIZEOF:
 		ret = get_expression_value(expr);
