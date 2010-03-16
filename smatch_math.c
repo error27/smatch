@@ -97,32 +97,8 @@ static long long _get_value(struct expression *expr, int *discard, int *undefine
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
-	{
-		struct symbol *type = get_base_type(expr->cast_type);
-
 		ret = _get_value(expr->cast_expression, discard, undefined, implied);
-		switch (type->bit_size) {
-		case 8:
-			if (type->ctype.modifiers & MOD_UNSIGNED)
-				ret = (long long)(unsigned char) ret;
-			else
-				ret = (long long)(char) ret;
-			break;
-		case 16:
-			if (type->ctype.modifiers & MOD_UNSIGNED)
-				ret = (long long)(unsigned short) ret;
-			else
-				ret = (long long)(short) ret;
-			break;
-		case 32:
-			if (type->ctype.modifiers & MOD_UNSIGNED)
-				ret = (long long)(unsigned int) ret;
-			else
-				ret = (long long)(int) ret;
-			break;
-		}
-		return ret;
-	}
+		return cast_to_type(expr, ret);
 	case EXPR_BINOP: {
 		long long left;
 		long long right;
