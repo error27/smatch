@@ -10,6 +10,7 @@
 #include "smatch.h"
 #include "smatch_extra.h"
 
+static long long _get_implied_value(struct expression *expr, int *discard, int *undefined, int implied);
 static long long _get_value(struct expression *expr, int *discard, int *undefined, int implied);
 
 #define BOGUS 12345
@@ -60,6 +61,9 @@ static long long handle_preop(struct expression *expr, int *discard, int *undefi
 		break;
 	case '-':
 		ret = - _get_value(expr->unop, discard, undefined, implied);
+		break;
+	case '*':
+		ret = _get_implied_value(expr, discard, undefined, implied);
 		break;
 	default:
 		*undefined = 1;
