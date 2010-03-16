@@ -96,6 +96,9 @@ static long long handle_binop(struct expression *expr, int *discard, int *undefi
 	case '-':
 		ret = left - right;
 		break;
+	case '%':
+		ret = left % right;
+		break;
 	case '|':
 		ret = left | right;
 		break;
