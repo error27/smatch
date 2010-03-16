@@ -144,6 +144,9 @@ static long long _get_value(struct expression *expr, int *discard, int *undefine
 	case EXPR_PREOP:
 		ret = handle_preop(expr, discard, undefined, implied);
 		break;
+	case EXPR_POSTOP:
+		ret = _get_value(expr->unop, discard, undefined, implied);
+		break;
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
