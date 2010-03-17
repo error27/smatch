@@ -35,6 +35,7 @@ CK(check_stack)
 CK(check_no_return)
 CK(check_mod_timer)
 CK(check_le16)
+CK(check_return)
 
 /* <- your test goes here */
 /* CK(register_template) */
