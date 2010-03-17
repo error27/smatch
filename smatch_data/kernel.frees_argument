@@ -243,7 +243,6 @@ flush_entry_free 0
 forw_packet_free 0
 framebuffer_release 0
 frame_delete 0
-free_area 0
 free_async 0
 free_bd_holder 0
 free_bitmap 1
