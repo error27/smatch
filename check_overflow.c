@@ -92,7 +92,7 @@ static struct smatch_state *alloc_my_state(int val)
 {
 	struct smatch_state *state;
 
-	state = malloc(sizeof(*state));
+	state = __alloc_smatch_state(0);
 	state->name = alloc_num(val);
 	state->data = malloc(sizeof(int));
 	*(int *)state->data = val;
