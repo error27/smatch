@@ -262,9 +262,6 @@ struct data_range {
 };
 extern struct data_range whole_range;
 
-int get_implied_single_val(struct expression *expr, long long *val);
-int get_implied_single_fuzzy_min(struct expression *expr, long long *min);
-int get_implied_single_fuzzy_max(struct expression *expr, long long *max);
 int get_implied_max(struct expression *expr, long long *val);
 int get_implied_min(struct expression *expr, long long *val);
 int known_condition_true(struct expression *expr);

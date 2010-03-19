@@ -8,6 +8,7 @@
  */
 
 #include "smatch.h"
+#include "smatch_slist.h"
 #include "smatch_extra.h"
 
 static long long _get_implied_value(struct expression *expr, int *discard, int *undefined, int implied);
@@ -19,6 +20,10 @@ static long long _get_value(struct expression *expr, int *discard, int *undefine
 #define IMPLIED 1
 #define FUZZYMAX 2
 #define FUZZYMIN 3
+
+#define VAL_SINGLE 0
+#define VAL_MAX    1
+#define VAL_MIN    2
 
 static long long cast_to_type(struct expression *expr, long long val)
 {
@@ -125,13 +130,95 @@ static long long handle_binop(struct expression *expr, int *discard, int *undefi
 	return ret;
 }
 
+static int get_implied_value_helper(struct expression *expr, long long *val, int what)
+{
+	struct smatch_state *state;
+	struct symbol *sym;
+	char *name;
+	
+	if (get_value(expr, val))
+		return 1;
+
+	name = get_variable_from_expr(expr, &sym);
+	if (!name)
+		return 0;
+	state = get_state(SMATCH_EXTRA, name, sym);
+	free_string(name);
+	if (!state || !state->data)
+		return 0;
+	if (what == VAL_SINGLE)
+		return get_single_value_from_dinfo(get_dinfo(state), val);
+	if (what == VAL_MAX) {
+		*val = get_dinfo_max(get_dinfo(state));
+		if (*val == whole_range.max) /* this means just guessing */
+			return 0;
+		return 1;
+	}
+        *val = get_dinfo_min(get_dinfo(state));
+	if (*val == whole_range.min)
+		return 0;
+	return 1;
+}
+
+static int get_implied_single_fuzzy_max(struct expression *expr, long long *max)
+{
+	struct sm_state *sm;
+	struct sm_state *tmp;
+
+	if (get_implied_max(expr, max))
+		return 1;
+
+	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
+	if (!sm)
+		return 0;
+
+	*max = whole_range.min;
+	FOR_EACH_PTR(sm->possible, tmp) {
+		long long new_min;
+
+		new_min = get_dinfo_min(get_dinfo(tmp->state));
+		if (new_min > *max)
+			*max = new_min;
+	} END_FOR_EACH_PTR(tmp);
+
+	if (*max > whole_range.min)
+		return 1;
+	return 0;
+}
+
+static int get_implied_single_fuzzy_min(struct expression *expr, long long *min)
+{
+	struct sm_state *sm;
+	struct sm_state *tmp;
+
+	if (get_implied_min(expr, min))
+		return 1;
+
+	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
+	if (!sm)
+		return 0;
+
+	*min = whole_range.max;
+	FOR_EACH_PTR(sm->possible, tmp) {
+		long long new_max;
+
+		new_max = get_dinfo_max(get_dinfo(tmp->state));
+		if (new_max < *min)
+			*min = new_max;
+	} END_FOR_EACH_PTR(tmp);
+
+	if (*min < whole_range.max)
+		return 1;
+	return 0;
+}
+
 static long long _get_implied_value(struct expression *expr, int *discard, int *undefined, int implied)
 {
 	long long ret = BOGUS;
 
 	switch (implied) {
 	case IMPLIED:
-		if (!get_implied_single_val(expr, &ret)) {
+		if (!get_implied_value_helper(expr, &ret, VAL_SINGLE)) {
 			*undefined = 1;
 			*discard = 1;
 		}
@@ -215,6 +302,16 @@ int get_value(struct expression *expr, long long *val)
 	if (undefined)
 		return 0;
 	return 1;
+}
+
+int get_implied_max(struct expression *expr, long long *val)
+{
+	return get_implied_value_helper(expr, val, VAL_MAX);
+}
+
+int get_implied_min(struct expression *expr, long long *val)
+{
+	return get_implied_value_helper(expr, val, VAL_MIN);
 }
 
 int get_implied_value(struct expression *expr, long long *val)
