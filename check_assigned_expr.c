@@ -23,7 +23,7 @@ static struct smatch_state *alloc_my_state(struct expression *expr)
 	struct smatch_state *state;
 	char *name;
 
-	state = malloc(sizeof(*state));
+	state = __alloc_smatch_state(0);
 	expr = strip_expr(expr);
 	name = get_variable_from_expr_complex(expr, NULL);
 	state->name = alloc_sname(name);
