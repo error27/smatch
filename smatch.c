@@ -152,14 +152,19 @@ void parse_args(int *argcp, char ***argvp)
 static char *get_data_dir(char *arg0)
 {
 	char *bin_dir;
+	char *orig;
 	char buf[256];
 	char *dir;
 
 	if (option_no_data) {
 		return NULL;
 	}
-	bin_dir = dirname(alloc_string(arg0));
+
+	orig = alloc_string(arg0);
+	bin_dir = dirname(orig);
 	strncpy(buf, bin_dir, 254);
+	free_string(orig);
+
 	buf[255] = '\0';
 	strncat(buf, "/smatch_data/", 254 - strlen(buf));
 	dir = alloc_string(buf);
