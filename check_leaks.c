@@ -282,7 +282,7 @@ void check_leaks(int id)
 		add_function_hook("free", &match_free, (void *)0);
 	register_free_funcs();
 	register_put_funcs();
-	for(i = 0; allocation_funcs[i]; i++) {
+	for (i = 0; allocation_funcs[i]; i++) {
 		add_function_assign_hook(allocation_funcs[i],
 					 &match_allocation, NULL);
 	}

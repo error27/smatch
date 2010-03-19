@@ -86,7 +86,7 @@ void check_allocation_funcs(int id)
 	my_id = id;
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
-	for(i = 0; allocation_funcs[i]; i++) {
+	for (i = 0; allocation_funcs[i]; i++) {
 		add_function_assign_hook(allocation_funcs[i],
 					 &match_allocation, NULL);
 	}

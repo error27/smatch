@@ -47,7 +47,7 @@ int id_from_name(const char *name)
 {
 	int i;
 
-	for(i = 0; i < ARRAY_SIZE(reg_funcs); i++){
+	for (i = 0; i < ARRAY_SIZE(reg_funcs); i++) {
 		if (!strcmp(name, reg_funcs[i].name))
 			return i + 1;
 	}
@@ -190,7 +190,7 @@ int main(int argc, char **argv)
 	data_dir = get_data_dir(argv[0]);
 
 	create_function_hook_hash();
-	for(i = 0; i < ARRAY_SIZE(reg_funcs); i++){
+	for (i = 0; i < ARRAY_SIZE(reg_funcs); i++) {
 		func = reg_funcs[i].func;
 		/* The script IDs start at 1.
 		   0 is used for internal stuff. */

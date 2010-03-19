@@ -37,7 +37,7 @@ static void match_print_value(const char *fn, struct expression *expr, void *inf
 		sm_msg("error:  the argument to %s is supposed to be a string literal", fn);
 		return;
 	}
-	
+
 	slist = get_all_states(SMATCH_EXTRA);
 	FOR_EACH_PTR(slist, tmp) {
 		if (!strcmp(tmp->name, arg_expr->string->data))
@@ -57,7 +57,6 @@ static void match_note(const char *fn, struct expression *expr, void *info)
 	}
 	sm_msg("%s", arg_expr->string->data);
 }
-
 
 void check_debug(int id)
 {
