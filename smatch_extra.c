@@ -613,6 +613,20 @@ free:
 	free_string(name);
 }
 
+static void delete_state_tracker(struct tracker *t)
+{
+	remove_from_equiv(t->name, t->sym);
+	delete_state(t->owner, t->name, t->sym);
+}
+
+static void scoped_state_extra(const char *name, struct symbol *sym)
+{
+	struct tracker *t;
+
+	t = alloc_tracker(SMATCH_EXTRA, name, sym);
+	add_scope_hook((scope_hook *)&delete_state_tracker, t); 
+}
+
 static void match_declarations(struct symbol *sym)
 {
 	const char *name;
@@ -625,10 +639,10 @@ static void match_declarations(struct symbol *sym)
 				set_state(SMATCH_EXTRA, name, sym, alloc_extra_state(val));
 			else
 				set_state(SMATCH_EXTRA, name, sym, extra_undefined());
-			scoped_state(my_id, name, sym);
+			scoped_state_extra(name, sym);
 		} else {
 			set_state(SMATCH_EXTRA, name, sym, extra_undefined());
-			scoped_state(my_id, name, sym);
+			scoped_state_extra(name, sym);
 		}
 	}
 }
