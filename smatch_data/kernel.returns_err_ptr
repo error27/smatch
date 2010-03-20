@@ -497,7 +497,6 @@ logfs_new_meta_inode
 logfs_read_meta_inode
 lookup_bdev
 lookup_create
-lookup_extent_mapping
 __lookup_hash
 lookup_hash
 lookup_one_len
@@ -816,7 +815,6 @@ scsi_devinfo_lookup_by_key
 sdhci_alloc_host
 sdhci_pci_probe_slot
 sdio_alloc_func
-search_extent_mapping
 securityfs_create_file
 seeq8005_probe
 select_bad_process
