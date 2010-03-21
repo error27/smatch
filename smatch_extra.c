@@ -87,6 +87,7 @@ static struct smatch_state *alloc_extra_state_empty(void)
 	dinfo = alloc_dinfo();
 	state = __alloc_smatch_state(0);
 	state->data = dinfo;
+	state->name = "";
 	return state;
 }
 
@@ -729,8 +730,10 @@ static void match_comparison(struct expression *expr)
 		}
 		break;
 	case SPECIAL_EQUAL:
-		// todo.  print a warning here for impossible conditions.
-		true_state = alloc_extra_state(fixed);
+		if (possibly_true(SPECIAL_EQUAL, get_dinfo(orig), fixed, fixed))
+			true_state = alloc_extra_state(fixed);
+		else
+			true_state = alloc_extra_state_empty();
 		false_state = filter_range(orig, fixed, fixed);
 		break;
 	case SPECIAL_UNSIGNED_GTE:
@@ -755,7 +758,10 @@ static void match_comparison(struct expression *expr)
 		break;
 	case SPECIAL_NOTEQUAL:
 		true_state = filter_range(orig, fixed, fixed); 
-		false_state = alloc_extra_state(fixed);
+		if (possibly_true(SPECIAL_EQUAL, get_dinfo(orig), fixed, fixed))
+			false_state = alloc_extra_state(fixed);
+		else
+			false_state = alloc_extra_state_empty();
 		break;
 	default:
 		sm_msg("unhandled comparison %d\n", comparison);
@@ -791,7 +797,7 @@ void __extra_match_condition(struct expression *expr)
 		if (possibly_true(SPECIAL_EQUAL, get_dinfo(pre_state), 0, 0))
 			false_state = alloc_extra_state(0);
 		else
-			false_state = NULL;
+			false_state = alloc_extra_state_empty();
 		set_extra_true_false(name, sym, true_state, false_state);
 		free_string(name);
 		return;
