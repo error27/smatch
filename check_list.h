@@ -37,6 +37,7 @@ CK(check_no_return)
 CK(check_mod_timer)
 CK(check_le16)
 CK(check_return)
+CK(check_resource_size)
 
 /* <- your test goes here */
 /* CK(register_template) */
