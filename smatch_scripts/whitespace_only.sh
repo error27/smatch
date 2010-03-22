@@ -10,11 +10,18 @@ if [ "$1" = "" ] ; then
     usage
 fi
 
+if [ "$1" = "--compile" ] ; then
+    compile=true
+    shift
+fi
+
 SCRIPT_DIR=$(dirname $0)
 if [ -e $SCRIPT_DIR/kchecker ] ; then
     KCHECKER=$SCRIPT_DIR/kchecker
+    STRIP=$SCRIPT_DIR/strip_whitespace.pl
 elif which kchecker | grep kchecker > /dev/null ; then
     KCHECKER=kchecker
+    STRIP=strip_whitespace.pl
 else
     echo "$SCRIPT_DIR"
     echo "kchecker script not found."
@@ -35,6 +42,7 @@ fi
 
 before=$(mktemp /tmp/before.XXXXXXXXXX)
 after=$(mktemp /tmp/after.XXXXXXXXXX)
+tmpfile=$(mktemp)
 
 for file in $files ; do
     file=${file#*/}
@@ -42,9 +50,21 @@ for file in $files ; do
 	continue
     fi
 
-    $KCHECKER --test-parsing --outfile=$before $file
+    $STRIP $file > $before
+    if [ "$compile" = "true" ] ; then
+	$KCHECKER --test-parsing --outfile=$before $file
+	mv $before $tmpfile
+	$STRIP $file > $before
+	cat $tmpfile >> $before
+    fi
     cat $PATCH | patch -p1
-    $KCHECKER --test-parsing --outfile=$after $file
+    $STRIP $file > $after
+    if [ "$compile" = "true" ] ; then
+	$KCHECKER --test-parsing --outfile=$after $file
+	mv $after $tmpfile
+	$STRIP $file > $after
+	cat $tmpfile >> $after
+    fi
     cat $PATCH | patch -p1 -R
 
     if [ ! -s $before ] ; then
@@ -62,7 +82,9 @@ for file in $files ; do
 	echo '!!  This patch changes stuff  !!'
 	echo '!!                            !!'
 	echo '!!#$%@$%@^@#$^@#%@$%@$%@#%$@#%!!'
+
+	diff -u $before $after 
     fi
-    rm -f $before $after
+    rm -f $before $after $tmpfile
 done
 
