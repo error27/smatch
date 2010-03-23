@@ -46,9 +46,6 @@ tmpfile=$(mktemp)
 
 for file in $files ; do
     file=${file#*/}
-    if ! echo $file | grep c$ ; then
-	continue
-    fi
 
     $STRIP $file > $before
     if [ "$compile" = "true" ] ; then
