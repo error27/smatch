@@ -498,9 +498,9 @@ void __split_statements(struct statement *stmt)
 		return;
 	case STMT_ASM:
 		__split_expr(stmt->asm_string);
-		//__split_expr(stmt->asm_outputs);
-		//__split_expr(stmt->asm_inputs);
-		//__split_expr(stmt->asm_clobbers);
+		split_expr_list(stmt->asm_outputs);
+		split_expr_list(stmt->asm_inputs);
+		split_expr_list(stmt->asm_clobbers);
 		return;
 	case STMT_CONTEXT:
 		return;
