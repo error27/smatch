@@ -57,8 +57,8 @@ void free_slist(struct state_list **slist);
 void free_stack(struct state_list_stack **stack);
 void free_stack_and_slists(struct state_list_stack **slist_stack);
 
-void set_state_stack(struct state_list_stack **stack, int owner, 
-		const char *name, struct symbol *sym, struct smatch_state *state);
+struct sm_state *set_state_stack(struct state_list_stack **stack, int owner, const char *name, 
+				struct symbol *sym, struct smatch_state *state);
 
 struct smatch_state *get_state_stack(struct state_list_stack *stack, int owner, 
 				const char *name, struct symbol *sym);

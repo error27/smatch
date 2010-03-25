@@ -512,14 +512,17 @@ void free_stack_and_slists(struct state_list_stack **slist_stack)
 /*
  * set_state_stack() sets the state for the top slist on the stack.
  */
-void set_state_stack(struct state_list_stack **stack, int owner, const char *name, 
-		struct symbol *sym, struct smatch_state *state)
+struct sm_state *set_state_stack(struct state_list_stack **stack, int owner, const char *name, 
+				struct symbol *sym, struct smatch_state *state)
 {
 	struct state_list *slist;
+	struct sm_state *sm;
 
 	slist = pop_slist(stack);
-	set_state_slist(&slist, owner, name, sym, state);
+	sm = set_state_slist(&slist, owner, name, sym, state);
 	push_slist(stack, slist);
+
+	return sm;
 }
 
 /*
