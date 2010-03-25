@@ -274,10 +274,6 @@ extern int option_debug;
 
 void __push_fake_cur_slist();
 struct state_list *__pop_fake_cur_slist();
-extern int __fake_conditions;
-extern struct state_list *__fake_cond_true;
-extern struct state_list *__fake_cond_false;
-
 
 int unreachable(void);
 void __set_sm(struct sm_state *sm);

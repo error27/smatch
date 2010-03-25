@@ -44,9 +44,6 @@ static struct state_list_stack *cond_true_stack; /* states affected by a branch 
 static struct state_list_stack *cond_false_stack;
 
 static struct state_list_stack *fake_cur_slist_stack;
-int __fake_conditions = 0;
-struct state_list *__fake_cond_true = NULL;
-struct state_list *__fake_cond_false = NULL;
 
 static struct state_list_stack *break_stack;
 static struct state_list_stack *switch_stack;
@@ -319,14 +316,6 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 
 	if (unreachable())
 		return;
-
-	if (__fake_conditions) {
-		if (true_state)
-			set_state_slist(&__fake_cond_true, owner, name, sym, true_state);
-		if (false_state)
-			set_state_slist(&__fake_cond_false, owner, name, sym, false_state);
-		return;
-	}
 
 	if (!cond_false_stack || !cond_true_stack) {
 		printf("Error:  missing true/false stacks\n");
