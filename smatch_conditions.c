@@ -184,15 +184,17 @@ static void handle_logical(struct expression *expr)
 
 static void move_cur_to_tf(int tf)
 {
+	struct state_list *fake;
 	struct sm_state *sm;
 
-	FOR_EACH_PTR(__fake_cur_slist, sm) {
+	fake = __pop_fake_cur_slist();
+	FOR_EACH_PTR(fake, sm) {
 		if (tf)
 			__set_true_false_sm(sm, NULL);
 		else
 			__set_true_false_sm(NULL, sm);
 	} END_FOR_EACH_PTR(sm);
-	free_slist(&__fake_cur_slist);
+	free_slist(&fake);
 }
 
 
@@ -213,7 +215,7 @@ static void handle_select(struct expression *expr)
 
 	__save_false_states_for_later();
 
-	__fake_cur++;
+	__push_fake_cur_slist();
 	if (implied_condition_true(expr->cond_true)) {
 		__split_expr(expr->cond_true);
 	} else {
@@ -223,11 +225,11 @@ static void handle_select(struct expression *expr)
 	}
 	move_cur_to_tf(TRUE);
 
+	__push_fake_cur_slist();
 	if (implied_condition_false(expr->cond_false)) {
 		__split_expr(expr->cond_false);
 		__pop_pre_cond_states();
 		move_cur_to_tf(FALSE);
-		__fake_cur--;
 		return;
 	}
 
@@ -237,7 +239,6 @@ static void handle_select(struct expression *expr)
 	__push_cond_stacks();
 	split_conditions(expr->cond_false);
 	move_cur_to_tf(FALSE);
-	__fake_cur--;
 	__or_cond_states();
 	__pop_pre_cond_states();
 

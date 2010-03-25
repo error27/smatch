@@ -137,6 +137,7 @@ static void assign_ranged_funcs(const char *fn, struct expression *expr,
 	char *var_name;
 	struct symbol *sym;
 	struct smatch_state *extra_state;
+	struct state_list *tmp_slist;
 	struct state_list *final_states = NULL;
 	struct range_list *handled_ranges = NULL;
 	struct call_back_list *same_range_call_backs = NULL;
@@ -145,12 +146,12 @@ static void assign_ranged_funcs(const char *fn, struct expression *expr,
 	if (!var_name || !sym)
 		goto free;
 
-	__fake_cur = 1;
 	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != RANGED_CALL)
 			continue;
 		if (in_list_exact(handled_ranges, tmp->range))
 			continue;
+		__push_fake_cur_slist();
 		tack_on(&handled_ranges, tmp->range);
 
 		same_range_call_backs = get_same_ranged_call_backs(call_backs, tmp->range);
@@ -160,10 +161,10 @@ static void assign_ranged_funcs(const char *fn, struct expression *expr,
 		extra_state = alloc_extra_state_range(tmp->range->min, tmp->range->max);
 		set_state(SMATCH_EXTRA, var_name, sym, extra_state);
 
-		merge_slist(&final_states, __fake_cur_slist);
-		free_slist(&__fake_cur_slist);
+		tmp_slist = __pop_fake_cur_slist();
+		merge_slist(&final_states, tmp_slist);
+		free_slist(&tmp_slist);
 	} END_FOR_EACH_PTR(tmp);
-  	__fake_cur = 0;
 
 	FOR_EACH_PTR(final_states, sm) {
 		__set_sm(sm);
@@ -182,6 +183,7 @@ void function_comparison(int comparison, struct expression *expr, long long valu
 	struct data_range *value_range;
 	struct state_list *true_states = NULL;
 	struct state_list *false_states = NULL;
+	struct state_list *tmp_slist;
 	struct sm_state *sm;
 
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
@@ -192,8 +194,8 @@ void function_comparison(int comparison, struct expression *expr, long long valu
 		return;
 	value_range = alloc_range(value, value);
 
-	__fake_cur = 1;
 	/* set true states */
+	__push_fake_cur_slist();
 	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != RANGED_CALL)
 			continue;
@@ -201,10 +203,12 @@ void function_comparison(int comparison, struct expression *expr, long long valu
 			continue;
 		((implication_hook *)(tmp->call_back))(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
-	merge_slist(&true_states, __fake_cur_slist);
-	free_slist(&__fake_cur_slist);
+	tmp_slist = __pop_fake_cur_slist();
+	merge_slist(&true_states, tmp_slist);
+	free_slist(&tmp_slist);
 
 	/* set false states */
+	__push_fake_cur_slist();
 	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != RANGED_CALL)
 			continue;
@@ -212,9 +216,9 @@ void function_comparison(int comparison, struct expression *expr, long long valu
 			continue;
 		((implication_hook *)(tmp->call_back))(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
-	merge_slist(&false_states, __fake_cur_slist);
-	free_slist(&__fake_cur_slist);
-	__fake_cur = 0;
+	tmp_slist = __pop_fake_cur_slist();
+	merge_slist(&false_states, tmp_slist);
+	free_slist(&tmp_slist);
 
 	FOR_EACH_PTR(true_states, sm) {
 		__set_true_false_sm(sm, NULL);

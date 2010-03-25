@@ -43,8 +43,7 @@ static struct state_list_stack *pre_cond_stack; /* states before a t/f branch */
 static struct state_list_stack *cond_true_stack; /* states affected by a branch */
 static struct state_list_stack *cond_false_stack;
 
-int __fake_cur = 0;
-struct state_list *__fake_cur_slist = NULL;
+static struct state_list_stack *fake_cur_slist_stack;
 int __fake_conditions = 0;
 struct state_list *__fake_cond_true = NULL;
 struct state_list *__fake_cond_false = NULL;
@@ -122,9 +121,8 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 
 	__use_default_modification_hook(owner, name);
 
-	if (__fake_cur) {
-		return set_state_slist(&__fake_cur_slist, owner, name, sym, state);
-	}
+	if (fake_cur_slist_stack)
+		return set_state_stack(&fake_cur_slist_stack, owner, name, sym, state);
 
 	ret =  set_state_slist(&cur_slist, owner, name, sym, state);
 
@@ -149,6 +147,16 @@ struct sm_state *set_state_expr(int owner, struct expression *expr, struct smatc
 free:
 	free_string(name);
 	return ret;
+}
+
+void __push_fake_cur_slist()
+{
+	push_slist(&fake_cur_slist_stack, NULL);
+}
+
+struct state_list *__pop_fake_cur_slist()
+{
+	return pop_slist(&fake_cur_slist_stack);
 }
 
 void __set_sm(struct sm_state *sm)

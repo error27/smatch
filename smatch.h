@@ -272,8 +272,8 @@ int implied_condition_false(struct expression *expr);
 /* smatch_states.c */
 extern int option_debug;
 
-extern int __fake_cur;
-extern struct state_list *__fake_cur_slist;
+void __push_fake_cur_slist();
+struct state_list *__pop_fake_cur_slist();
 extern int __fake_conditions;
 extern struct state_list *__fake_cond_true;
 extern struct state_list *__fake_cond_false;
