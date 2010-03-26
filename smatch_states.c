@@ -455,8 +455,8 @@ void __save_false_states_for_later(void)
 
 	overwrite_slist(false_states, &tmp);
 
-	push_slist(&pre_cond_stack, tmp);
 	push_slist(&pre_cond_stack, pre_conditions);
+	push_slist(&pre_cond_stack, tmp);
 	push_slist(&cond_false_stack, false_states);
 }
 
