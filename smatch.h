@@ -297,8 +297,8 @@ void __merge_false_states(void);
 void __merge_true_states(void);
 
 void __negate_cond_stacks(void);
-void __save_false_states_for_later(void);
-void __use_previously_stored_false_states(void);
+void __save_false_states_on_pre_cond_stack(void);
+void __use_pre_cond_states(void);
 void __use_cond_true_states(void);
 void __use_cond_false_states(void);
 void __push_cond_stacks(void);

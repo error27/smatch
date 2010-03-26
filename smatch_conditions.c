@@ -213,7 +213,7 @@ static void handle_select(struct expression *expr)
 {
 	split_conditions(expr->conditional);
 
-	__save_false_states_for_later();
+	__save_false_states_on_pre_cond_stack();
 
 	__push_fake_cur_slist();
 	if (implied_condition_true(expr->cond_true)) {
@@ -233,7 +233,7 @@ static void handle_select(struct expression *expr)
 		return;
 	}
 
-	__use_previously_stored_false_states();
+	__use_pre_cond_states();
 
 	__save_pre_cond_states();
 	__push_cond_stacks();

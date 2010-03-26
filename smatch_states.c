@@ -443,7 +443,7 @@ static void __use_cond_stack(struct state_list_stack **stack)
 	push_slist(stack, slist);
 }
 
-void __save_false_states_for_later(void)
+void __save_false_states_on_pre_cond_stack(void)
 {
 	struct state_list *pre_conditions;
 	struct state_list *false_states;
@@ -460,7 +460,7 @@ void __save_false_states_for_later(void)
 	push_slist(&cond_false_stack, false_states);
 }
 
-void __use_previously_stored_false_states(void)
+void __use_pre_cond_states(void)
 {
 	free_slist(&cur_slist);
 	cur_slist = pop_slist(&pre_cond_stack);
