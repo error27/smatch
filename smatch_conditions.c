@@ -172,7 +172,7 @@ static void handle_logical(struct expression *expr)
 
 	__save_pre_cond_states();
 	split_conditions(expr->right);
-	__pop_pre_cond_states();
+	__discard_pre_cond_states();
 
 	if (is_logical_and(expr)) {
 		__and_cond_states();
@@ -228,7 +228,7 @@ static void handle_select(struct expression *expr)
 	__push_fake_cur_slist();
 	if (implied_condition_false(expr->cond_false)) {
 		__split_expr(expr->cond_false);
-		__pop_pre_cond_states();
+		__discard_pre_cond_states();
 		move_cur_to_tf(FALSE);
 		return;
 	}
@@ -240,7 +240,7 @@ static void handle_select(struct expression *expr)
 	split_conditions(expr->cond_false);
 	move_cur_to_tf(FALSE);
 	__or_cond_states();
-	__pop_pre_cond_states();
+	__discard_pre_cond_states();
 
 	__use_cond_true_states();
 }

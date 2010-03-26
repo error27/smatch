@@ -242,8 +242,8 @@ static void handle_pre_loop(struct statement *stmt)
 	if (is_forever_loop(stmt)) {
 		__save_gotos(loop_name);
 		/* forever loops don't have an iterator_post_statement */
-		__pop_continues();
-		__pop_false_states();
+		__discard_continues();
+		__discard_false_states();
 		__use_breaks();
 	} else {
 		__merge_continues();
@@ -254,7 +254,7 @@ static void handle_pre_loop(struct statement *stmt)
 		nullify_path();
 		__merge_false_states();
 		if (once_through) {
-			__pop_false_states();
+			__discard_false_states();
 		} else {
 			__merge_false_states();
 
@@ -455,7 +455,7 @@ void __split_statements(struct statement *stmt)
 		if (!__pop_default())
 			__merge_switches(top_expression(switch_expr_stack),
 				      NULL);
-		__pop_switches();
+		__discard_switches();
 		__merge_breaks();
 		pop_expression(&switch_expr_stack);
 		return;

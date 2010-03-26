@@ -504,7 +504,7 @@ void __save_pre_cond_states(void)
 	push_slist(&pre_cond_stack, clone_slist(cur_slist));
 }
 
-void __pop_pre_cond_states(void)
+void __discard_pre_cond_states(void)
 {
 	struct state_list *tmp;
 	
@@ -541,7 +541,7 @@ void __use_false_states(void)
 	cur_slist = pop_slist(&false_stack);
 }
 
-void __pop_false_states(void)
+void __discard_false_states(void)
 {
 	struct state_list *slist;
 
@@ -572,7 +572,7 @@ void __push_continues(void)
 	push_slist(&continue_stack, NULL);
 }
 
-void __pop_continues(void)
+void __discard_continues(void)
 { 
 	struct state_list *slist;
 
@@ -681,7 +681,7 @@ void __merge_switches(struct expression *switch_expr, struct expression *case_ex
 	push_slist(&switch_stack, slist);
 }
 
-void __pop_switches(void)
+void __discard_switches(void)
 { 
 	struct state_list *slist;
 

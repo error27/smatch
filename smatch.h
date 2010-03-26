@@ -292,7 +292,7 @@ struct sm_state *get_sm_state(int owner, const char *name,
 struct sm_state *get_sm_state_expr(int owner, struct expression *expr);
 void __push_true_states(void);
 void __use_false_states(void);
-void __pop_false_states(void);
+void __discard_false_states(void);
 void __merge_false_states(void);
 void __merge_true_states(void);
 
@@ -305,13 +305,13 @@ void __push_cond_stacks(void);
 void __and_cond_states(void);
 void __or_cond_states(void);
 void __save_pre_cond_states(void);
-void __pop_pre_cond_states(void);
+void __discard_pre_cond_states(void);
 void __use_cond_states(void);
 
 void __warn_on_silly_pre_loops(void);
 
 void __push_continues(void);
-void __pop_continues(void);
+void __discard_continues(void);
 void __process_continues(void);
 void __merge_continues(void);
 
@@ -321,14 +321,14 @@ void __merge_breaks(void);
 void __use_breaks(void);
 
 void __save_switch_states(struct expression *switch_expr);
-void __pop_switches(void);
+void __discard_switches(void);
 void __merge_switches(struct expression *switch_expr, struct expression *case_expr);
 void __push_default(void);
 void __set_default(void);
 int __pop_default(void);
 
 void __push_conditions(void);
-void __pop_conditions(void);
+void __discard_conditions(void);
 
 void __save_gotos(const char *name);
 void __merge_gotos(const char *name);
