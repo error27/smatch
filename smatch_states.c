@@ -393,19 +393,27 @@ int __path_is_null(void)
 	return 1;
 }
 
+static void check_stack_free(struct state_list_stack **stack)
+{
+	if (*stack) {
+		sm_msg("smatch internal error:  stack not empty");
+		free_stack_and_slists(stack);
+	}		
+}
+
 void clear_all_states(void)
 {
 	struct named_slist *named_slist;
 
 	nullify_path();
-	free_stack_and_slists(&true_stack);
-	free_stack_and_slists(&false_stack);
-	free_stack_and_slists(&pre_cond_stack);
-	free_stack_and_slists(&cond_true_stack);
-	free_stack_and_slists(&cond_false_stack);
-	free_stack_and_slists(&break_stack);
-	free_stack_and_slists(&switch_stack);
-	free_stack_and_slists(&continue_stack);
+	check_stack_free(&true_stack);
+	check_stack_free(&false_stack);
+	check_stack_free(&pre_cond_stack);
+	check_stack_free(&cond_true_stack);
+	check_stack_free(&cond_false_stack);
+	check_stack_free(&break_stack);
+	check_stack_free(&switch_stack);
+	check_stack_free(&continue_stack);
 	free_stack_and_slists(&implied_pools);
 
 	FOR_EACH_PTR(goto_stack, named_slist) {
