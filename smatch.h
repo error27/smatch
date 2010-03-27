@@ -297,11 +297,14 @@ void __merge_false_states(void);
 void __merge_true_states(void);
 
 void __negate_cond_stacks(void);
-void __save_false_states_on_pre_cond_stack(void);
 void __use_pre_cond_states(void);
 void __use_cond_true_states(void);
 void __use_cond_false_states(void);
 void __push_cond_stacks(void);
+struct state_list *__copy_cond_true_states(void);
+struct state_list *__copy_cond_false_states(void);
+struct state_list *__pop_cond_true_stack(void);
+struct state_list *__pop_cond_false_stack(void);
 void __and_cond_states(void);
 void __or_cond_states(void);
 void __save_pre_cond_states(void);

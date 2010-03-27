@@ -429,6 +429,34 @@ void __push_cond_stacks(void)
 	push_slist(&cond_false_stack, NULL);
 }
 
+struct state_list *__copy_cond_true_states(void)
+{
+	struct state_list *ret;
+
+	ret = pop_slist(&cond_true_stack);
+	push_slist(&cond_true_stack, clone_slist(ret));
+	return ret;
+}
+
+struct state_list *__copy_cond_false_states(void)
+{
+	struct state_list *ret;
+
+	ret = pop_slist(&cond_false_stack);
+	push_slist(&cond_false_stack, clone_slist(ret));
+	return ret;
+}
+
+struct state_list *__pop_cond_true_stack(void)
+{
+	return pop_slist(&cond_true_stack);
+}
+
+struct state_list *__pop_cond_false_stack(void)
+{
+	return pop_slist(&cond_false_stack);
+}
+
 /*
  * This combines the pre cond states with either the true or false states.
  * For example:
@@ -449,23 +477,6 @@ static void __use_cond_stack(struct state_list_stack **stack)
 	slist = pop_slist(stack);
 	overwrite_slist(slist, &cur_slist);
 	push_slist(stack, slist);
-}
-
-void __save_false_states_on_pre_cond_stack(void)
-{
-	struct state_list *pre_conditions;
-	struct state_list *false_states;
-	struct state_list *tmp;
-
-	pre_conditions = pop_slist(&pre_cond_stack);
-	false_states = pop_slist(&cond_false_stack);
-	tmp = clone_slist(pre_conditions);
-
-	overwrite_slist(false_states, &tmp);
-
-	push_slist(&pre_cond_stack, pre_conditions);
-	push_slist(&pre_cond_stack, tmp);
-	push_slist(&cond_false_stack, false_states);
 }
 
 void __use_pre_cond_states(void)

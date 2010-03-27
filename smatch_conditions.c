@@ -182,21 +182,18 @@ static void handle_logical(struct expression *expr)
 	__use_cond_true_states();
 }
 
-static void move_cur_to_tf(int tf)
+static struct state_list *combine(struct state_list *orig, struct state_list *fake, 
+				struct state_list *new)
 {
-	struct state_list *fake;
-	struct sm_state *sm;
+	struct state_list *ret = NULL;
 
-	fake = __pop_fake_cur_slist();
-	FOR_EACH_PTR(fake, sm) {
-		if (tf)
-			__set_true_false_sm(sm, NULL);
-		else
-			__set_true_false_sm(NULL, sm);
-	} END_FOR_EACH_PTR(sm);
-	free_slist(&fake);
+	overwrite_slist(orig, &ret);
+	overwrite_slist(fake, &ret);
+	overwrite_slist(new, &ret);
+	free_slist(&new);
+
+	return ret;
 }
-
 
 /*
  * handle_select()
@@ -211,38 +208,108 @@ static void move_cur_to_tf(int tf)
 
 static void handle_select(struct expression *expr)
 {
-	split_conditions(expr->conditional);
+	struct state_list *a_T = NULL;
+	struct state_list *a_F = NULL;
+	struct state_list *a_T_b_T = NULL;
+	struct state_list *a_T_b_F = NULL;
+	struct state_list *a_T_b_fake = NULL;
+	struct state_list *a_F_c_T = NULL;
+	struct state_list *a_F_c_F = NULL;
+	struct state_list *a_F_c_fake = NULL;
+	struct sm_state *sm;
 
-	__save_false_states_on_pre_cond_stack();
-
-	__push_fake_cur_slist();
-	if (implied_condition_true(expr->cond_true)) {
-		__split_expr(expr->cond_true);
-	} else {
-		__push_cond_stacks();
-		split_conditions(expr->cond_true);
-		__and_cond_states();
-	}
-	move_cur_to_tf(TRUE);
-
-	__push_fake_cur_slist();
-	if (implied_condition_false(expr->cond_false)) {
-		__split_expr(expr->cond_false);
-		__discard_pre_cond_states();
-		move_cur_to_tf(FALSE);
-		return;
-	}
-
-	__use_pre_cond_states();
+	/*
+	 * Imagine we have this:  if (a ? b : c) { ...
+	 * 
+	 * The condition is true if "a" is true and "b" is true or 
+	 * "a" is false and "c" is true.  It's false if "a" is true
+	 * and "b" is false or "a" is false and "c" is false.
+	 *
+	 * The variable name "a_T_b_T" stands for "a true b true" etc.
+	 *
+	 * But if we know "b" is true then we can simpilify things.
+	 * The condition is true if "a" is true or if "a" is false and
+	 * "c" is true.  The only way the condition can be false is if
+	 * "a" is false and "c" is false.
+	 *
+	 * The remaining thing is the "a_T_b_fake".  When we simplify 
+	 * the equations we have to take into consideration that other
+	 * states may have changed that don't play into the true false
+	 * equation.  Take the following example:
+	 * if ({
+	 *         (flags) = __raw_local_irq_save();
+	 *         _spin_trylock(lock) ? 1 : 
+	 *                 ({ raw_local_irq_restore(flags);  0; });
+	 *    })
+	 * Smatch has to record that the irq flags were restored on the
+	 * false path.
+	 *
+	 */
 
 	__save_pre_cond_states();
-	__push_cond_stacks();
-	split_conditions(expr->cond_false);
-	move_cur_to_tf(FALSE);
-	__or_cond_states();
-	__discard_pre_cond_states();
 
-	__use_cond_true_states();
+	split_conditions(expr->conditional);
+
+	a_T = __copy_cond_true_states();
+	a_F = __copy_cond_false_states();
+
+	__push_cond_stacks();
+	__push_fake_cur_slist();
+	split_conditions(expr->cond_true);
+	a_T_b_fake = __pop_fake_cur_slist();
+	a_T_b_T = combine(a_T, a_T_b_fake, __pop_cond_true_stack());
+	a_T_b_F = combine(a_T, a_T_b_fake,__pop_cond_false_stack());
+
+	__use_cond_false_states();
+
+	__push_cond_stacks();
+	__push_fake_cur_slist();
+	split_conditions(expr->cond_false);
+	a_F_c_fake = __pop_fake_cur_slist();
+	a_F_c_T = combine(a_F, a_F_c_fake, __pop_cond_true_stack());
+	a_F_c_F = combine(a_F, a_F_c_fake, __pop_cond_false_stack());
+
+	/* We have to restore the pre condition states so that
+	   implied_condition_true() will use the right cur_slist */
+	__use_pre_cond_states();
+
+	if (implied_condition_true(expr->cond_true)) {
+		free_slist(&a_T_b_T);
+		free_slist(&a_T_b_F);
+		a_T_b_T = clone_slist(a_T);
+		overwrite_slist(a_T_b_fake, &a_T_b_T);
+	}
+	if (implied_condition_false(expr->cond_true)) {
+		free_slist(&a_T_b_T);
+		free_slist(&a_T_b_F);
+		a_T_b_F = clone_slist(a_T);
+		overwrite_slist(a_T_b_fake, &a_T_b_F);
+	}
+	if (implied_condition_true(expr->cond_false)) {
+		free_slist(&a_F_c_T);
+		free_slist(&a_F_c_F);
+		a_F_c_T = clone_slist(a_F);
+		overwrite_slist(a_F_c_fake, &a_F_c_T);
+	}
+	if (implied_condition_false(expr->cond_false)) {
+		free_slist(&a_F_c_T);
+		free_slist(&a_F_c_F);
+		a_F_c_F = clone_slist(a_F);
+		overwrite_slist(a_F_c_fake, &a_F_c_F);
+	}
+
+	merge_slist(&a_T_b_T, a_F_c_T);
+	merge_slist(&a_T_b_F, a_F_c_F);
+
+	__pop_cond_true_stack();
+	__pop_cond_false_stack();
+	__push_cond_stacks();
+	FOR_EACH_PTR(a_T_b_T, sm) {
+		__set_true_false_sm(sm, NULL);
+	} END_FOR_EACH_PTR(sm);
+	FOR_EACH_PTR(a_T_b_F, sm) {
+		__set_true_false_sm(NULL, sm);
+	} END_FOR_EACH_PTR(sm);
 }
 
 static void split_conditions(struct expression *expr)
