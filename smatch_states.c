@@ -119,7 +119,7 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 	__use_default_modification_hook(owner, name);
 
 	if (fake_cur_slist_stack)
-		return set_state_stack(&fake_cur_slist_stack, owner, name, sym, state);
+		set_state_stack(&fake_cur_slist_stack, owner, name, sym, state);
 
 	ret =  set_state_slist(&cur_slist, owner, name, sym, state);
 
@@ -149,10 +149,12 @@ free:
 void __push_fake_cur_slist()
 {
 	push_slist(&fake_cur_slist_stack, NULL);
+	__save_pre_cond_states();
 }
 
 struct state_list *__pop_fake_cur_slist()
 {
+	__use_pre_cond_states();
 	return pop_slist(&fake_cur_slist_stack);
 }
 
