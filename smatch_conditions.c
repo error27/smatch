@@ -436,6 +436,79 @@ int __handle_condition_assigns(struct expression *expr)
 	return 1;
 }
 
+static int is_select_assign(struct expression *expr)
+{
+	struct expression *right;
+
+	right = strip_expr(expr->right);
+	if (right->type == EXPR_CONDITIONAL)
+		return 1;
+	if (right->type == EXPR_SELECT)
+		return 1;
+	return 0;
+}
+
+static struct expression *alloc_pseudo_assign(struct expression *left, struct expression *right)
+{			
+	struct expression *e_assign;
+
+	e_assign = alloc_expression(left->pos, EXPR_ASSIGNMENT);
+	e_assign->op = (int)'=';
+	e_assign->left = left;
+	e_assign->right = right;
+	return e_assign;
+}
+
+int __handle_select_assigns(struct expression *expr)
+{
+	struct expression *right;
+	struct expression *fake_expr;
+	struct state_list *final_states = NULL;
+	struct sm_state *sm;
+	int is_true;
+	int is_false;
+
+	if (!is_select_assign(expr))
+		return 0;
+	sm_debug("%d in __handle_ternary_assigns\n", get_lineno());
+	right = strip_expr(expr->right);
+
+	is_true = implied_condition_true(right->conditional);
+	is_false = implied_condition_false(right->conditional);
+
+	/* hah hah.  the ultra fake out */
+	__save_pre_cond_states();
+	__split_whole_condition(right->conditional);
+
+	if (!is_false) {
+		if (right->cond_true)
+			fake_expr = alloc_pseudo_assign(expr->left, right->cond_true);
+		else
+			fake_expr = alloc_pseudo_assign(expr->left, right->conditional);
+		__split_expr(fake_expr);
+		final_states = clone_slist(__get_cur_slist());
+	}
+
+	__use_false_states();
+	if (!is_true) {
+		fake_expr = alloc_pseudo_assign(expr->left, right->cond_false);
+		__split_expr(fake_expr);
+		merge_slist(&final_states, __get_cur_slist());
+	}
+
+	__use_pre_cond_states();
+
+	FOR_EACH_PTR(final_states, sm) {
+		__set_sm(sm);
+	} END_FOR_EACH_PTR(sm);
+
+	free_slist(&final_states);
+
+	sm_debug("%d done __handle_ternary_assigns\n", get_lineno());
+
+	return 1;
+}
+
 int in_condition(void)
 {
 	return inside_condition;

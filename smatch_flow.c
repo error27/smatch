@@ -111,6 +111,10 @@ void __split_expr(struct expression *expr)
 		if (__handle_condition_assigns(expr))
 			break;
 
+		/* foo = (x < 5 ? foo : 5); */
+		if (__handle_select_assigns(expr))
+			break;
+
 		__split_expr(expr->right);
 		__pass_to_client(expr, ASSIGNMENT_HOOK);
 		tmp = strip_expr(expr->right);
