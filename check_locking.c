@@ -118,6 +118,8 @@ static struct lock_info kernel_lock_table[] = {
 	{"_spin_unlock_irqrestore",    UNLOCK, "spin_lock", 0, ret_any},
 	{"__spin_lock_irqsave",        LOCK,   "spin_lock", 0, ret_any},
 	{"__spin_unlock_irqrestore",   UNLOCK, "spin_lock", 0, ret_any},
+	{"_raw_spin_lock_irqsave",     LOCK,   "spin_lock", 0, ret_any},
+	{"__raw_spin_lock_irqsave",    LOCK,   "spin_lock", 0, ret_any},
 	{"spin_lock_irqsave_nested",   LOCK,   "spin_lock", 0, ret_any},
 	{"_spin_lock_irqsave_nested",  LOCK,   "spin_lock", 0, ret_any},
 	{"__spin_lock_irqsave_nested", LOCK,   "spin_lock", 0, ret_any},
@@ -253,6 +255,9 @@ static struct lock_info kernel_lock_table[] = {
 	{"__spin_lock_irqsave_nested", LOCK,   "irqsave", 1, ret_any},
 	{"__spin_lock_irqsave",        LOCK,   "irqsave", 1, ret_any},
 	{"__spin_unlock_irqrestore",   UNLOCK, "irqsave", 1, ret_any},
+	{"_raw_spin_lock_irqsave",     LOCK,   "irqsave", RETURN_VAL, ret_any},
+	{"_raw_spin_lock_irqsave",     LOCK,   "irqsave", 1, ret_any},
+	{"__raw_spin_lock_irqsave",    LOCK,   "irqsave", RETURN_VAL, ret_any},
 	{"read_lock_irqsave",          LOCK,   "irqsave", RETURN_VAL, ret_any},
 	{"read_lock_irqsave",          LOCK,   "irqsave", 1, ret_any},
 	{"read_unlock_irqrestore",     UNLOCK, "irqsave", 1, ret_any},
@@ -315,6 +320,18 @@ static char *make_full_name(const char *lock, const char *var)
 	return alloc_string(tmp_buf);
 }
 
+static struct expression *remove_spinlock_check(struct expression *expr)
+{
+	if (expr->type != EXPR_CALL)
+		return expr;
+	if (expr->fn->type != EXPR_SYMBOL)
+		return expr;
+	if (strcmp(expr->fn->symbol_name->name, "spinlock_check"))
+		return expr;
+	expr = get_argument_from_call_expr(expr->args, 0);
+	return expr;
+}
+
 static char *get_full_name(struct expression *expr, int index)
 {
 	struct expression *arg;
@@ -331,6 +348,7 @@ static char *get_full_name(struct expression *expr, int index)
 		arg = get_argument_from_call_expr(expr->args, lock->arg);
 		if (!arg)
 			goto free;
+		arg = remove_spinlock_check(arg);
 		name = get_variable_from_expr(arg, NULL);
 		if (!name)
 			goto free;
