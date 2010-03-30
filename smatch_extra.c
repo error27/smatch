@@ -178,7 +178,7 @@ static void remove_from_equiv(const char *name, struct symbol *sym)
 	state = clone_extra_state(orig_sm->state);
 	del_equiv(state, name, sym);
 
-	FOR_EACH_PTR(get_dinfo(orig_sm->state)->equiv, tracker) {
+	FOR_EACH_PTR(get_dinfo(state)->equiv, tracker) {
 		struct sm_state *new_sm;
 
 		new_sm = clone_sm(orig_sm);
