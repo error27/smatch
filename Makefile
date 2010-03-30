@@ -15,10 +15,11 @@ AR = ar
 #     CFLAGS += -O0 -DDEBUG -g3 -gdwarf-2
 #
 
-HAVE_LIBXML=$(shell pkg-config --exists libxml-2.0 2>/dev/null && echo 'yes')
-HAVE_GCC_DEP=$(shell touch .gcc-test.c && 				\
+HAVE_LIBXML:=$(shell pkg-config --exists libxml-2.0 2>/dev/null && echo 'yes')
+HAVE_GCC_DEP:=$(shell touch .gcc-test.c && 				\
 		$(CC) -c -Wp,-MD,.gcc-test.d .gcc-test.c 2>/dev/null && \
 		echo 'yes'; rm -f .gcc-test.d .gcc-test.o .gcc-test.c)
+HAVE_GTK2:=$(shell pkg-config --exists gtk+-2.0 2>/dev/null && echo 'yes')
 
 CFLAGS += -DGCC_BASE=\"$(shell $(CC) --print-file-name=)\"
 
@@ -44,6 +45,16 @@ ifeq ($(HAVE_LIBXML),yes)
 PROGRAMS+=c2xml
 INST_PROGRAMS+=c2xml
 c2xml_EXTRA_OBJS = `pkg-config --libs libxml-2.0`
+endif
+
+ifeq ($(HAVE_GTK2),yes)
+GTK2_CFLAGS := $(shell pkg-config --cflags gtk+-2.0)
+GTK2_LIBS := $(shell pkg-config --libs gtk+-2.0)
+PROGRAMS += test-inspect
+INST_PROGRAMS += test-inspect
+test-inspect_EXTRA_DEPS := ast-model.o ast-view.o ast-inspect.o
+test-inspect.o $(test-inspect_EXTRA_DEPS): CFLAGS += $(GTK2_CFLAGS)
+test-inspect_EXTRA_OBJS := $(GTK2_LIBS)
 endif
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
@@ -141,7 +152,7 @@ compat-solaris.o: compat/mmap-blob.c $(LIB_H)
 compat-mingw.o: $(LIB_H)
 compat-cygwin.o: $(LIB_H)
 
-.c.o:
+%.o: %.c
 	$(QUIET_CC)$(CC) -o $@ -c $(CFLAGS) $<
 
 clean: clean-check
