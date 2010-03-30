@@ -629,17 +629,10 @@ static void scoped_state_extra(const char *name, struct symbol *sym)
 static void match_declarations(struct symbol *sym)
 {
 	const char *name;
-	long long val;
 
 	if (sym->ident) {
 		name = sym->ident->name;
-		if (sym->initializer) {
-			if (get_value(sym->initializer, &val))
-				set_state(SMATCH_EXTRA, name, sym, alloc_extra_state(val));
-			else
-				set_state(SMATCH_EXTRA, name, sym, extra_undefined());
-			scoped_state_extra(name, sym);
-		} else {
+		if (!sym->initializer) {
 			set_state(SMATCH_EXTRA, name, sym, extra_undefined());
 			scoped_state_extra(name, sym);
 		}
