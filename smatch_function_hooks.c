@@ -159,7 +159,7 @@ static void assign_ranged_funcs(const char *fn, struct expression *expr,
  		__free_ptr_list((struct ptr_list **)&same_range_call_backs);
 
 		extra_state = alloc_extra_state_range(tmp->range->min, tmp->range->max);
-		set_state(SMATCH_EXTRA, var_name, sym, extra_state);
+		set_extra_mod(var_name, sym, extra_state);
 
 		tmp_slist = __pop_fake_cur_slist();
 		merge_slist(&final_states, tmp_slist);
