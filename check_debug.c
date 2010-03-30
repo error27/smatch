@@ -58,6 +58,15 @@ static void match_note(const char *fn, struct expression *expr, void *info)
 	sm_msg("%s", arg_expr->string->data);
 }
 
+static void match_debug_on(const char *fn, struct expression *expr, void *info)
+{
+	option_debug = 1;
+}
+
+static void match_debug_off(const char *fn, struct expression *expr, void *info)
+{
+	option_debug = 0;
+}
 void check_debug(int id)
 {
 	my_id = id;
@@ -65,4 +74,6 @@ void check_debug(int id)
 	add_function_hook("__smatch_value", &match_print_value, NULL);
 	add_function_hook("__smatch_cur_slist", &match_cur_slist, NULL);
 	add_function_hook("__smatch_note", &match_note, NULL);
+	add_function_hook("__smatch_debug_on", &match_debug_on, NULL);
+	add_function_hook("__smatch_debug_off", &match_debug_off, NULL);
 }
