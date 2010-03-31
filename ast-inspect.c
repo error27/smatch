@@ -3,6 +3,7 @@
 #include "parse.h"
 #include "symbol.h"
 #include "ast-inspect.h"
+#include "expression.h"
 
 static inline void inspect_ptr_list(AstNode *node, const char *name, void (*inspect)(AstNode *))
 {
@@ -39,7 +40,6 @@ static const char *statement_type_name(enum statement_type type)
 	return statement_type_name[type] ?: "UNKNOWN_STATEMENT_TYPE";
 }
 
-
 void inspect_statement(AstNode *node)
 {
 	struct statement *stmt = node->ptr;
@@ -48,9 +48,24 @@ void inspect_statement(AstNode *node)
 		case STMT_COMPOUND:
 			ast_append_child(node, "stmts:", stmt->stmts, inspect_statement_list);
 			break;
+		case STMT_EXPRESSION:
+			ast_append_child(node, "expression:", stmt->expression, inspect_expression);
+			break;
 		case STMT_IF:
+			ast_append_child(node, "conditional:", stmt->if_conditional, inspect_expression);
 			ast_append_child(node, "if_true:", stmt->if_true, inspect_statement);
 			ast_append_child(node, "if_false:", stmt->if_false, inspect_statement);
+			break;
+		case STMT_ITERATOR:
+			ast_append_child(node, "break:", stmt->iterator_break, inspect_symbol);
+			ast_append_child(node, "continue:", stmt->iterator_continue, inspect_symbol);
+			ast_append_child(node, "pre_statement:", stmt->iterator_pre_statement,
+					 inspect_statement);
+			ast_append_child(node, "statement:", stmt->iterator_statement,
+					 inspect_statement);
+			ast_append_child(node, "post_statement:", stmt->iterator_post_statement,
+					 inspect_statement);
+			break;
 		default:
 			break;
 	}
@@ -111,4 +126,65 @@ void inspect_symbol_list(AstNode *node)
 {
 	inspect_ptr_list(node, "symbol_list", inspect_symbol);
 }
+
+
+static const char *expression_type_name(enum expression_type type)
+{
+	static const char *expression_type_name[] = {
+		[EXPR_VALUE] = "EXPR_VALUE",
+		[EXPR_STRING] = "EXPR_STRING",
+		[EXPR_SYMBOL] = "EXPR_SYMBOL",
+		[EXPR_TYPE] = "EXPR_TYPE",
+		[EXPR_BINOP] = "EXPR_BINOP",
+		[EXPR_ASSIGNMENT] = "EXPR_ASSIGNMENT",
+		[EXPR_LOGICAL] = "EXPR_LOGICAL",
+		[EXPR_DEREF] = "EXPR_DEREF",
+		[EXPR_PREOP] = "EXPR_PREOP",
+		[EXPR_POSTOP] = "EXPR_POSTOP",
+		[EXPR_CAST] = "EXPR_CAST",
+		[EXPR_FORCE_CAST] = "EXPR_FORCE_CAST",
+		[EXPR_IMPLIED_CAST] = "EXPR_IMPLIED_CAST",
+		[EXPR_SIZEOF] = "EXPR_SIZEOF",
+		[EXPR_ALIGNOF] = "EXPR_ALIGNOF",
+		[EXPR_PTRSIZEOF] = "EXPR_PTRSIZEOF",
+		[EXPR_CONDITIONAL] = "EXPR_CONDITIONAL",
+		[EXPR_SELECT] = "EXPR_SELECT",
+		[EXPR_STATEMENT] = "EXPR_STATEMENT",
+		[EXPR_CALL] = "EXPR_CALL",
+		[EXPR_COMMA] = "EXPR_COMMA",
+		[EXPR_COMPARE] = "EXPR_COMPARE",
+		[EXPR_LABEL] = "EXPR_LABEL",
+		[EXPR_INITIALIZER] = "EXPR_INITIALIZER",
+		[EXPR_IDENTIFIER] = "EXPR_IDENTIFIER",
+		[EXPR_INDEX] = "EXPR_INDEX",
+		[EXPR_POS] = "EXPR_POS",
+		[EXPR_FVALUE] = "EXPR_FVALUE",
+		[EXPR_SLICE] = "EXPR_SLICE",
+		[EXPR_OFFSETOF] = "EXPR_OFFSETOF",
+	};
+	return expression_type_name[type] ?: "UNKNOWN_EXPRESSION_TYPE";
+}
+
+void inspect_expression(AstNode *node)
+{
+	struct expression *expr = node->ptr;
+	node->text = g_strdup_printf("%s %s", node->text, expression_type_name(expr->type));
+	switch (expr->type) {
+		case EXPR_STATEMENT:
+			ast_append_child(node, "statement:", expr->statement, inspect_statement);
+			break;
+		case EXPR_BINOP:
+		case EXPR_COMMA:
+		case EXPR_COMPARE:
+		case EXPR_LOGICAL:
+		case EXPR_ASSIGNMENT:
+			ast_append_child(node, "left:", expr->left, inspect_expression);
+			ast_append_child(node, "right:", expr->right, inspect_expression);
+			break;
+		default:
+			break;
+	}
+}
+
+
 
