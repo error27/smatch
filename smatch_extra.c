@@ -170,6 +170,7 @@ static void remove_from_equiv(const char *name, struct symbol *sym)
 	struct sm_state *orig_sm;
 	struct tracker *tracker;
 	struct smatch_state *state;
+	struct tracker_list *to_update;
 
 	orig_sm = get_sm_state(SMATCH_EXTRA, name, sym);
 	if (!orig_sm || !get_dinfo(orig_sm->state)->equiv)
@@ -177,8 +178,11 @@ static void remove_from_equiv(const char *name, struct symbol *sym)
 
 	state = clone_extra_state(orig_sm->state);
 	del_equiv(state, name, sym);
+	to_update = get_dinfo(state)->equiv;
+	if (ptr_list_size((struct ptr_list *)get_dinfo(state)->equiv) == 1)
+		get_dinfo(state)->equiv = NULL;
 
-	FOR_EACH_PTR(get_dinfo(state)->equiv, tracker) {
+	FOR_EACH_PTR(to_update, tracker) {
 		struct sm_state *new_sm;
 
 		new_sm = clone_sm(orig_sm);
