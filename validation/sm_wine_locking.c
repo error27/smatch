@@ -34,7 +34,7 @@ void test1(void)
 }
 /*
  * check-name: WINE locking
- * check-command: smatch -p=wine sm_wine_locking.c
+ * check-command: smatch -p=wine --spammy sm_wine_locking.c
  *
  * check-output-start
 sm_wine_locking.c +28 test1(18) error: double unlock 'create_window_handle:b'

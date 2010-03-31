@@ -27,7 +27,7 @@ int func (void)
 }
 /*
  * check-name: Smatch locking #1
- * check-command: smatch --project=kernel sm_locking.c
+ * check-command: smatch --project=kernel --spammy sm_locking.c
  *
  * check-output-start
 sm_locking.c +26 func(20) warn: 'spin_lock:mylock3' is sometimes locked here and sometimes unlocked.

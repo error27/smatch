@@ -508,6 +508,9 @@ static void check_possible(struct sm_state *sm)
 	int isunlocked = 0;
 	int undef = 0;
 
+	if (!option_spammy)
+		return;
+
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (tmp->state == &locked)
 			islocked = 1;
@@ -528,8 +531,7 @@ static void check_possible(struct sm_state *sm)
 			undef = 1;  // i don't think this is possible any more.
 	} END_FOR_EACH_PTR(tmp);
 	if ((islocked && isunlocked) || undef)
-		sm_msg("warn: '%s' is sometimes locked here and "
-			   "sometimes unlocked.", sm->name);
+		sm_msg("warn: '%s' is sometimes locked here and sometimes unlocked.", sm->name);
 }
 
 static void match_return(struct expression *ret_value)
