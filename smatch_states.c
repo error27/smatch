@@ -348,7 +348,7 @@ free:
 	free_string(name);
 }
 
-void __set_true_false_sm(struct sm_state *true_state, struct sm_state *false_state)
+void __set_true_false_sm(struct sm_state *true_sm, struct sm_state *false_sm)
 {
 	if (unreachable())
 		return;
@@ -358,12 +358,12 @@ void __set_true_false_sm(struct sm_state *true_state, struct sm_state *false_sta
 		return;
 	}
 
-	if (true_state) {
-		overwrite_sm_state(&cur_slist, true_state);
-		overwrite_sm_state_stack(&cond_true_stack, true_state);
+	if (true_sm) {
+		overwrite_sm_state(&cur_slist, true_sm);
+		overwrite_sm_state_stack(&cond_true_stack, true_sm);
 	}
-	if (false_state)
-		overwrite_sm_state_stack(&cond_false_stack, false_state);
+	if (false_sm)
+		overwrite_sm_state_stack(&cond_false_stack, false_sm);
 }
 
 void nullify_path(void)

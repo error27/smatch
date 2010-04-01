@@ -10,7 +10,7 @@ DECLARE_PTR_LIST(named_stack, struct named_slist);
 extern struct state_list_stack *implied_pools;
 
 void __print_slist(struct state_list *slist);
-void add_history(struct sm_state *state);
+void add_history(struct sm_state *sm);
 int cmp_tracker(const struct sm_state *a, const struct sm_state *b);
 char *alloc_sname(const char *str);
 struct sm_state *alloc_sm_state(int owner, const char *name, 
@@ -38,9 +38,8 @@ struct smatch_state *get_state_slist(struct state_list *slist, int owner, const 
 struct sm_state *get_sm_state_slist(struct state_list *slist, int owner, const char *name, 
 		    struct symbol *sym);
 
-void overwrite_sm_state(struct state_list **slist, struct sm_state *state);
-void overwrite_sm_state_stack(struct state_list_stack **stack,
-			struct sm_state *state);
+void overwrite_sm_state(struct state_list **slist, struct sm_state *sm);
+void overwrite_sm_state_stack(struct state_list_stack **stack, struct sm_state *sm);
 struct sm_state *set_state_slist(struct state_list **slist, int owner, const char *name, 
 		     struct symbol *sym, struct smatch_state *state);
 

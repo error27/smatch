@@ -253,19 +253,19 @@ int slist_has_state(struct state_list *slist, struct smatch_state *state)
 static void check_order(struct state_list *slist)
 {
 #ifdef CHECKORDER
-	struct sm_state *state;
+	struct sm_state *sm;
 	struct sm_state *last = NULL;
 	int printed = 0;
 
-	FOR_EACH_PTR(slist, state) {
-		if (last && cmp_tracker(state, last) <= 0) {
+	FOR_EACH_PTR(slist, sm) {
+		if (last && cmp_tracker(sm, last) <= 0) {
 			printf("Error.  Unsorted slist %d vs %d, %p vs %p, "
-			       "%s vs %s\n", last->owner, state->owner, 
-			       last->sym, state->sym, last->name, state->name);
+			       "%s vs %s\n", last->owner, sm->owner, 
+			       last->sym, sm->sym, last->name, sm->name);
 			printed = 1;
 		}
 		last = state;
-	} END_FOR_EACH_PTR(state);
+	} END_FOR_EACH_PTR(sm);
 
 	if (printed)
 		printf("======\n");
@@ -274,12 +274,12 @@ static void check_order(struct state_list *slist)
 
 struct state_list *clone_slist(struct state_list *from_slist)
 {
-	struct sm_state *state;
+	struct sm_state *sm;
 	struct state_list *to_slist = NULL;
 
-	FOR_EACH_PTR(from_slist, state) {
-		add_ptr_list(&to_slist, state);
-	} END_FOR_EACH_PTR(state);
+	FOR_EACH_PTR(from_slist, sm) {
+		add_ptr_list(&to_slist, sm);
+	} END_FOR_EACH_PTR(sm);
 	check_order(to_slist);
 	return to_slist;
 }
@@ -377,16 +377,15 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 struct sm_state *get_sm_state_slist(struct state_list *slist, int owner, const char *name, 
 				struct symbol *sym)
 {
-	struct sm_state *state;
+	struct sm_state *sm;
 
 	if (!name)
 		return NULL;
 
-	FOR_EACH_PTR(slist, state) {
-		if (state->owner == owner && state->sym == sym 
-		    && !strcmp(state->name, name))
-			return state;
-	} END_FOR_EACH_PTR(state);
+	FOR_EACH_PTR(slist, sm) {
+		if (sm->owner == owner && sm->sym == sym && !strcmp(sm->name, name))
+			return sm;
+	} END_FOR_EACH_PTR(sm);
 	return NULL;
 }
 
@@ -394,11 +393,11 @@ struct smatch_state *get_state_slist(struct state_list *slist,
 				int owner, const char *name, 
 				struct symbol *sym)
 {
-	struct sm_state *state;
+	struct sm_state *sm;
 
-	state = get_sm_state_slist(slist, owner, name, sym);
-	if (state)
-		return state->state;
+	sm = get_sm_state_slist(slist, owner, name, sym);
+	if (sm)
+		return sm->state;
 	return NULL;
 }
 
@@ -421,12 +420,12 @@ void overwrite_sm_state(struct state_list **slist, struct sm_state *new)
 }
 
 void overwrite_sm_state_stack(struct state_list_stack **stack,
-			struct sm_state *state)
+			struct sm_state *sm)
 {
 	struct state_list *slist;
 
 	slist = pop_slist(stack);
-	overwrite_sm_state(&slist, state);
+	overwrite_sm_state(&slist, sm);
 	push_slist(stack, slist);
 }
 
@@ -454,15 +453,14 @@ struct sm_state *set_state_slist(struct state_list **slist, int owner, const cha
 void delete_state_slist(struct state_list **slist, int owner, const char *name, 
 			struct symbol *sym)
 {
-	struct sm_state *state;
+	struct sm_state *sm;
 
-	FOR_EACH_PTR(*slist, state) {
-		if (state->owner == owner && state->sym == sym 
-		    && !strcmp(state->name, name)){
-			DELETE_CURRENT_PTR(state);
+	FOR_EACH_PTR(*slist, sm) {
+		if (sm->owner == owner && sm->sym == sym && !strcmp(sm->name, name)){
+			DELETE_CURRENT_PTR(sm);
 			return;
 		}
-	} END_FOR_EACH_PTR(state);
+	} END_FOR_EACH_PTR(sm);
 }
 
 void delete_state_stack(struct state_list_stack **stack, int owner, const char *name, 
@@ -546,47 +544,47 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack,
 				int owner, const char *name, 
 				struct symbol *sym)
 {
-	struct sm_state *state;
+	struct sm_state *sm;
 
-	state = get_sm_state_stack(stack, owner, name, sym);
-	if (state)
-		return state->state;
+	sm = get_sm_state_stack(stack, owner, name, sym);
+	if (sm)
+		return sm->state;
 	return NULL;
 }
 
 static void match_states(struct state_list **one, struct state_list **two)
 {
-	struct sm_state *one_state;
-	struct sm_state *two_state;
+	struct sm_state *one_sm;
+	struct sm_state *two_sm;
 	struct sm_state *tmp;
 	struct smatch_state *tmp_state;
 	struct state_list *add_to_one = NULL;
 	struct state_list *add_to_two = NULL;
 
-	PREPARE_PTR_LIST(*one, one_state);
-	PREPARE_PTR_LIST(*two, two_state);
+	PREPARE_PTR_LIST(*one, one_sm);
+	PREPARE_PTR_LIST(*two, two_sm);
 	for (;;) {
-		if (!one_state && !two_state)
+		if (!one_sm && !two_sm)
 			break;
-		if (cmp_tracker(one_state, two_state) < 0) {
-			tmp_state = __client_unmatched_state_function(one_state);
-			tmp = alloc_state_no_name(one_state->owner,one_state->name, 
-						  one_state->sym, tmp_state);
+		if (cmp_tracker(one_sm, two_sm) < 0) {
+			tmp_state = __client_unmatched_state_function(one_sm);
+			tmp = alloc_state_no_name(one_sm->owner, one_sm->name, 
+						  one_sm->sym, tmp_state);
 			add_ptr_list(&add_to_two, tmp);
-			NEXT_PTR_LIST(one_state);
-		} else if (cmp_tracker(one_state, two_state) == 0) {
-			NEXT_PTR_LIST(one_state);
-			NEXT_PTR_LIST(two_state);
+			NEXT_PTR_LIST(one_sm);
+		} else if (cmp_tracker(one_sm, two_sm) == 0) {
+			NEXT_PTR_LIST(one_sm);
+			NEXT_PTR_LIST(two_sm);
 		} else {
-			tmp_state = __client_unmatched_state_function(two_state);
-			tmp = alloc_state_no_name(two_state->owner,two_state->name, 
-						  two_state->sym, tmp_state);
+			tmp_state = __client_unmatched_state_function(two_sm);
+			tmp = alloc_state_no_name(two_sm->owner, two_sm->name, 
+						  two_sm->sym, tmp_state);
 			add_ptr_list(&add_to_one, tmp);
-			NEXT_PTR_LIST(two_state);
+			NEXT_PTR_LIST(two_sm);
 		}
 	}
-	FINISH_PTR_LIST(two_state);
-	FINISH_PTR_LIST(one_state);
+	FINISH_PTR_LIST(two_sm);
+	FINISH_PTR_LIST(one_sm);
 
 	overwrite_slist(add_to_one, one);
 	overwrite_slist(add_to_two, two);
@@ -594,15 +592,15 @@ static void match_states(struct state_list **one, struct state_list **two)
 
 static void clone_pool_havers(struct state_list *slist)
 {
-	struct sm_state *state;
+	struct sm_state *sm;
 	struct sm_state *new;
 
-	FOR_EACH_PTR(slist, state) {
-		if (state->my_pool) {
-			new = clone_sm(state);
-			REPLACE_CURRENT_PTR(state, new);
+	FOR_EACH_PTR(slist, sm) {
+		if (sm->my_pool) {
+			new = clone_sm(sm);
+			REPLACE_CURRENT_PTR(sm, new);
 		}
-	} END_FOR_EACH_PTR(state);
+	} END_FOR_EACH_PTR(sm);
 }
 
 /*
@@ -611,7 +609,7 @@ static void clone_pool_havers(struct state_list *slist)
  */
 void merge_slist(struct state_list **to, struct state_list *slist)
 {
-	struct sm_state *one_state, *two_state, *tmp;
+	struct sm_state *one_sm, *two_sm, *tmp;
 	struct state_list *results = NULL;
 	struct state_list *implied_one = NULL;
 	struct state_list *implied_two = NULL;
@@ -636,31 +634,31 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 	clone_pool_havers(implied_one);
 	clone_pool_havers(implied_two);
 
-	PREPARE_PTR_LIST(implied_one, one_state);
-	PREPARE_PTR_LIST(implied_two, two_state);
+	PREPARE_PTR_LIST(implied_one, one_sm);
+	PREPARE_PTR_LIST(implied_two, two_sm);
 	for (;;) {
-		if (!one_state && !two_state)
+		if (!one_sm && !two_sm)
 			break;
-		if (cmp_tracker(one_state, two_state) < 0) {
+		if (cmp_tracker(one_sm, two_sm) < 0) {
 			sm_msg("error:  Internal smatch error.");
-			NEXT_PTR_LIST(one_state);
-		} else if (cmp_tracker(one_state, two_state) == 0) {
-			if (one_state != two_state) {
-				one_state->my_pool = implied_one;
-				two_state->my_pool = implied_two;
+			NEXT_PTR_LIST(one_sm);
+		} else if (cmp_tracker(one_sm, two_sm) == 0) {
+			if (one_sm != two_sm) {
+				one_sm->my_pool = implied_one;
+				two_sm->my_pool = implied_two;
 			}
 
-			tmp = merge_sm_states(one_state, two_state);
+			tmp = merge_sm_states(one_sm, two_sm);
 			add_ptr_list(&results, tmp);
-			NEXT_PTR_LIST(one_state);
-			NEXT_PTR_LIST(two_state);
+			NEXT_PTR_LIST(one_sm);
+			NEXT_PTR_LIST(two_sm);
 		} else {
 			sm_msg("error:  Internal smatch error.");
-			NEXT_PTR_LIST(two_state);
+			NEXT_PTR_LIST(two_sm);
 		}
 	}
-	FINISH_PTR_LIST(two_state);
-	FINISH_PTR_LIST(one_state);
+	FINISH_PTR_LIST(two_sm);
+	FINISH_PTR_LIST(one_sm);
 
 	free_slist(to);
 	*to = results;
