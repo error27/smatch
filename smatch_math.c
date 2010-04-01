@@ -242,6 +242,20 @@ static long long _get_implied_value(struct expression *expr, int *discard, int *
 	return ret;
 }
 
+static int get_const_value(struct expression *expr, long long *val)
+{
+	struct symbol *sym;
+
+	sym = expr->symbol;
+	if (!sym)
+		return 0;
+	if (!(sym->ctype.modifiers & MOD_CONST))
+		return 0;
+	if (get_value(sym->initializer, val))
+		return 1;
+	return 0;
+}
+
 static long long _get_value(struct expression *expr, int *discard, int *undefined, int implied)
 {
 	int dis = 0;
@@ -283,6 +297,9 @@ static long long _get_value(struct expression *expr, int *discard, int *undefine
 	case EXPR_SIZEOF:
 		ret = get_expression_value(expr);
 		break;
+	case EXPR_SYMBOL:
+		if (get_const_value(expr, &ret))
+			break;
 	default:
 		ret = _get_implied_value(expr, discard, undefined, implied);
 	}
