@@ -314,8 +314,12 @@ static void handle_select(struct expression *expr)
 
 static void split_conditions(struct expression *expr)
 {
+	if (option_debug) {
+		char *cond = get_variable_from_expr_complex(expr, NULL);
 
-	sm_debug("%d in split_conditions type=%d\n", get_lineno(), expr->type);
+		sm_debug("%d in split_conditions (%s)\n", get_lineno(), cond);
+		free_string(cond);
+	}
 
 	expr = strip_expr(expr);
 	if (!expr)
