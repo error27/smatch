@@ -478,7 +478,7 @@ static void register_array_funcs(void)
 {
 	struct token *token;
 	const char *func;
-	struct bound *bound_info;
+	struct bound *bound_info = NULL;
 
 	token = get_tokens_file("kernel.array_bounds");
 	if (!token)
@@ -489,19 +489,21 @@ static void register_array_funcs(void)
 	while (token_type(token) != TOKEN_STREAMEND) {
 		bound_info = malloc(sizeof(*bound_info));
 		if (token_type(token) != TOKEN_IDENT)
-			return;
+			break;
 		func = show_ident(token->ident);
 		token = token->next;
 		if (token_type(token) != TOKEN_NUMBER)
-			return;
+			break;
 		bound_info->param = atoi(token->number);
 		token = token->next;
 		if (token_type(token) != TOKEN_NUMBER)
-			return;
+			break;
 		bound_info->size = atoi(token->number);
 		add_function_hook(func, &match_array_func, bound_info);
 		token = token->next;
 	}
+	if (token_type(token) != TOKEN_STREAMEND)
+		free(bound_info);
 	clear_token_alloc();
 }
 
