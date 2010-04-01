@@ -63,6 +63,7 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack, int owner,
 				const char *name, struct symbol *sym);
 
 void merge_slist(struct state_list **to, struct state_list *slist);
+void filter_slist(struct state_list **slist, struct state_list *filter);
 void and_slist_stack(struct state_list_stack **slist_stack);
 
 void or_slist_stack(struct state_list_stack **pre_conds,

@@ -665,11 +665,40 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 }
 
 /*
- * and_slist_stack() is basically the same as popping the top two slists,
- * overwriting the one with the other and pushing it back on the stack.
- * The difference is that it checks to see that a mutually exclusive
- * state isn't included in both stacks.  If smatch sees something like
- * "if (a && !a)" it assumes the second one is true.
+ * filter_slist() removes any sm states "slist" holds in common with "filter"
+ */
+void filter_slist(struct state_list **slist, struct state_list *filter)
+{
+	struct sm_state *one_sm, *two_sm;
+	struct state_list *results = NULL;
+
+	PREPARE_PTR_LIST(*slist, one_sm);
+	PREPARE_PTR_LIST(filter, two_sm);
+	for (;;) {
+		if (!one_sm && !two_sm)
+			break;
+		if (cmp_tracker(one_sm, two_sm) < 0) {
+			add_ptr_list(&results, one_sm);
+			NEXT_PTR_LIST(one_sm);
+		} else if (cmp_tracker(one_sm, two_sm) == 0) {
+			if (one_sm != two_sm)
+				add_ptr_list(&results, one_sm);
+			NEXT_PTR_LIST(one_sm);
+			NEXT_PTR_LIST(two_sm);
+		} else {
+			NEXT_PTR_LIST(two_sm);
+		}
+	}
+	FINISH_PTR_LIST(two_sm);
+	FINISH_PTR_LIST(one_sm);
+
+	free_slist(slist);
+	*slist = results;
+}
+
+/*
+ * and_slist_stack() pops the top two slists, overwriting the one with
+ * the other and pushing it back on the stack.
  */
 void and_slist_stack(struct state_list_stack **slist_stack)
 {
@@ -696,24 +725,28 @@ void or_slist_stack(struct state_list_stack **pre_conds,
 {
 	struct state_list *new;
 	struct state_list *old;
-	struct state_list *res = NULL;
+	struct state_list *pre_slist;
+	struct state_list *res;
 	struct state_list *tmp_slist;
 
 	new = pop_slist(slist_stack);
 	old = pop_slist(slist_stack);
 
-	tmp_slist = pop_slist(pre_conds);
-	res = clone_slist(tmp_slist);
-	push_slist(pre_conds, tmp_slist);
+	pre_slist = pop_slist(pre_conds);
+	push_slist(pre_conds, clone_slist(pre_slist));
+
+	res = clone_slist(pre_slist);
 	overwrite_slist(old, &res);
 
 	tmp_slist = clone_slist(cur_slist);
 	overwrite_slist(new, &tmp_slist);
 
 	merge_slist(&res, tmp_slist);
+	filter_slist(&res, pre_slist);
 
 	push_slist(slist_stack, res);
 	free_slist(&tmp_slist);
+	free_slist(&pre_slist);
 	free_slist(&new);
 	free_slist(&old);
 }
