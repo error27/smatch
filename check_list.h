@@ -39,6 +39,7 @@ CK(check_le16)
 CK(check_return)
 CK(check_resource_size)
 CK(check_release_resource)
+CK(check_proc_create)
 
 /* <- your test goes here */
 /* CK(register_template) */
