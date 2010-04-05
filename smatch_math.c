@@ -97,7 +97,12 @@ static long long handle_binop(struct expression *expr, int *discard, int *undefi
 		ret =  left * right;
 		break;
 	case '/':
-		ret = left / right;
+		if (right == 0) {
+			*undefined = 1;
+			*discard = 1;
+		} else {
+			ret = left / right;
+		}
 		break;
 	case '+':
 		ret = left + right;
@@ -106,7 +111,12 @@ static long long handle_binop(struct expression *expr, int *discard, int *undefi
 		ret = left - right;
 		break;
 	case '%':
-		ret = left % right;
+		if (right == 0) {
+			*undefined = 1;
+			*discard = 1;
+		} else {
+			ret = left % right;
+		}
 		break;
 	case '|':
 		ret = left | right;
