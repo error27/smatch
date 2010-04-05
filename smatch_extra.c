@@ -504,8 +504,9 @@ static void set_equiv(struct sm_state *right_sm, struct expression *left)
 	if (!name || !sym)
 		goto free;
 
-	state = clone_extra_state(right_sm->state);
+	remove_from_equiv(name, sym);
 
+	state = clone_extra_state(right_sm->state);
 	dinfo = get_dinfo(state);
 	if (!dinfo->equiv)
 		add_equiv(state, right_sm->name, right_sm->sym);
