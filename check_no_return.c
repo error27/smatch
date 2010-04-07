@@ -18,16 +18,9 @@ static void match_return(struct expression *ret_value)
 		returned = 1;
 }
 
-static int function_is_static()
-{
-	if (cur_func_sym->ctype.modifiers & MOD_STATIC)
-		return 1;
-	return 0;
-}
-
 static void match_func_end(struct symbol *sym)
 {
-	if (!function_is_static() && !is_reachable() && !returned)
+	if (!is_reachable() && !returned)
 		sm_info("info: add to no_return_funcs");
 	returned = 0;
 }
