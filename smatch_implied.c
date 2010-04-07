@@ -188,7 +188,7 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 	   so we bail.  Theoretically, bailing out here can cause more false 
 	   positives but won't hide actual bugs.
 	*/
-	if (sm_state->nr_children > 5000) {
+	if (sm_state->nr_children > 4000) {
 		print_once("debug: seperate_pools %s nr_children %d", sm_state->name, 
 			sm_state->nr_children);
 		return;
@@ -221,7 +221,7 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 	if (!sm)
 		return NULL;
 
-	if (sm->nr_children > 5000) {
+	if (sm->nr_children > 4000) {
 		print_once("debug: remove_my_pools %s nr_children %d", sm->name,
 			sm->nr_children);
 		return NULL;
@@ -344,7 +344,7 @@ static void separate_and_filter(struct sm_state *sm_state, int comparison, struc
 	}
 
 	gettimeofday(&time_after, NULL);
-	if (time_after.tv_sec - time_before.tv_sec > 15)
+	if (time_after.tv_sec - time_before.tv_sec > 7)
 		__bail_on_rest_of_function = 1;
 }
 
