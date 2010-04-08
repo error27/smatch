@@ -25,6 +25,9 @@ IDENT(__attribute); IDENT(__attribute__);
 IDENT(volatile); IDENT(__volatile); IDENT(__volatile__);
 IDENT(double);
 
+/* Special case for L'\t' */
+IDENT(L);
+
 /* Extended gcc identifiers */
 IDENT(asm); IDENT_RESERVED(__asm); IDENT_RESERVED(__asm__);
 IDENT(alignof); IDENT_RESERVED(__alignof); IDENT_RESERVED(__alignof__); 

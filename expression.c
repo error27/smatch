@@ -397,9 +397,10 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 
 	switch (token_type(token)) {
 	case TOKEN_CHAR:
+	case TOKEN_LONG_CHAR:
 		expr = alloc_expression(token->pos, EXPR_VALUE);   
 		expr->flags = Int_const_expr;
-		expr->ctype = &int_ctype; 
+		expr->ctype = token_type(token) == TOKEN_CHAR ? &int_ctype : &long_ctype;
 		expr->value = (unsigned char) token->character;
 		token = token->next;
 		break;

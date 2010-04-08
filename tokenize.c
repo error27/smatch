@@ -145,7 +145,8 @@ const char *show_token(const struct token *token)
 	case TOKEN_SPECIAL:
 		return show_special(token->special);
 
-	case TOKEN_CHAR: {
+	case TOKEN_CHAR: 
+	case TOKEN_LONG_CHAR: {
 		char *ptr = buffer;
 		int c = token->character;
 		*ptr++ = '\'';
@@ -527,7 +528,7 @@ static int escapechar(int first, int type, stream_t *stream, int *valp)
 	return next;
 }
 
-static int get_char_token(int next, stream_t *stream)
+static int get_char_token(int next, stream_t *stream, enum token_type type)
 {
 	int value;
 	struct token *token;
@@ -540,7 +541,7 @@ static int get_char_token(int next, stream_t *stream)
 	}
 
 	token = stream->token;
-	token_type(token) = TOKEN_CHAR;
+	token_type(token) = type;
 	token->character = value & 0xff;
 
 	add_token(stream);
@@ -702,7 +703,7 @@ static int get_one_special(int c, stream_t *stream)
 	case '"':
 		return get_string_token(next, stream);
 	case '\'':
-		return get_char_token(next, stream);
+		return get_char_token(next, stream, TOKEN_CHAR);
 	case '/':
 		if (next == '/')
 			return drop_stream_eoln(stream);
@@ -879,6 +880,9 @@ static int get_one_identifier(int c, stream_t *stream)
 	hash = ident_hash_end(hash);
 
 	ident = create_hashed_ident(buf, len, hash);
+
+	if (ident == &L_ident && next == '\'')
+		return get_char_token(nextchar(stream), stream, TOKEN_LONG_CHAR);
 
 	/* Pass it on.. */
 	token = stream->token;
