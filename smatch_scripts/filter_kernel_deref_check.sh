@@ -13,6 +13,7 @@ for line in $(grep 'dereferenced before' $file) ; do
 
     code_file=$(echo "$line" | cut -d ' ' -f1)
     lineno=$(echo "$line" | cut -d ' ' -f2)
+    function=$(echo "$line" | cut -d ' ' -f3)
     variable=$(echo "$line" | cut -d "'" -f2)
     source_line=$(tail -n $lineno $code_file | head -n 1 | sed -e 's/^\W*//')
 
@@ -95,6 +96,6 @@ for line in $(grep 'dereferenced before' $file) ; do
 	continue
     fi
 
-    echo "$code_file $lineno '$variable': $source_line"
+    echo "$code_file $lineno $function '$variable': $source_line"
 done
 
