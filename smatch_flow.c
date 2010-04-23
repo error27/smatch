@@ -166,6 +166,9 @@ void __split_expr(struct expression *expr)
 	case EXPR_SYMBOL:
 		__pass_to_client(expr, SYM_HOOK);
 		break;
+	case EXPR_STRING:
+		__pass_to_client(expr, STRING_HOOK);
+		break;
 	default:
 		break;
 	};

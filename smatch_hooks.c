@@ -50,6 +50,9 @@ void add_hook(void *func, enum hook_type type)
 	case SYM_HOOK:
 		container->data_type = EXPR_PTR;
 		break;
+	case STRING_HOOK:
+		container->data_type = EXPR_PTR;
+		break;
 	case DECLARATION_HOOK:
 		container->data_type = SYMBOL_PTR;
 		break;
