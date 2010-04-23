@@ -46,6 +46,7 @@ CK(check_freeing_null)
 /* CK(register_template) */
 
 /* kernel specific */
+CK(check_kernel)
 CK(check_locking)
 CK(check_puts_argument)
 CK(check_err_ptr)

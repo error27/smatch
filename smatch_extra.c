@@ -218,6 +218,27 @@ struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state
 	return set_state_expr(SMATCH_EXTRA, expr, state);
 }
 
+/*
+ * This is for return_implies_state() hooks which modify a SMATCH_EXTRA state
+ */
+void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state)
+{
+	struct tracker *tracker;
+	struct smatch_state *orig_state;
+
+	orig_state = get_state_expr(SMATCH_EXTRA, expr);
+
+	if (!orig_state || !get_dinfo(orig_state)->equiv) {
+		set_state_expr(SMATCH_EXTRA, expr, state);
+		return;
+	}
+
+	FOR_EACH_PTR(get_dinfo(orig_state)->equiv, tracker) {
+		set_state(tracker->owner, tracker->name, tracker->sym, state);
+		add_equiv(state, tracker->name, tracker->sym);
+	} END_FOR_EACH_PTR(tracker);
+}
+
 void set_extra_true_false(const char *name, struct symbol *sym,
 			struct smatch_state *true_state,
 			struct smatch_state *false_state)

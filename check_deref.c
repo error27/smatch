@@ -24,6 +24,7 @@
 
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 
 static int my_id;
 
@@ -62,6 +63,8 @@ static void check_dereference(struct expression *expr)
 	if (!sm)
 		return;
 	if (is_ignored(my_id, sm->name, sm->sym))
+		return;
+	if (implied_not_equal(expr, 0))
 		return;
 
 	FOR_EACH_PTR(sm->possible, tmp) {

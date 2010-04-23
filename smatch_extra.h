@@ -45,6 +45,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 /* also implemented in smatch_extra */
 struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state);
 struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state);
+void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state);
 struct smatch_state *alloc_extra_state(long long val);
 struct smatch_state *alloc_extra_state_range_list(struct range_list *rl);
 struct data_info *get_dinfo(struct smatch_state *state);

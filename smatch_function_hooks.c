@@ -227,10 +227,6 @@ void function_comparison(int comparison, struct expression *expr, long long valu
 		__set_true_false_sm(NULL, sm);
 	} END_FOR_EACH_PTR(sm);
 
-	if (true_states && !false_states)
-		sm_msg("warning:  unhandled false condition.");
-	if (!true_states && false_states)
-		sm_msg("warning:  unhandled true condition.");
 	free_slist(&true_states);
 	free_slist(&false_states);
 }
