@@ -84,7 +84,7 @@ int unreachable(void)
 	}
 
 	if (in_declarations_bit())
-		return 0;
+		return 1;
 
 	/* option spammy turns on a noisier version of this */
 	if (reset_warnings && !option_spammy)
