@@ -25,6 +25,7 @@ static char *pathname;
 static char *full_filename;
 static char *cur_func;
 static int line_func_start;
+static int loop_count;
 static struct expression_list *switch_expr_stack = NULL;
 struct expression_list *big_expression_stack;
 struct statement_list *big_statement_stack;
@@ -33,6 +34,7 @@ int __bail_on_rest_of_function = 0;
 char *get_function(void) { return cur_func; }
 int get_lineno(void) { return __smatch_lineno; }
 int get_func_pos(void) { return __smatch_lineno - line_func_start; }
+int inside_loop(void) { return !!loop_count; }
 
 static void split_symlist(struct symbol_list *sym_list);
 static void split_declaration(struct symbol_list *sym_list);
@@ -225,6 +227,7 @@ static void handle_pre_loop(struct statement *stmt)
 
 	once_through = implied_condition_true(stmt->iterator_pre_condition);
 
+	loop_count++;
 	__push_continues();
 	__push_breaks();
 
@@ -272,6 +275,7 @@ static void handle_pre_loop(struct statement *stmt)
 						stmt->iterator_pre_condition);
 		__merge_breaks();
 	}
+	loop_count--;
 }
 
 /*
@@ -283,6 +287,7 @@ static void handle_post_loop(struct statement *stmt)
 
  	loop_name = get_loop_name(loop_num);
 	loop_num++;
+	loop_count++;
 
 	__push_continues();
 	__push_breaks();
@@ -299,6 +304,7 @@ static void handle_post_loop(struct statement *stmt)
 		__use_false_states();
 		__merge_breaks();
 	}
+	loop_count--;
 }
 
 static int empty_statement(struct statement *stmt)
@@ -481,6 +487,7 @@ void __split_statements(struct statement *stmt)
 		if (stmt->label && 
 		    stmt->label->type == SYM_LABEL && 
 		    stmt->label->ident) {
+			loop_count = 1000000;
 			__merge_gotos(stmt->label->ident->name);
 		}
 		__split_statements(stmt->label_statement);
@@ -602,6 +609,7 @@ static void split_functions(struct symbol_list *sym_list)
 				cur_func = sym->ident->name;
 			__smatch_lineno = sym->pos.line;
 			last_stmt = NULL;
+			loop_count = 0;
 			sm_debug("new function:  %s\n", cur_func);
 			if (option_two_passes) {
 				__unnullify_path();

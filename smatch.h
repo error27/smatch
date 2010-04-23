@@ -226,6 +226,7 @@ int in_condition(void);
 /* smatch_flow.c */
 
 void smatch (int argc, char **argv);
+int inside_loop(void);
 void __split_expr(struct expression *expr);
 void __split_statements(struct statement *stmt);
 extern int option_assume_loops;

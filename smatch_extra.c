@@ -591,7 +591,8 @@ static void match_assign(struct expression *expr)
 			else
 				min = tmp;
 		}
-		
+		if (!inside_loop() && known && get_implied_max(left, &tmp))
+				max = tmp + value;
 	}
 	if (expr->op == SPECIAL_SUB_ASSIGN) {
 		if (get_implied_max(left, &tmp)) {
@@ -600,7 +601,8 @@ static void match_assign(struct expression *expr)
 			else
 				max = tmp;
 		}
-		
+		if (!inside_loop() && known && get_implied_min(left, &tmp))
+				min = tmp - value;
 	}
 	set_extra_mod(name, sym, alloc_extra_state_range(min, max));
 free:
@@ -628,10 +630,14 @@ static void unop_expr(struct expression *expr)
 	if (expr->op == SPECIAL_INCREMENT) {
 		if (get_implied_min(expr->unop, &val))
 			min = val + 1;
+		if (!inside_loop() && get_implied_max(expr->unop, &val))
+			max = val + 1;
 	}
 	if (expr->op == SPECIAL_DECREMENT) {
 		if (get_implied_max(expr->unop, &val))
 			max = val - 1;
+		if (!inside_loop() && get_implied_min(expr->unop, &val))
+			min = val - 1;
 	}
 	set_extra_mod(name, sym, alloc_extra_state_range(min, max));
 free:
