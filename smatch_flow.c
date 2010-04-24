@@ -96,7 +96,7 @@ void __split_expr(struct expression *expr)
 		__split_expr(expr->unop);
 		break;
 	case EXPR_STATEMENT:
-		__split_statements(expr->statement);
+		__split_stmt(expr->statement);
 		break;
 	case EXPR_BINOP: 
 		__pass_to_client(expr, BINOP_HOOK);
@@ -223,7 +223,7 @@ static void handle_pre_loop(struct statement *stmt)
  	loop_name = get_loop_name(loop_num);
 	loop_num++;
 
-	__split_statements(stmt->iterator_pre_statement);
+	__split_stmt(stmt->iterator_pre_statement);
 
 	once_through = implied_condition_true(stmt->iterator_pre_condition);
 
@@ -247,7 +247,7 @@ static void handle_pre_loop(struct statement *stmt)
 	if (option_assume_loops)
 		once_through = 1;
 
-	__split_statements(stmt->iterator_statement);
+	__split_stmt(stmt->iterator_statement);
 	__warn_on_silly_pre_loops();	
 	if (is_forever_loop(stmt)) {
 		__save_gotos(loop_name);
@@ -258,7 +258,7 @@ static void handle_pre_loop(struct statement *stmt)
 	} else {
 		__merge_continues();
 		unchanged = __iterator_unchanged(extra_sm);
-		__split_statements(stmt->iterator_post_statement);
+		__split_stmt(stmt->iterator_post_statement);
 		__save_gotos(loop_name);
 		__split_whole_condition(stmt->iterator_pre_condition);
 		nullify_path();
@@ -292,7 +292,7 @@ static void handle_post_loop(struct statement *stmt)
 	__push_continues();
 	__push_breaks();
 	__merge_gotos(loop_name);
-	__split_statements(stmt->iterator_statement);
+	__split_stmt(stmt->iterator_statement);
 	__merge_continues();
 	if (!is_zero(stmt->iterator_post_condition))
 		__save_gotos(loop_name);
@@ -373,7 +373,7 @@ static void print_unreached(struct statement *stmt)
 	print = 0;
 }
 
-void __split_statements(struct statement *stmt)
+void __split_stmt(struct statement *stmt)
 {
 	if (!stmt)
 		return;
@@ -412,39 +412,39 @@ void __split_statements(struct statement *stmt)
 			last_stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
 		__push_scope_hooks();
 		FOR_EACH_PTR(stmt->stmts, s) {
-			__split_statements(s);
+			__split_stmt(s);
 		} END_FOR_EACH_PTR(s);
 		__call_scope_hooks();
 		return;
 	}
 	case STMT_IF:
 		if (known_condition_true(stmt->if_conditional)) {
-			__split_statements(stmt->if_true);
+			__split_stmt(stmt->if_true);
 			return;
 		}
 		if (known_condition_false(stmt->if_conditional)) {
-			__split_statements(stmt->if_false);
+			__split_stmt(stmt->if_false);
 			return;
 		}
 		if (option_known_conditions && 
 		    implied_condition_true(stmt->if_conditional)) {
 			sm_info("this condition is true.");
-			__split_statements(stmt->if_true);
+			__split_stmt(stmt->if_true);
 			return;
 		}
 		if (option_known_conditions &&
 		    implied_condition_false(stmt->if_conditional)) {
 			sm_info("this condition is false.");
-			__split_statements(stmt->if_false);
+			__split_stmt(stmt->if_false);
 			return;
 		}
 		__split_whole_condition(stmt->if_conditional);
-		__split_statements(stmt->if_true);
+		__split_stmt(stmt->if_true);
 		if (empty_statement(stmt->if_true))
 			sm_msg("warn: if();");
 		__push_true_states();
 		__use_false_states();
-		__split_statements(stmt->if_false);
+		__split_stmt(stmt->if_false);
 		__merge_true_states();
 		return;
 	case STMT_ITERATOR:
@@ -464,7 +464,7 @@ void __split_statements(struct statement *stmt)
 		nullify_path();
 		__push_default();
 		__push_breaks();
-		__split_statements(stmt->switch_statement);
+		__split_stmt(stmt->switch_statement);
 		if (!__pop_default())
 			__merge_switches(top_expression(switch_expr_stack),
 				      NULL);
@@ -481,7 +481,7 @@ void __split_statements(struct statement *stmt)
 			__set_default();
 		__split_expr(stmt->case_expression);
 		__split_expr(stmt->case_to);
-		__split_statements(stmt->case_statement);
+		__split_stmt(stmt->case_statement);
 		return;
 	case STMT_LABEL:
 		if (stmt->label && 
@@ -490,7 +490,7 @@ void __split_statements(struct statement *stmt)
 			loop_count = 1000000;
 			__merge_gotos(stmt->label->ident->name);
 		}
-		__split_statements(stmt->label_statement);
+		__split_stmt(stmt->label_statement);
 		return;
 	case STMT_GOTO:
 		__split_expr(stmt->goto_expression);
@@ -542,11 +542,11 @@ static void split_sym(struct symbol *sym)
 	if (!(sym->namespace & NS_SYMBOL))
 		return;
 
-	__split_statements(sym->stmt);
+	__split_stmt(sym->stmt);
 	__split_expr(sym->array_size);
 	split_symlist(sym->arguments);
 	split_symlist(sym->symbol_list);
-	__split_statements(sym->inline_stmt);
+	__split_stmt(sym->inline_stmt);
 	split_symlist(sym->inline_symbol_list);
 }
 
@@ -616,14 +616,14 @@ static void split_functions(struct symbol_list *sym_list)
 				loop_num = 0;
 				final_pass = 0;
 				__pass_to_client(sym, FUNC_DEF_HOOK);
-				__split_statements(base_type->stmt);
+				__split_stmt(base_type->stmt);
 				nullify_path();
 			}
 			__unnullify_path();
 			loop_num = 0;
 			final_pass = 1;
 			__pass_to_client(sym, FUNC_DEF_HOOK);
-			__split_statements(base_type->stmt);
+			__split_stmt(base_type->stmt);
 			__pass_to_client(sym, END_FUNC_HOOK);
 			cur_func = NULL;
 			line_func_start = 0;

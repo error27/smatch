@@ -228,7 +228,7 @@ int in_condition(void);
 void smatch (int argc, char **argv);
 int inside_loop(void);
 void __split_expr(struct expression *expr);
-void __split_statements(struct statement *stmt);
+void __split_stmt(struct statement *stmt);
 extern int option_assume_loops;
 extern int option_known_conditions;
 extern int option_two_passes;

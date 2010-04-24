@@ -123,7 +123,7 @@ static void handle_compound_stmt(struct statement *stmt)
 	}
 	FOR_EACH_PTR(stmt->stmts, s) {
 		if (s != last)
-			__split_statements(s);
+			__split_stmt(s);
 	} END_FOR_EACH_PTR(s);
 	split_conditions(expr);
 	return;
