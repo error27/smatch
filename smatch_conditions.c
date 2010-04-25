@@ -138,7 +138,7 @@ static int handle_preop(struct expression *expr)
 		__negate_cond_stacks();
 		return 1;
 	}
-	stmt = get_block_thing(expr);
+	stmt = get_expression_statement(expr);
 	if (stmt) {
 		handle_compound_stmt(stmt);
 		return 1;

@@ -190,7 +190,7 @@ int is_array(struct expression *expr);
 struct expression *get_array_name(struct expression *expr);
 struct expression *get_array_offset(struct expression *expr);
 const char *show_state(struct smatch_state *state);
-struct statement *get_block_thing(struct expression *expr);
+struct statement *get_expression_statement(struct expression *expr);
 struct expression *strip_parens(struct expression *expr);
 struct expression *strip_expr(struct expression *expr);
 void scoped_state(int my_id, const char *name, struct symbol *sym);
@@ -227,6 +227,7 @@ int in_condition(void);
 
 void smatch (int argc, char **argv);
 int inside_loop(void);
+int in_expression_statement(void);
 void __split_expr(struct expression *expr);
 void __split_stmt(struct statement *stmt);
 extern int option_assume_loops;

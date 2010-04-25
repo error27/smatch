@@ -122,7 +122,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	case EXPR_PREOP: {
 		const char *tmp;
 
-		if (get_block_thing(expr)) {
+		if (get_expression_statement(expr)) {
 			*complicated = 2;
 			return;
 		}
@@ -343,7 +343,7 @@ const char *show_state(struct smatch_state *state)
 	return state->name;
 }
 
-struct statement *get_block_thing(struct expression *expr)
+struct statement *get_expression_statement(struct expression *expr)
 {
 	/* What are those things called? if (({....; ret;})) { ...*/
 

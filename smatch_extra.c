@@ -970,7 +970,7 @@ int implied_condition_true(struct expression *expr)
 				return 1;
 			break;
 		}
-		stmt = get_block_thing(expr);
+		stmt = get_expression_statement(expr);
 		if (last_stmt_val(stmt, &val) && val == 1)
 			return 1;
 		break;
@@ -1004,7 +1004,7 @@ int implied_condition_false(struct expression *expr)
 				return 1;
 			break;
 		}
-		stmt = get_block_thing(expr);
+		stmt = get_expression_statement(expr);
 		if (last_stmt_val(stmt, &val) && val == 0)
 			return 1;
 		tmp = strip_expr(expr);
