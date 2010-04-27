@@ -196,6 +196,7 @@ struct expression *strip_expr(struct expression *expr);
 void scoped_state(int my_id, const char *name, struct symbol *sym);
 int is_error_return(struct expression *expr);
 int getting_address(void);
+int in_macro(void);
 
 /* smatch_type.c */
 struct symbol *get_type(struct expression *expr);
@@ -228,6 +229,7 @@ int in_condition(void);
 void smatch (int argc, char **argv);
 int inside_loop(void);
 int in_expression_statement(void);
+struct statement *get_next_stmt(void);
 void __split_expr(struct expression *expr);
 void __split_stmt(struct statement *stmt);
 extern int option_assume_loops;
