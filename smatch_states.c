@@ -324,6 +324,8 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 		return;
 	}
 
+	__use_default_modification_hook(owner, name);
+
 	if (true_state) {
 		set_state_slist(&cur_slist, owner, name, sym, true_state);
 		set_state_stack(&cond_true_stack, owner, name, sym, true_state);
