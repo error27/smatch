@@ -41,6 +41,7 @@ CK(check_resource_size)
 CK(check_release_resource)
 CK(check_proc_create)
 CK(check_freeing_null)
+CK(check_no_effect)
 
 /* <- your test goes here */
 /* CK(register_template) */
