@@ -308,9 +308,12 @@ int get_value(struct expression *expr, long long *val)
 	return 1;
 }
 
-int get_implied_max(struct expression *expr, long long *val)
+int get_implied_value(struct expression *expr, long long *val)
 {
-	return get_implied_value_helper(expr, val, VAL_MAX);
+	int undefined = 0;
+
+	*val =  _get_value(expr, &undefined, IMPLIED);
+	return !undefined;
 }
 
 int get_implied_min(struct expression *expr, long long *val)
@@ -318,11 +321,16 @@ int get_implied_min(struct expression *expr, long long *val)
 	return get_implied_value_helper(expr, val, VAL_MIN);
 }
 
-int get_implied_value(struct expression *expr, long long *val)
+int get_implied_max(struct expression *expr, long long *val)
+{
+	return get_implied_value_helper(expr, val, VAL_MAX);
+}
+
+int get_fuzzy_min(struct expression *expr, long long *val)
 {
 	int undefined = 0;
 
-	*val =  _get_value(expr, &undefined, IMPLIED);
+	*val =  _get_value(expr, &undefined, FUZZYMIN);
 	return !undefined;
 }
 
@@ -334,10 +342,3 @@ int get_fuzzy_max(struct expression *expr, long long *val)
 	return !undefined;
 }
 
-int get_fuzzy_min(struct expression *expr, long long *val)
-{
-	int undefined = 0;
-
-	*val =  _get_value(expr, &undefined, FUZZYMIN);
-	return !undefined;
-}
