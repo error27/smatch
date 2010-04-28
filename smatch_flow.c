@@ -429,6 +429,8 @@ void __split_stmt(struct statement *stmt)
 			__split_stmt(prev);
 			prev = tmp;
 		} END_FOR_EACH_PTR(tmp);
+		if (next_stmt == prev)
+			next_stmt = NULL;
 		__split_stmt(prev);
 		__call_scope_hooks();
 		return;
