@@ -11,8 +11,8 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-static long long _get_implied_value(struct expression *expr, int *discard, int *undefined, int implied);
-static long long _get_value(struct expression *expr, int *discard, int *undefined, int implied);
+static long long _get_implied_value(struct expression *expr, int *undefined, int implied);
+static long long _get_value(struct expression *expr, int *undefined, int implied);
 
 #define BOGUS 12345
 
@@ -53,29 +53,28 @@ static long long cast_to_type(struct expression *expr, long long val)
 	return val;
 }
 
-static long long handle_preop(struct expression *expr, int *discard, int *undefined, int implied)
+static long long handle_preop(struct expression *expr, int *undefined, int implied)
 {
 	long long ret = BOGUS;
 
 	switch(expr->op) {
 	case '~':
-		ret = ~ _get_value(expr->unop, discard, undefined, implied);
+		ret = ~ _get_value(expr->unop, undefined, implied);
 		ret = cast_to_type(expr->unop, ret);
 		break;
 	case '-':
-		ret = - _get_value(expr->unop, discard, undefined, implied);
+		ret = - _get_value(expr->unop, undefined, implied);
 		break;
 	case '*':
-		ret = _get_implied_value(expr, discard, undefined, implied);
+		ret = _get_implied_value(expr, undefined, implied);
 		break;
 	default:
 		*undefined = 1;
-		*discard = 1;
 	}
 	return ret;
 }
 
-static long long handle_binop(struct expression *expr, int *discard, int *undefined, int implied)
+static long long handle_binop(struct expression *expr, int *undefined, int implied)
 {
 	long long left;
 	long long right;
@@ -83,24 +82,21 @@ static long long handle_binop(struct expression *expr, int *discard, int *undefi
 
 	if (expr->type != EXPR_BINOP) {
 		*undefined = 1;
-		*discard = 1;
 		return ret;
 	}
 
-	left = _get_value(expr->left, discard, undefined, implied);
-	right = _get_value(expr->right, discard, undefined, implied);
+	left = _get_value(expr->left, undefined, implied);
+	right = _get_value(expr->right, undefined, implied);
 
 	switch (expr->op) {
 	case '*':
 		ret =  left * right;
 		break;
 	case '/':
-		if (right == 0) {
+		if (right == 0)
 			*undefined = 1;
-			*discard = 1;
-		} else {
+		else
 			ret = left / right;
-		}
 		break;
 	case '+':
 		ret = left + right;
@@ -109,12 +105,10 @@ static long long handle_binop(struct expression *expr, int *discard, int *undefi
 		ret = left - right;
 		break;
 	case '%':
-		if (right == 0) {
+		if (right == 0)
 			*undefined = 1;
-			*discard = 1;
-		} else {
+		else
 			ret = left % right;
-		}
 		break;
 	case '|':
 		ret = left | right;
@@ -133,7 +127,6 @@ static long long handle_binop(struct expression *expr, int *discard, int *undefi
 		break;
 	default:
 		*undefined = 1;
-		*discard = 1;
 	}
 	return ret;
 }
@@ -220,32 +213,25 @@ static int get_implied_single_fuzzy_min(struct expression *expr, long long *min)
 	return 0;
 }
 
-static long long _get_implied_value(struct expression *expr, int *discard, int *undefined, int implied)
+static long long _get_implied_value(struct expression *expr, int *undefined, int implied)
 {
 	long long ret = BOGUS;
 
 	switch (implied) {
 	case IMPLIED:
-		if (!get_implied_value_helper(expr, &ret, IMPLIED)) {
+		if (!get_implied_value_helper(expr, &ret, IMPLIED))
 			*undefined = 1;
-			*discard = 1;
-		}
 		break;
 	case FUZZYMAX:
-		if (!get_implied_single_fuzzy_max(expr, &ret)) {
+		if (!get_implied_single_fuzzy_max(expr, &ret))
 			*undefined = 1;
-			*discard = 1;
-		}
 		break;
 	case FUZZYMIN:
-		if (!get_implied_single_fuzzy_min(expr, &ret)) {
+		if (!get_implied_single_fuzzy_min(expr, &ret))
 			*undefined = 1;
-			*discard = 1;
-		}
 		break;
 	default:
 		*undefined = 1;
-		*discard = 1;
 	}
 	return ret;
 }
@@ -264,21 +250,16 @@ static int get_const_value(struct expression *expr, long long *val)
 	return 0;
 }
 
-static long long _get_value(struct expression *expr, int *discard, int *undefined, int implied)
+static long long _get_value(struct expression *expr, int *undefined, int implied)
 {
-	int dis = 0;
 	long long ret = BOGUS;
 
 	if (!expr) {
 		*undefined = 1;
 		return BOGUS;
 	}
-	if (!discard)
-		discard = &dis;
-	if (*discard) {
-		*undefined = 1;
+	if (*undefined)
 		return BOGUS;
-	}
 	
 	expr = strip_parens(expr);
 
@@ -288,18 +269,18 @@ static long long _get_value(struct expression *expr, int *discard, int *undefine
 		ret = cast_to_type(expr, ret);
 		break;
 	case EXPR_PREOP:
-		ret = handle_preop(expr, discard, undefined, implied);
+		ret = handle_preop(expr, undefined, implied);
 		break;
 	case EXPR_POSTOP:
-		ret = _get_value(expr->unop, discard, undefined, implied);
+		ret = _get_value(expr->unop, undefined, implied);
 		break;
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
-		ret = _get_value(expr->cast_expression, discard, undefined, implied);
+		ret = _get_value(expr->cast_expression, undefined, implied);
 		return cast_to_type(expr, ret);
 	case EXPR_BINOP:
-		ret = handle_binop(expr, discard, undefined, implied);
+		ret = handle_binop(expr, undefined, implied);
 		break;
 	case EXPR_PTRSIZEOF:
 	case EXPR_SIZEOF:
@@ -309,12 +290,10 @@ static long long _get_value(struct expression *expr, int *discard, int *undefine
 		if (get_const_value(expr, &ret))
 			break;
 	default:
-		ret = _get_implied_value(expr, discard, undefined, implied);
+		ret = _get_implied_value(expr, undefined, implied);
 	}
-	if (*discard) {
-		*undefined = 1;
+	if (*undefined)
 		return BOGUS;
-	}
 	return ret;
 }
 
@@ -323,7 +302,7 @@ int get_value(struct expression *expr, long long *val)
 {
 	int undefined = 0;
 	
-	*val = _get_value(expr, NULL, &undefined, NOTIMPLIED);
+	*val = _get_value(expr, &undefined, NOTIMPLIED);
 	if (undefined)
 		return 0;
 	return 1;
@@ -343,7 +322,7 @@ int get_implied_value(struct expression *expr, long long *val)
 {
 	int undefined = 0;
 
-	*val =  _get_value(expr, NULL, &undefined, IMPLIED);
+	*val =  _get_value(expr, &undefined, IMPLIED);
 	return !undefined;
 }
 
@@ -351,7 +330,7 @@ int get_fuzzy_max(struct expression *expr, long long *val)
 {
 	int undefined = 0;
 
-	*val =  _get_value(expr, NULL, &undefined, FUZZYMAX);
+	*val =  _get_value(expr, &undefined, FUZZYMAX);
 	return !undefined;
 }
 
@@ -359,6 +338,6 @@ int get_fuzzy_min(struct expression *expr, long long *val)
 {
 	int undefined = 0;
 
-	*val =  _get_value(expr, NULL, &undefined, FUZZYMIN);
+	*val =  _get_value(expr, &undefined, FUZZYMIN);
 	return !undefined;
 }
