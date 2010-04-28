@@ -11,8 +11,8 @@ CK(register_smatch_ignore)
 CK(check_debug)
 CK(check_assigned_expr)
 
-CK(check_null_deref)
 CK(check_deref)
+CK(check_check_deref)
 CK(check_overflow)
 CK(register_check_overflow_again)
 CK(check_memory)
@@ -42,7 +42,6 @@ CK(check_release_resource)
 CK(check_proc_create)
 CK(check_freeing_null)
 CK(check_no_effect)
-CK(check_check_deref)
 
 /* <- your test goes here */
 /* CK(register_template) */
