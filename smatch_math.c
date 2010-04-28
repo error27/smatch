@@ -17,13 +17,11 @@ static long long _get_value(struct expression *expr, int *discard, int *undefine
 #define BOGUS 12345
 
 #define NOTIMPLIED 0
-#define IMPLIED 1
-#define FUZZYMAX 2
-#define FUZZYMIN 3
-
-#define VAL_SINGLE 0
-#define VAL_MAX    1
-#define VAL_MIN    2
+#define IMPLIED    1
+#define FUZZYMAX   2
+#define FUZZYMIN   3
+#define VAL_MAX    4
+#define VAL_MIN    5
 
 static long long cast_to_type(struct expression *expr, long long val)
 {
@@ -156,7 +154,7 @@ static int get_implied_value_helper(struct expression *expr, long long *val, int
 	free_string(name);
 	if (!state || !state->data)
 		return 0;
-	if (what == VAL_SINGLE)
+	if (what == IMPLIED)
 		return get_single_value_from_dinfo(get_dinfo(state), val);
 	if (what == VAL_MAX) {
 		*val = get_dinfo_max(get_dinfo(state));
@@ -228,7 +226,7 @@ static long long _get_implied_value(struct expression *expr, int *discard, int *
 
 	switch (implied) {
 	case IMPLIED:
-		if (!get_implied_value_helper(expr, &ret, VAL_SINGLE)) {
+		if (!get_implied_value_helper(expr, &ret, IMPLIED)) {
 			*undefined = 1;
 			*discard = 1;
 		}
