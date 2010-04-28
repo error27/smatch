@@ -161,7 +161,7 @@ static int get_implied_value_helper(struct expression *expr, long long *val, int
 	return 1;
 }
 
-static int get_implied_single_fuzzy_max(struct expression *expr, long long *max)
+static int get_fuzzy_max_helper(struct expression *expr, long long *max)
 {
 	struct sm_state *sm;
 	struct sm_state *tmp;
@@ -187,7 +187,7 @@ static int get_implied_single_fuzzy_max(struct expression *expr, long long *max)
 	return 0;
 }
 
-static int get_implied_single_fuzzy_min(struct expression *expr, long long *min)
+static int get_fuzzy_min_helper(struct expression *expr, long long *min)
 {
 	struct sm_state *sm;
 	struct sm_state *tmp;
@@ -223,11 +223,11 @@ static long long _get_implied_value(struct expression *expr, int *undefined, int
 			*undefined = 1;
 		break;
 	case FUZZYMAX:
-		if (!get_implied_single_fuzzy_max(expr, &ret))
+		if (!get_fuzzy_max_helper(expr, &ret))
 			*undefined = 1;
 		break;
 	case FUZZYMIN:
-		if (!get_implied_single_fuzzy_min(expr, &ret))
+		if (!get_fuzzy_min_helper(expr, &ret))
 			*undefined = 1;
 		break;
 	default:
