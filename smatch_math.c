@@ -342,3 +342,30 @@ int get_fuzzy_max(struct expression *expr, long long *val)
 	return !undefined;
 }
 
+int get_absolute_min(struct expression *expr, long long *val)
+{
+	struct symbol *type;
+	long long min;
+
+	type = get_type(expr);
+	if (!type)
+		return 0;
+	min = type_min(type);
+	if (!get_implied_min(expr, val) || *val < min)
+		*val = min;
+	return 1;
+}
+
+int get_absolute_max(struct expression *expr, long long *val)
+{
+	struct symbol *type;
+	long long max;
+
+	type = get_type(expr);
+	if (!type)
+		return 0;
+	max = type_max(type);
+	if (!get_implied_max(expr, val) || *val > max)
+		*val = max;
+	return 1;
+}
