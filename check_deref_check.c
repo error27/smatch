@@ -45,6 +45,9 @@ static void match_condition(struct expression *expr)
 	if (__in_pre_condition)
 		return;
 
+	if (in_macro() && !option_spammy)
+		return;
+
 	if (get_state_expr(my_id, expr) == &derefed) {
 		char *name;
 
