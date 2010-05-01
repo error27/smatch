@@ -86,7 +86,7 @@ void __split_expr(struct expression *expr)
 	if (!expr)
 		return;
 
-	// printf("%d Debug expr_type %d %s\n", get_lineno(), expr->type, show_special(expr->op));
+	// sm_msg(" Debug expr_type %d %s", expr->type, show_special(expr->op));
 
 	push_expression(&big_expression_stack, expr);
 	set_position(expr);
@@ -612,44 +612,50 @@ static void split_declaration(struct symbol_list *sym_list)
 	} END_FOR_EACH_PTR(sym);
 }
 
+static void split_function(struct symbol *sym)
+{
+	struct symbol *base_type;
+	base_type = get_base_type(sym);
+
+	cur_func_sym = sym;
+	if (base_type->stmt)
+		line_func_start = base_type->stmt->pos.line;
+	if (sym->ident)
+		cur_func = sym->ident->name;
+	__smatch_lineno = sym->pos.line;
+	last_stmt = NULL;
+	loop_count = 0;
+	sm_debug("new function:  %s\n", cur_func);
+	if (option_two_passes) {
+		__unnullify_path();
+		loop_num = 0;
+		final_pass = 0;
+		__pass_to_client(sym, FUNC_DEF_HOOK);
+		__split_stmt(base_type->stmt);
+		nullify_path();
+	}
+	__unnullify_path();
+	loop_num = 0;
+	final_pass = 1;
+	__pass_to_client(sym, FUNC_DEF_HOOK);
+	__split_stmt(base_type->stmt);
+	__pass_to_client(sym, END_FUNC_HOOK);
+	cur_func = NULL;
+	line_func_start = 0;
+	clear_all_states();
+	free_data_info_allocs();
+	free_expression_stack(&switch_expr_stack);
+	__free_ptr_list((struct ptr_list **)&big_statement_stack);
+	__bail_on_rest_of_function = 0;
+}
+
 static void split_functions(struct symbol_list *sym_list)
 {
 	struct symbol *sym;
 
 	FOR_EACH_PTR(sym_list, sym) {
-		struct symbol *base_type;
-		base_type = get_base_type(sym);
-		if (sym->type == SYM_NODE && base_type->type == SYM_FN) {
-			cur_func_sym = sym;
-			if (base_type->stmt)
-				line_func_start = base_type->stmt->pos.line;
-			if (sym->ident)
-				cur_func = sym->ident->name;
-			__smatch_lineno = sym->pos.line;
-			last_stmt = NULL;
-			loop_count = 0;
-			sm_debug("new function:  %s\n", cur_func);
-			if (option_two_passes) {
-				__unnullify_path();
-				loop_num = 0;
-				final_pass = 0;
-				__pass_to_client(sym, FUNC_DEF_HOOK);
-				__split_stmt(base_type->stmt);
-				nullify_path();
-			}
-			__unnullify_path();
-			loop_num = 0;
-			final_pass = 1;
-			__pass_to_client(sym, FUNC_DEF_HOOK);
-			__split_stmt(base_type->stmt);
-			__pass_to_client(sym, END_FUNC_HOOK);
-			cur_func = NULL;
-			line_func_start = 0;
-			clear_all_states();
-			free_data_info_allocs();
-			free_expression_stack(&switch_expr_stack);
-			__free_ptr_list((struct ptr_list **)&big_statement_stack);
-			__bail_on_rest_of_function = 0;
+		if (sym->type == SYM_NODE && get_base_type(sym)->type == SYM_FN) {
+			split_function(sym);
 		} else {
 			__pass_to_client(sym, BASE_HOOK);
 		}
