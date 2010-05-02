@@ -733,6 +733,24 @@ static void load_table(struct lock_info *_lock_table, int size)
 	}
 }
 
+/* print_held_locks() is used in check_call_tree.c */
+void print_held_locks()
+{
+	struct state_list *slist;
+	struct sm_state *sm;
+	int i = 0;
+
+	slist = get_all_states(my_id);
+	FOR_EACH_PTR(slist, sm) {
+		if (sm->state != &locked)
+			continue;
+		if (i++)
+			sm_printf(" ");
+		sm_printf("'%s'", sm->name);
+	} END_FOR_EACH_PTR(sm);
+	free_slist(&slist);
+}
+
 void check_locking(int id)
 {
 	my_id = id;

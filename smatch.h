@@ -100,7 +100,7 @@ void add_scope_hook(scope_hook *hook, void *data);
 typedef void (func_hook)(const char *fn, struct expression *expr, void *data);
 typedef void (implication_hook)(const char *fn, struct expression *call_expr,
 				struct expression *assign_expr, void *data);
-void add_function_hook(const char *lock_for, func_hook *call_back, void *data);
+void add_function_hook(const char *look_for, func_hook *call_back, void *data);
 
 void add_function_assign_hook(const char *look_for, func_hook *call_back,
 			      void *info);
@@ -390,5 +390,8 @@ enum project_type {
 };
 extern enum project_type option_project;
 const char *check_name(unsigned short id);
+
+/* check_locking.c */
+void print_held_locks();
 
 #endif 	    /* !SMATCH_H_ */

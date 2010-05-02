@@ -18,7 +18,10 @@ static void match_call(struct expression *expr)
 	fn_name = get_variable_from_expr(expr->fn, NULL);
 	if (!fn_name)
 		return;
-	sm_msg("info: func_call %s", fn_name);
+	sm_prefix();
+	sm_printf("info: func_call (");
+	print_held_locks();
+	sm_printf(") %s\n", fn_name);
 	free_string(fn_name);
 }
 
