@@ -856,6 +856,7 @@ exit:
 int known_condition_true(struct expression *expr)
 {
 	long long tmp;
+	struct statement *stmt;
 
 	if (!expr)
 		return 0;
@@ -871,6 +872,9 @@ int known_condition_true(struct expression *expr)
 				return 1;
 			break;
 		}
+		stmt = get_expression_statement(expr);
+		if (last_stmt_val(stmt, &tmp) && tmp == 1)
+			return 1;
 		break;
 	default:
 		break;
@@ -880,6 +884,9 @@ int known_condition_true(struct expression *expr)
 
 int known_condition_false(struct expression *expr)
 {
+	long long tmp;
+	struct statement *stmt;
+
 	if (!expr)
 		return 0;
 
@@ -893,6 +900,9 @@ int known_condition_false(struct expression *expr)
 				return 1;
 			break;
 		}
+		stmt = get_expression_statement(expr);
+		if (last_stmt_val(stmt, &tmp) && tmp == 0)
+			return 1;
 		break;
 	default:
 		break;
