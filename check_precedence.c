@@ -23,6 +23,17 @@ static int is_bool(struct expression *expr)
 	return 0;
 }
 
+static int is_bool_from_context(struct expression *expr)
+{
+	long long val;
+
+	if (!get_implied_max(expr, &val) || val > 1)
+		return 0;
+	if (!get_implied_min(expr, &val) || val < 0)
+		return 0;
+	return 1;
+}
+
 static int is_bool_op(struct expression *expr)
 {
 	expr = strip_expr(expr);
@@ -51,6 +62,8 @@ static void match_condition(struct expression *expr)
 			if (is_bool(expr->right))
 				return;
 			if (is_bool(expr->left->unop))
+				return;
+			if (is_bool_from_context(expr->left->unop))
 				return;
 			print = 1;
 		}
