@@ -910,7 +910,7 @@ int known_condition_false(struct expression *expr)
 	return 0;
 }
 
-static int do_comparison_range(struct expression *expr)
+static int do_comparison(struct expression *expr)
 {
 	struct symbol *sym;
 	char *name;
@@ -971,7 +971,7 @@ int implied_condition_true(struct expression *expr)
 	expr = strip_expr(expr);
 	switch (expr->type) {
 	case EXPR_COMPARE:
-		if (do_comparison_range(expr) == 1)
+		if (do_comparison(expr) == 1)
 			return 1;
 		break;
 	case EXPR_PREOP:
@@ -1006,7 +1006,7 @@ int implied_condition_false(struct expression *expr)
 
 	switch (expr->type) {
 	case EXPR_COMPARE:
-		if (do_comparison_range(expr) == 2)
+		if (do_comparison(expr) == 2)
 			return 1;
 	case EXPR_PREOP:
 		if (expr->op == '!') {
