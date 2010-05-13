@@ -373,5 +373,7 @@ int get_absolute_max(struct expression *expr, long long *val)
 	max = type_max(type);
 	if (!get_implied_max(expr, val) || *val > max)
 		*val = max;
+	if (*val < type_min(type))
+		*val = max;
 	return 1;
 }
