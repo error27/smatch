@@ -31,6 +31,7 @@ int possibly_true_range_list_lr(int comparison, struct data_info *dinfo, struct 
 int possibly_false(int comparison, struct data_info *dinfo, long long num, int left);
 int possibly_false_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges);
 int possibly_false_range_list_lr(int comparison, struct data_info *dinfo, struct range_list *values, int left);
+void free_range_list(struct range_list **rlist);
 void free_data_info_allocs(void);
 struct range_list *clone_range_list(struct range_list *list);
 char *show_ranges(struct range_list *list);

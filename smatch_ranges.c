@@ -524,10 +524,15 @@ void filter_top_range_list(struct range_list_stack **rl_stack, long long num)
 	push_range_list(rl_stack, rl);
 }
 
+void free_range_list(struct range_list **rlist)
+{
+	__free_ptr_list((struct ptr_list **)rlist);
+}
+
 static void free_single_dinfo(struct data_info *dinfo)
 {
 	if (dinfo->type == DATA_RANGE)
-		__free_ptr_list((struct ptr_list **)&dinfo->value_ranges);
+		free_range_list(&dinfo->value_ranges);
 }
 
 static void free_dinfos(struct allocation_blob *blob)
