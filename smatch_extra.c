@@ -910,41 +910,45 @@ int known_condition_false(struct expression *expr)
 	return 0;
 }
 
+static struct range_list *get_range_list(struct expression *expr)
+{
+	long long min;
+	long long max;
+	struct range_list *ret = NULL;
+	struct smatch_state *state;
+
+	state = get_state_expr(SMATCH_EXTRA, expr);
+	if (state)
+		return clone_range_list(get_dinfo(state)->value_ranges);
+	if (!get_absolute_min(expr, &min))
+		return NULL;
+	if (!get_absolute_max(expr, &max))
+		return NULL;
+	add_range(&ret, min, max);
+	return ret;
+}
+
 static int do_comparison(struct expression *expr)
 {
-	struct symbol *sym;
-	char *name;
-	struct smatch_state *state;
-	long long value;
-	int left = 0;
+	struct range_list *left_ranges;
+	struct range_list *right_ranges;
 	int poss_true, poss_false;
 
-	if (!get_value(expr->left, &value)) {
-		if (!get_value(expr->right, &value))
-			return 3;
-		left = 1;
-	}
-	if (left)
-		name = get_variable_from_expr(expr->left, &sym);
-	else 
-		name = get_variable_from_expr(expr->right, &sym);
-	if (!name || !sym)
-		goto free;
-	state = get_state(SMATCH_EXTRA, name, sym);
-	if (!state)
-		goto free;
-	poss_true = possibly_true(expr->op, get_dinfo(state), value, left);
-	poss_false = possibly_false(expr->op, get_dinfo(state), value, left);
+	left_ranges = get_range_list(expr->left);
+	right_ranges = get_range_list(expr->right);
+
+	poss_true = possibly_true_range_lists(left_ranges, expr->op, right_ranges);
+	poss_false = possibly_false_range_lists(left_ranges, expr->op, right_ranges);
+
+	free_range_list(&left_ranges);
+	free_range_list(&right_ranges);
+
 	if (!poss_true && !poss_false)
 		return 0;
 	if (poss_true && !poss_false)
 		return 1;
 	if (!poss_true && poss_false)
 		return 2;
-	if (poss_true && poss_false)
-		return 3;
-free:
-	free_string(name);
 	return 3;
 }
 
