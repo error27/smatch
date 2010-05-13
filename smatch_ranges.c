@@ -418,7 +418,23 @@ int possibly_false(int comparison, struct data_info *dinfo, long long num, int l
 	return 0;
 }
 
-int possibly_true_range_list(int comparison, struct data_info *dinfo, struct range_list *values, int left)
+int possibly_true_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges)
+{
+	struct data_range *left_tmp, *right_tmp;
+
+	if (!left_ranges || !right_ranges)
+		return 1;
+
+	FOR_EACH_PTR(left_ranges, left_tmp) {
+		FOR_EACH_PTR(right_ranges, right_tmp) {
+			if (true_comparison_range(left_tmp, comparison, right_tmp))
+				return 1;
+		} END_FOR_EACH_PTR(right_tmp);
+	} END_FOR_EACH_PTR(left_tmp);
+	return 0;
+}
+
+int possibly_true_range_list_lr(int comparison, struct data_info *dinfo, struct range_list *values, int left)
 {
 	struct data_range *tmp, *tmp2;
 
@@ -431,7 +447,23 @@ int possibly_true_range_list(int comparison, struct data_info *dinfo, struct ran
 	return 0;
 }
 
-int possibly_false_range_list(int comparison, struct data_info *dinfo, struct range_list *values, int left)
+int possibly_false_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges)
+{
+	struct data_range *left_tmp, *right_tmp;
+
+	if (!left_ranges || !right_ranges)
+		return 1;
+
+	FOR_EACH_PTR(left_ranges, left_tmp) {
+		FOR_EACH_PTR(right_ranges, right_tmp) {
+			if (false_comparison_range(left_tmp, comparison, right_tmp))
+				return 1;
+		} END_FOR_EACH_PTR(right_tmp);
+	} END_FOR_EACH_PTR(left_tmp);
+	return 0;
+}
+
+int possibly_false_range_list_lr(int comparison, struct data_info *dinfo, struct range_list *values, int left)
 {
 	struct data_range *tmp, *tmp2;
 
