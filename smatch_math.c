@@ -348,8 +348,11 @@ int get_absolute_min(struct expression *expr, long long *val)
 	long long min;
 
 	type = get_type(expr);
-	if (!type)
+	if (!type) {
+		if (get_value(expr, val))
+			return 1;
 		return 0;
+	}
 	min = type_min(type);
 	if (!get_implied_min(expr, val) || *val < min)
 		*val = min;
@@ -362,8 +365,11 @@ int get_absolute_max(struct expression *expr, long long *val)
 	long long max;
 
 	type = get_type(expr);
-	if (!type)
+	if (!type){ 
+		if (get_value(expr, val))
+			return 1;
 		return 0;
+	}
 	max = type_max(type);
 	if (!get_implied_max(expr, val) || *val > max)
 		*val = max;
