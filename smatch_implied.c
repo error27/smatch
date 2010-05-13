@@ -348,26 +348,25 @@ static void separate_and_filter(struct sm_state *sm_state, int comparison, struc
 		__bail_on_rest_of_function = 1;
 }
 
-static char *get_implication_variable(struct expression *expr, struct symbol **symp)
+static struct sm_state *get_left_most_sm(struct expression *expr)
 {
 	expr = strip_expr(expr);
 	if (expr->type == EXPR_ASSIGNMENT)
-		return get_implication_variable(expr->left, symp);
-	return get_variable_from_expr(expr, symp);
+		return get_left_most_sm(expr->left);
+	return get_sm_state_expr(SMATCH_EXTRA, expr);
 }
 
-static int get_known_value(struct expression *expr, long long *val)
+static int is_merged_expr(struct expression  *expr)
 {
 	struct sm_state *sm;
+	long long dummy;
 
-	if (get_value(expr, val))
-		return 1;
+	if (get_value(expr, &dummy))
+		return 0;
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
 	if (!sm)
 		return 0;
-	if (!get_single_value_from_dinfo(get_dinfo(sm->state), val))
-		return 0;
-	if (!is_implied(sm))
+	if (is_merged(sm))
 		return 1;
 	return 0;
 }
@@ -394,35 +393,29 @@ static void handle_comparison(struct expression *expr,
 			      struct state_list **implied_true,
 			      struct state_list **implied_false)
 {
-	struct symbol *sym;
-	char *name;
-	struct sm_state *sm;
-	long long value;
+	struct sm_state *sm = NULL;
+	struct range_list *ranges = NULL;
 	int lr;
 
-	if (get_known_value(expr->right, &value))
+	if (is_merged_expr(expr->left)) {
 		lr = LEFT;
-	else if (get_known_value(expr->left, &value))
+		sm = get_left_most_sm(expr->left);
+		ranges = get_range_list(expr->right);
+	} else if (is_merged_expr(expr->right)) {
 		lr = RIGHT;
-	else
+		sm = get_left_most_sm(expr->right);
+		ranges = get_range_list(expr->left);
+	}
+
+	if (!ranges || !sm) {
+		free_range_list(&ranges);
 		return;
+	}
 
-	if (lr == LEFT)
-		name = get_implication_variable(expr->left, &sym);
-	else 
-		name = get_implication_variable(expr->right, &sym);
-	if (!name || !sym)
-		goto free;
-
-	sm = get_sm_state(SMATCH_EXTRA, name, sym);
-	if (!sm)
-		goto free;
-
-	separate_and_filter(sm, expr->op, tmp_range_list(value), lr, __get_cur_slist(), implied_true, implied_false);
-	delete_equiv_slist(implied_true, name, sym);
-	delete_equiv_slist(implied_false, name, sym);
-free:
-	free_string(name);
+	separate_and_filter(sm, expr->op, ranges, lr, __get_cur_slist(), implied_true, implied_false);
+	free_range_list(&ranges);
+	delete_equiv_slist(implied_true, sm->name, sm->sym);
+	delete_equiv_slist(implied_false, sm->name, sm->sym);
 }
 
 static void handle_zero_comparison(struct expression *expr,

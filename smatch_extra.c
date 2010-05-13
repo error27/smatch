@@ -910,7 +910,7 @@ int known_condition_false(struct expression *expr)
 	return 0;
 }
 
-static struct range_list *get_range_list(struct expression *expr)
+struct range_list *get_range_list(struct expression *expr)
 {
 	long long min;
 	long long max;
