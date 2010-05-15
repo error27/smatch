@@ -42,6 +42,7 @@ static int my_id;
 struct assignment {
 	int assign_id;
 	char *name;
+	char *function;
 	int line;
 };
 ALLOCATOR(assignment, "assignment id");
@@ -59,11 +60,32 @@ static const char *kernel_ignored[] = {
 	"inb",
 	"inl",
 	"inw",
+	"readb",
+	"readl",
+	"readw",
 };
 
-static int ignored_function(struct expression *func)
+static char *get_fn_name(struct expression *expr)
 {
-	return !!search_func(ignored_funcs, (char *)func);
+	if (expr->type != EXPR_CALL)
+		return NULL;
+	if (expr->fn->type != EXPR_SYMBOL)
+		return NULL;
+	return get_variable_from_expr(expr->fn, NULL);
+}
+
+static int ignored_function(struct expression *expr)
+{
+	char *func;
+	int ret = 0;
+
+	func = get_fn_name(expr);
+	if (!func)
+		return 0;
+	if (search_func(ignored_funcs, func))
+		ret = 1;
+	free_string(func);
+	return ret;
 }
 
 static void match_assign_call(struct expression *expr)
@@ -94,6 +116,7 @@ static void match_assign_call(struct expression *expr)
 	assign = __alloc_assignment(0);
 	assign->assign_id = assign_id++;
 	assign->name = get_variable_from_expr(left, NULL);
+	assign->function = get_fn_name(expr->right);
 	assign->line = get_lineno();
 	add_ptr_list(&assignment_list, assign);
 }
@@ -151,7 +174,8 @@ static void match_end_func(struct symbol *sym)
 
  	FOR_EACH_PTR(assignment_list, tmp) {
 		sm_printf("%s +%d %s ", get_filename(), tmp->line, get_function());
-		sm_printf("warn: assignment to '%s' was never used\n", tmp->name);
+		sm_printf("warn: unused return: %s = %s()\n",
+			tmp->name, tmp->function);
 	} END_FOR_EACH_PTR(tmp);
 	clear_assignment_alloc();
 	__free_ptr_list((struct ptr_list **)&assignment_list);
