@@ -381,7 +381,7 @@ void __match_nullify_path_hook(const char *fn, struct expression *expr,
 
 /*
  * At the start of every function we mark the path
- * as unnull.  That there is always at least one state
+ * as unnull.  That way there is always at least one state
  * in the cur_slist until nullify_path is called.  This
  * is used in merge_slist() for the first null check.
  */

@@ -614,8 +614,7 @@ static void split_declaration(struct symbol_list *sym_list)
 
 static void split_function(struct symbol *sym)
 {
-	struct symbol *base_type;
-	base_type = get_base_type(sym);
+	struct symbol *base_type = get_base_type(sym);
 
 	cur_func_sym = sym;
 	if (base_type->stmt)
