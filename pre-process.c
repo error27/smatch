@@ -150,6 +150,7 @@ static int expand_one_symbol(struct token **list)
 
 	sym = lookup_macro(token->ident);
 	if (sym) {
+		store_macro_pos(token);
 		sym->used_in = file_scope;
 		return expand(list, sym);
 	}

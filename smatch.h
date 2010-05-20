@@ -200,7 +200,6 @@ struct expression *strip_expr(struct expression *expr);
 void scoped_state(int my_id, const char *name, struct symbol *sym);
 int is_error_return(struct expression *expr);
 int getting_address(void);
-int in_macro(void);
 
 /* smatch_type.c */
 struct symbol *get_type(struct expression *expr);

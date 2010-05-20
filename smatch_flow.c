@@ -675,7 +675,7 @@ void smatch (int argc, char **argv)
 	}
 	sparse_initialize(argc, argv, &filelist);
 	FOR_EACH_PTR_NOTAG(filelist, file) {
-		sym_list = __sparse(file);
+		sym_list = sparse_keep_tokens(file);
 		split_functions(sym_list);
 	} END_FOR_EACH_PTR_NOTAG(file);
 }

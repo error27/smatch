@@ -202,6 +202,9 @@ extern struct token * tokenize_buffer(void *, unsigned long, struct token **);
 extern void show_identifier_stats(void);
 extern struct token *preprocess(struct token *);
 
+extern void store_macro_pos(struct token *);
+extern char *get_macro_name(struct position *);
+
 static inline int match_op(struct token *token, int op)
 {
 	return token->pos.type == TOKEN_SPECIAL && token->special == op;

@@ -449,30 +449,3 @@ int getting_address(void)
 	} END_FOR_EACH_PTR_REVERSE(tmp);
 	return 0;
 }
-
-int in_macro(void)
-{
-	struct statement *stmt;
-	struct statement *next_stmt;
-	int line_1 = 0;
-	int pos_1 = 0;
-
-	FOR_EACH_PTR_REVERSE(big_statement_stack, stmt) {
-		if (!line_1 && !pos_1) {
-			line_1 = stmt->pos.line;
-			pos_1 = stmt->pos.pos;
-			continue;
-		}
-		if (line_1 == stmt->pos.line && pos_1 == stmt->pos.pos)
-			return 1;
-		break;
-	} END_FOR_EACH_PTR_REVERSE(stmt);
-	next_stmt = get_next_stmt();
-	if (!next_stmt)
-		return 0;
-	if (line_1 == next_stmt->pos.line && pos_1 == next_stmt->pos.pos)
-		return 1;
-
-	return 0;
-}
-

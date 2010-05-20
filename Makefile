@@ -39,8 +39,7 @@ SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	 smatch_helper.o smatch_type.o smatch_hooks.o smatch_function_hooks.o \
 	 smatch_modification_hooks.o smatch_extra.o smatch_math.o \
 	 smatch_ranges.o smatch_implied.o smatch_ignore.o smatch_project.o \
-	 smatch_tracker.o smatch_files.o smatch_expression_stacks.o smatch_oom.o \
-	 cwchash/hashtable.o
+	 smatch_tracker.o smatch_files.o smatch_expression_stacks.o smatch_oom.o
 SMATCH_CHECKS=$(shell ls check_*.c | sed -e 's/\.c/.o/')
 SMATCH_DATA=smatch_data/kernel.allocation_funcs smatch_data/kernel.balanced_funcs \
 	smatch_data/kernel.frees_argument smatch_data/kernel.puts_argument \
@@ -67,7 +66,8 @@ LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 	  expression.o show-parse.o evaluate.o expand.o inline.o linearize.o \
 	  sort.o allocate.o compat-$(OS).o ptrlist.o \
-	  flow.o cse.o simplify.o memops.o liveness.o storage.o unssa.o dissect.o
+	  flow.o cse.o simplify.o memops.o liveness.o storage.o unssa.o \
+	  dissect.o macro_table.o cwchash/hashtable.o
 
 LIB_FILE= libsparse.a
 SLIB_FILE= libsparse.so
