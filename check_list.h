@@ -57,7 +57,6 @@ CK(check_err_ptr_deref)
 CK(check_hold_dev)
 
 /* wine specific stuff */
-CK(check_wine)
 CK(check_wine_filehandles)
 CK(check_wine_WtoA)
 
