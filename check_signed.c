@@ -139,6 +139,8 @@ static void match_condition(struct expression *expr)
 		return;
 
 	if (get_value(expr->left, &known)) {
+		if (get_value(expr->right, &max))
+			return; /* both sides known */
 		lr = VAR_ON_RIGHT;
 		var = expr->right;
 		known_type = get_type(expr->left);
