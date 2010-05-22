@@ -392,6 +392,25 @@ void __split_whole_condition(struct expression *expr)
 	sm_debug("%d done __split_whole_condition\n", get_lineno());
 }
 
+void __handle_logic(struct expression *expr)
+{
+	sm_debug("%d in __handle_logic\n", get_lineno());
+	inside_condition++;
+	__save_pre_cond_states();
+	__push_cond_stacks();
+	/* it's a hack, but it's sometimes handy to have this stuff 
+	   on the big_expression_stack.  */
+	push_expression(&big_expression_stack, expr);
+	if (expr)
+		split_conditions(expr);
+	__use_cond_states();
+	__pass_to_client(expr, WHOLE_CONDITION_HOOK);
+	pop_expression(&big_expression_stack);
+	__merge_false_states();
+	inside_condition--;
+	sm_debug("%d done __handle_logic\n", get_lineno());
+}
+
 static int is_condition_assign(struct expression *expr)
 {
 	struct expression *right;

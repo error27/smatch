@@ -105,11 +105,13 @@ void __split_expr(struct expression *expr)
 		__split_stmt(expr->statement);
 		expr_stmt_count--;
 		break;
+	case EXPR_LOGICAL:
+	case EXPR_COMPARE:
+		__handle_logic(expr);
+		break;
 	case EXPR_BINOP: 
 		__pass_to_client(expr, BINOP_HOOK);
-	case EXPR_LOGICAL:
 	case EXPR_COMMA:
-	case EXPR_COMPARE:
 		__split_expr(expr->left);
 		__split_expr(expr->right);		
 		break;
