@@ -10,7 +10,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "smatch.h"
+#include "lib.h"
+#include "parse.h"
 #include "cwchash/hashtable.h"
 
 static struct hashtable *macro_table;
