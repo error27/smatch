@@ -23,7 +23,7 @@ static inline unsigned int position_hash(void *_pos)
 {
 	struct position *pos = _pos;
 
-	return pos->line | (pos->pos << 22); 
+	return pos->line | (pos->pos << 22) | (pos->stream << 18); 
 }
 
 static inline int equalkeys(void *_pos1, void *_pos2)
@@ -31,7 +31,8 @@ static inline int equalkeys(void *_pos1, void *_pos2)
 	struct position *pos1 = _pos1;
 	struct position *pos2 = _pos2;
 
-	return pos1->line == pos2->line && pos1->pos == pos2->pos;
+	return pos1->line == pos2->line && pos1->pos == pos2->pos &&
+		pos1->stream == pos2->stream;
 }
 
 void store_macro_pos(struct token *token)
