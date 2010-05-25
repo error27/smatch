@@ -107,6 +107,7 @@ void __split_expr(struct expression *expr)
 		break;
 	case EXPR_LOGICAL:
 	case EXPR_COMPARE:
+		__pass_to_client(expr, LOGIC_HOOK);
 		__handle_logic(expr);
 		break;
 	case EXPR_BINOP: 
