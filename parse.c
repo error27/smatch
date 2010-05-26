@@ -517,6 +517,8 @@ const char *ignored_attributes[] = {
 	"__hot__",
 	"malloc",
 	"__malloc__",
+	"may_alias",
+	"__may_alias__",
 	"model",
 	"__model__",
 	"ms_abi",
