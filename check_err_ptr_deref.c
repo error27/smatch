@@ -76,6 +76,18 @@ static void match_dereferences(struct expression *expr)
 	check_is_err_ptr(sm);
 }
 
+static void match_condition(struct expression *expr)
+{
+	if (expr->type == EXPR_ASSIGNMENT) {
+		match_condition(expr->right);
+		match_condition(expr->left);
+	}
+	if (!get_state_expr(my_id, expr))
+		return;
+	/* If we know the variable is zero that means it's not an ERR_PTR */
+	set_true_false_states_expr(my_id, expr, NULL, &checked);
+}
+
 static void register_err_ptr_funcs(void)
 {
 	struct token *token;
@@ -145,10 +157,13 @@ void check_err_ptr_deref(int id)
 	my_id = id;
 	return_implies_state("IS_ERR", 0, 0, &match_checked, NULL);
 	return_implies_state("IS_ERR", 1, 1, &match_err, NULL);
+	return_implies_state("IS_ERR_OR_NULL", 0, 0, &match_checked, NULL);
+	return_implies_state("IS_ERR_OR_NULL", 1, 1, &match_err, NULL);
 	register_err_ptr_funcs();
 	add_hook(&match_dereferences, DEREF_HOOK);
 	add_function_hook("ERR_PTR", &match_err_ptr, NULL);
 	add_function_assign_hook("PTR_ERR", &match_ptr_err, NULL);
+	add_hook(&match_condition, CONDITION_HOOK);
 	set_default_modification_hook(my_id, ok_to_use);
 }
 
