@@ -44,6 +44,7 @@ CK(check_no_effect)
 CK(check_kunmap)
 CK(check_snprintf)
 CK(check_macros)
+CK(check_propagate)
 
 /* <- your test goes here */
 /* CK(register_template) */
