@@ -80,6 +80,17 @@ i2400mu_tx 1
 i2400mu_tx_bulk_out 1
 keyspan_setup_urb 4
 klsi_105_chg_port_settings 1
+kone_get_profile 1
+kone_get_settings 1
+kone_set_profile 1
+kone_set_settings 1
+kone_sysfs_write_profile1 3
+kone_sysfs_write_profile2 3
+kone_sysfs_write_profile3 3
+kone_sysfs_write_profile4 3
+kone_sysfs_write_profile5 3
+kone_sysfs_write_profilex 2
+kone_sysfs_write_settings 3
 konicawc_ctrl_msg 5
 line6_read_data 2
 line6_read_serial_number 1
@@ -88,9 +99,9 @@ line6_write_data 2
 mcs_get_reg 2
 nc_vendor_read 3
 netdev_tx 1
-option_setup_urb 4
 p54u_bulk_msg 2
 p54u_write 1
+parport_mos7715_write_compat 1
 parport_uss720_ecp_read_data 1
 parport_uss720_ecp_write_data 1
 parport_uss720_epp_write_data 1
@@ -103,6 +114,7 @@ qt2_openboxchannel 2
 qt_open_channel 2
 read_download_mem 4
 read_immediate 1
+read_mos_reg 3
 read_packet 2
 ReadPacket 2
 read_ram 3
@@ -140,6 +152,7 @@ set_RTS 1
 si470x_get_report 1
 si470x_set_report 1
 sierra_get_swoc_info 1
+sierra_net_send_cmd 1
 sisusb_bulkin_msg 2
 sisusb_bulkout_msg 3
 smsusb_sendrequest 1
@@ -178,6 +191,7 @@ usb_stor_bulk_transfer_sg 2
 usb_string_sub 3
 usb_tx_block 1
 usb_write 4
+usb_wwan_setup_urb 4
 __uvc_query_ctrl 5
 uvc_query_ctrl 5
 vendor_command 4

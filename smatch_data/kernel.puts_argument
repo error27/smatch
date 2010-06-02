@@ -6,6 +6,7 @@ bd_holder_grab_dirs 1
 bd_holder_release_dirs 0
 bd_release_from_disk 1
 blk_put_queue 0
+blktrans_dev_put 0
 blk_unregister_queue 0
 btrfs_sysfs_del_root 0
 btrfs_sysfs_del_super 0
@@ -16,7 +17,6 @@ class_compat_unregister 0
 client_put 0
 cm_create_port_fs 0
 cm_remove_port_fs 0
-connect_request_upcall 0
 cpufreq_add_dev_interface 1
 cpufreq_cpu_put 0
 del_gendisk 0
@@ -62,14 +62,15 @@ nfs_direct_req_release 0
 nfs_release_request 0
 o2net_handler_put 0
 pci_destroy_slot 0
+process_timeout 0
 put_driver 0
+put_generic_request 0
 __put_lkb 1
 put_rsb 0
 put_uobj 0
 rate_control_put 0
 relay_close 0
 relay_close_buf 0
-release_ep_resources 0
 release_lockspace 0
 remove_domain_devices 0
 rpc_free_auth 0
@@ -80,9 +81,9 @@ scsi_cd_put 0
 scsi_tape_put 0
 sdio_uart_port_put 0
 sg_put_dev 0
-stop_ep_timer 0
 svc_xprt_put 0
 sysdev_unregister 0
+sysfs_del_hardif 0
 sysfs_slab_add 0
 sysfs_slab_remove 0
 ttm_mem_global_init 0

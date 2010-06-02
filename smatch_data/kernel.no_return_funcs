@@ -4,7 +4,6 @@ aha152x_error
 ahd_handle_hwerrint
 aic7xxx_panic_abort
 assfail
-async_tx_channel_switch
 BAD_SG_DMA
 bdi_forker_task
 cafe_nand_bug
@@ -14,6 +13,9 @@ complete_and_exit
 cpu_idle
 cryptomgr_probe
 cryptomgr_test
+denali_ecc_calculate
+denali_ecc_correct
+denali_ecc_hwctl
 die_kmmio_nesting_error
 do_exit
 do_group_exit
@@ -29,6 +31,8 @@ hugetlb_vm_op_fault
 init_post
 __invalid_creds
 jffs2_garbage_collect_thread
+kdb_reboot
+kernel_init
 kthread
 kthreadd
 kvm_handle_fault_on_reboot
@@ -53,11 +57,13 @@ skb_over_panic
 skb_under_panic
 smbiod
 __stack_chk_fail
+start_kernel
 start_secondary
 stop_this_cpu
 svc_udp_accept
 sys_exit
 sys_exit_group
+task_tick_rt
 tomoyo_gc_thread
 ttm_bo_ref_bug
 usbatm_do_heavy_init
