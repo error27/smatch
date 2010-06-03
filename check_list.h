@@ -45,6 +45,7 @@ CK(check_kunmap)
 CK(check_snprintf)
 CK(check_macros)
 CK(check_propagate)
+CK(check_return_efault)
 
 /* <- your test goes here */
 /* CK(register_template) */
