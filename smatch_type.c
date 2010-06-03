@@ -14,12 +14,22 @@
 
 #include "smatch.h"
 
+struct symbol *get_real_base_type(struct symbol *sym)
+{
+	struct symbol *ret;
+
+	ret = get_base_type(sym);
+	if (ret && ret->type == SYM_RESTRICT)
+		return get_real_base_type(ret);
+	return ret;
+}
+
 static struct symbol *get_type_symbol(struct expression *expr)
 {
 	if (!expr || expr->type != EXPR_SYMBOL || !expr->symbol)
 		return NULL;
 
-	return get_base_type(expr->symbol);
+	return get_real_base_type(expr->symbol);
 }
 
 static struct symbol *get_symbol_from_deref(struct expression *expr)
@@ -38,10 +48,10 @@ static struct symbol *get_symbol_from_deref(struct expression *expr)
 		return NULL;
 	}
 	if (struct_sym->type == SYM_PTR)
-		struct_sym = get_base_type(struct_sym);
+		struct_sym = get_real_base_type(struct_sym);
 	FOR_EACH_PTR(struct_sym->symbol_list, tmp) {
 		if (tmp->ident == member)
-			return get_base_type(tmp);
+			return get_real_base_type(tmp);
 	} END_FOR_EACH_PTR(tmp);
 	return NULL;
 }
@@ -53,7 +63,7 @@ static struct symbol *get_return_type(struct expression *expr)
 	tmp = get_type(expr->fn);
 	if (!tmp)
 		return NULL;
-	return get_base_type(tmp);
+	return get_real_base_type(tmp);
 }
 
 static struct symbol *get_pointer_type(struct expression *expr)
@@ -63,7 +73,7 @@ static struct symbol *get_pointer_type(struct expression *expr)
 	sym = get_type(expr);
 	if (!sym || sym->type != SYM_PTR)
 		return NULL;
-	return get_base_type(sym);
+	return get_real_base_type(sym);
 }
 
 static struct symbol *fake_pointer_sym(struct expression *expr)
@@ -102,14 +112,14 @@ struct symbol *get_type(struct expression *expr)
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
-		return get_base_type(expr->cast_type);
+		return get_real_base_type(expr->cast_type);
 	case EXPR_BINOP:
 		if (expr->op != '+')
 			return NULL;
 		tmp = get_type(expr->left);
 		if (!tmp || (tmp->type != SYM_ARRAY && tmp->type != SYM_PTR))
 			return NULL;
-		return get_base_type(tmp);
+		return get_real_base_type(tmp);
 	case EXPR_CALL:
 		return get_return_type(expr);
 	default:
