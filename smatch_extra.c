@@ -558,7 +558,6 @@ static void match_assign(struct expression *expr)
 	long long min = whole_range.min;
 	long long max = whole_range.max;
 	long long tmp;
-	struct range_list *rl = NULL;
 	
 	left = strip_expr(expr->left);
 	name = get_variable_from_expr(left, &sym);
@@ -574,9 +573,10 @@ static void match_assign(struct expression *expr)
 		goto free;
 	}
 
-	known = get_implied_range_list(right, &rl);
 	if (expr->op == '=') {
-		if (known) 
+		struct range_list *rl = NULL;
+
+		if (get_implied_range_list(right, &rl)) 
 			set_extra_mod(name, sym, alloc_extra_state_range_list(rl));
 		else
 			set_extra_mod(name, sym, extra_undefined());
