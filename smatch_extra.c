@@ -576,10 +576,15 @@ static void match_assign(struct expression *expr)
 	if (expr->op == '=') {
 		struct range_list *rl = NULL;
 
-		if (get_implied_range_list(right, &rl)) 
+		if (get_implied_range_list(right, &rl)) {
 			set_extra_mod(name, sym, alloc_extra_state_range_list(rl));
-		else
-			set_extra_mod(name, sym, extra_undefined());
+		} else {
+			struct symbol *type = get_type(right);
+
+			if (type && type_unsigned(type))
+				min = 0;
+			set_extra_mod(name, sym, alloc_extra_state_range(min, max));
+		}
 		goto free;
 	}
 
