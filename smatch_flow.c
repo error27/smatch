@@ -326,6 +326,21 @@ static int empty_statement(struct statement *stmt)
 	return 0;
 }
 
+static int last_stmt_on_same_line()
+{
+	struct statement *stmt;
+	int i = 0;
+
+	FOR_EACH_PTR_REVERSE(big_statement_stack, stmt) {
+		if (!i++)
+			continue;
+		if  (stmt->pos.line == get_lineno())
+			return 1;
+		return 0;
+	} END_FOR_EACH_PTR_REVERSE(stmt);
+	return 0;
+}
+
 static struct statement *last_stmt;
 static int is_last_stmt(struct statement *stmt)
 {
@@ -461,7 +476,9 @@ void __split_stmt(struct statement *stmt)
 		}
 		__split_whole_condition(stmt->if_conditional);
 		__split_stmt(stmt->if_true);
-		if (empty_statement(stmt->if_true))
+		if (empty_statement(stmt->if_true) &&
+			last_stmt_on_same_line() &&
+			!get_macro_name(&stmt->if_true->pos))
 			sm_msg("warn: if();");
 		__push_true_states();
 		__use_false_states();
