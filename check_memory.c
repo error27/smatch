@@ -229,7 +229,7 @@ static void match_free_func(const char *fn, struct expression *expr, void *data)
 	if (!ptr_name)
 		return;
 	if (is_freed(ptr_name, ptr_sym) && !is_null(ptr_name, ptr_sym)) {
-		sm_msg("error: double free of %s", ptr_name);
+		sm_msg("error: double free of '%s'", ptr_name);
 	}
 	set_state(my_id, ptr_name, ptr_sym, &isfree);
 	add_modification_hook(my_id, ptr_name, &set_unfree, NULL);
@@ -255,7 +255,7 @@ static void check_sm_is_leaked(struct sm_state *sm)
 		!is_null(sm->name, sm->sym) &&
 		!is_argument(sm->sym) && 
 		!parent_is_assigned(sm->sym))
-		sm_msg("error: memory leak of %s", sm->name);
+		sm_msg("error: memory leak of '%s'", sm->name);
 }
 
 static void check_tracker_is_leaked(struct tracker *t)
