@@ -11,30 +11,15 @@
 
 static int my_id;
 
-static int is_le16(struct symbol *type)
-{
-	if (type->ctype.alignment != 2)
-		return 0;
- 	if (!(type->ctype.modifiers & MOD_UNSIGNED))
-		return 0;
-	return 1;
-}
-
 static void match_no_le16_param(const char *fn, struct expression *expr, void *param)
 {
 	struct expression *arg;
-	struct symbol *type;
+	char *macro_name;
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, (int)param);
-	arg = strip_parens(arg);
-	if (!arg)
-		return;
-	if (arg->type != EXPR_FORCE_CAST)
-		return;
-
-	type = get_type(arg);
-	if (!is_le16(type))
+	macro_name = get_macro_name(&arg->pos);
+	if (!macro_name || strcmp(macro_name, "cpu_to_le16"))
 		return;
 
 	arg = strip_expr(arg);
@@ -72,8 +57,6 @@ static void register_funcs_from_file(void)
 void check_le16(int id)
 {
 	if (option_project != PROJ_KERNEL)
-		return;
-	if (!option_spammy)
 		return;
 	my_id = id;
 	register_funcs_from_file();
