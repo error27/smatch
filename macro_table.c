@@ -40,6 +40,9 @@ void store_macro_pos(struct token *token)
 	if (!macro_table)
 		macro_table = create_hashtable(5000, position_hash, equalkeys);
 
+	if (get_macro_name(&token->pos))
+		return;
+
 	do_insert_macro(macro_table, &token->pos, token->ident->name);
 }
 
