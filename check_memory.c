@@ -174,6 +174,9 @@ static void match_assign(struct expression *expr)
 	left_name = get_variable_from_expr_complex(left, &left_sym);
 
 	right = strip_expr(expr->right);
+	while (right->type == EXPR_ASSIGNMENT)
+		right = right->left;
+
 	if (left_name && left_sym && is_allocation(right) && 
 	    !(left_sym->ctype.modifiers & 
 	      (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE)) &&
