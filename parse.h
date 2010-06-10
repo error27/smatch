@@ -106,6 +106,7 @@ struct statement {
 			struct expression_list *asm_outputs;
 			struct expression_list *asm_inputs;
 			struct expression_list *asm_clobbers;
+			struct symbol_list *asm_labels;
 		};
 		struct /* range */ {
 			struct expression *range_expression;

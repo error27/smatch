@@ -3151,6 +3151,7 @@ static void verify_input_constraint(struct expression *expr, const char *constra
 static void evaluate_asm_statement(struct statement *stmt)
 {
 	struct expression *expr;
+	struct symbol *sym;
 	int state;
 
 	expr = stmt->asm_string;
@@ -3227,6 +3228,13 @@ static void evaluate_asm_statement(struct statement *stmt)
 			continue;
 		expression_error(expr, "asm clobber is not a string");
 	} END_FOR_EACH_PTR(expr);
+
+	FOR_EACH_PTR(stmt->asm_labels, sym) {
+		if (!sym || sym->type != SYM_LABEL) {
+			sparse_error(stmt->pos, "bad asm label");
+			return;
+		}
+	} END_FOR_EACH_PTR(sym);
 }
 
 static void evaluate_case_statement(struct statement *stmt)
