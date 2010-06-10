@@ -418,6 +418,23 @@ static void match_malloc(const char *fn, struct expression *expr, void *unused)
 	set_state_expr(my_size_id, expr->left, alloc_my_state(bytes));
 }
 
+static void match_calloc(const char *fn, struct expression *expr, void *unused)
+{
+	struct expression *right;
+	struct expression *arg;
+	long long elements;
+	long long size;
+
+	right = strip_expr(expr->right);
+	arg = get_argument_from_call_expr(right->args, 0);
+	if (!get_implied_value(arg, &elements))
+		return;
+	arg = get_argument_from_call_expr(right->args, 1);
+	if (!get_implied_value(arg, &size))
+		return;
+	set_state_expr(my_size_id, expr->left, alloc_my_state(elements * size));
+}
+
 static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *dest;
@@ -523,6 +540,7 @@ void check_overflow(int id)
 	add_hook(&match_array_assignment, ASSIGNMENT_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_function_assign_hook("malloc", &match_malloc, NULL);
+	add_function_assign_hook("calloc", &match_calloc, NULL);
 	add_function_hook("strcpy", &match_strcpy, NULL);
 	add_function_hook("strncpy", &match_limited, &b0_l2);
 	add_function_hook("memset", &match_limited, &b0_l2);
@@ -531,6 +549,9 @@ void check_overflow(int id)
 		add_function_assign_hook("kzalloc", &match_malloc, NULL);
 		add_function_assign_hook("vmalloc", &match_malloc, NULL);
 		add_function_assign_hook("__vmalloc", &match_malloc, NULL);
+		add_function_assign_hook("kcalloc", &match_calloc, NULL);
+		add_function_assign_hook("drm_malloc_ab", &match_calloc, NULL);
+		add_function_assign_hook("drm_calloc_large", &match_calloc, NULL);
 		add_function_hook("copy_to_user", &match_limited, &b0_l2);
 		add_function_hook("copy_to_user", &match_limited, &b1_l2);
 		add_function_hook("_copy_to_user", &match_limited, &b0_l2);
