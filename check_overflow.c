@@ -38,6 +38,13 @@ static void match_function_def(struct symbol *sym)
 	this_func = sym;
 }
 
+struct limiter {
+	int buf_arg;
+	int limit_arg;
+};
+struct limiter b0_l2 = {0, 2};
+struct limiter b1_l2 = {1, 2};
+
 static void print_args(struct expression *expr, int size)
 {
 	struct symbol *sym;
@@ -437,16 +444,17 @@ static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 	free_string(data_name);
 }
 
-static void match_limitted(const char *fn, struct expression *expr, void *limit_arg)
+static void match_limited(const char *fn, struct expression *expr, void *_limiter)
 {
+	struct limiter *limiter = (struct limiter *)_limiter;
 	struct expression *dest;
 	struct expression *data;
 	char *dest_name = NULL;
 	long long needed;
 	int has;
 
-	dest = get_argument_from_call_expr(expr->args, 0);
-	data = get_argument_from_call_expr(expr->args, PTR_INT(limit_arg));
+	dest = get_argument_from_call_expr(expr->args, limiter->buf_arg);
+	data = get_argument_from_call_expr(expr->args, limiter->limit_arg);
 	if (!get_fuzzy_max(data, &needed))
 		return;
 	has = get_array_size_bytes(dest);
@@ -516,15 +524,26 @@ void check_overflow(int id)
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_function_assign_hook("malloc", &match_malloc, NULL);
 	add_function_hook("strcpy", &match_strcpy, NULL);
-	add_function_hook("strncpy", &match_limitted, (void *)2);
-	add_function_hook("memset", &match_limitted, (void *)2);
+	add_function_hook("strncpy", &match_limited, &b0_l2);
+	add_function_hook("memset", &match_limited, &b0_l2);
 	if (option_project == PROJ_KERNEL) {
 		add_function_assign_hook("kmalloc", &match_malloc, NULL);
 		add_function_assign_hook("kzalloc", &match_malloc, NULL);
 		add_function_assign_hook("vmalloc", &match_malloc, NULL);
-		add_function_hook("copy_to_user", &match_limitted, (void *)2);
-		add_function_hook("copy_from_user", &match_limitted, (void *)2);
-		add_function_hook("__builtin_memset", &match_limitted, (void *)2);
+		add_function_assign_hook("__vmalloc", &match_malloc, NULL);
+		add_function_hook("copy_to_user", &match_limited, &b0_l2);
+		add_function_hook("copy_to_user", &match_limited, &b1_l2);
+		add_function_hook("_copy_to_user", &match_limited, &b0_l2);
+		add_function_hook("_copy_to_user", &match_limited, &b1_l2);
+		add_function_hook("__copy_to_user", &match_limited, &b0_l2);
+		add_function_hook("__copy_to_user", &match_limited, &b1_l2);
+		add_function_hook("copy_from_user", &match_limited, &b0_l2);
+		add_function_hook("copy_from_user", &match_limited, &b1_l2);
+		add_function_hook("_copy_from_user", &match_limited, &b0_l2);
+		add_function_hook("_copy_from_user", &match_limited, &b1_l2);
+		add_function_hook("__copy_from_user", &match_limited, &b0_l2);
+		add_function_hook("__copy_from_user", &match_limited, &b1_l2);
+		add_function_hook("__builtin_memset", &match_limited, &b0_l2);
 	}
 	register_array_funcs();
 }
