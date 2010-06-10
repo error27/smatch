@@ -432,7 +432,7 @@ static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 
 	dest_name = get_variable_from_expr_complex(dest, NULL);
 	data_name = get_variable_from_expr_complex(data, NULL);
-	sm_msg("error: %s() %s too large for %s (%d vs %d)", 
+	sm_msg("error: %s() '%s' too large for '%s' (%d vs %d)", 
 		fn, data_name, dest_name, data_size, dest_size);
 	free_string(dest_name);
 	free_string(data_name);
@@ -458,7 +458,7 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 		return;
 
 	dest_name = get_variable_from_expr_complex(dest, NULL);
-	sm_msg("error: %s() %s too small (%d vs %lld)", fn, dest_name, has, needed);
+	sm_msg("error: %s() '%s' too small (%d vs %lld)", fn, dest_name, has, needed);
 	free_string(dest_name);
 }
 
