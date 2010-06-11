@@ -165,6 +165,27 @@ static void del_equiv(struct smatch_state *state, const char *name, struct symbo
 	del_tracker(&dinfo->equiv, SMATCH_EXTRA, name, sym);
 }
 
+static int in_warn_on_macro()
+{
+	struct statement *stmt;
+	char *macro;
+
+	if (option_project != PROJ_KERNEL)
+		return 0;
+
+	stmt = last_ptr_list((struct ptr_list *)big_statement_stack);
+	macro = get_macro_name(&stmt->pos);
+	if (!macro)
+		return 0;
+	if (!strcmp("WARN_ON", macro))
+		return 1;
+	if (!strcmp("B43legacy_WARN_ON", macro))
+		return 1;
+	if (!strcmp("B43_WARN_ON", macro))
+		return 1;
+	return 0;
+}
+
 static void remove_from_equiv(const char *name, struct symbol *sym)
 {
 	struct sm_state *orig_sm;
@@ -208,12 +229,16 @@ free:
 
 struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state)
 {
+	if (in_warn_on_macro())
+		return NULL;
 	remove_from_equiv(name, sym);
 	return set_state(SMATCH_EXTRA, name, sym, state);
 }
 
 struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state)
 {
+	if (in_warn_on_macro())
+		return NULL;
 	remove_from_equiv_expr(expr);
 	return set_state_expr(SMATCH_EXTRA, expr, state);
 }
@@ -245,6 +270,9 @@ void set_extra_true_false(const char *name, struct symbol *sym,
 {
 	struct tracker *tracker;
 	struct smatch_state *orig_state;
+
+	if (in_warn_on_macro())
+		return;
 
 	orig_state = get_state(SMATCH_EXTRA, name, sym);
 
