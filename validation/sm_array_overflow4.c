@@ -35,6 +35,6 @@ int main(void)
 sm_array_overflow4.c +22 main(14) error: buffer overflow 's' 8 <= 8
 sm_array_overflow4.c +23 main(15) error: buffer overflow 's2' 8 <= 8
 sm_array_overflow4.c +25 main(17) error: buffer overflow 'a' 8 <= 8
-sm_array_overflow4.c +26 main(18) error: strcpy() "1234" too large for buf (5 vs 4)
+sm_array_overflow4.c +26 main(18) error: strcpy() '"1234"' too large for 'buf' (5 vs 4)
  * check-output-end
  */
