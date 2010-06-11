@@ -98,10 +98,6 @@ static int ignore_builtin_expect(struct expression *expr)
 		split_conditions(first_ptr_list((struct ptr_list *) expr->args));
 		return 1;
 	}
-	if (sym_name_is("__builtin_constant_p", expr->fn)) {
-		split_conditions(first_ptr_list((struct ptr_list *) expr->args));
-		return 1;
-	}
 	return 0;
 }
 

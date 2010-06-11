@@ -909,6 +909,10 @@ int known_condition_false(struct expression *expr)
 		if (last_stmt_val(stmt, &tmp) && tmp == 0)
 			return 1;
 		break;
+	case EXPR_CALL:
+		if (sym_name_is("__builtin_constant_p", expr->fn))
+			return 1;
+		break;
 	default:
 		break;
 	}
