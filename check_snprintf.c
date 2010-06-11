@@ -67,6 +67,8 @@ void check_snprintf(int id)
 {
 	if (option_project != PROJ_KERNEL)
 		return;
+	if (!option_spammy)
+		return;
 
 	my_id = id;
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
