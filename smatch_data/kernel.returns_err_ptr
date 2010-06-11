@@ -450,7 +450,6 @@ iwm_rx_packet_alloc
 iwm_rx_ticket_node_alloc
 iwm_wdev_alloc
 jbd2_journal_start
-jedec_probe
 jffs2_acl_from_medium
 jffs2_acl_to_medium
 jffs2_add_physical_node_ref
