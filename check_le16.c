@@ -18,6 +18,8 @@ static void match_no_le16_param(const char *fn, struct expression *expr, void *p
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, (int)param);
+	if (!arg)
+		return;
 	macro_name = get_macro_name(&arg->pos);
 	if (!macro_name || strcmp(macro_name, "cpu_to_le16"))
 		return;
