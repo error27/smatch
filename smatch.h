@@ -233,7 +233,6 @@ int in_condition(void);
 void smatch (int argc, char **argv);
 int inside_loop(void);
 int in_expression_statement(void);
-struct statement *get_next_stmt(void);
 void __split_expr(struct expression *expr);
 void __split_stmt(struct statement *stmt);
 extern int option_assume_loops;

@@ -28,7 +28,6 @@ static int line_func_start;
 static int loop_count;
 static int expr_stmt_count;
 static struct expression_list *switch_expr_stack = NULL;
-static struct statement *next_stmt;
 
 struct expression_list *big_expression_stack;
 struct statement_list *big_statement_stack;
@@ -39,7 +38,6 @@ int get_lineno(void) { return __smatch_lineno; }
 int get_func_pos(void) { return __smatch_lineno - line_func_start; }
 int inside_loop(void) { return !!loop_count; }
 int in_expression_statement(void) { return !!expr_stmt_count; }
-struct statement *get_next_stmt(void) { return next_stmt; }
 
 static void split_symlist(struct symbol_list *sym_list);
 static void split_declaration(struct symbol_list *sym_list);
@@ -436,24 +434,13 @@ void __split_stmt(struct statement *stmt)
 		return;
 	case STMT_COMPOUND: {
 		struct statement *tmp;
-		struct statement *prev = NULL;
 
 		if (!last_stmt)
 			last_stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
 		__push_scope_hooks();
 		FOR_EACH_PTR(stmt->stmts, tmp) {
-			if (!prev) {
-				next_stmt = tmp;
-				prev = tmp;
-				continue;
-			}
-			next_stmt = tmp;
-			__split_stmt(prev);
-			prev = tmp;
+			__split_stmt(tmp);
 		} END_FOR_EACH_PTR(tmp);
-		if (next_stmt == prev)
-			next_stmt = NULL;
-		__split_stmt(prev);
 		__call_scope_hooks();
 		return;
 	}
