@@ -51,6 +51,8 @@
 #include "smatch_extra.h"
 #include "smatch_expression_stacks.h"
 
+extern int __expr_stmt_count;
+
 static void split_conditions(struct expression *expr);
 
 static int is_logical_and(struct expression *expr)
@@ -557,6 +559,7 @@ int __handle_expr_statement_assigns(struct expression *expr)
 	if (right->type != EXPR_STATEMENT)
 		return 0;
 
+	__expr_stmt_count++;
 	stmt = right->statement;
 	if (stmt->type == STMT_COMPOUND) {
 		struct statement *last_stmt;
@@ -564,8 +567,10 @@ int __handle_expr_statement_assigns(struct expression *expr)
 		struct expression fake_expr_stmt;
 
 		last_stmt = split_then_return_last(stmt);
-		if (!last_stmt)
+		if (!last_stmt) {
+			__expr_stmt_count--;
 			return 0;
+		}
 
 		fake_expr_stmt.pos = last_stmt->pos;
 		fake_expr_stmt.type = EXPR_STATEMENT;
@@ -593,6 +598,7 @@ int __handle_expr_statement_assigns(struct expression *expr)
 	} else {
 		__split_stmt(stmt);
 	}
+	__expr_stmt_count--;
 	return 1;
 }
 

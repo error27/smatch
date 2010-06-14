@@ -26,7 +26,7 @@ static char *full_filename;
 static char *cur_func;
 static int line_func_start;
 static int loop_count;
-static int expr_stmt_count;
+int __expr_stmt_count;
 static struct expression_list *switch_expr_stack = NULL;
 
 struct expression_list *big_expression_stack;
@@ -37,7 +37,7 @@ char *get_function(void) { return cur_func; }
 int get_lineno(void) { return __smatch_lineno; }
 int get_func_pos(void) { return __smatch_lineno - line_func_start; }
 int inside_loop(void) { return !!loop_count; }
-int in_expression_statement(void) { return !!expr_stmt_count; }
+int in_expression_statement(void) { return !!__expr_stmt_count; }
 
 static void split_symlist(struct symbol_list *sym_list);
 static void split_declaration(struct symbol_list *sym_list);
@@ -99,9 +99,9 @@ void __split_expr(struct expression *expr)
 		__split_expr(expr->unop);
 		break;
 	case EXPR_STATEMENT:
-		expr_stmt_count++;
+		__expr_stmt_count++;
 		__split_stmt(expr->statement);
-		expr_stmt_count--;
+		__expr_stmt_count--;
 		break;
 	case EXPR_LOGICAL:
 	case EXPR_COMPARE:
