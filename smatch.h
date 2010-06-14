@@ -250,6 +250,7 @@ void __split_whole_condition(struct expression *expr);
 void __handle_logic(struct expression *expr);
 int __handle_condition_assigns(struct expression *expr);
 int __handle_select_assigns(struct expression *expr);
+int __handle_expr_statement_assigns(struct expression *expr);
 
 /* smatch_implied.c */
 extern int option_debug_implied;

@@ -127,6 +127,10 @@ void __split_expr(struct expression *expr)
 		if (__handle_select_assigns(expr))
 			break;
 
+		/* foo = ({frob(); frob(); frob(); 1;}) */
+		if (__handle_expr_statement_assigns(expr))
+			break;
+
 		__split_expr(expr->right);
 		__pass_to_client(expr, ASSIGNMENT_HOOK);
 		tmp = strip_expr(expr->right);

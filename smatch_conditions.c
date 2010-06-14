@@ -528,6 +528,74 @@ int __handle_select_assigns(struct expression *expr)
 	return 1;
 }
 
+static struct statement *split_then_return_last(struct statement *stmt)
+{
+	struct statement *tmp;
+	struct statement *last_stmt;
+
+	last_stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
+	if (!last_stmt)
+		return NULL;
+
+	__push_scope_hooks();
+	FOR_EACH_PTR(stmt->stmts, tmp) {
+		if (tmp == last_stmt)
+			return last_stmt;
+		__split_stmt(tmp);
+	} END_FOR_EACH_PTR(tmp);
+	return NULL;
+}
+
+int __handle_expr_statement_assigns(struct expression *expr)
+{
+	struct expression *right;
+	struct statement *stmt;
+
+	right = expr->right;
+	if (right->type == EXPR_PREOP && right->op == '(')
+		right = right->unop;
+	if (right->type != EXPR_STATEMENT)
+		return 0;
+
+	stmt = right->statement;
+	if (stmt->type == STMT_COMPOUND) {
+		struct statement *last_stmt;
+		struct expression fake_assign;
+		struct expression fake_expr_stmt;
+
+		last_stmt = split_then_return_last(stmt);
+		if (!last_stmt)
+			return 0;
+
+		fake_expr_stmt.pos = last_stmt->pos;
+		fake_expr_stmt.type = EXPR_STATEMENT;
+		fake_expr_stmt.statement = last_stmt;
+
+		fake_assign.pos = last_stmt->pos;
+		fake_assign.op = (int)'=';
+		fake_assign.type = EXPR_ASSIGNMENT;
+		fake_assign.left = expr->left;
+		fake_assign.right = &fake_expr_stmt;
+
+		__split_expr(&fake_assign);
+
+		__call_scope_hooks();
+	} else if (stmt->type == STMT_EXPRESSION) {
+		struct expression fake_assign;
+
+		fake_assign.pos = stmt->pos;
+		fake_assign.op = (int)'=';
+		fake_assign.type = EXPR_ASSIGNMENT;
+		fake_assign.left = expr->left;
+		fake_assign.right = stmt->expression;
+
+		__split_expr(&fake_assign);
+	} else {
+		__split_stmt(stmt);
+	}
+	return 1;
+}
+
 int in_condition(void)
 {
 	return inside_condition;
