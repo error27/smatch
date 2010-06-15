@@ -21,6 +21,8 @@ struct data_info {
 };
 DECLARE_ALLOCATOR(data_info);
 
+extern struct string_list *__ignored_macros;
+
 /* these are implimented in smatch_ranges.c */
 struct data_range *alloc_range_perm(long long min, long long max);
 void add_range(struct range_list **list, long long min, long long max);

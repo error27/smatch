@@ -15,6 +15,7 @@
  */
 
 #include "smatch.h"
+#include "smatch_extra.h"
 
 static void register_no_return_funcs(void)
 {
@@ -41,9 +42,34 @@ static void register_no_return_funcs(void)
 	clear_token_alloc();
 }
 
+static void register_ignored_macros(void)
+{
+	struct token *token;
+	char *macro;
+	static char name[256];
+
+	snprintf(name, 256, "%s.ignored_macros", option_project_str);
+	name[255] = '\0';
+	token = get_tokens_file(name);
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		macro = alloc_string(show_ident(token->ident));
+		add_ptr_list(&__ignored_macros, macro);
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
 void register_project(int id)
 {
 	if (option_project != PROJ_KERNEL)
 		add_function_hook("exit", &__match_nullify_path_hook, NULL);
 	register_no_return_funcs();
+	register_ignored_macros();
 }

@@ -165,24 +165,22 @@ static void del_equiv(struct smatch_state *state, const char *name, struct symbo
 	del_tracker(&dinfo->equiv, SMATCH_EXTRA, name, sym);
 }
 
+struct string_list *__ignored_macros = NULL;
 static int in_warn_on_macro()
 {
 	struct statement *stmt;
+	char *tmp;
 	char *macro;
-
-	if (option_project != PROJ_KERNEL)
-		return 0;
 
 	stmt = last_ptr_list((struct ptr_list *)big_statement_stack);
 	macro = get_macro_name(&stmt->pos);
 	if (!macro)
 		return 0;
-	if (!strcmp("WARN_ON", macro))
-		return 1;
-	if (!strcmp("B43legacy_WARN_ON", macro))
-		return 1;
-	if (!strcmp("B43_WARN_ON", macro))
-		return 1;
+
+	FOR_EACH_PTR(__ignored_macros, tmp) {
+		if (!strcmp(tmp, macro))
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
 	return 0;
 }
 
