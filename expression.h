@@ -76,7 +76,10 @@ struct expression {
 		long double fvalue;
 
 		// EXPR_STRING
-		struct string *string;
+		struct {
+			int wide;
+			struct string *string;
+		};
 
 		// EXPR_UNOP, EXPR_PREOP and EXPR_POSTOP
 		struct /* unop */ {

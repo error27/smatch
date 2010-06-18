@@ -224,17 +224,18 @@ static struct token *string_expression(struct token *token, struct expression *e
 {
 	struct string *string = token->string;
 	struct token *next = token->next;
+	int stringtype = token_type(token);
 
 	convert_function(token);
 
-	if (token_type(next) == TOKEN_STRING) {
+	if (token_type(next) == stringtype) {
 		int totlen = string->length-1;
 		char *data;
 
 		do {
 			totlen += next->string->length-1;
 			next = next->next;
-		} while (token_type(next) == TOKEN_STRING);
+		} while (token_type(next) == stringtype);
 
 		if (totlen > MAX_STRING) {
 			warning(token->pos, "trying to concatenate %d-character string (%d bytes max)", totlen, MAX_STRING);
@@ -256,7 +257,7 @@ static struct token *string_expression(struct token *token, struct expression *e
 			next = next->next;
 			memcpy(data, s->data, len);
 			data += len;
-		} while (token_type(next) == TOKEN_STRING);
+		} while (token_type(next) == stringtype);
 		*data = '\0';
 	}
 	expr->string = string;
@@ -397,7 +398,7 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 
 	switch (token_type(token)) {
 	case TOKEN_CHAR:
-	case TOKEN_LONG_CHAR:
+	case TOKEN_WIDE_CHAR:
 		expr = alloc_expression(token->pos, EXPR_VALUE);   
 		expr->flags = Int_const_expr;
 		expr->ctype = token_type(token) == TOKEN_CHAR ? &int_ctype : &long_ctype;
@@ -464,9 +465,11 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		break;
 	}
 
-	case TOKEN_STRING: {
+	case TOKEN_STRING:
+	case TOKEN_WIDE_STRING: {
 	handle_string:
 		expr = alloc_expression(token->pos, EXPR_STRING);
+		expr->wide = token_type(token) == TOKEN_WIDE_STRING;
 		token = string_expression(token, expr);
 		break;
 	}
