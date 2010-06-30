@@ -133,6 +133,8 @@ struct symbol *get_type(struct expression *expr)
 
 int type_unsigned(struct symbol *base_type)
 {
+	if (!base_type)
+		return 0;
 	if (base_type->ctype.modifiers & MOD_UNSIGNED)
 		return 1;
 	return 0;
