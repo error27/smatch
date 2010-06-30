@@ -69,7 +69,7 @@ static struct data_info *clone_dinfo(struct data_info *dinfo)
 	return ret;
 }
 
-static struct smatch_state *clone_extra_state(struct smatch_state *state)
+struct smatch_state *clone_extra_state(struct smatch_state *state)
 {
 	struct smatch_state *ret;
 
@@ -149,22 +149,6 @@ struct smatch_state *alloc_extra_state_range_list(struct range_list *rl)
 	return state;
 }
 
-static void add_equiv(struct smatch_state *state, const char *name, struct symbol *sym)
-{
-	struct data_info *dinfo;
-
-	dinfo = get_dinfo(state);
-	add_tracker(&dinfo->equiv, SMATCH_EXTRA, name, sym);
-}
-
-static void del_equiv(struct smatch_state *state, const char *name, struct symbol *sym)
-{
-	struct data_info *dinfo;
-
-	dinfo = get_dinfo(state);
-	del_tracker(&dinfo->equiv, SMATCH_EXTRA, name, sym);
-}
-
 struct string_list *__ignored_macros = NULL;
 static int in_warn_on_macro()
 {
@@ -182,47 +166,6 @@ static int in_warn_on_macro()
 			return 1;
 	} END_FOR_EACH_PTR(tmp);
 	return 0;
-}
-
-static void remove_from_equiv(const char *name, struct symbol *sym)
-{
-	struct sm_state *orig_sm;
-	struct tracker *tracker;
-	struct smatch_state *state;
-	struct tracker_list *to_update;
-
-	orig_sm = get_sm_state(SMATCH_EXTRA, name, sym);
-	if (!orig_sm || !get_dinfo(orig_sm->state)->equiv)
-		return;
-
-	state = clone_extra_state(orig_sm->state);
-	del_equiv(state, name, sym);
-	to_update = get_dinfo(state)->equiv;
-	if (ptr_list_size((struct ptr_list *)get_dinfo(state)->equiv) == 1)
-		get_dinfo(state)->equiv = NULL;
-
-	FOR_EACH_PTR(to_update, tracker) {
-		struct sm_state *new_sm;
-
-		new_sm = clone_sm(orig_sm);
-		new_sm->name = tracker->name;
-		new_sm->sym = tracker->sym;
-		new_sm->state = state;
-		__set_sm(new_sm);
-	} END_FOR_EACH_PTR(tracker);
-}
-
-static void remove_from_equiv_expr(struct expression *expr)
-{
-	char *name;
-	struct symbol *sym;
-
-	name = get_variable_from_expr(expr, &sym);
-	if (!name || !sym)
-		goto free;
-	remove_from_equiv(name, sym);
-free:
-	free_string(name);
 }
 
 struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state)

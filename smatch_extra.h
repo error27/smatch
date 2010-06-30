@@ -48,6 +48,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 				struct expression *condition);
 
 /* also implemented in smatch_extra */
+struct smatch_state *clone_extra_state(struct smatch_state *state);
 struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state);
 struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state);
 void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state);
@@ -79,3 +80,8 @@ struct range_list *top_range_list(struct range_list_stack *rl_stack);
 void filter_top_range_list(struct range_list_stack **rl_stack, long long num);
 int get_implied_range_list(struct expression *expr, struct range_list **rl);
 int is_whole_range(struct smatch_state *state);
+
+/* implemented in smatch_constraints */
+void add_equiv(struct smatch_state *state, const char *name, struct symbol *sym);
+void remove_from_equiv(const char *name, struct symbol *sym);
+void remove_from_equiv_expr(struct expression *expr);
