@@ -14,8 +14,16 @@ enum data_type {
 DECLARE_PTR_LIST(range_list, struct data_range);
 DECLARE_PTR_LIST(range_list_stack, struct range_list);
 
+struct relation {
+	int op;
+	char *name;
+	struct symbol *sym;
+};
+
+DECLARE_PTR_LIST(related_list, struct relation);
+
 struct data_info {
-	struct tracker_list *equiv;
+	struct related_list *related;
 	enum data_type type;
 	struct range_list *value_ranges;
 };
@@ -82,6 +90,10 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl);
 int is_whole_range(struct smatch_state *state);
 
 /* implemented in smatch_constraints */
+struct relation *get_common_relationship(struct data_info *dinfo, int op,
+					const char *name, struct symbol *sym);
+struct related_list *clone_related_list(struct related_list *related);
+void add_related(struct smatch_state *state, int op, const char *name, struct symbol *sym);
 void add_equiv(struct smatch_state *state, const char *name, struct symbol *sym);
 void remove_from_equiv(const char *name, struct symbol *sym);
 void remove_from_equiv_expr(struct expression *expr);

@@ -375,18 +375,18 @@ static void delete_equiv_slist(struct state_list **slist, const char *name, stru
 {
 	struct smatch_state *state;
 	struct data_info *dinfo;
-	struct tracker *tracker;
+	struct relation *rel;
 
 	state = get_state(SMATCH_EXTRA, name, sym);
 	dinfo = get_dinfo(state);
-	if (!dinfo->equiv) {
+	if (!dinfo->related) {
 		delete_state_slist(slist, SMATCH_EXTRA, name, sym);
 		return;
 	}
 
-	FOR_EACH_PTR(dinfo->equiv, tracker) {
-		delete_state_slist(slist, SMATCH_EXTRA, tracker->name, tracker->sym);
-	} END_FOR_EACH_PTR(tracker);
+	FOR_EACH_PTR(dinfo->related, rel) {
+		delete_state_slist(slist, SMATCH_EXTRA, rel->name, rel->sym);
+	} END_FOR_EACH_PTR(rel);
 }
 
 static void handle_comparison(struct expression *expr,

@@ -35,7 +35,7 @@ static struct data_info *alloc_dinfo(void)
 	struct data_info *ret;
 
 	ret = __alloc_data_info(0);
-	ret->equiv = NULL;
+	ret->related = NULL;
 	ret->type = DATA_RANGE;
 	ret->value_ranges = NULL;
 	return ret;
@@ -64,7 +64,7 @@ static struct data_info *clone_dinfo(struct data_info *dinfo)
 	struct data_info *ret;
 
 	ret = alloc_dinfo();
-	ret->equiv = clone_tracker_list(dinfo->equiv);
+	ret->related = clone_related_list(dinfo->related);
 	ret->value_ranges = clone_range_list(dinfo->value_ranges);
 	return ret;
 }
@@ -189,27 +189,28 @@ struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state
  */
 void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state)
 {
-	struct tracker *tracker;
+	struct relation *rel;
 	struct smatch_state *orig_state;
 
 	orig_state = get_state_expr(SMATCH_EXTRA, expr);
 
-	if (!orig_state || !get_dinfo(orig_state)->equiv) {
+	if (!orig_state || !get_dinfo(orig_state)->related) {
 		set_state_expr(SMATCH_EXTRA, expr, state);
 		return;
 	}
 
-	FOR_EACH_PTR(get_dinfo(orig_state)->equiv, tracker) {
-		set_state(tracker->owner, tracker->name, tracker->sym, state);
-		add_equiv(state, tracker->name, tracker->sym);
-	} END_FOR_EACH_PTR(tracker);
+	FOR_EACH_PTR(get_dinfo(orig_state)->related, rel) {
+		sm_msg("setting %s to %s", rel->name, state->name);
+		set_state(SMATCH_EXTRA, rel->name, rel->sym, state);
+		add_equiv(state, rel->name, rel->sym);
+	} END_FOR_EACH_PTR(rel);
 }
 
 void set_extra_true_false(const char *name, struct symbol *sym,
 			struct smatch_state *true_state,
 			struct smatch_state *false_state)
 {
-	struct tracker *tracker;
+	struct relation *rel;
 	struct smatch_state *orig_state;
 
 	if (in_warn_on_macro())
@@ -217,19 +218,20 @@ void set_extra_true_false(const char *name, struct symbol *sym,
 
 	orig_state = get_state(SMATCH_EXTRA, name, sym);
 
-	if (!orig_state || !get_dinfo(orig_state)->equiv) {
+	if (!orig_state || !get_dinfo(orig_state)->related) {
 		set_true_false_states(SMATCH_EXTRA, name, sym, true_state, false_state);
 		return;
 	}
 
-	FOR_EACH_PTR(get_dinfo(orig_state)->equiv, tracker) {
-		set_true_false_states(tracker->owner, tracker->name, tracker->sym, 
+	// FIXME!!!!  equiv => related
+	FOR_EACH_PTR(get_dinfo(orig_state)->related, rel) {
+		set_true_false_states(SMATCH_EXTRA, rel->name, rel->sym, 
 				true_state, false_state);
 		if (true_state)
-			add_equiv(true_state, tracker->name, tracker->sym);
+			add_equiv(true_state, rel->name, rel->sym);
 		if (false_state)
-			add_equiv(false_state, tracker->name, tracker->sym);
-	} END_FOR_EACH_PTR(tracker);
+			add_equiv(false_state, rel->name, rel->sym);
+	} END_FOR_EACH_PTR(rel);
 }
 
 struct data_info *get_dinfo(struct smatch_state *state)
@@ -271,17 +273,19 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 	struct data_info *ret_info;
 	struct smatch_state *tmp;
 	struct range_list *value_ranges;
-	struct tracker *tracker;
+	struct relation *rel;
+	struct relation *new;
 
 	value_ranges = range_list_union(info1->value_ranges, info2->value_ranges);
 	tmp = alloc_extra_state_empty();
 	ret_info = get_dinfo(tmp);
 	ret_info->value_ranges = value_ranges;
 	tmp->name = show_ranges(ret_info->value_ranges);
-	FOR_EACH_PTR(info1->equiv, tracker) {
-		if (in_tracker_list(info2->equiv, tracker->owner, tracker->name, tracker->sym))
-			add_equiv(tmp, tracker->name, tracker->sym);
-	} END_FOR_EACH_PTR(tracker);
+	FOR_EACH_PTR(info1->related, rel) {
+		new = get_common_relationship(info2, rel->op, rel->name, rel->sym);
+		if (new)
+			add_related(tmp, new->op, new->name, new->sym);
+	} END_FOR_EACH_PTR(rel);
 	return tmp;
 }
 
@@ -486,7 +490,7 @@ static void set_equiv(struct sm_state *right_sm, struct expression *left)
 {
 	struct smatch_state *state;
 	struct data_info *dinfo;
-	struct tracker *tracker;
+	struct relation *rel;
 	char *name;
 	struct symbol *sym;
 
@@ -498,19 +502,19 @@ static void set_equiv(struct sm_state *right_sm, struct expression *left)
 
 	state = clone_extra_state(right_sm->state);
 	dinfo = get_dinfo(state);
-	if (!dinfo->equiv)
+	if (!dinfo->related)
 		add_equiv(state, right_sm->name, right_sm->sym);
 	add_equiv(state, name, sym);
 
-	FOR_EACH_PTR(dinfo->equiv, tracker) {
+	FOR_EACH_PTR(dinfo->related, rel) {
 		struct sm_state *new_sm;
 
 		new_sm = clone_sm(right_sm);
-		new_sm->name = tracker->name;
-		new_sm->sym = tracker->sym;
+		new_sm->name = rel->name;
+		new_sm->sym = rel->sym;
 		new_sm->state = state;
 		__set_sm(new_sm);
-	} END_FOR_EACH_PTR(tracker);
+	} END_FOR_EACH_PTR(rel);
 free:
 	free_string(name);
 }
