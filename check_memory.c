@@ -13,6 +13,8 @@
 #include "smatch.h"
 #include "smatch_slist.h"
 
+static void check_sm_is_leaked(struct sm_state *sm);
+
 static int my_id;
 
 STATE(allocated);
@@ -169,6 +171,8 @@ static void match_assign(struct expression *expr)
 	char *right_name = NULL;
 	struct symbol *left_sym, *right_sym;
 	struct smatch_state *state;
+	struct state_list *slist;
+	struct sm_state *tmp;
 
 	left = strip_expr(expr->left);
 	left_name = get_variable_from_expr_complex(left, &left_sym);
@@ -191,6 +195,14 @@ static void match_assign(struct expression *expr)
 		if (state == &isfree && !is_complex(right))
 			sm_msg("error: assigning freed pointer '%s'", right_name);
 		set_state(my_id, right_name, right_sym, &assigned);
+	}
+
+	if (is_zero(expr->right)) {
+		slist = get_possible_states(my_id, left_name, left_sym);
+
+		FOR_EACH_PTR(slist, tmp) {
+			check_sm_is_leaked(tmp);
+		} END_FOR_EACH_PTR(tmp);
 	}
 
 	if (is_freed(left_name, left_sym)) {
