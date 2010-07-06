@@ -243,9 +243,6 @@ static void match_free_func(const char *fn, struct expression *expr, void *data)
 	ptr_name = get_variable_from_expr(ptr_expr, &ptr_sym);
 	if (!ptr_name)
 		return;
-	if (is_freed(ptr_name, ptr_sym) && !is_null(ptr_name, ptr_sym)) {
-		sm_msg("error: double free of '%s'", ptr_name);
-	}
 	set_state(my_id, ptr_name, ptr_sym, &isfree);
 	add_modification_hook(my_id, ptr_name, &set_unfree, NULL);
 	free_string(ptr_name);
@@ -398,25 +395,6 @@ static void match_function_call(struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
-static void match_dereferences(struct expression *expr)
-{
-	char *deref = NULL;
-	struct symbol *sym = NULL;
-
-	if (expr->type != EXPR_PREOP)
-		return;
-	expr = strip_expr(expr->unop);
-
-	deref = get_variable_from_expr(expr, &sym);
-	if (!deref)
-		return;
-	if (is_freed(deref, sym)) {
-		sm_msg("error: dereferencing freed memory '%s'", deref);
-		set_state(my_id, deref, sym, &unfree);
-	}
-	free_string(deref);
-}
-
 static void match_end_func(struct symbol *sym)
 {
 	check_for_allocated();
@@ -457,7 +435,6 @@ void check_memory(int id)
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
-	add_hook(&match_dereferences, DEREF_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
