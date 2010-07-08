@@ -425,15 +425,26 @@ static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 	data = get_argument_from_call_expr(expr->args, 1);
 	dest_size = get_array_size_bytes(dest);
 	data_size = get_array_size_bytes(data);
-	if (!dest_size || !data_size)
+
+	if (!dest_size)
 		return;
-	if (dest_size >= data_size)
+
+	/* If the size of both arrays is known and the destination
+	 * buffer is larger than the source buffer, we're okay.
+	 */
+	if (data_size && dest_size >= data_size)
 		return;
 
 	dest_name = get_variable_from_expr_complex(dest, NULL);
 	data_name = get_variable_from_expr_complex(data, NULL);
-	sm_msg("error: %s() '%s' too large for '%s' (%d vs %d)", 
-		fn, data_name, dest_name, data_size, dest_size);
+
+	if (data_size)
+		sm_msg("error: %s() '%s' too large for '%s' (%d vs %d)",
+			fn, data_name, dest_name, data_size, dest_size);
+	else
+		sm_msg("warn: %s() '%s' of unknown size might be too large for '%s'",
+			fn, data_name, dest_name);
+
 	free_string(dest_name);
 	free_string(data_name);
 }

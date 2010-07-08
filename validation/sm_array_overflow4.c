@@ -5,11 +5,11 @@
 
 long long a[] = {1, 2};
 
-int main(void)
+int main(char *arg0)
 {
 	short *s = a;
 	short *s2 = (&(a));
-	char buf[4];
+	char buf[4], buf2[4];
 	int i;
 
 	printf("%d\n", s[1]);
@@ -24,6 +24,7 @@ int main(void)
 	printf("%d\n", ((short *)a)[6]);
 	printf("%d\n", ((short *)a)[8]);
 	strcpy(buf, "1234");
+	strcpy(buf2, arg0);
 
 	return 0;
 }
@@ -36,5 +37,6 @@ sm_array_overflow4.c +22 main(14) error: buffer overflow 's' 8 <= 8
 sm_array_overflow4.c +23 main(15) error: buffer overflow 's2' 8 <= 8
 sm_array_overflow4.c +25 main(17) error: buffer overflow 'a' 8 <= 8
 sm_array_overflow4.c +26 main(18) error: strcpy() '"1234"' too large for 'buf' (5 vs 4)
+sm_array_overflow4.c +27 main(19) warn: strcpy() 'arg0' of unknown size might be too large for 'buf2'
  * check-output-end
  */
