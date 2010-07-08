@@ -162,16 +162,16 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		*complicated = 1;
 		array_expr = get_array_expr(expr);
 		if (array_expr) {
-			__get_variable_from_expr(NULL, buf, array_expr, len, complicated);
+			__get_variable_from_expr(sym_ptr, buf, array_expr, len, complicated);
 			append(buf, "[", len);
 		} else {
 			append(buf, "(", len);
-			__get_variable_from_expr(NULL, buf, expr->left, len,
+			__get_variable_from_expr(sym_ptr, buf, expr->left, len,
 					 complicated);
 			tmp = show_special(expr->op);
 			append(buf, tmp, len);
 		}
-		__get_variable_from_expr(sym_ptr, buf, expr->right, 
+		__get_variable_from_expr(NULL, buf, expr->right, 
 						 len, complicated);
 		if (array_expr)
 			append(buf, "]", len);
