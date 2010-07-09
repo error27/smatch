@@ -28,6 +28,7 @@ struct bound {
  */
 static int my_size_id;
 static int my_used_id;
+static int my_strlen_id;
 
 static struct symbol *this_func;
 
@@ -165,6 +166,7 @@ static int get_array_size(struct expression *expr)
 	struct smatch_state *state;
 	int ret = 0;
 	float cast_ratio;
+	long long len;
 
 	if (expr->type == EXPR_STRING)
 		return expr->string->length;
@@ -199,6 +201,12 @@ static int get_array_size(struct expression *expr)
 		if (expr->symbol->initializer != expr) /* int a = a; */
 			return get_initializer_size(expr->symbol->initializer) * cast_ratio;
 	}
+
+	state = get_state_expr(my_strlen_id, expr);
+	if (!state || !state->data)
+		return 0;
+	if (get_implied_max((struct expression *)state->data, &len))
+		return len + 1; /* add one because strlen doesn't include the NULL */
 	return 0;
 }
 
@@ -412,6 +420,28 @@ static void match_calloc(const char *fn, struct expression *expr, void *unused)
 	set_state_expr(my_size_id, expr->left, alloc_my_state(elements * size));
 }
 
+static void match_strlen(const char *fn, struct expression *expr, void *unused)
+{
+	struct expression *right;
+	struct expression *str;
+	struct expression *len_expr;
+	char *len_name;
+	struct smatch_state *state;
+
+	right = strip_expr(expr->right);
+	str = get_argument_from_call_expr(right->args, 0);
+	len_expr = strip_expr(expr->left);
+
+	len_name = get_variable_from_expr(len_expr, NULL);
+	if (!len_name)
+		return;
+
+	state = __alloc_smatch_state(0);
+	state->name = len_name;
+	state->data = len_expr;
+	set_state_expr(my_strlen_id, str, state);
+}
+
 static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *dest;
@@ -529,6 +559,7 @@ void check_overflow(int id)
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_function_assign_hook("malloc", &match_malloc, NULL);
 	add_function_assign_hook("calloc", &match_calloc, NULL);
+	add_function_assign_hook("strlen", &match_strlen, NULL);
 	add_function_hook("strcpy", &match_strcpy, NULL);
 	add_function_hook("strncpy", &match_limited, &b0_l2);
 	add_function_hook("memset", &match_limited, &b0_l2);
@@ -560,4 +591,9 @@ void check_overflow(int id)
 void register_check_overflow_again(int id)
 {
 	my_used_id = id;
+}
+
+void register_check_overflow_3(int id)
+{
+	my_strlen_id = id;
 }
