@@ -360,6 +360,87 @@ static void match_condition(struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
+static void match_strlen_condition(struct expression *expr)
+{
+	struct expression *left;
+	struct expression *right;
+	struct expression *str;
+	int strlen_left = 0;
+	int strlen_right = 0;
+	long long val;
+	struct smatch_state *true_state = NULL;
+	struct smatch_state *false_state = NULL;
+
+	if (expr->type != EXPR_COMPARE)
+		return;
+	left = strip_expr(expr->left);
+	right = strip_expr(expr->right);
+
+	if (left->type == EXPR_CALL && sym_name_is("strlen", left->fn)) {
+		str = get_argument_from_call_expr(left->args, 0);
+		strlen_left = 1;
+	}
+	if (right->type == EXPR_CALL && sym_name_is("strlen", right->fn)) {
+		str = get_argument_from_call_expr(right->args, 0);
+		strlen_right = 1;
+	}
+
+	if (!strlen_left && !strlen_right)
+		return;
+	if (strlen_left && strlen_right)
+		return;
+
+	if (strlen_left) {
+		if (!get_value(right, &val))
+			return;
+	}
+	if (strlen_right) {
+		if (!get_value(left, &val))
+			return;
+	}
+
+	if (expr->op == SPECIAL_EQUAL) {
+		set_true_false_states_expr(my_size_id, str, alloc_my_state(val + 1), NULL);
+		return;
+	}
+	if (expr->op == SPECIAL_NOTEQUAL) {
+		set_true_false_states_expr(my_size_id, str, NULL, alloc_my_state(val + 1));
+		return;
+	}
+
+	switch (expr->op) {
+	case '<':
+	case SPECIAL_UNSIGNED_LT:
+		if (strlen_left)
+			true_state = alloc_my_state(val);
+		else
+			false_state = alloc_my_state(val + 1);
+		break;
+	case SPECIAL_LTE:
+	case SPECIAL_UNSIGNED_LTE:
+		if (strlen_left)
+			true_state = alloc_my_state(val + 1);
+		else
+			false_state = alloc_my_state(val);
+		break;
+	case SPECIAL_GTE:
+	case SPECIAL_UNSIGNED_GTE:
+		if (strlen_left)
+			false_state = alloc_my_state(val);
+		else
+			true_state = alloc_my_state(val + 1);
+		break;
+	case '>':
+	case SPECIAL_UNSIGNED_GT:
+		if (strlen_left)
+			false_state = alloc_my_state(val + 1);
+		else
+			true_state = alloc_my_state(val);
+		break;
+	}
+	set_true_false_states_expr(my_size_id, str, true_state, false_state);
+}
+
 static struct expression *strip_ampersands(struct expression *expr)
 {
 	struct symbol *type;
@@ -557,6 +638,7 @@ void check_overflow(int id)
 	add_hook(&array_check, OP_HOOK);
 	add_hook(&match_array_assignment, ASSIGNMENT_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
+	add_hook(&match_strlen_condition, CONDITION_HOOK);
 	add_function_assign_hook("malloc", &match_malloc, NULL);
 	add_function_assign_hook("calloc", &match_calloc, NULL);
 	add_function_assign_hook("strlen", &match_strlen, NULL);
