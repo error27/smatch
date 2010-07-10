@@ -1915,7 +1915,8 @@ static struct token *parse_asm_statement(struct token *token, struct statement *
 	stmt->type = STMT_ASM;
 	if (match_idents(token, &__volatile___ident, &__volatile_ident, &volatile_ident, NULL)) {
 		token = token->next;
-	} else if (match_idents(token, &goto_ident, NULL)) {
+	}
+	if (token_type(token) == TOKEN_IDENT && token->ident == &goto_ident) {
 		is_goto = 1;
 		token = token->next;
 	}
