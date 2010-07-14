@@ -85,6 +85,8 @@ static void match_assign(struct expression *expr)
 			return;
 		if (expr->right->type == EXPR_PREOP && expr->right->op == '~')
 			return;
+		if (expr->op == SPECIAL_SUB_ASSIGN || expr->op == SPECIAL_ADD_ASSIGN)
+			return;
 		name = get_variable_from_expr_complex(expr->left, NULL);
 		if (min == 0)
 			sm_msg("warn: assigning %lld to unsigned variable '%s'", val, name);
