@@ -12,3 +12,4 @@ WARN_ON_ONCE
 ubi_assert
 bfa_assert
 ZD_ASSERT
+ubifs_assert
