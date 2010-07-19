@@ -517,6 +517,8 @@ const char *ignored_attributes[] = {
 	"__hot__",
 	"malloc",
 	"__malloc__",
+	"may_alias",
+	"__may_alias__",
 	"model",
 	"__model__",
 	"ms_abi",
@@ -1889,11 +1891,33 @@ static struct token *parse_asm_clobbers(struct token *token, struct statement *s
 	return token;
 }
 
+static struct token *parse_asm_labels(struct token *token, struct statement *stmt,
+		        struct symbol_list **labels)
+{
+	struct symbol *label;
+
+	do {
+		token = token->next; /* skip ':' and ',' */
+		if (token_type(token) != TOKEN_IDENT)
+			return token;
+		label = label_symbol(token);
+		add_symbol(labels, label);
+		token = token->next;
+	} while (match_op(token, ','));
+	return token;
+}
+
 static struct token *parse_asm_statement(struct token *token, struct statement *stmt)
 {
+	int is_goto = 0;
+
 	token = token->next;
 	stmt->type = STMT_ASM;
 	if (match_idents(token, &__volatile___ident, &__volatile_ident, &volatile_ident, NULL)) {
+		token = token->next;
+	}
+	if (token_type(token) == TOKEN_IDENT && token->ident == &goto_ident) {
+		is_goto = 1;
 		token = token->next;
 	}
 	token = expect(token, '(', "after asm");
@@ -1904,6 +1928,8 @@ static struct token *parse_asm_statement(struct token *token, struct statement *
 		token = parse_asm_operands(token, stmt, &stmt->asm_inputs);
 	if (match_op(token, ':'))
 		token = parse_asm_clobbers(token, stmt, &stmt->asm_clobbers);
+	if (is_goto && match_op(token, ':'))
+		token = parse_asm_labels(token, stmt, &stmt->asm_labels);
 	token = expect(token, ')', "after asm");
 	return expect(token, ';', "at end of asm-statement");
 }

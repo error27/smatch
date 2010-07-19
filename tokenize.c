@@ -142,6 +142,7 @@ const char *show_token(const struct token *token)
 		return show_ident(token->ident);
 
 	case TOKEN_STRING:
+	case TOKEN_WIDE_STRING:
 		return show_string(token->string);
 
 	case TOKEN_NUMBER:
@@ -150,7 +151,8 @@ const char *show_token(const struct token *token)
 	case TOKEN_SPECIAL:
 		return show_special(token->special);
 
-	case TOKEN_CHAR: {
+	case TOKEN_CHAR: 
+	case TOKEN_WIDE_CHAR: {
 		char *ptr = buffer;
 		int c = token->character;
 		*ptr++ = '\'';
@@ -532,7 +534,7 @@ static int escapechar(int first, int type, stream_t *stream, int *valp)
 	return next;
 }
 
-static int get_char_token(int next, stream_t *stream)
+static int get_char_token(int next, stream_t *stream, enum token_type type)
 {
 	int value;
 	struct token *token;
@@ -545,14 +547,14 @@ static int get_char_token(int next, stream_t *stream)
 	}
 
 	token = stream->token;
-	token_type(token) = TOKEN_CHAR;
+	token_type(token) = type;
 	token->character = value & 0xff;
 
 	add_token(stream);
 	return nextchar(stream);
 }
 
-static int get_string_token(int next, stream_t *stream)
+static int get_string_token(int next, stream_t *stream, enum token_type type)
 {
 	static char buffer[MAX_STRING];
 	struct string *string;
@@ -585,7 +587,7 @@ static int get_string_token(int next, stream_t *stream)
 
 	/* Pass it on.. */
 	token = stream->token;
-	token_type(token) = TOKEN_STRING;
+	token_type(token) = type;
 	token->string = string;
 	add_token(stream);
 	
@@ -705,9 +707,9 @@ static int get_one_special(int c, stream_t *stream)
 			return get_one_number(c, next, stream);
 		break;
 	case '"':
-		return get_string_token(next, stream);
+		return get_string_token(next, stream, TOKEN_STRING);
 	case '\'':
-		return get_char_token(next, stream);
+		return get_char_token(next, stream, TOKEN_CHAR);
 	case '/':
 		if (next == '/')
 			return drop_stream_eoln(stream);
@@ -884,6 +886,13 @@ static int get_one_identifier(int c, stream_t *stream)
 	hash = ident_hash_end(hash);
 
 	ident = create_hashed_ident(buf, len, hash);
+
+	if (ident == &L_ident) {
+		if (next == '\'')
+			return get_char_token(nextchar(stream), stream, TOKEN_WIDE_CHAR);
+		if (next == '\"')
+			return get_string_token(nextchar(stream), stream, TOKEN_WIDE_STRING);
+	}
 
 	/* Pass it on.. */
 	token = stream->token;

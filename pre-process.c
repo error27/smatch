@@ -865,9 +865,11 @@ static int token_different(struct token *t1, struct token *t2)
 		different = t1->argnum != t2->argnum;
 		break;
 	case TOKEN_CHAR:
+	case TOKEN_WIDE_CHAR:
 		different = t1->character != t2->character;
 		break;
-	case TOKEN_STRING: {
+	case TOKEN_STRING:
+	case TOKEN_WIDE_STRING: {
 		struct string *s1, *s2;
 
 		s1 = t1->string;
