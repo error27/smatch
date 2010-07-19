@@ -716,6 +716,7 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern long __builtin_alpha_inslh(long, long);\n");
 	add_pre_buffer("extern long __builtin_alpha_cmpbge(long, long);\n");
 	add_pre_buffer("extern long __builtin_labs(long);\n");
+	add_pre_buffer("extern double __builtin_fabs(double);\n");
 
 	/* And some floating point stuff.. */
 	add_pre_buffer("extern int __builtin_isgreater(float, float);\n");
