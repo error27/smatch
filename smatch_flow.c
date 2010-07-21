@@ -42,6 +42,7 @@ int in_expression_statement(void) { return !!__expr_stmt_count; }
 static void split_symlist(struct symbol_list *sym_list);
 static void split_declaration(struct symbol_list *sym_list);
 static void split_expr_list(struct expression_list *expr_list);
+static void add_inline_function(struct symbol *sym);
 
 int option_assume_loops = 0;
 int option_known_conditions = 0;
@@ -77,6 +78,15 @@ static void set_position(struct expression *expr)
 		full_filename = alloc_string(filename);
 	}
 	free(pathname);
+}
+
+static int is_inline_func(struct expression *expr)
+{
+	if (expr->type != EXPR_SYMBOL || !expr->symbol)
+		return 0;
+	if (expr->symbol->ctype.modifiers & MOD_INLINE)
+		return 1;
+	return 0;
 }
 
 void __split_expr(struct expression *expr)
@@ -163,6 +173,8 @@ void __split_expr(struct expression *expr)
 	case EXPR_CALL:
 		split_expr_list(expr->args);
 		__split_expr(expr->fn);
+		if (is_inline_func(expr->fn))
+			add_inline_function(expr->fn->symbol);
 		__pass_to_client(expr, FUNCTION_CALL_HOOK);
 		break;
 	case EXPR_INITIALIZER:
@@ -577,6 +589,7 @@ void __split_stmt(struct statement *stmt)
 static void split_expr_list(struct expression_list *expr_list)
 {
 	struct expression *expr;
+
 	FOR_EACH_PTR(expr_list, expr) {
 		__split_expr(expr);
 	} END_FOR_EACH_PTR(expr);
@@ -661,6 +674,7 @@ static void split_function(struct symbol *sym)
 		final_pass = 0;
 		__pass_to_client(sym, FUNC_DEF_HOOK);
 		__split_stmt(base_type->stmt);
+		__split_stmt(base_type->inline_stmt);
 		nullify_path();
 	}
 	__unnullify_path();
@@ -668,6 +682,7 @@ static void split_function(struct symbol *sym)
 	final_pass = 1;
 	__pass_to_client(sym, FUNC_DEF_HOOK);
 	__split_stmt(base_type->stmt);
+	__split_stmt(base_type->inline_stmt);
 	__pass_to_client(sym, END_FUNC_HOOK);
 	cur_func = NULL;
 	line_func_start = 0;
@@ -678,6 +693,31 @@ static void split_function(struct symbol *sym)
 	__bail_on_rest_of_function = 0;
 }
 
+static struct symbol_list *inlines_called;
+static void add_inline_function(struct symbol *sym)
+{
+	static struct symbol_list *already_added;
+	struct symbol *tmp;
+
+	FOR_EACH_PTR(already_added, tmp) {
+		if (tmp == sym)
+			return;
+	} END_FOR_EACH_PTR(tmp);
+
+	add_ptr_list(&already_added, sym);
+	add_ptr_list(&inlines_called, sym);
+}
+
+static void process_inlines()
+{
+	struct symbol *tmp;
+
+	FOR_EACH_PTR(inlines_called, tmp) {
+		split_function(tmp);
+	} END_FOR_EACH_PTR(tmp);
+	free_ptr_list(&inlines_called);
+}
+
 static void split_functions(struct symbol_list *sym_list)
 {
 	struct symbol *sym;
@@ -685,6 +725,7 @@ static void split_functions(struct symbol_list *sym_list)
 	FOR_EACH_PTR(sym_list, sym) {
 		if (sym->type == SYM_NODE && get_base_type(sym)->type == SYM_FN) {
 			split_function(sym);
+			process_inlines();
 		} else {
 			__pass_to_client(sym, BASE_HOOK);
 		}
