@@ -400,6 +400,25 @@ static void print_unreached(struct statement *stmt)
 	print = 0;
 }
 
+static void split_asm_constraints(struct expression_list *expr_list)
+{
+	struct expression *expr;
+        int state = 0;
+
+        FOR_EACH_PTR(expr_list, expr) {
+                switch (state) {
+                case 0: /* identifier */
+                case 1: /* constraint */
+                        state++;
+                        continue;
+                case 2: /* expression */
+                        state = 0;
+                        __split_expr(expr);
+                        continue;
+                }
+        } END_FOR_EACH_PTR(expr);
+}
+
 void __split_stmt(struct statement *stmt)
 {
 	if (!stmt)
@@ -541,9 +560,9 @@ void __split_stmt(struct statement *stmt)
 		return;
 	case STMT_ASM:
 		__split_expr(stmt->asm_string);
-		split_expr_list(stmt->asm_outputs);
-		split_expr_list(stmt->asm_inputs);
-		split_expr_list(stmt->asm_clobbers);
+		split_asm_constraints(stmt->asm_outputs);
+		split_asm_constraints(stmt->asm_inputs);
+		split_asm_constraints(stmt->asm_clobbers);
 		return;
 	case STMT_CONTEXT:
 		return;
