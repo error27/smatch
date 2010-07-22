@@ -66,6 +66,12 @@ void inspect_statement(AstNode *node)
 			ast_append_child(node, "post_statement:", stmt->iterator_post_statement,
 					 inspect_statement);
 			break;
+
+		case STMT_RETURN:
+			ast_append_child(node, "ret_value:", stmt->ret_value, inspect_expression);
+			ast_append_child(node, "ret_target:", stmt->ret_target, inspect_symbol);
+			break;
+
 		default:
 			break;
 	}
@@ -109,7 +115,7 @@ void inspect_symbol(AstNode *node)
 {
 	struct symbol *sym = node->ptr;
 	node->text = g_strdup_printf("%s %s: %s", node->text, symbol_type_name(sym->type),
-				      show_ident(sym->ident));
+				      builtin_typename(sym) ?: show_ident(sym->ident));
 	ast_append_child(node, "ctype.base_type:", sym->ctype.base_type,inspect_symbol);
 
 	switch (sym->type) {
@@ -181,6 +187,18 @@ void inspect_expression(AstNode *node)
 			ast_append_child(node, "left:", expr->left, inspect_expression);
 			ast_append_child(node, "right:", expr->right, inspect_expression);
 			break;
+
+		case EXPR_CAST:
+		case EXPR_FORCE_CAST:
+		case EXPR_IMPLIED_CAST:
+			ast_append_child(node, "cast_type:", expr->cast_type, inspect_symbol);
+			ast_append_child(node, "cast_expression:", expr->cast_expression, inspect_expression);
+			break;
+
+		case EXPR_PREOP:
+			ast_append_child(node, "unop:", expr->unop, inspect_expression);
+			break;
+		
 		default:
 			break;
 	}
