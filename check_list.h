@@ -50,6 +50,7 @@ CK(check_propagate)
 CK(check_return_efault)
 CK(check_gfp_dma)
 CK(check_unwind)
+CK(check_kmalloc_to_bugon)
 
 /* <- your test goes here */
 /* CK(register_template) */
