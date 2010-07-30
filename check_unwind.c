@@ -112,6 +112,10 @@ void check_unwind(int id)
 	return_implies_state("ioremap", 0, 0, &request_denied, INT_PTR(-1));
 	add_function_hook("iounmap", &match_release, INT_PTR(0));
 
+	return_implies_state("pci_iomap", 1, POINTER_MAX, &request_granted, INT_PTR(-1));
+	return_implies_state("pci_iomap", 0, 0, &request_denied, INT_PTR(-1));
+	add_function_hook("pci_iounmap", &match_release, INT_PTR(1));
+
 	return_implies_state("__create_workqueue_key", 1, POINTER_MAX, &request_granted,
 			INT_PTR(-1));
 	return_implies_state("__create_workqueue_key", 0, 0, &request_denied, INT_PTR(-1));
