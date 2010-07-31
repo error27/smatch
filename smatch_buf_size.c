@@ -18,12 +18,13 @@
  * my_size_id - used to store the size of arrays.  
  * my_strlen_id - track the strlen() of buffers.
  */
+
 static int my_size_id;
 static int my_strlen_id;
 
 static int get_initializer_size(struct expression *expr)
 {
-	switch(expr->type) {
+	switch (expr->type) {
 	case EXPR_STRING:
 		return expr->string->length;
 	case EXPR_INITIALIZER: {
@@ -316,11 +317,9 @@ static void match_strlen(const char *fn, struct expression *expr, void *unused)
 void register_buf_size(int id)
 {
 	my_size_id = id;
-	add_hook(&match_array_assignment, ASSIGNMENT_HOOK);
-	add_hook(&match_strlen_condition, CONDITION_HOOK);
+
 	add_function_assign_hook("malloc", &match_malloc, NULL);
 	add_function_assign_hook("calloc", &match_calloc, NULL);
-	add_function_assign_hook("strlen", &match_strlen, NULL);
 	if (option_project == PROJ_KERNEL) {
 		add_function_assign_hook("kmalloc", &match_malloc, NULL);
 		add_function_assign_hook("kzalloc", &match_malloc, NULL);
@@ -330,6 +329,9 @@ void register_buf_size(int id)
 		add_function_assign_hook("drm_malloc_ab", &match_calloc, NULL);
 		add_function_assign_hook("drm_calloc_large", &match_calloc, NULL);
 	}
+	add_hook(&match_array_assignment, ASSIGNMENT_HOOK);
+	add_hook(&match_strlen_condition, CONDITION_HOOK);
+	add_function_assign_hook("strlen", &match_strlen, NULL);
 }
 
 void register_strlen(int id)
