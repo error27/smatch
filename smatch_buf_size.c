@@ -21,34 +21,6 @@
 static int my_size_id;
 static int my_strlen_id;
 
-static char *alloc_num(long long num)
-{
-	static char buff[256];
-
-	if (num == whole_range.min)
-		snprintf(buff, 255, "min");
-	else if (num == whole_range.max)
-		snprintf(buff, 255, "max");
-	else if (num < 0)
-		snprintf(buff, 255, "(%lld)", num);
-	else
-		snprintf(buff, 255, "%lld", num);
-
-	buff[255] = '\0';
-	return alloc_sname(buff);
-}
-
-static struct smatch_state *alloc_my_state(int val)
-{
-	struct smatch_state *state;
-
-	state = __alloc_smatch_state(0);
-	state->name = alloc_num(val);
-	state->data = malloc(sizeof(int));
-	*(int *)state->data = val;
-	return state;
-}
-
 static int get_initializer_size(struct expression *expr)
 {
 	switch(expr->type) {
@@ -135,7 +107,7 @@ int get_array_size(struct expression *expr)
 			tmp = get_base_type(tmp);
 		if (!tmp->ctype.alignment)
 			return 0;
-		ret = *(int *)state->data / tmp->ctype.alignment;
+		ret = (int)state->data / tmp->ctype.alignment;
 		return ret * cast_ratio;
 	}
 
@@ -218,11 +190,11 @@ static void match_strlen_condition(struct expression *expr)
 	}
 
 	if (expr->op == SPECIAL_EQUAL) {
-		set_true_false_states_expr(my_size_id, str, alloc_my_state(val + 1), NULL);
+		set_true_false_states_expr(my_size_id, str, alloc_state_num(val + 1), NULL);
 		return;
 	}
 	if (expr->op == SPECIAL_NOTEQUAL) {
-		set_true_false_states_expr(my_size_id, str, NULL, alloc_my_state(val + 1));
+		set_true_false_states_expr(my_size_id, str, NULL, alloc_state_num(val + 1));
 		return;
 	}
 
@@ -230,30 +202,30 @@ static void match_strlen_condition(struct expression *expr)
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
 		if (strlen_left)
-			true_state = alloc_my_state(val);
+			true_state = alloc_state_num(val);
 		else
-			false_state = alloc_my_state(val + 1);
+			false_state = alloc_state_num(val + 1);
 		break;
 	case SPECIAL_LTE:
 	case SPECIAL_UNSIGNED_LTE:
 		if (strlen_left)
-			true_state = alloc_my_state(val + 1);
+			true_state = alloc_state_num(val + 1);
 		else
-			false_state = alloc_my_state(val);
+			false_state = alloc_state_num(val);
 		break;
 	case SPECIAL_GTE:
 	case SPECIAL_UNSIGNED_GTE:
 		if (strlen_left)
-			false_state = alloc_my_state(val);
+			false_state = alloc_state_num(val);
 		else
-			true_state = alloc_my_state(val + 1);
+			true_state = alloc_state_num(val + 1);
 		break;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
 		if (strlen_left)
-			false_state = alloc_my_state(val + 1);
+			false_state = alloc_state_num(val + 1);
 		else
-			true_state = alloc_my_state(val);
+			true_state = alloc_state_num(val);
 		break;
 	}
 	set_true_false_states_expr(my_size_id, str, true_state, false_state);
@@ -286,7 +258,7 @@ static void match_array_assignment(struct expression *expr)
 	right = strip_ampersands(right);
 	array_size = get_array_size_bytes(right);
 	if (array_size)
-		set_state_expr(my_size_id, left, alloc_my_state(array_size));
+		set_state_expr(my_size_id, left, alloc_state_num(array_size));
 }
 
 static void match_malloc(const char *fn, struct expression *expr, void *unused)
@@ -299,7 +271,7 @@ static void match_malloc(const char *fn, struct expression *expr, void *unused)
 	arg = get_argument_from_call_expr(right->args, 0);
 	if (!get_implied_value(arg, &bytes))
 		return;
-	set_state_expr(my_size_id, expr->left, alloc_my_state(bytes));
+	set_state_expr(my_size_id, expr->left, alloc_state_num(bytes));
 }
 
 static void match_calloc(const char *fn, struct expression *expr, void *unused)
@@ -316,7 +288,7 @@ static void match_calloc(const char *fn, struct expression *expr, void *unused)
 	arg = get_argument_from_call_expr(right->args, 1);
 	if (!get_implied_value(arg, &size))
 		return;
-	set_state_expr(my_size_id, expr->left, alloc_my_state(elements * size));
+	set_state_expr(my_size_id, expr->left, alloc_state_num(elements * size));
 }
 
 static void match_strlen(const char *fn, struct expression *expr, void *unused)
