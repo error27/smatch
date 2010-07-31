@@ -334,7 +334,7 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 	set_state_expr(my_size_id, dest, alloc_state_num(size));
 }
 
-static void match_strcpy(const char *fn, struct expression *expr, void *_limiter)
+static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression fake_assign;
 
@@ -342,6 +342,22 @@ static void match_strcpy(const char *fn, struct expression *expr, void *_limiter
 	fake_assign.left = get_argument_from_call_expr(expr->args, 0);
 	fake_assign.right = get_argument_from_call_expr(expr->args, 1);
 	match_array_assignment(&fake_assign);
+}
+
+static void match_strndup(const char *fn, struct expression *expr, void *unused)
+{
+	struct expression *fn_expr;
+	struct expression *size_expr;
+	long long size;
+
+	fn_expr = strip_expr(expr->right);
+	size_expr = get_argument_from_call_expr(fn_expr->args, 1);
+	if (!get_implied_max(size_expr, &size))
+		return;
+
+	/* It's easy to forget space for the NUL char */
+	size++;
+	set_state_expr(my_size_id, expr->left, alloc_state_num(size));
 }
 
 void register_buf_size(int id)
@@ -374,6 +390,10 @@ void register_buf_size(int id)
 	add_function_hook("memscan", &match_limited, &b0_l2);
 
 	add_function_hook("strcpy", &match_strcpy, NULL);
+
+	add_function_assign_hook("strndup", match_strndup, NULL);
+	if (option_project == PROJ_KERNEL)
+		add_function_assign_hook("kstrndup", match_strndup, NULL);
 }
 
 void register_strlen(int id)
