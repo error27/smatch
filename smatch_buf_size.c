@@ -13,11 +13,6 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-struct bound {
-	int param;
-	int size;
-};
-
 /*
  * This check has two smatch IDs.  
  * my_size_id - used to store the size of arrays.  
