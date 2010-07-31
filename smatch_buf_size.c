@@ -268,14 +268,15 @@ static void match_array_assignment(struct expression *expr)
 		set_state_expr(my_size_id, left, alloc_state_num(array_size));
 }
 
-static void match_malloc(const char *fn, struct expression *expr, void *unused)
+static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
 {
+	int size_arg = (int)_size_arg;
 	struct expression *right;
 	struct expression *arg;
 	long long bytes;
 
 	right = strip_expr(expr->right);
-	arg = get_argument_from_call_expr(right->args, 0);
+	arg = get_argument_from_call_expr(right->args, size_arg);
 	if (!get_implied_value(arg, &bytes))
 		return;
 	set_state_expr(my_size_id, expr->left, alloc_state_num(bytes));
@@ -364,16 +365,19 @@ void register_buf_size(int id)
 {
 	my_size_id = id;
 
-	add_function_assign_hook("malloc", &match_malloc, NULL);
+	add_function_assign_hook("malloc", &match_alloc, INT_PTR(0));
 	add_function_assign_hook("calloc", &match_calloc, NULL);
+	add_function_assign_hook("memdup", &match_alloc, INT_PTR(1));
 	if (option_project == PROJ_KERNEL) {
-		add_function_assign_hook("kmalloc", &match_malloc, NULL);
-		add_function_assign_hook("kzalloc", &match_malloc, NULL);
-		add_function_assign_hook("vmalloc", &match_malloc, NULL);
-		add_function_assign_hook("__vmalloc", &match_malloc, NULL);
+		add_function_assign_hook("kmalloc", &match_alloc, INT_PTR(0));
+		add_function_assign_hook("kzalloc", &match_alloc, INT_PTR(0));
+		add_function_assign_hook("vmalloc", &match_alloc, INT_PTR(0));
+		add_function_assign_hook("__vmalloc", &match_alloc, INT_PTR(0));
 		add_function_assign_hook("kcalloc", &match_calloc, NULL);
 		add_function_assign_hook("drm_malloc_ab", &match_calloc, NULL);
 		add_function_assign_hook("drm_calloc_large", &match_calloc, NULL);
+		add_function_assign_hook("kmemdup", &match_alloc, INT_PTR(1));
+		add_function_assign_hook("kmemdup_user", &match_alloc, INT_PTR(1));
 	}
 	add_hook(&match_array_assignment, ASSIGNMENT_HOOK);
 	add_hook(&match_strlen_condition, CONDITION_HOOK);
