@@ -41,7 +41,7 @@ SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	smatch_modification_hooks.o smatch_extra.o smatch_math.o \
 	smatch_ranges.o smatch_implied.o smatch_ignore.o smatch_project.o \
 	smatch_tracker.o smatch_files.o smatch_expression_stacks.o \
-	smatch_oom.o smatch_constraints.o
+	smatch_oom.o smatch_constraints.o smatch_buf_size.o
 
 SMATCH_CHECKS=$(shell ls check_*.c | sed -e 's/\.c/.o/')
 SMATCH_DATA=smatch_data/kernel.allocation_funcs smatch_data/kernel.balanced_funcs \

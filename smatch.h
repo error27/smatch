@@ -392,6 +392,11 @@ enum project_type {
 extern enum project_type option_project;
 const char *check_name(unsigned short id);
 
+
+/* smatch_buf_size.c */
+int get_array_size(struct expression *expr);
+int get_array_size_bytes(struct expression *expr);
+
 /* check_locking.c */
 void print_held_locks();
 
