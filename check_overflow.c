@@ -69,37 +69,9 @@ free:
 	free_string(name);
 }
 
-static char *alloc_num(long long num)
-{
-	static char buff[256];
-
-	if (num == whole_range.min)
-		snprintf(buff, 255, "min");
-	else if (num == whole_range.max)
-		snprintf(buff, 255, "max");
-	else if (num < 0)
-		snprintf(buff, 255, "(%lld)", num);
-	else
-		snprintf(buff, 255, "%lld", num);
-
-	buff[255] = '\0';
-	return alloc_sname(buff);
-}
-
 static void delete(const char *name, struct symbol *sym, struct expression *expr, void *unused)
 {
 	delete_state(my_used_id, name, sym);
-}
-
-static struct smatch_state *alloc_my_state(int val)
-{
-	struct smatch_state *state;
-
-	state = __alloc_smatch_state(0);
-	state->name = alloc_num(val);
-	state->data = malloc(sizeof(int));
-	*(int *)state->data = val;
-	return state;
 }
 
 static int definitely_just_used_as_limiter(struct expression *array, struct expression *offset)
@@ -224,20 +196,6 @@ static void match_condition(struct expression *expr)
 			return;
 		}
 	} END_FOR_EACH_PTR(tmp);
-}
-
-static struct expression *strip_ampersands(struct expression *expr)
-{
-	struct symbol *type;
-
-	if (expr->type != EXPR_PREOP)
-		return expr;
-	if (expr->op != '&')
-		return expr;
-	type = get_type(expr->unop);
-	if (!type || type->type != SYM_ARRAY)
-		return expr;
-	return expr->unop;
 }
 
 static void match_strcpy(const char *fn, struct expression *expr, void *unused)
