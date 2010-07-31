@@ -38,8 +38,8 @@ struct limiter {
 	int buf_arg;
 	int limit_arg;
 };
-struct limiter b0_l2 = {0, 2};
-struct limiter b1_l2 = {1, 2};
+static struct limiter b0_l2 = {0, 2};
+static struct limiter b1_l2 = {1, 2};
 
 static void print_args(struct expression *expr, int size)
 {

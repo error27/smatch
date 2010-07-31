@@ -22,6 +22,12 @@
 static int my_size_id;
 static int my_strlen_id;
 
+struct limiter {
+	int buf_arg;
+	int limit_arg;
+};
+static struct limiter b0_l2 = {0, 2};
+
 static int get_initializer_size(struct expression *expr)
 {
 	switch (expr->type) {
@@ -314,6 +320,20 @@ static void match_strlen(const char *fn, struct expression *expr, void *unused)
 	set_state_expr(my_strlen_id, str, state);
 }
 
+static void match_limited(const char *fn, struct expression *expr, void *_limiter)
+{
+	struct limiter *limiter = (struct limiter *)_limiter;
+	struct expression *dest;
+	struct expression *size_expr;
+	long long size;
+
+	dest = get_argument_from_call_expr(expr->args, limiter->buf_arg);
+	size_expr = get_argument_from_call_expr(expr->args, limiter->limit_arg);
+	if (!get_implied_max(size_expr, &size))
+		return;
+	set_state_expr(my_size_id, dest, alloc_state_num(size));
+}
+
 void register_buf_size(int id)
 {
 	my_size_id = id;
@@ -332,6 +352,16 @@ void register_buf_size(int id)
 	add_hook(&match_array_assignment, ASSIGNMENT_HOOK);
 	add_hook(&match_strlen_condition, CONDITION_HOOK);
 	add_function_assign_hook("strlen", &match_strlen, NULL);
+
+	add_function_hook("strncpy", &match_limited, &b0_l2);
+	add_function_hook("strlcpy", &match_limited, &b0_l2);
+	add_function_hook("strlcat", &match_limited, &b0_l2);
+	add_function_hook("memset", &match_limited, &b0_l2);
+	if (option_project == PROJ_KERNEL)
+		add_function_hook("__builtin_memset", &match_limited, &b0_l2);
+	add_function_hook("memcpy", &match_limited, &b0_l2);
+	add_function_hook("memmove", &match_limited, &b0_l2);
+	add_function_hook("memscan", &match_limited, &b0_l2);
 }
 
 void register_strlen(int id)
