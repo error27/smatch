@@ -334,6 +334,16 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 	set_state_expr(my_size_id, dest, alloc_state_num(size));
 }
 
+static void match_strcpy(const char *fn, struct expression *expr, void *_limiter)
+{
+	struct expression fake_assign;
+
+	fake_assign.op = '=';
+	fake_assign.left = get_argument_from_call_expr(expr->args, 0);
+	fake_assign.right = get_argument_from_call_expr(expr->args, 1);
+	match_array_assignment(&fake_assign);
+}
+
 void register_buf_size(int id)
 {
 	my_size_id = id;
@@ -362,6 +372,8 @@ void register_buf_size(int id)
 	add_function_hook("memcpy", &match_limited, &b0_l2);
 	add_function_hook("memmove", &match_limited, &b0_l2);
 	add_function_hook("memscan", &match_limited, &b0_l2);
+
+	add_function_hook("strcpy", &match_strcpy, NULL);
 }
 
 void register_strlen(int id)
