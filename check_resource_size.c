@@ -55,6 +55,8 @@ static void match_resource(const char *fn, struct expression *expr, void *_arg_n
 
 	arg_expr = get_argument_from_call_expr(expr->args, arg_no);
 	arg_expr = strip_expr(arg_expr);
+	if (!arg_expr)
+		return;
 
 	if (arg_expr->type == EXPR_SYMBOL) {
 		handle_assigned_expr(arg_expr);
