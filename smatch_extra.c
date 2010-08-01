@@ -817,8 +817,12 @@ int implied_not_equal(struct expression *expr, long long val)
 	char *name;
 	struct symbol *sym;
 	struct smatch_state *state;
+	long long expr_val;
 	int ret = 0;
 
+	if (get_value(expr, &expr_val)) {
+		return expr_val != val;
+	}
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
 		goto exit;
