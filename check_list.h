@@ -8,14 +8,15 @@ CK(register_modification_hooks)
 CK(register_project)
 
 CK(register_smatch_ignore)
+CK(register_buf_size)
+CK(register_strlen)
+
 CK(check_debug)
 CK(check_assigned_expr)
 
 CK(check_deref)
 CK(check_check_deref)
 CK(check_overflow)
-CK(register_check_overflow_again)
-CK(register_check_overflow_3)
 CK(check_leaks)
 CK(check_type)
 CK(check_allocation_funcs)
