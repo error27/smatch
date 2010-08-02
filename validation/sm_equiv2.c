@@ -16,7 +16,7 @@ int func(void)
 
 	if (x) {
 		__smatch_value("red");
-		/* __smatch_value("blue"); this doesn't work */
+		__smatch_value("blue");
 	}
 	__smatch_value("red");
 	__smatch_value("blue");
@@ -28,6 +28,7 @@ int func(void)
  *
  * check-output-start
 sm_equiv2.c +18 func(10) red = 5
+sm_equiv2.c +19 func(11) blue = 5
 sm_equiv2.c +21 func(13) red = 0,5
 sm_equiv2.c +22 func(14) blue = 0,5
  * check-output-end
