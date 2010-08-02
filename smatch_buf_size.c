@@ -392,11 +392,7 @@ void register_buf_size(int id)
 	add_function_hook("strncpy", &match_limited, &b0_l2);
 	add_function_hook("strlcpy", &match_limited, &b0_l2);
 	add_function_hook("strlcat", &match_limited, &b0_l2);
-	add_function_hook("memset", &match_limited, &b0_l2);
-	if (option_project == PROJ_KERNEL)
-		add_function_hook("__builtin_memset", &match_limited, &b0_l2);
 	add_function_hook("memcpy", &match_limited, &b0_l2);
-	add_function_hook("memmove", &match_limited, &b0_l2);
 	add_function_hook("memscan", &match_limited, &b0_l2);
 
 	add_function_hook("strcpy", &match_strcpy, NULL);
