@@ -476,11 +476,8 @@ static void match_function_call(struct expression *expr)
 
 	FOR_EACH_PTR(expr->args, tmp) {
 		if (tmp->type == EXPR_PREOP && tmp->op == '&') {
-			name = get_variable_from_expr(tmp->unop, &sym);
-			if (name) {
-				set_extra_mod(name, sym, extra_undefined());
-			}
-			free_string(name);
+			remove_from_equiv_expr(tmp->unop);
+			set_state_expr(SMATCH_EXTRA, tmp->unop, extra_undefined());
 		}
 		i++;
 	} END_FOR_EACH_PTR(tmp);
