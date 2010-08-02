@@ -470,16 +470,12 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 static void match_function_call(struct expression *expr)
 {
 	struct expression *tmp;
-	struct symbol *sym;
-	char *name;
-	int i = 0;
 
 	FOR_EACH_PTR(expr->args, tmp) {
 		if (tmp->type == EXPR_PREOP && tmp->op == '&') {
 			remove_from_equiv_expr(tmp->unop);
 			set_state_expr(SMATCH_EXTRA, tmp->unop, extra_undefined());
 		}
-		i++;
 	} END_FOR_EACH_PTR(tmp);
 }
 
