@@ -100,16 +100,14 @@ int get_array_size(struct expression *expr)
 
 	if (tmp->type == SYM_ARRAY) {
 		ret = get_expression_value(tmp->array_size);
-		/*
-		 * Dynamically sized arrays are -1 because sparse doesn't like
-		 * them. People put zero sized arrays on the end of structs.
-		 * Or some people use one element arrays instead of pointers.
-		 * (don't ask me why...)
-		 *
-		 */
-		if (ret <= 1)
+		/* Dynamically sized array are -1 in sparse */
+		if (ret < 0)
 			return 0;
-		return ret * cast_ratio;
+		/* People put one element arrays on the end of structs */
+		if (ret == 1)
+			return 0;
+		if (ret)
+			return ret * cast_ratio;
 	}
 
 	state = get_state_expr(my_size_id, expr);
