@@ -57,9 +57,9 @@ static void match_release(const char *fn, struct expression *expr, void *_arg_no
 	int arg_no = (int)_arg_no;
 
 	arg_expr = get_argument_from_call_expr(expr->args, arg_no);
-	if (!get_state_expr(my_id, arg_expr))
-		return;
-	set_state_expr(my_id, arg_expr, &unallocated);
+	if (get_state_expr(my_id, arg_expr))
+		set_state_expr(my_id, arg_expr, &unallocated);
+	set_equiv_state_expr(my_id, arg_expr, &unallocated);
 }
 
 static int func_returns_int()

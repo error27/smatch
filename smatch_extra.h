@@ -97,3 +97,4 @@ void add_related(struct smatch_state *state, int op, const char *name, struct sy
 void add_equiv(struct smatch_state *state, const char *name, struct symbol *sym);
 void remove_from_equiv(const char *name, struct symbol *sym);
 void remove_from_equiv_expr(struct expression *expr);
+void set_equiv_state_expr(int id, struct expression *expr, struct smatch_state *state);

@@ -173,3 +173,19 @@ void add_constrain_expr(struct expression *left, int op, struct expression *righ
 
 }
 
+void set_equiv_state_expr(int id, struct expression *expr, struct smatch_state *state)
+{
+	struct relation *rel;
+	struct smatch_state *extra_state;
+
+	extra_state = get_state_expr(SMATCH_EXTRA, expr);
+
+	if (!extra_state)
+		return;
+
+	FOR_EACH_PTR(get_dinfo(extra_state)->related, rel) {
+		if (rel->op != SPECIAL_EQUAL)
+			continue;
+		set_state(id, rel->name, rel->sym, state);
+	} END_FOR_EACH_PTR(rel);
+}
