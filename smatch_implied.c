@@ -54,8 +54,7 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-static int print_count = 0;
-#define print_once(msg...) do { if (!print_count++) sm_msg(msg); } while (0)
+char *implied_debug_msg;
 #define DIMPLIED(msg...) do { if (option_debug_implied) printf(msg); } while (0)
 
 int option_debug_implied = 0;
@@ -189,8 +188,8 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 	   positives but won't hide actual bugs.
 	*/
 	if (sm_state->nr_children > 4000) {
-		print_once("debug: seperate_pools %s nr_children %d", sm_state->name, 
-			sm_state->nr_children);
+		implied_debug_msg =
+			(char *) "debug: seperate_pools: nr_children over 4000.";
 		return;
 	}
 
@@ -222,8 +221,8 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 		return NULL;
 
 	if (sm->nr_children > 4000) {
-		print_once("debug: remove_my_pools %s nr_children %d", sm->name,
-			sm->nr_children);
+		implied_debug_msg =
+			(char *) "debug: remove_my_pools: nr_children over 4000";
 		return NULL;
 	}
 
@@ -550,7 +549,7 @@ free:
 
 static void match_end_func(struct symbol *sym)
 {
-	print_count = 0;
+	implied_debug_msg = NULL;
 }
 
 /*

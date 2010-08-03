@@ -120,6 +120,8 @@ char *get_function(void);
 int get_lineno(void);
 int get_func_pos(void);
 extern int final_pass;
+extern struct symbol *cur_func_sym;
+extern int option_debug;
 
 #define sm_printf(msg...) do { if (final_pass) printf(msg); } while (0) \
 
@@ -128,14 +130,31 @@ static inline void sm_prefix(void)
 	printf("%s +%d %s(%d) ", get_filename(), get_lineno(), get_function(), get_func_pos());
 }
 
+
+static inline void print_implied_debug_msg();
+
 #define sm_msg(msg...) \
 do {                                                           \
+	print_implied_debug_msg();                             \
 	if (!option_debug && !final_pass)                      \
 		break;                                         \
 	sm_prefix();					       \
         printf(msg);                                           \
         printf("\n");                                          \
 } while (0)
+
+extern char *implied_debug_msg;
+static inline void print_implied_debug_msg()
+{
+	static struct symbol *last_printed = NULL;
+
+	if (!implied_debug_msg)
+		return;
+	if (last_printed == cur_func_sym)
+		return;
+	last_printed = cur_func_sym;
+	sm_msg("%s", implied_debug_msg);
+}
 
 #define sm_debug(msg...) do { if (option_debug) printf(msg); } while (0)
 
@@ -238,7 +257,6 @@ void __split_stmt(struct statement *stmt);
 extern int option_assume_loops;
 extern int option_known_conditions;
 extern int option_two_passes;
-extern struct symbol *cur_func_sym;
 extern struct expression_list *big_expression_stack;
 extern struct statement_list *big_statement_stack;
 extern int __in_pre_condition;
@@ -279,8 +297,6 @@ int implied_condition_true(struct expression *expr);
 int implied_condition_false(struct expression *expr);
 
 /* smatch_states.c */
-extern int option_debug;
-
 void __push_fake_cur_slist();
 struct state_list *__pop_fake_cur_slist();
 
