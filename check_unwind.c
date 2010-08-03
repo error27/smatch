@@ -25,6 +25,42 @@ static int my_id;
 STATE(allocated);
 STATE(unallocated);
 
+/* state of unwind function */
+STATE(called);
+
+static int was_passed_as_param(struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+	struct symbol *arg;
+
+	name = get_variable_from_expr(expr, &sym);
+	if (!name)
+		return 0;
+	free_string(name);
+
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
+		if (arg == sym)
+			return 1;
+	} END_FOR_EACH_PTR(arg);
+	return 0;
+}
+
+static void print_unwind_functions(const char *fn, struct expression *expr, void *_arg_no)
+{
+	struct expression *arg_expr;
+	int arg_no = (int)_arg_no;
+	static struct symbol *last_printed = NULL;
+
+	arg_expr = get_argument_from_call_expr(expr->args, arg_no);
+	if (!was_passed_as_param(arg_expr))
+		return;
+	if (last_printed == cur_func_sym)
+		return;
+	last_printed = cur_func_sym;
+	sm_msg("info: is unwind function");
+}
+
 static void request_granted(const char *fn, struct expression *call_expr,
 			struct expression *assign_expr, void *_arg_no)
 {
@@ -62,6 +98,11 @@ static void match_release(const char *fn, struct expression *expr, void *_arg_no
 	set_equiv_state_expr(my_id, arg_expr, &unallocated);
 }
 
+static void match_unwind_function(const char *fn, struct expression *expr, void *unused)
+{
+	set_state(my_id, "unwind_function", NULL, &called);
+}
+
 static int func_returns_int()
 {
 	struct symbol *type;
@@ -85,6 +126,8 @@ static void match_return(struct expression *ret_value)
 		return;
 	if (!implied_not_equal(ret_value, 0))
 		return;
+	if (get_state(my_id, "unwind_function", NULL) == &called)
+		return;
 
 	slist = get_all_states(my_id);
 	FOR_EACH_PTR(slist, tmp) {
@@ -94,11 +137,34 @@ static void match_return(struct expression *ret_value)
 	free_slist(&slist);
 }
 
+static void register_unwind_functions(void)
+{
+	struct token *token;
+	const char *func;
+
+	token = get_tokens_file("kernel.unwind_functions");
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = show_ident(token->ident);
+		add_function_hook(func, &match_unwind_function, NULL);
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
 void check_unwind(int id)
 {
 	if (option_project != PROJ_KERNEL)
 		return;
 	my_id = id;
+
+	register_unwind_functions();
 
 	return_implies_state("request_resource", 0, 0, &request_granted, INT_PTR(1));
 	return_implies_state("request_resource", -EBUSY, -EBUSY, &request_denied, INT_PTR(1));
@@ -134,4 +200,7 @@ void check_unwind(int id)
 	add_function_hook("misc_deregister", &match_release, INT_PTR(0));
 
 	add_hook(&match_return, RETURN_HOOK);
+
+	if (option_info)
+		add_function_hook("free_irq", &print_unwind_functions, INT_PTR(0));
 }
