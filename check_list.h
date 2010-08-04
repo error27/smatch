@@ -52,6 +52,7 @@ CK(check_return_efault)
 CK(check_gfp_dma)
 CK(check_unwind)
 CK(check_kmalloc_to_bugon)
+CK(check_platform_device_put)
 
 /* <- your test goes here */
 /* CK(register_template) */
