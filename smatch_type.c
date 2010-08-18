@@ -140,6 +140,30 @@ int type_unsigned(struct symbol *base_type)
 	return 0;
 }
 
+int returns_unsigned(struct symbol *sym)
+{
+	if (!sym)
+		return 0;
+	sym = get_base_type(sym);
+	if (!sym || sym->type != SYM_FN)
+		return 0;
+	sym = get_base_type(sym);
+	return type_unsigned(sym);
+}
+
+int returns_pointer(struct symbol *sym)
+{
+	if (!sym)
+		return 0;
+	sym = get_base_type(sym);
+	if (!sym || sym->type != SYM_FN)
+		return 0;
+	sym = get_base_type(sym);
+	if (sym->type == SYM_PTR)
+		return 1;
+	return 0;
+}
+
 long long type_max(struct symbol *base_type)
 {
 	long long ret = whole_range.max;
