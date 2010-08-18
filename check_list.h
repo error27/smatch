@@ -53,6 +53,7 @@ CK(check_gfp_dma)
 CK(check_unwind)
 CK(check_kmalloc_to_bugon)
 CK(check_platform_device_put)
+CK(check_info_leak)
 CK(check_return_enomem)
 
 /* <- your test goes here */
