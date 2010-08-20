@@ -100,7 +100,7 @@ const char *modifier_string(unsigned long mod)
 		"auto", "register", "static", "extern",
 		"const", "volatile", "[signed]", "[unsigned]",
 		"[char]", "[short]", "[long]", "[long long]",
-		"[typdef]", "[structof]", "[unionof]", "[enum]",
+		"[typedef]", "[structof]", "[unionof]", "[enum]",
 		"[typeof]", "[attribute]", "inline", "[addressable]",
 		"[nocast]", "[noderef]", "[accessed]", "[toplevel]",
 		"[label]", "[assigned]", "[type]", "[safe]",
