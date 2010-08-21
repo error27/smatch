@@ -19,6 +19,8 @@ ALLOCATOR(sm_state, "sm state");
 ALLOCATOR(named_slist, "named slist");
 __DO_ALLOCATOR(char, 0, 1, "state names", sname);
 
+static int sm_state_counter;
+
 void __print_slist(struct state_list *slist)
 {
 	struct sm_state *state;
@@ -150,10 +152,24 @@ char *alloc_sname(const char *str)
 	return tmp;
 }
 
+int out_of_memory()
+{
+	/*
+	 * I decided to use 50M here based on trial and error.
+	 * It works out OK for the kernel and so it should work
+	 * for most other projects as well.
+	 */
+	if (sm_state_counter * sizeof(struct sm_state) >= 50000000)
+		return 1;
+	return 0;
+}
+
 struct sm_state *alloc_sm_state(int owner, const char *name, 
 			     struct symbol *sym, struct smatch_state *state)
 {
 	struct sm_state *sm_state = __alloc_sm_state(0);
+
+	sm_state_counter++;
 
 	sm_state->name = alloc_sname(name);
 	sm_state->owner = owner;
@@ -211,6 +227,8 @@ void free_every_single_sm_state(void)
 		blob = next;
 	}
 	clear_sname_alloc();
+
+	sm_state_counter = 0;;
 }
 
 struct sm_state *clone_sm(struct sm_state *s)
@@ -613,6 +631,9 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 	struct state_list *results = NULL;
 	struct state_list *implied_one = NULL;
 	struct state_list *implied_two = NULL;
+
+	if (out_of_memory())
+		return;
 
 	check_order(*to);
 	check_order(slist);

@@ -280,7 +280,6 @@ static struct state_list *filter_stack(struct state_list *pre_list,
 	struct sm_state *tmp;
 	struct sm_state *filtered_sm;
 	int modified;
-	int counter = 0;
 
 	if (!stack)
 		return NULL;
@@ -292,7 +291,7 @@ static struct state_list *filter_stack(struct state_list *pre_list,
 			filtered_sm->name = tmp->name;
 			filtered_sm->sym = tmp->sym;
 			add_ptr_list(&ret, filtered_sm);
-			if ((counter++)%10 && out_of_memory())
+			if (out_of_memory())
 				return NULL;
 
 		}

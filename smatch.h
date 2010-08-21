@@ -386,10 +386,6 @@ void __match_initializer_call(struct symbol *sym);
 /* smatch_files.c */
 struct token *get_tokens_file(const char *filename);
 
-/* smatch_oom.c */
-extern int option_oom_kb;
-int out_of_memory(void);
-
 /* smatch.c */
 extern char *option_project_str;
 extern char *data_dir;

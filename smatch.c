@@ -66,7 +66,6 @@ static void help(void)
 	printf("--no-data:  do not use the /smatch_data/ directory.\n");
 	printf("--full-path:  print the full pathname.\n");
 	printf("--debug-implied:  print debug output about implications.\n");
-	printf("--oom <num>:  number of mB memory to use before giving up.\n");
 	printf("--no-implied:  ignore implications.\n");
 	printf("--assume-loops:  assume loops always go through at least once.\n");
 	printf("--known-conditions:  don't branch for known conditions.\n");
@@ -119,12 +118,6 @@ void parse_args(int *argcp, char ***argvp)
 			option_project_str = (*argvp)[1] + 3;
 			(*argvp)[1] = (*argvp)[0];
 			found = 1;
-		}
-		if (!found && !strcmp((*argvp)[1], "--oom")) {
-			option_oom_kb = atoi((*argvp)[2]) * 1000;
-			(*argvp)[2] = (*argvp)[0];
-			(*argcp)--;
-			(*argvp)++;
 		}
 		OPTION(spammy);
 		OPTION(info);
