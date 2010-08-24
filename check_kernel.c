@@ -28,6 +28,11 @@ static void match_param_nonnull(const char *fn, struct expression *call_expr,
 	set_extra_expr_nomod(arg, true_state);
 }
 
+static void match_container_of(const char *fn, struct expression *expr, void *unused)
+{
+	set_extra_expr_mod(expr->left, alloc_extra_state_range(1, POINTER_MAX));
+}
+
 void check_kernel(int id)
 {
 	if (option_project != PROJ_KERNEL)
@@ -35,4 +40,5 @@ void check_kernel(int id)
 
 	return_implies_state("IS_ERR_OR_NULL", 0, 0, &match_param_nonnull, (void *)0);
 	return_implies_state("tomoyo_memory_ok", 1, 1, &match_param_nonnull, (void *)0);
+	add_macro_assign_hook("container_of", &match_container_of, NULL);
 }
