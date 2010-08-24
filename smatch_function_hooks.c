@@ -11,6 +11,7 @@
  * There are three types of function hooks:
  * add_function_hook()        - For any time a function is called.
  * add_function_assign_hook() - foo = the_function().
+ * add_macro_assign_hook()    - foo = the_macro().
  * return_implies_state()     - For when a return value of 1 implies locked
  *                              and 0 implies unlocked. etc. etc.
  *
@@ -39,6 +40,7 @@ static struct hashtable *func_hash;
 #define REGULAR_CALL     0
 #define ASSIGN_CALL      1
 #define RANGED_CALL      2
+#define MACRO_ASSIGN     3
 
 static struct fcall_back *alloc_fcall_back(int type, func_hook *call_back,
 					   void *info)
@@ -66,6 +68,15 @@ void add_function_assign_hook(const char *look_for, func_hook *call_back,
 	struct fcall_back *cb;
 
 	cb = alloc_fcall_back(ASSIGN_CALL, call_back, info);
+	add_callback(func_hash, look_for, cb);
+}
+
+void add_macro_assign_hook(const char *look_for, func_hook *call_back,
+			void *info)
+{
+	struct fcall_back *cb;
+
+	cb = alloc_fcall_back(MACRO_ASSIGN, call_back, info);
 	add_callback(func_hash, look_for, cb);
 }
 
@@ -248,6 +259,20 @@ static void match_assign_call(struct expression *expr)
 	assign_ranged_funcs(fn, expr, call_backs);
 }
 
+static void match_macro_assign(struct expression *expr)
+{
+	struct call_back_list *call_backs;
+	const char *macro;
+	struct expression *right;
+
+	right = strip_expr(expr->right);
+	macro = get_macro_name(&right->pos);
+	call_backs = search_callback(func_hash, (char *)macro);
+	if (!call_backs)
+		return;
+	call_call_backs(call_backs, MACRO_ASSIGN, macro, expr);
+}
+
 void create_function_hook_hash(void)
 {
 	func_hash = create_function_hashtable(5000);
@@ -257,4 +282,5 @@ void register_function_hooks(int id)
 {
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);
+	add_hook(&match_macro_assign, MACRO_ASSIGNMENT_HOOK);
 }

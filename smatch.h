@@ -74,6 +74,7 @@ enum hook_type {
 	WHOLE_CONDITION_HOOK,
 	FUNCTION_CALL_HOOK,
 	CALL_ASSIGNMENT_HOOK,
+	MACRO_ASSIGNMENT_HOOK,
 	BINOP_HOOK,
 	OP_HOOK,
 	DEREF_HOOK,
@@ -104,6 +105,8 @@ typedef void (implication_hook)(const char *fn, struct expression *call_expr,
 void add_function_hook(const char *look_for, func_hook *call_back, void *data);
 
 void add_function_assign_hook(const char *look_for, func_hook *call_back,
+			      void *info);
+void add_macro_assign_hook(const char *look_for, func_hook *call_back,
 			      void *info);
 void return_implies_state(const char *look_for, long long start, long long end,
 			 implication_hook *call_back, void *info);
