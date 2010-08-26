@@ -181,7 +181,7 @@ static void show_struct_member(struct symbol *sym)
 	printf("\n");
 }
 
-void show_symbol_list(struct symbol_list *list, const char *sep)
+void show_symbol_list(struct symbol_list *list)
 {
 	struct symbol *sym;
 	const char *prepend = "";

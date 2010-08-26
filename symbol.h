@@ -343,7 +343,7 @@ extern const char *modifier_string(unsigned long mod);
 extern void show_symbol(struct symbol *);
 extern int show_symbol_expr_init(struct symbol *sym);
 extern void show_type_list(struct symbol *);
-extern void show_symbol_list(struct symbol_list *, const char *);
+extern void show_symbol_list(struct symbol_list *);
 extern void add_symbol(struct symbol_list **, struct symbol *);
 extern void bind_symbol(struct symbol *, struct ident *, enum namespace);
 extern void bind_symbol_with_scope(struct symbol *, struct ident *, enum namespace, struct scope *);

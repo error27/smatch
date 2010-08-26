@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 	clean_up_symbols(list);
 
 #if 1
-	show_symbol_list(list, "\n\n");
+	show_symbol_list(list);
 	printf("\n\n");
 #endif
 
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 
 #if 1
 		// Show the end result.
-		show_symbol_list(list, "\n\n");
+		show_symbol_list(list);
 		printf("\n\n");
 #endif
 	} END_FOR_EACH_PTR(file);
