@@ -1,2 +1,13 @@
 hifier_registers_init
 snd_via8233_pcm_new
+check_area
+cs5536_write
+wm8776_write
+watchdog_disable
+cs5536_read
+indirect_read
+indirect_write
+get_ctrl_ptr
+init_viadev
+ak4396_write
+

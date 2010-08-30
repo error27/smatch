@@ -4,8 +4,8 @@ aha152x_error
 ahd_handle_hwerrint
 aic7xxx_panic_abort
 assfail
-BAD_SG_DMA
-bdi_forker_task
+audit_tree_handle_event
+bdi_forker_thread
 cafe_nand_bug
 ____call_usermodehelper
 cifs_demultiplex_thread
@@ -21,13 +21,14 @@ do_exit
 do_group_exit
 doublefault_fn
 drm_gem_object_ref_bug
-dummy_enable
-dummy_set_config_rom
 early_panic
 follow_huge_pud
+force_format_nand
 fsg_main_thread
+fsnotify_mark_destroy
 hugetlbfs_write_end
 hugetlb_vm_op_fault
+i386_start_kernel
 init_post
 __invalid_creds
 jffs2_garbage_collect_thread
@@ -66,6 +67,7 @@ sys_exit_group
 task_tick_rt
 tomoyo_gc_thread
 ttm_bo_ref_bug
+txd_chain
 usbatm_do_heavy_init
 usb_stor_scan_thread
 usu_probe_thread

@@ -247,6 +247,7 @@ ctrl_build_family_msg
 ctrl_build_mcgrp_msg
 cxgb3i_ep_connect
 d_add_ci
+d_alloc_and_lookup
 db9_probe
 de600_probe
 de620_probe
@@ -361,7 +362,6 @@ fib_rules_register
 __file_cft
 find_alloc_undo
 find_get_context
-find_inode
 find_keyring_by_name
 find_zlib_workspace
 finish_open
@@ -568,7 +568,6 @@ logfs_new_meta_inode
 logfs_read_meta_inode
 lookup_bdev
 lookup_create
-lookup_extent_mapping
 __lookup_hash
 lookup_hash
 lookup_one_len
