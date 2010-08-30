@@ -266,7 +266,7 @@ static void match_array_func(const char *fn, struct expression *expr, void *info
 	long long offset;
 
 	arg = get_argument_from_call_expr(expr->args, bound_info->param);
-	if (!get_implied_value(arg, &offset))
+	if (!get_implied_max(arg, &offset))
 		return;
 	if (offset >= bound_info->size)
 		sm_msg("error: buffer overflow calling %s. param %d.  %lld >= %d", 
@@ -278,8 +278,10 @@ static void register_array_funcs(void)
 	struct token *token;
 	const char *func;
 	struct bound *bound_info = NULL;
+	char name[256];
 
-	token = get_tokens_file("kernel.array_bounds");
+	snprintf(name, 256, "%s.array_bounds", option_project_str);
+	token = get_tokens_file(name);
 	if (!token)
 		return;
 	if (token_type(token) != TOKEN_STREAMBEGIN)
@@ -301,8 +303,10 @@ static void register_array_funcs(void)
 		add_function_hook(func, &match_array_func, bound_info);
 		token = token->next;
 	}
-	if (token_type(token) != TOKEN_STREAMEND)
+	if (token_type(token) != TOKEN_STREAMEND) {
+		printf("failed to load %s", name);
 		free(bound_info);
+	}
 	clear_token_alloc();
 }
 
@@ -330,5 +334,6 @@ void check_overflow(int id)
 		add_function_hook("__copy_from_user", &match_limited, &b1_l2);
 		add_function_hook("__builtin_memset", &match_limited, &b0_l2);
 	}
-	register_array_funcs();
+	if (option_spammy)
+		register_array_funcs();
 }
