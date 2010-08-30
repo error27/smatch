@@ -10,6 +10,7 @@ pre-process.h
 sparse.pc
 
 # programs
+test-inspect
 test-lexing
 test-parsing
 obfuscate
