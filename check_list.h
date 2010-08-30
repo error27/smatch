@@ -64,6 +64,7 @@ CK(check_locking)
 CK(check_puts_argument)
 CK(check_err_ptr)
 CK(check_err_ptr_deref)
+CK(check_expects_err_ptr)
 CK(check_hold_dev)
 
 /* wine specific stuff */
