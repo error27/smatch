@@ -161,6 +161,13 @@ static void register_unwind_functions(void)
 	clear_token_alloc();
 }
 
+static void release_function_indicator(const char *name)
+{
+	if (!option_info)
+		return;
+	add_function_hook(name, &print_unwind_functions, INT_PTR(0));
+}
+
 void check_unwind(int id)
 {
 	if (option_project != PROJ_KERNEL)
@@ -172,10 +179,12 @@ void check_unwind(int id)
 	return_implies_state("request_resource", 0, 0, &request_granted, INT_PTR(1));
 	return_implies_state("request_resource", -EBUSY, -EBUSY, &request_denied, INT_PTR(1));
 	add_function_hook("release_resource", &match_release, INT_PTR(0));
+	release_function_indicator("release_resource");
 
 	return_implies_state("__request_region", 1, POINTER_MAX, &request_granted, INT_PTR(1));
 	return_implies_state("__request_region", 0, 0, &request_denied, INT_PTR(1));
 	add_function_hook("__release_region", &match_release, INT_PTR(1));
+	release_function_indicator("__release_region");
 
 	return_implies_state("ioremap", 1, POINTER_MAX, &request_granted, INT_PTR(-1));
 	return_implies_state("ioremap", 0, 0, &request_denied, INT_PTR(-1));
@@ -184,6 +193,7 @@ void check_unwind(int id)
 	return_implies_state("pci_iomap", 1, POINTER_MAX, &request_granted, INT_PTR(-1));
 	return_implies_state("pci_iomap", 0, 0, &request_denied, INT_PTR(-1));
 	add_function_hook("pci_iounmap", &match_release, INT_PTR(1));
+	release_function_indicator("pci_iounmap");
 
 	return_implies_state("__create_workqueue_key", 1, POINTER_MAX, &request_granted,
 			INT_PTR(-1));
@@ -193,17 +203,18 @@ void check_unwind(int id)
 	return_implies_state("request_irq", 0, 0, &request_granted, INT_PTR(0));
 	return_implies_state("request_irq", -MAX_ERRNO, -1, &request_denied, INT_PTR(0));
 	add_function_hook("free_irq", &match_release, INT_PTR(0));
+	release_function_indicator("free_irq");
 
 	return_implies_state("register_netdev", 0, 0, &request_granted, INT_PTR(0));
 	return_implies_state("register_netdev", -MAX_ERRNO, -1, &request_denied, INT_PTR(0));
 	add_function_hook("unregister_netdev", &match_release, INT_PTR(0));
+	release_function_indicator("unregister_netdev");
 
 	return_implies_state("misc_register", 0, 0, &request_granted, INT_PTR(0));
 	return_implies_state("misc_register", -MAX_ERRNO, -1, &request_denied, INT_PTR(0));
 	add_function_hook("misc_deregister", &match_release, INT_PTR(0));
+	release_function_indicator("misc_deregister");
+
 
 	add_hook(&match_return, RETURN_HOOK);
-
-	if (option_info)
-		add_function_hook("free_irq", &print_unwind_functions, INT_PTR(0));
 }
