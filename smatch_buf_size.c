@@ -54,7 +54,6 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 	i = 0;
 	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
 		if (i == param && arg->ident->name) {
-			sm_msg("name = '%s'", arg->ident->name);
 			set_state(my_size_id, arg->ident->name, arg, alloc_state_num(size));
 		}
 		i++;
