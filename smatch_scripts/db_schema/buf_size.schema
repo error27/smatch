@@ -1,0 +1,5 @@
+CREATE TABLE buf_size (file varchar(256), function varchar(256), parameter integer, size integer);
+
+CREATE INDEX fn_idx on buf_size (function);
+CREATE INDEX ff_idx on buf_size (file, function);
+

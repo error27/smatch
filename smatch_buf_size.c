@@ -8,6 +8,7 @@
  */
 
 #include <stdlib.h>
+#include <errno.h>
 #include "parse.h"
 #include "smatch.h"
 #include "smatch_slist.h"
@@ -27,6 +28,60 @@ struct limiter {
 	int limit_arg;
 };
 static struct limiter b0_l2 = {0, 2};
+
+static _Bool params_set[32];
+
+static int db_callback(void *unused, int argc, char **argv, char **azColName)
+{
+	struct symbol *arg;
+	unsigned int param;
+	unsigned int size;
+	int i;
+	int dummy = 0;
+
+	errno = 0;
+	param = strtoul(argv[0], NULL, 10);
+	size = strtoul(argv[1], NULL, 10);
+	if (errno)
+		return dummy;
+
+	if (param >= ARRAY_SIZE(params_set))
+		return dummy;
+	if (params_set[param])
+		return dummy;
+	params_set[param] = 1;
+
+	i = 0;
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
+		if (i == param && arg->ident->name) {
+			sm_msg("name = '%s'", arg->ident->name);
+			set_state(my_size_id, arg->ident->name, arg, alloc_state_num(size));
+		}
+		i++;
+	} END_FOR_EACH_PTR(arg);
+
+	return dummy;
+}
+
+static void match_function_def(struct symbol *sym)
+{
+	if (!sym || !sym->ident || !sym->ident->name)
+		return;
+
+	if (sym->ctype.modifiers & MOD_STATIC) {
+		run_sql(db_callback,
+			"select distinct parameter, size from buf_size "
+			"where file = '%s' and function = '%s' "
+			"order by size desc;",
+			get_filename(), sym->ident->name);
+	} else {
+		run_sql(db_callback,
+			"select distinct parameter, size from buf_size "
+			"where function = '%s' "
+			"order by size desc;",
+			sym->ident->name);
+	}
+}
 
 static int get_initializer_size(struct expression *expr)
 {
@@ -365,9 +420,38 @@ static void match_strndup(const char *fn, struct expression *expr, void *unused)
 	set_state_expr(my_size_id, expr->left, alloc_state_num(size));
 }
 
+static void match_call(struct expression *expr)
+{
+	char *name;
+	struct expression *arg;
+	int bytes;
+	int i;
+
+	name = get_variable_from_expr(expr->fn, NULL);
+	if (!name)
+		return;
+
+	i = 0;
+	FOR_EACH_PTR(expr->args, arg) {
+		bytes = get_array_size_bytes(arg);
+		if (bytes > 1)
+			sm_msg("info: passes_buffer '%s' %d %d", name, i, bytes);
+		i++;
+	} END_FOR_EACH_PTR(arg);
+
+	free_string(name);
+}
+
+static void match_func_end(struct symbol *sym)
+{
+	memset(params_set, 0, sizeof(params_set));
+}
+
 void register_buf_size(int id)
 {
 	my_size_id = id;
+
+	add_hook(&match_function_def, FUNC_DEF_HOOK);
 
 	add_function_assign_hook("malloc", &match_alloc, INT_PTR(0));
 	add_function_assign_hook("calloc", &match_calloc, NULL);
@@ -398,6 +482,11 @@ void register_buf_size(int id)
 	add_function_assign_hook("strndup", match_strndup, NULL);
 	if (option_project == PROJ_KERNEL)
 		add_function_assign_hook("kstrndup", match_strndup, NULL);
+
+	if (option_info)
+		add_hook(&match_call, FUNCTION_CALL_HOOK);
+
+	add_hook(&match_func_end, END_FUNC_HOOK);
 }
 
 void register_strlen(int id)
