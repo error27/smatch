@@ -1,7 +1,7 @@
 /*
  * sparse/check_param_mapper.c
  *
- * Copyright (C) 2009 Your Name.
+ * Copyright (C) 2009 Dan Carpenter.
  *
  * Licensed under the Open Software License version 1.1
  *
