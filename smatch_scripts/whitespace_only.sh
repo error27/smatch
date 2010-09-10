@@ -49,7 +49,9 @@ for file in $files ; do
 
     $STRIP $file > $before
     if [ "$compile" = "true" ] ; then
-	$KCHECKER --test-parsing --outfile=$before $file
+	if ! $KCHECKER --test-parsing --outfile=$before $file ; then
+		echo "warning: compile failed."
+	fi
 	mv $before $tmpfile
 	$STRIP $file > $before
 	cat $tmpfile >> $before
@@ -57,7 +59,9 @@ for file in $files ; do
     cat $PATCH | patch -p1
     $STRIP $file > $after
     if [ "$compile" = "true" ] ; then
-	$KCHECKER --test-parsing --outfile=$after $file
+	if ! $KCHECKER --test-parsing --outfile=$after $file ; then
+		echo "warning: compile failed.  *again*"
+	fi
 	mv $after $tmpfile
 	$STRIP $file > $after
 	cat $tmpfile >> $after
