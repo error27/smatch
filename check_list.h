@@ -56,6 +56,8 @@ CK(check_platform_device_put)
 CK(check_info_leak)
 CK(check_return_enomem)
 CK(check_uncapped_alloc)
+CK(check_get_user_overflow)
+CK(check_get_user_overflow2)
 
 /* <- your test goes here */
 /* CK(register_template) */
