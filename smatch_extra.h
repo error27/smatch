@@ -60,6 +60,7 @@ struct smatch_state *clone_extra_state(struct smatch_state *state);
 struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state);
 struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state);
 void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state);
+struct smatch_state *alloc_extra_state_empty(void);
 struct smatch_state *alloc_extra_state(long long val);
 struct smatch_state *alloc_extra_state_range_list(struct range_list *rl);
 struct range_list *get_range_list(struct expression *expr);

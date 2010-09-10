@@ -9,6 +9,7 @@
 
 /*
  * smatch_extra.c is supposed to track the value of every variable.
+ *
  */
 
 #include <stdlib.h>
@@ -22,132 +23,6 @@
 #include "smatch_extra.h"
 
 static int my_id;
-
-static struct symbol *cur_func;
-
-struct data_range whole_range = {
-	.min = LLONG_MIN,
-	.max = LLONG_MAX,	
-};
-
-static struct data_info *alloc_dinfo(void)
-{
-	struct data_info *ret;
-
-	ret = __alloc_data_info(0);
-	ret->related = NULL;
-	ret->type = DATA_RANGE;
-	ret->value_ranges = NULL;
-	return ret;
-}
-
-static struct data_info *alloc_dinfo_range(long long min, long long max)
-{
-	struct data_info *ret;
-
-	ret = alloc_dinfo();
-	add_range(&ret->value_ranges, min, max);
-	return ret;
-}
-
-static struct data_info *alloc_dinfo_range_list(struct range_list *rl)
-{
-	struct data_info *ret;
-
-	ret = alloc_dinfo();
-	ret->value_ranges = rl;
-	return ret;
-}
-
-static struct data_info *clone_dinfo(struct data_info *dinfo)
-{
-	struct data_info *ret;
-
-	ret = alloc_dinfo();
-	ret->related = clone_related_list(dinfo->related);
-	ret->value_ranges = clone_range_list(dinfo->value_ranges);
-	return ret;
-}
-
-struct smatch_state *clone_extra_state(struct smatch_state *state)
-{
-	struct smatch_state *ret;
-
-	ret = __alloc_smatch_state(0);
-	ret->name = state->name;
-	ret->data = clone_dinfo(get_dinfo(state));
-	return ret;
-}
-
-static struct smatch_state *alloc_extra_state_empty(void)
-{
-	struct smatch_state *state;
-	struct data_info *dinfo;
-
-	dinfo = alloc_dinfo();
-	state = __alloc_smatch_state(0);
-	state->data = dinfo;
-	state->name = "";
-	return state;
-}
-
-static struct smatch_state *alloc_extra_state_no_name(int val)
-{
-	struct smatch_state *state;
-
-	state = __alloc_smatch_state(0);
-	state->data = (void *)alloc_dinfo_range(val, val);
-	return state;
-}
-
-/* We do this because ->value_ranges is a list */
-struct smatch_state *extra_undefined(void)
-{
-	struct data_info *dinfo;
-	static struct smatch_state *ret;
-	static struct symbol *prev_func;
-
-	if  (prev_func == cur_func)
-		return ret;
-	prev_func = cur_func;
-
-	dinfo = alloc_dinfo_range(whole_range.min, whole_range.max);
-	ret = __alloc_smatch_state(0);
-	ret->name = "unknown";
-	ret->data = dinfo;
-	return ret;
-}
-
-struct smatch_state *alloc_extra_state(long long val)
-{
-	struct smatch_state *state;
-
-	state = alloc_extra_state_no_name(val);
-	state->name = show_ranges(get_dinfo(state)->value_ranges);
-	return state;
-}
-
-struct smatch_state *alloc_extra_state_range(long long min, long long max)
-{
-	struct smatch_state *state;
-
-	if (min == whole_range.min && max == whole_range.max)
-		return extra_undefined();
-	state = __alloc_smatch_state(0);
-	state->data = (void *)alloc_dinfo_range(min, max);
-	state->name = show_ranges(get_dinfo(state)->value_ranges);
-	return state;
-}
-
-struct smatch_state *alloc_extra_state_range_list(struct range_list *rl)
-{
-	struct smatch_state *state;
-
-	state = __alloc_smatch_state(0);
-	state->data = (void *)alloc_dinfo_range_list(rl);
-	state->name = show_ranges(get_dinfo(state)->value_ranges);
-	return state;
-}
 
 struct string_list *__ignored_macros = NULL;
 static int in_warn_on_macro()
@@ -646,7 +521,6 @@ static void match_function_def(struct symbol *sym)
 {
 	struct symbol *arg;
 
-	cur_func = sym;
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
 		if (!arg->ident) {
 			continue;
