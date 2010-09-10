@@ -30,6 +30,7 @@ CK(check_format_string)
 CK(check_unused_ret)
 CK(check_dma_on_stack)
 CK(check_param_mapper)
+CK(check_param_values)
 CK(check_db_info)
 CK(check_call_tree)
 CK(check_dev_queue_xmit)
@@ -54,6 +55,7 @@ CK(check_kmalloc_to_bugon)
 CK(check_platform_device_put)
 CK(check_info_leak)
 CK(check_return_enomem)
+CK(check_uncapped_alloc)
 
 /* <- your test goes here */
 /* CK(register_template) */
