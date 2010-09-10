@@ -262,6 +262,7 @@ void __split_stmt(struct statement *stmt);
 extern int option_assume_loops;
 extern int option_known_conditions;
 extern int option_two_passes;
+extern int option_no_db;
 extern struct expression_list *big_expression_stack;
 extern struct statement_list *big_statement_stack;
 extern int __in_pre_condition;
@@ -385,6 +386,18 @@ void __call_scope_hooks(void);
 /* smatch_function_hooks.c */
 void create_function_hook_hash(void);
 void __match_initializer_call(struct symbol *sym);
+
+/* smatch_db.c */
+#define run_sql(call_back, sql...)    \
+do {                                  \
+	char sql_txt[1024];           \
+	snprintf(sql_txt, 1024, sql); \
+	sql_txt[1023] = '\0';         \
+	sql_exec(call_back, sql_txt); \
+} while (0)
+
+void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql);
+void open_smatch_db(void);
 
 /* smatch_files.c */
 struct token *get_tokens_file(const char *filename);

@@ -24,6 +24,7 @@ int option_full_path = 0;
 int option_param_mapper = 0;
 int option_print_returns = 0;
 int option_call_tree = 0;
+int option_no_db = 0;
 
 typedef void (*reg_func) (int id);
 #define CK(_x) {.name = #_x, .func = &_x},
@@ -185,6 +186,7 @@ int main(int argc, char **argv)
 	data_dir = get_data_dir(argv[0]);
 
 	create_function_hook_hash();
+	open_smatch_db();
 	for (i = 0; i < ARRAY_SIZE(reg_funcs); i++) {
 		func = reg_funcs[i].func;
 		/* The script IDs start at 1.
