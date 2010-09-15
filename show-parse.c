@@ -95,29 +95,55 @@ void debug_symbol(struct symbol *sym)
 const char *modifier_string(unsigned long mod)
 {
 	static char buffer[100];
-	char *p = buffer;
-	const char *res,**ptr, *names[] = {
-		"auto", "register", "static", "extern",
-		"const", "volatile", "[signed]", "[unsigned]",
-		"[char]", "[short]", "[long]", "[long long]",
-		"[typedef]", "[structof]", "[unionof]", "[enum]",
-		"[typeof]", "[attribute]", "inline", "[addressable]",
-		"[nocast]", "[noderef]", "[accessed]", "[toplevel]",
-		"[label]", "[assigned]", "[type]", "[safe]",
-		"[usertype]", "[force]", "[explicitly-signed]",
-		NULL
+	int len = 0;
+	int i;
+	struct mod_name {
+		unsigned long mod;
+		const char *name;
+	} *m;
+
+	static struct mod_name mod_names[] = {
+		{MOD_AUTO,		"auto"},
+		{MOD_REGISTER,		"register"},
+		{MOD_STATIC,		"static"},
+		{MOD_EXTERN,		"extern"},
+		{MOD_CONST,		"const"},
+		{MOD_VOLATILE,		"volatile"},
+		{MOD_SIGNED,		"[signed]"},
+		{MOD_UNSIGNED,		"[unsigned]"},
+		{MOD_CHAR,		"[char]"},
+		{MOD_SHORT,		"[short]"},
+		{MOD_LONG,		"[long]"},
+		{MOD_LONGLONG,		"[long long]"},
+		{MOD_LONGLONGLONG,	"[long long long]"},
+		{MOD_TYPEDEF,		"[typedef]"},
+		{MOD_TLS,		"[tls]"},
+		{MOD_INLINE,		"inline"},
+		{MOD_ADDRESSABLE,	"[addressable]"},
+		{MOD_NOCAST,		"[nocast]"},
+		{MOD_NODEREF,		"[noderef]"},
+		{MOD_ACCESSED,		"[accessed]"},
+		{MOD_TOPLEVEL,		"[toplevel]"},
+		{MOD_ASSIGNED,		"[assigned]"},
+		{MOD_TYPE,		"[type]"},
+		{MOD_SAFE,		"[safe]"},
+		{MOD_USERTYPE,		"[usertype]"},
+		{MOD_NORETURN,		"[noreturn]"},
+		{MOD_EXPLICITLY_SIGNED,	"[explicitly-signed]"},
+		{MOD_BITWISE,		"[bitwise]"},
 	};
-	ptr = names;
-	while ((res = *ptr++) != NULL) {
-		if (mod & 1) {
+
+	for (i = 0; i < ARRAY_SIZE(mod_names); i++) {
+		m = mod_names + i;
+		if (mod & m->mod) {
 			char c;
-			while ((c = *res++) != '\0')
-				*p++ = c;
-			*p++ = ' ';
+			const char *name = m->name;
+			while ((c = *name++) != '\0' && len + 2 < sizeof buffer)
+				buffer[len++] = c;
+			buffer[len++] = ' ';
 		}
-		mod >>= 1;
 	}
-	*p = 0;
+	buffer[len] = 0;
 	return buffer;
 }
 
