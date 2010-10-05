@@ -19,13 +19,21 @@ static void match_free(const char *fn, struct expression *expr, void *data)
 
 	arg_expr = get_argument_from_call_expr(expr->args, 0);
 	type = get_type(arg_expr);
-	if (!type || type->type != SYM_PTR)
+
+	if (!type || (type->type != SYM_PTR && type->type != SYM_ARRAY))
 		return;
 	type = get_base_type(type);
-	if (!type || !type->ident || strcmp("sk_buff", type->ident->name)) 
+
+	if (!type || !type->ident)
 		return;
+
 	name = get_variable_from_expr_complex(arg_expr, NULL);
-	sm_msg("error: use kfree_skb() here instead of kfree(%s)", name);
+
+	if (!strcmp("sk_buff", type->ident->name))
+		sm_msg("error: use kfree_skb() here instead of kfree(%s)", name);
+	else if (!strcmp("net_device", type->ident->name))
+		sm_msg("error: use free_netdev() here instead of kfree(%s)", name);
+
 	free_string(name);
 }
 
