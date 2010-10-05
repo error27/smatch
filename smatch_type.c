@@ -71,7 +71,7 @@ static struct symbol *get_pointer_type(struct expression *expr)
 	struct symbol *sym;
 
 	sym = get_type(expr);
-	if (!sym || sym->type != SYM_PTR)
+	if (!sym || (sym->type != SYM_PTR && sym->type != SYM_ARRAY))
 		return NULL;
 	return get_real_base_type(sym);
 }
@@ -117,9 +117,7 @@ struct symbol *get_type(struct expression *expr)
 		if (expr->op != '+')
 			return NULL;
 		tmp = get_type(expr->left);
-		if (!tmp || (tmp->type != SYM_ARRAY && tmp->type != SYM_PTR))
-			return NULL;
-		return get_real_base_type(tmp);
+		return tmp;
 	case EXPR_CALL:
 		return get_return_type(expr);
 	default:
