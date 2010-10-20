@@ -64,53 +64,50 @@ struct token *parens_expression(struct token *token, struct expression **expr, c
  * Handle __func__, __FUNCTION__ and __PRETTY_FUNCTION__ token
  * conversion
  */
-static int convert_one_fn_token(struct token *token)
+static struct symbol *handle_func(struct token *token)
 {
-	struct symbol *sym = current_fn;
+	struct ident *ident = token->ident;
+	struct symbol *decl, *array;
+	struct string *string;
+	int len;
 
-	if (sym) {
-		struct ident *ident = sym->ident;
-		if (ident) {
-			int len = ident->len;
-			struct string *string;
+	if (ident != &__func___ident &&
+	    ident != &__FUNCTION___ident &&
+	    ident != &__PRETTY_FUNCTION___ident)
+		return NULL;
 
-			string = __alloc_string(len+1);
-			memcpy(string->data, ident->name, len);
-			string->data[len] = 0;
-			string->length = len+1;
-			token_type(token) = TOKEN_STRING;
-			token->string = string;
-			return 1;
-		}
-	}
-	return 0;
-}
+	if (!current_fn)
+		return NULL;
 
-static int convert_function(struct token *next)
-{
-	int retval = 0;
-	for (;;) {
-		struct token *token = next;
-		next = next->next;
-		switch (token_type(token)) {
-		case TOKEN_STRING:
-			continue;
-		case TOKEN_IDENT:
-			if (token->ident == &__func___ident ||
-			    token->ident == &__FUNCTION___ident ||
-			    token->ident == &__PRETTY_FUNCTION___ident) {
-				if (!convert_one_fn_token(token))
-					break;
-				retval = 1;
-				continue;
-			}
-		/* Fall through */
-		default:
-			break;
-		}
-		break;
-	}
-	return retval;
+	/* OK, it's one of ours */
+	array = alloc_symbol(token->pos, SYM_ARRAY);
+	array->ctype.base_type = &char_ctype;
+	array->ctype.alignment = 1;
+	array->endpos = token->pos;
+	decl = alloc_symbol(token->pos, SYM_NODE);
+	decl->ctype.base_type = array;
+	decl->ctype.alignment = 1;
+	decl->ctype.modifiers = MOD_STATIC;
+	decl->endpos = token->pos;
+
+	/* function-scope, but in NS_SYMBOL */
+	bind_symbol(decl, ident, NS_LABEL);
+	decl->namespace = NS_SYMBOL;
+
+	len = current_fn->ident->len;
+	string = __alloc_string(len + 1);
+	memcpy(string->data, current_fn->ident->name, len);
+	string->data[len] = 0;
+	string->length = len + 1;
+
+	decl->initializer = alloc_expression(token->pos, EXPR_STRING);
+	decl->initializer->string = string;
+	decl->initializer->ctype = decl;
+	decl->array_size = alloc_const_expression(token->pos, len + 1);
+	array->array_size = decl->array_size;
+	decl->bit_size = array->bit_size = bytes_to_bits(len + 1);
+
+	return decl;
 }
 
 static struct token *parse_type(struct token *token, struct expression **tree)
@@ -225,8 +222,6 @@ static struct token *string_expression(struct token *token, struct expression *e
 	struct string *string = token->string;
 	struct token *next = token->next;
 	int stringtype = token_type(token);
-
-	convert_function(token);
 
 	if (token_type(next) == stringtype) {
 		int totlen = string->length-1;
@@ -434,8 +429,7 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		struct token *next = token->next;
 
 		if (!sym) {
-			if (convert_function(token))
-				goto handle_string;
+			sym = handle_func(token);
 			if (token->ident == &__builtin_types_compatible_p_ident) {
 				token = builtin_types_compatible_p_expr(token, &expr);
 				break;
@@ -473,13 +467,11 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 	}
 
 	case TOKEN_STRING:
-	case TOKEN_WIDE_STRING: {
-	handle_string:
+	case TOKEN_WIDE_STRING:
 		expr = alloc_expression(token->pos, EXPR_STRING);
 		expr->wide = token_type(token) == TOKEN_WIDE_STRING;
 		token = string_expression(token, expr);
 		break;
-	}
 
 	case TOKEN_SPECIAL:
 		if (token->special == '(') {
