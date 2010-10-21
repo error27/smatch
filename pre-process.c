@@ -502,6 +502,27 @@ static struct token **copy(struct token **where, struct token *list, int *count)
 	return where;
 }
 
+static int handle_kludge(struct token **p, struct arg *args)
+{
+	struct token *t = (*p)->next->next;
+	while (1) {
+		struct arg *v = &args[t->argnum];
+		if (token_type(t->next) != TOKEN_CONCAT) {
+			if (v->arg) {
+				/* ignore the first ## */
+				*p = (*p)->next;
+				return 0;
+			}
+			/* skip the entire thing */
+			*p = t;
+			return 1;
+		}
+		if (v->arg && !eof_token(v->arg))
+			return 0; /* no magic */
+		t = t->next->next;
+	}
+}
+
 static struct token **substitute(struct token **list, struct token *body, struct arg *args)
 {
 	struct token *token = *list;
@@ -513,6 +534,7 @@ static struct token **substitute(struct token **list, struct token *body, struct
 	for (; !eof_token(body); body = body->next, pos = &body->pos) {
 		struct token *added, *arg;
 		struct token **tail;
+		struct token *t;
 
 		switch (token_type(body)) {
 		case TOKEN_GNU_KLUDGE:
@@ -520,13 +542,20 @@ static struct token **substitute(struct token **list, struct token *body, struct
 			 * GNU kludge: if we had <comma>##<vararg>, behaviour
 			 * depends on whether we had enough arguments to have
 			 * a vararg.  If we did, ## is just ignored.  Otherwise
-			 * both , and ## are ignored.  Comma should come from
-			 * the body of macro and not be an argument of earlier
-			 * concatenation.
+			 * both , and ## are ignored.  Worse, there can be
+			 * an arbitrary number of ##<arg> in between; if all of
+			 * those are empty, we act as if they hadn't been there,
+			 * otherwise we act as if the kludge didn't exist.
 			 */
-			if (!args[body->next->argnum].arg)
+			t = body;
+			if (handle_kludge(&body, args)) {
+				if (state == Concat)
+					state = Normal;
+				else
+					state = Placeholder;
 				continue;
-			added = dup_token(body, base_pos, pos);
+			}
+			added = dup_token(t, base_pos, pos);
 			token_type(added) = TOKEN_SPECIAL;
 			tail = &added->next;
 			break;
@@ -1035,6 +1064,10 @@ static int try_arg(struct token *token, enum token_type type, struct token *argl
 			}
 			if (n)
 				return count->vararg ? 2 : 1;
+			/*
+			 * XXX - need saner handling of that
+			 * (>= 1024 instances of argument)
+			 */
 			token_type(token) = TOKEN_ERROR;
 			return -1;
 		}
@@ -1042,49 +1075,103 @@ static int try_arg(struct token *token, enum token_type type, struct token *argl
 	return 0;
 }
 
+static struct token *handle_hash(struct token **p, struct token *arglist)
+{
+	struct token *token = *p;
+	if (arglist) {
+		struct token *next = token->next;
+		if (!try_arg(next, TOKEN_STR_ARGUMENT, arglist))
+			goto Equote;
+		next->pos.whitespace = token->pos.whitespace;
+		__free_token(token);
+		token = *p = next;
+	} else {
+		token->pos.noexpand = 1;
+	}
+	return token;
+
+Equote:
+	sparse_error(token->pos, "'#' is not followed by a macro parameter");
+	return NULL;
+}
+
+/* token->next is ## */
+static struct token *handle_hashhash(struct token *token, struct token *arglist)
+{
+	struct token *last = token;
+	struct token *concat;
+	int state = match_op(token, ',');
+	
+	try_arg(token, TOKEN_QUOTED_ARGUMENT, arglist);
+
+	while (1) {
+		struct token *t;
+		int is_arg;
+
+		/* eat duplicate ## */
+		concat = token->next;
+		while (match_op(t = concat->next, SPECIAL_HASHHASH)) {
+			token->next = t;
+			__free_token(concat);
+			concat = t;
+		}
+		token_type(concat) = TOKEN_CONCAT;
+
+		if (eof_token(t))
+			goto Econcat;
+
+		if (match_op(t, '#')) {
+			t = handle_hash(&concat->next, arglist);
+			if (!t)
+				return NULL;
+		}
+
+		is_arg = try_arg(t, TOKEN_QUOTED_ARGUMENT, arglist);
+
+		if (state == 1 && is_arg) {
+			state = is_arg;
+		} else {
+			last = t;
+			state = match_op(t, ',');
+		}
+
+		token = t;
+		if (!match_op(token->next, SPECIAL_HASHHASH))
+			break;
+	}
+	/* handle GNU ,##__VA_ARGS__ kludge, in all its weirdness */
+	if (state == 2)
+		token_type(last) = TOKEN_GNU_KLUDGE;
+	return token;
+
+Econcat:
+	sparse_error(concat->pos, "'##' cannot appear at the ends of macro expansion");
+	return NULL;
+}
+
 static struct token *parse_expansion(struct token *expansion, struct token *arglist, struct ident *name)
 {
 	struct token *token = expansion;
 	struct token **p;
-	struct token *last = NULL;
 
 	if (match_op(token, SPECIAL_HASHHASH))
 		goto Econcat;
 
 	for (p = &expansion; !eof_token(token); p = &token->next, token = *p) {
 		if (match_op(token, '#')) {
-			if (arglist) {
-				struct token *next = token->next;
-				if (!try_arg(next, TOKEN_STR_ARGUMENT, arglist))
-					goto Equote;
-				next->pos.whitespace = token->pos.whitespace;
-				token = *p = next;
-			} else {
-				token->pos.noexpand = 1;
-			}
-		} else if (match_op(token, SPECIAL_HASHHASH)) {
-			struct token *next = token->next;
-			int arg = try_arg(next, TOKEN_QUOTED_ARGUMENT, arglist);
-			token_type(token) = TOKEN_CONCAT;
-			if (arg) {
-				token = next;
-				/* GNU kludge */
-				if (arg == 2 && last && match_op(last, ',')) {
-					token_type(last) = TOKEN_GNU_KLUDGE;
-					last->next = token;
-				}
-			} else if (match_op(next, SPECIAL_HASHHASH))
-				token = next;
-			else if (eof_token(next))
-				goto Econcat;
-		} else if (match_op(token->next, SPECIAL_HASHHASH)) {
-			try_arg(token, TOKEN_QUOTED_ARGUMENT, arglist);
+			token = handle_hash(p, arglist);
+			if (!token)
+				return NULL;
+		}
+		if (match_op(token->next, SPECIAL_HASHHASH)) {
+			token = handle_hashhash(token, arglist);
+			if (!token)
+				return NULL;
 		} else {
 			try_arg(token, TOKEN_MACRO_ARGUMENT, arglist);
 		}
 		if (token_type(token) == TOKEN_ERROR)
 			goto Earg;
-		last = token;
 	}
 	token = alloc_token(&expansion->pos);
 	token_type(token) = TOKEN_UNTAINT;
@@ -1092,10 +1179,6 @@ static struct token *parse_expansion(struct token *expansion, struct token *argl
 	token->next = *p;
 	*p = token;
 	return expansion;
-
-Equote:
-	sparse_error(token->pos, "'#' is not followed by a macro parameter");
-	return NULL;
 
 Econcat:
 	sparse_error(token->pos, "'##' cannot appear at the ends of macro expansion");
