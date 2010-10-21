@@ -472,12 +472,12 @@ static int merge(struct token *left, struct token *right)
 	return 0;
 }
 
-static struct token *dup_token(struct token *token, struct position *streampos, struct position *pos)
+static struct token *dup_token(struct token *token, struct position *streampos)
 {
 	struct token *alloc = alloc_token(streampos);
 	token_type(alloc) = token_type(token);
-	alloc->pos.newline = pos->newline;
-	alloc->pos.whitespace = pos->whitespace;
+	alloc->pos.newline = token->pos.newline;
+	alloc->pos.whitespace = token->pos.whitespace;
 	alloc->number = token->number;
 	alloc->pos.noexpand = token->pos.noexpand;
 	return alloc;	
@@ -489,7 +489,7 @@ static struct token **copy(struct token **where, struct token *list, int *count)
 	while (!eof_token(list)) {
 		struct token *token;
 		if (need_copy)
-			token = dup_token(list, &list->pos, &list->pos);
+			token = dup_token(list, &list->pos);
 		else
 			token = list;
 		if (token_type(token) == TOKEN_IDENT && token->ident->tainted)
@@ -525,13 +525,11 @@ static int handle_kludge(struct token **p, struct arg *args)
 
 static struct token **substitute(struct token **list, struct token *body, struct arg *args)
 {
-	struct token *token = *list;
-	struct position *base_pos = &token->pos;
-	struct position *pos = base_pos;
+	struct position *base_pos = &(*list)->pos;
 	int *count;
 	enum {Normal, Placeholder, Concat} state = Normal;
 
-	for (; !eof_token(body); body = body->next, pos = &body->pos) {
+	for (; !eof_token(body); body = body->next) {
 		struct token *added, *arg;
 		struct token **tail;
 		struct token *t;
@@ -555,7 +553,7 @@ static struct token **substitute(struct token **list, struct token *body, struct
 					state = Placeholder;
 				continue;
 			}
-			added = dup_token(t, base_pos, pos);
+			added = dup_token(t, base_pos);
 			token_type(added) = TOKEN_SPECIAL;
 			tail = &added->next;
 			break;
@@ -586,8 +584,8 @@ static struct token **substitute(struct token **list, struct token *body, struct
 			}
 		copy_arg:
 			tail = copy(&added, arg, count);
-			added->pos.newline = pos->newline;
-			added->pos.whitespace = pos->whitespace;
+			added->pos.newline = body->pos.newline;
+			added->pos.whitespace = body->pos.whitespace;
 			break;
 
 		case TOKEN_CONCAT:
@@ -598,14 +596,14 @@ static struct token **substitute(struct token **list, struct token *body, struct
 			continue;
 
 		case TOKEN_IDENT:
-			added = dup_token(body, base_pos, pos);
+			added = dup_token(body, base_pos);
 			if (added->ident->tainted)
 				added->pos.noexpand = 1;
 			tail = &added->next;
 			break;
 
 		default:
-			added = dup_token(body, base_pos, pos);
+			added = dup_token(body, base_pos);
 			tail = &added->next;
 			break;
 		}
@@ -654,6 +652,14 @@ static int expand(struct token **list, struct symbol *sym)
 
 	last = token->next;
 	tail = substitute(list, sym->expansion, args);
+	/*
+	 * Note that it won't be eof - at least TOKEN_UNTAINT will be there.
+	 * We still can lose the newline flag if the sucker expands to nothing,
+	 * but the price of dealing with that is probably too high (we'd need
+	 * to collect the flags during scan_next())
+	 */
+	(*list)->pos.newline = token->pos.newline;
+	(*list)->pos.whitespace = token->pos.whitespace;
 	*tail = last;
 
 	return 0;
