@@ -252,6 +252,8 @@ static struct lock_info kernel_lock_table[] = {
 	{"__write_lock_irq",      LOCK,   "irq", NO_ARG, ret_any},
 	{"__write_unlock_irq",    UNLOCK, "irq", NO_ARG, ret_any},
 
+	{"arch_local_irq_save",        LOCK,   "irqsave", RETURN_VAL, ret_any},
+	{"arch_local_irq_restore",     UNLOCK, "irqsave", 0, ret_any},
 	{"__raw_local_irq_save",       LOCK,   "irqsave", RETURN_VAL, ret_any},
 	{"raw_local_irq_restore",      UNLOCK, "irqsave", 0, ret_any},
 	{"spin_lock_irqsave_nested",   LOCK,   "irqsave", RETURN_VAL, ret_any},
