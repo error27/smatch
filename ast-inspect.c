@@ -120,6 +120,7 @@ void inspect_symbol(AstNode *node)
 
 	switch (sym->type) {
 		case SYM_FN:
+			ast_append_child(node, "arguments:", sym->arguments, inspect_symbol_list);
 			ast_append_child(node, "stmt:", sym->stmt, inspect_statement);
 			break;
 		default:
