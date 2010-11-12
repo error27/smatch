@@ -18,7 +18,7 @@ STATE(checked);
 
 static void ok_to_use(const char *name, struct symbol *sym, struct expression *expr, void *unused)
 {
-	delete_state(my_id, name, sym);
+	set_state(my_id, name, sym, &checked);
 }
 
 static void check_is_err_ptr(struct sm_state *sm)
