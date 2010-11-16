@@ -53,6 +53,16 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 
 	i = 0;
 	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
+		/*
+		 * this is a temporary hack to work around a bug (I think in sparse?)
+		 * 2.6.37-rc1:fs/reiserfs/journal.o
+		 * If there is a function definition without parameter name found 
+		 * after a function implementation then it causes a crash.
+		 * int foo() {}
+		 * int bar(char *);
+		 */
+		if (arg->ident->name < (char *)100)
+			continue;
 		if (i == param && arg->ident->name) {
 			set_state(my_size_id, arg->ident->name, arg, alloc_state_num(size));
 		}
