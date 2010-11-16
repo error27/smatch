@@ -79,6 +79,7 @@ enum hook_type {
 	OP_HOOK,
 	DEREF_HOOK,
 	CASE_HOOK,
+	ASM_HOOK,
 	BASE_HOOK,
 	FUNC_DEF_HOOK,
 	END_FUNC_HOOK,

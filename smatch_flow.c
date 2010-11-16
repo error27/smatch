@@ -573,6 +573,7 @@ void __split_stmt(struct statement *stmt)
 	case STMT_NONE:
 		return;
 	case STMT_ASM:
+		__pass_to_client(stmt, ASM_HOOK);
 		__split_expr(stmt->asm_string);
 		split_asm_constraints(stmt->asm_outputs);
 		split_asm_constraints(stmt->asm_inputs);
