@@ -1718,13 +1718,13 @@ static void init_preprocessor(void)
 		{ "elif",	handle_elif },
 	};
 
-	for (i = 0; i < (sizeof (normal) / sizeof (normal[0])); i++) {
+	for (i = 0; i < ARRAY_SIZE(normal); i++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, normal[i].name, SYM_PREPROCESSOR, NS_PREPROCESSOR);
 		sym->handler = normal[i].handler;
 		sym->normal = 1;
 	}
-	for (i = 0; i < (sizeof (special) / sizeof (special[0])); i++) {
+	for (i = 0; i < ARRAY_SIZE(special); i++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, special[i].name, SYM_PREPROCESSOR, NS_PREPROCESSOR);
 		sym->handler = special[i].handler;

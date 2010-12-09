@@ -239,7 +239,7 @@ const char *builtin_typename(struct symbol *sym)
 {
 	int i;
 
-	for (i = 0; i < sizeof(typenames)/sizeof(typenames[0]); i++)
+	for (i = 0; i < ARRAY_SIZE(typenames); i++)
 		if (typenames[i].sym == sym)
 			return typenames[i].name;
 	return NULL;
@@ -249,7 +249,7 @@ const char *builtin_ctypename(struct ctype *ctype)
 {
 	int i;
 
-	for (i = 0; i < sizeof(typenames)/sizeof(typenames[0]); i++)
+	for (i = 0; i < ARRAY_SIZE(typenames); i++)
 		if (&typenames[i].sym->ctype == ctype)
 			return typenames[i].name;
 	return NULL;

@@ -437,7 +437,7 @@ static char **handle_onoff_switch(char *arg, char **next, const struct warning w
 
 static char **handle_switch_W(char *arg, char **next)
 {
-	char ** ret = handle_onoff_switch(arg, next, warnings, sizeof warnings/sizeof warnings[0]);
+	char ** ret = handle_onoff_switch(arg, next, warnings, ARRAY_SIZE(warnings));
 	if (ret)
 		return ret;
 
@@ -453,7 +453,7 @@ static struct warning debugs[] = {
 
 static char **handle_switch_v(char *arg, char **next)
 {
-	char ** ret = handle_onoff_switch(arg, next, debugs, sizeof debugs/sizeof debugs[0]);
+	char ** ret = handle_onoff_switch(arg, next, debugs, ARRAY_SIZE(debugs));
 	if (ret)
 		return ret;
 
@@ -477,7 +477,7 @@ static void handle_onoff_switch_finalize(const struct warning warnings[], int n)
 
 static void handle_switch_W_finalize(void)
 {
-	handle_onoff_switch_finalize(warnings, sizeof(warnings) / sizeof(warnings[0]));
+	handle_onoff_switch_finalize(warnings, ARRAY_SIZE(warnings));
 
 	/* default Wdeclarationafterstatement based on the C dialect */
 	if (-1 == Wdeclarationafterstatement)
@@ -504,7 +504,7 @@ static void handle_switch_W_finalize(void)
 
 static void handle_switch_v_finalize(void)
 {
-	handle_onoff_switch_finalize(debugs, sizeof(debugs) / sizeof(debugs[0]));
+	handle_onoff_switch_finalize(debugs, ARRAY_SIZE(debugs));
 }
 
 static char **handle_switch_U(char *arg, char **next)
