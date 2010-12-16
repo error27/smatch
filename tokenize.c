@@ -495,7 +495,7 @@ static int escapechar(int first, int type, stream_t *stream, int *valp)
 			case '0'...'7': {
 				int nr = 2;
 				value -= '0';
-				while (next >= '0' && next <= '9') {
+				while (next >= '0' && next <= '7') {
 					value = (value << 3) + (next-'0');
 					next = nextchar(stream);
 					if (!--nr)
