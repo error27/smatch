@@ -59,6 +59,7 @@ CK(check_uncapped_alloc)
 CK(check_get_user_overflow)
 CK(check_get_user_overflow2)
 CK(check_access_ok_math)
+CK(check_container_of)
 
 /* <- your test goes here */
 /* CK(register_template) */
