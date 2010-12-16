@@ -147,6 +147,7 @@ static struct lock_info kernel_lock_table[] = {
 	{"_spin_trylock_bh",           LOCK,   "spin_lock", 0, ret_non_zero},
 	{"__spin_trylock_bh",          LOCK,   "spin_lock", 0, ret_non_zero},
 	{"__raw_spin_trylock",         LOCK,   "spin_lock", 0, ret_non_zero},
+	{"_atomic_dec_and_lock",       LOCK,   "spin_lock", 1, ret_non_zero},
 
 	{"read_lock",                 LOCK,   "read_lock", 0, ret_any},
 	{"read_unlock",               UNLOCK, "read_lock", 0, ret_any},
