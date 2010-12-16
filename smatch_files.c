@@ -16,22 +16,16 @@
 static int open_file(const char *filename)
 {
 	int fd;
-	char *buf = malloc(256);
+	char buf[256];
 
 	fd = open(filename, O_RDONLY);
 	if (fd >= 0)
 		goto exit;
 	if (!data_dir)
 		goto exit;
-	strncpy(buf, data_dir, 254);
-	buf[255] = '\0';
-	strncat(buf, filename, 254 - strlen(buf));
+	snprintf(buf, 256, "%s/%s", data_dir, filename);
 	fd = open(buf, O_RDONLY);
-	if (fd >= 0)
-		goto exit;
-
 exit:
-	free(buf);
 	return fd;
 }
 
