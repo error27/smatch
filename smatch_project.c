@@ -21,11 +21,13 @@ static void register_no_return_funcs(void)
 {
 	struct token *token;
 	const char *func;
-	static char name[256];
+	char name[256];
 
+	if (option_project == PROJ_NONE)
+		strcpy(name, "no_return_funcs");
+	else
+		snprintf(name, 256, "%s.no_return_funcs", option_project_str);
 
-	snprintf(name, 256, "%s.no_return_funcs", option_project_str);
-	name[255] = '\0';
 	token = get_tokens_file(name);
 	if (!token)
 		return;
@@ -46,10 +48,13 @@ static void register_ignored_macros(void)
 {
 	struct token *token;
 	char *macro;
-	static char name[256];
+	char name[256];
 
-	snprintf(name, 256, "%s.ignored_macros", option_project_str);
-	name[255] = '\0';
+	if (option_project == PROJ_NONE)
+		strcpy(name, "ignored_macros");
+	else
+		snprintf(name, 256, "%s.ignored_macros", option_project_str);
+
 	token = get_tokens_file(name);
 	if (!token)
 		return;
@@ -68,8 +73,6 @@ static void register_ignored_macros(void)
 
 void register_project(int id)
 {
-	if (option_project != PROJ_KERNEL)
-		add_function_hook("exit", &__match_nullify_path_hook, NULL);
 	register_no_return_funcs();
 	register_ignored_macros();
 }
