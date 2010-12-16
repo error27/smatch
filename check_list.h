@@ -76,6 +76,8 @@ CK(check_hold_dev)
 CK(check_wine_filehandles)
 CK(check_wine_WtoA)
 
+#include "check_list_local.h"
+
 CK(register_implications) /* implications always has to be last */
 
 #ifdef __undo_CK_def

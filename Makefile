@@ -162,7 +162,10 @@ $(LIB_FILE): $(LIB_OBJS)
 $(SLIB_FILE): $(LIB_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) -Wl,-soname,$@ -shared -o $@ $(LIB_OBJS)
 
-smatch.o: smatch.c $(LIB_H) smatch.h check_list.h
+check_list_local.h:
+	touch check_list_local.h
+
+smatch.o: smatch.c $(LIB_H) smatch.h check_list.h check_list_local.h
 	$(CC) -c smatch.c -DSMATCHDATADIR='"$(SMATCHDATADIR)"'
 $(SMATCH_CHECKS): smatch.h smatch_slist.h smatch_extra.h
 DEP_FILES := $(wildcard .*.o.d)
