@@ -13,3 +13,4 @@ ubi_assert
 bfa_assert
 ZD_ASSERT
 ubifs_assert
+AR_DEBUG_ASSERT

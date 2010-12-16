@@ -8,7 +8,7 @@ find_lec_by_itfnum
 ieee802154_get_dev
 ieee802154_nl_get_dev
 ip6mr_reg_vif
-ip_dev_find
+__ip_dev_find
 ipmr_new_tunnel
 ipmr_reg_vif
 nr_ax25_dev_get

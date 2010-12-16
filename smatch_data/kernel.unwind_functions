@@ -4,8 +4,6 @@ a2150_detach
 _aac_reset_adapter
 aac_sa_init
 __aac_shutdown
-ab8500_exit
-ab8500_init
 abyss_attach
 ace_init_cleanup
 acpi_os_remove_interrupt_handler
@@ -37,6 +35,8 @@ altera_uart_shutdown
 amd76xrom_cleanup
 amd8111e_close
 amd8111e_open
+apds990x_remove
+ar6000_destroy
 arcmsr_remove
 arcrimi_found
 ark_pci_probe
@@ -61,10 +61,13 @@ azx_free
 b43legacy_wireless_core_stop
 b43_wireless_core_stop
 b44_close
+bcm_unregister_networkdev
 bdx_hw_stop
 bfad_pci_uninit
 bfad_remove_intr
+bh1770_remove
 bnx2x_free_irq
+bu21013_free_irq
 BusLogic_ReleaseResources
 c101_destroy_card
 c2_probe
@@ -249,6 +252,10 @@ initio_probe_one
 initio_remove_one
 init_irq
 intelfbhw_disable_irq
+intel_mid_i2c_probe
+intel_mid_i2c_remove
+intel_sst_probe
+intel_sst_remove
 ipc_remove
 ipg_probe
 ipg_remove
@@ -271,6 +278,8 @@ ks8851_remove
 kvaser_pci_init_one
 labpc_common_detach
 lance_close
+langwell_otg_remove
+langwell_otg_suspend
 libertas_spi_remove
 lm8323_remove
 lmc_ifdown
@@ -305,7 +314,8 @@ mthca_free_irqs
 multiq3_detach
 mwl8k_probe
 mwl8k_remove
-mxser_release_res
+mxser_release_ISA_res
+mxser_remove
 n2_destroy_card
 NCR53c406a_release
 NCR_D700_remove_one
@@ -336,8 +346,6 @@ ns83820_init_one
 nsc_ircc_close
 ns_init_card_error
 nsp32_release
-ohci1394_pci_remove
-ohci1394_pci_suspend
 ohci_stop
 olympic_close
 olympic_open
@@ -356,9 +364,18 @@ pas16_release
 pc236_detach
 pcbit_init_dev
 pcf50633_irq_free
+pcf8574_kp_probe
 pcf8574_kp_remove
+pch_can_probe
+pch_can_remove
 pch_dma_probe
 pch_dma_remove
+pch_gbe_free_irq
+pch_gpio_probe
+pch_gpio_remove
+pch_phub_probe
+pch_phub_remove
+pch_spi_free_resources
 pci1710_detach
 pci224_detach
 pci230_detach
@@ -415,6 +432,7 @@ qt2160_remove
 qt602240_probe
 r6040_close
 r6040_init_one
+r6040_open
 r852_probe
 r852_remove
 radeon_device_fini
@@ -458,6 +476,7 @@ sdla_set_config
 sdricoh_init_mmc
 seeq8005_close
 ser12_close
+serial_hsu_remove
 serial_unlink_irq_chain
 serio_raw_cleanup
 setup_card
@@ -519,7 +538,6 @@ snd_nm256_release_irq
 snd_riptide_free
 snd_rme9652_free
 snd_sbdsp_free
-snd_sgalaxy_setup_wss
 snd_sonicvibes_free
 snd_trident_free
 snd_uart16550_free
@@ -531,6 +549,7 @@ snd_ymfpci_free
 ssb_iounmap
 std_irq_cleanup
 stl_brdinit
+stmmac_release
 stop_airo_card
 stop_atmel_card
 streamer_close
@@ -608,8 +627,9 @@ whci_n_caps
 whci_probe
 whci_remove
 wl3501_reset
-wm8903_i2c_probe
-wm8903_i2c_remove
+wl_free
+wm831x_free_irq
+wm831x_irq_exit
 wpa_release_wpadev
 xhci_run
 xircom_close
