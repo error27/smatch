@@ -77,6 +77,9 @@ void add_hook(void *func, enum hook_type type)
 	case CONDITION_HOOK:
 		container->data_type = EXPR_PTR;
 		break;
+	case SELECT_HOOK:
+		container->data_type = EXPR_PTR;
+		break;
 	case WHOLE_CONDITION_HOOK:
 		container->data_type = EXPR_PTR;
 		break;

@@ -165,6 +165,7 @@ void __split_expr(struct expression *expr)
 		break;
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
+		__pass_to_client(expr, SELECT_HOOK);
 		__split_whole_condition(expr->conditional);
 		__split_expr(expr->cond_true);
 		__push_true_states();
