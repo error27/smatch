@@ -61,6 +61,7 @@ CK(check_get_user_overflow2)
 CK(check_access_ok_math)
 CK(check_container_of)
 CK(check_input_free_device)
+CK(check_select)
 
 /* <- your test goes here */
 /* CK(register_template) */
