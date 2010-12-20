@@ -102,6 +102,7 @@ static struct lock_info kernel_lock_table[] = {
 	{"raw_spin_lock",              LOCK,   "spin_lock", 0, ret_any},
 	{"raw_spin_unlock",            UNLOCK, "spin_lock", 0, ret_any},
 	{"_raw_spin_lock",             LOCK,   "spin_lock", 0, ret_any},
+	{"_raw_spin_lock_nested",      LOCK,   "spin_lock", 0, ret_any},
 	{"_raw_spin_unlock",           UNLOCK, "spin_lock", 0, ret_any},
 	{"__raw_spin_lock",            LOCK,   "spin_lock", 0, ret_any},
 	{"__raw_spin_unlock",          UNLOCK, "spin_lock", 0, ret_any},
