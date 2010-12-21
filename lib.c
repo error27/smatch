@@ -723,6 +723,16 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern long __builtin_alpha_inslh(long, long);\n");
 	add_pre_buffer("extern long __builtin_alpha_cmpbge(long, long);\n");
 	add_pre_buffer("extern long __builtin_labs(long);\n");
+	add_pre_buffer("extern double __builtin_fabs(double);\n");
+
+	/* Add Blackfin-specific stuff */
+	add_pre_buffer(
+		"#ifdef __bfin__\n"
+		"extern void __builtin_bfin_csync(void);\n"
+		"extern void __builtin_bfin_ssync(void);\n"
+		"extern int __builtin_bfin_norm_fr1x32(int);\n"
+		"#endif\n"
+	);
 
 	/* And some floating point stuff.. */
 	add_pre_buffer("extern int __builtin_isgreater(float, float);\n");
