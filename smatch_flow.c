@@ -127,14 +127,14 @@ void __split_expr(struct expression *expr)
 	case EXPR_ASSIGNMENT: {
 		struct expression *tmp;
 
+		__pass_to_client(expr, RAW_ASSIGNMENT_HOOK);
+
 		/* foo = !bar() */
 		if (__handle_condition_assigns(expr))
 			break;
-
 		/* foo = (x < 5 ? foo : 5); */
 		if (__handle_select_assigns(expr))
 			break;
-
 		/* foo = ({frob(); frob(); frob(); 1;}) */
 		if (__handle_expr_statement_assigns(expr))
 			break;
