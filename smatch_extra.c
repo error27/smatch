@@ -198,29 +198,14 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
-static struct sm_state *handle_canonical_for_loops(struct statement *loop)
+static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
+						struct expression *condition)
 {
-	struct expression *iter_expr;
 	struct expression *iter_var;
-	struct expression *condition;
 	struct sm_state *sm;
 	long long start;
 	long long end;
 
-	if (!loop->iterator_post_statement)
-		return NULL;
-	if (loop->iterator_post_statement->type != STMT_EXPRESSION)
-		return NULL;
-	iter_expr = loop->iterator_post_statement->expression;
-	if (!loop->iterator_pre_condition)
-		return NULL;
-	if (loop->iterator_pre_condition->type != EXPR_COMPARE)
-		return NULL;
-	condition = loop->iterator_pre_condition;
-
-
-	if (iter_expr->op != SPECIAL_INCREMENT)
-		return NULL;
 	iter_var = iter_expr->unop;
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
@@ -247,6 +232,65 @@ static struct sm_state *handle_canonical_for_loops(struct statement *loop)
 		return NULL;
 	set_extra_expr_mod(iter_var, alloc_extra_state_range(start, end));
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
+}
+
+static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
+						struct expression *condition)
+{
+	struct expression *iter_var;
+	struct sm_state *sm;
+	long long start;
+	long long end;
+
+	iter_var = iter_expr->unop;
+	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
+	if (!sm)
+		return NULL;
+	if (!get_single_value_from_dinfo(get_dinfo(sm->state), &start))
+		return NULL;
+	if (!get_implied_value(condition->right, &end))
+		end = whole_range.max;
+	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
+		return NULL;
+
+	switch (condition->op) {
+	case SPECIAL_NOTEQUAL:
+	case '>':
+		if (end != whole_range.min)
+			end++;
+		break;
+	case SPECIAL_GTE:
+		break;
+	default:
+		return NULL;
+	}
+	if (end > start)
+		return NULL;
+	set_extra_expr_mod(iter_var, alloc_extra_state_range(end, start));
+	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
+}
+
+static struct sm_state *handle_canonical_for_loops(struct statement *loop)
+{
+	struct expression *iter_expr;
+	struct expression *condition;
+
+	if (!loop->iterator_post_statement)
+		return NULL;
+	if (loop->iterator_post_statement->type != STMT_EXPRESSION)
+		return NULL;
+	iter_expr = loop->iterator_post_statement->expression;
+	if (!loop->iterator_pre_condition)
+		return NULL;
+	if (loop->iterator_pre_condition->type != EXPR_COMPARE)
+		return NULL;
+	condition = loop->iterator_pre_condition;
+
+	if (iter_expr->op == SPECIAL_INCREMENT)
+		return handle_canonical_for_inc(iter_expr, condition);
+	if (iter_expr->op == SPECIAL_DECREMENT)
+		return handle_canonical_for_dec(iter_expr, condition);
+	return NULL;
 }
 
 struct sm_state *__extra_handle_canonical_loops(struct statement *loop, struct state_list **slist)
@@ -327,7 +371,9 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	dinfo = get_dinfo(state);
 	min = get_dinfo_min(dinfo);
 	max = get_dinfo_max(dinfo);
-	if (iter_expr->op == SPECIAL_INCREMENT && min != whole_range.min && max == whole_range.max) {
+	if (iter_expr->op == SPECIAL_INCREMENT &&
+		min != whole_range.min &&
+		max == whole_range.max) {
 		set_extra_mod(name, sym, alloc_extra_state(min));
 	} else if (min == whole_range.min && max != whole_range.max) {
 		set_extra_mod(name, sym, alloc_extra_state(max));
