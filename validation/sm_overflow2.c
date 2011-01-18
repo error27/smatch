@@ -9,7 +9,7 @@ void func (char *a, char *b)
 }
 /*
  * check-name: smatch strncpy() overflow
- * check-command: smatch -I.. sm_overflow2.c
+ * check-command: smatch --spammy -I.. sm_overflow2.c
  *
  * check-output-start
 sm_overflow2.c +8 func(3) error: buffer overflow 'a' 5 <= 5
