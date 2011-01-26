@@ -16,6 +16,8 @@ static void match_printf(const char *fn, struct expression *expr, void *unused)
 
 void check_format_string(int id)
 {
+	if (!option_spammy)
+		return;
 	my_id = id;
 	add_function_hook("printf", &match_printf, (void *)0);
 }

@@ -227,7 +227,7 @@ static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 	if (data_size)
 		sm_msg("error: %s() '%s' too large for '%s' (%d vs %d)",
 			fn, data_name, dest_name, data_size, dest_size);
-	else
+	else if (option_spammy)
 		sm_msg("warn: %s() '%s' of unknown size might be too large for '%s'",
 			fn, data_name, dest_name);
 

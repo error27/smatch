@@ -30,7 +30,7 @@ int main(char *arg0)
 }
 /*
  * check-name: smatch overflow check #4
- * check-command: smatch sm_array_overflow4.c
+ * check-command: smatch --spammy sm_array_overflow4.c
  *
  * check-output-start
 sm_array_overflow4.c +22 main(14) error: buffer overflow 's' 8 <= 8
