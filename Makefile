@@ -45,6 +45,8 @@ ifeq ($(HAVE_LIBXML),yes)
 PROGRAMS+=c2xml
 INST_PROGRAMS+=c2xml
 c2xml_EXTRA_OBJS = `pkg-config --libs libxml-2.0`
+else
+$(warning Your system does not have libxml, disabling c2xml)
 endif
 
 ifeq ($(HAVE_GTK2),yes)
@@ -55,6 +57,8 @@ INST_PROGRAMS += test-inspect
 test-inspect_EXTRA_DEPS := ast-model.o ast-view.o ast-inspect.o
 test-inspect.o $(test-inspect_EXTRA_DEPS): CFLAGS += $(GTK2_CFLAGS)
 test-inspect_EXTRA_OBJS := $(GTK2_LIBS)
+else
+$(warning Your system does not have libgtk2, disabling test-inspect)
 endif
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
