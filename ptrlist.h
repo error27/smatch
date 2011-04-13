@@ -9,9 +9,6 @@
  * (C) Copyright Linus Torvalds 2003-2005
  */
 
-#define container(ptr, type, member) \
-	(type *)((void *)(ptr) - offsetof(type, member))
-
 /* Silly type-safety check ;) */
 #define DECLARE_PTR_LIST(listname,type)	struct listname { type *list[1]; }
 #define CHECK_TYPE(head,ptr)		(void)(&(ptr) == &(head)->list[0])
