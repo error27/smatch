@@ -21,7 +21,8 @@ HAVE_GCC_DEP:=$(shell touch .gcc-test.c && 				\
 		echo 'yes'; rm -f .gcc-test.d .gcc-test.o .gcc-test.c)
 HAVE_GTK2:=$(shell pkg-config --exists gtk+-2.0 2>/dev/null && echo 'yes')
 
-CFLAGS += -DGCC_BASE=\"$(shell $(CC) --print-file-name=)\"
+GCC_BASE = $(shell $(CC) --print-file-name=)
+CFLAGS += -DGCC_BASE=\"$(GCC_BASE)\"
 
 ifeq ($(HAVE_GCC_DEP),yes)
 CFLAGS += -Wp,-MD,$(@D)/.$(@F).d
