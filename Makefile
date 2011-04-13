@@ -118,7 +118,9 @@ SED_PC_CMD = 's|@version@|$(VERSION)|g;		\
 
 all: $(PROGRAMS) sparse.pc
 
-install: $(INST_PROGRAMS) $(LIBS) $(LIB_H) sparse.pc
+all-installable: $(INST_PROGRAMS) $(LIBS) $(LIB_H) sparse.pc
+
+install: all-installable
 	$(Q)install -d $(DESTDIR)$(BINDIR)
 	$(Q)install -d $(DESTDIR)$(LIBDIR)
 	$(Q)install -d $(DESTDIR)$(MAN1DIR)
