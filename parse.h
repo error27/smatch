@@ -35,10 +35,6 @@ struct statement {
 		struct /* declaration */ {
 			struct symbol_list *declaration;
 		};
-		struct /* label_arg */ {
-			struct symbol *label;
-			struct statement *label_statement;
-		};
 		struct {
 			struct expression *expression;
 			struct expression *context;
