@@ -655,10 +655,12 @@ static const char *token_name_sequence(struct token *token, int endop, struct to
 
 static int already_tokenized(const char *path)
 {
-	int i;
-	struct stream *s = input_streams;
+	int stream, next;
 
-	for (i = input_stream_nr; --i >= 0; s++) {
+	for (stream = *hash_stream(path); stream >= 0 ; stream = next) {
+		struct stream *s = input_streams + stream;
+
+		next = s->next_stream;
 		if (s->constant != CONSTANT_FILE_YES)
 			continue;
 		if (strcmp(path, s->name))
