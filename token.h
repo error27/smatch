@@ -40,7 +40,7 @@ struct stream {
 
 	/* Use these to check for "already parsed" */
 	enum constantfile constant;
-	int dirty;
+	int dirty, next_stream;
 	struct ident *protect;
 	struct token *ifndef;
 	struct token *top_if;
@@ -49,6 +49,7 @@ struct stream {
 extern int input_stream_nr;
 extern struct stream *input_streams;
 extern unsigned int tabstop;
+extern int *hash_stream(const char *name);
 
 struct ident {
 	struct ident *next;	/* Hash chain of identifiers */

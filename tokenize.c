@@ -14,6 +14,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #include "lib.h"
 #include "allocate.h"
@@ -179,9 +180,28 @@ const char *show_token(const struct token *token)
 	}
 }
 
+#define HASHED_INPUT_BITS (6)
+#define HASHED_INPUT (1 << HASHED_INPUT_BITS)
+#define HASH_PRIME 0x9e370001UL
+
+static int input_stream_hashes[HASHED_INPUT] = { [0 ... HASHED_INPUT-1] = -1 };
+
+int *hash_stream(const char *name)
+{
+	uint32_t hash = 0;
+	unsigned char c;
+
+	while ((c = *name++) != 0)
+		hash = (hash + (c << 4) + (c >> 4)) * 11;
+
+	hash *= HASH_PRIME;
+	hash >>= 32 - HASHED_INPUT_BITS;
+	return input_stream_hashes + hash;
+}
+
 int init_stream(const char *name, int fd, const char **next_path)
 {
-	int stream = input_stream_nr;
+	int stream = input_stream_nr, *hash;
 	struct stream *current;
 
 	if (stream >= input_streams_allocated) {
@@ -199,6 +219,9 @@ int init_stream(const char *name, int fd, const char **next_path)
 	current->path = NULL;
 	current->constant = CONSTANT_FILE_MAYBE;
 	input_stream_nr = stream+1;
+	hash = hash_stream(name);
+	current->next_stream = *hash;
+	*hash = stream;
 	return stream;
 }
 
