@@ -9,6 +9,7 @@ CFLAGS += -Wall -Wwrite-strings
 LDFLAGS += -g
 AR = ar
 
+ALL_CFLAGS = $(CFLAGS) $(BASIC_CFLAGS)
 #
 # For debugging, put this in local.mk:
 #
@@ -22,10 +23,10 @@ HAVE_GCC_DEP:=$(shell touch .gcc-test.c && 				\
 HAVE_GTK2:=$(shell pkg-config --exists gtk+-2.0 2>/dev/null && echo 'yes')
 
 GCC_BASE = $(shell $(CC) --print-file-name=)
-CFLAGS += -DGCC_BASE=\"$(GCC_BASE)\"
+BASIC_CFLAGS = -DGCC_BASE=\"$(GCC_BASE)\"
 
 ifeq ($(HAVE_GCC_DEP),yes)
-CFLAGS += -Wp,-MD,$(@D)/.$(@F).d
+BASIC_CFLAGS += -Wp,-MD,$(@D)/.$(@F).d
 endif
 
 DESTDIR=
@@ -56,7 +57,7 @@ GTK2_LIBS := $(shell pkg-config --libs gtk+-2.0)
 PROGRAMS += test-inspect
 INST_PROGRAMS += test-inspect
 test-inspect_EXTRA_DEPS := ast-model.o ast-view.o ast-inspect.o
-test-inspect.o $(test-inspect_EXTRA_DEPS): CFLAGS += $(GTK2_CFLAGS)
+test-inspect.o $(test-inspect_EXTRA_DEPS): BASIC_CFLAGS += $(GTK2_CFLAGS)
 test-inspect_EXTRA_OBJS := $(GTK2_LIBS)
 else
 $(warning Your system does not have libgtk2, disabling test-inspect)
@@ -74,7 +75,7 @@ LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 LIB_FILE= libsparse.a
 SLIB_FILE= libsparse.so
 
-# If you add $(SLIB_FILE) to this, you also need to add -fpic to CFLAGS above.
+# If you add $(SLIB_FILE) to this, you also need to add -fpic to BASIC_CFLAGS above.
 # Doing so incurs a noticeable performance hit, and Sparse does not have a
 # stable shared library interface, so this does not occur by default.  If you
 # really want a shared library, you may want to build Sparse twice: once
@@ -152,7 +153,7 @@ DEP_FILES := $(wildcard .*.o.d)
 $(if $(DEP_FILES),$(eval include $(DEP_FILES)))
 
 c2xml.o: c2xml.c $(LIB_H)
-	$(QUIET_CC)$(CC) `pkg-config --cflags libxml-2.0` -o $@ -c $(CFLAGS) $<
+	$(QUIET_CC)$(CC) `pkg-config --cflags libxml-2.0` -o $@ -c $(ALL_CFLAGS) $<
 
 compat-linux.o: compat/strtold.c compat/mmap-blob.c $(LIB_H)
 compat-solaris.o: compat/mmap-blob.c $(LIB_H)
@@ -160,7 +161,7 @@ compat-mingw.o: $(LIB_H)
 compat-cygwin.o: $(LIB_H)
 
 %.o: %.c
-	$(QUIET_CC)$(CC) -o $@ -c $(CFLAGS) $<
+	$(QUIET_CC)$(CC) -o $@ -c $(ALL_CFLAGS) $<
 
 clean: clean-check
 	rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
