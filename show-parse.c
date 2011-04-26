@@ -754,7 +754,7 @@ static int show_binop(struct expression *expr)
 	unsigned int op = expr->op;
 
 	opname = show_special(op);
-	if (op < sizeof(name)/sizeof(*name))
+	if (op < ARRAY_SIZE(name))
 		opname = name[op];
 	printf("\t%s.%d\t\tv%d,v%d,v%d\n", opname,
 		expr->ctype->bit_size,
@@ -782,7 +782,7 @@ static int show_regular_preop(struct expression *expr)
 	const char *opname;
 
 	opname = show_special(op);
-	if (op < sizeof(name)/sizeof(*name))
+	if (op < ARRAY_SIZE(name))
 		opname = name[op];
 	printf("\t%s.%d\t\tv%d,v%d\n", opname, expr->ctype->bit_size, new, target);
 	return new;

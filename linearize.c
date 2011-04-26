@@ -282,7 +282,7 @@ const char *show_instruction(struct instruction *insn)
 	if (!insn->bb)
 		buf += sprintf(buf, "# ");
 
-	if (opcode < sizeof(opcodes)/sizeof(char *)) {
+	if (opcode < ARRAY_SIZE(opcodes)) {
 		const char *op = opcodes[opcode];
 		if (!op)
 			buf += sprintf(buf, "opcode:%d", opcode);

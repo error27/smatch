@@ -916,7 +916,7 @@ struct token *assignment_expression(struct token *token, struct expression **tre
 			SPECIAL_SHR_ASSIGN, SPECIAL_AND_ASSIGN,
 			SPECIAL_OR_ASSIGN,  SPECIAL_XOR_ASSIGN };
 		int i, op = token->special;
-		for (i = 0; i < sizeof(assignments)/sizeof(int); i++)
+		for (i = 0; i < ARRAY_SIZE(assignments); i++)
 			if (assignments[i] == op) {
 				struct expression * expr = alloc_expression(token->pos, EXPR_ASSIGNMENT);
 				expr->left = *tree;
