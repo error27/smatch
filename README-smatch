@@ -31,7 +31,7 @@ smatch_scripts/ directory.
 	smatch_scripts/show_unreachable.sh
 	smatch_scripts/show_ifs.sh
 
-BTW, if you are testing the kernel and only one to test one file you can do:
+BTW, if you are testing the kernel and only want to test one file you can do:
 
 	/path/to/smatch_scripts/kchecker drivers/whatever/file.c
 
@@ -43,10 +43,10 @@ instead of smatch.  So when I am writing kernel patches in vim I do:
 
 	***Debugging Hints***
 
-Sometimes you it is not obvious why smatch is printing an error.  The --debug 
+Sometimes it is not obvious why smatch is printing an error.  The --debug
 option is usefull here.  It prints a message on each state change.
 
-Also if smatch crashes use:  kchecker --valgrind drivers/whatever/file.c and 
+Also if smatch crashes, use:  kchecker --valgrind drivers/whatever/file.c and
 send me the stack dump.
 
 	***How Smatch Works***
