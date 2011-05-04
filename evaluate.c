@@ -2028,6 +2028,11 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 		size = bits_in_char;
 	}
 
+	if (size == 1 && is_bool_type(type)) {
+		warning(expr->pos, "expression using sizeof bool");
+		size = bits_in_char;
+	}
+
 	if (is_function(type->ctype.base_type)) {
 		warning(expr->pos, "expression using sizeof on a function");
 		size = bits_in_char;

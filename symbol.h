@@ -346,6 +346,13 @@ static inline int is_void_type(struct symbol *type)
 	return type == &void_ctype;
 }
 
+static inline int is_bool_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type == &bool_ctype;
+}
+
 static inline int is_function(struct symbol *type)
 {
 	return type && type->type == SYM_FN;
