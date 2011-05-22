@@ -31,6 +31,7 @@ void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql)
 
 void open_smatch_db(void)
 {
+#ifdef SQLITE_OPEN_READONLY
 	int rc;
 
 	if (option_no_db)
@@ -38,5 +39,6 @@ void open_smatch_db(void)
 
 	rc = sqlite3_open_v2("smatch_db.sqlite", &db, SQLITE_OPEN_READONLY, NULL);
 	if (rc != SQLITE_OK)
+#endif
 		option_no_db = 1;
 }
