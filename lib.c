@@ -542,8 +542,6 @@ static char **handle_switch_ftabstop(char *arg, char **next)
 
 static char **handle_switch_f(char *arg, char **next)
 {
-	int flag = 1;
-
 	arg++;
 
 	if (!strncmp(arg, "tabstop=", 8))
@@ -552,7 +550,6 @@ static char **handle_switch_f(char *arg, char **next)
 	/* handle switches w/ arguments above, boolean and only boolean below */
 
 	if (!strncmp(arg, "no-", 3)) {
-		flag = 0;
 		arg += 3;
 	}
 	/* handle switch here.. */

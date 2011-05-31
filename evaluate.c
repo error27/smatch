@@ -786,13 +786,13 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr)
 	struct symbol *ltype, *rtype;
 	struct expression *l = expr->left;
 	struct expression *r = expr->right;
-	struct symbol *lbase, *rbase;
+	struct symbol *lbase;
 
 	classify_type(degenerate(l), &ltype);
 	classify_type(degenerate(r), &rtype);
 
 	lbase = examine_pointer_target(ltype);
-	rbase = examine_pointer_target(rtype);
+	examine_pointer_target(rtype);
 	typediff = type_difference(&ltype->ctype, &rtype->ctype,
 				   target_qualifiers(rtype),
 				   target_qualifiers(ltype));
@@ -3167,12 +3167,9 @@ static void evaluate_asm_statement(struct statement *stmt)
 
 	state = 0;
 	FOR_EACH_PTR(stmt->asm_outputs, expr) {
-		struct ident *ident;
-
 		switch (state) {
 		case 0: /* Identifier */
 			state = 1;
-			ident = (struct ident *)expr;
 			continue;
 
 		case 1: /* Constraint */
@@ -3198,12 +3195,9 @@ static void evaluate_asm_statement(struct statement *stmt)
 
 	state = 0;
 	FOR_EACH_PTR(stmt->asm_inputs, expr) {
-		struct ident *ident;
-
 		switch (state) {
 		case 0: /* Identifier */
 			state = 1;
-			ident = (struct ident *)expr;
 			continue;
 
 		case 1:	/* Constraint */

@@ -218,7 +218,6 @@ static struct position *get_expansion_end (struct token *token)
 
 static void examine_macro(struct symbol *sym, xmlNodePtr node)
 {
-	xmlNodePtr child;
 	struct position *pos;
 
 	/* this should probably go in the main codebase*/
@@ -228,7 +227,7 @@ static void examine_macro(struct symbol *sym, xmlNodePtr node)
 	else
 		sym->endpos = sym->pos;
 
-	child = new_sym_node(sym, "macro", node);
+	new_sym_node(sym, "macro", node);
 }
 
 static void examine_namespace(struct symbol *sym)

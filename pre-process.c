@@ -632,11 +632,9 @@ static int expand(struct token **list, struct symbol *sym)
 
 static const char *token_name_sequence(struct token *token, int endop, struct token *start)
 {
-	struct token *last;
 	static char buffer[256];
 	char *ptr = buffer;
 
-	last = token;
 	while (!eof_token(token) && !match_op(token, endop)) {
 		int len;
 		const char *val = token->string->data;
