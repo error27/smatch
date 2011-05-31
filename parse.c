@@ -563,6 +563,7 @@ const char *ignored_attributes[] = {
 	"__unused__",
 	"used",
 	"__used__",
+	"vector_size",
 	"visibility",
 	"__visibility__",
 	"warn_unused_result",
