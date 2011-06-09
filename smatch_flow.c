@@ -434,8 +434,71 @@ static void split_asm_constraints(struct expression_list *expr_list)
         } END_FOR_EACH_PTR(expr);
 }
 
+static int is_case_val(struct statement *stmt, long long val)
+{
+	long long case_val;
+
+	if (stmt->type != STMT_CASE)
+		return 0;
+	if (!stmt->case_expression) {
+		__set_default();
+		return 1;
+	}
+	if (!get_value(stmt->case_expression, &case_val))
+		return 0;
+	if (case_val == val)
+		return 1;
+	return 0;
+}
+
+static void split_known_switch(struct statement *stmt, long long val)
+{
+	struct statement *tmp;
+
+	__split_expr(stmt->switch_expression);
+
+	push_expression(&switch_expr_stack, stmt->switch_expression);
+	__save_switch_states(top_expression(switch_expr_stack));
+	nullify_path();
+	__push_default();
+	__push_breaks();
+
+	stmt = stmt->switch_statement;
+
+	if (!last_stmt)
+		last_stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
+
+	__push_scope_hooks();
+	FOR_EACH_PTR(stmt->stmts, tmp) {
+		__smatch_lineno = tmp->pos.line;
+		if (is_case_val(tmp, val)) {
+			__merge_switches(top_expression(switch_expr_stack),
+					 stmt->case_expression);
+			__pass_case_to_client(top_expression(switch_expr_stack),
+					      stmt->case_expression);
+		}
+		if (__path_is_null())
+			continue;
+		__split_stmt(tmp);
+		if (__path_is_null()) {
+			__set_default();
+			goto out;
+		}
+	} END_FOR_EACH_PTR(tmp);
+out:
+	__call_scope_hooks();
+	if (!__pop_default())
+		__merge_switches(top_expression(switch_expr_stack),
+				 NULL);
+	__discard_switches();
+	__merge_breaks();
+	pop_expression(&switch_expr_stack);
+}
+
 void __split_stmt(struct statement *stmt)
 {
+	long long val;
+
 	if (!stmt)
 		return;
 
@@ -521,6 +584,10 @@ void __split_stmt(struct statement *stmt)
 		}
 		return;
 	case STMT_SWITCH:
+		if (get_value(stmt->switch_expression, &val)) {
+			split_known_switch(stmt, val);
+			return;
+		}
 		__split_expr(stmt->switch_expression);
 		push_expression(&switch_expr_stack, stmt->switch_expression);
 		__save_switch_states(top_expression(switch_expr_stack));
