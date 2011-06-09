@@ -62,6 +62,7 @@ CK(check_access_ok_math)
 CK(check_container_of)
 CK(check_input_free_device)
 CK(check_select)
+CK(check_memset)
 
 /* <- your test goes here */
 /* CK(register_template) */
