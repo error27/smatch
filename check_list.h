@@ -75,6 +75,7 @@ CK(check_err_ptr)
 CK(check_err_ptr_deref)
 CK(check_expects_err_ptr)
 CK(check_hold_dev)
+CK(check_return_negative_var)
 
 /* wine specific stuff */
 CK(check_wine_filehandles)
