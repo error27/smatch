@@ -112,7 +112,7 @@ static void match_end_func(struct symbol *sym)
 
 void check_frees_argument(int id)
 {
-	if (!option_spammy)
+	if (!option_info)
 		return;
 
 	my_id = id;

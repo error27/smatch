@@ -74,7 +74,7 @@ static void print_returns_held(struct expression *expr)
 {
 	struct sm_state *sm;
 
-	if (!option_spammy)
+	if (!option_info)
 		return;
 	sm = get_sm_state_expr(my_id, expr);
 	if (!sm)
