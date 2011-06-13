@@ -17,5 +17,4 @@ nr_dev_get
 phonet_device_get
 phonet_route_output
 rose_dev_get
-RtmpOSNetDevGetByName
 x25_dev_get
