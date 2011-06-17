@@ -317,8 +317,6 @@ void check_overflow(int id)
 	add_hook(&array_check, OP_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_function_hook("strcpy", &match_strcpy, NULL);
-	add_function_hook("strncpy", &match_limited, &b0_l2);
-	add_function_hook("memset", &match_limited, &b0_l2);
 	if (option_project == PROJ_KERNEL) {
 		add_function_hook("copy_to_user", &match_limited, &b0_l2);
 		add_function_hook("copy_to_user", &match_limited, &b1_l2);
@@ -332,7 +330,6 @@ void check_overflow(int id)
 		add_function_hook("_copy_from_user", &match_limited, &b1_l2);
 		add_function_hook("__copy_from_user", &match_limited, &b0_l2);
 		add_function_hook("__copy_from_user", &match_limited, &b1_l2);
-		add_function_hook("__builtin_memset", &match_limited, &b0_l2);
 	}
 	if (option_spammy)
 		register_array_funcs();

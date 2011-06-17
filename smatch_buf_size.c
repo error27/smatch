@@ -480,12 +480,8 @@ void register_buf_size(int id)
 	add_hook(&match_strlen_condition, CONDITION_HOOK);
 	add_function_assign_hook("strlen", &match_strlen, NULL);
 
-	if (option_spammy)
-		add_function_hook("strncpy", &match_limited, &b0_l2);
 	add_function_hook("strlcpy", &match_limited, &b0_l2);
 	add_function_hook("strlcat", &match_limited, &b0_l2);
-	if (option_spammy)
-		add_function_hook("memcpy", &match_limited, &b0_l2);
 	add_function_hook("memscan", &match_limited, &b0_l2);
 
 	add_function_hook("strcpy", &match_strcpy, NULL);
