@@ -614,11 +614,11 @@ void __split_stmt(struct statement *stmt)
 		__split_stmt(stmt->case_statement);
 		return;
 	case STMT_LABEL:
-		if (stmt->label && 
-		    stmt->label->type == SYM_LABEL && 
-		    stmt->label->ident) {
+		if (stmt->label_identifier && 
+		    stmt->label_identifier->type == SYM_LABEL && 
+		    stmt->label_identifier->ident) {
 			loop_count = 1000000;
-			__merge_gotos(stmt->label->ident->name);
+			__merge_gotos(stmt->label_identifier->ident->name);
 		}
 		__split_stmt(stmt->label_statement);
 		return;
