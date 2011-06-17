@@ -235,6 +235,75 @@ static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 	free_string(data_name);
 }
 
+static void match_snprintf(const char *fn, struct expression *expr, void *unused)
+{
+	struct expression *dest;
+	struct expression *dest_size_expr;
+	struct expression *format_string;
+	struct expression *data;
+	char *data_name = NULL;
+	int dest_size;
+	long long limit_size;
+	char *format;
+	int data_size;
+
+	dest = get_argument_from_call_expr(expr->args, 0);
+	dest_size_expr = get_argument_from_call_expr(expr->args, 1);
+	format_string = get_argument_from_call_expr(expr->args, 2);
+	data = get_argument_from_call_expr(expr->args, 3);
+
+	dest_size = get_array_size_bytes(dest);
+	if (!get_implied_value(dest_size_expr, &limit_size))
+		return;
+	if (dest_size && dest_size < limit_size)
+		sm_msg("error: snprintf() is printing too much %lld vs %d", limit_size, dest_size);
+	format = get_variable_from_expr(format_string, NULL);
+	if (!format)
+		return;
+	if (strcmp(format, "\"%s\""))
+		goto free;
+	data_name = get_variable_from_expr_complex(data, NULL);
+	data_size = get_array_size_bytes(data);
+	if (limit_size < data_size)
+		sm_msg("error: snprintf() chops off the last chars of '%s': %d vs %lld",
+		       data_name, data_size, limit_size);
+free:
+	free_string(data_name);
+	free_string(format);
+}
+
+static void match_sprintf(const char *fn, struct expression *expr, void *unused)
+{
+	struct expression *dest;
+	struct expression *format_string;
+	struct expression *data;
+	char *data_name = NULL;
+	int dest_size;
+	char *format;
+	int data_size;
+
+	dest = get_argument_from_call_expr(expr->args, 0);
+	format_string = get_argument_from_call_expr(expr->args, 1);
+	data = get_argument_from_call_expr(expr->args, 2);
+
+	dest_size = get_array_size_bytes(dest);
+	if (!dest_size)
+		return;
+	format = get_variable_from_expr(format_string, NULL);
+	if (!format)
+		return;
+	if (strcmp(format, "\"%s\""))
+		goto free;
+	data_name = get_variable_from_expr_complex(data, NULL);
+	data_size = get_array_size_bytes(data);
+	if (dest_size < data_size)
+		sm_msg("error: sprintf() copies too much data from '%s': %d vs %d",
+		       data_name, data_size, dest_size);
+free:
+	free_string(data_name);
+	free_string(format);
+}
+
 static void match_limited(const char *fn, struct expression *expr, void *_limiter)
 {
 	struct limiter *limiter = (struct limiter *)_limiter;
@@ -317,6 +386,8 @@ void check_overflow(int id)
 	add_hook(&array_check, OP_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_function_hook("strcpy", &match_strcpy, NULL);
+	add_function_hook("snprintf", &match_snprintf, NULL);
+	add_function_hook("sprintf", &match_sprintf, NULL);
 	if (option_project == PROJ_KERNEL) {
 		add_function_hook("copy_to_user", &match_limited, &b0_l2);
 		add_function_hook("copy_to_user", &match_limited, &b1_l2);
