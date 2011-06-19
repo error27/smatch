@@ -486,6 +486,8 @@ const char *ignored_attributes[] = {
 	"__alloc_size__",
 	"always_inline",
 	"__always_inline__",
+	"artificial",
+	"__artificial__",
 	"bounded",
 	"__bounded__",
 	"cdecl",
