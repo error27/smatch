@@ -346,12 +346,12 @@ static void separate_and_filter(struct sm_state *sm_state, int comparison, struc
 		__bail_on_rest_of_function = 1;
 }
 
-static struct sm_state *get_left_most_sm(struct expression *expr)
+static struct expression *get_left_most_expr(struct expression *expr)
 {
 	expr = strip_expr(expr);
 	if (expr->type == EXPR_ASSIGNMENT)
-		return get_left_most_sm(expr->left);
-	return get_sm_state_expr(SMATCH_EXTRA, expr);
+		return get_left_most_expr(expr->left);
+	return expr;
 }
 
 static int is_merged_expr(struct expression  *expr)
@@ -393,16 +393,21 @@ static void handle_comparison(struct expression *expr,
 {
 	struct sm_state *sm = NULL;
 	struct range_list *ranges = NULL;
+	struct expression *left;
+	struct expression *right;
 	int lr;
 
-	if (is_merged_expr(expr->left)) {
+	left = get_left_most_expr(expr->left);
+	right = get_left_most_expr(expr->right);
+
+	if (is_merged_expr(left)) {
 		lr = LEFT;
-		sm = get_left_most_sm(expr->left);
-		ranges = get_range_list(expr->right);
-	} else if (is_merged_expr(expr->right)) {
+		sm = get_sm_state_expr(SMATCH_EXTRA, left);
+		ranges = get_range_list(right);
+	} else if (is_merged_expr(right)) {
 		lr = RIGHT;
-		sm = get_left_most_sm(expr->right);
-		ranges = get_range_list(expr->left);
+		sm = get_sm_state_expr(SMATCH_EXTRA, right);
+		ranges = get_range_list(left);
 	}
 
 	if (!ranges || !sm) {
