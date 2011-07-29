@@ -599,14 +599,17 @@ static void match_comparison(struct expression *expr)
 	struct smatch_state *orig;
 	int left = 0;
 	int comparison = expr->op;
-	struct expression *varies = expr->right;
+	struct expression *varies;
 
-	if (!get_value(expr->left, &fixed)) { 
-		if (!get_value(expr->right, &fixed))
+
+	varies = strip_expr(expr->right);
+	if (!get_implied_value(expr->left, &fixed)) { 
+		if (!get_implied_value(expr->right, &fixed))
 			return;
 		varies = strip_expr(expr->left);
 		left = 1;
 	}
+
 	if (varies->op == SPECIAL_INCREMENT || varies->op == SPECIAL_DECREMENT) 
 		varies = varies->unop;
 	if (varies->type == EXPR_CALL) {
