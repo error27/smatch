@@ -262,6 +262,7 @@ static void handle_pre_loop(struct statement *stmt)
 
 	extra_sm = __extra_handle_canonical_loops(stmt, &slist);
 	__in_pre_condition++;
+	__pass_to_client(stmt, PRELOOP_HOOK);
 	__split_whole_condition(stmt->iterator_pre_condition);
 	__in_pre_condition--;
 	FOR_EACH_PTR(slist, sm) {

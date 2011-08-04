@@ -13,6 +13,7 @@ CK(register_strlen)
 
 CK(check_debug)
 CK(check_assigned_expr)
+CK(check_bogus_loop)
 
 CK(check_deref)
 CK(check_check_deref)
