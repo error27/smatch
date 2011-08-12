@@ -67,6 +67,18 @@ void inspect_statement(AstNode *node)
 					 inspect_statement);
 			break;
 
+		case STMT_SWITCH:
+			ast_append_child(node, "switch_expression:", stmt->switch_expression, inspect_expression);
+			ast_append_child(node, "switch_statement:", stmt->switch_statement, inspect_statement);
+			ast_append_child(node, "switch_break:", stmt->switch_break, inspect_symbol);
+			ast_append_child(node, "switch_case:", stmt->switch_case, inspect_symbol);
+			break;
+		case STMT_CASE:
+			ast_append_child(node, "case_expression:", stmt->case_expression, inspect_expression);
+			ast_append_child(node, "case_to:", stmt->case_to, inspect_expression);
+			ast_append_child(node, "case_statement:", stmt->case_statement, inspect_statement);
+			ast_append_child(node, "case_label:", stmt->case_label, inspect_symbol);
+			break;
 		case STMT_RETURN:
 			ast_append_child(node, "ret_value:", stmt->ret_value, inspect_expression);
 			ast_append_child(node, "ret_target:", stmt->ret_target, inspect_symbol);
@@ -118,12 +130,13 @@ void inspect_symbol(AstNode *node)
 				      builtin_typename(sym) ?: show_ident(sym->ident));
 	ast_append_child(node, "ctype.base_type:", sym->ctype.base_type,inspect_symbol);
 
-	switch (sym->type) {
-		case SYM_FN:
-			ast_append_child(node, "arguments:", sym->arguments, inspect_symbol_list);
-			ast_append_child(node, "stmt:", sym->stmt, inspect_statement);
+	switch (sym->namespace) {
+		case NS_PREPROCESSOR:
 			break;
 		default:
+			ast_append_child(node, "arguments:", sym->arguments, inspect_symbol_list);
+			ast_append_child(node, "symbol_list:", sym->symbol_list, inspect_symbol_list);
+			ast_append_child(node, "stmt:", sym->stmt, inspect_statement);
 			break;
 	}
 }
