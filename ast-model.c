@@ -167,7 +167,7 @@ ast_tree_model_init (GtkTreeModelIface *iface)
 
 /*****************************************************************************
  *
- *  ast_init: this is called everytime a new ast node object
+ *  ast_init: this is called every time a new ast node object
  *            instance is created (we do that in ast_new).
  *            Initialise the list structure's fields here.
  *
