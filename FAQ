@@ -5,7 +5,7 @@ Q.  Why not just use gcc?
 A.  Gcc is big, complex, and the gcc maintainers are not interested in
     other uses of the gcc front-end.  In fact, gcc has explicitly
     resisted splitting up the front and back ends and having some common
-    intermediate language because or religious license issues - you can
+    intermediate language because of religious license issues - you can
     have multiple front ends and back ends, but they all have to be part
     of gcc and licensed under the GPL. 
 
