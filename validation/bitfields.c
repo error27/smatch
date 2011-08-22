@@ -16,3 +16,6 @@ static int b(void)
 	return a[y.x];
 }
 
+/*
+ * check-name: bitfield to integer promotion
+ */

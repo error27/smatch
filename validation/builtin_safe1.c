@@ -24,3 +24,16 @@ static int foo(int x, int y)
   return x;
 }
 
+/*
+ * check-name: __builtin_safe
+ * check-known-to-fail
+ * check-error-start
+builtin_safe1.c:13:3: warning: Macro argument with side effects: x++
+builtin_safe1.c:14:3: warning: Macro argument with side effects: x+=1
+builtin_safe1.c:15:3: warning: Macro argument with side effects: x=x+1
+builtin_safe1.c:16:3: warning: Macro argument with side effects: x%=y
+builtin_safe1.c:17:3: warning: Macro argument with side effects: x=y
+builtin_safe1.c:18:3: warning: Macro argument with side effects: g(x)
+builtin_safe1.c:19:3: warning: Macro argument with side effects: (y,g(x))
+ * check-error-end
+ */

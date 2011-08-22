@@ -21,3 +21,7 @@ static int test(struct hello *arg)
 {
 	return deref(arg->array);
 }
+
+/*
+ * check-name: "char []" to "char *" demotion
+ */

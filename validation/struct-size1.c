@@ -15,3 +15,7 @@ static const struct { int x; } foo[] = {{ 1 }};
 struct C {
   int bar[(sizeof foo/sizeof foo[0])];
 };
+
+/*
+ * check-name: struct size
+ */
