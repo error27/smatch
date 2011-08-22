@@ -131,6 +131,7 @@ const char *modifier_string(unsigned long mod)
 		{MOD_NORETURN,		"[noreturn]"},
 		{MOD_EXPLICITLY_SIGNED,	"[explicitly-signed]"},
 		{MOD_BITWISE,		"[bitwise]"},
+		{MOD_PURE,		"[pure]"},
 	};
 
 	for (i = 0; i < ARRAY_SIZE(mod_names); i++) {

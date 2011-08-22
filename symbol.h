@@ -198,6 +198,7 @@ struct symbol {
 #define MOD_LONG	0x0400
 #define MOD_LONGLONG	0x0800
 #define MOD_LONGLONGLONG	0x1000
+#define MOD_PURE	0x2000
 
 #define MOD_TYPEDEF	0x10000
 

@@ -26,7 +26,6 @@ static int foo(int x, int y)
 
 /*
  * check-name: __builtin_safe
- * check-known-to-fail
  * check-error-start
 builtin_safe1.c:13:3: warning: Macro argument with side effects: x++
 builtin_safe1.c:14:3: warning: Macro argument with side effects: x+=1
