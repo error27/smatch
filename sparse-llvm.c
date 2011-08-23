@@ -48,7 +48,7 @@ static LLVMLinkage data_linkage(struct symbol *sym)
 	if (sym->ctype.modifiers & MOD_STATIC)
 		return LLVMPrivateLinkage;
 
-	return LLVMCommonLinkage;
+	return LLVMExternalLinkage;
 }
 
 static LLVMLinkage function_linkage(struct symbol *sym)
@@ -128,8 +128,17 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 
 static int output_data(LLVMModuleRef module, struct symbol *sym)
 {
+	struct expression *initializer = sym->initializer;
+	unsigned long long initial_value = 0;
 	LLVMValueRef data;
 	const char *name;
+
+	if (initializer) {
+		if (initializer->type == EXPR_VALUE)
+			initial_value = initializer->value;
+		else
+			assert(0);
+	}
 
 	name = show_ident(sym->ident);
 
@@ -137,7 +146,7 @@ static int output_data(LLVMModuleRef module, struct symbol *sym)
 
 	LLVMSetLinkage(data, data_linkage(sym));
 
-	LLVMSetInitializer(data, LLVMConstInt(symbol_type(sym), 0, 1));
+	LLVMSetInitializer(data, LLVMConstInt(symbol_type(sym), initial_value, 1));
 
 	return 0;
 }
