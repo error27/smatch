@@ -27,5 +27,5 @@ if [ $use_gcc -eq 1 ]; then
 	gcc $ASOPTS $SPARSEOPTS
 
 else
-	sparse-llvm $SPARSEOPTS | llc | as $ASOPTS
+	$DIRNAME/sparse-llvm $SPARSEOPTS | llc | as $ASOPTS
 fi
