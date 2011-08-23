@@ -59,25 +59,74 @@ static LLVMLinkage function_linkage(struct symbol *sym)
 	return LLVMExternalLinkage;
 }
 
-static void output_insn(struct instruction *insn)
+static void output_insn(LLVMBuilderRef builder, struct instruction *insn)
 {
+	switch (insn->opcode) {
+	case OP_RET:
+		break;
+	case OP_BR:
+		break;
+	case OP_SYMADDR:
+		break;
+	case OP_SETVAL:
+		break;
+	case OP_SWITCH:
+		break;
+	case OP_COMPUTEDGOTO:
+		break;
+	case OP_PHISOURCE:
+		break;
+	case OP_PHI:
+		break;
+	case OP_LOAD: case OP_LNOP:
+		break;
+	case OP_STORE: case OP_SNOP:
+		break;
+	case OP_INLINED_CALL:
+	case OP_CALL:
+		break;
+	case OP_CAST:
+	case OP_SCAST:
+	case OP_FPCAST:
+	case OP_PTRCAST:
+		break;
+	case OP_BINARY ... OP_BINARY_END:
+	case OP_BINCMP ... OP_BINCMP_END:
+		break;
+	case OP_SEL:
+		break;
+	case OP_SLICE:
+		break;
+	case OP_NOT: case OP_NEG:
+		break;
+	case OP_CONTEXT:
+		break;
+	case OP_RANGE:
+		break;
+	case OP_NOP:
+		break;
+	case OP_DEATHNOTE:
+		break;
+	case OP_ASM:
+		break;
+	case OP_COPY:
+		break;
+	default:
+		break;
+	}
 }
 
-static void output_bb(LLVMBasicBlockRef bb_ref, struct basic_block *bb, unsigned long generation)
+static void output_bb(LLVMBuilderRef builder, struct basic_block *bb, unsigned long generation)
 {
 	struct instruction *insn;
 
 	bb->generation = generation;
 
-	LLVMBuilderRef builder = LLVMCreateBuilder();
-
-	LLVMPositionBuilderAtEnd(builder, bb_ref);
-
 	FOR_EACH_PTR(bb->insns, insn) {
 		if (!insn->bb)
 			continue;
 
-		output_insn(insn);
+		output_insn(builder, insn);
 	}
 	END_FOR_EACH_PTR(insn);
 }
@@ -119,7 +168,12 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	FOR_EACH_PTR(ep->bbs, bb) {
 		if (bb->generation == generation)
 			continue;
-		output_bb(entry, bb, generation);
+
+		LLVMBuilderRef builder = LLVMCreateBuilder();
+
+		LLVMPositionBuilderAtEnd(builder, entry);
+
+		output_bb(builder, bb, generation);
 	}
 	END_FOR_EACH_PTR(bb);
 
