@@ -68,7 +68,7 @@ endif
 ifeq ($(HAVE_LLVM),yes)
 LD = g++
 LDFLAGS += $(shell llvm-config --ldflags)
-LLVM_CFLAGS := $(shell llvm-config --cflags)
+LLVM_CFLAGS := $(shell llvm-config --cflags | sed -e "s/-DNDEBUG//g")
 LLVM_LIBS := $(shell llvm-config --libs)
 PROGRAMS += sparse-llvm
 INST_PROGRAMS += sparse-llvm
