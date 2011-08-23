@@ -59,10 +59,39 @@ static LLVMLinkage function_linkage(struct symbol *sym)
 	return LLVMExternalLinkage;
 }
 
-static void output_insn(LLVMBuilderRef builder, struct instruction *insn)
+static void output_op_ret(LLVMBuilderRef builder, LLVMTypeRef return_type, struct instruction *insn)
+{
+	pseudo_t pseudo = insn->src;
+
+	if (pseudo && pseudo != VOID) {
+		switch (pseudo->type) {
+		case PSEUDO_REG:
+			assert(0);
+			break;
+		case PSEUDO_SYM:
+			assert(0);
+			break;
+		case PSEUDO_VAL:
+			LLVMBuildRet(builder, LLVMConstInt(return_type, pseudo->value, 1));
+			break;
+		case PSEUDO_ARG:
+			assert(0);
+			break;
+		case PSEUDO_PHI:
+			assert(0);
+			break;
+		default:
+			assert(0);
+		}
+	} else
+		LLVMBuildRetVoid(builder);
+}
+
+static void output_insn(LLVMBuilderRef builder, LLVMTypeRef return_type, struct instruction *insn)
 {
 	switch (insn->opcode) {
 	case OP_RET:
+		output_op_ret(builder, return_type, insn);
 		break;
 	case OP_BR:
 		break;
@@ -116,7 +145,7 @@ static void output_insn(LLVMBuilderRef builder, struct instruction *insn)
 	}
 }
 
-static void output_bb(LLVMBuilderRef builder, struct basic_block *bb, unsigned long generation)
+static void output_bb(LLVMBuilderRef builder, LLVMTypeRef return_type, struct basic_block *bb, unsigned long generation)
 {
 	struct instruction *insn;
 
@@ -126,7 +155,7 @@ static void output_bb(LLVMBuilderRef builder, struct basic_block *bb, unsigned l
 		if (!insn->bb)
 			continue;
 
-		output_insn(builder, insn);
+		output_insn(builder, return_type, insn);
 	}
 	END_FOR_EACH_PTR(insn);
 }
@@ -140,6 +169,7 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	struct symbol *base_type = sym->ctype.base_type;
 	struct symbol *ret_type = sym->ctype.base_type->ctype.base_type;
 	LLVMTypeRef arg_types[MAX_ARGS];
+	LLVMTypeRef return_type;
 	struct basic_block *bb;
 	LLVMValueRef function;
 	struct symbol *arg;
@@ -154,7 +184,9 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 
 	name = show_ident(sym->ident);
 
-	function = LLVMAddFunction(module, name, LLVMFunctionType(symbol_type(ret_type), arg_types, nr_args, 0));
+	return_type = symbol_type(ret_type);
+
+	function = LLVMAddFunction(module, name, LLVMFunctionType(return_type, arg_types, nr_args, 0));
 
 	LLVMSetLinkage(function, function_linkage(sym));
 
@@ -163,29 +195,16 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	LLVMBuilderRef builder = LLVMCreateBuilder();
 
 	LLVMBasicBlockRef entry = LLVMAppendBasicBlock(function, "entry");
-	LLVMBasicBlockRef exit = LLVMAppendBasicBlock(function, "exit");
+
+	LLVMPositionBuilderAtEnd(builder, entry);
 
 	FOR_EACH_PTR(ep->bbs, bb) {
 		if (bb->generation == generation)
 			continue;
 
-		LLVMBuilderRef builder = LLVMCreateBuilder();
-
-		LLVMPositionBuilderAtEnd(builder, entry);
-
-		output_bb(builder, bb, generation);
+		output_bb(builder, return_type, bb, generation);
 	}
 	END_FOR_EACH_PTR(bb);
-
-	LLVMPositionBuilderAtEnd(builder, entry);
-	LLVMBuildBr(builder, exit);
-
-	LLVMPositionBuilderAtEnd(builder, exit);
-
-	if (ret_type == &void_ctype)
-		LLVMBuildRetVoid(builder);
-	else
-		LLVMBuildRet(builder, LLVMConstInt(symbol_type(ret_type), 0, 1));
 }
 
 static int output_data(LLVMModuleRef module, struct symbol *sym)
