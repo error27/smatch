@@ -63,11 +63,15 @@ static void output_insn(struct instruction *insn)
 {
 }
 
-static void output_bb(struct basic_block *bb, unsigned long generation)
+static void output_bb(LLVMBasicBlockRef bb_ref, struct basic_block *bb, unsigned long generation)
 {
 	struct instruction *insn;
 
 	bb->generation = generation;
+
+	LLVMBuilderRef builder = LLVMCreateBuilder();
+
+	LLVMPositionBuilderAtEnd(builder, bb_ref);
 
 	FOR_EACH_PTR(bb->insns, insn) {
 		if (!insn->bb)
@@ -107,18 +111,22 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 
 	unssa(ep);
 
+	LLVMBuilderRef builder = LLVMCreateBuilder();
+
+	LLVMBasicBlockRef entry = LLVMAppendBasicBlock(function, "entry");
+	LLVMBasicBlockRef exit = LLVMAppendBasicBlock(function, "exit");
+
 	FOR_EACH_PTR(ep->bbs, bb) {
 		if (bb->generation == generation)
 			continue;
-		output_bb(bb, generation);
+		output_bb(entry, bb, generation);
 	}
 	END_FOR_EACH_PTR(bb);
 
-	LLVMBasicBlockRef entry = LLVMAppendBasicBlock(function, "entry");
-
-	LLVMBuilderRef builder = LLVMCreateBuilder();
-
 	LLVMPositionBuilderAtEnd(builder, entry);
+	LLVMBuildBr(builder, exit);
+
+	LLVMPositionBuilderAtEnd(builder, exit);
 
 	if (ret_type == &void_ctype)
 		LLVMBuildRetVoid(builder);
