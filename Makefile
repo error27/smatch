@@ -7,6 +7,7 @@ CC = gcc
 CFLAGS = -O2 -finline-functions -fno-strict-aliasing -g
 CFLAGS += -Wall -Wwrite-strings
 LDFLAGS += -g
+LD = gcc
 AR = ar
 
 ALL_CFLAGS = $(CFLAGS) $(BASIC_CFLAGS)
@@ -21,6 +22,7 @@ HAVE_GCC_DEP:=$(shell touch .gcc-test.c && 				\
 		$(CC) -c -Wp,-MD,.gcc-test.d .gcc-test.c 2>/dev/null && \
 		echo 'yes'; rm -f .gcc-test.d .gcc-test.o .gcc-test.c)
 HAVE_GTK2:=$(shell pkg-config --exists gtk+-2.0 2>/dev/null && echo 'yes')
+HAVE_LLVM:=$(shell llvm-config --version >/dev/null 2>&1 && echo 'yes')
 
 GCC_BASE = $(shell $(CC) --print-file-name=)
 BASIC_CFLAGS = -DGCC_BASE=\"$(GCC_BASE)\"
@@ -61,6 +63,20 @@ test-inspect.o $(test-inspect_EXTRA_DEPS): BASIC_CFLAGS += $(GTK2_CFLAGS)
 test-inspect_EXTRA_OBJS := $(GTK2_LIBS)
 else
 $(warning Your system does not have libgtk2, disabling test-inspect)
+endif
+
+ifeq ($(HAVE_LLVM),yes)
+LD = g++
+LDFLAGS += $(shell llvm-config --ldflags)
+LLVM_CFLAGS := $(shell llvm-config --cflags)
+LLVM_LIBS := $(shell llvm-config --libs)
+PROGRAMS += sparse-llvm
+INST_PROGRAMS += sparse-llvm
+sparse-llvm_EXTRA_DEPS := sparse-llvm.o
+sparse-llvm.o $(sparse-llvm_EXTRA_DEPS): BASIC_CFLAGS += $(LLVM_CFLAGS)
+sparse-llvm_EXTRA_OBJS := $(LLVM_LIBS)
+else
+$(warning Your system does not have llvm, disabling sparse-llvm)
 endif
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
@@ -141,7 +157,7 @@ compile_EXTRA_DEPS = compile-i386.o
 
 $(foreach p,$(PROGRAMS),$(eval $(p): $($(p)_EXTRA_DEPS) $(LIBS)))
 $(PROGRAMS): % : %.o 
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $^ $($@_EXTRA_OBJS) 
+	$(QUIET_LINK)$(LD) $(LDFLAGS) -o $@ $^ $($@_EXTRA_OBJS)
 
 $(LIB_FILE): $(LIB_OBJS)
 	$(QUIET_AR)$(AR) rcs $@ $(LIB_OBJS)

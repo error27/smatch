@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# GCC compatible C compiler based on Sparse LLVM
+
+SPARSEOPTS=""
+ASOPTS=""
+DIRNAME=`dirname $0`
+
+use_gcc=1
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	'-o')
+		ASOPTS=$ASOPTS"-o "$2" "
+		shift
+		;;
+	'-c')
+		use_gcc=0
+		;;
+	*)
+		SPARSEOPTS="$SPARSEOPTS $1 " ;;
+	esac
+	shift
+done
+
+if [ $use_gcc -eq 1 ]; then
+	gcc $ASOPTS $SPARSEOPTS
+
+else
+	sparse-llvm $SPARSEOPTS | llc | as $ASOPTS
+fi

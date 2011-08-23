@@ -23,6 +23,7 @@ example
 test-unssa
 ctags
 c2xml
+sparse-llvm
 
 # tags
 tags
