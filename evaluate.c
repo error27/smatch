@@ -3220,7 +3220,7 @@ static void evaluate_asm_statement(struct statement *stmt)
 
 	FOR_EACH_PTR(stmt->asm_clobbers, expr) {
 		if (!expr) {
-			sparse_error(stmt->pos, "bad asm output");
+			sparse_error(stmt->pos, "bad asm clobbers");
 			return;
 		}
 		if (expr->type == EXPR_STRING)

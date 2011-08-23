@@ -1899,7 +1899,8 @@ static struct token *parse_asm_clobbers(struct token *token, struct statement *s
 
 	do {
 		token = primary_expression(token->next, &expr);
-		add_expression(clobbers, expr);
+		if (expr)
+			add_expression(clobbers, expr);
 	} while (match_op(token, ','));
 	return token;
 }
