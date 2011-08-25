@@ -13,9 +13,6 @@ void __print_slist(struct state_list *slist);
 void add_history(struct sm_state *sm);
 int cmp_tracker(const struct sm_state *a, const struct sm_state *b);
 char *alloc_sname(const char *str);
-struct sm_state *alloc_sm_state(int owner, const char *name, 
-			     struct symbol *sym, 
-			     struct smatch_state *state);
 
 void free_every_single_sm_state(void);
 struct sm_state *clone_sm(struct sm_state *s);

@@ -92,6 +92,29 @@ static int cmp_sm_states(const struct sm_state *a, const struct sm_state *b)
 	return 0;
 }
 
+static struct sm_state *alloc_sm_state(int owner, const char *name, 
+			     struct symbol *sym, struct smatch_state *state)
+{
+	struct sm_state *sm_state = __alloc_sm_state(0);
+
+	sm_state_counter++;
+
+	sm_state->name = alloc_sname(name);
+	sm_state->owner = owner;
+	sm_state->sym = sym;
+	sm_state->state = state;
+	sm_state->line = get_lineno();
+	sm_state->merged = 0;
+	sm_state->implied = 0;
+	sm_state->my_pool = NULL;
+	sm_state->left = NULL;
+	sm_state->right = NULL;
+	sm_state->nr_children = 1;
+	sm_state->possible = NULL;
+	add_ptr_list(&sm_state->possible, sm_state);
+	return sm_state;
+}
+
 static struct sm_state *alloc_state_no_name(int owner, const char *name, 
 				     struct symbol *sym,
 				     struct smatch_state *state)
@@ -153,29 +176,6 @@ int out_of_memory()
 	if (sm_state_counter * sizeof(struct sm_state) >= 50000000)
 		return 1;
 	return 0;
-}
-
-struct sm_state *alloc_sm_state(int owner, const char *name, 
-			     struct symbol *sym, struct smatch_state *state)
-{
-	struct sm_state *sm_state = __alloc_sm_state(0);
-
-	sm_state_counter++;
-
-	sm_state->name = alloc_sname(name);
-	sm_state->owner = owner;
-	sm_state->sym = sym;
-	sm_state->state = state;
-	sm_state->line = get_lineno();
-	sm_state->merged = 0;
-	sm_state->implied = 0;
-	sm_state->my_pool = NULL;
-	sm_state->left = NULL;
-	sm_state->right = NULL;
-	sm_state->nr_children = 1;
-	sm_state->possible = NULL;
-	add_ptr_list(&sm_state->possible, sm_state);
-	return sm_state;
 }
 
 static void free_sm_state(struct sm_state *sm)
