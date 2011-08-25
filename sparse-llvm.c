@@ -271,10 +271,19 @@ static void output_insn(struct function *fn, struct instruction *insn)
 	case OP_CALL:
 		assert(0);
 		break;
-	case OP_CAST:
-		assert(0);
+	case OP_CAST: {
+		LLVMValueRef src, target;
+		char target_name[64];
+
+		src = insn->src->priv;
+
+		pseudo_name(insn->target, target_name);
+
+		target = LLVMBuildIntCast(fn->builder, src, symbol_type(insn->type), target_name);
+
+		insn->target->priv = target;
 		break;
-	case OP_SCAST:
+	} case OP_SCAST:
 		assert(0);
 		break;
 	case OP_FPCAST:

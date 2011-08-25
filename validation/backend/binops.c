@@ -118,6 +118,7 @@ static unsigned int uor_bool(unsigned int x, unsigned int y)
 {
 	return x || y;
 }
+#endif
 
 static int sete(int x, int y)
 {
@@ -138,7 +139,6 @@ static int setg(int x, int y)
 {
 	return x > y;
 }
-#endif
 
 /*
  * check-name: binary op code generation
