@@ -238,6 +238,7 @@ struct sm_state *clone_sm(struct sm_state *s)
 	ret = alloc_state_no_name(s->owner, s->name, s->sym, s->state);
 	ret->merged = s->merged;
 	ret->implied = s->implied;
+	ret->line = s->line;
 	/* clone_sm() doesn't copy the my_pools.  Each state needs to have
 	   only one my_pool. */
 	ret->possible = clone_slist(s->possible);
