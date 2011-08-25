@@ -41,6 +41,7 @@ afs_volume_lookup
 afs_volume_pick_fileserver
 alg_get_type
 alloc
+allocate_fake_cpuc
 allocate_partition
 alloc_counters
 alloc_huge_page
@@ -78,6 +79,7 @@ autofs4_lookup
 b43_wireless_init
 backlight_device_register
 bad_inode_lookup
+bar_init
 bclean
 bd_start_claiming
 befs_iget
@@ -89,11 +91,14 @@ bio_copy_user_iov
 __bio_map_kern
 bio_map_kern
 __bio_map_user_iov
+bl_add_page_to_bio
+bl_alloc_lseg
 blkdev_get_by_dev
 blkdev_get_by_path
 blkiocg_create
 blk_make_request
 bnx2i_ep_connect
+brcmf_alloc_wdev
 brd_probe
 br_multicast_get_group
 br_multicast_new_group
@@ -186,11 +191,13 @@ cifs_compose_mount_options
 cifs_construct_tcon
 cifs_dfs_do_automount
 cifs_do_mount
+cifs_get_root
 cifs_get_share_name
 cifs_get_smb_ses
 cifs_get_spnego_key
 cifs_get_tcon
 cifs_get_tcp_session
+cifs_get_volume_info
 cifs_lookup
 cifs_root_iget
 cifs_sb_tlink
@@ -213,6 +220,7 @@ copy_pid_ns
 copy_process
 copy_znode
 core_alloc_hba
+core_alloc_port
 core_alua_allocate_lu_gp
 core_alua_allocate_lu_gp_mem
 core_alua_allocate_tg_pt_gp_mem
@@ -224,13 +232,13 @@ cpuacct_create
 cpu_cgroup_create
 cpuset_create
 cpuset_mount
-cramfs_lookup
 create_empty_lvol
 create_entry
 create_fs_client
 create_iboe_ah
 create_ipc_ns
 create_new_namespaces
+create_nfs_open_context
 create_pid_namespace
 create_read_pipe
 create_reloc_inode
@@ -313,6 +321,7 @@ disk_seqf_start
 display_device_register
 dlm_register_domain
 dl_seq_start
+d_materialise_unique
 dm_build_path_uevent
 dm_hash_rename
 dm_io_client_create
@@ -327,7 +336,6 @@ do_kern_mount
 do_last
 do_open
 do_read_cache_page
-do_revalidate
 __d_path
 d_path
 d_path_with_unreachable
@@ -356,6 +364,7 @@ eventfd_ctx_fileget
 eventfd_fget
 eventfd_file_create
 exofs_get_page
+exofs_get_parent
 exofs_iget
 exofs_lookup
 exofs_mount
@@ -401,6 +410,7 @@ fanotify_merge
 fat_build_inode
 fat_get_parent
 f_audio_buffer_alloc
+fault_create_debugfs_attr
 fcoe_if_create
 fcoe_interface_create
 fd_create_virtdevice
@@ -435,11 +445,11 @@ fw_create_instance
 gc_probe
 generic_create_cred
 get_buffer
-get_cached_acl
 get_cifs_acl_by_fid
 get_cifs_acl_by_path
 get_cramfs_inode
 get_default_root
+__get_device_from_cb
 get_device_pmkids
 get_domain
 get_fb_info
@@ -468,6 +478,7 @@ get_vfsmount_from_fd
 gfs2_acl_get
 gfs2_dirent_scan
 gfs2_dirent_search
+gfs2_dir_get_hash_table
 gfs2_dir_search
 gfs2_get_dentry
 gfs2_inode_lookup
@@ -588,6 +599,9 @@ ipv6_add_addr
 ipv6_gso_segment
 ipv6_renew_options
 iscsi_iser_ep_connect
+iscsit_add_np
+iscsit_add_tiqn
+iscsit_tpg_add_network_portal
 isofs_export_get_parent
 isofs_export_iget
 isofs_iget
@@ -627,6 +641,7 @@ jfs_iget
 jfs_lookup
 jfs_nfs_get_inode
 journal_start
+kern_path_create
 key_alloc
 key_create_or_update
 key_get_instantiation_authkey
@@ -636,6 +651,7 @@ keyring_search
 keyring_search_aux
 __keyring_search_one
 key_type_lookup
+kprobe_addr
 kvm_create_vm
 l2cap_create_basic_pdu
 l2cap_create_connless_pdu
@@ -646,6 +662,9 @@ __lbs_cmd_async
 __lbtf_cmd_async
 lcd_device_register
 lease_alloc
+lio_target_call_addnptotpg
+lio_target_call_coreaddtiqn
+lio_target_make_nodeacl
 load_module
 load_msg
 logfs_get_dd_page
@@ -656,7 +675,6 @@ logfs_new_inode
 logfs_new_meta_inode
 logfs_read_meta_inode
 lookup_bdev
-lookup_create
 __lookup_free_space_inode
 __lookup_hash
 lookup_one_len
@@ -718,7 +736,7 @@ mount_single
 mousedev_create
 __mpol_dup
 mpol_new
-msdos_lookup
+mqueue_get_inode
 m_start
 mthca_ah_create
 mthca_alloc_fmr
@@ -733,7 +751,6 @@ mthca_get_dma_mr
 mthca_init_user_db_tab
 mthca_reg_phys_mr
 mthca_reg_user_mr
-nameidata_to_nfs_open_context
 nand_get_flash_type
 nbd_find_request
 ncp_lookup
@@ -749,6 +766,7 @@ nes_create_cq
 nes_create_qp
 nes_reg_phys_mr
 nes_reg_user_mr
+net2272_probe_init
 netfs_trans_add
 netlink_getsockbyfilp
 netlink_getsockbypid
@@ -761,6 +779,7 @@ nfs3_proc_getacl
 nfs41_callback_up
 _nfs41_proc_sequence
 nfs4_acl_posix_to_nfsv4
+nfs4_blk_decode_device
 nfs4_callback_up
 nfs4_create_referral_server
 nfs4_create_server
@@ -849,6 +868,7 @@ ocfs2_get_acl_nolock
 ocfs2_get_dentry
 ocfs2_get_parent
 ocfs2_iget
+ocfs2_iop_get_acl
 ocfs2_local_quota_add_chunk
 ocfs2_lookup
 ocfs2_start_trans
@@ -904,6 +924,7 @@ phy_attach
 phy_connect
 platform_create_bundle
 platform_device_register_resndata
+pm_ctrl_init
 pnode_lookup
 pohmelfs_create_entry_local
 pohmelfs_init_cipher
@@ -935,6 +956,7 @@ proc_sys_lookup
 proc_task_instantiate
 proc_task_lookup
 proc_tgid_net_lookup
+psb_framebuffer_create
 psb_user_framebuffer_create
 pscsi_create_virtdevice
 pt1_alloc_adapter
@@ -998,6 +1020,7 @@ read_sb_page
 __register_chrdev_region
 register_session
 register_wide_hw_breakpoint
+regmap_init
 _regulator_get
 regulator_register
 reiserfs_get_acl
@@ -1015,6 +1038,7 @@ resolv_usage_page
 romfs_iget
 romfs_lookup
 romfs_mount
+rom_init
 __root_device_register
 rpcauth_create
 rpcauth_lookup_credcache
@@ -1079,7 +1103,7 @@ sget
 sg_get_dev
 shmem_file_setup
 shmem_get_parent
-shmem_swp_alloc
+shmem_read_mapping_page_gfp
 simple_children_make_item
 simple_get_bytes
 simple_get_netobj
@@ -1126,6 +1150,7 @@ target_core_mappedlun_stat_mkdir
 target_core_port_stat_mkdir
 target_core_register_fabric
 target_core_stat_mkdir
+target_fabric_configfs_init
 target_fabric_make_lun
 target_fabric_make_mappedlun
 target_fabric_make_nodeacl
@@ -1144,6 +1169,9 @@ tgfx_probe
 thermal_cooling_device_register
 thermal_zone_device_register
 timerfd_fget
+tomoyo_get_absolute_path
+tomoyo_get_dentry_path
+tomoyo_get_local_path
 tracepoint_entry_add_probe
 tracepoint_entry_remove_probe
 tracepoint_remove_probe
@@ -1212,8 +1240,13 @@ v9fs_qid_iget_dotl
 v9fs_session_init
 v9fs_vfs_lookup
 v9fs_writeback_fid
+vb2_dma_contig_alloc
+vb2_dma_contig_get_userptr
+vb2_dma_contig_init_ctx
+verdict_instance_lookup
 vfat_lookup
 vfs_kern_mount
+vhost_ubuf_alloc
 video_output_register
 virtio_find_single_vq
 vma_to_resize
@@ -1230,7 +1263,6 @@ wimax_msg_alloc
 wl1251_alloc_hw
 wl1271_alloc_hw
 wl12xx_get_platform_data
-wl_alloc_wdev
 xattr_lookup
 xen_blkif_alloc
 xenbus_dev_request_and_reply
@@ -1256,6 +1288,7 @@ xfs_vn_lookup
 xlog_alloc_log
 xpc_create_gru_mq_uv
 xprt_create_transport
+xprt_dynamic_alloc_slot
 xprt_setup_rdma
 xs_create_sock
 xs_setup_bc_tcp

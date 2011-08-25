@@ -54,6 +54,7 @@ __module_put_and_exit
 mpt_halt_firmware
 native_machine_emergency_restart
 native_machine_halt
+native_play_dead
 netlink_data_ready
 nfs4_run_state_manager
 nfsd
@@ -66,7 +67,6 @@ prio_changed_idle
 prio_changed_stop
 r8712_cmd_thread
 radeon_gem_object_init
-rcu_node_kthread
 __reiserfs_panic
 report_instruction_timeout
 rest_init
@@ -86,7 +86,6 @@ switched_to_stop
 sys_exit
 sys_exit_group
 task_tick_rt
-tomoyo_gc_thread
 ttm_bo_ref_bug
 txd_chain
 usbatm_do_heavy_init
@@ -94,5 +93,6 @@ usb_stor_scan_thread
 usu_probe_thread
 wait_for_panic
 watchdog
+x86_64_start_kernel
 x86_64_start_reservations
 yield_task_stop

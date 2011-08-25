@@ -87,6 +87,7 @@ bfad_pci_uninit
 bfad_remove_intr
 bh1770_remove
 bnx2x_free_irq
+brcmf_op_if
 brcms_free
 bu21013_free_irq
 BusLogic_ReleaseResources
@@ -112,6 +113,8 @@ cb_pcimdas_detach
 c_can_close
 cfhsi_shutdown
 chd_dec_disable_int
+ci13xxx_pci_probe
+ci13xxx_pci_remove
 ck804xrom_cleanup
 cleanup_dev
 cma3000_exit
@@ -149,7 +152,6 @@ devm_free_irq
 __devm_release_region
 dfx_close
 dfx_open
-dhd_op_if
 dio200_detach
 dio24_detach
 dio700_detach
@@ -168,6 +170,7 @@ ds3232_remove
 dscc4_init_one
 dscc4_remove_one
 dt3000_detach
+dt3155_probe
 dt3155_remove
 dw_spi_add_host
 dw_spi_remove_host
@@ -201,6 +204,9 @@ fpga_remove
 free_dmar_iommu
 free_irq_resources
 free_region
+fsa9480_probe
+fsa9480_remove
+goku_remove
 hamachi_close
 happy_meal_close
 happy_meal_open
@@ -258,7 +264,7 @@ iwl3945_pci_remove
 iwl4965_pci_probe
 iwl4965_pci_remove
 iwl_pci_probe
-iwl_pci_remove
+iwl_trans_free
 iwm_if_remove
 ixgb_down
 ixgbe_free_irq
@@ -266,6 +272,8 @@ ixgbe_sfp_detection_subtask
 jme_free_irq
 ks8851_remove
 kvaser_pci_init_one
+kxtj9_probe
+kxtj9_remove
 labpc_common_detach
 libertas_spi_remove
 lm8323_remove
@@ -302,6 +310,9 @@ mpr_touchkey_remove
 mpt2sas_base_free_resources
 mpt_adapter_dispose
 mpt_do_ioc_recovery
+mpu3050_probe
+mpu3050_remove
+mrst_hdmi_i2c_exit
 mthca_free_irqs
 mwl8k_probe
 mwl8k_remove
@@ -311,6 +322,9 @@ mxt_probe
 ne2k_pci_close
 nes_probe
 nes_remove
+net2272_probe_fin
+net2272_remove
+net2280_remove
 net_close
 netdev_close
 netdev_free
@@ -357,7 +371,7 @@ pch_i2c_probe
 pch_i2c_remove
 pch_phub_probe
 pch_phub_remove
-pch_spi_free_resources
+pch_udc_remove
 pci1710_detach
 pci224_detach
 pci230_detach
@@ -394,8 +408,10 @@ pn544_remove
 ppp_shutdown_interface
 prism54_remove
 probe
+psb_gtt_free_range
 pt1_probe
 pt1_remove
+pti_pci_remove
 pvscsi_release_resources
 pvscsi_shutdown_intr
 qib_6120_free_irq
@@ -420,7 +436,6 @@ r6040_open
 r852_probe
 r852_remove
 radeon_device_fini
-rc_shutdown_board
 release_and_free_resource
 release_card
 release_cis_mem
@@ -531,14 +546,12 @@ ssb_iounmap
 st1232_ts_probe
 st1232_ts_remove
 std_irq_cleanup
-stl_brdinit
 stmmac_release
 stop_airo_card
 stop_atmel_card
 stop_ft1000_card
 sundance_probe1
 sundance_remove1
-sx_shutdown_board
 sym_free_resources
 sym_iounmap_device
 synaptics_i2c_remove
@@ -548,6 +561,7 @@ timbuart_shutdown
 tlan_close
 tms_pci_attach
 tps65010_remove
+tps65912_irq_exit
 tsc2005_probe
 tsc2007_free_irq
 tsi148_alloc_resource
@@ -566,6 +580,7 @@ typhoon_init_one
 typhoon_open
 typhoon_remove_one
 typhoon_test_mmio
+udc_pci_remove
 uio_unregister_device
 uli526x_stop
 ulite_shutdown

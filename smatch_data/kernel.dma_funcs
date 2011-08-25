@@ -38,7 +38,6 @@ BoxGetRegister 3
 bulk_immediate 1
 bulk_xfer 1
 catc_ctrl_msg 5
-cdc_ncm_do_request 2
 ch341_control_in 4
 cpia2_usb_transfer_cmd 1
 cx231xx_read_ctrl_reg 3
@@ -106,6 +105,8 @@ InterfaceRDM 2
 InterfaceWRM 2
 jumpshot_bulk_read 1
 jumpshot_bulk_write 1
+kalmia_send_init_packet 1
+kalmia_send_init_packet 3
 keyspan_setup_urb 4
 kinect_read 1
 kinect_write 1
@@ -123,12 +124,13 @@ mcs_get_reg 2
 Media_D_CopySector 3
 Media_D_ReadOneSect 2
 Media_D_ReadSector 3
-MS_LibReadExtraBlock 4
-MS_ReaderCopyBlock 5
-MS_ReaderReadPage 3
+ms_lib_read_extrablock 4
+ms_read_copyblock 5
+ms_read_readpage 3
 mts_int_submit_urb 2
 nc_register_read 2
 nc_vendor_read 3
+net2280_queue 1
 netdev_tx 1
 p54u_bulk_msg 2
 p54u_write 1
@@ -260,7 +262,10 @@ vp702x_usb_out_op 4
 vp702x_usb_out_op_unlocked 4
 vub300_usb_bulk_msg 2
 write_cmd_usb 1
+write_fifo 1
+WriteHSCXfifo 2
 write_i2c_mem 4
+WriteISACfifo 1
 write_packet 2
 write_rom 3
 yealink_cmd 1

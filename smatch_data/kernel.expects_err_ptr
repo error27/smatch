@@ -11,6 +11,7 @@ clusterip_seq_stop 1
 device_create_vargs 0
 d_obtain_alias 0
 do_readlink 2
+d_splice_alias 0
 fc_disc_gpn_ft_resp 1
 fc_disc_gpn_id_resp 1
 fc_els_resp_type 0
@@ -39,6 +40,7 @@ ieee80211_wep_decrypt_data 0
 ieee80211_wep_encrypt_data 0
 is_bad 0
 lookup_instantiate_filp 1
+mdfld_dsi_pkg_sender_destroy 0
 nfs3_cache_acls 1
 nfs3_cache_acls 2
 ntfs_runlists_merge 0
