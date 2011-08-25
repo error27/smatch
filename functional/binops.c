@@ -118,4 +118,24 @@ unsigned int uor_bool(unsigned int x, unsigned int y)
 {
 	return x || y;
 }
+
+int sete(int x, int y)
+{
+	return x == y;
+}
+
+int setne(int x, int y)
+{
+	return x != y;
+}
+
+int setl(int x, int y)
+{
+	return x < y;
+}
+
+int setg(int x, int y)
+{
+	return x > y;
+}
 #endif

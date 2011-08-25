@@ -185,10 +185,10 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 
 	/* Binary comparison */
 	case OP_SET_EQ:
-		assert(0);
+		target = LLVMBuildICmp(fn->builder, LLVMIntEQ, lhs, rhs, target_name);
 		break;
 	case OP_SET_NE:
-		assert(0);
+		target = LLVMBuildICmp(fn->builder, LLVMIntNE, lhs, rhs, target_name);
 		break;
 	case OP_SET_LE:
 		assert(0);
@@ -197,10 +197,10 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 		assert(0);
 		break;
 	case OP_SET_LT:
-		assert(0);
+		target = LLVMBuildICmp(fn->builder, LLVMIntSLT, lhs, rhs, target_name);
 		break;
 	case OP_SET_GT:
-		assert(0);
+		target = LLVMBuildICmp(fn->builder, LLVMIntSGT, lhs, rhs, target_name);
 		break;
 	case OP_SET_B:
 		assert(0);
@@ -241,52 +241,78 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		output_op_ret(fn, insn);
 		break;
 	case OP_BR:
+		assert(0);
 		break;
 	case OP_SYMADDR:
+		assert(0);
 		break;
 	case OP_SETVAL:
+		assert(0);
 		break;
 	case OP_SWITCH:
+		assert(0);
 		break;
 	case OP_COMPUTEDGOTO:
+		assert(0);
 		break;
 	case OP_PHISOURCE:
+		assert(0);
 		break;
 	case OP_PHI:
+		assert(0);
 		break;
 	case OP_LOAD: case OP_LNOP:
+		assert(0);
 		break;
 	case OP_STORE: case OP_SNOP:
+		assert(0);
 		break;
 	case OP_INLINED_CALL:
 	case OP_CALL:
+		assert(0);
 		break;
 	case OP_CAST:
+		assert(0);
+		break;
 	case OP_SCAST:
+		assert(0);
+		break;
 	case OP_FPCAST:
+		assert(0);
+		break;
 	case OP_PTRCAST:
+		assert(0);
 		break;
 	case OP_BINARY ... OP_BINARY_END:
 	case OP_BINCMP ... OP_BINCMP_END:
 		output_op_binary(fn, insn);
 		break;
 	case OP_SEL:
+		assert(0);
 		break;
 	case OP_SLICE:
+		assert(0);
 		break;
 	case OP_NOT: case OP_NEG:
+		assert(0);
 		break;
 	case OP_CONTEXT:
+		assert(0);
 		break;
 	case OP_RANGE:
+		assert(0);
 		break;
 	case OP_NOP:
+		assert(0);
 		break;
 	case OP_DEATHNOTE:
+		assert(0);
 		break;
 	case OP_ASM:
+		assert(0);
 		break;
 	case OP_COPY:
+		assert(0);
 		break;
 	default:
 		break;
