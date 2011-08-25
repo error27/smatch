@@ -65,6 +65,96 @@ static LLVMLinkage function_linkage(struct symbol *sym)
 	return LLVMExternalLinkage;
 }
 
+static void output_op_binary(struct function *fn, struct instruction *insn)
+{
+	switch (insn->opcode) {
+	/* Binary */
+	case OP_ADD:
+		assert(0);
+		break;
+	case OP_SUB:
+		assert(0);
+		break;
+	case OP_MULU:
+		assert(0);
+		break;
+	case OP_MULS:
+		assert(0);
+		break;
+	case OP_DIVU:
+		assert(0);
+		break;
+	case OP_DIVS:
+		assert(0);
+		break;
+	case OP_MODU:
+		assert(0);
+		break;
+	case OP_MODS:
+		assert(0);
+		break;
+	case OP_SHL:
+		assert(0);
+		break;
+	case OP_LSR:
+		assert(0);
+		break;
+	case OP_ASR:
+		assert(0);
+		break;
+	
+	/* Logical */
+	case OP_AND:
+		assert(0);
+		break;
+	case OP_OR:
+		assert(0);
+		break;
+	case OP_XOR:
+		assert(0);
+		break;
+	case OP_AND_BOOL:
+		assert(0);
+		break;
+	case OP_OR_BOOL:
+
+	/* Binary comparison */
+	case OP_SET_EQ:
+		assert(0);
+		break;
+	case OP_SET_NE:
+		assert(0);
+		break;
+	case OP_SET_LE:
+		assert(0);
+		break;
+	case OP_SET_GE:
+		assert(0);
+		break;
+	case OP_SET_LT:
+		assert(0);
+		break;
+	case OP_SET_GT:
+		assert(0);
+		break;
+	case OP_SET_B:
+		assert(0);
+		break;
+	case OP_SET_A:
+		assert(0);
+		break;
+	case OP_SET_BE:
+		assert(0);
+		break;
+	case OP_SET_AE:
+		assert(0);
+		break;
+	default:
+		assert(0);
+		break;
+	}
+}
+
 static void output_op_ret(struct function *fn, struct instruction *insn)
 {
 	pseudo_t pseudo = insn->src;
@@ -129,6 +219,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		break;
 	case OP_BINARY ... OP_BINARY_END:
 	case OP_BINCMP ... OP_BINCMP_END:
+		output_op_binary(fn, insn);
 		break;
 	case OP_SEL:
 		break;
