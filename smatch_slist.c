@@ -125,15 +125,6 @@ static void add_possible(struct sm_state *sm, struct sm_state *new)
 	struct sm_state *tmp;
 	struct sm_state *tmp2;
 
-	if (!new) {
-		struct smatch_state *s;
-
-		s = merge_states(sm->owner, sm->name, sm->sym, sm->state, NULL);
-		tmp = alloc_state_no_name(sm->owner, sm->name, sm->sym, s);
-		add_sm_state_slist(&sm->possible, tmp);
-		return;
-	}
-
 	FOR_EACH_PTR(new->possible, tmp) {
 		tmp2 = alloc_state_no_name(tmp->owner,tmp->name, tmp->sym, 
 					   tmp->state);
