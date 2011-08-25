@@ -65,12 +65,75 @@ static LLVMLinkage function_linkage(struct symbol *sym)
 	return LLVMExternalLinkage;
 }
 
+#define MAX_PSEUDO_NAME 64
+
+static void pseudo_name(pseudo_t pseudo, char *buf)
+{
+	switch (pseudo->type) {
+	case PSEUDO_REG:
+                snprintf(buf, MAX_PSEUDO_NAME, "%%r%d", pseudo->nr);
+		break;
+	case PSEUDO_SYM:
+		assert(0);
+		break;
+	case PSEUDO_VAL:
+		assert(0);
+		break;
+	case PSEUDO_ARG: {
+		assert(0);
+		break;
+	}
+	case PSEUDO_PHI:
+		assert(0);
+		break;
+	default:
+		assert(0);
+	}
+}
+
+static LLVMValueRef pseudo_to_value(struct function *fn, pseudo_t pseudo)
+{
+	LLVMValueRef result;
+
+	switch (pseudo->type) {
+	case PSEUDO_REG:
+		result = pseudo->priv;
+		break;
+	case PSEUDO_SYM:
+		assert(0);
+		break;
+	case PSEUDO_VAL:
+		result = LLVMConstInt(LLVMGetReturnType(fn->type), pseudo->value, 1);
+		break;
+	case PSEUDO_ARG: {
+		result = LLVMGetParam(fn->fn, pseudo->nr - 1);
+		break;
+	}
+	case PSEUDO_PHI:
+		assert(0);
+		break;
+	default:
+		assert(0);
+	}
+
+	return result;
+}
+
 static void output_op_binary(struct function *fn, struct instruction *insn)
 {
+	LLVMValueRef lhs, rhs, target;
+	char target_name[64];
+
+	lhs = pseudo_to_value(fn, insn->src1);
+
+	rhs = pseudo_to_value(fn, insn->src2);
+
+	pseudo_name(insn->target, target_name);
+
 	switch (insn->opcode) {
 	/* Binary */
 	case OP_ADD:
-		assert(0);
+		target = LLVMBuildAdd(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_SUB:
 		assert(0);
@@ -153,6 +216,8 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 		assert(0);
 		break;
 	}
+
+	insn->target->priv = target;
 }
 
 static void output_op_ret(struct function *fn, struct instruction *insn)
@@ -160,27 +225,9 @@ static void output_op_ret(struct function *fn, struct instruction *insn)
 	pseudo_t pseudo = insn->src;
 
 	if (pseudo && pseudo != VOID) {
-		switch (pseudo->type) {
-		case PSEUDO_REG:
-			assert(0);
-			break;
-		case PSEUDO_SYM:
-			assert(0);
-			break;
-		case PSEUDO_VAL:
-			LLVMBuildRet(fn->builder, LLVMConstInt(LLVMGetReturnType(fn->type), pseudo->value, 1));
-			break;
-		case PSEUDO_ARG: {
-			LLVMValueRef param = LLVMGetParam(fn->fn, pseudo->nr - 1);
-			LLVMBuildRet(fn->builder, param);
-			break;
-		}
-		case PSEUDO_PHI:
-			assert(0);
-			break;
-		default:
-			assert(0);
-		}
+		LLVMValueRef result = pseudo_to_value(fn, pseudo);
+
+		LLVMBuildRet(fn->builder, result);
 	} else
 		LLVMBuildRetVoid(fn->builder);
 }

@@ -38,6 +38,7 @@ struct pseudo {
 		struct instruction *def;
 		long long value;
 	};
+	void *priv;
 };
 
 extern struct pseudo void_pseudo;
