@@ -59,7 +59,7 @@ static LLVMLinkage function_linkage(struct symbol *sym)
 	return LLVMExternalLinkage;
 }
 
-static void output_op_ret(LLVMBuilderRef builder, LLVMTypeRef return_type, struct instruction *insn)
+static void output_op_ret(LLVMBuilderRef builder, LLVMValueRef function, LLVMTypeRef function_type, struct instruction *insn)
 {
 	pseudo_t pseudo = insn->src;
 
@@ -72,11 +72,13 @@ static void output_op_ret(LLVMBuilderRef builder, LLVMTypeRef return_type, struc
 			assert(0);
 			break;
 		case PSEUDO_VAL:
-			LLVMBuildRet(builder, LLVMConstInt(return_type, pseudo->value, 1));
+			LLVMBuildRet(builder, LLVMConstInt(LLVMGetReturnType(function_type), pseudo->value, 1));
 			break;
-		case PSEUDO_ARG:
-			assert(0);
+		case PSEUDO_ARG: {
+			LLVMValueRef param = LLVMGetParam(function, pseudo->nr - 1);
+			LLVMBuildRet(builder, param);
 			break;
+		}
 		case PSEUDO_PHI:
 			assert(0);
 			break;
@@ -87,11 +89,11 @@ static void output_op_ret(LLVMBuilderRef builder, LLVMTypeRef return_type, struc
 		LLVMBuildRetVoid(builder);
 }
 
-static void output_insn(LLVMBuilderRef builder, LLVMTypeRef return_type, struct instruction *insn)
+static void output_insn(LLVMBuilderRef builder, LLVMValueRef function, LLVMTypeRef function_type, struct instruction *insn)
 {
 	switch (insn->opcode) {
 	case OP_RET:
-		output_op_ret(builder, return_type, insn);
+		output_op_ret(builder, function, function_type, insn);
 		break;
 	case OP_BR:
 		break;
@@ -145,7 +147,7 @@ static void output_insn(LLVMBuilderRef builder, LLVMTypeRef return_type, struct 
 	}
 }
 
-static void output_bb(LLVMBuilderRef builder, LLVMTypeRef return_type, struct basic_block *bb, unsigned long generation)
+static void output_bb(LLVMBuilderRef builder, LLVMValueRef function, LLVMTypeRef function_type, struct basic_block *bb, unsigned long generation)
 {
 	struct instruction *insn;
 
@@ -155,7 +157,7 @@ static void output_bb(LLVMBuilderRef builder, LLVMTypeRef return_type, struct ba
 		if (!insn->bb)
 			continue;
 
-		output_insn(builder, return_type, insn);
+		output_insn(builder, function, function_type, insn);
 	}
 	END_FOR_EACH_PTR(insn);
 }
@@ -169,6 +171,7 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	struct symbol *base_type = sym->ctype.base_type;
 	struct symbol *ret_type = sym->ctype.base_type->ctype.base_type;
 	LLVMTypeRef arg_types[MAX_ARGS];
+	LLVMTypeRef function_type;
 	LLVMTypeRef return_type;
 	struct basic_block *bb;
 	LLVMValueRef function;
@@ -186,7 +189,9 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 
 	return_type = symbol_type(ret_type);
 
-	function = LLVMAddFunction(module, name, LLVMFunctionType(return_type, arg_types, nr_args, 0));
+	function_type = LLVMFunctionType(return_type, arg_types, nr_args, 0);
+
+	function = LLVMAddFunction(module, name, function_type);
 
 	LLVMSetLinkage(function, function_linkage(sym));
 
@@ -202,7 +207,7 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 		if (bb->generation == generation)
 			continue;
 
-		output_bb(builder, return_type, bb, generation);
+		output_bb(builder, function, function_type, bb, generation);
 	}
 	END_FOR_EACH_PTR(bb);
 }
