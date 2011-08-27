@@ -1843,6 +1843,49 @@ static pseudo_t linearize_declaration(struct entrypoint *ep, struct statement *s
 	return VOID;
 }
 
+static pseudo_t linearize_iterator(struct entrypoint *ep, struct statement *stmt)
+{
+	struct statement  *pre_statement = stmt->iterator_pre_statement;
+	struct expression *pre_condition = stmt->iterator_pre_condition;
+	struct statement  *statement = stmt->iterator_statement;
+	struct statement  *post_statement = stmt->iterator_post_statement;
+	struct expression *post_condition = stmt->iterator_post_condition;
+	struct basic_block *loop_top, *loop_body, *loop_continue, *loop_end;
+
+	concat_symbol_list(stmt->iterator_syms, &ep->syms);
+	linearize_statement(ep, pre_statement);
+
+	loop_body = loop_top = alloc_basic_block(ep, stmt->pos);
+	loop_continue = alloc_basic_block(ep, stmt->pos);
+	loop_end = alloc_basic_block(ep, stmt->pos);
+
+	/* An empty post-condition means that it's the same as the pre-condition */
+	if (!post_condition) {
+		loop_top = alloc_basic_block(ep, stmt->pos);
+		set_activeblock(ep, loop_top);
+	}
+
+	if (pre_condition)
+			linearize_cond_branch(ep, pre_condition, loop_body, loop_end);
+
+	bind_label(stmt->iterator_continue, loop_continue, stmt->pos);
+	bind_label(stmt->iterator_break, loop_end, stmt->pos);
+
+	set_activeblock(ep, loop_body);
+	linearize_statement(ep, statement);
+	add_goto(ep, loop_continue);
+
+	set_activeblock(ep, loop_continue);
+	linearize_statement(ep, post_statement);
+	if (!post_condition)
+		add_goto(ep, loop_top);
+	else
+		linearize_cond_branch(ep, post_condition, loop_top, loop_end);
+	set_activeblock(ep, loop_end);
+
+	return VOID;
+}
+
 pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 {
 	struct basic_block *bb;
@@ -2049,46 +2092,8 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		break;
 	}
 
-	case STMT_ITERATOR: {
-		struct statement  *pre_statement = stmt->iterator_pre_statement;
-		struct expression *pre_condition = stmt->iterator_pre_condition;
-		struct statement  *statement = stmt->iterator_statement;
-		struct statement  *post_statement = stmt->iterator_post_statement;
-		struct expression *post_condition = stmt->iterator_post_condition;
-		struct basic_block *loop_top, *loop_body, *loop_continue, *loop_end;
-
-		concat_symbol_list(stmt->iterator_syms, &ep->syms);
-		linearize_statement(ep, pre_statement);
-
- 		loop_body = loop_top = alloc_basic_block(ep, stmt->pos);
- 		loop_continue = alloc_basic_block(ep, stmt->pos);
- 		loop_end = alloc_basic_block(ep, stmt->pos);
- 
-		/* An empty post-condition means that it's the same as the pre-condition */
-		if (!post_condition) {
-			loop_top = alloc_basic_block(ep, stmt->pos);
-			set_activeblock(ep, loop_top);
-		}
-
-		if (pre_condition) 
- 			linearize_cond_branch(ep, pre_condition, loop_body, loop_end);
-
-		bind_label(stmt->iterator_continue, loop_continue, stmt->pos);
-		bind_label(stmt->iterator_break, loop_end, stmt->pos);
-
-		set_activeblock(ep, loop_body);
-		linearize_statement(ep, statement);
-		add_goto(ep, loop_continue);
-
-		set_activeblock(ep, loop_continue);
-		linearize_statement(ep, post_statement);
-		if (!post_condition)
-			add_goto(ep, loop_top);
-		else
- 			linearize_cond_branch(ep, post_condition, loop_top, loop_end);
-		set_activeblock(ep, loop_end);
-		break;
-	}
+	case STMT_ITERATOR:
+		return linearize_iterator(ep, stmt);
 
 	default:
 		break;
