@@ -250,6 +250,19 @@ static void sort_instruction_list(struct instruction_list **list)
 static struct instruction * cse_one_instruction(struct instruction *insn, struct instruction *def)
 {
 	convert_instruction_target(insn, def->target);
+
+	if (insn->opcode == OP_PHI) {
+		/* Remove the instruction from PHI users */
+		pseudo_t phi;
+		FOR_EACH_PTR(insn->phi_list, phi) {
+			struct pseudo_user *pu;
+			FOR_EACH_PTR(phi->users, pu) {
+				if (pu->insn == insn)
+					DELETE_CURRENT_PTR(pu);
+			} END_FOR_EACH_PTR(pu);
+		} END_FOR_EACH_PTR(phi);
+	}
+
 	insn->opcode = OP_NOP;
 	insn->bb = NULL;
 	repeat_phase |= REPEAT_CSE;
