@@ -1843,6 +1843,69 @@ static pseudo_t linearize_declaration(struct entrypoint *ep, struct statement *s
 	return VOID;
 }
 
+static pseudo_t linearize_switch(struct entrypoint *ep, struct statement *stmt)
+{
+	struct symbol *sym;
+	struct instruction *switch_ins;
+	struct basic_block *switch_end = alloc_basic_block(ep, stmt->pos);
+	struct basic_block *active, *default_case;
+	struct multijmp *jmp;
+	pseudo_t pseudo;
+
+	pseudo = linearize_expression(ep, stmt->switch_expression);
+
+	active = ep->active;
+	if (!bb_reachable(active))
+		return VOID;
+
+	switch_ins = alloc_instruction(OP_SWITCH, 0);
+	use_pseudo(switch_ins, pseudo, &switch_ins->cond);
+	add_one_insn(ep, switch_ins);
+	finish_block(ep);
+
+	default_case = NULL;
+	FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
+		struct statement *case_stmt = sym->stmt;
+		struct basic_block *bb_case = get_bound_block(ep, sym);
+
+		if (!case_stmt->case_expression) {
+			default_case = bb_case;
+			continue;
+		} else {
+			int begin, end;
+
+			begin = end = case_stmt->case_expression->value;
+			if (case_stmt->case_to)
+				end = case_stmt->case_to->value;
+			if (begin > end)
+				jmp = alloc_multijmp(bb_case, end, begin);
+			else
+				jmp = alloc_multijmp(bb_case, begin, end);
+
+		}
+		add_multijmp(&switch_ins->multijmp_list, jmp);
+		add_bb(&bb_case->parents, active);
+		add_bb(&active->children, bb_case);
+	} END_FOR_EACH_PTR(sym);
+
+	bind_label(stmt->switch_break, switch_end, stmt->pos);
+
+	/* And linearize the actual statement */
+	linearize_statement(ep, stmt->switch_statement);
+	set_activeblock(ep, switch_end);
+
+	if (!default_case)
+		default_case = switch_end;
+
+	jmp = alloc_multijmp(default_case, 1, 0);
+	add_multijmp(&switch_ins->multijmp_list, jmp);
+	add_bb(&default_case->parents, active);
+	add_bb(&active->children, default_case);
+	sort_switch_cases(switch_ins);
+
+	return VOID;
+}
+
 static pseudo_t linearize_iterator(struct entrypoint *ep, struct statement *stmt)
 {
 	struct statement  *pre_statement = stmt->iterator_pre_statement;
@@ -2030,67 +2093,8 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		break;
 	}
 
-	case STMT_SWITCH: {
-		struct symbol *sym;
-		struct instruction *switch_ins;
-		struct basic_block *switch_end = alloc_basic_block(ep, stmt->pos);
-		struct basic_block *active, *default_case;
-		struct multijmp *jmp;
-		pseudo_t pseudo;
-
-		pseudo = linearize_expression(ep, stmt->switch_expression);
-
-		active = ep->active;
-		if (!bb_reachable(active))
-			break;
-
-		switch_ins = alloc_instruction(OP_SWITCH, 0);
-		use_pseudo(switch_ins, pseudo, &switch_ins->cond);
-		add_one_insn(ep, switch_ins);
-		finish_block(ep);
-
-		default_case = NULL;
-		FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
-			struct statement *case_stmt = sym->stmt;
-			struct basic_block *bb_case = get_bound_block(ep, sym);
-
-			if (!case_stmt->case_expression) {
-				default_case = bb_case;
-				continue;
-			} else {
-				int begin, end;
-
-				begin = end = case_stmt->case_expression->value;
-				if (case_stmt->case_to)
-					end = case_stmt->case_to->value;
-				if (begin > end)
-					jmp = alloc_multijmp(bb_case, end, begin);
-				else
-					jmp = alloc_multijmp(bb_case, begin, end);
-
-			}
-			add_multijmp(&switch_ins->multijmp_list, jmp);
-			add_bb(&bb_case->parents, active);
-			add_bb(&active->children, bb_case);
-		} END_FOR_EACH_PTR(sym);
-
-		bind_label(stmt->switch_break, switch_end, stmt->pos);
-
-		/* And linearize the actual statement */
-		linearize_statement(ep, stmt->switch_statement);
-		set_activeblock(ep, switch_end);
-
-		if (!default_case)
-			default_case = switch_end;
-
-		jmp = alloc_multijmp(default_case, 1, 0);
-		add_multijmp(&switch_ins->multijmp_list, jmp);
-		add_bb(&default_case->parents, active);
-		add_bb(&active->children, default_case);
-		sort_switch_cases(switch_ins);
-
-		break;
-	}
+	case STMT_SWITCH:
+		return linearize_switch(ep, stmt);
 
 	case STMT_ITERATOR:
 		return linearize_iterator(ep, stmt);
