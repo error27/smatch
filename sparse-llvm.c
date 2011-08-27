@@ -660,11 +660,7 @@ int main(int argc, char **argv)
 		compile(module, sparse(file));
 	} END_FOR_EACH_PTR_NOTAG(file);
 
-#if 1
 	LLVMWriteBitcodeToFD(module, STDOUT_FILENO, 0, 0);
-#else
-	LLVMDumpModule(module);
-#endif
 
 	LLVMDisposeModule(module);
 
