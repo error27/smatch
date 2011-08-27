@@ -1843,6 +1843,30 @@ static pseudo_t linearize_declaration(struct entrypoint *ep, struct statement *s
 	return VOID;
 }
 
+static pseudo_t linearize_return(struct entrypoint *ep, struct statement *stmt)
+{
+	struct expression *expr = stmt->expression;
+	struct basic_block *bb_return = get_bound_block(ep, stmt->ret_target);
+	struct basic_block *active;
+	pseudo_t src = linearize_expression(ep, expr);
+	active = ep->active;
+	if (active && src != &void_pseudo) {
+		struct instruction *phi_node = first_instruction(bb_return->insns);
+		pseudo_t phi;
+		if (!phi_node) {
+			phi_node = alloc_typed_instruction(OP_PHI, expr->ctype);
+			phi_node->target = alloc_pseudo(phi_node);
+			phi_node->bb = bb_return;
+			add_instruction(&bb_return->insns, phi_node);
+		}
+		phi = alloc_phi(active, src, type_size(expr->ctype));
+		phi->ident = &return_ident;
+		use_pseudo(phi_node, phi, add_pseudo(&phi_node->phi_list, phi));
+	}
+	add_goto(ep, bb_return);
+	return VOID;
+}
+
 static pseudo_t linearize_switch(struct entrypoint *ep, struct statement *stmt)
 {
 	struct symbol *sym;
@@ -1980,28 +2004,8 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	case STMT_ASM:
 		return linearize_asm_statement(ep, stmt);
 
-	case STMT_RETURN: {
-		struct expression *expr = stmt->expression;
-		struct basic_block *bb_return = get_bound_block(ep, stmt->ret_target);
-		struct basic_block *active;
-		pseudo_t src = linearize_expression(ep, expr);
-		active = ep->active;
-		if (active && src != &void_pseudo) {
-			struct instruction *phi_node = first_instruction(bb_return->insns);
-			pseudo_t phi;
-			if (!phi_node) {
-				phi_node = alloc_typed_instruction(OP_PHI, expr->ctype);
-				phi_node->target = alloc_pseudo(phi_node);
-				phi_node->bb = bb_return;
-				add_instruction(&bb_return->insns, phi_node);
-			}
-			phi = alloc_phi(active, src, type_size(expr->ctype));
-			phi->ident = &return_ident;
-			use_pseudo(phi_node, phi, add_pseudo(&phi_node->phi_list, phi));
-		}
-		add_goto(ep, bb_return);
-		return VOID;
-	}
+	case STMT_RETURN:
+		return linearize_return(ep, stmt);
 
 	case STMT_CASE: {
 		add_label(ep, stmt->case_label);
