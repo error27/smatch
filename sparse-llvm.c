@@ -575,10 +575,6 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 
 	LLVMSetLinkage(function.fn, function_linkage(sym));
 
-#if 0
-	unssa(ep);
-#endif
-
 	function.builder = LLVMCreateBuilder();
 
 	static int nr_bb;
