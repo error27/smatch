@@ -237,6 +237,31 @@ static void output_op_ret(struct function *fn, struct instruction *insn)
 		LLVMBuildRetVoid(fn->builder);
 }
 
+static void output_op_load(struct function *fn, struct instruction *insn)
+{
+	LLVMTypeRef int_type;
+	LLVMValueRef src_p, src_i, ofs_i, addr_i, addr, target;
+
+	/* int type large enough to hold a pointer */
+	int_type = LLVMIntType(bits_in_pointer);
+
+	/* convert to integer, add src + offset */
+	src_p = pseudo_to_value(fn, insn->src);
+	src_i = LLVMBuildPtrToInt(fn->builder, src_p, int_type, "src_i");
+
+	ofs_i = LLVMConstInt(int_type, insn->offset, 0);
+	addr_i = LLVMBuildAdd(fn->builder, src_i, ofs_i, "addr_i");
+
+	/* convert address back to pointer */
+	addr = LLVMBuildIntToPtr(fn->builder, addr_i,
+				 LLVMPointerType(int_type, 0), "addr");
+
+	/* perform load */
+	target = LLVMBuildLoad(fn->builder, addr, "load_target");
+
+	insn->target->priv = target;
+}
+
 static void output_op_br(struct function *fn, struct instruction *br)
 {
 	if (br->cond) {
@@ -363,7 +388,10 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		insn->target->priv = target;
 		break;
 	}
-	case OP_LOAD: case OP_LNOP:
+	case OP_LOAD:
+		output_op_load(fn, insn);
+		break;
+	case OP_LNOP:
 		assert(0);
 		break;
 	case OP_STORE: case OP_SNOP:
