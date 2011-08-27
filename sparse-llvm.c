@@ -248,6 +248,19 @@ static void output_op_br(struct function *fn, struct instruction *br)
 			    br->bb_false->priv);
 }
 
+static void output_op_sel(struct function *fn, struct instruction *insn)
+{
+	LLVMValueRef target, src1, src2, src3;
+
+	src1 = pseudo_to_value(fn, insn->src1);
+	src2 = pseudo_to_value(fn, insn->src2);
+	src3 = pseudo_to_value(fn, insn->src3);
+
+	target = LLVMBuildSelect(fn->builder, src1, src2, src3, "select");
+
+	insn->target->priv = target;
+}
+
 static void output_insn(struct function *fn, struct instruction *insn)
 {
 	switch (insn->opcode) {
@@ -344,7 +357,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		output_op_binary(fn, insn);
 		break;
 	case OP_SEL:
-		assert(0);
+		output_op_sel(fn, insn);
 		break;
 	case OP_SLICE:
 		assert(0);
