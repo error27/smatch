@@ -6,6 +6,7 @@
 #include <llvm-c/Core.h>
 #include <llvm-c/BitWriter.h>
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <assert.h>
@@ -21,30 +22,49 @@ struct function {
 	LLVMValueRef			fn;
 };
 
+static inline bool symbol_is_fp_type(struct symbol *sym)
+{
+	return sym->ctype.base_type == &fp_type;
+}
+
 static LLVMTypeRef symbol_type(struct symbol *sym)
 {
 	LLVMTypeRef ret = NULL;
 
-	switch (sym->bit_size) {
-	case -1:
-		ret = LLVMVoidType();
-		break;
-	case 8:
-		ret = LLVMInt8Type();
-		break;
-	case 16:
-		ret = LLVMInt16Type();
-		break;
-	case 32:
-		ret = LLVMInt32Type();
-		break;
-	case 64:
-		ret = LLVMInt64Type();
-		break;
-	default:
-		die("invalid bit size %d for type %d", sym->bit_size, sym->type);
-		break;
-	};
+	if (symbol_is_fp_type(sym)) {
+		switch (sym->bit_size) {
+		case 32:
+			ret = LLVMFloatType();
+			break;
+		case 64:
+			ret = LLVMDoubleType();
+			break;
+		default:
+			die("invalid bit size %d for type %d", sym->bit_size, sym->type);
+			break;
+		}
+	} else {
+		switch (sym->bit_size) {
+		case -1:
+			ret = LLVMVoidType();
+			break;
+		case 8:
+			ret = LLVMInt8Type();
+			break;
+		case 16:
+			ret = LLVMInt16Type();
+			break;
+		case 32:
+			ret = LLVMInt32Type();
+			break;
+		case 64:
+			ret = LLVMInt64Type();
+			break;
+		default:
+			die("invalid bit size %d for type %d", sym->bit_size, sym->type);
+			break;
+		}
+	}
 
 	return ret;
 }
@@ -136,47 +156,69 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 	switch (insn->opcode) {
 	/* Binary */
 	case OP_ADD:
-		target = LLVMBuildAdd(fn->builder, lhs, rhs, target_name);
+		if (symbol_is_fp_type(insn->type))
+			target = LLVMBuildFAdd(fn->builder, lhs, rhs, target_name);
+		else
+			target = LLVMBuildAdd(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_SUB:
-		target = LLVMBuildSub(fn->builder, lhs, rhs, target_name);
+		if (symbol_is_fp_type(insn->type))
+			target = LLVMBuildFSub(fn->builder, lhs, rhs, target_name);
+		else
+			target = LLVMBuildSub(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_MULU:
-		target = LLVMBuildMul(fn->builder, lhs, rhs, target_name);
+		if (symbol_is_fp_type(insn->type))
+			target = LLVMBuildFMul(fn->builder, lhs, rhs, target_name);
+		else
+			target = LLVMBuildMul(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_MULS:
+		assert(!symbol_is_fp_type(insn->type));
 		target = LLVMBuildMul(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_DIVU:
-		target = LLVMBuildUDiv(fn->builder, lhs, rhs, target_name);
+		if (symbol_is_fp_type(insn->type))
+			target = LLVMBuildFDiv(fn->builder, lhs, rhs, target_name);
+		else
+			target = LLVMBuildUDiv(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_DIVS:
+		assert(!symbol_is_fp_type(insn->type));
 		target = LLVMBuildSDiv(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_MODU:
+		assert(!symbol_is_fp_type(insn->type));
 		target = LLVMBuildURem(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_MODS:
+		assert(!symbol_is_fp_type(insn->type));
 		target = LLVMBuildSRem(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_SHL:
+		assert(!symbol_is_fp_type(insn->type));
 		target = LLVMBuildShl(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_LSR:
+		assert(!symbol_is_fp_type(insn->type));
 		target = LLVMBuildLShr(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_ASR:
+		assert(!symbol_is_fp_type(insn->type));
 		target = LLVMBuildAShr(fn->builder, lhs, rhs, target_name);
 		break;
 	
 	/* Logical */
 	case OP_AND:
+		assert(!symbol_is_fp_type(insn->type));
 		target = LLVMBuildAnd(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_OR:
+		assert(!symbol_is_fp_type(insn->type));
 		target = LLVMBuildOr(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_XOR:
+		assert(!symbol_is_fp_type(insn->type));
 		target = LLVMBuildXor(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_AND_BOOL:
@@ -188,9 +230,11 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 
 	/* Binary comparison */
 	case OP_SET_EQ:
+		assert(!symbol_is_fp_type(insn->type));
 		target = LLVMBuildICmp(fn->builder, LLVMIntEQ, lhs, rhs, target_name);
 		break;
 	case OP_SET_NE:
+		assert(!symbol_is_fp_type(insn->type));
 		target = LLVMBuildICmp(fn->builder, LLVMIntNE, lhs, rhs, target_name);
 		break;
 	case OP_SET_LE:
@@ -200,9 +244,11 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 		assert(0);
 		break;
 	case OP_SET_LT:
+		assert(!symbol_is_fp_type(insn->type));
 		target = LLVMBuildICmp(fn->builder, LLVMIntSLT, lhs, rhs, target_name);
 		break;
 	case OP_SET_GT:
+		assert(!symbol_is_fp_type(insn->type));
 		target = LLVMBuildICmp(fn->builder, LLVMIntSGT, lhs, rhs, target_name);
 		break;
 	case OP_SET_B:
