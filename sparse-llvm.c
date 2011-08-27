@@ -389,19 +389,10 @@ static void output_insn(struct function *fn, struct instruction *insn)
 	case OP_COMPUTEDGOTO:
 		assert(0);
 		break;
-	case OP_PHISOURCE: {
-		LLVMValueRef src, target;
-		char target_name[64];
-
-		pseudo_name(insn->target, target_name);
-		src = pseudo_to_value(fn, insn->phi_src);
-
-		target = LLVMBuildAdd(fn->builder, src,
-			LLVMConstInt(LLVMInt32Type(), 0, 0), target_name);
-
-		insn->target->priv = target;
+	case OP_PHISOURCE:
+		/* target = src */
+		insn->target->priv = pseudo_to_value(fn, insn->phi_src);
 		break;
-	}
 	case OP_PHI: {
 		pseudo_t phi;
 		LLVMValueRef target;
