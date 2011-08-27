@@ -112,6 +112,9 @@ static LLVMValueRef pseudo_to_value(struct function *fn, pseudo_t pseudo)
 	case PSEUDO_PHI:
 		result = pseudo->priv;
 		break;
+	case PSEUDO_VOID:
+		result = NULL;
+		break;
 	default:
 		assert(0);
 	}
@@ -261,6 +264,39 @@ static void output_op_sel(struct function *fn, struct instruction *insn)
 	insn->target->priv = target;
 }
 
+static void output_op_switch(struct function *fn, struct instruction *insn)
+{
+	LLVMValueRef sw_val, target;
+	struct basic_block *def = NULL;
+	struct multijmp *jmp;
+	int n_jmp = 0;
+
+	FOR_EACH_PTR(insn->multijmp_list, jmp) {
+		if (jmp->begin == jmp->end) {		/* case N */
+			n_jmp++;
+		} else if (jmp->begin < jmp->end) {	/* case M..N */
+			/* FIXME */
+		} else					/* default case */
+			def = jmp->target;
+	} END_FOR_EACH_PTR(jmp);
+
+	sw_val = pseudo_to_value(fn, insn->target);
+	target = LLVMBuildSwitch(fn->builder, sw_val,
+				 def ? def->priv : NULL, n_jmp);
+
+	FOR_EACH_PTR(insn->multijmp_list, jmp) {
+		if (jmp->begin == jmp->end) {		/* case N */
+			LLVMAddCase(target,
+				LLVMConstInt(LLVMInt32Type(), jmp->begin, 0),
+				jmp->target->priv);
+		} else if (jmp->begin < jmp->end) {	/* case M..N */
+			/* FIXME */
+		}
+	} END_FOR_EACH_PTR(jmp);
+
+	insn->target->priv = target;
+}
+
 static void output_insn(struct function *fn, struct instruction *insn)
 {
 	switch (insn->opcode) {
@@ -277,7 +313,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		assert(0);
 		break;
 	case OP_SWITCH:
-		assert(0);
+		output_op_switch(fn, insn);
 		break;
 	case OP_COMPUTEDGOTO:
 		assert(0);
@@ -303,7 +339,8 @@ static void output_insn(struct function *fn, struct instruction *insn)
 					"phi");
 		int pll = 0;
 		FOR_EACH_PTR(insn->phi_list, phi) {
-			pll++;
+			if (pseudo_to_value(fn, phi))	/* skip VOID */
+				pll++;
 		} END_FOR_EACH_PTR(phi);
 
 		LLVMValueRef *phi_vals = calloc(pll, sizeof(LLVMValueRef));
@@ -311,9 +348,14 @@ static void output_insn(struct function *fn, struct instruction *insn)
 
 		int idx = 0;
 		FOR_EACH_PTR(insn->phi_list, phi) {
-			phi_vals[idx] = pseudo_to_value(fn, phi);
-			phi_blks[idx] = phi->def->bb->priv;
-			idx++;
+			LLVMValueRef v;
+
+			v = pseudo_to_value(fn, phi);
+			if (v) {			/* skip VOID */
+				phi_vals[idx] = v;
+				phi_blks[idx] = phi->def->bb->priv;
+				idx++;
+			}
 		} END_FOR_EACH_PTR(phi);
 
 		LLVMAddIncoming(target, phi_vals, phi_blks, pll);
