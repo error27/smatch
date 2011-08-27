@@ -520,6 +520,39 @@ static void output_op_call(struct function *fn, struct instruction *insn)
 	insn->target->priv = target;
 }
 
+static void output_op_phi(struct function *fn, struct instruction *insn)
+{
+	pseudo_t phi;
+	LLVMValueRef target;
+
+	target = LLVMBuildPhi(fn->builder, symbol_type(insn->type),
+				"phi");
+	int pll = 0;
+	FOR_EACH_PTR(insn->phi_list, phi) {
+		if (pseudo_to_value(fn, phi))	/* skip VOID */
+			pll++;
+	} END_FOR_EACH_PTR(phi);
+
+	LLVMValueRef *phi_vals = calloc(pll, sizeof(LLVMValueRef));
+	LLVMBasicBlockRef *phi_blks = calloc(pll, sizeof(LLVMBasicBlockRef));
+
+	int idx = 0;
+	FOR_EACH_PTR(insn->phi_list, phi) {
+		LLVMValueRef v;
+
+		v = pseudo_to_value(fn, phi);
+		if (v) {			/* skip VOID */
+			phi_vals[idx] = v;
+			phi_blks[idx] = phi->def->bb->priv;
+			idx++;
+		}
+	} END_FOR_EACH_PTR(phi);
+
+	LLVMAddIncoming(target, phi_vals, phi_blks, pll);
+
+	insn->target->priv = target;
+}
+
 static void output_insn(struct function *fn, struct instruction *insn)
 {
 	switch (insn->opcode) {
@@ -545,38 +578,9 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		/* target = src */
 		insn->target->priv = pseudo_to_value(fn, insn->phi_src);
 		break;
-	case OP_PHI: {
-		pseudo_t phi;
-		LLVMValueRef target;
-
-		target = LLVMBuildPhi(fn->builder, symbol_type(insn->type),
-					"phi");
-		int pll = 0;
-		FOR_EACH_PTR(insn->phi_list, phi) {
-			if (pseudo_to_value(fn, phi))	/* skip VOID */
-				pll++;
-		} END_FOR_EACH_PTR(phi);
-
-		LLVMValueRef *phi_vals = calloc(pll, sizeof(LLVMValueRef));
-		LLVMBasicBlockRef *phi_blks = calloc(pll, sizeof(LLVMBasicBlockRef));
-
-		int idx = 0;
-		FOR_EACH_PTR(insn->phi_list, phi) {
-			LLVMValueRef v;
-
-			v = pseudo_to_value(fn, phi);
-			if (v) {			/* skip VOID */
-				phi_vals[idx] = v;
-				phi_blks[idx] = phi->def->bb->priv;
-				idx++;
-			}
-		} END_FOR_EACH_PTR(phi);
-
-		LLVMAddIncoming(target, phi_vals, phi_blks, pll);
-
-		insn->target->priv = target;
+	case OP_PHI:
+		output_op_phi(fn, insn);
 		break;
-	}
 	case OP_LOAD:
 		output_op_load(fn, insn);
 		break;
