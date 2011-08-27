@@ -346,7 +346,7 @@ static void output_op_switch(struct function *fn, struct instruction *insn)
 		if (jmp->begin == jmp->end) {		/* case N */
 			n_jmp++;
 		} else if (jmp->begin < jmp->end) {	/* case M..N */
-			/* FIXME */
+			assert(0);
 		} else					/* default case */
 			def = jmp->target;
 	} END_FOR_EACH_PTR(jmp);
@@ -361,7 +361,7 @@ static void output_op_switch(struct function *fn, struct instruction *insn)
 				LLVMConstInt(LLVMInt32Type(), jmp->begin, 0),
 				jmp->target->priv);
 		} else if (jmp->begin < jmp->end) {	/* case M..N */
-			/* FIXME */
+			assert(0);
 		}
 	} END_FOR_EACH_PTR(jmp);
 
