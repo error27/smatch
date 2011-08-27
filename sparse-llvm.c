@@ -71,7 +71,7 @@ static void pseudo_name(pseudo_t pseudo, char *buf)
 {
 	switch (pseudo->type) {
 	case PSEUDO_REG:
-                snprintf(buf, MAX_PSEUDO_NAME, "%%r%d", pseudo->nr);
+		snprintf(buf, MAX_PSEUDO_NAME, "R%d", pseudo->nr);
 		break;
 	case PSEUDO_SYM:
 		assert(0);
@@ -84,7 +84,7 @@ static void pseudo_name(pseudo_t pseudo, char *buf)
 		break;
 	}
 	case PSEUDO_PHI:
-		assert(0);
+		snprintf(buf, MAX_PSEUDO_NAME, "PHI%d", pseudo->nr);
 		break;
 	default:
 		assert(0);
@@ -110,7 +110,7 @@ static LLVMValueRef pseudo_to_value(struct function *fn, pseudo_t pseudo)
 		break;
 	}
 	case PSEUDO_PHI:
-		assert(0);
+		result = pseudo->priv;
 		break;
 	default:
 		assert(0);
@@ -234,6 +234,20 @@ static void output_op_ret(struct function *fn, struct instruction *insn)
 		LLVMBuildRetVoid(fn->builder);
 }
 
+static void output_op_br(struct function *fn, struct instruction *br)
+{
+	if (br->cond) {
+		LLVMValueRef cond = pseudo_to_value(fn, br->cond);
+
+		LLVMBuildCondBr(fn->builder, cond,
+				br->bb_true->priv,
+				br->bb_false->priv);
+	} else
+		LLVMBuildBr(fn->builder,
+			    br->bb_true ? br->bb_true->priv :
+			    br->bb_false->priv);
+}
+
 static void output_insn(struct function *fn, struct instruction *insn)
 {
 	switch (insn->opcode) {
@@ -241,7 +255,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		output_op_ret(fn, insn);
 		break;
 	case OP_BR:
-		assert(0);
+		output_op_br(fn, insn);
 		break;
 	case OP_SYMADDR:
 		assert(0);
@@ -255,12 +269,45 @@ static void output_insn(struct function *fn, struct instruction *insn)
 	case OP_COMPUTEDGOTO:
 		assert(0);
 		break;
-	case OP_PHISOURCE:
-		assert(0);
+	case OP_PHISOURCE: {
+		LLVMValueRef src, target;
+		char target_name[64];
+
+		pseudo_name(insn->target, target_name);
+		src = pseudo_to_value(fn, insn->phi_src);
+
+		target = LLVMBuildAdd(fn->builder, src,
+			LLVMConstInt(LLVMInt32Type(), 0, 0), target_name);
+
+		insn->target->priv = target;
 		break;
-	case OP_PHI:
-		assert(0);
+	}
+	case OP_PHI: {
+		pseudo_t phi;
+		LLVMValueRef target;
+
+		target = LLVMBuildPhi(fn->builder, symbol_type(insn->type),
+					"phi");
+		int pll = 0;
+		FOR_EACH_PTR(insn->phi_list, phi) {
+			pll++;
+		} END_FOR_EACH_PTR(phi);
+
+		LLVMValueRef *phi_vals = calloc(pll, sizeof(LLVMValueRef));
+		LLVMBasicBlockRef *phi_blks = calloc(pll, sizeof(LLVMBasicBlockRef));
+
+		int idx = 0;
+		FOR_EACH_PTR(insn->phi_list, phi) {
+			phi_vals[idx] = pseudo_to_value(fn, phi);
+			phi_blks[idx] = phi->def->bb->priv;
+			idx++;
+		} END_FOR_EACH_PTR(phi);
+
+		LLVMAddIncoming(target, phi_vals, phi_blks, pll);
+
+		insn->target->priv = target;
 		break;
+	}
 	case OP_LOAD: case OP_LNOP:
 		assert(0);
 		break;
@@ -320,9 +367,19 @@ static void output_insn(struct function *fn, struct instruction *insn)
 	case OP_ASM:
 		assert(0);
 		break;
-	case OP_COPY:
-		assert(0);
+	case OP_COPY: {
+		LLVMValueRef src, target;
+		char target_name[64];
+
+		pseudo_name(insn->target, target_name);
+		src = pseudo_to_value(fn, insn->src);
+
+		target = LLVMBuildAdd(fn->builder, src,
+			LLVMConstInt(LLVMInt32Type(), 0, 0), target_name);
+
+		insn->target->priv = target;
 		break;
+	}
 	default:
 		break;
 	}
@@ -372,20 +429,37 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	function.type = LLVMFunctionType(return_type, arg_types, nr_args, 0);
 
 	function.fn = LLVMAddFunction(module, name, function.type);
+	LLVMSetFunctionCallConv(function.fn, LLVMCCallConv);
 
 	LLVMSetLinkage(function.fn, function_linkage(sym));
 
+#if 0
 	unssa(ep);
+#endif
 
 	function.builder = LLVMCreateBuilder();
 
-	LLVMBasicBlockRef entry = LLVMAppendBasicBlock(function.fn, "entry");
-
-	LLVMPositionBuilderAtEnd(function.builder, entry);
+	static int nr_bb;
 
 	FOR_EACH_PTR(ep->bbs, bb) {
 		if (bb->generation == generation)
 			continue;
+
+		LLVMBasicBlockRef bbr;
+		char bbname[32];
+
+		sprintf(bbname, "L%d", nr_bb++);
+		bbr = LLVMAppendBasicBlock(function.fn, bbname);
+
+		bb->priv = bbr;
+	}
+	END_FOR_EACH_PTR(bb);
+
+	FOR_EACH_PTR(ep->bbs, bb) {
+		if (bb->generation == generation)
+			continue;
+
+		LLVMPositionBuilderAtEnd(function.builder, bb->priv);
 
 		output_bb(&function, bb, generation);
 	}

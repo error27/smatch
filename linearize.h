@@ -232,6 +232,7 @@ struct basic_block {
 	struct basic_block_list *children; /* destinations */
 	struct instruction_list *insns;	/* Linear list of instructions */
 	struct pseudo_list *needs, *defines;
+	void *priv;
 };
 
 static inline int is_branch_goto(struct instruction *br)
