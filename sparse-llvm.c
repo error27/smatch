@@ -478,7 +478,20 @@ static void output_insn(struct function *fn, struct instruction *insn)
 	case OP_SLICE:
 		assert(0);
 		break;
-	case OP_NOT: case OP_NEG:
+	case OP_NOT: {
+		LLVMValueRef src, target;
+		char target_name[64];
+
+		src = pseudo_to_value(fn, insn->src);
+
+		pseudo_name(insn->target, target_name);
+
+		target = LLVMBuildNot(fn->builder, src, target_name);
+
+		insn->target->priv = target;
+		break;
+	}
+	case OP_NEG:
 		assert(0);
 		break;
 	case OP_CONTEXT:

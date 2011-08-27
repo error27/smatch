@@ -48,6 +48,16 @@ static unsigned int uxor(unsigned int x, unsigned int y)
 	return x ^ y;
 }
 
+static int not(int x)
+{
+	return ~x;
+}
+
+static unsigned int unot(unsigned int x)
+{
+	return ~x;
+}
+
 /*
  * check-name: Bitwise operator code generation
  * check-command: ./sparsec -c $file -o tmp.o
