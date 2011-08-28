@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 #include <assert.h>
 
 #include "symbol.h"
@@ -20,6 +21,7 @@ struct function {
 	LLVMBuilderRef			builder;
 	LLVMTypeRef			type;
 	LLVMValueRef			fn;
+	LLVMModuleRef			module;
 };
 
 static inline bool symbol_is_fp_type(struct symbol *sym)
@@ -134,6 +136,43 @@ static LLVMValueRef pseudo_to_value(struct function *fn, pseudo_t pseudo)
 		break;
 	case PSEUDO_VOID:
 		result = NULL;
+		break;
+	default:
+		assert(0);
+	}
+
+	return result;
+}
+
+static LLVMTypeRef pseudo_type(struct function *fn, pseudo_t pseudo)
+{
+	LLVMValueRef v;
+	LLVMTypeRef result;
+
+	if (pseudo->priv) {
+		v = pseudo->priv;
+		return LLVMTypeOf(v);
+	}
+
+	switch (pseudo->type) {
+	case PSEUDO_REG:
+		result = symbol_type(pseudo->def->type);
+		break;
+	case PSEUDO_SYM:
+		assert(0);
+		break;
+	case PSEUDO_VAL:
+		assert(0);
+		break;
+	case PSEUDO_ARG: {
+		assert(0);
+		break;
+	}
+	case PSEUDO_PHI:
+		assert(0);
+		break;
+	case PSEUDO_VOID:
+		result = LLVMVoidType();
 		break;
 	default:
 		assert(0);
@@ -346,7 +385,7 @@ static void output_op_switch(struct function *fn, struct instruction *insn)
 		if (jmp->begin == jmp->end) {		/* case N */
 			n_jmp++;
 		} else if (jmp->begin < jmp->end) {	/* case M..N */
-			/* FIXME */
+			assert(0);
 		} else					/* default case */
 			def = jmp->target;
 	} END_FOR_EACH_PTR(jmp);
@@ -361,9 +400,155 @@ static void output_op_switch(struct function *fn, struct instruction *insn)
 				LLVMConstInt(LLVMInt32Type(), jmp->begin, 0),
 				jmp->target->priv);
 		} else if (jmp->begin < jmp->end) {	/* case M..N */
-			/* FIXME */
+			assert(0);
 		}
 	} END_FOR_EACH_PTR(jmp);
+
+	insn->target->priv = target;
+}
+
+struct llfunc {
+	char		name[256];	/* wasteful */
+	LLVMValueRef	func;
+};
+
+DECLARE_ALLOCATOR(llfunc);
+DECLARE_PTR_LIST(llfunc_list, struct llfunc);
+ALLOCATOR(llfunc, "llfuncs");
+
+static struct local_module {
+	struct llfunc_list	*llfunc_list;
+} mi;
+
+static LLVMTypeRef get_func_type(struct function *fn, struct instruction *insn)
+{
+	struct symbol *sym = insn->func->sym;
+	char buffer[256];
+	LLVMTypeRef func_type, ret_type;
+	struct pseudo *arg;
+	int n_arg = 0;
+	LLVMTypeRef *arg_type;
+
+	sprintf(buffer, "%.*s", sym->ident->len, sym->ident->name);
+
+	/* VERIFY: is this correct, for functions? */
+	func_type = LLVMGetTypeByName(fn->module, buffer);
+	if (func_type)
+		return func_type;
+
+	/* to avoid strangeness with varargs [for now], we build
+	 * the function and type anew, for each call.  This
+	 * is probably wrong.  We should look up the
+	 * symbol declaration info.
+	 */
+
+	/* build return type */
+	if (insn->target && insn->target != VOID)
+		ret_type = pseudo_type(fn, insn->target);
+	else
+		ret_type = LLVMVoidType();
+
+	/* count args, build argument type information */
+	FOR_EACH_PTR(insn->arguments, arg) {
+		n_arg++;
+	} END_FOR_EACH_PTR(arg);
+
+	arg_type = calloc(n_arg, sizeof(LLVMTypeRef));
+
+	int idx = 0;
+	FOR_EACH_PTR(insn->arguments, arg) {
+		arg_type[idx++] = pseudo_type(fn, arg);
+	} END_FOR_EACH_PTR(arg);
+
+	func_type = LLVMFunctionType(ret_type, arg_type, n_arg,
+				     /* varargs? */ 0);
+
+	return func_type;
+}
+
+static LLVMValueRef get_function(struct function *fn, struct instruction *insn)
+{
+	struct symbol *sym = insn->func->sym;
+	char buffer[256];
+	LLVMValueRef func;
+	struct llfunc *f;
+
+	sprintf(buffer, "%.*s", sym->ident->len, sym->ident->name);
+
+	/* search for pre-built function type definition */
+	FOR_EACH_PTR(mi.llfunc_list, f) {
+		if (!strcmp(f->name, buffer))
+			return f->func;		/* found match; return */
+	} END_FOR_EACH_PTR(f);
+
+	/* build function type definition */
+	LLVMTypeRef func_type = get_func_type(fn, insn);
+
+	func = LLVMAddFunction(fn->module, buffer, func_type);
+
+	/* store built function on list, for later */
+	f = calloc(1, sizeof(*f));
+	strncpy(f->name, buffer, sizeof(f->name) - 1);
+	f->func = func;
+
+	add_ptr_list(&mi.llfunc_list, f);
+
+	return func;
+}
+
+static void output_op_call(struct function *fn, struct instruction *insn)
+{
+	LLVMValueRef target, func;
+	int n_arg = 0, i;
+	struct pseudo *arg;
+	LLVMValueRef *args;
+
+	FOR_EACH_PTR(insn->arguments, arg) {
+		n_arg++;
+	} END_FOR_EACH_PTR(arg);
+
+	args = calloc(n_arg, sizeof(LLVMValueRef));
+
+	i = 0;
+	FOR_EACH_PTR(insn->arguments, arg) {
+		args[i++] = pseudo_to_value(fn, arg);
+	} END_FOR_EACH_PTR(arg);
+
+	func = get_function(fn, insn);
+	target = LLVMBuildCall(fn->builder, func, args, n_arg, "");
+
+	insn->target->priv = target;
+}
+
+static void output_op_phi(struct function *fn, struct instruction *insn)
+{
+	pseudo_t phi;
+	LLVMValueRef target;
+
+	target = LLVMBuildPhi(fn->builder, symbol_type(insn->type),
+				"phi");
+	int pll = 0;
+	FOR_EACH_PTR(insn->phi_list, phi) {
+		if (pseudo_to_value(fn, phi))	/* skip VOID */
+			pll++;
+	} END_FOR_EACH_PTR(phi);
+
+	LLVMValueRef *phi_vals = calloc(pll, sizeof(LLVMValueRef));
+	LLVMBasicBlockRef *phi_blks = calloc(pll, sizeof(LLVMBasicBlockRef));
+
+	int idx = 0;
+	FOR_EACH_PTR(insn->phi_list, phi) {
+		LLVMValueRef v;
+
+		v = pseudo_to_value(fn, phi);
+		if (v) {			/* skip VOID */
+			phi_vals[idx] = v;
+			phi_blks[idx] = phi->def->bb->priv;
+			idx++;
+		}
+	} END_FOR_EACH_PTR(phi);
+
+	LLVMAddIncoming(target, phi_vals, phi_blks, pll);
 
 	insn->target->priv = target;
 }
@@ -389,51 +574,13 @@ static void output_insn(struct function *fn, struct instruction *insn)
 	case OP_COMPUTEDGOTO:
 		assert(0);
 		break;
-	case OP_PHISOURCE: {
-		LLVMValueRef src, target;
-		char target_name[64];
-
-		pseudo_name(insn->target, target_name);
-		src = pseudo_to_value(fn, insn->phi_src);
-
-		target = LLVMBuildAdd(fn->builder, src,
-			LLVMConstInt(LLVMInt32Type(), 0, 0), target_name);
-
-		insn->target->priv = target;
+	case OP_PHISOURCE:
+		/* target = src */
+		insn->target->priv = pseudo_to_value(fn, insn->phi_src);
 		break;
-	}
-	case OP_PHI: {
-		pseudo_t phi;
-		LLVMValueRef target;
-
-		target = LLVMBuildPhi(fn->builder, symbol_type(insn->type),
-					"phi");
-		int pll = 0;
-		FOR_EACH_PTR(insn->phi_list, phi) {
-			if (pseudo_to_value(fn, phi))	/* skip VOID */
-				pll++;
-		} END_FOR_EACH_PTR(phi);
-
-		LLVMValueRef *phi_vals = calloc(pll, sizeof(LLVMValueRef));
-		LLVMBasicBlockRef *phi_blks = calloc(pll, sizeof(LLVMBasicBlockRef));
-
-		int idx = 0;
-		FOR_EACH_PTR(insn->phi_list, phi) {
-			LLVMValueRef v;
-
-			v = pseudo_to_value(fn, phi);
-			if (v) {			/* skip VOID */
-				phi_vals[idx] = v;
-				phi_blks[idx] = phi->def->bb->priv;
-				idx++;
-			}
-		} END_FOR_EACH_PTR(phi);
-
-		LLVMAddIncoming(target, phi_vals, phi_blks, pll);
-
-		insn->target->priv = target;
+	case OP_PHI:
+		output_op_phi(fn, insn);
 		break;
-	}
 	case OP_LOAD:
 		output_op_load(fn, insn);
 		break;
@@ -444,8 +591,10 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		assert(0);
 		break;
 	case OP_INLINED_CALL:
-	case OP_CALL:
 		assert(0);
+		break;
+	case OP_CALL:
+		output_op_call(fn, insn);
 		break;
 	case OP_CAST: {
 		LLVMValueRef src, target;
@@ -567,6 +716,8 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	name = show_ident(sym->ident);
 
 	return_type = symbol_type(ret_type);
+
+	function.module = module;
 
 	function.type = LLVMFunctionType(return_type, arg_types, nr_args, 0);
 
