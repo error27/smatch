@@ -66,11 +66,12 @@ $(warning Your system does not have libgtk2, disabling test-inspect)
 endif
 
 ifeq ($(HAVE_LLVM),yes)
-LD = g++
+LLVM_PROGS := sparse-llvm
+$(LLVM_PROGS): LD := g++
 LDFLAGS += $(shell llvm-config --ldflags)
 LLVM_CFLAGS := $(shell llvm-config --cflags | sed -e "s/-DNDEBUG//g")
 LLVM_LIBS := $(shell llvm-config --libs)
-PROGRAMS += sparse-llvm
+PROGRAMS += $(LLVM_PROGS)
 INST_PROGRAMS += sparse-llvm sparsec
 sparse-llvm_EXTRA_DEPS := sparse-llvm.o
 sparse-llvm.o $(sparse-llvm_EXTRA_DEPS): BASIC_CFLAGS += $(LLVM_CFLAGS)
