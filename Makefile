@@ -1,4 +1,4 @@
-VERSION=0.4.4-rc1
+VERSION=0.4.4-rc2
 
 OS = linux
 
