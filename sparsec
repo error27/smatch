@@ -24,6 +24,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ $use_gcc -eq 1 ]; then
+	echo "Unsupported options, falling back to GCC..."
 	gcc $ASOPTS $SPARSEOPTS
 
 else
