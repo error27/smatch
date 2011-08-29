@@ -115,15 +115,41 @@ static void pseudo_name(pseudo_t pseudo, char *buf)
 
 static LLVMValueRef pseudo_to_value(struct function *fn, pseudo_t pseudo)
 {
-	LLVMValueRef result;
+	LLVMValueRef result = NULL;
 
 	switch (pseudo->type) {
 	case PSEUDO_REG:
 		result = pseudo->priv;
 		break;
-	case PSEUDO_SYM:
-		assert(0);
+	case PSEUDO_SYM: {
+		struct symbol *sym = pseudo->sym;
+		struct expression *expr;
+
+		assert(sym->bb_target == NULL);
+		assert(sym->ident == NULL);
+
+		expr = sym->initializer;
+		if (expr) {
+			switch (expr->type) {
+			case EXPR_STRING: {
+				const char *s = expr->string->data;
+				LLVMValueRef indices[] = { LLVMConstInt(LLVMInt64Type(), 0, 0), LLVMConstInt(LLVMInt64Type(), 0, 0) };
+				LLVMValueRef data;
+
+				data = LLVMAddGlobal(fn->module, LLVMArrayType(LLVMInt8Type(), strlen(s) + 1), ".str");
+				LLVMSetLinkage(data, LLVMPrivateLinkage);
+				LLVMSetGlobalConstant(data, 1);
+				LLVMSetInitializer(data, LLVMConstString(strdup(s), strlen(s) + 1, true));
+
+				result = LLVMConstGEP(data, indices, ARRAY_SIZE(indices));
+				break;
+			}
+			default:
+				assert(0);
+			}
+		}
 		break;
+	}
 	case PSEUDO_VAL:
 		result = LLVMConstInt(LLVMGetReturnType(fn->type), pseudo->value, 1);
 		break;
@@ -147,7 +173,7 @@ static LLVMValueRef pseudo_to_value(struct function *fn, pseudo_t pseudo)
 static LLVMTypeRef pseudo_type(struct function *fn, pseudo_t pseudo)
 {
 	LLVMValueRef v;
-	LLVMTypeRef result;
+	LLVMTypeRef result = NULL;
 
 	if (pseudo->priv) {
 		v = pseudo->priv;
@@ -158,9 +184,25 @@ static LLVMTypeRef pseudo_type(struct function *fn, pseudo_t pseudo)
 	case PSEUDO_REG:
 		result = symbol_type(pseudo->def->type);
 		break;
-	case PSEUDO_SYM:
-		assert(0);
+	case PSEUDO_SYM: {
+		struct symbol *sym = pseudo->sym;
+		struct expression *expr;
+
+		assert(sym->bb_target == NULL);
+		assert(sym->ident == NULL);
+
+		expr = sym->initializer;
+		if (expr) {
+			switch (expr->type) {
+			case EXPR_STRING:
+				result = LLVMPointerType(LLVMInt8Type(), 0);
+				break;
+			default:
+				assert(0);
+			}
+		}
 		break;
+	}
 	case PSEUDO_VAL:
 		assert(0);
 		break;
