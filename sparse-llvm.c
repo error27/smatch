@@ -808,15 +808,17 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 static int output_data(LLVMModuleRef module, struct symbol *sym)
 {
 	struct expression *initializer = sym->initializer;
-	unsigned long long initial_value = 0;
+	LLVMValueRef initial_value;
 	LLVMValueRef data;
 	const char *name;
 
 	if (initializer) {
 		if (initializer->type == EXPR_VALUE)
-			initial_value = initializer->value;
+			initial_value = LLVMConstInt(symbol_type(sym), initializer->value, 1);
 		else
 			assert(0);
+	} else {
+		initial_value = LLVMConstInt(symbol_type(sym), 0, 1);
 	}
 
 	name = show_ident(sym->ident);
@@ -825,7 +827,7 @@ static int output_data(LLVMModuleRef module, struct symbol *sym)
 
 	LLVMSetLinkage(data, data_linkage(sym));
 
-	LLVMSetInitializer(data, LLVMConstInt(symbol_type(sym), initial_value, 1));
+	LLVMSetInitializer(data, initial_value);
 
 	return 0;
 }
