@@ -607,7 +607,7 @@ static void output_op_cast(struct function *fn, struct instruction *insn)
 	if (symbol_is_fp_type(insn->type))
 		target = LLVMBuildFPCast(fn->builder, src, symbol_type(insn->type), target_name);
 	else
-		target = LLVMBuildIntCast(fn->builder, src, symbol_type(insn->type), target_name);
+		target = LLVMBuildZExt(fn->builder, src, symbol_type(insn->type), target_name);
 
 	insn->target->priv = target;
 }
