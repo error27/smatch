@@ -113,7 +113,7 @@ static void pseudo_name(pseudo_t pseudo, char *buf)
 	}
 }
 
-static LLVMValueRef pseudo_to_value(struct function *fn, pseudo_t pseudo)
+static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *insn, pseudo_t pseudo)
 {
 	LLVMValueRef result = NULL;
 
@@ -151,7 +151,7 @@ static LLVMValueRef pseudo_to_value(struct function *fn, pseudo_t pseudo)
 		break;
 	}
 	case PSEUDO_VAL:
-		result = LLVMConstInt(LLVMGetReturnType(fn->type), pseudo->value, 1);
+		result = LLVMConstInt(symbol_type(insn->type), pseudo->value, 1);
 		break;
 	case PSEUDO_ARG: {
 		result = LLVMGetParam(fn->fn, pseudo->nr - 1);
@@ -170,7 +170,7 @@ static LLVMValueRef pseudo_to_value(struct function *fn, pseudo_t pseudo)
 	return result;
 }
 
-static LLVMTypeRef pseudo_type(struct function *fn, pseudo_t pseudo)
+static LLVMTypeRef pseudo_type(struct instruction *insn, pseudo_t pseudo)
 {
 	LLVMValueRef v;
 	LLVMTypeRef result = NULL;
@@ -204,7 +204,7 @@ static LLVMTypeRef pseudo_type(struct function *fn, pseudo_t pseudo)
 		break;
 	}
 	case PSEUDO_VAL:
-		assert(0);
+		result = symbol_type(insn->type);
 		break;
 	case PSEUDO_ARG: {
 		assert(0);
@@ -228,9 +228,9 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 	LLVMValueRef lhs, rhs, target;
 	char target_name[64];
 
-	lhs = pseudo_to_value(fn, insn->src1);
+	lhs = pseudo_to_value(fn, insn, insn->src1);
 
-	rhs = pseudo_to_value(fn, insn->src2);
+	rhs = pseudo_to_value(fn, insn, insn->src2);
 
 	pseudo_name(insn->target, target_name);
 
@@ -357,7 +357,7 @@ static void output_op_ret(struct function *fn, struct instruction *insn)
 	pseudo_t pseudo = insn->src;
 
 	if (pseudo && pseudo != VOID) {
-		LLVMValueRef result = pseudo_to_value(fn, pseudo);
+		LLVMValueRef result = pseudo_to_value(fn, insn, pseudo);
 
 		LLVMBuildRet(fn->builder, result);
 	} else
@@ -373,7 +373,7 @@ static void output_op_load(struct function *fn, struct instruction *insn)
 	int_type = LLVMIntType(bits_in_pointer);
 
 	/* convert to integer, add src + offset */
-	src_p = pseudo_to_value(fn, insn->src);
+	src_p = pseudo_to_value(fn, insn, insn->src);
 	src_i = LLVMBuildPtrToInt(fn->builder, src_p, int_type, "src_i");
 
 	ofs_i = LLVMConstInt(int_type, insn->offset, 0);
@@ -392,7 +392,7 @@ static void output_op_load(struct function *fn, struct instruction *insn)
 static void output_op_br(struct function *fn, struct instruction *br)
 {
 	if (br->cond) {
-		LLVMValueRef cond = pseudo_to_value(fn, br->cond);
+		LLVMValueRef cond = pseudo_to_value(fn, br, br->cond);
 
 		LLVMBuildCondBr(fn->builder, cond,
 				br->bb_true->priv,
@@ -407,9 +407,9 @@ static void output_op_sel(struct function *fn, struct instruction *insn)
 {
 	LLVMValueRef target, src1, src2, src3;
 
-	src1 = pseudo_to_value(fn, insn->src1);
-	src2 = pseudo_to_value(fn, insn->src2);
-	src3 = pseudo_to_value(fn, insn->src3);
+	src1 = pseudo_to_value(fn, insn, insn->src1);
+	src2 = pseudo_to_value(fn, insn, insn->src2);
+	src3 = pseudo_to_value(fn, insn, insn->src3);
 
 	target = LLVMBuildSelect(fn->builder, src1, src2, src3, "select");
 
@@ -432,7 +432,7 @@ static void output_op_switch(struct function *fn, struct instruction *insn)
 			def = jmp->target;
 	} END_FOR_EACH_PTR(jmp);
 
-	sw_val = pseudo_to_value(fn, insn->target);
+	sw_val = pseudo_to_value(fn, insn, insn->target);
 	target = LLVMBuildSwitch(fn->builder, sw_val,
 				 def ? def->priv : NULL, n_jmp);
 
@@ -486,7 +486,7 @@ static LLVMTypeRef get_func_type(struct function *fn, struct instruction *insn)
 
 	/* build return type */
 	if (insn->target && insn->target != VOID)
-		ret_type = pseudo_type(fn, insn->target);
+		ret_type = pseudo_type(insn, insn->target);
 	else
 		ret_type = LLVMVoidType();
 
@@ -499,7 +499,7 @@ static LLVMTypeRef get_func_type(struct function *fn, struct instruction *insn)
 
 	int idx = 0;
 	FOR_EACH_PTR(insn->arguments, arg) {
-		arg_type[idx++] = pseudo_type(fn, arg);
+		arg_type[idx++] = pseudo_type(insn, arg);
 	} END_FOR_EACH_PTR(arg);
 
 	func_type = LLVMFunctionType(ret_type, arg_type, n_arg,
@@ -553,7 +553,7 @@ static void output_op_call(struct function *fn, struct instruction *insn)
 
 	i = 0;
 	FOR_EACH_PTR(insn->arguments, arg) {
-		args[i++] = pseudo_to_value(fn, arg);
+		args[i++] = pseudo_to_value(fn, insn, arg);
 	} END_FOR_EACH_PTR(arg);
 
 	func = get_function(fn, insn);
@@ -571,7 +571,7 @@ static void output_op_phi(struct function *fn, struct instruction *insn)
 				"phi");
 	int pll = 0;
 	FOR_EACH_PTR(insn->phi_list, phi) {
-		if (pseudo_to_value(fn, phi))	/* skip VOID */
+		if (pseudo_to_value(fn, insn, phi))	/* skip VOID */
 			pll++;
 	} END_FOR_EACH_PTR(phi);
 
@@ -582,7 +582,7 @@ static void output_op_phi(struct function *fn, struct instruction *insn)
 	FOR_EACH_PTR(insn->phi_list, phi) {
 		LLVMValueRef v;
 
-		v = pseudo_to_value(fn, phi);
+		v = pseudo_to_value(fn, insn, phi);
 		if (v) {			/* skip VOID */
 			phi_vals[idx] = v;
 			phi_blks[idx] = phi->def->bb->priv;
@@ -635,7 +635,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		break;
 	case OP_PHISOURCE:
 		/* target = src */
-		insn->target->priv = pseudo_to_value(fn, insn->phi_src);
+		insn->target->priv = pseudo_to_value(fn, insn, insn->phi_src);
 		break;
 	case OP_PHI:
 		output_op_phi(fn, insn);
@@ -681,7 +681,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		LLVMValueRef src, target;
 		char target_name[64];
 
-		src = pseudo_to_value(fn, insn->src);
+		src = pseudo_to_value(fn, insn, insn->src);
 
 		pseudo_name(insn->target, target_name);
 
@@ -713,7 +713,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		char target_name[64];
 
 		pseudo_name(insn->target, target_name);
-		src = pseudo_to_value(fn, insn->src);
+		src = pseudo_to_value(fn, insn, insn->src);
 
 		target = LLVMBuildAdd(fn->builder, src,
 			LLVMConstInt(LLVMInt32Type(), 0, 0), target_name);
