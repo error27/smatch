@@ -26,6 +26,8 @@ struct function {
 
 static inline bool symbol_is_fp_type(struct symbol *sym)
 {
+	if (!sym)
+		return NULL;
 	return sym->ctype.base_type == &fp_type;
 }
 
@@ -69,6 +71,25 @@ static LLVMTypeRef symbol_type(struct symbol *sym)
 	}
 
 	return ret;
+}
+
+static LLVMTypeRef insn_symbol_type(struct instruction *insn)
+{
+	if (insn->type)
+		return symbol_type(insn->type);
+
+	switch (insn->size) {
+		case 8:		return LLVMInt8Type();
+		case 16:	return LLVMInt16Type();
+		case 32:	return LLVMInt32Type();
+		case 64:	return LLVMInt64Type();
+
+		default:
+			die("invalid bit size %d", insn->size);
+			break;
+	}
+
+	return NULL;	/* not reached */
 }
 
 static LLVMLinkage data_linkage(struct symbol *sym)
@@ -151,7 +172,7 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 		break;
 	}
 	case PSEUDO_VAL:
-		result = LLVMConstInt(symbol_type(insn->type), pseudo->value, 1);
+		result = LLVMConstInt(insn_symbol_type(insn), pseudo->value, 1);
 		break;
 	case PSEUDO_ARG: {
 		result = LLVMGetParam(fn->fn, pseudo->nr - 1);
@@ -204,12 +225,11 @@ static LLVMTypeRef pseudo_type(struct instruction *insn, pseudo_t pseudo)
 		break;
 	}
 	case PSEUDO_VAL:
-		result = symbol_type(insn->type);
+		result = insn_symbol_type(insn);
 		break;
-	case PSEUDO_ARG: {
+	case PSEUDO_ARG:
 		assert(0);
 		break;
-	}
 	case PSEUDO_PHI:
 		assert(0);
 		break;
@@ -567,7 +587,7 @@ static void output_op_phi(struct function *fn, struct instruction *insn)
 	pseudo_t phi;
 	LLVMValueRef target;
 
-	target = LLVMBuildPhi(fn->builder, symbol_type(insn->type),
+	target = LLVMBuildPhi(fn->builder, insn_symbol_type(insn),
 				"phi");
 	int pll = 0;
 	FOR_EACH_PTR(insn->phi_list, phi) {
@@ -609,9 +629,9 @@ static void output_op_cast(struct function *fn, struct instruction *insn, LLVMOp
 	assert(!symbol_is_fp_type(insn->type));
 
 	if (insn->size < LLVMGetIntTypeWidth(LLVMTypeOf(src)))
-		target = LLVMBuildTrunc(fn->builder, src, symbol_type(insn->type), target_name);
+		target = LLVMBuildTrunc(fn->builder, src, insn_symbol_type(insn), target_name);
 	else
-		target = LLVMBuildCast(fn->builder, op, src, symbol_type(insn->type), target_name);
+		target = LLVMBuildCast(fn->builder, op, src, insn_symbol_type(insn), target_name);
 
 	insn->target->priv = target;
 }
