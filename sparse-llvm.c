@@ -523,6 +523,11 @@ static LLVMValueRef get_function(struct function *fn, struct instruction *insn)
 			return f->func;		/* found match; return */
 	} END_FOR_EACH_PTR(f);
 
+	/* search for module local functions */
+	func = LLVMGetNamedFunction(fn->module, buffer);
+	if (func)
+		return func;
+
 	/* build function type definition */
 	LLVMTypeRef func_type = get_func_type(fn, insn);
 
