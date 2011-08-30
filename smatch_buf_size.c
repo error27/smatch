@@ -229,7 +229,7 @@ static void match_strlen_condition(struct expression *expr)
 {
 	struct expression *left;
 	struct expression *right;
-	struct expression *str;
+	struct expression *str = NULL;
 	int strlen_left = 0;
 	int strlen_right = 0;
 	long long val;
