@@ -3,19 +3,23 @@
 # GCC compatible C compiler based on Sparse LLVM
 
 SPARSEOPTS=""
-ASOPTS=""
 DIRNAME=`dirname $0`
 
-use_gcc=1
+NEED_LINK=1
+
+if [ $# -eq 0 ]; then
+  echo "`basename $0`: no input files"
+  exit 1
+fi
 
 while [ $# -gt 0 ]; do
 	case $1 in
 	'-o')
-		ASOPTS=$ASOPTS"-o "$2" "
+		OUTFILE=$2
 		shift
 		;;
 	'-c')
-		use_gcc=0
+		NEED_LINK=0
 		;;
 	*)
 		SPARSEOPTS="$SPARSEOPTS $1 " ;;
@@ -23,10 +27,19 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
-if [ $use_gcc -eq 1 ]; then
-	echo "Unsupported options, falling back to GCC..."
-	gcc $ASOPTS $SPARSEOPTS
+TMPFILE=`mktemp -t tmp.XXXXXX`".o"
 
+$DIRNAME/sparse-llvm $SPARSEOPTS | llc | as -o $TMPFILE
+
+if [ $NEED_LINK -eq 1 ]; then
+	if [ -z $OUTFILE ]; then
+		OUTFILE=a.out
+	fi
+	gcc $TMPFILE -o $OUTFILE
 else
-	$DIRNAME/sparse-llvm $SPARSEOPTS | llc | as $ASOPTS
+	if [ -z $OUTFILE ]; then
+		echo "`basename $0`: no output file"
+		exit 1
+	fi
+	mv $TMPFILE $OUTFILE
 fi
