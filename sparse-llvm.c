@@ -595,19 +595,23 @@ static void output_op_phi(struct function *fn, struct instruction *insn)
 	insn->target->priv = target;
 }
 
-static void output_op_cast(struct function *fn, struct instruction *insn)
+static void output_op_cast(struct function *fn, struct instruction *insn, LLVMOpcode op)
 {
 	LLVMValueRef src, target;
 	char target_name[64];
 
 	src = insn->src->priv;
+	if (!src)
+		src = pseudo_to_value(fn, insn, insn->src);
 
 	pseudo_name(insn->target, target_name);
 
-	if (symbol_is_fp_type(insn->type))
-		target = LLVMBuildFPCast(fn->builder, src, symbol_type(insn->type), target_name);
+	assert(!symbol_is_fp_type(insn->type));
+
+	if (insn->size < LLVMGetIntTypeWidth(LLVMTypeOf(src)))
+		target = LLVMBuildTrunc(fn->builder, src, symbol_type(insn->type), target_name);
 	else
-		target = LLVMBuildZExt(fn->builder, src, symbol_type(insn->type), target_name);
+		target = LLVMBuildCast(fn->builder, op, src, symbol_type(insn->type), target_name);
 
 	insn->target->priv = target;
 }
@@ -656,10 +660,10 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		output_op_call(fn, insn);
 		break;
 	case OP_CAST:
-		output_op_cast(fn, insn);
+		output_op_cast(fn, insn, LLVMZExt);
 		break;
 	case OP_SCAST:
-		assert(0);
+		output_op_cast(fn, insn, LLVMSExt);
 		break;
 	case OP_FPCAST:
 		assert(0);
