@@ -27,7 +27,8 @@ struct function {
 static inline bool symbol_is_fp_type(struct symbol *sym)
 {
 	if (!sym)
-		return NULL;
+		return false;
+
 	return sym->ctype.base_type == &fp_type;
 }
 
