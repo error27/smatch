@@ -43,7 +43,7 @@ struct smatch_state *alloc_state_num(int num)
 	snprintf(buff, 255, "%d", num);
 	buff[255] = '\0';
 	state->name = alloc_string(buff);
-	state->data = (void *)num;
+	state->data = INT_PTR(num);
 	return state;
 }
 

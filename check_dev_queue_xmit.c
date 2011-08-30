@@ -77,7 +77,7 @@ static void match_xmit(const char *fn, struct expression *expr, void *param)
 {
 	struct expression *arg;
 
-	arg = get_argument_from_call_expr(expr->args, (int)param);
+	arg = get_argument_from_call_expr(expr->args, PTR_INT(param));
 	if (!arg)
 		return;
 	set_state_expr(my_id, arg, &do_not_use);

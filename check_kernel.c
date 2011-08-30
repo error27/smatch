@@ -17,7 +17,7 @@
 static void match_param_nonnull(const char *fn, struct expression *call_expr,
 			struct expression *assign_expr, void *_param)
 {
-	int param = (int)_param;
+	int param = PTR_INT(_param);
 	struct expression *arg;
 	struct smatch_state *pre_state;
 	struct smatch_state *true_state;

@@ -186,7 +186,7 @@ static void match_condition(struct expression *expr)
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state == &merged)
 			continue;
-		boundary = (int)tmp->state->data;
+		boundary = PTR_INT(tmp->state->data);
 		boundary -= val;
 		if (boundary < 1 && boundary > -1) {
 			char *name;

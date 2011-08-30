@@ -37,8 +37,8 @@ static int get_old_buflen(struct sm_state *sm)
 	int ret = 0;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
-		if ((int)tmp->state->data > ret)
-			ret = (int)tmp->state->data;
+		if (PTR_INT(tmp->state->data) > ret)
+			ret = PTR_INT(tmp->state->data);
 	} END_FOR_EACH_PTR(tmp);
 	return ret;
 }

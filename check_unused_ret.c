@@ -150,7 +150,7 @@ static void delete_used_symbols(struct state_list *possible)
 	struct sm_state *tmp;
 
  	FOR_EACH_PTR(possible, tmp) {
-		delete_used((int)tmp->state->data);
+		delete_used(PTR_INT(tmp->state->data));
 	} END_FOR_EACH_PTR(tmp);
 }
 

@@ -440,7 +440,7 @@ static void do_unlock(const char *name)
 static void match_lock_held(const char *fn, struct expression *call_expr,
 			struct expression *assign_expr, void *_index)
 {
-	int index = (int)_index;
+	int index = PTR_INT(_index);
 	char *lock_name;
 	struct lock_info *lock = &lock_table[index];
 
@@ -462,7 +462,7 @@ static void match_lock_held(const char *fn, struct expression *call_expr,
 static void match_lock_failed(const char *fn, struct expression *call_expr,
 			struct expression *assign_expr, void *_index)
 {
-	int index = (int)_index;
+	int index = PTR_INT(_index);
 	char *lock_name;
 	struct lock_info *lock = &lock_table[index];
 
@@ -485,7 +485,7 @@ static void match_returns_locked(const char *fn, struct expression *expr,
 				      void *_index)
 {
 	char *full_name = NULL;
-	int index = (int)_index;
+	int index = PTR_INT(_index);
 	struct lock_info *lock = &lock_table[index];
 
 	if (lock->arg != RETURN_VAL)
@@ -497,7 +497,7 @@ static void match_returns_locked(const char *fn, struct expression *expr,
 static void match_lock_unlock(const char *fn, struct expression *expr, void *_index)
 {
 	char *full_name = NULL;
-	int index = (int)_index;
+	int index = PTR_INT(_index);
 	struct lock_info *lock = &lock_table[index];
 
 	full_name = get_full_name(expr, index);
@@ -712,7 +712,7 @@ static void match_func_end(struct symbol *sym)
 static void register_lock(int index)
 {
 	struct lock_info *lock = &lock_table[index];
-	void *idx = (void *)index;
+	void *idx = INT_PTR(index);
 
 	if (lock->return_type == ret_non_zero) {
 		return_implies_state(lock->function, 1, POINTER_MAX, &match_lock_held, idx);
@@ -737,7 +737,7 @@ static void load_table(struct lock_info *_lock_table, int size)
 		if (lock_table[i].action == LOCK)
 			register_lock(i);
 		else
-			add_function_hook(lock_table[i].function, &match_lock_unlock, (void *)i);
+			add_function_hook(lock_table[i].function, &match_lock_unlock, INT_PTR(i));
 	}
 }
 

@@ -51,7 +51,7 @@ static void handle_assigned_expr(struct expression *expr)
 static void match_resource(const char *fn, struct expression *expr, void *_arg_no)
 {
 	struct expression *arg_expr;
-	int arg_no = (int)_arg_no;
+	int arg_no = PTR_INT(_arg_no);
 
 	arg_expr = get_argument_from_call_expr(expr->args, arg_no);
 	arg_expr = strip_expr(arg_expr);

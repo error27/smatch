@@ -153,7 +153,7 @@ static int called_with_no_fail(struct expression *call, int param)
 static void match_assign_returns_null(const char *fn, struct expression *expr, void *_gfp)
 {
 	struct smatch_state *state;
-	int gfp_param = (int)_gfp;
+	int gfp_param = PTR_INT(_gfp);
 
 	if (called_with_no_fail(expr->right, gfp_param))
 		return;

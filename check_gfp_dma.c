@@ -20,7 +20,7 @@ static int my_id;
 
 static void match_alloc(const char *fn, struct expression *expr, void *_arg)
 {
-	int arg_nr = (int)_arg;
+	int arg_nr = PTR_INT(_arg);
 	struct expression *arg_expr;
 	long long val;
 

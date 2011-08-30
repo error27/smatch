@@ -66,7 +66,7 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 {
 	struct expression *arg;
 
-	arg = get_argument_from_call_expr(expr->args, (int)param);
+	arg = get_argument_from_call_expr(expr->args, PTR_INT(param));
 	if (!arg)
 		return;
 	/* option_spammy already prints a warning here */

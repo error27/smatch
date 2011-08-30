@@ -152,7 +152,7 @@ static void match_assign(struct expression *expr)
 
 static void match_uncapped_max(const char *fn, struct expression *expr, void *_arg_nr)
 {
-	int arg_nr = (int)_arg_nr;
+	int arg_nr = PTR_INT(_arg_nr);
 	struct expression *arg;
 	char *name;
 

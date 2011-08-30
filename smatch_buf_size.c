@@ -182,7 +182,7 @@ int get_array_size(struct expression *expr)
 			tmp = get_base_type(tmp);
 		if (!tmp->ctype.alignment)
 			return 0;
-		ret = (int)state->data / tmp->ctype.alignment;
+		ret = PTR_INT(state->data) / tmp->ctype.alignment;
 		return ret * cast_ratio;
 	}
 
@@ -338,7 +338,7 @@ static void match_array_assignment(struct expression *expr)
 
 static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
 {
-	int size_arg = (int)_size_arg;
+	int size_arg = PTR_INT(_size_arg);
 	struct expression *right;
 	struct expression *arg;
 	long long bytes;

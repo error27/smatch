@@ -49,7 +49,7 @@ static int was_passed_as_param(struct expression *expr)
 static void print_unwind_functions(const char *fn, struct expression *expr, void *_arg_no)
 {
 	struct expression *arg_expr;
-	int arg_no = (int)_arg_no;
+	int arg_no = PTR_INT(_arg_no);
 	static struct symbol *last_printed = NULL;
 
 	arg_expr = get_argument_from_call_expr(expr->args, arg_no);
@@ -65,7 +65,7 @@ static void request_granted(const char *fn, struct expression *call_expr,
 			struct expression *assign_expr, void *_arg_no)
 {
 	struct expression *arg_expr;
-	int arg_no = (int)_arg_no;
+	int arg_no = PTR_INT(_arg_no);
 
 	if (arg_no == -1)
 		arg_expr = assign_expr->left;
@@ -78,7 +78,7 @@ static void request_denied(const char *fn, struct expression *call_expr,
 			struct expression *assign_expr, void *_arg_no)
 {
 	struct expression *arg_expr;
-	int arg_no = (int)_arg_no;
+	int arg_no = PTR_INT(_arg_no);
 
 	if (arg_no == -1)
 		arg_expr = assign_expr->left;
@@ -90,7 +90,7 @@ static void request_denied(const char *fn, struct expression *call_expr,
 static void match_release(const char *fn, struct expression *expr, void *_arg_no)
 {
 	struct expression *arg_expr;
-	int arg_no = (int)_arg_no;
+	int arg_no = PTR_INT(_arg_no);
 
 	arg_expr = get_argument_from_call_expr(expr->args, arg_no);
 	if (get_state_expr(my_id, arg_expr))

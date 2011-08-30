@@ -22,7 +22,7 @@ static struct tracker_list *resource_list;
 static void match_request(const char *fn, struct expression *expr, void *_arg_no)
 {
 	struct expression *arg_expr;
-	int arg_no = (int)_arg_no;
+	int arg_no = PTR_INT(_arg_no);
 	char *name;
 	struct symbol *sym;
 
@@ -40,7 +40,7 @@ free:
 static void match_release(const char *fn, struct expression *expr, void *_arg_no)
 {
 	struct expression *arg_expr;
-	int arg_no = (int)_arg_no;
+	int arg_no = PTR_INT(_arg_no);
 	char *name;
 	struct symbol *sym;
 

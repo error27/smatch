@@ -35,7 +35,7 @@ free:
 
 static void match_user_copy(const char *fn, struct expression *expr, void *_param)
 {
-	int param = (int)_param;
+	int param = PTR_INT(_param);
 	struct expression *dest;
 
 	dest = get_argument_from_call_expr(expr->args, param);

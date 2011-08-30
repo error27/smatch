@@ -17,7 +17,7 @@ static void match_dma_func(const char *fn, struct expression *expr, void *param)
 	struct symbol *sym;
 	char *name;
 
-	arg = get_argument_from_call_expr(expr->args, (int)param);
+	arg = get_argument_from_call_expr(expr->args, PTR_INT(param));
 	arg = strip_expr(arg);
 	if (!arg)
 		return;

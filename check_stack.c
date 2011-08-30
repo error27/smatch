@@ -47,7 +47,7 @@ static void match_declarations(struct symbol *sym)
 		complained = 1;
 		sm_msg("warn: '%s' puts %d bytes on stack", name, base->bit_size / 8);
 	}
-	add_scope_hook((scope_hook *)&scope_end, (void *)base->bit_size); 
+	add_scope_hook((scope_hook *)&scope_end, INT_PTR(base->bit_size)); 
 }
 
 static void match_end_func(struct symbol *sym)
