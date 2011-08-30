@@ -170,7 +170,7 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 	return result;
 }
 
-static LLVMTypeRef pseudo_type(struct instruction *insn, pseudo_t pseudo)
+static LLVMTypeRef pseudo_type(struct function *fn, struct instruction *insn, pseudo_t pseudo)
 {
 	LLVMValueRef v;
 	LLVMTypeRef result = NULL;
@@ -207,7 +207,7 @@ static LLVMTypeRef pseudo_type(struct instruction *insn, pseudo_t pseudo)
 		result = symbol_type(insn->type);
 		break;
 	case PSEUDO_ARG: {
-		assert(0);
+		result = LLVMTypeOf(LLVMGetParam(fn->fn, pseudo->nr - 1));
 		break;
 	}
 	case PSEUDO_PHI:
@@ -486,7 +486,7 @@ static LLVMTypeRef get_func_type(struct function *fn, struct instruction *insn)
 
 	/* build return type */
 	if (insn->target && insn->target != VOID)
-		ret_type = pseudo_type(insn, insn->target);
+		ret_type = pseudo_type(fn, insn, insn->target);
 	else
 		ret_type = LLVMVoidType();
 
@@ -499,7 +499,7 @@ static LLVMTypeRef get_func_type(struct function *fn, struct instruction *insn)
 
 	int idx = 0;
 	FOR_EACH_PTR(insn->arguments, arg) {
-		arg_type[idx++] = pseudo_type(insn, arg);
+		arg_type[idx++] = pseudo_type(fn, insn, arg);
 	} END_FOR_EACH_PTR(arg);
 
 	func_type = LLVMFunctionType(ret_type, arg_type, n_arg,
