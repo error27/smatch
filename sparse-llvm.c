@@ -410,6 +410,33 @@ static void output_op_load(struct function *fn, struct instruction *insn)
 	insn->target->priv = target;
 }
 
+static void output_op_store(struct function *fn, struct instruction *insn)
+{
+	LLVMTypeRef int_type;
+	LLVMValueRef src_p, src_i, ofs_i, addr_i, addr, target, target_in;
+
+	/* int type large enough to hold a pointer */
+	int_type = LLVMIntType(bits_in_pointer);
+
+	/* convert to integer, add src + offset */
+	src_p = pseudo_to_value(fn, insn, insn->src);
+	src_i = LLVMBuildPtrToInt(fn->builder, src_p, int_type, "src_i");
+
+	ofs_i = LLVMConstInt(int_type, insn->offset, 0);
+	addr_i = LLVMBuildAdd(fn->builder, src_i, ofs_i, "addr_i");
+
+	/* convert address back to pointer */
+	addr = LLVMBuildIntToPtr(fn->builder, addr_i,
+				 LLVMPointerType(int_type, 0), "addr");
+
+	target_in = pseudo_to_value(fn, insn, insn->target);
+
+	/* perform store */
+	target = LLVMBuildStore(fn->builder, target_in, addr);
+
+	insn->target->priv = target;
+}
+
 static void output_op_br(struct function *fn, struct instruction *br)
 {
 	if (br->cond) {
@@ -549,7 +576,7 @@ static LLVMValueRef get_function(struct function *fn, struct instruction *insn)
 
 	func = LLVMAddFunction(fn->module, buffer, func_type);
 
-	/* store built function on list, for later */
+	/* store built function on list, for later referencing */
 	f = calloc(1, sizeof(*f));
 	strncpy(f->name, buffer, sizeof(f->name) - 1);
 	f->func = func;
@@ -637,6 +664,34 @@ static void output_op_cast(struct function *fn, struct instruction *insn, LLVMOp
 	insn->target->priv = target;
 }
 
+static void output_op_copy(struct function *fn, struct instruction *insn,
+			   pseudo_t pseudo)
+{
+	LLVMValueRef src, target;
+	LLVMTypeRef const_type;
+	char target_name[64];
+
+	pseudo_name(insn->target, target_name);
+	src = pseudo_to_value(fn, insn, pseudo);
+	const_type = insn_symbol_type(insn);
+
+	/*
+	 * This is nothing more than 'target = src'
+	 *
+	 * TODO: find a better way to provide an identity function,
+	 * than using "X + 0" simply to produce a new LLVM pseudo
+	 */
+
+	if (symbol_is_fp_type(insn->type))
+		target = LLVMBuildFAdd(fn->builder, src,
+			LLVMConstReal(const_type, 0.0), target_name);
+	else
+		target = LLVMBuildAdd(fn->builder, src,
+			LLVMConstInt(const_type, 0, 0), target_name);
+
+	insn->target->priv = target;
+}
+
 static void output_insn(struct function *fn, struct instruction *insn)
 {
 	switch (insn->opcode) {
@@ -671,7 +726,10 @@ static void output_insn(struct function *fn, struct instruction *insn)
 	case OP_LNOP:
 		assert(0);
 		break;
-	case OP_STORE: case OP_SNOP:
+	case OP_STORE:
+		output_op_store(fn, insn);
+		break;
+	case OP_SNOP:
 		assert(0);
 		break;
 	case OP_INLINED_CALL:
@@ -733,19 +791,9 @@ static void output_insn(struct function *fn, struct instruction *insn)
 	case OP_ASM:
 		assert(0);
 		break;
-	case OP_COPY: {
-		LLVMValueRef src, target;
-		char target_name[64];
-
-		pseudo_name(insn->target, target_name);
-		src = pseudo_to_value(fn, insn, insn->src);
-
-		target = LLVMBuildAdd(fn->builder, src,
-			LLVMConstInt(LLVMInt32Type(), 0, 0), target_name);
-
-		insn->target->priv = target;
+	case OP_COPY:
+		output_op_copy(fn, insn, insn->src);
 		break;
-	}
 	default:
 		break;
 	}
@@ -781,6 +829,7 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	struct symbol *arg;
 	const char *name;
 	int nr_args = 0;
+	struct llfunc *f;
 
 	FOR_EACH_PTR(base_type->arguments, arg) {
 		struct symbol *arg_base_type = arg->ctype.base_type;
@@ -800,6 +849,13 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	LLVMSetFunctionCallConv(function.fn, LLVMCCallConv);
 
 	LLVMSetLinkage(function.fn, function_linkage(sym));
+
+	/* store built function on list, for later referencing */
+	f = calloc(1, sizeof(*f));
+	strncpy(f->name, name, sizeof(f->name) - 1);
+	f->func = function.fn;
+
+	add_ptr_list(&mi.llfunc_list, f);
 
 	function.builder = LLVMCreateBuilder();
 
