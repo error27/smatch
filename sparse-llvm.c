@@ -410,6 +410,33 @@ static void output_op_load(struct function *fn, struct instruction *insn)
 	insn->target->priv = target;
 }
 
+static void output_op_store(struct function *fn, struct instruction *insn)
+{
+	LLVMTypeRef int_type;
+	LLVMValueRef src_p, src_i, ofs_i, addr_i, addr, target, target_in;
+
+	/* int type large enough to hold a pointer */
+	int_type = LLVMIntType(bits_in_pointer);
+
+	/* convert to integer, add src + offset */
+	src_p = pseudo_to_value(fn, insn, insn->src);
+	src_i = LLVMBuildPtrToInt(fn->builder, src_p, int_type, "src_i");
+
+	ofs_i = LLVMConstInt(int_type, insn->offset, 0);
+	addr_i = LLVMBuildAdd(fn->builder, src_i, ofs_i, "addr_i");
+
+	/* convert address back to pointer */
+	addr = LLVMBuildIntToPtr(fn->builder, addr_i,
+				 LLVMPointerType(int_type, 0), "addr");
+
+	target_in = pseudo_to_value(fn, insn, insn->target);
+
+	/* perform store */
+	target = LLVMBuildStore(fn->builder, target_in, addr);
+
+	insn->target->priv = target;
+}
+
 static void output_op_br(struct function *fn, struct instruction *br)
 {
 	if (br->cond) {
@@ -699,7 +726,10 @@ static void output_insn(struct function *fn, struct instruction *insn)
 	case OP_LNOP:
 		assert(0);
 		break;
-	case OP_STORE: case OP_SNOP:
+	case OP_STORE:
+		output_op_store(fn, insn);
+		break;
+	case OP_SNOP:
 		assert(0);
 		break;
 	case OP_INLINED_CALL:
