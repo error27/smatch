@@ -549,7 +549,7 @@ static LLVMValueRef get_function(struct function *fn, struct instruction *insn)
 
 	func = LLVMAddFunction(fn->module, buffer, func_type);
 
-	/* store built function on list, for later */
+	/* store built function on list, for later referencing */
 	f = calloc(1, sizeof(*f));
 	strncpy(f->name, buffer, sizeof(f->name) - 1);
 	f->func = func;
@@ -781,6 +781,7 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	struct symbol *arg;
 	const char *name;
 	int nr_args = 0;
+	struct llfunc *f;
 
 	FOR_EACH_PTR(base_type->arguments, arg) {
 		struct symbol *arg_base_type = arg->ctype.base_type;
@@ -800,6 +801,13 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	LLVMSetFunctionCallConv(function.fn, LLVMCCallConv);
 
 	LLVMSetLinkage(function.fn, function_linkage(sym));
+
+	/* store built function on list, for later referencing */
+	f = calloc(1, sizeof(*f));
+	strncpy(f->name, name, sizeof(f->name) - 1);
+	f->func = function.fn;
+
+	add_ptr_list(&mi.llfunc_list, f);
 
 	function.builder = LLVMCreateBuilder();
 
