@@ -44,6 +44,9 @@ static LLVMTypeRef symbol_type(struct symbol *sym)
 		case 64:
 			ret = LLVMDoubleType();
 			break;
+		case 80:
+			ret = LLVMX86FP80Type();
+			break;
 		default:
 			die("invalid bit size %d for type %d", sym->bit_size, sym->type);
 			break;
