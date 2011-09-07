@@ -32,7 +32,33 @@ static inline bool symbol_is_fp_type(struct symbol *sym)
 	return sym->ctype.base_type == &fp_type;
 }
 
-static LLVMTypeRef symbol_type(struct symbol *sym)
+static LLVMTypeRef symbol_type(struct symbol *sym);
+
+#define MAX_STRUCT_MEMBERS 64
+
+static LLVMTypeRef sym_struct_type(struct symbol *sym)
+{
+	LLVMTypeRef elem_types[MAX_STRUCT_MEMBERS];
+	struct symbol *member;
+	unsigned nr = 0;
+
+	FOR_EACH_PTR(sym->symbol_list, member) {
+		assert(nr < MAX_STRUCT_MEMBERS);
+
+		elem_types[nr++] = symbol_type(member);
+	} END_FOR_EACH_PTR(member);
+
+	return LLVMStructType(elem_types, nr, 0 /* packed? */);
+}
+
+static LLVMTypeRef sym_ptr_type(struct symbol *sym)
+{
+	LLVMTypeRef type = symbol_type(sym->ctype.base_type);
+
+	return LLVMPointerType(type, 0);
+}
+
+static LLVMTypeRef sym_basetype_type(struct symbol *sym)
 {
 	LLVMTypeRef ret = NULL;
 
@@ -74,6 +100,29 @@ static LLVMTypeRef symbol_type(struct symbol *sym)
 		}
 	}
 
+	return ret;
+}
+
+static LLVMTypeRef symbol_type(struct symbol *sym)
+{
+	LLVMTypeRef ret = NULL;
+
+	switch (sym->type) {
+	case SYM_NODE:
+		ret = symbol_type(sym->ctype.base_type);
+		break;
+	case SYM_BASETYPE:
+		ret = sym_basetype_type(sym);
+		break;
+	case SYM_PTR:
+		ret = sym_ptr_type(sym);
+		break;
+	case SYM_STRUCT:
+		ret = sym_struct_type(sym);
+		break;
+	default:
+		assert(0);
+	}
 	return ret;
 }
 
@@ -902,7 +951,9 @@ static int output_data(LLVMModuleRef module, struct symbol *sym)
 		else
 			assert(0);
 	} else {
-		initial_value = LLVMConstInt(symbol_type(sym), 0, 1);
+		LLVMTypeRef type = symbol_type(sym);
+
+		initial_value = LLVMConstNull(type);
 	}
 
 	name = show_ident(sym->ident);
