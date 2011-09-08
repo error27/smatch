@@ -268,6 +268,13 @@ static struct token *string_expression(struct token *token, struct expression *e
 #define ULLONG_MAX (~0ULL)
 #endif
 
+static unsigned long long parse_num(const char *nptr, char **end)
+{
+	if (nptr[0] == '0' && tolower(nptr[1]) == 'b')
+		return strtoull(&nptr[2], end, 2);
+	return strtoull(nptr, end, 0);
+}
+
 static void get_number_value(struct expression *expr, struct token *token)
 {
 	const char *str = token->number;
@@ -279,7 +286,7 @@ static void get_number_value(struct expression *expr, struct token *token)
 	int bits;
 
 	errno = 0;
-	value = strtoull(str, &end, 0);
+	value = parse_num(str, &end);
 	if (end == str)
 		goto Float;
 	if (value == ULLONG_MAX && errno == ERANGE)
