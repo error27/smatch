@@ -946,10 +946,19 @@ static int output_data(LLVMModuleRef module, struct symbol *sym)
 	const char *name;
 
 	if (initializer) {
-		if (initializer->type == EXPR_VALUE)
+		switch (initializer->type) {
+		case EXPR_VALUE:
 			initial_value = LLVMConstInt(symbol_type(sym), initializer->value, 1);
-		else
+			break;
+		case EXPR_SYMBOL: {
+			struct symbol *sym = initializer->symbol;
+
+			initial_value = LLVMGetNamedGlobal(module, show_ident(sym->ident));
+			break;
+		}
+		default:
 			assert(0);
+		}
 	} else {
 		LLVMTypeRef type = symbol_type(sym);
 

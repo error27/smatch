@@ -10,6 +10,7 @@ struct symbol {
 
 static struct symbol sym;
 static struct symbol *sym_p;
+static struct symbol *sym_q = &sym;
 
 /*
  * check-name: Struct code generation
