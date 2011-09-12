@@ -151,6 +151,7 @@ static void add_possible(struct sm_state *sm, struct sm_state *new)
 	FOR_EACH_PTR(new->possible, tmp) {
 		tmp2 = alloc_state_no_name(tmp->owner,tmp->name, tmp->sym, 
 					   tmp->state);
+		tmp2->line = tmp->line;
 		add_sm_state_slist(&sm->possible, tmp2);
 	} END_FOR_EACH_PTR(tmp);
 }
@@ -353,8 +354,6 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 		return one;
 	s = merge_states(one->owner, one->name, one->sym, one->state, two->state);
 	result = alloc_state_no_name(one->owner, one->name, one->sym, s);
-	if (one->line == two->line)
-		result->line = one->line;
 	result->merged = 1;
 	result->left = one;
 	result->right = two;
