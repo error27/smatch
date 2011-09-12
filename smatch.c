@@ -25,6 +25,7 @@ int option_param_mapper = 0;
 int option_print_returns = 0;
 int option_call_tree = 0;
 int option_no_db = 0;
+char *option_datadir_str;
 
 typedef void (*reg_func) (int id);
 #define CK(_x) {.name = #_x, .func = &_x},
@@ -65,6 +66,7 @@ static void help(void)
 	printf("--debug:  print lots of debug output.\n");
 	printf("--param-mapper:  enable param_mapper output.\n");
 	printf("--no-data:  do not use the /smatch_data/ directory.\n");
+	printf("--data=<dir>: overwrite path to default smatch data directory.\n");
 	printf("--full-path:  print the full pathname.\n");
 	printf("--debug-implied:  print debug output about implications.\n");
 	printf("--no-implied:  ignore implications.\n");
@@ -120,6 +122,12 @@ void parse_args(int *argcp, char ***argvp)
 			(*argvp)[1] = (*argvp)[0];
 			found = 1;
 		}
+		if (!found && !strncmp((*argvp)[1], "--data=", 7)) {
+			option_datadir_str = (*argvp)[1] + 7;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
+		}
+
 		OPTION(spammy);
 		OPTION(info);
 		OPTION(debug);
@@ -156,6 +164,14 @@ static char *get_data_dir(char *arg0)
 		return NULL;
 	}
 
+	if (option_datadir_str) {
+		if (access(option_datadir_str, R_OK))
+			printf("Warning: %s is not accessible -- ignore.\n",
+					option_datadir_str);
+		else
+			return alloc_string(option_datadir_str);
+	}
+
 	orig = alloc_string(arg0);
 	bin_dir = dirname(orig);
 	strncpy(buf, bin_dir, 254);
@@ -171,8 +187,9 @@ static char *get_data_dir(char *arg0)
 	dir = alloc_string(buf);
 	if (!access(dir, R_OK))
 		return dir;
+
 	printf("Warning: %s is not accessible.\n", dir);
-	printf("Use --no-data to suppress this message.\n");
+	printf("Use --no-data or --data to suppress this message.\n");
 	return NULL;
 }
 
