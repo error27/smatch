@@ -373,7 +373,7 @@ static void register_array_funcs(void)
 		token = token->next;
 	}
 	if (token_type(token) != TOKEN_STREAMEND) {
-		printf("failed to load %s", name);
+		printf("failed to load %s (line %d)", name, token->pos.line);
 		free(bound_info);
 	}
 	clear_token_alloc();
