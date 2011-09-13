@@ -56,17 +56,17 @@ const char *get_filename(void)
 	return filename;
 }
 
-static void set_position(struct expression *expr)
+static void set_position(struct position pos)
 {
 	int len;
 	static int prev_stream = -1;
 
-	__smatch_lineno = expr->pos.line;
+	__smatch_lineno = pos.line;
 
-	if (expr->pos.stream == prev_stream)
+	if (pos.stream == prev_stream)
 		return;
 
-	filename = stream_name(expr->pos.stream);
+	filename = stream_name(pos.stream);
        
 	free(full_filename);
 	pathname = getcwd(NULL, 0);
@@ -97,7 +97,7 @@ void __split_expr(struct expression *expr)
 	// sm_msg(" Debug expr_type %d %s", expr->type, show_special(expr->op));
 
 	push_expression(&big_expression_stack, expr);
-	set_position(expr);
+	set_position(expr->pos);
 	__pass_to_client(expr, EXPR_HOOK);
 
 	switch (expr->type) {
@@ -514,7 +514,7 @@ void __split_stmt(struct statement *stmt)
 
 	add_ptr_list(&big_statement_stack, stmt);
 	free_expression_stack(&big_expression_stack);
-	__smatch_lineno = stmt->pos.line;
+	set_position(stmt->pos);
 	print_unreached(stmt);
 	__pass_to_client(stmt, STMT_HOOK);
 
