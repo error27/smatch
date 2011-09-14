@@ -54,9 +54,10 @@ static void func (void)
  *
  * check-output-start
 sm_null_deref.c +18 func(6) error: potentially derefencing uninitialized 'aa'.
-sm_null_deref.c +23 func(11) error: we previously assumed 'a' could be null.
-sm_null_deref.c +25 func(13) warn: variable dereferenced before check 'a'
-sm_null_deref.c +30 func(18) error: we previously assumed 'b' could be null.
+sm_null_deref.c +23 func(11) error: we previously assumed 'a' could be null (see line 20)
+sm_null_deref.c +25 func(13) warn: variable dereferenced before check 'a' (see line 23)
+sm_null_deref.c +30 func(18) error: we previously assumed 'b' could be null (see line 25)
 sm_null_deref.c +48 func(36) error: potential null derefence 'd'.
  * check-output-end
  */
+

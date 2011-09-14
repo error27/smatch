@@ -19,6 +19,6 @@ void frob(void) {
  * check-command: smatch sm_null_deref2.c
  *
  * check-output-start
-sm_null_deref2.c +15 frob(12) error: we previously assumed 'ptr' could be null.
+sm_null_deref2.c +15 frob(12) error: we previously assumed 'ptr' could be null (see line 12)
  * check-output-end
  */

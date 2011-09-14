@@ -42,21 +42,22 @@ static void match_dereference(struct expression *expr)
 
 static void match_condition(struct expression *expr)
 {
+	struct sm_state *sm;
+
 	if (__in_pre_condition)
 		return;
 
 	if (get_macro_name(&expr->pos))
 		return;
 
-	if (get_state_expr(my_id, expr) == &derefed) {
-		char *name;
+	sm = get_sm_state_expr(my_id, expr);
+	if (!sm || sm->state != &derefed)
+		return;
+	if (implied_not_equal(expr, 0))
+		return;
 
-		name = get_variable_from_expr(expr, NULL);
-		if (!implied_not_equal(expr, 0))
-			sm_msg("warn: variable dereferenced before check '%s'", name);
-		set_state_expr(my_id, expr, &oktocheck);
-		free_string(name);
-	}
+	sm_msg("warn: variable dereferenced before check '%s' (see line %d)", sm->name, sm->line);
+	set_state_expr(my_id, expr, &oktocheck);
 }
 
 void check_deref_check(int id)

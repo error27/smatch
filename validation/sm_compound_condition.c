@@ -22,6 +22,6 @@ void func (void)
  * check-command: smatch sm_compound_condition.c
  *
  * check-output-start
-sm_compound_condition.c +18 func(10) error: we previously assumed 'b' could be null.
+sm_compound_condition.c +18 func(10) error: we previously assumed 'b' could be null (see line 14)
  * check-output-end
  */

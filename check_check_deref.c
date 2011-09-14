@@ -59,7 +59,8 @@ static void check_dereference(struct expression *expr)
 		if (tmp->state == &ok)
 			continue;
 		if (tmp->state == &null) {
-			sm_msg("error: we previously assumed '%s' could be null.", tmp->name);
+			sm_msg("error: we previously assumed '%s' could be null (see line %d)",
+			       tmp->name, tmp->line);
 			add_ignore(my_id, sm->name, sm->sym);
 			return;
 		}
