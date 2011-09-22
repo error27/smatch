@@ -409,7 +409,7 @@ void __handle_logic(struct expression *expr)
 	sm_debug("%d done __handle_logic\n", get_lineno());
 }
 
-static int is_condition_assign(struct expression *expr)
+int __is_condition_assign(struct expression *expr)
 {
 	struct expression *right;
 
@@ -433,7 +433,7 @@ int __handle_condition_assigns(struct expression *expr)
 	struct expression *right;
 
 	right = strip_expr(expr->right);
-	if (!is_condition_assign(expr))
+	if (!__is_condition_assign(expr))
 		return 0;
 
 	sm_debug("%d in __handle_condition_assigns\n", get_lineno());
@@ -454,6 +454,7 @@ int __handle_condition_assigns(struct expression *expr)
 	__push_true_states();
 	__use_false_states();
 	__merge_true_states();
+	__pass_to_client(expr, ASSIGNMENT_HOOK);
 	return 1;
 }
 

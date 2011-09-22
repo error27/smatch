@@ -446,6 +446,8 @@ static void match_assign(struct expression *expr)
 	long long max = whole_range.max;
 	long long tmp;
 	
+	if (__is_condition_assign(expr))
+		return;
 	left = strip_expr(expr->left);
 	name = get_variable_from_expr(left, &sym);
 	if (!name)
