@@ -67,7 +67,7 @@ static void set_position(struct position pos)
 		return;
 
 	filename = stream_name(pos.stream);
-       
+
 	free(full_filename);
 	pathname = getcwd(NULL, 0);
 	if (pathname) {
@@ -101,7 +101,7 @@ void __split_expr(struct expression *expr)
 	__pass_to_client(expr, EXPR_HOOK);
 
 	switch (expr->type) {
-	case EXPR_PREOP: 
+	case EXPR_PREOP:
 		if (expr->op == '*')
 			__pass_to_client(expr, DEREF_HOOK);
 	case EXPR_POSTOP:
@@ -118,11 +118,11 @@ void __split_expr(struct expression *expr)
 		__pass_to_client(expr, LOGIC_HOOK);
 		__handle_logic(expr);
 		break;
-	case EXPR_BINOP: 
+	case EXPR_BINOP:
 		__pass_to_client(expr, BINOP_HOOK);
 	case EXPR_COMMA:
 		__split_expr(expr->left);
-		__split_expr(expr->right);		
+		__split_expr(expr->right);
 		break;
 	case EXPR_ASSIGNMENT: {
 		struct expression *tmp;
@@ -145,7 +145,7 @@ void __split_expr(struct expression *expr)
 		if (tmp->type == EXPR_CALL)
 			__pass_to_client(expr, CALL_ASSIGNMENT_HOOK);
 		if (get_macro_name(&tmp->pos))
-			__pass_to_client(expr, MACRO_ASSIGNMENT_HOOK);			
+			__pass_to_client(expr, MACRO_ASSIGNMENT_HOOK);
 		__split_expr(expr->left);
 		break;
 	}
@@ -206,7 +206,6 @@ void __split_expr(struct expression *expr)
 
 static int is_forever_loop(struct statement *stmt)
 {
-	
 	struct expression *expr;
 
 	expr = strip_expr(stmt->iterator_pre_condition);
@@ -237,7 +236,6 @@ static char *get_loop_name(int num)
 /*
  * Pre Loops are while and for loops.
  */
-
 static void handle_pre_loop(struct statement *stmt)
 {
 	int once_through; /* we go through the loop at least once */
@@ -276,7 +274,7 @@ static void handle_pre_loop(struct statement *stmt)
 		once_through = 1;
 
 	__split_stmt(stmt->iterator_statement);
-	__warn_on_silly_pre_loops();	
+	__warn_on_silly_pre_loops();
 	if (is_forever_loop(stmt)) {
 		__save_gotos(loop_name);
 		/* forever loops don't have an iterator_post_statement */
@@ -298,7 +296,7 @@ static void handle_pre_loop(struct statement *stmt)
 
 		}
 		if (extra_sm && unchanged)
-			__extra_pre_loop_hook_after(extra_sm, 
+			__extra_pre_loop_hook_after(extra_sm,
 						stmt->iterator_post_statement,
 						stmt->iterator_pre_condition);
 		__merge_breaks();
@@ -373,14 +371,13 @@ static void print_unreached_initializers(struct symbol_list *sym_list)
 
 	FOR_EACH_PTR(sym_list, sym) {
 		if(sym->initializer)
-			sm_msg("info: '%s' is not actually initialized (unreached code).", 
+			sm_msg("info: '%s' is not actually initialized (unreached code).",
 				(sym->ident ? sym->ident->name : "this variable"));
 	} END_FOR_EACH_PTR(sym);
 }
 
 static void print_unreached(struct statement *stmt)
 {
-
 	static int print = 1;
 
 	if (!__path_is_null()) {
@@ -551,7 +548,7 @@ void __split_stmt(struct statement *stmt)
 			__split_stmt(stmt->if_false);
 			return;
 		}
-		if (option_known_conditions && 
+		if (option_known_conditions &&
 		    implied_condition_true(stmt->if_conditional)) {
 			sm_info("this condition is true.");
 			__split_stmt(stmt->if_true);
@@ -615,8 +612,8 @@ void __split_stmt(struct statement *stmt)
 		__split_stmt(stmt->case_statement);
 		return;
 	case STMT_LABEL:
-		if (stmt->label_identifier && 
-		    stmt->label_identifier->type == SYM_LABEL && 
+		if (stmt->label_identifier &&
+		    stmt->label_identifier->type == SYM_LABEL &&
 		    stmt->label_identifier->ident) {
 			loop_count = 1000000;
 			__merge_gotos(stmt->label_identifier->ident->name);
@@ -628,12 +625,12 @@ void __split_stmt(struct statement *stmt)
 		if (stmt->goto_label && stmt->goto_label->type == SYM_NODE) {
 			if (!strcmp(stmt->goto_label->ident->name, "break")) {
 				__process_breaks();
-			} else if (!strcmp(stmt->goto_label->ident->name, 
+			} else if (!strcmp(stmt->goto_label->ident->name,
 					   "continue")) {
 				__process_continues();
 			}
-		} else if (stmt->goto_label && 
-			   stmt->goto_label->type == SYM_LABEL && 
+		} else if (stmt->goto_label &&
+			   stmt->goto_label->type == SYM_LABEL &&
 			   stmt->goto_label->ident) {
 			__save_gotos(stmt->goto_label->ident->name);
 		}
@@ -693,7 +690,7 @@ static void split_symlist(struct symbol_list *sym_list)
 }
 
 static struct expression *fake_assign_expr(struct symbol *sym)
-{			
+{
 	struct expression *e_assign, *e_symbol;
 
 	e_assign = alloc_expression(sym->initializer->pos, EXPR_ASSIGNMENT);
@@ -805,13 +802,13 @@ static void split_functions(struct symbol_list *sym_list)
 	__pass_to_client_no_data(END_FILE_HOOK);
 }
 
-void smatch (int argc, char **argv) 
+void smatch (int argc, char **argv)
 {
 
 	struct string_list *filelist = NULL;
 	struct symbol_list *sym_list;
 	char *file;
-	
+
 	if (argc < 2) {
 		printf("Usage:  smatch [--debug] <filename.c>\n");
 		exit(1);
