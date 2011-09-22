@@ -22,6 +22,10 @@ static void match_stmt(struct statement *stmt)
 		return;
 	switch(expr->type) {
 	case EXPR_PREOP:
+		if (expr->op == '!')
+			break;
+		if (expr->op == '~')
+			break;
 	case EXPR_POSTOP:
 	case EXPR_STATEMENT:
 	case EXPR_ASSIGNMENT:
