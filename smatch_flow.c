@@ -694,7 +694,7 @@ static struct expression *fake_assign_expr(struct symbol *sym)
 	struct expression *e_assign, *e_symbol;
 
 	e_assign = alloc_expression(sym->initializer->pos, EXPR_ASSIGNMENT);
-	e_symbol = alloc_expression(sym->initializer->pos, EXPR_SYMBOL);
+	e_symbol = alloc_expression(sym->pos, EXPR_SYMBOL);
 	e_assign->op = (int)'=';
 	e_symbol->symbol = sym;
 	e_symbol->symbol_name = sym->ident;
