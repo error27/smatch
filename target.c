@@ -14,7 +14,7 @@ int max_alignment = 16;
 /*
  * Integer data types
  */
-int bits_in_bool = 1;
+int bits_in_bool = 8;
 int bits_in_char = 8;
 int bits_in_short = 16;
 int bits_in_int = 32;

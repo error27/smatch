@@ -4,9 +4,5 @@ static int a(void)
 }
 /*
  * check-name: sizeof(_Bool) is valid
- * check-description: sizeof(_Bool) was rejected because _Bool is not an even
- * number of bytes
- * check-error-start
-sizeof-bool.c:3:16: warning: expression using sizeof bool
- * check-error-end
+ * check-description: sizeof(_Bool) is valid
  */
