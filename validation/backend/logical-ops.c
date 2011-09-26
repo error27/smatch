@@ -1,4 +1,3 @@
-#if 0
 static int and_bool(int x, int y)
 {
 	return x && y;
@@ -18,7 +17,6 @@ static unsigned int uor_bool(unsigned int x, unsigned int y)
 {
 	return x || y;
 }
-#endif
 
 /*
  * check-name: Logical operator code generation

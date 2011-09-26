@@ -375,12 +375,27 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 		assert(!symbol_is_fp_type(insn->type));
 		target = LLVMBuildXor(fn->builder, lhs, rhs, target_name);
 		break;
-	case OP_AND_BOOL:
-		assert(0);
+	case OP_AND_BOOL: {
+		LLVMValueRef x, y;
+
+		assert(!symbol_is_fp_type(insn->type));
+
+		y = LLVMBuildICmp(fn->builder, LLVMIntNE, lhs, LLVMConstInt(LLVMTypeOf(lhs), 0, 0), "y");
+		x = LLVMBuildICmp(fn->builder, LLVMIntNE, rhs, LLVMConstInt(LLVMTypeOf(rhs), 0, 0), "x");
+
+		target = LLVMBuildAnd(fn->builder, y, x, target_name);
 		break;
-	case OP_OR_BOOL:
-		assert(0);
+	}
+	case OP_OR_BOOL: {
+		LLVMValueRef tmp;
+
+		assert(!symbol_is_fp_type(insn->type));
+
+		tmp = LLVMBuildOr(fn->builder, rhs, lhs, "tmp");
+
+		target = LLVMBuildICmp(fn->builder, LLVMIntNE, tmp, LLVMConstInt(LLVMTypeOf(tmp), 0, 0), target_name);
 		break;
+	}
 
 	/* Binary comparison */
 	case OP_SET_EQ:
