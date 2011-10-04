@@ -164,9 +164,6 @@ void __pass_to_client(void *data, enum hook_type type)
 {
 	struct hook_container *container;
 
-//	if (!data)
-//		return;
-
 	FOR_EACH_PTR(hook_funcs, container) {
 		if (container->hook_type == type) {
 			switch (container->data_type) {
