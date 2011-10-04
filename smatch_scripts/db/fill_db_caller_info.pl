@@ -1,7 +1,5 @@
 #!/usr/bin/perl -w
 
-# init/main.c +165 obsolete_checksetup(7) info: passes param_value strlen 0 min-max
-
 use strict;
 use DBI;
 
@@ -18,13 +16,13 @@ my $prev_fn = "";
 my $prev_line = "+0";
 my $prev_param = 0;
 my $func_id = 0;
-my $type = 1;  # PARAM_VALUE from smatch.h
+my $type;
 
-$db->do("delete from caller_info where type = $type;");
+$db->do("delete from caller_info");
 
 open(WARNS, "<$warns");
 while (<WARNS>) {
-    if (!($_ =~ /info: passes param_value /)) {
+    if (!($_ =~ /info:/)) {
 	next;
     }
     if ($_ =~ /__builtin_/) {
@@ -37,12 +35,25 @@ while (<WARNS>) {
     s/\n//;
 
     my ($file, $line, $dummy, $func, $param, $value);
-    ($file, $line, $dummy, $dummy, $dummy, $dummy, $func, $param, $value) = split(/ /, $_);
 
+    if ($_ =~ /info: passes param_value /) {
+        # init/main.c +165 obsolete_checksetup(7) info: passes param_value strlen 0 min-max
+	$type = 1;
+	($file, $line, $dummy, $dummy, $dummy, $dummy, $func, $param, $value) = split(/ /, $_);
+
+    } elsif ($_ =~ /info: passes_buffer /) {
+        # init/main.c +175 obsolete_checksetup(17) info: passes_buffer 'printk' 0 38
+	$type = 2;
+	($file, $line, $dummy, $dummy, $dummy, $func, $param, $value) = split(/ /, $_);
+    } else {
+	next;
+    }
 
     if (!defined($value) || !($param =~ /^\d+$/)) {
 	next;
     }
+
+    $func =~ s/'//g;
 
     if ($prev_fn ne $func || $prev_line ne $line || $param < $prev_param) {
 	$func_id++;

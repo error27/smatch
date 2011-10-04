@@ -395,6 +395,7 @@ void __match_initializer_call(struct symbol *sym);
 /* smatch_db.c */
 enum info_type {
 	PARAM_VALUE = 1,
+	BUF_SIZE,
 };
 
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *value), int type);

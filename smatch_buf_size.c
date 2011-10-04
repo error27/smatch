@@ -31,65 +31,17 @@ static struct limiter b0_l2 = {0, 2};
 
 static _Bool params_set[32];
 
-static int db_callback(void *unused, int argc, char **argv, char **azColName)
+void set_param_buf_size(const char *name, struct symbol *sym, char *value)
 {
-	struct symbol *arg;
-	unsigned int param;
 	unsigned int size;
-	int i;
-	int dummy = 0;
+
 
 	errno = 0;
-	param = strtoul(argv[0], NULL, 10);
-	size = strtoul(argv[1], NULL, 10);
+	size = strtoul(value, NULL, 10);
 	if (errno)
-		return dummy;
-
-	if (param >= ARRAY_SIZE(params_set))
-		return dummy;
-	if (params_set[param])
-		return dummy;
-	params_set[param] = 1;
-
-	i = 0;
-	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
-		/*
-		 * this is a temporary hack to work around a bug (I think in sparse?)
-		 * 2.6.37-rc1:fs/reiserfs/journal.o
-		 * If there is a function definition without parameter name found 
-		 * after a function implementation then it causes a crash.
-		 * int foo() {}
-		 * int bar(char *);
-		 */
-		if (arg->ident->name < (char *)100)
-			continue;
-		if (i == param && arg->ident->name) {
-			set_state(my_size_id, arg->ident->name, arg, alloc_state_num(size));
-		}
-		i++;
-	} END_FOR_EACH_PTR(arg);
-
-	return dummy;
-}
-
-static void match_function_def(struct symbol *sym)
-{
-	if (!sym || !sym->ident || !sym->ident->name)
 		return;
-
-	if (sym->ctype.modifiers & MOD_STATIC) {
-		run_sql(db_callback,
-			"select distinct parameter, size from buf_size "
-			"where file = '%s' and function = '%s' "
-			"order by size desc;",
-			get_filename(), sym->ident->name);
-	} else {
-		run_sql(db_callback,
-			"select distinct parameter, size from buf_size "
-			"where function = '%s' "
-			"order by size desc;",
-			sym->ident->name);
-	}
+	
+	set_state(my_size_id, name, sym, alloc_state_num(size));
 }
 
 static int get_initializer_size(struct expression *expr)
@@ -460,7 +412,7 @@ void register_buf_size(int id)
 {
 	my_size_id = id;
 
-	add_hook(&match_function_def, FUNC_DEF_HOOK);
+	add_definition_db_callback(set_param_buf_size, BUF_SIZE);
 
 	add_function_assign_hook("malloc", &match_alloc, INT_PTR(0));
 	add_function_assign_hook("calloc", &match_calloc, NULL);
