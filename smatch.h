@@ -404,7 +404,6 @@ void add_definition_db_callback(void (*callback)(const char *name, struct symbol
 do {                                  \
 	char sql_txt[1024];           \
 	snprintf(sql_txt, 1024, sql); \
-	sql_txt[1023] = '\0';         \
 	sql_exec(call_back, sql_txt); \
 } while (0)
 
