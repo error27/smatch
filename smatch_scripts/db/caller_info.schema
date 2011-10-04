@@ -1,0 +1,5 @@
+CREATE TABLE caller_info (file varchar(256), function varchar(256), function_id integer, type integer, parameter integer, value varchar(256));
+
+CREATE INDEX caller_fn_idx on caller_info (function, function_id);
+CREATE INDEX caller_ff_idx on caller_info (file, function, function_id);
+

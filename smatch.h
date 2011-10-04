@@ -393,6 +393,12 @@ void create_function_hook_hash(void);
 void __match_initializer_call(struct symbol *sym);
 
 /* smatch_db.c */
+enum info_type {
+	PARAM_VALUE = 1,
+};
+
+void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *value), int type);
+
 #define run_sql(call_back, sql...)    \
 do {                                  \
 	char sql_txt[1024];           \

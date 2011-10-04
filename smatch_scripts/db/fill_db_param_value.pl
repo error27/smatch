@@ -14,12 +14,13 @@ if (!defined($warns)) {
 
 my $db = DBI->connect("dbi:SQLite:smatch_db.sqlite", "", "", {RaiseError => 1, AutoCommit => 0});
 
-$db->do("delete from param_value;");
-
 my $prev_fn = "";
 my $prev_line = "+0";
 my $prev_param = 0;
 my $func_id = 0;
+my $type = 1;  # PARAM_VALUE from smatch.h
+
+$db->do("delete from caller_info where type = $type;");
 
 open(WARNS, "<$warns");
 while (<WARNS>) {
@@ -47,7 +48,7 @@ while (<WARNS>) {
 	$func_id++;
     }
 
-    $db->do("insert into param_value values ('$file', '$func', $func_id, $param, '$value')");
+    $db->do("insert into caller_info values ('$file', '$func', $func_id, $type, $param, '$value')");
 }
 $db->commit();
 $db->disconnect();
