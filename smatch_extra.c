@@ -999,7 +999,7 @@ static void match_call_info(struct expression *expr)
 		state = get_state_expr(my_id, arg);
 		if (state && strcmp(state->name, "unknown"))
 			msg = state->name;
-		sm_msg("info: passes param_value %s %d %s", name, i, msg);
+		sm_msg("info: passes param_value '%s' %d %s", name, i, msg);
 		i++;
 	} END_FOR_EACH_PTR(arg);
 	free_string(name);
