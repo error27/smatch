@@ -13,6 +13,7 @@
  */
 
 #include <stdlib.h>
+#include <errno.h>
 #ifndef __USE_ISOC99
 #define __USE_ISOC99 
 #endif
@@ -981,6 +982,171 @@ int is_whole_range(struct smatch_state *state)
 	return 0;
 }
 
+static void match_call_info(struct expression *expr)
+{
+	struct expression *arg;
+	char *name;
+	int i = 0;
+
+	if (expr->fn->type != EXPR_SYMBOL)
+		return;
+
+	name = get_variable_from_expr(expr->fn, NULL);
+	FOR_EACH_PTR(expr->args, arg) {
+		const char *msg = "min-max";
+		struct smatch_state *state;
+
+		state = get_state_expr(my_id, arg);
+		if (state && strcmp(state->name, "unknown"))
+			msg = state->name;
+		sm_msg("info: passes param_value %s %d %s", name, i, msg);
+		i++;
+	} END_FOR_EACH_PTR(arg);
+	free_string(name);
+}
+
+static unsigned long call_count;
+static int db_count_callback(void *unused, int argc, char **argv, char **azColName)
+{
+	call_count = strtoul(argv[0], NULL, 10);
+	return 0;
+}
+
+static void get_value_ranges(char *value, struct range_list **rl)
+{
+	long long val1, val2;
+	char *start;
+	char *c;
+
+	c = value;
+	start = c;
+	while (*c) {
+		if (!strncmp(start, "min", 3)) {
+			val1 = LLONG_MIN;
+			c += 3;
+		} else {
+			while (*c && *c != ',' && *c != '-')
+				c++;
+			val1 = strtoll(start, &c, 10);
+		}
+		if (!*c) {
+			add_range(rl, val1, val1);
+			break;
+		}
+		if (*c == ',') {
+			add_range(rl, val1, val1);
+			c++;
+			start = c;
+			continue;
+		}
+		c++;
+		start = c;
+		if (!strncmp(start, "max", 3)) {
+			val2 = LLONG_MAX;
+			c += 3;
+		} else {
+			while (*c && *c != ',' && *c != '-')
+				c++;
+			val2 = strtoll(start, &c, 10);
+		}
+		add_range(rl, val1, val2);
+		if (!*c)
+			break;
+		c++;
+		start = c;
+	}
+
+}
+
+static struct state_list *final_states;
+static int prev_func_id = -1;
+static int db_callback(void *unused, int argc, char **argv, char **azColName)
+{
+	struct range_list *rl = NULL;
+	struct smatch_state *state;
+	unsigned long param;
+	struct symbol *arg;
+	int func_id;
+	int i;
+
+	if (argc != 3)
+		return 0;
+
+	func_id = atoi(argv[0]);
+	errno = 0;
+	param = strtoul(argv[1], NULL, 10);
+	if (errno)
+		return 0;
+
+	if (prev_func_id == -1)
+		prev_func_id = func_id;
+	if (func_id != prev_func_id) {
+		merge_slist(&final_states, __pop_fake_cur_slist());
+		__push_fake_cur_slist();
+		prev_func_id = func_id;
+	}
+
+	get_value_ranges(argv[2], &rl);
+	state = alloc_extra_state_range_list(rl);
+
+	i = 0;
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
+		/*
+		 * this is a temporary hack to work around a bug (I think in sparse?)
+		 * 2.6.37-rc1:fs/reiserfs/journal.o
+		 * If there is a function definition without parameter name found 
+		 * after a function implementation then it causes a crash.
+		 * int foo() {}
+		 * int bar(char *);
+		 */
+		if (arg->ident->name < (char *)100)
+			continue;
+		if (i == param && arg->ident->name) {
+			set_state(SMATCH_EXTRA, arg->ident->name, arg, state);
+		}
+		i++;
+	} END_FOR_EACH_PTR(arg);
+
+	return 0;
+}
+
+static void match_data_from_db(struct symbol *sym)
+{
+	char sql_filter[1024];
+	struct sm_state *sm;
+
+	if (!sym || !sym->ident || !sym->ident->name)
+		return;
+
+	if (sym->ctype.modifiers & MOD_STATIC) {
+		snprintf(sql_filter, 1024,
+			 "file = '%s' and function = '%s' order by function_id desc;",
+			 get_filename(), sym->ident->name);
+	} else {
+		snprintf(sql_filter, 1024,
+			 "function = '%s' order by function_id desc;",
+			 sym->ident->name);
+	}
+
+	call_count = 0;
+	run_sql(db_count_callback, "select count(*) from param_value where %s",
+		 sql_filter);
+	if (call_count == 0 || call_count > 20)
+		return;
+
+	prev_func_id = -1;
+	__push_fake_cur_slist();
+	run_sql(db_callback, "select function_id, parameter, value from param_value"
+		" where %s", sql_filter);
+	merge_slist(&final_states, __pop_fake_cur_slist());
+
+	FOR_EACH_PTR(final_states, sm) {
+		__set_sm(sm);
+	} END_FOR_EACH_PTR(sm);
+
+	free_slist(&final_states);
+}
+
 void register_smatch_extra(int id)
 {
 	my_id = id;
@@ -988,7 +1154,10 @@ void register_smatch_extra(int id)
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
+	add_hook(&match_data_from_db, FUNC_DEF_HOOK);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
+	if (option_info)
+		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 }
