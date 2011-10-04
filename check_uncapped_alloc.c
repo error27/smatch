@@ -159,7 +159,7 @@ static void match_uncapped_max(const char *fn, struct expression *expr, void *_a
 	arg = get_argument_from_call_expr(expr->args, arg_nr);
 	if (!is_uncapped(arg))
 		return;
-	name = get_variable_from_expr(arg, NULL);
+	name = get_variable_from_expr_complex(arg, NULL);
 	sm_msg("warn: untrusted data is not capped '%s'", name);
 	free_string(name);
 }
