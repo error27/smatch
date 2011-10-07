@@ -14,11 +14,8 @@ my $db = DBI->connect("dbi:SQLite:smatch_db.sqlite", "", "", {RaiseError => 1, A
 
 $db->do("delete from untrusted;");
 
-open(WARNS, "<$warns");
+open(WARNS, "~/progs/smatch/devel/smatch_scripts/follow_params.pl $warns \$(grep user_data $warns | cut -d ' ' -f 6- | sort -u) |");
 while (<WARNS>) {
-    if (!($_ =~ / user_data /)) {
-	next;
-    }
     if ($_ =~ /kfree/) {
 	next;
     }
@@ -26,13 +23,16 @@ while (<WARNS>) {
     s/\n//;
 
     my ($file, $dummy, $func, $param);
-    ($file, $dummy, $dummy, $dummy, $dummy, $func, $param) = split(/ /, $_);
+    ($func, $param) = split(/ /, $_);
 
+    if (!($func =~ /^[\w_]+$/)) {
+	next;
+    }
     if (!defined($param) || !($param =~ /^\d+$/)) {
 	next;
     }
 
-    $db->do("insert into untrusted values ('$file', '$func', $param)");
+    $db->do("insert into untrusted values ('', '$func', $param)");
 }
 $db->commit();
 $db->disconnect();
