@@ -56,6 +56,9 @@ while (<WARNS>) {
     $func =~ s/'//g;
 
     if ($prev_fn ne $func || $prev_line ne $line || $param < $prev_param) {
+	$prev_fn = $func;
+	$prev_line = $line;
+	$prev_param = $param;
 	$func_id++;
     }
 
