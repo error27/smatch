@@ -995,13 +995,17 @@ static void match_call_info(struct expression *expr)
 
 	name = get_variable_from_expr(expr->fn, NULL);
 	FOR_EACH_PTR(expr->args, arg) {
-		const char *msg = "min-max";
-		struct smatch_state *state;
+		struct range_list *rl = NULL;
+		char *msg;
 
-		state = get_state_expr(my_id, arg);
-		if (state && strcmp(state->name, "unknown"))
-			msg = state->name;
+		if (!get_implied_range_list(arg, &rl))
+			goto next;
+		if (is_whole_range_rl(rl))
+			goto next;
+
+		msg = show_ranges(rl);
 		sm_msg("info: passes param_value '%s' %d %s", name, i, msg);
+ next:
 		i++;
 	} END_FOR_EACH_PTR(arg);
 	free_string(name);
