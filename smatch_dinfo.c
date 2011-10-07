@@ -140,6 +140,9 @@ struct smatch_state *alloc_extra_state_range_list(struct range_list *rl)
 {
 	struct smatch_state *state;
 
+	if (is_whole_range_rl(rl))
+		return extra_undefined();
+
 	state = __alloc_smatch_state(0);
 	state->data = (void *)alloc_dinfo_range_list(rl);
 	state->name = show_ranges(get_dinfo(state)->value_ranges);

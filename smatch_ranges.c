@@ -66,6 +66,18 @@ static struct data_range range_one = {
 	.max = 1,
 };
 
+int is_whole_range_rl(struct range_list *rl)
+{
+	struct data_range *drange;
+
+	if (ptr_list_empty(rl))
+		return 1;
+	drange = first_ptr_list((struct ptr_list *)rl);
+	if (drange->min == whole_range.min && drange->max == whole_range.max)
+		return 1;
+	return 0;
+}
+
 struct data_range *alloc_range(long long min, long long max)
 {
 	struct data_range *ret;
