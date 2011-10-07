@@ -133,18 +133,18 @@ static void match_data_from_db(struct symbol *sym)
 
 	if (sym->ctype.modifiers & MOD_STATIC) {
 		snprintf(sql_filter, 1024,
-			 "file = '%s' and function = '%s' order by function_id desc;",
+			 "file = '%s' and function = '%s' order by function_id;",
 			 get_filename(), sym->ident->name);
 	} else {
 		snprintf(sql_filter, 1024,
-			 "function = '%s' order by function_id desc;",
+			 "function = '%s' order by function_id;",
 			 sym->ident->name);
 	}
 
 	call_count = 0;
 	run_sql(db_count_callback, "select count(*) from caller_info where %s",
 		 sql_filter);
-	if (call_count == 0 || call_count > 20)
+	if (call_count == 0 || call_count > 100)
 		return;
 
 	prev_func_id = -1;
