@@ -34,16 +34,17 @@ while (<WARNS>) {
 
     s/\n//;
 
-    my ($file, $line, $dummy, $func, $param, $value);
+    my ($file, $line, $dummy, $func, $param, $key, $value);
 
     if ($_ =~ /info: passes param_value /) {
         # init/main.c +165 obsolete_checksetup(7) info: passes param_value strlen 0 min-max
 	$type = 1;
-	($file, $line, $dummy, $dummy, $dummy, $dummy, $func, $param, $value) = split(/ /, $_);
+	($file, $line, $dummy, $dummy, $dummy, $dummy, $func, $param, $key, $value) = split(/ /, $_);
 
     } elsif ($_ =~ /info: passes_buffer /) {
-        # init/main.c +175 obsolete_checksetup(17) info: passes_buffer 'printk' 0 38
+        # init/main.c +175 obsolete_checksetup(17) info: passes_buffer 'printk' 0 '$$' 38
 	$type = 2;
+	$key = "";
 	($file, $line, $dummy, $dummy, $dummy, $func, $param, $value) = split(/ /, $_);
     } else {
 	next;
@@ -54,6 +55,8 @@ while (<WARNS>) {
     }
 
     $func =~ s/'//g;
+    $key =~ s/'//g;
+    $value =~ s/'//g;
 
     if ($prev_fn ne $func || $prev_line ne $line || $param < $prev_param) {
 	$prev_fn = $func;
@@ -62,7 +65,7 @@ while (<WARNS>) {
 	$func_id++;
     }
 
-    $db->do("insert into caller_info values ('$file', '$func', $func_id, $type, $param, '$value')");
+    $db->do("insert into caller_info values ('$file', '$func', $func_id, $type, $param, '$key', '$value')");
 }
 $db->commit();
 $db->disconnect();

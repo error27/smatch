@@ -31,7 +31,7 @@ static struct limiter b0_l2 = {0, 2};
 
 static _Bool params_set[32];
 
-void set_param_buf_size(const char *name, struct symbol *sym, char *value)
+void set_param_buf_size(const char *name, struct symbol *sym, char *key, char *value)
 {
 	unsigned int size;
 

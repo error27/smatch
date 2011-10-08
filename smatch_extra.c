@@ -976,7 +976,7 @@ int is_whole_range(struct smatch_state *state)
 	if (!state)
 		return 1;
 	dinfo = get_dinfo(state);
-	if (!dinfo)
+	if (!dinfo || !dinfo->value_ranges)
 		return 1;
 	drange = first_ptr_list((struct ptr_list *)dinfo->value_ranges);
 	if (drange->min == whole_range.min && drange->max == whole_range.max)
@@ -984,31 +984,56 @@ int is_whole_range(struct smatch_state *state)
 	return 0;
 }
 
+static void print_param_info(char *fn, struct expression *expr, int param, struct state_list *slist)
+{
+	struct range_list *rl = NULL;
+	struct sm_state *sm;
+	char *name;
+	struct symbol *sym;
+	int len;
+	char *msg;
+
+	if (get_implied_range_list(expr, &rl) && ! is_whole_range_rl(rl)) {
+		msg = show_ranges(rl);
+		sm_msg("info: passes param_value '%s' %d '$$' %s", fn, param, msg);
+	}
+
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	len = strlen(name);
+	FOR_EACH_PTR(slist, sm) {
+		if (sm->sym != sym)
+			continue;
+		if (is_whole_range(sm->state))
+			continue;
+		if (strncmp(name, sm->name, len) || sm->name[len] == '\0')
+			continue;
+		sm_msg("info: passes param_value '%s' %d '$$%s' %s", fn, param, sm->name + len, sm->state->name);
+	} END_FOR_EACH_PTR(sm);
+free:
+	free_string(name);
+}
+
 static void match_call_info(struct expression *expr)
 {
 	struct expression *arg;
+	struct state_list *slist;
 	char *name;
 	int i = 0;
 
 	if (expr->fn->type != EXPR_SYMBOL)
 		return;
 
+	slist = get_all_states(SMATCH_EXTRA);
 	name = get_variable_from_expr(expr->fn, NULL);
 	FOR_EACH_PTR(expr->args, arg) {
-		struct range_list *rl = NULL;
-		char *msg;
-
-		if (!get_implied_range_list(arg, &rl))
-			goto next;
-		if (is_whole_range_rl(rl))
-			goto next;
-
-		msg = show_ranges(rl);
-		sm_msg("info: passes param_value '%s' %d %s", name, i, msg);
- next:
+		print_param_info(name, arg, i, slist);
 		i++;
 	} END_FOR_EACH_PTR(arg);
 	free_string(name);
+	free_slist(&slist);
 }
 
 static void get_value_ranges(char *value, struct range_list **rl)
@@ -1065,14 +1090,19 @@ static void get_value_ranges(char *value, struct range_list **rl)
 
 }
 
-void set_param_value(const char *name, struct symbol *sym, char *value)
+void set_param_value(const char *name, struct symbol *sym, char *key, char *value)
 {
 	struct range_list *rl = NULL;
 	struct smatch_state *state;
+	char fullname[256];
 
+	if (strncmp(key, "$$", 2))
+		return;
+
+	snprintf(fullname, 256, "%s%s", name, key + 2);
 	get_value_ranges(value, &rl);
 	state = alloc_extra_state_range_list(rl);
-	set_state(SMATCH_EXTRA, name, sym, state);
+	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
 
 void register_smatch_extra(int id)

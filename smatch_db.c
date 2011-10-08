@@ -18,7 +18,7 @@ static sqlite3 *db;
 
 struct def_callback {
 	int hook_type;
-	void (*callback)(const char *name, struct symbol *sym, char *value);
+	void (*callback)(const char *name, struct symbol *sym, char *key, char *value);
 };
 ALLOCATOR(def_callback, "definition db hook callbacks");
 DECLARE_PTR_LIST(callback_list, struct def_callback);
@@ -39,7 +39,7 @@ void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql)
 	}
 }
 
-void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *value), int type)
+void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type)
 {
 	struct def_callback *def_callback = __alloc_def_callback(0);
 
@@ -94,7 +94,7 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 	struct symbol *sym;
 	struct def_callback *def_callback;
 
-	if (argc != 4)
+	if (argc != 5)
 		return 0;
 
 	func_id = atoi(argv[0]);
@@ -117,7 +117,7 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 
 	FOR_EACH_PTR(callbacks, def_callback) {
 		if (def_callback->hook_type == type)
-			def_callback->callback(name, sym, argv[3]);
+			def_callback->callback(name, sym, argv[3], argv[4]);
 	} END_FOR_EACH_PTR(def_callback);
 
 	return 0;
@@ -149,7 +149,7 @@ static void match_data_from_db(struct symbol *sym)
 
 	prev_func_id = -1;
 	__push_fake_cur_slist();
-	run_sql(db_callback, "select function_id, type, parameter, value from caller_info"
+	run_sql(db_callback, "select function_id, type, parameter, key, value from caller_info"
 		" where %s", sql_filter);
 	merge_slist(&final_states, __pop_fake_cur_slist());
 

@@ -398,7 +398,7 @@ enum info_type {
 	BUF_SIZE,
 };
 
-void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *value), int type);
+void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
 
 #define run_sql(call_back, sql...)    \
 do {                                  \
