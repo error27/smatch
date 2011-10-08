@@ -1018,8 +1018,10 @@ static void get_value_ranges(char *value, struct range_list **rl)
 	char *c;
 
 	c = value;
-	start = c;
 	while (*c) {
+		if (*c == '(')
+			c++;
+		start = c;
 		if (!strncmp(start, "min", 3)) {
 			val1 = LLONG_MIN;
 			c += 3;
@@ -1028,6 +1030,8 @@ static void get_value_ranges(char *value, struct range_list **rl)
 				c++;
 			val1 = strtoll(start, &c, 10);
 		}
+		if (*c == ')')
+			c++;
 		if (!*c) {
 			add_range(rl, val1, val1);
 			break;
@@ -1038,12 +1042,15 @@ static void get_value_ranges(char *value, struct range_list **rl)
 			start = c;
 			continue;
 		}
-		c++;
+		c++; /* skip the dash in eg. 4-5 */
+		if (*c == '(')
+			c++;
 		start = c;
 		if (!strncmp(start, "max", 3)) {
 			val2 = LLONG_MAX;
 			c += 3;
 		} else {
+
 			while (*c && *c != ',' && *c != '-')
 				c++;
 			val2 = strtoll(start, &c, 10);
@@ -1051,8 +1058,9 @@ static void get_value_ranges(char *value, struct range_list **rl)
 		add_range(rl, val1, val2);
 		if (!*c)
 			break;
-		c++;
-		start = c;
+		if (*c == ')')
+			c++;
+		c++; /* skip the comma in eg: 4-5,7 */
 	}
 
 }
