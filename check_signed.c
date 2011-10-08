@@ -126,6 +126,16 @@ static const char *get_tf(long long variable, long long known, int var_pos, int 
 	return "the same";
 }
 
+static int compare_against_macro(int lr, struct expression *expr)
+{
+	struct expression *known = expr->left;
+
+	if (lr == VAR_ON_LEFT)
+		known = expr->right;
+
+	return !!get_macro_name(&known->pos);
+}
+
 static void match_condition(struct expression *expr)
 {
 	long long known;
@@ -180,9 +190,12 @@ static void match_condition(struct expression *expr)
 	}
 
 	if (known == 0 && type_unsigned(var_type)) {
-		if ((lr && expr->op == '<') || (!lr && expr->op == '>'))
-			sm_msg("warn: unsigned '%s' is never less than zero.", name);
-		goto free;
+		if ((lr && expr->op == '<') || (!lr && expr->op == '>')) {
+			if (!compare_against_macro(lr, expr)) {
+				sm_msg("warn: unsigned '%s' is never less than zero.", name);
+				goto free;
+			}
+		}
 	}
 
 	if (type_unsigned(var_type) && known_type && !type_unsigned(known_type) && known < 0) {
