@@ -83,7 +83,9 @@ struct data_range *alloc_range(long long min, long long max)
 	struct data_range *ret;
 
 	if (min > max) {
-		printf("Error invalid range %lld to %lld\n", min, max);
+		sm_msg("Error invalid range %lld to %lld", min, max);
+		min = whole_range.min;
+		max = whole_range.max;
 	}
 	if (min == whole_range.min && max == whole_range.max)
 		return &whole_range;
@@ -102,7 +104,9 @@ struct data_range *alloc_range_perm(long long min, long long max)
 	struct data_range *ret;
 
 	if (min > max) {
-		printf("Error invalid range %lld to %lld\n", min, max);
+		sm_msg("Error invalid range %lld to %lld", min, max);
+		min = whole_range.min;
+		max = whole_range.max;
 	}
 	if (min == whole_range.min && max == whole_range.max)
 		return &whole_range;
