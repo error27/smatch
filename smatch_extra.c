@@ -984,7 +984,7 @@ int is_whole_range(struct smatch_state *state)
 	return 0;
 }
 
-static void print_param_info(char *fn, struct expression *expr, int param, struct state_list *slist)
+static int print_param_info(char *fn, struct expression *expr, int param, struct state_list *slist)
 {
 	struct range_list *rl = NULL;
 	struct sm_state *sm;
@@ -992,10 +992,12 @@ static void print_param_info(char *fn, struct expression *expr, int param, struc
 	struct symbol *sym;
 	int len;
 	char *msg;
+	int ret = 0;
 
 	if (get_implied_range_list(expr, &rl) && ! is_whole_range_rl(rl)) {
 		msg = show_ranges(rl);
 		sm_msg("info: passes param_value '%s' %d '$$' %s", fn, param, msg);
+		ret = 1;
 	}
 
 	name = get_variable_from_expr(expr, &sym);
@@ -1011,9 +1013,11 @@ static void print_param_info(char *fn, struct expression *expr, int param, struc
 		if (strncmp(name, sm->name, len) || sm->name[len] == '\0')
 			continue;
 		sm_msg("info: passes param_value '%s' %d '$$%s' %s", fn, param, sm->name + len, sm->state->name);
+		ret = 1;
 	} END_FOR_EACH_PTR(sm);
 free:
 	free_string(name);
+	return ret;
 }
 
 static void match_call_info(struct expression *expr)
@@ -1021,6 +1025,7 @@ static void match_call_info(struct expression *expr)
 	struct expression *arg;
 	struct state_list *slist;
 	char *name;
+	int count = 0;
 	int i = 0;
 
 	if (expr->fn->type != EXPR_SYMBOL)
@@ -1029,9 +1034,14 @@ static void match_call_info(struct expression *expr)
 	slist = get_all_states(SMATCH_EXTRA);
 	name = get_variable_from_expr(expr->fn, NULL);
 	FOR_EACH_PTR(expr->args, arg) {
-		print_param_info(name, arg, i, slist);
+		count += print_param_info(name, arg, i, slist);
 		i++;
 	} END_FOR_EACH_PTR(arg);
+	if (i && !count) {
+		/* we want to record something here to mark that nothing is known
+		   about this call */
+		sm_msg("info: passes param_value '%s' 0 '$$' min-max", name);
+	}
 	free_string(name);
 	free_slist(&slist);
 }
@@ -1101,6 +1111,9 @@ void set_param_value(const char *name, struct symbol *sym, char *key, char *valu
 
 	snprintf(fullname, 256, "%s%s", name, key + 2);
 	get_value_ranges(value, &rl);
+	char *tmp = show_ranges(rl);
+	if (strcmp(tmp, value))
+		sm_msg("value = %s, ranges = %s", value, tmp);
 	state = alloc_extra_state_range_list(rl);
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
