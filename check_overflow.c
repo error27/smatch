@@ -41,34 +41,6 @@ struct limiter {
 static struct limiter b0_l2 = {0, 2};
 static struct limiter b1_l2 = {1, 2};
 
-static void print_args(struct expression *expr, int size)
-{
-	struct symbol *sym;
-	char *name;
-	struct symbol *arg;
-	const char *arg_name;
-	int i;
-
-	if (!option_info)
-		return;
-
-	name = get_variable_from_expr(expr, &sym);
-	if (!name || !sym)
-		goto free;
-
-	i = 0;
-	FOR_EACH_PTR(this_func->ctype.base_type->arguments, arg) {
-		arg_name = (arg->ident?arg->ident->name:"-");
-		if (sym == arg && !strcmp(name, arg_name)) {
-			sm_info("param %d array index. size %d", i, size);
-			goto free;
-		}
-		i++;
-	} END_FOR_EACH_PTR(arg);
-free:
-	free_string(name);
-}
-
 static void delete(const char *name, struct symbol *sym, struct expression *expr, void *unused)
 {
 	delete_state(my_used_id, name, sym);
@@ -129,7 +101,6 @@ static void array_check(struct expression *expr)
 			return;
 		set_state_expr(my_used_id, offset, alloc_state_num(array_size));
 		add_modification_hook_expr(my_used_id, offset, &delete, NULL);
-		print_args(offset, array_size);
 	} else if (array_size <= max) {
 		const char *level = "error";
 
@@ -328,57 +299,6 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 	free_string(dest_name);
 }
 
-static void match_array_func(const char *fn, struct expression *expr, void *info)
-{
-	struct bound *bound_info = (struct bound *)info;
-	struct expression *arg;
-	long long offset;
-
-	arg = get_argument_from_call_expr(expr->args, bound_info->param);
-	if (!get_implied_max(arg, &offset))
-		return;
-	if (offset >= bound_info->size)
-		sm_msg("error: buffer overflow calling %s. param %d.  %lld >= %d", 
-			fn, bound_info->param, offset, bound_info->size);
-}
-
-static void register_array_funcs(void)
-{
-	struct token *token;
-	const char *func;
-	struct bound *bound_info = NULL;
-	char name[256];
-
-	snprintf(name, 256, "%s.array_bounds", option_project_str);
-	token = get_tokens_file(name);
-	if (!token)
-		return;
-	if (token_type(token) != TOKEN_STREAMBEGIN)
-		return;
-	token = token->next;
-	while (token_type(token) != TOKEN_STREAMEND) {
-		bound_info = malloc(sizeof(*bound_info));
-		if (token_type(token) != TOKEN_IDENT)
-			break;
-		func = show_ident(token->ident);
-		token = token->next;
-		if (token_type(token) != TOKEN_NUMBER)
-			break;
-		bound_info->param = atoi(token->number);
-		token = token->next;
-		if (token_type(token) != TOKEN_NUMBER)
-			break;
-		bound_info->size = atoi(token->number);
-		add_function_hook(func, &match_array_func, bound_info);
-		token = token->next;
-	}
-	if (token_type(token) != TOKEN_STREAMEND) {
-		printf("failed to load %s (line %d)", name, token->pos.line);
-		free(bound_info);
-	}
-	clear_token_alloc();
-}
-
 void check_overflow(int id)
 {
 	my_used_id = id;
@@ -402,6 +322,4 @@ void check_overflow(int id)
 		add_function_hook("__copy_from_user", &match_limited, &b0_l2);
 		add_function_hook("__copy_from_user", &match_limited, &b1_l2);
 	}
-	if (option_spammy)
-		register_array_funcs();
 }
