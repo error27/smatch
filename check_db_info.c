@@ -72,7 +72,7 @@ static void match_return(struct expression *ret_value)
 
 void check_db_info(int id)
 {
-	if (!option_print_returns)
+	if (!option_info)
 		return;
 	my_id = id;
 	add_hook(&match_return, RETURN_HOOK);

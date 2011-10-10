@@ -22,7 +22,6 @@ int option_spammy = 0;
 int option_info = 0;
 int option_full_path = 0;
 int option_param_mapper = 0;
-int option_print_returns = 0;
 int option_call_tree = 0;
 int option_no_db = 0;
 char *option_datadir_str;
@@ -139,7 +138,6 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(two_passes);
 		OPTION(full_path);
 		OPTION(param_mapper);
-		OPTION(print_returns);
 		OPTION(call_tree);
 		if (!found)
 			break;
