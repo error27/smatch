@@ -136,6 +136,59 @@ static int compare_against_macro(int lr, struct expression *expr)
 	return !!get_macro_name(&known->pos);
 }
 
+static int cap_both_size(int lr, struct expression *expr)
+{
+
+	struct expression *var = expr->left;
+	struct expression *tmp;
+	char *name1 = NULL;
+	char *name2 = NULL;
+	int ret = 0;
+	int i;
+
+	/* screw it.  I am writing this to mark yoda code as buggy.
+	 * Valid comparisons between an unsigned and zero are:
+	 * 1) inside a macro.
+	 * 2) foo < LOWER_BOUND where LOWER_BOUND is a macro.
+	 * 3) foo < 0 || foo > X in exactly this format.  No Yoda.
+	 */
+
+	if (lr != VAR_ON_LEFT)
+		return 0;
+	if (expr->op != '<')  /* this is implied by lr == VAR_ON_LEFT */
+		return 0;
+
+	i = 0;
+	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
+		if (!i++)
+			continue;
+		if (tmp->op == SPECIAL_LOGICAL_OR) {
+			if (tmp->right->op != '>' &&
+			    tmp->right->op != SPECIAL_GTE &&
+			    tmp->right->op != SPECIAL_UNSIGNED_GTE)
+				return 0;
+
+			name1 = get_variable_from_expr_complex(var, NULL);
+			if (!name1)
+				goto free;
+
+			name2 = get_variable_from_expr_complex(tmp->right->left, NULL);
+			if (!name2)
+				goto free;
+			if (!strcmp(name1, name2))
+				ret = 1;
+			goto free;
+
+		}
+		return 0;
+	} END_FOR_EACH_PTR_REVERSE(tmp);
+
+free:
+	free_string(name1);
+	free_string(name2);
+	return ret;
+}
+
 static void match_condition(struct expression *expr)
 {
 	long long known;
@@ -191,7 +244,7 @@ static void match_condition(struct expression *expr)
 
 	if (known == 0 && type_unsigned(var_type)) {
 		if ((lr && expr->op == '<') || (!lr && expr->op == '>')) {
-			if (!compare_against_macro(lr, expr)) {
+			if (!compare_against_macro(lr, expr) && !cap_both_size(lr, expr)) {
 				sm_msg("warn: unsigned '%s' is never less than zero.", name);
 				goto free;
 			}
