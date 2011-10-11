@@ -792,6 +792,7 @@ static void split_functions(struct symbol_list *sym_list)
 	struct symbol *sym;
 
 	FOR_EACH_PTR(sym_list, sym) {
+		set_position(sym->pos);
 		if (sym->type == SYM_NODE && get_base_type(sym)->type == SYM_FN) {
 			split_function(sym);
 			process_inlines();
