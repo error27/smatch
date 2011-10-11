@@ -1,0 +1,4 @@
+CREATE TABLE function_ptr (file varchar(256), function varchar(256), ptr varchar(256));
+
+CREATE INDEX fn_ptr_idx on function_ptr (file, function);
+

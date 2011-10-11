@@ -449,3 +449,21 @@ int getting_address(void)
 	} END_FOR_EACH_PTR_REVERSE(tmp);
 	return 0;
 }
+
+char *get_fnptr_name(struct expression *expr)
+{
+	char buf[256];
+	struct symbol *sym;
+
+	if (expr->type == EXPR_SYMBOL)
+		return get_variable_from_expr(expr, NULL);
+
+	if (expr->type != EXPR_DEREF)
+		return NULL;
+	sym = get_type(expr->deref);
+	if (!sym || !sym->ident)
+		return NULL;
+	snprintf(buf, sizeof(buf), "(struct %s)->%s", sym->ident->name, expr->member->name);
+	return alloc_string(buf);
+}
+

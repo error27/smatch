@@ -123,13 +123,9 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 	return 0;
 }
 
-static void match_data_from_db(struct symbol *sym)
+static void get_direct_callers(struct symbol *sym)
 {
 	char sql_filter[1024];
-	struct sm_state *sm;
-
-	if (!sym || !sym->ident || !sym->ident->name)
-		return;
 
 	if (sym->ctype.modifiers & MOD_STATIC) {
 		snprintf(sql_filter, 1024,
@@ -147,10 +143,43 @@ static void match_data_from_db(struct symbol *sym)
 	if (call_count == 0 || call_count > 100)
 		return;
 
-	prev_func_id = -1;
-	__push_fake_cur_slist();
 	run_sql(db_callback, "select function_id, type, parameter, key, value from caller_info"
 		" where %s", sql_filter);
+}
+
+static char *ptr_name;
+static int get_ptr_name(void *unused, int argc, char **argv, char **azColName)
+{
+	if (!ptr_name)
+		ptr_name = alloc_string(argv[0]);
+	return 0;
+}
+
+static void get_function_pointer_callers(struct symbol *sym)
+{
+	ptr_name = NULL;
+	run_sql(get_ptr_name, "select ptr from function_ptr where function = '%s'",
+		sym->ident->name);
+	if (!ptr_name)
+		return;
+
+	run_sql(db_callback, "select function_id, type, parameter, key, value from caller_info"
+		" where function = '%s' order by function_id", ptr_name);
+}
+
+static void match_data_from_db(struct symbol *sym)
+{
+	struct sm_state *sm;
+
+	if (!sym || !sym->ident || !sym->ident->name)
+		return;
+
+	__push_fake_cur_slist();
+	prev_func_id = -1;
+
+	get_direct_callers(sym);
+	get_function_pointer_callers(sym);
+
 	merge_slist(&final_states, __pop_fake_cur_slist());
 
 	FOR_EACH_PTR(final_states, sm) {
