@@ -388,7 +388,7 @@ static void match_call(struct expression *expr)
 	int bytes;
 	int i;
 
-	name = get_variable_from_expr(expr->fn, NULL);
+	name = get_fnptr_name(expr->fn);
 	if (!name)
 		return;
 
