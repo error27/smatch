@@ -48,6 +48,25 @@ void add_definition_db_callback(void (*callback)(const char *name, struct symbol
 	add_ptr_list(&callbacks, def_callback);
 }
 
+static void match_call_hack(struct expression *expr)
+{
+	char *name;
+
+	/*
+	 * we just want to record something in the database so that if we have
+	 * two calls like:  frob(4); frob(some_unkown); then on the recieving
+	 * side we know that sometimes frob is called with unknown parameters.
+	 */
+
+	name = get_fnptr_name(expr->fn);
+	if (!name)
+		return;
+	if (ptr_list_empty(expr->args))
+		return;
+	sm_msg("info: passes param_value '%s' -1 '$$' min-max", name);
+	free_string(name);
+}
+
 static unsigned long call_count;
 static int db_count_callback(void *unused, int argc, char **argv, char **azColName)
 {
@@ -88,8 +107,8 @@ static int prev_func_id = -1;
 static int db_callback(void *unused, int argc, char **argv, char **azColName)
 {
 	int func_id;
-	int type;
-	unsigned long param;
+	long type;
+	long param;
 	char *name;
 	struct symbol *sym;
 	struct def_callback *def_callback;
@@ -98,9 +117,9 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 		return 0;
 
 	func_id = atoi(argv[0]);
-	type = atoi(argv[1]);
 	errno = 0;
-	param = strtoul(argv[2], NULL, 10);
+	type = strtol(argv[1], NULL, 10);
+	param = strtol(argv[2], NULL, 10);
 	if (errno)
 		return 0;
 
@@ -112,7 +131,7 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 		prev_func_id = func_id;
 	}
 
-	if (!get_param(param, &name, &sym))
+	if (param == -1 || !get_param(param, &name, &sym))
 		return 0;
 
 	FOR_EACH_PTR(callbacks, def_callback) {
@@ -270,6 +289,7 @@ void open_smatch_db(void)
 void register_definition_db_callbacks(int id)
 {
 	if (option_info) {
+		add_hook(&match_call_hack, FUNCTION_CALL_HOOK);
 		add_hook(&match_function_assign, ASSIGNMENT_HOOK);
 		add_hook(&global_variable, BASE_HOOK);
 		add_hook(&global_variable, DECLARATION_HOOK);
