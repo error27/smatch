@@ -1118,64 +1118,6 @@ void set_param_value(const char *name, struct symbol *sym, char *key, char *valu
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
 
-static void match_function_assign(struct expression *expr)
-{
-	struct expression *right = expr->right;
-	struct symbol *sym;
-	char *fn_name;
-	char *ptr_name;
-
-	if (right->type == EXPR_PREOP && right->op == '&')
-		right = right->unop;
-	if (right->type != EXPR_SYMBOL)
-		return;
-	sym = get_type(right);
-	if (!sym || sym->type != SYM_FN)
-		return;
-
-	fn_name = get_variable_from_expr(right, NULL);
-	ptr_name = get_fnptr_name(expr->left);
-	if (!fn_name || !ptr_name)
-		goto free;
-
-	sm_msg("info: sets_fn_ptr '%s' '%s'", ptr_name, fn_name);
-
-free:
-	free_string(fn_name);
-	free_string(ptr_name);
-}
-
-static void global_variable(struct symbol *sym)
-{
-	struct symbol *struct_type;
-	struct symbol *base_type;
-	struct expression *expr;
-
-	if (!sym->ident)
-		return;
-	if (!sym->initializer || sym->initializer->type != EXPR_INITIALIZER)
-		return;
-	struct_type = get_base_type(sym);
-	if (!struct_type || struct_type->type != SYM_STRUCT ||
-	    !struct_type->ident)
-		return;
-
-	FOR_EACH_PTR(sym->initializer->expr_list, expr) {
-		if (expr->type != EXPR_IDENTIFIER)
-			continue;
-		if (!expr->expr_ident)
-			continue;
-		if (!expr->ident_expression || !expr->ident_expression->symbol_name)
-			continue;
-		base_type = get_type(expr->ident_expression);
-		if (!base_type || base_type->type != SYM_FN)
-			continue;
-		sm_msg("info: sets_fn_ptr '(struct %s)->%s' '%s'", struct_type->ident->name,
-		       expr->expr_ident->name,
-		       expr->ident_expression->symbol_name->name);
-	} END_FOR_EACH_PTR(expr);
-}
-
 void register_smatch_extra(int id)
 {
 	my_id = id;
@@ -1186,11 +1128,7 @@ void register_smatch_extra(int id)
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
-	if (option_info) {
+	if (option_info)
 		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
-		add_hook(&match_function_assign, ASSIGNMENT_HOOK);
-		add_hook(&global_variable, BASE_HOOK);
-		add_hook(&global_variable, DECLARATION_HOOK);
-	}
 	add_definition_db_callback(set_param_value, PARAM_VALUE);
 }
