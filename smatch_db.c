@@ -269,12 +269,14 @@ void open_smatch_db(void)
 
 void register_definition_db_callbacks(int id)
 {
-#ifdef SQLITE_OPEN_READONLY
-	add_hook(&match_data_from_db, FUNC_DEF_HOOK);
 	if (option_info) {
 		add_hook(&match_function_assign, ASSIGNMENT_HOOK);
 		add_hook(&global_variable, BASE_HOOK);
 		add_hook(&global_variable, DECLARATION_HOOK);
 	}
-#endif
+
+	if (option_no_db)
+		return;
+
+	add_hook(&match_data_from_db, FUNC_DEF_HOOK);
 }
