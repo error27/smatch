@@ -137,7 +137,7 @@ static void match_call_info(struct expression *expr)
 static unsigned long call_count;
 static int db_count_callback(void *unused, int argc, char **argv, char **azColName)
 {
-	call_count = strtoul(argv[0], NULL, 10);
+	call_count += strtoul(argv[0], NULL, 10);
 	return 0;
 }
 
@@ -223,7 +223,6 @@ static void get_direct_callers(struct symbol *sym)
 			 sym->ident->name);
 	}
 
-	call_count = 0;
 	run_sql(db_count_callback, "select count(*) from caller_info where %s",
 		 sql_filter);
 	if (call_count == 0 || call_count > 100)
@@ -249,6 +248,11 @@ static void get_function_pointer_callers(struct symbol *sym)
 	if (!ptr_name)
 		return;
 
+	run_sql(db_count_callback, "select count(*) from caller_info where function = '%s'",
+		 ptr_name);
+	if (call_count == 0 || call_count > 100)
+		return;
+
 	run_sql(db_callback, "select function_id, type, parameter, key, value from caller_info"
 		" where function = '%s' order by function_id", ptr_name);
 }
@@ -263,11 +267,16 @@ static void match_data_from_db(struct symbol *sym)
 	__push_fake_cur_slist();
 	prev_func_id = -1;
 
+	call_count = 0;
 	get_direct_callers(sym);
 	get_function_pointer_callers(sym);
 
 	merge_slist(&final_states, __pop_fake_cur_slist());
 
+	if (call_count > 100) {
+		free_slist(&final_states);
+		return;
+	}
 	FOR_EACH_PTR(final_states, sm) {
 		__set_sm(sm);
 	} END_FOR_EACH_PTR(sm);
