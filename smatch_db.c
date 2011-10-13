@@ -116,7 +116,7 @@ static void match_call_info(struct expression *expr)
 	struct expression *arg;
 	struct state_list *slist;
 	char *name;
-	int i = 0;
+	int i;
 
 	name = get_fnptr_name(expr->fn);
 	if (!name)
@@ -124,6 +124,7 @@ static void match_call_info(struct expression *expr)
 
 	FOR_EACH_PTR(member_callbacks, cb) {
 		slist = get_all_states(cb->owner);
+		i = 0;
 		FOR_EACH_PTR(expr->args, arg) {
 			print_struct_members(name, arg, i, slist, cb->callback);
 			i++;
