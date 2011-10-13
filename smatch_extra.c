@@ -988,7 +988,7 @@ static void struct_member_callback(char *fn, int param, char *printed_name, stru
 {
 	if (is_whole_range(state))
 		return;
-	sm_msg("info: passes param_value '%s' %d '$$%s' %s", fn, param, printed_name, state->name);
+	sm_msg("info: passes param_value '%s' %d '%s' %s", fn, param, printed_name, state->name);
 }
 
 static void match_call_info(struct expression *expr)
