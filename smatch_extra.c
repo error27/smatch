@@ -984,42 +984,17 @@ int is_whole_range(struct smatch_state *state)
 	return 0;
 }
 
-static void print_param_info(char *fn, struct expression *expr, int param, struct state_list *slist)
+static void struct_member_callback(char *fn, int param, char *printed_name, struct smatch_state *state)
 {
-	struct range_list *rl = NULL;
-	struct sm_state *sm;
-	char *name;
-	struct symbol *sym;
-	int len;
-	char *msg;
-
-	if (get_implied_range_list(expr, &rl) && ! is_whole_range_rl(rl)) {
-		msg = show_ranges(rl);
-		sm_msg("info: passes param_value '%s' %d '$$' %s", fn, param, msg);
-	}
-
-	name = get_variable_from_expr(expr, &sym);
-	if (!name || !sym)
-		goto free;
-
-	len = strlen(name);
-	FOR_EACH_PTR(slist, sm) {
-		if (sm->sym != sym)
-			continue;
-		if (is_whole_range(sm->state))
-			continue;
-		if (strncmp(name, sm->name, len) || sm->name[len] == '\0')
-			continue;
-		sm_msg("info: passes param_value '%s' %d '$$%s' %s", fn, param, sm->name + len, sm->state->name);
-	} END_FOR_EACH_PTR(sm);
-free:
-	free_string(name);
+	if (is_whole_range(state))
+		return;
+	sm_msg("info: passes param_value '%s' %d '$$%s' %s", fn, param, printed_name, state->name);
 }
 
 static void match_call_info(struct expression *expr)
 {
+	struct range_list *rl = NULL;
 	struct expression *arg;
-	struct state_list *slist;
 	char *name;
 	int i = 0;
 
@@ -1027,14 +1002,15 @@ static void match_call_info(struct expression *expr)
 	if (!name)
 		return;
 
-	slist = get_all_states(SMATCH_EXTRA);
 	FOR_EACH_PTR(expr->args, arg) {
-		print_param_info(name, arg, i, slist);
+		if (get_implied_range_list(arg, &rl) && ! is_whole_range_rl(rl)) {
+			sm_msg("info: passes param_value '%s' %d '$$' %s",
+			       name, i, show_ranges(rl));
+		}
 		i++;
 	} END_FOR_EACH_PTR(arg);
 
 	free_string(name);
-	free_slist(&slist);
 }
 
 static void get_value_ranges(char *value, struct range_list **rl)
@@ -1119,7 +1095,9 @@ void register_smatch_extra(int id)
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
-	if (option_info)
+	if (option_info) {
 		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
+		add_member_info_callback(SMATCH_EXTRA, struct_member_callback);
+	}
 	add_definition_db_callback(set_param_value, PARAM_VALUE);
 }

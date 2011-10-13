@@ -24,6 +24,14 @@ ALLOCATOR(def_callback, "definition db hook callbacks");
 DECLARE_PTR_LIST(callback_list, struct def_callback);
 static struct callback_list *callbacks;
 
+struct member_info_callback {
+	int owner;
+	void (*callback)(char *fn, int param, char *printed_name, struct smatch_state *state);
+};
+ALLOCATOR(member_info_callback, "caller_info callbacks");
+DECLARE_PTR_LIST(member_info_cb_list, struct member_info_callback);
+static struct member_info_cb_list *member_callbacks;
+
 void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql)
 {
 	char *err = NULL;
@@ -48,6 +56,15 @@ void add_definition_db_callback(void (*callback)(const char *name, struct symbol
 	add_ptr_list(&callbacks, def_callback);
 }
 
+void add_member_info_callback(int owner, void (*callback)(char *fn, int param, char *printed_name, struct smatch_state *state))
+{
+	struct member_info_callback *member_callback = __alloc_member_info_callback(0);
+
+	member_callback->owner = owner;
+	member_callback->callback = callback;
+	add_ptr_list(&member_callbacks, member_callback);
+}
+
 static void match_call_hack(struct expression *expr)
 {
 	char *name;
@@ -65,6 +82,56 @@ static void match_call_hack(struct expression *expr)
 		return;
 	sm_msg("info: passes param_value '%s' -1 '$$' min-max", name);
 	free_string(name);
+}
+
+static void print_struct_members(char *fn, struct expression *expr, int param, struct state_list *slist,
+	void (*callback)(char *fn, int param, char *printed_name, struct smatch_state *state))
+{
+	struct sm_state *sm;
+	char *name;
+	struct symbol *sym;
+	int len;
+	char printed_name[256];
+
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	len = strlen(name);
+	FOR_EACH_PTR(slist, sm) {
+		if (sm->sym != sym)
+			continue;
+		if (strncmp(name, sm->name, len) || sm->name[len] == '\0')
+			continue;
+		snprintf(printed_name, sizeof(printed_name), "$$%s", sm->name + len);
+		callback(fn, param, printed_name, sm->state);
+	} END_FOR_EACH_PTR(sm);
+free:
+	free_string(name);
+}
+
+static void match_call_info(struct expression *expr)
+{
+	struct member_info_callback *cb;
+	struct expression *arg;
+	struct state_list *slist;
+	char *name;
+	int i = 0;
+
+	name = get_fnptr_name(expr->fn);
+	if (!name)
+		return;
+
+	FOR_EACH_PTR(member_callbacks, cb) {
+		slist = get_all_states(cb->owner);
+		FOR_EACH_PTR(expr->args, arg) {
+			print_struct_members(name, arg, i, slist, cb->callback);
+			i++;
+		} END_FOR_EACH_PTR(arg);
+	} END_FOR_EACH_PTR(cb);
+
+	free_string(name);
+	free_slist(&slist);
 }
 
 static unsigned long call_count;
@@ -289,6 +356,7 @@ void open_smatch_db(void)
 void register_definition_db_callbacks(int id)
 {
 	if (option_info) {
+		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 		add_hook(&match_call_hack, FUNCTION_CALL_HOOK);
 		add_hook(&match_function_assign, ASSIGNMENT_HOOK);
 		add_hook(&global_variable, BASE_HOOK);
