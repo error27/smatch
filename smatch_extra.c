@@ -1097,7 +1097,7 @@ void register_smatch_extra(int id)
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	if (option_info) {
 		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
-		add_member_info_callback(SMATCH_EXTRA, struct_member_callback);
+		add_member_info_callback(my_id, struct_member_callback);
 	}
 	add_definition_db_callback(set_param_value, PARAM_VALUE);
 }
