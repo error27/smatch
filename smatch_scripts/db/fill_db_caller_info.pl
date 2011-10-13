@@ -52,7 +52,7 @@ while (<WARNS>) {
 	($file, $line, $dummy, $dummy, $dummy, $func, $param, $key, $value) = split(/ /, $_);
 
 	if ($func eq "'(struct") {
-	    ($file, $line, $dummy, $dummy, $dummy, $dummy, $dummy, $func, $param, $key, $value) = split(/ /, $_);
+	    ($file, $line, $dummy, $dummy, $dummy, $dummy, $func, $param, $key, $value) = split(/ /, $_);
 	    $func = "$dummy $func";
 	}
 
