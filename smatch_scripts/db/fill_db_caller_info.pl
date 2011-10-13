@@ -49,8 +49,7 @@ while (<WARNS>) {
     } elsif ($_ =~ /info: passes_buffer /) {
         # init/main.c +175 obsolete_checksetup(17) info: passes_buffer 'printk' 0 '$$' 38
 	$type = 2;
-	$key = "";
-	($file, $line, $dummy, $dummy, $dummy, $func, $param, $value) = split(/ /, $_);
+	($file, $line, $dummy, $dummy, $dummy, $func, $param, $key, $value) = split(/ /, $_);
 
 	if ($func eq "'(struct") {
 	    ($file, $line, $dummy, $dummy, $dummy, $dummy, $dummy, $func, $param, $key, $value) = split(/ /, $_);

@@ -33,15 +33,20 @@ static _Bool params_set[32];
 
 void set_param_buf_size(const char *name, struct symbol *sym, char *key, char *value)
 {
+	char fullname[256];
 	unsigned int size;
 
+	if (strncmp(key, "$$", 2))
+		return;
+
+	snprintf(fullname, 256, "%s%s", name, key + 2);
 
 	errno = 0;
 	size = strtoul(value, NULL, 10);
 	if (errno)
 		return;
 	
-	set_state(my_size_id, name, sym, alloc_state_num(size));
+	set_state(my_size_id, fullname, sym, alloc_state_num(size));
 }
 
 static int get_initializer_size(struct expression *expr)
@@ -396,11 +401,18 @@ static void match_call(struct expression *expr)
 	FOR_EACH_PTR(expr->args, arg) {
 		bytes = get_array_size_bytes(arg);
 		if (bytes > 1)
-			sm_msg("info: passes_buffer '%s' %d %d", name, i, bytes);
+			sm_msg("info: passes_buffer '%s' %d '$$' %d", name, i, bytes);
 		i++;
 	} END_FOR_EACH_PTR(arg);
 
 	free_string(name);
+}
+
+static void struct_member_callback(char *fn, int param, char *printed_name, struct smatch_state *state)
+{
+	if (state == &merged)
+		return;
+	sm_msg("info: passes_buffer '%s' %d '%s' %s", fn, param, printed_name, state->name);
 }
 
 static void match_func_end(struct symbol *sym)
@@ -442,8 +454,10 @@ void register_buf_size(int id)
 	if (option_project == PROJ_KERNEL)
 		add_function_assign_hook("kstrndup", match_strndup, NULL);
 
-	if (option_info)
+	if (option_info) {
 		add_hook(&match_call, FUNCTION_CALL_HOOK);
+		add_member_info_callback(my_size_id, struct_member_callback);
+	}
 
 	add_hook(&match_func_end, END_FUNC_HOOK);
 }
