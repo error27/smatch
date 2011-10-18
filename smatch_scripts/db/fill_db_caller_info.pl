@@ -55,6 +55,16 @@ while (<WARNS>) {
 	    ($file, $line, $dummy, $dummy, $dummy, $dummy, $func, $param, $key, $value) = split(/ /, $_);
 	    $func = "$dummy $func";
 	}
+    } elsif ($_ =~ /info: passes user_data /) {
+	# test.c +24 func(11) info: passes user_data 'frob' 2 '$$->data'
+	$type = 3;
+	$value = 1;
+	($file, $line, $dummy, $dummy, $dummy, $dummy, $func, $param, $key) = split(/ /, $_);
+
+	if ($func eq "'(struct") {
+	    ($file, $line, $dummy, $dummy, $dummy, $dummy, $dummy, $func, $param, $key) = split(/ /, $_);
+	    $func = "$dummy $func";
+	}
 
     } else {
 	next;

@@ -14,6 +14,8 @@ CK(register_strlen)
 
 CK(check_debug)
 CK(check_assigned_expr)
+CK(check_user_data)
+
 CK(check_bogus_loop)
 
 CK(check_deref)

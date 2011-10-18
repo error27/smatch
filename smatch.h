@@ -397,6 +397,7 @@ void __match_initializer_call(struct symbol *sym);
 enum info_type {
 	PARAM_VALUE = 1,
 	BUF_SIZE,
+	USER_DATA,
 };
 
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
@@ -438,6 +439,9 @@ const char *check_name(unsigned short id);
 /* smatch_buf_size.c */
 int get_array_size(struct expression *expr);
 int get_array_size_bytes(struct expression *expr);
+
+/* check_user_data.c */
+int is_user_data(struct expression *expr);
 
 /* check_locking.c */
 void print_held_locks();
