@@ -439,6 +439,8 @@ static void match_assign(struct expression *expr)
 	struct expression *left;
 	struct expression *right;
 	struct sm_state *right_sm;
+	struct symbol *right_sym;
+	char *right_name;
 	struct symbol *sym;
 	char *name;
 	long long value;
@@ -457,8 +459,11 @@ static void match_assign(struct expression *expr)
 	while (right->type == EXPR_ASSIGNMENT && right->op == '=')
 		right = strip_expr(right->left);
 
-	right_sm = get_sm_state_expr(SMATCH_EXTRA, right);
-	if (expr->op == '=' && right_sm) {
+	right_name = get_variable_from_expr(right, &right_sym);
+	if (expr->op == '=' && right_name && right_sym) {
+		right_sm = get_sm_state_expr(SMATCH_EXTRA, right);
+		if (!right_sm)
+			right_sm = set_state_expr(SMATCH_EXTRA, right, extra_undefined());
 		set_equiv(right_sm, left);
 		goto free;
 	}
@@ -501,6 +506,7 @@ static void match_assign(struct expression *expr)
 	}
 	set_extra_mod(name, sym, alloc_extra_state_range(min, max));
 free:
+	free_string(right_name);
 	free_string(name);
 }
 
