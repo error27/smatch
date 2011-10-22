@@ -31,6 +31,13 @@ int is_user_data(struct expression *expr)
 	int user = 0;
 
 	expr = strip_expr(expr);
+	if (expr->type == EXPR_BINOP) {
+		if (is_user_data(expr->left))
+			return 1;
+		if (is_user_data(expr->right))
+			return 1;
+		return 0;
+	}
 	if (expr->type == EXPR_PREOP && expr->op == '&')
 		expr = strip_expr(expr->unop);
 
