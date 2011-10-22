@@ -440,6 +440,9 @@ const char *check_name(unsigned short id);
 int get_array_size(struct expression *expr);
 int get_array_size_bytes(struct expression *expr);
 
+/* smatch_capped.c */
+int is_capped(struct expression *expr);
+
 /* check_user_data.c */
 int is_user_data(struct expression *expr);
 
