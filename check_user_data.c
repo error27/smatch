@@ -31,6 +31,8 @@ int is_user_data(struct expression *expr)
 	int user = 0;
 
 	expr = strip_expr(expr);
+	if (is_capped(expr))
+		return 0;
 	if (expr->type == EXPR_BINOP) {
 		if (is_user_data(expr->left))
 			return 1;
