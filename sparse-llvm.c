@@ -40,15 +40,26 @@ static LLVMTypeRef sym_struct_type(struct symbol *sym)
 {
 	LLVMTypeRef elem_types[MAX_STRUCT_MEMBERS];
 	struct symbol *member;
+	char buffer[256];
+	LLVMTypeRef ret;
 	unsigned nr = 0;
 
+	sprintf(buffer, "%.*s", sym->ident->len, sym->ident->name);
+
+	ret = LLVMStructCreateNamed(LLVMGetGlobalContext(), buffer);
+
 	FOR_EACH_PTR(sym->symbol_list, member) {
+		LLVMTypeRef member_type;
+
 		assert(nr < MAX_STRUCT_MEMBERS);
 
-		elem_types[nr++] = symbol_type(member);
+		member_type = symbol_type(member);
+
+		elem_types[nr++] = member_type; 
 	} END_FOR_EACH_PTR(member);
 
-	return LLVMStructType(elem_types, nr, 0 /* packed? */);
+	LLVMStructSetBody(ret, elem_types, nr, 0 /* packed? */); 
+	return ret;
 }
 
 static LLVMTypeRef sym_ptr_type(struct symbol *sym)
