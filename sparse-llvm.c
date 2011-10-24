@@ -79,9 +79,7 @@ static LLVMTypeRef sym_basetype_type(struct symbol *sym)
 		}
 	} else {
 		switch (sym->bit_size) {
-		case -1:
-			ret = LLVMVoidType();
-			break;
+		case -1:	/* 'void *' is treated like 'char *' */
 		case 8:
 			ret = LLVMInt8Type();
 			break;
