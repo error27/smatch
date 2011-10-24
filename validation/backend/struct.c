@@ -6,6 +6,7 @@ struct symbol {
 	void			*p;
 	const char		*name;
 	struct ctype		ctype;
+	struct symbol		*next_id;
 };
 
 static struct symbol sym;
