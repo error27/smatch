@@ -121,6 +121,8 @@ static LLVMTypeRef symbol_type(LLVMModuleRef module, struct symbol *sym)
 	LLVMTypeRef ret = NULL;
 
 	switch (sym->type) {
+	case SYM_BITFIELD:
+	case SYM_ENUM:
 	case SYM_NODE:
 		ret = symbol_type(module, sym->ctype.base_type);
 		break;
