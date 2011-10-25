@@ -80,6 +80,23 @@ static LLVMTypeRef sym_struct_type(LLVMModuleRef module, struct symbol *sym)
 	return ret;
 }
 
+static LLVMTypeRef sym_union_type(LLVMModuleRef module, struct symbol *sym)
+{
+	LLVMTypeRef elements;
+	unsigned union_size;
+
+	/*
+	 * There's no union support in the LLVM API so we treat unions as
+	 * opaque structs. The downside is that we lose type information on the
+	 * members but as LLVM doesn't care, neither do we.
+	 */
+	union_size = sym->bit_size / 8;
+
+	elements = LLVMArrayType(LLVMInt8Type(), union_size);
+
+	return LLVMStructType(&elements, 1, 0 /* packed? */);
+}
+
 static LLVMTypeRef sym_ptr_type(LLVMModuleRef module, struct symbol *sym)
 {
 	LLVMTypeRef type = symbol_type(module, sym->ctype.base_type);
@@ -145,6 +162,9 @@ static LLVMTypeRef symbol_type(LLVMModuleRef module, struct symbol *sym)
 		break;
 	case SYM_PTR:
 		ret = sym_ptr_type(module, sym);
+		break;
+	case SYM_UNION:
+		ret = sym_union_type(module, sym);
 		break;
 	case SYM_STRUCT:
 		ret = sym_struct_type(module, sym);
