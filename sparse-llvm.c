@@ -34,6 +34,20 @@ static inline bool symbol_is_fp_type(struct symbol *sym)
 
 static LLVMTypeRef symbol_type(LLVMModuleRef module, struct symbol *sym);
 
+static LLVMTypeRef sym_array_type(LLVMModuleRef module, struct symbol *sym)
+{
+	LLVMTypeRef elem_type;
+	struct symbol *base_type;
+
+	base_type = sym->ctype.base_type;
+
+	elem_type = symbol_type(module, base_type);
+	if (!elem_type)
+		return NULL;
+
+	return LLVMArrayType(elem_type, sym->bit_size / 8);
+}
+
 #define MAX_STRUCT_MEMBERS 64
 
 static LLVMTypeRef sym_struct_type(LLVMModuleRef module, struct symbol *sym)
@@ -134,6 +148,9 @@ static LLVMTypeRef symbol_type(LLVMModuleRef module, struct symbol *sym)
 		break;
 	case SYM_STRUCT:
 		ret = sym_struct_type(module, sym);
+		break;
+	case SYM_ARRAY:
+		ret = sym_array_type(module, sym);
 		break;
 	default:
 		assert(0);
