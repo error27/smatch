@@ -512,6 +512,25 @@ free:
 	free_string(name);
 }
 
+static void reset_struct_members(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+{
+	struct state_list *slist;
+	struct sm_state *tmp;
+	int len;
+
+	len = strlen(name);
+	slist = get_all_states(SMATCH_EXTRA);
+	FOR_EACH_PTR(slist, tmp) {
+		if (sym != tmp->sym)
+			continue;
+		if (strncmp(name, tmp->name, len))
+			continue;
+		if (tmp->name[len] != '-' && tmp->name[len] != '.')
+			continue;
+		set_extra_mod(tmp->name, tmp->sym, extra_undefined());
+	} END_FOR_EACH_PTR(tmp);
+}
+
 static void unop_expr(struct expression *expr)
 {
 	struct symbol *sym;
@@ -1108,4 +1127,9 @@ void register_smatch_extra(int id)
 		add_member_info_callback(my_id, struct_member_callback);
 	}
 	add_definition_db_callback(set_param_value, PARAM_VALUE);
+}
+
+void register_smatch_extra_late(int id)
+{
+	set_default_modification_hook(SMATCH_EXTRA, reset_struct_members);
 }

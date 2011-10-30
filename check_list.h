@@ -89,6 +89,7 @@ CK(check_wine_WtoA)
 
 #include "check_list_local.h"
 
+CK(register_smatch_extra_late)
 CK(register_implications) /* implications always has to be last */
 
 #ifdef __undo_CK_def
