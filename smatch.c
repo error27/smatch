@@ -24,7 +24,9 @@ int option_full_path = 0;
 int option_param_mapper = 0;
 int option_call_tree = 0;
 int option_no_db = 0;
+int option_file_output;
 char *option_datadir_str;
+FILE *sm_outfd;
 
 typedef void (*reg_func) (int id);
 #define CK(_x) {.name = #_x, .func = &_x},
@@ -72,6 +74,7 @@ static void help(void)
 	printf("--assume-loops:  assume loops always go through at least once.\n");
 	printf("--known-conditions:  don't branch for known conditions.\n");
 	printf("--two-passes:  use a two pass system for each function.\n");
+	printf("--file-output:  instead of printing stdout, print to \"file.c.smatch_out\".\n");
 	printf("--help:  print this helpfull message.\n");
 	exit(1);
 }
@@ -139,6 +142,7 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(full_path);
 		OPTION(param_mapper);
 		OPTION(call_tree);
+		OPTION(file_output);
 		if (!found)
 			break;
 		(*argcp)--;
@@ -196,6 +200,7 @@ int main(int argc, char **argv)
 	int i;
 	reg_func func;
 
+	sm_outfd = stdout;
 	parse_args(&argc, &argv);
 
 	data_dir = get_data_dir(argv[0]);

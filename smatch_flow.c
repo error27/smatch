@@ -816,6 +816,16 @@ void smatch (int argc, char **argv)
 	}
 	sparse_initialize(argc, argv, &filelist);
 	FOR_EACH_PTR_NOTAG(filelist, file) {
+		if (option_file_output) {
+			char buf[256];
+
+			snprintf(buf, sizeof(buf), "%s.smatch", file);
+			sm_outfd = fopen(buf, "w");
+			if (!sm_outfd) {
+				printf("Error:  Cannot open %s\n", file);
+				exit(1);
+			}
+		}
 		sym_list = sparse_keep_tokens(file);
 		split_functions(sym_list);
 	} END_FOR_EACH_PTR_NOTAG(file);

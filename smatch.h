@@ -130,13 +130,13 @@ extern int final_pass;
 extern struct symbol *cur_func_sym;
 extern int option_debug;
 
-#define sm_printf(msg...) do { if (final_pass) printf(msg); } while (0) \
+extern FILE *sm_outfd;
+#define sm_printf(msg...) do { if (final_pass) fprintf(sm_outfd, msg); } while (0)
 
 static inline void sm_prefix(void)
 {
-	printf("%s +%d %s(%d) ", get_filename(), get_lineno(), get_function(), get_func_pos());
+	sm_printf("%s +%d %s(%d) ", get_filename(), get_lineno(), get_function(), get_func_pos());
 }
-
 
 static inline void print_implied_debug_msg();
 
@@ -146,8 +146,8 @@ do {                                                           \
 	if (!option_debug && !final_pass)                      \
 		break;                                         \
 	sm_prefix();					       \
-        printf(msg);                                           \
-        printf("\n");                                          \
+        sm_printf(msg);                                        \
+        sm_printf("\n");                                       \
 } while (0)
 
 extern char *implied_debug_msg;
@@ -163,14 +163,14 @@ static inline void print_implied_debug_msg()
 	sm_msg("%s", implied_debug_msg);
 }
 
-#define sm_debug(msg...) do { if (option_debug) printf(msg); } while (0)
+#define sm_debug(msg...) do { if (option_debug) sm_printf(msg); } while (0)
 
 #define sm_info(msg...) do {					\
 	if (option_debug || (option_info && final_pass)) {	\
 		sm_prefix();					\
-		printf("info: ");				\
-		printf(msg);					\
-		printf("\n");					\
+		sm_printf("info: ");				\
+		sm_printf(msg);					\
+		sm_printf("\n");				\
 	}							\
 } while(0)
 
@@ -268,6 +268,7 @@ extern int option_assume_loops;
 extern int option_known_conditions;
 extern int option_two_passes;
 extern int option_no_db;
+extern int option_file_output;
 extern struct expression_list *big_expression_stack;
 extern struct statement_list *big_statement_stack;
 extern int __in_pre_condition;
