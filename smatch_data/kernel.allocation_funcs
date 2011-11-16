@@ -13,6 +13,7 @@ aer_alloc_rpc
 afs_alloc_flat_call
 afs_alloc_server
 afs_vlocation_alloc
+aggr_init
 agp_alloc_bridge
 agp_create_client
 agp_create_controller
@@ -23,7 +24,6 @@ ahc_alloc
 ahc_alloc_tstate
 ahd_alloc
 ahd_alloc_tstate
-ai_attach
 alloc_apertures
 alloc_area
 alloc_async
@@ -80,6 +80,7 @@ alloc_read_gpt_entries
 alloc_read_gpt_header
 alloc_reloc_control
 alloc_rootdomain
+alloc_sbridge_dev
 alloc_sched_domains
 alloc_scq
 alloc_selector
@@ -87,7 +88,6 @@ alloc_session
 alloc_sglist
 alloc_smp_req
 alloc_sock_iocb
-alloc_stor_device
 alloc_super
 alloc_symbol_cache
 alloc_td_info
@@ -104,7 +104,9 @@ ap_auth_make_challenge
 append_internal
 argv_split
 ata_port_alloc
-ath6kl_alloc_hifdev
+ath6kl_cfg80211_init
+ath6kl_htc_create
+ath6kl_wmi_init
 ath9k_htc_hw_alloc
 ath9k_init_wmi
 ath_gen_timer_alloc
@@ -142,17 +144,8 @@ bnx2fc_alloc_work
 bnx2fc_cmd_mgr_alloc
 bnx2fc_hba_create
 bnx2fc_interface_create
+brcmf_cfg80211_attach
 brcmf_sdbrcm_probe
-brcmf_sdcard_attach
-brcmf_sdioh_attach
-brcms_c_ampdu_attach
-brcms_c_antsel_attach
-brcms_c_attach_malloc
-brcms_c_bsscfg_malloc
-brcms_c_channel_mgr_attach
-brcms_c_pub_malloc
-brcms_c_txq_alloc
-brcms_init_timer
 brd_alloc
 bsd_alloc
 bsg_alloc_device
@@ -180,7 +173,9 @@ cffrml_create
 cfi_read_pri
 cfi_staa_setup
 cifs_build_path_to_root
+cifs_lock_init
 cifs_new_fileinfo
+cifs_readdata_alloc
 cifs_strndup_from_ucs
 cifs_writedata_alloc
 class_compat_register
@@ -199,12 +194,10 @@ create_driver
 create_event
 create_foo_obj
 create_l2
-create_logical_pred
 create_neighbor
 create_osd
 create_port
 create_portdata0
-create_pred
 create_regulator
 create_rmpp_recv
 create_serial
@@ -242,11 +235,11 @@ dib9000_attach
 dlm_allocate_lvb
 dlm_alloc_ctxt
 dlm_alloc_pagevec
-dma_attach
 dm_alloc_md_mempools
 dma_ops_domain_alloc
 dma_pin_iovec_pages
 dm_dirty_log_create
+dm_tm_create_non_blocking_clone
 dn_dev_alloc_ifa
 dn_dev_create
 dn_new_zone
@@ -337,6 +330,7 @@ hashbin_new
 hash_new
 hashtab_create
 hci_alloc_dev
+hci_chan_create
 hci_conn_add
 hfs_btree_open
 hfsplus_btree_open
@@ -350,7 +344,6 @@ hpfs_map_4sectors
 hpi_alloc_control_cache
 hso_create_device
 hso_create_shared_int
-HTCCreate
 i2c_matroxfb_probe
 i2c_new_device
 i2o_exec_wait_alloc
@@ -423,14 +416,15 @@ irlmp_copy_discoveries
 irlmp_open_lsap
 irlmp_register_client
 irlmp_register_service
+irq_alloc_generic_chip
 irttp_dup
 irttp_open_tsap
-isci_alloc_task
 iscsi_alloc_session
 iscsi_boot_create_kobj
 iscsi_boot_create_kset
 iscsi_create_conn
 iscsi_create_endpoint
+iscsi_create_iface
 iscsi_set_default_param
 iscsit_alloc_portal_group
 iscsi_target_init_negotiation
@@ -446,6 +440,7 @@ iso_stream_alloc
 it821x_firmware_command
 iwl4965_sta_alloc_lq
 iwl_sta_alloc_lq
+iwl_trans_pcie_alloc
 jffs2_alloc_full_dirent
 journal_init_common
 kcalloc
@@ -474,7 +469,6 @@ line6_alloc_sysex_buffer
 linear_conf
 llc_sap_alloc
 locate_module_kobject
-loop_alloc
 lpddr_cmdset
 lpddr_probe_chip
 lpfc_alloc_fast_evt
@@ -520,7 +514,6 @@ mISDN_register_clock
 mite_alloc_ring
 mlx4_alloc_db_pgdir
 mlx4_alloc_icm
-mlx4_en_add
 mmc_alloc_host
 mmc_alloc_sg
 mmc_test_alloc_mem
@@ -533,11 +526,13 @@ mthca_alloc_icm
 mthca_alloc_icm_table
 mv88e1xxx_phy_create
 mv88x201x_phy_create
-mvs_alloc_task
 mvs_pci_alloc
+mvumi_alloc_mem_resource
+mvumi_create_internal_cmd
 mwifiex_wmm_allocate_ralist_node
 my3126_phy_create
 nand_bch_init
+nci_allocate_device
 ncp_alloc_req
 neigh_hash_alloc
 nes_cm_alloc_core
@@ -548,6 +543,7 @@ netfs_trans_alloc
 netlbl_secattr_cache_alloc
 netlbl_unlhsh_add_iface
 new_adapter
+new_bind_ctl
 new_compound_name
 _new_connect_scan_req
 new_inode_smack
@@ -612,7 +608,6 @@ parport_register_port
 path_rec_create
 pch_uart_init_port
 pci_alloc_bus
-pcicore_init
 pci_create_slot
 pcie_init
 pci_mmconfig_add
@@ -630,7 +625,6 @@ pkt_alloc_packet_data
 pkt_bio_alloc
 pkt_kobj_create
 pm3393_mac_create
-pm8001_alloc_task
 pmcraid_alloc_sglist
 pneigh_lookup
 pnp_add_card_id
@@ -647,6 +641,7 @@ posix_acl_alloc
 pps_register_source
 prism2_read_pda
 prism2_wep_init
+prison_create
 __proc_create
 protection_domain_alloc
 psb_gtt_alloc_range
@@ -728,6 +723,9 @@ rio_request_outb_dbell
 rio_setup_device
 rndis_add_response
 rs_init
+rtllib_alloc_txb
+rtllib_ccmp_init
+rtllib_tkip_init
 rtl_rate_alloc_sta
 rxrpc_alloc_bundle
 rxrpc_alloc_connection
@@ -762,6 +760,7 @@ semaphore_alloc
 seq_create_client1
 __seq_open_private
 sesInfoAlloc
+setup_root_args
 sfi_sysfs_install_table
 sf_sample_new
 sf_zone_new
@@ -770,6 +769,7 @@ slhc_init
 sm_create_sysfs_attributes
 smi_info_alloc
 smk_import_entry
+smp_chan_create
 smscore_createbuffer
 smtc_alloc_fb_info
 snd_ctl_new
@@ -801,6 +801,8 @@ squashfs_cache_init
 srp_add_port
 srp_alloc_iu
 srp_ring_alloc
+srpt_alloc_ioctx
+srpt_alloc_ioctx_ring
 sta_info_alloc
 st_allocate_request
 stub_device_alloc
@@ -851,6 +853,8 @@ usb_alloc_urb
 usb_cache_string
 usb_create_shared_hcd
 usbctlx_alloc
+usbhsh_endpoint_alloc
+usbhsh_req_alloc
 usbip_alloc_iso_desc_pdu
 usbvision_alloc
 uvc_alloc_entity
@@ -870,7 +874,7 @@ videobuf_dvb_alloc_frontend
 vlan_group_alloc
 vlsi_alloc_ring
 vmalloc_to_sg
-vmbus_child_device_create
+vmbus_device_create
 vme_dma_pattern_attribute
 vme_dma_pci_attribute
 vme_dma_request
@@ -879,6 +883,7 @@ vme_lm_request
 vme_master_request
 vme_new_dma_list
 vme_slave_request
+vmw_fence_manager_init
 vmxnet3_copy_mc
 vnic_dev_register
 vq_req_alloc
@@ -890,10 +895,6 @@ w1_alloc_dev
 wakeup_source_create
 wiimote_create
 wl1271_op_prepare_multicast
-wlan_node_alloc
-wlc_phy_shared_attach
-wlc_phy_shim_attach
-wmi_init
 wpan_phy_alloc
 wusb_dev_alloc
 xfrm_hash_alloc

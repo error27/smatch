@@ -46,6 +46,7 @@ nfs3_cache_acls 2
 ntfs_runlists_merge 0
 ntfs_runlists_merge 1
 osduld_put_device 0
+PTR_RET 0
 put_link 2
 quota_quotaon 4
 regulator_put 0

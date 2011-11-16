@@ -56,7 +56,6 @@ hvc_remove 0
 i2400m_fw_put 0
 ib_dealloc_device 0
 ib_device_unregister_sysfs 0
-_io_exec 0
 ipmi_destroy_user 0
 ipmi_unregister_smi 0
 iscsi_boot_remove_kobj 0
@@ -96,11 +95,11 @@ put_uobj 0
 qh_put 0
 rate_control_put 0
 rbd_put_client 0
+reada_extent_put 1
 relay_close 0
 relay_close_buf 0
 release_lockspace 0
 remove_domain_devices 0
-sbp2_target_put 0
 sc_put 0
 scsi_cd_put 0
 scsi_tape_put 0

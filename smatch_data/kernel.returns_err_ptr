@@ -59,8 +59,6 @@ anon_inode_getfile
 anon_inode_mkinode
 applesmc_get_entry_by_index
 applesmc_get_entry_by_key
-ar6k_cfg80211_add_virtual_intf
-ar6k_cfg80211_init
 arpt_register_table
 ath5k_txq_setup
 atk_ggrp
@@ -126,6 +124,7 @@ btrfs_lookup_xattr
 btrfs_mount
 btrfs_new_extent_direct
 btrfs_new_inode
+btrfs_reada_add
 btrfs_read_fs_root_no_name
 btrfs_read_fs_root_no_radix
 btrfs_search_dir_index_item
@@ -308,8 +307,8 @@ dentry_open
 __dentry_path
 dentry_path
 devcgroup_create
+devfreq_add_device
 device_create_vargs
-_device_lookup
 devpts_mount
 d_inode_lookup
 dio_get_page
@@ -318,16 +317,21 @@ dirty_cow_nnode
 dirty_cow_pnode
 dirty_cow_znode
 disk_seqf_start
-display_device_register
 dlm_register_domain
 dl_seq_start
 d_materialise_unique
+dm_bufio_client_create
 dm_build_path_uevent
 dm_hash_rename
 dm_io_client_create
 dm_kcopyd_client_create
+dm_pool_metadata_open
 dm_region_hash_create
+dm_sm_disk_create_real
+dm_sm_disk_open_real
+dm_sm_metadata_init
 dm_swap_table
+dm_tm_create
 d_obtain_alias
 do_create
 do_file_open_root
@@ -346,6 +350,7 @@ dsa_switch_setup
 dummy_allocate_iso_context
 __d_unalias
 dup_mnt_ns
+dwc3_alloc_one_event_buffer
 dynamic_dname
 e100_request_firmware
 ebt_register_table
@@ -417,11 +422,13 @@ fd_create_virtdevice
 ffs_fs_mount
 ffs_prepare_buffer
 __fh_to_dentry
+fib6_add_1
 fib_create_info
 fib_rules_register
 __file_cft
 file_open_root
 find_alloc_undo
+find_device_devfreq
 find_get_context
 find_keyring_by_name
 find_lively_task_by_vpid
@@ -533,6 +540,7 @@ ib_alloc_fast_reg_mr
 ib_alloc_fast_reg_page_list
 ib_alloc_fmr
 ib_alloc_mw
+ib_alloc_xrcd
 ib_create_ah_from_wc
 ib_create_cm_id
 ib_create_fmr_pool
@@ -540,6 +548,8 @@ ib_create_send_mad
 ib_create_srq
 ib_fmr_pool_map_phys
 iblock_create_virtdevice
+__ib_open_qp
+ib_open_qp
 ib_redirect_mad_qp
 ib_register_mad_agent
 ib_register_mad_snoop
@@ -558,6 +568,8 @@ iget_xattr
 inet_diag_lock_handler
 inet_gso_segment
 inflate
+init_data_container
+init_ipath
 init_sdesc
 inotify_new_group
 input_devices_seq_start
@@ -598,6 +610,7 @@ ipt_register_table
 ipv6_add_addr
 ipv6_gso_segment
 ipv6_renew_options
+iref_to_path
 iscsi_iser_ep_connect
 iscsit_add_np
 iscsit_add_tiqn
@@ -713,6 +726,7 @@ mlx4_ib_alloc_fast_reg_mr
 mlx4_ib_alloc_fast_reg_page_list
 mlx4_ib_alloc_pd
 mlx4_ib_alloc_ucontext
+mlx4_ib_alloc_xrcd
 mlx4_ib_create_ah
 mlx4_ib_create_cq
 mlx4_ib_create_qp
@@ -733,6 +747,7 @@ mount_nodev
 mount_ns
 mount_pseudo
 mount_single
+mount_subvol
 mousedev_create
 __mpol_dup
 mpol_new
@@ -771,6 +786,7 @@ netfs_trans_add
 netlink_getsockbyfilp
 netlink_getsockbypid
 new_nbp
+new_read
 new_simple_dir
 new_vmap_block
 __nf_conntrack_alloc
@@ -780,6 +796,7 @@ nfs41_callback_up
 _nfs41_proc_sequence
 nfs4_acl_posix_to_nfsv4
 nfs4_blk_decode_device
+nfs4_blk_get_deviceinfo
 nfs4_callback_up
 nfs4_create_referral_server
 nfs4_create_server
@@ -849,8 +866,9 @@ ntfs_nfs_get_inode
 ntfs_rl_realloc
 ntfs_runlists_merge
 nv04_pm_clock_pre
+nv40_pm_clocks_pre
 nv50_pm_clock_pre
-nva3_pm_clock_pre
+nva3_pm_clocks_pre
 o2hb_heartbeat_group_make_item
 o2hb_setup_one_bio
 o2nm_cluster_group_make_group
@@ -886,6 +904,9 @@ open_root_dentry
 open_ubi
 open_xa_dir
 open_xa_root
+opp_find_freq_ceil
+opp_find_freq_floor
+opp_get_notifier
 osdmap_apply_incremental
 osdmap_decode
 osduld_info_lookup
@@ -894,16 +915,17 @@ oxu_create
 p9_client_attach
 p9_client_create
 p9_client_getattr_dotl
+p9_client_prepare_req
 p9_client_rpc
 p9_client_stat
 p9_client_walk
 p9_client_xattrwalk
+p9_client_zc_rpc
 p9_conn_create
 p9_fid_create
 p9_idpool_create
 p9_tag_alloc
 padata_get_next
-page_vector_from_list
 parse_path
 parse_priority_group
 path_openat
@@ -923,7 +945,7 @@ __pfkey_xfrm_state2msg
 phy_attach
 phy_connect
 platform_create_bundle
-platform_device_register_resndata
+platform_device_register_full
 pm_ctrl_init
 pnode_lookup
 pohmelfs_create_entry_local
@@ -932,6 +954,8 @@ pohmelfs_init_hash
 pohmelfs_lookup
 pohmelfs_mcache_alloc
 pohmelfs_new_inode
+pool_create
+__pool_find
 posix_acl_from_disk
 posix_acl_from_mode
 posix_acl_from_xattr
@@ -947,6 +971,8 @@ proc_lookupfd_common
 proc_mount
 proc_ns_dir_lookup
 proc_ns_fget
+proc_ns_follow_link
+proc_ns_get_dentry
 proc_ns_instantiate
 proc_pident_instantiate
 proc_pident_lookup
@@ -982,6 +1008,7 @@ qib_init_iba7322_funcs
 qib_reg_phys_mr
 qib_reg_user_mr
 qla1280_request_firmware
+qla4xxx_ep_connect
 qnx4_iget
 quotactl_block
 radeon_user_framebuffer_create
@@ -1033,6 +1060,7 @@ request_key
 request_key_and_link
 request_key_auth_new
 request_key_with_auxdata
+request_trusted_key
 resolve_symbol
 resolv_usage_page
 romfs_iget
@@ -1090,6 +1118,7 @@ sdhci_pltfm_init
 sdio_alloc_func
 search_process_keyrings
 securityfs_create_file
+seeq8005_probe
 select_bad_process
 select_one_root
 seqiv_alloc
@@ -1128,6 +1157,9 @@ squashfs_read_table
 squashfs_read_xattr_id_table
 squashfs_xz_init
 srp_rport_add
+srpt_make_nodeacl
+srpt_make_tpg
+srpt_make_tport
 start_transaction
 strndup_user
 svc_bc_create_socket
@@ -1157,6 +1189,7 @@ target_fabric_make_nodeacl
 target_fabric_make_np
 target_fabric_make_tpg
 target_fabric_make_wwn
+task_counter_create
 tcf_action_get_1
 tcf_action_init
 tcf_action_init_1
@@ -1250,6 +1283,7 @@ vhost_ubuf_alloc
 video_output_register
 virtio_find_single_vq
 vma_to_resize
+vm_setup_vq
 vmstat_start
 vmw_kms_fb_create
 vmx_create_vcpu

@@ -8,7 +8,6 @@ ahd_handle_hwerrint
 aic7xxx_panic_abort
 altera_execute
 assfail
-async_task
 audit_tree_handle_event
 bdi_forker_thread
 cafe_nand_bug
@@ -35,6 +34,7 @@ follow_huge_pud
 fsg_main_thread
 fsnotify_mark_destroy
 gru_abort
+hidp_session
 hlt_play_dead
 hugetlbfs_write_end
 hugetlb_vm_op_fault
@@ -50,6 +50,7 @@ kthreadd
 kvm_spurious_fault
 logfs_mark_segment_bad
 map_invalidatepage
+mlx4_en_add
 __module_put_and_exit
 mpt_halt_firmware
 native_machine_emergency_restart
