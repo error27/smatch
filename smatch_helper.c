@@ -156,7 +156,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		return;
 	}
 	case EXPR_BINOP: {
-		const char *tmp;
+		char tmp[10];
 		struct expression *array_expr;
 
 		*complicated = 1;
@@ -165,18 +165,15 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			__get_variable_from_expr(sym_ptr, buf, array_expr, len, complicated);
 			append(buf, "[", len);
 		} else {
-			append(buf, "(", len);
 			__get_variable_from_expr(sym_ptr, buf, expr->left, len,
 					 complicated);
-			tmp = show_special(expr->op);
+			snprintf(tmp, sizeof(tmp), " %s ", show_special(expr->op));
 			append(buf, tmp, len);
 		}
 		__get_variable_from_expr(NULL, buf, expr->right, 
 						 len, complicated);
 		if (array_expr)
 			append(buf, "]", len);
-		else
-			append(buf, ")", len);
 		return;
 	}
 	case EXPR_VALUE: {
