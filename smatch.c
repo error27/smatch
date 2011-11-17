@@ -85,7 +85,7 @@ static int match_option(const char *arg, const char *option)
 	char *tmp;
 	int ret = 0;
 
-	str = malloc(strlen(option) + 3); 
+	str = malloc(strlen(option) + 3);
 	snprintf(str, strlen(option) + 3, "--%s", option);
 	tmp = str;
 	while (*tmp) {
@@ -97,7 +97,7 @@ static int match_option(const char *arg, const char *option)
 		ret = 1;
 	free(str);
 	return ret;
-} 
+}
 
 #define OPTION(_x) do {					\
 	if (!found && match_option((*argvp)[1], #_x)) { \

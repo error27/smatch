@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #ifndef __USE_ISOC99
-#define __USE_ISOC99 
+#define __USE_ISOC99
 #endif
 #include <limits.h>
 #include "parse.h"
@@ -448,7 +448,7 @@ static void match_assign(struct expression *expr)
 	long long min = whole_range.min;
 	long long max = whole_range.max;
 	long long tmp;
-	
+
 	if (__is_condition_assign(expr))
 		return;
 	left = strip_expr(expr->left);
@@ -545,7 +545,7 @@ static void unop_expr(struct expression *expr)
 		return;
 	if (expr->op == '!')
 		return;
-	
+
 	name = get_variable_from_expr(expr->unop, &sym);
 	if (!name)
 		goto free;
@@ -577,7 +577,7 @@ static void scoped_state_extra(const char *name, struct symbol *sym)
 	struct tracker *t;
 
 	t = alloc_tracker(SMATCH_EXTRA, name, sym);
-	add_scope_hook((scope_hook *)&delete_state_tracker, t); 
+	add_scope_hook((scope_hook *)&delete_state_tracker, t);
 }
 
 static void match_declarations(struct symbol *sym)
@@ -633,14 +633,14 @@ static void match_comparison(struct expression *expr)
 
 
 	varies = strip_expr(expr->right);
-	if (!get_implied_value(expr->left, &fixed)) { 
+	if (!get_implied_value(expr->left, &fixed)) {
 		if (!get_implied_value(expr->right, &fixed))
 			return;
 		varies = strip_expr(expr->left);
 		left = 1;
 	}
 
-	if (varies->op == SPECIAL_INCREMENT || varies->op == SPECIAL_DECREMENT) 
+	if (varies->op == SPECIAL_INCREMENT || varies->op == SPECIAL_DECREMENT)
 		varies = varies->unop;
 	if (varies->type == EXPR_CALL) {
 		function_comparison(comparison, varies, fixed, left);
@@ -663,7 +663,7 @@ static void match_comparison(struct expression *expr)
 			false_state = filter_range(orig, whole_range.min, fixed - 1);
 		} else {
 			true_state = filter_range(orig, whole_range.min, fixed);
-			false_state = filter_range(orig, fixed + 1, whole_range.max); 
+			false_state = filter_range(orig, fixed + 1, whole_range.max);
 		}
 		break;
 	case SPECIAL_UNSIGNED_LTE:
@@ -671,7 +671,7 @@ static void match_comparison(struct expression *expr)
 		if (left) {
 			true_state = filter_range(orig, fixed + 1, whole_range.max);
 			false_state = filter_range(orig, whole_range.min, fixed);
-		} else { 
+		} else {
 			true_state = filter_range(orig, whole_range.min, fixed - 1);
 			false_state = filter_range(orig, fixed, whole_range.max);
 		}
@@ -704,7 +704,7 @@ static void match_comparison(struct expression *expr)
 		}
 		break;
 	case SPECIAL_NOTEQUAL:
-		true_state = filter_range(orig, fixed, fixed); 
+		true_state = filter_range(orig, fixed, fixed);
 		if (possibly_true(SPECIAL_EQUAL, get_dinfo(orig), fixed, fixed))
 			false_state = alloc_extra_state(fixed);
 		else
@@ -791,7 +791,7 @@ int known_condition_true(struct expression *expr)
 
 	if (get_value(expr, &tmp) && tmp)
 		return 1;
-	
+
 	expr = strip_expr(expr);
 	switch (expr->type) {
 	case EXPR_PREOP:
@@ -903,7 +903,7 @@ int implied_condition_true(struct expression *expr)
 		return implied_not_equal(expr->unop, 1);
 	if (expr->type == EXPR_PREOP && expr->op == SPECIAL_INCREMENT)
 		return implied_not_equal(expr->unop, -1);
-	
+
 	expr = strip_expr(expr);
 	switch (expr->type) {
 	case EXPR_COMPARE:
