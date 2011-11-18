@@ -2,6 +2,8 @@
 #
 # GCC compatible C compiler based on Sparse LLVM
 
+set +e
+
 SPARSEOPTS=""
 DIRNAME=`dirname $0`
 
@@ -27,9 +29,12 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
+TMPLLVM=`mktemp -t tmp.XXXXXX`".llvm"
 TMPFILE=`mktemp -t tmp.XXXXXX`".o"
 
-$DIRNAME/sparse-llvm $SPARSEOPTS | llc | as -o $TMPFILE
+$DIRNAME/sparse-llvm $SPARSEOPTS > $TMPLLVM
+
+llc $TMPLLVM | as -o $TMPFILE
 
 if [ $NEED_LINK -eq 1 ]; then
 	if [ -z $OUTFILE ]; then
@@ -43,3 +48,5 @@ else
 	fi
 	mv $TMPFILE $OUTFILE
 fi
+
+rm -f $TMPLLVM
