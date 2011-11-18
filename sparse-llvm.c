@@ -34,6 +34,46 @@ static inline bool symbol_is_fp_type(struct symbol *sym)
 
 static LLVMTypeRef symbol_type(LLVMModuleRef module, struct symbol *sym);
 
+static LLVMTypeRef func_return_type(LLVMModuleRef module, struct symbol *sym)
+{
+	return symbol_type(module, sym->ctype.base_type);
+}
+
+static LLVMTypeRef sym_func_type(LLVMModuleRef module, struct symbol *sym)
+{
+	LLVMTypeRef *arg_type;
+	LLVMTypeRef func_type;
+	LLVMTypeRef ret_type;
+	struct symbol *arg;
+	int n_arg = 0;
+
+	/* to avoid strangeness with varargs [for now], we build
+	 * the function and type anew, for each call.  This
+	 * is probably wrong.  We should look up the
+	 * symbol declaration info.
+	 */
+
+	ret_type = func_return_type(module, sym);
+
+	/* count args, build argument type information */
+	FOR_EACH_PTR(sym->arguments, arg) {
+		n_arg++;
+	} END_FOR_EACH_PTR(arg);
+
+	arg_type = calloc(n_arg, sizeof(LLVMTypeRef));
+
+	int idx = 0;
+	FOR_EACH_PTR(sym->arguments, arg) {
+		struct symbol *arg_sym = arg->ctype.base_type;
+
+		arg_type[idx++] = symbol_type(module, arg_sym);
+	} END_FOR_EACH_PTR(arg);
+	func_type = LLVMFunctionType(ret_type, arg_type, n_arg,
+				     /* varargs? */ 0);
+
+	return func_type;
+}
+
 static LLVMTypeRef sym_array_type(LLVMModuleRef module, struct symbol *sym)
 {
 	LLVMTypeRef elem_type;
@@ -171,6 +211,9 @@ static LLVMTypeRef symbol_type(LLVMModuleRef module, struct symbol *sym)
 		break;
 	case SYM_ARRAY:
 		ret = sym_array_type(module, sym);
+		break;
+	case SYM_FN:
+		ret = sym_func_type(module, sym);
 		break;
 	default:
 		assert(0);
@@ -638,7 +681,10 @@ static LLVMTypeRef get_func_type(struct function *fn, struct instruction *insn)
 	int n_arg = 0;
 	LLVMTypeRef *arg_type;
 
-	sprintf(buffer, "%.*s", sym->ident->len, sym->ident->name);
+	if (sym->ident)
+		sprintf(buffer, "%.*s", sym->ident->len, sym->ident->name);
+	else
+		sprintf(buffer, "<anon sym %p>", sym);
 
 	/* VERIFY: is this correct, for functions? */
 	func_type = LLVMGetTypeByName(fn->module, buffer);
@@ -682,7 +728,11 @@ static LLVMValueRef get_function(struct function *fn, struct instruction *insn)
 	LLVMValueRef func;
 	struct llfunc *f;
 
-	sprintf(buffer, "%.*s", sym->ident->len, sym->ident->name);
+	if (sym->ident)
+		sprintf(buffer, "%.*s", sym->ident->len, sym->ident->name);
+	else
+		sprintf(buffer, "<anon sym %p>", sym);
+
 
 	/* search for pre-built function type definition */
 	FOR_EACH_PTR(mi.llfunc_list, f) {
