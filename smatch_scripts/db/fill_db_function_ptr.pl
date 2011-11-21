@@ -12,7 +12,7 @@ if (!defined($warns)) {
 
 my $db = DBI->connect("dbi:SQLite:smatch_db.sqlite", "", "", {RaiseError => 1, AutoCommit => 0});
 
-$db->do("delete from untrusted;");
+$db->do("delete from function_ptr;");
 
 open(WARNS, "<$warns");
 while (<WARNS>) {
