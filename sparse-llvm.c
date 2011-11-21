@@ -1055,7 +1055,7 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	END_FOR_EACH_PTR(bb);
 }
 
-static int output_data(LLVMModuleRef module, struct symbol *sym)
+static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
 {
 	struct expression *initializer = sym->initializer;
 	LLVMValueRef initial_value;
@@ -1071,6 +1071,8 @@ static int output_data(LLVMModuleRef module, struct symbol *sym)
 			struct symbol *sym = initializer->symbol;
 
 			initial_value = LLVMGetNamedGlobal(module, show_ident(sym->ident));
+			if (!initial_value)
+				initial_value = output_data(module, sym);
 			break;
 		}
 		default:
@@ -1090,7 +1092,7 @@ static int output_data(LLVMModuleRef module, struct symbol *sym)
 
 	LLVMSetInitializer(data, initial_value);
 
-	return 0;
+	return data;
 }
 
 static int compile(LLVMModuleRef module, struct symbol_list *list)
