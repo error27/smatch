@@ -1090,7 +1090,8 @@ static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
 
 	LLVMSetLinkage(data, data_linkage(sym));
 
-	LLVMSetInitializer(data, initial_value);
+	if (!(sym->ctype.modifiers & MOD_EXTERN))
+		LLVMSetInitializer(data, initial_value);
 
 	return data;
 }
