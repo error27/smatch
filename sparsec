@@ -34,7 +34,7 @@ TMPFILE=`mktemp -t tmp.XXXXXX`".o"
 
 $DIRNAME/sparse-llvm $SPARSEOPTS > $TMPLLVM
 
-llc $TMPLLVM | as -o $TMPFILE
+llc -o - $TMPLLVM | as -o $TMPFILE
 
 if [ $NEED_LINK -eq 1 ]; then
 	if [ -z $OUTFILE ]; then
