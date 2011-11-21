@@ -539,12 +539,13 @@ static void unop_expr(struct expression *expr)
 	long long max = whole_range.max;
 	long long val;
 
-	if (expr->op == '*')
+	switch (expr->op) {
+	case SPECIAL_INCREMENT:
+	case SPECIAL_DECREMENT:
+		break;
+	default:
 		return;
-	if (expr->op == '(')
-		return;
-	if (expr->op == '!')
-		return;
+	}
 
 	name = get_variable_from_expr(expr->unop, &sym);
 	if (!name)
