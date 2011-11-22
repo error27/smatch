@@ -812,6 +812,24 @@ static void output_op_phi(struct function *fn, struct instruction *insn)
 	insn->target->priv = target;
 }
 
+static void output_op_ptrcast(struct function *fn, struct instruction *insn)
+{
+	LLVMValueRef src, target;
+	char target_name[64];
+
+	src = insn->src->priv;
+	if (!src)
+		src = pseudo_to_value(fn, insn, insn->src);
+
+	pseudo_name(insn->target, target_name);
+
+	assert(!symbol_is_fp_type(insn->type));
+
+	target = LLVMBuildBitCast(fn->builder, src, insn_symbol_type(fn->module, insn), target_name);
+
+	insn->target->priv = target;
+}
+
 static void output_op_cast(struct function *fn, struct instruction *insn, LLVMOpcode op)
 {
 	LLVMValueRef src, target;
@@ -917,7 +935,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		assert(0);
 		break;
 	case OP_PTRCAST:
-		assert(0);
+		output_op_ptrcast(fn, insn);
 		break;
 	case OP_BINARY ... OP_BINARY_END:
 	case OP_BINCMP ... OP_BINCMP_END:
