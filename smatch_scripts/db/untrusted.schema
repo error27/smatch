@@ -1,1 +1,0 @@
-CREATE TABLE untrusted (file varchar(256), function varchar(256), parameter integer);
