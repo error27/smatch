@@ -502,10 +502,10 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 		target = LLVMBuildICmp(fn->builder, LLVMIntNE, lhs, rhs, target_name);
 		break;
 	case OP_SET_LE:
-		assert(0);
+		target = LLVMBuildICmp(fn->builder, LLVMIntSLE, lhs, rhs, target_name);
 		break;
 	case OP_SET_GE:
-		assert(0);
+		target = LLVMBuildICmp(fn->builder, LLVMIntSGE, lhs, rhs, target_name);
 		break;
 	case OP_SET_LT:
 		assert(!symbol_is_fp_type(insn->type));
@@ -522,10 +522,10 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 		target = LLVMBuildICmp(fn->builder, LLVMIntUGT, lhs, rhs, target_name);
 		break;
 	case OP_SET_BE:
-		assert(0);
+		target = LLVMBuildICmp(fn->builder, LLVMIntULE, lhs, rhs, target_name);
 		break;
 	case OP_SET_AE:
-		assert(0);
+		target = LLVMBuildICmp(fn->builder, LLVMIntUGE, lhs, rhs, target_name);
 		break;
 	default:
 		assert(0);

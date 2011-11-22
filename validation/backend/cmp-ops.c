@@ -18,6 +18,16 @@ static int setg(int x, int y)
 	return x > y;
 }
 
+static int setle(int x, int y)
+{
+	return x <= y;
+}
+
+static int setge(int x, int y)
+{
+	return x >= y;
+}
+
 static int setb(unsigned int x, unsigned int y)
 {
 	return x < y;
@@ -26,6 +36,16 @@ static int setb(unsigned int x, unsigned int y)
 static int seta(unsigned int x, unsigned int y)
 {
 	return x > y;
+}
+
+static int setbe(unsigned int x, unsigned int y)
+{
+	return x <= y;
+}
+
+static int setae(unsigned int x, unsigned int y)
+{
+	return x >= y;
 }
 
 /*
