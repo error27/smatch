@@ -516,10 +516,10 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 		target = LLVMBuildICmp(fn->builder, LLVMIntSGT, lhs, rhs, target_name);
 		break;
 	case OP_SET_B:
-		assert(0);
+		target = LLVMBuildICmp(fn->builder, LLVMIntULT, lhs, rhs, target_name);
 		break;
 	case OP_SET_A:
-		assert(0);
+		target = LLVMBuildICmp(fn->builder, LLVMIntUGT, lhs, rhs, target_name);
 		break;
 	case OP_SET_BE:
 		assert(0);

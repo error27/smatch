@@ -18,6 +18,16 @@ static int setg(int x, int y)
 	return x > y;
 }
 
+static int setb(unsigned int x, unsigned int y)
+{
+	return x < y;
+}
+
+static int seta(unsigned int x, unsigned int y)
+{
+	return x > y;
+}
+
 /*
  * check-name: Comparison operator code generation
  * check-command: ./sparsec -c $file -o tmp.o
