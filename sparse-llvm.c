@@ -391,6 +391,24 @@ static LLVMTypeRef pseudo_type(struct function *fn, struct instruction *insn, ps
 	return result;
 }
 
+static LLVMIntPredicate translate_op(int opcode)
+{
+	static const LLVMIntPredicate trans_tbl[] = {
+		[OP_SET_EQ]	= LLVMIntEQ,
+		[OP_SET_NE]	= LLVMIntNE,
+		[OP_SET_LE]	= LLVMIntSLE,
+		[OP_SET_GE]	= LLVMIntSGE,
+		[OP_SET_LT]	= LLVMIntSLT,
+		[OP_SET_GT]	= LLVMIntSGT,
+		[OP_SET_B]	= LLVMIntULT,
+		[OP_SET_A]	= LLVMIntUGT,
+		[OP_SET_BE]	= LLVMIntULE,
+		[OP_SET_AE]	= LLVMIntUGE,
+	};
+
+	return trans_tbl[opcode];
+}
+
 static void output_op_binary(struct function *fn, struct instruction *insn)
 {
 	LLVMValueRef lhs, rhs, target;
@@ -493,40 +511,12 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 	}
 
 	/* Binary comparison */
-	case OP_SET_EQ:
-		assert(!symbol_is_fp_type(insn->type));
-		target = LLVMBuildICmp(fn->builder, LLVMIntEQ, lhs, rhs, target_name);
+	case OP_BINCMP ... OP_BINCMP_END: {
+		LLVMIntPredicate op = translate_op(insn->opcode);
+
+		target = LLVMBuildICmp(fn->builder, op, lhs, rhs, target_name);
 		break;
-	case OP_SET_NE:
-		assert(!symbol_is_fp_type(insn->type));
-		target = LLVMBuildICmp(fn->builder, LLVMIntNE, lhs, rhs, target_name);
-		break;
-	case OP_SET_LE:
-		target = LLVMBuildICmp(fn->builder, LLVMIntSLE, lhs, rhs, target_name);
-		break;
-	case OP_SET_GE:
-		target = LLVMBuildICmp(fn->builder, LLVMIntSGE, lhs, rhs, target_name);
-		break;
-	case OP_SET_LT:
-		assert(!symbol_is_fp_type(insn->type));
-		target = LLVMBuildICmp(fn->builder, LLVMIntSLT, lhs, rhs, target_name);
-		break;
-	case OP_SET_GT:
-		assert(!symbol_is_fp_type(insn->type));
-		target = LLVMBuildICmp(fn->builder, LLVMIntSGT, lhs, rhs, target_name);
-		break;
-	case OP_SET_B:
-		target = LLVMBuildICmp(fn->builder, LLVMIntULT, lhs, rhs, target_name);
-		break;
-	case OP_SET_A:
-		target = LLVMBuildICmp(fn->builder, LLVMIntUGT, lhs, rhs, target_name);
-		break;
-	case OP_SET_BE:
-		target = LLVMBuildICmp(fn->builder, LLVMIntULE, lhs, rhs, target_name);
-		break;
-	case OP_SET_AE:
-		target = LLVMBuildICmp(fn->builder, LLVMIntUGE, lhs, rhs, target_name);
-		break;
+	}
 	default:
 		assert(0);
 		break;
