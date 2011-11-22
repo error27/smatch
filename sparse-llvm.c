@@ -391,6 +391,25 @@ static LLVMTypeRef pseudo_type(struct function *fn, struct instruction *insn, ps
 	return result;
 }
 
+static LLVMRealPredicate translate_fop(int opcode)
+{
+	static const LLVMRealPredicate trans_tbl[] = {
+		[OP_SET_EQ]	= LLVMRealOEQ,
+		[OP_SET_NE]	= LLVMRealUNE,
+		[OP_SET_LE]	= LLVMRealOLE,
+		[OP_SET_GE]	= LLVMRealOGE,
+		[OP_SET_LT]	= LLVMRealOLT,
+		[OP_SET_GT]	= LLVMRealOGT,
+		/* Are these used with FP? */
+		[OP_SET_B]	= LLVMRealOLT,
+		[OP_SET_A]	= LLVMRealOGT,
+		[OP_SET_BE]	= LLVMRealOLE,
+		[OP_SET_AE]	= LLVMRealOGE,
+	};
+
+	return trans_tbl[opcode];
+}
+
 static LLVMIntPredicate translate_op(int opcode)
 {
 	static const LLVMIntPredicate trans_tbl[] = {
@@ -512,9 +531,15 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 
 	/* Binary comparison */
 	case OP_BINCMP ... OP_BINCMP_END: {
-		LLVMIntPredicate op = translate_op(insn->opcode);
+		if (LLVMGetTypeKind(LLVMTypeOf(lhs)) == LLVMIntegerTypeKind) {
+			LLVMIntPredicate op = translate_op(insn->opcode);
 
-		target = LLVMBuildICmp(fn->builder, op, lhs, rhs, target_name);
+			target = LLVMBuildICmp(fn->builder, op, lhs, rhs, target_name);
+		} else {
+			LLVMRealPredicate op = translate_fop(insn->opcode);
+
+			target = LLVMBuildFCmp(fn->builder, op, lhs, rhs, target_name);
+		}
 		break;
 	}
 	default:

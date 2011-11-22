@@ -48,6 +48,36 @@ static int setae(unsigned int x, unsigned int y)
 	return x >= y;
 }
 
+static int setfe(float x, float y)
+{
+	return x == y;
+}
+
+static int setfne(float x, float y)
+{
+	return x != y;
+}
+
+static int setfl(float x, float y)
+{
+	return x < y;
+}
+
+static int setfg(float x, float y)
+{
+	return x > y;
+}
+
+static int setfle(float x, float y)
+{
+	return x <= y;
+}
+
+static int setfge(float x, float y)
+{
+	return x >= y;
+}
+
 /*
  * check-name: Comparison operator code generation
  * check-command: ./sparsec -c $file -o tmp.o
