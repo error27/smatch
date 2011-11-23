@@ -17,11 +17,21 @@
 #include "linearize.h"
 #include "flow.h"
 
+struct phi_fwd {
+	struct phi_fwd			*next;
+
+	LLVMValueRef			phi;
+	pseudo_t			pseudo;
+	bool				resolved;
+};
+
 struct function {
 	LLVMBuilderRef			builder;
 	LLVMTypeRef			type;
 	LLVMValueRef			fn;
 	LLVMModuleRef			module;
+
+	struct phi_fwd			*fwd_list;
 };
 
 static inline bool symbol_is_fp_type(struct symbol *sym)
@@ -794,6 +804,67 @@ static void output_op_call(struct function *fn, struct instruction *insn)
 	insn->target->priv = target;
 }
 
+static void store_phi_fwd(struct function *fn, LLVMValueRef phi,
+			  pseudo_t pseudo)
+{
+	struct phi_fwd *fwd;
+
+	fwd = calloc(1, sizeof(*fwd));
+	fwd->phi = phi;
+	fwd->pseudo = pseudo;
+
+	/* append fwd ref to function-wide list */
+	if (!fn->fwd_list)
+		fn->fwd_list = fwd;
+	else {
+		struct phi_fwd *last = fn->fwd_list;
+
+		while (last->next)
+			last = last->next;
+		last->next = fwd;
+	}
+}
+
+static void output_phi_fwd(struct function *fn, pseudo_t pseudo, LLVMValueRef v)
+{
+	struct phi_fwd *fwd = fn->fwd_list;
+
+	while (fwd) {
+		struct phi_fwd *tmp;
+
+		tmp = fwd;
+		fwd = fwd->next;
+
+		if (tmp->pseudo == pseudo && !tmp->resolved) {
+			LLVMValueRef phi_vals[1];
+			LLVMBasicBlockRef phi_blks[1];
+
+			phi_vals[0] = v;
+			phi_blks[0] = pseudo->def->bb->priv;
+
+			LLVMAddIncoming(tmp->phi, phi_vals, phi_blks, 1);
+
+			tmp->resolved = true;
+		}
+	}
+}
+
+static void output_op_phisrc(struct function *fn, struct instruction *insn)
+{
+	LLVMValueRef v;
+
+	assert(insn->target->priv == NULL);
+
+	/* target = src */
+	v = pseudo_to_value(fn, insn, insn->phi_src);
+	insn->target->priv = v;
+
+	assert(insn->target->priv != NULL);
+
+	/* resolve forward references to this phi source, if present */
+	output_phi_fwd(fn, insn->target, v);
+}
+
 static void output_op_phi(struct function *fn, struct instruction *insn)
 {
 	pseudo_t phi;
@@ -803,7 +874,7 @@ static void output_op_phi(struct function *fn, struct instruction *insn)
 				"phi");
 	int pll = 0;
 	FOR_EACH_PTR(insn->phi_list, phi) {
-		if (pseudo_to_value(fn, insn, phi))	/* skip VOID */
+		if (pseudo_to_value(fn, insn, phi))	/* skip VOID, fwd refs*/
 			pll++;
 	} END_FOR_EACH_PTR(phi);
 
@@ -815,11 +886,13 @@ static void output_op_phi(struct function *fn, struct instruction *insn)
 		LLVMValueRef v;
 
 		v = pseudo_to_value(fn, insn, phi);
-		if (v) {			/* skip VOID */
+		if (v) {			/* skip VOID, fwd refs */
 			phi_vals[idx] = v;
 			phi_blks[idx] = phi->def->bb->priv;
 			idx++;
 		}
+		else if (phi->type == PSEUDO_PHI)	/* fwd ref */
+			store_phi_fwd(fn, target, phi);
 	} END_FOR_EACH_PTR(phi);
 
 	LLVMAddIncoming(target, phi_vals, phi_blks, pll);
@@ -916,8 +989,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		assert(0);
 		break;
 	case OP_PHISOURCE:
-		/* target = src */
-		insn->target->priv = pseudo_to_value(fn, insn, insn->phi_src);
+		output_op_phisrc(fn, insn);
 		break;
 	case OP_PHI:
 		output_op_phi(fn, insn);
@@ -1026,7 +1098,7 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	struct symbol *ret_type = sym->ctype.base_type->ctype.base_type;
 	LLVMTypeRef arg_types[MAX_ARGS];
 	LLVMTypeRef return_type;
-	struct function function;
+	struct function function = { .module = module };
 	struct basic_block *bb;
 	struct symbol *arg;
 	const char *name;
@@ -1042,8 +1114,6 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	name = show_ident(sym->ident);
 
 	return_type = symbol_type(module, ret_type);
-
-	function.module = module;
 
 	function.type = LLVMFunctionType(return_type, arg_types, nr_args, 0);
 
