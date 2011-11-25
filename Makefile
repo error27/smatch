@@ -23,6 +23,8 @@ HAVE_GCC_DEP:=$(shell touch .gcc-test.c && 				\
 		echo 'yes'; rm -f .gcc-test.d .gcc-test.o .gcc-test.c)
 HAVE_GTK2:=$(shell pkg-config --exists gtk+-2.0 2>/dev/null && echo 'yes')
 HAVE_LLVM:=$(shell llvm-config --version >/dev/null 2>&1 && echo 'yes')
+HAVE_LLVM_VERSION:=$(shell llvm-config --version | grep "^[3-9].*" >/dev/null 2>&1 && echo yes)
+LLVM_VERSION=$(shell llvm-config --version)
 
 GCC_BASE = $(shell $(CC) --print-file-name=)
 BASIC_CFLAGS = -DGCC_BASE=\"$(GCC_BASE)\"
@@ -65,7 +67,13 @@ else
 $(warning Your system does not have libgtk2, disabling test-inspect)
 endif
 
-ifeq ($(HAVE_LLVM),yes)
+ifneq ($(HAVE_LLVM),yes)
+$(warning Your system does not have llvm, disabling sparse-llvm)
+else
+ifneq ($(HAVE_LLVM_VERSION),yes)
+$(warning LLVM 3.0 or later required. Your system has version $(LLVM_VERSION) installed.)
+HAVE_LLVM=no
+else
 LLVM_PROGS := sparse-llvm
 $(LLVM_PROGS): LD := g++
 LDFLAGS += $(shell llvm-config --ldflags)
@@ -76,8 +84,7 @@ INST_PROGRAMS += sparse-llvm sparsec
 sparse-llvm_EXTRA_DEPS := sparse-llvm.o
 sparse-llvm.o $(sparse-llvm_EXTRA_DEPS): BASIC_CFLAGS += $(LLVM_CFLAGS)
 sparse-llvm_EXTRA_OBJS := $(LLVM_LIBS)
-else
-$(warning Your system does not have llvm, disabling sparse-llvm)
+endif
 endif
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
