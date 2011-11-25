@@ -312,22 +312,17 @@ free:
 	free_string(ptr_name);
 }
 
-static void global_variable(struct symbol *sym)
+static void print_initializer_list(struct expression_list *expr_list,
+		struct symbol *struct_type)
 {
-	struct symbol *struct_type;
-	struct symbol *base_type;
 	struct expression *expr;
+	struct symbol *base_type;
 
-	if (!sym->ident)
-		return;
-	if (!sym->initializer || sym->initializer->type != EXPR_INITIALIZER)
-		return;
-	struct_type = get_base_type(sym);
-	if (!struct_type || struct_type->type != SYM_STRUCT ||
-	    !struct_type->ident)
-		return;
-
-	FOR_EACH_PTR(sym->initializer->expr_list, expr) {
+	FOR_EACH_PTR(expr_list, expr) {
+		if (expr->type == EXPR_INDEX && expr->idx_expression && expr->idx_expression->type == EXPR_INITIALIZER) {
+			print_initializer_list(expr->idx_expression->expr_list, struct_type);
+			continue;
+		}
 		if (expr->type != EXPR_IDENTIFIER)
 			continue;
 		if (!expr->expr_ident)
@@ -341,6 +336,29 @@ static void global_variable(struct symbol *sym)
 		       expr->expr_ident->name,
 		       expr->ident_expression->symbol_name->name);
 	} END_FOR_EACH_PTR(expr);
+
+}
+
+static void global_variable(struct symbol *sym)
+{
+	struct symbol *struct_type;
+
+	if (!sym->ident)
+		return;
+	if (!sym->initializer || sym->initializer->type != EXPR_INITIALIZER)
+		return;
+	struct_type = get_base_type(sym);
+	if (!struct_type)
+		return;
+	if (struct_type->type == SYM_ARRAY) {
+		struct_type = get_base_type(struct_type);
+		if (!struct_type)
+			return;
+		sm_msg("here in sets_fn_ptr %d %p", struct_type->type, struct_type->ident);
+	}
+	if (struct_type->type != SYM_STRUCT || !struct_type->ident)
+		return;
+	print_initializer_list(sym->initializer->expr_list, struct_type);
 }
 
 void open_smatch_db(void)
