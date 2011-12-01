@@ -57,7 +57,7 @@ static long long handle_preop(struct expression *expr, int *undefined, int impli
 {
 	long long ret = BOGUS;
 
-	switch(expr->op) {
+	switch (expr->op) {
 	case '~':
 		ret = ~ _get_value(expr->unop, undefined, implied);
 		ret = cast_to_type(expr->unop, ret);
@@ -136,7 +136,7 @@ static int get_implied_value_helper(struct expression *expr, long long *val, int
 	struct smatch_state *state;
 	struct symbol *sym;
 	char *name;
-	
+
 	if (get_value(expr, val))
 		return 1;
 
@@ -260,10 +260,10 @@ static long long _get_value(struct expression *expr, int *undefined, int implied
 	}
 	if (*undefined)
 		return BOGUS;
-	
+
 	expr = strip_parens(expr);
 
- 	switch (expr->type){
+	switch (expr->type) {
 	case EXPR_VALUE:
 		ret = expr->value;
 		ret = cast_to_type(expr, ret);
@@ -301,7 +301,7 @@ static long long _get_value(struct expression *expr, int *undefined, int implied
 int get_value(struct expression *expr, long long *val)
 {
 	int undefined = 0;
-	
+
 	*val = _get_value(expr, &undefined, NOTIMPLIED);
 	if (undefined)
 		return 0;
@@ -365,7 +365,7 @@ int get_absolute_max(struct expression *expr, long long *val)
 	long long max;
 
 	type = get_type(expr);
-	if (!type){ 
+	if (!type) {
 		if (get_value(expr, val))
 			return 1;
 		return 0;
