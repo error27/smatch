@@ -16,12 +16,12 @@ static long long _get_value(struct expression *expr, int *undefined, int implied
 
 #define BOGUS 12345
 
-#define NOTIMPLIED 0
-#define IMPLIED    1
-#define FUZZYMAX   2
-#define FUZZYMIN   3
-#define VAL_MAX    4
-#define VAL_MIN    5
+#define NOTIMPLIED  0
+#define IMPLIED     1
+#define IMPLIED_MIN 2
+#define IMPLIED_MAX 3
+#define FUZZYMAX    4
+#define FUZZYMIN    5
 
 static long long cast_to_type(struct expression *expr, long long val)
 {
@@ -53,6 +53,15 @@ static long long cast_to_type(struct expression *expr, long long val)
 	return val;
 }
 
+static int opposite_implied(int implied)
+{
+	if (implied == IMPLIED_MIN)
+		return IMPLIED_MAX;
+	if (implied == IMPLIED_MAX)
+		return IMPLIED_MIN;
+	return implied;
+}
+
 static long long handle_preop(struct expression *expr, int *undefined, int implied)
 {
 	long long ret = BOGUS;
@@ -74,6 +83,34 @@ static long long handle_preop(struct expression *expr, int *undefined, int impli
 	return ret;
 }
 
+static long long handle_divide(struct expression *expr, int *undefined, int implied)
+{
+	long long left;
+	long long right;
+	long long ret = BOGUS;
+
+	left = _get_value(expr->left, undefined, implied);
+	right = _get_value(expr->right, undefined, opposite_implied(implied));
+
+	if (right == 0)
+		*undefined = 1;
+	else
+		ret = left / right;
+
+	return ret;
+}
+
+static long long handle_subtract(struct expression *expr, int *undefined, int implied)
+{
+	long long left;
+	long long right;
+
+	left = _get_value(expr->left, undefined, implied);
+	right = _get_value(expr->right, undefined, opposite_implied(implied));
+
+	return left - right;
+}
+
 static long long handle_binop(struct expression *expr, int *undefined, int implied)
 {
 	long long left;
@@ -93,16 +130,13 @@ static long long handle_binop(struct expression *expr, int *undefined, int impli
 		ret =  left * right;
 		break;
 	case '/':
-		if (right == 0)
-			*undefined = 1;
-		else
-			ret = left / right;
+		ret = handle_divide(expr, undefined, implied);
 		break;
 	case '+':
 		ret = left + right;
 		break;
 	case '-':
-		ret = left - right;
+		ret = handle_subtract(expr, undefined, implied);
 		break;
 	case '%':
 		if (right == 0)
@@ -149,7 +183,7 @@ static int get_implied_value_helper(struct expression *expr, long long *val, int
 		return 0;
 	if (what == IMPLIED)
 		return get_single_value_from_dinfo(get_dinfo(state), val);
-	if (what == VAL_MAX) {
+	if (what == IMPLIED_MAX) {
 		*val = get_dinfo_max(get_dinfo(state));
 		if (*val == whole_range.max) /* this means just guessing */
 			return 0;
@@ -219,7 +253,9 @@ static long long _get_implied_value(struct expression *expr, int *undefined, int
 
 	switch (implied) {
 	case IMPLIED:
-		if (!get_implied_value_helper(expr, &ret, IMPLIED))
+	case IMPLIED_MAX:
+	case IMPLIED_MIN:
+		if (!get_implied_value_helper(expr, &ret, implied))
 			*undefined = 1;
 		break;
 	case FUZZYMAX:
@@ -318,12 +354,18 @@ int get_implied_value(struct expression *expr, long long *val)
 
 int get_implied_min(struct expression *expr, long long *val)
 {
-	return get_implied_value_helper(expr, val, VAL_MIN);
+	int undefined = 0;
+
+	*val =  _get_value(expr, &undefined, IMPLIED_MIN);
+	return !undefined;
 }
 
 int get_implied_max(struct expression *expr, long long *val)
 {
-	return get_implied_value_helper(expr, val, VAL_MAX);
+	int undefined = 0;
+
+	*val =  _get_value(expr, &undefined, IMPLIED_MAX);
+	return !undefined;
 }
 
 int get_fuzzy_min(struct expression *expr, long long *val)

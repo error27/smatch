@@ -970,6 +970,8 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 {
 	long long val;
 	struct smatch_state *state;
+	long long min;
+	long long max;
 
 	expr = strip_expr(expr);
 
@@ -985,7 +987,10 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 		return 1;
 	}
 
-	if (expr->type == EXPR_BINOP && expr->op == '%') {
+	if (expr->type != EXPR_BINOP)
+		return 0;
+
+	if (expr->op == '%') {
 		if (!get_implied_value(expr->right, &val))
 			return 0;
 		*rl = NULL;
@@ -993,7 +998,12 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 		return 1;
 	}
 
-	return 0;
+	if (!get_implied_min(expr, &min))
+		return 0;
+	if (!get_implied_max(expr, &max))
+		return 0;
+	add_range(rl, min, max);
+	return 1;
 }
 
 int is_whole_range(struct smatch_state *state)
