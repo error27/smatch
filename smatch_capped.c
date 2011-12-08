@@ -50,6 +50,16 @@ int is_capped(struct expression *expr)
 	return 0;
 }
 
+void set_param_capped_data(const char *name, struct symbol *sym, char *key, char *value)
+{
+	char fullname[256];
+
+	if (strncmp(key, "$$", 2))
+		return;
+	snprintf(fullname, 256, "%s%s", name, key + 2);
+	set_state(my_id, fullname, sym, &capped);
+}
+
 static void match_condition(struct expression *expr)
 {
 	struct smatch_state *left_true = NULL;
@@ -108,12 +118,42 @@ static void match_assign(struct expression *expr)
 	}
 }
 
+static void match_caller_info(struct expression *expr)
+{
+	struct expression *tmp;
+	char *func;
+	int i;
+
+	func = get_fnptr_name(expr->fn);
+	if (!func)
+		return;
+
+	i = 0;
+	FOR_EACH_PTR(expr->args, tmp) {
+		if (is_capped(tmp))
+			sm_msg("info: passes capped_data %s %d '$$'", func, i);
+		i++;
+	} END_FOR_EACH_PTR(tmp);
+}
+
+static void struct_member_callback(char *fn, int param, char *printed_name, struct smatch_state *state)
+{
+	if (state != &capped)
+		return;
+	sm_msg("info: passes capped_data '%s' %d '%s'", fn, param, printed_name);
+}
+
 void register_capped(int id)
 {
 	my_id = id;
 
+	add_definition_db_callback(set_param_capped_data, CAPPED_DATA);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_macro_assign_hook("min", &match_min_assign, NULL);
 	add_macro_assign_hook("min_t", &match_min_assign, NULL);
+	if (option_info) {
+		add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
+		add_member_info_callback(my_id, struct_member_callback);
+	}
 }

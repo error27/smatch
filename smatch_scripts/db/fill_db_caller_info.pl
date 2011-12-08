@@ -66,6 +66,17 @@ while (<WARNS>) {
 	    $func = "$dummy $func";
 	}
 
+    } elsif ($_ =~ /info: passes capped_data /) {
+	# test.c +24 func(11) info: passes capped_data 'frob' 2 '$$->data'
+	$type = 4;
+	$value = 1;
+	($file, $line, $dummy, $dummy, $dummy, $dummy, $func, $param, $key) = split(/ /, $_);
+
+	if ($func eq "'(struct") {
+	    ($file, $line, $dummy, $dummy, $dummy, $dummy, $dummy, $func, $param, $key) = split(/ /, $_);
+	    $func = "$dummy $func";
+	}
+
     } else {
 	next;
     }

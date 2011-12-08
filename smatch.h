@@ -399,6 +399,7 @@ enum info_type {
 	PARAM_VALUE = 1,
 	BUF_SIZE,
 	USER_DATA,
+	CAPPED_DATA,
 };
 
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
