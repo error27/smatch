@@ -46,6 +46,32 @@ static void match_print_value(const char *fn, struct expression *expr, void *inf
 	free_slist(&slist);
 }
 
+static void match_print_implied_min(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	long long val;
+	char *name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	name = get_variable_from_expr_complex(arg, NULL);
+	if (!get_implied_min(arg, &val))
+		val = whole_range.min;
+	sm_msg("implied min: %s = %lld", name, val);
+}
+
+static void match_print_implied_max(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	long long val;
+	char *name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	name = get_variable_from_expr_complex(arg, NULL);
+	if (!get_implied_max(arg, &val))
+		val = whole_range.max;
+	sm_msg("implied max: %s = %lld", name, val);
+}
+
 static void print_possible(struct sm_state *sm)
 {
 	struct sm_state *tmp;
@@ -103,6 +129,8 @@ void check_debug(int id)
 	my_id = id;
 	add_function_hook("__smatch_all_values", &match_all_values, NULL);
 	add_function_hook("__smatch_value", &match_print_value, NULL);
+	add_function_hook("__smatch_implied_min", &match_print_implied_min, NULL);
+	add_function_hook("__smatch_implied_max", &match_print_implied_max, NULL);
 	add_function_hook("__smatch_possible", &match_possible, NULL);
 	add_function_hook("__smatch_cur_slist", &match_cur_slist, NULL);
 	add_function_hook("__smatch_note", &match_note, NULL);
