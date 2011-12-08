@@ -92,6 +92,13 @@ static void print_struct_members(char *fn, struct expression *expr, int param, s
 	struct symbol *sym;
 	int len;
 	char printed_name[256];
+	int is_address = 0;
+
+	expr = strip_expr(expr);
+	if (expr->type == EXPR_PREOP && expr->op == '&') {
+		expr = strip_expr(expr->unop);
+		is_address = 1;
+	}
 
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
@@ -103,7 +110,10 @@ static void print_struct_members(char *fn, struct expression *expr, int param, s
 			continue;
 		if (strncmp(name, sm->name, len) || sm->name[len] == '\0')
 			continue;
-		snprintf(printed_name, sizeof(printed_name), "$$%s", sm->name + len);
+		if (is_address)
+			snprintf(printed_name, sizeof(printed_name), "$$->%s", sm->name + len + 1);
+		else
+			snprintf(printed_name, sizeof(printed_name), "$$%s", sm->name + len);
 		callback(fn, param, printed_name, sm->state);
 	} END_FOR_EACH_PTR(sm);
 free:
