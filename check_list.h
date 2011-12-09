@@ -80,6 +80,7 @@ CK(check_expects_err_ptr)
 CK(check_hold_dev)
 CK(check_return_negative_var)
 CK(check_rosenberg)
+CK(check_wait_for_common)
 
 /* wine specific stuff */
 CK(check_wine_filehandles)
