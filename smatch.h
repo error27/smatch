@@ -232,6 +232,7 @@ char *get_fnptr_name(struct expression *expr);
 /* smatch_type.c */
 struct symbol *get_type(struct expression *expr);
 int type_unsigned(struct symbol *base_type);
+int expr_unsigned(struct expression *expr);
 int returns_unsigned(struct symbol *base_type);
 int returns_pointer(struct symbol *base_type);
 long long type_max(struct symbol *base_type);
