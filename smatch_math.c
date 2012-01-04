@@ -1,5 +1,5 @@
 /*
- * sparse/smatch_helper.c
+ * smatch/smatch_math.c
  *
  * Copyright (C) 2010 Dan Carpenter.
  *
