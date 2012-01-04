@@ -81,7 +81,7 @@ while (<WARNS>) {
 	next;
     }
 
-    if (!defined($value) || !($param =~ /^\d+$/)) {
+    if (!defined($value) || !($param =~ /^-*\d+$/)) {
 	next;
     }
 
