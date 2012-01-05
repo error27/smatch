@@ -24,6 +24,8 @@
 
 static int my_id;
 
+static int func_has_transition;
+
 STATE(locked);
 STATE(start_state);
 STATE(unlocked);
@@ -417,6 +419,8 @@ static void do_lock(const char *name)
 		add_tracker(&starts_unlocked, my_id, name, NULL);
 	if (sm && slist_has_state(sm->possible, &locked))
 		sm_msg("error: double lock '%s'", name);
+	if (sm)
+		func_has_transition = TRUE;
 	set_state(my_id, name, NULL, &locked);
 }
 
@@ -439,6 +443,8 @@ static void do_unlock(const char *name)
 		add_tracker(&starts_locked, my_id, name, NULL);
 	if (sm && slist_has_state(sm->possible, &unlocked))
 		sm_msg("error: double unlock '%s'", name);
+	if (sm)
+		func_has_transition = TRUE;
 	set_state(my_id, name, NULL, &unlocked);
 
 }
@@ -698,6 +704,8 @@ static void clear_lists(void)
 {
 	struct locks_on_return *tmp;
 
+	func_has_transition = FALSE;
+
 	free_trackers_and_list(&starts_locked);
 	free_trackers_and_list(&starts_unlocked);
 
@@ -711,7 +719,8 @@ static void clear_lists(void)
 
 static void match_func_end(struct symbol *sym)
 {
-	check_consistency(sym);
+	if (func_has_transition)
+		check_consistency(sym);
 	clear_lists();
 }
 
