@@ -53,10 +53,12 @@ static void match_print_implied_min(const char *fn, struct expression *expr, voi
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	name = get_variable_from_expr_complex(arg, NULL);
 	if (!get_implied_min(arg, &val))
 		val = whole_range.min;
+
+	name = get_variable_from_expr_complex(arg, NULL);
 	sm_msg("implied min: %s = %lld", name, val);
+	free_string(name);
 }
 
 static void match_print_implied_max(const char *fn, struct expression *expr, void *info)
@@ -66,10 +68,12 @@ static void match_print_implied_max(const char *fn, struct expression *expr, voi
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	name = get_variable_from_expr_complex(arg, NULL);
 	if (!get_implied_max(arg, &val))
 		val = whole_range.max;
+
+	name = get_variable_from_expr_complex(arg, NULL);
 	sm_msg("implied max: %s = %lld", name, val);
+	free_string(name);
 }
 
 static void print_possible(struct sm_state *sm)
