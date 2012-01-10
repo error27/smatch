@@ -470,23 +470,21 @@ static void match_assign(struct expression *expr)
 		goto free;
 	}
 
-	if (expr->op == '=') {
+	known = get_implied_value(right, &value);
+	switch (expr->op) {
+	case '=': {
 		struct range_list *rl = NULL;
 
 		if (get_implied_range_list(right, &rl)) {
 			set_extra_mod(name, sym, alloc_extra_state_range_list(rl));
-		} else {
-			struct symbol *type = get_type(right);
-
-			if (type && type_unsigned(type))
-				min = 0;
-			set_extra_mod(name, sym, alloc_extra_state_range(min, max));
+			goto free;
 		}
-		goto free;
-	}
 
-	known = get_implied_value(right, &value);
-	if (expr->op == SPECIAL_ADD_ASSIGN) {
+		if (expr_unsigned(right))
+			min = 0;
+		break;
+	}
+	case SPECIAL_ADD_ASSIGN:
 		if (get_implied_min(left, &tmp)) {
 			if (known)
 				min = tmp + value;
@@ -495,8 +493,8 @@ static void match_assign(struct expression *expr)
 		}
 		if (!inside_loop() && known && get_implied_max(left, &tmp))
 				max = tmp + value;
-	}
-	if (expr->op == SPECIAL_SUB_ASSIGN) {
+		break;
+	case SPECIAL_SUB_ASSIGN:
 		if (get_implied_max(left, &tmp)) {
 			if (known)
 				max = tmp - value;
@@ -505,6 +503,7 @@ static void match_assign(struct expression *expr)
 		}
 		if (!inside_loop() && known && get_implied_min(left, &tmp))
 				min = tmp - value;
+		break;
 	}
 	set_extra_mod(name, sym, alloc_extra_state_range(min, max));
 free:
