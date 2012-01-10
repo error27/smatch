@@ -455,9 +455,9 @@ static void match_assign(struct expression *expr)
 	name = get_variable_from_expr(left, &sym);
 	if (!name)
 		return;
-	right = strip_expr(expr->right);
+	right = strip_parens(expr->right);
 	while (right->type == EXPR_ASSIGNMENT && right->op == '=')
-		right = strip_expr(right->left);
+		right = strip_parens(right->left);
 
 	right_name = get_variable_from_expr(right, &right_sym);
 	if (expr->op == '=' && right_name && right_sym) {
