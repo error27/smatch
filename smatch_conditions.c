@@ -462,6 +462,8 @@ static int is_select_assign(struct expression *expr)
 {
 	struct expression *right;
 
+	if (expr->op != '=')
+		return 0;
 	right = strip_expr(expr->right);
 	if (right->type == EXPR_CONDITIONAL)
 		return 1;
