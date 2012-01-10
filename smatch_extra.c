@@ -972,7 +972,7 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 	long long min;
 	long long max;
 
-	expr = strip_expr(expr);
+	expr = strip_parens(expr);
 
 	state = get_state_expr(my_id, expr);
 	if (state) {
