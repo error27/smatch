@@ -41,9 +41,9 @@ int num_checks = ARRAY_SIZE(reg_funcs);
 
 const char *check_name(unsigned short id)
 {
-	if (id > ARRAY_SIZE(reg_funcs)) {
+	if (id > ARRAY_SIZE(reg_funcs))
 		return "internal";
-	}
+
 	return reg_funcs[id - 1].name;
 }
 
@@ -109,11 +109,11 @@ static int match_option(const char *arg, const char *option)
 
 void parse_args(int *argcp, char ***argvp)
 {
-	while(*argcp >= 2) {
+	while (*argcp >= 2) {
 		int found = 0;
-		if (!strcmp((*argvp)[1], "--help")) {
+		if (!strcmp((*argvp)[1], "--help"))
 			help();
-		}
+
 		if (!found && !strncmp((*argvp)[1], "--project=", 10)) {
 			option_project_str = (*argvp)[1] + 10;
 			(*argvp)[1] = (*argvp)[0];
@@ -162,9 +162,8 @@ static char *get_data_dir(char *arg0)
 	char buf[256];
 	char *dir;
 
-	if (option_no_data) {
+	if (option_no_data)
 		return NULL;
-	}
 
 	if (option_datadir_str) {
 		if (access(option_datadir_str, R_OK))

@@ -101,7 +101,7 @@ void set_extra_true_false(const char *name, struct symbol *sym,
 
 	// FIXME!!!!  equiv => related
 	FOR_EACH_PTR(get_dinfo(orig_state)->related, rel) {
-		set_true_false_states(SMATCH_EXTRA, rel->name, rel->sym, 
+		set_true_false_states(SMATCH_EXTRA, rel->name, rel->sym,
 				true_state, false_state);
 		if (true_state)
 			add_equiv(true_state, rel->name, rel->sym);
@@ -298,7 +298,7 @@ struct sm_state *__extra_handle_canonical_loops(struct statement *loop, struct s
 {
 	struct sm_state *ret;
 
-	__push_fake_cur_slist();;
+	__push_fake_cur_slist();
 	if (!loop->iterator_post_statement)
 		ret = handle_canonical_while_count_down(loop);
 	else
@@ -362,7 +362,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	}
 	if (left)
 		name = get_variable_from_expr(condition->left, &sym);
-	else 
+	else
 		name = get_variable_from_expr(condition->right, &sym);
 	if (!name || !sym)
 		goto free;
@@ -598,9 +598,8 @@ static void match_function_def(struct symbol *sym)
 	struct symbol *arg;
 
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
-		if (!arg->ident) {
+		if (!arg->ident)
 			continue;
-		}
 		set_state(my_id, arg->ident->name, arg, extra_undefined());
 	} END_FOR_EACH_PTR(arg);
 }
@@ -631,7 +630,6 @@ static void match_comparison(struct expression *expr)
 	int comparison = expr->op;
 	struct expression *varies;
 
-
 	varies = strip_expr(expr->right);
 	if (!get_implied_value(expr->left, &fixed)) {
 		if (!get_implied_value(expr->right, &fixed))
@@ -644,7 +642,7 @@ static void match_comparison(struct expression *expr)
 		varies = varies->unop;
 	if (varies->type == EXPR_CALL) {
 		function_comparison(comparison, varies, fixed, left);
-                return;
+		return;
 	}
 
 	name = get_variable_from_expr(varies, &sym);
@@ -766,9 +764,9 @@ int implied_not_equal(struct expression *expr, long long val)
 	long long expr_val;
 	int ret = 0;
 
-	if (get_value(expr, &expr_val)) {
+	if (get_value(expr, &expr_val))
 		return expr_val != val;
-	}
+
 	name = get_variable_from_expr(expr, &sym);
 	if (!name || !sym)
 		goto exit;
@@ -1040,7 +1038,7 @@ static void match_call_info(struct expression *expr)
 		return;
 
 	FOR_EACH_PTR(expr->args, arg) {
-		if (get_implied_range_list(arg, &rl) && ! is_whole_range_rl(rl)) {
+		if (get_implied_range_list(arg, &rl) && !is_whole_range_rl(rl)) {
 			sm_msg("info: passes param_value '%s' %d '$$' %s",
 			       name, i, show_ranges(rl));
 		}

@@ -99,13 +99,13 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 
 	if (!name)
 		return NULL;
-	
+
 	if (option_debug) {
 		struct smatch_state *s;
-		
+
 		s = get_state(owner, name, sym);
 		if (!s)
-			printf("%d new state. name='%s' [%s] %s\n", 
+			printf("%d new state. name='%s' [%s] %s\n",
 				get_lineno(), name, check_name(owner), show_state(state));
 		else
 			printf("%d state change name='%s' [%s] %s => %s\n",
@@ -162,10 +162,10 @@ void __set_sm(struct sm_state *sm)
 {
 	if (option_debug) {
 		struct smatch_state *s;
-		
+
 		s = get_state(sm->owner, sm->name, sm->sym);
 		if (!s)
-			printf("%d new state. name='%s' [%s] %s\n", 
+			printf("%d new state. name='%s' [%s] %s\n",
 				get_lineno(), sm->name, check_name(sm->owner),
 				show_state(sm->state));
 		else
@@ -283,9 +283,8 @@ struct state_list *get_all_states(int owner)
 	struct sm_state *tmp;
 
 	FOR_EACH_PTR(cur_slist, tmp) {
-		if (tmp->owner == owner) {
+		if (tmp->owner == owner)
 			add_ptr_list(&slist, tmp);
-		}
 	} END_FOR_EACH_PTR(tmp);
 
 	return slist;
@@ -303,7 +302,7 @@ struct state_list *__get_cur_slist(void)
 	return cur_slist;
 }
 
-void set_true_false_states(int owner, const char *name, struct symbol *sym, 
+void set_true_false_states(int owner, const char *name, struct symbol *sym,
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state)
 {
@@ -334,7 +333,7 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 		set_state_stack(&cond_false_stack, owner, name, sym, false_state);
 }
 
-void set_true_false_states_expr(int owner, struct expression *expr, 
+void set_true_false_states_expr(int owner, struct expression *expr,
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state)
 {
@@ -402,7 +401,7 @@ static void check_stack_free(struct state_list_stack **stack)
 	if (*stack) {
 		sm_msg("smatch internal error:  stack not empty");
 		free_stack_and_slists(stack);
-	}		
+	}
 }
 
 void clear_all_states(void)
@@ -472,7 +471,7 @@ struct state_list *__pop_cond_false_stack(void)
 static void __use_cond_stack(struct state_list_stack **stack)
 {
 	struct state_list *slist;
-	
+
 	free_slist(&cur_slist);
 
 	cur_slist = pop_slist(&pre_cond_stack);
@@ -502,8 +501,8 @@ void __use_cond_false_states(void)
 void __negate_cond_stacks(void)
 {
 	struct state_list *old_false, *old_true;
-	
- 	__use_cond_stack(&cond_false_stack);
+
+	__use_cond_stack(&cond_false_stack);
 	old_false = pop_slist(&cond_false_stack);
 	old_true = pop_slist(&cond_true_stack);
 	push_slist(&cond_false_stack, old_true);
@@ -530,7 +529,7 @@ void __save_pre_cond_states(void)
 void __discard_pre_cond_states(void)
 {
 	struct state_list *tmp;
-	
+
 	tmp = pop_slist(&pre_cond_stack);
 	free_slist(&tmp);
 }
@@ -548,7 +547,7 @@ void __use_cond_states(void)
 	free_slist(&cur_slist);
 	cur_slist = pre;
 
-	false_states = pop_slist(&cond_false_stack);	
+	false_states = pop_slist(&cond_false_stack);
 	overwrite_slist(false_states, &pre_clone);
 	push_slist(&false_stack, pre_clone);
 }
@@ -590,13 +589,13 @@ void __merge_true_states(void)
 	free_slist(&slist);
 }
 
-void __push_continues(void) 
-{ 
+void __push_continues(void)
+{
 	push_slist(&continue_stack, NULL);
 }
 
 void __discard_continues(void)
-{ 
+{
 	struct state_list *slist;
 
 	slist = pop_slist(&continue_stack);
@@ -608,11 +607,11 @@ void __process_continues(void)
 	struct state_list *slist;
 
 	slist = pop_slist(&continue_stack);
-	if (!slist) {
+	if (!slist)
 		slist = clone_slist(cur_slist);
-	} else {
+	else
 		merge_slist(&slist, cur_slist);
-	}
+
 	push_slist(&continue_stack, slist);
 }
 
@@ -654,20 +653,20 @@ void __merge_continues(void)
 }
 
 void __push_breaks(void)
-{ 
+{
 	push_slist(&break_stack, NULL);
 }
 
 void __process_breaks(void)
 {
 	struct state_list *slist;
-	
+
 	slist = pop_slist(&break_stack);
-	if (!slist) {
+	if (!slist)
 		slist = clone_slist(cur_slist);
-	} else {
+	else
 		merge_slist(&slist, cur_slist);
-	}
+
 	push_slist(&break_stack, slist);
 }
 
@@ -687,7 +686,7 @@ void __use_breaks(void)
 }
 
 void __save_switch_states(struct expression *switch_expr)
-{ 
+{
 	push_range_list(&remaining_cases, __get_implied_values(switch_expr));
 	push_slist(&switch_stack, clone_slist(cur_slist));
 }
@@ -705,7 +704,7 @@ void __merge_switches(struct expression *switch_expr, struct expression *case_ex
 }
 
 void __discard_switches(void)
-{ 
+{
 	struct state_list *slist;
 
 	pop_range_list(&remaining_cases);
@@ -767,7 +766,7 @@ void __save_gotos(const char *name)
 void __merge_gotos(const char *name)
 {
 	struct state_list **slist;
-	
+
 	slist = get_slist_from_named_stack(goto_stack, name);
 	if (slist)
 		merge_slist(&cur_slist, *slist);

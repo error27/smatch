@@ -136,25 +136,25 @@ void add_unmatched_state_hook(int client_id, unmatched_func_t *func)
 	add_ptr_list(&unmatched_state_funcs, container);
 }
 
-static void pass_to_client(void * fn)
+static void pass_to_client(void *fn)
 {
 	typedef void (expr_func)();
 	((expr_func *) fn)();
 }
 
-static void pass_expr_to_client(void * fn, void * data)
+static void pass_expr_to_client(void *fn, void *data)
 {
 	typedef void (expr_func)(struct expression *expr);
 	((expr_func *) fn)((struct expression *) data);
 }
 
-static void pass_stmt_to_client(void * fn, void * data)
+static void pass_stmt_to_client(void *fn, void *data)
 {
 	typedef void (stmt_func)(struct statement *stmt);
 	((stmt_func *) fn)((struct statement *) data);
 }
 
-static void pass_sym_to_client(void * fn, void * data)
+static void pass_sym_to_client(void *fn, void *data)
 {
 	typedef void (sym_func)(struct symbol *sym);
 	((sym_func *) fn)((struct symbol *) data);
@@ -199,9 +199,8 @@ void __pass_case_to_client(struct expression *switch_expr,
 	struct hook_container *container;
 
 	FOR_EACH_PTR(hook_funcs, container) {
-		if (container->hook_type == CASE_HOOK) {
+		if (container->hook_type == CASE_HOOK)
 			((case_func *) container->fn)(switch_expr, case_expr);
-		}
 	} END_FOR_EACH_PTR(container);
 }
 
@@ -217,7 +216,7 @@ int __has_merge_function(int client_id)
 }
 
 struct smatch_state *__client_merge_function(int owner, const char *name,
-					     struct symbol *sym, 
+					     struct symbol *sym,
 					     struct smatch_state *s1,
 					     struct smatch_state *s2)
 {
@@ -225,7 +224,7 @@ struct smatch_state *__client_merge_function(int owner, const char *name,
 	struct hook_container *tmp;
 
 	/* Pass NULL states first and the rest alphabetically by name */
-       	if (!s2 || (s1 && strcmp(s2->name, s1->name) < 0)) {
+	if (!s2 || (s1 && strcmp(s2->name, s1->name) < 0)) {
 		tmp_state = s1;
 		s1 = s2;
 		s2 = tmp_state;
@@ -250,7 +249,7 @@ struct smatch_state *__client_unmatched_state_function(struct sm_state *sm)
 }
 
 static struct scope_hook_list *pop_scope_hook_list(struct scope_hook_stack **stack)
-{	
+{
 	struct scope_hook_list *hook_list;
 
 	hook_list = last_ptr_list((struct ptr_list *)*stack);

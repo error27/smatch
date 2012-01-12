@@ -22,7 +22,7 @@ struct tracker *alloc_tracker(int owner, const char *name, struct symbol *sym)
 	return tmp;
 }
 
-void add_tracker(struct tracker_list **list, int owner, const char *name, 
+void add_tracker(struct tracker_list **list, int owner, const char *name,
 		struct symbol *sym)
 {
 	struct tracker *tmp;
@@ -46,13 +46,13 @@ free:
 	free_string(name);
 }
 
-void del_tracker(struct tracker_list **list, int owner, const char *name, 
+void del_tracker(struct tracker_list **list, int owner, const char *name,
 		struct symbol *sym)
 {
 	struct tracker *tmp;
 
 	FOR_EACH_PTR(*list, tmp) {
-		if (tmp->owner == owner && tmp->sym == sym 
+		if (tmp->owner == owner && tmp->sym == sym
 		    && !strcmp(tmp->name, name)) {
 			DELETE_CURRENT_PTR(tmp);
 			__free_tracker(tmp);
@@ -61,13 +61,13 @@ void del_tracker(struct tracker_list **list, int owner, const char *name,
 	} END_FOR_EACH_PTR(tmp);
 }
 
-int in_tracker_list(struct tracker_list *list, int owner, const char *name, 
+int in_tracker_list(struct tracker_list *list, int owner, const char *name,
 		struct symbol *sym)
 {
 	struct tracker *tmp;
 
 	FOR_EACH_PTR(list, tmp) {
-		if (tmp->owner == owner && tmp->sym == sym 
+		if (tmp->owner == owner && tmp->sym == sym
 		    && !strcmp(tmp->name, name))
 			return 1;
 	} END_FOR_EACH_PTR(tmp);

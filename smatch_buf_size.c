@@ -15,8 +15,8 @@
 #include "smatch_extra.h"
 
 /*
- * This check has two smatch IDs.  
- * my_size_id - used to store the size of arrays.  
+ * This check has two smatch IDs.
+ * my_size_id - used to store the size of arrays.
  * my_strlen_id - track the strlen() of buffers.
  */
 
@@ -45,7 +45,7 @@ void set_param_buf_size(const char *name, struct symbol *sym, char *key, char *v
 	size = strtoul(value, NULL, 10);
 	if (errno)
 		return;
-	
+
 	set_state(my_size_id, fullname, sym, alloc_state_num(size));
 }
 

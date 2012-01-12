@@ -27,7 +27,7 @@ int is_ignored(int owner, const char *name, struct symbol *sym)
 	struct tracker *tmp;
 
 	FOR_EACH_PTR(ignored, tmp) {
-		if (tmp->owner == owner && tmp->sym == sym 
+		if (tmp->owner == owner && tmp->sym == sym
 		    && !strcmp(tmp->name, name))
 			return 1;
 	} END_FOR_EACH_PTR(tmp);

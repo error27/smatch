@@ -31,17 +31,17 @@
  * When it comes to the if (foo == 99) the smatch implied hook
  * looks for all the pools where foo was not 99.  It makes a list
  * of those.
- * 
+ *
  * Then for bar (and all the other states) it says, ok bar is a
- * merged state that came from these previous states.  We'll 
- * chop out all the states where it came from a pool where 
+ * merged state that came from these previous states.  We'll
+ * chop out all the states where it came from a pool where
  * foo != 99 and merge it all back together.
  *
  * That is the implied state of bar.
  *
  * merge_slist() sets up ->my_pool.  An sm_state only has one ->my_pool and
  *    that is the pool where it was first set.  The my pool gets set when
- *    code paths merge.  States that have been set since the last merge do 
+ *    code paths merge.  States that have been set since the last merge do
  *    not have a ->my_pool.
  * merge_sm_state() sets ->left and ->right.  (These are the states which were
  *    merged to form the current state.)
@@ -64,7 +64,7 @@ int option_no_implied = 0;
 #define LEFT  1
 
 /*
- * tmp_range_list(): 
+ * tmp_range_list():
  * It messes things up to free range list allocations.  This helper fuction
  * lets us reuse memory instead of doing new allocations.
  */
@@ -94,14 +94,14 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 	int istrue;
 	int isfalse;
 
- 	if (!sm_state->my_pool)
+	if (!sm_state->my_pool)
 		return;
 
 	if (is_implied(sm_state)) {
 		s = get_sm_state_slist(sm_state->my_pool,
-				sm_state->owner, sm_state->name, 
+				sm_state->owner, sm_state->name,
 				sm_state->sym);
-	} else { 
+	} else {
 		s = sm_state;
 	}
 
@@ -114,10 +114,10 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 
 	istrue = !possibly_false_range_list_lr(comparison,	get_dinfo(s->state), vals, lr);
 	isfalse = !possibly_true_range_list_lr(comparison, get_dinfo(s->state), vals, lr);
-		
+
 	if (option_debug_implied || option_debug) {
 		if (istrue && isfalse) {
-			printf("'%s = %s' from %d does not exist.\n", s->name, 
+			printf("'%s = %s' from %d does not exist.\n", s->name,
 				show_state(s->state), s->line);
 		} else if (istrue) {
 			printf("'%s = %s' from %d is true.\n", s->name, show_state(s->state),
@@ -178,13 +178,13 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 {
 	int free_checked = 0;
 	struct state_list *checked_states = NULL;
- 
+
 	if (!sm_state)
 		return;
 
-	/* 
+	/*
 	   Sometimes the implications are just too big to deal with
-	   so we bail.  Theoretically, bailing out here can cause more false 
+	   so we bail.  Theoretically, bailing out here can cause more false
 	   positives but won't hide actual bugs.
 	*/
 	if (sm_state->nr_children > 4000) {
@@ -200,7 +200,7 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 	if (is_checked(*checked, sm_state))
 		return;
 	add_ptr_list(checked, sm_state);
-	
+
 	do_compare(sm_state, comparison, vals, lr, true_stack, false_stack);
 
 	separate_pools(sm_state->left, comparison, vals, lr, true_stack, false_stack, checked);
@@ -434,8 +434,8 @@ static void handle_zero_comparison(struct expression *expr,
 
 	if (expr->type == EXPR_ASSIGNMENT) {
 		/* most of the time ->my_pools will be empty here because we
- 		   just set the state, but if have assigned a conditional
-		   function there are implications. */ 
+		   just set the state, but if have assigned a conditional
+		   function there are implications. */
 		expr = expr->left;
 	}
 
@@ -539,7 +539,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	}
 	if (sm)
 		separate_and_filter(sm, SPECIAL_EQUAL, vals, LEFT, *raw_slist, &true_states, &false_states);
-	
+
 	true_sm = get_sm_state_slist(true_states, SMATCH_EXTRA, name, sym);
 	if (!true_sm)
 		set_state_slist(&true_states, SMATCH_EXTRA, name, sym, alloc_extra_state_range_list(vals));

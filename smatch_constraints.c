@@ -16,7 +16,7 @@
  *
  * This is stored in a field in the smatch_extra dinfo.
  *
- * Normally the way that variables become related is through a 
+ * Normally the way that variables become related is through a
  * condition and you say:  add_constraint_expr(left, '<', right);
  * The other way it can happen is if you have an assignment:
  * set_equiv(left, right);
@@ -27,8 +27,8 @@
  * When a variable gets modified all the old relationships are
  * deleted.  remove_contraints(expr);
  *
- * Also we need an is_true_constraint(left, '<', right) and 
- * is_false_constraint (left, '<', right).  This is used by 
+ * Also we need an is_true_constraint(left, '<', right) and
+ * is_false_constraint (left, '<', right).  This is used by
  * smatch_implied.
  *
  */
@@ -67,9 +67,9 @@ struct relation *get_common_relationship(struct data_info *dinfo, int op,
 {
 	struct relation *tmp;
 
-        // FIXME...
+	// FIXME...
 	// Find the common x < y and x <= y
- 	FOR_EACH_PTR(dinfo->related, tmp) {
+	FOR_EACH_PTR(dinfo->related, tmp) {
 		if (tmp->op < op || tmp->sym < sym || strcmp(tmp->name, name) < 0)
 			continue;
 		if (tmp->op == op && tmp->sym == sym && !strcmp(tmp->name, name))
@@ -86,7 +86,7 @@ void add_related(struct smatch_state *state, int op, const char *name, struct sy
 	struct relation *new;
 
 	dinfo = get_dinfo(state);
- 	FOR_EACH_PTR(dinfo->related, tmp) {
+	FOR_EACH_PTR(dinfo->related, tmp) {
 		if (tmp->op < op || tmp->sym < sym || strcmp(tmp->name, name) < 0)
 			continue;
 		if (tmp->op == op && tmp->sym == sym && !strcmp(tmp->name, name))
@@ -105,7 +105,7 @@ void del_related(struct smatch_state *state, int op, const char *name, struct sy
 	struct relation *tmp;
 
 	dinfo = get_dinfo(state);
- 	FOR_EACH_PTR(dinfo->related, tmp) {
+	FOR_EACH_PTR(dinfo->related, tmp) {
 		if (tmp->sym < sym || strcmp(tmp->name, name) < 0)
 			continue;
 		if (tmp->sym == sym && !strcmp(tmp->name, name)) {

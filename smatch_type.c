@@ -44,7 +44,7 @@ static struct symbol *get_symbol_from_deref(struct expression *expr)
 	member = expr->member;
 	struct_sym = get_type(expr->deref);
 	if (!struct_sym) {
-//		sm_msg("could not find struct type");
+		// sm_msg("could not find struct type");
 		return NULL;
 	}
 	if (struct_sym->type == SYM_PTR)

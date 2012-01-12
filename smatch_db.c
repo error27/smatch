@@ -162,7 +162,7 @@ static int get_param(int param, char **name, struct symbol **sym)
 		/*
 		 * this is a temporary hack to work around a bug (I think in sparse?)
 		 * 2.6.37-rc1:fs/reiserfs/journal.o
-		 * If there is a function definition without parameter name found 
+		 * If there is a function definition without parameter name found
 		 * after a function implementation then it causes a crash.
 		 * int foo() {}
 		 * int bar(char *);

@@ -49,11 +49,11 @@ struct smatch_state *alloc_state_num(int num)
 
 static void append(char *dest, const char *data, int buff_len)
 {
-	strncat(dest, data, buff_len - strlen(dest) - 1); 
+	strncat(dest, data, buff_len - strlen(dest) - 1);
 }
 
 /*
- * If you have "foo(a, b, 1);" then use 
+ * If you have "foo(a, b, 1);" then use
  * get_argument_from_call_expr(expr, 0) to return the expression for
  * a.  Yes, it does start counting from 0.
  */
@@ -87,7 +87,7 @@ static struct expression *get_array_expr(struct expression *expr)
 	return expr->left;
 }
 
-static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf, 
+static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 				     struct expression *expr, int len,
 				     int *complicated)
 {
@@ -96,17 +96,17 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	switch (expr->type) {
 	case EXPR_DEREF:
 		tmp = expr->deref;
-		if (tmp->op == '*')  {
+		if (tmp->op == '*')
 			tmp = tmp->unop;
-		}
+
 		__get_variable_from_expr(sym_ptr, buf, tmp, len, complicated);
 
 		tmp = expr->deref;
-		if (tmp->op == '*')  {
+		if (tmp->op == '*')
 			append(buf, "->", len);
-		} else {
+		else
 			append(buf, ".", len);
-		}		
+
 		append(buf, expr->member->name, len);
 
 		return;
@@ -131,12 +131,11 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			tmp = show_special(expr->op);
 			append(buf, tmp, len);
 		}
-		__get_variable_from_expr(sym_ptr, buf, expr->unop, 
+		__get_variable_from_expr(sym_ptr, buf, expr->unop,
 						 len, complicated);
 
-		if (expr->op == '(') {
+		if (expr->op == '(')
 			append(buf, ")", len);
-		}
 
 		if (expr->op == SPECIAL_DECREMENT || expr->op == SPECIAL_INCREMENT)
 			*complicated = 1;
@@ -146,7 +145,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	case EXPR_POSTOP: {
 		const char *tmp;
 
-		__get_variable_from_expr(sym_ptr, buf, expr->unop, 
+		__get_variable_from_expr(sym_ptr, buf, expr->unop,
 						 len, complicated);
 		tmp = show_special(expr->op);
 		append(buf, tmp, len);
@@ -170,7 +169,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			snprintf(tmp, sizeof(tmp), " %s ", show_special(expr->op));
 			append(buf, tmp, len);
 		}
-		__get_variable_from_expr(NULL, buf, expr->right, 
+		__get_variable_from_expr(NULL, buf, expr->right,
 						 len, complicated);
 		if (array_expr)
 			append(buf, "]", len);
@@ -192,7 +191,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	case EXPR_CALL: {
 		struct expression *tmp;
 		int i;
-		
+
 		*complicated = 1;
 		__get_variable_from_expr(NULL, buf, expr->fn, len,
 					 complicated);
@@ -208,8 +207,8 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		return;
 	}
 	case EXPR_CAST:
-		__get_variable_from_expr(sym_ptr, buf, 
-					 expr->cast_expression, len, 
+		__get_variable_from_expr(sym_ptr, buf,
+					 expr->cast_expression, len,
 					 complicated);
 		return;
 	case EXPR_SIZEOF: {
@@ -232,7 +231,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 
 /*
  * This is returns a stylized "c looking" representation of the
- * variable name.  
+ * variable name.
  *
  * It uses the same buffer every time so you have to save the result
  * yourself if you want to keep it.
@@ -264,7 +263,7 @@ char *get_variable_from_expr_complex(struct expression *expr, struct symbol **sy
  * then it returns NULL.
  */
 
-char *get_variable_from_expr(struct expression *expr, 
+char *get_variable_from_expr(struct expression *expr,
 				    struct symbol **sym_ptr)
 {
 	static char var_name[VAR_LEN];
@@ -279,7 +278,7 @@ char *get_variable_from_expr(struct expression *expr,
 	expr = strip_expr(expr);
 	__get_variable_from_expr(sym_ptr, var_name, expr, sizeof(var_name),
 				 &complicated);
-	
+
 	if (complicated) {
 		if (sym_ptr)
 			*sym_ptr = NULL;
@@ -400,7 +399,7 @@ void scoped_state(int my_id, const char *name, struct symbol *sym)
 	struct tracker *t;
 
 	t = alloc_tracker(my_id, name, sym);
-	add_scope_hook((scope_hook *)&delete_state_tracker, t); 
+	add_scope_hook((scope_hook *)&delete_state_tracker, t);
 }
 
 int is_error_return(struct expression *expr)

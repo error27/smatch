@@ -68,11 +68,11 @@ static long long handle_preop(struct expression *expr, int *undefined, int impli
 
 	switch (expr->op) {
 	case '~':
-		ret = ~ _get_value(expr->unop, undefined, implied);
+		ret = ~_get_value(expr->unop, undefined, implied);
 		ret = cast_to_type(expr->unop, ret);
 		break;
 	case '-':
-		ret = - _get_value(expr->unop, undefined, implied);
+		ret = -_get_value(expr->unop, undefined, implied);
 		break;
 	case '*':
 		ret = _get_implied_value(expr, undefined, implied);
@@ -189,7 +189,7 @@ static int get_implied_value_helper(struct expression *expr, long long *val, int
 			return 0;
 		return 1;
 	}
-        *val = get_dinfo_min(get_dinfo(state));
+	*val = get_dinfo_min(get_dinfo(state));
 	if (*val == whole_range.min)
 		return 0;
 	return 1;

@@ -19,20 +19,20 @@
  * Or's are a little more complicated.
  * if (a || b) { c;
  * We know 'a' is not true when we get to 'b' but it may be true
- * when we get to c.  
+ * when we get to c.
  *
  * If we mix and's and or's that's even more complicated.
  * if (a && b && c || a && d) { d ;
  * 'a' is true when we evaluate 'b', and 'd'.
  * 'b' is true when we evaluate 'c' but otherwise we don't.
- * 
+ *
  * The other thing that complicates matters is if we negate
  * some if conditions.
  * if (!a) { ...
- * Smatch has passes the un-negated version to the client and flip 
+ * Smatch has passes the un-negated version to the client and flip
  * the true and false values internally.  This makes it easier
  * to write checks.
- * 
+ *
  * And negations can be part of a compound.
  * if (a && !(b || c)) { d;
  * In that situation we multiply the negative through to simplify
@@ -114,11 +114,11 @@ static void handle_compound_stmt(struct statement *stmt)
 	struct statement *s;
 
 	last = last_ptr_list((struct ptr_list *)stmt->stmts);
-	if (last->type != STMT_EXPRESSION) {
+	if (last->type != STMT_EXPRESSION)
 		last = NULL;
-        } else { 
+	else
 		expr = last->expression;
-	}
+
 	FOR_EACH_PTR(stmt->stmts, s) {
 		if (s != last)
 			__split_stmt(s);
@@ -163,24 +163,24 @@ static void handle_logical(struct expression *expr)
 
 	split_conditions(expr->left);
 
-	if (!is_logical_and(expr)) 
+	if (!is_logical_and(expr))
 		__use_cond_false_states();
-	
+
 	__push_cond_stacks();
 
 	__save_pre_cond_states();
 	split_conditions(expr->right);
 	__discard_pre_cond_states();
 
-	if (is_logical_and(expr)) {
+	if (is_logical_and(expr))
 		__and_cond_states();
-	} else {
+	else
 		__or_cond_states();
-	}
+
 	__use_cond_true_states();
 }
 
-static struct state_list *combine(struct state_list *orig, struct state_list *fake, 
+static struct state_list *combine(struct state_list *orig, struct state_list *fake,
 				struct state_list *new)
 {
 	struct state_list *ret = NULL;
@@ -218,8 +218,8 @@ static void handle_select(struct expression *expr)
 
 	/*
 	 * Imagine we have this:  if (a ? b : c) { ...
-	 * 
-	 * The condition is true if "a" is true and "b" is true or 
+	 *
+	 * The condition is true if "a" is true and "b" is true or
 	 * "a" is false and "c" is true.  It's false if "a" is true
 	 * and "b" is false or "a" is false and "c" is false.
 	 *
@@ -230,13 +230,13 @@ static void handle_select(struct expression *expr)
 	 * "c" is true.  The only way the condition can be false is if
 	 * "a" is false and "c" is false.
 	 *
-	 * The remaining thing is the "a_T_b_fake".  When we simplify 
+	 * The remaining thing is the "a_T_b_fake".  When we simplify
 	 * the equations we have to take into consideration that other
 	 * states may have changed that don't play into the true false
 	 * equation.  Take the following example:
 	 * if ({
 	 *         (flags) = __raw_local_irq_save();
-	 *         _spin_trylock(lock) ? 1 : 
+	 *         _spin_trylock(lock) ? 1 :
 	 *                 ({ raw_local_irq_restore(flags);  0; });
 	 *    })
 	 * Smatch has to record that the irq flags were restored on the
@@ -256,7 +256,7 @@ static void handle_select(struct expression *expr)
 	split_conditions(expr->cond_true);
 	a_T_b_fake = __pop_fake_cur_slist();
 	a_T_b_T = combine(a_T, a_T_b_fake, __pop_cond_true_stack());
-	a_T_b_F = combine(a_T, a_T_b_fake,__pop_cond_false_stack());
+	a_T_b_F = combine(a_T, a_T_b_fake, __pop_cond_false_stack());
 
 	__use_cond_false_states();
 
@@ -347,7 +347,7 @@ static void split_conditions(struct expression *expr)
 
 	/* fixme: this should be in smatch_flow.c
 	   but because of the funny stuff we do with conditions
-	   it's awkward to put it there.  We would need to 
+	   it's awkward to put it there.  We would need to
 	   call CONDITION_HOOK in smatch_flow as well.
 	*/
 	push_expression(&big_expression_stack, expr);
@@ -378,7 +378,7 @@ void __split_whole_condition(struct expression *expr)
 	inside_condition++;
 	__save_pre_cond_states();
 	__push_cond_stacks();
-	/* it's a hack, but it's sometimes handy to have this stuff 
+	/* it's a hack, but it's sometimes handy to have this stuff
 	   on the big_expression_stack.  */
 	push_expression(&big_expression_stack, expr);
 	if (expr)
@@ -396,7 +396,7 @@ void __handle_logic(struct expression *expr)
 	inside_condition++;
 	__save_pre_cond_states();
 	__push_cond_stacks();
-	/* it's a hack, but it's sometimes handy to have this stuff 
+	/* it's a hack, but it's sometimes handy to have this stuff
 	   on the big_expression_stack.  */
 	push_expression(&big_expression_stack, expr);
 	if (expr)
@@ -414,7 +414,7 @@ int __is_condition_assign(struct expression *expr)
 	struct expression *right;
 
 	right = strip_expr(expr->right);
-	switch(right->type) {
+	switch (right->type) {
 	case EXPR_LOGICAL:
 	case EXPR_COMPARE:
 		break;
@@ -440,7 +440,7 @@ int __handle_condition_assigns(struct expression *expr)
 	inside_condition++;
 	__save_pre_cond_states();
 	__push_cond_stacks();
-	/* it's a hack, but it's sometimes handy to have this stuff 
+	/* it's a hack, but it's sometimes handy to have this stuff
 	   on the big_expression_stack.  */
 	push_expression(&big_expression_stack, right);
 	split_conditions(right);
@@ -474,7 +474,7 @@ static int is_select_assign(struct expression *expr)
 
 static void set_fake_assign(struct expression *new,
 			struct expression *left, struct expression *right)
-{			
+{
 
 	new->pos = left->pos;
 	new->op = (int)'=';

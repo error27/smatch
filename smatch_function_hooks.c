@@ -87,7 +87,7 @@ void return_implies_state(const char *look_for, long long start, long long end,
 
 	cb = alloc_fcall_back(RANGED_CALL, (func_hook *)call_back, info);
 	cb->range = alloc_range_perm(start, end);
-	add_callback(func_hash, look_for, cb); 
+	add_callback(func_hash, look_for, cb);
 }
 
 static void call_call_backs(struct call_back_list *list, int type,
@@ -167,7 +167,7 @@ static void assign_ranged_funcs(const char *fn, struct expression *expr,
 
 		same_range_call_backs = get_same_ranged_call_backs(call_backs, tmp->range);
 		call_ranged_call_backs(same_range_call_backs, fn, expr->right, expr);
- 		__free_ptr_list((struct ptr_list **)&same_range_call_backs);
+		__free_ptr_list((struct ptr_list **)&same_range_call_backs);
 
 		extra_state = alloc_extra_state_range(tmp->range->min, tmp->range->max);
 		set_extra_mod(var_name, sym, extra_state);

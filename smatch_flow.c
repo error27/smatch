@@ -216,9 +216,8 @@ static int is_forever_loop(struct statement *stmt)
 		return 1;
 	}
 
-	if (expr->type == EXPR_VALUE && expr->value == 1) {
+	if (expr->type == EXPR_VALUE && expr->value == 1)
 		return 1;
-	}
 
 	return 0;
 }
@@ -230,7 +229,7 @@ static char *get_loop_name(int num)
 
 	snprintf(buf, 255, "-loop%d", num);
 	buf[255] = '\0';
-	return alloc_sname(buf);;
+	return alloc_sname(buf);
 }
 
 /*
@@ -245,7 +244,7 @@ static void handle_pre_loop(struct statement *stmt)
 	struct state_list *slist = NULL;
 	struct sm_state *sm = NULL;
 
- 	loop_name = get_loop_name(loop_num);
+	loop_name = get_loop_name(loop_num);
 	loop_num++;
 
 	__split_stmt(stmt->iterator_pre_statement);
@@ -289,12 +288,11 @@ static void handle_pre_loop(struct statement *stmt)
 		__split_whole_condition(stmt->iterator_pre_condition);
 		nullify_path();
 		__merge_false_states();
-		if (once_through) {
+		if (once_through)
 			__discard_false_states();
-		} else {
+		else
 			__merge_false_states();
 
-		}
 		if (extra_sm && unchanged)
 			__extra_pre_loop_hook_after(extra_sm,
 						stmt->iterator_post_statement,
@@ -311,7 +309,7 @@ static void handle_post_loop(struct statement *stmt)
 {
 	char *loop_name;
 
- 	loop_name = get_loop_name(loop_num);
+	loop_name = get_loop_name(loop_num);
 	loop_num++;
 	loop_count++;
 
@@ -370,7 +368,7 @@ static void print_unreached_initializers(struct symbol_list *sym_list)
 	struct symbol *sym;
 
 	FOR_EACH_PTR(sym_list, sym) {
-		if(sym->initializer)
+		if (sym->initializer)
 			sm_msg("info: '%s' is not actually initialized (unreached code).",
 				(sym->ident ? sym->ident->name : "this variable"));
 	} END_FOR_EACH_PTR(sym);
@@ -416,20 +414,20 @@ static void print_unreached(struct statement *stmt)
 static void split_asm_constraints(struct expression_list *expr_list)
 {
 	struct expression *expr;
-        int state = 0;
+	int state = 0;
 
-        FOR_EACH_PTR(expr_list, expr) {
-                switch (state) {
-                case 0: /* identifier */
-                case 1: /* constraint */
-                        state++;
-                        continue;
-                case 2: /* expression */
-                        state = 0;
-                        __split_expr(expr);
-                        continue;
-                }
-        } END_FOR_EACH_PTR(expr);
+	FOR_EACH_PTR(expr_list, expr) {
+		switch (state) {
+		case 0: /* identifier */
+		case 1: /* constraint */
+			state++;
+			continue;
+		case 2: /* expression */
+			state = 0;
+			__split_expr(expr);
+			continue;
+		}
+	} END_FOR_EACH_PTR(expr);
 }
 
 static int is_case_val(struct statement *stmt, long long val)
@@ -664,7 +662,6 @@ static void split_expr_list(struct expression_list *expr_list)
 	} END_FOR_EACH_PTR(expr);
 }
 
-
 static void split_sym(struct symbol *sym)
 {
 	if (!sym)
@@ -707,7 +704,7 @@ static void do_initializer_stuff(struct symbol *sym)
 {
 	struct expression *assign;
 
-	if(!sym->initializer)
+	if (!sym->initializer)
 		return;
 	assign = fake_assign_expr(sym);
 	__split_expr(assign);
@@ -803,7 +800,7 @@ static void split_functions(struct symbol_list *sym_list)
 	__pass_to_client_no_data(END_FILE_HOOK);
 }
 
-void smatch (int argc, char **argv)
+void smatch(int argc, char **argv)
 {
 
 	struct string_list *filelist = NULL;

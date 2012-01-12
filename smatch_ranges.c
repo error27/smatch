@@ -21,15 +21,15 @@ static char *show_num(long long num)
 {
 	static char buff[256];
 
-	if (num == whole_range.min) {
+	if (num == whole_range.min)
 		snprintf(buff, 255, "min");
-	} else if (num == whole_range.max) {
+	else if (num == whole_range.max)
 		snprintf(buff, 255, "max");
-	} else if (num < 0) {
+	else if (num < 0)
 		snprintf(buff, 255, "(%lld)", num);
-	} else {
+	else
 		snprintf(buff, 255, "%lld", num);
-	}
+
 	buff[255] = '\0';
 	return buff;
 }
@@ -42,7 +42,7 @@ char *show_ranges(struct range_list *list)
 
 	full[0] = '\0';
 	full[255] = '\0';
- 	FOR_EACH_PTR(list, tmp) {
+	FOR_EACH_PTR(list, tmp) {
 		if (i++)
 			strncat(full, ",", 254 - strlen(full));
 		if (tmp->min == tmp->max) {
@@ -125,8 +125,8 @@ void add_range(struct range_list **list, long long min, long long max)
 	struct data_range *tmp = NULL;
 	struct data_range *new = NULL;
 	int check_next = 0;
-	
- 	FOR_EACH_PTR(*list, tmp) {
+
+	FOR_EACH_PTR(*list, tmp) {
 		if (check_next) {
 			/* Sometimes we overlap with more than one range
 			   so we have to delete or modify the next range. */
@@ -271,7 +271,7 @@ long long get_dinfo_max(struct data_info *dinfo)
 	return drange->max;
 }
 
-/* 
+/*
  * if it can be only one and only value return 1, else return 0
  */
 int get_single_value_from_dinfo(struct data_info *dinfo, long long *val)

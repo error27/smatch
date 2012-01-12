@@ -14,7 +14,7 @@
 
 #include <stdlib.h>
 #ifndef __USE_ISOC99
-#define __USE_ISOC99 
+#define __USE_ISOC99
 #endif
 #include <limits.h>
 #include "parse.h"
@@ -24,7 +24,7 @@
 
 struct data_range whole_range = {
 	.min = LLONG_MIN,
-	.max = LLONG_MAX,	
+	.max = LLONG_MAX,
 };
 
 static struct data_info *alloc_dinfo(void)

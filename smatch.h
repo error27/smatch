@@ -94,9 +94,9 @@ enum hook_type {
 #define FALSE 0
 
 void add_hook(void *func, enum hook_type type);
-typedef struct smatch_state *(merge_func_t)(const char *name, 
+typedef struct smatch_state *(merge_func_t)(const char *name,
 					    struct symbol *sym,
-					    struct smatch_state *s1, 
+					    struct smatch_state *s1,
 					    struct smatch_state *s2);
 typedef struct smatch_state *(unmatched_func_t)(struct sm_state *state);
 void add_merge_hook(int client_id, merge_func_t *func);
@@ -178,19 +178,19 @@ static inline void print_implied_debug_msg()
 
 struct smatch_state *get_state(int owner, const char *name, struct symbol *sym);
 struct smatch_state *get_state_expr(int owner, struct expression *expr);
-struct state_list *get_possible_states(int owner, const char *name, 
+struct state_list *get_possible_states(int owner, const char *name,
 				       struct symbol *sym);
 struct state_list *get_possible_states_expr(int owner, struct expression *expr);
-struct sm_state *set_state(int owner, const char *name, struct symbol *sym, 
+struct sm_state *set_state(int owner, const char *name, struct symbol *sym,
 	       struct smatch_state *state);
 struct sm_state *set_state_expr(int owner, struct expression *expr,
 		struct smatch_state *state);
 void delete_state(int owner, const char *name, struct symbol *sym);
 void delete_state_expr(int owner, struct expression *expr);
-void set_true_false_states(int owner, const char *name, struct symbol *sym, 
+void set_true_false_states(int owner, const char *name, struct symbol *sym,
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state);
-void set_true_false_states_expr(int owner, struct expression *expr, 
+void set_true_false_states_expr(int owner, struct expression *expr,
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state);
 
@@ -244,12 +244,12 @@ int is_ignored(int owner, const char *name, struct symbol *sym);
 
 /* smatch_tracker */
 struct tracker *alloc_tracker(int owner, const char *name, struct symbol *sym);
-void add_tracker(struct tracker_list **list, int owner, const char *name, 
+void add_tracker(struct tracker_list **list, int owner, const char *name,
 		struct symbol *sym);
 void add_tracker_expr(struct tracker_list **list, int owner, struct expression *expr);
-void del_tracker(struct tracker_list **list, int owner, const char *name, 
+void del_tracker(struct tracker_list **list, int owner, const char *name,
 		struct symbol *sym);
-int in_tracker_list(struct tracker_list *list, int owner, const char *name, 
+int in_tracker_list(struct tracker_list *list, int owner, const char *name,
 		struct symbol *sym);
 struct tracker_list *clone_tracker_list(struct tracker_list *orig_list);
 void free_tracker_list(struct tracker_list **list);
@@ -317,16 +317,16 @@ struct state_list *__pop_fake_cur_slist();
 int unreachable(void);
 void __set_sm(struct sm_state *sm);
 struct state_list *__get_cur_slist(void);
-void __set_true_false_sm(struct sm_state *true_state, 
+void __set_true_false_sm(struct sm_state *true_state,
 			struct sm_state *false_state);
-void nullify_path(void);	   
+void nullify_path(void);
 void __match_nullify_path_hook(const char *fn, struct expression *expr,
-			       void *unused);	   
-void __unnullify_path(void);	   
+			       void *unused);
+void __unnullify_path(void);
 int __path_is_null(void);
 void clear_all_states(void);
 
-struct sm_state *get_sm_state(int owner, const char *name, 
+struct sm_state *get_sm_state(int owner, const char *name,
 				struct symbol *sym);
 struct sm_state *get_sm_state_expr(int owner, struct expression *expr);
 void __push_true_states(void);
