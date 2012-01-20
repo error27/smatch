@@ -11,6 +11,8 @@ if (!defined($warns)) {
 }
 
 my $db = DBI->connect("dbi:SQLite:smatch_db.sqlite", "", "", {RaiseError => 1, AutoCommit => 0});
+$db->do("PRAGMA synchronous = OFF");
+$db->do("PRAGMA cache_size = 800000");
 
 my $prev_fn = "";
 my $prev_line = "+0";
