@@ -91,7 +91,7 @@ while (<WARNS>) {
     $key =~ s/'//g;
     $value =~ s/'//g;
 
-    if ($prev_fn ne $func || $prev_line ne $line || $param < $prev_param) {
+    if ($prev_fn ne $func || $prev_line ne $line) {
 	$prev_fn = $func;
 	$prev_line = $line;
 	$prev_param = $param;
