@@ -141,6 +141,8 @@ static void match_condition(struct expression *expr)
 
 	if (!expr || expr->type != EXPR_COMPARE)
 		return;
+	if (get_macro_name(&expr->pos))
+		return;
 	if (get_implied_value(expr->left, &val))
 		left = 1;
 	else if (get_implied_value(expr->right, &val))
