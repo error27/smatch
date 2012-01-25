@@ -325,6 +325,7 @@ static void split_conditions(struct expression *expr)
 
 	switch (expr->type) {
 	case EXPR_LOGICAL:
+		__pass_to_client(expr, LOGIC_HOOK);
 		handle_logical(expr);
 		return;
 	case EXPR_COMPARE:
