@@ -79,7 +79,7 @@ static LLVMTypeRef sym_func_type(LLVMModuleRef module, struct symbol *sym)
 		arg_type[idx++] = symbol_type(module, arg_sym);
 	} END_FOR_EACH_PTR(arg);
 	func_type = LLVMFunctionType(ret_type, arg_type, n_arg,
-				     /* varargs? */ 0);
+				     sym->ctype.base_type->variadic);
 
 	return func_type;
 }
@@ -744,7 +744,7 @@ static LLVMTypeRef get_func_type(struct function *fn, struct instruction *insn)
 	} END_FOR_EACH_PTR(arg);
 
 	func_type = LLVMFunctionType(ret_type, arg_type, n_arg,
-				     /* varargs? */ 0);
+				     insn->fntype->variadic);
 
 	return func_type;
 }
