@@ -1195,6 +1195,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	struct instruction *insn = alloc_typed_instruction(OP_CALL, expr->ctype);
 	pseudo_t retval, call;
 	struct ctype *ctype = NULL;
+	struct symbol *fntype;
 	struct context *context;
 
 	if (!expr->ctype) {
@@ -1211,6 +1212,13 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 
 	if (fn->ctype)
 		ctype = &fn->ctype->ctype;
+
+	fntype = fn->ctype;
+	if (fntype) {
+		if (fntype->type == SYM_NODE)
+			fntype = fntype->ctype.base_type;
+	}
+	insn->fntype = fntype;
 
 	if (fn->type == EXPR_PREOP) {
 		if (fn->unop->type == EXPR_SYMBOL) {

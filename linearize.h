@@ -116,6 +116,7 @@ struct instruction {
 		struct /* call */ {
 			pseudo_t func;
 			struct pseudo_list *arguments;
+			struct symbol *fntype;
 		};
 		struct /* context */ {
 			int increment;
