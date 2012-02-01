@@ -31,7 +31,7 @@ if [[ "$file" = "" ]] ; then
     exit 1
 fi
 
-grep 'ignoring unreachable' $file | cut -d ' ' -f1 | while loc; do
+grep 'ignoring unreachable' $file | cut -d ' ' -f1 | while read loc; do
     code_file=$(echo $loc | cut -d ':' -f 1)
     line=$(echo $loc | cut -d ':' -f 2)
 
