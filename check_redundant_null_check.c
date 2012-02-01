@@ -30,9 +30,9 @@
 
 static int my_id;
 
-struct statement *this_statement = NULL;
-struct statement *previous_statement = NULL;
-struct expression *previous_condition = NULL;
+static struct statement *this_statement = NULL;
+static struct statement *previous_statement = NULL;
+static struct expression *previous_condition = NULL;
 
 static const char *wine_funcs[] = {
 	"HeapFree",
