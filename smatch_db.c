@@ -12,7 +12,6 @@
 #include <sqlite3.h>
 #include "smatch.h"
 #include "smatch_slist.h"
-#include "smatch_extra.h"
 
 static sqlite3 *db;
 
