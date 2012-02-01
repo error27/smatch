@@ -16,12 +16,10 @@ static void match_return(struct expression *ret_value)
 {
 	struct smatch_state *state;
 	long long val;
-	struct range_list *rlist;
 
-	if (!ret_value) {
-		sm_msg("info: return_value void");
+	if (!ret_value)
 		return;
-	}
+
 	if (get_value(ret_value, &val)) {
 		sm_msg("info: return_value %lld", val);
 		return;
