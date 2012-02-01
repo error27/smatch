@@ -31,14 +31,14 @@ void func(void)
  * check-command: smatch -I.. sm_loops2.c
  *
  * check-output-start
-sm_loops2.c +10 func(3) x = unknown
-sm_loops2.c +11 func(4) x = unknown
-sm_loops2.c +16 func(9) x = 0-max
-sm_loops2.c +18 func(11) x = 0-max
-sm_loops2.c +19 func(12) x = (-1)
-sm_loops2.c +22 func(15) x = 0-9
-sm_loops2.c +23 func(16) x = (-1)
-sm_loops2.c +26 func(19) x = 1-9
-sm_loops2.c +27 func(20) x = 0
+sm_loops2.c:10 func(3) x = unknown
+sm_loops2.c:11 func(4) x = unknown
+sm_loops2.c:16 func(9) x = 0-max
+sm_loops2.c:18 func(11) x = 0-max
+sm_loops2.c:19 func(12) x = (-1)
+sm_loops2.c:22 func(15) x = 0-9
+sm_loops2.c:23 func(16) x = (-1)
+sm_loops2.c:26 func(19) x = 1-9
+sm_loops2.c:27 func(20) x = 0
  * check-output-end
  */

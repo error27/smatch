@@ -21,11 +21,11 @@ void func(int *p)
  * check-command: smatch -I.. sm_macros.c
  *
  * check-output-start
-sm_macros.c +11 func(5) warn: the 'add' macro might need parens
-sm_macros.c +13 func(7) warn: the 'add' macro might need parens
-sm_macros.c +13 func(7) warn: the 'add' macro might need parens
-sm_macros.c +14 func(8) warn: the 'add' macro might need parens
-sm_macros.c +16 func(10) warn: the 'sub' macro might need parens
-sm_macros.c +17 func(11) warn: the 'sub' macro might need parens
+sm_macros.c:11 func(5) warn: the 'add' macro might need parens
+sm_macros.c:13 func(7) warn: the 'add' macro might need parens
+sm_macros.c:13 func(7) warn: the 'add' macro might need parens
+sm_macros.c:14 func(8) warn: the 'add' macro might need parens
+sm_macros.c:16 func(10) warn: the 'sub' macro might need parens
+sm_macros.c:17 func(11) warn: the 'sub' macro might need parens
  * check-output-end
  */

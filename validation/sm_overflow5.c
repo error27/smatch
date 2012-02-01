@@ -16,6 +16,6 @@ void func (char *a, char *b)
  * check-command: smatch -I.. sm_overflow5.c
  *
  * check-output-start
-sm_overflow5.c +12 func(6) error: buffer overflow 'a' 5 <= 5
+sm_overflow5.c:12 func(6) error: buffer overflow 'a' 5 <= 5
  * check-output-end
  */

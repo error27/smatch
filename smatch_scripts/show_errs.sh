@@ -21,13 +21,13 @@ if [[ "$file" = "" ]] ; then
 fi
 
 cat $file | while read line ; do
-    code_file=$(echo $line | cut -d ' ' -f 1)
-    lineno=$(echo $line | cut -d ' ' -f 2)
+    code_file=$(echo $line | cut -d ':' -f 1)
+    lineno=$(echo $line | cut -d ' ' -f 1 | cut -d ':' -f 2)
     echo "========================================================="
     echo $line
     echo "---"
     tail -n +$(($lineno - ($context - 1))) $code_file | head -n $(($context - 1))
     echo "---------------------------------------------------------"
-    tail -n $lineno $code_file | head -n $context
+    tail -n +${lineno} $code_file | head -n $context
 done
 

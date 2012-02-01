@@ -21,12 +21,11 @@ fi
 
 IFS="
 "
-for err in $(diff -u $old $new | grep ^+ | cut -b 2- | \
-    egrep '(warn|error):' | grep " +[1-9]") ; do
+for err in $(diff -u $old $new | cut -b 2- | egrep '(warn|error):') ; do
 
     # we are only interested in the last chunk.
     # "some_func(42) warn: blah blah blah"
-    last=$(echo $err | cut -d ' ' -f 3-)
+    last=$(echo $err | cut -d ' ' -f 2-)
 
     # There are some error message which include a second
     # line number so we crudely chop that off.

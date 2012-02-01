@@ -28,7 +28,7 @@ int func(void)
  * check-command: smatch -I.. sm_equiv3.c
  *
  * check-output-start
-sm_equiv3.c +22 func(13) red = 0
-sm_equiv3.c +23 func(14) blue = min-(-1),1-max
+sm_equiv3.c:22 func(13) red = 0
+sm_equiv3.c:23 func(14) blue = min-(-1),1-max
  * check-output-end
  */

@@ -25,6 +25,6 @@ void func(void)
  * check-command: smatch -I.. sm_loops3.c
  *
  * check-output-start
-sm_loops3.c +19 func(12) x = 1
+sm_loops3.c:19 func(12) x = 1
  * check-output-end
  */

@@ -18,6 +18,6 @@ int main(void)
  * check-command: smatch sm_array_overflow3.c
  *
  * check-output-start
-sm_array_overflow3.c +13 main(6) warn: buffer overflow 'a' 4 <= 4
+sm_array_overflow3.c:13 main(6) warn: buffer overflow 'a' 4 <= 4
  * check-output-end
  */

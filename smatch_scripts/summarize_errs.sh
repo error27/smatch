@@ -56,15 +56,15 @@ TXT=$(cat $file | uniq -f 2)
 IFS='
 '
 for sm_err in $TXT ; do
-    file=$(echo $sm_err | cut -d ' ' -f 1)
-    line=$(echo $sm_err | cut -d ' ' -f 2)
+    file=$(echo $sm_err | cut -d ':' -f 1)
+    line=$(echo $sm_err | cut -d ' ' -f 1 | cut -d ':' -f 2)
 
     if [ "$file" = "$skip_file" ] ; then
 	continue
     fi
     skip_file=""
 
-    last=$(echo $sm_err | cut -d ' ' -f 3-)
+    last=$(echo $sm_err | cut -d ' ' -f 2-)
     last=$(echo $last | sed -e 's/line .*//')
 
     if [ "$NEW" = "Y" ] ; then
@@ -99,7 +99,7 @@ for sm_err in $TXT ; do
     # map <C-j> :! echo $sm_err<CR>
     export sm_err
 
-    vim $file $line
+    vim $file +${line}
 
     save_thoughts
 done	

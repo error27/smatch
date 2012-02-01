@@ -13,13 +13,15 @@ if [[ "$file" = "" ]] ; then
     exit 1
 fi
 
-grep 'if();' $file | cut -d ' ' -f1,2 | while read code_file line ; do
+grep 'if();' $file | cut -d ' ' -f1 | while read loc; do
+    code_file=$(echo $loc | cut -d ':' -f 1)
+    line=$(echo $loc | cut -d ':' -f 2)
     echo "========================================================="
     echo $code_file $line
     tail -n +$(($line - ($context - 1))) $code_file | head -n $(($context - 1))
     if [[ $context -gt 1 ]] ; then
 	echo "---------------------------------------------------------"
     fi
-    tail -n $line $code_file | head -n $context
+    tail -n +${line} $code_file | head -n $context
 done
 

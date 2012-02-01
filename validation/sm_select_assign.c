@@ -30,9 +30,9 @@ void func(void)
  * check-command: smatch -I.. sm_select_assign.c
  *
  * check-output-start
-sm_select_assign.c +14 func(7) val = 0-5
-sm_select_assign.c +18 func(11) i = 11-max
-sm_select_assign.c +20 func(13) val = 11-100
-sm_select_assign.c +26 func(19) val = 10
+sm_select_assign.c:14 func(7) val = 0-5
+sm_select_assign.c:18 func(11) i = 11-max
+sm_select_assign.c:20 func(13) val = 11-100
+sm_select_assign.c:26 func(19) val = 10
  * check-output-end
  */

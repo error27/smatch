@@ -25,10 +25,10 @@ void func(int y)
  * check-command: smatch -I.. sm_implied9.c
  *
  * check-output-start
-sm_implied9.c +10 func(5) y = min-(-1),10-max
-sm_implied9.c +12 func(7) y = 0-9
-sm_implied9.c +16 func(11) y = min-2,5-max
-sm_implied9.c +18 func(13) y = 3-4
-sm_implied9.c +21 func(16) y = min-(-99)
+sm_implied9.c:10 func(5) y = min-(-1),10-max
+sm_implied9.c:12 func(7) y = 0-9
+sm_implied9.c:16 func(11) y = min-2,5-max
+sm_implied9.c:18 func(13) y = 3-4
+sm_implied9.c:21 func(16) y = min-(-99)
  * check-output-end
  */

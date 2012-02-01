@@ -24,7 +24,7 @@ void func(void)
  * check-command: smatch -p=kernel sm_check_kunmap.c
  *
  * check-output-start
-sm_check_kunmap.c +17 func(9) warn: passing the wrong stuff kunmap()
-sm_check_kunmap.c +20 func(12) warn: passing the wrong stuff to kmap_atomic()
+sm_check_kunmap.c:17 func(9) warn: passing the wrong stuff kunmap()
+sm_check_kunmap.c:20 func(12) warn: passing the wrong stuff to kmap_atomic()
  * check-output-end
  */

@@ -173,7 +173,7 @@ static void match_end_func(struct symbol *sym)
 	struct assignment *tmp;
 
  	FOR_EACH_PTR(assignment_list, tmp) {
-		sm_printf("%s +%d %s ", get_filename(), tmp->line, get_function());
+		sm_printf("%s:%d %s ", get_filename(), tmp->line, get_function());
 		sm_printf("warn: unused return: %s = %s()\n",
 			tmp->name, tmp->function);
 	} END_FOR_EACH_PTR(tmp);

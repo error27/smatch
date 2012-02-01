@@ -25,6 +25,6 @@ void func(void)
  * check-command: smatch -I.. sm_loops4.c
  *
  * check-output-start
-sm_loops4.c +16 func(9) error: potentially derefencing uninitialized 'p'.
+sm_loops4.c:16 func(9) error: potentially derefencing uninitialized 'p'.
  * check-output-end
  */

@@ -29,6 +29,6 @@ int func (void)
  * check-command: smatch --project=kernel sm_locking4.c
  *
  * check-output-start
-sm_locking4.c +25 func(18) warn: inconsistent returns spin_lock:mylock: locked (22,25) unlocked (16)
+sm_locking4.c:25 func(18) warn: inconsistent returns spin_lock:mylock: locked (22,25) unlocked (16)
  * check-output-end
  */

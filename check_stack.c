@@ -53,7 +53,7 @@ static void match_declarations(struct symbol *sym)
 static void match_end_func(struct symbol *sym)
 {
 	if ((max_size >= 500 * 8) && !complained) {
-		sm_printf("%s +%d %s(%d) ", get_filename(), max_lineno, get_function(), max_func_pos);
+		sm_printf("%s:%d %s(%d) ", get_filename(), max_lineno, get_function(), max_func_pos);
 		sm_printf("warn: function puts %d bytes on stack\n", max_size / 8);
 	}
 	total_size = 0;

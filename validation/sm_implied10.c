@@ -22,9 +22,9 @@ void func(int *y)
  * check-command: smatch -I.. sm_implied10.c
  *
  * check-output-start
-sm_implied10.c +10 func(3) y = min-max
-sm_implied10.c +12 func(5) y = min-(-1),1-max
-sm_implied10.c +15 func(8) offset = min-max
-sm_implied10.c +17 func(10) offset = min-9
+sm_implied10.c:10 func(3) y = min-max
+sm_implied10.c:12 func(5) y = min-(-1),1-max
+sm_implied10.c:15 func(8) offset = min-max
+sm_implied10.c:17 func(10) offset = min-9
  * check-output-end
  */

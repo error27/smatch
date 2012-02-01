@@ -37,13 +37,13 @@ static int options_write(void)
  * check-command: smatch sm_array_overflow.c
  *
  * check-output-start
-sm_array_overflow.c +25 options_write(18) error: buffer overflow 'a' 4 <= 4
-sm_array_overflow.c +26 options_write(19) error: buffer overflow 'b' 4 <= 4
-sm_array_overflow.c +27 options_write(20) error: buffer overflow 'c' 4 <= 4
-sm_array_overflow.c +28 options_write(21) error: buffer overflow 'd' 4 <= 4
-sm_array_overflow.c +29 options_write(22) error: buffer overflow 'str' 4 <= 4
-sm_array_overflow.c +30 options_write(23) error: buffer overflow 'str2' 4 <= 4
-sm_array_overflow.c +31 options_write(24) error: buffer overflow 'str3' 4 <= 4
-sm_array_overflow.c +32 options_write(25) error: buffer overflow 'str4' 4 <= 4
+sm_array_overflow.c:25 options_write(18) error: buffer overflow 'a' 4 <= 4
+sm_array_overflow.c:26 options_write(19) error: buffer overflow 'b' 4 <= 4
+sm_array_overflow.c:27 options_write(20) error: buffer overflow 'c' 4 <= 4
+sm_array_overflow.c:28 options_write(21) error: buffer overflow 'd' 4 <= 4
+sm_array_overflow.c:29 options_write(22) error: buffer overflow 'str' 4 <= 4
+sm_array_overflow.c:30 options_write(23) error: buffer overflow 'str2' 4 <= 4
+sm_array_overflow.c:31 options_write(24) error: buffer overflow 'str3' 4 <= 4
+sm_array_overflow.c:32 options_write(25) error: buffer overflow 'str4' 4 <= 4
  * check-output-end
  */

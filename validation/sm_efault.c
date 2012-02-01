@@ -16,6 +16,6 @@ int func(int *p)
  * check-command: smatch -p=kernel -I.. sm_efault.c
  *
  * check-output-start
-sm_efault.c +11 func(6) warn: maybe return -EFAULT instead of the bytes remaining?
+sm_efault.c:11 func(6) warn: maybe return -EFAULT instead of the bytes remaining?
  * check-output-end
  */

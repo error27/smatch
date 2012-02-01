@@ -46,10 +46,10 @@ void func (void)
  * check-command: smatch -p=kernel sm_skb.c
  *
  * check-output-start
-sm_skb.c +34 func(2) error: use kfree_skb() here instead of kfree(skb)
-sm_skb.c +35 func(3) error: use kfree_skb() here instead of kfree(x->skb)
-sm_skb.c +36 func(4) error: use kfree_skb() here instead of kfree(xx.skb)
-sm_skb.c +38 func(6) error: use kfree_skb() here instead of kfree(u->a->skb)
-sm_skb.c +40 func(8) error: use kfree_skb() here instead of kfree(y->b->a->skb)
+sm_skb.c:34 func(2) error: use kfree_skb() here instead of kfree(skb)
+sm_skb.c:35 func(3) error: use kfree_skb() here instead of kfree(x->skb)
+sm_skb.c:36 func(4) error: use kfree_skb() here instead of kfree(xx.skb)
+sm_skb.c:38 func(6) error: use kfree_skb() here instead of kfree(u->a->skb)
+sm_skb.c:40 func(8) error: use kfree_skb() here instead of kfree(y->b->a->skb)
  * check-output-end
  */

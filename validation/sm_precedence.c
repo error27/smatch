@@ -33,11 +33,11 @@ static int options_write(void)
  * check-command: smatch sm_precedence.c
  *
  * check-output-start
-sm_precedence.c +10 options_write(2) warn: add some parenthesis here?
-sm_precedence.c +12 options_write(4) warn: add some parenthesis here?
-sm_precedence.c +14 options_write(6) warn: add some parenthesis here?
-sm_precedence.c +16 options_write(8) warn: add some parenthesis here?
-sm_precedence.c +18 options_write(10) warn: add some parenthesis here?
-sm_precedence.c +20 options_write(12) warn: add some parenthesis here?
+sm_precedence.c:10 options_write(2) warn: add some parenthesis here?
+sm_precedence.c:12 options_write(4) warn: add some parenthesis here?
+sm_precedence.c:14 options_write(6) warn: add some parenthesis here?
+sm_precedence.c:16 options_write(8) warn: add some parenthesis here?
+sm_precedence.c:18 options_write(10) warn: add some parenthesis here?
+sm_precedence.c:20 options_write(12) warn: add some parenthesis here?
  * check-output-end
  */

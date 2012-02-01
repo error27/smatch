@@ -37,7 +37,7 @@ sub load_all($$)
 
     open(FILE, "<$file");
     while (<FILE>) {
-	if (/.*? \+\d+ (.*?)\(\d+\) info: func_call \((.*)\) (.*)/) {
+	if (/.*?:\d+ (.*?)\(\d+\) info: func_call \((.*)\) (.*)/) {
 	    my $caller = quotemeta $1;
 	    my $locks = quotemeta $2;
 	    my $callee = quotemeta $3;

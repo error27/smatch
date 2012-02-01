@@ -22,6 +22,6 @@ int main(int argc, char* argv[])
  * check-command: smatch sm_overflow.c
  *
  * check-output-start
-sm_overflow.c +15 main(5) error: buffer overflow 'b1.a.b' 8 <= 10
+sm_overflow.c:15 main(5) error: buffer overflow 'b1.a.b' 8 <= 10
  * check-output-end
  */

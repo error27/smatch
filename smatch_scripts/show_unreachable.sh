@@ -31,7 +31,9 @@ if [[ "$file" = "" ]] ; then
     exit 1
 fi
 
-grep 'ignoring unreachable' $file | cut -d ' ' -f1,2 | while read code_file line ; do
+grep 'ignoring unreachable' $file | cut -d ' ' -f1 | while loc; do
+    code_file=$(echo $loc | cut -d ':' -f 1)
+    line=$(echo $loc | cut -d ':' -f 2)
 
     if [ "$mode" = "kernel" ] ; then
         # BUG() is sometimes defined away on embedded systems
@@ -55,6 +57,6 @@ grep 'ignoring unreachable' $file | cut -d ' ' -f1,2 | while read code_file line
     echo $code_file $line
     tail -n +$(($line - ($context - 1))) $code_file | head -n $(($context - 1))
     echo "---------------------------------------------------------"
-    tail -n $line $code_file | head -n $context
+    tail -n +${line} $code_file | head -n $context
 done
 

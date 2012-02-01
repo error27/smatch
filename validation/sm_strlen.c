@@ -19,6 +19,6 @@ void func (char *input)
  * check-command: smatch sm_strlen.c
  *
  * check-output-start
-sm_strlen.c +11 func(7) error: strcpy() 'input' too large for 'buf' (6 vs 4)
+sm_strlen.c:11 func(7) error: strcpy() 'input' too large for 'buf' (6 vs 4)
  * check-output-end
  */

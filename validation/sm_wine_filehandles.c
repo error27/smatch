@@ -20,7 +20,7 @@ int func (void)
  * check-command: smatch -p=wine sm_wine_filehandles.c
  *
  * check-output-start
-sm_wine_filehandles.c +8 func(4) error: comparing a filehandle against zero 'x'
-sm_wine_filehandles.c +13 func(9) error: comparing a filehandle against zero 'x'
+sm_wine_filehandles.c:8 func(4) error: comparing a filehandle against zero 'x'
+sm_wine_filehandles.c:13 func(9) error: comparing a filehandle against zero 'x'
  * check-output-end
  */

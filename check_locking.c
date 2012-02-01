@@ -609,7 +609,7 @@ static void print_inconsistent_returns(struct tracker *lock,
 	struct locks_on_return *tmp;
 	int i;
 
-	sm_printf("%s +%d %s(%d) ", get_filename(), get_lineno(), get_function(), get_func_pos());
+	sm_prefix();
 	sm_printf("warn: inconsistent returns %s:", lock->name);
 	sm_printf(" locked (");
 	i = 0;

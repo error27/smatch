@@ -14,6 +14,6 @@ void func (void)
  * check-command: smatch sm_memleak2.c
  *
  * check-output-start
-sm_memleak2.c +8 func(5) warn: overwrite may leak 'ptr'
+sm_memleak2.c:8 func(5) warn: overwrite may leak 'ptr'
  * check-output-end
  */

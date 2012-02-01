@@ -30,8 +30,8 @@ void func(void)
  * check-command: smatch -p=kernel -I.. sm_get_user1.c
  *
  * check-output-start
-sm_get_user1.c +13 func(7) warn: check for integer over/underflow 'foo'
-sm_get_user1.c +18 func(12) warn: check for integer underflow 'bar'
-sm_get_user1.c +26 func(20) warn: check for integer overflow 'x'
+sm_get_user1.c:13 func(7) warn: check for integer over/underflow 'foo'
+sm_get_user1.c:18 func(12) warn: check for integer underflow 'bar'
+sm_get_user1.c:26 func(20) warn: check for integer overflow 'x'
  * check-output-end
  */
