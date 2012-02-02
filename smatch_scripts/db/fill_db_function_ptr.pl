@@ -27,7 +27,7 @@ while (<WARNS>) {
     s/\n//;
 
     my ($file_and_line, $file, $dummy, $struct_bit, $func, $ptr);
-    ($file_and_line, $dummy, $dummy, $dummy, $dummy, $struct_bit, $ptr, $func) = split(/ /, $_);
+    ($file_and_line, $dummy, $dummy, $dummy, $struct_bit, $ptr, $func) = split(/ /, $_);
     ($file, $dummy) = split(/:/, $file_and_line);
 
     if (!defined($func)) {
