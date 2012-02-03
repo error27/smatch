@@ -126,6 +126,11 @@ void add_range(struct range_list **list, long long min, long long max)
 	struct data_range *new = NULL;
 	int check_next = 0;
 
+	/*
+	 * FIXME:  This has a problem merging a range_list like: min-0,3-max
+	 * with a range like 1-2.  You end up with min-2,3-max instead of
+	 * just min-max.
+	 */
 	FOR_EACH_PTR(*list, tmp) {
 		if (check_next) {
 			/* Sometimes we overlap with more than one range
