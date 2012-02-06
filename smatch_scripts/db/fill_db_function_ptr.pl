@@ -13,6 +13,7 @@ if (!defined($warns)) {
 my $db = DBI->connect("dbi:SQLite:smatch_db.sqlite", "", "", {RaiseError => 1, AutoCommit => 0});
 $db->do("PRAGMA synchronous = OFF");
 $db->do("PRAGMA cache_size = 800000");
+$db->do("PRAGMA journal_mode = OFF");
 
 $db->do("delete from function_ptr;");
 
