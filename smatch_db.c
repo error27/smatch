@@ -365,7 +365,6 @@ static void global_variable(struct symbol *sym)
 		struct_type = get_base_type(struct_type);
 		if (!struct_type)
 			return;
-		sm_msg("here in sets_fn_ptr %d %p", struct_type->type, struct_type->ident);
 	}
 	if (struct_type->type != SYM_STRUCT || !struct_type->ident)
 		return;
