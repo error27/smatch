@@ -1157,6 +1157,8 @@ static void match_call_assign(struct expression *expr)
 	if (right->fn->type != EXPR_SYMBOL)
 		goto out_unknown;
 	sym = right->fn->symbol;
+	if (!sym)
+		goto out_unknown;
 
 	if (sym->ctype.modifiers & MOD_STATIC) {
 		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
