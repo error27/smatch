@@ -459,6 +459,9 @@ static void match_assign(struct expression *expr)
 	while (right->type == EXPR_ASSIGNMENT && right->op == '=')
 		right = strip_parens(right->left);
 
+	if (expr->op == '=' && right->type == EXPR_CALL)
+		return;  /* these are handled in match_call_assign() */
+
 	right_name = get_variable_from_expr(right, &right_sym);
 	if (expr->op == '=' && right_name && right_sym) {
 		right_sm = get_sm_state_expr(SMATCH_EXTRA, right);
@@ -1122,6 +1125,60 @@ void set_param_value(const char *name, struct symbol *sym, char *key, char *valu
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
 
+static struct range_list *return_range_list;
+static int db_return_callback(void *unused, int argc, char **argv, char **azColName)
+{
+	struct range_list *rl = NULL;
+
+	if (argc != 1)
+		return 0;
+
+	get_value_ranges(argv[0], &rl);
+	return_range_list = range_list_union(return_range_list, rl);
+
+	return 0;
+}
+
+static void match_call_assign(struct expression *expr)
+{
+	struct expression *right;
+	struct symbol *sym;
+	char sql_filter[1024];
+
+	if (expr->op != '=')
+		return;
+
+	right = strip_parens(expr->right);
+	while (right->type == EXPR_ASSIGNMENT && right->op == '=')
+		right = strip_parens(right->left);
+
+	if (right->type != EXPR_CALL)
+		goto out_unknown;
+	if (right->fn->type != EXPR_SYMBOL)
+		goto out_unknown;
+	sym = right->fn->symbol;
+
+	if (sym->ctype.modifiers & MOD_STATIC) {
+		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
+			 get_filename(), sym->ident->name);
+	} else {
+		snprintf(sql_filter, 1024, "function = '%s';", sym->ident->name);
+	}
+
+	return_range_list = NULL;
+	run_sql(db_return_callback, "select value from return_info where %s",
+		 sql_filter);
+
+	if (!return_range_list)
+		goto out_unknown;
+
+	set_extra_expr_mod(expr->left, alloc_extra_state_range_list(return_range_list));
+	return;
+
+out_unknown:
+	set_extra_expr_mod(expr->left, extra_undefined());
+}
+
 void register_smatch_extra(int id)
 {
 	my_id = id;
@@ -1131,6 +1188,7 @@ void register_smatch_extra(int id)
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_call_assign, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	if (option_info) {
 		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
