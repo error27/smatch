@@ -205,6 +205,7 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 	if (func_id != prev_func_id) {
 		merge_slist(&final_states, __pop_fake_cur_slist());
 		__push_fake_cur_slist();
+		__unnullify_path();
 		prev_func_id = func_id;
 	}
 
@@ -275,6 +276,7 @@ static void match_data_from_db(struct symbol *sym)
 		return;
 
 	__push_fake_cur_slist();
+	__unnullify_path();
 	prev_func_id = -1;
 
 	call_count = 0;
