@@ -1053,60 +1053,6 @@ static void match_call_info(struct expression *expr)
 	free_string(name);
 }
 
-static void get_value_ranges(char *value, struct range_list **rl)
-{
-	long long val1, val2;
-	char *start;
-	char *c;
-
-	c = value;
-	while (*c) {
-		if (*c == '(')
-			c++;
-		start = c;
-		if (!strncmp(start, "min", 3)) {
-			val1 = LLONG_MIN;
-			c += 3;
-		} else {
-			while (*c && *c != ',' && *c != '-')
-				c++;
-			val1 = strtoll(start, &c, 10);
-		}
-		if (*c == ')')
-			c++;
-		if (!*c) {
-			add_range(rl, val1, val1);
-			break;
-		}
-		if (*c == ',') {
-			add_range(rl, val1, val1);
-			c++;
-			start = c;
-			continue;
-		}
-		c++; /* skip the dash in eg. 4-5 */
-		if (*c == '(')
-			c++;
-		start = c;
-		if (!strncmp(start, "max", 3)) {
-			val2 = LLONG_MAX;
-			c += 3;
-		} else {
-
-			while (*c && *c != ',' && *c != '-')
-				c++;
-			val2 = strtoll(start, &c, 10);
-		}
-		add_range(rl, val1, val2);
-		if (!*c)
-			break;
-		if (*c == ')')
-			c++;
-		c++; /* skip the comma in eg: 4-5,7 */
-	}
-
-}
-
 void set_param_value(const char *name, struct symbol *sym, char *key, char *value)
 {
 	struct range_list *rl = NULL;
@@ -1125,25 +1071,10 @@ void set_param_value(const char *name, struct symbol *sym, char *key, char *valu
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
 
-static struct range_list *return_range_list;
-static int db_return_callback(void *unused, int argc, char **argv, char **azColName)
-{
-	struct range_list *rl = NULL;
-
-	if (argc != 1)
-		return 0;
-
-	get_value_ranges(argv[0], &rl);
-	return_range_list = range_list_union(return_range_list, rl);
-
-	return 0;
-}
-
 static void match_call_assign(struct expression *expr)
 {
 	struct expression *right;
-	struct symbol *sym;
-	char sql_filter[1024];
+	struct range_list *rl;
 
 	if (expr->op != '=')
 		return;
@@ -1152,33 +1083,11 @@ static void match_call_assign(struct expression *expr)
 	while (right->type == EXPR_ASSIGNMENT && right->op == '=')
 		right = strip_parens(right->left);
 
-	if (right->type != EXPR_CALL)
-		goto out_unknown;
-	if (right->fn->type != EXPR_SYMBOL)
-		goto out_unknown;
-	sym = right->fn->symbol;
-	if (!sym)
-		goto out_unknown;
-
-	if (sym->ctype.modifiers & MOD_STATIC) {
-		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
-			 get_filename(), sym->ident->name);
-	} else {
-		snprintf(sql_filter, 1024, "function = '%s';", sym->ident->name);
-	}
-
-	return_range_list = NULL;
-	run_sql(db_return_callback, "select value from return_info where %s",
-		 sql_filter);
-
-	if (!return_range_list)
-		goto out_unknown;
-
-	set_extra_expr_mod(expr->left, alloc_extra_state_range_list(return_range_list));
-	return;
-
-out_unknown:
-	set_extra_expr_mod(expr->left, extra_undefined());
+	rl = db_return_vals(right);
+	if (rl)
+		set_extra_expr_mod(expr->left, alloc_extra_state_range_list(rl));
+	else
+		set_extra_expr_mod(expr->left, extra_undefined());
 }
 
 void register_smatch_extra(int id)

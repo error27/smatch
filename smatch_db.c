@@ -12,6 +12,7 @@
 #include <sqlite3.h>
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 
 static sqlite3 *db;
 
@@ -62,6 +63,46 @@ void add_member_info_callback(int owner, void (*callback)(char *fn, int param, c
 	member_callback->owner = owner;
 	member_callback->callback = callback;
 	add_ptr_list(&member_callbacks, member_callback);
+}
+
+static struct range_list *return_range_list;
+static int db_return_callback(void *unused, int argc, char **argv, char **azColName)
+{
+	struct range_list *rl = NULL;
+
+	if (argc != 1)
+		return 0;
+
+	get_value_ranges(argv[0], &rl);
+	return_range_list = range_list_union(return_range_list, rl);
+
+	return 0;
+}
+
+struct range_list *db_return_vals(struct expression *expr)
+{
+	struct symbol *sym;
+	static char sql_filter[1024];
+
+	if (expr->type != EXPR_CALL)
+		return NULL;
+	if (expr->fn->type != EXPR_SYMBOL)
+		return NULL;
+	sym = expr->fn->symbol;
+	if (!sym)
+		return NULL;
+
+	if (sym->ctype.modifiers & MOD_STATIC) {
+		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
+			 get_filename(), sym->ident->name);
+	} else {
+		snprintf(sql_filter, 1024, "function = '%s';", sym->ident->name);
+	}
+
+	return_range_list = NULL;
+	run_sql(db_return_callback, "select value from return_info where %s",
+		 sql_filter);
+	return return_range_list;
 }
 
 static void match_call_hack(struct expression *expr)
