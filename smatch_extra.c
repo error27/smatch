@@ -990,6 +990,11 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 	if (expr->type != EXPR_BINOP)
 		return 0;
 
+	if (expr->type == EXPR_CALL) {
+		*rl = db_return_vals(expr);
+		return !!*rl;
+	}
+
 	if (expr->op == '%') {
 		if (!get_implied_value(expr->right, &val))
 			return 0;
