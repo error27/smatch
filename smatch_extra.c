@@ -573,6 +573,9 @@ static void unop_expr(struct expression *expr)
 {
 	struct smatch_state *state;
 
+	if (expr->smatch_flags & Handled)
+		return;
+
 	switch (expr->op) {
 	case SPECIAL_INCREMENT:
 		state = get_state_expr(SMATCH_EXTRA, expr->unop);
@@ -652,6 +655,7 @@ static void match_comparison(struct expression *expr)
 	int left = 0;
 	int comparison = expr->op;
 	struct expression *varies;
+	int postop = 0;
 
 	varies = strip_expr(expr->right);
 	if (!get_implied_value(expr->left, &fixed)) {
@@ -661,8 +665,13 @@ static void match_comparison(struct expression *expr)
 		left = 1;
 	}
 
-	if (varies->op == SPECIAL_INCREMENT || varies->op == SPECIAL_DECREMENT)
+	if (varies->op == SPECIAL_INCREMENT || varies->op == SPECIAL_DECREMENT) {
+		if (varies->type == EXPR_POSTOP) {
+			varies->smatch_flags |= Handled;
+			postop = varies->op;
+		}
 		varies = varies->unop;
+	}
 	if (varies->type == EXPR_CALL) {
 		function_comparison(comparison, varies, fixed, left);
 		return;
@@ -735,6 +744,16 @@ static void match_comparison(struct expression *expr)
 		sm_msg("unhandled comparison %d\n", comparison);
 		goto free;
 	}
+
+	if (postop == SPECIAL_INCREMENT) {
+		true_state = increment_state(true_state);
+		false_state = increment_state(false_state);
+	}
+	if (postop == SPECIAL_DECREMENT) {
+		true_state = decrement_state(true_state);
+		false_state = decrement_state(false_state);
+	}
+
 	set_extra_true_false(name, sym, true_state, false_state);
 free:
 	free_string(name);

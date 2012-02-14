@@ -56,12 +56,17 @@ enum {
 }; /* for expr->flags */
 
 enum {
+	Handled = 1,
+}; /* for expr->flags */
+
+enum {
 	Taint_comma = 1,
 }; /* for expr->taint */
 
 struct expression {
 	enum expression_type type:8;
 	unsigned flags:8;
+	unsigned smatch_flags:16;
 	int op;
 	struct position pos;
 	struct symbol *ctype;
