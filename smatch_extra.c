@@ -533,40 +533,60 @@ static void reset_struct_members(const char *name, struct symbol *sym, struct ex
 	} END_FOR_EACH_PTR(tmp);
 }
 
+static struct smatch_state *increment_state(struct smatch_state *state)
+{
+	long long min;
+	long long max;
+
+	min = get_dinfo_min(get_dinfo(state));
+	max = get_dinfo_max(get_dinfo(state));
+
+	if (inside_loop())
+		max = whole_range.max;
+
+	if (min != whole_range.min)
+		min++;
+	if (max != whole_range.max)
+		max++;
+	return alloc_extra_state_range(min, max);
+}
+
+static struct smatch_state *decrement_state(struct smatch_state *state)
+{
+	long long min;
+	long long max;
+
+	min = get_dinfo_min(get_dinfo(state));
+	max = get_dinfo_max(get_dinfo(state));
+
+	if (inside_loop())
+		min = whole_range.min;
+
+	if (min != whole_range.min)
+		min--;
+	if (max != whole_range.max)
+		max--;
+	return alloc_extra_state_range(min, max);
+}
+
 static void unop_expr(struct expression *expr)
 {
-	struct symbol *sym;
-	char *name;
-	long long min = whole_range.min;
-	long long max = whole_range.max;
-	long long val;
+	struct smatch_state *state;
 
 	switch (expr->op) {
 	case SPECIAL_INCREMENT:
+		state = get_state_expr(SMATCH_EXTRA, expr->unop);
+		state = increment_state(state);
+		set_extra_expr_mod(expr->unop, state);
+		break;
 	case SPECIAL_DECREMENT:
+		state = get_state_expr(SMATCH_EXTRA, expr->unop);
+		state = decrement_state(state);
+		set_extra_expr_mod(expr->unop, state);
 		break;
 	default:
 		return;
 	}
-
-	name = get_variable_from_expr(expr->unop, &sym);
-	if (!name)
-		goto free;
-	if (expr->op == SPECIAL_INCREMENT) {
-		if (get_implied_min(expr->unop, &val))
-			min = val + 1;
-		if (!inside_loop() && get_implied_max(expr->unop, &val))
-			max = val + 1;
-	}
-	if (expr->op == SPECIAL_DECREMENT) {
-		if (get_implied_max(expr->unop, &val))
-			max = val - 1;
-		if (!inside_loop() && get_implied_min(expr->unop, &val))
-			min = val - 1;
-	}
-	set_extra_mod(name, sym, alloc_extra_state_range(min, max));
-free:
-	free_string(name);
 }
 
 static void delete_state_tracker(struct tracker *t)
