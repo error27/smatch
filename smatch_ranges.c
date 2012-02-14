@@ -132,7 +132,7 @@ int is_whole_range_rl(struct range_list *rl)
 	return 0;
 }
 
-struct data_range *alloc_range(long long min, long long max)
+static struct data_range *alloc_range_helper(long long min, long long max, int perm)
 {
 	struct data_range *ret;
 
@@ -147,31 +147,24 @@ struct data_range *alloc_range(long long min, long long max)
 		return &range_zero;
 	if (min == 1 && max == 1)
 		return &range_one;
-	ret = __alloc_data_range(0);
+
+	if (perm)
+		ret = __alloc_perm_data_range(0);
+	else
+		ret = __alloc_data_range(0);
 	ret->min = min;
 	ret->max = max;
 	return ret;
 }
 
+struct data_range *alloc_range(long long min, long long max)
+{
+	return alloc_range_helper(min, max, 0);
+}
+
 struct data_range *alloc_range_perm(long long min, long long max)
 {
-	struct data_range *ret;
-
-	if (min > max) {
-		sm_msg("Error invalid range %lld to %lld", min, max);
-		min = whole_range.min;
-		max = whole_range.max;
-	}
-	if (min == whole_range.min && max == whole_range.max)
-		return &whole_range;
-	if (min == 0 && max == 0)
-		return &range_zero;
-	if (min == 1 && max == 1)
-		return &range_one;
-	ret = __alloc_perm_data_range(0);
-	ret->min = min;
-	ret->max = max;
-	return ret;
+	return alloc_range_helper(min, max, 1);
 }
 
 void add_range(struct range_list **list, long long min, long long max)
