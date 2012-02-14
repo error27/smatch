@@ -132,6 +132,26 @@ int is_whole_range_rl(struct range_list *rl)
 	return 0;
 }
 
+long long rl_min(struct range_list *rl)
+{
+	struct data_range *drange;
+
+	if (ptr_list_empty(rl))
+		return whole_range.min;
+	drange = first_ptr_list((struct ptr_list *)rl);
+	return drange->min;
+}
+
+long long rl_max(struct range_list *rl)
+{
+	struct data_range *drange;
+
+	if (ptr_list_empty(rl))
+		return whole_range.max;
+	drange = last_ptr_list((struct ptr_list *)rl);
+	return drange->max;
+}
+
 static struct data_range *alloc_range_helper(long long min, long long max, int perm)
 {
 	struct data_range *ret;
@@ -305,22 +325,16 @@ struct range_list *remove_range(struct range_list *list, long long min, long lon
 
 long long get_dinfo_min(struct data_info *dinfo)
 {
-	struct data_range *drange;
-
-	if (!dinfo || !dinfo->value_ranges)
+	if (!dinfo)
 		return whole_range.min;
-	drange = first_ptr_list((struct ptr_list *)dinfo->value_ranges);
-	return drange->min;
+	return rl_min(dinfo->value_ranges);
 }
 
 long long get_dinfo_max(struct data_info *dinfo)
 {
-	struct data_range *drange;
-
-	if (!dinfo || !dinfo->value_ranges)
+	if (!dinfo)
 		return whole_range.max;
-	drange = last_ptr_list((struct ptr_list *)dinfo->value_ranges);
-	return drange->max;
+	return rl_max(dinfo->value_ranges);
 }
 
 /*

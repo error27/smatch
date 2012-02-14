@@ -33,6 +33,8 @@ extern struct string_list *__ignored_macros;
 
 /* these are implimented in smatch_ranges.c */
 int is_whole_range_rl(struct range_list *rl);
+long long rl_min(struct range_list *rl);
+long long rl_max(struct range_list *rl);
 struct data_range *alloc_range_perm(long long min, long long max);
 void add_range(struct range_list **list, long long min, long long max);
 int true_comparison_range(struct data_range *left, int comparison, struct data_range *right);
