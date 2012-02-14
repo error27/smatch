@@ -137,7 +137,9 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		if (expr->op == '(')
 			append(buf, ")", len);
 
-		if (expr->op == SPECIAL_DECREMENT || expr->op == SPECIAL_INCREMENT)
+		if (expr->op == SPECIAL_DECREMENT ||
+				expr->op == SPECIAL_INCREMENT ||
+				expr->op == '&')
 			*complicated = 1;
 
 		return;
