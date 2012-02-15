@@ -644,6 +644,29 @@ static int last_stmt_val(struct statement *stmt, long long *val)
 	return get_value(expr, val);
 }
 
+static int match_func_comparison(struct expression *expr)
+{
+	struct expression *left = strip_expr(expr->left);
+	struct expression *right = strip_expr(expr->right);
+	long long val;
+
+	if (left->type == EXPR_CALL) {
+		if (!get_implied_value(right, &val))
+			return 1;
+		function_comparison(expr->op, left, val, 1);
+		return 1;
+	}
+
+	if (right->type == EXPR_CALL) {
+		if (!get_implied_value(left, &val))
+			return 1;
+		function_comparison(expr->op, right, val, 0);
+		return 1;
+	}
+
+	return 0;
+}
+
 static void match_comparison(struct expression *expr)
 {
 	long long fixed;
@@ -656,6 +679,9 @@ static void match_comparison(struct expression *expr)
 	int comparison = expr->op;
 	struct expression *varies;
 	int postop = 0;
+
+	if (match_func_comparison(expr))
+		return;
 
 	varies = strip_expr(expr->right);
 	if (!get_implied_value(expr->left, &fixed)) {
@@ -671,10 +697,6 @@ static void match_comparison(struct expression *expr)
 			postop = varies->op;
 		}
 		varies = varies->unop;
-	}
-	if (varies->type == EXPR_CALL) {
-		function_comparison(comparison, varies, fixed, left);
-		return;
 	}
 
 	name = get_variable_from_expr(varies, &sym);
