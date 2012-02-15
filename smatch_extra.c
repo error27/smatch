@@ -690,7 +690,6 @@ static void match_comparison(struct expression *expr)
 	struct smatch_state *false_state;
 	struct smatch_state *orig;
 	int left = 0;
-	int comparison = expr->op;
 	struct expression *varies;
 	int postop = 0;
 
@@ -717,7 +716,7 @@ static void match_comparison(struct expression *expr)
 	if (!orig)
 		orig = extra_undefined();
 
-	switch (comparison) {
+	switch (expr->op) {
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
 		if (left) {
@@ -773,7 +772,6 @@ static void match_comparison(struct expression *expr)
 			false_state = alloc_extra_state_empty();
 		break;
 	default:
-		sm_msg("unhandled comparison %d\n", comparison);
 		return;
 	}
 
