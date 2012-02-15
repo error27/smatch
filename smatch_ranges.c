@@ -187,6 +187,14 @@ struct data_range *alloc_range_perm(long long min, long long max)
 	return alloc_range_helper(min, max, 1);
 }
 
+struct range_list *alloc_range_list(long long min, long long max)
+{
+	struct range_list *rl = NULL;
+
+	add_range(&rl, min, max);
+	return rl;
+}
+
 void add_range(struct range_list **list, long long min, long long max)
 {
 	struct data_range *tmp = NULL;

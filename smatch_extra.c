@@ -1075,8 +1075,7 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 	if (!get_implied_max(expr, &max))
 		return 0;
 
-	*rl = NULL;
-	add_range(rl, min, max);
+	*rl = alloc_range_list(min, max);
 	return 1;
 }
 
