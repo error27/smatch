@@ -82,7 +82,7 @@ void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state)
 	} END_FOR_EACH_PTR(rel);
 }
 
-void set_extra_true_false(const char *name, struct symbol *sym,
+static void set_extra_true_false(const char *name, struct symbol *sym,
 			struct smatch_state *true_state,
 			struct smatch_state *false_state)
 {
@@ -108,6 +108,22 @@ void set_extra_true_false(const char *name, struct symbol *sym,
 		if (false_state)
 			add_equiv(false_state, rel->name, rel->sym);
 	} END_FOR_EACH_PTR(rel);
+}
+
+static void set_extra_expr_true_false(struct expression *expr,
+		struct smatch_state *true_state,
+		struct smatch_state *false_state)
+{
+	char *name;
+	struct symbol *sym;
+
+	expr = strip_expr(expr);
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	set_extra_true_false(name, sym, true_state, false_state);
+free:
+	free_string(name);
 }
 
 struct data_info *get_dinfo(struct smatch_state *state)
@@ -670,8 +686,6 @@ static int match_func_comparison(struct expression *expr)
 static void match_comparison(struct expression *expr)
 {
 	long long fixed;
-	char *name = NULL;
-	struct symbol *sym;
 	struct smatch_state *true_state;
 	struct smatch_state *false_state;
 	struct smatch_state *orig;
@@ -699,11 +713,7 @@ static void match_comparison(struct expression *expr)
 		varies = varies->unop;
 	}
 
-	name = get_variable_from_expr(varies, &sym);
-	if (!name || !sym)
-		goto free;
-
-	orig = get_state(my_id, name, sym);
+	orig = get_state_expr(my_id, varies);
 	if (!orig)
 		orig = extra_undefined();
 
@@ -757,14 +767,14 @@ static void match_comparison(struct expression *expr)
 		break;
 	case SPECIAL_NOTEQUAL:
 		true_state = filter_range(orig, fixed, fixed);
-		if (possibly_true(SPECIAL_EQUAL, get_dinfo(orig), fixed, fixed))
+		if (possibly_true(SPECIAL_NOTEQUAL, get_dinfo(orig), fixed, fixed))
 			false_state = alloc_extra_state(fixed);
 		else
 			false_state = alloc_extra_state_empty();
 		break;
 	default:
 		sm_msg("unhandled comparison %d\n", comparison);
-		goto free;
+		return;
 	}
 
 	if (postop == SPECIAL_INCREMENT) {
@@ -776,9 +786,7 @@ static void match_comparison(struct expression *expr)
 		false_state = decrement_state(false_state);
 	}
 
-	set_extra_true_false(name, sym, true_state, false_state);
-free:
-	free_string(name);
+	set_extra_expr_true_false(varies, true_state, false_state);
 }
 
 /* this is actually hooked from smatch_implied.c...  it's hacky, yes */
