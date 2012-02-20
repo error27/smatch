@@ -115,6 +115,21 @@ struct smatch_state *extra_undefined(void)
 	return ret;
 }
 
+struct smatch_state *extra_empty(void)
+{
+	static struct smatch_state *ret;
+	static struct symbol *prev_func;
+
+	if  (prev_func == cur_func_sym)
+		return ret;
+	prev_func = cur_func_sym;
+
+	ret = __alloc_smatch_state(0);
+	ret->name = "empty";
+	ret->data = alloc_dinfo();
+	return ret;
+}
+
 struct smatch_state *alloc_extra_state(long long val)
 {
 	struct smatch_state *state;
@@ -139,6 +154,9 @@ struct smatch_state *alloc_extra_state_range(long long min, long long max)
 struct smatch_state *alloc_extra_state_range_list(struct range_list *rl)
 {
 	struct smatch_state *state;
+
+	if (!rl)
+		return extra_empty();
 
 	if (is_whole_range_rl(rl))
 		return extra_undefined();

@@ -27,7 +27,7 @@ void func(int *x)
  * check-output-start
 sm_loops1.c:10 func(5) a = 0-9
 sm_loops1.c:11 func(6) a = 10
-sm_loops1.c:13 func(8) a = 
+sm_loops1.c:13 func(8) a = empty
 sm_loops1.c:14 func(9) a = 10
 sm_loops1.c:16 func(11) a = 0-9
 sm_loops1.c:17 func(12) a = 10
