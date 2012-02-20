@@ -685,106 +685,157 @@ static int match_func_comparison(struct expression *expr)
 
 static void match_comparison(struct expression *expr)
 {
-	long long fixed;
-	struct smatch_state *true_state;
-	struct smatch_state *false_state;
-	struct smatch_state *orig;
-	int left = 0;
-	struct expression *varies;
-	int postop = 0;
+	struct expression *left = strip_expr(expr->left);
+	struct expression *right = strip_expr(expr->right);
+	struct range_list *left_orig;
+	struct range_list *left_true;
+	struct range_list *left_false;
+	struct range_list *right_orig;
+	struct range_list *right_true;
+	struct range_list *right_false;
+	struct smatch_state *left_true_state;
+	struct smatch_state *left_false_state;
+	struct smatch_state *right_true_state;
+	struct smatch_state *right_false_state;
+	int left_postop = 0;
+	int right_postop = 0;
 
 	if (match_func_comparison(expr))
 		return;
 
-	varies = strip_expr(expr->right);
-	if (!get_implied_value(expr->left, &fixed)) {
-		if (!get_implied_value(expr->right, &fixed))
-			return;
-		varies = strip_expr(expr->left);
-		left = 1;
-	}
-
-	if (varies->op == SPECIAL_INCREMENT || varies->op == SPECIAL_DECREMENT) {
-		if (varies->type == EXPR_POSTOP) {
-			varies->smatch_flags |= Handled;
-			postop = varies->op;
+	if (left->op == SPECIAL_INCREMENT || left->op == SPECIAL_DECREMENT) {
+		if (left->type == EXPR_POSTOP) {
+			left->smatch_flags |= Handled;
+			left_postop = left->op;
 		}
-		varies = varies->unop;
+		left = strip_expr(left->unop);
 	}
 
-	orig = get_state_expr(my_id, varies);
-	if (!orig)
-		orig = extra_undefined();
+	if (right->op == SPECIAL_INCREMENT || right->op == SPECIAL_DECREMENT) {
+		if (right->type == EXPR_POSTOP) {
+			right->smatch_flags |= Handled;
+			right_postop = right->op;
+		}
+		right = strip_expr(right->unop);
+	}
+
+	if (!get_implied_range_list(left, &left_orig))
+		left_orig = alloc_range_list(whole_range.min, whole_range.max);
+	if (!get_implied_range_list(right, &right_orig))
+		right_orig = alloc_range_list(whole_range.min, whole_range.max);
+
+	left_true = clone_range_list(left_orig);
+	left_false = clone_range_list(left_orig);
+	right_true = clone_range_list(right_orig);
+	right_false = clone_range_list(right_orig);
 
 	switch (expr->op) {
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
-		if (left) {
-			true_state = filter_range(orig, fixed, whole_range.max);
-			false_state = filter_range(orig, whole_range.min, fixed - 1);
-		} else {
-			true_state = filter_range(orig, whole_range.min, fixed);
-			false_state = filter_range(orig, fixed + 1, whole_range.max);
-		}
+		if (rl_max(right_orig) != whole_range.max)
+			left_true = remove_range(left_orig, rl_max(right_orig), whole_range.max);
+		if (rl_min(right_orig) != whole_range.min)
+			left_false = remove_range(left_orig, whole_range.min, rl_min(right_orig) - 1);
+
+		if (rl_min(left_orig) != whole_range.min)
+			right_true = remove_range(right_orig, whole_range.min, rl_min(left_orig));
+		if (rl_max(left_orig) != whole_range.max)
+			right_false = remove_range(right_orig, rl_max(left_orig) + 1, whole_range.max);
 		break;
 	case SPECIAL_UNSIGNED_LTE:
 	case SPECIAL_LTE:
-		if (left) {
-			true_state = filter_range(orig, fixed + 1, whole_range.max);
-			false_state = filter_range(orig, whole_range.min, fixed);
-		} else {
-			true_state = filter_range(orig, whole_range.min, fixed - 1);
-			false_state = filter_range(orig, fixed, whole_range.max);
-		}
+		if (rl_max(right_orig) != whole_range.max)
+			left_true = remove_range(left_orig, rl_max(right_orig) + 1, whole_range.max);
+		if (rl_min(right_orig) != whole_range.min)
+			left_false = remove_range(left_orig, whole_range.min, rl_min(right_orig));
+
+		if (rl_min(left_orig) != whole_range.min)
+			right_true = remove_range(right_orig, whole_range.min, rl_min(left_orig) - 1);
+		if (rl_max(left_orig) != whole_range.max)
+			right_false = remove_range(right_orig, rl_max(left_orig), whole_range.max);
 		break;
 	case SPECIAL_EQUAL:
-		if (possibly_true(SPECIAL_EQUAL, get_dinfo(orig), fixed, fixed))
-			true_state = alloc_extra_state(fixed);
-		else
-			true_state = alloc_extra_state_empty();
-		false_state = filter_range(orig, fixed, fixed);
+		if (rl_max(right_orig) != whole_range.max)
+			left_true = remove_range(left_true, rl_max(right_orig) + 1, whole_range.max);
+		if (rl_min(right_orig) != whole_range.min)
+			left_true = remove_range(left_true, whole_range.min, rl_min(right_orig) - 1);
+		if (rl_min(right_orig) == rl_max(right_orig))
+			left_false = remove_range(left_orig, rl_min(right_orig), rl_min(right_orig));
+
+		if (rl_max(left_orig) != whole_range.max)
+			right_true = remove_range(right_true, rl_max(left_orig) + 1, whole_range.max);
+		if (rl_min(left_orig) != whole_range.min)
+			right_true = remove_range(right_true, whole_range.min, rl_min(left_orig) - 1);
+		if (rl_min(left_orig) == rl_max(left_orig))
+			right_false = remove_range(right_orig, rl_min(left_orig), rl_min(left_orig));
 		break;
 	case SPECIAL_UNSIGNED_GTE:
 	case SPECIAL_GTE:
-		if (left) {
-			true_state = filter_range(orig, whole_range.min, fixed - 1);
-			false_state = filter_range(orig, fixed, whole_range.max);
-		} else {
-			true_state = filter_range(orig, fixed + 1, whole_range.max);
-			false_state = filter_range(orig, whole_range.min, fixed);
-		}
+		if (rl_min(right_orig) != whole_range.min)
+			left_true = remove_range(left_orig, whole_range.min, rl_min(right_orig) - 1);
+		if (rl_max(right_orig) != whole_range.max)
+			left_false = remove_range(left_orig, rl_max(right_orig), whole_range.max);
+
+		if (rl_max(left_orig) != whole_range.max)
+			right_true = remove_range(right_orig, rl_max(left_orig) + 1, whole_range.max);
+		if (rl_min(left_orig) != whole_range.min)
+			right_false = remove_range(right_orig, whole_range.min, rl_min(left_orig));
 		break;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
-		if (left) {
-			true_state = filter_range(orig, whole_range.min, fixed);
-			false_state = filter_range(orig, fixed + 1, whole_range.max);
-		} else {
-			true_state = filter_range(orig, fixed, whole_range.max);
-			false_state = filter_range(orig, whole_range.min, fixed - 1);
-		}
+		if (rl_min(right_orig) != whole_range.min)
+			left_true = remove_range(left_orig, whole_range.min, rl_min(right_orig));
+		if (rl_max(right_orig) != whole_range.max)
+			left_false = remove_range(left_orig, rl_max(right_orig) + 1, whole_range.max);
+
+		if (rl_max(left_orig) != whole_range.max)
+			right_true = remove_range(right_orig, rl_max(left_orig), whole_range.max);
+		if (rl_min(left_orig) != whole_range.min)
+			right_false = remove_range(right_orig, whole_range.min, rl_min(left_orig) - 1);
 		break;
 	case SPECIAL_NOTEQUAL:
-		true_state = filter_range(orig, fixed, fixed);
-		if (possibly_true(SPECIAL_NOTEQUAL, get_dinfo(orig), fixed, fixed))
-			false_state = alloc_extra_state(fixed);
-		else
-			false_state = alloc_extra_state_empty();
+		if (rl_max(right_orig) != whole_range.max)
+			left_false = remove_range(left_false, rl_max(right_orig) + 1, whole_range.max);
+		if (rl_min(right_orig) != whole_range.min)
+			left_false = remove_range(left_false, whole_range.min, rl_min(right_orig) - 1);
+		if (rl_min(right_orig) == rl_max(right_orig))
+			left_true = remove_range(left_orig, rl_min(right_orig), rl_min(right_orig));
+
+		if (rl_max(left_orig) != whole_range.max)
+			right_false = remove_range(right_false, rl_max(left_orig) + 1, whole_range.max);
+		if (rl_min(left_orig) != whole_range.min)
+			right_false = remove_range(right_false, whole_range.min, rl_min(left_orig) - 1);
+		if (rl_min(left_orig) == rl_max(left_orig))
+			right_true = remove_range(right_orig, rl_min(left_orig), rl_min(left_orig));
 		break;
 	default:
 		return;
 	}
 
-	if (postop == SPECIAL_INCREMENT) {
-		true_state = increment_state(true_state);
-		false_state = increment_state(false_state);
+	left_true_state = alloc_extra_state_range_list(left_true);
+	left_false_state = alloc_extra_state_range_list(left_false);
+	right_true_state = alloc_extra_state_range_list(right_true);
+	right_false_state = alloc_extra_state_range_list(right_false);
+
+	if (left_postop == SPECIAL_INCREMENT) {
+		left_true_state = increment_state(left_true_state);
+		left_false_state = increment_state(left_false_state);
 	}
-	if (postop == SPECIAL_DECREMENT) {
-		true_state = decrement_state(true_state);
-		false_state = decrement_state(false_state);
+	if (left_postop == SPECIAL_DECREMENT) {
+		left_true_state = decrement_state(left_true_state);
+		left_false_state = decrement_state(left_false_state);
+	}
+	if (right_postop == SPECIAL_INCREMENT) {
+		right_true_state = increment_state(right_true_state);
+		right_false_state = increment_state(right_false_state);
+	}
+	if (right_postop == SPECIAL_DECREMENT) {
+		right_true_state = decrement_state(right_true_state);
+		right_false_state = decrement_state(right_false_state);
 	}
 
-	set_extra_expr_true_false(varies, true_state, false_state);
+	set_extra_expr_true_false(left, left_true_state, left_false_state);
+	set_extra_expr_true_false(right, right_true_state, right_false_state);
 }
 
 /* this is actually hooked from smatch_implied.c...  it's hacky, yes */
