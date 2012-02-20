@@ -8,7 +8,8 @@
  */
 
 #include "smatch.h"
-#include "smatch_slist.h"  // blast this was supposed to be internal only stuff
+#include "smatch_slist.h"
+#include "smatch_extra.h"
 
 static int my_id;
 
@@ -44,6 +45,20 @@ static void match_print_value(const char *fn, struct expression *expr, void *inf
 			sm_msg("%s = %s", tmp->name, tmp->state->name);
 	} END_FOR_EACH_PTR(tmp);
 	free_slist(&slist);
+}
+
+static void match_print_implied(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	struct range_list *rl = NULL;
+	char *name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	get_implied_range_list(arg, &rl);
+
+	name = get_variable_from_expr_complex(arg, NULL);
+	sm_msg("implied: %s = '%s'", name, show_ranges(rl));
+	free_string(name);
 }
 
 static void match_print_implied_min(const char *fn, struct expression *expr, void *info)
@@ -133,6 +148,7 @@ void check_debug(int id)
 	my_id = id;
 	add_function_hook("__smatch_all_values", &match_all_values, NULL);
 	add_function_hook("__smatch_value", &match_print_value, NULL);
+	add_function_hook("__smatch_implied", &match_print_implied, NULL);
 	add_function_hook("__smatch_implied_min", &match_print_implied_min, NULL);
 	add_function_hook("__smatch_implied_max", &match_print_implied_max, NULL);
 	add_function_hook("__smatch_possible", &match_possible, NULL);
