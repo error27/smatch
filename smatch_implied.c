@@ -112,8 +112,8 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 		return;
 	}
 
-	istrue = !possibly_false_range_list_lr(comparison, get_dinfo(s->state), vals, lr);
-	isfalse = !possibly_true_range_list_lr(comparison, get_dinfo(s->state), vals, lr);
+	istrue = !possibly_false_range_list_lr(comparison, s->state, vals, lr);
+	isfalse = !possibly_true_range_list_lr(comparison, s->state, vals, lr);
 
 	if (option_debug_implied || option_debug) {
 		if (istrue && isfalse) {

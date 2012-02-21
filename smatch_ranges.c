@@ -514,11 +514,11 @@ int possibly_true_range_lists(struct range_list *left_ranges, int comparison, st
 	return 0;
 }
 
-int possibly_true_range_list_lr(int comparison, struct data_info *dinfo, struct range_list *values, int left)
+int possibly_true_range_list_lr(int comparison, struct smatch_state *state, struct range_list *values, int left)
 {
 	struct data_range *tmp, *tmp2;
 
-	FOR_EACH_PTR(dinfo->value_ranges, tmp) {
+	FOR_EACH_PTR(estate_ranges(state), tmp) {
 		FOR_EACH_PTR(values, tmp2) {
 			if (true_comparison_range_lr(comparison, tmp, tmp2, left))
 				return 1;
@@ -543,11 +543,11 @@ int possibly_false_range_lists(struct range_list *left_ranges, int comparison, s
 	return 0;
 }
 
-int possibly_false_range_list_lr(int comparison, struct data_info *dinfo, struct range_list *values, int left)
+int possibly_false_range_list_lr(int comparison, struct smatch_state *state, struct range_list *values, int left)
 {
 	struct data_range *tmp, *tmp2;
 
-	FOR_EACH_PTR(dinfo->value_ranges, tmp) {
+	FOR_EACH_PTR(estate_ranges(state), tmp) {
 		FOR_EACH_PTR(values, tmp2) {
 			if (false_comparison_range_lr(comparison, tmp, tmp2, left))
 				return 1;
