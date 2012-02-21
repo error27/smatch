@@ -1094,14 +1094,7 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 
 int is_whole_range(struct smatch_state *state)
 {
-	struct data_range *drange;
-
-	if (!estate_ranges(state))
-		return 1;
-	drange = first_ptr_list((struct ptr_list *)estate_ranges(state));
-	if (drange->min == whole_range.min && drange->max == whole_range.max)
-		return 1;
-	return 0;
+	return is_whole_range_rl(estate_ranges(state));
 }
 
 static void struct_member_callback(char *fn, int param, char *printed_name, struct smatch_state *state)
