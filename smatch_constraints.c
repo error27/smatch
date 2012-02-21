@@ -62,14 +62,14 @@ struct related_list *clone_related_list(struct related_list *related)
 	return to_list;
 }
 
-struct relation *get_common_relationship(struct data_info *dinfo, int op,
+struct relation *get_common_relationship(struct smatch_state *state, int op,
 					const char *name, struct symbol *sym)
 {
 	struct relation *tmp;
 
 	// FIXME...
 	// Find the common x < y and x <= y
-	FOR_EACH_PTR(dinfo->related, tmp) {
+	FOR_EACH_PTR(estate_related(state), tmp) {
 		if (tmp->op < op || tmp->sym < sym || strcmp(tmp->name, name) < 0)
 			continue;
 		if (tmp->op == op && tmp->sym == sym && !strcmp(tmp->name, name))

@@ -150,7 +150,6 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 				       struct smatch_state *s1,
 				       struct smatch_state *s2)
 {
-	struct data_info *info2 = get_dinfo(s2);
 	struct data_info *ret_info;
 	struct smatch_state *tmp;
 	struct range_list *value_ranges;
@@ -163,7 +162,7 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 	ret_info->value_ranges = value_ranges;
 	tmp->name = show_ranges(ret_info->value_ranges);
 	FOR_EACH_PTR(estate_related(s1), rel) {
-		new = get_common_relationship(info2, rel->op, rel->name, rel->sym);
+		new = get_common_relationship(s2, rel->op, rel->name, rel->sym);
 		if (new)
 			add_related(tmp, new->op, new->name, new->sym);
 	} END_FOR_EACH_PTR(rel);
