@@ -22,11 +22,6 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-struct data_range whole_range = {
-	.min = LLONG_MIN,
-	.max = LLONG_MAX,
-};
-
 struct data_info *get_dinfo(struct smatch_state *state)
 {
 	if (!state)

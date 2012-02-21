@@ -17,6 +17,11 @@ ALLOCATOR(data_range, "data range");
 __DO_ALLOCATOR(struct data_range, sizeof(struct data_range), __alignof__(struct data_range),
 			 "permanent ranges", perm_data_range);
 
+struct data_range whole_range = {
+	.min = LLONG_MIN,
+	.max = LLONG_MAX,
+};
+
 static char *show_num(long long num)
 {
 	static char buff[256];
