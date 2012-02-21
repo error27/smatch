@@ -517,7 +517,6 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	struct state_list *false_states = NULL;
 	struct state_list *ret = clone_slist(*raw_slist);
 	long long val;
-	struct data_range *range;
 	struct range_list *vals = NULL;
 
 	name = get_variable_from_expr(switch_expr, &sym);
@@ -527,13 +526,11 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	if (!case_expr) {
 		vals = top_range_list(*remaining_cases);
 	} else {
-		if (!get_value(case_expr, &val)) {
+		if (!get_value(case_expr, &val))
 			goto free;
-		} else {
-			filter_top_range_list(remaining_cases, val);
-			range = alloc_range(val, val);
-			add_ptr_list(&vals, range);
-		}
+
+		filter_top_range_list(remaining_cases, val);
+		add_range(&vals, val, val);
 	}
 	if (sm)
 		separate_and_filter(sm, SPECIAL_EQUAL, vals, LEFT, *raw_slist, &true_states, &false_states);
