@@ -334,12 +334,14 @@ struct range_list *remove_range(struct range_list *list, long long min, long lon
 /*
  * if it can be only one and only value return 1, else return 0
  */
-int get_single_value_from_dinfo(struct data_info *dinfo, long long *val)
+int estate_get_single_value(struct smatch_state *state, long long *val)
 {
+	struct data_info *dinfo;
 	struct data_range *tmp;
 	int count = 0;
 
-	if (dinfo->type != DATA_RANGE)
+	dinfo = get_dinfo(state);
+	if (!dinfo || dinfo->type != DATA_RANGE)
 		return 0;
 
 	FOR_EACH_PTR(dinfo->value_ranges, tmp) {

@@ -182,7 +182,7 @@ static int get_implied_value_helper(struct expression *expr, long long *val, int
 	if (!state || !state->data)
 		return 0;
 	if (what == IMPLIED)
-		return get_single_value_from_dinfo(get_dinfo(state), val);
+		return estate_get_single_value(state, val);
 	if (what == IMPLIED_MAX) {
 		*val = estate_max(state);
 		if (*val == whole_range.max) /* this means just guessing */

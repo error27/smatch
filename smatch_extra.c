@@ -215,7 +215,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
 		return NULL;
-	if (!get_single_value_from_dinfo(get_dinfo(sm->state), &start))
+	if (!estate_get_single_value(sm->state, &start))
 		return NULL;
 	if (!get_implied_value(condition->right, &end))
 		end = whole_range.max;
@@ -251,7 +251,7 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
 		return NULL;
-	if (!get_single_value_from_dinfo(get_dinfo(sm->state), &start))
+	if (!estate_get_single_value(sm->state, &start))
 		return NULL;
 	if (!get_implied_value(condition->right, &end))
 		end = whole_range.max;

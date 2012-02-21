@@ -79,7 +79,7 @@ struct smatch_state *add_filter(struct smatch_state *orig, long long filter);
 struct smatch_state *extra_undefined(void);
 
 struct range_list *range_list_union(struct range_list *one, struct range_list *two);
-int get_single_value_from_dinfo(struct data_info *dinfo, long long *val);
+int estate_get_single_value(struct smatch_state *estate, long long *val);
 
 void function_comparison(int comparison, struct expression *expr, long long value, int left);
 
