@@ -372,17 +372,15 @@ static int is_merged_expr(struct expression  *expr)
 static void delete_equiv_slist(struct state_list **slist, const char *name, struct symbol *sym)
 {
 	struct smatch_state *state;
-	struct data_info *dinfo;
 	struct relation *rel;
 
 	state = get_state(SMATCH_EXTRA, name, sym);
-	dinfo = get_dinfo(state);
-	if (!dinfo->related) {
+	if (!estate_related(state)) {
 		delete_state_slist(slist, SMATCH_EXTRA, name, sym);
 		return;
 	}
 
-	FOR_EACH_PTR(dinfo->related, rel) {
+	FOR_EACH_PTR(estate_related(state), rel) {
 		delete_state_slist(slist, SMATCH_EXTRA, rel->name, rel->sym);
 	} END_FOR_EACH_PTR(rel);
 }
