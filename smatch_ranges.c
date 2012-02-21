@@ -472,36 +472,38 @@ int false_comparison_range_lr(int comparison, struct data_range *var, struct dat
 		return false_comparison_range(val, comparison, var);
 }
 
-int possibly_true(int comparison, struct data_info *dinfo, long long num, int left)
+int possibly_true(int comparison, struct expression *expr, long long num, int left)
 {
 	struct data_range *tmp;
 	struct data_range drange;
+	struct range_list *rl;
 
-	if (!dinfo)
+	if (!get_implied_range_list(expr, &rl))
 		return 1;
 
 	drange.min = num;
 	drange.max = num;
 
-	FOR_EACH_PTR(dinfo->value_ranges, tmp) {
+	FOR_EACH_PTR(rl, tmp) {
 		if (true_comparison_range_lr(comparison, tmp, &drange, left))
 			return 1;
 	} END_FOR_EACH_PTR(tmp);
 	return 0;
 }
 
-int possibly_false(int comparison, struct data_info *dinfo, long long num, int left)
+int possibly_false(int comparison, struct expression *expr, long long num, int left)
 {
 	struct data_range *tmp;
 	struct data_range drange;
+	struct range_list *rl;
 
-	if (!dinfo)
+	if (!get_implied_range_list(expr, &rl))
 		return 1;
 
 	drange.min = num;
 	drange.max = num;
 
-	FOR_EACH_PTR(dinfo->value_ranges, tmp) {
+	FOR_EACH_PTR(rl, tmp) {
 		if (false_comparison_range_lr(comparison, tmp, &drange, left))
 			return 1;
 	} END_FOR_EACH_PTR(tmp);

@@ -860,7 +860,7 @@ void __extra_match_condition(struct expression *expr)
 			return;
 		pre_state = get_state(my_id, name, sym);
 		true_state = add_filter(pre_state, 0);
-		if (possibly_true(SPECIAL_EQUAL, get_dinfo(pre_state), 0, 0))
+		if (possibly_true(SPECIAL_EQUAL, expr, 0, 0))
 			false_state = alloc_extra_state(0);
 		else
 			false_state = alloc_extra_state_empty();
@@ -879,25 +879,7 @@ void __extra_match_condition(struct expression *expr)
 /* returns 1 if it is not possible for expr to be value, otherwise returns 0 */
 int implied_not_equal(struct expression *expr, long long val)
 {
-	char *name;
-	struct symbol *sym;
-	struct smatch_state *state;
-	long long expr_val;
-	int ret = 0;
-
-	if (get_value(expr, &expr_val))
-		return expr_val != val;
-
-	name = get_variable_from_expr(expr, &sym);
-	if (!name || !sym)
-		goto exit;
-	state = get_state(my_id, name, sym);
-	if (!state || !state->data)
-		goto exit;
-	ret = !possibly_false(SPECIAL_NOTEQUAL, get_dinfo(state), val, 1);
-exit:
-	free_string(name);
-	return ret;
+	return !possibly_false(SPECIAL_NOTEQUAL, expr, val, 1);
 }
 
 int known_condition_true(struct expression *expr)
@@ -1092,6 +1074,8 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 	long long max;
 
 	expr = strip_parens(expr);
+	if (!expr)
+		return 0;
 
 	state = get_state_expr(my_id, expr);
 	if (state) {
