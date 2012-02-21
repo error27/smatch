@@ -39,23 +39,35 @@
 
 ALLOCATOR(relation, "related variables");
 
-void set_equiv(struct sm_state *right_sm, struct expression *left)
+/*
+ * set_equiv() is only used for assignments where we set one variable
+ * equal to the other.  a = b;.  It's not used for if conditions where
+ * a == b.
+ */
+void set_equiv(struct expression *left, struct expression *right)
 {
+	struct sm_state *right_sm;
 	struct smatch_state *state;
 	struct relation *rel;
-	char *name;
-	struct symbol *sym;
+	char *left_name;
+	struct symbol *left_sym;
 
-	name = get_variable_from_expr(left, &sym);
-	if (!name || !sym)
+	left_name = get_variable_from_expr(left, &left_sym);
+	if (!left_name || !left_sym)
 		goto free;
 
-	remove_from_equiv(name, sym);
+	right_sm = get_sm_state_expr(SMATCH_EXTRA, right);
+	if (!right_sm)
+		right_sm = set_state_expr(SMATCH_EXTRA, right, extra_undefined());
+	if (!right_sm)
+		return;
+
+	remove_from_equiv(left_name, left_sym);
 
 	state = clone_estate(right_sm->state);
 	if (!estate_related(state))
 		add_equiv(state, right_sm->name, right_sm->sym);
-	add_equiv(state, name, sym);
+	add_equiv(state, left_name, left_sym);
 
 	FOR_EACH_PTR(estate_related(state), rel) {
 		struct sm_state *new_sm;
@@ -67,7 +79,7 @@ void set_equiv(struct sm_state *right_sm, struct expression *left)
 		__set_sm(new_sm);
 	} END_FOR_EACH_PTR(rel);
 free:
-	free_string(name);
+	free_string(left_name);
 }
 
 static struct relation *alloc_relation(int op, const char *name, struct symbol *sym)

@@ -407,7 +407,6 @@ static void match_assign(struct expression *expr)
 {
 	struct expression *left;
 	struct expression *right;
-	struct sm_state *right_sm;
 	struct symbol *right_sym;
 	char *right_name;
 	struct symbol *sym;
@@ -433,12 +432,7 @@ static void match_assign(struct expression *expr)
 
 	right_name = get_variable_from_expr(right, &right_sym);
 	if (expr->op == '=' && right_name && right_sym) {
-		right_sm = get_sm_state_expr(SMATCH_EXTRA, right);
-		if (!right_sm)
-			right_sm = set_state_expr(SMATCH_EXTRA, right, extra_undefined());
-		if (!right_sm)
-			goto free;
-		set_equiv(right_sm, left);
+		set_equiv(left, right);
 		goto free;
 	}
 
