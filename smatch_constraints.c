@@ -138,7 +138,7 @@ void remove_from_equiv(const char *name, struct symbol *sym)
 	if (!orig_sm || !get_dinfo(orig_sm->state)->related)
 		return;
 
-	state = clone_extra_state(orig_sm->state);
+	state = clone_estate(orig_sm->state);
 	del_equiv(state, name, sym);
 	to_update = get_dinfo(state)->related;
 	if (ptr_list_size((struct ptr_list *)get_dinfo(state)->related) == 1)
@@ -176,14 +176,14 @@ void add_constrain_expr(struct expression *left, int op, struct expression *righ
 void set_equiv_state_expr(int id, struct expression *expr, struct smatch_state *state)
 {
 	struct relation *rel;
-	struct smatch_state *extra_state;
+	struct smatch_state *estate;
 
-	extra_state = get_state_expr(SMATCH_EXTRA, expr);
+	estate = get_state_expr(SMATCH_EXTRA, expr);
 
-	if (!extra_state)
+	if (!estate)
 		return;
 
-	FOR_EACH_PTR(get_dinfo(extra_state)->related, rel) {
+	FOR_EACH_PTR(get_dinfo(estate)->related, rel) {
 		if (rel->op != SPECIAL_EQUAL)
 			continue;
 		set_state(id, rel->name, rel->sym, state);

@@ -147,7 +147,7 @@ static void assign_ranged_funcs(const char *fn, struct expression *expr,
 	struct sm_state *sm;
 	char *var_name;
 	struct symbol *sym;
-	struct smatch_state *extra_state;
+	struct smatch_state *estate;
 	struct state_list *tmp_slist;
 	struct state_list *final_states = NULL;
 	struct range_list *handled_ranges = NULL;
@@ -169,8 +169,8 @@ static void assign_ranged_funcs(const char *fn, struct expression *expr,
 		call_ranged_call_backs(same_range_call_backs, fn, expr->right, expr);
 		__free_ptr_list((struct ptr_list **)&same_range_call_backs);
 
-		extra_state = alloc_extra_state_range(tmp->range->min, tmp->range->max);
-		set_extra_mod(var_name, sym, extra_state);
+		estate = alloc_estate_range(tmp->range->min, tmp->range->max);
+		set_extra_mod(var_name, sym, estate);
 
 		tmp_slist = __pop_fake_cur_slist();
 		merge_slist(&final_states, tmp_slist);

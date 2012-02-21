@@ -62,13 +62,13 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 				struct expression *condition);
 
 /* also implemented in smatch_extra */
-struct smatch_state *clone_extra_state(struct smatch_state *state);
+struct smatch_state *clone_estate(struct smatch_state *state);
 struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state);
 struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state);
 void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state);
-struct smatch_state *alloc_extra_state_empty(void);
-struct smatch_state *alloc_extra_state(long long val);
-struct smatch_state *alloc_extra_state_range_list(struct range_list *rl);
+struct smatch_state *alloc_estate_empty(void);
+struct smatch_state *alloc_estate(long long val);
+struct smatch_state *alloc_estate_range_list(struct range_list *rl);
 struct range_list *get_range_list(struct expression *expr);
 struct data_info *get_dinfo(struct smatch_state *state);
 struct smatch_state *add_filter(struct smatch_state *orig, long long filter);
@@ -87,7 +87,7 @@ struct data_range *alloc_range(long long min, long long max);
 void tack_on(struct range_list **list, struct data_range *drange);
 int in_list_exact(struct range_list *list, struct data_range *drange);
 
-struct smatch_state *alloc_extra_state_range(long long min, long long max);
+struct smatch_state *alloc_estate_range(long long min, long long max);
 
 void push_range_list(struct range_list_stack **rl_stack, struct range_list *rl);
 struct range_list *pop_range_list(struct range_list_stack **rl_stack);

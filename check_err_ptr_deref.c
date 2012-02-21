@@ -145,7 +145,7 @@ static void match_ptr_err(const char *fn, struct expression *expr, void *unused)
 	right = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(right->args, 0);
 	if (get_state_expr(my_id, arg) == &err_ptr) {
-		set_extra_expr_mod(expr->left, alloc_extra_state_range(-4095, -1));
+		set_extra_expr_mod(expr->left, alloc_estate_range(-4095, -1));
 	}
 }
 

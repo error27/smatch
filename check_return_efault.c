@@ -42,7 +42,7 @@ static void match_copy(const char *fn, struct expression *expr, void *unused)
 	arg = get_argument_from_call_expr(call->args, 2);
 	if (!get_absolute_max(arg, &max))
 		max = whole_range.max;
-	set_extra_expr_mod(expr->left, alloc_extra_state_range(0, max));
+	set_extra_expr_mod(expr->left, alloc_estate_range(0, max));
 
 }
 

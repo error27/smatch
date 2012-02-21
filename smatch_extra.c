@@ -136,7 +136,7 @@ struct smatch_state *filter_range(struct smatch_state *orig,
 	if (!orig)
 		orig = extra_undefined();
 	orig_info = get_dinfo(orig);
-	ret = alloc_extra_state_empty();
+	ret = alloc_estate_empty();
 	ret_info = get_dinfo(ret);
 	ret_info->value_ranges = remove_range(orig_info->value_ranges, filter_min, filter_max);
 	ret->name = show_ranges(ret_info->value_ranges);
@@ -161,7 +161,7 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 	struct relation *new;
 
 	value_ranges = range_list_union(info1->value_ranges, info2->value_ranges);
-	tmp = alloc_extra_state_empty();
+	tmp = alloc_estate_empty();
 	ret_info = get_dinfo(tmp);
 	ret_info->value_ranges = value_ranges;
 	tmp->name = show_ranges(ret_info->value_ranges);
@@ -201,9 +201,9 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 		start--;
 
 	if (condition->type == EXPR_PREOP)
-		set_extra_expr_mod(iter_var, alloc_extra_state_range(1, start));
+		set_extra_expr_mod(iter_var, alloc_estate_range(1, start));
 	if (condition->type == EXPR_POSTOP)
-		set_extra_expr_mod(iter_var, alloc_extra_state_range(0, start));
+		set_extra_expr_mod(iter_var, alloc_estate_range(0, start));
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
@@ -239,7 +239,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	}
 	if (end < start)
 		return NULL;
-	set_extra_expr_mod(iter_var, alloc_extra_state_range(start, end));
+	set_extra_expr_mod(iter_var, alloc_estate_range(start, end));
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
@@ -275,7 +275,7 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 	}
 	if (end > start)
 		return NULL;
-	set_extra_expr_mod(iter_var, alloc_extra_state_range(end, start));
+	set_extra_expr_mod(iter_var, alloc_estate_range(end, start));
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
@@ -338,7 +338,7 @@ static void while_count_down_after(struct sm_state *sm, struct expression *condi
 		return;
 	after_value = get_dinfo_min(get_dinfo(sm->state));
 	after_value--;
-	set_extra_mod(sm->name, sm->sym, alloc_extra_state(after_value));
+	set_extra_mod(sm->name, sm->sym, alloc_estate(after_value));
 }
 
 void __extra_pre_loop_hook_after(struct sm_state *sm,
@@ -383,9 +383,9 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	if (iter_expr->op == SPECIAL_INCREMENT &&
 		min != whole_range.min &&
 		max == whole_range.max) {
-		set_extra_mod(name, sym, alloc_extra_state(min));
+		set_extra_mod(name, sym, alloc_estate(min));
 	} else if (min == whole_range.min && max != whole_range.max) {
-		set_extra_mod(name, sym, alloc_extra_state(max));
+		set_extra_mod(name, sym, alloc_estate(max));
 	}
 free:
 	free_string(name);
@@ -423,7 +423,7 @@ static void set_equiv(struct sm_state *right_sm, struct expression *left)
 
 	remove_from_equiv(name, sym);
 
-	state = clone_extra_state(right_sm->state);
+	state = clone_estate(right_sm->state);
 	dinfo = get_dinfo(state);
 	if (!dinfo->related)
 		add_equiv(state, right_sm->name, right_sm->sym);
@@ -487,7 +487,7 @@ static void match_assign(struct expression *expr)
 		struct range_list *rl = NULL;
 
 		if (get_implied_range_list(right, &rl)) {
-			set_extra_mod(name, sym, alloc_extra_state_range_list(rl));
+			set_extra_mod(name, sym, alloc_estate_range_list(rl));
 			goto free;
 		}
 
@@ -516,7 +516,7 @@ static void match_assign(struct expression *expr)
 				min = tmp - value;
 		break;
 	}
-	set_extra_mod(name, sym, alloc_extra_state_range(min, max));
+	set_extra_mod(name, sym, alloc_estate_range(min, max));
 free:
 	free_string(right_name);
 	free_string(name);
@@ -556,7 +556,7 @@ static struct smatch_state *increment_state(struct smatch_state *state)
 		min++;
 	if (max != whole_range.max)
 		max++;
-	return alloc_extra_state_range(min, max);
+	return alloc_estate_range(min, max);
 }
 
 static struct smatch_state *decrement_state(struct smatch_state *state)
@@ -574,7 +574,7 @@ static struct smatch_state *decrement_state(struct smatch_state *state)
 		min--;
 	if (max != whole_range.max)
 		max--;
-	return alloc_extra_state_range(min, max);
+	return alloc_estate_range(min, max);
 }
 
 static void unop_expr(struct expression *expr)
@@ -804,10 +804,10 @@ static void match_comparison(struct expression *expr)
 		return;
 	}
 
-	left_true_state = alloc_extra_state_range_list(left_true);
-	left_false_state = alloc_extra_state_range_list(left_false);
-	right_true_state = alloc_extra_state_range_list(right_true);
-	right_false_state = alloc_extra_state_range_list(right_false);
+	left_true_state = alloc_estate_range_list(left_true);
+	left_false_state = alloc_estate_range_list(left_false);
+	right_true_state = alloc_estate_range_list(right_true);
+	right_false_state = alloc_estate_range_list(right_false);
 
 	if (left_postop == SPECIAL_INCREMENT) {
 		left_true_state = increment_state(left_true_state);
@@ -853,9 +853,9 @@ void __extra_match_condition(struct expression *expr)
 		pre_state = get_state(my_id, name, sym);
 		true_state = add_filter(pre_state, 0);
 		if (possibly_true(SPECIAL_EQUAL, expr, 0, 0))
-			false_state = alloc_extra_state(0);
+			false_state = alloc_estate(0);
 		else
-			false_state = alloc_extra_state_empty();
+			false_state = alloc_estate_empty();
 		set_extra_true_false(name, sym, true_state, false_state);
 		free_string(name);
 		return;
@@ -1165,7 +1165,7 @@ void set_param_value(const char *name, struct symbol *sym, char *key, char *valu
 	char *tmp = show_ranges(rl);
 	if (strcmp(tmp, value))
 		sm_msg("value = %s, ranges = %s", value, tmp);
-	state = alloc_extra_state_range_list(rl);
+	state = alloc_estate_range_list(rl);
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
 
@@ -1183,7 +1183,7 @@ static void match_call_assign(struct expression *expr)
 
 	rl = db_return_vals(right);
 	if (rl)
-		set_extra_expr_mod(expr->left, alloc_extra_state_range_list(rl));
+		set_extra_expr_mod(expr->left, alloc_estate_range_list(rl));
 	else
 		set_extra_expr_mod(expr->left, extra_undefined());
 }

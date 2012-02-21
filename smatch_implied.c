@@ -542,7 +542,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 
 	true_sm = get_sm_state_slist(true_states, SMATCH_EXTRA, name, sym);
 	if (!true_sm)
-		set_state_slist(&true_states, SMATCH_EXTRA, name, sym, alloc_extra_state_range_list(vals));
+		set_state_slist(&true_states, SMATCH_EXTRA, name, sym, alloc_estate_range_list(vals));
 	overwrite_slist(true_states, &ret);
 	free_slist(&true_states);
 	free_slist(&false_states);
