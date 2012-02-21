@@ -134,6 +134,33 @@ static void match_note(const char *fn, struct expression *expr, void *info)
 	sm_msg("%s", arg_expr->string->data);
 }
 
+static void print_related(struct sm_state *sm)
+{
+	struct relation *rel;
+
+	if (!estate_related(sm->state))
+		return;
+
+	sm_prefix();
+	sm_printf("%s: ", sm->name);
+	FOR_EACH_PTR(estate_related(sm->state), rel) {
+		sm_printf("%s %s ", show_special(rel->op), rel->name);
+	} END_FOR_EACH_PTR(rel);
+	sm_printf("\n");
+}
+
+static void match_dump_related(const char *fn, struct expression *expr, void *info)
+{
+	struct state_list *slist;
+	struct sm_state *tmp;
+
+	slist = get_all_states(SMATCH_EXTRA);
+	FOR_EACH_PTR(slist, tmp) {
+		print_related(tmp);
+	} END_FOR_EACH_PTR(tmp);
+	free_slist(&slist);
+}
+
 static void match_debug_on(const char *fn, struct expression *expr, void *info)
 {
 	option_debug = 1;
@@ -154,6 +181,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_possible", &match_possible, NULL);
 	add_function_hook("__smatch_cur_slist", &match_cur_slist, NULL);
 	add_function_hook("__smatch_note", &match_note, NULL);
+	add_function_hook("__smatch_dump_related", &match_dump_related, NULL);
 	add_function_hook("__smatch_debug_on", &match_debug_on, NULL);
 	add_function_hook("__smatch_debug_off", &match_debug_off, NULL);
 }
