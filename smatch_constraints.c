@@ -101,11 +101,9 @@ void add_related(struct smatch_state *state, int op, const char *name, struct sy
 
 void del_related(struct smatch_state *state, int op, const char *name, struct symbol *sym)
 {
-	struct data_info *dinfo;
 	struct relation *tmp;
 
-	dinfo = get_dinfo(state);
-	FOR_EACH_PTR(dinfo->related, tmp) {
+	FOR_EACH_PTR(estate_related(state), tmp) {
 		if (tmp->sym < sym || strcmp(tmp->name, name) < 0)
 			continue;
 		if (tmp->sym == sym && !strcmp(tmp->name, name)) {
