@@ -331,20 +331,6 @@ struct range_list *remove_range(struct range_list *list, long long min, long lon
 	return ret;
 }
 
-long long get_dinfo_min(struct data_info *dinfo)
-{
-	if (!dinfo)
-		return whole_range.min;
-	return rl_min(dinfo->value_ranges);
-}
-
-long long get_dinfo_max(struct data_info *dinfo)
-{
-	if (!dinfo)
-		return whole_range.max;
-	return rl_max(dinfo->value_ranges);
-}
-
 /*
  * if it can be only one and only value return 1, else return 0
  */

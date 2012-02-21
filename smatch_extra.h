@@ -73,12 +73,12 @@ struct range_list *get_range_list(struct expression *expr);
 struct data_info *get_dinfo(struct smatch_state *state);
 struct range_list *estate_ranges(struct smatch_state *state);
 struct related_list *estate_related(struct smatch_state *state);
+long long estate_min(struct smatch_state *state);
+long long estate_max(struct smatch_state *state);
 struct smatch_state *add_filter(struct smatch_state *orig, long long filter);
 struct smatch_state *extra_undefined(void);
 
 struct range_list *range_list_union(struct range_list *one, struct range_list *two);
-long long get_dinfo_min(struct data_info *dinfo);
-long long get_dinfo_max(struct data_info *dinfo);
 int get_single_value_from_dinfo(struct data_info *dinfo, long long *val);
 
 void function_comparison(int comparison, struct expression *expr, long long value, int left);

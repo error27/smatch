@@ -184,12 +184,12 @@ static int get_implied_value_helper(struct expression *expr, long long *val, int
 	if (what == IMPLIED)
 		return get_single_value_from_dinfo(get_dinfo(state), val);
 	if (what == IMPLIED_MAX) {
-		*val = get_dinfo_max(get_dinfo(state));
+		*val = estate_max(state);
 		if (*val == whole_range.max) /* this means just guessing */
 			return 0;
 		return 1;
 	}
-	*val = get_dinfo_min(get_dinfo(state));
+	*val = estate_min(state);
 	if (*val == whole_range.min)
 		return 0;
 	return 1;
@@ -211,7 +211,7 @@ static int get_fuzzy_max_helper(struct expression *expr, long long *max)
 	FOR_EACH_PTR(sm->possible, tmp) {
 		long long new_min;
 
-		new_min = get_dinfo_min(get_dinfo(tmp->state));
+		new_min = estate_min(tmp->state);
 		if (new_min > *max)
 			*max = new_min;
 	} END_FOR_EACH_PTR(tmp);
@@ -237,7 +237,7 @@ static int get_fuzzy_min_helper(struct expression *expr, long long *min)
 	FOR_EACH_PTR(sm->possible, tmp) {
 		long long new_max;
 
-		new_max = get_dinfo_max(get_dinfo(tmp->state));
+		new_max = estate_max(tmp->state);
 		if (new_max < *min)
 			*min = new_max;
 	} END_FOR_EACH_PTR(tmp);

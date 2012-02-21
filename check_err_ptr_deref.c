@@ -124,10 +124,10 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
 	if (!sm)
 		return;
 	FOR_EACH_PTR(sm->possible, tmp) {
-		tmp_min = get_dinfo_min(get_dinfo(tmp->state));
+		tmp_min = estate_min(tmp->state);
 		if (tmp_min != whole_range.min && tmp_min < min)
 			min = tmp_min;
-		tmp_max = get_dinfo_max(get_dinfo(tmp->state));
+		tmp_max = estate_max(tmp->state);
 		if (tmp_max != whole_range.max && tmp_max > max)
 			max = tmp_max;
 	} END_FOR_EACH_PTR(tmp);

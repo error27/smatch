@@ -49,6 +49,16 @@ struct related_list *estate_related(struct smatch_state *state)
 	return get_dinfo(state)->related;
 }
 
+long long estate_min(struct smatch_state *state)
+{
+	return rl_min(estate_ranges(state));
+}
+
+long long estate_max(struct smatch_state *state)
+{
+	return rl_max(estate_ranges(state));
+}
+
 static struct data_info *alloc_dinfo(void)
 {
 	struct data_info *ret;

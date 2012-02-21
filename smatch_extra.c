@@ -189,9 +189,9 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
 		return NULL;
-	if (get_dinfo_min(get_dinfo(sm->state)) < 0)
+	if (estate_min(sm->state) < 0)
 		return NULL;
-	start = get_dinfo_max(get_dinfo(sm->state));
+	start = estate_max(sm->state);
 	if  (start <= 0)
 		return NULL;
 	if (start != whole_range.max)
@@ -333,7 +333,7 @@ static void while_count_down_after(struct sm_state *sm, struct expression *condi
 		return;
 	if (condition->op != SPECIAL_DECREMENT)
 		return;
-	after_value = get_dinfo_min(get_dinfo(sm->state));
+	after_value = estate_min(sm->state);
 	after_value--;
 	set_extra_mod(sm->name, sm->sym, alloc_estate(after_value));
 }
@@ -348,7 +348,6 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	long long value;
 	int left = 0;
 	struct smatch_state *state;
-	struct data_info *dinfo;
 	long long min, max;
 
 	if (!iterator) {
@@ -374,9 +373,8 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	if (sym != sm->sym || strcmp(name, sm->name))
 		goto free;
 	state = get_state(my_id, name, sym);
-	dinfo = get_dinfo(state);
-	min = get_dinfo_min(dinfo);
-	max = get_dinfo_max(dinfo);
+	min = estate_min(state);
+	max = estate_max(state);
 	if (iter_expr->op == SPECIAL_INCREMENT &&
 		min != whole_range.min &&
 		max == whole_range.max) {
@@ -538,11 +536,8 @@ static void reset_struct_members(const char *name, struct symbol *sym, struct ex
 
 static struct smatch_state *increment_state(struct smatch_state *state)
 {
-	long long min;
-	long long max;
-
-	min = get_dinfo_min(get_dinfo(state));
-	max = get_dinfo_max(get_dinfo(state));
+	long long min = estate_min(state);
+	long long max = estate_max(state);
 
 	if (inside_loop())
 		max = whole_range.max;
@@ -556,11 +551,8 @@ static struct smatch_state *increment_state(struct smatch_state *state)
 
 static struct smatch_state *decrement_state(struct smatch_state *state)
 {
-	long long min;
-	long long max;
-
-	min = get_dinfo_min(get_dinfo(state));
-	max = get_dinfo_max(get_dinfo(state));
+	long long min = estate_min(state);
+	long long max = estate_max(state);
 
 	if (inside_loop())
 		min = whole_range.min;
