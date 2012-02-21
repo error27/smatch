@@ -99,6 +99,7 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl);
 int is_whole_range(struct smatch_state *state);
 
 /* implemented in smatch_constraints */
+void set_equiv(struct sm_state *right_sm, struct expression *left);
 struct relation *get_common_relationship(struct smatch_state *estate, int op,
 					const char *name, struct symbol *sym);
 struct related_list *clone_related_list(struct related_list *related);

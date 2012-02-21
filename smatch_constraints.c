@@ -39,6 +39,37 @@
 
 ALLOCATOR(relation, "related variables");
 
+void set_equiv(struct sm_state *right_sm, struct expression *left)
+{
+	struct smatch_state *state;
+	struct relation *rel;
+	char *name;
+	struct symbol *sym;
+
+	name = get_variable_from_expr(left, &sym);
+	if (!name || !sym)
+		goto free;
+
+	remove_from_equiv(name, sym);
+
+	state = clone_estate(right_sm->state);
+	if (!estate_related(state))
+		add_equiv(state, right_sm->name, right_sm->sym);
+	add_equiv(state, name, sym);
+
+	FOR_EACH_PTR(estate_related(state), rel) {
+		struct sm_state *new_sm;
+
+		new_sm = clone_sm(right_sm);
+		new_sm->name = rel->name;
+		new_sm->sym = rel->sym;
+		new_sm->state = state;
+		__set_sm(new_sm);
+	} END_FOR_EACH_PTR(rel);
+free:
+	free_string(name);
+}
+
 static struct relation *alloc_relation(int op, const char *name, struct symbol *sym)
 {
 	struct relation *tmp;
