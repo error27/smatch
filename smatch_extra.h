@@ -72,6 +72,7 @@ struct smatch_state *alloc_estate_range_list(struct range_list *rl);
 struct range_list *get_range_list(struct expression *expr);
 struct data_info *get_dinfo(struct smatch_state *state);
 struct range_list *estate_ranges(struct smatch_state *state);
+struct related_list *estate_related(struct smatch_state *state);
 struct smatch_state *add_filter(struct smatch_state *orig, long long filter);
 struct smatch_state *extra_undefined(void);
 

@@ -70,12 +70,12 @@ void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state)
 
 	orig_state = get_state_expr(SMATCH_EXTRA, expr);
 
-	if (!orig_state || !get_dinfo(orig_state)->related) {
+	if (!estate_related(orig_state)) {
 		set_state_expr(SMATCH_EXTRA, expr, state);
 		return;
 	}
 
-	FOR_EACH_PTR(get_dinfo(orig_state)->related, rel) {
+	FOR_EACH_PTR(estate_related(orig_state), rel) {
 		sm_msg("setting %s to %s", rel->name, state->name);
 		set_state(SMATCH_EXTRA, rel->name, rel->sym, state);
 		add_equiv(state, rel->name, rel->sym);
@@ -94,13 +94,13 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 
 	orig_state = get_state(SMATCH_EXTRA, name, sym);
 
-	if (!orig_state || !get_dinfo(orig_state)->related) {
+	if (!estate_related(orig_state)) {
 		set_true_false_states(SMATCH_EXTRA, name, sym, true_state, false_state);
 		return;
 	}
 
 	// FIXME!!!!  equiv => related
-	FOR_EACH_PTR(get_dinfo(orig_state)->related, rel) {
+	FOR_EACH_PTR(estate_related(orig_state), rel) {
 		set_true_false_states(SMATCH_EXTRA, rel->name, rel->sym,
 				true_state, false_state);
 		if (true_state)
@@ -150,7 +150,6 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 				       struct smatch_state *s1,
 				       struct smatch_state *s2)
 {
-	struct data_info *info1 = get_dinfo(s1);
 	struct data_info *info2 = get_dinfo(s2);
 	struct data_info *ret_info;
 	struct smatch_state *tmp;
@@ -163,7 +162,7 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 	ret_info = get_dinfo(tmp);
 	ret_info->value_ranges = value_ranges;
 	tmp->name = show_ranges(ret_info->value_ranges);
-	FOR_EACH_PTR(info1->related, rel) {
+	FOR_EACH_PTR(estate_related(s1), rel) {
 		new = get_common_relationship(info2, rel->op, rel->name, rel->sym);
 		if (new)
 			add_related(tmp, new->op, new->name, new->sym);
@@ -410,7 +409,6 @@ static void match_function_call(struct expression *expr)
 static void set_equiv(struct sm_state *right_sm, struct expression *left)
 {
 	struct smatch_state *state;
-	struct data_info *dinfo;
 	struct relation *rel;
 	char *name;
 	struct symbol *sym;
@@ -422,12 +420,11 @@ static void set_equiv(struct sm_state *right_sm, struct expression *left)
 	remove_from_equiv(name, sym);
 
 	state = clone_estate(right_sm->state);
-	dinfo = get_dinfo(state);
-	if (!dinfo->related)
+	if (!estate_related(state))
 		add_equiv(state, right_sm->name, right_sm->sym);
 	add_equiv(state, name, sym);
 
-	FOR_EACH_PTR(dinfo->related, rel) {
+	FOR_EACH_PTR(estate_related(state), rel) {
 		struct sm_state *new_sm;
 
 		new_sm = clone_sm(right_sm);

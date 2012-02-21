@@ -42,6 +42,13 @@ struct range_list *estate_ranges(struct smatch_state *state)
 	return get_dinfo(state)->value_ranges;
 }
 
+struct related_list *estate_related(struct smatch_state *state)
+{
+	if (!state)
+		return NULL;
+	return get_dinfo(state)->related;
+}
+
 static struct data_info *alloc_dinfo(void)
 {
 	struct data_info *ret;
