@@ -112,7 +112,7 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 		return;
 	}
 
-	istrue = !possibly_false_range_list_lr(comparison,	get_dinfo(s->state), vals, lr);
+	istrue = !possibly_false_range_list_lr(comparison, get_dinfo(s->state), vals, lr);
 	isfalse = !possibly_true_range_list_lr(comparison, get_dinfo(s->state), vals, lr);
 
 	if (option_debug_implied || option_debug) {
@@ -498,7 +498,7 @@ struct range_list *__get_implied_values(struct expression *switch_expr)
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (!state)
 		goto free;
-	ret = clone_range_list(get_dinfo(state)->value_ranges);
+	ret = clone_range_list(estate_ranges(state));
 free:
 	free_string(name);
 	if (!ret)

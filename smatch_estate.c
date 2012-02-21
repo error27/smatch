@@ -35,6 +35,13 @@ struct data_info *get_dinfo(struct smatch_state *state)
 
 }
 
+struct range_list *estate_ranges(struct smatch_state *state)
+{
+	if (!state)
+		return NULL;
+	return get_dinfo(state)->value_ranges;
+}
+
 static struct data_info *alloc_dinfo(void)
 {
 	struct data_info *ret;

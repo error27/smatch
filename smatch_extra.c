@@ -130,15 +130,13 @@ struct smatch_state *filter_range(struct smatch_state *orig,
 				 long long filter_min, long long filter_max)
 {
 	struct smatch_state *ret;
-	struct data_info *orig_info;
 	struct data_info *ret_info;
 
 	if (!orig)
 		orig = extra_undefined();
-	orig_info = get_dinfo(orig);
 	ret = alloc_estate_empty();
 	ret_info = get_dinfo(ret);
-	ret_info->value_ranges = remove_range(orig_info->value_ranges, filter_min, filter_max);
+	ret_info->value_ranges = remove_range(estate_ranges(orig), filter_min, filter_max);
 	ret->name = show_ranges(ret_info->value_ranges);
 	return ret;
 }
@@ -160,7 +158,7 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 	struct relation *rel;
 	struct relation *new;
 
-	value_ranges = range_list_union(info1->value_ranges, info2->value_ranges);
+	value_ranges = range_list_union(estate_ranges(s1), estate_ranges(s2));
 	tmp = alloc_estate_empty();
 	ret_info = get_dinfo(tmp);
 	ret_info->value_ranges = value_ranges;
@@ -944,7 +942,7 @@ struct range_list *get_range_list(struct expression *expr)
 
 	state = get_state_expr(SMATCH_EXTRA, expr);
 	if (state)
-		return clone_range_list(get_dinfo(state)->value_ranges);
+		return clone_range_list(estate_ranges(state));
 	if (!get_absolute_min(expr, &min))
 		return NULL;
 	if (!get_absolute_max(expr, &max))
@@ -1071,7 +1069,7 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 
 	state = get_state_expr(my_id, expr);
 	if (state) {
-		*rl = clone_range_list(get_dinfo(state)->value_ranges);
+		*rl = clone_range_list(estate_ranges(state));
 		return 1;
 	}
 
@@ -1108,15 +1106,11 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 
 int is_whole_range(struct smatch_state *state)
 {
-	struct data_info *dinfo;
 	struct data_range *drange;
 
-	if (!state)
+	if (!estate_ranges(state))
 		return 1;
-	dinfo = get_dinfo(state);
-	if (!dinfo || !dinfo->value_ranges)
-		return 1;
-	drange = first_ptr_list((struct ptr_list *)dinfo->value_ranges);
+	drange = first_ptr_list((struct ptr_list *)estate_ranges(state));
 	if (drange->min == whole_range.min && drange->max == whole_range.max)
 		return 1;
 	return 0;
