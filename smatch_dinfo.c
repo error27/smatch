@@ -27,6 +27,14 @@ struct data_range whole_range = {
 	.max = LLONG_MAX,
 };
 
+struct data_info *get_dinfo(struct smatch_state *state)
+{
+	if (!state)
+		return NULL;
+	return (struct data_info *)state->data;
+
+}
+
 static struct data_info *alloc_dinfo(void)
 {
 	struct data_info *ret;

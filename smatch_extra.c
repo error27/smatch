@@ -126,14 +126,6 @@ free:
 	free_string(name);
 }
 
-struct data_info *get_dinfo(struct smatch_state *state)
-{
-	if (!state)
-		return NULL;
-	return (struct data_info *)state->data;
-
-}
-
 struct smatch_state *filter_range(struct smatch_state *orig,
 				 long long filter_min, long long filter_max)
 {
