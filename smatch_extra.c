@@ -130,16 +130,13 @@ free:
 struct smatch_state *filter_range(struct smatch_state *orig,
 				 long long filter_min, long long filter_max)
 {
-	struct smatch_state *ret;
-	struct data_info *ret_info;
+	struct range_list *rl;
 
 	if (!orig)
 		orig = extra_undefined();
-	ret = alloc_estate_empty();
-	ret_info = get_dinfo(ret);
-	ret_info->value_ranges = remove_range(estate_ranges(orig), filter_min, filter_max);
-	ret->name = show_ranges(ret_info->value_ranges);
-	return ret;
+
+	rl = remove_range(estate_ranges(orig), filter_min, filter_max);
+	return alloc_estate_range_list(rl);
 }
 
 struct smatch_state *add_filter(struct smatch_state *orig, long long num)
@@ -151,17 +148,13 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 				       struct smatch_state *s1,
 				       struct smatch_state *s2)
 {
-	struct data_info *ret_info;
 	struct smatch_state *tmp;
 	struct range_list *value_ranges;
 	struct relation *rel;
 	struct relation *new;
 
 	value_ranges = range_list_union(estate_ranges(s1), estate_ranges(s2));
-	tmp = alloc_estate_empty();
-	ret_info = get_dinfo(tmp);
-	ret_info->value_ranges = value_ranges;
-	tmp->name = show_ranges(ret_info->value_ranges);
+	tmp = alloc_estate_range_list(value_ranges);
 	FOR_EACH_PTR(estate_related(s1), rel) {
 		new = get_common_relationship(s2, rel->op, rel->name, rel->sym);
 		if (new)

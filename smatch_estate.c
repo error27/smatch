@@ -127,29 +127,17 @@ static struct smatch_state *alloc_estate_no_name(int val)
 /* We do this because ->value_ranges is a list */
 struct smatch_state *extra_undefined(void)
 {
-	struct data_info *dinfo;
-	static struct smatch_state *ret;
-	static struct symbol *prev_func;
+	struct smatch_state *ret;
 
-	if  (prev_func == cur_func_sym)
-		return ret;
-	prev_func = cur_func_sym;
-
-	dinfo = alloc_dinfo_range(whole_range.min, whole_range.max);
 	ret = __alloc_smatch_state(0);
+	ret->data = alloc_dinfo_range(whole_range.min, whole_range.max);
 	ret->name = "unknown";
-	ret->data = dinfo;
 	return ret;
 }
 
 struct smatch_state *extra_empty(void)
 {
-	static struct smatch_state *ret;
-	static struct symbol *prev_func;
-
-	if  (prev_func == cur_func_sym)
-		return ret;
-	prev_func = cur_func_sym;
+	struct smatch_state *ret;
 
 	ret = __alloc_smatch_state(0);
 	ret->name = "empty";
