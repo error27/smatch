@@ -24,6 +24,7 @@ int option_full_path = 0;
 int option_param_mapper = 0;
 int option_call_tree = 0;
 int option_no_db = 0;
+int option_debug_related;
 int option_file_output;
 char *option_datadir_str;
 FILE *sm_outfd;
@@ -134,6 +135,7 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(info);
 		OPTION(debug);
 		OPTION(debug_implied);
+		OPTION(debug_related);
 		OPTION(no_implied);
 		OPTION(assume_loops);
 		OPTION(known_conditions);

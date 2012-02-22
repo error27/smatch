@@ -76,7 +76,8 @@ void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state)
 	}
 
 	FOR_EACH_PTR(estate_related(orig_state), rel) {
-		sm_msg("setting %s to %s", rel->name, state->name);
+		if (option_debug_related)
+			sm_msg("updating related %s to %s", rel->name, state->name);
 		set_state(SMATCH_EXTRA, rel->name, rel->sym, state);
 		add_equiv(state, rel->name, rel->sym);
 	} END_FOR_EACH_PTR(rel);

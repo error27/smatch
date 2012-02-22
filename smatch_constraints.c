@@ -122,11 +122,28 @@ struct relation *get_common_relationship(struct smatch_state *state, int op,
 	return NULL;
 }
 
+static void debug_addition(struct smatch_state *state, int op, const char *name)
+{
+	struct relation *tmp;
+
+	if (!option_debug_related)
+		return;
+
+	sm_prefix();
+	sm_printf("(");
+	FOR_EACH_PTR(estate_related(state), tmp) {
+		sm_printf("%s %s ", show_special(tmp->op), tmp->name);
+	} END_FOR_EACH_PTR(tmp);
+	sm_printf(") <-- %s %s\n", show_special(op), name);
+}
+
 void add_related(struct smatch_state *state, int op, const char *name, struct symbol *sym)
 {
 	struct data_info *dinfo;
 	struct relation *tmp;
 	struct relation *new;
+
+	debug_addition(state, op, name);
 
 	dinfo = get_dinfo(state);
 	FOR_EACH_PTR(dinfo->related, tmp) {
