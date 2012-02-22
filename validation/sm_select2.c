@@ -17,6 +17,6 @@ int func(void)
  * check-command: smatch -I.. sm_select2.c
  *
  * check-output-start
-sm_select2.c:13 func(7) sd = min-(-1),1-max
+sm_select2.c:13 func() sd = min-(-1),1-max
  * check-output-end
  */

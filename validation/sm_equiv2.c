@@ -27,9 +27,9 @@ int func(void)
  * check-command: smatch -I.. sm_equiv2.c
  *
  * check-output-start
-sm_equiv2.c:18 func(10) red = 5
-sm_equiv2.c:19 func(11) blue = 5
-sm_equiv2.c:21 func(13) red = 0,5
-sm_equiv2.c:22 func(14) blue = 0,5
+sm_equiv2.c:18 func() red = 5
+sm_equiv2.c:19 func() blue = 5
+sm_equiv2.c:21 func() red = 0,5
+sm_equiv2.c:22 func() blue = 0,5
  * check-output-end
  */

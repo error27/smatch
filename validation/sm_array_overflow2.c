@@ -23,6 +23,6 @@ int main(void)
  * check-command: smatch sm_array_overflow2.c
  *
  * check-output-start
-sm_array_overflow2.c:18 main(7) error: buffer overflow 'b' 4 <= 4
+sm_array_overflow2.c:18 main() error: buffer overflow 'b' 4 <= 4
  * check-output-end
  */

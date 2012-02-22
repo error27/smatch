@@ -15,6 +15,6 @@ void func (char *a, char *b)
  * check-command: smatch -I.. sm_overflow4.c
  *
  * check-output-start
-sm_overflow4.c:11 func(5) error: strcpy() 'a' too large for 'c' (6 vs 5)
+sm_overflow4.c:11 func() error: strcpy() 'a' too large for 'c' (6 vs 5)
  * check-output-end
  */

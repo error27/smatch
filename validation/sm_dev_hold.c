@@ -23,6 +23,6 @@ int func (void)
  * check-command: smatch --project=kernel sm_dev_hold.c
  *
  * check-output-start
-sm_dev_hold.c:17 func(10) warn: 'x' held on error path.
+sm_dev_hold.c:17 func() warn: 'x' held on error path.
  * check-output-end
  */

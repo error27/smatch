@@ -27,12 +27,12 @@ void func (void)
  * check-command: smatch -I.. sm_implied8.c
  *
  * check-output-start
-sm_implied8.c:11 func(5) x = min-(-1),1-max
-sm_implied8.c:13 func(7) x = 0
-sm_implied8.c:15 func(9) x = unknown
-sm_implied8.c:17 func(11) x = min-2,4-max
-sm_implied8.c:19 func(13) x = 3
-sm_implied8.c:22 func(16) x = min-9,11-max
-sm_implied8.c:23 func(17) x = unknown
+sm_implied8.c:11 func() x = min-(-1),1-max
+sm_implied8.c:13 func() x = 0
+sm_implied8.c:15 func() x = unknown
+sm_implied8.c:17 func() x = min-2,4-max
+sm_implied8.c:19 func() x = 3
+sm_implied8.c:22 func() x = min-9,11-max
+sm_implied8.c:23 func() x = unknown
  * check-output-end
  */

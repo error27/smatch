@@ -20,8 +20,8 @@ void func (char *input1, char *input2, char *input3)
  * check-command: smatch sm_strlen2.c
  *
  * check-output-start
-sm_strlen2.c:10 func(6) error: strcpy() 'input1' too large for 'buf' (5 vs 4)
-sm_strlen2.c:13 func(9) error: strcpy() 'input2' too large for 'buf' (10 vs 4)
-sm_strlen2.c:16 func(12) error: strcpy() 'input3' too large for 'buf' (5 vs 4)
+sm_strlen2.c:10 func() error: strcpy() 'input1' too large for 'buf' (5 vs 4)
+sm_strlen2.c:13 func() error: strcpy() 'input2' too large for 'buf' (10 vs 4)
+sm_strlen2.c:16 func() error: strcpy() 'input3' too large for 'buf' (5 vs 4)
  * check-output-end
  */

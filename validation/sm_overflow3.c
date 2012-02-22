@@ -23,8 +23,8 @@ void func (char *a, char *b)
  * check-command: smatch -I.. sm_overflow3.c
  *
  * check-output-start
-sm_overflow3.c:14 func(9) error: buffer overflow 'a' 5 <= 5
-sm_overflow3.c:15 func(10) error: strcpy() 'b' too large for 'c' (5 vs 4)
-sm_overflow3.c:17 func(12) error: strcpy() '"1234"' too large for 'e' (5 vs 4)
+sm_overflow3.c:14 func() error: buffer overflow 'a' 5 <= 5
+sm_overflow3.c:15 func() error: strcpy() 'b' too large for 'c' (5 vs 4)
+sm_overflow3.c:17 func() error: strcpy() '"1234"' too large for 'e' (5 vs 4)
  * check-output-end
  */

@@ -28,7 +28,7 @@ int main(void)
  * check-command: smatch sm_casts2.c
  *
  * check-output-start
-sm_casts2.c:12 main(3) error: *a is never equal to 4294967295 (wrong type 0 - 255).
-sm_casts2.c:22 main(13) error: *****d is never equal to 4294967295 (wrong type -128 - 127).
+sm_casts2.c:12 main() error: *a is never equal to 4294967295 (wrong type 0 - 255).
+sm_casts2.c:22 main() error: *****d is never equal to 4294967295 (wrong type -128 - 127).
  * check-output-end
  */

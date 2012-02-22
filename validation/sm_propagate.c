@@ -16,6 +16,6 @@ int func(int *p)
  * check-command: smatch -p=kernel -I.. sm_propagate.c
  *
  * check-output-start
-sm_propagate.c:11 func(6) info: why not propagate 'ret' from frob() instead of -1?
+sm_propagate.c:11 func() info: why not propagate 'ret' from frob() instead of -1?
  * check-output-end
  */

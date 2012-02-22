@@ -20,6 +20,6 @@ int main(void)
  * check-command: smatch -p=kernel sm_err_ptr.c
  *
  * check-output-start
-sm_err_ptr.c:14 main(8) error: 'p' dereferencing possible ERR_PTR()
+sm_err_ptr.c:14 main() error: 'p' dereferencing possible ERR_PTR()
  * check-output-end
  */

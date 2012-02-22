@@ -25,7 +25,7 @@ void func(void)
  * check-command: smatch -p=kernel sm_netdevice.c
  *
  * check-output-start
-sm_netdevice.c:17 func(9) error: use free_netdev() here instead of kfree(dev2)
-sm_netdevice.c:19 func(11) error: use free_netdev() here instead of kfree(deva[0])
+sm_netdevice.c:17 func() error: use free_netdev() here instead of kfree(dev2)
+sm_netdevice.c:19 func() error: use free_netdev() here instead of kfree(deva[0])
  * check-output-end
  */

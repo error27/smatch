@@ -125,7 +125,6 @@ void __use_default_modification_hook(int owner, const char *variable);
 const char *get_filename(void);
 char *get_function(void);
 int get_lineno(void);
-int get_func_pos(void);
 extern int final_pass;
 extern struct symbol *cur_func_sym;
 extern int option_debug;
@@ -135,7 +134,7 @@ extern FILE *sm_outfd;
 
 static inline void sm_prefix(void)
 {
-	sm_printf("%s:%d %s(%d) ", get_filename(), get_lineno(), get_function(), get_func_pos());
+	sm_printf("%s:%d %s() ", get_filename(), get_lineno(), get_function());
 }
 
 static inline void print_implied_debug_msg();

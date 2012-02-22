@@ -22,8 +22,8 @@ int main(void)
  * check-command: smatch -I.. sm_overflow6.c
  *
  * check-output-start
-sm_overflow6.c:17 main(7) error: snprintf() is printing too much 11 vs 10
-sm_overflow6.c:17 main(7) error: snprintf() chops off the last chars of 'str': 12 vs 11
-sm_overflow6.c:18 main(8) error: sprintf() copies too much data from 'str': 12 vs 10
+sm_overflow6.c:17 main() error: snprintf() is printing too much 11 vs 10
+sm_overflow6.c:17 main() error: snprintf() chops off the last chars of 'str': 12 vs 11
+sm_overflow6.c:18 main() error: sprintf() copies too much data from 'str': 12 vs 10
  * check-output-end
  */

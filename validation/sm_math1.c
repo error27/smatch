@@ -28,10 +28,10 @@ label_I1:
  * check-command: smatch -I.. sm_math1.c
  *
  * check-output-start
-sm_math1.c:13 func(8) y = (-58)
-sm_math1.c:16 func(11) y = (-57)-max
-sm_math1.c:19 func(14) z = 7-max
-sm_math1.c:20 func(15) x = 2
-sm_math1.c:23 func(18) x = min-1
+sm_math1.c:13 func() y = (-58)
+sm_math1.c:16 func() y = (-57)-max
+sm_math1.c:19 func() z = 7-max
+sm_math1.c:20 func() x = 2
+sm_math1.c:23 func() x = min-1
  * check-output-end
  */

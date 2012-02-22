@@ -31,11 +31,11 @@ int main(void)
  * check-command: smatch -I.. sm_compare2.c
  *
  * check-output-start
-sm_compare2.c:11 main(6) a = 4-10
-sm_compare2.c:17 main(12) b = 3-15
-sm_compare2.c:20 main(15) a = 4-10
-sm_compare2.c:21 main(16) b = 5-15
-sm_compare2.c:23 main(18) a = 4-10
-sm_compare2.c:24 main(19) b = 3-10
+sm_compare2.c:11 main() a = 4-10
+sm_compare2.c:17 main() b = 3-15
+sm_compare2.c:20 main() a = 4-10
+sm_compare2.c:21 main() b = 5-15
+sm_compare2.c:23 main() a = 4-10
+sm_compare2.c:24 main() b = 3-10
  * check-output-end
  */

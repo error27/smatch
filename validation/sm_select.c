@@ -31,11 +31,11 @@ void func (void)
  * check-command: smatch sm_select.c
  *
  * check-output-start
-sm_select.c:17 func(6) error: we previously assumed 'a' could be null (see line 13)
-sm_select.c:18 func(7) error: we previously assumed 'b' could be null (see line 13)
-sm_select.c:21 func(10) warn: variable dereferenced before check 'e' (see line 19)
-sm_select.c:22 func(11) error: we previously assumed 'c' could be null (see line 21)
-sm_select.c:26 func(15) error: we previously assumed 'e' could be null (see line 21)
+sm_select.c:17 func() error: we previously assumed 'a' could be null (see line 13)
+sm_select.c:18 func() error: we previously assumed 'b' could be null (see line 13)
+sm_select.c:21 func() warn: variable dereferenced before check 'e' (see line 19)
+sm_select.c:22 func() error: we previously assumed 'c' could be null (see line 21)
+sm_select.c:26 func() error: we previously assumed 'e' could be null (see line 21)
  * check-output-end
  */
 

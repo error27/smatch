@@ -21,9 +21,9 @@ void func (void)
  * check-command: smatch -I.. sm_compound_conditions3.c
  *
  * check-output-start
-sm_compound_conditions3.c:8 func(3) aaa = 1-99
-sm_compound_conditions3.c:10 func(5) aaa = min-0,100-max
-sm_compound_conditions3.c:13 func(8) aaa = 1-9
-sm_compound_conditions3.c:16 func(11) aaa = min-0,10-41,43-max
+sm_compound_conditions3.c:8 func() aaa = 1-99
+sm_compound_conditions3.c:10 func() aaa = min-0,100-max
+sm_compound_conditions3.c:13 func() aaa = 1-9
+sm_compound_conditions3.c:16 func() aaa = min-0,10-41,43-max
  * check-output-end
  */

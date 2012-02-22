@@ -33,10 +33,10 @@ int main(char *arg0)
  * check-command: smatch --spammy sm_array_overflow4.c
  *
  * check-output-start
-sm_array_overflow4.c:22 main(14) error: buffer overflow 's' 8 <= 8
-sm_array_overflow4.c:23 main(15) error: buffer overflow 's2' 8 <= 8
-sm_array_overflow4.c:25 main(17) error: buffer overflow 'a' 8 <= 8
-sm_array_overflow4.c:26 main(18) error: strcpy() '"1234"' too large for 'buf' (5 vs 4)
-sm_array_overflow4.c:27 main(19) warn: strcpy() 'arg0' of unknown size might be too large for 'buf2'
+sm_array_overflow4.c:22 main() error: buffer overflow 's' 8 <= 8
+sm_array_overflow4.c:23 main() error: buffer overflow 's2' 8 <= 8
+sm_array_overflow4.c:25 main() error: buffer overflow 'a' 8 <= 8
+sm_array_overflow4.c:26 main() error: strcpy() '"1234"' too large for 'buf' (5 vs 4)
+sm_array_overflow4.c:27 main() warn: strcpy() 'arg0' of unknown size might be too large for 'buf2'
  * check-output-end
  */

@@ -76,7 +76,7 @@ sub load_all($)
 
     open(FILE, "<$file");
     while (<FILE>) {
-	if (/.*?:\d+ (.*?)\(\d+\) info: param_mapper (\d+) => (.*?) (\d+)/) {
+	if (/.*?:\d+ (.*?)\(\) info: param_mapper (\d+) => (.*?) (\d+)/) {
 	    add_link("$1%$2", "$3%$4");
 	}
     }

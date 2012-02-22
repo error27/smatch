@@ -35,7 +35,6 @@ int __in_pre_condition = 0;
 int __bail_on_rest_of_function = 0;
 char *get_function(void) { return cur_func; }
 int get_lineno(void) { return __smatch_lineno; }
-int get_func_pos(void) { return __smatch_lineno - line_func_start; }
 int inside_loop(void) { return !!loop_count; }
 int in_expression_statement(void) { return !!__expr_stmt_count; }
 

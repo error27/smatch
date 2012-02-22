@@ -24,6 +24,6 @@ void xxxA (void)
  * check-command: smatch -p=wine sm_WtoA.c
  *
  * check-output-start
-sm_WtoA.c:6 xxxW(2) warn: WtoA call wwwA()
+sm_WtoA.c:6 xxxW() warn: WtoA call wwwA()
  * check-output-end
  */
