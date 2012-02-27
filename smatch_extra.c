@@ -795,7 +795,7 @@ void __extra_match_condition(struct expression *expr)
 			return;
 		pre_state = get_state(my_id, name, sym);
 		true_state = add_filter(pre_state, 0);
-		if (possibly_true(SPECIAL_EQUAL, expr, 0, 0))
+		if (possibly_true(expr, SPECIAL_EQUAL, zero_expr()))
 			false_state = alloc_estate(0);
 		else
 			false_state = alloc_estate_empty();
@@ -814,7 +814,7 @@ void __extra_match_condition(struct expression *expr)
 /* returns 1 if it is not possible for expr to be value, otherwise returns 0 */
 int implied_not_equal(struct expression *expr, long long val)
 {
-	return !possibly_false(SPECIAL_NOTEQUAL, expr, val, 1);
+	return !possibly_false(expr, SPECIAL_NOTEQUAL, value_expr(val));
 }
 
 int known_condition_true(struct expression *expr)

@@ -465,41 +465,41 @@ int false_comparison_range_lr(int comparison, struct data_range *var, struct dat
 		return false_comparison_range(val, comparison, var);
 }
 
-int possibly_true(int comparison, struct expression *expr, long long num, int left)
+int possibly_true(struct expression *left, int comparison, struct expression *right)
 {
-	struct data_range *tmp;
-	struct data_range drange;
-	struct range_list *rl;
+	struct range_list *rl_left, *rl_right;
+	struct data_range *tmp_left, *tmp_right;
 
-	if (!get_implied_range_list(expr, &rl))
+	if (!get_implied_range_list(left, &rl_left))
+		return 1;
+	if (!get_implied_range_list(right, &rl_right))
 		return 1;
 
-	drange.min = num;
-	drange.max = num;
-
-	FOR_EACH_PTR(rl, tmp) {
-		if (true_comparison_range_lr(comparison, tmp, &drange, left))
-			return 1;
-	} END_FOR_EACH_PTR(tmp);
+	FOR_EACH_PTR(rl_left, tmp_left) {
+		FOR_EACH_PTR(rl_right, tmp_right) {
+			if (true_comparison_range(tmp_left, comparison, tmp_right))
+				return 1;
+		} END_FOR_EACH_PTR(tmp_right);
+	} END_FOR_EACH_PTR(tmp_left);
 	return 0;
 }
 
-int possibly_false(int comparison, struct expression *expr, long long num, int left)
+int possibly_false(struct expression *left, int comparison, struct expression *right)
 {
-	struct data_range *tmp;
-	struct data_range drange;
-	struct range_list *rl;
+	struct range_list *rl_left, *rl_right;
+	struct data_range *tmp_left, *tmp_right;
 
-	if (!get_implied_range_list(expr, &rl))
+	if (!get_implied_range_list(left, &rl_left))
+		return 1;
+	if (!get_implied_range_list(right, &rl_right))
 		return 1;
 
-	drange.min = num;
-	drange.max = num;
-
-	FOR_EACH_PTR(rl, tmp) {
-		if (false_comparison_range_lr(comparison, tmp, &drange, left))
-			return 1;
-	} END_FOR_EACH_PTR(tmp);
+	FOR_EACH_PTR(rl_left, tmp_left) {
+		FOR_EACH_PTR(rl_right, tmp_right) {
+			if (false_comparison_range(tmp_left, comparison, tmp_right))
+				return 1;
+		} END_FOR_EACH_PTR(tmp_right);
+	} END_FOR_EACH_PTR(tmp_left);
 	return 0;
 }
 
