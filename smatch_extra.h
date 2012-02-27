@@ -98,6 +98,10 @@ void filter_top_range_list(struct range_list_stack **rl_stack, long long num);
 int get_implied_range_list(struct expression *expr, struct range_list **rl);
 int is_whole_range(struct smatch_state *state);
 
+/* smatch_expressions.c */
+struct expression *zero_expr();
+struct expression *value_expr(long long val);
+
 /* implemented in smatch_constraints */
 void set_equiv(struct expression *left, struct expression *right);
 struct relation *get_common_relationship(struct smatch_state *estate, int op,
