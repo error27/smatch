@@ -157,6 +157,7 @@ void __split_expr(struct expression *expr)
 		break;
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
+		__pass_to_client(expr, CAST_HOOK);
 		__split_expr(expr->cast_expression);
 		break;
 	case EXPR_SIZEOF:

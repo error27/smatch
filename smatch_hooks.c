@@ -101,6 +101,9 @@ void add_hook(void *func, enum hook_type type)
 	case ASM_HOOK:
 		container->data_type = STMT_PTR;
 		break;
+	case CAST_HOOK:
+		container->data_type = EXPR_PTR;
+		break;
 	case BASE_HOOK:
 		container->data_type = SYMBOL_PTR;
 		break;
