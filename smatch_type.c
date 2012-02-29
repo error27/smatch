@@ -205,3 +205,12 @@ long long type_min(struct symbol *base_type)
 	return -(ret + 1);
 }
 
+int nr_bits(struct expression *expr)
+{
+	struct symbol *type;
+
+	type = get_type(expr);
+	if (!type)
+		return 0;
+	return type->bit_size;
+}
