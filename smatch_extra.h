@@ -69,7 +69,6 @@ void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state);
 struct smatch_state *alloc_estate_empty(void);
 struct smatch_state *alloc_estate(long long val);
 struct smatch_state *alloc_estate_range_list(struct range_list *rl);
-struct range_list *get_range_list(struct expression *expr);
 struct data_info *get_dinfo(struct smatch_state *state);
 struct range_list *estate_ranges(struct smatch_state *state);
 struct related_list *estate_related(struct smatch_state *state);

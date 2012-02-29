@@ -401,11 +401,11 @@ static void handle_comparison(struct expression *expr,
 	if (is_merged_expr(left)) {
 		lr = LEFT;
 		sm = get_sm_state_expr(SMATCH_EXTRA, left);
-		ranges = get_range_list(right);
+		get_implied_range_list(right, &ranges);
 	} else if (is_merged_expr(right)) {
 		lr = RIGHT;
 		sm = get_sm_state_expr(SMATCH_EXTRA, right);
-		ranges = get_range_list(left);
+		get_implied_range_list(left, &ranges);
 	}
 
 	if (!ranges || !sm) {
