@@ -126,6 +126,9 @@ void __split_expr(struct expression *expr)
 	case EXPR_ASSIGNMENT: {
 		struct expression *tmp;
 
+		if (!expr->right)
+			break;
+
 		__pass_to_client(expr, RAW_ASSIGNMENT_HOOK);
 
 		/* foo = !bar() */
