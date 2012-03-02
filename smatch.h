@@ -230,6 +230,7 @@ int getting_address(void);
 char *get_fnptr_name(struct expression *expr);
 
 /* smatch_type.c */
+struct symbol *get_pointer_type(struct expression *expr);
 struct symbol *get_type(struct expression *expr);
 int type_unsigned(struct symbol *base_type);
 int expr_unsigned(struct expression *expr);
