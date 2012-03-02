@@ -29,12 +29,7 @@ static void match_free(const char *fn, struct expression *expr, void *data)
 	struct symbol *type;
 
 	arg_expr = get_argument_from_call_expr(expr->args, 0);
-	type = get_type(arg_expr);
-
-	if (!type || (type->type != SYM_PTR && type->type != SYM_ARRAY))
-		return;
-	type = get_base_type(type);
-
+	type = get_pointer_type(arg_expr);
 	if (!type || !type->ident)
 		return;
 

@@ -66,7 +66,7 @@ static struct symbol *get_return_type(struct expression *expr)
 	return get_real_base_type(tmp);
 }
 
-static struct symbol *get_pointer_type(struct expression *expr)
+struct symbol *get_pointer_type(struct expression *expr)
 {
 	struct symbol *sym;
 
