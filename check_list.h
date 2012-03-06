@@ -68,6 +68,7 @@ CK(check_select)
 CK(check_memset)
 CK(check_logical_instead_of_bitwise)
 CK(check_kmalloc_wrong_size)
+CK(check_pointer_math)
 
 /* <- your test goes here */
 /* CK(register_template) */
