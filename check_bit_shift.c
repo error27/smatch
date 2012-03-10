@@ -38,7 +38,7 @@ static const char *get_shifter(struct expression *expr)
 		return NULL;
 	if (!get_value(expr, &expr_value))
 		return NULL;
-	name = get_macro_name(&expr->pos);
+	name = pos_ident(expr->pos);
 	if (!name)
 		return NULL;
 	shifter_value = search_struct(shifters, (char *)name);
@@ -110,7 +110,6 @@ static void register_shifters(void)
 	clear_token_alloc();
 }
 
-
 static void match_binop_info(struct expression *expr)
 {
 	char *name;
@@ -122,7 +121,7 @@ static void match_binop_info(struct expression *expr)
 		return;
 	if (expr->right->type != EXPR_VALUE)
 		return;
-	name = get_macro_name(&expr->right->pos);
+	name = pos_ident(expr->right->pos);
 	if (!name)
 		return;
 	if (!get_value(expr->right, &val))
@@ -140,7 +139,7 @@ static void match_call(const char *fn, struct expression *expr, void *_arg_no)
 	arg_expr = get_argument_from_call_expr(expr->args, arg_no);
 	if (positions_eq(&expr->pos, &arg_expr->pos))
 		return;
-	name = get_macro_name(&arg_expr->pos);
+	name = pos_ident(arg_expr->pos);
 	if (!name)
 		return;
 	if (!get_value(arg_expr, &val))

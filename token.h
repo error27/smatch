@@ -204,6 +204,10 @@ extern struct token * tokenize_buffer(void *, unsigned long, struct token **);
 extern void show_identifier_stats(void);
 extern struct token *preprocess(struct token *);
 
+extern void store_all_tokens(struct token *token);
+extern struct token *pos_get_token(struct position pos);
+extern char *pos_ident(struct position pos);
+
 extern void store_macro_pos(struct token *);
 extern char *get_macro_name(struct position *);
 
