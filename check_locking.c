@@ -9,7 +9,7 @@
 
 /*
  * This test checks that locks are held the same across all returns.
- * 
+ *
  * Of course, some functions are designed to only hold the locks on success.
  * Oh well... We can rewrite it later if we want.
  *
@@ -446,7 +446,6 @@ static void do_unlock(const char *name)
 	if (sm)
 		func_has_transition = TRUE;
 	set_state(my_id, name, NULL, &unlocked);
-
 }
 
 static void match_lock_held(const char *fn, struct expression *call_expr,
@@ -558,7 +557,7 @@ static void check_possible(struct sm_state *sm)
 				isunlocked = 1;
 			else
 				undef = 1;
-		}		
+		}
 		if (tmp->state == &undefined)
 			undef = 1;  // i don't think this is possible any more.
 	} END_FOR_EACH_PTR(tmp);
@@ -580,10 +579,10 @@ static void match_return(struct expression *ret_value)
 	slist = get_all_states(my_id);
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state == &locked) {
-			add_tracker(&ret->locked, tmp->owner, tmp->name, 
+			add_tracker(&ret->locked, tmp->owner, tmp->name,
 				tmp->sym);
 		} else if (tmp->state == &unlocked) {
-			add_tracker(&ret->unlocked, tmp->owner, tmp->name, 
+			add_tracker(&ret->unlocked, tmp->owner, tmp->name,
 				tmp->sym);
 		} else if (tmp->state == &start_state) {
 			struct smatch_state *s;
@@ -593,7 +592,7 @@ static void match_return(struct expression *ret_value)
 				add_tracker(&ret->locked, tmp->owner, tmp->name, 
 					    tmp->sym);
 			if (s == &unlocked)
-				add_tracker(&ret->unlocked, tmp->owner,tmp->name, 
+				add_tracker(&ret->unlocked, tmp->owner,tmp->name,
 					     tmp->sym);
 		}else {
 			check_possible(tmp);
@@ -658,10 +657,10 @@ static void check_returns_consistently(struct tracker *lock,
 	struct locks_on_return *tmp;
 
 	FOR_EACH_PTR(all_returns, tmp) {
-		if (in_tracker_list(tmp->unlocked, lock->owner, lock->name, 
+		if (in_tracker_list(tmp->unlocked, lock->owner, lock->name,
 					lock->sym))
 			returns_unlocked = tmp->line;
-		else if (in_tracker_list(tmp->locked, lock->owner, lock->name, 
+		else if (in_tracker_list(tmp->locked, lock->owner, lock->name,
 						lock->sym))
 			returns_locked = tmp->line;
 		else if (start == &locked)
@@ -682,7 +681,7 @@ static void check_consistency(struct symbol *sym)
 		match_return(NULL);
 
 	FOR_EACH_PTR(starts_locked, tmp) {
-		if (in_tracker_list(starts_unlocked, tmp->owner, tmp->name, 
+		if (in_tracker_list(starts_unlocked, tmp->owner, tmp->name,
 					tmp->sym))
 			sm_msg("error:  locking inconsistency.  We assume "
 				   "'%s' is both locked and unlocked at the "
@@ -697,7 +696,6 @@ static void check_consistency(struct symbol *sym)
 	FOR_EACH_PTR(starts_unlocked, tmp) {
 		check_returns_consistently(tmp, &unlocked);
 	} END_FOR_EACH_PTR(tmp);
-
 }
 
 static void clear_lists(void)
@@ -739,7 +737,7 @@ static void register_lock(int index)
 	} else if (lock->return_type == ret_zero) {
 		return_implies_state(lock->function, 0, 0, &match_lock_held, idx);
 		return_implies_state(lock->function, whole_range.min, -1, &match_lock_failed, idx);
-	} 
+	}
 }
 
 static void load_table(struct lock_info *_lock_table, int size)
