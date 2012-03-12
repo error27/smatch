@@ -438,6 +438,8 @@ static void do_unlock(const char *name)
 {
 	struct sm_state *sm;
 
+	if (__path_is_null())
+		return;
 	sm = get_sm_state(my_id, name, NULL);
 	if (!sm)
 		add_tracker(&starts_locked, my_id, name, NULL);
