@@ -21,7 +21,7 @@ fi
 
 IFS="
 "
-for err in $(diff -u $old $new | cut -b 2- | egrep '(warn|error):') ; do
+for err in $(diff -u $old $new | cut -b 2- | egrep '(warn|error|warning):') ; do
 
     # we are only interested in the last chunk.
     # "some_func(42) warn: blah blah blah"
