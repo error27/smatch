@@ -911,6 +911,8 @@ int implied_condition_true(struct expression *expr)
 	if (!expr)
 		return 0;
 
+	if (known_condition_true(expr))
+		return 1;
 	if (get_implied_value(expr, &tmp) && tmp)
 		return 1;
 
@@ -955,7 +957,7 @@ int implied_condition_false(struct expression *expr)
 	if (!expr)
 		return 0;
 
-	if (is_zero(expr))
+	if (known_condition_false(expr))
 		return 1;
 
 	switch (expr->type) {

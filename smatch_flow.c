@@ -168,6 +168,14 @@ void __split_expr(struct expression *expr)
 		break;
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
+		if (known_condition_true(expr->conditional)) {
+			__split_expr(expr->cond_true);
+			break;
+		}
+		if (known_condition_false(expr->conditional)) {
+			__split_expr(expr->cond_false);
+			break;
+		}
 		__pass_to_client(expr, SELECT_HOOK);
 		__split_whole_condition(expr->conditional);
 		__split_expr(expr->cond_true);
@@ -177,6 +185,8 @@ void __split_expr(struct expression *expr)
 		__merge_true_states();
 		break;
 	case EXPR_CALL:
+		if (sym_name_is("__builtin_constant_p", expr->fn))
+			break;
 		split_expr_list(expr->args);
 		__split_expr(expr->fn);
 		if (is_inline_func(expr->fn))
