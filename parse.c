@@ -1976,7 +1976,7 @@ static void start_iterator(struct statement *stmt)
 {
 	struct symbol *cont, *brk;
 
-	start_symbol_scope();
+	start_symbol_scope(stmt->pos);
 	cont = alloc_symbol(stmt->pos, SYM_NODE);
 	bind_symbol(cont, &continue_ident, NS_ITERATOR);
 	brk = alloc_symbol(stmt->pos, SYM_NODE);
@@ -1999,7 +1999,7 @@ static struct statement *start_function(struct symbol *sym)
 	struct symbol *ret;
 	struct statement *stmt = alloc_statement(sym->pos, STMT_COMPOUND);
 
-	start_function_scope();
+	start_function_scope(stmt->pos);
 	ret = alloc_symbol(sym->pos, SYM_NODE);
 	ret->ctype = sym->ctype.base_type->ctype;
 	ret->ctype.modifiers &= ~(MOD_STORAGE | MOD_CONST | MOD_VOLATILE | MOD_TLS | MOD_INLINE | MOD_ADDRESSABLE | MOD_NOCAST | MOD_NODEREF | MOD_ACCESSED | MOD_TOPLEVEL);
@@ -2036,7 +2036,7 @@ static void start_switch(struct statement *stmt)
 {
 	struct symbol *brk, *switch_case;
 
-	start_symbol_scope();
+	start_symbol_scope(stmt->pos);
 	brk = alloc_symbol(stmt->pos, SYM_NODE);
 	bind_symbol(brk, &break_ident, NS_ITERATOR);
 
@@ -2277,7 +2277,7 @@ static struct token *statement(struct token *token, struct statement **tree)
 
 	if (match_op(token, '{')) {
 		stmt->type = STMT_COMPOUND;
-		start_symbol_scope();
+		start_symbol_scope(stmt->pos);
 		token = compound_statement(token->next, stmt);
 		end_symbol_scope();
 		

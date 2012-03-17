@@ -51,7 +51,7 @@ struct token *parens_expression(struct token *token, struct expression **expr, c
 		struct statement *stmt = alloc_statement(token->pos, STMT_COMPOUND);
 		*expr = e;
 		e->statement = stmt;
-		start_symbol_scope();
+		start_symbol_scope(e->pos);
 		token = compound_statement(token->next, stmt);
 		end_symbol_scope();
 		token = expect(token, '}', "at end of statement expression");

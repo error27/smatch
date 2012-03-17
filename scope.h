@@ -10,6 +10,7 @@
  */
 
 struct symbol;
+struct position;
 
 struct scope {
 	struct token *token;		/* Scope start information */
@@ -32,10 +33,10 @@ extern void start_file_scope(void);
 extern void end_file_scope(void);
 extern void new_file_scope(void);
 
-extern void start_symbol_scope(void);
+extern void start_symbol_scope(struct position pos);
 extern void end_symbol_scope(void);
 
-extern void start_function_scope(void);
+extern void start_function_scope(struct position pos);
 extern void end_function_scope(void);
 
 extern void bind_scope(struct symbol *, struct scope *);

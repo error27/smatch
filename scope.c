@@ -30,10 +30,12 @@ void bind_scope(struct symbol *sym, struct scope *scope)
 	add_symbol(&scope->symbols, sym);
 }
 
-static void start_scope(struct scope **s)
+static void start_scope(struct scope **s, struct position pos)
 {
 	struct scope *scope = __alloc_scope(0);
 	memset(scope, 0, sizeof(*scope));
+	scope->token = __alloc_token(0);
+	scope->token->pos = pos;
 	scope->next = *s;
 	*s = scope;
 }
@@ -51,15 +53,15 @@ void start_file_scope(void)
 	block_scope = scope;
 }
 
-void start_symbol_scope(void)
+void start_symbol_scope(struct position pos)
 {
-	start_scope(&block_scope);
+	start_scope(&block_scope, pos);
 }
 
-void start_function_scope(void)
+void start_function_scope(struct position pos)
 {
-	start_scope(&function_scope);
-	start_scope(&block_scope);
+	start_scope(&function_scope, pos);
+	start_scope(&block_scope, pos);
 }
 
 static void remove_symbol_scope(struct symbol *sym)
