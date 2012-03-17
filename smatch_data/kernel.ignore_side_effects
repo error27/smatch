@@ -1,0 +1,49 @@
+/*
+ * Manually created.
+ *
+ * Most of these have intentional side effects.
+ * Some of them like put_user() and friends, have side effects when __CHECKER__
+ * is defined but not in the compiled kernel.
+ */
+ARCH_DLINFO
+ENCODE
+ENCODE_DATA
+ENCODE_STR
+get_unaligned
+__get_user
+__get_user_nocheck
+hybrid_tuner_request_state
+lookup
+lookup_rightempty
+MAKE_RAW_BYTE
+MAKE_RAW_BYTE_56K
+MsgHead
+MUL64
+NEW_AUX_ENT
+nh_vmac_nhbytes
+ntohl
+OUT_RING_REG
+poly_step
+PUT_BYTE
+put_short
+__put_user
+__put_user_nocheck
+R128_WAIT_UNTIL_PAGE_FLIPPED
+R600_CLEAR_AGE
+R600_DISPATCH_AGE
+R600_FRAME_AGE
+RADEON_CLEAR_AGE
+RADEON_DISPATCH_AGE
+RADEON_FLUSH_CACHE
+RADEON_FRAME_AGE
+RADEON_PURGE_CACHE
+RADEON_PURGE_ZCACHE
+RADEON_WAIT_UNTIL_2D_IDLE
+RADEON_WAIT_UNTIL_3D_IDLE
+RADEON_WAIT_UNTIL_IDLE
+READ64
+send_bits
+send_code
+VIA_OUT_RING_QW
+WRITE64
+Z

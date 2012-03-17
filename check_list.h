@@ -70,6 +70,7 @@ CK(check_logical_instead_of_bitwise)
 CK(check_kmalloc_wrong_size)
 CK(check_pointer_math)
 CK(check_bit_shift)
+CK(check_macro_side_effects)
 
 /* <- your test goes here */
 /* CK(register_template) */
