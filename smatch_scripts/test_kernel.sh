@@ -16,7 +16,8 @@ fi
 
 SCRIPT_DIR=$(dirname $0)
 if [ -e $SCRIPT_DIR/../smatch ] ; then
-    CMD=$SCRIPT_DIR/../smatch
+    cp $SCRIPT_DIR/../smatch $SCRIPT_DIR/../bak.smatch
+    CMD=$SCRIPT_DIR/../bak.smatch
 elif which smatch | grep smatch > /dev/null ; then
     CMD=smatch
 else
