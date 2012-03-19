@@ -15,6 +15,7 @@
 static int my_id;
 
 static struct string_list *ignored_macros;
+static struct position old_pos;
 
 static struct smatch_state *alloc_my_state(struct expression *expr)
 {
@@ -112,13 +113,23 @@ static void match_unop(struct expression *raw_expr)
 
 	if (!affected_inside_macro_before(expr)) {
 		set_state_expr(my_id, expr, alloc_my_state(expr));
+		old_pos = expr->pos;
 		return;
 	}
+
+	if (!positions_eq(old_pos, expr->pos))
+		return;
 
 	name = get_variable_from_expr_complex(raw_expr, NULL);
 	sm_msg("warn: side effect in macro '%s' doing '%s'",
 		macro, name);
 	free_string(name);
+}
+
+static void match_stmt(struct statement *stmt)
+{
+	if (!positions_eq(old_pos, stmt->pos))
+		old_pos.line = 0;
 }
 
 static void register_ignored_macros(void)
@@ -150,5 +161,6 @@ void check_macro_side_effects(int id)
 	my_id = id;
 
 	add_hook(&match_unop, OP_HOOK);
+	add_hook(&match_stmt, STMT_HOOK);
 	register_ignored_macros();
 }
