@@ -465,3 +465,14 @@ char *get_fnptr_name(struct expression *expr)
 	return alloc_string(buf);
 }
 
+int positions_eq(struct position pos1, struct position pos2)
+{
+	if (pos1.line != pos2.line)
+		return 0;
+	if (pos1.pos != pos2.pos)
+		return 0;
+	if (pos1.stream != pos2.stream)
+		return 0;
+	return 1;
+}
+

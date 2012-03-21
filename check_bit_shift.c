@@ -16,17 +16,6 @@ static DEFINE_HASHTABLE_INSERT(insert_struct, char, int);
 static DEFINE_HASHTABLE_SEARCH(search_struct, char, int);
 static struct hashtable *shifters;
 
-static int positions_eq(struct position *pos1, struct position *pos2)
-{
-	if (pos1->line != pos2->line)
-		return 0;
-	if (pos1->pos != pos2->pos)
-		return 0;
-	if (pos1->stream != pos2->stream)
-		return 0;
-	return 1;
-}
-
 static const char *get_shifter(struct expression *expr)
 {
 	const char *name;
@@ -55,7 +44,7 @@ static void match_assign(struct expression *expr)
 
 	if (expr->op != SPECIAL_OR_ASSIGN)
 		return;
-	if (positions_eq(&expr->pos, &expr->right->pos))
+	if (positions_eq(expr->pos, expr->right->pos))
 		return;
 	name = get_shifter(expr->right);
 	if (!name)
@@ -69,7 +58,7 @@ static void match_binop(struct expression *expr)
 {
 	const char *name;
 
-	if (positions_eq(&expr->pos, &expr->right->pos))
+	if (positions_eq(expr->pos, expr->right->pos))
 		return;
 	if (expr->op != '&')
 		return;
@@ -115,7 +104,7 @@ static void match_binop_info(struct expression *expr)
 	char *name;
 	long long val;
 
-	if (positions_eq(&expr->pos, &expr->right->pos))
+	if (positions_eq(expr->pos, expr->right->pos))
 		return;
 	if (expr->op != SPECIAL_LEFTSHIFT)
 		return;
@@ -137,7 +126,7 @@ static void match_call(const char *fn, struct expression *expr, void *_arg_no)
 	char *name;
 
 	arg_expr = get_argument_from_call_expr(expr->args, arg_no);
-	if (positions_eq(&expr->pos, &arg_expr->pos))
+	if (positions_eq(expr->pos, arg_expr->pos))
 		return;
 	name = pos_ident(arg_expr->pos);
 	if (!name)

@@ -31,17 +31,6 @@ static struct smatch_state *alloc_my_state(struct expression *expr)
 	return state;
 }
 
-static int positions_eq(struct position pos1, struct position pos2)
-{
-	if (pos1.line != pos2.line)
-		return 0;
-	if (pos1.pos != pos2.pos)
-		return 0;
-	if (pos1.stream != pos2.stream)
-		return 0;
-	return 1;
-}
-
 static int defined_inside_macro(struct position macro_pos, struct expression *expr)
 {
 	char *name;
