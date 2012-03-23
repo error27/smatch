@@ -500,11 +500,11 @@ static int is_select_assign(struct expression *expr)
 }
 
 static void set_fake_assign(struct expression *new,
-			struct expression *left, struct expression *right)
+			struct expression *left, int op, struct expression *right)
 {
 
 	new->pos = left->pos;
-	new->op = (int)'=';
+	new->op = op;
 	new->type = EXPR_ASSIGNMENT;
 	new->left = left;
 	new->right = right;
@@ -534,9 +534,9 @@ int __handle_select_assigns(struct expression *expr)
 		struct expression fake_expr;
 
 		if (right->cond_true)
-			set_fake_assign(&fake_expr, expr->left, right->cond_true);
+			set_fake_assign(&fake_expr, expr->left, expr->op, right->cond_true);
 		else
-			set_fake_assign(&fake_expr, expr->left, right->conditional);
+			set_fake_assign(&fake_expr, expr->left, expr->op, right->conditional);
 		__split_expr(&fake_expr);
 		final_states = clone_slist(__get_cur_slist());
 	}
@@ -545,7 +545,7 @@ int __handle_select_assigns(struct expression *expr)
 	if (!is_true) {
 		struct expression fake_expr;
 
-		set_fake_assign(&fake_expr, expr->left, right->cond_false);
+		set_fake_assign(&fake_expr, expr->left, expr->op, right->cond_false);
 		__split_expr(&fake_expr);
 		merge_slist(&final_states, __get_cur_slist());
 	}
@@ -610,7 +610,7 @@ int __handle_expr_statement_assigns(struct expression *expr)
 		fake_expr_stmt.statement = last_stmt;
 
 		fake_assign.pos = last_stmt->pos;
-		fake_assign.op = (int)'=';
+		fake_assign.op = expr->op;
 		fake_assign.type = EXPR_ASSIGNMENT;
 		fake_assign.left = expr->left;
 		fake_assign.right = &fake_expr_stmt;
@@ -622,7 +622,7 @@ int __handle_expr_statement_assigns(struct expression *expr)
 		struct expression fake_assign;
 
 		fake_assign.pos = stmt->pos;
-		fake_assign.op = (int)'=';
+		fake_assign.op = expr->op;
 		fake_assign.type = EXPR_ASSIGNMENT;
 		fake_assign.left = expr->left;
 		fake_assign.right = stmt->expression;
