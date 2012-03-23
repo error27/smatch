@@ -682,6 +682,7 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern __SIZE_TYPE__ __builtin_strspn(const char *, const char *);\n");
 	add_pre_buffer("extern __SIZE_TYPE__ __builtin_strcspn(const char *, const char *);\n");
 	add_pre_buffer("extern char * __builtin_strpbrk(const char *, const char *);\n");
+	add_pre_buffer("extern char* __builtin_stpcpy(const char *, const char*);\n");
 	add_pre_buffer("extern __SIZE_TYPE__ __builtin_strlen(const char *);\n");
 
 	/* And bitwise operations.. */
@@ -714,6 +715,8 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern long __builtin_alpha_cmpbge(long, long);\n");
 	add_pre_buffer("extern long __builtin_labs(long);\n");
 	add_pre_buffer("extern double __builtin_fabs(double);\n");
+	add_pre_buffer("extern void __sync_synchronize();\n");
+	add_pre_buffer("extern int __sync_bool_compare_and_swap(void *, ...);\n");
 
 	/* Add Blackfin-specific stuff */
 	add_pre_buffer(
