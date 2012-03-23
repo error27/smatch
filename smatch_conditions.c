@@ -310,6 +310,31 @@ static void handle_select(struct expression *expr)
 	} END_FOR_EACH_PTR(sm);
 }
 
+static void hackup_unsigned_compares(struct expression *expr)
+{
+	if (expr->type != EXPR_COMPARE)
+		return;
+
+	switch (expr->op) {
+	case '<':
+		if (expr_unsigned(expr->left) || expr_unsigned(expr->right))
+			expr->op = SPECIAL_UNSIGNED_LT;
+		break;
+	case SPECIAL_LTE:
+		if (expr_unsigned(expr->left) || expr_unsigned(expr->right))
+			expr->op = SPECIAL_UNSIGNED_LTE;
+		break;
+	case '>':
+		if (expr_unsigned(expr->left) || expr_unsigned(expr->right))
+			expr->op = SPECIAL_UNSIGNED_GT;
+		break;
+	case SPECIAL_GTE:
+		if (expr_unsigned(expr->left) || expr_unsigned(expr->right))
+			expr->op = SPECIAL_UNSIGNED_GTE;
+		break;
+	}
+}
+
 static void split_conditions(struct expression *expr)
 {
 	if (option_debug) {
@@ -329,6 +354,7 @@ static void split_conditions(struct expression *expr)
 		handle_logical(expr);
 		return;
 	case EXPR_COMPARE:
+		hackup_unsigned_compares(expr);
 		if (handle_zero_comparisons(expr))
 			return;
 		break;
@@ -602,6 +628,7 @@ int __handle_expr_statement_assigns(struct expression *expr)
 		fake_assign.right = stmt->expression;
 
 		__split_expr(&fake_assign);
+
 	} else {
 		__split_stmt(stmt);
 	}
