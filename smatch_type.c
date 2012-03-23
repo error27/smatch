@@ -120,6 +120,8 @@ struct symbol *get_type(struct expression *expr)
 		return tmp;
 	case EXPR_CALL:
 		return get_return_type(expr);
+	case EXPR_SIZEOF:
+		return &ulong_ctype;
 	default:
 		return expr->ctype;
 //		sm_msg("unhandled type %d", expr->type);
