@@ -224,6 +224,15 @@ static enum { STANDARD_C89,
               STANDARD_GNU89,
               STANDARD_GNU99, } standard = STANDARD_GNU89;
 
+#ifdef __x86_64__
+#define ARCH_M64_DEFAULT 1
+#else
+#define ARCH_M64_DEFAULT 0
+#endif
+
+int arch_m64 = ARCH_M64_DEFAULT;
+int arch_msize_long = 0;
+
 #define CMDLINE_INCLUDE 20
 int cmdline_include_nr = 0;
 struct cmdline_include cmdline_include[CMDLINE_INCLUDE];
@@ -344,18 +353,46 @@ static char **handle_switch_M(char *arg, char **next)
 static char **handle_switch_m(char *arg, char **next)
 {
 	if (!strcmp(arg, "m64")) {
+		arch_m64 = 1;
+	} else if (!strcmp(arg, "m32")) {
+		arch_m64 = 0;
+	} else if (!strcmp(arg, "msize-long")) {
+		arch_msize_long = 1;
+	}
+	return next;
+}
+
+static void handle_arch_m64_finalize(void)
+{
+	if (arch_m64) {
 		bits_in_long = 64;
 		max_int_alignment = 8;
 		bits_in_pointer = 64;
 		pointer_alignment = 8;
 		size_t_ctype = &ulong_ctype;
 		ssize_t_ctype = &long_ctype;
-	} else if (!strcmp(arg, "msize-long")) {
+#ifdef __x86_64__
+		add_pre_buffer("#weak_define x86_64 1\n");
+		add_pre_buffer("#weak_define __x86_64 1\n");
+		add_pre_buffer("#weak_define __x86_64__ 1\n");
+#endif
+	}
+}
+
+static void handle_arch_msize_long_finalize(void)
+{
+	if (arch_msize_long) {
 		size_t_ctype = &ulong_ctype;
 		ssize_t_ctype = &long_ctype;
 	}
-	return next;
 }
+
+static void handle_arch_finalize(void)
+{
+	handle_arch_m64_finalize();
+	handle_arch_msize_long_finalize();
+}
+
 
 static char **handle_switch_o(char *arg, char **next)
 {
@@ -933,6 +970,8 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	}
 	handle_switch_W_finalize();
 	handle_switch_v_finalize();
+
+	handle_arch_finalize();
 
 	list = NULL;
 	if (!ptr_list_empty(filelist)) {
