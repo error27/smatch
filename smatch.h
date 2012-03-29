@@ -231,6 +231,7 @@ char *get_fnptr_name(struct expression *expr);
 int positions_eq(struct position pos1, struct position pos2);
 
 /* smatch_type.c */
+struct symbol *get_real_base_type(struct symbol *sym);
 struct symbol *get_pointer_type(struct expression *expr);
 struct symbol *get_type(struct expression *expr);
 int type_unsigned(struct symbol *base_type);
