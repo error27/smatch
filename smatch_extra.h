@@ -48,6 +48,7 @@ int possibly_false_range_list_lr(int comparison, struct smatch_state *estate, st
 void free_range_list(struct range_list **rlist);
 void free_data_info_allocs(void);
 struct range_list *clone_range_list(struct range_list *list);
+struct range_list *clone_permanent(struct range_list *list);
 char *show_ranges(struct range_list *list);
 void get_value_ranges(char *value, struct range_list **rl);
 

@@ -296,6 +296,19 @@ struct range_list *clone_range_list(struct range_list *list)
 	return ret;
 }
 
+struct range_list *clone_permanent(struct range_list *list)
+{
+	struct data_range *tmp;
+	struct data_range *new;
+	struct range_list *ret = NULL;
+
+	FOR_EACH_PTR(list, tmp) {
+		new = alloc_range_perm(tmp->min, tmp->max);
+		add_ptr_list(&ret, new);
+	} END_FOR_EACH_PTR(tmp);
+	return ret;
+}
+
 struct range_list *range_list_union(struct range_list *one, struct range_list *two)
 {
 	struct data_range *tmp;
