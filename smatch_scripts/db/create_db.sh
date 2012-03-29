@@ -1,9 +1,14 @@
 #!/bin/bash
 
+if echo $1 | grep -q '^-p' ; then
+    PROJ=$(echo $1 | cut -d = -f 2)
+    shift
+fi
+
 info_file=$1
 
 if [[ "$info_file" = "" ]] ; then
-    echo "Usage:  $0 <file with smatch messages>"
+    echo "Usage:  $0 -p=<project> <file with smatch messages>"
     exit 1
 fi
 
@@ -19,3 +24,7 @@ done
 for i in ${bin_dir}/fill_* ; do
     $i $info_file
 done
+
+if [ "$PROJ" != "" ] ; then
+    ${bin_dir}/fixup_${PROJ}.sh
+fi

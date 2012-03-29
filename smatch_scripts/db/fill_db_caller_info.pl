@@ -18,7 +18,7 @@ $db->do("PRAGMA journal_mode = OFF");
 my $prev_fn = "";
 my $prev_line = "+0";
 my $prev_param = 0;
-my $func_id = 0;
+my $func_id = 1;
 my $type;
 
 $db->do("delete from caller_info");
