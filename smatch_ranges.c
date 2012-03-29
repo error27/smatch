@@ -67,6 +67,8 @@ void get_value_ranges(char *value, struct range_list **rl)
 	char *start;
 	char *c;
 
+	*rl = NULL;
+
 	c = value;
 	while (*c) {
 		if (*c == '(')
