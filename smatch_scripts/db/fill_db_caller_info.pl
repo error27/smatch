@@ -3,12 +3,37 @@
 use strict;
 use DBI;
 
-my $warns = shift;
-
-if (!defined($warns)) {
+sub usage()
+{
     print "usage:  $0 <warns.txt>\n";
     exit(1);
 }
+
+my %too_common_funcs;
+sub get_too_common_functions($)
+{
+    my $warns = shift;
+
+    open(FUNCS, "cat $warns | grep 'info: passes param_value' | grep \" -1 '\\\$\\\$' min-max\" | cut -d \"'\" -f 2 | sort | uniq -c | ");
+
+    while (<FUNCS>) {
+        if ($_ =~ /(\d+) (.*)/) {
+            if (int($1) > 200) {
+                $too_common_funcs{$2} = 1;
+            }
+        }
+    }
+
+    close(FUNCS);
+}
+
+my $warns = shift;
+
+if (!defined($warns)) {
+    usage();
+}
+
+get_too_common_functions($warns);
 
 my $db = DBI->connect("dbi:SQLite:smatch_db.sqlite", "", "", {RaiseError => 1, AutoCommit => 0});
 $db->do("PRAGMA synchronous = OFF");
@@ -100,6 +125,10 @@ while (<WARNS>) {
     $key =~ s/'//g;
     $value =~ s/'//g;
 
+    if (defined($too_common_funcs{$func})) {
+        next;
+    }
+
     if ($prev_fn ne $func || $prev_line ne $line) {
 	$prev_fn = $func;
 	$prev_line = $line;
@@ -107,6 +136,7 @@ while (<WARNS>) {
 	$func_id++;
     }
 
+#    print "insert into caller_info values ('$file', '$func', $func_id, $type, $param, '$key', '$value')\n";
     $db->do("insert into caller_info values ('$file', '$func', $func_id, $type, $param, '$key', '$value')");
 }
 $db->commit();
