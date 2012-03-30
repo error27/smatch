@@ -81,6 +81,26 @@ static struct range_list *tmp_range_list(long long num)
 	return my_list;
 }
 
+static void print_debug_tf(struct sm_state *s, int istrue, int isfalse)
+{
+	if (!option_debug_implied && !option_debug)
+		return;
+
+	if (istrue && isfalse) {
+		printf("'%s = %s' from %d does not exist.\n", s->name,
+			show_state(s->state), s->line);
+	} else if (istrue) {
+		printf("'%s = %s' from %d is true.\n", s->name, show_state(s->state),
+			s->line);
+	} else if (isfalse) {
+		printf("'%s = %s' from %d is false.\n", s->name, show_state(s->state),
+			s->line);
+	} else {
+		printf("'%s = %s' from %d could be true or false.\n", s->name,
+			show_state(s->state), s->line);
+	}
+}
+
 /*
  * If 'foo' == 99 add it that pool to the true pools.  If it's false, add it to
  * the false pools.  If we're not sure, then we don't add it to either.
@@ -120,21 +140,8 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 		isfalse = !possibly_true_range_lists(vals, comparison, estate_ranges(s->state));
 	}
 
-	if (option_debug_implied || option_debug) {
-		if (istrue && isfalse) {
-			printf("'%s = %s' from %d does not exist.\n", s->name,
-				show_state(s->state), s->line);
-		} else if (istrue) {
-			printf("'%s = %s' from %d is true.\n", s->name, show_state(s->state),
-				s->line);
-		} else if (isfalse) {
-			printf("'%s = %s' from %d is false.\n", s->name, show_state(s->state),
-				s->line);
-		} else {
-			printf("'%s = %s' from %d could be true or false.\n", s->name,
-				show_state(s->state), s->line);
-		}
-	}
+	print_debug_tf(s, istrue, isfalse);
+
 	if (istrue)
 		add_pool(true_stack, s->my_pool);
 
