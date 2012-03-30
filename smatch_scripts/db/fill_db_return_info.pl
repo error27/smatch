@@ -27,11 +27,11 @@ while (<WARNS>) {
 
     my ($file_and_line, $file, $func, $dummy, $value);
 
-    # sound/pci/hda/patch_sigmatel.c:3125 create_controls_idx(29) info: return_value min-(-1)
+    # sound/pci/hda/patch_sigmatel.c:3125 create_controls_idx() info: return_value min-(-1)
 
     ($file_and_line, $func, $dummy, $dummy, $value) = split(/ /, $_);
     ($file, $dummy) = split(/:/, $file_and_line);
-    $func =~ s/\(\d+\)//;
+    $func =~ s/\(\)//;
     $value =~ s/unknown/min-max/;
 
     if (!defined($value)) {
