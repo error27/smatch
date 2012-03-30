@@ -146,7 +146,7 @@ void __split_expr(struct expression *expr)
 		tmp = strip_expr(expr->right);
 		if (tmp->type == EXPR_CALL)
 			__pass_to_client(expr, CALL_ASSIGNMENT_HOOK);
-		if (get_macro_name(&tmp->pos))
+		if (get_macro_name(tmp->pos))
 			__pass_to_client(expr, MACRO_ASSIGNMENT_HOOK);
 		__split_expr(expr->left);
 		break;
@@ -575,7 +575,7 @@ void __split_stmt(struct statement *stmt)
 		__split_stmt(stmt->if_true);
 		if (empty_statement(stmt->if_true) &&
 			last_stmt_on_same_line() &&
-			!get_macro_name(&stmt->if_true->pos))
+			!get_macro_name(stmt->if_true->pos))
 			sm_msg("warn: if();");
 		__push_true_states();
 		__use_false_states();

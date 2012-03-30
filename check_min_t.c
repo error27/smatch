@@ -21,7 +21,7 @@ static void match_assign(struct expression *expr)
 	if (expr->op != '=')
 		return;
 
-	macro = get_macro_name(&expr->pos);
+	macro = get_macro_name(expr->pos);
 	if (!macro)
 		return;
 	if (strcmp(macro, "min_t"))

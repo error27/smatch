@@ -47,7 +47,7 @@ static void match_condition(struct expression *expr)
 	if (__in_pre_condition)
 		return;
 
-	if (get_macro_name(&expr->pos))
+	if (get_macro_name(expr->pos))
 		return;
 
 	sm = get_sm_state_expr(my_id, expr);

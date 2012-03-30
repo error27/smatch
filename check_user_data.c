@@ -127,7 +127,7 @@ static void match_assign(struct expression *expr)
 {
 	char *name;
 
-	name = get_macro_name(&expr->pos);
+	name = get_macro_name(expr->pos);
 	if (!name || strcmp(name, "get_user") != 0) {
 		match_normal_assign(expr);
 		return;

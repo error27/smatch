@@ -33,7 +33,7 @@ static void match_condition(struct expression *expr)
 	if (__in_pre_condition)
 		return;
 
-	if (get_macro_name(&expr->pos))
+	if (get_macro_name(expr->pos))
 		return;
 
 	if (get_state_expr(my_id, expr) == &non_null) {

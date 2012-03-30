@@ -35,7 +35,7 @@ static void match_return(struct expression *ret_value)
 	if (ret_value->type != EXPR_PREOP || ret_value->op != '-')
 		return;
 
-	macro = get_macro_name(&expr->unop->pos);
+	macro = get_macro_name(expr->unop->pos);
 	if (macro && !strcmp(macro, "PTR_ERR")) {
 		sm_msg("warn: returning -%s()", macro);
 		return;

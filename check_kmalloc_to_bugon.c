@@ -33,7 +33,7 @@ static void match_condition(struct expression *expr)
 	struct expression *right;
 	char *name;
 
-	macro = get_macro_name(&expr->pos);
+	macro = get_macro_name(expr->pos);
 	if (!macro || strcmp(macro, "BUG_ON") != 0)
 		return;
 	state = get_state_expr(check_assigned_expr_id, expr);

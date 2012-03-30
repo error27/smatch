@@ -133,7 +133,7 @@ static int compare_against_macro(int lr, struct expression *expr)
 	if (lr == VAR_ON_LEFT)
 		known = expr->right;
 
-	return !!get_macro_name(&known->pos);
+	return !!get_macro_name(known->pos);
 }
 
 static int cap_both_size(int lr, struct expression *expr)

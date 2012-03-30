@@ -30,7 +30,7 @@ static char *get_fn_name(struct expression *expr)
 
 static void match_call_assignment(struct expression *expr)
 {
-	if (get_macro_name(&expr->left->pos))
+	if (get_macro_name(expr->left->pos))
 		return;
 	last_return = expr->left;
 	last_func = expr->right;

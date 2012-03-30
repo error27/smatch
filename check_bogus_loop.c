@@ -54,7 +54,7 @@ static void match_loop(struct statement *stmt)
 	char *iter_set;
 	char *iter_tested;
 
-	if (get_macro_name(&stmt->pos))
+	if (get_macro_name(stmt->pos))
 		return;
 
 	iterator = get_iterator_set(stmt->iterator_pre_statement);

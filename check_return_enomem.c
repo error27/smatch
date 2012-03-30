@@ -54,7 +54,7 @@ static void match_return(struct expression *ret_value)
 		return;
 	if (!get_value(ret_value, &val) || val != -1)
 		return;
-	if (get_macro_name(&ret_value->pos))
+	if (get_macro_name(ret_value->pos))
 		return;
 
 	slist = get_all_states(my_id);

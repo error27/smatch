@@ -266,7 +266,7 @@ static void match_macro_assign(struct expression *expr)
 	struct expression *right;
 
 	right = strip_expr(expr->right);
-	macro = get_macro_name(&right->pos);
+	macro = get_macro_name(right->pos);
 	call_backs = search_callback(func_hash, (char *)macro);
 	if (!call_backs)
 		return;

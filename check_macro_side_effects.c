@@ -88,7 +88,7 @@ static void match_unop(struct expression *raw_expr)
 	if (raw_expr->op != SPECIAL_INCREMENT && raw_expr->op != SPECIAL_DECREMENT)
 		return;
 
-	macro = get_macro_name(&raw_expr->pos);
+	macro = get_macro_name(raw_expr->pos);
 	if (!macro)
 		return;
 

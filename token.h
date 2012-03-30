@@ -209,7 +209,7 @@ extern struct token *pos_get_token(struct position pos);
 extern char *pos_ident(struct position pos);
 
 extern void store_macro_pos(struct token *);
-extern char *get_macro_name(struct position *);
+extern char *get_macro_name(struct position pos);
 
 static inline int match_op(struct token *token, int op)
 {

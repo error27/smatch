@@ -18,7 +18,7 @@ static void match_logic(struct expression *expr)
 	if (expr->type != EXPR_LOGICAL)
 		return;
 
-	if (get_macro_name(&expr->pos))
+	if (get_macro_name(expr->pos))
 		return;
 
 	if (!get_value(expr->right, &val)) {

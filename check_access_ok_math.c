@@ -104,7 +104,7 @@ static void match_asm_stmt(struct statement *stmt)
 {
 	char *name;
 
-	name = get_macro_name(&stmt->pos);
+	name = get_macro_name(stmt->pos);
 	if (!name || strcmp(name, "access_ok") != 0)
 		return;
 	split_asm_constraints(stmt->asm_inputs);

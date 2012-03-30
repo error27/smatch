@@ -83,7 +83,7 @@ static void match_pointer_as_array(struct expression *expr)
 
 static void match_condition(struct expression *expr)
 {
-	if (get_macro_name(&expr->pos))
+	if (get_macro_name(expr->pos))
 		return;
 
 	if (expr->type == EXPR_ASSIGNMENT) {
