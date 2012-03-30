@@ -11,25 +11,14 @@
 
 static int my_id;
 
-static int same_pos(struct position pos1, struct position pos2)
-{
-	if (pos1.stream != pos2.stream)
-		return 0;
-	if (pos1.line != pos2.line)
-		return 0;
-	if (pos1.pos != pos2.pos)
-		return 0;
-	return 1;
-}
-
 static void match_inside(struct expression *expr, struct position pos)
 {
 	char *name;
 	int matched = 0;
 
-	if (same_pos(expr->pos, pos))
+	if (positions_eq(expr->pos, pos))
 		matched++;
-	if (same_pos(expr->unop->pos, pos))
+	if (positions_eq(expr->unop->pos, pos))
 		matched++;
 	if (matched != 1)
 		return;
@@ -46,9 +35,9 @@ static void match_one_side(struct expression *expr, struct position pos, int op)
 
 	if ((op == '+' || op == '*' || op == '|' || op == '&') && expr->op == op)
 		return;
-	if (same_pos(expr->right->pos, pos))
+	if (positions_eq(expr->right->pos, pos))
 		matched++;
-	if (same_pos(expr->left->pos, pos))
+	if (positions_eq(expr->left->pos, pos))
 		matched++;
 	if (matched != 1)
 		return;
