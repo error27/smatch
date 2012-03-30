@@ -112,8 +112,13 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 		return;
 	}
 
-	istrue = !possibly_false_range_list_lr(comparison, s->state, vals, lr);
-	isfalse = !possibly_true_range_list_lr(comparison, s->state, vals, lr);
+	if (lr == LEFT) {
+		istrue = !possibly_false_range_lists(estate_ranges(s->state), comparison, vals);
+		isfalse = !possibly_true_range_lists(estate_ranges(s->state), comparison, vals);
+	} else {
+		istrue = !possibly_false_range_lists(vals, comparison, estate_ranges(s->state));
+		isfalse = !possibly_true_range_lists(vals, comparison, estate_ranges(s->state));
+	}
 
 	if (option_debug_implied || option_debug) {
 		if (istrue && isfalse) {
