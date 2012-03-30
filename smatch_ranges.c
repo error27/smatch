@@ -540,8 +540,13 @@ int possibly_true_range_list_lr(int comparison, struct smatch_state *state, stru
 
 	FOR_EACH_PTR(estate_ranges(state), tmp) {
 		FOR_EACH_PTR(values, tmp2) {
-			if (true_comparison_range_lr(comparison, tmp, tmp2, left))
-				return 1;
+			if (left) {
+				if (true_comparison_range(tmp, comparison, tmp2))
+					return 1;
+			} else {
+				if (true_comparison_range(tmp2, comparison, tmp))
+					return 1;
+			}
 		} END_FOR_EACH_PTR(tmp2);
 	} END_FOR_EACH_PTR(tmp);
 	return 0;
@@ -569,8 +574,13 @@ int possibly_false_range_list_lr(int comparison, struct smatch_state *state, str
 
 	FOR_EACH_PTR(estate_ranges(state), tmp) {
 		FOR_EACH_PTR(values, tmp2) {
-			if (false_comparison_range_lr(comparison, tmp, tmp2, left))
-				return 1;
+			if (left) {
+				if (false_comparison_range(tmp, comparison, tmp2))
+					return 1;
+			} else {
+				if (false_comparison_range(tmp2, comparison, tmp))
+					return 1;
+			}
 		} END_FOR_EACH_PTR(tmp2);
 	} END_FOR_EACH_PTR(tmp);
 	return 0;
