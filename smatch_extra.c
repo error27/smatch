@@ -992,6 +992,8 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 	long long min;
 	long long max;
 
+	*rl = NULL;
+
 	expr = strip_parens(expr);
 	if (!expr)
 		return 0;
@@ -1008,7 +1010,6 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 	}
 
 	if (get_implied_value(expr, &val)) {
-		*rl = NULL;
 		add_range(rl, val, val);
 		return 1;
 	}
@@ -1019,7 +1020,6 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 	if (expr->op == '%') {
 		if (!get_implied_value(expr->right, &val))
 			return 0;
-		*rl = NULL;
 		add_range(rl, 0, val - 1);
 		return 1;
 	}
