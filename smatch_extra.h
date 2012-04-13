@@ -37,6 +37,7 @@ long long rl_min(struct range_list *rl);
 long long rl_max(struct range_list *rl);
 struct data_range *alloc_range_perm(long long min, long long max);
 struct range_list *alloc_range_list(long long min, long long max);
+struct range_list *whole_range_list(void);
 void add_range(struct range_list **list, long long min, long long max);
 int true_comparison_range(struct data_range *left, int comparison, struct data_range *right);
 int possibly_true(struct expression *left, int comparison, struct expression *right);

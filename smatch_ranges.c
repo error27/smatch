@@ -202,6 +202,11 @@ struct range_list *alloc_range_list(long long min, long long max)
 	return rl;
 }
 
+struct range_list *whole_range_list(void)
+{
+	return alloc_range_list(whole_range.min, whole_range.max);
+}
+
 void add_range(struct range_list **list, long long min, long long max)
 {
 	struct data_range *tmp = NULL;
