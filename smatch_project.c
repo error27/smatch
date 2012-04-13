@@ -101,8 +101,6 @@ static void add_param_implication(const char *func, int param, char *range, char
 	imp->param = param;
 	imp->rl = rl;
 
-	printf("%s returning %lld-%lld implies %s\n", func, rl_min(ret_rl), rl_max(ret_rl), show_ranges(rl));
-
 	return_implies_state(func, rl_min(ret_rl), rl_max(ret_rl), &match_param_implication, imp);
 }
 
@@ -129,6 +127,11 @@ static void register_parameter_implications(void)
 		func = show_ident(token->ident);
 
 		token = token->next;
+		if (token_type(token) != TOKEN_STRING)
+			return;
+		ret_range = token->string->data;
+
+		token = token->next;
 		if (token_type(token) != TOKEN_NUMBER)
 			return;
 		param = atoi(token->number);
@@ -137,12 +140,6 @@ static void register_parameter_implications(void)
 		if (token_type(token) != TOKEN_STRING)
 			return;
 		range = token->string->data;
-
-		token = token->next;
-		if (token_type(token) != TOKEN_STRING)
-			return;
-		ret_range = token->string->data;
-
 
 		add_param_implication(func, param, range, ret_range);
 
