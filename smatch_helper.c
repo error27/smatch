@@ -448,13 +448,10 @@ int getting_address(void)
 	return 0;
 }
 
-char *get_fnptr_name(struct expression *expr)
+char *get_member_name(struct expression *expr)
 {
 	char buf[256];
 	struct symbol *sym;
-
-	if (expr->type == EXPR_SYMBOL)
-		return get_variable_from_expr(expr, NULL);
 
 	if (expr->type != EXPR_DEREF)
 		return NULL;
@@ -463,6 +460,13 @@ char *get_fnptr_name(struct expression *expr)
 		return NULL;
 	snprintf(buf, sizeof(buf), "(struct %s)->%s", sym->ident->name, expr->member->name);
 	return alloc_string(buf);
+}
+
+char *get_fnptr_name(struct expression *expr)
+{
+	if (expr->type == EXPR_SYMBOL)
+		return get_variable_from_expr(expr, NULL);
+	return get_member_name(expr);
 }
 
 int positions_eq(struct position pos1, struct position pos2)

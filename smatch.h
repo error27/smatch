@@ -227,6 +227,7 @@ struct expression *strip_expr(struct expression *expr);
 void scoped_state(int my_id, const char *name, struct symbol *sym);
 int is_error_return(struct expression *expr);
 int getting_address(void);
+char *get_member_name(struct expression *expr);
 char *get_fnptr_name(struct expression *expr);
 int positions_eq(struct position pos1, struct position pos2);
 
