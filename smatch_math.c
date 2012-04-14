@@ -456,7 +456,6 @@ int get_absolute_max(struct expression *expr, long long *val)
 int known_condition_true(struct expression *expr)
 {
 	long long tmp;
-	struct statement *stmt;
 
 	if (!expr)
 		return 0;
@@ -464,52 +463,20 @@ int known_condition_true(struct expression *expr)
 	if (get_value(expr, &tmp) && tmp)
 		return 1;
 
-	expr = strip_expr(expr);
-	switch (expr->type) {
-	case EXPR_PREOP:
-		if (expr->op == '!') {
-			if (known_condition_false(expr->unop))
-				return 1;
-			break;
-		}
-		stmt = get_expression_statement(expr);
-		if (last_stmt_val(stmt, &tmp) && tmp == 1)
-			return 1;
-		break;
-	default:
-		break;
-	}
 	return 0;
 }
 
 int known_condition_false(struct expression *expr)
 {
-	long long tmp;
-	struct statement *stmt;
-
 	if (!expr)
 		return 0;
 
 	if (is_zero(expr))
 		return 1;
 
-	switch (expr->type) {
-	case EXPR_PREOP:
-		if (expr->op == '!') {
-			if (known_condition_true(expr->unop))
-				return 1;
-			break;
-		}
-		stmt = get_expression_statement(expr);
-		if (last_stmt_val(stmt, &tmp) && tmp == 0)
-			return 1;
-		break;
-	case EXPR_CALL:
+	if (expr->type == EXPR_CALL) {
 		if (sym_name_is("__builtin_constant_p", expr->fn))
 			return 1;
-		break;
-	default:
-		break;
 	}
 	return 0;
 }
