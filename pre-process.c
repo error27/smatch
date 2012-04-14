@@ -802,31 +802,6 @@ static int do_include_path(const char **pptr, struct token **list, struct token 
 	return 0;
 }
 
-static void do_include(int local, struct stream *stream, struct token **list, struct token *token, const char *filename, const char **path)
-{
-	int flen = strlen(filename) + 1;
-
-	/* Absolute path? */
-	if (filename[0] == '/') {
-		if (try_include("", filename, flen, list, includepath))
-			return;
-		goto out;
-	}
-
-	/* Dir of input file is first dir to search for quoted includes */
-	set_stream_include_path(stream);
-
-	if (!path)
-		/* Do not search quote include if <> is in use */
-		path = local ? quote_includepath : angle_includepath;
-
-	/* Check the standard include paths.. */
-	if (do_include_path(path, list, token, filename, flen))
-		return;
-out:
-	error_die(token->pos, "unable to open '%s'", filename);
-}
-
 static int free_preprocessor_line(struct token *token)
 {
 	while (token_type(token) != TOKEN_EOF) {
@@ -837,11 +812,13 @@ static int free_preprocessor_line(struct token *token)
 	return 1;
 }
 
-static int handle_include_path(struct stream *stream, struct token **list, struct token *token, const char **path)
+static int handle_include_path(struct stream *stream, struct token **list, struct token *token, int how)
 {
 	const char *filename;
 	struct token *next;
+	const char **path;
 	int expect;
+	int flen;
 
 	next = token->next;
 	expect = '>';
@@ -854,20 +831,52 @@ static int handle_include_path(struct stream *stream, struct token **list, struc
 			expect = '>';
 		}
 	}
+
 	token = next->next;
 	filename = token_name_sequence(token, expect, token);
-	do_include(!expect, stream, list, token, filename, path);
-	return 0;
+	flen = strlen(filename) + 1;
+
+	/* Absolute path? */
+	if (filename[0] == '/') {
+		if (try_include("", filename, flen, list, includepath))
+			return 0;
+		goto out;
+	}
+
+	switch (how) {
+	case 1:
+		path = stream->next_path;
+		break;
+	case 2:
+		includepath[0] = "";
+		path = includepath;
+		break;
+	default:
+		/* Dir of input file is first dir to search for quoted includes */
+		set_stream_include_path(stream);
+		path = expect ? angle_includepath : quote_includepath;
+		break;
+	}
+	/* Check the standard include paths.. */
+	if (do_include_path(path, list, token, filename, flen))
+		return 0;
+out:
+	error_die(token->pos, "unable to open '%s'", filename);
 }
 
 static int handle_include(struct stream *stream, struct token **list, struct token *token)
 {
-	return handle_include_path(stream, list, token, NULL);
+	return handle_include_path(stream, list, token, 0);
 }
 
 static int handle_include_next(struct stream *stream, struct token **list, struct token *token)
 {
-	return handle_include_path(stream, list, token, stream->next_path);
+	return handle_include_path(stream, list, token, 1);
+}
+
+static int handle_argv_include(struct stream *stream, struct token **list, struct token *token)
+{
+	return handle_include_path(stream, list, token, 2);
 }
 
 static int token_different(struct token *t1, struct token *t2)
@@ -1798,6 +1807,7 @@ static void init_preprocessor(void)
 		{ "add_system",    handle_add_system },
 		{ "add_dirafter",  handle_add_dirafter },
 		{ "split_include", handle_split_include },
+		{ "argv_include",  handle_argv_include },
 	}, special[] = {
 		{ "ifdef",	handle_ifdef },
 		{ "ifndef",	handle_ifndef },

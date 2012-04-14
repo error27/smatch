@@ -225,8 +225,8 @@ static enum { STANDARD_C89,
               STANDARD_GNU99, } standard = STANDARD_GNU89;
 
 #define CMDLINE_INCLUDE 20
-int cmdline_include_nr = 0;
-struct cmdline_include cmdline_include[CMDLINE_INCLUDE];
+static int cmdline_include_nr = 0;
+static char *cmdline_include[CMDLINE_INCLUDE];
 
 
 void add_pre_buffer(const char *fmt, ...)
@@ -299,16 +299,9 @@ static char **handle_switch_I(char *arg, char **next)
 
 static void add_cmdline_include(char *filename)
 {
-	int fd = open(filename, O_RDONLY);
-	if (fd < 0) {
-		perror(filename);
-		return;
-	}
 	if (cmdline_include_nr >= CMDLINE_INCLUDE)
 		die("too many include files for %s\n", filename);
-	cmdline_include[cmdline_include_nr].filename = filename;
-	cmdline_include[cmdline_include_nr].fd = fd;
-	cmdline_include_nr++;
+	cmdline_include[cmdline_include_nr++] = filename;
 }
 
 static char **handle_switch_i(char *arg, char **next)
@@ -892,19 +885,13 @@ static struct symbol_list *sparse_file(const char *filename)
  */
 static struct symbol_list *sparse_initial(void)
 {
-	struct token *token;
 	int i;
 
 	// Prepend any "include" file to the stream.
 	// We're in global scope, it will affect all files!
-	token = NULL;
-	for (i = cmdline_include_nr - 1; i >= 0; i--)
-		token = tokenize(cmdline_include[i].filename, cmdline_include[i].fd,
-				 token, includepath);
+	for (i = 0; i < cmdline_include_nr; i++)
+		add_pre_buffer("#argv_include \"%s\"\n", cmdline_include[i]);
 
-	// Prepend the initial built-in stream
-	if (token)
-		pre_buffer_end->next = token;
 	return sparse_tokenstream(pre_buffer_begin);
 }
 
