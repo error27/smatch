@@ -81,6 +81,9 @@ static long long handle_preop(struct expression *expr, int *undefined, int impli
 	long long ret = BOGUS;
 
 	switch (expr->op) {
+	case '!':
+		ret = !_get_value(expr->unop, undefined, implied);
+		break;
 	case '~':
 		ret = ~_get_value(expr->unop, undefined, implied);
 		ret = cast_to_type(expr->unop, ret);
