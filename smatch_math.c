@@ -507,9 +507,7 @@ static int do_comparison(struct expression *expr)
 
 int implied_condition_true(struct expression *expr)
 {
-	struct statement *stmt;
 	long long tmp;
-	long long val;
 
 	if (!expr)
 		return 0;
@@ -539,9 +537,6 @@ int implied_condition_true(struct expression *expr)
 				return 1;
 			break;
 		}
-		stmt = get_expression_statement(expr);
-		if (last_stmt_val(stmt, &val) && val == 1)
-			return 1;
 		break;
 	default:
 		if (implied_not_equal(expr, 0) == 1)
@@ -553,7 +548,6 @@ int implied_condition_true(struct expression *expr)
 
 int implied_condition_false(struct expression *expr)
 {
-	struct statement *stmt;
 	struct expression *tmp;
 	long long val;
 
@@ -573,9 +567,6 @@ int implied_condition_false(struct expression *expr)
 				return 1;
 			break;
 		}
-		stmt = get_expression_statement(expr);
-		if (last_stmt_val(stmt, &val) && val == 0)
-			return 1;
 		tmp = strip_expr(expr);
 		if (tmp != expr)
 			return implied_condition_false(tmp);
