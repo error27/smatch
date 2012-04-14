@@ -198,6 +198,55 @@ static long long handle_binop(struct expression *expr, int *undefined, int impli
 	return ret;
 }
 
+static int do_comparison(struct expression *expr)
+{
+	struct range_list *left_ranges = NULL;
+	struct range_list *right_ranges = NULL;
+	int poss_true, poss_false;
+
+	get_implied_range_list(expr->left, &left_ranges);
+	get_implied_range_list(expr->right, &right_ranges);
+
+	poss_true = possibly_true_range_lists(left_ranges, expr->op, right_ranges);
+	poss_false = possibly_false_range_lists(left_ranges, expr->op, right_ranges);
+
+	free_range_list(&left_ranges);
+	free_range_list(&right_ranges);
+
+	if (!poss_true && !poss_false)
+		return 0;
+	if (poss_true && !poss_false)
+		return 1;
+	if (!poss_true && poss_false)
+		return 2;
+	return 3;
+}
+
+static long long handle_comparison(struct expression *expr, int *undefined, int implied)
+{
+	int res;
+
+	/* TODO: we should be able to handle this...  */
+	if (implied == NOTIMPLIED) {
+		*undefined = 1;
+		return BOGUS;
+	}
+
+	res = do_comparison(expr);
+	if (res == 1)
+		return 1;
+	if (res == 2)
+		return 0;
+
+	if (implied == IMPLIED_MIN || implied == FUZZYMIN)
+		return 0;
+	if (implied == IMPLIED_MAX || implied == FUZZYMAX)
+		return 1;
+
+	*undefined = 1;
+	return BOGUS;
+}
+
 static int get_implied_value_helper(struct expression *expr, long long *val, int what)
 {
 	struct smatch_state *state;
@@ -351,6 +400,9 @@ static long long _get_value(struct expression *expr, int *undefined, int implied
 	case EXPR_BINOP:
 		ret = handle_binop(expr, undefined, implied);
 		break;
+	case EXPR_COMPARE:
+		ret = handle_comparison(expr, undefined, implied);
+		break;
 	case EXPR_PTRSIZEOF:
 	case EXPR_SIZEOF:
 		ret = get_expression_value(expr);
@@ -479,30 +531,6 @@ int known_condition_false(struct expression *expr)
 			return 1;
 	}
 	return 0;
-}
-
-static int do_comparison(struct expression *expr)
-{
-	struct range_list *left_ranges = NULL;
-	struct range_list *right_ranges = NULL;
-	int poss_true, poss_false;
-
-	get_implied_range_list(expr->left, &left_ranges);
-	get_implied_range_list(expr->right, &right_ranges);
-
-	poss_true = possibly_true_range_lists(left_ranges, expr->op, right_ranges);
-	poss_false = possibly_false_range_lists(left_ranges, expr->op, right_ranges);
-
-	free_range_list(&left_ranges);
-	free_range_list(&right_ranges);
-
-	if (!poss_true && !poss_false)
-		return 0;
-	if (poss_true && !poss_false)
-		return 1;
-	if (!poss_true && poss_false)
-		return 2;
-	return 3;
 }
 
 int implied_condition_true(struct expression *expr)
