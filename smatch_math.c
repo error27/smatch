@@ -76,6 +76,19 @@ static int last_stmt_val(struct statement *stmt, long long *val)
 	return get_value(expr, val);
 }
 
+static long long handle_expression_statement(struct expression *expr, int *undefined, int implied)
+{
+	struct statement *stmt;
+	long long tmp;
+
+	stmt = get_expression_statement(expr);
+	if (last_stmt_val(stmt, &tmp))
+		return tmp;
+
+	*undefined = 1;
+	return BOGUS;
+}
+
 static long long handle_preop(struct expression *expr, int *undefined, int implied)
 {
 	long long ret = BOGUS;
@@ -93,6 +106,9 @@ static long long handle_preop(struct expression *expr, int *undefined, int impli
 		break;
 	case '*':
 		ret = _get_implied_value(expr, undefined, implied);
+		break;
+	case '(':
+		ret = handle_expression_statement(expr, undefined, implied);
 		break;
 	default:
 		*undefined = 1;
