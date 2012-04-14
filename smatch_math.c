@@ -62,6 +62,20 @@ static int opposite_implied(int implied)
 	return implied;
 }
 
+static int last_stmt_val(struct statement *stmt, long long *val)
+{
+	struct expression *expr;
+
+	if (!stmt)
+		return 0;
+
+	stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
+	if (stmt->type != STMT_EXPRESSION)
+		return 0;
+	expr = stmt->expression;
+	return get_value(expr, val);
+}
+
 static long long handle_preop(struct expression *expr, int *undefined, int implied)
 {
 	long long ret = BOGUS;
@@ -418,4 +432,172 @@ int get_absolute_max(struct expression *expr, long long *val)
 	if (*val < type_min(type))
 		*val = max;
 	return 1;
+}
+
+int known_condition_true(struct expression *expr)
+{
+	long long tmp;
+	struct statement *stmt;
+
+	if (!expr)
+		return 0;
+
+	if (get_value(expr, &tmp) && tmp)
+		return 1;
+
+	expr = strip_expr(expr);
+	switch (expr->type) {
+	case EXPR_PREOP:
+		if (expr->op == '!') {
+			if (known_condition_false(expr->unop))
+				return 1;
+			break;
+		}
+		stmt = get_expression_statement(expr);
+		if (last_stmt_val(stmt, &tmp) && tmp == 1)
+			return 1;
+		break;
+	default:
+		break;
+	}
+	return 0;
+}
+
+int known_condition_false(struct expression *expr)
+{
+	long long tmp;
+	struct statement *stmt;
+
+	if (!expr)
+		return 0;
+
+	if (is_zero(expr))
+		return 1;
+
+	switch (expr->type) {
+	case EXPR_PREOP:
+		if (expr->op == '!') {
+			if (known_condition_true(expr->unop))
+				return 1;
+			break;
+		}
+		stmt = get_expression_statement(expr);
+		if (last_stmt_val(stmt, &tmp) && tmp == 0)
+			return 1;
+		break;
+	case EXPR_CALL:
+		if (sym_name_is("__builtin_constant_p", expr->fn))
+			return 1;
+		break;
+	default:
+		break;
+	}
+	return 0;
+}
+
+static int do_comparison(struct expression *expr)
+{
+	struct range_list *left_ranges = NULL;
+	struct range_list *right_ranges = NULL;
+	int poss_true, poss_false;
+
+	get_implied_range_list(expr->left, &left_ranges);
+	get_implied_range_list(expr->right, &right_ranges);
+
+	poss_true = possibly_true_range_lists(left_ranges, expr->op, right_ranges);
+	poss_false = possibly_false_range_lists(left_ranges, expr->op, right_ranges);
+
+	free_range_list(&left_ranges);
+	free_range_list(&right_ranges);
+
+	if (!poss_true && !poss_false)
+		return 0;
+	if (poss_true && !poss_false)
+		return 1;
+	if (!poss_true && poss_false)
+		return 2;
+	return 3;
+}
+
+int implied_condition_true(struct expression *expr)
+{
+	struct statement *stmt;
+	long long tmp;
+	long long val;
+
+	if (!expr)
+		return 0;
+
+	if (known_condition_true(expr))
+		return 1;
+	if (get_implied_value(expr, &tmp) && tmp)
+		return 1;
+
+	if (expr->type == EXPR_POSTOP)
+		return implied_condition_true(expr->unop);
+
+	if (expr->type == EXPR_PREOP && expr->op == SPECIAL_DECREMENT)
+		return implied_not_equal(expr->unop, 1);
+	if (expr->type == EXPR_PREOP && expr->op == SPECIAL_INCREMENT)
+		return implied_not_equal(expr->unop, -1);
+
+	expr = strip_expr(expr);
+	switch (expr->type) {
+	case EXPR_COMPARE:
+		if (do_comparison(expr) == 1)
+			return 1;
+		break;
+	case EXPR_PREOP:
+		if (expr->op == '!') {
+			if (implied_condition_false(expr->unop))
+				return 1;
+			break;
+		}
+		stmt = get_expression_statement(expr);
+		if (last_stmt_val(stmt, &val) && val == 1)
+			return 1;
+		break;
+	default:
+		if (implied_not_equal(expr, 0) == 1)
+			return 1;
+		break;
+	}
+	return 0;
+}
+
+int implied_condition_false(struct expression *expr)
+{
+	struct statement *stmt;
+	struct expression *tmp;
+	long long val;
+
+	if (!expr)
+		return 0;
+
+	if (known_condition_false(expr))
+		return 1;
+
+	switch (expr->type) {
+	case EXPR_COMPARE:
+		if (do_comparison(expr) == 2)
+			return 1;
+	case EXPR_PREOP:
+		if (expr->op == '!') {
+			if (implied_condition_true(expr->unop))
+				return 1;
+			break;
+		}
+		stmt = get_expression_statement(expr);
+		if (last_stmt_val(stmt, &val) && val == 0)
+			return 1;
+		tmp = strip_expr(expr);
+		if (tmp != expr)
+			return implied_condition_false(tmp);
+		break;
+	default:
+		if (get_implied_value(expr, &val) && val == 0)
+			return 1;
+		break;
+	}
+	return 0;
 }

@@ -217,6 +217,11 @@ int get_fuzzy_max(struct expression *expr, long long *max);
 int get_absolute_min(struct expression *expr, long long *val);
 int get_absolute_max(struct expression *expr, long long *val);
 int is_zero(struct expression *expr);
+int known_condition_true(struct expression *expr);
+int known_condition_false(struct expression *expr);
+int implied_condition_true(struct expression *expr);
+int implied_condition_false(struct expression *expr);
+
 int is_array(struct expression *expr);
 struct expression *get_array_name(struct expression *expr);
 struct expression *get_array_offset(struct expression *expr);
@@ -310,11 +315,6 @@ struct data_range {
 	long long max;
 };
 extern struct data_range whole_range;
-
-int known_condition_true(struct expression *expr);
-int known_condition_false(struct expression *expr);
-int implied_condition_true(struct expression *expr);
-int implied_condition_false(struct expression *expr);
 
 /* smatch_states.c */
 void __push_fake_cur_slist();
