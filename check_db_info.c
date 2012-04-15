@@ -25,40 +25,19 @@ static void add_return_range(struct range_list *rl)
 
 static void match_return(struct expression *ret_value)
 {
-	struct smatch_state *state;
 	struct range_list *rl;
-	long long val;
 
 	ret_value = strip_expr(ret_value);
 	if (!ret_value)
 		return;
 
-	if (ret_value->type == EXPR_CALL) {
-		rl = db_return_vals(ret_value);
-		if (rl) {
-			sm_msg("info: return_value %s", show_ranges(rl));
-			add_return_range(rl);
-		} else {
-			sm_msg("info: return_value unknown");
-			add_return_range(whole_range_list());
-		}
-		return;
-	}
-
-	if (get_value(ret_value, &val)) {
-		sm_msg("info: return_value %lld", val);
-		add_return_range(alloc_range_list(val, val));
-		return;
-	}
-	state = get_state_expr(SMATCH_EXTRA, ret_value);
-	if (!state) {
+	if (get_implied_range_list(ret_value, &rl)) {
+		sm_msg("info: return_value %s", show_ranges(rl));
+		add_return_range(rl);
+	} else {
 		sm_msg("info: return_value unknown");
 		add_return_range(whole_range_list());
-		return;
 	}
-
-	sm_msg("info: return_value %s", state->name);
-	add_return_range(whole_range_list());
 }
 
 static void match_end_func(struct symbol *sym)
