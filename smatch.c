@@ -204,6 +204,9 @@ int main(int argc, char **argv)
 	sm_outfd = stdout;
 	parse_args(&argc, &argv);
 
+	/* this gets set back to zero when we parse the first function */
+	final_pass = 1;
+
 	data_dir = get_data_dir(argv[0]);
 
 	create_function_hook_hash();
