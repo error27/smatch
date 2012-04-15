@@ -87,6 +87,7 @@ CK(check_return_negative_var)
 CK(check_rosenberg)
 CK(check_wait_for_common)
 CK(check_bogus_irqrestore)
+CK(check_param_range)
 
 /* wine specific stuff */
 CK(check_wine_filehandles)
