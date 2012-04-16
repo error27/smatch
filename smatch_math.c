@@ -247,6 +247,38 @@ static long long handle_comparison(struct expression *expr, int *undefined, int 
 	return BOGUS;
 }
 
+static long long handle_logical(struct expression *expr, int *undefined, int implied)
+{
+	long long left_val, right_val;
+
+	/* TODO: we should be able to handle this...  */
+	if (implied == NOTIMPLIED) {
+		*undefined = 1;
+		return BOGUS;
+	}
+
+	if (get_implied_value(expr->left, &left_val) &&
+			get_implied_value(expr->right, &right_val)) {
+		switch (expr->op) {
+		case SPECIAL_LOGICAL_OR:
+			return left_val || right_val;
+		case SPECIAL_LOGICAL_AND:
+			return left_val && right_val;
+		default:
+			*undefined = 1;
+			return BOGUS;
+		}
+	}
+
+	if (implied == IMPLIED_MIN || implied == FUZZYMIN)
+		return 0;
+	if (implied == IMPLIED_MAX || implied == FUZZYMAX)
+		return 1;
+
+	*undefined = 1;
+	return BOGUS;
+}
+
 static int get_implied_value_helper(struct expression *expr, long long *val, int what)
 {
 	struct smatch_state *state;
@@ -402,6 +434,9 @@ static long long _get_value(struct expression *expr, int *undefined, int implied
 		break;
 	case EXPR_COMPARE:
 		ret = handle_comparison(expr, undefined, implied);
+		break;
+	case EXPR_LOGICAL:
+		ret = handle_logical(expr, undefined, implied);
 		break;
 	case EXPR_PTRSIZEOF:
 	case EXPR_SIZEOF:
