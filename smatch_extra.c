@@ -832,10 +832,7 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 		return 1;
 	}
 
-	if (expr->type != EXPR_BINOP)
-		return 0;
-
-	if (expr->op == '%') {
+	if (expr->type == EXPR_BINOP && expr->op == '%') {
 		if (!get_implied_value(expr->right, &val))
 			return 0;
 		add_range(rl, 0, val - 1);
