@@ -156,6 +156,30 @@ int get_array_size(struct expression *expr)
 	return 0;
 }
 
+static int db_size;
+static int db_size_callback(void *unused, int argc, char **argv, char **azColName)
+{
+	db_size = atoi(argv[0]);
+	return 0;
+}
+
+static int size_from_db(struct expression *expr)
+{
+	char *name;
+
+	if (!option_spammy)
+		return 0;
+
+	name = get_member_name(expr);
+	if (!name)
+		return 0;
+
+	db_size = 0;
+	run_sql(db_size_callback, "select size from type_size where type = '%s'",
+			name);
+	return db_size;
+}
+
 int get_array_size_bytes(struct expression *expr)
 {
 	struct symbol *tmp;
@@ -179,7 +203,10 @@ int get_array_size_bytes(struct expression *expr)
 		return 0;
 	}
 	array_size = get_array_size(expr);
-	return array_size * element_size;
+	if (array_size)
+		return array_size * element_size;
+
+	return size_from_db(expr);
 }
 
 static void match_strlen_condition(struct expression *expr)
@@ -304,7 +331,17 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 	arg = get_argument_from_call_expr(right->args, size_arg);
 	if (!get_implied_value(arg, &bytes))
 		return;
+
 	set_state_expr(my_size_id, expr->left, alloc_state_num(bytes));
+
+	if (option_info) {
+		char *member = get_member_name(expr->left);
+
+		if (member)
+			sm_msg("info: '%s' allocated_buf_size %lld",
+					member, bytes);
+		free_string(member);
+	}
 }
 
 static void match_calloc(const char *fn, struct expression *expr, void *unused)
