@@ -14,5 +14,6 @@ add=$(echo ${bin_dir}/../smatch_data/${outfile}.add)
 
 cat $add > $outfile
 ${bin_dir}/parameter_implications.pl $file >> $outfile
+grep bool_return_implication $file | cut -d ' ' -f 2,5- | sed -e 's/()//' >> $outfile
 
 echo "Done.  List saved as '$outfile'"
