@@ -89,11 +89,26 @@ static long long handle_expression_statement(struct expression *expr, int *undef
 	return BOGUS;
 }
 
+static long long handle_ampersand(int *undefined, int implied)
+{
+	if (implied == IMPLIED_MIN || implied == FUZZYMIN)
+		return valid_ptr_min;
+	if (implied == IMPLIED_MAX || implied == FUZZYMAX)
+		return valid_ptr_max;
+
+	*undefined = 1;
+	return BOGUS;
+
+}
+
 static long long handle_preop(struct expression *expr, int *undefined, int implied)
 {
 	long long ret = BOGUS;
 
 	switch (expr->op) {
+	case '&':
+		ret = handle_ampersand(undefined, implied);
+		break;
 	case '!':
 		ret = !_get_value(expr->unop, undefined, implied);
 		break;

@@ -315,6 +315,8 @@ struct data_range {
 	long long max;
 };
 extern struct data_range whole_range;
+static const long long valid_ptr_max = LONG_MAX;
+static const long long valid_ptr_min = 4096;
 
 /* smatch_states.c */
 void __push_fake_cur_slist();
