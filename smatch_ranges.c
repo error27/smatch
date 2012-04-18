@@ -356,6 +356,30 @@ struct range_list *remove_range(struct range_list *list, long long min, long lon
 	return ret;
 }
 
+struct range_list *invert_range_list(struct range_list *orig)
+{
+	struct range_list *ret = NULL;
+	struct data_range *tmp;
+	long long gap_min;
+
+	if (!orig)
+		return NULL;
+
+	gap_min = whole_range.min;
+	FOR_EACH_PTR(orig, tmp) {
+		if (tmp->min > gap_min)
+			add_range(&ret, gap_min, tmp->min - 1);
+		gap_min = tmp->max + 1;
+		if (tmp->max == whole_range.max)
+			gap_min = whole_range.max;
+	} END_FOR_EACH_PTR(tmp);
+
+	if (gap_min != whole_range.max)
+		add_range(&ret, gap_min, whole_range.max);
+
+	return ret;
+}
+
 /*
  * if it can be only one and only value return 1, else return 0
  */
