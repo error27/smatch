@@ -484,6 +484,10 @@ static void reset_struct_members(const char *name, struct symbol *sym, struct ex
 	FOR_EACH_PTR(slist, tmp) {
 		if (sym != tmp->sym)
 			continue;
+		if (tmp->name[0] == '*' && !strcmp(name, tmp->name + 1)) {
+			set_extra_mod(tmp->name, tmp->sym, extra_undefined());
+			continue;
+		}
 		if (strncmp(name, tmp->name, len))
 			continue;
 		if (tmp->name[len] != '-' && tmp->name[len] != '.')
