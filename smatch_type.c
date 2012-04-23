@@ -163,6 +163,18 @@ int returns_unsigned(struct symbol *sym)
 	return type_unsigned(sym);
 }
 
+int is_pointer(struct expression *expr)
+{
+	struct symbol *sym;
+
+	sym = get_type(expr);
+	if (!sym)
+		return 0;
+	if (sym->type == SYM_PTR)
+		return 1;
+	return 0;
+}
+
 int returns_pointer(struct symbol *sym)
 {
 	if (!sym)
