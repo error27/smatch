@@ -455,7 +455,7 @@ static long long _get_value(struct expression *expr, int *undefined, int implied
 		break;
 	case EXPR_PTRSIZEOF:
 	case EXPR_SIZEOF:
-		ret = get_expression_value(expr);
+		ret = get_expression_value_nomod(expr);
 		break;
 	case EXPR_SYMBOL:
 		if (get_const_value(expr, &ret))

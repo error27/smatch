@@ -168,6 +168,7 @@ struct expression {
 int is_zero_constant(struct expression *);
 long long get_expression_value(struct expression *);
 long long const_expression_value(struct expression *);
+long long get_expression_value_nomod(struct expression *);
 
 /* Expression parsing */
 struct token *parse_expression(struct token *token, struct expression **tree);

@@ -1224,6 +1224,38 @@ static long long __get_expression_value(struct expression *expr, int strict)
 	return value;
 }
 
+long long get_expression_value_nomod(struct expression *expr)
+{
+	long long value, mask;
+	struct symbol *ctype;
+	struct expression copy;
+
+	if (!expr)
+		return 0;
+	memcpy(&copy, expr, sizeof(copy));
+	ctype = evaluate_expression(&copy);
+	if (!ctype) {
+		expression_error(&copy, "bad constant expression type");
+		return 0;
+	}
+	expand_expression(&copy);
+	if (copy.type != EXPR_VALUE) {
+		expression_error(&copy, "bad constant expression");
+		return 0;
+	}
+
+	value = copy.value;
+	mask = 1ULL << (ctype->bit_size-1);
+
+	if (value & mask) {
+		while (ctype->type != SYM_BASETYPE)
+			ctype = ctype->ctype.base_type;
+		if (!(ctype->ctype.modifiers & MOD_UNSIGNED))
+			value = value | mask | ~(mask-1);
+	}
+	return value;
+}
+
 long long get_expression_value(struct expression *expr)
 {
 	return __get_expression_value(expr, 0);
