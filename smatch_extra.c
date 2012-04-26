@@ -932,7 +932,6 @@ void register_smatch_extra(int id)
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
-	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_call_assign, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
@@ -945,5 +944,6 @@ void register_smatch_extra(int id)
 
 void register_smatch_extra_late(int id)
 {
+	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	set_default_modification_hook(SMATCH_EXTRA, reset_struct_members);
 }

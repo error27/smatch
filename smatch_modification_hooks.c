@@ -182,6 +182,11 @@ void register_modification_hooks(int id)
 		default_hooks[i] = NULL;
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&unop_expr, OP_HOOK);
-	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
 }
+
+void register_modification_hooks_late(int id)
+{
+	add_hook(&match_call, FUNCTION_CALL_HOOK);
+}
+
