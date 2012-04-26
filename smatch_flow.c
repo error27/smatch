@@ -288,11 +288,21 @@ static void handle_pre_loop(struct statement *stmt)
 	__split_stmt(stmt->iterator_statement);
 	__warn_on_silly_pre_loops();
 	if (is_forever_loop(stmt)) {
+		struct state_list *slist;
+
 		__save_gotos(loop_name);
-		/* forever loops don't have an iterator_post_statement */
+
+		__push_fake_cur_slist();
+		__split_stmt(stmt->iterator_post_statement);
+		slist = __pop_fake_cur_slist();
+
 		__discard_continues();
 		__discard_false_states();
 		__use_breaks();
+
+		if (!__path_is_null())
+			__merge_slist_into_cur(slist);
+		free_slist(&slist);
 	} else {
 		__merge_continues();
 		unchanged = __iterator_unchanged(extra_sm);

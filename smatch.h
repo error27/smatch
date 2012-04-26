@@ -322,6 +322,7 @@ static const long long valid_ptr_min = 4096;
 /* smatch_states.c */
 void __push_fake_cur_slist();
 struct state_list *__pop_fake_cur_slist();
+void __merge_slist_into_cur(struct state_list *slist);
 
 int unreachable(void);
 void __set_sm(struct sm_state *sm);

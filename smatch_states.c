@@ -158,6 +158,22 @@ struct state_list *__pop_fake_cur_slist()
 	return pop_slist(&fake_cur_slist_stack);
 }
 
+void __merge_slist_into_cur(struct state_list *slist)
+{
+	struct sm_state *sm;
+	struct sm_state *orig;
+	struct sm_state *merged;
+
+	FOR_EACH_PTR(slist, sm) {
+		orig = get_sm_state(sm->owner, sm->name, sm->sym);
+		if (orig)
+			merged = merge_sm_states(orig, sm);
+		else
+			merged = sm;
+		__set_sm(merged);
+	} END_FOR_EACH_PTR(sm);
+}
+
 void __set_sm(struct sm_state *sm)
 {
 	if (option_debug) {
