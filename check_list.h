@@ -72,6 +72,7 @@ CK(check_pointer_math)
 CK(check_bit_shift)
 CK(check_macro_side_effects)
 CK(check_bool_implications)
+CK(check_or_vs_and)
 
 /* <- your test goes here */
 /* CK(register_template) */
