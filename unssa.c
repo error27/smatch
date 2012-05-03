@@ -55,7 +55,7 @@ static void replace_phi_node(struct instruction *phi)
 	track_phi_uses(phi);
 
 	phi->opcode = OP_COPY;
-	phi->src = tmp;
+	use_pseudo(phi, tmp, &phi->src);
 
 	// FIXME: free phi->phi_list;
 }
