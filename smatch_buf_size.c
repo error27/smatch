@@ -186,6 +186,9 @@ int get_array_size_bytes(struct expression *expr)
 	int array_size;
 	int element_size;
 
+	if (!expr)
+		return 0;
+
 	if (expr->type == EXPR_STRING)
 		return expr->string->length;
 
