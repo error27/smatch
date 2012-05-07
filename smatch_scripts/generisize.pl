@@ -39,7 +39,7 @@ while (<>) {
     } elsif ($_ =~ /don't/) {
 	s/(.*don't.*').*?('.*)/$1 $2/;
     } else {
-	s/'.*?'/''/;
+	s/'.*?'/''/g;
     }
     s/,//g;
     s/\(\w+ returns null\)/(... returns null)/;
