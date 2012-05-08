@@ -152,16 +152,16 @@ compile_EXTRA_DEPS = compile-i386.o
 
 $(foreach p,$(PROGRAMS),$(eval $(p): $($(p)_EXTRA_DEPS) $(LIBS)))
 $(PROGRAMS): % : %.o 
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -o $@ $^ $($@_EXTRA_OBJS) 
+	$(QUIET_LINK)$(CC) -o $@ $^ $($@_EXTRA_OBJS) $(LDFLAGS)
 
 smatch: smatch.o $(SMATCH_FILES) $(SMATCH_CHECKS) $(LIBS) 
-	$(CC) $(LDFLAGS) -o $@ $< $(SMATCH_FILES) $(SMATCH_CHECKS) $(LIBS) 
+	$(CC) -o $@ $< $(SMATCH_FILES) $(SMATCH_CHECKS) $(LIBS) $(LDFLAGS)
 
 $(LIB_FILE): $(LIB_OBJS)
 	$(QUIET_AR)$(AR) rcs $@ $(LIB_OBJS)
 
 $(SLIB_FILE): $(LIB_OBJS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -Wl,-soname,$@ -shared -o $@ $(LIB_OBJS)
+	$(QUIET_LINK)$(CC) -Wl,-soname,$@ -shared -o $@ $(LIB_OBJS) $(LDFLAGS)
 
 check_list_local.h:
 	touch check_list_local.h
