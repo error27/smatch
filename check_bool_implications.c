@@ -59,13 +59,11 @@ static void match_return(struct expression *ret_value)
 	}
 
 	if (get_implied_value(ret_value, &val) && val == 1) {
-		sm_msg("added to true_stack");
 		push_slist(&true_stack, clone_slist(__get_cur_slist()));
 		return;
 	}
 
 	if (get_implied_value(ret_value, &val) && val == 0) {
-		sm_msg("added to false_stack");
 		push_slist(&false_stack, clone_slist(__get_cur_slist()));
 		return;
 	}
