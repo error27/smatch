@@ -1,4 +1,4 @@
-CREATE TABLE return_info (file varchar(256), function varchar(256), value varchar(256));
+CREATE TABLE return_info (file varchar(256), function varchar(256), type integer, value varchar(256));
 
 CREATE INDEX return_info_fn_idx on return_info (function);
 CREATE INDEX return_info_ff_idx on return_info (file, function);

@@ -194,12 +194,67 @@ static void struct_member_callback(char *fn, int param, char *printed_name, stru
 	sm_msg("info: passes user_data '%s' %d '%s'", fn, param, printed_name);
 }
 
+static void match_return(struct expression *expr)
+{
+	if (is_user_data(expr))
+		sm_msg("info: returns_user_data");
+}
+
+static int db_user_data;
+static int db_user_data_callback(void *unused, int argc, char **argv, char **azColName)
+{
+	db_user_data = 1;
+	return 0;
+}
+
+static int passes_user_data(struct expression *expr)
+{
+	struct expression *arg;
+
+	FOR_EACH_PTR(expr->args, arg) {
+		if (is_user_data(arg))
+			return 1;
+	} END_FOR_EACH_PTR(arg);
+
+	return 0;
+}
+
+static void match_call_assignment(struct expression *expr)
+{
+	struct symbol *sym;
+	static char sql_filter[1024];
+
+	if (expr->right->fn->type != EXPR_SYMBOL)
+		return;
+	sym = expr->right->fn->symbol;
+	if (!sym)
+		return;
+
+	if (!passes_user_data(expr->right))
+		return;
+
+	if (sym->ctype.modifiers & MOD_STATIC) {
+		snprintf(sql_filter, 1024, "file = '%s' and function = '%s' and type = %d;",
+			 get_filename(), sym->ident->name, USER_DATA);
+	} else {
+		snprintf(sql_filter, 1024, "function = '%s' and type = %d;",
+				sym->ident->name, USER_DATA);
+	}
+
+	db_user_data = 0;
+	run_sql(db_user_data_callback, "select value from return_info where %s",
+		 sql_filter);
+	if (db_user_data)
+		set_state_expr(my_id, expr->left, &user_data);
+}
+
 void check_user_data(int id)
 {
 	if (option_project != PROJ_KERNEL)
 		return;
 	my_id = id;
 	add_definition_db_callback(set_param_user_data, USER_DATA);
+	add_hook(match_call_assignment, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_assign_userdata, ASSIGNMENT_HOOK);
@@ -210,5 +265,6 @@ void check_user_data(int id)
 	if (option_info) {
 		add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
 		add_member_info_callback(my_id, struct_member_callback);
+		add_hook(&match_return, RETURN_HOOK);
 	}
 }

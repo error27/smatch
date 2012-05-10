@@ -91,10 +91,11 @@ struct range_list *db_return_vals(struct expression *expr)
 		return NULL;
 
 	if (sym->ctype.modifiers & MOD_STATIC) {
-		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
-			 get_filename(), sym->ident->name);
+		snprintf(sql_filter, 1024, "file = '%s' and function = '%s' and type = %d;",
+			 get_filename(), sym->ident->name, RETURN_VALUE);
 	} else {
-		snprintf(sql_filter, 1024, "function = '%s';", sym->ident->name);
+		snprintf(sql_filter, 1024, "function = '%s' and type = %d;",
+				sym->ident->name, RETURN_VALUE);
 	}
 
 	return_range_list = NULL;
