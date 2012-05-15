@@ -72,3 +72,8 @@ struct state_list **get_slist_from_named_stack(struct named_stack *stack,
 					      const char *name);
 
 void overwrite_slist(struct state_list *from, struct state_list **to);
+
+/* add stuff smatch_returns.c here */
+
+void all_return_states_hook(void (*callback)(struct state_list *slist));
+
