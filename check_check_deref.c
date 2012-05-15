@@ -81,6 +81,11 @@ static void match_pointer_as_array(struct expression *expr)
 	check_dereference(expr->unop->left);
 }
 
+static void set_param_dereferenced(struct expression *arg, char *unused)
+{
+	check_dereference(arg);
+}
+
 static void match_condition(struct expression *expr)
 {
 	if (get_macro_name(expr->pos))
@@ -100,5 +105,6 @@ void check_check_deref(int id)
  	set_default_modification_hook(my_id, &is_ok);
 	add_hook(&match_dereferences, DEREF_HOOK);
 	add_hook(&match_pointer_as_array, OP_HOOK);
+	add_db_fn_call_callback(DEREFERENCE, &set_param_dereferenced);
 	add_hook(&match_condition, CONDITION_HOOK);
 }

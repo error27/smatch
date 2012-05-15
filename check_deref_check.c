@@ -40,6 +40,12 @@ static void match_dereference(struct expression *expr)
 	free_string(name);
 }
 
+static void set_param_dereferenced(struct expression *arg, char *unused)
+{
+	set_state_expr(my_id, arg, &derefed);
+	add_modification_hook_expr(my_id, arg, &underef, NULL);
+}
+
 static void match_condition(struct expression *expr)
 {
 	struct sm_state *sm;
@@ -65,4 +71,5 @@ void check_deref_check(int id)
 	my_id = id;
 	add_hook(&match_dereference, DEREF_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
+	add_db_fn_call_callback(DEREFERENCE, &set_param_dereferenced);
 }
