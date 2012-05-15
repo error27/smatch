@@ -20,6 +20,7 @@ int final_pass;
 
 static int __smatch_lineno = 0;
 
+static char *base_file;
 static const char *filename;
 static char *pathname;
 static char *full_filename;
@@ -50,6 +51,8 @@ struct symbol *cur_func_sym = NULL;
 
 const char *get_filename(void)
 {
+	if (option_info)
+		return base_file;
 	if (option_full_path)
 		return full_filename;
 	return filename;
@@ -828,25 +831,24 @@ void smatch(int argc, char **argv)
 
 	struct string_list *filelist = NULL;
 	struct symbol_list *sym_list;
-	char *file;
 
 	if (argc < 2) {
 		printf("Usage:  smatch [--debug] <filename.c>\n");
 		exit(1);
 	}
 	sparse_initialize(argc, argv, &filelist);
-	FOR_EACH_PTR_NOTAG(filelist, file) {
+	FOR_EACH_PTR_NOTAG(filelist, base_file) {
 		if (option_file_output) {
 			char buf[256];
 
-			snprintf(buf, sizeof(buf), "%s.smatch", file);
+			snprintf(buf, sizeof(buf), "%s.smatch", base_file);
 			sm_outfd = fopen(buf, "w");
 			if (!sm_outfd) {
-				printf("Error:  Cannot open %s\n", file);
+				printf("Error:  Cannot open %s\n", base_file);
 				exit(1);
 			}
 		}
-		sym_list = sparse_keep_tokens(file);
+		sym_list = sparse_keep_tokens(base_file);
 		split_functions(sym_list);
-	} END_FOR_EACH_PTR_NOTAG(file);
+	} END_FOR_EACH_PTR_NOTAG(base_file);
 }
