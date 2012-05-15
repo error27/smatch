@@ -1,0 +1,4 @@
+CREATE TABLE call_implies (file varchar(256), function varchar(256), type integer, parameter integer, value varchar(256));
+
+CREATE INDEX call_implies_fn_idx on call_implies (function);
+CREATE INDEX call_implies_ff_idx on call_implies (file, function);

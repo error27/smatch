@@ -32,6 +32,14 @@ ALLOCATOR(member_info_callback, "caller_info callbacks");
 DECLARE_PTR_LIST(member_info_cb_list, struct member_info_callback);
 static struct member_info_cb_list *member_callbacks;
 
+struct call_implies_callback {
+	int type;
+	void (*callback)(struct expression *arg, char *value);
+};
+ALLOCATOR(call_implies_callback, "call_implies callbacks");
+DECLARE_PTR_LIST(call_implies_cb_list, struct call_implies_callback);
+static struct call_implies_cb_list *call_implies_cb_list;
+
 void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql)
 {
 	char *err = NULL;
@@ -61,6 +69,15 @@ void add_member_info_callback(int owner, void (*callback)(char *fn, int param, c
 	member_callback->owner = owner;
 	member_callback->callback = callback;
 	add_ptr_list(&member_callbacks, member_callback);
+}
+
+void add_db_fn_call_callback(int type, void (*callback)(struct expression *arg, char *value))
+{
+	struct call_implies_callback *cb = __alloc_call_implies_callback(0);
+
+	cb->type = type;
+	cb->callback = callback;
+	add_ptr_list(&call_implies_cb_list, cb);
 }
 
 static struct range_list *return_range_list;
@@ -341,6 +358,58 @@ free:
 	free_string(ptr_name);
 }
 
+static struct expression *call_implies_call_expr;
+static int call_implies_callbacks(void *unused, int argc, char **argv, char **azColName)
+{
+	struct call_implies_callback *cb;
+	struct expression *arg;
+	int type;
+	int param;
+
+	if (argc != 4)
+		return 0;
+
+	type = atoi(argv[1]);
+	param = atoi(argv[2]);
+
+	FOR_EACH_PTR(call_implies_cb_list, cb) {
+		if (cb->type != type)
+			continue;
+		arg = get_argument_from_call_expr(call_implies_call_expr->args, param);
+		if (!arg)
+			continue;
+		cb->callback(arg, argv[3]);
+	} END_FOR_EACH_PTR(cb);
+
+	return 0;
+}
+
+static void match_call_implies(struct expression *expr)
+{
+	struct symbol *sym;
+	static char sql_filter[1024];
+
+	if (expr->fn->type != EXPR_SYMBOL)
+		return;
+	sym = expr->fn->symbol;
+	if (!sym)
+		return;
+
+	if (sym->ctype.modifiers & MOD_STATIC) {
+		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
+			 get_filename(), sym->ident->name);
+	} else {
+		snprintf(sql_filter, 1024, "function = '%s';",
+				sym->ident->name);
+	}
+
+	call_implies_call_expr = expr;
+	run_sql(call_implies_callbacks,
+		"select function, type, parameter, value from call_implies where %s",
+		sql_filter);
+	return;
+}
+
 static void print_initializer_list(struct expression_list *expr_list,
 		struct symbol *struct_type)
 {
@@ -423,4 +492,5 @@ void register_definition_db_callbacks(int id)
 		return;
 
 	add_hook(&match_data_from_db, FUNC_DEF_HOOK);
+	add_hook(&match_call_implies, FUNCTION_CALL_HOOK);
 }

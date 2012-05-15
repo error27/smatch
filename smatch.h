@@ -412,10 +412,12 @@ enum info_type {
 	USER_DATA,
 	CAPPED_DATA,
 	RETURN_VALUE,
+	DEREFERENCE,
 };
 
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
 void add_member_info_callback(int owner, void (*callback)(char *fn, int param, char *printed_name, struct smatch_state *state));
+void add_db_fn_call_callback(int type, void (*callback)(struct expression *arg, char *value));
 struct range_list *db_return_vals(struct expression *expr);
 
 #define run_sql(call_back, sql...)    \
