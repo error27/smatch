@@ -21,24 +21,35 @@ __DO_ALLOCATOR(char, 0, 1, "state names", sname);
 
 static int sm_state_counter;
 
-void __print_slist(struct state_list *slist)
+char *show_sm(struct sm_state *sm)
 {
-	struct sm_state *state;
-	struct sm_state *poss;
+	static char buf[256];
+	struct sm_state *tmp;
+	int pos;
 	int i;
 
+	pos = snprintf(buf, sizeof(buf), "[%s] '%s' = %s (",
+		       check_name(sm->owner), sm->name, show_state(sm->state));
+	i = 0;
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (i++)
+			pos += snprintf(buf + pos, sizeof(buf) - pos, ", ");
+		pos += snprintf(buf + pos, sizeof(buf) - pos, "%s",
+			       show_state(tmp->state));
+	} END_FOR_EACH_PTR(tmp);
+	snprintf(buf + pos, sizeof(buf) - pos, ")");
+
+	return buf;
+}
+
+void __print_slist(struct state_list *slist)
+{
+	struct sm_state *sm;
+
 	printf("dumping slist at %d\n", get_lineno());
-	FOR_EACH_PTR(slist, state) {
-		printf("[%s] '%s'=%s (", check_name(state->owner), state->name,
-			show_state(state->state));
-		i = 0;
-		FOR_EACH_PTR(state->possible, poss) {
-			if (i++)
-				printf(", ");
-			printf("%s", show_state(poss->state));
-		} END_FOR_EACH_PTR(poss);
-		printf(")\n");
-	} END_FOR_EACH_PTR(state);
+	FOR_EACH_PTR(slist, sm) {
+		printf("%s\n", show_sm(sm));
+	} END_FOR_EACH_PTR(sm);
 	printf("---\n");
 }
 

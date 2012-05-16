@@ -9,6 +9,7 @@ DECLARE_PTR_LIST(named_stack, struct named_slist);
 
 extern struct state_list_stack *implied_pools;
 
+char *show_sm(struct sm_state *sm);
 void __print_slist(struct state_list *slist);
 void add_history(struct sm_state *sm);
 int cmp_tracker(const struct sm_state *a, const struct sm_state *b);
