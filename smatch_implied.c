@@ -239,28 +239,26 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 	}
 
 	if (pool_in_pools(sm->my_pool, pools)) {
-		DIMPLIED("removed %s = %s from %d\n", sm->name,
-			show_state(sm->state), sm->line);
+		DIMPLIED("removed %s from %d\n", show_sm(sm), sm->line);
 		*modified = 1;
 		return NULL;
 	}
 
 	if (!is_merged(sm)) {
-		DIMPLIED("kept %s = %s from %d\n", sm->name, show_state(sm->state),
-			sm->line);
+		DIMPLIED("kept %s from %d\n", show_sm(sm), sm->line);
 		return sm;
 	}
 
-	DIMPLIED("checking %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
+	DIMPLIED("checking %s from %d\n", show_sm(sm), sm->line);
 	left = remove_my_pools(sm->left, pools, &removed);
 	right = remove_my_pools(sm->right, pools, &removed);
 	if (!removed) {
-		DIMPLIED("kept %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
+		DIMPLIED("kept %s from %d\n", show_sm(sm), sm->line);
 		return sm;
 	}
 	*modified = 1;
 	if (!left && !right) {
-		DIMPLIED("removed %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
+		DIMPLIED("removed %s from %d <none>\n", show_sm(sm), sm->line);
 		return NULL;
 	}
 
@@ -281,7 +279,8 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 		ret->my_pool = sm->my_pool;
 	}
 	ret->implied = 1;
-	DIMPLIED("partial %s = %s from %d\n", sm->name, show_state(sm->state), sm->line);
+	DIMPLIED("partial %s => ", show_sm(sm));
+	DIMPLIED("%s from %d\n", show_sm(ret), sm->line);
 	return ret;
 }
 
