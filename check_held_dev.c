@@ -106,8 +106,8 @@ static void register_returns_held_funcs(void)
 		if (token_type(token) != TOKEN_IDENT)
 			return;
 		func = show_ident(token->ident);
-		return_implies_state(func, 1, POINTER_MAX, &match_returns_held,
-					 NULL);
+		return_implies_state(func, valid_ptr_min, valid_ptr_max,
+				     &match_returns_held, NULL);
 		return_implies_state(func, 0, 0, &match_returns_null,
 					 NULL);
 		token = token->next;

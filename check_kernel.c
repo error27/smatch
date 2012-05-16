@@ -45,7 +45,7 @@ static void match_param_nonnull(const char *fn, struct expression *call_expr,
 
 static void match_container_of(const char *fn, struct expression *expr, void *unused)
 {
-	set_extra_expr_mod(expr->left, alloc_estate_range(1, POINTER_MAX));
+	set_extra_expr_mod(expr->left, alloc_estate_range(valid_ptr_min, valid_ptr_max));
 }
 
 void check_kernel(int id)

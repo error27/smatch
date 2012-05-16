@@ -730,7 +730,7 @@ static void register_lock(int index)
 	void *idx = INT_PTR(index);
 
 	if (lock->return_type == ret_non_zero) {
-		return_implies_state(lock->function, 1, POINTER_MAX, &match_lock_held, idx);
+		return_implies_state(lock->function, valid_ptr_min, valid_ptr_max, &match_lock_held, idx);
 		return_implies_state(lock->function, 0, 0, &match_lock_failed, idx);
 	} else if (lock->return_type == ret_any && lock->arg == RETURN_VAL) {
 		add_function_assign_hook(lock->function, &match_returns_locked, idx);

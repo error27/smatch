@@ -76,11 +76,11 @@ void check_return_enomem(int id)
 		return;
 
 	my_id = id;
-	return_implies_state("kmalloc", 1, POINTER_MAX, &allocation_succeeded, INT_PTR(0));
+	return_implies_state("kmalloc", valid_ptr_min, valid_ptr_max, &allocation_succeeded, INT_PTR(0));
 	return_implies_state("kmalloc", 0, 0, &allocation_failed, INT_PTR(0));
-	return_implies_state("kzalloc", 1, POINTER_MAX, &allocation_succeeded, INT_PTR(0));
+	return_implies_state("kzalloc", valid_ptr_min, valid_ptr_max, &allocation_succeeded, INT_PTR(0));
 	return_implies_state("kzalloc", 0, 0, &allocation_failed, INT_PTR(0));
-	return_implies_state("kcalloc", 1, POINTER_MAX, &allocation_succeeded, INT_PTR(0));
+	return_implies_state("kcalloc", valid_ptr_min, valid_ptr_max, &allocation_succeeded, INT_PTR(0));
 	return_implies_state("kcalloc", 0, 0, &allocation_failed, INT_PTR(0));
 	add_hook(&match_return, RETURN_HOOK);
 	set_default_modification_hook(my_id, ok_to_use);
