@@ -576,6 +576,30 @@ static void match_declarations(struct symbol *sym)
 	}
 }
 
+static void check_dereference(struct expression *expr)
+{
+	set_extra_expr_nomod(expr, alloc_estate_range(valid_ptr_min, valid_ptr_max));
+}
+
+static void match_dereferences(struct expression *expr)
+{
+	if (expr->type != EXPR_PREOP)
+		return;
+	check_dereference(expr->unop);
+}
+
+static void match_pointer_as_array(struct expression *expr)
+{
+	if (!is_array(expr))
+		return;
+	check_dereference(expr->unop->left);
+}
+
+static void set_param_dereferenced(struct expression *arg, char *unused)
+{
+	check_dereference(arg);
+}
+
 static void match_function_def(struct symbol *sym)
 {
 	struct symbol *arg;
@@ -944,6 +968,10 @@ void register_smatch_extra(int id)
 
 void register_smatch_extra_late(int id)
 {
+	add_hook(&match_dereferences, DEREF_HOOK);
+	add_hook(&match_pointer_as_array, OP_HOOK);
+	add_db_fn_call_callback(DEREFERENCE, &set_param_dereferenced);
+
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	set_default_modification_hook(SMATCH_EXTRA, reset_struct_members);
 }

@@ -30,8 +30,6 @@ static void match_dereference(struct expression *expr)
 		return;
 
 	expr = strip_expr(expr->unop);
-	if (implied_not_equal(expr, 0))
-		return;
 	set_state_expr(my_id, expr, &derefed);
 	name = get_variable_from_expr(expr, NULL);
 	if (!name)
@@ -58,8 +56,6 @@ static void match_condition(struct expression *expr)
 
 	sm = get_sm_state_expr(my_id, expr);
 	if (!sm || sm->state != &derefed)
-		return;
-	if (implied_not_equal(expr, 0))
 		return;
 
 	sm_msg("warn: variable dereferenced before check '%s' (see line %d)", sm->name, sm->line);
