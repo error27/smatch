@@ -422,6 +422,7 @@ struct range_list *db_return_vals(struct expression *expr);
 do {                                  \
 	char sql_txt[1024];           \
 	snprintf(sql_txt, 1024, sql); \
+	sm_debug("%s\n", sql_txt);    \
 	sql_exec(call_back, sql_txt); \
 } while (0)
 
