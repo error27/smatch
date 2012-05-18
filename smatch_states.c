@@ -116,8 +116,6 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 	if (owner != -1 && unreachable())
 		return NULL;
 
-	__use_default_modification_hook(owner, name);
-
 	if (fake_cur_slist_stack)
 		set_state_stack(&fake_cur_slist_stack, owner, name, sym, state);
 
@@ -338,8 +336,6 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 		printf("Error:  missing true/false stacks\n");
 		return;
 	}
-
-	__use_default_modification_hook(owner, name);
 
 	if (true_state) {
 		set_state_slist(&cur_slist, owner, name, sym, true_state);

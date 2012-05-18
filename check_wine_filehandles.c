@@ -36,9 +36,10 @@ static const char *filehandle_funcs[] = {
 	NULL,
 };
 
-static void ok_to_use(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+static void ok_to_use(struct sm_state *sm)
 {
-	delete_state(my_id, name, sym);
+	if (sm->state != &oktocheck)
+		set_state(my_id, sm->name, sm->sym, &oktocheck);
 }
 
 static void match_returns_handle(const char *fn, struct expression *expr,
@@ -51,7 +52,6 @@ static void match_returns_handle(const char *fn, struct expression *expr,
 	if (!left_name || !left_sym)
 		goto free;
 	set_state_expr(my_id, expr->left, &filehandle);
-	add_modification_hook_expr(my_id, expr->left, ok_to_use, NULL);
 free:
 	free_string(left_name);
 }
@@ -84,4 +84,5 @@ void check_wine_filehandles(int id)
 					 &match_returns_handle, NULL);
 	}
 	add_hook(&match_condition, CONDITION_HOOK);
+	add_modification_hook(my_id, ok_to_use);
 }

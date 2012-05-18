@@ -18,9 +18,9 @@ static int my_id;
 
 STATE(non_null);
 
-static void is_ok(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+static void is_ok(struct sm_state *sm)
 {
-	set_state(my_id, name, sym, &undefined);
+	set_state(my_id, sm->name, sm->sym, &undefined);
 }
 
 static void match_non_null(const char *fn, struct expression *expr, void *unused)
@@ -54,6 +54,6 @@ void check_container_of(int id)
 	my_id = id;
 	add_macro_assign_hook("container_of", &match_non_null, NULL);
 	add_macro_assign_hook("list_first_entry", &match_non_null, NULL);
- 	set_default_modification_hook(my_id, &is_ok);
+	add_modification_hook(my_id, &is_ok);
 	add_hook(&match_condition, CONDITION_HOOK);
 }

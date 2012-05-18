@@ -22,10 +22,10 @@ static int my_id;
 STATE(enomem);
 STATE(ok);
 
-static void ok_to_use(const char *name, struct symbol *sym, struct expression *expr,
-		void *unused)
+static void ok_to_use(struct sm_state *sm)
 {
-	set_state(my_id, name, sym, &ok);
+	if (sm->state != &ok)
+		set_state(my_id, sm->name, sm->sym, &ok);
 }
 
 static void allocation_succeeded(const char *fn, struct expression *call_expr,
@@ -83,5 +83,5 @@ void check_return_enomem(int id)
 	return_implies_state("kcalloc", valid_ptr_min, valid_ptr_max, &allocation_succeeded, INT_PTR(0));
 	return_implies_state("kcalloc", 0, 0, &allocation_failed, INT_PTR(0));
 	add_hook(&match_return, RETURN_HOOK);
-	set_default_modification_hook(my_id, ok_to_use);
+	add_modification_hook(my_id, &ok_to_use);
 }

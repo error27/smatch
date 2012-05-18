@@ -19,9 +19,9 @@ static int my_id;
 
 STATE(do_not_use);
 
-static void ok_to_use(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+static void ok_to_use(struct sm_state *sm)
 {
-	delete_state(my_id, name, sym);
+	delete_state(my_id, sm->name, sm->sym);
 }
 
 static int valid_use(void)
@@ -118,6 +118,6 @@ void check_dev_queue_xmit(int id)
 	if (option_project != PROJ_KERNEL || !option_spammy)
 		return;
 	my_id = id;
-	set_default_modification_hook(my_id, ok_to_use);
+	add_modification_hook(my_id, ok_to_use);
 	register_funcs_from_file();
 }

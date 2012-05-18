@@ -473,27 +473,9 @@ free:
 	free_string(name);
 }
 
-static void reset_struct_members(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+static void reset_struct_members(struct sm_state *sm)
 {
-	struct state_list *slist;
-	struct sm_state *tmp;
-	int len;
-
-	len = strlen(name);
-	slist = get_all_states(SMATCH_EXTRA);
-	FOR_EACH_PTR(slist, tmp) {
-		if (sym != tmp->sym)
-			continue;
-		if (tmp->name[0] == '*' && !strcmp(name, tmp->name + 1)) {
-			set_extra_mod(tmp->name, tmp->sym, extra_undefined());
-			continue;
-		}
-		if (strncmp(name, tmp->name, len))
-			continue;
-		if (tmp->name[len] != '-' && tmp->name[len] != '.')
-			continue;
-		set_extra_mod(tmp->name, tmp->sym, extra_undefined());
-	} END_FOR_EACH_PTR(tmp);
+	set_extra_mod(sm->name, sm->sym, extra_undefined());
 }
 
 static struct smatch_state *increment_state(struct smatch_state *state)
@@ -956,8 +938,6 @@ void register_smatch_extra(int id)
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
-	add_hook(&match_assign, ASSIGNMENT_HOOK);
-	add_hook(&match_call_assign, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	if (option_info) {
 		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
@@ -971,7 +951,9 @@ void register_smatch_extra_late(int id)
 	add_hook(&match_dereferences, DEREF_HOOK);
 	add_hook(&match_pointer_as_array, OP_HOOK);
 	add_db_fn_call_callback(DEREFERENCE, &set_param_dereferenced);
-
+	add_indirect_modification_hook(SMATCH_EXTRA, reset_struct_members);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
-	set_default_modification_hook(SMATCH_EXTRA, reset_struct_members);
+	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_call_assign, CALL_ASSIGNMENT_HOOK);
+
 }

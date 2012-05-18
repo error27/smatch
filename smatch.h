@@ -115,13 +115,9 @@ void add_macro_assign_hook(const char *look_for, func_hook *call_back,
 			      void *info);
 void return_implies_state(const char *look_for, long long start, long long end,
 			 implication_hook *call_back, void *info);
-typedef void (modification_hook)(const char *name, struct symbol *sym,
-				struct expression *expr, void *data);
-void add_modification_hook(int owner, const char *variable, modification_hook *hook,
-			void *data);
-void add_modification_hook_expr(int owner, struct expression *expr, modification_hook *call_back, void *info);
-void set_default_modification_hook(int owner, modification_hook *call_back);
-void __use_default_modification_hook(int owner, const char *variable);
+typedef void (modification_hook)(struct sm_state *sm);
+void add_modification_hook(int owner, modification_hook *call_back);
+void add_indirect_modification_hook(int owner, modification_hook *call_back);
 
 const char *get_filename(void);
 char *get_function(void);

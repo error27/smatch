@@ -21,9 +21,10 @@ static int my_id;
 STATE(remaining);
 STATE(ok);
 
-static void ok_to_use(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+static void ok_to_use(struct sm_state *sm)
 {
-	set_state(my_id, name, sym, &ok);
+	if (sm->state != &ok)
+		set_state(my_id, sm->name, sm->sym, &ok);
 }
 
 static void match_copy(const char *fn, struct expression *expr, void *unused)
@@ -95,5 +96,5 @@ void check_return_efault(int id)
 	add_function_assign_hook("clear_user", &match_copy, NULL);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
-	set_default_modification_hook(my_id, ok_to_use);
+	add_modification_hook(my_id, &ok_to_use);
 }

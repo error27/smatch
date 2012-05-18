@@ -41,9 +41,9 @@ struct limiter {
 static struct limiter b0_l2 = {0, 2};
 static struct limiter b1_l2 = {1, 2};
 
-static void delete(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+static void delete(struct sm_state *sm)
 {
-	delete_state(my_used_id, name, sym);
+	delete_state(my_used_id, sm->name, sm->sym);
 }
 
 static int definitely_just_used_as_limiter(struct expression *array, struct expression *offset)
@@ -100,7 +100,6 @@ static void array_check(struct expression *expr)
 		if (getting_address())
 			return;
 		set_state_expr(my_used_id, offset, alloc_state_num(array_size));
-		add_modification_hook_expr(my_used_id, offset, &delete, NULL);
 	} else if (array_size <= max) {
 		const char *level = "error";
 
@@ -312,6 +311,7 @@ void check_overflow(int id)
 	add_function_hook("sprintf", &match_sprintf, NULL);
 	add_function_hook("memcmp", &match_limited, &b0_l2);
 	add_function_hook("memcmp", &match_limited, &b1_l2);
+	add_modification_hook(my_used_id, &delete);
 	if (option_project == PROJ_KERNEL) {
 		add_function_hook("copy_to_user", &match_limited, &b0_l2);
 		add_function_hook("copy_to_user", &match_limited, &b1_l2);

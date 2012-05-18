@@ -15,6 +15,7 @@ static int my_id;
 
 STATE(derefed);
 STATE(ignore);
+STATE(param);
 
 static int is_arg(struct expression *expr)
 {
@@ -30,11 +31,11 @@ static int is_arg(struct expression *expr)
 	return 0;
 }
 
-static void set_ignore(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+static void set_ignore(struct sm_state *sm)
 {
-	if (get_state(my_id, name, sym) == &derefed)
+	if (sm->state == &derefed)
 		return;
-	set_state(my_id, name, sym, &ignore);
+	set_state(my_id, sm->name, sm->sym, &ignore);
 }
 
 static void match_function_def(struct symbol *sym)
@@ -47,7 +48,7 @@ static void match_function_def(struct symbol *sym)
 		i++;
 		if (!arg->ident)
 			continue;
-		add_modification_hook(my_id, arg->ident->name, &set_ignore, NULL);
+		set_state(my_id, arg->ident->name, arg, &param);
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -108,6 +109,7 @@ void check_dereferences_param(int id)
 
 	add_hook(&match_dereference, DEREF_HOOK);
 	add_db_fn_call_callback(DEREFERENCE, &set_param_dereferenced);
+	add_modification_hook(my_id, &set_ignore);
 
 	all_return_states_hook(&process_states);
 }

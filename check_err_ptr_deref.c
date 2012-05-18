@@ -16,9 +16,10 @@ static int my_id;
 STATE(err_ptr);
 STATE(checked);
 
-static void ok_to_use(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+static void ok_to_use(struct sm_state *sm)
 {
-	set_state(my_id, name, sym, &checked);
+	if (sm->state != &checked)
+		set_state(my_id, sm->name, sm->sym, &checked);
 }
 
 static void check_is_err_ptr(struct sm_state *sm)
@@ -166,6 +167,6 @@ void check_err_ptr_deref(int id)
 	add_function_hook("ERR_PTR", &match_err_ptr, NULL);
 	add_function_assign_hook("PTR_ERR", &match_ptr_err, NULL);
 	add_hook(&match_condition, CONDITION_HOOK);
-	set_default_modification_hook(my_id, ok_to_use);
+	add_modification_hook(my_id, &ok_to_use);
 }
 

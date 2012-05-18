@@ -13,9 +13,9 @@
 
 static int my_id;
 
-static void ok_to_use(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+static void ok_to_use(struct sm_state *sm)
 {
-	delete_state(my_id, name, sym);
+	delete_state(my_id, sm->name, sm->sym);
 }
 
 static void match_snprintf(const char *fn, struct expression *expr, void *info)
@@ -73,6 +73,6 @@ void check_snprintf(int id)
 	my_id = id;
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_function_assign_hook("snprintf", &match_snprintf, NULL);
-	set_default_modification_hook(my_id, ok_to_use);
+	add_modification_hook(my_id, &ok_to_use);
 }
 

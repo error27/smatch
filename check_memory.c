@@ -227,9 +227,10 @@ static int is_null(const char *name, struct symbol *sym)
 	return 0;
 }
 
-static void set_unfree(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+static void set_unfree(struct sm_state *sm)
 {
-	set_state(my_id, name, sym, &unfree);
+	if (slist_has_state(sm->possible, &isfree))
+		set_state(my_id, sm->name, sm->sym, &unfree);
 }
 
 static void match_free_func(const char *fn, struct expression *expr, void *data)
@@ -244,7 +245,6 @@ static void match_free_func(const char *fn, struct expression *expr, void *data)
 	if (!ptr_name)
 		return;
 	set_state(my_id, ptr_name, ptr_sym, &isfree);
-	add_modification_hook(my_id, ptr_name, &set_unfree, NULL);
 	free_string(ptr_name);
 }
 
@@ -438,6 +438,7 @@ void check_memory(int id)
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
+	add_modification_hook(my_id, &set_unfree);
 	if (option_project == PROJ_KERNEL) {
 		add_function_hook("kfree", &match_free_func, (void *)0);
 		register_funcs_from_file();

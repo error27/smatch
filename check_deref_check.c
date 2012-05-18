@@ -15,9 +15,10 @@ static int my_id;
 STATE(derefed);
 STATE(oktocheck);
 
-static void underef(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+static void underef(struct sm_state *sm)
 {
-	set_state(my_id, name, sym, &oktocheck);
+	if (sm->state == &derefed)
+		set_state(my_id, sm->name, sm->sym, &oktocheck);
 }
 
 static void match_dereference(struct expression *expr)
@@ -28,20 +29,20 @@ static void match_dereference(struct expression *expr)
 		return;
 	if (getting_address())
 		return;
-
 	expr = strip_expr(expr->unop);
+	if (implied_not_equal(expr, 0))
+		return;
+
 	set_state_expr(my_id, expr, &derefed);
 	name = get_variable_from_expr(expr, NULL);
 	if (!name)
 		return;
-	add_modification_hook(my_id, name, &underef, NULL);
 	free_string(name);
 }
 
 static void set_param_dereferenced(struct expression *arg, char *unused)
 {
 	set_state_expr(my_id, arg, &derefed);
-	add_modification_hook_expr(my_id, arg, &underef, NULL);
 }
 
 static void match_condition(struct expression *expr)
@@ -68,4 +69,5 @@ void check_deref_check(int id)
 	add_hook(&match_dereference, DEREF_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_db_fn_call_callback(DEREFERENCE, &set_param_dereferenced);
+	add_modification_hook(my_id, &underef);
 }

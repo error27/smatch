@@ -20,9 +20,10 @@ static int my_id;
 STATE(freed);
 STATE(ok);
 
-static void ok_to_use(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+static void ok_to_use(struct sm_state *sm)
 {
-	set_state(my_id, name, sym, &ok);
+	if (sm->state != &ok)
+		set_state(my_id, sm->name, sm->sym, &ok);
 }
 
 static int is_freed(struct expression *expr)
@@ -93,5 +94,5 @@ void check_free(int id)
 	else
 		add_hook(&match_dereferences, DEREF_HOOK);
 
-	set_default_modification_hook(my_id, ok_to_use);
+	add_modification_hook(my_id, &ok_to_use);
 }

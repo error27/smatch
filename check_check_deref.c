@@ -32,9 +32,9 @@ static int my_id;
 STATE(null);
 STATE(ok);
 
-static void is_ok(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+static void is_ok(struct sm_state *sm)
 {
-	set_state(my_id, name, sym, &ok);
+	set_state(my_id, sm->name, sm->sym, &ok);
 }
 
 static void check_dereference(struct expression *expr)
@@ -102,7 +102,7 @@ void check_check_deref(int id)
 {
 	my_id = id;
 
- 	set_default_modification_hook(my_id, &is_ok);
+	add_modification_hook(my_id, &is_ok);
 	add_hook(&match_dereferences, DEREF_HOOK);
 	add_hook(&match_pointer_as_array, OP_HOOK);
 	add_db_fn_call_callback(DEREFERENCE, &set_param_dereferenced);

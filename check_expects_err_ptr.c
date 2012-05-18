@@ -15,9 +15,10 @@ static struct symbol *func_sym;
 STATE(argument);
 STATE(ok);
 
-static void set_ok(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+static void set_ok(struct sm_state *sm)
 {
-	set_state(my_id, name, sym, &ok);
+	if (sm->state != &ok)
+		set_state(my_id, sm->name, sm->sym, &ok);
 }
 
 static void match_function_def(struct symbol *sym)
@@ -80,6 +81,6 @@ void check_expects_err_ptr(int id)
 
 	my_id = id;
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
-	set_default_modification_hook(my_id, &set_ok);
+	add_modification_hook(my_id, &set_ok);
 	add_function_hook("IS_ERR", &match_is_err, NULL);
 }

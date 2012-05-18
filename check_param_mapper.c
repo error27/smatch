@@ -29,9 +29,9 @@ STATE(argument);
 
 static struct symbol *func_sym;
 
-static void delete(const char *name, struct symbol *sym, struct expression *expr, void *unused)
+static void delete(struct sm_state *sm)
 {
-	delete_state(my_id, name, sym);
+	delete_state(my_id, sm->name, sm->sym);
 }
 
 static void match_function_def(struct symbol *sym)
@@ -100,7 +100,7 @@ void check_param_mapper(int id)
 	if (!option_param_mapper)
 		return;
 	my_id = id;
-	set_default_modification_hook(my_id, &delete);
+	add_modification_hook(my_id, &delete);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 }
