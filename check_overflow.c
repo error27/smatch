@@ -300,9 +300,52 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 	free_string(dest_name);
 }
 
+static void register_funcs_from_file(void)
+{
+	char name[256];
+	struct token *token;
+	const char *func;
+	int size, buf;
+	struct limiter *limiter;
+
+	snprintf(name, 256, "%s.sizeof_param", option_project_str);
+	name[255] = '\0';
+	token = get_tokens_file(name);
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = show_ident(token->ident);
+
+		token = token->next;
+		if (token_type(token) != TOKEN_NUMBER)
+			return;
+		size = atoi(token->number);
+
+		token = token->next;
+		if (token_type(token) != TOKEN_NUMBER)
+			return;
+		buf = atoi(token->number);
+
+		limiter = malloc(sizeof(*limiter));
+		limiter->limit_arg = size;
+		limiter->buf_arg = buf;
+
+		add_function_hook(func, &match_limited, limiter);
+
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
 void check_overflow(int id)
 {
 	my_used_id = id;
+	register_funcs_from_file();
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&array_check, OP_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);

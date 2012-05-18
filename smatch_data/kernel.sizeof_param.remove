@@ -1,0 +1,3 @@
+printk
+find_first_zero_bit
+dvb_usb_generic_rw

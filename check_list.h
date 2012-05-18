@@ -74,6 +74,7 @@ CK(check_macro_side_effects)
 CK(check_bool_implications)
 CK(check_sizeof_pointer)
 CK(check_or_vs_and)
+CK(check_passes_sizeof)
 
 /* <- your test goes here */
 /* CK(register_template) */
