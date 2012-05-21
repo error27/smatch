@@ -51,13 +51,13 @@ $db->do("delete from caller_info");
 open(WARNS, "<$warns");
 while (<WARNS>) {
     if (!($_ =~ /info:/)) {
-	next;
+        next;
     }
     if ($_ =~ /__builtin_/) {
-	next;
+        next;
     }
     if ($_ =~ /(printk|memset|memcpy|kfree|printf|dev_err|writel)/) {
-	next;
+        next;
     }
 
     s/\n//;
@@ -66,59 +66,59 @@ while (<WARNS>) {
 
     if ($_ =~ /info: passes param_value /) {
         # init/main.c +165 obsolete_checksetup(7) info: passes param_value strlen 0 min-max
-	$type = 1;
-	($file_and_line, $dummy, $dummy, $dummy, $dummy, $func, $param, $key, $value) = split(/ /, $_);
-	($file, $line) = split(/:/, $file_and_line);
+        $type = 1;
+        ($file_and_line, $dummy, $dummy, $dummy, $dummy, $func, $param, $key, $value) = split(/ /, $_);
+        ($file, $line) = split(/:/, $file_and_line);
 
-	if ($func eq "'(struct") {
-	    ($file_and_line, $dummy, $dummy, $dummy, $dummy, $dummy, $func, $param, $key, $value) = split(/ /, $_);
-	    ($file, $line) = split(/:/, $file_and_line);
-	    $func = "$dummy $func";
-	}
+        if ($func eq "'(struct") {
+            ($file_and_line, $dummy, $dummy, $dummy, $dummy, $dummy, $func, $param, $key, $value) = split(/ /, $_);
+            ($file, $line) = split(/:/, $file_and_line);
+            $func = "$dummy $func";
+        }
 
     } elsif ($_ =~ /info: passes_buffer /) {
         # init/main.c +175 obsolete_checksetup(17) info: passes_buffer 'printk' 0 '$$' 38
-	$type = 2;
-	($file_and_line, $dummy, $dummy, $dummy, $func, $param, $key, $value) = split(/ /, $_);
-	($file, $line) = split(/:/, $file_and_line);
+        $type = 2;
+        ($file_and_line, $dummy, $dummy, $dummy, $func, $param, $key, $value) = split(/ /, $_);
+        ($file, $line) = split(/:/, $file_and_line);
 
-	if ($func eq "'(struct") {
-	    ($file_and_line, $dummy, $dummy, $dummy, $dummy, $func, $param, $key, $value) = split(/ /, $_);
-	    ($file, $line) = split(/:/, $file_and_line);
-	    $func = "$dummy $func";
-	}
-    } elsif ($_ =~ /info: passes user_data /) {
-	# test.c +24 func(11) info: passes user_data 'frob' 2 '$$->data'
-	$type = 3;
-	$value = 1;
-	($file_and_line, $dummy, $dummy, $dummy, $dummy, $func, $param, $key) = split(/ /, $_);
-	($file, $line) = split(/:/, $file_and_line);
-
-	if ($func eq "'(struct") {
-	    ($file_and_line, $dummy, $dummy, $dummy, $dummy, $dummy, $func, $param, $key) = split(/ /, $_);
+        if ($func eq "'(struct") {
+            ($file_and_line, $dummy, $dummy, $dummy, $dummy, $func, $param, $key, $value) = split(/ /, $_);
             ($file, $line) = split(/:/, $file_and_line);
             $func = "$dummy $func";
-	}
+        }
+    } elsif ($_ =~ /info: passes user_data /) {
+        # test.c +24 func(11) info: passes user_data 'frob' 2 '$$->data'
+        $type = 3;
+        $value = 1;
+        ($file_and_line, $dummy, $dummy, $dummy, $dummy, $func, $param, $key) = split(/ /, $_);
+        ($file, $line) = split(/:/, $file_and_line);
+
+        if ($func eq "'(struct") {
+            ($file_and_line, $dummy, $dummy, $dummy, $dummy, $dummy, $func, $param, $key) = split(/ /, $_);
+            ($file, $line) = split(/:/, $file_and_line);
+            $func = "$dummy $func";
+        }
 
     } elsif ($_ =~ /info: passes capped_data /) {
-	# test.c +24 func(11) info: passes capped_data 'frob' 2 '$$->data'
-	$type = 4;
-	$value = 1;
-	($file_and_line, $dummy, $dummy, $dummy, $dummy, $func, $param, $key) = split(/ /, $_);
-	($file, $line) = split(/:/, $file_and_line);
+        # test.c +24 func(11) info: passes capped_data 'frob' 2 '$$->data'
+        $type = 4;
+        $value = 1;
+        ($file_and_line, $dummy, $dummy, $dummy, $dummy, $func, $param, $key) = split(/ /, $_);
+        ($file, $line) = split(/:/, $file_and_line);
 
-	if ($func eq "'(struct") {
-	    ($file_and_line, $dummy, $dummy, $dummy, $dummy, $dummy, $func, $param, $key) = split(/ /, $_);
-	    ($file, $line) = split(/:/, $file_and_line);
+        if ($func eq "'(struct") {
+            ($file_and_line, $dummy, $dummy, $dummy, $dummy, $dummy, $func, $param, $key) = split(/ /, $_);
+            ($file, $line) = split(/:/, $file_and_line);
             $func = "$dummy $func";
-	}
+        }
 
     } else {
-	next;
+        next;
     }
 
     if (!defined($value) || !($param =~ /^-*\d+$/)) {
-	next;
+        next;
     }
 
     $func =~ s/'//g;
@@ -130,10 +130,10 @@ while (<WARNS>) {
     }
 
     if ($prev_fn ne $func || $prev_line ne $line) {
-	$prev_fn = $func;
-	$prev_line = $line;
-	$prev_param = $param;
-	$func_id++;
+        $prev_fn = $func;
+        $prev_line = $line;
+        $prev_param = $param;
+        $func_id++;
     }
 
 #    print "insert into caller_info values ('$file', '$func', $func_id, $type, $param, '$key', '$value')\n";

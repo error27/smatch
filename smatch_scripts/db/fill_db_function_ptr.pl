@@ -20,7 +20,7 @@ $db->do("delete from function_ptr;");
 open(WARNS, "<$warns");
 while (<WARNS>) {
     if (!($_ =~ /info: sets_fn_ptr /)) {
-	next;
+        next;
     }
 
     # kernel/ksysfs.c +87 (null)(87) info: sets_fn_ptr '(struct kobj_attribute)->show' 'profiling_show'
@@ -32,13 +32,13 @@ while (<WARNS>) {
     ($file, $dummy) = split(/:/, $file_and_line);
 
     if (!defined($func)) {
-	next;
+        next;
     }
     if (!($struct_bit =~ /^'\(struct$/)) {
-	next;
+        next;
     }
     if (!($func =~ /^'[\w_]+'$/)) {
-	next;
+        next;
     }
 
     $struct_bit =~ s/'//;
