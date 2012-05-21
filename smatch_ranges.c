@@ -604,6 +604,22 @@ int possibly_false_range_lists(struct range_list *left_ranges, int comparison, s
 	return 0;
 }
 
+int possibly_true_range_lists_rl(int comparison, struct range_list *a, struct range_list *b, int left)
+{
+	if (left)
+		return possibly_true_range_lists(a, comparison, b);
+	else
+		return possibly_true_range_lists(b, comparison, a);
+}
+
+int possibly_false_range_lists_rl(int comparison, struct range_list *a, struct range_list *b, int left)
+{
+	if (left)
+		return possibly_false_range_lists(a, comparison, b);
+	else
+		return possibly_false_range_lists(b, comparison, a);
+}
+
 void tack_on(struct range_list **list, struct data_range *drange)
 {
 	add_ptr_list(list, drange);

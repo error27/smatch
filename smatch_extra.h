@@ -42,10 +42,15 @@ void add_range(struct range_list **list, long long min, long long max);
 int range_lists_equiv(struct range_list *one, struct range_list *two);
 struct range_list *invert_range_list(struct range_list *orig);
 int true_comparison_range(struct data_range *left, int comparison, struct data_range *right);
+
 int possibly_true(struct expression *left, int comparison, struct expression *right);
 int possibly_true_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges);
+int possibly_true_range_lists_rl(int comparison, struct range_list *a, struct range_list *b, int left);
+
 int possibly_false(struct expression *left, int comparison, struct expression *right);
 int possibly_false_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges);
+int possibly_false_range_lists_rl(int comparison, struct range_list *a, struct range_list *b, int left);
+
 void free_range_list(struct range_list **rlist);
 void free_data_info_allocs(void);
 struct range_list *clone_range_list(struct range_list *list);
