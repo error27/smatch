@@ -1,13 +1,24 @@
 #!/usr/bin/perl
 
 use strict;
+use DBI;
 use bignum;
 
-sub usage()
-{
-    print("get_error_returns.pl <smatch output info file>\n");
+my $warns = shift;
+
+if (!defined($warns)) {
+    print "usage:  $0 <warns.txt>\n";
     exit(1);
 }
+
+my $db = DBI->connect("dbi:SQLite:smatch_db.sqlite", "", "", {RaiseError => 1, AutoCommit => 0});
+$db->do("PRAGMA synchronous = OFF");
+$db->do("PRAGMA cache_size = 800000");
+$db->do("PRAGMA journal_mode = OFF");
+
+$db->do("delete from call_implies");
+
+my $type = 7;  # RANGE_CAP
 
 sub get_error_num($)
 {
@@ -173,20 +184,10 @@ sub invert_range($)
     return $ret;
 }
 
-my $file = shift();
-if (!$file) {
-    usage();
-}
-
-if (! -e $file) {
-    printf("Error:  $file does not exist.\n");
-    exit(1);
-}
-
 my $old_func = "";
 my $total_returns = "";
 
-open(FILE, "<$file");
+open(FILE, "<$warns");
 while (<FILE>) {
     # test.c:26 func() info: function_return_values '(-20),(-12),0'
     if (/.*?:\d+ (\w+)\(\) info: function_return_values '(.*?)'/) {
@@ -195,10 +196,12 @@ while (<FILE>) {
     }
 
     # test.c:14 func() info: param 0 range 'min-(-1),12-max' implies error return
-    if (/.*?:\d+ (\w+)\(\) info: param (\d+) range '(.*?)' implies error return/) {
-        my $func = $1;
-        my $param = $2;
-        my $bad_range = $3;
+    if (/(.*?):\d+ (\w+)\(\) info: param (\d+) range '(.*?)' implies error return/) {
+        my $file = $1;
+        my $func = $2;
+        my $param = $3;
+        my $bad_range = $4;
+        my $static = 0; #fixme
 
         my $error_returns;
         my $success_returns;
@@ -211,11 +214,29 @@ while (<FILE>) {
         $error_returns = get_error_returns($total_returns);
         $success_returns = get_success_returns($total_returns);
 
-        # rw_verify_area "0-1000000" 3 "0-1000000"
-        # rw_verify_area "-4095-(-1)" 3 "min-max"
-        print "$func \"$success_returns\" $param \"$good_range\"\n";
-        print "$func \"$error_returns\" $param \"min-max\"\n";
-    }
+        $db->do("insert into return_implies values ('$file', '$func', $static, $type, '$success_returns', $param, '', '$good_range')");
+        $db->do("insert into return_implies values ('$file', '$func', $static, $type, '$error_returns', $param, '', 'min-max')");
+   }
 }
 close(FILE);
 
+
+open(FILE, "<$warns");
+while (<FILE>) {
+    # crypto/cbc.c:54 is_power_of_2() info: bool_return_implication "1" 0 "min-(-1),1-max"
+    if (/(.*?):\d+ (\w+)\(\) info: bool_return_implication "(.*?)" (\d+) "(.*?)"$/) {
+        my $file = $1;
+        my $func = $2;
+        my $return_range = $3;
+        my $param = $4;
+        my $implied_range = $5;
+        my $static = 0; #fixme
+
+        $db->do("insert into return_implies values ('$file', '$func', $static, $type, '$return_range', $param, '', '$implied_range')");
+   }
+}
+close(FILE);
+
+
+$db->commit();
+$db->disconnect();

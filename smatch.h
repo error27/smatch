@@ -107,6 +107,8 @@ void add_scope_hook(scope_hook *hook, void *data);
 typedef void (func_hook)(const char *fn, struct expression *expr, void *data);
 typedef void (implication_hook)(const char *fn, struct expression *call_expr,
 				struct expression *assign_expr, void *data);
+typedef void (return_implies_hook)(struct expression *call_expr,
+				   int param, char *key, char *value);
 void add_function_hook(const char *look_for, func_hook *call_back, void *data);
 
 void add_function_assign_hook(const char *look_for, func_hook *call_back,
@@ -115,6 +117,7 @@ void add_macro_assign_hook(const char *look_for, func_hook *call_back,
 			      void *info);
 void return_implies_state(const char *look_for, long long start, long long end,
 			 implication_hook *call_back, void *info);
+void add_db_return_implies_callback(int type, return_implies_hook *callback);
 typedef void (modification_hook)(struct sm_state *sm);
 void add_modification_hook(int owner, modification_hook *call_back);
 void add_indirect_modification_hook(int owner, modification_hook *call_back);
@@ -407,6 +410,7 @@ enum info_type {
 	CAPPED_DATA,
 	RETURN_VALUE,
 	DEREFERENCE,
+	RANGE_CAP,
 };
 
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
