@@ -165,16 +165,16 @@ void add_sm_state_slist(struct state_list **slist, struct sm_state *new)
 	add_ptr_list(slist, new);
 }
 
-static void add_possible(struct sm_state *sm, struct sm_state *new)
+static void copy_possibles(struct sm_state *to, struct sm_state *from)
 {
 	struct sm_state *tmp;
 	struct sm_state *tmp2;
 
-	FOR_EACH_PTR(new->possible, tmp) {
+	FOR_EACH_PTR(from->possible, tmp) {
 		tmp2 = alloc_state_no_name(tmp->owner, tmp->name, tmp->sym,
 					   tmp->state);
 		tmp2->line = tmp->line;
-		add_sm_state_slist(&sm->possible, tmp2);
+		add_sm_state_slist(&to->possible, tmp2);
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -380,8 +380,8 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	result->left = one;
 	result->right = two;
 	result->nr_children = one->nr_children + two->nr_children;
-	add_possible(result, one);
-	add_possible(result, two);
+	copy_possibles(result, one);
+	copy_possibles(result, two);
 
 	if (option_debug) {
 		struct sm_state *tmp;
