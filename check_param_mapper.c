@@ -31,7 +31,7 @@ static struct symbol *func_sym;
 
 static void delete(struct sm_state *sm)
 {
-	delete_state(my_id, sm->name, sm->sym);
+	set_state(my_id, sm->name, sm->sym, &undefined);
 }
 
 static void match_function_def(struct symbol *sym)

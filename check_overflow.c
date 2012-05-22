@@ -43,7 +43,7 @@ static struct limiter b1_l2 = {1, 2};
 
 static void delete(struct sm_state *sm)
 {
-	delete_state(my_used_id, sm->name, sm->sym);
+	set_state(my_used_id, sm->name, sm->sym, &undefined);
 }
 
 static int definitely_just_used_as_limiter(struct expression *array, struct expression *offset)
@@ -156,7 +156,7 @@ static void match_condition(struct expression *expr)
 	if (!slist)
 		return;
 	FOR_EACH_PTR(slist, tmp) {
-		if (tmp->state == &merged)
+		if (tmp->state == &merged || tmp->state == &undefined)
 			continue;
 		boundary = PTR_INT(tmp->state->data);
 		boundary -= val;

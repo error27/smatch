@@ -15,7 +15,7 @@ static int my_id;
 
 static void ok_to_use(struct sm_state *sm)
 {
-	delete_state(my_id, sm->name, sm->sym);
+	set_state(my_id, sm->name, sm->sym, &undefined);
 }
 
 static void match_snprintf(const char *fn, struct expression *expr, void *info)

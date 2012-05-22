@@ -14,6 +14,7 @@
  */
 
 #include "smatch.h"
+#include "smatch_slist.h"
 
 static int my_id;
 
@@ -21,7 +22,7 @@ STATE(do_not_use);
 
 static void ok_to_use(struct sm_state *sm)
 {
-	delete_state(my_id, sm->name, sm->sym);
+	set_state(my_id, sm->name, sm->sym, &undefined);
 }
 
 static int valid_use(void)
@@ -54,7 +55,7 @@ static void match_symbol(struct expression *expr)
 	char *name;
 
 	sm = get_sm_state_expr(my_id, expr);
-	if (!sm)
+	if (!sm || !slist_has_state(sm->possible, &do_not_use))
 		return;
 	if (valid_use())
 		return;
