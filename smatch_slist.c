@@ -128,7 +128,7 @@ static struct sm_state *alloc_sm_state(int owner, const char *name,
 	sm_state->line = get_lineno();
 	sm_state->merged = 0;
 	sm_state->implied = 0;
-	sm_state->my_pool = NULL;
+	sm_state->pool = NULL;
 	sm_state->left = NULL;
 	sm_state->right = NULL;
 	sm_state->nr_children = 1;
@@ -253,8 +253,8 @@ struct sm_state *clone_sm(struct sm_state *s)
 	ret->merged = s->merged;
 	ret->implied = s->implied;
 	ret->line = s->line;
-	/* clone_sm() doesn't copy the my_pools.  Each state needs to have
-	   only one my_pool. */
+	/* clone_sm() doesn't copy the pools.  Each state needs to have
+	   only one pool. */
 	ret->possible = clone_slist(s->possible);
 	ret->left = s->left;
 	ret->right = s->right;
@@ -625,7 +625,7 @@ static void clone_pool_havers(struct state_list *slist)
 	struct sm_state *new;
 
 	FOR_EACH_PTR(slist, sm) {
-		if (sm->my_pool) {
+		if (sm->pool) {
 			new = clone_sm(sm);
 			REPLACE_CURRENT_PTR(sm, new);
 		}
@@ -676,8 +676,8 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			NEXT_PTR_LIST(one_sm);
 		} else if (cmp_tracker(one_sm, two_sm) == 0) {
 			if (one_sm != two_sm) {
-				one_sm->my_pool = implied_one;
-				two_sm->my_pool = implied_two;
+				one_sm->pool = implied_one;
+				two_sm->pool = implied_two;
 			}
 
 			tmp = merge_sm_states(one_sm, two_sm);

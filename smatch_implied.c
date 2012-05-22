@@ -25,7 +25,7 @@
  *
  * At point #1 merge_slist() stores the list of states from both
  * the true and false paths.  On the true path foo == 99 and on
- * the false path foo == 1.  merge_slist() sets their my_pool
+ * the false path foo == 1.  merge_slist() sets their pool
  * list to show the other states which were there when foo == 99.
  *
  * When it comes to the if (foo == 99) the smatch implied hook
@@ -39,10 +39,10 @@
  *
  * That is the implied state of bar.
  *
- * merge_slist() sets up ->my_pool.  An sm_state only has one ->my_pool and
+ * merge_slist() sets up ->pool.  An sm_state only has one ->pool and
  *    that is the pool where it was first set.  The my pool gets set when
  *    code paths merge.  States that have been set since the last merge do
- *    not have a ->my_pool.
+ *    not have a ->pool.
  * merge_sm_state() sets ->left and ->right.  (These are the states which were
  *    merged to form the current state.)
  * a pool:  a pool is an slist that has been merged with another slist.
@@ -114,11 +114,11 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 	int istrue;
 	int isfalse;
 
-	if (!sm_state->my_pool)
+	if (!sm_state->pool)
 		return;
 
 	if (is_implied(sm_state)) {
-		s = get_sm_state_slist(sm_state->my_pool,
+		s = get_sm_state_slist(sm_state->pool,
 				sm_state->owner, sm_state->name,
 				sm_state->sym);
 	} else {
@@ -143,10 +143,10 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 	print_debug_tf(s, istrue, isfalse);
 
 	if (istrue)
-		add_pool(true_stack, s->my_pool);
+		add_pool(true_stack, s->pool);
 
 	if (isfalse)
-		add_pool(false_stack, s->my_pool);
+		add_pool(false_stack, s->pool);
 }
 
 static int pool_in_pools(struct state_list *pool,
@@ -221,7 +221,7 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 		free_slist(checked);
 }
 
-struct sm_state *remove_my_pools(struct sm_state *sm,
+struct sm_state *remove_pools(struct sm_state *sm,
 				struct state_list_stack *pools, int *modified)
 {
 	struct sm_state *ret = NULL;
@@ -234,11 +234,11 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 
 	if (sm->nr_children > 4000) {
 		implied_debug_msg =
-			(char *) "debug: remove_my_pools: nr_children over 4000";
+			(char *) "debug: remove_pools: nr_children over 4000";
 		return NULL;
 	}
 
-	if (pool_in_pools(sm->my_pool, pools)) {
+	if (pool_in_pools(sm->pool, pools)) {
 		DIMPLIED("removed %s from %d\n", show_sm(sm), sm->line);
 		*modified = 1;
 		return NULL;
@@ -250,8 +250,8 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 	}
 
 	DIMPLIED("checking %s from %d\n", show_sm(sm), sm->line);
-	left = remove_my_pools(sm->left, pools, &removed);
-	right = remove_my_pools(sm->right, pools, &removed);
+	left = remove_pools(sm->left, pools, &removed);
+	right = remove_pools(sm->right, pools, &removed);
 	if (!removed) {
 		DIMPLIED("kept %s from %d\n", show_sm(sm), sm->line);
 		return sm;
@@ -267,16 +267,16 @@ struct sm_state *remove_my_pools(struct sm_state *sm,
 		ret->merged = 1;
 		ret->right = right;
 		ret->left = NULL;
-		ret->my_pool = sm->my_pool;
+		ret->pool = sm->pool;
 	} else if (!right) {
 		ret = clone_sm(left);
 		ret->merged = 1;
 		ret->left = left;
 		ret->right = NULL;
-		ret->my_pool = sm->my_pool;
+		ret->pool = sm->pool;
 	} else {
 		ret = merge_sm_states(left, right);
-		ret->my_pool = sm->my_pool;
+		ret->pool = sm->pool;
 	}
 	ret->implied = 1;
 	DIMPLIED("partial %s => ", show_sm(sm));
@@ -297,7 +297,7 @@ static struct state_list *filter_stack(struct state_list *pre_list,
 
 	FOR_EACH_PTR(pre_list, tmp) {
 		modified = 0;
-		filtered_sm = remove_my_pools(tmp, stack, &modified);
+		filtered_sm = remove_pools(tmp, stack, &modified);
 		if (filtered_sm && modified) {
 			filtered_sm->name = tmp->name;
 			filtered_sm->sym = tmp->sym;
@@ -442,7 +442,7 @@ static void handle_zero_comparison(struct expression *expr,
 		expr = strip_expr(expr->unop);
 
 	if (expr->type == EXPR_ASSIGNMENT) {
-		/* most of the time ->my_pools will be empty here because we
+		/* most of the time ->pools will be empty here because we
 		   just set the state, but if have assigned a conditional
 		   function there are implications. */
 		expr = expr->left;
