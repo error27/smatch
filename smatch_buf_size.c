@@ -441,18 +441,20 @@ static void match_call(struct expression *expr)
 	FOR_EACH_PTR(expr->args, arg) {
 		bytes = get_array_size_bytes(arg);
 		if (bytes > 1)
-			sm_msg("info: passes_buffer '%s' %d '$$' %d", name, i, bytes);
+			sm_msg("info: passes_buffer '%s' %d '$$' %d %s",
+				name, i, bytes,
+				is_static(expr->fn) ? "static" : "global");
 		i++;
 	} END_FOR_EACH_PTR(arg);
 
 	free_string(name);
 }
 
-static void struct_member_callback(char *fn, int param, char *printed_name, struct smatch_state *state)
+static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
 {
 	if (state == &merged)
 		return;
-	sm_msg("info: passes_buffer '%s' %d '%s' %s", fn, param, printed_name, state->name);
+	sm_msg("info: passes_buffer '%s' %d '%s' %s %s", fn, param, printed_name, state->name, global_static);
 }
 
 static void match_func_end(struct symbol *sym)

@@ -26,23 +26,26 @@ while (<WARNS>) {
 
     s/\n//;
 
-    my ($file_and_line, $file, $func, $dummy, $value);
+    my ($file_and_line, $file, $func, $dummy, $value, $gs);
 
-    # sound/pci/hda/patch_sigmatel.c:3125 create_controls_idx() info: return_value min-(-1)
+    # sound/pci/hda/patch_sigmatel.c:3125 create_controls_idx() info: return_value min-(-1) global
 
-    ($file_and_line, $func, $dummy, $dummy, $value) = split(/ /, $_);
+    ($file_and_line, $func, $dummy, $dummy, $value, $gs) = split(/ /, $_);
     ($file, $dummy) = split(/:/, $file_and_line);
     $func =~ s/\(\)//;
     $value =~ s/unknown/min-max/;
 
-    if (!defined($value)) {
+    if (!defined($gs)) {
         next;
+    }
+    my $static = 0;
+    if ($gs =~ /static/) {
+        $static = 1;
     }
 
     $value =~ s/'//g;
 
-    # print "insert into return_info values ('$file', '$func', '$value')\n";
-    $db->do("insert into return_info values ('$file', '$func', $type, '$value')");
+    $db->do("insert into return_info values ('$file', '$func', $static, $type, '$value')");
 }
 close(WARNS);
 
@@ -55,15 +58,20 @@ while (<WARNS>) {
 
     s/\n//;
 
-    my ($file_and_line, $file, $func, $dummy);
+    my ($file_and_line, $file, $func, $dummy, $gs);
 
-    #include/linux/netfilter/ipset/ip_set.h:402 ip_set_get_h32() info: returns_user_data
+    #include/linux/netfilter/ipset/ip_set.h:402 ip_set_get_h32() info: returns_user_data static
 
-    ($file_and_line, $func, $dummy) = split(/ /, $_);
+    ($file_and_line, $func, $dummy, $gs) = split(/ /, $_);
     ($file, $dummy) = split(/:/, $file_and_line);
     $func =~ s/\(\)//;
 
-    $db->do("insert into return_info values ('$file', '$func', $type, '1')");
+    my $static = 0;
+    if ($gs =~ /static/) {
+        $static = 1;
+    }
+
+    $db->do("insert into return_info values ('$file', '$func', $static, $type, '1')");
 }
 close(WARNS);
 

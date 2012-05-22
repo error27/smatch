@@ -91,10 +91,10 @@ static void print_implications(struct symbol *sym, int param,
 				estate_ranges(false_state)))
 		return;
 
-	sm_msg("info: bool_return_implication \"1\" %d \"%s\"", param,
-				show_ranges(estate_ranges(true_state)));
-	sm_msg("info: bool_return_implication \"0\" %d \"%s\"", param,
-				show_ranges(estate_ranges(false_state)));
+	sm_msg("info: bool_return_implication \"1\" %d \"%s\" %s", param,
+	       show_ranges(estate_ranges(true_state)), global_static());
+	sm_msg("info: bool_return_implication \"0\" %d \"%s\" %s", param,
+	       show_ranges(estate_ranges(false_state)), global_static());
 }
 
 static void cleanup(void)

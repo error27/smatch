@@ -212,8 +212,9 @@ static void match_end_func(struct symbol *sym)
 			continue;
 		if (is_whole_range_rl(param_constraints[i]))
 			continue;
-		sm_msg("info: param %d range '%s' implies error return",
-				i, show_ranges(param_constraints[i]));
+		sm_msg("info: %s param %d range '%s' implies error return %s",
+		       global_static(), i, show_ranges(param_constraints[i]),
+		       global_static());
 	}
 
 	have_returned_zero = 0;

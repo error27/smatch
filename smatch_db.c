@@ -26,7 +26,7 @@ static struct callback_list *callbacks;
 
 struct member_info_callback {
 	int owner;
-	void (*callback)(char *fn, int param, char *printed_name, struct smatch_state *state);
+	void (*callback)(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state);
 };
 ALLOCATOR(member_info_callback, "caller_info callbacks");
 DECLARE_PTR_LIST(member_info_cb_list, struct member_info_callback);
@@ -62,7 +62,7 @@ void add_definition_db_callback(void (*callback)(const char *name, struct symbol
 	add_ptr_list(&callbacks, def_callback);
 }
 
-void add_member_info_callback(int owner, void (*callback)(char *fn, int param, char *printed_name, struct smatch_state *state))
+void add_member_info_callback(int owner, void (*callback)(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state))
 {
 	struct member_info_callback *member_callback = __alloc_member_info_callback(0);
 
@@ -111,7 +111,7 @@ struct range_list *db_return_vals(struct expression *expr)
 		snprintf(sql_filter, 1024, "file = '%s' and function = '%s' and type = %d;",
 			 get_filename(), sym->ident->name, RETURN_VALUE);
 	} else {
-		snprintf(sql_filter, 1024, "function = '%s' and type = %d;",
+		snprintf(sql_filter, 1024, "function = '%s' and static = 0 and type = %d;",
 				sym->ident->name, RETURN_VALUE);
 	}
 
@@ -136,12 +136,13 @@ static void match_call_hack(struct expression *expr)
 		return;
 	if (ptr_list_empty(expr->args))
 		return;
-	sm_msg("info: passes param_value '%s' -1 '$$' min-max", name);
+	sm_msg("info: passes param_value '%s' -1 '$$' min-max %s",
+	       name, is_static(expr->fn) ? "static" : "global");
 	free_string(name);
 }
 
-static void print_struct_members(char *fn, struct expression *expr, int param, struct state_list *slist,
-	void (*callback)(char *fn, int param, char *printed_name, struct smatch_state *state))
+static void print_struct_members(char *fn, char *global_static, struct expression *expr, int param, struct state_list *slist,
+	void (*callback)(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state))
 {
 	struct sm_state *sm;
 	char *name;
@@ -170,7 +171,7 @@ static void print_struct_members(char *fn, struct expression *expr, int param, s
 			snprintf(printed_name, sizeof(printed_name), "$$->%s", sm->name + len + 1);
 		else
 			snprintf(printed_name, sizeof(printed_name), "$$%s", sm->name + len);
-		callback(fn, param, printed_name, sm->state);
+		callback(fn, global_static, param, printed_name, sm->state);
 	} END_FOR_EACH_PTR(sm);
 free:
 	free_string(name);
@@ -183,16 +184,22 @@ static void match_call_info(struct expression *expr)
 	struct state_list *slist;
 	char *name;
 	int i;
+	char *gs;
 
 	name = get_fnptr_name(expr->fn);
 	if (!name)
 		return;
 
+	if (is_static(expr->fn))
+		gs = (char *)"static";
+	else
+		gs = (char *)"global";
+
 	FOR_EACH_PTR(member_callbacks, cb) {
 		slist = get_all_states(cb->owner);
 		i = 0;
 		FOR_EACH_PTR(expr->args, arg) {
-			print_struct_members(name, arg, i, slist, cb->callback);
+			print_struct_members(name, gs, arg, i, slist, cb->callback);
 			i++;
 		} END_FOR_EACH_PTR(arg);
 	} END_FOR_EACH_PTR(cb);
@@ -280,7 +287,7 @@ static void get_direct_callers(struct symbol *sym)
 			 get_filename(), sym->ident->name);
 	} else {
 		snprintf(sql_filter, 1024,
-			 "function = '%s' order by function_id;",
+			 "function = '%s' and static = 0 order by function_id;",
 			 sym->ident->name);
 	}
 
@@ -399,7 +406,7 @@ static void match_call_implies(struct expression *expr)
 		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
 			 get_filename(), sym->ident->name);
 	} else {
-		snprintf(sql_filter, 1024, "function = '%s';",
+		snprintf(sql_filter, 1024, "function = '%s' and static = 0;",
 				sym->ident->name);
 	}
 

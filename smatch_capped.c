@@ -134,16 +134,17 @@ static void match_caller_info(struct expression *expr)
 	i = 0;
 	FOR_EACH_PTR(expr->args, tmp) {
 		if (is_capped(tmp))
-			sm_msg("info: passes capped_data %s %d '$$'", func, i);
+			sm_msg("info: passes capped_data %s %d '$$' %s", func,
+			       i, is_static(expr->fn) ? "static" : "global");
 		i++;
 	} END_FOR_EACH_PTR(tmp);
 }
 
-static void struct_member_callback(char *fn, int param, char *printed_name, struct smatch_state *state)
+static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
 {
 	if (state != &capped)
 		return;
-	sm_msg("info: passes capped_data '%s' %d '%s'", fn, param, printed_name);
+	sm_msg("info: passes capped_data '%s' %d '%s' %s", fn, param, printed_name, global_static);
 }
 
 void register_capped(int id)

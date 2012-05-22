@@ -26,20 +26,26 @@ while (<WARNS>) {
 
     s/\n//;
 
-    my ($file_and_line, $file, $func, $dummy, $param);
+    my ($file_and_line, $file, $func, $dummy, $param, $value, $gs);
 
-    # fs/buffer.c:62 list_add() info: dereferences_param 1
+    # fs/buffer.c:62 list_add() info: dereferences_param 1 static
 
-    ($file_and_line, $func, $dummy, $dummy, $param) = split(/ /, $_);
+    $value = 1;
+    ($file_and_line, $func, $dummy, $dummy, $param, $gs) = split(/ /, $_);
     ($file, $dummy) = split(/:/, $file_and_line);
     $func =~ s/\(\)//;
 
-    if (!defined($param)) {
+    if (!defined($gs)) {
         next;
     }
 
-    # print "insert into call_implies values ('$file', '$func', '$value')\n";
-    $db->do("insert into call_implies values ('$file', '$func', $type, $param, '1')");
+    my $static = 0;
+    if ($gs =~ /static/) {
+        $static = 1;
+    }
+
+    # print "insert into call_implies values ('$file', '$func', $static, $type, $param, $value)\n";
+    $db->do("insert into call_implies values ('$file', '$func', $static, $type, $param, $value)");
 }
 close(WARNS);
 

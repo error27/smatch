@@ -32,10 +32,10 @@ static void match_return(struct expression *ret_value)
 		return;
 
 	if (get_implied_range_list(ret_value, &rl)) {
-		sm_msg("info: return_value %s", show_ranges(rl));
+		sm_msg("info: return_value %s %s", show_ranges(rl), global_static());
 		add_return_range(rl);
 	} else {
-		sm_msg("info: return_value unknown");
+		sm_msg("info: return_value unknown %s", global_static());
 		add_return_range(whole_range_list());
 	}
 }
@@ -44,7 +44,8 @@ static void match_end_func(struct symbol *sym)
 {
 	if (!return_ranges)
 		return;
-	sm_msg("info: function_return_values '%s'", show_ranges(return_ranges));
+	sm_msg("info: function_return_values '%s' %s",
+	       show_ranges(return_ranges), global_static());
 	return_ranges = NULL;
 }
 

@@ -865,11 +865,11 @@ int is_whole_range(struct smatch_state *state)
 	return is_whole_range_rl(estate_ranges(state));
 }
 
-static void struct_member_callback(char *fn, int param, char *printed_name, struct smatch_state *state)
+static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
 {
 	if (is_whole_range(state))
 		return;
-	sm_msg("info: passes param_value '%s' %d '%s' %s", fn, param, printed_name, state->name);
+	sm_msg("info: passes param_value '%s' %d '%s' %s %s", fn, param, printed_name, state->name, global_static);
 }
 
 static void match_call_info(struct expression *expr)
@@ -885,8 +885,9 @@ static void match_call_info(struct expression *expr)
 
 	FOR_EACH_PTR(expr->args, arg) {
 		if (get_implied_range_list(arg, &rl) && !is_whole_range_rl(rl)) {
-			sm_msg("info: passes param_value '%s' %d '$$' %s",
-			       name, i, show_ranges(rl));
+			sm_msg("info: passes param_value '%s' %d '$$' %s %s",
+			       name, i, show_ranges(rl),
+			       is_static(expr->fn) ? "static" : "global");
 		}
 		i++;
 	} END_FOR_EACH_PTR(arg);

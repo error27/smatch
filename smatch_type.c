@@ -228,3 +228,28 @@ int nr_bits(struct expression *expr)
 		return 0;
 	return type->bit_size;
 }
+
+int is_static(struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+	int ret = 0;
+
+	name = get_variable_from_expr_complex(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	if (sym->ctype.modifiers & MOD_STATIC)
+		ret = 1;
+free:
+	free_string(name);
+	return ret;
+}
+
+const char *global_static()
+{
+	if (cur_func_sym->ctype.modifiers & MOD_STATIC)
+		return "static";
+	else
+		return "global";
+}

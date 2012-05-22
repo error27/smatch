@@ -245,6 +245,8 @@ int returns_pointer(struct symbol *base_type);
 long long type_max(struct symbol *base_type);
 long long type_min(struct symbol *base_type);
 int nr_bits(struct expression *expr);
+int is_static(struct expression *expr);
+const char *global_static();
 
 /* smatch_ignore.c */
 void add_ignore(int owner, const char *name, struct symbol *sym);
@@ -413,7 +415,7 @@ enum info_type {
 };
 
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
-void add_member_info_callback(int owner, void (*callback)(char *fn, int param, char *printed_name, struct smatch_state *state));
+void add_member_info_callback(int owner, void (*callback)(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state));
 void add_db_fn_call_callback(int type, void (*callback)(struct expression *arg, char *value));
 struct range_list *db_return_vals(struct expression *expr);
 

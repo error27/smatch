@@ -189,19 +189,23 @@ my $total_returns = "";
 
 open(FILE, "<$warns");
 while (<FILE>) {
-    # test.c:26 func() info: function_return_values '(-20),(-12),0'
+    # test.c:26 func() info: function_return_values '(-20),(-12),0' global
     if (/.*?:\d+ (\w+)\(\) info: function_return_values '(.*?)'/) {
         $old_func = $1;
         $total_returns = $2;
     }
 
-    # test.c:14 func() info: param 0 range 'min-(-1),12-max' implies error return
-    if (/(.*?):\d+ (\w+)\(\) info: param (\d+) range '(.*?)' implies error return/) {
+    # test.c:14 func() info: param 0 range 'min-(-1),12-max' implies error return static
+    if (/(.*?):\d+ (\w+)\(\) info: param (\d+) range '(.*?)' implies error return (global|static)/) {
         my $file = $1;
         my $func = $2;
         my $param = $3;
         my $bad_range = $4;
-        my $static = 0; #fixme
+
+        my $static = 0;
+        if ($5 =~ /static/) {
+            $static = 1;
+        }
 
         my $error_returns;
         my $success_returns;
@@ -223,14 +227,17 @@ close(FILE);
 
 open(FILE, "<$warns");
 while (<FILE>) {
-    # crypto/cbc.c:54 is_power_of_2() info: bool_return_implication "1" 0 "min-(-1),1-max"
-    if (/(.*?):\d+ (\w+)\(\) info: bool_return_implication "(.*?)" (\d+) "(.*?)"$/) {
+    # crypto/cbc.c:54 is_power_of_2() info: bool_return_implication "1" 0 "min-(-1),1-max static"
+    if (/(.*?):\d+ (\w+)\(\) info: bool_return_implication "(.*?)" (\d+) "(.*?)" (global|static)/) {
         my $file = $1;
         my $func = $2;
         my $return_range = $3;
         my $param = $4;
         my $implied_range = $5;
-        my $static = 0; #fixme
+        my $static = 0;
+        if ($6 =~ /static/) {
+            $static = 1;
+        }
 
         $db->do("insert into return_implies values ('$file', '$func', $static, $type, '$return_range', $param, '', '$implied_range')");
    }

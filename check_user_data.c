@@ -184,22 +184,23 @@ static void match_caller_info(struct expression *expr)
 	i = 0;
 	FOR_EACH_PTR(expr->args, tmp) {
 		if (is_user_data(tmp))
-			sm_msg("info: passes user_data %s %d '$$'", func, i);
+			sm_msg("info: passes user_data %s %d '$$' %s", func, i,
+			       is_static(expr->fn) ? "static" : "global");
 		i++;
 	} END_FOR_EACH_PTR(tmp);
 }
 
-static void struct_member_callback(char *fn, int param, char *printed_name, struct smatch_state *state)
+static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
 {
 	if (state == &capped)
 		return;
-	sm_msg("info: passes user_data '%s' %d '%s'", fn, param, printed_name);
+	sm_msg("info: passes user_data '%s' %d '%s' %s", fn, param, printed_name, global_static);
 }
 
 static void match_return(struct expression *expr)
 {
 	if (is_user_data(expr))
-		sm_msg("info: returns_user_data");
+		sm_msg("info: returns_user_data %s", global_static());
 }
 
 static int db_user_data;
@@ -239,7 +240,7 @@ static void match_call_assignment(struct expression *expr)
 		snprintf(sql_filter, 1024, "file = '%s' and function = '%s' and type = %d;",
 			 get_filename(), sym->ident->name, USER_DATA);
 	} else {
-		snprintf(sql_filter, 1024, "function = '%s' and type = %d;",
+		snprintf(sql_filter, 1024, "function = '%s' and static = 0 and type = %d;",
 				sym->ident->name, USER_DATA);
 	}
 
