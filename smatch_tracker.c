@@ -46,6 +46,13 @@ free:
 	free_string(name);
 }
 
+static void free_tracker(struct tracker *t)
+{
+	free_string(t->name);
+	__free_tracker(t);
+
+}
+
 void del_tracker(struct tracker_list **list, int owner, const char *name,
 		struct symbol *sym)
 {
@@ -55,7 +62,7 @@ void del_tracker(struct tracker_list **list, int owner, const char *name,
 		if (tmp->owner == owner && tmp->sym == sym
 		    && !strcmp(tmp->name, name)) {
 			DELETE_CURRENT_PTR(tmp);
-			__free_tracker(tmp);
+			free_tracker(tmp);
 			return;
 		}
 	} END_FOR_EACH_PTR(tmp);
@@ -84,8 +91,7 @@ void free_trackers_and_list(struct tracker_list **list)
 	struct tracker *tmp;
 
 	FOR_EACH_PTR(*list, tmp) {
-		free_string(tmp->name);
-		__free_tracker(tmp);
+		free_tracker(tmp);
 	} END_FOR_EACH_PTR(tmp);
 	free_tracker_list(list);
 }
