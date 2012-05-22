@@ -11,12 +11,25 @@
 
 static int my_id;
 
+static int does_inc_dec(struct expression *expr)
+{
+	if (expr->type == EXPR_PREOP || expr->type == EXPR_POSTOP) {
+		if (expr->op == SPECIAL_INCREMENT || expr->op == SPECIAL_DECREMENT)
+			return 1;
+		return does_inc_dec(expr->unop);
+	}
+	return 0;
+}
+
 static int expr_equiv(struct expression *one, struct expression *two)
 {
 	struct symbol *one_sym, *two_sym;
 	char *one_name = NULL;
 	char *two_name = NULL;
 	int ret = 0;
+
+	if (does_inc_dec(one) || does_inc_dec(two))
+		return 0;
 
 	one_name = get_variable_from_expr_complex(one, &one_sym);
 	if (!one_name || !one_sym)
