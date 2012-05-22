@@ -28,6 +28,9 @@ int is_capped(struct expression *expr)
 {
 	long long val;
 
+	if (!expr)
+		return 0;
+
 	if (expr->type == EXPR_BINOP) {
 		if (expr->op == '&')
 			return 1;
