@@ -74,18 +74,6 @@ int in_tracker_list(struct tracker_list *list, int owner, const char *name,
 	return 0;
 }
 
-struct tracker_list *clone_tracker_list(struct tracker_list *orig_list)
-{
-	struct tracker *tmp;
-	struct tracker_list *to_list = NULL;
-
-	FOR_EACH_PTR(orig_list, tmp) {
-		add_ptr_list(&to_list, tmp);
-	} END_FOR_EACH_PTR(tmp);
-
-	return to_list;
-}
-
 void free_tracker_list(struct tracker_list **list)
 {
 	__free_ptr_list((struct ptr_list **)list);

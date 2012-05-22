@@ -259,7 +259,6 @@ void del_tracker(struct tracker_list **list, int owner, const char *name,
 		struct symbol *sym);
 int in_tracker_list(struct tracker_list *list, int owner, const char *name,
 		struct symbol *sym);
-struct tracker_list *clone_tracker_list(struct tracker_list *orig_list);
 void free_tracker_list(struct tracker_list **list);
 void free_trackers_and_list(struct tracker_list **list);
 
