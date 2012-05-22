@@ -21,6 +21,7 @@ CK(check_bogus_loop)
 
 CK(check_deref)
 CK(check_check_deref)
+CK(check_dereferences_param)
 CK(check_overflow)
 CK(check_leaks)
 CK(check_type)
