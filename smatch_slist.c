@@ -30,15 +30,27 @@ char *show_sm(struct sm_state *sm)
 
 	pos = snprintf(buf, sizeof(buf), "[%s] '%s' = %s (",
 		       check_name(sm->owner), sm->name, show_state(sm->state));
+	if (pos > sizeof(buf))
+		goto truncate;
+
 	i = 0;
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (i++)
 			pos += snprintf(buf + pos, sizeof(buf) - pos, ", ");
+		if (pos > sizeof(buf))
+			goto truncate;
 		pos += snprintf(buf + pos, sizeof(buf) - pos, "%s",
 			       show_state(tmp->state));
+		if (pos > sizeof(buf))
+			goto truncate;
 	} END_FOR_EACH_PTR(tmp);
 	snprintf(buf + pos, sizeof(buf) - pos, ")");
 
+	return buf;
+
+truncate:
+	for (i = 0; i < 3; i++)
+		buf[sizeof(buf) - 2 - i] = '.';
 	return buf;
 }
 
