@@ -529,6 +529,7 @@ void __split_stmt(struct statement *stmt)
 
 		if (printed != cur_func)
 			sm_msg("Function too hairy.  Giving up.");
+		final_pass = 0;  /* turn off sm_msg() from here */
 		printed = cur_func;
 		return;
 	}
