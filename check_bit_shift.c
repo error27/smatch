@@ -148,7 +148,9 @@ void check_bit_shift(int id)
 
 	if (option_info) {
 		add_hook(&match_binop_info, BINOP_HOOK);
-		if (option_project == PROJ_KERNEL)
+		if (option_project == PROJ_KERNEL) {
 			add_function_hook("set_bit", &match_call, INT_PTR(0));
+			add_function_hook("test_bit", &match_call, INT_PTR(0));
+		}
 	}
 }
