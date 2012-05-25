@@ -75,11 +75,11 @@ void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state)
 		return;
 	}
 
+	get_dinfo(state)->related = estate_related(orig_state);
 	FOR_EACH_PTR(estate_related(orig_state), rel) {
 		if (option_debug_related)
 			sm_msg("updating related %s to %s", rel->name, state->name);
 		set_state(SMATCH_EXTRA, rel->name, rel->sym, state);
-		add_equiv(state, rel->name, rel->sym);
 	} END_FOR_EACH_PTR(rel);
 }
 
@@ -100,14 +100,14 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 		return;
 	}
 
-	// FIXME!!!!  equiv => related
+	if (true_state)
+		get_dinfo(true_state)->related = estate_related(orig_state);
+	if (false_state)
+		get_dinfo(false_state)->related = estate_related(orig_state);
+
 	FOR_EACH_PTR(estate_related(orig_state), rel) {
 		set_true_false_states(SMATCH_EXTRA, rel->name, rel->sym,
 				true_state, false_state);
-		if (true_state)
-			add_equiv(true_state, rel->name, rel->sym);
-		if (false_state)
-			add_equiv(false_state, rel->name, rel->sym);
 	} END_FOR_EACH_PTR(rel);
 }
 

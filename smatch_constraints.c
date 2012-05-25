@@ -170,13 +170,6 @@ void del_related(struct smatch_state *state, int op, const char *name, struct sy
 	} END_FOR_EACH_PTR(tmp);
 }
 
-void add_equiv(struct smatch_state *state, const char *name, struct symbol *sym)
-{
-	struct data_info *dinfo = get_dinfo(state);
-
-	add_related(&dinfo->related, SPECIAL_EQUAL, name, sym);
-}
-
 static void del_equiv(struct smatch_state *state, const char *name, struct symbol *sym)
 {
 	del_related(state, SPECIAL_EQUAL, name, sym);

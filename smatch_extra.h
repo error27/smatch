@@ -113,7 +113,6 @@ void set_equiv(struct expression *left, struct expression *right);
 struct related_list *get_shared_relations(struct related_list *one,
 					      struct related_list *two);
 struct related_list *clone_related_list(struct related_list *related);
-void add_equiv(struct smatch_state *state, const char *name, struct symbol *sym);
 void remove_from_equiv(const char *name, struct symbol *sym);
 void remove_from_equiv_expr(struct expression *expr);
 void set_equiv_state_expr(int id, struct expression *expr, struct smatch_state *state);
