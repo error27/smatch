@@ -158,7 +158,7 @@ struct related_list *get_shared_relations(struct related_list *one,
 	return ret;
 }
 
-static void debug_addition(struct smatch_state *state, int op, const char *name)
+static void debug_addition(struct related_list *rlist, int op, const char *name)
 {
 	struct relation *tmp;
 
@@ -167,15 +167,14 @@ static void debug_addition(struct smatch_state *state, int op, const char *name)
 
 	sm_prefix();
 	sm_printf("(");
-	FOR_EACH_PTR(estate_related(state), tmp) {
+	FOR_EACH_PTR(rlist, tmp) {
 		sm_printf("%s %s ", show_special(tmp->op), tmp->name);
 	} END_FOR_EACH_PTR(tmp);
 	sm_printf(") <-- %s %s\n", show_special(op), name);
 }
 
-void add_related(struct smatch_state *state, int op, const char *name, struct symbol *sym)
+static void add_related(struct related_list **rlist, int op, const char *name, struct symbol *sym)
 {
-	struct data_info *dinfo;
 	struct relation *rel;
 	struct relation *new;
 	struct relation tmp = {
@@ -184,10 +183,9 @@ void add_related(struct smatch_state *state, int op, const char *name, struct sy
 		.sym = sym
 	};
 
-	debug_addition(state, op, name);
+	debug_addition(*rlist, op, name);
 
-	dinfo = get_dinfo(state);
-	FOR_EACH_PTR(dinfo->related, rel) {
+	FOR_EACH_PTR(*rlist, rel) {
 		if (cmp_relation(rel, &tmp) < 0)
 			continue;
 		if (cmp_relation(rel, &tmp) == 0)
@@ -197,7 +195,7 @@ void add_related(struct smatch_state *state, int op, const char *name, struct sy
 		return;
 	} END_FOR_EACH_PTR(rel);
 	new = alloc_relation(op, name, sym);
-	add_ptr_list(&dinfo->related, new);
+	add_ptr_list(rlist, new);
 }
 
 void del_related(struct smatch_state *state, int op, const char *name, struct symbol *sym)
@@ -217,7 +215,9 @@ void del_related(struct smatch_state *state, int op, const char *name, struct sy
 
 void add_equiv(struct smatch_state *state, const char *name, struct symbol *sym)
 {
-	add_related(state, SPECIAL_EQUAL, name, sym);
+	struct data_info *dinfo = get_dinfo(state);
+
+	add_related(&dinfo->related, SPECIAL_EQUAL, name, sym);
 }
 
 static void del_equiv(struct smatch_state *state, const char *name, struct symbol *sym)
