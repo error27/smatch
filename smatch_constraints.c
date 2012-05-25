@@ -105,21 +105,57 @@ struct related_list *clone_related_list(struct related_list *related)
 	return to_list;
 }
 
-struct relation *get_common_relationship(struct smatch_state *state, int op,
-					const char *name, struct symbol *sym)
+static int cmp_relation(struct relation *a, struct relation *b)
 {
-	struct relation *tmp;
+	int ret;
 
-	// FIXME...
-	// Find the common x < y and x <= y
-	FOR_EACH_PTR(estate_related(state), tmp) {
-		if (tmp->op < op || tmp->sym < sym || strcmp(tmp->name, name) < 0)
-			continue;
-		if (tmp->op == op && tmp->sym == sym && !strcmp(tmp->name, name))
-			return tmp;
-		return NULL;
-	} END_FOR_EACH_PTR(tmp);
-	return NULL;
+	if (a == b)
+		return 0;
+
+	if (a->op > b->op)
+		return -1;
+	if (a->op < b->op)
+		return 1;
+
+	if (a->sym > b->sym)
+		return -1;
+	if (a->sym < b->sym)
+		return 1;
+
+	ret = strcmp(a->name, b->name);
+	if (ret)
+		return ret;
+
+	return 0;
+
+}
+
+struct related_list *get_shared_relations(struct related_list *one,
+					      struct related_list *two)
+{
+	struct related_list *ret = NULL;
+	struct relation *one_rel;
+	struct relation *two_rel;
+
+	PREPARE_PTR_LIST(one, one_rel);
+	PREPARE_PTR_LIST(two, two_rel);
+	for (;;) {
+		if (!one_rel || !two_rel)
+			break;
+		if (cmp_relation(one_rel, two_rel) < 0) {
+			NEXT_PTR_LIST(one_rel);
+		} else if (cmp_relation(one_rel, two_rel) == 0) {
+			add_ptr_list(&ret, one_rel);
+			NEXT_PTR_LIST(one_rel);
+			NEXT_PTR_LIST(two_rel);
+		} else {
+			NEXT_PTR_LIST(two_rel);
+		}
+	}
+	FINISH_PTR_LIST(two_rel);
+	FINISH_PTR_LIST(one_rel);
+
+	return ret;
 }
 
 static void debug_addition(struct smatch_state *state, int op, const char *name)

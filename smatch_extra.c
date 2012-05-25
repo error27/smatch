@@ -150,16 +150,11 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 {
 	struct smatch_state *tmp;
 	struct range_list *value_ranges;
-	struct relation *rel;
-	struct relation *new;
 
 	value_ranges = range_list_union(estate_ranges(s1), estate_ranges(s2));
 	tmp = alloc_estate_range_list(value_ranges);
-	FOR_EACH_PTR(estate_related(s1), rel) {
-		new = get_common_relationship(s2, rel->op, rel->name, rel->sym);
-		if (new)
-			add_related(tmp, new->op, new->name, new->sym);
-	} END_FOR_EACH_PTR(rel);
+	get_dinfo(tmp)->related = get_shared_relations(estate_related(s1),
+						       estate_related(s2));
 	return tmp;
 }
 
