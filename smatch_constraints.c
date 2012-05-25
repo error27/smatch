@@ -39,49 +39,6 @@
 
 ALLOCATOR(relation, "related variables");
 
-/*
- * set_equiv() is only used for assignments where we set one variable
- * equal to the other.  a = b;.  It's not used for if conditions where
- * a == b.
- */
-void set_equiv(struct expression *left, struct expression *right)
-{
-	struct sm_state *right_sm;
-	struct smatch_state *state;
-	struct relation *rel;
-	char *left_name;
-	struct symbol *left_sym;
-
-	left_name = get_variable_from_expr(left, &left_sym);
-	if (!left_name || !left_sym)
-		goto free;
-
-	right_sm = get_sm_state_expr(SMATCH_EXTRA, right);
-	if (!right_sm)
-		right_sm = set_state_expr(SMATCH_EXTRA, right, extra_undefined());
-	if (!right_sm)
-		return;
-
-	remove_from_equiv(left_name, left_sym);
-
-	state = clone_estate(right_sm->state);
-	if (!estate_related(state))
-		add_equiv(state, right_sm->name, right_sm->sym);
-	add_equiv(state, left_name, left_sym);
-
-	FOR_EACH_PTR(estate_related(state), rel) {
-		struct sm_state *new_sm;
-
-		new_sm = clone_sm(right_sm);
-		new_sm->name = rel->name;
-		new_sm->sym = rel->sym;
-		new_sm->state = state;
-		__set_sm(new_sm);
-	} END_FOR_EACH_PTR(rel);
-free:
-	free_string(left_name);
-}
-
 static struct relation *alloc_relation(int op, const char *name, struct symbol *sym)
 {
 	struct relation *tmp;
@@ -270,6 +227,52 @@ free:
 void add_constrain_expr(struct expression *left, int op, struct expression *right)
 {
 
+}
+
+/*
+ * set_equiv() is only used for assignments where we set one variable
+ * equal to the other.  a = b;.  It's not used for if conditions where
+ * a == b.
+ */
+void set_equiv(struct expression *left, struct expression *right)
+{
+	struct sm_state *right_sm;
+	struct smatch_state *state;
+	struct relation *rel;
+	char *left_name;
+	struct symbol *left_sym;
+	struct related_list *rlist;
+
+	left_name = get_variable_from_expr(left, &left_sym);
+	if (!left_name || !left_sym)
+		goto free;
+
+	right_sm = get_sm_state_expr(SMATCH_EXTRA, right);
+	if (!right_sm)
+		right_sm = set_state_expr(SMATCH_EXTRA, right, extra_undefined());
+	if (!right_sm)
+		return;
+
+	remove_from_equiv(left_name, left_sym);
+
+	rlist = clone_related_list(estate_related(right_sm->state));
+	add_related(&rlist, SPECIAL_EQUAL, right_sm->name, right_sm->sym);
+	add_related(&rlist, SPECIAL_EQUAL, left_name, left_sym);
+
+	state = clone_estate(right_sm->state);
+	get_dinfo(state)->related = rlist;
+
+	FOR_EACH_PTR(rlist, rel) {
+		struct sm_state *new_sm;
+
+		new_sm = clone_sm(right_sm);
+		new_sm->name = rel->name;
+		new_sm->sym = rel->sym;
+		new_sm->state = state;
+		__set_sm(new_sm);
+	} END_FOR_EACH_PTR(rel);
+free:
+	free_string(left_name);
 }
 
 void set_equiv_state_expr(int id, struct expression *expr, struct smatch_state *state)
