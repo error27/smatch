@@ -224,11 +224,6 @@ free:
 	free_string(name);
 }
 
-void add_constrain_expr(struct expression *left, int op, struct expression *right)
-{
-
-}
-
 /*
  * set_equiv() is only used for assignments where we set one variable
  * equal to the other.  a = b;.  It's not used for if conditions where
