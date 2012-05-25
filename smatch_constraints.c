@@ -176,21 +176,26 @@ static void debug_addition(struct smatch_state *state, int op, const char *name)
 void add_related(struct smatch_state *state, int op, const char *name, struct symbol *sym)
 {
 	struct data_info *dinfo;
-	struct relation *tmp;
+	struct relation *rel;
 	struct relation *new;
+	struct relation tmp = {
+		.op = op,
+		.name = (char *)name,
+		.sym = sym
+	};
 
 	debug_addition(state, op, name);
 
 	dinfo = get_dinfo(state);
-	FOR_EACH_PTR(dinfo->related, tmp) {
-		if (tmp->op < op || tmp->sym < sym || strcmp(tmp->name, name) < 0)
+	FOR_EACH_PTR(dinfo->related, rel) {
+		if (cmp_relation(rel, &tmp) < 0)
 			continue;
-		if (tmp->op == op && tmp->sym == sym && !strcmp(tmp->name, name))
+		if (cmp_relation(rel, &tmp) == 0)
 			return;
 		new = alloc_relation(op, name, sym);
-		INSERT_CURRENT(new, tmp);
+		INSERT_CURRENT(new, rel);
 		return;
-	} END_FOR_EACH_PTR(tmp);
+	} END_FOR_EACH_PTR(rel);
 	new = alloc_relation(op, name, sym);
 	add_ptr_list(&dinfo->related, new);
 }
