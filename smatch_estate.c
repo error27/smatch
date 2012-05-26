@@ -22,6 +22,10 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+struct smatch_state estate_undefined = {
+	.name = "unknown"
+};
+
 struct data_info *get_dinfo(struct smatch_state *state)
 {
 	if (!state)
@@ -127,12 +131,7 @@ static struct smatch_state *alloc_estate_no_name(int val)
 /* We do this because ->value_ranges is a list */
 struct smatch_state *extra_undefined(void)
 {
-	struct smatch_state *ret;
-
-	ret = __alloc_smatch_state(0);
-	ret->data = alloc_dinfo_range(whole_range.min, whole_range.max);
-	ret->name = "unknown";
-	return ret;
+	return &estate_undefined;
 }
 
 struct smatch_state *extra_empty(void)
@@ -182,3 +181,12 @@ struct smatch_state *alloc_estate_range_list(struct range_list *rl)
 	return state;
 }
 
+void alloc_estate_undefined(void)
+{
+	static struct data_info dinfo = {
+		.type = DATA_RANGE
+	};
+
+	dinfo.value_ranges = clone_permanent(whole_range_list());
+	estate_undefined.data = &dinfo;
+}

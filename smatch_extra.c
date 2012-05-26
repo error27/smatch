@@ -75,7 +75,7 @@ void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state)
 		return;
 	}
 
-	get_dinfo(state)->related = estate_related(orig_state);
+	set_related(&state, estate_related(orig_state));
 	FOR_EACH_PTR(estate_related(orig_state), rel) {
 		if (option_debug_related)
 			sm_msg("updating related %s to %s", rel->name, state->name);
@@ -101,9 +101,9 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 	}
 
 	if (true_state)
-		get_dinfo(true_state)->related = estate_related(orig_state);
+		set_related(&true_state, estate_related(orig_state));
 	if (false_state)
-		get_dinfo(false_state)->related = estate_related(orig_state);
+		set_related(&false_state, estate_related(orig_state));
 
 	FOR_EACH_PTR(estate_related(orig_state), rel) {
 		set_true_false_states(SMATCH_EXTRA, rel->name, rel->sym,
@@ -150,11 +150,13 @@ static struct smatch_state *merge_func(const char *name, struct symbol *sym,
 {
 	struct smatch_state *tmp;
 	struct range_list *value_ranges;
+	struct related_list *rlist;
 
 	value_ranges = range_list_union(estate_ranges(s1), estate_ranges(s2));
 	tmp = alloc_estate_range_list(value_ranges);
-	get_dinfo(tmp)->related = get_shared_relations(estate_related(s1),
-						       estate_related(s2));
+	rlist = get_shared_relations(estate_related(s1), estate_related(s2));
+	set_related(&tmp, rlist);
+
 	return tmp;
 }
 
@@ -930,6 +932,8 @@ static void match_call_assign(struct expression *expr)
 void register_smatch_extra(int id)
 {
 	my_id = id;
+
+	alloc_estate_undefined();
 	add_merge_hook(my_id, &merge_func);
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&unop_expr, OP_HOOK);

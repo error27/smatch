@@ -31,6 +31,9 @@ DECLARE_ALLOCATOR(data_info);
 
 extern struct string_list *__ignored_macros;
 
+extern struct smatch_state estate_undefined;
+void alloc_estate_undefined(void);
+
 /* these are implimented in smatch_ranges.c */
 int is_whole_range_rl(struct range_list *rl);
 long long rl_min(struct range_list *rl);
@@ -110,6 +113,7 @@ struct expression *value_expr(long long val);
 
 /* implemented in smatch_constraints */
 void set_equiv(struct expression *left, struct expression *right);
+void set_related(struct smatch_state **estate, struct related_list *rlist);
 struct related_list *get_shared_relations(struct related_list *one,
 					      struct related_list *two);
 struct related_list *clone_related_list(struct related_list *related);
