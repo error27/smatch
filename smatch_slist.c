@@ -346,27 +346,6 @@ struct smatch_state *merge_states(int owner, const char *name,
 	return ret;
 }
 
-/*
- * add_pool() adds a slist to ->pools. If the slist has already been
- * added earlier then it doesn't get added a second time.
- */
-void add_pool(struct state_list_stack **pools, struct state_list *new)
-{
-	struct state_list *tmp;
-
-	FOR_EACH_PTR(*pools, tmp) {
-		if (tmp < new)
-			continue;
-		else if (tmp == new) {
-			return;
-		} else {
-			INSERT_CURRENT(new, tmp);
-			return;
-		}
-	} END_FOR_EACH_PTR(tmp);
-	add_ptr_list(pools, new);
-}
-
 struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 {
 	struct smatch_state *s;

@@ -102,6 +102,27 @@ static void print_debug_tf(struct sm_state *s, int istrue, int isfalse)
 }
 
 /*
+ * add_pool() adds a slist to *pools. If the slist has already been
+ * added earlier then it doesn't get added a second time.
+ */
+static void add_pool(struct state_list_stack **pools, struct state_list *new)
+{
+	struct state_list *tmp;
+
+	FOR_EACH_PTR(*pools, tmp) {
+		if (tmp < new)
+			continue;
+		else if (tmp == new) {
+			return;
+		} else {
+			INSERT_CURRENT(new, tmp);
+			return;
+		}
+	} END_FOR_EACH_PTR(tmp);
+	add_ptr_list(pools, new);
+}
+
+/*
  * If 'foo' == 99 add it that pool to the true pools.  If it's false, add it to
  * the false pools.  If we're not sure, then we don't add it to either.
  */
