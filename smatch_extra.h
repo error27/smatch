@@ -72,6 +72,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 				struct expression *condition);
 
 /* also implemented in smatch_extra */
+int estates_equiv(struct smatch_state *one, struct smatch_state *two);
 struct smatch_state *clone_estate(struct smatch_state *state);
 struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state);
 struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state);

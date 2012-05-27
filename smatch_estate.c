@@ -58,6 +58,42 @@ long long estate_max(struct smatch_state *state)
 	return rl_max(estate_ranges(state));
 }
 
+static int rlists_equiv(struct related_list *one, struct related_list *two)
+{
+	struct relation *one_rel;
+	struct relation *two_rel;
+
+	PREPARE_PTR_LIST(one, one_rel);
+	PREPARE_PTR_LIST(two, two_rel);
+	for (;;) {
+		if (!one_rel && !two_rel)
+			return 1;
+		if (!one_rel || !two_rel)
+			return 0;
+		if (one_rel->sym != two_rel->sym)
+			return 0;
+		if (strcmp(one_rel->name, two_rel->name))
+			return 0;
+		NEXT_PTR_LIST(one_rel);
+		NEXT_PTR_LIST(two_rel);
+	}
+	FINISH_PTR_LIST(two_rel);
+	FINISH_PTR_LIST(one_rel);
+
+	return 1;
+}
+
+int estates_equiv(struct smatch_state *one, struct smatch_state *two)
+{
+	if (one == two)
+		return 1;
+	if (!rlists_equiv(estate_related(one), estate_related(two)))
+		return 0;
+	if (strcmp(one->name, two->name) == 0)
+		return 1;
+	return 0;
+}
+
 static struct data_info *alloc_dinfo(void)
 {
 	struct data_info *ret;
