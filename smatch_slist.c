@@ -338,7 +338,7 @@ struct smatch_state *merge_states(int owner, const char *name,
 	if (state1 == state2)
 		ret = state1;
 	else if (__has_merge_function(owner))
-		ret = __client_merge_function(owner, name, sym, state1, state2);
+		ret = __client_merge_function(owner, state1, state2);
 	else if (!state1 || !state2)
 		ret = &undefined;
 	else

@@ -144,9 +144,7 @@ struct smatch_state *add_filter(struct smatch_state *orig, long long num)
 	return filter_range(orig, num, num);
 }
 
-static struct smatch_state *merge_func(const char *name, struct symbol *sym,
-				       struct smatch_state *s1,
-				       struct smatch_state *s2)
+static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_state *s2)
 {
 	struct smatch_state *tmp;
 	struct range_list *value_ranges;

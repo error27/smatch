@@ -95,10 +95,7 @@ enum hook_type {
 #define FALSE 0
 
 void add_hook(void *func, enum hook_type type);
-typedef struct smatch_state *(merge_func_t)(const char *name,
-					    struct symbol *sym,
-					    struct smatch_state *s1,
-					    struct smatch_state *s2);
+typedef struct smatch_state *(merge_func_t)(struct smatch_state *s1, struct smatch_state *s2);
 typedef struct smatch_state *(unmatched_func_t)(struct sm_state *state);
 void add_merge_hook(int client_id, merge_func_t *func);
 void add_unmatched_state_hook(int client_id, unmatched_func_t *func);
@@ -391,8 +388,7 @@ void __pass_to_client_no_data(enum hook_type type);
 void __pass_case_to_client(struct expression *switch_expr,
 			   struct expression *case_expr);
 int __has_merge_function(int client_id);
-struct smatch_state *__client_merge_function(int owner, const char *name,
-					     struct symbol *sym,
+struct smatch_state *__client_merge_function(int owner,
 					     struct smatch_state *s1,
 					     struct smatch_state *s2);
 struct smatch_state *__client_unmatched_state_function(struct sm_state *sm);

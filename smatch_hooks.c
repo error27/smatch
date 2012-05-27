@@ -218,8 +218,7 @@ int __has_merge_function(int client_id)
 	return 0;
 }
 
-struct smatch_state *__client_merge_function(int owner, const char *name,
-					     struct symbol *sym,
+struct smatch_state *__client_merge_function(int owner,
 					     struct smatch_state *s1,
 					     struct smatch_state *s2)
 {
@@ -235,7 +234,7 @@ struct smatch_state *__client_merge_function(int owner, const char *name,
 
 	FOR_EACH_PTR(merge_funcs, tmp) {
 		if (tmp->data_type == owner)
-			return ((merge_func_t *) tmp->fn)(name, sym, s1, s2);
+			return ((merge_func_t *) tmp->fn)(s1, s2);
 	} END_FOR_EACH_PTR(tmp);
 	return &undefined;
 }
