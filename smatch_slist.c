@@ -168,13 +168,9 @@ void add_sm_state_slist(struct state_list **slist, struct sm_state *new)
 static void copy_possibles(struct sm_state *to, struct sm_state *from)
 {
 	struct sm_state *tmp;
-	struct sm_state *tmp2;
 
 	FOR_EACH_PTR(from->possible, tmp) {
-		tmp2 = alloc_state_no_name(tmp->owner, tmp->name, tmp->sym,
-					   tmp->state);
-		tmp2->line = tmp->line;
-		add_sm_state_slist(&to->possible, tmp2);
+		add_sm_state_slist(&to->possible, tmp);
 	} END_FOR_EACH_PTR(tmp);
 }
 
