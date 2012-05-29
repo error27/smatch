@@ -32,6 +32,6 @@ void func (void)
  *
  * check-output-start
 sm_deref_check_deref.c:20 func() warn: variable dereferenced before check 'px' (see line 16)
-sm_deref_check_deref.c:24 func() warn: variable dereferenced before check 'y' (see line 23)
+sm_deref_check_deref.c:24 func() warn: variable dereferenced before check 'y' (see line 15)
  * check-output-end
  */
