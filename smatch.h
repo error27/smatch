@@ -354,6 +354,7 @@ void __or_cond_states(void);
 void __save_pre_cond_states(void);
 void __discard_pre_cond_states(void);
 void __use_cond_states(void);
+extern struct state_list *__last_base_slist;
 
 void __warn_on_silly_pre_loops(void);
 

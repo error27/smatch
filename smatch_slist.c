@@ -607,6 +607,38 @@ static void clone_pool_havers(struct state_list *slist)
 	} END_FOR_EACH_PTR(sm);
 }
 
+int __slist_id;
+/*
+ * Sets the first state to the slist_id.
+ */
+static void set_slist_id(struct state_list *slist)
+{
+	struct smatch_state *state;
+	struct sm_state *tmp, *new;
+
+	state = alloc_state_num(++__slist_id);
+	new = alloc_sm_state(-1, "unnull_path", NULL, state);
+
+	FOR_EACH_PTR(slist, tmp) {
+		if (tmp->owner != (unsigned short)-1)
+			return;
+		REPLACE_CURRENT_PTR(tmp, new);
+		return;
+	} END_FOR_EACH_PTR(tmp);
+}
+
+int get_slist_id(struct state_list *slist)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(slist, tmp) {
+		if (tmp->owner != (unsigned short)-1)
+			return 0;
+		return PTR_INT(tmp->state->data);
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
 /*
  * merge_slist() is called whenever paths merge, such as after
  * an if statement.  It takes the two slists and creates one.
@@ -640,6 +672,9 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 
 	clone_pool_havers(implied_one);
 	clone_pool_havers(implied_two);
+
+	set_slist_id(implied_one);
+	set_slist_id(implied_two);
 
 	PREPARE_PTR_LIST(implied_one, one_sm);
 	PREPARE_PTR_LIST(implied_two, two_sm);

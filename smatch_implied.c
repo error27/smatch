@@ -305,8 +305,37 @@ struct sm_state *remove_pools(struct sm_state *sm,
 	return ret;
 }
 
-static struct state_list *filter_stack(struct state_list *pre_list,
-				struct state_list_stack *stack)
+static int highest_slist_id(struct sm_state *sm)
+{
+	int left = 0;
+	int right = 0;
+
+	if (!sm->left && !sm->right)
+		return 0;
+
+	if (sm->left)
+		left = get_slist_id(sm->left->pool);
+	if (sm->right)
+		right = get_slist_id(sm->right->pool);
+
+	if (right > left)
+		return right;
+	return left;
+}
+
+static int in_last_base_slist(struct sm_state *sm)
+{
+	struct sm_state *tmp;
+
+	tmp = get_sm_state_slist(__last_base_slist, sm->owner, sm->name, sm->sym);
+	if (tmp == sm)
+		return 1;
+	return 0;
+}
+
+static struct state_list *filter_stack(struct sm_state *gate_sm,
+				       struct state_list *pre_list,
+				       struct state_list_stack *stack)
 {
 	struct state_list *ret = NULL;
 	struct sm_state *tmp;
@@ -317,6 +346,9 @@ static struct state_list *filter_stack(struct state_list *pre_list,
 		return NULL;
 
 	FOR_EACH_PTR(pre_list, tmp) {
+		if (in_last_base_slist(tmp) &&
+				(highest_slist_id(tmp) < highest_slist_id(gate_sm)))
+			continue;
 		modified = 0;
 		filtered_sm = remove_pools(tmp, stack, &modified);
 		if (filtered_sm && modified) {
@@ -361,9 +393,9 @@ static void separate_and_filter(struct sm_state *sm_state, int comparison, struc
 	separate_pools(sm_state, comparison, vals, lr, &true_stack, &false_stack, NULL);
 
 	DIMPLIED("filtering true stack.\n");
-	*true_states = filter_stack(pre_list, false_stack);
+	*true_states = filter_stack(sm_state, pre_list, false_stack);
 	DIMPLIED("filtering false stack.\n");
-	*false_states = filter_stack(pre_list, true_stack);
+	*false_states = filter_stack(sm_state, pre_list, true_stack);
 	free_stack(&true_stack);
 	free_stack(&false_stack);
 	if (option_debug_implied || option_debug) {

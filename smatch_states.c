@@ -36,6 +36,8 @@ struct smatch_state false_state = { .name = "false" };
 
 static struct state_list *cur_slist; /* current states */
 
+struct state_list *__last_base_slist; /* saved right before we branch from the base list */
+
 static struct state_list_stack *true_stack; /* states after a t/f branch */
 static struct state_list_stack *false_stack;
 static struct state_list_stack *pre_cond_stack; /* states before a t/f branch */
@@ -533,8 +535,17 @@ void __or_cond_states(void)
 	and_slist_stack(&cond_false_stack);
 }
 
+static int in_base_slist(void)
+{
+	if (!pre_cond_stack && !true_stack && !false_stack)
+		return 1;
+	return 0;
+}
+
 void __save_pre_cond_states(void)
 {
+	if (in_base_slist())
+		__last_base_slist = clone_slist(cur_slist);
 	push_slist(&pre_cond_stack, clone_slist(cur_slist));
 }
 

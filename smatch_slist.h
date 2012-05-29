@@ -8,6 +8,7 @@ DECLARE_ALLOCATOR(named_slist);
 DECLARE_PTR_LIST(named_stack, struct named_slist);
 
 extern struct state_list_stack *implied_pools;
+extern int __slist_id;
 
 char *show_sm(struct sm_state *sm);
 void __print_slist(struct state_list *slist);
@@ -76,4 +77,5 @@ void overwrite_slist(struct state_list *from, struct state_list **to);
 /* add stuff smatch_returns.c here */
 
 void all_return_states_hook(void (*callback)(struct state_list *slist));
+int get_slist_id(struct state_list *slist);
 

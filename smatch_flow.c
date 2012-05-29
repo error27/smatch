@@ -761,6 +761,7 @@ static void split_function(struct symbol *sym)
 	last_stmt = NULL;
 	loop_count = 0;
 	sm_debug("new function:  %s\n", cur_func);
+	__slist_id = 0;
 	if (option_two_passes) {
 		__unnullify_path();
 		loop_num = 0;
