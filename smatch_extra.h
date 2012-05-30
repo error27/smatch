@@ -111,6 +111,9 @@ int is_whole_range(struct smatch_state *state);
 /* smatch_expressions.c */
 struct expression *zero_expr();
 struct expression *value_expr(long long val);
+struct expression *deref_expression(struct expression *deref, int op, struct ident *member);
+struct expression *assign_expression(struct expression *left, struct expression *right);
+struct expression *symbol_expression(struct symbol *sym);
 
 /* implemented in smatch_constraints */
 void set_equiv(struct expression *left, struct expression *right);
