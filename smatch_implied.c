@@ -323,16 +323,6 @@ static int highest_slist_id(struct sm_state *sm)
 	return left;
 }
 
-static int in_last_base_slist(struct sm_state *sm)
-{
-	struct sm_state *tmp;
-
-	tmp = get_sm_state_slist(__last_base_slist, sm->owner, sm->name, sm->sym);
-	if (tmp == sm)
-		return 1;
-	return 0;
-}
-
 static struct state_list *filter_stack(struct sm_state *gate_sm,
 				       struct state_list *pre_list,
 				       struct state_list_stack *stack)
@@ -346,9 +336,12 @@ static struct state_list *filter_stack(struct sm_state *gate_sm,
 		return NULL;
 
 	FOR_EACH_PTR(pre_list, tmp) {
-		if (in_last_base_slist(tmp) &&
-				(highest_slist_id(tmp) < highest_slist_id(gate_sm)))
+		if (highest_slist_id(tmp) < highest_slist_id(gate_sm)) {
+			DIMPLIED("skipping %s.  set before.  %d vs %d",
+					tmp->name, highest_slist_id(tmp),
+					highest_slist_id(gate_sm));
 			continue;
+		}
 		modified = 0;
 		filtered_sm = remove_pools(tmp, stack, &modified);
 		if (filtered_sm && modified) {
