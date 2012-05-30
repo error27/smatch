@@ -19,10 +19,10 @@ struct bound {
 };
 
 /*
- * This check has two smatch IDs.  
- * my_used_id - keeps a record of array offsets that have been used.  
+ * This check has two smatch IDs.
+ * my_used_id - keeps a record of array offsets that have been used.
  *              If the code checks that they are within bounds later on,
- *              we complain about using an array offset before checking 
+ *              we complain about using an array offset before checking
  *              that it is within bounds.
  */
 static int my_used_id;
@@ -111,7 +111,7 @@ static void array_check(struct expression *expr)
 
 		if (!option_spammy) {
 			struct smatch_state *state;
-			
+
 			state = get_state_expr(SMATCH_EXTRA, offset);
 			if (state && is_whole_range(state))
 				return;
@@ -123,7 +123,7 @@ static void array_check(struct expression *expr)
 		 * literal array with 4 or less chars.
 		 */
 		if (name && strcmp(name, "__s1") && strcmp(name, "__s2")) {
-			sm_msg("%s: buffer overflow '%s' %d <= %lld", 
+			sm_msg("%s: buffer overflow '%s' %d <= %lld",
 				level, name, array_size, max);
 		}
 		free_string(name);
