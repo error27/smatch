@@ -761,10 +761,6 @@ static void func_cleanup(struct function *f)
 	struct storage *stor;
 	struct atom *atom;
 
-	FOR_EACH_PTR(f->pseudo_list, stor) {
-		free(stor);
-	} END_FOR_EACH_PTR(stor);
-
 	FOR_EACH_PTR(f->atom_list, atom) {
 		if ((atom->type == ATOM_TEXT) && (atom->text))
 			free(atom->text);
@@ -774,6 +770,10 @@ static void func_cleanup(struct function *f)
 			free(atom->op2);
 		free(atom);
 	} END_FOR_EACH_PTR(atom);
+
+	FOR_EACH_PTR(f->pseudo_list, stor) {
+		free(stor);
+	} END_FOR_EACH_PTR(stor);
 
 	free_ptr_list(&f->pseudo_list);
 	free(f);
