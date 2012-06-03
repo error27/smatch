@@ -3312,6 +3312,16 @@ static void evaluate_switch_statement(struct statement *stmt)
 	} END_FOR_EACH_PTR(sym);
 }
 
+static void evaluate_goto_statement(struct statement *stmt)
+{
+	struct symbol *label = stmt->goto_label;
+
+	if (label && !label->stmt && !lookup_keyword(label->ident, NS_KEYWORD))
+		sparse_error(stmt->pos, "label '%s' was not declared", show_ident(label->ident));
+
+	evaluate_expression(stmt->goto_expression);
+}
+
 struct symbol *evaluate_statement(struct statement *stmt)
 {
 	if (!stmt)
@@ -3370,7 +3380,7 @@ struct symbol *evaluate_statement(struct statement *stmt)
 	case STMT_LABEL:
 		return evaluate_statement(stmt->label_statement);
 	case STMT_GOTO:
-		evaluate_expression(stmt->goto_expression);
+		evaluate_goto_statement(stmt);
 		return NULL;
 	case STMT_NONE:
 		break;
