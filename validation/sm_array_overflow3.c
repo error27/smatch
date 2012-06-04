@@ -10,7 +10,7 @@ int main(void)
 
 	for (p = a; p < &a[ARRAY_SIZE(a)]; p++)
 		printf("%d\n", *p);
-	p = &a[4];
+	p = &a[5];
 	return 0;
 }
 /*
@@ -18,6 +18,6 @@ int main(void)
  * check-command: smatch sm_array_overflow3.c
  *
  * check-output-start
-sm_array_overflow3.c:13 main() warn: buffer overflow 'a' 4 <= 4
+sm_array_overflow3.c:13 main() warn: buffer overflow 'a' 4 <= 5
  * check-output-end
  */
