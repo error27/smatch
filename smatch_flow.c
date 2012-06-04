@@ -717,23 +717,37 @@ static void split_symlist(struct symbol_list *sym_list)
 	} END_FOR_EACH_PTR(sym);
 }
 
-static struct expression *fake_assign_expr(struct symbol *sym)
+static void fake_member_assigns(struct symbol *sym)
 {
-	struct expression *e_assign, *e_symbol;
+	struct expression *symbol, *deref, *assign, *tmp;
 
-	e_symbol = symbol_expression(sym);
-	e_assign = assign_expression(e_symbol, sym->initializer);
-	return e_assign;
+	symbol = symbol_expression(sym);
+	FOR_EACH_PTR(sym->initializer->expr_list, tmp) {
+		if (tmp->type != EXPR_IDENTIFIER) /* how to handle arrays?? */
+			continue;
+		deref = deref_expression(symbol, '.', tmp->expr_ident);
+		assign = assign_expression(deref, tmp->ident_expression);
+		__split_expr(assign);
+	} END_FOR_EACH_PTR(tmp);
+}
+
+static void fake_assign_expr(struct symbol *sym)
+{
+	struct expression *assign, *symbol;
+
+	symbol = symbol_expression(sym);
+	assign = assign_expression(symbol, sym->initializer);
+	__split_expr(assign);
 }
 
 static void do_initializer_stuff(struct symbol *sym)
 {
-	struct expression *assign;
-
 	if (!sym->initializer)
 		return;
-	assign = fake_assign_expr(sym);
-	__split_expr(assign);
+	if (sym->initializer->type == EXPR_INITIALIZER)
+		fake_member_assigns(sym);
+	else
+		fake_assign_expr(sym);
 }
 
 static void split_declaration(struct symbol_list *sym_list)
