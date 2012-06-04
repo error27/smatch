@@ -73,6 +73,8 @@ static int definitely_just_used_as_limiter(struct expression *array, struct expr
 		}
 		if (step == 2 && tmp->type == EXPR_COMPARE)
 			return 1;
+		if (step == 2 && tmp->type == EXPR_ASSIGNMENT)
+			return 1;
 		return 0;
 	} END_FOR_EACH_PTR_REVERSE(tmp);
 	return 0;
