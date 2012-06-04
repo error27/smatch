@@ -169,6 +169,10 @@ void __split_expr(struct expression *expr)
 	case EXPR_SIZEOF:
 		/* there isn't anything to pass a client from inside a sizeof() */
 		break;
+	case EXPR_OFFSETOF:
+	case EXPR_ALIGNOF:
+		evaluate_expression(expr);
+		break;
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
 		if (known_condition_true(expr->conditional)) {
