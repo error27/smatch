@@ -155,7 +155,7 @@ static int cap_both_size(int lr, struct expression *expr)
 
 	if (lr != VAR_ON_LEFT)
 		return 0;
-	if (expr->op != '<')  /* this is implied by lr == VAR_ON_LEFT */
+	if (expr->op != '<' && expr->op != SPECIAL_UNSIGNED_LT)
 		return 0;
 
 	i = 0;
@@ -163,16 +163,19 @@ static int cap_both_size(int lr, struct expression *expr)
 		if (!i++)
 			continue;
 		if (tmp->op == SPECIAL_LOGICAL_OR) {
-			if (tmp->right->op != '>' &&
-			    tmp->right->op != SPECIAL_GTE &&
-			    tmp->right->op != SPECIAL_UNSIGNED_GTE)
+			struct expression *right = strip_expr(tmp->right);
+
+			if (right->op != '>' &&
+			    right->op != SPECIAL_UNSIGNED_GT &&
+			    right->op != SPECIAL_GTE &&
+			    right->op != SPECIAL_UNSIGNED_GTE)
 				return 0;
 
 			name1 = get_variable_from_expr_complex(var, NULL);
 			if (!name1)
 				goto free;
 
-			name2 = get_variable_from_expr_complex(tmp->right->left, NULL);
+			name2 = get_variable_from_expr_complex(right->left, NULL);
 			if (!name2)
 				goto free;
 			if (!strcmp(name1, name2))
@@ -243,7 +246,10 @@ static void match_condition(struct expression *expr)
 	}
 
 	if (known == 0 && type_unsigned(var_type)) {
-		if ((lr && expr->op == '<') || (!lr && expr->op == '>')) {
+		if ((lr && expr->op == '<') ||
+		    (lr && expr->op == SPECIAL_UNSIGNED_LT) ||
+		    (!lr && expr->op == '>') ||
+		    (!lr && expr->op == SPECIAL_UNSIGNED_GT)) {
 			if (!compare_against_macro(lr, expr) && !cap_both_size(lr, expr)) {
 				sm_msg("warn: unsigned '%s' is never less than zero.", name);
 				goto free;
