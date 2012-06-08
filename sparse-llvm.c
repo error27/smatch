@@ -1192,7 +1192,7 @@ static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
 
 	name = show_ident(sym->ident);
 
-	data = LLVMAddGlobal(module, symbol_type(module, sym->ctype.base_type), name);
+	data = LLVMAddGlobal(module, LLVMTypeOf(initial_value), name);
 
 	LLVMSetLinkage(data, data_linkage(sym));
 
