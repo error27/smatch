@@ -1181,6 +1181,12 @@ static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
 				initial_value = output_data(module, sym);
 			break;
 		}
+		case EXPR_STRING: {
+			const char *s = initializer->string->data;
+
+			initial_value = LLVMConstString(strdup(s), strlen(s) + 1, true);
+			break;
+		}
 		default:
 			assert(0);
 		}
