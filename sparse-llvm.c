@@ -308,7 +308,6 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 		struct expression *expr;
 
 		assert(sym->bb_target == NULL);
-		assert(sym->ident == NULL);
 
 		expr = sym->initializer;
 		if (expr) {
@@ -324,6 +323,13 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 				LLVMSetInitializer(data, LLVMConstString(strdup(s), strlen(s) + 1, true));
 
 				result = LLVMConstGEP(data, indices, ARRAY_SIZE(indices));
+				break;
+			}
+			case EXPR_SYMBOL: {
+				struct symbol *sym = expr->symbol;
+
+				result = LLVMGetNamedGlobal(fn->module, show_ident(sym->ident));
+				assert(result != NULL);
 				break;
 			}
 			default:
