@@ -68,3 +68,33 @@ static inline void destroy_function_hashtable(struct hashtable *table)
 	static DEFINE_HASHTABLE_SEARCH(search_##_name, char, _list_type); \
 	static DEFINE_HASHTABLE_REMOVE(remove_##_name, char, _list_type); \
 	static DEFINE_FUNCTION_ADD_HOOK(_name, _item_type, _list_type);
+
+#define DEFINE_STRING_HASHTABLE_STATIC(_name)   \
+	static DEFINE_HASHTABLE_INSERT(insert_##_name, char, int); \
+	static DEFINE_HASHTABLE_SEARCH(search_##_name, char, int); \
+	static struct hashtable *_name
+
+static inline void load_hashtable_helper(const char *file, int (*insert_func)(struct hashtable *, char *, int *), struct hashtable *table)
+{
+	char filename[256];
+	struct token *token;
+	char *name;
+
+	snprintf(filename, sizeof(filename), "%s.%s", option_project_str, file);
+	token = get_tokens_file(filename);
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		name = alloc_string(show_ident(token->ident));
+		insert_func(table, name, (void *)1);
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
+#define load_strings(file, _table) load_hashtable_helper(file, insert_##_table, _table)
