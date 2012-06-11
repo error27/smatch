@@ -148,6 +148,21 @@ static void match_condition(struct expression *expr)
 		sm_msg("warn: bitwise AND condition is false here");
 }
 
+static void match_binop(struct expression *expr)
+{
+	long long left, right, val;
+
+	if (expr->op != '&')
+		return;
+	if (!get_value(expr, &val) || val != 0)
+		return;
+	if (get_macro_name(expr->pos))
+		return;
+	if (!get_value(expr->left, &left) || !get_value(expr->right, &right))
+		return;
+	sm_msg("warn: odd binop '0x%llx & 0x%llx'", left, right);
+}
+
 void check_or_vs_and(int id)
 {
 	my_id = id;
@@ -157,4 +172,6 @@ void check_or_vs_and(int id)
 
 	add_hook(&match_logic, LOGIC_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
+	if (option_spammy)
+		add_hook(&match_binop, BINOP_HOOK);
 }
