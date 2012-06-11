@@ -8,8 +8,11 @@
  */
 
 #include "smatch.h"
+#include "smatch_function_hashtable.h"
 
 static int my_id;
+
+DEFINE_STRING_HASHTABLE_STATIC(unconstant_macros);
 
 static int does_inc_dec(struct expression *expr)
 {
@@ -108,9 +111,50 @@ static void match_logic(struct expression *expr)
 		check_and(expr);
 }
 
+static int is_unconstant_macro(struct expression *expr)
+{
+	char *macro;
+
+	macro = get_macro_name(expr->pos);
+	if (!macro)
+		return 0;
+	if (search_unconstant_macros(unconstant_macros, macro))
+		return 1;
+	return 0;
+}
+
+static void match_condition(struct expression *expr)
+{
+	long long val;
+
+	if (expr->type != EXPR_BINOP)
+		return;
+	if (expr->op == '|') {
+		if (get_value(expr->left, &val) || get_value(expr->right, &val))
+			sm_msg("warn: suspicious bitop condition");
+		return;
+	}
+
+	if (expr->op != '&')
+		return;
+
+	if (get_macro_name(expr->pos))
+		return;
+	if (is_unconstant_macro(expr->left) || is_unconstant_macro(expr->right))
+		return;
+
+	if ((get_value(expr->left, &val) && val == 0) ||
+	    (get_value(expr->right, &val) && val == 0))
+		sm_msg("warn: bitwise AND condition is false here");
+}
+
 void check_or_vs_and(int id)
 {
 	my_id = id;
 
+	unconstant_macros = create_function_hashtable(100);
+	load_strings("unconstant_macros", unconstant_macros);
+
 	add_hook(&match_logic, LOGIC_HOOK);
+	add_hook(&match_condition, CONDITION_HOOK);
 }
