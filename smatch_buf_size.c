@@ -155,13 +155,41 @@ static int get_real_array_size(struct expression *expr)
 	return ret * cast_ratio;
 }
 
+static int get_stored_size(struct expression *expr)
+{
+	struct symbol *type;
+	struct smatch_state *state;
+	float cast_ratio;
+	int ret;
+
+	type = get_type(expr);
+	if (!type)
+		return 0;
+
+	cast_ratio = get_cast_ratio(expr);
+
+	state = get_state_expr(my_size_id, expr);
+	if (!state || !state->data)
+		return 0;
+	if (type->type == SYM_PTR)
+		type = get_base_type(type);
+	if (!type->ctype.alignment)
+		return 0;
+	ret = PTR_INT(state->data) / type->ctype.alignment;
+	return ret * cast_ratio;
+}
+
 int get_array_size(struct expression *expr)
 {
-	struct symbol *tmp;
 	struct smatch_state *state;
 	int ret = 0;
 	float cast_ratio;
 	long long len;
+
+	expr = strip_expr(expr);
+	if (!expr)
+		return 0;
+	cast_ratio = get_cast_ratio(expr);
 
 	if (expr->type == EXPR_STRING)
 		return expr->string->length;
@@ -170,23 +198,9 @@ int get_array_size(struct expression *expr)
 	if (ret)
 		return ret;
 
-	cast_ratio = get_cast_ratio(expr);
-	expr = strip_expr(expr);
-	tmp = get_type(expr);
-	if (!tmp)
-		return 0;
-
-	state = get_state_expr(my_size_id, expr);
-	if (state == &merged)
-		return 0;
-	if (state && state->data) {
-		if (tmp->type == SYM_PTR)
-			tmp = get_base_type(tmp);
-		if (!tmp->ctype.alignment)
-			return 0;
-		ret = PTR_INT(state->data) / tmp->ctype.alignment;
-		return ret * cast_ratio;
-	}
+	ret = get_stored_size(expr);
+	if (ret)
+		return ret;
 
 	if (expr->type == EXPR_SYMBOL && expr->symbol->initializer) {
 		if (expr->symbol->initializer != expr) /* int a = a; */
