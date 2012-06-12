@@ -132,6 +132,29 @@ static int size_from_db(struct expression *expr)
 	return db_size;
 }
 
+static int get_real_array_size(struct expression *expr)
+{
+	struct symbol *type;
+	float cast_ratio;
+	int ret;
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_ARRAY)
+		return 0;
+
+	cast_ratio = get_cast_ratio(expr);
+
+	ret = get_expression_value(type->array_size);
+	/* Dynamically sized array are -1 in sparse */
+	if (ret <= 0)
+		return 0;
+	/* People put one element arrays on the end of structs */
+	if (ret == 1)
+		return 0;
+
+	return ret * cast_ratio;
+}
+
 int get_array_size(struct expression *expr)
 {
 	struct symbol *tmp;
@@ -143,23 +166,15 @@ int get_array_size(struct expression *expr)
 	if (expr->type == EXPR_STRING)
 		return expr->string->length;
 
+	ret = get_real_array_size(expr);
+	if (ret)
+		return ret;
+
 	cast_ratio = get_cast_ratio(expr);
 	expr = strip_expr(expr);
 	tmp = get_type(expr);
 	if (!tmp)
 		return 0;
-
-	if (tmp->type == SYM_ARRAY) {
-		ret = get_expression_value(tmp->array_size);
-		/* Dynamically sized array are -1 in sparse */
-		if (ret < 0)
-			return 0;
-		/* People put one element arrays on the end of structs */
-		if (ret == 1)
-			return 0;
-		if (ret)
-			return ret * cast_ratio;
-	}
 
 	state = get_state_expr(my_size_id, expr);
 	if (state == &merged)
