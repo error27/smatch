@@ -31,6 +31,12 @@ static struct limiter b0_l2 = {0, 2};
 
 static _Bool params_set[32];
 
+static void set_undefined(struct sm_state *sm)
+{
+	if (sm->state != &undefined)
+		set_state(sm->owner, sm->name, sm->sym, &undefined);
+}
+
 void set_param_buf_size(const char *name, struct symbol *sym, char *key, char *value)
 {
 	char fullname[256];
@@ -502,9 +508,11 @@ void register_buf_size(int id)
 	}
 
 	add_hook(&match_func_end, END_FUNC_HOOK);
+	add_modification_hook(my_size_id, &set_undefined);
 }
 
 void register_strlen(int id)
 {
 	my_strlen_id = id;
+	add_modification_hook(my_strlen_id, &set_undefined);
 }
