@@ -108,6 +108,30 @@ static float get_cast_ratio(struct expression *unstripped)
 	return start_bytes / end_bytes;
 }
 
+static int db_size;
+static int db_size_callback(void *unused, int argc, char **argv, char **azColName)
+{
+	db_size = atoi(argv[0]);
+	return 0;
+}
+
+static int size_from_db(struct expression *expr)
+{
+	char *name;
+
+	if (!option_spammy)
+		return 0;
+
+	name = get_member_name(expr);
+	if (!name)
+		return 0;
+
+	db_size = 0;
+	run_sql(db_size_callback, "select size from type_size where type = '%s'",
+			name);
+	return db_size;
+}
+
 int get_array_size(struct expression *expr)
 {
 	struct symbol *tmp;
@@ -160,30 +184,6 @@ int get_array_size(struct expression *expr)
 	if (get_implied_max((struct expression *)state->data, &len))
 		return len + 1; /* add one because strlen doesn't include the NULL */
 	return 0;
-}
-
-static int db_size;
-static int db_size_callback(void *unused, int argc, char **argv, char **azColName)
-{
-	db_size = atoi(argv[0]);
-	return 0;
-}
-
-static int size_from_db(struct expression *expr)
-{
-	char *name;
-
-	if (!option_spammy)
-		return 0;
-
-	name = get_member_name(expr);
-	if (!name)
-		return 0;
-
-	db_size = 0;
-	run_sql(db_size_callback, "select size from type_size where type = '%s'",
-			name);
-	return db_size;
 }
 
 int get_array_size_bytes(struct expression *expr)
