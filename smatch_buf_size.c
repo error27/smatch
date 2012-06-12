@@ -191,36 +191,50 @@ static int get_stored_size(struct expression *expr)
 	return ret * cast_ratio;
 }
 
-int get_array_size(struct expression *expr)
+static int get_size_from_strlen(struct expression *expr)
 {
 	struct smatch_state *state;
-	int ret = 0;
 	long long len;
-
-	expr = strip_expr(expr);
-	if (!expr)
-		return 0;
-
-	if (expr->type == EXPR_STRING)
-		return expr->string->length;
-
-	ret = get_real_array_size(expr);
-	if (ret)
-		return ret;
-
-	ret = get_stored_size(expr);
-	if (ret)
-		return ret;
-
-	ret = get_size_from_initializer(expr);
-	if (ret)
-		return ret;
 
 	state = get_state_expr(my_strlen_id, expr);
 	if (!state || !state->data)
 		return 0;
 	if (get_implied_max((struct expression *)state->data, &len))
 		return len + 1; /* add one because strlen doesn't include the NULL */
+	return 0;
+}
+
+int get_array_size(struct expression *expr)
+{
+	int ret;
+
+	expr = strip_expr(expr);
+	if (!expr)
+		return 0;
+
+	/* strcpy(foo, "BAR"); */
+	if (expr->type == EXPR_STRING)
+		return expr->string->length;
+
+	/* buf[4] */
+	ret = get_real_array_size(expr);
+	if (ret)
+		return ret;
+
+	/* buf = malloc(1024); */
+	ret = get_stored_size(expr);
+	if (ret)
+		return ret;
+
+	/* char *foo = "BAR" */
+	ret = get_size_from_initializer(expr);
+	if (ret)
+		return ret;
+
+	/* if (strlen(foo) > 4) */
+	ret = get_size_from_strlen(expr);
+	if (ret)
+		return ret;
 	return 0;
 }
 
