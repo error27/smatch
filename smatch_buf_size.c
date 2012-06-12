@@ -155,6 +155,18 @@ static int get_real_array_size(struct expression *expr)
 	return ret * cast_ratio;
 }
 
+static int get_size_from_initializer(struct expression *expr)
+{
+	float cast_ratio;
+
+	if (expr->type != EXPR_SYMBOL || !expr->symbol->initializer)
+		return 0;
+	if (expr->symbol->initializer == expr) /* int a = a; */
+		return 0;
+	cast_ratio = get_cast_ratio(expr);
+	return get_initializer_size(expr->symbol->initializer) * cast_ratio;
+}
+
 static int get_stored_size(struct expression *expr)
 {
 	struct symbol *type;
@@ -183,13 +195,11 @@ int get_array_size(struct expression *expr)
 {
 	struct smatch_state *state;
 	int ret = 0;
-	float cast_ratio;
 	long long len;
 
 	expr = strip_expr(expr);
 	if (!expr)
 		return 0;
-	cast_ratio = get_cast_ratio(expr);
 
 	if (expr->type == EXPR_STRING)
 		return expr->string->length;
@@ -202,10 +212,9 @@ int get_array_size(struct expression *expr)
 	if (ret)
 		return ret;
 
-	if (expr->type == EXPR_SYMBOL && expr->symbol->initializer) {
-		if (expr->symbol->initializer != expr) /* int a = a; */
-			return get_initializer_size(expr->symbol->initializer) * cast_ratio;
-	}
+	ret = get_size_from_initializer(expr);
+	if (ret)
+		return ret;
 
 	state = get_state_expr(my_strlen_id, expr);
 	if (!state || !state->data)
