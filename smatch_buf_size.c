@@ -55,29 +55,40 @@ void set_param_buf_size(const char *name, struct symbol *sym, char *key, char *v
 	set_state(my_size_id, fullname, sym, alloc_state_num(size));
 }
 
-static int bytes_to_elements(struct expression *expr, int bytes)
+static int bytes_per_element(struct expression *expr)
 {
 	struct symbol *type;
-	int bytes_per_element;
+	int bpe;
 
 	type = get_type(expr);
 	if (!type)
 		return 0;
 	if (type->type == SYM_PTR) {
 		type = get_base_type(type);
-		bytes_per_element = bits_to_bytes(type->bit_size);
+		bpe = bits_to_bytes(type->bit_size);
 	} else if (type->type == SYM_ARRAY) {
-		bytes_per_element = type->ctype.alignment;
+		bpe = type->ctype.alignment;
 	} else {
 		return 0;
 	}
 
-	if (bytes_per_element == 0)
+	if (bpe == 0)
 		return 0;
-	if (bytes_per_element == -1) /* void pointer */
-		bytes_per_element = 1;
+	if (bpe == -1) /* void pointer */
+		bpe = 1;
 
-	return bytes / bytes_per_element;
+	return bpe;
+}
+
+static int bytes_to_elements(struct expression *expr, int bytes)
+{
+	int bpe;
+
+	bpe = bytes_per_element(expr);
+	if (bpe == 0)
+		return 0;
+	return bytes / bpe;
+
 }
 
 static int get_initializer_size(struct expression *expr)
