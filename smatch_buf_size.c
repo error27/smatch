@@ -55,6 +55,22 @@ void set_param_buf_size(const char *name, struct symbol *sym, char *key, char *v
 	set_state(my_size_id, fullname, sym, alloc_state_num(size));
 }
 
+static int bytes_to_elements(struct expression *expr, int bytes)
+{
+	struct symbol *type;
+
+	type = get_type(expr);
+	if (!type)
+		return 0;
+	if (type->type == SYM_PTR)
+		type = get_base_type(type);
+
+	if (bits_to_bytes(type->bit_size) == 0)
+		return 0;
+
+	return bytes / bits_to_bytes(type->bit_size);
+}
+
 static int get_initializer_size(struct expression *expr)
 {
 	switch (expr->type) {
@@ -169,15 +185,10 @@ static int get_size_from_initializer(struct expression *expr)
 
 static int get_stored_size(struct expression *expr)
 {
-	struct symbol *type;
 	struct sm_state *sm, *tmp;
 	float cast_ratio;
 	int max = 0;
 	int ret;
-
-	type = get_type(expr);
-	if (!type)
-		return 0;
 
 	cast_ratio = get_cast_ratio(expr);
 
@@ -190,12 +201,7 @@ static int get_stored_size(struct expression *expr)
 			max = PTR_INT(tmp->state->data);
 	} END_FOR_EACH_PTR(tmp);
 
-	if (type->type == SYM_PTR)
-		type = get_base_type(type);
-	if (bits_to_bytes(type->bit_size) == 0)
-		return 0;
-
-	ret = max / bits_to_bytes(type->bit_size);
+	ret = bytes_to_elements(expr, max);
 	return ret * cast_ratio;
 }
 
