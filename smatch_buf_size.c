@@ -582,20 +582,9 @@ void register_buf_size(int id)
 	add_hook(&match_strlen_condition, CONDITION_HOOK);
 	add_function_assign_hook("strlen", &match_strlen, NULL);
 
-	add_function_hook("strlcpy", &match_limited, &b0_l2);
-	add_function_hook("strlcat", &match_limited, &b0_l2);
-	add_function_hook("memscan", &match_limited, &b0_l2);
-
-	add_function_hook("strcpy", &match_strcpy, NULL);
-
 	add_function_assign_hook("strndup", match_strndup, NULL);
 	if (option_project == PROJ_KERNEL)
 		add_function_assign_hook("kstrndup", match_strndup, NULL);
-
-	if (option_info) {
-		add_hook(&match_call, FUNCTION_CALL_HOOK);
-		add_member_info_callback(my_size_id, struct_member_callback);
-	}
 
 	add_hook(&match_func_end, END_FUNC_HOOK);
 	add_modification_hook(my_size_id, &set_undefined);
@@ -605,4 +594,18 @@ void register_strlen(int id)
 {
 	my_strlen_id = id;
 	add_modification_hook(my_strlen_id, &set_undefined);
+}
+
+void register_buf_size_late(int id)
+{
+	add_function_hook("strlcpy", &match_limited, &b0_l2);
+	add_function_hook("strlcat", &match_limited, &b0_l2);
+	add_function_hook("memscan", &match_limited, &b0_l2);
+
+	add_function_hook("strcpy", &match_strcpy, NULL);
+
+	if (option_info) {
+		add_hook(&match_call, FUNCTION_CALL_HOOK);
+		add_member_info_callback(my_size_id, struct_member_callback);
+	}
 }
