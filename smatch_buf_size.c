@@ -191,15 +191,6 @@ static int get_stored_size_bytes(struct expression *expr)
 	return max;
 }
 
-static int get_stored_size(struct expression *expr)
-{
-	int size;
-
-	size = get_stored_size_bytes(expr);
-	size = bytes_to_elements(expr, size);
-	return size;
-}
-
 static int get_size_from_strlen(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -213,9 +204,9 @@ static int get_size_from_strlen(struct expression *expr)
 	return 0;
 }
 
-int get_array_size(struct expression *expr)
+int get_array_size_bytes(struct expression *expr)
 {
-	int ret;
+	int size;
 
 	expr = strip_expr(expr);
 	if (!expr)
@@ -226,48 +217,34 @@ int get_array_size(struct expression *expr)
 		return expr->string->length;
 
 	/* buf[4] */
-	ret = get_real_array_size(expr);
-	if (ret)
-		return ret;
-
-	/* buf = malloc(1024); */
-	ret = get_stored_size(expr);
-	if (ret)
-		return ret;
-
-	/* char *foo = "BAR" */
-	ret = get_size_from_initializer(expr);
-	if (ret)
-		return ret;
-
-	/* if (strlen(foo) > 4) */
-	ret = get_size_from_strlen(expr);
-	if (ret)
-		return ret;
-	return 0;
-}
-
-int get_array_size_bytes(struct expression *expr)
-{
-	int size;
-
-	expr = strip_expr(expr);
-	if (!expr)
-		return 0;
-
 	size = get_real_array_size(expr);
 	if (size)
 		return elements_to_bytes(expr, size);
 
+	/* buf = malloc(1024); */
 	size = get_stored_size_bytes(expr);
 	if (size)
 		return size;
 
-	size = get_array_size(expr);
+	/* char *foo = "BAR" */
+	size = get_size_from_initializer(expr);
 	if (size)
 		return elements_to_bytes(expr, size);
 
+	/* if (strlen(foo) > 4) */
+	size = get_size_from_strlen(expr);
+	if (size)
+		return size;
+
 	return size_from_db(expr);
+}
+
+int get_array_size(struct expression *expr)
+{
+	int bytes;
+
+	bytes = get_array_size_bytes(expr);
+	return bytes_to_elements(expr, bytes);
 }
 
 static void match_strlen_condition(struct expression *expr)
