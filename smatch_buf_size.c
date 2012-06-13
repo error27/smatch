@@ -262,11 +262,15 @@ int get_array_size(struct expression *expr)
 int get_array_size_bytes(struct expression *expr)
 {
 	struct symbol *tmp;
-	int array_size;
+	int bytes;
 	int element_size;
 
 	if (!expr)
 		return 0;
+
+	bytes = get_stored_size_bytes(expr);
+	if (bytes)
+		return bytes;
 
 	if (expr->type == EXPR_STRING)
 		return expr->string->length;
@@ -284,9 +288,10 @@ int get_array_size_bytes(struct expression *expr)
 	} else {
 		return 0;
 	}
-	array_size = get_array_size(expr);
-	if (array_size)
-		return array_size * element_size;
+
+	bytes = get_array_size(expr);
+	if (bytes)
+		return bytes * element_size;
 
 	return size_from_db(expr);
 }
