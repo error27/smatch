@@ -302,9 +302,6 @@ int get_array_size_bytes(struct expression *expr)
 	if (size)
 		return size;
 
-	if (expr->type == EXPR_STRING)
-		return expr->string->length;
-
 	size = get_array_size(expr);
 	if (size)
 		return elements_to_bytes(expr, size);
