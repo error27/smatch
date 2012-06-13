@@ -170,8 +170,9 @@ static int get_size_from_initializer(struct expression *expr)
 static int get_stored_size(struct expression *expr)
 {
 	struct symbol *type;
-	struct smatch_state *state;
+	struct sm_state *sm, *tmp;
 	float cast_ratio;
+	int max = 0;
 	int ret;
 
 	type = get_type(expr);
@@ -180,14 +181,20 @@ static int get_stored_size(struct expression *expr)
 
 	cast_ratio = get_cast_ratio(expr);
 
-	state = get_state_expr(my_size_id, expr);
-	if (!state || !state->data)
+	sm = get_sm_state_expr(my_size_id, expr);
+	if (!sm)
 		return 0;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (PTR_INT(tmp->state->data) > max)
+			max = PTR_INT(tmp->state->data);
+	} END_FOR_EACH_PTR(tmp);
+
 	if (type->type == SYM_PTR)
 		type = get_base_type(type);
 	if (!type->ctype.alignment)
 		return 0;
-	ret = PTR_INT(state->data) / type->ctype.alignment;
+	ret = max / type->ctype.alignment;
 	return ret * cast_ratio;
 }
 
