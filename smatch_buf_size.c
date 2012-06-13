@@ -60,20 +60,18 @@ static int bytes_per_element(struct expression *expr)
 	struct symbol *type;
 	int bpe;
 
+	if (expr->type == EXPR_STRING)
+		return 1;
 	type = get_type(expr);
 	if (!type)
 		return 0;
-	if (type->type == SYM_PTR) {
-		type = get_base_type(type);
-		bpe = bits_to_bytes(type->bit_size);
-	} else if (type->type == SYM_ARRAY) {
-		bpe = type->ctype.alignment;
-	} else {
-		return 0;
-	}
 
-	if (bpe == 0)
+	if (type->type != SYM_PTR && type->type != SYM_ARRAY)
 		return 0;
+
+	type = get_base_type(type);
+	bpe = bits_to_bytes(type->bit_size);
+
 	if (bpe == -1) /* void pointer */
 		bpe = 1;
 
