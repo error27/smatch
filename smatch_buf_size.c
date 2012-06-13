@@ -121,34 +121,6 @@ static int get_initializer_size(struct expression *expr)
 	return 0;
 }
 
-static float get_cast_ratio(struct expression *unstripped)
-{
-	struct expression *start_expr;
-	struct symbol *start_type;
-	struct symbol *end_type;
-	int start_bytes = 0;
-	int end_bytes = 0;
-
-	start_expr = strip_expr(unstripped);
-	start_type  =  get_type(start_expr);
-	end_type = get_type(unstripped);
-	if (!start_type || !end_type)
-		return 1;
-
-	if (start_type->type == SYM_PTR)
-		start_bytes = (get_base_type(start_type))->ctype.alignment;
-	if (start_type->type == SYM_ARRAY)
-		start_bytes = (get_base_type(start_type))->bit_size / 8;
-	if (end_type->type == SYM_PTR)
-		end_bytes = (get_base_type(end_type))->ctype.alignment;
-	if (end_type->type == SYM_ARRAY)
-		end_bytes = (get_base_type(end_type))->bit_size / 8;
-
-	if (!start_bytes || !end_bytes)
-		return 1;
-	return start_bytes / end_bytes;
-}
-
 static int db_size;
 static int db_size_callback(void *unused, int argc, char **argv, char **azColName)
 {
@@ -176,14 +148,11 @@ static int size_from_db(struct expression *expr)
 static int get_real_array_size(struct expression *expr)
 {
 	struct symbol *type;
-	float cast_ratio;
 	int ret;
 
 	type = get_type(expr);
 	if (!type || type->type != SYM_ARRAY)
 		return 0;
-
-	cast_ratio = get_cast_ratio(expr);
 
 	ret = get_expression_value(type->array_size);
 	/* Dynamically sized array are -1 in sparse */
@@ -193,19 +162,16 @@ static int get_real_array_size(struct expression *expr)
 	if (ret == 1)
 		return 0;
 
-	return ret * cast_ratio;
+	return ret;
 }
 
 static int get_size_from_initializer(struct expression *expr)
 {
-	float cast_ratio;
-
 	if (expr->type != EXPR_SYMBOL || !expr->symbol->initializer)
 		return 0;
 	if (expr->symbol->initializer == expr) /* int a = a; */
 		return 0;
-	cast_ratio = get_cast_ratio(expr);
-	return get_initializer_size(expr->symbol->initializer) * cast_ratio;
+	return get_initializer_size(expr->symbol->initializer);
 }
 
 static int get_stored_size_bytes(struct expression *expr)
@@ -227,14 +193,11 @@ static int get_stored_size_bytes(struct expression *expr)
 
 static int get_stored_size(struct expression *expr)
 {
-	float cast_ratio;
 	int size;
-
-	cast_ratio = get_cast_ratio(expr);
 
 	size = get_stored_size_bytes(expr);
 	size = bytes_to_elements(expr, size);
-	return size * cast_ratio;
+	return size;
 }
 
 static int get_size_from_strlen(struct expression *expr)
