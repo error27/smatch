@@ -88,7 +88,14 @@ static int bytes_to_elements(struct expression *expr, int bytes)
 	if (bpe == 0)
 		return 0;
 	return bytes / bpe;
+}
 
+static int elements_to_bytes(struct expression *expr, int elements)
+{
+	int bpe;
+
+	bpe = bytes_per_element(expr);
+	return elements * bpe;
 }
 
 static int get_initializer_size(struct expression *expr)
@@ -281,37 +288,21 @@ int get_array_size(struct expression *expr)
 
 int get_array_size_bytes(struct expression *expr)
 {
-	struct symbol *tmp;
-	int bytes;
-	int element_size;
+	int size;
 
 	if (!expr)
 		return 0;
 
-	bytes = get_stored_size_bytes(expr);
-	if (bytes)
-		return bytes;
+	size = get_stored_size_bytes(expr);
+	if (size)
+		return size;
 
 	if (expr->type == EXPR_STRING)
 		return expr->string->length;
 
-	tmp = get_type(expr);
-	if (!tmp)
-		return 0;
-
-	if (tmp->type == SYM_ARRAY) {
-		tmp = get_base_type(tmp);
-		element_size = tmp->bit_size / 8;
-	} else if (tmp->type == SYM_PTR) {
-		tmp = get_base_type(tmp);
-		element_size = bits_to_bytes(tmp->bit_size);
-	} else {
-		return 0;
-	}
-
-	bytes = get_array_size(expr);
-	if (bytes)
-		return bytes * element_size;
+	size = get_array_size(expr);
+	if (size)
+		return elements_to_bytes(expr, size);
 
 	return size_from_db(expr);
 }
