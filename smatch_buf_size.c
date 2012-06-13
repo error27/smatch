@@ -290,6 +290,7 @@ int get_array_size_bytes(struct expression *expr)
 {
 	int size;
 
+	expr = strip_expr(expr);
 	if (!expr)
 		return 0;
 
