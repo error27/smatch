@@ -183,14 +183,10 @@ static int get_size_from_initializer(struct expression *expr)
 	return get_initializer_size(expr->symbol->initializer) * cast_ratio;
 }
 
-static int get_stored_size(struct expression *expr)
+static int get_stored_size_bytes(struct expression *expr)
 {
 	struct sm_state *sm, *tmp;
-	float cast_ratio;
 	int max = 0;
-	int ret;
-
-	cast_ratio = get_cast_ratio(expr);
 
 	sm = get_sm_state_expr(my_size_id, expr);
 	if (!sm)
@@ -201,8 +197,19 @@ static int get_stored_size(struct expression *expr)
 			max = PTR_INT(tmp->state->data);
 	} END_FOR_EACH_PTR(tmp);
 
-	ret = bytes_to_elements(expr, max);
-	return ret * cast_ratio;
+	return max;
+}
+
+static int get_stored_size(struct expression *expr)
+{
+	float cast_ratio;
+	int size;
+
+	cast_ratio = get_cast_ratio(expr);
+
+	size = get_stored_size_bytes(expr);
+	size = bytes_to_elements(expr, size);
+	return size * cast_ratio;
 }
 
 static int get_size_from_strlen(struct expression *expr)
