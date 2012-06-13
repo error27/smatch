@@ -192,9 +192,10 @@ static int get_stored_size(struct expression *expr)
 
 	if (type->type == SYM_PTR)
 		type = get_base_type(type);
-	if (!type->ctype.alignment)
+	if (bits_to_bytes(type->bit_size) == 0)
 		return 0;
-	ret = max / type->ctype.alignment;
+
+	ret = max / bits_to_bytes(type->bit_size);
 	return ret * cast_ratio;
 }
 
@@ -266,7 +267,7 @@ int get_array_size_bytes(struct expression *expr)
 		element_size = tmp->bit_size / 8;
 	} else if (tmp->type == SYM_PTR) {
 		tmp = get_base_type(tmp);
-		element_size = tmp->ctype.alignment;
+		element_size = bits_to_bytes(tmp->bit_size);
 	} else {
 		return 0;
 	}
