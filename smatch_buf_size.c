@@ -294,6 +294,10 @@ int get_array_size_bytes(struct expression *expr)
 	if (!expr)
 		return 0;
 
+	size = get_real_array_size(expr);
+	if (size)
+		return elements_to_bytes(expr, size);
+
 	size = get_stored_size_bytes(expr);
 	if (size)
 		return size;
