@@ -358,6 +358,22 @@ static void match_array_assignment(struct expression *expr)
 		set_state_expr(my_size_id, left, alloc_state_num(array_size));
 }
 
+static void info_record_alloction(struct expression *buffer, struct expression *size)
+{
+	char *member;
+	long long val;
+
+	if (!option_info)
+		return;
+	member = get_member_name(buffer);
+	if (!member)
+		return;
+	if (!get_implied_value(size, &val))
+		val = -1;
+	sm_msg("info: '%s' allocated_buf_size %lld", member, val);
+	free_string(member);
+}
+
 static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
 {
 	int size_arg = PTR_INT(_size_arg);
@@ -367,19 +383,12 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 
 	right = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(right->args, size_arg);
+
+	info_record_alloction(expr->left, arg);
+
 	if (!get_implied_value(arg, &bytes))
 		return;
-
 	set_state_expr(my_size_id, expr->left, alloc_state_num(bytes));
-
-	if (option_info) {
-		char *member = get_member_name(expr->left);
-
-		if (member)
-			sm_msg("info: '%s' allocated_buf_size %lld",
-					member, bytes);
-		free_string(member);
-	}
 }
 
 static void match_calloc(const char *fn, struct expression *expr, void *unused)
