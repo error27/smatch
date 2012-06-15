@@ -521,8 +521,10 @@ void register_buf_size(int id)
 		add_function_assign_hook("vmalloc", &match_alloc, INT_PTR(0));
 		add_function_assign_hook("__vmalloc", &match_alloc, INT_PTR(0));
 		add_function_assign_hook("kcalloc", &match_calloc, NULL);
+		add_function_assign_hook("kmalloc_array", &match_calloc, NULL);
 		add_function_assign_hook("drm_malloc_ab", &match_calloc, NULL);
 		add_function_assign_hook("drm_calloc_large", &match_calloc, NULL);
+		add_function_assign_hook("sock_kmalloc", &match_alloc, INT_PTR(1));
 		add_function_assign_hook("kmemdup", &match_alloc, INT_PTR(1));
 		add_function_assign_hook("kmemdup_user", &match_alloc, INT_PTR(1));
 	}
