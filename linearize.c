@@ -282,7 +282,7 @@ const char *show_instruction(struct instruction *insn)
 	if (!insn->bb)
 		buf += sprintf(buf, "# ");
 
-	if (opcode < sizeof(opcodes)/sizeof(char *)) {
+	if (opcode < ARRAY_SIZE(opcodes)) {
 		const char *op = opcodes[opcode];
 		if (!op)
 			buf += sprintf(buf, "opcode:%d", opcode);
@@ -1843,6 +1843,136 @@ static pseudo_t linearize_declaration(struct entrypoint *ep, struct statement *s
 	return VOID;
 }
 
+static pseudo_t linearize_return(struct entrypoint *ep, struct statement *stmt)
+{
+	struct expression *expr = stmt->expression;
+	struct basic_block *bb_return = get_bound_block(ep, stmt->ret_target);
+	struct basic_block *active;
+	pseudo_t src = linearize_expression(ep, expr);
+	active = ep->active;
+	if (active && src != &void_pseudo) {
+		struct instruction *phi_node = first_instruction(bb_return->insns);
+		pseudo_t phi;
+		if (!phi_node) {
+			phi_node = alloc_typed_instruction(OP_PHI, expr->ctype);
+			phi_node->target = alloc_pseudo(phi_node);
+			phi_node->bb = bb_return;
+			add_instruction(&bb_return->insns, phi_node);
+		}
+		phi = alloc_phi(active, src, type_size(expr->ctype));
+		phi->ident = &return_ident;
+		use_pseudo(phi_node, phi, add_pseudo(&phi_node->phi_list, phi));
+	}
+	add_goto(ep, bb_return);
+	return VOID;
+}
+
+static pseudo_t linearize_switch(struct entrypoint *ep, struct statement *stmt)
+{
+	struct symbol *sym;
+	struct instruction *switch_ins;
+	struct basic_block *switch_end = alloc_basic_block(ep, stmt->pos);
+	struct basic_block *active, *default_case;
+	struct multijmp *jmp;
+	pseudo_t pseudo;
+
+	pseudo = linearize_expression(ep, stmt->switch_expression);
+
+	active = ep->active;
+	if (!bb_reachable(active))
+		return VOID;
+
+	switch_ins = alloc_instruction(OP_SWITCH, 0);
+	use_pseudo(switch_ins, pseudo, &switch_ins->cond);
+	add_one_insn(ep, switch_ins);
+	finish_block(ep);
+
+	default_case = NULL;
+	FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
+		struct statement *case_stmt = sym->stmt;
+		struct basic_block *bb_case = get_bound_block(ep, sym);
+
+		if (!case_stmt->case_expression) {
+			default_case = bb_case;
+			continue;
+		} else {
+			int begin, end;
+
+			begin = end = case_stmt->case_expression->value;
+			if (case_stmt->case_to)
+				end = case_stmt->case_to->value;
+			if (begin > end)
+				jmp = alloc_multijmp(bb_case, end, begin);
+			else
+				jmp = alloc_multijmp(bb_case, begin, end);
+
+		}
+		add_multijmp(&switch_ins->multijmp_list, jmp);
+		add_bb(&bb_case->parents, active);
+		add_bb(&active->children, bb_case);
+	} END_FOR_EACH_PTR(sym);
+
+	bind_label(stmt->switch_break, switch_end, stmt->pos);
+
+	/* And linearize the actual statement */
+	linearize_statement(ep, stmt->switch_statement);
+	set_activeblock(ep, switch_end);
+
+	if (!default_case)
+		default_case = switch_end;
+
+	jmp = alloc_multijmp(default_case, 1, 0);
+	add_multijmp(&switch_ins->multijmp_list, jmp);
+	add_bb(&default_case->parents, active);
+	add_bb(&active->children, default_case);
+	sort_switch_cases(switch_ins);
+
+	return VOID;
+}
+
+static pseudo_t linearize_iterator(struct entrypoint *ep, struct statement *stmt)
+{
+	struct statement  *pre_statement = stmt->iterator_pre_statement;
+	struct expression *pre_condition = stmt->iterator_pre_condition;
+	struct statement  *statement = stmt->iterator_statement;
+	struct statement  *post_statement = stmt->iterator_post_statement;
+	struct expression *post_condition = stmt->iterator_post_condition;
+	struct basic_block *loop_top, *loop_body, *loop_continue, *loop_end;
+
+	concat_symbol_list(stmt->iterator_syms, &ep->syms);
+	linearize_statement(ep, pre_statement);
+
+	loop_body = loop_top = alloc_basic_block(ep, stmt->pos);
+	loop_continue = alloc_basic_block(ep, stmt->pos);
+	loop_end = alloc_basic_block(ep, stmt->pos);
+
+	/* An empty post-condition means that it's the same as the pre-condition */
+	if (!post_condition) {
+		loop_top = alloc_basic_block(ep, stmt->pos);
+		set_activeblock(ep, loop_top);
+	}
+
+	if (pre_condition)
+			linearize_cond_branch(ep, pre_condition, loop_body, loop_end);
+
+	bind_label(stmt->iterator_continue, loop_continue, stmt->pos);
+	bind_label(stmt->iterator_break, loop_end, stmt->pos);
+
+	set_activeblock(ep, loop_body);
+	linearize_statement(ep, statement);
+	add_goto(ep, loop_continue);
+
+	set_activeblock(ep, loop_continue);
+	linearize_statement(ep, post_statement);
+	if (!post_condition)
+		add_goto(ep, loop_top);
+	else
+		linearize_cond_branch(ep, post_condition, loop_top, loop_end);
+	set_activeblock(ep, loop_end);
+
+	return VOID;
+}
+
 pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 {
 	struct basic_block *bb;
@@ -1874,28 +2004,8 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 	case STMT_ASM:
 		return linearize_asm_statement(ep, stmt);
 
-	case STMT_RETURN: {
-		struct expression *expr = stmt->expression;
-		struct basic_block *bb_return = get_bound_block(ep, stmt->ret_target);
-		struct basic_block *active;
-		pseudo_t src = linearize_expression(ep, expr);
-		active = ep->active;
-		if (active && src != &void_pseudo) {
-			struct instruction *phi_node = first_instruction(bb_return->insns);
-			pseudo_t phi;
-			if (!phi_node) {
-				phi_node = alloc_typed_instruction(OP_PHI, expr->ctype);
-				phi_node->target = alloc_pseudo(phi_node);
-				phi_node->bb = bb_return;
-				add_instruction(&bb_return->insns, phi_node);
-			}
-			phi = alloc_phi(active, src, type_size(expr->ctype));
-			phi->ident = &return_ident;
-			use_pseudo(phi_node, phi, add_pseudo(&phi_node->phi_list, phi));
-		}
-		add_goto(ep, bb_return);
-		return VOID;
-	}
+	case STMT_RETURN:
+		return linearize_return(ep, stmt);
 
 	case STMT_CASE: {
 		add_label(ep, stmt->case_label);
@@ -1987,108 +2097,11 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		break;
 	}
 
-	case STMT_SWITCH: {
-		struct symbol *sym;
-		struct instruction *switch_ins;
-		struct basic_block *switch_end = alloc_basic_block(ep, stmt->pos);
-		struct basic_block *active, *default_case;
-		struct multijmp *jmp;
-		pseudo_t pseudo;
+	case STMT_SWITCH:
+		return linearize_switch(ep, stmt);
 
-		pseudo = linearize_expression(ep, stmt->switch_expression);
-
-		active = ep->active;
-		if (!bb_reachable(active))
-			break;
-
-		switch_ins = alloc_instruction(OP_SWITCH, 0);
-		use_pseudo(switch_ins, pseudo, &switch_ins->cond);
-		add_one_insn(ep, switch_ins);
-		finish_block(ep);
-
-		default_case = NULL;
-		FOR_EACH_PTR(stmt->switch_case->symbol_list, sym) {
-			struct statement *case_stmt = sym->stmt;
-			struct basic_block *bb_case = get_bound_block(ep, sym);
-
-			if (!case_stmt->case_expression) {
-				default_case = bb_case;
-				continue;
-			} else {
-				int begin, end;
-
-				begin = end = case_stmt->case_expression->value;
-				if (case_stmt->case_to)
-					end = case_stmt->case_to->value;
-				if (begin > end)
-					jmp = alloc_multijmp(bb_case, end, begin);
-				else
-					jmp = alloc_multijmp(bb_case, begin, end);
-
-			}
-			add_multijmp(&switch_ins->multijmp_list, jmp);
-			add_bb(&bb_case->parents, active);
-			add_bb(&active->children, bb_case);
-		} END_FOR_EACH_PTR(sym);
-
-		bind_label(stmt->switch_break, switch_end, stmt->pos);
-
-		/* And linearize the actual statement */
-		linearize_statement(ep, stmt->switch_statement);
-		set_activeblock(ep, switch_end);
-
-		if (!default_case)
-			default_case = switch_end;
-
-		jmp = alloc_multijmp(default_case, 1, 0);
-		add_multijmp(&switch_ins->multijmp_list, jmp);
-		add_bb(&default_case->parents, active);
-		add_bb(&active->children, default_case);
-		sort_switch_cases(switch_ins);
-
-		break;
-	}
-
-	case STMT_ITERATOR: {
-		struct statement  *pre_statement = stmt->iterator_pre_statement;
-		struct expression *pre_condition = stmt->iterator_pre_condition;
-		struct statement  *statement = stmt->iterator_statement;
-		struct statement  *post_statement = stmt->iterator_post_statement;
-		struct expression *post_condition = stmt->iterator_post_condition;
-		struct basic_block *loop_top, *loop_body, *loop_continue, *loop_end;
-
-		concat_symbol_list(stmt->iterator_syms, &ep->syms);
-		linearize_statement(ep, pre_statement);
-
- 		loop_body = loop_top = alloc_basic_block(ep, stmt->pos);
- 		loop_continue = alloc_basic_block(ep, stmt->pos);
- 		loop_end = alloc_basic_block(ep, stmt->pos);
- 
-		/* An empty post-condition means that it's the same as the pre-condition */
-		if (!post_condition) {
-			loop_top = alloc_basic_block(ep, stmt->pos);
-			set_activeblock(ep, loop_top);
-		}
-
-		if (pre_condition) 
- 			linearize_cond_branch(ep, pre_condition, loop_body, loop_end);
-
-		bind_label(stmt->iterator_continue, loop_continue, stmt->pos);
-		bind_label(stmt->iterator_break, loop_end, stmt->pos);
-
-		set_activeblock(ep, loop_body);
-		linearize_statement(ep, statement);
-		add_goto(ep, loop_continue);
-
-		set_activeblock(ep, loop_continue);
-		linearize_statement(ep, post_statement);
-		if (!post_condition)
-			add_goto(ep, loop_top);
-		else
- 			linearize_cond_branch(ep, post_condition, loop_top, loop_end);
-		set_activeblock(ep, loop_end);
-		break;
-	}
+	case STMT_ITERATOR:
+		return linearize_iterator(ep, stmt);
 
 	default:
 		break;

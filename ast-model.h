@@ -68,14 +68,16 @@ AstNode* ast_new(AstNode *parent, int index, const char *prefix, void *ptr, void
 
 
 static inline
-void ast_append_child(AstNode *parent, const char *text,
+AstNode* ast_append_child(AstNode *parent, const char *text,
 			   void *ptr, void (*inspect)(AstNode*))
 {
 	if (ptr) {
 		AstNode *child = ast_new(parent, parent->childnodes->len,
 						text, ptr, inspect);
 		g_array_append_val(parent->childnodes, child);
+		return child;
 	}
+	return NULL;
 }
 
 static inline

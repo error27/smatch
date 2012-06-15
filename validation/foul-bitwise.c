@@ -18,3 +18,13 @@ static __le16 bar(__le16 a)
 {
 	return -a;
 }
+
+/*
+ * check-name: foul bitwise
+ * check-error-start
+foul-bitwise.c:9:16: warning: restricted __le16 degrades to integer
+foul-bitwise.c:9:22: warning: restricted __le16 degrades to integer
+foul-bitwise.c:19:16: error: incompatible types for operation (-)
+foul-bitwise.c:19:16:    argument has type restricted __le16 [usertype] a
+ * check-error-end
+ */

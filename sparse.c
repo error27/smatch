@@ -187,7 +187,7 @@ static void check_call_instruction(struct instruction *insn)
 	ident = fn->sym->ident;
 	if (!ident)
 		return;
-	for (i = 0; i < sizeof(check_fn)/sizeof(struct checkfn) ; i++) {
+	for (i = 0; i < ARRAY_SIZE(check_fn); i++) {
 		if (check_fn[i].id != ident)
 			continue;
 		check_fn[i].check(insn);

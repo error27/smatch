@@ -633,11 +633,9 @@ static int expand(struct token **list, struct symbol *sym)
 
 static const char *token_name_sequence(struct token *token, int endop, struct token *start)
 {
-	struct token *last;
 	static char buffer[256];
 	char *ptr = buffer;
 
-	last = token;
 	while (!eof_token(token) && !match_op(token, endop)) {
 		int len;
 		const char *val = token->string->data;
@@ -656,10 +654,12 @@ static const char *token_name_sequence(struct token *token, int endop, struct to
 
 static int already_tokenized(const char *path)
 {
-	int i;
-	struct stream *s = input_streams;
+	int stream, next;
 
-	for (i = input_stream_nr; --i >= 0; s++) {
+	for (stream = *hash_stream(path); stream >= 0 ; stream = next) {
+		struct stream *s = input_streams + stream;
+
+		next = s->next_stream;
 		if (s->constant != CONSTANT_FILE_YES)
 			continue;
 		if (strcmp(path, s->name))
@@ -1719,13 +1719,13 @@ static void init_preprocessor(void)
 		{ "elif",	handle_elif },
 	};
 
-	for (i = 0; i < (sizeof (normal) / sizeof (normal[0])); i++) {
+	for (i = 0; i < ARRAY_SIZE(normal); i++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, normal[i].name, SYM_PREPROCESSOR, NS_PREPROCESSOR);
 		sym->handler = normal[i].handler;
 		sym->normal = 1;
 	}
-	for (i = 0; i < (sizeof (special) / sizeof (special[0])); i++) {
+	for (i = 0; i < ARRAY_SIZE(special); i++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, special[i].name, SYM_PREPROCESSOR, NS_PREPROCESSOR);
 		sym->handler = special[i].handler;

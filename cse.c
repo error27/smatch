@@ -250,6 +250,19 @@ static void sort_instruction_list(struct instruction_list **list)
 static struct instruction * cse_one_instruction(struct instruction *insn, struct instruction *def)
 {
 	convert_instruction_target(insn, def->target);
+
+	if (insn->opcode == OP_PHI) {
+		/* Remove the instruction from PHI users */
+		pseudo_t phi;
+		FOR_EACH_PTR(insn->phi_list, phi) {
+			struct pseudo_user *pu;
+			FOR_EACH_PTR(phi->users, pu) {
+				if (pu->insn == insn)
+					DELETE_CURRENT_PTR(pu);
+			} END_FOR_EACH_PTR(pu);
+		} END_FOR_EACH_PTR(phi);
+	}
+
 	insn->opcode = OP_NOP;
 	insn->bb = NULL;
 	repeat_phase |= REPEAT_CSE;
@@ -315,13 +328,6 @@ static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction
 	 */
 	b1 = i1->bb;
 	b2 = i2->bb;
-
-	/*
-	 * PHI-nodes do not care where they are - the only thing that matters
-	 * are the PHI _sources_.
-	 */
-	if (i1->opcode == OP_PHI)
-		return cse_one_instruction(i1, i2);
 
 	/*
 	 * Currently we only handle the uninteresting degenerate case where

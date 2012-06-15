@@ -1302,7 +1302,6 @@ static struct storage *emit_divide(struct expression *expr, struct storage *left
 	eax_edx = get_hardreg(hardreg_storage_table + EAX_EDX, 1);
 
 	/* init EDX to 0 */
-	val = new_storage(STOR_VALUE);
 	val->flags = STOR_WANTS_FREE;
 	emit_move(val, REG_EDX, NULL, NULL);
 

@@ -12,3 +12,8 @@ h (void)
   struct Bar y;
   y.i = 1;
 }
+
+/*
+ * check-name: struct not in scope
+ * check-known-to-fail
+ */

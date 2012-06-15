@@ -284,8 +284,8 @@ static inline int same_memop(struct instruction *a, struct instruction *b)
 }
 
 /*
- * Return 1 if "one" dominates the access to 'pseudo'
- * in insn.
+ * Return 1 if "dom" dominates the access to "pseudo"
+ * in "insn".
  *
  * Return 0 if it doesn't, and -1 if you don't know.
  */

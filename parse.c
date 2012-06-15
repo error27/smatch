@@ -463,6 +463,11 @@ static struct init_keyword {
 	{ "__transparent_union__",	NS_KEYWORD,	.op = &transparent_union_op },
 	{ "noreturn",	NS_KEYWORD,	MOD_NORETURN,	.op = &attr_mod_op },
 	{ "__noreturn__",	NS_KEYWORD,	MOD_NORETURN,	.op = &attr_mod_op },
+	{ "pure",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
+	{"__pure__",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
+	{"const",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
+	{"__const",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
+	{"__const__",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
 
 	{ "__mode__",	NS_KEYWORD,	.op = &mode_op },
 	{ "QI",		NS_KEYWORD,	MOD_CHAR,	.op = &mode_QI_op },
@@ -486,15 +491,14 @@ const char *ignored_attributes[] = {
 	"__alloc_size__",
 	"always_inline",
 	"__always_inline__",
+	"artificial",
+	"__artificial__",
 	"bounded",
 	"__bounded__",
 	"cdecl",
 	"__cdecl__",
 	"cold",
 	"__cold__",
-	"const",
-	"__const",
-	"__const__",
 	"constructor",
 	"__constructor__",
 	"deprecated",
@@ -531,6 +535,8 @@ const char *ignored_attributes[] = {
 	"__model__",
 	"ms_abi",
 	"__ms_abi__",
+	"ms_hook_prologue",
+	"__ms_hook_prologue__",
 	"naked",
 	"__naked__",
 	"no_instrument_function",
@@ -543,8 +549,6 @@ const char *ignored_attributes[] = {
 	"nothrow",
 	"__nothrow",
 	"__nothrow__",
-	"pure",
-	"__pure__",
 	"regparm",
 	"__regparm__",
 	"section",
@@ -563,6 +567,7 @@ const char *ignored_attributes[] = {
 	"__unused__",
 	"used",
 	"__used__",
+	"vector_size",
 	"visibility",
 	"__visibility__",
 	"warn_unused_result",
@@ -1894,7 +1899,8 @@ static struct token *parse_asm_clobbers(struct token *token, struct statement *s
 
 	do {
 		token = primary_expression(token->next, &expr);
-		add_expression(clobbers, expr);
+		if (expr)
+			add_expression(clobbers, expr);
 	} while (match_op(token, ','));
 	return token;
 }
@@ -2235,9 +2241,9 @@ static struct token *parse_context_statement(struct token *token, struct stateme
 {
 	stmt->type = STMT_CONTEXT;
 	token = parse_expression(token->next, &stmt->expression);
-	if(stmt->expression->type == EXPR_PREOP
-	   && stmt->expression->op == '('
-	   && stmt->expression->unop->type == EXPR_COMMA) {
+	if (stmt->expression->type == EXPR_PREOP
+	    && stmt->expression->op == '('
+	    && stmt->expression->unop->type == EXPR_COMMA) {
 		struct expression *expr;
 		expr = stmt->expression->unop;
 		stmt->context = expr->left;

@@ -32,7 +32,7 @@ treeview_main (struct symbol_list *syms)
 	GtkWidget *window, *view, *scrollwin;
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_default_size (GTK_WINDOW(window), 400, 600);
+	gtk_window_set_default_size (GTK_WINDOW(window), 600, 800);
 	g_signal_connect(window, "delete_event", gtk_main_quit, NULL);
 
 	scrollwin = gtk_scrolled_window_new(NULL,NULL);

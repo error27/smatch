@@ -131,6 +131,7 @@ const char *modifier_string(unsigned long mod)
 		{MOD_NORETURN,		"[noreturn]"},
 		{MOD_EXPLICITLY_SIGNED,	"[explicitly-signed]"},
 		{MOD_BITWISE,		"[bitwise]"},
+		{MOD_PURE,		"[pure]"},
 	};
 
 	for (i = 0; i < ARRAY_SIZE(mod_names); i++) {
@@ -239,7 +240,7 @@ const char *builtin_typename(struct symbol *sym)
 {
 	int i;
 
-	for (i = 0; i < sizeof(typenames)/sizeof(typenames[0]); i++)
+	for (i = 0; i < ARRAY_SIZE(typenames); i++)
 		if (typenames[i].sym == sym)
 			return typenames[i].name;
 	return NULL;
@@ -249,7 +250,7 @@ const char *builtin_ctypename(struct ctype *ctype)
 {
 	int i;
 
-	for (i = 0; i < sizeof(typenames)/sizeof(typenames[0]); i++)
+	for (i = 0; i < ARRAY_SIZE(typenames); i++)
 		if (&typenames[i].sym->ctype == ctype)
 			return typenames[i].name;
 	return NULL;
@@ -754,7 +755,7 @@ static int show_binop(struct expression *expr)
 	unsigned int op = expr->op;
 
 	opname = show_special(op);
-	if (op < sizeof(name)/sizeof(*name))
+	if (op < ARRAY_SIZE(name))
 		opname = name[op];
 	printf("\t%s.%d\t\tv%d,v%d,v%d\n", opname,
 		expr->ctype->bit_size,
@@ -782,7 +783,7 @@ static int show_regular_preop(struct expression *expr)
 	const char *opname;
 
 	opname = show_special(op);
-	if (op < sizeof(name)/sizeof(*name))
+	if (op < ARRAY_SIZE(name))
 		opname = name[op];
 	printf("\t%s.%d\t\tv%d,v%d\n", opname, expr->ctype->bit_size, new, target);
 	return new;

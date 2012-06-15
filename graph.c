@@ -104,10 +104,8 @@ static void graph_calls(struct entrypoint *ep, int internal)
 	struct basic_block *bb;
 	struct instruction *insn;
 
-	const char *fname, *sname;
-
-	fname = show_ident(ep->name->ident);
-	sname = stream_name(ep->entry->bb->pos.stream);
+	show_ident(ep->name->ident);
+	stream_name(ep->entry->bb->pos.stream);
 
 	FOR_EACH_PTR(ep->bbs, bb) {
 		if (!bb)

@@ -69,7 +69,7 @@ static int address_taken(pseudo_t pseudo)
 	struct pseudo_user *pu;
 	FOR_EACH_PTR(pseudo->users, pu) {
 		struct instruction *insn = pu->insn;
-		if (insn->bb && (insn->opcode != OP_LOAD || insn->opcode != OP_STORE))
+		if (insn->bb && (insn->opcode != OP_LOAD && insn->opcode != OP_STORE))
 			return 1;
 	} END_FOR_EACH_PTR(pu);
 	return 0;

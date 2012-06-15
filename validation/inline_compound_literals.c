@@ -16,3 +16,7 @@ static void foo(void)
 {
 	baz();
 }
+
+/*
+ * check-name: inline compound literals
+ */

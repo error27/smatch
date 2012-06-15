@@ -130,6 +130,7 @@ do_test()
 		if [ "$?" -ne "0" ]; then
 			error "actual $stream text does not match expected $stream text."
 			error  "see $file.$stream.* for further investigation."
+			cat "$file".$stream.diff
 			test_failed=1
 		fi
 	done

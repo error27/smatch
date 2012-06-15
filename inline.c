@@ -381,6 +381,7 @@ static struct statement *copy_one_statement(struct statement *stmt)
 	case STMT_CASE: {
 		stmt = dup_statement(stmt);
 		stmt->case_label = copy_symbol(stmt->pos, stmt->case_label);
+		stmt->case_label->stmt = stmt;
 		stmt->case_expression = copy_expression(stmt->case_expression);
 		stmt->case_to = copy_expression(stmt->case_to);
 		stmt->case_statement = copy_one_statement(stmt->case_statement);

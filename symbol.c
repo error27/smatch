@@ -313,11 +313,9 @@ static struct symbol * examine_node_type(struct symbol *sym)
 {
 	struct symbol *base_type = examine_base_type(sym);
 	int bit_size;
-	unsigned long alignment, modifiers;
+	unsigned long alignment;
 
 	/* SYM_NODE - figure out what the type of the node was.. */
-	modifiers = sym->ctype.modifiers;
-
 	bit_size = 0;
 	alignment = 0;
 	if (!base_type)
