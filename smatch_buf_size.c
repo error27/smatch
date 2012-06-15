@@ -31,6 +31,12 @@ static struct limiter b0_l2 = {0, 2};
 
 static _Bool params_set[32];
 
+static void set_undefined(struct sm_state *sm)
+{
+	if (sm->state != &undefined)
+		set_state(sm->owner, sm->name, sm->sym, &undefined);
+}
+
 void set_param_buf_size(const char *name, struct symbol *sym, char *key, char *value)
 {
 	char fullname[256];
@@ -47,6 +53,47 @@ void set_param_buf_size(const char *name, struct symbol *sym, char *key, char *v
 		return;
 
 	set_state(my_size_id, fullname, sym, alloc_state_num(size));
+}
+
+static int bytes_per_element(struct expression *expr)
+{
+	struct symbol *type;
+	int bpe;
+
+	if (expr->type == EXPR_STRING)
+		return 1;
+	type = get_type(expr);
+	if (!type)
+		return 0;
+
+	if (type->type != SYM_PTR && type->type != SYM_ARRAY)
+		return 0;
+
+	type = get_base_type(type);
+	bpe = bits_to_bytes(type->bit_size);
+
+	if (bpe == -1) /* void pointer */
+		bpe = 1;
+
+	return bpe;
+}
+
+static int bytes_to_elements(struct expression *expr, int bytes)
+{
+	int bpe;
+
+	bpe = bytes_per_element(expr);
+	if (bpe == 0)
+		return 0;
+	return bytes / bpe;
+}
+
+static int elements_to_bytes(struct expression *expr, int elements)
+{
+	int bpe;
+
+	bpe = bytes_per_element(expr);
+	return elements * bpe;
 }
 
 static int get_initializer_size(struct expression *expr)
@@ -74,88 +121,6 @@ static int get_initializer_size(struct expression *expr)
 	return 0;
 }
 
-static float get_cast_ratio(struct expression *unstripped)
-{
-	struct expression *start_expr;
-	struct symbol *start_type;
-	struct symbol *end_type;
-	int start_bytes = 0;
-	int end_bytes = 0;
-
-	start_expr = strip_expr(unstripped);
-	start_type  =  get_type(start_expr);
-	end_type = get_type(unstripped);
-	if (!start_type || !end_type)
-		return 1;
-
-	if (start_type->type == SYM_PTR)
-		start_bytes = (get_base_type(start_type))->ctype.alignment;
-	if (start_type->type == SYM_ARRAY)
-		start_bytes = (get_base_type(start_type))->bit_size / 8;
-	if (end_type->type == SYM_PTR)
-		end_bytes = (get_base_type(end_type))->ctype.alignment;
-	if (end_type->type == SYM_ARRAY)
-		end_bytes = (get_base_type(end_type))->bit_size / 8;
-
-	if (!start_bytes || !end_bytes)
-		return 1;
-	return start_bytes / end_bytes;
-}
-
-int get_array_size(struct expression *expr)
-{
-	struct symbol *tmp;
-	struct smatch_state *state;
-	int ret = 0;
-	float cast_ratio;
-	long long len;
-
-	if (expr->type == EXPR_STRING)
-		return expr->string->length;
-
-	cast_ratio = get_cast_ratio(expr);
-	expr = strip_expr(expr);
-	tmp = get_type(expr);
-	if (!tmp)
-		return 0;
-
-	if (tmp->type == SYM_ARRAY) {
-		ret = get_expression_value(tmp->array_size);
-		/* Dynamically sized array are -1 in sparse */
-		if (ret < 0)
-			return 0;
-		/* People put one element arrays on the end of structs */
-		if (ret == 1)
-			return 0;
-		if (ret)
-			return ret * cast_ratio;
-	}
-
-	state = get_state_expr(my_size_id, expr);
-	if (state == &merged)
-		return 0;
-	if (state && state->data) {
-		if (tmp->type == SYM_PTR)
-			tmp = get_base_type(tmp);
-		if (!tmp->ctype.alignment)
-			return 0;
-		ret = PTR_INT(state->data) / tmp->ctype.alignment;
-		return ret * cast_ratio;
-	}
-
-	if (expr->type == EXPR_SYMBOL && expr->symbol->initializer) {
-		if (expr->symbol->initializer != expr) /* int a = a; */
-			return get_initializer_size(expr->symbol->initializer) * cast_ratio;
-	}
-
-	state = get_state_expr(my_strlen_id, expr);
-	if (!state || !state->data)
-		return 0;
-	if (get_implied_max((struct expression *)state->data, &len))
-		return len + 1; /* add one because strlen doesn't include the NULL */
-	return 0;
-}
-
 static int db_size;
 static int db_size_callback(void *unused, int argc, char **argv, char **azColName)
 {
@@ -180,36 +145,106 @@ static int size_from_db(struct expression *expr)
 	return db_size;
 }
 
+static int get_real_array_size(struct expression *expr)
+{
+	struct symbol *type;
+	int ret;
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_ARRAY)
+		return 0;
+
+	ret = get_expression_value(type->array_size);
+	/* Dynamically sized array are -1 in sparse */
+	if (ret <= 0)
+		return 0;
+	/* People put one element arrays on the end of structs */
+	if (ret == 1)
+		return 0;
+
+	return ret;
+}
+
+static int get_size_from_initializer(struct expression *expr)
+{
+	if (expr->type != EXPR_SYMBOL || !expr->symbol->initializer)
+		return 0;
+	if (expr->symbol->initializer == expr) /* int a = a; */
+		return 0;
+	return get_initializer_size(expr->symbol->initializer);
+}
+
+static int get_stored_size_bytes(struct expression *expr)
+{
+	struct sm_state *sm, *tmp;
+	int max = 0;
+
+	sm = get_sm_state_expr(my_size_id, expr);
+	if (!sm)
+		return 0;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (PTR_INT(tmp->state->data) > max)
+			max = PTR_INT(tmp->state->data);
+	} END_FOR_EACH_PTR(tmp);
+
+	return max;
+}
+
+static int get_size_from_strlen(struct expression *expr)
+{
+	struct smatch_state *state;
+	long long len;
+
+	state = get_state_expr(my_strlen_id, expr);
+	if (!state || !state->data)
+		return 0;
+	if (get_implied_max((struct expression *)state->data, &len))
+		return len + 1; /* add one because strlen doesn't include the NULL */
+	return 0;
+}
+
 int get_array_size_bytes(struct expression *expr)
 {
-	struct symbol *tmp;
-	int array_size;
-	int element_size;
+	int size;
 
+	expr = strip_expr(expr);
 	if (!expr)
 		return 0;
 
+	/* strcpy(foo, "BAR"); */
 	if (expr->type == EXPR_STRING)
 		return expr->string->length;
 
-	tmp = get_type(expr);
-	if (!tmp)
-		return 0;
+	/* buf[4] */
+	size = get_real_array_size(expr);
+	if (size)
+		return elements_to_bytes(expr, size);
 
-	if (tmp->type == SYM_ARRAY) {
-		tmp = get_base_type(tmp);
-		element_size = tmp->bit_size / 8;
-	} else if (tmp->type == SYM_PTR) {
-		tmp = get_base_type(tmp);
-		element_size = tmp->ctype.alignment;
-	} else {
-		return 0;
-	}
-	array_size = get_array_size(expr);
-	if (array_size)
-		return array_size * element_size;
+	/* buf = malloc(1024); */
+	size = get_stored_size_bytes(expr);
+	if (size)
+		return size;
+
+	/* char *foo = "BAR" */
+	size = get_size_from_initializer(expr);
+	if (size)
+		return elements_to_bytes(expr, size);
+
+	/* if (strlen(foo) > 4) */
+	size = get_size_from_strlen(expr);
+	if (size)
+		return size;
 
 	return size_from_db(expr);
+}
+
+int get_array_size(struct expression *expr)
+{
+	int bytes;
+
+	bytes = get_array_size_bytes(expr);
+	return bytes_to_elements(expr, bytes);
 }
 
 static void match_strlen_condition(struct expression *expr)
@@ -486,25 +521,30 @@ void register_buf_size(int id)
 	add_hook(&match_strlen_condition, CONDITION_HOOK);
 	add_function_assign_hook("strlen", &match_strlen, NULL);
 
+	add_function_assign_hook("strndup", match_strndup, NULL);
+	if (option_project == PROJ_KERNEL)
+		add_function_assign_hook("kstrndup", match_strndup, NULL);
+
+	add_hook(&match_func_end, END_FUNC_HOOK);
+	add_modification_hook(my_size_id, &set_undefined);
+}
+
+void register_strlen(int id)
+{
+	my_strlen_id = id;
+	add_modification_hook(my_strlen_id, &set_undefined);
+}
+
+void register_buf_size_late(int id)
+{
 	add_function_hook("strlcpy", &match_limited, &b0_l2);
 	add_function_hook("strlcat", &match_limited, &b0_l2);
 	add_function_hook("memscan", &match_limited, &b0_l2);
 
 	add_function_hook("strcpy", &match_strcpy, NULL);
 
-	add_function_assign_hook("strndup", match_strndup, NULL);
-	if (option_project == PROJ_KERNEL)
-		add_function_assign_hook("kstrndup", match_strndup, NULL);
-
 	if (option_info) {
 		add_hook(&match_call, FUNCTION_CALL_HOOK);
 		add_member_info_callback(my_size_id, struct_member_callback);
 	}
-
-	add_hook(&match_func_end, END_FUNC_HOOK);
-}
-
-void register_strlen(int id)
-{
-	my_strlen_id = id;
 }

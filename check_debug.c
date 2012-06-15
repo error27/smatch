@@ -122,6 +122,21 @@ static void match_possible(const char *fn, struct expression *expr, void *info)
 	free_slist(&slist);
 }
 
+static void match_buf_size(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	int elements, bytes;
+	char *name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	elements = get_array_size(arg);
+	bytes = get_array_size_bytes(arg);
+
+	name = get_variable_from_expr_complex(arg, NULL);
+	sm_msg("buf size: '%s' %d elements, %d bytes", name, elements, bytes);
+	free_string(name);
+}
+
 static void match_note(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg_expr;
@@ -180,6 +195,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_implied_max", &match_print_implied_max, NULL);
 	add_function_hook("__smatch_possible", &match_possible, NULL);
 	add_function_hook("__smatch_cur_slist", &match_cur_slist, NULL);
+	add_function_hook("__smatch_buf_size", &match_buf_size, NULL);
 	add_function_hook("__smatch_note", &match_note, NULL);
 	add_function_hook("__smatch_dump_related", &match_dump_related, NULL);
 	add_function_hook("__smatch_debug_on", &match_debug_on, NULL);
