@@ -176,19 +176,12 @@ static int get_size_from_initializer(struct expression *expr)
 
 static int get_stored_size_bytes(struct expression *expr)
 {
-	struct sm_state *sm, *tmp;
-	int max = 0;
+	struct smatch_state *state;
 
-	sm = get_sm_state_expr(my_size_id, expr);
-	if (!sm)
+	state = get_state_expr(my_size_id, expr);
+	if (!state)
 		return 0;
-
-	FOR_EACH_PTR(sm->possible, tmp) {
-		if (PTR_INT(tmp->state->data) > max)
-			max = PTR_INT(tmp->state->data);
-	} END_FOR_EACH_PTR(tmp);
-
-	return max;
+	return PTR_INT(state->data);
 }
 
 static struct expression *get_pointer_expression(struct expression *expr)
