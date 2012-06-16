@@ -191,6 +191,53 @@ static int get_stored_size_bytes(struct expression *expr)
 	return max;
 }
 
+static struct expression *get_pointer_expression(struct expression *expr)
+{
+	long long val;
+
+	while (expr->type == EXPR_PREOP && expr->op == '&') {
+		expr = strip_expr(expr->unop);
+		if (expr->type != EXPR_PREOP || expr->op != '*')
+			break;
+		expr = strip_expr(expr->unop);
+	}
+
+	if (expr->type == EXPR_BINOP && expr->op == '+') {
+		if (get_value(expr->right, &val) && val == 0) {
+			return expr->left;
+		}
+		return NULL;
+	}
+
+	if (expr->type == EXPR_SYMBOL)
+		return expr;
+	return NULL;
+}
+
+static int get_bytes_from_address(struct expression *expr)
+{
+	struct symbol *type;
+	int ret;
+
+	if (expr->type != EXPR_PREOP || expr->op != '&')
+		return 0;
+	expr = get_pointer_expression(expr);
+	type = get_type(expr);
+	if (!type)
+		return 0;
+
+	if (type->type == SYM_PTR)
+		type = get_base_type(type);
+
+	ret = bits_to_bytes(type->bit_size);
+	if (ret == -1)
+		return 0;
+	if (ret == 1)
+		return 0;  /* ignore char pointers */
+
+	return ret;
+}
+
 static int get_size_from_strlen(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -230,6 +277,10 @@ int get_array_size_bytes(struct expression *expr)
 	size = get_size_from_initializer(expr);
 	if (size)
 		return elements_to_bytes(expr, size);
+
+	size = get_bytes_from_address(expr);
+	if (size)
+		return size;
 
 	/* if (strlen(foo) > 4) */
 	size = get_size_from_strlen(expr);
