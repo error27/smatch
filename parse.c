@@ -509,6 +509,8 @@ const char *ignored_attributes[] = {
 	"__dllexport__",
 	"dllimport",
 	"__dllimport__",
+	"error",
+	"__error__",
 	"externally_visible",
 	"__externally_visible__",
 	"fastcall",
