@@ -91,6 +91,15 @@ static int is_inline_func(struct expression *expr)
 	return 0;
 }
 
+static int is_noreturn_func(struct expression *expr)
+{
+	if (expr->type != EXPR_SYMBOL || !expr->symbol)
+		return 0;
+	if (expr->symbol->ctype.modifiers & MOD_NORETURN)
+		return 1;
+	return 0;
+}
+
 void __split_expr(struct expression *expr)
 {
 	if (!expr)
@@ -199,6 +208,8 @@ void __split_expr(struct expression *expr)
 		if (is_inline_func(expr->fn))
 			add_inline_function(expr->fn->symbol);
 		__pass_to_client(expr, FUNCTION_CALL_HOOK);
+		if (is_noreturn_func(expr->fn))
+			nullify_path();
 		break;
 	case EXPR_INITIALIZER:
 		split_expr_list(expr->expr_list);
