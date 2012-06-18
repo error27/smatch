@@ -100,6 +100,7 @@ CK(check_wine_WtoA)
 
 #include "check_list_local.h"
 
+CK(register_buf_size_late)
 CK(register_modification_hooks_late)
 CK(register_smatch_extra_late)
 CK(register_returns)

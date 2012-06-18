@@ -10,6 +10,8 @@ static inline void __smatch_implied_max(long long val){}
 static inline void __smatch_possible(const char *unused){}
 static inline void __smatch_print_value(const char *unused){}
 
+static inline void __smatch_buf_size(const void *buf){}
+
 static inline void __smatch_note(const char *note){}
 
 static inline void __smatch_dump_related(void){}
