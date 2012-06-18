@@ -192,6 +192,8 @@ static int get_bytes_from_address(struct expression *expr)
 	struct symbol *type;
 	int ret;
 
+	if (!option_spammy)
+		return 0;
 	if (expr->type != EXPR_PREOP || expr->op != '&')
 		return 0;
 	type = get_type(expr);
