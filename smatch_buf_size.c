@@ -150,6 +150,9 @@ static int get_real_array_size(struct expression *expr)
 	struct symbol *type;
 	int ret;
 
+	if (expr->type == EXPR_BINOP) /* array elements foo[5] */
+		return 0;
+
 	type = get_type(expr);
 	if (!type || type->type != SYM_ARRAY)
 		return 0;
@@ -184,29 +187,6 @@ static int get_stored_size_bytes(struct expression *expr)
 	return PTR_INT(state->data);
 }
 
-static struct expression *get_pointer_expression(struct expression *expr)
-{
-	long long val;
-
-	while (expr->type == EXPR_PREOP && expr->op == '&') {
-		expr = strip_expr(expr->unop);
-		if (expr->type != EXPR_PREOP || expr->op != '*')
-			break;
-		expr = strip_expr(expr->unop);
-	}
-
-	if (expr->type == EXPR_BINOP && expr->op == '+') {
-		if (get_value(expr->right, &val) && val == 0) {
-			return expr->left;
-		}
-		return NULL;
-	}
-
-	if (expr->type == EXPR_SYMBOL)
-		return expr;
-	return NULL;
-}
-
 static int get_bytes_from_address(struct expression *expr)
 {
 	struct symbol *type;
@@ -214,7 +194,6 @@ static int get_bytes_from_address(struct expression *expr)
 
 	if (expr->type != EXPR_PREOP || expr->op != '&')
 		return 0;
-	expr = get_pointer_expression(expr);
 	type = get_type(expr);
 	if (!type)
 		return 0;
@@ -244,11 +223,36 @@ static int get_size_from_strlen(struct expression *expr)
 	return 0;
 }
 
+static struct expression *remove_addr_fluff(struct expression *expr)
+{
+	struct expression *tmp;
+	long long val;
+
+	expr = strip_expr(expr);
+
+	/* remove '&' and '*' operations that cancel */
+	while (expr->type == EXPR_PREOP && expr->op == '&') {
+		tmp = strip_expr(expr->unop);
+		if (tmp->type != EXPR_PREOP)
+			break;
+		if (tmp->op != '*')
+			break;
+		expr = strip_expr(tmp->unop);
+	}
+
+	/* "foo + 0" is just "foo" */
+	if (expr->type == EXPR_BINOP && expr->op == '+' &&
+	    get_value(expr->right, &val) && val == 0)
+		return expr->left;
+
+	return expr;
+}
+
 int get_array_size_bytes(struct expression *expr)
 {
 	int size;
 
-	expr = strip_expr(expr);
+	expr = remove_addr_fluff(expr);
 	if (!expr)
 		return 0;
 
