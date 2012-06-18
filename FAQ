@@ -88,7 +88,7 @@ A.  Yeah, well...  It parses a fairly complete subset of "extended C" as
 
 Q.  What other sparse resources are available?
 
-A.  Website: http://www.kernel.org/pub/software/devel/sparse/
+A.  Wiki: http://sparse.wiki.kernel.org/index.php/Main_Page
 
     Mailing list: linux-sparse@vger.kernel.org
     See http://vger.kernel.org/vger-lists.html#linux-sparse for subscription
