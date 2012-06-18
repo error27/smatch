@@ -18,7 +18,7 @@ int function(void)
 }
 /*
  * check-name: smatch buf size #5
- * check-command: smatch -I.. sm_buf_size5.c
+ * check-command: smatch --spammy -I.. sm_buf_size5.c
  *
  * check-output-start
 sm_buf_size5.c:12 function() buf size: '&foo' 1 elements, 60 bytes

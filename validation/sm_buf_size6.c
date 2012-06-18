@@ -19,7 +19,7 @@ int function(void)
 }
 /*
  * check-name: smatch buf size #6
- * check-command: smatch -I.. sm_buf_size6.c
+ * check-command: smatch --spammy -I.. sm_buf_size6.c
  *
  * check-output-start
 sm_buf_size6.c:12 function() buf size: 'p' 1000 elements, 4000 bytes
