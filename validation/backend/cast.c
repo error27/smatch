@@ -1,3 +1,4 @@
+typedef _Bool bool;
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
@@ -11,6 +12,7 @@ typedef unsigned long long ulonglong;
 	}
 
 #define DEFINE_CASTS(from)			\
+	DEFINE_CAST(from, bool)			\
 	DEFINE_CAST(from, char)			\
 	DEFINE_CAST(from, uchar)		\
 	DEFINE_CAST(from, short)		\
@@ -26,6 +28,7 @@ typedef unsigned long long ulonglong;
 	DEFINE_CAST(from, double)
 */
 
+DEFINE_CASTS(bool)
 DEFINE_CASTS(char)
 DEFINE_CASTS(uchar)
 DEFINE_CASTS(short)

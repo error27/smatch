@@ -308,7 +308,6 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 		struct expression *expr;
 
 		assert(sym->bb_target == NULL);
-		assert(sym->ident == NULL);
 
 		expr = sym->initializer;
 		if (expr) {
@@ -324,6 +323,13 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 				LLVMSetInitializer(data, LLVMConstString(strdup(s), strlen(s) + 1, true));
 
 				result = LLVMConstGEP(data, indices, ARRAY_SIZE(indices));
+				break;
+			}
+			case EXPR_SYMBOL: {
+				struct symbol *sym = expr->symbol;
+
+				result = LLVMGetNamedGlobal(fn->module, show_ident(sym->ident));
+				assert(result != NULL);
 				break;
 			}
 			default:
@@ -1181,6 +1187,12 @@ static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
 				initial_value = output_data(module, sym);
 			break;
 		}
+		case EXPR_STRING: {
+			const char *s = initializer->string->data;
+
+			initial_value = LLVMConstString(strdup(s), strlen(s) + 1, true);
+			break;
+		}
 		default:
 			assert(0);
 		}
@@ -1192,7 +1204,7 @@ static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
 
 	name = show_ident(sym->ident);
 
-	data = LLVMAddGlobal(module, symbol_type(module, sym->ctype.base_type), name);
+	data = LLVMAddGlobal(module, LLVMTypeOf(initial_value), name);
 
 	LLVMSetLinkage(data, data_linkage(sym));
 
