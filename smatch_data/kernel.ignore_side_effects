@@ -5,11 +5,14 @@
  * Some of them like put_user() and friends, have side effects when __CHECKER__
  * is defined but not in the compiled kernel.
  */
+ADD_STA_STATS
 ARCH_DLINFO
+AWDATA
 ENCODE
 ENCODE_DATA
 ENCODE_STR
 get_unaligned
+get_user
 __get_user
 __get_user_nocheck
 hybrid_tuner_request_state
@@ -26,6 +29,7 @@ OUT_RING_REG
 poly_step
 PUT_BYTE
 put_short
+put_user
 __put_user
 __put_user_nocheck
 R128_WAIT_UNTIL_PAGE_FLIPPED
