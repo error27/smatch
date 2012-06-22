@@ -10,17 +10,6 @@
 #include "smatch.h"
 
 static int my_id;
-extern int check_assigned_expr_id;
-
-static struct expression *get_assigned_expr(struct expression *expr)
-{
-	struct smatch_state *state;
-
-	state = get_state_expr(check_assigned_expr_id, expr);
-	if (!state)
-		return NULL;
-	return (struct expression *)state->data;
-}
 
 static int can_overflow(struct expression *expr)
 {

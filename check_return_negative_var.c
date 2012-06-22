@@ -11,18 +11,6 @@
 #include "smatch_slist.h"
 
 static int my_id;
-extern int check_assigned_expr_id;
-
-static struct expression *get_assigned_expr(struct expression *expr)
-{
-	struct smatch_state *state;
-
-	state = get_state_expr(check_assigned_expr_id, expr);
-	if (!state)
-		return NULL;
-	/* fixme:  handle merged states as well */
-	return (struct expression *)state->data;
-}
 
 static void match_return(struct expression *ret_value)
 {

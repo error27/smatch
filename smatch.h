@@ -463,4 +463,7 @@ int is_user_data(struct expression *expr);
 /* check_locking.c */
 void print_held_locks();
 
+/* check_assigned_expr.c */
+struct expression *get_assigned_expr(struct expression *expr);
+
 #endif 	    /* !SMATCH_H_ */

@@ -18,6 +18,16 @@
 int check_assigned_expr_id;
 static int my_id;
 
+struct expression *get_assigned_expr(struct expression *expr)
+{
+	struct smatch_state *state;
+
+	state = get_state_expr(my_id, expr);
+	if (!state)
+		return NULL;
+	return (struct expression *)state->data;
+}
+
 static struct smatch_state *alloc_my_state(struct expression *expr)
 {
 	struct smatch_state *state;
