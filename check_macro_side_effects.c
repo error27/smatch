@@ -149,6 +149,9 @@ void check_macro_side_effects(int id)
 {
 	my_id = id;
 
+	if (!option_spammy)
+		return;
+
 	add_hook(&match_unop, OP_HOOK);
 	add_hook(&match_stmt, STMT_HOOK);
 	register_ignored_macros();
