@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function useage {
+function usage {
     echo "Usage:  $0 [--sparse][--valgrind][--debug] path/to/file.c"
     exit 1
 }
@@ -44,15 +44,15 @@ done
 cname=$1
 cname=$(echo ${cname/.o/.c})
 if [[ "$cname" == "" ]] ; then
-    useage
+    usege
 fi
 if ! test -e $cname ; then
-    useage
+    usege
 fi
 
 oname=$(echo ${cname/.c/.o})
 if ! echo $oname | grep .o$ > /dev/null ; then
-    useage
+    usege
 fi
 rm -f $oname
 
