@@ -2,7 +2,7 @@
 
 # This script is supposed to help use the param_mapper output.
 # Give it a function and parameter and it lists the functions
-# and parameters which are basically equivelent.
+# and parameters which are basically equivalent.
 
 use strict;
 

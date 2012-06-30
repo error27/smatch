@@ -76,7 +76,7 @@ static void help(void)
 	printf("--known-conditions:  don't branch for known conditions.\n");
 	printf("--two-passes:  use a two pass system for each function.\n");
 	printf("--file-output:  instead of printing stdout, print to \"file.c.smatch_out\".\n");
-	printf("--help:  print this helpfull message.\n");
+	printf("--help:  print this helpful message.\n");
 	exit(1);
 }
 

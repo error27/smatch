@@ -127,7 +127,7 @@ static void match_call_hack(struct expression *expr)
 
 	/*
 	 * we just want to record something in the database so that if we have
-	 * two calls like:  frob(4); frob(some_unkown); then on the recieving
+	 * two calls like:  frob(4); frob(some_unkown); then on the receiving
 	 * side we know that sometimes frob is called with unknown parameters.
 	 */
 

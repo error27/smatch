@@ -44,7 +44,7 @@ instead of smatch.  So when I am writing kernel patches in vim I do:
 	***Debugging Hints***
 
 Sometimes it is not obvious why smatch is printing an error.  The --debug
-option is usefull here.  It prints a message on each state change.
+option is useful here.  It prints a message on each state change.
 
 Also if smatch crashes, use:  kchecker --valgrind drivers/whatever/file.c and
 send me the stack dump.

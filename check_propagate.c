@@ -8,7 +8,7 @@
  */
 
 /*
- * People should just return the error codes they recieved 
+ * People should just return the error codes they received
  * instead of making up there own dumb error codes all the time.
  */
 

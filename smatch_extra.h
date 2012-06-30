@@ -34,7 +34,7 @@ extern struct string_list *__ignored_macros;
 extern struct smatch_state estate_undefined;
 void alloc_estate_undefined(void);
 
-/* these are implimented in smatch_ranges.c */
+/* these are implemented in smatch_ranges.c */
 int is_whole_range_rl(struct range_list *rl);
 long long rl_min(struct range_list *rl);
 long long rl_max(struct range_list *rl);
