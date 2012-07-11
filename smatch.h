@@ -229,6 +229,7 @@ int getting_address(void);
 char *get_member_name(struct expression *expr);
 char *get_fnptr_name(struct expression *expr);
 int positions_eq(struct position pos1, struct position pos2);
+struct statement *get_current_statement(void);
 
 /* smatch_type.c */
 struct symbol *get_real_base_type(struct symbol *sym);

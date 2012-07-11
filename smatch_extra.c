@@ -32,7 +32,7 @@ static int in_warn_on_macro()
 	char *tmp;
 	char *macro;
 
-	stmt = last_ptr_list((struct ptr_list *)big_statement_stack);
+	stmt = get_current_statement();
 	macro = get_macro_name(stmt->pos);
 	if (!macro)
 		return 0;

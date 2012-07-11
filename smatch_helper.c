@@ -480,3 +480,21 @@ int positions_eq(struct position pos1, struct position pos2)
 	return 1;
 }
 
+struct statement *get_current_statement(void)
+{
+	struct statement *prev, *tmp;
+
+	prev = last_ptr_list((struct ptr_list *)big_statement_stack);
+
+	if (!prev || !get_macro_name(prev->pos))
+		return prev;
+
+	FOR_EACH_PTR_REVERSE(big_statement_stack, tmp) {
+		if (positions_eq(tmp->pos, prev->pos))
+			continue;
+		if (prev->pos.line > tmp->pos.line)
+			return prev;
+		return tmp;
+	} END_FOR_EACH_PTR_REVERSE(tmp);
+	return prev;
+}
