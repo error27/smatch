@@ -16,7 +16,7 @@ $db->do("PRAGMA synchronous = OFF");
 $db->do("PRAGMA cache_size = 800000");
 $db->do("PRAGMA journal_mode = OFF");
 
-$db->do("delete from call_implies");
+$db->do("delete from return_implies");
 
 my $type = 7;  # RANGE_CAP
 
