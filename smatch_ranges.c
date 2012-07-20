@@ -139,6 +139,13 @@ int is_whole_range_rl(struct range_list *rl)
 	return 0;
 }
 
+int rl_contiguous(struct range_list *rl)
+{
+	if (first_ptr_list((struct ptr_list *)rl) == last_ptr_list((struct ptr_list *)rl))
+		return 1;
+	return 0;
+}
+
 long long rl_min(struct range_list *rl)
 {
 	struct data_range *drange;

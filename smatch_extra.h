@@ -36,6 +36,7 @@ void alloc_estate_undefined(void);
 
 /* these are implemented in smatch_ranges.c */
 int is_whole_range_rl(struct range_list *rl);
+int rl_contiguous(struct range_list *rl);
 long long rl_min(struct range_list *rl);
 long long rl_max(struct range_list *rl);
 struct data_range *alloc_range_perm(long long min, long long max);
