@@ -35,7 +35,7 @@ while (<WARNS>) {
     ($file, $dummy) = split(/:/, $file_and_line);
     $func =~ s/\(\)//;
 
-    if (!defined($gs)) {
+    if (!defined($param)) {
         next;
     }
 
