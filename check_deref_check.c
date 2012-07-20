@@ -42,6 +42,8 @@ static void match_dereference(struct expression *expr)
 
 static void set_param_dereferenced(struct expression *arg, char *unused)
 {
+	if (implied_not_equal(arg, 0))
+		return;
 	set_state_expr(my_id, arg, &derefed);
 }
 
