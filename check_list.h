@@ -76,6 +76,7 @@ CK(check_bool_implications)
 CK(check_sizeof_pointer)
 CK(check_or_vs_and)
 CK(check_passes_sizeof)
+CK(check_assign_vs_compare)
 
 /* <- your test goes here */
 /* CK(register_template) */
