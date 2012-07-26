@@ -53,7 +53,19 @@ arithmetic operations other than bitwise operations, and on any conversion of
 one restricted type into another, except via a cast that includes
 \fB__attribute__((force))\fR.
 
-Sparse does not issue these warnings by default.
+__bitwise ends up being a "stronger integer separation". That one
+doesn't allow you to mix with non-bitwise integers, so now it's much
+harder to lose the type by mistake.
+
+__bitwise is for *unique types* that cannot be mixed with other
+types, and that you'd never want to just use as a random integer (the
+integer 0 is special, though, and gets silently accepted iirc - it's
+kind of like "NULL" for pointers). So "gfp_t" or the "safe endianness"
+types would be __bitwise: you can only operate on them by doing
+specific operations that know about *that* particular type.
+
+Generally, you want bitwise if you are looking for type safety. Sparse
+does not issue these warnings by default.
 .
 .TP
 .B \-Wcast\-to\-as

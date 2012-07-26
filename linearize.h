@@ -38,6 +38,7 @@ struct pseudo {
 		struct instruction *def;
 		long long value;
 	};
+	void *priv;
 };
 
 extern struct pseudo void_pseudo;
@@ -115,6 +116,7 @@ struct instruction {
 		struct /* call */ {
 			pseudo_t func;
 			struct pseudo_list *arguments;
+			struct symbol *fntype;
 		};
 		struct /* context */ {
 			int increment;
@@ -231,6 +233,7 @@ struct basic_block {
 	struct basic_block_list *children; /* destinations */
 	struct instruction_list *insns;	/* Linear list of instructions */
 	struct pseudo_list *needs, *defines;
+	void *priv;
 };
 
 static inline int is_branch_goto(struct instruction *br)

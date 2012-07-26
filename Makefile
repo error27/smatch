@@ -6,6 +6,7 @@ CC = gcc
 CFLAGS = -O2 -finline-functions -fno-strict-aliasing -g
 CFLAGS += -Wall -Wwrite-strings
 LDFLAGS += -g -lm -lsqlite3
+LD = gcc
 AR = ar
 
 ALL_CFLAGS = $(CFLAGS) $(BASIC_CFLAGS)
@@ -20,6 +21,9 @@ HAVE_GCC_DEP:=$(shell touch .gcc-test.c && 				\
 		$(CC) -c -Wp,-MD,.gcc-test.d .gcc-test.c 2>/dev/null && \
 		echo 'yes'; rm -f .gcc-test.d .gcc-test.o .gcc-test.c)
 HAVE_GTK2:=$(shell pkg-config --exists gtk+-2.0 2>/dev/null && echo 'yes')
+HAVE_LLVM:=$(shell llvm-config --version >/dev/null 2>&1 && echo 'yes')
+HAVE_LLVM_VERSION:=$(shell llvm-config --version | grep "^[3-9].*" >/dev/null 2>&1 && echo yes)
+LLVM_VERSION=$(shell llvm-config --version)
 
 GCC_BASE = $(shell $(CC) --print-file-name=)
 BASIC_CFLAGS = -DGCC_BASE=\"$(GCC_BASE)\"
@@ -77,6 +81,26 @@ test-inspect.o $(test-inspect_EXTRA_DEPS): BASIC_CFLAGS += $(GTK2_CFLAGS)
 test-inspect_EXTRA_OBJS := $(GTK2_LIBS)
 else
 $(warning Your system does not have libgtk2, disabling test-inspect)
+endif
+
+ifneq ($(HAVE_LLVM),yes)
+$(warning Your system does not have llvm, disabling sparse-llvm)
+else
+ifneq ($(HAVE_LLVM_VERSION),yes)
+$(warning LLVM 3.0 or later required. Your system has version $(LLVM_VERSION) installed.)
+HAVE_LLVM=no
+else
+LLVM_PROGS := sparse-llvm
+$(LLVM_PROGS): LD := g++
+LDFLAGS += $(shell llvm-config --ldflags)
+LLVM_CFLAGS := $(shell llvm-config --cflags | sed -e "s/-DNDEBUG//g")
+LLVM_LIBS := $(shell llvm-config --libs)
+PROGRAMS += $(LLVM_PROGS)
+INST_PROGRAMS += sparse-llvm sparsec
+sparse-llvm_EXTRA_DEPS := sparse-llvm.o
+sparse-llvm.o $(sparse-llvm_EXTRA_DEPS): BASIC_CFLAGS += $(LLVM_CFLAGS)
+sparse-llvm_EXTRA_OBJS := $(LLVM_LIBS)
+endif
 endif
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
@@ -160,7 +184,7 @@ compile_EXTRA_DEPS = compile-i386.o
 
 $(foreach p,$(PROGRAMS),$(eval $(p): $($(p)_EXTRA_DEPS) $(LIBS)))
 $(PROGRAMS): % : %.o 
-	$(QUIET_LINK)$(CC) -o $@ $^ $($@_EXTRA_OBJS) $(LDFLAGS)
+	$(QUIET_LINK)$(LD) $(LDFLAGS) -o $@ $^ $($@_EXTRA_OBJS)
 
 smatch: smatch.o $(SMATCH_FILES) $(SMATCH_CHECKS) $(LIBS) 
 	$(CC) -o $@ $< $(SMATCH_FILES) $(SMATCH_CHECKS) $(LIBS) $(LDFLAGS)

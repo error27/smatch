@@ -10,6 +10,7 @@
 #include "expression.h"
 #include "linearize.h"
 #include "flow.h"
+#include "symbol.h"
 
 /* Find the trivial parent for a phi-source */
 static struct basic_block *phi_parent(struct basic_block *source, pseudo_t pseudo)
@@ -667,6 +668,11 @@ static int simplify_cast(struct instruction *insn)
 	orig_type = insn->orig_type;
 	if (!orig_type)
 		return 0;
+
+	/* Keep casts with pointer on either side (not only case of OP_PTRCAST) */
+	if (is_ptr_type(orig_type) || is_ptr_type(insn->type))
+		return 0;
+
 	orig_size = orig_type->bit_size;
 	size = insn->size;
 	src = insn->src;

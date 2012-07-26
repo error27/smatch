@@ -521,6 +521,8 @@ const char *ignored_attributes[] = {
 	"__format_arg__",
 	"hot",
 	"__hot__",
+        "leaf",
+        "__leaf__",
 	"l1_text",
 	"__l1_text__",
 	"l1_data",
