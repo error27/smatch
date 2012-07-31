@@ -130,7 +130,7 @@ static void match_assign(struct expression *expr)
 	left = strip_expr(expr->left);
 	if (!left || left->type != EXPR_SYMBOL)
 		return;
-	delete_state_expr(my_id, left);
+	set_state_expr(my_id, left, &undefined);
 }
 
 static void delete_used(int assign_id)
@@ -165,7 +165,7 @@ static void match_symbol(struct expression *expr)
 	if (!sm)
 		return;
 	delete_used_symbols(sm->possible);
-	delete_state_expr(my_id, expr);
+	set_state_expr(my_id, expr, &undefined);
 }
 
 static void match_end_func(struct symbol *sym)

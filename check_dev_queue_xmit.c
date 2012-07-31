@@ -71,7 +71,7 @@ static void match_kfree_skb(const char *fn, struct expression *expr, void *param
 	arg = get_argument_from_call_expr(expr->args, 0);
 	if (!arg)
 		return;
-	delete_state_expr(my_id, arg);
+	set_state_expr(my_id, arg, &undefined);
 }
 
 static void match_xmit(const char *fn, struct expression *expr, void *param)
