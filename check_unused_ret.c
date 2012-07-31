@@ -16,19 +16,19 @@
  * (the first assignment isn't used)
  *
  * How the check works is that every assignment gets an ID.
- * We store that assignment ID in a list of assignments that 
- * haven't been used.  We also set the state of 'err' from 
+ * We store that assignment ID in a list of assignments that
+ * haven't been used.  We also set the state of 'err' from
  * the example above to be.  Then when we use 'err' we remove
  * it from the list.  At the end of the function we print
  * a list of assignments that still haven't been used.
  *
- * Note that this check only works for assignments to 
+ * Note that this check only works for assignments to
  * EXPR_SYMBOL.  Maybe it could be modified to cover other
  * assignments later but then you would have to deal with
  * scope issues.
  *
  * Also this state is quite tied to the order the callbacks
- * are called in smatch_flow.c.  (If the order changed it 
+ * are called in smatch_flow.c.  (If the order changed it
  * would break).
  *
  */
