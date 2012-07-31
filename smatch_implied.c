@@ -221,8 +221,10 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 	   positives but won't hide actual bugs.
 	*/
 	if (sm_state->nr_children > 4000) {
-		implied_debug_msg =
-			(char *) "debug: seperate_pools: nr_children over 4000.";
+		static char buf[1028];
+		snprintf(buf, sizeof(buf), "debug: separate_pools: nr_children over 4000 (%d). (%s %s)",
+			 sm_state->nr_children, sm_state->name, show_state(sm_state->state));
+		implied_debug_msg = buf;
 		return;
 	}
 
@@ -254,8 +256,10 @@ struct sm_state *remove_pools(struct sm_state *sm,
 		return NULL;
 
 	if (sm->nr_children > 4000) {
-		implied_debug_msg =
-			(char *) "debug: remove_pools: nr_children over 4000";
+		static char buf[1028];
+		snprintf(buf, sizeof(buf), "debug: remove_pools: nr_children over 4000 (%d). (%s %s)",
+			 sm->nr_children, sm->name, show_state(sm->state));
+		implied_debug_msg = buf;
 		return NULL;
 	}
 
@@ -270,7 +274,7 @@ struct sm_state *remove_pools(struct sm_state *sm,
 		return sm;
 	}
 
-	DIMPLIED("checking %s from %d\n", show_sm(sm), sm->line);
+	DIMPLIED("checking %s from %d (%d)\n", show_sm(sm), sm->line, sm->nr_children);
 	left = remove_pools(sm->left, pools, &removed);
 	right = remove_pools(sm->right, pools, &removed);
 	if (!removed) {
