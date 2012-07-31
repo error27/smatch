@@ -13,12 +13,10 @@
 static int my_id;
 
 STATE(derefed);
-STATE(oktocheck);
 
 static void underef(struct sm_state *sm)
 {
-	if (sm->state == &derefed)
-		set_state(my_id, sm->name, sm->sym, &oktocheck);
+	set_state(my_id, sm->name, sm->sym, &undefined);
 }
 
 static void match_dereference(struct expression *expr)
@@ -62,7 +60,7 @@ static void match_condition(struct expression *expr)
 		return;
 
 	sm_msg("warn: variable dereferenced before check '%s' (see line %d)", sm->name, sm->line);
-	set_state_expr(my_id, expr, &oktocheck);
+	set_state_expr(my_id, expr, &undefined);
 }
 
 void check_deref_check(int id)
