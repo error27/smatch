@@ -335,6 +335,14 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 			default:
 				assert(0);
 			}
+		} else {
+			const char *name = show_ident(sym->ident);
+
+			result = LLVMGetNamedGlobal(fn->module, name);
+			if (!result) {
+				LLVMTypeRef type = symbol_type(fn->module, sym);
+				result = LLVMAddGlobal(fn->module, type, name);
+			}
 		}
 		break;
 	}
