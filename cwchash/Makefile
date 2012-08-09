@@ -1,6 +1,6 @@
 
 tester: hashtable.o tester.o hashtable_itr.o
-	gcc -g -Wall -O -lm -o tester hashtable.o hashtable_itr.o tester.o
+	gcc -g -Wall -O -o tester hashtable.o hashtable_itr.o tester.o -lm
 
 all: tester old_tester
 
