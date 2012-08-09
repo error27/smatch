@@ -21,8 +21,6 @@ static void underef(struct sm_state *sm)
 
 static void match_dereference(struct expression *expr)
 {
-	char *name;
-
 	if (expr->type != EXPR_PREOP)
 		return;
 	if (getting_address())
@@ -32,10 +30,6 @@ static void match_dereference(struct expression *expr)
 		return;
 
 	set_state_expr(my_id, expr, &derefed);
-	name = get_variable_from_expr(expr, NULL);
-	if (!name)
-		return;
-	free_string(name);
 }
 
 static void set_param_dereferenced(struct expression *arg, char *unused)
