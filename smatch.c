@@ -217,7 +217,6 @@ int main(int argc, char **argv)
 		   0 is used for internal stuff. */
 		func(i + 1);
 	}
-	register_function_hooks(-1);
 
 	smatch(argc, argv);
 	free_string(data_dir);

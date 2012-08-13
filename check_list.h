@@ -104,6 +104,7 @@ CK(check_wine_WtoA)
 CK(register_buf_size_late)
 CK(register_modification_hooks_late)
 CK(register_smatch_extra_late)
+CK(register_function_hooks)
 CK(register_returns)
 CK(register_implications) /* implications always has to be last */
 
