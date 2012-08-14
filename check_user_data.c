@@ -16,11 +16,43 @@
 
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 
 static int my_id;
 
 STATE(capped);
 STATE(user_data);
+
+static int is_skb_data(struct expression *expr)
+{
+	struct symbol *sym;
+	char *name;
+	int len;
+	int ret = 0;
+
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	sym = get_base_type(sym);
+	if (!sym || sym->type != SYM_PTR)
+		goto free;
+	sym = get_base_type(sym);
+	if (!sym || sym->type != SYM_STRUCT || !sym->ident)
+		goto free;
+	if (strcmp(sym->ident->name, "sk_buff") != 0)
+		goto free;
+
+	len = strlen(name);
+	if (len < 6)
+		goto free;
+	if (strcmp(name + len - 6, "->data") == 0)
+		ret = 1;
+
+free:
+	free_string(name);
+	return ret;
+}
 
 int is_user_data(struct expression *expr)
 {
@@ -35,6 +67,8 @@ int is_user_data(struct expression *expr)
 		return 0;
 	if (is_capped(expr))
 		return 0;
+	if (is_skb_data(expr))
+		return 1;
 	if (expr->type == EXPR_BINOP) {
 		if (is_user_data(expr->left))
 			return 1;
