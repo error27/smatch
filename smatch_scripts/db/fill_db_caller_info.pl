@@ -158,9 +158,6 @@ while (<WARNS>) {
         $static = 1;
     }
 
-#    print "insert into caller_info values ('$file', '$func', $func_id, $type, $param, '$key', '$value')\n";
-    $db->do("insert into caller_info values ('$file', '$func', $func_id, $static, $type, $param, '$key', '$value')");
-
 #    print "insert into caller_info values ('$file', '$caller', '$func', $func_id, $type, $param, '$key', '$value')\n";
     $db->do("insert into caller_info values ('$file', '$caller', '$func', $func_id, $static, $type, $param, '$key', '$value')");
 }
