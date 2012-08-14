@@ -17,7 +17,7 @@ $db->do("PRAGMA journal_mode = OFF");
 
 $db->do("delete from type_size;");
 
-my $types;
+my $types = {};
 
 open(WARNS, "<$warns");
 while (<WARNS>) {
