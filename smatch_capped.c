@@ -28,6 +28,7 @@ int is_capped(struct expression *expr)
 {
 	long long val;
 
+	expr = strip_expr(expr);
 	if (!expr)
 		return 0;
 

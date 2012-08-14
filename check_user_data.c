@@ -23,6 +23,11 @@ static int my_id;
 STATE(capped);
 STATE(user_data);
 
+static int is_user_macro(struct expression *expr)
+{
+	return 0;
+}
+
 static int is_skb_data(struct expression *expr)
 {
 	struct symbol *sym;
@@ -62,13 +67,19 @@ int is_user_data(struct expression *expr)
 	char *name;
 	int user = 0;
 
-	expr = strip_expr(expr);
 	if (!expr)
 		return 0;
+
 	if (is_capped(expr))
 		return 0;
+
+	if (is_user_macro(expr))
+		return 1;
 	if (is_skb_data(expr))
 		return 1;
+
+	expr = strip_expr(expr);  /* this has to come after is_user_macro() */
+
 	if (expr->type == EXPR_BINOP) {
 		if (is_user_data(expr->left))
 			return 1;
