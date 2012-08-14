@@ -893,7 +893,7 @@ static void match_call_info(struct expression *expr)
 	free_string(name);
 }
 
-void set_param_value(const char *name, struct symbol *sym, char *key, char *value)
+static void set_param_value(const char *name, struct symbol *sym, char *key, char *value)
 {
 	struct range_list *rl = NULL;
 	struct smatch_state *state;
