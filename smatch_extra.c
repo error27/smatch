@@ -127,6 +127,23 @@ free:
 	free_string(name);
 }
 
+struct smatch_state *filter_range_list(struct smatch_state *orig,
+				 struct range_list *rl)
+{
+	struct range_list *res;
+	struct data_range *tmp;
+
+	if (!orig)
+		orig = extra_undefined();
+	res = estate_ranges(orig);
+
+	FOR_EACH_PTR(rl, tmp) {
+		res = remove_range(res, tmp->min, tmp->max);
+	} END_FOR_EACH_PTR(tmp);
+
+	return alloc_estate_range_list(res);
+}
+
 struct smatch_state *filter_range(struct smatch_state *orig,
 				 long long filter_min, long long filter_max)
 {
