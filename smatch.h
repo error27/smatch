@@ -411,6 +411,8 @@ enum info_type {
 	RETURN_VALUE,
 	DEREFERENCE,
 	RANGE_CAP,
+	LOCK_HELD,
+	LOCK_RELEASED,
 };
 
 int get_return_id(void);
