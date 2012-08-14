@@ -40,6 +40,12 @@ ALLOCATOR(call_implies_callback, "call_implies callbacks");
 DECLARE_PTR_LIST(call_implies_cb_list, struct call_implies_callback);
 static struct call_implies_cb_list *call_implies_cb_list;
 
+static int return_id;
+int get_return_id(void)
+{
+	return return_id;
+}
+
 void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql)
 {
 	char *err = NULL;
@@ -463,6 +469,37 @@ static void global_variable(struct symbol *sym)
 	print_initializer_list(sym->initializer->expr_list, struct_type);
 }
 
+static void match_return_info(struct expression *ret_value)
+{
+	struct range_list *rl;
+
+	get_implied_range_list(ret_value, &rl);
+	sm_msg("info: return_marker %d '%s' %s",
+	       get_return_id(), show_ranges(rl), global_static());
+}
+
+static void match_end_func_info(struct symbol *sym)
+{
+	if (__path_is_null())
+		return;
+	sm_msg("info: return_marker %d '' %s", get_return_id(), global_static());
+}
+
+static void match_function_def(struct symbol *sym)
+{
+	return_id = 0;
+}
+
+static void match_return(struct expression *ret_value)
+{
+	return_id++;
+}
+
+static void match_end_func(struct symbol *sym)
+{
+	return_id++;
+}
+
 void open_smatch_db(void)
 {
 #ifdef SQLITE_OPEN_READONLY
@@ -485,12 +522,18 @@ void open_smatch_db(void)
 
 void register_definition_db_callbacks(int id)
 {
+	add_hook(&match_function_def, FUNC_DEF_HOOK);
+	add_hook(&match_return, RETURN_HOOK);
+	add_hook(&match_end_func, END_FUNC_HOOK);
+
 	if (option_info) {
 		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 		add_hook(&match_call_hack, FUNCTION_CALL_HOOK);
 		add_hook(&match_function_assign, ASSIGNMENT_HOOK);
 		add_hook(&global_variable, BASE_HOOK);
 		add_hook(&global_variable, DECLARATION_HOOK);
+		add_hook(&match_return_info, RETURN_HOOK);
+		add_hook(&match_end_func_info, END_FUNC_HOOK);
 	}
 
 	if (option_no_db)
