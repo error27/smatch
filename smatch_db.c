@@ -129,10 +129,7 @@ static void match_call_hack(struct expression *expr)
 	name = get_fnptr_name(expr->fn);
 	if (!name)
 		return;
-	if (ptr_list_empty(expr->args))
-		return;
-	sm_msg("info: passes param_value '%s' -1 '$$' min-max %s",
-	       name, is_static(expr->fn) ? "static" : "global");
+	sm_msg("info: call_marker '%s' %s", name, is_static(expr->fn) ? "static" : "global");
 	free_string(name);
 }
 
@@ -238,8 +235,8 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 	int func_id;
 	long type;
 	long param;
-	char *name;
-	struct symbol *sym;
+	char *name = NULL;
+	struct symbol *sym = NULL;
 	struct def_callback *def_callback;
 
 	if (argc != 5)
@@ -261,7 +258,9 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 		prev_func_id = func_id;
 	}
 
-	if (param == -1 || !get_param(param, &name, &sym))
+	if (type == INTERNAL)
+		return 0;
+	if (param >= 0 && !get_param(param, &name, &sym))
 		return 0;
 
 	FOR_EACH_PTR(callbacks, def_callback) {
@@ -364,7 +363,7 @@ static struct expression *call_implies_call_expr;
 static int call_implies_callbacks(void *unused, int argc, char **argv, char **azColName)
 {
 	struct call_implies_callback *cb;
-	struct expression *arg;
+	struct expression *arg = NULL;
 	int type;
 	int param;
 
@@ -377,9 +376,11 @@ static int call_implies_callbacks(void *unused, int argc, char **argv, char **az
 	FOR_EACH_PTR(call_implies_cb_list, cb) {
 		if (cb->type != type)
 			continue;
-		arg = get_argument_from_call_expr(call_implies_call_expr->args, param);
-		if (!arg)
-			continue;
+		if (param != -1) {
+			arg = get_argument_from_call_expr(call_implies_call_expr->args, param);
+			if (!arg)
+				continue;
+		}
 		cb->callback(arg, argv[3]);
 	} END_FOR_EACH_PTR(cb);
 

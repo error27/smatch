@@ -403,7 +403,8 @@ void __match_initializer_call(struct symbol *sym);
 
 /* smatch_db.c */
 enum info_type {
-	PARAM_VALUE = 1,
+	INTERNAL = 0,
+	PARAM_VALUE,
 	BUF_SIZE,
 	USER_DATA,
 	CAPPED_DATA,
