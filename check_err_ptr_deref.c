@@ -138,18 +138,6 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
 		sm_msg("error: passing non neg %lld to ERR_PTR", max);
 }
 
-static void match_ptr_err(const char *fn, struct expression *expr, void *unused)
-{
-	struct expression *arg;
-	struct expression *right;
-
-	right = strip_expr(expr->right);
-	arg = get_argument_from_call_expr(right->args, 0);
-	if (get_state_expr(my_id, arg) == &err_ptr) {
-		set_extra_expr_mod(expr->left, alloc_estate_range(-4095, -1));
-	}
-}
-
 void check_err_ptr_deref(int id)
 {
 	if (option_project != PROJ_KERNEL)
@@ -165,7 +153,6 @@ void check_err_ptr_deref(int id)
 	register_err_ptr_funcs();
 	add_hook(&match_dereferences, DEREF_HOOK);
 	add_function_hook("ERR_PTR", &match_err_ptr, NULL);
-	add_function_assign_hook("PTR_ERR", &match_ptr_err, NULL);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_modification_hook(my_id, &ok_to_use);
 }
