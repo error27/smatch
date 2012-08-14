@@ -43,6 +43,33 @@ static void match_param_nonnull(const char *fn, struct expression *call_expr,
 	set_extra_expr_nomod(arg, true_state);
 }
 
+static void match_not_err(const char *fn, struct expression *call_expr,
+			struct expression *assign_expr, void *unused)
+{
+	struct expression *arg;
+	struct smatch_state *pre_state;
+	struct smatch_state *new_state;
+
+	arg = get_argument_from_call_expr(call_expr->args, 0);
+	pre_state = get_state_expr(SMATCH_EXTRA, arg);
+	new_state = filter_range(pre_state, whole_range.min, -1);
+	set_extra_expr_nomod(arg, new_state);
+}
+
+static void match_err(const char *fn, struct expression *call_expr,
+			struct expression *assign_expr, void *unused)
+{
+	struct expression *arg;
+	struct smatch_state *pre_state;
+	struct smatch_state *new_state;
+
+	arg = get_argument_from_call_expr(call_expr->args, 0);
+	pre_state = get_state_expr(SMATCH_EXTRA, arg);
+	new_state = filter_range(pre_state, whole_range.min, -4097);
+	new_state = filter_range(new_state, 0, whole_range.max);
+	set_extra_expr_nomod(arg, new_state);
+}
+
 static void match_container_of(const char *fn, struct expression *expr, void *unused)
 {
 	set_extra_expr_mod(expr->left, alloc_estate_range(valid_ptr_min, valid_ptr_max));
@@ -57,6 +84,8 @@ void check_kernel(int id)
 	add_function_assign_hook_extra("ERR_CAST", &match_err_cast, NULL);
 	add_function_assign_hook_extra("PTR_ERR", &match_err_cast, NULL);
 	return_implies_state("IS_ERR_OR_NULL", 0, 0, &match_param_nonnull, (void *)0);
+	return_implies_state("IS_ERR", 0, 0, &match_not_err, NULL);
+	return_implies_state("IS_ERR", 1, 1, &match_err, NULL);
 	return_implies_state("tomoyo_memory_ok", 1, 1, &match_param_nonnull, (void *)0);
 	add_macro_assign_hook_extra("container_of", &match_container_of, NULL);
 }
