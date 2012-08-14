@@ -83,14 +83,9 @@ void add_db_fn_call_callback(int type, void (*callback)(struct expression *arg, 
 static struct range_list *return_range_list;
 static int db_return_callback(void *unused, int argc, char **argv, char **azColName)
 {
-	struct range_list *rl = NULL;
-
 	if (argc != 1)
 		return 0;
-
-	get_value_ranges(argv[0], &rl);
-	return_range_list = range_list_union(return_range_list, rl);
-
+	get_value_ranges(argv[0], &return_range_list);
 	return 0;
 }
 
@@ -108,15 +103,15 @@ struct range_list *db_return_vals(struct expression *expr)
 		return NULL;
 
 	if (sym->ctype.modifiers & MOD_STATIC) {
-		snprintf(sql_filter, 1024, "file = '%s' and function = '%s' and type = %d;",
-			 get_filename(), sym->ident->name, RETURN_VALUE);
+		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
+			 get_filename(), sym->ident->name);
 	} else {
-		snprintf(sql_filter, 1024, "function = '%s' and static = 0 and type = %d;",
-				sym->ident->name, RETURN_VALUE);
+		snprintf(sql_filter, 1024, "function = '%s' and static = 0;",
+				sym->ident->name);
 	}
 
 	return_range_list = NULL;
-	run_sql(db_return_callback, "select value from return_info where %s",
+	run_sql(db_return_callback, "select return from return_values where %s",
 		 sql_filter);
 	return return_range_list;
 }
