@@ -37,10 +37,12 @@ DECLARE_PTR_LIST(call_back_list, struct fcall_back);
 DEFINE_FUNCTION_HASHTABLE_STATIC(callback, struct fcall_back, struct call_back_list);
 static struct hashtable *func_hash;
 
-#define REGULAR_CALL     0
-#define ASSIGN_CALL      1
-#define RANGED_CALL      2
-#define MACRO_ASSIGN     3
+#define REGULAR_CALL       0
+#define RANGED_CALL        1
+#define ASSIGN_CALL        2
+#define ASSIGN_CALL_EXTRA  3
+#define MACRO_ASSIGN       4
+#define MACRO_ASSIGN_EXTRA 5
 
 struct return_implies_callback {
 	int type;
@@ -79,12 +81,30 @@ void add_function_assign_hook(const char *look_for, func_hook *call_back,
 	add_callback(func_hash, look_for, cb);
 }
 
+void add_function_assign_hook_extra(const char *look_for, func_hook *call_back,
+			      void *info)
+{
+	struct fcall_back *cb;
+
+	cb = alloc_fcall_back(ASSIGN_CALL_EXTRA, call_back, info);
+	add_callback(func_hash, look_for, cb);
+}
+
 void add_macro_assign_hook(const char *look_for, func_hook *call_back,
 			void *info)
 {
 	struct fcall_back *cb;
 
 	cb = alloc_fcall_back(MACRO_ASSIGN, call_back, info);
+	add_callback(func_hash, look_for, cb);
+}
+
+void add_macro_assign_hook_extra(const char *look_for, func_hook *call_back,
+			void *info)
+{
+	struct fcall_back *cb;
+
+	cb = alloc_fcall_back(MACRO_ASSIGN_EXTRA, call_back, info);
 	add_callback(func_hash, look_for, cb);
 }
 
@@ -107,15 +127,20 @@ void add_db_return_implies_callback(int type, return_implies_hook *callback)
 	add_ptr_list(&db_implies_list, cb);
 }
 
-static void call_call_backs(struct call_back_list *list, int type,
+static int call_call_backs(struct call_back_list *list, int type,
 			    const char *fn, struct expression *expr)
 {
 	struct fcall_back *tmp;
+	int handled = 0;
 
 	FOR_EACH_PTR(list, tmp) {
-		if (tmp->type == type)
+		if (tmp->type == type) {
 			(tmp->call_back)(fn, expr, tmp->info);
+			handled = 1;
+		}
 	} END_FOR_EACH_PTR(tmp);
+
+	return handled;
 }
 
 static void call_ranged_call_backs(struct call_back_list *list,
@@ -127,19 +152,6 @@ static void call_ranged_call_backs(struct call_back_list *list,
 	FOR_EACH_PTR(list, tmp) {
 		((implication_hook *)(tmp->call_back))(fn, call_expr, assign_expr, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
-}
-
-static void match_function_call(struct expression *expr)
-{
-	struct call_back_list *call_backs;
-
-	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
-		return;
-	call_backs = search_callback(func_hash, (char *)expr->fn->symbol->ident->name);
-	if (!call_backs)
-		return;
-	call_call_backs(call_backs, REGULAR_CALL, expr->fn->symbol->ident->name,
-			expr);
 }
 
 static struct call_back_list *get_same_ranged_call_backs(struct call_back_list *list,
@@ -157,7 +169,7 @@ static struct call_back_list *get_same_ranged_call_backs(struct call_back_list *
 	return ret;
 }
 
-static void assign_ranged_funcs(const char *fn, struct expression *expr,
+static int assign_ranged_funcs(const char *fn, struct expression *expr,
 				 struct call_back_list *call_backs)
 {
 	struct fcall_back *tmp;
@@ -169,6 +181,10 @@ static void assign_ranged_funcs(const char *fn, struct expression *expr,
 	struct state_list *final_states = NULL;
 	struct range_list *handled_ranges = NULL;
 	struct call_back_list *same_range_call_backs = NULL;
+	int handled = 0;
+
+	if (!call_backs)
+		return 0;
 
 	var_name = get_variable_from_expr(expr->left, &sym);
 	if (!var_name || !sym)
@@ -192,6 +208,7 @@ static void assign_ranged_funcs(const char *fn, struct expression *expr,
 		tmp_slist = __pop_fake_cur_slist();
 		merge_slist(&final_states, tmp_slist);
 		free_slist(&tmp_slist);
+		handled = 1;
 	} END_FOR_EACH_PTR(tmp);
 
 	FOR_EACH_PTR(final_states, sm) {
@@ -201,6 +218,7 @@ static void assign_ranged_funcs(const char *fn, struct expression *expr,
 	free_slist(&final_states);
 free:
 	free_string(var_name);
+	return handled;
 }
 
 int call_implies_callbacks(int comparison, struct expression *expr, long long value, int left)
@@ -358,12 +376,69 @@ void compare_db_implies_callbacks(int comparison, struct expression *expr, long 
 	free_slist(&false_states);
 }
 
+void compare_db_return_states_callbacks(int comparison, struct expression *expr, long long value, int left)
+{
+	struct symbol *sym;
+        static char sql_filter[1024];
+	struct state_list *true_states;
+	struct state_list *false_states;
+	struct sm_state *sm;
+
+	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
+		return;
+
+	sym = expr->fn->symbol;
+	if (!sym)
+		return;
+
+	if (sym->ctype.modifiers & MOD_STATIC) {
+		snprintf(sql_filter, 1024,
+			 "file = '%s' and function = '%s' and static = '1';",
+			 get_filename(), sym->ident->name);
+	} else {
+		snprintf(sql_filter, 1024,
+			 "function = '%s' and static = '0';", sym->ident->name);
+	}
+
+	db_info.comparison = comparison;
+	db_info.expr = expr;
+	db_info.rl = alloc_range_list(value, value);
+	db_info.left = left;
+
+	db_info.true_side = 1;
+	__push_fake_cur_slist();
+	run_sql(db_compare_callback,
+		"select return, type, parameter, key, value from return_states where %s",
+		sql_filter);
+	true_states = __pop_fake_cur_slist();
+
+	db_info.true_side = 0;
+	__push_fake_cur_slist();
+	run_sql(db_compare_callback,
+		"select return, type, parameter, key, value from return_states where %s",
+		sql_filter);
+	false_states = __pop_fake_cur_slist();
+
+	FOR_EACH_PTR(true_states, sm) {
+		__set_true_false_sm(sm, NULL);
+	} END_FOR_EACH_PTR(sm);
+	FOR_EACH_PTR(false_states, sm) {
+		__set_true_false_sm(NULL, sm);
+	} END_FOR_EACH_PTR(sm);
+
+	free_slist(&true_states);
+	free_slist(&false_states);
+}
+
+
+
 void function_comparison(int comparison, struct expression *expr,
 				long long value, int left)
 {
 	if (call_implies_callbacks(comparison, expr, value, left))
 		return;
 	compare_db_implies_callbacks(comparison, expr, value, left);
+	compare_db_return_states_callbacks(comparison, expr, value, left);
 }
 
 static int db_assign_callback(void *unused, int argc, char **argv, char **azColName)
@@ -396,18 +471,19 @@ static int db_assign_callback(void *unused, int argc, char **argv, char **azColN
 	return 0;
 }
 
-static void db_return_implies_assign(struct expression *expr)
+static int db_return_implies_assign(struct expression *expr)
 {
 	struct symbol *sym;
         static char sql_filter[1024];
 	static struct sm_state *sm;
+	int handled = 0;
 
 	if (expr->right->fn->type != EXPR_SYMBOL || !expr->right->fn->symbol)
-		return;
+		return 0;
 
 	sym = expr->right->fn->symbol;
 	if (!sym)
-		return;
+		return 0;
 
 	if (sym->ctype.modifiers & MOD_STATIC) {
 		snprintf(sql_filter, 1024,
@@ -426,8 +502,90 @@ static void db_return_implies_assign(struct expression *expr)
 
 	FOR_EACH_PTR(db_info.slist, sm) {
 		__set_sm(sm);
+		handled = 1;
 	} END_FOR_EACH_PTR(sm);
 
+	return handled;
+}
+
+static int prev_return_id;
+static int db_assign_return_states_callback(void *unused, int argc, char **argv, char **azColName)
+{
+	struct range_list *ret_range;
+	int type, param;
+	char *key, *value;
+	struct return_implies_callback *tmp;
+	struct state_list *slist;
+	int return_id;
+
+	if (argc != 6)
+		return 0;
+
+	return_id = atoi(argv[0]);
+	get_value_ranges(argv[1], &ret_range);
+	if (!ret_range)
+		ret_range = whole_range_list();
+	type = atoi(argv[2]);
+	param = atoi(argv[3]);
+	key = argv[4];
+	value = argv[5];
+
+	if (prev_return_id != -1 && return_id != prev_return_id) {
+		slist = __pop_fake_cur_slist();
+		merge_slist(&db_info.slist, slist);
+		__push_fake_cur_slist();
+	}
+	prev_return_id = return_id;
+
+	FOR_EACH_PTR(db_implies_list, tmp) {
+		if (tmp->type == type)
+			tmp->callback(db_info.expr->right, param, key, value);
+	} END_FOR_EACH_PTR(tmp);
+	set_extra_expr_mod(db_info.expr->left, alloc_estate_range_list(ret_range));
+
+	return 0;
+}
+
+static int db_return_states_assign(struct expression *expr)
+{
+	struct symbol *sym;
+	struct sm_state *sm;
+	struct state_list *slist;
+        static char sql_filter[1024];
+	int handled = 0;
+
+	if (expr->right->fn->type != EXPR_SYMBOL || !expr->right->fn->symbol)
+		return 0;
+
+	sym = expr->right->fn->symbol;
+	if (!sym)
+		return 0;
+
+	if (sym->ctype.modifiers & MOD_STATIC) {
+		snprintf(sql_filter, 1024,
+			 "file = '%s' and function = '%s' and static = '1';",
+			 get_filename(), sym->ident->name);
+	} else {
+		snprintf(sql_filter, 1024,
+			 "function = '%s' and static = '0';", sym->ident->name);
+	}
+
+	prev_return_id = -1;
+	db_info.expr = expr;
+	db_info.slist = NULL;
+	__push_fake_cur_slist();
+	run_sql(db_assign_return_states_callback,
+		"select return_id, return, type, parameter, key, value from return_states where %s",
+		sql_filter);
+	slist = __pop_fake_cur_slist();
+	merge_slist(&db_info.slist, slist);
+
+	FOR_EACH_PTR(db_info.slist, sm) {
+		__set_sm(sm);
+		handled = 1;
+	} END_FOR_EACH_PTR(sm);
+
+	return handled;
 }
 
 static void match_assign_call(struct expression *expr)
@@ -435,18 +593,130 @@ static void match_assign_call(struct expression *expr)
 	struct call_back_list *call_backs;
 	const char *fn;
 	struct expression *right;
+	int handled = 0;
 
 	right = strip_expr(expr->right);
-	if (right->fn->type != EXPR_SYMBOL || !right->fn->symbol)
-		return;
-	fn = right->fn->symbol->ident->name;
-	call_backs = search_callback(func_hash, (char *)fn);
-	if (!call_backs) {
-		db_return_implies_assign(expr);
+	if (right->fn->type != EXPR_SYMBOL || !right->fn->symbol) {
+		set_extra_expr_mod(expr->left, extra_undefined());
 		return;
 	}
+	fn = right->fn->symbol->ident->name;
+	call_backs = search_callback(func_hash, (char *)fn);
+
 	call_call_backs(call_backs, ASSIGN_CALL, fn, expr);
-	assign_ranged_funcs(fn, expr, call_backs);
+	handled |= call_call_backs(call_backs, ASSIGN_CALL_EXTRA, fn, expr);
+	handled |= assign_ranged_funcs(fn, expr, call_backs);
+	if (handled)
+		return;
+	handled |= db_return_implies_assign(expr);
+	handled |= db_return_states_assign(expr);
+	if (!handled)
+		set_extra_expr_mod(expr->left, extra_undefined());
+}
+
+static int db_return_states_callback(void *unused, int argc, char **argv, char **azColName)
+{
+	struct range_list *ret_range;
+	int type, param;
+	char *key, *value;
+	struct return_implies_callback *tmp;
+	struct state_list *slist;
+	int return_id;
+
+	if (argc != 6)
+		return 0;
+
+	return_id = atoi(argv[0]);
+	get_value_ranges(argv[1], &ret_range);
+	type = atoi(argv[2]);
+	param = atoi(argv[3]);
+	key = argv[4];
+	value = argv[5];
+
+	if (prev_return_id != -1 && return_id != prev_return_id) {
+		slist = __pop_fake_cur_slist();
+		merge_slist(&db_info.slist, slist);
+		__push_fake_cur_slist();
+	}
+	prev_return_id = return_id;
+
+	FOR_EACH_PTR(db_implies_list, tmp) {
+		if (tmp->type == type)
+			tmp->callback(db_info.expr, param, key, value);
+	} END_FOR_EACH_PTR(tmp);
+
+	return 0;
+}
+
+static void db_return_states(struct expression *expr)
+{
+	struct symbol *sym;
+	struct sm_state *sm;
+	struct state_list *slist;
+        static char sql_filter[1024];
+
+	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
+		return;
+
+	sym = expr->fn->symbol;
+	if (!sym)
+		return;
+
+	if (sym->ctype.modifiers & MOD_STATIC) {
+		snprintf(sql_filter, 1024,
+			 "file = '%s' and function = '%s' and static = '1';",
+			 get_filename(), sym->ident->name);
+	} else {
+		snprintf(sql_filter, 1024,
+			 "function = '%s' and static = '0';", sym->ident->name);
+	}
+
+	prev_return_id = -1;
+	db_info.expr = expr;
+	db_info.slist = NULL;
+	__push_fake_cur_slist();
+	run_sql(db_return_states_callback,
+		"select return_id, return, type, parameter, key, value from return_states where %s",
+		sql_filter);
+	slist = __pop_fake_cur_slist();
+	merge_slist(&db_info.slist, slist);
+
+	FOR_EACH_PTR(db_info.slist, sm) {
+		__set_sm(sm);
+	} END_FOR_EACH_PTR(sm);
+}
+
+static int is_assigned_call(struct expression *expr)
+{
+	struct expression *tmp;
+
+	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
+		if (tmp->type == EXPR_ASSIGNMENT && tmp->right == expr)
+			return 1;
+		if (tmp->pos.line < expr->pos.line)
+			return 0;
+	} END_FOR_EACH_PTR_REVERSE(tmp);
+	return 0;
+}
+
+static void db_return_states_call(struct expression *expr)
+{
+	if (is_assigned_call(expr))
+		return;
+	db_return_states(expr);
+}
+
+static void match_function_call(struct expression *expr)
+{
+	struct call_back_list *call_backs;
+
+	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
+		return;
+	call_backs = search_callback(func_hash, (char *)expr->fn->symbol->ident->name);
+	if (call_backs)
+		call_call_backs(call_backs, REGULAR_CALL,
+				expr->fn->symbol->ident->name, expr);
+	db_return_states_call(expr);
 }
 
 static void match_macro_assign(struct expression *expr)
@@ -461,6 +731,7 @@ static void match_macro_assign(struct expression *expr)
 	if (!call_backs)
 		return;
 	call_call_backs(call_backs, MACRO_ASSIGN, macro, expr);
+	call_call_backs(call_backs, MACRO_ASSIGN_EXTRA, macro, expr);
 }
 
 void create_function_hook_hash(void)

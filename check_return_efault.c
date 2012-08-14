@@ -89,11 +89,11 @@ void check_return_efault(int id)
 		return;
 
 	my_id = id;
-	add_function_assign_hook("copy_to_user", &match_copy, NULL);
-	add_function_assign_hook("__copy_to_user", &match_copy, NULL);
-	add_function_assign_hook("copy_from_user", &match_copy, NULL);
-	add_function_assign_hook("__copy_from_user", &match_copy, NULL);
-	add_function_assign_hook("clear_user", &match_copy, NULL);
+	add_function_assign_hook_extra("copy_to_user", &match_copy, NULL);
+	add_function_assign_hook_extra("__copy_to_user", &match_copy, NULL);
+	add_function_assign_hook_extra("copy_from_user", &match_copy, NULL);
+	add_function_assign_hook_extra("__copy_from_user", &match_copy, NULL);
+	add_function_assign_hook_extra("clear_user", &match_copy, NULL);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 	add_modification_hook(my_id, &ok_to_use);

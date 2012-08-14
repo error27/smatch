@@ -53,10 +53,10 @@ void check_kernel(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 
-	add_function_assign_hook("ERR_PTR", &match_err_cast, NULL);
-	add_function_assign_hook("ERR_CAST", &match_err_cast, NULL);
-	add_function_assign_hook("PTR_ERR", &match_err_cast, NULL);
+	add_function_assign_hook_extra("ERR_PTR", &match_err_cast, NULL);
+	add_function_assign_hook_extra("ERR_CAST", &match_err_cast, NULL);
+	add_function_assign_hook_extra("PTR_ERR", &match_err_cast, NULL);
 	return_implies_state("IS_ERR_OR_NULL", 0, 0, &match_param_nonnull, (void *)0);
 	return_implies_state("tomoyo_memory_ok", 1, 1, &match_param_nonnull, (void *)0);
-	add_macro_assign_hook("container_of", &match_container_of, NULL);
+	add_macro_assign_hook_extra("container_of", &match_container_of, NULL);
 }

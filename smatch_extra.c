@@ -917,20 +917,11 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 
 static void match_call_assign(struct expression *expr)
 {
-	struct expression *right;
-	struct range_list *rl;
-
 	if (expr->op != '=')
 		return;
 
-	right = strip_parens(expr->right);
-	while (right->type == EXPR_ASSIGNMENT && right->op == '=')
-		right = strip_parens(right->left);
-
-	rl = db_return_vals(right);
-	if (rl)
-		set_extra_expr_mod(expr->left, alloc_estate_range_list(rl));
-	else
+	/* if we have a db set up this gets set in smatch_function_hooks.c */
+	if (option_no_db)
 		set_extra_expr_mod(expr->left, extra_undefined());
 }
 
