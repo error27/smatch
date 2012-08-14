@@ -49,8 +49,10 @@ void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql)
 		return;
 
 	rc = sqlite3_exec(db, sql, callback, 0, &err);
-	if (rc != SQLITE_OK)
+	if (rc != SQLITE_OK) {
 		fprintf(stderr, "SQL error #2: %s\n", err);
+		fprintf(stderr, "SQL: '%s'\n", sql);
+	}
 }
 
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type)
