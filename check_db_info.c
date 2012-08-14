@@ -31,13 +31,10 @@ static void match_return(struct expression *ret_value)
 	if (!ret_value)
 		return;
 
-	if (get_implied_range_list(ret_value, &rl)) {
-		sm_msg("info: return_value %s %s", show_ranges(rl), global_static());
+	if (get_implied_range_list(ret_value, &rl))
 		add_return_range(rl);
-	} else {
-		sm_msg("info: return_value unknown %s", global_static());
+	else
 		add_return_range(whole_range_list());
-	}
 }
 
 static void match_end_func(struct symbol *sym)
