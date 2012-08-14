@@ -829,24 +829,24 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 	state = get_state_expr(my_id, expr);
 	if (state) {
 		*rl = clone_range_list(estate_ranges(state));
-		return 1;
+		goto out;
 	}
 
 	if (expr->type == EXPR_CALL) {
 		*rl = db_return_vals(expr);
-		return !!*rl;
+		goto out;
 	}
 
 	if (get_implied_value(expr, &val)) {
 		add_range(rl, val, val);
-		return 1;
+		goto out;
 	}
 
 	if (expr->type == EXPR_BINOP && expr->op == '%') {
 		if (!get_implied_value(expr->right, &val))
 			return 0;
 		add_range(rl, 0, val - 1);
-		return 1;
+		goto out;
 	}
 
 	if (!get_implied_min(expr, &min))
@@ -855,6 +855,10 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 		return 0;
 
 	*rl = alloc_range_list(min, max);
+
+out:
+	if (is_whole_range_rl(*rl))
+		return 0;
 	return 1;
 }
 
