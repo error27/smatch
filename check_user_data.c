@@ -87,7 +87,7 @@ int is_user_data(struct expression *expr)
 			return 1;
 		return 0;
 	}
-	if (expr->type == EXPR_PREOP && expr->op == '&')
+	if (expr->type == EXPR_PREOP && (expr->op == '&' || expr->op == '*'))
 		expr = strip_expr(expr->unop);
 
 	tmp = get_sm_state_expr(my_id, expr);
