@@ -34,11 +34,17 @@ at76_load_ext_fw_block 2
 at76_load_int_fw_block 2
 ath3k_get_state 1
 ath3k_get_version 1
+au0828_writereg 1
+__az6007_read 4
+az6007_read 4
+__az6007_write 4
+az6007_write 4
 az6027_usb_in_op 4
 az6027_usb_out_op 4
 BcmRDM 2
 BcmWRM 2
 BoxGetRegister 3
+brcmf_usb_dl_send_bulk 1
 bulk_immediate 1
 bulk_xfer 1
 catc_ctrl_msg 5
@@ -53,7 +59,6 @@ dib0700_ctrl_rd 3
 dib0700_ctrl_wr 1
 dibusb_i2c_msg 4
 dibusb_read_eeprom_byte 2
-__do_config_autodelink 1
 ds9490r_read_block 1
 ds9490r_write_block 1
 ds_read_block 1
@@ -69,6 +74,9 @@ dtv5100_i2c_msg 4
 dvb_usb_generic_rw 1
 dvb_usb_generic_rw 3
 dvb_usb_generic_write 1
+dvb_usbv2_generic_rw 1
+dvb_usbv2_generic_rw 3
+dvb_usbv2_generic_write 1
 ene_get_card_type 2
 ENE_Read_BYTE 2
 ENE_Read_Data 1
@@ -90,6 +98,8 @@ ft1000_read_dpram32 2
 ft1000_read_register 1
 ft1000_receive_cmd 1
 ft1000_write_dpram32 2
+gdm_wibro_recv 1
+gdm_wibro_send 1
 get_descriptor_addr 2
 get_hub_descriptor 1
 get_hub_status 1
@@ -108,6 +118,7 @@ __hwahc_op_mmcie_add 4
 hwarc_cmd 1
 i2400mu_tx 1
 i2400mu_tx_bulk_out 1
+iguanair_send 3
 InterfaceRDM 2
 InterfaceWRM 2
 it913x_bulk_read 1
@@ -138,6 +149,11 @@ ms_read_copyblock 5
 ms_read_readpage 3
 ms_transfer_data 7
 mts_int_submit_urb 2
+mwifiex_host_to_card_mp_aggr 1
+mwifiex_read_data_sync 1
+mwifiex_sdio_card_to_host 2
+mwifiex_write_data_sync 1
+mwifiex_write_data_to_card 1
 mxl111sf_ctrl_msg 4
 mxl111sf_i2c_get_data 3
 nc_register_read 2
@@ -151,10 +167,12 @@ parport_uss720_ecp_read_data 1
 parport_uss720_ecp_write_data 1
 parport_uss720_epp_write_data 1
 parport_uss720_write_compat 1
+pcan_usb_pro_restart_async 2
+pcan_usb_pro_send_req 3
+pcan_usb_restart_async 2
 PIPEnsControlOutAsyn 5
 pl2303_vendor_read 3
-qt2_box_get_register 3
-qt2_openboxchannel 2
+qt2_getregister 3
 qt_open_channel 2
 r8712_usb_write_mem 3
 read_download_mem 4
@@ -165,8 +183,6 @@ read_packet 2
 read_ram 3
 read_reg 2
 read_rom 3
-recv_control_msg 4
-regget 2
 rndis_command 1
 __rpipe_get_descr 1
 __rpipe_set_descr 1
@@ -193,7 +209,7 @@ sddr09_writeX 5
 sddr55_bulk_transport 2
 sd_read_data 7
 send_cmd 4
-send_control_msg 4
+send_control_msg 3
 send_packet 1
 send_packets 1
 send_packets_g50 1
@@ -221,6 +237,8 @@ Ssfdc_D_ReadSect 2
 Ssfdc_D_WriteSectForCopy 1
 ssu100_getdevice 1
 ssu100_getregister 3
+stk1160_i2c_read_reg 3
+stk1160_read_reg 2
 stk_camera_read_reg 2
 ti_command_in_sync 4
 ti_command_out_sync 4
