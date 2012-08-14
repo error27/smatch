@@ -125,6 +125,22 @@ void set_param_user_data(const char *name, struct symbol *sym, char *key, char *
 	set_state(my_id, fullname, sym, &user_data);
 }
 
+static void match_syscall_definition(struct symbol *sym)
+{
+	struct symbol *arg;
+	char *macro;
+
+	macro = get_macro_name(sym->pos);
+	if (!macro)
+		return;
+	if (strncmp("SYSCALL_DEFINE", macro, strlen("SYSCALL_DEFINE")))
+		return;
+
+	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
+		set_state(my_id, arg->ident->name, arg, &user_data);
+	} END_FOR_EACH_PTR(arg);
+}
+
 static void match_condition(struct expression *expr)
 {
 	switch (expr->op) {
@@ -302,6 +318,7 @@ void check_user_data(int id)
 		return;
 	my_id = id;
 	add_definition_db_callback(set_param_user_data, USER_DATA);
+	add_hook(&match_syscall_definition, FUNC_DEF_HOOK);
 	add_hook(match_call_assignment, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
