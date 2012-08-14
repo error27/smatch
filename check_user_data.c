@@ -28,6 +28,62 @@ static int is_user_macro(struct expression *expr)
 	return 0;
 }
 
+static int db_user_data;
+static int db_user_data_callback(void *unused, int argc, char **argv, char **azColName)
+{
+	db_user_data = 1;
+	return 0;
+}
+
+static int passes_user_data(struct expression *expr)
+{
+	struct expression *arg;
+
+	FOR_EACH_PTR(expr->args, arg) {
+		if (is_user_data(arg))
+			return 1;
+	} END_FOR_EACH_PTR(arg);
+
+	return 0;
+}
+
+static int is_user_fn_db(struct expression *expr)
+{
+	struct symbol *sym;
+	static char sql_filter[1024];
+
+	if (expr->fn->type != EXPR_SYMBOL)
+		return 0;
+	sym = expr->fn->symbol;
+	if (!sym)
+		return 0;
+
+	if (!passes_user_data(expr))
+		return 0;
+
+	if (sym->ctype.modifiers & MOD_STATIC) {
+		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
+			 get_filename(), sym->ident->name);
+	} else {
+		snprintf(sql_filter, 1024, "function = '%s' and static = 0;",
+				sym->ident->name);
+	}
+
+	db_user_data = 0;
+	run_sql(db_user_data_callback, "select value from return_states where type=%d and %s",
+		 USER_DATA, sql_filter);
+	return db_user_data;
+}
+
+static int is_user_function(struct expression *expr)
+{
+	if (expr->type != EXPR_CALL)
+		return 0;
+	if (sym_name_is("kmemdup_user", expr->fn))
+		return 1;
+	return is_user_fn_db(expr);
+}
+
 static int is_skb_data(struct expression *expr)
 {
 	struct symbol *sym;
@@ -74,6 +130,8 @@ int is_user_data(struct expression *expr)
 		return 0;
 
 	if (is_user_macro(expr))
+		return 1;
+	if (is_user_function(expr))
 		return 1;
 	if (is_skb_data(expr))
 		return 1;
@@ -245,7 +303,7 @@ static void match_caller_info(struct expression *expr)
 	i = 0;
 	FOR_EACH_PTR(expr->args, tmp) {
 		if (is_user_data(tmp))
-			sm_msg("info: passes user_data %s %d '$$' %s", func, i,
+			sm_msg("info: passes user_data '%s' %d '$$' %s", func, i,
 			       is_static(expr->fn) ? "static" : "global");
 		i++;
 	} END_FOR_EACH_PTR(tmp);
@@ -260,56 +318,13 @@ static void struct_member_callback(char *fn, char *global_static, int param, cha
 
 static void match_return(struct expression *expr)
 {
-	if (is_user_data(expr))
-		sm_msg("info: returns_user_data %s", global_static());
-}
+	if (is_user_data(expr)) {
+		struct range_list *rl;
 
-static int db_user_data;
-static int db_user_data_callback(void *unused, int argc, char **argv, char **azColName)
-{
-	db_user_data = 1;
-	return 0;
-}
-
-static int passes_user_data(struct expression *expr)
-{
-	struct expression *arg;
-
-	FOR_EACH_PTR(expr->args, arg) {
-		if (is_user_data(arg))
-			return 1;
-	} END_FOR_EACH_PTR(arg);
-
-	return 0;
-}
-
-static void match_call_assignment(struct expression *expr)
-{
-	struct symbol *sym;
-	static char sql_filter[1024];
-
-	if (expr->right->fn->type != EXPR_SYMBOL)
-		return;
-	sym = expr->right->fn->symbol;
-	if (!sym)
-		return;
-
-	if (!passes_user_data(expr->right))
-		return;
-
-	if (sym->ctype.modifiers & MOD_STATIC) {
-		snprintf(sql_filter, 1024, "file = '%s' and function = '%s' and type = %d;",
-			 get_filename(), sym->ident->name, USER_DATA);
-	} else {
-		snprintf(sql_filter, 1024, "function = '%s' and static = 0 and type = %d;",
-				sym->ident->name, USER_DATA);
+		get_implied_range_list(expr, &rl);
+		sm_msg("info: returns_user_data %d '%s' %s",
+		       get_return_id(), show_ranges(rl), global_static());
 	}
-
-	db_user_data = 0;
-	run_sql(db_user_data_callback, "select value from return_info where %s",
-		 sql_filter);
-	if (db_user_data)
-		set_state_expr(my_id, expr->left, &user_data);
 }
 
 void check_user_data(int id)
@@ -319,7 +334,6 @@ void check_user_data(int id)
 	my_id = id;
 	add_definition_db_callback(set_param_user_data, USER_DATA);
 	add_hook(&match_syscall_definition, FUNC_DEF_HOOK);
-	add_hook(match_call_assignment, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_assign_userdata, ASSIGNMENT_HOOK);
