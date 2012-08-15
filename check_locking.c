@@ -417,7 +417,8 @@ static void do_lock(const char *name)
 	sm = get_sm_state(my_id, name, NULL);
 	if (!sm)
 		add_tracker(&starts_unlocked, my_id, name, NULL);
-	if (sm && slist_has_state(sm->possible, &locked))
+	if (sm && slist_has_state(sm->possible, &locked) &&
+			strcmp(name, "bottom_half:") != 0)
 		sm_msg("error: double lock '%s'", name);
 	if (sm)
 		func_has_transition = TRUE;
@@ -443,7 +444,8 @@ static void do_unlock(const char *name)
 	sm = get_sm_state(my_id, name, NULL);
 	if (!sm)
 		add_tracker(&starts_locked, my_id, name, NULL);
-	if (sm && slist_has_state(sm->possible, &unlocked))
+	if (sm && slist_has_state(sm->possible, &unlocked) &&
+			strcmp(name, "bottom_half:") != 0)
 		sm_msg("error: double unlock '%s'", name);
 	if (sm)
 		func_has_transition = TRUE;
