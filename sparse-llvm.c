@@ -650,10 +650,19 @@ static void output_op_store(struct function *fn, struct instruction *insn)
 	insn->target->priv = target;
 }
 
+static LLVMValueRef bool_value(struct function *fn, LLVMValueRef value)
+{
+	if (LLVMTypeOf(value) != LLVMInt1Type())
+		value = LLVMBuildIsNotNull(fn->builder, value, "cond");
+
+	return value;
+}
+
 static void output_op_br(struct function *fn, struct instruction *br)
 {
 	if (br->cond) {
-		LLVMValueRef cond = pseudo_to_value(fn, br, br->cond);
+		LLVMValueRef cond = bool_value(fn,
+				pseudo_to_value(fn, br, br->cond));
 
 		LLVMBuildCondBr(fn->builder, cond,
 				br->bb_true->priv,
@@ -668,7 +677,7 @@ static void output_op_sel(struct function *fn, struct instruction *insn)
 {
 	LLVMValueRef target, src1, src2, src3;
 
-	src1 = pseudo_to_value(fn, insn, insn->src1);
+	src1 = bool_value(fn, pseudo_to_value(fn, insn, insn->src1));
 	src2 = pseudo_to_value(fn, insn, insn->src2);
 	src3 = pseudo_to_value(fn, insn, insn->src3);
 
