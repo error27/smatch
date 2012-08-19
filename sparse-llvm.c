@@ -150,7 +150,13 @@ static LLVMTypeRef sym_union_type(LLVMModuleRef module, struct symbol *sym)
 
 static LLVMTypeRef sym_ptr_type(LLVMModuleRef module, struct symbol *sym)
 {
-	LLVMTypeRef type = symbol_type(module, sym->ctype.base_type);
+	LLVMTypeRef type;
+
+	/* 'void *' is treated like 'char *' */
+	if (is_void_type(sym->ctype.base_type))
+		type = LLVMInt8Type();
+	else
+		type = symbol_type(module, sym->ctype.base_type);
 
 	return LLVMPointerType(type, 0);
 }
@@ -176,10 +182,12 @@ static LLVMTypeRef sym_basetype_type(struct symbol *sym)
 		}
 	} else {
 		switch (sym->bit_size) {
+		case -1:
+			ret = LLVMVoidType();
+			break;
 		case 1:
 			ret = LLVMInt1Type();
 			break;
-		case -1:	/* 'void *' is treated like 'char *' */
 		case 8:
 			ret = LLVMInt8Type();
 			break;
