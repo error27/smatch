@@ -5,6 +5,7 @@
 
 #include <llvm-c/Core.h>
 #include <llvm-c/BitWriter.h>
+#include <llvm-c/Analysis.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -1252,6 +1253,8 @@ int main(int argc, char **argv)
 	FOR_EACH_PTR_NOTAG(filelist, file) {
 		compile(module, sparse(file));
 	} END_FOR_EACH_PTR_NOTAG(file);
+
+	LLVMVerifyModule(module, LLVMPrintMessageAction, NULL);
 
 	LLVMWriteBitcodeToFD(module, STDOUT_FILENO, 0, 0);
 
