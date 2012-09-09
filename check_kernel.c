@@ -65,7 +65,7 @@ static void match_err(const char *fn, struct expression *call_expr,
 
 	arg = get_argument_from_call_expr(call_expr->args, 0);
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
-	new_state = filter_range(pre_state, whole_range.min, -4097);
+	new_state = filter_range(pre_state, whole_range.min, -4096);
 	new_state = filter_range(new_state, 0, whole_range.max);
 	set_extra_expr_nomod(arg, new_state);
 }
