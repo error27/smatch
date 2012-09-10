@@ -59,7 +59,7 @@ SMATCH_DATA=smatch_data/kernel.allocation_funcs smatch_data/kernel.balanced_func
 
 PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse \
 	 test-linearize example test-unssa test-dissect ctags
-INST_PROGRAMS=smatch
+INST_PROGRAMS=smatch cgcc
 
 INST_MAN1=sparse.1 cgcc.1
 
