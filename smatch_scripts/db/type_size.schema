@@ -1,3 +1,4 @@
-CREATE TABLE type_size (type varchar(256), size integer);
+CREATE TABLE type_size (file varchar(256), type varchar(256), size integer);
 
+CREATE INDEX type_size_file_idx on type_size (file, type);
 CREATE INDEX type_size_idx on type_size (type);

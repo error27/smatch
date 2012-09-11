@@ -124,7 +124,10 @@ static int get_initializer_size(struct expression *expr)
 static int db_size;
 static int db_size_callback(void *unused, int argc, char **argv, char **azColName)
 {
-	db_size = atoi(argv[0]);
+	if (db_size == 0)
+		db_size = atoi(argv[0]);
+	else
+		db_size = -1;
 	return 0;
 }
 
@@ -140,8 +143,19 @@ static int size_from_db(struct expression *expr)
 		return 0;
 
 	db_size = 0;
+	run_sql(db_size_callback, "select size from type_size where type = '%s' and file = '%s'",
+			name, get_filename());
+	if (db_size == -1)
+		return 0;
+	if (db_size != 0)
+		return db_size;
+
 	run_sql(db_size_callback, "select size from type_size where type = '%s'",
 			name);
+
+	if (db_size == -1)
+		db_size = 0;
+
 	return db_size;
 }
 
