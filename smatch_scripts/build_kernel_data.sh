@@ -23,7 +23,7 @@ else
     exit 1
 fi
 
-$SCRIPT_DIR/test_kernel.sh --call-tree --info --param-mapper --data=$DATA_DIR
+$SCRIPT_DIR/test_kernel.sh --call-tree --info --param-mapper --spammy --data=$DATA_DIR
 
 for i in $SCRIPT_DIR/gen_* ; do
 	$i warns.txt
