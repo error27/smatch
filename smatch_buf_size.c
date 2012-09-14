@@ -37,6 +37,13 @@ static void set_undefined(struct sm_state *sm)
 		set_state(sm->owner, sm->name, sm->sym, &undefined);
 }
 
+static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_state *s2)
+{
+	if (PTR_INT(s1->data) == PTR_INT(s2->data))
+		return s1;
+	return &undefined;
+}
+
 void set_param_buf_size(const char *name, struct symbol *sym, char *key, char *value)
 {
 	char fullname[256];
@@ -612,12 +619,15 @@ void register_buf_size(int id)
 
 	add_hook(&match_func_end, END_FUNC_HOOK);
 	add_modification_hook(my_size_id, &set_undefined);
+
+	add_merge_hook(my_size_id, &merge_func);
 }
 
 void register_strlen(int id)
 {
 	my_strlen_id = id;
 	add_modification_hook(my_strlen_id, &set_undefined);
+	add_merge_hook(my_strlen_id, &merge_func);
 }
 
 void register_buf_size_late(int id)
