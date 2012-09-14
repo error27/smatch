@@ -24,6 +24,24 @@ static int my_id;
 STATE(capped);
 STATE(uncapped);
 
+static int is_capped_macro(struct expression *expr)
+{
+	char *name;
+
+	name = get_macro_name(expr->pos);
+	if (!name)
+		return 0;
+
+	if (strcmp(name, "min") == 0)
+		return 1;
+	if (strcmp(name, "MIN") == 0)
+		return 1;
+	if (strcmp(name, "min_t") == 0)
+		return 1;
+
+	return 0;
+}
+
 int is_capped(struct expression *expr)
 {
 	long long val;
@@ -31,6 +49,9 @@ int is_capped(struct expression *expr)
 	expr = strip_expr(expr);
 	if (!expr)
 		return 0;
+
+	if (is_capped_macro(expr))
+		return 1;
 
 	if (expr->type == EXPR_BINOP) {
 		if (expr->op == '&')
@@ -107,11 +128,6 @@ static void match_condition(struct expression *expr)
 	set_true_false_states_expr(my_id, expr->left, left_true, left_false);
 }
 
-static void match_min_assign(const char *fn, struct expression *expr, void *unused)
-{
-	set_state_expr(my_id, expr->left, &capped);
-}
-
 static void match_assign(struct expression *expr)
 {
 	if (is_capped(expr->right)) {
@@ -155,8 +171,6 @@ void register_capped(int id)
 	add_definition_db_callback(set_param_capped_data, CAPPED_DATA);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
-	add_macro_assign_hook("min", &match_min_assign, NULL);
-	add_macro_assign_hook("min_t", &match_min_assign, NULL);
 	if (option_info) {
 		add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
 		add_member_info_callback(my_id, struct_member_callback);
