@@ -17,7 +17,7 @@ static struct {
 } param_index[] = {
 	{.name_param = 0, .mode_param = 1},
 	{.name_param = 1, .mode_param = 2},
-};	
+};
 
 #define S_IWOTH 00002
 
