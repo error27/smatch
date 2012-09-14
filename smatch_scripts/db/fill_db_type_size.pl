@@ -17,7 +17,6 @@ $db->do("PRAGMA journal_mode = OFF");
 
 $db->do("delete from type_size;");
 
-my $types = {};
 my ($file_and_line, $file, $dummy, $struct_bit, $member, $size);
 
 open(WARNS, "<$warns");
@@ -31,30 +30,20 @@ while (<WARNS>) {
     s/\n//;
     s/'//g;
 
-    ($file_and_line, $dummy, $dummy, $struct_bit, $member, $dummy, $size) = split(/ /, $_);
+    if ($_ =~ /\(struct /) {
+        ($file_and_line, $dummy, $dummy, $struct_bit, $member, $dummy, $size) = split(/ /, $_);
+        $member = "(struct $member";
+    } else {
+        ($file_and_line, $dummy, $dummy, $member, $dummy, $size) = split(/ /, $_);
+    }
     ($file, $dummy) = split(/:/, $file_and_line);
 
     if (!defined($size)) {
         next;
     }
-    if (!($struct_bit =~ /^\(struct$/)) {
-        next;
-    }
 
-    if (defined($types->{$member}) && $types->{$member} != $size) {
-        $size = -1;
-    }
-
-    $types->{$member} = $size;
-    $db->do("insert into type_size values ('$file', '(struct $member', '$size')\n");
-
+    $db->do("insert into type_size values ('$file', '$member', '$size')\n");
 }
-
-#foreach my $key (keys($types)) {
-#    if ($types->{$key} != -1) {
-#        $db->do("insert into type_size values ('$file', '(struct $key', '$types->{$key}')\n");
-#    }
-#}
 
 $db->commit();
 $db->disconnect();

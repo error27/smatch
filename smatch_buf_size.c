@@ -133,12 +133,17 @@ static int db_size_callback(void *unused, int argc, char **argv, char **azColNam
 
 static int size_from_db(struct expression *expr)
 {
+	int this_file_only = 0;
 	char *name;
 
 	if (!option_spammy)
 		return 0;
 
 	name = get_member_name(expr);
+	if (!name && is_static(expr)) {
+		name = get_variable_from_expr(expr, NULL);
+		this_file_only = 1;
+	}
 	if (!name)
 		return 0;
 
@@ -149,6 +154,8 @@ static int size_from_db(struct expression *expr)
 		return 0;
 	if (db_size != 0)
 		return db_size;
+	if (this_file_only)
+		return 0;
 
 	run_sql(db_size_callback, "select size from type_size where type = '%s'",
 			name);
@@ -424,18 +431,21 @@ static void match_array_assignment(struct expression *expr)
 
 static void info_record_alloction(struct expression *buffer, struct expression *size)
 {
-	char *member;
+	char *name;
 	long long val;
 
 	if (!option_info)
 		return;
-	member = get_member_name(buffer);
-	if (!member)
+
+	name = get_member_name(buffer);
+	if (!name && is_static(buffer))
+		name = get_variable_from_expr(buffer, NULL);
+	if (!name)
 		return;
 	if (!get_implied_value(size, &val))
 		val = -1;
-	sm_msg("info: '%s' allocated_buf_size %lld", member, val);
-	free_string(member);
+	sm_msg("info: '%s' allocated_buf_size %lld", name, val);
+	free_string(name);
 }
 
 static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
