@@ -215,6 +215,24 @@ static int get_stored_size_bytes(struct expression *expr)
 	return PTR_INT(state->data);
 }
 
+static int get_stored_size_bytes_min(struct expression *expr)
+{
+	struct sm_state *sm, *tmp;
+	int min = 0;
+
+	sm = get_sm_state_expr(my_size_id, expr);
+	if (!sm)
+		return 0;
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (PTR_INT(tmp->state->data) <= 0)
+			continue;
+		if (PTR_INT(tmp->state->data) < min)
+			min = PTR_INT(tmp->state->data);
+	} END_FOR_EACH_PTR(tmp);
+
+	return min;
+}
+
 static int get_bytes_from_address(struct expression *expr)
 {
 	struct symbol *type;
@@ -315,6 +333,19 @@ int get_array_size_bytes(struct expression *expr)
 		return size;
 
 	return size_from_db(expr);
+}
+
+int get_array_size_bytes_min(struct expression *expr)
+{
+	int size;
+	int tmp;
+
+	size = get_array_size_bytes(expr);
+
+	tmp = get_stored_size_bytes_min(expr);
+	if (size <= 0 || (tmp >= 1 && tmp < size))
+		size = tmp;
+	return size;
 }
 
 int get_array_size(struct expression *expr)

@@ -462,6 +462,7 @@ const char *check_name(unsigned short id);
 /* smatch_buf_size.c */
 int get_array_size(struct expression *expr);
 int get_array_size_bytes(struct expression *expr);
+int get_array_size_bytes_min(struct expression *expr);
 
 /* smatch_capped.c */
 int is_capped(struct expression *expr);
