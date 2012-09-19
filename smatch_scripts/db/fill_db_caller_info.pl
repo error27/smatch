@@ -82,7 +82,7 @@ while (<WARNS>) {
 
     } elsif ($_ =~ /info: passes param_value /) {
         # init/main.c +165 obsolete_checksetup(7) info: passes param_value strlen 0 min-max static
-        $type = 1;
+        $type = 1;  # PARAM_VALUE
         ($file_and_line, $caller, $dummy, $dummy, $dummy, $func, $param, $key, $value, $gs) = split(/ /, $_);
         ($file, $line) = split(/:/, $file_and_line);
 
@@ -94,7 +94,7 @@ while (<WARNS>) {
 
     } elsif ($_ =~ /info: passes_buffer /) {
         # init/main.c +175 obsolete_checksetup(17) info: passes_buffer 'printk' 0 '$$' 38 global
-        $type = 2;
+        $type = 2;  # BUF_SIZE
         ($file_and_line, $caller, $dummy, $dummy, $func, $param, $key, $value, $gs) = split(/ /, $_);
         ($file, $line) = split(/:/, $file_and_line);
 
@@ -105,7 +105,7 @@ while (<WARNS>) {
         }
     } elsif ($_ =~ /info: passes user_data /) {
         # test.c +24 func(11) info: passes user_data 'frob' 2 '$$->data' global
-        $type = 3;
+        $type = 3;  # USER_DATA
         $value = 1;
         ($file_and_line, $caller, $dummy, $dummy, $dummy, $func, $param, $key, $gs) = split(/ /, $_);
         ($file, $line) = split(/:/, $file_and_line);
@@ -118,7 +118,7 @@ while (<WARNS>) {
 
     } elsif ($_ =~ /info: passes capped_data /) {
         # test.c +24 func(11) info: passes capped_data 'frob' 2 '$$->data' static
-        $type = 4;
+        $type = 4;  # CAPPED_DATA
         $value = 1;
         ($file_and_line, $caller, $dummy, $dummy, $dummy, $func, $param, $key, $gs) = split(/ /, $_);
         ($file, $line) = split(/:/, $file_and_line);
