@@ -129,7 +129,7 @@ static void check_expr(struct expression *expr)
 		return;
 
 	name = get_variable_from_expr(expr, NULL);
-	if (overflow && underflow) 
+	if (overflow && underflow)
 		sm_msg("warn: check for integer over/underflow '%s'", name);
 	else if (underflow)
 		sm_msg("warn: check for integer underflow '%s'", name);

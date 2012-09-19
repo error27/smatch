@@ -88,5 +88,4 @@ void check_kmalloc_wrong_size(int id)
 
 	add_function_assign_hook("kmalloc", &match_alloc, NULL);
 	add_function_assign_hook("kcalloc", &match_calloc, INT_PTR(1));
-
 }

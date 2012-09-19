@@ -968,5 +968,4 @@ void register_smatch_extra_late(int id)
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_call_assign, CALL_ASSIGNMENT_HOOK);
-
 }

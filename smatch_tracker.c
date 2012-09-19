@@ -50,7 +50,6 @@ static void free_tracker(struct tracker *t)
 {
 	free_string(t->name);
 	__free_tracker(t);
-
 }
 
 void del_tracker(struct tracker_list **list, int owner, const char *name,

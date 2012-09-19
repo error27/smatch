@@ -44,7 +44,6 @@ static void match_copy(const char *fn, struct expression *expr, void *unused)
 	if (!get_absolute_max(arg, &max))
 		max = whole_range.max;
 	set_extra_expr_mod(expr->left, alloc_estate_range(0, max));
-
 }
 
 static void match_condition(struct expression *expr)

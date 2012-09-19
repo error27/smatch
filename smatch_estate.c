@@ -31,7 +31,6 @@ struct data_info *get_dinfo(struct smatch_state *state)
 	if (!state)
 		return NULL;
 	return (struct data_info *)state->data;
-
 }
 
 struct range_list *estate_ranges(struct smatch_state *state)

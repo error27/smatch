@@ -133,7 +133,6 @@ static void check_members_initialized(struct expression *expr)
 	struct symbol *outer;
 	struct symbol *sym;
 	struct symbol *tmp;
-	
 
 	sym = get_type(expr);
 	if (!sym || sym->type != SYM_STRUCT)

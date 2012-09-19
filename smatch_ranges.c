@@ -114,7 +114,6 @@ void get_value_ranges(char *value, struct range_list **rl)
 			c++;
 		c++; /* skip the comma in eg: 4-5,7 */
 	}
-
 }
 
 static struct data_range range_zero = {
@@ -641,7 +640,6 @@ int in_list_exact(struct range_list *list, struct data_range *drange)
 			return 1;
 	} END_FOR_EACH_PTR(tmp);
 	return 0;
-
 }
 
 void push_range_list(struct range_list_stack **rl_stack, struct range_list *rl)

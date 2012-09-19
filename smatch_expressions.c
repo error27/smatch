@@ -56,5 +56,4 @@ struct expression *symbol_expression(struct symbol *sym)
 	expr->symbol = sym;
 	expr->symbol_name = sym->ident;
 	return expr;
-
 }

@@ -235,7 +235,6 @@ static void match_condition(struct expression *expr)
 	default:
 		return;
 	}
-
 }
 
 static void match_normal_assign(struct expression *expr)

@@ -94,7 +94,6 @@ static void match_assign(struct expression *expr)
 			sm_msg("warn: value %lld can't fit into %lld '%s'", val, min, name);
 		free_string(name);
 	}
-
 }
 
 static const char *get_tf(long long variable, long long known, int var_pos, int op)

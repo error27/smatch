@@ -84,7 +84,6 @@ static int cmp_relation(struct relation *a, struct relation *b)
 		return ret;
 
 	return 0;
-
 }
 
 struct related_list *get_shared_relations(struct related_list *one,

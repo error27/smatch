@@ -98,7 +98,6 @@ static long long handle_ampersand(int *undefined, int implied)
 
 	*undefined = 1;
 	return BOGUS;
-
 }
 
 static long long handle_preop(struct expression *expr, int *undefined, int implied)

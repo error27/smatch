@@ -445,7 +445,6 @@ static void print_initializer_list(struct expression_list *expr_list,
 		       expr->expr_ident->name,
 		       expr->ident_expression->symbol_name->name);
 	} END_FOR_EACH_PTR(expr);
-
 }
 
 static void global_variable(struct symbol *sym)
