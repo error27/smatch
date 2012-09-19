@@ -539,7 +539,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 
 	FOR_EACH_PTR(db_implies_list, tmp) {
 		if (tmp->type == type)
-			tmp->callback(db_info.expr->right, param, key, value);
+			tmp->callback(db_info.expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
 	set_extra_expr_mod(db_info.expr->left, alloc_estate_range_list(ret_range));
 

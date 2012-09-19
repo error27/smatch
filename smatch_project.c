@@ -49,6 +49,9 @@ static void return_implies(struct expression *call_expr, int param, char *key, c
 	struct range_list *rl;
 	struct expression *arg;
 
+	if (call_expr->type == EXPR_ASSIGNMENT)
+		call_expr = strip_expr(call_expr->right);
+
 	arg = get_argument_from_call_expr(call_expr->args, param);
 	get_value_ranges(value, &rl);
 	set_extra_expr_nomod(arg, alloc_estate_range_list(rl));
