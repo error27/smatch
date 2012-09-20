@@ -29,21 +29,9 @@ static void ok_to_use(struct sm_state *sm)
 
 static void match_copy(const char *fn, struct expression *expr, void *unused)
 {
-	struct expression *call;
-	struct expression *arg;
-	long long max;
-
 	if (expr->op == SPECIAL_SUB_ASSIGN)
 		return;
 	set_state_expr(my_id, expr->left, &remaining);
-
-	call = strip_expr(expr->right);
-	if (call->type != EXPR_CALL)
-		return;
-	arg = get_argument_from_call_expr(call->args, 2);
-	if (!get_absolute_max(arg, &max))
-		max = whole_range.max;
-	set_extra_expr_mod(expr->left, alloc_estate_range(0, max));
 }
 
 static void match_condition(struct expression *expr)
@@ -88,11 +76,11 @@ void check_return_efault(int id)
 		return;
 
 	my_id = id;
-	add_function_assign_hook_extra("copy_to_user", &match_copy, NULL);
-	add_function_assign_hook_extra("__copy_to_user", &match_copy, NULL);
-	add_function_assign_hook_extra("copy_from_user", &match_copy, NULL);
-	add_function_assign_hook_extra("__copy_from_user", &match_copy, NULL);
-	add_function_assign_hook_extra("clear_user", &match_copy, NULL);
+	add_function_assign_hook("copy_to_user", &match_copy, NULL);
+	add_function_assign_hook("__copy_to_user", &match_copy, NULL);
+	add_function_assign_hook("copy_from_user", &match_copy, NULL);
+	add_function_assign_hook("__copy_from_user", &match_copy, NULL);
+	add_function_assign_hook("clear_user", &match_copy, NULL);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 	add_modification_hook(my_id, &ok_to_use);

@@ -8,9 +8,10 @@
  */
 
 /*
- * There are three types of function hooks:
+ * There are several types of function hooks:
  * add_function_hook()        - For any time a function is called.
  * add_function_assign_hook() - foo = the_function().
+ * add_implied_return_hook()  - Calculates the implied return value.
  * add_macro_assign_hook()    - foo = the_macro().
  * return_implies_state()     - For when a return value of 1 implies locked
  *                              and 0 implies unlocked. etc. etc.
@@ -27,7 +28,10 @@
 struct fcall_back {
 	int type;
 	struct data_range *range;
-	func_hook *call_back;
+	union {
+		func_hook *call_back;
+		implied_return_hook *implied_return;
+	} u;
 	void *info;
 };
 
@@ -40,7 +44,7 @@ static struct hashtable *func_hash;
 #define REGULAR_CALL       0
 #define RANGED_CALL        1
 #define ASSIGN_CALL        2
-#define ASSIGN_CALL_EXTRA  3
+#define IMPLIED_RETURN     3
 #define MACRO_ASSIGN       4
 #define MACRO_ASSIGN_EXTRA 5
 
@@ -52,14 +56,14 @@ ALLOCATOR(return_implies_callback, "return_implies callbacks");
 DECLARE_PTR_LIST(db_implies_list, struct return_implies_callback);
 static struct db_implies_list *db_implies_list;
 
-static struct fcall_back *alloc_fcall_back(int type, func_hook *call_back,
+static struct fcall_back *alloc_fcall_back(int type, void *call_back,
 					   void *info)
 {
 	struct fcall_back *cb;
 
 	cb = __alloc_fcall_back(0);
 	cb->type = type;
-	cb->call_back = call_back;
+	cb->u.call_back = call_back;
 	cb->info = info;
 	return cb;
 }
@@ -81,12 +85,13 @@ void add_function_assign_hook(const char *look_for, func_hook *call_back,
 	add_callback(func_hash, look_for, cb);
 }
 
-void add_function_assign_hook_extra(const char *look_for, func_hook *call_back,
-			      void *info)
+void add_implied_return_hook(const char *look_for,
+			     implied_return_hook *call_back,
+			     void *info)
 {
 	struct fcall_back *cb;
 
-	cb = alloc_fcall_back(ASSIGN_CALL_EXTRA, call_back, info);
+	cb = alloc_fcall_back(IMPLIED_RETURN, call_back, info);
 	add_callback(func_hash, look_for, cb);
 }
 
@@ -135,7 +140,7 @@ static int call_call_backs(struct call_back_list *list, int type,
 
 	FOR_EACH_PTR(list, tmp) {
 		if (tmp->type == type) {
-			(tmp->call_back)(fn, expr, tmp->info);
+			(tmp->u.call_back)(fn, expr, tmp->info);
 			handled = 1;
 		}
 	} END_FOR_EACH_PTR(tmp);
@@ -150,7 +155,7 @@ static void call_ranged_call_backs(struct call_back_list *list,
 	struct fcall_back *tmp;
 
 	FOR_EACH_PTR(list, tmp) {
-		((implication_hook *)(tmp->call_back))(fn, call_expr, assign_expr, tmp->info);
+		((implication_hook *)(tmp->u.call_back))(fn, call_expr, assign_expr, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -247,7 +252,7 @@ int call_implies_callbacks(int comparison, struct expression *expr, long long va
 			continue;
 		if (!true_comparison_range_lr(comparison, tmp->range, value_range, left))
 			continue;
-		((implication_hook *)(tmp->call_back))(fn, expr, NULL, tmp->info);
+		((implication_hook *)(tmp->u.call_back))(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
 	tmp_slist = __pop_fake_cur_slist();
 	merge_slist(&true_states, tmp_slist);
@@ -260,7 +265,7 @@ int call_implies_callbacks(int comparison, struct expression *expr, long long va
 			continue;
 		if (!false_comparison_range_lr(comparison, tmp->range, value_range, left))
 			continue;
-		((implication_hook *)(tmp->call_back))(fn, expr, NULL, tmp->info);
+		((implication_hook *)(tmp->u.call_back))(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
 	tmp_slist = __pop_fake_cur_slist();
 	merge_slist(&false_states, tmp_slist);
@@ -588,6 +593,16 @@ static int db_return_states_assign(struct expression *expr)
 	return handled;
 }
 
+static int handle_implied_return(struct expression *expr)
+{
+	struct range_list *rl;
+
+	if (!get_implied_return(expr->right, &rl))
+		return 0;
+	set_extra_expr_mod(expr->left, alloc_estate_range_list(rl));
+	return 1;
+}
+
 static void match_assign_call(struct expression *expr)
 {
 	struct call_back_list *call_backs;
@@ -604,7 +619,7 @@ static void match_assign_call(struct expression *expr)
 	call_backs = search_callback(func_hash, (char *)fn);
 
 	call_call_backs(call_backs, ASSIGN_CALL, fn, expr);
-	handled |= call_call_backs(call_backs, ASSIGN_CALL_EXTRA, fn, expr);
+	handled |= handle_implied_return(expr);
 	handled |= assign_ranged_funcs(fn, expr, call_backs);
 	if (handled)
 		return;
@@ -732,6 +747,34 @@ static void match_macro_assign(struct expression *expr)
 		return;
 	call_call_backs(call_backs, MACRO_ASSIGN, macro, expr);
 	call_call_backs(call_backs, MACRO_ASSIGN_EXTRA, macro, expr);
+}
+
+int get_implied_return(struct expression *expr, struct range_list **rl)
+{
+	struct call_back_list *call_backs;
+	struct fcall_back *tmp;
+	int handled = 0;
+	char *fn;
+
+	*rl = NULL;
+
+	expr = strip_expr(expr);
+	fn = get_variable_from_expr(expr->fn, NULL);
+	if (!fn)
+		goto out;
+
+	call_backs = search_callback(func_hash, fn);
+
+	FOR_EACH_PTR(call_backs, tmp) {
+		if (tmp->type == IMPLIED_RETURN) {
+			(tmp->u.implied_return)(expr, tmp->info, rl);
+			handled = 1;
+		}
+	} END_FOR_EACH_PTR(tmp);
+
+out:
+	free_string(fn);
+	return handled;
 }
 
 void create_function_hook_hash(void)

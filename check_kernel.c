@@ -14,19 +14,26 @@
 #include "smatch.h"
 #include "smatch_extra.h"
 
-static void match_err_cast(const char *fn, struct expression *expr, void *unused)
+static int implied_err_cast_return(struct expression *call, void *unused, struct range_list **rl)
 {
 	struct expression *arg;
-	struct expression *right;
-	struct range_list *rl;
 
-	right = strip_expr(expr->right);
-	arg = get_argument_from_call_expr(right->args, 0);
+	arg = get_argument_from_call_expr(call->args, 0);
+	if (!get_implied_range_list(arg, rl))
+		*rl = alloc_range_list(-4095, -1);
+	return 1;
+}
 
-	if (get_implied_range_list(arg, &rl))
-		set_extra_expr_mod(expr->left, alloc_estate_range_list(rl));
-	else
-		set_extra_expr_mod(expr->left, alloc_estate_range(-4095, -1));
+static int implied_copy_return(struct expression *call, void *unused, struct range_list **rl)
+{
+	struct expression *arg;
+	long long max;
+
+	arg = get_argument_from_call_expr(call->args, 2);
+	if (!get_absolute_max(arg, &max))
+		max = whole_range.max;
+	*rl = alloc_range_list(0, max);
+	return 1;
 }
 
 static void match_param_nonnull(const char *fn, struct expression *call_expr,
@@ -80,12 +87,18 @@ void check_kernel(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 
-	add_function_assign_hook_extra("ERR_PTR", &match_err_cast, NULL);
-	add_function_assign_hook_extra("ERR_CAST", &match_err_cast, NULL);
-	add_function_assign_hook_extra("PTR_ERR", &match_err_cast, NULL);
+	add_implied_return_hook("ERR_PTR", &implied_err_cast_return, NULL);
+	add_implied_return_hook("ERR_CAST", &implied_err_cast_return, NULL);
+	add_implied_return_hook("PTR_ERR", &implied_err_cast_return, NULL);
 	return_implies_state("IS_ERR_OR_NULL", 0, 0, &match_param_nonnull, (void *)0);
 	return_implies_state("IS_ERR", 0, 0, &match_not_err, NULL);
 	return_implies_state("IS_ERR", 1, 1, &match_err, NULL);
 	return_implies_state("tomoyo_memory_ok", 1, 1, &match_param_nonnull, (void *)0);
 	add_macro_assign_hook_extra("container_of", &match_container_of, NULL);
+
+	add_implied_return_hook("copy_to_user", &implied_copy_return, NULL);
+	add_implied_return_hook("__copy_to_user", &implied_copy_return, NULL);
+	add_implied_return_hook("copy_from_user", &implied_copy_return, NULL);
+	add_implied_return_hook("__copy_fom_user", &implied_copy_return, NULL);
+	add_implied_return_hook("clear_user", &implied_copy_return, NULL);
 }

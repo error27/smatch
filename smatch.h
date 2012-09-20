@@ -94,6 +94,8 @@ enum hook_type {
 #define TRUE 1
 #define FALSE 0
 
+struct range_list;
+
 void add_hook(void *func, enum hook_type type);
 typedef struct smatch_state *(merge_func_t)(struct smatch_state *s1, struct smatch_state *s2);
 typedef struct smatch_state *(unmatched_func_t)(struct sm_state *state);
@@ -106,12 +108,14 @@ typedef void (implication_hook)(const char *fn, struct expression *call_expr,
 				struct expression *assign_expr, void *data);
 typedef void (return_implies_hook)(struct expression *call_expr,
 				   int param, char *key, char *value);
+typedef int (implied_return_hook)(struct expression *call_expr, void *info, struct range_list **rl);
 void add_function_hook(const char *look_for, func_hook *call_back, void *data);
 
 void add_function_assign_hook(const char *look_for, func_hook *call_back,
 			      void *info);
-void add_function_assign_hook_extra(const char *look_for, func_hook *call_back,
-			      void *info);
+void add_implied_return_hook(const char *look_for,
+			     implied_return_hook *call_back,
+			     void *info);
 void add_macro_assign_hook(const char *look_for, func_hook *call_back,
 			      void *info);
 void add_macro_assign_hook_extra(const char *look_for, func_hook *call_back,
@@ -119,6 +123,8 @@ void add_macro_assign_hook_extra(const char *look_for, func_hook *call_back,
 void return_implies_state(const char *look_for, long long start, long long end,
 			 implication_hook *call_back, void *info);
 void add_db_return_implies_callback(int type, return_implies_hook *callback);
+int get_implied_return(struct expression *expr, struct range_list **rl);
+
 typedef void (modification_hook)(struct sm_state *sm);
 void add_modification_hook(int owner, modification_hook *call_back);
 void add_indirect_modification_hook(int owner, modification_hook *call_back);
@@ -214,6 +220,7 @@ int get_fuzzy_min(struct expression *expr, long long *min);
 int get_fuzzy_max(struct expression *expr, long long *max);
 int get_absolute_min(struct expression *expr, long long *val);
 int get_absolute_max(struct expression *expr, long long *val);
+int parse_call_math(struct expression *expr, char *math, long long *val);
 int is_zero(struct expression *expr);
 int known_condition_true(struct expression *expr);
 int known_condition_false(struct expression *expr);
