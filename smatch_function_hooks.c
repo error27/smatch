@@ -30,6 +30,7 @@ struct fcall_back {
 	struct data_range *range;
 	union {
 		func_hook *call_back;
+		implication_hook *ranged;
 		implied_return_hook *implied_return;
 	} u;
 	void *info;
@@ -118,7 +119,7 @@ void return_implies_state(const char *look_for, long long start, long long end,
 {
 	struct fcall_back *cb;
 
-	cb = alloc_fcall_back(RANGED_CALL, (func_hook *)call_back, info);
+	cb = alloc_fcall_back(RANGED_CALL, call_back, info);
 	cb->range = alloc_range_perm(start, end);
 	add_callback(func_hash, look_for, cb);
 }
@@ -155,7 +156,7 @@ static void call_ranged_call_backs(struct call_back_list *list,
 	struct fcall_back *tmp;
 
 	FOR_EACH_PTR(list, tmp) {
-		((implication_hook *)(tmp->u.call_back))(fn, call_expr, assign_expr, tmp->info);
+		(tmp->u.ranged)(fn, call_expr, assign_expr, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -252,7 +253,7 @@ int call_implies_callbacks(int comparison, struct expression *expr, long long va
 			continue;
 		if (!true_comparison_range_lr(comparison, tmp->range, value_range, left))
 			continue;
-		((implication_hook *)(tmp->u.call_back))(fn, expr, NULL, tmp->info);
+		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
 	tmp_slist = __pop_fake_cur_slist();
 	merge_slist(&true_states, tmp_slist);
@@ -265,7 +266,7 @@ int call_implies_callbacks(int comparison, struct expression *expr, long long va
 			continue;
 		if (!false_comparison_range_lr(comparison, tmp->range, value_range, left))
 			continue;
-		((implication_hook *)(tmp->u.call_back))(fn, expr, NULL, tmp->info);
+		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
 	tmp_slist = __pop_fake_cur_slist();
 	merge_slist(&false_states, tmp_slist);
