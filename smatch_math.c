@@ -299,6 +299,8 @@ static int get_implied_value_helper(struct expression *expr, long long *val, int
 	struct symbol *sym;
 	char *name;
 
+	expr = strip_expr(expr);
+
 	if (get_value(expr, val))
 		return 1;
 
