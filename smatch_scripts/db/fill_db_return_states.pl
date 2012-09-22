@@ -45,12 +45,11 @@ while (<WARNS>) {
         ($file_and_line, $func, $dummy, $dummy, $return_id, $return_value, $key, $gs) = split(/ /, $_);
         $param = -1;
     } elsif ($_ =~ /info: returns_user_data/) {
-        # include/linux/netfilter/ipset/ip_set.h:402 ip_set_get_h32() info: returns_user_data 1 static
+        # net/netfilter/ipset/ip_set_hash_netiface.c:402 ip_set_get_h32() info: returns_user_data 1 '' static
         $type = 3;  # USER_DATA
-        $return_value = '';
         $key = '';
         $value = '';
-        ($file_and_line, $func, $dummy, $dummy, $return_id, $gs) = split(/ /, $_);
+        ($file_and_line, $func, $dummy, $dummy, $return_id, $return_value, $gs) = split(/ /, $_);
         $param = -1;
     } else {
         next;
