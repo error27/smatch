@@ -567,16 +567,18 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 
 static int db_return_states_assign(struct expression *expr)
 {
+	struct expression *right;
 	struct symbol *sym;
 	struct sm_state *sm;
 	struct state_list *slist;
         static char sql_filter[1024];
 	int handled = 0;
 
-	if (expr->right->fn->type != EXPR_SYMBOL || !expr->right->fn->symbol)
+	right = strip_expr(expr->right);
+	if (right->fn->type != EXPR_SYMBOL || !right->fn->symbol)
 		return 0;
 
-	sym = expr->right->fn->symbol;
+	sym = right->fn->symbol;
 	if (!sym)
 		return 0;
 
@@ -724,7 +726,7 @@ static int is_assigned_call(struct expression *expr)
 	struct expression *tmp;
 
 	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
-		if (tmp->type == EXPR_ASSIGNMENT && tmp->right == expr)
+		if (tmp->type == EXPR_ASSIGNMENT && strip_expr(tmp->right) == expr)
 			return 1;
 		if (tmp->pos.line < expr->pos.line)
 			return 0;
