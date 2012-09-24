@@ -56,6 +56,7 @@ struct return_implies_callback {
 ALLOCATOR(return_implies_callback, "return_implies callbacks");
 DECLARE_PTR_LIST(db_implies_list, struct return_implies_callback);
 static struct db_implies_list *db_implies_list;
+static struct db_implies_list *db_return_states_list;
 
 static struct fcall_back *alloc_fcall_back(int type, void *call_back,
 					   void *info)
@@ -131,6 +132,15 @@ void add_db_return_implies_callback(int type, return_implies_hook *callback)
 	cb->type = type;
 	cb->callback = callback;
 	add_ptr_list(&db_implies_list, cb);
+}
+
+void add_db_return_states_callback(int type, return_implies_hook *callback)
+{
+	struct return_implies_callback *cb = __alloc_return_implies_callback(0);
+
+	cb->type = type;
+	cb->callback = callback;
+	add_ptr_list(&db_return_states_list, cb);
 }
 
 static int call_call_backs(struct call_back_list *list, int type,
@@ -291,6 +301,7 @@ struct db_callback_info {
 	struct range_list *rl;
 	int left;
 	struct state_list *slist;
+	struct db_implies_list *callbacks;
 };
 static struct db_callback_info db_info;
 static int db_compare_callback(void *unused, int argc, char **argv, char **azColName)
@@ -321,7 +332,7 @@ static int db_compare_callback(void *unused, int argc, char **argv, char **azCol
 			return 0;
 	}
 
-	FOR_EACH_PTR(db_implies_list, tmp) {
+	FOR_EACH_PTR(db_info.callbacks, tmp) {
 		if (tmp->type == type)
 			tmp->callback(db_info.expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
@@ -356,6 +367,7 @@ void compare_db_implies_callbacks(int comparison, struct expression *expr, long 
 	db_info.expr = expr;
 	db_info.rl = alloc_range_list(value, value);
 	db_info.left = left;
+	db_info.callbacks = db_implies_list;
 
 	db_info.true_side = 1;
 	__push_fake_cur_slist();
@@ -410,6 +422,7 @@ void compare_db_return_states_callbacks(int comparison, struct expression *expr,
 	db_info.expr = expr;
 	db_info.rl = alloc_range_list(value, value);
 	db_info.left = left;
+	db_info.callbacks = db_return_states_list;
 
 	db_info.true_side = 1;
 	__push_fake_cur_slist();
@@ -543,7 +556,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 	}
 	prev_return_id = return_id;
 
-	FOR_EACH_PTR(db_implies_list, tmp) {
+	FOR_EACH_PTR(db_return_states_list, tmp) {
 		if (tmp->type == type)
 			tmp->callback(db_info.expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
@@ -619,13 +632,17 @@ static void match_assign_call(struct expression *expr)
 	fn = right->fn->symbol->ident->name;
 	call_backs = search_callback(func_hash, (char *)fn);
 
+	/*
+	 * some of these conflict (they try to set smatch extra twice), so we
+	 * call them in order from least important to most important.
+	 */
+
 	call_call_backs(call_backs, ASSIGN_CALL, fn, expr);
-	handled |= handle_implied_return(expr);
-	handled |= assign_ranged_funcs(fn, expr, call_backs);
-	if (handled)
-		return;
-	handled |= db_return_implies_assign(expr);
 	handled |= db_return_states_assign(expr);
+	handled |= db_return_implies_assign(expr);
+	handled |= assign_ranged_funcs(fn, expr, call_backs);
+	handled |= handle_implied_return(expr);
+
 	if (!handled)
 		set_extra_expr_mod(expr->left, extra_undefined());
 }
@@ -656,7 +673,7 @@ static int db_return_states_callback(void *unused, int argc, char **argv, char *
 	}
 	prev_return_id = return_id;
 
-	FOR_EACH_PTR(db_implies_list, tmp) {
+	FOR_EACH_PTR(db_return_states_list, tmp) {
 		if (tmp->type == type)
 			tmp->callback(db_info.expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);

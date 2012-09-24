@@ -51,6 +51,13 @@ while (<WARNS>) {
         $value = '';
         ($file_and_line, $func, $dummy, $dummy, $return_id, $return_value, $gs) = split(/ /, $_);
         $param = -1;
+    } elsif ($_ =~ /info: return_allocation /) {
+        # drivers/net/usb/hso.c:2374 hso_create_device() info: return_allocation 2 'min-max' '456' static
+        $type = 2;  # BUF_SIZE
+        $key = '';
+        ($file_and_line, $func, $dummy, $dummy, $return_id, $dummy) = split(/ /, $_);
+        ($dummy, $return_value, $dummy, $value, $gs) = split(/'/, $_);
+        $param = -1;
     } else {
         next;
     }

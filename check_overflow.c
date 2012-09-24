@@ -302,6 +302,30 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 	free_string(dest_name);
 }
 
+static void db_returns_buf_size(struct expression *expr, int param, char *unused, char *math)
+{
+	struct expression *call;
+	struct symbol *type;
+	int bytes;
+	long long val;
+
+	if (expr->type != EXPR_ASSIGNMENT)
+		return;
+	call = strip_expr(expr->right);
+	type = get_pointer_type(expr->left);
+
+	if (!parse_call_math(call, math, &val) || val == 0)
+		return;
+	if (!type)
+		return;
+	bytes = bits_to_bytes(type->bit_size);
+	if (!bytes)
+		return;
+	if (val >= bytes)
+		return;
+	sm_msg("error: not allocating enough data %d vs %lld", bytes, val);
+}
+
 static void register_funcs_from_file(void)
 {
 	char name[256];
@@ -356,6 +380,7 @@ void check_overflow(int id)
 	add_function_hook("sprintf", &match_sprintf, NULL);
 	add_function_hook("memcmp", &match_limited, &b0_l2);
 	add_function_hook("memcmp", &match_limited, &b1_l2);
+	add_db_return_states_callback(BUF_SIZE, &db_returns_buf_size);
 	add_modification_hook(my_used_id, &delete);
 	if (option_project == PROJ_KERNEL) {
 		add_function_hook("copy_to_user", &match_limited, &b0_l2);

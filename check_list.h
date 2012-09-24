@@ -12,6 +12,7 @@ CK(register_smatch_ignore)
 CK(register_buf_size)
 CK(register_strlen)
 CK(register_capped)
+CK(register_parse_call_math)
 
 CK(check_debug)
 CK(check_assigned_expr)

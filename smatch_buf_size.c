@@ -173,6 +173,20 @@ static int size_from_db(struct expression *expr)
 	return db_size;
 }
 
+static void db_returns_buf_size(struct expression *expr, int param, char *unused, char *math)
+{
+	struct expression *call;
+	long long val;
+
+	if (expr->type != EXPR_ASSIGNMENT)
+		return;
+	call = strip_expr(expr->right);
+
+	if (!parse_call_math(call, math, &val))
+		return;
+	set_state_expr(my_size_id, expr->left, alloc_state_num(val));
+}
+
 static int get_real_array_size(struct expression *expr)
 {
 	struct symbol *type;
@@ -623,6 +637,7 @@ void register_buf_size(int id)
 	my_size_id = id;
 
 	add_definition_db_callback(set_param_buf_size, BUF_SIZE);
+	add_db_return_states_callback(BUF_SIZE, &db_returns_buf_size);
 
 	add_function_assign_hook("malloc", &match_alloc, INT_PTR(0));
 	add_function_assign_hook("calloc", &match_calloc, NULL);
