@@ -632,14 +632,15 @@ static void match_assign_call(struct expression *expr)
 		return;
 	}
 	fn = right->fn->symbol->ident->name;
-	call_backs = search_callback(func_hash, (char *)fn);
 
 	/*
 	 * some of these conflict (they try to set smatch extra twice), so we
 	 * call them in order from least important to most important.
 	 */
 
+	call_backs = search_callback(func_hash, (char *)fn);
 	call_call_backs(call_backs, ASSIGN_CALL, fn, expr);
+
 	handled |= db_return_states_assign(expr);
 	handled |= db_return_implies_assign(expr);
 	handled |= assign_ranged_funcs(fn, expr, call_backs);
