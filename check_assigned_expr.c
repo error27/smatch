@@ -44,6 +44,8 @@ static struct smatch_state *alloc_my_state(struct expression *expr)
 
 static void match_assignment(struct expression *expr)
 {
+	if (expr->op != '=')
+		return;
 	set_state_expr(my_id, expr->left, alloc_my_state(expr->right));
 }
 
