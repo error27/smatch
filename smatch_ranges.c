@@ -170,7 +170,7 @@ static struct data_range *alloc_range_helper(long long min, long long max, int p
 	struct data_range *ret;
 
 	if (min > max) {
-		sm_msg("Error invalid range %lld to %lld", min, max);
+		// sm_msg("debug invalid range %lld to %lld", min, max);
 		min = whole_range.min;
 		max = whole_range.max;
 	}
