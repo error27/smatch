@@ -546,6 +546,26 @@ static void unop_expr(struct expression *expr)
 	}
 }
 
+static void asm_expr(struct statement *stmt)
+{
+
+	struct expression *expr;
+	int state = 0;
+
+	FOR_EACH_PTR(stmt->asm_outputs, expr) {
+		switch (state) {
+		case 0: /* identifier */
+		case 1: /* constraint */
+			state++;
+			continue;
+		case 2: /* expression */
+			state = 0;
+			set_extra_expr_mod(expr, extra_undefined());
+			continue;
+		}
+	} END_FOR_EACH_PTR(expr);
+}
+
 static void delete_state_tracker(struct tracker *t)
 {
 	remove_from_equiv(t->name, t->sym);
@@ -952,6 +972,7 @@ void register_smatch_extra(int id)
 	add_merge_hook(my_id, &merge_func);
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&unop_expr, OP_HOOK);
+	add_hook(&asm_expr, ASM_HOOK);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	if (option_info) {
