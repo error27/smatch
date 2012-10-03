@@ -293,6 +293,27 @@ static long long handle_logical(struct expression *expr, int *undefined, int imp
 	return BOGUS;
 }
 
+static long long handle_conditional(struct expression *expr, int *undefined, int implied)
+{
+	if (known_condition_true(expr->conditional))
+		return _get_value(expr->cond_true, undefined, implied);
+	if (known_condition_false(expr->conditional))
+		return _get_value(expr->cond_false, undefined, implied);
+
+	if (implied == NOTIMPLIED) {
+		*undefined = 1;
+		return BOGUS;
+	}
+
+	if (implied_condition_true(expr->conditional))
+		return _get_value(expr->cond_true, undefined, implied);
+	if (implied_condition_false(expr->conditional))
+		return _get_value(expr->cond_false, undefined, implied);
+
+	*undefined = 1;
+	return BOGUS;
+}
+
 static int get_implied_value_helper(struct expression *expr, long long *val, int what)
 {
 	struct smatch_state *state;
@@ -461,6 +482,12 @@ static long long _get_value(struct expression *expr, int *undefined, int implied
 	case EXPR_SYMBOL:
 		if (get_const_value(expr, &ret))
 			break;
+		ret = _get_implied_value(expr, undefined, implied);
+		break;
+	case EXPR_SELECT:
+	case EXPR_CONDITIONAL:
+		ret = handle_conditional(expr, undefined, implied);
+		break;
 	default:
 		ret = _get_implied_value(expr, undefined, implied);
 	}
