@@ -7,6 +7,12 @@
  *
  */
 
+/*
+ * This is an --info recipe.  The goal is to print a message for every parameter
+ * which we can not avoid dereferencing.  This is maybe a bit restrictive but it
+ * avoids some false positives.
+ */
+
 #include "smatch.h"
 #include "smatch_extra.h"
 #include "smatch_slist.h"
@@ -54,8 +60,12 @@ static void match_function_def(struct symbol *sym)
 
 static void check_deref(struct expression *expr)
 {
+	struct expression *tmp;
 	struct sm_state *sm;
 
+	tmp = get_assigned_expr(expr);
+	if (tmp)
+		expr = tmp;
 	expr = strip_expr(expr);
 
 	if (!is_arg(expr))
