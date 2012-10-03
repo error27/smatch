@@ -238,9 +238,19 @@ static int do_comparison(struct expression *expr)
 
 static long long handle_comparison(struct expression *expr, int *undefined, int implied)
 {
+	long long left, right;
 	int res;
 
-	/* TODO: we should be able to handle this...  */
+	if (get_value(expr->left, &left) && get_value(expr->right, &right)) {
+		struct data_range tmp_left, tmp_right;
+
+		tmp_left.min = left;
+		tmp_left.max = left;
+		tmp_right.min = right;
+		tmp_right.max = right;
+		return true_comparison_range(&tmp_left, expr->op, &tmp_right);
+	}
+
 	if (implied == NOTIMPLIED) {
 		*undefined = 1;
 		return BOGUS;
