@@ -77,6 +77,9 @@ void get_value_ranges(char *value, struct range_list **rl)
 		if (!strncmp(start, "min", 3)) {
 			val1 = LLONG_MIN;
 			c += 3;
+		} else if (!strncmp(start, "max", 3)) {
+			val1 = LLONG_MAX;
+			c += 3;
 		} else {
 			while (*c && *c != ',' && *c != '-')
 				c++;
