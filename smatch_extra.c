@@ -947,9 +947,6 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 
 	snprintf(fullname, 256, "%s%s", name, key + 2);
 	get_value_ranges(value, &rl);
-	char *tmp = show_ranges(rl);
-	if (strcmp(tmp, value))
-		sm_msg("value = %s, ranges = %s", value, tmp);
 	state = alloc_estate_range_list(rl);
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
