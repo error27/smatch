@@ -24,6 +24,30 @@ struct symbol *get_real_base_type(struct symbol *sym)
 	return ret;
 }
 
+static struct symbol *get_binop_type(struct expression *expr)
+{
+	struct symbol *left, *right;
+
+	left = get_type(expr->left);
+	right = get_type(expr->right);
+
+	if (left && (left->type == SYM_PTR || left->type == SYM_ARRAY))
+		return left;
+	if (right && (right->type == SYM_PTR || right->type == SYM_ARRAY))
+		return right;
+
+	if (!left || !right)
+		return NULL;
+
+	if (type_max(left) < type_max(&int_ctype) &&
+	    type_max(right) < type_max(&int_ctype))
+		return &int_ctype;
+
+	if (type_max(right) > type_max(left))
+		return right;
+	return left;
+}
+
 static struct symbol *get_type_symbol(struct expression *expr)
 {
 	if (!expr || expr->type != EXPR_SYMBOL || !expr->symbol)
@@ -92,8 +116,6 @@ static struct symbol *fake_pointer_sym(struct expression *expr)
 
 struct symbol *get_type(struct expression *expr)
 {
-	struct symbol *tmp;
-
 	if (!expr)
 		return NULL;
 	expr = strip_parens(expr);
@@ -114,10 +136,7 @@ struct symbol *get_type(struct expression *expr)
 	case EXPR_IMPLIED_CAST:
 		return get_real_base_type(expr->cast_type);
 	case EXPR_BINOP:
-		if (expr->op != '+')
-			return NULL;
-		tmp = get_type(expr->left);
-		return tmp;
+		return get_binop_type(expr);
 	case EXPR_CALL:
 		return get_return_type(expr);
 	case EXPR_SIZEOF:
