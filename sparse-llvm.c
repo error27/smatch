@@ -615,7 +615,7 @@ static void output_op_load(struct function *fn, struct instruction *insn)
 
 	/* convert address back to pointer */
 	addr = LLVMBuildIntToPtr(fn->builder, addr_i,
-				 LLVMPointerType(int_type, 0), "addr");
+				 LLVMTypeOf(src_p), "addr");
 
 	/* perform load */
 	target = LLVMBuildLoad(fn->builder, addr, "load_target");
