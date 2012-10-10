@@ -31,13 +31,13 @@ static struct symbol *get_binop_type(struct expression *expr)
 	left = get_type(expr->left);
 	right = get_type(expr->right);
 
-	if (left && (left->type == SYM_PTR || left->type == SYM_ARRAY))
-		return left;
-	if (right && (right->type == SYM_PTR || right->type == SYM_ARRAY))
-		return right;
-
 	if (!left || !right)
 		return NULL;
+
+	if (left->type == SYM_PTR || left->type == SYM_ARRAY)
+		return left;
+	if (right->type == SYM_PTR || right->type == SYM_ARRAY)
+		return right;
 
 	if (type_max(left) < type_max(&int_ctype) &&
 	    type_max(right) < type_max(&int_ctype))
