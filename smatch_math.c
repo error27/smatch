@@ -275,14 +275,10 @@ static long long handle_logical(struct expression *expr, int *undefined, int imp
 {
 	long long left_val, right_val;
 
-	/* TODO: we should be able to handle this...  */
-	if (implied == NOTIMPLIED) {
-		*undefined = 1;
-		return BOGUS;
-	}
-
-	if (get_implied_value(expr->left, &left_val) &&
-			get_implied_value(expr->right, &right_val)) {
+	if ((implied == NOTIMPLIED && get_value(expr->left, &left_val) &&
+				      get_value(expr->right, &right_val)) ||
+	    (implied != NOTIMPLIED && get_implied_value(expr->left, &left_val) &&
+				      get_implied_value(expr->right, &right_val))) {
 		switch (expr->op) {
 		case SPECIAL_LOGICAL_OR:
 			return left_val || right_val;
