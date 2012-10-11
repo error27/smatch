@@ -22,6 +22,8 @@ static long long _get_value(struct expression *expr, int *undefined, int implied
 #define IMPLIED_MAX 3
 #define FUZZYMAX    4
 #define FUZZYMIN    5
+#define ABSOLUTE_MIN 6
+#define ABSOLUTE_MAX 7
 
 static long long cast_to_type(struct expression *expr, long long val)
 {
@@ -59,6 +61,10 @@ static int opposite_implied(int implied)
 		return IMPLIED_MAX;
 	if (implied == IMPLIED_MAX)
 		return IMPLIED_MIN;
+	if (implied == ABSOLUTE_MIN)
+		return ABSOLUTE_MAX;
+	if (implied == ABSOLUTE_MAX)
+		return ABSOLUTE_MIN;
 	return implied;
 }
 
@@ -91,9 +97,9 @@ static long long handle_expression_statement(struct expression *expr, int *undef
 
 static long long handle_ampersand(int *undefined, int implied)
 {
-	if (implied == IMPLIED_MIN || implied == FUZZYMIN)
+	if (implied == IMPLIED_MIN || implied == FUZZYMIN || implied == ABSOLUTE_MIN)
 		return valid_ptr_min;
-	if (implied == IMPLIED_MAX || implied == FUZZYMAX)
+	if (implied == IMPLIED_MAX || implied == FUZZYMAX || implied == ABSOLUTE_MAX)
 		return valid_ptr_max;
 
 	*undefined = 1;
@@ -163,10 +169,53 @@ static long long handle_binop(struct expression *expr, int *undefined, int impli
 	long long left;
 	long long right;
 	long long ret = BOGUS;
+	int local_undef = 0;
 
-	if (expr->type != EXPR_BINOP) {
-		*undefined = 1;
+	if (option_debug)
+		sm_msg("handle_binop %s", show_special(expr->op));
+
+	switch (expr->op) {
+	case '%':
+		left = _get_value(expr->left, &local_undef, implied);
+		if (local_undef) {
+			if (implied == ABSOLUTE_MIN)
+				return 0;
+			if (implied != ABSOLUTE_MAX)
+				*undefined = 1;
+			if (!get_absolute_max(expr->left, &left))
+				*undefined = 1;
+		}
+		right = _get_value(expr->right, undefined, implied);
+		if (right == 0)
+			*undefined = 1;
+		else
+			ret = left % right;
 		return ret;
+
+	case '&':
+		left = _get_value(expr->left, &local_undef, implied);
+		if (local_undef) {
+			if (implied == ABSOLUTE_MIN)
+				return 0;
+			if (implied != ABSOLUTE_MAX)
+				*undefined = 1;
+			if (!get_absolute_max(expr->left, &left))
+				*undefined = 1;
+		}
+		right = _get_value(expr->right, undefined, implied);
+		return left & right;
+	case SPECIAL_RIGHTSHIFT:
+		left = _get_value(expr->left, &local_undef, implied);
+		if (local_undef) {
+			if (implied == ABSOLUTE_MIN)
+				return 0;
+			if (implied != ABSOLUTE_MAX)
+				*undefined = 1;
+			if (!get_absolute_max(expr->left, &left))
+				*undefined = 1;
+		}
+		right = _get_value(expr->right, undefined, implied);
+		return left >> right;
 	}
 
 	left = _get_value(expr->left, undefined, implied);
@@ -262,9 +311,9 @@ static long long handle_comparison(struct expression *expr, int *undefined, int 
 	if (res == 2)
 		return 0;
 
-	if (implied == IMPLIED_MIN || implied == FUZZYMIN)
+	if (implied == IMPLIED_MIN || implied == FUZZYMIN || implied == ABSOLUTE_MIN)
 		return 0;
-	if (implied == IMPLIED_MAX || implied == FUZZYMAX)
+	if (implied == IMPLIED_MAX || implied == FUZZYMAX || implied == ABSOLUTE_MAX)
 		return 1;
 
 	*undefined = 1;
@@ -290,9 +339,9 @@ static long long handle_logical(struct expression *expr, int *undefined, int imp
 		}
 	}
 
-	if (implied == IMPLIED_MIN || implied == FUZZYMIN)
+	if (implied == IMPLIED_MIN || implied == FUZZYMIN || implied == ABSOLUTE_MIN)
 		return 0;
-	if (implied == IMPLIED_MAX || implied == FUZZYMAX)
+	if (implied == IMPLIED_MAX || implied == FUZZYMAX || implied == ABSOLUTE_MAX)
 		return 1;
 
 	*undefined = 1;
@@ -340,7 +389,7 @@ static int get_implied_value_helper(struct expression *expr, long long *val, int
 		return 0;
 	if (what == IMPLIED)
 		return estate_get_single_value(state, val);
-	if (what == IMPLIED_MAX) {
+	if (what == IMPLIED_MAX || what == ABSOLUTE_MAX) {
 		*val = estate_max(state);
 		if (*val == whole_range.max) /* this means just guessing */
 			return 0;
@@ -412,6 +461,8 @@ static long long _get_implied_value(struct expression *expr, int *undefined, int
 	case IMPLIED:
 	case IMPLIED_MAX:
 	case IMPLIED_MIN:
+	case ABSOLUTE_MIN:
+	case ABSOLUTE_MAX:
 		if (!get_implied_value_helper(expr, &ret, implied))
 			*undefined = 1;
 		break;
@@ -555,37 +606,29 @@ int get_fuzzy_max(struct expression *expr, long long *val)
 
 int get_absolute_min(struct expression *expr, long long *val)
 {
+	int undefined = 0;
 	struct symbol *type;
-	long long min;
+
+	*val =  _get_value(expr, &undefined, ABSOLUTE_MIN);
+	if (!undefined)
+		return 1;
 
 	type = get_type(expr);
-	if (!type) {
-		if (get_value(expr, val))
-			return 1;
-		return 0;
-	}
-	min = type_min(type);
-	if (!get_implied_min(expr, val) || *val < min)
-		*val = min;
+	*val = type_min(type);
 	return 1;
 }
 
 int get_absolute_max(struct expression *expr, long long *val)
 {
+	int undefined = 0;
 	struct symbol *type;
-	long long max;
+
+	*val =  _get_value(expr, &undefined, ABSOLUTE_MAX);
+	if (!undefined)
+		return 1;
 
 	type = get_type(expr);
-	if (!type) {
-		if (get_value(expr, val))
-			return 1;
-		return 0;
-	}
-	max = type_max(type);
-	if (!get_implied_max(expr, val) || *val > max)
-		*val = max;
-	if (*val < type_min(type))
-		*val = max;
+	*val = type_max(type);
 	return 1;
 }
 
