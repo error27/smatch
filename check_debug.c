@@ -215,6 +215,7 @@ static void match_debug_off(const char *fn, struct expression *expr, void *info)
 {
 	option_debug = 0;
 }
+
 void check_debug(int id)
 {
 	my_id = id;
