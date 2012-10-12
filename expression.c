@@ -655,7 +655,7 @@ static struct token *unary_expression(struct token *token, struct expression **t
 				{ &__sizeof_ptr___ident, EXPR_PTRSIZEOF },
 			};
 			int i;
-			for (i = 0; i < 3; i++) {
+			for (i = 0; i < ARRAY_SIZE(type_information); i++) {
 				if (ident == type_information[i].id)
 					return type_info_expression(token, tree, type_information[i].type);
 			}
