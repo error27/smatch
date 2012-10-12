@@ -327,6 +327,9 @@ extern struct data_range whole_range;
 static const long long valid_ptr_max = LONG_MAX;
 static const long long valid_ptr_min = 4096;
 
+/* smatch_absolute.c */
+extern int absolute_id;
+
 /* smatch_states.c */
 void __push_fake_cur_slist();
 struct state_list *__pop_fake_cur_slist();
@@ -425,6 +428,7 @@ enum info_type {
 	RANGE_CAP,
 	LOCK_HELD,
 	LOCK_RELEASED,
+	ABSOLUTE_LIMITS,
 };
 
 int get_return_id(void);

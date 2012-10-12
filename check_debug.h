@@ -7,6 +7,10 @@ static inline void __smatch_value(const char *unused){}
 static inline void __smatch_implied(long long val){}
 static inline void __smatch_implied_min(long long val){}
 static inline void __smatch_implied_max(long long val){}
+
+static inline void __smatch_absolute_min(long long val){}
+static inline void __smatch_absolute_max(long long val){}
+
 static inline void __smatch_possible(const char *unused){}
 static inline void __smatch_print_value(const char *unused){}
 

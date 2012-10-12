@@ -461,11 +461,29 @@ static long long _get_implied_value(struct expression *expr, int *undefined, int
 	case IMPLIED:
 	case IMPLIED_MAX:
 	case IMPLIED_MIN:
-	case ABSOLUTE_MIN:
-	case ABSOLUTE_MAX:
 		if (!get_implied_value_helper(expr, &ret, implied))
 			*undefined = 1;
 		break;
+	case ABSOLUTE_MIN:
+	case ABSOLUTE_MAX: {
+		struct smatch_state *state;
+		struct data_range *range;
+
+		if (get_implied_value_helper(expr, &ret, implied))
+			break;
+
+		state = get_state_expr(absolute_id, expr);
+		if (!state || !state->data) {
+			*undefined = 1;
+			break;
+		}
+		range = state->data;
+		if (implied == ABSOLUTE_MAX)
+			ret = range->max;
+		else
+			ret = range->min;
+		break;
+	}
 	case FUZZYMAX:
 		if (!get_fuzzy_max_helper(expr, &ret))
 			*undefined = 1;
@@ -609,12 +627,15 @@ int get_absolute_min(struct expression *expr, long long *val)
 	int undefined = 0;
 	struct symbol *type;
 
-	*val =  _get_value(expr, &undefined, ABSOLUTE_MIN);
-	if (!undefined)
-		return 1;
-
 	type = get_type(expr);
-	*val = type_min(type);
+	*val =  _get_value(expr, &undefined, ABSOLUTE_MIN);
+	if (undefined) {
+		*val = type_min(type);
+		return 1;
+	}
+
+	if (type_min(type) > *val)
+		*val = type_min(type);
 	return 1;
 }
 
@@ -623,12 +644,15 @@ int get_absolute_max(struct expression *expr, long long *val)
 	int undefined = 0;
 	struct symbol *type;
 
-	*val =  _get_value(expr, &undefined, ABSOLUTE_MAX);
-	if (!undefined)
-		return 1;
-
 	type = get_type(expr);
-	*val = type_max(type);
+	*val =  _get_value(expr, &undefined, ABSOLUTE_MAX);
+	if (undefined) {
+		*val = type_max(type);
+		return 1;
+	}
+
+	if (type_max(type) < *val)
+		*val = type_max(type);
 	return 1;
 }
 

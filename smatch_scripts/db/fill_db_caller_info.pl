@@ -92,6 +92,18 @@ while (<WARNS>) {
             $func = "$dummy $func";
         }
 
+    } elsif ($_ =~ /info: passes absolute_limits /) {
+        # init/main.c +165 obsolete_checksetup(7) info: passes param_value strlen 0 min-max static
+        $type = 10;  # ABSOLUTE_LIMITS
+        ($file_and_line, $caller, $dummy, $dummy, $dummy, $func, $param, $key, $value, $gs) = split(/ /, $_);
+        ($file, $line) = split(/:/, $file_and_line);
+
+        if ($func eq "'(struct") {
+            ($file_and_line, $dummy, $dummy, $dummy, $dummy, $dummy, $func, $param, $key, $value, $gs) = split(/ /, $_);
+            ($file, $line) = split(/:/, $file_and_line);
+            $func = "$dummy $func";
+        }
+
     } elsif ($_ =~ /info: passes_buffer /) {
         # init/main.c +175 obsolete_checksetup(17) info: passes_buffer 'printk' 0 '$$' 38 global
         $type = 2;  # BUF_SIZE
