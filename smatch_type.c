@@ -39,6 +39,13 @@ static struct symbol *get_binop_type(struct expression *expr)
 	if (right->type == SYM_PTR || right->type == SYM_ARRAY)
 		return right;
 
+	if (expr->op == SPECIAL_LEFTSHIFT ||
+	    expr->op == SPECIAL_RIGHTSHIFT) {
+		if (type_max(left) < type_max(&int_ctype))
+			return &int_ctype;
+		return left;
+	}
+
 	if (type_max(left) < type_max(&int_ctype) &&
 	    type_max(right) < type_max(&int_ctype))
 		return &int_ctype;
