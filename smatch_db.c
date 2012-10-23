@@ -70,6 +70,11 @@ void add_definition_db_callback(void (*callback)(const char *name, struct symbol
 	add_ptr_list(&callbacks, def_callback);
 }
 
+/*
+ * These call backs are used when the --info option is turned on to print struct
+ * member information.  For example foo->bar could have a state in
+ * smatch_extra.c and also check_user.c.
+ */
 void add_member_info_callback(int owner, void (*callback)(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state))
 {
 	struct member_info_callback *member_callback = __alloc_member_info_callback(0);
