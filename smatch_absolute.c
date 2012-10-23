@@ -197,5 +197,5 @@ void register_absolute(int id)
 
 void register_absolute_late(int id)
 {
-	add_indirect_modification_hook(absolute_id, reset_state);
+	add_modification_hook(absolute_id, reset_state);
 }
