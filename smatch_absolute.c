@@ -140,14 +140,17 @@ static void match_call_info(struct expression *expr)
 {
 	struct expression *arg;
 	char *name;
-	int i = 0;
+	int i;
 
 	name = get_fnptr_name(expr->fn);
 	if (!name)
 		return;
 
+	i = -1;
 	FOR_EACH_PTR(expr->args, arg) {
 		long long min, max;
+
+		i++;
 
 		if (!get_absolute_min(arg, &min))
 			continue;
@@ -160,7 +163,6 @@ static void match_call_info(struct expression *expr)
 		sm_msg("info: passes absolute_limits '%s' %d '$$' %s %s",
 		       name, i, show_range(min, max),
 		       is_static(expr->fn) ? "static" : "global");
-		i++;
 	} END_FOR_EACH_PTR(arg);
 
 	free_string(name);
