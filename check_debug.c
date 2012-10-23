@@ -102,7 +102,7 @@ static void match_print_absolute_min(const char *fn, struct expression *expr, vo
 		val = whole_range.min;
 
 	name = get_variable_from_expr_complex(arg, NULL);
-	sm_msg("implied min: %s = %lld", name, val);
+	sm_msg("absolute min: %s = %lld", name, val);
 	free_string(name);
 }
 
@@ -117,7 +117,7 @@ static void match_print_absolute_max(const char *fn, struct expression *expr, vo
 		val = whole_range.max;
 
 	name = get_variable_from_expr_complex(arg, NULL);
-	sm_msg("implied max: %s = %lld", name, val);
+	sm_msg("absolute max: %s = %lld", name, val);
 	free_string(name);
 }
 
