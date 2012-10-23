@@ -9,7 +9,7 @@
 
 /*
  * Check for things which are signed but probably should be unsigned.
- * 
+ *
  * Hm...  It seems like at this point in the processing, sparse makes all
  * bitfields unsigned.  Which is logical but not what GCC does.
  *
