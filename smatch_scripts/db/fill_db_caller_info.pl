@@ -36,7 +36,7 @@ if (!defined($warns)) {
 
 get_too_common_functions($warns);
 
-my $db = DBI->connect("dbi:SQLite:smatch_db.sqlite", "", "", {RaiseError => 1, AutoCommit => 0});
+my $db = DBI->connect("dbi:SQLite:smatch_db.sqlite", "", "", {AutoCommit => 0});
 $db->do("PRAGMA synchronous = OFF");
 $db->do("PRAGMA cache_size = 800000");
 $db->do("PRAGMA journal_mode = OFF");
