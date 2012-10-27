@@ -48,7 +48,7 @@ static void handle_condition_return(struct expression *expr)
 
 static void match_return(struct expression *ret_value)
 {
-	long long val;
+	sval_t sval;
 
 	if (returns_other || !ret_value)
 		return;
@@ -58,12 +58,12 @@ static void match_return(struct expression *ret_value)
 		return;
 	}
 
-	if (get_implied_value(ret_value, &val) && val == 1) {
+	if (get_implied_value_sval(ret_value, &sval) && sval.value == 1) {
 		push_slist(&true_stack, clone_slist(__get_cur_slist()));
 		return;
 	}
 
-	if (get_implied_value(ret_value, &val) && val == 0) {
+	if (get_implied_value_sval(ret_value, &sval) && sval.value == 0) {
 		push_slist(&false_stack, clone_slist(__get_cur_slist()));
 		return;
 	}
