@@ -13,8 +13,7 @@ static int my_id;
 
 static int can_overflow(struct expression *expr)
 {
-	long long max;
-	sval_t abs_max;
+	sval_t max;
 	int uncapped = 0;
 
 	expr = strip_expr(expr);
@@ -30,9 +29,9 @@ static int can_overflow(struct expression *expr)
 		return 0;
 	}
 
-	if (get_implied_max(expr, &max))
+	if (get_implied_max_sval(expr, &max))
 		return 0;
-	if (get_absolute_max_sval(expr, &abs_max) && sval_cmp_val(abs_max, 4096) <= 0)
+	if (get_absolute_max_sval(expr, &max) && sval_cmp_val(max, 4096) <= 0)
 		return 0;
 	return 1;
 }
