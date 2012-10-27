@@ -619,6 +619,14 @@ int get_implied_min(struct expression *expr, long long *val)
 	return !undefined;
 }
 
+int get_implied_min_sval(struct expression *expr, sval_t *sval)
+{
+	int undefined = 0;
+
+	*sval =  _get_value(expr, &undefined, IMPLIED_MIN);
+	return !undefined;
+}
+
 int get_implied_max(struct expression *expr, long long *val)
 {
 	int undefined = 0;
@@ -626,6 +634,14 @@ int get_implied_max(struct expression *expr, long long *val)
 
 	tmp_ret =  _get_value(expr, &undefined, IMPLIED_MAX);
 	*val = tmp_ret.value;
+	return !undefined;
+}
+
+int get_implied_max_sval(struct expression *expr, sval_t *sval)
+{
+	int undefined = 0;
+
+	*sval =  _get_value(expr, &undefined, IMPLIED_MAX);
 	return !undefined;
 }
 
@@ -639,6 +655,14 @@ int get_fuzzy_min(struct expression *expr, long long *val)
 	return !undefined;
 }
 
+int get_fuzzy_min_sval(struct expression *expr, sval_t *sval)
+{
+	int undefined = 0;
+
+	*sval =  _get_value(expr, &undefined, FUZZYMIN);
+	return !undefined;
+}
+
 int get_fuzzy_max(struct expression *expr, long long *val)
 {
 	int undefined = 0;
@@ -646,6 +670,14 @@ int get_fuzzy_max(struct expression *expr, long long *val)
 
 	tmp_ret =  _get_value(expr, &undefined, FUZZYMAX);
 	*val = tmp_ret.value;
+	return !undefined;
+}
+
+int get_fuzzy_max_sval(struct expression *expr, sval_t *sval)
+{
+	int undefined = 0;
+
+	*sval =  _get_value(expr, &undefined, FUZZYMAX);
 	return !undefined;
 }
 
@@ -665,6 +697,23 @@ int get_absolute_min(struct expression *expr, long long *val)
 
 	if (sval_cmp_val(tmp_ret, type_min(type)) < 0)
 		*val = type_min(type);
+	return 1;
+}
+
+int get_absolute_min_sval(struct expression *expr, sval_t *sval)
+{
+	int undefined = 0;
+	struct symbol *type;
+
+	type = get_type(expr);
+	*sval =  _get_value(expr, &undefined, ABSOLUTE_MIN);
+	if (undefined) {
+		sval->value = type_min(type);
+		return 1;
+	}
+
+	if (sval_cmp_val(*sval, type_min(type)) < 0)
+		sval->value = type_min(type);
 	return 1;
 }
 
