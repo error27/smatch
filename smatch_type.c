@@ -230,6 +230,24 @@ long long type_max(struct symbol *base_type)
 	return ret;
 }
 
+sval_t sval_type_max(struct symbol *base_type)
+{
+	sval_t ret;
+
+	ret.value = (~0ULL) >> 1;
+	ret.type = base_type;
+
+	if (!base_type || !base_type->bit_size)
+		return ret;
+
+	if (type_unsigned(base_type))
+		ret.value = (~0ULL) >> (64 - base_type->bit_size);
+	else
+		ret.value = (~0ULL) >> (64 - (base_type->bit_size - 1));
+
+	return ret;
+}
+
 long long type_min(struct symbol *base_type)
 {
 	long long ret = whole_range.min;
