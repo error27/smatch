@@ -30,15 +30,15 @@ static int get_data_size(struct expression *ptr)
 
 static void check_size_matches(int data_size, struct expression *size_expr)
 {
-	long long val;
+	sval_t sval;
 
 	if (data_size == 1)  /* this is generic a buffer */
 		return;
 
-	if (!get_implied_value(size_expr, &val))
+	if (!get_implied_value_sval(size_expr, &sval))
 		return;
-	if (val != data_size)
-		sm_msg("warn: double check that we're allocating correct size: %d vs %lld", data_size, val);
+	if (sval_cmp_val(sval, data_size) != 0)
+		sm_msg("warn: double check that we're allocating correct size: %d vs %s", data_size, sval_to_str(sval));
 }
 
 static void match_alloc(const char *fn, struct expression *expr, void *unused)
