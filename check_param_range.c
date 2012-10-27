@@ -43,7 +43,7 @@ static int on_main_path(struct expression *expr)
 
 static int is_error_value(struct expression *ret_value)
 {
-	long long val;
+	sval_t sval;
 	char *name;
 
 	if (!ret_value)
@@ -52,9 +52,9 @@ static int is_error_value(struct expression *ret_value)
 	if (ret_value->type != EXPR_PREOP || ret_value->op != '-')
 		return 0;
 
-	if (!get_value(ret_value, &val))
+	if (!get_value_sval(ret_value, &sval))
 		return 0;
-	if (val < -4095 || val >= 0)
+	if (sval.value < -4095 || sval.value >= 0)
 		return 0;
 
 	name = pos_ident(ret_value->unop->pos);
