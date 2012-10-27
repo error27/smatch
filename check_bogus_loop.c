@@ -14,9 +14,9 @@ static int my_id;
 
 static int right_side_changes(struct expression *expr)
 {
-	long long dummy;
+	sval_t dummy;
 
-	if (get_value(expr->right, &dummy))
+	if (get_value_sval(expr->right, &dummy))
 		return 0;
 	return 1;
 }
