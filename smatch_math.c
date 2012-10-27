@@ -668,15 +668,6 @@ int get_absolute_min(struct expression *expr, long long *val)
 	return 1;
 }
 
-int get_absolute_max(struct expression *expr, long long *val)
-{
-	sval_t tmp_ret;
-
-	get_absolute_max_sval(expr, &tmp_ret);
-	*val = tmp_ret.value;
-	return 1;
-}
-
 int get_absolute_max_sval(struct expression *expr, sval_t *val)
 {
 	int undefined = 0;
