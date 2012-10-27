@@ -24,7 +24,7 @@ static int is_bitshift(struct expression *expr)
 
 static void match_logic(struct expression *expr)
 {
-	long long val;
+	sval_t sval;
 
 	if (expr->type != EXPR_LOGICAL)
 		return;
@@ -32,12 +32,12 @@ static void match_logic(struct expression *expr)
 	if (get_macro_name(expr->pos))
 		return;
 
-	if (!get_value(expr->right, &val)) {
-		if (!get_value(expr->left, &val))
+	if (!get_value_sval(expr->right, &sval)) {
+		if (!get_value_sval(expr->left, &sval))
 			return;
 	}
 
-	if (val == 0 || val == 1)
+	if (sval.value == 0 || sval.value == 1)
 		return;
 
 	sm_msg("warn: should this be a bitwise op?");
