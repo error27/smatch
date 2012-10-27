@@ -14,7 +14,7 @@ int func(void)
 }
 /*
  * check-name: smatch equivalent variables #4
- * check-command: smatch -p=kernel -I.. sm_equiv4.c
+ * check-command: smatch -p=kernel --spammy -I.. sm_equiv4.c
  *
  * check-output-start
 sm_equiv4.c:13 func() warn: 'b' was not released on error

@@ -170,7 +170,7 @@ static void release_function_indicator(const char *name)
 
 void check_unwind(int id)
 {
-	if (option_project != PROJ_KERNEL)
+	if (option_project != PROJ_KERNEL || !option_spammy)
 		return;
 	my_id = id;
 
