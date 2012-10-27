@@ -24,14 +24,14 @@ static struct {
 static void match_create(const char *fn, struct expression *expr, void *_param_type)
 {
 	struct expression *arg_expr;
-	long long val;
+	sval_t sval;
 	char *name;
 	int idx = PTR_INT(_param_type);
 
 	arg_expr = get_argument_from_call_expr(expr->args, param_index[idx].mode_param);
-	if (!get_implied_value(arg_expr, &val))
+	if (!get_implied_value_sval(arg_expr, &sval))
 		return;
-	if (!(val & S_IWOTH))
+	if (!(sval.uvalue & S_IWOTH))
 		return;
 	arg_expr = get_argument_from_call_expr(expr->args, param_index[idx].name_param);
 	name = get_variable_from_expr(arg_expr, NULL);
