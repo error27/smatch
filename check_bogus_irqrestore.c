@@ -14,10 +14,10 @@ static int my_id;
 static void match_irqrestore(const char *fn, struct expression *expr, void *data)
 {
 	struct expression *arg_expr;
-	long long val;
+	sval_t tmp;
 
 	arg_expr = get_argument_from_call_expr(expr->args, 1);
-	if (!get_implied_value(arg_expr, &val))
+	if (!get_implied_value_sval(arg_expr, &tmp))
 		return;
 	sm_msg("error: calling '%s()' with bogus flags", fn);
 }
