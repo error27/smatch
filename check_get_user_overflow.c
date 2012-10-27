@@ -109,7 +109,7 @@ static void check_expr(struct expression *expr)
 {
 	struct sm_state *sm;
 	sval_t max;
-	long long val;
+	sval_t sval;
 	char *name;
 	int overflow = 0;
 	int underflow = 0;
@@ -122,7 +122,7 @@ static void check_expr(struct expression *expr)
 
 	sm = get_sm_state_expr(my_min_id, expr);
 	if (sm && slist_has_state(sm->possible, &user_data)) {
-		if (!get_absolute_min(expr, &val) || val < -20000)
+		if (!get_absolute_min_sval(expr, &sval) || sval_cmp_val(sval, -20000) < 0)
 			underflow = 1;
 	}
 
