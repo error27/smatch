@@ -18,6 +18,14 @@
 #include "parse.h"
 #include "expression.h"
 
+typedef struct {
+	struct symbol *type;
+	union {
+		long long value;
+		unsigned long long uvalue;
+	};
+} sval_t;
+
 struct smatch_state {
 	const char *name;
 	void *data;
@@ -487,5 +495,19 @@ void print_held_locks();
 
 /* check_assigned_expr.c */
 struct expression *get_assigned_expr(struct expression *expr);
+
+/* smatch_sval.c */
+sval_t sval_blank(struct expression *expr);
+sval_t sval_from_val(struct expression *expr, long long val);
+int sval_unsigned(sval_t sval);
+int sval_signed(sval_t sval);
+int sval_bits(sval_t sval);
+int sval_cmp(sval_t one, sval_t two);
+int sval_cmp_val(sval_t one, long long val);
+sval_t sval_cast(sval_t sval, struct expression *expr);
+sval_t sval_preop(sval_t sval, int op);
+sval_t sval_binop(sval_t left, int op, sval_t right);
+const char *sval_to_str(sval_t sval);
+long long sval_to_ll(sval_t sval);
 
 #endif 	    /* !SMATCH_H_ */

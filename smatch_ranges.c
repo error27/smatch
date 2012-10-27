@@ -74,12 +74,40 @@ void get_value_ranges(char *value, struct range_list **rl)
 		if (*c == '(')
 			c++;
 		start = c;
-		if (!strncmp(start, "min", 3)) {
-			val1 = LLONG_MIN;
-			c += 3;
-		} else if (!strncmp(start, "max", 3)) {
+
+		if (!strncmp(start, "max", 3)) {
 			val1 = LLONG_MAX;
 			c += 3;
+		} else if (!strncmp(start, "u64max", 6)) {
+			val1 = LLONG_MAX; // FIXME
+			c += 6;
+		} else if (!strncmp(start, "s64max", 6)) {
+			val1 = LLONG_MAX;
+			c += 6;
+		} else if (!strncmp(start, "u32max", 6)) {
+			val1 = UINT_MAX;
+			c += 6;
+		} else if (!strncmp(start, "s32max", 6)) {
+			val1 = INT_MAX;
+			c += 6;
+		} else if (!strncmp(start, "u16max", 6)) {
+			val1 = USHRT_MAX;
+			c += 6;
+		} else if (!strncmp(start, "s16max", 6)) {
+			val1 = SHRT_MAX;
+			c += 6;
+		} else if (!strncmp(start, "min", 3)) {
+			val1 = LLONG_MIN;
+			c += 3;
+		} else if (!strncmp(start, "s64min", 6)) {
+			val1 = LLONG_MIN;
+			c += 6;
+		} else if (!strncmp(start, "s32min", 6)) {
+			val1 = INT_MIN;
+			c += 6;
+		} else if (!strncmp(start, "s16min", 6)) {
+			val1 = SHRT_MIN;
+			c += 6;
 		} else {
 			while (*c && *c != ',' && *c != '-')
 				c++;
