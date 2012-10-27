@@ -138,6 +138,8 @@ struct symbol *get_type(struct expression *expr)
 		if (expr->op == '*')
 			return get_pointer_type(expr->unop);
 		return get_type(expr->unop);
+	case EXPR_ASSIGNMENT:
+		return get_type(expr->left);
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
@@ -148,6 +150,9 @@ struct symbol *get_type(struct expression *expr)
 		return get_return_type(expr);
 	case EXPR_SIZEOF:
 		return &ulong_ctype;
+	case EXPR_COMPARE:
+	case EXPR_LOGICAL:
+		return &int_ctype;
 	default:
 		return expr->ctype;
 //		sm_msg("unhandled type %d", expr->type);
