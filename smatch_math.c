@@ -601,11 +601,11 @@ int get_implied_value(struct expression *expr, long long *val)
 	return !undefined;
 }
 
-int get_implied_value_sval(struct expression *expr, sval_t *val)
+int get_implied_value_sval(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
 
-	*val =  _get_value(expr, &undefined, IMPLIED);
+	*sval =  _get_value(expr, &undefined, IMPLIED);
 	return !undefined;
 }
 
@@ -717,18 +717,18 @@ int get_absolute_min_sval(struct expression *expr, sval_t *sval)
 	return 1;
 }
 
-int get_absolute_max_sval(struct expression *expr, sval_t *val)
+int get_absolute_max_sval(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
 
-	*val = _get_value(expr, &undefined, ABSOLUTE_MAX);
+	*sval = _get_value(expr, &undefined, ABSOLUTE_MAX);
 	if (undefined) {
-		val->value = sval_type_max(val->type).value;
+		sval->value = sval_type_max(sval->type).value;
 		return 1;
 	}
 
-	if (type_max(val->type) < val->value)
-		val->value = sval_type_max(val->type).value;
+	if (type_max(sval->type) < sval->value)
+		sval->value = sval_type_max(sval->type).value;
 	return 1;
 }
 
