@@ -96,7 +96,8 @@ static void reset_state(struct sm_state *sm)
 static void match_assign(struct expression *expr)
 {
 	struct symbol *type;
-	long long min, max;
+	long long min;
+	sval_t max;
 
 	if (expr->op != '=') {
 		set_state_expr(absolute_id, expr->left, &undefined);
@@ -109,19 +110,18 @@ static void match_assign(struct expression *expr)
 
 	if (!get_absolute_min(expr->right, &min))
 		min = whole_range.min;
-	if (!get_absolute_max(expr->right, &max))
-		max = whole_range.max;
+	get_absolute_max_sval(expr->right, &max);
 
 	/* handle wrapping.  sort of sloppy */
-	if (type_max(type) < max)
+	if (sval_cmp(sval_type_max(type), max) < 0)
 		min = type_min(type);
 	if (type_min(type) > min)
-		max = type_max(type);
+		max.value = sval_type_max(max.type).value;
 
-	if (min <= type_min(type) && max >= type_max(type))
+	if (min <= type_min(type) && sval_cmp(max, sval_type_max(type)) >= 0)
 		set_state_expr(absolute_id, expr->left, &undefined);
 	else
-		set_state_expr(absolute_id, expr->left, alloc_absolute(min, max));
+		set_state_expr(absolute_id, expr->left, alloc_absolute(min, sval_to_ll(max)));
 }
 
 static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
@@ -148,20 +148,21 @@ static void match_call_info(struct expression *expr)
 
 	i = -1;
 	FOR_EACH_PTR(expr->args, arg) {
-		long long min, max;
+		long long min;
+		sval_t max;
 
 		i++;
 
 		if (!get_absolute_min(arg, &min))
 			continue;
-		if (!get_absolute_max(arg, &max))
+		if (!get_absolute_max_sval(arg, &max))
 			continue;
-		if (min == whole_range.min && max == whole_range.max)
+		if (min == whole_range.min && sval_cmp_val(max, whole_range.max) >= 0)
 			continue;
 
 		/* fixme: determine the type of the paramter */
 		sm_msg("info: passes absolute_limits '%s' %d '$$' %s %s",
-		       name, i, show_range(min, max),
+		       name, i, show_range(min, sval_to_ll(max)),
 		       is_static(expr->fn) ? "static" : "global");
 	} END_FOR_EACH_PTR(arg);
 

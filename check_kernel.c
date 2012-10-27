@@ -27,12 +27,11 @@ static int implied_err_cast_return(struct expression *call, void *unused, struct
 static int implied_copy_return(struct expression *call, void *unused, struct range_list **rl)
 {
 	struct expression *arg;
-	long long max;
+	sval_t max;
 
 	arg = get_argument_from_call_expr(call->args, 2);
-	if (!get_absolute_max(arg, &max))
-		max = whole_range.max;
-	*rl = alloc_range_list(0, max);
+	get_absolute_max_sval(arg, &max);
+	*rl = alloc_range_list(0, sval_to_ll(max));
 	return 1;
 }
 

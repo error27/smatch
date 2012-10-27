@@ -108,6 +108,7 @@ free:
 static void check_expr(struct expression *expr)
 {
 	struct sm_state *sm;
+	sval_t max;
 	long long val;
 	char *name;
 	int overflow = 0;
@@ -115,7 +116,7 @@ static void check_expr(struct expression *expr)
 
 	sm = get_sm_state_expr(my_max_id, expr);
 	if (sm && slist_has_state(sm->possible, &user_data)) {
-		if (!get_absolute_max(expr, &val) || val > 20000)
+		if (!get_absolute_max_sval(expr, &max) || sval_cmp_val(max, 20000) > 0)
 			overflow = 1;
 	}
 

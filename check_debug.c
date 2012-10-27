@@ -109,15 +109,14 @@ static void match_print_absolute_min(const char *fn, struct expression *expr, vo
 static void match_print_absolute_max(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
-	long long val;
+	sval_t sval_val;
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	if (!get_absolute_max(arg, &val))
-		val = whole_range.max;
+	get_absolute_max_sval(arg, &sval_val);
 
 	name = get_variable_from_expr_complex(arg, NULL);
-	sm_msg("absolute max: %s = %lld", name, val);
+	sm_msg("absolute max: %s = %s", name, sval_to_str(sval_val));
 	free_string(name);
 }
 
