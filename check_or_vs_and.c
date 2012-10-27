@@ -52,19 +52,19 @@ free:
 
 static int inconsistent_check(struct expression *left, struct expression *right)
 {
-	long long val;
+	sval_t sval;
 
-	if (get_value(left->left, &val)) {
-		if (get_value(right->left, &val))
+	if (get_value_sval(left->left, &sval)) {
+		if (get_value_sval(right->left, &sval))
 			return expr_equiv(left->right, right->right);
-		if (get_value(right->right, &val))
+		if (get_value_sval(right->right, &sval))
 			return expr_equiv(left->right, right->left);
 		return 0;
 	}
-	if (get_value(left->right, &val)) {
-		if (get_value(right->left, &val))
+	if (get_value_sval(left->right, &sval)) {
+		if (get_value_sval(right->left, &sval))
 			return expr_equiv(left->left, right->right);
-		if (get_value(right->right, &val))
+		if (get_value_sval(right->right, &sval))
 			return expr_equiv(left->left, right->left);
 		return 0;
 	}
@@ -125,12 +125,12 @@ static int is_unconstant_macro(struct expression *expr)
 
 static void match_condition(struct expression *expr)
 {
-	long long val;
+	sval_t sval;
 
 	if (expr->type != EXPR_BINOP)
 		return;
 	if (expr->op == '|') {
-		if (get_value(expr->left, &val) || get_value(expr->right, &val))
+		if (get_value_sval(expr->left, &sval) || get_value_sval(expr->right, &sval))
 			sm_msg("warn: suspicious bitop condition");
 		return;
 	}
@@ -143,24 +143,24 @@ static void match_condition(struct expression *expr)
 	if (is_unconstant_macro(expr->left) || is_unconstant_macro(expr->right))
 		return;
 
-	if ((get_value(expr->left, &val) && val == 0) ||
-	    (get_value(expr->right, &val) && val == 0))
+	if ((get_value_sval(expr->left, &sval) && sval.value == 0) ||
+	    (get_value_sval(expr->right, &sval) && sval.value == 0))
 		sm_msg("warn: bitwise AND condition is false here");
 }
 
 static void match_binop(struct expression *expr)
 {
-	long long left, right, val;
+	sval_t left, right, sval;
 
 	if (expr->op != '&')
 		return;
-	if (!get_value(expr, &val) || val != 0)
+	if (!get_value_sval(expr, &sval) || sval.value != 0)
 		return;
 	if (get_macro_name(expr->pos))
 		return;
-	if (!get_value(expr->left, &left) || !get_value(expr->right, &right))
+	if (!get_value_sval(expr->left, &left) || !get_value_sval(expr->right, &right))
 		return;
-	sm_msg("warn: odd binop '0x%llx & 0x%llx'", left, right);
+	sm_msg("warn: odd binop '0x%llx & 0x%llx'", left.uvalue, right.uvalue);
 }
 
 void check_or_vs_and(int id)
