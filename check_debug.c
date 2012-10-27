@@ -64,59 +64,65 @@ static void match_print_implied(const char *fn, struct expression *expr, void *i
 static void match_print_implied_min(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
-	long long val;
+	sval_t sval;
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	if (!get_implied_min(arg, &val))
-		val = whole_range.min;
-
 	name = get_variable_from_expr_complex(arg, NULL);
-	sm_msg("implied min: %s = %lld", name, val);
+
+	if (get_implied_min_sval(arg, &sval))
+		sm_msg("implied min: %s = %s", name, sval_to_str(sval));
+	else
+		sm_msg("implied min: %s = <unknown>", name);
+
 	free_string(name);
 }
 
 static void match_print_implied_max(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
-	long long val;
+	sval_t sval;
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	if (!get_implied_max(arg, &val))
-		val = whole_range.max;
-
 	name = get_variable_from_expr_complex(arg, NULL);
-	sm_msg("implied max: %s = %lld", name, val);
+
+	if (!get_implied_max_sval(arg, &sval))
+		sm_msg("implied max: %s = %s", name, sval_to_str(sval));
+	else
+		sm_msg("implied max: %s = <unknown>", name);
+
 	free_string(name);
 }
 
 static void match_print_absolute_min(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
-	long long val;
+	sval_t sval;
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	if (!get_absolute_min(arg, &val))
-		val = whole_range.min;
-
 	name = get_variable_from_expr_complex(arg, NULL);
-	sm_msg("absolute min: %s = %lld", name, val);
+
+	if (!get_absolute_min_sval(arg, &sval))
+		sm_msg("absolute min: %s = %s", name, sval_to_str(sval));
+	else
+		sm_msg("absolute min: %s = <unknown>", name);
+
 	free_string(name);
 }
 
 static void match_print_absolute_max(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
-	sval_t sval_val;
+	sval_t sval;
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	get_absolute_max_sval(arg, &sval_val);
+	get_absolute_max_sval(arg, &sval);
 
 	name = get_variable_from_expr_complex(arg, NULL);
-	sm_msg("absolute max: %s = %s", name, sval_to_str(sval_val));
+	sm_msg("absolute max: %s = %s", name, sval_to_str(sval));
 	free_string(name);
 }
 
