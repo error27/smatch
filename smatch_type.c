@@ -224,22 +224,6 @@ int returns_pointer(struct symbol *sym)
 	return 0;
 }
 
-long long type_max(struct symbol *base_type)
-{
-	long long ret = whole_range.max;
-	int bits;
-
-	if (!base_type || !base_type->bit_size)
-		return ret;
-	bits = base_type->bit_size;
-	if (bits == 64)
-		return ret;
-	if (!type_unsigned(base_type))
-		bits--;
-	ret >>= (63 - bits);
-	return ret;
-}
-
 sval_t sval_type_max(struct symbol *base_type)
 {
 	sval_t ret;
@@ -256,21 +240,6 @@ sval_t sval_type_max(struct symbol *base_type)
 		ret.value = (~0ULL) >> (64 - (base_type->bit_size - 1));
 
 	return ret;
-}
-
-long long type_min(struct symbol *base_type)
-{
-	long long ret = whole_range.min;
-	int bits;
-
-	if (!base_type || !base_type->bit_size)
-		return ret;
-	if (type_unsigned(base_type))
-		return 0;
-	ret = whole_range.max;
-	bits = base_type->bit_size - 1;
-	ret >>= (63 - bits);
-	return -(ret + 1);
 }
 
 sval_t sval_type_min(struct symbol *base_type)
