@@ -268,6 +268,24 @@ long long type_min(struct symbol *base_type)
 	return -(ret + 1);
 }
 
+sval_t sval_type_min(struct symbol *base_type)
+{
+	sval_t ret;
+
+	if (!base_type || !base_type->bit_size)
+		base_type = &llong_ctype;
+	ret.type = base_type;
+
+	if (type_unsigned(base_type)) {
+		ret.value = 0;
+		return ret;
+	}
+
+	ret.value = (~0ULL) << (base_type->bit_size - 1);
+
+	return ret;
+}
+
 int nr_bits(struct expression *expr)
 {
 	struct symbol *type;

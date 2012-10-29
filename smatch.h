@@ -271,6 +271,7 @@ int returns_pointer(struct symbol *base_type);
 long long type_max(struct symbol *base_type);
 sval_t sval_type_max(struct symbol *base_type);
 long long type_min(struct symbol *base_type);
+sval_t sval_type_min(struct symbol *base_type);
 int nr_bits(struct expression *expr);
 int is_static(struct expression *expr);
 const char *global_static();
