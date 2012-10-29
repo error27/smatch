@@ -104,7 +104,7 @@ static void match_print_absolute_min(const char *fn, struct expression *expr, vo
 	arg = get_argument_from_call_expr(expr->args, 0);
 	name = get_variable_from_expr_complex(arg, NULL);
 
-	if (!get_absolute_min_sval(arg, &sval))
+	if (get_absolute_min_sval(arg, &sval))
 		sm_msg("absolute min: %s = %s", name, sval_to_str(sval));
 	else
 		sm_msg("absolute min: %s = <unknown>", name);
