@@ -121,11 +121,11 @@ static void match_return(struct expression *ret_value)
 {
 	struct state_list *slist;
 	struct sm_state *tmp;
-	long long val;
+	sval_t sval;
 
 	if (!func_returns_int())
 		return;
-	if (get_value(ret_value, &val) && val >= 0)
+	if (get_value_sval(ret_value, &sval) && sval_cmp_val(sval, 0) >= 0)
 		return;
 	if (!implied_not_equal(ret_value, 0))
 		return;
