@@ -95,33 +95,33 @@ static void reset_state(struct sm_state *sm)
 
 static void match_assign(struct expression *expr)
 {
-	struct symbol *type;
-	long long min;
-	sval_t max;
+	struct symbol *left_type;
+	sval_t left_min, left_max, right_min, right_max;
 
 	if (expr->op != '=') {
 		set_state_expr(absolute_id, expr->left, &undefined);
 		return;
 	}
 
-	type = get_type(expr->left);
-	if (!type)
+	left_type = get_type(expr->left);
+	if (!left_type)
 		return;
+	left_min = sval_type_min(left_type);
+	left_max = sval_type_max(left_type);
 
-	if (!get_absolute_min(expr->right, &min))
-		min = whole_range.min;
-	get_absolute_max_sval(expr->right, &max);
+	get_absolute_min_sval(expr->right, &right_min);
+	get_absolute_max_sval(expr->right, &right_max);
 
 	/* handle wrapping.  sort of sloppy */
-	if (sval_cmp(sval_type_max(type), max) < 0)
-		min = type_min(type);
-	if (type_min(type) > min)
-		max.value = sval_type_max(max.type).value;
+	if (sval_cmp(left_max, right_max) < 0)
+		right_min = left_min;
+	if (sval_cmp(left_min, right_min) > 0)
+		right_max = left_max;
 
-	if (min <= type_min(type) && sval_cmp(max, sval_type_max(type)) >= 0)
+	if (sval_cmp(right_min, sval_type_min(left_type)) <= 0 && sval_cmp(right_max, sval_type_max(left_type)) >= 0)
 		set_state_expr(absolute_id, expr->left, &undefined);
 	else
-		set_state_expr(absolute_id, expr->left, alloc_absolute(min, sval_to_ll(max)));
+		set_state_expr(absolute_id, expr->left, alloc_absolute(sval_to_ll(right_min), sval_to_ll(right_max)));
 }
 
 static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)

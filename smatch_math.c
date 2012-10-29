@@ -683,20 +683,10 @@ int get_fuzzy_max_sval(struct expression *expr, sval_t *sval)
 
 int get_absolute_min(struct expression *expr, long long *val)
 {
-	int undefined = 0;
-	struct symbol *type;
 	sval_t tmp_ret;
 
-	type = get_type(expr);
-	tmp_ret =  _get_value(expr, &undefined, ABSOLUTE_MIN);
+	get_absolute_min_sval(expr, &tmp_ret);
 	*val = tmp_ret.value;
-	if (undefined) {
-		*val = type_min(type);
-		return 1;
-	}
-
-	if (sval_cmp_val(tmp_ret, type_min(type)) < 0)
-		*val = type_min(type);
 	return 1;
 }
 
@@ -708,12 +698,12 @@ int get_absolute_min_sval(struct expression *expr, sval_t *sval)
 	type = get_type(expr);
 	*sval =  _get_value(expr, &undefined, ABSOLUTE_MIN);
 	if (undefined) {
-		sval->value = type_min(type);
+		*sval = sval_type_min(type);
 		return 1;
 	}
 
-	if (sval_cmp_val(*sval, type_min(type)) < 0)
-		sval->value = type_min(type);
+	if (sval_cmp(*sval, sval_type_min(type)) < 0)
+		*sval = sval_type_min(type);
 	return 1;
 }
 
@@ -727,7 +717,7 @@ int get_absolute_max_sval(struct expression *expr, sval_t *sval)
 		return 1;
 	}
 
-	if (type_max(sval->type) < sval->value)
+	if (sval_cmp(sval_type_max(sval->type), *sval) < 0)
 		sval->value = sval_type_max(sval->type).value;
 	return 1;
 }

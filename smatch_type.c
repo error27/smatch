@@ -27,6 +27,7 @@ struct symbol *get_real_base_type(struct symbol *sym)
 static struct symbol *get_binop_type(struct expression *expr)
 {
 	struct symbol *left, *right;
+	sval_t left_max, right_max, int_max;
 
 	left = get_type(expr->left);
 	right = get_type(expr->right);
@@ -39,18 +40,22 @@ static struct symbol *get_binop_type(struct expression *expr)
 	if (right->type == SYM_PTR || right->type == SYM_ARRAY)
 		return right;
 
+	left_max = sval_type_max(left);
+	right_max = sval_type_max(right);
+	int_max = sval_type_max(&int_ctype);
+
 	if (expr->op == SPECIAL_LEFTSHIFT ||
 	    expr->op == SPECIAL_RIGHTSHIFT) {
-		if (type_max(left) < type_max(&int_ctype))
+		if (sval_cmp(left_max, int_max) < 0)
 			return &int_ctype;
 		return left;
 	}
 
-	if (type_max(left) < type_max(&int_ctype) &&
-	    type_max(right) < type_max(&int_ctype))
+	if (sval_cmp(left_max, int_max) < 0 &&
+	    sval_cmp(right_max, int_max) < 0)
 		return &int_ctype;
 
-	if (type_max(right) > type_max(left))
+	if (sval_cmp(right_max, left_max) > 0)
 		return right;
 	return left;
 }
