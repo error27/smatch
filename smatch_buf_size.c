@@ -176,15 +176,15 @@ static int size_from_db(struct expression *expr)
 static void db_returns_buf_size(struct expression *expr, int param, char *unused, char *math)
 {
 	struct expression *call;
-	long long val;
+	sval_t sval;
 
 	if (expr->type != EXPR_ASSIGNMENT)
 		return;
 	call = strip_expr(expr->right);
 
-	if (!parse_call_math(call, math, &val))
+	if (!parse_call_math_sval(call, math, &sval))
 		return;
-	set_state_expr(my_size_id, expr->left, alloc_state_num(val));
+	set_state_expr(my_size_id, expr->left, alloc_state_num(sval.value));
 }
 
 static int get_real_array_size(struct expression *expr)
@@ -275,20 +275,20 @@ static int get_bytes_from_address(struct expression *expr)
 static int get_size_from_strlen(struct expression *expr)
 {
 	struct smatch_state *state;
-	long long len;
+	sval_t len;
 
 	state = get_state_expr(my_strlen_id, expr);
 	if (!state || !state->data)
 		return 0;
-	if (get_implied_max((struct expression *)state->data, &len))
-		return len + 1; /* add one because strlen doesn't include the NULL */
+	if (get_implied_max_sval((struct expression *)state->data, &len))
+		return len.value + 1; /* add one because strlen doesn't include the NULL */
 	return 0;
 }
 
 static struct expression *remove_addr_fluff(struct expression *expr)
 {
 	struct expression *tmp;
-	long long val;
+	sval_t sval;
 
 	expr = strip_expr(expr);
 
@@ -304,7 +304,7 @@ static struct expression *remove_addr_fluff(struct expression *expr)
 
 	/* "foo + 0" is just "foo" */
 	if (expr->type == EXPR_BINOP && expr->op == '+' &&
-	    get_value(expr->right, &val) && val == 0)
+	    get_value_sval(expr->right, &sval) && sval.value == 0)
 		return expr->left;
 
 	return expr;
@@ -377,7 +377,7 @@ static void match_strlen_condition(struct expression *expr)
 	struct expression *str = NULL;
 	int strlen_left = 0;
 	int strlen_right = 0;
-	long long val;
+	sval_t sval;
 	struct smatch_state *true_state = NULL;
 	struct smatch_state *false_state = NULL;
 
@@ -401,20 +401,20 @@ static void match_strlen_condition(struct expression *expr)
 		return;
 
 	if (strlen_left) {
-		if (!get_value(right, &val))
+		if (!get_value_sval(right, &sval))
 			return;
 	}
 	if (strlen_right) {
-		if (!get_value(left, &val))
+		if (!get_value_sval(left, &sval))
 			return;
 	}
 
 	if (expr->op == SPECIAL_EQUAL) {
-		set_true_false_states_expr(my_size_id, str, alloc_state_num(val + 1), NULL);
+		set_true_false_states_expr(my_size_id, str, alloc_state_num(sval.value + 1), NULL);
 		return;
 	}
 	if (expr->op == SPECIAL_NOTEQUAL) {
-		set_true_false_states_expr(my_size_id, str, NULL, alloc_state_num(val + 1));
+		set_true_false_states_expr(my_size_id, str, NULL, alloc_state_num(sval.value + 1));
 		return;
 	}
 
@@ -422,30 +422,30 @@ static void match_strlen_condition(struct expression *expr)
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
 		if (strlen_left)
-			true_state = alloc_state_num(val);
+			true_state = alloc_state_num(sval.value);
 		else
-			false_state = alloc_state_num(val + 1);
+			false_state = alloc_state_num(sval.value + 1);
 		break;
 	case SPECIAL_LTE:
 	case SPECIAL_UNSIGNED_LTE:
 		if (strlen_left)
-			true_state = alloc_state_num(val + 1);
+			true_state = alloc_state_num(sval.value + 1);
 		else
-			false_state = alloc_state_num(val);
+			false_state = alloc_state_num(sval.value);
 		break;
 	case SPECIAL_GTE:
 	case SPECIAL_UNSIGNED_GTE:
 		if (strlen_left)
-			false_state = alloc_state_num(val);
+			false_state = alloc_state_num(sval.value);
 		else
-			true_state = alloc_state_num(val + 1);
+			true_state = alloc_state_num(sval.value + 1);
 		break;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
 		if (strlen_left)
-			false_state = alloc_state_num(val + 1);
+			false_state = alloc_state_num(sval.value + 1);
 		else
-			true_state = alloc_state_num(val);
+			true_state = alloc_state_num(sval.value);
 		break;
 	}
 	set_true_false_states_expr(my_size_id, str, true_state, false_state);
@@ -484,7 +484,7 @@ static void match_array_assignment(struct expression *expr)
 static void info_record_alloction(struct expression *buffer, struct expression *size)
 {
 	char *name;
-	long long val;
+	sval_t sval;
 
 	if (!option_info)
 		return;
@@ -494,9 +494,10 @@ static void info_record_alloction(struct expression *buffer, struct expression *
 		name = get_variable_from_expr(buffer, NULL);
 	if (!name)
 		return;
-	if (!get_implied_value(size, &val))
-		val = -1;
-	sm_msg("info: '%s' allocated_buf_size %lld", name, val);
+	if (get_implied_value_sval(size, &sval))
+		sm_msg("info: '%s' allocated_buf_size %s", name, sval_to_str(sval));
+	else
+		sm_msg("info: '%s' allocated_buf_size -1", name);
 	free_string(name);
 }
 
@@ -505,33 +506,33 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 	int size_arg = PTR_INT(_size_arg);
 	struct expression *right;
 	struct expression *arg;
-	long long bytes;
+	sval_t bytes;
 
 	right = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(right->args, size_arg);
 
 	info_record_alloction(expr->left, arg);
 
-	if (!get_implied_value(arg, &bytes))
+	if (!get_implied_value_sval(arg, &bytes))
 		return;
-	set_state_expr(my_size_id, expr->left, alloc_state_num(bytes));
+	set_state_expr(my_size_id, expr->left, alloc_state_num(bytes.value));
 }
 
 static void match_calloc(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *right;
 	struct expression *arg;
-	long long elements;
-	long long size;
+	sval_t elements;
+	sval_t size;
 
 	right = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(right->args, 0);
-	if (!get_implied_value(arg, &elements))
+	if (!get_implied_value_sval(arg, &elements))
 		return;
 	arg = get_argument_from_call_expr(right->args, 1);
-	if (!get_implied_value(arg, &size))
+	if (!get_implied_value_sval(arg, &size))
 		return;
-	set_state_expr(my_size_id, expr->left, alloc_state_num(elements * size));
+	set_state_expr(my_size_id, expr->left, alloc_state_num(elements.value * size.value));
 }
 
 static void match_strlen(const char *fn, struct expression *expr, void *unused)
@@ -561,13 +562,13 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 	struct limiter *limiter = (struct limiter *)_limiter;
 	struct expression *dest;
 	struct expression *size_expr;
-	long long size;
+	sval_t size;
 
 	dest = get_argument_from_call_expr(expr->args, limiter->buf_arg);
 	size_expr = get_argument_from_call_expr(expr->args, limiter->limit_arg);
-	if (!get_implied_max(size_expr, &size))
+	if (!get_implied_max_sval(size_expr, &size))
 		return;
-	set_state_expr(my_size_id, dest, alloc_state_num(size));
+	set_state_expr(my_size_id, dest, alloc_state_num(size.value));
 }
 
 static void match_strcpy(const char *fn, struct expression *expr, void *unused)
@@ -584,16 +585,16 @@ static void match_strndup(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *fn_expr;
 	struct expression *size_expr;
-	long long size;
+	sval_t size;
 
 	fn_expr = strip_expr(expr->right);
 	size_expr = get_argument_from_call_expr(fn_expr->args, 1);
-	if (!get_implied_max(size_expr, &size))
+	if (!get_implied_max_sval(size_expr, &size))
 		return;
 
 	/* It's easy to forget space for the NUL char */
-	size++;
-	set_state_expr(my_size_id, expr->left, alloc_state_num(size));
+	size.value++;
+	set_state_expr(my_size_id, expr->left, alloc_state_num(size.value));
 }
 
 static void match_call(struct expression *expr)
