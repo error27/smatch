@@ -22,43 +22,12 @@ static int my_id;
 #define VAR_ON_RIGHT 0
 #define VAR_ON_LEFT 1
 
-static long long eqneq_max(struct symbol *base_type)
-{
-	long long ret = whole_range.max;
-	int bits;
-
-	if (!base_type || !base_type->bit_size)
-		return ret;
-	bits = base_type->bit_size;
-	if (bits == 64)
-		return ret;
-	if (bits < 32)
-		return type_max(base_type);
-	ret >>= (63 - bits);
-	return ret;
-}
-
-static long long eqneq_min(struct symbol *base_type)
-{
-	long long ret = whole_range.min;
-	int bits;
-
-	if (!base_type || !base_type->bit_size)
-		return ret;
-	if (base_type->bit_size < 32)
-		return type_min(base_type);
-	ret = whole_range.max;
-	bits = base_type->bit_size - 1;
-	ret >>= (63 - bits);
-	return -(ret + 1);
-}
-
 static void match_assign(struct expression *expr)
 {
 	struct symbol *sym;
-	long long val;
-	long long max;
-	long long min;
+	sval_t sval;
+	sval_t max;
+	sval_t min;
 	char *name;
 
 	if (expr->op == SPECIAL_AND_ASSIGN || expr->op == SPECIAL_OR_ASSIGN)
@@ -71,55 +40,59 @@ static void match_assign(struct expression *expr)
 	}
 	if (sym->bit_size >= 32) /* max_val limits this */
 		return;
-	if (!get_implied_value(expr->right, &val))
+	if (!get_implied_value_sval(expr->right, &sval))
 		return;
-	max = type_max(sym);
-	if (max < val && !(val < 256 && max == 127)) {
+	max = sval_type_max(sym);
+	if (sval_cmp(max, sval) < 0 && !(sval.value < 256 && max.value == 127)) {
 		name = get_variable_from_expr_complex(expr->left, NULL);
-		sm_msg("warn: value %lld can't fit into %lld '%s'", val, max, name);
+		sm_msg("warn: value %s can't fit into %s '%s'",
+		       sval_to_str(sval), sval_to_str(max), name);
 		free_string(name);
 	}
-	min = type_min(sym);
-	if (min > val) {
-		if (min == 0 && val == -1) /* assigning -1 to unsigned variables is idiomatic */
+	min = sval_type_min(sym);
+	if (sval_cmp(min, sval) > 0) {
+		if (min.value == 0 && sval.value == -1) /* assigning -1 to unsigned variables is idiomatic */
 			return;
 		if (expr->right->type == EXPR_PREOP && expr->right->op == '~')
 			return;
 		if (expr->op == SPECIAL_SUB_ASSIGN || expr->op == SPECIAL_ADD_ASSIGN)
 			return;
 		name = get_variable_from_expr_complex(expr->left, NULL);
-		if (min == 0)
-			sm_msg("warn: assigning %lld to unsigned variable '%s'", val, name);
-		else
-			sm_msg("warn: value %lld can't fit into %lld '%s'", val, min, name);
+		if (min.value == 0) {
+			sm_msg("warn: assigning %s to unsigned variable '%s'",
+			       sval_to_str(sval), name);
+		} else {
+			sm_msg("warn: value %s can't fit into %s '%s'",
+			       sval_to_str(sval), sval_to_str(min), name);
+		}
 		free_string(name);
 	}
 }
 
-static const char *get_tf(long long variable, long long known, int var_pos, int op)
+static const char *get_tf(sval_t variable, sval_t known, int var_pos, int op)
 {
 	if (op == SPECIAL_EQUAL)
 		return "false";
 	if (op == SPECIAL_NOTEQUAL)
 		return "true";
 	if (var_pos == VAR_ON_LEFT) {
-		if (variable > known && (op == '<' || op == SPECIAL_LTE))
+		if (sval_cmp(variable, known) > 0 && (op == '<' || op == SPECIAL_LTE))
 			return "false";
-		if (variable > known && (op == '>' || op == SPECIAL_GTE))
+		if (sval_cmp(variable, known) > 0 && (op == '>' || op == SPECIAL_GTE))
 			return "true";
-		if (variable < known && (op == '<' || op == SPECIAL_LTE))
+		if (sval_cmp(variable, known) < 0 && (op == '<' || op == SPECIAL_LTE))
 			return "true";
-		if (variable < known && (op == '>' || op == SPECIAL_GTE))
+		if (sval_cmp(variable, known) < 0 && (op == '>' || op == SPECIAL_GTE))
 			return "false";
 	}
 	if (var_pos == VAR_ON_RIGHT) {
-		if (known > variable && (op == '<' || op == SPECIAL_LTE))
+		if (sval_cmp(known, variable) > 0 && (op == '<' || op == SPECIAL_LTE))
 			return "false";
-		if (known > variable && (op == '>' || op == SPECIAL_GTE))
+		if (sval_cmp(known, variable) > 0 && (op == '>' || op == SPECIAL_GTE))
 			return "true";
-		if (known < variable && (op == '<' || op == SPECIAL_LTE))
+		if (sval_cmp(known, variable) < 0 && (op == '<' || op == SPECIAL_LTE))
 			return "true";
-		if (known < variable && (op == '>' || op == SPECIAL_GTE))
+		if (sval_cmp(known, variable) < 0 && (op == '>' || op == SPECIAL_GTE))
 			return "false";
 	}
 	return "the same";
@@ -193,25 +166,25 @@ free:
 
 static void match_condition(struct expression *expr)
 {
-	long long known;
 	struct expression *var = NULL;
 	struct symbol *var_type = NULL;
 	struct symbol *known_type = NULL;
-	long long max;
-	long long min;
+	sval_t known;
+	sval_t max;
+	sval_t min;
 	int lr;
 	char *name;
 
 	if (expr->type != EXPR_COMPARE)
 		return;
 
-	if (get_value(expr->left, &known)) {
-		if (get_value(expr->right, &max))
+	if (get_value_sval(expr->left, &known)) {
+		if (get_value_sval(expr->right, &max))
 			return; /* both sides known */
 		lr = VAR_ON_RIGHT;
 		var = expr->right;
 		known_type = get_type(expr->left);
-	} else if (get_value(expr->right, &known)) {
+	} else if (get_value_sval(expr->right, &known)) {
 		lr = VAR_ON_LEFT;
 		var = expr->left;
 		known_type = get_type(expr->right);
@@ -228,23 +201,28 @@ static void match_condition(struct expression *expr)
 	name = get_variable_from_expr_complex(var, NULL);
 
 	if (expr->op == SPECIAL_EQUAL || expr->op == SPECIAL_NOTEQUAL) {
-		if (eqneq_max(var_type) < known || eqneq_min(var_type) > known)
-			sm_msg("error: %s is never equal to %lld (wrong type %lld - %lld).",
-				name, known, eqneq_min(var_type), eqneq_max(var_type));
+		sval_t sval_min, sval_max;
+
+		sval_min = sval_type_min(var_type);
+		sval_max = sval_type_max(var_type);
+
+		if (sval_cmp(sval_min, known) > 0 || sval_cmp(sval_max, known) < 0)
+			sm_msg("error: %s is never equal to %s (wrong type %s - %s).",
+				name, sval_to_str(known), sval_to_str(sval_min), sval_to_str(sval_max));
 		goto free;
 	}
 
-	max = type_max(var_type);
-	min = type_min(var_type);
+	max = sval_type_max(var_type);
+	min = sval_type_min(var_type);
 
-	if (max < known) {
+	if (sval_cmp(max, known) < 0) {
 		const char *tf = get_tf(max, known, lr, expr->op);
 
-		sm_msg("warn: %lld is more than %lld (max '%s' can be) so this is always %s.",
-			known, max, name, tf);
+		sm_msg("warn: %s is more than %s (max '%s' can be) so this is always %s.",
+			sval_to_str(known), sval_to_str(max), name, tf);
 	}
 
-	if (known == 0 && type_unsigned(var_type)) {
+	if (known.value == 0 && type_unsigned(var_type)) {
 		if ((lr && expr->op == '<') ||
 		    (lr && expr->op == SPECIAL_UNSIGNED_LT) ||
 		    (!lr && expr->op == '>') ||
@@ -256,16 +234,16 @@ static void match_condition(struct expression *expr)
 		}
 	}
 
-	if (type_unsigned(var_type) && known_type && !type_unsigned(known_type) && known < 0) {
-		sm_msg("warn: unsigned '%s' is never less than zero (%lld).", name, known);
+	if (type_unsigned(var_type) && known_type && !type_unsigned(known_type) && known.value < 0) {
+		sm_msg("warn: unsigned '%s' is never less than zero %s.", name, sval_to_str(known));
 		goto free;
 	}
 
-	if (min < 0 && min > known) {
+	if (sval_signed(min) && sval_cmp(min, known) > 0) {
 		const char *tf = get_tf(min, known, lr, expr->op);
 
-		sm_msg("warn: %lld is less than %lld (min '%s' can be) so this is always %s.",
-			known, min, name, tf);
+		sm_msg("warn: %s is less than %s (min '%s' can be) so this is always %s.",
+			sval_to_str(known), sval_to_str(min), name, tf);
 	}
 free:
 	free_string(name);
