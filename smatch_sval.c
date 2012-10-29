@@ -20,6 +20,26 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+__ALLOCATOR(sval_t, "svals", sval);
+
+sval_t *sval_alloc(sval_t sval)
+{
+	sval_t *ret;
+
+	ret = __alloc_sval(0);
+	*ret = sval;
+	return ret;
+}
+
+sval_t *sval_alloc_permanent(sval_t sval)
+{
+	sval_t *ret;
+
+	ret = malloc(sizeof(*ret));
+	*ret = sval;
+	return ret;
+}
+
 sval_t sval_blank(struct expression *expr)
 {
 	sval_t ret;
@@ -228,3 +248,12 @@ long long sval_to_ll(sval_t sval)
 	return sval.value;
 }
 
+static void free_svals(struct symbol *sym)
+{
+	clear_sval_alloc();
+}
+
+void register_sval(int my_id)
+{
+	add_hook(&free_svals, END_FUNC_HOOK);
+}

@@ -506,6 +506,8 @@ void print_held_locks();
 struct expression *get_assigned_expr(struct expression *expr);
 
 /* smatch_sval.c */
+sval_t *sval_alloc(sval_t sval);
+sval_t *sval_alloc_permanent(sval_t sval);
 sval_t sval_blank(struct expression *expr);
 sval_t sval_from_val(struct expression *expr, long long val);
 int sval_unsigned(sval_t sval);
