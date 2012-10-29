@@ -207,7 +207,7 @@ sval_t sval_binop(sval_t left, int op, sval_t right)
 
 const char *sval_to_str(sval_t sval)
 {
-	static char buf[30];
+	char buf[30];
 
 	if (sval_unsigned(sval) && sval.value == ULLONG_MAX)
 		return "u64max";
@@ -234,7 +234,7 @@ const char *sval_to_str(sval_t sval)
 	else
 		snprintf(buf, sizeof(buf), "%lld", sval.value);
 
-	return buf;
+	return alloc_sname(buf);
 }
 
 /*
