@@ -225,6 +225,12 @@ fail:
 	return 0;
 }
 
+int parse_call_math_sval(struct expression *call, char *math, sval_t *val)
+{
+	val->type = &llong_ctype;  /* this should be large enough to hold the size values */
+	return parse_call_math(call, math, &val->value);
+}
+
 static struct smatch_state *alloc_state_sname(char *sname)
 {
 	struct smatch_state *state;
