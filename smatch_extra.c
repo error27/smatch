@@ -353,7 +353,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	struct expression *iter_expr;
 	char *name;
 	struct symbol *sym;
-	long long value;
+	sval_t value;
 	int left = 0;
 	struct smatch_state *state;
 	long long min, max;
@@ -367,8 +367,8 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 
 	if (condition->type != EXPR_COMPARE)
 		return;
-	if (!get_value(condition->left, &value)) {
-		if (!get_value(condition->right, &value))
+	if (!get_value_sval(condition->left, &value)) {
+		if (!get_value_sval(condition->right, &value))
 			return;
 		left = 1;
 	}

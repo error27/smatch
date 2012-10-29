@@ -495,15 +495,17 @@ static sval_t _get_implied_value(struct expression *expr, int *undefined, int im
 static int get_const_value(struct expression *expr, sval_t *sval)
 {
 	struct symbol *sym;
+	sval_t right;
 
 	if (expr->type != EXPR_SYMBOL || !expr->symbol)
 		return 0;
 	sym = expr->symbol;
-	*sval = sval_blank(expr);
 	if (!(sym->ctype.modifiers & MOD_CONST))
 		return 0;
-	if (get_value(sym->initializer, &sval->value))
+	if (get_value_sval(sym->initializer, &right)) {
+		*sval = sval_cast(right, expr);
 		return 1;
+	}
 	return 0;
 }
 
