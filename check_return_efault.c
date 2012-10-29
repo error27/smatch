@@ -53,7 +53,7 @@ static void match_return(struct expression *ret_value)
 {
 	struct smatch_state *state;
 	struct sm_state *sm;
-	long long min;
+	sval_t min;
 
 	sm = get_sm_state_expr(my_id, ret_value);
 	if (!sm)
@@ -63,9 +63,9 @@ static void match_return(struct expression *ret_value)
 	state = get_state_expr(SMATCH_EXTRA, ret_value);
 	if (!state)
 		return;
-	if (!get_absolute_min(ret_value, &min))
+	if (!get_absolute_min_sval(ret_value, &min))
 		return;
-	if (min == 0)
+	if (min.value == 0)
 		return;
 	sm_msg("warn: maybe return -EFAULT instead of the bytes remaining?");
 }
