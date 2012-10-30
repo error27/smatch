@@ -345,7 +345,8 @@ static int get_implied_value_helper(struct expression *expr, sval_t *sval, int i
 	struct smatch_state *state;
 	struct symbol *sym;
 	char *name;
-	long long val;
+
+	/* fixme: this should return the casted value */
 
 	expr = strip_expr(expr);
 
@@ -361,23 +362,19 @@ static int get_implied_value_helper(struct expression *expr, sval_t *sval, int i
 	if (!state || !state->data)
 		return 0;
 	if (implied == IMPLIED) {
-		if (estate_get_single_value(state, &val)) {
-			sval->value = val;
+		if (estate_get_single_value_sval(state, sval))
 			return 1;
-		}
 		return 0;
 	}
 	if (implied == IMPLIED_MAX || implied == ABSOLUTE_MAX) {
-		val = estate_max(state);
-		if (val == whole_range.max) /* this means just guessing */
+		*sval = estate_max_sval(state);
+		if (sval_is_max(*sval)) /* this means just guessing.  fixme. not really */
 			return 0;
-		sval->value = val;
 		return 1;
 	}
-	val = estate_min(state);
-	if (val == whole_range.min)
+	*sval = estate_min_sval(state);
+	if (sval_is_min(*sval))       /* fixme */
 		return 0;
-	sval->value = val;
 	return 1;
 }
 
@@ -385,64 +382,57 @@ static int get_fuzzy_max_helper(struct expression *expr, sval_t *max)
 {
 	struct sm_state *sm;
 	struct sm_state *tmp;
-	long long val;
+	sval_t sval;
 
-	*max = sval_blank(expr);
-	if (get_implied_max(expr, &val)) {
-		max->value = val;
+	if (get_implied_max_sval(expr, max))
 		return 1;
-	}
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
 	if (!sm)
 		return 0;
 
-	val = whole_range.min;
+	sval = sval_type_min(&llong_ctype);
 	FOR_EACH_PTR(sm->possible, tmp) {
-		long long new_min;
+		sval_t new_min;
 
-		new_min = estate_min(tmp->state);
-		if (new_min > val)
-			val = new_min;
+		new_min = estate_min_sval(tmp->state);
+		if (sval_cmp(new_min, sval) > 0)
+			sval = new_min;
 	} END_FOR_EACH_PTR(tmp);
 
-	if (val > whole_range.min) {
-		max->value = val;
-		return 1;
-	}
-	return 0;
+	if (sval_is_min(sval))
+		return 0;
+
+	*max = sval_cast(sval, expr);
+	return 1;
 }
 
 static int get_fuzzy_min_helper(struct expression *expr, sval_t *min)
 {
 	struct sm_state *sm;
 	struct sm_state *tmp;
-	long long val;
+	sval_t sval;
 
-	*min = sval_blank(expr);
-	if (get_implied_min(expr, &val)) {
-		min->value = val;
+	if (get_implied_min_sval(expr, min))
 		return 1;
-	}
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
 	if (!sm)
 		return 0;
 
-	val = whole_range.max;
+	sval = sval_type_max(&llong_ctype);
 	FOR_EACH_PTR(sm->possible, tmp) {
-		long long new_max;
+		sval_t new_max;
 
-		new_max = estate_max(tmp->state);
-		if (new_max < val)
-			val = new_max;
+		new_max = estate_max_sval(tmp->state);
+		if (sval_cmp(new_max, sval) < 0)
+			sval = new_max;
 	} END_FOR_EACH_PTR(tmp);
 
-	if (val < whole_range.max) {
-		min->value = val;
-		return 1;
-	}
-	return 0;
+	if (sval_is_max(sval))
+		return 0;
+	*min = sval_cast(sval, expr);
+	return 1;
 }
 
 static sval_t _get_implied_value(struct expression *expr, int *undefined, int implied)

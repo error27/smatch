@@ -497,6 +497,23 @@ int estate_get_single_value(struct smatch_state *state, long long *val)
 	return count;
 }
 
+int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval)
+{
+	struct data_info *dinfo;
+	sval_t min, max;
+
+	dinfo = get_dinfo(state);
+	if (!dinfo || dinfo->type != DATA_RANGE)
+		return 0;
+
+	min = rl_min_sval(dinfo->value_ranges);
+	max = rl_max_sval(dinfo->value_ranges);
+	if (sval_cmp(min, max) != 0)
+		return 0;
+	*sval = min;
+	return 1;
+}
+
 int range_lists_equiv(struct range_list *one, struct range_list *two)
 {
 	struct data_range *one_range;

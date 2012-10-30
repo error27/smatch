@@ -89,6 +89,8 @@ struct range_list *estate_ranges(struct smatch_state *state);
 struct related_list *estate_related(struct smatch_state *state);
 long long estate_min(struct smatch_state *state);
 long long estate_max(struct smatch_state *state);
+sval_t estate_min_sval(struct smatch_state *state);
+sval_t estate_max_sval(struct smatch_state *state);
 struct smatch_state *filter_range_list(struct smatch_state *orig,
 				 struct range_list *rl);
 struct smatch_state *add_filter(struct smatch_state *orig, long long filter);
@@ -98,6 +100,7 @@ struct smatch_state *extra_undefined(void);
 
 struct range_list *range_list_union(struct range_list *one, struct range_list *two);
 int estate_get_single_value(struct smatch_state *estate, long long *val);
+int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval);
 
 void function_comparison(int comparison, struct expression *expr, long long value, int left);
 
