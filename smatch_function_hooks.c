@@ -185,6 +185,17 @@ static struct call_back_list *get_same_ranged_call_backs(struct call_back_list *
 	return ret;
 }
 
+static int in_list_exact(struct range_list *list, struct data_range *drange)
+{
+	struct data_range *tmp;
+
+	FOR_EACH_PTR(list, tmp) {
+		if (tmp->min == drange->min && tmp->max == drange->max)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
 static int assign_ranged_funcs(const char *fn, struct expression *expr,
 				 struct call_back_list *call_backs)
 {

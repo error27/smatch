@@ -796,17 +796,6 @@ void tack_on(struct range_list **list, struct data_range *drange)
 	add_ptr_list(list, drange);
 }
 
-int in_list_exact(struct range_list *list, struct data_range *drange)
-{
-	struct data_range *tmp;
-
-	FOR_EACH_PTR(list, tmp) {
-		if (tmp->min == drange->min && tmp->max == drange->max)
-			return 1;
-	} END_FOR_EACH_PTR(tmp);
-	return 0;
-}
-
 void push_range_list(struct range_list_stack **rl_stack, struct range_list *rl)
 {
 	add_ptr_list(rl_stack, rl);
