@@ -43,6 +43,7 @@ sval_t rl_min_sval(struct range_list *rl);
 sval_t rl_max_sval(struct range_list *rl);
 
 struct data_range *alloc_range_perm(long long min, long long max);
+struct data_range_sval *alloc_range_perm_sval(sval_t min, sval_t max);
 struct range_list *alloc_range_list(long long min, long long max);
 struct range_list *whole_range_list(void);
 void add_range(struct range_list **list, long long min, long long max);

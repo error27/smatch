@@ -291,6 +291,11 @@ struct data_range *alloc_range_perm(long long min, long long max)
 	return alloc_range_helper(min, max, 1);
 }
 
+struct data_range_sval *alloc_range_perm_sval(sval_t min, sval_t max)
+{
+	return alloc_range_helper_sval(min, max, 1);
+}
+
 struct range_list *alloc_range_list(long long min, long long max)
 {
 	struct range_list *rl = NULL;
