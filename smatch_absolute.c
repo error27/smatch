@@ -105,12 +105,12 @@ static void match_assign(struct expression *expr)
 
 static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
 {
-	struct data_range *range;
+	struct data_range_sval *range;
 
 	if (!state->data)
 		return;
 	range = state->data;
-	if (range->min == whole_range.min && range->max == whole_range.max)
+	if (sval_is_min(range->min) && sval_is_max(range->max))
 		return;
 	sm_msg("info: passes absolute_limits '%s' %d '%s' %s %s", fn, param, printed_name, state->name, global_static);
 }
