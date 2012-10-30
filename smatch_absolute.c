@@ -19,55 +19,34 @@
 
 int absolute_id;
 
-static char *show_num(long long num)
-{
-	static char buf[64];
-
-	if (num < 0)
-		sprintf(buf, "(%lld)", num);
-	else
-		sprintf(buf, "%lld", num);
-	return buf;
-}
-
-static char *show_range(long long min, long long max)
+static const char *show_range(sval_t min, sval_t max)
 {
 	static char buf[256];
-	char *p = buf;
 
-	if (min == whole_range.min)
-		p += sprintf(p, "min");
-	else if (min == whole_range.max)
-		p += sprintf(p, "max");
-	else
-		p += sprintf(p, "%s", show_num(min));
-	if (min != max) {
-		if (max == whole_range.max)
-			sprintf(p, "-max");
-		else
-			sprintf(p, "-%s", show_num(max));
-	}
+	if (sval_cmp(min, max))
+		return sval_to_str(min);
+	snprintf(buf, sizeof(buf), "%s-%s", sval_to_str(min), sval_to_str(max));
 	return buf;
 
 }
 
-static struct smatch_state *alloc_absolute(long long min, long long max)
+static struct smatch_state *alloc_absolute(sval_t min, sval_t max)
 {
 	struct smatch_state *state;
 
-	if (min == whole_range.min && max == whole_range.max)
+	if (sval_is_min(min) && sval_is_max(max))
 		return &undefined;
 
 	state = __alloc_smatch_state(0);
 	state->name = alloc_string(show_range(min, max));
-	state->data = alloc_range(min, max);
+	state->data = alloc_range_sval(min, max);
 	return state;
 }
 
 static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_state *s2)
 {
-	struct data_range *r1, *r2;
-	long long min, max;
+	struct data_range_sval *r1, *r2;
+	sval_t min, max;
 
 	if (!s1->data || !s2->data)
 		return &undefined;
@@ -75,14 +54,14 @@ static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_st
 	r1 = s1->data;
 	r2 = s2->data;
 
-	if (r1->min == r2->min && r1->max == r2->max)
+	if (r1->min.value == r2->min.value && r1->max.value == r2->max.value)
 		return s1;
 
 	min = r1->min;
-	if (r2->min < min)
+	if (sval_cmp(r2->min, min) < 0)
 		min = r2->min;
 	max = r1->max;
-	if (r2->max > max)
+	if (sval_cmp(r2->max, max) > 0)
 		max = r2->max;
 
 	return alloc_absolute(min, max);
@@ -121,7 +100,7 @@ static void match_assign(struct expression *expr)
 	if (sval_cmp(right_min, sval_type_min(left_type)) <= 0 && sval_cmp(right_max, sval_type_max(left_type)) >= 0)
 		set_state_expr(absolute_id, expr->left, &undefined);
 	else
-		set_state_expr(absolute_id, expr->left, alloc_absolute(sval_to_ll(right_min), sval_to_ll(right_max)));
+		set_state_expr(absolute_id, expr->left, alloc_absolute(right_min, right_max));
 }
 
 static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
@@ -148,21 +127,20 @@ static void match_call_info(struct expression *expr)
 
 	i = -1;
 	FOR_EACH_PTR(expr->args, arg) {
-		long long min;
-		sval_t max;
+		sval_t min, max;
 
 		i++;
 
-		if (!get_absolute_min(arg, &min))
+		if (!get_absolute_min_sval(arg, &min))
 			continue;
 		if (!get_absolute_max_sval(arg, &max))
 			continue;
-		if (min == whole_range.min && sval_cmp_val(max, whole_range.max) >= 0)
+		if (sval_is_min(min) && sval_is_max(max))
 			continue;
 
 		/* fixme: determine the type of the paramter */
 		sm_msg("info: passes absolute_limits '%s' %d '$$' %s %s",
-		       name, i, show_range(min, sval_to_ll(max)),
+		       name, i, show_range(min, max),
 		       is_static(expr->fn) ? "static" : "global");
 	} END_FOR_EACH_PTR(arg);
 
@@ -172,7 +150,7 @@ static void match_call_info(struct expression *expr)
 static void set_param_limits(const char *name, struct symbol *sym, char *key, char *value)
 {
 	struct range_list *rl = NULL;
-	long long min, max;
+	sval_t min, max;
 	char fullname[256];
 
 	if (strncmp(key, "$$", 2))
@@ -180,8 +158,8 @@ static void set_param_limits(const char *name, struct symbol *sym, char *key, ch
 
 	snprintf(fullname, 256, "%s%s", name, key + 2);
 	get_value_ranges(value, &rl);
-	min = rl_min(rl);
-	max = rl_max(rl);
+	min = rl_min_sval(rl);
+	max = rl_max_sval(rl);
 	set_state(absolute_id, fullname, sym, alloc_absolute(min, max));
 }
 
