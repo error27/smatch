@@ -256,13 +256,13 @@ static sval_t handle_comparison(struct expression *expr, int *undefined, int imp
 	int res;
 
 	if (get_value_sval(expr->left, &left) && get_value_sval(expr->right, &right)) {
-		struct data_range tmp_left, tmp_right;
+		struct data_range_sval tmp_left, tmp_right;
 
-		tmp_left.min = left.value;
-		tmp_left.max = left.value;
-		tmp_right.min = right.value;
-		tmp_right.max = right.value;
-		if (true_comparison_range(&tmp_left, expr->op, &tmp_right))
+		tmp_left.min = left;
+		tmp_left.max = left;
+		tmp_right.min = right;
+		tmp_right.max = right;
+		if (true_comparison_range_sval(&tmp_left, expr->op, &tmp_right))
 			return one;
 		return zero;
 	}
