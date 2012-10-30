@@ -339,6 +339,12 @@ struct data_range {
 	long long min;
 	long long max;
 };
+
+struct data_range_sval {
+	sval_t min;
+	sval_t max;
+};
+
 extern struct data_range whole_range;
 static const long long valid_ptr_max = LONG_MAX;
 static const long long valid_ptr_min = 4096;

@@ -39,6 +39,9 @@ int is_whole_range_rl(struct range_list *rl);
 int rl_contiguous(struct range_list *rl);
 long long rl_min(struct range_list *rl);
 long long rl_max(struct range_list *rl);
+sval_t rl_min_sval(struct range_list *rl);
+sval_t rl_max_sval(struct range_list *rl);
+
 struct data_range *alloc_range_perm(long long min, long long max);
 struct range_list *alloc_range_list(long long min, long long max);
 struct range_list *whole_range_list(void);
@@ -101,6 +104,7 @@ void function_comparison(int comparison, struct expression *expr, long long valu
 int true_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
 int false_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
 struct data_range *alloc_range(long long min, long long max);
+struct data_range_sval *alloc_range_sval(sval_t min, sval_t max);
 void tack_on(struct range_list **list, struct data_range *drange);
 int in_list_exact(struct range_list *list, struct data_range *drange);
 

@@ -16,6 +16,9 @@ ALLOCATOR(data_info, "smatch extra data");
 ALLOCATOR(data_range, "data range");
 __DO_ALLOCATOR(struct data_range, sizeof(struct data_range), __alignof__(struct data_range),
 			 "permanent ranges", perm_data_range);
+ALLOCATOR(data_range_sval, "data range sval");
+__DO_ALLOCATOR(struct data_range_sval, sizeof(struct data_range_sval), __alignof__(struct data_range_sval),
+			 "permanent ranges sval", perm_data_range_sval);
 
 struct data_range whole_range = {
 	.min = LLONG_MIN,
@@ -186,6 +189,20 @@ long long rl_min(struct range_list *rl)
 	return drange->min;
 }
 
+sval_t rl_min_sval(struct range_list *rl)
+{
+	struct data_range *drange;
+	sval_t ret;
+
+	ret.type = &llong_ctype;
+	ret.value = LLONG_MIN;
+	if (ptr_list_empty(rl))
+		return ret;
+	drange = first_ptr_list((struct ptr_list *)rl);
+	ret.value = drange->min;
+	return ret;
+}
+
 long long rl_max(struct range_list *rl)
 {
 	struct data_range *drange;
@@ -194,6 +211,20 @@ long long rl_max(struct range_list *rl)
 		return whole_range.max;
 	drange = last_ptr_list((struct ptr_list *)rl);
 	return drange->max;
+}
+
+sval_t rl_max_sval(struct range_list *rl)
+{
+	struct data_range *drange;
+	sval_t ret;
+
+	ret.type = &llong_ctype;
+	ret.value = LLONG_MAX;
+	if (ptr_list_empty(rl))
+		return ret;
+	drange = last_ptr_list((struct ptr_list *)rl);
+	ret.value = drange->max;
+	return ret;
 }
 
 static struct data_range *alloc_range_helper(long long min, long long max, int perm)
@@ -221,9 +252,33 @@ static struct data_range *alloc_range_helper(long long min, long long max, int p
 	return ret;
 }
 
+static struct data_range_sval *alloc_range_helper_sval(sval_t min, sval_t max, int perm)
+{
+	struct data_range_sval *ret;
+
+	if (sval_cmp(min, max) > 0) {
+		// sm_msg("debug invalid range %lld to %lld", min, max);
+		min.value = LLONG_MIN;  /* fixme: need a way to represent unknown svals */
+		max.value = LLONG_MAX;
+	}
+
+	if (perm)
+		ret = __alloc_perm_data_range_sval(0);
+	else
+		ret = __alloc_data_range_sval(0);
+	ret->min = min;
+	ret->max = max;
+	return ret;
+}
+
 struct data_range *alloc_range(long long min, long long max)
 {
 	return alloc_range_helper(min, max, 0);
+}
+
+struct data_range_sval *alloc_range_sval(sval_t min, sval_t max)
+{
+	return alloc_range_helper_sval(min, max, 0);
 }
 
 struct data_range *alloc_range_perm(long long min, long long max)
