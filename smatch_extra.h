@@ -108,6 +108,7 @@ int true_comparison_range_lr(int comparison, struct data_range *var, struct data
 int false_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
 struct data_range *alloc_range(long long min, long long max);
 struct data_range_sval *alloc_range_sval(sval_t min, sval_t max);
+struct data_range_sval *drange_to_drange_sval(struct data_range *drange);
 void tack_on(struct range_list **list, struct data_range *drange);
 int in_list_exact(struct range_list *list, struct data_range *drange);
 
@@ -136,3 +137,4 @@ struct related_list *clone_related_list(struct related_list *related);
 void remove_from_equiv(const char *name, struct symbol *sym);
 void remove_from_equiv_expr(struct expression *expr);
 void set_equiv_state_expr(int id, struct expression *expr, struct smatch_state *state);
+

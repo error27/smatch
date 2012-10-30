@@ -527,5 +527,6 @@ sval_t sval_preop(sval_t sval, int op);
 sval_t sval_binop(sval_t left, int op, sval_t right);
 const char *sval_to_str(sval_t sval);
 long long sval_to_ll(sval_t sval);
+sval_t ll_to_sval(long long val);
 
 #endif 	    /* !SMATCH_H_ */

@@ -281,6 +281,11 @@ struct data_range_sval *alloc_range_sval(sval_t min, sval_t max)
 	return alloc_range_helper_sval(min, max, 0);
 }
 
+struct data_range_sval *drange_to_drange_sval(struct data_range *drange)
+{
+	return alloc_range_helper_sval(ll_to_sval(drange->min), ll_to_sval(drange->max), 0);
+}
+
 struct data_range *alloc_range_perm(long long min, long long max)
 {
 	return alloc_range_helper(min, max, 1);

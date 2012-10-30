@@ -271,6 +271,15 @@ long long sval_to_ll(sval_t sval)
 	return sval.value;
 }
 
+sval_t ll_to_sval(long long val)
+{
+	sval_t ret;
+
+	ret.type = &llong_ctype;
+	ret.value = val;
+	return ret;
+}
+
 static void free_svals(struct symbol *sym)
 {
 	clear_sval_alloc();
