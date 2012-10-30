@@ -111,6 +111,7 @@ int false_comparison_range_lr(int comparison, struct data_range *var, struct dat
 struct data_range *alloc_range(long long min, long long max);
 struct data_range_sval *alloc_range_sval(sval_t min, sval_t max);
 struct data_range_sval *drange_to_drange_sval(struct data_range *drange);
+struct data_range *drange_sval_to_drange(struct data_range_sval *drange);
 void tack_on(struct range_list **list, struct data_range *drange);
 int in_list_exact(struct range_list *list, struct data_range *drange);
 
