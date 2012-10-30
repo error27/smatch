@@ -524,6 +524,19 @@ int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval)
 	return 1;
 }
 
+int ranges_equiv_sval(struct data_range_sval *one, struct data_range_sval *two)
+{
+	if (!one && !two)
+		return 1;
+	if (!one || !two)
+		return 0;
+	if (sval_cmp(one->min, two->min) != 0)
+		return 0;
+	if (sval_cmp(one->max, two->max) != 0)
+		return 0;
+	return 1;
+}
+
 int range_lists_equiv(struct range_list *one, struct range_list *two)
 {
 	struct data_range *one_range;

@@ -47,6 +47,7 @@ struct data_range_sval *alloc_range_perm_sval(sval_t min, sval_t max);
 struct range_list *alloc_range_list(long long min, long long max);
 struct range_list *whole_range_list(void);
 void add_range(struct range_list **list, long long min, long long max);
+int ranges_equiv_sval(struct data_range_sval *one, struct data_range_sval *two);
 int range_lists_equiv(struct range_list *one, struct range_list *two);
 struct range_list *invert_range_list(struct range_list *orig);
 int true_comparison_range(struct data_range *left, int comparison, struct data_range *right);
