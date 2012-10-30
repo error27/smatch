@@ -80,12 +80,35 @@ int sval_bits(sval_t sval)
 	return sval.type->bit_size;
 }
 
+int sval_is_min(sval_t sval)
+{
+	sval_t min = sval_type_min(sval.type);
+
+	if (sval_unsigned(sval)) {
+		if (sval.uvalue == 0)
+			return 1;
+		return 0;
+	}
+	/* return true for less than min as well */
+	return (sval.value <= min.value);
+}
+
+int sval_is_max(sval_t sval)
+{
+	sval_t max = sval_type_min(sval.type);
+
+	if (sval_unsigned(sval))
+		return (sval.uvalue >= max.value);
+	return (sval.value >= max.value);
+}
+
 /*
  * Casts the values and then does a compare.  Returns -1 if one is smaller, 0 if
  * they are the same and 1 if two is larger.
  */
 int sval_cmp(sval_t one, sval_t two)
 {
+	/* fix me handle type promotion and unsigned values */
 	if (one.value < two.value)
 		return -1;
 	if (one.value == two.value)

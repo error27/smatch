@@ -512,6 +512,8 @@ sval_t sval_from_val(struct expression *expr, long long val);
 int sval_unsigned(sval_t sval);
 int sval_signed(sval_t sval);
 int sval_bits(sval_t sval);
+int sval_is_min(sval_t sval);
+int sval_is_max(sval_t sval);
 int sval_cmp(sval_t one, sval_t two);
 int sval_cmp_val(sval_t one, long long val);
 sval_t sval_cast(sval_t sval, struct expression *expr);
