@@ -51,6 +51,7 @@ int ranges_equiv_sval(struct data_range_sval *one, struct data_range_sval *two);
 int range_lists_equiv(struct range_list *one, struct range_list *two);
 struct range_list *invert_range_list(struct range_list *orig);
 int true_comparison_range(struct data_range *left, int comparison, struct data_range *right);
+int true_comparison_range_sval(struct data_range_sval *left, int comparison, struct data_range_sval *right);
 
 int possibly_true(struct expression *left, int comparison, struct expression *right);
 int possibly_true_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges);
@@ -108,6 +109,8 @@ void function_comparison(int comparison, struct expression *expr, long long valu
 
 int true_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
 int false_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
+int true_comparison_range_lr_sval(int comparison, struct data_range_sval *var, struct data_range_sval *val, int left);
+int false_comparison_range_lr_sval(int comparison, struct data_range_sval *var, struct data_range_sval *val, int left);
 struct data_range *alloc_range(long long min, long long max);
 struct data_range_sval *alloc_range_sval(sval_t min, sval_t max);
 struct data_range_sval *drange_to_drange_sval(struct data_range *drange);

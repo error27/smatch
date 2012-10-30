@@ -569,39 +569,48 @@ int range_lists_equiv(struct range_list *one, struct range_list *two)
 
 int true_comparison_range(struct data_range *left, int comparison, struct data_range *right)
 {
+	struct data_range_sval *tmp_left, *tmp_right;
+
+	tmp_left = drange_to_drange_sval(left);
+	tmp_right = drange_to_drange_sval(right);
+	return true_comparison_range_sval(tmp_left, comparison, tmp_right);
+}
+
+int true_comparison_range_sval(struct data_range_sval *left, int comparison, struct data_range_sval *right)
+{
 	switch (comparison) {
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
-		if (left->min < right->max)
+		if (sval_cmp(left->min, right->max) < 0)
 			return 1;
 		return 0;
 	case SPECIAL_UNSIGNED_LTE:
 	case SPECIAL_LTE:
-		if (left->min <= right->max)
+		if (sval_cmp(left->min, right->max) <= 0)
 			return 1;
 		return 0;
 	case SPECIAL_EQUAL:
-		if (left->max < right->min)
+		if (sval_cmp(left->max, right->min) < 0)
 			return 0;
-		if (left->min > right->max)
+		if (sval_cmp(left->min, right->max) > 0)
 			return 0;
 		return 1;
 	case SPECIAL_UNSIGNED_GTE:
 	case SPECIAL_GTE:
-		if (left->max >= right->min)
+		if (sval_cmp(left->max, right->min) >= 0)
 			return 1;
 		return 0;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
-		if (left->max > right->min)
+		if (sval_cmp(left->max, right->min) > 0)
 			return 1;
 		return 0;
 	case SPECIAL_NOTEQUAL:
-		if (left->min != left->max)
+		if (sval_cmp(left->min, left->max) != 0)
 			return 1;
-		if (right->min != right->max)
+		if (sval_cmp(right->min, right->max) != 0)
 			return 1;
-		if (left->min != right->min)
+		if (sval_cmp(left->min, right->min) != 0)
 			return 1;
 		return 0;
 	default:
@@ -619,41 +628,49 @@ int true_comparison_range_lr(int comparison, struct data_range *var, struct data
 		return true_comparison_range(val, comparison, var);
 }
 
-static int false_comparison_range(struct data_range *left, int comparison, struct data_range *right)
+int true_comparison_range_lr_sval(int comparison, struct data_range_sval *var, struct data_range_sval *val, int left)
+{
+	if (left)
+		return true_comparison_range_sval(var, comparison, val);
+	else
+		return true_comparison_range_sval(val, comparison, var);
+}
+
+static int false_comparison_range_sval(struct data_range_sval *left, int comparison, struct data_range_sval *right)
 {
 	switch (comparison) {
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
-		if (left->max >= right->min)
+		if (sval_cmp(left->max, right->min) >= 0)
 			return 1;
 		return 0;
 	case SPECIAL_UNSIGNED_LTE:
 	case SPECIAL_LTE:
-		if (left->max > right->min)
+		if (sval_cmp(left->max, right->min) > 0)
 			return 1;
 		return 0;
 	case SPECIAL_EQUAL:
-		if (left->min != left->max)
+		if (sval_cmp(left->min, left->max) != 0)
 			return 1;
-		if (right->min != right->max)
+		if (sval_cmp(right->min, right->max) != 0)
 			return 1;
-		if (left->min != right->min)
+		if (sval_cmp(left->min, right->min) != 0)
 			return 1;
 		return 0;
 	case SPECIAL_UNSIGNED_GTE:
 	case SPECIAL_GTE:
-		if (left->min < right->max)
+		if (sval_cmp(left->min, right->max) < 0)
 			return 1;
 		return 0;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
-		if (left->min <= right->max)
+		if (sval_cmp(left->min, right->max) <= 0)
 			return 1;
 		return 0;
 	case SPECIAL_NOTEQUAL:
-		if (left->max < right->min)
+		if (sval_cmp(left->max, right->min) < 0)
 			return 0;
-		if (left->min > right->max)
+		if (sval_cmp(left->min, right->max) > 0)
 			return 0;
 		return 1;
 	default:
@@ -663,12 +680,29 @@ static int false_comparison_range(struct data_range *left, int comparison, struc
 	return 0;
 }
 
+static int false_comparison_range(struct data_range *left, int comparison, struct data_range *right)
+{
+	struct data_range_sval *tmp_left, *tmp_right;
+
+	tmp_left = drange_to_drange_sval(left);
+	tmp_right = drange_to_drange_sval(right);
+	return false_comparison_range_sval(tmp_left, comparison, tmp_right);
+}
+
 int false_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left)
 {
 	if (left)
 		return false_comparison_range(var, comparison, val);
 	else
 		return false_comparison_range(val, comparison, var);
+}
+
+int false_comparison_range_lr_sval(int comparison, struct data_range_sval *var, struct data_range_sval *val, int left)
+{
+	if (left)
+		return false_comparison_range_sval(var, comparison, val);
+	else
+		return false_comparison_range_sval(val, comparison, var);
 }
 
 int possibly_true(struct expression *left, int comparison, struct expression *right)
