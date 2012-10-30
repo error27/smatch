@@ -95,7 +95,7 @@ int sval_is_min(sval_t sval)
 
 int sval_is_max(sval_t sval)
 {
-	sval_t max = sval_type_min(sval.type);
+	sval_t max = sval_type_max(sval.type);
 
 	if (sval_unsigned(sval))
 		return (sval.uvalue >= max.value);
