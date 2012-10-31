@@ -1033,6 +1033,11 @@ void free_range_list(struct range_list **rlist)
 	__free_ptr_list((struct ptr_list **)rlist);
 }
 
+void free_range_list_sval(struct range_list_sval **rlist)
+{
+	__free_ptr_list((struct ptr_list **)rlist);
+}
+
 static void free_single_dinfo(struct data_info *dinfo)
 {
 	if (dinfo->type == DATA_RANGE)
