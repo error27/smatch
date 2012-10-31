@@ -171,26 +171,29 @@ static void call_ranged_call_backs(struct call_back_list *list,
 }
 
 static struct call_back_list *get_same_ranged_call_backs(struct call_back_list *list,
-						struct data_range *drange)
+						struct data_range_sval *drange)
 {
 	struct call_back_list *ret = NULL;
 	struct fcall_back *tmp;
 
 	FOR_EACH_PTR(list, tmp) {
+		struct data_range_sval *range_tmp;
+
 		if (tmp->type != RANGED_CALL)
 			continue;
-		if (tmp->range->min == drange->min && tmp->range->max == drange->max)
+		range_tmp = drange_to_drange_sval(tmp->range);
+		if (ranges_equiv_sval(range_tmp, drange))
 			add_ptr_list(&ret, tmp);
 	} END_FOR_EACH_PTR(tmp);
 	return ret;
 }
 
-static int in_list_exact(struct range_list *list, struct data_range *drange)
+static int in_list_exact_sval(struct range_list_sval *list, struct data_range_sval *drange)
 {
-	struct data_range *tmp;
+	struct data_range_sval *tmp;
 
 	FOR_EACH_PTR(list, tmp) {
-		if (tmp->min == drange->min && tmp->max == drange->max)
+		if (ranges_equiv_sval(tmp, drange))
 			return 1;
 	} END_FOR_EACH_PTR(tmp);
 	return 0;
@@ -206,7 +209,7 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 	struct smatch_state *estate;
 	struct state_list *tmp_slist;
 	struct state_list *final_states = NULL;
-	struct range_list *handled_ranges = NULL;
+	struct range_list_sval *handled_ranges = NULL;
 	struct call_back_list *same_range_call_backs = NULL;
 	int handled = 0;
 
@@ -218,14 +221,18 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 		goto free;
 
 	FOR_EACH_PTR(call_backs, tmp) {
+		struct data_range_sval *tmp_dr_sval;
+
 		if (tmp->type != RANGED_CALL)
 			continue;
-		if (in_list_exact(handled_ranges, tmp->range))
+		tmp_dr_sval = drange_to_drange_sval(tmp->range);
+
+		if (in_list_exact_sval(handled_ranges, tmp_dr_sval))
 			continue;
 		__push_fake_cur_slist();
-		tack_on(&handled_ranges, tmp->range);
+		tack_on_sval(&handled_ranges, tmp_dr_sval);
 
-		same_range_call_backs = get_same_ranged_call_backs(call_backs, tmp->range);
+		same_range_call_backs = get_same_ranged_call_backs(call_backs, tmp_dr_sval);
 		call_ranged_call_backs(same_range_call_backs, fn, expr->right, expr);
 		__free_ptr_list((struct ptr_list **)&same_range_call_backs);
 
@@ -253,7 +260,7 @@ int call_implies_callbacks(int comparison, struct expression *expr, long long va
 	struct call_back_list *call_backs;
 	struct fcall_back *tmp;
 	const char *fn;
-	struct data_range *value_range;
+	struct data_range_sval *value_range;
 	struct state_list *true_states = NULL;
 	struct state_list *false_states = NULL;
 	struct state_list *tmp_slist;
@@ -265,14 +272,14 @@ int call_implies_callbacks(int comparison, struct expression *expr, long long va
 	call_backs = search_callback(func_hash, (char *)expr->fn->symbol->ident->name);
 	if (!call_backs)
 		return 0;
-	value_range = alloc_range(value, value);
+	value_range = alloc_range_sval(ll_to_sval(value), ll_to_sval(value));
 
 	/* set true states */
 	__push_fake_cur_slist();
 	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != RANGED_CALL)
 			continue;
-		if (!true_comparison_range_lr(comparison, tmp->range, value_range, left))
+		if (!true_comparison_range_lr_sval(comparison, drange_to_drange_sval(tmp->range), value_range, left))
 			continue;
 		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
@@ -285,7 +292,7 @@ int call_implies_callbacks(int comparison, struct expression *expr, long long va
 	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != RANGED_CALL)
 			continue;
-		if (!false_comparison_range_lr(comparison, tmp->range, value_range, left))
+		if (!false_comparison_range_lr_sval(comparison, drange_to_drange_sval(tmp->range), value_range, left))
 			continue;
 		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
@@ -309,7 +316,7 @@ struct db_callback_info {
 	int true_side;
 	int comparison;
 	struct expression *expr;
-	struct range_list *rl;
+	struct range_list_sval *rl;
 	int left;
 	struct state_list *slist;
 	struct db_implies_list *callbacks;
@@ -317,7 +324,7 @@ struct db_callback_info {
 static struct db_callback_info db_info;
 static int db_compare_callback(void *unused, int argc, char **argv, char **azColName)
 {
-	struct range_list *ret_range;
+	struct range_list_sval *ret_range;
 	int type, param;
 	char *key, *value;
 	struct return_implies_callback *tmp;
@@ -325,19 +332,19 @@ static int db_compare_callback(void *unused, int argc, char **argv, char **azCol
 	if (argc != 5)
 		return 0;
 
-	get_value_ranges(argv[0], &ret_range);
+	get_value_ranges_sval(argv[0], &ret_range);
 	type = atoi(argv[1]);
 	param = atoi(argv[2]);
 	key = argv[3];
 	value = argv[4];
 
 	if (db_info.true_side) {
-		if (!possibly_true_range_lists_rl(db_info.comparison,
+		if (!possibly_true_range_lists_rl_sval(db_info.comparison,
 						  ret_range, db_info.rl,
 						  db_info.left))
 			return 0;
 	} else {
-		if (!possibly_false_range_lists_rl(db_info.comparison,
+		if (!possibly_false_range_lists_rl_sval(db_info.comparison,
 						  ret_range, db_info.rl,
 						  db_info.left))
 			return 0;
@@ -376,7 +383,7 @@ void compare_db_implies_callbacks(int comparison, struct expression *expr, long 
 
 	db_info.comparison = comparison;
 	db_info.expr = expr;
-	db_info.rl = alloc_range_list(value, value);
+	db_info.rl = range_list_to_sval(alloc_range_list(value, value));
 	db_info.left = left;
 	db_info.callbacks = db_implies_list;
 
@@ -431,7 +438,7 @@ void compare_db_return_states_callbacks(int comparison, struct expression *expr,
 
 	db_info.comparison = comparison;
 	db_info.expr = expr;
-	db_info.rl = alloc_range_list(value, value);
+	db_info.rl = range_list_to_sval(alloc_range_list(value, value));
 	db_info.left = left;
 	db_info.callbacks = db_return_states_list;
 
@@ -473,7 +480,7 @@ void function_comparison(int comparison, struct expression *expr,
 
 static int db_assign_callback(void *unused, int argc, char **argv, char **azColName)
 {
-	struct range_list *ret_range;
+	struct range_list_sval *ret_range;
 	int type, param;
 	char *key, *value;
 	struct return_implies_callback *tmp;
@@ -482,7 +489,7 @@ static int db_assign_callback(void *unused, int argc, char **argv, char **azColN
 	if (argc != 5)
 		return 0;
 
-	get_value_ranges(argv[0], &ret_range);
+	get_value_ranges_sval(argv[0], &ret_range);
 	type = atoi(argv[1]);
 	param = atoi(argv[2]);
 	key = argv[3];
@@ -493,7 +500,7 @@ static int db_assign_callback(void *unused, int argc, char **argv, char **azColN
 		if (tmp->type == type)
 			tmp->callback(db_info.expr->right, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
-	set_extra_expr_mod(db_info.expr->left, alloc_estate_range_list(ret_range));
+	set_extra_expr_mod(db_info.expr->left, alloc_estate_range_list(rl_sval_to_rl(ret_range)));
 	slist = __pop_fake_cur_slist();
 
 	merge_slist(&db_info.slist, slist);
@@ -541,7 +548,7 @@ static int db_return_implies_assign(struct expression *expr)
 static int prev_return_id;
 static int db_assign_return_states_callback(void *unused, int argc, char **argv, char **azColName)
 {
-	struct range_list *ret_range;
+	struct range_list_sval *ret_range;
 	int type, param;
 	char *key, *value;
 	struct return_implies_callback *tmp;
@@ -552,9 +559,9 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 		return 0;
 
 	return_id = atoi(argv[0]);
-	get_value_ranges(argv[1], &ret_range);
+	get_value_ranges_sval(argv[1], &ret_range);
 	if (!ret_range)
-		ret_range = whole_range_list();
+		ret_range = range_list_to_sval(whole_range_list());
 	type = atoi(argv[2]);
 	param = atoi(argv[3]);
 	key = argv[4];
@@ -571,7 +578,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 		if (tmp->type == type)
 			tmp->callback(db_info.expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
-	set_extra_expr_mod(db_info.expr->left, alloc_estate_range_list(ret_range));
+	set_extra_expr_mod(db_info.expr->left, alloc_estate_range_list(rl_sval_to_rl(ret_range)));
 
 	return 0;
 }
@@ -622,11 +629,13 @@ static int db_return_states_assign(struct expression *expr)
 
 static int handle_implied_return(struct expression *expr)
 {
-	struct range_list *rl;
+	struct range_list_sval *rl;
+	struct range_list *tmp_no_sval;
 
-	if (!get_implied_return(expr->right, &rl))
+	if (!get_implied_return_sval(expr->right, &rl))
 		return 0;
-	set_extra_expr_mod(expr->left, alloc_estate_range_list(rl));
+	tmp_no_sval = rl_sval_to_rl(rl);
+	set_extra_expr_mod(expr->left, alloc_estate_range_list(tmp_no_sval));
 	return 1;
 }
 
@@ -663,7 +672,7 @@ static void match_assign_call(struct expression *expr)
 
 static int db_return_states_callback(void *unused, int argc, char **argv, char **azColName)
 {
-	struct range_list *ret_range;
+	struct range_list_sval *ret_range;
 	int type, param;
 	char *key, *value;
 	struct return_implies_callback *tmp;
@@ -674,7 +683,7 @@ static int db_return_states_callback(void *unused, int argc, char **argv, char *
 		return 0;
 
 	return_id = atoi(argv[0]);
-	get_value_ranges(argv[1], &ret_range);
+	get_value_ranges_sval(argv[1], &ret_range);
 	type = atoi(argv[2]);
 	param = atoi(argv[3]);
 	key = argv[4];
@@ -781,7 +790,7 @@ static void match_macro_assign(struct expression *expr)
 	call_call_backs(call_backs, MACRO_ASSIGN_EXTRA, macro, expr);
 }
 
-int get_implied_return(struct expression *expr, struct range_list **rl)
+int get_implied_return_sval(struct expression *expr, struct range_list_sval **rl)
 {
 	struct call_back_list *call_backs;
 	struct fcall_back *tmp;

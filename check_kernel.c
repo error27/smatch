@@ -14,24 +14,24 @@
 #include "smatch.h"
 #include "smatch_extra.h"
 
-static int implied_err_cast_return(struct expression *call, void *unused, struct range_list **rl)
+static int implied_err_cast_return(struct expression *call, void *unused, struct range_list_sval **rl)
 {
 	struct expression *arg;
 
 	arg = get_argument_from_call_expr(call->args, 0);
-	if (!get_implied_range_list(arg, rl))
-		*rl = alloc_range_list(-4095, -1);
+	if (!get_implied_range_list_sval(arg, rl))
+		*rl = alloc_range_list_sval(ll_to_sval(-4095), ll_to_sval(-1));
 	return 1;
 }
 
-static int implied_copy_return(struct expression *call, void *unused, struct range_list **rl)
+static int implied_copy_return(struct expression *call, void *unused, struct range_list_sval **rl)
 {
 	struct expression *arg;
 	sval_t max;
 
 	arg = get_argument_from_call_expr(call->args, 2);
 	get_absolute_max_sval(arg, &max);
-	*rl = alloc_range_list(0, sval_to_ll(max));
+	*rl = alloc_range_list_sval(ll_to_sval(0), max);
 	return 1;
 }
 

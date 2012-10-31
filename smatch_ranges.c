@@ -150,6 +150,14 @@ void get_value_ranges(char *value, struct range_list **rl)
 	}
 }
 
+void get_value_ranges_sval(char *value, struct range_list_sval **rl)
+{
+	struct range_list *tmp_rl = NULL;
+
+	get_value_ranges(value, &tmp_rl);
+	*rl = range_list_to_sval(tmp_rl);
+}
+
 static struct data_range range_zero = {
 	.min = 0,
 	.max = 0,
@@ -168,6 +176,18 @@ int is_whole_range_rl(struct range_list *rl)
 		return 1;
 	drange = first_ptr_list((struct ptr_list *)rl);
 	if (drange->min == whole_range.min && drange->max == whole_range.max)
+		return 1;
+	return 0;
+}
+
+int is_whole_range_rl_sval(struct range_list_sval *rl)
+{
+	struct data_range_sval *drange;
+
+	if (ptr_list_empty(rl))
+		return 1;
+	drange = first_ptr_list((struct ptr_list *)rl);
+	if (sval_is_min(drange->min) && sval_is_max(drange->max))
 		return 1;
 	return 0;
 }
@@ -309,6 +329,14 @@ struct range_list *alloc_range_list(long long min, long long max)
 	return rl;
 }
 
+struct range_list_sval *alloc_range_list_sval(sval_t min, sval_t max)
+{
+	struct range_list_sval *rl = NULL;
+
+	add_range_sval(&rl, min, max);
+	return rl;
+}
+
 struct range_list *whole_range_list(void)
 {
 	return alloc_range_list(whole_range.min, whole_range.max);
@@ -394,6 +422,89 @@ void add_range(struct range_list **list, long long min, long long max)
 	if (check_next)
 		return;
 	new = alloc_range(min, max);
+	add_ptr_list(list, new);
+}
+
+void add_range_sval(struct range_list_sval **list, sval_t min, sval_t max)
+{
+	struct data_range_sval *tmp = NULL;
+	struct data_range_sval *new = NULL;
+	int check_next = 0;
+
+	/*
+	 * FIXME:  This has a problem merging a range_list like: min-0,3-max
+	 * with a range like 1-2.  You end up with min-2,3-max instead of
+	 * just min-max.
+	 */
+	FOR_EACH_PTR(*list, tmp) {
+		if (check_next) {
+			/* Sometimes we overlap with more than one range
+			   so we have to delete or modify the next range. */
+			if (max.value + 1 == tmp->min.value) {
+				/* join 2 ranges here */
+				new->max = tmp->max;
+				DELETE_CURRENT_PTR(tmp);
+				return;
+			}
+
+			/* Doesn't overlap with the next one. */
+			if (sval_cmp(max, tmp->min) < 0)
+				return;
+			/* Partially overlaps with the next one. */
+			if (sval_cmp(max, tmp->max) < 0) {
+				tmp->min.value = max.value + 1;
+				return;
+			}
+			/* Completely overlaps with the next one. */
+			if (sval_cmp(max, tmp->max) >= 0) {
+				DELETE_CURRENT_PTR(tmp);
+				/* there could be more ranges to delete */
+				continue;
+			}
+		}
+		if (max.value + 1 == tmp->min.value) {
+			/* join 2 ranges into a big range */
+			new = alloc_range_sval(min, tmp->max);
+			REPLACE_CURRENT_PTR(tmp, new);
+			return;
+		}
+		if (sval_cmp(max, tmp->min)) { /* new range entirely below */
+			new = alloc_range_sval(min, max);
+			INSERT_CURRENT(new, tmp);
+			return;
+		}
+		if (sval_cmp(min, tmp->min) < 0) { /* new range partially below */
+			if (sval_cmp(max, tmp->max) < 0)
+				max = tmp->max;
+			else
+				check_next = 1;
+			new = alloc_range_sval(min, max);
+			REPLACE_CURRENT_PTR(tmp, new);
+			if (!check_next)
+				return;
+			continue;
+		}
+		if (sval_cmp(max, tmp->max) <= 0) /* new range already included */
+			return;
+		if (sval_cmp(min, tmp->max) <= 0) { /* new range partially above */
+			min = tmp->min;
+			new = alloc_range_sval(min, max);
+			REPLACE_CURRENT_PTR(tmp, new);
+			check_next = 1;
+			continue;
+		}
+		if (min.value - 1 == tmp->max.value) {
+			/* join 2 ranges into a big range */
+			new = alloc_range_sval(tmp->min, max);
+			REPLACE_CURRENT_PTR(tmp, new);
+			check_next = 1;
+			continue;
+		}
+		/* the new range is entirely above the existing ranges */
+	} END_FOR_EACH_PTR(tmp);
+	if (check_next)
+		return;
+	new = alloc_range_sval(min, max);
 	add_ptr_list(list, new);
 }
 
@@ -759,6 +870,22 @@ int possibly_true_range_lists(struct range_list *left_ranges, int comparison, st
 	return 0;
 }
 
+int possibly_true_range_lists_sval(struct range_list_sval *left_ranges, int comparison, struct range_list_sval *right_ranges)
+{
+	struct data_range_sval *left_tmp, *right_tmp;
+
+	if (!left_ranges || !right_ranges)
+		return 1;
+
+	FOR_EACH_PTR(left_ranges, left_tmp) {
+		FOR_EACH_PTR(right_ranges, right_tmp) {
+			if (true_comparison_range_sval(left_tmp, comparison, right_tmp))
+				return 1;
+		} END_FOR_EACH_PTR(right_tmp);
+	} END_FOR_EACH_PTR(left_tmp);
+	return 0;
+}
+
 int possibly_false_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges)
 {
 	struct data_range *left_tmp, *right_tmp;
@@ -775,12 +902,37 @@ int possibly_false_range_lists(struct range_list *left_ranges, int comparison, s
 	return 0;
 }
 
+int possibly_false_range_lists_sval(struct range_list_sval *left_ranges, int comparison, struct range_list_sval *right_ranges)
+{
+	struct data_range_sval *left_tmp, *right_tmp;
+
+	if (!left_ranges || !right_ranges)
+		return 1;
+
+	FOR_EACH_PTR(left_ranges, left_tmp) {
+		FOR_EACH_PTR(right_ranges, right_tmp) {
+			if (false_comparison_range_sval(left_tmp, comparison, right_tmp))
+				return 1;
+		} END_FOR_EACH_PTR(right_tmp);
+	} END_FOR_EACH_PTR(left_tmp);
+	return 0;
+}
+
 int possibly_true_range_lists_rl(int comparison, struct range_list *a, struct range_list *b, int left)
 {
 	if (left)
 		return possibly_true_range_lists(a, comparison, b);
 	else
 		return possibly_true_range_lists(b, comparison, a);
+}
+
+/* FIXME: the _rl here stands for right left so really it should be _lr */
+int possibly_true_range_lists_rl_sval(int comparison, struct range_list_sval *a, struct range_list_sval *b, int left)
+{
+	if (left)
+		return possibly_true_range_lists_sval(a, comparison, b);
+	else
+		return possibly_true_range_lists_sval(b, comparison, a);
 }
 
 int possibly_false_range_lists_rl(int comparison, struct range_list *a, struct range_list *b, int left)
@@ -791,7 +943,20 @@ int possibly_false_range_lists_rl(int comparison, struct range_list *a, struct r
 		return possibly_false_range_lists(b, comparison, a);
 }
 
+int possibly_false_range_lists_rl_sval(int comparison, struct range_list_sval *a, struct range_list_sval *b, int left)
+{
+	if (left)
+		return possibly_false_range_lists_sval(a, comparison, b);
+	else
+		return possibly_false_range_lists_sval(b, comparison, a);
+}
+
 void tack_on(struct range_list **list, struct data_range *drange)
+{
+	add_ptr_list(list, drange);
+}
+
+void tack_on_sval(struct range_list_sval **list, struct data_range_sval *drange)
 {
 	add_ptr_list(list, drange);
 }
@@ -868,3 +1033,28 @@ void free_data_info_allocs(void)
 	clear_data_range_alloc();
 }
 
+struct range_list_sval *range_list_to_sval(struct range_list *list)
+{
+	struct data_range *tmp;
+	struct data_range_sval *tmp_sval;
+	struct range_list_sval *ret = NULL;
+
+	FOR_EACH_PTR(list, tmp) {
+		tmp_sval = drange_to_drange_sval(tmp);
+		add_ptr_list(&ret, tmp_sval);
+	} END_FOR_EACH_PTR(tmp);
+	return ret;
+}
+
+struct range_list *rl_sval_to_rl(struct range_list_sval *list)
+{
+	struct data_range *tmp;
+	struct data_range_sval *tmp_sval;
+	struct range_list *ret = NULL;
+
+	FOR_EACH_PTR(list, tmp_sval) {
+		tmp = drange_sval_to_drange(tmp_sval);
+		add_ptr_list(&ret, tmp);
+	} END_FOR_EACH_PTR(tmp_sval);
+	return ret;
+}

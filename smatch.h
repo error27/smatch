@@ -103,6 +103,7 @@ enum hook_type {
 #define FALSE 0
 
 struct range_list;
+struct range_list_sval;
 
 void add_hook(void *func, enum hook_type type);
 typedef struct smatch_state *(merge_func_t)(struct smatch_state *s1, struct smatch_state *s2);
@@ -116,7 +117,7 @@ typedef void (implication_hook)(const char *fn, struct expression *call_expr,
 				struct expression *assign_expr, void *data);
 typedef void (return_implies_hook)(struct expression *call_expr,
 				   int param, char *key, char *value);
-typedef int (implied_return_hook)(struct expression *call_expr, void *info, struct range_list **rl);
+typedef int (implied_return_hook)(struct expression *call_expr, void *info, struct range_list_sval **rl);
 void add_function_hook(const char *look_for, func_hook *call_back, void *data);
 
 void add_function_assign_hook(const char *look_for, func_hook *call_back,
@@ -133,6 +134,7 @@ void return_implies_state(const char *look_for, long long start, long long end,
 void add_db_return_implies_callback(int type, return_implies_hook *callback);
 void add_db_return_states_callback(int type, return_implies_hook *callback);
 int get_implied_return(struct expression *expr, struct range_list **rl);
+int get_implied_return_sval(struct expression *expr, struct range_list_sval **rl);
 
 typedef void (modification_hook)(struct sm_state *sm);
 void add_modification_hook(int owner, modification_hook *call_back);

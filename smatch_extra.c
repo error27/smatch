@@ -870,8 +870,12 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 	}
 
 	if (expr->type == EXPR_CALL) {
-		if (get_implied_return(expr, rl))
+		struct range_list_sval *rl_sval = NULL;
+
+		if (get_implied_return_sval(expr, &rl_sval)) {
+			*rl = rl_sval_to_rl(rl_sval);
 			goto out;
+		}
 		*rl = db_return_vals(expr);
 		goto out;
 	}
@@ -897,6 +901,59 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 
 out:
 	if (is_whole_range_rl(*rl))
+		return 0;
+	return 1;
+}
+
+int get_implied_range_list_sval(struct expression *expr, struct range_list_sval **rl)
+{
+	sval_t sval;
+	struct smatch_state *state;
+	sval_t min, max;
+	struct range_list *tmp;
+
+	*rl = NULL;
+
+	expr = strip_parens(expr);
+	if (!expr)
+		return 0;
+
+	state = get_state_expr(my_id, expr);
+	if (state) {
+		tmp = clone_range_list(estate_ranges(state));
+		*rl = range_list_to_sval(tmp);
+		goto out;
+	}
+
+	if (expr->type == EXPR_CALL) {
+		if (get_implied_return_sval(expr, rl))
+			goto out;
+		tmp = db_return_vals(expr);
+		*rl = range_list_to_sval(tmp);
+		goto out;
+	}
+
+	if (get_implied_value_sval(expr, &sval)) {
+		add_range_sval(rl, sval, sval);
+		goto out;
+	}
+
+	if (expr->type == EXPR_BINOP && expr->op == '%') {
+		if (!get_implied_value_sval(expr->right, &sval))
+			return 0;
+		add_range_sval(rl, ll_to_sval(0), ll_to_sval(sval.value - 1));
+		goto out;
+	}
+
+	if (!get_implied_min_sval(expr, &min))
+		return 0;
+	if (!get_implied_max_sval(expr, &max))
+		return 0;
+
+	*rl = alloc_range_list_sval(min, max);
+
+out:
+	if (is_whole_range_rl_sval(*rl))
 		return 0;
 	return 1;
 }
