@@ -33,6 +33,6 @@ static void ad_agg_selection_logic(void)
  * check-command: smatch -I.. sm_implied12.c
  *
  * check-output-start
-sm_implied12.c:28 ad_agg_selection_logic() implied: foo = '0,4096-max'
+sm_implied12.c:28 ad_agg_selection_logic() implied: foo = '0,4096-s64max'
  * check-output-end
  */
