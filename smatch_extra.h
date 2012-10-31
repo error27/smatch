@@ -76,6 +76,7 @@ void free_data_info_allocs(void);
 struct range_list *clone_range_list(struct range_list *list);
 struct range_list *clone_permanent(struct range_list *list);
 char *show_ranges(struct range_list *list);
+char *show_ranges_sval(struct range_list_sval *list);
 void get_value_ranges(char *value, struct range_list **rl);
 void get_value_ranges_sval(char *value, struct range_list_sval **rl);
 
@@ -113,6 +114,7 @@ struct smatch_state *filter_range(struct smatch_state *orig,
 struct smatch_state *extra_undefined(void);
 
 struct range_list *range_list_union(struct range_list *one, struct range_list *two);
+struct range_list_sval *range_list_union_sval(struct range_list_sval *one, struct range_list_sval *two);
 int estate_get_single_value(struct smatch_state *estate, long long *val);
 int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval);
 

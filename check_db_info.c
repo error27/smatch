@@ -12,29 +12,29 @@
 
 static int my_id;
 
-static struct range_list *return_ranges;
+static struct range_list_sval *return_ranges;
 
-static void add_return_range(struct range_list *rl)
+static void add_return_range(struct range_list_sval *rl)
 {
 	if (!return_ranges) {
 		return_ranges = rl;
 		return;
 	}
-	return_ranges = range_list_union(return_ranges, rl);
+	return_ranges = range_list_union_sval(return_ranges, rl);
 }
 
 static void match_return(struct expression *ret_value)
 {
-	struct range_list *rl;
+	struct range_list_sval *rl;
 
 	ret_value = strip_expr(ret_value);
 	if (!ret_value)
 		return;
 
-	if (get_implied_range_list(ret_value, &rl))
+	if (get_implied_range_list_sval(ret_value, &rl))
 		add_return_range(rl);
 	else
-		add_return_range(whole_range_list());
+		add_return_range(range_list_to_sval(whole_range_list()));
 }
 
 static void match_end_func(struct symbol *sym)
@@ -42,7 +42,7 @@ static void match_end_func(struct symbol *sym)
 	if (!return_ranges)
 		return;
 	sm_msg("info: function_return_values '%s' %s",
-	       show_ranges(return_ranges), global_static());
+	       show_ranges_sval(return_ranges), global_static());
 	return_ranges = NULL;
 }
 

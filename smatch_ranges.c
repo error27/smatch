@@ -64,6 +64,28 @@ char *show_ranges(struct range_list *list)
 	return alloc_sname(full);
 }
 
+char *show_ranges_sval(struct range_list_sval *list)
+{
+	struct data_range_sval *tmp;
+	char full[256];
+	int i = 0;
+
+	full[0] = '\0';
+	full[255] = '\0';
+	FOR_EACH_PTR(list, tmp) {
+		if (i++)
+			strncat(full, ",", 254 - strlen(full));
+		if (sval_cmp(tmp->min, tmp->max) == 0) {
+			strncat(full, sval_to_str(tmp->min), 254 - strlen(full));
+			continue;
+		}
+		strncat(full, sval_to_str(tmp->min), 254 - strlen(full));
+		strncat(full, "-", 254 - strlen(full));
+		strncat(full, sval_to_str(tmp->max), 254 - strlen(full));
+	} END_FOR_EACH_PTR(tmp);
+	return alloc_sname(full);
+}
+
 void get_value_ranges(char *value, struct range_list **rl)
 {
 	long long val1, val2;
@@ -542,6 +564,20 @@ struct range_list *range_list_union(struct range_list *one, struct range_list *t
 	} END_FOR_EACH_PTR(tmp);
 	FOR_EACH_PTR(two, tmp) {
 		add_range(&ret, tmp->min, tmp->max);
+	} END_FOR_EACH_PTR(tmp);
+	return ret;
+}
+
+struct range_list_sval *range_list_union_sval(struct range_list_sval *one, struct range_list_sval *two)
+{
+	struct data_range_sval *tmp;
+	struct range_list_sval *ret = NULL;
+
+	FOR_EACH_PTR(one, tmp) {
+		add_range_sval(&ret, tmp->min, tmp->max);
+	} END_FOR_EACH_PTR(tmp);
+	FOR_EACH_PTR(two, tmp) {
+		add_range_sval(&ret, tmp->min, tmp->max);
 	} END_FOR_EACH_PTR(tmp);
 	return ret;
 }
