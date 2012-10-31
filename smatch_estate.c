@@ -233,6 +233,19 @@ struct smatch_state *alloc_estate_range_list(struct range_list *rl)
 	return state;
 }
 
+struct smatch_state *alloc_estate_range_list_sval(struct range_list_sval *rl)
+{
+	struct smatch_state *state;
+
+	if (!rl)
+		return extra_empty();
+
+	state = __alloc_smatch_state(0);
+	state->data = (void *)alloc_dinfo_range_list(rl_sval_to_rl(rl));
+	state->name = show_ranges_sval(rl);
+	return state;
+}
+
 void alloc_estate_undefined(void)
 {
 	static struct data_info dinfo = {
