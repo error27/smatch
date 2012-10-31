@@ -14,7 +14,7 @@
 static int my_id;
 
 static int have_returned_zero;
-static struct range_list *param_constraints[16];
+static struct range_list_sval *param_constraints[16];
 
 
 static struct statement *prev_statement(void)
@@ -104,13 +104,13 @@ static int get_param_num(struct expression *expr)
 	return -1;
 }
 
-static void add_param_constraint(int idx, struct range_list *rl)
+static void add_param_constraint(int idx, struct range_list_sval *rl)
 {
 	if (!param_constraints[idx]) {
 		param_constraints[idx] = rl;
 		return;
 	}
-	param_constraints[idx] = range_list_union(param_constraints[idx], rl);
+	param_constraints[idx] = range_list_union_sval(param_constraints[idx], rl);
 }
 
 static void handle_condition(struct expression *expr)
@@ -168,7 +168,7 @@ static void handle_condition(struct expression *expr)
 		int num;
 
 		num = get_param_num(param);
-		add_param_constraint(num, estate_ranges(sm->state));
+		add_param_constraint(num, estate_ranges_sval(sm->state));
 	}
 
 	__push_true_states();
@@ -210,10 +210,10 @@ static void match_end_func(struct symbol *sym)
 	for (i = 0; i < ARRAY_SIZE(param_constraints); i++) {
 		if (!param_constraints[i])
 			continue;
-		if (is_whole_range_rl(param_constraints[i]))
+		if (is_whole_range_rl_sval(param_constraints[i]))
 			continue;
 		sm_msg("info: %s param %d range '%s' implies error return %s",
-		       global_static(), i, show_ranges(param_constraints[i]),
+		       global_static(), i, show_ranges_sval(param_constraints[i]),
 		       global_static());
 	}
 

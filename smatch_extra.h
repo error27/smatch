@@ -101,6 +101,7 @@ struct smatch_state *alloc_estate(long long val);
 struct smatch_state *alloc_estate_range_list(struct range_list *rl);
 struct data_info *get_dinfo(struct smatch_state *state);
 struct range_list *estate_ranges(struct smatch_state *state);
+struct range_list_sval *estate_ranges_sval(struct smatch_state *state);
 struct related_list *estate_related(struct smatch_state *state);
 long long estate_min(struct smatch_state *state);
 long long estate_max(struct smatch_state *state);

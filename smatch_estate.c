@@ -40,6 +40,13 @@ struct range_list *estate_ranges(struct smatch_state *state)
 	return get_dinfo(state)->value_ranges;
 }
 
+struct range_list_sval *estate_ranges_sval(struct smatch_state *state)
+{
+	if (!state)
+		return NULL;
+	return range_list_to_sval(get_dinfo(state)->value_ranges);
+}
+
 struct related_list *estate_related(struct smatch_state *state)
 {
 	if (!state)
