@@ -230,7 +230,6 @@ int get_implied_min(struct expression *expr, long long *val);
 int get_fuzzy_min(struct expression *expr, long long *min);
 int get_fuzzy_max(struct expression *expr, long long *max);
 int get_absolute_min(struct expression *expr, long long *val);
-int parse_call_math(struct expression *expr, char *math, long long *val);
 int get_value_sval(struct expression *expr, sval_t *val);
 int get_implied_value_sval(struct expression *expr, sval_t *val);
 int get_implied_max_sval(struct expression *expr, sval_t *val);
