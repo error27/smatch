@@ -484,13 +484,13 @@ void add_range_sval(struct range_list_sval **list, sval_t min, sval_t max)
 				continue;
 			}
 		}
-		if (max.value + 1 == tmp->min.value) {
+		if (!sval_is_max(max) && max.value + 1 == tmp->min.value) {
 			/* join 2 ranges into a big range */
 			new = alloc_range_sval(min, tmp->max);
 			REPLACE_CURRENT_PTR(tmp, new);
 			return;
 		}
-		if (sval_cmp(max, tmp->min)) { /* new range entirely below */
+		if (sval_cmp(max, tmp->min) < 0) { /* new range entirely below */
 			new = alloc_range_sval(min, max);
 			INSERT_CURRENT(new, tmp);
 			return;
@@ -515,7 +515,7 @@ void add_range_sval(struct range_list_sval **list, sval_t min, sval_t max)
 			check_next = 1;
 			continue;
 		}
-		if (min.value - 1 == tmp->max.value) {
+		if (!sval_is_min(min) && min.value - 1 == tmp->max.value) {
 			/* join 2 ranges into a big range */
 			new = alloc_range_sval(tmp->min, max);
 			REPLACE_CURRENT_PTR(tmp, new);
