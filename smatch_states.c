@@ -47,7 +47,7 @@ static struct state_list_stack *fake_cur_slist_stack;
 
 static struct state_list_stack *break_stack;
 static struct state_list_stack *switch_stack;
-static struct range_list_stack *remaining_cases;
+static struct range_list_stack_sval *remaining_cases;
 static struct state_list_stack *default_stack;
 static struct state_list_stack *continue_stack;
 
@@ -699,7 +699,7 @@ void __use_breaks(void)
 
 void __save_switch_states(struct expression *switch_expr)
 {
-	push_range_list(&remaining_cases, __get_implied_values(switch_expr));
+	push_range_list_sval(&remaining_cases, __get_implied_values(switch_expr));
 	push_slist(&switch_stack, clone_slist(cur_slist));
 }
 
@@ -719,7 +719,7 @@ void __discard_switches(void)
 {
 	struct state_list *slist;
 
-	pop_range_list(&remaining_cases);
+	pop_range_list_sval(&remaining_cases);
 	slist = pop_slist(&switch_stack);
 	free_slist(&slist);
 }

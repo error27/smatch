@@ -541,6 +541,17 @@ struct range_list *clone_range_list(struct range_list *list)
 	return ret;
 }
 
+struct range_list_sval *clone_range_list_sval(struct range_list_sval *list)
+{
+	struct data_range_sval *tmp;
+	struct range_list_sval *ret = NULL;
+
+	FOR_EACH_PTR(list, tmp) {
+		add_ptr_list(&ret, tmp);
+	} END_FOR_EACH_PTR(tmp);
+	return ret;
+}
+
 struct range_list *clone_permanent(struct range_list *list)
 {
 	struct data_range *tmp;
@@ -605,6 +616,38 @@ struct range_list *remove_range(struct range_list *list, long long min, long lon
 		} else {
 			add_range(&ret, tmp->min, min - 1);
 			add_range(&ret, max + 1, tmp->max);
+		}
+	} END_FOR_EACH_PTR(tmp);
+	return ret;
+}
+
+struct range_list_sval *remove_range_sval(struct range_list_sval *list, sval_t min, sval_t max)
+{
+	struct data_range_sval *tmp;
+	struct range_list_sval *ret = NULL;
+
+	FOR_EACH_PTR(list, tmp) {
+		if (sval_cmp(tmp->max, min) < 0) {
+			add_range_sval(&ret, tmp->min, tmp->max);
+			continue;
+		}
+		if (sval_cmp(tmp->min, max) > 0) {
+			add_range_sval(&ret, tmp->min, tmp->max);
+			continue;
+		}
+		if (sval_cmp(tmp->min, min) == 0 && sval_cmp(tmp->max, max) == 0)
+			continue;
+		if (sval_cmp(tmp->min, min) >= 0) {
+			max.value++;
+			add_range_sval(&ret, max, tmp->max);
+		} else if (sval_cmp(tmp->max, max) <= 0) {
+			min.value--;
+			add_range_sval(&ret, tmp->min, min);
+		} else {
+			min.value--;
+			max.value++;
+			add_range_sval(&ret, tmp->min, min);
+			add_range_sval(&ret, max, tmp->max);
 		}
 	} END_FOR_EACH_PTR(tmp);
 	return ret;
@@ -1002,9 +1045,23 @@ void push_range_list(struct range_list_stack **rl_stack, struct range_list *rl)
 	add_ptr_list(rl_stack, rl);
 }
 
+void push_range_list_sval(struct range_list_stack_sval **rl_stack, struct range_list_sval *rl)
+{
+	add_ptr_list(rl_stack, rl);
+}
+
 struct range_list *pop_range_list(struct range_list_stack **rl_stack)
 {
 	struct range_list *rl;
+
+	rl = last_ptr_list((struct ptr_list *)*rl_stack);
+	delete_ptr_list_last((struct ptr_list **)rl_stack);
+	return rl;
+}
+
+struct range_list_sval *pop_range_list_sval(struct range_list_stack_sval **rl_stack)
+{
+	struct range_list_sval *rl;
 
 	rl = last_ptr_list((struct ptr_list *)*rl_stack);
 	delete_ptr_list_last((struct ptr_list **)rl_stack);
@@ -1019,6 +1076,14 @@ struct range_list *top_range_list(struct range_list_stack *rl_stack)
 	return rl;
 }
 
+struct range_list_sval *top_range_list_sval(struct range_list_stack_sval *rl_stack)
+{
+	struct range_list_sval *rl;
+
+	rl = last_ptr_list((struct ptr_list *)rl_stack);
+	return rl;
+}
+
 void filter_top_range_list(struct range_list_stack **rl_stack, long long num)
 {
 	struct range_list *rl;
@@ -1026,6 +1091,15 @@ void filter_top_range_list(struct range_list_stack **rl_stack, long long num)
 	rl = pop_range_list(rl_stack);
 	rl = remove_range(rl, num, num);
 	push_range_list(rl_stack, rl);
+}
+
+void filter_top_range_list_sval(struct range_list_stack_sval **rl_stack, sval_t sval)
+{
+	struct range_list_sval *rl;
+
+	rl = pop_range_list_sval(rl_stack);
+	rl = remove_range_sval(rl, sval, sval);
+	push_range_list_sval(rl_stack, rl);
 }
 
 void free_range_list(struct range_list **rlist)

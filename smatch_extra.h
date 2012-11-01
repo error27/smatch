@@ -75,6 +75,7 @@ void free_range_list(struct range_list **rlist);
 void free_range_list_sval(struct range_list_sval **rlist);
 void free_data_info_allocs(void);
 struct range_list *clone_range_list(struct range_list *list);
+struct range_list_sval *clone_range_list_sval(struct range_list_sval *list);
 struct range_list *clone_permanent(struct range_list *list);
 char *show_ranges(struct range_list *list);
 char *show_ranges_sval(struct range_list_sval *list);
@@ -82,6 +83,7 @@ void get_value_ranges(char *value, struct range_list **rl);
 void get_value_ranges_sval(char *value, struct range_list_sval **rl);
 
 struct range_list *remove_range(struct range_list *list, long long min, long long max);
+struct range_list_sval *remove_range_sval(struct range_list_sval *list, sval_t min, sval_t max);
 
 /* used in smatch_slist.  implemented in smatch_extra.c */
 int implied_not_equal(struct expression *expr, long long val);
@@ -139,7 +141,12 @@ struct smatch_state *alloc_estate_range(long long min, long long max);
 void push_range_list(struct range_list_stack **rl_stack, struct range_list *rl);
 struct range_list *pop_range_list(struct range_list_stack **rl_stack);
 struct range_list *top_range_list(struct range_list_stack *rl_stack);
+void push_range_list_sval(struct range_list_stack_sval **rl_stack, struct range_list_sval *rl);
+struct range_list_sval *pop_range_list_sval(struct range_list_stack_sval **rl_stack);
+struct range_list_sval *top_range_list_sval(struct range_list_stack_sval *rl_stack);
+
 void filter_top_range_list(struct range_list_stack **rl_stack, long long num);
+void filter_top_range_list_sval(struct range_list_stack_sval **rl_stack, sval_t sval);
 int get_implied_range_list(struct expression *expr, struct range_list **rl);
 int get_implied_range_list_sval(struct expression *expr, struct range_list_sval **rl);
 int is_whole_range(struct smatch_state *state);

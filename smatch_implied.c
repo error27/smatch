@@ -542,12 +542,12 @@ static void implied_states_hook(struct expression *expr)
 	free_slist(&implied_false);
 }
 
-struct range_list *__get_implied_values(struct expression *switch_expr)
+struct range_list_sval *__get_implied_values(struct expression *switch_expr)
 {
 	char *name;
 	struct symbol *sym;
 	struct smatch_state *state;
-	struct range_list *ret = NULL;
+	struct range_list_sval *ret = NULL;
 
 	name = get_variable_from_expr(switch_expr, &sym);
 	if (!name || !sym)
@@ -555,17 +555,17 @@ struct range_list *__get_implied_values(struct expression *switch_expr)
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (!state)
 		goto free;
-	ret = clone_range_list(estate_ranges(state));
+	ret = clone_range_list_sval(estate_ranges_sval(state));
 free:
 	free_string(name);
 	if (!ret)
-		add_range(&ret, whole_range.min, whole_range.max);
+		add_range_sval(&ret, ll_to_sval(whole_range.min), ll_to_sval(whole_range.max));  // FIXME
 	return ret;
 }
 
 struct state_list *__implied_case_slist(struct expression *switch_expr,
 					struct expression *case_expr,
-					struct range_list_stack **remaining_cases,
+					struct range_list_stack_sval **remaining_cases,
 					struct state_list **raw_slist)
 {
 	char *name = NULL;
@@ -575,28 +575,28 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	struct state_list *true_states = NULL;
 	struct state_list *false_states = NULL;
 	struct state_list *ret = clone_slist(*raw_slist);
-	long long val;
-	struct range_list *vals = NULL;
+	sval_t sval;
+	struct range_list_sval *vals = NULL;
 
 	name = get_variable_from_expr(switch_expr, &sym);
 	if (!name || !sym)
 		goto free;
 	sm = get_sm_state_slist(*raw_slist, SMATCH_EXTRA, name, sym);
 	if (!case_expr) {
-		vals = top_range_list(*remaining_cases);
+		vals = top_range_list_sval(*remaining_cases);
 	} else {
-		if (!get_value(case_expr, &val))
+		if (!get_value_sval(case_expr, &sval))
 			goto free;
 
-		filter_top_range_list(remaining_cases, val);
-		add_range(&vals, val, val);
+		filter_top_range_list_sval(remaining_cases, sval);
+		add_range_sval(&vals, sval, sval);
 	}
 	if (sm)
-		separate_and_filter(sm, SPECIAL_EQUAL, range_list_to_sval(vals), LEFT, *raw_slist, &true_states, &false_states);
+		separate_and_filter(sm, SPECIAL_EQUAL, vals, LEFT, *raw_slist, &true_states, &false_states);
 
 	true_sm = get_sm_state_slist(true_states, SMATCH_EXTRA, name, sym);
 	if (!true_sm)
-		set_state_slist(&true_states, SMATCH_EXTRA, name, sym, alloc_estate_range_list(vals));
+		set_state_slist(&true_states, SMATCH_EXTRA, name, sym, alloc_estate_range_list_sval(vals));
 	overwrite_slist(true_states, &ret);
 	free_slist(&true_states);
 	free_slist(&false_states);
