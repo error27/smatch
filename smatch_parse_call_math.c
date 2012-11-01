@@ -463,22 +463,22 @@ static void match_call_assignment(struct expression *expr)
 static void match_returns_call(struct expression *call)
 {
 	char *sname;
-	struct range_list *rl;
+	struct range_list_sval *rl;
 
 	sname = get_allocation_recipe_from_call(call);
 	if (option_debug)
 		sm_msg("sname = %s", sname);
 	if (!sname)
 		return;
-	get_implied_range_list(call, &rl);
+	get_implied_range_list_sval(call, &rl);
 	sm_msg("info: return_allocation %d '%s' '%s' %s",
-	       get_return_id(), show_ranges(rl), sname, global_static());
+	       get_return_id(), show_ranges_sval(rl), sname, global_static());
 }
 
 static void match_return(struct expression *expr)
 {
 	struct smatch_state *state;
-	struct range_list *rl;
+	struct range_list_sval *rl;
 
 	expr = strip_expr(expr);
 	if (!expr)
@@ -492,9 +492,9 @@ static void match_return(struct expression *expr)
 	state = get_state_expr(my_id, expr);
 	if (!state || !state->data)
 		return;
-	get_implied_range_list(expr, &rl);
+	get_implied_range_list_sval(expr, &rl);
 	sm_msg("info: return_allocation %d '%s' '%s' %s",
-	       get_return_id(), show_ranges(rl), state->name, global_static());
+	       get_return_id(), show_ranges_sval(rl), state->name, global_static());
 }
 
 void register_parse_call_math(int id)
