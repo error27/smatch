@@ -54,7 +54,7 @@ static void match_condition(struct expression *expr)
 	if (expr->type == EXPR_COMPARE) {
 		if (expr->left->type == EXPR_COMPARE || expr->right->type == EXPR_COMPARE)
 			print = 1;
-		if (expr->left->op == '!') {
+		if (expr->left->type == EXPR_PREOP && expr->left->op == '!') {
 			if (expr->left->type == EXPR_PREOP && expr->left->unop->op == '!')
 				return;
 			if (expr->right->op == '!')
