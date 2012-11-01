@@ -231,9 +231,9 @@ long long rl_min(struct range_list *rl)
 	return drange->min;
 }
 
-sval_t rl_min_sval(struct range_list *rl)
+sval_t rl_min_sval(struct range_list_sval *rl)
 {
-	struct data_range *drange;
+	struct data_range_sval *drange;
 	sval_t ret;
 
 	ret.type = &llong_ctype;
@@ -241,8 +241,7 @@ sval_t rl_min_sval(struct range_list *rl)
 	if (ptr_list_empty(rl))
 		return ret;
 	drange = first_ptr_list((struct ptr_list *)rl);
-	ret.value = drange->min;
-	return ret;
+	return drange->min;
 }
 
 long long rl_max(struct range_list *rl)
@@ -255,9 +254,9 @@ long long rl_max(struct range_list *rl)
 	return drange->max;
 }
 
-sval_t rl_max_sval(struct range_list *rl)
+sval_t rl_max_sval(struct range_list_sval *rl)
 {
-	struct data_range *drange;
+	struct data_range_sval *drange;
 	sval_t ret;
 
 	ret.type = &llong_ctype;
@@ -265,8 +264,7 @@ sval_t rl_max_sval(struct range_list *rl)
 	if (ptr_list_empty(rl))
 		return ret;
 	drange = last_ptr_list((struct ptr_list *)rl);
-	ret.value = drange->max;
-	return ret;
+	return drange->max;
 }
 
 static struct data_range *alloc_range_helper(long long min, long long max, int perm)
@@ -711,8 +709,8 @@ int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval)
 	if (!dinfo || dinfo->type != DATA_RANGE)
 		return 0;
 
-	min = rl_min_sval(dinfo->value_ranges);
-	max = rl_max_sval(dinfo->value_ranges);
+	min = rl_min_sval(range_list_to_sval(dinfo->value_ranges));
+	max = rl_max_sval(range_list_to_sval(dinfo->value_ranges));
 	if (sval_cmp(min, max) != 0)
 		return 0;
 	*sval = min;

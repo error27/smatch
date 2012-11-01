@@ -43,8 +43,8 @@ int is_whole_range_rl_sval(struct range_list_sval *rl);
 int rl_contiguous(struct range_list *rl);
 long long rl_min(struct range_list *rl);
 long long rl_max(struct range_list *rl);
-sval_t rl_min_sval(struct range_list *rl);
-sval_t rl_max_sval(struct range_list *rl);
+sval_t rl_min_sval(struct range_list_sval *rl);
+sval_t rl_max_sval(struct range_list_sval *rl);
 
 struct data_range *alloc_range_perm(long long min, long long max);
 struct data_range_sval *alloc_range_perm_sval(sval_t min, sval_t max);

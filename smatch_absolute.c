@@ -149,7 +149,7 @@ static void match_call_info(struct expression *expr)
 
 static void set_param_limits(const char *name, struct symbol *sym, char *key, char *value)
 {
-	struct range_list *rl = NULL;
+	struct range_list_sval *rl = NULL;
 	sval_t min, max;
 	char fullname[256];
 
@@ -157,7 +157,7 @@ static void set_param_limits(const char *name, struct symbol *sym, char *key, ch
 		return;
 
 	snprintf(fullname, 256, "%s%s", name, key + 2);
-	get_value_ranges(value, &rl);
+	get_value_ranges_sval(value, &rl);
 	min = rl_min_sval(rl);
 	max = rl_max_sval(rl);
 	set_state(absolute_id, fullname, sym, alloc_absolute(min, max));

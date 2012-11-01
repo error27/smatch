@@ -61,7 +61,7 @@ long long estate_min(struct smatch_state *state)
 
 sval_t estate_min_sval(struct smatch_state *state)
 {
-	return rl_min_sval(estate_ranges(state));
+	return rl_min_sval(estate_ranges_sval(state));
 }
 
 long long estate_max(struct smatch_state *state)
@@ -71,7 +71,7 @@ long long estate_max(struct smatch_state *state)
 
 sval_t estate_max_sval(struct smatch_state *state)
 {
-	return rl_max_sval(estate_ranges(state));
+	return rl_max_sval(estate_ranges_sval(state));
 }
 
 static int rlists_equiv(struct related_list *one, struct related_list *two)
