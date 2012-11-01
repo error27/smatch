@@ -876,7 +876,7 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 			*rl = rl_sval_to_rl(rl_sval);
 			goto out;
 		}
-		*rl = db_return_vals(expr);
+		*rl = rl_sval_to_rl(db_return_vals(expr));
 		goto out;
 	}
 
@@ -928,8 +928,7 @@ int get_implied_range_list_sval(struct expression *expr, struct range_list_sval 
 	if (expr->type == EXPR_CALL) {
 		if (get_implied_return_sval(expr, rl))
 			goto out;
-		tmp = db_return_vals(expr);
-		*rl = range_list_to_sval(tmp);
+		*rl = db_return_vals(expr);
 		goto out;
 	}
 
