@@ -249,7 +249,7 @@ const char *sval_to_str(sval_t sval)
 	if (sval_unsigned(sval) && sval.value == ULLONG_MAX)
 		return "u64max";
 	if (sval.value == LLONG_MAX)
-		return "s64max";
+		return "max"; // FIXME: should be s64max
 	if (sval_unsigned(sval) && sval.value == UINT_MAX)
 		return "u32max";
 	if (sval.value == INT_MAX)
@@ -262,7 +262,7 @@ const char *sval_to_str(sval_t sval)
 	if ((sval.type == &sint_ctype || sval.type == &int_ctype) && sval.value == INT_MIN)
 		return "s32min";
 	if (sval_signed(sval) && sval.value == LLONG_MIN)
-		return "s64min";
+		return "min";  // FIXME: should be s64min
 
 	if (sval_unsigned(sval))
 		snprintf(buf, sizeof(buf), "%llu", sval.value);
