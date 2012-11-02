@@ -101,6 +101,7 @@ struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state
 void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state);
 struct smatch_state *alloc_estate_empty(void);
 struct smatch_state *alloc_estate(long long val);
+struct smatch_state *alloc_estate_sval(sval_t sval);
 struct smatch_state *alloc_estate_range_list(struct range_list *rl);
 struct smatch_state *alloc_estate_range_list_sval(struct range_list_sval *rl);
 struct data_info *get_dinfo(struct smatch_state *state);
@@ -137,6 +138,7 @@ void tack_on(struct range_list **list, struct data_range *drange);
 void tack_on_sval(struct range_list_sval **list, struct data_range_sval *drange);
 
 struct smatch_state *alloc_estate_range(long long min, long long max);
+struct smatch_state *alloc_estate_range_sval(sval_t min, sval_t max);
 
 void push_range_list(struct range_list_stack **rl_stack, struct range_list *rl);
 struct range_list *pop_range_list(struct range_list_stack **rl_stack);
