@@ -102,12 +102,26 @@ int sval_is_max(sval_t sval)
 	return (sval.value >= max.value);
 }
 
+static int sval_unsigned_big(sval_t sval)
+{
+	if (sval_unsigned(sval) && sval_bits(sval) >= 32)
+		return 1;
+	return 0;
+}
+
 /*
  * Casts the values and then does a compare.  Returns -1 if one is smaller, 0 if
  * they are the same and 1 if two is larger.
  */
 int sval_cmp(sval_t one, sval_t two)
 {
+	if (sval_unsigned_big(one) || sval_unsigned_big(two)) {
+		if (one.uvalue < two.uvalue)
+			return -1;
+		if (one.uvalue == two.uvalue)
+			return 0;
+		return 1;
+	}
 	/* fix me handle type promotion and unsigned values */
 	if (one.value < two.value)
 		return -1;
