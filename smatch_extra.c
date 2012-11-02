@@ -448,10 +448,10 @@ static void match_assign(struct expression *expr)
 	known = get_implied_value_sval(right, &value);
 	switch (expr->op) {
 	case '=': {
-		struct range_list *rl = NULL;
+		struct range_list_sval *rl = NULL;
 
-		if (get_implied_range_list(right, &rl)) {
-			set_extra_mod(name, sym, alloc_estate_range_list(rl));
+		if (get_implied_range_list_sval(right, &rl)) {
+			set_extra_mod(name, sym, alloc_estate_range_list_sval(rl));
 			goto free;
 		}
 
@@ -908,7 +908,6 @@ int get_implied_range_list_sval(struct expression *expr, struct range_list_sval 
 	sval_t sval;
 	struct smatch_state *state;
 	sval_t min, max;
-	struct range_list *tmp;
 
 	*rl = NULL;
 
@@ -918,8 +917,7 @@ int get_implied_range_list_sval(struct expression *expr, struct range_list_sval 
 
 	state = get_state_expr(my_id, expr);
 	if (state) {
-		tmp = clone_range_list(estate_ranges(state));
-		*rl = range_list_to_sval(tmp);
+		*rl = clone_range_list_sval(estate_ranges_sval(state));
 		goto out;
 	}
 
@@ -969,7 +967,7 @@ static void struct_member_callback(char *fn, char *global_static, int param, cha
 
 static void match_call_info(struct expression *expr)
 {
-	struct range_list *rl = NULL;
+	struct range_list_sval *rl = NULL;
 	struct expression *arg;
 	char *name;
 	int i = 0;
@@ -979,9 +977,9 @@ static void match_call_info(struct expression *expr)
 		return;
 
 	FOR_EACH_PTR(expr->args, arg) {
-		if (get_implied_range_list(arg, &rl) && !is_whole_range_rl(rl)) {
+		if (get_implied_range_list_sval(arg, &rl) && !is_whole_range_rl_sval(rl)) {
 			sm_msg("info: passes param_value '%s' %d '$$' %s %s",
-			       name, i, show_ranges(rl),
+			       name, i, show_ranges_sval(rl),
 			       is_static(expr->fn) ? "static" : "global");
 		}
 		i++;
@@ -992,7 +990,7 @@ static void match_call_info(struct expression *expr)
 
 static void set_param_value(const char *name, struct symbol *sym, char *key, char *value)
 {
-	struct range_list *rl = NULL;
+	struct range_list_sval *rl = NULL;
 	struct smatch_state *state;
 	char fullname[256];
 
@@ -1000,8 +998,8 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 		return;
 
 	snprintf(fullname, 256, "%s%s", name, key + 2);
-	get_value_ranges(value, &rl);
-	state = alloc_estate_range_list(rl);
+	get_value_ranges_sval(value, &rl);
+	state = alloc_estate_range_list_sval(rl);
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
 
