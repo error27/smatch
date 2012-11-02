@@ -145,20 +145,20 @@ struct smatch_state *filter_range_list(struct smatch_state *orig,
 }
 
 struct smatch_state *filter_range(struct smatch_state *orig,
-				 long long filter_min, long long filter_max)
+				 sval_t filter_min, sval_t filter_max)
 {
-	struct range_list *rl;
+	struct range_list_sval *rl;
 
 	if (!orig)
 		orig = extra_undefined();
 
-	rl = remove_range(estate_ranges(orig), filter_min, filter_max);
-	return alloc_estate_range_list(rl);
+	rl = remove_range_sval(estate_ranges_sval(orig), filter_min, filter_max);
+	return alloc_estate_range_list_sval(rl);
 }
 
 struct smatch_state *add_filter(struct smatch_state *orig, long long num)
 {
-	return filter_range(orig, num, num);
+	return filter_range(orig, ll_to_sval(num), ll_to_sval(num));
 }
 
 static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_state *s2)

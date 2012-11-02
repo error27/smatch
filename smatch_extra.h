@@ -114,8 +114,7 @@ sval_t estate_max_sval(struct smatch_state *state);
 struct smatch_state *filter_range_list(struct smatch_state *orig,
 				 struct range_list *rl);
 struct smatch_state *add_filter(struct smatch_state *orig, long long filter);
-struct smatch_state *filter_range(struct smatch_state *orig,
-				 long long filter_min, long long filter_max);
+struct smatch_state *filter_range(struct smatch_state *orig, sval_t filter_min, sval_t filter_max);
 struct smatch_state *extra_undefined(void);
 
 struct range_list *range_list_union(struct range_list *one, struct range_list *two);
