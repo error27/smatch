@@ -420,11 +420,11 @@ static void match_assign(struct expression *expr)
 	char *right_name;
 	struct symbol *sym;
 	char *name;
-	long long value;
+	sval_t value;
 	int known;
-	long long min = whole_range.min;
-	long long max = whole_range.max;
-	long long tmp;
+	sval_t min = ll_to_sval(whole_range.min);
+	sval_t max = ll_to_sval(whole_range.max);
+	sval_t tmp;
 
 	if (__is_condition_assign(expr))
 		return;
@@ -445,7 +445,7 @@ static void match_assign(struct expression *expr)
 		goto free;
 	}
 
-	known = get_implied_value(right, &value);
+	known = get_implied_value_sval(right, &value);
 	switch (expr->op) {
 	case '=': {
 		struct range_list *rl = NULL;
@@ -456,31 +456,31 @@ static void match_assign(struct expression *expr)
 		}
 
 		if (expr_unsigned(right))
-			min = 0;
+			min = ll_to_sval(0);  // FIXME
 		break;
 	}
 	case SPECIAL_ADD_ASSIGN:
-		if (get_implied_min(left, &tmp)) {
+		if (get_implied_min_sval(left, &tmp)) {
 			if (known)
-				min = tmp + value;
+				min = sval_binop(tmp, '+', value);
 			else
 				min = tmp;
 		}
-		if (!inside_loop() && known && get_implied_max(left, &tmp))
-				max = tmp + value;
+		if (!inside_loop() && known && get_implied_max_sval(left, &tmp))
+			max = sval_binop(tmp, '+', value);
 		break;
 	case SPECIAL_SUB_ASSIGN:
-		if (get_implied_max(left, &tmp)) {
+		if (get_implied_max_sval(left, &tmp)) {
 			if (known)
-				max = tmp - value;
+				max = sval_binop(tmp, '-', value);
 			else
 				max = tmp;
 		}
-		if (!inside_loop() && known && get_implied_min(left, &tmp))
-				min = tmp - value;
+		if (!inside_loop() && known && get_implied_min_sval(left, &tmp))
+			min = sval_binop(tmp, '-', value);
 		break;
 	}
-	set_extra_mod(name, sym, alloc_estate_range(min, max));
+	set_extra_mod(name, sym, alloc_estate_range_sval(min, max));
 free:
 	free_string(right_name);
 	free_string(name);
