@@ -183,7 +183,7 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 	struct expression *iter_var;
 	struct expression *condition;
 	struct sm_state *sm;
-	long long start;
+	sval_t start;
 
 	condition = strip_expr(loop->iterator_pre_condition);
 	if (!condition)
@@ -199,16 +199,16 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 		return NULL;
 	if (estate_min(sm->state) < 0)
 		return NULL;
-	start = estate_max(sm->state);
-	if  (start <= 0)
+	start = estate_max_sval(sm->state);
+	if  (sval_cmp_val(start, 0) <= 0)
 		return NULL;
-	if (start != whole_range.max)
-		start--;
+	if (!sval_is_max(start))
+		start.value--;
 
 	if (condition->type == EXPR_PREOP)
-		set_extra_expr_mod(iter_var, alloc_estate_range(1, start));
+		set_extra_expr_mod(iter_var, alloc_estate_range_sval(ll_to_sval(1), start));
 	if (condition->type == EXPR_POSTOP)
-		set_extra_expr_mod(iter_var, alloc_estate_range(0, start));
+		set_extra_expr_mod(iter_var, alloc_estate_range_sval(ll_to_sval(0), start));
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
@@ -217,34 +217,34 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 {
 	struct expression *iter_var;
 	struct sm_state *sm;
-	long long start;
-	long long end;
+	sval_t start, end;
 
 	iter_var = iter_expr->unop;
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
 		return NULL;
-	if (!estate_get_single_value(sm->state, &start))
+	if (!estate_get_single_value_sval(sm->state, &start))
 		return NULL;
-	if (!get_implied_value(condition->right, &end))
-		end = whole_range.max;
+	if (!get_implied_value_sval(condition->right, &end))
+		end = ll_to_sval(whole_range.max);
+
 	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
 		return NULL;
 
 	switch (condition->op) {
 	case SPECIAL_NOTEQUAL:
 	case '<':
-		if (end != whole_range.max)
-			end--;
+		if (!sval_is_max(end))
+			end.value--;
 		break;
 	case SPECIAL_LTE:
 		break;
 	default:
 		return NULL;
 	}
-	if (end < start)
+	if (sval_cmp(end, start) < 0)
 		return NULL;
-	set_extra_expr_mod(iter_var, alloc_estate_range(start, end));
+	set_extra_expr_mod(iter_var, alloc_estate_range_sval(start, end));
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
@@ -253,34 +253,33 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 {
 	struct expression *iter_var;
 	struct sm_state *sm;
-	long long start;
-	long long end;
+	sval_t start, end;
 
 	iter_var = iter_expr->unop;
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
 		return NULL;
-	if (!estate_get_single_value(sm->state, &start))
+	if (!estate_get_single_value_sval(sm->state, &start))
 		return NULL;
-	if (!get_implied_value(condition->right, &end))
-		end = whole_range.max;
+	if (!get_implied_value_sval(condition->right, &end))
+		end = ll_to_sval(whole_range.max);
 	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
 		return NULL;
 
 	switch (condition->op) {
 	case SPECIAL_NOTEQUAL:
 	case '>':
-		if (end != whole_range.min)
-			end++;
+		if (!sval_is_max(end))
+			end.value++;
 		break;
 	case SPECIAL_GTE:
 		break;
 	default:
 		return NULL;
 	}
-	if (end > start)
+	if (sval_cmp(end, start) > 0)
 		return NULL;
-	set_extra_expr_mod(iter_var, alloc_estate_range(end, start));
+	set_extra_expr_mod(iter_var, alloc_estate_range_sval(end, start));
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
@@ -331,7 +330,7 @@ int __iterator_unchanged(struct sm_state *sm)
 
 static void while_count_down_after(struct sm_state *sm, struct expression *condition)
 {
-	long long after_value;
+	sval_t after_value;
 
 	/* paranoid checking.  prolly not needed */
 	condition = strip_expr(condition);
@@ -341,9 +340,9 @@ static void while_count_down_after(struct sm_state *sm, struct expression *condi
 		return;
 	if (condition->op != SPECIAL_DECREMENT)
 		return;
-	after_value = estate_min(sm->state);
-	after_value--;
-	set_extra_mod(sm->name, sm->sym, alloc_estate(after_value));
+	after_value = estate_min_sval(sm->state);
+	after_value.value--;
+	set_extra_mod(sm->name, sm->sym, alloc_estate_sval(after_value));
 }
 
 void __extra_pre_loop_hook_after(struct sm_state *sm,
@@ -356,7 +355,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	sval_t value;
 	int left = 0;
 	struct smatch_state *state;
-	long long min, max;
+	sval_t min, max;
 
 	if (!iterator) {
 		while_count_down_after(sm, condition);
@@ -381,15 +380,14 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	if (sym != sm->sym || strcmp(name, sm->name))
 		goto free;
 	state = get_state(my_id, name, sym);
-	min = estate_min(state);
-	max = estate_max(state);
+	min = estate_min_sval(state);
+	max = estate_max_sval(state);
 	if (iter_expr->op == SPECIAL_INCREMENT &&
-		min != whole_range.min &&
-		max == whole_range.max) {
-		set_extra_mod(name, sym, alloc_estate(min));
-	} else if (min == whole_range.min && max != whole_range.max) {
-		set_extra_mod(name, sym, alloc_estate(max));
-	}
+	    !sval_is_min(min) && sval_is_max(max))
+		set_extra_mod(name, sym, alloc_estate_sval(min));
+	else if (sval_is_min(min) && !sval_is_max(max))
+		set_extra_mod(name, sym, alloc_estate_sval(max));
+
 free:
 	free_string(name);
 	return;
