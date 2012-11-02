@@ -255,7 +255,7 @@ free:
 	return handled;
 }
 
-int call_implies_callbacks(int comparison, struct expression *expr, long long value, int left)
+static int call_implies_callbacks(int comparison, struct expression *expr, sval_t sval, int left)
 {
 	struct call_back_list *call_backs;
 	struct fcall_back *tmp;
@@ -272,7 +272,7 @@ int call_implies_callbacks(int comparison, struct expression *expr, long long va
 	call_backs = search_callback(func_hash, (char *)expr->fn->symbol->ident->name);
 	if (!call_backs)
 		return 0;
-	value_range = alloc_range_sval(ll_to_sval(value), ll_to_sval(value));
+	value_range = alloc_range_sval(sval, sval);
 
 	/* set true states */
 	__push_fake_cur_slist();
@@ -357,7 +357,7 @@ static int db_compare_callback(void *unused, int argc, char **argv, char **azCol
 	return 0;
 }
 
-void compare_db_implies_callbacks(int comparison, struct expression *expr, long long value, int left)
+void compare_db_implies_callbacks(int comparison, struct expression *expr, sval_t sval, int left)
 {
 	struct symbol *sym;
         static char sql_filter[1024];
@@ -383,7 +383,7 @@ void compare_db_implies_callbacks(int comparison, struct expression *expr, long 
 
 	db_info.comparison = comparison;
 	db_info.expr = expr;
-	db_info.rl = range_list_to_sval(alloc_range_list(value, value));
+	db_info.rl = alloc_range_list_sval(sval, sval);
 	db_info.left = left;
 	db_info.callbacks = db_implies_list;
 
@@ -412,7 +412,7 @@ void compare_db_implies_callbacks(int comparison, struct expression *expr, long 
 	free_slist(&false_states);
 }
 
-void compare_db_return_states_callbacks(int comparison, struct expression *expr, long long value, int left)
+void compare_db_return_states_callbacks(int comparison, struct expression *expr, sval_t sval, int left)
 {
 	struct symbol *sym;
         static char sql_filter[1024];
@@ -438,7 +438,7 @@ void compare_db_return_states_callbacks(int comparison, struct expression *expr,
 
 	db_info.comparison = comparison;
 	db_info.expr = expr;
-	db_info.rl = range_list_to_sval(alloc_range_list(value, value));
+	db_info.rl = alloc_range_list_sval(sval, sval);
 	db_info.left = left;
 	db_info.callbacks = db_return_states_list;
 
@@ -469,13 +469,12 @@ void compare_db_return_states_callbacks(int comparison, struct expression *expr,
 
 
 
-void function_comparison(int comparison, struct expression *expr,
-				long long value, int left)
+void function_comparison(int comparison, struct expression *expr, sval_t sval, int left)
 {
-	if (call_implies_callbacks(comparison, expr, value, left))
+	if (call_implies_callbacks(comparison, expr, sval, left))
 		return;
-	compare_db_implies_callbacks(comparison, expr, value, left);
-	compare_db_return_states_callbacks(comparison, expr, value, left);
+	compare_db_implies_callbacks(comparison, expr, sval, left);
+	compare_db_return_states_callbacks(comparison, expr, sval, left);
 }
 
 static int db_assign_callback(void *unused, int argc, char **argv, char **azColName)

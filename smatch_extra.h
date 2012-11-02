@@ -122,7 +122,7 @@ struct range_list_sval *range_list_union_sval(struct range_list_sval *one, struc
 int estate_get_single_value(struct smatch_state *estate, long long *val);
 int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval);
 
-void function_comparison(int comparison, struct expression *expr, long long value, int left);
+void function_comparison(int comparison, struct expression *expr, sval_t sval, int left);
 
 int true_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
 int false_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);

@@ -630,19 +630,19 @@ static int match_func_comparison(struct expression *expr)
 {
 	struct expression *left = strip_expr(expr->left);
 	struct expression *right = strip_expr(expr->right);
-	long long val;
+	sval_t sval;
 
 	if (left->type == EXPR_CALL) {
-		if (!get_implied_value(right, &val))
+		if (!get_implied_value_sval(right, &sval))
 			return 1;
-		function_comparison(expr->op, left, val, 1);
+		function_comparison(expr->op, left, sval, 1);
 		return 1;
 	}
 
 	if (right->type == EXPR_CALL) {
-		if (!get_implied_value(left, &val))
+		if (!get_implied_value_sval(left, &sval))
 			return 1;
-		function_comparison(expr->op, right, val, 0);
+		function_comparison(expr->op, right, sval, 0);
 		return 1;
 	}
 
@@ -816,7 +816,7 @@ void __extra_match_condition(struct expression *expr)
 	expr = strip_expr(expr);
 	switch (expr->type) {
 	case EXPR_CALL:
-		function_comparison(SPECIAL_NOTEQUAL, expr, 0, 1);
+		function_comparison(SPECIAL_NOTEQUAL, expr, ll_to_sval(0), 1);
 		return;
 	case EXPR_PREOP:
 	case EXPR_SYMBOL:
