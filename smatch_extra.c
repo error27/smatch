@@ -164,14 +164,14 @@ struct smatch_state *add_filter(struct smatch_state *orig, sval_t sval)
 static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_state *s2)
 {
 	struct smatch_state *tmp;
-	struct range_list *value_ranges;
+	struct range_list_sval *value_ranges;
 	struct related_list *rlist;
 
 	if (estates_equiv(s1, s2))
 		return s1;
 
-	value_ranges = range_list_union(estate_ranges(s1), estate_ranges(s2));
-	tmp = alloc_estate_range_list(value_ranges);
+	value_ranges = range_list_union_sval(estate_ranges_sval(s1), estate_ranges_sval(s2));
+	tmp = alloc_estate_range_list_sval(value_ranges);
 	rlist = get_shared_relations(estate_related(s1), estate_related(s2));
 	set_related(&tmp, rlist);
 
