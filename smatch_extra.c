@@ -128,20 +128,20 @@ free:
 }
 
 struct smatch_state *filter_range_list(struct smatch_state *orig,
-				 struct range_list *rl)
+				 struct range_list_sval *rl)
 {
-	struct range_list *res;
-	struct data_range *tmp;
+	struct range_list_sval *res;
+	struct data_range_sval *tmp;
 
 	if (!orig)
 		orig = extra_undefined();
-	res = estate_ranges(orig);
+	res = estate_ranges_sval(orig);
 
 	FOR_EACH_PTR(rl, tmp) {
-		res = remove_range(res, tmp->min, tmp->max);
+		res = remove_range_sval(res, tmp->min, tmp->max);
 	} END_FOR_EACH_PTR(tmp);
 
-	return alloc_estate_range_list(res);
+	return alloc_estate_range_list_sval(res);
 }
 
 struct smatch_state *filter_range(struct smatch_state *orig,
