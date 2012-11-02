@@ -493,32 +493,32 @@ static void reset_struct_members(struct sm_state *sm)
 
 static struct smatch_state *increment_state(struct smatch_state *state)
 {
-	long long min = estate_min(state);
-	long long max = estate_max(state);
+	sval_t min = estate_min_sval(state);
+	sval_t max = estate_max_sval(state);
 
 	if (inside_loop())
-		max = whole_range.max;
+		max = ll_to_sval(whole_range.max);
 
-	if (min != whole_range.min)
-		min++;
-	if (max != whole_range.max)
-		max++;
-	return alloc_estate_range(min, max);
+	if (!sval_is_min(min))
+		min.value++;
+	if (!sval_is_max(max))
+		max.value++;
+	return alloc_estate_range_sval(min, max);
 }
 
 static struct smatch_state *decrement_state(struct smatch_state *state)
 {
-	long long min = estate_min(state);
-	long long max = estate_max(state);
+	sval_t min = estate_min_sval(state);
+	sval_t max = estate_max_sval(state);
 
 	if (inside_loop())
-		min = whole_range.min;
+		min = ll_to_sval(whole_range.min);
 
-	if (min != whole_range.min)
-		min--;
-	if (max != whole_range.max)
-		max--;
-	return alloc_estate_range(min, max);
+	if (!sval_is_min(min))
+		min.value--;
+	if (!sval_is_max(max))
+		max.value--;
+	return alloc_estate_range_sval(min, max);
 }
 
 static void unop_expr(struct expression *expr)
