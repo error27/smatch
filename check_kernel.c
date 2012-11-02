@@ -45,7 +45,7 @@ static void match_param_nonnull(const char *fn, struct expression *call_expr,
 
 	arg = get_argument_from_call_expr(call_expr->args, param);
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
-	true_state = add_filter(pre_state, 0);
+	true_state = add_filter(pre_state, ll_to_sval(0));
 	set_extra_expr_nomod(arg, true_state);
 }
 

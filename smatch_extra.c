@@ -156,9 +156,9 @@ struct smatch_state *filter_range(struct smatch_state *orig,
 	return alloc_estate_range_list_sval(rl);
 }
 
-struct smatch_state *add_filter(struct smatch_state *orig, long long num)
+struct smatch_state *add_filter(struct smatch_state *orig, sval_t sval)
 {
-	return filter_range(orig, ll_to_sval(num), ll_to_sval(num));
+	return filter_range(orig, sval, sval);
 }
 
 static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_state *s2)
@@ -827,7 +827,7 @@ void __extra_match_condition(struct expression *expr)
 		if (!name)
 			return;
 		pre_state = get_state(my_id, name, sym);
-		true_state = add_filter(pre_state, 0);
+		true_state = add_filter(pre_state, ll_to_sval(0));
 		if (possibly_true(expr, SPECIAL_EQUAL, zero_expr()))
 			false_state = alloc_estate(0);
 		else
