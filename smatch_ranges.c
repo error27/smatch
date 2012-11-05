@@ -987,7 +987,7 @@ void free_range_list_sval(struct range_list_sval **rlist)
 static void free_single_dinfo(struct data_info *dinfo)
 {
 	if (dinfo->type == DATA_RANGE)
-		free_range_list(&dinfo->value_ranges);
+		free_range_list_sval(&dinfo->value_ranges);
 }
 
 static void free_dinfos(struct allocation_blob *blob)

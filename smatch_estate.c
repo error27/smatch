@@ -37,7 +37,7 @@ struct range_list_sval *estate_ranges_sval(struct smatch_state *state)
 {
 	if (!state)
 		return NULL;
-	return range_list_to_sval(get_dinfo(state)->value_ranges);
+	return get_dinfo(state)->value_ranges;
 }
 
 struct related_list *estate_related(struct smatch_state *state)
@@ -109,11 +109,11 @@ static struct data_info *alloc_dinfo_range(sval_t min, sval_t max)
 	struct data_info *ret;
 
 	ret = alloc_dinfo();
-	add_range(&ret->value_ranges, min.value, max.value);
+	add_range_sval(&ret->value_ranges, min, max);
 	return ret;
 }
 
-static struct data_info *alloc_dinfo_range_list(struct range_list *rl)
+static struct data_info *alloc_dinfo_range_list(struct range_list_sval *rl)
 {
 	struct data_info *ret;
 
@@ -128,7 +128,7 @@ static struct data_info *clone_dinfo(struct data_info *dinfo)
 
 	ret = alloc_dinfo();
 	ret->related = clone_related_list(dinfo->related);
-	ret->value_ranges = clone_range_list(dinfo->value_ranges);
+	ret->value_ranges = clone_range_list_sval(dinfo->value_ranges);
 	return ret;
 }
 
@@ -176,7 +176,7 @@ struct smatch_state *alloc_estate_sval(sval_t sval)
 
 	state = __alloc_smatch_state(0);
 	state->data = alloc_dinfo_range(sval, sval);
-	state->name = show_ranges(get_dinfo(state)->value_ranges);
+	state->name = show_ranges_sval(get_dinfo(state)->value_ranges);
 	return state;
 }
 
@@ -188,7 +188,7 @@ struct smatch_state *alloc_estate_range_sval(sval_t min, sval_t max)
 		return extra_undefined();
 	state = __alloc_smatch_state(0);
 	state->data = alloc_dinfo_range(min, max);
-	state->name = show_ranges(get_dinfo(state)->value_ranges);
+	state->name = show_ranges_sval(get_dinfo(state)->value_ranges);
 	return state;
 }
 
@@ -203,7 +203,7 @@ struct smatch_state *alloc_estate_range_list_sval(struct range_list_sval *rl)
 		return extra_undefined();
 
 	state = __alloc_smatch_state(0);
-	state->data = (void *)alloc_dinfo_range_list(rl_sval_to_rl(rl));
+	state->data = alloc_dinfo_range_list(rl);
 	state->name = show_ranges_sval(rl);
 	return state;
 }
@@ -214,6 +214,6 @@ void alloc_estate_undefined(void)
 		.type = DATA_RANGE
 	};
 
-	dinfo.value_ranges = clone_permanent(whole_range_list());
+	dinfo.value_ranges = clone_permanent_sval(whole_range_list_sval());
 	estate_undefined.data = &dinfo;
 }

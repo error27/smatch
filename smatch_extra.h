@@ -28,7 +28,7 @@ DECLARE_PTR_LIST(related_list, struct relation);
 struct data_info {
 	struct related_list *related;
 	enum data_type type;
-	struct range_list *value_ranges;
+	struct range_list_sval *value_ranges;
 };
 DECLARE_ALLOCATOR(data_info);
 
