@@ -104,11 +104,8 @@ struct smatch_state *alloc_estate_sval(sval_t sval);
 struct smatch_state *alloc_estate_range_list(struct range_list *rl);
 struct smatch_state *alloc_estate_range_list_sval(struct range_list_sval *rl);
 struct data_info *get_dinfo(struct smatch_state *state);
-struct range_list *estate_ranges(struct smatch_state *state);
 struct range_list_sval *estate_ranges_sval(struct smatch_state *state);
 struct related_list *estate_related(struct smatch_state *state);
-long long estate_min(struct smatch_state *state);
-long long estate_max(struct smatch_state *state);
 sval_t estate_min_sval(struct smatch_state *state);
 sval_t estate_max_sval(struct smatch_state *state);
 struct smatch_state *filter_range_list(struct smatch_state *orig,

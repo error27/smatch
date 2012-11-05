@@ -33,13 +33,6 @@ struct data_info *get_dinfo(struct smatch_state *state)
 	return (struct data_info *)state->data;
 }
 
-struct range_list *estate_ranges(struct smatch_state *state)
-{
-	if (!state)
-		return NULL;
-	return get_dinfo(state)->value_ranges;
-}
-
 struct range_list_sval *estate_ranges_sval(struct smatch_state *state)
 {
 	if (!state)
@@ -54,19 +47,9 @@ struct related_list *estate_related(struct smatch_state *state)
 	return get_dinfo(state)->related;
 }
 
-long long estate_min(struct smatch_state *state)
-{
-	return rl_min(estate_ranges(state));
-}
-
 sval_t estate_min_sval(struct smatch_state *state)
 {
 	return rl_min_sval(estate_ranges_sval(state));
-}
-
-long long estate_max(struct smatch_state *state)
-{
-	return rl_max(estate_ranges(state));
 }
 
 sval_t estate_max_sval(struct smatch_state *state)
