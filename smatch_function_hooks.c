@@ -560,7 +560,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 	return_id = atoi(argv[0]);
 	get_value_ranges_sval(argv[1], &ret_range);
 	if (!ret_range)
-		ret_range = range_list_to_sval(whole_range_list());
+		ret_range = whole_range_list_sval();
 	type = atoi(argv[2]);
 	param = atoi(argv[3]);
 	key = argv[4];

@@ -323,6 +323,12 @@ struct range_list *whole_range_list(void)
 	return alloc_range_list(whole_range.min, whole_range.max);
 }
 
+struct range_list_sval *whole_range_list_sval(void)
+{
+	return alloc_range_list_sval(ll_to_sval(whole_range.min), ll_to_sval(whole_range.max));
+}
+
+
 void add_range(struct range_list **list, long long min, long long max)
 {
 	struct data_range *tmp = NULL;
