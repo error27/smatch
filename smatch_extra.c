@@ -872,61 +872,6 @@ int implied_not_equal(struct expression *expr, long long val)
 	return !possibly_false(expr, SPECIAL_NOTEQUAL, value_expr(val));
 }
 
-int get_implied_range_list(struct expression *expr, struct range_list **rl)
-{
-	long long val;
-	struct smatch_state *state;
-	long long min;
-	long long max;
-
-	*rl = NULL;
-
-	expr = strip_parens(expr);
-	if (!expr)
-		return 0;
-
-	state = get_state_expr(my_id, expr);
-	if (state) {
-		*rl = clone_range_list(estate_ranges(state));
-		goto out;
-	}
-
-	if (expr->type == EXPR_CALL) {
-		struct range_list_sval *rl_sval = NULL;
-
-		if (get_implied_return_sval(expr, &rl_sval)) {
-			*rl = rl_sval_to_rl(rl_sval);
-			goto out;
-		}
-		*rl = rl_sval_to_rl(db_return_vals(expr));
-		goto out;
-	}
-
-	if (get_implied_value(expr, &val)) {
-		add_range(rl, val, val);
-		goto out;
-	}
-
-	if (expr->type == EXPR_BINOP && expr->op == '%') {
-		if (!get_implied_value(expr->right, &val))
-			return 0;
-		add_range(rl, 0, val - 1);
-		goto out;
-	}
-
-	if (!get_implied_min(expr, &min))
-		return 0;
-	if (!get_implied_max(expr, &max))
-		return 0;
-
-	*rl = alloc_range_list(min, max);
-
-out:
-	if (is_whole_range_rl(*rl))
-		return 0;
-	return 1;
-}
-
 int get_implied_range_list_sval(struct expression *expr, struct range_list_sval **rl)
 {
 	sval_t sval;

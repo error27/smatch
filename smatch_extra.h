@@ -148,7 +148,6 @@ struct range_list_sval *top_range_list_sval(struct range_list_stack_sval *rl_sta
 
 void filter_top_range_list(struct range_list_stack **rl_stack, long long num);
 void filter_top_range_list_sval(struct range_list_stack_sval **rl_stack, sval_t sval);
-int get_implied_range_list(struct expression *expr, struct range_list **rl);
 int get_implied_range_list_sval(struct expression *expr, struct range_list_sval **rl);
 int is_whole_range(struct smatch_state *state);
 
