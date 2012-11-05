@@ -223,13 +223,6 @@ char *get_variable_from_expr_complex(struct expression *expr,
 char *get_variable_from_expr(struct expression *expr,
 			     struct symbol **sym_ptr);
 int sym_name_is(const char *name, struct expression *expr);
-int get_value(struct expression *expr, long long *val);
-int get_implied_value(struct expression *expr, long long *val);
-int get_implied_max(struct expression *expr, long long *val);
-int get_implied_min(struct expression *expr, long long *val);
-int get_fuzzy_min(struct expression *expr, long long *min);
-int get_fuzzy_max(struct expression *expr, long long *max);
-int get_absolute_min(struct expression *expr, long long *val);
 int get_value_sval(struct expression *expr, sval_t *val);
 int get_implied_value_sval(struct expression *expr, sval_t *val);
 int get_implied_max_sval(struct expression *expr, sval_t *val);
