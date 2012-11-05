@@ -80,9 +80,9 @@ static sval_t handle_ampersand(int *undefined, int implied)
 	ret.value = BOGUS;
 
 	if (implied == IMPLIED_MIN || implied == FUZZYMIN || implied == ABSOLUTE_MIN)
-		ret.value = valid_ptr_min;
+		return valid_ptr_min_sval;
 	if (implied == IMPLIED_MAX || implied == FUZZYMAX || implied == ABSOLUTE_MAX)
-		ret.value = valid_ptr_max;
+		return valid_ptr_max_sval;
 
 	*undefined = 1;
 	return ret;
