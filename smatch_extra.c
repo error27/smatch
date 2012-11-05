@@ -649,20 +649,33 @@ static int match_func_comparison(struct expression *expr)
 	return 0;
 }
 
+static sval_t add_one(sval_t sval)
+{
+	sval.value++;
+	return sval;
+}
+
+static sval_t sub_one(sval_t sval)
+{
+	sval.value--;
+	return sval;
+}
+
 static void match_comparison(struct expression *expr)
 {
 	struct expression *left = strip_expr(expr->left);
 	struct expression *right = strip_expr(expr->right);
-	struct range_list *left_orig;
-	struct range_list *left_true;
-	struct range_list *left_false;
-	struct range_list *right_orig;
-	struct range_list *right_true;
-	struct range_list *right_false;
+	struct range_list_sval *left_orig;
+	struct range_list_sval *left_true;
+	struct range_list_sval *left_false;
+	struct range_list_sval *right_orig;
+	struct range_list_sval *right_true;
+	struct range_list_sval *right_false;
 	struct smatch_state *left_true_state;
 	struct smatch_state *left_false_state;
 	struct smatch_state *right_true_state;
 	struct smatch_state *right_false_state;
+	sval_t min, max;
 	int left_postop = 0;
 	int right_postop = 0;
 
@@ -685,103 +698,114 @@ static void match_comparison(struct expression *expr)
 		right = strip_expr(right->unop);
 	}
 
-	if (!get_implied_range_list(left, &left_orig))
-		left_orig = alloc_range_list(whole_range.min, whole_range.max);
-	if (!get_implied_range_list(right, &right_orig))
-		right_orig = alloc_range_list(whole_range.min, whole_range.max);
+	min = sval_type_min(&llong_ctype);
+	max = sval_type_max(&llong_ctype);
+	if (get_implied_range_list_sval(left, &left_orig))
+		left_orig = range_list_to_sval(rl_sval_to_rl(left_orig));  // temporary hack to make things llong_ctype
+	else
+		left_orig = alloc_range_list_sval(min, max);
 
-	left_true = clone_range_list(left_orig);
-	left_false = clone_range_list(left_orig);
-	right_true = clone_range_list(right_orig);
-	right_false = clone_range_list(right_orig);
+	if (get_implied_range_list_sval(right, &right_orig))
+		right_orig = range_list_to_sval(rl_sval_to_rl(right_orig));  // temporary hack to make things llong_ctype
+	else
+		right_orig = alloc_range_list_sval(min, max);
+
+	left_true = clone_range_list_sval(left_orig);
+	left_false = clone_range_list_sval(left_orig);
+	right_true = clone_range_list_sval(right_orig);
+	right_false = clone_range_list_sval(right_orig);
 
 	switch (expr->op) {
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
-		if (rl_max(right_orig) != whole_range.max)
-			left_true = remove_range(left_orig, rl_max(right_orig), whole_range.max);
-		if (rl_min(right_orig) != whole_range.min)
-			left_false = remove_range(left_orig, whole_range.min, rl_min(right_orig) - 1);
+		if (!sval_is_max(rl_max_sval(right_orig))) {
+			left_true = remove_range_sval(left_orig, rl_max_sval(right_orig), max);
+		}
+		if (!sval_is_min(rl_min_sval(right_orig))) {
+			left_false = remove_range_sval(left_orig, min, sub_one(rl_min_sval(right_orig)));
+		}
 
-		if (rl_min(left_orig) != whole_range.min)
-			right_true = remove_range(right_orig, whole_range.min, rl_min(left_orig));
-		if (rl_max(left_orig) != whole_range.max)
-			right_false = remove_range(right_orig, rl_max(left_orig) + 1, whole_range.max);
+		if (!sval_is_min(rl_min_sval(left_orig)))
+			right_true = remove_range_sval(right_orig, min, rl_min_sval(left_orig));
+		if (!sval_is_max(rl_max_sval(left_orig)))
+			right_false = remove_range_sval(right_orig, add_one(rl_max_sval(left_orig)), max);
 		break;
 	case SPECIAL_UNSIGNED_LTE:
 	case SPECIAL_LTE:
-		if (rl_max(right_orig) != whole_range.max)
-			left_true = remove_range(left_orig, rl_max(right_orig) + 1, whole_range.max);
-		if (rl_min(right_orig) != whole_range.min)
-			left_false = remove_range(left_orig, whole_range.min, rl_min(right_orig));
+		if (!sval_is_max(rl_max_sval(right_orig)))
+			left_true = remove_range_sval(left_orig, add_one(rl_max_sval(right_orig)), max);
+		if (!sval_is_min(rl_min_sval(right_orig)))
+			left_false = remove_range_sval(left_orig, min, rl_min_sval(right_orig));
 
-		if (rl_min(left_orig) != whole_range.min)
-			right_true = remove_range(right_orig, whole_range.min, rl_min(left_orig) - 1);
-		if (rl_max(left_orig) != whole_range.max)
-			right_false = remove_range(right_orig, rl_max(left_orig), whole_range.max);
+		if (!sval_is_min(rl_min_sval(left_orig)))
+			right_true = remove_range_sval(right_orig, min, sub_one(rl_min_sval(left_orig)));
+		if (!sval_is_max(rl_max_sval(left_orig)))
+			right_false = remove_range_sval(right_orig, rl_max_sval(left_orig), max);
 		break;
 	case SPECIAL_EQUAL:
-		if (rl_max(right_orig) != whole_range.max)
-			left_true = remove_range(left_true, rl_max(right_orig) + 1, whole_range.max);
-		if (rl_min(right_orig) != whole_range.min)
-			left_true = remove_range(left_true, whole_range.min, rl_min(right_orig) - 1);
-		if (rl_min(right_orig) == rl_max(right_orig))
-			left_false = remove_range(left_orig, rl_min(right_orig), rl_min(right_orig));
+		if (!sval_is_max(rl_max_sval(right_orig))) {
+			left_true = remove_range_sval(left_true, add_one(rl_max_sval(right_orig)), max);
+		}
+		if (!sval_is_min(rl_min_sval(right_orig))) {
+			left_true = remove_range_sval(left_true, min, sub_one(rl_min_sval(right_orig)));
+		}
+		if (sval_cmp(rl_min_sval(right_orig), rl_max_sval(right_orig)) == 0)
+			left_false = remove_range_sval(left_orig, rl_min_sval(right_orig), rl_min_sval(right_orig));
 
-		if (rl_max(left_orig) != whole_range.max)
-			right_true = remove_range(right_true, rl_max(left_orig) + 1, whole_range.max);
-		if (rl_min(left_orig) != whole_range.min)
-			right_true = remove_range(right_true, whole_range.min, rl_min(left_orig) - 1);
-		if (rl_min(left_orig) == rl_max(left_orig))
-			right_false = remove_range(right_orig, rl_min(left_orig), rl_min(left_orig));
+		if (!sval_is_max(rl_max_sval(left_orig)))
+			right_true = remove_range_sval(right_true, add_one(rl_max_sval(left_orig)), max);
+		if (!sval_is_min(rl_min_sval(left_orig)))
+			right_true = remove_range_sval(right_true, min, sub_one(rl_min_sval(left_orig)));
+		if (sval_cmp(rl_min_sval(left_orig), rl_max_sval(left_orig)) == 0)
+			right_false = remove_range_sval(right_orig, rl_min_sval(left_orig), rl_min_sval(left_orig));
 		break;
 	case SPECIAL_UNSIGNED_GTE:
 	case SPECIAL_GTE:
-		if (rl_min(right_orig) != whole_range.min)
-			left_true = remove_range(left_orig, whole_range.min, rl_min(right_orig) - 1);
-		if (rl_max(right_orig) != whole_range.max)
-			left_false = remove_range(left_orig, rl_max(right_orig), whole_range.max);
+		if (!sval_is_min(rl_min_sval(right_orig)))
+			left_true = remove_range_sval(left_orig, min, sub_one(rl_min_sval(right_orig)));
+		if (!sval_is_max(rl_max_sval(right_orig)))
+			left_false = remove_range_sval(left_orig, rl_max_sval(right_orig), max);
 
-		if (rl_max(left_orig) != whole_range.max)
-			right_true = remove_range(right_orig, rl_max(left_orig) + 1, whole_range.max);
-		if (rl_min(left_orig) != whole_range.min)
-			right_false = remove_range(right_orig, whole_range.min, rl_min(left_orig));
+		if (!sval_is_max(rl_max_sval(left_orig)))
+			right_true = remove_range_sval(right_orig, add_one(rl_max_sval(left_orig)), max);
+		if (!sval_is_min(rl_min_sval(left_orig)))
+			right_false = remove_range_sval(right_orig, min, rl_min_sval(left_orig));
 		break;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
-		if (rl_min(right_orig) != whole_range.min)
-			left_true = remove_range(left_orig, whole_range.min, rl_min(right_orig));
-		if (rl_max(right_orig) != whole_range.max)
-			left_false = remove_range(left_orig, rl_max(right_orig) + 1, whole_range.max);
+		if (!sval_is_min(rl_min_sval(right_orig)))
+			left_true = remove_range_sval(left_orig, min, rl_min_sval(right_orig));
+		if (!sval_is_max(rl_max_sval(right_orig)))
+			left_false = remove_range_sval(left_orig, add_one(rl_max_sval(right_orig)), max);
 
-		if (rl_max(left_orig) != whole_range.max)
-			right_true = remove_range(right_orig, rl_max(left_orig), whole_range.max);
-		if (rl_min(left_orig) != whole_range.min)
-			right_false = remove_range(right_orig, whole_range.min, rl_min(left_orig) - 1);
+		if (!sval_is_max(rl_max_sval(left_orig)))
+			right_true = remove_range_sval(right_orig, rl_max_sval(left_orig), max);
+		if (!sval_is_min(rl_min_sval(left_orig)))
+			right_false = remove_range_sval(right_orig, min, sub_one(rl_min_sval(left_orig)));
 		break;
 	case SPECIAL_NOTEQUAL:
-		if (rl_max(right_orig) != whole_range.max)
-			left_false = remove_range(left_false, rl_max(right_orig) + 1, whole_range.max);
-		if (rl_min(right_orig) != whole_range.min)
-			left_false = remove_range(left_false, whole_range.min, rl_min(right_orig) - 1);
-		if (rl_min(right_orig) == rl_max(right_orig))
-			left_true = remove_range(left_orig, rl_min(right_orig), rl_min(right_orig));
+		if (!sval_is_max(rl_max_sval(right_orig)))
+			left_false = remove_range_sval(left_false, add_one(rl_max_sval(right_orig)), max);
+		if (!sval_is_min(rl_min_sval(right_orig)))
+			left_false = remove_range_sval(left_false, min, sub_one(rl_min_sval(right_orig)));
+		if (sval_cmp(rl_min_sval(right_orig), rl_max_sval(right_orig)) == 0)
+			left_true = remove_range_sval(left_orig, rl_min_sval(right_orig), rl_min_sval(right_orig));
 
-		if (rl_max(left_orig) != whole_range.max)
-			right_false = remove_range(right_false, rl_max(left_orig) + 1, whole_range.max);
-		if (rl_min(left_orig) != whole_range.min)
-			right_false = remove_range(right_false, whole_range.min, rl_min(left_orig) - 1);
-		if (rl_min(left_orig) == rl_max(left_orig))
-			right_true = remove_range(right_orig, rl_min(left_orig), rl_min(left_orig));
+		if (!sval_is_max(rl_max_sval(left_orig)))
+			right_false = remove_range_sval(right_false, add_one(rl_max_sval(left_orig)), max);
+		if (!sval_is_min(rl_min_sval(left_orig)))
+			right_false = remove_range_sval(right_false, min, sub_one(rl_min_sval(left_orig)));
+		if (sval_cmp(rl_min_sval(left_orig), rl_max_sval(left_orig)) == 0)
+			right_true = remove_range_sval(right_orig, rl_min_sval(left_orig), rl_min_sval(left_orig));
 		break;
 	default:
 		return;
 	}
 
-	left_true_state = alloc_estate_range_list(left_true);
-	left_false_state = alloc_estate_range_list(left_false);
-	right_true_state = alloc_estate_range_list(right_true);
-	right_false_state = alloc_estate_range_list(right_false);
+	left_true_state = alloc_estate_range_list_sval(left_true);
+	left_false_state = alloc_estate_range_list_sval(left_false);
+	right_true_state = alloc_estate_range_list_sval(right_true);
+	right_false_state = alloc_estate_range_list_sval(right_false);
 
 	if (left_postop == SPECIAL_INCREMENT) {
 		left_true_state = increment_state(left_true_state);
