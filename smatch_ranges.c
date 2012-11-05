@@ -612,30 +612,6 @@ struct range_list_sval *remove_range_sval(struct range_list_sval *list, sval_t m
 	return ret;
 }
 
-struct range_list *invert_range_list(struct range_list *orig)
-{
-	struct range_list *ret = NULL;
-	struct data_range *tmp;
-	long long gap_min;
-
-	if (!orig)
-		return NULL;
-
-	gap_min = whole_range.min;
-	FOR_EACH_PTR(orig, tmp) {
-		if (tmp->min > gap_min)
-			add_range(&ret, gap_min, tmp->min - 1);
-		gap_min = tmp->max + 1;
-		if (tmp->max == whole_range.max)
-			gap_min = whole_range.max;
-	} END_FOR_EACH_PTR(tmp);
-
-	if (gap_min != whole_range.max)
-		add_range(&ret, gap_min, whole_range.max);
-
-	return ret;
-}
-
 int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval)
 {
 	sval_t min, max;
