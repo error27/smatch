@@ -64,7 +64,6 @@ void free_data_info_allocs(void);
 struct range_list_sval *clone_range_list_sval(struct range_list_sval *list);
 struct range_list_sval *clone_permanent_sval(struct range_list_sval *list);
 char *show_ranges_sval(struct range_list_sval *list);
-void get_value_ranges(char *value, struct range_list **rl);
 void get_value_ranges_sval(char *value, struct range_list_sval **rl);
 
 struct range_list_sval *remove_range_sval(struct range_list_sval *list, sval_t min, sval_t max);

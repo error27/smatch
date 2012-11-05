@@ -47,7 +47,7 @@ char *show_ranges_sval(struct range_list_sval *list)
 	return alloc_sname(full);
 }
 
-void get_value_ranges(char *value, struct range_list **rl)
+void get_value_ranges_sval(char *value, struct range_list_sval **rl)
 {
 	long long val1, val2;
 	char *start;
@@ -102,11 +102,11 @@ void get_value_ranges(char *value, struct range_list **rl)
 		if (*c == ')')
 			c++;
 		if (!*c) {
-			add_range(rl, val1, val1);
+			add_range_sval(rl, ll_to_sval(val1), ll_to_sval(val1));
 			break;
 		}
 		if (*c == ',') {
-			add_range(rl, val1, val1);
+			add_range_sval(rl, ll_to_sval(val1), ll_to_sval(val1));
 			c++;
 			start = c;
 			continue;
@@ -124,21 +124,13 @@ void get_value_ranges(char *value, struct range_list **rl)
 				c++;
 			val2 = strtoll(start, &c, 10);
 		}
-		add_range(rl, val1, val2);
+		add_range_sval(rl, ll_to_sval(val1), ll_to_sval(val2));
 		if (!*c)
 			break;
 		if (*c == ')')
 			c++;
 		c++; /* skip the comma in eg: 4-5,7 */
 	}
-}
-
-void get_value_ranges_sval(char *value, struct range_list_sval **rl)
-{
-	struct range_list *tmp_rl = NULL;
-
-	get_value_ranges(value, &tmp_rl);
-	*rl = range_list_to_sval(tmp_rl);
 }
 
 static struct data_range range_zero = {
