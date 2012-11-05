@@ -202,16 +202,6 @@ int is_whole_range_rl_sval(struct range_list_sval *rl)
 	return 0;
 }
 
-long long rl_min(struct range_list *rl)
-{
-	struct data_range *drange;
-
-	if (ptr_list_empty(rl))
-		return whole_range.min;
-	drange = first_ptr_list((struct ptr_list *)rl);
-	return drange->min;
-}
-
 sval_t rl_min_sval(struct range_list_sval *rl)
 {
 	struct data_range_sval *drange;
@@ -223,16 +213,6 @@ sval_t rl_min_sval(struct range_list_sval *rl)
 		return ret;
 	drange = first_ptr_list((struct ptr_list *)rl);
 	return drange->min;
-}
-
-long long rl_max(struct range_list *rl)
-{
-	struct data_range *drange;
-
-	if (ptr_list_empty(rl))
-		return whole_range.max;
-	drange = last_ptr_list((struct ptr_list *)rl);
-	return drange->max;
 }
 
 sval_t rl_max_sval(struct range_list_sval *rl)
