@@ -154,15 +154,6 @@ struct smatch_state *alloc_estate_empty(void)
 	return state;
 }
 
-static struct smatch_state *alloc_estate_no_name(int val)
-{
-	struct smatch_state *state;
-
-	state = __alloc_smatch_state(0);
-	state->data = (void *)alloc_dinfo_range(val, val);
-	return state;
-}
-
 /* We do this because ->value_ranges is a list */
 struct smatch_state *extra_undefined(void)
 {
@@ -183,7 +174,8 @@ struct smatch_state *alloc_estate_sval(sval_t sval)
 {
 	struct smatch_state *state;
 
-	state = alloc_estate_no_name(sval.value);
+	state = __alloc_smatch_state(0);
+	state->data = (void *)alloc_dinfo_range(sval.value, sval.value);
 	state->name = show_ranges(get_dinfo(state)->value_ranges);
 	return state;
 }
