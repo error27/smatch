@@ -517,19 +517,6 @@ struct range_list_sval *clone_range_list_sval(struct range_list_sval *list)
 	return ret;
 }
 
-struct range_list *clone_permanent(struct range_list *list)
-{
-	struct data_range *tmp;
-	struct data_range *new;
-	struct range_list *ret = NULL;
-
-	FOR_EACH_PTR(list, tmp) {
-		new = alloc_range_perm(tmp->min, tmp->max);
-		add_ptr_list(&ret, new);
-	} END_FOR_EACH_PTR(tmp);
-	return ret;
-}
-
 struct range_list_sval *clone_permanent_sval(struct range_list_sval *list)
 {
 	struct data_range_sval *tmp;
