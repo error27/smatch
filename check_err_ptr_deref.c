@@ -115,27 +115,27 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
 	struct expression *arg;
 	struct sm_state *sm;
 	struct sm_state *tmp;
-	long long tmp_min;
-	long long tmp_max;
-	long long min = whole_range.max;
-	long long max = whole_range.min;
+	sval_t tmp_min;
+	sval_t tmp_max;
+	sval_t min = sval_type_max(&llong_ctype);
+	sval_t max = sval_type_min(&llong_ctype);
 
 	arg = get_argument_from_call_expr(expr->args, 0);
 	sm = get_sm_state_expr(SMATCH_EXTRA, arg);
 	if (!sm)
 		return;
 	FOR_EACH_PTR(sm->possible, tmp) {
-		tmp_min = estate_min(tmp->state);
-		if (tmp_min != whole_range.min && tmp_min < min)
+		tmp_min = estate_min_sval(tmp->state);
+		if (!sval_is_min(tmp_min) && sval_cmp(tmp_min, min) < 0)
 			min = tmp_min;
-		tmp_max = estate_max(tmp->state);
-		if (tmp_max != whole_range.max && tmp_max > max)
+		tmp_max = estate_max_sval(tmp->state);
+		if (!sval_is_max(tmp_max) && sval_cmp(tmp_max, max) > 0)
 			max = tmp_max;
 	} END_FOR_EACH_PTR(tmp);
-	if (min < -4095)
-		sm_msg("error: %lld too low for ERR_PTR", min);
-	if (max > 0)
-		sm_msg("error: passing non neg %lld to ERR_PTR", max);
+	if (sval_cmp_val(min, -4095) < 0)
+		sm_msg("error: %s too low for ERR_PTR", sval_to_str(min));
+	if (sval_cmp_val(max, 0) > 0)
+		sm_msg("error: passing non neg %s to ERR_PTR", sval_to_str(max));
 }
 
 void check_err_ptr_deref(int id)
