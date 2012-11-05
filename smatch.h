@@ -326,7 +326,6 @@ extern int option_no_implied;
 void get_implications(char *name, struct symbol *sym, int comparison, long long num,
 		      struct state_list **true_states,
 		      struct state_list **false_states);
-struct range_list_stack;
 struct range_list_stack_sval;
 struct state_list *__implied_case_slist(struct expression *switch_expr,
 					struct expression *case_expr,
