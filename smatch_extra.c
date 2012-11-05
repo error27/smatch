@@ -851,7 +851,7 @@ void __extra_match_condition(struct expression *expr)
 		pre_state = get_state(my_id, name, sym);
 		true_state = add_filter(pre_state, ll_to_sval(0));
 		if (possibly_true(expr, SPECIAL_EQUAL, zero_expr()))
-			false_state = alloc_estate(0);
+			false_state = alloc_estate_sval(ll_to_sval(0));
 		else
 			false_state = alloc_estate_empty();
 		set_extra_true_false(name, sym, true_state, false_state);

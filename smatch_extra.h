@@ -99,7 +99,6 @@ struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smat
 struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state);
 void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state);
 struct smatch_state *alloc_estate_empty(void);
-struct smatch_state *alloc_estate(long long val);
 struct smatch_state *alloc_estate_sval(sval_t sval);
 struct smatch_state *alloc_estate_range_list(struct range_list *rl);
 struct smatch_state *alloc_estate_range_list_sval(struct range_list_sval *rl);

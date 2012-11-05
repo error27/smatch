@@ -179,15 +179,6 @@ struct smatch_state *extra_empty(void)
 	return ret;
 }
 
-struct smatch_state *alloc_estate(long long val)
-{
-	struct smatch_state *state;
-
-	state = alloc_estate_no_name(val);
-	state->name = show_ranges(get_dinfo(state)->value_ranges);
-	return state;
-}
-
 struct smatch_state *alloc_estate_sval(sval_t sval)
 {
 	struct smatch_state *state;
