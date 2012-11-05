@@ -695,15 +695,10 @@ int estate_get_single_value(struct smatch_state *state, long long *val)
 
 int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval)
 {
-	struct data_info *dinfo;
 	sval_t min, max;
 
-	dinfo = get_dinfo(state);
-	if (!dinfo || dinfo->type != DATA_RANGE)
-		return 0;
-
-	min = rl_min_sval(range_list_to_sval(dinfo->value_ranges));
-	max = rl_max_sval(range_list_to_sval(dinfo->value_ranges));
+	min = rl_min_sval(estate_ranges_sval(state));
+	max = rl_max_sval(estate_ranges_sval(state));
 	if (sval_cmp(min, max) != 0)
 		return 0;
 	*sval = min;
