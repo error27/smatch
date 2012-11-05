@@ -626,7 +626,7 @@ struct range_list_sval *remove_range_sval(struct range_list_sval *list, sval_t m
 			add_range_sval(&ret, tmp->min, tmp->max);
 			continue;
 		}
-		if (sval_cmp(tmp->min, min) == 0 && sval_cmp(tmp->max, max) == 0)
+		if (sval_cmp(tmp->min, min) >= 0 && sval_cmp(tmp->max, max) <= 0)
 			continue;
 		if (sval_cmp(tmp->min, min) >= 0) {
 			max.value++;
