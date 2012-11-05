@@ -924,7 +924,7 @@ out:
 
 int is_whole_range(struct smatch_state *state)
 {
-	return is_whole_range_rl(estate_ranges(state));
+	return is_whole_range_rl_sval(estate_ranges_sval(state));
 }
 
 static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
