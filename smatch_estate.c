@@ -188,18 +188,6 @@ struct smatch_state *alloc_estate_sval(sval_t sval)
 	return state;
 }
 
-struct smatch_state *alloc_estate_range(long long min, long long max)
-{
-	struct smatch_state *state;
-
-	if (min == whole_range.min && max == whole_range.max)
-		return extra_undefined();
-	state = __alloc_smatch_state(0);
-	state->data = (void *)alloc_dinfo_range(min, max);
-	state->name = show_ranges(get_dinfo(state)->value_ranges);
-	return state;
-}
-
 struct smatch_state *alloc_estate_range_sval(sval_t min, sval_t max)
 {
 	struct smatch_state *state;

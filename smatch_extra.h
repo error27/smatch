@@ -131,7 +131,6 @@ struct data_range *drange_sval_to_drange(struct data_range_sval *drange);
 void tack_on(struct range_list **list, struct data_range *drange);
 void tack_on_sval(struct range_list_sval **list, struct data_range_sval *drange);
 
-struct smatch_state *alloc_estate_range(long long min, long long max);
 struct smatch_state *alloc_estate_range_sval(sval_t min, sval_t max);
 
 void push_range_list(struct range_list_stack **rl_stack, struct range_list *rl);
