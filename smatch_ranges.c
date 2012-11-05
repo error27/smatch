@@ -748,6 +748,27 @@ int range_lists_equiv(struct range_list *one, struct range_list *two)
 	return 1;
 }
 
+int range_lists_equiv_sval(struct range_list_sval *one, struct range_list_sval *two)
+{
+	struct data_range_sval *one_range;
+	struct data_range_sval *two_range;
+
+	PREPARE_PTR_LIST(one, one_range);
+	PREPARE_PTR_LIST(two, two_range);
+	for (;;) {
+		if (!one_range && !two_range)
+			return 1;
+		if (!ranges_equiv_sval(one_range, two_range))
+			return 0;
+		NEXT_PTR_LIST(one_range);
+		NEXT_PTR_LIST(two_range);
+	}
+	FINISH_PTR_LIST(two_range);
+	FINISH_PTR_LIST(one_range);
+
+	return 1;
+}
+
 int true_comparison_range(struct data_range *left, int comparison, struct data_range *right)
 {
 	struct data_range_sval *tmp_left, *tmp_right;
