@@ -499,7 +499,7 @@ static int db_assign_callback(void *unused, int argc, char **argv, char **azColN
 		if (tmp->type == type)
 			tmp->callback(db_info.expr->right, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
-	set_extra_expr_mod(db_info.expr->left, alloc_estate_range_list(rl_sval_to_rl(ret_range)));
+	set_extra_expr_mod(db_info.expr->left, alloc_estate_range_list_sval(ret_range));
 	slist = __pop_fake_cur_slist();
 
 	merge_slist(&db_info.slist, slist);
@@ -577,7 +577,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 		if (tmp->type == type)
 			tmp->callback(db_info.expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
-	set_extra_expr_mod(db_info.expr->left, alloc_estate_range_list(rl_sval_to_rl(ret_range)));
+	set_extra_expr_mod(db_info.expr->left, alloc_estate_range_list_sval(ret_range));
 
 	return 0;
 }
@@ -629,12 +629,10 @@ static int db_return_states_assign(struct expression *expr)
 static int handle_implied_return(struct expression *expr)
 {
 	struct range_list_sval *rl;
-	struct range_list *tmp_no_sval;
 
 	if (!get_implied_return_sval(expr->right, &rl))
 		return 0;
-	tmp_no_sval = rl_sval_to_rl(rl);
-	set_extra_expr_mod(expr->left, alloc_estate_range_list(tmp_no_sval));
+	set_extra_expr_mod(expr->left, alloc_estate_range_list_sval(rl));
 	return 1;
 }
 

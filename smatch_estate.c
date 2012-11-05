@@ -200,22 +200,6 @@ struct smatch_state *alloc_estate_range_sval(sval_t min, sval_t max)
 	return state;
 }
 
-struct smatch_state *alloc_estate_range_list(struct range_list *rl)
-{
-	struct smatch_state *state;
-
-	if (!rl)
-		return extra_empty();
-
-	if (is_whole_range_rl(rl))
-		return extra_undefined();
-
-	state = __alloc_smatch_state(0);
-	state->data = (void *)alloc_dinfo_range_list(rl);
-	state->name = show_ranges(get_dinfo(state)->value_ranges);
-	return state;
-}
-
 struct smatch_state *alloc_estate_range_list_sval(struct range_list_sval *rl)
 {
 	struct smatch_state *state;
