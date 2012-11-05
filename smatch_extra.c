@@ -197,7 +197,7 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
 		return NULL;
-	if (estate_min(sm->state) < 0)
+	if (sval_cmp_val(estate_min_sval(sm->state), 0) < 0)
 		return NULL;
 	start = estate_max_sval(sm->state);
 	if  (sval_cmp_val(start, 0) <= 0)
