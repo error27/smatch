@@ -350,6 +350,14 @@ struct data_range_sval {
 extern struct data_range whole_range;
 static const long long valid_ptr_max = LONG_MAX;
 static const long long valid_ptr_min = 4096;
+static const sval_t valid_ptr_max_sval = {
+	.type = &ptr_ctype,
+	.value = LONG_MAX,
+};
+static const sval_t valid_ptr_min_sval = {
+	.type = &ptr_ctype,
+	.value = 4096,
+};
 
 /* smatch_absolute.c */
 extern int absolute_id;

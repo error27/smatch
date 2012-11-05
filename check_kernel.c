@@ -78,7 +78,7 @@ static void match_err(const char *fn, struct expression *call_expr,
 
 static void match_container_of(const char *fn, struct expression *expr, void *unused)
 {
-	set_extra_expr_mod(expr->left, alloc_estate_range(valid_ptr_min, valid_ptr_max));
+	set_extra_expr_mod(expr->left, alloc_estate_range_sval(valid_ptr_min_sval, valid_ptr_max_sval));
 }
 
 void check_kernel(int id)

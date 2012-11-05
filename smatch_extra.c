@@ -593,7 +593,7 @@ static void match_declarations(struct symbol *sym)
 
 static void check_dereference(struct expression *expr)
 {
-	set_extra_expr_nomod(expr, alloc_estate_range(valid_ptr_min, valid_ptr_max));
+	set_extra_expr_nomod(expr, alloc_estate_range_sval(valid_ptr_min_sval, valid_ptr_max_sval));
 }
 
 static void match_dereferences(struct expression *expr)
