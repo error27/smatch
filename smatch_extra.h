@@ -114,7 +114,6 @@ struct smatch_state *extra_undefined(void);
 
 struct range_list *range_list_union(struct range_list *one, struct range_list *two);
 struct range_list_sval *range_list_union_sval(struct range_list_sval *one, struct range_list_sval *two);
-int estate_get_single_value(struct smatch_state *estate, long long *val);
 int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval);
 
 void function_comparison(int comparison, struct expression *expr, sval_t sval, int left);

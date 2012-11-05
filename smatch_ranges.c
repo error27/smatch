@@ -668,31 +668,6 @@ struct range_list *invert_range_list(struct range_list *orig)
 	return ret;
 }
 
-/*
- * if it can be only one and only value return 1, else return 0
- */
-int estate_get_single_value(struct smatch_state *state, long long *val)
-{
-	struct data_info *dinfo;
-	struct data_range *tmp;
-	int count = 0;
-
-	dinfo = get_dinfo(state);
-	if (!dinfo || dinfo->type != DATA_RANGE)
-		return 0;
-
-	FOR_EACH_PTR(dinfo->value_ranges, tmp) {
-		if (!count++) {
-			if (tmp->min != tmp->max)
-				return 0;
-			*val = tmp->min;
-		} else {
-			return 0;
-		}
-	} END_FOR_EACH_PTR(tmp);
-	return count;
-}
-
 int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval)
 {
 	sval_t min, max;
