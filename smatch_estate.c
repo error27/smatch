@@ -104,12 +104,12 @@ static struct data_info *alloc_dinfo(void)
 	return ret;
 }
 
-static struct data_info *alloc_dinfo_range(long long min, long long max)
+static struct data_info *alloc_dinfo_range(sval_t min, sval_t max)
 {
 	struct data_info *ret;
 
 	ret = alloc_dinfo();
-	add_range(&ret->value_ranges, min, max);
+	add_range(&ret->value_ranges, min.value, max.value);
 	return ret;
 }
 
@@ -175,7 +175,7 @@ struct smatch_state *alloc_estate_sval(sval_t sval)
 	struct smatch_state *state;
 
 	state = __alloc_smatch_state(0);
-	state->data = (void *)alloc_dinfo_range(sval.value, sval.value);
+	state->data = alloc_dinfo_range(sval, sval);
 	state->name = show_ranges(get_dinfo(state)->value_ranges);
 	return state;
 }
@@ -187,7 +187,7 @@ struct smatch_state *alloc_estate_range_sval(sval_t min, sval_t max)
 	if (sval_is_min(min) && sval_is_max(max))
 		return extra_undefined();
 	state = __alloc_smatch_state(0);
-	state->data = (void *)alloc_dinfo_range(min.value, max.value);
+	state->data = alloc_dinfo_range(min, max);
 	state->name = show_ranges(get_dinfo(state)->value_ranges);
 	return state;
 }
