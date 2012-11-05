@@ -55,15 +55,11 @@ int true_comparison_range(struct data_range *left, int comparison, struct data_r
 int true_comparison_range_sval(struct data_range_sval *left, int comparison, struct data_range_sval *right);
 
 int possibly_true(struct expression *left, int comparison, struct expression *right);
-int possibly_true_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges);
 int possibly_true_range_lists_sval(struct range_list_sval *left_ranges, int comparison, struct range_list_sval *right_ranges);
-int possibly_true_range_lists_rl(int comparison, struct range_list *a, struct range_list *b, int left);
 int possibly_true_range_lists_rl_sval(int comparison, struct range_list_sval *a, struct range_list_sval *b, int left);
 
 int possibly_false(struct expression *left, int comparison, struct expression *right);
-int possibly_false_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges);
 int possibly_false_range_lists_sval(struct range_list_sval *left_ranges, int comparison, struct range_list_sval *right_ranges);
-int possibly_false_range_lists_rl(int comparison, struct range_list *a, struct range_list *b, int left);
 int possibly_false_range_lists_rl_sval(int comparison, struct range_list_sval *a, struct range_list_sval *b, int left);
 
 void free_range_list(struct range_list **rlist);

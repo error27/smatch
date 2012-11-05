@@ -834,22 +834,6 @@ int possibly_false(struct expression *left, int comparison, struct expression *r
 	return 0;
 }
 
-int possibly_true_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges)
-{
-	struct data_range *left_tmp, *right_tmp;
-
-	if (!left_ranges || !right_ranges)
-		return 1;
-
-	FOR_EACH_PTR(left_ranges, left_tmp) {
-		FOR_EACH_PTR(right_ranges, right_tmp) {
-			if (true_comparison_range(left_tmp, comparison, right_tmp))
-				return 1;
-		} END_FOR_EACH_PTR(right_tmp);
-	} END_FOR_EACH_PTR(left_tmp);
-	return 0;
-}
-
 int possibly_true_range_lists_sval(struct range_list_sval *left_ranges, int comparison, struct range_list_sval *right_ranges)
 {
 	struct data_range_sval *left_tmp, *right_tmp;
@@ -860,22 +844,6 @@ int possibly_true_range_lists_sval(struct range_list_sval *left_ranges, int comp
 	FOR_EACH_PTR(left_ranges, left_tmp) {
 		FOR_EACH_PTR(right_ranges, right_tmp) {
 			if (true_comparison_range_sval(left_tmp, comparison, right_tmp))
-				return 1;
-		} END_FOR_EACH_PTR(right_tmp);
-	} END_FOR_EACH_PTR(left_tmp);
-	return 0;
-}
-
-int possibly_false_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges)
-{
-	struct data_range *left_tmp, *right_tmp;
-
-	if (!left_ranges || !right_ranges)
-		return 1;
-
-	FOR_EACH_PTR(left_ranges, left_tmp) {
-		FOR_EACH_PTR(right_ranges, right_tmp) {
-			if (false_comparison_range(left_tmp, comparison, right_tmp))
 				return 1;
 		} END_FOR_EACH_PTR(right_tmp);
 	} END_FOR_EACH_PTR(left_tmp);
@@ -898,14 +866,6 @@ int possibly_false_range_lists_sval(struct range_list_sval *left_ranges, int com
 	return 0;
 }
 
-int possibly_true_range_lists_rl(int comparison, struct range_list *a, struct range_list *b, int left)
-{
-	if (left)
-		return possibly_true_range_lists(a, comparison, b);
-	else
-		return possibly_true_range_lists(b, comparison, a);
-}
-
 /* FIXME: the _rl here stands for right left so really it should be _lr */
 int possibly_true_range_lists_rl_sval(int comparison, struct range_list_sval *a, struct range_list_sval *b, int left)
 {
@@ -913,14 +873,6 @@ int possibly_true_range_lists_rl_sval(int comparison, struct range_list_sval *a,
 		return possibly_true_range_lists_sval(a, comparison, b);
 	else
 		return possibly_true_range_lists_sval(b, comparison, a);
-}
-
-int possibly_false_range_lists_rl(int comparison, struct range_list *a, struct range_list *b, int left)
-{
-	if (left)
-		return possibly_false_range_lists(a, comparison, b);
-	else
-		return possibly_false_range_lists(b, comparison, a);
 }
 
 int possibly_false_range_lists_rl_sval(int comparison, struct range_list_sval *a, struct range_list_sval *b, int left)
