@@ -163,6 +163,40 @@ static void set_param_limits(const char *name, struct symbol *sym, char *key, ch
 	set_state(absolute_id, fullname, sym, alloc_absolute(min, max));
 }
 
+int get_absolute_min_helper(struct expression *expr, sval_t *sval)
+{
+	struct smatch_state *state;
+	struct data_range_sval *range;
+
+	if (get_implied_value_sval(expr, sval))
+		return 1;
+
+	state = get_state_expr(absolute_id, expr);
+	if (!state || !state->data)
+		return 0;
+
+	range = state->data;
+	*sval = range->min;
+	return 1;
+}
+
+int get_absolute_max_helper(struct expression *expr, sval_t *sval)
+{
+	struct smatch_state *state;
+	struct data_range_sval *range;
+
+	if (get_implied_value_sval(expr, sval))
+		return 1;
+
+	state = get_state_expr(absolute_id, expr);
+	if (!state || !state->data)
+		return 0;
+
+	range = state->data;
+	*sval = range->max;
+	return 1;
+}
+
 void register_absolute(int id)
 {
 	absolute_id = id;

@@ -449,25 +449,13 @@ static sval_t _get_implied_value(struct expression *expr, int *undefined, int im
 			*undefined = 1;
 		break;
 	case ABSOLUTE_MIN:
-	case ABSOLUTE_MAX: {
-		struct smatch_state *state;
-		struct data_range *range;
-
-		if (get_implied_value_helper(expr, &ret, implied))
-			break;
-
-		state = get_state_expr(absolute_id, expr);
-		if (!state || !state->data) {
+		if (!get_absolute_min_helper(expr, &ret))
 			*undefined = 1;
-			break;
-		}
-		range = state->data;
-		if (implied == ABSOLUTE_MAX)
-			ret.value = range->max;
-		else
-			ret.value = range->min;
 		break;
-	}
+	case ABSOLUTE_MAX:
+		if (!get_absolute_max_helper(expr, &ret))
+			*undefined = 1;
+		break;
 	case FUZZYMAX:
 		if (!get_fuzzy_max_helper(expr, &ret))
 			*undefined = 1;

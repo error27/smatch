@@ -350,7 +350,8 @@ static const sval_t valid_ptr_min_sval = {
 };
 
 /* smatch_absolute.c */
-extern int absolute_id;
+int get_absolute_min_helper(struct expression *expr, sval_t *sval);
+int get_absolute_max_helper(struct expression *expr, sval_t *sval);
 
 /* smatch_states.c */
 void __push_fake_cur_slist();
