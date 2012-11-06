@@ -30,11 +30,11 @@ int func(void)
  * check-output-start
 sm_equiv1.c:13 func() one = 1
 sm_equiv1.c:14 func() two = 1
-sm_equiv1.c:16 func() one = unknown
-sm_equiv1.c:17 func() two = unknown
+sm_equiv1.c:16 func() one = min-max
+sm_equiv1.c:17 func() two = min-max
 sm_equiv1.c:19 func() one = 2
 sm_equiv1.c:20 func() two = 2
-sm_equiv1.c:22 func() one = unknown
-sm_equiv1.c:23 func() two = unknown
+sm_equiv1.c:22 func() one = min-max
+sm_equiv1.c:23 func() two = min-max
  * check-output-end
  */

@@ -31,8 +31,8 @@ void func(void)
  * check-command: smatch -I.. sm_loops2.c
  *
  * check-output-start
-sm_loops2.c:10 func() x = unknown
-sm_loops2.c:11 func() x = unknown
+sm_loops2.c:10 func() x = min-max
+sm_loops2.c:11 func() x = min-max
 sm_loops2.c:16 func() x = 0-max
 sm_loops2.c:18 func() x = 0-max
 sm_loops2.c:19 func() x = (-1)

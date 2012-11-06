@@ -69,10 +69,10 @@ int func(void)
  * check-command: smatch -I.. sm_select3.c
  *
  * check-output-start
-sm_select3.c:7 func() a = unknown
+sm_select3.c:7 func() a = min-max
 sm_select3.c:9 func() Test #1 a ? 1 : c
-sm_select3.c:11 func() a = unknown
-sm_select3.c:12 func() c = unknown
+sm_select3.c:11 func() a = min-max
+sm_select3.c:12 func() c = min-max
 sm_select3.c:14 func() c = min-(-1),1-max
 sm_select3.c:16 func() a = min-(-1),1-max
 sm_select3.c:18 func() a = 0
@@ -81,13 +81,13 @@ sm_select3.c:22 func() Test #2 a ? 0 : c
 sm_select3.c:24 func() a = 0
 sm_select3.c:25 func() c = min-(-1),1-max
 sm_select3.c:27 func() c = min-(-1),1-max
-sm_select3.c:29 func() a = unknown
-sm_select3.c:30 func() c = unknown
+sm_select3.c:29 func() a = min-max
+sm_select3.c:30 func() c = min-max
 sm_select3.c:32 func() c = 0
-sm_select3.c:34 func() a = unknown
+sm_select3.c:34 func() a = min-max
 sm_select3.c:37 func() Test #3 a ? b : 1
-sm_select3.c:39 func() a = unknown
-sm_select3.c:40 func() b = unknown
+sm_select3.c:39 func() a = min-max
+sm_select3.c:40 func() b = min-max
 sm_select3.c:42 func() b = unknown
 sm_select3.c:44 func() a = 0
 sm_select3.c:46 func() a = min-(-1),1-max
@@ -96,8 +96,8 @@ sm_select3.c:49 func() a = min-(-1),1-max
 sm_select3.c:52 func() Test #2 a ? b : 0
 sm_select3.c:54 func() a = min-(-1),1-max
 sm_select3.c:55 func() b = min-(-1),1-max
-sm_select3.c:57 func() a = unknown
-sm_select3.c:58 func() b = unknown
+sm_select3.c:57 func() a = min-max
+sm_select3.c:58 func() b = min-max
 sm_select3.c:60 func() b = 0
 sm_select3.c:62 func() a = 0
  * check-output-end

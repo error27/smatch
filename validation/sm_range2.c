@@ -32,12 +32,12 @@ int frob(void) {
  * check-output-start
 sm_range2.c:6 frob() a = min-(-1),1-max
 sm_range2.c:8 frob() a = 0
-sm_range2.c:9 frob() a = unknown
+sm_range2.c:9 frob() a = min-max
 sm_range2.c:12 frob() b = 0
-sm_range2.c:14 frob() b = unknown
+sm_range2.c:14 frob() b = min-max
 sm_range2.c:17 frob() c = unknown
 sm_range2.c:20 frob() d = (-3)-99
 sm_range2.c:25 frob() d = (-3)-99
-sm_range2.c:26 frob() e = unknown
+sm_range2.c:26 frob() e = min-max
  * check-output-end
  */
