@@ -115,6 +115,7 @@ struct range_list_sval *pop_range_list_sval(struct range_list_stack_sval **rl_st
 struct range_list_sval *top_range_list_sval(struct range_list_stack_sval *rl_stack);
 
 void filter_top_range_list_sval(struct range_list_stack_sval **rl_stack, sval_t sval);
+struct range_list_sval *cast_rl(struct range_list_sval *rl, struct symbol *type);
 int get_implied_range_list_sval(struct expression *expr, struct range_list_sval **rl);
 int is_whole_range(struct smatch_state *state);
 

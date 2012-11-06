@@ -694,6 +694,31 @@ void filter_top_range_list_sval(struct range_list_stack_sval **rl_stack, sval_t 
 	push_range_list_sval(rl_stack, rl);
 }
 
+struct range_list_sval *cast_rl(struct range_list_sval *rl, struct symbol *type)
+{
+	struct data_range_sval *tmp;
+	struct data_range_sval *new;
+	struct range_list_sval *ret = NULL;
+	sval_t sval;
+
+	if (!type)
+		return clone_range_list_sval(rl);
+
+	sval = sval_cast(rl_min_sval(rl), type);
+	if (sval_cmp(sval, rl_min_sval(rl)) != 0)
+		return alloc_range_list_sval(sval_type_min(type), sval_type_max(type));
+	sval = sval_cast(rl_min_sval(rl), type);
+	if (sval_cmp(sval, rl_min_sval(rl)) != 0)
+		return alloc_range_list_sval(sval_type_min(type), sval_type_max(type));
+
+	FOR_EACH_PTR(rl, tmp) {
+		new = alloc_range_sval(sval_cast(tmp->min, type), sval_cast(tmp->max, type));
+		add_ptr_list(&ret, new);
+	} END_FOR_EACH_PTR(tmp);
+
+	return ret;
+}
+
 void free_range_list_sval(struct range_list_sval **rlist)
 {
 	__free_ptr_list((struct ptr_list **)rlist);

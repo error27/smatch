@@ -701,12 +701,12 @@ static void match_comparison(struct expression *expr)
 	min = sval_type_min(&llong_ctype);
 	max = sval_type_max(&llong_ctype);
 	if (get_implied_range_list_sval(left, &left_orig))
-		left_orig = range_list_to_sval(rl_sval_to_rl(left_orig));  // temporary hack to make things llong_ctype
+		left_orig = cast_rl(left_orig, &llong_ctype); // temporary hack to make things llong_ctype
 	else
 		left_orig = alloc_range_list_sval(min, max);
 
 	if (get_implied_range_list_sval(right, &right_orig))
-		right_orig = range_list_to_sval(rl_sval_to_rl(right_orig));  // temporary hack to make things llong_ctype
+		right_orig = cast_rl(right_orig, &llong_ctype); // temporary hack to make things llong_ctype
 	else
 		right_orig = alloc_range_list_sval(min, max);
 
