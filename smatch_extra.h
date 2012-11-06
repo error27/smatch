@@ -39,7 +39,6 @@ int is_whole_range_rl_sval(struct range_list_sval *rl);
 sval_t rl_min_sval(struct range_list_sval *rl);
 sval_t rl_max_sval(struct range_list_sval *rl);
 
-struct data_range *alloc_range_perm(long long min, long long max);
 struct data_range_sval *alloc_range_perm_sval(sval_t min, sval_t max);
 struct range_list_sval *alloc_range_list_sval(sval_t min, sval_t max);
 struct range_list_sval *whole_range_list_sval(void);
@@ -101,7 +100,6 @@ void function_comparison(int comparison, struct expression *expr, sval_t sval, i
 int true_comparison_range_lr_sval(int comparison, struct data_range_sval *var, struct data_range_sval *val, int left);
 int false_comparison_range_lr_sval(int comparison, struct data_range_sval *var, struct data_range_sval *val, int left);
 struct data_range_sval *alloc_range_sval(sval_t min, sval_t max);
-struct data_range_sval *drange_to_drange_sval(struct data_range *drange);
 void tack_on_sval(struct range_list_sval **list, struct data_range_sval *drange);
 
 struct smatch_state *alloc_estate_range_sval(sval_t min, sval_t max);
