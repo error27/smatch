@@ -206,9 +206,12 @@ struct range_list_sval *alloc_range_list_sval(sval_t min, sval_t max)
 	return rl;
 }
 
-struct range_list_sval *whole_range_list_sval(void)
+struct range_list_sval *whole_range_list_sval(struct symbol *type)
 {
-	return alloc_range_list_sval(ll_to_sval(whole_range.min), ll_to_sval(whole_range.max));
+	if (!type)
+		type = &llong_ctype;
+
+	return alloc_range_list_sval(sval_type_min(type), sval_type_max(type));
 }
 
 void add_range_sval(struct range_list_sval **list, sval_t min, sval_t max)

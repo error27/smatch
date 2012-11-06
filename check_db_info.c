@@ -26,6 +26,7 @@ static void add_return_range(struct range_list_sval *rl)
 static void match_return(struct expression *ret_value)
 {
 	struct range_list_sval *rl;
+	struct symbol *type = cur_func_return_type();
 
 	ret_value = strip_expr(ret_value);
 	if (!ret_value)
@@ -34,7 +35,7 @@ static void match_return(struct expression *ret_value)
 	if (get_implied_range_list_sval(ret_value, &rl))
 		add_return_range(rl);
 	else
-		add_return_range(whole_range_list_sval());
+		add_return_range(whole_range_list_sval(type));
 }
 
 static void match_end_func(struct symbol *sym)

@@ -209,6 +209,6 @@ void alloc_estate_undefined(void)
 		.type = DATA_RANGE
 	};
 
-	dinfo.value_ranges = clone_permanent_sval(whole_range_list_sval());
+	dinfo.value_ranges = clone_permanent_sval(whole_range_list_sval(&llong_ctype));
 	estate_undefined.data = &dinfo;
 }

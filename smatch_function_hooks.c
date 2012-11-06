@@ -554,7 +554,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 	return_id = atoi(argv[0]);
 	get_value_ranges_sval(argv[1], &ret_range);
 	if (!ret_range)
-		ret_range = whole_range_list_sval();
+		ret_range = whole_range_list_sval(cur_func_return_type());
 	type = atoi(argv[2]);
 	param = atoi(argv[3]);
 	key = argv[4];
