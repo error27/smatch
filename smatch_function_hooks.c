@@ -27,7 +27,7 @@
 
 struct fcall_back {
 	int type;
-	struct data_range *range;
+	struct data_range_sval *range;
 	union {
 		func_hook *call_back;
 		implication_hook *ranged;
@@ -121,7 +121,7 @@ void return_implies_state(const char *look_for, long long start, long long end,
 	struct fcall_back *cb;
 
 	cb = alloc_fcall_back(RANGED_CALL, call_back, info);
-	cb->range = alloc_range_perm(start, end);
+	cb->range = alloc_range_perm_sval(ll_to_sval(start), ll_to_sval(end));
 	add_callback(func_hash, look_for, cb);
 }
 
@@ -177,12 +177,9 @@ static struct call_back_list *get_same_ranged_call_backs(struct call_back_list *
 	struct fcall_back *tmp;
 
 	FOR_EACH_PTR(list, tmp) {
-		struct data_range_sval *range_tmp;
-
 		if (tmp->type != RANGED_CALL)
 			continue;
-		range_tmp = drange_to_drange_sval(tmp->range);
-		if (ranges_equiv_sval(range_tmp, drange))
+		if (ranges_equiv_sval(tmp->range, drange))
 			add_ptr_list(&ret, tmp);
 	} END_FOR_EACH_PTR(tmp);
 	return ret;
@@ -221,22 +218,19 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 		goto free;
 
 	FOR_EACH_PTR(call_backs, tmp) {
-		struct data_range_sval *tmp_dr_sval;
-
 		if (tmp->type != RANGED_CALL)
 			continue;
-		tmp_dr_sval = drange_to_drange_sval(tmp->range);
 
-		if (in_list_exact_sval(handled_ranges, tmp_dr_sval))
+		if (in_list_exact_sval(handled_ranges, tmp->range))
 			continue;
 		__push_fake_cur_slist();
-		tack_on_sval(&handled_ranges, tmp_dr_sval);
+		tack_on_sval(&handled_ranges, tmp->range);
 
-		same_range_call_backs = get_same_ranged_call_backs(call_backs, tmp_dr_sval);
+		same_range_call_backs = get_same_ranged_call_backs(call_backs, tmp->range);
 		call_ranged_call_backs(same_range_call_backs, fn, expr->right, expr);
 		__free_ptr_list((struct ptr_list **)&same_range_call_backs);
 
-		estate = alloc_estate_range_sval(tmp_dr_sval->min, tmp_dr_sval->max);
+		estate = alloc_estate_range_sval(tmp->range->min, tmp->range->max);
 		set_extra_mod(var_name, sym, estate);
 
 		tmp_slist = __pop_fake_cur_slist();
@@ -279,7 +273,7 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != RANGED_CALL)
 			continue;
-		if (!true_comparison_range_lr_sval(comparison, drange_to_drange_sval(tmp->range), value_range, left))
+		if (!true_comparison_range_lr_sval(comparison, tmp->range, value_range, left))
 			continue;
 		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
@@ -292,7 +286,7 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != RANGED_CALL)
 			continue;
-		if (!false_comparison_range_lr_sval(comparison, drange_to_drange_sval(tmp->range), value_range, left))
+		if (!false_comparison_range_lr_sval(comparison, tmp->range, value_range, left))
 			continue;
 		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
