@@ -17,7 +17,7 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-int absolute_id;
+static int my_id;
 
 static const char *show_range(sval_t min, sval_t max)
 {
@@ -69,7 +69,7 @@ static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_st
 
 static void reset_state(struct sm_state *sm)
 {
-	set_state(absolute_id, sm->name, sm->sym, &undefined);
+	set_state(my_id, sm->name, sm->sym, &undefined);
 }
 
 static void match_assign(struct expression *expr)
@@ -78,7 +78,7 @@ static void match_assign(struct expression *expr)
 	sval_t left_min, left_max, right_min, right_max;
 
 	if (expr->op != '=') {
-		set_state_expr(absolute_id, expr->left, &undefined);
+		set_state_expr(my_id, expr->left, &undefined);
 		return;
 	}
 
@@ -98,9 +98,9 @@ static void match_assign(struct expression *expr)
 		right_max = left_max;
 
 	if (sval_cmp(right_min, sval_type_min(left_type)) <= 0 && sval_cmp(right_max, sval_type_max(left_type)) >= 0)
-		set_state_expr(absolute_id, expr->left, &undefined);
+		set_state_expr(my_id, expr->left, &undefined);
 	else
-		set_state_expr(absolute_id, expr->left, alloc_absolute(right_min, right_max));
+		set_state_expr(my_id, expr->left, alloc_absolute(right_min, right_max));
 }
 
 static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
@@ -160,7 +160,7 @@ static void set_param_limits(const char *name, struct symbol *sym, char *key, ch
 	get_value_ranges_sval(value, &rl);
 	min = rl_min_sval(rl);
 	max = rl_max_sval(rl);
-	set_state(absolute_id, fullname, sym, alloc_absolute(min, max));
+	set_state(my_id, fullname, sym, alloc_absolute(min, max));
 }
 
 int get_absolute_min_helper(struct expression *expr, sval_t *sval)
@@ -171,7 +171,7 @@ int get_absolute_min_helper(struct expression *expr, sval_t *sval)
 	if (get_implied_value_sval(expr, sval))
 		return 1;
 
-	state = get_state_expr(absolute_id, expr);
+	state = get_state_expr(my_id, expr);
 	if (!state || !state->data)
 		return 0;
 
@@ -188,7 +188,7 @@ int get_absolute_max_helper(struct expression *expr, sval_t *sval)
 	if (get_implied_value_sval(expr, sval))
 		return 1;
 
-	state = get_state_expr(absolute_id, expr);
+	state = get_state_expr(my_id, expr);
 	if (!state || !state->data)
 		return 0;
 
@@ -199,18 +199,18 @@ int get_absolute_max_helper(struct expression *expr, sval_t *sval)
 
 void register_absolute(int id)
 {
-	absolute_id = id;
+	my_id = id;
 
-	add_merge_hook(absolute_id, &merge_func);
+	add_merge_hook(my_id, &merge_func);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	if (option_info) {
 		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
-		add_member_info_callback(absolute_id, struct_member_callback);
+		add_member_info_callback(my_id, struct_member_callback);
 	}
 	add_definition_db_callback(set_param_limits, ABSOLUTE_LIMITS);
 }
 
 void register_absolute_late(int id)
 {
-	add_modification_hook(absolute_id, reset_state);
+	add_modification_hook(my_id, reset_state);
 }
