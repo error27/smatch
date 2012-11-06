@@ -58,7 +58,7 @@ sval_t sval_from_val(struct expression *expr, long long val)
 
 	ret = sval_blank(expr);
 	ret.value = val;
-	ret = sval_cast(ret, expr);
+	ret = sval_cast(ret, get_type(expr));
 
 	return ret;
 }
@@ -139,11 +139,14 @@ int sval_cmp_val(sval_t one, long long val)
 	return 1;
 }
 
-sval_t sval_cast(sval_t sval, struct expression *expr)
+sval_t sval_cast(sval_t sval, struct symbol *type)
 {
 	sval_t ret;
 
-	ret = sval_blank(expr);
+	if (!type)
+		type = &llong_ctype;
+
+	ret.type = type;
 	switch (sval_bits(ret)) {
 	case 8:
 		if (sval_unsigned(ret))
