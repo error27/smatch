@@ -277,17 +277,6 @@ const char *sval_to_str(sval_t sval)
 	return alloc_sname(buf);
 }
 
-/*
- * This function is for compatibility.  Eventually everything will use svals
- * and we can get rid of whole_range.max.
- */
-long long sval_to_ll(sval_t sval)
-{
-	if (sval_unsigned(sval) && sval.value == ULLONG_MAX)
-		return whole_range.max;
-	return sval.value;
-}
-
 sval_t ll_to_sval(long long val)
 {
 	sval_t ret;
