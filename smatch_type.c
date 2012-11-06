@@ -294,3 +294,14 @@ const char *global_static()
 	else
 		return "global";
 }
+
+struct symbol *cur_func_return_type(void)
+{
+	struct symbol *sym;
+
+	sym = get_real_base_type(cur_func_sym);
+	if (!sym || sym->type != SYM_FN)
+		return NULL;
+	sym = get_real_base_type(sym);
+	return sym;
+}
