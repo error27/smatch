@@ -225,11 +225,6 @@ static struct data_range_sval *alloc_range_helper_sval(sval_t min, sval_t max, i
 	return ret;
 }
 
-struct data_range *alloc_range(long long min, long long max)
-{
-	return alloc_range_helper(min, max, 0);
-}
-
 struct data_range_sval *alloc_range_sval(sval_t min, sval_t max)
 {
 	return alloc_range_helper_sval(min, max, 0);
@@ -238,11 +233,6 @@ struct data_range_sval *alloc_range_sval(sval_t min, sval_t max)
 struct data_range_sval *drange_to_drange_sval(struct data_range *drange)
 {
 	return alloc_range_helper_sval(ll_to_sval(drange->min), ll_to_sval(drange->max), 0);
-}
-
-struct data_range *drange_sval_to_drange(struct data_range_sval *drange)
-{
-	return alloc_range_helper(sval_to_ll(drange->min), sval_to_ll(drange->max), 0);
 }
 
 struct data_range *alloc_range_perm(long long min, long long max)
@@ -760,28 +750,3 @@ void free_data_info_allocs(void)
 	clear_data_range_alloc();
 }
 
-struct range_list_sval *range_list_to_sval(struct range_list *list)
-{
-	struct data_range *tmp;
-	struct data_range_sval *tmp_sval;
-	struct range_list_sval *ret = NULL;
-
-	FOR_EACH_PTR(list, tmp) {
-		tmp_sval = drange_to_drange_sval(tmp);
-		add_ptr_list(&ret, tmp_sval);
-	} END_FOR_EACH_PTR(tmp);
-	return ret;
-}
-
-struct range_list *rl_sval_to_rl(struct range_list_sval *list)
-{
-	struct data_range *tmp;
-	struct data_range_sval *tmp_sval;
-	struct range_list *ret = NULL;
-
-	FOR_EACH_PTR(list, tmp_sval) {
-		tmp = drange_sval_to_drange(tmp_sval);
-		add_ptr_list(&ret, tmp);
-	} END_FOR_EACH_PTR(tmp_sval);
-	return ret;
-}
