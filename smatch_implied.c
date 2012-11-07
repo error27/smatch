@@ -558,8 +558,12 @@ struct range_list_sval *__get_implied_values(struct expression *switch_expr)
 	ret = clone_range_list_sval(estate_ranges_sval(state));
 free:
 	free_string(name);
-	if (!ret)
-		add_range_sval(&ret, ll_to_sval(whole_range.min), ll_to_sval(whole_range.max));  // FIXME
+	if (!ret) {
+		struct symbol *type;
+
+		type = get_type(switch_expr);
+		ret = alloc_range_list_sval(sval_type_min(type), sval_type_max(type));
+	}
 	return ret;
 }
 
