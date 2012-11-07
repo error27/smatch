@@ -262,14 +262,14 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 	if (!estate_get_single_value_sval(sm->state, &start))
 		return NULL;
 	if (!get_implied_value_sval(condition->right, &end))
-		end = ll_to_sval(whole_range.max);
+		end = sval_type_min(get_type(iter_var));
 	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
 		return NULL;
 
 	switch (condition->op) {
 	case SPECIAL_NOTEQUAL:
 	case '>':
-		if (!sval_is_max(end))
+		if (!sval_is_min(end) && !sval_is_max(end))
 			end.value++;
 		break;
 	case SPECIAL_GTE:
