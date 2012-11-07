@@ -80,6 +80,15 @@ int sval_bits(sval_t sval)
 	return sval.type->bit_size;
 }
 
+int sval_positive_bits(sval_t sval)
+{
+	if (!sval.type)
+		return 31;
+	if (sval_signed(sval))
+		return sval.type->bit_size - 1;
+	return sval.type->bit_size;
+}
+
 int sval_is_min(sval_t sval)
 {
 	sval_t min = sval_type_min(sval.type);
