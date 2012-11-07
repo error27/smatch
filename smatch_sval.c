@@ -111,20 +111,17 @@ int sval_is_max(sval_t sval)
 	return (sval.value >= max.value);
 }
 
-static int sval_unsigned_big(sval_t sval)
-{
-	if (sval_unsigned(sval) && sval_bits(sval) >= 32)
-		return 1;
-	return 0;
-}
-
 /*
- * Casts the values and then does a compare.  Returns -1 if one is smaller, 0 if
- * they are the same and 1 if two is larger.
+ * Returns -1 if one is smaller, 0 if they are the same and 1 if two is larger.
  */
 int sval_cmp(sval_t one, sval_t two)
 {
-	if (sval_unsigned_big(one) || sval_unsigned_big(two)) {
+	sval_t tmp;
+
+	tmp = one;
+	if (sval_positive_bits(two) > sval_positive_bits(one))
+		tmp = two;
+	if (sval_bits(tmp) >= 32 && sval_unsigned(tmp)) {
 		if (one.uvalue < two.uvalue)
 			return -1;
 		if (one.uvalue == two.uvalue)
