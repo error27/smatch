@@ -136,6 +136,15 @@ int sval_cmp(sval_t one, sval_t two)
 	return 1;
 }
 
+int sval_cmp_t(struct symbol *type, sval_t one, sval_t two)
+{
+	sval_t one_cast, two_cast;
+
+	one_cast = sval_cast(one, type);
+	two_cast = sval_cast(two, type);
+	return sval_cmp(one_cast, two_cast);
+}
+
 int sval_cmp_val(sval_t one, long long val)
 {
 	if (one.value < val)
