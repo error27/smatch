@@ -139,6 +139,7 @@ struct symbol *get_type(struct expression *expr)
 	case EXPR_DEREF:
 		return get_symbol_from_deref(expr);
 	case EXPR_PREOP:
+	case EXPR_POSTOP:
 		if (expr->op == '&')
 			return fake_pointer_sym(expr);
 		if (expr->op == '*')
@@ -150,21 +151,19 @@ struct symbol *get_type(struct expression *expr)
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
 		return get_real_base_type(expr->cast_type);
+	case EXPR_COMPARE:
 	case EXPR_BINOP:
 		return get_binop_type(expr);
 	case EXPR_CALL:
 		return get_return_type(expr);
 	case EXPR_SIZEOF:
 		return &ulong_ctype;
-	case EXPR_COMPARE:
 	case EXPR_LOGICAL:
 		return &int_ctype;
 	default:
-		return expr->ctype;
 //		sm_msg("unhandled type %d", expr->type);
+		return expr->ctype;
 	}
-
-
 	return NULL;
 }
 
