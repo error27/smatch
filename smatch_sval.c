@@ -264,6 +264,11 @@ const char *sval_to_str(sval_t sval)
 {
 	char buf[30];
 
+	if (sval.value && sval_bits(sval) > 8 && sval_is_min(sval))
+		return "min";
+	if (sval_bits(sval) > 8 && sval_is_max(sval))
+		return "max";
+
 	if (sval_unsigned(sval) && sval.value == ULLONG_MAX)
 		return "u64max";
 	if (sval.value == LLONG_MAX)
