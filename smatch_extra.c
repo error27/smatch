@@ -838,19 +838,25 @@ void __extra_match_condition(struct expression *expr)
 		return;
 	case EXPR_PREOP:
 	case EXPR_SYMBOL:
-	case EXPR_DEREF:
+	case EXPR_DEREF: {
+		sval_t zero;
+
+		zero = sval_blank(expr);
+		zero.value = 0;
+
 		name = get_variable_from_expr(expr, &sym);
 		if (!name)
 			return;
 		pre_state = get_state(my_id, name, sym);
-		true_state = add_filter(pre_state, ll_to_sval(0));
+		true_state = add_filter(pre_state, zero);
 		if (possibly_true(expr, SPECIAL_EQUAL, zero_expr()))
-			false_state = alloc_estate_sval(ll_to_sval(0));
+			false_state = alloc_estate_sval(zero);
 		else
 			false_state = alloc_estate_empty();
 		set_extra_true_false(name, sym, true_state, false_state);
 		free_string(name);
 		return;
+	}
 	case EXPR_COMPARE:
 		match_comparison(expr);
 		return;
