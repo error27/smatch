@@ -226,7 +226,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	if (!estate_get_single_value_sval(sm->state, &start))
 		return NULL;
 	if (!get_implied_value_sval(condition->right, &end))
-		end = ll_to_sval(whole_range.max);
+		end = sval_type_max(get_type(iter_var));
 
 	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
 		return NULL;
@@ -497,7 +497,7 @@ static struct smatch_state *increment_state(struct smatch_state *state)
 	sval_t max = estate_max_sval(state);
 
 	if (inside_loop())
-		max = ll_to_sval(whole_range.max);
+		max = sval_type_max(max.type);
 
 	if (!sval_is_min(min))
 		min.value++;
@@ -512,7 +512,7 @@ static struct smatch_state *decrement_state(struct smatch_state *state)
 	sval_t max = estate_max_sval(state);
 
 	if (inside_loop())
-		min = ll_to_sval(whole_range.min);
+		min = sval_type_min(min.type);
 
 	if (!sval_is_min(min))
 		min.value--;
@@ -665,6 +665,7 @@ static void match_comparison(struct expression *expr)
 {
 	struct expression *left = strip_expr(expr->left);
 	struct expression *right = strip_expr(expr->right);
+	struct symbol *type;
 	struct range_list_sval *left_orig;
 	struct range_list_sval *left_true;
 	struct range_list_sval *left_false;
@@ -698,15 +699,20 @@ static void match_comparison(struct expression *expr)
 		right = strip_expr(right->unop);
 	}
 
-	min = sval_type_min(&llong_ctype);
-	max = sval_type_max(&llong_ctype);
+	type = get_type(expr);
+	if (!type) {
+		sm_msg("debug: failed to get type for '%s'", get_variable_from_expr_complex(expr, NULL));
+		type = &int_ctype;
+	}
+	min = sval_type_min(type);
+	max = sval_type_max(type);
 	if (get_implied_range_list_sval(left, &left_orig))
-		left_orig = cast_rl(left_orig, &llong_ctype); // temporary hack to make things llong_ctype
+		left_orig = cast_rl(left_orig, type);
 	else
 		left_orig = alloc_range_list_sval(min, max);
 
 	if (get_implied_range_list_sval(right, &right_orig))
-		right_orig = cast_rl(right_orig, &llong_ctype); // temporary hack to make things llong_ctype
+		right_orig = cast_rl(right_orig, type);
 	else
 		right_orig = alloc_range_list_sval(min, max);
 
@@ -802,10 +808,10 @@ static void match_comparison(struct expression *expr)
 		return;
 	}
 
-	left_true_state = alloc_estate_range_list_sval(left_true);
-	left_false_state = alloc_estate_range_list_sval(left_false);
-	right_true_state = alloc_estate_range_list_sval(right_true);
-	right_false_state = alloc_estate_range_list_sval(right_false);
+	left_true_state = alloc_estate_range_list_sval(cast_rl(left_true, get_type(left)));
+	left_false_state = alloc_estate_range_list_sval(cast_rl(left_false, get_type(left)));
+	right_true_state = alloc_estate_range_list_sval(cast_rl(right_true, get_type(right)));
+	right_false_state = alloc_estate_range_list_sval(cast_rl(right_false, get_type(right)));
 
 	if (left_postop == SPECIAL_INCREMENT) {
 		left_true_state = increment_state(left_true_state);
