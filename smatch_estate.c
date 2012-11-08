@@ -57,6 +57,11 @@ sval_t estate_max_sval(struct smatch_state *state)
 	return rl_max_sval(estate_ranges_sval(state));
 }
 
+struct symbol *estate_type(struct smatch_state *state)
+{
+	return rl_max_sval(estate_ranges_sval(state)).type;
+}
+
 static int rlists_equiv(struct related_list *one, struct related_list *two)
 {
 	struct relation *one_rel;
