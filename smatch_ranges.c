@@ -653,6 +653,11 @@ struct range_list_sval *cast_rl(struct range_list_sval *rl, struct symbol *type)
 	if (!type)
 		return clone_range_list_sval(rl);
 
+	if (sval_cmp(rl_min_sval(rl), rl_max_sval(rl)) == 0) {
+		sval_t sval = sval_cast(rl_min_sval(rl), type);
+		return alloc_range_list_sval(sval, sval);
+	}
+
 	set_max = 0;
 	if (type_unsigned(type) && sval_cmp_val(rl_min_sval(rl), 0) < 0)
 		set_max = 1;
