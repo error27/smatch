@@ -661,11 +661,18 @@ struct range_list_sval *cast_rl(struct range_list_sval *rl, struct symbol *type)
 		set_min = 1;
 
 	FOR_EACH_PTR(rl, tmp) {
-		if (sval_cmp_t(type, tmp->max, sval_type_min(type)) < 0)
+		sval_t min, max;
+
+		min = tmp->min;
+		max = tmp->max;
+
+		if (sval_cmp_t(type, max, sval_type_min(type)) < 0)
 			continue;
-		if (sval_cmp_t(type, tmp->min, sval_type_max(type)) > 0)
+		if (sval_cmp_t(type, min, sval_type_max(type)) > 0)
 			continue;
-		new = alloc_range_sval(sval_cast(tmp->min, type), sval_cast(tmp->max, type));
+		if (sval_cmp_val(min, 0) < 0 && type_unsigned(type))
+			min.value = 0;
+		new = alloc_range_sval(sval_cast(min, type), sval_cast(max, type));
 		add_ptr_list(&ret, new);
 	} END_FOR_EACH_PTR(tmp);
 
@@ -678,7 +685,7 @@ struct range_list_sval *cast_rl(struct range_list_sval *rl, struct symbol *type)
 	}
 	if (set_max) {
 		tmp = last_ptr_list((struct ptr_list *)ret);
-		tmp->min = sval_type_max(type);
+		tmp->max = sval_type_max(type);
 	}
 
 	return ret;
