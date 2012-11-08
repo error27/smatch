@@ -256,6 +256,7 @@ struct symbol *get_real_base_type(struct symbol *sym);
 struct symbol *get_pointer_type(struct expression *expr);
 struct symbol *get_type(struct expression *expr);
 int type_unsigned(struct symbol *base_type);
+int type_signed(struct symbol *base_type);
 int expr_unsigned(struct expression *expr);
 int returns_unsigned(struct symbol *base_type);
 int is_pointer(struct expression *expr);

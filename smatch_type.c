@@ -177,6 +177,15 @@ int type_unsigned(struct symbol *base_type)
 	return 0;
 }
 
+int type_signed(struct symbol *base_type)
+{
+	if (!base_type)
+		return 0;
+	if (base_type->ctype.modifiers & MOD_UNSIGNED)
+		return 0;
+	return 1;
+}
+
 int expr_unsigned(struct expression *expr)
 {
 	struct symbol *sym;
