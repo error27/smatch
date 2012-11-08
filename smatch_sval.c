@@ -297,6 +297,20 @@ const char *sval_to_str(sval_t sval)
 	return alloc_sname(buf);
 }
 
+const char *sval_to_numstr(sval_t sval)
+{
+	char buf[30];
+
+	if (sval_unsigned(sval))
+		snprintf(buf, sizeof(buf), "%llu", sval.value);
+	else if (sval.value < 0)
+		snprintf(buf, sizeof(buf), "(%lld)", sval.value);
+	else
+		snprintf(buf, sizeof(buf), "%lld", sval.value);
+
+	return alloc_sname(buf);
+}
+
 sval_t ll_to_sval(long long val)
 {
 	sval_t ret;

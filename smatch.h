@@ -526,6 +526,7 @@ sval_t sval_cast(sval_t sval, struct symbol *type);
 sval_t sval_preop(sval_t sval, int op);
 sval_t sval_binop(sval_t left, int op, sval_t right);
 const char *sval_to_str(sval_t sval);
+const char *sval_to_numstr(sval_t sval);
 sval_t ll_to_sval(long long val);
 
 #endif 	    /* !SMATCH_H_ */
