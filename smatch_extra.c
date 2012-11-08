@@ -133,7 +133,7 @@ struct smatch_state *filter_range(struct smatch_state *orig,
 	struct range_list_sval *rl;
 
 	if (!orig)
-		orig = extra_undefined();
+		orig = extra_undefined(filter_min.type);
 
 	rl = remove_range_sval(estate_ranges_sval(orig), filter_min, filter_max);
 	return alloc_estate_range_list_sval(rl);
@@ -378,7 +378,7 @@ free:
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
-	return extra_undefined();
+	return extra_undefined(estate_type(sm->state));
 }
 
 static void match_function_call(struct expression *expr)
@@ -390,7 +390,7 @@ static void match_function_call(struct expression *expr)
 		tmp = strip_expr(arg);
 		if (tmp->type == EXPR_PREOP && tmp->op == '&') {
 			remove_from_equiv_expr(tmp->unop);
-			set_state_expr(SMATCH_EXTRA, tmp->unop, extra_undefined());
+			set_state_expr(SMATCH_EXTRA, tmp->unop, extra_undefined(get_type(tmp->unop)));
 		}
 	} END_FOR_EACH_PTR(arg);
 }
@@ -476,7 +476,7 @@ free:
 
 static void reset_struct_members(struct sm_state *sm)
 {
-	set_extra_mod(sm->name, sm->sym, extra_undefined());
+	set_extra_mod(sm->name, sm->sym, extra_undefined(estate_type(sm->state)));
 }
 
 static struct smatch_state *increment_state(struct smatch_state *state)
@@ -546,7 +546,7 @@ static void asm_expr(struct statement *stmt)
 			continue;
 		case 2: /* expression */
 			state = 0;
-			set_extra_expr_mod(expr, extra_undefined());
+			set_extra_expr_mod(expr, extra_undefined(get_type(expr)));
 			continue;
 		}
 	} END_FOR_EACH_PTR(expr);
@@ -573,7 +573,7 @@ static void match_declarations(struct symbol *sym)
 	if (sym->ident) {
 		name = sym->ident->name;
 		if (!sym->initializer) {
-			set_state(SMATCH_EXTRA, name, sym, extra_undefined());
+			set_state(SMATCH_EXTRA, name, sym, extra_undefined(get_real_base_type(sym)));
 			scoped_state_extra(name, sym);
 		}
 	}
@@ -610,7 +610,7 @@ static void match_function_def(struct symbol *sym)
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
 		if (!arg->ident)
 			continue;
-		set_state(my_id, arg->ident->name, arg, extra_undefined());
+		set_state(my_id, arg->ident->name, arg, extra_undefined(get_real_base_type(arg)));
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -973,7 +973,7 @@ static void match_call_assign(struct expression *expr)
 
 	/* if we have a db set up this gets set in smatch_function_hooks.c */
 	if (option_no_db)
-		set_extra_expr_mod(expr->left, extra_undefined());
+		set_extra_expr_mod(expr->left, extra_undefined(get_type(expr->left)));
 }
 
 void register_smatch_extra(int id)

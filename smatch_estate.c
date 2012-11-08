@@ -159,10 +159,9 @@ struct smatch_state *alloc_estate_empty(void)
 	return state;
 }
 
-/* We do this because ->value_ranges is a list */
-struct smatch_state *extra_undefined(void)
+struct smatch_state *extra_undefined(struct symbol *type)
 {
-	return &estate_undefined;
+	return alloc_estate_range_list_sval(whole_range_list_sval(type));
 }
 
 struct smatch_state *extra_empty(void)

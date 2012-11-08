@@ -639,7 +639,7 @@ static void match_assign_call(struct expression *expr)
 
 	right = strip_expr(expr->right);
 	if (right->fn->type != EXPR_SYMBOL || !right->fn->symbol) {
-		set_extra_expr_mod(expr->left, extra_undefined());
+		set_extra_expr_mod(expr->left, extra_undefined(get_type(expr->left)));
 		return;
 	}
 	fn = right->fn->symbol->ident->name;
@@ -658,7 +658,7 @@ static void match_assign_call(struct expression *expr)
 	handled |= handle_implied_return(expr);
 
 	if (!handled)
-		set_extra_expr_mod(expr->left, extra_undefined());
+		set_extra_expr_mod(expr->left, extra_undefined(get_type(expr->left)));
 }
 
 static int db_return_states_callback(void *unused, int argc, char **argv, char **azColName)

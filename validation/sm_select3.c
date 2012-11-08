@@ -88,7 +88,7 @@ sm_select3.c:34 func() a = min-max
 sm_select3.c:37 func() Test #3 a ? b : 1
 sm_select3.c:39 func() a = min-max
 sm_select3.c:40 func() b = min-max
-sm_select3.c:42 func() b = unknown
+sm_select3.c:42 func() b = min-max
 sm_select3.c:44 func() a = 0
 sm_select3.c:46 func() a = min-(-1),1-max
 sm_select3.c:47 func() b = 0

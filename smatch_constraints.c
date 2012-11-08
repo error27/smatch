@@ -245,7 +245,7 @@ void set_equiv(struct expression *left, struct expression *right)
 
 	right_sm = get_sm_state_expr(SMATCH_EXTRA, right);
 	if (!right_sm)
-		right_sm = set_state_expr(SMATCH_EXTRA, right, extra_undefined());
+		right_sm = set_state_expr(SMATCH_EXTRA, right, extra_undefined(get_type(right)));
 	if (!right_sm)
 		return;
 
