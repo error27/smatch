@@ -414,6 +414,7 @@ static void match_function_call(struct expression *expr)
 
 static void match_assign(struct expression *expr)
 {
+	struct range_list_sval *rl = NULL;
 	struct expression *left;
 	struct expression *right;
 	struct symbol *right_sym;
@@ -422,8 +423,7 @@ static void match_assign(struct expression *expr)
 	char *name;
 	sval_t value;
 	int known;
-	sval_t min = ll_to_sval(whole_range.min);
-	sval_t max = ll_to_sval(whole_range.max);
+	sval_t right_min, right_max;
 	sval_t tmp;
 
 	if (__is_condition_assign(expr))
@@ -440,47 +440,49 @@ static void match_assign(struct expression *expr)
 		return;  /* these are handled in match_call_assign() */
 
 	right_name = get_variable_from_expr(right, &right_sym);
-	if (expr->op == '=' && right_name && right_sym) {
+	if (expr->op == '=' && right_name && right_sym &&
+	    types_equiv(get_type(expr->left), get_type(expr->right))) {
 		set_equiv(left, right);
 		goto free;
 	}
 
+	right_min = sval_type_min(get_type(expr->right));
+	right_max = sval_type_max(get_type(expr->right));
+
 	known = get_implied_value_sval(right, &value);
 	switch (expr->op) {
 	case '=': {
-		struct range_list_sval *rl = NULL;
-
 		if (get_implied_range_list_sval(right, &rl)) {
+			rl = cast_rl(rl, get_type(expr->left));
 			set_extra_mod(name, sym, alloc_estate_range_list_sval(rl));
 			goto free;
 		}
 
-		if (expr_unsigned(right))
-			min = ll_to_sval(0);  // FIXME
 		break;
 	}
 	case SPECIAL_ADD_ASSIGN:
 		if (get_implied_min_sval(left, &tmp)) {
 			if (known)
-				min = sval_binop(tmp, '+', value);
+				right_min = sval_binop(tmp, '+', value);
 			else
-				min = tmp;
+				right_min = tmp;
 		}
 		if (!inside_loop() && known && get_implied_max_sval(left, &tmp))
-			max = sval_binop(tmp, '+', value);
+			right_max = sval_binop(tmp, '+', value);
 		break;
 	case SPECIAL_SUB_ASSIGN:
 		if (get_implied_max_sval(left, &tmp)) {
 			if (known)
-				max = sval_binop(tmp, '-', value);
+				right_max = sval_binop(tmp, '-', value);
 			else
-				max = tmp;
+				right_max = tmp;
 		}
 		if (!inside_loop() && known && get_implied_min_sval(left, &tmp))
-			min = sval_binop(tmp, '-', value);
+			right_min = sval_binop(tmp, '-', value);
 		break;
 	}
-	set_extra_mod(name, sym, alloc_estate_range_sval(min, max));
+	rl = cast_rl(alloc_range_list_sval(right_min, right_max), get_type(expr->left));
+	set_extra_mod(name, sym, alloc_estate_range_list_sval(rl));
 free:
 	free_string(right_name);
 	free_string(name);

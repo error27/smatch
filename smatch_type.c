@@ -296,6 +296,21 @@ free:
 	return ret;
 }
 
+int types_equiv(struct symbol *one, struct symbol *two)
+{
+	if (!one && !two)
+		return 1;
+	if (!one || !two)
+		return 0;
+	if (one->type != two->type)
+		return 0;
+	if (one->type == SYM_PTR)
+		return types_equiv(get_real_base_type(one), get_real_base_type(two));
+	if (type_positive_bits(one) != type_positive_bits(two))
+		return 0;
+	return 1;
+}
+
 const char *global_static()
 {
 	if (cur_func_sym->ctype.modifiers & MOD_STATIC)
