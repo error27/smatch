@@ -13,15 +13,9 @@
 #include "smatch_slist.h"
 
 ALLOCATOR(data_info, "smatch extra data");
-ALLOCATOR(data_range, "data range");
 ALLOCATOR(data_range_sval, "data range sval");
 __DO_ALLOCATOR(struct data_range_sval, sizeof(struct data_range_sval), __alignof__(struct data_range_sval),
 			 "permanent ranges sval", perm_data_range_sval);
-
-struct data_range whole_range = {
-	.min = LLONG_MIN,
-	.max = LLONG_MAX,
-};
 
 char *show_ranges_sval(struct range_list_sval *list)
 {
