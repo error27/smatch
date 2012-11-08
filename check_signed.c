@@ -239,7 +239,7 @@ static void match_condition(struct expression *expr)
 		goto free;
 	}
 
-	if (sval_signed(min) && sval_cmp(min, known) > 0) {
+	if (sval_signed(min) && sval_signed(known) && sval_cmp(min, known) > 0) {
 		const char *tf = get_tf(min, known, lr, expr->op);
 
 		sm_msg("warn: %s is less than %s (min '%s' can be) so this is always %s.",
