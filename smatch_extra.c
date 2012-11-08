@@ -481,7 +481,10 @@ static void match_assign(struct expression *expr)
 			right_min = sval_binop(tmp, '-', value);
 		break;
 	}
-	rl = cast_rl(alloc_range_list_sval(right_min, right_max), get_type(expr->left));
+	if (!sval_is_min(right_min) || !sval_is_max(right_max))
+		rl = cast_rl(alloc_range_list_sval(right_min, right_max), get_type(expr->left));
+	else
+		rl = whole_range_list_sval(get_type(expr->left));
 	set_extra_mod(name, sym, alloc_estate_range_list_sval(rl));
 free:
 	free_string(right_name);
