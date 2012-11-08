@@ -728,6 +728,6 @@ void free_data_info_allocs(void)
 		blob_free(blob, desc->chunking);
 		blob = next;
 	}
-	clear_data_range_alloc();
+	clear_data_range_sval_alloc();
 }
 
