@@ -119,6 +119,7 @@ static sval_t handle_preop(struct expression *expr, int *undefined, int implied)
 		*undefined = 1;
 		ret = sval_blank(expr);
 	}
+	ret = sval_cast(ret, get_type(expr));
 	return ret;
 }
 
