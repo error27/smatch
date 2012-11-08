@@ -550,54 +550,76 @@ static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 }
 
 /* returns 1 if it can get a value literal or else returns 0 */
-int get_value_sval(struct expression *expr, sval_t *val)
+int get_value_sval(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
+	sval_t ret;
 
-	*val = _get_value(expr, &undefined, NOTIMPLIED);
+	ret = _get_value(expr, &undefined, NOTIMPLIED);
 	if (undefined)
 		return 0;
+	*sval = ret;
 	return 1;
 }
 
 int get_implied_value_sval(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
+	sval_t ret;
 
-	*sval =  _get_value(expr, &undefined, IMPLIED);
-	return !undefined;
+	ret =  _get_value(expr, &undefined, IMPLIED);
+	if (undefined)
+		return 0;
+	*sval = ret;
+	return 1;
 }
 
 int get_implied_min_sval(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
+	sval_t ret;
 
-	*sval =  _get_value(expr, &undefined, IMPLIED_MIN);
-	return !undefined;
+	ret =  _get_value(expr, &undefined, IMPLIED_MIN);
+	if (undefined)
+		return 0;
+	*sval = ret;
+	return 1;
 }
 
 int get_implied_max_sval(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
+	sval_t ret;
 
-	*sval =  _get_value(expr, &undefined, IMPLIED_MAX);
-	return !undefined;
+	ret =  _get_value(expr, &undefined, IMPLIED_MAX);
+	if (undefined)
+		return 0;
+	*sval = ret;
+	return 1;
 }
 
 int get_fuzzy_min_sval(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
+	sval_t ret;
 
-	*sval =  _get_value(expr, &undefined, FUZZYMIN);
-	return !undefined;
+	ret =  _get_value(expr, &undefined, FUZZYMIN);
+	if (undefined)
+		return 0;
+	*sval = ret;
+	return 1;
 }
 
 int get_fuzzy_max_sval(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
+	sval_t ret;
 
-	*sval =  _get_value(expr, &undefined, FUZZYMAX);
-	return !undefined;
+	ret =  _get_value(expr, &undefined, FUZZYMAX);
+	if (undefined)
+		return 0;
+	*sval = ret;
+	return 1;
 }
 
 int get_absolute_min_sval(struct expression *expr, sval_t *sval)
@@ -620,15 +642,17 @@ int get_absolute_min_sval(struct expression *expr, sval_t *sval)
 int get_absolute_max_sval(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
+	struct symbol *type;
 
+	type = get_type(expr);
 	*sval = _get_value(expr, &undefined, ABSOLUTE_MAX);
 	if (undefined) {
-		sval->value = sval_type_max(sval->type).value;
+		*sval = sval_type_max(type);
 		return 1;
 	}
 
-	if (sval_cmp(sval_type_max(sval->type), *sval) < 0)
-		sval->value = sval_type_max(sval->type).value;
+	if (sval_cmp(sval_type_max(type), *sval) < 0)
+		*sval = sval_type_max(type);
 	return 1;
 }
 
