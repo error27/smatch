@@ -253,6 +253,7 @@ struct statement *get_current_statement(void);
 
 /* smatch_type.c */
 struct symbol *get_real_base_type(struct symbol *sym);
+int type_positive_bits(struct symbol *type);
 struct symbol *get_pointer_type(struct expression *expr);
 struct symbol *get_type(struct expression *expr);
 int type_unsigned(struct symbol *base_type);
