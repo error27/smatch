@@ -205,19 +205,73 @@ sval_t sval_preop(sval_t sval, int op)
 	return sval;
 }
 
-sval_t sval_binop(sval_t left, int op, sval_t right)
+static sval_t sval_binop_unsigned(struct symbol *type, sval_t left, int op, sval_t right)
 {
 	sval_t ret;
 
-	/* fixme: these need to have proper type promotions */
-	ret.type = left.type;
+	ret.type = type;
+	switch (op) {
+	case '*':
+		ret.uvalue =  left.uvalue * right.uvalue;
+		break;
+	case '/':
+		if (right.uvalue == 0) {
+			sm_msg("debug: %s: divide by zero", __func__);
+			ret.uvalue = 123456789;
+		} else {
+			ret.uvalue = left.uvalue / right.uvalue;
+		}
+		break;
+	case '+':
+		ret.uvalue = left.uvalue + right.uvalue;
+		break;
+	case '-':
+		ret.uvalue = left.uvalue - right.uvalue;
+		break;
+	case '%':
+		if (right.uvalue == 0) {
+			sm_msg("internal error: %s: MOD by zero", __func__);
+			ret.uvalue = 123456789;
+		} else {
+			ret.uvalue = left.uvalue % right.uvalue;
+		}
+		break;
+	case '|':
+		ret.uvalue = left.uvalue | right.uvalue;
+		break;
+	case '&':
+		ret.uvalue = left.uvalue & right.uvalue;
+		break;
+	case SPECIAL_RIGHTSHIFT:
+		ret.uvalue = left.uvalue >> right.uvalue;
+		break;
+	case SPECIAL_LEFTSHIFT:
+		ret.uvalue = left.uvalue << right.uvalue;
+		break;
+	case '^':
+		ret.uvalue = left.uvalue ^ right.uvalue;
+		break;
+	default:
+		sm_msg("internal error: %s: unhandled binop %s", __func__,
+		       show_special(op));
+		ret.uvalue = 1234567;
+	}
+	return ret;
+}
+
+
+static sval_t sval_binop_signed(struct symbol *type, sval_t left, int op, sval_t right)
+{
+	sval_t ret;
+
+	ret.type = type;
 	switch (op) {
 	case '*':
 		ret.value =  left.value * right.value;
 		break;
 	case '/':
 		if (right.value == 0) {
-			sm_msg("internal error: %s: divide by zero", __func__);
+			sm_msg("debug: %s: divide by zero", __func__);
 			ret.value = 123456789;
 		} else {
 			ret.value = left.value / right.value;
@@ -257,6 +311,24 @@ sval_t sval_binop(sval_t left, int op, sval_t right)
 		       show_special(op));
 		ret.value = 1234567;
 	}
+	return ret;
+}
+
+sval_t sval_binop(sval_t left, int op, sval_t right)
+{
+	struct symbol *type;
+	sval_t ret;
+
+	type = left.type;
+	if (sval_positive_bits(right) > sval_positive_bits(left))
+		type = right.type;
+	if (type_positive_bits(type) < 31)
+		type = &int_ctype;
+
+	if (type_unsigned(type))
+		ret = sval_binop_unsigned(type, left, op, right);
+	else
+		ret = sval_binop_signed(type, left, op, right);
 	return ret;
 }
 
