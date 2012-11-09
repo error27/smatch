@@ -50,7 +50,7 @@ static void match_assign(struct expression *expr)
 		free_string(name);
 	}
 	min = sval_type_min(sym);
-	if (sval_cmp(min, sval) > 0) {
+	if (sval_cmp_t(&llong_ctype, min, sval) > 0) {
 		if (min.value == 0 && sval.value == -1) /* assigning -1 to unsigned variables is idiomatic */
 			return;
 		if (expr->right->type == EXPR_PREOP && expr->right->op == '~')
