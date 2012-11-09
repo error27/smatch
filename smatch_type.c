@@ -113,6 +113,20 @@ static struct symbol *get_expr_stmt_type(struct statement *stmt)
 	return get_type(stmt->expression);
 }
 
+static struct symbol *get_select_type(struct expression *expr)
+{
+	struct symbol *one, *two;
+
+	one = get_type(expr->cond_true);
+	two = get_type(expr->cond_false);
+	if (!one || !two)
+		return NULL;
+	sm_msg("%s %d vs %d", __func__, type_positive_bits(one), type_positive_bits(two));
+	if (types_equiv(one, two))
+		return one;
+	return NULL;
+}
+
 struct symbol *get_pointer_type(struct expression *expr)
 {
 	struct symbol *sym;
@@ -168,6 +182,9 @@ struct symbol *get_type(struct expression *expr)
 		return get_return_type(expr);
 	case EXPR_STATEMENT:
 		return get_expr_stmt_type(expr->statement);
+	case EXPR_CONDITIONAL:
+	case EXPR_SELECT:
+		return get_select_type(expr);
 	case EXPR_SIZEOF:
 		return &ulong_ctype;
 	case EXPR_LOGICAL:
