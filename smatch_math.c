@@ -171,9 +171,9 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 		right = _get_value(expr->right, undefined, implied);
 		if (right.value == 0)
 			*undefined = 1;
-		else
-			ret = sval_binop(left, '%', right);
-		return ret;
+		if (*undefined)
+			return bogus;
+		return sval_binop(left, '%', right);
 
 	case '&':
 		left = _get_value(expr->left, &local_undef, implied);
@@ -189,6 +189,8 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 				*undefined = 1;
 		}
 		right = _get_value(expr->right, undefined, implied);
+		if (*undefined)
+			return bogus;
 		return sval_binop(left, '&', right);
 
 	case SPECIAL_RIGHTSHIFT:
@@ -205,21 +207,27 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 				*undefined = 1;
 		}
 		right = _get_value(expr->right, undefined, implied);
+		if (*undefined)
+			return bogus;
 		return sval_binop(left, SPECIAL_RIGHTSHIFT, right);
 	}
 
 	left = _get_value(expr->left, undefined, implied);
 	right = _get_value(expr->right, undefined, implied);
 
+	if (*undefined)
+		return bogus;
+
 	switch (expr->op) {
 	case '/':
 		return handle_divide(expr, undefined, implied);
 	case '%':
-		if (right.value == 0)
+		if (right.value == 0) {
 			*undefined = 1;
-		else
-			ret = sval_binop(left, '%', right);
-		break;
+			return bogus;
+		} else {
+			return sval_binop(left, '%', right);
+		}
 	case '-':
 		ret = handle_subtract(expr, undefined, implied);
 		break;
