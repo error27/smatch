@@ -655,6 +655,8 @@ int get_absolute_min_sval(struct expression *expr, sval_t *sval)
 	struct symbol *type;
 
 	type = get_type(expr);
+	if (!type)
+		type = &llong_ctype;  // FIXME: this is wrong but places assume get type can't fail.
 	*sval =  _get_value(expr, &undefined, ABSOLUTE_MIN);
 	if (undefined) {
 		*sval = sval_type_min(type);
@@ -672,6 +674,8 @@ int get_absolute_max_sval(struct expression *expr, sval_t *sval)
 	struct symbol *type;
 
 	type = get_type(expr);
+	if (!type)
+		type = &llong_ctype;
 	*sval = _get_value(expr, &undefined, ABSOLUTE_MAX);
 	if (undefined) {
 		*sval = sval_type_max(type);
