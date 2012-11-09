@@ -121,7 +121,7 @@ struct expression *symbol_expression(struct symbol *sym);
 
 /* implemented in smatch_constraints */
 void set_equiv(struct expression *left, struct expression *right);
-void set_related(struct smatch_state **estate, struct related_list *rlist);
+void set_related(struct smatch_state *estate, struct related_list *rlist);
 struct related_list *get_shared_relations(struct related_list *one,
 					      struct related_list *two);
 struct related_list *clone_related_list(struct related_list *related);

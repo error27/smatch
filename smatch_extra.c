@@ -75,7 +75,7 @@ void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state)
 		return;
 	}
 
-	set_related(&state, estate_related(orig_state));
+	set_related(state, estate_related(orig_state));
 	FOR_EACH_PTR(estate_related(orig_state), rel) {
 		if (option_debug_related)
 			sm_msg("updating related %s to %s", rel->name, state->name);
@@ -101,9 +101,9 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 	}
 
 	if (true_state)
-		set_related(&true_state, estate_related(orig_state));
+		set_related(true_state, estate_related(orig_state));
 	if (false_state)
-		set_related(&false_state, estate_related(orig_state));
+		set_related(false_state, estate_related(orig_state));
 
 	FOR_EACH_PTR(estate_related(orig_state), rel) {
 		set_true_false_states(SMATCH_EXTRA, rel->name, rel->sym,
@@ -156,7 +156,7 @@ static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_st
 	value_ranges = range_list_union_sval(estate_ranges_sval(s1), estate_ranges_sval(s2));
 	tmp = alloc_estate_range_list_sval(value_ranges);
 	rlist = get_shared_relations(estate_related(s1), estate_related(s2));
-	set_related(&tmp, rlist);
+	set_related(tmp, rlist);
 
 	return tmp;
 }
