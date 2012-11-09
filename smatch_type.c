@@ -121,7 +121,6 @@ static struct symbol *get_select_type(struct expression *expr)
 	two = get_type(expr->cond_false);
 	if (!one || !two)
 		return NULL;
-	sm_msg("%s %d vs %d", __func__, type_positive_bits(one), type_positive_bits(two));
 	if (types_equiv(one, two))
 		return one;
 	return NULL;
