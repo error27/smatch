@@ -692,17 +692,24 @@ static void match_comparison(struct expression *expr)
 		sm_msg("debug: failed to get type for '%s'", get_variable_from_expr_complex(expr, NULL));
 		type = &int_ctype;
 	}
+
+	if (get_implied_range_list_sval(left, &left_orig)) {
+		left_orig = cast_rl(left_orig, type);
+	} else {
+		min = sval_type_min(get_type(expr->left));
+		max = sval_type_max(get_type(expr->left));
+		left_orig = cast_rl(alloc_range_list_sval(min, max), type);
+	}
+
+	if (get_implied_range_list_sval(right, &right_orig)) {
+		right_orig = cast_rl(right_orig, type);
+	} else {
+		min = sval_type_min(get_type(expr->right));
+		max = sval_type_max(get_type(expr->right));
+		right_orig = cast_rl(alloc_range_list_sval(min, max), type);
+	}
 	min = sval_type_min(type);
 	max = sval_type_max(type);
-	if (get_implied_range_list_sval(left, &left_orig))
-		left_orig = cast_rl(left_orig, type);
-	else
-		left_orig = alloc_range_list_sval(min, max);
-
-	if (get_implied_range_list_sval(right, &right_orig))
-		right_orig = cast_rl(right_orig, type);
-	else
-		right_orig = alloc_range_list_sval(min, max);
 
 	left_true = clone_range_list_sval(left_orig);
 	left_false = clone_range_list_sval(left_orig);
