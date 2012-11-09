@@ -69,28 +69,45 @@ static struct symbol *get_type_symbol(struct expression *expr)
 	return get_real_base_type(expr->symbol);
 }
 
+static struct symbol *get_member_symbol(struct symbol_list *symbol_list, struct ident *member)
+{
+	struct symbol *tmp;
+
+	FOR_EACH_PTR(symbol_list, tmp) {
+		if (!tmp->ident) {
+			tmp = get_real_base_type(tmp);
+			tmp = get_member_symbol(tmp->symbol_list, member);
+			if (tmp)
+				return tmp;
+			continue;
+		}
+		if (tmp->ident == member)
+			return tmp;
+	} END_FOR_EACH_PTR(tmp);
+
+	return NULL;
+}
+
 static struct symbol *get_symbol_from_deref(struct expression *expr)
 {
 	struct ident *member;
-	struct symbol *struct_sym;
-	struct symbol *tmp;
+	struct symbol *sym;
 
 	if (!expr || expr->type != EXPR_DEREF)
 		return NULL;
 
 	member = expr->member;
-	struct_sym = get_type(expr->deref);
-	if (!struct_sym) {
+	sym = get_type(expr->deref);
+	if (!sym) {
 		// sm_msg("could not find struct type");
 		return NULL;
 	}
-	if (struct_sym->type == SYM_PTR)
-		struct_sym = get_real_base_type(struct_sym);
-	FOR_EACH_PTR(struct_sym->symbol_list, tmp) {
-		if (tmp->ident == member)
-			return get_real_base_type(tmp);
-	} END_FOR_EACH_PTR(tmp);
-	return NULL;
+	if (sym->type == SYM_PTR)
+		sym = get_real_base_type(sym);
+	sym = get_member_symbol(sym->symbol_list, member);
+	if (!sym)
+		return NULL;
+	return get_real_base_type(sym);
 }
 
 static struct symbol *get_return_type(struct expression *expr)
