@@ -381,20 +381,37 @@ static int get_implied_value_helper(struct expression *expr, sval_t *sval, int i
 	return 1;
 }
 
+static int is_some_kind_of_max(sval_t sval)
+{
+	switch (sval.uvalue) {
+	case ULLONG_MAX:
+	case LLONG_MAX:
+	case UINT_MAX:
+	case INT_MAX:
+	case USHRT_MAX:
+	case SHRT_MAX:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
 static int get_fuzzy_max_helper(struct expression *expr, sval_t *max)
 {
 	struct sm_state *sm;
 	struct sm_state *tmp;
 	sval_t sval;
 
-	if (get_implied_max_sval(expr, max))
+	if (get_implied_max_sval(expr, &sval) && !is_some_kind_of_max(sval)) {
+		*max = sval;
 		return 1;
+	}
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
 	if (!sm)
 		return 0;
 
-	sval = sval_type_min(&llong_ctype);
+	sval = sval_type_min(estate_type(sm->state));
 	FOR_EACH_PTR(sm->possible, tmp) {
 		sval_t new_min;
 
@@ -423,7 +440,7 @@ static int get_fuzzy_min_helper(struct expression *expr, sval_t *min)
 	if (!sm)
 		return 0;
 
-	sval = sval_type_max(&llong_ctype);
+	sval = sval_type_max(estate_type(sm->state));
 	FOR_EACH_PTR(sm->possible, tmp) {
 		sval_t new_max;
 
