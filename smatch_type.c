@@ -103,6 +103,16 @@ static struct symbol *get_return_type(struct expression *expr)
 	return get_real_base_type(tmp);
 }
 
+static struct symbol *get_expr_stmt_type(struct statement *stmt)
+{
+	if (stmt->type != STMT_COMPOUND)
+		return NULL;
+	stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
+	if (!stmt || stmt->type != STMT_EXPRESSION)
+		return NULL;
+	return get_type(stmt->expression);
+}
+
 struct symbol *get_pointer_type(struct expression *expr)
 {
 	struct symbol *sym;
@@ -156,6 +166,8 @@ struct symbol *get_type(struct expression *expr)
 		return get_binop_type(expr);
 	case EXPR_CALL:
 		return get_return_type(expr);
+	case EXPR_STATEMENT:
+		return get_expr_stmt_type(expr->statement);
 	case EXPR_SIZEOF:
 		return &ulong_ctype;
 	case EXPR_LOGICAL:
