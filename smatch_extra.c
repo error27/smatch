@@ -395,6 +395,15 @@ static void match_function_call(struct expression *expr)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static int types_equiv_or_pointer(struct symbol *one, struct symbol *two)
+{
+	if (!one || !two)
+		return 0;
+	if (one->type == SYM_PTR && two->type == SYM_PTR)
+		return 1;
+	return types_equiv(one, two);
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct range_list_sval *rl = NULL;
@@ -424,7 +433,7 @@ static void match_assign(struct expression *expr)
 
 	right_name = get_variable_from_expr(right, &right_sym);
 	if (expr->op == '=' && right_name && right_sym &&
-	    types_equiv(get_type(expr->left), get_type(expr->right))) {
+	    types_equiv_or_pointer(get_type(expr->left), get_type(expr->right))) {
 		set_equiv(left, right);
 		goto free;
 	}
