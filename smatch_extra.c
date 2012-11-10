@@ -1003,7 +1003,6 @@ void register_smatch_extra(int id)
 {
 	my_id = id;
 
-	alloc_estate_undefined();
 	add_merge_hook(my_id, &merge_func);
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&unop_expr, OP_HOOK);

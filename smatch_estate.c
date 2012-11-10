@@ -22,10 +22,6 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-struct smatch_state estate_undefined = {
-	.name = "unknown"
-};
-
 struct data_info *get_dinfo(struct smatch_state *state)
 {
 	if (!state)
@@ -219,12 +215,3 @@ struct smatch_state *alloc_estate_range_list_sval(struct range_list_sval *rl)
 	return state;
 }
 
-void alloc_estate_undefined(void)
-{
-	static struct data_info dinfo = {
-		.type = DATA_RANGE
-	};
-
-	dinfo.value_ranges = clone_permanent_sval(whole_range_list_sval(&llong_ctype));
-	estate_undefined.data = &dinfo;
-}

@@ -220,8 +220,6 @@ void set_related(struct smatch_state *estate, struct related_list *rlist)
 {
 	if (!estate_related(estate) && !rlist)
 		return;
-	if (estate == &estate_undefined)
-		estate = clone_estate(&estate_undefined);
 	get_dinfo(estate)->related = rlist;
 }
 
