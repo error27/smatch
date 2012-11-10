@@ -361,18 +361,6 @@ struct range_list_sval *remove_range_sval(struct range_list_sval *list, sval_t m
 	return ret;
 }
 
-int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval)
-{
-	sval_t min, max;
-
-	min = rl_min_sval(estate_ranges_sval(state));
-	max = rl_max_sval(estate_ranges_sval(state));
-	if (sval_cmp(min, max) != 0)
-		return 0;
-	*sval = min;
-	return 1;
-}
-
 int ranges_equiv_sval(struct data_range_sval *one, struct data_range_sval *two)
 {
 	if (!one && !two)

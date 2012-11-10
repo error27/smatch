@@ -98,6 +98,18 @@ int estates_equiv(struct smatch_state *one, struct smatch_state *two)
 	return 0;
 }
 
+int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval)
+{
+	sval_t min, max;
+
+	min = rl_min_sval(estate_ranges_sval(state));
+	max = rl_max_sval(estate_ranges_sval(state));
+	if (sval_cmp(min, max) != 0)
+		return 0;
+	*sval = min;
+	return 1;
+}
+
 static struct data_info *alloc_dinfo(void)
 {
 	struct data_info *ret;
