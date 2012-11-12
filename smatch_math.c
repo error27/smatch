@@ -166,7 +166,7 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 			}
 			if (implied != ABSOLUTE_MAX)
 				*undefined = 1;
-			if (!get_absolute_max_sval(expr->left, &left))
+			if (!get_absolute_max(expr->left, &left))
 				*undefined = 1;
 		}
 		right = _get_value(expr->right, undefined, implied);
@@ -186,7 +186,7 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 			}
 			if (implied != ABSOLUTE_MAX)
 				*undefined = 1;
-			if (!get_absolute_max_sval(expr->left, &left))
+			if (!get_absolute_max(expr->left, &left))
 				*undefined = 1;
 		}
 		right = _get_value(expr->right, undefined, implied);
@@ -204,7 +204,7 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 			}
 			if (implied != ABSOLUTE_MAX)
 				*undefined = 1;
-			if (!get_absolute_max_sval(expr->left, &left))
+			if (!get_absolute_max(expr->left, &left))
 				*undefined = 1;
 		}
 		right = _get_value(expr->right, undefined, implied);
@@ -653,7 +653,7 @@ int get_fuzzy_max(struct expression *expr, sval_t *sval)
 	return 1;
 }
 
-int get_absolute_min_sval(struct expression *expr, sval_t *sval)
+int get_absolute_min(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
 	struct symbol *type;
@@ -672,7 +672,7 @@ int get_absolute_min_sval(struct expression *expr, sval_t *sval)
 	return 1;
 }
 
-int get_absolute_max_sval(struct expression *expr, sval_t *sval)
+int get_absolute_max(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
 	struct symbol *type;

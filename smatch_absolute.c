@@ -87,8 +87,8 @@ static void match_assign(struct expression *expr)
 	if (!left_type)
 		return;
 
-	get_absolute_min_sval(expr->right, &min);
-	get_absolute_max_sval(expr->right, &max);
+	get_absolute_min(expr->right, &min);
+	get_absolute_max(expr->right, &max);
 
 	rl = alloc_range_list(min, max);
 	rl = cast_rl(rl, left_type);
@@ -126,9 +126,9 @@ static void match_call_info(struct expression *expr)
 
 		i++;
 
-		if (!get_absolute_min_sval(arg, &min))
+		if (!get_absolute_min(arg, &min))
 			continue;
-		if (!get_absolute_max_sval(arg, &max))
+		if (!get_absolute_max(arg, &max))
 			continue;
 		if (sval_is_min(min) && sval_is_max(max))
 			continue;

@@ -31,7 +31,7 @@ static int can_overflow(struct expression *expr)
 
 	if (get_implied_max(expr, &max))
 		return 0;
-	if (get_absolute_max_sval(expr, &max) && sval_cmp_val(max, 4096) <= 0)
+	if (get_absolute_max(expr, &max) && sval_cmp_val(max, 4096) <= 0)
 		return 0;
 	return 1;
 }

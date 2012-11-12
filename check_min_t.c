@@ -26,9 +26,9 @@ static void match_assign(struct expression *expr)
 	if (strcmp(macro, "min_t"))
 		return;
 
-	if (!get_absolute_max_sval(expr->left, &max_left))
+	if (!get_absolute_max(expr->left, &max_left))
 		return;
-	if (!get_absolute_max_sval(expr->right, &max_right))
+	if (!get_absolute_max(expr->right, &max_right))
 		return;
 
 	if (sval_cmp(max_left, max_right) >= 0)

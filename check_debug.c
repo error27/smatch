@@ -138,7 +138,7 @@ static void match_print_absolute_min(const char *fn, struct expression *expr, vo
 	arg = get_argument_from_call_expr(expr->args, 0);
 	name = get_variable_from_expr_complex(arg, NULL);
 
-	if (get_absolute_min_sval(arg, &sval))
+	if (get_absolute_min(arg, &sval))
 		sm_msg("absolute min: %s = %s", name, sval_to_str(sval));
 	else
 		sm_msg("absolute min: %s = <unknown>", name);
@@ -153,7 +153,7 @@ static void match_print_absolute_max(const char *fn, struct expression *expr, vo
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	get_absolute_max_sval(arg, &sval);
+	get_absolute_max(arg, &sval);
 
 	name = get_variable_from_expr_complex(arg, NULL);
 	sm_msg("absolute max: %s = %s", name, sval_to_str(sval));

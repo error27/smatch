@@ -30,7 +30,7 @@ static int implied_copy_return(struct expression *call, void *unused, struct ran
 	sval_t max;
 
 	arg = get_argument_from_call_expr(call->args, 2);
-	get_absolute_max_sval(arg, &max);
+	get_absolute_max(arg, &max);
 	*rl = alloc_range_list(ll_to_sval(0), max);
 	return 1;
 }

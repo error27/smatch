@@ -63,7 +63,7 @@ static void match_return(struct expression *ret_value)
 	state = get_state_expr(SMATCH_EXTRA, ret_value);
 	if (!state)
 		return;
-	if (!get_absolute_min_sval(ret_value, &min))
+	if (!get_absolute_min(ret_value, &min))
 		return;
 	if (min.value == 0)
 		return;
