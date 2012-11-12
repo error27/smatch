@@ -26,7 +26,7 @@ static void match_snprintf(const char *fn, struct expression *expr, void *info)
 
 	call = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(call->args, 1);
-	if (!get_fuzzy_max_sval(arg, &buflen))
+	if (!get_fuzzy_max(arg, &buflen))
 		return;
 	set_state_expr(my_id, expr->left, alloc_state_num(buflen.value));
 }

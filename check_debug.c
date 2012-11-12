@@ -121,7 +121,7 @@ static void match_print_fuzzy_max(const char *fn, struct expression *expr, void 
 	arg = get_argument_from_call_expr(expr->args, 0);
 	name = get_variable_from_expr_complex(arg, NULL);
 
-	if (get_fuzzy_max_sval(arg, &sval))
+	if (get_fuzzy_max(arg, &sval))
 		sm_msg("fuzzy max: %s = %s", name, sval_to_str(sval));
 	else
 		sm_msg("fuzzy max: %s = <unknown>", name);

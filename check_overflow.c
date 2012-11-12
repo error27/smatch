@@ -98,7 +98,7 @@ static void array_check(struct expression *expr)
 		return;
 
 	offset = get_array_offset(expr);
-	if (!get_fuzzy_max_sval(offset, &max)) {
+	if (!get_fuzzy_max(offset, &max)) {
 		if (getting_address())
 			return;
 		set_state_expr(my_used_id, offset, alloc_state_num(array_size));
@@ -290,7 +290,7 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 
 	dest = get_argument_from_call_expr(expr->args, limiter->buf_arg);
 	data = get_argument_from_call_expr(expr->args, limiter->limit_arg);
-	if (!get_fuzzy_max_sval(data, &needed))
+	if (!get_fuzzy_max(data, &needed))
 		return;
 	has = get_array_size_bytes(dest);
 	if (!has)

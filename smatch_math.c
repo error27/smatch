@@ -629,7 +629,7 @@ int get_hard_max(struct expression *expr, sval_t *sval)
 	return 1;
 }
 
-int get_fuzzy_min_sval(struct expression *expr, sval_t *sval)
+int get_fuzzy_min(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
 	sval_t ret;
@@ -641,7 +641,7 @@ int get_fuzzy_min_sval(struct expression *expr, sval_t *sval)
 	return 1;
 }
 
-int get_fuzzy_max_sval(struct expression *expr, sval_t *sval)
+int get_fuzzy_max(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
 	sval_t ret;
