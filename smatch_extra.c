@@ -514,9 +514,9 @@ static struct smatch_state *increment_state(struct smatch_state *state)
 	if (inside_loop())
 		max = sval_type_max(max.type);
 
-	if (!sval_is_min(min))
+	if (!sval_is_min(min) && !sval_is_max(min))
 		min.value++;
-	if (!sval_is_max(max))
+	if (!sval_is_min(max) && !sval_is_max(max))
 		max.value++;
 	return alloc_estate_range_sval(min, max);
 }
@@ -529,9 +529,9 @@ static struct smatch_state *decrement_state(struct smatch_state *state)
 	if (inside_loop())
 		min = sval_type_min(min.type);
 
-	if (!sval_is_min(min))
+	if (!sval_is_min(min) && !sval_is_max(min))
 		min.value--;
-	if (!sval_is_max(max))
+	if (!sval_is_min(max) && !sval_is_max(max))
 		max.value--;
 	return alloc_estate_range_sval(min, max);
 }
