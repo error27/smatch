@@ -46,7 +46,7 @@ static void register_no_return_funcs(void)
 
 static void return_implies(struct expression *call_expr, int param, char *key, char *value)
 {
-	struct range_list_sval *rl;
+	struct range_list *rl;
 	struct expression *arg;
 
 	if (call_expr->type == EXPR_ASSIGNMENT)
@@ -54,7 +54,7 @@ static void return_implies(struct expression *call_expr, int param, char *key, c
 
 	arg = get_argument_from_call_expr(call_expr->args, param);
 	get_value_ranges_sval(value, &rl);
-	set_extra_expr_nomod(arg, alloc_estate_range_list_sval(rl));
+	set_extra_expr_nomod(arg, alloc_estate_range_list(rl));
 }
 
 static void register_ignored_macros(void)

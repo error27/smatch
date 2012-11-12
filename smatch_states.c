@@ -699,7 +699,7 @@ void __use_breaks(void)
 
 void __save_switch_states(struct expression *switch_expr)
 {
-	push_range_list_sval(&remaining_cases, __get_implied_values(switch_expr));
+	push_range_list(&remaining_cases, __get_implied_values(switch_expr));
 	push_slist(&switch_stack, clone_slist(cur_slist));
 }
 
@@ -719,7 +719,7 @@ void __discard_switches(void)
 {
 	struct state_list *slist;
 
-	pop_range_list_sval(&remaining_cases);
+	pop_range_list(&remaining_cases);
 	slist = pop_slist(&switch_stack);
 	free_slist(&slist);
 }

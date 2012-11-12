@@ -76,7 +76,7 @@ static void match_assign(struct expression *expr)
 {
 	struct symbol *left_type;
 	sval_t min, max;
-	struct range_list_sval *rl;
+	struct range_list *rl;
 
 	if (expr->op != '=') {
 		set_state_expr(my_id, expr->left, &undefined);
@@ -90,7 +90,7 @@ static void match_assign(struct expression *expr)
 	get_absolute_min_sval(expr->right, &min);
 	get_absolute_max_sval(expr->right, &max);
 
-	rl = alloc_range_list_sval(min, max);
+	rl = alloc_range_list(min, max);
 	rl = cast_rl(rl, left_type);
 
 	min = rl_min_sval(rl);
@@ -144,7 +144,7 @@ static void match_call_info(struct expression *expr)
 
 static void set_param_limits(const char *name, struct symbol *sym, char *key, char *value)
 {
-	struct range_list_sval *rl = NULL;
+	struct range_list *rl = NULL;
 	sval_t min, max;
 	char fullname[256];
 

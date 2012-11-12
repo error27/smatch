@@ -12,9 +12,9 @@
 
 static int my_id;
 
-static struct range_list_sval *return_ranges;
+static struct range_list *return_ranges;
 
-static void add_return_range(struct range_list_sval *rl)
+static void add_return_range(struct range_list *rl)
 {
 	if (!return_ranges) {
 		return_ranges = rl;
@@ -25,17 +25,17 @@ static void add_return_range(struct range_list_sval *rl)
 
 static void match_return(struct expression *ret_value)
 {
-	struct range_list_sval *rl;
+	struct range_list *rl;
 	struct symbol *type = cur_func_return_type();
 
 	ret_value = strip_expr(ret_value);
 	if (!ret_value)
 		return;
 
-	if (get_implied_range_list_sval(ret_value, &rl))
+	if (get_implied_range_list(ret_value, &rl))
 		add_return_range(rl);
 	else
-		add_return_range(whole_range_list_sval(type));
+		add_return_range(whole_range_list(type));
 }
 
 static void match_end_func(struct symbol *sym)

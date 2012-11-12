@@ -318,9 +318,9 @@ static void struct_member_callback(char *fn, char *global_static, int param, cha
 static void match_return(struct expression *expr)
 {
 	if (is_user_data(expr)) {
-		struct range_list_sval *rl;
+		struct range_list *rl;
 
-		get_implied_range_list_sval(expr, &rl);
+		get_implied_range_list(expr, &rl);
 		sm_msg("info: returns_user_data %d '%s' %s",
 		       get_return_id(), show_ranges_sval(rl), global_static());
 	}

@@ -68,9 +68,9 @@ int option_no_implied = 0;
  * It messes things up to free range list allocations.  This helper fuction
  * lets us reuse memory instead of doing new allocations.
  */
-static struct range_list_sval *tmp_range_list(long long num)
+static struct range_list *tmp_range_list(long long num)
 {
-	static struct range_list_sval *my_list = NULL;
+	static struct range_list *my_list = NULL;
 	static struct data_range *my_range;
 
 	__free_ptr_list((struct ptr_list **)&my_list);
@@ -124,7 +124,7 @@ static void add_pool(struct state_list_stack **pools, struct state_list *new)
  * If 'foo' == 99 add it that pool to the true pools.  If it's false, add it to
  * the false pools.  If we're not sure, then we don't add it to either.
  */
-static void do_compare(struct sm_state *sm_state, int comparison, struct range_list_sval *vals,
+static void do_compare(struct sm_state *sm_state, int comparison, struct range_list *vals,
 			int lr,
 			struct state_list_stack **true_stack,
 			struct state_list_stack **false_stack)
@@ -201,7 +201,7 @@ static int is_checked(struct state_list *checked, struct sm_state *sm)
  * of merges.  separate_pools() iterates through the pools recursively and calls
  * do_compare() for each time 'foo' was set.
  */
-static void separate_pools(struct sm_state *sm_state, int comparison, struct range_list_sval *vals,
+static void separate_pools(struct sm_state *sm_state, int comparison, struct range_list *vals,
 			int lr,
 			struct state_list_stack **true_stack,
 			struct state_list_stack **false_stack,
@@ -358,7 +358,7 @@ static struct state_list *filter_stack(struct sm_state *gate_sm,
 	return ret;
 }
 
-static void separate_and_filter(struct sm_state *sm_state, int comparison, struct range_list_sval *vals,
+static void separate_and_filter(struct sm_state *sm_state, int comparison, struct range_list *vals,
 		int lr,
 		struct state_list *pre_list,
 		struct state_list **true_states,
@@ -449,7 +449,7 @@ static void handle_comparison(struct expression *expr,
 			      struct state_list **implied_false)
 {
 	struct sm_state *sm = NULL;
-	struct range_list_sval *ranges = NULL;
+	struct range_list *ranges = NULL;
 	struct expression *left;
 	struct expression *right;
 	int lr;
@@ -460,20 +460,20 @@ static void handle_comparison(struct expression *expr,
 	if (is_merged_expr(left)) {
 		lr = LEFT;
 		sm = get_sm_state_expr(SMATCH_EXTRA, left);
-		get_implied_range_list_sval(right, &ranges);
+		get_implied_range_list(right, &ranges);
 	} else if (is_merged_expr(right)) {
 		lr = RIGHT;
 		sm = get_sm_state_expr(SMATCH_EXTRA, right);
-		get_implied_range_list_sval(left, &ranges);
+		get_implied_range_list(left, &ranges);
 	}
 
 	if (!ranges || !sm) {
-		free_range_list_sval(&ranges);
+		free_range_list(&ranges);
 		return;
 	}
 
 	separate_and_filter(sm, expr->op, ranges, lr, __get_cur_slist(), implied_true, implied_false);
-	free_range_list_sval(&ranges);
+	free_range_list(&ranges);
 	delete_equiv_slist(implied_true, sm->name, sm->sym);
 	delete_equiv_slist(implied_false, sm->name, sm->sym);
 }
@@ -542,12 +542,12 @@ static void implied_states_hook(struct expression *expr)
 	free_slist(&implied_false);
 }
 
-struct range_list_sval *__get_implied_values(struct expression *switch_expr)
+struct range_list *__get_implied_values(struct expression *switch_expr)
 {
 	char *name;
 	struct symbol *sym;
 	struct smatch_state *state;
-	struct range_list_sval *ret = NULL;
+	struct range_list *ret = NULL;
 
 	name = get_variable_from_expr(switch_expr, &sym);
 	if (!name || !sym)
@@ -555,14 +555,14 @@ struct range_list_sval *__get_implied_values(struct expression *switch_expr)
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (!state)
 		goto free;
-	ret = clone_range_list_sval(estate_ranges_sval(state));
+	ret = clone_range_list(estate_ranges_sval(state));
 free:
 	free_string(name);
 	if (!ret) {
 		struct symbol *type;
 
 		type = get_type(switch_expr);
-		ret = alloc_range_list_sval(sval_type_min(type), sval_type_max(type));
+		ret = alloc_range_list(sval_type_min(type), sval_type_max(type));
 	}
 	return ret;
 }
@@ -580,19 +580,19 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	struct state_list *false_states = NULL;
 	struct state_list *ret = clone_slist(*raw_slist);
 	sval_t sval;
-	struct range_list_sval *vals = NULL;
+	struct range_list *vals = NULL;
 
 	name = get_variable_from_expr(switch_expr, &sym);
 	if (!name || !sym)
 		goto free;
 	sm = get_sm_state_slist(*raw_slist, SMATCH_EXTRA, name, sym);
 	if (!case_expr) {
-		vals = top_range_list_sval(*remaining_cases);
+		vals = top_range_list(*remaining_cases);
 	} else {
 		if (!get_value_sval(case_expr, &sval))
 			goto free;
 
-		filter_top_range_list_sval(remaining_cases, sval);
+		filter_top_range_list(remaining_cases, sval);
 		add_range_sval(&vals, sval, sval);
 	}
 	if (sm)
@@ -600,7 +600,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 
 	true_sm = get_sm_state_slist(true_states, SMATCH_EXTRA, name, sym);
 	if (!true_sm)
-		set_state_slist(&true_states, SMATCH_EXTRA, name, sym, alloc_estate_range_list_sval(vals));
+		set_state_slist(&true_states, SMATCH_EXTRA, name, sym, alloc_estate_range_list(vals));
 	overwrite_slist(true_states, &ret);
 	free_slist(&true_states);
 	free_slist(&false_states);

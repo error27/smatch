@@ -93,7 +93,7 @@ void add_db_fn_call_callback(int type, void (*callback)(struct expression *arg, 
 	add_ptr_list(&call_implies_cb_list, cb);
 }
 
-static struct range_list_sval *return_range_list;
+static struct range_list *return_range_list;
 static int db_return_callback(void *unused, int argc, char **argv, char **azColName)
 {
 	if (argc != 1)
@@ -102,7 +102,7 @@ static int db_return_callback(void *unused, int argc, char **argv, char **azColN
 	return 0;
 }
 
-struct range_list_sval *db_return_vals(struct expression *expr)
+struct range_list *db_return_vals(struct expression *expr)
 {
 	struct symbol *sym;
 	static char sql_filter[1024];
@@ -475,9 +475,9 @@ static void global_variable(struct symbol *sym)
 
 static void match_return_info(struct expression *ret_value)
 {
-	struct range_list_sval *rl;
+	struct range_list *rl;
 
-	get_implied_range_list_sval(ret_value, &rl);
+	get_implied_range_list(ret_value, &rl);
 	sm_msg("info: return_marker %d '%s' %s",
 	       get_return_id(), show_ranges_sval(rl), global_static());
 }

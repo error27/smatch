@@ -50,11 +50,11 @@ static void match_print_value(const char *fn, struct expression *expr, void *inf
 static void match_print_implied(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
-	struct range_list_sval *rl = NULL;
+	struct range_list *rl = NULL;
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	get_implied_range_list_sval(arg, &rl);
+	get_implied_range_list(arg, &rl);
 
 	name = get_variable_from_expr_complex(arg, NULL);
 	sm_msg("implied: %s = '%s'", name, show_ranges_sval(rl));

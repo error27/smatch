@@ -17,7 +17,7 @@ ALLOCATOR(data_range, "data range");
 __DO_ALLOCATOR(struct data_range, sizeof(struct data_range), __alignof__(struct data_range),
 			 "permanent ranges", perm_data_range);
 
-char *show_ranges_sval(struct range_list_sval *list)
+char *show_ranges_sval(struct range_list *list)
 {
 	struct data_range *tmp;
 	char full[256];
@@ -39,7 +39,7 @@ char *show_ranges_sval(struct range_list_sval *list)
 	return alloc_sname(full);
 }
 
-void get_value_ranges_type(struct symbol *type, char *value, struct range_list_sval **rl)
+void get_value_ranges_type(struct symbol *type, char *value, struct range_list **rl)
 {
 	long long val1, val2;
 	sval_t tmp;
@@ -129,12 +129,12 @@ void get_value_ranges_type(struct symbol *type, char *value, struct range_list_s
 	}
 }
 
-void get_value_ranges_sval(char *value, struct range_list_sval **rl)
+void get_value_ranges_sval(char *value, struct range_list **rl)
 {
 	get_value_ranges_type(&llong_ctype, value, rl);
 }
 
-int is_whole_range_rl_sval(struct range_list_sval *rl)
+int is_whole_range_rl_sval(struct range_list *rl)
 {
 	struct data_range *drange;
 
@@ -146,7 +146,7 @@ int is_whole_range_rl_sval(struct range_list_sval *rl)
 	return 0;
 }
 
-sval_t rl_min_sval(struct range_list_sval *rl)
+sval_t rl_min_sval(struct range_list *rl)
 {
 	struct data_range *drange;
 	sval_t ret;
@@ -159,7 +159,7 @@ sval_t rl_min_sval(struct range_list_sval *rl)
 	return drange->min;
 }
 
-sval_t rl_max_sval(struct range_list_sval *rl)
+sval_t rl_max_sval(struct range_list *rl)
 {
 	struct data_range *drange;
 	sval_t ret;
@@ -201,23 +201,23 @@ struct data_range *alloc_range_perm_sval(sval_t min, sval_t max)
 	return alloc_range_helper_sval(min, max, 1);
 }
 
-struct range_list_sval *alloc_range_list_sval(sval_t min, sval_t max)
+struct range_list *alloc_range_list(sval_t min, sval_t max)
 {
-	struct range_list_sval *rl = NULL;
+	struct range_list *rl = NULL;
 
 	add_range_sval(&rl, min, max);
 	return rl;
 }
 
-struct range_list_sval *whole_range_list_sval(struct symbol *type)
+struct range_list *whole_range_list(struct symbol *type)
 {
 	if (!type)
 		type = &llong_ctype;
 
-	return alloc_range_list_sval(sval_type_min(type), sval_type_max(type));
+	return alloc_range_list(sval_type_min(type), sval_type_max(type));
 }
 
-void add_range_sval(struct range_list_sval **list, sval_t min, sval_t max)
+void add_range_sval(struct range_list **list, sval_t min, sval_t max)
 {
 	struct data_range *tmp = NULL;
 	struct data_range *new = NULL;
@@ -300,10 +300,10 @@ void add_range_sval(struct range_list_sval **list, sval_t min, sval_t max)
 	add_ptr_list(list, new);
 }
 
-struct range_list_sval *clone_range_list_sval(struct range_list_sval *list)
+struct range_list *clone_range_list(struct range_list *list)
 {
 	struct data_range *tmp;
-	struct range_list_sval *ret = NULL;
+	struct range_list *ret = NULL;
 
 	FOR_EACH_PTR(list, tmp) {
 		add_ptr_list(&ret, tmp);
@@ -311,11 +311,11 @@ struct range_list_sval *clone_range_list_sval(struct range_list_sval *list)
 	return ret;
 }
 
-struct range_list_sval *clone_permanent_sval(struct range_list_sval *list)
+struct range_list *clone_permanent_sval(struct range_list *list)
 {
 	struct data_range *tmp;
 	struct data_range *new;
-	struct range_list_sval *ret = NULL;
+	struct range_list *ret = NULL;
 
 	FOR_EACH_PTR(list, tmp) {
 		new = alloc_range_perm_sval(tmp->min, tmp->max);
@@ -324,10 +324,10 @@ struct range_list_sval *clone_permanent_sval(struct range_list_sval *list)
 	return ret;
 }
 
-struct range_list_sval *range_list_union_sval(struct range_list_sval *one, struct range_list_sval *two)
+struct range_list *range_list_union_sval(struct range_list *one, struct range_list *two)
 {
 	struct data_range *tmp;
-	struct range_list_sval *ret = NULL;
+	struct range_list *ret = NULL;
 
 	FOR_EACH_PTR(one, tmp) {
 		add_range_sval(&ret, tmp->min, tmp->max);
@@ -338,10 +338,10 @@ struct range_list_sval *range_list_union_sval(struct range_list_sval *one, struc
 	return ret;
 }
 
-struct range_list_sval *remove_range_sval(struct range_list_sval *list, sval_t min, sval_t max)
+struct range_list *remove_range_sval(struct range_list *list, sval_t min, sval_t max)
 {
 	struct data_range *tmp;
-	struct range_list_sval *ret = NULL;
+	struct range_list *ret = NULL;
 
 	FOR_EACH_PTR(list, tmp) {
 		if (sval_cmp(tmp->max, min) < 0) {
@@ -383,7 +383,7 @@ int ranges_equiv_sval(struct data_range *one, struct data_range *two)
 	return 1;
 }
 
-int range_lists_equiv_sval(struct range_list_sval *one, struct range_list_sval *two)
+int range_lists_equiv_sval(struct range_list *one, struct range_list *two)
 {
 	struct data_range *one_range;
 	struct data_range *two_range;
@@ -510,12 +510,12 @@ int false_comparison_range_lr_sval(int comparison, struct data_range *var, struc
 
 int possibly_true(struct expression *left, int comparison, struct expression *right)
 {
-	struct range_list_sval *rl_left, *rl_right;
+	struct range_list *rl_left, *rl_right;
 	struct data_range *tmp_left, *tmp_right;
 
-	if (!get_implied_range_list_sval(left, &rl_left))
+	if (!get_implied_range_list(left, &rl_left))
 		return 1;
-	if (!get_implied_range_list_sval(right, &rl_right))
+	if (!get_implied_range_list(right, &rl_right))
 		return 1;
 
 	FOR_EACH_PTR(rl_left, tmp_left) {
@@ -529,12 +529,12 @@ int possibly_true(struct expression *left, int comparison, struct expression *ri
 
 int possibly_false(struct expression *left, int comparison, struct expression *right)
 {
-	struct range_list_sval *rl_left, *rl_right;
+	struct range_list *rl_left, *rl_right;
 	struct data_range *tmp_left, *tmp_right;
 
-	if (!get_implied_range_list_sval(left, &rl_left))
+	if (!get_implied_range_list(left, &rl_left))
 		return 1;
-	if (!get_implied_range_list_sval(right, &rl_right))
+	if (!get_implied_range_list(right, &rl_right))
 		return 1;
 
 	FOR_EACH_PTR(rl_left, tmp_left) {
@@ -546,7 +546,7 @@ int possibly_false(struct expression *left, int comparison, struct expression *r
 	return 0;
 }
 
-int possibly_true_range_lists_sval(struct range_list_sval *left_ranges, int comparison, struct range_list_sval *right_ranges)
+int possibly_true_range_lists_sval(struct range_list *left_ranges, int comparison, struct range_list *right_ranges)
 {
 	struct data_range *left_tmp, *right_tmp;
 
@@ -562,7 +562,7 @@ int possibly_true_range_lists_sval(struct range_list_sval *left_ranges, int comp
 	return 0;
 }
 
-int possibly_false_range_lists_sval(struct range_list_sval *left_ranges, int comparison, struct range_list_sval *right_ranges)
+int possibly_false_range_lists_sval(struct range_list *left_ranges, int comparison, struct range_list *right_ranges)
 {
 	struct data_range *left_tmp, *right_tmp;
 
@@ -579,7 +579,7 @@ int possibly_false_range_lists_sval(struct range_list_sval *left_ranges, int com
 }
 
 /* FIXME: the _rl here stands for right left so really it should be _lr */
-int possibly_true_range_lists_rl_sval(int comparison, struct range_list_sval *a, struct range_list_sval *b, int left)
+int possibly_true_range_lists_rl_sval(int comparison, struct range_list *a, struct range_list *b, int left)
 {
 	if (left)
 		return possibly_true_range_lists_sval(a, comparison, b);
@@ -587,7 +587,7 @@ int possibly_true_range_lists_rl_sval(int comparison, struct range_list_sval *a,
 		return possibly_true_range_lists_sval(b, comparison, a);
 }
 
-int possibly_false_range_lists_rl_sval(int comparison, struct range_list_sval *a, struct range_list_sval *b, int left)
+int possibly_false_range_lists_rl_sval(int comparison, struct range_list *a, struct range_list *b, int left)
 {
 	if (left)
 		return possibly_false_range_lists_sval(a, comparison, b);
@@ -595,58 +595,58 @@ int possibly_false_range_lists_rl_sval(int comparison, struct range_list_sval *a
 		return possibly_false_range_lists_sval(b, comparison, a);
 }
 
-void tack_on_sval(struct range_list_sval **list, struct data_range *drange)
+void tack_on_sval(struct range_list **list, struct data_range *drange)
 {
 	add_ptr_list(list, drange);
 }
 
-void push_range_list_sval(struct range_list_stack_sval **rl_stack, struct range_list_sval *rl)
+void push_range_list(struct range_list_stack_sval **rl_stack, struct range_list *rl)
 {
 	add_ptr_list(rl_stack, rl);
 }
 
-struct range_list_sval *pop_range_list_sval(struct range_list_stack_sval **rl_stack)
+struct range_list *pop_range_list(struct range_list_stack_sval **rl_stack)
 {
-	struct range_list_sval *rl;
+	struct range_list *rl;
 
 	rl = last_ptr_list((struct ptr_list *)*rl_stack);
 	delete_ptr_list_last((struct ptr_list **)rl_stack);
 	return rl;
 }
 
-struct range_list_sval *top_range_list_sval(struct range_list_stack_sval *rl_stack)
+struct range_list *top_range_list(struct range_list_stack_sval *rl_stack)
 {
-	struct range_list_sval *rl;
+	struct range_list *rl;
 
 	rl = last_ptr_list((struct ptr_list *)rl_stack);
 	return rl;
 }
 
-void filter_top_range_list_sval(struct range_list_stack_sval **rl_stack, sval_t sval)
+void filter_top_range_list(struct range_list_stack_sval **rl_stack, sval_t sval)
 {
-	struct range_list_sval *rl;
+	struct range_list *rl;
 
-	rl = pop_range_list_sval(rl_stack);
+	rl = pop_range_list(rl_stack);
 	rl = remove_range_sval(rl, sval, sval);
-	push_range_list_sval(rl_stack, rl);
+	push_range_list(rl_stack, rl);
 }
 
-struct range_list_sval *cast_rl(struct range_list_sval *rl, struct symbol *type)
+struct range_list *cast_rl(struct range_list *rl, struct symbol *type)
 {
 	struct data_range *tmp;
 	struct data_range *new;
-	struct range_list_sval *ret = NULL;
+	struct range_list *ret = NULL;
 	int set_min, set_max;
 
 	if (!rl)
 		return NULL;
 
 	if (!type)
-		return clone_range_list_sval(rl);
+		return clone_range_list(rl);
 
 	if (sval_cmp(rl_min_sval(rl), rl_max_sval(rl)) == 0) {
 		sval_t sval = sval_cast(rl_min_sval(rl), type);
-		return alloc_range_list_sval(sval, sval);
+		return alloc_range_list(sval, sval);
 	}
 
 	set_max = 0;
@@ -674,7 +674,7 @@ struct range_list_sval *cast_rl(struct range_list_sval *rl, struct symbol *type)
 	} END_FOR_EACH_PTR(tmp);
 
 	if (!ret)
-		return whole_range_list_sval(type);
+		return whole_range_list(type);
 
 	if (set_min) {
 		tmp = first_ptr_list((struct ptr_list *)ret);
@@ -688,7 +688,7 @@ struct range_list_sval *cast_rl(struct range_list_sval *rl, struct symbol *type)
 	return ret;
 }
 
-void free_range_list_sval(struct range_list_sval **rlist)
+void free_range_list(struct range_list **rlist)
 {
 	__free_ptr_list((struct ptr_list **)rlist);
 }
@@ -696,7 +696,7 @@ void free_range_list_sval(struct range_list_sval **rlist)
 static void free_single_dinfo(struct data_info *dinfo)
 {
 	if (dinfo->type == DATA_RANGE)
-		free_range_list_sval(&dinfo->value_ranges);
+		free_range_list(&dinfo->value_ranges);
 }
 
 static void free_dinfos(struct allocation_blob *blob)

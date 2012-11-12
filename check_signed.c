@@ -216,8 +216,8 @@ static void match_condition(struct expression *expr)
 	struct symbol *type;
 	sval_t known;
 	sval_t min, max;
-	struct range_list_sval *rl_left_orig, *rl_right_orig;
-	struct range_list_sval *rl_left, *rl_right;
+	struct range_list *rl_left_orig, *rl_right_orig;
+	struct range_list *rl_left, *rl_right;
 
 	if (expr->type != EXPR_COMPARE)
 		return;
@@ -250,20 +250,20 @@ static void match_condition(struct expression *expr)
 	if (get_value_sval(expr->left, &known)) {
 		if (get_value_sval(expr->right, &known))
 			return;
-		rl_left_orig = alloc_range_list_sval(known, known);
+		rl_left_orig = alloc_range_list(known, known);
 		rl_left = cast_rl(rl_left_orig, type);
 
 		min = sval_type_min(get_type(expr->right));
 		max = sval_type_max(get_type(expr->right));
-		rl_right_orig = alloc_range_list_sval(min, max);
+		rl_right_orig = alloc_range_list(min, max);
 		rl_right = cast_rl(rl_right_orig, type);
 	} else if (get_value_sval(expr->right, &known)) {
-		rl_right_orig = alloc_range_list_sval(known, known);
+		rl_right_orig = alloc_range_list(known, known);
 		rl_right = cast_rl(rl_right_orig, type);
 
 		min = sval_type_min(get_type(expr->left));
 		max = sval_type_max(get_type(expr->left));
-		rl_left_orig = alloc_range_list_sval(min, max);
+		rl_left_orig = alloc_range_list(min, max);
 		rl_left = cast_rl(rl_left_orig, type);
 	} else {
 		return;

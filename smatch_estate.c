@@ -29,7 +29,7 @@ struct data_info *get_dinfo(struct smatch_state *state)
 	return (struct data_info *)state->data;
 }
 
-struct range_list_sval *estate_ranges_sval(struct smatch_state *state)
+struct range_list *estate_ranges_sval(struct smatch_state *state)
 {
 	if (!state)
 		return NULL;
@@ -152,7 +152,7 @@ static struct data_info *alloc_dinfo_range(sval_t min, sval_t max)
 	return ret;
 }
 
-static struct data_info *alloc_dinfo_range_list(struct range_list_sval *rl)
+static struct data_info *alloc_dinfo_range_list(struct range_list *rl)
 {
 	struct data_info *ret;
 
@@ -167,7 +167,7 @@ static struct data_info *clone_dinfo(struct data_info *dinfo)
 
 	ret = alloc_dinfo();
 	ret->related = clone_related_list(dinfo->related);
-	ret->value_ranges = clone_range_list_sval(dinfo->value_ranges);
+	ret->value_ranges = clone_range_list(dinfo->value_ranges);
 	ret->hard_max = dinfo->hard_max;
 	return ret;
 }
@@ -196,7 +196,7 @@ struct smatch_state *alloc_estate_empty(void)
 
 struct smatch_state *extra_undefined(struct symbol *type)
 {
-	return alloc_estate_range_list_sval(whole_range_list_sval(type));
+	return alloc_estate_range_list(whole_range_list(type));
 }
 
 struct smatch_state *extra_empty(void)
@@ -230,7 +230,7 @@ struct smatch_state *alloc_estate_range_sval(sval_t min, sval_t max)
 	return state;
 }
 
-struct smatch_state *alloc_estate_range_list_sval(struct range_list_sval *rl)
+struct smatch_state *alloc_estate_range_list(struct range_list *rl)
 {
 	struct smatch_state *state;
 

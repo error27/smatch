@@ -240,18 +240,18 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 
 static int do_comparison(struct expression *expr)
 {
-	struct range_list_sval *left_ranges = NULL;
-	struct range_list_sval *right_ranges = NULL;
+	struct range_list *left_ranges = NULL;
+	struct range_list *right_ranges = NULL;
 	int poss_true, poss_false;
 
-	get_implied_range_list_sval(expr->left, &left_ranges);
-	get_implied_range_list_sval(expr->right, &right_ranges);
+	get_implied_range_list(expr->left, &left_ranges);
+	get_implied_range_list(expr->right, &right_ranges);
 
 	poss_true = possibly_true_range_lists_sval(left_ranges, expr->op, right_ranges);
 	poss_false = possibly_false_range_lists_sval(left_ranges, expr->op, right_ranges);
 
-	free_range_list_sval(&left_ranges);
-	free_range_list_sval(&right_ranges);
+	free_range_list(&left_ranges);
+	free_range_list(&right_ranges);
 
 	if (!poss_true && !poss_false)
 		return 0;

@@ -130,13 +130,13 @@ free:
 struct smatch_state *filter_range(struct smatch_state *orig,
 				 sval_t filter_min, sval_t filter_max)
 {
-	struct range_list_sval *rl;
+	struct range_list *rl;
 
 	if (!orig)
 		orig = extra_undefined(filter_min.type);
 
 	rl = remove_range_sval(estate_ranges_sval(orig), filter_min, filter_max);
-	return alloc_estate_range_list_sval(rl);
+	return alloc_estate_range_list(rl);
 }
 
 struct smatch_state *add_filter(struct smatch_state *orig, sval_t sval)
@@ -147,14 +147,14 @@ struct smatch_state *add_filter(struct smatch_state *orig, sval_t sval)
 static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_state *s2)
 {
 	struct smatch_state *tmp;
-	struct range_list_sval *value_ranges;
+	struct range_list *value_ranges;
 	struct related_list *rlist;
 
 	if (estates_equiv(s1, s2))
 		return s1;
 
 	value_ranges = range_list_union_sval(estate_ranges_sval(s1), estate_ranges_sval(s2));
-	tmp = alloc_estate_range_list_sval(value_ranges);
+	tmp = alloc_estate_range_list(value_ranges);
 	rlist = get_shared_relations(estate_related(s1), estate_related(s2));
 	set_related(tmp, rlist);
 	if (estate_has_hard_max(s1) && estate_has_hard_max(s2))
@@ -424,7 +424,7 @@ static int types_equiv_or_pointer(struct symbol *one, struct symbol *two)
 
 static void match_assign(struct expression *expr)
 {
-	struct range_list_sval *rl = NULL;
+	struct range_list *rl = NULL;
 	struct expression *left;
 	struct expression *right;
 	struct symbol *right_sym;
@@ -462,9 +462,9 @@ static void match_assign(struct expression *expr)
 	known = get_implied_value_sval(right, &value);
 	switch (expr->op) {
 	case '=': {
-		if (get_implied_range_list_sval(right, &rl)) {
+		if (get_implied_range_list(right, &rl)) {
 			rl = cast_rl(rl, get_type(expr->left));
-			set_extra_mod(name, sym, alloc_estate_range_list_sval(rl));
+			set_extra_mod(name, sym, alloc_estate_range_list(rl));
 			goto free;
 		}
 
@@ -492,10 +492,10 @@ static void match_assign(struct expression *expr)
 		break;
 	}
 	if (!sval_is_min(right_min) || !sval_is_max(right_max))
-		rl = cast_rl(alloc_range_list_sval(right_min, right_max), get_type(expr->left));
+		rl = cast_rl(alloc_range_list(right_min, right_max), get_type(expr->left));
 	else
-		rl = whole_range_list_sval(get_type(expr->left));
-	set_extra_mod(name, sym, alloc_estate_range_list_sval(rl));
+		rl = whole_range_list(get_type(expr->left));
+	set_extra_mod(name, sym, alloc_estate_range_list(rl));
 free:
 	free_string(right_name);
 	free_string(name);
@@ -681,12 +681,12 @@ static void match_comparison(struct expression *expr)
 	struct expression *left = strip_expr(expr->left);
 	struct expression *right = strip_expr(expr->right);
 	struct symbol *type;
-	struct range_list_sval *left_orig;
-	struct range_list_sval *left_true;
-	struct range_list_sval *left_false;
-	struct range_list_sval *right_orig;
-	struct range_list_sval *right_true;
-	struct range_list_sval *right_false;
+	struct range_list *left_orig;
+	struct range_list *left_true;
+	struct range_list *left_false;
+	struct range_list *right_orig;
+	struct range_list *right_true;
+	struct range_list *right_false;
 	struct smatch_state *left_true_state;
 	struct smatch_state *left_false_state;
 	struct smatch_state *right_true_state;
@@ -722,28 +722,28 @@ static void match_comparison(struct expression *expr)
 		type = &llong_ctype;
 	}
 
-	if (get_implied_range_list_sval(left, &left_orig)) {
+	if (get_implied_range_list(left, &left_orig)) {
 		left_orig = cast_rl(left_orig, type);
 	} else {
 		min = sval_type_min(get_type(left));
 		max = sval_type_max(get_type(left));
-		left_orig = cast_rl(alloc_range_list_sval(min, max), type);
+		left_orig = cast_rl(alloc_range_list(min, max), type);
 	}
 
-	if (get_implied_range_list_sval(right, &right_orig)) {
+	if (get_implied_range_list(right, &right_orig)) {
 		right_orig = cast_rl(right_orig, type);
 	} else {
 		min = sval_type_min(get_type(right));
 		max = sval_type_max(get_type(right));
-		right_orig = cast_rl(alloc_range_list_sval(min, max), type);
+		right_orig = cast_rl(alloc_range_list(min, max), type);
 	}
 	min = sval_type_min(type);
 	max = sval_type_max(type);
 
-	left_true = clone_range_list_sval(left_orig);
-	left_false = clone_range_list_sval(left_orig);
-	right_true = clone_range_list_sval(right_orig);
-	right_false = clone_range_list_sval(right_orig);
+	left_true = clone_range_list(left_orig);
+	left_false = clone_range_list(left_orig);
+	right_true = clone_range_list(right_orig);
+	right_false = clone_range_list(right_orig);
 
 	switch (expr->op) {
 	case '<':
@@ -832,10 +832,10 @@ static void match_comparison(struct expression *expr)
 		return;
 	}
 
-	left_true_state = alloc_estate_range_list_sval(cast_rl(left_true, get_type(left)));
-	left_false_state = alloc_estate_range_list_sval(cast_rl(left_false, get_type(left)));
-	right_true_state = alloc_estate_range_list_sval(cast_rl(right_true, get_type(right)));
-	right_false_state = alloc_estate_range_list_sval(cast_rl(right_false, get_type(right)));
+	left_true_state = alloc_estate_range_list(cast_rl(left_true, get_type(left)));
+	left_false_state = alloc_estate_range_list(cast_rl(left_false, get_type(left)));
+	right_true_state = alloc_estate_range_list(cast_rl(right_true, get_type(right)));
+	right_false_state = alloc_estate_range_list(cast_rl(right_false, get_type(right)));
 
 	switch (expr->op) {
 	case '<':
@@ -938,7 +938,7 @@ int implied_not_equal(struct expression *expr, long long val)
 	return !possibly_false(expr, SPECIAL_NOTEQUAL, value_expr(val));
 }
 
-int get_implied_range_list_sval(struct expression *expr, struct range_list_sval **rl)
+int get_implied_range_list(struct expression *expr, struct range_list **rl)
 {
 	sval_t sval;
 	struct smatch_state *state;
@@ -952,7 +952,7 @@ int get_implied_range_list_sval(struct expression *expr, struct range_list_sval 
 
 	state = get_state_expr(my_id, expr);
 	if (state) {
-		*rl = clone_range_list_sval(estate_ranges_sval(state));
+		*rl = clone_range_list(estate_ranges_sval(state));
 		goto out;
 	}
 
@@ -980,7 +980,7 @@ int get_implied_range_list_sval(struct expression *expr, struct range_list_sval 
 	if (!get_implied_max_sval(expr, &max))
 		return 0;
 
-	*rl = alloc_range_list_sval(min, max);
+	*rl = alloc_range_list(min, max);
 
 out:
 	if (is_whole_range_rl_sval(*rl))
@@ -1002,7 +1002,7 @@ static void struct_member_callback(char *fn, char *global_static, int param, cha
 
 static void match_call_info(struct expression *expr)
 {
-	struct range_list_sval *rl = NULL;
+	struct range_list *rl = NULL;
 	struct expression *arg;
 	char *name;
 	int i = 0;
@@ -1012,7 +1012,7 @@ static void match_call_info(struct expression *expr)
 		return;
 
 	FOR_EACH_PTR(expr->args, arg) {
-		if (get_implied_range_list_sval(arg, &rl) && !is_whole_range_rl_sval(rl)) {
+		if (get_implied_range_list(arg, &rl) && !is_whole_range_rl_sval(rl)) {
 			sm_msg("info: passes param_value '%s' %d '$$' %s %s",
 			       name, i, show_ranges_sval(rl),
 			       is_static(expr->fn) ? "static" : "global");
@@ -1025,7 +1025,7 @@ static void match_call_info(struct expression *expr)
 
 static void set_param_value(const char *name, struct symbol *sym, char *key, char *value)
 {
-	struct range_list_sval *rl = NULL;
+	struct range_list *rl = NULL;
 	struct smatch_state *state;
 	char fullname[256];
 
@@ -1035,7 +1035,7 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 	snprintf(fullname, 256, "%s%s", name, key + 2);
 	get_value_ranges_type(get_real_base_type(sym), value, &rl);
 	rl = cast_rl(rl, get_real_base_type(sym));
-	state = alloc_estate_range_list_sval(rl);
+	state = alloc_estate_range_list(rl);
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
 

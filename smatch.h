@@ -102,7 +102,7 @@ enum hook_type {
 #define TRUE 1
 #define FALSE 0
 
-struct range_list_sval;
+struct range_list;
 
 void add_hook(void *func, enum hook_type type);
 typedef struct smatch_state *(merge_func_t)(struct smatch_state *s1, struct smatch_state *s2);
@@ -116,7 +116,7 @@ typedef void (implication_hook)(const char *fn, struct expression *call_expr,
 				struct expression *assign_expr, void *data);
 typedef void (return_implies_hook)(struct expression *call_expr,
 				   int param, char *key, char *value);
-typedef int (implied_return_hook)(struct expression *call_expr, void *info, struct range_list_sval **rl);
+typedef int (implied_return_hook)(struct expression *call_expr, void *info, struct range_list **rl);
 void add_function_hook(const char *look_for, func_hook *call_back, void *data);
 
 void add_function_assign_hook(const char *look_for, func_hook *call_back,
@@ -132,7 +132,7 @@ void return_implies_state(const char *look_for, long long start, long long end,
 			 implication_hook *call_back, void *info);
 void add_db_return_implies_callback(int type, return_implies_hook *callback);
 void add_db_return_states_callback(int type, return_implies_hook *callback);
-int get_implied_return_sval(struct expression *expr, struct range_list_sval **rl);
+int get_implied_return_sval(struct expression *expr, struct range_list **rl);
 
 typedef void (modification_hook)(struct sm_state *sm);
 void add_modification_hook(int owner, modification_hook *call_back);
@@ -327,7 +327,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 					struct expression *case_expr,
 					struct range_list_stack_sval **remaining_cases,
 					struct state_list **raw_slist);
-struct range_list_sval *__get_implied_values(struct expression *switch_expr);
+struct range_list *__get_implied_values(struct expression *switch_expr);
 
 /* smatch_extras.c */
 #define SMATCH_EXTRA 1 /* this is my_id from smatch extra set in smatch.c */
@@ -457,7 +457,7 @@ int get_return_id(void);
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
 void add_member_info_callback(int owner, void (*callback)(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state));
 void add_db_fn_call_callback(int type, void (*callback)(struct expression *arg, char *value));
-struct range_list_sval *db_return_vals(struct expression *expr);
+struct range_list *db_return_vals(struct expression *expr);
 
 #define run_sql(call_back, sql...)    \
 do {                                  \

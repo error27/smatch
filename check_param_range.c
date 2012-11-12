@@ -14,7 +14,7 @@
 static int my_id;
 
 static int have_returned_zero;
-static struct range_list_sval *param_constraints[16];
+static struct range_list *param_constraints[16];
 
 
 static struct statement *prev_statement(void)
@@ -104,7 +104,7 @@ static int get_param_num(struct expression *expr)
 	return -1;
 }
 
-static void add_param_constraint(int idx, struct range_list_sval *rl)
+static void add_param_constraint(int idx, struct range_list *rl)
 {
 	if (!param_constraints[idx]) {
 		param_constraints[idx] = rl;
