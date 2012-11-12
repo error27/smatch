@@ -332,7 +332,7 @@ struct range_list_sval *__get_implied_values(struct expression *switch_expr);
 /* smatch_extras.c */
 #define SMATCH_EXTRA 1 /* this is my_id from smatch extra set in smatch.c */
 
-struct data_range_sval {
+struct data_range {
 	sval_t min;
 	sval_t max;
 };

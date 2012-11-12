@@ -27,7 +27,7 @@
 
 struct fcall_back {
 	int type;
-	struct data_range_sval *range;
+	struct data_range *range;
 	union {
 		func_hook *call_back;
 		implication_hook *ranged;
@@ -171,7 +171,7 @@ static void call_ranged_call_backs(struct call_back_list *list,
 }
 
 static struct call_back_list *get_same_ranged_call_backs(struct call_back_list *list,
-						struct data_range_sval *drange)
+						struct data_range *drange)
 {
 	struct call_back_list *ret = NULL;
 	struct fcall_back *tmp;
@@ -185,9 +185,9 @@ static struct call_back_list *get_same_ranged_call_backs(struct call_back_list *
 	return ret;
 }
 
-static int in_list_exact_sval(struct range_list_sval *list, struct data_range_sval *drange)
+static int in_list_exact_sval(struct range_list_sval *list, struct data_range *drange)
 {
-	struct data_range_sval *tmp;
+	struct data_range *tmp;
 
 	FOR_EACH_PTR(list, tmp) {
 		if (ranges_equiv_sval(tmp, drange))
@@ -254,7 +254,7 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 	struct call_back_list *call_backs;
 	struct fcall_back *tmp;
 	const char *fn;
-	struct data_range_sval *value_range;
+	struct data_range *value_range;
 	struct state_list *true_states = NULL;
 	struct state_list *false_states = NULL;
 	struct state_list *tmp_slist;

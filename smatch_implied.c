@@ -71,7 +71,7 @@ int option_no_implied = 0;
 static struct range_list_sval *tmp_range_list(long long num)
 {
 	static struct range_list_sval *my_list = NULL;
-	static struct data_range_sval *my_range;
+	static struct data_range *my_range;
 
 	__free_ptr_list((struct ptr_list **)&my_list);
 	my_range = alloc_range_sval(ll_to_sval(num), ll_to_sval(num));

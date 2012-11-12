@@ -268,7 +268,7 @@ static sval_t handle_comparison(struct expression *expr, int *undefined, int imp
 	int res;
 
 	if (get_value_sval(expr->left, &left) && get_value_sval(expr->right, &right)) {
-		struct data_range_sval tmp_left, tmp_right;
+		struct data_range tmp_left, tmp_right;
 
 		tmp_left.min = left;
 		tmp_left.max = left;

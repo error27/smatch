@@ -11,7 +11,7 @@ enum data_type {
 	DATA_RANGE,
 };
 
-DECLARE_PTR_LIST(range_list_sval, struct data_range_sval);
+DECLARE_PTR_LIST(range_list_sval, struct data_range);
 DECLARE_PTR_LIST(range_list_stack_sval, struct range_list_sval);
 
 struct relation {
@@ -37,13 +37,13 @@ int is_whole_range_rl_sval(struct range_list_sval *rl);
 sval_t rl_min_sval(struct range_list_sval *rl);
 sval_t rl_max_sval(struct range_list_sval *rl);
 
-struct data_range_sval *alloc_range_perm_sval(sval_t min, sval_t max);
+struct data_range *alloc_range_perm_sval(sval_t min, sval_t max);
 struct range_list_sval *alloc_range_list_sval(sval_t min, sval_t max);
 struct range_list_sval *whole_range_list_sval(struct symbol *type);
 void add_range_sval(struct range_list_sval **list, sval_t min, sval_t max);
-int ranges_equiv_sval(struct data_range_sval *one, struct data_range_sval *two);
+int ranges_equiv_sval(struct data_range *one, struct data_range *two);
 int range_lists_equiv_sval(struct range_list_sval *one, struct range_list_sval *two);
-int true_comparison_range_sval(struct data_range_sval *left, int comparison, struct data_range_sval *right);
+int true_comparison_range_sval(struct data_range *left, int comparison, struct data_range *right);
 
 int possibly_true(struct expression *left, int comparison, struct expression *right);
 int possibly_true_range_lists_sval(struct range_list_sval *left_ranges, int comparison, struct range_list_sval *right_ranges);
@@ -101,10 +101,10 @@ int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval);
 
 void function_comparison(int comparison, struct expression *expr, sval_t sval, int left);
 
-int true_comparison_range_lr_sval(int comparison, struct data_range_sval *var, struct data_range_sval *val, int left);
-int false_comparison_range_lr_sval(int comparison, struct data_range_sval *var, struct data_range_sval *val, int left);
-struct data_range_sval *alloc_range_sval(sval_t min, sval_t max);
-void tack_on_sval(struct range_list_sval **list, struct data_range_sval *drange);
+int true_comparison_range_lr_sval(int comparison, struct data_range *var, struct data_range *val, int left);
+int false_comparison_range_lr_sval(int comparison, struct data_range *var, struct data_range *val, int left);
+struct data_range *alloc_range_sval(sval_t min, sval_t max);
+void tack_on_sval(struct range_list_sval **list, struct data_range *drange);
 
 struct smatch_state *alloc_estate_range_sval(sval_t min, sval_t max);
 

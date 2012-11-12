@@ -45,7 +45,7 @@ static struct smatch_state *alloc_absolute(sval_t min, sval_t max)
 
 static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_state *s2)
 {
-	struct data_range_sval *r1, *r2;
+	struct data_range *r1, *r2;
 	sval_t min, max;
 
 	if (!s1->data || !s2->data)
@@ -100,7 +100,7 @@ static void match_assign(struct expression *expr)
 
 static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
 {
-	struct data_range_sval *range;
+	struct data_range *range;
 
 	if (!state->data)
 		return;
@@ -161,7 +161,7 @@ static void set_param_limits(const char *name, struct symbol *sym, char *key, ch
 int get_absolute_min_helper(struct expression *expr, sval_t *sval)
 {
 	struct smatch_state *state;
-	struct data_range_sval *range;
+	struct data_range *range;
 
 	if (get_implied_value_sval(expr, sval))
 		return 1;
@@ -178,7 +178,7 @@ int get_absolute_min_helper(struct expression *expr, sval_t *sval)
 int get_absolute_max_helper(struct expression *expr, sval_t *sval)
 {
 	struct smatch_state *state;
-	struct data_range_sval *range;
+	struct data_range *range;
 
 	if (get_implied_max_sval(expr, sval))
 		return 1;
