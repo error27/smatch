@@ -494,7 +494,7 @@ static void info_record_alloction(struct expression *buffer, struct expression *
 		name = get_variable_from_expr(buffer, NULL);
 	if (!name)
 		return;
-	if (get_implied_value_sval(size, &sval))
+	if (get_implied_value(size, &sval))
 		sm_msg("info: '%s' allocated_buf_size %s", name, sval_to_str(sval));
 	else
 		sm_msg("info: '%s' allocated_buf_size -1", name);
@@ -513,7 +513,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 
 	info_record_alloction(expr->left, arg);
 
-	if (!get_implied_value_sval(arg, &bytes))
+	if (!get_implied_value(arg, &bytes))
 		return;
 	set_state_expr(my_size_id, expr->left, alloc_state_num(bytes.value));
 }
@@ -527,10 +527,10 @@ static void match_calloc(const char *fn, struct expression *expr, void *unused)
 
 	right = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(right->args, 0);
-	if (!get_implied_value_sval(arg, &elements))
+	if (!get_implied_value(arg, &elements))
 		return;
 	arg = get_argument_from_call_expr(right->args, 1);
-	if (!get_implied_value_sval(arg, &size))
+	if (!get_implied_value(arg, &size))
 		return;
 	set_state_expr(my_size_id, expr->left, alloc_state_num(elements.value * size.value));
 }

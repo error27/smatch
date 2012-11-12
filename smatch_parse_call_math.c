@@ -130,7 +130,7 @@ static int get_implied_param(struct expression *call, int param, sval_t *sval)
 	struct expression *arg;
 
 	arg = get_argument_from_call_expr(call->args, param);
-	return get_implied_value_sval(arg, sval);
+	return get_implied_value(arg, sval);
 }
 
 static int read_number(struct expression *call, char *p, char **end, sval_t *sval)
@@ -288,7 +288,7 @@ static int format_expr_helper(char *buf, int remaining, struct expression *expr)
 		return ret;
 	}
 
-	if (get_implied_value_sval(expr, &sval)) {
+	if (get_implied_value(expr, &sval)) {
 		ret = snprintf(cur, remaining, "%s", sval_to_str(sval));
 		remaining -= ret;
 		if (remaining <= 0)
@@ -364,7 +364,7 @@ static char *swap_format(struct expression *call, char *format)
 				out += ret;
 				if (out >= buf + sizeof(buf))
 					return NULL;
-			} else if (get_implied_value_sval(arg, &sval)) {
+			} else if (get_implied_value(arg, &sval)) {
 				ret = snprintf(out, buf + sizeof(buf) - out, "%s", sval_to_str(sval));
 				out += ret;
 				if (out >= buf + sizeof(buf))

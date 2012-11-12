@@ -53,7 +53,7 @@ static int definitely_just_used_as_limiter(struct expression *array, struct expr
 	int step = 0;
 	int dot_ops = 0;
 
-	if (!get_implied_value_sval(offset, &sval))
+	if (!get_implied_value(offset, &sval))
 		return 0;
 	if (get_array_size(array) != sval.value)
 		return 0;
@@ -144,9 +144,9 @@ static void match_condition(struct expression *expr)
 		return;
 	if (get_macro_name(expr->pos))
 		return;
-	if (get_implied_value_sval(expr->left, &sval))
+	if (get_implied_value(expr->left, &sval))
 		left = 1;
-	else if (get_implied_value_sval(expr->right, &sval))
+	else if (get_implied_value(expr->right, &sval))
 		left = 0;
 	else
 		return;
@@ -227,7 +227,7 @@ static void match_snprintf(const char *fn, struct expression *expr, void *unused
 	data = get_argument_from_call_expr(expr->args, 3);
 
 	dest_size = get_array_size_bytes(dest);
-	if (!get_implied_value_sval(dest_size_expr, &limit_size))
+	if (!get_implied_value(dest_size_expr, &limit_size))
 		return;
 	if (dest_size && dest_size < limit_size.value)
 		sm_msg("error: snprintf() is printing too much %s vs %d",

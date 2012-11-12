@@ -44,7 +44,7 @@ static void match_return(struct expression *ret_value)
 		match_err_ptr((struct expression *)tmp->state->data);
 	} END_FOR_EACH_PTR(tmp);
 
-	if (get_implied_value_sval(ret_value, &sval)) {
+	if (get_implied_value(ret_value, &sval)) {
 		if (sval.value == 0)
 			returns_null = 1;
 	}

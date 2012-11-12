@@ -220,7 +220,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 		return NULL;
 	if (!estate_get_single_value_sval(sm->state, &start))
 		return NULL;
-	if (!get_implied_value_sval(condition->right, &end))
+	if (!get_implied_value(condition->right, &end))
 		end = sval_type_max(get_type(iter_var));
 
 	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
@@ -260,7 +260,7 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 		return NULL;
 	if (!estate_get_single_value_sval(sm->state, &start))
 		return NULL;
-	if (!get_implied_value_sval(condition->right, &end))
+	if (!get_implied_value(condition->right, &end))
 		end = sval_type_min(get_type(iter_var));
 	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
 		return NULL;
@@ -459,7 +459,7 @@ static void match_assign(struct expression *expr)
 	right_min = sval_type_min(get_type(expr->right));
 	right_max = sval_type_max(get_type(expr->right));
 
-	known = get_implied_value_sval(right, &value);
+	known = get_implied_value(right, &value);
 	switch (expr->op) {
 	case '=': {
 		if (get_implied_range_list(right, &rl)) {
@@ -648,14 +648,14 @@ static int match_func_comparison(struct expression *expr)
 	sval_t sval;
 
 	if (left->type == EXPR_CALL) {
-		if (!get_implied_value_sval(right, &sval))
+		if (!get_implied_value(right, &sval))
 			return 1;
 		function_comparison(expr->op, left, sval, 1);
 		return 1;
 	}
 
 	if (right->type == EXPR_CALL) {
-		if (!get_implied_value_sval(left, &sval))
+		if (!get_implied_value(left, &sval))
 			return 1;
 		function_comparison(expr->op, right, sval, 0);
 		return 1;
@@ -963,13 +963,13 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 		goto out;
 	}
 
-	if (get_implied_value_sval(expr, &sval)) {
+	if (get_implied_value(expr, &sval)) {
 		add_range_sval(rl, sval, sval);
 		goto out;
 	}
 
 	if (expr->type == EXPR_BINOP && expr->op == '%') {
-		if (!get_implied_value_sval(expr->right, &sval))
+		if (!get_implied_value(expr->right, &sval))
 			return 0;
 		add_range_sval(rl, ll_to_sval(0), ll_to_sval(sval.value - 1));
 		goto out;

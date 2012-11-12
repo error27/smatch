@@ -18,7 +18,7 @@ static void match_free(const char *fn, struct expression *expr, void *data)
 	sval_t sval;
 
 	arg_expr = get_argument_from_call_expr(expr->args, 0);
-	if (!get_implied_value_sval(arg_expr, &sval))
+	if (!get_implied_value(arg_expr, &sval))
 		return;
 	if (sval.value != 0)
 		return;

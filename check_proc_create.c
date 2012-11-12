@@ -29,7 +29,7 @@ static void match_create(const char *fn, struct expression *expr, void *_param_t
 	int idx = PTR_INT(_param_type);
 
 	arg_expr = get_argument_from_call_expr(expr->args, param_index[idx].mode_param);
-	if (!get_implied_value_sval(arg_expr, &sval))
+	if (!get_implied_value(arg_expr, &sval))
 		return;
 	if (!(sval.uvalue & S_IWOTH))
 		return;

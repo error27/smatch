@@ -305,8 +305,8 @@ static sval_t handle_logical(struct expression *expr, int *undefined, int implie
 
 	if ((implied == NOTIMPLIED && get_value(expr->left, &left) &&
 				      get_value(expr->right, &right)) ||
-	    (implied != NOTIMPLIED && get_implied_value_sval(expr->left, &left) &&
-				      get_implied_value_sval(expr->right, &right))) {
+	    (implied != NOTIMPLIED && get_implied_value(expr->left, &left) &&
+				      get_implied_value(expr->right, &right))) {
 		switch (expr->op) {
 		case SPECIAL_LOGICAL_OR:
 			if (left.value || right.value)
@@ -581,7 +581,7 @@ int get_value(struct expression *expr, sval_t *sval)
 	return 1;
 }
 
-int get_implied_value_sval(struct expression *expr, sval_t *sval)
+int get_implied_value(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
 	sval_t ret;
@@ -728,7 +728,7 @@ int implied_condition_true(struct expression *expr)
 
 	if (known_condition_true(expr))
 		return 1;
-	if (get_implied_value_sval(expr, &tmp) && tmp.value)
+	if (get_implied_value(expr, &tmp) && tmp.value)
 		return 1;
 
 	if (expr->type == EXPR_POSTOP)
@@ -786,7 +786,7 @@ int implied_condition_false(struct expression *expr)
 			return implied_condition_false(tmp);
 		break;
 	default:
-		if (get_implied_value_sval(expr, &sval) && sval.value == 0)
+		if (get_implied_value(expr, &sval) && sval.value == 0)
 			return 1;
 		break;
 	}

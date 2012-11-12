@@ -41,7 +41,7 @@ static void match_assign(struct expression *expr)
 	}
 	if (sym->bit_size >= 32) /* max_val limits this */
 		return;
-	if (!get_implied_value_sval(expr->right, &sval))
+	if (!get_implied_value(expr->right, &sval))
 		return;
 	max = sval_type_max(sym);
 	if (sval_cmp(max, sval) < 0 && !(sval.value < 256 && max.value == 127)) {

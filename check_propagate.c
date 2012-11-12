@@ -49,7 +49,7 @@ static void match_return(struct expression *ret_value)
 
 	if (!get_value(ret_value, &rval) || rval.value >= 0)
 		return;
-	if (get_implied_value_sval(last_return, &lret))
+	if (get_implied_value(last_return, &lret))
 		return;
 	if (!get_implied_max_sval(last_return, &lret) || lret.value >= 0)
 		return;

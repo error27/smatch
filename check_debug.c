@@ -169,7 +169,7 @@ static void match_sval_info(const char *fn, struct expression *expr, void *info)
 	arg = get_argument_from_call_expr(expr->args, 0);
 	name = get_variable_from_expr_complex(arg, NULL);
 
-	if (!get_implied_value_sval(arg, &sval)) {
+	if (!get_implied_value(arg, &sval)) {
 		sm_msg("no sval for '%s'", name);
 		goto free;
 	}

@@ -222,7 +222,7 @@ char *get_variable_from_expr(struct expression *expr,
 			     struct symbol **sym_ptr);
 int sym_name_is(const char *name, struct expression *expr);
 int get_value(struct expression *expr, sval_t *val);
-int get_implied_value_sval(struct expression *expr, sval_t *val);
+int get_implied_value(struct expression *expr, sval_t *val);
 int get_implied_min_sval(struct expression *expr, sval_t *sval);
 int get_implied_max_sval(struct expression *expr, sval_t *val);
 int get_hard_max(struct expression *expr, sval_t *sval);

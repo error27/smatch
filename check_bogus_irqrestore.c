@@ -17,7 +17,7 @@ static void match_irqrestore(const char *fn, struct expression *expr, void *data
 	sval_t tmp;
 
 	arg_expr = get_argument_from_call_expr(expr->args, 1);
-	if (!get_implied_value_sval(arg_expr, &tmp))
+	if (!get_implied_value(arg_expr, &tmp))
 		return;
 	sm_msg("error: calling '%s()' with bogus flags", fn);
 }
