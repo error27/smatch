@@ -513,6 +513,7 @@ struct expression *get_assigned_expr(struct expression *expr);
 sval_t *sval_alloc(sval_t sval);
 sval_t *sval_alloc_permanent(sval_t sval);
 sval_t sval_blank(struct expression *expr);
+sval_t sval_type_val(struct symbol *type, long long val);
 sval_t sval_from_val(struct expression *expr, long long val);
 int sval_unsigned(sval_t sval);
 int sval_signed(sval_t sval);

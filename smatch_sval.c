@@ -52,6 +52,15 @@ sval_t sval_blank(struct expression *expr)
 	return ret;
 }
 
+sval_t sval_type_val(struct symbol *type, long long val)
+{
+	sval_t ret;
+
+	ret.type = type;
+	ret.value = val;
+	return ret;
+}
+
 sval_t sval_from_val(struct expression *expr, long long val)
 {
 	sval_t ret;
