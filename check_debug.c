@@ -112,6 +112,23 @@ static void match_print_hard_max(const char *fn, struct expression *expr, void *
 	free_string(name);
 }
 
+static void match_print_fuzzy_max(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	sval_t sval;
+	char *name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	name = get_variable_from_expr_complex(arg, NULL);
+
+	if (get_fuzzy_max_sval(arg, &sval))
+		sm_msg("fuzzy max: %s = %s", name, sval_to_str(sval));
+	else
+		sm_msg("fuzzy max: %s = <unknown>", name);
+
+	free_string(name);
+}
+
 static void match_print_absolute_min(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
@@ -266,6 +283,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_implied_min", &match_print_implied_min, NULL);
 	add_function_hook("__smatch_implied_max", &match_print_implied_max, NULL);
 	add_function_hook("__smatch_hard_max", &match_print_hard_max, NULL);
+	add_function_hook("__smatch_fuzzy_max", &match_print_fuzzy_max, NULL);
 	add_function_hook("__smatch_absolute_min", &match_print_absolute_min, NULL);
 	add_function_hook("__smatch_absolute_max", &match_print_absolute_max, NULL);
 	add_function_hook("__smatch_sval_info", &match_sval_info, NULL);
