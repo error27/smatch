@@ -180,7 +180,7 @@ int get_absolute_max_helper(struct expression *expr, sval_t *sval)
 	struct smatch_state *state;
 	struct data_range_sval *range;
 
-	if (get_implied_value_sval(expr, sval))
+	if (get_implied_max_sval(expr, sval))
 		return 1;
 
 	state = get_state_expr(my_id, expr);
