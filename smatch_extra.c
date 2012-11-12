@@ -471,23 +471,23 @@ static void match_assign(struct expression *expr)
 		break;
 	}
 	case SPECIAL_ADD_ASSIGN:
-		if (get_implied_min_sval(left, &tmp)) {
+		if (get_implied_min(left, &tmp)) {
 			if (known)
 				right_min = sval_binop(tmp, '+', value);
 			else
 				right_min = tmp;
 		}
-		if (!inside_loop() && known && get_implied_max_sval(left, &tmp))
+		if (!inside_loop() && known && get_implied_max(left, &tmp))
 			right_max = sval_binop(tmp, '+', value);
 		break;
 	case SPECIAL_SUB_ASSIGN:
-		if (get_implied_max_sval(left, &tmp)) {
+		if (get_implied_max(left, &tmp)) {
 			if (known)
 				right_max = sval_binop(tmp, '-', value);
 			else
 				right_max = tmp;
 		}
-		if (!inside_loop() && known && get_implied_min_sval(left, &tmp))
+		if (!inside_loop() && known && get_implied_min(left, &tmp))
 			right_min = sval_binop(tmp, '-', value);
 		break;
 	}
@@ -975,9 +975,9 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 		goto out;
 	}
 
-	if (!get_implied_min_sval(expr, &min))
+	if (!get_implied_min(expr, &min))
 		return 0;
-	if (!get_implied_max_sval(expr, &max))
+	if (!get_implied_max(expr, &max))
 		return 0;
 
 	*rl = alloc_range_list(min, max);

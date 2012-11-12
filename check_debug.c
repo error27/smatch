@@ -70,7 +70,7 @@ static void match_print_implied_min(const char *fn, struct expression *expr, voi
 	arg = get_argument_from_call_expr(expr->args, 0);
 	name = get_variable_from_expr_complex(arg, NULL);
 
-	if (get_implied_min_sval(arg, &sval))
+	if (get_implied_min(arg, &sval))
 		sm_msg("implied min: %s = %s", name, sval_to_str(sval));
 	else
 		sm_msg("implied min: %s = <unknown>", name);
@@ -87,7 +87,7 @@ static void match_print_implied_max(const char *fn, struct expression *expr, voi
 	arg = get_argument_from_call_expr(expr->args, 0);
 	name = get_variable_from_expr_complex(arg, NULL);
 
-	if (get_implied_max_sval(arg, &sval))
+	if (get_implied_max(arg, &sval))
 		sm_msg("implied max: %s = %s", name, sval_to_str(sval));
 	else
 		sm_msg("implied max: %s = <unknown>", name);

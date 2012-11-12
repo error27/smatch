@@ -280,7 +280,7 @@ static int get_size_from_strlen(struct expression *expr)
 	state = get_state_expr(my_strlen_id, expr);
 	if (!state || !state->data)
 		return 0;
-	if (get_implied_max_sval((struct expression *)state->data, &len))
+	if (get_implied_max((struct expression *)state->data, &len))
 		return len.value + 1; /* add one because strlen doesn't include the NULL */
 	return 0;
 }
@@ -566,7 +566,7 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 
 	dest = get_argument_from_call_expr(expr->args, limiter->buf_arg);
 	size_expr = get_argument_from_call_expr(expr->args, limiter->limit_arg);
-	if (!get_implied_max_sval(size_expr, &size))
+	if (!get_implied_max(size_expr, &size))
 		return;
 	set_state_expr(my_size_id, dest, alloc_state_num(size.value));
 }
@@ -589,7 +589,7 @@ static void match_strndup(const char *fn, struct expression *expr, void *unused)
 
 	fn_expr = strip_expr(expr->right);
 	size_expr = get_argument_from_call_expr(fn_expr->args, 1);
-	if (!get_implied_max_sval(size_expr, &size))
+	if (!get_implied_max(size_expr, &size))
 		return;
 
 	/* It's easy to forget space for the NUL char */

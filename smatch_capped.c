@@ -68,7 +68,7 @@ int is_capped(struct expression *expr)
 			return 0;
 		return 1;
 	}
-	if (get_implied_max_sval(expr, &sval))
+	if (get_implied_max(expr, &sval))
 		return 1;
 	if (get_state_expr(my_id, expr) == &capped)
 		return 1;

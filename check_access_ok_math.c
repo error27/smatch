@@ -29,7 +29,7 @@ static int can_overflow(struct expression *expr)
 		return 0;
 	}
 
-	if (get_implied_max_sval(expr, &max))
+	if (get_implied_max(expr, &max))
 		return 0;
 	if (get_absolute_max_sval(expr, &max) && sval_cmp_val(max, 4096) <= 0)
 		return 0;

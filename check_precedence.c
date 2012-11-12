@@ -27,9 +27,9 @@ static int is_bool_from_context(struct expression *expr)
 {
 	sval_t sval;
 
-	if (!get_implied_max_sval(expr, &sval) || sval.uvalue > 1)
+	if (!get_implied_max(expr, &sval) || sval.uvalue > 1)
 		return 0;
-	if (!get_implied_min_sval(expr, &sval) || sval.value < 0)
+	if (!get_implied_min(expr, &sval) || sval.value < 0)
 		return 0;
 	return 1;
 }

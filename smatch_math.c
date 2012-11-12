@@ -432,7 +432,7 @@ static int get_fuzzy_min_helper(struct expression *expr, sval_t *min)
 	struct sm_state *tmp;
 	sval_t sval;
 
-	if (get_implied_min_sval(expr, min))
+	if (get_implied_min(expr, min))
 		return 1;
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
@@ -593,7 +593,7 @@ int get_implied_value(struct expression *expr, sval_t *sval)
 	return 1;
 }
 
-int get_implied_min_sval(struct expression *expr, sval_t *sval)
+int get_implied_min(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
 	sval_t ret;
@@ -605,7 +605,7 @@ int get_implied_min_sval(struct expression *expr, sval_t *sval)
 	return 1;
 }
 
-int get_implied_max_sval(struct expression *expr, sval_t *sval)
+int get_implied_max(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
 	sval_t ret;
