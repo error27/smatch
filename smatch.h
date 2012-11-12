@@ -230,7 +230,7 @@ int get_fuzzy_min(struct expression *expr, sval_t *min);
 int get_fuzzy_max(struct expression *expr, sval_t *max);
 int get_absolute_min(struct expression *expr, sval_t *sval);
 int get_absolute_max(struct expression *expr, sval_t *sval);
-int parse_call_math_sval(struct expression *expr, char *math, sval_t *val);
+int parse_call_math(struct expression *expr, char *math, sval_t *val);
 int is_zero(struct expression *expr);
 int known_condition_true(struct expression *expr);
 int known_condition_false(struct expression *expr);

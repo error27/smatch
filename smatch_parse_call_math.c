@@ -171,7 +171,7 @@ static char *read_op(char *p)
 	}
 }
 
-int parse_call_math_sval(struct expression *call, char *math, sval_t *sval)
+int parse_call_math(struct expression *call, char *math, sval_t *sval)
 {
 	sval_t tmp;
 	char *c;

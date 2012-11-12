@@ -182,7 +182,7 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 		return;
 	call = strip_expr(expr->right);
 
-	if (!parse_call_math_sval(call, math, &sval))
+	if (!parse_call_math(call, math, &sval))
 		return;
 	set_state_expr(my_size_id, expr->left, alloc_state_num(sval.value));
 }

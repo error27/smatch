@@ -315,7 +315,7 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 	call = strip_expr(expr->right);
 	type = get_pointer_type(expr->left);
 
-	if (!parse_call_math_sval(call, math, &sval) || sval.value == 0)
+	if (!parse_call_math(call, math, &sval) || sval.value == 0)
 		return;
 	if (!type)
 		return;
