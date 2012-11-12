@@ -146,7 +146,7 @@ int is_whole_range_rl(struct range_list *rl)
 	return 0;
 }
 
-sval_t rl_min_sval(struct range_list *rl)
+sval_t rl_min(struct range_list *rl)
 {
 	struct data_range *drange;
 	sval_t ret;
@@ -159,7 +159,7 @@ sval_t rl_min_sval(struct range_list *rl)
 	return drange->min;
 }
 
-sval_t rl_max_sval(struct range_list *rl)
+sval_t rl_max(struct range_list *rl)
 {
 	struct data_range *drange;
 	sval_t ret;
@@ -644,17 +644,17 @@ struct range_list *cast_rl(struct range_list *rl, struct symbol *type)
 	if (!type)
 		return clone_range_list(rl);
 
-	if (sval_cmp(rl_min_sval(rl), rl_max_sval(rl)) == 0) {
-		sval_t sval = sval_cast(rl_min_sval(rl), type);
+	if (sval_cmp(rl_min(rl), rl_max(rl)) == 0) {
+		sval_t sval = sval_cast(rl_min(rl), type);
 		return alloc_range_list(sval, sval);
 	}
 
 	set_max = 0;
-	if (type_unsigned(type) && sval_cmp_val(rl_min_sval(rl), 0) < 0)
+	if (type_unsigned(type) && sval_cmp_val(rl_min(rl), 0) < 0)
 		set_max = 1;
 
 	set_min = 0;
-	if (type_signed(type) && sval_cmp(rl_max_sval(rl), sval_type_max(type)) > 0)
+	if (type_signed(type) && sval_cmp(rl_max(rl), sval_type_max(type)) > 0)
 		set_min = 1;
 
 	FOR_EACH_PTR(rl, tmp) {

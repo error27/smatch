@@ -93,8 +93,8 @@ static void match_assign(struct expression *expr)
 	rl = alloc_range_list(min, max);
 	rl = cast_rl(rl, left_type);
 
-	min = rl_min_sval(rl);
-	max = rl_max_sval(rl);
+	min = rl_min(rl);
+	max = rl_max(rl);
 	set_state_expr(my_id, expr->left, alloc_absolute(min, max));
 }
 
@@ -153,8 +153,8 @@ static void set_param_limits(const char *name, struct symbol *sym, char *key, ch
 
 	snprintf(fullname, 256, "%s%s", name, key + 2);
 	get_value_ranges_sval(value, &rl);
-	min = rl_min_sval(rl);
-	max = rl_max_sval(rl);
+	min = rl_min(rl);
+	max = rl_max(rl);
 	set_state(my_id, fullname, sym, alloc_absolute(min, max));
 }
 

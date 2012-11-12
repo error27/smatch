@@ -64,23 +64,23 @@ int estate_get_hard_max(struct smatch_state *state, sval_t *sval)
 {
 	if (!state || !get_dinfo(state)->hard_max || !estate_ranges_sval(state))
 		return 0;
-	*sval = rl_max_sval(estate_ranges_sval(state));
+	*sval = rl_max(estate_ranges_sval(state));
 	return 1;
 }
 
 sval_t estate_min_sval(struct smatch_state *state)
 {
-	return rl_min_sval(estate_ranges_sval(state));
+	return rl_min(estate_ranges_sval(state));
 }
 
 sval_t estate_max_sval(struct smatch_state *state)
 {
-	return rl_max_sval(estate_ranges_sval(state));
+	return rl_max(estate_ranges_sval(state));
 }
 
 struct symbol *estate_type(struct smatch_state *state)
 {
-	return rl_max_sval(estate_ranges_sval(state)).type;
+	return rl_max(estate_ranges_sval(state)).type;
 }
 
 static int rlists_equiv(struct related_list *one, struct related_list *two)
@@ -123,8 +123,8 @@ int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval)
 {
 	sval_t min, max;
 
-	min = rl_min_sval(estate_ranges_sval(state));
-	max = rl_max_sval(estate_ranges_sval(state));
+	min = rl_min(estate_ranges_sval(state));
+	max = rl_max(estate_ranges_sval(state));
 	if (sval_cmp(min, max) != 0)
 		return 0;
 	*sval = min;
