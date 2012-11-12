@@ -18,7 +18,7 @@ static void match_condition(struct expression *expr)
 	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
 		return;
 
-	if (!get_value_sval(expr->right, &val))
+	if (!get_value(expr->right, &val))
 		return;
 	sm_msg("warn: was '== %s' instead of '='", sval_to_str(val));
 }

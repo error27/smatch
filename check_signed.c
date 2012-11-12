@@ -84,7 +84,7 @@ static int cap_gt_zero_and_lt(struct expression *expr)
 	int ret = 0;
 	int i;
 
-	if (!get_value_sval(expr->right, &known) || known.value != 0)
+	if (!get_value(expr->right, &known) || known.value != 0)
 		return 0;
 	if (expr->op != SPECIAL_UNSIGNED_GT && expr->op != SPECIAL_UNSIGNED_GTE)
 		return 0;
@@ -134,7 +134,7 @@ static int cap_lt_zero_or_gt(struct expression *expr)
 	int ret = 0;
 	int i;
 
-	if (!get_value_sval(expr->right, &known) || known.value != 0)
+	if (!get_value(expr->right, &known) || known.value != 0)
 		return 0;
 	if (expr->op != SPECIAL_UNSIGNED_LT && expr->op != SPECIAL_UNSIGNED_LTE)
 		return 0;
@@ -189,7 +189,7 @@ static int compare_against_macro(struct expression *expr)
 	if (expr->op != SPECIAL_UNSIGNED_LT)
 		return 0;
 
-	if (!get_value_sval(expr->right, &known) || known.value != 0)
+	if (!get_value(expr->right, &known) || known.value != 0)
 		return 0;
 	return !!get_macro_name(expr->right->pos);
 }
@@ -202,7 +202,7 @@ static int print_unsigned_never_less_than_zero(struct expression *expr)
 	if (expr->op != SPECIAL_UNSIGNED_LT)
 		return 0;
 
-	if (!get_value_sval(expr->right, &known) || known.value != 0)
+	if (!get_value(expr->right, &known) || known.value != 0)
 		return 0;
 
 	name = get_variable_from_expr_complex(expr->left, NULL);
@@ -247,8 +247,8 @@ static void match_condition(struct expression *expr)
 		return;
 
 	/* check that one and only one side is known */
-	if (get_value_sval(expr->left, &known)) {
-		if (get_value_sval(expr->right, &known))
+	if (get_value(expr->left, &known)) {
+		if (get_value(expr->right, &known))
 			return;
 		rl_left_orig = alloc_range_list(known, known);
 		rl_left = cast_rl(rl_left_orig, type);
@@ -257,7 +257,7 @@ static void match_condition(struct expression *expr)
 		max = sval_type_max(get_type(expr->right));
 		rl_right_orig = alloc_range_list(min, max);
 		rl_right = cast_rl(rl_right_orig, type);
-	} else if (get_value_sval(expr->right, &known)) {
+	} else if (get_value(expr->right, &known)) {
 		rl_right_orig = alloc_range_list(known, known);
 		rl_right = cast_rl(rl_right_orig, type);
 

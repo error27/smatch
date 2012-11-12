@@ -47,7 +47,7 @@ static void match_return(struct expression *ret_value)
 	sval_t lret;
 	char *name;
 
-	if (!get_value_sval(ret_value, &rval) || rval.value >= 0)
+	if (!get_value(ret_value, &rval) || rval.value >= 0)
 		return;
 	if (get_implied_value_sval(last_return, &lret))
 		return;

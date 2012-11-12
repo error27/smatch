@@ -32,8 +32,8 @@ static void match_logic(struct expression *expr)
 	if (get_macro_name(expr->pos))
 		return;
 
-	if (!get_value_sval(expr->right, &sval)) {
-		if (!get_value_sval(expr->left, &sval))
+	if (!get_value(expr->right, &sval)) {
+		if (!get_value(expr->left, &sval))
 			return;
 	}
 

@@ -52,7 +52,7 @@ static int is_error_value(struct expression *ret_value)
 	if (ret_value->type != EXPR_PREOP || ret_value->op != '-')
 		return 0;
 
-	if (!get_value_sval(ret_value, &sval))
+	if (!get_value(ret_value, &sval))
 		return 0;
 	if (sval.value < -4095 || sval.value >= 0)
 		return 0;

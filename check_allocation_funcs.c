@@ -53,7 +53,7 @@ static void match_return(struct expression *ret_value)
 	struct symbol *sym;
 	sval_t tmp;
 
-	if (get_value_sval(ret_value, &tmp) && tmp.value == 0)
+	if (get_value(ret_value, &tmp) && tmp.value == 0)
 		return;
 	returns_new_stuff = 1;
 	name = get_variable_from_expr(ret_value, &sym);

@@ -25,7 +25,7 @@ static const char *get_shifter(struct expression *expr)
 	expr = strip_expr(expr);
 	if (expr->type != EXPR_VALUE)
 		return NULL;
-	if (!get_value_sval(expr, &expr_value))
+	if (!get_value(expr, &expr_value))
 		return NULL;
 	name = pos_ident(expr->pos);
 	if (!name)
@@ -113,7 +113,7 @@ static void match_binop_info(struct expression *expr)
 	name = pos_ident(expr->right->pos);
 	if (!name)
 		return;
-	if (!get_value_sval(expr->right, &sval))
+	if (!get_value(expr->right, &sval))
 		return;
 	sm_msg("info: bit shifter '%s' '%s'", name, sval_to_str(sval));
 }
@@ -131,7 +131,7 @@ static void match_call(const char *fn, struct expression *expr, void *_arg_no)
 	name = pos_ident(arg_expr->pos);
 	if (!name)
 		return;
-	if (!get_value_sval(arg_expr, &sval))
+	if (!get_value(arg_expr, &sval))
 		return;
 	sm_msg("info: bit shifter '%s' '%s'", name, sval_to_str(sval));
 }

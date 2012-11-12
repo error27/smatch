@@ -25,7 +25,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *_arg)
 	sval_t sval;
 
 	arg_expr = get_argument_from_call_expr(expr->args, arg_nr);
-	if (!get_value_sval(arg_expr, &sval))
+	if (!get_value(arg_expr, &sval))
 		return;
 	if (sval.uvalue == 0) /* GFP_NOWAIT */
 		return;

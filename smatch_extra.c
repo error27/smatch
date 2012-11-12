@@ -367,8 +367,8 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 
 	if (condition->type != EXPR_COMPARE)
 		return;
-	if (!get_value_sval(condition->left, &value)) {
-		if (!get_value_sval(condition->right, &value))
+	if (!get_value(condition->left, &value)) {
+		if (!get_value(condition->right, &value))
 			return;
 		left = 1;
 	}

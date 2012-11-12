@@ -18,7 +18,7 @@ static void match_mod_timer(const char *fn, struct expression *expr, void *param
 	sval_t sval;
 
 	arg = get_argument_from_call_expr(expr->args, 1);
-	if (!get_value_sval(arg, &sval) || sval.value == 0)
+	if (!get_value(arg, &sval) || sval.value == 0)
 		return;
 	sm_msg("warn: mod_timer() takes an absolute time not an offset.");
 }

@@ -19,7 +19,7 @@ static void check_sizeof(struct expression *expr, char *ptr_name)
 	if (!expr || expr->type != EXPR_SIZEOF)
 		return;
 
-	get_value_sval(expr, &sval);
+	get_value(expr, &sval);
 
 	expr = strip_expr(expr->cast_expression);
 	name = get_variable_from_expr_complex(expr, NULL);

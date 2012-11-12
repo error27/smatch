@@ -20,7 +20,7 @@ static void match_memset(const char *fn, struct expression *expr, void *data)
 
 	if (arg_expr->type != EXPR_VALUE)
 		return;
-	if (!get_value_sval(arg_expr, &sval))
+	if (!get_value(arg_expr, &sval))
 		return;
 	if (sval.value != 0)
 		return;

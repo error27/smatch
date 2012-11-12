@@ -481,7 +481,7 @@ static int is_case_val(struct statement *stmt, sval_t sval)
 		__set_default();
 		return 1;
 	}
-	if (!get_value_sval(stmt->case_expression, &case_sval))
+	if (!get_value(stmt->case_expression, &case_sval))
 		return 0;
 	if (case_sval.value == sval.value)
 		return 1;
@@ -622,7 +622,7 @@ void __split_stmt(struct statement *stmt)
 		}
 		return;
 	case STMT_SWITCH:
-		if (get_value_sval(stmt->switch_expression, &sval)) {
+		if (get_value(stmt->switch_expression, &sval)) {
 			split_known_switch(stmt, sval);
 			return;
 		}

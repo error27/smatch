@@ -418,7 +418,7 @@ static int is_merged_expr(struct expression  *expr)
 	struct sm_state *sm;
 	sval_t dummy;
 
-	if (get_value_sval(expr, &dummy))
+	if (get_value(expr, &dummy))
 		return 0;
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
 	if (!sm)
@@ -589,7 +589,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	if (!case_expr) {
 		vals = top_range_list(*remaining_cases);
 	} else {
-		if (!get_value_sval(case_expr, &sval))
+		if (!get_value(case_expr, &sval))
 			goto free;
 
 		filter_top_range_list(remaining_cases, sval);

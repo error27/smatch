@@ -306,7 +306,7 @@ int is_zero(struct expression *expr)
 {
 	sval_t sval;
 
-	if (get_value_sval(expr, &sval) && sval.value == 0)
+	if (get_value(expr, &sval) && sval.value == 0)
 		return 1;
 	return 0;
 }
@@ -421,7 +421,7 @@ int is_error_return(struct expression *expr)
 	cur_func = get_base_type(cur_func);
 	if (cur_func == &void_ctype)
 		return 0;
-	if (!get_value_sval(expr, &sval))
+	if (!get_value(expr, &sval))
 		return 0;
 	if (sval_cmp_val(sval, 0) < 0)
 		return 1;

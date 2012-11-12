@@ -150,7 +150,7 @@ static int called_with_no_fail(struct expression *call, int param)
 	if (call->type != EXPR_CALL)
 		return 0;
 	arg = get_argument_from_call_expr(call->args, param);
-	if (get_value_sval(arg, &sval) && (sval.uvalue & __GFP_NOFAIL))
+	if (get_value(arg, &sval) && (sval.uvalue & __GFP_NOFAIL))
 		return 1;
 	return 0;
 }

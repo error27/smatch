@@ -16,7 +16,7 @@ static int right_side_changes(struct expression *expr)
 {
 	sval_t dummy;
 
-	if (get_value_sval(expr->right, &dummy))
+	if (get_value(expr->right, &dummy))
 		return 0;
 	return 1;
 }

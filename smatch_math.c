@@ -54,7 +54,7 @@ static int last_stmt_sval(struct statement *stmt, sval_t *sval)
 	if (stmt->type != STMT_EXPRESSION)
 		return 0;
 	expr = stmt->expression;
-	if (!get_value_sval(expr, sval))
+	if (!get_value(expr, sval))
 		return 0;
 	return 1;
 }
@@ -267,7 +267,7 @@ static sval_t handle_comparison(struct expression *expr, int *undefined, int imp
 	sval_t left, right;
 	int res;
 
-	if (get_value_sval(expr->left, &left) && get_value_sval(expr->right, &right)) {
+	if (get_value(expr->left, &left) && get_value(expr->right, &right)) {
 		struct data_range tmp_left, tmp_right;
 
 		tmp_left.min = left;
@@ -303,8 +303,8 @@ static sval_t handle_logical(struct expression *expr, int *undefined, int implie
 {
 	sval_t left, right;
 
-	if ((implied == NOTIMPLIED && get_value_sval(expr->left, &left) &&
-				      get_value_sval(expr->right, &right)) ||
+	if ((implied == NOTIMPLIED && get_value(expr->left, &left) &&
+				      get_value(expr->right, &right)) ||
 	    (implied != NOTIMPLIED && get_implied_value_sval(expr->left, &left) &&
 				      get_implied_value_sval(expr->right, &right))) {
 		switch (expr->op) {
@@ -362,7 +362,7 @@ static int get_implied_value_helper(struct expression *expr, sval_t *sval, int i
 
 	expr = strip_expr(expr);
 
-	if (get_value_sval(expr, sval))
+	if (get_value(expr, sval))
 		return 1;
 
 	name = get_variable_from_expr(expr, &sym);
@@ -500,7 +500,7 @@ static int get_const_value(struct expression *expr, sval_t *sval)
 	sym = expr->symbol;
 	if (!(sym->ctype.modifiers & MOD_CONST))
 		return 0;
-	if (get_value_sval(sym->initializer, &right)) {
+	if (get_value(sym->initializer, &right)) {
 		*sval = sval_cast(right, get_type(expr));
 		return 1;
 	}
@@ -569,7 +569,7 @@ static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 }
 
 /* returns 1 if it can get a value literal or else returns 0 */
-int get_value_sval(struct expression *expr, sval_t *sval)
+int get_value(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
 	sval_t ret;
@@ -698,7 +698,7 @@ int known_condition_true(struct expression *expr)
 	if (!expr)
 		return 0;
 
-	if (get_value_sval(expr, &tmp) && tmp.value)
+	if (get_value(expr, &tmp) && tmp.value)
 		return 1;
 
 	return 0;

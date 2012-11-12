@@ -80,7 +80,7 @@ static void match_return(struct expression *ret_value)
 	struct state_list *slist;
 	struct sm_state *tmp;
 
-	if (!get_value_sval(ret_value, &ret_val) || sval_cmp_val(ret_val, 0) >= 0)
+	if (!get_value(ret_value, &ret_val) || sval_cmp_val(ret_val, 0) >= 0)
 		return;
 
 	slist = get_all_states(my_id);

@@ -304,7 +304,7 @@ static struct expression *remove_addr_fluff(struct expression *expr)
 
 	/* "foo + 0" is just "foo" */
 	if (expr->type == EXPR_BINOP && expr->op == '+' &&
-	    get_value_sval(expr->right, &sval) && sval.value == 0)
+	    get_value(expr->right, &sval) && sval.value == 0)
 		return expr->left;
 
 	return expr;
@@ -401,11 +401,11 @@ static void match_strlen_condition(struct expression *expr)
 		return;
 
 	if (strlen_left) {
-		if (!get_value_sval(right, &sval))
+		if (!get_value(right, &sval))
 			return;
 	}
 	if (strlen_right) {
-		if (!get_value_sval(left, &sval))
+		if (!get_value(left, &sval))
 			return;
 	}
 
