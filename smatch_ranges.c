@@ -600,12 +600,12 @@ void tack_on_sval(struct range_list **list, struct data_range *drange)
 	add_ptr_list(list, drange);
 }
 
-void push_range_list(struct range_list_stack_sval **rl_stack, struct range_list *rl)
+void push_range_list(struct range_list_stack **rl_stack, struct range_list *rl)
 {
 	add_ptr_list(rl_stack, rl);
 }
 
-struct range_list *pop_range_list(struct range_list_stack_sval **rl_stack)
+struct range_list *pop_range_list(struct range_list_stack **rl_stack)
 {
 	struct range_list *rl;
 
@@ -614,7 +614,7 @@ struct range_list *pop_range_list(struct range_list_stack_sval **rl_stack)
 	return rl;
 }
 
-struct range_list *top_range_list(struct range_list_stack_sval *rl_stack)
+struct range_list *top_range_list(struct range_list_stack *rl_stack)
 {
 	struct range_list *rl;
 
@@ -622,7 +622,7 @@ struct range_list *top_range_list(struct range_list_stack_sval *rl_stack)
 	return rl;
 }
 
-void filter_top_range_list(struct range_list_stack_sval **rl_stack, sval_t sval)
+void filter_top_range_list(struct range_list_stack **rl_stack, sval_t sval)
 {
 	struct range_list *rl;
 

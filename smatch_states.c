@@ -47,7 +47,7 @@ static struct state_list_stack *fake_cur_slist_stack;
 
 static struct state_list_stack *break_stack;
 static struct state_list_stack *switch_stack;
-static struct range_list_stack_sval *remaining_cases;
+static struct range_list_stack *remaining_cases;
 static struct state_list_stack *default_stack;
 static struct state_list_stack *continue_stack;
 

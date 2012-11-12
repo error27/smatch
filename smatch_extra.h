@@ -12,7 +12,7 @@ enum data_type {
 };
 
 DECLARE_PTR_LIST(range_list, struct data_range);
-DECLARE_PTR_LIST(range_list_stack_sval, struct range_list);
+DECLARE_PTR_LIST(range_list_stack, struct range_list);
 
 struct relation {
 	int op;
@@ -108,11 +108,11 @@ void tack_on_sval(struct range_list **list, struct data_range *drange);
 
 struct smatch_state *alloc_estate_range_sval(sval_t min, sval_t max);
 
-void push_range_list(struct range_list_stack_sval **rl_stack, struct range_list *rl);
-struct range_list *pop_range_list(struct range_list_stack_sval **rl_stack);
-struct range_list *top_range_list(struct range_list_stack_sval *rl_stack);
+void push_range_list(struct range_list_stack **rl_stack, struct range_list *rl);
+struct range_list *pop_range_list(struct range_list_stack **rl_stack);
+struct range_list *top_range_list(struct range_list_stack *rl_stack);
 
-void filter_top_range_list(struct range_list_stack_sval **rl_stack, sval_t sval);
+void filter_top_range_list(struct range_list_stack **rl_stack, sval_t sval);
 struct range_list *cast_rl(struct range_list *rl, struct symbol *type);
 int get_implied_range_list(struct expression *expr, struct range_list **rl);
 int is_whole_range(struct smatch_state *state);

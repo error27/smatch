@@ -569,7 +569,7 @@ free:
 
 struct state_list *__implied_case_slist(struct expression *switch_expr,
 					struct expression *case_expr,
-					struct range_list_stack_sval **remaining_cases,
+					struct range_list_stack **remaining_cases,
 					struct state_list **raw_slist)
 {
 	char *name = NULL;
