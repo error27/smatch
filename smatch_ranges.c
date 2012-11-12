@@ -39,9 +39,10 @@ char *show_ranges_sval(struct range_list_sval *list)
 	return alloc_sname(full);
 }
 
-void get_value_ranges_sval(char *value, struct range_list_sval **rl)
+void get_value_ranges_type(struct symbol *type, char *value, struct range_list_sval **rl)
 {
 	long long val1, val2;
+	sval_t tmp;
 	char *start;
 	char *c;
 
@@ -54,7 +55,8 @@ void get_value_ranges_sval(char *value, struct range_list_sval **rl)
 		start = c;
 
 		if (!strncmp(start, "max", 3)) {
-			val1 = LLONG_MAX;
+			tmp = sval_type_max(type);
+			val1 = tmp.value;
 			c += 3;
 		} else if (!strncmp(start, "u64max", 6)) {
 			val1 = LLONG_MAX; // FIXME
@@ -75,7 +77,8 @@ void get_value_ranges_sval(char *value, struct range_list_sval **rl)
 			val1 = SHRT_MAX;
 			c += 6;
 		} else if (!strncmp(start, "min", 3)) {
-			val1 = LLONG_MIN;
+			tmp = sval_type_min(type);
+			val1 = tmp.value;
 			c += 3;
 		} else if (!strncmp(start, "s64min", 6)) {
 			val1 = LLONG_MIN;
@@ -94,11 +97,11 @@ void get_value_ranges_sval(char *value, struct range_list_sval **rl)
 		if (*c == ')')
 			c++;
 		if (!*c) {
-			add_range_sval(rl, ll_to_sval(val1), ll_to_sval(val1));
+			add_range_sval(rl, sval_type_val(type, val1), sval_type_val(type, val1));
 			break;
 		}
 		if (*c == ',') {
-			add_range_sval(rl, ll_to_sval(val1), ll_to_sval(val1));
+			add_range_sval(rl, sval_type_val(type, val1), sval_type_val(type, val1));
 			c++;
 			start = c;
 			continue;
@@ -108,7 +111,8 @@ void get_value_ranges_sval(char *value, struct range_list_sval **rl)
 			c++;
 		start = c;
 		if (!strncmp(start, "max", 3)) {
-			val2 = LLONG_MAX;
+			tmp = sval_type_max(type);
+			val2 = tmp.value;
 			c += 3;
 		} else {
 
@@ -116,13 +120,18 @@ void get_value_ranges_sval(char *value, struct range_list_sval **rl)
 				c++;
 			val2 = strtoll(start, &c, 10);
 		}
-		add_range_sval(rl, ll_to_sval(val1), ll_to_sval(val2));
+		add_range_sval(rl, sval_type_val(type, val1), sval_type_val(type, val2));
 		if (!*c)
 			break;
 		if (*c == ')')
 			c++;
 		c++; /* skip the comma in eg: 4-5,7 */
 	}
+}
+
+void get_value_ranges_sval(char *value, struct range_list_sval **rl)
+{
+	get_value_ranges_type(&llong_ctype, value, rl);
 }
 
 int is_whole_range_rl_sval(struct range_list_sval *rl)
