@@ -28,6 +28,7 @@ static sval_t bogus = {.type = &int_ctype, .value = BOGUS};
 #define FUZZYMIN    5
 #define ABSOLUTE_MIN 6
 #define ABSOLUTE_MAX 7
+#define HARD_MAX     8
 
 static int opposite_implied(int implied)
 {
@@ -377,7 +378,12 @@ static int get_implied_value_helper(struct expression *expr, sval_t *sval, int i
 			return 1;
 		return 0;
 	}
-	if (implied == IMPLIED_MAX || implied == ABSOLUTE_MAX) {
+	if (implied == HARD_MAX) {
+		if (estate_get_hard_max(state, sval))
+			return 1;
+		return 0;
+	}
+	if (implied == IMPLIED_MAX) {
 		*sval = estate_max_sval(state);
 		if (sval_is_max(*sval)) /* this means just guessing.  fixme. not really */
 			return 0;
@@ -389,28 +395,13 @@ static int get_implied_value_helper(struct expression *expr, sval_t *sval, int i
 	return 1;
 }
 
-static int is_some_kind_of_max(sval_t sval)
-{
-	switch (sval.uvalue) {
-	case ULLONG_MAX:
-	case LLONG_MAX:
-	case UINT_MAX:
-	case INT_MAX:
-	case USHRT_MAX:
-	case SHRT_MAX:
-		return 1;
-	default:
-		return 0;
-	}
-}
-
 static int get_fuzzy_max_helper(struct expression *expr, sval_t *max)
 {
 	struct sm_state *sm;
 	struct sm_state *tmp;
 	sval_t sval;
 
-	if (get_implied_max_sval(expr, &sval) && !is_some_kind_of_max(sval)) {
+	if (get_hard_max(expr, &sval)) {
 		*max = sval;
 		return 1;
 	}
@@ -473,6 +464,7 @@ static sval_t _get_implied_value(struct expression *expr, int *undefined, int im
 	case IMPLIED:
 	case IMPLIED_MAX:
 	case IMPLIED_MIN:
+	case HARD_MAX:
 		if (!get_implied_value_helper(expr, &ret, implied))
 			*undefined = 1;
 		break;
@@ -619,6 +611,18 @@ int get_implied_max_sval(struct expression *expr, sval_t *sval)
 	sval_t ret;
 
 	ret =  _get_value(expr, &undefined, IMPLIED_MAX);
+	if (undefined)
+		return 0;
+	*sval = ret;
+	return 1;
+}
+
+int get_hard_max(struct expression *expr, sval_t *sval)
+{
+	int undefined = 0;
+	sval_t ret;
+
+	ret =  _get_value(expr, &undefined, HARD_MAX);
 	if (undefined)
 		return 0;
 	*sval = ret;

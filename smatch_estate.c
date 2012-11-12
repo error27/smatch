@@ -43,6 +43,31 @@ struct related_list *estate_related(struct smatch_state *state)
 	return get_dinfo(state)->related;
 }
 
+int estate_has_hard_max(struct smatch_state *state)
+{
+	if (!state)
+		return 0;
+	return get_dinfo(state)->hard_max;
+}
+
+void estate_set_hard_max(struct smatch_state *state)
+{
+	 get_dinfo(state)->hard_max = 1;
+}
+
+void estate_clear_hard_max(struct smatch_state *state)
+{
+	 get_dinfo(state)->hard_max = 0;
+}
+
+int estate_get_hard_max(struct smatch_state *state, sval_t *sval)
+{
+	if (!state || !get_dinfo(state)->hard_max || !estate_ranges_sval(state))
+		return 0;
+	*sval = rl_max_sval(estate_ranges_sval(state));
+	return 1;
+}
+
 sval_t estate_min_sval(struct smatch_state *state)
 {
 	return rl_min_sval(estate_ranges_sval(state));
@@ -114,6 +139,7 @@ static struct data_info *alloc_dinfo(void)
 	ret->related = NULL;
 	ret->type = DATA_RANGE;
 	ret->value_ranges = NULL;
+	ret->hard_max = 0;
 	return ret;
 }
 
@@ -142,6 +168,7 @@ static struct data_info *clone_dinfo(struct data_info *dinfo)
 	ret = alloc_dinfo();
 	ret->related = clone_related_list(dinfo->related);
 	ret->value_ranges = clone_range_list_sval(dinfo->value_ranges);
+	ret->hard_max = dinfo->hard_max;
 	return ret;
 }
 
@@ -189,6 +216,7 @@ struct smatch_state *alloc_estate_sval(sval_t sval)
 	state = __alloc_smatch_state(0);
 	state->data = alloc_dinfo_range(sval, sval);
 	state->name = show_ranges_sval(get_dinfo(state)->value_ranges);
+	estate_set_hard_max(state);
 	return state;
 }
 

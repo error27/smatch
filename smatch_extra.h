@@ -26,6 +26,7 @@ struct data_info {
 	struct related_list *related;
 	enum data_type type;
 	struct range_list_sval *value_ranges;
+	unsigned int hard_max:1;
 };
 DECLARE_ALLOCATOR(data_info);
 
@@ -81,6 +82,12 @@ struct smatch_state *alloc_estate_range_list_sval(struct range_list_sval *rl);
 struct data_info *get_dinfo(struct smatch_state *state);
 struct range_list_sval *estate_ranges_sval(struct smatch_state *state);
 struct related_list *estate_related(struct smatch_state *state);
+
+int estate_has_hard_max(struct smatch_state *state);
+void estate_set_hard_max(struct smatch_state *state);
+void estate_clear_hard_max(struct smatch_state *state);
+int estate_get_hard_max(struct smatch_state *state, sval_t *sval);
+
 sval_t estate_min_sval(struct smatch_state *state);
 sval_t estate_max_sval(struct smatch_state *state);
 struct symbol *estate_type(struct smatch_state *state);

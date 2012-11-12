@@ -8,6 +8,8 @@ static inline void __smatch_implied(long long val){}
 static inline void __smatch_implied_min(long long val){}
 static inline void __smatch_implied_max(long long val){}
 
+static inline void __smatch_hard_max(long long val){}
+
 static inline void __smatch_absolute_min(long long val){}
 static inline void __smatch_absolute_max(long long val){}
 

@@ -157,6 +157,8 @@ static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_st
 	tmp = alloc_estate_range_list_sval(value_ranges);
 	rlist = get_shared_relations(estate_related(s1), estate_related(s2));
 	set_related(tmp, rlist);
+	if (estate_has_hard_max(s1) && estate_has_hard_max(s2))
+		estate_set_hard_max(tmp);
 
 	return tmp;
 }
@@ -166,6 +168,7 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 	struct expression *iter_var;
 	struct expression *condition;
 	struct sm_state *sm;
+	struct smatch_state *estate;
 	sval_t start;
 
 	condition = strip_expr(loop->iterator_pre_condition);
@@ -188,10 +191,18 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 	if (!sval_is_max(start))
 		start.value--;
 
-	if (condition->type == EXPR_PREOP)
-		set_extra_expr_mod(iter_var, alloc_estate_range_sval(ll_to_sval(1), start));
-	if (condition->type == EXPR_POSTOP)
-		set_extra_expr_mod(iter_var, alloc_estate_range_sval(ll_to_sval(0), start));
+	if (condition->type == EXPR_PREOP) {
+		estate = alloc_estate_range_sval(sval_type_val(start.type, 1), start);
+		if (!sval_is_max(start))
+			estate_set_hard_max(estate);
+		set_extra_expr_mod(iter_var, estate);
+	}
+	if (condition->type == EXPR_POSTOP) {
+		estate = alloc_estate_range_sval(sval_type_val(start.type, 0), start);
+		if (!sval_is_max(start))
+			estate_set_hard_max(estate);
+		set_extra_expr_mod(iter_var, estate);
+	}
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
@@ -200,6 +211,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 {
 	struct expression *iter_var;
 	struct sm_state *sm;
+	struct smatch_state *estate;
 	sval_t start, end;
 
 	iter_var = iter_expr->unop;
@@ -227,7 +239,10 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	}
 	if (sval_cmp(end, start) < 0)
 		return NULL;
-	set_extra_expr_mod(iter_var, alloc_estate_range_sval(start, end));
+	estate = alloc_estate_range_sval(start, end);
+	if (!sval_is_max(end))
+		estate_set_hard_max(estate);
+	set_extra_expr_mod(iter_var, estate);
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
@@ -236,6 +251,7 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 {
 	struct expression *iter_var;
 	struct sm_state *sm;
+	struct smatch_state *estate;
 	sval_t start, end;
 
 	iter_var = iter_expr->unop;
@@ -262,7 +278,9 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 	}
 	if (sval_cmp(end, start) > 0)
 		return NULL;
-	set_extra_expr_mod(iter_var, alloc_estate_range_sval(end, start));
+	estate = alloc_estate_range_sval(end, start);
+	estate_set_hard_max(estate);
+	set_extra_expr_mod(iter_var, estate);
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
@@ -673,7 +691,7 @@ static void match_comparison(struct expression *expr)
 	struct smatch_state *left_false_state;
 	struct smatch_state *right_true_state;
 	struct smatch_state *right_false_state;
-	sval_t min, max;
+	sval_t min, max, dummy;
 	int left_postop = 0;
 	int right_postop = 0;
 
@@ -816,6 +834,36 @@ static void match_comparison(struct expression *expr)
 	left_false_state = alloc_estate_range_list_sval(cast_rl(left_false, get_type(left)));
 	right_true_state = alloc_estate_range_list_sval(cast_rl(right_true, get_type(right)));
 	right_false_state = alloc_estate_range_list_sval(cast_rl(right_false, get_type(right)));
+
+	switch (expr->op) {
+	case '<':
+	case SPECIAL_UNSIGNED_LT:
+	case SPECIAL_UNSIGNED_LTE:
+	case SPECIAL_LTE:
+		if (get_hard_max(expr->right, &dummy))
+			estate_set_hard_max(left_true_state);
+		if (get_hard_max(expr->left, &dummy))
+			estate_set_hard_max(right_false_state);
+		break;
+	case '>':
+	case SPECIAL_UNSIGNED_GT:
+	case SPECIAL_UNSIGNED_GTE:
+	case SPECIAL_GTE:
+		if (get_hard_max(expr->left, &dummy))
+			estate_set_hard_max(right_true_state);
+		if (get_hard_max(expr->right, &dummy))
+			estate_set_hard_max(left_false_state);
+		break;
+	}
+
+	if (get_hard_max(expr->left, &dummy)) {
+		estate_set_hard_max(left_true_state);
+		estate_set_hard_max(left_false_state);
+	}
+	if (get_hard_max(expr->right, &dummy)) {
+		estate_set_hard_max(right_true_state);
+		estate_set_hard_max(right_false_state);
+	}
 
 	if (left_postop == SPECIAL_INCREMENT) {
 		left_true_state = increment_state(left_true_state);
