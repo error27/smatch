@@ -33,7 +33,7 @@ DECLARE_ALLOCATOR(data_info);
 extern struct string_list *__ignored_macros;
 
 /* these are implemented in smatch_ranges.c */
-int is_whole_range_rl_sval(struct range_list *rl);
+int is_whole_range_rl(struct range_list *rl);
 sval_t rl_min_sval(struct range_list *rl);
 sval_t rl_max_sval(struct range_list *rl);
 

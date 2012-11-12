@@ -210,7 +210,7 @@ static void match_end_func(struct symbol *sym)
 	for (i = 0; i < ARRAY_SIZE(param_constraints); i++) {
 		if (!param_constraints[i])
 			continue;
-		if (is_whole_range_rl_sval(param_constraints[i]))
+		if (is_whole_range_rl(param_constraints[i]))
 			continue;
 		sm_msg("info: %s param %d range '%s' implies error return %s",
 		       global_static(), i, show_ranges_sval(param_constraints[i]),

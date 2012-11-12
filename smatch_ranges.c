@@ -134,7 +134,7 @@ void get_value_ranges_sval(char *value, struct range_list **rl)
 	get_value_ranges_type(&llong_ctype, value, rl);
 }
 
-int is_whole_range_rl_sval(struct range_list *rl)
+int is_whole_range_rl(struct range_list *rl)
 {
 	struct data_range *drange;
 

@@ -983,14 +983,14 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 	*rl = alloc_range_list(min, max);
 
 out:
-	if (is_whole_range_rl_sval(*rl))
+	if (is_whole_range_rl(*rl))
 		return 0;
 	return 1;
 }
 
 int is_whole_range(struct smatch_state *state)
 {
-	return is_whole_range_rl_sval(estate_ranges_sval(state));
+	return is_whole_range_rl(estate_ranges_sval(state));
 }
 
 static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
@@ -1012,7 +1012,7 @@ static void match_call_info(struct expression *expr)
 		return;
 
 	FOR_EACH_PTR(expr->args, arg) {
-		if (get_implied_range_list(arg, &rl) && !is_whole_range_rl_sval(rl)) {
+		if (get_implied_range_list(arg, &rl) && !is_whole_range_rl(rl)) {
 			sm_msg("info: passes param_value '%s' %d '$$' %s %s",
 			       name, i, show_ranges_sval(rl),
 			       is_static(expr->fn) ? "static" : "global");
