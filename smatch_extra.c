@@ -705,6 +705,8 @@ static void match_comparison(struct expression *expr)
 		}
 		left = strip_expr(left->unop);
 	}
+	while (left->type == EXPR_ASSIGNMENT)
+		left = strip_expr(left->left);
 
 	if (right->op == SPECIAL_INCREMENT || right->op == SPECIAL_DECREMENT) {
 		if (right->type == EXPR_POSTOP) {
@@ -723,16 +725,16 @@ static void match_comparison(struct expression *expr)
 	if (get_implied_range_list_sval(left, &left_orig)) {
 		left_orig = cast_rl(left_orig, type);
 	} else {
-		min = sval_type_min(get_type(expr->left));
-		max = sval_type_max(get_type(expr->left));
+		min = sval_type_min(get_type(left));
+		max = sval_type_max(get_type(left));
 		left_orig = cast_rl(alloc_range_list_sval(min, max), type);
 	}
 
 	if (get_implied_range_list_sval(right, &right_orig)) {
 		right_orig = cast_rl(right_orig, type);
 	} else {
-		min = sval_type_min(get_type(expr->right));
-		max = sval_type_max(get_type(expr->right));
+		min = sval_type_min(get_type(right));
+		max = sval_type_max(get_type(right));
 		right_orig = cast_rl(alloc_range_list_sval(min, max), type);
 	}
 	min = sval_type_min(type);
@@ -840,27 +842,27 @@ static void match_comparison(struct expression *expr)
 	case SPECIAL_UNSIGNED_LT:
 	case SPECIAL_UNSIGNED_LTE:
 	case SPECIAL_LTE:
-		if (get_hard_max(expr->right, &dummy))
+		if (get_hard_max(right, &dummy))
 			estate_set_hard_max(left_true_state);
-		if (get_hard_max(expr->left, &dummy))
+		if (get_hard_max(left, &dummy))
 			estate_set_hard_max(right_false_state);
 		break;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
 	case SPECIAL_UNSIGNED_GTE:
 	case SPECIAL_GTE:
-		if (get_hard_max(expr->left, &dummy))
+		if (get_hard_max(left, &dummy))
 			estate_set_hard_max(right_true_state);
-		if (get_hard_max(expr->right, &dummy))
+		if (get_hard_max(right, &dummy))
 			estate_set_hard_max(left_false_state);
 		break;
 	}
 
-	if (get_hard_max(expr->left, &dummy)) {
+	if (get_hard_max(left, &dummy)) {
 		estate_set_hard_max(left_true_state);
 		estate_set_hard_max(left_false_state);
 	}
-	if (get_hard_max(expr->right, &dummy)) {
+	if (get_hard_max(right, &dummy)) {
 		estate_set_hard_max(right_true_state);
 		estate_set_hard_max(right_false_state);
 	}
