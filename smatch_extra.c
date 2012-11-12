@@ -957,7 +957,7 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 	}
 
 	if (expr->type == EXPR_CALL) {
-		if (get_implied_return_sval(expr, rl))
+		if (get_implied_return(expr, rl))
 			goto out;
 		*rl = db_return_vals(expr);
 		goto out;

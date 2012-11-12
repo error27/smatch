@@ -132,7 +132,7 @@ void return_implies_state(const char *look_for, long long start, long long end,
 			 implication_hook *call_back, void *info);
 void add_db_return_implies_callback(int type, return_implies_hook *callback);
 void add_db_return_states_callback(int type, return_implies_hook *callback);
-int get_implied_return_sval(struct expression *expr, struct range_list **rl);
+int get_implied_return(struct expression *expr, struct range_list **rl);
 
 typedef void (modification_hook)(struct sm_state *sm);
 void add_modification_hook(int owner, modification_hook *call_back);

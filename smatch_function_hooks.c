@@ -624,7 +624,7 @@ static int handle_implied_return(struct expression *expr)
 {
 	struct range_list *rl;
 
-	if (!get_implied_return_sval(expr->right, &rl))
+	if (!get_implied_return(expr->right, &rl))
 		return 0;
 	set_extra_expr_mod(expr->left, alloc_estate_range_list(rl));
 	return 1;
@@ -781,7 +781,7 @@ static void match_macro_assign(struct expression *expr)
 	call_call_backs(call_backs, MACRO_ASSIGN_EXTRA, macro, expr);
 }
 
-int get_implied_return_sval(struct expression *expr, struct range_list **rl)
+int get_implied_return(struct expression *expr, struct range_list **rl)
 {
 	struct call_back_list *call_backs;
 	struct fcall_back *tmp;
