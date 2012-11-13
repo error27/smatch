@@ -964,14 +964,14 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 	}
 
 	if (get_implied_value(expr, &sval)) {
-		add_range_sval(rl, sval, sval);
+		add_range(rl, sval, sval);
 		goto out;
 	}
 
 	if (expr->type == EXPR_BINOP && expr->op == '%') {
 		if (!get_implied_value(expr->right, &sval))
 			return 0;
-		add_range_sval(rl, ll_to_sval(0), ll_to_sval(sval.value - 1));
+		add_range(rl, ll_to_sval(0), ll_to_sval(sval.value - 1));
 		goto out;
 	}
 

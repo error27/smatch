@@ -148,7 +148,7 @@ static struct data_info *alloc_dinfo_range(sval_t min, sval_t max)
 	struct data_info *ret;
 
 	ret = alloc_dinfo();
-	add_range_sval(&ret->value_ranges, min, max);
+	add_range(&ret->value_ranges, min, max);
 	return ret;
 }
 

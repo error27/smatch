@@ -97,11 +97,11 @@ void get_value_ranges_type(struct symbol *type, char *value, struct range_list *
 		if (*c == ')')
 			c++;
 		if (!*c) {
-			add_range_sval(rl, sval_type_val(type, val1), sval_type_val(type, val1));
+			add_range(rl, sval_type_val(type, val1), sval_type_val(type, val1));
 			break;
 		}
 		if (*c == ',') {
-			add_range_sval(rl, sval_type_val(type, val1), sval_type_val(type, val1));
+			add_range(rl, sval_type_val(type, val1), sval_type_val(type, val1));
 			c++;
 			start = c;
 			continue;
@@ -120,7 +120,7 @@ void get_value_ranges_type(struct symbol *type, char *value, struct range_list *
 				c++;
 			val2 = strtoll(start, &c, 10);
 		}
-		add_range_sval(rl, sval_type_val(type, val1), sval_type_val(type, val2));
+		add_range(rl, sval_type_val(type, val1), sval_type_val(type, val2));
 		if (!*c)
 			break;
 		if (*c == ')')
@@ -205,7 +205,7 @@ struct range_list *alloc_range_list(sval_t min, sval_t max)
 {
 	struct range_list *rl = NULL;
 
-	add_range_sval(&rl, min, max);
+	add_range(&rl, min, max);
 	return rl;
 }
 
@@ -217,7 +217,7 @@ struct range_list *whole_range_list(struct symbol *type)
 	return alloc_range_list(sval_type_min(type), sval_type_max(type));
 }
 
-void add_range_sval(struct range_list **list, sval_t min, sval_t max)
+void add_range(struct range_list **list, sval_t min, sval_t max)
 {
 	struct data_range *tmp = NULL;
 	struct data_range *new = NULL;
@@ -330,10 +330,10 @@ struct range_list *range_list_union_sval(struct range_list *one, struct range_li
 	struct range_list *ret = NULL;
 
 	FOR_EACH_PTR(one, tmp) {
-		add_range_sval(&ret, tmp->min, tmp->max);
+		add_range(&ret, tmp->min, tmp->max);
 	} END_FOR_EACH_PTR(tmp);
 	FOR_EACH_PTR(two, tmp) {
-		add_range_sval(&ret, tmp->min, tmp->max);
+		add_range(&ret, tmp->min, tmp->max);
 	} END_FOR_EACH_PTR(tmp);
 	return ret;
 }
@@ -345,26 +345,26 @@ struct range_list *remove_range_sval(struct range_list *list, sval_t min, sval_t
 
 	FOR_EACH_PTR(list, tmp) {
 		if (sval_cmp(tmp->max, min) < 0) {
-			add_range_sval(&ret, tmp->min, tmp->max);
+			add_range(&ret, tmp->min, tmp->max);
 			continue;
 		}
 		if (sval_cmp(tmp->min, max) > 0) {
-			add_range_sval(&ret, tmp->min, tmp->max);
+			add_range(&ret, tmp->min, tmp->max);
 			continue;
 		}
 		if (sval_cmp(tmp->min, min) >= 0 && sval_cmp(tmp->max, max) <= 0)
 			continue;
 		if (sval_cmp(tmp->min, min) >= 0) {
 			max.value++;
-			add_range_sval(&ret, max, tmp->max);
+			add_range(&ret, max, tmp->max);
 		} else if (sval_cmp(tmp->max, max) <= 0) {
 			min.value--;
-			add_range_sval(&ret, tmp->min, min);
+			add_range(&ret, tmp->min, min);
 		} else {
 			min.value--;
 			max.value++;
-			add_range_sval(&ret, tmp->min, min);
-			add_range_sval(&ret, max, tmp->max);
+			add_range(&ret, tmp->min, min);
+			add_range(&ret, max, tmp->max);
 		}
 	} END_FOR_EACH_PTR(tmp);
 	return ret;

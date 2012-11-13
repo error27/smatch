@@ -593,7 +593,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 			goto free;
 
 		filter_top_range_list(remaining_cases, sval);
-		add_range_sval(&vals, sval, sval);
+		add_range(&vals, sval, sval);
 	}
 	if (sm)
 		separate_and_filter(sm, SPECIAL_EQUAL, vals, LEFT, *raw_slist, &true_states, &false_states);
