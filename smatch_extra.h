@@ -96,7 +96,7 @@ struct smatch_state *add_filter(struct smatch_state *orig, sval_t filter);
 struct smatch_state *filter_range(struct smatch_state *orig, sval_t filter_min, sval_t filter_max);
 struct smatch_state *extra_undefined(struct symbol *type);
 
-struct range_list *range_list_union_sval(struct range_list *one, struct range_list *two);
+struct range_list *range_list_union(struct range_list *one, struct range_list *two);
 int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval);
 
 void function_comparison(int comparison, struct expression *expr, sval_t sval, int left);

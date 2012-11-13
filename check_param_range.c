@@ -110,7 +110,7 @@ static void add_param_constraint(int idx, struct range_list *rl)
 		param_constraints[idx] = rl;
 		return;
 	}
-	param_constraints[idx] = range_list_union_sval(param_constraints[idx], rl);
+	param_constraints[idx] = range_list_union(param_constraints[idx], rl);
 }
 
 static void handle_condition(struct expression *expr)

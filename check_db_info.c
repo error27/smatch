@@ -20,7 +20,7 @@ static void add_return_range(struct range_list *rl)
 		return_ranges = rl;
 		return;
 	}
-	return_ranges = range_list_union_sval(return_ranges, rl);
+	return_ranges = range_list_union(return_ranges, rl);
 }
 
 static void match_return(struct expression *ret_value)
