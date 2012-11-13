@@ -220,7 +220,7 @@ struct smatch_state *alloc_estate(sval_t sval)
 	return state;
 }
 
-struct smatch_state *alloc_estate_range_sval(sval_t min, sval_t max)
+struct smatch_state *alloc_estate_range(sval_t min, sval_t max)
 {
 	struct smatch_state *state;
 

@@ -192,13 +192,13 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 		start.value--;
 
 	if (condition->type == EXPR_PREOP) {
-		estate = alloc_estate_range_sval(sval_type_val(start.type, 1), start);
+		estate = alloc_estate_range(sval_type_val(start.type, 1), start);
 		if (!sval_is_max(start))
 			estate_set_hard_max(estate);
 		set_extra_expr_mod(iter_var, estate);
 	}
 	if (condition->type == EXPR_POSTOP) {
-		estate = alloc_estate_range_sval(sval_type_val(start.type, 0), start);
+		estate = alloc_estate_range(sval_type_val(start.type, 0), start);
 		if (!sval_is_max(start))
 			estate_set_hard_max(estate);
 		set_extra_expr_mod(iter_var, estate);
@@ -239,7 +239,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	}
 	if (sval_cmp(end, start) < 0)
 		return NULL;
-	estate = alloc_estate_range_sval(start, end);
+	estate = alloc_estate_range(start, end);
 	if (!sval_is_max(end))
 		estate_set_hard_max(estate);
 	set_extra_expr_mod(iter_var, estate);
@@ -278,7 +278,7 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 	}
 	if (sval_cmp(end, start) > 0)
 		return NULL;
-	estate = alloc_estate_range_sval(end, start);
+	estate = alloc_estate_range(end, start);
 	estate_set_hard_max(estate);
 	set_extra_expr_mod(iter_var, estate);
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
@@ -518,7 +518,7 @@ static struct smatch_state *increment_state(struct smatch_state *state)
 		min.value++;
 	if (!sval_is_min(max) && !sval_is_max(max))
 		max.value++;
-	return alloc_estate_range_sval(min, max);
+	return alloc_estate_range(min, max);
 }
 
 static struct smatch_state *decrement_state(struct smatch_state *state)
@@ -533,7 +533,7 @@ static struct smatch_state *decrement_state(struct smatch_state *state)
 		min.value--;
 	if (!sval_is_min(max) && !sval_is_max(max))
 		max.value--;
-	return alloc_estate_range_sval(min, max);
+	return alloc_estate_range(min, max);
 }
 
 static void unop_expr(struct expression *expr)
@@ -608,7 +608,7 @@ static void match_declarations(struct symbol *sym)
 
 static void check_dereference(struct expression *expr)
 {
-	set_extra_expr_nomod(expr, alloc_estate_range_sval(valid_ptr_min_sval, valid_ptr_max_sval));
+	set_extra_expr_nomod(expr, alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval));
 }
 
 static void match_dereferences(struct expression *expr)
