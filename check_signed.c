@@ -251,20 +251,20 @@ static void match_condition(struct expression *expr)
 		if (get_value(expr->right, &known))
 			return;
 		rl_left_orig = alloc_range_list(known, known);
-		rl_left = cast_rl(rl_left_orig, type);
+		rl_left = cast_rl(type, rl_left_orig);
 
 		min = sval_type_min(get_type(expr->right));
 		max = sval_type_max(get_type(expr->right));
 		rl_right_orig = alloc_range_list(min, max);
-		rl_right = cast_rl(rl_right_orig, type);
+		rl_right = cast_rl(type, rl_right_orig);
 	} else if (get_value(expr->right, &known)) {
 		rl_right_orig = alloc_range_list(known, known);
-		rl_right = cast_rl(rl_right_orig, type);
+		rl_right = cast_rl(type, rl_right_orig);
 
 		min = sval_type_min(get_type(expr->left));
 		max = sval_type_max(get_type(expr->left));
 		rl_left_orig = alloc_range_list(min, max);
-		rl_left = cast_rl(rl_left_orig, type);
+		rl_left = cast_rl(type, rl_left_orig);
 	} else {
 		return;
 	}

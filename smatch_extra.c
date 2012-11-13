@@ -463,7 +463,7 @@ static void match_assign(struct expression *expr)
 	switch (expr->op) {
 	case '=': {
 		if (get_implied_range_list(right, &rl)) {
-			rl = cast_rl(rl, get_type(expr->left));
+			rl = cast_rl(get_type(expr->left), rl);
 			set_extra_mod(name, sym, alloc_estate_range_list(rl));
 			goto free;
 		}
@@ -492,7 +492,7 @@ static void match_assign(struct expression *expr)
 		break;
 	}
 	if (!sval_is_min(right_min) || !sval_is_max(right_max))
-		rl = cast_rl(alloc_range_list(right_min, right_max), get_type(expr->left));
+		rl = cast_rl(get_type(expr->left), alloc_range_list(right_min, right_max));
 	else
 		rl = whole_range_list(get_type(expr->left));
 	set_extra_mod(name, sym, alloc_estate_range_list(rl));
@@ -723,19 +723,19 @@ static void match_comparison(struct expression *expr)
 	}
 
 	if (get_implied_range_list(left, &left_orig)) {
-		left_orig = cast_rl(left_orig, type);
+		left_orig = cast_rl(type, left_orig);
 	} else {
 		min = sval_type_min(get_type(left));
 		max = sval_type_max(get_type(left));
-		left_orig = cast_rl(alloc_range_list(min, max), type);
+		left_orig = cast_rl(type, alloc_range_list(min, max));
 	}
 
 	if (get_implied_range_list(right, &right_orig)) {
-		right_orig = cast_rl(right_orig, type);
+		right_orig = cast_rl(type, right_orig);
 	} else {
 		min = sval_type_min(get_type(right));
 		max = sval_type_max(get_type(right));
-		right_orig = cast_rl(alloc_range_list(min, max), type);
+		right_orig = cast_rl(type, alloc_range_list(min, max));
 	}
 	min = sval_type_min(type);
 	max = sval_type_max(type);
@@ -832,10 +832,10 @@ static void match_comparison(struct expression *expr)
 		return;
 	}
 
-	left_true_state = alloc_estate_range_list(cast_rl(left_true, get_type(left)));
-	left_false_state = alloc_estate_range_list(cast_rl(left_false, get_type(left)));
-	right_true_state = alloc_estate_range_list(cast_rl(right_true, get_type(right)));
-	right_false_state = alloc_estate_range_list(cast_rl(right_false, get_type(right)));
+	left_true_state = alloc_estate_range_list(cast_rl(get_type(left), left_true));
+	left_false_state = alloc_estate_range_list(cast_rl(get_type(left), left_false));
+	right_true_state = alloc_estate_range_list(cast_rl(get_type(right), right_true));
+	right_false_state = alloc_estate_range_list(cast_rl(get_type(right), right_false));
 
 	switch (expr->op) {
 	case '<':
@@ -1034,7 +1034,7 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 
 	snprintf(fullname, 256, "%s%s", name, key + 2);
 	parse_value_ranges_type(get_real_base_type(sym), value, &rl);
-	rl = cast_rl(rl, get_real_base_type(sym));
+	rl = cast_rl(get_real_base_type(sym), rl);
 	state = alloc_estate_range_list(rl);
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }

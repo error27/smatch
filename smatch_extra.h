@@ -113,7 +113,7 @@ struct range_list *pop_range_list(struct range_list_stack **rl_stack);
 struct range_list *top_range_list(struct range_list_stack *rl_stack);
 
 void filter_top_range_list(struct range_list_stack **rl_stack, sval_t sval);
-struct range_list *cast_rl(struct range_list *rl, struct symbol *type);
+struct range_list *cast_rl(struct symbol *type, struct range_list *rl);
 int get_implied_range_list(struct expression *expr, struct range_list **rl);
 int is_whole_range(struct smatch_state *state);
 

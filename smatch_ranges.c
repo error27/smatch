@@ -631,7 +631,7 @@ void filter_top_range_list(struct range_list_stack **rl_stack, sval_t sval)
 	push_range_list(rl_stack, rl);
 }
 
-struct range_list *cast_rl(struct range_list *rl, struct symbol *type)
+struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 {
 	struct data_range *tmp;
 	struct data_range *new;
