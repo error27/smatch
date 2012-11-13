@@ -103,7 +103,7 @@ void function_comparison(int comparison, struct expression *expr, sval_t sval, i
 
 int true_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
 int false_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
-struct data_range *alloc_range_sval(sval_t min, sval_t max);
+struct data_range *alloc_range(sval_t min, sval_t max);
 void tack_on_sval(struct range_list **list, struct data_range *drange);
 
 struct smatch_state *alloc_estate_range_sval(sval_t min, sval_t max);

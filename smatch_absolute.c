@@ -39,7 +39,7 @@ static struct smatch_state *alloc_absolute(sval_t min, sval_t max)
 
 	state = __alloc_smatch_state(0);
 	state->name = alloc_string(show_range(min, max));
-	state->data = alloc_range_sval(min, max);
+	state->data = alloc_range(min, max);
 	return state;
 }
 

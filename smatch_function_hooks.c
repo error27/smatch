@@ -266,7 +266,7 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 	call_backs = search_callback(func_hash, (char *)expr->fn->symbol->ident->name);
 	if (!call_backs)
 		return 0;
-	value_range = alloc_range_sval(sval, sval);
+	value_range = alloc_range(sval, sval);
 
 	/* set true states */
 	__push_fake_cur_slist();

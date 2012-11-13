@@ -74,7 +74,7 @@ static struct range_list *tmp_range_list(long long num)
 	static struct data_range *my_range;
 
 	__free_ptr_list((struct ptr_list **)&my_list);
-	my_range = alloc_range_sval(ll_to_sval(num), ll_to_sval(num));
+	my_range = alloc_range(ll_to_sval(num), ll_to_sval(num));
 	add_ptr_list(&my_list, my_range);
 	return my_list;
 }

@@ -191,7 +191,7 @@ static struct data_range *alloc_range_helper_sval(sval_t min, sval_t max, int pe
 	return ret;
 }
 
-struct data_range *alloc_range_sval(sval_t min, sval_t max)
+struct data_range *alloc_range(sval_t min, sval_t max)
 {
 	return alloc_range_helper_sval(min, max, 0);
 }
@@ -256,12 +256,12 @@ void add_range(struct range_list **list, sval_t min, sval_t max)
 		}
 		if (!sval_is_max(max) && max.value + 1 == tmp->min.value) {
 			/* join 2 ranges into a big range */
-			new = alloc_range_sval(min, tmp->max);
+			new = alloc_range(min, tmp->max);
 			REPLACE_CURRENT_PTR(tmp, new);
 			return;
 		}
 		if (sval_cmp(max, tmp->min) < 0) { /* new range entirely below */
-			new = alloc_range_sval(min, max);
+			new = alloc_range(min, max);
 			INSERT_CURRENT(new, tmp);
 			return;
 		}
@@ -270,7 +270,7 @@ void add_range(struct range_list **list, sval_t min, sval_t max)
 				max = tmp->max;
 			else
 				check_next = 1;
-			new = alloc_range_sval(min, max);
+			new = alloc_range(min, max);
 			REPLACE_CURRENT_PTR(tmp, new);
 			if (!check_next)
 				return;
@@ -280,14 +280,14 @@ void add_range(struct range_list **list, sval_t min, sval_t max)
 			return;
 		if (sval_cmp(min, tmp->max) <= 0) { /* new range partially above */
 			min = tmp->min;
-			new = alloc_range_sval(min, max);
+			new = alloc_range(min, max);
 			REPLACE_CURRENT_PTR(tmp, new);
 			check_next = 1;
 			continue;
 		}
 		if (!sval_is_min(min) && min.value - 1 == tmp->max.value) {
 			/* join 2 ranges into a big range */
-			new = alloc_range_sval(tmp->min, max);
+			new = alloc_range(tmp->min, max);
 			REPLACE_CURRENT_PTR(tmp, new);
 			check_next = 1;
 			continue;
@@ -296,7 +296,7 @@ void add_range(struct range_list **list, sval_t min, sval_t max)
 	} END_FOR_EACH_PTR(tmp);
 	if (check_next)
 		return;
-	new = alloc_range_sval(min, max);
+	new = alloc_range(min, max);
 	add_ptr_list(list, new);
 }
 
@@ -669,7 +669,7 @@ struct range_list *cast_rl(struct range_list *rl, struct symbol *type)
 			continue;
 		if (sval_cmp_val(min, 0) < 0 && type_unsigned(type))
 			min.value = 0;
-		new = alloc_range_sval(sval_cast(min, type), sval_cast(max, type));
+		new = alloc_range(sval_cast(min, type), sval_cast(max, type));
 		add_ptr_list(&ret, new);
 	} END_FOR_EACH_PTR(tmp);
 
