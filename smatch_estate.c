@@ -209,7 +209,7 @@ struct smatch_state *extra_empty(void)
 	return ret;
 }
 
-struct smatch_state *alloc_estate_sval(sval_t sval)
+struct smatch_state *alloc_estate(sval_t sval)
 {
 	struct smatch_state *state;
 

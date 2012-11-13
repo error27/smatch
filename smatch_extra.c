@@ -343,7 +343,7 @@ static void while_count_down_after(struct sm_state *sm, struct expression *condi
 		return;
 	after_value = estate_min_sval(sm->state);
 	after_value.value--;
-	set_extra_mod(sm->name, sm->sym, alloc_estate_sval(after_value));
+	set_extra_mod(sm->name, sm->sym, alloc_estate(after_value));
 }
 
 void __extra_pre_loop_hook_after(struct sm_state *sm,
@@ -385,9 +385,9 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	max = estate_max_sval(state);
 	if (iter_expr->op == SPECIAL_INCREMENT &&
 	    !sval_is_min(min) && sval_is_max(max))
-		set_extra_mod(name, sym, alloc_estate_sval(min));
+		set_extra_mod(name, sym, alloc_estate(min));
 	else if (sval_is_min(min) && !sval_is_max(max))
-		set_extra_mod(name, sym, alloc_estate_sval(max));
+		set_extra_mod(name, sym, alloc_estate(max));
 
 free:
 	free_string(name);
@@ -916,7 +916,7 @@ void __extra_match_condition(struct expression *expr)
 		pre_state = get_state(my_id, name, sym);
 		true_state = add_filter(pre_state, zero);
 		if (possibly_true(expr, SPECIAL_EQUAL, zero_expr()))
-			false_state = alloc_estate_sval(zero);
+			false_state = alloc_estate(zero);
 		else
 			false_state = alloc_estate_empty();
 		set_extra_true_false(name, sym, true_state, false_state);
