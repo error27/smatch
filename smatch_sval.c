@@ -310,6 +310,9 @@ static sval_t sval_binop_signed(struct symbol *type, sval_t left, int op, sval_t
 		if (right.value == 0) {
 			sm_msg("debug: %s: divide by zero", __func__);
 			ret.value = 123456789;
+		} else if (left.value == LLONG_MIN && right.value == -1) {
+			sm_msg("debug: %s: invalid divide LLONG_MIN/-1", __func__);
+			ret.value = 12345678;
 		} else {
 			ret.value = left.value / right.value;
 		}
