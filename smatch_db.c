@@ -98,7 +98,7 @@ static int db_return_callback(void *unused, int argc, char **argv, char **azColN
 {
 	if (argc != 1)
 		return 0;
-	get_value_ranges_sval(argv[0], &return_range_list);
+	get_value_ranges(argv[0], &return_range_list);
 	return 0;
 }
 

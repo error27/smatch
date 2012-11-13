@@ -129,7 +129,7 @@ void get_value_ranges_type(struct symbol *type, char *value, struct range_list *
 	}
 }
 
-void get_value_ranges_sval(char *value, struct range_list **rl)
+void get_value_ranges(char *value, struct range_list **rl)
 {
 	get_value_ranges_type(&llong_ctype, value, rl);
 }
