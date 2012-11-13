@@ -152,11 +152,11 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 	}
 
 	if (lr == LEFT) {
-		istrue = !possibly_false_range_lists_sval(estate_ranges_sval(s->state), comparison, vals);
-		isfalse = !possibly_true_range_lists_sval(estate_ranges_sval(s->state), comparison, vals);
+		istrue = !possibly_false_range_lists(estate_ranges_sval(s->state), comparison, vals);
+		isfalse = !possibly_true_range_lists(estate_ranges_sval(s->state), comparison, vals);
 	} else {
-		istrue = !possibly_false_range_lists_sval(vals, comparison, estate_ranges_sval(s->state));
-		isfalse = !possibly_true_range_lists_sval(vals, comparison, estate_ranges_sval(s->state));
+		istrue = !possibly_false_range_lists(vals, comparison, estate_ranges_sval(s->state));
+		isfalse = !possibly_true_range_lists(vals, comparison, estate_ranges_sval(s->state));
 	}
 
 	print_debug_tf(s, istrue, isfalse);

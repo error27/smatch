@@ -247,8 +247,8 @@ static int do_comparison(struct expression *expr)
 	get_implied_range_list(expr->left, &left_ranges);
 	get_implied_range_list(expr->right, &right_ranges);
 
-	poss_true = possibly_true_range_lists_sval(left_ranges, expr->op, right_ranges);
-	poss_false = possibly_false_range_lists_sval(left_ranges, expr->op, right_ranges);
+	poss_true = possibly_true_range_lists(left_ranges, expr->op, right_ranges);
+	poss_false = possibly_false_range_lists(left_ranges, expr->op, right_ranges);
 
 	free_range_list(&left_ranges);
 	free_range_list(&right_ranges);
