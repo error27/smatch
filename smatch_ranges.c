@@ -175,12 +175,6 @@ static struct data_range *alloc_range_helper_sval(sval_t min, sval_t max, int pe
 {
 	struct data_range *ret;
 
-	if (sval_cmp(min, max) > 0) {
-		// sm_msg("debug invalid range %lld to %lld", min, max);
-		min.value = LLONG_MIN;  /* fixme: need a way to represent unknown svals */
-		max.value = LLONG_MAX;
-	}
-
 	if (perm)
 		ret = __alloc_perm_data_range(0);
 	else
