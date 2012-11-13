@@ -67,7 +67,7 @@ sval_t sval_from_val(struct expression *expr, long long val)
 
 	ret = sval_blank(expr);
 	ret.value = val;
-	ret = sval_cast(ret, get_type(expr));
+	ret = sval_cast(get_type(expr), ret);
 
 	return ret;
 }
@@ -149,8 +149,8 @@ int sval_cmp_t(struct symbol *type, sval_t one, sval_t two)
 {
 	sval_t one_cast, two_cast;
 
-	one_cast = sval_cast(one, type);
-	two_cast = sval_cast(two, type);
+	one_cast = sval_cast(type, one);
+	two_cast = sval_cast(type, two);
 	return sval_cmp(one_cast, two_cast);
 }
 
@@ -163,7 +163,7 @@ int sval_cmp_val(sval_t one, long long val)
 	return 1;
 }
 
-sval_t sval_cast(sval_t sval, struct symbol *type)
+sval_t sval_cast(struct symbol *type, sval_t sval)
 {
 	sval_t ret;
 

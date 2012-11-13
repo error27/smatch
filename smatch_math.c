@@ -104,7 +104,7 @@ static sval_t handle_preop(struct expression *expr, int *undefined, int implied)
 	case '~':
 		ret = _get_value(expr->unop, undefined, implied);
 		ret = sval_preop(ret, '~');
-		ret = sval_cast(ret, get_type(expr->unop));
+		ret = sval_cast(get_type(expr->unop), ret);
 		break;
 	case '-':
 		ret = _get_value(expr->unop, undefined, implied);
@@ -120,7 +120,7 @@ static sval_t handle_preop(struct expression *expr, int *undefined, int implied)
 		*undefined = 1;
 		ret = sval_blank(expr);
 	}
-	ret = sval_cast(ret, get_type(expr));
+	ret = sval_cast(get_type(expr), ret);
 	return ret;
 }
 
@@ -422,7 +422,7 @@ static int get_fuzzy_max_helper(struct expression *expr, sval_t *max)
 	if (sval_is_min(sval))
 		return 0;
 
-	*max = sval_cast(sval, get_type(expr));
+	*max = sval_cast(get_type(expr), sval);
 	return 1;
 }
 
@@ -450,7 +450,7 @@ static int get_fuzzy_min_helper(struct expression *expr, sval_t *min)
 
 	if (sval_is_max(sval))
 		return 0;
-	*min = sval_cast(sval, get_type(expr));
+	*min = sval_cast(get_type(expr), sval);
 	return 1;
 }
 
@@ -501,7 +501,7 @@ static int get_const_value(struct expression *expr, sval_t *sval)
 	if (!(sym->ctype.modifiers & MOD_CONST))
 		return 0;
 	if (get_value(sym->initializer, &right)) {
-		*sval = sval_cast(right, get_type(expr));
+		*sval = sval_cast(get_type(expr), right);
 		return 1;
 	}
 	return 0;
@@ -534,7 +534,7 @@ static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
 		ret = _get_value(expr->cast_expression, undefined, implied);
-		ret = sval_cast(ret, get_type(expr));
+		ret = sval_cast(get_type(expr), ret);
 		break;
 	case EXPR_BINOP:
 		ret = handle_binop(expr, undefined, implied);
