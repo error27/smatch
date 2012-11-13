@@ -273,7 +273,7 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != RANGED_CALL)
 			continue;
-		if (!true_comparison_range_lr_sval(comparison, tmp->range, value_range, left))
+		if (!true_comparison_range_lr(comparison, tmp->range, value_range, left))
 			continue;
 		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
@@ -286,7 +286,7 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != RANGED_CALL)
 			continue;
-		if (!false_comparison_range_lr_sval(comparison, tmp->range, value_range, left))
+		if (!false_comparison_range_lr(comparison, tmp->range, value_range, left))
 			continue;
 		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);

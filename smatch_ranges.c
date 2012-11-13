@@ -448,7 +448,7 @@ int true_comparison_range(struct data_range *left, int comparison, struct data_r
 	return 0;
 }
 
-int true_comparison_range_lr_sval(int comparison, struct data_range *var, struct data_range *val, int left)
+int true_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left)
 {
 	if (left)
 		return true_comparison_range(var, comparison, val);
@@ -500,7 +500,7 @@ static int false_comparison_range_sval(struct data_range *left, int comparison, 
 	return 0;
 }
 
-int false_comparison_range_lr_sval(int comparison, struct data_range *var, struct data_range *val, int left)
+int false_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left)
 {
 	if (left)
 		return false_comparison_range_sval(var, comparison, val);

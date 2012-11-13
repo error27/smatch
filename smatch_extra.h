@@ -101,8 +101,8 @@ int estate_get_single_value(struct smatch_state *state, sval_t *sval);
 
 void function_comparison(int comparison, struct expression *expr, sval_t sval, int left);
 
-int true_comparison_range_lr_sval(int comparison, struct data_range *var, struct data_range *val, int left);
-int false_comparison_range_lr_sval(int comparison, struct data_range *var, struct data_range *val, int left);
+int true_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
+int false_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
 struct data_range *alloc_range_sval(sval_t min, sval_t max);
 void tack_on_sval(struct range_list **list, struct data_range *drange);
 
