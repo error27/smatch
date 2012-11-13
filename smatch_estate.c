@@ -119,7 +119,7 @@ int estates_equiv(struct smatch_state *one, struct smatch_state *two)
 	return 0;
 }
 
-int estate_get_single_value_sval(struct smatch_state *state, sval_t *sval)
+int estate_get_single_value(struct smatch_state *state, sval_t *sval)
 {
 	sval_t min, max;
 

@@ -374,7 +374,7 @@ static int get_implied_value_helper(struct expression *expr, sval_t *sval, int i
 	if (!state || !state->data)
 		return 0;
 	if (implied == IMPLIED) {
-		if (estate_get_single_value_sval(state, sval))
+		if (estate_get_single_value(state, sval))
 			return 1;
 		return 0;
 	}

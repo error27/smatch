@@ -218,7 +218,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
 		return NULL;
-	if (!estate_get_single_value_sval(sm->state, &start))
+	if (!estate_get_single_value(sm->state, &start))
 		return NULL;
 	if (!get_implied_value(condition->right, &end))
 		end = sval_type_max(get_type(iter_var));
@@ -258,7 +258,7 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
 		return NULL;
-	if (!estate_get_single_value_sval(sm->state, &start))
+	if (!estate_get_single_value(sm->state, &start))
 		return NULL;
 	if (!get_implied_value(condition->right, &end))
 		end = sval_type_min(get_type(iter_var));
