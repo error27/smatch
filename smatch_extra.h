@@ -56,7 +56,7 @@ int possibly_false_range_lists_rl(int comparison, struct range_list *a, struct r
 void free_range_list(struct range_list **rlist);
 void free_data_info_allocs(void);
 struct range_list *clone_range_list(struct range_list *list);
-struct range_list *clone_permanent_sval(struct range_list *list);
+struct range_list *clone_permanent(struct range_list *list);
 char *show_ranges_sval(struct range_list *list);
 void get_value_ranges_type(struct symbol *type, char *value, struct range_list **rl);
 void get_value_ranges_sval(char *value, struct range_list **rl);

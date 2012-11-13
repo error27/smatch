@@ -311,7 +311,7 @@ struct range_list *clone_range_list(struct range_list *list)
 	return ret;
 }
 
-struct range_list *clone_permanent_sval(struct range_list *list)
+struct range_list *clone_permanent(struct range_list *list)
 {
 	struct data_range *tmp;
 	struct data_range *new;
