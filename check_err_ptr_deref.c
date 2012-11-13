@@ -126,10 +126,10 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
 		return;
 	FOR_EACH_PTR(sm->possible, tmp) {
 		tmp_min = estate_min(tmp->state);
-		if (!sval_is_min(tmp_min) && sval_cmp(tmp_min, min) < 0)
+		if (!sval_is_a_min(tmp_min) && sval_cmp(tmp_min, min) < 0)
 			min = tmp_min;
 		tmp_max = estate_max(tmp->state);
-		if (!sval_is_max(tmp_max) && sval_cmp(tmp_max, max) > 0)
+		if (!sval_is_a_max(tmp_max) && sval_cmp(tmp_max, max) > 0)
 			max = tmp_max;
 	} END_FOR_EACH_PTR(tmp);
 	if (sval_cmp_val(min, -4095) < 0)

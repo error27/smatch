@@ -120,6 +120,34 @@ int sval_is_max(sval_t sval)
 	return (sval.value >= max.value);
 }
 
+int sval_is_a_min(sval_t sval)
+{
+	if (sval_signed(sval) && sval.value == SHRT_MIN)
+		return 1;
+	if (sval_signed(sval) && sval.value == INT_MIN)
+		return 1;
+	if (sval_signed(sval) && sval.value == LLONG_MIN)
+		return 1;
+	return 0;
+}
+
+int sval_is_a_max(sval_t sval)
+{
+	if (sval.uvalue == SHRT_MAX)
+		return 1;
+	if (sval.uvalue == INT_MAX)
+		return 1;
+	if (sval.uvalue == LLONG_MAX)
+		return 1;
+	if (sval.uvalue == USHRT_MAX)
+		return 1;
+	if (sval.uvalue == UINT_MAX)
+		return 1;
+	if (sval_unsigned(sval) && sval.uvalue == ULLONG_MAX)
+		return 1;
+	return 0;
+}
+
 /*
  * Returns -1 if one is smaller, 0 if they are the same and 1 if two is larger.
  */
