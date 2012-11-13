@@ -196,7 +196,7 @@ struct data_range *alloc_range_sval(sval_t min, sval_t max)
 	return alloc_range_helper_sval(min, max, 0);
 }
 
-struct data_range *alloc_range_perm_sval(sval_t min, sval_t max)
+struct data_range *alloc_range_perm(sval_t min, sval_t max)
 {
 	return alloc_range_helper_sval(min, max, 1);
 }
@@ -318,7 +318,7 @@ struct range_list *clone_permanent_sval(struct range_list *list)
 	struct range_list *ret = NULL;
 
 	FOR_EACH_PTR(list, tmp) {
-		new = alloc_range_perm_sval(tmp->min, tmp->max);
+		new = alloc_range_perm(tmp->min, tmp->max);
 		add_ptr_list(&ret, new);
 	} END_FOR_EACH_PTR(tmp);
 	return ret;

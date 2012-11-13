@@ -121,7 +121,7 @@ void return_implies_state(const char *look_for, long long start, long long end,
 	struct fcall_back *cb;
 
 	cb = alloc_fcall_back(RANGED_CALL, call_back, info);
-	cb->range = alloc_range_perm_sval(ll_to_sval(start), ll_to_sval(end));
+	cb->range = alloc_range_perm(ll_to_sval(start), ll_to_sval(end));
 	add_callback(func_hash, look_for, cb);
 }
 
