@@ -179,7 +179,7 @@ static struct call_back_list *get_same_ranged_call_backs(struct call_back_list *
 	FOR_EACH_PTR(list, tmp) {
 		if (tmp->type != RANGED_CALL)
 			continue;
-		if (ranges_equiv_sval(tmp->range, drange))
+		if (ranges_equiv(tmp->range, drange))
 			add_ptr_list(&ret, tmp);
 	} END_FOR_EACH_PTR(tmp);
 	return ret;
@@ -190,7 +190,7 @@ static int in_list_exact_sval(struct range_list *list, struct data_range *drange
 	struct data_range *tmp;
 
 	FOR_EACH_PTR(list, tmp) {
-		if (ranges_equiv_sval(tmp, drange))
+		if (ranges_equiv(tmp, drange))
 			return 1;
 	} END_FOR_EACH_PTR(tmp);
 	return 0;

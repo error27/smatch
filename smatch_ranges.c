@@ -370,7 +370,7 @@ struct range_list *remove_range_sval(struct range_list *list, sval_t min, sval_t
 	return ret;
 }
 
-int ranges_equiv_sval(struct data_range *one, struct data_range *two)
+int ranges_equiv(struct data_range *one, struct data_range *two)
 {
 	if (!one && !two)
 		return 1;
@@ -383,7 +383,7 @@ int ranges_equiv_sval(struct data_range *one, struct data_range *two)
 	return 1;
 }
 
-int range_lists_equiv_sval(struct range_list *one, struct range_list *two)
+int range_lists_equiv(struct range_list *one, struct range_list *two)
 {
 	struct data_range *one_range;
 	struct data_range *two_range;
@@ -393,7 +393,7 @@ int range_lists_equiv_sval(struct range_list *one, struct range_list *two)
 	for (;;) {
 		if (!one_range && !two_range)
 			return 1;
-		if (!ranges_equiv_sval(one_range, two_range))
+		if (!ranges_equiv(one_range, two_range))
 			return 0;
 		NEXT_PTR_LIST(one_range);
 		NEXT_PTR_LIST(two_range);

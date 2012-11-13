@@ -87,7 +87,7 @@ static void print_implications(struct symbol *sym, int param,
 	if (!true_state || !false_state)
 		return;
 
-	if (range_lists_equiv_sval(estate_ranges_sval(true_state),
+	if (range_lists_equiv(estate_ranges_sval(true_state),
 				   estate_ranges_sval(false_state)))
 		return;
 

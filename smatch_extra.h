@@ -41,8 +41,8 @@ struct data_range *alloc_range_perm(sval_t min, sval_t max);
 struct range_list *alloc_range_list(sval_t min, sval_t max);
 struct range_list *whole_range_list(struct symbol *type);
 void add_range(struct range_list **list, sval_t min, sval_t max);
-int ranges_equiv_sval(struct data_range *one, struct data_range *two);
-int range_lists_equiv_sval(struct range_list *one, struct range_list *two);
+int ranges_equiv(struct data_range *one, struct data_range *two);
+int range_lists_equiv(struct range_list *one, struct range_list *two);
 int true_comparison_range_sval(struct data_range *left, int comparison, struct data_range *right);
 
 int possibly_true(struct expression *left, int comparison, struct expression *right);
