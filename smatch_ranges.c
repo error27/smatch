@@ -595,7 +595,7 @@ int possibly_false_range_lists_rl(int comparison, struct range_list *a, struct r
 		return possibly_false_range_lists(b, comparison, a);
 }
 
-void tack_on_sval(struct range_list **list, struct data_range *drange)
+void tack_on(struct range_list **list, struct data_range *drange)
 {
 	add_ptr_list(list, drange);
 }

@@ -224,7 +224,7 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 		if (in_list_exact_sval(handled_ranges, tmp->range))
 			continue;
 		__push_fake_cur_slist();
-		tack_on_sval(&handled_ranges, tmp->range);
+		tack_on(&handled_ranges, tmp->range);
 
 		same_range_call_backs = get_same_ranged_call_backs(call_backs, tmp->range);
 		call_ranged_call_backs(same_range_call_backs, fn, expr->right, expr);
