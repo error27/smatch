@@ -579,7 +579,7 @@ int possibly_false_range_lists(struct range_list *left_ranges, int comparison, s
 }
 
 /* FIXME: the _rl here stands for right left so really it should be _lr */
-int possibly_true_range_lists_rl(int comparison, struct range_list *a, struct range_list *b, int left)
+int possibly_true_range_lists_lr(int comparison, struct range_list *a, struct range_list *b, int left)
 {
 	if (left)
 		return possibly_true_range_lists(a, comparison, b);
@@ -587,7 +587,7 @@ int possibly_true_range_lists_rl(int comparison, struct range_list *a, struct ra
 		return possibly_true_range_lists(b, comparison, a);
 }
 
-int possibly_false_range_lists_rl(int comparison, struct range_list *a, struct range_list *b, int left)
+int possibly_false_range_lists_lr(int comparison, struct range_list *a, struct range_list *b, int left)
 {
 	if (left)
 		return possibly_false_range_lists(a, comparison, b);
