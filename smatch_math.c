@@ -274,7 +274,7 @@ static sval_t handle_comparison(struct expression *expr, int *undefined, int imp
 		tmp_left.max = left;
 		tmp_right.min = right;
 		tmp_right.max = right;
-		if (true_comparison_range_sval(&tmp_left, expr->op, &tmp_right))
+		if (true_comparison_range(&tmp_left, expr->op, &tmp_right))
 			return one;
 		return zero;
 	}

@@ -404,7 +404,7 @@ int range_lists_equiv(struct range_list *one, struct range_list *two)
 	return 1;
 }
 
-int true_comparison_range_sval(struct data_range *left, int comparison, struct data_range *right)
+int true_comparison_range(struct data_range *left, int comparison, struct data_range *right)
 {
 	switch (comparison) {
 	case '<':
@@ -451,9 +451,9 @@ int true_comparison_range_sval(struct data_range *left, int comparison, struct d
 int true_comparison_range_lr_sval(int comparison, struct data_range *var, struct data_range *val, int left)
 {
 	if (left)
-		return true_comparison_range_sval(var, comparison, val);
+		return true_comparison_range(var, comparison, val);
 	else
-		return true_comparison_range_sval(val, comparison, var);
+		return true_comparison_range(val, comparison, var);
 }
 
 static int false_comparison_range_sval(struct data_range *left, int comparison, struct data_range *right)
@@ -520,7 +520,7 @@ int possibly_true(struct expression *left, int comparison, struct expression *ri
 
 	FOR_EACH_PTR(rl_left, tmp_left) {
 		FOR_EACH_PTR(rl_right, tmp_right) {
-			if (true_comparison_range_sval(tmp_left, comparison, tmp_right))
+			if (true_comparison_range(tmp_left, comparison, tmp_right))
 				return 1;
 		} END_FOR_EACH_PTR(tmp_right);
 	} END_FOR_EACH_PTR(tmp_left);
@@ -555,7 +555,7 @@ int possibly_true_range_lists_sval(struct range_list *left_ranges, int compariso
 
 	FOR_EACH_PTR(left_ranges, left_tmp) {
 		FOR_EACH_PTR(right_ranges, right_tmp) {
-			if (true_comparison_range_sval(left_tmp, comparison, right_tmp))
+			if (true_comparison_range(left_tmp, comparison, right_tmp))
 				return 1;
 		} END_FOR_EACH_PTR(right_tmp);
 	} END_FOR_EACH_PTR(left_tmp);
