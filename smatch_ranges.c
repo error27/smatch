@@ -46,6 +46,8 @@ void parse_value_ranges_type(struct symbol *type, char *value, struct range_list
 	char *start;
 	char *c;
 
+	if (!type)
+		type = &llong_ctype;
 	*rl = NULL;
 
 	c = value;
@@ -129,11 +131,6 @@ void parse_value_ranges_type(struct symbol *type, char *value, struct range_list
 	}
 
 	*rl = cast_rl(type, *rl);
-}
-
-void parse_value_ranges(char *value, struct range_list **rl)
-{
-	parse_value_ranges_type(&llong_ctype, value, rl);
 }
 
 int is_whole_range_rl(struct range_list *rl)

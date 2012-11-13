@@ -326,7 +326,7 @@ static int db_compare_callback(void *unused, int argc, char **argv, char **azCol
 	if (argc != 5)
 		return 0;
 
-	parse_value_ranges(argv[0], &ret_range);
+	parse_value_ranges_type(get_type(db_info.expr), argv[0], &ret_range);
 	type = atoi(argv[1]);
 	param = atoi(argv[2]);
 	key = argv[3];
@@ -482,7 +482,7 @@ static int db_assign_callback(void *unused, int argc, char **argv, char **azColN
 	if (argc != 5)
 		return 0;
 
-	parse_value_ranges(argv[0], &ret_range);
+	parse_value_ranges_type(get_type(db_info.expr->right), argv[0], &ret_range);
 	type = atoi(argv[1]);
 	param = atoi(argv[2]);
 	key = argv[3];
@@ -493,6 +493,7 @@ static int db_assign_callback(void *unused, int argc, char **argv, char **azColN
 		if (tmp->type == type)
 			tmp->callback(db_info.expr->right, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
+	ret_range = cast_rl(get_type(db_info.expr->left), ret_range);
 	set_extra_expr_mod(db_info.expr->left, alloc_estate_range_list(ret_range));
 	slist = __pop_fake_cur_slist();
 
@@ -552,7 +553,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 		return 0;
 
 	return_id = atoi(argv[0]);
-	parse_value_ranges(argv[1], &ret_range);
+	parse_value_ranges_type(get_type(db_info.expr->right), argv[1], &ret_range);
 	if (!ret_range)
 		ret_range = whole_range_list(cur_func_return_type());
 	type = atoi(argv[2]);
@@ -571,6 +572,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 		if (tmp->type == type)
 			tmp->callback(db_info.expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
+	ret_range = cast_rl(get_type(db_info.expr->left), ret_range);
 	set_extra_expr_mod(db_info.expr->left, alloc_estate_range_list(ret_range));
 
 	return 0;
@@ -626,6 +628,7 @@ static int handle_implied_return(struct expression *expr)
 
 	if (!get_implied_return(expr->right, &rl))
 		return 0;
+	rl = cast_rl(get_type(expr->left), rl);
 	set_extra_expr_mod(expr->left, alloc_estate_range_list(rl));
 	return 1;
 }
@@ -674,7 +677,7 @@ static int db_return_states_callback(void *unused, int argc, char **argv, char *
 		return 0;
 
 	return_id = atoi(argv[0]);
-	parse_value_ranges(argv[1], &ret_range);
+	parse_value_ranges_type(get_type(db_info.expr), argv[1], &ret_range);
 	type = atoi(argv[2]);
 	param = atoi(argv[3]);
 	key = argv[4];

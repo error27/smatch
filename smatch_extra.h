@@ -59,7 +59,6 @@ struct range_list *clone_range_list(struct range_list *list);
 struct range_list *clone_permanent(struct range_list *list);
 char *show_ranges(struct range_list *list);
 void parse_value_ranges_type(struct symbol *type, char *value, struct range_list **rl);
-void parse_value_ranges(char *value, struct range_list **rl);
 
 struct range_list *remove_range(struct range_list *list, sval_t min, sval_t max);
 
