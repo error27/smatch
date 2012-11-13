@@ -61,7 +61,7 @@ char *show_ranges(struct range_list *list);
 void get_value_ranges_type(struct symbol *type, char *value, struct range_list **rl);
 void get_value_ranges_sval(char *value, struct range_list **rl);
 
-struct range_list *remove_range_sval(struct range_list *list, sval_t min, sval_t max);
+struct range_list *remove_range(struct range_list *list, sval_t min, sval_t max);
 
 /* used in smatch_slist.  implemented in smatch_extra.c */
 int implied_not_equal(struct expression *expr, long long val);

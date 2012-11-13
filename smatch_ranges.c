@@ -338,7 +338,7 @@ struct range_list *range_list_union_sval(struct range_list *one, struct range_li
 	return ret;
 }
 
-struct range_list *remove_range_sval(struct range_list *list, sval_t min, sval_t max)
+struct range_list *remove_range(struct range_list *list, sval_t min, sval_t max)
 {
 	struct data_range *tmp;
 	struct range_list *ret = NULL;
@@ -627,7 +627,7 @@ void filter_top_range_list(struct range_list_stack **rl_stack, sval_t sval)
 	struct range_list *rl;
 
 	rl = pop_range_list(rl_stack);
-	rl = remove_range_sval(rl, sval, sval);
+	rl = remove_range(rl, sval, sval);
 	push_range_list(rl_stack, rl);
 }
 
