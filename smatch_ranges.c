@@ -127,6 +127,8 @@ void parse_value_ranges_type(struct symbol *type, char *value, struct range_list
 			c++;
 		c++; /* skip the comma in eg: 4-5,7 */
 	}
+
+	*rl = cast_rl(type, *rl);
 }
 
 void parse_value_ranges(char *value, struct range_list **rl)
