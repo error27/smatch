@@ -1014,7 +1014,7 @@ static void match_call_info(struct expression *expr)
 	FOR_EACH_PTR(expr->args, arg) {
 		if (get_implied_range_list(arg, &rl) && !is_whole_range_rl(rl)) {
 			sm_msg("info: passes param_value '%s' %d '$$' %s %s",
-			       name, i, show_ranges_sval(rl),
+			       name, i, show_ranges(rl),
 			       is_static(expr->fn) ? "static" : "global");
 		}
 		i++;

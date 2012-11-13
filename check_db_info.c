@@ -43,7 +43,7 @@ static void match_end_func(struct symbol *sym)
 	if (!return_ranges)
 		return;
 	sm_msg("info: function_return_values '%s' %s",
-	       show_ranges_sval(return_ranges), global_static());
+	       show_ranges(return_ranges), global_static());
 	return_ranges = NULL;
 }
 

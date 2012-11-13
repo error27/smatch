@@ -92,9 +92,9 @@ static void print_implications(struct symbol *sym, int param,
 		return;
 
 	sm_msg("info: bool_return_implication \"1\" %d \"%s\" %s", param,
-	       show_ranges_sval(estate_ranges_sval(true_state)), global_static());
+	       show_ranges(estate_ranges_sval(true_state)), global_static());
 	sm_msg("info: bool_return_implication \"0\" %d \"%s\" %s", param,
-	       show_ranges_sval(estate_ranges_sval(false_state)), global_static());
+	       show_ranges(estate_ranges_sval(false_state)), global_static());
 }
 
 static void cleanup(void)

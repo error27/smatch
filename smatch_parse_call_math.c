@@ -456,7 +456,7 @@ static void match_returns_call(struct expression *call)
 		return;
 	get_implied_range_list(call, &rl);
 	sm_msg("info: return_allocation %d '%s' '%s' %s",
-	       get_return_id(), show_ranges_sval(rl), sname, global_static());
+	       get_return_id(), show_ranges(rl), sname, global_static());
 }
 
 static void match_return(struct expression *expr)
@@ -478,7 +478,7 @@ static void match_return(struct expression *expr)
 		return;
 	get_implied_range_list(expr, &rl);
 	sm_msg("info: return_allocation %d '%s' '%s' %s",
-	       get_return_id(), show_ranges_sval(rl), state->name, global_static());
+	       get_return_id(), show_ranges(rl), state->name, global_static());
 }
 
 void register_parse_call_math(int id)

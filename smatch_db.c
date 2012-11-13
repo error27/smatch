@@ -479,7 +479,7 @@ static void match_return_info(struct expression *ret_value)
 
 	get_implied_range_list(ret_value, &rl);
 	sm_msg("info: return_marker %d '%s' %s",
-	       get_return_id(), show_ranges_sval(rl), global_static());
+	       get_return_id(), show_ranges(rl), global_static());
 }
 
 static void match_end_func_info(struct symbol *sym)

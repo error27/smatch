@@ -17,7 +17,7 @@ ALLOCATOR(data_range, "data range");
 __DO_ALLOCATOR(struct data_range, sizeof(struct data_range), __alignof__(struct data_range),
 			 "permanent ranges", perm_data_range);
 
-char *show_ranges_sval(struct range_list *list)
+char *show_ranges(struct range_list *list)
 {
 	struct data_range *tmp;
 	char full[256];

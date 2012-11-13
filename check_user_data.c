@@ -322,7 +322,7 @@ static void match_return(struct expression *expr)
 
 		get_implied_range_list(expr, &rl);
 		sm_msg("info: returns_user_data %d '%s' %s",
-		       get_return_id(), show_ranges_sval(rl), global_static());
+		       get_return_id(), show_ranges(rl), global_static());
 	}
 }
 

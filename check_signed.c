@@ -273,8 +273,8 @@ static void match_condition(struct expression *expr)
 		char *name = get_variable_from_expr_complex(expr, NULL);
 
 		sm_msg("warn: impossible condition '(%s) => (%s %s %s)'", name,
-		       show_ranges_sval(rl_left), show_special(expr->op),
-		       show_ranges_sval(rl_right));
+		       show_ranges(rl_left), show_special(expr->op),
+		       show_ranges(rl_right));
 		free_string(name);
 	}
 
@@ -282,8 +282,8 @@ static void match_condition(struct expression *expr)
 		char *name = get_variable_from_expr_complex(expr, NULL);
 
 		sm_msg("warn: always true condition '(%s) => (%s %s %s)'", name,
-		       show_ranges_sval(rl_left_orig), show_special(expr->op),
-		       show_ranges_sval(rl_right_orig));
+		       show_ranges(rl_left_orig), show_special(expr->op),
+		       show_ranges(rl_right_orig));
 		free_string(name);
 	}
 }

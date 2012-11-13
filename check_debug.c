@@ -57,7 +57,7 @@ static void match_print_implied(const char *fn, struct expression *expr, void *i
 	get_implied_range_list(arg, &rl);
 
 	name = get_variable_from_expr_complex(arg, NULL);
-	sm_msg("implied: %s = '%s'", name, show_ranges_sval(rl));
+	sm_msg("implied: %s = '%s'", name, show_ranges(rl));
 	free_string(name);
 }
 
