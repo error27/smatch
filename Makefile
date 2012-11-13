@@ -40,7 +40,7 @@ MANDIR=$(PREFIX)/share/man
 MAN1DIR=$(MANDIR)/man1
 INCLUDEDIR=$(PREFIX)/include
 PKGCONFIGDIR=$(LIBDIR)/pkgconfig
-SMATCHDATADIR=$(PREFIX)/share/smatch/
+SMATCHDATADIR=$(PREFIX)/share/smatch
 
 SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	smatch_helper.o smatch_type.o smatch_hooks.o smatch_function_hooks.o \
@@ -169,7 +169,7 @@ install: all-installable
 	$(Q)install -d $(DESTDIR)$(MAN1DIR)
 	$(Q)install -d $(DESTDIR)$(INCLUDEDIR)/sparse
 	$(Q)install -d $(DESTDIR)$(PKGCONFIGDIR)
-	$(Q)install -d $(DESTDIR)$(SMATCHDATADIR)/smatch_data/
+	$(Q)install -d $(DESTDIR)$(SMATCHDATADIR)/smatch_data
 	$(foreach f,$(INST_PROGRAMS),$(call INSTALL_EXEC,$f,$(BINDIR)))
 	$(foreach f,$(INST_MAN1),$(call INSTALL_FILE,$f,$(MAN1DIR)))
 	$(foreach f,$(LIBS),$(call INSTALL_FILE,$f,$(LIBDIR)))
