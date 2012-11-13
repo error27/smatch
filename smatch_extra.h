@@ -81,7 +81,7 @@ struct smatch_state *alloc_estate_empty(void);
 struct smatch_state *alloc_estate(sval_t sval);
 struct smatch_state *alloc_estate_range_list(struct range_list *rl);
 struct data_info *get_dinfo(struct smatch_state *state);
-struct range_list *estate_ranges_sval(struct smatch_state *state);
+struct range_list *estate_ranges(struct smatch_state *state);
 struct related_list *estate_related(struct smatch_state *state);
 
 int estate_has_hard_max(struct smatch_state *state);

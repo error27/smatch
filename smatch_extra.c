@@ -135,7 +135,7 @@ struct smatch_state *filter_range(struct smatch_state *orig,
 	if (!orig)
 		orig = extra_undefined(filter_min.type);
 
-	rl = remove_range(estate_ranges_sval(orig), filter_min, filter_max);
+	rl = remove_range(estate_ranges(orig), filter_min, filter_max);
 	return alloc_estate_range_list(rl);
 }
 
@@ -153,7 +153,7 @@ static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_st
 	if (estates_equiv(s1, s2))
 		return s1;
 
-	value_ranges = range_list_union_sval(estate_ranges_sval(s1), estate_ranges_sval(s2));
+	value_ranges = range_list_union_sval(estate_ranges(s1), estate_ranges(s2));
 	tmp = alloc_estate_range_list(value_ranges);
 	rlist = get_shared_relations(estate_related(s1), estate_related(s2));
 	set_related(tmp, rlist);
@@ -952,7 +952,7 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 
 	state = get_state_expr(my_id, expr);
 	if (state) {
-		*rl = clone_range_list(estate_ranges_sval(state));
+		*rl = clone_range_list(estate_ranges(state));
 		goto out;
 	}
 
@@ -990,7 +990,7 @@ out:
 
 int is_whole_range(struct smatch_state *state)
 {
-	return is_whole_range_rl(estate_ranges_sval(state));
+	return is_whole_range_rl(estate_ranges(state));
 }
 
 static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)

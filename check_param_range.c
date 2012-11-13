@@ -168,7 +168,7 @@ static void handle_condition(struct expression *expr)
 		int num;
 
 		num = get_param_num(param);
-		add_param_constraint(num, estate_ranges_sval(sm->state));
+		add_param_constraint(num, estate_ranges(sm->state));
 	}
 
 	__push_true_states();
