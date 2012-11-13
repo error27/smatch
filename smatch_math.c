@@ -509,7 +509,7 @@ static int get_const_value(struct expression *expr, sval_t *sval)
 
 static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 {
-	sval_t tmp_ret;
+	sval_t ret;
 
 	if (!expr) {
 		*undefined = 1;
@@ -522,50 +522,50 @@ static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 
 	switch (expr->type) {
 	case EXPR_VALUE:
-		tmp_ret = sval_from_val(expr, expr->value);
+		ret = sval_from_val(expr, expr->value);
 		break;
 	case EXPR_PREOP:
-		tmp_ret = handle_preop(expr, undefined, implied);
+		ret = handle_preop(expr, undefined, implied);
 		break;
 	case EXPR_POSTOP:
-		tmp_ret = _get_value(expr->unop, undefined, implied);
+		ret = _get_value(expr->unop, undefined, implied);
 		break;
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
-		tmp_ret = _get_value(expr->cast_expression, undefined, implied);
-		tmp_ret = sval_cast(tmp_ret, get_type(expr));
+		ret = _get_value(expr->cast_expression, undefined, implied);
+		ret = sval_cast(ret, get_type(expr));
 		break;
 	case EXPR_BINOP:
-		tmp_ret = handle_binop(expr, undefined, implied);
+		ret = handle_binop(expr, undefined, implied);
 		break;
 	case EXPR_COMPARE:
-		tmp_ret = handle_comparison(expr, undefined, implied);
+		ret = handle_comparison(expr, undefined, implied);
 		break;
 	case EXPR_LOGICAL:
-		tmp_ret = handle_logical(expr, undefined, implied);
+		ret = handle_logical(expr, undefined, implied);
 		break;
 	case EXPR_PTRSIZEOF:
 	case EXPR_SIZEOF:
-		tmp_ret = sval_blank(expr);
-		tmp_ret.value = get_expression_value_nomod(expr);
+		ret = sval_blank(expr);
+		ret.value = get_expression_value_nomod(expr);
 		break;
 	case EXPR_SYMBOL:
-		if (get_const_value(expr, &tmp_ret)) {
+		if (get_const_value(expr, &ret)) {
 			break;
 		}
-		tmp_ret = _get_implied_value(expr, undefined, implied);
+		ret = _get_implied_value(expr, undefined, implied);
 		break;
 	case EXPR_SELECT:
 	case EXPR_CONDITIONAL:
-		tmp_ret = handle_conditional(expr, undefined, implied);
+		ret = handle_conditional(expr, undefined, implied);
 		break;
 	default:
-		tmp_ret = _get_implied_value(expr, undefined, implied);
+		ret = _get_implied_value(expr, undefined, implied);
 	}
 	if (*undefined)
 		return bogus;
-	return tmp_ret;
+	return ret;
 }
 
 /* returns 1 if it can get a value literal or else returns 0 */
