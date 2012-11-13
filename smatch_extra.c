@@ -1033,7 +1033,7 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 		return;
 
 	snprintf(fullname, 256, "%s%s", name, key + 2);
-	get_value_ranges_type(get_real_base_type(sym), value, &rl);
+	parse_value_ranges_type(get_real_base_type(sym), value, &rl);
 	rl = cast_rl(rl, get_real_base_type(sym));
 	state = alloc_estate_range_list(rl);
 	set_state(SMATCH_EXTRA, fullname, sym, state);

@@ -39,7 +39,7 @@ char *show_ranges(struct range_list *list)
 	return alloc_sname(full);
 }
 
-void get_value_ranges_type(struct symbol *type, char *value, struct range_list **rl)
+void parse_value_ranges_type(struct symbol *type, char *value, struct range_list **rl)
 {
 	long long val1, val2;
 	sval_t tmp;
@@ -129,9 +129,9 @@ void get_value_ranges_type(struct symbol *type, char *value, struct range_list *
 	}
 }
 
-void get_value_ranges(char *value, struct range_list **rl)
+void parse_value_ranges(char *value, struct range_list **rl)
 {
-	get_value_ranges_type(&llong_ctype, value, rl);
+	parse_value_ranges_type(&llong_ctype, value, rl);
 }
 
 int is_whole_range_rl(struct range_list *rl)

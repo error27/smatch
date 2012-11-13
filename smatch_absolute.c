@@ -152,7 +152,7 @@ static void set_param_limits(const char *name, struct symbol *sym, char *key, ch
 		return;
 
 	snprintf(fullname, 256, "%s%s", name, key + 2);
-	get_value_ranges(value, &rl);
+	parse_value_ranges(value, &rl);
 	min = rl_min(rl);
 	max = rl_max(rl);
 	set_state(my_id, fullname, sym, alloc_absolute(min, max));
