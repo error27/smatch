@@ -384,12 +384,12 @@ static int get_implied_value_helper(struct expression *expr, sval_t *sval, int i
 		return 0;
 	}
 	if (implied == IMPLIED_MAX) {
-		*sval = estate_max_sval(state);
+		*sval = estate_max(state);
 		if (sval_is_max(*sval)) /* this means just guessing.  fixme. not really */
 			return 0;
 		return 1;
 	}
-	*sval = estate_min_sval(state);
+	*sval = estate_min(state);
 	if (sval_is_min(*sval))       /* fixme */
 		return 0;
 	return 1;
@@ -414,7 +414,7 @@ static int get_fuzzy_max_helper(struct expression *expr, sval_t *max)
 	FOR_EACH_PTR(sm->possible, tmp) {
 		sval_t new_min;
 
-		new_min = estate_min_sval(tmp->state);
+		new_min = estate_min(tmp->state);
 		if (sval_cmp(new_min, sval) > 0)
 			sval = new_min;
 	} END_FOR_EACH_PTR(tmp);
@@ -443,7 +443,7 @@ static int get_fuzzy_min_helper(struct expression *expr, sval_t *min)
 	FOR_EACH_PTR(sm->possible, tmp) {
 		sval_t new_max;
 
-		new_max = estate_max_sval(tmp->state);
+		new_max = estate_max(tmp->state);
 		if (sval_cmp(new_max, sval) < 0)
 			sval = new_max;
 	} END_FOR_EACH_PTR(tmp);

@@ -89,8 +89,8 @@ void estate_set_hard_max(struct smatch_state *state);
 void estate_clear_hard_max(struct smatch_state *state);
 int estate_get_hard_max(struct smatch_state *state, sval_t *sval);
 
-sval_t estate_min_sval(struct smatch_state *state);
-sval_t estate_max_sval(struct smatch_state *state);
+sval_t estate_min(struct smatch_state *state);
+sval_t estate_max(struct smatch_state *state);
 struct symbol *estate_type(struct smatch_state *state);
 struct smatch_state *add_filter(struct smatch_state *orig, sval_t filter);
 struct smatch_state *filter_range(struct smatch_state *orig, sval_t filter_min, sval_t filter_max);

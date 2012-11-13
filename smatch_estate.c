@@ -68,12 +68,12 @@ int estate_get_hard_max(struct smatch_state *state, sval_t *sval)
 	return 1;
 }
 
-sval_t estate_min_sval(struct smatch_state *state)
+sval_t estate_min(struct smatch_state *state)
 {
 	return rl_min(estate_ranges(state));
 }
 
-sval_t estate_max_sval(struct smatch_state *state)
+sval_t estate_max(struct smatch_state *state)
 {
 	return rl_max(estate_ranges(state));
 }

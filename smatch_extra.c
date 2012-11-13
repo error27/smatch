@@ -183,9 +183,9 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
 		return NULL;
-	if (sval_cmp_val(estate_min_sval(sm->state), 0) < 0)
+	if (sval_cmp_val(estate_min(sm->state), 0) < 0)
 		return NULL;
-	start = estate_max_sval(sm->state);
+	start = estate_max(sm->state);
 	if  (sval_cmp_val(start, 0) <= 0)
 		return NULL;
 	if (!sval_is_max(start))
@@ -341,7 +341,7 @@ static void while_count_down_after(struct sm_state *sm, struct expression *condi
 		return;
 	if (condition->op != SPECIAL_DECREMENT)
 		return;
-	after_value = estate_min_sval(sm->state);
+	after_value = estate_min(sm->state);
 	after_value.value--;
 	set_extra_mod(sm->name, sm->sym, alloc_estate(after_value));
 }
@@ -381,8 +381,8 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	if (sym != sm->sym || strcmp(name, sm->name))
 		goto free;
 	state = get_state(my_id, name, sym);
-	min = estate_min_sval(state);
-	max = estate_max_sval(state);
+	min = estate_min(state);
+	max = estate_max(state);
 	if (iter_expr->op == SPECIAL_INCREMENT &&
 	    !sval_is_min(min) && sval_is_max(max))
 		set_extra_mod(name, sym, alloc_estate(min));
@@ -508,8 +508,8 @@ static void reset_struct_members(struct sm_state *sm)
 
 static struct smatch_state *increment_state(struct smatch_state *state)
 {
-	sval_t min = estate_min_sval(state);
-	sval_t max = estate_max_sval(state);
+	sval_t min = estate_min(state);
+	sval_t max = estate_max(state);
 
 	if (inside_loop())
 		max = sval_type_max(max.type);
@@ -523,8 +523,8 @@ static struct smatch_state *increment_state(struct smatch_state *state)
 
 static struct smatch_state *decrement_state(struct smatch_state *state)
 {
-	sval_t min = estate_min_sval(state);
-	sval_t max = estate_max_sval(state);
+	sval_t min = estate_min(state);
+	sval_t max = estate_max(state);
 
 	if (inside_loop())
 		min = sval_type_min(min.type);
