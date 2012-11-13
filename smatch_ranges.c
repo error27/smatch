@@ -39,11 +39,54 @@ char *show_ranges(struct range_list *list)
 	return alloc_sname(full);
 }
 
+static sval_t parse_val(struct symbol *type, char *c, char **endp)
+{
+	char *start = c;
+	sval_t ret;
+
+	if (!strncmp(start, "max", 3)) {
+		ret = sval_type_max(type);
+		c += 3;
+	} else if (!strncmp(start, "u64max", 6)) {
+		ret = sval_type_val(type, ULLONG_MAX);
+		c += 6;
+	} else if (!strncmp(start, "s64max", 6)) {
+		ret = sval_type_val(type, LLONG_MAX);
+		c += 6;
+	} else if (!strncmp(start, "u32max", 6)) {
+		ret = sval_type_val(type, UINT_MAX);
+		c += 6;
+	} else if (!strncmp(start, "s32max", 6)) {
+		ret = sval_type_val(type, INT_MAX);
+		c += 6;
+	} else if (!strncmp(start, "u16max", 6)) {
+		ret = sval_type_val(type, USHRT_MAX);
+		c += 6;
+	} else if (!strncmp(start, "s16max", 6)) {
+		ret = sval_type_val(type, SHRT_MAX);
+		c += 6;
+	} else if (!strncmp(start, "min", 3)) {
+		ret = sval_type_min(type);
+		c += 3;
+	} else if (!strncmp(start, "s64min", 6)) {
+		ret = sval_type_val(type, LLONG_MIN);
+		c += 6;
+	} else if (!strncmp(start, "s32min", 6)) {
+		ret = sval_type_val(type, INT_MIN);
+		c += 6;
+	} else if (!strncmp(start, "s16min", 6)) {
+		ret = sval_type_val(type, SHRT_MIN);
+		c += 6;
+	} else {
+		ret = sval_type_val(type, strtoll(start, &c, 10));
+	}
+	*endp = c;
+	return ret;
+}
+
 void parse_value_ranges_type(struct symbol *type, char *value, struct range_list **rl)
 {
-	long long val1, val2;
-	sval_t tmp;
-	char *start;
+	sval_t min, max;
 	char *c;
 
 	if (!type)
@@ -54,80 +97,36 @@ void parse_value_ranges_type(struct symbol *type, char *value, struct range_list
 	while (*c) {
 		if (*c == '(')
 			c++;
-		start = c;
-
-		if (!strncmp(start, "max", 3)) {
-			tmp = sval_type_max(type);
-			val1 = tmp.value;
-			c += 3;
-		} else if (!strncmp(start, "u64max", 6)) {
-			val1 = LLONG_MAX; // FIXME
-			c += 6;
-		} else if (!strncmp(start, "s64max", 6)) {
-			val1 = LLONG_MAX;
-			c += 6;
-		} else if (!strncmp(start, "u32max", 6)) {
-			val1 = UINT_MAX;
-			c += 6;
-		} else if (!strncmp(start, "s32max", 6)) {
-			val1 = INT_MAX;
-			c += 6;
-		} else if (!strncmp(start, "u16max", 6)) {
-			val1 = USHRT_MAX;
-			c += 6;
-		} else if (!strncmp(start, "s16max", 6)) {
-			val1 = SHRT_MAX;
-			c += 6;
-		} else if (!strncmp(start, "min", 3)) {
-			tmp = sval_type_min(type);
-			val1 = tmp.value;
-			c += 3;
-		} else if (!strncmp(start, "s64min", 6)) {
-			val1 = LLONG_MIN;
-			c += 6;
-		} else if (!strncmp(start, "s32min", 6)) {
-			val1 = INT_MIN;
-			c += 6;
-		} else if (!strncmp(start, "s16min", 6)) {
-			val1 = SHRT_MIN;
-			c += 6;
-		} else {
-			while (*c && *c != ',' && *c != '-')
-				c++;
-			val1 = strtoll(start, &c, 10);
-		}
+		min = parse_val(type, c, &c);
 		if (*c == ')')
 			c++;
 		if (!*c) {
-			add_range(rl, sval_type_val(type, val1), sval_type_val(type, val1));
+			add_range(rl, min, min);
 			break;
 		}
 		if (*c == ',') {
-			add_range(rl, sval_type_val(type, val1), sval_type_val(type, val1));
+			add_range(rl, min, min);
 			c++;
-			start = c;
 			continue;
 		}
-		c++; /* skip the dash in eg. 4-5 */
+		if (*c != '-') {
+			sm_msg("debug XXX: trouble parsing %s ", value);
+			break;
+		}
+		c++;
 		if (*c == '(')
 			c++;
-		start = c;
-		if (!strncmp(start, "max", 3)) {
-			tmp = sval_type_max(type);
-			val2 = tmp.value;
-			c += 3;
-		} else {
-
-			while (*c && *c != ',' && *c != '-')
-				c++;
-			val2 = strtoll(start, &c, 10);
-		}
-		add_range(rl, sval_type_val(type, val1), sval_type_val(type, val2));
-		if (!*c)
-			break;
+		max = parse_val(type, c, &c);
+		add_range(rl, min, max);
 		if (*c == ')')
 			c++;
-		c++; /* skip the comma in eg: 4-5,7 */
+		if (!*c)
+			break;
+		if (*c != ',') {
+			sm_msg("debug YYY: trouble parsing %s %s", value, c);
+			break;
+		}
+		c++;
 	}
 
 	*rl = cast_rl(type, *rl);
