@@ -36,10 +36,15 @@ static int opposite_implied(int implied)
 		return IMPLIED_MAX;
 	if (implied == IMPLIED_MAX)
 		return IMPLIED_MIN;
+	if (implied == FUZZYMIN)
+		return FUZZYMAX;
+	if (implied == FUZZYMAX)
+		return FUZZYMIN;
 	if (implied == ABSOLUTE_MIN)
 		return ABSOLUTE_MAX;
 	if (implied == ABSOLUTE_MAX)
 		return ABSOLUTE_MIN;
+
 	return implied;
 }
 
