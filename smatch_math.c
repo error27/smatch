@@ -20,15 +20,17 @@ static sval_t zero  = {.type = &int_ctype, .value = 0};
 static sval_t one   = {.type = &int_ctype, .value = 1};
 static sval_t bogus = {.type = &int_ctype, .value = BOGUS};
 
-#define NOTIMPLIED  0
-#define IMPLIED     1
-#define IMPLIED_MIN 2
-#define IMPLIED_MAX 3
-#define FUZZYMAX    4
-#define FUZZYMIN    5
-#define ABSOLUTE_MIN 6
-#define ABSOLUTE_MAX 7
-#define HARD_MAX     8
+enum {
+	NOTIMPLIED,
+	IMPLIED,
+	IMPLIED_MIN,
+	IMPLIED_MAX,
+	FUZZY_MAX,
+	FUZZY_MIN,
+	ABSOLUTE_MIN,
+	ABSOLUTE_MAX,
+	HARD_MAX,
+};
 
 static int opposite_implied(int implied)
 {
@@ -36,10 +38,10 @@ static int opposite_implied(int implied)
 		return IMPLIED_MAX;
 	if (implied == IMPLIED_MAX)
 		return IMPLIED_MIN;
-	if (implied == FUZZYMIN)
-		return FUZZYMAX;
-	if (implied == FUZZYMAX)
-		return FUZZYMIN;
+	if (implied == FUZZY_MIN)
+		return FUZZY_MAX;
+	if (implied == FUZZY_MAX)
+		return FUZZY_MIN;
 	if (implied == ABSOLUTE_MIN)
 		return ABSOLUTE_MAX;
 	if (implied == ABSOLUTE_MAX)
@@ -85,9 +87,9 @@ static sval_t handle_ampersand(int *undefined, int implied)
 	ret.type = &ptr_ctype;
 	ret.value = BOGUS;
 
-	if (implied == IMPLIED_MIN || implied == FUZZYMIN || implied == ABSOLUTE_MIN)
+	if (implied == IMPLIED_MIN || implied == FUZZY_MIN || implied == ABSOLUTE_MIN)
 		return valid_ptr_min_sval;
-	if (implied == IMPLIED_MAX || implied == FUZZYMAX || implied == ABSOLUTE_MAX)
+	if (implied == IMPLIED_MAX || implied == FUZZY_MAX || implied == ABSOLUTE_MAX)
 		return valid_ptr_max_sval;
 
 	*undefined = 1;
@@ -107,11 +109,11 @@ static sval_t handle_negate(struct expression *expr, int *undefined, int implied
 		ret.value = 1;
 		return ret;
 	}
-	if (implied == IMPLIED_MIN || implied == FUZZYMIN || implied == ABSOLUTE_MIN) {
+	if (implied == IMPLIED_MIN || implied == FUZZY_MIN || implied == ABSOLUTE_MIN) {
 		ret.value = 0;
 		return ret;
 	}
-	if (implied == IMPLIED_MAX || implied == FUZZYMAX || implied == ABSOLUTE_MAX) {
+	if (implied == IMPLIED_MAX || implied == FUZZY_MAX || implied == ABSOLUTE_MAX) {
 		ret.value = 1;
 		return ret;
 	}
@@ -319,9 +321,9 @@ static sval_t handle_comparison(struct expression *expr, int *undefined, int imp
 	if (res == 2)
 		return zero;
 
-	if (implied == IMPLIED_MIN || implied == FUZZYMIN || implied == ABSOLUTE_MIN)
+	if (implied == IMPLIED_MIN || implied == FUZZY_MIN || implied == ABSOLUTE_MIN)
 		return zero;
-	if (implied == IMPLIED_MAX || implied == FUZZYMAX || implied == ABSOLUTE_MAX)
+	if (implied == IMPLIED_MAX || implied == FUZZY_MAX || implied == ABSOLUTE_MAX)
 		return one;
 
 	*undefined = 1;
@@ -351,9 +353,9 @@ static sval_t handle_logical(struct expression *expr, int *undefined, int implie
 		}
 	}
 
-	if (implied == IMPLIED_MIN || implied == FUZZYMIN || implied == ABSOLUTE_MIN)
+	if (implied == IMPLIED_MIN || implied == FUZZY_MIN || implied == ABSOLUTE_MIN)
 		return zero;
-	if (implied == IMPLIED_MAX || implied == FUZZYMAX || implied == ABSOLUTE_MAX)
+	if (implied == IMPLIED_MAX || implied == FUZZY_MAX || implied == ABSOLUTE_MAX)
 		return one;
 
 	*undefined = 1;
@@ -505,11 +507,11 @@ static sval_t _get_implied_value(struct expression *expr, int *undefined, int im
 		if (!get_absolute_max_helper(expr, &ret))
 			*undefined = 1;
 		break;
-	case FUZZYMAX:
+	case FUZZY_MAX:
 		if (!get_fuzzy_max_helper(expr, &ret))
 			*undefined = 1;
 		break;
-	case FUZZYMIN:
+	case FUZZY_MIN:
 		if (!get_fuzzy_min_helper(expr, &ret))
 			*undefined = 1;
 		break;
@@ -663,7 +665,7 @@ int get_fuzzy_min(struct expression *expr, sval_t *sval)
 	int undefined = 0;
 	sval_t ret;
 
-	ret =  _get_value(expr, &undefined, FUZZYMIN);
+	ret =  _get_value(expr, &undefined, FUZZY_MIN);
 	if (undefined)
 		return 0;
 	*sval = ret;
@@ -675,7 +677,7 @@ int get_fuzzy_max(struct expression *expr, sval_t *sval)
 	int undefined = 0;
 	sval_t ret;
 
-	ret =  _get_value(expr, &undefined, FUZZYMAX);
+	ret =  _get_value(expr, &undefined, FUZZY_MAX);
 	if (undefined)
 		return 0;
 	*sval = ret;
