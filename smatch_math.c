@@ -89,6 +89,31 @@ static sval_t handle_ampersand(int *undefined, int implied)
 	return ret;
 }
 
+static sval_t handle_negate(struct expression *expr, int *undefined, int implied)
+{
+	sval_t ret;
+
+	ret = sval_blank(expr->unop);
+	if (implied_condition_true(expr->unop)) {
+		ret.value = 0;
+		return ret;
+	}
+	if (implied_condition_false(expr->unop)) {
+		ret.value = 1;
+		return ret;
+	}
+	if (implied == IMPLIED_MIN || implied == FUZZYMIN || implied == ABSOLUTE_MIN) {
+		ret.value = 0;
+		return ret;
+	}
+	if (implied == IMPLIED_MAX || implied == FUZZYMAX || implied == ABSOLUTE_MAX) {
+		ret.value = 1;
+		return ret;
+	}
+	*undefined = 1;
+	return bogus;
+}
+
 static sval_t handle_preop(struct expression *expr, int *undefined, int implied)
 {
 	sval_t ret;
@@ -98,8 +123,7 @@ static sval_t handle_preop(struct expression *expr, int *undefined, int implied)
 		ret = handle_ampersand(undefined, implied);
 		break;
 	case '!':
-		ret = _get_value(expr->unop, undefined, implied);
-		ret = sval_preop(ret, '!');
+		ret = handle_negate(expr, undefined, implied);
 		break;
 	case '~':
 		ret = _get_value(expr->unop, undefined, implied);
