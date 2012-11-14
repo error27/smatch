@@ -23,7 +23,7 @@ static const char *show_range(sval_t min, sval_t max)
 {
 	static char buf[256];
 
-	if (sval_cmp(min, max))
+	if (sval_cmp(min, max) == 0)
 		return sval_to_str(min);
 	snprintf(buf, sizeof(buf), "%s-%s", sval_to_str(min), sval_to_str(max));
 	return buf;
