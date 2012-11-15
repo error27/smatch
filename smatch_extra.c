@@ -1005,6 +1005,33 @@ out:
 	return 1;
 }
 
+static struct symbol *get_arg_type(struct expression *fn, int arg)
+{
+	struct symbol *fn_type;
+	struct symbol *tmp;
+	struct symbol *arg_type;
+	int i;
+
+	fn_type = get_type(fn);
+	if (!fn_type)
+		return NULL;
+	if (fn_type->type == SYM_PTR)
+		fn_type = get_real_base_type(fn_type);
+	if (fn_type->type != SYM_FN)
+		return NULL;
+
+	i = 0;
+	FOR_EACH_PTR(fn_type->arguments, tmp) {
+		arg_type = get_real_base_type(tmp);
+		if (i == arg) {
+			return arg_type;
+		}
+		i++;
+	} END_FOR_EACH_PTR(tmp);
+
+	return NULL;
+}
+
 int is_whole_range(struct smatch_state *state)
 {
 	return is_whole_range_rl(estate_ranges(state));
@@ -1021,6 +1048,7 @@ static void match_call_info(struct expression *expr)
 {
 	struct range_list *rl = NULL;
 	struct expression *arg;
+	struct symbol *type;
 	char *name;
 	int i = 0;
 
@@ -1029,11 +1057,16 @@ static void match_call_info(struct expression *expr)
 		return;
 
 	FOR_EACH_PTR(expr->args, arg) {
-		if (get_implied_range_list(arg, &rl) && !is_whole_range_rl(rl)) {
-			sm_msg("info: passes param_value '%s' %d '$$' %s %s",
-			       name, i, show_ranges(rl),
-			       is_static(expr->fn) ? "static" : "global");
-		}
+		type = get_arg_type(expr->fn, i);
+
+		if (get_implied_range_list(arg, &rl))
+			rl = cast_rl(type, rl);
+		else
+			rl = whole_range_list(type);
+
+		sm_msg("info: passes param_value '%s' %d '$$' %s %s",
+		       name, i, show_ranges(rl),
+		       is_static(expr->fn) ? "static" : "global");
 		i++;
 	} END_FOR_EACH_PTR(arg);
 
