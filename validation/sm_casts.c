@@ -26,10 +26,10 @@ static int options_write(void)
  * check-command: smatch sm_casts.c
  *
  * check-output-start
-sm_casts.c:13 options_write() warn: (-400) is less than (-128) (min 'c' can be) so this is always true.
-sm_casts.c:15 options_write() warn: (-400) is less than (-128) (min 'c' can be) so this is always false.
-sm_casts.c:17 options_write() warn: 400 is more than 127 (max 'c' can be) so this is always true.
-sm_casts.c:19 options_write() warn: (-400) is less than (-128) (min 'c' can be) so this is always false.
+sm_casts.c:13 options_write() warn: always true condition '(c > -400) => ((-128)-127 > (-400))'
+sm_casts.c:15 options_write() warn: impossible condition '(c < -400) => ((-128)-127 < (-400))'
+sm_casts.c:17 options_write() warn: always true condition '(400 > c) => (400 > (-128)-127)'
+sm_casts.c:19 options_write() warn: impossible condition '(-400 > c) => ((-400) > (-128)-127)'
 sm_casts.c:21 options_write() warn: assigning (-12) to unsigned variable 'b'
  * check-output-end
  */
