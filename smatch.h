@@ -18,6 +18,14 @@
 #include "parse.h"
 #include "expression.h"
 
+typedef struct {
+	struct symbol *type;
+	union {
+		long long value;
+		unsigned long long uvalue;
+	};
+} sval_t;
+
 struct smatch_state {
 	const char *name;
 	void *data;
@@ -213,15 +221,16 @@ char *get_variable_from_expr_complex(struct expression *expr,
 char *get_variable_from_expr(struct expression *expr,
 			     struct symbol **sym_ptr);
 int sym_name_is(const char *name, struct expression *expr);
-int get_value(struct expression *expr, long long *val);
-int get_implied_value(struct expression *expr, long long *val);
-int get_implied_max(struct expression *expr, long long *val);
-int get_implied_min(struct expression *expr, long long *val);
-int get_fuzzy_min(struct expression *expr, long long *min);
-int get_fuzzy_max(struct expression *expr, long long *max);
-int get_absolute_min(struct expression *expr, long long *val);
-int get_absolute_max(struct expression *expr, long long *val);
-int parse_call_math(struct expression *expr, char *math, long long *val);
+int get_value(struct expression *expr, sval_t *val);
+int get_implied_value(struct expression *expr, sval_t *val);
+int get_implied_min(struct expression *expr, sval_t *sval);
+int get_implied_max(struct expression *expr, sval_t *val);
+int get_hard_max(struct expression *expr, sval_t *sval);
+int get_fuzzy_min(struct expression *expr, sval_t *min);
+int get_fuzzy_max(struct expression *expr, sval_t *max);
+int get_absolute_min(struct expression *expr, sval_t *sval);
+int get_absolute_max(struct expression *expr, sval_t *sval);
+int parse_call_math(struct expression *expr, char *math, sval_t *val);
 int is_zero(struct expression *expr);
 int known_condition_true(struct expression *expr);
 int known_condition_false(struct expression *expr);
@@ -245,18 +254,22 @@ struct statement *get_current_statement(void);
 
 /* smatch_type.c */
 struct symbol *get_real_base_type(struct symbol *sym);
+int type_positive_bits(struct symbol *type);
 struct symbol *get_pointer_type(struct expression *expr);
 struct symbol *get_type(struct expression *expr);
 int type_unsigned(struct symbol *base_type);
+int type_signed(struct symbol *base_type);
 int expr_unsigned(struct expression *expr);
 int returns_unsigned(struct symbol *base_type);
 int is_pointer(struct expression *expr);
 int returns_pointer(struct symbol *base_type);
-long long type_max(struct symbol *base_type);
-long long type_min(struct symbol *base_type);
+sval_t sval_type_max(struct symbol *base_type);
+sval_t sval_type_min(struct symbol *base_type);
 int nr_bits(struct expression *expr);
 int is_static(struct expression *expr);
+int types_equiv(struct symbol *one, struct symbol *two);
 const char *global_static();
+struct symbol *cur_func_return_type(void);
 
 /* smatch_ignore.c */
 void add_ignore(int owner, const char *name, struct symbol *sym);
@@ -320,15 +333,24 @@ struct range_list *__get_implied_values(struct expression *switch_expr);
 #define SMATCH_EXTRA 1 /* this is my_id from smatch extra set in smatch.c */
 
 struct data_range {
-	long long min;
-	long long max;
+	sval_t min;
+	sval_t max;
 };
-extern struct data_range whole_range;
+
 static const long long valid_ptr_max = LONG_MAX;
 static const long long valid_ptr_min = 4096;
+static const sval_t valid_ptr_max_sval = {
+	.type = &ptr_ctype,
+	.value = LONG_MAX,
+};
+static const sval_t valid_ptr_min_sval = {
+	.type = &ptr_ctype,
+	.value = 4096,
+};
 
 /* smatch_absolute.c */
-extern int absolute_id;
+int get_absolute_min_helper(struct expression *expr, sval_t *sval);
+int get_absolute_max_helper(struct expression *expr, sval_t *sval);
 
 /* smatch_states.c */
 void __push_fake_cur_slist();
@@ -487,5 +509,29 @@ void print_held_locks();
 
 /* check_assigned_expr.c */
 struct expression *get_assigned_expr(struct expression *expr);
+
+/* smatch_sval.c */
+sval_t *sval_alloc(sval_t sval);
+sval_t *sval_alloc_permanent(sval_t sval);
+sval_t sval_blank(struct expression *expr);
+sval_t sval_type_val(struct symbol *type, long long val);
+sval_t sval_from_val(struct expression *expr, long long val);
+int sval_unsigned(sval_t sval);
+int sval_signed(sval_t sval);
+int sval_bits(sval_t sval);
+int sval_positive_bits(sval_t sval);
+int sval_is_min(sval_t sval);
+int sval_is_max(sval_t sval);
+int sval_is_a_min(sval_t sval);
+int sval_is_a_max(sval_t sval);
+int sval_cmp(sval_t one, sval_t two);
+int sval_cmp_t(struct symbol *type, sval_t one, sval_t two);
+int sval_cmp_val(sval_t one, long long val);
+sval_t sval_cast(struct symbol *type, sval_t sval);
+sval_t sval_preop(sval_t sval, int op);
+sval_t sval_binop(sval_t left, int op, sval_t right);
+const char *sval_to_str(sval_t sval);
+const char *sval_to_numstr(sval_t sval);
+sval_t ll_to_sval(long long val);
 
 #endif 	    /* !SMATCH_H_ */

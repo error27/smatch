@@ -14,15 +14,15 @@ static int my_id;
 static void match_memset(const char *fn, struct expression *expr, void *data)
 {
 	struct expression *arg_expr;
-	long long val;
+	sval_t sval;
 
 	arg_expr = get_argument_from_call_expr(expr->args, 2);
 
 	if (arg_expr->type != EXPR_VALUE)
 		return;
-	if (!get_value(arg_expr, &val))
+	if (!get_value(arg_expr, &sval))
 		return;
-	if (val != 0)
+	if (sval.value != 0)
 		return;
 	sm_msg("error: calling memset(x, y, 0);");
 }

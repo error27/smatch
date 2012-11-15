@@ -15,12 +15,12 @@ static void match_free(const char *fn, struct expression *expr, void *data)
 {
 	struct expression *arg_expr;
 	char *name;
-	long long val;
+	sval_t sval;
 
 	arg_expr = get_argument_from_call_expr(expr->args, 0);
-	if (!get_implied_value(arg_expr, &val))
+	if (!get_implied_value(arg_expr, &sval))
 		return;
-	if (val != 0)
+	if (sval.value != 0)
 		return;
 	name = get_variable_from_expr(arg_expr, NULL);
 	sm_msg("warn: calling %s() when '%s' is always NULL.", fn, name);

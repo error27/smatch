@@ -740,7 +740,7 @@ static void register_lock(int index)
 		add_function_hook(lock->function, &match_lock_unlock, idx);
 	} else if (lock->return_type == ret_zero) {
 		return_implies_state(lock->function, 0, 0, &match_lock_held, idx);
-		return_implies_state(lock->function, whole_range.min, -1, &match_lock_failed, idx);
+		return_implies_state(lock->function, -4095, -1, &match_lock_failed, idx);
 	}
 }
 

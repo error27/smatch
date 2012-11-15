@@ -22,10 +22,6 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-struct smatch_state estate_undefined = {
-	.name = "unknown"
-};
-
 struct data_info *get_dinfo(struct smatch_state *state)
 {
 	if (!state)
@@ -47,14 +43,44 @@ struct related_list *estate_related(struct smatch_state *state)
 	return get_dinfo(state)->related;
 }
 
-long long estate_min(struct smatch_state *state)
+int estate_has_hard_max(struct smatch_state *state)
+{
+	if (!state)
+		return 0;
+	return get_dinfo(state)->hard_max;
+}
+
+void estate_set_hard_max(struct smatch_state *state)
+{
+	 get_dinfo(state)->hard_max = 1;
+}
+
+void estate_clear_hard_max(struct smatch_state *state)
+{
+	 get_dinfo(state)->hard_max = 0;
+}
+
+int estate_get_hard_max(struct smatch_state *state, sval_t *sval)
+{
+	if (!state || !get_dinfo(state)->hard_max || !estate_ranges(state))
+		return 0;
+	*sval = rl_max(estate_ranges(state));
+	return 1;
+}
+
+sval_t estate_min(struct smatch_state *state)
 {
 	return rl_min(estate_ranges(state));
 }
 
-long long estate_max(struct smatch_state *state)
+sval_t estate_max(struct smatch_state *state)
 {
 	return rl_max(estate_ranges(state));
+}
+
+struct symbol *estate_type(struct smatch_state *state)
+{
+	return rl_max(estate_ranges(state)).type;
 }
 
 static int rlists_equiv(struct related_list *one, struct related_list *two)
@@ -93,6 +119,18 @@ int estates_equiv(struct smatch_state *one, struct smatch_state *two)
 	return 0;
 }
 
+int estate_get_single_value(struct smatch_state *state, sval_t *sval)
+{
+	sval_t min, max;
+
+	min = rl_min(estate_ranges(state));
+	max = rl_max(estate_ranges(state));
+	if (sval_cmp(min, max) != 0)
+		return 0;
+	*sval = min;
+	return 1;
+}
+
 static struct data_info *alloc_dinfo(void)
 {
 	struct data_info *ret;
@@ -101,10 +139,11 @@ static struct data_info *alloc_dinfo(void)
 	ret->related = NULL;
 	ret->type = DATA_RANGE;
 	ret->value_ranges = NULL;
+	ret->hard_max = 0;
 	return ret;
 }
 
-static struct data_info *alloc_dinfo_range(long long min, long long max)
+static struct data_info *alloc_dinfo_range(sval_t min, sval_t max)
 {
 	struct data_info *ret;
 
@@ -129,6 +168,7 @@ static struct data_info *clone_dinfo(struct data_info *dinfo)
 	ret = alloc_dinfo();
 	ret->related = clone_related_list(dinfo->related);
 	ret->value_ranges = clone_range_list(dinfo->value_ranges);
+	ret->hard_max = dinfo->hard_max;
 	return ret;
 }
 
@@ -154,19 +194,9 @@ struct smatch_state *alloc_estate_empty(void)
 	return state;
 }
 
-static struct smatch_state *alloc_estate_no_name(int val)
+struct smatch_state *extra_undefined(struct symbol *type)
 {
-	struct smatch_state *state;
-
-	state = __alloc_smatch_state(0);
-	state->data = (void *)alloc_dinfo_range(val, val);
-	return state;
-}
-
-/* We do this because ->value_ranges is a list */
-struct smatch_state *extra_undefined(void)
-{
-	return &estate_undefined;
+	return alloc_estate_range_list(whole_range_list(type));
 }
 
 struct smatch_state *extra_empty(void)
@@ -179,23 +209,23 @@ struct smatch_state *extra_empty(void)
 	return ret;
 }
 
-struct smatch_state *alloc_estate(long long val)
+struct smatch_state *alloc_estate(sval_t sval)
 {
 	struct smatch_state *state;
 
-	state = alloc_estate_no_name(val);
+	state = __alloc_smatch_state(0);
+	state->data = alloc_dinfo_range(sval, sval);
 	state->name = show_ranges(get_dinfo(state)->value_ranges);
+	estate_set_hard_max(state);
 	return state;
 }
 
-struct smatch_state *alloc_estate_range(long long min, long long max)
+struct smatch_state *alloc_estate_range(sval_t min, sval_t max)
 {
 	struct smatch_state *state;
 
-	if (min == whole_range.min && max == whole_range.max)
-		return extra_undefined();
 	state = __alloc_smatch_state(0);
-	state->data = (void *)alloc_dinfo_range(min, max);
+	state->data = alloc_dinfo_range(min, max);
 	state->name = show_ranges(get_dinfo(state)->value_ranges);
 	return state;
 }
@@ -207,21 +237,9 @@ struct smatch_state *alloc_estate_range_list(struct range_list *rl)
 	if (!rl)
 		return extra_empty();
 
-	if (is_whole_range_rl(rl))
-		return extra_undefined();
-
 	state = __alloc_smatch_state(0);
-	state->data = (void *)alloc_dinfo_range_list(rl);
-	state->name = show_ranges(get_dinfo(state)->value_ranges);
+	state->data = alloc_dinfo_range_list(rl);
+	state->name = show_ranges(rl);
 	return state;
 }
 
-void alloc_estate_undefined(void)
-{
-	static struct data_info dinfo = {
-		.type = DATA_RANGE
-	};
-
-	dinfo.value_ranges = clone_permanent(whole_range_list());
-	estate_undefined.data = &dinfo;
-}

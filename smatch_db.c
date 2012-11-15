@@ -93,12 +93,15 @@ void add_db_fn_call_callback(int type, void (*callback)(struct expression *arg, 
 	add_ptr_list(&call_implies_cb_list, cb);
 }
 
+static struct symbol *return_type;
 static struct range_list *return_range_list;
 static int db_return_callback(void *unused, int argc, char **argv, char **azColName)
 {
 	if (argc != 1)
 		return 0;
-	get_value_ranges(argv[0], &return_range_list);
+	if (option_debug)
+		sm_msg("return type %d", type_positive_bits(return_type));
+	parse_value_ranges_type(return_type, argv[0], &return_range_list);
 	return 0;
 }
 
@@ -110,6 +113,9 @@ struct range_list *db_return_vals(struct expression *expr)
 	if (expr->type != EXPR_CALL)
 		return NULL;
 	if (expr->fn->type != EXPR_SYMBOL)
+		return NULL;
+	return_type = get_type(expr);
+	if (!return_type)
 		return NULL;
 	sym = expr->fn->symbol;
 	if (!sym)
@@ -478,6 +484,7 @@ static void match_return_info(struct expression *ret_value)
 	struct range_list *rl;
 
 	get_implied_range_list(ret_value, &rl);
+	rl = cast_rl(cur_func_return_type(), rl);
 	sm_msg("info: return_marker %d '%s' %s",
 	       get_return_id(), show_ranges(rl), global_static());
 }

@@ -64,60 +64,118 @@ static void match_print_implied(const char *fn, struct expression *expr, void *i
 static void match_print_implied_min(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
-	long long val;
+	sval_t sval;
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	if (!get_implied_min(arg, &val))
-		val = whole_range.min;
-
 	name = get_variable_from_expr_complex(arg, NULL);
-	sm_msg("implied min: %s = %lld", name, val);
+
+	if (get_implied_min(arg, &sval))
+		sm_msg("implied min: %s = %s", name, sval_to_str(sval));
+	else
+		sm_msg("implied min: %s = <unknown>", name);
+
 	free_string(name);
 }
 
 static void match_print_implied_max(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
-	long long val;
+	sval_t sval;
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	if (!get_implied_max(arg, &val))
-		val = whole_range.max;
-
 	name = get_variable_from_expr_complex(arg, NULL);
-	sm_msg("implied max: %s = %lld", name, val);
+
+	if (get_implied_max(arg, &sval))
+		sm_msg("implied max: %s = %s", name, sval_to_str(sval));
+	else
+		sm_msg("implied max: %s = <unknown>", name);
+
+	free_string(name);
+}
+
+static void match_print_hard_max(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	sval_t sval;
+	char *name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	name = get_variable_from_expr_complex(arg, NULL);
+
+	if (get_hard_max(arg, &sval))
+		sm_msg("hard max: %s = %s", name, sval_to_str(sval));
+	else
+		sm_msg("hard max: %s = <unknown>", name);
+
+	free_string(name);
+}
+
+static void match_print_fuzzy_max(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	sval_t sval;
+	char *name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	name = get_variable_from_expr_complex(arg, NULL);
+
+	if (get_fuzzy_max(arg, &sval))
+		sm_msg("fuzzy max: %s = %s", name, sval_to_str(sval));
+	else
+		sm_msg("fuzzy max: %s = <unknown>", name);
+
 	free_string(name);
 }
 
 static void match_print_absolute_min(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
-	long long val;
+	sval_t sval;
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	if (!get_absolute_min(arg, &val))
-		val = whole_range.min;
-
 	name = get_variable_from_expr_complex(arg, NULL);
-	sm_msg("absolute min: %s = %lld", name, val);
+
+	if (get_absolute_min(arg, &sval))
+		sm_msg("absolute min: %s = %s", name, sval_to_str(sval));
+	else
+		sm_msg("absolute min: %s = <unknown>", name);
+
 	free_string(name);
 }
 
 static void match_print_absolute_max(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
-	long long val;
+	sval_t sval;
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	if (!get_absolute_max(arg, &val))
-		val = whole_range.max;
+	get_absolute_max(arg, &sval);
 
 	name = get_variable_from_expr_complex(arg, NULL);
-	sm_msg("absolute max: %s = %lld", name, val);
+	sm_msg("absolute max: %s = %s", name, sval_to_str(sval));
+	free_string(name);
+}
+
+static void match_sval_info(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	sval_t sval;
+	char *name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	name = get_variable_from_expr_complex(arg, NULL);
+
+	if (!get_implied_value(arg, &sval)) {
+		sm_msg("no sval for '%s'", name);
+		goto free;
+	}
+
+	sm_msg("implied: %s %c%d ->value = %llx", name, sval_unsigned(sval) ? 'u' : 's', sval_bits(sval), sval.value);
+free:
 	free_string(name);
 }
 
@@ -224,8 +282,11 @@ void check_debug(int id)
 	add_function_hook("__smatch_implied", &match_print_implied, NULL);
 	add_function_hook("__smatch_implied_min", &match_print_implied_min, NULL);
 	add_function_hook("__smatch_implied_max", &match_print_implied_max, NULL);
+	add_function_hook("__smatch_hard_max", &match_print_hard_max, NULL);
+	add_function_hook("__smatch_fuzzy_max", &match_print_fuzzy_max, NULL);
 	add_function_hook("__smatch_absolute_min", &match_print_absolute_min, NULL);
 	add_function_hook("__smatch_absolute_max", &match_print_absolute_max, NULL);
+	add_function_hook("__smatch_sval_info", &match_sval_info, NULL);
 	add_function_hook("__smatch_possible", &match_possible, NULL);
 	add_function_hook("__smatch_cur_slist", &match_cur_slist, NULL);
 	add_function_hook("__smatch_buf_size", &match_buf_size, NULL);

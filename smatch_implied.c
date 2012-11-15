@@ -74,9 +74,7 @@ static struct range_list *tmp_range_list(long long num)
 	static struct data_range *my_range;
 
 	__free_ptr_list((struct ptr_list **)&my_list);
-	my_range = alloc_range(num, num);
-	my_range->min = num;
-	my_range->max = num;
+	my_range = alloc_range(ll_to_sval(num), ll_to_sval(num));
 	add_ptr_list(&my_list, my_range);
 	return my_list;
 }
@@ -418,7 +416,7 @@ static struct expression *get_left_most_expr(struct expression *expr)
 static int is_merged_expr(struct expression  *expr)
 {
 	struct sm_state *sm;
-	long long dummy;
+	sval_t dummy;
 
 	if (get_value(expr, &dummy))
 		return 0;
@@ -560,8 +558,12 @@ struct range_list *__get_implied_values(struct expression *switch_expr)
 	ret = clone_range_list(estate_ranges(state));
 free:
 	free_string(name);
-	if (!ret)
-		add_range(&ret, whole_range.min, whole_range.max);
+	if (!ret) {
+		struct symbol *type;
+
+		type = get_type(switch_expr);
+		ret = alloc_range_list(sval_type_min(type), sval_type_max(type));
+	}
 	return ret;
 }
 
@@ -577,7 +579,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	struct state_list *true_states = NULL;
 	struct state_list *false_states = NULL;
 	struct state_list *ret = clone_slist(*raw_slist);
-	long long val;
+	sval_t sval;
 	struct range_list *vals = NULL;
 
 	name = get_variable_from_expr(switch_expr, &sym);
@@ -587,11 +589,11 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	if (!case_expr) {
 		vals = top_range_list(*remaining_cases);
 	} else {
-		if (!get_value(case_expr, &val))
+		if (!get_value(case_expr, &sval))
 			goto free;
 
-		filter_top_range_list(remaining_cases, val);
-		add_range(&vals, val, val);
+		filter_top_range_list(remaining_cases, sval);
+		add_range(&vals, sval, sval);
 	}
 	if (sm)
 		separate_and_filter(sm, SPECIAL_EQUAL, vals, LEFT, *raw_slist, &true_states, &false_states);

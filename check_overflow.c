@@ -48,14 +48,14 @@ static void delete(struct sm_state *sm)
 
 static int definitely_just_used_as_limiter(struct expression *array, struct expression *offset)
 {
-	long long val;
+	sval_t sval;
 	struct expression *tmp;
 	int step = 0;
 	int dot_ops = 0;
 
-	if (!get_implied_value(offset, &val))
+	if (!get_implied_value(offset, &sval))
 		return 0;
-	if (get_array_size(array) != val)
+	if (get_array_size(array) != sval.value)
 		return 0;
 
 	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
@@ -85,7 +85,7 @@ static void array_check(struct expression *expr)
 	struct expression *array_expr;
 	int array_size;
 	struct expression *offset;
-	long long max;
+	sval_t max;
 	char *name;
 
 	expr = strip_expr(expr);
@@ -102,7 +102,7 @@ static void array_check(struct expression *expr)
 		if (getting_address())
 			return;
 		set_state_expr(my_used_id, offset, alloc_state_num(array_size));
-	} else if (array_size <= max) {
+	} else if (array_size <= max.value) {
 		const char *level = "error";
 
 		if (getting_address())
@@ -125,8 +125,8 @@ static void array_check(struct expression *expr)
 		 * literal array with 4 or less chars.
 		 */
 		if (name && strcmp(name, "__s1") && strcmp(name, "__s2")) {
-			sm_msg("%s: buffer overflow '%s' %d <= %lld",
-				level, name, array_size, max);
+			sm_msg("%s: buffer overflow '%s' %d <= %s",
+				level, name, array_size, sval_to_str(max));
 		}
 		free_string(name);
 	}
@@ -135,7 +135,7 @@ static void array_check(struct expression *expr)
 static void match_condition(struct expression *expr)
 {
 	int left;
-	long long val;
+	sval_t sval;
 	struct state_list *slist;
 	struct sm_state *tmp;
 	int boundary;
@@ -144,9 +144,9 @@ static void match_condition(struct expression *expr)
 		return;
 	if (get_macro_name(expr->pos))
 		return;
-	if (get_implied_value(expr->left, &val))
+	if (get_implied_value(expr->left, &sval))
 		left = 1;
-	else if (get_implied_value(expr->right, &val))
+	else if (get_implied_value(expr->right, &sval))
 		left = 0;
 	else
 		return;
@@ -161,7 +161,7 @@ static void match_condition(struct expression *expr)
 		if (tmp->state == &merged || tmp->state == &undefined)
 			continue;
 		boundary = PTR_INT(tmp->state->data);
-		boundary -= val;
+		boundary -= sval.value;
 		if (boundary < 1 && boundary > -1) {
 			char *name;
 
@@ -217,7 +217,7 @@ static void match_snprintf(const char *fn, struct expression *expr, void *unused
 	struct expression *data;
 	char *data_name = NULL;
 	int dest_size;
-	long long limit_size;
+	sval_t limit_size;
 	char *format;
 	int data_size;
 
@@ -229,8 +229,9 @@ static void match_snprintf(const char *fn, struct expression *expr, void *unused
 	dest_size = get_array_size_bytes(dest);
 	if (!get_implied_value(dest_size_expr, &limit_size))
 		return;
-	if (dest_size && dest_size < limit_size)
-		sm_msg("error: snprintf() is printing too much %lld vs %d", limit_size, dest_size);
+	if (dest_size && dest_size < limit_size.value)
+		sm_msg("error: snprintf() is printing too much %s vs %d",
+		       sval_to_str(limit_size), dest_size);
 	format = get_variable_from_expr(format_string, NULL);
 	if (!format)
 		return;
@@ -238,9 +239,9 @@ static void match_snprintf(const char *fn, struct expression *expr, void *unused
 		goto free;
 	data_name = get_variable_from_expr_complex(data, NULL);
 	data_size = get_array_size_bytes(data);
-	if (limit_size < data_size)
-		sm_msg("error: snprintf() chops off the last chars of '%s': %d vs %lld",
-		       data_name, data_size, limit_size);
+	if (limit_size.value < data_size)
+		sm_msg("error: snprintf() chops off the last chars of '%s': %d vs %s",
+		       data_name, data_size, sval_to_str(limit_size));
 free:
 	free_string(data_name);
 	free_string(format);
@@ -284,7 +285,7 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 	struct expression *dest;
 	struct expression *data;
 	char *dest_name = NULL;
-	long long needed;
+	sval_t needed;
 	int has;
 
 	dest = get_argument_from_call_expr(expr->args, limiter->buf_arg);
@@ -294,11 +295,11 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 	has = get_array_size_bytes(dest);
 	if (!has)
 		return;
-	if (has >= needed)
+	if (has >= needed.value)
 		return;
 
 	dest_name = get_variable_from_expr_complex(dest, NULL);
-	sm_msg("error: %s() '%s' too small (%d vs %lld)", fn, dest_name, has, needed);
+	sm_msg("error: %s() '%s' too small (%d vs %s)", fn, dest_name, has, sval_to_str(needed));
 	free_string(dest_name);
 }
 
@@ -307,23 +308,23 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 	struct expression *call;
 	struct symbol *type;
 	int bytes;
-	long long val;
+	sval_t sval;
 
 	if (expr->type != EXPR_ASSIGNMENT)
 		return;
 	call = strip_expr(expr->right);
 	type = get_pointer_type(expr->left);
 
-	if (!parse_call_math(call, math, &val) || val == 0)
+	if (!parse_call_math(call, math, &sval) || sval.value == 0)
 		return;
 	if (!type)
 		return;
 	bytes = bits_to_bytes(type->bit_size);
 	if (!bytes)
 		return;
-	if (val >= bytes)
+	if (sval.value >= bytes)
 		return;
-	sm_msg("error: not allocating enough data %d vs %lld", bytes, val);
+	sm_msg("error: not allocating enough data %d vs %s", bytes, sval_to_str(sval));
 }
 
 static void register_funcs_from_file(void)

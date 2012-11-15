@@ -29,9 +29,9 @@ label_I1:
  *
  * check-output-start
 sm_math1.c:13 func() y = (-58)
-sm_math1.c:16 func() y = (-57)-max
-sm_math1.c:19 func() z = 7-max
+sm_math1.c:16 func() y = (-57)-s32max
+sm_math1.c:19 func() z = 7-s32max
 sm_math1.c:20 func() x = 2
-sm_math1.c:23 func() x = min-1
+sm_math1.c:23 func() x = s32min-1
  * check-output-end
  */

@@ -13,14 +13,14 @@ static int my_id;
 
 static void match_condition(struct expression *expr)
 {
-	long long val;
+	sval_t val;
 
 	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
 		return;
 
 	if (!get_value(expr->right, &val))
 		return;
-	sm_msg("warn: was '== %lld' instead of '='", val);
+	sm_msg("warn: was '== %s' instead of '='", sval_to_str(val));
 }
 
 void check_assign_vs_compare(int id)

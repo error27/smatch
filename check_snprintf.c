@@ -22,13 +22,13 @@ static void match_snprintf(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *call;
 	struct expression *arg;
-	long long buflen;
+	sval_t buflen;
 
 	call = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(call->args, 1);
 	if (!get_fuzzy_max(arg, &buflen))
 		return;
-	set_state_expr(my_id, expr->left, alloc_state_num(buflen));
+	set_state_expr(my_id, expr->left, alloc_state_num(buflen.value));
 }
 
 static int get_old_buflen(struct sm_state *sm)
@@ -48,7 +48,7 @@ static void match_call(struct expression *expr)
 	struct expression *arg;
 	struct sm_state *sm;
 	int old_buflen;
-	long long max;
+	sval_t max;
 
 	FOR_EACH_PTR(expr->args, arg) {
 		sm = get_sm_state_expr(my_id, arg);
@@ -57,7 +57,7 @@ static void match_call(struct expression *expr)
 		old_buflen = get_old_buflen(sm);
 		if (!old_buflen)
 			return;
-		if (get_absolute_max(arg, &max) && max > old_buflen)
+		if (get_absolute_max(arg, &max) && sval_cmp_val(max, old_buflen) > 0)
 			sm_msg("warn: '%s' returned from snprintf() might be larger than %d",
 				sm->name, old_buflen);
 	} END_FOR_EACH_PTR(arg);

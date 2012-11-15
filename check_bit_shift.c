@@ -19,7 +19,7 @@ static struct hashtable *shifters;
 static const char *get_shifter(struct expression *expr)
 {
 	const char *name;
-	long long expr_value;
+	sval_t expr_value;
 	const int *shifter_value;
 
 	expr = strip_expr(expr);
@@ -33,7 +33,7 @@ static const char *get_shifter(struct expression *expr)
 	shifter_value = search_struct(shifters, (char *)name);
 	if (!shifter_value)
 		return NULL;
-	if (*shifter_value != expr_value)
+	if (sval_cmp_val(expr_value, *shifter_value) != 0)
 		return NULL;
 	return name;
 }
@@ -102,7 +102,7 @@ static void register_shifters(void)
 static void match_binop_info(struct expression *expr)
 {
 	char *name;
-	long long val;
+	sval_t sval;
 
 	if (positions_eq(expr->pos, expr->right->pos))
 		return;
@@ -113,16 +113,16 @@ static void match_binop_info(struct expression *expr)
 	name = pos_ident(expr->right->pos);
 	if (!name)
 		return;
-	if (!get_value(expr->right, &val))
+	if (!get_value(expr->right, &sval))
 		return;
-	sm_msg("info: bit shifter '%s' '%lld'", name, val);
+	sm_msg("info: bit shifter '%s' '%s'", name, sval_to_str(sval));
 }
 
 static void match_call(const char *fn, struct expression *expr, void *_arg_no)
 {
 	struct expression *arg_expr;
 	int arg_no = PTR_INT(_arg_no);
-	long long val;
+	sval_t sval;
 	char *name;
 
 	arg_expr = get_argument_from_call_expr(expr->args, arg_no);
@@ -131,9 +131,9 @@ static void match_call(const char *fn, struct expression *expr, void *_arg_no)
 	name = pos_ident(arg_expr->pos);
 	if (!name)
 		return;
-	if (!get_value(arg_expr, &val))
+	if (!get_value(arg_expr, &sval))
 		return;
-	sm_msg("info: bit shifter '%s' '%lld'", name, val);
+	sm_msg("info: bit shifter '%s' '%s'", name, sval_to_str(sval));
 }
 
 void check_bit_shift(int id)

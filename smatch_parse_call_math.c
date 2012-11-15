@@ -24,33 +24,37 @@ struct {
 	{"__vmalloc_node", 0},
 };
 
-DECLARE_PTR_LIST(llong_list, long long);
+DECLARE_PTR_LIST(sval_list, sval_t);
 
-static struct llong_list *num_list;
+static struct sval_list *num_list;
 static struct string_list *op_list;
 
-static void push_val(long long val)
+static void push_val(sval_t sval)
 {
-	long long *p;
+	sval_t *p;
 
 	p = malloc(sizeof(*p));
-	*p = val;
+	*p = sval;
 	add_ptr_list(&num_list, p);
 }
 
-static long long pop_val()
+static sval_t pop_val()
 {
-	long long *p;
-	long long val;
+	sval_t *p;
+	sval_t ret;
 
-	if (!num_list)
-		return 0;
+	if (!num_list) {
+		sm_msg("internal bug:  %s popping empty list", __func__);
+		ret.type = &llong_ctype;
+		ret.value = 0;
+		return ret;
+	}
 	p = last_ptr_list((struct ptr_list *)num_list);
 	delete_ptr_list_last((struct ptr_list **)&num_list);
-	val = *p;
+	ret = *p;
 	free(p);
 
-	return val;
+	return ret;
 }
 
 static void push_op(char c)
@@ -106,46 +110,30 @@ static int top_op_precedence()
 	return op_precedence(p[0]);
 }
 
-static long long do_op(long long left, char op, long long right)
-{
-	switch (op) {
-	case '+':
-		return left + right;
-	case '-':
-		return left - right;
-	case '*':
-		return left * right;
-	case '/':
-		if (right == 0)
-			return 0;
-		return left / right;
-	}
-	return 0;
-}
-
 static void pop_until(char c)
 {
 	char op;
-	long long left, right, res;
+	sval_t left, right;
+	sval_t res;
 
 	while (top_op_precedence() && op_precedence(c) <= top_op_precedence()) {
 		op = pop_op();
 		right = pop_val();
 		left = pop_val();
-		res = do_op(left, op, right);
+		res = sval_binop(left, op, right);
 		push_val(res);
 	}
 }
 
-static int get_implied_param(struct expression *call, int param, long long *val)
+static int get_implied_param(struct expression *call, int param, sval_t *sval)
 {
 	struct expression *arg;
 
 	arg = get_argument_from_call_expr(call->args, param);
-	return get_implied_value(arg, val);
+	return get_implied_value(arg, sval);
 }
 
-static int read_number(struct expression *call, char *p, char **end, long long *val)
+static int read_number(struct expression *call, char *p, char **end, sval_t *sval)
 {
 	long param;
 
@@ -155,11 +143,12 @@ static int read_number(struct expression *call, char *p, char **end, long long *
 	if (*p == '<') {
 		p++;
 		param = strtol(p, &p, 10);
-		if (!get_implied_param(call, param, val))
+		if (!get_implied_param(call, param, sval))
 			return 0;
 		*end = p + 1;
 	} else {
-		*val = strtoll(p, end, 10);
+		sval->type = &llong_ctype;
+		sval->value = strtoll(p, end, 10);
 		if (*end == p)
 			return 0;
 	}
@@ -182,9 +171,9 @@ static char *read_op(char *p)
 	}
 }
 
-int parse_call_math(struct expression *call, char *math, long long *val)
+int parse_call_math(struct expression *call, char *math, sval_t *sval)
 {
-	long long tmp;
+	sval_t tmp;
 	char *c;
 
 	/* try to implement shunting yard algorithm. */
@@ -200,7 +189,7 @@ int parse_call_math(struct expression *call, char *math, long long *val)
 		push_val(tmp);
 
 		if (option_debug)
-			sm_msg("val = %lld remaining = %s", tmp, c);
+			sm_msg("val = %s remaining = %s", sval_to_str(tmp), c);
 
 		if (!*c)
 			break;
@@ -218,7 +207,7 @@ int parse_call_math(struct expression *call, char *math, long long *val)
 	}
 
 	pop_until(0);
-	*val = pop_val();
+	*sval = pop_val();
 	return 1;
 fail:
 	pop_until(0);  /* discard stack */
@@ -258,7 +247,8 @@ static int get_arg_number(struct expression *expr)
 
 static int format_expr_helper(char *buf, int remaining, struct expression *expr)
 {
-	long long val;
+	int arg;
+	sval_t sval;
 	int ret;
 	char *cur;
 
@@ -289,17 +279,17 @@ static int format_expr_helper(char *buf, int remaining, struct expression *expr)
 		return cur - buf;
 	}
 
-	val = get_arg_number(expr);
-	if (val >= 0) {
-		ret = snprintf(cur, remaining, "<%lld>", val);
+	arg = get_arg_number(expr);
+	if (arg >= 0) {
+		ret = snprintf(cur, remaining, "<%d>", arg);
 		remaining -= ret;
 		if (remaining <= 0)
 			return 0;
 		return ret;
 	}
 
-	if (get_implied_value(expr, &val)) {
-		ret = snprintf(cur, remaining, "%lld", val);
+	if (get_implied_value(expr, &sval)) {
+		ret = snprintf(cur, remaining, "%s", sval_to_str(sval));
 		remaining -= ret;
 		if (remaining <= 0)
 			return 0;
@@ -340,7 +330,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 static char *swap_format(struct expression *call, char *format)
 {
 	static char buf[256];
-	long long val;
+	sval_t sval;
 	long param;
 	struct expression *arg;
 	char *p;
@@ -374,8 +364,8 @@ static char *swap_format(struct expression *call, char *format)
 				out += ret;
 				if (out >= buf + sizeof(buf))
 					return NULL;
-			} else if (get_implied_value(arg, &val)) {
-				ret = snprintf(out, buf + sizeof(buf) - out, "%lld", val);
+			} else if (get_implied_value(arg, &sval)) {
+				ret = snprintf(out, buf + sizeof(buf) - out, "%s", sval_to_str(sval));
 				out += ret;
 				if (out >= buf + sizeof(buf))
 					return NULL;
@@ -465,6 +455,7 @@ static void match_returns_call(struct expression *call)
 	if (!sname)
 		return;
 	get_implied_range_list(call, &rl);
+	rl = cast_rl(cur_func_return_type(), rl);
 	sm_msg("info: return_allocation %d '%s' '%s' %s",
 	       get_return_id(), show_ranges(rl), sname, global_static());
 }
@@ -487,6 +478,7 @@ static void match_return(struct expression *expr)
 	if (!state || !state->data)
 		return;
 	get_implied_range_list(expr, &rl);
+	rl = cast_rl(cur_func_return_type(), rl);
 	sm_msg("info: return_allocation %d '%s' '%s' %s",
 	       get_return_id(), show_ranges(rl), state->name, global_static());
 }

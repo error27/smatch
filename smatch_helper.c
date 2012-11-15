@@ -304,9 +304,9 @@ int sym_name_is(const char *name, struct expression *expr)
 
 int is_zero(struct expression *expr)
 {
-	long long val;
+	sval_t sval;
 
-	if (get_value(expr, &val) && val == 0)
+	if (get_value(expr, &sval) && sval.value == 0)
 		return 1;
 	return 0;
 }
@@ -409,7 +409,7 @@ void scoped_state(int my_id, const char *name, struct symbol *sym)
 int is_error_return(struct expression *expr)
 {
 	struct symbol *cur_func = cur_func_sym;
-	long long val;
+	sval_t sval;
 
 	if (!expr)
 		return 0;
@@ -421,11 +421,11 @@ int is_error_return(struct expression *expr)
 	cur_func = get_base_type(cur_func);
 	if (cur_func == &void_ctype)
 		return 0;
-	if (!get_value(expr, &val))
+	if (!get_value(expr, &sval))
 		return 0;
-	if (val < 0)
+	if (sval_cmp_val(sval, 0) < 0)
 		return 1;
-	if (cur_func->type == SYM_PTR && val == 0)
+	if (cur_func->type == SYM_PTR && sval.value == 0)
 		return 1;
 	return 0;
 }

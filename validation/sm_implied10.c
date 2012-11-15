@@ -19,12 +19,12 @@ void func(int *y)
 }
 /*
  * check-name: smatch implied #10
- * check-command: smatch -I.. sm_implied10.c
+ * check-command: smatch -I.. -m64 sm_implied10.c
  *
  * check-output-start
-sm_implied10.c:10 func() y = 0,4096-max
-sm_implied10.c:12 func() y = 4096-max
-sm_implied10.c:15 func() offset = unknown
-sm_implied10.c:17 func() offset = min-9
+sm_implied10.c:10 func() y = 0,4096-s64max
+sm_implied10.c:12 func() y = 4096-s64max
+sm_implied10.c:15 func() offset = s32min-s32max
+sm_implied10.c:17 func() offset = s32min-9
  * check-output-end
  */

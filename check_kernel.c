@@ -20,19 +20,18 @@ static int implied_err_cast_return(struct expression *call, void *unused, struct
 
 	arg = get_argument_from_call_expr(call->args, 0);
 	if (!get_implied_range_list(arg, rl))
-		*rl = alloc_range_list(-4095, -1);
+		*rl = alloc_range_list(ll_to_sval(-4095), ll_to_sval(-1));
 	return 1;
 }
 
 static int implied_copy_return(struct expression *call, void *unused, struct range_list **rl)
 {
 	struct expression *arg;
-	long long max;
+	sval_t max;
 
 	arg = get_argument_from_call_expr(call->args, 2);
-	if (!get_absolute_max(arg, &max))
-		max = whole_range.max;
-	*rl = alloc_range_list(0, max);
+	get_absolute_max(arg, &max);
+	*rl = alloc_range_list(ll_to_sval(0), max);
 	return 1;
 }
 
@@ -46,7 +45,7 @@ static void match_param_nonnull(const char *fn, struct expression *call_expr,
 
 	arg = get_argument_from_call_expr(call_expr->args, param);
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
-	true_state = add_filter(pre_state, 0);
+	true_state = add_filter(pre_state, ll_to_sval(0));
 	set_extra_expr_nomod(arg, true_state);
 }
 
@@ -59,7 +58,7 @@ static void match_not_err(const char *fn, struct expression *call_expr,
 
 	arg = get_argument_from_call_expr(call_expr->args, 0);
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
-	new_state = filter_range(pre_state, whole_range.min, -1);
+	new_state = filter_range(pre_state, sval_type_min(&long_ctype), ll_to_sval(-1));
 	set_extra_expr_nomod(arg, new_state);
 }
 
@@ -72,14 +71,14 @@ static void match_err(const char *fn, struct expression *call_expr,
 
 	arg = get_argument_from_call_expr(call_expr->args, 0);
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
-	new_state = filter_range(pre_state, whole_range.min, -4096);
-	new_state = filter_range(new_state, 0, whole_range.max);
+	new_state = filter_range(pre_state, sval_type_min(&long_ctype), ll_to_sval(-4096));
+	new_state = filter_range(new_state, ll_to_sval(0), sval_type_max(&long_ctype));
 	set_extra_expr_nomod(arg, new_state);
 }
 
 static void match_container_of(const char *fn, struct expression *expr, void *unused)
 {
-	set_extra_expr_mod(expr->left, alloc_estate_range(valid_ptr_min, valid_ptr_max));
+	set_extra_expr_mod(expr->left, alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval));
 }
 
 void check_kernel(int id)

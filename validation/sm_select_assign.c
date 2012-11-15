@@ -31,7 +31,7 @@ void func(void)
  *
  * check-output-start
 sm_select_assign.c:14 func() val = 0-5
-sm_select_assign.c:18 func() i = 11-max
+sm_select_assign.c:18 func() i = 11-s32max
 sm_select_assign.c:20 func() val = 11-100
 sm_select_assign.c:26 func() val = 10
  * check-output-end

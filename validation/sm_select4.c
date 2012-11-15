@@ -18,8 +18,8 @@ void func(unsigned long x)
  * check-command: smatch -I.. sm_select4.c
  *
  * check-output-start
-sm_select4.c:11 func() x = min-3
-sm_select4.c:13 func() x = min-3
-sm_select4.c:14 func() x = min-3
+sm_select4.c:11 func() x = 0-3
+sm_select4.c:13 func() x = 0-3
+sm_select4.c:14 func() x = 0-3
  * check-output-end
  */

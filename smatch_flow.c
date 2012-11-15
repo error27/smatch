@@ -471,9 +471,9 @@ static void split_asm_constraints(struct expression_list *expr_list)
 	} END_FOR_EACH_PTR(expr);
 }
 
-static int is_case_val(struct statement *stmt, long long val)
+static int is_case_val(struct statement *stmt, sval_t sval)
 {
-	long long case_val;
+	sval_t case_sval;
 
 	if (stmt->type != STMT_CASE)
 		return 0;
@@ -481,14 +481,14 @@ static int is_case_val(struct statement *stmt, long long val)
 		__set_default();
 		return 1;
 	}
-	if (!get_value(stmt->case_expression, &case_val))
+	if (!get_value(stmt->case_expression, &case_sval))
 		return 0;
-	if (case_val == val)
+	if (case_sval.value == sval.value)
 		return 1;
 	return 0;
 }
 
-static void split_known_switch(struct statement *stmt, long long val)
+static void split_known_switch(struct statement *stmt, sval_t sval)
 {
 	struct statement *tmp;
 
@@ -508,7 +508,7 @@ static void split_known_switch(struct statement *stmt, long long val)
 	__push_scope_hooks();
 	FOR_EACH_PTR(stmt->stmts, tmp) {
 		__smatch_lineno = tmp->pos.line;
-		if (is_case_val(tmp, val)) {
+		if (is_case_val(tmp, sval)) {
 			__merge_switches(top_expression(switch_expr_stack),
 					 stmt->case_expression);
 			__pass_case_to_client(top_expression(switch_expr_stack),
@@ -534,7 +534,7 @@ out:
 
 void __split_stmt(struct statement *stmt)
 {
-	long long val;
+	sval_t sval;
 
 	if (!stmt)
 		return;
@@ -622,8 +622,8 @@ void __split_stmt(struct statement *stmt)
 		}
 		return;
 	case STMT_SWITCH:
-		if (get_value(stmt->switch_expression, &val)) {
-			split_known_switch(stmt, val);
+		if (get_value(stmt->switch_expression, &sval)) {
+			split_known_switch(stmt, sval);
 			return;
 		}
 		__split_expr(stmt->switch_expression);

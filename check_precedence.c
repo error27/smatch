@@ -25,11 +25,11 @@ static int is_bool(struct expression *expr)
 
 static int is_bool_from_context(struct expression *expr)
 {
-	long long val;
+	sval_t sval;
 
-	if (!get_implied_max(expr, &val) || val > 1)
+	if (!get_implied_max(expr, &sval) || sval.uvalue > 1)
 		return 0;
-	if (!get_implied_min(expr, &val) || val < 0)
+	if (!get_implied_min(expr, &sval) || sval.value < 0)
 		return 0;
 	return 1;
 }

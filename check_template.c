@@ -76,11 +76,11 @@ free_fn:
 
 static void match_return(struct expression *ret_value)
 {
-	long long ret_val;
+	sval_t ret_val;
 	struct state_list *slist;
 	struct sm_state *tmp;
 
-	if (!get_value(ret_value, &ret_val) || ret_val >= 0)
+	if (!get_value(ret_value, &ret_val) || sval_cmp_val(ret_val, 0) >= 0)
 		return;
 
 	slist = get_all_states(my_id);

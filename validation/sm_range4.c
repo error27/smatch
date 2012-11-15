@@ -27,11 +27,11 @@ static int frob(void)
  * check-command: smatch -I.. sm_range4.c
  *
  * check-output-start
-sm_range4.c:8 frob() a = 6-max
-sm_range4.c:12 frob() b = 7-max
-sm_range4.c:16 frob() c = 6-max
-sm_range4.c:19 frob() a = min-5
-sm_range4.c:20 frob() b = min-6
-sm_range4.c:21 frob() c = min-5
+sm_range4.c:8 frob() a = 6-s32max
+sm_range4.c:12 frob() b = 7-s32max
+sm_range4.c:16 frob() c = 6-s32max
+sm_range4.c:19 frob() a = s32min-5
+sm_range4.c:20 frob() b = s32min-6
+sm_range4.c:21 frob() c = s32min-5
  * check-output-end
  */

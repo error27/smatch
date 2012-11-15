@@ -14,8 +14,7 @@ static int my_id;
 static void match_assign(struct expression *expr)
 {
 	const char *macro;
-	long long max_left;
-	long long max_right;
+	sval_t max_left, max_right;
 	char *name;
 
 	if (expr->op != '=')
@@ -32,11 +31,11 @@ static void match_assign(struct expression *expr)
 	if (!get_absolute_max(expr->right, &max_right))
 		return;
 
-	if (max_left >= max_right)
+	if (sval_cmp(max_left, max_right) >= 0)
 		return;
 
 	name = get_variable_from_expr_complex(expr->right, NULL);
-	sm_msg("warn: min_t truncates here '%s' (%lld vs %lld)", name, max_left, max_right);
+	sm_msg("warn: min_t truncates here '%s' (%s vs %s)", name, sval_to_str(max_left), sval_to_str(max_right));
 	free_string(name);
 }
 

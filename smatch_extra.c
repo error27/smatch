@@ -75,7 +75,7 @@ void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state)
 		return;
 	}
 
-	set_related(&state, estate_related(orig_state));
+	set_related(state, estate_related(orig_state));
 	FOR_EACH_PTR(estate_related(orig_state), rel) {
 		if (option_debug_related)
 			sm_msg("updating related %s to %s", rel->name, state->name);
@@ -101,9 +101,9 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 	}
 
 	if (true_state)
-		set_related(&true_state, estate_related(orig_state));
+		set_related(true_state, estate_related(orig_state));
 	if (false_state)
-		set_related(&false_state, estate_related(orig_state));
+		set_related(false_state, estate_related(orig_state));
 
 	FOR_EACH_PTR(estate_related(orig_state), rel) {
 		set_true_false_states(SMATCH_EXTRA, rel->name, rel->sym,
@@ -127,38 +127,21 @@ free:
 	free_string(name);
 }
 
-struct smatch_state *filter_range_list(struct smatch_state *orig,
-				 struct range_list *rl)
-{
-	struct range_list *res;
-	struct data_range *tmp;
-
-	if (!orig)
-		orig = extra_undefined();
-	res = estate_ranges(orig);
-
-	FOR_EACH_PTR(rl, tmp) {
-		res = remove_range(res, tmp->min, tmp->max);
-	} END_FOR_EACH_PTR(tmp);
-
-	return alloc_estate_range_list(res);
-}
-
 struct smatch_state *filter_range(struct smatch_state *orig,
-				 long long filter_min, long long filter_max)
+				 sval_t filter_min, sval_t filter_max)
 {
 	struct range_list *rl;
 
 	if (!orig)
-		orig = extra_undefined();
+		orig = extra_undefined(filter_min.type);
 
 	rl = remove_range(estate_ranges(orig), filter_min, filter_max);
 	return alloc_estate_range_list(rl);
 }
 
-struct smatch_state *add_filter(struct smatch_state *orig, long long num)
+struct smatch_state *add_filter(struct smatch_state *orig, sval_t sval)
 {
-	return filter_range(orig, num, num);
+	return filter_range(orig, sval, sval);
 }
 
 static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_state *s2)
@@ -173,7 +156,9 @@ static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_st
 	value_ranges = range_list_union(estate_ranges(s1), estate_ranges(s2));
 	tmp = alloc_estate_range_list(value_ranges);
 	rlist = get_shared_relations(estate_related(s1), estate_related(s2));
-	set_related(&tmp, rlist);
+	set_related(tmp, rlist);
+	if (estate_has_hard_max(s1) && estate_has_hard_max(s2))
+		estate_set_hard_max(tmp);
 
 	return tmp;
 }
@@ -183,7 +168,8 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 	struct expression *iter_var;
 	struct expression *condition;
 	struct sm_state *sm;
-	long long start;
+	struct smatch_state *estate;
+	sval_t start;
 
 	condition = strip_expr(loop->iterator_pre_condition);
 	if (!condition)
@@ -197,18 +183,26 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
 		return NULL;
-	if (estate_min(sm->state) < 0)
+	if (sval_cmp_val(estate_min(sm->state), 0) < 0)
 		return NULL;
 	start = estate_max(sm->state);
-	if  (start <= 0)
+	if  (sval_cmp_val(start, 0) <= 0)
 		return NULL;
-	if (start != whole_range.max)
-		start--;
+	if (!sval_is_max(start))
+		start.value--;
 
-	if (condition->type == EXPR_PREOP)
-		set_extra_expr_mod(iter_var, alloc_estate_range(1, start));
-	if (condition->type == EXPR_POSTOP)
-		set_extra_expr_mod(iter_var, alloc_estate_range(0, start));
+	if (condition->type == EXPR_PREOP) {
+		estate = alloc_estate_range(sval_type_val(start.type, 1), start);
+		if (!sval_is_max(start))
+			estate_set_hard_max(estate);
+		set_extra_expr_mod(iter_var, estate);
+	}
+	if (condition->type == EXPR_POSTOP) {
+		estate = alloc_estate_range(sval_type_val(start.type, 0), start);
+		if (!sval_is_max(start))
+			estate_set_hard_max(estate);
+		set_extra_expr_mod(iter_var, estate);
+	}
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
@@ -217,8 +211,8 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 {
 	struct expression *iter_var;
 	struct sm_state *sm;
-	long long start;
-	long long end;
+	struct smatch_state *estate;
+	sval_t start, end;
 
 	iter_var = iter_expr->unop;
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
@@ -227,24 +221,28 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	if (!estate_get_single_value(sm->state, &start))
 		return NULL;
 	if (!get_implied_value(condition->right, &end))
-		end = whole_range.max;
+		end = sval_type_max(get_type(iter_var));
+
 	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
 		return NULL;
 
 	switch (condition->op) {
 	case SPECIAL_NOTEQUAL:
 	case '<':
-		if (end != whole_range.max)
-			end--;
+		if (!sval_is_max(end))
+			end.value--;
 		break;
 	case SPECIAL_LTE:
 		break;
 	default:
 		return NULL;
 	}
-	if (end < start)
+	if (sval_cmp(end, start) < 0)
 		return NULL;
-	set_extra_expr_mod(iter_var, alloc_estate_range(start, end));
+	estate = alloc_estate_range(start, end);
+	if (!sval_is_max(end))
+		estate_set_hard_max(estate);
+	set_extra_expr_mod(iter_var, estate);
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
@@ -253,8 +251,8 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 {
 	struct expression *iter_var;
 	struct sm_state *sm;
-	long long start;
-	long long end;
+	struct smatch_state *estate;
+	sval_t start, end;
 
 	iter_var = iter_expr->unop;
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
@@ -263,24 +261,26 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 	if (!estate_get_single_value(sm->state, &start))
 		return NULL;
 	if (!get_implied_value(condition->right, &end))
-		end = whole_range.max;
+		end = sval_type_min(get_type(iter_var));
 	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
 		return NULL;
 
 	switch (condition->op) {
 	case SPECIAL_NOTEQUAL:
 	case '>':
-		if (end != whole_range.min)
-			end++;
+		if (!sval_is_min(end) && !sval_is_max(end))
+			end.value++;
 		break;
 	case SPECIAL_GTE:
 		break;
 	default:
 		return NULL;
 	}
-	if (end > start)
+	if (sval_cmp(end, start) > 0)
 		return NULL;
-	set_extra_expr_mod(iter_var, alloc_estate_range(end, start));
+	estate = alloc_estate_range(end, start);
+	estate_set_hard_max(estate);
+	set_extra_expr_mod(iter_var, estate);
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
 
@@ -331,7 +331,7 @@ int __iterator_unchanged(struct sm_state *sm)
 
 static void while_count_down_after(struct sm_state *sm, struct expression *condition)
 {
-	long long after_value;
+	sval_t after_value;
 
 	/* paranoid checking.  prolly not needed */
 	condition = strip_expr(condition);
@@ -342,7 +342,7 @@ static void while_count_down_after(struct sm_state *sm, struct expression *condi
 	if (condition->op != SPECIAL_DECREMENT)
 		return;
 	after_value = estate_min(sm->state);
-	after_value--;
+	after_value.value--;
 	set_extra_mod(sm->name, sm->sym, alloc_estate(after_value));
 }
 
@@ -353,10 +353,10 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	struct expression *iter_expr;
 	char *name;
 	struct symbol *sym;
-	long long value;
+	sval_t value;
 	int left = 0;
 	struct smatch_state *state;
-	long long min, max;
+	sval_t min, max;
 
 	if (!iterator) {
 		while_count_down_after(sm, condition);
@@ -384,12 +384,11 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	min = estate_min(state);
 	max = estate_max(state);
 	if (iter_expr->op == SPECIAL_INCREMENT &&
-		min != whole_range.min &&
-		max == whole_range.max) {
+	    !sval_is_min(min) && sval_is_max(max))
 		set_extra_mod(name, sym, alloc_estate(min));
-	} else if (min == whole_range.min && max != whole_range.max) {
+	else if (sval_is_min(min) && !sval_is_max(max))
 		set_extra_mod(name, sym, alloc_estate(max));
-	}
+
 free:
 	free_string(name);
 	return;
@@ -397,7 +396,7 @@ free:
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
-	return extra_undefined();
+	return extra_undefined(estate_type(sm->state));
 }
 
 static void match_function_call(struct expression *expr)
@@ -409,24 +408,33 @@ static void match_function_call(struct expression *expr)
 		tmp = strip_expr(arg);
 		if (tmp->type == EXPR_PREOP && tmp->op == '&') {
 			remove_from_equiv_expr(tmp->unop);
-			set_state_expr(SMATCH_EXTRA, tmp->unop, extra_undefined());
+			set_state_expr(SMATCH_EXTRA, tmp->unop, extra_undefined(get_type(tmp->unop)));
 		}
 	} END_FOR_EACH_PTR(arg);
 }
 
+static int types_equiv_or_pointer(struct symbol *one, struct symbol *two)
+{
+	if (!one || !two)
+		return 0;
+	if (one->type == SYM_PTR && two->type == SYM_PTR)
+		return 1;
+	return types_equiv(one, two);
+}
+
 static void match_assign(struct expression *expr)
 {
+	struct range_list *rl = NULL;
 	struct expression *left;
 	struct expression *right;
 	struct symbol *right_sym;
 	char *right_name;
 	struct symbol *sym;
 	char *name;
-	long long value;
+	sval_t value;
 	int known;
-	long long min = whole_range.min;
-	long long max = whole_range.max;
-	long long tmp;
+	sval_t right_min, right_max;
+	sval_t tmp;
 
 	if (__is_condition_assign(expr))
 		return;
@@ -442,47 +450,59 @@ static void match_assign(struct expression *expr)
 		return;  /* these are handled in match_call_assign() */
 
 	right_name = get_variable_from_expr(right, &right_sym);
-	if (expr->op == '=' && right_name && right_sym) {
+	if (expr->op == '=' && right_name && right_sym &&
+	    types_equiv_or_pointer(get_type(expr->left), get_type(expr->right))) {
 		set_equiv(left, right);
 		goto free;
 	}
 
+	right_min = sval_type_min(get_type(expr->right));
+	right_max = sval_type_max(get_type(expr->right));
+
 	known = get_implied_value(right, &value);
 	switch (expr->op) {
 	case '=': {
-		struct range_list *rl = NULL;
+		struct smatch_state *state;
 
 		if (get_implied_range_list(right, &rl)) {
-			set_extra_mod(name, sym, alloc_estate_range_list(rl));
-			goto free;
+			rl = cast_rl(get_type(expr->left), rl);
+			state = alloc_estate_range_list(rl);
+			if (get_hard_max(right, &tmp))
+				estate_set_hard_max(state);
+		} else {
+			rl = whole_range_list(get_type(right));
+			rl = cast_rl(get_type(expr->left), rl);
+			state = alloc_estate_range_list(rl);
 		}
-
-		if (expr_unsigned(right))
-			min = 0;
-		break;
+		set_extra_mod(name, sym, state);
+		goto free;
 	}
 	case SPECIAL_ADD_ASSIGN:
 		if (get_implied_min(left, &tmp)) {
 			if (known)
-				min = tmp + value;
+				right_min = sval_binop(tmp, '+', value);
 			else
-				min = tmp;
+				right_min = tmp;
 		}
 		if (!inside_loop() && known && get_implied_max(left, &tmp))
-				max = tmp + value;
+			right_max = sval_binop(tmp, '+', value);
 		break;
 	case SPECIAL_SUB_ASSIGN:
 		if (get_implied_max(left, &tmp)) {
 			if (known)
-				max = tmp - value;
+				right_max = sval_binop(tmp, '-', value);
 			else
-				max = tmp;
+				right_max = tmp;
 		}
 		if (!inside_loop() && known && get_implied_min(left, &tmp))
-				min = tmp - value;
+			right_min = sval_binop(tmp, '-', value);
 		break;
 	}
-	set_extra_mod(name, sym, alloc_estate_range(min, max));
+	if (!sval_is_min(right_min) || !sval_is_max(right_max))
+		rl = cast_rl(get_type(expr->left), alloc_range_list(right_min, right_max));
+	else
+		rl = whole_range_list(get_type(expr->left));
+	set_extra_mod(name, sym, alloc_estate_range_list(rl));
 free:
 	free_string(right_name);
 	free_string(name);
@@ -490,36 +510,42 @@ free:
 
 static void reset_struct_members(struct sm_state *sm)
 {
-	set_extra_mod(sm->name, sm->sym, extra_undefined());
+	set_extra_mod(sm->name, sm->sym, extra_undefined(estate_type(sm->state)));
 }
 
 static struct smatch_state *increment_state(struct smatch_state *state)
 {
-	long long min = estate_min(state);
-	long long max = estate_max(state);
+	sval_t min = estate_min(state);
+	sval_t max = estate_max(state);
+
+	if (!estate_ranges(state))
+		return NULL;
 
 	if (inside_loop())
-		max = whole_range.max;
+		max = sval_type_max(max.type);
 
-	if (min != whole_range.min)
-		min++;
-	if (max != whole_range.max)
-		max++;
+	if (!sval_is_min(min) && !sval_is_max(min))
+		min.value++;
+	if (!sval_is_min(max) && !sval_is_max(max))
+		max.value++;
 	return alloc_estate_range(min, max);
 }
 
 static struct smatch_state *decrement_state(struct smatch_state *state)
 {
-	long long min = estate_min(state);
-	long long max = estate_max(state);
+	sval_t min = estate_min(state);
+	sval_t max = estate_max(state);
+
+	if (!estate_ranges(state))
+		return NULL;
 
 	if (inside_loop())
-		min = whole_range.min;
+		min = sval_type_min(min.type);
 
-	if (min != whole_range.min)
-		min--;
-	if (max != whole_range.max)
-		max--;
+	if (!sval_is_min(min) && !sval_is_max(min))
+		min.value--;
+	if (!sval_is_min(max) && !sval_is_max(max))
+		max.value--;
 	return alloc_estate_range(min, max);
 }
 
@@ -534,11 +560,15 @@ static void unop_expr(struct expression *expr)
 	case SPECIAL_INCREMENT:
 		state = get_state_expr(SMATCH_EXTRA, expr->unop);
 		state = increment_state(state);
+		if (!state)
+			state = extra_undefined(get_type(expr));
 		set_extra_expr_mod(expr->unop, state);
 		break;
 	case SPECIAL_DECREMENT:
 		state = get_state_expr(SMATCH_EXTRA, expr->unop);
 		state = decrement_state(state);
+		if (!state)
+			state = extra_undefined(get_type(expr));
 		set_extra_expr_mod(expr->unop, state);
 		break;
 	default:
@@ -560,7 +590,7 @@ static void asm_expr(struct statement *stmt)
 			continue;
 		case 2: /* expression */
 			state = 0;
-			set_extra_expr_mod(expr, extra_undefined());
+			set_extra_expr_mod(expr, extra_undefined(get_type(expr)));
 			continue;
 		}
 	} END_FOR_EACH_PTR(expr);
@@ -587,7 +617,7 @@ static void match_declarations(struct symbol *sym)
 	if (sym->ident) {
 		name = sym->ident->name;
 		if (!sym->initializer) {
-			set_state(SMATCH_EXTRA, name, sym, extra_undefined());
+			set_state(SMATCH_EXTRA, name, sym, extra_undefined(get_real_base_type(sym)));
 			scoped_state_extra(name, sym);
 		}
 	}
@@ -595,7 +625,7 @@ static void match_declarations(struct symbol *sym)
 
 static void check_dereference(struct expression *expr)
 {
-	set_extra_expr_nomod(expr, alloc_estate_range(valid_ptr_min, valid_ptr_max));
+	set_extra_expr_nomod(expr, alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval));
 }
 
 static void match_dereferences(struct expression *expr)
@@ -624,7 +654,7 @@ static void match_function_def(struct symbol *sym)
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
 		if (!arg->ident)
 			continue;
-		set_state(my_id, arg->ident->name, arg, extra_undefined());
+		set_state(my_id, arg->ident->name, arg, extra_undefined(get_real_base_type(arg)));
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -632,29 +662,42 @@ static int match_func_comparison(struct expression *expr)
 {
 	struct expression *left = strip_expr(expr->left);
 	struct expression *right = strip_expr(expr->right);
-	long long val;
+	sval_t sval;
 
 	if (left->type == EXPR_CALL) {
-		if (!get_implied_value(right, &val))
+		if (!get_implied_value(right, &sval))
 			return 1;
-		function_comparison(expr->op, left, val, 1);
+		function_comparison(expr->op, left, sval, 1);
 		return 1;
 	}
 
 	if (right->type == EXPR_CALL) {
-		if (!get_implied_value(left, &val))
+		if (!get_implied_value(left, &sval))
 			return 1;
-		function_comparison(expr->op, right, val, 0);
+		function_comparison(expr->op, right, sval, 0);
 		return 1;
 	}
 
 	return 0;
 }
 
+static sval_t add_one(sval_t sval)
+{
+	sval.value++;
+	return sval;
+}
+
+static sval_t sub_one(sval_t sval)
+{
+	sval.value--;
+	return sval;
+}
+
 static void match_comparison(struct expression *expr)
 {
 	struct expression *left = strip_expr(expr->left);
 	struct expression *right = strip_expr(expr->right);
+	struct symbol *type;
 	struct range_list *left_orig;
 	struct range_list *left_true;
 	struct range_list *left_false;
@@ -665,6 +708,7 @@ static void match_comparison(struct expression *expr)
 	struct smatch_state *left_false_state;
 	struct smatch_state *right_true_state;
 	struct smatch_state *right_false_state;
+	sval_t min, max, dummy;
 	int left_postop = 0;
 	int right_postop = 0;
 
@@ -678,6 +722,8 @@ static void match_comparison(struct expression *expr)
 		}
 		left = strip_expr(left->unop);
 	}
+	while (left->type == EXPR_ASSIGNMENT)
+		left = strip_expr(left->left);
 
 	if (right->op == SPECIAL_INCREMENT || right->op == SPECIAL_DECREMENT) {
 		if (right->type == EXPR_POSTOP) {
@@ -687,10 +733,29 @@ static void match_comparison(struct expression *expr)
 		right = strip_expr(right->unop);
 	}
 
-	if (!get_implied_range_list(left, &left_orig))
-		left_orig = alloc_range_list(whole_range.min, whole_range.max);
-	if (!get_implied_range_list(right, &right_orig))
-		right_orig = alloc_range_list(whole_range.min, whole_range.max);
+	type = get_type(expr);
+	if (!type) {
+		sm_msg("debug: failed to get type for '%s'", get_variable_from_expr_complex(expr, NULL));
+		type = &llong_ctype;
+	}
+
+	if (get_implied_range_list(left, &left_orig)) {
+		left_orig = cast_rl(type, left_orig);
+	} else {
+		min = sval_type_min(get_type(left));
+		max = sval_type_max(get_type(left));
+		left_orig = cast_rl(type, alloc_range_list(min, max));
+	}
+
+	if (get_implied_range_list(right, &right_orig)) {
+		right_orig = cast_rl(type, right_orig);
+	} else {
+		min = sval_type_min(get_type(right));
+		max = sval_type_max(get_type(right));
+		right_orig = cast_rl(type, alloc_range_list(min, max));
+	}
+	min = sval_type_min(type);
+	max = sval_type_max(type);
 
 	left_true = clone_range_list(left_orig);
 	left_false = clone_range_list(left_orig);
@@ -700,90 +765,124 @@ static void match_comparison(struct expression *expr)
 	switch (expr->op) {
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
-		if (rl_max(right_orig) != whole_range.max)
-			left_true = remove_range(left_orig, rl_max(right_orig), whole_range.max);
-		if (rl_min(right_orig) != whole_range.min)
-			left_false = remove_range(left_orig, whole_range.min, rl_min(right_orig) - 1);
+		if (!sval_is_max(rl_max(right_orig))) {
+			left_true = remove_range(left_orig, rl_max(right_orig), max);
+		}
+		if (!sval_is_min(rl_min(right_orig))) {
+			left_false = remove_range(left_orig, min, sub_one(rl_min(right_orig)));
+		}
 
-		if (rl_min(left_orig) != whole_range.min)
-			right_true = remove_range(right_orig, whole_range.min, rl_min(left_orig));
-		if (rl_max(left_orig) != whole_range.max)
-			right_false = remove_range(right_orig, rl_max(left_orig) + 1, whole_range.max);
+		if (!sval_is_min(rl_min(left_orig)))
+			right_true = remove_range(right_orig, min, rl_min(left_orig));
+		if (!sval_is_max(rl_max(left_orig)))
+			right_false = remove_range(right_orig, add_one(rl_max(left_orig)), max);
 		break;
 	case SPECIAL_UNSIGNED_LTE:
 	case SPECIAL_LTE:
-		if (rl_max(right_orig) != whole_range.max)
-			left_true = remove_range(left_orig, rl_max(right_orig) + 1, whole_range.max);
-		if (rl_min(right_orig) != whole_range.min)
-			left_false = remove_range(left_orig, whole_range.min, rl_min(right_orig));
+		if (!sval_is_max(rl_max(right_orig)))
+			left_true = remove_range(left_orig, add_one(rl_max(right_orig)), max);
+		if (!sval_is_min(rl_min(right_orig)))
+			left_false = remove_range(left_orig, min, rl_min(right_orig));
 
-		if (rl_min(left_orig) != whole_range.min)
-			right_true = remove_range(right_orig, whole_range.min, rl_min(left_orig) - 1);
-		if (rl_max(left_orig) != whole_range.max)
-			right_false = remove_range(right_orig, rl_max(left_orig), whole_range.max);
+		if (!sval_is_min(rl_min(left_orig)))
+			right_true = remove_range(right_orig, min, sub_one(rl_min(left_orig)));
+		if (!sval_is_max(rl_max(left_orig)))
+			right_false = remove_range(right_orig, rl_max(left_orig), max);
 		break;
 	case SPECIAL_EQUAL:
-		if (rl_max(right_orig) != whole_range.max)
-			left_true = remove_range(left_true, rl_max(right_orig) + 1, whole_range.max);
-		if (rl_min(right_orig) != whole_range.min)
-			left_true = remove_range(left_true, whole_range.min, rl_min(right_orig) - 1);
-		if (rl_min(right_orig) == rl_max(right_orig))
+		if (!sval_is_max(rl_max(right_orig))) {
+			left_true = remove_range(left_true, add_one(rl_max(right_orig)), max);
+		}
+		if (!sval_is_min(rl_min(right_orig))) {
+			left_true = remove_range(left_true, min, sub_one(rl_min(right_orig)));
+		}
+		if (sval_cmp(rl_min(right_orig), rl_max(right_orig)) == 0)
 			left_false = remove_range(left_orig, rl_min(right_orig), rl_min(right_orig));
 
-		if (rl_max(left_orig) != whole_range.max)
-			right_true = remove_range(right_true, rl_max(left_orig) + 1, whole_range.max);
-		if (rl_min(left_orig) != whole_range.min)
-			right_true = remove_range(right_true, whole_range.min, rl_min(left_orig) - 1);
-		if (rl_min(left_orig) == rl_max(left_orig))
+		if (!sval_is_max(rl_max(left_orig)))
+			right_true = remove_range(right_true, add_one(rl_max(left_orig)), max);
+		if (!sval_is_min(rl_min(left_orig)))
+			right_true = remove_range(right_true, min, sub_one(rl_min(left_orig)));
+		if (sval_cmp(rl_min(left_orig), rl_max(left_orig)) == 0)
 			right_false = remove_range(right_orig, rl_min(left_orig), rl_min(left_orig));
 		break;
 	case SPECIAL_UNSIGNED_GTE:
 	case SPECIAL_GTE:
-		if (rl_min(right_orig) != whole_range.min)
-			left_true = remove_range(left_orig, whole_range.min, rl_min(right_orig) - 1);
-		if (rl_max(right_orig) != whole_range.max)
-			left_false = remove_range(left_orig, rl_max(right_orig), whole_range.max);
+		if (!sval_is_min(rl_min(right_orig)))
+			left_true = remove_range(left_orig, min, sub_one(rl_min(right_orig)));
+		if (!sval_is_max(rl_max(right_orig)))
+			left_false = remove_range(left_orig, rl_max(right_orig), max);
 
-		if (rl_max(left_orig) != whole_range.max)
-			right_true = remove_range(right_orig, rl_max(left_orig) + 1, whole_range.max);
-		if (rl_min(left_orig) != whole_range.min)
-			right_false = remove_range(right_orig, whole_range.min, rl_min(left_orig));
+		if (!sval_is_max(rl_max(left_orig)))
+			right_true = remove_range(right_orig, add_one(rl_max(left_orig)), max);
+		if (!sval_is_min(rl_min(left_orig)))
+			right_false = remove_range(right_orig, min, rl_min(left_orig));
 		break;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
-		if (rl_min(right_orig) != whole_range.min)
-			left_true = remove_range(left_orig, whole_range.min, rl_min(right_orig));
-		if (rl_max(right_orig) != whole_range.max)
-			left_false = remove_range(left_orig, rl_max(right_orig) + 1, whole_range.max);
+		if (!sval_is_min(rl_min(right_orig)))
+			left_true = remove_range(left_orig, min, rl_min(right_orig));
+		if (!sval_is_max(rl_max(right_orig)))
+			left_false = remove_range(left_orig, add_one(rl_max(right_orig)), max);
 
-		if (rl_max(left_orig) != whole_range.max)
-			right_true = remove_range(right_orig, rl_max(left_orig), whole_range.max);
-		if (rl_min(left_orig) != whole_range.min)
-			right_false = remove_range(right_orig, whole_range.min, rl_min(left_orig) - 1);
+		if (!sval_is_max(rl_max(left_orig)))
+			right_true = remove_range(right_orig, rl_max(left_orig), max);
+		if (!sval_is_min(rl_min(left_orig)))
+			right_false = remove_range(right_orig, min, sub_one(rl_min(left_orig)));
 		break;
 	case SPECIAL_NOTEQUAL:
-		if (rl_max(right_orig) != whole_range.max)
-			left_false = remove_range(left_false, rl_max(right_orig) + 1, whole_range.max);
-		if (rl_min(right_orig) != whole_range.min)
-			left_false = remove_range(left_false, whole_range.min, rl_min(right_orig) - 1);
-		if (rl_min(right_orig) == rl_max(right_orig))
+		if (!sval_is_max(rl_max(right_orig)))
+			left_false = remove_range(left_false, add_one(rl_max(right_orig)), max);
+		if (!sval_is_min(rl_min(right_orig)))
+			left_false = remove_range(left_false, min, sub_one(rl_min(right_orig)));
+		if (sval_cmp(rl_min(right_orig), rl_max(right_orig)) == 0)
 			left_true = remove_range(left_orig, rl_min(right_orig), rl_min(right_orig));
 
-		if (rl_max(left_orig) != whole_range.max)
-			right_false = remove_range(right_false, rl_max(left_orig) + 1, whole_range.max);
-		if (rl_min(left_orig) != whole_range.min)
-			right_false = remove_range(right_false, whole_range.min, rl_min(left_orig) - 1);
-		if (rl_min(left_orig) == rl_max(left_orig))
+		if (!sval_is_max(rl_max(left_orig)))
+			right_false = remove_range(right_false, add_one(rl_max(left_orig)), max);
+		if (!sval_is_min(rl_min(left_orig)))
+			right_false = remove_range(right_false, min, sub_one(rl_min(left_orig)));
+		if (sval_cmp(rl_min(left_orig), rl_max(left_orig)) == 0)
 			right_true = remove_range(right_orig, rl_min(left_orig), rl_min(left_orig));
 		break;
 	default:
 		return;
 	}
 
-	left_true_state = alloc_estate_range_list(left_true);
-	left_false_state = alloc_estate_range_list(left_false);
-	right_true_state = alloc_estate_range_list(right_true);
-	right_false_state = alloc_estate_range_list(right_false);
+	left_true_state = alloc_estate_range_list(cast_rl(get_type(left), left_true));
+	left_false_state = alloc_estate_range_list(cast_rl(get_type(left), left_false));
+	right_true_state = alloc_estate_range_list(cast_rl(get_type(right), right_true));
+	right_false_state = alloc_estate_range_list(cast_rl(get_type(right), right_false));
+
+	switch (expr->op) {
+	case '<':
+	case SPECIAL_UNSIGNED_LT:
+	case SPECIAL_UNSIGNED_LTE:
+	case SPECIAL_LTE:
+		if (get_hard_max(right, &dummy))
+			estate_set_hard_max(left_true_state);
+		if (get_hard_max(left, &dummy))
+			estate_set_hard_max(right_false_state);
+		break;
+	case '>':
+	case SPECIAL_UNSIGNED_GT:
+	case SPECIAL_UNSIGNED_GTE:
+	case SPECIAL_GTE:
+		if (get_hard_max(left, &dummy))
+			estate_set_hard_max(right_true_state);
+		if (get_hard_max(right, &dummy))
+			estate_set_hard_max(left_false_state);
+		break;
+	}
+
+	if (get_hard_max(left, &dummy)) {
+		estate_set_hard_max(left_true_state);
+		estate_set_hard_max(left_false_state);
+	}
+	if (get_hard_max(right, &dummy)) {
+		estate_set_hard_max(right_true_state);
+		estate_set_hard_max(right_false_state);
+	}
 
 	if (left_postop == SPECIAL_INCREMENT) {
 		left_true_state = increment_state(left_true_state);
@@ -818,23 +917,29 @@ void __extra_match_condition(struct expression *expr)
 	expr = strip_expr(expr);
 	switch (expr->type) {
 	case EXPR_CALL:
-		function_comparison(SPECIAL_NOTEQUAL, expr, 0, 1);
+		function_comparison(SPECIAL_NOTEQUAL, expr, ll_to_sval(0), 1);
 		return;
 	case EXPR_PREOP:
 	case EXPR_SYMBOL:
-	case EXPR_DEREF:
+	case EXPR_DEREF: {
+		sval_t zero;
+
+		zero = sval_blank(expr);
+		zero.value = 0;
+
 		name = get_variable_from_expr(expr, &sym);
 		if (!name)
 			return;
 		pre_state = get_state(my_id, name, sym);
-		true_state = add_filter(pre_state, 0);
+		true_state = add_filter(pre_state, zero);
 		if (possibly_true(expr, SPECIAL_EQUAL, zero_expr()))
-			false_state = alloc_estate(0);
+			false_state = alloc_estate(zero);
 		else
 			false_state = alloc_estate_empty();
 		set_extra_true_false(name, sym, true_state, false_state);
 		free_string(name);
 		return;
+	}
 	case EXPR_COMPARE:
 		match_comparison(expr);
 		return;
@@ -852,10 +957,9 @@ int implied_not_equal(struct expression *expr, long long val)
 
 int get_implied_range_list(struct expression *expr, struct range_list **rl)
 {
-	long long val;
+	sval_t sval;
 	struct smatch_state *state;
-	long long min;
-	long long max;
+	sval_t min, max;
 
 	*rl = NULL;
 
@@ -876,15 +980,15 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 		goto out;
 	}
 
-	if (get_implied_value(expr, &val)) {
-		add_range(rl, val, val);
+	if (get_implied_value(expr, &sval)) {
+		add_range(rl, sval, sval);
 		goto out;
 	}
 
 	if (expr->type == EXPR_BINOP && expr->op == '%') {
-		if (!get_implied_value(expr->right, &val))
+		if (!get_implied_value(expr->right, &sval))
 			return 0;
-		add_range(rl, 0, val - 1);
+		add_range(rl, ll_to_sval(0), ll_to_sval(sval.value - 1));
 		goto out;
 	}
 
@@ -899,6 +1003,33 @@ out:
 	if (is_whole_range_rl(*rl))
 		return 0;
 	return 1;
+}
+
+static struct symbol *get_arg_type(struct expression *fn, int arg)
+{
+	struct symbol *fn_type;
+	struct symbol *tmp;
+	struct symbol *arg_type;
+	int i;
+
+	fn_type = get_type(fn);
+	if (!fn_type)
+		return NULL;
+	if (fn_type->type == SYM_PTR)
+		fn_type = get_real_base_type(fn_type);
+	if (fn_type->type != SYM_FN)
+		return NULL;
+
+	i = 0;
+	FOR_EACH_PTR(fn_type->arguments, tmp) {
+		arg_type = get_real_base_type(tmp);
+		if (i == arg) {
+			return arg_type;
+		}
+		i++;
+	} END_FOR_EACH_PTR(tmp);
+
+	return NULL;
 }
 
 int is_whole_range(struct smatch_state *state)
@@ -917,6 +1048,7 @@ static void match_call_info(struct expression *expr)
 {
 	struct range_list *rl = NULL;
 	struct expression *arg;
+	struct symbol *type;
 	char *name;
 	int i = 0;
 
@@ -925,11 +1057,16 @@ static void match_call_info(struct expression *expr)
 		return;
 
 	FOR_EACH_PTR(expr->args, arg) {
-		if (get_implied_range_list(arg, &rl) && !is_whole_range_rl(rl)) {
-			sm_msg("info: passes param_value '%s' %d '$$' %s %s",
-			       name, i, show_ranges(rl),
-			       is_static(expr->fn) ? "static" : "global");
-		}
+		type = get_arg_type(expr->fn, i);
+
+		if (get_implied_range_list(arg, &rl))
+			rl = cast_rl(type, rl);
+		else
+			rl = whole_range_list(type);
+
+		sm_msg("info: passes param_value '%s' %d '$$' %s %s",
+		       name, i, show_ranges(rl),
+		       is_static(expr->fn) ? "static" : "global");
 		i++;
 	} END_FOR_EACH_PTR(arg);
 
@@ -946,7 +1083,7 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 		return;
 
 	snprintf(fullname, 256, "%s%s", name, key + 2);
-	get_value_ranges(value, &rl);
+	parse_value_ranges_type(get_real_base_type(sym), value, &rl);
 	state = alloc_estate_range_list(rl);
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
@@ -958,14 +1095,13 @@ static void match_call_assign(struct expression *expr)
 
 	/* if we have a db set up this gets set in smatch_function_hooks.c */
 	if (option_no_db)
-		set_extra_expr_mod(expr->left, extra_undefined());
+		set_extra_expr_mod(expr->left, extra_undefined(get_type(expr->left)));
 }
 
 void register_smatch_extra(int id)
 {
 	my_id = id;
 
-	alloc_estate_undefined();
 	add_merge_hook(my_id, &merge_func);
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&unop_expr, OP_HOOK);

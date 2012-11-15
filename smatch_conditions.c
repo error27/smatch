@@ -471,7 +471,7 @@ int __handle_condition_assigns(struct expression *expr)
 	   on the big_expression_stack.  */
 	push_expression(&big_expression_stack, right);
 	split_conditions(right);
-	set_true_false_states_expr(SMATCH_EXTRA, expr->left, alloc_estate(1), alloc_estate(0));
+	set_true_false_states_expr(SMATCH_EXTRA, expr->left, alloc_estate(ll_to_sval(1)), alloc_estate(ll_to_sval(0)));
 	__use_cond_states();
 	__pass_to_client(right, WHOLE_CONDITION_HOOK);
 	pop_expression(&big_expression_stack);

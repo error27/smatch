@@ -44,7 +44,7 @@ static void match_return(struct expression *ret_value)
 {
 	struct sm_state *sm;
 	struct state_list *slist;
-	long long val;
+	sval_t sval;
 
 	if (!ret_value)
 		return;
@@ -52,7 +52,7 @@ static void match_return(struct expression *ret_value)
 		return;
 	if (returns_pointer(cur_func_sym))
 		return;
-	if (!get_value(ret_value, &val) || val != -1)
+	if (!get_value(ret_value, &sval) || sval.value != -1)
 		return;
 	if (get_macro_name(ret_value->pos))
 		return;

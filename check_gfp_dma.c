@@ -22,14 +22,14 @@ static void match_alloc(const char *fn, struct expression *expr, void *_arg)
 {
 	int arg_nr = PTR_INT(_arg);
 	struct expression *arg_expr;
-	long long val;
+	sval_t sval;
 
 	arg_expr = get_argument_from_call_expr(expr->args, arg_nr);
-	if (!get_value(arg_expr, &val))
+	if (!get_value(arg_expr, &sval))
 		return;
-	if (val == 0) /* GFP_NOWAIT */
+	if (sval.uvalue == 0) /* GFP_NOWAIT */
 		return;
-	if (!(val & ~GFP_ZONEMASK))
+	if (!(sval.uvalue & ~GFP_ZONEMASK))
 		sm_msg("error: no modifiers for allocation.");
 }
 

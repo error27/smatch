@@ -216,13 +216,11 @@ free:
 	free_string(name);
 }
 
-void set_related(struct smatch_state **estate, struct related_list *rlist)
+void set_related(struct smatch_state *estate, struct related_list *rlist)
 {
-	if (!estate_related(*estate) && !rlist)
+	if (!estate_related(estate) && !rlist)
 		return;
-	if (*estate == &estate_undefined)
-		*estate = clone_estate(&estate_undefined);
-	get_dinfo(*estate)->related = rlist;
+	get_dinfo(estate)->related = rlist;
 }
 
 /*
@@ -245,7 +243,7 @@ void set_equiv(struct expression *left, struct expression *right)
 
 	right_sm = get_sm_state_expr(SMATCH_EXTRA, right);
 	if (!right_sm)
-		right_sm = set_state_expr(SMATCH_EXTRA, right, extra_undefined());
+		right_sm = set_state_expr(SMATCH_EXTRA, right, extra_undefined(get_type(right)));
 	if (!right_sm)
 		return;
 

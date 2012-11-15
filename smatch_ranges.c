@@ -17,28 +17,6 @@ ALLOCATOR(data_range, "data range");
 __DO_ALLOCATOR(struct data_range, sizeof(struct data_range), __alignof__(struct data_range),
 			 "permanent ranges", perm_data_range);
 
-struct data_range whole_range = {
-	.min = LLONG_MIN,
-	.max = LLONG_MAX,
-};
-
-static char *show_num(long long num)
-{
-	static char buff[256];
-
-	if (num == whole_range.min)
-		snprintf(buff, 255, "min");
-	else if (num == whole_range.max)
-		snprintf(buff, 255, "max");
-	else if (num < 0)
-		snprintf(buff, 255, "(%lld)", num);
-	else
-		snprintf(buff, 255, "%lld", num);
-
-	buff[255] = '\0';
-	return buff;
-}
-
 char *show_ranges(struct range_list *list)
 {
 	struct data_range *tmp;
@@ -50,84 +28,109 @@ char *show_ranges(struct range_list *list)
 	FOR_EACH_PTR(list, tmp) {
 		if (i++)
 			strncat(full, ",", 254 - strlen(full));
-		if (tmp->min == tmp->max) {
-			strncat(full, show_num(tmp->min), 254 - strlen(full));
+		if (sval_cmp(tmp->min, tmp->max) == 0) {
+			strncat(full, sval_to_str(tmp->min), 254 - strlen(full));
 			continue;
 		}
-		strncat(full, show_num(tmp->min), 254 - strlen(full));
+		strncat(full, sval_to_str(tmp->min), 254 - strlen(full));
 		strncat(full, "-", 254 - strlen(full));
-		strncat(full, show_num(tmp->max), 254 - strlen(full));
+		strncat(full, sval_to_str(tmp->max), 254 - strlen(full));
 	} END_FOR_EACH_PTR(tmp);
 	return alloc_sname(full);
 }
 
-void get_value_ranges(char *value, struct range_list **rl)
+static sval_t parse_val(struct symbol *type, char *c, char **endp)
 {
-	long long val1, val2;
-	char *start;
+	char *start = c;
+	sval_t ret;
+
+	if (!strncmp(start, "max", 3)) {
+		ret = sval_type_max(type);
+		c += 3;
+	} else if (!strncmp(start, "u64max", 6)) {
+		ret = sval_type_val(type, ULLONG_MAX);
+		c += 6;
+	} else if (!strncmp(start, "s64max", 6)) {
+		ret = sval_type_val(type, LLONG_MAX);
+		c += 6;
+	} else if (!strncmp(start, "u32max", 6)) {
+		ret = sval_type_val(type, UINT_MAX);
+		c += 6;
+	} else if (!strncmp(start, "s32max", 6)) {
+		ret = sval_type_val(type, INT_MAX);
+		c += 6;
+	} else if (!strncmp(start, "u16max", 6)) {
+		ret = sval_type_val(type, USHRT_MAX);
+		c += 6;
+	} else if (!strncmp(start, "s16max", 6)) {
+		ret = sval_type_val(type, SHRT_MAX);
+		c += 6;
+	} else if (!strncmp(start, "min", 3)) {
+		ret = sval_type_min(type);
+		c += 3;
+	} else if (!strncmp(start, "s64min", 6)) {
+		ret = sval_type_val(type, LLONG_MIN);
+		c += 6;
+	} else if (!strncmp(start, "s32min", 6)) {
+		ret = sval_type_val(type, INT_MIN);
+		c += 6;
+	} else if (!strncmp(start, "s16min", 6)) {
+		ret = sval_type_val(type, SHRT_MIN);
+		c += 6;
+	} else {
+		ret = sval_type_val(type, strtoll(start, &c, 10));
+	}
+	*endp = c;
+	return ret;
+}
+
+void parse_value_ranges_type(struct symbol *type, char *value, struct range_list **rl)
+{
+	sval_t min, max;
 	char *c;
 
+	if (!type)
+		type = &llong_ctype;
 	*rl = NULL;
 
 	c = value;
 	while (*c) {
 		if (*c == '(')
 			c++;
-		start = c;
-		if (!strncmp(start, "min", 3)) {
-			val1 = LLONG_MIN;
-			c += 3;
-		} else if (!strncmp(start, "max", 3)) {
-			val1 = LLONG_MAX;
-			c += 3;
-		} else {
-			while (*c && *c != ',' && *c != '-')
-				c++;
-			val1 = strtoll(start, &c, 10);
-		}
+		min = parse_val(type, c, &c);
 		if (*c == ')')
 			c++;
 		if (!*c) {
-			add_range(rl, val1, val1);
+			add_range(rl, min, min);
 			break;
 		}
 		if (*c == ',') {
-			add_range(rl, val1, val1);
+			add_range(rl, min, min);
 			c++;
-			start = c;
 			continue;
 		}
-		c++; /* skip the dash in eg. 4-5 */
+		if (*c != '-') {
+			sm_msg("debug XXX: trouble parsing %s ", value);
+			break;
+		}
+		c++;
 		if (*c == '(')
 			c++;
-		start = c;
-		if (!strncmp(start, "max", 3)) {
-			val2 = LLONG_MAX;
-			c += 3;
-		} else {
-
-			while (*c && *c != ',' && *c != '-')
-				c++;
-			val2 = strtoll(start, &c, 10);
-		}
-		add_range(rl, val1, val2);
-		if (!*c)
-			break;
+		max = parse_val(type, c, &c);
+		add_range(rl, min, max);
 		if (*c == ')')
 			c++;
-		c++; /* skip the comma in eg: 4-5,7 */
+		if (!*c)
+			break;
+		if (*c != ',') {
+			sm_msg("debug YYY: trouble parsing %s %s", value, c);
+			break;
+		}
+		c++;
 	}
+
+	*rl = cast_rl(type, *rl);
 }
-
-static struct data_range range_zero = {
-	.min = 0,
-	.max = 0,
-};
-
-static struct data_range range_one = {
-	.min = 1,
-	.max = 1,
-};
 
 int is_whole_range_rl(struct range_list *rl)
 {
@@ -136,53 +139,40 @@ int is_whole_range_rl(struct range_list *rl)
 	if (ptr_list_empty(rl))
 		return 1;
 	drange = first_ptr_list((struct ptr_list *)rl);
-	if (drange->min == whole_range.min && drange->max == whole_range.max)
+	if (sval_is_min(drange->min) && sval_is_max(drange->max))
 		return 1;
 	return 0;
 }
 
-int rl_contiguous(struct range_list *rl)
-{
-	if (first_ptr_list((struct ptr_list *)rl) == last_ptr_list((struct ptr_list *)rl))
-		return 1;
-	return 0;
-}
-
-long long rl_min(struct range_list *rl)
+sval_t rl_min(struct range_list *rl)
 {
 	struct data_range *drange;
+	sval_t ret;
 
+	ret.type = &llong_ctype;
+	ret.value = LLONG_MIN;
 	if (ptr_list_empty(rl))
-		return whole_range.min;
+		return ret;
 	drange = first_ptr_list((struct ptr_list *)rl);
 	return drange->min;
 }
 
-long long rl_max(struct range_list *rl)
+sval_t rl_max(struct range_list *rl)
 {
 	struct data_range *drange;
+	sval_t ret;
 
+	ret.type = &llong_ctype;
+	ret.value = LLONG_MAX;
 	if (ptr_list_empty(rl))
-		return whole_range.max;
+		return ret;
 	drange = last_ptr_list((struct ptr_list *)rl);
 	return drange->max;
 }
 
-static struct data_range *alloc_range_helper(long long min, long long max, int perm)
+static struct data_range *alloc_range_helper_sval(sval_t min, sval_t max, int perm)
 {
 	struct data_range *ret;
-
-	if (min > max) {
-		// sm_msg("debug invalid range %lld to %lld", min, max);
-		min = whole_range.min;
-		max = whole_range.max;
-	}
-	if (min == whole_range.min && max == whole_range.max)
-		return &whole_range;
-	if (min == 0 && max == 0)
-		return &range_zero;
-	if (min == 1 && max == 1)
-		return &range_one;
 
 	if (perm)
 		ret = __alloc_perm_data_range(0);
@@ -193,17 +183,17 @@ static struct data_range *alloc_range_helper(long long min, long long max, int p
 	return ret;
 }
 
-struct data_range *alloc_range(long long min, long long max)
+struct data_range *alloc_range(sval_t min, sval_t max)
 {
-	return alloc_range_helper(min, max, 0);
+	return alloc_range_helper_sval(min, max, 0);
 }
 
-struct data_range *alloc_range_perm(long long min, long long max)
+struct data_range *alloc_range_perm(sval_t min, sval_t max)
 {
-	return alloc_range_helper(min, max, 1);
+	return alloc_range_helper_sval(min, max, 1);
 }
 
-struct range_list *alloc_range_list(long long min, long long max)
+struct range_list *alloc_range_list(sval_t min, sval_t max)
 {
 	struct range_list *rl = NULL;
 
@@ -211,12 +201,15 @@ struct range_list *alloc_range_list(long long min, long long max)
 	return rl;
 }
 
-struct range_list *whole_range_list(void)
+struct range_list *whole_range_list(struct symbol *type)
 {
-	return alloc_range_list(whole_range.min, whole_range.max);
+	if (!type)
+		type = &llong_ctype;
+
+	return alloc_range_list(sval_type_min(type), sval_type_max(type));
 }
 
-void add_range(struct range_list **list, long long min, long long max)
+void add_range(struct range_list **list, sval_t min, sval_t max)
 {
 	struct data_range *tmp = NULL;
 	struct data_range *new = NULL;
@@ -231,7 +224,7 @@ void add_range(struct range_list **list, long long min, long long max)
 		if (check_next) {
 			/* Sometimes we overlap with more than one range
 			   so we have to delete or modify the next range. */
-			if (max + 1 == tmp->min) {
+			if (max.value + 1 == tmp->min.value) {
 				/* join 2 ranges here */
 				new->max = tmp->max;
 				DELETE_CURRENT_PTR(tmp);
@@ -239,33 +232,33 @@ void add_range(struct range_list **list, long long min, long long max)
 			}
 
 			/* Doesn't overlap with the next one. */
-			if (max < tmp->min)
+			if (sval_cmp(max, tmp->min) < 0)
 				return;
 			/* Partially overlaps with the next one. */
-			if (max < tmp->max) {
-				tmp->min = max + 1;
+			if (sval_cmp(max, tmp->max) < 0) {
+				tmp->min.value = max.value + 1;
 				return;
 			}
 			/* Completely overlaps with the next one. */
-			if (max >= tmp->max) {
+			if (sval_cmp(max, tmp->max) >= 0) {
 				DELETE_CURRENT_PTR(tmp);
 				/* there could be more ranges to delete */
 				continue;
 			}
 		}
-		if (max != whole_range.max && max + 1 == tmp->min) {
+		if (!sval_is_max(max) && max.value + 1 == tmp->min.value) {
 			/* join 2 ranges into a big range */
 			new = alloc_range(min, tmp->max);
 			REPLACE_CURRENT_PTR(tmp, new);
 			return;
 		}
-		if (max < tmp->min) {  /* new range entirely below */
+		if (sval_cmp(max, tmp->min) < 0) { /* new range entirely below */
 			new = alloc_range(min, max);
 			INSERT_CURRENT(new, tmp);
 			return;
 		}
-		if (min < tmp->min) { /* new range partially below */
-			if (max < tmp->max)
+		if (sval_cmp(min, tmp->min) < 0) { /* new range partially below */
+			if (sval_cmp(max, tmp->max) < 0)
 				max = tmp->max;
 			else
 				check_next = 1;
@@ -275,16 +268,16 @@ void add_range(struct range_list **list, long long min, long long max)
 				return;
 			continue;
 		}
-		if (max <= tmp->max) /* new range already included */
+		if (sval_cmp(max, tmp->max) <= 0) /* new range already included */
 			return;
-		if (min <= tmp->max) { /* new range partially above */
+		if (sval_cmp(min, tmp->max) <= 0) { /* new range partially above */
 			min = tmp->min;
 			new = alloc_range(min, max);
 			REPLACE_CURRENT_PTR(tmp, new);
 			check_next = 1;
 			continue;
 		}
-		if (min != whole_range.min && min - 1 == tmp->max) {
+		if (!sval_is_min(min) && min.value - 1 == tmp->max.value) {
 			/* join 2 ranges into a big range */
 			new = alloc_range(tmp->min, max);
 			REPLACE_CURRENT_PTR(tmp, new);
@@ -337,81 +330,49 @@ struct range_list *range_list_union(struct range_list *one, struct range_list *t
 	return ret;
 }
 
-struct range_list *remove_range(struct range_list *list, long long min, long long max)
+struct range_list *remove_range(struct range_list *list, sval_t min, sval_t max)
 {
 	struct data_range *tmp;
 	struct range_list *ret = NULL;
 
 	FOR_EACH_PTR(list, tmp) {
-		if (tmp->max < min) {
+		if (sval_cmp(tmp->max, min) < 0) {
 			add_range(&ret, tmp->min, tmp->max);
 			continue;
 		}
-		if (tmp->min > max) {
+		if (sval_cmp(tmp->min, max) > 0) {
 			add_range(&ret, tmp->min, tmp->max);
 			continue;
 		}
-		if (tmp->min >= min && tmp->max <= max)
+		if (sval_cmp(tmp->min, min) >= 0 && sval_cmp(tmp->max, max) <= 0)
 			continue;
-		if (tmp->min >= min) {
-			add_range(&ret, max + 1, tmp->max);
-		} else if (tmp->max <= max) {
-			add_range(&ret, tmp->min, min - 1);
+		if (sval_cmp(tmp->min, min) >= 0) {
+			max.value++;
+			add_range(&ret, max, tmp->max);
+		} else if (sval_cmp(tmp->max, max) <= 0) {
+			min.value--;
+			add_range(&ret, tmp->min, min);
 		} else {
-			add_range(&ret, tmp->min, min - 1);
-			add_range(&ret, max + 1, tmp->max);
+			min.value--;
+			max.value++;
+			add_range(&ret, tmp->min, min);
+			add_range(&ret, max, tmp->max);
 		}
 	} END_FOR_EACH_PTR(tmp);
 	return ret;
 }
 
-struct range_list *invert_range_list(struct range_list *orig)
+int ranges_equiv(struct data_range *one, struct data_range *two)
 {
-	struct range_list *ret = NULL;
-	struct data_range *tmp;
-	long long gap_min;
-
-	if (!orig)
-		return NULL;
-
-	gap_min = whole_range.min;
-	FOR_EACH_PTR(orig, tmp) {
-		if (tmp->min > gap_min)
-			add_range(&ret, gap_min, tmp->min - 1);
-		gap_min = tmp->max + 1;
-		if (tmp->max == whole_range.max)
-			gap_min = whole_range.max;
-	} END_FOR_EACH_PTR(tmp);
-
-	if (gap_min != whole_range.max)
-		add_range(&ret, gap_min, whole_range.max);
-
-	return ret;
-}
-
-/*
- * if it can be only one and only value return 1, else return 0
- */
-int estate_get_single_value(struct smatch_state *state, long long *val)
-{
-	struct data_info *dinfo;
-	struct data_range *tmp;
-	int count = 0;
-
-	dinfo = get_dinfo(state);
-	if (!dinfo || dinfo->type != DATA_RANGE)
+	if (!one && !two)
+		return 1;
+	if (!one || !two)
 		return 0;
-
-	FOR_EACH_PTR(dinfo->value_ranges, tmp) {
-		if (!count++) {
-			if (tmp->min != tmp->max)
-				return 0;
-			*val = tmp->min;
-		} else {
-			return 0;
-		}
-	} END_FOR_EACH_PTR(tmp);
-	return count;
+	if (sval_cmp(one->min, two->min) != 0)
+		return 0;
+	if (sval_cmp(one->max, two->max) != 0)
+		return 0;
+	return 1;
 }
 
 int range_lists_equiv(struct range_list *one, struct range_list *two)
@@ -424,11 +385,7 @@ int range_lists_equiv(struct range_list *one, struct range_list *two)
 	for (;;) {
 		if (!one_range && !two_range)
 			return 1;
-		if (!one_range || !two_range)
-			return 0;
-		if (one_range->min != two_range->min)
-			return 0;
-		if (one_range->max != two_range->max)
+		if (!ranges_equiv(one_range, two_range))
 			return 0;
 		NEXT_PTR_LIST(one_range);
 		NEXT_PTR_LIST(two_range);
@@ -444,36 +401,36 @@ int true_comparison_range(struct data_range *left, int comparison, struct data_r
 	switch (comparison) {
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
-		if (left->min < right->max)
+		if (sval_cmp(left->min, right->max) < 0)
 			return 1;
 		return 0;
 	case SPECIAL_UNSIGNED_LTE:
 	case SPECIAL_LTE:
-		if (left->min <= right->max)
+		if (sval_cmp(left->min, right->max) <= 0)
 			return 1;
 		return 0;
 	case SPECIAL_EQUAL:
-		if (left->max < right->min)
+		if (sval_cmp(left->max, right->min) < 0)
 			return 0;
-		if (left->min > right->max)
+		if (sval_cmp(left->min, right->max) > 0)
 			return 0;
 		return 1;
 	case SPECIAL_UNSIGNED_GTE:
 	case SPECIAL_GTE:
-		if (left->max >= right->min)
+		if (sval_cmp(left->max, right->min) >= 0)
 			return 1;
 		return 0;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
-		if (left->max > right->min)
+		if (sval_cmp(left->max, right->min) > 0)
 			return 1;
 		return 0;
 	case SPECIAL_NOTEQUAL:
-		if (left->min != left->max)
+		if (sval_cmp(left->min, left->max) != 0)
 			return 1;
-		if (right->min != right->max)
+		if (sval_cmp(right->min, right->max) != 0)
 			return 1;
-		if (left->min != right->min)
+		if (sval_cmp(left->min, right->min) != 0)
 			return 1;
 		return 0;
 	default:
@@ -491,41 +448,41 @@ int true_comparison_range_lr(int comparison, struct data_range *var, struct data
 		return true_comparison_range(val, comparison, var);
 }
 
-static int false_comparison_range(struct data_range *left, int comparison, struct data_range *right)
+static int false_comparison_range_sval(struct data_range *left, int comparison, struct data_range *right)
 {
 	switch (comparison) {
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
-		if (left->max >= right->min)
+		if (sval_cmp(left->max, right->min) >= 0)
 			return 1;
 		return 0;
 	case SPECIAL_UNSIGNED_LTE:
 	case SPECIAL_LTE:
-		if (left->max > right->min)
+		if (sval_cmp(left->max, right->min) > 0)
 			return 1;
 		return 0;
 	case SPECIAL_EQUAL:
-		if (left->min != left->max)
+		if (sval_cmp(left->min, left->max) != 0)
 			return 1;
-		if (right->min != right->max)
+		if (sval_cmp(right->min, right->max) != 0)
 			return 1;
-		if (left->min != right->min)
+		if (sval_cmp(left->min, right->min) != 0)
 			return 1;
 		return 0;
 	case SPECIAL_UNSIGNED_GTE:
 	case SPECIAL_GTE:
-		if (left->min < right->max)
+		if (sval_cmp(left->min, right->max) < 0)
 			return 1;
 		return 0;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
-		if (left->min <= right->max)
+		if (sval_cmp(left->min, right->max) <= 0)
 			return 1;
 		return 0;
 	case SPECIAL_NOTEQUAL:
-		if (left->max < right->min)
+		if (sval_cmp(left->max, right->min) < 0)
 			return 0;
-		if (left->min > right->max)
+		if (sval_cmp(left->min, right->max) > 0)
 			return 0;
 		return 1;
 	default:
@@ -538,9 +495,9 @@ static int false_comparison_range(struct data_range *left, int comparison, struc
 int false_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left)
 {
 	if (left)
-		return false_comparison_range(var, comparison, val);
+		return false_comparison_range_sval(var, comparison, val);
 	else
-		return false_comparison_range(val, comparison, var);
+		return false_comparison_range_sval(val, comparison, var);
 }
 
 int possibly_true(struct expression *left, int comparison, struct expression *right)
@@ -574,7 +531,7 @@ int possibly_false(struct expression *left, int comparison, struct expression *r
 
 	FOR_EACH_PTR(rl_left, tmp_left) {
 		FOR_EACH_PTR(rl_right, tmp_right) {
-			if (false_comparison_range(tmp_left, comparison, tmp_right))
+			if (false_comparison_range_sval(tmp_left, comparison, tmp_right))
 				return 1;
 		} END_FOR_EACH_PTR(tmp_right);
 	} END_FOR_EACH_PTR(tmp_left);
@@ -606,14 +563,15 @@ int possibly_false_range_lists(struct range_list *left_ranges, int comparison, s
 
 	FOR_EACH_PTR(left_ranges, left_tmp) {
 		FOR_EACH_PTR(right_ranges, right_tmp) {
-			if (false_comparison_range(left_tmp, comparison, right_tmp))
+			if (false_comparison_range_sval(left_tmp, comparison, right_tmp))
 				return 1;
 		} END_FOR_EACH_PTR(right_tmp);
 	} END_FOR_EACH_PTR(left_tmp);
 	return 0;
 }
 
-int possibly_true_range_lists_rl(int comparison, struct range_list *a, struct range_list *b, int left)
+/* FIXME: the _rl here stands for right left so really it should be _lr */
+int possibly_true_range_lists_lr(int comparison, struct range_list *a, struct range_list *b, int left)
 {
 	if (left)
 		return possibly_true_range_lists(a, comparison, b);
@@ -621,7 +579,7 @@ int possibly_true_range_lists_rl(int comparison, struct range_list *a, struct ra
 		return possibly_true_range_lists(b, comparison, a);
 }
 
-int possibly_false_range_lists_rl(int comparison, struct range_list *a, struct range_list *b, int left)
+int possibly_false_range_lists_lr(int comparison, struct range_list *a, struct range_list *b, int left)
 {
 	if (left)
 		return possibly_false_range_lists(a, comparison, b);
@@ -632,17 +590,6 @@ int possibly_false_range_lists_rl(int comparison, struct range_list *a, struct r
 void tack_on(struct range_list **list, struct data_range *drange)
 {
 	add_ptr_list(list, drange);
-}
-
-int in_list_exact(struct range_list *list, struct data_range *drange)
-{
-	struct data_range *tmp;
-
-	FOR_EACH_PTR(list, tmp) {
-		if (tmp->min == drange->min && tmp->max == drange->max)
-			return 1;
-	} END_FOR_EACH_PTR(tmp);
-	return 0;
 }
 
 void push_range_list(struct range_list_stack **rl_stack, struct range_list *rl)
@@ -667,13 +614,74 @@ struct range_list *top_range_list(struct range_list_stack *rl_stack)
 	return rl;
 }
 
-void filter_top_range_list(struct range_list_stack **rl_stack, long long num)
+void filter_top_range_list(struct range_list_stack **rl_stack, sval_t sval)
 {
 	struct range_list *rl;
 
 	rl = pop_range_list(rl_stack);
-	rl = remove_range(rl, num, num);
+	rl = remove_range(rl, sval, sval);
 	push_range_list(rl_stack, rl);
+}
+
+struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
+{
+	struct data_range *tmp;
+	struct data_range *new;
+	struct range_list *ret = NULL;
+	int set_min, set_max;
+
+	if (!rl)
+		return NULL;
+
+	if (!type)
+		return clone_range_list(rl);
+
+	if (sval_cmp(rl_min(rl), rl_max(rl)) == 0) {
+		sval_t sval = sval_cast(type, rl_min(rl));
+		return alloc_range_list(sval, sval);
+	}
+
+	set_max = 0;
+	if (type_unsigned(type) && sval_cmp_val(rl_min(rl), 0) < 0)
+		set_max = 1;
+
+	set_min = 0;
+	if (type_signed(type) && sval_cmp(rl_max(rl), sval_type_max(type)) > 0)
+		set_min = 1;
+
+	if (sval_positive_bits(rl_max(rl)) > type_positive_bits(type) &&
+	    sval_cmp(rl_max(rl), sval_type_max(type)) > 0)
+		set_max = 1;
+
+	FOR_EACH_PTR(rl, tmp) {
+		sval_t min, max;
+
+		min = tmp->min;
+		max = tmp->max;
+
+		if (sval_cmp_t(type, max, sval_type_min(type)) < 0)
+			continue;
+		if (sval_cmp_t(type, min, sval_type_max(type)) > 0)
+			continue;
+		if (sval_cmp_val(min, 0) < 0 && type_unsigned(type))
+			min.value = 0;
+		new = alloc_range(sval_cast(type, min), sval_cast(type, max));
+		add_ptr_list(&ret, new);
+	} END_FOR_EACH_PTR(tmp);
+
+	if (!ret)
+		return whole_range_list(type);
+
+	if (set_min) {
+		tmp = first_ptr_list((struct ptr_list *)ret);
+		tmp->min = sval_type_min(type);
+	}
+	if (set_max) {
+		tmp = last_ptr_list((struct ptr_list *)ret);
+		tmp->max = sval_type_max(type);
+	}
+
+	return ret;
 }
 
 void free_range_list(struct range_list **rlist)

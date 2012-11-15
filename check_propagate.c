@@ -43,21 +43,21 @@ static void match_unset(struct expression *expr)
 
 static void match_return(struct expression *ret_value)
 {
-	long long rval;
-	long long lret;
+	sval_t rval;
+	sval_t lret;
 	char *name;
 
-	if (!get_value(ret_value, &rval) || rval >= 0)
+	if (!get_value(ret_value, &rval) || rval.value >= 0)
 		return;
 	if (get_implied_value(last_return, &lret))
 		return;
-	if (!get_implied_max(last_return, &lret) || lret >= 0)
+	if (!get_implied_max(last_return, &lret) || lret.value >= 0)
 		return;
 	if (get_implied_min(last_return, &lret))
 		return;
 	name = get_variable_from_expr(last_return, NULL);
-	sm_msg("info: why not propagate '%s' from %s() instead of %lld?",
-		name, get_fn_name(last_func), rval);
+	sm_msg("info: why not propagate '%s' from %s() instead of %s?",
+		name, get_fn_name(last_func), sval_to_str(rval));
 	free_string(name);
 }
 

@@ -11,49 +11,26 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-static long long _get_implied_value(struct expression *expr, int *undefined, int implied);
-static long long _get_value(struct expression *expr, int *undefined, int implied);
+static sval_t _get_value(struct expression *expr, int *undefined, int implied);
+static sval_t _get_implied_value(struct expression *expr, int *undefined, int implied);
 
 #define BOGUS 12345
 
-#define NOTIMPLIED  0
-#define IMPLIED     1
-#define IMPLIED_MIN 2
-#define IMPLIED_MAX 3
-#define FUZZYMAX    4
-#define FUZZYMIN    5
-#define ABSOLUTE_MIN 6
-#define ABSOLUTE_MAX 7
+static sval_t zero  = {.type = &int_ctype, .value = 0};
+static sval_t one   = {.type = &int_ctype, .value = 1};
+static sval_t bogus = {.type = &int_ctype, .value = BOGUS};
 
-static long long cast_to_type(struct expression *expr, long long val)
-{
-	struct symbol *type = get_type(expr);
-
-	if (!type)
-		return val;
-
-	switch (type->bit_size) {
-	case 8:
-		if (type->ctype.modifiers & MOD_UNSIGNED)
-			val = (long long)(unsigned char) val;
-		else
-			val = (long long)(char) val;
-		break;
-	case 16:
-		if (type->ctype.modifiers & MOD_UNSIGNED)
-			val = (long long)(unsigned short) val;
-		else
-			val = (long long)(short) val;
-		break;
-	case 32:
-		if (type->ctype.modifiers & MOD_UNSIGNED)
-			val = (long long)(unsigned int) val;
-		else
-			val = (long long)(int) val;
-		break;
-	}
-	return val;
-}
+enum {
+	NOTIMPLIED,
+	IMPLIED,
+	IMPLIED_MIN,
+	IMPLIED_MAX,
+	FUZZY_MAX,
+	FUZZY_MIN,
+	ABSOLUTE_MIN,
+	ABSOLUTE_MAX,
+	HARD_MAX,
+};
 
 static int opposite_implied(int implied)
 {
@@ -61,14 +38,19 @@ static int opposite_implied(int implied)
 		return IMPLIED_MAX;
 	if (implied == IMPLIED_MAX)
 		return IMPLIED_MIN;
+	if (implied == FUZZY_MIN)
+		return FUZZY_MAX;
+	if (implied == FUZZY_MAX)
+		return FUZZY_MIN;
 	if (implied == ABSOLUTE_MIN)
 		return ABSOLUTE_MAX;
 	if (implied == ABSOLUTE_MAX)
 		return ABSOLUTE_MIN;
+
 	return implied;
 }
 
-static int last_stmt_val(struct statement *stmt, long long *val)
+static int last_stmt_sval(struct statement *stmt, sval_t *sval)
 {
 	struct expression *expr;
 
@@ -79,50 +61,85 @@ static int last_stmt_val(struct statement *stmt, long long *val)
 	if (stmt->type != STMT_EXPRESSION)
 		return 0;
 	expr = stmt->expression;
-	return get_value(expr, val);
+	if (!get_value(expr, sval))
+		return 0;
+	return 1;
 }
 
-static long long handle_expression_statement(struct expression *expr, int *undefined, int implied)
+static sval_t handle_expression_statement(struct expression *expr, int *undefined, int implied)
 {
 	struct statement *stmt;
-	long long tmp;
+	sval_t ret;
 
 	stmt = get_expression_statement(expr);
-	if (last_stmt_val(stmt, &tmp))
-		return tmp;
+	if (!last_stmt_sval(stmt, &ret)) {
+		*undefined = 1;
+		ret.value = BOGUS;
+	}
 
-	*undefined = 1;
-	return BOGUS;
+	return ret;
 }
 
-static long long handle_ampersand(int *undefined, int implied)
+static sval_t handle_ampersand(int *undefined, int implied)
 {
-	if (implied == IMPLIED_MIN || implied == FUZZYMIN || implied == ABSOLUTE_MIN)
-		return valid_ptr_min;
-	if (implied == IMPLIED_MAX || implied == FUZZYMAX || implied == ABSOLUTE_MAX)
-		return valid_ptr_max;
+	sval_t ret;
+
+	ret.type = &ptr_ctype;
+	ret.value = BOGUS;
+
+	if (implied == IMPLIED_MIN || implied == FUZZY_MIN || implied == ABSOLUTE_MIN)
+		return valid_ptr_min_sval;
+	if (implied == IMPLIED_MAX || implied == FUZZY_MAX || implied == ABSOLUTE_MAX)
+		return valid_ptr_max_sval;
 
 	*undefined = 1;
-	return BOGUS;
+	return ret;
 }
 
-static long long handle_preop(struct expression *expr, int *undefined, int implied)
+static sval_t handle_negate(struct expression *expr, int *undefined, int implied)
 {
-	long long ret = BOGUS;
+	sval_t ret;
+
+	ret = sval_blank(expr->unop);
+	if (implied_condition_true(expr->unop)) {
+		ret.value = 0;
+		return ret;
+	}
+	if (implied_condition_false(expr->unop)) {
+		ret.value = 1;
+		return ret;
+	}
+	if (implied == IMPLIED_MIN || implied == FUZZY_MIN || implied == ABSOLUTE_MIN) {
+		ret.value = 0;
+		return ret;
+	}
+	if (implied == IMPLIED_MAX || implied == FUZZY_MAX || implied == ABSOLUTE_MAX) {
+		ret.value = 1;
+		return ret;
+	}
+	*undefined = 1;
+	return bogus;
+}
+
+static sval_t handle_preop(struct expression *expr, int *undefined, int implied)
+{
+	sval_t ret;
 
 	switch (expr->op) {
 	case '&':
 		ret = handle_ampersand(undefined, implied);
 		break;
 	case '!':
-		ret = !_get_value(expr->unop, undefined, implied);
+		ret = handle_negate(expr, undefined, implied);
 		break;
 	case '~':
-		ret = ~_get_value(expr->unop, undefined, implied);
-		ret = cast_to_type(expr->unop, ret);
+		ret = _get_value(expr->unop, undefined, implied);
+		ret = sval_preop(ret, '~');
+		ret = sval_cast(get_type(expr->unop), ret);
 		break;
 	case '-':
-		ret = -_get_value(expr->unop, undefined, implied);
+		ret = _get_value(expr->unop, undefined, implied);
+		ret = sval_preop(ret, '-');
 		break;
 	case '*':
 		ret = _get_implied_value(expr, undefined, implied);
@@ -132,131 +149,122 @@ static long long handle_preop(struct expression *expr, int *undefined, int impli
 		break;
 	default:
 		*undefined = 1;
+		ret = sval_blank(expr);
 	}
+	ret = sval_cast(get_type(expr), ret);
 	return ret;
 }
 
-static long long handle_divide(struct expression *expr, int *undefined, int implied)
+static sval_t handle_divide(struct expression *expr, int *undefined, int implied)
 {
-	long long left;
-	long long right;
-	long long ret = BOGUS;
+	sval_t left, right;
 
 	left = _get_value(expr->left, undefined, implied);
 	right = _get_value(expr->right, undefined, opposite_implied(implied));
 
-	if (right == 0)
+	if (right.value == 0) {
 		*undefined = 1;
-	else
-		ret = left / right;
+		return bogus;
+	}
 
-	return ret;
+	return sval_binop(left, '/', right);
 }
 
-static long long handle_subtract(struct expression *expr, int *undefined, int implied)
+static sval_t handle_subtract(struct expression *expr, int *undefined, int implied)
 {
-	long long left;
-	long long right;
+	sval_t left, right;
 
 	left = _get_value(expr->left, undefined, implied);
 	right = _get_value(expr->right, undefined, opposite_implied(implied));
 
-	return left - right;
+	return sval_binop(left, '-', right);
 }
 
-static long long handle_binop(struct expression *expr, int *undefined, int implied)
+static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 {
-	long long left;
-	long long right;
-	long long ret = BOGUS;
+	sval_t left, right;
+	sval_t ret = {.type = &int_ctype, .value = 123456};
 	int local_undef = 0;
-
-	if (option_debug)
-		sm_msg("handle_binop %s", show_special(expr->op));
 
 	switch (expr->op) {
 	case '%':
 		left = _get_value(expr->left, &local_undef, implied);
 		if (local_undef) {
-			if (implied == ABSOLUTE_MIN)
-				return 0;
+			if (implied == ABSOLUTE_MIN) {
+				ret = sval_blank(expr->left);
+				ret.value = 0;
+				return ret;
+			}
 			if (implied != ABSOLUTE_MAX)
 				*undefined = 1;
 			if (!get_absolute_max(expr->left, &left))
 				*undefined = 1;
 		}
 		right = _get_value(expr->right, undefined, implied);
-		if (right == 0)
+		if (right.value == 0)
 			*undefined = 1;
-		else
-			ret = left % right;
-		return ret;
+		if (*undefined)
+			return bogus;
+		return sval_binop(left, '%', right);
 
 	case '&':
 		left = _get_value(expr->left, &local_undef, implied);
 		if (local_undef) {
-			if (implied == ABSOLUTE_MIN)
-				return 0;
+			if (implied == ABSOLUTE_MIN) {
+				ret = sval_blank(expr->left);
+				ret.value = 0;
+				return ret;
+			}
 			if (implied != ABSOLUTE_MAX)
 				*undefined = 1;
 			if (!get_absolute_max(expr->left, &left))
 				*undefined = 1;
 		}
 		right = _get_value(expr->right, undefined, implied);
-		return left & right;
+		if (*undefined)
+			return bogus;
+		return sval_binop(left, '&', right);
+
 	case SPECIAL_RIGHTSHIFT:
 		left = _get_value(expr->left, &local_undef, implied);
 		if (local_undef) {
-			if (implied == ABSOLUTE_MIN)
-				return 0;
+			if (implied == ABSOLUTE_MIN) {
+				ret = sval_blank(expr->left);
+				ret.value = 0;
+				return ret;
+			}
 			if (implied != ABSOLUTE_MAX)
 				*undefined = 1;
 			if (!get_absolute_max(expr->left, &left))
 				*undefined = 1;
 		}
 		right = _get_value(expr->right, undefined, implied);
-		return left >> right;
+		if (*undefined)
+			return bogus;
+		return sval_binop(left, SPECIAL_RIGHTSHIFT, right);
 	}
 
 	left = _get_value(expr->left, undefined, implied);
 	right = _get_value(expr->right, undefined, implied);
 
+	if (*undefined)
+		return bogus;
+
 	switch (expr->op) {
-	case '*':
-		ret =  left * right;
-		break;
 	case '/':
-		ret = handle_divide(expr, undefined, implied);
-		break;
-	case '+':
-		ret = left + right;
-		break;
+		return handle_divide(expr, undefined, implied);
+	case '%':
+		if (right.value == 0) {
+			*undefined = 1;
+			return bogus;
+		} else {
+			return sval_binop(left, '%', right);
+		}
 	case '-':
 		ret = handle_subtract(expr, undefined, implied);
 		break;
-	case '%':
-		if (right == 0)
-			*undefined = 1;
-		else
-			ret = left % right;
-		break;
-	case '|':
-		ret = left | right;
-		break;
-	case '&':
-		ret = left & right;
-		break;
-	case SPECIAL_RIGHTSHIFT:
-		ret = left >> right;
-		break;
-	case SPECIAL_LEFTSHIFT:
-		ret = left << right;
-		break;
-	case '^':
-		ret = left ^ right;
-		break;
 	default:
-		*undefined = 1;
+		ret = sval_binop(left, expr->op, right);
 	}
 	return ret;
 }
@@ -285,9 +293,9 @@ static int do_comparison(struct expression *expr)
 	return 3;
 }
 
-static long long handle_comparison(struct expression *expr, int *undefined, int implied)
+static sval_t handle_comparison(struct expression *expr, int *undefined, int implied)
 {
-	long long left, right;
+	sval_t left, right;
 	int res;
 
 	if (get_value(expr->left, &left) && get_value(expr->right, &right)) {
@@ -297,58 +305,64 @@ static long long handle_comparison(struct expression *expr, int *undefined, int 
 		tmp_left.max = left;
 		tmp_right.min = right;
 		tmp_right.max = right;
-		return true_comparison_range(&tmp_left, expr->op, &tmp_right);
+		if (true_comparison_range(&tmp_left, expr->op, &tmp_right))
+			return one;
+		return zero;
 	}
 
 	if (implied == NOTIMPLIED) {
 		*undefined = 1;
-		return BOGUS;
+		return bogus;
 	}
 
 	res = do_comparison(expr);
 	if (res == 1)
-		return 1;
+		return one;
 	if (res == 2)
-		return 0;
+		return zero;
 
-	if (implied == IMPLIED_MIN || implied == FUZZYMIN || implied == ABSOLUTE_MIN)
-		return 0;
-	if (implied == IMPLIED_MAX || implied == FUZZYMAX || implied == ABSOLUTE_MAX)
-		return 1;
+	if (implied == IMPLIED_MIN || implied == FUZZY_MIN || implied == ABSOLUTE_MIN)
+		return zero;
+	if (implied == IMPLIED_MAX || implied == FUZZY_MAX || implied == ABSOLUTE_MAX)
+		return one;
 
 	*undefined = 1;
-	return BOGUS;
+	return bogus;
 }
 
-static long long handle_logical(struct expression *expr, int *undefined, int implied)
+static sval_t handle_logical(struct expression *expr, int *undefined, int implied)
 {
-	long long left_val, right_val;
+	sval_t left, right;
 
-	if ((implied == NOTIMPLIED && get_value(expr->left, &left_val) &&
-				      get_value(expr->right, &right_val)) ||
-	    (implied != NOTIMPLIED && get_implied_value(expr->left, &left_val) &&
-				      get_implied_value(expr->right, &right_val))) {
+	if ((implied == NOTIMPLIED && get_value(expr->left, &left) &&
+				      get_value(expr->right, &right)) ||
+	    (implied != NOTIMPLIED && get_implied_value(expr->left, &left) &&
+				      get_implied_value(expr->right, &right))) {
 		switch (expr->op) {
 		case SPECIAL_LOGICAL_OR:
-			return left_val || right_val;
+			if (left.value || right.value)
+				return one;
+			return zero;
 		case SPECIAL_LOGICAL_AND:
-			return left_val && right_val;
+			if (left.value && right.value)
+				return one;
+			return zero;
 		default:
 			*undefined = 1;
-			return BOGUS;
+			return bogus;
 		}
 	}
 
-	if (implied == IMPLIED_MIN || implied == FUZZYMIN || implied == ABSOLUTE_MIN)
-		return 0;
-	if (implied == IMPLIED_MAX || implied == FUZZYMAX || implied == ABSOLUTE_MAX)
-		return 1;
+	if (implied == IMPLIED_MIN || implied == FUZZY_MIN || implied == ABSOLUTE_MIN)
+		return zero;
+	if (implied == IMPLIED_MAX || implied == FUZZY_MAX || implied == ABSOLUTE_MAX)
+		return one;
 
 	*undefined = 1;
-	return BOGUS;
+	return bogus;
 }
 
-static long long handle_conditional(struct expression *expr, int *undefined, int implied)
+static sval_t handle_conditional(struct expression *expr, int *undefined, int implied)
 {
 	if (known_condition_true(expr->conditional))
 		return _get_value(expr->cond_true, undefined, implied);
@@ -357,7 +371,7 @@ static long long handle_conditional(struct expression *expr, int *undefined, int
 
 	if (implied == NOTIMPLIED) {
 		*undefined = 1;
-		return BOGUS;
+		return bogus;
 	}
 
 	if (implied_condition_true(expr->conditional))
@@ -366,71 +380,88 @@ static long long handle_conditional(struct expression *expr, int *undefined, int
 		return _get_value(expr->cond_false, undefined, implied);
 
 	*undefined = 1;
-	return BOGUS;
+	return bogus;
 }
 
-static int get_implied_value_helper(struct expression *expr, long long *val, int what)
+static int get_implied_value_helper(struct expression *expr, sval_t *sval, int implied)
 {
 	struct smatch_state *state;
 	struct symbol *sym;
 	char *name;
 
+	/* fixme: this should return the casted value */
+
 	expr = strip_expr(expr);
 
-	if (get_value(expr, val))
+	if (get_value(expr, sval))
 		return 1;
 
 	name = get_variable_from_expr(expr, &sym);
 	if (!name)
 		return 0;
+	*sval = sval_blank(expr);
 	state = get_state(SMATCH_EXTRA, name, sym);
 	free_string(name);
 	if (!state || !state->data)
 		return 0;
-	if (what == IMPLIED)
-		return estate_get_single_value(state, val);
-	if (what == IMPLIED_MAX || what == ABSOLUTE_MAX) {
-		*val = estate_max(state);
-		if (*val == whole_range.max) /* this means just guessing */
+	if (implied == IMPLIED) {
+		if (estate_get_single_value(state, sval))
+			return 1;
+		return 0;
+	}
+	if (implied == HARD_MAX) {
+		if (estate_get_hard_max(state, sval))
+			return 1;
+		return 0;
+	}
+	if (implied == IMPLIED_MAX) {
+		*sval = estate_max(state);
+		if (sval_is_max(*sval)) /* this means just guessing.  fixme. not really */
 			return 0;
 		return 1;
 	}
-	*val = estate_min(state);
-	if (*val == whole_range.min)
+	*sval = estate_min(state);
+	if (sval_is_min(*sval))       /* fixme */
 		return 0;
 	return 1;
 }
 
-static int get_fuzzy_max_helper(struct expression *expr, long long *max)
+static int get_fuzzy_max_helper(struct expression *expr, sval_t *max)
 {
 	struct sm_state *sm;
 	struct sm_state *tmp;
+	sval_t sval;
 
-	if (get_implied_max(expr, max))
+	if (get_hard_max(expr, &sval)) {
+		*max = sval;
 		return 1;
+	}
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
 	if (!sm)
 		return 0;
 
-	*max = whole_range.min;
+	sval = sval_type_min(estate_type(sm->state));
 	FOR_EACH_PTR(sm->possible, tmp) {
-		long long new_min;
+		sval_t new_min;
 
 		new_min = estate_min(tmp->state);
-		if (new_min > *max)
-			*max = new_min;
+		if (sval_cmp(new_min, sval) > 0)
+			sval = new_min;
 	} END_FOR_EACH_PTR(tmp);
 
-	if (*max > whole_range.min)
-		return 1;
-	return 0;
+	if (sval_is_min(sval))
+		return 0;
+
+	*max = sval_cast(get_type(expr), sval);
+	return 1;
 }
 
-static int get_fuzzy_min_helper(struct expression *expr, long long *min)
+static int get_fuzzy_min_helper(struct expression *expr, sval_t *min)
 {
 	struct sm_state *sm;
 	struct sm_state *tmp;
+	sval_t sval;
 
 	if (get_implied_min(expr, min))
 		return 1;
@@ -439,56 +470,48 @@ static int get_fuzzy_min_helper(struct expression *expr, long long *min)
 	if (!sm)
 		return 0;
 
-	*min = whole_range.max;
+	sval = sval_type_max(estate_type(sm->state));
 	FOR_EACH_PTR(sm->possible, tmp) {
-		long long new_max;
+		sval_t new_max;
 
 		new_max = estate_max(tmp->state);
-		if (new_max < *min)
-			*min = new_max;
+		if (sval_cmp(new_max, sval) < 0)
+			sval = new_max;
 	} END_FOR_EACH_PTR(tmp);
 
-	if (*min < whole_range.max)
-		return 1;
-	return 0;
+	if (sval_is_max(sval))
+		return 0;
+	*min = sval_cast(get_type(expr), sval);
+	return 1;
 }
 
-static long long _get_implied_value(struct expression *expr, int *undefined, int implied)
+static sval_t _get_implied_value(struct expression *expr, int *undefined, int implied)
 {
-	long long ret = BOGUS;
+	sval_t ret;
+
+	ret = sval_blank(expr);
 
 	switch (implied) {
 	case IMPLIED:
 	case IMPLIED_MAX:
 	case IMPLIED_MIN:
+	case HARD_MAX:
 		if (!get_implied_value_helper(expr, &ret, implied))
 			*undefined = 1;
 		break;
 	case ABSOLUTE_MIN:
-	case ABSOLUTE_MAX: {
-		struct smatch_state *state;
-		struct data_range *range;
-
-		if (get_implied_value_helper(expr, &ret, implied))
-			break;
-
-		state = get_state_expr(absolute_id, expr);
-		if (!state || !state->data) {
+		if (!get_absolute_min_helper(expr, &ret))
 			*undefined = 1;
-			break;
-		}
-		range = state->data;
-		if (implied == ABSOLUTE_MAX)
-			ret = range->max;
-		else
-			ret = range->min;
 		break;
-	}
-	case FUZZYMAX:
+	case ABSOLUTE_MAX:
+		if (!get_absolute_max_helper(expr, &ret))
+			*undefined = 1;
+		break;
+	case FUZZY_MAX:
 		if (!get_fuzzy_max_helper(expr, &ret))
 			*undefined = 1;
 		break;
-	case FUZZYMIN:
+	case FUZZY_MIN:
 		if (!get_fuzzy_min_helper(expr, &ret))
 			*undefined = 1;
 		break;
@@ -498,37 +521,39 @@ static long long _get_implied_value(struct expression *expr, int *undefined, int
 	return ret;
 }
 
-static int get_const_value(struct expression *expr, long long *val)
+static int get_const_value(struct expression *expr, sval_t *sval)
 {
 	struct symbol *sym;
+	sval_t right;
 
-	sym = expr->symbol;
-	if (!sym)
+	if (expr->type != EXPR_SYMBOL || !expr->symbol)
 		return 0;
+	sym = expr->symbol;
 	if (!(sym->ctype.modifiers & MOD_CONST))
 		return 0;
-	if (get_value(sym->initializer, val))
+	if (get_value(sym->initializer, &right)) {
+		*sval = sval_cast(get_type(expr), right);
 		return 1;
+	}
 	return 0;
 }
 
-static long long _get_value(struct expression *expr, int *undefined, int implied)
+static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 {
-	long long ret = BOGUS;
+	sval_t ret;
 
 	if (!expr) {
 		*undefined = 1;
-		return BOGUS;
+		return bogus;
 	}
 	if (*undefined)
-		return BOGUS;
+		return bogus;
 
 	expr = strip_parens(expr);
 
 	switch (expr->type) {
 	case EXPR_VALUE:
-		ret = expr->value;
-		ret = cast_to_type(expr, ret);
+		ret = sval_from_val(expr, expr->value);
 		break;
 	case EXPR_PREOP:
 		ret = handle_preop(expr, undefined, implied);
@@ -540,7 +565,8 @@ static long long _get_value(struct expression *expr, int *undefined, int implied
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
 		ret = _get_value(expr->cast_expression, undefined, implied);
-		return cast_to_type(expr, ret);
+		ret = sval_cast(get_type(expr), ret);
+		break;
 	case EXPR_BINOP:
 		ret = handle_binop(expr, undefined, implied);
 		break;
@@ -552,11 +578,13 @@ static long long _get_value(struct expression *expr, int *undefined, int implied
 		break;
 	case EXPR_PTRSIZEOF:
 	case EXPR_SIZEOF:
-		ret = get_expression_value_nomod(expr);
+		ret = sval_blank(expr);
+		ret.value = get_expression_value_nomod(expr);
 		break;
 	case EXPR_SYMBOL:
-		if (get_const_value(expr, &ret))
+		if (get_const_value(expr, &ret)) {
 			break;
+		}
 		ret = _get_implied_value(expr, undefined, implied);
 		break;
 	case EXPR_SELECT:
@@ -567,103 +595,141 @@ static long long _get_value(struct expression *expr, int *undefined, int implied
 		ret = _get_implied_value(expr, undefined, implied);
 	}
 	if (*undefined)
-		return BOGUS;
+		return bogus;
 	return ret;
 }
 
 /* returns 1 if it can get a value literal or else returns 0 */
-int get_value(struct expression *expr, long long *val)
+int get_value(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
+	sval_t ret;
 
-	*val = _get_value(expr, &undefined, NOTIMPLIED);
+	ret = _get_value(expr, &undefined, NOTIMPLIED);
 	if (undefined)
 		return 0;
+	*sval = ret;
 	return 1;
 }
 
-int get_implied_value(struct expression *expr, long long *val)
+int get_implied_value(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
+	sval_t ret;
 
-	*val =  _get_value(expr, &undefined, IMPLIED);
-	return !undefined;
+	ret =  _get_value(expr, &undefined, IMPLIED);
+	if (undefined)
+		return 0;
+	*sval = ret;
+	return 1;
 }
 
-int get_implied_min(struct expression *expr, long long *val)
+int get_implied_min(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
+	sval_t ret;
 
-	*val =  _get_value(expr, &undefined, IMPLIED_MIN);
-	return !undefined;
+	ret =  _get_value(expr, &undefined, IMPLIED_MIN);
+	if (undefined)
+		return 0;
+	*sval = ret;
+	return 1;
 }
 
-int get_implied_max(struct expression *expr, long long *val)
+int get_implied_max(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
+	sval_t ret;
 
-	*val =  _get_value(expr, &undefined, IMPLIED_MAX);
-	return !undefined;
+	ret =  _get_value(expr, &undefined, IMPLIED_MAX);
+	if (undefined)
+		return 0;
+	*sval = ret;
+	return 1;
 }
 
-int get_fuzzy_min(struct expression *expr, long long *val)
+int get_hard_max(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
+	sval_t ret;
 
-	*val =  _get_value(expr, &undefined, FUZZYMIN);
-	return !undefined;
+	ret =  _get_value(expr, &undefined, HARD_MAX);
+	if (undefined)
+		return 0;
+	*sval = ret;
+	return 1;
 }
 
-int get_fuzzy_max(struct expression *expr, long long *val)
+int get_fuzzy_min(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
+	sval_t ret;
 
-	*val =  _get_value(expr, &undefined, FUZZYMAX);
-	return !undefined;
+	ret =  _get_value(expr, &undefined, FUZZY_MIN);
+	if (undefined)
+		return 0;
+	*sval = ret;
+	return 1;
 }
 
-int get_absolute_min(struct expression *expr, long long *val)
+int get_fuzzy_max(struct expression *expr, sval_t *sval)
+{
+	int undefined = 0;
+	sval_t ret;
+
+	ret =  _get_value(expr, &undefined, FUZZY_MAX);
+	if (undefined)
+		return 0;
+	*sval = ret;
+	return 1;
+}
+
+int get_absolute_min(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
 	struct symbol *type;
 
 	type = get_type(expr);
-	*val =  _get_value(expr, &undefined, ABSOLUTE_MIN);
+	if (!type)
+		type = &llong_ctype;  // FIXME: this is wrong but places assume get type can't fail.
+	*sval =  _get_value(expr, &undefined, ABSOLUTE_MIN);
 	if (undefined) {
-		*val = type_min(type);
+		*sval = sval_type_min(type);
 		return 1;
 	}
 
-	if (type_min(type) > *val)
-		*val = type_min(type);
+	if (sval_cmp(*sval, sval_type_min(type)) < 0)
+		*sval = sval_type_min(type);
 	return 1;
 }
 
-int get_absolute_max(struct expression *expr, long long *val)
+int get_absolute_max(struct expression *expr, sval_t *sval)
 {
 	int undefined = 0;
 	struct symbol *type;
 
 	type = get_type(expr);
-	*val =  _get_value(expr, &undefined, ABSOLUTE_MAX);
+	if (!type)
+		type = &llong_ctype;
+	*sval = _get_value(expr, &undefined, ABSOLUTE_MAX);
 	if (undefined) {
-		*val = type_max(type);
+		*sval = sval_type_max(type);
 		return 1;
 	}
 
-	if (type_max(type) < *val)
-		*val = type_max(type);
+	if (sval_cmp(sval_type_max(type), *sval) < 0)
+		*sval = sval_type_max(type);
 	return 1;
 }
 
 int known_condition_true(struct expression *expr)
 {
-	long long tmp;
+	sval_t tmp;
 
 	if (!expr)
 		return 0;
 
-	if (get_value(expr, &tmp) && tmp)
+	if (get_value(expr, &tmp) && tmp.value)
 		return 1;
 
 	return 0;
@@ -686,14 +752,14 @@ int known_condition_false(struct expression *expr)
 
 int implied_condition_true(struct expression *expr)
 {
-	long long tmp;
+	sval_t tmp;
 
 	if (!expr)
 		return 0;
 
 	if (known_condition_true(expr))
 		return 1;
-	if (get_implied_value(expr, &tmp) && tmp)
+	if (get_implied_value(expr, &tmp) && tmp.value)
 		return 1;
 
 	if (expr->type == EXPR_POSTOP)
@@ -728,7 +794,7 @@ int implied_condition_true(struct expression *expr)
 int implied_condition_false(struct expression *expr)
 {
 	struct expression *tmp;
-	long long val;
+	sval_t sval;
 
 	if (!expr)
 		return 0;
@@ -751,7 +817,7 @@ int implied_condition_false(struct expression *expr)
 			return implied_condition_false(tmp);
 		break;
 	default:
-		if (get_implied_value(expr, &val) && val == 0)
+		if (get_implied_value(expr, &sval) && sval.value == 0)
 			return 1;
 		break;
 	}

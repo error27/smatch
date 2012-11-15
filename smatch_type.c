@@ -24,6 +24,13 @@ struct symbol *get_real_base_type(struct symbol *sym)
 	return ret;
 }
 
+int type_positive_bits(struct symbol *type)
+{
+	if (type_unsigned(type))
+		return type->bit_size;
+	return type->bit_size - 1;
+}
+
 static struct symbol *get_binop_type(struct expression *expr)
 {
 	struct symbol *left, *right;
@@ -41,18 +48,17 @@ static struct symbol *get_binop_type(struct expression *expr)
 
 	if (expr->op == SPECIAL_LEFTSHIFT ||
 	    expr->op == SPECIAL_RIGHTSHIFT) {
-		if (type_max(left) < type_max(&int_ctype))
+		if (type_positive_bits(left) < 31)
 			return &int_ctype;
 		return left;
 	}
 
-	if (type_max(left) < type_max(&int_ctype) &&
-	    type_max(right) < type_max(&int_ctype))
+	if (type_positive_bits(left) < 31 && type_positive_bits(right) < 31)
 		return &int_ctype;
 
-	if (type_max(right) > type_max(left))
-		return right;
-	return left;
+	if (type_positive_bits(left) > type_positive_bits(right))
+		return left;
+	return right;
 }
 
 static struct symbol *get_type_symbol(struct expression *expr)
@@ -63,28 +69,45 @@ static struct symbol *get_type_symbol(struct expression *expr)
 	return get_real_base_type(expr->symbol);
 }
 
+static struct symbol *get_member_symbol(struct symbol_list *symbol_list, struct ident *member)
+{
+	struct symbol *tmp;
+
+	FOR_EACH_PTR(symbol_list, tmp) {
+		if (!tmp->ident) {
+			tmp = get_real_base_type(tmp);
+			tmp = get_member_symbol(tmp->symbol_list, member);
+			if (tmp)
+				return tmp;
+			continue;
+		}
+		if (tmp->ident == member)
+			return tmp;
+	} END_FOR_EACH_PTR(tmp);
+
+	return NULL;
+}
+
 static struct symbol *get_symbol_from_deref(struct expression *expr)
 {
 	struct ident *member;
-	struct symbol *struct_sym;
-	struct symbol *tmp;
+	struct symbol *sym;
 
 	if (!expr || expr->type != EXPR_DEREF)
 		return NULL;
 
 	member = expr->member;
-	struct_sym = get_type(expr->deref);
-	if (!struct_sym) {
+	sym = get_type(expr->deref);
+	if (!sym) {
 		// sm_msg("could not find struct type");
 		return NULL;
 	}
-	if (struct_sym->type == SYM_PTR)
-		struct_sym = get_real_base_type(struct_sym);
-	FOR_EACH_PTR(struct_sym->symbol_list, tmp) {
-		if (tmp->ident == member)
-			return get_real_base_type(tmp);
-	} END_FOR_EACH_PTR(tmp);
-	return NULL;
+	if (sym->type == SYM_PTR)
+		sym = get_real_base_type(sym);
+	sym = get_member_symbol(sym->symbol_list, member);
+	if (!sym)
+		return NULL;
+	return get_real_base_type(sym);
 }
 
 static struct symbol *get_return_type(struct expression *expr)
@@ -95,6 +118,29 @@ static struct symbol *get_return_type(struct expression *expr)
 	if (!tmp)
 		return NULL;
 	return get_real_base_type(tmp);
+}
+
+static struct symbol *get_expr_stmt_type(struct statement *stmt)
+{
+	if (stmt->type != STMT_COMPOUND)
+		return NULL;
+	stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
+	if (!stmt || stmt->type != STMT_EXPRESSION)
+		return NULL;
+	return get_type(stmt->expression);
+}
+
+static struct symbol *get_select_type(struct expression *expr)
+{
+	struct symbol *one, *two;
+
+	one = get_type(expr->cond_true);
+	two = get_type(expr->cond_false);
+	if (!one || !two)
+		return NULL;
+	if (types_equiv(one, two))
+		return one;
+	return NULL;
 }
 
 struct symbol *get_pointer_type(struct expression *expr)
@@ -133,27 +179,36 @@ struct symbol *get_type(struct expression *expr)
 	case EXPR_DEREF:
 		return get_symbol_from_deref(expr);
 	case EXPR_PREOP:
+	case EXPR_POSTOP:
 		if (expr->op == '&')
 			return fake_pointer_sym(expr);
 		if (expr->op == '*')
 			return get_pointer_type(expr->unop);
 		return get_type(expr->unop);
+	case EXPR_ASSIGNMENT:
+		return get_type(expr->left);
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
 		return get_real_base_type(expr->cast_type);
+	case EXPR_COMPARE:
 	case EXPR_BINOP:
 		return get_binop_type(expr);
 	case EXPR_CALL:
 		return get_return_type(expr);
+	case EXPR_STATEMENT:
+		return get_expr_stmt_type(expr->statement);
+	case EXPR_CONDITIONAL:
+	case EXPR_SELECT:
+		return get_select_type(expr);
 	case EXPR_SIZEOF:
 		return &ulong_ctype;
+	case EXPR_LOGICAL:
+		return &int_ctype;
 	default:
-		return expr->ctype;
 //		sm_msg("unhandled type %d", expr->type);
+		return expr->ctype;
 	}
-
-
 	return NULL;
 }
 
@@ -164,6 +219,15 @@ int type_unsigned(struct symbol *base_type)
 	if (base_type->ctype.modifiers & MOD_UNSIGNED)
 		return 1;
 	return 0;
+}
+
+int type_signed(struct symbol *base_type)
+{
+	if (!base_type)
+		return 0;
+	if (base_type->ctype.modifiers & MOD_UNSIGNED)
+		return 0;
+	return 1;
 }
 
 int expr_unsigned(struct expression *expr)
@@ -214,35 +278,40 @@ int returns_pointer(struct symbol *sym)
 	return 0;
 }
 
-long long type_max(struct symbol *base_type)
+sval_t sval_type_max(struct symbol *base_type)
 {
-	long long ret = whole_range.max;
-	int bits;
+	sval_t ret;
+
+	ret.value = (~0ULL) >> 1;
+	ret.type = base_type;
 
 	if (!base_type || !base_type->bit_size)
 		return ret;
-	bits = base_type->bit_size;
-	if (bits == 64)
-		return ret;
-	if (!type_unsigned(base_type))
-		bits--;
-	ret >>= (63 - bits);
+
+	if (type_unsigned(base_type))
+		ret.value = (~0ULL) >> (64 - base_type->bit_size);
+	else
+		ret.value = (~0ULL) >> (64 - (base_type->bit_size - 1));
+
 	return ret;
 }
 
-long long type_min(struct symbol *base_type)
+sval_t sval_type_min(struct symbol *base_type)
 {
-	long long ret = whole_range.min;
-	int bits;
+	sval_t ret;
 
 	if (!base_type || !base_type->bit_size)
+		base_type = &llong_ctype;
+	ret.type = base_type;
+
+	if (type_unsigned(base_type)) {
+		ret.value = 0;
 		return ret;
-	if (type_unsigned(base_type))
-		return 0;
-	ret = whole_range.max;
-	bits = base_type->bit_size - 1;
-	ret >>= (63 - bits);
-	return -(ret + 1);
+	}
+
+	ret.value = (~0ULL) << (base_type->bit_size - 1);
+
+	return ret;
 }
 
 int nr_bits(struct expression *expr)
@@ -272,10 +341,36 @@ free:
 	return ret;
 }
 
+int types_equiv(struct symbol *one, struct symbol *two)
+{
+	if (!one && !two)
+		return 1;
+	if (!one || !two)
+		return 0;
+	if (one->type != two->type)
+		return 0;
+	if (one->type == SYM_PTR)
+		return types_equiv(get_real_base_type(one), get_real_base_type(two));
+	if (type_positive_bits(one) != type_positive_bits(two))
+		return 0;
+	return 1;
+}
+
 const char *global_static()
 {
 	if (cur_func_sym->ctype.modifiers & MOD_STATIC)
 		return "static";
 	else
 		return "global";
+}
+
+struct symbol *cur_func_return_type(void)
+{
+	struct symbol *sym;
+
+	sym = get_real_base_type(cur_func_sym);
+	if (!sym || sym->type != SYM_FN)
+		return NULL;
+	sym = get_real_base_type(sym);
+	return sym;
 }

@@ -108,20 +108,21 @@ free:
 static void check_expr(struct expression *expr)
 {
 	struct sm_state *sm;
-	long long val;
+	sval_t max;
+	sval_t sval;
 	char *name;
 	int overflow = 0;
 	int underflow = 0;
 
 	sm = get_sm_state_expr(my_max_id, expr);
 	if (sm && slist_has_state(sm->possible, &user_data)) {
-		if (!get_absolute_max(expr, &val) || val > 20000)
+		if (!get_absolute_max(expr, &max) || sval_cmp_val(max, 20000) > 0)
 			overflow = 1;
 	}
 
 	sm = get_sm_state_expr(my_min_id, expr);
 	if (sm && slist_has_state(sm->possible, &user_data)) {
-		if (!get_absolute_min(expr, &val) || val < -20000)
+		if (!get_absolute_min(expr, &sval) || sval_cmp_val(sval, -20000) < 0)
 			underflow = 1;
 	}
 

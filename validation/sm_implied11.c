@@ -26,9 +26,9 @@ static void ad_agg_selection_logic(void)
 }
 /*
  * check-name: smatch implied #11
- * check-command: smatch -I.. sm_implied11.c
+ * check-command: smatch -I.. -m64 sm_implied11.c
  *
  * check-output-start
-sm_implied11.c:25 ad_agg_selection_logic() implied: foo = '0,4096-max'
+sm_implied11.c:25 ad_agg_selection_logic() implied: foo = '0,4096-s64max'
  * check-output-end
  */
