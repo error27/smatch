@@ -31,11 +31,11 @@ static int frob(void)
  *
  * check-output-start
 sm_compare.c:15 frob() a = empty
-sm_compare.c:17 frob() b = min-5
+sm_compare.c:17 frob() b = s32min-5
 sm_compare.c:19 frob() c = empty
 sm_compare.c:21 frob() c = empty
-sm_compare.c:23 frob() a = min-5
-sm_compare.c:24 frob() b = min-5
+sm_compare.c:23 frob() a = s32min-5
+sm_compare.c:24 frob() b = s32min-5
 sm_compare.c:25 frob() c = 5
  * check-output-end
  */

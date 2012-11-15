@@ -61,25 +61,25 @@ void func(void)
  * check-command: smatch -I.. sm_range3.c
  *
  * check-output-start
-sm_range3.c:8 func() x = min-0
-sm_range3.c:10 func() x = 1-max
-sm_range3.c:13 func() x = 13-max
-sm_range3.c:15 func() x = min-12
-sm_range3.c:18 func() x = min-23
-sm_range3.c:20 func() x = 24-max
-sm_range3.c:23 func() x = 34-max
-sm_range3.c:25 func() x = min-33
-sm_range3.c:28 func() x = 45-max
-sm_range3.c:30 func() x = min-44
-sm_range3.c:33 func() x = min-56
-sm_range3.c:35 func() x = 57-max
-sm_range3.c:38 func() x = 68-max
-sm_range3.c:40 func() x = min-67
-sm_range3.c:43 func() x = min-77
-sm_range3.c:45 func() x = 78-max
+sm_range3.c:8 func() x = s32min-0
+sm_range3.c:10 func() x = 1-s32max
+sm_range3.c:13 func() x = 13-s32max
+sm_range3.c:15 func() x = s32min-12
+sm_range3.c:18 func() x = s32min-23
+sm_range3.c:20 func() x = 24-s32max
+sm_range3.c:23 func() x = 34-s32max
+sm_range3.c:25 func() x = s32min-33
+sm_range3.c:28 func() x = 45-s32max
+sm_range3.c:30 func() x = s32min-44
+sm_range3.c:33 func() x = s32min-56
+sm_range3.c:35 func() x = 57-s32max
+sm_range3.c:38 func() x = 68-s32max
+sm_range3.c:40 func() x = s32min-67
+sm_range3.c:43 func() x = s32min-77
+sm_range3.c:45 func() x = 78-s32max
 sm_range3.c:48 func() x = 89
-sm_range3.c:50 func() x = min-88,90-max
-sm_range3.c:53 func() x = min-99,101-max
+sm_range3.c:50 func() x = s32min-88,90-s32max
+sm_range3.c:53 func() x = s32min-99,101-s32max
 sm_range3.c:55 func() x = 100
  * check-output-end
  */

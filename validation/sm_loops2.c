@@ -31,10 +31,10 @@ void func(void)
  * check-command: smatch -I.. sm_loops2.c
  *
  * check-output-start
-sm_loops2.c:10 func() x = min-max
-sm_loops2.c:11 func() x = min-max
-sm_loops2.c:16 func() x = 0-max
-sm_loops2.c:18 func() x = 0-max
+sm_loops2.c:10 func() x = s32min-s32max
+sm_loops2.c:11 func() x = s32min-s32max
+sm_loops2.c:16 func() x = 0-s32max
+sm_loops2.c:18 func() x = 0-s32max
 sm_loops2.c:19 func() x = (-1)
 sm_loops2.c:22 func() x = 0-9
 sm_loops2.c:23 func() x = (-1)

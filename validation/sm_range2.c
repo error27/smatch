@@ -30,14 +30,14 @@ int frob(void) {
  * check-command: smatch -I.. sm_range2.c
  *
  * check-output-start
-sm_range2.c:6 frob() a = min-(-1),1-max
+sm_range2.c:6 frob() a = s32min-(-1),1-s32max
 sm_range2.c:8 frob() a = 0
-sm_range2.c:9 frob() a = min-max
+sm_range2.c:9 frob() a = s32min-s32max
 sm_range2.c:12 frob() b = 0
-sm_range2.c:14 frob() b = min-max
-sm_range2.c:17 frob() c = min-max
+sm_range2.c:14 frob() b = s32min-s32max
+sm_range2.c:17 frob() c = s32min-s32max
 sm_range2.c:20 frob() d = (-3)-99
 sm_range2.c:25 frob() d = (-3)-99
-sm_range2.c:26 frob() e = min-max
+sm_range2.c:26 frob() e = s32min-s32max
  * check-output-end
  */

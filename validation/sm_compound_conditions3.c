@@ -22,8 +22,8 @@ void func (void)
  *
  * check-output-start
 sm_compound_conditions3.c:8 func() aaa = 1-99
-sm_compound_conditions3.c:10 func() aaa = min-0,100-max
+sm_compound_conditions3.c:10 func() aaa = s32min-0,100-s32max
 sm_compound_conditions3.c:13 func() aaa = 1-9
-sm_compound_conditions3.c:16 func() aaa = min-0,10-41,43-max
+sm_compound_conditions3.c:16 func() aaa = s32min-0,10-41,43-s32max
  * check-output-end
  */

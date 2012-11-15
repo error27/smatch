@@ -29,6 +29,6 @@ int func(void)
  *
  * check-output-start
 sm_equiv3.c:22 func() red = 0
-sm_equiv3.c:23 func() blue = min-(-1),1-max
+sm_equiv3.c:23 func() blue = s32min-(-1),1-s32max
  * check-output-end
  */

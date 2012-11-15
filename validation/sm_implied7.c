@@ -15,8 +15,8 @@ int frob(void) {
  * check-command: smatch -I.. sm_implied7.c
  *
  * check-output-start
-sm_implied7.c:7 frob() a = min-max
+sm_implied7.c:7 frob() a = s32min-s32max
 sm_implied7.c:9 frob() a = 0
-sm_implied7.c:11 frob() a = min-max
+sm_implied7.c:11 frob() a = s32min-s32max
  * check-output-end
  */
