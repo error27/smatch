@@ -649,6 +649,10 @@ struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 	if (type_signed(type) && sval_cmp(rl_max(rl), sval_type_max(type)) > 0)
 		set_min = 1;
 
+	if (sval_positive_bits(rl_max(rl)) > type_positive_bits(type) &&
+	    sval_cmp(rl_max(rl), sval_type_max(type)) > 0)
+		set_max = 1;
+
 	FOR_EACH_PTR(rl, tmp) {
 		sval_t min, max;
 
