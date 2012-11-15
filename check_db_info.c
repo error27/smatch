@@ -16,6 +16,7 @@ static struct range_list *return_ranges;
 
 static void add_return_range(struct range_list *rl)
 {
+	rl = cast_rl(cur_func_return_type(), rl);
 	if (!return_ranges) {
 		return_ranges = rl;
 		return;

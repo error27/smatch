@@ -321,6 +321,7 @@ static void match_return(struct expression *expr)
 		struct range_list *rl;
 
 		get_implied_range_list(expr, &rl);
+		rl = cast_rl(cur_func_return_type(), rl);
 		sm_msg("info: returns_user_data %d '%s' %s",
 		       get_return_id(), show_ranges(rl), global_static());
 	}

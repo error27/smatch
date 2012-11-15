@@ -484,6 +484,7 @@ static void match_return_info(struct expression *ret_value)
 	struct range_list *rl;
 
 	get_implied_range_list(ret_value, &rl);
+	rl = cast_rl(cur_func_return_type(), rl);
 	sm_msg("info: return_marker %d '%s' %s",
 	       get_return_id(), show_ranges(rl), global_static());
 }
