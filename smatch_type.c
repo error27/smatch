@@ -24,8 +24,17 @@ struct symbol *get_real_base_type(struct symbol *sym)
 	return ret;
 }
 
+int type_bits(struct symbol *type)
+{
+	if (!type)
+		return 0;
+	return type->bit_size;
+}
+
 int type_positive_bits(struct symbol *type)
 {
+	if (!type)
+		return 0;
 	if (type_unsigned(type))
 		return type->bit_size;
 	return type->bit_size - 1;
