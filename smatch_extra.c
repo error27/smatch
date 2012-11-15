@@ -462,13 +462,20 @@ static void match_assign(struct expression *expr)
 	known = get_implied_value(right, &value);
 	switch (expr->op) {
 	case '=': {
+		struct smatch_state *state;
+
 		if (get_implied_range_list(right, &rl)) {
 			rl = cast_rl(get_type(expr->left), rl);
-			set_extra_mod(name, sym, alloc_estate_range_list(rl));
-			goto free;
+			state = alloc_estate_range_list(rl);
+			if (get_hard_max(right, &tmp))
+				estate_set_hard_max(state);
+		} else {
+			rl = whole_range_list(get_type(right));
+			rl = cast_rl(get_type(expr->left), rl);
+			state = alloc_estate_range_list(rl);
 		}
-
-		break;
+		set_extra_mod(name, sym, state);
+		goto free;
 	}
 	case SPECIAL_ADD_ASSIGN:
 		if (get_implied_min(left, &tmp)) {
