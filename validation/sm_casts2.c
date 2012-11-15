@@ -5,7 +5,7 @@ unsigned int frob();
 unsigned char *a;
 unsigned int *b;
 int *c;
-char *****d;
+unsigned char *****d;
 int main(void)
 {
 
@@ -28,7 +28,7 @@ int main(void)
  * check-command: smatch sm_casts2.c
  *
  * check-output-start
-sm_casts2.c:12 main() error: *a is never equal to max (wrong type 0 - 255).
-sm_casts2.c:22 main() error: *****d is never equal to max (wrong type (-128) - 127).
+sm_casts2.c:12 main() warn: impossible condition '(*a == -1) => (0-255 == u32max)'
+sm_casts2.c:22 main() warn: impossible condition '(*****d == -1) => (0-255 == u32max)'
  * check-output-end
  */
