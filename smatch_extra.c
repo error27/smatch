@@ -511,6 +511,9 @@ static struct smatch_state *increment_state(struct smatch_state *state)
 	sval_t min = estate_min(state);
 	sval_t max = estate_max(state);
 
+	if (!estate_ranges(state))
+		return NULL;
+
 	if (inside_loop())
 		max = sval_type_max(max.type);
 
@@ -525,6 +528,9 @@ static struct smatch_state *decrement_state(struct smatch_state *state)
 {
 	sval_t min = estate_min(state);
 	sval_t max = estate_max(state);
+
+	if (!estate_ranges(state))
+		return NULL;
 
 	if (inside_loop())
 		min = sval_type_min(min.type);
@@ -547,11 +553,15 @@ static void unop_expr(struct expression *expr)
 	case SPECIAL_INCREMENT:
 		state = get_state_expr(SMATCH_EXTRA, expr->unop);
 		state = increment_state(state);
+		if (!state)
+			state = extra_undefined(get_type(expr));
 		set_extra_expr_mod(expr->unop, state);
 		break;
 	case SPECIAL_DECREMENT:
 		state = get_state_expr(SMATCH_EXTRA, expr->unop);
 		state = decrement_state(state);
+		if (!state)
+			state = extra_undefined(get_type(expr));
 		set_extra_expr_mod(expr->unop, state);
 		break;
 	default:
