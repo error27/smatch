@@ -158,7 +158,8 @@ void __split_expr(struct expression *expr)
 		tmp = strip_expr(expr->right);
 		if (tmp->type == EXPR_CALL)
 			__pass_to_client(expr, CALL_ASSIGNMENT_HOOK);
-		if (get_macro_name(tmp->pos))
+		if (get_macro_name(tmp->pos) &&
+		    get_macro_name(expr->pos) != get_macro_name(tmp->pos))
 			__pass_to_client(expr, MACRO_ASSIGNMENT_HOOK);
 		__split_expr(expr->left);
 		break;
