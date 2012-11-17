@@ -98,6 +98,17 @@ int sval_positive_bits(sval_t sval)
 	return sval.type->bit_size;
 }
 
+int sval_bits_used(sval_t sval)
+{
+	int i;
+
+	for (i = 64; i >= 1; i--) {
+		if (sval.uvalue & (1ULL << (i - 1)))
+			return i;
+	}
+	return 0;
+}
+
 int sval_is_min(sval_t sval)
 {
 	sval_t min = sval_type_min(sval.type);
