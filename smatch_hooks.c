@@ -62,6 +62,9 @@ void add_hook(void *func, enum hook_type type)
 	case RAW_ASSIGNMENT_HOOK:
 		container->data_type = EXPR_PTR;
 		break;
+	case GLOBAL_ASSIGNMENT_HOOK:
+		container->data_type = EXPR_PTR;
+		break;
 	case CALL_ASSIGNMENT_HOOK:
 		container->data_type = EXPR_PTR;
 		break;

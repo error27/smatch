@@ -772,6 +772,30 @@ static void split_declaration(struct symbol_list *sym_list)
 	} END_FOR_EACH_PTR(sym);
 }
 
+static void fake_global_assign(struct symbol *sym)
+{
+	struct expression *assign, *symbol;
+
+	if (!sym->initializer)
+		return;
+	if (sym->initializer->type == EXPR_INITIALIZER) {
+		struct expression *deref, *tmp;
+
+		symbol = symbol_expression(sym);
+		FOR_EACH_PTR(sym->initializer->expr_list, tmp) {
+			if (tmp->type != EXPR_IDENTIFIER) /* how to handle arrays?? */
+				continue;
+			deref = deref_expression(symbol, '.', tmp->expr_ident);
+			assign = assign_expression(deref, tmp->ident_expression);
+			__pass_to_client(assign, GLOBAL_ASSIGNMENT_HOOK);
+		} END_FOR_EACH_PTR(tmp);
+	} else {
+		symbol = symbol_expression(sym);
+		assign = assign_expression(symbol, sym->initializer);
+		__pass_to_client(assign, GLOBAL_ASSIGNMENT_HOOK);
+	}
+}
+
 static void split_function(struct symbol *sym)
 {
 	struct symbol *base_type = get_base_type(sym);
@@ -847,6 +871,7 @@ static void split_functions(struct symbol_list *sym_list)
 			process_inlines();
 		} else {
 			__pass_to_client(sym, BASE_HOOK);
+			fake_global_assign(sym);
 		}
 	} END_FOR_EACH_PTR(sym);
 	__pass_to_client_no_data(END_FILE_HOOK);
