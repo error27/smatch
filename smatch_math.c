@@ -74,7 +74,7 @@ static sval_t handle_expression_statement(struct expression *expr, int *undefine
 	stmt = get_expression_statement(expr);
 	if (!last_stmt_sval(stmt, &ret)) {
 		*undefined = 1;
-		ret.value = BOGUS;
+		ret = bogus;
 	}
 
 	return ret;
