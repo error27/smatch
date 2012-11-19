@@ -201,11 +201,10 @@ int sval_cmp_t(struct symbol *type, sval_t one, sval_t two)
 
 int sval_cmp_val(sval_t one, long long val)
 {
-	if (one.value < val)
-		return -1;
-	if (one.value == val)
-		return 0;
-	return 1;
+	sval_t sval;
+
+	sval = sval_type_val(&llong_ctype, val);
+	return sval_cmp(one, sval);
 }
 
 sval_t sval_cast(struct symbol *type, sval_t sval)
