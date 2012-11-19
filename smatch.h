@@ -523,6 +523,8 @@ int sval_signed(sval_t sval);
 int sval_bits(sval_t sval);
 int sval_positive_bits(sval_t sval);
 int sval_bits_used(sval_t sval);
+int sval_is_negative(sval_t sval);
+int sval_is_positive(sval_t sval);
 int sval_is_min(sval_t sval);
 int sval_is_max(sval_t sval);
 int sval_is_a_min(sval_t sval);

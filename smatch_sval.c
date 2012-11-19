@@ -109,6 +109,18 @@ int sval_bits_used(sval_t sval)
 	return 0;
 }
 
+int sval_is_negative(sval_t sval)
+{
+	if (sval_cmp_val(sval, 0) < 0)
+		return 1;
+	return 0;
+}
+
+int sval_is_positive(sval_t sval)
+{
+	return !sval_is_negative(sval);
+}
+
 int sval_is_min(sval_t sval)
 {
 	sval_t min = sval_type_min(sval.type);
