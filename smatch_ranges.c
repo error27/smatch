@@ -623,12 +623,75 @@ void filter_top_range_list(struct range_list_stack **rl_stack, sval_t sval)
 	push_range_list(rl_stack, rl);
 }
 
+static int sval_too_big(struct symbol *type, sval_t sval)
+{
+	if (type_bits(type) == 64)
+		return 0;
+	if (sval.uvalue > ((1ULL << type_bits(type)) - 1))
+		return 1;
+	return 0;
+}
+
+static void add_range_t(struct symbol *type, struct range_list **rl, sval_t min, sval_t max)
+{
+	/* If we're just adding a number, cast it and add it */
+	if (sval_cmp(min, max) == 0) {
+		add_range(rl, sval_cast(type, min), sval_cast(type, max));
+		return;
+	}
+
+	/* If the range is within the type range then add it */
+	if (sval_fits(type, min) && sval_fits(type, max)) {
+		add_range(rl, sval_cast(type, min), sval_cast(type, max));
+		return;
+	}
+
+	/*
+	 * If the range we are adding has more bits than the range type then
+	 * add the whole range type.  Eg:
+	 * 0x8000000000000000 - 0xf000000000000000 -> cast to int
+	 * This isn't totally the right thing to do.  We could be more granular.
+	 */
+	if (sval_too_big(type, min) || sval_too_big(type, max)) {
+		add_range(rl, sval_type_min(type), sval_type_max(type));
+		return;
+	}
+
+	/* Cast negative values to high positive values */
+	if (sval_is_negative(min) && type_unsigned(type)) {
+		if (sval_is_positive(max)) {
+			if (sval_too_high(type, max)) {
+				add_range(rl, sval_type_min(type), sval_type_max(type));
+				return;
+			}
+			add_range(rl, sval_type_val(type, 0), sval_cast(type, max));
+			max = sval_type_max(type);
+		} else {
+			max = sval_cast(type, max);
+		}
+		min = sval_cast(type, min);
+		add_range(rl, min, max);
+	}
+
+	/* Cast high positive numbers to negative */
+	if (sval_unsigned(max) && sval_is_negative(sval_cast(type, max))) {
+		if (!sval_is_negative(sval_cast(type, min))) {
+			add_range(rl, sval_cast(type, min), sval_type_max(type));
+			min = sval_type_min(type);
+		} else {
+			min = sval_cast(type, min);
+		}
+		max = sval_cast(type, max);
+		add_range(rl, min, max);
+	}
+
+	return;
+}
+
 struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 {
 	struct data_range *tmp;
-	struct data_range *new;
 	struct range_list *ret = NULL;
-	int set_min, set_max;
 
 	if (!rl)
 		return NULL;
@@ -636,50 +699,12 @@ struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 	if (!type)
 		return clone_range_list(rl);
 
-	if (sval_cmp(rl_min(rl), rl_max(rl)) == 0) {
-		sval_t sval = sval_cast(type, rl_min(rl));
-		return alloc_range_list(sval, sval);
-	}
-
-	set_max = 0;
-	if (type_unsigned(type) && sval_cmp_val(rl_min(rl), 0) < 0)
-		set_max = 1;
-
-	set_min = 0;
-	if (type_signed(type) && sval_cmp(rl_max(rl), sval_type_max(type)) > 0)
-		set_min = 1;
-
-	if (sval_positive_bits(rl_max(rl)) > type_positive_bits(type) &&
-	    sval_cmp(rl_max(rl), sval_type_max(type)) > 0)
-		set_max = 1;
-
 	FOR_EACH_PTR(rl, tmp) {
-		sval_t min, max;
-
-		min = tmp->min;
-		max = tmp->max;
-
-		if (sval_cmp_t(type, max, sval_type_min(type)) < 0)
-			continue;
-		if (sval_cmp_t(type, min, sval_type_max(type)) > 0)
-			continue;
-		if (sval_cmp_val(min, 0) < 0 && type_unsigned(type))
-			min.value = 0;
-		new = alloc_range(sval_cast(type, min), sval_cast(type, max));
-		add_ptr_list(&ret, new);
+		add_range_t(type, &ret, tmp->min, tmp->max);
 	} END_FOR_EACH_PTR(tmp);
 
 	if (!ret)
 		return whole_range_list(type);
-
-	if (set_min) {
-		tmp = first_ptr_list((struct ptr_list *)ret);
-		tmp->min = sval_type_min(type);
-	}
-	if (set_max) {
-		tmp = last_ptr_list((struct ptr_list *)ret);
-		tmp->max = sval_type_max(type);
-	}
 
 	return ret;
 }

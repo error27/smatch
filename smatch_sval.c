@@ -213,6 +213,35 @@ int sval_cmp_val(sval_t one, long long val)
 	return sval_cmp(one, sval);
 }
 
+int sval_too_low(struct symbol *type, sval_t sval)
+{
+	if (sval_is_negative(sval) && type_unsigned(type))
+		return 1;
+	if (type_signed(type) &&  sval_unsigned(sval))
+		return 0;
+	if (sval_cmp(sval, sval_type_min(type)) < 0)
+		return 1;
+	return 0;
+}
+
+int sval_too_high(struct symbol *type, sval_t sval)
+{
+	if (sval_is_negative(sval))
+		return 0;
+	if (sval_cmp(sval, sval_type_max(type)) > 0)
+		return 1;
+	return 0;
+}
+
+int sval_fits(struct symbol *type, sval_t sval)
+{
+	if (sval_too_low(type, sval))
+		return 0;
+	if (sval_too_high(type, sval))
+		return 0;
+	return 1;
+}
+
 sval_t sval_cast(struct symbol *type, sval_t sval)
 {
 	sval_t ret;
