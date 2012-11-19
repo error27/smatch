@@ -734,10 +734,8 @@ static void match_comparison(struct expression *expr)
 	}
 
 	type = get_type(expr);
-	if (!type) {
-		sm_msg("debug: failed to get type for '%s'", get_variable_from_expr_complex(expr, NULL));
+	if (!type)
 		type = &llong_ctype;
-	}
 
 	if (get_implied_range_list(left, &left_orig)) {
 		left_orig = cast_rl(type, left_orig);
