@@ -101,6 +101,17 @@ static sval_t handle_negate(struct expression *expr, int *undefined, int implied
 	sval_t ret;
 
 	ret = sval_blank(expr->unop);
+
+	if (known_condition_true(expr->unop)) {
+		ret.value = 0;
+		return ret;
+	}
+
+	if (implied == NOTIMPLIED) {
+		*undefined = 1;
+		return bogus;
+	}
+
 	if (implied_condition_true(expr->unop)) {
 		ret.value = 0;
 		return ret;
