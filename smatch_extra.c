@@ -351,12 +351,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 				struct expression *condition)
 {
 	struct expression *iter_expr;
-	char *name;
-	struct symbol *sym;
-	sval_t value;
-	int left = 0;
-	struct smatch_state *state;
-	sval_t min, max;
+	sval_t limit;
 
 	if (!iterator) {
 		while_count_down_after(sm, condition);
@@ -367,31 +362,14 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 
 	if (condition->type != EXPR_COMPARE)
 		return;
-	if (!get_value(condition->left, &value)) {
-		if (!get_value(condition->right, &value))
-			return;
-		left = 1;
+	if (iter_expr->op == SPECIAL_INCREMENT) {
+		limit = sval_binop(estate_max(sm->state), '+',
+				   sval_type_val(estate_type(sm->state), 1));
+	} else {
+		limit = sval_binop(estate_min(sm->state), '-',
+				   sval_type_val(estate_type(sm->state), 1));
 	}
-	if (left)
-		name = get_variable_from_expr(condition->left, &sym);
-	else
-		name = get_variable_from_expr(condition->right, &sym);
-	if (!name || !sym)
-		goto free;
-	if (sym != sm->sym || strcmp(name, sm->name))
-		goto free;
-	state = get_state(my_id, name, sym);
-	min = estate_min(state);
-	max = estate_max(state);
-	if (iter_expr->op == SPECIAL_INCREMENT &&
-	    !sval_is_min(min) && sval_is_max(max))
-		set_extra_mod(name, sym, alloc_estate(min));
-	else if (sval_is_min(min) && !sval_is_max(max))
-		set_extra_mod(name, sym, alloc_estate(max));
-
-free:
-	free_string(name);
-	return;
+	set_extra_mod(sm->name, sm->sym, alloc_estate(limit));
 }
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
