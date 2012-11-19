@@ -132,9 +132,9 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
 		if (!sval_is_a_max(tmp_max) && sval_cmp(tmp_max, max) > 0)
 			max = tmp_max;
 	} END_FOR_EACH_PTR(tmp);
-	if (sval_cmp_val(min, -4095) < 0)
+	if (sval_is_negative(min) && sval_cmp_val(min, -4095) < 0)
 		sm_msg("error: %s too low for ERR_PTR", sval_to_str(min));
-	if (sval_cmp_val(max, 0) > 0)
+	if (sval_is_positive(max) && sval_cmp_val(max, 0) != 0)
 		sm_msg("error: passing non neg %s to ERR_PTR", sval_to_str(max));
 }
 

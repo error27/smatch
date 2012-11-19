@@ -122,7 +122,8 @@ static void check_expr(struct expression *expr)
 
 	sm = get_sm_state_expr(my_min_id, expr);
 	if (sm && slist_has_state(sm->possible, &user_data)) {
-		if (!get_absolute_min(expr, &sval) || sval_cmp_val(sval, -20000) < 0)
+		if (!get_absolute_min(expr, &sval) ||
+		    (sval_is_negative(sval) && sval_cmp_val(sval, -20000) < 0))
 			underflow = 1;
 	}
 
