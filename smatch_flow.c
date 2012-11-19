@@ -177,7 +177,9 @@ void __split_expr(struct expression *expr)
 		__split_expr(expr->cast_expression);
 		break;
 	case EXPR_SIZEOF:
-		/* there isn't anything to pass a client from inside a sizeof() */
+		if (expr->cast_expression)
+			__pass_to_client(strip_parens(expr->cast_expression),
+					 SIZEOF_HOOK);
 		break;
 	case EXPR_OFFSETOF:
 	case EXPR_ALIGNOF:
