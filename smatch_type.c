@@ -147,9 +147,14 @@ static struct symbol *get_select_type(struct expression *expr)
 	two = get_type(expr->cond_false);
 	if (!one || !two)
 		return NULL;
-	if (types_equiv(one, two))
+	/*
+	 * This is a hack.  If the types are not equiv then we
+	 * really don't know the type.  But I think guessing is
+	 *  probably Ok here.
+	 */
+	if (type_positive_bits(one) > type_positive_bits(two))
 		return one;
-	return NULL;
+	return two;
 }
 
 struct symbol *get_pointer_type(struct expression *expr)
