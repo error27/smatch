@@ -84,10 +84,18 @@ static void match_check_params(struct expression *call)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static void match_sizeof(struct expression *expr)
+{
+	if (expr->type == EXPR_PREOP && expr->op == '&') {
+		sm_msg("warn: sizoef(&pointer)?");
+	}
+}
+
 void check_sizeof_pointer(int id)
 {
 	my_id = id;
 
 	add_hook(&match_call_assignment, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_check_params, FUNCTION_CALL_HOOK);
+	add_hook(&match_sizeof, SIZEOF_HOOK);
 }
