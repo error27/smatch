@@ -36,8 +36,8 @@ int type_positive_bits(struct symbol *type)
 	if (!type)
 		return 0;
 	if (type_unsigned(type))
-		return type->bit_size;
-	return type->bit_size - 1;
+		return type_bits(type);
+	return type_bits(type) - 1;
 }
 
 static struct symbol *get_binop_type(struct expression *expr)
@@ -302,11 +302,7 @@ sval_t sval_type_max(struct symbol *base_type)
 	if (!base_type || !base_type->bit_size)
 		return ret;
 
-	if (type_unsigned(base_type))
-		ret.value = (~0ULL) >> (64 - base_type->bit_size);
-	else
-		ret.value = (~0ULL) >> (64 - (base_type->bit_size - 1));
-
+	ret.value = (~0ULL) >> (64 - type_positive_bits(base_type));
 	return ret;
 }
 
@@ -323,7 +319,7 @@ sval_t sval_type_min(struct symbol *base_type)
 		return ret;
 	}
 
-	ret.value = (~0ULL) << (base_type->bit_size - 1);
+	ret.value = (~0ULL) << type_positive_bits(base_type);
 
 	return ret;
 }
@@ -335,7 +331,7 @@ int nr_bits(struct expression *expr)
 	type = get_type(expr);
 	if (!type)
 		return 0;
-	return type->bit_size;
+	return type_bits(type);
 }
 
 int is_static(struct expression *expr)

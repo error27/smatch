@@ -84,18 +84,12 @@ int sval_signed(sval_t sval)
 
 int sval_bits(sval_t sval)
 {
-	if (!sval.type)
-		return 32;
-	return sval.type->bit_size;
+	return type_bits(sval.type);
 }
 
 int sval_positive_bits(sval_t sval)
 {
-	if (!sval.type)
-		return 31;
-	if (sval_signed(sval))
-		return sval.type->bit_size - 1;
-	return sval.type->bit_size;
+	return type_positive_bits(sval.type);
 }
 
 int sval_bits_used(sval_t sval)
