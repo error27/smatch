@@ -28,6 +28,8 @@ int type_bits(struct symbol *type)
 {
 	if (!type)
 		return 0;
+	if (type->type == SYM_PTR)  /* Sparse doesn't set this for &pointers */
+		return bits_in_pointer;
 	return type->bit_size;
 }
 
