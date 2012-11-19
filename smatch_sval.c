@@ -164,12 +164,18 @@ int sval_is_a_max(sval_t sval)
  */
 int sval_cmp(sval_t one, sval_t two)
 {
-	sval_t tmp;
+	struct symbol *type;
 
-	tmp = one;
+	type = one.type;
 	if (sval_positive_bits(two) > sval_positive_bits(one))
-		tmp = two;
-	if (sval_bits(tmp) >= 32 && sval_unsigned(tmp)) {
+		type = two.type;
+	if (type_bits(type) < 31)
+		type = &int_ctype;
+
+	one = sval_cast(type, one);
+	two = sval_cast(type, two);
+
+	if (type_unsigned(type)) {
 		if (one.uvalue < two.uvalue)
 			return -1;
 		if (one.uvalue == two.uvalue)
