@@ -953,54 +953,6 @@ int implied_not_equal(struct expression *expr, long long val)
 	return !possibly_false(expr, SPECIAL_NOTEQUAL, value_expr(val));
 }
 
-int get_implied_range_list(struct expression *expr, struct range_list **rl)
-{
-	sval_t sval;
-	struct smatch_state *state;
-	sval_t min, max;
-
-	*rl = NULL;
-
-	expr = strip_parens(expr);
-	if (!expr)
-		return 0;
-
-	state = get_state_expr(my_id, expr);
-	if (state) {
-		*rl = clone_range_list(estate_ranges(state));
-		return 1;
-	}
-
-	if (expr->type == EXPR_CALL) {
-		if (get_implied_return(expr, rl))
-			return 1;
-		*rl = db_return_vals(expr);
-		if (*rl)
-			return 1;
-		return 0;
-	}
-
-	if (get_implied_value(expr, &sval)) {
-		add_range(rl, sval, sval);
-		return 1;
-	}
-
-	if (expr->type == EXPR_BINOP && expr->op == '%') {
-		if (!get_implied_value(expr->right, &sval))
-			return 0;
-		add_range(rl, ll_to_sval(0), ll_to_sval(sval.value - 1));
-		return 1;
-	}
-
-	if (!get_implied_min(expr, &min))
-		return 0;
-	if (!get_implied_max(expr, &max))
-		return 0;
-
-	*rl = alloc_range_list(min, max);
-	return 1;
-}
-
 static struct symbol *get_arg_type(struct expression *fn, int arg)
 {
 	struct symbol *fn_type;
