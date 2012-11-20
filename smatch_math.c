@@ -201,12 +201,12 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 	case '%':
 		left = _get_value(expr->left, &local_undef, implied);
 		if (local_undef) {
-			if (implied == ABSOLUTE_MIN) {
+			if (implied == IMPLIED_MIN || implied == ABSOLUTE_MIN) {
 				ret = sval_blank(expr->left);
 				ret.value = 0;
 				return ret;
 			}
-			if (implied != ABSOLUTE_MAX)
+			if (implied != IMPLIED_MAX && implied != ABSOLUTE_MAX)
 				*undefined = 1;
 			if (!get_absolute_max(expr->left, &left))
 				*undefined = 1;
@@ -221,12 +221,12 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 	case '&':
 		left = _get_value(expr->left, &local_undef, implied);
 		if (local_undef) {
-			if (implied == ABSOLUTE_MIN) {
+			if (implied == IMPLIED_MIN || implied == ABSOLUTE_MIN) {
 				ret = sval_blank(expr->left);
 				ret.value = 0;
 				return ret;
 			}
-			if (implied != ABSOLUTE_MAX)
+			if (implied != IMPLIED_MAX && implied != ABSOLUTE_MAX)
 				*undefined = 1;
 			if (!get_absolute_max(expr->left, &left))
 				*undefined = 1;
@@ -239,12 +239,12 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 	case SPECIAL_RIGHTSHIFT:
 		left = _get_value(expr->left, &local_undef, implied);
 		if (local_undef) {
-			if (implied == ABSOLUTE_MIN) {
+			if (implied == IMPLIED_MIN || implied == ABSOLUTE_MIN) {
 				ret = sval_blank(expr->left);
 				ret.value = 0;
 				return ret;
 			}
-			if (implied != ABSOLUTE_MAX)
+			if (implied != IMPLIED_MAX && implied != ABSOLUTE_MAX)
 				*undefined = 1;
 			if (!get_absolute_max(expr->left, &left))
 				*undefined = 1;
