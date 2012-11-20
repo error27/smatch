@@ -191,6 +191,39 @@ static sval_t handle_subtract(struct expression *expr, int *undefined, int impli
 	return sval_binop(left, '-', right);
 }
 
+static sval_t handle_mod(struct expression *expr, int *undefined, int implied)
+{
+	sval_t left, right;
+
+	/* if we can't figure out the right side it's probably hopeless */
+	right = _get_value(expr->right, undefined, implied);
+	if (*undefined || right.value == 0)
+		return bogus;
+
+	left = _get_value(expr->left, undefined, implied);
+	if (!*undefined)
+		return sval_binop(left, '%', right);
+
+	switch (implied) {
+	case NOTIMPLIED:
+	case IMPLIED:
+		return bogus;
+	case IMPLIED_MIN:
+	case FUZZY_MIN:
+	case ABSOLUTE_MIN:
+		*undefined = 0;
+		return sval_type_val(get_type(expr->left), 0);
+	case IMPLIED_MAX:
+	case FUZZY_MAX:
+	case ABSOLUTE_MAX:
+		*undefined = 0;
+		right = sval_cast(get_type(expr), right);
+		right.value--;
+		return right;
+	}
+	return bogus;
+}
+
 static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 {
 	sval_t left, right;
@@ -199,25 +232,7 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 
 	switch (expr->op) {
 	case '%':
-		left = _get_value(expr->left, &local_undef, implied);
-		if (local_undef) {
-			if (implied == IMPLIED_MIN || implied == ABSOLUTE_MIN) {
-				ret = sval_blank(expr->left);
-				ret.value = 0;
-				return ret;
-			}
-			if (implied != IMPLIED_MAX && implied != ABSOLUTE_MAX)
-				*undefined = 1;
-			if (!get_absolute_max(expr->left, &left))
-				*undefined = 1;
-		}
-		right = _get_value(expr->right, undefined, implied);
-		if (right.value == 0)
-			*undefined = 1;
-		if (*undefined)
-			return bogus;
-		return sval_binop(left, '%', right);
-
+		return handle_mod(expr, undefined, implied);
 	case '&':
 		left = _get_value(expr->left, &local_undef, implied);
 		if (local_undef) {
@@ -688,13 +703,6 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 
 	if (get_implied_value(expr, &sval)) {
 		add_range(rl, sval, sval);
-		return 1;
-	}
-
-	if (expr->type == EXPR_BINOP && expr->op == '%') {
-		if (!get_implied_value(expr->right, &sval))
-			return 0;
-		add_range(rl, ll_to_sval(0), ll_to_sval(sval.value - 1));
 		return 1;
 	}
 
