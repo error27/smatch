@@ -25,24 +25,24 @@ sub recurse($$)
     my $found = 0;
 
     if ($link =~ /$target/) {
-	%{$param_map{$link}}->{found} = $FOUND;
-	return 1;
+        %{$param_map{$link}}->{found} = $FOUND;
+        return 1;
     }
-    
+
     if (%{$param_map{$link}}->{found} == $FOUND) {
-	return 1;
+        return 1;
     }
     if (%{$param_map{$link}}->{found} == $NOTFOUND) {
-	return 0;
+        return 0;
     }
 
     %{$param_map{$link}}->{found} = $NOTFOUND;
     foreach my $l (@{%{$param_map{$link}}->{links}}){
-	$found = recurse($l, $target);
-	if ($found) {
-	    %{$param_map{$link}}->{found} = $FOUND;
-	    return 1;
-	}
+        $found = recurse($l, $target);
+        if ($found) {
+            %{$param_map{$link}}->{found} = $FOUND;
+            return 1;
+        }
     }
 
     return 0;
@@ -55,7 +55,7 @@ sub compress_all($$)
     my $target = "$f%$p";
 
     foreach my $link (keys %param_map){
-	recurse($link, $target);
+        recurse($link, $target);
     }
 }
 
@@ -65,7 +65,7 @@ sub add_link($$)
     my $two = shift;
 
     if (!defined($param_map{$one})) {
-	$param_map{$one} = {found => $UNKNOWN, links => []};
+        $param_map{$one} = {found => $UNKNOWN, links => []};
     }
     push @{$param_map{$one}->{links}}, $two;
 }
@@ -76,21 +76,21 @@ sub load_all($)
 
     open(FILE, "<$file");
     while (<FILE>) {
-	if (/.*?:\d+ (.*?)\(\) info: param_mapper (\d+) => (.*?) (\d+)/) {
-	    add_link("$1%$2", "$3%$4");
-	}
+        if (/.*?:\d+ (.*?)\(\) info: param_mapper (\d+) => (.*?) (\d+)/) {
+            add_link("$1%$2", "$3%$4");
+        }
     }
 }
 
 sub print_found()
 {
     foreach my $func (keys %param_map){
-	my $tmp = $param_map{$func};
+        my $tmp = $param_map{$func};
 
-	if (%{$tmp}->{found} == $FOUND) {
-	    my ($f, $p) = split(/%/, $func);
-	    print("$f $p\n");
-	}
+        if (%{$tmp}->{found} == $FOUND) {
+            my ($f, $p) = split(/%/, $func);
+            print("$f $p\n");
+        }
     }
 }
 
