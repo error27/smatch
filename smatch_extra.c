@@ -953,33 +953,6 @@ int implied_not_equal(struct expression *expr, long long val)
 	return !possibly_false(expr, SPECIAL_NOTEQUAL, value_expr(val));
 }
 
-static struct symbol *get_arg_type(struct expression *fn, int arg)
-{
-	struct symbol *fn_type;
-	struct symbol *tmp;
-	struct symbol *arg_type;
-	int i;
-
-	fn_type = get_type(fn);
-	if (!fn_type)
-		return NULL;
-	if (fn_type->type == SYM_PTR)
-		fn_type = get_real_base_type(fn_type);
-	if (fn_type->type != SYM_FN)
-		return NULL;
-
-	i = 0;
-	FOR_EACH_PTR(fn_type->arguments, tmp) {
-		arg_type = get_real_base_type(tmp);
-		if (i == arg) {
-			return arg_type;
-		}
-		i++;
-	} END_FOR_EACH_PTR(tmp);
-
-	return NULL;
-}
-
 int is_whole_range(struct smatch_state *state)
 {
 	return is_whole_range_rl(estate_ranges(state));

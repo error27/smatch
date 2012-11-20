@@ -273,6 +273,7 @@ int is_static(struct expression *expr);
 int types_equiv(struct symbol *one, struct symbol *two);
 const char *global_static();
 struct symbol *cur_func_return_type(void);
+struct symbol *get_arg_type(struct expression *fn, int arg);
 
 /* smatch_ignore.c */
 void add_ignore(int owner, const char *name, struct symbol *sym);

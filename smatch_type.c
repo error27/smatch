@@ -386,3 +386,31 @@ struct symbol *cur_func_return_type(void)
 	sym = get_real_base_type(sym);
 	return sym;
 }
+
+struct symbol *get_arg_type(struct expression *fn, int arg)
+{
+	struct symbol *fn_type;
+	struct symbol *tmp;
+	struct symbol *arg_type;
+	int i;
+
+	fn_type = get_type(fn);
+	if (!fn_type)
+		return NULL;
+	if (fn_type->type == SYM_PTR)
+		fn_type = get_real_base_type(fn_type);
+	if (fn_type->type != SYM_FN)
+		return NULL;
+
+	i = 0;
+	FOR_EACH_PTR(fn_type->arguments, tmp) {
+		arg_type = get_real_base_type(tmp);
+		if (i == arg) {
+			return arg_type;
+		}
+		i++;
+	} END_FOR_EACH_PTR(tmp);
+
+	return NULL;
+}
+
