@@ -660,8 +660,14 @@ static void match_assign_call(struct expression *expr)
 	handled |= assign_ranged_funcs(fn, expr, call_backs);
 	handled |= handle_implied_return(expr);
 
-	if (!handled)
-		set_extra_expr_mod(expr->left, extra_undefined(get_type(expr->left)));
+	if (!handled) {
+		struct range_list *rl;
+
+		if (!get_implied_range_list(expr->right, &rl))
+			rl = whole_range_list(get_type(expr->right));
+		rl = cast_rl(get_type(expr->left), rl);
+		set_extra_expr_mod(expr->left, alloc_estate_range_list(rl));
+	}
 }
 
 static int db_return_states_callback(void *unused, int argc, char **argv, char **azColName)
