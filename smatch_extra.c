@@ -447,7 +447,7 @@ static void match_assign(struct expression *expr)
 		right = strip_parens(right->left);
 
 	if (expr->op == '=' && right->type == EXPR_CALL)
-		return;  /* these are handled in match_call_assign() */
+		return;  /* these are handled in smatch_function_hooks.c */
 
 	right_name = get_variable_from_expr(right, &right_sym);
 	if (expr->op == '=' && right_name && right_sym &&
@@ -1009,16 +1009,6 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
 
-static void match_call_assign(struct expression *expr)
-{
-	if (expr->op != '=')
-		return;
-
-	/* if we have a db set up this gets set in smatch_function_hooks.c */
-	if (option_no_db)
-		set_extra_expr_mod(expr->left, extra_undefined(get_type(expr->left)));
-}
-
 void register_smatch_extra(int id)
 {
 	my_id = id;
@@ -1044,5 +1034,4 @@ void register_smatch_extra_late(int id)
 	add_indirect_modification_hook(SMATCH_EXTRA, reset_struct_members);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
-	add_hook(&match_call_assign, CALL_ASSIGNMENT_HOOK);
 }
