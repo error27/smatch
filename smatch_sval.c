@@ -437,6 +437,8 @@ const char *sval_to_str(sval_t sval)
 		return "s32max";
 	if (sval_unsigned(sval) && sval.value == USHRT_MAX)
 		return "u16max";
+	if (sval.value == SHRT_MAX)
+		return "s16max";
 
 	if (sval_signed(sval) && sval.value == SHRT_MIN)
 		return "s16min";
