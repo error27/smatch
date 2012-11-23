@@ -352,6 +352,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 {
 	struct expression *iter_expr;
 	sval_t limit;
+	struct smatch_state *state;
 
 	if (!iterator) {
 		while_count_down_after(sm, condition);
@@ -369,7 +370,10 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 		limit = sval_binop(estate_min(sm->state), '-',
 				   sval_type_val(estate_type(sm->state), 1));
 	}
-	set_extra_mod(sm->name, sm->sym, alloc_estate(limit));
+	state = alloc_estate(limit);
+	if (!estate_has_hard_max(sm->state))
+		estate_clear_hard_max(state);
+	set_extra_mod(sm->name, sm->sym, state);
 }
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
