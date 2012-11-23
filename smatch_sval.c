@@ -423,6 +423,23 @@ sval_t sval_binop(sval_t left, int op, sval_t right)
 	return ret;
 }
 
+int sval_binop_overflows(sval_t left, int op, sval_t right)
+{
+	sval_t max = sval_type_max(left.type);
+
+	switch (op) {
+	case '+':
+		if (sval_cmp(left, sval_binop(max, '-', right)) > 0)
+			return 1;
+		return 0;
+	case '*':
+		if (sval_cmp(left, sval_binop(max, '/', right)) > 0)
+			return 1;
+		return 0;
+	}
+	return 0;
+}
+
 const char *sval_to_str(sval_t sval)
 {
 	char buf[30];

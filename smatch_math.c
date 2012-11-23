@@ -226,6 +226,7 @@ static sval_t handle_mod(struct expression *expr, int *undefined, int implied)
 
 static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 {
+	struct symbol *type;
 	sval_t left, right;
 	sval_t ret = {.type = &int_ctype, .value = 123456};
 	int local_undef = 0;
@@ -275,6 +276,19 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 
 	if (*undefined)
 		return bogus;
+
+	type = get_type(expr);
+	left = sval_cast(type, left);
+	right = sval_cast(type, right);
+
+	switch (implied) {
+	case IMPLIED_MAX:
+	case FUZZY_MAX:
+	case HARD_MAX:
+	case ABSOLUTE_MAX:
+		if (sval_binop_overflows(left, expr->op, right))
+			return sval_type_max(get_type(expr));
+	}
 
 	switch (expr->op) {
 	case '/':
