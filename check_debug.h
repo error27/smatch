@@ -28,4 +28,7 @@ static inline void __smatch_dump_related(void){}
 static inline void __smatch_debug_on(void){}
 static inline void __smatch_debug_off(void){}
 
+static inline void __smatch_local_debug_on(void){}
+static inline void __smatch_local_debug_off(void){}
+
 #endif
