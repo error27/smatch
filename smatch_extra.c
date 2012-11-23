@@ -764,6 +764,11 @@ static void match_comparison(struct expression *expr)
 			right_true = remove_range(right_orig, min, sub_one(rl_min(left_orig)));
 		if (!sval_is_max(rl_max(left_orig)))
 			right_false = remove_range(right_orig, rl_max(left_orig), max);
+
+		if (sval_cmp(rl_min(left_orig), rl_min(right_orig)) == 0)
+			left_false = remove_range(left_false, rl_min(left_orig), rl_min(left_orig));
+		if (sval_cmp(rl_max(left_orig), rl_max(right_orig)) == 0)
+			right_false = remove_range(right_false, rl_max(left_orig), rl_max(left_orig));
 		break;
 	case SPECIAL_EQUAL:
 		if (!sval_is_max(rl_max(right_orig))) {
@@ -793,6 +798,11 @@ static void match_comparison(struct expression *expr)
 			right_true = remove_range(right_orig, add_one(rl_max(left_orig)), max);
 		if (!sval_is_min(rl_min(left_orig)))
 			right_false = remove_range(right_orig, min, rl_min(left_orig));
+
+		if (sval_cmp(rl_min(left_orig), rl_min(right_orig)) == 0)
+			right_false = remove_range(right_false, rl_min(left_orig), rl_min(left_orig));
+		if (sval_cmp(rl_max(left_orig), rl_max(right_orig)) == 0)
+			left_false = remove_range(left_false, rl_max(left_orig), rl_max(left_orig));
 		break;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
