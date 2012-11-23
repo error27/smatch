@@ -409,6 +409,7 @@ void __merge_continues(void);
 
 void __push_breaks(void);
 void __process_breaks(void);
+int __has_breaks(void);
 void __merge_breaks(void);
 void __use_breaks(void);
 

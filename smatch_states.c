@@ -682,6 +682,17 @@ void __process_breaks(void)
 	push_slist(&break_stack, slist);
 }
 
+int __has_breaks(void)
+{
+	struct state_list *slist;
+	int ret;
+
+	slist = pop_slist(&break_stack);
+	ret = !!slist;
+	push_slist(&break_stack, slist);
+	return ret;
+}
+
 void __merge_breaks(void)
 {
 	struct state_list *slist;
