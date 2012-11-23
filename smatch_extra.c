@@ -193,13 +193,13 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 
 	if (condition->type == EXPR_PREOP) {
 		estate = alloc_estate_range(sval_type_val(start.type, 1), start);
-		if (!sval_is_max(start))
+		if (estate_has_hard_max(sm->state))
 			estate_set_hard_max(estate);
 		set_extra_expr_mod(iter_var, estate);
 	}
 	if (condition->type == EXPR_POSTOP) {
 		estate = alloc_estate_range(sval_type_val(start.type, 0), start);
-		if (!sval_is_max(start))
+		if (estate_has_hard_max(sm->state))
 			estate_set_hard_max(estate);
 		set_extra_expr_mod(iter_var, estate);
 	}
@@ -212,7 +212,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	struct expression *iter_var;
 	struct sm_state *sm;
 	struct smatch_state *estate;
-	sval_t start, end;
+	sval_t start, end, dummy;
 
 	iter_var = iter_expr->unop;
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
@@ -240,7 +240,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	if (sval_cmp(end, start) < 0)
 		return NULL;
 	estate = alloc_estate_range(start, end);
-	if (!sval_is_max(end))
+	if (get_hard_max(condition->right, &dummy))
 		estate_set_hard_max(estate);
 	set_extra_expr_mod(iter_var, estate);
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
