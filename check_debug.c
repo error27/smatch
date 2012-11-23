@@ -285,6 +285,16 @@ static void match_local_debug_off(const char *fn, struct expression *expr, void 
 	local_debug = 0;
 }
 
+static void match_debug_implied_on(const char *fn, struct expression *expr, void *info)
+{
+	option_debug_implied = 1;
+}
+
+static void match_debug_implied_off(const char *fn, struct expression *expr, void *info)
+{
+	option_debug_implied = 0;
+}
+
 void check_debug(int id)
 {
 	my_id = id;
@@ -307,4 +317,6 @@ void check_debug(int id)
 	add_function_hook("__smatch_debug_off", &match_debug_off, NULL);
 	add_function_hook("__smatch_local_debug_on", &match_local_debug_on, NULL);
 	add_function_hook("__smatch_local_debug_off", &match_local_debug_off, NULL);
+	add_function_hook("__smatch_debug_implied_on", &match_debug_implied_on, NULL);
+	add_function_hook("__smatch_debug_implied_off", &match_debug_implied_off, NULL);
 }

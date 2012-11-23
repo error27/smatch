@@ -31,4 +31,7 @@ static inline void __smatch_debug_off(void){}
 static inline void __smatch_local_debug_on(void){}
 static inline void __smatch_local_debug_off(void){}
 
+static inline void __smatch_debug_implied_on(void){}
+static inline void __smatch_debug_implied_off(void){}
+
 #endif
