@@ -82,14 +82,14 @@ static struct symbol *get_type_symbol(struct expression *expr)
 
 static struct symbol *get_member_symbol(struct symbol_list *symbol_list, struct ident *member)
 {
-	struct symbol *tmp;
+	struct symbol *tmp, *sub;
 
 	FOR_EACH_PTR(symbol_list, tmp) {
 		if (!tmp->ident) {
-			tmp = get_real_base_type(tmp);
-			tmp = get_member_symbol(tmp->symbol_list, member);
-			if (tmp)
-				return tmp;
+			sub = get_real_base_type(tmp);
+			sub = get_member_symbol(sub->symbol_list, member);
+			if (sub)
+				return sub;
 			continue;
 		}
 		if (tmp->ident == member)
