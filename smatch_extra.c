@@ -976,13 +976,15 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 {
 	struct range_list *rl = NULL;
 	struct smatch_state *state;
+	struct symbol *type;
 	char fullname[256];
 
 	if (strncmp(key, "$$", 2))
 		return;
 
 	snprintf(fullname, 256, "%s%s", name, key + 2);
-	parse_value_ranges_type(get_real_base_type(sym), value, &rl);
+	type = get_param_type_from_key(sym, key);
+	parse_value_ranges_type(type, value, &rl);
 	state = alloc_estate_range_list(rl);
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }

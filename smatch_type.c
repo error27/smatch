@@ -414,3 +414,52 @@ struct symbol *get_arg_type(struct expression *fn, int arg)
 	return NULL;
 }
 
+static struct symbol *get_member_from_string(struct symbol_list *symbol_list, char *name)
+{
+	struct symbol *tmp, *sub;
+	int chunk_len;
+
+	if (strncmp(name, ".", 1) == 0)
+		name += 1;
+	if (strncmp(name, "->", 2) == 0)
+		name += 2;
+
+	FOR_EACH_PTR(symbol_list, tmp) {
+		if (!tmp->ident) {
+			sub = get_real_base_type(tmp);
+			sub = get_member_from_string(sub->symbol_list, name);
+			if (sub)
+				return sub;
+			continue;
+		}
+
+		if (strcmp(tmp->ident->name, name) == 0)
+			return tmp;
+
+		chunk_len = strlen(tmp->ident->name);
+		if (strncmp(tmp->ident->name, name, chunk_len) == 0 &&
+		    (name[chunk_len] == '.' || name[chunk_len] == '-')) {
+			sub = get_real_base_type(tmp);
+			return get_member_from_string(sub->symbol_list, name + chunk_len);
+		}
+
+	} END_FOR_EACH_PTR(tmp);
+
+	return NULL;
+}
+
+struct symbol *get_param_type_from_key(struct symbol *sym, char *key)
+{
+	if (strcmp(key, "$$") == 0)
+		return get_real_base_type(sym);
+
+	key = key + 2;
+	sym = get_real_base_type(sym);
+	if (sym->type == SYM_PTR)
+		sym = get_real_base_type(sym);
+
+	sym = get_member_from_string(sym->symbol_list, key);
+	if (!sym)
+		return NULL;
+	return get_real_base_type(sym);
+}
