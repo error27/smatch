@@ -229,7 +229,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	switch (condition->op) {
 	case SPECIAL_NOTEQUAL:
 	case '<':
-		if (!sval_is_max(end))
+		if (!sval_is_min(end))
 			end.value--;
 		break;
 	case SPECIAL_LTE:
