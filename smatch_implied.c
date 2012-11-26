@@ -575,7 +575,6 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	char *name = NULL;
 	struct symbol *sym;
 	struct sm_state *sm;
-	struct sm_state *true_sm;
 	struct state_list *true_states = NULL;
 	struct state_list *false_states = NULL;
 	struct state_list *ret = clone_slist(*raw_slist);
@@ -586,21 +585,22 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	if (!name || !sym)
 		goto free;
 	sm = get_sm_state_slist(*raw_slist, SMATCH_EXTRA, name, sym);
-	if (!case_expr) {
-		vals = top_range_list(*remaining_cases);
-	} else {
-		if (!get_value(case_expr, &sval))
-			goto free;
 
-		filter_top_range_list(remaining_cases, sval);
-		add_range(&vals, sval, sval);
+	if (case_expr) {
+		if (get_value(case_expr, &sval)) {
+			filter_top_range_list(remaining_cases, sval);
+			add_range(&vals, sval, sval);
+		} else {
+			vals = clone_range_list(top_range_list(*remaining_cases));
+		}
+	} else {
+		vals = top_range_list(*remaining_cases);
 	}
+
 	if (sm)
 		separate_and_filter(sm, SPECIAL_EQUAL, vals, LEFT, *raw_slist, &true_states, &false_states);
 
-	true_sm = get_sm_state_slist(true_states, SMATCH_EXTRA, name, sym);
-	if (!true_sm)
-		set_state_slist(&true_states, SMATCH_EXTRA, name, sym, alloc_estate_range_list(vals));
+	set_state_slist(&true_states, SMATCH_EXTRA, name, sym, alloc_estate_range_list(vals));
 	overwrite_slist(true_states, &ret);
 	free_slist(&true_states);
 	free_slist(&false_states);
