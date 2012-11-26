@@ -497,6 +497,8 @@ static int get_fuzzy_max_helper(struct expression *expr, sval_t *max)
 
 	if (sval_is_min(sval))
 		return 0;
+	if (sval.value == sval_type_min(sval.type).value + 1)  /* it's common to be on off */
+		return 0;
 
 	*max = sval_cast(get_type(expr), sval);
 	return 1;
