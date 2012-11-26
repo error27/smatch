@@ -283,12 +283,12 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 
 	switch (implied) {
 	case IMPLIED_MAX:
-	case FUZZY_MAX:
 	case ABSOLUTE_MAX:
 		if (sval_binop_overflows(left, expr->op, right))
 			return sval_type_max(get_type(expr));
 		break;
 	case HARD_MAX:
+	case FUZZY_MAX:
 		if (sval_binop_overflows(left, expr->op, right)) {
 			*undefined = 1;
 			return bogus;
