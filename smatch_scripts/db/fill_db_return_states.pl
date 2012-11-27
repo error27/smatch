@@ -58,6 +58,12 @@ while (<WARNS>) {
         ($file_and_line, $func, $dummy, $dummy, $return_id, $dummy) = split(/ /, $_);
         ($dummy, $return_value, $dummy, $value, $gs) = split(/'/, $_);
         $param = -1;
+    } elsif ($_ =~ /info: return_value /) {
+        # test.c:15 alloc_foo() info: return_value 1 '4096-s64max' '$$->x' '1' global
+        $type = 5;  # RETURN_VALUE
+        ($file_and_line, $func, $dummy, $dummy, $return_id, $dummy) = split(/ /, $_);
+        ($dummy, $return_value, $dummy, $key, $dummy, $value, $gs) = split(/'/, $_);
+        $param = -1;
     } else {
         next;
     }

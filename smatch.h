@@ -463,6 +463,7 @@ enum info_type {
 int get_return_id(void);
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
 void add_member_info_callback(int owner, void (*callback)(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state));
+void add_returned_member_callback(int owner, void (*callback)(char *return_ranges, char *printed_name, struct smatch_state *state));
 void add_db_fn_call_callback(int type, void (*callback)(struct expression *arg, char *value));
 struct range_list *db_return_vals(struct expression *expr);
 

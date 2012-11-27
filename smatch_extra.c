@@ -955,6 +955,39 @@ static void struct_member_callback(char *fn, char *global_static, int param, cha
 	sm_msg("info: passes param_value '%s' %d '%s' %s %s", fn, param, printed_name, state->name, global_static);
 }
 
+static void db_returned_member_info(struct expression *expr, int param, char *key, char *value)
+{
+	struct symbol *type;
+	struct symbol *sym;
+	char *name;
+	char member_name[256];
+	struct range_list *rl;
+
+	if (expr->type != EXPR_ASSIGNMENT)
+		return;
+
+	name = get_variable_from_expr(expr->left, &sym);
+	if (!name || !sym)
+		goto free;
+	snprintf(member_name, sizeof(member_name), "%s%s", name, key + 2);
+	type = get_member_type_from_key(sym, key);
+	if (!type)
+		return;
+	parse_value_ranges_type(type, value, &rl);
+	set_extra_mod(member_name, sym, alloc_estate_range_list(rl));
+
+free:
+	free_string(name);
+}
+
+static void returned_member_callback(char *return_ranges, char *printed_name, struct smatch_state *state)
+{
+	if (is_whole_range(state))
+		return;
+	sm_msg("info: return_value %d '%s' '%s' '%s' %s", get_return_id(),
+	       return_ranges, printed_name, state->name, global_static());
+}
+
 static void match_call_info(struct expression *expr)
 {
 	struct range_list *rl = NULL;
@@ -1014,8 +1047,10 @@ void register_smatch_extra(int id)
 	if (option_info) {
 		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 		add_member_info_callback(my_id, struct_member_callback);
+		add_returned_member_callback(my_id, returned_member_callback);
 	}
 	add_definition_db_callback(set_param_value, PARAM_VALUE);
+	add_db_return_states_callback(RETURN_VALUE, &db_returned_member_info);
 }
 
 void register_smatch_extra_late(int id)

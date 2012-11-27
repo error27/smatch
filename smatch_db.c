@@ -32,6 +32,14 @@ ALLOCATOR(member_info_callback, "caller_info callbacks");
 DECLARE_PTR_LIST(member_info_cb_list, struct member_info_callback);
 static struct member_info_cb_list *member_callbacks;
 
+struct returned_member_callback {
+	int owner;
+	void (*callback)(char *return_ranges, char *printed_name, struct smatch_state *state);
+};
+ALLOCATOR(returned_member_callback, "returned member callbacks");
+DECLARE_PTR_LIST(returned_member_cb_list, struct returned_member_callback);
+static struct returned_member_cb_list *returned_member_callbacks;
+
 struct call_implies_callback {
 	int type;
 	void (*callback)(struct expression *arg, char *value);
@@ -82,6 +90,15 @@ void add_member_info_callback(int owner, void (*callback)(char *fn, char *global
 	member_callback->owner = owner;
 	member_callback->callback = callback;
 	add_ptr_list(&member_callbacks, member_callback);
+}
+
+void add_returned_member_callback(int owner, void (*callback)(char *return_ranges, char *printed_name, struct smatch_state *state))
+{
+	struct returned_member_callback *member_callback = __alloc_returned_member_callback(0);
+
+	member_callback->owner = owner;
+	member_callback->callback = callback;
+	add_ptr_list(&returned_member_callbacks, member_callback);
 }
 
 void add_db_fn_call_callback(int type, void (*callback)(struct expression *arg, char *value))
@@ -489,6 +506,52 @@ static void match_return_info(struct expression *ret_value)
 	       get_return_id(), show_ranges(rl), global_static());
 }
 
+static void print_returned_struct_members(struct expression *expr)
+{
+	struct returned_member_callback *cb;
+	struct state_list *slist;
+	struct sm_state *sm;
+	struct symbol *type;
+	struct range_list *rl;
+	char *return_ranges;
+	char *name;
+	char member_name[256];
+	int len;
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_PTR)
+		return;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_STRUCT)
+		return;
+	name = get_variable_from_expr(expr, NULL);
+	if (!name)
+		return;
+
+	if (!get_implied_range_list(expr, &rl))
+		return;
+	return_ranges = show_ranges(rl);
+
+	member_name[sizeof(member_name) - 1] = '\0';
+	strcpy(member_name, "$$");
+
+	len = strlen(name);
+	FOR_EACH_PTR(returned_member_callbacks, cb) {
+		slist = get_all_states(cb->owner);
+		FOR_EACH_PTR(slist, sm) {
+			if (strncmp(sm->name, name, len) != 0)
+				continue;
+			if (strncmp(sm->name + len, "->", 2) != 0)
+				continue;
+			strncpy(member_name + 2, sm->name + len, sizeof(member_name) - 2);
+			cb->callback(return_ranges, member_name, sm->state);
+		} END_FOR_EACH_PTR(sm);
+		free_slist(&slist);
+	} END_FOR_EACH_PTR(cb);
+
+	free_string(name);
+}
+
 static void match_end_func_info(struct symbol *sym)
 {
 	if (__path_is_null())
@@ -544,6 +607,7 @@ void register_definition_db_callbacks(int id)
 		add_hook(&global_variable, BASE_HOOK);
 		add_hook(&global_variable, DECLARATION_HOOK);
 		add_hook(&match_return_info, RETURN_HOOK);
+		add_hook(&print_returned_struct_members, RETURN_HOOK);
 		add_hook(&match_end_func_info, END_FUNC_HOOK);
 	}
 
