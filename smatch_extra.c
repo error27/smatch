@@ -995,7 +995,7 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 		return;
 
 	snprintf(fullname, 256, "%s%s", name, key + 2);
-	type = get_param_type_from_key(sym, key);
+	type = get_member_type_from_key(sym, key);
 	parse_value_ranges_type(type, value, &rl);
 	state = alloc_estate_range_list(rl);
 	set_state(SMATCH_EXTRA, fullname, sym, state);

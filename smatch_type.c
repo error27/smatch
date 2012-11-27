@@ -448,7 +448,7 @@ static struct symbol *get_member_from_string(struct symbol_list *symbol_list, ch
 	return NULL;
 }
 
-struct symbol *get_param_type_from_key(struct symbol *sym, char *key)
+struct symbol *get_member_type_from_key(struct symbol *sym, char *key)
 {
 	if (strcmp(key, "$$") == 0)
 		return get_real_base_type(sym);
