@@ -500,3 +500,18 @@ struct statement *get_current_statement(void)
 	} END_FOR_EACH_PTR_REVERSE(tmp);
 	return prev;
 }
+
+int get_param_num_from_sym(struct symbol *sym)
+{
+	struct symbol *tmp;
+	int i;
+
+	i = 0;
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, tmp) {
+		if (tmp == sym)
+			return i;
+		i++;
+	} END_FOR_EACH_PTR(tmp);
+	return -1;
+}
+
