@@ -230,10 +230,10 @@ static void match_call_info(struct expression *expr)
 			print_struct_members(name, gs, arg, i, slist, cb->callback);
 			i++;
 		} END_FOR_EACH_PTR(arg);
+		free_slist(&slist);
 	} END_FOR_EACH_PTR(cb);
 
 	free_string(name);
-	free_slist(&slist);
 }
 
 static int get_param(int param, char **name, struct symbol **sym)
