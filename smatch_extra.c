@@ -1044,11 +1044,6 @@ void register_smatch_extra(int id)
 	add_hook(&asm_expr, ASM_HOOK);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
-	if (option_info) {
-		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
-		add_member_info_callback(my_id, struct_member_callback);
-		add_returned_member_callback(my_id, returned_member_callback);
-	}
 	add_definition_db_callback(set_param_value, PARAM_VALUE);
 	add_db_return_states_callback(RETURN_VALUE, &db_returned_member_info);
 }
@@ -1061,4 +1056,10 @@ void register_smatch_extra_late(int id)
 	add_indirect_modification_hook(SMATCH_EXTRA, reset_struct_members);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+
+	if (option_info) {
+		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
+		add_member_info_callback(my_id, struct_member_callback);
+		add_returned_member_callback(my_id, returned_member_callback);
+	}
 }
