@@ -64,6 +64,11 @@ while (<WARNS>) {
         ($file_and_line, $func, $dummy, $dummy, $return_id, $dummy) = split(/ /, $_);
         ($dummy, $return_value, $dummy, $key, $dummy, $value, $gs) = split(/'/, $_);
         $param = -1;
+    } elsif ($_ =~ /info: return_value_param /) {
+        # test.c:11 set_int() info: return_value_param 0 0 '' '*$$' '1' global
+        $type = 1;  # PARAM_VALUE
+        ($file_and_line, $func, $dummy, $dummy, $return_id, $param, $dummy) = split(/ /, $_);
+        ($dummy, $return_value, $dummy, $key, $dummy, $value, $gs) = split(/'/, $_);
     } else {
         next;
     }

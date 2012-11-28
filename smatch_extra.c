@@ -955,6 +955,55 @@ static void struct_member_callback(char *fn, char *global_static, int param, cha
 	sm_msg("info: passes param_value '%s' %d '%s' %s %s", fn, param, printed_name, state->name, global_static);
 }
 
+static void db_returned_states_param(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *arg;
+	struct symbol *type;
+	struct range_list *rl;
+	char member_name[256];
+	char *name;
+	struct symbol *sym;
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return;
+	arg = get_argument_from_call_expr(expr->args, param);
+	arg = strip_expr(arg);
+	if (!arg)
+		return;
+
+	if (strcmp(key, "*$$") == 0) {
+		if (arg->type != EXPR_PREOP || arg->op != '&')
+			return;
+		arg = strip_expr(arg->unop);
+		type = get_type(arg);
+		parse_value_ranges_type(type, value, &rl);
+		set_extra_expr_mod(arg, alloc_estate_range_list(rl));
+		return;
+	}
+
+	if (arg->type == EXPR_PREOP && arg->op == '&') {
+		arg = strip_expr(arg->unop);
+		name = get_variable_from_expr(arg, &sym);
+		if (!name || !sym)
+			goto free;
+		snprintf(member_name, sizeof(member_name), "%s.%s", name, key + 4);
+	} else {
+		name = get_variable_from_expr(arg, &sym);
+		if (!name || !sym)
+			goto free;
+		snprintf(member_name, sizeof(member_name), "%s%s", name, key + 2);
+	}
+	type = get_member_type_from_key(sym, key);
+	if (!type)
+		return;
+	parse_value_ranges_type(type, value, &rl);
+	set_extra_mod(member_name, sym, alloc_estate_range_list(rl));
+free:
+	free_string(name);
+}
+
 static void db_returned_member_info(struct expression *expr, int param, char *key, char *value)
 {
 	struct symbol *type;
@@ -986,6 +1035,83 @@ static void returned_member_callback(char *return_ranges, char *printed_name, st
 		return;
 	sm_msg("info: return_value %d '%s' '%s' '%s' %s", get_return_id(),
 	       return_ranges, printed_name, state->name, global_static());
+}
+
+static struct state_list *start_states;
+static void save_start_states(struct statement *stmt)
+{
+	if (!start_states)
+		start_states = get_all_states(SMATCH_EXTRA);
+}
+
+static struct state_list *get_param_changed_list()
+{
+	struct state_list *slist = NULL;
+	struct state_list *cur;
+	struct sm_state *old, *new;
+
+	cur = get_all_states(SMATCH_EXTRA);
+	FOR_EACH_PTR(cur, new) {
+		old = get_sm_state_slist(start_states, new->owner, new->name, new->sym);
+		if (old && estates_equiv(old->state, new->state))
+			continue;
+		add_ptr_list(&slist, new);
+	} END_FOR_EACH_PTR(new);
+
+	return slist;
+}
+
+static void match_return(struct expression *expr)
+{
+	struct state_list *slist;
+	struct sm_state *sm;
+	char *param_name;
+	int name_len;
+	int param;
+	struct range_list *rl;
+	char *return_ranges;
+
+	if (!expr) {
+		return_ranges = alloc_sname("");
+	} else {
+		get_implied_range_list(expr, &rl);
+		rl = cast_rl(cur_func_return_type(), rl);
+		return_ranges = show_ranges(rl);
+	}
+
+	slist = get_param_changed_list();
+
+	FOR_EACH_PTR(slist, sm) {
+		param = get_param_num_from_sym(sm->sym);
+		if (param < 0)
+			continue;
+
+		if (!sm->sym->ident)
+			continue;
+		param_name = sm->sym->ident->name;
+		name_len = strlen(param_name);
+
+		if (strcmp(sm->name, param_name) == 0)
+			continue;
+
+		if (strncmp(sm->name, param_name, name_len) == 0) {
+			sm_msg("info: return_value_param %d %d '%s' '$$%s' '%s' %s",
+			       get_return_id(), param, return_ranges,
+			       sm->name + name_len, sm->state->name, global_static());
+		} else if (sm->name[0] == '*' &&
+			   strcmp(sm->name + 1, param_name) == 0) {
+			sm_msg("info: return_value_param %d %d '%s' '*$$' '%s' %s",
+			       get_return_id(), param, return_ranges,
+			       sm->state->name, global_static());
+		}
+	} END_FOR_EACH_PTR(sm);
+}
+
+static void match_end_func(void)
+{
+	if (!__path_is_null())
+		match_return(NULL);
+	free_slist(&start_states);
 }
 
 static void match_call_info(struct expression *expr)
@@ -1046,6 +1172,7 @@ void register_smatch_extra(int id)
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_definition_db_callback(set_param_value, PARAM_VALUE);
 	add_db_return_states_callback(RETURN_VALUE, &db_returned_member_info);
+	add_db_return_states_callback(PARAM_VALUE, &db_returned_states_param);
 }
 
 void register_smatch_extra_late(int id)
@@ -1061,5 +1188,9 @@ void register_smatch_extra_late(int id)
 		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 		add_member_info_callback(my_id, struct_member_callback);
 		add_returned_member_callback(my_id, returned_member_callback);
+
+		add_hook(&save_start_states, STMT_HOOK);
+		add_hook(&match_return, RETURN_HOOK);
+		add_hook(&match_end_func, END_FUNC_HOOK);
 	}
 }
