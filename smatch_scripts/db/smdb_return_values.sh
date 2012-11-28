@@ -12,4 +12,4 @@ if [ "$func" = "" ] ; then
     usage
 fi
 
-echo "select * from return_info where function = '$func';" | sqlite3 smatch_db.sqlite
+echo "select * from return_values where function = '$func';" | sqlite3 smatch_db.sqlite
