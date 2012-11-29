@@ -974,12 +974,29 @@ static void db_returned_states_param(struct expression *expr, int param, char *k
 		return;
 
 	if (strcmp(key, "*$$") == 0) {
-		if (arg->type != EXPR_PREOP || arg->op != '&')
+		struct symbol *sym;
+		char buf[256];
+		char *name;
+
+		if (arg->type == EXPR_PREOP && arg->op == '&') {
+			arg = strip_expr(arg->unop);
+			name = get_variable_from_expr(arg, &sym);
+		} else {
+			char *tmp = get_variable_from_expr(arg, &sym);
+
+			if (!tmp)
+				return;
+			snprintf(buf, sizeof(buf), "*%s", tmp);
+			name = alloc_string(buf);
+		}
+		if (!name || !sym) {
+			free_string(name);
 			return;
-		arg = strip_expr(arg->unop);
+		}
 		type = get_type(arg);
 		parse_value_ranges_type(type, value, &rl);
-		set_extra_expr_mod(arg, alloc_estate_range_list(rl));
+		set_extra_mod(name, sym, alloc_estate_range_list(rl));
+		free_string(name);
 		return;
 	}
 
