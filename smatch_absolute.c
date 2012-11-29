@@ -163,7 +163,7 @@ int get_absolute_min_helper(struct expression *expr, sval_t *sval)
 	struct smatch_state *state;
 	struct data_range *range;
 
-	if (get_implied_value(expr, sval))
+	if (get_implied_min(expr, sval))
 		return 1;
 
 	state = get_state_expr(my_id, expr);
