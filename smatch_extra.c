@@ -1099,6 +1099,9 @@ static void match_return(struct expression *expr)
 	slist = get_param_changed_list();
 
 	FOR_EACH_PTR(slist, sm) {
+		if (!estate_ranges(sm->state))
+			continue;
+
 		param = get_param_num_from_sym(sm->sym);
 		if (param < 0)
 			continue;
