@@ -376,7 +376,7 @@ static void match_function_assign(struct expression *expr)
 	char *ptr_name;
 
 	if (right->type == EXPR_PREOP && right->op == '&')
-		right = right->unop;
+		right = strip_expr(right->unop);
 	if (right->type != EXPR_SYMBOL)
 		return;
 	sym = get_type(right);
@@ -604,6 +604,7 @@ void register_definition_db_callbacks(int id)
 		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 		add_hook(&match_call_hack, FUNCTION_CALL_HOOK);
 		add_hook(&match_function_assign, ASSIGNMENT_HOOK);
+		add_hook(&match_function_assign, GLOBAL_ASSIGNMENT_HOOK);
 		add_hook(&global_variable, BASE_HOOK);
 		add_hook(&global_variable, DECLARATION_HOOK);
 		add_hook(&match_return_info, RETURN_HOOK);
