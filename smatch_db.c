@@ -34,7 +34,7 @@ static struct member_info_cb_list *member_callbacks;
 
 struct returned_member_callback {
 	int owner;
-	void (*callback)(char *return_ranges, char *printed_name, struct smatch_state *state);
+	void (*callback)(int return_id, char *return_ranges, char *printed_name, struct smatch_state *state);
 };
 ALLOCATOR(returned_member_callback, "returned member callbacks");
 DECLARE_PTR_LIST(returned_member_cb_list, struct returned_member_callback);
@@ -92,7 +92,7 @@ void add_member_info_callback(int owner, void (*callback)(char *fn, char *global
 	add_ptr_list(&member_callbacks, member_callback);
 }
 
-void add_returned_member_callback(int owner, void (*callback)(char *return_ranges, char *printed_name, struct smatch_state *state))
+void add_returned_member_callback(int owner, void (*callback)(int return_id, char *return_ranges, char *printed_name, struct smatch_state *state))
 {
 	struct returned_member_callback *member_callback = __alloc_returned_member_callback(0);
 
@@ -544,7 +544,7 @@ static void print_returned_struct_members(struct expression *expr)
 			if (strncmp(sm->name + len, "->", 2) != 0)
 				continue;
 			strncpy(member_name + 2, sm->name + len, sizeof(member_name) - 2);
-			cb->callback(return_ranges, member_name, sm->state);
+			cb->callback(get_return_id(), return_ranges, member_name, sm->state);
 		} END_FOR_EACH_PTR(sm);
 		free_slist(&slist);
 	} END_FOR_EACH_PTR(cb);

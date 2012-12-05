@@ -1046,11 +1046,11 @@ free:
 	free_string(name);
 }
 
-static void returned_member_callback(char *return_ranges, char *printed_name, struct smatch_state *state)
+static void returned_member_callback(int return_id, char *return_ranges, char *printed_name, struct smatch_state *state)
 {
 	if (is_whole_range(state))
 		return;
-	sm_msg("info: return_value %d '%s' '%s' '%s' %s", get_return_id(),
+	sm_msg("info: return_value %d '%s' '%s' '%s' %s", return_id,
 	       return_ranges, printed_name, state->name, global_static());
 }
 
