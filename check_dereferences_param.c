@@ -70,8 +70,6 @@ static void check_deref(struct expression *expr)
 
 	if (!is_arg(expr))
 		return;
-	if (implied_not_equal(expr, 0))
-		return;
 
 	sm = get_sm_state_expr(my_id, expr);
 	if (sm && slist_has_state(sm->possible, &ignore))
