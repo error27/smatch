@@ -1061,13 +1061,13 @@ static void save_start_states(struct statement *stmt)
 		start_states = get_all_states(SMATCH_EXTRA);
 }
 
-static struct state_list *get_param_changed_list()
+static struct state_list *get_param_changed_list(struct state_list *source)
 {
 	struct state_list *slist = NULL;
 	struct state_list *cur;
 	struct sm_state *old, *new;
 
-	cur = get_all_states(SMATCH_EXTRA);
+	cur = get_all_states_slist(SMATCH_EXTRA, source);
 	FOR_EACH_PTR(cur, new) {
 		old = get_sm_state_slist(start_states, new->owner, new->name, new->sym);
 		if (old && estates_equiv(old->state, new->state))
@@ -1078,27 +1078,17 @@ static struct state_list *get_param_changed_list()
 	return slist;
 }
 
-static void match_return(struct expression *expr)
+static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
 {
-	struct state_list *slist;
+	struct state_list *my_slist;
 	struct sm_state *sm;
 	char *param_name;
 	int name_len;
 	int param;
-	struct range_list *rl;
-	char *return_ranges;
 
-	if (!expr) {
-		return_ranges = alloc_sname("");
-	} else {
-		get_implied_range_list(expr, &rl);
-		rl = cast_rl(cur_func_return_type(), rl);
-		return_ranges = show_ranges(rl);
-	}
+	my_slist = get_param_changed_list(slist);
 
-	slist = get_param_changed_list();
-
-	FOR_EACH_PTR(slist, sm) {
+	FOR_EACH_PTR(my_slist, sm) {
 		if (!estate_ranges(sm->state))
 			continue;
 
@@ -1116,12 +1106,12 @@ static void match_return(struct expression *expr)
 
 		if (strncmp(sm->name, param_name, name_len) == 0) {
 			sm_msg("info: return_value_param %d %d '%s' '$$%s' '%s' %s",
-			       get_return_id(), param, return_ranges,
+			       return_id, param, return_ranges,
 			       sm->name + name_len, sm->state->name, global_static());
 		} else if (sm->name[0] == '*' &&
 			   strcmp(sm->name + 1, param_name) == 0) {
 			sm_msg("info: return_value_param %d %d '%s' '*$$' '%s' %s",
-			       get_return_id(), param, return_ranges,
+			       return_id, param, return_ranges,
 			       sm->state->name, global_static());
 		}
 	} END_FOR_EACH_PTR(sm);
@@ -1129,8 +1119,6 @@ static void match_return(struct expression *expr)
 
 static void match_end_func(void)
 {
-	if (!__path_is_null())
-		match_return(NULL);
 	free_slist(&start_states);
 }
 
@@ -1210,7 +1198,7 @@ void register_smatch_extra_late(int id)
 		add_returned_member_callback(my_id, returned_member_callback);
 
 		add_hook(&save_start_states, STMT_HOOK);
-		add_hook(&match_return, RETURN_HOOK);
+		add_returned_state_callback(&print_return_value_param);
 		add_hook(&match_end_func, END_FUNC_HOOK);
 	}
 }
