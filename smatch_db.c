@@ -540,19 +540,6 @@ static void call_return_state_hooks(struct expression *expr)
 	} END_FOR_EACH_PTR(cb);
 }
 
-struct state_list *get_my_states(int owner, struct state_list *source)
-{
-	struct state_list *slist = NULL;
-	struct sm_state *tmp;
-
-	FOR_EACH_PTR(source, tmp) {
-		if (tmp->owner == owner)
-			add_ptr_list(&slist, tmp);
-	} END_FOR_EACH_PTR(tmp);
-
-	return slist;
-}
-
 static void print_returned_struct_members(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
 {
 	struct returned_member_callback *cb;
@@ -578,7 +565,7 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 
 	len = strlen(name);
 	FOR_EACH_PTR(returned_member_callbacks, cb) {
-		my_slist = get_my_states(cb->owner, slist);
+		my_slist = get_all_states_slist(cb->owner, slist);
 		FOR_EACH_PTR(my_slist, sm) {
 			if (strncmp(sm->name, name, len) != 0)
 				continue;

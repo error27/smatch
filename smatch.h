@@ -210,6 +210,7 @@ void set_true_false_states_expr(int owner, struct expression *expr,
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state);
 
+struct state_list *get_all_states_slist(int owner, struct state_list *source);
 struct state_list *get_all_states(int id);
 int is_reachable(void);
 

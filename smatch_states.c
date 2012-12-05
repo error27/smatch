@@ -291,6 +291,19 @@ free:
 	free_string(name);
 }
 
+struct state_list *get_all_states_slist(int owner, struct state_list *source)
+{
+	struct state_list *slist = NULL;
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(source, tmp) {
+		if (tmp->owner == owner)
+			add_ptr_list(&slist, tmp);
+	} END_FOR_EACH_PTR(tmp);
+
+	return slist;
+}
+
 struct state_list *get_all_states(int owner)
 {
 	struct state_list *slist = NULL;
