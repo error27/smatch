@@ -111,6 +111,26 @@ static void match_call(struct expression *expr)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static void asm_expr(struct statement *stmt)
+{
+
+	struct expression *expr;
+	int state = 0;
+
+	FOR_EACH_PTR(stmt->asm_outputs, expr) {
+		switch (state) {
+		case 0: /* identifier */
+		case 1: /* constraint */
+			state++;
+			continue;
+		case 2: /* expression */
+			state = 0;
+			call_modification_hooks(expr);
+			continue;
+		}
+	} END_FOR_EACH_PTR(expr);
+}
+
 void register_modification_hooks(int id)
 {
 	hooks = malloc((num_checks + 1) * sizeof(*hooks));
@@ -120,6 +140,7 @@ void register_modification_hooks(int id)
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&unop_expr, OP_HOOK);
+	add_hook(&asm_expr, ASM_HOOK);
 }
 
 void register_modification_hooks_late(int id)
