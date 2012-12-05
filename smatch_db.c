@@ -597,7 +597,7 @@ static void match_end_func_info(struct symbol *sym)
 {
 	if (__path_is_null())
 		return;
-	sm_msg("info: return_marker %d '' %s", get_return_id(), global_static());
+	call_return_state_hooks(NULL);
 }
 
 static void match_function_def(struct symbol *sym)
