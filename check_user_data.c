@@ -315,15 +315,11 @@ static void struct_member_callback(char *fn, char *global_static, int param, cha
 	sm_msg("info: passes user_data '%s' %d '%s' %s", fn, param, printed_name, global_static);
 }
 
-static void match_return(struct expression *expr)
+static void print_returned_user_data(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
 {
 	if (is_user_data(expr)) {
-		struct range_list *rl;
-
-		get_implied_range_list(expr, &rl);
-		rl = cast_rl(cur_func_return_type(), rl);
 		sm_msg("info: returns_user_data %d '%s' %s",
-		       get_return_id(), show_ranges(rl), global_static());
+		       return_id, return_ranges, global_static());
 	}
 }
 
@@ -344,6 +340,6 @@ void check_user_data(int id)
 	if (option_info) {
 		add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
 		add_member_info_callback(my_id, struct_member_callback);
-		add_hook(&match_return, RETURN_HOOK);
+		add_returned_state_callback(print_returned_user_data);
 	}
 }
