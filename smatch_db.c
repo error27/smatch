@@ -524,10 +524,15 @@ static void call_return_state_hooks(struct expression *expr)
 	struct range_list *rl;
 	char *return_ranges;
 
-	if (!get_implied_range_list(expr, &rl))
-		return;
-	rl = cast_rl(cur_func_return_type(), rl);
-	return_ranges = show_ranges(rl);
+	if (!expr) {
+		return_ranges = alloc_sname("");
+	} else if (get_implied_range_list(expr, &rl)) {
+		rl = cast_rl(cur_func_return_type(), rl);
+		return_ranges = show_ranges(rl);
+	} else {
+		rl = whole_range_list(cur_func_return_type());
+		return_ranges = show_ranges(rl);
+	}
 
 	slist = __get_cur_slist();
 	FOR_EACH_PTR(returned_state_callbacks, cb) {
