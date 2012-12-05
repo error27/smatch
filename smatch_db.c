@@ -32,6 +32,13 @@ ALLOCATOR(member_info_callback, "caller_info callbacks");
 DECLARE_PTR_LIST(member_info_cb_list, struct member_info_callback);
 static struct member_info_cb_list *member_callbacks;
 
+struct returned_state_callback {
+	void (*callback)(int return_id, char *return_ranges, struct expression *return_expr, struct state_list *slist);
+};
+ALLOCATOR(returned_state_callback, "returned state callbacks");
+DECLARE_PTR_LIST(returned_state_cb_list, struct returned_state_callback);
+static struct returned_state_cb_list *returned_state_callbacks;
+
 struct returned_member_callback {
 	int owner;
 	void (*callback)(int return_id, char *return_ranges, char *printed_name, struct smatch_state *state);
@@ -90,6 +97,14 @@ void add_member_info_callback(int owner, void (*callback)(char *fn, char *global
 	member_callback->owner = owner;
 	member_callback->callback = callback;
 	add_ptr_list(&member_callbacks, member_callback);
+}
+
+void add_returned_state_callback(void (*fn)(int return_id, char *return_ranges, struct expression *returned_expr, struct state_list *slist))
+{
+	struct returned_state_callback *callback = __alloc_returned_state_callback(0);
+
+	callback->callback = fn;
+	add_ptr_list(&returned_state_callbacks, callback);
 }
 
 void add_returned_member_callback(int owner, void (*callback)(int return_id, char *return_ranges, char *printed_name, struct smatch_state *state))
@@ -496,14 +511,28 @@ static void global_variable(struct symbol *sym)
 	print_initializer_list(sym->initializer->expr_list, struct_type);
 }
 
-static void match_return_info(struct expression *ret_value)
+static void match_return_info(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
 {
-	struct range_list *rl;
+	sm_msg("info: return_marker %d '%s' %s", return_id, return_ranges,
+	       global_static());
+}
 
-	get_implied_range_list(ret_value, &rl);
+static void call_return_state_hooks(struct expression *expr)
+{
+	struct returned_state_callback *cb;
+	struct state_list *slist;
+	struct range_list *rl;
+	char *return_ranges;
+
+	if (!get_implied_range_list(expr, &rl))
+		return;
 	rl = cast_rl(cur_func_return_type(), rl);
-	sm_msg("info: return_marker %d '%s' %s",
-	       get_return_id(), show_ranges(rl), global_static());
+	return_ranges = show_ranges(rl);
+
+	slist = __get_cur_slist();
+	FOR_EACH_PTR(returned_state_callbacks, cb) {
+		cb->callback(get_return_id(), return_ranges, expr, slist);
+	} END_FOR_EACH_PTR(cb);
 }
 
 static void print_returned_struct_members(struct expression *expr)
@@ -607,7 +636,8 @@ void register_definition_db_callbacks(int id)
 		add_hook(&match_function_assign, GLOBAL_ASSIGNMENT_HOOK);
 		add_hook(&global_variable, BASE_HOOK);
 		add_hook(&global_variable, DECLARATION_HOOK);
-		add_hook(&match_return_info, RETURN_HOOK);
+		add_returned_state_callback(match_return_info);
+		add_hook(&call_return_state_hooks, RETURN_HOOK);
 		add_hook(&print_returned_struct_members, RETURN_HOOK);
 		add_hook(&match_end_func_info, END_FUNC_HOOK);
 	}
