@@ -444,43 +444,45 @@ static void match_call_assignment(struct expression *expr)
 	set_state_expr(my_id, expr->left, alloc_state_sname(sname));
 }
 
-static void match_returns_call(struct expression *call)
+static void match_returns_call(int return_id, char *return_ranges, struct expression *call)
 {
 	char *sname;
-	struct range_list *rl;
 
 	sname = get_allocation_recipe_from_call(call);
 	if (option_debug)
 		sm_msg("sname = %s", sname);
 	if (!sname)
 		return;
-	get_implied_range_list(call, &rl);
-	rl = cast_rl(cur_func_return_type(), rl);
 	sm_msg("info: return_allocation %d '%s' '%s' %s",
-	       get_return_id(), show_ranges(rl), sname, global_static());
+	       return_id, return_ranges, sname, global_static());
 }
 
-static void match_return(struct expression *expr)
+static void print_returned_allocations(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
 {
 	struct smatch_state *state;
-	struct range_list *rl;
+	struct symbol *sym;
+	char *name;
 
 	expr = strip_expr(expr);
 	if (!expr)
 		return;
 
 	if (expr->type == EXPR_CALL) {
-		match_returns_call(expr);
+		match_returns_call(return_id, return_ranges, expr);
 		return;
 	}
 
-	state = get_state_expr(my_id, expr);
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	state = get_state_slist(slist, my_id, name, sym);
 	if (!state || !state->data)
-		return;
-	get_implied_range_list(expr, &rl);
-	rl = cast_rl(cur_func_return_type(), rl);
+		goto free;
 	sm_msg("info: return_allocation %d '%s' '%s' %s",
-	       get_return_id(), show_ranges(rl), state->name, global_static());
+	       return_id, return_ranges, state->name, global_static());
+free:
+	free_string(name);
 }
 
 void register_parse_call_math(int id)
@@ -494,6 +496,6 @@ void register_parse_call_math(int id)
 		add_function_assign_hook(alloc_functions[i].func, &match_alloc,
 				         INT_PTR(alloc_functions[i].param));
 	add_hook(&match_call_assignment, CALL_ASSIGNMENT_HOOK);
-	add_hook(&match_return, RETURN_HOOK);
+	add_returned_state_callback(print_returned_allocations);
 }
 
