@@ -462,7 +462,6 @@ enum info_type {
 	ABSOLUTE_LIMITS,
 };
 
-int get_return_id(void);
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
 void add_member_info_callback(int owner, void (*callback)(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state));
 void add_returned_state_callback(void (*fn)(int return_id, char *return_ranges, struct expression *returned_expr, struct state_list *slist));
