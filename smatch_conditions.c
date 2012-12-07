@@ -436,23 +436,22 @@ void __handle_logic(struct expression *expr)
 	sm_debug("%d done __handle_logic\n", get_lineno());
 }
 
-int __is_condition_assign(struct expression *expr)
+int is_condition(struct expression *expr)
 {
-	struct expression *right;
 
-	right = strip_expr(expr->right);
-	switch (right->type) {
+	expr = strip_expr(expr);
+	if (!expr)
+		return 0;
+
+	switch (expr->type) {
 	case EXPR_LOGICAL:
 	case EXPR_COMPARE:
-		break;
+		return 1;
 	case EXPR_PREOP:
-		if (right->op == '!')
-			break;
-		return 0;
-	default:
-		return 0;
+		if (expr->op == '!')
+			return 1;
 	}
-	return 1;
+	return 0;
 }
 
 int __handle_condition_assigns(struct expression *expr)
@@ -460,7 +459,7 @@ int __handle_condition_assigns(struct expression *expr)
 	struct expression *right;
 
 	right = strip_expr(expr->right);
-	if (!__is_condition_assign(expr))
+	if (!is_condition(expr->right))
 		return 0;
 
 	sm_debug("%d in __handle_condition_assigns\n", get_lineno());

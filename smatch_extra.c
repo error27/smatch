@@ -425,7 +425,7 @@ static void match_assign(struct expression *expr)
 	sval_t right_min, right_max;
 	sval_t tmp;
 
-	if (__is_condition_assign(expr))
+	if (is_condition(expr->right))
 		return;
 	left = strip_expr(expr->left);
 	name = get_variable_from_expr(left, &sym);

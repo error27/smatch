@@ -318,7 +318,7 @@ extern int __bail_on_rest_of_function;
 /* smatch_conditions */
 void __split_whole_condition(struct expression *expr);
 void __handle_logic(struct expression *expr);
-int __is_condition_assign(struct expression *expr);
+int is_condition(struct expression *expr);
 int __handle_condition_assigns(struct expression *expr);
 int __handle_select_assigns(struct expression *expr);
 int __handle_expr_statement_assigns(struct expression *expr);
