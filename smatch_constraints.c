@@ -157,13 +157,18 @@ static void add_related(struct related_list **rlist, int op, const char *name, s
 void del_related(struct smatch_state *state, int op, const char *name, struct symbol *sym)
 {
 	struct relation *tmp;
+	struct relation remove = {
+		.op = op,
+		.name = (char *)name,
+		.sym = sym,
+	};
 
 	FOR_EACH_PTR(estate_related(state), tmp) {
-		if (tmp->sym < sym || strcmp(tmp->name, name) < 0)
+		if (cmp_relation(tmp, &remove) < 0)
 			continue;
-		if (tmp->sym == sym && !strcmp(tmp->name, name)) {
+		if (cmp_relation(tmp, &remove) == 0) {
 			DELETE_CURRENT_PTR(tmp);
-			continue;
+			return;
 		}
 		return;
 	} END_FOR_EACH_PTR(tmp);
