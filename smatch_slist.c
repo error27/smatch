@@ -309,7 +309,6 @@ struct state_list *clone_slist(struct state_list *from_slist)
 	FOR_EACH_PTR(from_slist, sm) {
 		add_ptr_list(&to_slist, sm);
 	} END_FOR_EACH_PTR(sm);
-	check_order(to_slist);
 	return to_slist;
 }
 
