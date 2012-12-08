@@ -200,9 +200,14 @@ void remove_from_equiv(const char *name, struct symbol *sym)
 	FOR_EACH_PTR(to_update, rel) {
 		struct sm_state *new_sm;
 
+		/*
+		 * The trick here is that we want to preserve the implications
+		 * otherwise we could just call:
+		 * set_state(SMATCH_EXTRA, rel->name, rel->sym, state);
+		 */
+
+		orig_sm = get_sm_state(SMATCH_EXTRA, rel->name, rel->sym);
 		new_sm = clone_sm(orig_sm);
-		new_sm->name = rel->name;
-		new_sm->sym = rel->sym;
 		new_sm->state = state;
 		__set_sm(new_sm);
 	} END_FOR_EACH_PTR(rel);
