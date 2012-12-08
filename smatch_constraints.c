@@ -255,7 +255,7 @@ void set_equiv(struct expression *left, struct expression *right)
 	if (!right_sm)
 		right_sm = set_state_expr(SMATCH_EXTRA, right, extra_undefined(get_type(right)));
 	if (!right_sm)
-		return;
+		goto free;
 
 	remove_from_equiv(left_name, left_sym);
 
