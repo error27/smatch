@@ -293,7 +293,7 @@ static void check_order(struct state_list *slist)
 			       last->sym, sm->sym, last->name, sm->name);
 			printed = 1;
 		}
-		last = state;
+		last = sm;
 	} END_FOR_EACH_PTR(sm);
 
 	if (printed)
