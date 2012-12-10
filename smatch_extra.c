@@ -417,7 +417,7 @@ static void match_assign(struct expression *expr)
 	struct expression *left;
 	struct expression *right;
 	struct symbol *right_sym;
-	char *right_name;
+	char *right_name = NULL;
 	struct symbol *sym;
 	char *name;
 	sval_t value;
@@ -436,7 +436,7 @@ static void match_assign(struct expression *expr)
 		right = strip_parens(right->left);
 
 	if (expr->op == '=' && right->type == EXPR_CALL)
-		return;  /* these are handled in smatch_function_hooks.c */
+		goto free;  /* these are handled in smatch_function_hooks.c */
 
 	right_name = get_variable_from_expr(right, &right_sym);
 	if (expr->op == '=' && right_name && right_sym &&
@@ -988,6 +988,7 @@ static void db_returned_states_param(struct expression *expr, int param, char *k
 				return;
 			snprintf(buf, sizeof(buf), "*%s", tmp);
 			name = alloc_string(buf);
+			free_string(tmp);
 		}
 		if (!name || !sym) {
 			free_string(name);
@@ -1014,7 +1015,7 @@ static void db_returned_states_param(struct expression *expr, int param, char *k
 	}
 	type = get_member_type_from_key(sym, key);
 	if (!type)
-		return;
+		goto free;
 	parse_value_ranges_type(type, value, &rl);
 	set_extra_mod(member_name, sym, alloc_estate_range_list(rl));
 free:

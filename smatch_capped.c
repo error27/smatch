@@ -155,6 +155,8 @@ static void match_caller_info(struct expression *expr)
 			       i, is_static(expr->fn) ? "static" : "global");
 		i++;
 	} END_FOR_EACH_PTR(tmp);
+
+	free_string(func);
 }
 
 static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)

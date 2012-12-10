@@ -47,6 +47,8 @@ static void match_call_assignment(struct expression *expr)
 	FOR_EACH_PTR(call->args, arg) {
 		check_sizeof(arg, ptr_name);
 	} END_FOR_EACH_PTR(arg);
+
+	free_string(ptr_name);
 }
 
 static void check_passes_pointer(char *name, struct expression *call)

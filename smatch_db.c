@@ -352,6 +352,8 @@ static void get_function_pointer_callers(struct symbol *sym)
 
 	run_sql(db_callback, "select function_id, type, parameter, key, value from caller_info"
 		" where function = '%s' order by function_id", ptr_name);
+
+	free_string(ptr_name);
 }
 
 static void match_data_from_db(struct symbol *sym)

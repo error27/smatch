@@ -38,7 +38,7 @@ static struct smatch_state *alloc_my_state(const char *name)
 {
 	struct smatch_state *state;
 
-	state = malloc(sizeof(*state));
+	state = __alloc_smatch_state(0);
 	state->name = name;
 	return state;
 }
