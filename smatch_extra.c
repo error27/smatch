@@ -1175,8 +1175,6 @@ void register_smatch_extra(int id)
 
 	add_merge_hook(my_id, &merge_func);
 	add_unmatched_state_hook(my_id, &unmatched_state);
-	add_hook(&unop_expr, OP_HOOK);
-	add_hook(&asm_expr, ASM_HOOK);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_definition_db_callback(set_param_value, PARAM_VALUE);
@@ -1192,6 +1190,8 @@ void register_smatch_extra_late(int id)
 	add_indirect_modification_hook(SMATCH_EXTRA, reset_struct_members);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&unop_expr, OP_HOOK);
+	add_hook(&asm_expr, ASM_HOOK);
 
 	if (option_info) {
 		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
