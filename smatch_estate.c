@@ -262,3 +262,15 @@ struct smatch_state *alloc_estate_range_list(struct range_list *rl)
 	return state;
 }
 
+struct smatch_state *get_implied_estate(struct expression *expr)
+{
+	struct smatch_state *state;
+	struct range_list *rl;
+
+	state = get_state_expr(SMATCH_EXTRA, expr);
+	if (state)
+		return state;
+	if (!get_implied_range_list(expr, &rl))
+		rl = whole_range_list(get_type(expr));
+	return alloc_estate_range_list(rl);
+}
