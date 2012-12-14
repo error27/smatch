@@ -44,19 +44,6 @@ static void register_no_return_funcs(void)
 	clear_token_alloc();
 }
 
-static void return_implies(struct expression *call_expr, int param, char *key, char *value)
-{
-	struct range_list *rl;
-	struct expression *arg;
-
-	if (call_expr->type == EXPR_ASSIGNMENT)
-		call_expr = strip_expr(call_expr->right);
-
-	arg = get_argument_from_call_expr(call_expr->args, param);
-	parse_value_ranges_type(get_type(call_expr), value, &rl);
-	set_extra_expr_nomod(arg, alloc_estate_range_list(rl));
-}
-
 static void register_ignored_macros(void)
 {
 	struct token *token;
@@ -88,5 +75,4 @@ void register_project(int id)
 {
 	register_no_return_funcs();
 	register_ignored_macros();
-	add_db_return_implies_callback(RANGE_CAP, &return_implies);
 }

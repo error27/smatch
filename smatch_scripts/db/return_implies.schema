@@ -1,5 +1,0 @@
-CREATE TABLE return_implies (file varchar(256), function varchar(256), static integer, type integer, return varchar(256), parameter integer, key varchar(256), value varchar(256));
-
-CREATE INDEX return_implies_fn_idx on return_implies (function);
-CREATE INDEX return_implies_ff_idx on return_implies (file, function);
-
