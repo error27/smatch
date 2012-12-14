@@ -85,10 +85,29 @@ static void match_assign(struct expression *expr)
 	set_state_expr(my_id, expr->left, &size_in_bytes);
 }
 
+static void check_assign(struct expression *expr)
+{
+	struct symbol *type;
+	char *name;
+
+	type = get_pointer_type(expr->left);
+	if (!type)
+		return;
+	if (type_bits(type) == 8 || type_bits(type) == -1)
+		return;
+	if (!is_size_in_bytes(expr->right))
+		return;
+	name = get_variable_from_expr(expr->left, NULL);
+	sm_msg("warn: potential pointer math issue ('%s' is a %d bit pointer)",
+	       name, type_bits(type));
+	free_string(name);
+}
+
 void check_pointer_math(int id)
 {
 	my_id = id;
 	add_hook(&match_binop, BINOP_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&check_assign, ASSIGNMENT_HOOK);
 	add_modification_hook(my_id, &set_undefined);
 }
