@@ -144,25 +144,6 @@ struct smatch_state *add_filter(struct smatch_state *orig, sval_t sval)
 	return filter_range(orig, sval, sval);
 }
 
-static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_state *s2)
-{
-	struct smatch_state *tmp;
-	struct range_list *value_ranges;
-	struct related_list *rlist;
-
-	if (estates_equiv(s1, s2))
-		return s1;
-
-	value_ranges = range_list_union(estate_ranges(s1), estate_ranges(s2));
-	tmp = alloc_estate_range_list(value_ranges);
-	rlist = get_shared_relations(estate_related(s1), estate_related(s2));
-	set_related(tmp, rlist);
-	if (estate_has_hard_max(s1) && estate_has_hard_max(s2))
-		estate_set_hard_max(tmp);
-
-	return tmp;
-}
-
 static struct sm_state *handle_canonical_while_count_down(struct statement *loop)
 {
 	struct expression *iter_var;
@@ -1173,7 +1154,7 @@ void register_smatch_extra(int id)
 {
 	my_id = id;
 
-	add_merge_hook(my_id, &merge_func);
+	add_merge_hook(my_id, &merge_estates);
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);

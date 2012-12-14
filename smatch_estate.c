@@ -22,6 +22,25 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state *s2)
+{
+	struct smatch_state *tmp;
+	struct range_list *value_ranges;
+	struct related_list *rlist;
+
+	if (estates_equiv(s1, s2))
+		return s1;
+
+	value_ranges = range_list_union(estate_ranges(s1), estate_ranges(s2));
+	tmp = alloc_estate_range_list(value_ranges);
+	rlist = get_shared_relations(estate_related(s1), estate_related(s2));
+	set_related(tmp, rlist);
+	if (estate_has_hard_max(s1) && estate_has_hard_max(s2))
+		estate_set_hard_max(tmp);
+
+	return tmp;
+}
+
 struct data_info *get_dinfo(struct smatch_state *state)
 {
 	if (!state)
