@@ -631,6 +631,40 @@ void get_implications(char *name, struct symbol *sym, int comparison, long long 
 	separate_and_filter(sm, comparison, tmp_range_list(num), LEFT, __get_cur_slist(), true_states, false_states);
 }
 
+static int sm_state_in_slist(struct sm_state *sm, struct state_list *slist)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(sm->pool, tmp) {
+		if (tmp == sm)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
+/*
+ * The situation is we have a SMATCH_EXTRA state and we want to break it into
+ * each of the ->possible states and find the implications of each.  The caller
+ * has to use __push_fake_cur_slist() to preserve the correct states so they
+ * can be restored later.
+ */
+void overwrite_states_using_pool(struct sm_state *sm)
+{
+	struct sm_state *old;
+	struct sm_state *new;
+
+	if (!sm->pool)
+		return;
+
+	FOR_EACH_PTR(sm->pool, old) {
+		new = get_sm_state(old->owner, old->name, old->sym);
+		if (!new)  /* the variable went out of scope */
+			continue;
+		if (sm_state_in_slist(old, new->possible))
+			set_state(old->owner, old->name, old->sym, old->state);
+	} END_FOR_EACH_PTR(old);
+}
+
 void __extra_match_condition(struct expression *expr);
 void register_implications(int id)
 {
