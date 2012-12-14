@@ -191,6 +191,9 @@ void __set_sm(struct sm_state *sm)
 	if (unreachable())
 		return;
 
+	if (fake_cur_slist_stack)
+		overwrite_sm_state_stack(&fake_cur_slist_stack, sm);
+
 	overwrite_sm_state(&cur_slist, sm);
 
 	if (cond_true_stack) {
