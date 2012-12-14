@@ -1085,8 +1085,8 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 
 		if (strcmp(sm->name, param_name) == 0)
 			continue;
-
-		if (strncmp(sm->name, param_name, name_len) == 0) {
+		if (sm->name[name_len] == '-' &&
+		    strncmp(sm->name, param_name, name_len) == 0) {
 			sm_msg("info: return_value_param %d %d '%s' '$$%s' '%s' %s",
 			       return_id, param, return_ranges,
 			       sm->name + name_len, sm->state->name, global_static());
