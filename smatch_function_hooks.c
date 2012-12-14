@@ -693,6 +693,7 @@ static int db_return_states_callback(void *unused, int argc, char **argv, char *
 		slist = __pop_fake_cur_slist();
 		merge_slist(&db_info.slist, slist);
 		__push_fake_cur_slist();
+		__unnullify_path();
 	}
 	prev_return_id = return_id;
 
@@ -731,6 +732,7 @@ static void db_return_states(struct expression *expr)
 	db_info.expr = expr;
 	db_info.slist = NULL;
 	__push_fake_cur_slist();
+	__unnullify_path();
 	run_sql(db_return_states_callback,
 		"select return_id, return, type, parameter, key, value from return_states where %s",
 		sql_filter);
