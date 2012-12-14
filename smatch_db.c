@@ -519,6 +519,82 @@ static void match_function_def(struct symbol *sym)
 	return_id = 0;
 }
 
+static void call_return_state_hooks_compare(struct expression *expr)
+{
+	struct returned_state_callback *cb;
+	struct state_list *slist;
+	char *return_ranges;
+	int final_pass_orig = final_pass;
+
+	__push_fake_cur_slist();
+
+	final_pass = 0;
+	__split_whole_condition(expr);
+	final_pass = final_pass_orig;
+
+	return_ranges = alloc_sname("1");
+
+	return_id++;
+	slist = __get_cur_slist();
+	FOR_EACH_PTR(returned_state_callbacks, cb) {
+		cb->callback(return_id, return_ranges, expr, slist);
+	} END_FOR_EACH_PTR(cb);
+
+	__push_true_states();
+	__use_false_states();
+
+	return_ranges = alloc_sname("0");;
+	return_id++;
+	slist = __get_cur_slist();
+	FOR_EACH_PTR(returned_state_callbacks, cb) {
+		cb->callback(return_id, return_ranges, expr, slist);
+	} END_FOR_EACH_PTR(cb);
+
+	__merge_true_states();
+	__pop_fake_cur_slist();
+}
+
+static int call_return_state_hooks_split_possible(struct expression *expr)
+{
+	struct returned_state_callback *cb;
+	struct state_list *slist;
+	struct range_list *rl;
+	char *return_ranges;
+	struct sm_state *sm;
+	struct sm_state *tmp;
+
+	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
+	if (!sm || !sm->merged)
+		return 0;
+
+	/* bail if it gets too complicated */
+	if (ptr_list_size((struct ptr_list *)sm->possible) >= 100)
+		return 0;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+
+		if (tmp->merged)
+			continue;
+
+		__push_fake_cur_slist();
+
+		overwrite_states_using_pool(tmp);
+
+		rl = cast_rl(cur_func_return_type(), estate_ranges(tmp->state));
+		return_ranges = show_ranges(rl);
+
+		return_id++;
+		slist = __get_cur_slist();
+		FOR_EACH_PTR(returned_state_callbacks, cb) {
+			cb->callback(return_id, return_ranges, expr, slist);
+		} END_FOR_EACH_PTR(cb);
+
+		__pop_fake_cur_slist();
+	} END_FOR_EACH_PTR(tmp);
+
+	return 1;
+}
+
 static void call_return_state_hooks(struct expression *expr)
 {
 	struct returned_state_callback *cb;
@@ -526,8 +602,15 @@ static void call_return_state_hooks(struct expression *expr)
 	struct range_list *rl;
 	char *return_ranges;
 
+	expr = strip_expr(expr);
+
 	if (!expr) {
 		return_ranges = alloc_sname("");
+	} else if (is_condition(expr)) {
+		call_return_state_hooks_compare(expr);
+		return;
+	} else if (call_return_state_hooks_split_possible(expr)) {
+		return;
 	} else if (get_implied_range_list(expr, &rl)) {
 		rl = cast_rl(cur_func_return_type(), rl);
 		return_ranges = show_ranges(rl);
