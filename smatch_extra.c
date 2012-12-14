@@ -936,6 +936,40 @@ static void struct_member_callback(char *fn, char *global_static, int param, cha
 	sm_msg("info: passes param_value '%s' %d '%s' %s %s", fn, param, printed_name, state->name, global_static);
 }
 
+static void db_limited_param(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *arg;
+	struct sm_state *sm;
+	struct symbol *type;
+	struct range_list *rl;
+	struct range_list *limit;
+	struct range_list *new;
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return;
+
+	arg = get_argument_from_call_expr(expr->args, param);
+	if (!arg)
+		return;
+
+	sm = get_sm_state_expr(SMATCH_EXTRA, arg);
+
+	type = get_type(arg);
+	if (!get_implied_range_list(arg, &rl))
+		rl = whole_range_list(type);
+
+	parse_value_ranges_type(type, value, &limit);
+	new = rl_intersection(rl, limit);
+
+	/* We want to preserve the implications here */
+	if (sm && range_lists_equiv(estate_ranges(sm->state), new))
+		__set_sm(sm);
+	else
+		set_extra_expr_nomod(arg, alloc_estate_range_list(new));
+}
+
 static void db_returned_states_param(struct expression *expr, int param, char *key, char *value)
 {
 	struct expression *arg;
@@ -1161,6 +1195,7 @@ void register_smatch_extra(int id)
 	add_definition_db_callback(set_param_value, PARAM_VALUE);
 	add_db_return_states_callback(RETURN_VALUE, &db_returned_member_info);
 	add_db_return_states_callback(PARAM_VALUE, &db_returned_states_param);
+	add_db_return_states_callback(LIMITED_VALUE, &db_limited_param);
 }
 
 void register_smatch_extra_late(int id)

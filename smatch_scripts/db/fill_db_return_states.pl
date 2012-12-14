@@ -69,6 +69,11 @@ while (<WARNS>) {
         $type = 1;  # PARAM_VALUE
         ($file_and_line, $func, $dummy, $dummy, $return_id, $param, $dummy) = split(/ /, $_);
         ($dummy, $return_value, $dummy, $key, $dummy, $value, $gs) = split(/'/, $_);
+    } elsif ($_ =~ /info: return_limited_param /) {
+        # test.c:11 set_int() info: return_value_param 0 0 '' '*$$' '1' global
+        $type = 11;  # LIMITED_VALUE
+        ($file_and_line, $func, $dummy, $dummy, $return_id, $param, $dummy) = split(/ /, $_);
+        ($dummy, $return_value, $dummy, $key, $dummy, $value, $gs) = split(/'/, $_);
     } else {
         next;
     }

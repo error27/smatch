@@ -14,6 +14,8 @@ CK(register_buf_size)
 CK(register_strlen)
 CK(register_capped)
 CK(register_parse_call_math)
+CK(register_param_limit)
+CK(register_param_limit2)
 
 CK(check_debug)
 CK(check_assigned_expr)
