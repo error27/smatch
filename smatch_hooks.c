@@ -116,6 +116,9 @@ void add_hook(void *func, enum hook_type type)
 	case FUNC_DEF_HOOK:
 		container->data_type = SYMBOL_PTR;
 		break;
+	case AFTER_DEF_HOOK:
+		container->data_type = SYMBOL_PTR;
+		break;
 	case END_FUNC_HOOK:
 		container->data_type = SYMBOL_PTR;
 		break;

@@ -15,6 +15,8 @@ static int orig_id;
 static int modify_id;
 static int side_effects;
 
+static struct smatch_state *orig_states[16];
+
 STATE(modified);
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
@@ -170,6 +172,26 @@ struct smatch_state *get_orig_estate(struct symbol *sym)
 	return get_state(SMATCH_EXTRA, sym->ident->name, sym);
 }
 
+static void match_after_def(struct symbol *sym)
+{
+	struct smatch_state *state;
+	struct symbol *tmp;
+	int param;
+
+	param = -1;
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, tmp) {
+		param++;
+		if (param >= 16)
+			return;
+
+		orig_states[param] = NULL;
+		state = get_orig_estate(tmp);
+		if (!state)
+			continue;
+		orig_states[param] = state;
+	} END_FOR_EACH_PTR(tmp);
+}
+
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
 {
 	struct smatch_state *state;
@@ -181,6 +203,8 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		param++;
 		state = get_orig_estate(tmp);
 		if (!state)
+			continue;
+		if (range_lists_equiv(estate_ranges(orig_states[param]), estate_ranges(state)))
 			continue;
 		sm_msg("info: return_limited_param %d %d '%s' '$$' '%s' %s",
 		       return_id, param, return_ranges,
@@ -199,6 +223,7 @@ void register_param_limit(int id)
 {
 	modify_id = id;
 
+	add_hook(&match_after_def, AFTER_DEF_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);

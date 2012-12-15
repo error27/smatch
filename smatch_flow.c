@@ -818,6 +818,7 @@ static void split_function(struct symbol *sym)
 		loop_num = 0;
 		final_pass = 0;
 		__pass_to_client(sym, FUNC_DEF_HOOK);
+		__pass_to_client(sym, AFTER_DEF_HOOK);
 		__split_stmt(base_type->stmt);
 		__split_stmt(base_type->inline_stmt);
 		nullify_path();
@@ -826,6 +827,7 @@ static void split_function(struct symbol *sym)
 	loop_num = 0;
 	final_pass = 1;
 	__pass_to_client(sym, FUNC_DEF_HOOK);
+	__pass_to_client(sym, AFTER_DEF_HOOK);
 	__split_stmt(base_type->stmt);
 	__split_stmt(base_type->inline_stmt);
 	__pass_to_client(sym, END_FUNC_HOOK);
