@@ -1,4 +1,4 @@
-CREATE TABLE no_side_effects (file varchar(256), function varchar(256), static integer);
+CREATE TABLE no_side_effects (file varchar(128), function varchar(64), static integer);
 
 CREATE INDEX no_effects_idx on no_side_effects (file, function);
 
