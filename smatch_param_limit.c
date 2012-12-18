@@ -15,7 +15,7 @@ static int orig_id;
 static int modify_id;
 static int side_effects;
 
-static struct smatch_state *orig_states[16];
+static struct smatch_state *orig_states[32];
 
 STATE(modified);
 
@@ -181,7 +181,7 @@ static void match_after_def(struct symbol *sym)
 	param = -1;
 	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, tmp) {
 		param++;
-		if (param >= 16)
+		if (param >= 32)
 			return;
 
 		orig_states[param] = NULL;
@@ -204,7 +204,8 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		state = get_orig_estate(tmp);
 		if (!state)
 			continue;
-		if (range_lists_equiv(estate_ranges(orig_states[param]), estate_ranges(state)))
+		if (param < 32 &&
+		    range_lists_equiv(estate_ranges(orig_states[param]), estate_ranges(state)))
 			continue;
 		sm_msg("info: return_limited_param %d %d '%s' '$$' '%s' %s",
 		       return_id, param, return_ranges,
