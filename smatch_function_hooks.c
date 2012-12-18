@@ -57,6 +57,11 @@ ALLOCATOR(return_implies_callback, "return_implies callbacks");
 DECLARE_PTR_LIST(db_implies_list, struct return_implies_callback);
 static struct db_implies_list *db_return_states_list;
 
+typedef void (void_fn)(void);
+DECLARE_PTR_LIST(void_fn_list, void_fn *);
+static struct void_fn_list *return_states_before;
+static struct void_fn_list *return_states_after;
+
 static struct fcall_back *alloc_fcall_back(int type, void *call_back,
 					   void *info)
 {
@@ -131,6 +136,38 @@ void add_db_return_states_callback(int type, return_implies_hook *callback)
 	cb->type = type;
 	cb->callback = callback;
 	add_ptr_list(&db_return_states_list, cb);
+}
+
+void add_db_return_states_before(void_fn *fn)
+{
+	void_fn **p = malloc(sizeof(void_fn *));
+	*p = fn;
+	add_ptr_list(&return_states_before, p);
+}
+
+void add_db_return_states_after(void_fn *fn)
+{
+	void_fn **p = malloc(sizeof(void_fn *));
+	*p = fn;
+	add_ptr_list(&return_states_after, p);
+}
+
+static void call_return_states_before_hooks(void)
+{
+	void_fn **fn;
+
+	FOR_EACH_PTR(return_states_before, fn) {
+		(*fn)();
+	} END_FOR_EACH_PTR(fn);
+}
+
+static void call_return_states_after_hooks(void)
+{
+	void_fn **fn;
+
+	FOR_EACH_PTR(return_states_after, fn) {
+		(*fn)();
+	} END_FOR_EACH_PTR(fn);
 }
 
 static int call_call_backs(struct call_back_list *list, int type,
@@ -371,6 +408,8 @@ void compare_db_return_states_callbacks(int comparison, struct expression *expr,
 	db_info.left = left;
 	db_info.callbacks = db_return_states_list;
 
+	call_return_states_before_hooks();
+
 	db_info.true_side = 1;
 	__push_fake_cur_slist();
 	run_sql(db_compare_callback,
@@ -391,6 +430,8 @@ void compare_db_return_states_callbacks(int comparison, struct expression *expr,
 	FOR_EACH_PTR(false_states, sm) {
 		__set_true_false_sm(NULL, sm);
 	} END_FOR_EACH_PTR(sm);
+
+	call_return_states_after_hooks();
 
 	free_slist(&true_states);
 	free_slist(&false_states);
@@ -473,6 +514,9 @@ static int db_return_states_assign(struct expression *expr)
 	prev_return_id = -1;
 	db_info.expr = expr;
 	db_info.slist = NULL;
+
+	call_return_states_before_hooks();
+
 	__push_fake_cur_slist();
 	run_sql(db_assign_return_states_callback,
 		"select return_id, return, type, parameter, key, value from return_states where %s",
@@ -484,6 +528,8 @@ static int db_return_states_assign(struct expression *expr)
 		__set_sm(sm);
 		handled = 1;
 	} END_FOR_EACH_PTR(sm);
+
+	call_return_states_after_hooks();
 
 	return handled;
 }
@@ -596,6 +642,9 @@ static void db_return_states(struct expression *expr)
 	prev_return_id = -1;
 	db_info.expr = expr;
 	db_info.slist = NULL;
+
+	call_return_states_before_hooks();
+
 	__push_fake_cur_slist();
 	__unnullify_path();
 	run_sql(db_return_states_callback,
@@ -607,6 +656,8 @@ static void db_return_states(struct expression *expr)
 	FOR_EACH_PTR(db_info.slist, sm) {
 		__set_sm(sm);
 	} END_FOR_EACH_PTR(sm);
+
+	call_return_states_after_hooks();
 }
 
 static int is_assigned_call(struct expression *expr)

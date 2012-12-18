@@ -134,6 +134,8 @@ void add_macro_assign_hook_extra(const char *look_for, func_hook *call_back,
 void return_implies_state(const char *look_for, long long start, long long end,
 			 implication_hook *call_back, void *info);
 void add_db_return_states_callback(int type, return_implies_hook *callback);
+void add_db_return_states_before(void (*fn)(void));
+void add_db_return_states_after(void (*fn)(void));
 int get_implied_return(struct expression *expr, struct range_list **rl);
 
 typedef void (modification_hook)(struct sm_state *sm);

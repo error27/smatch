@@ -364,8 +364,16 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	set_extra_mod(sm->name, sm->sym, state);
 }
 
+static struct state_list *unmatched_slist;
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
+	struct smatch_state *state;
+
+	if (unmatched_slist) {
+		state = get_state_slist(unmatched_slist, SMATCH_EXTRA, sm->name, sm->sym);
+		if (state)
+			return state;
+	}
 	return extra_undefined(estate_type(sm->state));
 }
 
@@ -936,6 +944,16 @@ static void struct_member_callback(char *fn, char *global_static, int param, cha
 	sm_msg("info: passes param_value '%s' %d '%s' %s %s", fn, param, printed_name, state->name, global_static);
 }
 
+static void db_limited_before(void)
+{
+	unmatched_slist = clone_slist(__get_cur_slist());
+}
+
+static void db_limited_after(void)
+{
+	free_slist(&unmatched_slist);
+}
+
 static void db_limited_param(struct expression *expr, int param, char *key, char *value)
 {
 	struct expression *arg;
@@ -1195,7 +1213,9 @@ void register_smatch_extra(int id)
 	add_definition_db_callback(set_param_value, PARAM_VALUE);
 	add_db_return_states_callback(RETURN_VALUE, &db_returned_member_info);
 	add_db_return_states_callback(PARAM_VALUE, &db_returned_states_param);
+	add_db_return_states_before(&db_limited_before);
 	add_db_return_states_callback(LIMITED_VALUE, &db_limited_param);
+	add_db_return_states_after(&db_limited_after);
 }
 
 void register_smatch_extra_late(int id)
