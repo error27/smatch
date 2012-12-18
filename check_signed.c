@@ -223,6 +223,8 @@ static void match_condition(struct expression *expr)
 		return;
 
 	type = get_type(expr);
+	if (!type)
+		return;
 
 	/* screw it.  I am writing this to mark yoda code as buggy.
 	 * Valid comparisons between an unsigned and zero are:
