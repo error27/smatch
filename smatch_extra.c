@@ -54,10 +54,18 @@ struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smat
 
 struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state)
 {
-	if (in_warn_on_macro())
-		return NULL;
-	remove_from_equiv_expr(expr);
-	return set_state_expr(SMATCH_EXTRA, expr, state);
+	struct symbol *sym;
+	char *name;
+	struct sm_state *ret = NULL;
+
+	expr = strip_expr(expr);
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	ret = set_extra_mod(name, sym, state);
+free:
+	free_string(name);
+	return ret;
 }
 
 /*
