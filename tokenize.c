@@ -383,6 +383,7 @@ enum {
 	Exp = 8,
 	Dot = 16,
 	ValidSecond = 32,
+	Quote = 64,
 };
 
 static const long cclass[257] = {
@@ -409,6 +410,8 @@ static const long cclass[257] = {
 	['&' + 1] = ValidSecond,
 	['|' + 1] = ValidSecond,
 	['#' + 1] = ValidSecond,
+	['\'' + 1] = Quote,
+	['"' + 1] = Quote,
 };
 
 /*
@@ -904,16 +907,18 @@ static int get_one_identifier(int c, stream_t *stream)
 		buf[len] = next;
 		len++;
 	};
-	hash = ident_hash_end(hash);
-
-	ident = create_hashed_ident(buf, len, hash);
-
-	if (ident == &L_ident) {
-		if (next == '\'')
-			return get_char_token(nextchar(stream), stream, TOKEN_WIDE_CHAR);
-		if (next == '\"')
-			return get_string_token(nextchar(stream), stream, TOKEN_WIDE_STRING);
+	if (cclass[next + 1] & Quote) {
+		if (len == 1 && buf[0] == 'L') {
+			if (next == '\'')
+				return get_char_token(nextchar(stream), stream,
+							TOKEN_WIDE_CHAR);
+			else
+				return get_string_token(nextchar(stream), stream,
+							TOKEN_WIDE_STRING);
+		}
 	}
+	hash = ident_hash_end(hash);
+	ident = create_hashed_ident(buf, len, hash);
 
 	/* Pass it on.. */
 	token = stream->token;
