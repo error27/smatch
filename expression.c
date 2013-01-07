@@ -26,6 +26,7 @@
 #include "scope.h"
 #include "expression.h"
 #include "target.h"
+#include "char.h"
 
 static int match_oplist(int op, ...)
 {
@@ -217,48 +218,6 @@ static struct token *builtin_offsetof_expr(struct token *token,
 	}
 }
 
-static struct token *string_expression(struct token *token, struct expression *expr)
-{
-	struct string *string = token->string;
-	struct token *next = token->next;
-	int stringtype = token_type(token);
-
-	if (token_type(next) == stringtype) {
-		int totlen = string->length-1;
-		char *data;
-
-		do {
-			totlen += next->string->length-1;
-			next = next->next;
-		} while (token_type(next) == stringtype);
-
-		if (totlen > MAX_STRING) {
-			warning(token->pos, "trying to concatenate %d-character string (%d bytes max)", totlen, MAX_STRING);
-			totlen = MAX_STRING;
-		}
-
-		string = __alloc_string(totlen+1);
-		string->length = totlen+1;
-		data = string->data;
-		next = token;
-		do {
-			struct string *s = next->string;
-			int len = s->length-1;
-
-			if (len > totlen)
-				len = totlen;
-			totlen -= len;
-
-			next = next->next;
-			memcpy(data, s->data, len);
-			data += len;
-		} while (token_type(next) == stringtype);
-		*data = '\0';
-	}
-	expr->string = string;
-	return next;
-}
-
 #ifndef ULLONG_MAX
 #define ULLONG_MAX (~0ULL)
 #endif
@@ -399,12 +358,11 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 	struct expression *expr = NULL;
 
 	switch (token_type(token)) {
-	case TOKEN_CHAR:
-	case TOKEN_WIDE_CHAR:
+	case TOKEN_CHAR ... TOKEN_WIDE_CHAR + 4:
 		expr = alloc_expression(token->pos, EXPR_VALUE);   
 		expr->flags = Int_const_expr;
-		expr->ctype = token_type(token) == TOKEN_CHAR ? &int_ctype : &long_ctype;
-		expr->value = (unsigned char) token->character;
+		expr->ctype = token_type(token) < TOKEN_WIDE_CHAR ? &int_ctype : &long_ctype;
+		get_char_constant(token, &expr->value);
 		token = token->next;
 		break;
 
@@ -469,8 +427,7 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 	case TOKEN_STRING:
 	case TOKEN_WIDE_STRING:
 		expr = alloc_expression(token->pos, EXPR_STRING);
-		expr->wide = token_type(token) == TOKEN_WIDE_STRING;
-		token = string_expression(token, expr);
+		token = get_string_constant(token, expr);
 		break;
 
 	case TOKEN_SPECIAL:

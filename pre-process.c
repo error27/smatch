@@ -82,8 +82,6 @@ static struct token *alloc_token(struct position *pos)
 	return token;
 }
 
-static const char *show_token_sequence(struct token *token);
-
 /* Expand symbol 'sym' at '*list' */
 static int expand(struct token **, struct symbol *);
 
@@ -340,9 +338,35 @@ static struct token *dup_list(struct token *list)
 	return res;
 }
 
+static const char *quote_token_sequence(struct token *token)
+{
+	static char buffer[1024];
+	char *ptr = buffer;
+	int whitespace = 0;
+
+	while (!eof_token(token)) {
+		const char *val = quote_token(token);
+		int len = strlen(val);
+
+		if (ptr + whitespace + len >= buffer + sizeof(buffer)) {
+			sparse_error(token->pos, "too long token expansion");
+			break;
+		}
+
+		if (whitespace)
+			*ptr++ = ' ';
+		memcpy(ptr, val, len);
+		ptr += len;
+		token = token->next;
+		whitespace = token->pos.whitespace;
+	}
+	*ptr = 0;
+	return buffer;
+}
+
 static struct token *stringify(struct token *arg)
 {
-	const char *s = show_token_sequence(arg);
+	const char *s = quote_token_sequence(arg);
 	int size = strlen(s)+1;
 	struct token *token = __alloc_token(0);
 	struct string *string = __alloc_string(size);
@@ -907,10 +931,12 @@ static int token_different(struct token *t1, struct token *t2)
 	case TOKEN_STR_ARGUMENT:
 		different = t1->argnum != t2->argnum;
 		break;
+	case TOKEN_CHAR + 1 ... TOKEN_CHAR + 4:
+	case TOKEN_WIDE_CHAR + 1 ... TOKEN_WIDE_CHAR + 4:
+		different = memcmp(t1->embedded, t2->embedded, 4);
+		break;
 	case TOKEN_CHAR:
 	case TOKEN_WIDE_CHAR:
-		different = t1->character != t2->character;
-		break;
 	case TOKEN_STRING:
 	case TOKEN_WIDE_STRING: {
 		struct string *s1, *s2;
@@ -1384,6 +1410,8 @@ static int handle_ifndef(struct stream *stream, struct token **line, struct toke
 
 	return preprocessor_if(stream, token, arg);
 }
+
+static const char *show_token_sequence(struct token *token);
 
 /*
  * Expression handling for #if and #elif; it differs from normal expansion
