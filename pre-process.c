@@ -407,6 +407,8 @@ static void expand_arguments(int count, struct arg *args)
  * Possibly valid combinations:
  *  - ident + ident -> ident
  *  - ident + number -> ident unless number contains '.', '+' or '-'.
+ *  - 'L' + char constant -> wide char constant
+ *  - 'L' + string literal -> wide string literal
  *  - number + number -> number
  *  - number + ident -> number
  *  - number + '.' -> number
@@ -421,6 +423,13 @@ static enum token_type combine(struct token *left, struct token *right, char *p)
 
 	if (t1 != TOKEN_IDENT && t1 != TOKEN_NUMBER && t1 != TOKEN_SPECIAL)
 		return TOKEN_ERROR;
+
+	if (t1 == TOKEN_IDENT && left->ident == &L_ident) {
+		if (t2 >= TOKEN_CHAR && t2 < TOKEN_WIDE_CHAR)
+			return t2 + TOKEN_WIDE_CHAR - TOKEN_CHAR;
+		if (t2 == TOKEN_STRING)
+			return TOKEN_WIDE_STRING;
+	}
 
 	if (t2 != TOKEN_IDENT && t2 != TOKEN_NUMBER && t2 != TOKEN_SPECIAL)
 		return TOKEN_ERROR;
@@ -464,9 +473,10 @@ static enum token_type combine(struct token *left, struct token *right, char *p)
 static int merge(struct token *left, struct token *right)
 {
 	static char buffer[512];
+	enum token_type res = combine(left, right, buffer);
 	int n;
 
-	switch (combine(left, right, buffer)) {
+	switch (res) {
 	case TOKEN_IDENT:
 		left->ident = built_in_ident(buffer);
 		left->pos.noexpand = 0;
@@ -489,6 +499,21 @@ static int merge(struct token *left, struct token *right)
 				return 1;
 			}
 		}
+		break;
+
+	case TOKEN_WIDE_CHAR:
+	case TOKEN_WIDE_STRING:
+		token_type(left) = res;
+		left->pos.noexpand = 0;
+		left->string = right->string;
+		return 1;
+
+	case TOKEN_WIDE_CHAR + 1 ... TOKEN_WIDE_CHAR + 4:
+		token_type(left) = res;
+		left->pos.noexpand = 0;
+		memcpy(left->embedded, right->embedded, 4);
+		return 1;
+
 	default:
 		;
 	}
