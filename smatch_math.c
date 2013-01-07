@@ -378,24 +378,40 @@ static sval_t handle_comparison(struct expression *expr, int *undefined, int imp
 static sval_t handle_logical(struct expression *expr, int *undefined, int implied)
 {
 	sval_t left, right;
+	int left_known = 0;
+	int right_known = 0;
 
-	if ((implied == NOTIMPLIED && get_value(expr->left, &left) &&
-				      get_value(expr->right, &right)) ||
-	    (implied != NOTIMPLIED && get_implied_value(expr->left, &left) &&
-				      get_implied_value(expr->right, &right))) {
-		switch (expr->op) {
-		case SPECIAL_LOGICAL_OR:
-			if (left.value || right.value)
-				return one;
+	if (implied == NOTIMPLIED) {
+		if (get_value(expr->left, &left))
+			left_known = 1;
+		if (get_value(expr->right, &right))
+			right_known = 1;
+	} else {
+		if (get_implied_value(expr->left, &left))
+			left_known = 1;
+		if (get_implied_value(expr->right, &right))
+			right_known = 1;
+	}
+
+	switch (expr->op) {
+	case SPECIAL_LOGICAL_OR:
+		if (left_known && left.value)
+			return one;
+		if (right_known && right.value)
+			return one;
+		if (left_known && right_known)
 			return zero;
-		case SPECIAL_LOGICAL_AND:
+		break;
+	case SPECIAL_LOGICAL_AND:
+		if (left_known && right_known) {
 			if (left.value && right.value)
 				return one;
 			return zero;
-		default:
-			*undefined = 1;
-			return bogus;
 		}
+		break;
+	default:
+		*undefined = 1;
+		return bogus;
 	}
 
 	if (implied == IMPLIED_MIN || implied == FUZZY_MIN || implied == ABSOLUTE_MIN)
