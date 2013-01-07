@@ -562,6 +562,7 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 	char *return_ranges;
 	struct sm_state *sm;
 	struct sm_state *tmp;
+	int ret = 0;
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
 	if (!sm || !sm->merged)
@@ -572,10 +573,10 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 		return 0;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
-
 		if (tmp->merged)
 			continue;
 
+		ret = 1;
 		__push_fake_cur_slist();
 
 		overwrite_states_using_pool(tmp);
@@ -592,7 +593,7 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 		__pop_fake_cur_slist();
 	} END_FOR_EACH_PTR(tmp);
 
-	return 1;
+	return ret;
 }
 
 static void call_return_state_hooks(struct expression *expr)
