@@ -380,6 +380,9 @@ int range_lists_equiv(struct range_list *one, struct range_list *two)
 	struct data_range *one_range;
 	struct data_range *two_range;
 
+	if (one == two)
+		return 1;
+
 	PREPARE_PTR_LIST(one, one_range);
 	PREPARE_PTR_LIST(two, two_range);
 	for (;;) {
