@@ -44,11 +44,31 @@ static int in_warn_on_macro()
 	return 0;
 }
 
+typedef void (mod_hook)(const char *name, struct symbol *sym, struct smatch_state *state);
+DECLARE_PTR_LIST(void_fn_list, mod_hook *);
+static struct void_fn_list *extra_mod_hooks;
+void add_extra_mod_hook(mod_hook *fn)
+{
+	mod_hook **p = malloc(sizeof(mod_hook *));
+	*p = fn;
+	add_ptr_list(&extra_mod_hooks, p);
+}
+
+static void call_extra_mod_hooks(const char *name, struct symbol *sym, struct smatch_state *state)
+{
+	mod_hook **fn;
+
+	FOR_EACH_PTR(extra_mod_hooks, fn) {
+		(*fn)(name, sym, state);
+	} END_FOR_EACH_PTR(fn);
+}
+
 struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state)
 {
 	if (in_warn_on_macro())
 		return NULL;
 	remove_from_equiv(name, sym);
+	call_extra_mod_hooks(name, sym, state);
 	return set_state(SMATCH_EXTRA, name, sym, state);
 }
 
