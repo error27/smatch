@@ -68,18 +68,15 @@ free:
 	return ret;
 }
 
-/*
- * This is for return_implies_state() hooks which modify a SMATCH_EXTRA state
- */
-void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state)
+void set_extra_nomod(const char *name, struct symbol *sym, struct smatch_state *state)
 {
 	struct relation *rel;
 	struct smatch_state *orig_state;
 
-	orig_state = get_state_expr(SMATCH_EXTRA, expr);
+	orig_state = get_state(SMATCH_EXTRA, name, sym);
 
 	if (!estate_related(orig_state)) {
-		set_state_expr(SMATCH_EXTRA, expr, state);
+		set_state(SMATCH_EXTRA, name, sym, state);
 		return;
 	}
 
@@ -89,6 +86,23 @@ void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state)
 			sm_msg("updating related %s to %s", rel->name, state->name);
 		set_state(SMATCH_EXTRA, rel->name, rel->sym, state);
 	} END_FOR_EACH_PTR(rel);
+}
+
+/*
+ * This is for return_implies_state() hooks which modify a SMATCH_EXTRA state
+ */
+void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state)
+{
+	char *name;
+	struct symbol *sym;
+
+	name = get_variable_from_expr(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	set_extra_nomod(name, sym, state);
+free:
+	free_string(name);
+
 }
 
 static void set_extra_true_false(const char *name, struct symbol *sym,
