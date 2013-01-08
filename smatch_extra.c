@@ -1285,7 +1285,8 @@ void register_smatch_extra_late(int id)
 	add_hook(&match_pointer_as_array, OP_HOOK);
 	add_db_fn_call_callback(DEREFERENCE, &set_param_dereferenced);
 	add_indirect_modification_hook(SMATCH_EXTRA, reset_struct_members);
-	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
+	if (option_no_db)
+		add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&asm_expr, ASM_HOOK);
