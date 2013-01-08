@@ -69,9 +69,19 @@ while (<WARNS>) {
         $type = 1;  # PARAM_VALUE
         ($file_and_line, $func, $dummy, $dummy, $return_id, $param, $dummy) = split(/ /, $_);
         ($dummy, $return_value, $dummy, $key, $dummy, $value, $gs) = split(/'/, $_);
-    } elsif ($_ =~ /info: return_limited_param /) {
-        # test.c:11 set_int() info: return_value_param 0 0 '' '*$$' '1' global
+    } elsif ($_ =~ /info: return_param_limit /) {
+        # crypto/zlib.c:52 zlib_comp_exit() info: return_param_limit 1 0 '' '$$' '4096-s64max' static
         $type = 11;  # LIMITED_VALUE
+        ($file_and_line, $func, $dummy, $dummy, $return_id, $param, $dummy) = split(/ /, $_);
+        ($dummy, $return_value, $dummy, $key, $dummy, $value, $gs) = split(/'/, $_);
+    } elsif ($_ =~ /info: return_param_filter /) {
+        # crypto/af_alg.c:267 af_alg_accept() info: return_param_filter 3 1 '(-12)' '$$->state' '3' global
+        $type = 13;  # FILTER_VALUE
+        ($file_and_line, $func, $dummy, $dummy, $return_id, $param, $dummy) = split(/ /, $_);
+        ($dummy, $return_value, $dummy, $key, $dummy, $value, $gs) = split(/'/, $_);
+    } elsif ($_ =~ /info: return_param_add /) {
+        # crypto/af_alg.c:267 af_alg_accept() info: return_param_add 3 1 '(-12)' '$$->state' '3' global
+        $type = 12;  # ADDED_VALUE
         ($file_and_line, $func, $dummy, $dummy, $return_id, $param, $dummy) = split(/ /, $_);
         ($dummy, $return_value, $dummy, $key, $dummy, $value, $gs) = split(/'/, $_);
     } else {

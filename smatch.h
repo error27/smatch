@@ -464,6 +464,8 @@ enum info_type {
 	LOCK_RELEASED,
 	ABSOLUTE_LIMITS,
 	LIMITED_VALUE,
+	ADDED_VALUE,
+	FILTER_VALUE,
 };
 
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);

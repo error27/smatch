@@ -996,9 +996,50 @@ static void db_limited_after(void)
 	free_slist(&unmatched_slist);
 }
 
-static void db_limited_param(struct expression *expr, int param, char *key, char *value)
+static char *get_variable_from_key(struct expression *arg, char *key, struct symbol **sym)
+{
+	char buf[256];
+	char *tmp;
+
+	if (strcmp(key, "$$") == 0)
+		return get_variable_from_expr(arg, sym);
+
+	if (strcmp(key, "*$$") == 0) {
+		if (arg->type == EXPR_PREOP && arg->op == '&') {
+			arg = strip_expr(arg->unop);
+			return get_variable_from_expr(arg, sym);
+		} else {
+			tmp = get_variable_from_expr(arg, sym);
+			if (!tmp)
+				return NULL;
+			snprintf(buf, sizeof(buf), "*%s", tmp);
+			free_string(tmp);
+			return alloc_string(buf);
+		}
+	}
+
+	if (arg->type == EXPR_PREOP && arg->op == '&') {
+		arg = strip_expr(arg->unop);
+		tmp = get_variable_from_expr(arg, sym);
+		if (!tmp)
+			return NULL;
+		snprintf(buf, sizeof(buf), "%s.%s", tmp, key + 4);
+		return alloc_string(buf);
+	}
+
+	tmp = get_variable_from_expr(arg, sym);
+	if (!tmp)
+		return NULL;
+	snprintf(buf, sizeof(buf), "%s%s", tmp, key + 2);
+	free_string(tmp);
+	return alloc_string(buf);
+}
+
+static void db_param_limit_filter(struct expression *expr, int param, char *key, char *value)
 {
 	struct expression *arg;
+	char *name;
+	struct symbol *sym;
 	struct sm_state *sm;
 	struct symbol *type;
 	struct range_list *rl;
@@ -1014,10 +1055,15 @@ static void db_limited_param(struct expression *expr, int param, char *key, char
 	if (!arg)
 		return;
 
-	sm = get_sm_state_expr(SMATCH_EXTRA, arg);
+	name = get_variable_from_key(arg, key, &sym);
+	if (!name || !sym)
+		goto free;
 
-	type = get_type(arg);
-	if (!get_implied_range_list(arg, &rl))
+	sm = get_sm_state(SMATCH_EXTRA, name, sym);
+	type = get_member_type_from_key(sym, key);
+	if (sm)
+		rl = estate_ranges(sm->state);
+	else
 		rl = whole_range_list(type);
 
 	parse_value_ranges_type(type, value, &limit);
@@ -1027,7 +1073,46 @@ static void db_limited_param(struct expression *expr, int param, char *key, char
 	if (sm && range_lists_equiv(estate_ranges(sm->state), new))
 		__set_sm(sm);
 	else
-		set_extra_expr_nomod(arg, alloc_estate_range_list(new));
+		set_extra_nomod(name, sym, alloc_estate_range_list(new));
+
+free:
+	free_string(name);
+}
+
+static void db_param_add(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *arg;
+	char *name;
+	struct symbol *sym;
+	struct symbol *type;
+	struct smatch_state *state;
+	struct range_list *added = NULL;
+	struct range_list *new;
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return;
+
+	arg = get_argument_from_call_expr(expr->args, param);
+	if (!arg)
+		return;
+	name = get_variable_from_key(arg, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	type = get_member_type_from_key(sym, key);
+	state = get_state(SMATCH_EXTRA, name, sym);
+	if (state) {
+		parse_value_ranges_type(type, value, &added);
+		new = range_list_union(estate_ranges(state), added);
+	} else {
+		new = whole_range_list(type);
+	}
+
+	set_extra_mod(name, sym, alloc_estate_range_list(new));
+free:
+	free_string(name);
 }
 
 static void db_returned_states_param(struct expression *expr, int param, char *key, char *value)
@@ -1130,74 +1215,6 @@ static void returned_member_callback(int return_id, char *return_ranges, char *p
 	       return_ranges, printed_name, state->name, global_static());
 }
 
-static struct state_list *start_states;
-static void save_start_states(struct statement *stmt)
-{
-	if (!start_states)
-		start_states = get_all_states(SMATCH_EXTRA);
-}
-
-static struct state_list *get_param_changed_list(struct state_list *source)
-{
-	struct state_list *slist = NULL;
-	struct state_list *cur;
-	struct sm_state *old, *new;
-
-	cur = get_all_states_slist(SMATCH_EXTRA, source);
-	FOR_EACH_PTR(cur, new) {
-		old = get_sm_state_slist(start_states, new->owner, new->name, new->sym);
-		if (old && estates_equiv(old->state, new->state))
-			continue;
-		add_ptr_list(&slist, new);
-	} END_FOR_EACH_PTR(new);
-
-	return slist;
-}
-
-static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
-{
-	struct state_list *my_slist;
-	struct sm_state *sm;
-	char *param_name;
-	int name_len;
-	int param;
-
-	my_slist = get_param_changed_list(slist);
-
-	FOR_EACH_PTR(my_slist, sm) {
-		if (!estate_ranges(sm->state))
-			continue;
-
-		param = get_param_num_from_sym(sm->sym);
-		if (param < 0)
-			continue;
-
-		if (!sm->sym->ident)
-			continue;
-		param_name = sm->sym->ident->name;
-		name_len = strlen(param_name);
-
-		if (strcmp(sm->name, param_name) == 0)
-			continue;
-		if (sm->name[name_len] == '-' &&
-		    strncmp(sm->name, param_name, name_len) == 0) {
-			sm_msg("info: return_value_param %d %d '%s' '$$%s' '%s' %s",
-			       return_id, param, return_ranges,
-			       sm->name + name_len, sm->state->name, global_static());
-		} else if (sm->name[0] == '*' &&
-			   strcmp(sm->name + 1, param_name) == 0) {
-			sm_msg("info: return_value_param %d %d '%s' '*$$' '%s' %s",
-			       return_id, param, return_ranges,
-			       sm->state->name, global_static());
-		}
-	} END_FOR_EACH_PTR(sm);
-}
-
-static void match_end_func(void)
-{
-	free_slist(&start_states);
-}
-
 static void match_call_info(struct expression *expr)
 {
 	struct range_list *rl = NULL;
@@ -1256,7 +1273,9 @@ void register_smatch_extra(int id)
 	add_db_return_states_callback(RETURN_VALUE, &db_returned_member_info);
 	add_db_return_states_callback(PARAM_VALUE, &db_returned_states_param);
 	add_db_return_states_before(&db_limited_before);
-	add_db_return_states_callback(LIMITED_VALUE, &db_limited_param);
+	add_db_return_states_callback(LIMITED_VALUE, &db_param_limit_filter);
+	add_db_return_states_callback(FILTER_VALUE, &db_param_limit_filter);
+	add_db_return_states_callback(ADDED_VALUE, &db_param_add);
 	add_db_return_states_after(&db_limited_after);
 }
 
@@ -1275,9 +1294,5 @@ void register_smatch_extra_late(int id)
 		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 		add_member_info_callback(my_id, struct_member_callback);
 		add_returned_member_callback(my_id, returned_member_callback);
-
-		add_hook(&save_start_states, STMT_HOOK);
-		add_returned_state_callback(&print_return_value_param);
-		add_hook(&match_end_func, END_FUNC_HOOK);
 	}
 }

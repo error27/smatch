@@ -453,11 +453,14 @@ struct symbol *get_member_type_from_key(struct symbol *sym, char *key)
 	if (strcmp(key, "$$") == 0)
 		return get_real_base_type(sym);
 
-	key = key + 2;
 	sym = get_real_base_type(sym);
 	if (sym->type == SYM_PTR)
 		sym = get_real_base_type(sym);
 
+	if (strcmp(key, "*$$") == 0)
+		return sym;
+
+	key = key + 2;
 	sym = get_member_from_string(sym->symbol_list, key);
 	if (!sym)
 		return NULL;

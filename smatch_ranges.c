@@ -750,6 +750,8 @@ struct range_list *rl_filter(struct range_list *rl, struct range_list *filter)
 
 struct range_list *rl_intersection(struct range_list *one, struct range_list *two)
 {
+	if (!two)
+		return NULL;
 	two = rl_invert(two);
 	return rl_filter(one, two);
 }
