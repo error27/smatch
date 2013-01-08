@@ -4,6 +4,11 @@ bin_dir=$(dirname $0)
 remove=$(echo ${bin_dir}/../smatch_data/kernel.paholes.remove)
 tmp=$(mktemp /tmp/smatch.XXXX)
 
+if [ ! -e vmlinux ] ; then
+    echo "No vmlinux file.  Not going to create kernel.paholes."
+    exit 1
+fi
+
 for i in $(find -name \*.ko) ; do
     pahole -E $i 2> /dev/null
 done | $bin_dir/find_expanded_holes.pl | sort -u > $tmp
