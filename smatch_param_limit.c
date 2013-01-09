@@ -87,6 +87,9 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		state = filter_my_sm(tmp);
 		if (!state)
 			continue;
+		/* This represents an impossible state.  I screwd up.  Bail. */
+		if (!estate_ranges(state))
+			continue;
 		sm_msg("info: return_param_limit %d %d '%s' '$$' '%s' %s",
 		       return_id, param, return_ranges,
 		       state->name, global_static());
