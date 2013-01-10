@@ -448,17 +448,28 @@ static struct symbol *get_member_from_string(struct symbol_list *symbol_list, ch
 	return NULL;
 }
 
-struct symbol *get_member_type_from_key(struct symbol *sym, char *key)
+struct symbol *get_member_type_from_key(struct expression *expr, char *key)
 {
-	if (strcmp(key, "$$") == 0)
-		return get_real_base_type(sym);
+	struct symbol *sym;
+	char *name;
 
+	if (strcmp(key, "$$") == 0)
+		return get_type(expr);
+
+	if (strcmp(key, "*$$") == 0) {
+		sym = get_type(expr);
+		if (!sym || sym->type != SYM_PTR)
+			return NULL;
+		return get_real_base_type(sym);
+	}
+
+	name = get_variable_from_expr_complex(expr, &sym);
+	free_string(name);
+	if (!sym)
+		return NULL;
 	sym = get_real_base_type(sym);
 	if (sym->type == SYM_PTR)
 		sym = get_real_base_type(sym);
-
-	if (strcmp(key, "*$$") == 0)
-		return sym;
 
 	key = key + 2;
 	sym = get_member_from_string(sym->symbol_list, key);

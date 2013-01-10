@@ -1060,7 +1060,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 		goto free;
 
 	sm = get_sm_state(SMATCH_EXTRA, name, sym);
-	type = get_member_type_from_key(sym, key);
+	type = get_member_type_from_key(arg, key);
 	if (sm)
 		rl = estate_ranges(sm->state);
 	else
@@ -1101,7 +1101,7 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	if (!name || !sym)
 		goto free;
 
-	type = get_member_type_from_key(sym, key);
+	type = get_member_type_from_key(arg, key);
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (state) {
 		parse_value_ranges_type(type, value, &added);
@@ -1173,7 +1173,7 @@ static void db_returned_states_param(struct expression *expr, int param, char *k
 			goto free;
 		snprintf(member_name, sizeof(member_name), "%s%s", name, key + 2);
 	}
-	type = get_member_type_from_key(sym, key);
+	type = get_member_type_from_key(arg, key);
 	if (!type)
 		goto free;
 	parse_value_ranges_type(type, value, &rl);
@@ -1197,7 +1197,7 @@ static void db_returned_member_info(struct expression *expr, int param, char *ke
 	if (!name || !sym)
 		goto free;
 	snprintf(member_name, sizeof(member_name), "%s%s", name, key + 2);
-	type = get_member_type_from_key(sym, key);
+	type = get_member_type_from_key(expr->left, key);
 	if (!type)
 		return;
 	parse_value_ranges_type(type, value, &rl);
@@ -1255,7 +1255,7 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 		return;
 
 	snprintf(fullname, 256, "%s%s", name, key + 2);
-	type = get_member_type_from_key(sym, key);
+	type = get_member_type_from_key(symbol_expression(sym), key);
 	parse_value_ranges_type(type, value, &rl);
 	state = alloc_estate_range_list(rl);
 	set_state(SMATCH_EXTRA, fullname, sym, state);
