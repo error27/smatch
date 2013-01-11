@@ -61,7 +61,8 @@ int possibly_false_rl(struct range_list *left_ranges, int comparison, struct ran
 int possibly_false_rl_LR(int comparison, struct range_list *a, struct range_list *b, int left);
 
 int ranges_equiv(struct data_range *one, struct data_range *two);
-int range_lists_equiv(struct range_list *one, struct range_list *two);
+
+int rl_equiv(struct range_list *one, struct range_list *two);
 int is_whole_rl(struct range_list *rl);
 
 sval_t rl_min(struct range_list *rl);

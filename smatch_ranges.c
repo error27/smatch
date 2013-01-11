@@ -375,7 +375,7 @@ int ranges_equiv(struct data_range *one, struct data_range *two)
 	return 1;
 }
 
-int range_lists_equiv(struct range_list *one, struct range_list *two)
+int rl_equiv(struct range_list *one, struct range_list *two)
 {
 	struct data_range *one_range;
 	struct data_range *two_range;

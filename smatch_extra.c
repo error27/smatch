@@ -1070,7 +1070,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	new = rl_intersection(rl, limit);
 
 	/* We want to preserve the implications here */
-	if (sm && range_lists_equiv(estate_ranges(sm->state), new))
+	if (sm && rl_equiv(estate_ranges(sm->state), new))
 		__set_sm(sm);
 	else
 		set_extra_nomod(name, sym, alloc_estate_range_list(new));
