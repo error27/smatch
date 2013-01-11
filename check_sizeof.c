@@ -1,5 +1,5 @@
 /*
- * smatch/check_sizeof_pointer.c
+ * smatch/check_sizeof.c
  *
  * Copyright (C) 2012 Oracle.
  *
@@ -11,7 +11,7 @@
 
 static int my_id;
 
-static void check_sizeof(struct expression *expr, char *ptr_name)
+static void check_pointer(struct expression *expr, char *ptr_name)
 {
 	char *name;
 	sval_t sval;
@@ -45,7 +45,7 @@ static void match_call_assignment(struct expression *expr)
 		return;
 
 	FOR_EACH_PTR(call->args, arg) {
-		check_sizeof(arg, ptr_name);
+		check_pointer(arg, ptr_name);
 	} END_FOR_EACH_PTR(arg);
 
 	free_string(ptr_name);
@@ -88,12 +88,11 @@ static void match_check_params(struct expression *call)
 
 static void match_sizeof(struct expression *expr)
 {
-	if (expr->type == EXPR_PREOP && expr->op == '&') {
+	if (expr->type == EXPR_PREOP && expr->op == '&')
 		sm_msg("warn: sizoef(&pointer)?");
-	}
 }
 
-void check_sizeof_pointer(int id)
+void check_sizeof(int id)
 {
 	my_id = id;
 
