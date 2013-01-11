@@ -1066,7 +1066,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	else
 		rl = alloc_whole_rl(type);
 
-	parse_value_ranges_type(type, value, &limit);
+	str_to_rl(type, value, &limit);
 	new = rl_intersection(rl, limit);
 
 	/* We want to preserve the implications here */
@@ -1104,7 +1104,7 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	type = get_member_type_from_key(arg, key);
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (state) {
-		parse_value_ranges_type(type, value, &added);
+		str_to_rl(type, value, &added);
 		new = rl_union(estate_ranges(state), added);
 	} else {
 		new = alloc_whole_rl(type);
@@ -1155,7 +1155,7 @@ static void db_returned_states_param(struct expression *expr, int param, char *k
 			return;
 		}
 		type = get_type(arg);
-		parse_value_ranges_type(type, value, &rl);
+		str_to_rl(type, value, &rl);
 		set_extra_mod(name, sym, alloc_estate_range_list(rl));
 		free_string(name);
 		return;
@@ -1176,7 +1176,7 @@ static void db_returned_states_param(struct expression *expr, int param, char *k
 	type = get_member_type_from_key(arg, key);
 	if (!type)
 		goto free;
-	parse_value_ranges_type(type, value, &rl);
+	str_to_rl(type, value, &rl);
 	set_extra_mod(member_name, sym, alloc_estate_range_list(rl));
 free:
 	free_string(name);
@@ -1200,7 +1200,7 @@ static void db_returned_member_info(struct expression *expr, int param, char *ke
 	type = get_member_type_from_key(expr->left, key);
 	if (!type)
 		return;
-	parse_value_ranges_type(type, value, &rl);
+	str_to_rl(type, value, &rl);
 	set_extra_mod(member_name, sym, alloc_estate_range_list(rl));
 
 free:
@@ -1256,7 +1256,7 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 
 	snprintf(fullname, 256, "%s%s", name, key + 2);
 	type = get_member_type_from_key(symbol_expression(sym), key);
-	parse_value_ranges_type(type, value, &rl);
+	str_to_rl(type, value, &rl);
 	state = alloc_estate_range_list(rl);
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }

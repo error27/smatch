@@ -34,14 +34,13 @@ extern struct string_list *__ignored_macros;
 
 /* these are implemented in smatch_ranges.c */
 char *show_ranges(struct range_list *list);
+void str_to_rl(struct symbol *type, char *value, struct range_list **rl);
 
 struct data_range *alloc_range_perm(sval_t min, sval_t max);
 struct range_list *alloc_rl(sval_t min, sval_t max);
 struct range_list *clone_rl(struct range_list *list);
 struct range_list *clone_rl_permanent(struct range_list *list);
 struct range_list *alloc_whole_rl(struct symbol *type);
-
-void parse_value_ranges_type(struct symbol *type, char *value, struct range_list **rl);
 
 void add_range(struct range_list **list, sval_t min, sval_t max);
 void tack_on(struct range_list **list, struct data_range *drange);

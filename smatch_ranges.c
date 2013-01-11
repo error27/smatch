@@ -84,7 +84,7 @@ static sval_t parse_val(struct symbol *type, char *c, char **endp)
 	return ret;
 }
 
-void parse_value_ranges_type(struct symbol *type, char *value, struct range_list **rl)
+void str_to_rl(struct symbol *type, char *value, struct range_list **rl)
 {
 	sval_t min, max;
 	char *c;

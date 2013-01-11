@@ -353,7 +353,7 @@ static int db_compare_callback(void *unused, int argc, char **argv, char **azCol
 	if (argc != 5)
 		return 0;
 
-	parse_value_ranges_type(get_type(db_info.expr), argv[0], &ret_range);
+	str_to_rl(get_type(db_info.expr), argv[0], &ret_range);
 	type = atoi(argv[1]);
 	param = atoi(argv[2]);
 	key = argv[3];
@@ -460,7 +460,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 		return 0;
 
 	return_id = atoi(argv[0]);
-	parse_value_ranges_type(get_type(db_info.expr->right), argv[1], &ret_range);
+	str_to_rl(get_type(db_info.expr->right), argv[1], &ret_range);
 	if (!ret_range)
 		ret_range = alloc_whole_rl(cur_func_return_type());
 	type = atoi(argv[2]);
@@ -594,7 +594,7 @@ static int db_return_states_callback(void *unused, int argc, char **argv, char *
 		return 0;
 
 	return_id = atoi(argv[0]);
-	parse_value_ranges_type(get_type(db_info.expr), argv[1], &ret_range);
+	str_to_rl(get_type(db_info.expr), argv[1], &ret_range);
 	type = atoi(argv[2]);
 	param = atoi(argv[3]);
 	key = argv[4];

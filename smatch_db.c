@@ -127,7 +127,7 @@ static int db_return_callback(void *unused, int argc, char **argv, char **azColN
 		return 0;
 	if (option_debug)
 		sm_msg("return type %d", type_positive_bits(return_type));
-	parse_value_ranges_type(return_type, argv[0], &return_range_list);
+	str_to_rl(return_type, argv[0], &return_range_list);
 	return 0;
 }
 
