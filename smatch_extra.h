@@ -47,17 +47,17 @@ void tack_on(struct range_list **list, struct data_range *drange);
 struct range_list *remove_range(struct range_list *list, sval_t min, sval_t max);
 
 int true_comparison_range(struct data_range *left, int comparison, struct data_range *right);
-int true_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
-int false_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left);
+int true_comparison_range_LR(int comparison, struct data_range *var, struct data_range *val, int left);
+int false_comparison_range_LR(int comparison, struct data_range *var, struct data_range *val, int left);
 struct data_range *alloc_range(sval_t min, sval_t max);
 
 int possibly_true(struct expression *left, int comparison, struct expression *right);
 int possibly_true_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges);
-int possibly_true_range_lists_lr(int comparison, struct range_list *a, struct range_list *b, int left);
+int possibly_true_range_lists_LR(int comparison, struct range_list *a, struct range_list *b, int left);
 
 int possibly_false(struct expression *left, int comparison, struct expression *right);
 int possibly_false_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges);
-int possibly_false_range_lists_lr(int comparison, struct range_list *a, struct range_list *b, int left);
+int possibly_false_range_lists_LR(int comparison, struct range_list *a, struct range_list *b, int left);
 
 int ranges_equiv(struct data_range *one, struct data_range *two);
 int range_lists_equiv(struct range_list *one, struct range_list *two);

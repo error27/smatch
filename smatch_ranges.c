@@ -443,7 +443,7 @@ int true_comparison_range(struct data_range *left, int comparison, struct data_r
 	return 0;
 }
 
-int true_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left)
+int true_comparison_range_LR(int comparison, struct data_range *var, struct data_range *val, int left)
 {
 	if (left)
 		return true_comparison_range(var, comparison, val);
@@ -495,7 +495,7 @@ static int false_comparison_range_sval(struct data_range *left, int comparison, 
 	return 0;
 }
 
-int false_comparison_range_lr(int comparison, struct data_range *var, struct data_range *val, int left)
+int false_comparison_range_LR(int comparison, struct data_range *var, struct data_range *val, int left)
 {
 	if (left)
 		return false_comparison_range_sval(var, comparison, val);
@@ -574,7 +574,7 @@ int possibly_false_range_lists(struct range_list *left_ranges, int comparison, s
 }
 
 /* FIXME: the _rl here stands for right left so really it should be _lr */
-int possibly_true_range_lists_lr(int comparison, struct range_list *a, struct range_list *b, int left)
+int possibly_true_range_lists_LR(int comparison, struct range_list *a, struct range_list *b, int left)
 {
 	if (left)
 		return possibly_true_range_lists(a, comparison, b);
@@ -582,7 +582,7 @@ int possibly_true_range_lists_lr(int comparison, struct range_list *a, struct ra
 		return possibly_true_range_lists(b, comparison, a);
 }
 
-int possibly_false_range_lists_lr(int comparison, struct range_list *a, struct range_list *b, int left)
+int possibly_false_range_lists_LR(int comparison, struct range_list *a, struct range_list *b, int left)
 {
 	if (left)
 		return possibly_false_range_lists(a, comparison, b);

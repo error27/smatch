@@ -300,7 +300,7 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != RANGED_CALL)
 			continue;
-		if (!true_comparison_range_lr(comparison, tmp->range, value_range, left))
+		if (!true_comparison_range_LR(comparison, tmp->range, value_range, left))
 			continue;
 		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
@@ -313,7 +313,7 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != RANGED_CALL)
 			continue;
-		if (!false_comparison_range_lr(comparison, tmp->range, value_range, left))
+		if (!false_comparison_range_LR(comparison, tmp->range, value_range, left))
 			continue;
 		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
@@ -360,12 +360,12 @@ static int db_compare_callback(void *unused, int argc, char **argv, char **azCol
 	value = argv[4];
 
 	if (db_info.true_side) {
-		if (!possibly_true_range_lists_lr(db_info.comparison,
+		if (!possibly_true_range_lists_LR(db_info.comparison,
 						  ret_range, db_info.rl,
 						  db_info.left))
 			return 0;
 	} else {
-		if (!possibly_false_range_lists_lr(db_info.comparison,
+		if (!possibly_false_range_lists_LR(db_info.comparison,
 						  ret_range, db_info.rl,
 						  db_info.left))
 			return 0;
