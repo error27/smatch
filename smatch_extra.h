@@ -84,6 +84,35 @@ int get_implied_rl(struct expression *expr, struct range_list **rl);
 void free_rl(struct range_list **rlist);
 void free_data_info_allocs(void);
 
+/* smatch_estate.c */
+
+struct smatch_state *alloc_estate_empty(void);
+struct smatch_state *alloc_estate(sval_t sval);
+struct smatch_state *alloc_estate_range(sval_t min, sval_t max);
+struct smatch_state *alloc_estate_range_list(struct range_list *rl);
+struct smatch_state *extra_undefined(struct symbol *type);
+struct smatch_state *clone_estate(struct smatch_state *state);
+
+struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state *s2);
+
+int estates_equiv(struct smatch_state *one, struct smatch_state *two);
+int is_whole_range(struct smatch_state *state);
+
+struct range_list *estate_ranges(struct smatch_state *state);
+struct related_list *estate_related(struct smatch_state *state);
+
+sval_t estate_min(struct smatch_state *state);
+sval_t estate_max(struct smatch_state *state);
+struct symbol *estate_type(struct smatch_state *state);
+
+int estate_has_hard_max(struct smatch_state *state);
+void estate_set_hard_max(struct smatch_state *state);
+void estate_clear_hard_max(struct smatch_state *state);
+int estate_get_hard_max(struct smatch_state *state, sval_t *sval);
+
+int estate_get_single_value(struct smatch_state *state, sval_t *sval);
+struct smatch_state *get_implied_estate(struct expression *expr);
+
 /* used in smatch_slist.  implemented in smatch_extra.c */
 void add_extra_mod_hook(void (*fn)(const char *name, struct symbol *sym, struct smatch_state *state));
 int implied_not_equal(struct expression *expr, long long val);
@@ -94,39 +123,14 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 				struct expression *condition);
 
 /* also implemented in smatch_extra */
-struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state *s2);
-int estates_equiv(struct smatch_state *one, struct smatch_state *two);
-struct smatch_state *clone_estate(struct smatch_state *state);
 struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state);
 struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state);
 void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state);
-struct smatch_state *alloc_estate_empty(void);
-struct smatch_state *alloc_estate(sval_t sval);
-struct smatch_state *alloc_estate_range_list(struct range_list *rl);
 struct data_info *get_dinfo(struct smatch_state *state);
-struct range_list *estate_ranges(struct smatch_state *state);
-struct related_list *estate_related(struct smatch_state *state);
 
-int estate_has_hard_max(struct smatch_state *state);
-void estate_set_hard_max(struct smatch_state *state);
-void estate_clear_hard_max(struct smatch_state *state);
-int estate_get_hard_max(struct smatch_state *state, sval_t *sval);
-
-sval_t estate_min(struct smatch_state *state);
-sval_t estate_max(struct smatch_state *state);
-struct symbol *estate_type(struct smatch_state *state);
 struct smatch_state *add_filter(struct smatch_state *orig, sval_t filter);
 struct smatch_state *filter_range(struct smatch_state *orig, sval_t filter_min, sval_t filter_max);
-struct smatch_state *extra_undefined(struct symbol *type);
-
-int estate_get_single_value(struct smatch_state *state, sval_t *sval);
-struct smatch_state *get_implied_estate(struct expression *expr);
-
 void function_comparison(int comparison, struct expression *expr, sval_t sval, int left);
-
-struct smatch_state *alloc_estate_range(sval_t min, sval_t max);
-
-int is_whole_range(struct smatch_state *state);
 
 /* smatch_expressions.c */
 struct expression *zero_expr();
