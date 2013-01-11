@@ -360,12 +360,12 @@ static int db_compare_callback(void *unused, int argc, char **argv, char **azCol
 	value = argv[4];
 
 	if (db_info.true_side) {
-		if (!possibly_true_range_lists_LR(db_info.comparison,
+		if (!possibly_true_rl_LR(db_info.comparison,
 						  ret_range, db_info.rl,
 						  db_info.left))
 			return 0;
 	} else {
-		if (!possibly_false_range_lists_LR(db_info.comparison,
+		if (!possibly_false_rl_LR(db_info.comparison,
 						  ret_range, db_info.rl,
 						  db_info.left))
 			return 0;

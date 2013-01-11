@@ -541,7 +541,7 @@ int possibly_false(struct expression *left, int comparison, struct expression *r
 	return 0;
 }
 
-int possibly_true_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges)
+int possibly_true_rl(struct range_list *left_ranges, int comparison, struct range_list *right_ranges)
 {
 	struct data_range *left_tmp, *right_tmp;
 
@@ -557,7 +557,7 @@ int possibly_true_range_lists(struct range_list *left_ranges, int comparison, st
 	return 0;
 }
 
-int possibly_false_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges)
+int possibly_false_rl(struct range_list *left_ranges, int comparison, struct range_list *right_ranges)
 {
 	struct data_range *left_tmp, *right_tmp;
 
@@ -574,20 +574,20 @@ int possibly_false_range_lists(struct range_list *left_ranges, int comparison, s
 }
 
 /* FIXME: the _rl here stands for right left so really it should be _lr */
-int possibly_true_range_lists_LR(int comparison, struct range_list *a, struct range_list *b, int left)
+int possibly_true_rl_LR(int comparison, struct range_list *a, struct range_list *b, int left)
 {
 	if (left)
-		return possibly_true_range_lists(a, comparison, b);
+		return possibly_true_rl(a, comparison, b);
 	else
-		return possibly_true_range_lists(b, comparison, a);
+		return possibly_true_rl(b, comparison, a);
 }
 
-int possibly_false_range_lists_LR(int comparison, struct range_list *a, struct range_list *b, int left)
+int possibly_false_rl_LR(int comparison, struct range_list *a, struct range_list *b, int left)
 {
 	if (left)
-		return possibly_false_range_lists(a, comparison, b);
+		return possibly_false_rl(a, comparison, b);
 	else
-		return possibly_false_range_lists(b, comparison, a);
+		return possibly_false_rl(b, comparison, a);
 }
 
 void tack_on(struct range_list **list, struct data_range *drange)

@@ -53,12 +53,12 @@ int true_comparison_range_LR(int comparison, struct data_range *var, struct data
 int false_comparison_range_LR(int comparison, struct data_range *var, struct data_range *val, int left);
 
 int possibly_true(struct expression *left, int comparison, struct expression *right);
-int possibly_true_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges);
-int possibly_true_range_lists_LR(int comparison, struct range_list *a, struct range_list *b, int left);
+int possibly_true_rl(struct range_list *left_ranges, int comparison, struct range_list *right_ranges);
+int possibly_true_rl_LR(int comparison, struct range_list *a, struct range_list *b, int left);
 
 int possibly_false(struct expression *left, int comparison, struct expression *right);
-int possibly_false_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges);
-int possibly_false_range_lists_LR(int comparison, struct range_list *a, struct range_list *b, int left);
+int possibly_false_rl(struct range_list *left_ranges, int comparison, struct range_list *right_ranges);
+int possibly_false_rl_LR(int comparison, struct range_list *a, struct range_list *b, int left);
 
 int ranges_equiv(struct data_range *one, struct data_range *two);
 int range_lists_equiv(struct range_list *one, struct range_list *two);

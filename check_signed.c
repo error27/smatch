@@ -267,7 +267,7 @@ static void match_condition(struct expression *expr)
 		return;
 	}
 
-	if (!possibly_true_range_lists(rl_left, expr->op, rl_right)) {
+	if (!possibly_true_rl(rl_left, expr->op, rl_right)) {
 		char *name = get_variable_from_expr_complex(expr, NULL);
 
 		sm_msg("warn: impossible condition '(%s) => (%s %s %s)'", name,
@@ -276,7 +276,7 @@ static void match_condition(struct expression *expr)
 		free_string(name);
 	}
 
-	if (!possibly_false_range_lists(rl_left, expr->op, rl_right)) {
+	if (!possibly_false_rl(rl_left, expr->op, rl_right)) {
 		char *name = get_variable_from_expr_complex(expr, NULL);
 
 		sm_msg("warn: always true condition '(%s) => (%s %s %s)'", name,
