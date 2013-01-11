@@ -759,7 +759,7 @@ struct range_list *rl_intersection(struct range_list *one, struct range_list *tw
 	return rl_filter(one, two);
 }
 
-void free_range_list(struct range_list **rlist)
+void free_rl(struct range_list **rlist)
 {
 	__free_ptr_list((struct ptr_list **)rlist);
 }
@@ -767,7 +767,7 @@ void free_range_list(struct range_list **rlist)
 static void free_single_dinfo(struct data_info *dinfo)
 {
 	if (dinfo->type == DATA_RANGE)
-		free_range_list(&dinfo->value_ranges);
+		free_rl(&dinfo->value_ranges);
 }
 
 static void free_dinfos(struct allocation_blob *blob)

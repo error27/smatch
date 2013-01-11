@@ -326,8 +326,8 @@ static int do_comparison(struct expression *expr)
 	poss_true = possibly_true_rl(left_ranges, expr->op, right_ranges);
 	poss_false = possibly_false_rl(left_ranges, expr->op, right_ranges);
 
-	free_range_list(&left_ranges);
-	free_range_list(&right_ranges);
+	free_rl(&left_ranges);
+	free_rl(&right_ranges);
 
 	if (!poss_true && !poss_false)
 		return 0;

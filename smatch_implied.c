@@ -468,12 +468,12 @@ static void handle_comparison(struct expression *expr,
 	}
 
 	if (!ranges || !sm) {
-		free_range_list(&ranges);
+		free_rl(&ranges);
 		return;
 	}
 
 	separate_and_filter(sm, expr->op, ranges, lr, __get_cur_slist(), implied_true, implied_false);
-	free_range_list(&ranges);
+	free_rl(&ranges);
 	delete_equiv_slist(implied_true, sm->name, sm->sym);
 	delete_equiv_slist(implied_false, sm->name, sm->sym);
 }
