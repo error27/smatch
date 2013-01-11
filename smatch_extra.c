@@ -484,7 +484,7 @@ static void match_assign(struct expression *expr)
 	case '=': {
 		struct smatch_state *state;
 
-		if (get_implied_range_list(right, &rl)) {
+		if (get_implied_rl(right, &rl)) {
 			rl = cast_rl(get_type(expr->left), rl);
 			state = alloc_estate_range_list(rl);
 			if (get_hard_max(right, &tmp))
@@ -757,7 +757,7 @@ static void match_comparison(struct expression *expr)
 	if (!type)
 		type = &llong_ctype;
 
-	if (get_implied_range_list(left, &left_orig)) {
+	if (get_implied_rl(left, &left_orig)) {
 		left_orig = cast_rl(type, left_orig);
 	} else {
 		min = sval_type_min(get_type(left));
@@ -765,7 +765,7 @@ static void match_comparison(struct expression *expr)
 		left_orig = cast_rl(type, alloc_rl(min, max));
 	}
 
-	if (get_implied_range_list(right, &right_orig)) {
+	if (get_implied_rl(right, &right_orig)) {
 		right_orig = cast_rl(type, right_orig);
 	} else {
 		min = sval_type_min(get_type(right));
@@ -1230,7 +1230,7 @@ static void match_call_info(struct expression *expr)
 	FOR_EACH_PTR(expr->args, arg) {
 		type = get_arg_type(expr->fn, i);
 
-		if (get_implied_range_list(arg, &rl))
+		if (get_implied_rl(arg, &rl))
 			rl = cast_rl(type, rl);
 		else
 			rl = alloc_whole_rl(type);

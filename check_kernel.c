@@ -19,7 +19,7 @@ static int implied_err_cast_return(struct expression *call, void *unused, struct
 	struct expression *arg;
 
 	arg = get_argument_from_call_expr(call->args, 0);
-	if (!get_implied_range_list(arg, rl))
+	if (!get_implied_rl(arg, rl))
 		*rl = alloc_rl(ll_to_sval(-4095), ll_to_sval(-1));
 	return 1;
 }

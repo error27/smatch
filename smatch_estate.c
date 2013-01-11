@@ -270,7 +270,7 @@ struct smatch_state *get_implied_estate(struct expression *expr)
 	state = get_state_expr(SMATCH_EXTRA, expr);
 	if (state)
 		return state;
-	if (!get_implied_range_list(expr, &rl))
+	if (!get_implied_rl(expr, &rl))
 		rl = alloc_whole_rl(get_type(expr));
 	return alloc_estate_range_list(rl);
 }

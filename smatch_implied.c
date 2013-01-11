@@ -460,11 +460,11 @@ static void handle_comparison(struct expression *expr,
 	if (is_merged_expr(left)) {
 		lr = LEFT;
 		sm = get_sm_state_expr(SMATCH_EXTRA, left);
-		get_implied_range_list(right, &ranges);
+		get_implied_rl(right, &ranges);
 	} else if (is_merged_expr(right)) {
 		lr = RIGHT;
 		sm = get_sm_state_expr(SMATCH_EXTRA, right);
-		get_implied_range_list(left, &ranges);
+		get_implied_rl(left, &ranges);
 	}
 
 	if (!ranges || !sm) {

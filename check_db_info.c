@@ -33,7 +33,7 @@ static void match_return(struct expression *ret_value)
 	if (!ret_value)
 		return;
 
-	if (get_implied_range_list(ret_value, &rl))
+	if (get_implied_rl(ret_value, &rl))
 		add_return_range(rl);
 	else
 		add_return_range(alloc_whole_rl(type));

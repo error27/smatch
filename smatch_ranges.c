@@ -508,9 +508,9 @@ int possibly_true(struct expression *left, int comparison, struct expression *ri
 	struct range_list *rl_left, *rl_right;
 	struct data_range *tmp_left, *tmp_right;
 
-	if (!get_implied_range_list(left, &rl_left))
+	if (!get_implied_rl(left, &rl_left))
 		return 1;
-	if (!get_implied_range_list(right, &rl_right))
+	if (!get_implied_rl(right, &rl_right))
 		return 1;
 
 	FOR_EACH_PTR(rl_left, tmp_left) {
@@ -527,9 +527,9 @@ int possibly_false(struct expression *left, int comparison, struct expression *r
 	struct range_list *rl_left, *rl_right;
 	struct data_range *tmp_left, *tmp_right;
 
-	if (!get_implied_range_list(left, &rl_left))
+	if (!get_implied_rl(left, &rl_left))
 		return 1;
-	if (!get_implied_range_list(right, &rl_right))
+	if (!get_implied_rl(right, &rl_right))
 		return 1;
 
 	FOR_EACH_PTR(rl_left, tmp_left) {

@@ -320,8 +320,8 @@ static int do_comparison(struct expression *expr)
 	struct range_list *right_ranges = NULL;
 	int poss_true, poss_false;
 
-	get_implied_range_list(expr->left, &left_ranges);
-	get_implied_range_list(expr->right, &right_ranges);
+	get_implied_rl(expr->left, &left_ranges);
+	get_implied_rl(expr->right, &right_ranges);
 
 	poss_true = possibly_true_rl(left_ranges, expr->op, right_ranges);
 	poss_false = possibly_false_rl(left_ranges, expr->op, right_ranges);
@@ -711,7 +711,7 @@ int get_implied_max(struct expression *expr, sval_t *sval)
 	return 1;
 }
 
-int get_implied_range_list(struct expression *expr, struct range_list **rl)
+int get_implied_rl(struct expression *expr, struct range_list **rl)
 {
 	sval_t sval;
 	struct smatch_state *state;

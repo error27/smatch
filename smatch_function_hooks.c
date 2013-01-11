@@ -574,7 +574,7 @@ static void match_assign_call(struct expression *expr)
 	if (!handled) {
 		struct range_list *rl;
 
-		if (!get_implied_range_list(expr->right, &rl))
+		if (!get_implied_rl(expr->right, &rl))
 			rl = alloc_whole_rl(get_type(expr->right));
 		rl = cast_rl(get_type(expr->left), rl);
 		set_extra_expr_mod(expr->left, alloc_estate_range_list(rl));
