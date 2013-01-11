@@ -37,6 +37,7 @@ int __bail_on_rest_of_function = 0;
 char *get_function(void) { return cur_func; }
 int get_lineno(void) { return __smatch_lineno; }
 int inside_loop(void) { return !!loop_count; }
+struct expression *get_switch_expr(void) { return top_expression(switch_expr_stack); }
 int in_expression_statement(void) { return !!__expr_stmt_count; }
 
 static void split_symlist(struct symbol_list *sym_list);

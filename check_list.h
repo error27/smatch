@@ -82,6 +82,7 @@ CK(check_sizeof_pointer)
 CK(check_or_vs_and)
 CK(check_passes_sizeof)
 CK(check_assign_vs_compare)
+CK(check_missing_break)
 
 /* <- your test goes here */
 /* CK(register_template) */

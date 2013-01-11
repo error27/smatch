@@ -304,6 +304,7 @@ int in_condition(void);
 
 void smatch (int argc, char **argv);
 int inside_loop(void);
+struct expression *get_switch_expr(void);
 int in_expression_statement(void);
 void __split_expr(struct expression *expr);
 void __split_stmt(struct statement *stmt);
