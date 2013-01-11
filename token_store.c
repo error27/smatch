@@ -118,21 +118,26 @@ void store_all_tokens(struct token *token)
 	}
 }
 
-struct token *pos_get_token(struct position pos)
+struct token *first_token_from_line(struct position pos)
 {
-	struct token *token;
-
 	find_line(pos);
 
 	if (!cursor)
 		return NULL;
+
 	if (cursor->pos.stream != pos.stream)
 		return NULL;
-
 	if (cursor->pos.line != pos.line)
 		return NULL;
 
-	token = cursor->token;
+	return cursor->token;
+}
+
+struct token *pos_get_token(struct position pos)
+{
+	struct token *token;
+
+	token = first_token_from_line(pos);
 	while (token) {
 		if (pos.pos == token->pos.pos)
 			return token;
