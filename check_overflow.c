@@ -115,7 +115,7 @@ static void array_check(struct expression *expr)
 			struct smatch_state *state;
 
 			state = get_state_expr(SMATCH_EXTRA, offset);
-			if (state && is_whole_range(state))
+			if (state && estate_is_whole(state))
 				return;
 		}
 

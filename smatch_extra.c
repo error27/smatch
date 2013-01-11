@@ -974,14 +974,9 @@ int implied_not_equal(struct expression *expr, long long val)
 	return !possibly_false(expr, SPECIAL_NOTEQUAL, value_expr(val));
 }
 
-int is_whole_range(struct smatch_state *state)
-{
-	return is_whole_rl(estate_ranges(state));
-}
-
 static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
 {
-	if (is_whole_range(state))
+	if (estate_is_whole(state))
 		return;
 	sm_msg("info: passes param_value '%s' %d '%s' %s %s", fn, param, printed_name, state->name, global_static);
 }
@@ -1209,7 +1204,7 @@ free:
 
 static void returned_member_callback(int return_id, char *return_ranges, char *printed_name, struct smatch_state *state)
 {
-	if (is_whole_range(state))
+	if (estate_is_whole(state))
 		return;
 	sm_msg("info: return_value %d '%s' '%s' '%s' %s", return_id,
 	       return_ranges, printed_name, state->name, global_static());
