@@ -92,6 +92,9 @@ static void match_sizeof(struct expression *expr)
 		sm_msg("warn: sizoef(&pointer)?");
 	if (expr->type == EXPR_SIZEOF)
 		sm_msg("warn: sizoef(sizeof())?");
+	/* the ilog2() macro is a valid place to check the size of a binop */
+	if (expr->type == EXPR_BINOP && !get_macro_name(expr->pos))
+		sm_msg("warn: taking sizeof binop");
 }
 
 void check_sizeof(int id)
