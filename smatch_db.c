@@ -394,7 +394,7 @@ static void match_function_assign(struct expression *expr)
 	if (!sym || sym->type != SYM_FN)
 		return;
 
-	fn_name = expr_to_str_sym(right, NULL);
+	fn_name = expr_to_str(right);
 	ptr_name = get_fnptr_name(expr->left);
 	if (!fn_name || !ptr_name)
 		goto free;
@@ -643,7 +643,7 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 	type = get_real_base_type(type);
 	if (!type || type->type != SYM_STRUCT)
 		return;
-	name = expr_to_str_sym(expr, NULL);
+	name = expr_to_str(expr);
 	if (!name)
 		return;
 

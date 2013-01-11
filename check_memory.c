@@ -65,7 +65,7 @@ static int is_complex(struct expression *expr)
 	char *name;
 	int ret = 1;
 
-	name = expr_to_str_sym(expr, NULL);
+	name = expr_to_str(expr);
 	if (name)
 		ret = 0;
 	free_string(name);

@@ -181,7 +181,7 @@ static void match_copy_to_user(const char *fn, struct expression *expr, void *un
 	if (holey_struct(data)) {
 		char *name;
 
-		name = expr_to_str_sym(data, NULL);
+		name = expr_to_str(data);
 		sm_msg("warn: check that '%s' doesn't leak information (struct has holes)", name);
 		free_string(name);
 		return;

@@ -65,7 +65,7 @@ static void match_assign(struct expression *expr)
 	if (get_state_expr(my_id, left) == &no_break) {
 		char *name;
 
-		name = expr_to_str_sym(left, NULL);
+		name = expr_to_str(left);
 		sm_msg("warn: missing break? reassigning '%s'", name);
 		free_string(name);
 	}

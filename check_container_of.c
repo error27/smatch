@@ -39,7 +39,7 @@ static void match_condition(struct expression *expr)
 	if (get_state_expr(my_id, expr) == &non_null) {
 		char *name;
 
-		name = expr_to_str_sym(expr, NULL);
+		name = expr_to_str(expr);
 		sm_msg("warn: can '%s' even be NULL?", name);
 		set_state_expr(my_id, expr, &undefined);
 		free_string(name);

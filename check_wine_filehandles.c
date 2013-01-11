@@ -64,7 +64,7 @@ static void match_condition(struct expression *expr)
 	if (get_state_expr(my_id, expr) == &filehandle) {
 		char *name;
 
-		name = expr_to_str_sym(expr, NULL);
+		name = expr_to_str(expr);
 		sm_msg("error: comparing a filehandle against zero '%s'", name);
 		set_state_expr(my_id, expr, &oktocheck);
 		free_string(name);

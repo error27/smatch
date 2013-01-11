@@ -96,7 +96,7 @@ static void match_assign(struct expression *expr)
 		match_normal_assign(expr);
 		return;
 	}
-	name = expr_to_str_sym(expr->right, NULL);
+	name = expr_to_str(expr->right);
 	if (!name || strcmp(name, "__val_gu") != 0)
 		goto free;
 	set_state_expr(my_max_id, expr->left, &user_data);

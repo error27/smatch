@@ -368,7 +368,7 @@ static char *get_full_name(struct expression *expr, int index)
 	struct lock_info *lock = &lock_table[index];
 
 	if (lock->arg == RETURN_VAL) {
-		name = expr_to_str_sym(expr->left, NULL);
+		name = expr_to_str(expr->left);
 		full_name = make_full_name(lock->name, name);
 	} else if (lock->arg == NO_ARG) {
 		full_name = make_full_name(lock->name, "");

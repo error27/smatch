@@ -42,7 +42,7 @@ static void match_symbol(struct expression *expr)
 
 	if (!is_freed(expr))
 		return;
-	name = expr_to_str_sym(expr, NULL);
+	name = expr_to_str(expr);
 	sm_msg("warn: '%s' was already freed.", name);
 	free_string(name);
 }

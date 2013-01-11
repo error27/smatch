@@ -57,7 +57,7 @@ static void check_passes_pointer(char *name, struct expression *call)
 	char *ptr_name;
 
 	FOR_EACH_PTR(call->args, arg) {
-		ptr_name = expr_to_str_sym(arg, NULL);
+		ptr_name = expr_to_str(arg);
 		if (!ptr_name)
 			continue;
 		if (strcmp(name, ptr_name) == 0)
@@ -78,7 +78,7 @@ static void match_check_params(struct expression *call)
 		obj = strip_expr(arg->cast_expression);
 		if (!is_pointer(obj))
 			continue;
-		name = expr_to_str_sym(obj, NULL);
+		name = expr_to_str(obj);
 		if (!name)
 			continue;
 		check_passes_pointer(name, call);

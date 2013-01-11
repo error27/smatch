@@ -291,6 +291,11 @@ char *expr_to_str_sym(struct expression *expr,
 	return alloc_string(var_name);
 }
 
+char *expr_to_str(struct expression *expr)
+{
+	return expr_to_str_sym(expr, NULL);
+}
+
 int sym_name_is(const char *name, struct expression *expr)
 {
 	if (!expr)
@@ -467,7 +472,7 @@ char *get_member_name(struct expression *expr)
 char *get_fnptr_name(struct expression *expr)
 {
 	if (expr->type == EXPR_SYMBOL)
-		return expr_to_str_sym(expr, NULL);
+		return expr_to_str(expr);
 	return get_member_name(expr);
 }
 

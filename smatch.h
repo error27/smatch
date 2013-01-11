@@ -222,10 +222,13 @@ void free_string(char *str);
 struct smatch_state *alloc_state_num(int num);
 struct expression *get_argument_from_call_expr(struct expression_list *args,
 					       int num);
+
+char *expr_to_str(struct expression *expr);
 char *expr_to_str_sym_complex(struct expression *expr,
 				     struct symbol **sym_ptr);
 char *expr_to_str_sym(struct expression *expr,
 			     struct symbol **sym_ptr);
+
 int sym_name_is(const char *name, struct expression *expr);
 int get_value(struct expression *expr, sval_t *val);
 int get_implied_value(struct expression *expr, sval_t *val);

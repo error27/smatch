@@ -67,7 +67,7 @@ static void match_copy_to_user(const char *fn, struct expression *expr, void *un
 	sm = get_sm_state(my_id, name, sym);
 	if (!sm || !slist_has_state(sm->possible, &string))
 		return;
-	name = expr_to_str_sym(src, NULL);
+	name = expr_to_str(src);
 	sm_msg("warn: possible info leak '%s'", name);
 	free_string(name);
 }

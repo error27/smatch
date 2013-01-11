@@ -718,7 +718,7 @@ int get_implied_return(struct expression *expr, struct range_list **rl)
 	*rl = NULL;
 
 	expr = strip_expr(expr);
-	fn = expr_to_str_sym(expr->fn, NULL);
+	fn = expr_to_str(expr->fn);
 	if (!fn)
 		goto out;
 

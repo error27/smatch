@@ -61,10 +61,10 @@ static void dont_check(const char *fn, struct expression *expr, void *unused)
 		return;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	name = expr_to_str_sym(arg, NULL);
+	name = expr_to_str(arg);
 	if (!name)
 		goto free;
-	condition_name = expr_to_str_sym(previous_condition, NULL);
+	condition_name = expr_to_str(previous_condition);
 	if (!condition_name)
 		goto free;
 	if (!strcmp(name, condition_name))
