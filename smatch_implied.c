@@ -588,13 +588,13 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 
 	if (case_expr) {
 		if (get_value(case_expr, &sval)) {
-			filter_top_range_list(remaining_cases, sval);
+			filter_top_rl(remaining_cases, sval);
 			add_range(&vals, sval, sval);
 		} else {
-			vals = clone_rl(top_range_list(*remaining_cases));
+			vals = clone_rl(top_rl(*remaining_cases));
 		}
 	} else {
-		vals = top_range_list(*remaining_cases);
+		vals = top_rl(*remaining_cases);
 	}
 
 	if (sm)

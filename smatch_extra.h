@@ -73,10 +73,10 @@ struct range_list *rl_filter(struct range_list *rl, struct range_list *filter);
 struct range_list *rl_intersection(struct range_list *one, struct range_list *two);
 struct range_list *rl_union(struct range_list *one, struct range_list *two);
 
-void push_range_list(struct range_list_stack **rl_stack, struct range_list *rl);
-struct range_list *pop_range_list(struct range_list_stack **rl_stack);
-struct range_list *top_range_list(struct range_list_stack *rl_stack);
-void filter_top_range_list(struct range_list_stack **rl_stack, sval_t sval);
+void push_rl(struct range_list_stack **rl_stack, struct range_list *rl);
+struct range_list *pop_rl(struct range_list_stack **rl_stack);
+struct range_list *top_rl(struct range_list_stack *rl_stack);
+void filter_top_rl(struct range_list_stack **rl_stack, sval_t sval);
 
 struct range_list *cast_rl(struct symbol *type, struct range_list *rl);
 int get_implied_range_list(struct expression *expr, struct range_list **rl);

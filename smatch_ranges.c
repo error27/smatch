@@ -595,12 +595,12 @@ void tack_on(struct range_list **list, struct data_range *drange)
 	add_ptr_list(list, drange);
 }
 
-void push_range_list(struct range_list_stack **rl_stack, struct range_list *rl)
+void push_rl(struct range_list_stack **rl_stack, struct range_list *rl)
 {
 	add_ptr_list(rl_stack, rl);
 }
 
-struct range_list *pop_range_list(struct range_list_stack **rl_stack)
+struct range_list *pop_rl(struct range_list_stack **rl_stack)
 {
 	struct range_list *rl;
 
@@ -609,7 +609,7 @@ struct range_list *pop_range_list(struct range_list_stack **rl_stack)
 	return rl;
 }
 
-struct range_list *top_range_list(struct range_list_stack *rl_stack)
+struct range_list *top_rl(struct range_list_stack *rl_stack)
 {
 	struct range_list *rl;
 
@@ -617,13 +617,13 @@ struct range_list *top_range_list(struct range_list_stack *rl_stack)
 	return rl;
 }
 
-void filter_top_range_list(struct range_list_stack **rl_stack, sval_t sval)
+void filter_top_rl(struct range_list_stack **rl_stack, sval_t sval)
 {
 	struct range_list *rl;
 
-	rl = pop_range_list(rl_stack);
+	rl = pop_rl(rl_stack);
 	rl = remove_range(rl, sval, sval);
-	push_range_list(rl_stack, rl);
+	push_rl(rl_stack, rl);
 }
 
 static int sval_too_big(struct symbol *type, sval_t sval)
