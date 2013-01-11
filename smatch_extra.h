@@ -36,20 +36,21 @@ extern struct string_list *__ignored_macros;
 char *show_ranges(struct range_list *list);
 void str_to_rl(struct symbol *type, char *value, struct range_list **rl);
 
+struct data_range *alloc_range(sval_t min, sval_t max);
 struct data_range *alloc_range_perm(sval_t min, sval_t max);
+
 struct range_list *alloc_rl(sval_t min, sval_t max);
 struct range_list *clone_rl(struct range_list *list);
 struct range_list *clone_rl_permanent(struct range_list *list);
 struct range_list *alloc_whole_rl(struct symbol *type);
 
 void add_range(struct range_list **list, sval_t min, sval_t max);
-void tack_on(struct range_list **list, struct data_range *drange);
 struct range_list *remove_range(struct range_list *list, sval_t min, sval_t max);
+void tack_on(struct range_list **list, struct data_range *drange);
 
 int true_comparison_range(struct data_range *left, int comparison, struct data_range *right);
 int true_comparison_range_LR(int comparison, struct data_range *var, struct data_range *val, int left);
 int false_comparison_range_LR(int comparison, struct data_range *var, struct data_range *val, int left);
-struct data_range *alloc_range(sval_t min, sval_t max);
 
 int possibly_true(struct expression *left, int comparison, struct expression *right);
 int possibly_true_range_lists(struct range_list *left_ranges, int comparison, struct range_list *right_ranges);
