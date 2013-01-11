@@ -152,11 +152,11 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 	}
 
 	if (lr == LEFT) {
-		istrue = !possibly_false_rl(estate_ranges(s->state), comparison, vals);
-		isfalse = !possibly_true_rl(estate_ranges(s->state), comparison, vals);
+		istrue = !possibly_false_rl(estate_rl(s->state), comparison, vals);
+		isfalse = !possibly_true_rl(estate_rl(s->state), comparison, vals);
 	} else {
-		istrue = !possibly_false_rl(vals, comparison, estate_ranges(s->state));
-		isfalse = !possibly_true_rl(vals, comparison, estate_ranges(s->state));
+		istrue = !possibly_false_rl(vals, comparison, estate_rl(s->state));
+		isfalse = !possibly_true_rl(vals, comparison, estate_rl(s->state));
 	}
 
 	print_debug_tf(s, istrue, isfalse);
@@ -555,7 +555,7 @@ struct range_list *__get_implied_values(struct expression *switch_expr)
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (!state)
 		goto free;
-	ret = clone_rl(estate_ranges(state));
+	ret = clone_rl(estate_rl(state));
 free:
 	free_string(name);
 	if (!ret) {

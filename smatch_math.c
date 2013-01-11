@@ -725,7 +725,7 @@ int get_implied_rl(struct expression *expr, struct range_list **rl)
 
 	state = get_state_expr(SMATCH_EXTRA, expr);
 	if (state) {
-		*rl = clone_rl(estate_ranges(state));
+		*rl = clone_rl(estate_rl(state));
 		return 1;
 	}
 

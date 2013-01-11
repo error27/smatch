@@ -31,7 +31,7 @@ struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state 
 	if (estates_equiv(s1, s2))
 		return s1;
 
-	value_ranges = rl_union(estate_ranges(s1), estate_ranges(s2));
+	value_ranges = rl_union(estate_rl(s1), estate_rl(s2));
 	tmp = alloc_estate_rl(value_ranges);
 	rlist = get_shared_relations(estate_related(s1), estate_related(s2));
 	set_related(tmp, rlist);
@@ -48,7 +48,7 @@ struct data_info *get_dinfo(struct smatch_state *state)
 	return (struct data_info *)state->data;
 }
 
-struct range_list *estate_ranges(struct smatch_state *state)
+struct range_list *estate_rl(struct smatch_state *state)
 {
 	if (!state)
 		return NULL;
@@ -81,25 +81,25 @@ void estate_clear_hard_max(struct smatch_state *state)
 
 int estate_get_hard_max(struct smatch_state *state, sval_t *sval)
 {
-	if (!state || !get_dinfo(state)->hard_max || !estate_ranges(state))
+	if (!state || !get_dinfo(state)->hard_max || !estate_rl(state))
 		return 0;
-	*sval = rl_max(estate_ranges(state));
+	*sval = rl_max(estate_rl(state));
 	return 1;
 }
 
 sval_t estate_min(struct smatch_state *state)
 {
-	return rl_min(estate_ranges(state));
+	return rl_min(estate_rl(state));
 }
 
 sval_t estate_max(struct smatch_state *state)
 {
-	return rl_max(estate_ranges(state));
+	return rl_max(estate_rl(state));
 }
 
 struct symbol *estate_type(struct smatch_state *state)
 {
-	return rl_max(estate_ranges(state)).type;
+	return rl_max(estate_rl(state)).type;
 }
 
 static int rlists_equiv(struct related_list *one, struct related_list *two)
@@ -140,15 +140,15 @@ int estates_equiv(struct smatch_state *one, struct smatch_state *two)
 
 int estate_is_whole(struct smatch_state *state)
 {
-	return is_whole_rl(estate_ranges(state));
+	return is_whole_rl(estate_rl(state));
 }
 
 int estate_get_single_value(struct smatch_state *state, sval_t *sval)
 {
 	sval_t min, max;
 
-	min = rl_min(estate_ranges(state));
-	max = rl_max(estate_ranges(state));
+	min = rl_min(estate_rl(state));
+	max = rl_max(estate_rl(state));
 	if (sval_cmp(min, max) != 0)
 		return 0;
 	*sval = min;

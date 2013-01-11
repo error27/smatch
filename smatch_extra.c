@@ -177,7 +177,7 @@ struct smatch_state *filter_range(struct smatch_state *orig,
 	if (!orig)
 		orig = alloc_estate_whole(filter_min.type);
 
-	rl = remove_range(estate_ranges(orig), filter_min, filter_max);
+	rl = remove_range(estate_rl(orig), filter_min, filter_max);
 	return alloc_estate_rl(rl);
 }
 
@@ -538,7 +538,7 @@ static struct smatch_state *increment_state(struct smatch_state *state)
 	sval_t min = estate_min(state);
 	sval_t max = estate_max(state);
 
-	if (!estate_ranges(state))
+	if (!estate_rl(state))
 		return NULL;
 
 	if (inside_loop())
@@ -556,7 +556,7 @@ static struct smatch_state *decrement_state(struct smatch_state *state)
 	sval_t min = estate_min(state);
 	sval_t max = estate_max(state);
 
-	if (!estate_ranges(state))
+	if (!estate_rl(state))
 		return NULL;
 
 	if (inside_loop())
@@ -1057,7 +1057,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	sm = get_sm_state(SMATCH_EXTRA, name, sym);
 	type = get_member_type_from_key(arg, key);
 	if (sm)
-		rl = estate_ranges(sm->state);
+		rl = estate_rl(sm->state);
 	else
 		rl = alloc_whole_rl(type);
 
@@ -1065,7 +1065,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	new = rl_intersection(rl, limit);
 
 	/* We want to preserve the implications here */
-	if (sm && rl_equiv(estate_ranges(sm->state), new))
+	if (sm && rl_equiv(estate_rl(sm->state), new))
 		__set_sm(sm);
 	else
 		set_extra_nomod(name, sym, alloc_estate_rl(new));
@@ -1100,7 +1100,7 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (state) {
 		str_to_rl(type, value, &added);
-		new = rl_union(estate_ranges(state), added);
+		new = rl_union(estate_rl(state), added);
 	} else {
 		new = alloc_whole_rl(type);
 	}

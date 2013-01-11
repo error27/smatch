@@ -50,7 +50,7 @@ static struct smatch_state *filter_my_sm(struct sm_state *sm)
 		} else {
 			estate = tmp->state;
 		}
-		ret = rl_union(ret, estate_ranges(estate));
+		ret = rl_union(ret, estate_rl(estate));
 	} END_FOR_EACH_PTR(tmp);
 
 	return alloc_estate_rl(ret);
@@ -88,7 +88,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (!state)
 			continue;
 		/* This represents an impossible state.  I screwd up.  Bail. */
-		if (!estate_ranges(state))
+		if (!estate_rl(state))
 			continue;
 		sm_msg("info: return_param_limit %d %d '%s' '$$' '%s' %s",
 		       return_id, param, return_ranges,

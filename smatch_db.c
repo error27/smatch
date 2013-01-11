@@ -581,7 +581,7 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 
 		overwrite_states_using_pool(tmp);
 
-		rl = cast_rl(cur_func_return_type(), estate_ranges(tmp->state));
+		rl = cast_rl(cur_func_return_type(), estate_rl(tmp->state));
 		return_ranges = show_ranges(rl);
 
 		return_id++;

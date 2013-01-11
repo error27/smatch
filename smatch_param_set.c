@@ -69,12 +69,12 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	my_slist = get_all_states_slist(my_id, slist);
 
 	FOR_EACH_PTR(my_slist, sm) {
-		if (!estate_ranges(sm->state))
+		if (!estate_rl(sm->state))
 			continue;
 		extra = get_state_slist(slist, SMATCH_EXTRA, sm->name, sm->sym);
-		if (!estate_ranges(extra))
+		if (!estate_rl(extra))
 			continue;
-		rl = rl_intersection(estate_ranges(sm->state), estate_ranges(extra));
+		rl = rl_intersection(estate_rl(sm->state), estate_rl(extra));
 		if (!rl)
 			continue;
 

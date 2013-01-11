@@ -81,7 +81,7 @@ static char *get_orig_rl(struct sm_state *sm)
 			sm_msg("debug: no value found in pool %p", tmp->pool);
 			return NULL;
 		}
-		ret = rl_union(ret, estate_ranges(extra));
+		ret = rl_union(ret, estate_rl(extra));
 	} END_FOR_EACH_PTR(tmp);
 	return show_ranges(ret);
 }
@@ -120,7 +120,7 @@ static void print_one_extra_param(int return_id, char *return_ranges,
 
 	sm_msg("info: return_param_filter %d %d '%s' '%s' '%s' %s",
 	       return_id, param, return_ranges,
-	       param_name, show_ranges(estate_ranges(sm->state)), global_static());
+	       param_name, show_ranges(estate_rl(sm->state)), global_static());
 }
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
