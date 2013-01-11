@@ -20,7 +20,7 @@ static int implied_err_cast_return(struct expression *call, void *unused, struct
 
 	arg = get_argument_from_call_expr(call->args, 0);
 	if (!get_implied_range_list(arg, rl))
-		*rl = alloc_range_list(ll_to_sval(-4095), ll_to_sval(-1));
+		*rl = alloc_rl(ll_to_sval(-4095), ll_to_sval(-1));
 	return 1;
 }
 
@@ -31,7 +31,7 @@ static int implied_copy_return(struct expression *call, void *unused, struct ran
 
 	arg = get_argument_from_call_expr(call->args, 2);
 	get_absolute_max(arg, &max);
-	*rl = alloc_range_list(ll_to_sval(0), max);
+	*rl = alloc_rl(ll_to_sval(0), max);
 	return 1;
 }
 

@@ -132,7 +132,7 @@ void parse_value_ranges_type(struct symbol *type, char *value, struct range_list
 	*rl = cast_rl(type, *rl);
 }
 
-int is_whole_range_rl(struct range_list *rl)
+int is_whole_rl(struct range_list *rl)
 {
 	struct data_range *drange;
 
@@ -193,7 +193,7 @@ struct data_range *alloc_range_perm(sval_t min, sval_t max)
 	return alloc_range_helper_sval(min, max, 1);
 }
 
-struct range_list *alloc_range_list(sval_t min, sval_t max)
+struct range_list *alloc_rl(sval_t min, sval_t max)
 {
 	struct range_list *rl = NULL;
 
@@ -201,12 +201,12 @@ struct range_list *alloc_range_list(sval_t min, sval_t max)
 	return rl;
 }
 
-struct range_list *whole_range_list(struct symbol *type)
+struct range_list *alloc_whole_rl(struct symbol *type)
 {
 	if (!type)
 		type = &llong_ctype;
 
-	return alloc_range_list(sval_type_min(type), sval_type_max(type));
+	return alloc_rl(sval_type_min(type), sval_type_max(type));
 }
 
 void add_range(struct range_list **list, sval_t min, sval_t max)
@@ -292,7 +292,7 @@ void add_range(struct range_list **list, sval_t min, sval_t max)
 	add_ptr_list(list, new);
 }
 
-struct range_list *clone_range_list(struct range_list *list)
+struct range_list *clone_rl(struct range_list *list)
 {
 	struct data_range *tmp;
 	struct range_list *ret = NULL;
@@ -303,7 +303,7 @@ struct range_list *clone_range_list(struct range_list *list)
 	return ret;
 }
 
-struct range_list *clone_permanent(struct range_list *list)
+struct range_list *clone_rl_permanent(struct range_list *list)
 {
 	struct data_range *tmp;
 	struct data_range *new;
@@ -700,14 +700,14 @@ struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 		return NULL;
 
 	if (!type)
-		return clone_range_list(rl);
+		return clone_rl(rl);
 
 	FOR_EACH_PTR(rl, tmp) {
 		add_range_t(type, &ret, tmp->min, tmp->max);
 	} END_FOR_EACH_PTR(tmp);
 
 	if (!ret)
-		return whole_range_list(type);
+		return alloc_whole_rl(type);
 
 	return ret;
 }

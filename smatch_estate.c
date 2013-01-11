@@ -186,7 +186,7 @@ static struct data_info *clone_dinfo(struct data_info *dinfo)
 
 	ret = alloc_dinfo();
 	ret->related = clone_related_list(dinfo->related);
-	ret->value_ranges = clone_range_list(dinfo->value_ranges);
+	ret->value_ranges = clone_rl(dinfo->value_ranges);
 	ret->hard_max = dinfo->hard_max;
 	return ret;
 }
@@ -215,7 +215,7 @@ struct smatch_state *alloc_estate_empty(void)
 
 struct smatch_state *extra_undefined(struct symbol *type)
 {
-	return alloc_estate_range_list(whole_range_list(type));
+	return alloc_estate_range_list(alloc_whole_rl(type));
 }
 
 struct smatch_state *extra_empty(void)
@@ -271,6 +271,6 @@ struct smatch_state *get_implied_estate(struct expression *expr)
 	if (state)
 		return state;
 	if (!get_implied_range_list(expr, &rl))
-		rl = whole_range_list(get_type(expr));
+		rl = alloc_whole_rl(get_type(expr));
 	return alloc_estate_range_list(rl);
 }

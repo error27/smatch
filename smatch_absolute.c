@@ -90,7 +90,7 @@ static void match_assign(struct expression *expr)
 	get_absolute_min(expr->right, &min);
 	get_absolute_max(expr->right, &max);
 
-	rl = alloc_range_list(min, max);
+	rl = alloc_rl(min, max);
 	rl = cast_rl(left_type, rl);
 
 	min = rl_min(rl);

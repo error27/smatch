@@ -555,14 +555,14 @@ struct range_list *__get_implied_values(struct expression *switch_expr)
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (!state)
 		goto free;
-	ret = clone_range_list(estate_ranges(state));
+	ret = clone_rl(estate_ranges(state));
 free:
 	free_string(name);
 	if (!ret) {
 		struct symbol *type;
 
 		type = get_type(switch_expr);
-		ret = alloc_range_list(sval_type_min(type), sval_type_max(type));
+		ret = alloc_rl(sval_type_min(type), sval_type_max(type));
 	}
 	return ret;
 }
@@ -591,7 +591,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 			filter_top_range_list(remaining_cases, sval);
 			add_range(&vals, sval, sval);
 		} else {
-			vals = clone_range_list(top_range_list(*remaining_cases));
+			vals = clone_rl(top_range_list(*remaining_cases));
 		}
 	} else {
 		vals = top_range_list(*remaining_cases);

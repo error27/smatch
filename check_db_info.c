@@ -36,7 +36,7 @@ static void match_return(struct expression *ret_value)
 	if (get_implied_range_list(ret_value, &rl))
 		add_return_range(rl);
 	else
-		add_return_range(whole_range_list(type));
+		add_return_range(alloc_whole_rl(type));
 }
 
 static void match_end_func(struct symbol *sym)

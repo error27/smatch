@@ -725,7 +725,7 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 
 	state = get_state_expr(SMATCH_EXTRA, expr);
 	if (state) {
-		*rl = clone_range_list(estate_ranges(state));
+		*rl = clone_rl(estate_ranges(state));
 		return 1;
 	}
 
@@ -748,7 +748,7 @@ int get_implied_range_list(struct expression *expr, struct range_list **rl)
 	if (!get_implied_max(expr, &max))
 		return 0;
 
-	*rl = alloc_range_list(min, max);
+	*rl = alloc_rl(min, max);
 	return 1;
 }
 

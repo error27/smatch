@@ -490,7 +490,7 @@ static void match_assign(struct expression *expr)
 			if (get_hard_max(right, &tmp))
 				estate_set_hard_max(state);
 		} else {
-			rl = whole_range_list(get_type(right));
+			rl = alloc_whole_rl(get_type(right));
 			rl = cast_rl(get_type(expr->left), rl);
 			state = alloc_estate_range_list(rl);
 		}
@@ -519,9 +519,9 @@ static void match_assign(struct expression *expr)
 		break;
 	}
 	if (!sval_is_min(right_min) || !sval_is_max(right_max))
-		rl = cast_rl(get_type(expr->left), alloc_range_list(right_min, right_max));
+		rl = cast_rl(get_type(expr->left), alloc_rl(right_min, right_max));
 	else
-		rl = whole_range_list(get_type(expr->left));
+		rl = alloc_whole_rl(get_type(expr->left));
 	set_extra_mod(name, sym, alloc_estate_range_list(rl));
 free:
 	free_string(right_name);
@@ -762,7 +762,7 @@ static void match_comparison(struct expression *expr)
 	} else {
 		min = sval_type_min(get_type(left));
 		max = sval_type_max(get_type(left));
-		left_orig = cast_rl(type, alloc_range_list(min, max));
+		left_orig = cast_rl(type, alloc_rl(min, max));
 	}
 
 	if (get_implied_range_list(right, &right_orig)) {
@@ -770,15 +770,15 @@ static void match_comparison(struct expression *expr)
 	} else {
 		min = sval_type_min(get_type(right));
 		max = sval_type_max(get_type(right));
-		right_orig = cast_rl(type, alloc_range_list(min, max));
+		right_orig = cast_rl(type, alloc_rl(min, max));
 	}
 	min = sval_type_min(type);
 	max = sval_type_max(type);
 
-	left_true = clone_range_list(left_orig);
-	left_false = clone_range_list(left_orig);
-	right_true = clone_range_list(right_orig);
-	right_false = clone_range_list(right_orig);
+	left_true = clone_rl(left_orig);
+	left_false = clone_rl(left_orig);
+	right_true = clone_rl(right_orig);
+	right_false = clone_rl(right_orig);
 
 	switch (expr->op) {
 	case '<':
@@ -976,7 +976,7 @@ int implied_not_equal(struct expression *expr, long long val)
 
 int is_whole_range(struct smatch_state *state)
 {
-	return is_whole_range_rl(estate_ranges(state));
+	return is_whole_rl(estate_ranges(state));
 }
 
 static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
@@ -1064,7 +1064,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	if (sm)
 		rl = estate_ranges(sm->state);
 	else
-		rl = whole_range_list(type);
+		rl = alloc_whole_rl(type);
 
 	parse_value_ranges_type(type, value, &limit);
 	new = rl_intersection(rl, limit);
@@ -1107,7 +1107,7 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 		parse_value_ranges_type(type, value, &added);
 		new = rl_union(estate_ranges(state), added);
 	} else {
-		new = whole_range_list(type);
+		new = alloc_whole_rl(type);
 	}
 
 	set_extra_mod(name, sym, alloc_estate_range_list(new));
@@ -1233,7 +1233,7 @@ static void match_call_info(struct expression *expr)
 		if (get_implied_range_list(arg, &rl))
 			rl = cast_rl(type, rl);
 		else
-			rl = whole_range_list(type);
+			rl = alloc_whole_rl(type);
 
 		sm_msg("info: passes param_value '%s' %d '$$' %s %s",
 		       name, i, show_ranges(rl),

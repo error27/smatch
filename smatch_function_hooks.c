@@ -404,7 +404,7 @@ void compare_db_return_states_callbacks(int comparison, struct expression *expr,
 
 	db_info.comparison = comparison;
 	db_info.expr = expr;
-	db_info.rl = alloc_range_list(sval, sval);
+	db_info.rl = alloc_rl(sval, sval);
 	db_info.left = left;
 	db_info.callbacks = db_return_states_list;
 
@@ -462,7 +462,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 	return_id = atoi(argv[0]);
 	parse_value_ranges_type(get_type(db_info.expr->right), argv[1], &ret_range);
 	if (!ret_range)
-		ret_range = whole_range_list(cur_func_return_type());
+		ret_range = alloc_whole_rl(cur_func_return_type());
 	type = atoi(argv[2]);
 	param = atoi(argv[3]);
 	key = argv[4];
@@ -575,7 +575,7 @@ static void match_assign_call(struct expression *expr)
 		struct range_list *rl;
 
 		if (!get_implied_range_list(expr->right, &rl))
-			rl = whole_range_list(get_type(expr->right));
+			rl = alloc_whole_rl(get_type(expr->right));
 		rl = cast_rl(get_type(expr->left), rl);
 		set_extra_expr_mod(expr->left, alloc_estate_range_list(rl));
 	}

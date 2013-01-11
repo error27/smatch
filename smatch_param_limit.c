@@ -68,7 +68,7 @@ struct smatch_state *get_orig_estate(const char *name, struct symbol *sym)
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (state)
 		return state;
-	return alloc_estate_range_list(whole_range_list(get_real_base_type(sym)));
+	return alloc_estate_range_list(alloc_whole_rl(get_real_base_type(sym)));
 }
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)

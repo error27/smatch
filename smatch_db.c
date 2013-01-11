@@ -616,7 +616,7 @@ static void call_return_state_hooks(struct expression *expr)
 		rl = cast_rl(cur_func_return_type(), rl);
 		return_ranges = show_ranges(rl);
 	} else {
-		rl = whole_range_list(cur_func_return_type());
+		rl = alloc_whole_rl(cur_func_return_type());
 		return_ranges = show_ranges(rl);
 	}
 
