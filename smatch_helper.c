@@ -261,9 +261,14 @@ char *expr_to_str_sym_complex(struct expression *expr, struct symbol **sym_ptr)
 		return NULL;
 }
 
+char *expr_to_str_complex(struct expression *expr)
+{
+	return expr_to_str_sym_complex(expr, NULL);
+}
+
 /*
  * get_variable_from_expr_simple() only returns simple variables.
- * If it's a complicated variable like a->foo instead of just 'a'
+ * If it's a complicated variable like a->foo[x] instead of just 'a->foo'
  * then it returns NULL.
  */
 

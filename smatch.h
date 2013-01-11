@@ -224,6 +224,7 @@ struct expression *get_argument_from_call_expr(struct expression_list *args,
 					       int num);
 
 char *expr_to_str(struct expression *expr);
+char *expr_to_str_complex(struct expression *expr);
 char *expr_to_str_sym_complex(struct expression *expr,
 				     struct symbol **sym_ptr);
 char *expr_to_str_sym(struct expression *expr,

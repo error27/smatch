@@ -45,8 +45,8 @@ static void match_assign(struct expression *expr)
 		return;
 	max = sval_type_max(sym);
 	if (sval_cmp(max, sval) < 0 && !(sval.value < 256 && max.value == 127)) {
-		left_name = expr_to_str_sym_complex(expr->left, NULL);
-		right_name = expr_to_str_sym_complex(expr->right, NULL);
+		left_name = expr_to_str_complex(expr->left);
+		right_name = expr_to_str_complex(expr->right);
 		sm_msg("warn: '%s' %s can't fit into %s '%s'",
 		       right_name, sval_to_numstr(sval), sval_to_numstr(max), left_name);
 		free_string(left_name);
@@ -61,7 +61,7 @@ static void match_assign(struct expression *expr)
 			return;
 		if (sval_positive_bits(sval) == 7)
 			return;
-		left_name = expr_to_str_sym_complex(expr->left, NULL);
+		left_name = expr_to_str_complex(expr->left);
 		if (min.value == 0) {
 			sm_msg("warn: assigning %s to unsigned variable '%s'",
 			       sval_to_str(sval), left_name);
@@ -102,11 +102,11 @@ static int cap_gt_zero_and_lt(struct expression *expr)
 			    right->op != SPECIAL_UNSIGNED_LTE)
 				return 0;
 
-			name1 = expr_to_str_sym_complex(var, NULL);
+			name1 = expr_to_str_complex(var);
 			if (!name1)
 				goto free;
 
-			name2 = expr_to_str_sym_complex(right->left, NULL);
+			name2 = expr_to_str_complex(right->left);
 			if (!name2)
 				goto free;
 			if (!strcmp(name1, name2))
@@ -152,11 +152,11 @@ static int cap_lt_zero_or_gt(struct expression *expr)
 			    right->op != SPECIAL_UNSIGNED_GTE)
 				return 0;
 
-			name1 = expr_to_str_sym_complex(var, NULL);
+			name1 = expr_to_str_complex(var);
 			if (!name1)
 				goto free;
 
-			name2 = expr_to_str_sym_complex(right->left, NULL);
+			name2 = expr_to_str_complex(right->left);
 			if (!name2)
 				goto free;
 			if (!strcmp(name1, name2))
@@ -205,7 +205,7 @@ static int print_unsigned_never_less_than_zero(struct expression *expr)
 	if (!get_value(expr->right, &known) || known.value != 0)
 		return 0;
 
-	name = expr_to_str_sym_complex(expr->left, NULL);
+	name = expr_to_str_complex(expr->left);
 	sm_msg("warn: unsigned '%s' is never less than zero.", name);
 	free_string(name);
 	return 1;
@@ -268,7 +268,7 @@ static void match_condition(struct expression *expr)
 	}
 
 	if (!possibly_true_rl(rl_left, expr->op, rl_right)) {
-		char *name = expr_to_str_sym_complex(expr, NULL);
+		char *name = expr_to_str_complex(expr);
 
 		sm_msg("warn: impossible condition '(%s) => (%s %s %s)'", name,
 		       show_ranges(rl_left), show_special(expr->op),
@@ -277,7 +277,7 @@ static void match_condition(struct expression *expr)
 	}
 
 	if (!possibly_false_rl(rl_left, expr->op, rl_right)) {
-		char *name = expr_to_str_sym_complex(expr, NULL);
+		char *name = expr_to_str_complex(expr);
 
 		sm_msg("warn: always true condition '(%s) => (%s %s %s)'", name,
 		       show_ranges(rl_left_orig), show_special(expr->op),

@@ -24,7 +24,7 @@ static void match_dma_func(const char *fn, struct expression *expr, void *param)
 	if (arg->type == EXPR_PREOP && arg->op == '&') {
 		if (arg->unop->type != EXPR_SYMBOL)
 			return;
-		name = expr_to_str_sym_complex(arg, NULL);
+		name = expr_to_str_complex(arg);
 		sm_msg("error: doing dma on the stack (%s)", name);
 		free_string(name);
 		return;

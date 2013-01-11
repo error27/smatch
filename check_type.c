@@ -33,7 +33,7 @@ static void match_free(const char *fn, struct expression *expr, void *data)
 	if (!type || !type->ident)
 		return;
 
-	name = expr_to_str_sym_complex(arg_expr, NULL);
+	name = expr_to_str_complex(arg_expr);
 
 	if (!strcmp("sk_buff", type->ident->name)) {
 		sm_msg("error: use kfree_skb() here instead of kfree(%s)", name);

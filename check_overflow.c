@@ -119,7 +119,7 @@ static void array_check(struct expression *expr)
 				return;
 		}
 
-		name = expr_to_str_sym_complex(array_expr, NULL);
+		name = expr_to_str_complex(array_expr);
 		/* Blast.  Smatch can't figure out glibc's strcmp __strcmp_cg()
 		 * so it prints an error every time you compare to a string
 		 * literal array with 4 or less chars.
@@ -195,8 +195,8 @@ static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 	if (data_size && dest_size >= data_size)
 		return;
 
-	dest_name = expr_to_str_sym_complex(dest, NULL);
-	data_name = expr_to_str_sym_complex(data, NULL);
+	dest_name = expr_to_str_complex(dest);
+	data_name = expr_to_str_complex(data);
 
 	if (data_size)
 		sm_msg("error: %s() '%s' too large for '%s' (%d vs %d)",
@@ -237,7 +237,7 @@ static void match_snprintf(const char *fn, struct expression *expr, void *unused
 		return;
 	if (strcmp(format, "\"%s\""))
 		goto free;
-	data_name = expr_to_str_sym_complex(data, NULL);
+	data_name = expr_to_str_complex(data);
 	data_size = get_array_size_bytes(data);
 	if (limit_size.value < data_size)
 		sm_msg("error: snprintf() chops off the last chars of '%s': %d vs %s",
@@ -269,7 +269,7 @@ static void match_sprintf(const char *fn, struct expression *expr, void *unused)
 		return;
 	if (strcmp(format, "\"%s\""))
 		goto free;
-	data_name = expr_to_str_sym_complex(data, NULL);
+	data_name = expr_to_str_complex(data);
 	data_size = get_array_size_bytes(data);
 	if (dest_size < data_size)
 		sm_msg("error: sprintf() copies too much data from '%s': %d vs %d",
@@ -298,7 +298,7 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 	if (has >= needed.value)
 		return;
 
-	dest_name = expr_to_str_sym_complex(dest, NULL);
+	dest_name = expr_to_str_complex(dest);
 	sm_msg("error: %s() '%s' too small (%d vs %s)", fn, dest_name, has, sval_to_str(needed));
 	free_string(dest_name);
 }

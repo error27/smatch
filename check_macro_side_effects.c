@@ -24,7 +24,7 @@ static struct smatch_state *alloc_my_state(struct expression *expr)
 
 	state = __alloc_smatch_state(0);
 	expr = strip_expr(expr);
-	name = expr_to_str_sym_complex(expr, NULL);
+	name = expr_to_str_complex(expr);
 	state->name = alloc_sname(name);
 	free_string(name);
 	state->data = expr;
@@ -109,7 +109,7 @@ static void match_unop(struct expression *raw_expr)
 	if (!positions_eq(old_pos, expr->pos))
 		return;
 
-	name = expr_to_str_sym_complex(raw_expr, NULL);
+	name = expr_to_str_complex(raw_expr);
 	sm_msg("warn: side effect in macro '%s' doing '%s'",
 		macro, name);
 	free_string(name);
