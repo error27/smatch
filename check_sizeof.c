@@ -90,6 +90,8 @@ static void match_sizeof(struct expression *expr)
 {
 	if (expr->type == EXPR_PREOP && expr->op == '&')
 		sm_msg("warn: sizoef(&pointer)?");
+	if (expr->type == EXPR_SIZEOF)
+		sm_msg("warn: sizoef(sizeof())?");
 }
 
 void check_sizeof(int id)
