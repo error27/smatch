@@ -87,7 +87,7 @@ void free_data_info_allocs(void);
 /* smatch_estate.c */
 
 struct smatch_state *alloc_estate_empty(void);
-struct smatch_state *alloc_estate(sval_t sval);
+struct smatch_state *alloc_estate_sval(sval_t sval);
 struct smatch_state *alloc_estate_range(sval_t min, sval_t max);
 struct smatch_state *alloc_estate_range_list(struct range_list *rl);
 struct smatch_state *extra_undefined(struct symbol *type);
