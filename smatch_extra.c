@@ -169,23 +169,6 @@ free:
 	free_string(name);
 }
 
-struct smatch_state *filter_range(struct smatch_state *orig,
-				 sval_t filter_min, sval_t filter_max)
-{
-	struct range_list *rl;
-
-	if (!orig)
-		orig = alloc_estate_whole(filter_min.type);
-
-	rl = remove_range(estate_rl(orig), filter_min, filter_max);
-	return alloc_estate_rl(rl);
-}
-
-struct smatch_state *add_filter(struct smatch_state *orig, sval_t sval)
-{
-	return filter_range(orig, sval, sval);
-}
-
 static struct sm_state *handle_canonical_while_count_down(struct statement *loop)
 {
 	struct expression *iter_var;
@@ -950,7 +933,7 @@ void __extra_match_condition(struct expression *expr)
 		if (!name)
 			return;
 		pre_state = get_state(my_id, name, sym);
-		true_state = add_filter(pre_state, zero);
+		true_state = estate_filter_sval(pre_state, zero);
 		if (possibly_true(expr, SPECIAL_EQUAL, zero_expr()))
 			false_state = alloc_estate_sval(zero);
 		else

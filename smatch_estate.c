@@ -279,3 +279,22 @@ struct smatch_state *get_implied_estate(struct expression *expr)
 		rl = alloc_whole_rl(get_type(expr));
 	return alloc_estate_rl(rl);
 }
+
+struct smatch_state *estate_filter_range(struct smatch_state *orig,
+				 sval_t filter_min, sval_t filter_max)
+{
+	struct range_list *rl;
+
+	if (!orig)
+		orig = alloc_estate_whole(filter_min.type);
+
+	rl = remove_range(estate_rl(orig), filter_min, filter_max);
+	return alloc_estate_rl(rl);
+}
+
+struct smatch_state *estate_filter_sval(struct smatch_state *orig, sval_t sval)
+{
+	return estate_filter_range(orig, sval, sval);
+}
+
+

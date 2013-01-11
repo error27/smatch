@@ -113,6 +113,9 @@ int estate_get_hard_max(struct smatch_state *state, sval_t *sval);
 int estate_get_single_value(struct smatch_state *state, sval_t *sval);
 struct smatch_state *get_implied_estate(struct expression *expr);
 
+struct smatch_state *estate_filter_sval(struct smatch_state *orig, sval_t filter);
+struct smatch_state *estate_filter_range(struct smatch_state *orig, sval_t filter_min, sval_t filter_max);
+
 /* used in smatch_slist.  implemented in smatch_extra.c */
 void add_extra_mod_hook(void (*fn)(const char *name, struct symbol *sym, struct smatch_state *state));
 int implied_not_equal(struct expression *expr, long long val);
@@ -128,8 +131,6 @@ struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state
 void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state);
 struct data_info *get_dinfo(struct smatch_state *state);
 
-struct smatch_state *add_filter(struct smatch_state *orig, sval_t filter);
-struct smatch_state *filter_range(struct smatch_state *orig, sval_t filter_min, sval_t filter_max);
 void function_comparison(int comparison, struct expression *expr, sval_t sval, int left);
 
 /* smatch_expressions.c */
