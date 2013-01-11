@@ -600,7 +600,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	if (sm)
 		separate_and_filter(sm, SPECIAL_EQUAL, vals, LEFT, *raw_slist, &true_states, &false_states);
 
-	set_state_slist(&true_states, SMATCH_EXTRA, name, sym, alloc_estate_range_list(vals));
+	set_state_slist(&true_states, SMATCH_EXTRA, name, sym, alloc_estate_rl(vals));
 	overwrite_slist(true_states, &ret);
 	free_slist(&true_states);
 	free_slist(&false_states);

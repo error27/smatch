@@ -480,7 +480,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 			tmp->callback(db_info.expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
 	ret_range = cast_rl(get_type(db_info.expr->left), ret_range);
-	set_extra_expr_mod(db_info.expr->left, alloc_estate_range_list(ret_range));
+	set_extra_expr_mod(db_info.expr->left, alloc_estate_rl(ret_range));
 
 	return 0;
 }
@@ -541,7 +541,7 @@ static int handle_implied_return(struct expression *expr)
 	if (!get_implied_return(expr->right, &rl))
 		return 0;
 	rl = cast_rl(get_type(expr->left), rl);
-	set_extra_expr_mod(expr->left, alloc_estate_range_list(rl));
+	set_extra_expr_mod(expr->left, alloc_estate_rl(rl));
 	return 1;
 }
 
@@ -577,7 +577,7 @@ static void match_assign_call(struct expression *expr)
 		if (!get_implied_rl(expr->right, &rl))
 			rl = alloc_whole_rl(get_type(expr->right));
 		rl = cast_rl(get_type(expr->left), rl);
-		set_extra_expr_mod(expr->left, alloc_estate_range_list(rl));
+		set_extra_expr_mod(expr->left, alloc_estate_rl(rl));
 	}
 }
 

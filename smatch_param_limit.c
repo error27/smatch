@@ -53,7 +53,7 @@ static struct smatch_state *filter_my_sm(struct sm_state *sm)
 		ret = rl_union(ret, estate_ranges(estate));
 	} END_FOR_EACH_PTR(tmp);
 
-	return alloc_estate_range_list(ret);
+	return alloc_estate_rl(ret);
 }
 
 struct smatch_state *get_orig_estate(const char *name, struct symbol *sym)
@@ -68,7 +68,7 @@ struct smatch_state *get_orig_estate(const char *name, struct symbol *sym)
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (state)
 		return state;
-	return alloc_estate_range_list(alloc_whole_rl(get_real_base_type(sym)));
+	return alloc_estate_rl(alloc_whole_rl(get_real_base_type(sym)));
 }
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)

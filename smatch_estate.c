@@ -32,7 +32,7 @@ struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state 
 		return s1;
 
 	value_ranges = rl_union(estate_ranges(s1), estate_ranges(s2));
-	tmp = alloc_estate_range_list(value_ranges);
+	tmp = alloc_estate_rl(value_ranges);
 	rlist = get_shared_relations(estate_related(s1), estate_related(s2));
 	set_related(tmp, rlist);
 	if (estate_has_hard_max(s1) && estate_has_hard_max(s2))
@@ -215,7 +215,7 @@ struct smatch_state *alloc_estate_empty(void)
 
 struct smatch_state *extra_undefined(struct symbol *type)
 {
-	return alloc_estate_range_list(alloc_whole_rl(type));
+	return alloc_estate_rl(alloc_whole_rl(type));
 }
 
 struct smatch_state *extra_empty(void)
@@ -249,7 +249,7 @@ struct smatch_state *alloc_estate_range(sval_t min, sval_t max)
 	return state;
 }
 
-struct smatch_state *alloc_estate_range_list(struct range_list *rl)
+struct smatch_state *alloc_estate_rl(struct range_list *rl)
 {
 	struct smatch_state *state;
 
@@ -272,5 +272,5 @@ struct smatch_state *get_implied_estate(struct expression *expr)
 		return state;
 	if (!get_implied_rl(expr, &rl))
 		rl = alloc_whole_rl(get_type(expr));
-	return alloc_estate_range_list(rl);
+	return alloc_estate_rl(rl);
 }

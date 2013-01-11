@@ -178,7 +178,7 @@ struct smatch_state *filter_range(struct smatch_state *orig,
 		orig = extra_undefined(filter_min.type);
 
 	rl = remove_range(estate_ranges(orig), filter_min, filter_max);
-	return alloc_estate_range_list(rl);
+	return alloc_estate_rl(rl);
 }
 
 struct smatch_state *add_filter(struct smatch_state *orig, sval_t sval)
@@ -486,13 +486,13 @@ static void match_assign(struct expression *expr)
 
 		if (get_implied_rl(right, &rl)) {
 			rl = cast_rl(get_type(expr->left), rl);
-			state = alloc_estate_range_list(rl);
+			state = alloc_estate_rl(rl);
 			if (get_hard_max(right, &tmp))
 				estate_set_hard_max(state);
 		} else {
 			rl = alloc_whole_rl(get_type(right));
 			rl = cast_rl(get_type(expr->left), rl);
-			state = alloc_estate_range_list(rl);
+			state = alloc_estate_rl(rl);
 		}
 		set_extra_mod(name, sym, state);
 		goto free;
@@ -522,7 +522,7 @@ static void match_assign(struct expression *expr)
 		rl = cast_rl(get_type(expr->left), alloc_rl(right_min, right_max));
 	else
 		rl = alloc_whole_rl(get_type(expr->left));
-	set_extra_mod(name, sym, alloc_estate_range_list(rl));
+	set_extra_mod(name, sym, alloc_estate_rl(rl));
 free:
 	free_string(right_name);
 	free_string(name);
@@ -868,10 +868,10 @@ static void match_comparison(struct expression *expr)
 		return;
 	}
 
-	left_true_state = alloc_estate_range_list(cast_rl(get_type(left), left_true));
-	left_false_state = alloc_estate_range_list(cast_rl(get_type(left), left_false));
-	right_true_state = alloc_estate_range_list(cast_rl(get_type(right), right_true));
-	right_false_state = alloc_estate_range_list(cast_rl(get_type(right), right_false));
+	left_true_state = alloc_estate_rl(cast_rl(get_type(left), left_true));
+	left_false_state = alloc_estate_rl(cast_rl(get_type(left), left_false));
+	right_true_state = alloc_estate_rl(cast_rl(get_type(right), right_true));
+	right_false_state = alloc_estate_rl(cast_rl(get_type(right), right_false));
 
 	switch (expr->op) {
 	case '<':
@@ -1073,7 +1073,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	if (sm && rl_equiv(estate_ranges(sm->state), new))
 		__set_sm(sm);
 	else
-		set_extra_nomod(name, sym, alloc_estate_range_list(new));
+		set_extra_nomod(name, sym, alloc_estate_rl(new));
 
 free:
 	free_string(name);
@@ -1110,7 +1110,7 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 		new = alloc_whole_rl(type);
 	}
 
-	set_extra_mod(name, sym, alloc_estate_range_list(new));
+	set_extra_mod(name, sym, alloc_estate_rl(new));
 free:
 	free_string(name);
 }
@@ -1156,7 +1156,7 @@ static void db_returned_states_param(struct expression *expr, int param, char *k
 		}
 		type = get_type(arg);
 		str_to_rl(type, value, &rl);
-		set_extra_mod(name, sym, alloc_estate_range_list(rl));
+		set_extra_mod(name, sym, alloc_estate_rl(rl));
 		free_string(name);
 		return;
 	}
@@ -1177,7 +1177,7 @@ static void db_returned_states_param(struct expression *expr, int param, char *k
 	if (!type)
 		goto free;
 	str_to_rl(type, value, &rl);
-	set_extra_mod(member_name, sym, alloc_estate_range_list(rl));
+	set_extra_mod(member_name, sym, alloc_estate_rl(rl));
 free:
 	free_string(name);
 }
@@ -1201,7 +1201,7 @@ static void db_returned_member_info(struct expression *expr, int param, char *ke
 	if (!type)
 		return;
 	str_to_rl(type, value, &rl);
-	set_extra_mod(member_name, sym, alloc_estate_range_list(rl));
+	set_extra_mod(member_name, sym, alloc_estate_rl(rl));
 
 free:
 	free_string(name);
@@ -1257,7 +1257,7 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 	snprintf(fullname, 256, "%s%s", name, key + 2);
 	type = get_member_type_from_key(symbol_expression(sym), key);
 	str_to_rl(type, value, &rl);
-	state = alloc_estate_range_list(rl);
+	state = alloc_estate_rl(rl);
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
 
