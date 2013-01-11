@@ -34,10 +34,10 @@ static int expr_equiv(struct expression *one, struct expression *two)
 	if (does_inc_dec(one) || does_inc_dec(two))
 		return 0;
 
-	one_name = get_variable_from_expr_complex(one, &one_sym);
+	one_name = expr_to_str_sym_complex(one, &one_sym);
 	if (!one_name || !one_sym)
 		goto free;
-	two_name = get_variable_from_expr_complex(two, &two_sym);
+	two_name = expr_to_str_sym_complex(two, &two_sym);
 	if (!two_name || !two_sym)
 		goto free;
 	if (one_sym != two_sym)

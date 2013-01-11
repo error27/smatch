@@ -51,7 +51,7 @@ static void match_size(struct expression *size_expr)
 	if (!can_overflow(size_expr))
 		return;
 
-	name = get_variable_from_expr_complex(size_expr, NULL);
+	name = expr_to_str_sym_complex(size_expr, NULL);
 	sm_msg("warn: math in access_ok() is dangerous '%s'", name);
 
 	free_string(name);

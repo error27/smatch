@@ -175,7 +175,7 @@ static void match_assign(struct expression *expr)
 	struct sm_state *tmp;
 
 	left = strip_expr(expr->left);
-	left_name = get_variable_from_expr_complex(left, &left_sym);
+	left_name = expr_to_str_sym_complex(left, &left_sym);
 
 	right = strip_expr(expr->right);
 	while (right->type == EXPR_ASSIGNMENT)
@@ -189,7 +189,7 @@ static void match_assign(struct expression *expr)
 		goto exit;
 	}
 
-	right_name = get_variable_from_expr_complex(right, &right_sym);
+	right_name = expr_to_str_sym_complex(right, &right_sym);
 
 	if (right_name && (state = get_state(my_id, right_name, right_sym))) {
 		if (state == &isfree && !is_complex(right))
@@ -319,7 +319,7 @@ static void match_return(struct expression *ret_value)
 	char *name;
 	struct symbol *sym;
 
-	name = get_variable_from_expr_complex(ret_value, &sym);
+	name = expr_to_str_sym_complex(ret_value, &sym);
 	if (sym)
 		assign_parent(sym);
 	free_string(name);
@@ -382,7 +382,7 @@ static void match_function_call(struct expression *expr)
 
 	FOR_EACH_PTR(expr->args, tmp) {
 		tmp = strip_expr(tmp);
-		name = get_variable_from_expr_complex(tmp, &sym);
+		name = expr_to_str_sym_complex(tmp, &sym);
 		if (!name)
 			continue;
 		if ((state = get_sm_state(my_id, name, sym))) {

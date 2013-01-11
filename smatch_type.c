@@ -342,7 +342,7 @@ int is_static(struct expression *expr)
 	struct symbol *sym;
 	int ret = 0;
 
-	name = get_variable_from_expr_complex(expr, &sym);
+	name = expr_to_str_sym_complex(expr, &sym);
 	if (!name || !sym)
 		goto free;
 
@@ -463,7 +463,7 @@ struct symbol *get_member_type_from_key(struct expression *expr, char *key)
 		return get_real_base_type(sym);
 	}
 
-	name = get_variable_from_expr_complex(expr, &sym);
+	name = expr_to_str_sym_complex(expr, &sym);
 	free_string(name);
 	if (!sym)
 		return NULL;

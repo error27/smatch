@@ -242,7 +242,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
  *
  */
 
-char *get_variable_from_expr_complex(struct expression *expr, struct symbol **sym_ptr)
+char *expr_to_str_sym_complex(struct expression *expr, struct symbol **sym_ptr)
 {
 	static char var_name[VAR_LEN];
 	int complicated = 0;

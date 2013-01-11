@@ -69,7 +69,7 @@ static void match_binop(struct expression *expr)
 	if (!is_size_in_bytes(expr->right))
 		return;
 
-	name = get_variable_from_expr_complex(expr->left, NULL);
+	name = expr_to_str_sym_complex(expr->left, NULL);
 	sm_msg("warn: potential pointer math issue ('%s' is a %d bit pointer)",
 	       name, type->bit_size);
 	free_string(name);

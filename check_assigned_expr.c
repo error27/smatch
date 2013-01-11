@@ -35,7 +35,7 @@ static struct smatch_state *alloc_my_state(struct expression *expr)
 
 	state = __alloc_smatch_state(0);
 	expr = strip_expr(expr);
-	name = get_variable_from_expr_complex(expr, NULL);
+	name = expr_to_str_sym_complex(expr, NULL);
 	state->name = alloc_sname(name);
 	free_string(name);
 	state->data = expr;

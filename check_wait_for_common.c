@@ -17,7 +17,7 @@ static void match_wait_for_common(const char *fn, struct expression *expr, void 
 
 	if (!expr_unsigned(expr->left))
 		return;
-	name = get_variable_from_expr_complex(expr->left, NULL);
+	name = expr_to_str_sym_complex(expr->left, NULL);
 	sm_msg("error: '%s()' returns negative and '%s' is unsigned", fn, name);
 	free_string(name);
 }

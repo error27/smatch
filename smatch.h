@@ -222,7 +222,7 @@ void free_string(char *str);
 struct smatch_state *alloc_state_num(int num);
 struct expression *get_argument_from_call_expr(struct expression_list *args,
 					       int num);
-char *get_variable_from_expr_complex(struct expression *expr,
+char *expr_to_str_sym_complex(struct expression *expr,
 				     struct symbol **sym_ptr);
 char *get_variable_from_expr(struct expression *expr,
 			     struct symbol **sym_ptr);
