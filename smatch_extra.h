@@ -116,21 +116,33 @@ struct smatch_state *get_implied_estate(struct expression *expr);
 struct smatch_state *estate_filter_sval(struct smatch_state *orig, sval_t filter);
 struct smatch_state *estate_filter_range(struct smatch_state *orig, sval_t filter_min, sval_t filter_max);
 
-/* used in smatch_slist.  implemented in smatch_extra.c */
+/* smatch_extra.c */
+struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state);
+struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state);
+void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state);
+
+struct data_info *get_dinfo(struct smatch_state *state);
+
 void add_extra_mod_hook(void (*fn)(const char *name, struct symbol *sym, struct smatch_state *state));
 int implied_not_equal(struct expression *expr, long long val);
+
 struct sm_state *__extra_handle_canonical_loops(struct statement *loop, struct state_list **slist);
 int __iterator_unchanged(struct sm_state *sm);
 void __extra_pre_loop_hook_after(struct sm_state *sm,
 				struct statement *iterator,
 				struct expression *condition);
 
-/* also implemented in smatch_extra */
-struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state);
-struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state);
-void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state);
-struct data_info *get_dinfo(struct smatch_state *state);
+/* smatch_constraints.c */
+void set_equiv(struct expression *left, struct expression *right);
+void set_related(struct smatch_state *estate, struct related_list *rlist);
+struct related_list *get_shared_relations(struct related_list *one,
+					      struct related_list *two);
+struct related_list *clone_related_list(struct related_list *related);
+void remove_from_equiv(const char *name, struct symbol *sym);
+void remove_from_equiv_expr(struct expression *expr);
+void set_equiv_state_expr(int id, struct expression *expr, struct smatch_state *state);
 
+/* smatch_function_hooks.c */
 void function_comparison(int comparison, struct expression *expr, sval_t sval, int left);
 
 /* smatch_expressions.c */
@@ -140,13 +152,4 @@ struct expression *deref_expression(struct expression *deref, int op, struct ide
 struct expression *assign_expression(struct expression *left, struct expression *right);
 struct expression *symbol_expression(struct symbol *sym);
 
-/* implemented in smatch_constraints */
-void set_equiv(struct expression *left, struct expression *right);
-void set_related(struct smatch_state *estate, struct related_list *rlist);
-struct related_list *get_shared_relations(struct related_list *one,
-					      struct related_list *two);
-struct related_list *clone_related_list(struct related_list *related);
-void remove_from_equiv(const char *name, struct symbol *sym);
-void remove_from_equiv_expr(struct expression *expr);
-void set_equiv_state_expr(int id, struct expression *expr, struct smatch_state *state);
 
