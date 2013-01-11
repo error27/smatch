@@ -267,7 +267,7 @@ char *expr_to_str_sym_complex(struct expression *expr, struct symbol **sym_ptr)
  * then it returns NULL.
  */
 
-char *get_variable_from_expr(struct expression *expr,
+char *expr_to_str_sym(struct expression *expr,
 				    struct symbol **sym_ptr)
 {
 	static char var_name[VAR_LEN];
@@ -467,7 +467,7 @@ char *get_member_name(struct expression *expr)
 char *get_fnptr_name(struct expression *expr)
 {
 	if (expr->type == EXPR_SYMBOL)
-		return get_variable_from_expr(expr, NULL);
+		return expr_to_str_sym(expr, NULL);
 	return get_member_name(expr);
 }
 

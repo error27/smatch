@@ -64,7 +64,7 @@ static void call_modification_hooks(struct expression *expr)
 	struct sm_state *sm;
 	int match;
 
-	name = get_variable_from_expr(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 	slist = __get_cur_slist();

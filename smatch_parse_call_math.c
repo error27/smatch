@@ -472,7 +472,7 @@ static void print_returned_allocations(int return_id, char *return_ranges, struc
 		return;
 	}
 
-	name = get_variable_from_expr(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 

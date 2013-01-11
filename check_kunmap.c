@@ -24,7 +24,7 @@ static void check_assignment(void *data)
 		return;
 	if (expr->type != EXPR_CALL)
 		return;
-	fn = get_variable_from_expr(expr->fn, NULL);
+	fn = expr_to_str_sym(expr->fn, NULL);
 	if (!fn)
 		return;
 	if (!strcmp(fn, "kmap"))

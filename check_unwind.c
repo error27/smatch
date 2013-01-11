@@ -34,7 +34,7 @@ static int was_passed_as_param(struct expression *expr)
 	struct symbol *sym;
 	struct symbol *arg;
 
-	name = get_variable_from_expr(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name)
 		return 0;
 	free_string(name);

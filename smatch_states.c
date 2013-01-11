@@ -135,7 +135,7 @@ struct sm_state *set_state_expr(int owner, struct expression *expr, struct smatc
 	struct sm_state *ret = NULL;
 
 	expr = strip_expr(expr);
-	name = get_variable_from_expr(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 	ret = set_state(owner, name, sym, state);
@@ -214,7 +214,7 @@ struct smatch_state *get_state_expr(int owner, struct expression *expr)
 	struct smatch_state *ret = NULL;
 
 	expr = strip_expr(expr);
-	name = get_variable_from_expr(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 	ret = get_state(owner, name, sym);
@@ -240,7 +240,7 @@ struct state_list *get_possible_states_expr(int owner, struct expression *expr)
 	struct state_list *ret = NULL;
 
 	expr = strip_expr(expr);
-	name = get_variable_from_expr(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 	ret = get_possible_states(owner, name, sym);
@@ -261,7 +261,7 @@ struct sm_state *get_sm_state_expr(int owner, struct expression *expr)
 	struct sm_state *ret = NULL;
 
 	expr = strip_expr(expr);
-	name = get_variable_from_expr(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 	ret = get_sm_state(owner, name, sym);
@@ -286,7 +286,7 @@ void delete_state_expr(int owner, struct expression *expr)
 	struct symbol *sym;
 
 	expr = strip_expr(expr);
-	name = get_variable_from_expr(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 	delete_state(owner, name, sym);
@@ -369,7 +369,7 @@ void set_true_false_states_expr(int owner, struct expression *expr,
 	struct symbol *sym;
 
 	expr = strip_expr(expr);
-	name = get_variable_from_expr(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 	set_true_false_states(owner, name, sym, true_state, false_state);

@@ -96,7 +96,7 @@ static void match_assign(struct expression *expr)
 		match_normal_assign(expr);
 		return;
 	}
-	name = get_variable_from_expr(expr->right, NULL);
+	name = expr_to_str_sym(expr->right, NULL);
 	if (!name || strcmp(name, "__val_gu") != 0)
 		goto free;
 	set_state_expr(my_max_id, expr->left, &user_data);
@@ -130,7 +130,7 @@ static void check_expr(struct expression *expr)
 	if (!overflow && !underflow)
 		return;
 
-	name = get_variable_from_expr(expr, NULL);
+	name = expr_to_str_sym(expr, NULL);
 	if (overflow && underflow)
 		sm_msg("warn: check for integer over/underflow '%s'", name);
 	else if (underflow)

@@ -213,7 +213,7 @@ void remove_from_equiv_expr(struct expression *expr)
 	char *name;
 	struct symbol *sym;
 
-	name = get_variable_from_expr(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 	remove_from_equiv(name, sym);
@@ -242,7 +242,7 @@ void set_equiv(struct expression *left, struct expression *right)
 	struct symbol *left_sym;
 	struct related_list *rlist;
 
-	left_name = get_variable_from_expr(left, &left_sym);
+	left_name = expr_to_str_sym(left, &left_sym);
 	if (!left_name || !left_sym)
 		goto free;
 

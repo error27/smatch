@@ -496,7 +496,7 @@ static void handle_zero_comparison(struct expression *expr,
 		expr = expr->left;
 	}
 
-	name = get_variable_from_expr(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 	sm = get_sm_state(SMATCH_EXTRA, name, sym);
@@ -549,7 +549,7 @@ struct range_list *__get_implied_values(struct expression *switch_expr)
 	struct smatch_state *state;
 	struct range_list *ret = NULL;
 
-	name = get_variable_from_expr(switch_expr, &sym);
+	name = expr_to_str_sym(switch_expr, &sym);
 	if (!name || !sym)
 		goto free;
 	state = get_state(SMATCH_EXTRA, name, sym);
@@ -581,7 +581,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	sval_t sval;
 	struct range_list *vals = NULL;
 
-	name = get_variable_from_expr(switch_expr, &sym);
+	name = expr_to_str_sym(switch_expr, &sym);
 	if (!name || !sym)
 		goto free;
 	sm = get_sm_state_slist(*raw_slist, SMATCH_EXTRA, name, sym);

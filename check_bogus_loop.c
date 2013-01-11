@@ -58,9 +58,9 @@ static void match_loop(struct statement *stmt)
 		return;
 
 	iterator = get_iterator_set(stmt->iterator_pre_statement);
-	iter_set = get_variable_from_expr(iterator, NULL);
+	iter_set = expr_to_str_sym(iterator, NULL);
 	iterator = get_iterator_tested(stmt->iterator_pre_condition);
-	iter_tested = get_variable_from_expr(iterator, NULL);
+	iter_tested = expr_to_str_sym(iterator, NULL);
 	if (!iter_set || !iter_tested)
 		goto free;
 	if (strcmp(iter_set, iter_tested))

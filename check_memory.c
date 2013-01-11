@@ -65,7 +65,7 @@ static int is_complex(struct expression *expr)
 	char *name;
 	int ret = 1;
 
-	name = get_variable_from_expr(expr, NULL);
+	name = expr_to_str_sym(expr, NULL);
 	if (name)
 		ret = 0;
 	free_string(name);
@@ -113,7 +113,7 @@ static int is_allocation(struct expression *expr)
 	if (expr->type != EXPR_CALL)
 		return 0;
 
-	if (!(fn_name = get_variable_from_expr(expr->fn, NULL)))
+	if (!(fn_name = expr_to_str_sym(expr->fn, NULL)))
 		return 0;
 
 	for (i = 0; allocation_funcs[i]; i++) {
@@ -241,7 +241,7 @@ static void match_free_func(const char *fn, struct expression *expr, void *data)
 	int arg_num = PTR_INT(data);
 
 	ptr_expr = get_argument_from_call_expr(expr->args, arg_num);
-	ptr_name = get_variable_from_expr(ptr_expr, &ptr_sym);
+	ptr_name = expr_to_str_sym(ptr_expr, &ptr_sym);
 	if (!ptr_name)
 		return;
 	set_state(my_id, ptr_name, ptr_sym, &isfree);
@@ -357,7 +357,7 @@ static void match_condition(struct expression *expr)
 	case EXPR_PREOP:
 	case EXPR_SYMBOL:
 	case EXPR_DEREF:
-		name = get_variable_from_expr(expr, &sym);
+		name = expr_to_str_sym(expr, &sym);
 		if (!name)
 			return;
 		set_new_true_false_paths(name, sym);

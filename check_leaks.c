@@ -179,7 +179,7 @@ static void warn_if_allocated(struct expression *expr)
 	if (!slist_has_state(sm->possible, &allocated))
 		return;
 
-	name = get_variable_from_expr(expr, NULL);
+	name = expr_to_str_sym(expr, NULL);
 	sm_msg("warn: overwrite may leak '%s'", name);
 	free_string(name);
 

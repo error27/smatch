@@ -38,7 +38,7 @@ void add_tracker_expr(struct tracker_list **list, int owner, struct expression *
 	char *name;
 	struct symbol *sym;
 
-	name = get_variable_from_expr(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 	add_tracker(list, owner, name, sym);

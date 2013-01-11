@@ -98,7 +98,7 @@ static void match_call(struct expression *call)
 	if (call->fn->type != EXPR_SYMBOL)
 		return;
 
-	name = get_variable_from_expr(call->fn, NULL);
+	name = expr_to_str_sym(call->fn, NULL);
 	FOR_EACH_PTR(call->args, arg) {
 		i++;
 		if (arg->type != EXPR_SIZEOF)

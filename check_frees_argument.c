@@ -48,7 +48,7 @@ static void match_kfree(const char *fn, struct expression *expr, void *info)
 
 	tmp = get_argument_from_call_expr(expr->args, 0);
 	tmp = strip_expr(tmp);
-	name = get_variable_from_expr(tmp, &sym);
+	name = expr_to_str_sym(tmp, &sym);
 	if (is_arg(name, sym)) {
 		set_state(my_id, name, sym, &freed);
 	}

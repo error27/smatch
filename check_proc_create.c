@@ -34,7 +34,7 @@ static void match_create(const char *fn, struct expression *expr, void *_param_t
 	if (!(sval.uvalue & S_IWOTH))
 		return;
 	arg_expr = get_argument_from_call_expr(expr->args, param_index[idx].name_param);
-	name = get_variable_from_expr(arg_expr, NULL);
+	name = expr_to_str_sym(arg_expr, NULL);
 	sm_msg("warn: proc file '%s' is world writable", name);
 	free_string(name);
 }

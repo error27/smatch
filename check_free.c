@@ -42,7 +42,7 @@ static void match_symbol(struct expression *expr)
 
 	if (!is_freed(expr))
 		return;
-	name = get_variable_from_expr(expr, NULL);
+	name = expr_to_str_sym(expr, NULL);
 	sm_msg("warn: '%s' was already freed.", name);
 	free_string(name);
 }
@@ -57,7 +57,7 @@ static void match_dereferences(struct expression *expr)
 
 	if (!is_freed(expr))
 		return;
-	name = get_variable_from_expr(expr, NULL);
+	name = expr_to_str_sym(expr, NULL);
 	sm_msg("error: dereferencing freed memory '%s'", name);
 	set_state_expr(my_id, expr, &ok);
 	free_string(name);
@@ -72,7 +72,7 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 		return;
 	/* option_spammy already prints a warning here */
 	if (!option_spammy && is_freed(arg)) {
-		char *name = get_variable_from_expr(arg, NULL);
+		char *name = expr_to_str_sym(arg, NULL);
 
 		sm_msg("error: double free of '%s'", name);
 		free_string(name);

@@ -91,7 +91,7 @@ static int is_skb_data(struct expression *expr)
 	int len;
 	int ret = 0;
 
-	name = get_variable_from_expr(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 
@@ -252,7 +252,7 @@ static void match_assign(struct expression *expr)
 		match_normal_assign(expr);
 		return;
 	}
-	name = get_variable_from_expr(expr->right, NULL);
+	name = expr_to_str_sym(expr->right, NULL);
 	if (!name || strcmp(name, "__val_gu") != 0)
 		goto free;
 	set_state_expr(my_id, expr->left, &user_data);
