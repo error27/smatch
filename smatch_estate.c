@@ -31,7 +31,7 @@ struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state 
 	if (estates_equiv(s1, s2))
 		return s1;
 
-	value_ranges = range_list_union(estate_ranges(s1), estate_ranges(s2));
+	value_ranges = rl_union(estate_ranges(s1), estate_ranges(s2));
 	tmp = alloc_estate_range_list(value_ranges);
 	rlist = get_shared_relations(estate_related(s1), estate_related(s2));
 	set_related(tmp, rlist);

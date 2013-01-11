@@ -50,7 +50,7 @@ static struct smatch_state *filter_my_sm(struct sm_state *sm)
 		} else {
 			estate = tmp->state;
 		}
-		ret = range_list_union(ret, estate_ranges(estate));
+		ret = rl_union(ret, estate_ranges(estate));
 	} END_FOR_EACH_PTR(tmp);
 
 	return alloc_estate_range_list(ret);

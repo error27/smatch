@@ -81,7 +81,7 @@ static char *get_orig_rl(struct sm_state *sm)
 			sm_msg("debug: no value found in pool %p", tmp->pool);
 			return NULL;
 		}
-		ret = range_list_union(ret, estate_ranges(extra));
+		ret = rl_union(ret, estate_ranges(extra));
 	} END_FOR_EACH_PTR(tmp);
 	return show_ranges(ret);
 }

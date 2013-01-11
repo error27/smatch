@@ -316,7 +316,7 @@ struct range_list *clone_permanent(struct range_list *list)
 	return ret;
 }
 
-struct range_list *range_list_union(struct range_list *one, struct range_list *two)
+struct range_list *rl_union(struct range_list *one, struct range_list *two)
 {
 	struct data_range *tmp;
 	struct range_list *ret = NULL;

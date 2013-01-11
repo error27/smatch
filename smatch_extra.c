@@ -1105,7 +1105,7 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (state) {
 		parse_value_ranges_type(type, value, &added);
-		new = range_list_union(estate_ranges(state), added);
+		new = rl_union(estate_ranges(state), added);
 	} else {
 		new = whole_range_list(type);
 	}
