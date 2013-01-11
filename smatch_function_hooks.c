@@ -554,7 +554,7 @@ static void match_assign_call(struct expression *expr)
 
 	right = strip_expr(expr->right);
 	if (right->fn->type != EXPR_SYMBOL || !right->fn->symbol) {
-		set_extra_expr_mod(expr->left, extra_undefined(get_type(expr->left)));
+		set_extra_expr_mod(expr->left, alloc_estate_whole(get_type(expr->left)));
 		return;
 	}
 	fn = right->fn->symbol->ident->name;

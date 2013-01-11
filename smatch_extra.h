@@ -90,7 +90,7 @@ struct smatch_state *alloc_estate_empty(void);
 struct smatch_state *alloc_estate_sval(sval_t sval);
 struct smatch_state *alloc_estate_range(sval_t min, sval_t max);
 struct smatch_state *alloc_estate_rl(struct range_list *rl);
-struct smatch_state *extra_undefined(struct symbol *type);
+struct smatch_state *alloc_estate_whole(struct symbol *type);
 struct smatch_state *clone_estate(struct smatch_state *state);
 
 struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state *s2);

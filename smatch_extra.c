@@ -175,7 +175,7 @@ struct smatch_state *filter_range(struct smatch_state *orig,
 	struct range_list *rl;
 
 	if (!orig)
-		orig = extra_undefined(filter_min.type);
+		orig = alloc_estate_whole(filter_min.type);
 
 	rl = remove_range(estate_ranges(orig), filter_min, filter_max);
 	return alloc_estate_rl(rl);
@@ -416,7 +416,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 		if (state)
 			return state;
 	}
-	return extra_undefined(estate_type(sm->state));
+	return alloc_estate_whole(estate_type(sm->state));
 }
 
 static void match_function_call(struct expression *expr)
@@ -428,7 +428,7 @@ static void match_function_call(struct expression *expr)
 		tmp = strip_expr(arg);
 		if (tmp->type == EXPR_PREOP && tmp->op == '&') {
 			remove_from_equiv_expr(tmp->unop);
-			set_state_expr(SMATCH_EXTRA, tmp->unop, extra_undefined(get_type(tmp->unop)));
+			set_state_expr(SMATCH_EXTRA, tmp->unop, alloc_estate_whole(get_type(tmp->unop)));
 		}
 	} END_FOR_EACH_PTR(arg);
 }
@@ -530,7 +530,7 @@ free:
 
 static void reset_struct_members(struct sm_state *sm)
 {
-	set_extra_mod(sm->name, sm->sym, extra_undefined(estate_type(sm->state)));
+	set_extra_mod(sm->name, sm->sym, alloc_estate_whole(estate_type(sm->state)));
 }
 
 static struct smatch_state *increment_state(struct smatch_state *state)
@@ -581,14 +581,14 @@ static void unop_expr(struct expression *expr)
 		state = get_state_expr(SMATCH_EXTRA, expr->unop);
 		state = increment_state(state);
 		if (!state)
-			state = extra_undefined(get_type(expr));
+			state = alloc_estate_whole(get_type(expr));
 		set_extra_expr_mod(expr->unop, state);
 		break;
 	case SPECIAL_DECREMENT:
 		state = get_state_expr(SMATCH_EXTRA, expr->unop);
 		state = decrement_state(state);
 		if (!state)
-			state = extra_undefined(get_type(expr));
+			state = alloc_estate_whole(get_type(expr));
 		set_extra_expr_mod(expr->unop, state);
 		break;
 	default:
@@ -610,7 +610,7 @@ static void asm_expr(struct statement *stmt)
 			continue;
 		case 2: /* expression */
 			state = 0;
-			set_extra_expr_mod(expr, extra_undefined(get_type(expr)));
+			set_extra_expr_mod(expr, alloc_estate_whole(get_type(expr)));
 			continue;
 		}
 	} END_FOR_EACH_PTR(expr);
@@ -637,7 +637,7 @@ static void match_declarations(struct symbol *sym)
 	if (sym->ident) {
 		name = sym->ident->name;
 		if (!sym->initializer) {
-			set_state(SMATCH_EXTRA, name, sym, extra_undefined(get_real_base_type(sym)));
+			set_state(SMATCH_EXTRA, name, sym, alloc_estate_whole(get_real_base_type(sym)));
 			scoped_state_extra(name, sym);
 		}
 	}
@@ -674,7 +674,7 @@ static void match_function_def(struct symbol *sym)
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
 		if (!arg->ident)
 			continue;
-		set_state(my_id, arg->ident->name, arg, extra_undefined(get_real_base_type(arg)));
+		set_state(my_id, arg->ident->name, arg, alloc_estate_whole(get_real_base_type(arg)));
 	} END_FOR_EACH_PTR(arg);
 }
 

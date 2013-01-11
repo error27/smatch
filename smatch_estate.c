@@ -213,7 +213,7 @@ struct smatch_state *alloc_estate_empty(void)
 	return state;
 }
 
-struct smatch_state *extra_undefined(struct symbol *type)
+struct smatch_state *alloc_estate_whole(struct symbol *type)
 {
 	return alloc_estate_rl(alloc_whole_rl(type));
 }
