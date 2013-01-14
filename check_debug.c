@@ -58,7 +58,7 @@ static void match_print_implied(const char *fn, struct expression *expr, void *i
 	get_implied_rl(arg, &rl);
 
 	name = expr_to_str_complex(arg);
-	sm_msg("implied: %s = '%s'", name, show_ranges(rl));
+	sm_msg("implied: %s = '%s'", name, show_rl(rl));
 	free_string(name);
 }
 

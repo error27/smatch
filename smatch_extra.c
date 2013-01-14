@@ -1214,7 +1214,7 @@ static void match_call_info(struct expression *expr)
 			rl = alloc_whole_rl(type);
 
 		sm_msg("info: passes param_value '%s' %d '$$' %s %s",
-		       name, i, show_ranges(rl),
+		       name, i, show_rl(rl),
 		       is_static(expr->fn) ? "static" : "global");
 		i++;
 	} END_FOR_EACH_PTR(arg);

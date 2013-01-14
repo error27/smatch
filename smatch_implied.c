@@ -379,10 +379,10 @@ static void separate_and_filter(struct sm_state *sm_state, int comparison, struc
 	if (option_debug_implied || option_debug) {
 		if (lr == LEFT)
 			sm_msg("checking implications: (%s %s %s)",
-				sm_state->name, show_special(comparison), show_ranges(vals));
+				sm_state->name, show_special(comparison), show_rl(vals));
 		else
 			sm_msg("checking implications: (%s %s %s)",
-				show_ranges(vals), show_special(comparison), sm_state->name);
+				show_rl(vals), show_special(comparison), sm_state->name);
 	}
 
 	separate_pools(sm_state, comparison, vals, lr, &true_stack, &false_stack, NULL);

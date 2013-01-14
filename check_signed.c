@@ -271,8 +271,8 @@ static void match_condition(struct expression *expr)
 		char *name = expr_to_str_complex(expr);
 
 		sm_msg("warn: impossible condition '(%s) => (%s %s %s)'", name,
-		       show_ranges(rl_left), show_special(expr->op),
-		       show_ranges(rl_right));
+		       show_rl(rl_left), show_special(expr->op),
+		       show_rl(rl_right));
 		free_string(name);
 	}
 
@@ -280,8 +280,8 @@ static void match_condition(struct expression *expr)
 		char *name = expr_to_str_complex(expr);
 
 		sm_msg("warn: always true condition '(%s) => (%s %s %s)'", name,
-		       show_ranges(rl_left_orig), show_special(expr->op),
-		       show_ranges(rl_right_orig));
+		       show_rl(rl_left_orig), show_special(expr->op),
+		       show_rl(rl_right_orig));
 		free_string(name);
 	}
 }

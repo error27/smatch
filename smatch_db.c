@@ -582,7 +582,7 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 		overwrite_states_using_pool(tmp);
 
 		rl = cast_rl(cur_func_return_type(), estate_rl(tmp->state));
-		return_ranges = show_ranges(rl);
+		return_ranges = show_rl(rl);
 
 		return_id++;
 		slist = __get_cur_slist();
@@ -614,10 +614,10 @@ static void call_return_state_hooks(struct expression *expr)
 		return;
 	} else if (get_implied_rl(expr, &rl)) {
 		rl = cast_rl(cur_func_return_type(), rl);
-		return_ranges = show_ranges(rl);
+		return_ranges = show_rl(rl);
 	} else {
 		rl = alloc_whole_rl(cur_func_return_type());
-		return_ranges = show_ranges(rl);
+		return_ranges = show_rl(rl);
 	}
 
 	return_id++;

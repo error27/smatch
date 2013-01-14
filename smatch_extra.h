@@ -33,7 +33,7 @@ DECLARE_ALLOCATOR(data_info);
 extern struct string_list *__ignored_macros;
 
 /* these are implemented in smatch_ranges.c */
-char *show_ranges(struct range_list *list);
+char *show_rl(struct range_list *list);
 void str_to_rl(struct symbol *type, char *value, struct range_list **rl);
 
 struct data_range *alloc_range(sval_t min, sval_t max);

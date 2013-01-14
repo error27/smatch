@@ -83,7 +83,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 			continue;
 		if (!sm->sym->ident)
 			continue;
-		print_one_return_value_param(return_id, return_ranges, param, sm, show_ranges(rl), slist);
+		print_one_return_value_param(return_id, return_ranges, param, sm, show_rl(rl), slist);
 	} END_FOR_EACH_PTR(sm);
 }
 

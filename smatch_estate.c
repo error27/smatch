@@ -239,7 +239,7 @@ struct smatch_state *alloc_estate_sval(sval_t sval)
 
 	state = __alloc_smatch_state(0);
 	state->data = alloc_dinfo_range(sval, sval);
-	state->name = show_ranges(get_dinfo(state)->value_ranges);
+	state->name = show_rl(get_dinfo(state)->value_ranges);
 	estate_set_hard_max(state);
 	return state;
 }
@@ -250,7 +250,7 @@ struct smatch_state *alloc_estate_range(sval_t min, sval_t max)
 
 	state = __alloc_smatch_state(0);
 	state->data = alloc_dinfo_range(min, max);
-	state->name = show_ranges(get_dinfo(state)->value_ranges);
+	state->name = show_rl(get_dinfo(state)->value_ranges);
 	return state;
 }
 
@@ -263,7 +263,7 @@ struct smatch_state *alloc_estate_rl(struct range_list *rl)
 
 	state = __alloc_smatch_state(0);
 	state->data = alloc_dinfo_range_list(rl);
-	state->name = show_ranges(rl);
+	state->name = show_rl(rl);
 	return state;
 }
 
