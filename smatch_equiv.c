@@ -1,5 +1,5 @@
 /*
- * sparse/smatch_constraints.c
+ * sparse/smatch_equiv.c
  *
  * Copyright (C) 2010 Dan Carpenter.
  *
@@ -8,28 +8,14 @@
  */
 
 /*
- * smatch_constraints.c is for tracking how variables are related
+ * smatch_equiv.c is for tracking how variables are the same
  *
  * if (a == b) {
- * if (a > b) {
- * if (a != b) {
- *
- * This is stored in a field in the smatch_extra dinfo.
- *
- * Normally the way that variables become related is through a
- * condition and you say:  add_constraint_expr(left, '<', right);
- * The other way it can happen is if you have an assignment:
- * set_equiv(left, right);
- *
- * One two variables "a" and "b" are related if then if we find
- * that "a" is greater than 0 we need to update "b".
+ * Or
+ * x = y;
  *
  * When a variable gets modified all the old relationships are
- * deleted.  remove_contraints(expr);
- *
- * Also we need an is_true_constraint(left, '<', right) and
- * is_false_constraint (left, '<', right).  This is used by
- * smatch_implied.
+ * deleted.  remove_equiv(expr);
  *
  */
 
