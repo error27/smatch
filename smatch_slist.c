@@ -17,7 +17,7 @@
 ALLOCATOR(smatch_state, "smatch state");
 ALLOCATOR(sm_state, "sm state");
 ALLOCATOR(named_slist, "named slist");
-__DO_ALLOCATOR(char, 0, 1, "state names", sname);
+__DO_ALLOCATOR(char, 1, 4, "state names", sname);
 
 static int sm_state_counter;
 
