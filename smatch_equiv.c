@@ -25,12 +25,11 @@
 
 ALLOCATOR(relation, "related variables");
 
-static struct relation *alloc_relation(int op, const char *name, struct symbol *sym)
+static struct relation *alloc_relation(const char *name, struct symbol *sym)
 {
 	struct relation *tmp;
 
 	tmp = __alloc_relation(0);
-	tmp->op = op;
 	tmp->name = alloc_string(name);
 	tmp->sym = sym;
 	return tmp;
@@ -54,11 +53,6 @@ static int cmp_relation(struct relation *a, struct relation *b)
 
 	if (a == b)
 		return 0;
-
-	if (a->op > b->op)
-		return -1;
-	if (a->op < b->op)
-		return 1;
 
 	if (a->sym > b->sym)
 		return -1;
@@ -100,7 +94,7 @@ struct related_list *get_shared_relations(struct related_list *one,
 	return ret;
 }
 
-static void debug_addition(struct related_list *rlist, int op, const char *name)
+static void debug_addition(struct related_list *rlist, const char *name)
 {
 	struct relation *tmp;
 
@@ -110,41 +104,39 @@ static void debug_addition(struct related_list *rlist, int op, const char *name)
 	sm_prefix();
 	sm_printf("(");
 	FOR_EACH_PTR(rlist, tmp) {
-		sm_printf("%s %s ", show_special(tmp->op), tmp->name);
+		sm_printf("%s ", tmp->name);
 	} END_FOR_EACH_PTR(tmp);
-	sm_printf(") <-- %s %s\n", show_special(op), name);
+	sm_printf(") <-- %s\n", name);
 }
 
-static void add_related(struct related_list **rlist, int op, const char *name, struct symbol *sym)
+static void add_related(struct related_list **rlist, const char *name, struct symbol *sym)
 {
 	struct relation *rel;
 	struct relation *new;
 	struct relation tmp = {
-		.op = op,
 		.name = (char *)name,
 		.sym = sym
 	};
 
-	debug_addition(*rlist, op, name);
+	debug_addition(*rlist, name);
 
 	FOR_EACH_PTR(*rlist, rel) {
 		if (cmp_relation(rel, &tmp) < 0)
 			continue;
 		if (cmp_relation(rel, &tmp) == 0)
 			return;
-		new = alloc_relation(op, name, sym);
+		new = alloc_relation(name, sym);
 		INSERT_CURRENT(new, rel);
 		return;
 	} END_FOR_EACH_PTR(rel);
-	new = alloc_relation(op, name, sym);
+	new = alloc_relation(name, sym);
 	add_ptr_list(rlist, new);
 }
 
-void del_related(struct smatch_state *state, int op, const char *name, struct symbol *sym)
+void del_related(struct smatch_state *state, const char *name, struct symbol *sym)
 {
 	struct relation *tmp;
 	struct relation remove = {
-		.op = op,
 		.name = (char *)name,
 		.sym = sym,
 	};
@@ -162,7 +154,7 @@ void del_related(struct smatch_state *state, int op, const char *name, struct sy
 
 static void del_equiv(struct smatch_state *state, const char *name, struct symbol *sym)
 {
-	del_related(state, SPECIAL_EQUAL, name, sym);
+	del_related(state, name, sym);
 }
 
 void remove_from_equiv(const char *name, struct symbol *sym)
@@ -241,8 +233,8 @@ void set_equiv(struct expression *left, struct expression *right)
 	remove_from_equiv(left_name, left_sym);
 
 	rlist = clone_related_list(estate_related(right_sm->state));
-	add_related(&rlist, SPECIAL_EQUAL, right_sm->name, right_sm->sym);
-	add_related(&rlist, SPECIAL_EQUAL, left_name, left_sym);
+	add_related(&rlist, right_sm->name, right_sm->sym);
+	add_related(&rlist, left_name, left_sym);
 
 	state = clone_estate(right_sm->state);
 	get_dinfo(state)->related = rlist;
@@ -271,8 +263,6 @@ void set_equiv_state_expr(int id, struct expression *expr, struct smatch_state *
 		return;
 
 	FOR_EACH_PTR(get_dinfo(estate)->related, rel) {
-		if (rel->op != SPECIAL_EQUAL)
-			continue;
 		set_state(id, rel->name, rel->sym, state);
 	} END_FOR_EACH_PTR(rel);
 }

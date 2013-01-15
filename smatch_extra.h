@@ -15,7 +15,6 @@ DECLARE_PTR_LIST(range_list, struct data_range);
 DECLARE_PTR_LIST(range_list_stack, struct range_list);
 
 struct relation {
-	int op;
 	char *name;
 	struct symbol *sym;
 };
@@ -132,7 +131,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 				struct statement *iterator,
 				struct expression *condition);
 
-/* smatch_constraints.c */
+/* smatch_equiv.c */
 void set_equiv(struct expression *left, struct expression *right);
 void set_related(struct smatch_state *estate, struct related_list *rlist);
 struct related_list *get_shared_relations(struct related_list *one,

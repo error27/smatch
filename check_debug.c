@@ -248,7 +248,7 @@ static void print_related(struct sm_state *sm)
 	sm_prefix();
 	sm_printf("%s: ", sm->name);
 	FOR_EACH_PTR(estate_related(sm->state), rel) {
-		sm_printf("%s %s ", show_special(rel->op), rel->name);
+		sm_printf("%s ", rel->name);
 	} END_FOR_EACH_PTR(rel);
 	sm_printf("\n");
 }
