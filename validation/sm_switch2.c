@@ -44,6 +44,7 @@ void func (void)
  * check-command: smatch sm_switch2.c
  *
  * check-output-start
+sm_switch2.c:31 func() warn: missing break? reassigning 'a->a'
 sm_switch2.c:31 func() error: potential NULL dereference 'a'.
 sm_switch2.c:32 func() error: potential NULL dereference 'b'.
  * check-output-end

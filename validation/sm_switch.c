@@ -52,6 +52,7 @@ void func (void)
  * check-known-to-fail
  *
  * check-output-start
+sm_switch.c:38 func() warn: missing break? reassigning 'a->a'
 sm_switch.c:38 func() error: potential NULL dereference 'a'.
 sm_switch.c:39 func() error: potential NULL dereference 'b'.
  * check-output-end
