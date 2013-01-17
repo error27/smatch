@@ -213,6 +213,20 @@ int sval_cmp_val(sval_t one, long long val)
 	return sval_cmp(one, sval);
 }
 
+sval_t sval_min(sval_t one, sval_t two)
+{
+	if (sval_cmp(one, two) > 0)
+		return two;
+	return one;
+}
+
+sval_t sval_max(sval_t one, sval_t two)
+{
+	if (sval_cmp(one, two) < 0)
+		return two;
+	return one;
+}
+
 int sval_too_low(struct symbol *type, sval_t sval)
 {
 	if (sval_is_negative(sval) && type_unsigned(type))
