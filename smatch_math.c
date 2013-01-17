@@ -716,6 +716,8 @@ int get_implied_rl(struct expression *expr, struct range_list **rl)
 	sval_t sval;
 	struct smatch_state *state;
 	sval_t min, max;
+	int min_known = 0;
+	int max_known = 0;
 
 	*rl = NULL;
 
@@ -743,10 +745,14 @@ int get_implied_rl(struct expression *expr, struct range_list **rl)
 		return 1;
 	}
 
-	if (!get_implied_min(expr, &min))
+	min_known = get_implied_min(expr, &min);
+	max_known = get_implied_max(expr, &max);
+	if (!min_known && !max_known)
 		return 0;
-	if (!get_implied_max(expr, &max))
-		return 0;
+	if (!min_known)
+		get_absolute_min(expr, &min);
+	if (!max_known)
+		get_absolute_max(expr, &max);
 
 	*rl = alloc_rl(min, max);
 	return 1;
