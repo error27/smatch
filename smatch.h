@@ -531,6 +531,9 @@ void print_held_locks();
 /* check_assigned_expr.c */
 struct expression *get_assigned_expr(struct expression *expr);
 
+/* smatch_comparison.c */
+int get_comparison(struct expression *left, struct expression *right);
+
 /* smatch_sval.c */
 sval_t *sval_alloc(sval_t sval);
 sval_t *sval_alloc_permanent(sval_t sval);

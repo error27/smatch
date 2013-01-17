@@ -17,6 +17,8 @@ CK(register_parse_call_math)
 CK(register_param_limit)
 CK(register_param_filter)
 CK(register_param_set)
+CK(register_comparison)
+CK(register_comparison_links)
 
 CK(check_debug)
 CK(check_assigned_expr)
