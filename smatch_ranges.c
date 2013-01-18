@@ -766,8 +766,7 @@ void free_rl(struct range_list **rlist)
 
 static void free_single_dinfo(struct data_info *dinfo)
 {
-	if (dinfo->type == DATA_RANGE)
-		free_rl(&dinfo->value_ranges);
+	free_rl(&dinfo->value_ranges);
 }
 
 static void free_dinfos(struct allocation_blob *blob)

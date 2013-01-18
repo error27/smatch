@@ -161,7 +161,6 @@ static struct data_info *alloc_dinfo(void)
 
 	ret = __alloc_data_info(0);
 	ret->related = NULL;
-	ret->type = DATA_RANGE;
 	ret->value_ranges = NULL;
 	ret->hard_max = 0;
 	return ret;

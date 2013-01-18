@@ -7,10 +7,6 @@
  *
  */
 
-enum data_type {
-	DATA_RANGE,
-};
-
 DECLARE_PTR_LIST(range_list, struct data_range);
 DECLARE_PTR_LIST(range_list_stack, struct range_list);
 
@@ -23,7 +19,6 @@ DECLARE_PTR_LIST(related_list, struct relation);
 
 struct data_info {
 	struct related_list *related;
-	enum data_type type;
 	struct range_list *value_ranges;
 	unsigned int hard_max:1;
 };
