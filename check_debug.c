@@ -265,6 +265,31 @@ static void match_dump_related(const char *fn, struct expression *expr, void *in
 	free_slist(&slist);
 }
 
+static void match_compare(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *one, *two;
+	char *one_name, *two_name;
+	int comparison;
+	const char *str;
+
+	one = get_argument_from_call_expr(expr->args, 0);
+	two = get_argument_from_call_expr(expr->args, 1);
+
+	comparison = get_comparison(one, two);
+	if (!comparison)
+		str = "<nothing>";
+	else
+		str = show_special(comparison);
+
+	one_name = expr_to_str(one);
+	two_name = expr_to_str(two);
+
+	sm_msg("%s %s %s", one_name, str, two_name);
+
+	free_string(one_name);
+	free_string(two_name);
+}
+
 static void match_debug_on(const char *fn, struct expression *expr, void *info)
 {
 	option_debug = 1;
@@ -313,6 +338,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_buf_size", &match_buf_size, NULL);
 	add_function_hook("__smatch_note", &match_note, NULL);
 	add_function_hook("__smatch_dump_related", &match_dump_related, NULL);
+	add_function_hook("__smatch_compare", &match_compare, NULL);
 	add_function_hook("__smatch_debug_on", &match_debug_on, NULL);
 	add_function_hook("__smatch_debug_off", &match_debug_off, NULL);
 	add_function_hook("__smatch_local_debug_on", &match_local_debug_on, NULL);
