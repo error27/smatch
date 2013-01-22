@@ -19,7 +19,7 @@ static char *my_get_variable(struct expression *expr, struct symbol **sym)
 {
 	char *name;
 
-	name = expr_to_str_sym(expr, sym);
+	name = expr_to_var_sym(expr, sym);
 	free_string(name);
 	if (!name || !*sym)
 		return NULL;
@@ -67,7 +67,7 @@ static void match_copy_to_user(const char *fn, struct expression *expr, void *un
 	sm = get_sm_state(my_id, name, sym);
 	if (!sm || !slist_has_state(sm->possible, &string))
 		return;
-	name = expr_to_str(src);
+	name = expr_to_var(src);
 	sm_msg("warn: possible info leak '%s'", name);
 	free_string(name);
 }

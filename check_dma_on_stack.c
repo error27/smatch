@@ -34,7 +34,7 @@ static void match_dma_func(const char *fn, struct expression *expr, void *param)
 	sym = get_type(arg);
 	if (!sym || sym->type != SYM_ARRAY)
 		return;
-	name = expr_to_str(arg);
+	name = expr_to_var(arg);
 	sm_msg("error: doing dma on the stack (%s)", name);
 	free_string(name);
 }

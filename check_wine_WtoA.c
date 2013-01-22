@@ -60,7 +60,7 @@ static void match_call(struct expression *expr)
 	if (!in_w)
 		return;
 
-	fn_name = expr_to_str(expr->fn);
+	fn_name = expr_to_var(expr->fn);
 	if (!fn_name)
 		goto free;
 	len = strlen(fn_name);

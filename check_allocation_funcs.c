@@ -34,7 +34,7 @@ static void match_allocation(const char *fn, struct expression *expr,
 	char *left_name;
 	struct symbol *left_sym;
 
-	left_name = expr_to_str_sym(expr->left, &left_sym);
+	left_name = expr_to_var_sym(expr->left, &left_sym);
 	if (!left_name || !left_sym)
 		goto free;
 	if (left_sym->ctype.modifiers & 
@@ -56,7 +56,7 @@ static void match_return(struct expression *ret_value)
 	if (get_value(ret_value, &tmp) && tmp.value == 0)
 		return;
 	returns_new_stuff = 1;
-	name = expr_to_str_sym(ret_value, &sym);
+	name = expr_to_var_sym(ret_value, &sym);
 	if (!name || !sym) {
 		returns_old_stuff = 1;
 		goto free;

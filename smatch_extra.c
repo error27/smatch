@@ -79,7 +79,7 @@ struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state
 	struct sm_state *ret = NULL;
 
 	expr = strip_expr(expr);
-	name = expr_to_str_sym(expr, &sym);
+	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 	ret = set_extra_mod(name, sym, state);
@@ -116,7 +116,7 @@ void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state)
 	char *name;
 	struct symbol *sym;
 
-	name = expr_to_str_sym(expr, &sym);
+	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 	set_extra_nomod(name, sym, state);
@@ -161,7 +161,7 @@ static void set_extra_expr_true_false(struct expression *expr,
 	struct symbol *sym;
 
 	expr = strip_expr(expr);
-	name = expr_to_str_sym(expr, &sym);
+	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 	set_extra_true_false(name, sym, true_state, false_state);
@@ -442,7 +442,7 @@ static void match_assign(struct expression *expr)
 	if (is_condition(expr->right))
 		return;
 	left = strip_expr(expr->left);
-	name = expr_to_str_sym(left, &sym);
+	name = expr_to_var_sym(left, &sym);
 	if (!name)
 		return;
 	right = strip_parens(expr->right);
@@ -452,7 +452,7 @@ static void match_assign(struct expression *expr)
 	if (expr->op == '=' && right->type == EXPR_CALL)
 		goto free;  /* these are handled in smatch_function_hooks.c */
 
-	right_name = expr_to_str_sym(right, &right_sym);
+	right_name = expr_to_var_sym(right, &right_sym);
 	if (expr->op == '=' && right_name && right_sym &&
 	    types_equiv_or_pointer(get_type(expr->left), get_type(expr->right))) {
 		set_equiv(left, right);
@@ -929,7 +929,7 @@ void __extra_match_condition(struct expression *expr)
 		zero = sval_blank(expr);
 		zero.value = 0;
 
-		name = expr_to_str_sym(expr, &sym);
+		name = expr_to_var_sym(expr, &sym);
 		if (!name)
 			return;
 		pre_state = get_state(my_id, name, sym);
@@ -980,14 +980,14 @@ static char *get_variable_from_key(struct expression *arg, char *key, struct sym
 	char *tmp;
 
 	if (strcmp(key, "$$") == 0)
-		return expr_to_str_sym(arg, sym);
+		return expr_to_var_sym(arg, sym);
 
 	if (strcmp(key, "*$$") == 0) {
 		if (arg->type == EXPR_PREOP && arg->op == '&') {
 			arg = strip_expr(arg->unop);
-			return expr_to_str_sym(arg, sym);
+			return expr_to_var_sym(arg, sym);
 		} else {
-			tmp = expr_to_str_sym(arg, sym);
+			tmp = expr_to_var_sym(arg, sym);
 			if (!tmp)
 				return NULL;
 			snprintf(buf, sizeof(buf), "*%s", tmp);
@@ -998,14 +998,14 @@ static char *get_variable_from_key(struct expression *arg, char *key, struct sym
 
 	if (arg->type == EXPR_PREOP && arg->op == '&') {
 		arg = strip_expr(arg->unop);
-		tmp = expr_to_str_sym(arg, sym);
+		tmp = expr_to_var_sym(arg, sym);
 		if (!tmp)
 			return NULL;
 		snprintf(buf, sizeof(buf), "%s.%s", tmp, key + 4);
 		return alloc_string(buf);
 	}
 
-	tmp = expr_to_str_sym(arg, sym);
+	tmp = expr_to_var_sym(arg, sym);
 	if (!tmp)
 		return NULL;
 	snprintf(buf, sizeof(buf), "%s%s", tmp, key + 2);
@@ -1118,9 +1118,9 @@ static void db_returned_states_param(struct expression *expr, int param, char *k
 
 		if (arg->type == EXPR_PREOP && arg->op == '&') {
 			arg = strip_expr(arg->unop);
-			name = expr_to_str_sym(arg, &sym);
+			name = expr_to_var_sym(arg, &sym);
 		} else {
-			char *tmp = expr_to_str_sym(arg, &sym);
+			char *tmp = expr_to_var_sym(arg, &sym);
 
 			if (!tmp)
 				return;
@@ -1141,12 +1141,12 @@ static void db_returned_states_param(struct expression *expr, int param, char *k
 
 	if (arg->type == EXPR_PREOP && arg->op == '&') {
 		arg = strip_expr(arg->unop);
-		name = expr_to_str_sym(arg, &sym);
+		name = expr_to_var_sym(arg, &sym);
 		if (!name || !sym)
 			goto free;
 		snprintf(member_name, sizeof(member_name), "%s.%s", name, key + 4);
 	} else {
-		name = expr_to_str_sym(arg, &sym);
+		name = expr_to_var_sym(arg, &sym);
 		if (!name || !sym)
 			goto free;
 		snprintf(member_name, sizeof(member_name), "%s%s", name, key + 2);
@@ -1171,7 +1171,7 @@ static void db_returned_member_info(struct expression *expr, int param, char *ke
 	if (expr->type != EXPR_ASSIGNMENT)
 		return;
 
-	name = expr_to_str_sym(expr->left, &sym);
+	name = expr_to_var_sym(expr->left, &sym);
 	if (!name || !sym)
 		goto free;
 	snprintf(member_name, sizeof(member_name), "%s%s", name, key + 2);

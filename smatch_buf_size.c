@@ -148,7 +148,7 @@ static int size_from_db(struct expression *expr)
 
 	name = get_member_name(expr);
 	if (!name && is_static(expr)) {
-		name = expr_to_str(expr);
+		name = expr_to_var(expr);
 		this_file_only = 1;
 	}
 	if (!name)
@@ -491,7 +491,7 @@ static void info_record_alloction(struct expression *buffer, struct expression *
 
 	name = get_member_name(buffer);
 	if (!name && is_static(buffer))
-		name = expr_to_str(buffer);
+		name = expr_to_var(buffer);
 	if (!name)
 		return;
 	if (get_implied_value(size, &sval))
@@ -547,7 +547,7 @@ static void match_strlen(const char *fn, struct expression *expr, void *unused)
 	str = get_argument_from_call_expr(right->args, 0);
 	len_expr = strip_expr(expr->left);
 
-	len_name = expr_to_str(len_expr);
+	len_name = expr_to_var(len_expr);
 	if (!len_name)
 		return;
 

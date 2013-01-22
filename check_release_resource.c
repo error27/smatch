@@ -29,7 +29,7 @@ static void match_request(const char *fn, struct expression *expr, void *_arg_no
 	arg_expr = get_argument_from_call_expr(expr->args, arg_no);
 	arg_expr = strip_expr(arg_expr);
 
-	name = expr_to_str_sym(arg_expr, &sym);
+	name = expr_to_var_sym(arg_expr, &sym);
 	if (!name || !sym)
 		goto free;
 	add_tracker(&resource_list, my_id, name, sym);
@@ -50,7 +50,7 @@ static void match_release(const char *fn, struct expression *expr, void *_arg_no
 	if (!resource_list)
 		return;
 
-	name = expr_to_str_sym(arg_expr, &sym);
+	name = expr_to_var_sym(arg_expr, &sym);
 	if (!name || !sym)
 		goto free;
 	if (in_tracker_list(resource_list, my_id, name, sym))

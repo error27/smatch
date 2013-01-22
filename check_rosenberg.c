@@ -65,7 +65,7 @@ static int was_initialized(struct expression *expr)
 	struct symbol *sym;
 	char *name;
 
-	name = expr_to_str_sym(expr, &sym);
+	name = expr_to_var_sym(expr, &sym);
 	if (!name)
 		return 0;
 	if (sym->initializer)
@@ -138,7 +138,7 @@ static void check_members_initialized(struct expression *expr)
 	if (!sym || sym->type != SYM_STRUCT)
 		return;
 
-	name = expr_to_str_sym(expr, &outer);
+	name = expr_to_var_sym(expr, &outer);
 
 	if (get_state(check_assigned_expr_id, name, outer))
 		goto out;
@@ -181,7 +181,7 @@ static void match_copy_to_user(const char *fn, struct expression *expr, void *un
 	if (holey_struct(data)) {
 		char *name;
 
-		name = expr_to_str(data);
+		name = expr_to_var(data);
 		sm_msg("warn: check that '%s' doesn't leak information (struct has holes)", name);
 		free_string(name);
 		return;

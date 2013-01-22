@@ -37,7 +37,7 @@ static int defined_inside_macro(struct position macro_pos, struct expression *ex
 	struct symbol *sym;
 	int ret = 0;
 
-	name = expr_to_str_sym(expr, &sym);
+	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 	if (!sym->scope || !sym->scope->token)

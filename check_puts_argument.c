@@ -46,7 +46,7 @@ static void match_put(const char *fn, struct expression *expr, void *info)
 
 	tmp = get_argument_from_call_expr(expr->args, 0);
 	tmp = strip_expr(tmp);
-	name = expr_to_str_sym(tmp, &sym);
+	name = expr_to_var_sym(tmp, &sym);
 	free_string(name);
 	if (parent_is_arg(sym) && sym->ident)
 		set_state(my_id, sym->ident->name, sym, &putted);

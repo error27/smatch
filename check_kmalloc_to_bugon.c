@@ -43,7 +43,7 @@ static void match_condition(struct expression *expr)
 	if (!is_kmalloc_call(right))
 		return;
 
-	name = expr_to_str(expr);
+	name = expr_to_var(expr);
 	sm_msg("warn: bug on allocation failure '%s'", name);
 	free_string(name);
 }

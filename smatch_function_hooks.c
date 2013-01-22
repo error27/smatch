@@ -240,7 +240,7 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 	if (!call_backs)
 		return 0;
 
-	var_name = expr_to_str_sym(expr->left, &sym);
+	var_name = expr_to_var_sym(expr->left, &sym);
 	if (!var_name || !sym)
 		goto free;
 
@@ -718,7 +718,7 @@ int get_implied_return(struct expression *expr, struct range_list **rl)
 	*rl = NULL;
 
 	expr = strip_expr(expr);
-	fn = expr_to_str(expr->fn);
+	fn = expr_to_var(expr->fn);
 	if (!fn)
 		goto out;
 

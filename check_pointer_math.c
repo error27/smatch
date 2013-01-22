@@ -97,7 +97,7 @@ static void check_assign(struct expression *expr)
 		return;
 	if (!is_size_in_bytes(expr->right))
 		return;
-	name = expr_to_str(expr->left);
+	name = expr_to_var(expr->left);
 	sm_msg("warn: potential pointer math issue ('%s' is a %d bit pointer)",
 	       name, type_bits(type));
 	free_string(name);

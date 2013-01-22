@@ -22,7 +22,7 @@ static void match_free(const char *fn, struct expression *expr, void *data)
 		return;
 	if (sval.value != 0)
 		return;
-	name = expr_to_str(arg_expr);
+	name = expr_to_var(arg_expr);
 	sm_msg("warn: calling %s() when '%s' is always NULL.", fn, name);
 	free_string(name);
 }

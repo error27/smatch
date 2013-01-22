@@ -194,7 +194,7 @@ static void print_struct_members(char *fn, char *global_static, struct expressio
 		is_address = 1;
 	}
 
-	name = expr_to_str_sym(expr, &sym);
+	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 
@@ -394,7 +394,7 @@ static void match_function_assign(struct expression *expr)
 	if (!sym || sym->type != SYM_FN)
 		return;
 
-	fn_name = expr_to_str(right);
+	fn_name = expr_to_var(right);
 	ptr_name = get_fnptr_name(expr->left);
 	if (!fn_name || !ptr_name)
 		goto free;
@@ -643,7 +643,7 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 	type = get_real_base_type(type);
 	if (!type || type->type != SYM_STRUCT)
 		return;
-	name = expr_to_str(expr);
+	name = expr_to_var(expr);
 	if (!name)
 		return;
 

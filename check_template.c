@@ -58,12 +58,12 @@ static void match_call(struct expression *expr)
 	struct expression *sem_expr;
 	char *sem_name;
 
-	fn_name = expr_to_str(expr->fn);
+	fn_name = expr_to_var(expr->fn);
 	if (!fn_name || (strcmp(fn_name, "down") && strcmp(fn_name, "up")))
 		goto free_fn;
 
 	sem_expr = get_argument_from_call_expr(expr->args, 0);
-	sem_name = expr_to_str(sem_expr);
+	sem_name = expr_to_var(sem_expr);
 	if (!strcmp(fn_name, "down")) {
 		set_state(my_id, sem_name, NULL, &lock);
 	} else {

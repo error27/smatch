@@ -165,7 +165,7 @@ static void match_condition(struct expression *expr)
 		if (boundary < 1 && boundary > -1) {
 			char *name;
 
-			name = expr_to_str(left ? expr->right : expr->left);
+			name = expr_to_var(left ? expr->right : expr->left);
 			sm_msg("error: testing array offset '%s' after use.", name);
 			return;
 		}
@@ -232,7 +232,7 @@ static void match_snprintf(const char *fn, struct expression *expr, void *unused
 	if (dest_size && dest_size < limit_size.value)
 		sm_msg("error: snprintf() is printing too much %s vs %d",
 		       sval_to_str(limit_size), dest_size);
-	format = expr_to_str(format_string);
+	format = expr_to_var(format_string);
 	if (!format)
 		return;
 	if (strcmp(format, "\"%s\""))
@@ -264,7 +264,7 @@ static void match_sprintf(const char *fn, struct expression *expr, void *unused)
 	dest_size = get_array_size_bytes(dest);
 	if (!dest_size)
 		return;
-	format = expr_to_str(format_string);
+	format = expr_to_var(format_string);
 	if (!format)
 		return;
 	if (strcmp(format, "\"%s\""))

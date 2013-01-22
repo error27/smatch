@@ -281,8 +281,8 @@ static void match_compare(const char *fn, struct expression *expr, void *info)
 	else
 		str = show_special(comparison);
 
-	one_name = expr_to_str(one);
-	two_name = expr_to_str(two);
+	one_name = expr_to_var(one);
+	two_name = expr_to_var(two);
 
 	sm_msg("%s %s %s", one_name, str, two_name);
 

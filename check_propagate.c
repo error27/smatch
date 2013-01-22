@@ -25,7 +25,7 @@ static char *get_fn_name(struct expression *expr)
 		return NULL;
 	if (expr->fn->type != EXPR_SYMBOL)
 		return NULL;
-	return expr_to_str(expr->fn);
+	return expr_to_var(expr->fn);
 }
 
 static void match_call_assignment(struct expression *expr)
@@ -55,7 +55,7 @@ static void match_return(struct expression *ret_value)
 		return;
 	if (get_implied_min(last_return, &lret))
 		return;
-	name = expr_to_str(last_return);
+	name = expr_to_var(last_return);
 	sm_msg("info: why not propagate '%s' from %s() instead of %s?",
 		name, get_fn_name(last_func), sval_to_str(rval));
 	free_string(name);

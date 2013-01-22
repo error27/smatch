@@ -457,7 +457,7 @@ static int get_implied_value_helper(struct expression *expr, sval_t *sval, int i
 	if (get_value(expr, sval))
 		return 1;
 
-	name = expr_to_str_sym(expr, &sym);
+	name = expr_to_var_sym(expr, &sym);
 	if (!name)
 		return 0;
 	*sval = sval_blank(expr);

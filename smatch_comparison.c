@@ -249,10 +249,10 @@ static void match_logic(struct expression *expr)
 
 	if (expr->type != EXPR_COMPARE)
 		return;
-	left = expr_to_str_sym(expr->left, &left_sym);
+	left = expr_to_var_sym(expr->left, &left_sym);
 	if (!left || !left_sym)
 		goto free;
-	right = expr_to_str_sym(expr->right, &right_sym);
+	right = expr_to_var_sym(expr->right, &right_sym);
 	if (!right || !right_sym)
 		goto free;
 
@@ -286,10 +286,10 @@ int get_comparison(struct expression *a, struct expression *b)
 	int invert = 0;
 	int ret = 0;
 
-	one = expr_to_str(a);
+	one = expr_to_var(a);
 	if (!one)
 		goto free;
-	two = expr_to_str(b);
+	two = expr_to_var(b);
 	if (!two)
 		goto free;
 

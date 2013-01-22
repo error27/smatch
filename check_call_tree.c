@@ -15,7 +15,7 @@ static void match_call(struct expression *expr)
 {
 	char *fn_name;
 
-	fn_name = expr_to_str(expr->fn);
+	fn_name = expr_to_var(expr->fn);
 	if (!fn_name)
 		return;
 	sm_prefix();

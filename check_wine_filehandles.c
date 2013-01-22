@@ -48,7 +48,7 @@ static void match_returns_handle(const char *fn, struct expression *expr,
 	char *left_name = NULL;
 	struct symbol *left_sym;
 
-	left_name = expr_to_str_sym(expr->left, &left_sym);
+	left_name = expr_to_var_sym(expr->left, &left_sym);
 	if (!left_name || !left_sym)
 		goto free;
 	set_state_expr(my_id, expr->left, &filehandle);
@@ -64,7 +64,7 @@ static void match_condition(struct expression *expr)
 	if (get_state_expr(my_id, expr) == &filehandle) {
 		char *name;
 
-		name = expr_to_str(expr);
+		name = expr_to_var(expr);
 		sm_msg("error: comparing a filehandle against zero '%s'", name);
 		set_state_expr(my_id, expr, &oktocheck);
 		free_string(name);
