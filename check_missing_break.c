@@ -53,6 +53,20 @@ static struct smatch_state *alloc_my_state(struct expression *expr)
 	return state;
 }
 
+struct expression *last_print_expr;
+static void print_missing_break(struct expression *expr)
+{
+	char *name;
+
+	if (get_switch_expr() == last_print_expr)
+		return;
+	last_print_expr = get_switch_expr();
+
+	name = expr_to_str(expr);
+	sm_msg("warn: missing break? reassigning '%s'", name);
+	free_string(name);
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct expression *left;
@@ -62,13 +76,8 @@ static void match_assign(struct expression *expr)
 	if (!get_switch_expr())
 		return;
 	left = strip_expr(expr->left);
-	if (get_state_expr(my_id, left) == &no_break) {
-		char *name;
-
-		name = expr_to_str(left);
-		sm_msg("warn: missing break? reassigning '%s'", name);
-		free_string(name);
-	}
+	if (get_state_expr(my_id, left) == &no_break)
+		print_missing_break(left);
 
 	set_state_expr(my_id, left, alloc_my_state(get_switch_expr()));
 	skip_this = left;
