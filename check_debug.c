@@ -57,7 +57,7 @@ static void match_print_implied(const char *fn, struct expression *expr, void *i
 	arg = get_argument_from_call_expr(expr->args, 0);
 	get_implied_rl(arg, &rl);
 
-	name = expr_to_str_complex(arg);
+	name = expr_to_str(arg);
 	sm_msg("implied: %s = '%s'", name, show_rl(rl));
 	free_string(name);
 }
@@ -69,7 +69,7 @@ static void match_print_implied_min(const char *fn, struct expression *expr, voi
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	name = expr_to_str_complex(arg);
+	name = expr_to_str(arg);
 
 	if (get_implied_min(arg, &sval))
 		sm_msg("implied min: %s = %s", name, sval_to_str(sval));
@@ -86,7 +86,7 @@ static void match_print_implied_max(const char *fn, struct expression *expr, voi
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	name = expr_to_str_complex(arg);
+	name = expr_to_str(arg);
 
 	if (get_implied_max(arg, &sval))
 		sm_msg("implied max: %s = %s", name, sval_to_str(sval));
@@ -103,7 +103,7 @@ static void match_print_hard_max(const char *fn, struct expression *expr, void *
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	name = expr_to_str_complex(arg);
+	name = expr_to_str(arg);
 
 	if (get_hard_max(arg, &sval))
 		sm_msg("hard max: %s = %s", name, sval_to_str(sval));
@@ -120,7 +120,7 @@ static void match_print_fuzzy_max(const char *fn, struct expression *expr, void 
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	name = expr_to_str_complex(arg);
+	name = expr_to_str(arg);
 
 	if (get_fuzzy_max(arg, &sval))
 		sm_msg("fuzzy max: %s = %s", name, sval_to_str(sval));
@@ -137,7 +137,7 @@ static void match_print_absolute_min(const char *fn, struct expression *expr, vo
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	name = expr_to_str_complex(arg);
+	name = expr_to_str(arg);
 
 	if (get_absolute_min(arg, &sval))
 		sm_msg("absolute min: %s = %s", name, sval_to_str(sval));
@@ -156,7 +156,7 @@ static void match_print_absolute_max(const char *fn, struct expression *expr, vo
 	arg = get_argument_from_call_expr(expr->args, 0);
 	get_absolute_max(arg, &sval);
 
-	name = expr_to_str_complex(arg);
+	name = expr_to_str(arg);
 	sm_msg("absolute max: %s = %s", name, sval_to_str(sval));
 	free_string(name);
 }
@@ -168,7 +168,7 @@ static void match_sval_info(const char *fn, struct expression *expr, void *info)
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	name = expr_to_str_complex(arg);
+	name = expr_to_str(arg);
 
 	if (!get_implied_value(arg, &sval)) {
 		sm_msg("no sval for '%s'", name);
@@ -221,7 +221,7 @@ static void match_buf_size(const char *fn, struct expression *expr, void *info)
 	elements = get_array_size(arg);
 	bytes = get_array_size_bytes(arg);
 
-	name = expr_to_str_complex(arg);
+	name = expr_to_str(arg);
 	sm_msg("buf size: '%s' %d elements, %d bytes", name, elements, bytes);
 	free_string(name);
 }

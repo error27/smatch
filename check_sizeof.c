@@ -22,7 +22,7 @@ static void check_pointer(struct expression *expr, char *ptr_name)
 	get_value(expr, &sval);
 
 	expr = strip_expr(expr->cast_expression);
-	name = expr_to_str_complex(expr);
+	name = expr_to_str(expr);
 	if (!name)
 		return;
 
@@ -40,7 +40,7 @@ static void match_call_assignment(struct expression *expr)
 	if (!is_pointer(expr->left))
 		return;
 
-	ptr_name = expr_to_str_complex(expr->left);
+	ptr_name = expr_to_str(expr->left);
 	if (!ptr_name)
 		return;
 

@@ -62,7 +62,7 @@ static char *get_parent_from_expr(struct expression *expr, struct symbol **sym)
 
 	expr = strip_expr(expr);
 
-	name = expr_to_str_sym_complex(expr, sym);
+	name = expr_to_str_sym(expr, sym);
 	free_string(name);
 	if (!name || !*sym || !(*sym)->ident) {
 		*sym = NULL;
@@ -77,7 +77,7 @@ static int is_local(struct expression *expr)
 	struct symbol *sym;
 	int ret = 0;
 
-	name = expr_to_str_sym_complex(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
 		goto out;
 	if (sym->ctype.modifiers & (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))
@@ -95,7 +95,7 @@ static int is_param(struct expression *expr)
 	struct symbol *tmp;
 	int ret = 0;
 
-	name = expr_to_str_sym_complex(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
 		goto out;
 	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, tmp) {

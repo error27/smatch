@@ -152,7 +152,7 @@ int is_user_data(struct expression *expr)
 	if (tmp)
 		return slist_has_state(tmp->possible, &user_data);
 
-	name = expr_to_str_sym_complex(expr, &sym);
+	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 

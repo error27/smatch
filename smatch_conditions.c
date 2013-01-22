@@ -338,7 +338,7 @@ static void hackup_unsigned_compares(struct expression *expr)
 static void split_conditions(struct expression *expr)
 {
 	if (option_debug) {
-		char *cond = expr_to_str_complex(expr);
+		char *cond = expr_to_str(expr);
 
 		sm_debug("%d in split_conditions (%s)\n", get_lineno(), cond);
 		free_string(cond);

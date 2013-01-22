@@ -377,7 +377,7 @@ static char *get_full_name(struct expression *expr, int index)
 		if (!arg)
 			goto free;
 		arg = remove_spinlock_check(arg);
-		name = expr_to_str_complex(arg);
+		name = expr_to_str(arg);
 		if (!name)
 			goto free;
 		full_name = make_full_name(lock->name, name);

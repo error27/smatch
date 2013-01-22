@@ -34,7 +34,7 @@ static void match_assign(struct expression *expr)
 	if (sval_cmp(max_left, max_right) >= 0)
 		return;
 
-	name = expr_to_str_complex(expr->right);
+	name = expr_to_str(expr->right);
 	sm_msg("warn: min_t truncates here '%s' (%s vs %s)", name, sval_to_str(max_left), sval_to_str(max_right));
 	free_string(name);
 }
