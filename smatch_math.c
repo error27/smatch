@@ -7,6 +7,7 @@
  *
  */
 
+#include "symbol.h"
 #include "smatch.h"
 #include "smatch_slist.h"
 #include "smatch_extra.h"
@@ -653,6 +654,37 @@ static int get_const_value(struct expression *expr, sval_t *sval)
 	return 0;
 }
 
+static sval_t handle_sizeof(struct expression *expr)
+{
+	struct symbol *sym;
+	sval_t ret;
+
+	ret = sval_blank(expr);
+	sym = expr->cast_type;
+	if (!sym) {
+		sym = evaluate_expression(expr->cast_expression);
+		/*
+		 * Expressions of restricted types will possibly get
+		 * promoted - check that here
+		 */
+		if (is_restricted_type(sym)) {
+			if (sym->bit_size < bits_in_int)
+				sym = &int_ctype;
+		} else if (is_fouled_type(sym)) {
+			sym = &int_ctype;
+		}
+	}
+	examine_symbol_type(sym);
+
+	ret.type = size_t_ctype;
+	if (sym->bit_size <= 0) /* sizeof(void) */
+		ret.value = 1;
+	else
+		ret.value = bits_to_bytes(sym->bit_size);
+
+	return ret;
+}
+
 static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 {
 	sval_t ret;
@@ -693,8 +725,7 @@ static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 		break;
 	case EXPR_PTRSIZEOF:
 	case EXPR_SIZEOF:
-		ret = sval_blank(expr);
-		ret.value = get_expression_value_nomod(expr);
+		ret = handle_sizeof(expr);
 		break;
 	case EXPR_SYMBOL:
 		if (get_const_value(expr, &ret)) {
