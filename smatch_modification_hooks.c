@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "smatch.h"
+#include "smatch_extra.h"
 #include "smatch_slist.h"
 
 enum {
@@ -104,10 +105,12 @@ static void match_call(struct expression *expr)
 
 	FOR_EACH_PTR(expr->args, arg) {
 		tmp = strip_expr(arg);
-		if (tmp->type != EXPR_PREOP || tmp->op != '&')
-			continue;
-		tmp = strip_expr(tmp->unop);
-		call_modification_hooks(tmp);
+		if (tmp->type == EXPR_PREOP && tmp->op == '&') {
+			tmp = strip_expr(tmp->unop);
+			call_modification_hooks(tmp);
+		} else {
+			call_modification_hooks(deref_expression(tmp));
+		}
 	} END_FOR_EACH_PTR(arg);
 }
 

@@ -402,18 +402,47 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	return alloc_estate_whole(estate_type(sm->state));
 }
 
+static void clear_the_pointed_at(struct expression *expr, struct state_list *slist)
+{
+	char *name;
+	struct symbol *sym;
+	struct sm_state *tmp;
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	FOR_EACH_PTR(slist, tmp) {
+		if (tmp->name[0] != '*')
+			continue;
+		if (tmp->sym != sym)
+			continue;
+		if (strcmp(tmp->name + 1, name) != 0)
+			continue;
+		set_extra_mod(tmp->name, tmp->sym, alloc_estate_whole(estate_type(tmp->state)));
+	} END_FOR_EACH_PTR(tmp);
+
+free:
+	free_string(name);
+}
+
 static void match_function_call(struct expression *expr)
 {
 	struct expression *arg;
 	struct expression *tmp;
+	struct state_list *slist;
+
+	slist = get_all_states(SMATCH_EXTRA);
 
 	FOR_EACH_PTR(expr->args, arg) {
 		tmp = strip_expr(arg);
-		if (tmp->type == EXPR_PREOP && tmp->op == '&') {
-			remove_from_equiv_expr(tmp->unop);
-			set_state_expr(SMATCH_EXTRA, tmp->unop, alloc_estate_whole(get_type(tmp->unop)));
-		}
+		if (tmp->type == EXPR_PREOP && tmp->op == '&')
+			set_extra_expr_mod(tmp->unop, alloc_estate_whole(get_type(tmp->unop)));
+		else
+			clear_the_pointed_at(tmp, slist);
 	} END_FOR_EACH_PTR(arg);
+
+	free_slist(&slist);
 }
 
 static int types_equiv_or_pointer(struct symbol *one, struct symbol *two)
