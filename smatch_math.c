@@ -183,12 +183,65 @@ static sval_t handle_divide(struct expression *expr, int *undefined, int implied
 
 static sval_t handle_subtract(struct expression *expr, int *undefined, int implied)
 {
-	sval_t left, right;
+	struct symbol *type;
+	sval_t left, right, ret;
+	int left_undefined = 0;
+	int right_undefined = 0;
+	int known_but_negative = 0;
+	int comparison;
 
-	left = _get_value(expr->left, undefined, implied);
-	right = _get_value(expr->right, undefined, opposite_implied(implied));
+	left = _get_value(expr->left, &left_undefined, implied);
+	right = _get_value(expr->right, &right_undefined, opposite_implied(implied));
 
-	return sval_binop(left, '-', right);
+	if (!left_undefined && !right_undefined) {
+		ret = sval_binop(left, '-', right);
+		if (sval_is_negative(ret))
+			known_but_negative = 1;
+		else
+			return ret;  /* best case scenario */
+	}
+
+	comparison = get_comparison(expr->left, expr->right);
+	if (!comparison)
+		goto bogus;
+
+	type = get_type(expr);
+
+	switch (comparison) {
+	case '>':
+	case SPECIAL_UNSIGNED_GT:
+		switch (implied) {
+		case IMPLIED_MIN:
+		case FUZZY_MIN:
+		case ABSOLUTE_MIN:
+			return sval_type_val(type, 1);
+		case IMPLIED_MAX:
+		case FUZZY_MAX:
+		case ABSOLUTE_MAX:
+			return _get_value(expr->left, undefined, implied);
+		}
+		break;
+	case SPECIAL_GTE:
+	case SPECIAL_UNSIGNED_GTE:
+		switch (implied) {
+		case IMPLIED_MIN:
+		case FUZZY_MIN:
+		case ABSOLUTE_MIN:
+			return sval_type_val(type, 0);
+		case IMPLIED_MAX:
+		case FUZZY_MAX:
+		case ABSOLUTE_MAX:
+			return _get_value(expr->left, undefined, implied);
+		}
+		break;
+	}
+
+	if (known_but_negative)
+		return ret;
+
+bogus:
+	*undefined = 1;
+	return bogus;
 }
 
 static sval_t handle_mod(struct expression *expr, int *undefined, int implied)
@@ -269,6 +322,8 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 		if (*undefined)
 			return bogus;
 		return sval_binop(left, SPECIAL_RIGHTSHIFT, right);
+	case '-':
+		return handle_subtract(expr, undefined, implied);
 	}
 
 	left = _get_value(expr->left, undefined, implied);
@@ -305,9 +360,6 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 		} else {
 			return sval_binop(left, '%', right);
 		}
-	case '-':
-		ret = handle_subtract(expr, undefined, implied);
-		break;
 	default:
 		ret = sval_binop(left, expr->op, right);
 	}
