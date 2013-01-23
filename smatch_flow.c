@@ -740,7 +740,7 @@ static void fake_member_assigns(struct symbol *sym)
 	FOR_EACH_PTR(sym->initializer->expr_list, tmp) {
 		if (tmp->type != EXPR_IDENTIFIER) /* how to handle arrays?? */
 			continue;
-		deref = deref_expression(symbol, '.', tmp->expr_ident);
+		deref = member_expression(symbol, '.', tmp->expr_ident);
 		assign = assign_expression(deref, tmp->ident_expression);
 		__split_expr(assign);
 	} END_FOR_EACH_PTR(tmp);
@@ -789,7 +789,7 @@ static void fake_global_assign(struct symbol *sym)
 		FOR_EACH_PTR(sym->initializer->expr_list, tmp) {
 			if (tmp->type != EXPR_IDENTIFIER) /* how to handle arrays?? */
 				continue;
-			deref = deref_expression(symbol, '.', tmp->expr_ident);
+			deref = member_expression(symbol, '.', tmp->expr_ident);
 			assign = assign_expression(deref, tmp->ident_expression);
 			__pass_to_client(assign, GLOBAL_ASSIGNMENT_HOOK);
 		} END_FOR_EACH_PTR(tmp);

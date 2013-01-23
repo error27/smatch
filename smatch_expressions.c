@@ -26,7 +26,7 @@ struct expression *value_expr(long long val)
 	return expr;
 }
 
-struct expression *deref_expression(struct expression *deref, int op, struct ident *member)
+struct expression *member_expression(struct expression *deref, int op, struct ident *member)
 {
 	struct expression *expr;
 

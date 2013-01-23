@@ -142,7 +142,7 @@ void function_comparison(int comparison, struct expression *expr, sval_t sval, i
 /* smatch_expressions.c */
 struct expression *zero_expr();
 struct expression *value_expr(long long val);
-struct expression *deref_expression(struct expression *deref, int op, struct ident *member);
+struct expression *member_expression(struct expression *deref, int op, struct ident *member);
 struct expression *assign_expression(struct expression *left, struct expression *right);
 struct expression *symbol_expression(struct symbol *sym);
 
