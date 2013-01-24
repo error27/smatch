@@ -78,7 +78,7 @@ static void check_dereference(struct expression *expr)
 			return;
 		}
 		if (tmp->state == &uninitialized) {
-			sm_msg("error: potentially derefencing uninitialized '%s'.", tmp->name);
+			sm_msg("error: potentially dereferencing uninitialized '%s'.", tmp->name);
 			return;
 		}
 		sm_msg("error: potential null dereference '%s'.  (%s returns null)",

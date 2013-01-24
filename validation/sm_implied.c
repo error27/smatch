@@ -25,6 +25,6 @@ x:
  * check-command: smatch sm_implied.c
  *
  * check-output-start
-sm_implied.c:20 func() error: potentially derefencing uninitialized 'aa'.
+sm_implied.c:20 func() error: potentially dereferencing uninitialized 'aa'.
  * check-output-end
  */
