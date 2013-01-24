@@ -457,20 +457,20 @@ void __match_initializer_call(struct symbol *sym);
 
 /* smatch_db.c */
 enum info_type {
-	INTERNAL = 0,
-	PARAM_VALUE,
-	BUF_SIZE,
-	USER_DATA,
-	CAPPED_DATA,
-	RETURN_VALUE,
-	DEREFERENCE,
-	RANGE_CAP,
-	LOCK_HELD,
-	LOCK_RELEASED,
-	ABSOLUTE_LIMITS,
-	LIMITED_VALUE,
-	ADDED_VALUE,
-	FILTER_VALUE,
+	INTERNAL	= 0,
+	PARAM_VALUE	= 1,
+	BUF_SIZE	= 2,
+	USER_DATA	= 3,
+	CAPPED_DATA	= 4,
+	RETURN_VALUE	= 5,
+	DEREFERENCE	= 6,
+	RANGE_CAP	= 7,
+	LOCK_HELD	= 8,
+	LOCK_RELEASED	= 9,
+	ABSOLUTE_LIMITS	= 10,
+	LIMITED_VALUE	= 11,
+	ADDED_VALUE	= 12,
+	FILTER_VALUE	= 13,
 };
 
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
