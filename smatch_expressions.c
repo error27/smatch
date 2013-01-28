@@ -30,7 +30,7 @@ struct expression *member_expression(struct expression *deref, int op, struct id
 {
 	struct expression *expr;
 
-	expr = alloc_expression(pos, EXPR_DEREF);
+	expr = alloc_expression(deref->pos, EXPR_DEREF);
 	expr->op = op;
 	expr->deref = deref;
 	expr->member = member;
@@ -41,7 +41,7 @@ struct expression *deref_expression(struct expression *expr)
 {
 	struct expression *preop;
 
-	preop = alloc_expression(pos, EXPR_PREOP);
+	preop = alloc_expression(expr->pos, EXPR_PREOP);
 	preop->unop = expr;
 	preop->op = '*';
 	return preop;
