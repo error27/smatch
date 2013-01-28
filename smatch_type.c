@@ -190,6 +190,8 @@ struct symbol *get_type(struct expression *expr)
 	expr = strip_parens(expr);
 
 	switch (expr->type) {
+	case EXPR_STRING:
+		return &string_ctype;
 	case EXPR_SYMBOL:
 		return get_type_symbol(expr);
 	case EXPR_DEREF:
@@ -275,6 +277,8 @@ int is_pointer(struct expression *expr)
 
 	sym = get_type(expr);
 	if (!sym)
+		return 0;
+	if (sym == &string_ctype)
 		return 0;
 	if (sym->type == SYM_PTR)
 		return 1;
