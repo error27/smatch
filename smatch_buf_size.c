@@ -190,7 +190,7 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 static int get_real_array_size(struct expression *expr)
 {
 	struct symbol *type;
-	int ret;
+	sval_t sval;
 
 	if (expr->type == EXPR_BINOP) /* array elements foo[5] */
 		return 0;
@@ -199,15 +199,14 @@ static int get_real_array_size(struct expression *expr)
 	if (!type || type->type != SYM_ARRAY)
 		return 0;
 
-	ret = get_expression_value(type->array_size);
-	/* Dynamically sized array are -1 in sparse */
-	if (ret <= 0)
-		return 0;
-	/* People put one element arrays on the end of structs */
-	if (ret == 1)
+	if (!get_implied_value(type->array_size, &sval))
 		return 0;
 
-	return ret;
+	/* People put one element arrays on the end of structs */
+	if (sval.value == 1)
+		return 0;
+
+	return sval.value;
 }
 
 static int get_size_from_initializer(struct expression *expr)
