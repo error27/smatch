@@ -54,7 +54,7 @@ void add_extra_mod_hook(mod_hook *fn)
 	add_ptr_list(&extra_mod_hooks, p);
 }
 
-static void call_extra_mod_hooks(const char *name, struct symbol *sym, struct smatch_state *state)
+void call_extra_mod_hooks(const char *name, struct symbol *sym, struct smatch_state *state)
 {
 	mod_hook **fn;
 
