@@ -485,6 +485,7 @@ void add_returned_state_callback(void (*fn)(int return_id, char *return_ranges, 
 void add_returned_member_callback(int owner, void (*callback)(int return_id, char *return_ranges, char *printed_name, struct smatch_state *state));
 void add_db_fn_call_callback(int type, void (*callback)(struct expression *arg, char *value));
 struct range_list *db_return_vals(struct expression *expr);
+char *get_variable_from_key(struct expression *arg, char *key, struct symbol **sym);
 
 #define run_sql(call_back, sql...)    \
 do {                                  \

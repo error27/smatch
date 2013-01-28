@@ -91,45 +91,6 @@ free:
 	free_string(name);
 }
 
-static char *get_variable_from_key(struct expression *arg, char *key, struct symbol **sym)
-{
-	char buf[256];
-	char *tmp;
-
-	if (strcmp(key, "$$") == 0)
-		return expr_to_var_sym(arg, sym);
-
-	if (strcmp(key, "*$$") == 0) {
-		if (arg->type == EXPR_PREOP && arg->op == '&') {
-			arg = strip_expr(arg->unop);
-			return expr_to_var_sym(arg, sym);
-		} else {
-			tmp = expr_to_var_sym(arg, sym);
-			if (!tmp)
-				return NULL;
-			snprintf(buf, sizeof(buf), "*%s", tmp);
-			free_string(tmp);
-			return alloc_string(buf);
-		}
-	}
-
-	if (arg->type == EXPR_PREOP && arg->op == '&') {
-		arg = strip_expr(arg->unop);
-		tmp = expr_to_var_sym(arg, sym);
-		if (!tmp)
-			return NULL;
-		snprintf(buf, sizeof(buf), "%s.%s", tmp, key + 4);
-		return alloc_string(buf);
-	}
-
-	tmp = expr_to_var_sym(arg, sym);
-	if (!tmp)
-		return NULL;
-	snprintf(buf, sizeof(buf), "%s%s", tmp, key + 2);
-	free_string(tmp);
-	return alloc_string(buf);
-}
-
 static void db_param_add(struct expression *expr, int param, char *key, char *value)
 {
 	struct expression *arg;

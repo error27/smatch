@@ -717,3 +717,44 @@ void register_definition_db_callbacks(int id)
 	add_hook(&match_data_from_db, FUNC_DEF_HOOK);
 	add_hook(&match_call_implies, FUNCTION_CALL_HOOK);
 }
+
+char *get_variable_from_key(struct expression *arg, char *key, struct symbol **sym)
+{
+	char buf[256];
+	char *tmp;
+
+	if (strcmp(key, "$$") == 0)
+		return expr_to_var_sym(arg, sym);
+
+	if (strcmp(key, "*$$") == 0) {
+		if (arg->type == EXPR_PREOP && arg->op == '&') {
+			arg = strip_expr(arg->unop);
+			return expr_to_var_sym(arg, sym);
+		} else {
+			tmp = expr_to_var_sym(arg, sym);
+			if (!tmp)
+				return NULL;
+			snprintf(buf, sizeof(buf), "*%s", tmp);
+			free_string(tmp);
+			return alloc_string(buf);
+		}
+	}
+
+	if (arg->type == EXPR_PREOP && arg->op == '&') {
+		arg = strip_expr(arg->unop);
+		tmp = expr_to_var_sym(arg, sym);
+		if (!tmp)
+			return NULL;
+		snprintf(buf, sizeof(buf), "%s.%s", tmp, key + 4);
+		return alloc_string(buf);
+	}
+
+	tmp = expr_to_var_sym(arg, sym);
+	if (!tmp)
+		return NULL;
+	snprintf(buf, sizeof(buf), "%s%s", tmp, key + 2);
+	free_string(tmp);
+	return alloc_string(buf);
+}
+
+
