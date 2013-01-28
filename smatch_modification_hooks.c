@@ -57,17 +57,12 @@ static int matches(char *name, struct symbol *sym, struct sm_state *sm)
 	return match_none;
 }
 
-static void call_modification_hooks(struct expression *expr)
+static void call_modification_hooks_name_sym(char *name, struct symbol *sym)
 {
-	char *name;
-	struct symbol *sym;
 	struct state_list *slist;
 	struct sm_state *sm;
 	int match;
 
-	name = expr_to_var_sym(expr, &sym);
-	if (!name || !sym)
-		goto free;
 	slist = __get_cur_slist();
 
 	FOR_EACH_PTR(slist, sm) {
@@ -81,6 +76,17 @@ static void call_modification_hooks(struct expression *expr)
 		if (match == match_indirect && indirect_hooks[sm->owner])
 			(indirect_hooks[sm->owner])(sm);
 	} END_FOR_EACH_PTR(sm);
+}
+
+static void call_modification_hooks(struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	call_modification_hooks_name_sym(name, sym);
 free:
 	free_string(name);
 }
