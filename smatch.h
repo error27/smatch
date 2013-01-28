@@ -170,6 +170,12 @@ do {                                                           \
         sm_printf("\n");                                       \
 } while (0)
 
+#define local_debug(msg...)					\
+do {								\
+	if (local_debug)					\
+		sm_msg(msg);					\
+} while (0)
+
 extern char *implied_debug_msg;
 static inline void print_implied_debug_msg()
 {
