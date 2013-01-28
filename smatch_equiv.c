@@ -239,6 +239,8 @@ void set_equiv(struct expression *left, struct expression *right)
 	state = clone_estate(right_sm->state);
 	get_dinfo(state)->related = rlist;
 
+	call_extra_mod_hooks(left_name, left_sym, state);
+
 	FOR_EACH_PTR(rlist, rel) {
 		struct sm_state *new_sm;
 
