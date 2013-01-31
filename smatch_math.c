@@ -528,7 +528,7 @@ static int get_implied_value_helper(struct expression *expr, sval_t *sval, int i
 			return 1;
 		return 0;
 	}
-	if (implied == IMPLIED_MAX) {
+	if (implied == IMPLIED_MAX || implied == ABSOLUTE_MAX) {
 		*sval = estate_max(state);
 		if (sval_is_max(*sval)) /* this means just guessing.  fixme. not really */
 			return 0;
@@ -612,15 +612,9 @@ static sval_t _get_implied_value(struct expression *expr, int *undefined, int im
 	case IMPLIED_MAX:
 	case IMPLIED_MIN:
 	case HARD_MAX:
-		if (!get_implied_value_helper(expr, &ret, implied))
-			*undefined = 1;
-		break;
 	case ABSOLUTE_MIN:
-		if (!get_absolute_min_helper(expr, &ret))
-			*undefined = 1;
-		break;
 	case ABSOLUTE_MAX:
-		if (!get_absolute_max_helper(expr, &ret))
+		if (!get_implied_value_helper(expr, &ret, implied))
 			*undefined = 1;
 		break;
 	case FUZZY_MAX:

@@ -5,7 +5,6 @@
 
 CK(register_smatch_extra) /* smatch_extra always has to be first */
 CK(register_modification_hooks)
-CK(register_absolute)
 CK(register_definition_db_callbacks)
 CK(register_project)
 
