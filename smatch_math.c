@@ -17,9 +17,9 @@ static sval_t _get_implied_value(struct expression *expr, int *undefined, int im
 
 #define BOGUS 12345
 
-static sval_t zero  = {.type = &int_ctype, .value = 0};
-static sval_t one   = {.type = &int_ctype, .value = 1};
-static sval_t bogus = {.type = &int_ctype, .value = BOGUS};
+static sval_t zero  = {.type = &int_ctype, {.value = 0} };
+static sval_t one   = {.type = &int_ctype, {.value = 1} };
+static sval_t bogus = {.type = &int_ctype, {.value = BOGUS} };
 
 enum {
 	NOTIMPLIED,
@@ -282,7 +282,7 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 {
 	struct symbol *type;
 	sval_t left, right;
-	sval_t ret = {.type = &int_ctype, .value = 123456};
+	sval_t ret = {.type = &int_ctype, {.value = 123456} };
 	int local_undef = 0;
 
 	switch (expr->op) {
