@@ -47,6 +47,8 @@ static int opposite_implied(int implied)
 		return ABSOLUTE_MAX;
 	if (implied == ABSOLUTE_MAX)
 		return ABSOLUTE_MIN;
+	if (implied == HARD_MAX)  /* we don't have a hard min.  */
+		return NOTIMPLIED;
 
 	return implied;
 }
