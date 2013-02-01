@@ -340,6 +340,32 @@ int nr_bits(struct expression *expr)
 	return type_bits(type);
 }
 
+int is_void_pointer(struct expression *expr)
+{
+	struct symbol *type;
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_PTR)
+		return 0;
+	type = get_real_base_type(type);
+	if (type == &void_ctype)
+		return 1;
+	return 0;
+}
+
+int is_char_pointer(struct expression *expr)
+{
+	struct symbol *type;
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_PTR)
+		return 0;
+	type = get_real_base_type(type);
+	if (type == &char_ctype)
+		return 1;
+	return 0;
+}
+
 int is_static(struct expression *expr)
 {
 	char *name;
