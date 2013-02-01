@@ -251,8 +251,10 @@ static sval_t handle_mod(struct expression *expr, int *undefined, int implied)
 
 	/* if we can't figure out the right side it's probably hopeless */
 	right = _get_value(expr->right, undefined, implied);
-	if (*undefined || right.value == 0)
+	if (*undefined || right.value == 0) {
+		*undefined = 1;
 		return bogus;
+	}
 
 	left = _get_value(expr->left, undefined, implied);
 	if (!*undefined)
