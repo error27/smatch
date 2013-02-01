@@ -74,13 +74,18 @@ static int inconsistent_check(struct expression *left, struct expression *right)
 
 static void check_or(struct expression *expr)
 {
-	if (expr->left->type != EXPR_COMPARE ||
-			expr->left->op != SPECIAL_NOTEQUAL)
+	struct expression *left, *right;
+
+	left = strip_expr(expr->left);
+	right = strip_expr(expr->right);
+
+	if (left->type != EXPR_COMPARE ||
+			left->op != SPECIAL_NOTEQUAL)
 		return;
-	if (expr->right->type != EXPR_COMPARE ||
-			expr->right->op != SPECIAL_NOTEQUAL)
+	if (right->type != EXPR_COMPARE ||
+			right->op != SPECIAL_NOTEQUAL)
 		return;
-	if (!inconsistent_check(expr->left, expr->right))
+	if (!inconsistent_check(left, right))
 		return;
 
 	sm_msg("warn: was && intended here instead of ||?");
@@ -88,13 +93,18 @@ static void check_or(struct expression *expr)
 
 static void check_and(struct expression *expr)
 {
-	if (expr->left->type != EXPR_COMPARE ||
-			expr->left->op != SPECIAL_EQUAL)
+	struct expression *left, *right;
+
+	left = strip_expr(expr->left);
+	right = strip_expr(expr->right);
+
+	if (left->type != EXPR_COMPARE ||
+			left->op != SPECIAL_EQUAL)
 		return;
-	if (expr->right->type != EXPR_COMPARE ||
-			expr->right->op != SPECIAL_EQUAL)
+	if (right->type != EXPR_COMPARE ||
+			right->op != SPECIAL_EQUAL)
 		return;
-	if (!inconsistent_check(expr->left, expr->right))
+	if (!inconsistent_check(left, right))
 		return;
 
 	sm_msg("warn: was || intended here instead of &&?");
