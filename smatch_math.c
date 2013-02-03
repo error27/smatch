@@ -583,12 +583,14 @@ static int get_fuzzy_min_helper(struct expression *expr, sval_t *min)
 	struct sm_state *tmp;
 	sval_t sval;
 
-	if (get_implied_min(expr, min))
-		return 1;
-
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
 	if (!sm)
 		return 0;
+
+	if (!sval_is_min(estate_min(sm->state))) {
+		*min = estate_min(sm->state);
+		return 1;
+	}
 
 	sval = sval_type_max(estate_type(sm->state));
 	FOR_EACH_PTR(sm->possible, tmp) {
