@@ -1201,7 +1201,7 @@ static void match_call_info(struct expression *expr)
 		if (get_implied_rl(arg, &rl))
 			rl = cast_rl(type, rl);
 		else
-			rl = alloc_whole_rl(type);
+			rl = cast_rl(type, alloc_whole_rl(get_type(arg)));
 
 		sm_msg("info: passes param_value '%s' %d '$$' %s %s",
 		       name, i, show_rl(rl),
