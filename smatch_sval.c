@@ -460,15 +460,16 @@ const char *sval_to_str(sval_t sval)
 
 	if (sval_unsigned(sval) && sval.value == ULLONG_MAX)
 		return "u64max";
-	if (sval.value == LLONG_MAX)
-		return "s64max";
 	if (sval_unsigned(sval) && sval.value == UINT_MAX)
 		return "u32max";
-	if (sval.value == INT_MAX)
-		return "s32max";
 	if (sval_unsigned(sval) && sval.value == USHRT_MAX)
 		return "u16max";
-	if (sval.value == SHRT_MAX)
+
+	if (sval_signed(sval) && sval.value == LLONG_MAX)
+		return "s64max";
+	if (sval_signed(sval) && sval.value == INT_MAX)
+		return "s32max";
+	if (sval_signed(sval) && sval.value == SHRT_MAX)
 		return "s16max";
 
 	if (sval_signed(sval) && sval.value == SHRT_MIN)
