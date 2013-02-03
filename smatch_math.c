@@ -539,8 +539,6 @@ static int get_implied_value_helper(struct expression *expr, sval_t *sval, int i
 		return 1;
 	}
 	*sval = estate_min(state);
-	if (sval_is_min(*sval))       /* fixme */
-		return 0;
 	return 1;
 }
 
