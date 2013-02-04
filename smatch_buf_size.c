@@ -279,9 +279,11 @@ static int get_size_from_strlen(struct expression *expr)
 	state = get_state_expr(my_strlen_id, expr);
 	if (!state || !state->data)
 		return 0;
-	if (get_implied_max((struct expression *)state->data, &len))
-		return len.value + 1; /* add one because strlen doesn't include the NULL */
-	return 0;
+	if (!get_implied_max((struct expression *)state->data, &len))
+		return 0;
+	if (sval_is_max(len))
+		return 0;
+	return len.value + 1; /* add one because strlen doesn't include the NULL */
 }
 
 static struct expression *remove_addr_fluff(struct expression *expr)
