@@ -320,9 +320,9 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 	if (!type)
 		return;
 	bytes = bits_to_bytes(type->bit_size);
-	if (!bytes)
+	if (bytes <= 0)
 		return;
-	if (sval.value >= bytes)
+	if (sval.uvalue >= bytes)
 		return;
 	sm_msg("error: not allocating enough data %d vs %s", bytes, sval_to_str(sval));
 }
