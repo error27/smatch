@@ -563,13 +563,18 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 	struct sm_state *sm;
 	struct sm_state *tmp;
 	int ret = 0;
+	int nr_possible, nr_states;
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
 	if (!sm || !sm->merged)
 		return 0;
 
 	/* bail if it gets too complicated */
-	if (ptr_list_size((struct ptr_list *)sm->possible) >= 100)
+	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
+	nr_states = ptr_list_size((struct ptr_list *)__get_cur_slist());
+	if (nr_possible >= 100)
+		return 0;
+	if (nr_states * nr_possible >= 1000)
 		return 0;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
