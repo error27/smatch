@@ -534,8 +534,6 @@ static int get_implied_value_helper(struct expression *expr, sval_t *sval, int i
 	}
 	if (implied == IMPLIED_MAX || implied == ABSOLUTE_MAX) {
 		*sval = estate_max(state);
-		if (sval_is_max(*sval)) /* this means just guessing.  fixme. not really */
-			return 0;
 		return 1;
 	}
 	*sval = estate_min(state);
