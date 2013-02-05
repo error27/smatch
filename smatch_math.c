@@ -869,6 +869,8 @@ int get_fuzzy_max(struct expression *expr, sval_t *sval)
 	ret =  _get_value(expr, &undefined, FUZZY_MAX);
 	if (undefined)
 		return 0;
+	if (ret.uvalue > INT_MAX - 10000)
+		return 0;
 	*sval = ret;
 	return 1;
 }
