@@ -7,6 +7,25 @@
  *
  */
 
+/*
+ * This is for functions like this:
+ *
+ * int foo(int a)
+ * {
+ *        if (a >= 0 && a < 10) {
+ *                 a = 42;
+ *                 return 1;
+ *        }
+ *        return 0;
+ * }
+ *
+ * If we pass in 5, it returns 1.
+ *
+ * It's a bit complicated because we can't just consider the final value, we
+ * have to always consider the passed in value.
+ *
+ */
+
 #include "scope.h"
 #include "smatch.h"
 #include "smatch_extra.h"

@@ -7,6 +7,23 @@
  *
  */
 
+/*
+ * This is for functions like:
+ *
+ * int foo(int *x)
+ * {
+ * 	if (*x == 42) {
+ *		*x = 0;
+ *		return 1;
+ *	}
+ * 	return 0;
+ * }
+ *
+ * If we return 1 that means the value of *x has been set to 0.  If we return
+ * 0 then we have left *x alone.
+ *
+ */
+
 #include "scope.h"
 #include "smatch.h"
 #include "smatch_slist.h"

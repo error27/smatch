@@ -7,6 +7,20 @@
  *
  */
 
+/*
+ * This is for functions like:
+ *
+ * void foo(int *x)
+ * {
+ * 	if (*x == 42)
+ *		*x = 0;
+ * }
+ *
+ * The final value of *x depends on the input to the function but with *x == 42
+ * filtered out.
+ *
+ */
+
 #include "smatch.h"
 #include "smatch_extra.h"
 #include "smatch_slist.h"
