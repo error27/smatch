@@ -211,7 +211,7 @@ static int get_real_array_size(struct expression *expr)
 
 static int get_size_from_initializer(struct expression *expr)
 {
-	if (expr->type != EXPR_SYMBOL || !expr->symbol->initializer)
+	if (expr->type != EXPR_SYMBOL || !expr->symbol || !expr->symbol->initializer)
 		return 0;
 	if (expr->symbol->initializer == expr) /* int a = a; */
 		return 0;
