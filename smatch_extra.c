@@ -542,6 +542,8 @@ free:
 
 static void reset_struct_members(struct sm_state *sm)
 {
+	if (!estate_rl(sm->state))
+		return;
 	set_extra_mod(sm->name, sm->sym, alloc_estate_whole(estate_type(sm->state)));
 }
 
