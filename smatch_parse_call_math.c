@@ -125,6 +125,14 @@ static void pop_until(char c)
 	}
 }
 
+static void discard_stacks()
+{
+	while (op_list)
+		pop_op();
+	while (num_list)
+		pop_val();
+}
+
 static int get_implied_param(struct expression *call, int param, sval_t *sval)
 {
 	struct expression *arg;
@@ -210,7 +218,7 @@ int parse_call_math(struct expression *call, char *math, sval_t *sval)
 	*sval = pop_val();
 	return 1;
 fail:
-	pop_until(0);  /* discard stack */
+	discard_stacks();
 	return 0;
 }
 
