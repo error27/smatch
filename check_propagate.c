@@ -53,7 +53,7 @@ static void match_return(struct expression *ret_value)
 		return;
 	if (!get_implied_max(last_return, &lret) || lret.value >= 0)
 		return;
-	if (get_implied_min(last_return, &lret))
+	if (get_implied_min(last_return, &lret) && !sval_is_min(lret))
 		return;
 	name = expr_to_var(last_return);
 	sm_msg("info: why not propagate '%s' from %s() instead of %s?",
