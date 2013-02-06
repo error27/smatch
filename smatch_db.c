@@ -607,6 +607,7 @@ static void call_return_state_hooks(struct expression *expr)
 	struct state_list *slist;
 	struct range_list *rl;
 	char *return_ranges;
+	int nr_states;
 
 	expr = strip_expr(expr);
 
@@ -627,8 +628,12 @@ static void call_return_state_hooks(struct expression *expr)
 
 	return_id++;
 	slist = __get_cur_slist();
+	nr_states = ptr_list_size((struct ptr_list *)__get_cur_slist());
 	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, return_ranges, expr, slist);
+		if (nr_states < 10000)
+			cb->callback(return_id, return_ranges, expr, slist);
+		else
+			cb->callback(return_id, return_ranges, expr, NULL);
 	} END_FOR_EACH_PTR(cb);
 }
 
