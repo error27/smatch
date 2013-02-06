@@ -197,13 +197,16 @@ struct range_list *alloc_rl(sval_t min, sval_t max)
 {
 	struct range_list *rl = NULL;
 
+	if (sval_cmp(min, max) > 0)
+		return alloc_whole_rl(min.type);
+
 	add_range(&rl, min, max);
 	return rl;
 }
 
 struct range_list *alloc_whole_rl(struct symbol *type)
 {
-	if (!type)
+	if (!type || type_positive_bits(type) < 0)
 		type = &llong_ctype;
 
 	return alloc_rl(sval_type_min(type), sval_type_max(type));
