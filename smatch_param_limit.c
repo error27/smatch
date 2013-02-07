@@ -92,18 +92,36 @@ struct smatch_state *get_orig_estate(const char *name, struct symbol *sym)
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
 {
-	struct state_list *my_slist;
+	struct state_list *extra_slist;
 	struct sm_state *tmp;
+	struct sm_state *my_sm;
 	struct smatch_state *state;
 	int param;
 
-	my_slist = get_all_states_slist(my_id, slist);
+	extra_slist = get_all_states_slist(SMATCH_EXTRA, slist);
 
-	FOR_EACH_PTR(my_slist, tmp) {
+	FOR_EACH_PTR(extra_slist, tmp) {
+		if (!tmp->sym->ident || strcmp(tmp->name, tmp->sym->ident->name) != 0)
+			continue;
+
 		param = get_param_num_from_sym(tmp->sym);
 		if (param < 0)
 			continue;
-		state = filter_my_sm(tmp);
+
+		my_sm = get_sm_state_slist(slist, my_id, tmp->name, tmp->sym);
+		if (!my_sm) {
+			struct smatch_state *old;
+
+			old = get_state_slist(start_states, SMATCH_EXTRA, tmp->name, tmp->sym);
+			if (old && estates_equiv(old, tmp->state))
+				continue;
+			sm_msg("info: return_param_limit %d %d '%s' '$$' '%s' %s",
+			       return_id, param, return_ranges,
+			       tmp->state->name, global_static());
+			       continue;
+		}
+
+		state = filter_my_sm(my_sm);
 		if (!state)
 			continue;
 		/* This represents an impossible state.  I screwd up.  Bail. */
@@ -114,7 +132,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		       state->name, global_static());
 	} END_FOR_EACH_PTR(tmp);
 
-	free_slist(&my_slist);
+	free_slist(&extra_slist);
 }
 
 
