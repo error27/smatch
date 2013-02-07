@@ -258,13 +258,12 @@ static sval_t handle_mod(struct expression *expr, int *undefined, int implied)
 		return bogus;
 	}
 
-	left = _get_value(expr->left, undefined, implied);
-	if (!*undefined)
-		return sval_binop(left, '%', right);
-
 	switch (implied) {
 	case NOTIMPLIED:
 	case IMPLIED:
+		left = _get_value(expr->left, undefined, implied);
+		if (!*undefined)
+			return sval_binop(left, '%', right);
 		return bogus;
 	case IMPLIED_MIN:
 	case FUZZY_MIN:
