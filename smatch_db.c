@@ -344,9 +344,18 @@ static int get_ptr_name(void *unused, int argc, char **argv, char **azColName)
 
 static void get_function_pointer_callers(struct symbol *sym)
 {
+	char sql_filter[1024];
+
+	if (sym->ctype.modifiers & MOD_STATIC) {
+		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
+			 get_filename(), sym->ident->name);
+	} else {
+		snprintf(sql_filter, 1024, "function = '%s';",
+			 sym->ident->name);
+	}
+
 	ptr_name = NULL;
-	run_sql(get_ptr_name, "select ptr from function_ptr where function = '%s'",
-		sym->ident->name);
+	run_sql(get_ptr_name, "select ptr from function_ptr where %s", sql_filter);
 	if (!ptr_name)
 		return;
 
