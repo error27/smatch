@@ -372,8 +372,6 @@ static void handle_arch_m64_finalize(void)
 		size_t_ctype = &ulong_ctype;
 		ssize_t_ctype = &long_ctype;
 #ifdef __x86_64__
-		add_pre_buffer("#weak_define x86_64 1\n");
-		add_pre_buffer("#weak_define __x86_64 1\n");
 		add_pre_buffer("#weak_define __x86_64__ 1\n");
 #endif
 	}
