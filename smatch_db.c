@@ -105,6 +105,11 @@ void sql_insert_call_implies(int type, int param, int value)
 	           get_function(), fn_static(), type, param, value);
 }
 
+void sql_insert_type_size(const char *member, int size)
+{
+	sql_insert(type_size, "'%s', '%s', %d", get_filename(), member, size);
+}
+
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type)
 {
 	struct def_callback *def_callback = __alloc_def_callback(0);

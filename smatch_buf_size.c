@@ -496,9 +496,10 @@ static void info_record_alloction(struct expression *buffer, struct expression *
 	if (!name)
 		return;
 	if (get_implied_value(size, &sval))
-		sm_msg("info: '%s' allocated_buf_size %s", name, sval_to_str(sval));
+		sql_insert_type_size(name, sval.value);
 	else
-		sm_msg("info: '%s' allocated_buf_size -1", name);
+		sql_insert_type_size(name, -1);
+
 	free_string(name);
 }
 
