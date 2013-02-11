@@ -99,6 +99,12 @@ void sql_insert_return_values(const char *return_values)
 	           get_function(), fn_static(), return_values);
 }
 
+void sql_insert_call_implies(int type, int param, int value)
+{
+	sql_insert(call_implies, "'%s', '%s', %d, %d, %d, %d", get_filename(),
+	           get_function(), fn_static(), type, param, value);
+}
+
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type)
 {
 	struct def_callback *def_callback = __alloc_def_callback(0);

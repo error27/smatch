@@ -102,7 +102,7 @@ static void process_states(struct state_list *slist)
 		if (!arg->ident)
 			continue;
 		if (get_state_slist(slist, my_id, arg->ident->name, arg) == &derefed)
-			sm_msg("info: dereferences_param %d %s", i, global_static());
+			sql_insert_call_implies(DEREFERENCE, i, 1);
 	} END_FOR_EACH_PTR(arg);
 }
 
