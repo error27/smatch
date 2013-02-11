@@ -93,6 +93,12 @@ void sql_insert_function_ptr(const char *fn, const char *struct_name)
 		   struct_name);
 }
 
+void sql_insert_return_values(const char *return_values)
+{
+	sql_insert(return_values, "'%s', '%s', %d, '%s'", get_filename(),
+	           get_function(), fn_static(), return_values);
+}
+
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type)
 {
 	struct def_callback *def_callback = __alloc_def_callback(0);

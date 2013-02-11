@@ -43,8 +43,7 @@ static void match_end_func(struct symbol *sym)
 {
 	if (!return_ranges)
 		return;
-	sm_msg("info: function_return_values '%s' %s",
-	       show_rl(return_ranges), global_static());
+	sql_insert_return_values(show_rl(return_ranges));
 	return_ranges = NULL;
 }
 
