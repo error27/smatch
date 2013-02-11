@@ -398,6 +398,11 @@ int types_equiv(struct symbol *one, struct symbol *two)
 	return 1;
 }
 
+int fn_static(void)
+{
+	return !!(cur_func_sym->ctype.modifiers & MOD_STATIC);
+}
+
 const char *global_static()
 {
 	if (cur_func_sym->ctype.modifiers & MOD_STATIC)

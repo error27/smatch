@@ -288,6 +288,7 @@ int is_void_pointer(struct expression *expr);
 int is_char_pointer(struct expression *expr);
 int is_static(struct expression *expr);
 int types_equiv(struct symbol *one, struct symbol *two);
+int fn_static(void);
 const char *global_static();
 struct symbol *cur_func_return_type(void);
 struct symbol *get_arg_type(struct expression *fn, int arg);
@@ -496,6 +497,9 @@ do {                                  \
 	sm_debug("%s\n", sql_txt);    \
 	sql_exec(call_back, sql_txt); \
 } while (0)
+
+void sql_insert_return_states(int return_id, const char *return_ranges,
+		int type, int param, const char *key, const char *value);
 
 void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql);
 void open_smatch_db(void);

@@ -14,6 +14,15 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+#define sql_insert(table, values...)						\
+do {										\
+	if (option_info) {							\
+		sm_prefix();							\
+	        sm_printf("SQL: insert into " #table " values (" values);	\
+	        sm_printf(");\n");						\
+	}									\
+} while (0)
+
 static sqlite3 *db;
 
 struct def_callback {
@@ -68,6 +77,14 @@ void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql)
 		fprintf(stderr, "SQL error #2: %s\n", err);
 		fprintf(stderr, "SQL: '%s'\n", sql);
 	}
+}
+
+void sql_insert_return_states(int return_id, const char *return_ranges,
+		int type, int param, const char *key, const char *value)
+{
+	sql_insert(return_states, "'%s', '%s', %d, '%s', %d, %d, %d, '%s', '%s'",
+		   get_filename(), get_function(), return_id, return_ranges,
+		   fn_static(), type, param, key, value);
 }
 
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type)
