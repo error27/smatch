@@ -115,10 +115,10 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 			old = get_state_slist(start_states, SMATCH_EXTRA, tmp->name, tmp->sym);
 			if (old && estates_equiv(old, tmp->state))
 				continue;
-			sm_msg("info: return_param_limit %d %d '%s' '$$' '%s' %s",
-			       return_id, param, return_ranges,
-			       tmp->state->name, global_static());
-			       continue;
+			sql_insert_return_states(return_id, return_ranges,
+					LIMITED_VALUE, param, "$$",
+					tmp->state->name);
+			continue;
 		}
 
 		state = filter_my_sm(my_sm);
@@ -127,15 +127,13 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		/* This represents an impossible state.  I screwd up.  Bail. */
 		if (!estate_rl(state))
 			continue;
-		sm_msg("info: return_param_limit %d %d '%s' '$$' '%s' %s",
-		       return_id, param, return_ranges,
-		       state->name, global_static());
+		sql_insert_return_states(return_id, return_ranges,
+					LIMITED_VALUE, param, "$$",
+					state->name);
 	} END_FOR_EACH_PTR(tmp);
 
 	free_slist(&extra_slist);
 }
-
-
 
 static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_state *state)
 {

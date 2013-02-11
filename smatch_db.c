@@ -535,8 +535,7 @@ static void global_variable(struct symbol *sym)
 
 static void match_return_info(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
 {
-	sm_msg("info: return_marker %d '%s' %s", return_id, return_ranges,
-	       global_static());
+	sql_insert_return_states(return_id, return_ranges, INTERNAL, -1, "", "");
 }
 
 static int return_id;

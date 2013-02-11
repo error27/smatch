@@ -1181,8 +1181,9 @@ static void returned_member_callback(int return_id, char *return_ranges, char *p
 {
 	if (estate_is_whole(state))
 		return;
-	sm_msg("info: return_value %d '%s' '%s' '%s' %s", return_id,
-	       return_ranges, printed_name, state->name, global_static());
+
+	sql_insert_return_states(return_id, return_ranges, RETURN_VALUE, -1,
+			printed_name, state->name);
 }
 
 static void match_call_info(struct expression *expr)

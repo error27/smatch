@@ -461,8 +461,9 @@ static void match_returns_call(int return_id, char *return_ranges, struct expres
 		sm_msg("sname = %s", sname);
 	if (!sname)
 		return;
-	sm_msg("info: return_allocation %d '%s' '%s' %s",
-	       return_id, return_ranges, sname, global_static());
+
+	sql_insert_return_states(return_id, return_ranges, BUF_SIZE, -1, "",
+			sname);
 }
 
 static void print_returned_allocations(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
@@ -487,8 +488,9 @@ static void print_returned_allocations(int return_id, char *return_ranges, struc
 	state = get_state_slist(slist, my_id, name, sym);
 	if (!state || !state->data)
 		goto free;
-	sm_msg("info: return_allocation %d '%s' '%s' %s",
-	       return_id, return_ranges, state->name, global_static());
+
+	sql_insert_return_states(return_id, return_ranges, BUF_SIZE, -1, "",
+			state->name);
 free:
 	free_string(name);
 }

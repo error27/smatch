@@ -70,9 +70,8 @@ static void print_one_return_value_param(int return_id, char *return_ranges,
 	if (!param_name)
 		return;
 
-	sm_msg("info: return_param_add %d %d '%s' '%s' '%s' %s",
-	       return_id, param, return_ranges,
-	       param_name, implied_rl, global_static());
+	sql_insert_return_states(return_id, return_ranges, ADDED_VALUE, param,
+			param_name, implied_rl);
 }
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)

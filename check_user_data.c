@@ -320,8 +320,8 @@ static void struct_member_callback(char *fn, char *global_static, int param, cha
 static void print_returned_user_data(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
 {
 	if (is_user_data(expr)) {
-		sm_msg("info: returns_user_data %d '%s' %s",
-		       return_id, return_ranges, global_static());
+		sql_insert_return_states(return_id, return_ranges, USER_DATA,
+				-1, "", "");
 	}
 }
 

@@ -113,9 +113,8 @@ static void print_one_mod_param(int return_id, char *return_ranges,
 	if (!filter)
 		return;
 
-	sm_msg("info: return_param_filter %d %d '%s' '%s' '%s' %s",
-	       return_id, param, return_ranges,
-	       param_name, filter, global_static());
+	sql_insert_return_states(return_id, return_ranges, FILTER_VALUE, param,
+			param_name, filter);
 }
 
 static void print_one_extra_param(int return_id, char *return_ranges,
@@ -132,9 +131,8 @@ static void print_one_extra_param(int return_id, char *return_ranges,
 	if (!param_name)
 		return;
 
-	sm_msg("info: return_param_filter %d %d '%s' '%s' '%s' %s",
-	       return_id, param, return_ranges,
-	       param_name, show_rl(estate_rl(sm->state)), global_static());
+	sql_insert_return_states(return_id, return_ranges, FILTER_VALUE, param,
+			param_name, sm->state->name);
 }
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
