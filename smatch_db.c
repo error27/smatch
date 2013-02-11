@@ -87,6 +87,12 @@ void sql_insert_return_states(int return_id, const char *return_ranges,
 		   fn_static(), type, param, key, value);
 }
 
+void sql_insert_function_ptr(const char *fn, const char *struct_name)
+{
+	sql_insert(function_ptr, "'%s', '%s', '%s'", get_filename(), fn,
+		   struct_name);
+}
+
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type)
 {
 	struct def_callback *def_callback = __alloc_def_callback(0);
@@ -425,7 +431,7 @@ static void match_function_assign(struct expression *expr)
 	if (!fn_name || !ptr_name)
 		goto free;
 
-	sm_msg("info: sets_fn_ptr '%s' '%s'", ptr_name, fn_name);
+	sql_insert_function_ptr(fn_name, ptr_name);
 
 free:
 	free_string(fn_name);
@@ -491,6 +497,7 @@ static void print_initializer_list(struct expression_list *expr_list,
 {
 	struct expression *expr;
 	struct symbol *base_type;
+	char struct_name[256];
 
 	FOR_EACH_PTR(expr_list, expr) {
 		if (expr->type == EXPR_INDEX && expr->idx_expression && expr->idx_expression->type == EXPR_INITIALIZER) {
@@ -506,9 +513,10 @@ static void print_initializer_list(struct expression_list *expr_list,
 		base_type = get_type(expr->ident_expression);
 		if (!base_type || base_type->type != SYM_FN)
 			continue;
-		sm_msg("info: sets_fn_ptr '(struct %s)->%s' '%s'", struct_type->ident->name,
-		       expr->expr_ident->name,
-		       expr->ident_expression->symbol_name->name);
+		snprintf(struct_name, sizeof(struct_name), "(struct %s)->%s",
+			 struct_type->ident->name, expr->expr_ident->name);
+		sql_insert_function_ptr(expr->ident_expression->symbol_name->name,
+				        struct_name);
 	} END_FOR_EACH_PTR(expr);
 }
 
