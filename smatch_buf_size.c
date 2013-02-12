@@ -623,11 +623,11 @@ static void match_call(struct expression *expr)
 	free_string(name);
 }
 
-static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
+static void struct_member_callback(char *fn, int static_flag, int param, char *printed_name, struct smatch_state *state)
 {
 	if (state == &merged)
 		return;
-	sm_msg("info: passes_buffer '%s' %d '%s' %s %s", fn, param, printed_name, state->name, global_static);
+	sm_msg("info: passes_buffer '%s' %d '%s' %s %s", fn, param, printed_name, state->name, static_flag ? "static" : "global");
 }
 
 static void match_func_end(struct symbol *sym)

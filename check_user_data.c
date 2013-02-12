@@ -310,11 +310,11 @@ static void match_caller_info(struct expression *expr)
 	free_string(func);
 }
 
-static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
+static void struct_member_callback(char *fn, int static_flag, int param, char *printed_name, struct smatch_state *state)
 {
 	if (state == &capped)
 		return;
-	sm_msg("info: passes user_data '%s' %d '%s' %s", fn, param, printed_name, global_static);
+	sm_msg("info: passes user_data '%s' %d '%s' %s", fn, param, printed_name, static_flag ? "static" : "global");
 }
 
 static void print_returned_user_data(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)

@@ -988,11 +988,11 @@ int implied_not_equal(struct expression *expr, long long val)
 	return !possibly_false(expr, SPECIAL_NOTEQUAL, value_expr(val));
 }
 
-static void struct_member_callback(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state)
+static void struct_member_callback(char *fn, int static_flag, int param, char *printed_name, struct smatch_state *state)
 {
 	if (estate_is_whole(state))
 		return;
-	sm_msg("info: passes param_value '%s' %d '%s' %s %s", fn, param, printed_name, state->name, global_static);
+	sm_msg("info: passes param_value '%s' %d '%s' %s %s", fn, param, printed_name, state->name, static_flag ? "static" : "global");
 }
 
 static void db_limited_before(void)

@@ -35,7 +35,7 @@ static struct callback_list *callbacks;
 
 struct member_info_callback {
 	int owner;
-	void (*callback)(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state);
+	void (*callback)(char *fn, int static_flag, int param, char *printed_name, struct smatch_state *state);
 };
 ALLOCATOR(member_info_callback, "caller_info callbacks");
 DECLARE_PTR_LIST(member_info_cb_list, struct member_info_callback);
@@ -124,7 +124,7 @@ void add_definition_db_callback(void (*callback)(const char *name, struct symbol
  * member information.  For example foo->bar could have a state in
  * smatch_extra.c and also check_user.c.
  */
-void add_member_info_callback(int owner, void (*callback)(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state))
+void add_member_info_callback(int owner, void (*callback)(char *fn, int static_flag, int param, char *printed_name, struct smatch_state *state))
 {
 	struct member_info_callback *member_callback = __alloc_member_info_callback(0);
 
@@ -218,8 +218,8 @@ static void match_call_hack(struct expression *expr)
 	free_string(name);
 }
 
-static void print_struct_members(char *fn, char *global_static, struct expression *expr, int param, struct state_list *slist,
-	void (*callback)(char *fn, char *global_static, int param, char *printed_name, struct smatch_state *state))
+static void print_struct_members(char *fn, int static_flag, struct expression *expr, int param, struct state_list *slist,
+	void (*callback)(char *fn, int static_flag, int param, char *printed_name, struct smatch_state *state))
 {
 	struct sm_state *sm;
 	char *name;
@@ -248,7 +248,7 @@ static void print_struct_members(char *fn, char *global_static, struct expressio
 			snprintf(printed_name, sizeof(printed_name), "$$->%s", sm->name + len + 1);
 		else
 			snprintf(printed_name, sizeof(printed_name), "$$%s", sm->name + len);
-		callback(fn, global_static, param, printed_name, sm->state);
+		callback(fn, static_flag, param, printed_name, sm->state);
 	} END_FOR_EACH_PTR(sm);
 free:
 	free_string(name);
@@ -261,22 +261,16 @@ static void match_call_info(struct expression *expr)
 	struct state_list *slist;
 	char *name;
 	int i;
-	char *gs;
 
 	name = get_fnptr_name(expr->fn);
 	if (!name)
 		return;
 
-	if (is_static(expr->fn))
-		gs = (char *)"static";
-	else
-		gs = (char *)"global";
-
 	FOR_EACH_PTR(member_callbacks, cb) {
 		slist = get_all_states(cb->owner);
 		i = 0;
 		FOR_EACH_PTR(expr->args, arg) {
-			print_struct_members(name, gs, arg, i, slist, cb->callback);
+			print_struct_members(name, is_static(expr->fn), arg, i, slist, cb->callback);
 			i++;
 		} END_FOR_EACH_PTR(arg);
 		free_slist(&slist);
