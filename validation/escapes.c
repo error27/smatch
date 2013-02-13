@@ -8,14 +8,13 @@ static int bad_e[] = { '\c', '\0123', '\789', '\xdefg' };
  * check-name: Character escape sequences
  *
  * check-error-start
-escapes.c:6:27: warning: Unknown escape 'c'
-escapes.c:6:35: error: Bad character constant
-escapes.c:6:38: error: Bad character constant
-escapes.c:6:42: error: Bad character constant
-escapes.c:6:46: error: Bad character constant
-escapes.c:6:53: error: Bad character constant
-escapes.c:6:56: error: Bad character constant
-escapes.c:6:42: error: Expected } at end of initializer
-escapes.c:6:42: error: got 89
+escapes.c:6:26: warning: Unknown escape 'c'
+escapes.c:3:34: warning: hex escape sequence out of range
+escapes.c:3:44: warning: hex escape sequence out of range
+escapes.c:4:18: warning: hex escape sequence out of range
+escapes.c:6:30: warning: multi-character character constant
+escapes.c:6:39: warning: multi-character character constant
+escapes.c:6:47: warning: hex escape sequence out of range
+escapes.c:6:47: warning: multi-character character constant
  * check-error-end
  */

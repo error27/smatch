@@ -24,7 +24,9 @@ static __le16 bar(__le16 a)
  * check-error-start
 foul-bitwise.c:9:16: warning: restricted __le16 degrades to integer
 foul-bitwise.c:9:22: warning: restricted __le16 degrades to integer
-foul-bitwise.c:19:16: error: incompatible types for operation (-)
-foul-bitwise.c:19:16:    argument has type restricted __le16 [usertype] a
+foul-bitwise.c:19:16: warning: restricted __le16 degrades to integer
+foul-bitwise.c:19:16: warning: incorrect type in return expression (different base types)
+foul-bitwise.c:19:16:    expected restricted __le16
+foul-bitwise.c:19:16:    got int
  * check-error-end
  */

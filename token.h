@@ -68,8 +68,8 @@ enum token_type {
 	TOKEN_ZERO_IDENT,
 	TOKEN_NUMBER,
 	TOKEN_CHAR,
-	TOKEN_WIDE_CHAR,
-	TOKEN_STRING,
+	TOKEN_WIDE_CHAR = TOKEN_CHAR + 5,
+	TOKEN_STRING = TOKEN_WIDE_CHAR + 5,
 	TOKEN_WIDE_STRING,
 	TOKEN_SPECIAL,
 	TOKEN_STREAMBEGIN,
@@ -165,9 +165,9 @@ struct token {
 		struct ident *ident;
 		unsigned int special;
 		struct string *string;
-		int character;
 		int argnum;
 		struct argcount count;
+		char embedded[4];
 	};
 };
 
@@ -198,6 +198,7 @@ extern const char *show_special(int);
 extern const char *show_ident(const struct ident *);
 extern const char *show_string(const struct string *string);
 extern const char *show_token(const struct token *);
+extern const char *quote_token(const struct token *);
 extern struct token * tokenize(const char *, int, struct token *, const char **next_path);
 extern struct token * tokenize_buffer(void *, unsigned long, struct token **);
 

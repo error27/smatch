@@ -1696,16 +1696,20 @@ static struct symbol *evaluate_postop(struct expression *expr)
 {
 	struct expression *op = expr->unop;
 	struct symbol *ctype = op->ctype;
-	int class = classify_type(op->ctype, &ctype);
+	int class = classify_type(ctype, &ctype);
 	int multiply = 0;
 
+	if (!class || class & TYPE_COMPOUND) {
+		expression_error(expr, "need scalar for ++/--");
+		return NULL;
+	}
 	if (!lvalue_expression(expr->unop)) {
 		expression_error(expr, "need lvalue expression for ++/--");
 		return NULL;
 	}
 
 	if ((class & TYPE_RESTRICT) && restricted_unop(expr->op, &ctype))
-		return bad_expr_type(expr);
+		unrestrict(expr, class, &ctype);
 
 	if (class & TYPE_NUM) {
 		multiply = 1;
@@ -1735,13 +1739,13 @@ static struct symbol *evaluate_sign(struct expression *expr)
 	/* should be an arithmetic type */
 	if (!(class & TYPE_NUM))
 		return bad_expr_type(expr);
-	if (!(class & (TYPE_FLOAT|TYPE_RESTRICT))) {
-		struct symbol *rtype = integer_promotion(ctype);
-		expr->unop = cast_to(expr->unop, rtype);
-		ctype = rtype;
-	} else if ((class & TYPE_FLOAT) && expr->op != '~') {
-		/* no conversions needed */
-	} else if ((class & TYPE_RESTRICT) && !restricted_unop(expr->op, &ctype)) {
+	if (class & TYPE_RESTRICT)
+		goto Restr;
+Normal:
+	if (!(class & TYPE_FLOAT)) {
+		ctype = integer_promotion(ctype);
+		expr->unop = cast_to(expr->unop, ctype);
+	} else if (expr->op != '~') {
 		/* no conversions needed */
 	} else {
 		return bad_expr_type(expr);
@@ -1750,6 +1754,10 @@ static struct symbol *evaluate_sign(struct expression *expr)
 		*expr = *expr->unop;
 	expr->ctype = ctype;
 	return ctype;
+Restr:
+	if (restricted_unop(expr->op, &ctype))
+		unrestrict(expr, class, &ctype);
+	goto Normal;
 }
 
 static struct symbol *evaluate_preop(struct expression *expr)
