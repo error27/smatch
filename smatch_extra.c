@@ -992,7 +992,7 @@ static void struct_member_callback(char *fn, int static_flag, int param, char *p
 {
 	if (estate_is_whole(state))
 		return;
-	sm_msg("info: passes param_value '%s' %d '%s' %s %s", fn, param, printed_name, state->name, static_flag ? "static" : "global");
+	sql_insert_caller_info(fn, static_flag, PARAM_VALUE, param, printed_name, state->name);
 }
 
 static void db_limited_before(void)
@@ -1206,9 +1206,7 @@ static void match_call_info(struct expression *expr)
 		else
 			rl = cast_rl(type, alloc_whole_rl(get_type(arg)));
 
-		sm_msg("info: passes param_value '%s' %d '$$' %s %s",
-		       name, i, show_rl(rl),
-		       is_static(expr->fn) ? "static" : "global");
+		sql_insert_caller_info(name, is_static(expr->fn), PARAM_VALUE, i, "$$", show_rl(rl));
 		i++;
 	} END_FOR_EACH_PTR(arg);
 

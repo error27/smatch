@@ -613,10 +613,13 @@ static void match_call(struct expression *expr)
 	i = 0;
 	FOR_EACH_PTR(expr->args, arg) {
 		bytes = get_array_size_bytes(arg);
-		if (bytes > 1)
-			sm_msg("info: passes_buffer '%s' %d '$$' %d %s",
-				name, i, bytes,
-				is_static(expr->fn) ? "static" : "global");
+		if (bytes > 1) {
+			char buf[11];
+
+			snprintf(buf, sizeof(buf), "%d", bytes);
+			sql_insert_caller_info(name, is_static(expr->fn),
+					BUF_SIZE, i, "$$", buf);
+		}
 		i++;
 	} END_FOR_EACH_PTR(arg);
 
@@ -627,7 +630,7 @@ static void struct_member_callback(char *fn, int static_flag, int param, char *p
 {
 	if (state == &merged)
 		return;
-	sm_msg("info: passes_buffer '%s' %d '%s' %s %s", fn, param, printed_name, state->name, static_flag ? "static" : "global");
+	sql_insert_caller_info(fn, static_flag, BUF_SIZE, param, printed_name, state->name);
 }
 
 static void match_func_end(struct symbol *sym)

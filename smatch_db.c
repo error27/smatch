@@ -87,6 +87,18 @@ void sql_insert_return_states(int return_id, const char *return_ranges,
 		   fn_static(), type, param, key, value);
 }
 
+void sql_insert_caller_info(const char *fn, int static_flag, int type,
+		int param, const char *key, const char *value)
+{
+	if (!option_info)
+		return;
+
+	sm_msg("SQL_caller_info: insert into caller_info values ("
+	       "'%s', '%s', '%s', %%FUNC_ID%%, %d, %d, %d, '%s', '%s');",
+	       get_filename(), get_function(), fn, static_flag, type, param,
+	       key, value);
+}
+
 void sql_insert_function_ptr(const char *fn, const char *struct_name)
 {
 	sql_insert(function_ptr, "'%s', '%s', '%s'", get_filename(), fn,
@@ -201,7 +213,7 @@ struct range_list *db_return_vals(struct expression *expr)
 	return return_range_list;
 }
 
-static void match_call_hack(struct expression *expr)
+static void match_call_marker(struct expression *expr)
 {
 	char *name;
 
@@ -214,7 +226,7 @@ static void match_call_hack(struct expression *expr)
 	name = get_fnptr_name(expr->fn);
 	if (!name)
 		return;
-	sm_msg("info: call_marker '%s' %s", name, is_static(expr->fn) ? "static" : "global");
+	sql_insert_caller_info(name, is_static(expr->fn), INTERNAL, -1, "%call_marker%", "");
 	free_string(name);
 }
 
@@ -754,7 +766,6 @@ void register_definition_db_callbacks(int id)
 
 	if (option_info) {
 		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
-		add_hook(&match_call_hack, FUNCTION_CALL_HOOK);
 		add_hook(&match_function_assign, ASSIGNMENT_HOOK);
 		add_hook(&match_function_assign, GLOBAL_ASSIGNMENT_HOOK);
 		add_hook(&global_variable, BASE_HOOK);
@@ -770,6 +781,13 @@ void register_definition_db_callbacks(int id)
 
 	add_hook(&match_data_from_db, FUNC_DEF_HOOK);
 	add_hook(&match_call_implies, FUNCTION_CALL_HOOK);
+}
+
+void register_db_call_marker(int id)
+{
+	if (!option_info)
+		return;
+	add_hook(&match_call_marker, FUNCTION_CALL_HOOK);
 }
 
 char *get_variable_from_key(struct expression *arg, char *key, struct symbol **sym)

@@ -500,6 +500,8 @@ do {                                  \
 
 void sql_insert_return_states(int return_id, const char *return_ranges,
 		int type, int param, const char *key, const char *value);
+void sql_insert_caller_info(const char *fn, int static_flag, int type,
+		int param, const char *key, const char *value);
 void sql_insert_function_ptr(const char *fn, const char *struct_name);
 void sql_insert_return_values(const char *return_values);
 void sql_insert_call_implies(int type, int param, int value);

@@ -301,9 +301,10 @@ static void match_caller_info(struct expression *expr)
 
 	i = 0;
 	FOR_EACH_PTR(expr->args, tmp) {
-		if (is_user_data(tmp))
-			sm_msg("info: passes user_data '%s' %d '$$' %s", func, i,
-			       is_static(expr->fn) ? "static" : "global");
+		if (is_user_data(tmp)) {
+			sql_insert_caller_info(func, is_static(expr->fn),
+					USER_DATA, i, "$$", "1");
+		}
 		i++;
 	} END_FOR_EACH_PTR(tmp);
 
@@ -314,7 +315,7 @@ static void struct_member_callback(char *fn, int static_flag, int param, char *p
 {
 	if (state == &capped)
 		return;
-	sm_msg("info: passes user_data '%s' %d '%s' %s", fn, param, printed_name, static_flag ? "static" : "global");
+	sql_insert_caller_info(fn, static_flag, USER_DATA, param, printed_name, "1");
 }
 
 static void print_returned_user_data(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
