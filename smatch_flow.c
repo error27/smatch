@@ -25,7 +25,6 @@ static const char *filename;
 static char *pathname;
 static char *full_filename;
 static char *cur_func;
-static int line_func_start;
 static int loop_count;
 int __expr_stmt_count;
 static struct expression_list *switch_expr_stack = NULL;
@@ -805,8 +804,6 @@ static void split_function(struct symbol *sym)
 	struct symbol *base_type = get_base_type(sym);
 
 	cur_func_sym = sym;
-	if (base_type->stmt)
-		line_func_start = base_type->stmt->pos.line;
 	if (sym->ident)
 		cur_func = sym->ident->name;
 	__smatch_lineno = sym->pos.line;
@@ -833,7 +830,6 @@ static void split_function(struct symbol *sym)
 	__split_stmt(base_type->inline_stmt);
 	__pass_to_client(sym, END_FUNC_HOOK);
 	cur_func = NULL;
-	line_func_start = 0;
 	clear_all_states();
 	free_data_info_allocs();
 	free_expression_stack(&switch_expr_stack);
