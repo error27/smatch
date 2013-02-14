@@ -156,6 +156,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			*complicated = 1;
 		return;
 	}
+	case EXPR_ASSIGNMENT:
 	case EXPR_COMPARE:
 	case EXPR_LOGICAL:
 	case EXPR_BINOP: {
