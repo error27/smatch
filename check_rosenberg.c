@@ -79,6 +79,8 @@ static void match_clear(const char *fn, struct expression *expr, void *_arg_no)
 	int arg_no = PTR_INT(_arg_no);
 
 	ptr = get_argument_from_call_expr(expr->args, arg_no);
+	if (!ptr)
+		return;
 	if (ptr->type != EXPR_PREOP || ptr->op != '&')
 		return;
 	ptr = strip_expr(ptr->unop);
