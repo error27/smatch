@@ -83,6 +83,7 @@ CK(check_or_vs_and)
 CK(check_passes_sizeof)
 CK(check_assign_vs_compare)
 CK(check_missing_break)
+CK(check_struct_type)
 
 /* <- your test goes here */
 /* CK(register_template) */
