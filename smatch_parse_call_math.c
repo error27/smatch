@@ -260,6 +260,9 @@ static int format_expr_helper(char *buf, int remaining, struct expression *expr)
 	int ret;
 	char *cur;
 
+	if (!expr)
+		return 0;
+
 	cur = buf;
 
 	if (expr->type == EXPR_BINOP) {
