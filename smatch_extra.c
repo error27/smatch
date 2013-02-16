@@ -988,11 +988,11 @@ int implied_not_equal(struct expression *expr, long long val)
 	return !possibly_false(expr, SPECIAL_NOTEQUAL, value_expr(val));
 }
 
-static void struct_member_callback(char *fn, int static_flag, int param, char *printed_name, struct smatch_state *state)
+static void struct_member_callback(struct expression *call, int param, char *printed_name, struct smatch_state *state)
 {
 	if (estate_is_whole(state))
 		return;
-	sql_insert_caller_info(fn, static_flag, PARAM_VALUE, param, printed_name, state->name);
+	sql_insert_caller_info(call, PARAM_VALUE, param, printed_name, state->name);
 }
 
 static void db_limited_before(void)
@@ -1191,12 +1191,7 @@ static void match_call_info(struct expression *expr)
 	struct range_list *rl = NULL;
 	struct expression *arg;
 	struct symbol *type;
-	char *name;
 	int i = 0;
-
-	name = get_fnptr_name(expr->fn);
-	if (!name)
-		return;
 
 	FOR_EACH_PTR(expr->args, arg) {
 		type = get_arg_type(expr->fn, i);
@@ -1206,11 +1201,9 @@ static void match_call_info(struct expression *expr)
 		else
 			rl = cast_rl(type, alloc_whole_rl(get_type(arg)));
 
-		sql_insert_caller_info(name, is_static(expr->fn), PARAM_VALUE, i, "$$", show_rl(rl));
+		sql_insert_caller_info(expr, PARAM_VALUE, i, "$$", show_rl(rl));
 		i++;
 	} END_FOR_EACH_PTR(arg);
-
-	free_string(name);
 }
 
 static void set_param_value(const char *name, struct symbol *sym, char *key, char *value)

@@ -37,7 +37,7 @@ static struct callback_list *callbacks;
 
 struct member_info_callback {
 	int owner;
-	void (*callback)(char *fn, int static_flag, int param, char *printed_name, struct smatch_state *state);
+	void (*callback)(struct expression *call, int param, char *printed_name, struct smatch_state *state);
 };
 ALLOCATOR(member_info_callback, "caller_info callbacks");
 DECLARE_PTR_LIST(member_info_cb_list, struct member_info_callback);
@@ -89,16 +89,24 @@ void sql_insert_return_states(int return_id, const char *return_ranges,
 		   fn_static(), type, param, key, value);
 }
 
-void sql_insert_caller_info(const char *fn, int static_flag, int type,
+void sql_insert_caller_info(struct expression *call, int type,
 		int param, const char *key, const char *value)
 {
+	char *fn;
+
 	if (!option_info)
+		return;
+
+	fn = get_fnptr_name(call->fn);
+	if (!fn)
 		return;
 
 	sm_msg("SQL_caller_info: insert into caller_info values ("
 	       "'%s', '%s', '%s', %%FUNC_ID%%, %d, %d, %d, '%s', '%s');",
-	       get_filename(), get_function(), fn, static_flag, type, param,
-	       key, value);
+	       get_filename(), get_function(), fn, is_static(call->fn),
+	       type, param, key, value);
+
+	free_string(fn);
 }
 
 void sql_insert_function_ptr(const char *fn, const char *struct_name)
@@ -138,7 +146,7 @@ void add_definition_db_callback(void (*callback)(const char *name, struct symbol
  * member information.  For example foo->bar could have a state in
  * smatch_extra.c and also check_user.c.
  */
-void add_member_info_callback(int owner, void (*callback)(char *fn, int static_flag, int param, char *printed_name, struct smatch_state *state))
+void add_member_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct smatch_state *state))
 {
 	struct member_info_callback *member_callback = __alloc_member_info_callback(0);
 
@@ -217,23 +225,17 @@ struct range_list *db_return_vals(struct expression *expr)
 
 static void match_call_marker(struct expression *expr)
 {
-	char *name;
-
 	/*
 	 * we just want to record something in the database so that if we have
 	 * two calls like:  frob(4); frob(some_unkown); then on the receiving
 	 * side we know that sometimes frob is called with unknown parameters.
 	 */
 
-	name = get_fnptr_name(expr->fn);
-	if (!name)
-		return;
-	sql_insert_caller_info(name, is_static(expr->fn), INTERNAL, -1, "%call_marker%", "");
-	free_string(name);
+	sql_insert_caller_info(expr, INTERNAL, -1, "%call_marker%", "");
 }
 
-static void print_struct_members(char *fn, int static_flag, struct expression *expr, int param, struct state_list *slist,
-	void (*callback)(char *fn, int static_flag, int param, char *printed_name, struct smatch_state *state))
+static void print_struct_members(struct expression *call, struct expression *expr, int param, struct state_list *slist,
+	void (*callback)(struct expression *call, int param, char *printed_name, struct smatch_state *state))
 {
 	struct sm_state *sm;
 	char *name;
@@ -262,13 +264,13 @@ static void print_struct_members(char *fn, int static_flag, struct expression *e
 			snprintf(printed_name, sizeof(printed_name), "$$->%s", sm->name + len + 1);
 		else
 			snprintf(printed_name, sizeof(printed_name), "$$%s", sm->name + len);
-		callback(fn, static_flag, param, printed_name, sm->state);
+		callback(call, param, printed_name, sm->state);
 	} END_FOR_EACH_PTR(sm);
 free:
 	free_string(name);
 }
 
-static void match_call_info(struct expression *expr)
+static void match_call_info(struct expression *call)
 {
 	struct member_info_callback *cb;
 	struct expression *arg;
@@ -276,15 +278,15 @@ static void match_call_info(struct expression *expr)
 	char *name;
 	int i;
 
-	name = get_fnptr_name(expr->fn);
+	name = get_fnptr_name(call->fn);
 	if (!name)
 		return;
 
 	FOR_EACH_PTR(member_callbacks, cb) {
 		slist = get_all_states(cb->owner);
 		i = 0;
-		FOR_EACH_PTR(expr->args, arg) {
-			print_struct_members(name, is_static(expr->fn), arg, i, slist, cb->callback);
+		FOR_EACH_PTR(call->args, arg) {
+			print_struct_members(call, arg, i, slist, cb->callback);
 			i++;
 		} END_FOR_EACH_PTR(arg);
 		free_slist(&slist);

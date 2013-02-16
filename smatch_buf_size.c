@@ -601,14 +601,9 @@ static void match_strndup(const char *fn, struct expression *expr, void *unused)
 
 static void match_call(struct expression *expr)
 {
-	char *name;
 	struct expression *arg;
 	int bytes;
 	int i;
-
-	name = get_fnptr_name(expr->fn);
-	if (!name)
-		return;
 
 	i = 0;
 	FOR_EACH_PTR(expr->args, arg) {
@@ -617,20 +612,17 @@ static void match_call(struct expression *expr)
 			char buf[11];
 
 			snprintf(buf, sizeof(buf), "%d", bytes);
-			sql_insert_caller_info(name, is_static(expr->fn),
-					BUF_SIZE, i, "$$", buf);
+			sql_insert_caller_info(expr, BUF_SIZE, i, "$$", buf);
 		}
 		i++;
 	} END_FOR_EACH_PTR(arg);
-
-	free_string(name);
 }
 
-static void struct_member_callback(char *fn, int static_flag, int param, char *printed_name, struct smatch_state *state)
+static void struct_member_callback(struct expression *call, int param, char *printed_name, struct smatch_state *state)
 {
 	if (state == &merged)
 		return;
-	sql_insert_caller_info(fn, static_flag, BUF_SIZE, param, printed_name, state->name);
+	sql_insert_caller_info(call, BUF_SIZE, param, printed_name, state->name);
 }
 
 static void match_func_end(struct symbol *sym)

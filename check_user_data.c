@@ -292,30 +292,21 @@ static void match_assign_userdata(struct expression *expr)
 static void match_caller_info(struct expression *expr)
 {
 	struct expression *tmp;
-	char *func;
 	int i;
-
-	func = get_fnptr_name(expr->fn);
-	if (!func)
-		return;
 
 	i = 0;
 	FOR_EACH_PTR(expr->args, tmp) {
-		if (is_user_data(tmp)) {
-			sql_insert_caller_info(func, is_static(expr->fn),
-					USER_DATA, i, "$$", "1");
-		}
+		if (is_user_data(tmp))
+			sql_insert_caller_info(expr, USER_DATA, i, "$$", "1");
 		i++;
 	} END_FOR_EACH_PTR(tmp);
-
-	free_string(func);
 }
 
-static void struct_member_callback(char *fn, int static_flag, int param, char *printed_name, struct smatch_state *state)
+static void struct_member_callback(struct expression *call, int param, char *printed_name, struct smatch_state *state)
 {
 	if (state == &capped)
 		return;
-	sql_insert_caller_info(fn, static_flag, USER_DATA, param, printed_name, "1");
+	sql_insert_caller_info(call, USER_DATA, param, printed_name, "1");
 }
 
 static void print_returned_user_data(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
