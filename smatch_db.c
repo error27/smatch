@@ -742,7 +742,6 @@ static void match_end_func_info(struct symbol *sym)
 
 void open_smatch_db(void)
 {
-#ifdef SQLITE_OPEN_READONLY
 	int rc;
 
 	if (option_no_db)
@@ -754,10 +753,6 @@ void open_smatch_db(void)
 		return;
 	}
 	return;
-#else
-	option_no_db = 1;
-	return;
-#endif
 }
 
 void register_definition_db_callbacks(int id)
