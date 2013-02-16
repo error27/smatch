@@ -13,7 +13,7 @@
 #include "parse.h"
 #include "smatch.h"
 
-static int open_file(const char *filename)
+int open_data_file(const char *filename)
 {
 	int fd;
 	char buf[256];
@@ -36,7 +36,7 @@ struct token *get_tokens_file(const char *filename)
 
 	if (option_no_data)
 		return NULL;
-	fd = open_file(filename);
+	fd = open_data_file(filename);
 	if (fd < 0)
 		return NULL;
 	token = tokenize(filename, fd, NULL, NULL);

@@ -511,6 +511,7 @@ void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql);
 void open_smatch_db(void);
 
 /* smatch_files.c */
+int open_data_file(const char *filename);
 struct token *get_tokens_file(const char *filename);
 
 /* smatch.c */
