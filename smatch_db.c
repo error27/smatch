@@ -10,9 +10,13 @@
 #include <string.h>
 #include <errno.h>
 #include <sqlite3.h>
+#include <unistd.h>
 #include "smatch.h"
 #include "smatch_slist.h"
 #include "smatch_extra.h"
+
+static sqlite3 *db;
+static sqlite3 *mem_db;
 
 #define sql_insert(table, values...)						\
 do {										\
@@ -22,8 +26,6 @@ do {										\
 	        sm_printf(");\n");						\
 	}									\
 } while (0)
-
-static sqlite3 *db;
 
 struct def_callback {
 	int hook_type;
@@ -740,12 +742,56 @@ static void match_end_func_info(struct symbol *sym)
 	call_return_state_hooks(NULL);
 }
 
+static void init_memdb(void)
+{
+	char *err = NULL;
+	int rc;
+	const char *schema_files[] = {
+		"db/db.schema",
+		"db/caller_info.schema",
+		"db/return_states.schema",
+		"db/type_size.schema",
+		"db/call_implies.schema",
+		"db/function_ptr.schema",
+		"db/return_values.schema",
+	};
+	static char buf[4096];
+	int fd;
+	int ret;
+	int i;
+
+	rc = sqlite3_open(":memory:", &mem_db);
+	if (rc != SQLITE_OK) {
+		printf("Error starting In-Memory database.");
+		return;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(schema_files); i++) {
+		fd = open_data_file(schema_files[i]);
+		if (fd < 0)
+			continue;
+		ret = read(fd, buf, sizeof(buf));
+		if (ret == sizeof(buf)) {
+			printf("Schema file too large:  %s (limit %ld bytes)",
+			       schema_files[i], sizeof(buf));
+		}
+		buf[ret] = '\0';
+		rc = sqlite3_exec(mem_db, buf, NULL, 0, &err);
+		if (rc != SQLITE_OK) {
+			fprintf(stderr, "SQL error #2: %s\n", err);
+			fprintf(stderr, "%s\n", buf);
+		}
+	}
+}
+
 void open_smatch_db(void)
 {
 	int rc;
 
 	if (option_no_db)
 		return;
+
+	init_memdb();
 
 	rc = sqlite3_open_v2("smatch_db.sqlite", &db, SQLITE_OPEN_READONLY, NULL);
 	if (rc != SQLITE_OK) {
