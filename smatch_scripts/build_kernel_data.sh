@@ -32,5 +32,5 @@ done
 mv ${PROJECT}.* $DATA_DIR
 mv no_return_funcs $DATA_DIR/${PROJECT}.no_return_funcs
 
-$SCRIPT_DIR/db/create_db.sh -p=kernel warns.txt
+$DATA_DIR/db/create_db.sh -p=kernel warns.txt
 
