@@ -3,6 +3,7 @@
 #define add(x, y) x + y
 #define sub(x, y) x - y
 
+int x;
 void func(int *p)
 {
 	int a = 1;
@@ -21,11 +22,11 @@ void func(int *p)
  * check-command: smatch -I.. sm_macros.c
  *
  * check-output-start
-sm_macros.c:11 func() warn: the 'add' macro might need parens
-sm_macros.c:13 func() warn: the 'add' macro might need parens
-sm_macros.c:13 func() warn: the 'add' macro might need parens
+sm_macros.c:12 func() warn: the 'add' macro might need parens
 sm_macros.c:14 func() warn: the 'add' macro might need parens
-sm_macros.c:16 func() warn: the 'sub' macro might need parens
+sm_macros.c:14 func() warn: the 'add' macro might need parens
+sm_macros.c:15 func() warn: the 'add' macro might need parens
 sm_macros.c:17 func() warn: the 'sub' macro might need parens
+sm_macros.c:18 func() warn: the 'sub' macro might need parens
  * check-output-end
  */

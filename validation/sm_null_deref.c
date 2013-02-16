@@ -7,7 +7,7 @@ struct foo {
 struct foo a;
 struct foo b;
 struct foo c;
-struct foo d;
+struct foo *d;
 
 static void func (void)
 {
