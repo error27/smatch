@@ -63,7 +63,7 @@ static struct smatch_state *filter_my_sm(struct sm_state *sm)
 		if (tmp->state == &original) {
 			estate = get_state_slist(tmp->pool, SMATCH_EXTRA, tmp->name, tmp->sym);
 			if (!estate) {
-				sm_msg("debug: no value found in pool %p", tmp->pool);
+//				sm_msg("debug: no value found in pool %p", tmp->pool);
 				continue;
 			}
 		} else {

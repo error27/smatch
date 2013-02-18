@@ -92,7 +92,7 @@ static char *get_orig_rl(struct sm_state *sm)
 			continue;
 		extra = get_state_slist(tmp->pool, SMATCH_EXTRA, tmp->name, tmp->sym);
 		if (!extra) {
-			sm_msg("debug: no value found in pool %p", tmp->pool);
+//			sm_msg("debug: no value found in pool %p", tmp->pool);
 			return NULL;
 		}
 		ret = rl_union(ret, estate_rl(extra));
