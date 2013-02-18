@@ -93,6 +93,9 @@ void str_to_rl(struct symbol *type, char *value, struct range_list **rl)
 		type = &llong_ctype;
 	*rl = NULL;
 
+	if (value && strcmp(value, "empty") == 0)
+		return;
+
 	c = value;
 	while (*c) {
 		if (*c == '(')
