@@ -151,7 +151,7 @@ extern int option_debug;
 extern int local_debug;
 
 extern FILE *sm_outfd;
-#define sm_printf(msg...) do { if (final_pass) fprintf(sm_outfd, msg); } while (0)
+#define sm_printf(msg...) do { if (final_pass || option_debug) fprintf(sm_outfd, msg); } while (0)
 
 static inline void sm_prefix(void)
 {
