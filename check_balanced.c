@@ -51,6 +51,9 @@ static void match_left(const char *fn, struct expression *expr, void *data)
 	struct sm_state *sm;
 	char *name = (char *)data;
 
+	if (__inline_fn)
+		return;
+
 	sm = get_sm_state(my_id, name, NULL);
 	if (!sm)
 		add_tracker(&starts_right, my_id, name, NULL);
@@ -63,6 +66,9 @@ static void match_right(const char *fn, struct expression *expr, void *data)
 {
 	struct sm_state *sm;
 	char *name = (char *)data;
+
+	if (__inline_fn)
+		return;
 
 	sm = get_sm_state(my_id, name, NULL);
 	if (!sm)
@@ -94,7 +100,7 @@ static void check_possible(struct sm_state *sm)
 				is_right = 1;
 			else
 				undef = 1;
-		}		
+		}
 		if (tmp->state == &undefined)
 			undef = 1;  // i don't think this is possible any more.
 	} END_FOR_EACH_PTR(tmp);
@@ -106,6 +112,9 @@ static void match_return(struct expression *expr)
 {
 	struct state_list *slist;
 	struct sm_state *tmp;
+
+	if (__inline_fn)
+		return;
 
 	slist = get_all_states(my_id);
 	FOR_EACH_PTR(slist, tmp) {
@@ -123,6 +132,8 @@ static void clear_lists(void)
 
 static void match_func_end(struct symbol *sym)
 {
+	if (__inline_fn)
+		return;
 	if (is_reachable())
 		match_return(NULL);
 	clear_lists();

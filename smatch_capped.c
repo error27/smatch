@@ -165,8 +165,7 @@ void register_capped(int id)
 	add_definition_db_callback(set_param_capped_data, CAPPED_DATA);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
-	if (option_info) {
-		add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
-		add_member_info_callback(my_id, struct_member_callback);
-	}
+
+	add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
+	add_member_info_callback(my_id, struct_member_callback);
 }

@@ -49,8 +49,6 @@ static void match_end_func(struct symbol *sym)
 
 void check_db_info(int id)
 {
-	if (!option_info)
-		return;
 	my_id = id;
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);

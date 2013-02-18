@@ -331,9 +331,8 @@ void check_user_data(int id)
 	add_function_hook("__copy_from_user", &match_user_copy, INT_PTR(0));
 	add_function_hook("memcpy_fromiovec", &match_user_copy, INT_PTR(0));
 	add_function_assign_hook("kmemdup_user", &match_user_assign_function, NULL);
-	if (option_info) {
-		add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
-		add_member_info_callback(my_id, struct_member_callback);
-		add_returned_state_callback(print_returned_user_data);
-	}
+
+	add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
+	add_member_info_callback(my_id, struct_member_callback);
+	add_returned_state_callback(print_returned_user_data);
 }

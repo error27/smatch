@@ -1253,9 +1253,7 @@ void register_smatch_extra_late(int id)
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&asm_expr, ASM_HOOK);
 
-	if (option_info) {
-		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
-		add_member_info_callback(my_id, struct_member_callback);
-		add_returned_member_callback(my_id, returned_member_callback);
-	}
+	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
+	add_member_info_callback(my_id, struct_member_callback);
+	add_returned_member_callback(my_id, returned_member_callback);
 }

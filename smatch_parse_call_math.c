@@ -501,10 +501,9 @@ free:
 void register_parse_call_math(int id)
 {
 	int i;
-	if (!option_info)
-		return;
 
 	my_id = id;
+
 	for (i = 0; i < ARRAY_SIZE(alloc_functions); i++)
 		add_function_assign_hook(alloc_functions[i].func, &match_alloc,
 				         INT_PTR(alloc_functions[i].param));

@@ -105,9 +105,6 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 
 void register_param_set(int id)
 {
-	if (!option_info)
-		return;
-
 	my_id = id;
 
 	add_extra_mod_hook(&extra_mod_hook);

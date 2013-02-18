@@ -167,9 +167,6 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 
 void register_param_filter(int id)
 {
-	if (!option_info)
-		return;
-
 	my_id = id;
 
 	add_hook(&save_start_states, AFTER_DEF_HOOK);

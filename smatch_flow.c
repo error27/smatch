@@ -17,6 +17,8 @@
 #include "smatch_slist.h"
 
 int final_pass;
+int __inline_call;
+int __inline_fn;
 
 static int __smatch_lineno = 0;
 
@@ -43,6 +45,7 @@ static void split_symlist(struct symbol_list *sym_list);
 static void split_declaration(struct symbol_list *sym_list);
 static void split_expr_list(struct expression_list *expr_list);
 static void add_inline_function(struct symbol *sym);
+static void parse_inline(struct expression *expr);
 
 int option_assume_loops = 0;
 int option_known_conditions = 0;
@@ -97,6 +100,29 @@ static int is_noreturn_func(struct expression *expr)
 		return 0;
 	if (expr->symbol->ctype.modifiers & MOD_NORETURN)
 		return 1;
+	return 0;
+}
+
+static int should_inline(struct expression *expr)
+{
+	struct symbol *sym;
+
+	if (__inline_fn)  /* don't nest */
+		return 0;
+
+	if (expr->type != EXPR_SYMBOL || !expr->symbol)
+		return 0;
+	sym = get_base_type(expr->symbol);
+	if (sym->stmt && sym->stmt->type == STMT_COMPOUND) {
+		if (ptr_list_size((struct ptr_list *)sym->stmt->stmts) <= 10)
+			return 1;
+		return 0;
+	}
+	if (sym->inline_stmt && sym->inline_stmt->type == STMT_COMPOUND) {
+		if (ptr_list_size((struct ptr_list *)sym->inline_stmt->stmts) <= 10)
+			return 1;
+		return 0;
+	}
 	return 0;
 }
 
@@ -210,7 +236,13 @@ void __split_expr(struct expression *expr)
 		__split_expr(expr->fn);
 		if (is_inline_func(expr->fn))
 			add_inline_function(expr->fn->symbol);
+		if (should_inline(expr->fn))
+			__inline_call = 1;
 		__pass_to_client(expr, FUNCTION_CALL_HOOK);
+		__inline_call = 0;
+		if (should_inline(expr->fn)) {
+			parse_inline(expr->fn);
+		}
 		if (is_noreturn_func(expr->fn))
 			nullify_path();
 		break;
@@ -835,6 +867,57 @@ static void split_function(struct symbol *sym)
 	free_expression_stack(&switch_expr_stack);
 	__free_ptr_list((struct ptr_list **)&big_statement_stack);
 	__bail_on_rest_of_function = 0;
+}
+
+static void parse_inline(struct expression *expr)
+{
+	struct symbol *base_type;
+	int loop_num_bak = loop_num;
+	int final_pass_bak = final_pass;
+	char *cur_func_bak = cur_func;
+	struct statement_list *big_statement_stack_bak = big_statement_stack;
+	struct expression_list *switch_expr_stack_bak = switch_expr_stack;
+	struct symbol *cur_func_sym_bak = cur_func_sym;
+
+	sm_debug("inline function:  %s\n", cur_func);
+	final_pass = 0;  /* don't print anything */
+	__inline_fn = 1;
+
+	base_type = get_base_type(expr->symbol);
+	cur_func_sym = expr->symbol;
+	if (expr->symbol->ident)
+		cur_func = expr->symbol->ident->name;
+	else
+		cur_func = NULL;
+	set_position(expr->symbol->pos);
+
+	save_all_states();
+	nullify_all_states();
+	big_statement_stack = NULL;
+	switch_expr_stack = NULL;
+
+	__unnullify_path();
+	loop_num = 0;
+	__pass_to_client(expr->symbol, FUNC_DEF_HOOK);
+	__pass_to_client(expr->symbol, AFTER_DEF_HOOK);
+	__split_stmt(base_type->stmt);
+	__split_stmt(base_type->inline_stmt);
+	__pass_to_client(expr->symbol, END_FUNC_HOOK);
+
+	free_expression_stack(&switch_expr_stack);
+	__free_ptr_list((struct ptr_list **)&big_statement_stack);
+	nullify_path();
+
+	loop_num = loop_num_bak;
+	final_pass = final_pass_bak;
+	cur_func_sym = cur_func_sym_bak;
+	cur_func = cur_func_bak;
+	big_statement_stack = big_statement_stack_bak;
+	switch_expr_stack = switch_expr_stack_bak;
+
+	restore_all_states();
+	set_position(expr->pos);
+	__inline_fn = 0;
 }
 
 static struct symbol_list *inlines_called;

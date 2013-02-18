@@ -20,6 +20,22 @@ static sqlite3 *mem_db;
 
 #define sql_insert(table, values...)						\
 do {										\
+	if (__inline_fn) {							\
+		char buf[1024];							\
+		char *err, *p = buf;						\
+		int rc;								\
+										\
+		p += snprintf(p, buf + sizeof(buf) - p,				\
+			      "insert into %s values (", #table);		\
+		p += snprintf(p, buf + sizeof(buf) - p, values);		\
+		p += snprintf(p, buf + sizeof(buf) - p, ");");			\
+		rc = sqlite3_exec(mem_db, buf, NULL, 0, &err);			\
+		if (rc != SQLITE_OK) {						\
+			fprintf(stderr, "SQL error #2: %s\n", err);		\
+			fprintf(stderr, "SQL: '%s'\n", buf);			\
+		}								\
+		return;								\
+	}									\
 	if (option_info) {							\
 		sm_prefix();							\
 	        sm_printf("SQL: insert into " #table " values (" values);	\
@@ -94,12 +110,30 @@ void sql_insert_caller_info(struct expression *call, int type,
 {
 	char *fn;
 
-	if (!option_info)
+	if (!option_info && !__inline_call)
 		return;
 
 	fn = get_fnptr_name(call->fn);
 	if (!fn)
 		return;
+
+	if (__inline_call) {
+		char buf[1024];
+		char *err;
+		int rc;
+
+		snprintf(buf, sizeof(buf), "insert into caller_info values ("
+			 "'%s', '%s', '%s', %lu, %d, %d, %d, '%s', '%s');",
+			 get_filename(), get_function(), fn,
+			 (unsigned long)call, is_static(call->fn), type, param,
+			 key, value);
+		rc = sqlite3_exec(mem_db, buf, NULL, 0, &err);
+		if (rc != SQLITE_OK) {
+			fprintf(stderr, "SQL error #2: %s\n", err);
+			fprintf(stderr, "SQL: '%s'\n", buf);
+		}
+		return;
+	}
 
 	sm_msg("SQL_caller_info: insert into caller_info values ("
 	       "'%s', '%s', '%s', %%FUNC_ID%%, %d, %d, %d, '%s', '%s');",
@@ -807,17 +841,15 @@ void register_definition_db_callbacks(int id)
 {
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 
-	if (option_info) {
-		add_hook(&match_call_info, FUNCTION_CALL_HOOK);
-		add_hook(&match_function_assign, ASSIGNMENT_HOOK);
-		add_hook(&match_function_assign, GLOBAL_ASSIGNMENT_HOOK);
-		add_hook(&global_variable, BASE_HOOK);
-		add_hook(&global_variable, DECLARATION_HOOK);
-		add_returned_state_callback(match_return_info);
-		add_returned_state_callback(print_returned_struct_members);
-		add_hook(&call_return_state_hooks, RETURN_HOOK);
-		add_hook(&match_end_func_info, END_FUNC_HOOK);
-	}
+	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
+	add_hook(&match_function_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_function_assign, GLOBAL_ASSIGNMENT_HOOK);
+	add_hook(&global_variable, BASE_HOOK);
+	add_hook(&global_variable, DECLARATION_HOOK);
+	add_returned_state_callback(match_return_info);
+	add_returned_state_callback(print_returned_struct_members);
+	add_hook(&call_return_state_hooks, RETURN_HOOK);
+	add_hook(&match_end_func_info, END_FUNC_HOOK);
 
 	if (option_no_db)
 		return;
@@ -828,8 +860,6 @@ void register_definition_db_callbacks(int id)
 
 void register_db_call_marker(int id)
 {
-	if (!option_info)
-		return;
 	add_hook(&match_call_marker, FUNCTION_CALL_HOOK);
 }
 

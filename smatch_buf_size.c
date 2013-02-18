@@ -682,8 +682,6 @@ void register_buf_size_late(int id)
 
 	add_function_hook("strcpy", &match_strcpy, NULL);
 
-	if (option_info) {
-		add_hook(&match_call, FUNCTION_CALL_HOOK);
-		add_member_info_callback(my_size_id, struct_member_callback);
-	}
+	add_hook(&match_call, FUNCTION_CALL_HOOK);
+	add_member_info_callback(my_size_id, struct_member_callback);
 }

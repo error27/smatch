@@ -414,6 +414,9 @@ static void do_lock(const char *name)
 {
 	struct sm_state *sm;
 
+	if (__inline_fn)
+		return;
+
 	sm = get_sm_state(my_id, name, NULL);
 	if (!sm)
 		add_tracker(&starts_unlocked, my_id, name, NULL);
@@ -429,6 +432,9 @@ static void do_lock_failed(const char *name)
 {
 	struct sm_state *sm;
 
+	if (__inline_fn)
+		return;
+
 	sm = get_sm_state(my_id, name, NULL);
 	if (!sm)
 		add_tracker(&starts_unlocked, my_id, name, NULL);
@@ -439,6 +445,8 @@ static void do_unlock(const char *name)
 {
 	struct sm_state *sm;
 
+	if (__inline_fn)
+		return;
 	if (__path_is_null())
 		return;
 	sm = get_sm_state(my_id, name, NULL);
@@ -515,6 +523,9 @@ static void match_lock_unlock(const char *fn, struct expression *expr, void *_in
 	int index = PTR_INT(_index);
 	struct lock_info *lock = &lock_table[index];
 
+	if (__inline_fn)
+		return;
+
 	full_name = get_full_name(expr, index);
 	if (!full_name)
 		return;
@@ -576,6 +587,8 @@ static void match_return(struct expression *ret_value)
 	struct sm_state *tmp;
 
 	if (!final_pass)
+		return;
+	if (__inline_fn)
 		return;
 
 	ret = alloc_return(get_lineno());
@@ -721,6 +734,9 @@ static void clear_lists(void)
 
 static void match_func_end(struct symbol *sym)
 {
+	if (__inline_fn)
+		return;
+
 	if (func_has_transition)
 		check_consistency(sym);
 	clear_lists();

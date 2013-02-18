@@ -154,9 +154,6 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 
 void register_param_limit(int id)
 {
-	if (!option_info)
-		return;
-
 	my_id = id;
 
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
