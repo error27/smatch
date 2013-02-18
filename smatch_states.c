@@ -53,6 +53,8 @@ static struct state_list_stack *continue_stack;
 
 static struct named_stack *goto_stack;
 
+static struct ptr_list *backup;
+
 struct state_list_stack *implied_pools;
 
 int option_debug;
@@ -430,6 +432,81 @@ static void check_stack_free(struct state_list_stack **stack)
 		sm_msg("smatch internal error:  stack not empty");
 		free_stack_and_slists(stack);
 	}
+}
+
+void save_all_states(void)
+{
+	__add_ptr_list(&backup, cur_slist, 0);
+
+	__add_ptr_list(&backup, true_stack, 0);
+	__add_ptr_list(&backup, false_stack, 0);
+	__add_ptr_list(&backup, pre_cond_stack, 0);
+
+	__add_ptr_list(&backup, cond_true_stack, 0);
+	__add_ptr_list(&backup, cond_false_stack, 0);
+
+	__add_ptr_list(&backup, fake_cur_slist_stack, 0);
+
+	__add_ptr_list(&backup, break_stack, 0);
+	__add_ptr_list(&backup, switch_stack, 0);
+	__add_ptr_list(&backup, remaining_cases, 0);
+	__add_ptr_list(&backup, default_stack, 0);
+	__add_ptr_list(&backup, continue_stack, 0);
+
+	__add_ptr_list(&backup, goto_stack, 0);
+}
+
+void nullify_all_states(void)
+{
+	cur_slist = NULL;
+
+	true_stack = NULL;
+	false_stack = NULL;
+	pre_cond_stack = NULL;
+
+	cond_true_stack = NULL;
+	cond_false_stack = NULL;
+
+	fake_cur_slist_stack = NULL;
+
+	break_stack = NULL;
+	switch_stack = NULL;
+	remaining_cases = NULL;
+	default_stack = NULL;
+	continue_stack = NULL;
+
+	goto_stack = NULL;
+}
+
+static void *pop_backup(void)
+{
+	void *ret;
+
+	ret = last_ptr_list(backup);
+	delete_ptr_list_last(&backup);
+	return ret;
+}
+
+void restore_all_states(void)
+{
+	goto_stack = pop_backup();
+
+	continue_stack = pop_backup();
+	default_stack = pop_backup();
+	remaining_cases = pop_backup();
+	switch_stack = pop_backup();
+	break_stack = pop_backup();
+
+	fake_cur_slist_stack = pop_backup();
+
+	cond_false_stack = pop_backup();
+	cond_true_stack = pop_backup();
+
+	pre_cond_stack = pop_backup();
+	false_stack = pop_backup();
+	true_stack = pop_backup();
+
+	cur_slist = pop_backup();
 }
 
 void clear_all_states(void)
