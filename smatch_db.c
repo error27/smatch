@@ -132,8 +132,10 @@ void sql_insert_caller_info(struct expression *call, int type,
 			fprintf(stderr, "SQL error #2: %s\n", err);
 			fprintf(stderr, "SQL: '%s'\n", buf);
 		}
-		return;
 	}
+
+	if (!option_info)
+		return;
 
 	sm_msg("SQL_caller_info: insert into caller_info values ("
 	       "'%s', '%s', '%s', %%FUNC_ID%%, %d, %d, %d, '%s', '%s');",
