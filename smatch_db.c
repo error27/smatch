@@ -174,11 +174,11 @@ static char *get_static_filter(struct symbol *sym)
 
 	if (sym->ctype.modifiers & MOD_STATIC) {
 		snprintf(sql_filter, sizeof(sql_filter),
-			 "file = '%s' and function = '%s' and static = '1';",
+			 "file = '%s' and function = '%s' and static = '1'",
 			 get_filename(), sym->ident->name);
 	} else {
 		snprintf(sql_filter, sizeof(sql_filter),
-			 "function = '%s' and static = '0';", sym->ident->name);
+			 "function = '%s' and static = '0'", sym->ident->name);
 	}
 
 	return sql_filter;
@@ -190,7 +190,7 @@ void sql_select_return_states(const char *cols, struct expression *call,
 	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
 		return;
 
-	run_sql(callback, "select %s from return_states where %s",
+	run_sql(callback, "select %s from return_states where %s;",
 		cols, get_static_filter(call->fn->symbol));
 }
 
@@ -200,7 +200,7 @@ void sql_select_call_implies(const char *cols, struct expression *call,
 	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
 		return;
 
-	run_sql(callback, "select %s from call_implies where %s",
+	run_sql(callback, "select %s from call_implies where %s;",
 		cols, get_static_filter(call->fn->symbol));
 }
 
@@ -210,7 +210,7 @@ void sql_select_return_values(const char *cols, struct expression *call,
 	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
 		return;
 
-	run_sql(callback, "select %s from return_values where %s",
+	run_sql(callback, "select %s from return_values where %s;",
 		cols, get_static_filter(call->fn->symbol));
 }
 
