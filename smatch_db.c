@@ -166,6 +166,32 @@ void sql_insert_type_size(const char *member, int size)
 	sql_insert(type_size, "'%s', '%s', %d", get_filename(), member, size);
 }
 
+static char *get_static_filter(struct symbol *sym)
+{
+	static char sql_filter[1024];
+
+	if (sym->ctype.modifiers & MOD_STATIC) {
+		snprintf(sql_filter, sizeof(sql_filter),
+			 "file = '%s' and function = '%s' and static = '1';",
+			 get_filename(), sym->ident->name);
+	} else {
+		snprintf(sql_filter, sizeof(sql_filter),
+			 "function = '%s' and static = '0';", sym->ident->name);
+	}
+
+	return sql_filter;
+}
+
+void sql_select_return_states(const char *cols, struct expression *call,
+	int (*callback)(void*, int, char**, char**))
+{
+	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
+		return;
+
+	run_sql(callback, "select %s from return_states where %s",
+		cols, get_static_filter(call->fn->symbol));
+}
+
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type)
 {
 	struct def_callback *def_callback = __alloc_def_callback(0);

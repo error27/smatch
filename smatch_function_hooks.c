@@ -380,27 +380,12 @@ static int db_compare_callback(void *unused, int argc, char **argv, char **azCol
 
 void compare_db_return_states_callbacks(int comparison, struct expression *expr, sval_t sval, int left)
 {
-	struct symbol *sym;
-        static char sql_filter[1024];
 	struct state_list *true_states;
 	struct state_list *false_states;
 	struct sm_state *sm;
 
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
 		return;
-
-	sym = expr->fn->symbol;
-	if (!sym)
-		return;
-
-	if (sym->ctype.modifiers & MOD_STATIC) {
-		snprintf(sql_filter, 1024,
-			 "file = '%s' and function = '%s' and static = '1';",
-			 get_filename(), sym->ident->name);
-	} else {
-		snprintf(sql_filter, 1024,
-			 "function = '%s' and static = '0';", sym->ident->name);
-	}
 
 	db_info.comparison = comparison;
 	db_info.expr = expr;
@@ -412,16 +397,14 @@ void compare_db_return_states_callbacks(int comparison, struct expression *expr,
 
 	db_info.true_side = 1;
 	__push_fake_cur_slist();
-	run_sql(db_compare_callback,
-		"select return, type, parameter, key, value from return_states where %s",
-		sql_filter);
+	sql_select_return_states("return, type, parameter, key, value", expr,
+			db_compare_callback);
 	true_states = __pop_fake_cur_slist();
 
 	db_info.true_side = 0;
 	__push_fake_cur_slist();
-	run_sql(db_compare_callback,
-		"select return, type, parameter, key, value from return_states where %s",
-		sql_filter);
+	sql_select_return_states("return, type, parameter, key, value", expr,
+			db_compare_callback);
 	false_states = __pop_fake_cur_slist();
 
 	FOR_EACH_PTR(true_states, sm) {
@@ -488,28 +471,13 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 static int db_return_states_assign(struct expression *expr)
 {
 	struct expression *right;
-	struct symbol *sym;
 	struct sm_state *sm;
 	struct state_list *slist;
-        static char sql_filter[1024];
 	int handled = 0;
 
 	right = strip_expr(expr->right);
 	if (right->fn->type != EXPR_SYMBOL || !right->fn->symbol)
 		return 0;
-
-	sym = right->fn->symbol;
-	if (!sym)
-		return 0;
-
-	if (sym->ctype.modifiers & MOD_STATIC) {
-		snprintf(sql_filter, 1024,
-			 "file = '%s' and function = '%s' and static = '1';",
-			 get_filename(), sym->ident->name);
-	} else {
-		snprintf(sql_filter, 1024,
-			 "function = '%s' and static = '0';", sym->ident->name);
-	}
 
 	prev_return_id = -1;
 	db_info.expr = expr;
@@ -518,9 +486,8 @@ static int db_return_states_assign(struct expression *expr)
 	call_return_states_before_hooks();
 
 	__push_fake_cur_slist();
-	run_sql(db_assign_return_states_callback,
-		"select return_id, return, type, parameter, key, value from return_states where %s",
-		sql_filter);
+	sql_select_return_states("return_id, return, type, parameter, key, value",
+			right, db_assign_return_states_callback);
 	slist = __pop_fake_cur_slist();
 	merge_slist(&db_info.slist, slist);
 
@@ -618,28 +585,13 @@ static int db_return_states_callback(void *unused, int argc, char **argv, char *
 
 static void db_return_states(struct expression *expr)
 {
-	struct symbol *sym;
 	struct sm_state *sm;
 	struct state_list *slist;
-        static char sql_filter[1024];
 
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
 		return;
 	if (!__get_cur_slist())  /* no return functions */
 		return;
-
-	sym = expr->fn->symbol;
-	if (!sym)
-		return;
-
-	if (sym->ctype.modifiers & MOD_STATIC) {
-		snprintf(sql_filter, 1024,
-			 "file = '%s' and function = '%s' and static = '1';",
-			 get_filename(), sym->ident->name);
-	} else {
-		snprintf(sql_filter, 1024,
-			 "function = '%s' and static = '0';", sym->ident->name);
-	}
 
 	prev_return_id = -1;
 	db_info.expr = expr;
@@ -649,9 +601,8 @@ static void db_return_states(struct expression *expr)
 
 	__push_fake_cur_slist();
 	__unnullify_path();
-	run_sql(db_return_states_callback,
-		"select return_id, return, type, parameter, key, value from return_states where %s",
-		sql_filter);
+	sql_select_return_states("return_id, return, type, parameter, key, value",
+			expr, db_return_states_callback);
 	slist = __pop_fake_cur_slist();
 	merge_slist(&db_info.slist, slist);
 
