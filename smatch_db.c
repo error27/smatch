@@ -431,8 +431,14 @@ static void get_direct_callers(struct symbol *sym)
 }
 
 static char *ptr_name;
+static int ptr_cnt;
 static int get_ptr_name(void *unused, int argc, char **argv, char **azColName)
 {
+	if (ptr_cnt++) {
+		free_string(ptr_name);
+		ptr_name = NULL;
+		return 0;
+	}
 	if (!ptr_name)
 		ptr_name = alloc_string(argv[0]);
 	return 0;
@@ -451,6 +457,7 @@ static void get_function_pointer_callers(struct symbol *sym)
 	}
 
 	ptr_name = NULL;
+	ptr_cnt = 0;
 	run_sql(get_ptr_name, "select ptr from function_ptr where %s", sql_filter);
 	if (!ptr_name)
 		return;
