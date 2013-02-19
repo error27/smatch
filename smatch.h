@@ -518,6 +518,8 @@ void sql_select_return_values(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**));
 void sql_select_caller_info(const char *cols, struct symbol *sym,
 	int (*callback)(void*, int, char**, char**));
+void sql_select_call_implies(const char *cols, struct expression *call,
+	int (*callback)(void*, int, char**, char**));
 
 void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql);
 void open_smatch_db(void);

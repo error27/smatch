@@ -192,6 +192,16 @@ void sql_select_return_states(const char *cols, struct expression *call,
 		cols, get_static_filter(call->fn->symbol));
 }
 
+void sql_select_call_implies(const char *cols, struct expression *call,
+	int (*callback)(void*, int, char**, char**))
+{
+	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
+		return;
+
+	run_sql(callback, "select %s from call_implies where %s",
+		cols, get_static_filter(call->fn->symbol));
+}
+
 void sql_select_return_values(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**))
 {
@@ -548,27 +558,9 @@ static int call_implies_callbacks(void *unused, int argc, char **argv, char **az
 
 static void match_call_implies(struct expression *expr)
 {
-	struct symbol *sym;
-	static char sql_filter[1024];
-
-	if (expr->fn->type != EXPR_SYMBOL)
-		return;
-	sym = expr->fn->symbol;
-	if (!sym)
-		return;
-
-	if (sym->ctype.modifiers & MOD_STATIC) {
-		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
-			 get_filename(), sym->ident->name);
-	} else {
-		snprintf(sql_filter, 1024, "function = '%s' and static = 0;",
-				sym->ident->name);
-	}
-
 	call_implies_call_expr = expr;
-	run_sql(call_implies_callbacks,
-		"select function, type, parameter, value from call_implies where %s",
-		sql_filter);
+	sql_select_call_implies("function, type, parameter, value", expr,
+				call_implies_callbacks);
 	return;
 }
 
