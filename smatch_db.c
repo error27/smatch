@@ -202,6 +202,14 @@ void sql_select_return_values(const char *cols, struct expression *call,
 		cols, get_static_filter(call->fn->symbol));
 }
 
+void sql_select_caller_info(const char *cols, struct symbol *sym,
+	int (*callback)(void*, int, char**, char**))
+{
+	run_sql(callback,
+		"select %s from caller_info where %s order by function_id;",
+		cols, get_static_filter(sym));
+}
+
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type)
 {
 	struct def_callback *def_callback = __alloc_def_callback(0);
@@ -418,20 +426,8 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 
 static void get_direct_callers(struct symbol *sym)
 {
-	char sql_filter[1024];
-
-	if (sym->ctype.modifiers & MOD_STATIC) {
-		snprintf(sql_filter, 1024,
-			 "file = '%s' and function = '%s' order by function_id;",
-			 get_filename(), sym->ident->name);
-	} else {
-		snprintf(sql_filter, 1024,
-			 "function = '%s' and static = 0 order by function_id;",
-			 sym->ident->name);
-	}
-
-	run_sql(db_callback, "select function_id, type, parameter, key, value from caller_info"
-		" where %s", sql_filter);
+	sql_select_caller_info("function_id, type, parameter, key, value", sym,
+			db_callback);
 }
 
 static char *ptr_name;
