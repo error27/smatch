@@ -819,7 +819,7 @@ static void init_memdb(void)
 			continue;
 		ret = read(fd, buf, sizeof(buf));
 		if (ret == sizeof(buf)) {
-			printf("Schema file too large:  %s (limit %ld bytes)",
+			printf("Schema file too large:  %s (limit %zd bytes)",
 			       schema_files[i], sizeof(buf));
 		}
 		buf[ret] = '\0';
