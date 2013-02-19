@@ -192,6 +192,16 @@ void sql_select_return_states(const char *cols, struct expression *call,
 		cols, get_static_filter(call->fn->symbol));
 }
 
+void sql_select_return_values(const char *cols, struct expression *call,
+	int (*callback)(void*, int, char**, char**))
+{
+	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
+		return;
+
+	run_sql(callback, "select %s from return_values where %s",
+		cols, get_static_filter(call->fn->symbol));
+}
+
 void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type)
 {
 	struct def_callback *def_callback = __alloc_def_callback(0);
@@ -255,31 +265,11 @@ static int db_return_callback(void *unused, int argc, char **argv, char **azColN
 
 struct range_list *db_return_vals(struct expression *expr)
 {
-	struct symbol *sym;
-	static char sql_filter[1024];
-
-	if (expr->type != EXPR_CALL)
-		return NULL;
-	if (expr->fn->type != EXPR_SYMBOL)
-		return NULL;
 	return_type = get_type(expr);
 	if (!return_type)
 		return NULL;
-	sym = expr->fn->symbol;
-	if (!sym)
-		return NULL;
-
-	if (sym->ctype.modifiers & MOD_STATIC) {
-		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
-			 get_filename(), sym->ident->name);
-	} else {
-		snprintf(sql_filter, 1024, "function = '%s' and static = 0;",
-				sym->ident->name);
-	}
-
 	return_range_list = NULL;
-	run_sql(db_return_callback, "select return from return_values where %s",
-		 sql_filter);
+	sql_select_return_values("return", expr, db_return_callback);
 	return return_range_list;
 }
 
