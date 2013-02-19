@@ -727,6 +727,11 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern int __builtin_popcountl(unsigned long);\n");
 	add_pre_buffer("extern int __builtin_popcountll(unsigned long long);\n");
 
+	/* And byte swaps.. */
+	add_pre_buffer("extern unsigned short __builtin_bswap16(unsigned short);\n");
+	add_pre_buffer("extern unsigned int __builtin_bswap32(unsigned int);\n");
+	add_pre_buffer("extern unsigned long long __builtin_bswap64(unsigned long long);\n");
+
 	/* And some random ones.. */
 	add_pre_buffer("extern void *__builtin_return_address(unsigned int);\n");
 	add_pre_buffer("extern void *__builtin_extract_return_addr(void *);\n");
