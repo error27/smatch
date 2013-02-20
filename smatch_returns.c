@@ -40,11 +40,15 @@ static void call_hooks()
 
 static void match_return(struct expression *ret_value)
 {
+	if (__inline_fn)
+		return;
 	merge_slist(&all_return_states, __get_cur_slist());
 }
 
 static void match_end_func(struct symbol *sym)
 {
+	if (__inline_fn)
+		return;
 	merge_slist(&all_return_states, __get_cur_slist());
 	call_hooks();
 	free_slist(&all_return_states);
