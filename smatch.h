@@ -499,6 +499,8 @@ char *get_variable_from_key(struct expression *arg, char *key, struct symbol **s
 #define run_sql(call_back, sql...)    \
 do {                                  \
 	char sql_txt[1024];           \
+	if (option_no_db)             \
+		break;                \
 	snprintf(sql_txt, 1024, sql); \
 	sm_debug("%s\n", sql_txt);    \
 	sql_exec(call_back, sql_txt); \

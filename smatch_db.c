@@ -864,9 +864,6 @@ void register_definition_db_callbacks(int id)
 	add_hook(&call_return_state_hooks, RETURN_HOOK);
 	add_hook(&match_end_func_info, END_FUNC_HOOK);
 
-	if (option_no_db)
-		return;
-
 	add_hook(&match_data_from_db, FUNC_DEF_HOOK);
 	add_hook(&match_call_implies, FUNCTION_CALL_HOOK);
 }
