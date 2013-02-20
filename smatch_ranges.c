@@ -704,6 +704,35 @@ static void add_range_t(struct symbol *type, struct range_list **rl, sval_t min,
 	return;
 }
 
+struct range_list *rl_truncate_cast(struct symbol *type, struct range_list *rl)
+{
+	struct data_range *tmp;
+	struct range_list *ret = NULL;
+	sval_t min, max;
+
+	if (!rl)
+		return NULL;
+
+	if (!type || type == rl_type(rl))
+		return rl;
+
+	FOR_EACH_PTR(rl, tmp) {
+		min = tmp->min;
+		max = tmp->max;
+		if (type_bits(type) < type_bits(rl_type(rl))) {
+			min.uvalue = tmp->min.uvalue & ((1ULL << type_bits(type)) - 1);
+			max.uvalue = tmp->max.uvalue & ((1ULL << type_bits(type)) - 1);
+		}
+		if (sval_cmp(min, max) > 0) {
+			min = sval_cast(type, min);
+			max = sval_cast(type, max);
+		}
+		add_range_t(type, &ret, min, max);
+	} END_FOR_EACH_PTR(tmp);
+
+	return ret;
+}
+
 struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 {
 	struct data_range *tmp;

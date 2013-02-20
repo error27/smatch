@@ -882,10 +882,15 @@ static void match_comparison(struct expression *expr)
 		return;
 	}
 
-	left_true_state = alloc_estate_rl(cast_rl(get_type(left), left_true));
-	left_false_state = alloc_estate_rl(cast_rl(get_type(left), left_false));
-	right_true_state = alloc_estate_rl(cast_rl(get_type(right), right_true));
-	right_false_state = alloc_estate_rl(cast_rl(get_type(right), right_false));
+	left_true = rl_truncate_cast(get_type(left), left_true);
+	left_false = rl_truncate_cast(get_type(left), left_false);
+	right_true = rl_truncate_cast(get_type(right), right_true);
+	right_false = rl_truncate_cast(get_type(right), right_false);
+
+	left_true_state = alloc_estate_rl(left_true);
+	left_false_state = alloc_estate_rl(left_false);
+	right_true_state = alloc_estate_rl(right_true);
+	right_false_state = alloc_estate_rl(right_false);
 
 	switch (expr->op) {
 	case '<':
