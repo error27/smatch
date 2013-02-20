@@ -18,7 +18,7 @@
 
 int final_pass;
 int __inline_call;
-int __inline_fn;
+struct expression  *__inline_fn;
 
 static int __smatch_lineno = 0;
 
@@ -241,7 +241,7 @@ void __split_expr(struct expression *expr)
 		__pass_to_client(expr, FUNCTION_CALL_HOOK);
 		__inline_call = 0;
 		if (should_inline(expr->fn)) {
-			parse_inline(expr->fn);
+			parse_inline(expr);
 		}
 		if (is_noreturn_func(expr->fn))
 			nullify_path();
@@ -869,7 +869,7 @@ static void split_function(struct symbol *sym)
 	__bail_on_rest_of_function = 0;
 }
 
-static void parse_inline(struct expression *expr)
+static void parse_inline(struct expression *call)
 {
 	struct symbol *base_type;
 	int loop_num_bak = loop_num;
@@ -881,15 +881,15 @@ static void parse_inline(struct expression *expr)
 
 	sm_debug("inline function:  %s\n", cur_func);
 	final_pass = 0;  /* don't print anything */
-	__inline_fn = 1;
+	__inline_fn = call;
 
-	base_type = get_base_type(expr->symbol);
-	cur_func_sym = expr->symbol;
-	if (expr->symbol->ident)
-		cur_func = expr->symbol->ident->name;
+	base_type = get_base_type(call->fn->symbol);
+	cur_func_sym = call->fn->symbol;
+	if (call->fn->symbol->ident)
+		cur_func = call->fn->symbol->ident->name;
 	else
 		cur_func = NULL;
-	set_position(expr->symbol->pos);
+	set_position(call->fn->symbol->pos);
 
 	save_all_states();
 	nullify_all_states();
@@ -898,11 +898,11 @@ static void parse_inline(struct expression *expr)
 
 	__unnullify_path();
 	loop_num = 0;
-	__pass_to_client(expr->symbol, FUNC_DEF_HOOK);
-	__pass_to_client(expr->symbol, AFTER_DEF_HOOK);
+	__pass_to_client(call->fn->symbol, FUNC_DEF_HOOK);
+	__pass_to_client(call->fn->symbol, AFTER_DEF_HOOK);
 	__split_stmt(base_type->stmt);
 	__split_stmt(base_type->inline_stmt);
-	__pass_to_client(expr->symbol, END_FUNC_HOOK);
+	__pass_to_client(call->fn->symbol, END_FUNC_HOOK);
 
 	free_expression_stack(&switch_expr_stack);
 	__free_ptr_list((struct ptr_list **)&big_statement_stack);
@@ -916,8 +916,8 @@ static void parse_inline(struct expression *expr)
 	switch_expr_stack = switch_expr_stack_bak;
 
 	restore_all_states();
-	set_position(expr->pos);
-	__inline_fn = 0;
+	set_position(call->pos);
+	__inline_fn = NULL;
 }
 
 static struct symbol_list *inlines_called;

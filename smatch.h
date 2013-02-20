@@ -329,7 +329,7 @@ extern int option_file_output;
 extern struct expression_list *big_expression_stack;
 extern struct statement_list *big_statement_stack;
 extern int __inline_call;
-extern int __inline_fn;
+extern struct expression *__inline_fn;
 extern int __in_pre_condition;
 extern int __bail_on_rest_of_function;
 
