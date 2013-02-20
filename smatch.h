@@ -328,6 +328,7 @@ extern int option_no_db;
 extern int option_file_output;
 extern struct expression_list *big_expression_stack;
 extern struct statement_list *big_statement_stack;
+int inlinable(struct expression *expr);
 extern int __inline_call;
 extern struct expression *__inline_fn;
 extern int __in_pre_condition;

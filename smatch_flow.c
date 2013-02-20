@@ -103,7 +103,7 @@ static int is_noreturn_func(struct expression *expr)
 	return 0;
 }
 
-static int should_inline(struct expression *expr)
+int inlinable(struct expression *expr)
 {
 	struct symbol *sym;
 
@@ -236,11 +236,11 @@ void __split_expr(struct expression *expr)
 		__split_expr(expr->fn);
 		if (is_inline_func(expr->fn))
 			add_inline_function(expr->fn->symbol);
-		if (should_inline(expr->fn))
+		if (inlinable(expr->fn))
 			__inline_call = 1;
 		__pass_to_client(expr, FUNCTION_CALL_HOOK);
 		__inline_call = 0;
-		if (should_inline(expr->fn)) {
+		if (inlinable(expr->fn)) {
 			parse_inline(expr);
 		}
 		if (is_noreturn_func(expr->fn))
