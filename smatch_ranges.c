@@ -173,6 +173,13 @@ sval_t rl_max(struct range_list *rl)
 	return drange->max;
 }
 
+struct symbol *rl_type(struct range_list *rl)
+{
+	if (!rl)
+		return NULL;
+	return rl_min(rl).type;
+}
+
 static struct data_range *alloc_range_helper_sval(sval_t min, sval_t max, int perm)
 {
 	struct data_range *ret;
