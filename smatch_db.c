@@ -18,6 +18,22 @@
 static sqlite3 *db;
 static sqlite3 *mem_db;
 
+/* like run_sql() but for the in-memory database */
+#define mem_sql(call_back, sql...)						\
+do {										\
+	char sql_txt[1024];							\
+	int rc;									\
+	char *err = NULL;							\
+										\
+	snprintf(sql_txt, sizeof(sql_txt), sql);				\
+	sm_debug("in-mem %s\n", sql_txt);					\
+	rc = sqlite3_exec(mem_db, sql_txt, callback, 0, &err);			\
+	if (rc != SQLITE_OK) {							\
+		fprintf(stderr, "SQL error #2: %s\n", err);			\
+		fprintf(stderr, "SQL: '%s'\n", sql_txt);			\
+	}									\
+} while (0)
+
 #define sql_insert(table, values...)						\
 do {										\
 	if (__inline_fn) {							\
@@ -190,6 +206,12 @@ void sql_select_return_states(const char *cols, struct expression *call,
 	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
 		return;
 
+	if (inlinable(call->fn)) {
+		mem_sql(callback, "select %s from return_states where %s;",
+			cols, get_static_filter(call->fn->symbol));
+		return;
+	}
+
 	run_sql(callback, "select %s from return_states where %s;",
 		cols, get_static_filter(call->fn->symbol));
 }
@@ -199,6 +221,12 @@ void sql_select_call_implies(const char *cols, struct expression *call,
 {
 	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
 		return;
+
+	if (inlinable(call->fn)) {
+		mem_sql(callback, "select %s from call_implies where %s;",
+			cols, get_static_filter(call->fn->symbol));
+		return;
+	}
 
 	run_sql(callback, "select %s from call_implies where %s;",
 		cols, get_static_filter(call->fn->symbol));
@@ -210,6 +238,12 @@ void sql_select_return_values(const char *cols, struct expression *call,
 	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
 		return;
 
+	if (inlinable(call->fn)) {
+		mem_sql(callback, "select %s from return_values where %s;",
+			cols, get_static_filter(call->fn->symbol));
+		return;
+	}
+
 	run_sql(callback, "select %s from return_values where %s;",
 		cols, get_static_filter(call->fn->symbol));
 }
@@ -217,6 +251,12 @@ void sql_select_return_values(const char *cols, struct expression *call,
 void sql_select_caller_info(const char *cols, struct symbol *sym,
 	int (*callback)(void*, int, char**, char**))
 {
+	if (__inline_fn) {
+		mem_sql(callback, "select %s from caller_info where function_id = %lu;",
+			cols, (unsigned long)__inline_fn);
+		return;
+	}
+
 	run_sql(callback,
 		"select %s from caller_info where %s order by function_id;",
 		cols, get_static_filter(sym));
