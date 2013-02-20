@@ -712,8 +712,8 @@ struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 	if (!rl)
 		return NULL;
 
-	if (!type)
-		return clone_rl(rl);
+	if (!type || type == rl_type(rl))
+		return rl;
 
 	FOR_EACH_PTR(rl, tmp) {
 		add_range_t(type, &ret, tmp->min, tmp->max);
