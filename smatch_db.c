@@ -116,9 +116,9 @@ void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql)
 void sql_insert_return_states(int return_id, const char *return_ranges,
 		int type, int param, const char *key, const char *value)
 {
-	sql_insert(return_states, "'%s', '%s', %d, '%s', %d, %d, %d, '%s', '%s'",
-		   get_filename(), get_function(), return_id, return_ranges,
-		   fn_static(), type, param, key, value);
+	sql_insert(return_states, "'%s', '%s', %lu, %d, '%s', %d, %d, %d, '%s', '%s'",
+		   get_filename(), get_function(), (unsigned long)__inline_fn,
+		   return_id, return_ranges, fn_static(), type, param, key, value);
 }
 
 void sql_insert_caller_info(struct expression *call, int type,
@@ -172,14 +172,16 @@ void sql_insert_function_ptr(const char *fn, const char *struct_name)
 
 void sql_insert_return_values(const char *return_values)
 {
-	sql_insert(return_values, "'%s', '%s', %d, '%s'", get_filename(),
-	           get_function(), fn_static(), return_values);
+	sql_insert(return_values, "'%s', '%s', %lu, %d, '%s'", get_filename(),
+	           get_function(), (unsigned long)__inline_fn, fn_static(),
+		   return_values);
 }
 
 void sql_insert_call_implies(int type, int param, int value)
 {
-	sql_insert(call_implies, "'%s', '%s', %d, %d, %d, %d", get_filename(),
-	           get_function(), fn_static(), type, param, value);
+	sql_insert(call_implies, "'%s', '%s', %lu, %d, %d, %d, %d", get_filename(),
+	           get_function(), (unsigned long)__inline_fn, fn_static(),
+		   type, param, value);
 }
 
 void sql_insert_type_size(const char *member, int size)

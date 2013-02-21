@@ -1,4 +1,4 @@
-CREATE TABLE return_states (file varchar(128), function varchar(64), return_id integer, return varchar(256), static integer, type integer, parameter integer, key varchar(256), value varchar(256));
+CREATE TABLE return_states (file varchar(128), function varchar(64), call_id integer, return_id integer, return varchar(256), static integer, type integer, parameter integer, key varchar(256), value varchar(256));
 
 CREATE INDEX return_states_fn_idx on return_states (function);
 CREATE INDEX return_states_ff_idx on return_states (file, function);
