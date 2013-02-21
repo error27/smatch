@@ -1,5 +1,5 @@
-CREATE TABLE caller_info (file varchar(128), caller varchar(64), function varchar(64), function_id integer, static integer, type integer, parameter integer, key varchar(256), value varchar(256));
+CREATE TABLE caller_info (file varchar(128), caller varchar(64), function varchar(64), call_id integer, static integer, type integer, parameter integer, key varchar(256), value varchar(256));
 
-CREATE INDEX caller_fn_idx on caller_info (function, function_id);
-CREATE INDEX caller_ff_idx on caller_info (file, function, function_id);
+CREATE INDEX caller_fn_idx on caller_info (function, call_id);
+CREATE INDEX caller_ff_idx on caller_info (file, function, call_id);
 

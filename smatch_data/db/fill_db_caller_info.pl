@@ -41,12 +41,12 @@ $db->do("PRAGMA synchronous = OFF");
 $db->do("PRAGMA cache_size = 800000");
 $db->do("PRAGMA journal_mode = OFF");
 
-my $func_id = 0;
+my $call_id = 0;
 my ($fn, $dummy, $sql);
 
 open(WARNS, "<$warns");
 while (<WARNS>) {
-    # test.c:11 frob() SQL_caller_info: insert into caller_info values ('test.c', 'frob', '__smatch_buf_size', %FUNC_ID%, 1, 0, -1, '', ');
+    # test.c:11 frob() SQL_caller_info: insert into caller_info values ('test.c', 'frob', '__smatch_buf_size', %CALL_ID%, 1, 0, -1, '', ');
 
     if (!($_ =~ /^.*? \w+\(\) SQL_caller_info: /)) {
         next;
@@ -66,10 +66,10 @@ while (<WARNS>) {
 
     ($dummy, $dummy, $sql) = split(/:/);
 
-    $sql =~ s/%FUNC_ID%/$func_id/;
+    $sql =~ s/%CALL_ID%/$call_id/;
     if ($sql =~ /%call_marker%/) {
         $sql =~ s/%call_marker%//; # don't need this taking space in the db.
-        $func_id++;
+        $call_id++;
     }
 
     $db->do($sql);

@@ -157,7 +157,7 @@ void sql_insert_caller_info(struct expression *call, int type,
 		return;
 
 	sm_msg("SQL_caller_info: insert into caller_info values ("
-	       "'%s', '%s', '%s', %%FUNC_ID%%, %d, %d, %d, '%s', '%s');",
+	       "'%s', '%s', '%s', %%CALL_ID%%, %d, %d, %d, '%s', '%s');",
 	       get_filename(), get_function(), fn, is_static(call->fn),
 	       type, param, key, value);
 
@@ -255,13 +255,13 @@ void sql_select_caller_info(const char *cols, struct symbol *sym,
 	int (*callback)(void*, int, char**, char**))
 {
 	if (__inline_fn) {
-		mem_sql(callback, "select %s from caller_info where function_id = %lu;",
+		mem_sql(callback, "select %s from caller_info where call_id = %lu;",
 			cols, (unsigned long)__inline_fn);
 		return;
 	}
 
 	run_sql(callback,
-		"select %s from caller_info where %s order by function_id;",
+		"select %s from caller_info where %s order by call_id;",
 		cols, get_static_filter(sym));
 }
 
@@ -481,7 +481,7 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 
 static void get_direct_callers(struct symbol *sym)
 {
-	sql_select_caller_info("function_id, type, parameter, key, value", sym,
+	sql_select_caller_info("call_id, type, parameter, key, value", sym,
 			db_callback);
 }
 
@@ -517,8 +517,8 @@ static void get_function_pointer_callers(struct symbol *sym)
 	if (!ptr_name)
 		return;
 
-	run_sql(db_callback, "select function_id, type, parameter, key, value from caller_info"
-		" where function = '%s' order by function_id", ptr_name);
+	run_sql(db_callback, "select call_id, type, parameter, key, value from caller_info"
+		" where function = '%s' order by call_id", ptr_name);
 
 	free_string(ptr_name);
 }
