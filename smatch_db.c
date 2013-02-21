@@ -27,7 +27,7 @@ do {										\
 										\
 	snprintf(sql_txt, sizeof(sql_txt), sql);				\
 	sm_debug("in-mem %s\n", sql_txt);					\
-	rc = sqlite3_exec(mem_db, sql_txt, callback, 0, &err);			\
+	rc = sqlite3_exec(mem_db, sql_txt, call_back, 0, &err);			\
 	if (rc != SQLITE_OK) {							\
 		fprintf(stderr, "SQL error #2: %s\n", err);			\
 		fprintf(stderr, "SQL: '%s'\n", sql_txt);			\
