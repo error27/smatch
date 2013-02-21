@@ -212,8 +212,9 @@ void sql_select_return_states(const char *cols, struct expression *call,
 		return;
 
 	if (inlinable(call->fn)) {
-		mem_sql(callback, "select %s from return_states where %s;",
-			cols, get_static_filter(call->fn->symbol));
+		mem_sql(callback,
+			"select %s from return_states where call_id = '%lu';",
+			cols, (unsigned long)call);
 		return;
 	}
 
@@ -228,8 +229,9 @@ void sql_select_call_implies(const char *cols, struct expression *call,
 		return;
 
 	if (inlinable(call->fn)) {
-		mem_sql(callback, "select %s from call_implies where %s;",
-			cols, get_static_filter(call->fn->symbol));
+		mem_sql(callback,
+			"select %s from call_implies where call_id = '%lu';",
+			cols, (unsigned long)call);
 		return;
 	}
 
@@ -244,8 +246,9 @@ void sql_select_return_values(const char *cols, struct expression *call,
 		return;
 
 	if (inlinable(call->fn)) {
-		mem_sql(callback, "select %s from return_values where %s;",
-			cols, get_static_filter(call->fn->symbol));
+		mem_sql(callback,
+			"select %s from return_values where call_id = '%lu';",
+			cols, (unsigned long)call);
 		return;
 	}
 
