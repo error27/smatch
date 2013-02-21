@@ -922,7 +922,6 @@ void register_definition_db_callbacks(int id)
 
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	add_hook(&match_function_assign, ASSIGNMENT_HOOK);
-//	add_hook(&match_function_assign, GLOBAL_ASSIGNMENT_HOOK);
 	add_hook(&global_variable, BASE_HOOK);
 	add_hook(&global_variable, DECLARATION_HOOK);
 	add_returned_state_callback(match_return_info);
