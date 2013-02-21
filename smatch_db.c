@@ -529,7 +529,9 @@ static void get_function_pointer_callers(struct symbol *sym)
 
 	ptr_name = NULL;
 	ptr_cnt = 0;
-	run_sql(get_ptr_name, "select ptr from function_ptr where %s", sql_filter);
+	run_sql(get_ptr_name,
+		"select distinct ptr from function_ptr where %s",
+		sql_filter);
 	if (!ptr_name)
 		return;
 
