@@ -378,12 +378,19 @@ static void print_struct_members(struct expression *call, struct expression *exp
 	FOR_EACH_PTR(slist, sm) {
 		if (sm->sym != sym)
 			continue;
-		if (strncmp(name, sm->name, len) || sm->name[len] == '\0')
+		if (strcmp(name, sm->name) == 0) /* these are already handled. fixme: handle them here */
 			continue;
-		if (is_address)
-			snprintf(printed_name, sizeof(printed_name), "$$->%s", sm->name + len + 1);
-		else
-			snprintf(printed_name, sizeof(printed_name), "$$%s", sm->name + len);
+
+		if (sm->name[0] == '*' && strcmp(name, sm->name + 1) == 0) {
+			snprintf(printed_name, sizeof(printed_name), "*$$");
+		} else if (strncmp(name, sm->name, len) == 0) {
+			if (is_address)
+				snprintf(printed_name, sizeof(printed_name), "$$->%s", sm->name + len + 1);
+			else
+				snprintf(printed_name, sizeof(printed_name), "$$%s", sm->name + len);
+		} else {
+			continue;
+		}
 		callback(call, param, printed_name, sm->state);
 	} END_FOR_EACH_PTR(sm);
 free:
@@ -913,7 +920,7 @@ void register_definition_db_callbacks(int id)
 
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	add_hook(&match_function_assign, ASSIGNMENT_HOOK);
-	add_hook(&match_function_assign, GLOBAL_ASSIGNMENT_HOOK);
+//	add_hook(&match_function_assign, GLOBAL_ASSIGNMENT_HOOK);
 	add_hook(&global_variable, BASE_HOOK);
 	add_hook(&global_variable, DECLARATION_HOOK);
 	add_returned_state_callback(match_return_info);

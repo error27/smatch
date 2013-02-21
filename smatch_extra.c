@@ -1218,10 +1218,13 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 	struct symbol *type;
 	char fullname[256];
 
-	if (strncmp(key, "$$", 2))
+	if (strcmp(key, "*$$") == 0)
+		snprintf(fullname, sizeof(fullname), "*%s", name);
+	else if (strncmp(key, "$$", 2) == 0)
+		snprintf(fullname, 256, "%s%s", name, key + 2);
+	else
 		return;
 
-	snprintf(fullname, 256, "%s%s", name, key + 2);
 	type = get_member_type_from_key(symbol_expression(sym), key);
 	str_to_rl(type, value, &rl);
 	state = alloc_estate_rl(rl);
