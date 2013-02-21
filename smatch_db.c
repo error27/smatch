@@ -153,6 +153,9 @@ void sql_insert_caller_info(struct expression *call, int type,
 	if (!option_info)
 		return;
 
+	if (strncmp(fn, "__builtin_", 10) == 0)
+		return;
+
 	sm_msg("SQL_caller_info: insert into caller_info values ("
 	       "'%s', '%s', '%s', %%FUNC_ID%%, %d, %d, %d, '%s', '%s');",
 	       get_filename(), get_function(), fn, is_static(call->fn),
