@@ -834,11 +834,21 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 	free_string(name);
 }
 
+static void reset_memdb(void)
+{
+	mem_sql(NULL, "delete from caller_info;");
+	mem_sql(NULL, "delete from return_states;");
+	mem_sql(NULL, "delete from call_implies;");
+	mem_sql(NULL, "delete from return_values;");
+}
+
 static void match_end_func_info(struct symbol *sym)
 {
 	if (__path_is_null())
 		return;
 	call_return_state_hooks(NULL);
+	if (!__inline_fn)
+		reset_memdb();
 }
 
 static void init_memdb(void)
