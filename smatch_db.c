@@ -553,7 +553,8 @@ static void match_data_from_db(struct symbol *sym)
 	prev_func_id = -1;
 
 	get_direct_callers(sym);
-	get_function_pointer_callers(sym);
+	if (!__inline_fn)
+		get_function_pointer_callers(sym);
 
 	merge_slist(&final_states, __pop_fake_cur_slist());
 
