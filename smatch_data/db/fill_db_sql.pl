@@ -20,7 +20,7 @@ my ($dummy, $sql);
 open(WARNS, "<$warns");
 while (<WARNS>) {
 
-    if (!($_ =~ /^.*? \w+\(\) SQL: /)) {
+    if (!($_ =~ /^.*? [^ ]*\(\) SQL: /)) {
         next;
     }
     ($dummy, $dummy, $sql) = split(/:/);
