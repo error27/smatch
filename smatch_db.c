@@ -868,9 +868,12 @@ static void init_memdb(void)
 	char *err = NULL;
 	int rc;
 	const char *schema_files[] = {
+		"db/db.schema",
 		"db/caller_info.schema",
 		"db/return_states.schema",
+		"db/type_size.schema",
 		"db/call_implies.schema",
+		"db/function_ptr.schema",
 		"db/return_values.schema",
 	};
 	static char buf[4096];
