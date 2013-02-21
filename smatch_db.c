@@ -378,10 +378,12 @@ static void print_struct_members(struct expression *call, struct expression *exp
 	FOR_EACH_PTR(slist, sm) {
 		if (sm->sym != sym)
 			continue;
-		if (strcmp(name, sm->name) == 0) /* these are already handled. fixme: handle them here */
-			continue;
-
-		if (sm->name[0] == '*' && strcmp(name, sm->name + 1) == 0) {
+		if (strcmp(name, sm->name) == 0) {
+			if (is_address)
+				snprintf(printed_name, sizeof(printed_name), "*$$");
+			else /* these are already handled. fixme: handle them here */
+				continue;
+		} else if (sm->name[0] == '*' && strcmp(name, sm->name + 1) == 0) {
 			snprintf(printed_name, sizeof(printed_name), "*$$");
 		} else if (strncmp(name, sm->name, len) == 0) {
 			if (is_address)
