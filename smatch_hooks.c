@@ -128,6 +128,12 @@ void add_hook(void *func, enum hook_type type)
 	case RETURN_HOOK:
 		container->data_type = EXPR_PTR;
 		break;
+	case INLINE_FN_START:
+		container->data_type = EXPR_PTR;
+		break;
+	case INLINE_FN_END:
+		container->data_type = EXPR_PTR;
+		break;
 	case END_FILE_HOOK:
 		/* nothing needed... */
 		break;

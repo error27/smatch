@@ -931,7 +931,7 @@ void register_definition_db_callbacks(int id)
 	add_hook(&match_end_func_info, END_FUNC_HOOK);
 
 	add_hook(&match_data_from_db, FUNC_DEF_HOOK);
-	add_hook(&match_call_implies, FUNCTION_CALL_HOOK);
+	add_hook(&match_call_implies, CALL_HOOK_AFTER_INLINE);
 }
 
 void register_db_call_marker(int id)

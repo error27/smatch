@@ -108,9 +108,6 @@ static void process_states(struct state_list *slist)
 
 void check_dereferences_param(int id)
 {
-	if (!option_info)
-		return;
-
 	my_id = id;
 
 	add_hook(&match_function_def, FUNC_DEF_HOOK);

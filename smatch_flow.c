@@ -881,6 +881,7 @@ static void parse_inline(struct expression *call)
 	struct symbol *cur_func_sym_bak = cur_func_sym;
 
 	sm_debug("inline function:  %s\n", cur_func);
+	__pass_to_client(call, INLINE_FN_START);
 	final_pass = 0;  /* don't print anything */
 	__inline_fn = call;
 
@@ -919,6 +920,7 @@ static void parse_inline(struct expression *call)
 	restore_all_states();
 	set_position(call->pos);
 	__inline_fn = NULL;
+	__pass_to_client(call, INLINE_FN_END);
 }
 
 static struct symbol_list *inlines_called;
