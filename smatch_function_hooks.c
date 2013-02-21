@@ -696,7 +696,7 @@ void create_function_hook_hash(void)
 
 void register_function_hooks(int id)
 {
-	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
+	add_hook(&match_function_call, CALL_HOOK_AFTER_INLINE);
 	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_macro_assign, MACRO_ASSIGNMENT_HOOK);
 }

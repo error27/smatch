@@ -95,6 +95,9 @@ void add_hook(void *func, enum hook_type type)
 	case FUNCTION_CALL_HOOK:
 		container->data_type = EXPR_PTR;
 		break;
+	case CALL_HOOK_AFTER_INLINE:
+		container->data_type = EXPR_PTR;
+		break;
 	case DEREF_HOOK:
 		container->data_type = EXPR_PTR;
 		break;

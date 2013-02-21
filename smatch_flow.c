@@ -243,6 +243,7 @@ void __split_expr(struct expression *expr)
 		if (inlinable(expr->fn)) {
 			parse_inline(expr);
 		}
+		__pass_to_client(expr, CALL_HOOK_AFTER_INLINE);
 		if (is_noreturn_func(expr->fn))
 			nullify_path();
 		break;
