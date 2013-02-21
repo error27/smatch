@@ -26,7 +26,7 @@ do {										\
 	char *err = NULL;							\
 										\
 	snprintf(sql_txt, sizeof(sql_txt), sql);				\
-	sm_debug("in-mem %s\n", sql_txt);					\
+	sm_debug("in-mem: %s\n", sql_txt);					\
 	rc = sqlite3_exec(mem_db, sql_txt, call_back, 0, &err);			\
 	if (rc != SQLITE_OK) {							\
 		fprintf(stderr, "SQL error #2: %s\n", err);			\
@@ -45,6 +45,7 @@ do {										\
 			      "insert into %s values (", #table);		\
 		p += snprintf(p, buf + sizeof(buf) - p, values);		\
 		p += snprintf(p, buf + sizeof(buf) - p, ");");			\
+		sm_debug("mem-db: %s\n", buf);					\
 		rc = sqlite3_exec(mem_db, buf, NULL, 0, &err);			\
 		if (rc != SQLITE_OK) {						\
 			fprintf(stderr, "SQL error #2: %s\n", err);		\
@@ -143,6 +144,7 @@ void sql_insert_caller_info(struct expression *call, int type,
 			 get_filename(), get_function(), fn,
 			 (unsigned long)call, is_static(call->fn), type, param,
 			 key, value);
+		sm_debug("in-mem: %s\n", buf);
 		rc = sqlite3_exec(mem_db, buf, NULL, 0, &err);
 		if (rc != SQLITE_OK) {
 			fprintf(stderr, "SQL error #2: %s\n", err);
