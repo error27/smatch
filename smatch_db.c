@@ -18,22 +18,6 @@
 static sqlite3 *db;
 static sqlite3 *mem_db;
 
-/* like run_sql() but for the in-memory database */
-#define mem_sql(call_back, sql...)						\
-do {										\
-	char sql_txt[1024];							\
-	int rc;									\
-	char *err = NULL;							\
-										\
-	snprintf(sql_txt, sizeof(sql_txt), sql);				\
-	sm_debug("in-mem: %s\n", sql_txt);					\
-	rc = sqlite3_exec(mem_db, sql_txt, call_back, 0, &err);			\
-	if (rc != SQLITE_OK) {							\
-		fprintf(stderr, "SQL error #2: %s\n", err);			\
-		fprintf(stderr, "SQL: '%s'\n", sql_txt);			\
-	}									\
-} while (0)
-
 #define sql_insert(table, values...)						\
 do {										\
 	if (__inline_fn) {							\
@@ -114,6 +98,18 @@ void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql)
 	}
 }
 
+void sql_mem_exec(int (*callback)(void*, int, char**, char**), const char *sql)
+{
+	char *err = NULL;
+	int rc;
+
+	rc = sqlite3_exec(mem_db, sql, callback, 0, &err);
+	if (rc != SQLITE_OK) {
+		fprintf(stderr, "SQL error #2: %s\n", err);
+		fprintf(stderr, "SQL: '%s'\n", sql);
+	}
+}
+
 void sql_insert_return_states(int return_id, const char *return_ranges,
 		int type, int param, const char *key, const char *value)
 {
@@ -135,21 +131,10 @@ void sql_insert_caller_info(struct expression *call, int type,
 		return;
 
 	if (__inline_call) {
-		char buf[1024];
-		char *err;
-		int rc;
-
-		snprintf(buf, sizeof(buf), "insert into caller_info values ("
-			 "'%s', '%s', '%s', %lu, %d, %d, %d, '%s', '%s');",
-			 get_filename(), get_function(), fn,
-			 (unsigned long)call, is_static(call->fn), type, param,
-			 key, value);
-		sm_debug("in-mem: %s\n", buf);
-		rc = sqlite3_exec(mem_db, buf, NULL, 0, &err);
-		if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL error #2: %s\n", err);
-			fprintf(stderr, "SQL: '%s'\n", buf);
-		}
+		mem_sql(NULL,
+			"insert into caller_info values ('%s', '%s', '%s', %lu, %d, %d, %d, '%s', '%s');",
+			get_filename(), get_function(), fn, (unsigned long)call,
+			is_static(call->fn), type, param, key, value);
 	}
 
 	if (!option_info)

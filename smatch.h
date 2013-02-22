@@ -509,6 +509,16 @@ do {                                  \
 	sql_exec(call_back, sql_txt); \
 } while (0)
 
+/* like run_sql() but for the in-memory database */
+#define mem_sql(call_back, sql...)						\
+do {										\
+	char sql_txt[1024];							\
+										\
+	snprintf(sql_txt, sizeof(sql_txt), sql);				\
+	sm_debug("in-mem: %s\n", sql_txt);					\
+	sql_mem_exec(call_back, sql_txt);					\
+} while (0)
+
 void sql_insert_return_states(int return_id, const char *return_ranges,
 		int type, int param, const char *key, const char *value);
 void sql_insert_caller_info(struct expression *call, int type, int param,
@@ -528,6 +538,8 @@ void sql_select_call_implies(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**));
 
 void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql);
+void sql_mem_exec(int (*callback)(void*, int, char**, char**), const char *sql);
+
 void open_smatch_db(void);
 
 /* smatch_files.c */
