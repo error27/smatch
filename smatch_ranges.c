@@ -733,6 +733,24 @@ struct range_list *rl_truncate_cast(struct symbol *type, struct range_list *rl)
 	return ret;
 }
 
+static int rl_is_sane(struct range_list *rl)
+{
+	struct data_range *tmp;
+	struct symbol *type;
+
+	type = rl_type(rl);
+	FOR_EACH_PTR(rl, tmp) {
+		if (type != tmp->min.type || type != tmp->max.type)
+			return 0;
+		if (!sval_fits(type, tmp->min))
+			return 0;
+		if (!sval_fits(type, tmp->max))
+			return 0;
+	} END_FOR_EACH_PTR(tmp);
+
+	return 1;
+}
+
 struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 {
 	struct data_range *tmp;
@@ -741,7 +759,7 @@ struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 	if (!rl)
 		return NULL;
 
-	if (!type || type == rl_type(rl))
+	if (!type || (rl_is_sane(rl) && type == rl_type(rl)))
 		return rl;
 
 	FOR_EACH_PTR(rl, tmp) {
