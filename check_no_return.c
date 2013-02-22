@@ -14,12 +14,16 @@ static int returned;
 
 static void match_return(struct expression *ret_value)
 {
+	if (__inline_fn)
+		return;
 	if (is_reachable())
 		returned = 1;
 }
 
 static void match_func_end(struct symbol *sym)
 {
+	if (__inline_fn)
+		return;
 	if (!is_reachable() && !returned)
 		sm_info("info: add to no_return_funcs");
 	returned = 0;
