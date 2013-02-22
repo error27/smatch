@@ -56,14 +56,16 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 
 	if (!sym)
 		return;
+	check_sym(sym);
 	fprintf(stderr, "%.*s%s%3d:%lu %s %s (as: %d) %p (%s:%d:%d) %s\n",
 		indent, indent_string, typestr[sym->type],
 		sym->bit_size, sym->ctype.alignment,
-		modifier_string(sym->ctype.modifiers), show_ident(sym->ident), sym->ctype.as,
+		modifier_string(sym->ctype.modifiers), show_ident(sym->ident), sym->ctype.attribute->as,
 		sym, stream_name(sym->pos.stream), sym->pos.line, sym->pos.pos,
 		builtin_typename(sym) ?: "");
 	i = 0;
-	FOR_EACH_PTR(sym->ctype.contexts, context) {
+	check_sym(sym);
+	FOR_EACH_PTR(sym->ctype.attribute->contexts, context) {
 		/* FIXME: should print context expression */
 		fprintf(stderr, "< context%d: in=%d, out=%d\n",
 			i, context->in, context->out);
@@ -294,12 +296,13 @@ deeper:
 		goto out;
 	}
 
+	check_sym(sym);
 	/* Prepend */
 	switch (sym->type) {
 	case SYM_PTR:
 		prepend(name, "*");
 		mod = sym->ctype.modifiers;
-		as = sym->ctype.as;
+		as = sym->ctype.attribute->as;
 		was_ptr = 1;
 		break;
 
@@ -331,12 +334,12 @@ deeper:
 	case SYM_NODE:
 		append(name, "%s", show_ident(sym->ident));
 		mod |= sym->ctype.modifiers;
-		as |= sym->ctype.as;
+		as |= sym->ctype.attribute->as;
 		break;
 
 	case SYM_BITFIELD:
 		mod |= sym->ctype.modifiers;
-		as |= sym->ctype.as;
+		as |= sym->ctype.attribute->as;
 		append(name, ":%d", sym->bit_size);
 		break;
 
@@ -346,7 +349,7 @@ deeper:
 
 	case SYM_ARRAY:
 		mod |= sym->ctype.modifiers;
-		as |= sym->ctype.as;
+		as |= sym->ctype.attribute->as;
 		if (was_ptr) {
 			prepend(name, "( ");
 			append(name, " )");

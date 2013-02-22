@@ -63,6 +63,7 @@ struct symbol *alloc_symbol(struct position pos, int type)
 	sym->type = type;
 	sym->pos = pos;
 	sym->endpos.type = 0;
+	sym->ctype.attribute = &null_attr;
 	return sym;
 }
 
@@ -197,10 +198,10 @@ static struct symbol *examine_base_type(struct symbol *sym)
 	base_type = examine_symbol_type(sym->ctype.base_type);
 	if (!base_type || base_type->type == SYM_PTR)
 		return base_type;
-	sym->ctype.as |= base_type->ctype.as;
 	sym->ctype.modifiers |= base_type->ctype.modifiers & MOD_PTRINHERIT;
-	concat_ptr_list((struct ptr_list *)base_type->ctype.contexts,
-			(struct ptr_list **)&sym->ctype.contexts);
+
+	merge_attr(&sym->ctype, &base_type->ctype);
+
 	if (base_type->type == SYM_NODE) {
 		base_type = base_type->ctype.base_type;
 		sym->ctype.base_type = base_type;
@@ -253,10 +254,8 @@ static struct symbol *examine_bitfield_type(struct symbol *sym)
  */
 void merge_type(struct symbol *sym, struct symbol *base_type)
 {
-	sym->ctype.as |= base_type->ctype.as;
 	sym->ctype.modifiers |= (base_type->ctype.modifiers & ~MOD_STORAGE);
-	concat_ptr_list((struct ptr_list *)base_type->ctype.contexts,
-	                (struct ptr_list **)&sym->ctype.contexts);
+	merge_attr(&sym->ctype, &base_type->ctype);
 	sym->ctype.base_type = base_type->ctype.base_type;
 	if (sym->ctype.base_type->type == SYM_NODE)
 		merge_type(sym, sym->ctype.base_type);
@@ -732,6 +731,10 @@ static struct sym_init {
 	{ NULL,		NULL,		0 }
 };
 
+/*
+ * Default empty attribute
+ */
+struct attribute null_attr = {};
 
 /*
  * Abstract types
@@ -775,11 +778,13 @@ void init_symbols(void)
 	init_parser(stream);
 
 	builtin_fn_type.variadic = 1;
+	builtin_fn_type.ctype.attribute = &null_attr;
 	for (ptr = eval_init_table; ptr->name; ptr++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, ptr->name, SYM_NODE, NS_SYMBOL);
 		sym->ctype.base_type = ptr->base_type;
 		sym->ctype.modifiers = ptr->modifiers;
+		sym->ctype.attribute = &null_attr;
 		sym->op = ptr->op;
 	}
 }
@@ -852,5 +857,6 @@ void init_ctype(void)
 		sym->ctype.alignment = alignment;
 		sym->ctype.base_type = ctype->base_type;
 		sym->ctype.modifiers = ctype->modifiers;
+		sym->ctype.attribute = &null_attr;
 	}
 }

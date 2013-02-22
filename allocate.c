@@ -125,5 +125,6 @@ ALLOCATOR(entrypoint, "entrypoint");
 ALLOCATOR(instruction, "instruction");
 ALLOCATOR(multijmp, "multijmp");
 ALLOCATOR(pseudo, "pseudo");
+ALLOCATOR(attribute, "attribute");
 
 

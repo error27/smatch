@@ -1064,7 +1064,7 @@ static struct token *attribute_address_space(struct token *token, struct symbol 
 	if (expr) {
 		as = const_expression_value(expr);
 		if (Waddress_space && as)
-			ctx->ctype.as = as;
+			attr_set_as(&ctx->ctype, as);
 	}
 	token = expect(token, ')', "after address_space attribute");
 	return token;
@@ -1174,7 +1174,7 @@ static struct token *attribute_context(struct token *token, struct symbol *attr,
 	}
 
 	if (argc)
-		add_ptr_list(&ctx->ctype.contexts, context);
+		attr_add_context(&ctx->ctype, context);
 
 	token = expect(token, ')', "after context attribute");
 	return token;
@@ -1356,17 +1356,13 @@ static void apply_ctype(struct position pos, struct ctype *thistype, struct ctyp
 	if (mod)
 		apply_qualifier(&pos, ctype, mod);
 
-	/* Context */
-	concat_ptr_list((struct ptr_list *)thistype->contexts,
-	                (struct ptr_list **)&ctype->contexts);
-
 	/* Alignment */
 	if (thistype->alignment > ctype->alignment)
 		ctype->alignment = thistype->alignment;
 
-	/* Address space */
-	if (thistype->as)
-		ctype->as = thistype->as;
+	/* Attribute */
+	check_attr(thistype);
+	merge_attr(ctype, thistype);
 }
 
 static void specifier_conflict(struct position pos, int what, struct ident *new)
@@ -1715,11 +1711,12 @@ static struct token *pointer(struct token *token, struct decl_state *ctx)
 		struct symbol *ptr = alloc_symbol(token->pos, SYM_PTR);
 		ptr->ctype.modifiers = ctx->ctype.modifiers;
 		ptr->ctype.base_type = ctx->ctype.base_type;
-		ptr->ctype.as = ctx->ctype.as;
-		ptr->ctype.contexts = ctx->ctype.contexts;
+		check_attr(&ctx->ctype);
+		merge_attr(&ptr->ctype, &ctx->ctype);
 		ctx->ctype.modifiers = 0;
 		ctx->ctype.base_type = ptr;
 		ctx->ctype.as = 0;
+		ctx->ctype.attribute = &null_attr;
 		ctx->ctype.contexts = NULL;
 		ctx->ctype.alignment = 0;
 
@@ -1785,7 +1782,7 @@ static struct token *handle_bitfield(struct token *token, struct decl_state *ctx
 
 static struct token *declaration_list(struct token *token, struct symbol_list **list)
 {
-	struct decl_state ctx = {.prefer_abstract = 0};
+	struct decl_state ctx = {.prefer_abstract = 0, .ctype.attribute = &null_attr};
 	struct ctype saved;
 	unsigned long mod;
 
@@ -1831,7 +1828,7 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 
 static struct token *parameter_declaration(struct token *token, struct symbol *sym)
 {
-	struct decl_state ctx = {.prefer_abstract = 1};
+	struct decl_state ctx = {.prefer_abstract = 1, .ctype.attribute = &null_attr};
 
 	token = declaration_specifiers(token, &ctx);
 	ctx.ident = &sym->ident;
@@ -1846,7 +1843,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol *s
 
 struct token *typename(struct token *token, struct symbol **p, int *forced)
 {
-	struct decl_state ctx = {.prefer_abstract = 1};
+	struct decl_state ctx = {.prefer_abstract = 1, .ctype.attribute = &null_attr};
 	int class;
 	struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
 	*p = sym;
@@ -2675,7 +2672,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 {
 	struct ident *ident = NULL;
 	struct symbol *decl;
-	struct decl_state ctx = { .ident = &ident };
+	struct decl_state ctx = { .ident = &ident, .ctype.attribute = &null_attr};
 	struct ctype saved;
 	struct symbol *base_type;
 	unsigned long mod;

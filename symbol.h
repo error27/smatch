@@ -11,6 +11,7 @@
 
 #include "token.h"
 #include "target.h"
+#include "allocate.h"
 
 /*
  * An identifier with semantic meaning is a "symbol".
@@ -79,11 +80,16 @@ struct context {
 
 extern struct context *alloc_context(void);
 
-DECLARE_PTR_LIST(context_list, struct context);
+struct attribute {
+	struct context_list *contexts;
+	unsigned int as;
+};
+
 
 struct ctype {
 	unsigned long modifiers;
 	unsigned long alignment;
+	struct attribute *attribute;
 	struct context_list *contexts;
 	unsigned int as;
 	struct symbol *base_type;
@@ -231,6 +237,8 @@ struct symbol {
 	MOD_ASSIGNED | MOD_USERTYPE | MOD_ACCESSED | MOD_EXPLICITLY_SIGNED)
 #define MOD_PTRINHERIT (MOD_VOLATILE | MOD_CONST | MOD_NODEREF | MOD_STORAGE | MOD_NORETURN)
 
+/* default empty attribute */
+extern struct attribute null_attr;
 
 /* Current parsing/evaluation function */
 extern struct symbol *current_fn;
@@ -380,6 +388,68 @@ static inline struct symbol *lookup_keyword(struct ident *ident, enum namespace 
 	if (!ident->keyword)
 		return NULL;
 	return lookup_symbol(ident, ns);
+}
+
+static inline struct attribute *duplicate_attribute(struct attribute *attr)
+{
+		struct attribute *newattr = __alloc_attribute(0);
+		*newattr = *attr;
+		return newattr;
+}
+
+static inline void attr_set_as(struct ctype *ctype, unsigned int as)
+{
+	ctype->as = as;
+	if (ctype->attribute->as != as) {
+		ctype->attribute = duplicate_attribute(ctype->attribute);
+		ctype->attribute->as = as;
+	}
+}
+
+static inline void attr_add_context(struct ctype *ctype, struct context *context)
+{
+	add_ptr_list(&ctype->contexts, context);
+	ctype->attribute = duplicate_attribute(ctype->attribute);
+	add_ptr_list(&ctype->attribute->contexts, context);
+}
+
+/*
+ * Check the ctype.as is consistent with the ctype.attribute.
+ * This function will get removed with ctype.as eventually.
+ */
+static inline void check_attr(struct ctype *ctype)
+{
+	if (!ctype->attribute)
+		die("Empty attribute of %p\n", ctype);
+	if (ctype->as != ctype->attribute->as)
+		die("Attribute as difference %d %d\n", ctype->as, ctype->attribute->as);
+	if (context_list_size(ctype->contexts) != context_list_size(ctype->attribute->contexts))
+		die("Attribute context has different size \n");
+}
+
+static inline void check_sym(struct symbol *sym)
+{
+	check_attr(&sym->ctype);
+}
+
+static inline void merge_attr(struct ctype *dst, struct ctype *src)
+{
+	struct attribute *attr;
+	dst->as |= src->as;
+	concat_ptr_list((struct ptr_list *)src->contexts,
+			(struct ptr_list **)&dst->contexts);
+
+	if (src->attribute == &null_attr)
+		return;
+	if (dst->attribute == &null_attr) {
+		dst->attribute  = src->attribute;
+		return;
+	}
+	
+	dst->attribute = attr = duplicate_attribute(dst->attribute);
+	attr->as |= src->attribute->as;
+	concat_ptr_list((struct ptr_list *)src->attribute->contexts,
+			(struct ptr_list **)&attr->contexts);
 }
 
 #define is_restricted_type(type) (get_sym_type(type) == SYM_RESTRICT)
