@@ -478,7 +478,7 @@ static void match_assign(struct expression *expr)
 	while (right->type == EXPR_ASSIGNMENT && right->op == '=')
 		right = strip_parens(right->left);
 
-	if (expr->op == '=' && right->type == EXPR_CALL)
+	if (expr->op == '=' && strip_expr(right)->type == EXPR_CALL)
 		goto free;  /* these are handled in smatch_function_hooks.c */
 
 	right_name = expr_to_var_sym(right, &right_sym);
