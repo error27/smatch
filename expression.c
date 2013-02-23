@@ -77,7 +77,7 @@ static struct symbol *handle_func(struct token *token)
 	    ident != &__PRETTY_FUNCTION___ident)
 		return NULL;
 
-	if (!current_fn)
+	if (!current_fn || !current_fn->ident)
 		return NULL;
 
 	/* OK, it's one of ours */
