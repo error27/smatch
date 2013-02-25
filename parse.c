@@ -1992,8 +1992,10 @@ static void start_iterator(struct statement *stmt)
 
 	start_symbol_scope();
 	cont = alloc_symbol(stmt->pos, SYM_NODE);
+	cont->stmt = stmt;
 	bind_symbol(cont, &continue_ident, NS_ITERATOR);
 	brk = alloc_symbol(stmt->pos, SYM_NODE);
+	brk->stmt = stmt;
 	bind_symbol(brk, &break_ident, NS_ITERATOR);
 
 	stmt->type = STMT_ITERATOR;
@@ -2052,6 +2054,7 @@ static void start_switch(struct statement *stmt)
 
 	start_symbol_scope();
 	brk = alloc_symbol(stmt->pos, SYM_NODE);
+	brk->stmt = stmt;
 	bind_symbol(brk, &break_ident, NS_ITERATOR);
 
 	switch_case = alloc_symbol(stmt->pos, SYM_NODE);

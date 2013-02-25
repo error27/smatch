@@ -3324,7 +3324,7 @@ static void evaluate_goto_statement(struct statement *stmt)
 {
 	struct symbol *label = stmt->goto_label;
 
-	if (label && !label->stmt && !lookup_keyword(label->ident, NS_KEYWORD))
+	if (label && !label->stmt)
 		sparse_error(stmt->pos, "label '%s' was not declared", show_ident(label->ident));
 
 	evaluate_expression(stmt->goto_expression);
