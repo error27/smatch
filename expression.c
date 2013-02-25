@@ -358,7 +358,7 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 	struct expression *expr = NULL;
 
 	switch (token_type(token)) {
-	case TOKEN_CHAR ... TOKEN_WIDE_CHAR + 4:
+	case TOKEN_CHAR ... TOKEN_WIDE_CHAR_EMBEDDED_3:
 		expr = alloc_expression(token->pos, EXPR_VALUE);   
 		expr->flags = Int_const_expr;
 		expr->ctype = token_type(token) < TOKEN_WIDE_CHAR ? &int_ctype : &long_ctype;

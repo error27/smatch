@@ -508,7 +508,7 @@ static int merge(struct token *left, struct token *right)
 		left->string = right->string;
 		return 1;
 
-	case TOKEN_WIDE_CHAR + 1 ... TOKEN_WIDE_CHAR + 4:
+	case TOKEN_WIDE_CHAR_EMBEDDED_0 ... TOKEN_WIDE_CHAR_EMBEDDED_3:
 		token_type(left) = res;
 		left->pos.noexpand = 0;
 		memcpy(left->embedded, right->embedded, 4);
@@ -956,8 +956,8 @@ static int token_different(struct token *t1, struct token *t2)
 	case TOKEN_STR_ARGUMENT:
 		different = t1->argnum != t2->argnum;
 		break;
-	case TOKEN_CHAR + 1 ... TOKEN_CHAR + 4:
-	case TOKEN_WIDE_CHAR + 1 ... TOKEN_WIDE_CHAR + 4:
+	case TOKEN_CHAR_EMBEDDED_0 ... TOKEN_CHAR_EMBEDDED_3:
+	case TOKEN_WIDE_CHAR_EMBEDDED_0 ... TOKEN_WIDE_CHAR_EMBEDDED_3:
 		different = memcmp(t1->embedded, t2->embedded, 4);
 		break;
 	case TOKEN_CHAR:

@@ -182,13 +182,13 @@ const char *show_token(const struct token *token)
 	case TOKEN_CHAR: 
 		return show_char(token->string->data,
 			token->string->length - 1, 0, '\'');
-	case TOKEN_CHAR+1 ... TOKEN_CHAR+4:
+	case TOKEN_CHAR_EMBEDDED_0 ... TOKEN_CHAR_EMBEDDED_3:
 		return show_char(token->embedded,
 			token_type(token) - TOKEN_CHAR, 0, '\'');
 	case TOKEN_WIDE_CHAR: 
 		return show_char(token->string->data,
 			token->string->length - 1, 'L', '\'');
-	case TOKEN_WIDE_CHAR+1 ... TOKEN_WIDE_CHAR+4:
+	case TOKEN_WIDE_CHAR_EMBEDDED_0 ... TOKEN_WIDE_CHAR_EMBEDDED_3:
 		return show_char(token->embedded,
 			token_type(token) - TOKEN_WIDE_CHAR, 'L', '\'');
 	case TOKEN_STRING: 
@@ -240,13 +240,13 @@ const char *quote_token(const struct token *token)
 	case TOKEN_CHAR: 
 		return quote_char(token->string->data,
 			token->string->length - 1, 0, '\'');
-	case TOKEN_CHAR+1 ... TOKEN_CHAR+4:
+	case TOKEN_CHAR_EMBEDDED_0 ... TOKEN_CHAR_EMBEDDED_3:
 		return quote_char(token->embedded,
 			token_type(token) - TOKEN_CHAR, 0, '\'');
 	case TOKEN_WIDE_CHAR: 
 		return quote_char(token->string->data,
 			token->string->length - 1, 'L', '\'');
-	case TOKEN_WIDE_CHAR+1 ... TOKEN_WIDE_CHAR+4:
+	case TOKEN_WIDE_CHAR_EMBEDDED_0 ... TOKEN_WIDE_CHAR_EMBEDDED_3:
 		return quote_char(token->embedded,
 			token_type(token) - TOKEN_WIDE_CHAR, 'L', '\'');
 	case TOKEN_STRING: 

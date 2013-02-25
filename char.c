@@ -67,7 +67,7 @@ void get_char_constant(struct token *token, unsigned long long *val)
 		p = token->string->data;
 		end = p + token->string->length;
 		break;
-	case TOKEN_CHAR + 1 ... TOKEN_CHAR + 4:
+	case TOKEN_CHAR_EMBEDDED_0 ... TOKEN_CHAR_EMBEDDED_3:
 		end = p + type - TOKEN_CHAR;
 		break;
 	default:
