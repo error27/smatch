@@ -90,8 +90,6 @@ struct ctype {
 	unsigned long modifiers;
 	unsigned long alignment;
 	struct attribute *attribute;
-	struct context_list *contexts;
-	unsigned int as;
 	struct symbol *base_type;
 };
 
@@ -399,7 +397,6 @@ static inline struct attribute *duplicate_attribute(struct attribute *attr)
 
 static inline void attr_set_as(struct ctype *ctype, unsigned int as)
 {
-	ctype->as = as;
 	if (ctype->attribute->as != as) {
 		ctype->attribute = duplicate_attribute(ctype->attribute);
 		ctype->attribute->as = as;
@@ -408,36 +405,13 @@ static inline void attr_set_as(struct ctype *ctype, unsigned int as)
 
 static inline void attr_add_context(struct ctype *ctype, struct context *context)
 {
-	add_ptr_list(&ctype->contexts, context);
 	ctype->attribute = duplicate_attribute(ctype->attribute);
 	add_ptr_list(&ctype->attribute->contexts, context);
-}
-
-/*
- * Check the ctype.as is consistent with the ctype.attribute.
- * This function will get removed with ctype.as eventually.
- */
-static inline void check_attr(struct ctype *ctype)
-{
-	if (!ctype->attribute)
-		die("Empty attribute of %p\n", ctype);
-	if (ctype->as != ctype->attribute->as)
-		die("Attribute as difference %d %d\n", ctype->as, ctype->attribute->as);
-	if (context_list_size(ctype->contexts) != context_list_size(ctype->attribute->contexts))
-		die("Attribute context has different size \n");
-}
-
-static inline void check_sym(struct symbol *sym)
-{
-	check_attr(&sym->ctype);
 }
 
 static inline void merge_attr(struct ctype *dst, struct ctype *src)
 {
 	struct attribute *attr;
-	dst->as |= src->as;
-	concat_ptr_list((struct ptr_list *)src->contexts,
-			(struct ptr_list **)&dst->contexts);
 
 	if (src->attribute == &null_attr)
 		return;

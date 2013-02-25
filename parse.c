@@ -1361,7 +1361,6 @@ static void apply_ctype(struct position pos, struct ctype *thistype, struct ctyp
 		ctype->alignment = thistype->alignment;
 
 	/* Attribute */
-	check_attr(thistype);
 	merge_attr(ctype, thistype);
 }
 
@@ -1711,13 +1710,10 @@ static struct token *pointer(struct token *token, struct decl_state *ctx)
 		struct symbol *ptr = alloc_symbol(token->pos, SYM_PTR);
 		ptr->ctype.modifiers = ctx->ctype.modifiers;
 		ptr->ctype.base_type = ctx->ctype.base_type;
-		check_attr(&ctx->ctype);
 		merge_attr(&ptr->ctype, &ctx->ctype);
 		ctx->ctype.modifiers = 0;
 		ctx->ctype.base_type = ptr;
-		ctx->ctype.as = 0;
 		ctx->ctype.attribute = &null_attr;
-		ctx->ctype.contexts = NULL;
 		ctx->ctype.alignment = 0;
 
 		token = handle_qualifiers(token->next, ctx);

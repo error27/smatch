@@ -185,7 +185,6 @@ static struct symbol *base_type(struct symbol *node, unsigned long *modp, unsign
 	mod = 0; as = 0;
 	while (node) {
 		mod |= node->ctype.modifiers;
-		check_sym(node);
 		as |= node->ctype.attribute->as;
 		if (node->type == SYM_NODE) {
 			node = node->ctype.base_type;
@@ -618,16 +617,12 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 	int move1 = 1, move2 = 1;
 	mod1 |= c1->modifiers;
 	mod2 |= c2->modifiers;
-	check_attr(c1);
-	check_attr(c2);
 
 	for (;;) {
 		unsigned long diff;
 		int type;
 		struct symbol *base1 = t1->ctype.base_type;
 		struct symbol *base2 = t2->ctype.base_type;
-		check_sym(t1);
-		check_sym(t2);
 
 		/*
 		 * FIXME! Collect alignment and context too here!
@@ -704,8 +699,6 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 			as1 = t1->ctype.attribute->as;
 			mod2 = t2->ctype.modifiers;
 			as2 = t2->ctype.attribute->as;
-			check_sym(t1);
-			check_sym(t2);
 			break;
 		case SYM_FN: {
 			struct symbol *arg1, *arg2;
@@ -719,8 +712,6 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 			as1 = t1->ctype.attribute->as;
 			mod2 = t2->ctype.modifiers;
 			as2 = t2->ctype.attribute->as;
-			check_sym(t1);
-			check_sym(t2);
 
 			if (base1->variadic != base2->variadic)
 				return "incompatible variadic arguments";
@@ -1052,8 +1043,6 @@ static struct symbol *evaluate_compare(struct expression *expr)
 
 	/* they also have special treatment for pointers to void */
 	if (expr->op == SPECIAL_EQUAL || expr->op == SPECIAL_NOTEQUAL) {
-		check_sym(ltype);
-		check_sym(rtype);
 		if (ltype->ctype.attribute->as == rtype->ctype.attribute->as) {
 			if (lbase == &void_ctype) {
 				right = cast_to(right, ltype);
@@ -1158,8 +1147,6 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 			goto Err;
 		}
 		/* OK, it's pointer on pointer */
-		check_sym(ltype);
-		check_sym(rtype);
 		if (ltype->ctype.attribute->as != rtype->ctype.attribute->as) {
 			typediff = "different address spaces";
 			goto Err;
@@ -1350,8 +1337,6 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			 * we do not remove qualifiers from pointed to [C]
 			 * or mix address spaces [sparse].
 			 */
-			check_sym(t);
-			check_sym(s);
 			if (t->ctype.attribute->as != s->ctype.attribute->as) {
 				typediff = "different address spaces";
 				goto Err;
@@ -1478,12 +1463,10 @@ static void examine_fn_arguments(struct symbol *fn)
 					ptr->ctype = arg->ctype;
 				else
 					ptr->ctype.base_type = arg;
-				check_sym(s);
 				merge_attr(&ptr->ctype, &s->ctype);
 				ptr->ctype.modifiers |= s->ctype.modifiers & MOD_PTRINHERIT;
 
 				s->ctype.base_type = ptr;
-				s->ctype.as = 0;
 				s->ctype.attribute = &null_attr;
 				s->ctype.modifiers &= ~MOD_PTRINHERIT;
 				s->bit_size = 0;
@@ -1502,7 +1485,6 @@ static struct symbol *convert_to_as_mod(struct symbol *sym, int as, int mod)
 {
 	/* Take the modifiers of the pointer, and apply them to the member */
 	mod |= sym->ctype.modifiers;
-	check_sym(sym);
 	if (sym->ctype.attribute->as != as || sym->ctype.modifiers != mod) {
 		struct symbol *newsym = alloc_symbol(sym->pos, SYM_NODE);
 		*newsym = *sym;
@@ -1526,7 +1508,6 @@ static struct symbol *create_pointer(struct expression *expr, struct symbol *sym
 	node->ctype.alignment = pointer_alignment;
 
 	access_symbol(sym);
-	check_sym(sym);
 	if (sym->ctype.modifiers & MOD_REGISTER) {
 		warning(expr->pos, "taking address of 'register' variable '%s'", show_ident(sym->ident));
 		sym->ctype.modifiers &= ~MOD_REGISTER;
@@ -1916,12 +1897,10 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 
 	ctype = deref->ctype;
 	examine_symbol_type(ctype);
-	check_sym(ctype);
 	address_space = ctype->ctype.attribute->as;
 	mod = ctype->ctype.modifiers;
 	if (ctype->type == SYM_NODE) {
 		ctype = ctype->ctype.base_type;
-		check_sym(ctype);
 		address_space |= ctype->ctype.attribute->as;
 		mod |= ctype->ctype.modifiers;
 	}
@@ -2728,7 +2707,6 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		as1 = -1;
 	else if (class1 == TYPE_PTR) {
 		examine_pointer_target(t1);
-		check_sym(t1);
 		as1 = t1->ctype.attribute->as;
 	}
 
@@ -2736,7 +2714,6 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		as2 = -1;
 	else if (class2 == TYPE_PTR) {
 		examine_pointer_target(t2);
-		check_sym(t2);
 		as2 = t2->ctype.attribute->as;
 	}
 

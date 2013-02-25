@@ -248,7 +248,6 @@ static void check_context(struct entrypoint *ep)
 
 	check_instructions(ep);
 
-	check_sym(sym);
 	FOR_EACH_PTR(sym->ctype.attribute->contexts, context) {
 		in_context += context->in;
 		out_context += context->out;
