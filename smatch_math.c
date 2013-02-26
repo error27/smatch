@@ -500,6 +500,25 @@ static sval_t handle_conditional(struct expression *expr, int *undefined, int im
 	return bogus;
 }
 
+static int get_local_value(struct expression *expr, sval_t *sval, int implied)
+{
+	switch (implied) {
+	case NOTIMPLIED:
+	case IMPLIED:
+		return 0;
+	case IMPLIED_MIN:
+	case FUZZY_MIN:
+	case ABSOLUTE_MIN:
+		return get_local_min_helper(expr, sval);
+	case ABSOLUTE_MAX:
+	case HARD_MAX:
+	case IMPLIED_MAX:
+	case FUZZY_MAX:
+		return get_local_max_helper(expr, sval);
+	}
+	return 0;
+}
+
 static int get_implied_value_helper(struct expression *expr, sval_t *sval, int implied)
 {
 	struct smatch_state *state;
@@ -520,7 +539,7 @@ static int get_implied_value_helper(struct expression *expr, sval_t *sval, int i
 	state = get_state(SMATCH_EXTRA, name, sym);
 	free_string(name);
 	if (!state || !state->data)
-		return 0;
+		return get_local_value(expr, sval, implied);
 	if (implied == IMPLIED) {
 		if (estate_get_single_value(state, sval))
 			return 1;
@@ -822,6 +841,9 @@ int get_implied_rl(struct expression *expr, struct range_list **rl)
 		add_range(rl, sval, sval);
 		return 1;
 	}
+
+	if (get_local_rl(expr, rl))
+		return 1;
 
 	min_known = get_implied_min(expr, &min);
 	max_known = get_implied_max(expr, &max);

@@ -176,6 +176,11 @@ void sql_insert_type_size(const char *member, int size)
 	sql_insert(type_size, "'%s', '%s', %d", get_filename(), member, size);
 }
 
+void sql_insert_local_values(const char *name, const char *value)
+{
+	sql_insert(local_values, "'%s', '%s', '%s'", get_filename(), name, value);
+}
+
 static char *get_static_filter(struct symbol *sym)
 {
 	static char sql_filter[1024];
@@ -860,6 +865,7 @@ static void init_memdb(void)
 		"db/call_implies.schema",
 		"db/function_ptr.schema",
 		"db/return_values.schema",
+		"db/local_values.schema",
 	};
 	static char buf[4096];
 	int fd;

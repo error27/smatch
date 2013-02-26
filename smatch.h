@@ -383,6 +383,11 @@ static const sval_t valid_ptr_min_sval = {
 int get_absolute_min_helper(struct expression *expr, sval_t *sval);
 int get_absolute_max_helper(struct expression *expr, sval_t *sval);
 
+/* smatch_local_values.c */
+int get_local_rl(struct expression *expr, struct range_list **rl);
+int get_local_max_helper(struct expression *expr, sval_t *sval);
+int get_local_min_helper(struct expression *expr, sval_t *sval);
+
 /* smatch_states.c */
 void __push_fake_cur_slist();
 struct state_list *__pop_fake_cur_slist();
@@ -527,6 +532,7 @@ void sql_insert_function_ptr(const char *fn, const char *struct_name);
 void sql_insert_return_values(const char *return_values);
 void sql_insert_call_implies(int type, int param, int value);
 void sql_insert_type_size(const char *member, int size);
+void sql_insert_local_values(const char *name, const char *value);
 
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**));
