@@ -36,6 +36,8 @@ static void match_return(struct expression *ret_value)
 	struct sm_state *tmp;
 	sval_t sval;
 
+	if (__inline_fn)
+		return;
 	match_err_ptr(ret_value);
 	slist = get_possible_states_expr(check_assigned_expr_id, ret_value);
 	FOR_EACH_PTR(slist, tmp) {
@@ -52,6 +54,8 @@ static void match_return(struct expression *ret_value)
 
 static void match_end_func(struct symbol *sym)
 {
+	if (__inline_fn)
+		return;
 	if (err_ptr)
 		sm_info("returns_err_ptr");
 	err_ptr = 0;

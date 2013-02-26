@@ -36,6 +36,8 @@ static int my_id;
 STATE(original);
 
 static struct state_list *start_states;
+static struct state_list_stack *saved_stack;
+
 static void save_start_states(struct statement *stmt)
 {
 	start_states = get_all_states(SMATCH_EXTRA);
@@ -152,6 +154,17 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 	set_state(my_id, name, sym, orig_vals);
 }
 
+static void match_save_states(struct expression *expr)
+{
+	push_slist(&saved_stack, start_states);
+	start_states = NULL;
+}
+
+static void match_restore_states(struct expression *expr)
+{
+	start_states = pop_slist(&saved_stack);
+}
+
 void register_param_limit(int id)
 {
 	my_id = id;
@@ -161,5 +174,8 @@ void register_param_limit(int id)
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_returned_state_callback(&print_return_value_param);
 	add_hook(&match_end_func, END_FUNC_HOOK);
+	add_hook(&match_save_states, INLINE_FN_START);
+	add_hook(&match_restore_states, INLINE_FN_END);
+
 }
 

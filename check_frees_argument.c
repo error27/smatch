@@ -62,6 +62,9 @@ static void match_return(struct expression *ret_value)
 	struct sm_state *tmp;
 	struct tracker *tracker;
 
+	if (__inline_fn)
+		return;
+
 	if (!return_count) {
 		slist = get_all_states(my_id);
 		FOR_EACH_PTR(slist, tmp) {
@@ -99,6 +102,8 @@ static void match_end_func(struct symbol *sym)
 {
 	struct tracker *tracker;
 
+	if (__inline_fn)
+		return;
 	if (is_reachable())
 		match_return(NULL);
 

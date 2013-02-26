@@ -29,6 +29,8 @@ static void match_return(struct expression *ret_value)
 	struct range_list *rl;
 	struct symbol *type = cur_func_return_type();
 
+	if (__inline_fn)
+		return;
 	ret_value = strip_expr(ret_value);
 	if (!ret_value)
 		return;
@@ -41,6 +43,8 @@ static void match_return(struct expression *ret_value)
 
 static void match_end_func(struct symbol *sym)
 {
+	if (__inline_fn)
+		return;
 	if (!return_ranges)
 		return;
 	sql_insert_return_values(show_rl(return_ranges));

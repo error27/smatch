@@ -53,6 +53,8 @@ static void match_return(struct expression *ret_value)
 	struct symbol *sym;
 	sval_t tmp;
 
+	if (__inline_fn)
+		return;
 	if (get_value(ret_value, &tmp) && tmp.value == 0)
 		return;
 	returns_new_stuff = 1;
@@ -69,6 +71,8 @@ free:
 
 static void match_end_func(struct symbol *sym)
 {
+	if (__inline_fn)
+		return;
 	if (returns_new_stuff && !returns_old_stuff)
 		sm_info("allocation func");
 	free_trackers_and_list(&allocated);

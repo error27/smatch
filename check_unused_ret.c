@@ -172,6 +172,8 @@ static void match_end_func(struct symbol *sym)
 {
 	struct assignment *tmp;
 
+	if (__inline_fn)
+		return;
  	FOR_EACH_PTR(assignment_list, tmp) {
 		sm_printf("%s:%d %s ", get_filename(), tmp->line, get_function());
 		sm_printf("warn: unused return: %s = %s()\n",

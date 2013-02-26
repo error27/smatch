@@ -513,6 +513,8 @@ sval_t ll_to_sval(long long val)
 
 static void free_svals(struct symbol *sym)
 {
+	if (__inline_fn)
+		return;
 	clear_sval_alloc();
 }
 

@@ -611,6 +611,8 @@ free:
 
 static void match_end_func(struct symbol *sym)
 {
+	if (__inline_fn)
+		return;
 	implied_debug_msg = NULL;
 }
 

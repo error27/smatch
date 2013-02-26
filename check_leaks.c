@@ -216,12 +216,16 @@ static void check_for_allocated(void)
 
 static void match_return(struct expression *ret_value)
 {
+	if (__inline_fn)
+		return;
 	set_parent(ret_value, &ok);
 	check_for_allocated();
 }
 
 static void match_end_func(struct symbol *sym)
 {
+	if (__inline_fn)
+		return;
 	check_for_allocated();
 }
 

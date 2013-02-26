@@ -319,6 +319,8 @@ static void match_return(struct expression *ret_value)
 	char *name;
 	struct symbol *sym;
 
+	if (__inline_fn)
+		return;
 	name = expr_to_str_sym(ret_value, &sym);
 	if (sym)
 		assign_parent(sym);
@@ -397,6 +399,8 @@ static void match_function_call(struct expression *expr)
 
 static void match_end_func(struct symbol *sym)
 {
+	if (__inline_fn)
+		return;
 	check_for_allocated();
 	free_trackers_and_list(&arguments);
 }

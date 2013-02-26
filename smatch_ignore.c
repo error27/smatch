@@ -36,6 +36,8 @@ int is_ignored(int owner, const char *name, struct symbol *sym)
 
 static void clear_ignores(void)
 {
+	if (__inline_fn)
+		return;
 	__free_ptr_list((struct ptr_list **)&ignored);
 }
 

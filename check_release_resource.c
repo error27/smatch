@@ -62,6 +62,8 @@ free:
 
 static void match_end_func(struct symbol *sym)
 {
+	if (__inline_fn)
+		return;
 	free_trackers_and_list(&resource_list);
 }
 
