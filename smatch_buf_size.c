@@ -309,6 +309,71 @@ static struct expression *remove_addr_fluff(struct expression *expr)
 	return expr;
 }
 
+static int is_last_member_of_struct(struct symbol *sym, struct ident *member)
+{
+	struct symbol *tmp;
+	int i;
+
+	i = 0;
+	FOR_EACH_PTR_REVERSE(sym->symbol_list, tmp) {
+		if (i++ || !tmp->ident)
+			return 0;
+		if (tmp->ident == member)
+			return 1;
+		return 0;
+	} END_FOR_EACH_PTR_REVERSE(tmp);
+
+	return 0;
+}
+
+static int get_stored_size_end_struct_bytes(struct expression *expr)
+{
+	struct symbol *type;
+	char *name;
+	struct symbol *sym;
+	struct smatch_state *state;
+	sval_t sval;
+
+	if (expr->type == EXPR_BINOP) /* array elements foo[5] */
+		return 0;
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_ARRAY)
+		return 0;
+
+	if (!get_implied_value(type->array_size, &sval))
+		return 0;
+
+	if (sval.value != 0 && sval.value != 1)
+		return 0;
+
+	name = expr_to_var_sym(expr, &sym);
+	free_string(name);
+	if (!sym || !sym->ident || !sym->ident->name)
+		return 0;
+	if (!sym->bit_size)
+		return 0;
+
+	if (sym->type != SYM_NODE)
+		return 0;
+
+	state = get_state(my_size_id, sym->ident->name, sym);
+	if (!state || !state->data)
+		return 0;
+
+	sym = get_real_base_type(sym);
+	if (!sym || sym->type != SYM_PTR)
+		return 0;
+	sym = get_real_base_type(sym);
+	if (!sym || sym->type != SYM_STRUCT)
+		return 0;
+	if (!is_last_member_of_struct(sym, expr->member))
+		return 0;
+
+	return PTR_INT(state->data) - bits_to_bytes(sym->bit_size) +
+		bits_to_bytes(type->bit_size);
+}
+
 int get_array_size_bytes(struct expression *expr)
 {
 	int size;
@@ -328,6 +393,10 @@ int get_array_size_bytes(struct expression *expr)
 
 	/* buf = malloc(1024); */
 	size = get_stored_size_bytes(expr);
+	if (size)
+		return size;
+
+	size = get_stored_size_end_struct_bytes(expr);
 	if (size)
 		return size;
 
