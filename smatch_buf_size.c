@@ -29,8 +29,6 @@ struct limiter {
 };
 static struct limiter b0_l2 = {0, 2};
 
-static _Bool params_set[32];
-
 static void set_undefined(struct sm_state *sm)
 {
 	if (sm->state != &undefined)
@@ -625,11 +623,6 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	sql_insert_caller_info(call, BUF_SIZE, param, printed_name, state->name);
 }
 
-static void match_func_end(struct symbol *sym)
-{
-	memset(params_set, 0, sizeof(params_set));
-}
-
 void register_buf_size(int id)
 {
 	my_size_id = id;
@@ -661,7 +654,6 @@ void register_buf_size(int id)
 	if (option_project == PROJ_KERNEL)
 		add_function_assign_hook("kstrndup", match_strndup, NULL);
 
-	add_hook(&match_func_end, END_FUNC_HOOK);
 	add_modification_hook(my_size_id, &set_undefined);
 
 	add_merge_hook(my_size_id, &merge_func);
