@@ -292,7 +292,7 @@ static struct expression *remove_addr_fluff(struct expression *expr)
 	expr = strip_expr(expr);
 
 	/* remove '&' and '*' operations that cancel */
-	while (expr->type == EXPR_PREOP && expr->op == '&') {
+	while (expr && expr->type == EXPR_PREOP && expr->op == '&') {
 		tmp = strip_expr(expr->unop);
 		if (tmp->type != EXPR_PREOP)
 			break;
@@ -300,6 +300,9 @@ static struct expression *remove_addr_fluff(struct expression *expr)
 			break;
 		expr = strip_expr(tmp->unop);
 	}
+
+	if (!expr)
+		return NULL;
 
 	/* "foo + 0" is just "foo" */
 	if (expr->type == EXPR_BINOP && expr->op == '+' &&
