@@ -239,6 +239,10 @@ static void match_condition(struct expression *expr)
 
 static void match_normal_assign(struct expression *expr)
 {
+	if (is_user_data(expr->right))
+		set_state_expr(my_id, expr->left, &user_data);
+	if (expr->op != '=')
+		return;
 	if (is_user_data(expr->left))
 		set_state_expr(my_id, expr->left, &capped);
 }
