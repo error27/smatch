@@ -338,14 +338,16 @@ static struct token *dup_list(struct token *list)
 	return res;
 }
 
-static const char *quote_token_sequence(struct token *token)
+static const char *show_token_sequence(struct token *token, int quote)
 {
-	static char buffer[1024];
+	static char buffer[MAX_STRING];
 	char *ptr = buffer;
 	int whitespace = 0;
 
+	if (!token && !quote)
+		return "<none>";
 	while (!eof_token(token)) {
-		const char *val = quote_token(token);
+		const char *val = quote ? quote_token(token) : show_token(token);
 		int len = strlen(val);
 
 		if (ptr + whitespace + len >= buffer + sizeof(buffer)) {
@@ -366,7 +368,7 @@ static const char *quote_token_sequence(struct token *token)
 
 static struct token *stringify(struct token *arg)
 {
-	const char *s = quote_token_sequence(arg);
+	const char *s = show_token_sequence(arg, 1);
 	int size = strlen(s)+1;
 	struct token *token = __alloc_token(0);
 	struct string *string = __alloc_string(size);
@@ -1436,7 +1438,7 @@ static int handle_ifndef(struct stream *stream, struct token **line, struct toke
 	return preprocessor_if(stream, token, arg);
 }
 
-static const char *show_token_sequence(struct token *token);
+static const char *show_token_sequence(struct token *token, int quote);
 
 /*
  * Expression handling for #if and #elif; it differs from normal expansion
@@ -1495,7 +1497,7 @@ static int expression_value(struct token **where)
 
 	p = constant_expression(*where, &expr);
 	if (!eof_token(p))
-		sparse_error(p->pos, "garbage at end: %s", show_token_sequence(p));
+		sparse_error(p->pos, "garbage at end: %s", show_token_sequence(p, 0));
 	value = get_expression_value(expr);
 	return value != 0;
 }
@@ -1584,43 +1586,15 @@ static int handle_endif(struct stream *stream, struct token **line, struct token
 	return 1;
 }
 
-static const char *show_token_sequence(struct token *token)
-{
-	static char buffer[1024];
-	char *ptr = buffer;
-	int whitespace = 0;
-
-	if (!token)
-		return "<none>";
-	while (!eof_token(token)) {
-		const char *val = show_token(token);
-		int len = strlen(val);
-
-		if (ptr + whitespace + len >= buffer + sizeof(buffer)) {
-			sparse_error(token->pos, "too long token expansion");
-			break;
-		}
-
-		if (whitespace)
-			*ptr++ = ' ';
-		memcpy(ptr, val, len);
-		ptr += len;
-		token = token->next;
-		whitespace = token->pos.whitespace;
-	}
-	*ptr = 0;
-	return buffer;
-}
-
 static int handle_warning(struct stream *stream, struct token **line, struct token *token)
 {
-	warning(token->pos, "%s", show_token_sequence(token->next));
+	warning(token->pos, "%s", show_token_sequence(token->next, 0));
 	return 1;
 }
 
 static int handle_error(struct stream *stream, struct token **line, struct token *token)
 {
-	sparse_error(token->pos, "%s", show_token_sequence(token->next));
+	sparse_error(token->pos, "%s", show_token_sequence(token->next, 0));
 	return 1;
 }
 
@@ -1828,7 +1802,7 @@ static int handle_line(struct stream *stream, struct token **line, struct token 
 
 static int handle_nondirective(struct stream *stream, struct token **line, struct token *token)
 {
-	sparse_error(token->pos, "unrecognized preprocessor line '%s'", show_token_sequence(token));
+	sparse_error(token->pos, "unrecognized preprocessor line '%s'", show_token_sequence(token, 0));
 	return 1;
 }
 
