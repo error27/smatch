@@ -1,5 +1,13 @@
 VERSION=0.4.4
 
+# Generating file version.h if current version has changed
+SPARSE_VERSION:=$(shell git describe 2>/dev/null || echo '$(VERSION)')
+VERSION_H := $(shell cat version.h 2>/dev/null)
+ifneq ($(lastword $(VERSION_H)),"$(SPARSE_VERSION)")
+$(info $(shell echo '     GEN      'version.h))
+$(shell echo '#define SPARSE_VERSION "$(SPARSE_VERSION)"' > version.h)
+endif
+
 OS = linux
 
 
@@ -191,7 +199,7 @@ clean: clean-check
 	rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
 
 dist:
-	@if test "`git describe`" != "v$(VERSION)" ; then \
+	@if test "v$(SPARSE_VERSION)" != "v$(VERSION)" ; then \
 		echo 'Update VERSION in the Makefile before running "make dist".' ; \
 		exit 1 ; \
 	fi

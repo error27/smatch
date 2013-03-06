@@ -27,6 +27,7 @@
 #include "scope.h"
 #include "linearize.h"
 #include "target.h"
+#include "version.h"
 
 int verbose, optimize, optimize_size, preprocessing;
 int die_if_error = 0;
@@ -646,10 +647,33 @@ static char **handle_base_dir(char *arg, char **next)
 	return next;
 }
 
+static char **handle_version(char *arg, char **next)
+{
+	printf("%s\n", SPARSE_VERSION);
+	exit(0);
+}
+
 struct switches {
 	const char *name;
 	char **(*fn)(char *, char **);
 };
+
+static char **handle_long_options(char *arg, char **next)
+{
+	static struct switches cmd[] = {
+		{ "version", handle_version },
+		{ NULL, NULL }
+	};
+	struct switches *s = cmd;
+
+	while (s->name) {
+		if (!strcmp(s->name, arg))
+			return s->fn(arg, next);
+		s++;
+	}
+	return next;
+
+}
 
 static char **handle_switch(char *arg, char **next)
 {
@@ -676,6 +700,7 @@ static char **handle_switch(char *arg, char **next)
 	case 'G': return handle_switch_G(arg, next);
 	case 'a': return handle_switch_a(arg, next);
 	case 's': return handle_switch_s(arg, next);
+	case '-': return handle_long_options(arg + 1, next);
 	default:
 		break;
 	}
