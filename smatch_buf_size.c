@@ -185,7 +185,7 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 	set_state_expr(my_size_id, expr->left, alloc_state_num(sval.value));
 }
 
-static int get_real_array_size(struct expression *expr)
+int get_real_array_size(struct expression *expr)
 {
 	struct symbol *type;
 	sval_t sval;
