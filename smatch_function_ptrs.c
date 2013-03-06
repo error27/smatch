@@ -18,6 +18,43 @@
 
 static int my_id;
 
+static void match_passes_function_pointer(struct expression *expr)
+{
+	struct expression *arg, *tmp;
+	struct symbol *type;
+	char *called_name;
+	char *fn_name;
+	char ptr_name[256];
+	int i;
+
+
+	i = -1;
+	FOR_EACH_PTR(expr->args, arg) {
+		i++;
+
+		tmp = strip_expr(arg);
+		if (tmp->type == EXPR_PREOP && tmp->op == '&')
+			tmp = strip_expr(tmp->unop);
+		type = get_type(tmp);
+		if (!type || type->type != SYM_FN)
+			continue;
+
+		called_name = expr_to_var(expr->fn);
+		if (!called_name)
+			return;
+		fn_name = expr_to_var(tmp);
+		if (!fn_name)
+			goto free;
+
+		snprintf(ptr_name, sizeof(ptr_name), "%s param %d", called_name, i);
+		sql_insert_function_ptr(fn_name, ptr_name);
+free:
+		free_string(fn_name);
+		free_string(called_name);
+	} END_FOR_EACH_PTR(arg);
+
+}
+
 static void match_function_assign(struct expression *expr)
 {
 	struct expression *right = expr->right;
@@ -52,5 +89,6 @@ void register_function_ptrs(int id)
 	if (!option_info)
 		return;
 
+	add_hook(&match_passes_function_pointer, FUNCTION_CALL_HOOK);
 	add_hook(&match_function_assign, ASSIGNMENT_HOOK);
 }
