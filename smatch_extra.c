@@ -499,18 +499,20 @@ static void match_assign(struct expression *expr)
 	sval_t right_min, right_max;
 	sval_t tmp;
 
-	if (is_condition(expr->right))
-		return;
 	left = strip_expr(expr->left);
+
+	right = strip_expr(expr->right);
+	while (right->type == EXPR_ASSIGNMENT && right->op == '=')
+		right = strip_expr(right->left);
+
+	if (is_condition(expr->right))
+		return; /* handled in smatch_condition.c */
+	if (expr->op == '=' && right->type == EXPR_CALL)
+		return; /* handled in smatch_function_hooks.c */
+
 	name = expr_to_var_sym(left, &sym);
 	if (!name)
 		return;
-	right = strip_parens(expr->right);
-	while (right->type == EXPR_ASSIGNMENT && right->op == '=')
-		right = strip_parens(right->left);
-
-	if (expr->op == '=' && strip_expr(right)->type == EXPR_CALL)
-		goto free;  /* these are handled in smatch_function_hooks.c */
 
 	left_type = get_type(left);
 	right_type = get_type(right);
