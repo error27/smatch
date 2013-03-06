@@ -489,6 +489,8 @@ static void match_assign(struct expression *expr)
 	struct expression *right;
 	struct expression *binop_expr;
 	struct symbol *right_sym;
+	struct symbol *left_type;
+	struct symbol *right_type;
 	char *right_name = NULL;
 	struct symbol *sym;
 	char *name;
@@ -510,15 +512,18 @@ static void match_assign(struct expression *expr)
 	if (expr->op == '=' && strip_expr(right)->type == EXPR_CALL)
 		goto free;  /* these are handled in smatch_function_hooks.c */
 
+	left_type = get_type(left);
+	right_type = get_type(right);
+
 	right_name = expr_to_var_sym(right, &right_sym);
 	if (expr->op == '=' && right_name && right_sym &&
-	    types_equiv_or_pointer(get_type(expr->left), get_type(expr->right))) {
+	    types_equiv_or_pointer(left_type, right_type)) {
 		set_equiv(left, right);
 		goto free;
 	}
 
-	right_min = sval_type_min(get_type(expr->right));
-	right_max = sval_type_max(get_type(expr->right));
+	right_min = sval_type_min(right_type);
+	right_max = sval_type_max(right_type);
 
 	known = get_implied_value(right, &value);
 	switch (expr->op) {
@@ -526,13 +531,13 @@ static void match_assign(struct expression *expr)
 		struct smatch_state *state;
 
 		if (get_implied_rl(right, &rl)) {
-			rl = cast_rl(get_type(expr->left), rl);
+			rl = cast_rl(left_type, rl);
 			state = alloc_estate_rl(rl);
 			if (get_hard_max(right, &tmp))
 				estate_set_hard_max(state);
 		} else {
-			rl = alloc_whole_rl(get_type(right));
-			rl = cast_rl(get_type(expr->left), rl);
+			rl = alloc_whole_rl(right_type);
+			rl = cast_rl(left_type, rl);
 			state = alloc_estate_rl(rl);
 		}
 		set_extra_mod(name, sym, state);
@@ -564,15 +569,15 @@ static void match_assign(struct expression *expr)
 					      op_remove_assign(expr->op),
 					      expr->right);
 		if (get_implied_rl(binop_expr, &rl)) {
-			rl = cast_rl(get_type(expr->left), rl);
+			rl = cast_rl(left_type, rl);
 			set_extra_mod(name, sym, alloc_estate_rl(rl));
 			goto free;
 		}
 	}
 	if (!sval_is_min(right_min) || !sval_is_max(right_max))
-		rl = cast_rl(get_type(expr->left), alloc_rl(right_min, right_max));
+		rl = cast_rl(left_type, alloc_rl(right_min, right_max));
 	else
-		rl = alloc_whole_rl(get_type(expr->left));
+		rl = alloc_whole_rl(left_type);
 	set_extra_mod(name, sym, alloc_estate_rl(rl));
 free:
 	free_string(right_name);
