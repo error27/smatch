@@ -476,23 +476,6 @@ char *get_member_name(struct expression *expr)
 	return alloc_string(buf);
 }
 
-char *get_fnptr_name(struct expression *expr)
-{
-	if (expr->type == EXPR_SYMBOL) {
-		int param;
-		char buf[256];
-
-		param = get_param_num_from_sym(expr->symbol);
-		if (param >= 0) {
-			snprintf(buf, sizeof(buf), "%s param %d", get_function(), param);
-			return alloc_string(buf);
-		}
-
-		return expr_to_var(expr);
-	}
-	return get_member_name(expr);
-}
-
 int positions_eq(struct position pos1, struct position pos2)
 {
 	if (pos1.line != pos2.line)

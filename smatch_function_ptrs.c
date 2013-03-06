@@ -18,6 +18,23 @@
 
 static int my_id;
 
+char *get_fnptr_name(struct expression *expr)
+{
+	if (expr->type == EXPR_SYMBOL) {
+		int param;
+		char buf[256];
+
+		param = get_param_num_from_sym(expr->symbol);
+		if (param >= 0) {
+			snprintf(buf, sizeof(buf), "%s param %d", get_function(), param);
+			return alloc_string(buf);
+		}
+
+		return expr_to_var(expr);
+	}
+	return get_member_name(expr);
+}
+
 static void match_passes_function_pointer(struct expression *expr)
 {
 	struct expression *arg, *tmp;
