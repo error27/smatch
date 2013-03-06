@@ -555,33 +555,6 @@ static void match_data_from_db(struct symbol *sym)
 	free_slist(&final_states);
 }
 
-static void match_function_assign(struct expression *expr)
-{
-	struct expression *right = expr->right;
-	struct symbol *sym;
-	char *fn_name;
-	char *ptr_name;
-
-	if (right->type == EXPR_PREOP && right->op == '&')
-		right = strip_expr(right->unop);
-	if (right->type != EXPR_SYMBOL)
-		return;
-	sym = get_type(right);
-	if (!sym || sym->type != SYM_FN)
-		return;
-
-	fn_name = expr_to_var(right);
-	ptr_name = get_fnptr_name(expr->left);
-	if (!fn_name || !ptr_name)
-		goto free;
-
-	sql_insert_function_ptr(fn_name, ptr_name);
-
-free:
-	free_string(fn_name);
-	free_string(ptr_name);
-}
-
 static struct expression *call_implies_call_expr;
 static int call_implies_callbacks(void *unused, int argc, char **argv, char **azColName)
 {
@@ -918,7 +891,6 @@ void register_definition_db_callbacks(int id)
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
-	add_hook(&match_function_assign, ASSIGNMENT_HOOK);
 	add_hook(&global_variable, BASE_HOOK);
 	add_hook(&global_variable, DECLARATION_HOOK);
 	add_returned_state_callback(match_return_info);
