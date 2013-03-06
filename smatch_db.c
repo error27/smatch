@@ -118,6 +118,22 @@ void sql_insert_return_states(int return_id, const char *return_ranges,
 		   return_id, return_ranges, fn_static(), type, param, key, value);
 }
 
+static struct string_list *common_funcs;
+static int is_common_function(const char *fn)
+{
+	char *tmp;
+
+	if (strncmp(fn, "__builtin_", 10) == 0)
+		return 1;
+
+	FOR_EACH_PTR(common_funcs, tmp) {
+		if (strcmp(tmp, fn) == 0)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+
+	return 0;
+}
+
 void sql_insert_caller_info(struct expression *call, int type,
 		int param, const char *key, const char *value)
 {
@@ -140,7 +156,7 @@ void sql_insert_caller_info(struct expression *call, int type,
 	if (!option_info)
 		return;
 
-	if (strncmp(fn, "__builtin_", 10) == 0)
+	if (is_common_function(fn))
 		return;
 
 	sm_msg("SQL_caller_info: insert into caller_info values ("
@@ -886,6 +902,34 @@ void open_smatch_db(void)
 	return;
 }
 
+static void register_common_funcs(void)
+{
+	struct token *token;
+	char *func;
+	char filename[256];
+
+	if (option_project == PROJ_NONE)
+		strcpy(filename, "common_functions");
+	else
+		snprintf(filename, 256, "%s.common_functions", option_project_str);
+
+	token = get_tokens_file(filename);
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = alloc_string(show_ident(token->ident));
+		add_ptr_list(&common_funcs, func);
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
+
 void register_definition_db_callbacks(int id)
 {
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
@@ -900,6 +944,8 @@ void register_definition_db_callbacks(int id)
 
 	add_hook(&match_data_from_db, FUNC_DEF_HOOK);
 	add_hook(&match_call_implies, CALL_HOOK_AFTER_INLINE);
+
+	register_common_funcs();
 }
 
 void register_db_call_marker(int id)
