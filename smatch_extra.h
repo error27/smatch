@@ -148,6 +148,7 @@ struct expression *value_expr(long long val);
 struct expression *member_expression(struct expression *deref, int op, struct ident *member);
 struct expression *deref_expression(struct expression *expr);
 struct expression *assign_expression(struct expression *left, struct expression *right);
+struct expression *binop_expression(struct expression *left, int op, struct expression *right);
 struct expression *symbol_expression(struct symbol *sym);
 
 

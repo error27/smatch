@@ -454,11 +454,40 @@ static int types_equiv_or_pointer(struct symbol *one, struct symbol *two)
 	return types_equiv(one, two);
 }
 
+static int op_remove_assign(int op)
+{
+	switch (op) {
+	case SPECIAL_ADD_ASSIGN:
+		return '+';
+	case SPECIAL_SUB_ASSIGN:
+		return '-';
+	case SPECIAL_MUL_ASSIGN:
+		return '*';
+	case SPECIAL_DIV_ASSIGN:
+		return '/';
+	case SPECIAL_MOD_ASSIGN:
+		return '%';
+	case SPECIAL_AND_ASSIGN:
+		return '&';
+	case SPECIAL_OR_ASSIGN:
+		return '|';
+	case SPECIAL_XOR_ASSIGN:
+		return '^';
+	case SPECIAL_SHL_ASSIGN:
+		return SPECIAL_LEFTSHIFT;
+	case SPECIAL_SHR_ASSIGN:
+		return SPECIAL_RIGHTSHIFT;
+	default:
+		return op;
+	}
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct range_list *rl = NULL;
 	struct expression *left;
 	struct expression *right;
+	struct expression *binop_expr;
 	struct symbol *right_sym;
 	char *right_name = NULL;
 	struct symbol *sym;
@@ -529,6 +558,16 @@ static void match_assign(struct expression *expr)
 		if (!inside_loop() && known && get_implied_min(left, &tmp))
 			right_min = sval_binop(tmp, '-', value);
 		break;
+	case SPECIAL_AND_ASSIGN:
+	case SPECIAL_MOD_ASSIGN:
+		binop_expr = binop_expression(expr->left,
+					      op_remove_assign(expr->op),
+					      expr->right);
+		if (get_implied_rl(binop_expr, &rl)) {
+			rl = cast_rl(get_type(expr->left), rl);
+			set_extra_mod(name, sym, alloc_estate_rl(rl));
+			goto free;
+		}
 	}
 	if (!sval_is_min(right_min) || !sval_is_max(right_max))
 		rl = cast_rl(get_type(expr->left), alloc_rl(right_min, right_max));

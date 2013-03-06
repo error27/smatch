@@ -58,6 +58,17 @@ struct expression *assign_expression(struct expression *left, struct expression 
 	return expr;
 }
 
+struct expression *binop_expression(struct expression *left, int op, struct expression *right)
+{
+	struct expression *expr;
+
+	expr = alloc_expression(right->pos, EXPR_BINOP);
+	expr->op = op;
+	expr->left = left;
+	expr->right = right;
+	return expr;
+}
+
 struct expression *symbol_expression(struct symbol *sym)
 {
 	struct expression *expr;
