@@ -24,6 +24,7 @@
  */
 
 #include "smatch.h"
+#include "smatch_extra.h"
 #include "smatch_slist.h"
 
 static int compare_id;
@@ -277,6 +278,128 @@ free:
 	free_string(right);
 }
 
+static void add_comparison(struct expression *left, int comparison, struct expression *right)
+{
+	char *left_name = NULL;
+	char *right_name = NULL;
+	struct symbol *left_sym, *right_sym;
+	struct smatch_state *state;
+	char state_name[256];
+
+	left_name = expr_to_var_sym(left, &left_sym);
+	if (!left_name || !left_sym)
+		goto free;
+	right_name = expr_to_var_sym(right, &right_sym);
+	if (!right_name || !right_sym)
+		goto free;
+
+	if (strcmp(left_name, right_name) > 0) {
+		char *tmp = left_name;
+		left_name = right_name;
+		right_name = tmp;
+		comparison = flip_op(comparison);
+	}
+	snprintf(state_name, sizeof(state_name), "%s vs %s", left_name, right_name);
+	state = &compare_states[comparison];
+
+	set_state(compare_id, state_name, NULL, state);
+	save_link(left, state_name);
+	save_link(right, state_name);
+free:
+	free_string(left_name);
+	free_string(right_name);
+
+}
+
+static void match_assign_add(struct expression *expr)
+{
+	struct expression *right;
+	struct expression *r_left, *r_right;
+	sval_t left_tmp, right_tmp;
+
+	right = strip_expr(expr->right);
+	r_left = strip_expr(right->left);
+	r_right = strip_expr(right->right);
+
+	if (!is_capped(expr->left)) {
+		get_absolute_max(r_left, &left_tmp);
+		get_absolute_max(r_right, &right_tmp);
+		if (sval_binop_overflows(left_tmp, '+', right_tmp))
+			return;
+	}
+
+	get_absolute_min(r_left, &left_tmp);
+	if (sval_is_negative(left_tmp))
+		return;
+	get_absolute_min(r_right, &right_tmp);
+	if (sval_is_negative(right_tmp))
+		return;
+
+	if (left_tmp.value == 0)
+		add_comparison(expr->left, SPECIAL_GTE, r_right);
+	else
+		add_comparison(expr->left, '>', r_right);
+
+	if (right_tmp.value == 0)
+		add_comparison(expr->left, SPECIAL_GTE, r_left);
+	else
+		add_comparison(expr->left, '>', r_left);
+}
+
+static void match_assign_sub(struct expression *expr)
+{
+	struct expression *right;
+	struct expression *r_left, *r_right;
+	int comparison;
+	sval_t min;
+
+	right = strip_expr(expr->right);
+	r_left = strip_expr(right->left);
+	r_right = strip_expr(right->right);
+
+	if (get_absolute_min(r_right, &min) && sval_is_negative(min))
+		return;
+
+	comparison = get_comparison(r_left, r_right);
+
+	switch (comparison) {
+	case '>':
+	case SPECIAL_GTE:
+		if (implied_not_equal(r_right, 0))
+			add_comparison(expr->left, '>', r_left);
+		else
+			add_comparison(expr->left, SPECIAL_GTE, r_left);
+		return;
+	}
+}
+
+static void match_binop_assign(struct expression *expr)
+{
+	struct expression *right;
+
+	right = strip_expr(expr->right);
+	if (right->op == '+')
+		match_assign_add(expr);
+	if (right->op == '-')
+		match_assign_sub(expr);
+}
+
+static void match_normal_assign(struct expression *expr)
+{
+	add_comparison(expr->left, SPECIAL_EQUAL, expr->right);
+}
+
+static void match_assign(struct expression *expr)
+{
+	struct expression *right;
+
+	right = strip_expr(expr->right);
+	if (right->type == EXPR_BINOP)
+		match_binop_assign(expr);
+	else
+		match_normal_assign(expr);
+}
+
 int get_comparison(struct expression *a, struct expression *b)
 {
 	char *one = NULL;
@@ -320,6 +443,7 @@ void register_comparison(int id)
 {
 	compare_id = id;
 	add_hook(&match_logic, CONDITION_HOOK);
+	add_hook(&match_assign, ASSIGNMENT_HOOK);
 }
 
 void register_comparison_links(int id)
