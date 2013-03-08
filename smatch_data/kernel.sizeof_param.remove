@@ -2,4 +2,5 @@ printk
 find_first_zero_bit
 dvb_usb_generic_rw
 strncpy 2 1
+strlcpy 2 1
 snprintf
