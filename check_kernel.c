@@ -49,6 +49,24 @@ static void match_param_valid_ptr(const char *fn, struct expression *call_expr,
 	set_extra_expr_nomod(arg, end_state);
 }
 
+static void match_param_err_or_null(const char *fn, struct expression *call_expr,
+			struct expression *assign_expr, void *_param)
+{
+	int param = PTR_INT(_param);
+	struct expression *arg;
+	struct range_list *rl;
+	struct smatch_state *pre_state;
+	struct smatch_state *end_state;
+
+	arg = get_argument_from_call_expr(call_expr->args, param);
+	pre_state = get_state_expr(SMATCH_EXTRA, arg);
+	rl = alloc_rl(ll_to_sval(-4095), ll_to_sval(0));
+	rl = rl_intersection(estate_rl(pre_state), rl);
+	rl = cast_rl(estate_type(pre_state), rl);
+	end_state = alloc_estate_rl(rl);
+	set_extra_expr_nomod(arg, end_state);
+}
+
 static void match_not_err(const char *fn, struct expression *call_expr,
 			struct expression *assign_expr, void *unused)
 {
@@ -90,6 +108,7 @@ void check_kernel(int id)
 	add_implied_return_hook("ERR_CAST", &implied_err_cast_return, NULL);
 	add_implied_return_hook("PTR_ERR", &implied_err_cast_return, NULL);
 	return_implies_state("IS_ERR_OR_NULL", 0, 0, &match_param_valid_ptr, (void *)0);
+	return_implies_state("IS_ERR_OR_NULL", 1, 1, &match_param_err_or_null, (void *)0);
 	return_implies_state("IS_ERR", 0, 0, &match_not_err, NULL);
 	return_implies_state("IS_ERR", 1, 1, &match_err, NULL);
 	return_implies_state("tomoyo_memory_ok", 1, 1, &match_param_valid_ptr, (void *)0);
