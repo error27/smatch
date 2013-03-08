@@ -35,18 +35,18 @@ static int implied_copy_return(struct expression *call, void *unused, struct ran
 	return 1;
 }
 
-static void match_param_nonnull(const char *fn, struct expression *call_expr,
+static void match_param_valid_ptr(const char *fn, struct expression *call_expr,
 			struct expression *assign_expr, void *_param)
 {
 	int param = PTR_INT(_param);
 	struct expression *arg;
 	struct smatch_state *pre_state;
-	struct smatch_state *true_state;
+	struct smatch_state *end_state;
 
 	arg = get_argument_from_call_expr(call_expr->args, param);
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
-	true_state = estate_filter_sval(pre_state, ll_to_sval(0));
-	set_extra_expr_nomod(arg, true_state);
+	end_state = estate_filter_range(pre_state, ll_to_sval(-4095), ll_to_sval(0));
+	set_extra_expr_nomod(arg, end_state);
 }
 
 static void match_not_err(const char *fn, struct expression *call_expr,
@@ -89,10 +89,10 @@ void check_kernel(int id)
 	add_implied_return_hook("ERR_PTR", &implied_err_cast_return, NULL);
 	add_implied_return_hook("ERR_CAST", &implied_err_cast_return, NULL);
 	add_implied_return_hook("PTR_ERR", &implied_err_cast_return, NULL);
-	return_implies_state("IS_ERR_OR_NULL", 0, 0, &match_param_nonnull, (void *)0);
+	return_implies_state("IS_ERR_OR_NULL", 0, 0, &match_param_valid_ptr, (void *)0);
 	return_implies_state("IS_ERR", 0, 0, &match_not_err, NULL);
 	return_implies_state("IS_ERR", 1, 1, &match_err, NULL);
-	return_implies_state("tomoyo_memory_ok", 1, 1, &match_param_nonnull, (void *)0);
+	return_implies_state("tomoyo_memory_ok", 1, 1, &match_param_valid_ptr, (void *)0);
 	add_macro_assign_hook_extra("container_of", &match_container_of, NULL);
 
 	add_implied_return_hook("copy_to_user", &implied_copy_return, NULL);
