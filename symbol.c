@@ -211,13 +211,20 @@ static struct symbol *examine_base_type(struct symbol *sym)
 static struct symbol * examine_array_type(struct symbol *sym)
 {
 	struct symbol *base_type = examine_base_type(sym);
-	unsigned long bit_size, alignment;
+	unsigned long bit_size = -1, alignment;
+	struct expression *array_size = sym->array_size;
 
 	if (!base_type)
 		return sym;
-	bit_size = base_type->bit_size * get_expression_value(sym->array_size);
-	if (!sym->array_size || sym->array_size->type != EXPR_VALUE)
-		bit_size = -1;
+
+	if (array_size) {	
+		bit_size = base_type->bit_size * get_expression_value_silent(array_size);
+		if (array_size->type != EXPR_VALUE) {
+			if (Wvla)
+				warning(array_size->pos, "Variable length array is used.");
+			bit_size = -1;
+		}
+	}
 	alignment = base_type->ctype.alignment;
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = alignment;

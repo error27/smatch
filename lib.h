@@ -91,6 +91,7 @@ extern int Wcast_to_as;
 extern int Wcast_truncate;
 extern int Wcontext;
 extern int Wdecl;
+extern int Wdeclarationafterstatement;
 extern int Wdefault_bitfield_sign;
 extern int Wdesignated_init;
 extern int Wdo_while;
@@ -106,7 +107,7 @@ extern int Wtransparent_union;
 extern int Wtypesign;
 extern int Wundef;
 extern int Wuninitialized;
-extern int Wdeclarationafterstatement;
+extern int Wvla;
 
 extern int dbg_entry;
 extern int dbg_dead;

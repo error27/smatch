@@ -1215,10 +1215,11 @@ static long long __get_expression_value(struct expression *expr, int strict)
 	}
 	expand_expression(expr);
 	if (expr->type != EXPR_VALUE) {
-		expression_error(expr, "bad constant expression");
+		if (strict != 2)
+			expression_error(expr, "bad constant expression");
 		return 0;
 	}
-	if (strict && bad_integer_constant_expression(expr)) {
+	if ((strict == 1) && bad_integer_constant_expression(expr)) {
 		expression_error(expr, "bad integer constant expression");
 		return 0;
 	}
@@ -1243,6 +1244,12 @@ long long get_expression_value(struct expression *expr)
 long long const_expression_value(struct expression *expr)
 {
 	return __get_expression_value(expr, 1);
+}
+
+long long get_expression_value_silent(struct expression *expr)
+{
+
+	return __get_expression_value(expr, 2);
 }
 
 int is_zero_constant(struct expression *expr)

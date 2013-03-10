@@ -197,6 +197,7 @@ int Wcast_to_as = 0;
 int Wcast_truncate = 1;
 int Wcontext = 1;
 int Wdecl = 1;
+int Wdeclarationafterstatement = -1;
 int Wdefault_bitfield_sign = 0;
 int Wdesignated_init = 1;
 int Wdo_while = 0;
@@ -212,7 +213,7 @@ int Wtransparent_union = 0;
 int Wtypesign = 0;
 int Wundef = 0;
 int Wuninitialized = 1;
-int Wdeclarationafterstatement = -1;
+int Wvla = 1;
 
 int dbg_entry = 0;
 int dbg_dead = 0;
@@ -407,6 +408,7 @@ static const struct warning {
 	{ "cast-truncate", &Wcast_truncate },
 	{ "context", &Wcontext },
 	{ "decl", &Wdecl },
+	{ "declaration-after-statement", &Wdeclarationafterstatement },
 	{ "default-bitfield-sign", &Wdefault_bitfield_sign },
 	{ "designated-init", &Wdesignated_init },
 	{ "do-while", &Wdo_while },
@@ -422,7 +424,7 @@ static const struct warning {
 	{ "typesign", &Wtypesign },
 	{ "undef", &Wundef },
 	{ "uninitialized", &Wuninitialized },
-	{ "declaration-after-statement", &Wdeclarationafterstatement },
+	{ "vla", &Wvla },
 };
 
 enum {
