@@ -343,8 +343,8 @@ static char *make_full_name(const char *lock, const char *var)
 {
 	static char tmp_buf[512];
 
-	snprintf(tmp_buf, 512, "%s:%s", lock, var);
-	tmp_buf[511] = '\0';
+	snprintf(tmp_buf, sizeof(tmp_buf), "%s:%s", lock, var);
+	remove_parens(tmp_buf);
 	return alloc_string(tmp_buf);
 }
 
