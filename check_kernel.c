@@ -99,6 +99,33 @@ static void match_container_of(const char *fn, struct expression *expr, void *un
 	set_extra_expr_mod(expr->left, alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval));
 }
 
+static int match_next_bit(struct expression *call, void *unused, struct range_list **rl)
+{
+	struct expression *start_arg;
+	struct expression *size_arg;
+	struct symbol *type;
+	sval_t min, max, tmp;
+
+	size_arg = get_argument_from_call_expr(call->args, 1);
+	/* btw. there isn't a start_arg for find_first_bit() */
+	start_arg = get_argument_from_call_expr(call->args, 2);
+
+	type = get_type(call);
+	min = sval_type_val(type, 0);
+	max = sval_type_val(type, sizeof(long long) * 8);
+
+	if (get_implied_max(size_arg, &tmp) && tmp.uvalue < max.value)
+		max = tmp;
+	if (start_arg && get_implied_min(start_arg, &tmp) && !sval_is_negative(tmp))
+		min = tmp;
+	if (sval_cmp(min, max) > 0)
+		max = min;
+	min = sval_cast(type, min);
+	max = sval_cast(type, max);
+	*rl = alloc_rl(min, max);
+	return 1;
+}
+
 void check_kernel(int id)
 {
 	if (option_project != PROJ_KERNEL)
@@ -119,4 +146,9 @@ void check_kernel(int id)
 	add_implied_return_hook("copy_from_user", &implied_copy_return, NULL);
 	add_implied_return_hook("__copy_fom_user", &implied_copy_return, NULL);
 	add_implied_return_hook("clear_user", &implied_copy_return, NULL);
+
+	add_implied_return_hook("find_next_bit", &match_next_bit, NULL);
+	add_implied_return_hook("find_next_zero_bit", &match_next_bit, NULL);
+	add_implied_return_hook("find_first_bit", &match_next_bit, NULL);
+	add_implied_return_hook("find_first_zero_bit", &match_next_bit, NULL);
 }
