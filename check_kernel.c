@@ -151,4 +151,6 @@ void check_kernel(int id)
 	add_implied_return_hook("find_next_zero_bit", &match_next_bit, NULL);
 	add_implied_return_hook("find_first_bit", &match_next_bit, NULL);
 	add_implied_return_hook("find_first_zero_bit", &match_next_bit, NULL);
+
+	add_function_hook("__ftrace_bad_type", &__match_nullify_path_hook, NULL);
 }
