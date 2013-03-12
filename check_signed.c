@@ -44,7 +44,8 @@ static void match_assign(struct expression *expr)
 	if (!get_implied_value(expr->right, &sval))
 		return;
 	max = sval_type_max(sym);
-	if (sval_cmp(max, sval) < 0 && !(sval.value < 256 && max.value == 127)) {
+	if (sym != &bool_ctype && sval_cmp(max, sval) < 0 &&
+	    !(sval.value < 256 && max.value == 127)) {
 		left_name = expr_to_str(expr->left);
 		right_name = expr_to_str(expr->right);
 		sm_msg("warn: '%s' %s can't fit into %s '%s'",
