@@ -22,6 +22,8 @@ static int max_size;
 static int max_lineno;
 static int complained;
 
+#define MAX_ALLOWED 1000
+
 static void scope_end(int size)
 {
 	total_size -= size;
@@ -41,7 +43,7 @@ static void match_declarations(struct symbol *sym)
 		max_size = total_size;
 		max_lineno = get_lineno();
 	}
-	if (base->bit_size >= 500 * 8) {
+	if (base->bit_size >= MAX_ALLOWED * 8) {
 		complained = 1;
 		sm_msg("warn: '%s' puts %d bytes on stack", name, base->bit_size / 8);
 	}
@@ -53,7 +55,7 @@ static void match_end_func(struct symbol *sym)
 	if (__inline_fn)
 		return;
 
-	if ((max_size >= 500 * 8) && !complained) {
+	if ((max_size >= MAX_ALLOWED * 8) && !complained) {
 		sm_printf("%s:%d %s() ", get_filename(), max_lineno, get_function());
 		sm_printf("warn: function puts %d bytes on stack\n", max_size / 8);
 	}
@@ -65,7 +67,7 @@ static void match_end_func(struct symbol *sym)
 
 void check_stack(int id)
 {
-	if (option_project != PROJ_KERNEL)
+	if (option_project != PROJ_KERNEL || !option_spammy)
 		return;
 
 	my_id = id;
