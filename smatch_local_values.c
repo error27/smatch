@@ -99,12 +99,18 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 static void process_states(struct state_list *slist)
 {
 	struct sm_state *sm;
+	struct smatch_state *extra;
 	struct range_list *rl;
 
 	FOR_EACH_PTR(slist, sm) {
 		if (sm->owner != my_id)
 			continue;
-		rl = cast_rl(&llong_ctype, estate_rl(sm->state));
+		extra = get_state_slist(slist, SMATCH_EXTRA, sm->name, sm->sym);
+		if (extra && estate_rl(extra))
+			rl = rl_intersection(estate_rl(sm->state), estate_rl(extra));
+		else
+			rl = estate_rl(sm->state);
+		rl = cast_rl(&llong_ctype, rl);
 		mem_sql(NULL,
 			"insert into local_values values ('%s', '%s', '%s', %lu);",
 			get_filename(), sm->name, show_rl(rl),
