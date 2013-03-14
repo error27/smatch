@@ -881,7 +881,6 @@ static void parse_inline(struct expression *call)
 	struct expression_list *switch_expr_stack_bak = switch_expr_stack;
 	struct symbol *cur_func_sym_bak = cur_func_sym;
 
-	sm_debug("inline function:  %s\n", cur_func);
 	__pass_to_client(call, INLINE_FN_START);
 	final_pass = 0;  /* don't print anything */
 	__inline_fn = call;
@@ -900,6 +899,7 @@ static void parse_inline(struct expression *call)
 	big_expression_stack = NULL;
 	switch_expr_stack = NULL;
 
+	sm_debug("inline function:  %s\n", cur_func);
 	__unnullify_path();
 	loop_num = 0;
 	__pass_to_client(call->fn->symbol, FUNC_DEF_HOOK);
