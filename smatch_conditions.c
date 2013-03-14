@@ -310,29 +310,28 @@ static void handle_select(struct expression *expr)
 	} END_FOR_EACH_PTR(sm);
 }
 
+static int make_op_unsigned(int op)
+{
+	switch (op) {
+	case '<':
+		return SPECIAL_UNSIGNED_LT;
+	case SPECIAL_LTE:
+		return SPECIAL_UNSIGNED_LTE;
+	case '>':
+		return SPECIAL_UNSIGNED_GT;
+	case SPECIAL_GTE:
+		return SPECIAL_UNSIGNED_GTE;
+	}
+	return op;
+}
+
 static void hackup_unsigned_compares(struct expression *expr)
 {
 	if (expr->type != EXPR_COMPARE)
 		return;
 
-	switch (expr->op) {
-	case '<':
-		if (expr_unsigned(expr->left) || expr_unsigned(expr->right))
-			expr->op = SPECIAL_UNSIGNED_LT;
-		break;
-	case SPECIAL_LTE:
-		if (expr_unsigned(expr->left) || expr_unsigned(expr->right))
-			expr->op = SPECIAL_UNSIGNED_LTE;
-		break;
-	case '>':
-		if (expr_unsigned(expr->left) || expr_unsigned(expr->right))
-			expr->op = SPECIAL_UNSIGNED_GT;
-		break;
-	case SPECIAL_GTE:
-		if (expr_unsigned(expr->left) || expr_unsigned(expr->right))
-			expr->op = SPECIAL_UNSIGNED_GTE;
-		break;
-	}
+	if (type_unsigned(get_type(expr)))
+		expr->op = make_op_unsigned(expr->op);
 }
 
 static void split_conditions(struct expression *expr)

@@ -87,8 +87,6 @@ static int cap_gt_zero_and_lt(struct expression *expr)
 
 	if (!get_value(expr->right, &known) || known.value != 0)
 		return 0;
-	if (expr->op != SPECIAL_UNSIGNED_GT && expr->op != SPECIAL_UNSIGNED_GTE)
-		return 0;
 
 	i = 0;
 	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
@@ -137,8 +135,6 @@ static int cap_lt_zero_or_gt(struct expression *expr)
 
 	if (!get_value(expr->right, &known) || known.value != 0)
 		return 0;
-	if (expr->op != SPECIAL_UNSIGNED_LT && expr->op != SPECIAL_UNSIGNED_LTE)
-		return 0;
 
 	i = 0;
 	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
@@ -176,10 +172,18 @@ free:
 
 static int cap_both_sides(struct expression *expr)
 {
-	if (expr->op == SPECIAL_UNSIGNED_LT || expr->op == SPECIAL_UNSIGNED_LTE)
+	switch (expr->op) {
+	case '<':
+	case SPECIAL_UNSIGNED_LT:
+	case SPECIAL_LTE:
+	case SPECIAL_UNSIGNED_LTE:
 		return cap_lt_zero_or_gt(expr);
-	if (expr->op == SPECIAL_UNSIGNED_GT || expr->op == SPECIAL_UNSIGNED_GTE)
+	case '>':
+	case SPECIAL_UNSIGNED_GT:
+	case SPECIAL_GTE:
+	case SPECIAL_UNSIGNED_GTE:
 		return cap_gt_zero_and_lt(expr);
+	}
 	return 0;
 }
 
