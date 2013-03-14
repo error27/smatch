@@ -29,7 +29,7 @@ do {										\
 			      "insert into %s values (", #table);		\
 		p += snprintf(p, buf + sizeof(buf) - p, values);		\
 		p += snprintf(p, buf + sizeof(buf) - p, ");");			\
-		sm_debug("mem-db: %s\n", buf);					\
+		sm_debug("in-mem: %s\n", buf);					\
 		rc = sqlite3_exec(mem_db, buf, NULL, 0, &err);			\
 		if (rc != SQLITE_OK) {						\
 			fprintf(stderr, "SQL error #2: %s\n", err);		\
