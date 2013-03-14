@@ -877,6 +877,7 @@ static void parse_inline(struct expression *call)
 	int final_pass_bak = final_pass;
 	char *cur_func_bak = cur_func;
 	struct statement_list *big_statement_stack_bak = big_statement_stack;
+	struct expression_list *big_expression_stack_bak = big_expression_stack;
 	struct expression_list *switch_expr_stack_bak = switch_expr_stack;
 	struct symbol *cur_func_sym_bak = cur_func_sym;
 
@@ -896,6 +897,7 @@ static void parse_inline(struct expression *call)
 	save_all_states();
 	nullify_all_states();
 	big_statement_stack = NULL;
+	big_expression_stack = NULL;
 	switch_expr_stack = NULL;
 
 	__unnullify_path();
@@ -915,6 +917,7 @@ static void parse_inline(struct expression *call)
 	cur_func_sym = cur_func_sym_bak;
 	cur_func = cur_func_bak;
 	big_statement_stack = big_statement_stack_bak;
+	big_expression_stack = big_expression_stack_bak;
 	switch_expr_stack = switch_expr_stack_bak;
 
 	restore_all_states();
