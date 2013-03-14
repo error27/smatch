@@ -146,6 +146,7 @@ void add_modification_hook(int owner, modification_hook *call_back);
 void add_indirect_modification_hook(int owner, modification_hook *call_back);
 
 const char *get_filename(void);
+const char *get_base_file(void);
 char *get_function(void);
 int get_lineno(void);
 extern int final_pass;

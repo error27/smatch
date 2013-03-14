@@ -61,6 +61,11 @@ const char *get_filename(void)
 	return filename;
 }
 
+const char *get_base_file(void)
+{
+	return base_file;
+}
+
 static void set_position(struct position pos)
 {
 	int len;
