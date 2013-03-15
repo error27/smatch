@@ -269,7 +269,7 @@ static sval_t handle_mod(struct expression *expr, int *undefined, int implied)
 	case FUZZY_MIN:
 	case ABSOLUTE_MIN:
 		*undefined = 0;
-		return sval_type_val(get_type(expr->left), 0);
+		return sval_type_val(get_type(expr), 0);
 	case IMPLIED_MAX:
 	case FUZZY_MAX:
 	case ABSOLUTE_MAX:
@@ -375,9 +375,14 @@ static int do_comparison(struct expression *expr)
 	struct range_list *left_ranges = NULL;
 	struct range_list *right_ranges = NULL;
 	int poss_true, poss_false;
+	struct symbol *type;
+
+	type = get_type(expr);
 
 	get_implied_rl(expr->left, &left_ranges);
 	get_implied_rl(expr->right, &right_ranges);
+	left_ranges = cast_rl(type, left_ranges);
+	right_ranges = cast_rl(type, right_ranges);
 
 	poss_true = possibly_true_rl(left_ranges, expr->op, right_ranges);
 	poss_false = possibly_false_rl(left_ranges, expr->op, right_ranges);
