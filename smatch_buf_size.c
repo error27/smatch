@@ -717,6 +717,7 @@ void register_buf_size(int id)
 		add_function_assign_hook("sock_kmalloc", &match_alloc, INT_PTR(1));
 		add_function_assign_hook("kmemdup", &match_alloc, INT_PTR(1));
 		add_function_assign_hook("kmemdup_user", &match_alloc, INT_PTR(1));
+		add_function_assign_hook("dma_alloc_attrs", &match_alloc, INT_PTR(1));
 	}
 	add_hook(&match_array_assignment, ASSIGNMENT_HOOK);
 	add_hook(&match_strlen_condition, CONDITION_HOOK);
