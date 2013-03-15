@@ -229,6 +229,7 @@ int is_reachable(void);
 /* smatch_helper.c */
 char *alloc_string(const char *str);
 void free_string(char *str);
+void remove_parens(char *str);
 struct smatch_state *alloc_state_num(int num);
 struct expression *get_argument_from_call_expr(struct expression_list *args,
 					       int num);

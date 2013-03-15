@@ -34,6 +34,21 @@ void free_string(char *str)
 	free(str);
 }
 
+void remove_parens(char *str)
+{
+	char *src, *dst;
+
+	dst = src = str;
+	while (*src != '\0') {
+		if (*src == '(' || *src == ')') {
+			src++;
+			continue;
+		}
+		*dst++ = *src++;
+	}
+	*dst = *src;
+}
+
 struct smatch_state *alloc_state_num(int num)
 {
 	struct smatch_state *state;
