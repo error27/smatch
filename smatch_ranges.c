@@ -740,14 +740,27 @@ static int rl_is_sane(struct range_list *rl)
 
 	type = rl_type(rl);
 	FOR_EACH_PTR(rl, tmp) {
-		if (type != tmp->min.type || type != tmp->max.type)
-			return 0;
 		if (!sval_fits(type, tmp->min))
 			return 0;
 		if (!sval_fits(type, tmp->max))
 			return 0;
+		if (sval_cmp(tmp->min, tmp->max) > 0)
+			return 0;
 	} END_FOR_EACH_PTR(tmp);
 
+	return 1;
+}
+
+static int rl_type_consistent(struct range_list *rl)
+{
+	struct data_range *tmp;
+	struct symbol *type;
+
+	type = rl_type(rl);
+	FOR_EACH_PTR(rl, tmp) {
+		if (type != tmp->min.type || type != tmp->max.type)
+			return 0;
+	} END_FOR_EACH_PTR(tmp);
 	return 1;
 }
 
@@ -759,7 +772,11 @@ struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 	if (!rl)
 		return NULL;
 
-	if (!type || (rl_is_sane(rl) && type == rl_type(rl)))
+	if (!type)
+		return rl;
+	if (!rl_is_sane(rl))
+		return alloc_whole_rl(type);
+	if (type == rl_type(rl) && rl_type_consistent(rl))
 		return rl;
 
 	FOR_EACH_PTR(rl, tmp) {
