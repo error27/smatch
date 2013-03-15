@@ -162,6 +162,7 @@ static void handle_logical(struct expression *expr)
 	 */
 
 	split_conditions(expr->left);
+	__process_post_op_stack();
 
 	if (!is_logical_and(expr))
 		__use_cond_false_states();
@@ -170,6 +171,7 @@ static void handle_logical(struct expression *expr)
 
 	__save_pre_cond_states();
 	split_conditions(expr->right);
+	__process_post_op_stack();
 	__discard_pre_cond_states();
 
 	if (is_logical_and(expr))
@@ -254,6 +256,7 @@ static void handle_select(struct expression *expr)
 	__push_cond_stacks();
 	__push_fake_cur_slist();
 	split_conditions(expr->cond_true);
+	__process_post_op_stack();
 	a_T_b_fake = __pop_fake_cur_slist();
 	a_T_b_T = combine(a_T, a_T_b_fake, __pop_cond_true_stack());
 	a_T_b_F = combine(a_T, a_T_b_fake, __pop_cond_false_stack());
@@ -394,6 +397,7 @@ static void split_conditions(struct expression *expr)
 	} else if (expr->type == EXPR_POSTOP) {
 		__split_expr(expr);
 	}
+	__process_post_op_stack();
 	pop_expression(&big_expression_stack);
 }
 

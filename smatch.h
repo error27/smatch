@@ -324,6 +324,7 @@ void smatch (int argc, char **argv);
 int inside_loop(void);
 struct expression *get_switch_expr(void);
 int in_expression_statement(void);
+void __process_post_op_stack(void);
 void __split_expr(struct expression *expr);
 void __split_stmt(struct statement *stmt);
 extern int option_assume_loops;

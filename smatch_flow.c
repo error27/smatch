@@ -30,6 +30,7 @@ static char *cur_func;
 static int loop_count;
 int __expr_stmt_count;
 static struct expression_list *switch_expr_stack = NULL;
+static struct expression_list *post_op_stack = NULL;
 
 struct expression_list *big_expression_stack;
 struct statement_list *big_statement_stack;
@@ -131,6 +132,17 @@ int inlinable(struct expression *expr)
 	return 0;
 }
 
+void __process_post_op_stack(void)
+{
+	struct expression *expr;
+
+	FOR_EACH_PTR(post_op_stack, expr) {
+		__pass_to_client(expr, OP_HOOK);
+	} END_FOR_EACH_PTR(expr);
+
+	__free_ptr_list((struct ptr_list **)&post_op_stack);
+}
+
 void __split_expr(struct expression *expr)
 {
 	if (!expr)
@@ -146,9 +158,12 @@ void __split_expr(struct expression *expr)
 	case EXPR_PREOP:
 		if (expr->op == '*')
 			__pass_to_client(expr, DEREF_HOOK);
-	case EXPR_POSTOP:
-		__pass_to_client(expr, OP_HOOK);
 		__split_expr(expr->unop);
+		__pass_to_client(expr, OP_HOOK);
+		break;
+	case EXPR_POSTOP:
+		__split_expr(expr->unop);
+		push_expression(&post_op_stack, expr);
 		break;
 	case EXPR_STATEMENT:
 		__expr_stmt_count++;
@@ -164,6 +179,7 @@ void __split_expr(struct expression *expr)
 		__pass_to_client(expr, BINOP_HOOK);
 	case EXPR_COMMA:
 		__split_expr(expr->left);
+		__process_post_op_stack();
 		__split_expr(expr->right);
 		break;
 	case EXPR_ASSIGNMENT: {
@@ -243,6 +259,7 @@ void __split_expr(struct expression *expr)
 			add_inline_function(expr->fn->symbol);
 		if (inlinable(expr->fn))
 			__inline_call = 1;
+		__process_post_op_stack();
 		__pass_to_client(expr, FUNCTION_CALL_HOOK);
 		__inline_call = 0;
 		if (inlinable(expr->fn)) {
@@ -578,7 +595,7 @@ void __split_stmt(struct statement *stmt)
 	sval_t sval;
 
 	if (!stmt)
-		return;
+		goto out;
 
 	if (out_of_memory() || __bail_on_rest_of_function) {
 		static char *printed = NULL;
@@ -599,15 +616,15 @@ void __split_stmt(struct statement *stmt)
 	switch (stmt->type) {
 	case STMT_DECLARATION:
 		split_declaration(stmt->declaration);
-		return;
+		break;
 	case STMT_RETURN:
 		__split_expr(stmt->ret_value);
 		__pass_to_client(stmt->ret_value, RETURN_HOOK);
 		nullify_path();
-		return;
+		break;
 	case STMT_EXPRESSION:
 		__split_expr(stmt->expression);
-		return;
+		break;
 	case STMT_COMPOUND: {
 		struct statement *tmp;
 
@@ -618,28 +635,28 @@ void __split_stmt(struct statement *stmt)
 			__split_stmt(tmp);
 		} END_FOR_EACH_PTR(tmp);
 		__call_scope_hooks();
-		return;
+		break;
 	}
 	case STMT_IF:
 		if (known_condition_true(stmt->if_conditional)) {
 			__split_stmt(stmt->if_true);
-			return;
+			break;
 		}
 		if (known_condition_false(stmt->if_conditional)) {
 			__split_stmt(stmt->if_false);
-			return;
+			break;
 		}
 		if (option_known_conditions &&
 		    implied_condition_true(stmt->if_conditional)) {
 			sm_info("this condition is true.");
 			__split_stmt(stmt->if_true);
-			return;
+			break;
 		}
 		if (option_known_conditions &&
 		    implied_condition_false(stmt->if_conditional)) {
 			sm_info("this condition is false.");
 			__split_stmt(stmt->if_false);
-			return;
+			break;
 		}
 		__split_whole_condition(stmt->if_conditional);
 		__split_stmt(stmt->if_true);
@@ -651,7 +668,7 @@ void __split_stmt(struct statement *stmt)
 		__use_false_states();
 		__split_stmt(stmt->if_false);
 		__merge_true_states();
-		return;
+		break;
 	case STMT_ITERATOR:
 		if (stmt->iterator_pre_condition)
 			handle_pre_loop(stmt);
@@ -661,11 +678,11 @@ void __split_stmt(struct statement *stmt)
 			// these are for(;;) type loops.
 			handle_pre_loop(stmt);
 		}
-		return;
+		break;
 	case STMT_SWITCH:
 		if (get_value(stmt->switch_expression, &sval)) {
 			split_known_switch(stmt, sval);
-			return;
+			break;
 		}
 		__split_expr(stmt->switch_expression);
 		push_expression(&switch_expr_stack, stmt->switch_expression);
@@ -680,7 +697,7 @@ void __split_stmt(struct statement *stmt)
 		__discard_switches();
 		__merge_breaks();
 		pop_expression(&switch_expr_stack);
-		return;
+		break;
 	case STMT_CASE:
 		__merge_switches(top_expression(switch_expr_stack),
 				      stmt->case_expression);
@@ -691,7 +708,7 @@ void __split_stmt(struct statement *stmt)
 		__split_expr(stmt->case_expression);
 		__split_expr(stmt->case_to);
 		__split_stmt(stmt->case_statement);
-		return;
+		break;
 	case STMT_LABEL:
 		if (stmt->label_identifier &&
 		    stmt->label_identifier->type == SYM_LABEL &&
@@ -700,7 +717,7 @@ void __split_stmt(struct statement *stmt)
 			__merge_gotos(stmt->label_identifier->ident->name);
 		}
 		__split_stmt(stmt->label_statement);
-		return;
+		break;
 	case STMT_GOTO:
 		__split_expr(stmt->goto_expression);
 		if (stmt->goto_label && stmt->goto_label->type == SYM_NODE) {
@@ -716,24 +733,26 @@ void __split_stmt(struct statement *stmt)
 			__save_gotos(stmt->goto_label->ident->name);
 		}
 		nullify_path();
-		return;
+		break;
 	case STMT_NONE:
-		return;
+		break;
 	case STMT_ASM:
 		__pass_to_client(stmt, ASM_HOOK);
 		__split_expr(stmt->asm_string);
 		split_asm_constraints(stmt->asm_outputs);
 		split_asm_constraints(stmt->asm_inputs);
 		split_asm_constraints(stmt->asm_clobbers);
-		return;
+		break;
 	case STMT_CONTEXT:
-		return;
+		break;
 	case STMT_RANGE:
 		__split_expr(stmt->range_expression);
 		__split_expr(stmt->range_low);
 		__split_expr(stmt->range_high);
-		return;
+		break;
 	}
+out:
+	__process_post_op_stack();
 }
 
 static void split_expr_list(struct expression_list *expr_list)
@@ -742,6 +761,7 @@ static void split_expr_list(struct expression_list *expr_list)
 
 	FOR_EACH_PTR(expr_list, expr) {
 		__split_expr(expr);
+		__process_post_op_stack();
 	} END_FOR_EACH_PTR(expr);
 }
 
