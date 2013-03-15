@@ -115,6 +115,19 @@ free:
 	return ret;
 }
 
+static int in_container_of_macro(struct expression *expr)
+{
+	char *macro;
+
+	macro = get_macro_name(expr->pos);
+
+	if (!macro)
+		return 0;
+	if (strcmp(macro, "container_of") == 0)
+		return 1;
+	return 0;
+}
+
 int is_user_data(struct expression *expr)
 {
 	struct state_list *slist = NULL;
@@ -127,6 +140,8 @@ int is_user_data(struct expression *expr)
 		return 0;
 
 	if (is_capped(expr))
+		return 0;
+	if (in_container_of_macro(expr))
 		return 0;
 
 	if (is_user_macro(expr))
