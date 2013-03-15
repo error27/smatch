@@ -704,6 +704,36 @@ static sval_t handle_sizeof(struct expression *expr)
 	return ret;
 }
 
+static sval_t handle_call(struct expression *expr, int *undefined, int implied)
+{
+	struct range_list *rl;
+
+	if (!get_implied_rl(expr, &rl)) {
+		*undefined = 1;
+		return bogus;
+	}
+
+	switch (implied) {
+	case IMPLIED:
+		if (sval_cmp(rl_min(rl), rl_max(rl)) == 0)
+			return rl_min(rl);
+		*undefined = 1;
+		return bogus;
+	case IMPLIED_MIN:
+	case ABSOLUTE_MIN:
+		return rl_min(rl);
+
+	case IMPLIED_MAX:
+	case HARD_MAX:
+	case ABSOLUTE_MAX:
+		return rl_max(rl);
+	default:
+		*undefined = 1;
+		return bogus;
+	}
+
+}
+
 static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 {
 	sval_t ret;
@@ -755,6 +785,9 @@ static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 	case EXPR_SELECT:
 	case EXPR_CONDITIONAL:
 		ret = handle_conditional(expr, undefined, implied);
+		break;
+	case EXPR_CALL:
+		ret = handle_call(expr, undefined, implied);
 		break;
 	default:
 		ret = _get_implied_value(expr, undefined, implied);
