@@ -64,7 +64,7 @@ while (<WARNS>) {
         next;
     }
 
-    ($dummy, $dummy, $sql) = split(/:/);
+    ($dummy, $dummy, $sql) = split(/:/, $_, 3);
 
     $sql =~ s/%CALL_ID%/$call_id/;
     if ($sql =~ /%call_marker%/) {
