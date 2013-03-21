@@ -14,6 +14,7 @@ delete from caller_info where caller = 'hid_input_report' and type = 3;
 delete from caller_info where caller = 'nes_process_iwarp_aeqe' and type = 3;
 delete from caller_info where caller = 'oz_process_ep0_urb' and type = 3;
 delete from caller_info where function = 'dev_hard_start_xmit' and key = '\$\$' and type = 3;
+delete from caller_info where function like '%->ndo_start_xmit' and key = '\$\$' and type = 3;
 delete from caller_info where caller = 'packet_rcv_fanout' and function = '(struct packet_type)->func' and parameter = 1 and type = 3;
 
 EOF
