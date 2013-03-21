@@ -217,12 +217,12 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 					 complicated);
 		append(buf, "(", len);
 		i = 0;
-		FOR_EACH_PTR_REVERSE(expr->args, tmp) {
+		FOR_EACH_PTR(expr->args, tmp) {
 			if (i++)
 				append(buf, ", ", len);
 			__get_variable_from_expr(NULL, buf, tmp, len,
 						complicated);
-		} END_FOR_EACH_PTR_REVERSE(tmp);
+		} END_FOR_EACH_PTR(tmp);
 		append(buf, ")", len);
 		return;
 	}
