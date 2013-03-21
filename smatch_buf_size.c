@@ -281,6 +281,8 @@ static int get_size_from_strlen(struct expression *expr)
 		return 0;
 	if (sval_is_max(len))
 		return 0;
+	if (len.uvalue > INT_MAX - 1 || len.value < 0)
+		return 0;
 	return len.value + 1; /* add one because strlen doesn't include the NULL */
 }
 
