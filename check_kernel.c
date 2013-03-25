@@ -11,6 +11,7 @@
  * This is kernel specific stuff for smatch_extra.
  */
 
+#include "scope.h"
 #include "smatch.h"
 #include "smatch_extra.h"
 
@@ -126,6 +127,75 @@ static int match_next_bit(struct expression *call, void *unused, struct range_li
 	return 1;
 }
 
+static void find_module_init_exit(struct symbol_list *sym_list)
+{
+	struct symbol *sym;
+	struct symbol *fn;
+	struct statement *stmt;
+	char *name;
+	int init;
+	int count;
+
+	/*
+	 * This is more complicated because Sparse ignores the "alias"
+	 * attribute.  I search backwards because module_init() is normally at
+	 * the end of the file.
+	 */
+	count = 0;
+	FOR_EACH_PTR_REVERSE(sym_list, sym) {
+		if (sym->type != SYM_NODE)
+			continue;
+		if (!(sym->ctype.modifiers & MOD_STATIC))
+			continue;
+		fn = get_base_type(sym);
+		if (!fn)
+			continue;
+		if (fn->type != SYM_FN)
+			continue;
+		if (!sym->ident || !sym->ident->name)
+			continue;
+		if (!fn->inline_stmt)
+			continue;
+		if (strcmp(sym->ident->name, "__inittest") == 0)
+			init = 1;
+		else if (strcmp(sym->ident->name, "__exittest") == 0)
+			init = 0;
+		else
+			continue;
+
+		count++;
+
+		stmt = first_ptr_list((struct ptr_list *)fn->inline_stmt->stmts);
+		if (!stmt || stmt->type != STMT_RETURN)
+			continue;
+		name = expr_to_var(stmt->ret_value);
+		if (!name)
+			continue;
+		if (init)
+			sql_insert_function_ptr(name, "(struct module)->init");
+		else
+			sql_insert_function_ptr(name, "(struct module)->exit");
+		free_string(name);
+		if (count >= 2)
+			return;
+	} END_FOR_EACH_PTR_REVERSE(sym);
+}
+
+static void match_end_file(struct symbol_list *sym_list)
+{
+	struct symbol *sym;
+
+	/* find the last static symbol in the file */
+	FOR_EACH_PTR_REVERSE(sym_list, sym) {
+		if (!(sym->ctype.modifiers & MOD_STATIC))
+			continue;
+		if (!sym->scope)
+			continue;
+		find_module_init_exit(sym->scope->symbols);
+		return;
+	} END_FOR_EACH_PTR_REVERSE(sym);
+}
+
 void check_kernel(int id)
 {
 	if (option_project != PROJ_KERNEL)
@@ -153,4 +223,8 @@ void check_kernel(int id)
 	add_implied_return_hook("find_first_zero_bit", &match_next_bit, NULL);
 
 	add_function_hook("__ftrace_bad_type", &__match_nullify_path_hook, NULL);
+
+	if (option_info)
+		add_hook(match_end_file, END_FILE_HOOK);
+
 }
