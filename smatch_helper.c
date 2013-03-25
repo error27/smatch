@@ -527,6 +527,9 @@ int get_param_num_from_sym(struct symbol *sym)
 	struct symbol *tmp;
 	int i;
 
+	if (!cur_func_sym)
+		return -1;
+
 	i = 0;
 	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, tmp) {
 		if (tmp == sym)
