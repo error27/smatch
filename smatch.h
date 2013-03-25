@@ -631,6 +631,7 @@ const char *sval_to_numstr(sval_t sval);
 sval_t ll_to_sval(long long val);
 
 /* smatch_string_list.c */
+int list_has_string(struct string_list *str_list, char *str);
 void insert_string(struct string_list **str_list, char *str);
 struct string_list *clone_str_list(struct string_list *orig);
 struct string_list *combine_string_lists(struct string_list *one, struct string_list *two);

@@ -9,6 +9,20 @@
 
 #include "smatch.h"
 
+int list_has_string(struct string_list *str_list, char *str)
+{
+	char *tmp;
+
+	FOR_EACH_PTR(str_list, tmp) {
+		if (strcmp(tmp, str) < 0)
+			continue;
+		if (strcmp(tmp, str) == 0)
+			return 1;
+		return 0;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
 void insert_string(struct string_list **str_list, char *new)
 {
 	char *tmp;
