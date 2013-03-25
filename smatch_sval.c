@@ -165,6 +165,13 @@ int sval_is_a_max(sval_t sval)
 	return 0;
 }
 
+int sval_is_negative_min(sval_t sval)
+{
+	if (!sval_is_negative(sval))
+		return 0;
+	return sval_is_min(sval);
+}
+
 /*
  * Returns -1 if one is smaller, 0 if they are the same and 1 if two is larger.
  */
