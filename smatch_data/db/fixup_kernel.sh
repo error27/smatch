@@ -17,5 +17,7 @@ delete from caller_info where function = 'dev_hard_start_xmit' and key = '\$\$' 
 delete from caller_info where function like '%->ndo_start_xmit' and key = '\$\$' and type = 3;
 delete from caller_info where caller = 'packet_rcv_fanout' and function = '(struct packet_type)->func' and parameter = 1 and type = 3;
 
+delete from caller_info where caller = 'hptiop_probe' and type = 3;
+
 EOF
 
