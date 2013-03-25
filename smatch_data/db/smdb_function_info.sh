@@ -13,7 +13,7 @@ get_function_pointers()
     OLD_IFS=$IFS
     IFS="
 "
-    ptrs=$(echo "select ptr from function_ptr where function = '$func';" | sqlite3 smatch_db.sqlite)
+    ptrs=$(echo "select distinct ptr from function_ptr where function = '$func';" | sqlite3 smatch_db.sqlite)
     for ptr in $ptrs ; do
         echo "select * from caller_info where function = '$ptr';" | sqlite3 smatch_db.sqlite
     done
