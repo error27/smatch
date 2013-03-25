@@ -113,6 +113,8 @@ void sql_mem_exec(int (*callback)(void*, int, char**, char**), const char *sql)
 void sql_insert_return_states(int return_id, const char *return_ranges,
 		int type, int param, const char *key, const char *value)
 {
+	if (key && strlen(key) >= 80)
+		return;
 	sql_insert(return_states, "'%s', '%s', %lu, %d, '%s', %d, %d, %d, '%s', '%s'",
 		   get_base_file(), get_function(), (unsigned long)__inline_fn,
 		   return_id, return_ranges, fn_static(), type, param, key, value);
@@ -140,6 +142,9 @@ void sql_insert_caller_info(struct expression *call, int type,
 	char *fn;
 
 	if (!option_info && !__inline_call)
+		return;
+
+	if (key && strlen(key) >= 80)
 		return;
 
 	fn = get_fnptr_name(call->fn);
