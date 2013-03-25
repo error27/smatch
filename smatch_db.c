@@ -527,44 +527,72 @@ static void get_direct_callers(struct symbol *sym)
 			db_callback);
 }
 
-static char *ptr_name;
-static int ptr_cnt;
+static struct string_list *ptr_names_done;
+static struct string_list *ptr_names;
+
 static int get_ptr_name(void *unused, int argc, char **argv, char **azColName)
 {
-	if (ptr_cnt++) {
-		free_string(ptr_name);
-		ptr_name = NULL;
-		return 0;
-	}
-	if (!ptr_name)
-		ptr_name = alloc_string(argv[0]);
+	insert_string(&ptr_names, alloc_string(argv[0]));
 	return 0;
+}
+
+static char *get_next_ptr_name(void)
+{
+	char *ptr;
+
+	FOR_EACH_PTR(ptr_names, ptr) {
+		if (list_has_string(ptr_names_done, ptr))
+			continue;
+		insert_string(&ptr_names_done, ptr);
+		return ptr;
+	} END_FOR_EACH_PTR(ptr);
+	return NULL;
+}
+
+static void get_ptr_names(const char *file, const char *name)
+{
+	char sql_filter[1024];
+	int before, after;
+
+	if (file) {
+		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
+			 file, name);
+	} else {
+		snprintf(sql_filter, 1024, "function = '%s';", name);
+	}
+
+	before = ptr_list_size((struct ptr_list *)ptr_names);
+
+	run_sql(get_ptr_name,
+		"select distinct ptr from function_ptr where %s",
+		sql_filter);
+
+	after = ptr_list_size((struct ptr_list *)ptr_names);
+	if (before == after)
+		return;
+
+	while ((name = get_next_ptr_name()))
+		get_ptr_names(NULL, name);
 }
 
 static void get_function_pointer_callers(struct symbol *sym)
 {
-	char sql_filter[1024];
+	char *ptr;
 
-	if (sym->ctype.modifiers & MOD_STATIC) {
-		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
-			 get_base_file(), sym->ident->name);
-	} else {
-		snprintf(sql_filter, 1024, "function = '%s';",
-			 sym->ident->name);
-	}
+	if (sym->ctype.modifiers & MOD_STATIC)
+		get_ptr_names(get_base_file(), sym->ident->name);
+	else
+		get_ptr_names(NULL, sym->ident->name);
 
-	ptr_name = NULL;
-	ptr_cnt = 0;
-	run_sql(get_ptr_name,
-		"select distinct ptr from function_ptr where %s",
-		sql_filter);
-	if (!ptr_name)
-		return;
+	FOR_EACH_PTR(ptr_names, ptr) {
+		run_sql(db_callback, "select call_id, type, parameter, key, value"
+			" from caller_info where function = '%s' order by call_id",
+			ptr);
+		free_string(ptr);
+	} END_FOR_EACH_PTR(ptr);
 
-	run_sql(db_callback, "select call_id, type, parameter, key, value from caller_info"
-		" where function = '%s' order by call_id", ptr_name);
-
-	free_string(ptr_name);
+	__free_ptr_list((struct ptr_list **)&ptr_names);
+	__free_ptr_list((struct ptr_list **)&ptr_names_done);
 }
 
 static void match_data_from_db(struct symbol *sym)
