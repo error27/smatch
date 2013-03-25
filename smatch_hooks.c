@@ -13,6 +13,7 @@ enum data_type {
 	EXPR_PTR,
 	STMT_PTR,
 	SYMBOL_PTR,
+	SYM_LIST_PTR,
 };
 
 struct hook_container {
@@ -135,7 +136,7 @@ void add_hook(void *func, enum hook_type type)
 		container->data_type = EXPR_PTR;
 		break;
 	case END_FILE_HOOK:
-		/* nothing needed... */
+		container->data_type = SYM_LIST_PTR;
 		break;
 	}
 	add_ptr_list(&hook_funcs, container);
@@ -181,6 +182,12 @@ static void pass_sym_to_client(void *fn, void *data)
 	((sym_func *) fn)((struct symbol *) data);
 }
 
+static void pass_sym_list_to_client(void *fn, void *data)
+{
+	typedef void (sym_func)(struct symbol_list *sym_list);
+	((sym_func *) fn)((struct symbol_list *) data);
+}
+
 void __pass_to_client(void *data, enum hook_type type)
 {
 	struct hook_container *container;
@@ -196,6 +203,9 @@ void __pass_to_client(void *data, enum hook_type type)
 				break;
 			case SYMBOL_PTR:
 				pass_sym_to_client(container->fn, data);
+				break;
+			case SYM_LIST_PTR:
+				pass_sym_list_to_client(container->fn, data);
 				break;
 			}
 		}

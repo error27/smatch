@@ -990,7 +990,7 @@ static void split_functions(struct symbol_list *sym_list)
 			fake_global_assign(sym);
 		}
 	} END_FOR_EACH_PTR(sym);
-	__pass_to_client_no_data(END_FILE_HOOK);
+	__pass_to_client(sym_list, END_FILE_HOOK);
 }
 
 void smatch(int argc, char **argv)

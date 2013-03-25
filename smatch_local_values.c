@@ -195,7 +195,7 @@ static int save_final_values(void *unused, int argc, char **argv, char **azColNa
 	return 0;
 }
 
-static void match_end_file(void)
+static void match_end_file(struct symbol_list *sym_list)
 {
 	mem_sql(save_final_values,
 		"select distinct variable, symbol, value from local_values order by variable;");
