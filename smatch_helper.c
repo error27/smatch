@@ -309,6 +309,7 @@ char *expr_to_var_sym(struct expression *expr,
 			*sym_ptr = NULL;
 		return NULL;
 	}
+	remove_parens(var_name);
 	return alloc_string(var_name);
 }
 
