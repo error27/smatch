@@ -80,6 +80,28 @@ static int definitely_just_used_as_limiter(struct expression *array, struct expr
 	return 0;
 }
 
+static int common_false_positives(char *name)
+{
+	if (!name)
+		return 0;
+
+	/* Smatch can't figure out glibc's strcmp __strcmp_cg()
+	 * so it prints an error every time you compare to a string
+	 * literal array with 4 or less chars.
+	 */
+	if (strcmp(name, "__s1") == 0 || strcmp(name, "__s2") == 0)
+		return 1;
+
+	/*
+	 * passing WORK_CPU_UNBOUND is idiomatic but Smatch doesn't understand
+	 * how it's used so it causes a bunch of false positives.
+	 */
+	if (option_project == PROJ_KERNEL &&
+	    strcmp(name, "__per_cpu_offset") == 0)
+		return 1;
+	return 0;
+}
+
 static void array_check(struct expression *expr)
 {
 	struct expression *array_expr;
@@ -120,11 +142,7 @@ static void array_check(struct expression *expr)
 		}
 
 		name = expr_to_str(array_expr);
-		/* Blast.  Smatch can't figure out glibc's strcmp __strcmp_cg()
-		 * so it prints an error every time you compare to a string
-		 * literal array with 4 or less chars.
-		 */
-		if (name && strcmp(name, "__s1") && strcmp(name, "__s2")) {
+		if (!common_false_positives(name)) {
 			sm_msg("%s: buffer overflow '%s' %d <= %s",
 				level, name, array_size, sval_to_str(max));
 		}
