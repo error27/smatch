@@ -586,7 +586,7 @@ static void match_assign(struct expression *expr)
 		if (get_implied_max(left, &left_max) &&
 		    !sval_is_max(left_max) &&
 		    get_implied_min(right, &right_min) &&
-		    !sval_is_min(left_min)) {
+		    !sval_is_min(right_min)) {
 			res_max = sval_binop(left_max, '-', right_min);
 			res_max = sval_cast(right_type, res_max);
 		}
