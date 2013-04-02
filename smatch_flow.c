@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include "token.h"
+#include "scope.h"
 #include "smatch.h"
 #include "smatch_expression_stacks.h"
 #include "smatch_extra.h"
@@ -976,6 +977,50 @@ static void process_inlines()
 	free_ptr_list(&inlines_called);
 }
 
+static struct symbol *get_last_scoped_symbol(struct symbol_list *big_list)
+{
+	struct symbol *sym;
+
+	FOR_EACH_PTR_REVERSE(big_list, sym) {
+		if (!sym->scope)
+			continue;
+		return sym;
+	} END_FOR_EACH_PTR_REVERSE(sym);
+
+	return NULL;
+}
+
+static void split_inlines(struct symbol_list *sym_list)
+{
+	struct symbol *sym, *base;
+	struct symbol_list *scope_list;
+	int stream;
+
+	sym = get_last_scoped_symbol(sym_list);
+	if (!sym)
+		return;
+	scope_list = sym->scope->symbols;
+	stream = sym->pos.stream;
+
+	/* find the last static symbol in the file */
+	FOR_EACH_PTR_REVERSE(scope_list, sym) {
+		if (sym->pos.stream != stream)
+			continue;
+		if (sym->type != SYM_NODE)
+			continue;
+		base = get_base_type(sym);
+		if (!base)
+			continue;
+		if (base->type != SYM_FN)
+			continue;
+		if (!base->inline_stmt)
+			continue;
+		add_inline_function(sym);
+	} END_FOR_EACH_PTR_REVERSE(sym);
+
+	process_inlines();
+}
+
 static void split_functions(struct symbol_list *sym_list)
 {
 	struct symbol *sym;
@@ -990,6 +1035,7 @@ static void split_functions(struct symbol_list *sym_list)
 			fake_global_assign(sym);
 		}
 	} END_FOR_EACH_PTR(sym);
+	split_inlines(sym_list);
 	__pass_to_client(sym_list, END_FILE_HOOK);
 }
 
