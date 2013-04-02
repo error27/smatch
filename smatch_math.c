@@ -292,6 +292,10 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 	case '%':
 		return handle_mod(expr, undefined, implied);
 	case '&':
+		if (implied == HARD_MAX) {
+			*undefined = 1;
+			return bogus;
+		}
 		left = _get_value(expr->left, &local_undef, implied);
 		if (local_undef) {
 			if (implied == IMPLIED_MIN || implied == ABSOLUTE_MIN) {
@@ -310,6 +314,10 @@ static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 		return sval_binop(left, '&', right);
 
 	case SPECIAL_RIGHTSHIFT:
+		if (implied == HARD_MAX) {
+			*undefined = 1;
+			return bogus;
+		}
 		left = _get_value(expr->left, &local_undef, implied);
 		if (local_undef) {
 			if (implied == IMPLIED_MIN || implied == ABSOLUTE_MIN) {
