@@ -19,5 +19,7 @@ delete from caller_info where caller = 'packet_rcv_fanout' and function = '(stru
 
 delete from caller_info where caller = 'hptiop_probe' and type = 3;
 
+delete from caller_info where function = '(struct timer_list)->function' and parameter = 0;
+
 EOF
 
