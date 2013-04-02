@@ -20,6 +20,9 @@ static int my_id;
 
 char *get_fnptr_name(struct expression *expr)
 {
+	char *name;
+
+	expr = strip_expr(expr);
 	if (expr->type == EXPR_SYMBOL) {
 		int param;
 		char buf[256];
@@ -32,7 +35,10 @@ char *get_fnptr_name(struct expression *expr)
 
 		return expr_to_var(expr);
 	}
-	return get_member_name(expr);
+	name = get_member_name(expr);
+	if (name)
+		return name;
+	return expr_to_var(expr);
 }
 
 static void match_passes_function_pointer(struct expression *expr)
@@ -52,14 +58,17 @@ static void match_passes_function_pointer(struct expression *expr)
 		tmp = strip_expr(arg);
 		if (tmp->type == EXPR_PREOP && tmp->op == '&')
 			tmp = strip_expr(tmp->unop);
+
 		type = get_type(tmp);
+		if (type && type->type == SYM_PTR)
+			type = get_real_base_type(type);
 		if (!type || type->type != SYM_FN)
 			continue;
 
 		called_name = expr_to_var(expr->fn);
 		if (!called_name)
 			return;
-		fn_name = expr_to_var(tmp);
+		fn_name = get_fnptr_name(tmp);
 		if (!fn_name)
 			goto free;
 
@@ -74,11 +83,12 @@ free:
 
 static void match_function_assign(struct expression *expr)
 {
-	struct expression *right = expr->right;
+	struct expression *right;
 	struct symbol *sym;
 	char *fn_name;
 	char *ptr_name;
 
+	right = strip_expr(expr->right);
 	if (right->type == EXPR_PREOP && right->op == '&')
 		right = strip_expr(right->unop);
 	if (right->type != EXPR_SYMBOL)
@@ -108,4 +118,5 @@ void register_function_ptrs(int id)
 
 	add_hook(&match_passes_function_pointer, FUNCTION_CALL_HOOK);
 	add_hook(&match_function_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_function_assign, GLOBAL_ASSIGNMENT_HOOK);
 }
