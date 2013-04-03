@@ -94,10 +94,19 @@ static void match_function_assign(struct expression *expr)
 	if (right->type != EXPR_SYMBOL)
 		return;
 	sym = get_type(right);
-	if (!sym || sym->type != SYM_FN)
+	if (!sym)
 		return;
+	if (sym->type != SYM_FN && sym->type != SYM_PTR)
+		return;
+	if (sym->type == SYM_PTR) {
+		sym = get_real_base_type(sym);
+		if (!sym)
+			return;
+		if (sym->type != SYM_FN && sym != &void_ctype)
+			return;
+	}
 
-	fn_name = expr_to_var(right);
+	fn_name = get_fnptr_name(right);
 	ptr_name = get_fnptr_name(expr->left);
 	if (!fn_name || !ptr_name)
 		goto free;
