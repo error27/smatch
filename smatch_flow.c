@@ -73,6 +73,9 @@ static void set_position(struct position pos)
 	int len;
 	static int prev_stream = -1;
 
+	if (pos.stream == 0 && pos.line == 0)
+		return;
+
 	__smatch_lineno = pos.line;
 
 	if (pos.stream == prev_stream)

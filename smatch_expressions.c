@@ -1,6 +1,22 @@
 #include "smatch.h"
 
-static struct position pos;
+static struct position get_cur_pos(void)
+{
+	static struct position pos;
+	static struct position none;
+	struct expression *expr;
+	struct statement *stmt;
+
+	expr = last_ptr_list((struct ptr_list *)big_expression_stack);
+	stmt = last_ptr_list((struct ptr_list *)big_statement_stack);
+	if (expr)
+		pos = expr->pos;
+	else if (stmt)
+		pos = stmt->pos;
+	else
+		pos = none;
+	return pos;
+}
 
 struct expression *zero_expr()
 {
@@ -9,7 +25,7 @@ struct expression *zero_expr()
 	if (zero)
 		return zero;
 
-	zero = alloc_expression(pos, EXPR_VALUE);
+	zero = alloc_expression(get_cur_pos(), EXPR_VALUE);
 	zero->value = 0;
 	return zero;
 }
@@ -21,7 +37,7 @@ struct expression *value_expr(long long val)
 	if (!val)
 		return zero_expr();
 
-	expr = alloc_expression(pos, EXPR_VALUE);
+	expr = alloc_expression(get_cur_pos(), EXPR_VALUE);
 	expr->value = val;
 	return expr;
 }
