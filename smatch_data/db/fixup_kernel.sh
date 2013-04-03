@@ -9,7 +9,7 @@ insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 3, 2,
 delete from caller_info where function = '(struct file_operations)->read' and file != 'fs/read_write.c';
 delete from caller_info where function = '(struct file_operations)->write' and file != 'fs/read_write.c';
 
-delete from caller_info where function = '(struct notifier_block)->notifier_call';
+delete from caller_info where function = '(struct notifier_block)->notifier_call' and type != 0;
 delete from caller_info where caller = 'hid_input_report' and type = 3;
 delete from caller_info where caller = 'nes_process_iwarp_aeqe' and type = 3;
 delete from caller_info where caller = 'oz_process_ep0_urb' and type = 3;
