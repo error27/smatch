@@ -793,7 +793,9 @@ static void split_symlist(struct symbol_list *sym_list)
 	} END_FOR_EACH_PTR(sym);
 }
 
-static void fake_member_assigns(struct symbol *sym)
+typedef void (fake_cb)(struct expression *expr);
+
+static void fake_member_assigns(struct symbol *sym, fake_cb *fake_cb)
 {
 	struct expression *symbol, *deref, *assign, *tmp;
 
@@ -803,7 +805,32 @@ static void fake_member_assigns(struct symbol *sym)
 			continue;
 		deref = member_expression(symbol, '.', tmp->expr_ident);
 		assign = assign_expression(deref, tmp->ident_expression);
-		__split_expr(assign);
+		fake_cb(assign);
+	} END_FOR_EACH_PTR(tmp);
+}
+
+static void fake_element_assigns(struct symbol *sym, fake_cb *fake_cb)
+{
+	struct expression *array, *offset, *binop, *assign, *tmp;
+	int idx;
+
+	array = symbol_expression(sym);
+	idx = 0;
+	FOR_EACH_PTR(sym->initializer->expr_list, tmp) {
+		if (tmp->type == EXPR_INDEX) {
+			if (tmp->idx_from != tmp->idx_to)
+				return;
+			idx = tmp->idx_from;
+			if (!tmp->idx_expression)
+				goto next;
+			tmp = tmp->idx_expression;
+		}
+		offset = value_expr(idx);
+		binop = binop_expression(array, '+', offset);
+		assign = assign_expression(binop, tmp);
+		fake_cb(assign);
+next:
+		idx++;
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -816,14 +843,24 @@ static void fake_assign_expr(struct symbol *sym)
 	__split_expr(assign);
 }
 
+static void call_split_expr(struct expression *expr)
+{
+	__split_expr(expr);
+}
+
 static void do_initializer_stuff(struct symbol *sym)
 {
 	if (!sym->initializer)
 		return;
-	if (sym->initializer->type == EXPR_INITIALIZER)
-		fake_member_assigns(sym);
-	else
+
+	if (sym->initializer->type == EXPR_INITIALIZER) {
+		if (get_real_base_type(sym)->type == SYM_ARRAY)
+			fake_element_assigns(sym, call_split_expr);
+		else
+			fake_member_assigns(sym, call_split_expr);
+	} else {
 		fake_assign_expr(sym);
+	}
 }
 
 static void split_declaration(struct symbol_list *sym_list)
@@ -837,6 +874,11 @@ static void split_declaration(struct symbol_list *sym_list)
 	} END_FOR_EACH_PTR(sym);
 }
 
+static void call_global_assign_hooks(struct expression *assign)
+{
+	__pass_to_client(assign, GLOBAL_ASSIGNMENT_HOOK);
+}
+
 static void fake_global_assign(struct symbol *sym)
 {
 	struct expression *assign, *symbol;
@@ -844,16 +886,10 @@ static void fake_global_assign(struct symbol *sym)
 	if (!sym->initializer)
 		return;
 	if (sym->initializer->type == EXPR_INITIALIZER) {
-		struct expression *deref, *tmp;
-
-		symbol = symbol_expression(sym);
-		FOR_EACH_PTR(sym->initializer->expr_list, tmp) {
-			if (tmp->type != EXPR_IDENTIFIER) /* how to handle arrays?? */
-				continue;
-			deref = member_expression(symbol, '.', tmp->expr_ident);
-			assign = assign_expression(deref, tmp->ident_expression);
-			__pass_to_client(assign, GLOBAL_ASSIGNMENT_HOOK);
-		} END_FOR_EACH_PTR(tmp);
+		if (get_real_base_type(sym)->type == SYM_ARRAY)
+			fake_element_assigns(sym, call_global_assign_hooks);
+		else
+			fake_member_assigns(sym, call_global_assign_hooks);
 	} else {
 		symbol = symbol_expression(sym);
 		assign = assign_expression(symbol, sym->initializer);
