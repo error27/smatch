@@ -287,7 +287,6 @@ char *expr_to_str(struct expression *expr)
  * If it's a complicated variable like a->foo[x] instead of just 'a->foo'
  * then it returns NULL.
  */
-
 char *expr_to_var_sym(struct expression *expr,
 				    struct symbol **sym_ptr)
 {
@@ -341,7 +340,7 @@ int is_zero(struct expression *expr)
 int is_array(struct expression *expr)
 {
 	expr = strip_expr(expr);
-	if (expr->type != EXPR_PREOP || expr->op != '*')
+	if (!expr || expr->type != EXPR_PREOP || expr->op != '*')
 		return 0;
 	expr = expr->unop;
 	if (expr->op != '+')
