@@ -2592,10 +2592,14 @@ String:
 	p = alloc_expression(e->pos, EXPR_STRING);
 	*p = *e;
 	type = evaluate_expression(p);
-	if (ctype->bit_size != -1 &&
-	    ctype->bit_size + bits_in_char < type->bit_size) {
-		warning(e->pos,
-			"too long initializer-string for array of char");
+	if (ctype->bit_size != -1) {
+		if (ctype->bit_size + bits_in_char < type->bit_size)
+			warning(e->pos,
+				"too long initializer-string for array of char");
+		else if (Winit_cstring && ctype->bit_size + bits_in_char == type->bit_size) {
+			warning(e->pos,
+				"too long initializer-string for array of char(no space for nul char)");
+		}
 	}
 	*ep = p;
 	return 1;

@@ -201,6 +201,7 @@ int Wdeclarationafterstatement = -1;
 int Wdefault_bitfield_sign = 0;
 int Wdesignated_init = 1;
 int Wdo_while = 0;
+int Winit_cstring = 0;
 int Wenum_mismatch = 1;
 int Wnon_pointer_null = 1;
 int Wold_initializer = 1;
@@ -413,6 +414,7 @@ static const struct warning {
 	{ "designated-init", &Wdesignated_init },
 	{ "do-while", &Wdo_while },
 	{ "enum-mismatch", &Wenum_mismatch },
+	{ "init-cstring", &Winit_cstring },
 	{ "non-pointer-null", &Wnon_pointer_null },
 	{ "old-initializer", &Wold_initializer },
 	{ "one-bit-signed-bitfield", &Wone_bit_signed_bitfield },
