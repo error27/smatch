@@ -18,11 +18,42 @@
 
 static int my_id;
 
+static char *get_array_ptr(struct expression *expr)
+{
+	struct expression *array;
+	char *name;
+	char buf[256];
+
+	array = get_array_name(expr);
+	if (array) {
+		name = expr_to_var(array);
+		if (!name)
+			return NULL;
+		snprintf(buf, sizeof(buf), "%s[]", name);
+		return alloc_string(buf);
+	}
+
+	expr = get_assigned_expr(expr);
+	array = get_array_name(expr);
+	if (!array)
+		return NULL;
+	name = expr_to_var(array);
+	if (!name)
+		return NULL;
+	snprintf(buf, sizeof(buf), "%s[]", name);
+	free_string(name);
+	return alloc_string(buf);
+}
+
 char *get_fnptr_name(struct expression *expr)
 {
 	char *name;
 
 	expr = strip_expr(expr);
+	name = get_array_ptr(expr);
+	if (name)
+		return name;
+
 	if (expr->type == EXPR_SYMBOL) {
 		int param;
 		char buf[256];
