@@ -712,7 +712,8 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 static int return_id;
 static void match_function_def(struct symbol *sym)
 {
-	return_id = 0;
+	if (!__inline_fn)
+		return_id = 0;
 }
 
 static void call_return_state_hooks_compare(struct expression *expr)
