@@ -20,6 +20,7 @@
 
 #include "parse.h"
 #include "smatch.h"
+#include "smatch_extra.h"
 #include "smatch_slist.h"
 
 static int my_id;
@@ -39,6 +40,8 @@ enum return_type {
 	ret_any,
 	ret_non_zero,
 	ret_zero,
+	ret_negative,
+	ret_positive,
 };
 
 #define RETURN_VAL -1
@@ -335,6 +338,7 @@ struct locks_on_return {
 	int line;
 	struct tracker_list *locked;
 	struct tracker_list *unlocked;
+	struct range_list *return_values;
 };
 DECLARE_PTR_LIST(return_list, struct locks_on_return);
 static struct return_list *all_returns;
@@ -536,12 +540,14 @@ static void match_lock_unlock(const char *fn, struct expression *expr, void *_in
 	free_string(full_name);
 }
 
-static struct locks_on_return *alloc_return(int line)
+static struct locks_on_return *alloc_return(struct expression *expr)
 {
 	struct locks_on_return *ret;
 
 	ret = malloc(sizeof(*ret));
-	ret->line = line;
+	if (!get_implied_rl(expr, &ret->return_values))
+		ret->return_values = NULL;
+	ret->line = get_lineno();
 	ret->locked = NULL;
 	ret->unlocked = NULL;
 	return ret;
@@ -580,7 +586,9 @@ static void check_possible(struct sm_state *sm)
 		sm_msg("warn: '%s' is sometimes locked here and sometimes unlocked.", sm->name);
 }
 
-static void match_return(struct expression *ret_value)
+static void match_return(int return_id, char *return_ranges,
+			 struct expression *expr,
+			 struct state_list *fake_cur_slist)
 {
 	struct locks_on_return *ret;
 	struct state_list *slist;
@@ -591,9 +599,9 @@ static void match_return(struct expression *ret_value)
 	if (__inline_fn)
 		return;
 
-	ret = alloc_return(get_lineno());
+	ret = alloc_return(expr);
 
-	slist = get_all_states(my_id);
+	slist = get_all_states_slist(my_id, fake_cur_slist);
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state == &locked) {
 			add_tracker(&ret->locked, tmp->owner, tmp->name,
@@ -611,7 +619,7 @@ static void match_return(struct expression *ret_value)
 			if (s == &unlocked)
 				add_tracker(&ret->unlocked, tmp->owner,tmp->name,
 					     tmp->sym);
-		}else {
+		} else {
 			check_possible(tmp);
 		}
 	} END_FOR_EACH_PTR(tmp);
@@ -634,14 +642,18 @@ static void print_inconsistent_returns(struct tracker *lock,
 			continue;
 		if (in_tracker_list(tmp->locked, lock->owner, lock->name, lock->sym)) {
 			if (i++)
-				sm_printf(",");
+				sm_printf(", ");
 			sm_printf("%d", tmp->line);
+			if (tmp->return_values)
+				sm_printf(" [%s]", show_rl(tmp->return_values));
 			continue;
 		}
 		if (start == &locked) {
 			if (i++)
-				sm_printf(",");
+				sm_printf(", ");
 			sm_printf("%d", tmp->line);
+			if (tmp->return_values)
+				sm_printf(" [%s]", show_rl(tmp->return_values));
 		}
 	} END_FOR_EACH_PTR(tmp);
 
@@ -650,52 +662,119 @@ static void print_inconsistent_returns(struct tracker *lock,
 	FOR_EACH_PTR(all_returns, tmp) {
 		if (in_tracker_list(tmp->unlocked, lock->owner, lock->name, lock->sym)) {
 			if (i++)
-				sm_printf(",");
+				sm_printf(", ");
 			sm_printf("%d", tmp->line);
+			if (tmp->return_values)
+				sm_printf(" [%s]", show_rl(tmp->return_values));
 			continue;
 		}
-		if (in_tracker_list(tmp->locked, lock->owner, lock->name, lock->sym)) {
+		if (in_tracker_list(tmp->locked, lock->owner, lock->name, lock->sym))
 			continue;
-		}
 		if (start == &unlocked) {
 			if (i++)
-				sm_printf(",");
+				sm_printf(", ");
 			sm_printf("%d", tmp->line);
+			if (tmp->return_values)
+				sm_printf(" [%s]", show_rl(tmp->return_values));
 		}
 	} END_FOR_EACH_PTR(tmp);
 	sm_printf(")\n");
 }
 
-static void check_returns_consistently(struct tracker *lock,
-				struct smatch_state *start)
+static int matches_return_type(struct range_list *rl, enum return_type type)
 {
-	int returns_locked = 0;
-	int returns_unlocked = 0;
+	sval_t zero_sval = ll_to_sval(0);
+
+	/* All these double negatives are super ugly!  */
+
+	switch (type) {
+	case ret_zero:
+		return !possibly_true_rl(rl, SPECIAL_NOTEQUAL, alloc_rl(zero_sval, zero_sval));
+	case ret_non_zero:
+		return !possibly_true_rl(rl, SPECIAL_EQUAL, alloc_rl(zero_sval, zero_sval));
+	case ret_negative:
+		return !possibly_true_rl(rl, SPECIAL_GTE, alloc_rl(zero_sval, zero_sval));
+	case ret_positive:
+		return !possibly_true_rl(rl, '<', alloc_rl(zero_sval, zero_sval));
+	case ret_any:
+	default:
+		return 1;
+	}
+}
+
+static int match_held(struct tracker *lock, struct locks_on_return *this_return, struct smatch_state *start)
+{
+	if (in_tracker_list(this_return->unlocked, lock->owner, lock->name, lock->sym))
+		return 0;
+	if (in_tracker_list(this_return->locked, lock->owner, lock->name, lock->sym))
+		return 1;
+	if (start == &unlocked)
+		return 0;
+	return 1;
+}
+
+static int match_released(struct tracker *lock, struct locks_on_return *this_return, struct smatch_state *start)
+{
+	if (in_tracker_list(this_return->unlocked, lock->owner, lock->name, lock->sym))
+		return 1;
+	if (in_tracker_list(this_return->locked, lock->owner, lock->name, lock->sym))
+		return 0;
+	if (start == &unlocked)
+		return 1;
+	return 0;
+}
+
+static int held_on_return(struct tracker *lock, struct smatch_state *start, enum return_type type)
+{
 	struct locks_on_return *tmp;
 
 	FOR_EACH_PTR(all_returns, tmp) {
-		if (in_tracker_list(tmp->unlocked, lock->owner, lock->name,
-					lock->sym))
-			returns_unlocked = tmp->line;
-		else if (in_tracker_list(tmp->locked, lock->owner, lock->name,
-						lock->sym))
-			returns_locked = tmp->line;
-		else if (start == &locked)
-			returns_locked = tmp->line;
-		else if (start == &unlocked)
-			returns_unlocked = tmp->line;
+		if (!matches_return_type(tmp->return_values, type))
+			continue;
+		if (match_held(lock, tmp, start))
+			return 1;
 	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
 
-	if (returns_locked && returns_unlocked)
-		print_inconsistent_returns(lock, start);
+static int released_on_return(struct tracker *lock, struct smatch_state *start, enum return_type type)
+{
+	struct locks_on_return *tmp;
+
+	FOR_EACH_PTR(all_returns, tmp) {
+		if (!matches_return_type(tmp->return_values, type))
+			continue;
+		if (match_released(lock, tmp, start))
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
+static void check_returns_consistently(struct tracker *lock,
+				struct smatch_state *start)
+{
+	if (!held_on_return(lock, start, ret_any) ||
+	    !released_on_return(lock, start, ret_any))
+		return;
+
+	if (held_on_return(lock, start, ret_zero) &&
+	    !held_on_return(lock, start, ret_non_zero))
+		return;
+
+	if (held_on_return(lock, start, ret_positive) &&
+	    !held_on_return(lock, start, ret_zero))
+		return;
+
+	if (held_on_return(lock, start, ret_positive) &&
+	    !held_on_return(lock, start, ret_negative))
+		return;
+
+	print_inconsistent_returns(lock, start);
 }
 
 static void check_consistency(struct symbol *sym)
 {
 	struct tracker *tmp;
-
-	if (is_reachable())
-		match_return(NULL);
 
 	FOR_EACH_PTR(starts_locked, tmp) {
 		if (in_tracker_list(starts_unlocked, tmp->owner, tmp->name,
@@ -804,6 +883,6 @@ void check_locking(int id)
 		return;
 
 	add_unmatched_state_hook(my_id, &unmatched_state);
-	add_hook(&match_return, RETURN_HOOK);
+	add_returned_state_callback(match_return);
 	add_hook(&match_func_end, END_FUNC_HOOK);
 }
