@@ -637,7 +637,7 @@ static int sm_state_in_slist(struct sm_state *sm, struct state_list *slist)
 {
 	struct sm_state *tmp;
 
-	FOR_EACH_PTR(sm->pool, tmp) {
+	FOR_EACH_PTR(slist, tmp) {
 		if (tmp == sm)
 			return 1;
 	} END_FOR_EACH_PTR(tmp);
