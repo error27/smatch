@@ -50,6 +50,17 @@ char *get_fnptr_name(struct expression *expr)
 	char *name;
 
 	expr = strip_expr(expr);
+
+	/* (*ptrs[0])(a, b, c) is the same as ptrs[0](a, b, c); */
+	if (expr->type == EXPR_PREOP && expr->op == '*') {
+		struct expression *unop = strip_expr(expr->unop);
+
+		if (unop->type == EXPR_PREOP && unop->op == '*')
+			expr = unop;
+		else if (unop->type == EXPR_SYMBOL)
+			expr = unop;
+	}
+
 	name = get_array_ptr(expr);
 	if (name)
 		return name;
