@@ -92,7 +92,6 @@ CK(check_struct_type)
 /* CK(register_template) */
 
 /* kernel specific */
-CK(check_kernel)
 CK(check_locking)
 CK(check_puts_argument)
 CK(check_err_ptr)
@@ -114,6 +113,7 @@ CK(register_sval)
 CK(register_buf_size_late)
 CK(register_modification_hooks_late)
 CK(register_smatch_extra_late)
+CK(check_kernel)  /* this is overwriting stuff from smatch_extra_late */
 CK(register_function_hooks)
 CK(register_returns)
 CK(register_db_call_marker) /* always second last */

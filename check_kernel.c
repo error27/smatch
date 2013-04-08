@@ -95,8 +95,43 @@ static void match_err(const char *fn, struct expression *call_expr,
 	set_extra_expr_nomod(arg, new_state);
 }
 
-static void match_container_of(const char *fn, struct expression *expr, void *unused)
+static void match_container_of_macro(const char *fn, struct expression *expr, void *unused)
 {
+	set_extra_expr_mod(expr->left, alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval));
+}
+
+static void match_container_of(struct expression *expr)
+{
+	struct expression *right = expr->right;
+	char *macro;
+
+	/*
+	 * The problem here is that sometimes the container_of() macro is itself
+	 * inside a macro and get_macro() only returns the name of the outside
+	 * macro.
+	 */
+
+	/*
+	 * This actually an expression statement assignment but smatch_flow
+	 * pre-mangles it for us so we only get the last chunk:
+	 * sk = (typeof(sk))((char *)__mptr - offsetof(...))
+	 */
+
+	macro = get_macro_name(right->pos);
+	if (!macro)
+		return;
+	if (right->type != EXPR_CAST)
+		return;
+	right = strip_expr(right);
+	if (right->type != EXPR_BINOP || right->op != '-' ||
+	    right->left->type != EXPR_CAST)
+		return;
+	right = strip_expr(right->left);
+	if (right->type != EXPR_SYMBOL)
+		return;
+	if (!right->symbol->ident ||
+	    strcmp(right->symbol->ident->name, "__mptr") != 0)
+		return;
 	set_extra_expr_mod(expr->left, alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval));
 }
 
@@ -209,7 +244,9 @@ void check_kernel(int id)
 	return_implies_state("IS_ERR", 0, 0, &match_not_err, NULL);
 	return_implies_state("IS_ERR", 1, 1, &match_err, NULL);
 	return_implies_state("tomoyo_memory_ok", 1, 1, &match_param_valid_ptr, (void *)0);
-	add_macro_assign_hook_extra("container_of", &match_container_of, NULL);
+
+	add_macro_assign_hook_extra("container_of", &match_container_of_macro, NULL);
+	add_hook(match_container_of, ASSIGNMENT_HOOK);
 
 	add_implied_return_hook("copy_to_user", &implied_copy_return, NULL);
 	add_implied_return_hook("__copy_to_user", &implied_copy_return, NULL);
