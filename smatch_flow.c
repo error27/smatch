@@ -795,18 +795,82 @@ static void split_symlist(struct symbol_list *sym_list)
 
 typedef void (fake_cb)(struct expression *expr);
 
+static int member_to_number(struct expression *expr, struct ident *member)
+{
+	struct symbol *type, *tmp;
+	char *name;
+	int i;
+
+	if (!member)
+		return -1;
+	name = member->name;
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_STRUCT)
+		return -1;
+
+	i = -1;
+	FOR_EACH_PTR(type->symbol_list, tmp) {
+		i++;
+		if (!tmp->ident)
+			continue;
+		if (strcmp(name, tmp->ident->name) == 0)
+			return i;
+	} END_FOR_EACH_PTR(tmp);
+	return -1;
+}
+
+static struct ident *number_to_member(struct expression *expr, int num)
+{
+	struct symbol *type, *member;
+	int i = 0;
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_STRUCT)
+		return NULL;
+
+	FOR_EACH_PTR(type->symbol_list, member) {
+		if (i == num)
+			return member->ident;
+		i++;
+	} END_FOR_EACH_PTR(member);
+	return NULL;
+}
+
+static void fake_member_assigns_helper(struct expression *symbol, struct expression_list *members, fake_cb *fake_cb)
+{
+	struct expression *deref, *assign, *tmp;
+	struct symbol *type;
+	struct ident *member;
+	int member_idx = 0;
+
+	type = get_type(symbol);
+	if (!type || type->type != SYM_STRUCT)
+		return;
+
+	FOR_EACH_PTR(members, tmp) {
+		if (tmp->type == EXPR_IDENTIFIER) {
+			member = tmp->expr_ident;
+			member_idx = member_to_number(symbol, member);
+			tmp = tmp->ident_expression;
+		} else {
+			member = number_to_member(symbol, member_idx);
+		}
+		member_idx++;
+		deref = member_expression(symbol, '.', member);
+		if (tmp->type == EXPR_INITIALIZER) {
+			fake_member_assigns_helper(deref, tmp->expr_list, fake_cb);
+		} else {
+			assign = assign_expression(deref, tmp);
+			fake_cb(assign);
+		}
+	} END_FOR_EACH_PTR(tmp);
+}
+
 static void fake_member_assigns(struct symbol *sym, fake_cb *fake_cb)
 {
-	struct expression *symbol, *deref, *assign, *tmp;
-
-	symbol = symbol_expression(sym);
-	FOR_EACH_PTR(sym->initializer->expr_list, tmp) {
-		if (tmp->type != EXPR_IDENTIFIER) /* how to handle arrays?? */
-			continue;
-		deref = member_expression(symbol, '.', tmp->expr_ident);
-		assign = assign_expression(deref, tmp->ident_expression);
-		fake_cb(assign);
-	} END_FOR_EACH_PTR(tmp);
+	fake_member_assigns_helper(symbol_expression(sym),
+				   sym->initializer->expr_list, fake_cb);
 }
 
 static void fake_element_assigns(struct symbol *sym, fake_cb *fake_cb)
@@ -826,9 +890,13 @@ static void fake_element_assigns(struct symbol *sym, fake_cb *fake_cb)
 			tmp = tmp->idx_expression;
 		}
 		offset = value_expr(idx);
-		binop = binop_expression(array, '+', offset);
-		assign = assign_expression(binop, tmp);
-		fake_cb(assign);
+		binop = array_element_expression(array, offset);
+		if (tmp->type == EXPR_INITIALIZER) {
+			fake_member_assigns_helper(binop, tmp->expr_list, fake_cb);
+		} else {
+			assign = assign_expression(binop, tmp);
+			fake_cb(assign);
+		}
 next:
 		idx++;
 	} END_FOR_EACH_PTR(tmp);
