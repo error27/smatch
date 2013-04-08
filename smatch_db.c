@@ -818,7 +818,7 @@ static void call_return_state_hooks(struct expression *expr)
 		rl = cast_rl(cur_func_return_type(), rl);
 		return_ranges = show_rl(rl);
 	} else {
-		rl = alloc_whole_rl(cur_func_return_type());
+		rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr)));
 		return_ranges = show_rl(rl);
 	}
 

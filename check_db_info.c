@@ -28,16 +28,19 @@ static void add_return_range(struct range_list *rl)
 static void match_return(struct expression *ret_value)
 {
 	struct range_list *rl;
-	struct symbol *type = cur_func_return_type();
 
 	ret_value = strip_expr(ret_value);
 	if (!ret_value)
 		return;
 
-	if (get_implied_rl(ret_value, &rl))
+	if (get_implied_rl(ret_value, &rl)) {
 		add_return_range(rl);
-	else
-		add_return_range(alloc_whole_rl(type));
+	} else {
+		struct symbol *data_type = get_type(ret_value);
+		struct symbol *func_type = cur_func_return_type();
+
+		add_return_range(cast_rl(func_type, alloc_whole_rl(data_type)));
+	}
 }
 
 static void match_end_func(struct symbol *sym)
