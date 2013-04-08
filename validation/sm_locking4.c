@@ -4,7 +4,7 @@ void _spin_unlock(int name);
 void frob(void){}
 int a;
 int b;
-int func (void)
+void func (void)
 {
 	int mylock = 1;
 	int mylock2 = 2;
@@ -22,13 +22,12 @@ int func (void)
 		return;
 	if (!1)
 	      	_spin_lock(mylock);
-	return 0;
 }
 /*
  * check-name: Smatch locking #4
  * check-command: smatch --project=kernel sm_locking4.c
  *
  * check-output-start
-sm_locking4.c:25 func() warn: inconsistent returns spin_lock:mylock: locked (22,25) unlocked (16)
+sm_locking4.c:23 func() warn: inconsistent returns spin_lock:mylock: locked (22, 23) unlocked (16)
  * check-output-end
  */

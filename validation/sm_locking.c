@@ -20,7 +20,7 @@ int func (void)
 		_spin_unlock(mylock2);
 		return;
 	}
-	
+
 	if (a)
 		_spin_lock(mylock3);
 	return;
@@ -31,6 +31,6 @@ int func (void)
  *
  * check-output-start
 sm_locking.c:26 func() warn: 'spin_lock:mylock3' is sometimes locked here and sometimes unlocked.
-sm_locking.c:26 func() warn: inconsistent returns spin_lock:mylock2: locked (13,26) unlocked (21)
+sm_locking.c:26 func() warn: inconsistent returns spin_lock:mylock2: locked (13, 26) unlocked (21)
  * check-output-end
  */
