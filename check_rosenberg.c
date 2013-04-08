@@ -160,11 +160,12 @@ out:
 	free_string(name);
 }
 
-static void match_copy_to_user(const char *fn, struct expression *expr, void *unused)
+static void match_copy_to_user(const char *fn, struct expression *expr, void *_arg)
 {
+	int arg = PTR_INT(_arg);
 	struct expression *data;
 
-	data = get_argument_from_call_expr(expr->args, 1);
+	data = get_argument_from_call_expr(expr->args, arg);
 	if (!data)
 		return;
 	if (data->type != EXPR_PREOP || data->op != '&')
@@ -249,5 +250,7 @@ void check_rosenberg(int id)
 	register_holey_structs();
 	register_clears_argument();
 
-	add_function_hook("copy_to_user", &match_copy_to_user, NULL);
+	add_function_hook("copy_to_user", &match_copy_to_user, INT_PTR(1));
+	add_function_hook("nla_put", &match_copy_to_user, INT_PTR(3));
+
 }
