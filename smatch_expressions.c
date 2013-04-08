@@ -27,6 +27,7 @@ struct expression *zero_expr()
 
 	zero = alloc_expression(get_cur_pos(), EXPR_VALUE);
 	zero->value = 0;
+	zero->ctype = &char_ctype;
 	return zero;
 }
 
@@ -39,6 +40,7 @@ struct expression *value_expr(long long val)
 
 	expr = alloc_expression(get_cur_pos(), EXPR_VALUE);
 	expr->value = val;
+	expr->ctype = &llong_ctype;
 	return expr;
 }
 
@@ -83,6 +85,14 @@ struct expression *binop_expression(struct expression *left, int op, struct expr
 	expr->left = left;
 	expr->right = right;
 	return expr;
+}
+
+struct expression *array_element_expression(struct expression *array, struct expression *offset)
+{
+	struct expression *expr;
+
+	expr = binop_expression(array, '+', offset);
+	return deref_expression(expr);
 }
 
 struct expression *symbol_expression(struct symbol *sym)

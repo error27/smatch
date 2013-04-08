@@ -149,6 +149,7 @@ struct expression *member_expression(struct expression *deref, int op, struct id
 struct expression *deref_expression(struct expression *expr);
 struct expression *assign_expression(struct expression *left, struct expression *right);
 struct expression *binop_expression(struct expression *left, int op, struct expression *right);
+struct expression *array_element_expression(struct expression *array, struct expression *offset);
 struct expression *symbol_expression(struct symbol *sym);
 
 
