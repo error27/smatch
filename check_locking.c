@@ -753,6 +753,8 @@ static int released_on_return(struct tracker *lock, struct smatch_state *start, 
 static void check_returns_consistently(struct tracker *lock,
 				struct smatch_state *start)
 {
+	struct symbol *type;
+
 	if (!held_on_return(lock, start, ret_any) ||
 	    !released_on_return(lock, start, ret_any))
 		return;
@@ -768,6 +770,13 @@ static void check_returns_consistently(struct tracker *lock,
 	if (held_on_return(lock, start, ret_positive) &&
 	    !held_on_return(lock, start, ret_negative))
 		return;
+
+	type = cur_func_return_type();
+	if (type && type->type == SYM_PTR) {
+		if (held_on_return(lock, start, ret_non_zero) &&
+		    !held_on_return(lock, start, ret_zero))
+			return;
+	}
 
 	print_inconsistent_returns(lock, start);
 }
