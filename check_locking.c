@@ -304,6 +304,8 @@ static struct lock_info kernel_lock_table[] = {
 	{"__write_lock_irqsave",       LOCK,   "irqsave", RETURN_VAL, ret_any},
 	{"__write_unlock_irqrestore",  UNLOCK, "irqsave", 1, ret_any},
 
+	{"local_bh_disable",	LOCK,	"bottom_half", NO_ARG, ret_any},
+	{"local_bh_enable",	UNLOCK,	"bottom_half", NO_ARG, ret_any},
 	{"spin_lock_bh",        LOCK,   "bottom_half", NO_ARG, ret_any},
 	{"spin_unlock_bh",      UNLOCK, "bottom_half", NO_ARG, ret_any},
 	{"_spin_lock_bh",       LOCK,   "bottom_half", NO_ARG, ret_any},
