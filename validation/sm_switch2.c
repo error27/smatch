@@ -41,7 +41,7 @@ void func (void)
 }
 /*
  * check-name: Smatch switch handling #2
- * check-command: smatch sm_switch2.c
+ * check-command: smatch --spammy sm_switch2.c
  *
  * check-output-start
 sm_switch2.c:31 func() warn: missing break? reassigning 'a->a'

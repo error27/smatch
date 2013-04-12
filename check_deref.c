@@ -74,7 +74,8 @@ static void check_dereference(struct expression *expr)
 			continue;
 		add_ignore(my_id, sm->name, sm->sym);
 		if (tmp->state == &null) {
-			sm_msg("error: potential NULL dereference '%s'.", tmp->name);
+			if (option_spammy)
+				sm_msg("error: potential NULL dereference '%s'.", tmp->name);
 			return;
 		}
 		if (tmp->state == &uninitialized) {

@@ -33,7 +33,7 @@ void func (void)
 }
 /*
  * check-name: Smatch implied #6
- * check-command: smatch sm_implied6.c
+ * check-command: smatch --spammy sm_implied6.c
  *
  * check-output-start
 sm_implied6.c:29 func() error: potential NULL dereference 'b'.

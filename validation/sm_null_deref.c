@@ -50,7 +50,7 @@ static void func (void)
 }
 /*
  * check-name: Null Dereferences
- * check-command: smatch sm_null_deref.c
+ * check-command: smatch --spammy sm_null_deref.c
  *
  * check-output-start
 sm_null_deref.c:18 func() error: potentially dereferencing uninitialized 'aa'.
