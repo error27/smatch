@@ -126,6 +126,42 @@ const char *show_string(const struct string *string)
 	return buffer;
 }
 
+static const char *show_char(const char *s, size_t len, char prefix, char delim)
+{
+	static char buffer[MAX_STRING + 4];
+	char *p = buffer;
+	if (prefix)
+		*p++ = prefix;
+	*p++ = delim;
+	memcpy(p, s, len);
+	p += len;
+	*p++ = delim;
+	*p++ = '\0';
+	return buffer;
+}
+
+static const char *quote_char(const char *s, size_t len, char prefix, char delim)
+{
+	static char buffer[2*MAX_STRING + 6];
+	size_t i;
+	char *p = buffer;
+	if (prefix)
+		*p++ = prefix;
+	if (delim == '"')
+		*p++ = '\\';
+	*p++ = delim;
+	for (i = 0; i < len; i++) {
+		if (s[i] == '"' || s[i] == '\\')
+			*p++ = '\\';
+		*p++ = s[i];
+	}
+	if (delim == '"')
+		*p++ = '\\';
+	*p++ = delim;
+	*p++ = '\0';
+	return buffer;
+}
+
 const char *show_token(const struct token *token)
 {
 	static char buffer[256];
@@ -142,10 +178,6 @@ const char *show_token(const struct token *token)
 	case TOKEN_IDENT:
 		return show_ident(token->ident);
 
-	case TOKEN_STRING:
-	case TOKEN_WIDE_STRING:
-		return show_string(token->string);
-
 	case TOKEN_NUMBER:
 		return token->number;
 
@@ -153,15 +185,23 @@ const char *show_token(const struct token *token)
 		return show_special(token->special);
 
 	case TOKEN_CHAR: 
-	case TOKEN_WIDE_CHAR: {
-		char *ptr = buffer;
-		int c = token->character;
-		*ptr++ = '\'';
-		ptr = charstr(ptr, c, '\'', 0);
-		*ptr++ = '\'';
-		*ptr++ = '\0';
-		return buffer;
-	}
+		return show_char(token->string->data,
+			token->string->length - 1, 0, '\'');
+	case TOKEN_CHAR_EMBEDDED_0 ... TOKEN_CHAR_EMBEDDED_3:
+		return show_char(token->embedded,
+			token_type(token) - TOKEN_CHAR, 0, '\'');
+	case TOKEN_WIDE_CHAR: 
+		return show_char(token->string->data,
+			token->string->length - 1, 'L', '\'');
+	case TOKEN_WIDE_CHAR_EMBEDDED_0 ... TOKEN_WIDE_CHAR_EMBEDDED_3:
+		return show_char(token->embedded,
+			token_type(token) - TOKEN_WIDE_CHAR, 'L', '\'');
+	case TOKEN_STRING: 
+		return show_char(token->string->data,
+			token->string->length - 1, 0, '"');
+	case TOKEN_WIDE_STRING: 
+		return show_char(token->string->data,
+			token->string->length - 1, 'L', '"');
 
 	case TOKEN_STREAMBEGIN:
 		sprintf(buffer, "<beginning of '%s'>", stream_name(token->pos.stream));
@@ -179,6 +219,47 @@ const char *show_token(const struct token *token)
 		sprintf(buffer, "<argcnt>");
 		return buffer;
 
+	default:
+		sprintf(buffer, "unhandled token type '%d' ", token_type(token));
+		return buffer;
+	}
+}
+
+const char *quote_token(const struct token *token)
+{
+	static char buffer[256];
+
+	switch (token_type(token)) {
+	case TOKEN_ERROR:
+		return "syntax error";
+
+	case TOKEN_IDENT:
+		return show_ident(token->ident);
+
+	case TOKEN_NUMBER:
+		return token->number;
+
+	case TOKEN_SPECIAL:
+		return show_special(token->special);
+
+	case TOKEN_CHAR: 
+		return quote_char(token->string->data,
+			token->string->length - 1, 0, '\'');
+	case TOKEN_CHAR_EMBEDDED_0 ... TOKEN_CHAR_EMBEDDED_3:
+		return quote_char(token->embedded,
+			token_type(token) - TOKEN_CHAR, 0, '\'');
+	case TOKEN_WIDE_CHAR: 
+		return quote_char(token->string->data,
+			token->string->length - 1, 'L', '\'');
+	case TOKEN_WIDE_CHAR_EMBEDDED_0 ... TOKEN_WIDE_CHAR_EMBEDDED_3:
+		return quote_char(token->embedded,
+			token_type(token) - TOKEN_WIDE_CHAR, 'L', '\'');
+	case TOKEN_STRING: 
+		return quote_char(token->string->data,
+			token->string->length - 1, 0, '"');
+	case TOKEN_WIDE_STRING: 
+		return quote_char(token->string->data,
+			token->string->length - 1, 'L', '"');
 	default:
 		sprintf(buffer, "unhandled token type '%d' ", token_type(token));
 		return buffer;
@@ -246,10 +327,10 @@ static int nextchar_slow(stream_t *stream)
 	int offset = stream->offset;
 	int size = stream->size;
 	int c;
-	int spliced = 0, had_cr, had_backslash, complain;
+	int spliced = 0, had_cr, had_backslash;
 
 restart:
-	had_cr = had_backslash = complain = 0;
+	had_cr = had_backslash = 0;
 
 repeat:
 	if (offset >= size) {
@@ -263,47 +344,52 @@ repeat:
 	}
 
 	c = stream->buffer[offset++];
-
-	if (had_cr && c != '\n')
-		complain = 1;
+	if (had_cr)
+		goto check_lf;
 
 	if (c == '\r') {
 		had_cr = 1;
 		goto repeat;
 	}
 
-	stream->pos += (c == '\t') ? (tabstop - stream->pos % tabstop) : 1;
-
-	if (c == '\n') {
-		stream->line++;
-		stream->pos = 0;
-	}
-
+norm:
 	if (!had_backslash) {
-		if (c == '\\') {
-			had_backslash = 1;
-			goto repeat;
-		}
-		if (c == '\n')
+		switch (c) {
+		case '\t':
+			stream->pos += tabstop - stream->pos % tabstop;
+			break;
+		case '\n':
+			stream->line++;
+			stream->pos = 0;
 			stream->newline = 1;
+			break;
+		case '\\':
+			had_backslash = 1;
+			stream->pos++;
+			goto repeat;
+		default:
+			stream->pos++;
+		}
 	} else {
 		if (c == '\n') {
-			if (complain)
-				warning(stream_pos(stream), "non-ASCII data stream");
+			stream->line++;
+			stream->pos = 0;
 			spliced = 1;
 			goto restart;
 		}
-		stream->pos--;
 		offset--;
 		c = '\\';
 	}
-
 out:
 	stream->offset = offset;
-	if (complain)
-		warning(stream_pos(stream), "non-ASCII data stream");
 
 	return c;
+
+check_lf:
+	if (c != '\n')
+		offset--;
+	c = '\n';
+	goto norm;
 
 got_eof:
 	if (had_backslash) {
@@ -312,8 +398,6 @@ got_eof:
 	}
 	if (stream->pos)
 		warning(stream_pos(stream), "no newline at end of file");
-	else if (had_cr)
-		warning(stream_pos(stream), "non-ASCII data stream");
 	else if (spliced)
 		warning(stream_pos(stream), "backslash-newline at end of file");
 	return EOF;
@@ -385,22 +469,36 @@ enum {
 	Exp = 8,
 	Dot = 16,
 	ValidSecond = 32,
+	Quote = 64,
+	Escape = 128,
 };
 
 static const long cclass[257] = {
-	['0' + 1 ... '9' + 1] = Digit | Hex,
+	['0' + 1 ... '7' + 1] = Digit | Hex | Escape,	/* \<octal> */
+	['8' + 1 ... '9' + 1] = Digit | Hex,
 	['A' + 1 ... 'D' + 1] = Letter | Hex,
-	['E' + 1] = Letter | Hex | Exp,
+	['E' + 1] = Letter | Hex | Exp,	/* E<exp> */
 	['F' + 1] = Letter | Hex,
 	['G' + 1 ... 'O' + 1] = Letter,
-	['P' + 1] = Letter | Exp,
+	['P' + 1] = Letter | Exp,	/* P<exp> */
 	['Q' + 1 ... 'Z' + 1] = Letter,
-	['a' + 1 ... 'd' + 1] = Letter | Hex,
-	['e' + 1] = Letter | Hex | Exp,
-	['f' + 1] = Letter | Hex,
-	['g' + 1 ... 'o' + 1] = Letter,
-	['p' + 1] = Letter | Exp,
-	['q' + 1 ... 'z' + 1] = Letter,
+	['a' + 1 ... 'b' + 1] = Letter | Hex | Escape, /* \a, \b */
+	['c' + 1 ... 'd' + 1] = Letter | Hex,
+	['e' + 1] = Letter | Hex | Exp | Escape,/* \e, e<exp> */
+	['f' + 1] = Letter | Hex | Escape,	/* \f */
+	['g' + 1 ... 'm' + 1] = Letter,
+	['n' + 1] = Letter | Escape,	/* \n */
+	['o' + 1] = Letter,
+	['p' + 1] = Letter | Exp,	/* p<exp> */
+	['q' + 1] = Letter,
+	['r' + 1] = Letter | Escape,	/* \r */
+	['s' + 1] = Letter,
+	['t' + 1] = Letter | Escape,	/* \t */
+	['u' + 1] = Letter,
+	['v' + 1] = Letter | Escape,	/* \v */
+	['w' + 1] = Letter,
+	['x' + 1] = Letter | Escape,	/* \x<hex> */
+	['y' + 1 ... 'z' + 1] = Letter,
 	['_' + 1] = Letter,
 	['.' + 1] = Dot | ValidSecond,
 	['=' + 1] = ValidSecond,
@@ -411,6 +509,10 @@ static const long cclass[257] = {
 	['&' + 1] = ValidSecond,
 	['|' + 1] = ValidSecond,
 	['#' + 1] = ValidSecond,
+	['\'' + 1] = Quote | Escape,
+	['"' + 1] = Quote | Escape,
+	['\\' + 1] = Escape,
+	['?' + 1] = Escape,
 };
 
 /*
@@ -470,151 +572,74 @@ static int get_one_number(int c, int next, stream_t *stream)
 	return next;
 }
 
-static int escapechar(int first, int type, stream_t *stream, int *valp)
-{
-	int next, value;
-
-	next = nextchar(stream);
-	value = first;
-
-	if (first == '\n')
-		warning(stream_pos(stream), "Newline in string or character constant");
-
-	if (first == '\\' && next != EOF) {
-		value = next;
-		next = nextchar(stream);
-		if (value != type) {
-			switch (value) {
-			case 'a':
-				value = '\a';
-				break;
-			case 'b':
-				value = '\b';
-				break;
-			case 't':
-				value = '\t';
-				break;
-			case 'n':
-				value = '\n';
-				break;
-			case 'v':
-				value = '\v';
-				break;
-			case 'f':
-				value = '\f';
-				break;
-			case 'r':
-				value = '\r';
-				break;
-			case 'e':
-				value = '\e';
-				break;
-			case '\\':
-				break;
-			case '?':
-				break;
-			case '\'':
-				break;
-			case '"':
-				break;
-			case '\n':
-				warning(stream_pos(stream), "Newline in string or character constant");
-				break;
-			case '0'...'7': {
-				int nr = 2;
-				value -= '0';
-				while (next >= '0' && next <= '7') {
-					value = (value << 3) + (next-'0');
-					next = nextchar(stream);
-					if (!--nr)
-						break;
-				}
-				value &= 0xff;
-				break;
-			}
-			case 'x': {
-				int hex = hexval(next);
-				if (hex < 16) {
-					value = hex;
-					next = nextchar(stream);
-					while ((hex = hexval(next)) < 16) {
-						value = (value << 4) + hex;
-						next = nextchar(stream);
-					}
-					value &= 0xff;
-					break;
-				}
-			}
-			/* Fall through */
-			default:
-				warning(stream_pos(stream), "Unknown escape '%c'", value);
-			}
-		}
-		/* Mark it as escaped */
-		value |= 0x100;
-	}
-	*valp = value;
-	return next;
-}
-
-static int get_char_token(int next, stream_t *stream, enum token_type type)
-{
-	int value;
-	struct token *token;
-
-	next = escapechar(next, '\'', stream, &value);
-	if (value == '\'' || next != '\'') {
-		sparse_error(stream_pos(stream), "Bad character constant");
-		drop_token(stream);
-		return next;
-	}
-
-	token = stream->token;
-	token_type(token) = type;
-	token->character = value & 0xff;
-
-	add_token(stream);
-	return nextchar(stream);
-}
-
-static int get_string_token(int next, stream_t *stream, enum token_type type)
+static int eat_string(int next, stream_t *stream, enum token_type type)
 {
 	static char buffer[MAX_STRING];
 	struct string *string;
-	struct token *token;
+	struct token *token = stream->token;
 	int len = 0;
+	int escape;
+	int want_hex = 0;
+	char delim = type < TOKEN_STRING ? '\'' : '"';
 
-	for (;;) {
-		int val;
-		next = escapechar(next, '"', stream, &val);
-		if (val == '"')
-			break;
+	for (escape = 0; escape || next != delim; next = nextchar(stream)) {
+		if (len < MAX_STRING)
+			buffer[len] = next;
+		len++;
+		if (next == '\n') {
+			warning(stream_pos(stream),
+				"Newline in string or character constant");
+			if (delim == '\'') /* assume it's lost ' */
+				break;
+		}
 		if (next == EOF) {
-			warning(stream_pos(stream), "End of file in middle of string");
+			warning(stream_pos(stream),
+				"End of file in middle of string");
 			return next;
 		}
-		if (len < MAX_STRING)
-			buffer[len] = val;
-		len++;
+		if (!escape) {
+			if (want_hex && !(cclass[next + 1] & Hex))
+				warning(stream_pos(stream),
+					"\\x used with no following hex digits");
+			want_hex = 0;
+			escape = next == '\\';
+		} else {
+			if (!(cclass[next + 1] & Escape))
+				warning(stream_pos(stream),
+					"Unknown escape '%c'", next);
+			escape = 0;
+			want_hex = next == 'x';
+		}
 	}
-
+	if (want_hex)
+		warning(stream_pos(stream),
+			"\\x used with no following hex digits");
 	if (len > MAX_STRING) {
 		warning(stream_pos(stream), "string too long (%d bytes, %d bytes max)", len, MAX_STRING);
 		len = MAX_STRING;
 	}
-
-	string = __alloc_string(len+1);
-	memcpy(string->data, buffer, len);
-	string->data[len] = '\0';
-	string->length = len+1;
+	if (delim == '\'' && len <= 4) {
+		if (len == 0) {
+			sparse_error(stream_pos(stream),
+				"empty character constant");
+			return nextchar(stream);
+		}
+		token_type(token) = type + len;
+		memset(buffer + len, '\0', 4 - len);
+		memcpy(token->embedded, buffer, 4);
+	} else {
+		token_type(token) = type;
+		string = __alloc_string(len+1);
+		memcpy(string->data, buffer, len);
+		string->data[len] = '\0';
+		string->length = len+1;
+		token->string = string;
+	}
 
 	/* Pass it on.. */
 	token = stream->token;
-	token_type(token) = type;
-	token->string = string;
 	add_token(stream);
-	
-	return next;
+	return nextchar(stream);
 }
 
 static int drop_stream_eoln(stream_t *stream)
@@ -730,9 +755,9 @@ static int get_one_special(int c, stream_t *stream)
 			return get_one_number(c, next, stream);
 		break;
 	case '"':
-		return get_string_token(next, stream, TOKEN_STRING);
+		return eat_string(next, stream, TOKEN_STRING);
 	case '\'':
-		return get_char_token(next, stream, TOKEN_CHAR);
+		return eat_string(next, stream, TOKEN_CHAR);
 	case '/':
 		if (next == '/')
 			return drop_stream_eoln(stream);
@@ -906,16 +931,18 @@ static int get_one_identifier(int c, stream_t *stream)
 		buf[len] = next;
 		len++;
 	};
-	hash = ident_hash_end(hash);
-
-	ident = create_hashed_ident(buf, len, hash);
-
-	if (ident == &L_ident) {
-		if (next == '\'')
-			return get_char_token(nextchar(stream), stream, TOKEN_WIDE_CHAR);
-		if (next == '\"')
-			return get_string_token(nextchar(stream), stream, TOKEN_WIDE_STRING);
+	if (cclass[next + 1] & Quote) {
+		if (len == 1 && buf[0] == 'L') {
+			if (next == '\'')
+				return eat_string(nextchar(stream), stream,
+							TOKEN_WIDE_CHAR);
+			else
+				return eat_string(nextchar(stream), stream,
+							TOKEN_WIDE_STRING);
+		}
 	}
+	hash = ident_hash_end(hash);
+	ident = create_hashed_ident(buf, len, hash);
 
 	/* Pass it on.. */
 	token = stream->token;

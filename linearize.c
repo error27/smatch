@@ -1240,7 +1240,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	add_one_insn(ep, insn);
 
 	if (ctype) {
-		FOR_EACH_PTR(ctype->contexts, context) {
+		FOR_EACH_PTR(ctype->attribute->contexts, context) {
 			int in = context->in;
 			int out = context->out;
 			int check = 0;

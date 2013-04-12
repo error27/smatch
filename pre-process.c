@@ -82,8 +82,6 @@ static struct token *alloc_token(struct position *pos)
 	return token;
 }
 
-static const char *show_token_sequence(struct token *token);
-
 /* Expand symbol 'sym' at '*list' */
 static int expand(struct token **, struct symbol *);
 
@@ -341,9 +339,35 @@ static struct token *dup_list(struct token *list)
 	return res;
 }
 
+static const char *quote_token_sequence(struct token *token)
+{
+	static char buffer[1024];
+	char *ptr = buffer;
+	int whitespace = 0;
+
+	while (!eof_token(token)) {
+		const char *val = quote_token(token);
+		int len = strlen(val);
+
+		if (ptr + whitespace + len >= buffer + sizeof(buffer)) {
+			sparse_error(token->pos, "too long token expansion");
+			break;
+		}
+
+		if (whitespace)
+			*ptr++ = ' ';
+		memcpy(ptr, val, len);
+		ptr += len;
+		token = token->next;
+		whitespace = token->pos.whitespace;
+	}
+	*ptr = 0;
+	return buffer;
+}
+
 static struct token *stringify(struct token *arg)
 {
-	const char *s = show_token_sequence(arg);
+	const char *s = quote_token_sequence(arg);
 	int size = strlen(s)+1;
 	struct token *token = __alloc_token(0);
 	struct string *string = __alloc_string(size);
@@ -384,6 +408,8 @@ static void expand_arguments(int count, struct arg *args)
  * Possibly valid combinations:
  *  - ident + ident -> ident
  *  - ident + number -> ident unless number contains '.', '+' or '-'.
+ *  - 'L' + char constant -> wide char constant
+ *  - 'L' + string literal -> wide string literal
  *  - number + number -> number
  *  - number + ident -> number
  *  - number + '.' -> number
@@ -398,6 +424,13 @@ static enum token_type combine(struct token *left, struct token *right, char *p)
 
 	if (t1 != TOKEN_IDENT && t1 != TOKEN_NUMBER && t1 != TOKEN_SPECIAL)
 		return TOKEN_ERROR;
+
+	if (t1 == TOKEN_IDENT && left->ident == &L_ident) {
+		if (t2 >= TOKEN_CHAR && t2 < TOKEN_WIDE_CHAR)
+			return t2 + TOKEN_WIDE_CHAR - TOKEN_CHAR;
+		if (t2 == TOKEN_STRING)
+			return TOKEN_WIDE_STRING;
+	}
 
 	if (t2 != TOKEN_IDENT && t2 != TOKEN_NUMBER && t2 != TOKEN_SPECIAL)
 		return TOKEN_ERROR;
@@ -441,9 +474,10 @@ static enum token_type combine(struct token *left, struct token *right, char *p)
 static int merge(struct token *left, struct token *right)
 {
 	static char buffer[512];
+	enum token_type res = combine(left, right, buffer);
 	int n;
 
-	switch (combine(left, right, buffer)) {
+	switch (res) {
 	case TOKEN_IDENT:
 		left->ident = built_in_ident(buffer);
 		left->pos.noexpand = 0;
@@ -466,6 +500,21 @@ static int merge(struct token *left, struct token *right)
 				return 1;
 			}
 		}
+		break;
+
+	case TOKEN_WIDE_CHAR:
+	case TOKEN_WIDE_STRING:
+		token_type(left) = res;
+		left->pos.noexpand = 0;
+		left->string = right->string;
+		return 1;
+
+	case TOKEN_WIDE_CHAR_EMBEDDED_0 ... TOKEN_WIDE_CHAR_EMBEDDED_3:
+		token_type(left) = res;
+		left->pos.noexpand = 0;
+		memcpy(left->embedded, right->embedded, 4);
+		return 1;
+
 	default:
 		;
 	}
@@ -473,12 +522,12 @@ static int merge(struct token *left, struct token *right)
 	return 0;
 }
 
-static struct token *dup_token(struct token *token, struct position *streampos, struct position *pos)
+static struct token *dup_token(struct token *token, struct position *streampos)
 {
 	struct token *alloc = alloc_token(streampos);
 	token_type(alloc) = token_type(token);
-	alloc->pos.newline = pos->newline;
-	alloc->pos.whitespace = pos->whitespace;
+	alloc->pos.newline = token->pos.newline;
+	alloc->pos.whitespace = token->pos.whitespace;
 	alloc->number = token->number;
 	alloc->pos.noexpand = token->pos.noexpand;
 	return alloc;	
@@ -490,7 +539,7 @@ static struct token **copy(struct token **where, struct token *list, int *count)
 	while (!eof_token(list)) {
 		struct token *token;
 		if (need_copy)
-			token = dup_token(list, &list->pos, &list->pos);
+			token = dup_token(list, &list->pos);
 		else
 			token = list;
 		if (token_type(token) == TOKEN_IDENT && token->ident->tainted)
@@ -503,17 +552,37 @@ static struct token **copy(struct token **where, struct token *list, int *count)
 	return where;
 }
 
+static int handle_kludge(struct token **p, struct arg *args)
+{
+	struct token *t = (*p)->next->next;
+	while (1) {
+		struct arg *v = &args[t->argnum];
+		if (token_type(t->next) != TOKEN_CONCAT) {
+			if (v->arg) {
+				/* ignore the first ## */
+				*p = (*p)->next;
+				return 0;
+			}
+			/* skip the entire thing */
+			*p = t;
+			return 1;
+		}
+		if (v->arg && !eof_token(v->arg))
+			return 0; /* no magic */
+		t = t->next->next;
+	}
+}
+
 static struct token **substitute(struct token **list, struct token *body, struct arg *args)
 {
-	struct token *token = *list;
-	struct position *base_pos = &token->pos;
-	struct position *pos = base_pos;
+	struct position *base_pos = &(*list)->pos;
 	int *count;
 	enum {Normal, Placeholder, Concat} state = Normal;
 
-	for (; !eof_token(body); body = body->next, pos = &body->pos) {
+	for (; !eof_token(body); body = body->next) {
 		struct token *added, *arg;
 		struct token **tail;
+		struct token *t;
 
 		switch (token_type(body)) {
 		case TOKEN_GNU_KLUDGE:
@@ -521,13 +590,20 @@ static struct token **substitute(struct token **list, struct token *body, struct
 			 * GNU kludge: if we had <comma>##<vararg>, behaviour
 			 * depends on whether we had enough arguments to have
 			 * a vararg.  If we did, ## is just ignored.  Otherwise
-			 * both , and ## are ignored.  Comma should come from
-			 * the body of macro and not be an argument of earlier
-			 * concatenation.
+			 * both , and ## are ignored.  Worse, there can be
+			 * an arbitrary number of ##<arg> in between; if all of
+			 * those are empty, we act as if they hadn't been there,
+			 * otherwise we act as if the kludge didn't exist.
 			 */
-			if (!args[body->next->argnum].arg)
+			t = body;
+			if (handle_kludge(&body, args)) {
+				if (state == Concat)
+					state = Normal;
+				else
+					state = Placeholder;
 				continue;
-			added = dup_token(body, base_pos, pos);
+			}
+			added = dup_token(t, base_pos);
 			token_type(added) = TOKEN_SPECIAL;
 			tail = &added->next;
 			break;
@@ -558,8 +634,8 @@ static struct token **substitute(struct token **list, struct token *body, struct
 			}
 		copy_arg:
 			tail = copy(&added, arg, count);
-			added->pos.newline = pos->newline;
-			added->pos.whitespace = pos->whitespace;
+			added->pos.newline = body->pos.newline;
+			added->pos.whitespace = body->pos.whitespace;
 			break;
 
 		case TOKEN_CONCAT:
@@ -570,14 +646,14 @@ static struct token **substitute(struct token **list, struct token *body, struct
 			continue;
 
 		case TOKEN_IDENT:
-			added = dup_token(body, base_pos, pos);
+			added = dup_token(body, base_pos);
 			if (added->ident->tainted)
 				added->pos.noexpand = 1;
 			tail = &added->next;
 			break;
 
 		default:
-			added = dup_token(body, base_pos, pos);
+			added = dup_token(body, base_pos);
 			tail = &added->next;
 			break;
 		}
@@ -626,6 +702,14 @@ static int expand(struct token **list, struct symbol *sym)
 
 	last = token->next;
 	tail = substitute(list, sym->expansion, args);
+	/*
+	 * Note that it won't be eof - at least TOKEN_UNTAINT will be there.
+	 * We still can lose the newline flag if the sucker expands to nothing,
+	 * but the price of dealing with that is probably too high (we'd need
+	 * to collect the flags during scan_next())
+	 */
+	(*list)->pos.newline = token->pos.newline;
+	(*list)->pos.whitespace = token->pos.whitespace;
 	*tail = last;
 
 	return 0;
@@ -768,31 +852,6 @@ static int do_include_path(const char **pptr, struct token **list, struct token 
 	return 0;
 }
 
-static void do_include(int local, struct stream *stream, struct token **list, struct token *token, const char *filename, const char **path)
-{
-	int flen = strlen(filename) + 1;
-
-	/* Absolute path? */
-	if (filename[0] == '/') {
-		if (try_include("", filename, flen, list, includepath))
-			return;
-		goto out;
-	}
-
-	/* Dir of input file is first dir to search for quoted includes */
-	set_stream_include_path(stream);
-
-	if (!path)
-		/* Do not search quote include if <> is in use */
-		path = local ? quote_includepath : angle_includepath;
-
-	/* Check the standard include paths.. */
-	if (do_include_path(path, list, token, filename, flen))
-		return;
-out:
-	error_die(token->pos, "unable to open '%s'", filename);
-}
-
 static int free_preprocessor_line(struct token *token)
 {
 	while (token_type(token) != TOKEN_EOF) {
@@ -803,11 +862,13 @@ static int free_preprocessor_line(struct token *token)
 	return 1;
 }
 
-static int handle_include_path(struct stream *stream, struct token **list, struct token *token, const char **path)
+static int handle_include_path(struct stream *stream, struct token **list, struct token *token, int how)
 {
 	const char *filename;
 	struct token *next;
+	const char **path;
 	int expect;
+	int flen;
 
 	next = token->next;
 	expect = '>';
@@ -820,20 +881,52 @@ static int handle_include_path(struct stream *stream, struct token **list, struc
 			expect = '>';
 		}
 	}
+
 	token = next->next;
 	filename = token_name_sequence(token, expect, token);
-	do_include(!expect, stream, list, token, filename, path);
-	return 0;
+	flen = strlen(filename) + 1;
+
+	/* Absolute path? */
+	if (filename[0] == '/') {
+		if (try_include("", filename, flen, list, includepath))
+			return 0;
+		goto out;
+	}
+
+	switch (how) {
+	case 1:
+		path = stream->next_path;
+		break;
+	case 2:
+		includepath[0] = "";
+		path = includepath;
+		break;
+	default:
+		/* Dir of input file is first dir to search for quoted includes */
+		set_stream_include_path(stream);
+		path = expect ? angle_includepath : quote_includepath;
+		break;
+	}
+	/* Check the standard include paths.. */
+	if (do_include_path(path, list, token, filename, flen))
+		return 0;
+out:
+	error_die(token->pos, "unable to open '%s'", filename);
 }
 
 static int handle_include(struct stream *stream, struct token **list, struct token *token)
 {
-	return handle_include_path(stream, list, token, NULL);
+	return handle_include_path(stream, list, token, 0);
 }
 
 static int handle_include_next(struct stream *stream, struct token **list, struct token *token)
 {
-	return handle_include_path(stream, list, token, stream->next_path);
+	return handle_include_path(stream, list, token, 1);
+}
+
+static int handle_argv_include(struct stream *stream, struct token **list, struct token *token)
+{
+	return handle_include_path(stream, list, token, 2);
 }
 
 static int token_different(struct token *t1, struct token *t2)
@@ -864,10 +957,12 @@ static int token_different(struct token *t1, struct token *t2)
 	case TOKEN_STR_ARGUMENT:
 		different = t1->argnum != t2->argnum;
 		break;
+	case TOKEN_CHAR_EMBEDDED_0 ... TOKEN_CHAR_EMBEDDED_3:
+	case TOKEN_WIDE_CHAR_EMBEDDED_0 ... TOKEN_WIDE_CHAR_EMBEDDED_3:
+		different = memcmp(t1->embedded, t2->embedded, 4);
+		break;
 	case TOKEN_CHAR:
 	case TOKEN_WIDE_CHAR:
-		different = t1->character != t2->character;
-		break;
 	case TOKEN_STRING:
 	case TOKEN_WIDE_STRING: {
 		struct string *s1, *s2;
@@ -1036,6 +1131,10 @@ static int try_arg(struct token *token, enum token_type type, struct token *argl
 			}
 			if (n)
 				return count->vararg ? 2 : 1;
+			/*
+			 * XXX - need saner handling of that
+			 * (>= 1024 instances of argument)
+			 */
 			token_type(token) = TOKEN_ERROR;
 			return -1;
 		}
@@ -1043,49 +1142,103 @@ static int try_arg(struct token *token, enum token_type type, struct token *argl
 	return 0;
 }
 
+static struct token *handle_hash(struct token **p, struct token *arglist)
+{
+	struct token *token = *p;
+	if (arglist) {
+		struct token *next = token->next;
+		if (!try_arg(next, TOKEN_STR_ARGUMENT, arglist))
+			goto Equote;
+		next->pos.whitespace = token->pos.whitespace;
+		__free_token(token);
+		token = *p = next;
+	} else {
+		token->pos.noexpand = 1;
+	}
+	return token;
+
+Equote:
+	sparse_error(token->pos, "'#' is not followed by a macro parameter");
+	return NULL;
+}
+
+/* token->next is ## */
+static struct token *handle_hashhash(struct token *token, struct token *arglist)
+{
+	struct token *last = token;
+	struct token *concat;
+	int state = match_op(token, ',');
+	
+	try_arg(token, TOKEN_QUOTED_ARGUMENT, arglist);
+
+	while (1) {
+		struct token *t;
+		int is_arg;
+
+		/* eat duplicate ## */
+		concat = token->next;
+		while (match_op(t = concat->next, SPECIAL_HASHHASH)) {
+			token->next = t;
+			__free_token(concat);
+			concat = t;
+		}
+		token_type(concat) = TOKEN_CONCAT;
+
+		if (eof_token(t))
+			goto Econcat;
+
+		if (match_op(t, '#')) {
+			t = handle_hash(&concat->next, arglist);
+			if (!t)
+				return NULL;
+		}
+
+		is_arg = try_arg(t, TOKEN_QUOTED_ARGUMENT, arglist);
+
+		if (state == 1 && is_arg) {
+			state = is_arg;
+		} else {
+			last = t;
+			state = match_op(t, ',');
+		}
+
+		token = t;
+		if (!match_op(token->next, SPECIAL_HASHHASH))
+			break;
+	}
+	/* handle GNU ,##__VA_ARGS__ kludge, in all its weirdness */
+	if (state == 2)
+		token_type(last) = TOKEN_GNU_KLUDGE;
+	return token;
+
+Econcat:
+	sparse_error(concat->pos, "'##' cannot appear at the ends of macro expansion");
+	return NULL;
+}
+
 static struct token *parse_expansion(struct token *expansion, struct token *arglist, struct ident *name)
 {
 	struct token *token = expansion;
 	struct token **p;
-	struct token *last = NULL;
 
 	if (match_op(token, SPECIAL_HASHHASH))
 		goto Econcat;
 
 	for (p = &expansion; !eof_token(token); p = &token->next, token = *p) {
 		if (match_op(token, '#')) {
-			if (arglist) {
-				struct token *next = token->next;
-				if (!try_arg(next, TOKEN_STR_ARGUMENT, arglist))
-					goto Equote;
-				next->pos.whitespace = token->pos.whitespace;
-				token = *p = next;
-			} else {
-				token->pos.noexpand = 1;
-			}
-		} else if (match_op(token, SPECIAL_HASHHASH)) {
-			struct token *next = token->next;
-			int arg = try_arg(next, TOKEN_QUOTED_ARGUMENT, arglist);
-			token_type(token) = TOKEN_CONCAT;
-			if (arg) {
-				token = next;
-				/* GNU kludge */
-				if (arg == 2 && last && match_op(last, ',')) {
-					token_type(last) = TOKEN_GNU_KLUDGE;
-					last->next = token;
-				}
-			} else if (match_op(next, SPECIAL_HASHHASH))
-				token = next;
-			else if (eof_token(next))
-				goto Econcat;
-		} else if (match_op(token->next, SPECIAL_HASHHASH)) {
-			try_arg(token, TOKEN_QUOTED_ARGUMENT, arglist);
+			token = handle_hash(p, arglist);
+			if (!token)
+				return NULL;
+		}
+		if (match_op(token->next, SPECIAL_HASHHASH)) {
+			token = handle_hashhash(token, arglist);
+			if (!token)
+				return NULL;
 		} else {
 			try_arg(token, TOKEN_MACRO_ARGUMENT, arglist);
 		}
 		if (token_type(token) == TOKEN_ERROR)
 			goto Earg;
-		last = token;
 	}
 	token = alloc_token(&expansion->pos);
 	token_type(token) = TOKEN_UNTAINT;
@@ -1093,10 +1246,6 @@ static struct token *parse_expansion(struct token *expansion, struct token *argl
 	token->next = *p;
 	*p = token;
 	return expansion;
-
-Equote:
-	sparse_error(token->pos, "'#' is not followed by a macro parameter");
-	return NULL;
 
 Econcat:
 	sparse_error(token->pos, "'##' cannot appear at the ends of macro expansion");
@@ -1287,6 +1436,8 @@ static int handle_ifndef(struct stream *stream, struct token **line, struct toke
 
 	return preprocessor_if(stream, token, arg);
 }
+
+static const char *show_token_sequence(struct token *token);
 
 /*
  * Expression handling for #if and #elif; it differs from normal expansion
@@ -1710,6 +1861,7 @@ static void init_preprocessor(void)
 		{ "add_system",    handle_add_system },
 		{ "add_dirafter",  handle_add_dirafter },
 		{ "split_include", handle_split_include },
+		{ "argv_include",  handle_argv_include },
 	}, special[] = {
 		{ "ifdef",	handle_ifdef },
 		{ "ifndef",	handle_ifndef },

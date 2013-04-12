@@ -7,7 +7,6 @@ A(,1)
 B(,1)
 /*
  * check-name: Preprocessor #14
- * check-known-to-fail
  * check-command: sparse -E $file
  *
  * check-output-start

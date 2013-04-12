@@ -35,7 +35,7 @@ int ptr_list_size(struct ptr_list *head)
  *
  * The array to linearize into (second argument) should really
  * be "void *x[]", but we want to let people fill in any kind
- * of pointer array, so let's just call it "void *".
+ * of pointer array, so let's just call it "void **".
  */
 int linearize_ptr_list(struct ptr_list *head, void **arr, int max)
 {

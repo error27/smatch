@@ -5,6 +5,7 @@
 
 #include <llvm-c/Core.h>
 #include <llvm-c/BitWriter.h>
+#include <llvm-c/Analysis.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -149,7 +150,13 @@ static LLVMTypeRef sym_union_type(LLVMModuleRef module, struct symbol *sym)
 
 static LLVMTypeRef sym_ptr_type(LLVMModuleRef module, struct symbol *sym)
 {
-	LLVMTypeRef type = symbol_type(module, sym->ctype.base_type);
+	LLVMTypeRef type;
+
+	/* 'void *' is treated like 'char *' */
+	if (is_void_type(sym->ctype.base_type))
+		type = LLVMInt8Type();
+	else
+		type = symbol_type(module, sym->ctype.base_type);
 
 	return LLVMPointerType(type, 0);
 }
@@ -175,10 +182,12 @@ static LLVMTypeRef sym_basetype_type(struct symbol *sym)
 		}
 	} else {
 		switch (sym->bit_size) {
+		case -1:
+			ret = LLVMVoidType();
+			break;
 		case 1:
 			ret = LLVMInt1Type();
 			break;
-		case -1:	/* 'void *' is treated like 'char *' */
 		case 8:
 			ret = LLVMInt8Type();
 			break;
@@ -308,7 +317,6 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 		struct expression *expr;
 
 		assert(sym->bb_target == NULL);
-		assert(sym->ident == NULL);
 
 		expr = sym->initializer;
 		if (expr) {
@@ -326,8 +334,23 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 				result = LLVMConstGEP(data, indices, ARRAY_SIZE(indices));
 				break;
 			}
+			case EXPR_SYMBOL: {
+				struct symbol *sym = expr->symbol;
+
+				result = LLVMGetNamedGlobal(fn->module, show_ident(sym->ident));
+				assert(result != NULL);
+				break;
+			}
 			default:
 				assert(0);
+			}
+		} else {
+			const char *name = show_ident(sym->ident);
+
+			result = LLVMGetNamedGlobal(fn->module, name);
+			if (!result) {
+				LLVMTypeRef type = symbol_type(fn->module, sym);
+				result = LLVMAddGlobal(fn->module, type, name);
 			}
 		}
 		break;
@@ -592,7 +615,7 @@ static void output_op_load(struct function *fn, struct instruction *insn)
 
 	/* convert address back to pointer */
 	addr = LLVMBuildIntToPtr(fn->builder, addr_i,
-				 LLVMPointerType(int_type, 0), "addr");
+				 LLVMTypeOf(src_p), "addr");
 
 	/* perform load */
 	target = LLVMBuildLoad(fn->builder, addr, "load_target");
@@ -627,10 +650,19 @@ static void output_op_store(struct function *fn, struct instruction *insn)
 	insn->target->priv = target;
 }
 
+static LLVMValueRef bool_value(struct function *fn, LLVMValueRef value)
+{
+	if (LLVMTypeOf(value) != LLVMInt1Type())
+		value = LLVMBuildIsNotNull(fn->builder, value, "cond");
+
+	return value;
+}
+
 static void output_op_br(struct function *fn, struct instruction *br)
 {
 	if (br->cond) {
-		LLVMValueRef cond = pseudo_to_value(fn, br, br->cond);
+		LLVMValueRef cond = bool_value(fn,
+				pseudo_to_value(fn, br, br->cond));
 
 		LLVMBuildCondBr(fn->builder, cond,
 				br->bb_true->priv,
@@ -645,7 +677,7 @@ static void output_op_sel(struct function *fn, struct instruction *insn)
 {
 	LLVMValueRef target, src1, src2, src3;
 
-	src1 = pseudo_to_value(fn, insn, insn->src1);
+	src1 = bool_value(fn, pseudo_to_value(fn, insn, insn->src1));
 	src2 = pseudo_to_value(fn, insn, insn->src2);
 	src3 = pseudo_to_value(fn, insn, insn->src3);
 
@@ -1181,6 +1213,12 @@ static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
 				initial_value = output_data(module, sym);
 			break;
 		}
+		case EXPR_STRING: {
+			const char *s = initializer->string->data;
+
+			initial_value = LLVMConstString(strdup(s), strlen(s) + 1, true);
+			break;
+		}
 		default:
 			assert(0);
 		}
@@ -1192,7 +1230,7 @@ static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
 
 	name = show_ident(sym->ident);
 
-	data = LLVMAddGlobal(module, symbol_type(module, sym->ctype.base_type), name);
+	data = LLVMAddGlobal(module, LLVMTypeOf(initial_value), name);
 
 	LLVMSetLinkage(data, data_linkage(sym));
 
@@ -1232,6 +1270,8 @@ int main(int argc, char **argv)
 	FOR_EACH_PTR_NOTAG(filelist, file) {
 		compile(module, sparse(file));
 	} END_FOR_EACH_PTR_NOTAG(file);
+
+	LLVMVerifyModule(module, LLVMPrintMessageAction, NULL);
 
 	LLVMWriteBitcodeToFD(module, STDOUT_FILENO, 0, 0);
 

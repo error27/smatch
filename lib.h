@@ -41,15 +41,6 @@ struct position {
 		     noexpand:1;
 };
 
-struct cmdline_include {
-	char *filename;
-	int fd;
-};
-
-extern struct cmdline_include cmdline_include[];
-extern int cmdline_include_nr;
-
-
 struct ident;
 struct token;
 struct symbol;
@@ -66,6 +57,7 @@ DECLARE_PTR_LIST(statement_list, struct statement);
 DECLARE_PTR_LIST(expression_list, struct expression);
 DECLARE_PTR_LIST(basic_block_list, struct basic_block);
 DECLARE_PTR_LIST(instruction_list, struct instruction);
+DECLARE_PTR_LIST(context_list, struct context);
 DECLARE_PTR_LIST(multijmp_list, struct multijmp);
 DECLARE_PTR_LIST(pseudo_list, struct pseudo);
 DECLARE_PTR_LIST(string_list, char);
@@ -133,6 +125,11 @@ static inline int symbol_list_size(struct symbol_list *list)
 }
 
 static inline int statement_list_size(struct statement_list *list)
+{
+	return ptr_list_size((struct ptr_list *)(list));
+}
+
+static inline int context_list_size(struct context_list *list)
 {
 	return ptr_list_size((struct ptr_list *)(list));
 }

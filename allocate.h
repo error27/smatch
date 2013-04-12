@@ -77,5 +77,6 @@ DECLARE_ALLOCATOR(instruction);
 DECLARE_ALLOCATOR(multijmp);
 DECLARE_ALLOCATOR(phi);
 DECLARE_ALLOCATOR(pseudo);
+DECLARE_ALLOCATOR(attribute);
 
 #endif
