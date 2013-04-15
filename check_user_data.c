@@ -208,7 +208,8 @@ static void match_syscall_definition(struct symbol *sym)
 	macro = get_macro_name(sym->pos);
 	if (!macro)
 		return;
-	if (strncmp("SYSCALL_DEFINE", macro, strlen("SYSCALL_DEFINE")))
+	if (strncmp("SYSCALL_DEFINE", macro, strlen("SYSCALL_DEFINE")) != 0 &&
+	    strncmp("COMPAT_SYSCALL_DEFINE", macro, strlen("COMPAT_SYSCALL_DEFINE")) != 0)
 		return;
 
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
