@@ -114,6 +114,8 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (!my_sm) {
 			struct smatch_state *old;
 
+			if (estate_is_whole(tmp->state))
+				continue;
 			old = get_state_slist(start_states, SMATCH_EXTRA, tmp->name, tmp->sym);
 			if (old && estates_equiv(old, tmp->state))
 				continue;
@@ -128,6 +130,8 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 			continue;
 		/* This represents an impossible state.  I screwd up.  Bail. */
 		if (!estate_rl(state))
+			continue;
+		if (estate_is_whole(state))
 			continue;
 		sql_insert_return_states(return_id, return_ranges,
 					LIMITED_VALUE, param, "$$",

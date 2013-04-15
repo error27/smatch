@@ -93,7 +93,7 @@ static const char *get_param_name(struct sm_state *sm)
 	return NULL;
 }
 
-static char *get_orig_rl(struct sm_state *sm)
+static struct range_list *get_orig_rl(struct sm_state *sm)
 {
 	struct range_list *ret = NULL;
 	struct sm_state *tmp;
@@ -109,24 +109,24 @@ static char *get_orig_rl(struct sm_state *sm)
 		}
 		ret = rl_union(ret, estate_rl(extra));
 	} END_FOR_EACH_PTR(tmp);
-	return show_rl(ret);
+	return ret;
 }
 
 static void print_one_mod_param(int return_id, char *return_ranges,
 			int param, struct sm_state *sm, struct state_list *slist)
 {
 	const char *param_name;
-	char *filter;
+	struct range_list *rl;
 
 	param_name = get_param_name(sm);
 	if (!param_name)
 		return;
-	filter = get_orig_rl(sm);
-	if (!filter)
+	rl = get_orig_rl(sm);
+	if (is_whole_rl(rl))
 		return;
 
 	sql_insert_return_states(return_id, return_ranges, FILTER_VALUE, param,
-			param_name, filter);
+			param_name, show_rl(rl));
 }
 
 static void print_one_extra_param(int return_id, char *return_ranges,
@@ -135,6 +135,8 @@ static void print_one_extra_param(int return_id, char *return_ranges,
 	struct smatch_state *old;
 	const char *param_name;
 
+	if (estate_is_whole(sm->state))
+		return;
 	old = get_state_slist(start_states, SMATCH_EXTRA, sm->name, sm->sym);
 	if (old && estates_equiv(old, sm->state))
 		return;
