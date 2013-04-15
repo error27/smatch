@@ -156,6 +156,8 @@ int is_user_data(struct expression *expr)
 	if (expr->type == EXPR_BINOP) {
 		if (is_user_data(expr->left))
 			return 1;
+		if (is_array(expr))
+			return 0;
 		if (is_user_data(expr->right))
 			return 1;
 		return 0;
