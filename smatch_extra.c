@@ -1175,73 +1175,6 @@ free:
 	free_string(name);
 }
 
-static void db_returned_states_param(struct expression *expr, int param, char *key, char *value)
-{
-	struct expression *arg;
-	struct symbol *type;
-	struct range_list *rl;
-	char member_name[256];
-	char *name;
-	struct symbol *sym;
-
-	while (expr->type == EXPR_ASSIGNMENT)
-		expr = strip_expr(expr->right);
-	if (expr->type != EXPR_CALL)
-		return;
-	arg = get_argument_from_call_expr(expr->args, param);
-	arg = strip_expr(arg);
-	if (!arg)
-		return;
-
-	if (strcmp(key, "*$$") == 0) {
-		struct symbol *sym;
-		char buf[256];
-		char *name;
-
-		if (arg->type == EXPR_PREOP && arg->op == '&') {
-			arg = strip_expr(arg->unop);
-			name = expr_to_var_sym(arg, &sym);
-		} else {
-			char *tmp = expr_to_var_sym(arg, &sym);
-
-			if (!tmp)
-				return;
-			snprintf(buf, sizeof(buf), "*%s", tmp);
-			name = alloc_string(buf);
-			free_string(tmp);
-		}
-		if (!name || !sym) {
-			free_string(name);
-			return;
-		}
-		type = get_type(arg);
-		str_to_rl(type, value, &rl);
-		set_extra_mod(name, sym, alloc_estate_rl(rl));
-		free_string(name);
-		return;
-	}
-
-	if (arg->type == EXPR_PREOP && arg->op == '&') {
-		arg = strip_expr(arg->unop);
-		name = expr_to_var_sym(arg, &sym);
-		if (!name || !sym)
-			goto free;
-		snprintf(member_name, sizeof(member_name), "%s.%s", name, key + 4);
-	} else {
-		name = expr_to_var_sym(arg, &sym);
-		if (!name || !sym)
-			goto free;
-		snprintf(member_name, sizeof(member_name), "%s%s", name, key + 2);
-	}
-	type = get_member_type_from_key(arg, key);
-	if (!type)
-		goto free;
-	str_to_rl(type, value, &rl);
-	set_extra_mod(member_name, sym, alloc_estate_rl(rl));
-free:
-	free_string(name);
-}
-
 static void db_returned_member_info(struct expression *expr, int param, char *key, char *value)
 {
 	struct symbol *type;
@@ -1326,7 +1259,6 @@ void register_smatch_extra(int id)
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_definition_db_callback(set_param_value, PARAM_VALUE);
 	add_db_return_states_callback(RETURN_VALUE, &db_returned_member_info);
-	add_db_return_states_callback(PARAM_VALUE, &db_returned_states_param);
 	add_db_return_states_before(&db_limited_before);
 	add_db_return_states_callback(LIMITED_VALUE, &db_param_limit_filter);
 	add_db_return_states_callback(FILTER_VALUE, &db_param_limit_filter);
