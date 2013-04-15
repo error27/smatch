@@ -769,9 +769,14 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 	/* bail if it gets too complicated */
 	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
 	nr_states = ptr_list_size((struct ptr_list *)__get_cur_slist());
-	if (nr_possible >= 100)
+	/*
+	 * the main thing option_info because we don't want to print a
+	 * million lines of output.  If someone else, like check_locking.c
+	 * wants this data, then it doesn't cause a slow down to provide it.
+	 */
+	if (option_info && nr_possible >= 100)
 		return 0;
-	if (nr_states * nr_possible >= 1000)
+	if (option_info && nr_states * nr_possible >= 2000)
 		return 0;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
