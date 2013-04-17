@@ -623,13 +623,6 @@ free:
 	free_string(name);
 }
 
-static void reset_struct_members(struct sm_state *sm)
-{
-	if (!estate_rl(sm->state))
-		return;
-	set_extra_mod(sm->name, sm->sym, alloc_estate_whole(estate_type(sm->state)));
-}
-
 static struct smatch_state *increment_state(struct smatch_state *state)
 {
 	sval_t min = estate_min(state);
@@ -1285,7 +1278,6 @@ void register_smatch_extra_late(int id)
 	add_hook(&match_dereferences, DEREF_HOOK);
 	add_hook(&match_pointer_as_array, OP_HOOK);
 	add_db_fn_call_callback(DEREFERENCE, &set_param_dereferenced);
-	add_indirect_modification_hook(SMATCH_EXTRA, reset_struct_members);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&unop_expr, OP_HOOK);
