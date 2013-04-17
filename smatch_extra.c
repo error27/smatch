@@ -1095,7 +1095,7 @@ static void db_limited_after(void)
 	free_slist(&unmatched_slist);
 }
 
-static void db_param_limit_filter(struct expression *expr, int param, char *key, char *value)
+static void db_param_limit_filter(struct expression *expr, int param, char *key, char *value, int mod)
 {
 	struct expression *arg;
 	char *name;
@@ -1130,13 +1130,27 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	new = rl_intersection(rl, limit);
 
 	/* We want to preserve the implications here */
-	if (sm && rl_equiv(estate_rl(sm->state), new))
+	if (sm && rl_equiv(estate_rl(sm->state), new)) {
 		__set_sm(sm);
-	else
-		set_extra_nomod(name, sym, alloc_estate_rl(new));
+	} else {
+		if (mod)
+			set_extra_mod(name, sym, alloc_estate_rl(new));
+		else
+			set_extra_nomod(name, sym, alloc_estate_rl(new));
+	}
 
 free:
 	free_string(name);
+}
+
+static void db_param_limit(struct expression *expr, int param, char *key, char *value)
+{
+	db_param_limit_filter(expr, param, key, value, 0);
+}
+
+static void db_param_filter(struct expression *expr, int param, char *key, char *value)
+{
+	db_param_limit_filter(expr, param, key, value, 1);
 }
 
 static void db_param_add(struct expression *expr, int param, char *key, char *value)
@@ -1260,8 +1274,8 @@ void register_smatch_extra(int id)
 	add_definition_db_callback(set_param_value, PARAM_VALUE);
 	add_db_return_states_callback(RETURN_VALUE, &db_returned_member_info);
 	add_db_return_states_before(&db_limited_before);
-	add_db_return_states_callback(LIMITED_VALUE, &db_param_limit_filter);
-	add_db_return_states_callback(FILTER_VALUE, &db_param_limit_filter);
+	add_db_return_states_callback(LIMITED_VALUE, &db_param_limit);
+	add_db_return_states_callback(FILTER_VALUE, &db_param_filter);
 	add_db_return_states_callback(ADDED_VALUE, &db_param_add);
 	add_db_return_states_after(&db_limited_after);
 }
