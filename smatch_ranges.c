@@ -140,7 +140,7 @@ int is_whole_rl(struct range_list *rl)
 	struct data_range *drange;
 
 	if (ptr_list_empty(rl))
-		return 1;
+		return 0;
 	drange = first_ptr_list((struct ptr_list *)rl);
 	if (sval_is_min(drange->min) && sval_is_max(drange->max))
 		return 1;
