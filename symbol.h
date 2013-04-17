@@ -83,6 +83,7 @@ extern struct context *alloc_context(void);
 struct attribute {
 	struct context_list *contexts;
 	unsigned int as;
+	unsigned int is_packed:1;
 };
 
 
@@ -424,6 +425,13 @@ static inline void merge_attr(struct ctype *dst, struct ctype *src)
 	attr->as |= src->attribute->as;
 	concat_ptr_list((struct ptr_list *)src->attribute->contexts,
 			(struct ptr_list **)&attr->contexts);
+}
+
+static inline void set_attr_is_packed(struct ctype *ctype)
+{
+	if (ctype->attribute == &null_attr)
+		ctype->attribute = __alloc_attribute(0);
+	ctype->attribute->is_packed = 1;
 }
 
 #define is_restricted_type(type) (get_sym_type(type) == SYM_RESTRICT)
