@@ -22,7 +22,7 @@ for i in ${bin_dir}/*.schema ; do
 done
 
 for i in ${bin_dir}/fill_* ; do
-    $i $info_file
+    $i "$PROJ" $info_file
 done
 
 if [ "$PROJ" != "" ] ; then

@@ -3,10 +3,11 @@
 use strict;
 use DBI;
 
+my $project = shift;
 my $warns = shift;
 
 if (!defined($warns)) {
-    print "usage:  $0 <warns.txt>\n";
+    print "usage:  $0 <project> <warns.txt>\n";
     exit(1);
 }
 
