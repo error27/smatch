@@ -16,38 +16,80 @@
 #include "smatch.h"
 #include "smatch_function_hashtable.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 
-static int my_id;
-extern int check_assigned_expr_id;
+static int my_whole_id;
+static int my_member_id;
 
 STATE(cleared);
 
-static DEFINE_HASHTABLE_INSERT(insert_struct, char, int);
-static DEFINE_HASHTABLE_SEARCH(search_struct, char, int);
-static struct hashtable *holey_structs;
-
-static char *get_struct_type(struct expression *expr)
+static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_state *state)
 {
-	struct symbol *type;
-
-	type = get_type(expr);
-	if (!type || type->type != SYM_STRUCT || !type->ident)
-		return NULL;
-	return alloc_string(type->ident->name);
+	set_state(my_member_id, name, sym, state);
 }
 
-static int holey_struct(struct expression *expr)
+static void print_holey_warning(struct expression *data, const char *member)
 {
-	char *struct_type = 0;
-	int ret = 0;
+	char *name;
 
-	struct_type = get_struct_type(expr);
-	if (!struct_type)
+	name = expr_to_str(data);
+	if (member) {
+		sm_msg("warn: check that '%s' doesn't leak information (struct has a hole after '%s')",
+		       name, member);
+	} else {
+		sm_msg("warn: check that '%s' doesn't leak information (struct has holes)",
+		       name);
+	}
+	free_string(name);
+}
+
+static int check_struct(struct expression *expr, struct symbol *type)
+{
+	struct symbol *tmp, *base_type;
+	const char *prev = NULL;
+	int align;
+
+	align = 0;
+	FOR_EACH_PTR(type->symbol_list, tmp) {
+		base_type = get_real_base_type(tmp);
+		if (base_type && base_type->type == SYM_STRUCT) {
+			if (check_struct(expr, base_type))
+				return 1;
+		}
+		if (type->ctype.attribute->is_packed)
+			continue;
+
+		if (!tmp->ctype.alignment) {
+			sm_msg("warn: cannot determine the alignment here\n");
+		} else if (align % tmp->ctype.alignment) {
+			print_holey_warning(expr, prev);
+			return 1;
+		}
+
+		if (base_type == &bool_ctype)
+			align += 1;
+		else if (tmp->bit_size <= 0)
+			align = 0;
+		else
+			align += bits_to_bytes(tmp->bit_size);
+
+		if (tmp->ident)
+			prev = tmp->ident->name;
+		else
+			prev = NULL;
+	} END_FOR_EACH_PTR(tmp);
+
+	return 0;
+}
+
+static int warn_on_holey_struct(struct expression *expr)
+{
+	struct symbol *type;
+	type = get_type(expr);
+	if (!type || type->type != SYM_STRUCT)
 		return 0;
-	if (search_struct(holey_structs, struct_type))
-		ret = 1;
-	free_string(struct_type);
-	return ret;
+
+	return check_struct(expr, type);
 }
 
 static int has_global_scope(struct expression *expr)
@@ -84,12 +126,12 @@ static void match_clear(const char *fn, struct expression *expr, void *_arg_no)
 	if (ptr->type != EXPR_PREOP || ptr->op != '&')
 		return;
 	ptr = strip_expr(ptr->unop);
-	set_state_expr(my_id, ptr, &cleared);
+	set_state_expr(my_whole_id, ptr, &cleared);
 }
 
 static int was_memset(struct expression *expr)
 {
-	if (get_state_expr(my_id, expr) == &cleared)
+	if (get_state_expr(my_whole_id, expr) == &cleared)
 		return 1;
 	return 0;
 }
@@ -104,7 +146,7 @@ static int member_initialized(char *name, struct symbol *outer, struct symbol *m
 		return FALSE;
 
 	snprintf(buf, 256, "%s.%s", name, member->ident->name);
-	if (get_state(check_assigned_expr_id, buf, outer))
+	if (get_state(my_member_id, buf, outer))
 		return TRUE;
 
 	return FALSE;
@@ -121,7 +163,7 @@ static int member_uninitialized(char *name, struct symbol *outer, struct symbol 
 		return FALSE;
 
 	snprintf(buf, 256, "%s.%s", name, member->ident->name);
-	sm = get_sm_state(check_assigned_expr_id, buf, outer);
+	sm = get_sm_state(my_member_id, buf, outer);
 	if (sm && !slist_has_state(sm->possible, &undefined))
 		return FALSE;
 
@@ -142,9 +184,14 @@ static void check_members_initialized(struct expression *expr)
 
 	name = expr_to_var_sym(expr, &outer);
 
-	if (get_state(check_assigned_expr_id, name, outer))
+	if (get_state(my_member_id, name, outer))
 		goto out;
 
+	/*
+	 * check that at least one member was set.  If all of them were not set
+	 * it's more likely a problem in the check than a problem in the kernel
+	 * code.
+	 */
 	FOR_EACH_PTR(sym->symbol_list, tmp) {
 		if (member_initialized(name, outer, tmp))
 			goto check;
@@ -181,36 +228,9 @@ static void match_copy_to_user(const char *fn, struct expression *expr, void *_a
 		return;
 	if (was_memset(data))
 		return;
-	if (holey_struct(data)) {
-		char *name;
-
-		name = expr_to_var(data);
-		sm_msg("warn: check that '%s' doesn't leak information (struct has holes)", name);
-		free_string(name);
+	if (warn_on_holey_struct(data))
 		return;
-	}
 	check_members_initialized(data);
-}
-
-static void register_holey_structs(void)
-{
-	struct token *token;
-	const char *struct_type;
-
-	token = get_tokens_file("kernel.paholes");
-	if (!token)
-		return;
-	if (token_type(token) != TOKEN_STREAMBEGIN)
-		return;
-	token = token->next;
-	while (token_type(token) != TOKEN_STREAMEND) {
-		if (token_type(token) != TOKEN_IDENT)
-			return;
-		struct_type = show_ident(token->ident);
-		insert_struct(holey_structs, alloc_string(struct_type), INT_PTR(1));
-		token = token->next;
-	}
-	clear_token_alloc();
 }
 
 static void register_clears_argument(void)
@@ -244,13 +264,19 @@ void check_rosenberg(int id)
 {
 	if (option_project != PROJ_KERNEL)
 		return;
-	my_id = id;
-	holey_structs = create_function_hashtable(10000);
+	my_whole_id = id;
 
-	register_holey_structs();
+	add_function_hook("memset", &match_clear, INT_PTR(0));
+	add_function_hook("memcpy", &match_clear, INT_PTR(0));
 	register_clears_argument();
 
 	add_function_hook("copy_to_user", &match_copy_to_user, INT_PTR(1));
 	add_function_hook("nla_put", &match_copy_to_user, INT_PTR(3));
-
 }
+
+void check_rosenberg2(int id)
+{
+	my_member_id = id;
+	add_extra_mod_hook(&extra_mod_hook);
+}
+

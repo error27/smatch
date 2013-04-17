@@ -100,6 +100,7 @@ CK(check_expects_err_ptr)
 CK(check_hold_dev)
 CK(check_return_negative_var)
 CK(check_rosenberg)
+CK(check_rosenberg2)
 CK(check_wait_for_common)
 CK(check_bogus_irqrestore)
 

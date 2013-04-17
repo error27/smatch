@@ -67,8 +67,8 @@ int main(void)
  * check-command: smatch -p=kernel -I.. sm_rosenberg.c
  *
  * check-output-start
-sm_rosenberg.c:54 main() warn: check that 'one' doesn't leak information (struct has holes)
-sm_rosenberg.c:56 main() warn: check that 'three' doesn't leak information (struct has holes)
+sm_rosenberg.c:54 main() warn: check that 'one' doesn't leak information (struct has a hole after 'x')
+sm_rosenberg.c:56 main() warn: check that 'three' doesn't leak information (struct has a hole after 'x')
 sm_rosenberg.c:57 main() warn: check that 'four.y' doesn't leak information
 sm_rosenberg.c:62 main() warn: check that 'nine.x' doesn't leak information
  * check-output-end
