@@ -23,5 +23,16 @@ delete from caller_info where caller = 'hptiop_probe' and type = 3;
 
 delete from caller_info where function = '(struct timer_list)->function' and parameter = 0;
 
+delete from return_states where function = 'rw_verify_area';
+insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000', 0, 0, -1, '', '');
+insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000', 0, 11, 2, '*\$\$', '0-1000000');
+insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000', 0, 11, 3, '\$\$', '0-1000000');
+insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)', 0, 0, -1, '', '');
+
 EOF
+
+call_id=$(echo "select distinct call_id from caller_info where function = '__kernel_write';" | sqlite3 smatch_db.sqlite)
+for id in $call_id ; do
+    echo "insert into caller_info values ('fake', '', '__kernel_write', $id, 0, 1, 3, '*\$\$', '0-1000000');" | sqlite3 smatch_db.sqlite
+done
 
