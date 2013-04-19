@@ -40,7 +40,7 @@ struct stream {
 
 	/* Use these to check for "already parsed" */
 	enum constantfile constant;
-	int dirty, next_stream;
+	int dirty, next_stream, once;
 	struct ident *protect;
 	struct token *ifndef;
 	struct token *top_if;

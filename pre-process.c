@@ -745,6 +745,11 @@ static int already_tokenized(const char *path)
 		struct stream *s = input_streams + stream;
 
 		next = s->next_stream;
+		if (s->once) {
+			if (strcmp(path, s->name))
+				continue;
+			return 1;
+		}
 		if (s->constant != CONSTANT_FILE_YES)
 			continue;
 		if (strcmp(path, s->name))
@@ -1783,6 +1788,10 @@ static int handle_pragma(struct stream *stream, struct token **line, struct toke
 {
 	struct token *next = *line;
 
+	if (match_ident(token->next, &once_ident) && eof_token(token->next->next)) {
+		stream->once = 1;
+		return 1;
+	}
 	token->ident = &pragma_ident;
 	token->pos.newline = 1;
 	token->pos.whitespace = 1;

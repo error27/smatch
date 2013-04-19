@@ -97,6 +97,7 @@ IDENT(error); IDENT(__error__);
  * itself by name, preventing these tokens from expanding when compiling
  * sparse. */
 IDENT(defined);
+IDENT(once);
 __IDENT(pragma_ident, "__pragma__", 0);
 __IDENT(__VA_ARGS___ident, "__VA_ARGS__", 0);
 __IDENT(__LINE___ident, "__LINE__", 0);
