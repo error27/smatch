@@ -3,20 +3,20 @@
 context=6
 while true ; do
     if [ "$1" = "-C" ] ; then
-	shift
-	context=$1
-	shift
-	continue
+        shift
+        context=$1
+        shift
+        continue
     fi
     if [ "$1" = "-k" ] ; then
-	shift
-	mode=kernel
-	continue
+        shift
+        mode=kernel
+        continue
     fi
     if [ "$1" = "-b" ] ; then
-	shift
-	nobreak=yes
-	continue
+        shift
+        nobreak=yes
+        continue
     fi
     break
 done
@@ -37,20 +37,20 @@ grep 'ignoring unreachable' $file | cut -d ' ' -f1 | while read loc; do
 
     if [ "$mode" = "kernel" ] ; then
         # BUG() is sometimes defined away on embedded systems
-	if tail -n +$(($line - 1)) $code_file | head -n 1 | \
-	    egrep -qw '(BUG|BT_STATE_CHANGE)' ; then
-	    continue;
-	fi
-	if tail -n +$(($line)) $code_file | head -n 1 | \
-	    egrep -qw '(DLM_ASSERT|BT_SI_SM_RETURN|BT_STATE_CHANGE|PARSE_ERROR1|PARSE_ERROR|CMDINSIZE|PROCESS_SYSTEM_PARAM|RETURN_STATUS|ar9170_regwrite_result)' ; then
-	    continue;
-	fi
+        if tail -n +$(($line - 1)) $code_file | head -n 1 | \
+            egrep -qw '(BUG|BT_STATE_CHANGE)' ; then
+            continue;
+        fi
+        if tail -n +$(($line)) $code_file | head -n 1 | \
+            egrep -qw '(DLM_ASSERT|BT_SI_SM_RETURN|BT_STATE_CHANGE|PARSE_ERROR1|PARSE_ERROR|CMDINSIZE|PROCESS_SYSTEM_PARAM|RETURN_STATUS|ar9170_regwrite_result)' ; then
+            continue;
+        fi
     fi
 
     if [ "$nobreak" = "yes" ] ; then
-	if tail -n +$(($line)) $code_file | head -n 1 | grep -qw 'break' ; then
-	    continue;
-	fi
+        if tail -n +$(($line)) $code_file | head -n 1 | grep -qw 'break' ; then
+            continue;
+        fi
 
     fi
     echo "========================================================="
