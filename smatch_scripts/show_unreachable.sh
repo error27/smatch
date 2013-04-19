@@ -54,7 +54,7 @@ grep 'ignoring unreachable' $file | cut -d ' ' -f1 | while read loc; do
 
     fi
     echo "========================================================="
-    echo $code_file $line
+    echo $code_file:$line
     tail -n +$(($line - ($context - 1))) $code_file | head -n $(($context - 1))
     echo "---------------------------------------------------------"
     tail -n +${line} $code_file | head -n $context
