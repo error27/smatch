@@ -81,7 +81,8 @@ int unreachable(void)
 	static int reset_warnings = 1;
 
 	if (cur_slist) {
-		reset_warnings = 1;
+		if (!__inline_fn)
+			reset_warnings = 1;
 		return 0;
 	}
 
@@ -91,7 +92,8 @@ int unreachable(void)
 	/* option spammy turns on a noisier version of this */
 	if (reset_warnings && !option_spammy)
 		sm_msg("info: ignoring unreachable code.");
-	reset_warnings = 0;
+	if (!__inline_fn)
+		reset_warnings = 0;
 	return 1;
 }
 

@@ -481,6 +481,9 @@ static void print_unreached(struct statement *stmt)
 {
 	static int print = 1;
 
+	if (__inline_fn)
+		return;
+
 	if (!__path_is_null()) {
 		print = 1;
 		return;
