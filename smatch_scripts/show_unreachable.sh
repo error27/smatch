@@ -31,6 +31,20 @@ if [[ "$file" = "" ]] ; then
     exit 1
 fi
 
+kernel_ignore_functions="DLM_ASSERT
+BT_SI_SM_RETURN
+BT_STATE_CHANGE
+PARSE_ERROR1
+PARSE_ERROR
+CMDINSIZE
+PROCESS_SYSTEM_PARAM
+RETURN_STATUS
+ar9170_regwrite_result
+module_put_and_exit
+SEG32
+CASE_PIPExTRE
+"
+
 grep 'ignoring unreachable' $file | cut -d ' ' -f1 | while read loc; do
     code_file=$(echo $loc | cut -d ':' -f 1)
     line=$(echo $loc | cut -d ':' -f 2)
@@ -41,9 +55,16 @@ grep 'ignoring unreachable' $file | cut -d ' ' -f1 | while read loc; do
             egrep -qw '(BUG|BT_STATE_CHANGE)' ; then
             continue;
         fi
-        if tail -n +$(($line)) $code_file | head -n 1 | \
-            egrep -qw '(DLM_ASSERT|BT_SI_SM_RETURN|BT_STATE_CHANGE|PARSE_ERROR1|PARSE_ERROR|CMDINSIZE|PROCESS_SYSTEM_PARAM|RETURN_STATUS|ar9170_regwrite_result)' ; then
-            continue;
+        skip=0
+        line_txt=$(tail -n +$(($line)) $code_file | head -n 1)
+        for func in $kernel_ignore_functions ; do
+            if echo "$line_txt" | egrep -qw $func ; then
+                skip=1
+                break
+            fi
+        done
+        if [ "$skip" == 1 ] ; then
+            continue
         fi
     fi
 
