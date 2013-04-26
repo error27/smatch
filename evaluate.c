@@ -2137,7 +2137,7 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 				else
 					degenerate(expr);
 			}
-		} else {
+		} else if (!target->forced_arg){
 			static char where[30];
 			examine_symbol_type(target);
 			sprintf(where, "argument %d", i);

@@ -1841,6 +1841,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol *s
 	sym->ctype = ctx.ctype;
 	sym->ctype.modifiers |= storage_modifiers(&ctx);
 	sym->endpos = token->pos;
+	sym->forced_arg = ctx.storage_class == SForced;
 	return token;
 }
 
