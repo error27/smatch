@@ -44,9 +44,14 @@ static int is_capped_macro(struct expression *expr)
 
 int is_capped(struct expression *expr)
 {
+	sval_t dummy;
+
 	expr = strip_expr(expr);
 	if (!expr)
 		return 0;
+
+	if (get_implied_value(expr, &dummy))
+		return 1;
 
 	if (is_capped_macro(expr))
 		return 1;
