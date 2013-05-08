@@ -1024,6 +1024,8 @@ static int opposite_op(int op)
 
 static int is_simple_math(struct expression *expr)
 {
+	if (!expr)
+		return 0;
 	if (expr->type != EXPR_BINOP)
 		return 0;
 	if (!opposite_op(expr->op))
@@ -1072,8 +1074,10 @@ static void move_known_values(struct expression **left_p, struct expression **ri
 
 static void match_comparison(struct expression *expr)
 {
-	struct expression *left = strip_expr(expr->left);
-	struct expression *right = strip_expr(expr->right);
+	struct expression *left_orig = strip_expr(expr->left);
+	struct expression *right_orig = strip_expr(expr->right);
+	struct expression *left, *right;
+	struct expression *prev;
 	struct symbol *type;
 
 	if (match_func_comparison(expr))
@@ -1083,8 +1087,28 @@ static void match_comparison(struct expression *expr)
 	if (!type)
 		type = &llong_ctype;
 
+	left = left_orig;
+	right = right_orig;
 	move_known_values(&left, &right);
 	handle_comparison(type, left, expr->op, right);
+
+	prev = get_assigned_expr(left_orig);
+	if (is_simple_math(prev)) {
+		left = prev;
+		right = right_orig;
+		move_known_values(&left, &right);
+		handle_comparison(type, left, expr->op, right);
+	}
+
+	prev = get_assigned_expr(right_orig);
+	if (is_simple_math(prev)) {
+		left = left_orig;
+		right = prev;
+		move_known_values(&left, &right);
+		handle_comparison(type, left, expr->op, right);
+	}
+
+
 }
 
 /* this is actually hooked from smatch_implied.c...  it's hacky, yes */
