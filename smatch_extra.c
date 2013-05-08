@@ -805,11 +805,8 @@ static sval_t sub_one(sval_t sval)
 	return sval;
 }
 
-static void match_comparison(struct expression *expr)
+static void handle_comparison(struct symbol *type, struct expression *left, int op, struct expression *right)
 {
-	struct expression *left = strip_expr(expr->left);
-	struct expression *right = strip_expr(expr->right);
-	struct symbol *type;
 	struct range_list *left_orig;
 	struct range_list *left_true;
 	struct range_list *left_false;
@@ -823,9 +820,6 @@ static void match_comparison(struct expression *expr)
 	sval_t min, max, dummy;
 	int left_postop = 0;
 	int right_postop = 0;
-
-	if (match_func_comparison(expr))
-		return;
 
 	if (left->op == SPECIAL_INCREMENT || left->op == SPECIAL_DECREMENT) {
 		if (left->type == EXPR_POSTOP) {
@@ -844,10 +838,6 @@ static void match_comparison(struct expression *expr)
 		}
 		right = strip_expr(right->unop);
 	}
-
-	type = get_type(expr);
-	if (!type)
-		type = &llong_ctype;
 
 	if (get_implied_rl(left, &left_orig)) {
 		left_orig = cast_rl(type, left_orig);
@@ -872,7 +862,7 @@ static void match_comparison(struct expression *expr)
 	right_true = clone_rl(right_orig);
 	right_false = clone_rl(right_orig);
 
-	switch (expr->op) {
+	switch (op) {
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
 		left_true = remove_range(left_orig, rl_max(right_orig), max);
@@ -970,7 +960,7 @@ static void match_comparison(struct expression *expr)
 	right_true_state = alloc_estate_rl(right_true);
 	right_false_state = alloc_estate_rl(right_false);
 
-	switch (expr->op) {
+	switch (op) {
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
 	case SPECIAL_UNSIGNED_LTE:
@@ -1019,6 +1009,22 @@ static void match_comparison(struct expression *expr)
 
 	set_extra_expr_true_false(left, left_true_state, left_false_state);
 	set_extra_expr_true_false(right, right_true_state, right_false_state);
+}
+
+static void match_comparison(struct expression *expr)
+{
+	struct expression *left = strip_expr(expr->left);
+	struct expression *right = strip_expr(expr->right);
+	struct symbol *type;
+
+	if (match_func_comparison(expr))
+		return;
+
+	type = get_type(expr);
+	if (!type)
+		type = &llong_ctype;
+
+	handle_comparison(type, left, expr->op, right);
 }
 
 /* this is actually hooked from smatch_implied.c...  it's hacky, yes */
