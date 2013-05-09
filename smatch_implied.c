@@ -577,6 +577,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	struct sm_state *sm;
 	struct state_list *true_states = NULL;
 	struct state_list *false_states = NULL;
+	struct state_list *extra_states = NULL;
 	struct state_list *ret = clone_slist(*raw_slist);
 	sval_t sval;
 	struct range_list *vals = NULL;
@@ -600,8 +601,13 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	if (sm)
 		separate_and_filter(sm, SPECIAL_EQUAL, vals, LEFT, *raw_slist, &true_states, &false_states);
 
-	set_state_slist(&true_states, SMATCH_EXTRA, name, sym, alloc_estate_rl(vals));
+	__push_fake_cur_slist();
+	__unnullify_path();
+	set_extra_nomod(name, sym, alloc_estate_rl(vals));
+	extra_states = __pop_fake_cur_slist();
+	overwrite_slist(extra_states, &true_states);
 	overwrite_slist(true_states, &ret);
+	free_slist(&extra_states);
 	free_slist(&true_states);
 	free_slist(&false_states);
 free:
