@@ -704,9 +704,12 @@ static sval_t handle_sizeof(struct expression *expr)
 	examine_symbol_type(sym);
 
 	ret.type = size_t_ctype;
-	if (sym->bit_size <= 0) /* sizeof(void) */
-		ret.value = 1;
-	else
+	if (sym->bit_size <= 0) /* sizeof(void) */ {
+		if (get_real_base_type(sym) == &void_ctype)
+			ret.value = 1;
+		else
+			ret.value = 0;
+	} else
 		ret.value = bits_to_bytes(sym->bit_size);
 
 	return ret;
