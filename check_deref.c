@@ -114,6 +114,8 @@ static void match_declarations(struct symbol *sym)
 	if ((get_base_type(sym))->type == SYM_ARRAY)
 		return;
 
+	if (!sym->ident)
+		return;
 	name = sym->ident->name;
 	if (!sym->initializer) {
 		set_state(my_id, name, sym, &uninitialized);
