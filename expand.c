@@ -239,6 +239,8 @@ static int simplify_int_binop(struct expression *expr, struct symbol *ctype)
 	case SIGNED('%'):
 		if (!r)
 			goto Div;
+		if (l == mask && sr == -1)
+			goto Overflow;
 		v = sl % sr;
 		break;
 
