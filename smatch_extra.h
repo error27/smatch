@@ -116,6 +116,7 @@ struct smatch_state *estate_filter_range(struct smatch_state *orig, sval_t filte
 void call_extra_mod_hooks(const char *name, struct symbol *sym, struct smatch_state *state);
 struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state);
 struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state);
+void set_extra_nomod(const char *name, struct symbol *sym, struct smatch_state *state);
 void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state);
 
 struct data_info *get_dinfo(struct smatch_state *state);
