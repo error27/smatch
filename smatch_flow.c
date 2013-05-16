@@ -1087,28 +1087,28 @@ static void process_inlines()
 	free_ptr_list(&inlines_called);
 }
 
-static struct symbol *get_last_scoped_symbol(struct symbol_list *big_list)
+static struct symbol *get_last_scoped_symbol(struct symbol_list *big_list, int use_static)
 {
 	struct symbol *sym;
 
 	FOR_EACH_PTR_REVERSE(big_list, sym) {
 		if (!sym->scope)
 			continue;
-		return sym;
+		if (use_static && sym->ctype.modifiers & MOD_STATIC)
+			return sym;
+		if (!use_static && !(sym->ctype.modifiers & MOD_STATIC))
+			return sym;
 	} END_FOR_EACH_PTR_REVERSE(sym);
 
 	return NULL;
 }
 
-static void split_inlines(struct symbol_list *sym_list)
+static void split_inlines_in_scope(struct symbol *sym)
 {
-	struct symbol *sym, *base;
+	struct symbol *base;
 	struct symbol_list *scope_list;
 	int stream;
 
-	sym = get_last_scoped_symbol(sym_list);
-	if (!sym)
-		return;
 	scope_list = sym->scope->symbols;
 	stream = sym->pos.stream;
 
@@ -1129,6 +1129,18 @@ static void split_inlines(struct symbol_list *sym_list)
 	} END_FOR_EACH_PTR_REVERSE(sym);
 
 	process_inlines();
+}
+
+static void split_inlines(struct symbol_list *sym_list)
+{
+	struct symbol *sym;
+
+	sym = get_last_scoped_symbol(sym_list, 0);
+	if (sym)
+		split_inlines_in_scope(sym);
+	sym = get_last_scoped_symbol(sym_list, 1);
+	if (sym)
+		split_inlines_in_scope(sym);
 }
 
 static void split_functions(struct symbol_list *sym_list)
