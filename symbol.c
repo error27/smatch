@@ -296,9 +296,21 @@ static int count_array_initializer(struct symbol *t, struct expression *expr)
 				if (entry->idx_to >= nr)
 					nr = entry->idx_to+1;
 				break;
+			case EXPR_PREOP: {
+				struct expression *e = entry;
+				if (is_char) {
+					while (e && e->type == EXPR_PREOP && e->op == '(')
+						e = e->unop;
+					if (e && e->type == EXPR_STRING) {
+						entry = e;
 			case EXPR_STRING:
-				if (is_char)
-					str_len = entry->string->length;
+						if (is_char)
+							str_len = entry->string->length;
+					}
+
+
+				}
+			}
 			default:
 				nr++;
 			}
@@ -307,9 +319,19 @@ static int count_array_initializer(struct symbol *t, struct expression *expr)
 			nr = str_len;
 		break;
 	}
+	case EXPR_PREOP:
+		if (is_char) { 
+			struct expression *e = expr;
+			while (e && e->type == EXPR_PREOP && e->op == '(')
+				e = e->unop;
+			if (e && e->type == EXPR_STRING) {
+				expr = e;
 	case EXPR_STRING:
-		if (is_char)
-			nr = expr->string->length;
+				if (is_char)
+					nr = expr->string->length;
+			}
+		}
+		break;
 	default:
 		break;
 	}
