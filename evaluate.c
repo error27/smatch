@@ -1096,11 +1096,11 @@ static struct symbol *evaluate_compare(struct expression *expr)
 			goto OK;
 		}
 		if (is_null1 && (rclass & TYPE_PTR)) {
-			left = cast_to(left, rtype);
+			expr->left = cast_to(left, rtype);
 			goto OK;
 		}
 		if (is_null2 && (lclass & TYPE_PTR)) {
-			right = cast_to(right, ltype);
+			expr->right = cast_to(right, ltype);
 			goto OK;
 		}
 	}
@@ -1116,11 +1116,11 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	if (expr->op == SPECIAL_EQUAL || expr->op == SPECIAL_NOTEQUAL) {
 		if (ltype->ctype.as == rtype->ctype.as) {
 			if (lbase == &void_ctype) {
-				right = cast_to(right, ltype);
+				expr->right = cast_to(right, ltype);
 				goto OK;
 			}
 			if (rbase == &void_ctype) {
-				left = cast_to(left, rtype);
+				expr->left = cast_to(left, rtype);
 				goto OK;
 			}
 		}
