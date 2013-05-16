@@ -41,25 +41,6 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 	set_state(my_id, name, sym, state);
 }
 
-static const char *get_param_name(struct sm_state *sm)
-{
-	char *param_name;
-	int name_len;
-	static char buf[256];
-
-	param_name = sm->sym->ident->name;
-	name_len = strlen(param_name);
-
-	if (sm->name[name_len] == '-' && /* check for '-' from "->" */
-	    strncmp(sm->name, param_name, name_len) == 0) {
-		snprintf(buf, sizeof(buf), "$$%s", sm->name + name_len);
-		return buf;
-	} else if (sm->name[0] == '*' && strcmp(sm->name + 1, param_name) == 0) {
-		return "*$$";
-	}
-	return NULL;
-}
-
 static void print_one_return_value_param(int return_id, char *return_ranges,
 			int param, struct sm_state *sm, char *implied_rl,
 			struct state_list *slist)
@@ -68,6 +49,8 @@ static void print_one_return_value_param(int return_id, char *return_ranges,
 
 	param_name = get_param_name(sm);
 	if (!param_name)
+		return;
+	if (strcmp(param_name, "$$") == 0)
 		return;
 
 	sql_insert_return_states(return_id, return_ranges, ADDED_VALUE, param,
