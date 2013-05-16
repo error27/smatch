@@ -18,21 +18,11 @@
 #include "linearize.h"
 #include "flow.h"
 
-struct phi_fwd {
-	struct phi_fwd			*next;
-
-	LLVMValueRef			phi;
-	pseudo_t			pseudo;
-	bool				resolved;
-};
-
 struct function {
 	LLVMBuilderRef			builder;
 	LLVMTypeRef			type;
 	LLVMValueRef			fn;
 	LLVMModuleRef			module;
-
-	struct phi_fwd			*fwd_list;
 };
 
 static inline bool symbol_is_fp_type(struct symbol *sym)
@@ -839,100 +829,39 @@ static void output_op_call(struct function *fn, struct instruction *insn)
 	insn->target->priv = target;
 }
 
-static void store_phi_fwd(struct function *fn, LLVMValueRef phi,
-			  pseudo_t pseudo)
-{
-	struct phi_fwd *fwd;
-
-	fwd = calloc(1, sizeof(*fwd));
-	fwd->phi = phi;
-	fwd->pseudo = pseudo;
-
-	/* append fwd ref to function-wide list */
-	if (!fn->fwd_list)
-		fn->fwd_list = fwd;
-	else {
-		struct phi_fwd *last = fn->fwd_list;
-
-		while (last->next)
-			last = last->next;
-		last->next = fwd;
-	}
-}
-
-static void output_phi_fwd(struct function *fn, pseudo_t pseudo, LLVMValueRef v)
-{
-	struct phi_fwd *fwd = fn->fwd_list;
-
-	while (fwd) {
-		struct phi_fwd *tmp;
-
-		tmp = fwd;
-		fwd = fwd->next;
-
-		if (tmp->pseudo == pseudo && !tmp->resolved) {
-			LLVMValueRef phi_vals[1];
-			LLVMBasicBlockRef phi_blks[1];
-
-			phi_vals[0] = v;
-			phi_blks[0] = pseudo->def->bb->priv;
-
-			LLVMAddIncoming(tmp->phi, phi_vals, phi_blks, 1);
-
-			tmp->resolved = true;
-		}
-	}
-}
-
 static void output_op_phisrc(struct function *fn, struct instruction *insn)
 {
 	LLVMValueRef v;
+	struct instruction *phi;
 
 	assert(insn->target->priv == NULL);
 
 	/* target = src */
 	v = pseudo_to_value(fn, insn, insn->phi_src);
-	insn->target->priv = v;
 
-	assert(insn->target->priv != NULL);
+	FOR_EACH_PTR(insn->phi_users, phi) {
+		LLVMValueRef load, ptr;
 
-	/* resolve forward references to this phi source, if present */
-	output_phi_fwd(fn, insn->target, v);
+		assert(phi->opcode == OP_PHI);
+		/* phi must be load from alloca */
+		load = phi->target->priv;
+		assert(LLVMGetInstructionOpcode(load) == LLVMLoad);
+		ptr = LLVMGetOperand(load, 0);
+		/* store v to alloca */
+		LLVMBuildStore(fn->builder, v, ptr);
+	} END_FOR_EACH_PTR(phi);
 }
 
 static void output_op_phi(struct function *fn, struct instruction *insn)
 {
-	pseudo_t phi;
-	LLVMValueRef target;
+	LLVMValueRef load = insn->target->priv;
 
-	target = LLVMBuildPhi(fn->builder, insn_symbol_type(fn->module, insn),
-				"phi");
-	int pll = 0;
-	FOR_EACH_PTR(insn->phi_list, phi) {
-		if (pseudo_to_value(fn, insn, phi))	/* skip VOID, fwd refs*/
-			pll++;
-	} END_FOR_EACH_PTR(phi);
-
-	LLVMValueRef *phi_vals = calloc(pll, sizeof(LLVMValueRef));
-	LLVMBasicBlockRef *phi_blks = calloc(pll, sizeof(LLVMBasicBlockRef));
-
-	int idx = 0;
-	FOR_EACH_PTR(insn->phi_list, phi) {
-		LLVMValueRef v;
-
-		v = pseudo_to_value(fn, insn, phi);
-		if (v) {			/* skip VOID, fwd refs */
-			phi_vals[idx] = v;
-			phi_blks[idx] = phi->def->bb->priv;
-			idx++;
-		}
-		else if (phi->type == PSEUDO_PHI)	/* fwd ref */
-			store_phi_fwd(fn, target, phi);
-	} END_FOR_EACH_PTR(phi);
-
-	LLVMAddIncoming(target, phi_vals, phi_blks, pll);
-
-	insn->target->priv = target;
+	/* forward load */
+	assert(LLVMGetInstructionOpcode(load) == LLVMLoad);
+	/* forward load has no parent block */
+	assert(!LLVMGetInstructionParent(load));
+	/* finalize load in current block  */
+	LLVMInsertIntoBuilder(fn->builder, load);
 }
 
 static void output_op_ptrcast(struct function *fn, struct instruction *insn)
@@ -1095,7 +1024,6 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		assert(0);
 		break;
 	case OP_DEATHNOTE:
-		assert(0);
 		break;
 	case OP_ASM:
 		assert(0);
@@ -1174,11 +1102,30 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 
 		LLVMBasicBlockRef bbr;
 		char bbname[32];
+		struct instruction *insn;
 
 		sprintf(bbname, "L%d", nr_bb++);
 		bbr = LLVMAppendBasicBlock(function.fn, bbname);
 
 		bb->priv = bbr;
+
+		/* allocate alloca for each phi */
+		FOR_EACH_PTR(bb->insns, insn) {
+			LLVMBasicBlockRef entrybbr;
+			LLVMTypeRef phi_type;
+			LLVMValueRef ptr;
+
+			if (!insn->bb || insn->opcode != OP_PHI)
+				continue;
+			/* insert alloca into entry block */
+			entrybbr = LLVMGetEntryBasicBlock(function.fn);
+			LLVMPositionBuilderAtEnd(function.builder, entrybbr);
+			phi_type = insn_symbol_type(module, insn);
+			ptr = LLVMBuildAlloca(function.builder, phi_type, "");
+			/* emit forward load for phi */
+			LLVMClearInsertionPosition(function.builder);
+			insn->target->priv = LLVMBuildLoad(function.builder, ptr, "phi");
+		} END_FOR_EACH_PTR(insn);
 	}
 	END_FOR_EACH_PTR(bb);
 
@@ -1267,6 +1214,8 @@ int main(int argc, char **argv)
 
 	compile(module, sparse_initialize(argc, argv, &filelist));
 
+	/* need ->phi_users */
+	dbg_dead = 1;
 	FOR_EACH_PTR_NOTAG(filelist, file) {
 		compile(module, sparse(file));
 	} END_FOR_EACH_PTR_NOTAG(file);
