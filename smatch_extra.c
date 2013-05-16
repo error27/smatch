@@ -1209,7 +1209,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	else
 		rl = alloc_whole_rl(type);
 
-	str_to_rl(type, value, &limit);
+	call_results_to_rl(expr, type, value, &limit);
 	new = rl_intersection(rl, limit);
 
 	/* We want to preserve the implications here */
@@ -1261,7 +1261,7 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	type = get_member_type_from_key(arg, key);
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (state) {
-		str_to_rl(type, value, &added);
+		call_results_to_rl(expr, type, value, &added);
 		new = rl_union(estate_rl(state), added);
 	} else {
 		new = alloc_whole_rl(type);
@@ -1290,7 +1290,7 @@ static void db_returned_member_info(struct expression *expr, int param, char *ke
 	type = get_member_type_from_key(expr->left, key);
 	if (!type)
 		return;
-	str_to_rl(type, value, &rl);
+	call_results_to_rl(expr->right, type, value, &rl);
 	set_extra_mod(member_name, sym, alloc_estate_rl(rl));
 
 free:

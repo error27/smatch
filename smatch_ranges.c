@@ -39,7 +39,37 @@ char *show_rl(struct range_list *list)
 	return alloc_sname(full);
 }
 
-static sval_t parse_val(struct symbol *type, char *c, char **endp)
+static sval_t get_val_from_key(int use_max, struct symbol *type, char *c, struct expression *call, char **endp)
+{
+	struct expression *arg;
+	int param;
+	sval_t ret, tmp;
+
+	if (use_max)
+		ret = sval_type_max(type);
+	else
+		ret = sval_type_min(type);
+
+	c++; /* skip the '<' character */
+	param = strtoll(c, &c, 10);
+	c++; /* skip the '>' character */
+	*endp = c;
+
+	if (!call)
+		return ret;
+	arg = get_argument_from_call_expr(call->args, param);
+	if (!arg)
+		return ret;
+
+	if (use_max && get_implied_max(arg, &tmp))
+		ret = tmp;
+	if (!use_max && get_implied_min(arg, &tmp))
+		ret = tmp;
+
+	return ret;
+}
+
+static sval_t parse_val(int use_max, struct expression *call, struct symbol *type, char *c, char **endp)
 {
 	char *start = c;
 	sval_t ret;
@@ -77,6 +107,8 @@ static sval_t parse_val(struct symbol *type, char *c, char **endp)
 	} else if (!strncmp(start, "s16min", 6)) {
 		ret = sval_type_val(type, SHRT_MIN);
 		c += 6;
+	} else if (start[0] == '<') {
+		ret = get_val_from_key(1, type, start, call, &c);
 	} else {
 		ret = sval_type_val(type, strtoll(start, &c, 10));
 	}
@@ -84,7 +116,7 @@ static sval_t parse_val(struct symbol *type, char *c, char **endp)
 	return ret;
 }
 
-void str_to_rl(struct symbol *type, char *value, struct range_list **rl)
+static void str_to_rl_helper(struct expression *call, struct symbol *type, char *value, struct range_list **rl)
 {
 	sval_t min, max;
 	char *c;
@@ -100,7 +132,7 @@ void str_to_rl(struct symbol *type, char *value, struct range_list **rl)
 	while (*c) {
 		if (*c == '(')
 			c++;
-		min = parse_val(type, c, &c);
+		min = parse_val(0, call, type, c, &c);
 		if (*c == ')')
 			c++;
 		if (!*c) {
@@ -119,7 +151,7 @@ void str_to_rl(struct symbol *type, char *value, struct range_list **rl)
 		c++;
 		if (*c == '(')
 			c++;
-		max = parse_val(type, c, &c);
+		max = parse_val(1, call, type, c, &c);
 		add_range(rl, min, max);
 		if (*c == ')')
 			c++;
@@ -133,6 +165,16 @@ void str_to_rl(struct symbol *type, char *value, struct range_list **rl)
 	}
 
 	*rl = cast_rl(type, *rl);
+}
+
+void str_to_rl(struct symbol *type, char *value, struct range_list **rl)
+{
+	return str_to_rl_helper(NULL, type, value, rl);
+}
+
+void call_results_to_rl(struct expression *expr, struct symbol *type, char *value, struct range_list **rl)
+{
+	return str_to_rl_helper(strip_expr(expr), type, value, rl);
 }
 
 int is_whole_rl(struct range_list *rl)

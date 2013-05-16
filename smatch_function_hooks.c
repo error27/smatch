@@ -353,7 +353,7 @@ static int db_compare_callback(void *unused, int argc, char **argv, char **azCol
 	if (argc != 5)
 		return 0;
 
-	str_to_rl(get_type(strip_expr(db_info.expr)), argv[0], &ret_range);
+	call_results_to_rl(db_info.expr, get_type(strip_expr(db_info.expr)), argv[0], &ret_range);
 	ret_range = cast_rl(get_type(db_info.expr), ret_range);
 	type = atoi(argv[1]);
 	param = atoi(argv[2]);
@@ -444,7 +444,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 		return 0;
 
 	return_id = atoi(argv[0]);
-	str_to_rl(get_type(strip_expr(db_info.expr->right)), argv[1], &ret_range);
+	call_results_to_rl(db_info.expr->right, get_type(strip_expr(db_info.expr->right)), argv[1], &ret_range);
 	if (!ret_range)
 		ret_range = alloc_whole_rl(get_type(strip_expr(db_info.expr->right)));
 	ret_range = cast_rl(get_type(db_info.expr->right), ret_range);
@@ -563,7 +563,7 @@ static int db_return_states_callback(void *unused, int argc, char **argv, char *
 		return 0;
 
 	return_id = atoi(argv[0]);
-	str_to_rl(get_type(strip_expr(db_info.expr)), argv[1], &ret_range);
+	call_results_to_rl(db_info.expr, get_type(strip_expr(db_info.expr)), argv[1], &ret_range);
 	ret_range = cast_rl(get_type(db_info.expr), ret_range);
 	type = atoi(argv[2]);
 	param = atoi(argv[3]);
