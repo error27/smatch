@@ -70,7 +70,7 @@ static LLVMTypeRef sym_func_type(LLVMModuleRef module, struct symbol *sym)
 		arg_type[idx++] = symbol_type(module, arg_sym);
 	} END_FOR_EACH_PTR(arg);
 	func_type = LLVMFunctionType(ret_type, arg_type, n_arg,
-				     sym->ctype.base_type->variadic);
+				     sym->variadic);
 
 	return func_type;
 }
@@ -336,11 +336,16 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 			}
 		} else {
 			const char *name = show_ident(sym->ident);
+			LLVMTypeRef type = symbol_type(fn->module, sym);
 
-			result = LLVMGetNamedGlobal(fn->module, name);
-			if (!result) {
-				LLVMTypeRef type = symbol_type(fn->module, sym);
-				result = LLVMAddGlobal(fn->module, type, name);
+			if (LLVMGetTypeKind(type) == LLVMFunctionTypeKind) {
+				result = LLVMGetNamedFunction(fn->module, name);
+				if (!result)
+					result = LLVMAddFunction(fn->module, name, type);
+			} else {
+				result = LLVMGetNamedGlobal(fn->module, name);
+				if (!result)
+					result = LLVMAddGlobal(fn->module, type, name);
 			}
 		}
 		break;
@@ -357,58 +362,6 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 		break;
 	case PSEUDO_VOID:
 		result = NULL;
-		break;
-	default:
-		assert(0);
-	}
-
-	return result;
-}
-
-static LLVMTypeRef pseudo_type(struct function *fn, struct instruction *insn, pseudo_t pseudo)
-{
-	LLVMValueRef v;
-	LLVMTypeRef result = NULL;
-
-	if (pseudo->priv) {
-		v = pseudo->priv;
-		return LLVMTypeOf(v);
-	}
-
-	switch (pseudo->type) {
-	case PSEUDO_REG:
-		result = symbol_type(fn->module, pseudo->def->type);
-		break;
-	case PSEUDO_SYM: {
-		struct symbol *sym = pseudo->sym;
-		struct expression *expr;
-
-		assert(sym->bb_target == NULL);
-		assert(sym->ident == NULL);
-
-		expr = sym->initializer;
-		if (expr) {
-			switch (expr->type) {
-			case EXPR_STRING:
-				result = LLVMPointerType(LLVMInt8Type(), 0);
-				break;
-			default:
-				assert(0);
-			}
-		}
-		break;
-	}
-	case PSEUDO_VAL:
-		result = insn_symbol_type(fn->module, insn);
-		break;
-	case PSEUDO_ARG:
-		result = LLVMTypeOf(LLVMGetParam(fn->fn, pseudo->nr - 1));
-		break;
-	case PSEUDO_PHI:
-		assert(0);
-		break;
-	case PSEUDO_VOID:
-		result = LLVMVoidType();
 		break;
 	default:
 		assert(0);
@@ -709,102 +662,6 @@ static void output_op_switch(struct function *fn, struct instruction *insn)
 	insn->target->priv = target;
 }
 
-struct llfunc {
-	char		name[256];	/* wasteful */
-	LLVMValueRef	func;
-};
-
-DECLARE_ALLOCATOR(llfunc);
-DECLARE_PTR_LIST(llfunc_list, struct llfunc);
-ALLOCATOR(llfunc, "llfuncs");
-
-static struct local_module {
-	struct llfunc_list	*llfunc_list;
-} mi;
-
-static LLVMTypeRef get_func_type(struct function *fn, struct instruction *insn)
-{
-	struct symbol *sym = insn->func->sym;
-	char buffer[256];
-	LLVMTypeRef func_type, ret_type;
-	struct pseudo *arg;
-	int n_arg = 0;
-	LLVMTypeRef *arg_type;
-
-	if (sym->ident)
-		sprintf(buffer, "%.*s", sym->ident->len, sym->ident->name);
-	else
-		sprintf(buffer, "<anon sym %p>", sym);
-
-	/* VERIFY: is this correct, for functions? */
-	func_type = LLVMGetTypeByName(fn->module, buffer);
-	if (func_type)
-		return func_type;
-
-	/* to avoid strangeness with varargs [for now], we build
-	 * the function and type anew, for each call.  This
-	 * is probably wrong.  We should look up the
-	 * symbol declaration info.
-	 */
-
-	/* build return type */
-	if (insn->target && insn->target != VOID)
-		ret_type = pseudo_type(fn, insn, insn->target);
-	else
-		ret_type = LLVMVoidType();
-
-	/* count args, build argument type information */
-	FOR_EACH_PTR(insn->arguments, arg) {
-		n_arg++;
-	} END_FOR_EACH_PTR(arg);
-
-	arg_type = calloc(n_arg, sizeof(LLVMTypeRef));
-
-	int idx = 0;
-	FOR_EACH_PTR(insn->arguments, arg) {
-		arg_type[idx++] = pseudo_type(fn, insn, arg);
-	} END_FOR_EACH_PTR(arg);
-
-	func_type = LLVMFunctionType(ret_type, arg_type, n_arg,
-				     insn->fntype->variadic);
-
-	return func_type;
-}
-
-static LLVMValueRef get_function(struct function *fn, struct instruction *insn)
-{
-	struct symbol *sym = insn->func->sym;
-	char buffer[256];
-	LLVMValueRef func;
-	struct llfunc *f;
-
-	if (sym->ident)
-		sprintf(buffer, "%.*s", sym->ident->len, sym->ident->name);
-	else
-		sprintf(buffer, "<anon sym %p>", sym);
-
-
-	/* search for pre-built function type definition */
-	FOR_EACH_PTR(mi.llfunc_list, f) {
-		if (!strcmp(f->name, buffer))
-			return f->func;		/* found match; return */
-	} END_FOR_EACH_PTR(f);
-
-	/* build function type definition */
-	LLVMTypeRef func_type = get_func_type(fn, insn);
-
-	func = LLVMAddFunction(fn->module, buffer, func_type);
-
-	/* store built function on list, for later referencing */
-	f = calloc(1, sizeof(*f));
-	strncpy(f->name, buffer, sizeof(f->name) - 1);
-	f->func = func;
-
-	add_ptr_list(&mi.llfunc_list, f);
-
-	return func;
-}
-
 static void output_op_call(struct function *fn, struct instruction *insn)
 {
 	LLVMValueRef target, func;
@@ -823,7 +680,7 @@ static void output_op_call(struct function *fn, struct instruction *insn)
 		args[i++] = pseudo_to_value(fn, insn, arg);
 	} END_FOR_EACH_PTR(arg);
 
-	func = get_function(fn, insn);
+	func = pseudo_to_value(fn, insn, insn->func);
 	target = LLVMBuildCall(fn->builder, func, args, n_arg, "");
 
 	insn->target->priv = target;
@@ -1066,7 +923,6 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	struct symbol *arg;
 	const char *name;
 	int nr_args = 0;
-	struct llfunc *f;
 
 	FOR_EACH_PTR(base_type->arguments, arg) {
 		struct symbol *arg_base_type = arg->ctype.base_type;
@@ -1084,13 +940,6 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	LLVMSetFunctionCallConv(function.fn, LLVMCCallConv);
 
 	LLVMSetLinkage(function.fn, function_linkage(sym));
-
-	/* store built function on list, for later referencing */
-	f = calloc(1, sizeof(*f));
-	strncpy(f->name, name, sizeof(f->name) - 1);
-	f->func = function.fn;
-
-	add_ptr_list(&mi.llfunc_list, f);
 
 	function.builder = LLVMCreateBuilder();
 
