@@ -105,7 +105,9 @@ int sval_bits_used(sval_t sval)
 
 int sval_is_negative(sval_t sval)
 {
-	if (sval_cmp_val(sval, 0) < 0)
+	if (type_unsigned(sval.type))
+		return 0;
+	if (sval.value < 0)
 		return 1;
 	return 0;
 }
@@ -249,7 +251,7 @@ int sval_too_high(struct symbol *type, sval_t sval)
 {
 	if (sval_is_negative(sval))
 		return 0;
-	if (sval_cmp(sval, sval_type_max(type)) > 0)
+	if (sval.uvalue > sval_type_max(type).uvalue)
 		return 1;
 	return 0;
 }
