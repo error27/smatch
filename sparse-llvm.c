@@ -541,10 +541,10 @@ static void output_op_ret(struct function *fn, struct instruction *insn)
 		LLVMBuildRetVoid(fn->builder);
 }
 
-static void output_op_load(struct function *fn, struct instruction *insn)
+static LLVMValueRef calc_memop_addr(struct function *fn, struct instruction *insn)
 {
 	LLVMTypeRef int_type;
-	LLVMValueRef src_p, src_i, ofs_i, addr_i, addr, target;
+	LLVMValueRef src_p, src_i, ofs_i, addr_i, addr;
 
 	/* int type large enough to hold a pointer */
 	int_type = LLVMIntType(bits_in_pointer);
@@ -559,6 +559,16 @@ static void output_op_load(struct function *fn, struct instruction *insn)
 	/* convert address back to pointer */
 	addr = LLVMBuildIntToPtr(fn->builder, addr_i,
 				 LLVMTypeOf(src_p), "addr");
+
+	return addr;
+}
+
+
+static void output_op_load(struct function *fn, struct instruction *insn)
+{
+	LLVMValueRef addr, target;
+
+	addr = calc_memop_addr(fn, insn);
 
 	/* perform load */
 	target = LLVMBuildLoad(fn->builder, addr, "load_target");
@@ -568,22 +578,9 @@ static void output_op_load(struct function *fn, struct instruction *insn)
 
 static void output_op_store(struct function *fn, struct instruction *insn)
 {
-	LLVMTypeRef int_type;
-	LLVMValueRef src_p, src_i, ofs_i, addr_i, addr, target, target_in;
+	LLVMValueRef addr, target, target_in;
 
-	/* int type large enough to hold a pointer */
-	int_type = LLVMIntType(bits_in_pointer);
-
-	/* convert to integer, add src + offset */
-	src_p = pseudo_to_value(fn, insn, insn->src);
-	src_i = LLVMBuildPtrToInt(fn->builder, src_p, int_type, "src_i");
-
-	ofs_i = LLVMConstInt(int_type, insn->offset, 0);
-	addr_i = LLVMBuildAdd(fn->builder, src_i, ofs_i, "addr_i");
-
-	/* convert address back to pointer */
-	addr = LLVMBuildIntToPtr(fn->builder, addr_i,
-				 LLVMTypeOf(src_p), "addr");
+	addr = calc_memop_addr(fn, insn);
 
 	target_in = pseudo_to_value(fn, insn, insn->target);
 
