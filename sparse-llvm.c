@@ -543,7 +543,7 @@ static void output_op_ret(struct function *fn, struct instruction *insn)
 
 static LLVMValueRef calc_memop_addr(struct function *fn, struct instruction *insn)
 {
-	LLVMTypeRef int_type;
+	LLVMTypeRef int_type, addr_type;
 	LLVMValueRef src_p, src_i, ofs_i, addr_i, addr;
 
 	/* int type large enough to hold a pointer */
@@ -556,9 +556,10 @@ static LLVMValueRef calc_memop_addr(struct function *fn, struct instruction *ins
 	ofs_i = LLVMConstInt(int_type, insn->offset, 0);
 	addr_i = LLVMBuildAdd(fn->builder, src_i, ofs_i, "addr_i");
 
+	addr_type = LLVMPointerType(insn_symbol_type(fn->module, insn), 0);
+
 	/* convert address back to pointer */
-	addr = LLVMBuildIntToPtr(fn->builder, addr_i,
-				 LLVMTypeOf(src_p), "addr");
+	addr = LLVMBuildIntToPtr(fn->builder, addr_i, addr_type, "addr");
 
 	return addr;
 }
