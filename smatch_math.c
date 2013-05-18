@@ -747,6 +747,7 @@ static sval_t handle_call(struct expression *expr, int *undefined, int implied)
 
 static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 {
+	struct symbol *type;
 	sval_t ret;
 
 	if (!expr) {
@@ -757,6 +758,7 @@ static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 		return bogus;
 
 	expr = strip_parens(expr);
+	type = get_type(expr);
 
 	switch (expr->type) {
 	case EXPR_VALUE:
@@ -772,7 +774,7 @@ static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
 		ret = _get_value(expr->cast_expression, undefined, implied);
-		ret = sval_cast(get_type(expr), ret);
+		ret = sval_cast(type, ret);
 		break;
 	case EXPR_BINOP:
 		ret = handle_binop(expr, undefined, implied);
@@ -803,6 +805,15 @@ static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 	default:
 		ret = _get_implied_value(expr, undefined, implied);
 	}
+	if (*undefined && type && implied == ABSOLUTE_MAX) {
+		*undefined = 0;
+		ret = sval_type_max(type);
+	}
+	if (*undefined && type && implied == ABSOLUTE_MIN) {
+		*undefined = 0;
+		ret = sval_type_min(type);
+	}
+
 	if (*undefined)
 		return bogus;
 	return ret;
