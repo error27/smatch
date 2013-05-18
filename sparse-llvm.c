@@ -583,7 +583,7 @@ static void output_op_store(struct function *fn, struct instruction *insn)
 
 	/* convert address back to pointer */
 	addr = LLVMBuildIntToPtr(fn->builder, addr_i,
-				 LLVMPointerType(int_type, 0), "addr");
+				 LLVMTypeOf(src_p), "addr");
 
 	target_in = pseudo_to_value(fn, insn, insn->target);
 
