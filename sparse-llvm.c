@@ -6,6 +6,7 @@
 #include <llvm-c/Core.h>
 #include <llvm-c/BitWriter.h>
 #include <llvm-c/Analysis.h>
+#include <llvm-c/Target.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -1066,14 +1067,63 @@ static int compile(LLVMModuleRef module, struct symbol_list *list)
 	return 0;
 }
 
+#define X86_LINUX_LAYOUT \
+	"e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-" \
+	"i64:32:64-f32:32:32-f64:32:64-v64:64:64-v128:128:128-" \
+	"a0:0:64-f80:32:32-n8:16:32-S128"
+
+#define X86_64_LINUX_LAYOUT \
+	"e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-" \
+	"i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-" \
+	"a0:0:64-s0:64:64-f80:128:128-n8:16:32:64-S128"
+
+static void set_target(LLVMModuleRef module)
+{
+	char target[] = LLVM_DEFAULT_TARGET_TRIPLE;
+	const char *arch, *vendor, *os, *env, *layout = NULL;
+	char triple[256];
+
+	arch = strtok(target, "-");
+	vendor = strtok(NULL, "-");
+	os = strtok(NULL, "-");
+	env = strtok(NULL, "-");
+
+	if (!os)
+		return;
+	if (!env)
+		env = "unknown";
+
+	if (!strcmp(arch, "x86_64") && !strcmp(os, "linux")) {
+		if (arch_m64) {
+			layout = X86_64_LINUX_LAYOUT;
+		} else {
+			arch = "i386";
+			layout = X86_LINUX_LAYOUT;
+		}
+	}
+
+	/* unsupported target */
+	if (!layout)
+		return;
+
+	snprintf(triple, sizeof(triple), "%s-%s-%s-%s", arch, vendor, os, env);
+	LLVMSetTarget(module, triple);
+	LLVMSetDataLayout(module, layout);
+}
+
 int main(int argc, char **argv)
 {
-	struct string_list * filelist = NULL;
+	struct string_list *filelist = NULL;
+	struct symbol_list *symlist;
+	LLVMModuleRef module;
 	char *file;
 
-	LLVMModuleRef module = LLVMModuleCreateWithName("sparse");
+	symlist = sparse_initialize(argc, argv, &filelist);
 
-	compile(module, sparse_initialize(argc, argv, &filelist));
+	module = LLVMModuleCreateWithName("sparse");
+	set_target(module);
+
+	compile(module, symlist);
 
 	/* need ->phi_users */
 	dbg_dead = 1;
