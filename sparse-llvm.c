@@ -370,6 +370,22 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 	return result;
 }
 
+static LLVMValueRef calc_gep(LLVMBuilderRef builder, LLVMValueRef base, LLVMValueRef off)
+{
+	LLVMTypeRef type = LLVMTypeOf(base);
+	unsigned int as = LLVMGetPointerAddressSpace(type);
+	LLVMTypeRef bytep = LLVMPointerType(LLVMInt8Type(), as);
+	LLVMValueRef addr;
+
+	/* convert base to char* type */
+	base = LLVMBuildPointerCast(builder, base, bytep, "");
+	/* addr = base + off */
+	addr = LLVMBuildInBoundsGEP(builder, base, &off, 1, "");
+	/* convert back to the actual pointer type */
+	addr = LLVMBuildPointerCast(builder, addr, type, "");
+	return addr;
+}
+
 static LLVMRealPredicate translate_fop(int opcode)
 {
 	static const LLVMRealPredicate trans_tbl[] = {
@@ -544,23 +560,21 @@ static void output_op_ret(struct function *fn, struct instruction *insn)
 static LLVMValueRef calc_memop_addr(struct function *fn, struct instruction *insn)
 {
 	LLVMTypeRef int_type, addr_type;
-	LLVMValueRef src_p, src_i, ofs_i, addr_i, addr;
+	LLVMValueRef src, off, addr;
+	unsigned int as;
 
 	/* int type large enough to hold a pointer */
 	int_type = LLVMIntType(bits_in_pointer);
+	off = LLVMConstInt(int_type, insn->offset, 0);
 
-	/* convert to integer, add src + offset */
-	src_p = pseudo_to_value(fn, insn, insn->src);
-	src_i = LLVMBuildPtrToInt(fn->builder, src_p, int_type, "src_i");
+	/* convert src to the effective pointer type */
+	src = pseudo_to_value(fn, insn, insn->src);
+	as = LLVMGetPointerAddressSpace(LLVMTypeOf(src));
+	addr_type = LLVMPointerType(insn_symbol_type(fn->module, insn), as);
+	src = LLVMBuildPointerCast(fn->builder, src, addr_type, "");
 
-	ofs_i = LLVMConstInt(int_type, insn->offset, 0);
-	addr_i = LLVMBuildAdd(fn->builder, src_i, ofs_i, "addr_i");
-
-	addr_type = LLVMPointerType(insn_symbol_type(fn->module, insn), 0);
-
-	/* convert address back to pointer */
-	addr = LLVMBuildIntToPtr(fn->builder, addr_i, addr_type, "addr");
-
+	/* addr = src + off */
+	addr = calc_gep(fn->builder, src, off);
 	return addr;
 }
 
