@@ -34,6 +34,35 @@ enum {
 	HARD_MAX,
 };
 
+enum {
+	RL_EXACT,
+	RL_HARD,
+	RL_FUZZY,
+	RL_IMPLIED,
+	RL_ABSOLUTE
+};
+
+static int implied_to_rl_enum(int implied)
+{
+	switch (implied) {
+	case EXACT:
+		return RL_EXACT;
+	case HARD_MAX:
+		return RL_HARD;
+	case FUZZY_MAX:
+	case FUZZY_MIN:
+		return RL_FUZZY;
+	case IMPLIED:
+	case IMPLIED_MIN:
+	case IMPLIED_MAX:
+		return RL_IMPLIED;
+	case ABSOLUTE_MIN:
+	case ABSOLUTE_MAX:
+		return RL_ABSOLUTE;
+	}
+	return 0;
+}
+
 static int opposite_implied(int implied)
 {
 	if (implied == IMPLIED_MIN)
