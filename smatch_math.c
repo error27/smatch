@@ -1009,7 +1009,7 @@ int get_hard_max(struct expression *expr, sval_t *sval)
 	rl =  _get_rl(expr, HARD_MAX);
 	if (!rl)
 		return 0;
-	*sval = rl_min(rl);
+	*sval = rl_max(rl);
 	return 1;
 }
 
@@ -1067,7 +1067,9 @@ int get_absolute_max(struct expression *expr, sval_t *sval)
 	if (!type)
 		type = &llong_ctype;
 	rl = _get_rl(expr, ABSOLUTE_MAX);
-	if (!rl_to_sval(rl, sval))
+	if (rl)
+		*sval = rl_max(rl);
+	else
 		*sval = sval_type_max(type);
 
 	if (sval_cmp(sval_type_max(type), *sval) < 0)
