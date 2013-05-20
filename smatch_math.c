@@ -434,26 +434,10 @@ static sval_t handle_mod(struct expression *expr, int *undefined, int implied)
 	return bogus;
 }
 
-static int handle_known_bitwise_AND(struct expression *expr, struct range_list **rl)
-{
-	sval_t left, right;
-
-	if (!get_value(expr->left, &left))
-		return 0;
-	if (!get_value(expr->right, &right))
-		return 0;
-	left = sval_binop(left, '&', right);
-	*rl = alloc_rl(left, left);
-	return 1;
-}
-
 static struct range_list *handle_bitwise_AND(struct expression *expr, int implied)
 {
 	struct symbol *type;
 	struct range_list *left_rl, *right_rl;
-
-	if (handle_known_bitwise_AND(expr, &left_rl))
-		return left_rl;
 
 	if (implied == EXACT || implied == HARD_MAX)
 		return NULL;
@@ -478,6 +462,18 @@ static struct range_list *handle_bitwise_AND(struct expression *expr, int implie
 	return rl_intersection(left_rl, right_rl);
 }
 
+static struct range_list *handle_known_binop(struct expression *expr)
+{
+	sval_t left, right;
+
+	if (!get_value(expr->left, &left))
+		return NULL;
+	if (!get_value(expr->right, &right))
+		return NULL;
+	left = sval_binop(left, expr->op, right);
+	return alloc_rl(left, left);
+}
+
 static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 {
 	struct symbol *type;
@@ -485,6 +481,13 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 	sval_t ret = {.type = &int_ctype, {.value = 123456} };
 	int local_undef = 0;
 	int undefined = 0;
+	struct range_list *rl;
+
+	rl = handle_known_binop(expr);
+	if (rl)
+		return rl;
+	if (implied == EXACT)
+		return NULL;
 
 	switch (expr->op) {
 	case '%':
