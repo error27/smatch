@@ -123,6 +123,13 @@ static sval_t handle_expression_statement(struct expression *expr, int *undefine
 	return ret;
 }
 
+static struct range_list *handle_ampersand_rl(int implied)
+{
+	if (implied == EXACT || implied == HARD_MAX)
+		return NULL;
+	return alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
+}
+
 static sval_t handle_ampersand(int *undefined, int implied)
 {
 	sval_t ret;
@@ -182,8 +189,7 @@ static struct range_list *handle_preop_rl(struct expression *expr, int implied)
 
 	switch (expr->op) {
 	case '&':
-		ret = handle_ampersand(&undefined, implied);
-		break;
+		return handle_ampersand_rl(implied);
 	case '!':
 		ret = handle_negate(expr, &undefined, implied);
 		break;
