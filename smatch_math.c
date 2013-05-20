@@ -605,6 +605,33 @@ static sval_t handle_logical(struct expression *expr, int *undefined, int implie
 	return bogus;
 }
 
+static struct range_list *handle_conditional_rl(struct expression *expr, int implied)
+{
+	struct range_list *true_rl, *false_rl;
+
+	if (known_condition_true(expr->conditional))
+		return _get_rl(expr->cond_true, implied);
+	if (known_condition_false(expr->conditional))
+		return _get_rl(expr->cond_false, implied);
+
+	if (implied == EXACT)
+		return NULL;
+
+	if (implied_condition_true(expr->conditional))
+		return _get_rl(expr->cond_true, implied);
+	if (implied_condition_false(expr->conditional))
+		return _get_rl(expr->cond_false, implied);
+
+	true_rl = _get_rl(expr->cond_true, implied);
+	if (!true_rl)
+		return NULL;
+	false_rl = _get_rl(expr->cond_false, implied);
+	if (!false_rl)
+		return NULL;
+
+	return rl_union(true_rl, false_rl);
+}
+
 static sval_t handle_conditional(struct expression *expr, int *undefined, int implied)
 {
 	if (known_condition_true(expr->conditional))
@@ -957,7 +984,10 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 		break;
 	case EXPR_SELECT:
 	case EXPR_CONDITIONAL:
-		sval = handle_conditional(expr, &undefined, implied);
+		rl = handle_conditional_rl(expr, implied);
+		if (rl)
+			return rl;
+		undefined = 1;
 		break;
 	case EXPR_CALL:
 		rl = handle_call_rl(expr, implied);
