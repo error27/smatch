@@ -801,8 +801,11 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
-		sval = _get_value(expr->cast_expression, &undefined, implied);
-		sval = sval_cast(type, sval);
+		rl = _get_rl(expr->cast_expression, implied);
+		if (!rl)
+			undefined = 1;
+		else
+			return cast_rl(type, rl);
 		break;
 	case EXPR_BINOP:
 		sval = handle_binop(expr, &undefined, implied);
