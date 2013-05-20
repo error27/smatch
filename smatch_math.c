@@ -407,6 +407,111 @@ static sval_t handle_mod(struct expression *expr, int *undefined, int implied)
 	return bogus;
 }
 
+static struct range_list *handle_binop_rl(struct expression *expr, int implied)
+{
+	struct symbol *type;
+	sval_t left, right;
+	sval_t ret = {.type = &int_ctype, {.value = 123456} };
+	int local_undef = 0;
+	int undefined = 0;
+
+	switch (expr->op) {
+	case '%':
+		ret = handle_mod(expr, &undefined, implied);
+		if (undefined)
+			return NULL;
+		return alloc_rl(ret, ret);
+	case '&':
+		if (implied == HARD_MAX)
+			return NULL;
+		left = _get_value(expr->left, &local_undef, implied);
+		if (local_undef) {
+			if (implied == IMPLIED_MIN || implied == ABSOLUTE_MIN) {
+				ret = sval_blank(expr->left);
+				ret.value = 0;
+				return alloc_rl(ret, ret);
+			}
+			if (implied != IMPLIED_MAX && implied != ABSOLUTE_MAX)
+				undefined = 1;
+			if (!get_absolute_max(expr->left, &left))
+				undefined = 1;
+		}
+		right = _get_value(expr->right, &undefined, implied);
+		if (undefined)
+			return NULL;
+		ret = sval_binop(left, '&', right);
+		return alloc_rl(ret, ret);
+
+	case SPECIAL_RIGHTSHIFT:
+		if (implied == HARD_MAX)
+			return NULL;
+		left = _get_value(expr->left, &local_undef, implied);
+		if (local_undef) {
+			if (implied == IMPLIED_MIN || implied == ABSOLUTE_MIN) {
+				ret = sval_blank(expr->left);
+				ret.value = 0;
+				return alloc_rl(ret, ret);
+			}
+			if (implied != IMPLIED_MAX && implied != ABSOLUTE_MAX)
+				undefined = 1;
+			if (!get_absolute_max(expr->left, &left))
+				undefined = 1;
+		}
+		right = _get_value(expr->right, &undefined, implied);
+		if (undefined)
+			return NULL;
+		ret = sval_binop(left, SPECIAL_RIGHTSHIFT, right);
+		return alloc_rl(ret, ret);
+	case '-':
+		ret = handle_subtract(expr, &undefined, implied);
+		if (undefined)
+			return NULL;
+		return alloc_rl(ret, ret);
+	}
+
+	left = _get_value(expr->left, &undefined, implied);
+	right = _get_value(expr->right, &undefined, implied);
+
+	if (undefined)
+		return NULL;
+
+	type = get_type(expr);
+	left = sval_cast(type, left);
+	right = sval_cast(type, right);
+
+	switch (implied) {
+	case IMPLIED_MAX:
+	case ABSOLUTE_MAX:
+		if (sval_binop_overflows(left, expr->op, right)) {
+			ret = sval_type_max(get_type(expr));
+			return alloc_rl(ret, ret);
+		}
+		break;
+	case HARD_MAX:
+	case FUZZY_MAX:
+		if (sval_binop_overflows(left, expr->op, right))
+			return NULL;
+	}
+
+	switch (expr->op) {
+	case '/':
+		ret = handle_divide(expr, &undefined, implied);
+		if (undefined)
+			return NULL;
+		return alloc_rl(ret, ret);
+	case '%':
+		if (right.value == 0) {
+			return NULL;
+		} else {
+			ret = sval_binop(left, '%', right);
+			return alloc_rl(ret, ret);
+		}
+	default:
+		ret = sval_binop(left, expr->op, right);
+	}
+	return alloc_rl(ret, ret);
+}
+
 static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
 {
 	struct symbol *type;
@@ -1052,7 +1157,10 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 			return cast_rl(type, rl);
 		break;
 	case EXPR_BINOP:
-		sval = handle_binop(expr, &undefined, implied);
+		rl = handle_binop_rl(expr, implied);
+		if (rl)
+			return rl;
+		undefined = 1;
 		break;
 	case EXPR_COMPARE:
 		rl = handle_comparison_rl(expr, implied);
