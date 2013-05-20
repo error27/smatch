@@ -229,11 +229,20 @@ static struct range_list *handle_bitwise_negate(struct expression *expr, int imp
 	return alloc_rl(sval, sval);
 }
 
+static struct range_list *handle_minus_preop(struct expression *expr, int implied)
+{
+	struct range_list *rl;
+	sval_t sval;
+
+	rl = _get_rl(expr->unop, implied);
+	if (!rl_to_sval(rl, &sval))
+		return NULL;
+	sval = sval_preop(sval, '-');
+	return alloc_rl(sval, sval);
+}
+
 static struct range_list *handle_preop_rl(struct expression *expr, int implied)
 {
-	int undefined = 0;
-	sval_t ret;
-
 	switch (expr->op) {
 	case '&':
 		return handle_ampersand_rl(implied);
@@ -242,9 +251,7 @@ static struct range_list *handle_preop_rl(struct expression *expr, int implied)
 	case '~':
 		return handle_bitwise_negate(expr, implied);
 	case '-':
-		ret = _get_value(expr->unop, &undefined, implied);
-		ret = sval_preop(ret, '-');
-		break;
+		return handle_minus_preop(expr, implied);
 	case '*':
 		return handle_variable(expr, implied);
 	case '(':
@@ -252,10 +259,6 @@ static struct range_list *handle_preop_rl(struct expression *expr, int implied)
 	default:
 		return NULL;
 	}
-	if (undefined)
-		return NULL;
-	ret = sval_cast(get_type(expr), ret);
-	return alloc_rl(ret, ret);
 }
 
 static sval_t handle_preop(struct expression *expr, int *undefined, int implied)
