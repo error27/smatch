@@ -22,7 +22,7 @@ static sval_t one   = {.type = &int_ctype, {.value = 1} };
 static sval_t bogus = {.type = &int_ctype, {.value = BOGUS} };
 
 enum {
-	NOTIMPLIED,
+	EXACT,
 	IMPLIED,
 	IMPLIED_MIN,
 	IMPLIED_MAX,
@@ -48,7 +48,7 @@ static int opposite_implied(int implied)
 	if (implied == ABSOLUTE_MAX)
 		return ABSOLUTE_MIN;
 	if (implied == HARD_MAX)  /* we don't have a hard min.  */
-		return NOTIMPLIED;
+		return EXACT;
 
 	return implied;
 }
@@ -110,7 +110,7 @@ static sval_t handle_negate(struct expression *expr, int *undefined, int implied
 		return ret;
 	}
 
-	if (implied == NOTIMPLIED) {
+	if (implied == EXACT) {
 		*undefined = 1;
 		return bogus;
 	}
@@ -259,7 +259,7 @@ static sval_t handle_mod(struct expression *expr, int *undefined, int implied)
 	}
 
 	switch (implied) {
-	case NOTIMPLIED:
+	case EXACT:
 	case IMPLIED:
 		left = _get_value(expr->left, undefined, implied);
 		if (!*undefined)
@@ -424,7 +424,7 @@ static sval_t handle_comparison(struct expression *expr, int *undefined, int imp
 		return zero;
 	}
 
-	if (implied == NOTIMPLIED) {
+	if (implied == EXACT) {
 		*undefined = 1;
 		return bogus;
 	}
@@ -450,7 +450,7 @@ static sval_t handle_logical(struct expression *expr, int *undefined, int implie
 	int left_known = 0;
 	int right_known = 0;
 
-	if (implied == NOTIMPLIED) {
+	if (implied == EXACT) {
 		if (get_value(expr->left, &left))
 			left_known = 1;
 		if (get_value(expr->right, &right))
@@ -499,7 +499,7 @@ static sval_t handle_conditional(struct expression *expr, int *undefined, int im
 	if (known_condition_false(expr->conditional))
 		return _get_value(expr->cond_false, undefined, implied);
 
-	if (implied == NOTIMPLIED) {
+	if (implied == EXACT) {
 		*undefined = 1;
 		return bogus;
 	}
@@ -516,7 +516,7 @@ static sval_t handle_conditional(struct expression *expr, int *undefined, int im
 static int get_local_value(struct expression *expr, sval_t *sval, int implied)
 {
 	switch (implied) {
-	case NOTIMPLIED:
+	case EXACT:
 	case IMPLIED:
 		return 0;
 	case IMPLIED_MIN:
@@ -825,7 +825,7 @@ int get_value(struct expression *expr, sval_t *sval)
 	int undefined = 0;
 	sval_t ret;
 
-	ret = _get_value(expr, &undefined, NOTIMPLIED);
+	ret = _get_value(expr, &undefined, EXACT);
 	if (undefined)
 		return 0;
 	*sval = ret;
