@@ -449,7 +449,7 @@ sval_t sval_binop(sval_t left, int op, sval_t right)
 int sval_binop_overflows(sval_t left, int op, sval_t right)
 {
 	struct symbol *type;
-	sval_t max;
+	sval_t max, min;
 
 	type = left.type;
 	if (type_positive_bits(right.type) > type_positive_bits(left.type))
@@ -457,6 +457,7 @@ int sval_binop_overflows(sval_t left, int op, sval_t right)
 	if (type_positive_bits(type) < 31)
 		return 0;
 	max = sval_type_max(type);
+	min = sval_type_min(type);
 
 	switch (op) {
 	case '+':
@@ -465,6 +466,8 @@ int sval_binop_overflows(sval_t left, int op, sval_t right)
 		return 0;
 	case '*':
 		return right.uvalue != 0 && left.uvalue > max.uvalue / right.uvalue;
+	case '-':
+		return sval_cmp(right, sval_binop(min, '+', left)) < 0;
 	}
 	return 0;
 }

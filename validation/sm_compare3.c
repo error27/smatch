@@ -43,6 +43,6 @@ sm_compare3.c:24 main() implied: e = '0-s32max'
 sm_compare3.c:25 main() g > e
 sm_compare3.c:26 main() e < g
 sm_compare3.c:27 main() implied: g - e = '1-s32max'
-sm_compare3.c:28 main() implied: g - f = '0-2147483646'
+sm_compare3.c:28 main() implied: g - f = '0-s32max'
  * check-output-end
  */

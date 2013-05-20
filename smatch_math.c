@@ -310,6 +310,64 @@ static sval_t handle_divide(struct expression *expr, int *undefined, int implied
 	return sval_binop(left, '/', right);
 }
 
+static struct range_list *handle_subtract_rl(struct expression *expr, int implied)
+{
+	struct symbol *type;
+	struct range_list *left_rl, *right_rl;
+	sval_t max, min, tmp;
+	int comparison;
+
+	type = get_type(expr);
+	left_rl = _get_rl(expr->left, implied);
+	left_rl = cast_rl(type, left_rl);
+	if (!left_rl)
+		left_rl = alloc_whole_rl(type);
+	right_rl = _get_rl(expr->right, implied);
+	right_rl = cast_rl(type, right_rl);
+	if (!right_rl)
+		right_rl = alloc_whole_rl(type);
+	comparison = get_comparison(expr->left, expr->right);
+
+	/* negative values complicate everything fix this later */
+	if (sval_is_negative(rl_min(right_rl)))
+		return NULL;
+	max = rl_max(left_rl);
+
+	switch (comparison) {
+	case '>':
+	case SPECIAL_UNSIGNED_GT:
+		min = sval_type_val(type, 1);
+		max = rl_max(left_rl);
+		break;
+	case SPECIAL_GTE:
+	case SPECIAL_UNSIGNED_GTE:
+		min = sval_type_val(type, 0);
+		max = rl_max(left_rl);
+		break;
+	default:
+		if (sval_binop_overflows(rl_min(left_rl), '-', rl_max(right_rl))) {
+			sm_msg("overflow");
+			return NULL;
+		}
+		min = sval_type_min(type);
+	}
+
+	tmp = sval_binop(rl_min(left_rl), '-', rl_max(right_rl));
+	if (sval_cmp(tmp, min) > 0)
+		min = tmp;
+
+	if (!sval_is_max(rl_max(left_rl))) {
+		tmp = sval_binop(rl_max(left_rl), '-', rl_min(right_rl));
+		if (sval_cmp(tmp, max) < 0)
+			max = tmp;
+	}
+
+	if (sval_is_min(min) && sval_is_max(max))
+		return NULL;
+
+	return cast_rl(type, alloc_rl(min, max));
+}
+
 static sval_t handle_subtract(struct expression *expr, int *undefined, int implied)
 {
 	struct symbol *type;
@@ -525,10 +583,7 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 	case SPECIAL_RIGHTSHIFT:
 		return handle_right_shift(expr, implied);
 	case '-':
-		ret = handle_subtract(expr, &undefined, implied);
-		if (undefined)
-			return NULL;
-		return alloc_rl(ret, ret);
+		return handle_subtract_rl(expr, implied);
 	}
 
 	left = _get_value(expr->left, &undefined, implied);
