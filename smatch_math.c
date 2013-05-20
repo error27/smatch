@@ -753,9 +753,57 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 	int undefined;
 	sval_t sval;
 
+	expr = strip_parens(expr);
+	if (!expr)
+		return NULL;
 	type = get_type(expr);
+
 	undefined = 0;
-	sval = _get_value(expr, &undefined, implied);
+	switch (expr->type) {
+	case EXPR_VALUE:
+		sval = sval_from_val(expr, expr->value);
+		break;
+	case EXPR_PREOP:
+		sval = handle_preop(expr, &undefined, implied);
+		break;
+	case EXPR_POSTOP:
+		sval = _get_value(expr->unop, &undefined, implied);
+		break;
+	case EXPR_CAST:
+	case EXPR_FORCE_CAST:
+	case EXPR_IMPLIED_CAST:
+		sval = _get_value(expr->cast_expression, &undefined, implied);
+		sval = sval_cast(type, sval);
+		break;
+	case EXPR_BINOP:
+		sval = handle_binop(expr, &undefined, implied);
+		break;
+	case EXPR_COMPARE:
+		sval = handle_comparison(expr, &undefined, implied);
+		break;
+	case EXPR_LOGICAL:
+		sval = handle_logical(expr, &undefined, implied);
+		break;
+	case EXPR_PTRSIZEOF:
+	case EXPR_SIZEOF:
+		sval = handle_sizeof(expr);
+		break;
+	case EXPR_SYMBOL:
+		if (get_const_value(expr, &sval)) {
+			break;
+		}
+		sval = _get_implied_value(expr, &undefined, implied);
+		break;
+	case EXPR_SELECT:
+	case EXPR_CONDITIONAL:
+		sval = handle_conditional(expr, &undefined, implied);
+		break;
+	case EXPR_CALL:
+		sval = handle_call(expr, &undefined, implied);
+		break;
+	default:
+		sval = _get_implied_value(expr, &undefined, implied);
+	}
 
 	if (undefined && type &&
 	    (implied == ABSOLUTE_MAX || implied == ABSOLUTE_MIN))
