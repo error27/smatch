@@ -664,6 +664,23 @@ static int get_fuzzy_min_helper(struct expression *expr, sval_t *min)
 	return 1;
 }
 
+static int get_const_value(struct expression *expr, sval_t *sval)
+{
+	struct symbol *sym;
+	sval_t right;
+
+	if (expr->type != EXPR_SYMBOL || !expr->symbol)
+		return 0;
+	sym = expr->symbol;
+	if (!(sym->ctype.modifiers & MOD_CONST))
+		return 0;
+	if (get_value(sym->initializer, &right)) {
+		*sval = sval_cast(get_type(expr), right);
+		return 1;
+	}
+	return 0;
+}
+
 static sval_t _get_implied_value(struct expression *expr, int *undefined, int implied)
 {
 	sval_t ret;
@@ -692,23 +709,6 @@ static sval_t _get_implied_value(struct expression *expr, int *undefined, int im
 		*undefined = 1;
 	}
 	return ret;
-}
-
-static int get_const_value(struct expression *expr, sval_t *sval)
-{
-	struct symbol *sym;
-	sval_t right;
-
-	if (expr->type != EXPR_SYMBOL || !expr->symbol)
-		return 0;
-	sym = expr->symbol;
-	if (!(sym->ctype.modifiers & MOD_CONST))
-		return 0;
-	if (get_value(sym->initializer, &right)) {
-		*sval = sval_cast(get_type(expr), right);
-		return 1;
-	}
-	return 0;
 }
 
 static sval_t handle_sizeof(struct expression *expr)
