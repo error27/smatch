@@ -62,6 +62,7 @@ int is_whole_rl(struct range_list *rl);
 
 sval_t rl_min(struct range_list *rl);
 sval_t rl_max(struct range_list *rl);
+int rl_to_sval(struct range_list *rl, sval_t *sval);
 struct symbol *rl_type(struct range_list *rl);
 
 struct range_list *rl_invert(struct range_list *orig);

@@ -215,6 +215,21 @@ sval_t rl_max(struct range_list *rl)
 	return drange->max;
 }
 
+int rl_to_sval(struct range_list *rl, sval_t *sval)
+{
+	sval_t min, max;
+
+	if (!rl)
+		return 0;
+
+	min = rl_min(rl);
+	max = rl_max(rl);
+	if (sval_cmp(min, max) != 0)
+		return 0;
+	*sval = min;
+	return 1;
+}
+
 struct symbol *rl_type(struct range_list *rl)
 {
 	if (!rl)
