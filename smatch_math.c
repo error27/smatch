@@ -175,6 +175,42 @@ static sval_t handle_negate(struct expression *expr, int *undefined, int implied
 	return bogus;
 }
 
+static struct range_list *handle_preop_rl(struct expression *expr, int implied)
+{
+	int undefined = 0;
+	sval_t ret;
+
+	switch (expr->op) {
+	case '&':
+		ret = handle_ampersand(&undefined, implied);
+		break;
+	case '!':
+		ret = handle_negate(expr, &undefined, implied);
+		break;
+	case '~':
+		ret = _get_value(expr->unop, &undefined, implied);
+		ret = sval_preop(ret, '~');
+		ret = sval_cast(get_type(expr->unop), ret);
+		break;
+	case '-':
+		ret = _get_value(expr->unop, &undefined, implied);
+		ret = sval_preop(ret, '-');
+		break;
+	case '*':
+		ret = _get_implied_value(expr, &undefined, implied);
+		break;
+	case '(':
+		ret = handle_expression_statement(expr, &undefined, implied);
+		break;
+	default:
+		return NULL;
+	}
+	if (undefined)
+		return NULL;
+	ret = sval_cast(get_type(expr), ret);
+	return alloc_rl(ret, ret);
+}
+
 static sval_t handle_preop(struct expression *expr, int *undefined, int implied)
 {
 	sval_t ret;
@@ -949,7 +985,10 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 		sval = sval_from_val(expr, expr->value);
 		break;
 	case EXPR_PREOP:
-		sval = handle_preop(expr, &undefined, implied);
+		rl = handle_preop_rl(expr, implied);
+		if (rl)
+			return rl;
+		undefined = 1;
 		break;
 	case EXPR_POSTOP:
 		return _get_rl(expr->unop, implied);
