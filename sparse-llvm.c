@@ -1079,7 +1079,7 @@ static int compile(LLVMModuleRef module, struct symbol_list *list)
 
 static void set_target(LLVMModuleRef module)
 {
-	char target[] = LLVM_DEFAULT_TARGET_TRIPLE;
+	char target[] = LLVM_HOSTTRIPLE;
 	const char *arch, *vendor, *os, *env, *layout = NULL;
 	char triple[256];
 
