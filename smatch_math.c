@@ -146,6 +146,23 @@ static sval_t handle_ampersand(int *undefined, int implied)
 	return ret;
 }
 
+static struct range_list *handle_negate_rl(struct expression *expr, int implied)
+{
+	if (known_condition_true(expr->unop))
+		return rl_zero();
+	if (known_condition_false(expr->unop))
+		return rl_one();
+
+	if (implied == EXACT)
+		return NULL;
+
+	if (implied_condition_true(expr->unop))
+		return rl_zero();
+	if (implied_condition_false(expr->unop))
+		return rl_one();
+	return alloc_rl(zero, one);
+}
+
 static sval_t handle_negate(struct expression *expr, int *undefined, int implied)
 {
 	sval_t ret;
@@ -191,8 +208,7 @@ static struct range_list *handle_preop_rl(struct expression *expr, int implied)
 	case '&':
 		return handle_ampersand_rl(implied);
 	case '!':
-		ret = handle_negate(expr, &undefined, implied);
-		break;
+		return handle_negate_rl(expr, implied);
 	case '~':
 		ret = _get_value(expr->unop, &undefined, implied);
 		ret = sval_preop(ret, '~');
