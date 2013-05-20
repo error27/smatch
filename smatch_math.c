@@ -616,13 +616,6 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 		if (undefined)
 			return NULL;
 		return alloc_rl(ret, ret);
-	case '%':
-		if (right.value == 0) {
-			return NULL;
-		} else {
-			ret = sval_binop(left, '%', right);
-			return alloc_rl(ret, ret);
-		}
 	default:
 		ret = sval_binop(left, expr->op, right);
 	}
