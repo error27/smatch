@@ -952,8 +952,7 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 		sval = handle_preop(expr, &undefined, implied);
 		break;
 	case EXPR_POSTOP:
-		sval = _get_value(expr->unop, &undefined, implied);
-		break;
+		return _get_rl(expr->unop, implied);
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
