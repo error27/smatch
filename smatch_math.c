@@ -22,6 +22,16 @@ static sval_t zero  = {.type = &int_ctype, {.value = 0} };
 static sval_t one   = {.type = &int_ctype, {.value = 1} };
 static sval_t bogus = {.type = &int_ctype, {.value = BOGUS} };
 
+static struct range_list *rl_zero(void)
+{
+	return alloc_rl(zero, zero);
+}
+
+static struct range_list *rl_one(void)
+{
+	return alloc_rl(one, one);
+}
+
 enum {
 	EXACT,
 	IMPLIED,
@@ -435,6 +445,35 @@ static int do_comparison(struct expression *expr)
 	if (!poss_true && poss_false)
 		return 2;
 	return 3;
+}
+
+static struct range_list *handle_comparison_rl(struct expression *expr, int implied)
+{
+	sval_t left, right;
+	int res;
+
+	if (get_value(expr->left, &left) && get_value(expr->right, &right)) {
+		struct data_range tmp_left, tmp_right;
+
+		tmp_left.min = left;
+		tmp_left.max = left;
+		tmp_right.min = right;
+		tmp_right.max = right;
+		if (true_comparison_range(&tmp_left, expr->op, &tmp_right))
+			return rl_one();
+		return rl_zero();
+	}
+
+	if (implied == EXACT)
+		return NULL;
+
+	res = do_comparison(expr);
+	if (res == 1)
+		return rl_one();
+	if (res == 2)
+		return rl_zero();
+
+	return alloc_rl(zero, one);
 }
 
 static sval_t handle_comparison(struct expression *expr, int *undefined, int implied)
@@ -857,7 +896,10 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 		sval = handle_binop(expr, &undefined, implied);
 		break;
 	case EXPR_COMPARE:
-		sval = handle_comparison(expr, &undefined, implied);
+		rl = handle_comparison_rl(expr, implied);
+		if (rl)
+			return rl;
+		undefined = 1;
 		break;
 	case EXPR_LOGICAL:
 		sval = handle_logical(expr, &undefined, implied);
