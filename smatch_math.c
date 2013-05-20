@@ -434,6 +434,50 @@ static sval_t handle_mod(struct expression *expr, int *undefined, int implied)
 	return bogus;
 }
 
+static int handle_known_bitwise_AND(struct expression *expr, struct range_list **rl)
+{
+	sval_t left, right;
+
+	if (!get_value(expr->left, &left))
+		return 0;
+	if (!get_value(expr->right, &right))
+		return 0;
+	left = sval_binop(left, '&', right);
+	*rl = alloc_rl(left, left);
+	return 1;
+}
+
+static struct range_list *handle_bitwise_AND(struct expression *expr, int implied)
+{
+	struct symbol *type;
+	struct range_list *left_rl, *right_rl;
+
+	if (handle_known_bitwise_AND(expr, &left_rl))
+		return left_rl;
+
+	if (implied == EXACT || implied == HARD_MAX)
+		return NULL;
+	type = get_type(expr);
+
+	left_rl = _get_rl(expr->left, implied);
+	if (left_rl) {
+		left_rl = cast_rl(type, left_rl);
+		left_rl = alloc_rl(sval_type_val(type, 0), rl_max(left_rl));
+	} else {
+		left_rl = alloc_whole_rl(type);
+	}
+
+	right_rl = _get_rl(expr->right, implied);
+	if (right_rl) {
+		right_rl = cast_rl(type, right_rl);
+		right_rl = alloc_rl(sval_type_val(type, 0), rl_max(right_rl));
+	} else {
+		right_rl = alloc_whole_rl(type);
+	}
+
+	return rl_intersection(left_rl, right_rl);
+}
+
 static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 {
 	struct symbol *type;
@@ -446,26 +490,7 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 	case '%':
 		return handle_mod_rl(expr, implied);
 	case '&':
-		if (implied == HARD_MAX)
-			return NULL;
-		left = _get_value(expr->left, &local_undef, implied);
-		if (local_undef) {
-			if (implied == IMPLIED_MIN || implied == ABSOLUTE_MIN) {
-				ret = sval_blank(expr->left);
-				ret.value = 0;
-				return alloc_rl(ret, ret);
-			}
-			if (implied != IMPLIED_MAX && implied != ABSOLUTE_MAX)
-				undefined = 1;
-			if (!get_absolute_max(expr->left, &left))
-				undefined = 1;
-		}
-		right = _get_value(expr->right, &undefined, implied);
-		if (undefined)
-			return NULL;
-		ret = sval_binop(left, '&', right);
-		return alloc_rl(ret, ret);
-
+		return handle_bitwise_AND(expr, implied);
 	case SPECIAL_RIGHTSHIFT:
 		if (implied == HARD_MAX)
 			return NULL;
