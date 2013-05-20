@@ -94,6 +94,22 @@ static int opposite_implied(int implied)
 	return implied;
 }
 
+static struct range_list *last_stmt_rl(struct statement *stmt, int implied)
+{
+	if (!stmt)
+		return NULL;
+
+	stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
+	if (stmt->type != STMT_EXPRESSION)
+		return NULL;
+	return _get_rl(stmt->expression, implied);
+}
+
+static struct range_list *handle_expression_statement_rl(struct expression *expr, int implied)
+{
+	return last_stmt_rl(get_expression_statement(expr), implied);
+}
+
 static int last_stmt_sval(struct statement *stmt, sval_t *sval)
 {
 	struct expression *expr;
@@ -222,8 +238,7 @@ static struct range_list *handle_preop_rl(struct expression *expr, int implied)
 	case '*':
 		return handle_variable(expr, implied);
 	case '(':
-		ret = handle_expression_statement(expr, &undefined, implied);
-		break;
+		return handle_expression_statement_rl(expr, implied);
 	default:
 		return NULL;
 	}
