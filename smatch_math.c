@@ -513,6 +513,50 @@ static sval_t handle_comparison(struct expression *expr, int *undefined, int imp
 	return bogus;
 }
 
+static struct range_list *handle_logical_rl(struct expression *expr, int implied)
+{
+	sval_t left, right;
+	int left_known = 0;
+	int right_known = 0;
+
+	if (implied == EXACT) {
+		if (get_value(expr->left, &left))
+			left_known = 1;
+		if (get_value(expr->right, &right))
+			right_known = 1;
+	} else {
+		if (get_implied_value(expr->left, &left))
+			left_known = 1;
+		if (get_implied_value(expr->right, &right))
+			right_known = 1;
+	}
+
+	switch (expr->op) {
+	case SPECIAL_LOGICAL_OR:
+		if (left_known && left.value)
+			return rl_one();
+		if (right_known && right.value)
+			return rl_one();
+		if (left_known && right_known)
+			return rl_zero();
+		break;
+	case SPECIAL_LOGICAL_AND:
+		if (left_known && right_known) {
+			if (left.value && right.value)
+				return rl_one();
+			return rl_zero();
+		}
+		break;
+	default:
+		return NULL;
+	}
+
+	if (implied == EXACT)
+		return NULL;
+
+	return alloc_rl(zero, one);
+}
+
 static sval_t handle_logical(struct expression *expr, int *undefined, int implied)
 {
 	sval_t left, right;
@@ -902,7 +946,10 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 		undefined = 1;
 		break;
 	case EXPR_LOGICAL:
-		sval = handle_logical(expr, &undefined, implied);
+		rl = handle_logical_rl(expr, implied);
+		if (rl)
+			return rl;
+		undefined = 1;
 		break;
 	case EXPR_PTRSIZEOF:
 	case EXPR_SIZEOF:
