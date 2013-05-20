@@ -13,6 +13,7 @@
 #include "smatch_extra.h"
 
 static struct range_list *_get_rl(struct expression *expr, int implied);
+static struct range_list *handle_variable(struct expression *expr, int implied);
 static sval_t _get_value(struct expression *expr, int *undefined, int implied);
 static sval_t _get_implied_value(struct expression *expr, int *undefined, int implied);
 
@@ -219,8 +220,7 @@ static struct range_list *handle_preop_rl(struct expression *expr, int implied)
 		ret = sval_preop(ret, '-');
 		break;
 	case '*':
-		ret = _get_implied_value(expr, &undefined, implied);
-		break;
+		return handle_variable(expr, implied);
 	case '(':
 		ret = handle_expression_statement(expr, &undefined, implied);
 		break;
