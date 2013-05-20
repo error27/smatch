@@ -373,6 +373,33 @@ bogus:
 	return bogus;
 }
 
+static struct range_list *handle_mod_rl(struct expression *expr, int implied)
+{
+	struct range_list *rl;
+	sval_t left, right, sval;
+
+	if (implied == EXACT) {
+		if (!get_value(expr->right, &right))
+			return NULL;
+		if (!get_value(expr->left, &left))
+			return NULL;
+		sval = sval_binop(left, '%', right);
+		return alloc_rl(sval, sval);
+	}
+	/* if we can't figure out the right side it's probably hopeless */
+	if (!get_implied_value(expr->right, &right))
+		return NULL;
+
+	right = sval_cast(get_type(expr), right);
+	right.value--;
+
+	rl = _get_rl(expr->left, implied);
+	if (rl && rl_max(rl).uvalue < right.uvalue)
+		right.uvalue = rl_max(rl).uvalue;
+
+	return alloc_rl(zero, right);
+}
+
 static sval_t handle_mod(struct expression *expr, int *undefined, int implied)
 {
 	sval_t left, right;
@@ -417,10 +444,7 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 
 	switch (expr->op) {
 	case '%':
-		ret = handle_mod(expr, &undefined, implied);
-		if (undefined)
-			return NULL;
-		return alloc_rl(ret, ret);
+		return handle_mod_rl(expr, implied);
 	case '&':
 		if (implied == HARD_MAX)
 			return NULL;
