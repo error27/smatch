@@ -681,6 +681,40 @@ static int get_const_value(struct expression *expr, sval_t *sval)
 	return 0;
 }
 
+static struct range_list *handle_variable(struct expression *expr, int implied)
+{
+	struct smatch_state *state;
+	struct range_list *rl;
+	sval_t sval, min, max;
+
+	if (get_const_value(expr, &sval))
+		return alloc_rl(sval, sval);
+
+	switch (implied_to_rl_enum(implied)) {
+	case RL_EXACT:
+		return NULL;
+	case RL_HARD:
+	case RL_IMPLIED:
+	case RL_ABSOLUTE:
+		state = get_state_expr(SMATCH_EXTRA, expr);
+		if (!state || !state->data) {
+			if (get_local_rl(expr, &rl))
+				return rl;
+			return NULL;
+		}
+		if (implied == HARD_MAX && !estate_has_hard_max(state))
+			return NULL;
+		return estate_rl(state);
+	case RL_FUZZY:
+		if (!get_fuzzy_min_helper(expr, &min))
+			min = sval_type_min(get_type(expr));
+		if (!get_fuzzy_max_helper(expr, &max))
+			return NULL;
+		return alloc_rl(min, max);
+	}
+	return NULL;
+}
+
 static sval_t _get_implied_value(struct expression *expr, int *undefined, int implied)
 {
 	sval_t ret;
@@ -820,12 +854,6 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 	case EXPR_SIZEOF:
 		sval = handle_sizeof(expr);
 		break;
-	case EXPR_SYMBOL:
-		if (get_const_value(expr, &sval)) {
-			break;
-		}
-		sval = _get_implied_value(expr, &undefined, implied);
-		break;
 	case EXPR_SELECT:
 	case EXPR_CONDITIONAL:
 		sval = handle_conditional(expr, &undefined, implied);
@@ -834,7 +862,11 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 		sval = handle_call(expr, &undefined, implied);
 		break;
 	default:
-		sval = _get_implied_value(expr, &undefined, implied);
+		rl = handle_variable(expr, implied);
+		if (rl)
+			return rl;
+		else
+			undefined = 1;
 	}
 
 	if (undefined && type &&
