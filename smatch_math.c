@@ -12,6 +12,7 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+static struct range_list *_get_rl(struct expression *expr, int implied);
 static sval_t _get_value(struct expression *expr, int *undefined, int implied);
 static sval_t _get_implied_value(struct expression *expr, int *undefined, int implied);
 
@@ -745,6 +746,20 @@ static sval_t handle_call(struct expression *expr, int *undefined, int implied)
 
 }
 
+static struct range_list *_get_rl(struct expression *expr, int implied)
+{
+	struct range_list *rl;
+	int undefined;
+	sval_t sval;
+
+	undefined = 0;
+	sval = _get_value(expr, &undefined, implied);
+	if (undefined)
+		return NULL;
+	rl = alloc_rl(sval, sval);
+	return rl;
+}
+
 static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 {
 	struct symbol *type;
@@ -822,49 +837,43 @@ static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 /* returns 1 if it can get a value literal or else returns 0 */
 int get_value(struct expression *expr, sval_t *sval)
 {
-	int undefined = 0;
-	sval_t ret;
+	struct range_list *rl;
 
-	ret = _get_value(expr, &undefined, EXACT);
-	if (undefined)
+	rl = _get_rl(expr, EXACT);
+	if (!rl_to_sval(rl, sval))
 		return 0;
-	*sval = ret;
 	return 1;
 }
 
 int get_implied_value(struct expression *expr, sval_t *sval)
 {
-	int undefined = 0;
-	sval_t ret;
+	struct range_list *rl;
 
-	ret =  _get_value(expr, &undefined, IMPLIED);
-	if (undefined)
+	rl =  _get_rl(expr, IMPLIED);
+	if (!rl_to_sval(rl, sval))
 		return 0;
-	*sval = ret;
 	return 1;
 }
 
 int get_implied_min(struct expression *expr, sval_t *sval)
 {
-	int undefined = 0;
-	sval_t ret;
+	struct range_list *rl;
 
-	ret =  _get_value(expr, &undefined, IMPLIED_MIN);
-	if (undefined)
+	rl =  _get_rl(expr, IMPLIED_MIN);
+	if (!rl)
 		return 0;
-	*sval = ret;
+	*sval = rl_min(rl);
 	return 1;
 }
 
 int get_implied_max(struct expression *expr, sval_t *sval)
 {
-	int undefined = 0;
-	sval_t ret;
+	struct range_list *rl;
 
-	ret =  _get_value(expr, &undefined, IMPLIED_MAX);
-	if (undefined)
+	rl =  _get_rl(expr, IMPLIED_MAX);
+	if (!rl)
 		return 0;
-	*sval = ret;
+	*sval = rl_max(rl);
 	return 1;
 }
 
@@ -920,55 +929,54 @@ int get_implied_rl(struct expression *expr, struct range_list **rl)
 
 int get_hard_max(struct expression *expr, sval_t *sval)
 {
-	int undefined = 0;
-	sval_t ret;
+	struct range_list *rl;
 
-	ret =  _get_value(expr, &undefined, HARD_MAX);
-	if (undefined)
+	rl =  _get_rl(expr, HARD_MAX);
+	if (!rl)
 		return 0;
-	*sval = ret;
+	*sval = rl_min(rl);
 	return 1;
 }
 
 int get_fuzzy_min(struct expression *expr, sval_t *sval)
 {
-	int undefined = 0;
-	sval_t ret;
+	struct range_list *rl;
 
-	ret =  _get_value(expr, &undefined, FUZZY_MIN);
-	if (undefined)
+	rl =  _get_rl(expr, FUZZY_MIN);
+	if (!rl)
 		return 0;
-	*sval = ret;
+	*sval = rl_min(rl);
 	return 1;
 }
 
 int get_fuzzy_max(struct expression *expr, sval_t *sval)
 {
-	int undefined = 0;
-	sval_t ret;
+	struct range_list *rl;
+	sval_t max;
 
-	ret =  _get_value(expr, &undefined, FUZZY_MAX);
-	if (undefined)
+	rl =  _get_rl(expr, FUZZY_MAX);
+	if (!rl)
 		return 0;
-	if (ret.uvalue > INT_MAX - 10000)
+	max = rl_max(rl);
+	if (max.uvalue > INT_MAX - 10000)
 		return 0;
-	*sval = ret;
+	*sval = max;
 	return 1;
 }
 
 int get_absolute_min(struct expression *expr, sval_t *sval)
 {
-	int undefined = 0;
+	struct range_list *rl;
 	struct symbol *type;
 
 	type = get_type(expr);
 	if (!type)
 		type = &llong_ctype;  // FIXME: this is wrong but places assume get type can't fail.
-	*sval =  _get_value(expr, &undefined, ABSOLUTE_MIN);
-	if (undefined) {
+	rl = _get_rl(expr, ABSOLUTE_MIN);
+	if (rl)
+		*sval = rl_min(rl);
+	else
 		*sval = sval_type_min(type);
-		return 1;
-	}
 
 	if (sval_cmp(*sval, sval_type_min(type)) < 0)
 		*sval = sval_type_min(type);
@@ -977,17 +985,15 @@ int get_absolute_min(struct expression *expr, sval_t *sval)
 
 int get_absolute_max(struct expression *expr, sval_t *sval)
 {
-	int undefined = 0;
+	struct range_list *rl;
 	struct symbol *type;
 
 	type = get_type(expr);
 	if (!type)
 		type = &llong_ctype;
-	*sval = _get_value(expr, &undefined, ABSOLUTE_MAX);
-	if (undefined) {
+	rl = _get_rl(expr, ABSOLUTE_MAX);
+	if (!rl_to_sval(rl, sval))
 		*sval = sval_type_max(type);
-		return 1;
-	}
 
 	if (sval_cmp(sval_type_max(type), *sval) < 0)
 		*sval = sval_type_max(type);
