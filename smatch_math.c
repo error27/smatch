@@ -779,6 +779,18 @@ static sval_t handle_sizeof(struct expression *expr)
 	return ret;
 }
 
+static struct range_list *handle_call_rl(struct expression *expr, int implied)
+{
+	struct range_list *rl;
+
+	if (implied == EXACT)
+		return NULL;
+
+	if (get_implied_return(expr, &rl))
+		return rl;
+	return db_return_vals(expr);
+}
+
 static sval_t handle_call(struct expression *expr, int *undefined, int implied)
 {
 	struct range_list *rl;
@@ -859,7 +871,11 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 		sval = handle_conditional(expr, &undefined, implied);
 		break;
 	case EXPR_CALL:
-		sval = handle_call(expr, &undefined, implied);
+		rl = handle_call_rl(expr, implied);
+		if (rl)
+			return rl;
+		else
+			undefined = 1;
 		break;
 	default:
 		rl = handle_variable(expr, implied);
