@@ -749,11 +749,17 @@ static sval_t handle_call(struct expression *expr, int *undefined, int implied)
 static struct range_list *_get_rl(struct expression *expr, int implied)
 {
 	struct range_list *rl;
+	struct symbol *type;
 	int undefined;
 	sval_t sval;
 
+	type = get_type(expr);
 	undefined = 0;
 	sval = _get_value(expr, &undefined, implied);
+
+	if (undefined && type &&
+	    (implied == ABSOLUTE_MAX || implied == ABSOLUTE_MIN))
+		return alloc_whole_rl(type);
 	if (undefined)
 		return NULL;
 	rl = alloc_rl(sval, sval);
@@ -819,14 +825,6 @@ static sval_t _get_value(struct expression *expr, int *undefined, int implied)
 		break;
 	default:
 		ret = _get_implied_value(expr, undefined, implied);
-	}
-	if (*undefined && type && implied == ABSOLUTE_MAX) {
-		*undefined = 0;
-		ret = sval_type_max(type);
-	}
-	if (*undefined && type && implied == ABSOLUTE_MIN) {
-		*undefined = 0;
-		ret = sval_type_min(type);
 	}
 
 	if (*undefined)
