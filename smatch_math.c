@@ -295,6 +295,33 @@ static sval_t handle_preop(struct expression *expr, int *undefined, int implied)
 	return ret;
 }
 
+static struct range_list *handle_divide_rl(struct expression *expr, int implied)
+{
+	struct range_list *left_rl, *right_rl;
+	struct symbol *type;
+	sval_t min, max;
+
+	type = get_type(expr);
+
+	left_rl = _get_rl(expr->left, implied);
+	left_rl = cast_rl(type, left_rl);
+	right_rl = _get_rl(expr->right, implied);
+	right_rl = cast_rl(type, right_rl);
+
+	if (!left_rl || !right_rl)
+		return NULL;
+	if (is_whole_rl(left_rl) || is_whole_rl(right_rl))
+		return NULL;
+	if (sval_is_negative(rl_min(left_rl)) || sval_cmp_val(rl_min(right_rl), 0) <= 0)
+		return NULL;
+
+	max = rl_max(left_rl);
+	if (sval_is_max(max))
+		max = sval_binop(max, '/', rl_min(right_rl));
+	min = sval_binop(rl_min(left_rl), '/', rl_max(right_rl));
+	return alloc_rl(min, max);
+}
+
 static sval_t handle_divide(struct expression *expr, int *undefined, int implied)
 {
 	sval_t left, right;
@@ -584,6 +611,8 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 		return handle_right_shift(expr, implied);
 	case '-':
 		return handle_subtract_rl(expr, implied);
+	case '/':
+		return handle_divide_rl(expr, implied);
 	}
 
 	left = _get_value(expr->left, &undefined, implied);
@@ -610,15 +639,7 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 			return NULL;
 	}
 
-	switch (expr->op) {
-	case '/':
-		ret = handle_divide(expr, &undefined, implied);
-		if (undefined)
-			return NULL;
-		return alloc_rl(ret, ret);
-	default:
-		ret = sval_binop(left, expr->op, right);
-	}
+	ret = sval_binop(left, expr->op, right);
 	return alloc_rl(ret, ret);
 }
 
