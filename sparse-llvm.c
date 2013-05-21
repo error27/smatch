@@ -82,12 +82,14 @@ static LLVMTypeRef sym_array_type(LLVMModuleRef module, struct symbol *sym)
 	struct symbol *base_type;
 
 	base_type = sym->ctype.base_type;
+	/* empty struct is undefined [6.7.2.1(8)] */
+	assert(base_type->bit_size > 0);
 
 	elem_type = symbol_type(module, base_type);
 	if (!elem_type)
 		return NULL;
 
-	return LLVMArrayType(elem_type, sym->bit_size / 8);
+	return LLVMArrayType(elem_type, sym->bit_size / base_type->bit_size);
 }
 
 #define MAX_STRUCT_MEMBERS 64
