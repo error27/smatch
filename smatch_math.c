@@ -787,11 +787,15 @@ int get_hard_max(struct expression *expr, sval_t *sval)
 int get_fuzzy_min(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
+	sval_t tmp;
 
 	rl =  _get_rl(expr, RL_FUZZY);
 	if (!rl)
 		return 0;
-	*sval = rl_min(rl);
+	tmp = rl_min(rl);
+	if (sval_is_negative(tmp) && sval_is_min(tmp))
+		return 0;
+	*sval = tmp;
 	return 1;
 }
 
