@@ -142,7 +142,7 @@ static struct range_list *handle_divide_rl(struct expression *expr, int implied)
 		return NULL;
 
 	max = rl_max(left_rl);
-	if (sval_is_max(max))
+	if (!sval_is_max(max))
 		max = sval_binop(max, '/', rl_min(right_rl));
 	min = sval_binop(rl_min(left_rl), '/', rl_max(right_rl));
 	return alloc_rl(min, max);
