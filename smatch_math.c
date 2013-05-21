@@ -591,10 +591,8 @@ static struct range_list *handle_known_binop(struct expression *expr)
 static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 {
 	struct symbol *type;
-	sval_t left, right;
-	sval_t ret = {.type = &int_ctype, {.value = 123456} };
-	int undefined = 0;
-	struct range_list *rl;
+	struct range_list *left_rl, *right_rl, *rl;
+	sval_t min, max;
 
 	rl = handle_known_binop(expr);
 	if (rl)
@@ -615,32 +613,32 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 		return handle_divide_rl(expr, implied);
 	}
 
-	left = _get_value(expr->left, &undefined, implied);
-	right = _get_value(expr->right, &undefined, implied);
+	type = get_type(expr);
+	left_rl = _get_rl(expr->left, implied);
+	left_rl = cast_rl(type, left_rl);
+	right_rl = _get_rl(expr->right, implied);
+	right_rl = cast_rl(type, right_rl);
 
-	if (undefined)
+	if (!left_rl || !right_rl)
 		return NULL;
 
-	type = get_type(expr);
-	left = sval_cast(type, left);
-	right = sval_cast(type, right);
+	if (sval_binop_overflows(rl_min(left_rl), expr->op, rl_min(right_rl)))
+		return NULL;
+	min = sval_binop(rl_min(left_rl), expr->op, rl_min(right_rl));
 
-	switch (implied) {
-	case IMPLIED_MAX:
-	case ABSOLUTE_MAX:
-		if (sval_binop_overflows(left, expr->op, right)) {
-			ret = sval_type_max(get_type(expr));
-			return alloc_rl(ret, ret);
-		}
-		break;
-	case HARD_MAX:
-	case FUZZY_MAX:
-		if (sval_binop_overflows(left, expr->op, right))
+	if (sval_binop_overflows(rl_max(left_rl), expr->op, rl_max(right_rl))) {
+		switch (implied_to_rl_enum(implied)) {
+		case RL_FUZZY:
+		case RL_HARD:
 			return NULL;
+		default:
+			max = sval_type_max(get_type(expr));
+		}
+	} else {
+		max = sval_binop(rl_max(left_rl), expr->op, rl_max(right_rl));
 	}
 
-	ret = sval_binop(left, expr->op, right);
-	return alloc_rl(ret, ret);
+	return alloc_rl(min, max);
 }
 
 static sval_t handle_binop(struct expression *expr, int *undefined, int implied)
