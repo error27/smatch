@@ -1067,6 +1067,10 @@ static int compile(LLVMModuleRef module, struct symbol_list *list)
 	return 0;
 }
 
+#ifndef LLVM_DEFAULT_TARGET_TRIPLE
+#define LLVM_DEFAULT_TARGET_TRIPLE LLVM_HOSTTRIPLE
+#endif
+
 #define X86_LINUX_LAYOUT \
 	"e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-" \
 	"i64:32:64-f32:32:32-f64:32:64-v64:64:64-v128:128:128-" \
@@ -1079,7 +1083,7 @@ static int compile(LLVMModuleRef module, struct symbol_list *list)
 
 static void set_target(LLVMModuleRef module)
 {
-	char target[] = LLVM_HOSTTRIPLE;
+	char target[] = LLVM_DEFAULT_TARGET_TRIPLE;
 	const char *arch, *vendor, *os, *env, *layout = NULL;
 	char triple[256];
 
