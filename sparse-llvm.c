@@ -1146,7 +1146,10 @@ int main(int argc, char **argv)
 	/* need ->phi_users */
 	dbg_dead = 1;
 	FOR_EACH_PTR_NOTAG(filelist, file) {
-		compile(module, sparse(file));
+		symlist = sparse(file);
+		if (die_if_error)
+			return 1;
+		compile(module, symlist);
 	} END_FOR_EACH_PTR_NOTAG(file);
 
 	LLVMVerifyModule(module, LLVMPrintMessageAction, NULL);
