@@ -1268,7 +1268,6 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 {
 	struct range_list *rl;
 	struct symbol *type;
-	int undefined;
 	sval_t sval;
 
 	expr = strip_parens(expr);
@@ -1276,79 +1275,53 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 		return NULL;
 	type = get_type(expr);
 
-	undefined = 0;
 	switch (expr->type) {
 	case EXPR_VALUE:
 		sval = sval_from_val(expr, expr->value);
+		rl = alloc_rl(sval, sval);
 		break;
 	case EXPR_PREOP:
 		rl = handle_preop_rl(expr, implied);
-		if (rl)
-			return rl;
-		undefined = 1;
 		break;
 	case EXPR_POSTOP:
-		return _get_rl(expr->unop, implied);
+		rl = _get_rl(expr->unop, implied);
+		break;
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
 		rl = _get_rl(expr->cast_expression, implied);
-		if (!rl)
-			undefined = 1;
-		else
-			return cast_rl(type, rl);
+		rl = cast_rl(type, rl);
 		break;
 	case EXPR_BINOP:
 		rl = handle_binop_rl(expr, implied);
-		if (rl)
-			return rl;
-		undefined = 1;
 		break;
 	case EXPR_COMPARE:
 		rl = handle_comparison_rl(expr, implied);
-		if (rl)
-			return rl;
-		undefined = 1;
 		break;
 	case EXPR_LOGICAL:
 		rl = handle_logical_rl(expr, implied);
-		if (rl)
-			return rl;
-		undefined = 1;
 		break;
 	case EXPR_PTRSIZEOF:
 	case EXPR_SIZEOF:
 		sval = handle_sizeof(expr);
+		rl = alloc_rl(sval, sval);
 		break;
 	case EXPR_SELECT:
 	case EXPR_CONDITIONAL:
 		rl = handle_conditional_rl(expr, implied);
-		if (rl)
-			return rl;
-		undefined = 1;
 		break;
 	case EXPR_CALL:
 		rl = handle_call_rl(expr, implied);
-		if (rl)
-			return rl;
-		else
-			undefined = 1;
 		break;
 	default:
 		rl = handle_variable(expr, implied);
-		if (rl)
-			return rl;
-		else
-			undefined = 1;
 	}
 
-	if (undefined && type &&
-	    (implied == ABSOLUTE_MAX || implied == ABSOLUTE_MIN))
+	if (rl)
+		return rl;
+	if (type && (implied == ABSOLUTE_MAX || implied == ABSOLUTE_MIN))
 		return alloc_whole_rl(type);
-	if (undefined)
-		return NULL;
-	rl = alloc_rl(sval, sval);
-	return rl;
+	return NULL;
 }
 
 static sval_t _get_value(struct expression *expr, int *undefined, int implied)
