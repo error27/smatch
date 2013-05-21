@@ -102,13 +102,10 @@ static LLVMTypeRef sym_struct_type(LLVMModuleRef module, struct symbol *sym)
 	LLVMTypeRef ret;
 	unsigned nr = 0;
 
-	sprintf(buffer, "%.*s", sym->ident->len, sym->ident->name);
-
-	ret = LLVMGetTypeByName(module, buffer);
-	if (ret)
-		return ret;
-
+	snprintf(buffer, sizeof(buffer), "struct.%s", sym->ident ? sym->ident->name : "anno");
 	ret = LLVMStructCreateNamed(LLVMGetGlobalContext(), buffer);
+	/* set ->aux to avoid recursion */
+	sym->aux = ret;
 
 	FOR_EACH_PTR(sym->symbol_list, member) {
 		LLVMTypeRef member_type;
