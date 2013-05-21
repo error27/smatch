@@ -115,7 +115,7 @@ static void register_returns_held_funcs(void)
 	clear_token_alloc();
 }
 
-void check_hold_dev(int id)
+void check_held_dev(int id)
 {
 	if (option_project != PROJ_KERNEL)
 		return;
