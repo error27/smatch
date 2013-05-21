@@ -345,16 +345,16 @@ static struct range_list *handle_subtract_rl(struct expression *expr, int implie
 		max = rl_max(left_rl);
 		break;
 	default:
-		if (sval_binop_overflows(rl_min(left_rl), '-', rl_max(right_rl))) {
-			sm_msg("overflow");
+		if (sval_binop_overflows(rl_min(left_rl), '-', rl_max(right_rl)))
 			return NULL;
-		}
 		min = sval_type_min(type);
 	}
 
-	tmp = sval_binop(rl_min(left_rl), '-', rl_max(right_rl));
-	if (sval_cmp(tmp, min) > 0)
-		min = tmp;
+	if (!sval_binop_overflows(rl_min(left_rl), '-', rl_max(right_rl))) {
+		tmp = sval_binop(rl_min(left_rl), '-', rl_max(right_rl));
+		if (sval_cmp(tmp, min) > 0)
+			min = tmp;
+	}
 
 	if (!sval_is_max(rl_max(left_rl))) {
 		tmp = sval_binop(rl_max(left_rl), '-', rl_min(right_rl));
