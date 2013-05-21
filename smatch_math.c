@@ -930,6 +930,8 @@ static sval_t handle_logical(struct expression *expr, int *undefined, int implie
 static struct range_list *handle_conditional_rl(struct expression *expr, int implied)
 {
 	struct range_list *true_rl, *false_rl;
+	struct symbol *type;
+	int final_pass_orig = final_pass;
 
 	if (known_condition_true(expr->conditional))
 		return _get_rl(expr->cond_true, implied);
@@ -944,12 +946,23 @@ static struct range_list *handle_conditional_rl(struct expression *expr, int imp
 	if (implied_condition_false(expr->conditional))
 		return _get_rl(expr->cond_false, implied);
 
+	type = get_type(expr);
+
+	__push_fake_cur_slist();
+	final_pass = 0;
+	__split_whole_condition(expr);
 	true_rl = _get_rl(expr->cond_true, implied);
-	if (!true_rl)
-		return NULL;
+	__push_true_states();
+	__use_false_states();
 	false_rl = _get_rl(expr->cond_false, implied);
-	if (!false_rl)
+	__merge_true_states();
+	__pop_fake_cur_slist();
+	final_pass = final_pass_orig;
+
+	if (!true_rl || !false_rl)
 		return NULL;
+	true_rl = cast_rl(type, true_rl);
+	false_rl = cast_rl(type, false_rl);
 
 	return rl_union(true_rl, false_rl);
 }
