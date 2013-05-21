@@ -155,7 +155,7 @@ static int size_from_db(struct expression *expr)
 	db_size = 0;
 	run_sql(db_size_callback, "select size from type_size where type = '%s' and file = '%s'",
 			name, get_filename());
-	if (db_size == -1)
+	if (db_size < 0)
 		return 0;
 	if (db_size != 0)
 		return db_size;
@@ -165,7 +165,7 @@ static int size_from_db(struct expression *expr)
 	run_sql(db_size_callback, "select size from type_size where type = '%s'",
 			name);
 
-	if (db_size == -1)
+	if (db_size < 0)
 		db_size = 0;
 
 	return db_size;
