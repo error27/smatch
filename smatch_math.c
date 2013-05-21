@@ -238,8 +238,9 @@ static struct range_list *handle_bitwise_AND(struct expression *expr, int implie
 	struct symbol *type;
 	struct range_list *left_rl, *right_rl;
 
-	if (implied == RL_EXACT || implied == RL_HARD)
+	if (implied == RL_EXACT)
 		return NULL;
+
 	type = get_type(expr);
 
 	left_rl = _get_rl(expr->left, implied);
@@ -247,6 +248,8 @@ static struct range_list *handle_bitwise_AND(struct expression *expr, int implie
 		left_rl = cast_rl(type, left_rl);
 		left_rl = alloc_rl(sval_type_val(type, 0), rl_max(left_rl));
 	} else {
+		if (implied == RL_HARD)
+			return NULL;
 		left_rl = alloc_whole_rl(type);
 	}
 
@@ -255,6 +258,8 @@ static struct range_list *handle_bitwise_AND(struct expression *expr, int implie
 		right_rl = cast_rl(type, right_rl);
 		right_rl = alloc_rl(sval_type_val(type, 0), rl_max(right_rl));
 	} else {
+		if (implied == RL_HARD)
+			return NULL;
 		right_rl = alloc_whole_rl(type);
 	}
 
@@ -267,7 +272,7 @@ static struct range_list *handle_right_shift(struct expression *expr, int implie
 	sval_t right;
 	sval_t min, max;
 
-	if (implied == RL_HARD)
+	if (implied == RL_EXACT || implied == RL_HARD)
 		return NULL;
 	/* this is hopeless without the right side */
 	if (!get_implied_value(expr->right, &right))
