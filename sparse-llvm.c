@@ -206,10 +206,16 @@ static LLVMTypeRef symbol_type(LLVMModuleRef module, struct symbol *sym)
 {
 	LLVMTypeRef ret = NULL;
 
+	/* don't cache the result for SYM_NODE */
+	if (sym->type == SYM_NODE)
+		return symbol_type(module, sym->ctype.base_type);
+
+	if (sym->aux)
+		return sym->aux;
+
 	switch (sym->type) {
 	case SYM_BITFIELD:
 	case SYM_ENUM:
-	case SYM_NODE:
 		ret = symbol_type(module, sym->ctype.base_type);
 		break;
 	case SYM_BASETYPE:
@@ -233,6 +239,9 @@ static LLVMTypeRef symbol_type(LLVMModuleRef module, struct symbol *sym)
 	default:
 		assert(0);
 	}
+
+	/* cache the result */
+	sym->aux = ret;
 	return ret;
 }
 
