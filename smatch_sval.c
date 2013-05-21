@@ -467,7 +467,11 @@ int sval_binop_overflows(sval_t left, int op, sval_t right)
 	case '*':
 		return right.uvalue != 0 && left.uvalue > max.uvalue / right.uvalue;
 	case '-':
-		return sval_cmp(right, sval_binop(min, '+', left)) < 0;
+		if (sval_binop_overflows(min, '+', left))
+			return 1;
+		if (sval_cmp(right, sval_binop(min, '+', left)) < 0)
+			return 1;
+		return 0;
 	}
 	return 0;
 }
