@@ -476,6 +476,11 @@ static struct range_list *handle_conditional_rl(struct expression *expr, int imp
 	if (implied_condition_false(expr->conditional))
 		return _get_rl(expr->cond_false, implied);
 
+
+	/* this becomes a problem with deeply nested conditional statements */
+	if (low_on_memory())
+		return NULL;
+
 	type = get_type(expr);
 
 	__push_fake_cur_slist();

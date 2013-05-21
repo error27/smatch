@@ -197,6 +197,13 @@ int out_of_memory()
 	return 0;
 }
 
+int low_on_memory(void)
+{
+	if (sm_state_counter * sizeof(struct sm_state) >= 25000000)
+		return 1;
+	return 0;
+}
+
 static void free_sm_state(struct sm_state *sm)
 {
 	free_slist(&sm->possible);
