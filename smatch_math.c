@@ -29,45 +29,12 @@ static struct range_list *rl_one(void)
 }
 
 enum {
-	EXACT,
-	IMPLIED,
-	IMPLIED_MIN,
-	IMPLIED_MAX,
-	FUZZY_MAX,
-	FUZZY_MIN,
-	ABSOLUTE_MIN,
-	ABSOLUTE_MAX,
-	HARD_MAX,
-};
-
-enum {
 	RL_EXACT,
 	RL_HARD,
 	RL_FUZZY,
 	RL_IMPLIED,
 	RL_ABSOLUTE
 };
-
-static int implied_to_rl_enum(int implied)
-{
-	switch (implied) {
-	case EXACT:
-		return RL_EXACT;
-	case HARD_MAX:
-		return RL_HARD;
-	case FUZZY_MAX:
-	case FUZZY_MIN:
-		return RL_FUZZY;
-	case IMPLIED:
-	case IMPLIED_MIN:
-	case IMPLIED_MAX:
-		return RL_IMPLIED;
-	case ABSOLUTE_MIN:
-	case ABSOLUTE_MAX:
-		return RL_ABSOLUTE;
-	}
-	return 0;
-}
 
 static struct range_list *last_stmt_rl(struct statement *stmt, int implied)
 {
@@ -87,7 +54,7 @@ static struct range_list *handle_expression_statement_rl(struct expression *expr
 
 static struct range_list *handle_ampersand_rl(int implied)
 {
-	if (implied == EXACT || implied == HARD_MAX)
+	if (implied == RL_EXACT || implied == RL_HARD)
 		return NULL;
 	return alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
 }
@@ -99,7 +66,7 @@ static struct range_list *handle_negate_rl(struct expression *expr, int implied)
 	if (known_condition_false(expr->unop))
 		return rl_one();
 
-	if (implied == EXACT)
+	if (implied == RL_EXACT)
 		return NULL;
 
 	if (implied_condition_true(expr->unop))
@@ -244,7 +211,7 @@ static struct range_list *handle_mod_rl(struct expression *expr, int implied)
 	struct range_list *rl;
 	sval_t left, right, sval;
 
-	if (implied == EXACT) {
+	if (implied == RL_EXACT) {
 		if (!get_value(expr->right, &right))
 			return NULL;
 		if (!get_value(expr->left, &left))
@@ -271,7 +238,7 @@ static struct range_list *handle_bitwise_AND(struct expression *expr, int implie
 	struct symbol *type;
 	struct range_list *left_rl, *right_rl;
 
-	if (implied == EXACT || implied == HARD_MAX)
+	if (implied == RL_EXACT || implied == RL_HARD)
 		return NULL;
 	type = get_type(expr);
 
@@ -300,7 +267,7 @@ static struct range_list *handle_right_shift(struct expression *expr, int implie
 	sval_t right;
 	sval_t min, max;
 
-	if (implied == HARD_MAX)
+	if (implied == RL_HARD)
 		return NULL;
 	/* this is hopeless without the right side */
 	if (!get_implied_value(expr->right, &right))
@@ -310,9 +277,9 @@ static struct range_list *handle_right_shift(struct expression *expr, int implie
 		max = rl_max(left_rl);
 		min = rl_min(left_rl);
 	} else {
-		if (implied_to_rl_enum(implied) == RL_FUZZY)
+		if (implied == RL_FUZZY)
 			return NULL;
-		if (implied_to_rl_enum(implied) == RL_HARD)
+		if (implied == RL_HARD)
 			return NULL;
 		max = sval_type_max(get_type(expr->left));
 		min = sval_type_val(get_type(expr->left), 0);
@@ -344,7 +311,7 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 	rl = handle_known_binop(expr);
 	if (rl)
 		return rl;
-	if (implied == EXACT)
+	if (implied == RL_EXACT)
 		return NULL;
 
 	switch (expr->op) {
@@ -374,7 +341,7 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 	min = sval_binop(rl_min(left_rl), expr->op, rl_min(right_rl));
 
 	if (sval_binop_overflows(rl_max(left_rl), expr->op, rl_max(right_rl))) {
-		switch (implied_to_rl_enum(implied)) {
+		switch (implied) {
 		case RL_FUZZY:
 		case RL_HARD:
 			return NULL;
@@ -434,7 +401,7 @@ static struct range_list *handle_comparison_rl(struct expression *expr, int impl
 		return rl_zero();
 	}
 
-	if (implied == EXACT)
+	if (implied == RL_EXACT)
 		return NULL;
 
 	res = do_comparison(expr);
@@ -452,7 +419,7 @@ static struct range_list *handle_logical_rl(struct expression *expr, int implied
 	int left_known = 0;
 	int right_known = 0;
 
-	if (implied == EXACT) {
+	if (implied == RL_EXACT) {
 		if (get_value(expr->left, &left))
 			left_known = 1;
 		if (get_value(expr->right, &right))
@@ -484,7 +451,7 @@ static struct range_list *handle_logical_rl(struct expression *expr, int implied
 		return NULL;
 	}
 
-	if (implied == EXACT)
+	if (implied == RL_EXACT)
 		return NULL;
 
 	return alloc_rl(zero, one);
@@ -501,7 +468,7 @@ static struct range_list *handle_conditional_rl(struct expression *expr, int imp
 	if (known_condition_false(expr->conditional))
 		return _get_rl(expr->cond_false, implied);
 
-	if (implied == EXACT)
+	if (implied == RL_EXACT)
 		return NULL;
 
 	if (implied_condition_true(expr->conditional))
@@ -619,7 +586,7 @@ static struct range_list *handle_variable(struct expression *expr, int implied)
 	if (get_const_value(expr, &sval))
 		return alloc_rl(sval, sval);
 
-	switch (implied_to_rl_enum(implied)) {
+	switch (implied) {
 	case RL_EXACT:
 		return NULL;
 	case RL_HARD:
@@ -631,7 +598,7 @@ static struct range_list *handle_variable(struct expression *expr, int implied)
 				return rl;
 			return NULL;
 		}
-		if (implied == HARD_MAX && !estate_has_hard_max(state))
+		if (implied == RL_HARD && !estate_has_hard_max(state))
 			return NULL;
 		return estate_rl(state);
 	case RL_FUZZY:
@@ -682,7 +649,7 @@ static struct range_list *handle_call_rl(struct expression *expr, int implied)
 {
 	struct range_list *rl;
 
-	if (implied == EXACT)
+	if (implied == RL_EXACT)
 		return NULL;
 
 	if (get_implied_return(expr, &rl))
@@ -745,7 +712,7 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 
 	if (rl)
 		return rl;
-	if (type && (implied == ABSOLUTE_MAX || implied == ABSOLUTE_MIN))
+	if (type && implied == RL_ABSOLUTE)
 		return alloc_whole_rl(type);
 	return NULL;
 }
@@ -755,7 +722,7 @@ int get_value(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
 
-	rl = _get_rl(expr, EXACT);
+	rl = _get_rl(expr, RL_EXACT);
 	if (!rl_to_sval(rl, sval))
 		return 0;
 	return 1;
@@ -765,7 +732,7 @@ int get_implied_value(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
 
-	rl =  _get_rl(expr, IMPLIED);
+	rl =  _get_rl(expr, RL_IMPLIED);
 	if (!rl_to_sval(rl, sval))
 		return 0;
 	return 1;
@@ -775,7 +742,7 @@ int get_implied_min(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
 
-	rl =  _get_rl(expr, IMPLIED_MIN);
+	rl =  _get_rl(expr, RL_IMPLIED);
 	if (!rl)
 		return 0;
 	*sval = rl_min(rl);
@@ -786,7 +753,7 @@ int get_implied_max(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
 
-	rl =  _get_rl(expr, IMPLIED_MAX);
+	rl =  _get_rl(expr, RL_IMPLIED);
 	if (!rl)
 		return 0;
 	*sval = rl_max(rl);
@@ -847,7 +814,7 @@ int get_hard_max(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
 
-	rl =  _get_rl(expr, HARD_MAX);
+	rl =  _get_rl(expr, RL_HARD);
 	if (!rl)
 		return 0;
 	*sval = rl_max(rl);
@@ -858,7 +825,7 @@ int get_fuzzy_min(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
 
-	rl =  _get_rl(expr, FUZZY_MIN);
+	rl =  _get_rl(expr, RL_FUZZY);
 	if (!rl)
 		return 0;
 	*sval = rl_min(rl);
@@ -870,7 +837,7 @@ int get_fuzzy_max(struct expression *expr, sval_t *sval)
 	struct range_list *rl;
 	sval_t max;
 
-	rl =  _get_rl(expr, FUZZY_MAX);
+	rl =  _get_rl(expr, RL_FUZZY);
 	if (!rl)
 		return 0;
 	max = rl_max(rl);
@@ -888,7 +855,7 @@ int get_absolute_min(struct expression *expr, sval_t *sval)
 	type = get_type(expr);
 	if (!type)
 		type = &llong_ctype;  // FIXME: this is wrong but places assume get type can't fail.
-	rl = _get_rl(expr, ABSOLUTE_MIN);
+	rl = _get_rl(expr, RL_ABSOLUTE);
 	if (rl)
 		*sval = rl_min(rl);
 	else
@@ -907,7 +874,7 @@ int get_absolute_max(struct expression *expr, sval_t *sval)
 	type = get_type(expr);
 	if (!type)
 		type = &llong_ctype;
-	rl = _get_rl(expr, ABSOLUTE_MAX);
+	rl = _get_rl(expr, RL_ABSOLUTE);
 	if (rl)
 		*sval = rl_max(rl);
 	else
