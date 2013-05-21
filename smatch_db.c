@@ -267,23 +267,6 @@ void sql_select_call_implies(const char *cols, struct expression *call,
 		cols, get_static_filter(call->fn->symbol));
 }
 
-void sql_select_return_values(const char *cols, struct expression *call,
-	int (*callback)(void*, int, char**, char**))
-{
-	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
-		return;
-
-	if (inlinable(call->fn)) {
-		mem_sql(callback,
-			"select %s from return_values where call_id = '%lu';",
-			cols, (unsigned long)call);
-		return;
-	}
-
-	run_sql(callback, "select %s from return_values where %s;",
-		cols, get_static_filter(call->fn->symbol));
-}
-
 void sql_select_caller_info(const char *cols, struct symbol *sym,
 	int (*callback)(void*, int, char**, char**))
 {
@@ -351,11 +334,12 @@ static struct symbol *return_type;
 static struct range_list *return_range_list;
 static int db_return_callback(void *unused, int argc, char **argv, char **azColName)
 {
+	struct range_list *rl;
+
 	if (argc != 1)
 		return 0;
-	if (option_debug)
-		sm_msg("return type %d", type_positive_bits(return_type));
-	str_to_rl(return_type, argv[0], &return_range_list);
+	str_to_rl(return_type, argv[0], &rl);
+	return_range_list = rl_union(return_range_list, rl);
 	return 0;
 }
 
@@ -364,8 +348,19 @@ struct range_list *db_return_vals(struct expression *expr)
 	return_type = get_type(expr);
 	if (!return_type)
 		return NULL;
+	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
+		return NULL;
+
 	return_range_list = NULL;
-	sql_select_return_values("return", expr, db_return_callback);
+	if (inlinable(expr->fn)) {
+		mem_sql(db_return_callback,
+			"select distinct return from return_states where call_id = '%lu';",
+			(unsigned long)expr);
+	} else {
+		run_sql(db_return_callback,
+			"select distinct return from return_states where %s;",
+			get_static_filter(expr->fn->symbol));
+	}
 	return return_range_list;
 }
 
