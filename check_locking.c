@@ -592,9 +592,7 @@ static void check_possible(struct sm_state *sm)
 		sm_msg("warn: '%s' is sometimes locked here and sometimes unlocked.", sm->name);
 }
 
-static void match_return(int return_id, char *return_ranges,
-			 struct expression *expr,
-			 struct state_list *fake_cur_slist)
+static void match_return(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct locks_on_return *ret;
 	struct state_list *slist;
@@ -607,7 +605,7 @@ static void match_return(int return_id, char *return_ranges,
 
 	ret = alloc_return(expr);
 
-	slist = get_all_states_slist(my_id, fake_cur_slist);
+	slist = get_all_states(my_id);
 	FOR_EACH_PTR(slist, tmp) {
 		if (tmp->state == &locked) {
 			add_tracker(&ret->locked, tmp->owner, tmp->name,

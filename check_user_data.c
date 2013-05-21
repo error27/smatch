@@ -331,7 +331,7 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	sql_insert_caller_info(call, USER_DATA, param, printed_name, "1");
 }
 
-static void print_returned_user_data(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
+static void print_returned_user_data(int return_id, char *return_ranges, struct expression *expr)
 {
 	if (is_user_data(expr)) {
 		sql_insert_return_states(return_id, return_ranges, USER_DATA,

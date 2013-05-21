@@ -61,7 +61,7 @@ DECLARE_PTR_LIST(member_info_cb_list, struct member_info_callback);
 static struct member_info_cb_list *member_callbacks;
 
 struct returned_state_callback {
-	void (*callback)(int return_id, char *return_ranges, struct expression *return_expr, struct state_list *slist);
+	void (*callback)(int return_id, char *return_ranges, struct expression *return_expr);
 };
 ALLOCATOR(returned_state_callback, "returned state callbacks");
 DECLARE_PTR_LIST(returned_state_cb_list, struct returned_state_callback);
@@ -304,7 +304,7 @@ void add_member_info_callback(int owner, void (*callback)(struct expression *cal
 	add_ptr_list(&member_callbacks, member_callback);
 }
 
-void add_returned_state_callback(void (*fn)(int return_id, char *return_ranges, struct expression *returned_expr, struct state_list *slist))
+void add_returned_state_callback(void (*fn)(int return_id, char *return_ranges, struct expression *returned_expr))
 {
 	struct returned_state_callback *callback = __alloc_returned_state_callback(0);
 
@@ -699,7 +699,7 @@ static void global_variable(struct symbol *sym)
 	print_initializer_list(sym->initializer->expr_list, struct_type);
 }
 
-static void match_return_info(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
+static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
 {
 	sql_insert_return_states(return_id, return_ranges, INTERNAL, -1, "", "");
 }
@@ -714,7 +714,6 @@ static void match_function_def(struct symbol *sym)
 static void call_return_state_hooks_compare(struct expression *expr)
 {
 	struct returned_state_callback *cb;
-	struct state_list *slist;
 	char *return_ranges;
 	int final_pass_orig = final_pass;
 
@@ -727,9 +726,8 @@ static void call_return_state_hooks_compare(struct expression *expr)
 	return_ranges = alloc_sname("1");
 
 	return_id++;
-	slist = __get_cur_slist();
 	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, return_ranges, expr, slist);
+		cb->callback(return_id, return_ranges, expr);
 	} END_FOR_EACH_PTR(cb);
 
 	__push_true_states();
@@ -737,9 +735,8 @@ static void call_return_state_hooks_compare(struct expression *expr)
 
 	return_ranges = alloc_sname("0");;
 	return_id++;
-	slist = __get_cur_slist();
 	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, return_ranges, expr, slist);
+		cb->callback(return_id, return_ranges, expr);
 	} END_FOR_EACH_PTR(cb);
 
 	__merge_true_states();
@@ -749,7 +746,6 @@ static void call_return_state_hooks_compare(struct expression *expr)
 static int call_return_state_hooks_split_possible(struct expression *expr)
 {
 	struct returned_state_callback *cb;
-	struct state_list *slist;
 	struct range_list *rl;
 	char *return_ranges;
 	struct sm_state *sm;
@@ -787,9 +783,8 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 		return_ranges = show_rl(rl);
 
 		return_id++;
-		slist = __get_cur_slist();
 		FOR_EACH_PTR(returned_state_callbacks, cb) {
-			cb->callback(return_id, return_ranges, expr, slist);
+			cb->callback(return_id, return_ranges, expr);
 		} END_FOR_EACH_PTR(cb);
 
 		__pop_fake_cur_slist();
@@ -801,7 +796,6 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 static void call_return_state_hooks(struct expression *expr)
 {
 	struct returned_state_callback *cb;
-	struct state_list *slist;
 	struct range_list *rl;
 	char *return_ranges;
 	int nr_states;
@@ -824,17 +818,17 @@ static void call_return_state_hooks(struct expression *expr)
 	}
 
 	return_id++;
-	slist = __get_cur_slist();
 	nr_states = ptr_list_size((struct ptr_list *)__get_cur_slist());
+	if (nr_states >= 10000) {
+		match_return_info(return_id, return_ranges, expr);
+		return;
+	}
 	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		if (nr_states < 10000)
-			cb->callback(return_id, return_ranges, expr, slist);
-		else
-			cb->callback(return_id, return_ranges, expr, NULL);
+		cb->callback(return_id, return_ranges, expr);
 	} END_FOR_EACH_PTR(cb);
 }
 
-static void print_returned_struct_members(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
+static void print_returned_struct_members(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct returned_member_callback *cb;
 	struct state_list *my_slist;
@@ -859,7 +853,7 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 
 	len = strlen(name);
 	FOR_EACH_PTR(returned_member_callbacks, cb) {
-		my_slist = get_all_states_slist(cb->owner, slist);
+		my_slist = get_all_states(cb->owner);
 		FOR_EACH_PTR(my_slist, sm) {
 			if (strncmp(sm->name, name, len) != 0)
 				continue;

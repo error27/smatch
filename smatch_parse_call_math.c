@@ -469,7 +469,7 @@ static void match_returns_call(int return_id, char *return_ranges, struct expres
 			sname);
 }
 
-static void print_returned_allocations(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
+static void print_returned_allocations(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct smatch_state *state;
 	struct symbol *sym;
@@ -488,7 +488,7 @@ static void print_returned_allocations(int return_id, char *return_ranges, struc
 	if (!name || !sym)
 		goto free;
 
-	state = get_state_slist(slist, my_id, name, sym);
+	state = get_state(my_id, name, sym);
 	if (!state || !state->data)
 		goto free;
 

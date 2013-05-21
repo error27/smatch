@@ -42,8 +42,7 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 }
 
 static void print_one_return_value_param(int return_id, char *return_ranges,
-			int param, struct sm_state *sm, char *implied_rl,
-			struct state_list *slist)
+			int param, struct sm_state *sm, char *implied_rl)
 {
 	const char *param_name;
 
@@ -57,7 +56,7 @@ static void print_one_return_value_param(int return_id, char *return_ranges,
 			param_name, implied_rl);
 }
 
-static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
+static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct state_list *my_slist;
 	struct sm_state *sm;
@@ -65,12 +64,12 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	int param;
 	struct range_list *rl;
 
-	my_slist = get_all_states_slist(my_id, slist);
+	my_slist = get_all_states(my_id);
 
 	FOR_EACH_PTR(my_slist, sm) {
 		if (!estate_rl(sm->state))
 			continue;
-		extra = get_state_slist(slist, SMATCH_EXTRA, sm->name, sm->sym);
+		extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
 		if (!estate_rl(extra))
 			continue;
 		rl = rl_intersection(estate_rl(sm->state), estate_rl(extra));
@@ -82,7 +81,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 			continue;
 		if (!sm->sym->ident)
 			continue;
-		print_one_return_value_param(return_id, return_ranges, param, sm, show_rl(rl), slist);
+		print_one_return_value_param(return_id, return_ranges, param, sm, show_rl(rl));
 	} END_FOR_EACH_PTR(sm);
 }
 

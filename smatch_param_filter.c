@@ -89,7 +89,7 @@ static struct range_list *get_orig_rl(struct sm_state *sm)
 }
 
 static void print_one_mod_param(int return_id, char *return_ranges,
-			int param, struct sm_state *sm, struct state_list *slist)
+			int param, struct sm_state *sm)
 {
 	const char *param_name;
 	struct range_list *rl;
@@ -106,7 +106,7 @@ static void print_one_mod_param(int return_id, char *return_ranges,
 }
 
 static void print_one_extra_param(int return_id, char *return_ranges,
-			int param, struct sm_state *sm, struct state_list *slist)
+			int param, struct sm_state *sm)
 {
 	struct smatch_state *old;
 	const char *param_name;
@@ -125,14 +125,14 @@ static void print_one_extra_param(int return_id, char *return_ranges,
 			param_name, sm->state->name);
 }
 
-static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
+static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct state_list *extra_slist;
 	struct sm_state *tmp;
 	struct sm_state *sm;
 	int param;
 
-	extra_slist = get_all_states_slist(SMATCH_EXTRA, slist);
+	extra_slist = get_all_states(SMATCH_EXTRA);
 
 	FOR_EACH_PTR(extra_slist, tmp) {
 		param = get_param_num_from_sym(tmp->sym);
@@ -145,11 +145,11 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (tmp->sym->ident && strcmp(tmp->sym->ident->name, tmp->name) == 0)
 			continue;
 
-		sm = get_sm_state_slist(slist, my_id, tmp->name, tmp->sym);
+		sm = get_sm_state(my_id, tmp->name, tmp->sym);
 		if (sm)
-			print_one_mod_param(return_id, return_ranges, param, sm, slist);
+			print_one_mod_param(return_id, return_ranges, param, sm);
 		else
-			print_one_extra_param(return_id, return_ranges, param, tmp, slist);
+			print_one_extra_param(return_id, return_ranges, param, tmp);
 	} END_FOR_EACH_PTR(tmp);
 
 	free_slist(&extra_slist);

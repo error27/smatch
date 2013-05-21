@@ -92,7 +92,7 @@ struct smatch_state *get_orig_estate(const char *name, struct symbol *sym)
 	return alloc_estate_rl(alloc_whole_rl(get_real_base_type(sym)));
 }
 
-static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
+static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct state_list *extra_slist;
 	struct sm_state *tmp;
@@ -100,7 +100,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	struct smatch_state *state;
 	int param;
 
-	extra_slist = get_all_states_slist(SMATCH_EXTRA, slist);
+	extra_slist = get_all_states(SMATCH_EXTRA);
 
 	FOR_EACH_PTR(extra_slist, tmp) {
 		if (!tmp->sym->ident || strcmp(tmp->name, tmp->sym->ident->name) != 0)
@@ -110,7 +110,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (param < 0)
 			continue;
 
-		my_sm = get_sm_state_slist(slist, my_id, tmp->name, tmp->sym);
+		my_sm = get_sm_state(my_id, tmp->name, tmp->sym);
 		if (!my_sm) {
 			struct smatch_state *old;
 

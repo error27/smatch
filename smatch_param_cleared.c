@@ -60,13 +60,13 @@ static void match_memcpy(const char *fn, struct expression *expr, void *arg)
 	db_param_cleared(expr, PTR_INT(arg), (char *)"$$", (char *)"");
 }
 
-static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr, struct state_list *slist)
+static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct state_list *my_slist;
 	struct sm_state *sm;
 	int param;
 
-	my_slist = get_all_states_slist(my_id, slist);
+	my_slist = get_all_states(my_id);
 
 	FOR_EACH_PTR(my_slist, sm) {
 		param = get_param_num_from_sym(sm->sym);
