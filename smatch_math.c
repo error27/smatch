@@ -605,7 +605,7 @@ static struct range_list *handle_variable(struct expression *expr, int implied)
 		}
 		if (implied == RL_HARD && !estate_has_hard_max(state))
 			return NULL;
-		return estate_rl(state);
+		return clone_rl(estate_rl(state));
 	case RL_FUZZY:
 		if (!get_fuzzy_min_helper(expr, &min))
 			min = sval_type_min(get_type(expr));
@@ -767,52 +767,10 @@ int get_implied_max(struct expression *expr, sval_t *sval)
 
 int get_implied_rl(struct expression *expr, struct range_list **rl)
 {
-	sval_t sval;
-	struct smatch_state *state;
-	sval_t min, max;
-	int min_known = 0;
-	int max_known = 0;
-
-	*rl = NULL;
-
-	expr = strip_parens(expr);
-	if (!expr)
-		return 0;
-
-	state = get_state_expr(SMATCH_EXTRA, expr);
-	if (state) {
-		*rl = clone_rl(estate_rl(state));
+	*rl = _get_rl(expr, RL_IMPLIED);
+	if (*rl)
 		return 1;
-	}
-
-	if (expr->type == EXPR_CALL) {
-		if (get_implied_return(expr, rl))
-			return 1;
-		*rl = db_return_vals(expr);
-		if (*rl)
-			return 1;
-		return 0;
-	}
-
-	if (get_implied_value(expr, &sval)) {
-		add_range(rl, sval, sval);
-		return 1;
-	}
-
-	if (get_local_rl(expr, rl))
-		return 1;
-
-	min_known = get_implied_min(expr, &min);
-	max_known = get_implied_max(expr, &max);
-	if (!min_known && !max_known)
-		return 0;
-	if (!min_known)
-		get_absolute_min(expr, &min);
-	if (!max_known)
-		get_absolute_max(expr, &max);
-
-	*rl = alloc_rl(min, max);
-	return 1;
+	return 0;
 }
 
 int get_hard_max(struct expression *expr, sval_t *sval)
