@@ -640,4 +640,7 @@ struct string_list *combine_string_lists(struct string_list *one, struct string_
 int is_uninitialized(struct expression *expr);
 int has_uninitialized_members(struct expression *expr);
 
+/* smatch_start_states.c */
+struct state_list *get_start_states(void);
+
 #endif 	    /* !SMATCH_H_ */
