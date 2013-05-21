@@ -47,6 +47,9 @@ int is_capped(struct expression *expr)
 	sval_t dummy;
 
 	expr = strip_expr(expr);
+	while (expr && expr->type == EXPR_POSTOP) {
+		expr = strip_expr(expr->unop);
+	}
 	if (!expr)
 		return 0;
 
