@@ -394,6 +394,7 @@ int get_local_min_helper(struct expression *expr, sval_t *sval);
 /* smatch_states.c */
 void __push_fake_cur_slist();
 struct state_list *__pop_fake_cur_slist();
+void __free_fake_cur_slist();
 void __merge_slist_into_cur(struct state_list *slist);
 
 int unreachable(void);

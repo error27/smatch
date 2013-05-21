@@ -483,6 +483,7 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 	char *name = NULL;
 	struct symbol *sym = NULL;
 	struct def_callback *def_callback;
+	struct state_list *slist;
 
 	if (argc != 5)
 		return 0;
@@ -497,7 +498,9 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 	if (prev_func_id == -1)
 		prev_func_id = func_id;
 	if (func_id != prev_func_id) {
-		merge_slist(&final_states, __pop_fake_cur_slist());
+		slist = __pop_fake_cur_slist();
+		merge_slist(&final_states, slist);
+		free_slist(&slist);
 		__push_fake_cur_slist();
 		__unnullify_path();
 		prev_func_id = func_id;
@@ -593,6 +596,7 @@ static void get_function_pointer_callers(struct symbol *sym)
 static void match_data_from_db(struct symbol *sym)
 {
 	struct sm_state *sm;
+	struct state_list *slist;
 
 	if (!sym || !sym->ident || !sym->ident->name)
 		return;
@@ -605,7 +609,9 @@ static void match_data_from_db(struct symbol *sym)
 	if (!__inline_fn)
 		get_function_pointer_callers(sym);
 
-	merge_slist(&final_states, __pop_fake_cur_slist());
+	slist = __pop_fake_cur_slist();
+	merge_slist(&final_states, slist);
+	free_slist(&slist);
 
 	FOR_EACH_PTR(final_states, sm) {
 		__set_sm(sm);
@@ -740,7 +746,7 @@ static void call_return_state_hooks_compare(struct expression *expr)
 	} END_FOR_EACH_PTR(cb);
 
 	__merge_true_states();
-	__pop_fake_cur_slist();
+	__free_fake_cur_slist();
 }
 
 static int call_return_state_hooks_split_possible(struct expression *expr)
@@ -752,6 +758,7 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 	struct sm_state *tmp;
 	int ret = 0;
 	int nr_possible, nr_states;
+	struct state_list *slist;
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
 	if (!sm || !sm->merged)
@@ -787,7 +794,7 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 			cb->callback(return_id, return_ranges, expr);
 		} END_FOR_EACH_PTR(cb);
 
-		__pop_fake_cur_slist();
+		__free_fake_cur_slist();
 	} END_FOR_EACH_PTR(tmp);
 
 	return ret;

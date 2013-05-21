@@ -456,6 +456,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 	if (prev_return_id != -1 && return_id != prev_return_id) {
 		slist = __pop_fake_cur_slist();
 		merge_slist(&db_info.slist, slist);
+		free_slist(&slist);
 		__push_fake_cur_slist();
 	}
 	prev_return_id = return_id;
@@ -492,6 +493,7 @@ static int db_return_states_assign(struct expression *expr)
 			right, db_assign_return_states_callback);
 	slist = __pop_fake_cur_slist();
 	merge_slist(&db_info.slist, slist);
+	free_slist(&slist);
 
 	FOR_EACH_PTR(db_info.slist, sm) {
 		__set_sm(sm);
@@ -573,6 +575,7 @@ static int db_return_states_callback(void *unused, int argc, char **argv, char *
 	if (prev_return_id != -1 && return_id != prev_return_id) {
 		slist = __pop_fake_cur_slist();
 		merge_slist(&db_info.slist, slist);
+		free_slist(&slist);
 		__push_fake_cur_slist();
 		__unnullify_path();
 	}
@@ -608,6 +611,7 @@ static void db_return_states(struct expression *expr)
 			expr, db_return_states_callback);
 	slist = __pop_fake_cur_slist();
 	merge_slist(&db_info.slist, slist);
+	free_slist(&slist);
 
 	FOR_EACH_PTR(db_info.slist, sm) {
 		__set_sm(sm);

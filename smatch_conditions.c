@@ -311,6 +311,9 @@ static void handle_select(struct expression *expr)
 	FOR_EACH_PTR(a_T_b_F, sm) {
 		__set_true_false_sm(NULL, sm);
 	} END_FOR_EACH_PTR(sm);
+
+	free_slist(&a_T_b_fake);
+	free_slist(&a_F_c_fake);
 }
 
 static int make_op_unsigned(int op)

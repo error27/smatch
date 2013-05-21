@@ -160,6 +160,15 @@ struct state_list *__pop_fake_cur_slist()
 	return pop_slist(&fake_cur_slist_stack);
 }
 
+void __free_fake_cur_slist()
+{
+	struct state_list *slist;
+
+	__use_pre_cond_states();
+	slist = pop_slist(&fake_cur_slist_stack);
+	free_slist(&slist);
+}
+
 void __merge_slist_into_cur(struct state_list *slist)
 {
 	struct sm_state *sm;

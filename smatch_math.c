@@ -954,7 +954,7 @@ static struct range_list *handle_conditional_rl(struct expression *expr, int imp
 	__use_false_states();
 	false_rl = _get_rl(expr->cond_false, implied);
 	__merge_true_states();
-	__pop_fake_cur_slist();
+	__free_fake_cur_slist();
 	final_pass = final_pass_orig;
 
 	if (!true_rl || !false_rl)
