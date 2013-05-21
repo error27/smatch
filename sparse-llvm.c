@@ -1050,6 +1050,12 @@ static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
 	data = LLVMAddGlobal(module, LLVMTypeOf(initial_value), name);
 
 	LLVMSetLinkage(data, data_linkage(sym));
+	if (sym->ctype.modifiers & MOD_CONST)
+		LLVMSetGlobalConstant(data, 1);
+	if (sym->ctype.modifiers & MOD_TLS)
+		LLVMSetThreadLocal(data, 1);
+	if (sym->ctype.alignment)
+		LLVMSetAlignment(data, sym->ctype.alignment);
 
 	if (!(sym->ctype.modifiers & MOD_EXTERN))
 		LLVMSetInitializer(data, initial_value);
