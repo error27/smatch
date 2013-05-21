@@ -50,7 +50,7 @@ int is_capped(struct expression *expr)
 	if (!expr)
 		return 0;
 
-	if (get_implied_value(expr, &dummy))
+	if (get_hard_max(expr, &dummy))
 		return 1;
 
 	if (is_capped_macro(expr))
