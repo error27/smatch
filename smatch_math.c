@@ -238,7 +238,7 @@ static struct range_list *handle_bitwise_AND(struct expression *expr, int implie
 	struct symbol *type;
 	struct range_list *left_rl, *right_rl;
 
-	if (implied == RL_EXACT)
+	if (implied != RL_IMPLIED && implied != RL_ABSOLUTE)
 		return NULL;
 
 	type = get_type(expr);
