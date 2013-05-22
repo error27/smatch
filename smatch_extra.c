@@ -770,29 +770,6 @@ static void match_function_def(struct symbol *sym)
 	} END_FOR_EACH_PTR(arg);
 }
 
-static int match_func_comparison(struct expression *expr)
-{
-	struct expression *left = strip_expr(expr->left);
-	struct expression *right = strip_expr(expr->right);
-	sval_t sval;
-
-	if (left->type == EXPR_CALL) {
-		if (!get_implied_value(right, &sval))
-			return 1;
-		function_comparison(expr->op, left, sval, 1);
-		return 1;
-	}
-
-	if (right->type == EXPR_CALL) {
-		if (!get_implied_value(left, &sval))
-			return 1;
-		function_comparison(expr->op, right, sval, 0);
-		return 1;
-	}
-
-	return 0;
-}
-
 static sval_t add_one(sval_t sval)
 {
 	sval.value++;
@@ -1070,6 +1047,29 @@ static void move_known_values(struct expression **left_p, struct expression **ri
 		}
 		return;
 	}
+}
+
+static int match_func_comparison(struct expression *expr)
+{
+	struct expression *left = strip_expr(expr->left);
+	struct expression *right = strip_expr(expr->right);
+	sval_t sval;
+
+	if (left->type == EXPR_CALL) {
+		if (!get_implied_value(right, &sval))
+			return 1;
+		function_comparison(expr->op, left, sval, 1);
+		return 1;
+	}
+
+	if (right->type == EXPR_CALL) {
+		if (!get_implied_value(left, &sval))
+			return 1;
+		function_comparison(expr->op, right, sval, 0);
+		return 1;
+	}
+
+	return 0;
 }
 
 static void match_comparison(struct expression *expr)
