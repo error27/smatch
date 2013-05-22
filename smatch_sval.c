@@ -311,6 +311,7 @@ sval_t sval_preop(sval_t sval, int op)
 		break;
 	case '-':
 		sval.value = -sval.value;
+		sval = sval_cast(sval.type, sval);
 		break;
 	}
 	return sval;
