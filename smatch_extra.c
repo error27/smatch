@@ -1055,7 +1055,18 @@ static int match_func_comparison(struct expression *expr)
 	struct expression *right = strip_expr(expr->right);
 	sval_t sval;
 
+	/*
+	 * fixme: think about this harder. We should always be trying to limit
+	 * the non-call side as well.  If we can't determine the limitter does
+	 * that mean we aren't querying the database and are missing important
+	 * information?
+	 */
+
 	if (left->type == EXPR_CALL) {
+		if (get_implied_value(left, &sval)) {
+			handle_comparison(get_type(expr), left, expr->op, right);
+			return 1;
+		}
 		if (!get_implied_value(right, &sval))
 			return 1;
 		function_comparison(expr->op, left, sval, 1);
@@ -1063,6 +1074,10 @@ static int match_func_comparison(struct expression *expr)
 	}
 
 	if (right->type == EXPR_CALL) {
+		if (get_implied_value(right, &sval)) {
+			handle_comparison(get_type(expr), left, expr->op, right);
+			return 1;
+		}
 		if (!get_implied_value(left, &sval))
 			return 1;
 		function_comparison(expr->op, right, sval, 0);
