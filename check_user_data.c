@@ -206,7 +206,8 @@ void set_param_user_data(const char *name, struct symbol *sym, char *key, char *
 {
 	char fullname[256];
 
-	if (strncmp(key, "$$", 2))
+	/* sanity check.  this should always be true. */
+	if (strncmp(key, "$$", 2) != 0)
 		return;
 	snprintf(fullname, 256, "%s%s", name, key + 2);
 	set_state(my_id, fullname, sym, &user_data);
