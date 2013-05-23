@@ -190,6 +190,18 @@ free:
 	return user;
 }
 
+int is_capped_user_data(struct expression *expr)
+{
+	struct sm_state *sm;
+
+	sm = get_sm_state_expr(my_id, expr);
+	if (!sm)
+		return 0;
+	if (slist_has_state(sm->possible, &capped))
+		return 1;
+	return 0;
+}
+
 void set_param_user_data(const char *name, struct symbol *sym, char *key, char *value)
 {
 	char fullname[256];

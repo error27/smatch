@@ -587,6 +587,7 @@ int is_capped(struct expression *expr);
 
 /* check_user_data.c */
 int is_user_data(struct expression *expr);
+int is_capped_user_data(struct expression *expr);
 
 /* check_locking.c */
 void print_held_locks();
