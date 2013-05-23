@@ -156,15 +156,21 @@ static struct range_list *handle_subtract_rl(struct expression *expr, int implie
 	int comparison;
 
 	type = get_type(expr);
+	comparison = get_comparison(expr->left, expr->right);
+
 	left_rl = _get_rl(expr->left, implied);
 	left_rl = cast_rl(type, left_rl);
-	if (!left_rl)
-		left_rl = alloc_whole_rl(type);
 	right_rl = _get_rl(expr->right, implied);
 	right_rl = cast_rl(type, right_rl);
+
+	if ((!left_rl || !right_rl) &&
+	    (implied == RL_EXACT || implied == RL_HARD || implied == RL_FUZZY))
+		return NULL;
+
+	if (!left_rl)
+		left_rl = alloc_whole_rl(type);
 	if (!right_rl)
 		right_rl = alloc_whole_rl(type);
-	comparison = get_comparison(expr->left, expr->right);
 
 	/* negative values complicate everything fix this later */
 	if (sval_is_negative(rl_min(right_rl)))
@@ -659,7 +665,7 @@ static struct range_list *handle_call_rl(struct expression *expr, int implied)
 {
 	struct range_list *rl;
 
-	if (implied == RL_EXACT)
+	if (implied == RL_EXACT || implied == RL_HARD || implied == RL_FUZZY)
 		return NULL;
 
 	if (get_implied_return(expr, &rl))
