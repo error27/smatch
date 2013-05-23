@@ -179,13 +179,13 @@ static int save_final_values(void *unused, int argc, char **argv, char **azColNa
 	char *value = argv[2];
 	struct range_list *rl;
 
-	cur_symbol = (struct symbol *)strtoul(sym_str, NULL, 10);
-
-	if (!cur_name)
+	if (!cur_name) {
 		cur_name = alloc_string(name);
-	else if (strcmp(cur_name, name) != 0) {
+		cur_symbol = (struct symbol *)strtoul(sym_str, NULL, 10);
+	} else if (strcmp(cur_name, name) != 0) {
 		add_current_local();
 		cur_name = alloc_string(name);
+		cur_symbol = (struct symbol *)strtoul(sym_str, NULL, 10);
 		cur_rl = NULL;
 	}
 
