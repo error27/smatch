@@ -24,27 +24,27 @@ struct state_list *clone_slist(struct state_list *from_slist);
 struct state_list_stack *clone_stack(struct state_list_stack *from_stack);
 
 int slist_has_state(struct state_list *slist, struct smatch_state *state);
-struct smatch_state *merge_states(int owner, const char *name, 
+struct smatch_state *merge_states(int owner, const char *name,
 				  struct symbol *sym,
 				  struct smatch_state *state1,
 				  struct smatch_state *state2);
 
 struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two);
-struct smatch_state *get_state_slist(struct state_list *slist, int owner, const char *name, 
+struct smatch_state *get_state_slist(struct state_list *slist, int owner, const char *name,
 		    struct symbol *sym);
 
-struct sm_state *get_sm_state_slist(struct state_list *slist, int owner, const char *name, 
+struct sm_state *get_sm_state_slist(struct state_list *slist, int owner, const char *name,
 		    struct symbol *sym);
 
 void overwrite_sm_state(struct state_list **slist, struct sm_state *sm);
 void overwrite_sm_state_stack(struct state_list_stack **stack, struct sm_state *sm);
-struct sm_state *set_state_slist(struct state_list **slist, int owner, const char *name, 
+struct sm_state *set_state_slist(struct state_list **slist, int owner, const char *name,
 		     struct symbol *sym, struct smatch_state *state);
 
-void delete_state_slist(struct state_list **slist, int owner, const char *name, 
+void delete_state_slist(struct state_list **slist, int owner, const char *name,
 			struct symbol *sym);
 
-void delete_state_stack(struct state_list_stack **stack, int owner, const char *name, 
+void delete_state_stack(struct state_list_stack **stack, int owner, const char *name,
 			struct symbol *sym);
 void push_slist(struct state_list_stack **list_stack, struct state_list *slist);
 
@@ -54,10 +54,10 @@ void free_slist(struct state_list **slist);
 void free_stack(struct state_list_stack **stack);
 void free_stack_and_slists(struct state_list_stack **slist_stack);
 
-struct sm_state *set_state_stack(struct state_list_stack **stack, int owner, const char *name, 
+struct sm_state *set_state_stack(struct state_list_stack **stack, int owner, const char *name,
 				struct symbol *sym, struct smatch_state *state);
 
-struct smatch_state *get_state_stack(struct state_list_stack *stack, int owner, 
+struct smatch_state *get_state_stack(struct state_list_stack *stack, int owner,
 				const char *name, struct symbol *sym);
 
 int out_of_memory(void);

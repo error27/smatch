@@ -1122,8 +1122,6 @@ static void match_comparison(struct expression *expr)
 		move_known_values(&left, &right);
 		handle_comparison(type, left, expr->op, right);
 	}
-
-
 }
 
 /* this is actually hooked from smatch_implied.c...  it's hacky, yes */
