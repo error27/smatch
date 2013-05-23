@@ -447,6 +447,25 @@ sval_t sval_binop(sval_t left, int op, sval_t right)
 	return ret;
 }
 
+int sval_unop_overflows(sval_t sval, int op)
+{
+	if (op != '-')
+		return 0;
+	if (sval_positive_bits(sval) == 32 && sval.value == INT_MIN)
+		return 1;
+	if (sval_positive_bits(sval) == 64 && sval.value == LLONG_MIN)
+		return 1;
+	if (sval_is_negative(sval))
+		return 0;
+	if (sval_signed(sval))
+		return 0;
+	if (sval_bits(sval) == 32 && sval.uvalue > INT_MAX)
+		return 1;
+	if (sval_bits(sval) == 64 && sval.uvalue > LLONG_MAX)
+		return 1;
+	return 0;
+}
+
 int sval_binop_overflows(sval_t left, int op, sval_t right)
 {
 	struct symbol *type;
@@ -462,15 +481,27 @@ int sval_binop_overflows(sval_t left, int op, sval_t right)
 
 	switch (op) {
 	case '+':
-		if (left.uvalue > max.uvalue - right.uvalue)
-			return 1;
+		if (sval_is_negative(right)) {
+			if (left.value < min.value - right.value)
+				return 1;
+		} else {
+			if (left.uvalue > max.uvalue - right.uvalue)
+				return 1;
+		}
 		return 0;
 	case '*':
 		return right.uvalue != 0 && left.uvalue > max.uvalue / right.uvalue;
 	case '-':
-		if (sval_binop_overflows(min, '+', left))
+		if (type_unsigned(type)) {
+			if (sval_cmp(left, right) < 0)
+				return 1;
+			return 0;
+		}
+
+		if (sval_unop_overflows(right, '-'))
 			return 1;
-		if (sval_cmp(right, sval_binop(min, '+', left)) < 0)
+		right = sval_preop(right, '-');
+		if (sval_binop_overflows(left, '+', right))
 			return 1;
 		return 0;
 	}
