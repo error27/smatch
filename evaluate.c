@@ -860,12 +860,13 @@ static struct symbol *evaluate_logical(struct expression *expr)
 	if (!evaluate_conditional(expr->right, 0))
 		return NULL;
 
-	expr->ctype = &bool_ctype;
+	/* the result is int [6.5.13(3), 6.5.14(3)] */
+	expr->ctype = &int_ctype;
 	if (expr->flags) {
 		if (!(expr->left->flags & expr->right->flags & Int_const_expr))
 			expr->flags = 0;
 	}
-	return &bool_ctype;
+	return &int_ctype;
 }
 
 static struct symbol *evaluate_binop(struct expression *expr)
@@ -1064,8 +1065,9 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	return NULL;
 
 OK:
-	expr->ctype = &bool_ctype;
-	return &bool_ctype;
+	/* the result is int [6.5.8(6), 6.5.9(3)]*/
+	expr->ctype = &int_ctype;
+	return &int_ctype;
 }
 
 /*
@@ -1805,14 +1807,15 @@ static struct symbol *evaluate_preop(struct expression *expr)
 			warning(expr->pos, "%s degrades to integer",
 				show_typename(ctype->ctype.base_type));
 		}
-		ctype = &bool_ctype;
+		/* the result is int [6.5.3.3(5)]*/
+		ctype = &int_ctype;
 		break;
 
 	default:
 		break;
 	}
 	expr->ctype = ctype;
-	return &bool_ctype;
+	return ctype;
 }
 
 static struct symbol *find_identifier(struct ident *ident, struct symbol_list *_list, int *offset)

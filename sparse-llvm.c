@@ -512,29 +512,34 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 		target = LLVMBuildXor(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_AND_BOOL: {
-		LLVMValueRef x, y;
+		LLVMValueRef lhs_nz, rhs_nz;
+		LLVMTypeRef dst_type;
 
-		assert(!symbol_is_fp_type(insn->type));
+		lhs_nz = LLVMBuildIsNotNull(fn->builder, lhs, "");
+		rhs_nz = LLVMBuildIsNotNull(fn->builder, rhs, "");
+		target = LLVMBuildAnd(fn->builder, lhs_nz, rhs_nz, target_name);
 
-		y = LLVMBuildICmp(fn->builder, LLVMIntNE, lhs, LLVMConstInt(LLVMTypeOf(lhs), 0, 0), "y");
-		x = LLVMBuildICmp(fn->builder, LLVMIntNE, rhs, LLVMConstInt(LLVMTypeOf(rhs), 0, 0), "x");
-
-		target = LLVMBuildAnd(fn->builder, y, x, target_name);
+		dst_type = insn_symbol_type(fn->module, insn);
+		target = LLVMBuildZExt(fn->builder, target, dst_type, target_name);
 		break;
 	}
 	case OP_OR_BOOL: {
-		LLVMValueRef tmp;
+		LLVMValueRef lhs_nz, rhs_nz;
+		LLVMTypeRef dst_type;
 
-		assert(!symbol_is_fp_type(insn->type));
+		lhs_nz = LLVMBuildIsNotNull(fn->builder, lhs, "");
+		rhs_nz = LLVMBuildIsNotNull(fn->builder, rhs, "");
+		target = LLVMBuildOr(fn->builder, lhs_nz, rhs_nz, target_name);
 
-		tmp = LLVMBuildOr(fn->builder, rhs, lhs, "tmp");
-
-		target = LLVMBuildICmp(fn->builder, LLVMIntNE, tmp, LLVMConstInt(LLVMTypeOf(tmp), 0, 0), target_name);
+		dst_type = insn_symbol_type(fn->module, insn);
+		target = LLVMBuildZExt(fn->builder, target, dst_type, target_name);
 		break;
 	}
 
 	/* Binary comparison */
 	case OP_BINCMP ... OP_BINCMP_END: {
+		LLVMTypeRef dst_type = insn_symbol_type(fn->module, insn);
+
 		if (LLVMGetTypeKind(LLVMTypeOf(lhs)) == LLVMIntegerTypeKind) {
 			LLVMIntPredicate op = translate_op(insn->opcode);
 
@@ -544,6 +549,8 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 
 			target = LLVMBuildFCmp(fn->builder, op, lhs, rhs, target_name);
 		}
+
+		target = LLVMBuildZExt(fn->builder, target, dst_type, target_name);
 		break;
 	}
 	default:
