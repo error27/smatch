@@ -1797,7 +1797,7 @@ static struct symbol *evaluate_preop(struct expression *expr)
 			warning(expr->pos, "testing a 'safe expression'");
 		if (is_float_type(ctype)) {
 			struct expression *arg = expr->unop;
-			expr->type = EXPR_BINOP;
+			expr->type = EXPR_COMPARE;
 			expr->op = SPECIAL_EQUAL;
 			expr->left = arg;
 			expr->right = alloc_expression(expr->pos, EXPR_FVALUE);
