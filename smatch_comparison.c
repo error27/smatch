@@ -396,7 +396,30 @@ free:
 	free_string(one);
 	free_string(two);
 	return ret;
+}
 
+void __add_comparison_info(struct expression *expr, struct expression *call, const char *range)
+{
+	struct expression *arg;
+	int param;
+	const char *p = range;
+
+	if (*p == '<')
+		return;
+	while (1) {
+		if (*p == '\0')
+			return;
+		if (*p == '<')
+			break;
+		p++;
+	}
+	p++;
+
+	param = strtoll(p, NULL, 10);
+	arg = get_argument_from_call_expr(call->args, param);
+	if (!arg)
+		return;
+	add_comparison(expr, SPECIAL_LTE, arg);
 }
 
 void register_comparison(int id)

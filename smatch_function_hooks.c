@@ -445,6 +445,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 
 	return_id = atoi(argv[0]);
 	call_results_to_rl(db_info.expr->right, get_type(strip_expr(db_info.expr->right)), argv[1], &ret_range);
+	__add_comparison_info(db_info.expr->left, strip_expr(db_info.expr->right), argv[1]);
 	if (!ret_range)
 		ret_range = alloc_whole_rl(get_type(strip_expr(db_info.expr->right)));
 	ret_range = cast_rl(get_type(db_info.expr->right), ret_range);
