@@ -23,6 +23,7 @@ CK(register_comparison_links)
 CK(register_local_values)
 CK(register_function_ptrs)
 CK(register_annotate)
+CK(register_start_states)
 
 CK(check_debug)
 CK(check_assigned_expr)
