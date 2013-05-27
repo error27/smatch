@@ -758,7 +758,6 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 	struct sm_state *tmp;
 	int ret = 0;
 	int nr_possible, nr_states;
-	struct state_list *slist;
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
 	if (!sm || !sm->merged)
