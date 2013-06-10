@@ -93,8 +93,8 @@ static int recurse(struct expression *expr,
 		ret = recurse(expr->init_expr, func, param, nr);
 		break;
 	case EXPR_SYMBOL:
-		break;
 	case EXPR_STRING:
+	case EXPR_VALUE:
 		break;
 	default:
 		return -1;
