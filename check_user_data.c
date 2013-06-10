@@ -128,7 +128,7 @@ static int in_container_of_macro(struct expression *expr)
 	return 0;
 }
 
-int is_user_data(struct expression *expr)
+static int is_user_data_state(struct expression *expr)
 {
 	struct state_list *slist = NULL;
 	struct sm_state *tmp;
@@ -136,6 +136,33 @@ int is_user_data(struct expression *expr)
 	char *name;
 	int user = 0;
 
+	tmp = get_sm_state_expr(my_id, expr);
+	if (tmp)
+		return slist_has_state(tmp->possible, &user_data);
+
+	name = expr_to_str_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	slist = get_all_states(my_id);
+	FOR_EACH_PTR(slist, tmp) {
+		if (tmp->sym != sym)
+			continue;
+		if (!strncmp(tmp->name, name, strlen(tmp->name))) {
+			if (slist_has_state(tmp->possible, &user_data))
+				user = 1;
+			goto free;
+		}
+	} END_FOR_EACH_PTR(tmp);
+
+free:
+	free_slist(&slist);
+	free_string(name);
+	return user;
+}
+
+int is_user_data(struct expression *expr)
+{
 	if (!expr)
 		return 0;
 
@@ -165,29 +192,7 @@ int is_user_data(struct expression *expr)
 	if (expr->type == EXPR_PREOP && (expr->op == '&' || expr->op == '*'))
 		expr = strip_expr(expr->unop);
 
-	tmp = get_sm_state_expr(my_id, expr);
-	if (tmp)
-		return slist_has_state(tmp->possible, &user_data);
-
-	name = expr_to_str_sym(expr, &sym);
-	if (!name || !sym)
-		goto free;
-
-	slist = get_all_states(my_id);
-	FOR_EACH_PTR(slist, tmp) {
-		if (tmp->sym != sym)
-			continue;
-		if (!strncmp(tmp->name, name, strlen(tmp->name))) {
-			if (slist_has_state(tmp->possible, &user_data))
-				user = 1;
-			goto free;
-		}
-	} END_FOR_EACH_PTR(tmp);
-
-free:
-	free_slist(&slist);
-	free_string(name);
-	return user;
+	return is_user_data_state(expr);
 }
 
 int is_capped_user_data(struct expression *expr)
