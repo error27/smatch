@@ -154,6 +154,13 @@ void __push_fake_cur_slist()
 	__save_pre_cond_states();
 }
 
+void __set_fake_cur_slist(struct state_list *slist)
+{
+	push_slist(&fake_cur_slist_stack, NULL);
+	__save_pre_cond_states();
+	cur_slist = clone_slist(slist);
+}
+
 struct state_list *__pop_fake_cur_slist()
 {
 	__use_pre_cond_states();
