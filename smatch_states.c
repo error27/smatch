@@ -44,6 +44,7 @@ static struct state_list_stack *cond_true_stack; /* states affected by a branch 
 static struct state_list_stack *cond_false_stack;
 
 static struct state_list_stack *fake_cur_slist_stack;
+static int read_only;
 
 static struct state_list_stack *break_stack;
 static struct state_list_stack *switch_stack;
@@ -104,6 +105,9 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 	if (!name)
 		return NULL;
 
+	if (read_only)
+		sm_msg("Smatch Internal Error: cur_slist is read only.");
+
 	if (option_debug) {
 		struct smatch_state *s;
 
@@ -154,13 +158,6 @@ void __push_fake_cur_slist()
 	__save_pre_cond_states();
 }
 
-void __set_fake_cur_slist(struct state_list *slist)
-{
-	push_slist(&fake_cur_slist_stack, NULL);
-	__save_pre_cond_states();
-	cur_slist = clone_slist(slist);
-}
-
 struct state_list *__pop_fake_cur_slist()
 {
 	__use_pre_cond_states();
@@ -174,6 +171,19 @@ void __free_fake_cur_slist()
 	__use_pre_cond_states();
 	slist = pop_slist(&fake_cur_slist_stack);
 	free_slist(&slist);
+}
+
+void __set_fake_cur_slist_fast(struct state_list *slist)
+{
+	push_slist(&pre_cond_stack, cur_slist);
+	cur_slist = slist;
+	read_only = 1;
+}
+
+void __pop_fake_cur_slist_fast()
+{
+	cur_slist = pop_slist(&pre_cond_stack);
+	read_only = 0;
 }
 
 void __merge_slist_into_cur(struct state_list *slist)
@@ -194,6 +204,9 @@ void __merge_slist_into_cur(struct state_list *slist)
 
 void __set_sm(struct sm_state *sm)
 {
+	if (read_only)
+		sm_msg("Smatch Internal Error: cur_slist is read only.");
+
 	if (option_debug) {
 		struct smatch_state *s;
 
