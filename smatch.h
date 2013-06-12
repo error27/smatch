@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#include <sys/time.h>
 #include "lib.h"
 #include "allocate.h"
 #include "parse.h"
@@ -274,6 +275,7 @@ char *get_fnptr_name(struct expression *expr);
 int positions_eq(struct position pos1, struct position pos2);
 struct statement *get_current_statement(void);
 int get_param_num_from_sym(struct symbol *sym);
+int ms_since(struct timeval *start);
 
 /* smatch_type.c */
 struct symbol *get_real_base_type(struct symbol *sym);
@@ -333,6 +335,7 @@ extern int option_known_conditions;
 extern int option_two_passes;
 extern int option_no_db;
 extern int option_file_output;
+extern int option_time;
 extern struct expression_list *big_expression_stack;
 extern struct statement_list *big_statement_stack;
 int inlinable(struct expression *expr);

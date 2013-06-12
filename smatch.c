@@ -26,6 +26,7 @@ int option_call_tree = 0;
 int option_no_db = 0;
 int option_debug_related;
 int option_file_output;
+int option_time;
 char *option_datadir_str;
 FILE *sm_outfd;
 
@@ -145,6 +146,7 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(param_mapper);
 		OPTION(call_tree);
 		OPTION(file_output);
+		OPTION(time);
 		if (!found)
 			break;
 		(*argcp)--;

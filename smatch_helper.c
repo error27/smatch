@@ -535,3 +535,14 @@ int get_param_num_from_sym(struct symbol *sym)
 	return -1;
 }
 
+int ms_since(struct timeval *start)
+{
+	struct timeval end;
+	double diff;
+
+	gettimeofday(&end, NULL);
+	diff = (end.tv_sec - start->tv_sec) * 1000.0;
+	diff += (end.tv_usec - start->tv_usec) / 1000.0;
+	return (int)diff;
+}
+
