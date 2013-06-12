@@ -142,6 +142,11 @@ void register_param_cleared(int id)
 
 	add_function_hook("memcpy", &match_memcpy, INT_PTR(0));
 	add_function_hook("memmove", &match_memcpy, INT_PTR(0));
+	add_function_hook("strcpy", &match_memcpy, INT_PTR(0));
+	add_function_hook("strncpy", &match_memcpy, INT_PTR(0));
+	add_function_hook("sprintf", &match_memcpy, INT_PTR(0));
+	add_function_hook("snprintf", &match_memcpy, INT_PTR(0));
+
 	register_clears_param();
 
 	add_db_return_states_callback(PARAM_CLEARED, &db_param_cleared);
