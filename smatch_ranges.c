@@ -39,10 +39,61 @@ char *show_rl(struct range_list *list)
 	return alloc_sname(full);
 }
 
+int str_to_comparison_arg(const char *str, struct expression *call, int *comparison, struct expression **arg, char **endp)
+{
+	int param;
+	char *c = (char *)str;
+
+	if (*c != '[')
+		return 0;
+	c++;
+
+	if (*c == '<') {
+		c++;
+		if (*c == '=') {
+			*comparison = SPECIAL_LTE;
+			c++;
+		} else {
+			*comparison = '<';
+		}
+	} else if (*c == '=') {
+		c++;
+		c++;
+		*comparison = SPECIAL_EQUAL;
+	} else if (*c == '>') {
+		c++;
+		if (*c == '=') {
+			*comparison = SPECIAL_GTE;
+			c++;
+		} else {
+			*comparison = '>';
+		}
+	} else {
+		return 0;
+	}
+
+	if (*c != 'p')
+		return 0;
+	c++;
+
+	param = strtoll(c, &c, 10);
+	c++; /* skip the ']' character */
+	if (endp)
+		*endp = (char *)c;
+
+	if (!call)
+		return 0;
+	*arg = get_argument_from_call_expr(call->args, param);
+	if (!*arg)
+		return 0;
+	return 1;
+}
+
+
 static sval_t get_val_from_key(int use_max, struct symbol *type, char *c, struct expression *call, char **endp)
 {
 	struct expression *arg;
-	int param;
+	int comparison;
 	sval_t ret, tmp;
 
 	if (use_max)
@@ -50,21 +101,23 @@ static sval_t get_val_from_key(int use_max, struct symbol *type, char *c, struct
 	else
 		ret = sval_type_min(type);
 
-	c++; /* skip the '<' character */
-	param = strtoll(c, &c, 10);
-	c++; /* skip the '>' character */
-	*endp = c;
-
-	if (!call)
-		return ret;
-	arg = get_argument_from_call_expr(call->args, param);
-	if (!arg)
+	if (!str_to_comparison_arg(c, call, &comparison, &arg, endp))
 		return ret;
 
-	if (use_max && get_implied_max(arg, &tmp))
+	if (use_max && get_implied_max(arg, &tmp)) {
 		ret = tmp;
-	if (!use_max && get_implied_min(arg, &tmp))
+		if (comparison == '<') {
+			tmp.value = 1;
+			ret = sval_binop(ret, '-', tmp);
+		}
+	}
+	if (!use_max && get_implied_min(arg, &tmp)) {
 		ret = tmp;
+		if (comparison == '>') {
+			tmp.value = 1;
+			ret = sval_binop(ret, '+', tmp);
+		}
+	}
 
 	return ret;
 }
@@ -107,7 +160,7 @@ static sval_t parse_val(int use_max, struct expression *call, struct symbol *typ
 	} else if (!strncmp(start, "s16min", 6)) {
 		ret = sval_type_val(type, SHRT_MIN);
 		c += 6;
-	} else if (start[0] == '<') {
+	} else if (start[0] == '[') {
 		ret = get_val_from_key(1, type, start, call, &c);
 	} else {
 		ret = sval_type_val(type, strtoll(start, &c, 10));

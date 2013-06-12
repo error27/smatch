@@ -466,23 +466,10 @@ free:
 void __add_comparison_info(struct expression *expr, struct expression *call, const char *range)
 {
 	struct expression *arg;
-	int param;
-	const char *p = range;
+	int comparison;
+	const char *c = range;
 
-	if (*p == '<')
-		return;
-	while (1) {
-		if (*p == '\0')
-			return;
-		if (*p == '<')
-			break;
-		p++;
-	}
-	p++;
-
-	param = strtoll(p, NULL, 10);
-	arg = get_argument_from_call_expr(call->args, param);
-	if (!arg)
+	if (!str_to_comparison_arg(c, call, &comparison, &arg, NULL))
 		return;
 	add_comparison(expr, SPECIAL_LTE, arg);
 }
