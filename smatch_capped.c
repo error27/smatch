@@ -79,6 +79,13 @@ int is_capped(struct expression *expr)
 	return 0;
 }
 
+int is_capped_var_sym(const char *name, struct symbol *sym)
+{
+	if (get_state(my_id, name, sym) == &capped)
+		return 1;
+	return 0;
+}
+
 void set_param_capped_data(const char *name, struct symbol *sym, char *key, char *value)
 {
 	char fullname[256];
