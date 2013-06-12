@@ -1,4 +1,3 @@
-
 /*
  * smatch/smatch_comparison.c
  *
@@ -155,6 +154,31 @@ struct smatch_state *alloc_link_state(struct string_list *links)
 	state->name = alloc_sname(buf);
 	state->data = links;
 	return state;
+}
+
+static void save_start_states(struct statement *stmt)
+{
+	struct symbol *param;
+	char orig[64];
+	char state_name[128];
+	struct smatch_state *state;
+	struct string_list *links;
+	char *link;
+
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, param) {
+		if (!param->ident)
+			continue;
+		snprintf(orig, sizeof(orig), "%s orig", param->ident->name);
+		snprintf(state_name, sizeof(state_name), "%s vs %s", param->ident->name, orig);
+		state = &compare_states[SPECIAL_EQUAL];
+		set_state(compare_id, state_name, NULL, state);
+
+		link = alloc_sname(state_name);
+		links = NULL;
+		insert_string(&links,  link);
+		state = alloc_link_state(links);
+		set_state(link_id, param->ident->name, param, state);
+	} END_FOR_EACH_PTR(param);
 }
 
 static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_state *s2)
@@ -482,11 +506,52 @@ void __add_comparison_info(struct expression *expr, struct expression *call, con
 	add_comparison(expr, SPECIAL_LTE, arg);
 }
 
+char *range_comparison_to_param(struct expression *expr)
+{
+	struct symbol *param;
+	char *var = NULL;
+	char buf[256];
+	char *ret_str = NULL;
+	int compare;
+	sval_t min;
+	int i;
+
+	var = expr_to_var(expr);
+	if (!var)
+		goto free;
+	get_absolute_min(expr, &min);
+
+	i = -1;
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, param) {
+		i++;
+		if (!param->ident)
+			continue;
+		snprintf(buf, sizeof(buf), "%s orig", param->ident->name);
+		compare = get_comparison_strings(var, buf);
+		if (!compare)
+			continue;
+		if (compare == SPECIAL_EQUAL) {
+			snprintf(buf, sizeof(buf), "[%sp%d]", show_special(compare), i);
+			ret_str = alloc_sname(buf);
+		} else if (show_special(compare)[0] == '<') {
+			snprintf(buf, sizeof(buf), "%s-[%sp%d]", sval_to_str(min),
+				 show_special(compare), i);
+			ret_str = alloc_sname(buf);
+
+		}
+	} END_FOR_EACH_PTR(param);
+
+free:
+	free_string(var);
+	return ret_str;
+}
+
 void register_comparison(int id)
 {
 	compare_id = id;
 	add_hook(&match_logic, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&save_start_states, AFTER_DEF_HOOK);
 }
 
 void register_comparison_links(int id)

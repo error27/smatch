@@ -815,12 +815,15 @@ static void call_return_state_hooks(struct expression *expr)
 		return;
 	} else if (call_return_state_hooks_split_possible(expr)) {
 		return;
-	} else if (get_implied_rl(expr, &rl)) {
+	} else if (get_implied_rl(expr, &rl) && !sval_is_max(rl_max(rl))) {
 		rl = cast_rl(cur_func_return_type(), rl);
 		return_ranges = show_rl(rl);
 	} else {
-		rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr)));
-		return_ranges = show_rl(rl);
+		return_ranges = range_comparison_to_param(expr);
+		if (!return_ranges) {
+			rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr)));
+			return_ranges = show_rl(rl);
+		}
 	}
 
 	return_id++;
