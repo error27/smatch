@@ -425,21 +425,12 @@ static void match_assign(struct expression *expr)
 		match_normal_assign(expr);
 }
 
-int get_comparison(struct expression *a, struct expression *b)
+static int get_comparison_strings(char *one, char *two)
 {
-	char *one = NULL;
-	char *two = NULL;
 	char buf[256];
 	struct smatch_state *state;
 	int invert = 0;
 	int ret = 0;
-
-	one = expr_to_var(a);
-	if (!one)
-		goto free;
-	two = expr_to_var(b);
-	if (!two)
-		goto free;
 
 	if (strcmp(one, two) > 0) {
 		char *tmp = one;
@@ -457,6 +448,23 @@ int get_comparison(struct expression *a, struct expression *b)
 	if (invert)
 		ret = flip_op(ret);
 
+	return ret;
+}
+
+int get_comparison(struct expression *a, struct expression *b)
+{
+	char *one = NULL;
+	char *two = NULL;
+	int ret = 0;
+
+	one = expr_to_var(a);
+	if (!one)
+		goto free;
+	two = expr_to_var(b);
+	if (!two)
+		goto free;
+
+	ret = get_comparison_strings(one, two);
 free:
 	free_string(one);
 	free_string(two);
