@@ -104,7 +104,7 @@ static struct expression *get_array_expr(struct expression *expr)
 
 static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 				     struct expression *expr, int len,
-				     int *complicated)
+				     int *complicated, int no_parens)
 {
 	struct expression *tmp;
 
@@ -114,7 +114,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		if (tmp->op == '*')
 			tmp = tmp->unop;
 
-		__get_variable_from_expr(sym_ptr, buf, tmp, len, complicated);
+		__get_variable_from_expr(sym_ptr, buf, tmp, len, complicated, no_parens);
 
 		tmp = expr->deref;
 		if (tmp->op == '*')
@@ -142,14 +142,16 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			return;
 		}
 
-		if (expr->op != '*' || !get_array_expr(expr->unop)) {
+		if (expr->op == '(' && !no_parens) {
+			append(buf, "(", len);
+		} else if (expr->op != '*' || !get_array_expr(expr->unop)) {
 			tmp = show_special(expr->op);
 			append(buf, tmp, len);
 		}
 		__get_variable_from_expr(sym_ptr, buf, expr->unop,
-						 len, complicated);
+						 len, complicated, no_parens);
 
-		if (expr->op == '(')
+		if (expr->op == '(' && !no_parens)
 			append(buf, ")", len);
 
 		if (expr->op == SPECIAL_DECREMENT ||
@@ -163,7 +165,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		const char *tmp;
 
 		__get_variable_from_expr(sym_ptr, buf, expr->unop,
-						 len, complicated);
+						 len, complicated, no_parens);
 		tmp = show_special(expr->op);
 		append(buf, tmp, len);
 
@@ -181,16 +183,14 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		*complicated = 1;
 		array_expr = get_array_expr(expr);
 		if (array_expr) {
-			__get_variable_from_expr(sym_ptr, buf, array_expr, len, complicated);
+			__get_variable_from_expr(sym_ptr, buf, array_expr, len, complicated, no_parens);
 			append(buf, "[", len);
 		} else {
-			__get_variable_from_expr(sym_ptr, buf, expr->left, len,
-					 complicated);
+			__get_variable_from_expr(sym_ptr, buf, expr->left, len, complicated, no_parens);
 			snprintf(tmp, sizeof(tmp), " %s ", show_special(expr->op));
 			append(buf, tmp, len);
 		}
-		__get_variable_from_expr(NULL, buf, expr->right,
-						 len, complicated);
+		__get_variable_from_expr(NULL, buf, expr->right, len, complicated, no_parens);
 		if (array_expr)
 			append(buf, "]", len);
 		return;
@@ -213,15 +213,13 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		int i;
 
 		*complicated = 1;
-		__get_variable_from_expr(NULL, buf, expr->fn, len,
-					 complicated);
+		__get_variable_from_expr(NULL, buf, expr->fn, len, complicated, no_parens);
 		append(buf, "(", len);
 		i = 0;
 		FOR_EACH_PTR(expr->args, tmp) {
 			if (i++)
 				append(buf, ", ", len);
-			__get_variable_from_expr(NULL, buf, tmp, len,
-						complicated);
+			__get_variable_from_expr(NULL, buf, tmp, len, complicated, no_parens);
 		} END_FOR_EACH_PTR(tmp);
 		append(buf, ")", len);
 		return;
@@ -229,7 +227,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	case EXPR_CAST:
 		__get_variable_from_expr(sym_ptr, buf,
 					 expr->cast_expression, len,
-					 complicated);
+					 complicated, no_parens);
 		return;
 	case EXPR_SIZEOF: {
 		int size;
@@ -270,7 +268,7 @@ char *expr_to_str_sym(struct expression *expr, struct symbol **sym_ptr)
 	if (!expr)
 		return NULL;
 	__get_variable_from_expr(sym_ptr, var_name, expr, sizeof(var_name),
-				 &complicated);
+				 &complicated, 0);
 	if (complicated < 2)
 		return alloc_string(var_name);
 	else
@@ -301,14 +299,13 @@ char *expr_to_var_sym(struct expression *expr,
 		return NULL;
 	expr = strip_expr(expr);
 	__get_variable_from_expr(sym_ptr, var_name, expr, sizeof(var_name),
-				 &complicated);
+				 &complicated, 1);
 
 	if (complicated) {
 		if (sym_ptr)
 			*sym_ptr = NULL;
 		return NULL;
 	}
-	remove_parens(var_name);
 	return alloc_string(var_name);
 }
 
