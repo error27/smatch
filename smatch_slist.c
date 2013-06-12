@@ -244,6 +244,7 @@ void free_every_single_sm_state(void)
 		blob = next;
 	}
 	clear_sname_alloc();
+	clear_smatch_state_alloc();
 
 	sm_state_counter = 0;
 }
