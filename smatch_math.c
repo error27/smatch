@@ -784,6 +784,17 @@ int get_implied_rl(struct expression *expr, struct range_list **rl)
 	return 0;
 }
 
+int get_implied_rl_var_sym(const char *var, struct symbol *sym, struct range_list **rl)
+{
+	struct smatch_state *state;
+
+	state = get_state(SMATCH_EXTRA, var, sym);
+	*rl = estate_rl(state);
+	if (*rl)
+		return 1;
+	return 0;
+}
+
 int get_hard_max(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;

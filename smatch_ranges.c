@@ -181,6 +181,16 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 	if (value && strcmp(value, "empty") == 0)
 		return;
 
+	if (strncmp(value, "[==p", 4) == 0) {
+		struct expression *arg;
+		int comparison;
+
+		if (!str_to_comparison_arg(value, call, &comparison, &arg, NULL))
+			goto out;
+		get_implied_rl(arg, rl);
+		goto out;
+	}
+
 	c = value;
 	while (*c) {
 		if (*c == '(')
@@ -217,6 +227,7 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		c++;
 	}
 
+out:
 	*rl = cast_rl(type, *rl);
 }
 
