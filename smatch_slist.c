@@ -577,7 +577,9 @@ static void match_states(struct state_list **one, struct state_list **two)
 		if (!one_sm && !two_sm)
 			break;
 		if (cmp_tracker(one_sm, two_sm) < 0) {
+			__set_fake_cur_slist_fast(*two);
 			tmp_state = __client_unmatched_state_function(one_sm);
+			__pop_fake_cur_slist_fast();
 			tmp = alloc_state_no_name(one_sm->owner, one_sm->name,
 						  one_sm->sym, tmp_state);
 			add_ptr_list(&add_to_two, tmp);
@@ -586,7 +588,9 @@ static void match_states(struct state_list **one, struct state_list **two)
 			NEXT_PTR_LIST(one_sm);
 			NEXT_PTR_LIST(two_sm);
 		} else {
+			__set_fake_cur_slist_fast(*one);
 			tmp_state = __client_unmatched_state_function(two_sm);
+			__pop_fake_cur_slist_fast();
 			tmp = alloc_state_no_name(two_sm->owner, two_sm->name,
 						  two_sm->sym, tmp_state);
 			add_ptr_list(&add_to_one, tmp);
