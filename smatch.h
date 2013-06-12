@@ -141,7 +141,7 @@ void add_db_return_states_before(void (*fn)(void));
 void add_db_return_states_after(void (*fn)(void));
 int get_implied_return(struct expression *expr, struct range_list **rl);
 
-typedef void (modification_hook)(struct sm_state *sm);
+typedef void (modification_hook)(struct sm_state *sm, struct expression *mod_expr);
 void add_modification_hook(int owner, modification_hook *call_back);
 void add_indirect_modification_hook(int owner, modification_hook *call_back);
 

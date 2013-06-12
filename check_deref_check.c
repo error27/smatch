@@ -14,7 +14,7 @@ static int my_id;
 
 STATE(derefed);
 
-static void underef(struct sm_state *sm)
+static void underef(struct sm_state *sm, struct expression *mod_expr)
 {
 	set_state(my_id, sm->name, sm->sym, &undefined);
 }

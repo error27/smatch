@@ -236,7 +236,7 @@ static void match_memcpy(const char *fn, struct expression *expr, void *_arg)
 	set_initialized(buf, NULL);
 }
 
-static void reset_initialized(struct sm_state *sm)
+static void reset_initialized(struct sm_state *sm, struct expression *mod_expr)
 {
 	set_state(my_id, sm->name, sm->sym, &initialized);
 }

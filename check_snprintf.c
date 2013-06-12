@@ -13,7 +13,7 @@
 
 static int my_id;
 
-static void ok_to_use(struct sm_state *sm)
+static void ok_to_use(struct sm_state *sm, struct expression *mod_expr)
 {
 	set_state(my_id, sm->name, sm->sym, &undefined);
 }

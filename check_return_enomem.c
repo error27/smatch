@@ -22,7 +22,7 @@ static int my_id;
 STATE(enomem);
 STATE(ok);
 
-static void ok_to_use(struct sm_state *sm)
+static void ok_to_use(struct sm_state *sm, struct expression *mod_expr)
 {
 	if (sm->state != &ok)
 		set_state(my_id, sm->name, sm->sym, &ok);

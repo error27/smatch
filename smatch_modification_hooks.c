@@ -57,7 +57,7 @@ static int matches(char *name, struct symbol *sym, struct sm_state *sm)
 	return match_none;
 }
 
-static void call_modification_hooks_name_sym(char *name, struct symbol *sym)
+static void call_modification_hooks_name_sym(char *name, struct symbol *sym, struct expression *mod_expr)
 {
 	struct state_list *slist;
 	struct sm_state *sm;
@@ -71,14 +71,14 @@ static void call_modification_hooks_name_sym(char *name, struct symbol *sym)
 		match = matches(name, sym, sm);
 
 		if (match && hooks[sm->owner])
-			(hooks[sm->owner])(sm);
+			(hooks[sm->owner])(sm, mod_expr);
 
 		if (match == match_indirect && indirect_hooks[sm->owner])
-			(indirect_hooks[sm->owner])(sm);
+			(indirect_hooks[sm->owner])(sm, mod_expr);
 	} END_FOR_EACH_PTR(sm);
 }
 
-static void call_modification_hooks(struct expression *expr)
+static void call_modification_hooks(struct expression *expr, struct expression *mod_expr)
 {
 	char *name;
 	struct symbol *sym;
@@ -86,7 +86,7 @@ static void call_modification_hooks(struct expression *expr)
 	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
-	call_modification_hooks_name_sym(name, sym);
+	call_modification_hooks_name_sym(name, sym, mod_expr);
 free:
 	free_string(name);
 }
@@ -110,14 +110,14 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	if (!name || !sym)
 		goto free;
 
-	call_modification_hooks_name_sym(name, sym);
+	call_modification_hooks_name_sym(name, sym, expr);
 free:
 	free_string(name);
 }
 
 static void match_assign(struct expression *expr)
 {
-	call_modification_hooks(expr->left);
+	call_modification_hooks(expr->left, expr);
 }
 
 static void unop_expr(struct expression *expr)
@@ -125,8 +125,7 @@ static void unop_expr(struct expression *expr)
 	if (expr->op != SPECIAL_DECREMENT && expr->op != SPECIAL_INCREMENT)
 		return;
 
-	expr = strip_expr(expr->unop);
-	call_modification_hooks(expr);
+	call_modification_hooks(expr->unop, expr);
 }
 
 static void match_call(struct expression *expr)
@@ -135,12 +134,10 @@ static void match_call(struct expression *expr)
 
 	FOR_EACH_PTR(expr->args, arg) {
 		tmp = strip_expr(arg);
-		if (tmp->type == EXPR_PREOP && tmp->op == '&') {
-			tmp = strip_expr(tmp->unop);
-			call_modification_hooks(tmp);
-		} else {
-			call_modification_hooks(deref_expression(tmp));
-		}
+		if (tmp->type == EXPR_PREOP && tmp->op == '&')
+			call_modification_hooks(tmp->unop, expr);
+		else
+			call_modification_hooks(deref_expression(tmp), expr);
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -158,7 +155,7 @@ static void asm_expr(struct statement *stmt)
 			continue;
 		case 2: /* expression */
 			state = 0;
-			call_modification_hooks(expr);
+			call_modification_hooks(expr, NULL);
 			continue;
 		}
 	} END_FOR_EACH_PTR(expr);

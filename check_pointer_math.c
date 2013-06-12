@@ -13,7 +13,7 @@ static int my_id;
 
 STATE(size_in_bytes);
 
-static void set_undefined(struct sm_state *sm)
+static void set_undefined(struct sm_state *sm, struct expression *mod_expr)
 {
 	if (sm->state == &size_in_bytes)
 		set_state(my_id, sm->name, sm->sym, &undefined);

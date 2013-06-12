@@ -41,7 +41,7 @@ struct limiter {
 static struct limiter b0_l2 = {0, 2};
 static struct limiter b1_l2 = {1, 2};
 
-static void delete(struct sm_state *sm)
+static void delete(struct sm_state *sm, struct expression *mod_expr)
 {
 	set_state(my_used_id, sm->name, sm->sym, &undefined);
 }

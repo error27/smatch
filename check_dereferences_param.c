@@ -37,7 +37,7 @@ static int is_arg(struct expression *expr)
 	return 0;
 }
 
-static void set_ignore(struct sm_state *sm)
+static void set_ignore(struct sm_state *sm, struct expression *mod_expr)
 {
 	if (sm->state == &derefed)
 		return;

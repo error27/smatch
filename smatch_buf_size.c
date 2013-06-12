@@ -29,7 +29,7 @@ struct limiter {
 };
 static struct limiter b0_l2 = {0, 2};
 
-static void set_undefined(struct sm_state *sm)
+static void set_undefined(struct sm_state *sm, struct expression *mod_expr)
 {
 	if (sm->state != &undefined)
 		set_state(sm->owner, sm->name, sm->sym, &undefined);

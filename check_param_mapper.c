@@ -29,7 +29,7 @@ STATE(argument);
 
 static struct symbol *func_sym;
 
-static void delete(struct sm_state *sm)
+static void delete(struct sm_state *sm, struct expression *mod_expr)
 {
 	set_state(my_id, sm->name, sm->sym, &undefined);
 }

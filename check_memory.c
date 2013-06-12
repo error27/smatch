@@ -227,7 +227,7 @@ static int is_null(const char *name, struct symbol *sym)
 	return 0;
 }
 
-static void set_unfree(struct sm_state *sm)
+static void set_unfree(struct sm_state *sm, struct expression *mod_expr)
 {
 	if (slist_has_state(sm->possible, &isfree))
 		set_state(my_id, sm->name, sm->sym, &unfree);

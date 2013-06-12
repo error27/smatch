@@ -48,7 +48,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	return &ok;
 }
 
-static void is_ok(struct sm_state *sm)
+static void is_ok(struct sm_state *sm, struct expression *mod_expr)
 {
 	set_state(my_id, sm->name, sm->sym, &ok);
 }

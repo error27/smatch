@@ -15,7 +15,7 @@ static struct symbol *func_sym;
 STATE(argument);
 STATE(ok);
 
-static void set_ok(struct sm_state *sm)
+static void set_ok(struct sm_state *sm, struct expression *mod_expr)
 {
 	if (sm->state != &ok)
 		set_state(my_id, sm->name, sm->sym, &ok);

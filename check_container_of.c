@@ -18,7 +18,7 @@ static int my_id;
 
 STATE(non_null);
 
-static void is_ok(struct sm_state *sm)
+static void is_ok(struct sm_state *sm, struct expression *mod_expr)
 {
 	set_state(my_id, sm->name, sm->sym, &undefined);
 }

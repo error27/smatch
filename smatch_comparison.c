@@ -186,7 +186,7 @@ static void save_link(struct expression *expr, char *link)
 	set_state_expr(link_id, expr, new_state);
 }
 
-static void clear_links(struct sm_state *sm)
+static void clear_links(struct sm_state *sm, struct expression *mod_expr)
 {
 	struct string_list *links;
 	char *tmp;
