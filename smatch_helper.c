@@ -142,8 +142,9 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			return;
 		}
 
-		if (expr->op == '(' && !no_parens) {
-			append(buf, "(", len);
+		if (expr->op == '(') {
+			if (!no_parens)
+				append(buf, "(", len);
 		} else if (expr->op != '*' || !get_array_expr(expr->unop)) {
 			tmp = show_special(expr->op);
 			append(buf, tmp, len);
