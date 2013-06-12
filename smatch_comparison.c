@@ -186,10 +186,75 @@ static void save_link(struct expression *expr, char *link)
 	set_state_expr(link_id, expr, new_state);
 }
 
-static void clear_links(struct sm_state *sm, struct expression *mod_expr)
+static void match_inc(struct sm_state *sm)
+{
+	struct string_list *links;
+	struct smatch_state *state;
+	char *tmp;
+
+	links = sm->state->data;
+
+	FOR_EACH_PTR(links, tmp) {
+		state = get_state(compare_id, tmp, NULL);
+		if (state == &compare_states[SPECIAL_EQUAL] ||
+		    state == &compare_states[SPECIAL_GTE] ||
+		    state == &compare_states[SPECIAL_UNSIGNED_GTE] ||
+		    state == &compare_states['>'] ||
+		    state == &compare_states[SPECIAL_UNSIGNED_GT]) {
+			set_state(compare_id, tmp, NULL, &compare_states['>']);
+		} else {
+			set_state(compare_id, tmp, NULL, &undefined);
+		}
+	} END_FOR_EACH_PTR(tmp);
+}
+
+static void match_dec(struct sm_state *sm)
+{
+	struct string_list *links;
+	struct smatch_state *state;
+	char *tmp;
+
+	links = sm->state->data;
+
+	FOR_EACH_PTR(links, tmp) {
+		state = get_state(compare_id, tmp, NULL);
+		if (state == &compare_states[SPECIAL_EQUAL] ||
+		    state == &compare_states[SPECIAL_LTE] ||
+		    state == &compare_states[SPECIAL_UNSIGNED_LTE] ||
+		    state == &compare_states['<'] ||
+		    state == &compare_states[SPECIAL_UNSIGNED_LT]) {
+			set_state(compare_id, tmp, NULL, &compare_states['<']);
+		} else {
+			set_state(compare_id, tmp, NULL, &undefined);
+		}
+	} END_FOR_EACH_PTR(tmp);
+}
+
+static int match_inc_dec(struct sm_state *sm, struct expression *mod_expr)
+{
+	if (!mod_expr)
+		return 0;
+	if (mod_expr->type != EXPR_PREOP && mod_expr->type != EXPR_POSTOP)
+		return 0;
+
+	if (mod_expr->op == SPECIAL_INCREMENT) {
+		match_inc(sm);
+		return 1;
+	}
+	if (mod_expr->op == SPECIAL_DECREMENT) {
+		match_dec(sm);
+		return 1;
+	}
+	return 0;
+}
+
+static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 {
 	struct string_list *links;
 	char *tmp;
+
+	if (match_inc_dec(sm, mod_expr))
+		return;
 
 	links = sm->state->data;
 
@@ -433,5 +498,5 @@ void register_comparison_links(int id)
 {
 	link_id = id;
 	add_merge_hook(link_id, &merge_func);
-	add_modification_hook(link_id, &clear_links);
+	add_modification_hook(link_id, &match_modify);
 }
