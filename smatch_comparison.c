@@ -666,20 +666,18 @@ void __add_comparison_info(struct expression *expr, struct expression *call, con
 	add_comparison(expr, SPECIAL_LTE, arg);
 }
 
-char *range_comparison_to_param(struct expression *expr)
+char *get_range_comparison_to_param(struct expression *expr)
 {
 	struct symbol *param;
 	char *var = NULL;
 	char buf[256];
 	char *ret_str = NULL;
 	int compare;
-	sval_t min;
 	int i;
 
 	var = expr_to_var(expr);
 	if (!var)
 		goto free;
-	get_absolute_min(expr, &min);
 
 	i = -1;
 	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, param) {
@@ -690,20 +688,33 @@ char *range_comparison_to_param(struct expression *expr)
 		compare = get_comparison_strings(var, buf);
 		if (!compare)
 			continue;
-		if (compare == SPECIAL_EQUAL) {
-			snprintf(buf, sizeof(buf), "[%sp%d]", show_special(compare), i);
-			ret_str = alloc_sname(buf);
-		} else if (show_special(compare)[0] == '<') {
-			snprintf(buf, sizeof(buf), "%s-[%sp%d]", sval_to_str(min),
-				 show_special(compare), i);
-			ret_str = alloc_sname(buf);
-
-		}
+		snprintf(buf, sizeof(buf), "%sp%d", show_special(compare), i);
+		ret_str = alloc_sname(buf);
+		break;
 	} END_FOR_EACH_PTR(param);
 
 free:
 	free_string(var);
 	return ret_str;
+}
+
+char *range_comparison_to_param(struct expression *expr)
+{
+	char *comparison_str;
+	char buf[256];
+
+	comparison_str = get_range_comparison_to_param(expr);
+	if (!comparison_str)
+		return NULL;
+	if (strncmp(comparison_str, "==p", 3) == 0) {
+		snprintf(buf, sizeof(buf), "[%s]", comparison_str);
+	} else {
+		sval_t min;
+
+		get_absolute_min(expr, &min);
+		snprintf(buf, sizeof(buf), "%s-[%s]", sval_to_str(min), comparison_str);
+	}
+	return alloc_sname(buf);
 }
 
 static void free_data(struct symbol *sym)
