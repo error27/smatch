@@ -803,18 +803,27 @@ static char *get_return_ranges_str(struct expression *expr)
 {
 	struct range_list *rl;
 	char *return_ranges;
+	char *compare_str;
+	char buf[128];
 
 	if (!expr)
 		return alloc_sname("");
-	if (get_implied_rl(expr, &rl) && !is_whole_rl(rl)) {
+	compare_str = expr_equal_to_param(expr);
+	if (compare_str)
+		return compare_str;
+
+	if (get_implied_rl(expr, &rl)) {
 		rl = cast_rl(cur_func_return_type(), rl);
-		return show_rl(rl);
+		return_ranges = show_rl(rl);
+	} else {
+		rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr)));
+		return_ranges = show_rl(rl);
 	}
-	return_ranges = range_comparison_to_param(expr);
-	if (return_ranges)
-		return return_ranges;
-	rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr)));
-	return_ranges = show_rl(rl);
+	compare_str = expr_lte_to_param(expr);
+	if (compare_str) {
+		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
+		return alloc_sname(buf);
+	}
 	return return_ranges;
 }
 

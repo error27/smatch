@@ -28,7 +28,7 @@ extern struct string_list *__ignored_macros;
 
 /* these are implemented in smatch_ranges.c */
 char *show_rl(struct range_list *list);
-int str_to_comparison_arg(const char *c, struct expression *call, int *comparison, struct expression **arg, char **endp);
+int str_to_comparison_arg(const char *c, struct expression *call, int *comparison, struct expression **arg);
 void str_to_rl(struct symbol *type, char *value, struct range_list **rl);
 void call_results_to_rl(struct expression *call, struct symbol *type, char *value, struct range_list **rl);
 

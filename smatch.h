@@ -605,7 +605,8 @@ struct expression *get_assigned_expr(struct expression *expr);
 /* smatch_comparison.c */
 int get_comparison(struct expression *left, struct expression *right);
 void __add_comparison_info(struct expression *expr, struct expression *call, const char *range);
-char *range_comparison_to_param(struct expression *expr);
+char *expr_equal_to_param(struct expression *expr);
+char *expr_lte_to_param(struct expression *expr);
 
 /* smatch_sval.c */
 sval_t *sval_alloc(sval_t sval);

@@ -710,26 +710,6 @@ char *expr_lte_to_param(struct expression *expr)
 	return range_comparison_to_param_helper(expr, '<');
 }
 
-char *range_comparison_to_param(struct expression *expr)
-{
-	char *comparison_str;
-	char buf[256];
-	sval_t min;
-
-	comparison_str = expr_equal_to_param(expr);
-	if (comparison_str) {
-		snprintf(buf, sizeof(buf), "%s", comparison_str);
-		return alloc_sname(buf);
-	}
-
-	comparison_str = expr_lte_to_param(expr);
-	if (!comparison_str)
-		return NULL;
-	get_absolute_min(expr, &min);
-	snprintf(buf, sizeof(buf), "%s-%s", sval_to_str(min), comparison_str);
-	return alloc_sname(buf);
-}
-
 static void free_data(struct symbol *sym)
 {
 	if (__inline_fn)

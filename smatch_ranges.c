@@ -39,7 +39,9 @@ char *show_rl(struct range_list *list)
 	return alloc_sname(full);
 }
 
-int str_to_comparison_arg(const char *str, struct expression *call, int *comparison, struct expression **arg, char **endp)
+static int str_to_comparison_arg_helper(const char *str,
+		struct expression *call, int *comparison,
+		struct expression **arg, char **endp)
 {
 	int param;
 	char *c = (char *)str;
@@ -89,6 +91,17 @@ int str_to_comparison_arg(const char *str, struct expression *call, int *compari
 	return 1;
 }
 
+int str_to_comparison_arg(const char *str, struct expression *call, int *comparison, struct expression **arg)
+{
+	while (1) {
+		if (!*str)
+			return 0;
+		if (*str == '[')
+			break;
+		str++;
+	}
+	return str_to_comparison_arg_helper(str, call, comparison, arg, NULL);
+}
 
 static sval_t get_val_from_key(int use_max, struct symbol *type, char *c, struct expression *call, char **endp)
 {
@@ -101,7 +114,7 @@ static sval_t get_val_from_key(int use_max, struct symbol *type, char *c, struct
 	else
 		ret = sval_type_min(type);
 
-	if (!str_to_comparison_arg(c, call, &comparison, &arg, endp))
+	if (!str_to_comparison_arg_helper(c, call, &comparison, &arg, endp))
 		return ret;
 
 	if (use_max && get_implied_max(arg, &tmp)) {
@@ -161,6 +174,7 @@ static sval_t parse_val(int use_max, struct expression *call, struct symbol *typ
 		ret = sval_type_val(type, SHRT_MIN);
 		c += 6;
 	} else if (start[0] == '[') {
+		/* this parses [==p0] comparisons */
 		ret = get_val_from_key(1, type, start, call, &c);
 	} else {
 		ret = sval_type_val(type, strtoll(start, &c, 10));
@@ -171,7 +185,7 @@ static sval_t parse_val(int use_max, struct expression *call, struct symbol *typ
 
 static void str_to_rl_helper(struct expression *call, struct symbol *type, char *value, struct range_list **rl)
 {
-	sval_t min, max;
+	sval_t min, max, arg_max;
 	char *c;
 
 	if (!type)
@@ -185,7 +199,7 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		struct expression *arg;
 		int comparison;
 
-		if (!str_to_comparison_arg(value, call, &comparison, &arg, NULL))
+		if (!str_to_comparison_arg(value, call, &comparison, &arg))
 			goto out;
 		get_implied_rl(arg, rl);
 		goto out;
@@ -215,6 +229,11 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		if (*c == '(')
 			c++;
 		max = parse_val(1, call, type, c, &c);
+		if (*c == '[') {
+			arg_max = get_val_from_key(1, type, c, call, &c);
+			if (sval_cmp(arg_max, max) < 0)
+				max = arg_max;
+		}
 		add_range(rl, min, max);
 		if (*c == ')')
 			c++;
