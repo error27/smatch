@@ -661,7 +661,7 @@ void __add_comparison_info(struct expression *expr, struct expression *call, con
 	int comparison;
 	const char *c = range;
 
-	if (!str_to_comparison_arg(c, call, &comparison, &arg, NULL))
+	if (!str_to_comparison_arg(c, call, &comparison, &arg))
 		return;
 	add_comparison(expr, SPECIAL_LTE, arg);
 }
@@ -690,7 +690,7 @@ static char *range_comparison_to_param_helper(struct expression *expr, char star
 			continue;
 		if (show_special(compare)[0] != starts_with)
 			continue;
-		snprintf(buf, sizeof(buf), "%sp%d", show_special(compare), i);
+		snprintf(buf, sizeof(buf), "[%sp%d]", show_special(compare), i);
 		ret_str = alloc_sname(buf);
 		break;
 	} END_FOR_EACH_PTR(param);
@@ -718,7 +718,7 @@ char *range_comparison_to_param(struct expression *expr)
 
 	comparison_str = expr_equal_to_param(expr);
 	if (comparison_str) {
-		snprintf(buf, sizeof(buf), "[%s]", comparison_str);
+		snprintf(buf, sizeof(buf), "%s", comparison_str);
 		return alloc_sname(buf);
 	}
 
@@ -726,7 +726,7 @@ char *range_comparison_to_param(struct expression *expr)
 	if (!comparison_str)
 		return NULL;
 	get_absolute_min(expr, &min);
-	snprintf(buf, sizeof(buf), "%s-[%s]", sval_to_str(min), comparison_str);
+	snprintf(buf, sizeof(buf), "%s-%s", sval_to_str(min), comparison_str);
 	return alloc_sname(buf);
 }
 
