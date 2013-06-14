@@ -159,6 +159,16 @@ static int rl_comparison(struct range_list *left_rl, struct range_list *right_rl
 	return 0;
 }
 
+static struct range_list *get_orig_rl(struct symbol *sym)
+{
+	struct smatch_state *state;
+
+	if (!sym || !sym->ident)
+		return NULL;
+	state = get_orig_estate(sym->ident->name, sym);
+	return estate_rl(state);
+}
+
 static struct smatch_state *unmatched_comparison(struct sm_state *sm)
 {
 	struct compare_data *data = sm->state->data;
@@ -168,9 +178,13 @@ static struct smatch_state *unmatched_comparison(struct sm_state *sm)
 	if (!data)
 		return &undefined;
 
-	if (!get_implied_rl_var_sym(data->var1, data->sym1, &left_rl))
+	if (strstr(data->var1, " orig"))
+		left_rl = get_orig_rl(data->sym1);
+	else if (!get_implied_rl_var_sym(data->var1, data->sym1, &left_rl))
 		return &undefined;
-	if (!get_implied_rl_var_sym(data->var2, data->sym2, &right_rl))
+	if (strstr(data->var2, " orig"))
+		right_rl = get_orig_rl(data->sym2);
+	else if (!get_implied_rl_var_sym(data->var2, data->sym2, &right_rl))
 		return &undefined;
 
 	op = rl_comparison(left_rl, right_rl);
@@ -306,7 +320,7 @@ static void save_start_states(struct statement *stmt)
 			continue;
 		snprintf(orig, sizeof(orig), "%s orig", param->ident->name);
 		snprintf(state_name, sizeof(state_name), "%s vs %s", param->ident->name, orig);
-		state = alloc_compare_state(param->ident->name, param, alloc_sname(orig), NULL, SPECIAL_EQUAL);
+		state = alloc_compare_state(param->ident->name, param, alloc_sname(orig), param, SPECIAL_EQUAL);
 		set_state(compare_id, state_name, NULL, state);
 
 		link = alloc_sname(state_name);
