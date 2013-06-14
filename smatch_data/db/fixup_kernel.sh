@@ -9,6 +9,7 @@ delete from caller_info where function = '(struct file_operations)->write' and f
 /* delete these function pointers which cause false positives */
 delete from caller_info where function = '(struct notifier_block)->notifier_call' and type != 0;
 delete from caller_info where function = '(struct mISDNchannel)->send' and type != 0;
+delete from caller_info where function = '(struct irq_router)->get' and type != 0;
 
 /* type 3 is USER_DATA */
 delete from caller_info where caller = 'hid_input_report' and type = 3;
