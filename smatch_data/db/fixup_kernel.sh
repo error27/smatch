@@ -29,10 +29,22 @@ insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000', 
 insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000', 0, 11, 3, '\$\$', '0-1000000');
 insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)', 0, 0, -1, '', '');
 
+update return_states set return = '0-u32max[<=p2]' where function = 'copy_to_user';
+update return_states set return = '0-u32max[<=p2]' where function = '_copy_to_user';
+update return_states set return = '0-u32max[<=p2]' where function = '__copy_to_user';
+update return_states set return = '0-u32max[<=p2]' where function = 'copy_from_user';
+update return_states set return = '0-u32max[<=p2]' where function = '_copy_from_user';
+update return_states set return = '0-u32max[<=p2]' where function = '__copy_from_user';
+
 EOF
 
 call_id=$(echo "select distinct call_id from caller_info where function = '__kernel_write';" | sqlite3 smatch_db.sqlite)
 for id in $call_id ; do
     echo "insert into caller_info values ('fake', '', '__kernel_write', $id, 0, 1, 3, '*\$\$', '0-1000000');" | sqlite3 smatch_db.sqlite
 done
+
+for i in $(echo "select distinct return from return_states where function = 'clear_user';" | sqlite3 smatch_db.sqlite ) ; do
+    echo "update return_states set return = \"$i[<=p1]\" where return = \"$i\" and function = 'clear_user';" | sqlite3 smatch_db.sqlite
+done
+
 

@@ -25,17 +25,6 @@ static int implied_err_cast_return(struct expression *call, void *unused, struct
 	return 1;
 }
 
-static int implied_copy_return(struct expression *call, void *unused, struct range_list **rl)
-{
-	struct expression *arg;
-	sval_t max;
-
-	arg = get_argument_from_call_expr(call->args, 2);
-	get_absolute_max(arg, &max);
-	*rl = alloc_rl(ll_to_sval(0), max);
-	return 1;
-}
-
 static void match_param_valid_ptr(const char *fn, struct expression *call_expr,
 			struct expression *assign_expr, void *_param)
 {
@@ -247,12 +236,6 @@ void check_kernel(int id)
 
 	add_macro_assign_hook_extra("container_of", &match_container_of_macro, NULL);
 	add_hook(match_container_of, ASSIGNMENT_HOOK);
-
-	add_implied_return_hook("copy_to_user", &implied_copy_return, NULL);
-	add_implied_return_hook("__copy_to_user", &implied_copy_return, NULL);
-	add_implied_return_hook("copy_from_user", &implied_copy_return, NULL);
-	add_implied_return_hook("__copy_fom_user", &implied_copy_return, NULL);
-	add_implied_return_hook("clear_user", &implied_copy_return, NULL);
 
 	add_implied_return_hook("find_next_bit", &match_next_bit, NULL);
 	add_implied_return_hook("find_next_zero_bit", &match_next_bit, NULL);
