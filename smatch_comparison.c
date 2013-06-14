@@ -327,13 +327,13 @@ static struct smatch_state *merge_links(struct smatch_state *s1, struct smatch_s
 	return ret;
 }
 
-static void save_link(struct expression *expr, char *link)
+static void save_link_var_sym(const char *var, struct symbol *sym, char *link)
 {
 	struct smatch_state *old_state, *new_state;
 	struct string_list *links;
 	char *new;
 
-	old_state = get_state_expr(link_id, expr);
+	old_state = get_state(link_id, var, sym);
 	if (old_state)
 		links = clone_str_list(old_state->data);
 	else
@@ -343,7 +343,21 @@ static void save_link(struct expression *expr, char *link)
 	insert_string(&links, new);
 
 	new_state = alloc_link_state(links);
-	set_state_expr(link_id, expr, new_state);
+	set_state(link_id, var, sym, new_state);
+}
+
+static void save_link(struct expression *expr, char *link)
+{
+	char *var;
+	struct symbol *sym;
+
+	var = expr_to_var_sym(expr, &sym);
+	if (!var || !sym)
+		goto done;
+
+	save_link_var_sym(var, sym, link);
+done:
+	free_string(var);
 }
 
 static void match_inc(struct sm_state *sm)
@@ -483,24 +497,14 @@ free:
 	free_string(right);
 }
 
-static void add_comparison(struct expression *left, int comparison, struct expression *right)
+static void add_comparison_var_sym(const char *left_name, struct symbol *left_sym, int comparison, const char *right_name, struct symbol *right_sym)
 {
-	char *left_name = NULL;
-	char *right_name = NULL;
-	struct symbol *left_sym, *right_sym;
 	struct smatch_state *state;
 	char state_name[256];
 
-	left_name = expr_to_var_sym(left, &left_sym);
-	if (!left_name || !left_sym)
-		goto free;
-	right_name = expr_to_var_sym(right, &right_sym);
-	if (!right_name || !right_sym)
-		goto free;
-
 	if (strcmp(left_name, right_name) > 0) {
 		struct symbol *tmp_sym = left_sym;
-		char *tmp_name = left_name;
+		const char *tmp_name = left_name;
 
 		left_name = right_name;
 		left_sym = right_sym;
@@ -512,12 +516,28 @@ static void add_comparison(struct expression *left, int comparison, struct expre
 	state = alloc_compare_state(left_name, left_sym, right_name, right_sym, comparison);
 
 	set_state(compare_id, state_name, NULL, state);
-	save_link(left, state_name);
-	save_link(right, state_name);
+	save_link_var_sym(left_name, left_sym, state_name);
+	save_link_var_sym(right_name, right_sym, state_name);
+}
+
+static void add_comparison(struct expression *left, int comparison, struct expression *right)
+{
+	char *left_name = NULL;
+	char *right_name = NULL;
+	struct symbol *left_sym, *right_sym;
+
+	left_name = expr_to_var_sym(left, &left_sym);
+	if (!left_name || !left_sym)
+		goto free;
+	right_name = expr_to_var_sym(right, &right_sym);
+	if (!right_name || !right_sym)
+		goto free;
+
+	add_comparison_var_sym(left_name, left_sym, comparison, right_name, right_sym);
+
 free:
 	free_string(left_name);
 	free_string(right_name);
-
 }
 
 static void match_assign_add(struct expression *expr)
@@ -593,8 +613,54 @@ static void match_binop_assign(struct expression *expr)
 		match_assign_sub(expr);
 }
 
+static void copy_comparisons(struct expression *left, struct expression *right)
+{
+	struct string_list *links;
+	struct smatch_state *state;
+	struct compare_data *data;
+	struct symbol *left_sym, *right_sym;
+	char *left_var = NULL;
+	char *right_var = NULL;
+	const char *var;
+	struct symbol *sym;
+	int comparison;
+	char *tmp;
+
+	left_var = expr_to_var_sym(left, &left_sym);
+	if (!left_var || !left_sym)
+		goto done;
+	right_var = expr_to_var_sym(right, &right_sym);
+	if (!right_var || !right_sym)
+		goto done;
+
+	state = get_state_expr(link_id, right);
+	if (!state)
+		return;
+	links = state->data;
+
+	FOR_EACH_PTR(links, tmp) {
+		state = get_state(compare_id, tmp, NULL);
+		if (!state->data)
+			continue;
+		data = state->data;
+		comparison = data->comparison;
+		var = data->var1;
+		sym = data->sym1;
+		if (sym == right_sym && strcmp(var, right_var) == 0) {
+			var = data->var2;
+			sym = data->sym2;
+			comparison = flip_op(comparison);
+		}
+		add_comparison_var_sym(left_var, left_sym, comparison, var, sym);
+	} END_FOR_EACH_PTR(tmp);
+
+done:
+	free_string(right_var);
+}
+
 static void match_normal_assign(struct expression *expr)
 {
+	copy_comparisons(expr->left, expr->right);
 	add_comparison(expr->left, SPECIAL_EQUAL, expr->right);
 }
 
