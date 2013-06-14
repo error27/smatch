@@ -29,7 +29,6 @@ static int param_caps_return(struct expression *call, void *_arg, struct range_l
 
 void register_annotate(int id)
 {
-	add_implied_return_hook("strnlen", &param_caps_return, INT_PTR(1));
 	/*
 	 * Technically snprintf() returns the number of bytes which *would* have
 	 * been printed.  I do try caclulating that in check_snprintf().  But

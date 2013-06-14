@@ -25,6 +25,7 @@ for i in ${bin_dir}/fill_* ; do
     $i "$PROJ" $info_file
 done
 
+${bin_dir}/fixup_all.sh
 if [ "$PROJ" != "" ] ; then
     ${bin_dir}/fixup_${PROJ}.sh
 fi
