@@ -743,7 +743,7 @@ void __add_comparison_info(struct expression *expr, struct expression *call, con
 
 	if (!str_to_comparison_arg(c, call, &comparison, &arg))
 		return;
-	add_comparison(expr, SPECIAL_LTE, arg);
+	add_comparison(expr, comparison, arg);
 }
 
 static char *range_comparison_to_param_helper(struct expression *expr, char starts_with)
