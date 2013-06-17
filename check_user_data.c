@@ -429,6 +429,13 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	sql_insert_caller_info(call, USER_DATA, param, printed_name, "");
 }
 
+static void returned_member_callback(int return_id, char *return_ranges, char *printed_name, struct smatch_state *state)
+{
+	if (state == &capped)
+		return;
+	sql_insert_return_states(return_id, return_ranges, USER_DATA, -1, printed_name, "");
+}
+
 int was_passed_in_user_data(struct expression *expr)
 {
 	int ret;
@@ -477,27 +484,12 @@ static void print_returned_user_data(int return_id, char *return_ranges, struct 
 	free_slist(&my_slist);
 }
 
-static void db_param_is_now_userdata(struct expression *expr, int param, char *key, char *value)
+static void db_return_states_userdata(struct expression *expr, int param, char *key, char *value)
 {
-	struct expression *arg;
 	char *name;
 	struct symbol *sym;
 
-	while (expr->type == EXPR_ASSIGNMENT)
-		expr = strip_expr(expr->right);
-	if (expr->type != EXPR_CALL)
-		return;
-
-	arg = get_argument_from_call_expr(expr->args, param);
-	if (!arg)
-		return;
-
-	if (strcmp(key, "$$") == 0 && arg->type == EXPR_PREOP && arg->op == '&') {
-		arg = strip_expr(arg->unop);
-		name = expr_to_var_sym(arg, &sym);
-	} else {
-		name = get_variable_from_key(arg, key, &sym);
-	}
+	name = return_state_to_var_sym(expr, param, key, &sym);
 	if (!name || !sym)
 		goto free;
 
@@ -523,7 +515,7 @@ void check_user_data(int id)
 
 	add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
+	add_returned_member_callback(my_id, returned_member_callback);
 	add_returned_state_callback(print_returned_user_data);
-	add_db_return_states_callback(USER_DATA, &db_param_is_now_userdata);
-
+	add_db_return_states_callback(USER_DATA, &db_return_states_userdata);
 }
