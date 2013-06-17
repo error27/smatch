@@ -28,6 +28,36 @@ static void match_cur_slist(const char *fn, struct expression *expr, void *info)
 	__print_cur_slist();
 }
 
+static void match_state(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *check_arg, *state_arg;
+	struct sm_state *sm;
+	int found = 0;
+
+	check_arg = get_argument_from_call_expr(expr->args, 0);
+	if (check_arg->type != EXPR_STRING) {
+		sm_msg("error:  the check_name argument to %s is supposed to be a string literal", fn);
+		return;
+	}
+	state_arg = get_argument_from_call_expr(expr->args, 1);
+	if (state_arg->type != EXPR_STRING) {
+		sm_msg("error:  the state_name argument to %s is supposed to be a string literal", fn);
+		return;
+	}
+
+	FOR_EACH_PTR(__get_cur_slist(), sm) {
+		if (strcmp(check_name(sm->owner), check_arg->string->data) != 0)
+			continue;
+		if (strcmp(sm->name, state_arg->string->data) != 0)
+			continue;
+		sm_msg("'%s' = '%s'", sm->name, sm->state->name);
+		found = 1;
+	} END_FOR_EACH_PTR(sm);
+
+	if (!found)
+		sm_msg("%s '%s' not found", check_arg->string->data, state_arg->string->data);
+}
+
 static void match_print_value(const char *fn, struct expression *expr, void *info)
 {
 	struct state_list *slist;
@@ -324,6 +354,7 @@ void check_debug(int id)
 {
 	my_id = id;
 	add_function_hook("__smatch_all_values", &match_all_values, NULL);
+	add_function_hook("__smatch_state", &match_state, NULL);
 	add_function_hook("__smatch_value", &match_print_value, NULL);
 	add_function_hook("__smatch_implied", &match_print_implied, NULL);
 	add_function_hook("__smatch_implied_min", &match_print_implied_min, NULL);
