@@ -477,6 +477,35 @@ static void print_returned_user_data(int return_id, char *return_ranges, struct 
 	free_slist(&my_slist);
 }
 
+static void db_param_is_now_userdata(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *arg;
+	char *name;
+	struct symbol *sym;
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return;
+
+	arg = get_argument_from_call_expr(expr->args, param);
+	if (!arg)
+		return;
+
+	if (strcmp(key, "$$") == 0 && arg->type == EXPR_PREOP && arg->op == '&') {
+		arg = strip_expr(arg->unop);
+		name = expr_to_var_sym(arg, &sym);
+	} else {
+		name = get_variable_from_key(arg, key, &sym);
+	}
+	if (!name || !sym)
+		goto free;
+
+	set_state(my_id, name, sym, &user_data);
+free:
+	free_string(name);
+}
+
 void check_user_data(int id)
 {
 	if (option_project != PROJ_KERNEL)
@@ -495,4 +524,6 @@ void check_user_data(int id)
 	add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
 	add_returned_state_callback(print_returned_user_data);
+	add_db_return_states_callback(USER_DATA, &db_param_is_now_userdata);
+
 }
