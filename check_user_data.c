@@ -18,6 +18,11 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+void tag_as_user_data(struct expression *expr);
+
+#define NEW_USER_DATA		1
+#define PASSED_IN_USER_DATA	2
+
 static int my_id;
 
 STATE(capped);
@@ -28,22 +33,51 @@ static int is_user_macro(struct expression *expr)
 	return 0;
 }
 
-static int db_user_data;
-static int db_user_data_callback(void *unused, int argc, char **argv, char **azColName)
+static int has_user_data_state(struct expression *expr, struct state_list *my_slist)
 {
-	db_user_data = 1;
+	struct sm_state *sm;
+	struct symbol *sym;
+	char *name;
+
+	expr = strip_expr(expr);
+	if (expr->type == EXPR_PREOP && expr->op == '&')
+		expr = strip_expr(expr->unop);
+
+	name = expr_to_str_sym(expr, &sym);
+	free_string(name);
+	if (!sym)
+		return 1;
+
+	FOR_EACH_PTR(my_slist, sm) {
+		if (sm->sym == sym)
+			return 1;
+	} END_FOR_EACH_PTR(sm);
 	return 0;
 }
 
 static int passes_user_data(struct expression *expr)
 {
+	struct state_list *slist;
 	struct expression *arg;
 
+	slist = get_all_states(my_id);
 	FOR_EACH_PTR(expr->args, arg) {
 		if (is_user_data(arg))
 			return 1;
+		if (has_user_data_state(arg, slist))
+			return 1;
 	} END_FOR_EACH_PTR(arg);
 
+	return 0;
+}
+
+static struct expression *db_expr;
+static int db_user_data;
+static int db_user_data_callback(void *unused, int argc, char **argv, char **azColName)
+{
+	if (atoi(argv[0]) == PASSED_IN_USER_DATA && !passes_user_data(db_expr))
+		return 0;
+	db_user_data = 1;
 	return 0;
 }
 
@@ -58,9 +92,6 @@ static int is_user_fn_db(struct expression *expr)
 	if (!sym)
 		return 0;
 
-	if (!passes_user_data(expr))
-		return 0;
-
 	if (sym->ctype.modifiers & MOD_STATIC) {
 		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
 			 get_filename(), sym->ident->name);
@@ -69,9 +100,11 @@ static int is_user_fn_db(struct expression *expr)
 				sym->ident->name);
 	}
 
+	db_expr = expr;
 	db_user_data = 0;
-	run_sql(db_user_data_callback, "select value from return_states where type=%d and %s",
-		 USER_DATA, sql_filter);
+	run_sql(db_user_data_callback,
+		"select value from return_states where type=%d and %s",
+		USER_DATA, sql_filter);
 	return db_user_data;
 }
 
@@ -300,6 +333,59 @@ free:
 	free_string(name);
 }
 
+static void tag_struct_members(struct symbol *type, struct expression *expr)
+{
+	struct symbol *tmp;
+	struct expression *member;
+	int op = '*';
+
+	if (expr->type == EXPR_PREOP && expr->op == '&') {
+		expr = strip_expr(expr->unop);
+		op = '.';
+	}
+
+	FOR_EACH_PTR(type->symbol_list, tmp) {
+		if (!tmp->ident)
+			continue;
+		member = member_expression(expr, op, tmp->ident);
+		set_state_expr(my_id, member, &user_data);
+	} END_FOR_EACH_PTR(tmp);
+}
+
+static void tag_base_type(struct expression *expr)
+{
+	if (expr->type == EXPR_PREOP && expr->op == '&')
+		expr = strip_expr(expr->unop);
+	else
+		expr = deref_expression(expr);
+	set_state_expr(my_id, expr, &user_data);
+}
+
+void tag_as_user_data(struct expression *expr)
+{
+	struct symbol *type;
+
+	expr = strip_expr(expr);
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_PTR)
+		return;
+	type = get_real_base_type(type);
+	if (!type)
+		return;
+	if (type == &void_ctype) {
+		set_state_expr(my_id, deref_expression(expr), &user_data);
+		return;
+	}
+	if (type->type == SYM_BASETYPE)
+		tag_base_type(expr);
+	if (type->type == SYM_STRUCT) {
+		if (expr->type != EXPR_PREOP || expr->op != '&')
+			expr = deref_expression(expr);
+		tag_struct_members(type, expr);
+	}
+}
+
 static void match_user_copy(const char *fn, struct expression *expr, void *_param)
 {
 	int param = PTR_INT(_param);
@@ -309,13 +395,7 @@ static void match_user_copy(const char *fn, struct expression *expr, void *_para
 	dest = strip_expr(dest);
 	if (!dest)
 		return;
-	/* the first thing I tested this on pass &foo to a function */
-	set_state_expr(my_id, dest, &user_data);
-	if (dest->type == EXPR_PREOP && dest->op == '&') {
-		/* but normally I'd think it would pass the actual variable */
-		dest = dest->unop;
-		set_state_expr(my_id, dest, &user_data);
-	}
+	tag_as_user_data(dest);
 }
 
 static void match_user_assign_function(const char *fn, struct expression *expr, void *unused)
@@ -337,7 +417,7 @@ static void match_caller_info(struct expression *expr)
 	i = 0;
 	FOR_EACH_PTR(expr->args, tmp) {
 		if (is_user_data(tmp))
-			sql_insert_caller_info(expr, USER_DATA, i, "$$", "1");
+			sql_insert_caller_info(expr, USER_DATA, i, "$$", "");
 		i++;
 	} END_FOR_EACH_PTR(tmp);
 }
@@ -346,15 +426,55 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 {
 	if (state == &capped)
 		return;
-	sql_insert_caller_info(call, USER_DATA, param, printed_name, "1");
+	sql_insert_caller_info(call, USER_DATA, param, printed_name, "");
+}
+
+int was_passed_in_user_data(struct expression *expr)
+{
+	int ret;
+
+	__set_fake_cur_slist_fast(get_start_states());
+	ret = is_user_data_state(expr);
+	__pop_fake_cur_slist_fast();
+	return ret;
 }
 
 static void print_returned_user_data(int return_id, char *return_ranges, struct expression *expr)
 {
+	struct state_list *my_slist;
+	struct sm_state *tmp;
+	int param;
+	const char *passed_or_new;
+
+	passed_or_new = was_passed_in_user_data(expr) ? "2" : "1";
 	if (is_user_data(expr)) {
 		sql_insert_return_states(return_id, return_ranges, USER_DATA,
-				-1, "", "");
+				-1, "", passed_or_new);
 	}
+
+	my_slist = get_all_states(my_id);
+
+	FOR_EACH_PTR(my_slist, tmp) {
+		const char *param_name;
+
+		param = get_param_num_from_sym(tmp->sym);
+		if (param < 0)
+			continue;
+
+		if (is_capped_var_sym(tmp->name, tmp->sym))
+			continue;
+		if (get_state_slist(get_start_states(), my_id, tmp->name, tmp->sym))
+			continue;
+
+		param_name = get_param_name(tmp);
+		if (!param_name)
+			return;
+
+		sql_insert_return_states(return_id, return_ranges, USER_DATA,
+				param, param_name, passed_or_new);
+	} END_FOR_EACH_PTR(tmp);
+
+	free_slist(&my_slist);
 }
 
 void check_user_data(int id)
