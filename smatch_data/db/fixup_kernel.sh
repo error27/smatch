@@ -10,6 +10,7 @@ delete from caller_info where function = '(struct file_operations)->write' and f
 delete from caller_info where function = '(struct notifier_block)->notifier_call' and type != 0;
 delete from caller_info where function = '(struct mISDNchannel)->send' and type != 0;
 delete from caller_info where function = '(struct irq_router)->get' and type != 0;
+delete from caller_info where function = '(struct irq_router)->set' and type != 0;
 
 /* type 3 is USER_DATA */
 delete from caller_info where caller = 'hid_input_report' and type = 3;
@@ -36,6 +37,7 @@ insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=
 insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=p3]', 0, 11, 2, '*\$\$', '0-1000000');
 insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=p3]', 0, 11, 3, '\$\$', '0-1000000');
 insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)', 0, 0, -1, '', '');
+
 
 /* store a bunch of capped functions */
 update return_states set return = '0-u32max[<=p2]' where function = 'copy_to_user';
