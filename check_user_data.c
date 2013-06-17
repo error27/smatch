@@ -306,14 +306,15 @@ static void match_condition(struct expression *expr)
 	}
 }
 
+static void set_capped(struct sm_state *sm, struct expression *mod_expr)
+{
+	set_state(my_id, sm->name, sm->sym, &capped);
+}
+
 static void match_normal_assign(struct expression *expr)
 {
 	if (is_user_data(expr->right))
 		set_state_expr(my_id, expr->left, &user_data);
-	if (expr->op != '=')
-		return;
-	if (is_user_data(expr->left))
-		set_state_expr(my_id, expr->left, &capped);
 }
 
 static void match_assign(struct expression *expr)
@@ -518,4 +519,6 @@ void check_user_data(int id)
 	add_returned_member_callback(my_id, returned_member_callback);
 	add_returned_state_callback(print_returned_user_data);
 	add_db_return_states_callback(USER_DATA, &db_return_states_userdata);
+
+	add_modification_hook(my_id, &set_capped);
 }
