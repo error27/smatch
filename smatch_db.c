@@ -1031,6 +1031,37 @@ void register_db_call_marker(int id)
 	add_hook(&match_call_marker, FUNCTION_CALL_HOOK);
 }
 
+char *return_state_to_var_sym(struct expression *expr, int param, char *key, struct symbol **sym)
+{
+	struct expression *arg;
+	char *name = NULL;
+	char member_name[256];
+
+	*sym = NULL;
+
+	if (param == -1) {
+		if (expr->type != EXPR_ASSIGNMENT)
+			return NULL;
+		name = expr_to_var_sym(expr->left, sym);
+		if (!name)
+			return NULL;
+		snprintf(member_name, sizeof(member_name), "%s%s", name, key + 2);
+		free_string(name);
+		return alloc_string(member_name);
+	}
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return NULL;
+
+	arg = get_argument_from_call_expr(expr->args, param);
+	if (!arg)
+		return NULL;
+
+	return get_variable_from_key(arg, key, sym);
+}
+
 char *get_variable_from_key(struct expression *arg, char *key, struct symbol **sym)
 {
 	char buf[256];
