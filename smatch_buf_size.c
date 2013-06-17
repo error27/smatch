@@ -109,15 +109,17 @@ static int get_initializer_size(struct expression *expr)
 	case EXPR_INITIALIZER: {
 		struct expression *tmp;
 		int i = 0;
-		int max = 0;
 
 		FOR_EACH_PTR(expr->expr_list, tmp) {
-			if (tmp->type == EXPR_INDEX && tmp->idx_to > max)
-				max = tmp->idx_to;
+			if (tmp->type == EXPR_INDEX) {
+				if (tmp->idx_to >= i)
+					i = tmp->idx_to;
+				else
+					continue;
+			}
+
 			i++;
 		} END_FOR_EACH_PTR(tmp);
-		if (max)
-			return max + 1;
 		return i;
 	}
 	case EXPR_SYMBOL:
