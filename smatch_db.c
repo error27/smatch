@@ -323,6 +323,7 @@ void add_db_fn_call_callback(int type, void (*callback)(struct expression *arg, 
 	add_ptr_list(&call_implies_cb_list, cb);
 }
 
+static struct expression *static_call_expr;
 static struct symbol *return_type;
 static struct range_list *return_range_list;
 static int db_return_callback(void *unused, int argc, char **argv, char **azColName)
@@ -331,13 +332,14 @@ static int db_return_callback(void *unused, int argc, char **argv, char **azColN
 
 	if (argc != 1)
 		return 0;
-	str_to_rl(return_type, argv[0], &rl);
+	call_results_to_rl(static_call_expr, return_type, argv[0], &rl);
 	return_range_list = rl_union(return_range_list, rl);
 	return 0;
 }
 
 struct range_list *db_return_vals(struct expression *expr)
 {
+	static_call_expr = expr;
 	return_type = get_type(expr);
 	if (!return_type)
 		return NULL;
@@ -613,7 +615,6 @@ static void match_data_from_db(struct symbol *sym)
 	free_slist(&final_states);
 }
 
-static struct expression *call_implies_call_expr;
 static int call_implies_callbacks(void *unused, int argc, char **argv, char **azColName)
 {
 	struct call_implies_callback *cb;
@@ -631,7 +632,7 @@ static int call_implies_callbacks(void *unused, int argc, char **argv, char **az
 		if (cb->type != type)
 			continue;
 		if (param != -1) {
-			arg = get_argument_from_call_expr(call_implies_call_expr->args, param);
+			arg = get_argument_from_call_expr(static_call_expr->args, param);
 			if (!arg)
 				continue;
 		}
@@ -643,7 +644,7 @@ static int call_implies_callbacks(void *unused, int argc, char **argv, char **az
 
 static void match_call_implies(struct expression *expr)
 {
-	call_implies_call_expr = expr;
+	static_call_expr = expr;
 	sql_select_call_implies("function, type, parameter, value", expr,
 				call_implies_callbacks);
 	return;
