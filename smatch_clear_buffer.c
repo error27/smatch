@@ -92,7 +92,7 @@ static void initialize_struct_members(struct symbol *type, struct expression *ex
 		else
 			assign = assign_expression(member, member);
 
-		__split_expr(assign);
+		__pass_to_client(assign, ASSIGNMENT_HOOK);
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -113,7 +113,7 @@ static void initialize_base_type(struct symbol *type, struct expression *expr,
 	if (type_positive_bits(get_type(expr)) < type_positive_bits(get_type(to)))
 		to = expr;
 	assign = assign_expression(expr, to);
-	__split_expr(assign);
+	__pass_to_client(assign, ASSIGNMENT_HOOK);
 }
 
 void set_initialized(struct expression *expr, struct expression *to)
