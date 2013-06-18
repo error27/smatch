@@ -1,4 +1,0 @@
-CREATE TABLE return_values (file varchar(128), function varchar(64), call_id integer, static integer, return varchar(256));
-
-CREATE INDEX return_values_fn_idx on return_values (function);
-CREATE INDEX return_values_ff_idx on return_values (file, function);

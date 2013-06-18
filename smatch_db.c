@@ -178,13 +178,6 @@ void sql_insert_function_ptr(const char *fn, const char *struct_name)
 		   struct_name);
 }
 
-void sql_insert_return_values(const char *return_values)
-{
-	sql_insert(return_values, "'%s', '%s', %lu, %d, '%s'", get_base_file(),
-	           get_function(), (unsigned long)__inline_fn, fn_static(),
-		   return_values);
-}
-
 void sql_insert_call_implies(int type, int param, int value)
 {
 	sql_insert(call_implies, "'%s', '%s', %lu, %d, %d, %d, %d", get_base_file(),
@@ -908,7 +901,6 @@ static void reset_memdb(void)
 	mem_sql(NULL, "delete from caller_info;");
 	mem_sql(NULL, "delete from return_states;");
 	mem_sql(NULL, "delete from call_implies;");
-	mem_sql(NULL, "delete from return_values;");
 }
 
 static void match_end_func_info(struct symbol *sym)
@@ -931,7 +923,6 @@ static void init_memdb(void)
 		"db/type_size.schema",
 		"db/call_implies.schema",
 		"db/function_ptr.schema",
-		"db/return_values.schema",
 		"db/local_values.schema",
 	};
 	static char buf[4096];

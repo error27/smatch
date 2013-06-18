@@ -96,17 +96,6 @@ def print_return_states(func):
         print "| %13s |" %(type_to_str(txt[6])),
         print " %2d | %20s | %20s |" %(txt[7], txt[8], txt[9])
 
-def print_return_values(func):
-    cur = con.cursor()
-    cur.execute("select * from return_values where function = '%s';" %(func))
-    count = 0
-    for txt in cur:
-        printed = 1
-        if count == 0:
-            print "file | function | value |"
-        count += 1
-        print "%s | %s | %s |" %(txt[0], txt[1], txt[4]),
-
 def print_call_implies(func):
     cur = con.cursor()
     cur.execute("select * from call_implies where function = '%s';" %(func))
@@ -165,9 +154,6 @@ elif sys.argv[1] == "function_ptr" or sys.argv[1] == "fn_ptr":
 elif sys.argv[1] == "return_states":
     func = sys.argv[2]
     print_return_states(func)
-elif sys.argv[1] == "return_values":
-    func = sys.argv[2]
-    print_return_values(func)
 elif sys.argv[1] == "call_implies":
     func = sys.argv[2]
     print_call_implies(func)
