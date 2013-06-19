@@ -103,7 +103,7 @@ static int is_user_fn_db(struct expression *expr)
 	db_expr = expr;
 	db_user_data = 0;
 	run_sql(db_user_data_callback,
-		"select value from return_states where type=%d and %s",
+		"select value from return_states where type=%d and parameter = -1 and key = '$$' and %s",
 		USER_DATA, sql_filter);
 	return db_user_data;
 }
@@ -457,7 +457,7 @@ static void print_returned_user_data(int return_id, char *return_ranges, struct 
 	passed_or_new = was_passed_in_user_data(expr) ? "2" : "1";
 	if (is_user_data(expr)) {
 		sql_insert_return_states(return_id, return_ranges, USER_DATA,
-				-1, "", passed_or_new);
+				-1, "$$", passed_or_new);
 	}
 
 	my_slist = get_all_states(my_id);
