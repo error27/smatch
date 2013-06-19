@@ -173,7 +173,7 @@ void register_capped(int id)
 {
 	my_id = id;
 
-	add_definition_db_callback(set_param_capped_data, CAPPED_DATA);
+	select_caller_info_hook(set_param_capped_data, CAPPED_DATA);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 

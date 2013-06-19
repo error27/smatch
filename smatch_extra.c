@@ -1367,7 +1367,7 @@ void register_smatch_extra(int id)
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
-	add_definition_db_callback(set_param_value, PARAM_VALUE);
+	select_caller_info_hook(set_param_value, PARAM_VALUE);
 	select_return_states_hook(RETURN_VALUE, &db_returned_member_info);
 	select_return_states_before(&db_limited_before);
 	select_return_states_hook(LIMITED_VALUE, &db_param_limit);

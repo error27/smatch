@@ -504,7 +504,7 @@ void check_user_data(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 	my_id = id;
-	add_definition_db_callback(set_param_user_data, USER_DATA);
+	select_caller_info_hook(set_param_user_data, USER_DATA);
 	add_hook(&match_syscall_definition, FUNC_DEF_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);

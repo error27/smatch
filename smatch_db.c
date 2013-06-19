@@ -274,7 +274,7 @@ void sql_select_caller_info(const char *cols, struct symbol *sym,
 		cols, get_static_filter(sym));
 }
 
-void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type)
+void select_caller_info_hook(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type)
 {
 	struct def_callback *def_callback = __alloc_def_callback(0);
 

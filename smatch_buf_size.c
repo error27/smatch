@@ -703,7 +703,7 @@ void register_buf_size(int id)
 {
 	my_size_id = id;
 
-	add_definition_db_callback(set_param_buf_size, BUF_SIZE);
+	select_caller_info_hook(set_param_buf_size, BUF_SIZE);
 	select_return_states_hook(BUF_SIZE, &db_returns_buf_size);
 
 	add_function_assign_hook("malloc", &match_alloc, INT_PTR(0));

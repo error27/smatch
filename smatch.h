@@ -507,7 +507,7 @@ enum info_type {
 	PARAM_CLEARED	= 14,
 };
 
-void add_definition_db_callback(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
+void select_caller_info_hook(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
 void add_member_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct smatch_state *state));
 void add_returned_state_callback(void (*fn)(int return_id, char *return_ranges, struct expression *returned_expr));
 void add_returned_member_callback(int owner, void (*callback)(int return_id, char *return_ranges, char *printed_name, struct smatch_state *state));
