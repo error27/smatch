@@ -212,7 +212,7 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		min = parse_val(0, call, type, c, &c);
 		if (*c == ')')
 			c++;
-		if (!*c) {
+		if (*c == '\0' || *c == '[') {
 			add_range(rl, min, min);
 			break;
 		}
