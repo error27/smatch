@@ -138,14 +138,14 @@ void select_return_states_hook(int type, return_implies_hook *callback)
 	add_ptr_list(&db_return_states_list, cb);
 }
 
-void add_db_return_states_before(void_fn *fn)
+void select_return_states_before(void_fn *fn)
 {
 	void_fn **p = malloc(sizeof(void_fn *));
 	*p = fn;
 	add_ptr_list(&return_states_before, p);
 }
 
-void add_db_return_states_after(void_fn *fn)
+void select_return_states_after(void_fn *fn)
 {
 	void_fn **p = malloc(sizeof(void_fn *));
 	*p = fn;

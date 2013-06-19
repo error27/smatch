@@ -1369,11 +1369,11 @@ void register_smatch_extra(int id)
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_definition_db_callback(set_param_value, PARAM_VALUE);
 	select_return_states_hook(RETURN_VALUE, &db_returned_member_info);
-	add_db_return_states_before(&db_limited_before);
+	select_return_states_before(&db_limited_before);
 	select_return_states_hook(LIMITED_VALUE, &db_param_limit);
 	select_return_states_hook(FILTER_VALUE, &db_param_filter);
 	select_return_states_hook(ADDED_VALUE, &db_param_add);
-	add_db_return_states_after(&db_limited_after);
+	select_return_states_after(&db_limited_after);
 }
 
 void register_smatch_extra_late(int id)
