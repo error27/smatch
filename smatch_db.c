@@ -1091,6 +1091,8 @@ char *return_state_to_var_sym(struct expression *expr, int param, char *key, str
 		name = expr_to_var_sym(expr->left, sym);
 		if (!name)
 			return NULL;
+		if (strncmp(key, "$$", 2) != 0)
+			return name;
 		snprintf(member_name, sizeof(member_name), "%s%s", name, key + 2);
 		free_string(name);
 		return alloc_string(member_name);
