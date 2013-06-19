@@ -129,7 +129,7 @@ void return_implies_state(const char *look_for, long long start, long long end,
 	add_callback(func_hash, look_for, cb);
 }
 
-void add_db_return_states_callback(int type, return_implies_hook *callback)
+void select_return_states_hook(int type, return_implies_hook *callback)
 {
 	struct return_implies_callback *cb = __alloc_return_implies_callback(0);
 

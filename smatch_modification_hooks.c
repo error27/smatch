@@ -176,6 +176,6 @@ void register_modification_hooks(int id)
 void register_modification_hooks_late(int id)
 {
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
-	add_db_return_states_callback(ADDED_VALUE, &db_param_add);
+	select_return_states_hook(ADDED_VALUE, &db_param_add);
 }
 

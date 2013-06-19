@@ -399,7 +399,7 @@ void check_overflow(int id)
 	add_function_hook("sprintf", &match_sprintf, NULL);
 	add_function_hook("memcmp", &match_limited, &b0_l2);
 	add_function_hook("memcmp", &match_limited, &b1_l2);
-	add_db_return_states_callback(BUF_SIZE, &db_returns_buf_size);
+	select_return_states_hook(BUF_SIZE, &db_returns_buf_size);
 	add_modification_hook(my_used_id, &delete);
 	if (option_project == PROJ_KERNEL) {
 		add_function_hook("copy_to_user", &match_limited, &b0_l2);

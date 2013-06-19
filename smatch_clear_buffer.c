@@ -303,6 +303,6 @@ void register_clear_buffer(int id)
 	add_function_hook("memmove", &match_memcpy, INT_PTR(0));
 	register_clears_param();
 
-	add_db_return_states_callback(PARAM_CLEARED, &db_param_cleared);
+	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
 }
 

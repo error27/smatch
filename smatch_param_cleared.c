@@ -149,7 +149,7 @@ void register_param_cleared(int id)
 
 	register_clears_param();
 
-	add_db_return_states_callback(PARAM_CLEARED, &db_param_cleared);
+	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
 	add_returned_state_callback(&print_return_value_param);
 
 	if (option_project == PROJ_KERNEL) {

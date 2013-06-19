@@ -1368,11 +1368,11 @@ void register_smatch_extra(int id)
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_definition_db_callback(set_param_value, PARAM_VALUE);
-	add_db_return_states_callback(RETURN_VALUE, &db_returned_member_info);
+	select_return_states_hook(RETURN_VALUE, &db_returned_member_info);
 	add_db_return_states_before(&db_limited_before);
-	add_db_return_states_callback(LIMITED_VALUE, &db_param_limit);
-	add_db_return_states_callback(FILTER_VALUE, &db_param_filter);
-	add_db_return_states_callback(ADDED_VALUE, &db_param_add);
+	select_return_states_hook(LIMITED_VALUE, &db_param_limit);
+	select_return_states_hook(FILTER_VALUE, &db_param_filter);
+	select_return_states_hook(ADDED_VALUE, &db_param_add);
 	add_db_return_states_after(&db_limited_after);
 }
 

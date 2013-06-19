@@ -518,7 +518,7 @@ void check_user_data(int id)
 	add_member_info_callback(my_id, struct_member_callback);
 	add_returned_member_callback(my_id, returned_member_callback);
 	add_returned_state_callback(print_returned_user_data);
-	add_db_return_states_callback(USER_DATA, &db_return_states_userdata);
+	select_return_states_hook(USER_DATA, &db_return_states_userdata);
 
 	add_modification_hook(my_id, &set_capped);
 }
