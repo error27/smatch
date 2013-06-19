@@ -711,6 +711,48 @@ static void match_function_def(struct symbol *sym)
 		return_id = 0;
 }
 
+static void call_return_state_hooks_conditional(struct expression *expr)
+{
+	struct returned_state_callback *cb;
+	struct range_list *rl;
+	char *return_ranges;
+	int final_pass_orig = final_pass;
+
+	__push_fake_cur_slist();
+
+	final_pass = 0;
+	__split_whole_condition(expr->conditional);
+	final_pass = final_pass_orig;
+
+	if (get_implied_rl(expr->cond_true, &rl))
+		rl = cast_rl(cur_func_return_type(), rl);
+	else
+		rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr->cond_true)));
+	return_ranges = show_rl(rl);
+
+	return_id++;
+	FOR_EACH_PTR(returned_state_callbacks, cb) {
+		cb->callback(return_id, return_ranges, expr);
+	} END_FOR_EACH_PTR(cb);
+
+	__push_true_states();
+	__use_false_states();
+
+	if (get_implied_rl(expr->cond_false, &rl))
+		rl = cast_rl(cur_func_return_type(), rl);
+	else
+		rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr->cond_false)));
+	return_ranges = show_rl(rl);
+
+	return_id++;
+	FOR_EACH_PTR(returned_state_callbacks, cb) {
+		cb->callback(return_id, return_ranges, expr);
+	} END_FOR_EACH_PTR(cb);
+
+	__merge_true_states();
+	__free_fake_cur_slist();
+}
+
 static void call_return_state_hooks_compare(struct expression *expr)
 {
 	struct returned_state_callback *cb;
@@ -829,6 +871,15 @@ static char *get_return_ranges_str(struct expression *expr)
 	return return_ranges;
 }
 
+static int is_conditional(struct expression *expr)
+{
+	if (!expr)
+		return 0;
+	if (expr->type == EXPR_CONDITIONAL || expr->type == EXPR_SELECT)
+		return 1;
+	return 0;
+}
+
 static void call_return_state_hooks(struct expression *expr)
 {
 	struct returned_state_callback *cb;
@@ -839,6 +890,9 @@ static void call_return_state_hooks(struct expression *expr)
 
 	if (is_condition(expr)) {
 		call_return_state_hooks_compare(expr);
+		return;
+	} else if (is_conditional(expr)) {
+		call_return_state_hooks_conditional(expr);
 		return;
 	} else if (call_return_state_hooks_split_possible(expr)) {
 		return;
