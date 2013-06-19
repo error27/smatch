@@ -62,6 +62,6 @@ void check_deref_check(int id)
 	my_id = id;
 	add_hook(&match_dereference, DEREF_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
-	add_db_fn_call_callback(DEREFERENCE, &set_param_dereferenced);
+	select_call_implies_hook(DEREFERENCE, &set_param_dereferenced);
 	add_modification_hook(my_id, &underef);
 }

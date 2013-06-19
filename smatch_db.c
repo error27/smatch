@@ -314,7 +314,7 @@ void add_returned_member_callback(int owner, void (*callback)(int return_id, cha
 	add_ptr_list(&returned_member_callbacks, member_callback);
 }
 
-void add_db_fn_call_callback(int type, void (*callback)(struct expression *arg, char *value))
+void select_call_implies_hook(int type, void (*callback)(struct expression *arg, char *value))
 {
 	struct call_implies_callback *cb = __alloc_call_implies_callback(0);
 

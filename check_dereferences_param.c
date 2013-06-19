@@ -113,7 +113,7 @@ void check_dereferences_param(int id)
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 
 	add_hook(&match_dereference, DEREF_HOOK);
-	add_db_fn_call_callback(DEREFERENCE, &set_param_dereferenced);
+	select_call_implies_hook(DEREFERENCE, &set_param_dereferenced);
 	add_modification_hook(my_id, &set_ignore);
 
 	all_return_states_hook(&process_states);

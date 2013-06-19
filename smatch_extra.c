@@ -1380,7 +1380,7 @@ void register_smatch_extra_late(int id)
 {
 	add_hook(&match_dereferences, DEREF_HOOK);
 	add_hook(&match_pointer_as_array, OP_HOOK);
-	add_db_fn_call_callback(DEREFERENCE, &set_param_dereferenced);
+	select_call_implies_hook(DEREFERENCE, &set_param_dereferenced);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&unop_expr, OP_HOOK);
