@@ -136,6 +136,39 @@ def print_fn_ptrs(func):
         print "'%s'" %(p),
     print ""
 
+def get_callers(func):
+    ret = []
+    cur = con.cursor()
+    ptrs = get_function_pointers(func)
+    for ptr in ptrs:
+        cur.execute("select distinct caller from caller_info where function = '%s';" %(ptr))
+        for row in cur:
+            ret.append(row[0])
+    return ret
+
+printed_funcs = []
+def call_tree_helper(func, indent = 0):
+    global printed_funcs
+    if func in printed_funcs:
+        return
+    print "%s%s()" %(" " * indent, func)
+    if func == "too common":
+        return
+    if indent > 6:
+        return
+    printed_funcs.append(func)
+    callers = get_callers(func)
+    if len(callers) >= 20:
+        print "Over 20 callers for %s()" %(func)
+        return
+    for caller in callers:
+        call_tree_helper(caller, indent + 2)
+
+def print_call_tree(func):
+    global printed_funcs
+    printed_funcs = []
+    call_tree_helper(func)
+
 if len(sys.argv) < 2:
     usage()
 
@@ -160,5 +193,8 @@ elif sys.argv[1] == "call_implies":
 elif sys.argv[1] == "type_size":
     var = sys.argv[2]
     print_type_size(var)
+elif sys.argv[1] == "call_tree":
+    func = sys.argv[2]
+    print_call_tree(func)
 else:
     usage()
