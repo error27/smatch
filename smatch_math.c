@@ -622,6 +622,12 @@ static struct range_list *handle_variable(struct expression *expr, int implied)
 			min = sval_type_min(get_type(expr));
 		if (!get_fuzzy_max_helper(expr, &max))
 			return NULL;
+		/* fuzzy ranges are often inverted */
+		if (sval_cmp(min, max) > 0) {
+			sval = min;
+			min = max;
+			max = sval;
+		}
 		return alloc_rl(min, max);
 	}
 	return NULL;
