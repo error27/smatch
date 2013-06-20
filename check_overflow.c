@@ -80,6 +80,18 @@ static int definitely_just_used_as_limiter(struct expression *array, struct expr
 	return 0;
 }
 
+static int get_the_max(struct expression *expr, sval_t *sval)
+{
+	if (get_hard_max(expr, sval))
+		return 1;
+	if (!option_spammy)
+		return 0;
+	if (is_user_data(expr))
+		return get_absolute_max(expr, sval);
+	/* FIXME: get_fuzzy_max() is not working well across function boundaries */
+	return 0;
+}
+
 static int common_false_positives(char *name)
 {
 	if (!name)
@@ -120,8 +132,10 @@ static void array_check(struct expression *expr)
 		return;
 
 	offset = get_array_offset(expr);
-	if (!get_fuzzy_max(offset, &max)) {
+	if (!get_the_max(offset, &max)) {
 		if (getting_address())
+			return;
+		if (is_capped(offset))
 			return;
 		set_state_expr(my_used_id, offset, alloc_state_num(array_size));
 	} else if (array_size <= max.value) {
@@ -308,7 +322,7 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 
 	dest = get_argument_from_call_expr(expr->args, limiter->buf_arg);
 	data = get_argument_from_call_expr(expr->args, limiter->limit_arg);
-	if (!get_fuzzy_max(data, &needed))
+	if (!get_the_max(data, &needed))
 		return;
 	has = get_array_size_bytes(dest);
 	if (!has)
