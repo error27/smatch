@@ -564,29 +564,18 @@ static void match_assign_add(struct expression *expr)
 	r_left = strip_expr(right->left);
 	r_right = strip_expr(right->right);
 
-	if (!is_capped(expr->left)) {
-		get_absolute_max(r_left, &left_tmp);
-		get_absolute_max(r_right, &right_tmp);
-		if (sval_binop_overflows(left_tmp, '+', right_tmp))
-			return;
-	}
-
 	get_absolute_min(r_left, &left_tmp);
-	if (sval_is_negative(left_tmp))
-		return;
 	get_absolute_min(r_right, &right_tmp);
-	if (sval_is_negative(right_tmp))
-		return;
 
-	if (left_tmp.value == 0)
-		add_comparison(expr->left, SPECIAL_GTE, r_right);
-	else
+	if (left_tmp.value > 0)
 		add_comparison(expr->left, '>', r_right);
+	else if (left_tmp.value == 0)
+		add_comparison(expr->left, SPECIAL_GTE, r_right);
 
-	if (right_tmp.value == 0)
-		add_comparison(expr->left, SPECIAL_GTE, r_left);
-	else
+	if (right_tmp.value > 0)
 		add_comparison(expr->left, '>', r_left);
+	else if (right_tmp.value == 0)
+		add_comparison(expr->left, SPECIAL_GTE, r_left);
 }
 
 static void match_assign_sub(struct expression *expr)
