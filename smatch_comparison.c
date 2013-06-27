@@ -658,11 +658,11 @@ static void copy_comparisons(struct expression *left, struct expression *right)
 			continue;
 		data = state->data;
 		comparison = data->comparison;
-		var = data->var1;
-		sym = data->sym1;
+		var = data->var2;
+		sym = data->sym2;
 		if (sym == right_sym && strcmp(var, right_var) == 0) {
-			var = data->var2;
-			sym = data->sym2;
+			var = data->var1;
+			sym = data->sym1;
 			comparison = flip_op(comparison);
 		}
 		add_comparison_var_sym(left_var, left_sym, comparison, var, sym);
