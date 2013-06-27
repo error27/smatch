@@ -32,16 +32,16 @@ static int link_id;
 struct compare_data {
 	const char *var1;
 	struct symbol *sym1;
+	int comparison;
 	const char *var2;
 	struct symbol *sym2;
-	int comparison;
 };
 ALLOCATOR(compare_data, "compare data");
 
 static struct smatch_state *alloc_compare_state(
 		const char *var1, struct symbol *sym1,
-		const char *var2, struct symbol *sym2,
-		int comparison)
+		int comparison,
+		const char *var2, struct symbol *sym2)
 {
 	struct smatch_state *state;
 	struct compare_data *data;
@@ -51,9 +51,9 @@ static struct smatch_state *alloc_compare_state(
 	data = __alloc_compare_data(0);
 	data->var1 = alloc_sname(var1);
 	data->sym1 = sym1;
+	data->comparison = comparison;
 	data->var2 = alloc_sname(var2);
 	data->sym2 = sym2;
-	data->comparison = comparison;
 	state->data = data;
 	return state;
 }
@@ -189,7 +189,7 @@ static struct smatch_state *unmatched_comparison(struct sm_state *sm)
 
 	op = rl_comparison(left_rl, right_rl);
 	if (op)
-		return alloc_compare_state(data->var1, data->sym1, data->var2, data->sym2, op);
+		return alloc_compare_state(data->var1, data->sym1, op, data->var2, data->sym2);
 
 	return &undefined;
 }
@@ -280,7 +280,7 @@ static struct smatch_state *merge_compare_states(struct smatch_state *s1, struct
 
 	op = merge_comparisons(state_to_comparison(s1), state_to_comparison(s2));
 	if (op)
-		return alloc_compare_state(data->var1, data->sym1, data->var2, data->sym2, op);
+		return alloc_compare_state(data->var1, data->sym1, op, data->var2, data->sym2);
 	return &undefined;
 }
 
@@ -320,12 +320,12 @@ static void save_start_states(struct statement *stmt)
 			continue;
 		snprintf(orig, sizeof(orig), "%s orig", param->ident->name);
 		snprintf(state_name, sizeof(state_name), "%s vs %s", param->ident->name, orig);
-		state = alloc_compare_state(param->ident->name, param, alloc_sname(orig), param, SPECIAL_EQUAL);
+		state = alloc_compare_state(param->ident->name, param, SPECIAL_EQUAL, alloc_sname(orig), param);
 		set_state(compare_id, state_name, NULL, state);
 
 		link = alloc_sname(state_name);
 		links = NULL;
-		insert_string(&links,  link);
+		insert_string(&links, link);
 		state = alloc_link_state(links);
 		set_state(link_id, param->ident->name, param, state);
 	} END_FOR_EACH_PTR(param);
@@ -394,7 +394,7 @@ static void match_inc(struct sm_state *sm)
 			struct compare_data *data = state->data;
 			struct smatch_state *new;
 
-			new = alloc_compare_state(data->var1, data->sym1, data->var2, data->sym2, '>');
+			new = alloc_compare_state(data->var1, data->sym1, '>', data->var2, data->sym2);
 			set_state(compare_id, tmp, NULL, new);
 			break;
 			}
@@ -424,7 +424,7 @@ static void match_dec(struct sm_state *sm)
 			struct compare_data *data = state->data;
 			struct smatch_state *new;
 
-			new = alloc_compare_state(data->var1, data->sym1, data->var2, data->sym2, '<');
+			new = alloc_compare_state(data->var1, data->sym1, '<', data->var2, data->sym2);
 			set_state(compare_id, tmp, NULL, new);
 			break;
 			}
@@ -468,7 +468,7 @@ static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 	set_state(link_id, sm->name, sm->sym, &undefined);
 }
 
-static void match_logic(struct expression *expr)
+static void match_compare(struct expression *expr)
 {
 	char *left = NULL;
 	char *right = NULL;
@@ -500,8 +500,8 @@ static void match_logic(struct expression *expr)
 	}
 	false_op = falsify_op(op);
 	snprintf(state_name, sizeof(state_name), "%s vs %s", left, right);
-	true_state = alloc_compare_state(left, left_sym, right, right_sym, op);
-	false_state = alloc_compare_state(left, left_sym, right, right_sym, false_op);
+	true_state = alloc_compare_state(left, left_sym, op, right, right_sym);
+	false_state = alloc_compare_state(left, left_sym, false_op, right, right_sym);
 
 	set_true_false_states(compare_id, state_name, NULL, true_state, false_state);
 	save_link(expr->left, state_name);
@@ -527,7 +527,7 @@ static void add_comparison_var_sym(const char *left_name, struct symbol *left_sy
 		comparison = flip_op(comparison);
 	}
 	snprintf(state_name, sizeof(state_name), "%s vs %s", left_name, right_name);
-	state = alloc_compare_state(left_name, left_sym, right_name, right_sym, comparison);
+	state = alloc_compare_state(left_name, left_sym, comparison, right_name, right_sym);
 
 	set_state(compare_id, state_name, NULL, state);
 	save_link_var_sym(left_name, left_sym, state_name);
@@ -806,7 +806,7 @@ static void free_data(struct symbol *sym)
 void register_comparison(int id)
 {
 	compare_id = id;
-	add_hook(&match_logic, CONDITION_HOOK);
+	add_hook(&match_compare, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
 	add_unmatched_state_hook(compare_id, unmatched_comparison);
