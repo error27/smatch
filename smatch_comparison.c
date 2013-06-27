@@ -605,6 +605,21 @@ static void match_assign_sub(struct expression *expr)
 	}
 }
 
+static void match_assign_divide(struct expression *expr)
+{
+	struct expression *right;
+	struct expression *r_left, *r_right;
+	sval_t min;
+
+	right = strip_expr(expr->right);
+	r_left = strip_expr(right->left);
+	r_right = strip_expr(right->right);
+	if (!get_implied_min(r_right, &min) || min.value <= 1)
+		return;
+
+	add_comparison(expr->left, '<', r_left);
+}
+
 static void match_binop_assign(struct expression *expr)
 {
 	struct expression *right;
@@ -614,6 +629,8 @@ static void match_binop_assign(struct expression *expr)
 		match_assign_add(expr);
 	if (right->op == '-')
 		match_assign_sub(expr);
+	if (right->op == '/')
+		match_assign_divide(expr);
 }
 
 static void copy_comparisons(struct expression *left, struct expression *right)
