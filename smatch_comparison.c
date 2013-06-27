@@ -38,6 +38,15 @@ struct compare_data {
 };
 ALLOCATOR(compare_data, "compare data");
 
+int var_sym_eq(const char *a, struct symbol *a_sym, const char *b, struct symbol *b_sym)
+{
+	if (a_sym != b_sym)
+		return 0;
+	if (strcmp(a, b) == 0)
+		return 1;
+	return 0;
+}
+
 static struct smatch_state *alloc_compare_state(
 		const char *var1, struct symbol *sym1,
 		int comparison,
@@ -666,7 +675,7 @@ static void copy_comparisons(struct expression *left, struct expression *right)
 		comparison = data->comparison;
 		var = data->var2;
 		sym = data->sym2;
-		if (sym == right_sym && strcmp(var, right_var) == 0) {
+		if (var_sym_eq(var, sym, right_var, right_sym)) {
 			var = data->var1;
 			sym = data->sym1;
 			comparison = flip_op(comparison);
