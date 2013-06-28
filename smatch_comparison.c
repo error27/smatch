@@ -900,6 +900,9 @@ static void match_assign(struct expression *expr)
 {
 	struct expression *right;
 
+	if (expr->op != '=')
+		return;
+
 	copy_comparisons(expr->left, expr->right);
 	add_comparison(expr->left, SPECIAL_EQUAL, expr->right);
 
