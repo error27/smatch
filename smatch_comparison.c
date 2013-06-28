@@ -544,6 +544,8 @@ static char *chunk_to_var_sym(struct expression *expr, struct symbol **sym)
 	char buf[128];
 
 	expr = strip_expr(expr);
+	if (!expr)
+		return NULL;
 	if (sym)
 		*sym = NULL;
 

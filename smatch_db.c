@@ -797,6 +797,9 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 	char *compare_str;
 	char buf[128];
 
+	if (!expr || expr_equal_to_param(expr))
+		return 0;
+
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
 	if (!sm || !sm->merged)
 		return 0;
