@@ -422,7 +422,7 @@ static struct smatch_state *merge_links(struct smatch_state *s1, struct smatch_s
 	return ret;
 }
 
-static void save_link_var_sym(const char *var, struct symbol *sym, char *link)
+static void save_link_var_sym(const char *var, struct symbol *sym, const char *link)
 {
 	struct smatch_state *old_state, *new_state;
 	struct string_list *links;
@@ -439,20 +439,6 @@ static void save_link_var_sym(const char *var, struct symbol *sym, char *link)
 
 	new_state = alloc_link_state(links);
 	set_state(link_id, var, sym, new_state);
-}
-
-static void save_link(struct expression *expr, char *link)
-{
-	char *var;
-	struct symbol *sym;
-
-	var = expr_to_var_sym(expr, &sym);
-	if (!var || !sym)
-		goto done;
-
-	save_link_var_sym(var, sym, link);
-done:
-	free_string(var);
 }
 
 static void match_inc(struct sm_state *sm)
@@ -549,6 +535,79 @@ static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 	set_state(link_id, sm->name, sm->sym, &undefined);
 }
 
+static char *chunk_to_var_sym(struct expression *expr, struct symbol **sym)
+{
+	char *name, *left_name, *right_name;
+	struct symbol *tmp;
+	char buf[128];
+
+	expr = strip_expr(expr);
+	if (sym)
+		*sym = NULL;
+
+	name = expr_to_var_sym(expr, &tmp);
+	if (name && tmp) {
+		if (sym)
+			*sym = tmp;
+		return name;
+	}
+	if (name)
+		free_string(name);
+
+	if (expr->type != EXPR_BINOP)
+		return NULL;
+	if (expr->op != '-' && expr->op != '+')
+		return NULL;
+
+	left_name = expr_to_var(expr->left);
+	if (!left_name)
+		return NULL;
+	right_name = expr_to_var(expr->right);
+	if (!right_name) {
+		free_string(left_name);
+		return NULL;
+	}
+	snprintf(buf, sizeof(buf), "%s %s %s", left_name, show_special(expr->op), right_name);
+	free_string(left_name);
+	free_string(right_name);
+	return alloc_string(buf);
+}
+
+static char *chunk_to_var(struct expression *expr)
+{
+	return chunk_to_var_sym(expr, NULL);
+}
+
+static void save_link(struct expression *expr, char *link)
+{
+	char *var;
+	struct symbol *sym;
+
+	expr = strip_expr(expr);
+	if (expr->type == EXPR_BINOP) {
+		char *chunk;
+
+		chunk = chunk_to_var(expr);
+		if (!chunk)
+			return;
+
+		save_link(expr->left, link);
+		save_link(expr->right, link);
+		save_link_var_sym(chunk, NULL, link);
+		return;
+	}
+
+	var = expr_to_var_sym(expr, &sym);
+	if (!var || !sym)
+		goto done;
+
+	save_link_var_sym(var, sym, link);
+done:
+	free_string(var);
+}
+
+
+
 static void update_tf_links(const char *left_var, struct symbol *left_sym,
 			    int left_comparison,
 			    const char *mid_var, struct symbol *mid_sym,
@@ -636,11 +695,11 @@ static void match_compare(struct expression *expr)
 
 	if (expr->type != EXPR_COMPARE)
 		return;
-	left = expr_to_var_sym(expr->left, &left_sym);
-	if (!left || !left_sym)
+	left = chunk_to_var_sym(expr->left, &left_sym);
+	if (!left)
 		goto free;
-	right = expr_to_var_sym(expr->right, &right_sym);
-	if (!right || !right_sym)
+	right = chunk_to_var_sym(expr->right, &right_sym);
+	if (!right)
 		goto free;
 
 	if (strcmp(left, right) > 0) {
@@ -699,11 +758,11 @@ static void add_comparison(struct expression *left, int comparison, struct expre
 	char *right_name = NULL;
 	struct symbol *left_sym, *right_sym;
 
-	left_name = expr_to_var_sym(left, &left_sym);
-	if (!left_name || !left_sym)
+	left_name = chunk_to_var_sym(left, &left_sym);
+	if (!left_name)
 		goto free;
-	right_name = expr_to_var_sym(right, &right_sym);
-	if (!right_name || !right_sym)
+	right_name = chunk_to_var_sym(right, &right_sym);
+	if (!right_name)
 		goto free;
 
 	add_comparison_var_sym(left_name, left_sym, comparison, right_name, right_sym);
@@ -805,21 +864,21 @@ static void copy_comparisons(struct expression *left, struct expression *right)
 	int comparison;
 	char *tmp;
 
-	left_var = expr_to_var_sym(left, &left_sym);
-	if (!left_var || !left_sym)
+	left_var = chunk_to_var_sym(left, &left_sym);
+	if (!left_var)
 		goto done;
-	right_var = expr_to_var_sym(right, &right_sym);
-	if (!right_var || !right_sym)
+	right_var = chunk_to_var_sym(right, &right_sym);
+	if (!right_var)
 		goto done;
 
-	state = get_state_expr(link_id, right);
+	state = get_state(link_id, right_var, right_sym);
 	if (!state)
 		return;
 	links = state->data;
 
 	FOR_EACH_PTR(links, tmp) {
 		state = get_state(compare_id, tmp, NULL);
-		if (!state->data)
+		if (!state || !state->data)
 			continue;
 		data = state->data;
 		comparison = data->comparison;
@@ -837,21 +896,16 @@ done:
 	free_string(right_var);
 }
 
-static void match_normal_assign(struct expression *expr)
-{
-	copy_comparisons(expr->left, expr->right);
-	add_comparison(expr->left, SPECIAL_EQUAL, expr->right);
-}
-
 static void match_assign(struct expression *expr)
 {
 	struct expression *right;
 
+	copy_comparisons(expr->left, expr->right);
+	add_comparison(expr->left, SPECIAL_EQUAL, expr->right);
+
 	right = strip_expr(expr->right);
 	if (right->type == EXPR_BINOP)
 		match_binop_assign(expr);
-	else
-		match_normal_assign(expr);
 }
 
 static int get_comparison_strings(char *one, char *two)
@@ -886,10 +940,10 @@ int get_comparison(struct expression *a, struct expression *b)
 	char *two = NULL;
 	int ret = 0;
 
-	one = expr_to_var(a);
+	one = chunk_to_var(a);
 	if (!one)
 		goto free;
-	two = expr_to_var(b);
+	two = chunk_to_var(b);
 	if (!two)
 		goto free;
 
@@ -920,7 +974,7 @@ static char *range_comparison_to_param_helper(struct expression *expr, char star
 	int compare;
 	int i;
 
-	var = expr_to_var(expr);
+	var = chunk_to_var(expr);
 	if (!var)
 		goto free;
 
