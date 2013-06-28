@@ -376,10 +376,12 @@ struct smatch_state *alloc_link_state(struct string_list *links)
 
 	i = 0;
 	FOR_EACH_PTR(links, tmp) {
-		if (!i++)
+		if (!i++) {
 			snprintf(buf, sizeof(buf), "%s", tmp);
-		else
-			snprintf(buf, sizeof(buf), "%s, %s", buf, tmp);
+		} else {
+			append(buf, ", ", sizeof(buf));
+			append(buf, tmp, sizeof(buf));
+		}
 	} END_FOR_EACH_PTR(tmp);
 
 	state->name = alloc_sname(buf);
