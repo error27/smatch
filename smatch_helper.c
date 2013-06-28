@@ -62,7 +62,7 @@ struct smatch_state *alloc_state_num(int num)
 	return state;
 }
 
-static void append(char *dest, const char *data, int buff_len)
+void append(char *dest, const char *data, int buff_len)
 {
 	strncat(dest, data, buff_len - strlen(dest) - 1);
 }
