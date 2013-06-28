@@ -229,14 +229,14 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		if (*c == '(')
 			c++;
 		max = parse_val(1, call, type, c, &c);
+		if (*c == ')')
+			c++;
 		if (*c == '[') {
 			arg_max = get_val_from_key(1, type, c, call, &c);
 			if (sval_cmp(arg_max, max) < 0)
 				max = arg_max;
 		}
 		add_range(rl, min, max);
-		if (*c == ')')
-			c++;
 		if (!*c)
 			break;
 		if (*c != ',') {
