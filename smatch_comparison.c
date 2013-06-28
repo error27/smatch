@@ -608,7 +608,8 @@ done:
 
 
 
-static void update_tf_links(const char *left_var, struct symbol *left_sym,
+static void update_tf_links(struct state_list *pre_slist,
+			    const char *left_var, struct symbol *left_sym,
 			    int left_comparison,
 			    const char *mid_var, struct symbol *mid_sym,
 			    struct string_list *links)
@@ -625,7 +626,7 @@ static void update_tf_links(const char *left_var, struct symbol *left_sym,
 	char state_name[256];
 
 	FOR_EACH_PTR(links, tmp) {
-		state = get_state(compare_id, tmp, NULL);
+		state = get_state_slist(pre_slist, compare_id, tmp, NULL);
 		if (!state || !state->data)
 			continue;
 		data = state->data;
@@ -671,17 +672,17 @@ static void update_tf_links(const char *left_var, struct symbol *left_sym,
 	} END_FOR_EACH_PTR(tmp);
 }
 
-static void update_tf_data(struct compare_data *tdata)
+static void update_tf_data(struct state_list *pre_slist, struct compare_data *tdata)
 {
 	struct smatch_state *state;
 
-	state = get_state(link_id, tdata->var2, tdata->sym2);
+	state = get_state_slist(pre_slist, link_id, tdata->var2, tdata->sym2);
 	if (state)
-		update_tf_links(tdata->var1, tdata->sym1, tdata->comparison, tdata->var2, tdata->sym2, state->data);
+		update_tf_links(pre_slist, tdata->var1, tdata->sym1, tdata->comparison, tdata->var2, tdata->sym2, state->data);
 
-	state = get_state(link_id, tdata->var1, tdata->sym1);
+	state = get_state_slist(pre_slist, link_id, tdata->var1, tdata->sym1);
 	if (state)
-		update_tf_links(tdata->var2, tdata->sym2, flip_op(tdata->comparison), tdata->var1, tdata->sym1, state->data);
+		update_tf_links(pre_slist, tdata->var2, tdata->sym2, flip_op(tdata->comparison), tdata->var1, tdata->sym1, state->data);
 }
 
 static void match_compare(struct expression *expr)
@@ -692,6 +693,7 @@ static void match_compare(struct expression *expr)
 	int op, false_op;
 	struct smatch_state *true_state, *false_state;
 	char state_name[256];
+	struct state_list *pre_slist;
 
 	if (expr->type != EXPR_COMPARE)
 		return;
@@ -719,7 +721,9 @@ static void match_compare(struct expression *expr)
 	true_state = alloc_compare_state(left, left_sym, op, right, right_sym);
 	false_state = alloc_compare_state(left, left_sym, false_op, right, right_sym);
 
-	update_tf_data(true_state->data);
+	pre_slist = clone_slist(__get_cur_slist());
+	update_tf_data(pre_slist, true_state->data);
+	free_slist(&pre_slist);
 
 	set_true_false_states(compare_id, state_name, NULL, true_state, false_state);
 	save_link(expr->left, state_name);
