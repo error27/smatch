@@ -300,21 +300,21 @@ static void match_compare(const char *fn, struct expression *expr, void *info)
 	struct expression *one, *two;
 	char *one_name, *two_name;
 	int comparison;
-	const char *str;
+	char buf[16];
 
 	one = get_argument_from_call_expr(expr->args, 0);
 	two = get_argument_from_call_expr(expr->args, 1);
 
 	comparison = get_comparison(one, two);
 	if (!comparison)
-		str = "<nothing>";
+		snprintf(buf, sizeof(buf), "<none>");
 	else
-		str = show_special(comparison);
+		snprintf(buf, sizeof(buf), "%s", show_special(comparison));
 
-	one_name = expr_to_var(one);
-	two_name = expr_to_var(two);
+	one_name = expr_to_str(one);
+	two_name = expr_to_str(two);
 
-	sm_msg("%s %s %s", one_name, str, two_name);
+	sm_msg("%s %s %s", one_name, buf, two_name);
 
 	free_string(one_name);
 	free_string(two_name);
