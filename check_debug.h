@@ -4,6 +4,7 @@
 static inline void __smatch_cur_slist(void){}
 static inline void __smatch_all_values(void){}
 static inline void __smatch_state(const char *check_name, const char *state_name){}
+static inline void __smatch_states(const char *check_name){}
 static inline void __smatch_value(const char *unused){}
 static inline void __smatch_implied(long long val){}
 static inline void __smatch_implied_min(long long val){}
