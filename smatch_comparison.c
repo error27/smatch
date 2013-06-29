@@ -975,6 +975,56 @@ free:
 	return ret;
 }
 
+static void update_links_from_call(struct expression *left,
+				   int left_compare,
+				   struct expression *right)
+{
+	struct string_list *links;
+	struct smatch_state *state;
+	struct compare_data *data;
+	struct symbol *left_sym, *right_sym;
+	char *left_var = NULL;
+	char *right_var = NULL;
+	const char *var;
+	struct symbol *sym;
+	int comparison;
+	char *tmp;
+
+	left_var = chunk_to_var_sym(left, &left_sym);
+	if (!left_var)
+		goto done;
+	right_var = chunk_to_var_sym(right, &right_sym);
+	if (!right_var)
+		goto done;
+
+	state = get_state(link_id, right_var, right_sym);
+	if (!state)
+		return;
+	links = state->data;
+
+	FOR_EACH_PTR(links, tmp) {
+		state = get_state(compare_id, tmp, NULL);
+		if (!state || !state->data)
+			continue;
+		data = state->data;
+		comparison = data->comparison;
+		var = data->var2;
+		sym = data->sym2;
+		if (var_sym_eq(var, sym, right_var, right_sym)) {
+			var = data->var1;
+			sym = data->sym1;
+			comparison = flip_op(comparison);
+		}
+		comparison = combine_comparisons(left_compare, comparison);
+		if (!comparison)
+			continue;
+		add_comparison_var_sym(left_var, left_sym, comparison, var, sym);
+	} END_FOR_EACH_PTR(tmp);
+
+done:
+	free_string(right_var);
+}
+
 void __add_comparison_info(struct expression *expr, struct expression *call, const char *range)
 {
 	struct expression *arg;
@@ -983,6 +1033,7 @@ void __add_comparison_info(struct expression *expr, struct expression *call, con
 
 	if (!str_to_comparison_arg(c, call, &comparison, &arg))
 		return;
+	update_links_from_call(expr, comparison, arg);
 	add_comparison(expr, comparison, arg);
 }
 
