@@ -46,7 +46,7 @@ SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	smatch_helper.o smatch_type.o smatch_hooks.o smatch_function_hooks.o \
 	smatch_modification_hooks.o smatch_extra.o smatch_estate.o smatch_math.o \
 	smatch_sval.o smatch_ranges.o smatch_implied.o smatch_ignore.o smatch_project.o \
-	smatch_tracker.o smatch_files.o smatch_expression_stacks.o \
+	smatch_var_sym.o smatch_tracker.o smatch_files.o smatch_expression_stacks.o \
 	smatch_equiv.o smatch_buf_size.o smatch_capped.o smatch_db.o \
 	smatch_expressions.o smatch_returns.o smatch_parse_call_math.o \
 	smatch_param_limit.o smatch_param_filter.o \

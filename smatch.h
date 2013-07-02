@@ -63,6 +63,13 @@ struct sm_state {
 	struct state_list *possible;
 };
 
+struct var_sym {
+	char *var;
+	struct symbol *sym;
+};
+DECLARE_ALLOCATOR(var_sym);
+DECLARE_PTR_LIST(var_sym_list, struct var_sym);
+
 struct tracker {
 	int owner;
 	char *name;
@@ -306,6 +313,19 @@ struct symbol *get_member_type_from_key(struct expression *expr, char *key);
 /* smatch_ignore.c */
 void add_ignore(int owner, const char *name, struct symbol *sym);
 int is_ignored(int owner, const char *name, struct symbol *sym);
+
+/* smatch_var_sym */
+struct var_sym *alloc_var_sym(const char *var, struct symbol *sym);
+struct var_sym_list *expr_to_vsl(struct expression *expr);
+void add_var_sym(struct var_sym_list **list, const char *var, struct symbol *sym);
+void add_var_sym_expr(struct var_sym_list **list, struct expression *expr);
+void del_var_sym(struct var_sym_list **list, const char *var, struct symbol *sym);
+int in_var_sym_list(struct var_sym_list *list, const char *var, struct symbol *sym);
+struct var_sym_list *clone_var_sym_list(struct var_sym_list *from_vsl);
+void merge_var_sym_list(struct var_sym_list **dest, struct var_sym_list *src);
+struct var_sym_list *combine_var_sym_lists(struct var_sym_list *one, struct var_sym_list *two);
+void free_var_sym_list(struct var_sym_list **list);
+void free_var_syms_and_list(struct var_sym_list **list);
 
 /* smatch_tracker */
 struct tracker *alloc_tracker(int owner, const char *name, struct symbol *sym);
