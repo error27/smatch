@@ -11,6 +11,8 @@ static int options_write(void)
 	a = min_t(int, b + c, d);
 	__smatch_compare(a, d);
 	__smatch_compare(a, b + c);
+	b++;
+	__smatch_compare(a, b + c);
 }
 
 /*
@@ -20,5 +22,6 @@ static int options_write(void)
  * check-output-start
 sm_compare12.c:12 options_write() a <= d
 sm_compare12.c:13 options_write() a <= b + c
+sm_compare12.c:15 options_write() a <none> b + c
  * check-output-end
  */
