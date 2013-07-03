@@ -553,6 +553,8 @@ static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 		set_state(compare_id, tmp, NULL, &undefined);
 	} END_FOR_EACH_PTR(tmp);
 	set_state(link_id, sm->name, sm->sym, &undefined);
+
+
 }
 
 static char *chunk_to_var_sym(struct expression *expr, struct symbol **sym)
@@ -607,8 +609,15 @@ static void save_link(struct expression *expr, char *link)
 
 	expr = strip_expr(expr);
 	if (expr->type == EXPR_BINOP) {
+		char *chunk;
+
+		chunk = chunk_to_var(expr);
+		if (!chunk)
+			return;
+
 		save_link(expr->left, link);
 		save_link(expr->right, link);
+		save_link_var_sym(chunk, NULL, link);
 		return;
 	}
 
@@ -687,7 +696,10 @@ static void update_tf_links(struct state_list *pre_slist,
 		FOR_EACH_PTR(right_vsl, vs) {
 			save_link_var_sym(vs->var, vs->sym, state_name);
 		} END_FOR_EACH_PTR(vs);
-
+		if (!vsl_to_sym(left_vsl))
+			save_link_var_sym(left_var, NULL, state_name);
+		if (!vsl_to_sym(right_vsl))
+			save_link_var_sym(right_var, NULL, state_name);
 	} END_FOR_EACH_PTR(tmp);
 }
 
