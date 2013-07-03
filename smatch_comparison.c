@@ -43,11 +43,13 @@ int chunk_vsl_eq(const char *a, struct var_sym_list *a_vsl, const char *b, struc
 	return 0;
 }
 
-static struct symbol *first_sym(struct var_sym_list *vsl)
+static struct symbol *vsl_to_sym(struct var_sym_list *vsl)
 {
 	struct var_sym *vs;
 
 	if (!vsl)
+		return NULL;
+	if (ptr_list_size((struct ptr_list *)vsl) != 1)
 		return NULL;
 	vs = first_ptr_list((struct ptr_list *)vsl);
 	return vs->sym;
@@ -181,7 +183,7 @@ static struct range_list *get_orig_rl(struct var_sym_list *vsl)
 
 	if (!vsl)
 		return NULL;
-	sym = first_sym(vsl);
+	sym = vsl_to_sym(vsl);
 	if (!sym || !sym->ident)
 		return NULL;
 	state = get_orig_estate(sym->ident->name, sym);
@@ -199,11 +201,11 @@ static struct smatch_state *unmatched_comparison(struct sm_state *sm)
 
 	if (strstr(data->var1, " orig"))
 		left_rl = get_orig_rl(data->vsl1);
-	else if (!get_implied_rl_var_sym(data->var1, first_sym(data->vsl1), &left_rl))
+	else if (!get_implied_rl_var_sym(data->var1, vsl_to_sym(data->vsl1), &left_rl))
 		return &undefined;
 	if (strstr(data->var2, " orig"))
 		right_rl = get_orig_rl(data->vsl2);
-	else if (!get_implied_rl_var_sym(data->var2, first_sym(data->vsl2), &right_rl))
+	else if (!get_implied_rl_var_sym(data->var2, vsl_to_sym(data->vsl2), &right_rl))
 		return &undefined;
 
 
@@ -696,11 +698,11 @@ static void update_tf_data(struct state_list *pre_slist,
 {
 	struct smatch_state *state;
 
-	state = get_state_slist(pre_slist, link_id, tdata->var2, first_sym(tdata->vsl2));
+	state = get_state_slist(pre_slist, link_id, tdata->var2, vsl_to_sym(tdata->vsl2));
 	if (state)
 		update_tf_links(pre_slist, tdata->var1, tdata->vsl1, tdata->comparison, tdata->var2, tdata->vsl2, state->data);
 
-	state = get_state_slist(pre_slist, link_id, tdata->var1, first_sym(tdata->vsl1));
+	state = get_state_slist(pre_slist, link_id, tdata->var1, vsl_to_sym(tdata->vsl1));
 	if (state)
 		update_tf_links(pre_slist, tdata->var2, tdata->vsl2, flip_op(tdata->comparison), tdata->var1, tdata->vsl1, state->data);
 }
