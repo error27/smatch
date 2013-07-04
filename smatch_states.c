@@ -108,7 +108,7 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 	if (read_only)
 		sm_msg("Smatch Internal Error: cur_slist is read only.");
 
-	if (option_debug) {
+	if (option_debug || strcmp(check_name(owner), option_debug_check) == 0) {
 		struct smatch_state *s;
 
 		s = get_state(owner, name, sym);
@@ -207,7 +207,8 @@ void __set_sm(struct sm_state *sm)
 	if (read_only)
 		sm_msg("Smatch Internal Error: cur_slist is read only.");
 
-	if (option_debug) {
+	if (option_debug ||
+	    strcmp(check_name(sm->owner), option_debug_check) == 0) {
 		struct smatch_state *s;
 
 		s = get_state(sm->owner, sm->name, sm->sym);
@@ -369,13 +370,13 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state)
 {
-	if (option_debug) {
+	if (option_debug || strcmp(check_name(owner), option_debug_check) == 0) {
 		struct smatch_state *tmp;
 
 		tmp = get_state(owner, name, sym);
-		sm_debug("%d set_true_false '%s'.  Was %s.  Now T:%s F:%s\n",
-			 get_lineno(), name, show_state(tmp),
-			 show_state(true_state), show_state(false_state));
+		printf("%d set_true_false '%s'.  Was %s.  Now T:%s F:%s\n",
+		       get_lineno(), name, show_state(tmp),
+		       show_state(true_state), show_state(false_state));
 	}
 
 	if (unreachable())

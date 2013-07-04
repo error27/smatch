@@ -365,7 +365,8 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	copy_possibles(result, one);
 	copy_possibles(result, two);
 
-	if (option_debug) {
+	if (option_debug ||
+	    strcmp(check_name(one->owner), option_debug_check) == 0) {
 		struct sm_state *tmp;
 		int i = 0;
 

@@ -14,6 +14,7 @@
 #include "smatch.h"
 #include "check_list.h"
 
+char *option_debug_check = (char *)"";
 char *option_project_str = (char *)"";
 enum project_type option_project = PROJ_NONE;
 char *data_dir;
@@ -128,6 +129,11 @@ void parse_args(int *argcp, char ***argvp)
 		}
 		if (!found && !strncmp((*argvp)[1], "--data=", 7)) {
 			option_datadir_str = (*argvp)[1] + 7;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
+		}
+		if (!found && !strncmp((*argvp)[1], "--debug=", 8)) {
+			option_debug_check = (*argvp)[1] + 8;
 			(*argvp)[1] = (*argvp)[0];
 			found = 1;
 		}
