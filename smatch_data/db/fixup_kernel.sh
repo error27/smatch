@@ -5,6 +5,8 @@ cat << EOF | sqlite3 smatch_db.sqlite
 /* we only care about the main ->read/write() functions. */
 delete from caller_info where function = '(struct file_operations)->read' and file != 'fs/read_write.c';
 delete from caller_info where function = '(struct file_operations)->write' and file != 'fs/read_write.c';
+delete from function_ptr where function = '(struct file_operations)->read';
+delete from function_ptr where function = '(struct file_operations)->write';
 
 /* delete these function pointers which cause false positives */
 delete from caller_info where function = '(struct notifier_block)->notifier_call' and type != 0;
