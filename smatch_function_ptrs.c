@@ -13,6 +13,7 @@
  *
  */
 
+#include "scope.h"
 #include "smatch.h"
 #include "smatch_slist.h"
 
@@ -45,6 +46,30 @@ static char *get_array_ptr(struct expression *expr)
 	return alloc_string(buf);
 }
 
+static int is_local_symbol(struct symbol *sym)
+{
+	if (!sym || !sym->scope || !sym->scope->token)
+		return 0;
+	if (positions_eq(sym->scope->token->pos, cur_func_sym->pos))
+		return 1;
+	return 0;
+}
+
+static char *ptr_prefix(struct symbol *sym)
+{
+	static char buf[128];
+
+
+	if (is_local_symbol(sym))
+		snprintf(buf, sizeof(buf), "%s ptr", get_function());
+	else if (sym && toplevel(sym->scope))
+		snprintf(buf, sizeof(buf), "%s ptr", get_base_file());
+	else
+		snprintf(buf, sizeof(buf), "ptr");
+
+	return buf;
+}
+
 char *get_fnptr_name(struct expression *expr)
 {
 	char *name;
@@ -68,6 +93,8 @@ char *get_fnptr_name(struct expression *expr)
 	if (expr->type == EXPR_SYMBOL) {
 		int param;
 		char buf[256];
+		struct symbol *sym;
+		struct symbol *type;
 
 		param = get_param_num_from_sym(expr->symbol);
 		if (param >= 0) {
@@ -75,7 +102,16 @@ char *get_fnptr_name(struct expression *expr)
 			return alloc_string(buf);
 		}
 
-		return expr_to_var(expr);
+		name =  expr_to_var_sym(expr, &sym);
+		if (!name)
+			return NULL;
+		type = get_type(expr);
+		if (type && type->type == SYM_PTR) {
+			snprintf(buf, sizeof(buf), "%s %s", ptr_prefix(sym), name);
+			free_string(name);
+			return alloc_string(buf);
+		}
+		return name;
 	}
 	name = get_member_name(expr);
 	if (name)
@@ -133,7 +169,7 @@ static void match_function_assign(struct expression *expr)
 	right = strip_expr(expr->right);
 	if (right->type == EXPR_PREOP && right->op == '&')
 		right = strip_expr(right->unop);
-	if (right->type != EXPR_SYMBOL)
+	if (right->type != EXPR_SYMBOL && right->type != EXPR_DEREF)
 		return;
 	sym = get_type(right);
 	if (!sym)
