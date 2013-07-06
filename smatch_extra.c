@@ -1016,7 +1016,7 @@ static void move_known_values(struct expression **left_p, struct expression **ri
 	struct expression *right = *right_p;
 	sval_t sval;
 
-	if (get_value(left, &sval)) {
+	if (get_implied_value(left, &sval)) {
 		if (!is_simple_math(right))
 			return;
 		if (right->op == '+' && get_value(right->left, &sval)) {
@@ -1031,7 +1031,7 @@ static void move_known_values(struct expression **left_p, struct expression **ri
 		}
 		return;
 	}
-	if (get_value(right, &sval)) {
+	if (get_implied_value(right, &sval)) {
 		if (!is_simple_math(left))
 			return;
 		if (left->op == '+' && get_value(left->left, &sval)) {
