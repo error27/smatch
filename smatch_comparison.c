@@ -553,8 +553,6 @@ static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 		set_state(compare_id, tmp, NULL, &undefined);
 	} END_FOR_EACH_PTR(tmp);
 	set_state(link_id, sm->name, sm->sym, &undefined);
-
-
 }
 
 static char *chunk_to_var_sym(struct expression *expr, struct symbol **sym)
