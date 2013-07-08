@@ -338,20 +338,24 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 static void db_returns_buf_size(struct expression *expr, int param, char *unused, char *math)
 {
 	struct expression *call;
-	struct symbol *type;
+	struct symbol *left_type, *right_type;
 	int bytes;
 	sval_t sval;
 
 	if (expr->type != EXPR_ASSIGNMENT)
 		return;
+	right_type = get_pointer_type(expr->right);
+	if (!right_type || right_type->bit_size != -1)
+		return;
+
 	call = strip_expr(expr->right);
-	type = get_pointer_type(expr->left);
+	left_type = get_pointer_type(expr->left);
 
 	if (!parse_call_math(call, math, &sval) || sval.value == 0)
 		return;
-	if (!type)
+	if (!left_type)
 		return;
-	bytes = bits_to_bytes(type->bit_size);
+	bytes = bits_to_bytes(left_type->bit_size);
 	if (bytes <= 0)
 		return;
 	if (sval.uvalue >= bytes)
