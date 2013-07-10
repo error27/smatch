@@ -622,23 +622,6 @@ static void match_end_func(struct symbol *sym)
 	implied_debug_msg = NULL;
 }
 
-/*
- * get_implications() can be called by check_ scripts.
- */
-void get_implications(char *name, struct symbol *sym, int comparison, long long num,
-		      struct state_list **true_states,
-		      struct state_list **false_states)
-{
-	struct sm_state *sm;
-
-	sm = get_sm_state(SMATCH_EXTRA, name, sym);
-	if (!sm)
-		return;
-	if (slist_has_state(sm->possible, &undefined))
-		return;
-	separate_and_filter(sm, comparison, tmp_range_list(num), LEFT, __get_cur_slist(), true_states, false_states);
-}
-
 static int sm_state_in_slist(struct sm_state *sm, struct state_list *slist)
 {
 	struct sm_state *tmp;

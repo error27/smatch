@@ -377,9 +377,6 @@ int __handle_expr_statement_assigns(struct expression *expr);
 extern int option_debug_implied;
 extern int option_debug_related;
 extern int option_no_implied;
-void get_implications(char *name, struct symbol *sym, int comparison, long long num,
-		      struct state_list **true_states,
-		      struct state_list **false_states);
 struct range_list_stack;
 struct state_list *__implied_case_slist(struct expression *switch_expr,
 					struct expression *case_expr,
