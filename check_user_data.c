@@ -33,6 +33,19 @@ enum {
 
 static int is_user_macro(struct expression *expr)
 {
+	char *macro;
+	struct range_list *rl;
+
+	macro = get_macro_name(expr->pos);
+
+	if (!macro)
+		return 0;
+	if (get_implied_rl(expr, &rl) && !is_whole_rl(rl))
+		return 0;
+	if (strcmp(macro, "ntohl") == 0)
+		return SET_DATA;
+	if (strcmp(macro, "ntohs") == 0)
+		return SET_DATA;
 	return 0;
 }
 
@@ -549,4 +562,7 @@ void check_user_data(int id)
 	select_return_states_hook(USER_DATA, &db_return_states_userdata);
 
 	add_modification_hook(my_id, &set_capped);
+
+	add_macro_assign_hook("ntohl", &match_macro_assign, NULL);
+	add_macro_assign_hook("ntohs", &match_macro_assign, NULL);
 }
