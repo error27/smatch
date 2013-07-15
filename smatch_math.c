@@ -239,34 +239,68 @@ static struct range_list *handle_mod_rl(struct expression *expr, int implied)
 	return alloc_rl(zero, right);
 }
 
+static sval_t sval_lowest_set_bit(sval_t sval)
+{
+	int i;
+	int found = 0;
+
+	for (i = 0; i < 64; i++) {
+		if (sval.uvalue & 1ULL << i) {
+			if (!found++)
+				continue;
+			sval.uvalue &= ~(1ULL << i);
+		}
+	}
+	return sval;
+}
+
 static struct range_list *handle_bitwise_AND(struct expression *expr, int implied)
 {
 	struct symbol *type;
 	struct range_list *left_rl, *right_rl;
+	sval_t known;
 
 	if (implied != RL_IMPLIED && implied != RL_ABSOLUTE)
 		return NULL;
 
 	type = get_type(expr);
 
-	left_rl = _get_rl(expr->left, implied);
-	if (left_rl) {
+	if (get_implied_value(expr->left, &known)) {
+		sval_t min;
+
+		min = sval_lowest_set_bit(known);
+		left_rl = alloc_rl(min, known);
 		left_rl = cast_rl(type, left_rl);
-		left_rl = alloc_rl(sval_type_val(type, 0), rl_max(left_rl));
+		add_range(&left_rl, sval_type_val(type, 0), sval_type_val(type, 0));
 	} else {
-		if (implied == RL_HARD)
-			return NULL;
-		left_rl = alloc_whole_rl(type);
+		left_rl = _get_rl(expr->left, implied);
+		if (left_rl) {
+			left_rl = cast_rl(type, left_rl);
+			left_rl = alloc_rl(sval_type_val(type, 0), rl_max(left_rl));
+		} else {
+			if (implied == RL_HARD)
+				return NULL;
+			left_rl = alloc_whole_rl(type);
+		}
 	}
 
-	right_rl = _get_rl(expr->right, implied);
-	if (right_rl) {
+	if (get_implied_value(expr->right, &known)) {
+		sval_t min;
+
+		min = sval_lowest_set_bit(known);
+		right_rl = alloc_rl(min, known);
 		right_rl = cast_rl(type, right_rl);
-		right_rl = alloc_rl(sval_type_val(type, 0), rl_max(right_rl));
+		add_range(&right_rl, sval_type_val(type, 0), sval_type_val(type, 0));
 	} else {
-		if (implied == RL_HARD)
-			return NULL;
-		right_rl = alloc_whole_rl(type);
+		right_rl = _get_rl(expr->right, implied);
+		if (right_rl) {
+			right_rl = cast_rl(type, right_rl);
+			right_rl = alloc_rl(sval_type_val(type, 0), rl_max(right_rl));
+		} else {
+			if (implied == RL_HARD)
+				return NULL;
+			right_rl = alloc_whole_rl(type);
+		}
 	}
 
 	return rl_intersection(left_rl, right_rl);
