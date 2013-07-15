@@ -517,8 +517,10 @@ static void print_returned_user_data(int return_id, char *return_ranges, struct 
 
 		if (slist_has_state(tmp->possible, &user_data_set))
 			passed_or_new = "1";
-		if (slist_has_state(tmp->possible, &user_data_passed))
+		else if (slist_has_state(tmp->possible, &user_data_passed))
 			passed_or_new = "2";
+		else
+			continue;
 
 		sql_insert_return_states(return_id, return_ranges, USER_DATA,
 				param, param_name, passed_or_new);
