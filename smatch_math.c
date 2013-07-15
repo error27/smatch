@@ -715,6 +715,23 @@ static struct range_list *handle_call_rl(struct expression *expr, int implied)
 	return db_return_vals(expr);
 }
 
+static struct range_list *handle_cast(struct expression *expr, int implied)
+{
+	struct range_list *rl;
+	struct symbol *type;
+
+	type = get_type(expr);
+	rl = _get_rl(expr->cast_expression, implied);
+	if (rl)
+		return cast_rl(type, rl);
+	if (implied == RL_ABSOLUTE)
+		return alloc_whole_rl(type);
+	if (implied == RL_IMPLIED && type &&
+	    type->bit_size > 0 && type->bit_size < 32)
+		return alloc_whole_rl(type);
+	return NULL;
+}
+
 static struct range_list *_get_rl(struct expression *expr, int implied)
 {
 	struct range_list *rl;
@@ -740,8 +757,7 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
-		rl = _get_rl(expr->cast_expression, implied);
-		rl = cast_rl(type, rl);
+		rl = handle_cast(expr, implied);
 		break;
 	case EXPR_BINOP:
 		rl = handle_binop_rl(expr, implied);
