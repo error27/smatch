@@ -613,6 +613,7 @@ int is_capped(struct expression *expr);
 int is_capped_var_sym(const char *name, struct symbol *sym);
 
 /* check_user_data.c */
+int is_user_macro(struct expression *expr);
 int is_user_data(struct expression *expr);
 int is_capped_user_data(struct expression *expr);
 

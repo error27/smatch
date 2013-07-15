@@ -31,7 +31,7 @@ enum {
 	PASSED_DATA = 2,
 };
 
-static int is_user_macro(struct expression *expr)
+int is_user_macro(struct expression *expr)
 {
 	char *macro;
 	struct range_list *rl;
