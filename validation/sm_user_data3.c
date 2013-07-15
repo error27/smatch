@@ -28,8 +28,8 @@ void test(void)
  * check-command: smatch -p=kernel -I.. sm_user_data3.c
  *
  * check-output-start
-sm_user_data3.c:19 test() 'b->y' = 'user_data'
+sm_user_data3.c:19 test() 'b->y' = 'user_data_set'
 sm_user_data3.c:21 test() 'b->y' = 'capped'
-sm_user_data3.c:23 test() 'b->y' = 'user_data'
+sm_user_data3.c:23 test() 'b->y' = 'user_data_set'
  * check-output-end
  */

@@ -20,13 +20,16 @@
 
 void tag_as_user_data(struct expression *expr);
 
-#define NEW_USER_DATA		1
-#define PASSED_IN_USER_DATA	2
-
 static int my_id;
 
 STATE(capped);
-STATE(user_data);
+STATE(user_data_passed);
+STATE(user_data_set);
+
+enum {
+	SET_DATA = 1,
+	PASSED_DATA = 2,
+};
 
 static int is_user_macro(struct expression *expr)
 {
@@ -75,7 +78,7 @@ static struct expression *db_expr;
 static int db_user_data;
 static int db_user_data_callback(void *unused, int argc, char **argv, char **azColName)
 {
-	if (atoi(argv[0]) == PASSED_IN_USER_DATA && !passes_user_data(db_expr))
+	if (atoi(argv[0]) == PASSED_DATA && !passes_user_data(db_expr))
 		return 0;
 	db_user_data = 1;
 	return 0;
@@ -113,7 +116,7 @@ static int is_user_function(struct expression *expr)
 	if (expr->type != EXPR_CALL)
 		return 0;
 	if (sym_name_is("kmemdup_user", expr->fn))
-		return 1;
+		return SET_DATA;
 	return is_user_fn_db(expr);
 }
 
@@ -141,7 +144,7 @@ static int is_skb_data(struct expression *expr)
 	if (len < 6)
 		goto free;
 	if (strcmp(name + len - 6, "->data") == 0)
-		ret = 1;
+		ret = SET_DATA;
 
 free:
 	free_string(name);
@@ -170,8 +173,13 @@ static int is_user_data_state(struct expression *expr)
 	int user = 0;
 
 	tmp = get_sm_state_expr(my_id, expr);
-	if (tmp)
-		return slist_has_state(tmp->possible, &user_data);
+	if (tmp) {
+		if (slist_has_state(tmp->possible, &user_data_set))
+			return SET_DATA;
+		if (slist_has_state(tmp->possible, &user_data_passed))
+			return PASSED_DATA;
+		return 0;
+	}
 
 	name = expr_to_str_sym(expr, &sym);
 	if (!name || !sym)
@@ -182,8 +190,10 @@ static int is_user_data_state(struct expression *expr)
 		if (tmp->sym != sym)
 			continue;
 		if (!strncmp(tmp->name, name, strlen(tmp->name))) {
-			if (slist_has_state(tmp->possible, &user_data))
-				user = 1;
+			if (slist_has_state(tmp->possible, &user_data_set))
+				user = SET_DATA;
+			else if (slist_has_state(tmp->possible, &user_data_passed))
+				user = PASSED_DATA;
 			goto free;
 		}
 	} END_FOR_EACH_PTR(tmp);
@@ -196,6 +206,8 @@ free:
 
 int is_user_data(struct expression *expr)
 {
+	int user_data;
+
 	if (!expr)
 		return 0;
 
@@ -204,22 +216,27 @@ int is_user_data(struct expression *expr)
 	if (in_container_of_macro(expr))
 		return 0;
 
-	if (is_user_macro(expr))
-		return 1;
-	if (is_user_function(expr))
-		return 1;
-	if (is_skb_data(expr))
-		return 1;
+	user_data = is_user_macro(expr);
+	if (user_data)
+		return user_data;
+	user_data = is_user_function(expr);
+	if (user_data)
+		return user_data;
+	user_data = is_skb_data(expr);
+	if (user_data)
+		return user_data;
 
 	expr = strip_expr(expr);  /* this has to come after is_user_macro() */
 
 	if (expr->type == EXPR_BINOP) {
-		if (is_user_data(expr->left))
-			return 1;
+		user_data = is_user_data(expr->left);
+		if (user_data)
+			return user_data;
 		if (is_array(expr))
 			return 0;
-		if (is_user_data(expr->right))
-			return 1;
+		user_data = is_user_data(expr->right);
+		if (user_data)
+			return user_data;
 		return 0;
 	}
 	if (expr->type == EXPR_PREOP && (expr->op == '&' || expr->op == '*'))
@@ -248,7 +265,7 @@ void set_param_user_data(const char *name, struct symbol *sym, char *key, char *
 	if (strncmp(key, "$$", 2) != 0)
 		return;
 	snprintf(fullname, 256, "%s%s", name, key + 2);
-	set_state(my_id, fullname, sym, &user_data);
+	set_state(my_id, fullname, sym, &user_data_passed);
 }
 
 static void match_syscall_definition(struct symbol *sym)
@@ -264,7 +281,7 @@ static void match_syscall_definition(struct symbol *sym)
 		return;
 
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
-		set_state(my_id, arg->ident->name, arg, &user_data);
+		set_state(my_id, arg->ident->name, arg, &user_data_set);
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -313,8 +330,13 @@ static void set_capped(struct sm_state *sm, struct expression *mod_expr)
 
 static void match_normal_assign(struct expression *expr)
 {
-	if (is_user_data(expr->right))
-		set_state_expr(my_id, expr->left, &user_data);
+	int user_data;
+
+	user_data = is_user_data(expr->right);
+	if (user_data == PASSED_DATA)
+		set_state_expr(my_id, expr->left, &user_data_passed);
+	if (user_data == SET_DATA)
+		set_state_expr(my_id, expr->left, &user_data_set);
 }
 
 static void match_assign(struct expression *expr)
@@ -329,7 +351,7 @@ static void match_assign(struct expression *expr)
 	name = expr_to_var(expr->right);
 	if (!name || strcmp(name, "__val_gu") != 0)
 		goto free;
-	set_state_expr(my_id, expr->left, &user_data);
+	set_state_expr(my_id, expr->left, &user_data_set);
 free:
 	free_string(name);
 }
@@ -349,7 +371,7 @@ static void tag_struct_members(struct symbol *type, struct expression *expr)
 		if (!tmp->ident)
 			continue;
 		member = member_expression(expr, op, tmp->ident);
-		set_state_expr(my_id, member, &user_data);
+		set_state_expr(my_id, member, &user_data_set);
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -359,7 +381,7 @@ static void tag_base_type(struct expression *expr)
 		expr = strip_expr(expr->unop);
 	else
 		expr = deref_expression(expr);
-	set_state_expr(my_id, expr, &user_data);
+	set_state_expr(my_id, expr, &user_data_set);
 }
 
 void tag_as_user_data(struct expression *expr)
@@ -375,7 +397,7 @@ void tag_as_user_data(struct expression *expr)
 	if (!type)
 		return;
 	if (type == &void_ctype) {
-		set_state_expr(my_id, deref_expression(expr), &user_data);
+		set_state_expr(my_id, deref_expression(expr), &user_data_set);
 		return;
 	}
 	if (type->type == SYM_BASETYPE)
@@ -401,13 +423,19 @@ static void match_user_copy(const char *fn, struct expression *expr, void *_para
 
 static void match_user_assign_function(const char *fn, struct expression *expr, void *unused)
 {
-	set_state_expr(my_id, expr->left, &user_data);
+	set_state_expr(my_id, expr->left, &user_data_set);
 }
 
-static void match_assign_userdata(struct expression *expr)
+static void match_macro_assign(const char *fn, struct expression *expr, void *_bits)
 {
-	if (is_user_data(expr->right))
-		set_state_expr(my_id, expr->left, &user_data);
+	int bits;
+
+	bits = nr_bits(expr->left);
+	if (!bits)
+		return;
+	if (bits > nr_bits(expr->right))
+		return;
+	set_state_expr(my_id, expr->left, &user_data_set);
 }
 
 static void match_caller_info(struct expression *expr)
@@ -437,27 +465,22 @@ static void returned_member_callback(int return_id, char *return_ranges, char *p
 	sql_insert_return_states(return_id, return_ranges, USER_DATA, -1, printed_name, "");
 }
 
-int was_passed_in_user_data(struct expression *expr)
-{
-	int ret;
-
-	__set_fake_cur_slist_fast(get_start_states());
-	ret = is_user_data_state(expr);
-	__pop_fake_cur_slist_fast();
-	return ret;
-}
-
 static void print_returned_user_data(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct state_list *my_slist;
 	struct sm_state *tmp;
 	int param;
+	int user_data;
 	const char *passed_or_new;
 
-	passed_or_new = was_passed_in_user_data(expr) ? "2" : "1";
-	if (is_user_data(expr)) {
+	user_data = is_user_data(expr);
+	if (user_data == PASSED_DATA) {
 		sql_insert_return_states(return_id, return_ranges, USER_DATA,
-				-1, "$$", passed_or_new);
+				-1, "$$", "2");
+	}
+	if (user_data == SET_DATA) {
+		sql_insert_return_states(return_id, return_ranges, USER_DATA,
+				-1, "$$", "1");
 	}
 
 	my_slist = get_all_states(my_id);
@@ -471,12 +494,18 @@ static void print_returned_user_data(int return_id, char *return_ranges, struct 
 
 		if (is_capped_var_sym(tmp->name, tmp->sym))
 			continue;
+		/* ignore states that were already USER_DATA to begin with */
 		if (get_state_slist(get_start_states(), my_id, tmp->name, tmp->sym))
 			continue;
 
 		param_name = get_param_name(tmp);
 		if (!param_name)
 			return;
+
+		if (slist_has_state(tmp->possible, &user_data_set))
+			passed_or_new = "1";
+		if (slist_has_state(tmp->possible, &user_data_passed))
+			passed_or_new = "2";
 
 		sql_insert_return_states(return_id, return_ranges, USER_DATA,
 				param, param_name, passed_or_new);
@@ -494,7 +523,7 @@ static void db_return_states_userdata(struct expression *expr, int param, char *
 	if (!name || !sym)
 		goto free;
 
-	set_state(my_id, name, sym, &user_data);
+	set_state(my_id, name, sym, &user_data_set);
 free:
 	free_string(name);
 }
@@ -508,7 +537,6 @@ void check_user_data(int id)
 	add_hook(&match_syscall_definition, FUNC_DEF_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
-	add_hook(&match_assign_userdata, ASSIGNMENT_HOOK);
 	add_function_hook("copy_from_user", &match_user_copy, INT_PTR(0));
 	add_function_hook("__copy_from_user", &match_user_copy, INT_PTR(0));
 	add_function_hook("memcpy_fromiovec", &match_user_copy, INT_PTR(0));

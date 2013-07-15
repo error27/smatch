@@ -25,6 +25,6 @@ void test(void)
  * check-command: smatch -p=kernel -I.. sm_user_data1.c
  *
  * check-output-start
-sm_user_data1.c:21 test() 'foo.x' = 'user_data'
+sm_user_data1.c:21 test() 'foo.x' = 'user_data_set'
  * check-output-end
  */

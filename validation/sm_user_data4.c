@@ -38,8 +38,8 @@ void test(void)
  * check-command: smatch -p=kernel -I.. sm_user_data4.c
  *
  * check-output-start
-sm_user_data4.c:30 test() 'x' = 'user_data'
+sm_user_data4.c:30 test() 'x' = 'user_data_set'
 sm_user_data4.c:32 test() check_user_data 'p' not found
-sm_user_data4.c:33 test() 'p->x' = 'user_data'
+sm_user_data4.c:33 test() 'p->x' = 'user_data_set'
  * check-output-end
  */
