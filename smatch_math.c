@@ -826,6 +826,14 @@ int get_implied_rl(struct expression *expr, struct range_list **rl)
 	return 0;
 }
 
+int get_absolute_rl(struct expression *expr, struct range_list **rl)
+{
+	*rl = _get_rl(expr, RL_ABSOLUTE);
+	if (!*rl)
+		*rl = alloc_whole_rl(get_type(expr));
+	return 1;
+}
+
 int get_implied_rl_var_sym(const char *var, struct symbol *sym, struct range_list **rl)
 {
 	struct smatch_state *state;
