@@ -217,12 +217,11 @@ static void match_copy_to_user(const char *fn, struct expression *expr, void *_a
 	struct expression *data;
 
 	data = get_argument_from_call_expr(expr->args, arg);
+	data = strip_expr(data);
 	if (!data)
 		return;
-	if (data->type != EXPR_PREOP || data->op != '&')
-		return;
-
-	data = strip_expr(data->unop);
+	if (data->type == EXPR_PREOP && data->op == '&')
+		data = strip_expr(data->unop);
 	if (data->type != EXPR_SYMBOL)
 		return;
 
