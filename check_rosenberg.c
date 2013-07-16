@@ -171,16 +171,17 @@ static int member_uninitialized(char *name, struct symbol *outer, struct symbol 
 	return TRUE;
 }
 
-static void check_members_initialized(struct expression *expr)
+static int check_members_initialized(struct expression *expr)
 {
 	char *name;
 	struct symbol *outer;
 	struct symbol *sym;
 	struct symbol *tmp;
+	int printed = 0;
 
 	sym = get_type(expr);
 	if (!sym || sym->type != SYM_STRUCT)
-		return;
+		return 0;
 
 	name = expr_to_var_sym(expr, &outer);
 
@@ -200,11 +201,14 @@ static void check_members_initialized(struct expression *expr)
 
 check:
 	FOR_EACH_PTR(sym->symbol_list, tmp) {
-		if (member_uninitialized(name, outer, tmp))
+		if (member_uninitialized(name, outer, tmp)) {
+			printed = 1;
 			goto out;
+		}
 	} END_FOR_EACH_PTR(tmp);
 out:
 	free_string(name);
+	return printed;
 }
 
 static void match_copy_to_user(const char *fn, struct expression *expr, void *_arg)
