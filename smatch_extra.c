@@ -1124,6 +1124,28 @@ static void match_comparison(struct expression *expr)
 	}
 }
 
+static void handle_AND_condition(struct expression *expr)
+{
+	struct range_list *rl = NULL;
+	sval_t known;
+
+	if (get_implied_value(expr->left, &known) && known.value > 0) {
+		known.value--;
+		get_absolute_rl(expr->right, &rl);
+		rl = remove_range(rl, sval_type_val(known.type, 0), known);
+		set_extra_expr_true_false(expr->right, alloc_estate_rl(rl), NULL);
+		return;
+	}
+
+	if (get_implied_value(expr->right, &known) && known.value > 0) {
+		known.value--;
+		get_absolute_rl(expr->left, &rl);
+		rl = remove_range(rl, sval_type_val(known.type, 0), known);
+		set_extra_expr_true_false(expr->left, alloc_estate_rl(rl), NULL);
+		return;
+	}
+}
+
 /* this is actually hooked from smatch_implied.c...  it's hacky, yes */
 void __extra_match_condition(struct expression *expr)
 {
@@ -1164,6 +1186,10 @@ void __extra_match_condition(struct expression *expr)
 		return;
 	case EXPR_ASSIGNMENT:
 		__extra_match_condition(expr->left);
+		return;
+	case EXPR_BINOP:
+		if (expr->op == '&')
+			handle_AND_condition(expr);
 		return;
 	}
 }
