@@ -284,6 +284,7 @@ void check_rosenberg(int id)
 	register_clears_argument();
 
 	add_function_hook("copy_to_user", &match_copy_to_user, INT_PTR(1));
+	add_function_hook("__copy_to_user", &match_copy_to_user, INT_PTR(1));
 	add_function_hook("nla_put", &match_copy_to_user, INT_PTR(3));
 	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
 }
