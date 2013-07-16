@@ -840,6 +840,8 @@ static struct ident *number_to_member(struct expression *expr, int num)
 	return NULL;
 }
 
+static void fake_element_assigns_helper(struct expression *array, struct expression_list *expr_list, fake_cb *fake_cb);
+
 static void fake_member_assigns_helper(struct expression *symbol, struct expression_list *members, fake_cb *fake_cb)
 {
 	struct expression *deref, *assign, *tmp;
@@ -848,21 +850,24 @@ static void fake_member_assigns_helper(struct expression *symbol, struct express
 	int member_idx = 0;
 
 	type = get_type(symbol);
-	if (!type || type->type != SYM_STRUCT)
+	if (!type || (type->type != SYM_STRUCT && type->type != SYM_UNION))
 		return;
 
 	FOR_EACH_PTR(members, tmp) {
-		if (tmp->type == EXPR_IDENTIFIER) {
+		member = number_to_member(symbol, member_idx);
+		while (tmp->type == EXPR_IDENTIFIER) {
 			member = tmp->expr_ident;
 			member_idx = member_to_number(symbol, member);
 			tmp = tmp->ident_expression;
-		} else {
-			member = number_to_member(symbol, member_idx);
 		}
 		member_idx++;
 		deref = member_expression(symbol, '.', member);
 		if (tmp->type == EXPR_INITIALIZER) {
-			fake_member_assigns_helper(deref, tmp->expr_list, fake_cb);
+			type = get_type(deref);
+			if (type && type->type == SYM_ARRAY)
+				fake_element_assigns_helper(deref, tmp->expr_list, fake_cb);
+			else
+				fake_member_assigns_helper(deref, tmp->expr_list, fake_cb);
 		} else {
 			assign = assign_expression(deref, tmp);
 			fake_cb(assign);
@@ -876,14 +881,14 @@ static void fake_member_assigns(struct symbol *sym, fake_cb *fake_cb)
 				   sym->initializer->expr_list, fake_cb);
 }
 
-static void fake_element_assigns(struct symbol *sym, fake_cb *fake_cb)
+static void fake_element_assigns_helper(struct expression *array, struct expression_list *expr_list, fake_cb *fake_cb)
 {
-	struct expression *array, *offset, *binop, *assign, *tmp;
+	struct expression *offset, *binop, *assign, *tmp;
+	struct symbol *type;
 	int idx;
 
-	array = symbol_expression(sym);
 	idx = 0;
-	FOR_EACH_PTR(sym->initializer->expr_list, tmp) {
+	FOR_EACH_PTR(expr_list, tmp) {
 		if (tmp->type == EXPR_INDEX) {
 			if (tmp->idx_from != tmp->idx_to)
 				return;
@@ -895,7 +900,11 @@ static void fake_element_assigns(struct symbol *sym, fake_cb *fake_cb)
 		offset = value_expr(idx);
 		binop = array_element_expression(array, offset);
 		if (tmp->type == EXPR_INITIALIZER) {
-			fake_member_assigns_helper(binop, tmp->expr_list, fake_cb);
+			type = get_type(binop);
+			if (type && type->type == SYM_ARRAY)
+				fake_element_assigns_helper(binop, tmp->expr_list, fake_cb);
+			else
+				fake_member_assigns_helper(binop, tmp->expr_list, fake_cb);
 		} else {
 			assign = assign_expression(binop, tmp);
 			fake_cb(assign);
@@ -903,6 +912,11 @@ static void fake_element_assigns(struct symbol *sym, fake_cb *fake_cb)
 next:
 		idx++;
 	} END_FOR_EACH_PTR(tmp);
+}
+
+static void fake_element_assigns(struct symbol *sym, fake_cb *fake_cb)
+{
+	fake_element_assigns_helper(symbol_expression(sym), sym->initializer->expr_list, fake_cb);
 }
 
 static void fake_assign_expr(struct symbol *sym)

@@ -241,6 +241,11 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		}
 		return;
 	}
+	case EXPR_IDENTIFIER:
+		*complicated = 1;
+		if (expr->expr_ident && expr->expr_ident->name)
+			append(buf, expr->expr_ident->name, len);
+		return;
 	default:
 		*complicated = 1;
 		//printf("unknown type = %d\n", expr->type);
