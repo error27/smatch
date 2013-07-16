@@ -236,6 +236,16 @@ static void match_copy_to_user(const char *fn, struct expression *expr, void *_a
 	check_members_initialized(data);
 }
 
+static void db_param_cleared(struct expression *expr, int param, char *key, char *value)
+{
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return;
+
+	match_clear(NULL, expr, INT_PTR(param));
+}
+
 static void register_clears_argument(void)
 {
 	struct token *token;
@@ -275,6 +285,7 @@ void check_rosenberg(int id)
 
 	add_function_hook("copy_to_user", &match_copy_to_user, INT_PTR(1));
 	add_function_hook("nla_put", &match_copy_to_user, INT_PTR(3));
+	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
 }
 
 void check_rosenberg2(int id)
