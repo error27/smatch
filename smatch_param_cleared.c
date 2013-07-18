@@ -150,7 +150,7 @@ void register_param_cleared(int id)
 	register_clears_param();
 
 	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
-	add_returned_state_callback(&print_return_value_param);
+	add_split_return_callback(&print_return_value_param);
 
 	if (option_project == PROJ_KERNEL) {
 		add_function_hook("usb_control_msg", &match_usb_control_msg, NULL);

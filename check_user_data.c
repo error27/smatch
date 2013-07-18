@@ -560,7 +560,7 @@ void check_user_data(int id)
 	add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
 	add_returned_member_callback(my_id, returned_member_callback);
-	add_returned_state_callback(print_returned_user_data);
+	add_split_return_callback(print_returned_user_data);
 	select_return_states_hook(USER_DATA, &db_return_states_userdata);
 
 	add_modification_hook(my_id, &set_capped);

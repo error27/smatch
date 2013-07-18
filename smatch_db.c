@@ -297,7 +297,7 @@ void add_member_info_callback(int owner, void (*callback)(struct expression *cal
 	add_ptr_list(&member_callbacks, member_callback);
 }
 
-void add_returned_state_callback(void (*fn)(int return_id, char *return_ranges, struct expression *returned_expr))
+void add_split_return_callback(void (*fn)(int return_id, char *return_ranges, struct expression *returned_expr))
 {
 	struct returned_state_callback *callback = __alloc_returned_state_callback(0);
 
@@ -1064,8 +1064,8 @@ void register_definition_db_callbacks(int id)
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	add_hook(&global_variable, BASE_HOOK);
 	add_hook(&global_variable, DECLARATION_HOOK);
-	add_returned_state_callback(match_return_info);
-	add_returned_state_callback(print_returned_struct_members);
+	add_split_return_callback(match_return_info);
+	add_split_return_callback(print_returned_struct_members);
 	add_hook(&call_return_state_hooks, RETURN_HOOK);
 	add_hook(&match_end_func_info, END_FUNC_HOOK);
 

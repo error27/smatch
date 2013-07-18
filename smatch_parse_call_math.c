@@ -508,6 +508,6 @@ void register_parse_call_math(int id)
 		add_function_assign_hook(alloc_functions[i].func, &match_alloc,
 				         INT_PTR(alloc_functions[i].param));
 	add_hook(&match_call_assignment, CALL_ASSIGNMENT_HOOK);
-	add_returned_state_callback(print_returned_allocations);
+	add_split_return_callback(print_returned_allocations);
 }
 

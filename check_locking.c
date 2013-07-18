@@ -896,6 +896,6 @@ void check_locking(int id)
 		return;
 
 	add_unmatched_state_hook(my_id, &unmatched_state);
-	add_returned_state_callback(match_return);
+	add_split_return_callback(match_return);
 	add_hook(&match_func_end, END_FUNC_HOOK);
 }
