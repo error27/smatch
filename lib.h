@@ -113,6 +113,8 @@ extern int Wvla;
 extern int dbg_entry;
 extern int dbg_dead;
 
+extern int arch_m64;
+
 extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);
 extern struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list **files);
