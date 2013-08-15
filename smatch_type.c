@@ -18,6 +18,8 @@ struct symbol *get_real_base_type(struct symbol *sym)
 {
 	struct symbol *ret;
 
+	if (!sym)
+		return NULL;
 	ret = get_base_type(sym);
 	if (ret && ret->type == SYM_RESTRICT)
 		return get_real_base_type(ret);
