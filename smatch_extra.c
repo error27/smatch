@@ -33,6 +33,8 @@ static int in_warn_on_macro()
 	char *macro;
 
 	stmt = get_current_statement();
+	if (!stmt)
+		return 0;
 	macro = get_macro_name(stmt->pos);
 	if (!macro)
 		return 0;
