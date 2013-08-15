@@ -86,8 +86,25 @@ static void match_check_params(struct expression *call)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static struct string_list *macro_takes_sizeof_argument;
+static void check_sizeof_number(struct expression *expr)
+{
+	char *macro, *tmp;
+
+	if (expr->type != EXPR_VALUE)
+		return;
+	macro = get_macro_name(expr->pos);
+	FOR_EACH_PTR(macro_takes_sizeof_argument, tmp) {
+		if (macro && strcmp(tmp, macro) == 0)
+			return;
+	} END_FOR_EACH_PTR(tmp);
+
+	sm_msg("warn: sizeof(NUMBER)?");
+}
+
 static void match_sizeof(struct expression *expr)
 {
+	check_sizeof_number(expr);
 	if (expr->type == EXPR_PREOP && expr->op == '&')
 		sm_msg("warn: sizoef(&pointer)?");
 	if (expr->type == EXPR_SIZEOF)
@@ -97,10 +114,35 @@ static void match_sizeof(struct expression *expr)
 		sm_msg("warn: taking sizeof binop");
 }
 
+static void register_macro_takes_sizeof_argument(void)
+{
+	struct token *token;
+	char *macro;
+	char name[256];
+
+	snprintf(name, 256, "%s.macro_takes_sizeof_argument", option_project_str);
+
+	token = get_tokens_file(name);
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		macro = alloc_string(show_ident(token->ident));
+		add_ptr_list(&macro_takes_sizeof_argument, macro);
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
 void check_sizeof(int id)
 {
 	my_id = id;
 
+	register_macro_takes_sizeof_argument();
 	add_hook(&match_call_assignment, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_check_params, FUNCTION_CALL_HOOK);
 	add_hook(&match_sizeof, SIZEOF_HOOK);
