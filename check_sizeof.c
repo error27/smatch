@@ -106,7 +106,7 @@ static void match_sizeof(struct expression *expr)
 {
 	check_sizeof_number(expr);
 	if (expr->type == EXPR_PREOP && expr->op == '&')
-		sm_msg("warn: sizoef(&pointer)?");
+		sm_msg("warn: sizeof(&pointer)?");
 	if (expr->type == EXPR_SIZEOF)
 		sm_msg("warn: sizoef(sizeof())?");
 	/* the ilog2() macro is a valid place to check the size of a binop */
