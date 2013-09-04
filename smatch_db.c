@@ -20,6 +20,8 @@ static sqlite3 *mem_db;
 
 #define sql_insert(table, values...)						\
 do {										\
+	if (!mem_db)								\
+		break;								\
 	if (__inline_fn) {							\
 		char buf[1024];							\
 		char *err, *p = buf;						\
@@ -35,7 +37,7 @@ do {										\
 			fprintf(stderr, "SQL error #2: %s\n", err);		\
 			fprintf(stderr, "SQL: '%s'\n", buf);			\
 		}								\
-		return;								\
+		break;								\
 	}									\
 	if (option_info) {							\
 		sm_prefix();							\
@@ -102,6 +104,9 @@ void sql_mem_exec(int (*callback)(void*, int, char**, char**), const char *sql)
 {
 	char *err = NULL;
 	int rc;
+
+	if (!mem_db)
+		return;
 
 	rc = sqlite3_exec(mem_db, sql, callback, 0, &err);
 	if (rc != SQLITE_OK) {
@@ -996,8 +1001,10 @@ static void init_memdb(void)
 
 	for (i = 0; i < ARRAY_SIZE(schema_files); i++) {
 		fd = open_data_file(schema_files[i]);
-		if (fd < 0)
-			continue;
+		if (fd < 0) {
+			mem_db = NULL;
+			return;
+		}
 		ret = read(fd, buf, sizeof(buf));
 		if (ret == sizeof(buf)) {
 			printf("Schema file too large:  %s (limit %zd bytes)",
