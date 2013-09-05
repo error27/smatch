@@ -324,8 +324,6 @@ static struct range_list *handle_right_shift(struct expression *expr, int implie
 	} else {
 		if (implied == RL_FUZZY)
 			return NULL;
-		if (implied == RL_HARD)
-			return NULL;
 		max = sval_type_max(get_type(expr->left));
 		min = sval_type_val(get_type(expr->left), 0);
 	}
