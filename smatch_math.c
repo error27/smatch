@@ -333,6 +333,42 @@ static struct range_list *handle_right_shift(struct expression *expr, int implie
 	return alloc_rl(min, max);
 }
 
+static struct range_list *handle_left_shift(struct expression *expr, int implied)
+{
+	struct range_list *left_rl, *res;
+	sval_t right;
+	sval_t min, max;
+	int add_zero = 0;
+
+	if (implied == RL_EXACT || implied == RL_HARD)
+		return NULL;
+	/* this is hopeless without the right side */
+	if (!get_implied_value(expr->right, &right))
+		return NULL;
+	left_rl = _get_rl(expr->left, implied);
+	if (left_rl) {
+		max = rl_max(left_rl);
+		min = rl_min(left_rl);
+		if (min.value == 0) {
+			min.value = 1;
+			add_zero = 1;
+		}
+	} else {
+		if (implied == RL_FUZZY)
+			return NULL;
+		max = sval_type_max(get_type(expr->left));
+		min = sval_type_val(get_type(expr->left), 1);
+		add_zero = 1;
+	}
+
+	max = sval_binop(max, SPECIAL_LEFTSHIFT, right);
+	min = sval_binop(min, SPECIAL_LEFTSHIFT, right);
+	res = alloc_rl(min, max);
+	if (add_zero)
+		res = rl_union(res, rl_zero());
+	return res;
+}
+
 static struct range_list *handle_known_binop(struct expression *expr)
 {
 	sval_t left, right;
@@ -364,6 +400,8 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 		return handle_bitwise_AND(expr, implied);
 	case SPECIAL_RIGHTSHIFT:
 		return handle_right_shift(expr, implied);
+	case SPECIAL_LEFTSHIFT:
+		return handle_left_shift(expr, implied);
 	case '-':
 		return handle_subtract_rl(expr, implied);
 	case '/':
