@@ -666,7 +666,7 @@ static int get_fuzzy_min_helper(struct expression *expr, sval_t *min)
 	return 1;
 }
 
-static int get_const_value(struct expression *expr, sval_t *sval)
+int get_const_value(struct expression *expr, sval_t *sval)
 {
 	struct symbol *sym;
 	sval_t right;
