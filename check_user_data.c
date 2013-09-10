@@ -18,8 +18,6 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-void tag_as_user_data(struct expression *expr);
-
 static int my_id;
 
 STATE(capped);
@@ -397,7 +395,7 @@ static void tag_base_type(struct expression *expr)
 	set_state_expr(my_id, expr, &user_data_set);
 }
 
-void tag_as_user_data(struct expression *expr)
+static void tag_as_user_data(struct expression *expr)
 {
 	struct symbol *type;
 
