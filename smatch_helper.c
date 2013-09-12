@@ -122,7 +122,10 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		else
 			append(buf, ".", len);
 
-		append(buf, expr->member->name, len);
+		if (expr->member && expr->member->name)
+			append(buf, expr->member->name, len);
+		else
+			append(buf, "unknown_member", len);
 
 		return;
 	case EXPR_SYMBOL:
