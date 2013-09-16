@@ -268,7 +268,7 @@ int is_capped_user_data(struct expression *expr)
 	return 0;
 }
 
-void set_param_user_data(const char *name, struct symbol *sym, char *key, char *value)
+static void set_param_user_data(const char *name, struct symbol *sym, char *key, char *value)
 {
 	char fullname[256];
 
