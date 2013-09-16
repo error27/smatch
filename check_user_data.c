@@ -530,6 +530,11 @@ static void db_return_states_userdata(struct expression *expr, int param, char *
 	char *name;
 	struct symbol *sym;
 
+	if (expr->type == EXPR_ASSIGNMENT && param == -1 && strcmp(key, "*$$") == 0) {
+		tag_as_user_data(expr->left);
+		return;
+	}
+
 	name = return_state_to_var_sym(expr, param, key, &sym);
 	if (!name || !sym)
 		goto free;

@@ -1318,21 +1318,19 @@ static void db_returned_member_info(struct expression *expr, int param, char *ke
 	struct symbol *type;
 	struct symbol *sym;
 	char *name;
-	char member_name[256];
 	struct range_list *rl;
 
 	if (expr->type != EXPR_ASSIGNMENT)
 		return;
 
-	name = expr_to_var_sym(expr->left, &sym);
+	name = return_state_to_var_sym(expr, param, key, &sym);
 	if (!name || !sym)
 		goto free;
-	snprintf(member_name, sizeof(member_name), "%s%s", name, key + 2);
 	type = get_member_type_from_key(expr->left, key);
 	if (!type)
 		return;
 	call_results_to_rl(expr->right, type, value, &rl);
-	set_extra_mod(member_name, sym, alloc_estate_rl(rl));
+	set_extra_mod(name, sym, alloc_estate_rl(rl));
 
 free:
 	free_string(name);
@@ -1341,6 +1339,11 @@ free:
 static void returned_member_callback(int return_id, char *return_ranges, char *printed_name, struct smatch_state *state)
 {
 	if (estate_is_whole(state))
+		return;
+
+	/* these are handled in smatch_param_filter/set/limit.c */
+	if (printed_name[0] != '*' &&
+	    !strchr(printed_name, '.') && !strchr(printed_name, '-'))
 		return;
 
 	sql_insert_return_states(return_id, return_ranges, RETURN_VALUE, -1,

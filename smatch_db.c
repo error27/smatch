@@ -932,9 +932,6 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 	type = get_type(expr);
 	if (!type || type->type != SYM_PTR)
 		return;
-	type = get_real_base_type(type);
-	if (!type || type->type != SYM_STRUCT)
-		return;
 	name = expr_to_var(expr);
 	if (!name)
 		return;
@@ -946,10 +943,16 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 	FOR_EACH_PTR(returned_member_callbacks, cb) {
 		my_slist = get_all_states(cb->owner);
 		FOR_EACH_PTR(my_slist, sm) {
+			if (sm->name[0] == '*' && strcmp(sm->name + 1, name) == 0) {
+				strcpy(member_name, "*$$");
+				cb->callback(return_id, return_ranges, member_name, sm->state);
+				continue;
+			}
 			if (strncmp(sm->name, name, len) != 0)
 				continue;
 			if (strncmp(sm->name + len, "->", 2) != 0)
 				continue;
+			strcpy(member_name, "$$");
 			strncpy(member_name + 2, sm->name + len, sizeof(member_name) - 2);
 			cb->callback(return_id, return_ranges, member_name, sm->state);
 		} END_FOR_EACH_PTR(sm);
@@ -1096,14 +1099,20 @@ char *return_state_to_var_sym(struct expression *expr, int param, char *key, str
 	*sym = NULL;
 
 	if (param == -1) {
+		const char *star = "";
+
 		if (expr->type != EXPR_ASSIGNMENT)
 			return NULL;
 		name = expr_to_var_sym(expr->left, sym);
 		if (!name)
 			return NULL;
+		if (key[0] == '*') {
+			star = "*";
+			key++;
+		}
 		if (strncmp(key, "$$", 2) != 0)
 			return name;
-		snprintf(member_name, sizeof(member_name), "%s%s", name, key + 2);
+		snprintf(member_name, sizeof(member_name), "%s%s%s", star, name, key + 2);
 		free_string(name);
 		return alloc_string(member_name);
 	}
