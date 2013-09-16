@@ -842,6 +842,29 @@ static struct ident *number_to_member(struct expression *expr, int num)
 
 static void fake_element_assigns_helper(struct expression *array, struct expression_list *expr_list, fake_cb *fake_cb);
 
+static void set_members_to_zero(struct expression *symbol)
+{
+	struct expression *deref, *assign;
+	struct symbol *type;
+	struct symbol *member, *member_type;
+
+	type = get_type(symbol);
+	if (!type)
+		return;
+
+	FOR_EACH_PTR(type->symbol_list, member) {
+		if (!member->ident)
+			continue;
+		member_type = get_real_base_type(member);
+		if (!member_type || member_type->type == SYM_ARRAY)
+			continue;
+		deref = member_expression(symbol, '.', member->ident);
+		assign = assign_expression(deref, zero_expr());
+		__split_expr(assign);
+	} END_FOR_EACH_PTR(member);
+
+}
+
 static void fake_member_assigns_helper(struct expression *symbol, struct expression_list *members, fake_cb *fake_cb)
 {
 	struct expression *deref, *assign, *tmp;
@@ -852,6 +875,8 @@ static void fake_member_assigns_helper(struct expression *symbol, struct express
 	type = get_type(symbol);
 	if (!type || (type->type != SYM_STRUCT && type->type != SYM_UNION))
 		return;
+
+	set_members_to_zero(symbol);
 
 	FOR_EACH_PTR(members, tmp) {
 		member = number_to_member(symbol, member_idx);
