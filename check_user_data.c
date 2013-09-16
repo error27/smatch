@@ -126,8 +126,6 @@ static int is_user_function(struct expression *expr)
 {
 	if (expr->type != EXPR_CALL)
 		return 0;
-	if (sym_name_is("kmemdup_user", expr->fn))
-		return SET_DATA;
 	return is_user_fn_db(expr);
 }
 
