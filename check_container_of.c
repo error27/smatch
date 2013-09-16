@@ -54,6 +54,7 @@ void check_container_of(int id)
 	my_id = id;
 	add_macro_assign_hook("container_of", &match_non_null, NULL);
 	add_macro_assign_hook("list_first_entry", &match_non_null, NULL);
+	add_function_assign_hook("nla_data", &match_non_null, NULL);
 	add_modification_hook(my_id, &is_ok);
 	add_hook(&match_condition, CONDITION_HOOK);
 }
