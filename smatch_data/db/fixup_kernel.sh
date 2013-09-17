@@ -13,6 +13,7 @@ delete from caller_info where function = '(struct notifier_block)->notifier_call
 delete from caller_info where function = '(struct mISDNchannel)->send' and type != 0;
 delete from caller_info where function = '(struct irq_router)->get' and type != 0;
 delete from caller_info where function = '(struct irq_router)->set' and type != 0;
+delete from caller_info where function = '(struct net_device_ops)->ndo_change_mtu' and caller = 'i40e_dbg_netdev_ops_write';
 
 /* type 3 is USER_DATA */
 delete from caller_info where caller = 'hid_input_report' and type = 3;
