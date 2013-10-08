@@ -54,6 +54,11 @@ int option_known_conditions = 0;
 int option_two_passes = 0;
 struct symbol *cur_func_sym = NULL;
 
+int outside_of_function(void)
+{
+	return cur_func_sym == NULL;
+}
+
 const char *get_filename(void)
 {
 	if (option_info)
@@ -205,7 +210,10 @@ void __split_expr(struct expression *expr)
 			break;
 
 		__split_expr(expr->right);
-		__pass_to_client(expr, ASSIGNMENT_HOOK);
+		if (outside_of_function())
+			__pass_to_client(expr, GLOBAL_ASSIGNMENT_HOOK);
+		else
+			__pass_to_client(expr, ASSIGNMENT_HOOK);
 		tmp = strip_expr(expr->right);
 		if (tmp->type == EXPR_CALL)
 			__pass_to_client(expr, CALL_ASSIGNMENT_HOOK);
@@ -1038,6 +1046,7 @@ static void split_function(struct symbol *sym)
 	__split_stmt(base_type->inline_stmt);
 	__pass_to_client(sym, END_FUNC_HOOK);
 	__pass_to_client(sym, AFTER_FUNC_HOOK);
+	cur_func_sym = NULL;
 	cur_func = NULL;
 	clear_all_states();
 	free_data_info_allocs();

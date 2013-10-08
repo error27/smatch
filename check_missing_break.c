@@ -85,6 +85,9 @@ static void match_assign(struct expression *expr)
 
 static void match_symbol(struct expression *expr)
 {
+	if (outside_of_function())
+		return;
+
 	expr = strip_expr(expr);
 	if (expr == skip_this)
 		return;

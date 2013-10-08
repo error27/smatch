@@ -154,6 +154,7 @@ typedef void (modification_hook)(struct sm_state *sm, struct expression *mod_exp
 void add_modification_hook(int owner, modification_hook *call_back);
 void add_indirect_modification_hook(int owner, modification_hook *call_back);
 
+int outside_of_function(void);
 const char *get_filename(void);
 const char *get_base_file(void);
 char *get_function(void);

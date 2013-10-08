@@ -739,6 +739,8 @@ static void match_declarations(struct symbol *sym)
 
 static void check_dereference(struct expression *expr)
 {
+	if (outside_of_function())
+		return;
 	set_extra_expr_nomod(expr, alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval));
 }
 
