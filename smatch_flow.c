@@ -850,25 +850,64 @@ static struct ident *number_to_member(struct expression *expr, int num)
 
 static void fake_element_assigns_helper(struct expression *array, struct expression_list *expr_list, fake_cb *fake_cb);
 
-static void set_members_to_zero(struct expression *symbol)
+struct member_set {
+	struct ident *ident;
+	int set;
+};
+
+static struct member_set *alloc_member_set(struct symbol *type)
+{
+	struct member_set *member_set;
+	struct symbol *member;
+	int member_count;
+	int member_idx;
+
+	member_count = ptr_list_size((struct ptr_list *)type->symbol_list);
+	member_set = malloc(member_count * sizeof(*member_set));
+	member_idx = 0;
+	FOR_EACH_PTR(type->symbol_list, member) {
+		member_set[member_idx].ident = member->ident;
+		member_set[member_idx].set = 0;
+		member_idx++;
+	} END_FOR_EACH_PTR(member);
+
+	return member_set;
+}
+
+static void mark_member_as_set(struct symbol *type, struct member_set *member_set, struct ident *ident)
+{
+	int member_count = ptr_list_size((struct ptr_list *)type->symbol_list);
+	int i;
+
+	for (i = 0; i < member_count; i++) {
+		if (member_set[i].ident == ident) {
+			member_set[i].set = 1;
+			return;
+		}
+	}
+//	crap.  this is buggy.
+//	sm_msg("internal smatch error in initializer %s.%s", type->ident->name, ident->name);
+}
+
+static void set_unset_to_zero(struct expression *symbol, struct symbol *type, struct member_set *member_set)
 {
 	struct expression *deref, *assign;
-	struct symbol *type;
 	struct symbol *member, *member_type;
+	int member_idx;
 
-	type = get_type(symbol);
-	if (!type)
-		return;
-
+	member_idx = 0;
 	FOR_EACH_PTR(type->symbol_list, member) {
-		if (!member->ident)
+		if (!member->ident || member_set[member_idx].set) {
+			member_idx++;
 			continue;
+		}
 		member_type = get_real_base_type(member);
 		if (!member_type || member_type->type == SYM_ARRAY)
 			continue;
 		deref = member_expression(symbol, '.', member->ident);
 		assign = assign_expression(deref, zero_expr());
 		__split_expr(assign);
+		member_idx++;
 	} END_FOR_EACH_PTR(member);
 
 }
@@ -876,16 +915,19 @@ static void set_members_to_zero(struct expression *symbol)
 static void fake_member_assigns_helper(struct expression *symbol, struct expression_list *members, fake_cb *fake_cb)
 {
 	struct expression *deref, *assign, *tmp;
-	struct symbol *type;
+	struct symbol *struct_type, *type;
 	struct ident *member;
-	int member_idx = 0;
+	int member_idx;
+	struct member_set *member_set;
 
-	type = get_type(symbol);
-	if (!type || (type->type != SYM_STRUCT && type->type != SYM_UNION))
+	struct_type = get_type(symbol);
+	if (!struct_type ||
+	    (struct_type->type != SYM_STRUCT && struct_type->type != SYM_UNION))
 		return;
 
-	set_members_to_zero(symbol);
+	member_set = alloc_member_set(struct_type);
 
+	member_idx = 0;
 	FOR_EACH_PTR(members, tmp) {
 		member = number_to_member(symbol, member_idx);
 		while (tmp->type == EXPR_IDENTIFIER) {
@@ -893,6 +935,7 @@ static void fake_member_assigns_helper(struct expression *symbol, struct express
 			member_idx = member_to_number(symbol, member);
 			tmp = tmp->ident_expression;
 		}
+		mark_member_as_set(struct_type, member_set, member);
 		member_idx++;
 		deref = member_expression(symbol, '.', member);
 		if (tmp->type == EXPR_INITIALIZER) {
@@ -906,6 +949,8 @@ static void fake_member_assigns_helper(struct expression *symbol, struct express
 			fake_cb(assign);
 		}
 	} END_FOR_EACH_PTR(tmp);
+
+	set_unset_to_zero(symbol, struct_type, member_set);
 }
 
 static void fake_member_assigns(struct symbol *sym, fake_cb *fake_cb)
