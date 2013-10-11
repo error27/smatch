@@ -157,6 +157,7 @@ struct expression *assign_expression(struct expression *left, struct expression 
 struct expression *binop_expression(struct expression *left, int op, struct expression *right);
 struct expression *array_element_expression(struct expression *array, struct expression *offset);
 struct expression *symbol_expression(struct symbol *sym);
+struct expression *unknown_value_expression(struct expression *expr);
 
 /* smatch_param_limit.c */
 struct smatch_state *get_orig_estate(const char *name, struct symbol *sym);

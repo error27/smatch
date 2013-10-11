@@ -104,3 +104,43 @@ struct expression *symbol_expression(struct symbol *sym)
 	expr->symbol_name = sym->ident;
 	return expr;
 }
+
+#define FAKE_NAME "smatch_fake"
+struct ident unknown_value = {
+	.len = sizeof(FAKE_NAME),
+	.name = FAKE_NAME,
+};
+
+static int fake_counter;
+static struct ident *fake_ident()
+{
+	struct ident *ret;
+	char buf[32];
+	int len;
+
+	snprintf(buf, sizeof(buf), "smatch_fake_%d", fake_counter++);
+	len = strlen(buf) + 1;
+	ret = malloc(sizeof(*ret) + len);
+	memset(ret, 0, sizeof(*ret));
+	memcpy(ret->name, buf, len);
+	ret->len = len;
+
+	return ret;
+}
+
+struct expression *unknown_value_expression(struct expression *expr)
+{
+	struct expression *ret;
+	struct symbol *type;
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_BASETYPE)
+		type = &llong_ctype;
+
+	ret = alloc_expression(expr->pos, EXPR_SYMBOL);
+	ret->symbol = alloc_symbol(expr->pos, SYM_BASETYPE);
+	ret->symbol->ctype.base_type = type;
+	ret->symbol_name = fake_ident();
+
+	return ret;
+}

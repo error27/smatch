@@ -90,7 +90,7 @@ static void initialize_struct_members(struct symbol *type, struct expression *ex
 		if (to && type_positive_bits(get_type(member)) >= type_positive_bits(get_type(to)))
 			assign = assign_expression(member, to);
 		else
-			assign = assign_expression(member, member);
+			assign = assign_expression(member, unknown_value_expression(member));
 
 		__pass_to_client(assign, ASSIGNMENT_HOOK);
 	} END_FOR_EACH_PTR(tmp);
