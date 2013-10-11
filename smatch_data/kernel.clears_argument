@@ -1,4 +1,3 @@
-memset 0
 copy_from_user 0
 memcpy 0
 loop_get_status 1
