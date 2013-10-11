@@ -116,7 +116,7 @@ static void initialize_base_type(struct symbol *type, struct expression *expr,
 	__pass_to_client(assign, ASSIGNMENT_HOOK);
 }
 
-void set_initialized(struct expression *expr, struct expression *to)
+static void set_initialized(struct expression *expr, struct expression *to)
 {
 	struct symbol *type;
 
