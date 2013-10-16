@@ -789,6 +789,12 @@ void init_symbols(void)
 	}
 }
 
+#ifdef __CHAR_UNSIGNED__
+#define CHAR_SIGNEDNESS MOD_UNSIGNED
+#else
+#define CHAR_SIGNEDNESS MOD_SIGNED
+#endif
+
 #define MOD_ESIGNED (MOD_SIGNED | MOD_EXPLICITLY_SIGNED)
 #define MOD_LL (MOD_LONG | MOD_LONGLONG)
 #define MOD_LLL MOD_LONGLONGLONG
@@ -806,7 +812,7 @@ static const struct ctype_declare {
 	{ &incomplete_ctype,SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
 	{ &bad_ctype,	    SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
 
-	{ &char_ctype,	    SYM_BASETYPE, MOD_SIGNED | MOD_CHAR,    &bits_in_char,	     &max_int_alignment, &int_type },
+	{ &char_ctype,	    SYM_BASETYPE, CHAR_SIGNEDNESS | MOD_CHAR,    &bits_in_char,	     &max_int_alignment, &int_type },
 	{ &schar_ctype,	    SYM_BASETYPE, MOD_ESIGNED | MOD_CHAR,   &bits_in_char,	     &max_int_alignment, &int_type },
 	{ &uchar_ctype,	    SYM_BASETYPE, MOD_UNSIGNED | MOD_CHAR,  &bits_in_char,	     &max_int_alignment, &int_type },
 	{ &short_ctype,	    SYM_BASETYPE, MOD_SIGNED | MOD_SHORT,   &bits_in_short,	     &max_int_alignment, &int_type },
