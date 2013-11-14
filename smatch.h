@@ -50,16 +50,16 @@ static inline int PTR_INT(void *p)
 
 struct sm_state {
 	unsigned short owner;
-	unsigned int merged:1;
-	unsigned int implied:1;
-        const char *name;
+	unsigned short merged:1;
+	unsigned short implied:1;
+	unsigned int nr_children;
+	unsigned int line;
+	const char *name;
 	struct symbol *sym;
   	struct smatch_state *state;
-	unsigned int line;
 	struct state_list *pool;
 	struct sm_state *left;
 	struct sm_state *right;
-	unsigned int nr_children;
 	struct state_list *possible;
 };
 
