@@ -23,6 +23,9 @@ delete from caller_info where function = 'dev_hard_start_xmit' and key = '\$\$' 
 delete from caller_info where function like '%->ndo_start_xmit' and key = '\$\$' and type = 3;
 delete from caller_info where caller = 'packet_rcv_fanout' and function = '(struct packet_type)->func' and parameter = 1 and type = 3;
 delete from caller_info where caller = 'hptiop_probe' and type = 3;
+delete from caller_info where caller = 'p9_fd_poll' and function = '(struct file_operations)->poll' and type = 3;
+delete from caller_info where caller = 'proc_reg_poll' and function = 'proc_reg_poll ptr poll' and type = 3;
+delete from caller_info where function = 'blkdev_ioctl' and type = 3 and parameter = 0 and key = '\$\$';
 
 insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 3, 0, '$$', '1');
 insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 3, 1, '$$', '1');
