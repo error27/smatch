@@ -85,6 +85,28 @@ ALLOCATOR(call_implies_callback, "call_implies callbacks");
 DECLARE_PTR_LIST(call_implies_cb_list, struct call_implies_callback);
 static struct call_implies_cb_list *call_implies_cb_list;
 
+static int print_sql_output(void *unused, int argc, char **argv, char **azColName)
+{
+	int i;
+
+	for (i = 0; i < argc; i++) {
+		if (i != 0)
+			printf(", ");
+		sm_printf("%s", argv[i]);
+	}
+	sm_printf("\n");
+	return 0;
+}
+
+void debug_sql(const char *sql)
+{
+	if (!option_debug)
+		return;
+	sm_msg("%s", sql);
+	sql_exec(print_sql_output, sql);
+
+}
+
 void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql)
 {
 	char *err = NULL;

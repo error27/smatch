@@ -527,6 +527,7 @@ enum info_type {
 	PARAM_CLEARED	= 14,
 };
 
+void debug_sql(const char *sql);
 void select_caller_info_hook(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
 void add_member_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct smatch_state *state));
 void add_split_return_callback(void (*fn)(int return_id, char *return_ranges, struct expression *returned_expr));
@@ -543,7 +544,7 @@ do {                                  \
 	if (option_no_db)             \
 		break;                \
 	snprintf(sql_txt, 1024, sql); \
-	sm_debug("%s\n", sql_txt);    \
+	debug_sql(sql_txt);  	      \
 	sql_exec(call_back, sql_txt); \
 } while (0)
 
