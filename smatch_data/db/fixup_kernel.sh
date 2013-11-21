@@ -54,6 +54,9 @@ update return_states set return = '0-u32max[<=p2]' where function = 'copy_from_u
 update return_states set return = '0-u32max[<=p2]' where function = '_copy_from_user';
 update return_states set return = '0-u32max[<=p2]' where function = '__copy_from_user';
 
+/* 64 CPUs aught to be enough for anyone */
+update return_states set return = '1-64' where function = 'cpumask_weight';
+
 EOF
 
 call_id=$(echo "select distinct call_id from caller_info where function = '__kernel_write';" | sqlite3 smatch_db.sqlite)
