@@ -24,6 +24,7 @@ CK(register_local_values)
 CK(register_function_ptrs)
 CK(register_annotate)
 CK(register_start_states)
+CK(register_data_source)
 
 CK(check_debug)
 CK(check_assigned_expr)
