@@ -40,23 +40,35 @@ def get_function_pointers(func):
     get_function_pointers_helper(func)
     return function_ptrs
 
-db_types = [ "INTERNAL", "PARAM_VALUE", "BUF_SIZE", "USER_DATA", "CAPPED_DATA",
-             "RETURN_VALUE", "DEREFERENCE", "RANGE_CAP", "LOCK_HELD",
-             "LOCK_RELEASED", "ABSOLUTE_LIMITS", "LIMITED_VALUE",
-             "ADDED_VALUE", "FILTER_VALUE", "PARAM_CLEARED",
-             "UPPER_CONSTRAINT" ]
+db_types = {   0: "INTERNAL",
+             101: "PARAM_CLEARED",
+             102: "FILTER_VALUE",
+            1001: "PARAM_VALUE",
+            1002: "BUF_SIZE",
+            1003: "USER_DATA",
+            1004: "CAPPED_DATA",
+            1005: "RETURN_VALUE",
+            1006: "DEREFERENCE",
+            1007: "RANGE_CAP",
+            1008: "LOCK_HELD",
+            1009: "LOCK_RELEASED",
+            1010: "ABSOLUTE_LIMITS",
+            1011: "LIMITED_VALUE",
+            1012: "ADDED_VALUE",
+            1013: "PARAM_FREED",
+            1014: "DATA_SOURCE" };
 
 def type_to_str(type_int):
 
     t = int(type_int)
-    if t < len(db_types):
+    if db_types[t]:
         return db_types[t]
     return type_int
 
 def type_to_int(type_string):
-    for i in range(len(db_types)):
-        if db_types[i] == type_string:
-            return i
+    for k in db_types.keys():
+        if db_types[k] == type_string:
+            return k
     return -1
 
 def display_caller_info(printed, cur):

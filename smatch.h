@@ -511,20 +511,29 @@ void __match_initializer_call(struct symbol *sym);
 /* smatch_db.c */
 enum info_type {
 	INTERNAL	= 0,
-	PARAM_VALUE	= 1,
-	BUF_SIZE	= 2,
-	USER_DATA	= 3,
-	CAPPED_DATA	= 4,
-	RETURN_VALUE	= 5,
-	DEREFERENCE	= 6,
-	RANGE_CAP	= 7,
-	LOCK_HELD	= 8,
-	LOCK_RELEASED	= 9,
-	ABSOLUTE_LIMITS	= 10,
-	LIMITED_VALUE	= 11,
-	ADDED_VALUE	= 12,
-	FILTER_VALUE	= 13,
-	PARAM_CLEARED	= 14,
+	/*
+	 * Changing these numbers is a pain.  Don't do it.  If you ever use a
+	 * number it can't be re-used right away so there may be gaps.
+	 * We select these in order by type so if the order matters, then give
+	 * it a number below 100-999,9000-9999 ranges. */
+
+	PARAM_CLEARED	= 101,
+	FILTER_VALUE	= 102,
+
+	PARAM_VALUE	= 1001,
+	BUF_SIZE	= 1002,
+	USER_DATA	= 1003,
+	CAPPED_DATA	= 1004,
+	RETURN_VALUE	= 1005,
+	DEREFERENCE	= 1006,
+	RANGE_CAP	= 1007,
+	LOCK_HELD	= 1008,
+	LOCK_RELEASED	= 1009,
+	ABSOLUTE_LIMITS	= 1010,
+	LIMITED_VALUE	= 1011,
+	ADDED_VALUE	= 1012,
+	PARAM_FREED	= 1013,
+	DATA_SOURCE	= 1014,
 };
 
 void debug_sql(const char *sql);

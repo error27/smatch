@@ -255,7 +255,7 @@ void sql_select_return_states(const char *cols, struct expression *call,
 
 	if (inlinable(call->fn)) {
 		mem_sql(callback,
-			"select %s from return_states where call_id = '%lu';",
+			"select %s from return_states where call_id = '%lu' order by return_id, type;",
 			cols, (unsigned long)call);
 		return;
 	}
@@ -266,7 +266,7 @@ void sql_select_return_states(const char *cols, struct expression *call,
 	if (row_count > 1000)
 		return;
 
-	run_sql(callback, "select %s from return_states where %s;",
+	run_sql(callback, "select %s from return_states where %s order by return_id, type;",
 		cols, get_static_filter(call->fn->symbol));
 }
 
