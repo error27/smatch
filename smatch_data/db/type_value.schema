@@ -1,0 +1,4 @@
+CREATE TABLE type_value (type varchar(80), value varchar(80));
+
+CREATE INDEX type_val_idx on type_value (type);
+

@@ -181,6 +181,12 @@ def print_call_tree(func):
     printed_funcs = []
     call_tree_helper(func)
 
+def function_type_value(struct_type, member):
+    cur = con.cursor()
+    cur.execute("select * from function_type_value where type = '(struct %s)->%s';" %(struct_type, member))
+    for txt in cur:
+        print txt
+
 if len(sys.argv) < 2:
     usage()
 
@@ -208,5 +214,9 @@ elif sys.argv[1] == "type_size":
 elif sys.argv[1] == "call_tree":
     func = sys.argv[2]
     print_call_tree(func)
+elif sys.argv[1] == "where":
+    struct_type = sys.argv[2]
+    member = sys.argv[3]
+    function_type_value(struct_type, member)
 else:
     usage()

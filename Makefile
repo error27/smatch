@@ -53,7 +53,7 @@ SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	smatch_param_set.o smatch_comparison.o smatch_local_values.o \
 	smatch_function_ptrs.o smatch_annotate.o smatch_string_list.o \
 	smatch_param_cleared.o smatch_clear_buffer.o smatch_start_states.o \
-	smatch_recurse.o smatch_data_source.o
+	smatch_recurse.o smatch_data_source.o smatch_type_val.o
 
 SMATCH_CHECKS=$(shell ls check_*.c | sed -e 's/\.c/.o/')
 SMATCH_DATA=smatch_data/kernel.allocation_funcs smatch_data/kernel.balanced_funcs \

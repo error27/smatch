@@ -415,6 +415,9 @@ int get_local_rl(struct expression *expr, struct range_list **rl);
 int get_local_max_helper(struct expression *expr, sval_t *sval);
 int get_local_min_helper(struct expression *expr, sval_t *sval);
 
+/* smatch_type_value.c */
+int get_db_type_rl(struct expression *expr, struct range_list **rl);
+
 /* smatch_states.c */
 void __push_fake_cur_slist();
 struct state_list *__pop_fake_cur_slist();
