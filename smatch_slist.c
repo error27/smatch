@@ -98,7 +98,7 @@ int cmp_tracker(const struct sm_state *a, const struct sm_state *b)
 	return 0;
 }
 
-static int cmp_sm_states(const struct sm_state *a, const struct sm_state *b)
+static int cmp_sm_states(const struct sm_state *a, const struct sm_state *b, int preserve)
 {
 	int ret;
 
@@ -111,6 +111,24 @@ static int cmp_sm_states(const struct sm_state *a, const struct sm_state *b)
 		return -1;
 	if (a->state < b->state)
 		return 1;
+	/* This is obviously a massive disgusting hack but we need to preserve
+	 * the unmerged states for smatch extra because we use them in
+	 * smatch_db.c.  Meanwhile if we preserve all the other unmerged states
+	 * then it uses a lot of memory and we don't use it.  Hence this hack.
+	 *
+	 * Also sometimes even just preserving every possible SMATCH_EXTRA state
+	 * takes too much resources so we have to cap that.  Capping is probably
+	 * not often a problem in real life.
+	 */
+	if (a->owner == SMATCH_EXTRA && preserve) {
+		if (a == b)
+			return 0;
+		if (a->merged == 1 && b->merged == 0)
+			return -1;
+		if (a->merged == 0)
+			return 1;
+	}
+
 	return 0;
 }
 
@@ -148,21 +166,32 @@ static struct sm_state *alloc_state_no_name(int owner, const char *name,
 	return tmp;
 }
 
-void add_sm_state_slist(struct state_list **slist, struct sm_state *new)
+int too_many_possible(struct sm_state *sm)
+{
+	if (ptr_list_size((struct ptr_list *)sm->possible) >= 100)
+		return 1;
+	return 0;
+}
+
+void add_possible_sm(struct sm_state *to, struct sm_state *new)
 {
 	struct sm_state *tmp;
+	int preserve = 1;
 
-	FOR_EACH_PTR(*slist, tmp) {
-		if (cmp_sm_states(tmp, new) < 0)
+	if (too_many_possible(to))
+		preserve = 0;
+
+	FOR_EACH_PTR(to->possible, tmp) {
+		if (cmp_sm_states(tmp, new, preserve) < 0)
 			continue;
-		else if (cmp_sm_states(tmp, new) == 0) {
+		else if (cmp_sm_states(tmp, new, preserve) == 0) {
 			return;
 		} else {
 			INSERT_CURRENT(new, tmp);
 			return;
 		}
 	} END_FOR_EACH_PTR(tmp);
-	add_ptr_list(slist, new);
+	add_ptr_list(&to->possible, new);
 }
 
 static void copy_possibles(struct sm_state *to, struct sm_state *from)
@@ -170,7 +199,7 @@ static void copy_possibles(struct sm_state *to, struct sm_state *from)
 	struct sm_state *tmp;
 
 	FOR_EACH_PTR(from->possible, tmp) {
-		add_sm_state_slist(&to->possible, tmp);
+		add_possible_sm(to, tmp);
 	} END_FOR_EACH_PTR(tmp);
 }
 
