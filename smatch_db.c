@@ -18,6 +18,8 @@
 static sqlite3 *db;
 static sqlite3 *mem_db;
 
+static int return_id;
+
 #define sql_insert(table, values...)						\
 do {										\
 	if (!mem_db)								\
@@ -247,11 +249,37 @@ static int get_row_count(void *unused, int argc, char **argv, char **azColName)
 	return 0;
 }
 
+static void sql_select_return_states_pointer(const char *cols,
+	struct expression *call, int (*callback)(void*, int, char**, char**))
+{
+	char *ptr;
+
+	ptr = get_fnptr_name(call);
+	if (!ptr)
+		return;
+
+	row_count = 0;
+	run_sql(get_row_count,
+		"select count(*) from return_states join function_ptr where "
+		"return_states.function == function_ptr.function and ptr = '%s';",
+		ptr);
+	if (row_count > 1000)
+		return;
+
+	run_sql(callback,
+		"select %s from return_states join function_ptr where "
+		"return_states.function == function_ptr.function and ptr = '%s' "
+		"order by return_id, type;",
+		cols, ptr);
+}
+
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**))
 {
-	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
+	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol) {
+		sql_select_return_states_pointer(cols, call, callback);
 		return;
+	}
 
 	if (inlinable(call->fn)) {
 		mem_sql(callback,
@@ -731,13 +759,6 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 	sql_insert_return_states(return_id, return_ranges, INTERNAL, -1, "", "");
 }
 
-static int return_id;
-static void match_function_def(struct symbol *sym)
-{
-	if (!__inline_fn)
-		return_id = 0;
-}
-
 static void call_return_state_hooks_conditional(struct expression *expr)
 {
 	struct returned_state_callback *cb;
@@ -1091,8 +1112,6 @@ static void register_common_funcs(void)
 
 void register_definition_db_callbacks(int id)
 {
-	add_hook(&match_function_def, FUNC_DEF_HOOK);
-
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	add_hook(&global_variable, BASE_HOOK);
 	add_hook(&global_variable, DECLARATION_HOOK);
