@@ -86,7 +86,7 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 	struct smatch_state *old;
 	struct smatch_state *new;
 
-	if (!(sym->ctype.modifiers & MOD_STATIC))
+	if (!sym || !(sym->ctype.modifiers & MOD_STATIC))
 		return;
 	old = get_state(my_id, name, sym);
 	if (old)

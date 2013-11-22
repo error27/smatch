@@ -103,7 +103,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	extra_slist = get_all_states(SMATCH_EXTRA);
 
 	FOR_EACH_PTR(extra_slist, tmp) {
-		if (!tmp->sym->ident || strcmp(tmp->name, tmp->sym->ident->name) != 0)
+		if (!tmp->sym || !tmp->sym->ident || strcmp(tmp->name, tmp->sym->ident->name) != 0)
 			continue;
 
 		param = get_param_num_from_sym(tmp->sym);
