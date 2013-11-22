@@ -143,7 +143,6 @@ static void match_call(struct expression *expr)
 
 static void asm_expr(struct statement *stmt)
 {
-
 	struct expression *expr;
 	int state = 0;
 
