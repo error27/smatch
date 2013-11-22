@@ -130,3 +130,20 @@ int has_variable(struct expression *expr, struct expression *var)
 		return -1;
 	return has_symbol(expr, sym);
 }
+
+static int has_inc_dec_helper(struct expression *expr, void *unused)
+{
+	if (!expr)
+		return 0;
+	if (expr->type != EXPR_PREOP && expr->type != EXPR_POSTOP)
+		return 0;
+	if (expr->op == SPECIAL_INCREMENT || expr->op == SPECIAL_DECREMENT)
+		return 1;
+	return 0;
+}
+
+int has_inc_dec(struct expression *expr)
+{
+	return recurse(expr, has_inc_dec_helper, NULL, 0);
+}
+

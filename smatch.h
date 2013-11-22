@@ -695,5 +695,6 @@ struct state_list *get_start_states(void);
 /* smatch_recurse.c */
 int has_symbol(struct expression *expr, struct symbol *sym);
 int has_variable(struct expression *expr, struct expression *var);
+int has_inc_dec(struct expression *expr);
 
 #endif 	    /* !SMATCH_H_ */
