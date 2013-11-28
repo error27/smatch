@@ -185,7 +185,7 @@ def function_type_value(struct_type, member):
     cur = con.cursor()
     cur.execute("select * from function_type_value where type = '(struct %s)->%s';" %(struct_type, member))
     for txt in cur:
-        print txt
+        print "%s | %s | %s | %s" %(txt[0], txt[1], txt[2], txt[3])
 
 if len(sys.argv) < 2:
     usage()
