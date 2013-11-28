@@ -56,6 +56,7 @@ int possibly_false(struct expression *left, int comparison, struct expression *r
 int possibly_false_rl(struct range_list *left_ranges, int comparison, struct range_list *right_ranges);
 int possibly_false_rl_LR(int comparison, struct range_list *a, struct range_list *b, int left);
 
+int rl_has_sval(struct range_list *rl, sval_t sval);
 int ranges_equiv(struct data_range *one, struct data_range *two);
 
 int rl_equiv(struct range_list *one, struct range_list *two);

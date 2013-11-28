@@ -743,6 +743,18 @@ int possibly_false_rl_LR(int comparison, struct range_list *a, struct range_list
 		return possibly_false_rl(b, comparison, a);
 }
 
+int rl_has_sval(struct range_list *rl, sval_t sval)
+{
+	struct data_range *tmp;
+
+	FOR_EACH_PTR(rl, tmp) {
+		if (sval_cmp(tmp->min, sval) <= 0 &&
+		    sval_cmp(tmp->max, sval) >= 0)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
 void tack_on(struct range_list **list, struct data_range *drange)
 {
 	add_ptr_list(list, drange);
