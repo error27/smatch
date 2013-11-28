@@ -207,12 +207,13 @@ void register_local_values(int id)
 {
 	my_id = id;
 
-	if (option_info) {
-		add_extra_mod_hook(&extra_mod_hook);
-		add_unmatched_state_hook(my_id, &unmatched_state);
-		add_merge_hook(my_id, &merge_estates);
-		all_return_states_hook(&process_states);
-		add_hook(match_end_file, END_FILE_HOOK);
-		mem_sql(NULL, "alter table local_values add column symbol integer;");
-	}
+	if (!option_info)
+		return;
+
+	add_extra_mod_hook(&extra_mod_hook);
+	add_unmatched_state_hook(my_id, &unmatched_state);
+	add_merge_hook(my_id, &merge_estates);
+	all_return_states_hook(&process_states);
+	add_hook(match_end_file, END_FILE_HOOK);
+	mem_sql(NULL, "alter table local_values add column symbol integer;");
 }
