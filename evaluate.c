@@ -175,7 +175,7 @@ left:
 
 static int same_cast_type(struct symbol *orig, struct symbol *new)
 {
-	return orig->bit_size == new->bit_size && orig->bit_offset == new->bit_offset;
+	return orig->bit_size == new->bit_size && orig->bit_offset == orig->bit_offset;
 }
 
 static struct symbol *base_type(struct symbol *node, unsigned long *modp, unsigned long *asp)
