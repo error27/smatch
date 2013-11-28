@@ -499,7 +499,13 @@ char *get_member_name(struct expression *expr)
 
 		FOR_EACH_PTR_REVERSE(sym->symbol_list, tmp) {
 			if (tmp->ident) {
-				snprintf(buf, sizeof(buf), "(union hack %s)->%s", tmp->ident->name, expr->member->name);
+				const char *member_name;
+
+				if (expr->member)
+					member_name = expr->member->name;
+				else
+					member_name = "unknown_member";
+				snprintf(buf, sizeof(buf), "(union hack %s)->%s", tmp->ident->name, member_name);
 				return alloc_string(buf);
 			}
 		} END_FOR_EACH_PTR_REVERSE(tmp);
