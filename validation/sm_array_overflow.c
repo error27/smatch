@@ -34,7 +34,7 @@ static int options_write(void)
 }
 /*
  * check-name: smatch array check
- * check-command: smatch sm_array_overflow.c
+ * check-command: smatch --spammy sm_array_overflow.c
  *
  * check-output-start
 sm_array_overflow.c:25 options_write() error: buffer overflow 'a' 4 <= 4

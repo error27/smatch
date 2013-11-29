@@ -537,6 +537,7 @@ enum info_type {
 	ADDED_VALUE	= 1012,
 	PARAM_FREED	= 1013,
 	DATA_SOURCE	= 1014,
+	FUZZY_MAX	= 1015,
 };
 
 void debug_sql(const char *sql);

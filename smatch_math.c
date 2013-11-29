@@ -605,8 +605,7 @@ static struct range_list *handle_conditional_rl(struct expression *expr, int imp
 
 static int get_fuzzy_max_helper(struct expression *expr, sval_t *max)
 {
-	struct sm_state *sm;
-	struct sm_state *tmp;
+	struct smatch_state *state;
 	sval_t sval;
 
 	if (get_hard_max(expr, &sval)) {
@@ -614,25 +613,10 @@ static int get_fuzzy_max_helper(struct expression *expr, sval_t *max)
 		return 1;
 	}
 
-	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
-	if (!sm)
+	state = get_state_expr(SMATCH_EXTRA, expr);
+	if (!state || !estate_has_fuzzy_max(state))
 		return 0;
-
-	sval = sval_type_min(estate_type(sm->state));
-	FOR_EACH_PTR(sm->possible, tmp) {
-		sval_t new_min;
-
-		new_min = estate_min(tmp->state);
-		if (sval_cmp(new_min, sval) > 0)
-			sval = new_min;
-	} END_FOR_EACH_PTR(tmp);
-
-	if (sval_is_min(sval))
-		return 0;
-	if (sval.value == sval_type_min(sval.type).value + 1)  /* it's common to be on off */
-		return 0;
-
-	*max = sval_cast(get_type(expr), sval);
+	*max = sval_cast(get_type(expr), estate_get_fuzzy_max(state));
 	return 1;
 }
 

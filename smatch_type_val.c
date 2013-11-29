@@ -89,6 +89,7 @@ static struct data_info *clone_dinfo_perm(struct data_info *dinfo)
 	ret->related = NULL;
 	ret->value_ranges = clone_rl_permanent(dinfo->value_ranges);
 	ret->hard_max = 0;
+	ret->fuzzy_max = dinfo->fuzzy_max;
 	return ret;
 }
 

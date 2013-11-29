@@ -38,6 +38,8 @@ struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state 
 	if (estate_has_hard_max(s1) && estate_has_hard_max(s2))
 		estate_set_hard_max(tmp);
 
+	estate_set_fuzzy_max(tmp, sval_max(estate_get_fuzzy_max(s1), estate_get_fuzzy_max(s2)));
+
 	return tmp;
 }
 
@@ -60,6 +62,43 @@ struct related_list *estate_related(struct smatch_state *state)
 	if (!state)
 		return NULL;
 	return get_dinfo(state)->related;
+}
+
+sval_t estate_get_fuzzy_max(struct smatch_state *state)
+{
+	sval_t empty = {};
+
+	if (!state || !get_dinfo(state))
+		return empty;
+	return get_dinfo(state)->fuzzy_max;
+}
+
+int estate_has_fuzzy_max(struct smatch_state *state)
+{
+	if (estate_get_fuzzy_max(state).type)
+		return 1;
+	return 0;
+}
+
+void estate_set_fuzzy_max(struct smatch_state *state, sval_t fuzzy_max)
+{
+	if (!rl_has_sval(estate_rl(state), fuzzy_max))
+		return;
+	get_dinfo(state)->fuzzy_max = fuzzy_max;
+}
+
+void estate_copy_fuzzy_max(struct smatch_state *new, struct smatch_state *old)
+{
+	if (!estate_has_fuzzy_max(old))
+		return;
+	estate_set_fuzzy_max(new, estate_get_fuzzy_max(old));
+}
+
+void estate_clear_fuzzy_max(struct smatch_state *state)
+{
+	sval_t empty = {};
+
+	get_dinfo(state)->fuzzy_max = empty;
 }
 
 int estate_has_hard_max(struct smatch_state *state)
@@ -160,9 +199,7 @@ static struct data_info *alloc_dinfo(void)
 	struct data_info *ret;
 
 	ret = __alloc_data_info(0);
-	ret->related = NULL;
-	ret->value_ranges = NULL;
-	ret->hard_max = 0;
+	memset(ret, 0, sizeof(*ret));
 	return ret;
 }
 
@@ -192,6 +229,7 @@ static struct data_info *clone_dinfo(struct data_info *dinfo)
 	ret->related = clone_related_list(dinfo->related);
 	ret->value_ranges = clone_rl(dinfo->value_ranges);
 	ret->hard_max = dinfo->hard_max;
+	ret->fuzzy_max = dinfo->fuzzy_max;
 	return ret;
 }
 
@@ -240,6 +278,7 @@ struct smatch_state *alloc_estate_sval(sval_t sval)
 	state->data = alloc_dinfo_range(sval, sval);
 	state->name = show_rl(get_dinfo(state)->value_ranges);
 	estate_set_hard_max(state);
+	estate_set_fuzzy_max(state, sval);
 	return state;
 }
 
@@ -292,6 +331,8 @@ struct smatch_state *estate_filter_range(struct smatch_state *orig,
 	state = alloc_estate_rl(rl);
 	if (estate_has_hard_max(orig))
 		estate_set_hard_max(state);
+	if (estate_has_fuzzy_max(orig))
+		estate_set_fuzzy_max(state, estate_get_fuzzy_max(orig));
 	return state;
 }
 

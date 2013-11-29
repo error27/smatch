@@ -20,6 +20,7 @@ DECLARE_PTR_LIST(related_list, struct relation);
 struct data_info {
 	struct related_list *related;
 	struct range_list *value_ranges;
+	sval_t fuzzy_max;
 	unsigned int hard_max:1;
 };
 DECLARE_ALLOCATOR(data_info);
@@ -107,6 +108,11 @@ sval_t estate_min(struct smatch_state *state);
 sval_t estate_max(struct smatch_state *state);
 struct symbol *estate_type(struct smatch_state *state);
 
+int estate_has_fuzzy_max(struct smatch_state *state);
+sval_t estate_get_fuzzy_max(struct smatch_state *state);
+void estate_set_fuzzy_max(struct smatch_state *state, sval_t max);
+void estate_copy_fuzzy_max(struct smatch_state *new, struct smatch_state *old);
+void estate_clear_fuzzy_max(struct smatch_state *state);
 int estate_has_hard_max(struct smatch_state *state);
 void estate_set_hard_max(struct smatch_state *state);
 void estate_clear_hard_max(struct smatch_state *state);

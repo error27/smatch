@@ -203,12 +203,14 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 		estate = alloc_estate_range(sval_type_val(start.type, 1), start);
 		if (estate_has_hard_max(sm->state))
 			estate_set_hard_max(estate);
+		estate_copy_fuzzy_max(estate, sm->state);
 		set_extra_expr_mod(iter_var, estate);
 	}
 	if (condition->type == EXPR_POSTOP) {
 		estate = alloc_estate_range(sval_type_val(start.type, 0), start);
 		if (estate_has_hard_max(sm->state))
 			estate_set_hard_max(estate);
+		estate_copy_fuzzy_max(estate, sm->state);
 		set_extra_expr_mod(iter_var, estate);
 	}
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
@@ -220,7 +222,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	struct expression *iter_var;
 	struct sm_state *sm;
 	struct smatch_state *estate;
-	sval_t start, end, dummy;
+	sval_t start, end, max;
 
 	iter_var = iter_expr->unop;
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
@@ -237,11 +239,13 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 		return NULL;
 
 	switch (condition->op) {
+	case SPECIAL_UNSIGNED_LT:
 	case SPECIAL_NOTEQUAL:
 	case '<':
 		if (!sval_is_min(end))
 			end.value--;
 		break;
+	case SPECIAL_UNSIGNED_LTE:
 	case SPECIAL_LTE:
 		break;
 	default:
@@ -250,8 +254,14 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	if (sval_cmp(end, start) < 0)
 		return NULL;
 	estate = alloc_estate_range(start, end);
-	if (get_hard_max(condition->right, &dummy))
+	if (get_hard_max(condition->right, &max)) {
 		estate_set_hard_max(estate);
+		if (condition->op == '<' ||
+		    condition->op == SPECIAL_UNSIGNED_LT ||
+		    condition->op == SPECIAL_NOTEQUAL)
+			max.value--;
+		estate_set_fuzzy_max(estate, max);
+	}
 	set_extra_expr_mod(iter_var, estate);
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
@@ -290,6 +300,7 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 		return NULL;
 	estate = alloc_estate_range(end, start);
 	estate_set_hard_max(estate);
+	estate_set_fuzzy_max(estate, estate_get_fuzzy_max(estate));
 	set_extra_expr_mod(iter_var, estate);
 	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
 }
@@ -388,8 +399,19 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	} else {
 		state = alloc_estate_sval(limit);
 	}
-	if (!estate_has_hard_max(sm->state))
+	if (!estate_has_hard_max(sm->state)) {
 		estate_clear_hard_max(state);
+	}
+	if (estate_has_fuzzy_max(sm->state)) {
+		sval_t hmax = estate_get_fuzzy_max(sm->state);
+		sval_t max = estate_max(sm->state);
+
+		if (sval_cmp(hmax, max) != 0)
+			estate_clear_fuzzy_max(state);
+	} else if (!estate_has_fuzzy_max(sm->state)) {
+		estate_clear_fuzzy_max(state);
+	}
+
 	set_extra_mod(sm->name, sm->sym, state);
 }
 
@@ -473,7 +495,7 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	char *right_name = NULL;
 	struct symbol *sym;
 	char *name;
-	sval_t tmp;
+	sval_t max;
 	struct smatch_state *state;
 
 	name = expr_to_var_sym(left, &sym);
@@ -493,8 +515,10 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	if (get_implied_rl(right, &rl)) {
 		rl = cast_rl(left_type, rl);
 		state = alloc_estate_rl(rl);
-		if (get_hard_max(right, &tmp))
+		if (get_hard_max(right, &max)) {
 			estate_set_hard_max(state);
+			estate_set_fuzzy_max(state, max);
+		}
 	} else {
 		rl = alloc_whole_rl(right_type);
 		rl = cast_rl(left_type, rl);
@@ -798,7 +822,7 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 	struct smatch_state *left_false_state;
 	struct smatch_state *right_true_state;
 	struct smatch_state *right_false_state;
-	sval_t min, max, dummy;
+	sval_t min, max, dummy, hard_max;
 	int left_postop = 0;
 	int right_postop = 0;
 
@@ -962,11 +986,75 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 		break;
 	}
 
-	if (get_hard_max(left, &dummy)) {
+	switch (op) {
+	case '<':
+	case SPECIAL_UNSIGNED_LT:
+	case SPECIAL_UNSIGNED_LTE:
+	case SPECIAL_LTE:
+		if (get_hard_max(right, &hard_max)) {
+			if (op == '<' || op == SPECIAL_UNSIGNED_LT)
+				hard_max.value--;
+			estate_set_fuzzy_max(left_true_state, hard_max);
+		}
+		if (get_implied_value(right, &hard_max)) {
+			if (op == SPECIAL_UNSIGNED_LTE ||
+			    op == SPECIAL_LTE)
+				hard_max.value++;
+			estate_set_fuzzy_max(left_false_state, hard_max);
+		}
+		if (get_hard_max(left, &hard_max)) {
+			if (op == SPECIAL_UNSIGNED_LTE ||
+			    op == SPECIAL_LTE)
+				hard_max.value--;
+			estate_set_fuzzy_max(right_false_state, hard_max);
+		}
+		if (get_implied_value(left, &hard_max)) {
+			if (op == '<' || op == SPECIAL_UNSIGNED_LT)
+				hard_max.value++;
+			estate_set_fuzzy_max(right_true_state, hard_max);
+		}
+		break;
+	case '>':
+	case SPECIAL_UNSIGNED_GT:
+	case SPECIAL_UNSIGNED_GTE:
+	case SPECIAL_GTE:
+		if (get_hard_max(left, &hard_max)) {
+			if (op == '>' || op == SPECIAL_UNSIGNED_GT)
+				hard_max.value--;
+			estate_set_fuzzy_max(right_true_state, hard_max);
+		}
+		if (get_implied_value(left, &hard_max)) {
+			if (op == SPECIAL_UNSIGNED_GTE ||
+			    op == SPECIAL_GTE)
+				hard_max.value++;
+			estate_set_fuzzy_max(right_false_state, hard_max);
+		}
+		if (get_hard_max(right, &hard_max)) {
+			if (op == SPECIAL_UNSIGNED_LTE ||
+			    op == SPECIAL_LTE)
+				hard_max.value--;
+			estate_set_fuzzy_max(left_false_state, hard_max);
+		}
+		if (get_implied_value(right, &hard_max)) {
+			if (op == '>' ||
+			    op == SPECIAL_UNSIGNED_GT)
+				hard_max.value++;
+			estate_set_fuzzy_max(left_true_state, hard_max);
+		}
+		break;
+	case SPECIAL_EQUAL:
+		if (get_hard_max(left, &hard_max))
+			estate_set_fuzzy_max(right_true_state, hard_max);
+		if (get_hard_max(right, &hard_max))
+			estate_set_fuzzy_max(left_true_state, hard_max);
+		break;
+	}
+
+	if (get_hard_max(left, &hard_max)) {
 		estate_set_hard_max(left_true_state);
 		estate_set_hard_max(left_false_state);
 	}
-	if (get_hard_max(right, &dummy)) {
+	if (get_hard_max(right, &hard_max)) {
 		estate_set_hard_max(right_true_state);
 		estate_set_hard_max(right_false_state);
 	}
@@ -1209,6 +1297,9 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	if (estate_is_whole(state))
 		return;
 	sql_insert_caller_info(call, PARAM_VALUE, param, printed_name, state->name);
+	if (estate_has_fuzzy_max(state))
+		sql_insert_caller_info(call, FUZZY_MAX, param, printed_name,
+				       sval_to_str(estate_get_fuzzy_max(state)));
 }
 
 static void db_limited_before(void)
@@ -1354,6 +1445,7 @@ static void returned_member_callback(int return_id, char *return_ranges, char *p
 
 static void match_call_info(struct expression *expr)
 {
+	struct smatch_state *state;
 	struct range_list *rl = NULL;
 	struct expression *arg;
 	struct symbol *type;
@@ -1368,6 +1460,11 @@ static void match_call_info(struct expression *expr)
 			rl = cast_rl(type, alloc_whole_rl(get_type(arg)));
 
 		sql_insert_caller_info(expr, PARAM_VALUE, i, "$$", show_rl(rl));
+		state = get_state_expr(SMATCH_EXTRA, arg);
+		if (estate_has_fuzzy_max(state)) {
+			sql_insert_caller_info(expr, FUZZY_MAX, i, "$$",
+					       sval_to_str(estate_get_fuzzy_max(state)));
+		}
 		i++;
 	} END_FOR_EACH_PTR(arg);
 }
@@ -1392,6 +1489,31 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
 
+static void set_param_hard_max(const char *name, struct symbol *sym, char *key, char *value)
+{
+	struct range_list *rl = NULL;
+	struct smatch_state *state;
+	struct symbol *type;
+	char fullname[256];
+	sval_t max;
+
+	if (strcmp(key, "*$$") == 0)
+		snprintf(fullname, sizeof(fullname), "*%s", name);
+	else if (strncmp(key, "$$", 2) == 0)
+		snprintf(fullname, 256, "%s%s", name, key + 2);
+	else
+		return;
+
+	state = get_state(SMATCH_EXTRA, fullname, sym);
+	if (!state)
+		return;
+	type = get_member_type_from_key(symbol_expression(sym), key);
+	str_to_rl(type, value, &rl);
+	if (!rl_to_sval(rl, &max))
+		return;
+	estate_set_fuzzy_max(state, max);
+}
+
 void register_smatch_extra(int id)
 {
 	my_id = id;
@@ -1401,6 +1523,7 @@ void register_smatch_extra(int id)
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	select_caller_info_hook(set_param_value, PARAM_VALUE);
+	select_caller_info_hook(set_param_hard_max, FUZZY_MAX);
 	select_return_states_hook(RETURN_VALUE, &db_returned_member_info);
 	select_return_states_before(&db_limited_before);
 	select_return_states_hook(LIMITED_VALUE, &db_param_limit);
