@@ -353,6 +353,7 @@ int in_expression_statement(void);
 void __process_post_op_stack(void);
 void __split_expr(struct expression *expr);
 void __split_stmt(struct statement *stmt);
+extern int __in_function_def;
 extern int option_assume_loops;
 extern int option_known_conditions;
 extern int option_two_passes;

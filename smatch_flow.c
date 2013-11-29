@@ -30,6 +30,7 @@ static char *full_filename;
 static char *cur_func;
 static int loop_count;
 int __expr_stmt_count;
+int __in_function_def;
 static struct expression_list *switch_expr_stack = NULL;
 static struct expression_list *post_op_stack = NULL;
 
@@ -1063,6 +1064,15 @@ static void fake_global_assign(struct symbol *sym)
 	}
 }
 
+static void start_function_definition(struct symbol *sym)
+{
+	__in_function_def = 1;
+	__pass_to_client(sym, FUNC_DEF_HOOK);
+	__in_function_def = 0;
+	__pass_to_client(sym, AFTER_DEF_HOOK);
+
+}
+
 static void split_function(struct symbol *sym)
 {
 	struct symbol *base_type = get_base_type(sym);
@@ -1079,17 +1089,14 @@ static void split_function(struct symbol *sym)
 		__unnullify_path();
 		loop_num = 0;
 		final_pass = 0;
-		__pass_to_client(sym, FUNC_DEF_HOOK);
-		__pass_to_client(sym, AFTER_DEF_HOOK);
+		start_function_definition(sym);
 		__split_stmt(base_type->stmt);
 		__split_stmt(base_type->inline_stmt);
 		nullify_path();
 	}
 	__unnullify_path();
 	loop_num = 0;
-	final_pass = 1;
-	__pass_to_client(sym, FUNC_DEF_HOOK);
-	__pass_to_client(sym, AFTER_DEF_HOOK);
+	start_function_definition(sym);
 	__split_stmt(base_type->stmt);
 	__split_stmt(base_type->inline_stmt);
 	__pass_to_client(sym, END_FUNC_HOOK);
@@ -1135,8 +1142,7 @@ static void parse_inline(struct expression *call)
 	sm_debug("inline function:  %s\n", cur_func);
 	__unnullify_path();
 	loop_num = 0;
-	__pass_to_client(call->fn->symbol, FUNC_DEF_HOOK);
-	__pass_to_client(call->fn->symbol, AFTER_DEF_HOOK);
+	start_function_definition(call->fn->symbol);
 	__split_stmt(base_type->stmt);
 	__split_stmt(base_type->inline_stmt);
 	__pass_to_client(call->fn->symbol, END_FUNC_HOOK);
