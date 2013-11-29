@@ -37,9 +37,11 @@ static void set_undefined(struct sm_state *sm, struct expression *mod_expr)
 
 static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_state *s2)
 {
-	if (PTR_INT(s1->data) == PTR_INT(s2->data))
+	if (__in_function_def && (!s1->data || !s2->data))
+		return &undefined;
+	if (PTR_INT(s1->data) >= PTR_INT(s2->data))
 		return s1;
-	return &undefined;
+	return s2;
 }
 
 void set_param_buf_size(const char *name, struct symbol *sym, char *key, char *value)
@@ -383,6 +385,7 @@ static int get_stored_size_end_struct_bytes(struct expression *expr)
 
 int get_array_size_bytes(struct expression *expr)
 {
+	int declared_size = 0;
 	int size;
 
 	expr = remove_addr_fluff(expr);
@@ -396,12 +399,14 @@ int get_array_size_bytes(struct expression *expr)
 	/* buf[4] */
 	size = get_real_array_size(expr);
 	if (size)
-		return elements_to_bytes(expr, size);
+		declared_size = elements_to_bytes(expr, size);
 
 	/* buf = malloc(1024); */
 	size = get_stored_size_bytes(expr);
-	if (size)
+	if (size && size > declared_size)
 		return size;
+	if (declared_size)
+		return declared_size;
 
 	size = get_stored_size_end_struct_bytes(expr);
 	if (size)
