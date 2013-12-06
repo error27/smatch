@@ -44,9 +44,27 @@ static void match_strlen(const char *fn, struct expression *expr, void *unused)
 	set_state_expr(my_strlen_id, str, state);
 }
 
+static int get_strlen_from_string(struct expression *expr, struct range_list **rl)
+{
+	sval_t sval;
+	int len;
+
+	len = expr->string->length;
+	sval = sval_type_val(&int_ctype, len - 1);
+	*rl = alloc_rl(sval, sval);
+	return 1;
+}
+
 int get_implied_strlen(struct expression *expr, struct range_list **rl)
 {
 	struct smatch_state *state;
+
+	*rl = NULL;
+
+	switch (expr->type) {
+	case EXPR_STRING:
+		return get_strlen_from_string(expr, rl);
+	}
 
 	state = get_state_expr(my_strlen_id, expr);
 	if (!state || !state->data)
