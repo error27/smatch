@@ -145,17 +145,21 @@ static int get_initializer_size(struct expression *expr)
 	return 0;
 }
 
-static int db_size;
+static struct range_list *db_size_rl;
 static int db_size_callback(void *unused, int argc, char **argv, char **azColName)
 {
-	if (db_size == 0)
-		db_size = atoi(argv[0]);
-	else
-		db_size = -1;
+	struct range_list *tmp = NULL;
+
+	if (!db_size_rl) {
+		str_to_rl(&int_ctype, argv[0], &db_size_rl);
+	} else {
+		str_to_rl(&int_ctype, argv[0], &tmp);
+		db_size_rl = rl_union(db_size_rl, tmp);
+	}
 	return 0;
 }
 
-static int size_from_db(struct expression *expr)
+static struct range_list *size_from_db(struct expression *expr)
 {
 	int this_file_only = 0;
 	char *name;
@@ -168,22 +172,19 @@ static int size_from_db(struct expression *expr)
 	if (!name)
 		return 0;
 
-	db_size = 0;
+	db_size_rl = NULL;
 	run_sql(db_size_callback, "select size from function_type_size where type = '%s' and file = '%s'",
 			name, get_filename());
-	if (db_size > 0)
-		return db_size;
+	if (db_size_rl)
+		return db_size_rl;
+
 	if (this_file_only)
 		return 0;
 
-	db_size = 0;
+	db_size_rl = NULL;
 	run_sql(db_size_callback, "select size from type_size where type = '%s'",
 			name);
-
-	if (db_size < 0)
-		db_size = 0;
-
-	return db_size;
+	return db_size_rl;
 }
 
 static void db_returns_buf_size(struct expression *expr, int param, char *unused, char *math)
@@ -416,9 +417,9 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr)
 	if (size)
 		return alloc_int_rl(size);
 
-	size = size_from_db(expr);
-	if (size)
-		return alloc_int_rl(size);
+	ret = size_from_db(expr);
+	if (ret)
+		return ret;
 	return NULL;
 }
 
