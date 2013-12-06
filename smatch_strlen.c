@@ -14,9 +14,15 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-static int my_strlen_id;
+/*
+ * The trick with the my_equiv_id is that if we have:
+ * foo = strlen(bar);
+ * We don't know at that point what the strlen() is but we know it's equivalent
+ * to "foo" so maybe we can find the value of "foo" later.
+ */
+static int my_equiv_id;
 
-static void set_strlen_undefined(struct sm_state *sm, struct expression *mod_expr)
+static void set_strlen_equiv_undefined(struct sm_state *sm, struct expression *mod_expr)
 {
 	set_state(sm->owner, sm->name, sm->sym, &undefined);
 }
@@ -41,7 +47,7 @@ static void match_strlen(const char *fn, struct expression *expr, void *unused)
         state->name = len_name;
 	state->data = len_expr;
 
-	set_state_expr(my_strlen_id, str, state);
+	set_state_expr(my_equiv_id, str, state);
 }
 
 static int get_strlen_from_string(struct expression *expr, struct range_list **rl)
@@ -66,7 +72,7 @@ int get_implied_strlen(struct expression *expr, struct range_list **rl)
 		return get_strlen_from_string(expr, rl);
 	}
 
-	state = get_state_expr(my_strlen_id, expr);
+	state = get_state_expr(my_equiv_id, expr);
 	if (!state || !state->data)
 		return 0;
 	if (!get_implied_rl((struct expression *)state->data, rl))
@@ -90,8 +96,8 @@ int get_size_from_strlen(struct expression *expr)
 
 void register_strlen(int id)
 {
-	my_strlen_id = id;
+	my_equiv_id = id;
 	add_function_assign_hook("strlen", &match_strlen, NULL);
-	add_modification_hook(my_strlen_id, &set_strlen_undefined);
+	add_modification_hook(my_equiv_id, &set_strlen_equiv_undefined);
 }
 
