@@ -622,30 +622,20 @@ static int get_fuzzy_max_helper(struct expression *expr, sval_t *max)
 
 static int get_fuzzy_min_helper(struct expression *expr, sval_t *min)
 {
-	struct sm_state *sm;
-	struct sm_state *tmp;
+	struct smatch_state *state;
 	sval_t sval;
 
-	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
-	if (!sm)
+	state = get_state_expr(SMATCH_EXTRA, expr);
+	if (!state || !estate_rl(state))
 		return 0;
 
-	if (!sval_is_min(estate_min(sm->state))) {
-		*min = estate_min(sm->state);
-		return 1;
-	}
-
-	sval = sval_type_max(estate_type(sm->state));
-	FOR_EACH_PTR(sm->possible, tmp) {
-		sval_t new_max;
-
-		new_max = estate_max(tmp->state);
-		if (sval_cmp(new_max, sval) < 0)
-			sval = new_max;
-	} END_FOR_EACH_PTR(tmp);
+	sval = estate_min(state);
+	if (sval_is_negative(sval) && sval_is_min(sval))
+		return 0;
 
 	if (sval_is_max(sval))
 		return 0;
+
 	*min = sval_cast(get_type(expr), sval);
 	return 1;
 }
@@ -683,7 +673,7 @@ static struct range_list *handle_variable(struct expression *expr, int implied)
 	case RL_IMPLIED:
 	case RL_ABSOLUTE:
 		state = get_state_expr(SMATCH_EXTRA, expr);
-		if (!state || !state->data) {
+		if (!state || is_whole_rl(estate_rl(state))) {
 			if (implied == RL_HARD)
 				return NULL;
 			if (get_local_rl(expr, &rl))
