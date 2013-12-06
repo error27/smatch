@@ -324,7 +324,7 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 	data = get_argument_from_call_expr(expr->args, limiter->limit_arg);
 	if (!get_the_max(data, &needed))
 		return;
-	has = get_array_size_bytes(dest);
+	has = get_array_size_bytes_max(dest);
 	if (!has)
 		return;
 	if (has >= needed.value)

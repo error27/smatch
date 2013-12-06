@@ -20,6 +20,8 @@
  * my_strlen_id - track the strlen() of buffers.
  */
 
+#define UNKNOWN_SIZE (-1)
+
 static int my_size_id;
 static int my_strlen_id;
 
@@ -29,37 +31,62 @@ struct limiter {
 };
 static struct limiter b0_l2 = {0, 2};
 
-static void set_undefined(struct sm_state *sm, struct expression *mod_expr)
+static int estate_to_size(struct smatch_state *state)
 {
-	if (sm->state != &undefined)
-		set_state(sm->owner, sm->name, sm->sym, &undefined);
+	sval_t sval;
+
+	if (!state || !estate_rl(state))
+		return 0;
+	sval = estate_max(state);
+	return sval.value;
 }
 
-static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_state *s2)
+static struct smatch_state *size_to_estate(int size)
 {
-	if (__in_function_def && (!s1->data || !s2->data))
-		return &undefined;
-	if (PTR_INT(s1->data) >= PTR_INT(s2->data))
-		return s1;
-	return s2;
+	sval_t sval;
+
+	sval.type = &int_ctype;
+	sval.value = size;
+
+	return alloc_estate_sval(sval);
+}
+
+static struct smatch_state *unmatched_size_state(struct sm_state *sm)
+{
+	return size_to_estate(UNKNOWN_SIZE);
+}
+
+static void set_size_undefined(struct sm_state *sm, struct expression *mod_expr)
+{
+	set_state(sm->owner, sm->name, sm->sym, size_to_estate(UNKNOWN_SIZE));
+}
+
+static void set_strlen_undefined(struct sm_state *sm, struct expression *mod_expr)
+{
+	set_state(sm->owner, sm->name, sm->sym, &undefined);
+}
+
+static struct smatch_state *merge_size_func(struct smatch_state *s1, struct smatch_state *s2)
+{
+	return merge_estates(s1, s2);
 }
 
 void set_param_buf_size(const char *name, struct symbol *sym, char *key, char *value)
 {
+	struct range_list *rl = NULL;
+	struct smatch_state *state;
 	char fullname[256];
-	unsigned int size;
 
-	if (strncmp(key, "$$", 2))
+	if (strncmp(key, "$$", 2) != 0)
 		return;
 
 	snprintf(fullname, 256, "%s%s", name, key + 2);
 
-	errno = 0;
-	size = strtoul(value, NULL, 10);
-	if (errno)
+	str_to_rl(&int_ctype, value, &rl);
+	if (!rl || is_whole_rl(rl))
 		return;
-
-	set_state(my_size_id, fullname, sym, alloc_state_num(size));
+	state = alloc_estate_rl(rl);
+	set_state(my_size_id, fullname, sym, state);
 }
 
 static int bytes_per_element(struct expression *expr)
@@ -186,7 +213,7 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 
 	if (!parse_call_math(call, math, &sval))
 		return;
-	set_state_expr(my_size_id, expr->left, alloc_state_num(sval.value));
+	set_state_expr(my_size_id, expr->left, size_to_estate(sval.value));
 }
 
 int get_real_array_size(struct expression *expr)
@@ -220,32 +247,14 @@ static int get_size_from_initializer(struct expression *expr)
 	return get_initializer_size(expr->symbol->initializer);
 }
 
-static int get_stored_size_bytes(struct expression *expr)
+static struct range_list *get_stored_size_bytes(struct expression *expr)
 {
 	struct smatch_state *state;
 
 	state = get_state_expr(my_size_id, expr);
 	if (!state)
-		return 0;
-	return PTR_INT(state->data);
-}
-
-static int get_stored_size_bytes_min(struct expression *expr)
-{
-	struct sm_state *sm, *tmp;
-	int min = 0;
-
-	sm = get_sm_state_expr(my_size_id, expr);
-	if (!sm)
-		return 0;
-	FOR_EACH_PTR(sm->possible, tmp) {
-		if (PTR_INT(tmp->state->data) <= 0)
-			continue;
-		if (PTR_INT(tmp->state->data) < min)
-			min = PTR_INT(tmp->state->data);
-	} END_FOR_EACH_PTR(tmp);
-
-	return min;
+		return NULL;
+	return estate_rl(state);
 }
 
 static int get_bytes_from_address(struct expression *expr)
@@ -367,7 +376,7 @@ static int get_stored_size_end_struct_bytes(struct expression *expr)
 		return 0;
 
 	state = get_state(my_size_id, sym->ident->name, sym);
-	if (!state || !state->data)
+	if (!estate_to_size(state))
 		return 0;
 
 	sym = get_real_base_type(sym);
@@ -379,22 +388,33 @@ static int get_stored_size_end_struct_bytes(struct expression *expr)
 	if (!is_last_member_of_struct(sym, expr->member))
 		return 0;
 
-	return PTR_INT(state->data) - bits_to_bytes(sym->bit_size) +
+	return estate_to_size(state) - bits_to_bytes(sym->bit_size) +
 		bits_to_bytes(type->bit_size);
 }
 
-int get_array_size_bytes(struct expression *expr)
+static struct range_list *alloc_int_rl(int value)
+{
+	sval_t sval = {
+		.type = &int_ctype,
+		.value = value,
+	};
+
+	return alloc_rl(sval, sval);
+}
+
+struct range_list *get_array_size_bytes_rl(struct expression *expr)
 {
 	int declared_size = 0;
+	struct range_list *ret = NULL;
 	int size;
 
 	expr = remove_addr_fluff(expr);
 	if (!expr)
-		return 0;
+		return NULL;
 
-	/* strcpy(foo, "BAR"); */
+	/* "BAR" */
 	if (expr->type == EXPR_STRING)
-		return expr->string->length;
+		return alloc_int_rl(expr->string->length);
 
 	/* buf[4] */
 	size = get_real_array_size(expr);
@@ -402,52 +422,94 @@ int get_array_size_bytes(struct expression *expr)
 		declared_size = elements_to_bytes(expr, size);
 
 	/* buf = malloc(1024); */
-	size = get_stored_size_bytes(expr);
-	if (size && size > declared_size)
-		return size;
+	ret = get_stored_size_bytes(expr);
+	if (ret) {
+		if (declared_size)
+			return rl_union(ret, alloc_int_rl(size));
+		return ret;
+	}
 	if (declared_size)
-		return declared_size;
+		return alloc_int_rl(declared_size);
 
 	size = get_stored_size_end_struct_bytes(expr);
 	if (size)
-		return size;
+		return alloc_int_rl(size);
 
 	/* char *foo = "BAR" */
 	size = get_size_from_initializer(expr);
 	if (size)
-		return elements_to_bytes(expr, size);
+		return alloc_int_rl(elements_to_bytes(expr, size));
 
 	size = get_bytes_from_address(expr);
 	if (size)
-		return size;
+		return alloc_int_rl(size);
 
 	/* if (strlen(foo) > 4) */
 	size = get_size_from_strlen(expr);
 	if (size)
-		return size;
+		return alloc_int_rl(size);
 
-	return size_from_db(expr);
+	size = size_from_db(expr);
+	if (size)
+		alloc_int_rl(size);
+	return NULL;
+}
+
+int get_array_size_bytes(struct expression *expr)
+{
+	struct range_list *rl;
+	sval_t sval;
+
+	rl = get_array_size_bytes_rl(expr);
+	if (!rl_to_sval(rl, &sval))
+		return 0;
+	if (sval.uvalue >= INT_MAX)
+		return 0;
+	return sval.value;
+}
+
+int get_array_size_bytes_max(struct expression *expr)
+{
+	struct range_list *rl;
+	sval_t bytes;
+
+	rl = get_array_size_bytes_rl(expr);
+	if (!rl)
+		return 0;
+	bytes = rl_min(rl);
+	if (bytes.value == -1)
+		return 0;
+	bytes = rl_max(rl);
+	if (bytes.uvalue >= INT_MAX)
+		return 0;
+	return bytes.value;
 }
 
 int get_array_size_bytes_min(struct expression *expr)
 {
-	int size;
-	int tmp;
+	struct range_list *rl;
+	struct data_range *range;
 
-	size = get_array_size_bytes(expr);
+	rl = get_array_size_bytes_rl(expr);
+	if (!rl)
+		return 0;
 
-	tmp = get_stored_size_bytes_min(expr);
-	if (size <= 0 || (tmp >= 1 && tmp < size))
-		size = tmp;
-	return size;
+	FOR_EACH_PTR(rl, range) {
+		if (range->min.value <= 0)
+			return 0;
+		if (range->max.value <= 0)
+			return 0;
+		if (range->min.uvalue >= INT_MAX)
+			return 0;
+		return range->min.value;
+	} END_FOR_EACH_PTR(range);
+
+	return 0;
 }
 
 int get_array_size(struct expression *expr)
 {
-	int bytes;
-
-	bytes = get_array_size_bytes(expr);
-	return bytes_to_elements(expr, bytes);
+	return bytes_to_elements(expr, get_array_size_bytes_max(expr));
 }
 
 static void match_strlen_condition(struct expression *expr)
@@ -489,12 +551,14 @@ static void match_strlen_condition(struct expression *expr)
 			return;
 	}
 
+	/* FIXME:  why are we using my_size_id here instead of my_strlen_id */
+
 	if (expr->op == SPECIAL_EQUAL) {
-		set_true_false_states_expr(my_size_id, str, alloc_state_num(sval.value + 1), NULL);
+		set_true_false_states_expr(my_size_id, str, size_to_estate(sval.value + 1), NULL);
 		return;
 	}
 	if (expr->op == SPECIAL_NOTEQUAL) {
-		set_true_false_states_expr(my_size_id, str, NULL, alloc_state_num(sval.value + 1));
+		set_true_false_states_expr(my_size_id, str, NULL, size_to_estate(sval.value + 1));
 		return;
 	}
 
@@ -502,30 +566,30 @@ static void match_strlen_condition(struct expression *expr)
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
 		if (strlen_left)
-			true_state = alloc_state_num(sval.value);
+			true_state = size_to_estate(sval.value);
 		else
-			false_state = alloc_state_num(sval.value + 1);
+			false_state = size_to_estate(sval.value + 1);
 		break;
 	case SPECIAL_LTE:
 	case SPECIAL_UNSIGNED_LTE:
 		if (strlen_left)
-			true_state = alloc_state_num(sval.value + 1);
+			true_state = size_to_estate(sval.value + 1);
 		else
-			false_state = alloc_state_num(sval.value);
+			false_state = size_to_estate(sval.value);
 		break;
 	case SPECIAL_GTE:
 	case SPECIAL_UNSIGNED_GTE:
 		if (strlen_left)
-			false_state = alloc_state_num(sval.value);
+			false_state = size_to_estate(sval.value);
 		else
-			true_state = alloc_state_num(sval.value + 1);
+			true_state = size_to_estate(sval.value + 1);
 		break;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
 		if (strlen_left)
-			false_state = alloc_state_num(sval.value + 1);
+			false_state = size_to_estate(sval.value + 1);
 		else
-			true_state = alloc_state_num(sval.value);
+			true_state = size_to_estate(sval.value);
 		break;
 	}
 	set_true_false_states_expr(my_size_id, str, true_state, false_state);
@@ -549,16 +613,16 @@ static void match_array_assignment(struct expression *expr)
 {
 	struct expression *left;
 	struct expression *right;
-	int array_size;
+	struct range_list *rl;
 
 	if (expr->op != '=')
 		return;
 	left = strip_expr(expr->left);
 	right = strip_expr(expr->right);
 	right = strip_ampersands(right);
-	array_size = get_array_size_bytes(right);
-	if (array_size)
-		set_state_expr(my_size_id, left, alloc_state_num(array_size));
+	rl = get_array_size_bytes_rl(right);
+	if (rl && !is_whole_rl(rl))
+		set_state_expr(my_size_id, left, alloc_estate_rl(clone_rl(rl)));
 }
 
 static void info_record_alloction(struct expression *buffer, struct expression *size)
@@ -587,16 +651,16 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 	int size_arg = PTR_INT(_size_arg);
 	struct expression *right;
 	struct expression *arg;
-	sval_t bytes;
+	struct range_list *rl;
 
 	right = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(right->args, size_arg);
 
 	info_record_alloction(expr->left, arg);
 
-	if (!get_implied_value(arg, &bytes))
+	if (!get_implied_rl(arg, &rl))
 		return;
-	set_state_expr(my_size_id, expr->left, alloc_state_num(bytes.value));
+	set_state_expr(my_size_id, expr->left, alloc_estate_rl(rl));
 }
 
 static void match_calloc(const char *fn, struct expression *expr, void *unused)
@@ -613,7 +677,7 @@ static void match_calloc(const char *fn, struct expression *expr, void *unused)
 	arg = get_argument_from_call_expr(right->args, 1);
 	if (!get_implied_value(arg, &size))
 		return;
-	set_state_expr(my_size_id, expr->left, alloc_state_num(elements.value * size.value));
+	set_state_expr(my_size_id, expr->left, size_to_estate(elements.value * size.value));
 }
 
 static void match_strlen(const char *fn, struct expression *expr, void *unused)
@@ -633,8 +697,9 @@ static void match_strlen(const char *fn, struct expression *expr, void *unused)
 		return;
 
 	state = __alloc_smatch_state(0);
-	state->name = len_name;
+        state->name = len_name;
 	state->data = len_expr;
+
 	set_state_expr(my_strlen_id, str, state);
 }
 
@@ -649,7 +714,7 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 	size_expr = get_argument_from_call_expr(expr->args, limiter->limit_arg);
 	if (!get_implied_max(size_expr, &size))
 		return;
-	set_state_expr(my_size_id, dest, alloc_state_num(size.value));
+	set_state_expr(my_size_id, dest, size_to_estate(size.value));
 }
 
 static void match_strcpy(const char *fn, struct expression *expr, void *unused)
@@ -675,24 +740,20 @@ static void match_strndup(const char *fn, struct expression *expr, void *unused)
 
 	/* It's easy to forget space for the NUL char */
 	size.value++;
-	set_state_expr(my_size_id, expr->left, alloc_state_num(size.value));
+	set_state_expr(my_size_id, expr->left, size_to_estate(size.value));
 }
 
 static void match_call(struct expression *expr)
 {
 	struct expression *arg;
-	int bytes;
+	struct range_list *rl;
 	int i;
 
 	i = 0;
 	FOR_EACH_PTR(expr->args, arg) {
-		bytes = get_array_size_bytes(arg);
-		if (bytes > 1) {
-			char buf[11];
-
-			snprintf(buf, sizeof(buf), "%d", bytes);
-			sql_insert_caller_info(expr, BUF_SIZE, i, "$$", buf);
-		}
+		rl = get_array_size_bytes_rl(arg);
+		if (rl && !is_whole_rl(rl))
+			sql_insert_caller_info(expr, BUF_SIZE, i, "$$", show_rl(rl));
 		i++;
 	} END_FOR_EACH_PTR(arg);
 }
@@ -707,6 +768,8 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 void register_buf_size(int id)
 {
 	my_size_id = id;
+
+	add_unmatched_state_hook(my_size_id, &unmatched_size_state);
 
 	select_caller_info_hook(set_param_buf_size, BUF_SIZE);
 	select_return_states_hook(BUF_SIZE, &db_returns_buf_size);
@@ -732,22 +795,21 @@ void register_buf_size(int id)
 	}
 	add_hook(&match_array_assignment, ASSIGNMENT_HOOK);
 	add_hook(&match_strlen_condition, CONDITION_HOOK);
-	add_function_assign_hook("strlen", &match_strlen, NULL);
 
 	add_function_assign_hook("strndup", match_strndup, NULL);
 	if (option_project == PROJ_KERNEL)
 		add_function_assign_hook("kstrndup", match_strndup, NULL);
 
-	add_modification_hook(my_size_id, &set_undefined);
+	add_modification_hook(my_size_id, &set_size_undefined);
 
-	add_merge_hook(my_size_id, &merge_func);
+	add_merge_hook(my_size_id, &merge_size_func);
 }
 
 void register_strlen(int id)
 {
 	my_strlen_id = id;
-	add_modification_hook(my_strlen_id, &set_undefined);
-	add_merge_hook(my_strlen_id, &merge_func);
+	add_function_assign_hook("strlen", &match_strlen, NULL);
+	add_modification_hook(my_strlen_id, &set_strlen_undefined);
 }
 
 void register_buf_size_late(int id)
