@@ -422,7 +422,7 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr)
 
 	size = size_from_db(expr);
 	if (size)
-		alloc_int_rl(size);
+		return alloc_int_rl(size);
 	return NULL;
 }
 
