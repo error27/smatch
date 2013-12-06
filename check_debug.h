@@ -21,6 +21,7 @@ static inline void __smatch_sval_info(long long val){}
 static inline void __smatch_possible(const char *unused){}
 static inline void __smatch_print_value(const char *unused){}
 
+static inline void __smatch_strlen(const void *buf){}
 static inline void __smatch_buf_size(const void *buf){}
 
 static inline void __smatch_note(const char *note){}

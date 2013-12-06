@@ -264,6 +264,20 @@ static void match_possible(const char *fn, struct expression *expr, void *info)
 	free_slist(&slist);
 }
 
+static void match_strlen(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	struct range_list *rl;
+	char *name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	get_implied_strlen(arg, &rl);
+
+	name = expr_to_str(arg);
+	sm_msg("strlen: '%s' %s characters", name, show_rl(rl));
+	free_string(name);
+}
+
 static void match_buf_size(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
@@ -390,6 +404,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_sval_info", &match_sval_info, NULL);
 	add_function_hook("__smatch_possible", &match_possible, NULL);
 	add_function_hook("__smatch_cur_slist", &match_cur_slist, NULL);
+	add_function_hook("__smatch_strlen", &match_strlen, NULL);
 	add_function_hook("__smatch_buf_size", &match_buf_size, NULL);
 	add_function_hook("__smatch_note", &match_note, NULL);
 	add_function_hook("__smatch_dump_related", &match_dump_related, NULL);
