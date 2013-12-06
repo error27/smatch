@@ -673,7 +673,7 @@ static struct range_list *handle_variable(struct expression *expr, int implied)
 	case RL_IMPLIED:
 	case RL_ABSOLUTE:
 		state = get_state_expr(SMATCH_EXTRA, expr);
-		if (!state || is_whole_rl(estate_rl(state))) {
+		if (!state || !state->data) {
 			if (implied == RL_HARD)
 				return NULL;
 			if (get_local_rl(expr, &rl))
