@@ -14,16 +14,9 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-/*
- * This check has two smatch IDs.
- * my_size_id - used to store the size of arrays.
- * my_strlen_id - track the strlen() of buffers.
- */
-
 #define UNKNOWN_SIZE (-1)
 
 static int my_size_id;
-static int my_strlen_id;
 
 struct limiter {
 	int buf_arg;
@@ -59,11 +52,6 @@ static struct smatch_state *unmatched_size_state(struct sm_state *sm)
 static void set_size_undefined(struct sm_state *sm, struct expression *mod_expr)
 {
 	set_state(sm->owner, sm->name, sm->sym, size_to_estate(UNKNOWN_SIZE));
-}
-
-static void set_strlen_undefined(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(sm->owner, sm->name, sm->sym, &undefined);
 }
 
 static struct smatch_state *merge_size_func(struct smatch_state *s1, struct smatch_state *s2)
@@ -280,23 +268,6 @@ static int get_bytes_from_address(struct expression *expr)
 		return 0;  /* ignore char pointers */
 
 	return ret;
-}
-
-static int get_size_from_strlen(struct expression *expr)
-{
-	struct smatch_state *state;
-	sval_t len;
-
-	state = get_state_expr(my_strlen_id, expr);
-	if (!state || !state->data)
-		return 0;
-	if (!get_implied_max((struct expression *)state->data, &len))
-		return 0;
-	if (sval_is_max(len))
-		return 0;
-	if (len.uvalue > INT_MAX - 1 || len.value < 0)
-		return 0;
-	return len.value + 1; /* add one because strlen doesn't include the NULL */
 }
 
 static struct expression *remove_addr_fluff(struct expression *expr)
@@ -680,29 +651,6 @@ static void match_calloc(const char *fn, struct expression *expr, void *unused)
 	set_state_expr(my_size_id, expr->left, size_to_estate(elements.value * size.value));
 }
 
-static void match_strlen(const char *fn, struct expression *expr, void *unused)
-{
-	struct expression *right;
-	struct expression *str;
-	struct expression *len_expr;
-	char *len_name;
-	struct smatch_state *state;
-
-	right = strip_expr(expr->right);
-	str = get_argument_from_call_expr(right->args, 0);
-	len_expr = strip_expr(expr->left);
-
-	len_name = expr_to_var(len_expr);
-	if (!len_name)
-		return;
-
-	state = __alloc_smatch_state(0);
-        state->name = len_name;
-	state->data = len_expr;
-
-	set_state_expr(my_strlen_id, str, state);
-}
-
 static void match_limited(const char *fn, struct expression *expr, void *_limiter)
 {
 	struct limiter *limiter = (struct limiter *)_limiter;
@@ -803,13 +751,6 @@ void register_buf_size(int id)
 	add_modification_hook(my_size_id, &set_size_undefined);
 
 	add_merge_hook(my_size_id, &merge_size_func);
-}
-
-void register_strlen(int id)
-{
-	my_strlen_id = id;
-	add_function_assign_hook("strlen", &match_strlen, NULL);
-	add_modification_hook(my_strlen_id, &set_strlen_undefined);
 }
 
 void register_buf_size_late(int id)

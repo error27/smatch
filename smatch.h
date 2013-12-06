@@ -627,6 +627,8 @@ int get_array_size_bytes_min(struct expression *expr);
 int get_array_size_bytes_max(struct expression *expr);
 struct range_list *get_array_size_bytes_rl(struct expression *expr);
 int get_real_array_size(struct expression *expr);
+/* smatch_strlen.c */
+int get_size_from_strlen(struct expression *expr);
 
 /* smatch_capped.c */
 int is_capped(struct expression *expr);
