@@ -44,21 +44,30 @@ static void match_strlen(const char *fn, struct expression *expr, void *unused)
 	set_state_expr(my_strlen_id, str, state);
 }
 
-int get_size_from_strlen(struct expression *expr)
+int get_implied_strlen(struct expression *expr, struct range_list **rl)
 {
 	struct smatch_state *state;
-	sval_t len;
 
 	state = get_state_expr(my_strlen_id, expr);
 	if (!state || !state->data)
 		return 0;
-	if (!get_implied_max((struct expression *)state->data, &len))
+	if (!get_implied_rl((struct expression *)state->data, rl))
 		return 0;
-	if (sval_is_max(len))
+	return 1;
+}
+
+int get_size_from_strlen(struct expression *expr)
+{
+	struct range_list *rl;
+	sval_t max;
+
+	if (!get_implied_strlen(expr, &rl))
 		return 0;
-	if (len.uvalue > INT_MAX - 1 || len.value < 0)
+	max = rl_max(rl);
+	if (sval_is_negative(max) || sval_is_max(max))
 		return 0;
-	return len.value + 1; /* add one because strlen doesn't include the NULL */
+
+	return max.value + 1; /* add one because strlen doesn't include the NULL */
 }
 
 void register_strlen(int id)
