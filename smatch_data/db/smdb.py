@@ -122,20 +122,13 @@ def print_call_implies(func):
         print "| %15s" %(type_to_str(txt[4])),
         print "| %3d | %15s |" %(txt[5], txt[6])
 
-def print_type_size(var):
+def print_type_size(struct_type, member):
     cur = con.cursor()
-    if not re.search("^\(struct ", var):
-        m = re.search('(?<=->)\w+', var)
-        print "searched"
-        if not m:
-            print "Can't determine type for %s" %(var)
-            return
-        var = "%->" + m.group(0)
-    cur.execute("select * from type_size where type like '%s';" %(var))
-    print "file | type | size"
+    cur.execute("select * from function_type_size where type = '(struct %s)->%s';" %(struct_type, member))
+    print "file | function | type | size"
     for txt in cur:
         printed = 1
-        print "%15s | %15s | %d" %(txt[0], txt[1], txt[2])
+        print "%-15s | %-15s | %-15s | %s" %(txt[0], txt[1], txt[2], txt[3])
 
 def print_fn_ptrs(func):
     ptrs = get_function_pointers(func)
@@ -210,9 +203,10 @@ elif sys.argv[1] == "return_states":
 elif sys.argv[1] == "call_implies":
     func = sys.argv[2]
     print_call_implies(func)
-elif sys.argv[1] == "type_size":
-    var = sys.argv[2]
-    print_type_size(var)
+elif sys.argv[1] == "type_size" or sys.argv[1] == "buf_size":
+    struct_type = sys.argv[2]
+    member = sys.argv[3]
+    print_type_size(struct_type, member)
 elif sys.argv[1] == "call_tree":
     func = sys.argv[2]
     print_call_tree(func)

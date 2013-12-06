@@ -214,9 +214,9 @@ void sql_insert_call_implies(int type, int param, int value)
 		   type, param, value);
 }
 
-void sql_insert_type_size(const char *member, int size)
+void sql_insert_function_type_size(const char *member, int size)
 {
-	sql_insert(type_size, "'%s', '%s', %d", get_base_file(), member, size);
+	sql_insert(function_type_size, "'%s', '%s', '%s', %d", get_base_file(), get_function(), member, size);
 }
 
 void sql_insert_local_values(const char *name, const char *value)
@@ -1035,6 +1035,7 @@ static void init_memdb(void)
 		"db/db.schema",
 		"db/caller_info.schema",
 		"db/return_states.schema",
+		"db/function_type_size.schema",
 		"db/type_size.schema",
 		"db/call_implies.schema",
 		"db/function_ptr.schema",

@@ -160,9 +160,6 @@ static int size_from_db(struct expression *expr)
 	int this_file_only = 0;
 	char *name;
 
-	if (!option_spammy)
-		return 0;
-
 	name = get_member_name(expr);
 	if (!name && is_static(expr)) {
 		name = expr_to_var(expr);
@@ -172,15 +169,14 @@ static int size_from_db(struct expression *expr)
 		return 0;
 
 	db_size = 0;
-	run_sql(db_size_callback, "select size from type_size where type = '%s' and file = '%s'",
+	run_sql(db_size_callback, "select size from function_type_size where type = '%s' and file = '%s'",
 			name, get_filename());
-	if (db_size < 0)
-		return 0;
-	if (db_size != 0)
+	if (db_size > 0)
 		return db_size;
 	if (this_file_only)
 		return 0;
 
+	db_size = 0;
 	run_sql(db_size_callback, "select size from type_size where type = '%s'",
 			name);
 
@@ -610,9 +606,9 @@ static void info_record_alloction(struct expression *buffer, struct expression *
 	if (!name)
 		return;
 	if (get_implied_value(size, &sval))
-		sql_insert_type_size(name, sval.value);
+		sql_insert_function_type_size(name, sval.value);
 	else
-		sql_insert_type_size(name, -1);
+		sql_insert_function_type_size(name, -1);
 
 	free_string(name);
 }
