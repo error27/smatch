@@ -86,9 +86,10 @@ static int get_the_max(struct expression *expr, sval_t *sval)
 		return 1;
 	if (!option_spammy)
 		return 0;
+	if (get_fuzzy_max(expr, sval))
+		return 1;
 	if (is_user_data(expr))
 		return get_absolute_max(expr, sval);
-	/* FIXME: get_fuzzy_max() is not working well across function boundaries */
 	return 0;
 }
 
@@ -146,14 +147,6 @@ static void array_check(struct expression *expr)
 
 		if (definitely_just_used_as_limiter(array_expr, offset))
 			return;
-
-		if (!option_spammy) {
-			struct smatch_state *state;
-
-			state = get_state_expr(SMATCH_EXTRA, offset);
-			if (state && estate_is_whole(state))
-				return;
-		}
 
 		name = expr_to_str(array_expr);
 		if (!common_false_positives(name)) {
