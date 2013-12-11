@@ -777,6 +777,25 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern unsigned int __builtin_bswap32(unsigned int);\n");
 	add_pre_buffer("extern unsigned long long __builtin_bswap64(unsigned long long);\n");
 
+	/* And atomic memory access functions.. */
+	add_pre_buffer("extern int __sync_fetch_and_add(void *, ...);\n");
+	add_pre_buffer("extern int __sync_fetch_and_sub(void *, ...);\n");
+	add_pre_buffer("extern int __sync_fetch_and_or(void *, ...);\n");
+	add_pre_buffer("extern int __sync_fetch_and_and(void *, ...);\n");
+	add_pre_buffer("extern int __sync_fetch_and_xor(void *, ...);\n");
+	add_pre_buffer("extern int __sync_fetch_and_nand(void *, ...);\n");
+	add_pre_buffer("extern int __sync_add_and_fetch(void *, ...);\n");
+	add_pre_buffer("extern int __sync_sub_and_fetch(void *, ...);\n");
+	add_pre_buffer("extern int __sync_or_and_fetch(void *, ...);\n");
+	add_pre_buffer("extern int __sync_and_and_fetch(void *, ...);\n");
+	add_pre_buffer("extern int __sync_xor_and_fetch(void *, ...);\n");
+	add_pre_buffer("extern int __sync_nand_and_fetch(void *, ...);\n");
+	add_pre_buffer("extern int __sync_bool_compare_and_swap(void *, ...);\n");
+	add_pre_buffer("extern int __sync_val_compare_and_swap(void *, ...);\n");
+	add_pre_buffer("extern void __sync_synchronize();\n");
+	add_pre_buffer("extern int __sync_lock_test_and_set(void *, ...);\n");
+	add_pre_buffer("extern void __sync_lock_release(void *, ...);\n");
+
 	/* And some random ones.. */
 	add_pre_buffer("extern void *__builtin_return_address(unsigned int);\n");
 	add_pre_buffer("extern void *__builtin_extract_return_addr(void *);\n");
@@ -794,8 +813,6 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern long __builtin_labs(long);\n");
 	add_pre_buffer("extern double __builtin_fabs(double);\n");
 	add_pre_buffer("extern __SIZE_TYPE__ __builtin_va_arg_pack_len(void);\n");
-	add_pre_buffer("extern void __sync_synchronize();\n");
-	add_pre_buffer("extern int __sync_bool_compare_and_swap(void *, ...);\n");
 
 	/* Add Blackfin-specific stuff */
 	add_pre_buffer(
