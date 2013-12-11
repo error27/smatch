@@ -152,16 +152,60 @@ int get_size_from_strlen(struct expression *expr)
 	return max.value + 1; /* add one because strlen doesn't include the NULL */
 }
 
+void set_param_strlen(const char *name, struct symbol *sym, char *key, char *value)
+{
+	struct range_list *rl = NULL;
+	struct smatch_state *state;
+	char fullname[256];
+
+	if (strncmp(key, "$$", 2) != 0)
+		return;
+
+	snprintf(fullname, 256, "%s%s", name, key + 2);
+
+	str_to_rl(&int_ctype, value, &rl);
+	if (!rl || is_whole_rl(rl))
+		return;
+	state = alloc_estate_rl(rl);
+	set_state(my_strlen_id, fullname, sym, state);
+}
+
+static void match_call(struct expression *expr)
+{
+	struct expression *arg;
+	struct range_list *rl;
+	int i;
+
+	i = 0;
+	FOR_EACH_PTR(expr->args, arg) {
+		if (!get_implied_strlen(arg, &rl))
+			continue;
+		if (!is_whole_rl(rl))
+			sql_insert_caller_info(expr, STR_LEN, i, "$$", show_rl(rl));
+		i++;
+	} END_FOR_EACH_PTR(arg);
+}
+
+static void struct_member_callback(struct expression *call, int param, char *printed_name, struct smatch_state *state)
+{
+	if (state == &merged)
+		return;
+	sql_insert_caller_info(call, STR_LEN, param, printed_name, state->name);
+}
+
 void register_strlen(int id)
 {
 	my_strlen_id = id;
 
 	add_unmatched_state_hook(my_strlen_id, &unmatched_strlen_state);
 
+	select_caller_info_hook(set_param_strlen, STR_LEN);
 	add_hook(&match_string_assignment, ASSIGNMENT_HOOK);
 
 	add_modification_hook(my_strlen_id, &set_strlen_undefined);
 	add_merge_hook(my_strlen_id, &merge_estates);
+	add_hook(&match_call, FUNCTION_CALL_HOOK);
+	add_member_info_callback(my_strlen_id, struct_member_callback);
 }
 
 void register_strlen_equiv(int id)

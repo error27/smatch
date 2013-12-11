@@ -58,6 +58,7 @@ db_types = {   0: "INTERNAL",
             1013: "PARAM_FREED",
             1014: "DATA_SOURCE",
             1015: "FUZZY_MAX",
+            1016: "STR_LEN",
 };
 
 def type_to_str(type_int):
