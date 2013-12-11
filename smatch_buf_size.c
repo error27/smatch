@@ -445,7 +445,7 @@ int get_array_size_bytes_max(struct expression *expr)
 	if (!rl)
 		return 0;
 	bytes = rl_min(rl);
-	if (bytes.value == -1)
+	if (bytes.value < 0)
 		return 0;
 	bytes = rl_max(rl);
 	if (bytes.uvalue >= INT_MAX)
