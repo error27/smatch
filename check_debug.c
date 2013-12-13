@@ -40,7 +40,7 @@ static void match_state(const char *fn, struct expression *expr, void *info)
 		return;
 	}
 	state_arg = get_argument_from_call_expr(expr->args, 1);
-	if (state_arg->type != EXPR_STRING) {
+	if (!state_arg || state_arg->type != EXPR_STRING) {
 		sm_msg("error:  the state_name argument to %s is supposed to be a string literal", fn);
 		return;
 	}
