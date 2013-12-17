@@ -27,6 +27,7 @@ CK(register_annotate)
 CK(register_start_states)
 CK(register_type_val)
 CK(register_data_source)
+CK(register_common_functions)
 
 CK(check_debug)
 CK(check_assigned_expr)
