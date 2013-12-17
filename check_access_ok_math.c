@@ -104,6 +104,8 @@ void check_access_ok_math(int id)
 	my_id = id;
 	if (option_project != PROJ_KERNEL)
 		return;
+	if (!option_spammy)
+		return;
 	add_function_hook("__access_ok", &match_access_ok, NULL);
 	add_hook(&match_asm_stmt, ASM_HOOK);
 }
