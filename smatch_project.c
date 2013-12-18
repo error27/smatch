@@ -16,6 +16,23 @@
 
 #include "smatch.h"
 #include "smatch_extra.h"
+#include "smatch_function_hashtable.h"
+
+static DEFINE_HASHTABLE_INSERT(insert_func, char, int);
+static DEFINE_HASHTABLE_SEARCH(search_func, char, int);
+static struct hashtable *silenced_funcs;
+
+int is_silenced_function(void)
+{
+	char *func;
+
+	func = get_function();
+	if (!func)
+		return 0;
+	if (search_func(silenced_funcs, func))
+		return 1;
+	return 0;
+}
 
 static void register_no_return_funcs(void)
 {
@@ -71,8 +88,37 @@ static void register_ignored_macros(void)
 	clear_token_alloc();
 }
 
+static void register_silenced_functions(void)
+{
+	struct token *token;
+	char *func;
+	char name[256];
+
+	silenced_funcs = create_function_hashtable(500);
+
+	if (option_project == PROJ_NONE)
+		return;
+
+	snprintf(name, 256, "%s.silenced_functions", option_project_str);
+
+	token = get_tokens_file(name);
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = alloc_string(show_ident(token->ident));
+		insert_func(silenced_funcs, func, INT_PTR(1));
+		token = token->next;
+	}
+	clear_token_alloc();
+}
 void register_project(int id)
 {
 	register_no_return_funcs();
 	register_ignored_macros();
+	register_silenced_functions();
 }

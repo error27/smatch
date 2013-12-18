@@ -163,6 +163,8 @@ extern int final_pass;
 extern struct symbol *cur_func_sym;
 extern int option_debug;
 extern int local_debug;
+extern int option_info;
+int is_silenced_function(void);
 
 extern FILE *sm_outfd;
 #define sm_printf(msg...) do { if (final_pass || option_debug) fprintf(sm_outfd, msg); } while (0)
@@ -179,6 +181,8 @@ do {                                                           \
 	print_implied_debug_msg();                             \
 	if (!option_debug && !final_pass)                      \
 		break;                                         \
+	if (!option_info && is_silenced_function())	       \
+		break;					       \
 	sm_prefix();					       \
         sm_printf(msg);                                        \
         sm_printf("\n");                                       \
@@ -608,7 +612,6 @@ extern int option_no_data;
 extern int option_spammy;
 extern int option_full_path;
 extern int option_param_mapper;
-extern int option_info;
 extern int option_call_tree;
 extern int num_checks;
 
