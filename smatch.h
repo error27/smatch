@@ -372,6 +372,9 @@ extern struct expression *__inline_fn;
 extern int __in_pre_condition;
 extern int __bail_on_rest_of_function;
 
+/* smatch_project.c */
+int is_no_inline_function(const char *function);
+
 /* smatch_conditions */
 void __split_whole_condition(struct expression *expr);
 void __handle_logic(struct expression *expr);

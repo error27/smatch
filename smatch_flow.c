@@ -128,6 +128,8 @@ int inlinable(struct expression *expr)
 
 	if (expr->type != EXPR_SYMBOL || !expr->symbol)
 		return 0;
+	if (is_no_inline_function(expr->symbol->ident->name))
+		return 0;
 	sym = get_base_type(expr->symbol);
 	if (sym->stmt && sym->stmt->type == STMT_COMPOUND) {
 		if (ptr_list_size((struct ptr_list *)sym->stmt->stmts) <= 10)

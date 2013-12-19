@@ -21,6 +21,7 @@
 static DEFINE_HASHTABLE_INSERT(insert_func, char, int);
 static DEFINE_HASHTABLE_SEARCH(search_func, char, int);
 static struct hashtable *silenced_funcs;
+static struct hashtable *no_inline_funcs;
 
 int is_silenced_function(void)
 {
@@ -30,6 +31,13 @@ int is_silenced_function(void)
 	if (!func)
 		return 0;
 	if (search_func(silenced_funcs, func))
+		return 1;
+	return 0;
+}
+
+int is_no_inline_function(const char *function)
+{
+	if (search_func(no_inline_funcs, (char *)function))
 		return 1;
 	return 0;
 }
@@ -116,9 +124,40 @@ static void register_silenced_functions(void)
 	}
 	clear_token_alloc();
 }
+
+static void register_no_inline_functions(void)
+{
+	struct token *token;
+	char *func;
+	char name[256];
+
+	no_inline_funcs = create_function_hashtable(500);
+
+	if (option_project == PROJ_NONE)
+		return;
+
+	snprintf(name, 256, "%s.no_inline_functions", option_project_str);
+
+	token = get_tokens_file(name);
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = alloc_string(show_ident(token->ident));
+		insert_func(no_inline_funcs, func, INT_PTR(1));
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
 void register_project(int id)
 {
 	register_no_return_funcs();
 	register_ignored_macros();
 	register_silenced_functions();
+	register_no_inline_functions();
 }
