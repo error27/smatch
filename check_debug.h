@@ -25,6 +25,7 @@ static inline void __smatch_print_value(const char *unused){}
 
 static inline void __smatch_strlen(const void *buf){}
 static inline void __smatch_buf_size(const void *buf){}
+static inline void __smatch_buf_size_rl(const void *buf){}
 
 static inline void __smatch_note(const char *note){}
 

@@ -306,6 +306,23 @@ static void match_buf_size(const char *fn, struct expression *expr, void *info)
 	free_string(name);
 }
 
+static void match_buf_size_rl(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	struct range_list *rl;
+	int elements, bytes;
+	char *name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	rl = get_array_size_bytes_rl(arg);
+	elements = get_array_size(arg);
+	bytes = get_array_size_bytes(arg);
+
+	name = expr_to_str(arg);
+	sm_msg("buf size: '%s' %s %d elements, %d bytes", name, show_rl(rl), elements, bytes);
+	free_string(name);
+}
+
 static void match_note(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg_expr;
@@ -420,6 +437,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_cur_slist", &match_cur_slist, NULL);
 	add_function_hook("__smatch_strlen", &match_strlen, NULL);
 	add_function_hook("__smatch_buf_size", &match_buf_size, NULL);
+	add_function_hook("__smatch_buf_size_rl", &match_buf_size_rl, NULL);
 	add_function_hook("__smatch_note", &match_note, NULL);
 	add_function_hook("__smatch_dump_related", &match_dump_related, NULL);
 	add_function_hook("__smatch_compare", &match_compare, NULL);
