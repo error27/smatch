@@ -233,6 +233,19 @@ free:
 	free_string(name);
 }
 
+static void match_member_name(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	char *name, *member_name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	name = expr_to_str(arg);
+	member_name = get_member_name(arg);
+	sm_msg("member name: '%s => %s'", name, member_name);
+	free_string(member_name);
+	free_string(name);
+}
+
 static void print_possible(struct sm_state *sm)
 {
 	struct sm_state *tmp;
@@ -402,6 +415,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_absolute_min", &match_print_absolute_min, NULL);
 	add_function_hook("__smatch_absolute_max", &match_print_absolute_max, NULL);
 	add_function_hook("__smatch_sval_info", &match_sval_info, NULL);
+	add_function_hook("__smatch_member_name", &match_member_name, NULL);
 	add_function_hook("__smatch_possible", &match_possible, NULL);
 	add_function_hook("__smatch_cur_slist", &match_cur_slist, NULL);
 	add_function_hook("__smatch_strlen", &match_strlen, NULL);

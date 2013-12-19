@@ -18,6 +18,8 @@ static inline void __smatch_absolute_max(long long val){}
 
 static inline void __smatch_sval_info(long long val){}
 
+static inline void __smatch_member_name(long long val){}
+
 static inline void __smatch_possible(const char *unused){}
 static inline void __smatch_print_value(const char *unused){}
 
