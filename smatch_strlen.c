@@ -105,8 +105,6 @@ static int get_strlen_from_state(struct expression *expr, struct range_list **rl
 		return 0;
 	*rl = estate_rl(state);
 	return 1;
-
-
 }
 
 static int get_strlen_from_equiv(struct expression *expr, struct range_list **rl)
