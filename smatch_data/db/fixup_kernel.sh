@@ -57,6 +57,11 @@ update return_states set return = '0-u32max[<=p2]' where function = '__copy_from
 /* 64 CPUs aught to be enough for anyone */
 update return_states set return = '1-64' where function = 'cpumask_weight';
 
+update return_states set return = '0-8' where function = '__arch_hweight8';
+update return_states set return = '0-16' where function = '__arch_hweight16';
+update return_states set return = '0-32' where function = '__arch_hweight32';
+update return_states set return = '0-64' where function = '__arch_hweight64';
+
 /*
  * Preserve the value across byte swapping.  By the time we use it for math it
  * will be byte swapped back to CPU endian.
