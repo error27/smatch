@@ -13,6 +13,7 @@
 #include "smatch.h"
 #include "smatch_slist.h"
 #include "smatch_extra.h"
+#include "smatch_function_hashtable.h"
 
 #define UNKNOWN_SIZE (-1)
 
@@ -23,6 +24,39 @@ struct limiter {
 	int limit_arg;
 };
 static struct limiter b0_l2 = {0, 2};
+
+static DEFINE_HASHTABLE_INSERT(insert_func, char, int);
+static DEFINE_HASHTABLE_SEARCH(search_func, char, int);
+static struct hashtable *allocation_funcs;
+
+static char *get_fn_name(struct expression *expr)
+{
+	if (expr->type != EXPR_CALL)
+		return NULL;
+	if (expr->fn->type != EXPR_SYMBOL)
+		return NULL;
+	return expr_to_var(expr->fn);
+}
+
+static int is_allocation_function(struct expression *expr)
+{
+	char *func;
+	int ret = 0;
+
+	func = get_fn_name(expr);
+	if (!func)
+		return 0;
+	if (search_func(allocation_funcs, func))
+		ret = 1;
+	free_string(func);
+	return ret;
+}
+
+static void add_allocation_function(const char *func, void *call_back, int param)
+{
+	insert_func(allocation_funcs, (char *)func, (int *)1);
+	add_function_assign_hook(func, call_back, INT_PTR(param));
+}
 
 static int estate_to_size(struct smatch_state *state)
 {
@@ -42,6 +76,16 @@ static struct smatch_state *size_to_estate(int size)
 	sval.value = size;
 
 	return alloc_estate_sval(sval);
+}
+
+static struct range_list *size_to_rl(int size)
+{
+	sval_t sval;
+
+	sval.type = &int_ctype;
+	sval.value = size;
+
+	return alloc_rl(sval, sval);
 }
 
 static struct smatch_state *unmatched_size_state(struct sm_state *sm)
@@ -420,6 +464,7 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr)
 	ret = size_from_db(expr);
 	if (ret)
 		return ret;
+
 	return NULL;
 }
 
@@ -577,26 +622,9 @@ static struct expression *strip_ampersands(struct expression *expr)
 	return expr->unop;
 }
 
-static void match_array_assignment(struct expression *expr)
-{
-	struct expression *left;
-	struct expression *right;
-	struct range_list *rl;
-
-	if (expr->op != '=')
-		return;
-	left = strip_expr(expr->left);
-	right = strip_expr(expr->right);
-	right = strip_ampersands(right);
-	rl = get_array_size_bytes_rl(right);
-	if (rl && !is_whole_rl(rl))
-		set_state_expr(my_size_id, left, alloc_estate_rl(clone_rl(rl)));
-}
-
-static void info_record_alloction(struct expression *buffer, struct expression *size)
+static void info_record_alloction(struct expression *buffer, struct range_list *rl)
 {
 	char *name;
-	sval_t sval;
 
 	if (!option_info)
 		return;
@@ -606,12 +634,46 @@ static void info_record_alloction(struct expression *buffer, struct expression *
 		name = expr_to_var(buffer);
 	if (!name)
 		return;
-	if (get_implied_value(size, &sval))
-		sql_insert_function_type_size(name, sval.value);
+	if (rl && !is_whole_rl(rl))
+		sql_insert_function_type_size(name, show_rl(rl));
 	else
-		sql_insert_function_type_size(name, -1);
+		sql_insert_function_type_size(name, "(-1)");
 
 	free_string(name);
+}
+
+static void store_alloc(struct expression *expr, struct range_list *rl)
+{
+	rl = clone_rl(rl); // FIXME!!!
+	info_record_alloction(expr, rl);
+	set_state_expr(my_size_id, expr, alloc_estate_rl(rl));
+}
+
+static void match_array_assignment(struct expression *expr)
+{
+	struct expression *left;
+	struct expression *right;
+	struct range_list *rl;
+	sval_t sval;
+
+	if (expr->op != '=')
+		return;
+	left = strip_expr(expr->left);
+	right = strip_expr(expr->right);
+	right = strip_ampersands(right);
+
+	if (is_allocation_function(right))
+		return;
+
+	if (get_implied_value(right, &sval) && sval.value == 0) {
+		rl = alloc_int_rl(0);
+		goto store;
+	}
+
+	rl = get_array_size_bytes_rl(right);
+
+store:
+	store_alloc(left, rl);
 }
 
 static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
@@ -623,12 +685,9 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 
 	right = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(right->args, size_arg);
-
-	info_record_alloction(expr->left, arg);
-
-	if (!get_implied_rl(arg, &rl))
-		return;
-	set_state_expr(my_size_id, expr->left, alloc_estate_rl(rl));
+	get_absolute_rl(arg, &rl);
+	rl = cast_rl(&int_ctype, rl);
+	store_alloc(expr->left, rl);
 }
 
 static void match_calloc(const char *fn, struct expression *expr, void *unused)
@@ -641,11 +700,12 @@ static void match_calloc(const char *fn, struct expression *expr, void *unused)
 	right = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(right->args, 0);
 	if (!get_implied_value(arg, &elements))
-		return;
+		return; // FIXME!!!
 	arg = get_argument_from_call_expr(right->args, 1);
-	if (!get_implied_value(arg, &size))
-		return;
-	set_state_expr(my_size_id, expr->left, size_to_estate(elements.value * size.value));
+	if (get_implied_value(arg, &size))
+		store_alloc(expr->left, size_to_rl(elements.value * size.value));
+	else
+		store_alloc(expr->left, size_to_rl(-1));
 }
 
 static void match_limited(const char *fn, struct expression *expr, void *_limiter)
@@ -680,12 +740,13 @@ static void match_strndup(const char *fn, struct expression *expr, void *unused)
 
 	fn_expr = strip_expr(expr->right);
 	size_expr = get_argument_from_call_expr(fn_expr->args, 1);
-	if (!get_implied_max(size_expr, &size))
-		return;
+	if (get_implied_max(size_expr, &size)) {
+		size.value++;
+		store_alloc(expr->left, size_to_rl(size.value));
+	} else {
+		store_alloc(expr->left, size_to_rl(-1));
+	}
 
-	/* It's easy to forget space for the NUL char */
-	size.value++;
-	set_state_expr(my_size_id, expr->left, size_to_estate(size.value));
 }
 
 static void match_call(struct expression *expr)
@@ -719,31 +780,33 @@ void register_buf_size(int id)
 	select_caller_info_hook(set_param_buf_size, BUF_SIZE);
 	select_return_states_hook(BUF_SIZE, &db_returns_buf_size);
 
-	add_function_assign_hook("malloc", &match_alloc, INT_PTR(0));
-	add_function_assign_hook("calloc", &match_calloc, NULL);
-	add_function_assign_hook("memdup", &match_alloc, INT_PTR(1));
+	allocation_funcs = create_function_hashtable(100);
+	add_allocation_function("malloc", &match_alloc, 0);
+	add_allocation_function("calloc", &match_calloc, 0);
+	add_allocation_function("memdup", &match_alloc, 1);
 	if (option_project == PROJ_KERNEL) {
-		add_function_assign_hook("kmalloc", &match_alloc, INT_PTR(0));
-		add_function_assign_hook("kzalloc", &match_alloc, INT_PTR(0));
-		add_function_assign_hook("vmalloc", &match_alloc, INT_PTR(0));
-		add_function_assign_hook("__vmalloc", &match_alloc, INT_PTR(0));
-		add_function_assign_hook("kcalloc", &match_calloc, NULL);
-		add_function_assign_hook("kmalloc_array", &match_calloc, NULL);
-		add_function_assign_hook("drm_malloc_ab", &match_calloc, NULL);
-		add_function_assign_hook("drm_calloc_large", &match_calloc, NULL);
-		add_function_assign_hook("sock_kmalloc", &match_alloc, INT_PTR(1));
-		add_function_assign_hook("kmemdup", &match_alloc, INT_PTR(1));
-		add_function_assign_hook("kmemdup_user", &match_alloc, INT_PTR(1));
-		add_function_assign_hook("dma_alloc_attrs", &match_alloc, INT_PTR(1));
-		add_function_assign_hook("devm_kmalloc", &match_alloc, INT_PTR(1));
-		add_function_assign_hook("devm_kzalloc", &match_alloc, INT_PTR(1));
+		add_allocation_function("kmalloc", &match_alloc, 0);
+		add_allocation_function("kzalloc", &match_alloc, 0);
+		add_allocation_function("vmalloc", &match_alloc, 0);
+		add_allocation_function("__vmalloc", &match_alloc, 0);
+		add_allocation_function("kcalloc", &match_calloc, 0);
+		add_allocation_function("kmalloc_array", &match_calloc, 0);
+		add_allocation_function("drm_malloc_ab", &match_calloc, 0);
+		add_allocation_function("drm_calloc_large", &match_calloc, 0);
+		add_allocation_function("sock_kmalloc", &match_alloc, 1);
+		add_allocation_function("kmemdup", &match_alloc, 1);
+		add_allocation_function("kmemdup_user", &match_alloc, 1);
+		add_allocation_function("dma_alloc_attrs", &match_alloc, 1);
+		add_allocation_function("pci_alloc_consistent", &match_alloc, 1);
+		add_allocation_function("pci_alloc_coherent", &match_alloc, 1);
+		add_allocation_function("devm_kmalloc", &match_alloc, 1);
+		add_allocation_function("devm_kzalloc", &match_alloc, 1);
 	}
-	add_hook(&match_array_assignment, ASSIGNMENT_HOOK);
 	add_hook(&match_strlen_condition, CONDITION_HOOK);
 
-	add_function_assign_hook("strndup", match_strndup, NULL);
+	add_allocation_function("strndup", match_strndup, 0);
 	if (option_project == PROJ_KERNEL)
-		add_function_assign_hook("kstrndup", match_strndup, NULL);
+		add_allocation_function("kstrndup", match_strndup, 0);
 
 	add_modification_hook(my_size_id, &set_size_undefined);
 
@@ -752,6 +815,9 @@ void register_buf_size(int id)
 
 void register_buf_size_late(int id)
 {
+	/* has to happen after match_alloc() */
+	add_hook(&match_array_assignment, ASSIGNMENT_HOOK);
+
 	add_function_hook("strlcpy", &match_limited, &b0_l2);
 	add_function_hook("strlcat", &match_limited, &b0_l2);
 	add_function_hook("memscan", &match_limited, &b0_l2);

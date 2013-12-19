@@ -214,9 +214,9 @@ void sql_insert_call_implies(int type, int param, int value)
 		   type, param, value);
 }
 
-void sql_insert_function_type_size(const char *member, int size)
+void sql_insert_function_type_size(const char *member, const char *ranges)
 {
-	sql_insert(function_type_size, "'%s', '%s', '%s', %d", get_base_file(), get_function(), member, size);
+	sql_insert(function_type_size, "'%s', '%s', '%s', '%s'", get_base_file(), get_function(), member, ranges);
 }
 
 void sql_insert_local_values(const char *name, const char *value)
