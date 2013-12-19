@@ -907,11 +907,15 @@ static void set_unset_to_zero(struct expression *symbol, struct symbol *type, st
 			continue;
 		}
 		member_type = get_real_base_type(member);
-		if (!member_type || member_type->type == SYM_ARRAY)
+		if (!member_type || member_type->type == SYM_ARRAY) {
+			member_idx++;
 			continue;
+		}
 		/* TODO: this should be handled recursively and not ignored */
-		if (member_type->type == SYM_STRUCT || member_type->type == SYM_UNION)
+		if (member_type->type == SYM_STRUCT || member_type->type == SYM_UNION) {
+			member_idx++;
 			continue;
+		}
 		deref = member_expression(symbol, '.', member->ident);
 		assign = assign_expression(deref, zero_expr());
 		__split_expr(assign);
