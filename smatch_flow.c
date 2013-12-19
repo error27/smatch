@@ -516,7 +516,9 @@ static void print_unreached(struct statement *stmt)
 			return;
 		break;
 	case STMT_GOTO:
-		if (!option_spammy)
+		/* people put extra breaks inside switch statements */
+		if (stmt->goto_label && stmt->goto_label->type == SYM_NODE &&
+		    strcmp(stmt->goto_label->ident->name, "break") == 0)
 			return;
 		break;
 	default:
