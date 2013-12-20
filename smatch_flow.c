@@ -526,6 +526,8 @@ static void print_unreached(struct statement *stmt)
 	}
 	if (empty_statement(stmt))
 		return;
+	if (!option_spammy)
+		return;
 	sm_msg("info: ignoring unreachable code.");
 	print = 0;
 }
