@@ -125,10 +125,14 @@ def print_call_implies(func):
 
 def print_type_size(struct_type, member):
     cur = con.cursor()
-    cur.execute("select * from function_type_size where type = '(struct %s)->%s';" %(struct_type, member))
+    cur.execute("select * from type_size where type like '(struct %s)->%s';" %(struct_type, member))
+    print "type | size"
+    for txt in cur:
+        print "%-15s | %s" %(txt[0], txt[1])
+
+    cur.execute("select * from function_type_size where type like '(struct %s)->%s';" %(struct_type, member))
     print "file | function | type | size"
     for txt in cur:
-        printed = 1
         print "%-15s | %-15s | %-15s | %s" %(txt[0], txt[1], txt[2], txt[3])
 
 def print_fn_ptrs(func):
@@ -179,9 +183,9 @@ def print_call_tree(func):
 
 def function_type_value(struct_type, member):
     cur = con.cursor()
-    cur.execute("select * from function_type_value where type = '(struct %s)->%s';" %(struct_type, member))
+    cur.execute("select * from function_type_value where type like '(struct %s)->%s';" %(struct_type, member))
     for txt in cur:
-        print "%s | %s | %s | %s" %(txt[0], txt[1], txt[2], txt[3])
+        print "%-30s | %-30s | %s | %s" %(txt[0], txt[1], txt[2], txt[3])
 
 if len(sys.argv) < 2:
     usage()
@@ -212,8 +216,18 @@ elif sys.argv[1] == "call_tree":
     func = sys.argv[2]
     print_call_tree(func)
 elif sys.argv[1] == "where":
-    struct_type = sys.argv[2]
-    member = sys.argv[3]
+    if len(sys.argv) == 3:
+        struct_type = "%"
+        member = sys.argv[2]
+    elif len(sys.argv) == 4:
+        struct_type = sys.argv[2]
+        member = sys.argv[3]
     function_type_value(struct_type, member)
+elif sys.argv[1] == "local":
+    filename = sys.argv[2]
+    variable = ""
+    if len(sys.argv) == 4:
+        variable = sys.argv[3]
+    local_values(filename, variable)
 else:
     usage()
