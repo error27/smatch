@@ -408,7 +408,7 @@ static struct range_list *alloc_int_rl(int value)
 {
 	sval_t sval = {
 		.type = &int_ctype,
-		.value = value,
+		{.value = value},
 	};
 
 	return alloc_rl(sval, sval);
