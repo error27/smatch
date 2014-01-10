@@ -564,6 +564,20 @@ int get_param_num_from_sym(struct symbol *sym)
 	return -1;
 }
 
+int get_param_num(struct expression *expr)
+{
+	struct symbol *sym;
+	char *name;
+
+	if (!cur_func_sym)
+		return -1;
+	name = expr_to_var_sym(expr, &sym);
+	free_string(name);
+	if (!sym)
+		return -1;
+	return get_param_num_from_sym(sym);
+}
+
 int ms_since(struct timeval *start)
 {
 	struct timeval end;

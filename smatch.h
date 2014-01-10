@@ -289,6 +289,7 @@ char *get_fnptr_name(struct expression *expr);
 int positions_eq(struct position pos1, struct position pos2);
 struct statement *get_current_statement(void);
 int get_param_num_from_sym(struct symbol *sym);
+int get_param_num(struct expression *expr);
 int ms_since(struct timeval *start);
 
 /* smatch_type.c */
