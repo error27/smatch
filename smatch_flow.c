@@ -1060,16 +1060,32 @@ static void fake_global_assign(struct symbol *sym)
 {
 	struct expression *assign, *symbol;
 
-	if (!sym->initializer)
-		return;
-	if (sym->initializer->type == EXPR_INITIALIZER) {
-		if (get_real_base_type(sym)->type == SYM_ARRAY)
+	if (get_real_base_type(sym)->type == SYM_ARRAY) {
+		if (sym->initializer && sym->initializer->type == EXPR_INITIALIZER) {
 			fake_element_assigns(sym, call_global_assign_hooks);
-		else
+		} else if (sym->initializer) {
+			symbol = symbol_expression(sym);
+			assign = assign_expression(symbol, sym->initializer);
+			__pass_to_client(assign, GLOBAL_ASSIGNMENT_HOOK);
+		} else {
+			fake_element_assigns_helper(symbol_expression(sym), NULL, call_global_assign_hooks);
+		}
+	} else if (get_real_base_type(sym)->type == SYM_STRUCT) {
+		if (sym->initializer && sym->initializer->type == EXPR_INITIALIZER) {
 			fake_member_assigns(sym, call_global_assign_hooks);
+		} else if (sym->initializer) {
+			symbol = symbol_expression(sym);
+			assign = assign_expression(symbol, sym->initializer);
+			__pass_to_client(assign, GLOBAL_ASSIGNMENT_HOOK);
+		} else {
+			fake_member_assigns_helper(symbol_expression(sym), NULL, call_global_assign_hooks);
+		}
 	} else {
 		symbol = symbol_expression(sym);
-		assign = assign_expression(symbol, sym->initializer);
+		if (sym->initializer)
+			assign = assign_expression(symbol, sym->initializer);
+		else
+			assign = assign_expression(symbol, zero_expr());
 		__pass_to_client(assign, GLOBAL_ASSIGNMENT_HOOK);
 	}
 }
