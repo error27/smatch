@@ -373,6 +373,15 @@ extern struct expression *__inline_fn;
 extern int __in_pre_condition;
 extern int __bail_on_rest_of_function;
 
+/* smatch_struct_assignment.c */
+enum {
+	COPY_NORMAL,
+	COPY_MEMCPY,
+	COPY_MEMSET,
+};
+void __struct_members_copy(int mode, struct expression *left, struct expression *right);
+void __fake_struct_member_assignments(struct expression *expr);
+
 /* smatch_project.c */
 int is_no_inline_function(const char *function);
 
