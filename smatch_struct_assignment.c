@@ -103,9 +103,6 @@ void __struct_members_copy(int mode, struct expression *left, struct expression 
 	if (!struct_type)
 		return;
 
-	if (!known_struct_member_states(right))
-		return;
-
 	if (is_pointer(left)) {
 		left = deref_expression(left);
 		op = '*';
@@ -121,6 +118,8 @@ void __struct_members_copy(int mode, struct expression *left, struct expression 
 		switch (mode) {
 		case COPY_NORMAL:
 		case COPY_MEMCPY:
+			if (!known_struct_member_states(right))
+				return;
 			right_member = get_matching_member_expr(struct_type, right, tmp);
 			break;
 		case COPY_MEMSET:
@@ -129,12 +128,6 @@ void __struct_members_copy(int mode, struct expression *left, struct expression 
 		}
 		if (!right_member)
 			continue;
-#if 0
-		if (!right_member)
-			continue;
-		if (!get_implied_rl(right_member, &rl) || is_whole_rl(rl))
-			continue;
-#endif
 		assign = assign_expression(left_member, right_member);
 		__pass_to_client(assign, ASSIGNMENT_HOOK);
 	} END_FOR_EACH_PTR(tmp);
@@ -143,4 +136,25 @@ void __struct_members_copy(int mode, struct expression *left, struct expression 
 void __fake_struct_member_assignments(struct expression *expr)
 {
 	__struct_members_copy(COPY_NORMAL, expr->left, expr->right);
+}
+
+static void match_memset(const char *fn, struct expression *expr, void *_size_arg)
+{
+	struct expression *buf;
+	struct expression *val;
+
+	buf = get_argument_from_call_expr(expr->args, 0);
+	val = get_argument_from_call_expr(expr->args, 1);
+
+	buf = strip_expr(buf);
+
+	if (buf->type == EXPR_PREOP && buf->op == '&')
+		__struct_members_copy(COPY_MEMSET, buf->unop, val);
+	else
+		__struct_members_copy(COPY_MEMSET, buf, val);
+}
+
+void register_struct_assignment(int id)
+{
+	add_function_hook("memset", &match_memset, NULL);
 }

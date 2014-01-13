@@ -215,17 +215,6 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 		set_initialized(arg, NULL);
 }
 
-static void match_memset(const char *fn, struct expression *expr, void *_size_arg)
-{
-	struct expression *buf;
-	struct expression *val;
-
-	buf = get_argument_from_call_expr(expr->args, 0);
-	val = get_argument_from_call_expr(expr->args, 1);
-
-	set_initialized(buf, val);
-}
-
 static void match_memcpy(const char *fn, struct expression *expr, void *_arg)
 {
 	struct expression *buf;
@@ -298,7 +287,6 @@ void register_clear_buffer(int id)
 	}
 	add_modification_hook(my_id, &reset_initialized);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
-	add_function_hook("memset", &match_memset, NULL);
 	add_function_hook("memcpy", &match_memcpy, INT_PTR(0));
 	add_function_hook("memmove", &match_memcpy, INT_PTR(0));
 	register_clears_param();
