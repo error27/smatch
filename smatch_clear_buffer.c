@@ -287,8 +287,6 @@ void register_clear_buffer(int id)
 	}
 	add_modification_hook(my_id, &reset_initialized);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
-	add_function_hook("memcpy", &match_memcpy, INT_PTR(0));
-	add_function_hook("memmove", &match_memcpy, INT_PTR(0));
 	register_clears_param();
 
 	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);

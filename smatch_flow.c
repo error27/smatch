@@ -17,6 +17,7 @@
 #include "smatch_extra.h"
 #include "smatch_slist.h"
 
+int __in_fake_assign;
 int final_pass;
 int __inline_call;
 struct expression  *__inline_fn;
@@ -161,6 +162,11 @@ void __split_expr(struct expression *expr)
 		return;
 
 	// sm_msg(" Debug expr_type %d %s", expr->type, show_special(expr->op));
+
+	if (__in_fake_assign && expr->type != EXPR_ASSIGNMENT)
+		return;
+	if (__in_fake_assign >= 4)  /* don't allow too much nesting */
+		return;
 
 	push_expression(&big_expression_stack, expr);
 	set_position(expr->pos);

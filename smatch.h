@@ -351,6 +351,7 @@ int in_condition(void);
 
 /* smatch_flow.c */
 
+extern int __in_fake_assign;
 void smatch (int argc, char **argv);
 int inside_loop(void);
 struct expression *get_switch_expr(void);
