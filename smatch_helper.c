@@ -511,7 +511,7 @@ char *get_member_name(struct expression *expr)
 		} END_FOR_EACH_PTR_REVERSE(tmp);
 		return NULL;
 	}
-	if (!sym->ident)
+	if (!sym->ident || !expr->member)
 		return NULL;
 	snprintf(buf, sizeof(buf), "(struct %s)->%s", sym->ident->name, expr->member->name);
 	return alloc_string(buf);
