@@ -44,7 +44,7 @@ int get_local_rl(struct expression *expr, struct range_list **rl)
 
 	db_vals = NULL;
 	run_sql(get_vals,
-		"select value from local_values where file = '%s' and variable = '%s'",
+		"select value from local_values where file = '%s' and variable = '%s';",
 		get_filename(), name);
 	free_string(name);
 	if (!db_vals)

@@ -63,7 +63,7 @@ int get_db_type_rl(struct expression *expr, struct range_list **rl)
 
 	db_vals = NULL;
 	run_sql(get_vals,
-		"select value from type_value where type = '%s'", member);
+		"select value from type_value where type = '%s';", member);
 	free_string(member);
 	if (!db_vals)
 		return 0;
