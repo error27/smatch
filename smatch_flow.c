@@ -217,6 +217,9 @@ void __split_expr(struct expression *expr)
 			__pass_to_client(expr, GLOBAL_ASSIGNMENT_HOOK);
 		else
 			__pass_to_client(expr, ASSIGNMENT_HOOK);
+
+		__fake_struct_member_assignments(expr);
+
 		tmp = strip_expr(expr->right);
 		if (tmp->type == EXPR_CALL)
 			__pass_to_client(expr, CALL_ASSIGNMENT_HOOK);
