@@ -412,6 +412,8 @@ static char *get_allocation_recipe_from_call(struct expression *expr)
 	static char sql_filter[1024];
 	int i;
 
+	if (is_fake_call(expr))
+		return NULL;
 	expr = strip_expr(expr);
 	if (expr->fn->type != EXPR_SYMBOL)
 		return NULL;

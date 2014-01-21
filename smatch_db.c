@@ -281,6 +281,9 @@ static void sql_select_return_states_pointer(const char *cols,
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**))
 {
+	if (is_fake_call(call))
+		return;
+
 	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol) {
 		sql_select_return_states_pointer(cols, call, callback);
 		return;
@@ -402,6 +405,8 @@ struct range_list *db_return_vals(struct expression *expr)
 	static_call_expr = expr;
 	return_type = get_type(expr);
 	if (!return_type)
+		return NULL;
+	if (is_fake_call(expr))
 		return NULL;
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
 		return NULL;

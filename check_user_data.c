@@ -100,6 +100,8 @@ static int is_user_fn_db(struct expression *expr)
 	struct symbol *sym;
 	static char sql_filter[1024];
 
+	if (is_fake_call(expr))
+		return 0;
 	if (expr->fn->type != EXPR_SYMBOL)
 		return 0;
 	sym = expr->fn->symbol;
