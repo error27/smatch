@@ -1497,7 +1497,8 @@ static void match_call_info(struct expression *expr)
 		else
 			rl = cast_rl(type, alloc_whole_rl(get_type(arg)));
 
-		sql_insert_caller_info(expr, PARAM_VALUE, i, "$$", show_rl(rl));
+		if (!is_whole_rl(rl))
+			sql_insert_caller_info(expr, PARAM_VALUE, i, "$$", show_rl(rl));
 		state = get_state_expr(SMATCH_EXTRA, arg);
 		if (estate_has_fuzzy_max(state)) {
 			sql_insert_caller_info(expr, FUZZY_MAX, i, "$$",
