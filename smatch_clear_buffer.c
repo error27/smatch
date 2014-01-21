@@ -246,38 +246,6 @@ static void match_usb_control_msg(const char *fn, struct expression *expr, void 
 	set_initialized(buf, NULL);
 }
 
-static void register_clears_param(void)
-{
-	struct token *token;
-	char name[256];
-	const char *function;
-	int param;
-
-	if (option_project == PROJ_NONE)
-		return;
-
-	snprintf(name, 256, "%s.clears_argument", option_project_str);
-
-	token = get_tokens_file(name);
-	if (!token)
-		return;
-	if (token_type(token) != TOKEN_STREAMBEGIN)
-		return;
-	token = token->next;
-	while (token_type(token) != TOKEN_STREAMEND) {
-		if (token_type(token) != TOKEN_IDENT)
-			return;
-		function = show_ident(token->ident);
-		token = token->next;
-		if (token_type(token) != TOKEN_NUMBER)
-			return;
-		param = atoi(token->number);
-		add_function_hook(function, &match_memcpy, INT_PTR(param));
-		token = token->next;
-	}
-	clear_token_alloc();
-}
-
 void register_clear_buffer(int id)
 {
 	my_id = id;
@@ -287,7 +255,6 @@ void register_clear_buffer(int id)
 	}
 	add_modification_hook(my_id, &reset_initialized);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
-	register_clears_param();
 
 	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
 }

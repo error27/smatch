@@ -174,10 +174,52 @@ static void match_memcpy(const char *fn, struct expression *expr, void *_arg)
 	__struct_members_copy(COPY_MEMCPY, remove_addr(dest), remove_addr(src));
 }
 
+static void match_memcpy_unknown(const char *fn, struct expression *expr, void *_arg)
+{
+	struct expression *dest;
+
+	dest = get_argument_from_call_expr(expr->args, 0);
+	__struct_members_copy(COPY_MEMCPY, remove_addr(dest), NULL);
+}
+
+static void register_clears_param(void)
+{
+	struct token *token;
+	char name[256];
+	const char *function;
+	int param;
+
+	if (option_project == PROJ_NONE)
+		return;
+
+	snprintf(name, 256, "%s.clears_argument", option_project_str);
+
+	token = get_tokens_file(name);
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		function = show_ident(token->ident);
+		token = token->next;
+		if (token_type(token) != TOKEN_NUMBER)
+			return;
+		param = atoi(token->number);
+		add_function_hook(function, &match_memcpy_unknown, INT_PTR(param));
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
 void register_struct_assignment(int id)
 {
 	add_function_hook("memset", &match_memset, NULL);
 
 	add_function_hook("memcpy", &match_memcpy, INT_PTR(0));
 	add_function_hook("memmove", &match_memcpy, INT_PTR(0));
+
+	register_clears_param();
 }
