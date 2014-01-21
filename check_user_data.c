@@ -337,32 +337,37 @@ static void set_capped(struct sm_state *sm, struct expression *mod_expr)
 	set_state(my_id, sm->name, sm->sym, &capped);
 }
 
-static void match_normal_assign(struct expression *expr)
-{
-	int user_data;
-
-	user_data = is_user_data(expr->right);
-	if (user_data == PASSED_DATA)
-		set_state_expr(my_id, expr->left, &user_data_passed);
-	if (user_data == SET_DATA)
-		set_state_expr(my_id, expr->left, &user_data_set);
-}
-
-static void match_assign(struct expression *expr)
+static int handle_get_user(struct expression *expr)
 {
 	char *name;
+	int ret = 0;
 
 	name = get_macro_name(expr->pos);
-	if (!name || strcmp(name, "get_user") != 0) {
-		match_normal_assign(expr);
-		return;
-	}
+	if (!name || strcmp(name, "get_user") != 0)
+		return 0;
+
 	name = expr_to_var(expr->right);
 	if (!name || strcmp(name, "__val_gu") != 0)
 		goto free;
 	set_state_expr(my_id, expr->left, &user_data_set);
+	ret = 1;
 free:
 	free_string(name);
+	return ret;
+}
+
+static void match_assign(struct expression *expr)
+{
+	int user_data;
+
+	if (handle_get_user(expr))
+		return;
+
+	user_data = is_user_data(expr->right);
+	if (user_data == PASSED_DATA)
+		set_state_expr(my_id, expr->left, &user_data_passed);
+	else if (user_data == SET_DATA)
+		set_state_expr(my_id, expr->left, &user_data_set);
 }
 
 static void tag_struct_members(struct symbol *type, struct expression *expr)
