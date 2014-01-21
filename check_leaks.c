@@ -42,6 +42,7 @@ static const char *allocation_funcs[] = {
 	"malloc",
 	"kmalloc",
 	"kzalloc",
+	"kmemdup",
 };
 
 static char *alloc_parent_str(struct symbol *sym)
