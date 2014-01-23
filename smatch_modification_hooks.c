@@ -7,6 +7,19 @@
  *
  */
 
+/*
+ * There are a number of ways that variables are modified:
+ * 1) assignment
+ * 2) increment/decrement
+ * 3) assembly
+ * 4) inside functions.
+ *
+ * For setting stuff inside a function then, of course, it's more accurate if
+ * you have the cross function database built.  Otherwise we are super
+ * aggressive about marking things as modified and if you have "frob(foo);" then
+ * we assume "foo->bar" is modified.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "smatch.h"
