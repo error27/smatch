@@ -442,18 +442,6 @@ static void match_user_assign_function(const char *fn, struct expression *expr, 
 	set_state_expr(my_id, expr->left, &user_data_set);
 }
 
-static void match_macro_assign(const char *fn, struct expression *expr, void *_bits)
-{
-	int bits;
-
-	bits = nr_bits(expr->left);
-	if (!bits)
-		return;
-	if (bits > nr_bits(expr->right))
-		return;
-	set_state_expr(my_id, expr->left, &user_data_set);
-}
-
 static void match_caller_info(struct expression *expr)
 {
 	struct expression *tmp;
@@ -573,6 +561,4 @@ void check_user_data(int id)
 
 	add_modification_hook(my_id, &set_capped);
 
-	add_macro_assign_hook("ntohl", &match_macro_assign, NULL);
-	add_macro_assign_hook("ntohs", &match_macro_assign, NULL);
 }
