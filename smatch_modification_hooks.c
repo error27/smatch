@@ -136,7 +136,7 @@ static void match_call(struct expression *expr)
 		tmp = strip_expr(arg);
 		if (tmp->type == EXPR_PREOP && tmp->op == '&')
 			call_modification_hooks(tmp->unop, expr);
-		else
+		else if (option_no_db)
 			call_modification_hooks(deref_expression(tmp), expr);
 	} END_FOR_EACH_PTR(arg);
 }
