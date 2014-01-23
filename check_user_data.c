@@ -515,8 +515,8 @@ static void print_returned_user_data(int return_id, char *return_ranges, struct 
 			continue;
 
 		param_name = get_param_name(tmp);
-		if (!param_name)
-			return;
+		if (!param_name || strcmp(param_name, "$$") == 0)
+			continue;
 
 		if (slist_has_state(tmp->possible, &user_data_set))
 			passed_or_new = "1";
