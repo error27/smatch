@@ -529,6 +529,13 @@ static void match_assign_call(struct expression *expr)
 		set_extra_expr_mod(expr->left, alloc_estate_whole(get_type(expr->left)));
 		return;
 	}
+	if (is_fake_call(right)) {
+		if (!get_state_expr(SMATCH_EXTRA, expr->left))
+			return;
+		set_extra_expr_mod(expr->left, alloc_estate_whole(get_type(expr->left)));
+		return;
+	}
+
 	fn = right->fn->symbol->ident->name;
 
 	/*
