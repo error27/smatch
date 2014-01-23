@@ -160,7 +160,7 @@ out_no_arg:
 	return ret;
 }
 
-static int get_string_size(struct expression *call, int arg)
+int get_formatted_string_size(struct expression *call, int arg)
 {
 	struct expression *expr;
 	char *p;
@@ -202,7 +202,7 @@ static void match_not_limited(const char *fn, struct expression *call, void *inf
 	if (buf_size <= 0)
 		return;
 
-	size = get_string_size(call, params->string);
+	size = get_formatted_string_size(call, params->string);
 	if (size <= 0)
 		return;
 	if (size <= buf_size)

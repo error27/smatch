@@ -722,4 +722,7 @@ int has_symbol(struct expression *expr, struct symbol *sym);
 int has_variable(struct expression *expr, struct expression *var);
 int has_inc_dec(struct expression *expr);
 
+/* check_string_len.c */
+int get_formatted_string_size(struct expression *call, int arg);
+
 #endif 	    /* !SMATCH_H_ */
