@@ -7,6 +7,46 @@
  *
  */
 
+/*
+ * This file started out by saying that if you have:
+ *
+ * 	struct foo one, two;
+ * 	...
+ * 	one = two;
+ *
+ * That's equivalent to saying:
+ *
+ * 	one.x = two.x;
+ * 	one.y = two.y;
+ *
+ * Turning an assignment like that into a bunch of small fake assignments is
+ * really useful.
+ *
+ * The call to memcpy(&one, &two, sizeof(foo)); is the same as "one = two;" so
+ * we can re-use the code.  And we may as well use it for memset() too.
+ * Assigning pointers is almost the same:
+ *
+ * 	p1 = p2;
+ *
+ * Is the same as:
+ *
+ * 	p1->x = p2->x;
+ * 	p1->y = p2->y;
+ *
+ * The problem is that you can go a bit crazy with pointers to pointers.
+ *
+ * 	p1->x->y->z->one->two->three = p2->x->y->z->one->two->three;
+ *
+ * I don't have a proper solution for this problem right now.  I just copy one
+ * level and don't nest.  It should handle limitted nesting but intelligently.
+ *
+ * The other thing is that you end up with a lot of garbage assignments where
+ * we record "x could be anything. x->y could be anything. x->y->z->a->b->c
+ * could *also* be anything!".  There should be a better way to filter this
+ * useless information.
+ *
+ */
+
 #include "scope.h"
 #include "smatch.h"
 #include "smatch_slist.h"
