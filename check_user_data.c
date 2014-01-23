@@ -334,11 +334,6 @@ static void match_condition(struct expression *expr)
 	}
 }
 
-static void set_capped(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(my_id, sm->name, sm->sym, &capped);
-}
-
 static int handle_get_user(struct expression *expr)
 {
 	char *name;
@@ -370,6 +365,8 @@ static void match_assign(struct expression *expr)
 		set_state_expr(my_id, expr->left, &user_data_passed);
 	else if (user_data == SET_DATA)
 		set_state_expr(my_id, expr->left, &user_data_set);
+	else if (get_state_expr(my_id, expr->left))
+		set_state_expr(my_id, expr->left, &capped);
 }
 
 static void tag_struct_members(struct symbol *type, struct expression *expr)
@@ -558,7 +555,4 @@ void check_user_data(int id)
 	add_returned_member_callback(my_id, returned_member_callback);
 	add_split_return_callback(print_returned_user_data);
 	select_return_states_hook(USER_DATA, &db_return_states_userdata);
-
-	add_modification_hook(my_id, &set_capped);
-
 }
