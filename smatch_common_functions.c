@@ -56,8 +56,31 @@ static int match_strnlen(struct expression *call, void *unused, struct range_lis
 	return 1;
 }
 
+static int match_sprintf(struct expression *call, void *_arg, struct range_list **rl)
+{
+	int str_arg = PTR_INT(_arg);
+	int size;
+
+	size = get_formatted_string_size(call, str_arg);
+	if (size <= 0) {
+		*rl = alloc_whole_rl(&ulong_ctype);
+	} else {
+		/* FIXME:  This is bogus.  get_formatted_string_size() should be
+		   returning a range_list.  Also it should not add the NUL. */
+		size--;
+		*rl = alloc_rl(ll_to_sval(0), ll_to_sval(size));
+	}
+	return 1;
+}
+
 void register_common_functions(int id)
 {
+	/*
+	 * When you add a new function here, then don't forget to delete it from
+	 * the database and smatch_data/.
+	 */
 	add_implied_return_hook("strlen", &match_strlen, NULL);
 	add_implied_return_hook("strnlen", &match_strnlen, NULL);
+	add_implied_return_hook("sprintf", &match_sprintf, INT_PTR(1));
+	add_implied_return_hook("snprintf", &match_sprintf, INT_PTR(2));
 }
