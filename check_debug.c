@@ -417,9 +417,35 @@ static void match_debug_implied_off(const char *fn, struct expression *expr, voi
 	option_debug_implied = 0;
 }
 
+static void match_about(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	struct sm_state *sm;
+	char *name;
+
+	sm_msg("---- about ----");
+	match_print_implied(fn, expr, NULL);
+	match_buf_size(fn, expr, NULL);
+	match_strlen(fn, expr, NULL);
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	name = expr_to_str(arg);
+	if (!name) {
+		sm_msg("info: not a straight forward variable.");
+		return;
+	}
+
+	FOR_EACH_PTR(__get_cur_slist(), sm) {
+		if (strcmp(sm->name, name) != 0)
+			continue;
+		sm_msg("%s '%s' = '%s'", check_name(sm->owner), sm->name, sm->state->name);
+	} END_FOR_EACH_PTR(sm);
+}
+
 void check_debug(int id)
 {
 	my_id = id;
+	add_function_hook("__smatch_about", &match_about, NULL);
 	add_function_hook("__smatch_all_values", &match_all_values, NULL);
 	add_function_hook("__smatch_state", &match_state, NULL);
 	add_function_hook("__smatch_states", &match_states, NULL);
