@@ -96,6 +96,7 @@ CK(check_missing_break)
 CK(check_array_condition)
 CK(check_struct_type)
 CK(check_cast_assign)
+CK(check_readl_infinite_loops)
 
 /* <- your test goes here */
 /* CK(register_template) */
