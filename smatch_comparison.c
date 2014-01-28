@@ -378,7 +378,7 @@ static struct smatch_state *merge_compare_states(struct smatch_state *s1, struct
 	return &undefined;
 }
 
-struct smatch_state *alloc_link_state(struct string_list *links)
+static struct smatch_state *alloc_link_state(struct string_list *links)
 {
 	struct smatch_state *state;
 	static char buf[256];
@@ -544,6 +544,7 @@ static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 	struct string_list *links;
 	char *tmp;
 
+	/* Huh???  This needs a comment!  */
 	if (match_inc_dec(sm, mod_expr))
 		return;
 
@@ -995,7 +996,7 @@ int get_comparison_strings(const char *one, const char *two)
 	int ret = 0;
 
 	if (strcmp(one, two) > 0) {
-		char *tmp = one;
+		const char *tmp = one;
 
 		one = two;
 		two = tmp;
