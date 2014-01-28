@@ -9,6 +9,7 @@ delete from function_ptr where function = '(struct file_operations)->read';
 delete from function_ptr where function = '(struct file_operations)->write';
 
 /* delete these function pointers which cause false positives */
+delete from caller_info where function = '(struct file_operations)->open' and type != 0;
 delete from caller_info where function = '(struct notifier_block)->notifier_call' and type != 0;
 delete from caller_info where function = '(struct mISDNchannel)->send' and type != 0;
 delete from caller_info where function = '(struct irq_router)->get' and type != 0;
