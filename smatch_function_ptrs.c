@@ -166,6 +166,9 @@ static void match_function_assign(struct expression *expr)
 	char *fn_name;
 	char *ptr_name;
 
+	if (__in_fake_assign)
+		return;
+
 	right = strip_expr(expr->right);
 	if (right->type == EXPR_PREOP && right->op == '&')
 		right = strip_expr(right->unop);
@@ -187,6 +190,8 @@ static void match_function_assign(struct expression *expr)
 	fn_name = get_fnptr_name(right);
 	ptr_name = get_fnptr_name(expr->left);
 	if (!fn_name || !ptr_name)
+		goto free;
+	if (strcmp(fn_name, ptr_name) == 0)
 		goto free;
 
 	sql_insert_function_ptr(fn_name, ptr_name);
