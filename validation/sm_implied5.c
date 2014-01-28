@@ -19,7 +19,7 @@ void func (void)
 }
 /*
  * check-name: Smatch implied #5
- * check-command: smatch sm_implied5.c
+ * check-command: smatch --spammy sm_implied5.c
  *
  * check-output-start
 sm_implied5.c:18 func() error: potentially dereferencing uninitialized 'aa'.

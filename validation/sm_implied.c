@@ -22,7 +22,7 @@ x:
 }
 /*
  * check-name: Smatch implied #1
- * check-command: smatch sm_implied.c
+ * check-command: smatch --spammy sm_implied.c
  *
  * check-output-start
 sm_implied.c:20 func() error: potentially dereferencing uninitialized 'aa'.

@@ -78,8 +78,9 @@ static void check_dereference(struct expression *expr)
 				sm_msg("error: potential NULL dereference '%s'.", tmp->name);
 			return;
 		}
-		if (tmp->state == &uninitialized && option_spammy) {
-			sm_msg("error: potentially dereferencing uninitialized '%s'.", tmp->name);
+		if (tmp->state == &uninitialized) {
+			if (option_spammy)
+				sm_msg("error: potentially dereferencing uninitialized '%s'.", tmp->name);
 			return;
 		}
 		sm_msg("error: potential null dereference '%s'.  (%s returns null)",
