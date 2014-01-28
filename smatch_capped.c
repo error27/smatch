@@ -169,6 +169,64 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	sql_insert_caller_info(call, CAPPED_DATA, param, printed_name, "1");
 }
 
+static int is_unmodified(const char *name)
+{
+	char orig[256];
+
+	snprintf(orig, sizeof(orig), "%s orig", name);
+
+	if (get_comparison_strings(name, orig) == SPECIAL_EQUAL)
+		return 1;
+	return 0;
+}
+
+static void print_return_implies_capped(int return_id, char *return_ranges, struct expression *expr)
+{
+	struct smatch_state *orig;
+	struct sm_state *sm;
+	const char *param_name;
+	int param;
+
+	FOR_EACH_PTR(__get_cur_slist(), sm) {
+		if (sm->owner != my_id)
+			continue;
+		if (sm->state != &capped)
+			continue;
+
+		param = get_param_num_from_sym(sm->sym);
+		if (param < 0)
+			continue;
+
+		orig = get_state_slist(get_start_states(), my_id, sm->name, sm->sym);
+		if (orig == &capped)
+			continue;
+
+		if (!is_unmodified(sm->name))
+			continue;
+
+		param_name = get_param_name(sm);
+		if (!param_name)
+			continue;
+
+		sql_insert_return_states(return_id, return_ranges, CAPPED_DATA,
+					 param, param_name, "1");
+	} END_FOR_EACH_PTR(sm);
+}
+
+static void db_return_states_capped(struct expression *expr, int param, char *key, char *value)
+{
+	char *name;
+	struct symbol *sym;
+
+	name = return_state_to_var_sym(expr, param, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	set_state(my_id, name, sym, &capped);
+free:
+	free_string(name);
+}
+
 void register_capped(int id)
 {
 	my_id = id;
@@ -179,4 +237,7 @@ void register_capped(int id)
 
 	add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
+
+	add_split_return_callback(print_return_implies_capped);
+	select_return_states_hook(CAPPED_DATA, &db_return_states_capped);
 }

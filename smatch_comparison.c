@@ -987,7 +987,7 @@ static void match_assign(struct expression *expr)
 		match_binop_assign(expr);
 }
 
-static int get_comparison_strings(char *one, char *two)
+int get_comparison_strings(const char *one, const char *two)
 {
 	char buf[256];
 	struct smatch_state *state;
