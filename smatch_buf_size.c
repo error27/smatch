@@ -254,6 +254,8 @@ int get_real_array_size(struct expression *expr)
 		return 0;
 
 	type = get_type(expr);
+	if (!type)
+		return 0;
 	if (!type || type->type != SYM_ARRAY)
 		return 0;
 
