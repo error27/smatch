@@ -66,45 +66,6 @@ static struct symbol *get_struct_type(struct expression *expr)
 	return NULL;
 }
 
-static int known_struct_member_states(struct expression *expr)
-{
-	struct state_list *slist = __get_cur_slist();
-	struct sm_state *sm;
-	char *name;
-	int ret = 0;
-	int cmp;
-	int len;
-
-	if (expr->type == EXPR_PREOP && expr->op == '&')
-		expr = strip_expr(expr->unop);
-
-	name = expr_to_var(expr);
-	if (!name)
-		return 0;
-	len = strlen(name);
-
-	FOR_EACH_PTR(slist, sm) {
-		if (sm->owner != SMATCH_EXTRA)
-			continue;
-		cmp = strncmp(sm->name, name, len);
-		if (cmp < 0)
-			continue;
-		if (cmp == 0) {
-			if (sm->name[len] == '.' ||
-			    sm->name[len] == '-' ||
-			    sm->name[len] == '.') {
-				ret = 1;
-				goto out;
-			}
-			continue;
-		}
-		goto out;
-	} END_FOR_EACH_PTR(sm);
-
-out:
-	return ret;
-}
-
 static struct expression *get_matching_member_expr(struct symbol *left_type, struct expression *right, struct symbol *left_member)
 {
 	struct symbol *struct_type;
@@ -133,7 +94,9 @@ static struct expression *get_matching_member_expr(struct symbol *left_type, str
 void __struct_members_copy(int mode, struct expression *left, struct expression *right)
 {
 	struct symbol *struct_type, *tmp, *type;
-	struct expression *left_member, *right_member, *assign;
+	struct expression *left_member;
+	struct expression *right_member = NULL;
+	struct expression *assign;
 	int op = '.';
 
 
