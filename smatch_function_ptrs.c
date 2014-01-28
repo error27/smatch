@@ -22,10 +22,15 @@ static int my_id;
 static char *get_array_ptr(struct expression *expr)
 {
 	struct expression *array;
+	struct symbol *type;
 	char *name;
 	char buf[256];
 
 	array = get_array_name(expr);
+	/* FIXME:  is_array() should probably be is_array_element() */
+	type = get_type(expr);
+	if (!array && type && type->type == SYM_ARRAY)
+		array = expr;
 	if (array) {
 		name = expr_to_var(array);
 		if (!name)
@@ -177,7 +182,7 @@ static void match_function_assign(struct expression *expr)
 	sym = get_type(right);
 	if (!sym)
 		return;
-	if (sym->type != SYM_FN && sym->type != SYM_PTR)
+	if (sym->type != SYM_FN && sym->type != SYM_PTR && sym->type != SYM_ARRAY)
 		return;
 	if (sym->type == SYM_PTR) {
 		sym = get_real_base_type(sym);
