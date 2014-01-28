@@ -782,6 +782,7 @@ void __split_stmt(struct statement *stmt)
 		__split_expr(stmt->range_high);
 		break;
 	}
+	__pass_to_client(stmt, STMT_HOOK_AFTER);
 out:
 	__process_post_op_stack();
 }

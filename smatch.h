@@ -81,6 +81,7 @@ DECLARE_PTR_LIST(tracker_list, struct tracker);
 enum hook_type {
 	EXPR_HOOK,
 	STMT_HOOK,
+	STMT_HOOK_AFTER,
 	SYM_HOOK,
 	STRING_HOOK,
 	DECLARATION_HOOK,
