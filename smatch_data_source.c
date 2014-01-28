@@ -9,6 +9,7 @@
 
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 
 static int my_id;
 
@@ -56,6 +57,8 @@ static char *get_source_assignment(struct expression *expr)
 	if (!right)
 		return NULL;
 	if (right->type != EXPR_CALL || right->fn->type != EXPR_SYMBOL)
+		return NULL;
+	if (is_fake_call(right))
 		return NULL;
 	name = expr_to_str(right->fn);
 	if (!name)
