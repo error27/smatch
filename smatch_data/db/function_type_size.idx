@@ -1,0 +1,1 @@
+CREATE INDEX function_type_size_idx ON function_type_size (type);

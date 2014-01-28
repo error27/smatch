@@ -29,3 +29,8 @@ ${bin_dir}/fixup_all.sh
 if [ "$PROJ" != "" ] ; then
     ${bin_dir}/fixup_${PROJ}.sh
 fi
+
+for i in ${bin_dir}/*.idx ; do
+    cat $i | sqlite3 $db_file
+done
+
