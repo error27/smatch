@@ -198,7 +198,7 @@ clean: clean-check
 	rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
 
 dist:
-	@if test "v$(SPARSE_VERSION)" != "v$(VERSION)" ; then \
+	@if test "$(SPARSE_VERSION)" != "v$(VERSION)" ; then \
 		echo 'Update VERSION in the Makefile before running "make dist".' ; \
 		exit 1 ; \
 	fi
