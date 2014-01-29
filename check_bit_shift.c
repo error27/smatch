@@ -7,6 +7,11 @@
  *
  */
 
+/*
+ * This test is used to warn about mixups between bit shifters and bit flags.
+ *
+ */
+
 #include "smatch.h"
 #include "smatch_function_hashtable.h"
 
