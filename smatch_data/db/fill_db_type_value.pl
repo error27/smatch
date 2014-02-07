@@ -27,7 +27,7 @@ sub text_to_int($)
     } elsif ($text =~ /s16max/) {
         return 2**15 - 1;
     } elsif ($text =~ /u64max/) {
-        return 2**62 - 1;
+        return 2**64 - 1;
     } elsif ($text =~ /u32max/) {
         return 2**32 - 1;
     } elsif ($text =~ /u16max/) {
