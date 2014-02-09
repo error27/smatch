@@ -33,31 +33,31 @@ struct ident fake_assign = {
 static struct symbol fake_fn_symbol = {
 	.type = SYM_FN,
 	.ident = &fake_assign,
-	.ctype =  {
-		.base_type = &llong_ctype,
-	},
 };
 
 static struct symbol fake_node_symbol = {
 	.type = SYM_NODE,
 	.ident = &fake_assign,
-	.ctype = {
-		.base_type = &fake_fn_symbol,
-	},
 };
 
 static struct expression fake_fn_expr = {
 	.type = EXPR_SYMBOL,
 	.ctype = &llong_ctype,
-	.symbol = &fake_node_symbol,
-	.symbol_name = &fake_assign,
 };
 
 static struct expression fake_call = {
 	.type = EXPR_CALL,
 	.ctype = &llong_ctype,
-	.fn = &fake_fn_expr,
 };
+
+static void __attribute__((constructor)) initialize_local_variables(void)
+{
+	fake_fn_symbol.ctype.base_type = &llong_ctype;
+	fake_node_symbol.ctype.base_type = &fake_fn_symbol;
+	fake_fn_expr.symbol = &fake_node_symbol;
+	fake_fn_expr.symbol_name = &fake_assign;
+	fake_call.fn = &fake_fn_expr;
+}
 
 struct expression *unknown_value_expression(struct expression *expr)
 {
