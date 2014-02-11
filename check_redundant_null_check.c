@@ -59,6 +59,10 @@ static void dont_check(const char *fn, struct expression *expr, void *unused)
 
 	if (!previous_statement || !previous_condition || previous_statement->type != STMT_IF)
 		return;
+	if (previous_statement->if_false)
+		return;
+	if (previous_statement->if_true->type != STMT_EXPRESSION)
+		return;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
 	name = expr_to_var(arg);
