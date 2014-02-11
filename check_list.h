@@ -29,6 +29,7 @@ CK(register_start_states)
 CK(register_type_val)
 CK(register_data_source)
 CK(register_common_functions)
+CK(register_stored_conditions_links)
 
 CK(check_debug)
 CK(check_assigned_expr)
@@ -120,6 +121,7 @@ CK(check_wine_WtoA)
 
 #include "check_list_local.h"
 
+CK(register_stored_conditions)
 CK(register_sval)
 CK(register_buf_size_late)
 CK(register_modification_hooks_late)
