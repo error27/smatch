@@ -524,6 +524,9 @@ static void match_assign_call(struct expression *expr)
 	struct expression *right;
 	int handled = 0;
 
+	if (expr->op != '=')
+		return;
+
 	right = strip_expr(expr->right);
 	if (right->fn->type != EXPR_SYMBOL || !right->fn->symbol) {
 		set_extra_expr_mod(expr->left, alloc_estate_whole(get_type(expr->left)));
