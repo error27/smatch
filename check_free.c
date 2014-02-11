@@ -80,6 +80,11 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 	set_state_expr(my_id, arg, &freed);
 }
 
+static void set_param_freed(struct expression *arg, char *unused)
+{
+	set_state_expr(my_id, arg, &freed);
+}
+
 void check_free(int id)
 {
 	my_id = id;
@@ -95,4 +100,5 @@ void check_free(int id)
 		add_hook(&match_dereferences, DEREF_HOOK);
 
 	add_modification_hook(my_id, &ok_to_use);
+	select_call_implies_hook(PARAM_FREED, &set_param_freed);
 }
