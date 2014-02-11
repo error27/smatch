@@ -98,6 +98,7 @@ CK(check_array_condition)
 CK(check_struct_type)
 CK(check_cast_assign)
 CK(check_readl_infinite_loops)
+CK(check_double_checking)
 
 /* <- your test goes here */
 /* CK(register_template) */
