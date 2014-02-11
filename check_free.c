@@ -89,10 +89,12 @@ void check_free(int id)
 {
 	my_id = id;
 
-	if (option_project == PROJ_KERNEL)
-		add_function_hook("kfree", &match_free, (void *)0);
-	else
-		add_function_hook("free", &match_free, (void *)0);
+	if (option_project == PROJ_KERNEL) {
+		add_function_hook("kfree", &match_free, INT_PTR(0));
+		add_function_hook("kmem_cache_free", &match_free, INT_PTR(1));
+	} else {
+		add_function_hook("free", &match_free, INT_PTR(0));
+	}
 
 	if (option_spammy)
 		add_hook(&match_symbol, SYM_HOOK);
