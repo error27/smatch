@@ -29,9 +29,6 @@ static void match_condition(struct expression *expr)
 	int is_true;
 	char *name;
 
-	if (__in_pre_post_condition)
-		return;
-
 	if (get_value(expr, &dummy))
 		return;
 
