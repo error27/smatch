@@ -126,10 +126,18 @@ static void match_declarations(struct symbol *sym)
 
 static void match_assign(struct expression *expr)
 {
-	if (is_zero(expr->right)) {
-		set_state_expr(my_id, expr->left, &null);
+	struct statement *stmt;
+
+	if (!is_zero(expr->right))
 		return;
-	}
+
+	FOR_EACH_PTR_REVERSE(big_statement_stack, stmt) {
+		if (stmt->type == STMT_DECLARATION)
+			return;
+		break;
+	} END_FOR_EACH_PTR_REVERSE(stmt);
+
+	set_state_expr(my_id, expr->left, &null);
 }
 
 static void match_condition(struct expression *expr)
