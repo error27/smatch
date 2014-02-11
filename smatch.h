@@ -724,6 +724,9 @@ int has_symbol(struct expression *expr, struct symbol *sym);
 int has_variable(struct expression *expr, struct expression *var);
 int has_inc_dec(struct expression *expr);
 
+/* smatch_stored_conditions.c */
+struct smatch_state *get_stored_condition(struct expression *expr);
+
 /* check_string_len.c */
 int get_formatted_string_size(struct expression *call, int arg);
 
