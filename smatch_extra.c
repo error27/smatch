@@ -634,6 +634,12 @@ static void match_assign(struct expression *expr)
 		break;
 	case SPECIAL_AND_ASSIGN:
 	case SPECIAL_MOD_ASSIGN:
+	case SPECIAL_SHL_ASSIGN:
+	case SPECIAL_SHR_ASSIGN:
+	case SPECIAL_OR_ASSIGN:
+	case SPECIAL_XOR_ASSIGN:
+	case SPECIAL_MUL_ASSIGN:
+	case SPECIAL_DIV_ASSIGN:
 		binop_expr = binop_expression(expr->left,
 					      op_remove_assign(expr->op),
 					      expr->right);
@@ -642,6 +648,7 @@ static void match_assign(struct expression *expr)
 			set_extra_mod(name, sym, alloc_estate_rl(rl));
 			goto free;
 		}
+		break;
 	}
 	rl = cast_rl(left_type, alloc_rl(res_min, res_max));
 	set_extra_mod(name, sym, alloc_estate_rl(rl));
