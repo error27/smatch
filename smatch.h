@@ -287,6 +287,7 @@ int is_error_return(struct expression *expr);
 int getting_address(void);
 char *get_member_name(struct expression *expr);
 char *get_fnptr_name(struct expression *expr);
+int cmp_pos(struct position pos1, struct position pos2);
 int positions_eq(struct position pos1, struct position pos2);
 struct statement *get_current_statement(void);
 int get_param_num_from_sym(struct symbol *sym);
