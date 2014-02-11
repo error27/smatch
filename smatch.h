@@ -16,6 +16,7 @@
 #include <sys/time.h>
 #include "lib.h"
 #include "allocate.h"
+#include "scope.h"
 #include "parse.h"
 #include "expression.h"
 
