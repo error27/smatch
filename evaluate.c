@@ -4,7 +4,23 @@
  * Copyright (C) 2003 Transmeta Corp.
  *               2003-2004 Linus Torvalds
  *
- *  Licensed under the Open Software License version 1.1
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  *
  * Evaluate constant expressions.
  */
@@ -175,7 +191,8 @@ left:
 
 static int same_cast_type(struct symbol *orig, struct symbol *new)
 {
-	return orig->bit_size == new->bit_size && orig->bit_offset == new->bit_offset;
+	return orig->bit_size == new->bit_size &&
+	       orig->bit_offset == new->bit_offset;
 }
 
 static struct symbol *base_type(struct symbol *node, unsigned long *modp, unsigned long *asp)
@@ -861,12 +878,13 @@ static struct symbol *evaluate_logical(struct expression *expr)
 	if (!evaluate_conditional(expr->right, 0))
 		return NULL;
 
-	expr->ctype = &bool_ctype;
+	/* the result is int [6.5.13(3), 6.5.14(3)] */
+	expr->ctype = &int_ctype;
 	if (expr->flags) {
 		if (!(expr->left->flags & expr->right->flags & Int_const_expr))
 			expr->flags = 0;
 	}
-	return &bool_ctype;
+	return &int_ctype;
 }
 
 static struct symbol *evaluate_binop(struct expression *expr)
@@ -1065,8 +1083,9 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	return NULL;
 
 OK:
-	expr->ctype = &bool_ctype;
-	return &bool_ctype;
+	/* the result is int [6.5.8(6), 6.5.9(3)]*/
+	expr->ctype = &int_ctype;
+	return &int_ctype;
 }
 
 /*
@@ -1796,7 +1815,7 @@ static struct symbol *evaluate_preop(struct expression *expr)
 			warning(expr->pos, "testing a 'safe expression'");
 		if (is_float_type(ctype)) {
 			struct expression *arg = expr->unop;
-			expr->type = EXPR_BINOP;
+			expr->type = EXPR_COMPARE;
 			expr->op = SPECIAL_EQUAL;
 			expr->left = arg;
 			expr->right = alloc_expression(expr->pos, EXPR_FVALUE);
@@ -1806,14 +1825,15 @@ static struct symbol *evaluate_preop(struct expression *expr)
 			warning(expr->pos, "%s degrades to integer",
 				show_typename(ctype->ctype.base_type));
 		}
-		ctype = &bool_ctype;
+		/* the result is int [6.5.3.3(5)]*/
+		ctype = &int_ctype;
 		break;
 
 	default:
 		break;
 	}
 	expr->ctype = ctype;
-	return &bool_ctype;
+	return ctype;
 }
 
 static struct symbol *find_identifier(struct ident *ident, struct symbol_list *_list, int *offset)
@@ -2138,7 +2158,7 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 				else
 					degenerate(expr);
 			}
-		} else {
+		} else if (!target->forced_arg){
 			static char where[30];
 			examine_symbol_type(target);
 			sprintf(where, "argument %d", i);
@@ -2593,10 +2613,14 @@ String:
 	p = alloc_expression(e->pos, EXPR_STRING);
 	*p = *e;
 	type = evaluate_expression(p);
-	if (ctype->bit_size != -1 &&
-	    ctype->bit_size + bits_in_char < type->bit_size) {
-		warning(e->pos,
-			"too long initializer-string for array of char");
+	if (ctype->bit_size != -1) {
+		if (ctype->bit_size + bits_in_char < type->bit_size)
+			warning(e->pos,
+				"too long initializer-string for array of char");
+		else if (Winit_cstring && ctype->bit_size + bits_in_char == type->bit_size) {
+			warning(e->pos,
+				"too long initializer-string for array of char(no space for nul char)");
+		}
 	}
 	*ep = p;
 	return 1;

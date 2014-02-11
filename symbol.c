@@ -4,7 +4,23 @@
  * Copyright (C) 2003 Transmeta Corp.
  *               2003-2004 Linus Torvalds
  *
- *  Licensed under the Open Software License version 1.1
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -212,13 +228,20 @@ static struct symbol *examine_base_type(struct symbol *sym)
 static struct symbol * examine_array_type(struct symbol *sym)
 {
 	struct symbol *base_type = examine_base_type(sym);
-	unsigned long bit_size, alignment;
+	unsigned long bit_size = -1, alignment;
+	struct expression *array_size = sym->array_size;
 
 	if (!base_type)
 		return sym;
-	bit_size = base_type->bit_size * get_expression_value(sym->array_size);
-	if (!sym->array_size || sym->array_size->type != EXPR_VALUE)
-		bit_size = -1;
+
+	if (array_size) {	
+		bit_size = base_type->bit_size * get_expression_value_silent(array_size);
+		if (array_size->type != EXPR_VALUE) {
+			if (Wvla)
+				warning(array_size->pos, "Variable length array is used.");
+			bit_size = -1;
+		}
+	}
 	alignment = base_type->ctype.alignment;
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = alignment;
@@ -288,9 +311,21 @@ static int count_array_initializer(struct symbol *t, struct expression *expr)
 				if (entry->idx_to >= nr)
 					nr = entry->idx_to+1;
 				break;
+			case EXPR_PREOP: {
+				struct expression *e = entry;
+				if (is_char) {
+					while (e && e->type == EXPR_PREOP && e->op == '(')
+						e = e->unop;
+					if (e && e->type == EXPR_STRING) {
+						entry = e;
 			case EXPR_STRING:
-				if (is_char)
-					str_len = entry->string->length;
+						if (is_char)
+							str_len = entry->string->length;
+					}
+
+
+				}
+			}
 			default:
 				nr++;
 			}
@@ -299,9 +334,19 @@ static int count_array_initializer(struct symbol *t, struct expression *expr)
 			nr = str_len;
 		break;
 	}
+	case EXPR_PREOP:
+		if (is_char) { 
+			struct expression *e = expr;
+			while (e && e->type == EXPR_PREOP && e->op == '(')
+				e = e->unop;
+			if (e && e->type == EXPR_STRING) {
+				expr = e;
 	case EXPR_STRING:
-		if (is_char)
-			nr = expr->string->length;
+				if (is_char)
+					nr = expr->string->length;
+			}
+		}
+		break;
 	default:
 		break;
 	}

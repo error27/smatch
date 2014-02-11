@@ -27,9 +27,10 @@ static const char *parse_escape(const char *p, unsigned *val, const char *end, i
 	case 'x': {
 		unsigned mask = -(1U << (bits - 4));
 		for (c = 0; p < end; c = (c << 4) + d) {
-			d = hexval(*p++);
+			d = hexval(*p);
 			if (d > 16)
 				break;
+			p++;
 			if (c & mask) {
 				warning(pos,
 					"hex escape sequence out of range");
@@ -42,8 +43,10 @@ static const char *parse_escape(const char *p, unsigned *val, const char *end, i
 		if (p + 2 < end)
 			end = p + 2;
 		c -= '0';
-		while (p < end && (d = *p++ - '0') < 8)
+		while (p < end && (d = *p - '0') < 8) {
 			c = (c << 3) + d;
+			p++;
+		}
 		if ((c & 0400) && bits < 9)
 			warning(pos,
 				"octal escape sequence out of range");
@@ -65,7 +68,7 @@ void get_char_constant(struct token *token, unsigned long long *val)
 	case TOKEN_CHAR:
 	case TOKEN_WIDE_CHAR:
 		p = token->string->data;
-		end = p + token->string->length;
+		end = p + token->string->length - 1;
 		break;
 	case TOKEN_CHAR_EMBEDDED_0 ... TOKEN_CHAR_EMBEDDED_3:
 		end = p + type - TOKEN_CHAR;

@@ -9,9 +9,15 @@ struct symbol {
 	struct symbol		*next_id;
 };
 
+struct unnamed {
+	struct { int x, y; };
+};
+
 static struct symbol sym;
 static struct symbol *sym_p;
 static struct symbol *sym_q = &sym;
+
+static struct unnamed un;
 
 /*
  * check-name: Struct code generation

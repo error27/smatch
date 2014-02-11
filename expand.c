@@ -4,7 +4,23 @@
  * Copyright (C) 2003 Transmeta Corp.
  *               2003-2004 Linus Torvalds
  *
- *  Licensed under the Open Software License version 1.1
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  *
  * expand constant expressions.
  */
@@ -92,6 +108,14 @@ void cast_value(struct expression *expr, struct symbol *newtype,
 	value = get_longlong(old);
 
 Int:
+	// _Bool requires a zero test rather than truncation.
+	if (is_bool_type(newtype)) {
+		expr->value = !!value;
+		if (!conservative && value != 0 && value != 1)
+			warning(old->pos, "odd constant _Bool cast (%llx becomes 1)", value);
+		return;
+	}
+
 	// Truncate it to the new size
 	signmask = 1ULL << (new_size-1);
 	mask = signmask | (signmask-1);
@@ -231,6 +255,8 @@ static int simplify_int_binop(struct expression *expr, struct symbol *ctype)
 	case SIGNED('%'):
 		if (!r)
 			goto Div;
+		if (l == mask && sr == -1)
+			goto Overflow;
 		v = sl % sr;
 		break;
 
@@ -1207,10 +1233,11 @@ static long long __get_expression_value(struct expression *expr, int strict)
 	}
 	expand_expression(expr);
 	if (expr->type != EXPR_VALUE) {
-		expression_error(expr, "bad constant expression");
+		if (strict != 2)
+			expression_error(expr, "bad constant expression");
 		return 0;
 	}
-	if (strict && bad_integer_constant_expression(expr)) {
+	if ((strict == 1) && bad_integer_constant_expression(expr)) {
 		expression_error(expr, "bad integer constant expression");
 		return 0;
 	}
@@ -1235,6 +1262,12 @@ long long get_expression_value(struct expression *expr)
 long long const_expression_value(struct expression *expr)
 {
 	return __get_expression_value(expr, 1);
+}
+
+long long get_expression_value_silent(struct expression *expr)
+{
+
+	return __get_expression_value(expr, 2);
 }
 
 int is_zero_constant(struct expression *expr)

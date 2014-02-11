@@ -4,7 +4,23 @@
  * Copyright (C) 2003 Transmeta Corp.
  *               2003-2004 Linus Torvalds
  *
- *  Licensed under the Open Software License version 1.1
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 #include <ctype.h>
 #include <fcntl.h>
@@ -27,6 +43,7 @@
 #include "scope.h"
 #include "linearize.h"
 #include "target.h"
+#include "version.h"
 
 int verbose, optimize, optimize_size, preprocessing;
 int die_if_error = 0;
@@ -196,9 +213,11 @@ int Wcast_to_as = 0;
 int Wcast_truncate = 1;
 int Wcontext = 1;
 int Wdecl = 1;
+int Wdeclarationafterstatement = -1;
 int Wdefault_bitfield_sign = 0;
 int Wdesignated_init = 1;
 int Wdo_while = 0;
+int Winit_cstring = 0;
 int Wenum_mismatch = 1;
 int Wnon_pointer_null = 1;
 int Wold_initializer = 1;
@@ -211,7 +230,7 @@ int Wtransparent_union = 0;
 int Wtypesign = 0;
 int Wundef = 0;
 int Wuninitialized = 1;
-int Wdeclarationafterstatement = -1;
+int Wvla = 1;
 
 int dbg_entry = 0;
 int dbg_dead = 0;
@@ -406,10 +425,12 @@ static const struct warning {
 	{ "cast-truncate", &Wcast_truncate },
 	{ "context", &Wcontext },
 	{ "decl", &Wdecl },
+	{ "declaration-after-statement", &Wdeclarationafterstatement },
 	{ "default-bitfield-sign", &Wdefault_bitfield_sign },
 	{ "designated-init", &Wdesignated_init },
 	{ "do-while", &Wdo_while },
 	{ "enum-mismatch", &Wenum_mismatch },
+	{ "init-cstring", &Winit_cstring },
 	{ "non-pointer-null", &Wnon_pointer_null },
 	{ "old-initializer", &Wold_initializer },
 	{ "one-bit-signed-bitfield", &Wone_bit_signed_bitfield },
@@ -421,7 +442,7 @@ static const struct warning {
 	{ "typesign", &Wtypesign },
 	{ "undef", &Wundef },
 	{ "uninitialized", &Wuninitialized },
-	{ "declaration-after-statement", &Wdeclarationafterstatement },
+	{ "vla", &Wvla },
 };
 
 enum {
@@ -652,10 +673,33 @@ static char **handle_no_lineno(char *arg, char **next)
 	return next;
 }
 
+static char **handle_version(char *arg, char **next)
+{
+	printf("%s\n", SPARSE_VERSION);
+	exit(0);
+}
+
 struct switches {
 	const char *name;
 	char **(*fn)(char *, char **);
 };
+
+static char **handle_long_options(char *arg, char **next)
+{
+	static struct switches cmd[] = {
+		{ "version", handle_version },
+		{ NULL, NULL }
+	};
+	struct switches *s = cmd;
+
+	while (s->name) {
+		if (!strcmp(s->name, arg))
+			return s->fn(arg, next);
+		s++;
+	}
+	return next;
+
+}
 
 static char **handle_switch(char *arg, char **next)
 {
@@ -683,6 +727,7 @@ static char **handle_switch(char *arg, char **next)
 	case 'G': return handle_switch_G(arg, next);
 	case 'a': return handle_switch_a(arg, next);
 	case 's': return handle_switch_s(arg, next);
+	case '-': return handle_long_options(arg + 1, next);
 	default:
 		break;
 	}
@@ -739,6 +784,25 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern unsigned int __builtin_bswap32(unsigned int);\n");
 	add_pre_buffer("extern unsigned long long __builtin_bswap64(unsigned long long);\n");
 
+	/* And atomic memory access functions.. */
+	add_pre_buffer("extern int __sync_fetch_and_add(void *, ...);\n");
+	add_pre_buffer("extern int __sync_fetch_and_sub(void *, ...);\n");
+	add_pre_buffer("extern int __sync_fetch_and_or(void *, ...);\n");
+	add_pre_buffer("extern int __sync_fetch_and_and(void *, ...);\n");
+	add_pre_buffer("extern int __sync_fetch_and_xor(void *, ...);\n");
+	add_pre_buffer("extern int __sync_fetch_and_nand(void *, ...);\n");
+	add_pre_buffer("extern int __sync_add_and_fetch(void *, ...);\n");
+	add_pre_buffer("extern int __sync_sub_and_fetch(void *, ...);\n");
+	add_pre_buffer("extern int __sync_or_and_fetch(void *, ...);\n");
+	add_pre_buffer("extern int __sync_and_and_fetch(void *, ...);\n");
+	add_pre_buffer("extern int __sync_xor_and_fetch(void *, ...);\n");
+	add_pre_buffer("extern int __sync_nand_and_fetch(void *, ...);\n");
+	add_pre_buffer("extern int __sync_bool_compare_and_swap(void *, ...);\n");
+	add_pre_buffer("extern int __sync_val_compare_and_swap(void *, ...);\n");
+	add_pre_buffer("extern void __sync_synchronize();\n");
+	add_pre_buffer("extern int __sync_lock_test_and_set(void *, ...);\n");
+	add_pre_buffer("extern void __sync_lock_release(void *, ...);\n");
+
 	/* And some random ones.. */
 	add_pre_buffer("extern void *__builtin_return_address(unsigned int);\n");
 	add_pre_buffer("extern void *__builtin_extract_return_addr(void *);\n");
@@ -755,8 +819,7 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern long __builtin_alpha_cmpbge(long, long);\n");
 	add_pre_buffer("extern long __builtin_labs(long);\n");
 	add_pre_buffer("extern double __builtin_fabs(double);\n");
-	add_pre_buffer("extern void __sync_synchronize();\n");
-	add_pre_buffer("extern int __sync_bool_compare_and_swap(void *, ...);\n");
+	add_pre_buffer("extern __SIZE_TYPE__ __builtin_va_arg_pack_len(void);\n");
 
 	/* Add Blackfin-specific stuff */
 	add_pre_buffer(
@@ -854,6 +917,7 @@ void create_builtin_stream(void)
 	add_pre_buffer("#define __builtin_va_copy(dest, src) ({ dest = src; (void)0; })\n");
 	add_pre_buffer("#define __builtin_va_end(arg)\n");
 	add_pre_buffer("#define __builtin_ms_va_end(arg)\n");
+	add_pre_buffer("#define __builtin_va_arg_pack()\n");
 
 	/* FIXME! We need to do these as special magic macros at expansion time! */
 	add_pre_buffer("#define __BASE_FILE__ \"base_file.c\"\n");
@@ -870,6 +934,8 @@ void create_builtin_stream(void)
 	add_pre_buffer("#weak_define __LONG_MAX__ " STRINGIFY(__LONG_MAX__) "\n");
 	add_pre_buffer("#weak_define __LONG_LONG_MAX__ " STRINGIFY(__LONG_LONG_MAX__) "\n");
 	add_pre_buffer("#weak_define __WCHAR_MAX__ " STRINGIFY(__WCHAR_MAX__) "\n");
+	add_pre_buffer("#weak_define __SIZEOF_POINTER__ " STRINGIFY(__SIZEOF_POINTER__) "\n");
+	add_pre_buffer("#weak_define __CHAR_BIT__ " STRINGIFY(__CHAR_BIT__) "\n");
 }
 
 static struct symbol_list *sparse_tokenstream(struct token *token)

@@ -240,27 +240,32 @@ sub add_specs {
 	return (' -Di386=1 -D__i386=1 -D__i386__=1' .
 		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
 		&float_types (1, 1, 21, [24,8], [53,11], [64,15]) .
-		&define_size_t ($m64 ? "long unsigned int" : "unsigned int"));
+		&define_size_t ($m64 ? "long unsigned int" : "unsigned int") .
+		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
     } elsif ($spec eq 'sparc') {
 	return (' -Dsparc=1 -D__sparc=1 -D__sparc__=1' .
 		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
 		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
-		&define_size_t ($m64 ? "long unsigned int" : "unsigned int"));
+		&define_size_t ($m64 ? "long unsigned int" : "unsigned int") .
+		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
     } elsif ($spec eq 'sparc64') {
 	return (' -Dsparc=1 -D__sparc=1 -D__sparc__=1 -D__sparcv9__=1 -D__sparc64__=1 -D__arch64__=1 -D__LP64__=1' .
 		&integer_types (8, 16, 32, 64, 64, 128) .
 		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
-		&define_size_t ("long unsigned int"));
+		&define_size_t ("long unsigned int") .
+		' -D__SIZEOF_POINTER__=8');
     } elsif ($spec eq 'x86_64') {
 	return (' -Dx86_64=1 -D__x86_64=1 -D__x86_64__=1' . ($m32 ? '' : ' -D__LP64__=1') .
 		&integer_types (8, 16, 32, $m32 ? 32 : 64, 64, 128) .
 		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
-		&define_size_t ($m32 ? "unsigned int" : "long unsigned int"));
+		&define_size_t ($m32 ? "unsigned int" : "long unsigned int") .
+		' -D__SIZEOF_POINTER__=' . ($m32 ? '4' : '8'));
     } elsif ($spec eq 'ppc') {
 	return (' -D__powerpc__=1 -D_BIG_ENDIAN -D_STRING_ARCH_unaligned=1' .
 		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
 		&float_types (1, 1, 21, [24,8], [53,11], [113,15]) .
-		&define_size_t ($m64 ? "long unsigned int" : "unsigned int"));
+		&define_size_t ($m64 ? "long unsigned int" : "unsigned int") .
+		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
     } elsif ($spec eq 'host_os_specs') {
 	my $os = `uname -s`;
 	chomp $os;

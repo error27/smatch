@@ -406,6 +406,8 @@ static int simplify_constant_binop(struct instruction *insn)
 	case OP_DIVS:
 		if (!right)
 			return 0;
+		if (left == mask && right == -1)
+			return 0;
 		res = left / right;
 		break;
 	case OP_MODU:
@@ -415,6 +417,8 @@ static int simplify_constant_binop(struct instruction *insn)
 		break;
 	case OP_MODS:
 		if (!right)
+			return 0;
+		if (left == mask && right == -1)
 			return 0;
 		res = left % right;
 		break;

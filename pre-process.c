@@ -7,7 +7,23 @@
  * Copyright (C) 2003 Transmeta Corp.
  *               2003-2004 Linus Torvalds
  *
- *  Licensed under the Open Software License version 1.1
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -339,14 +355,16 @@ static struct token *dup_list(struct token *list)
 	return res;
 }
 
-static const char *quote_token_sequence(struct token *token)
+static const char *show_token_sequence(struct token *token, int quote)
 {
-	static char buffer[1024];
+	static char buffer[MAX_STRING];
 	char *ptr = buffer;
 	int whitespace = 0;
 
+	if (!token && !quote)
+		return "<none>";
 	while (!eof_token(token)) {
-		const char *val = quote_token(token);
+		const char *val = quote ? quote_token(token) : show_token(token);
 		int len = strlen(val);
 
 		if (ptr + whitespace + len >= buffer + sizeof(buffer)) {
@@ -367,7 +385,7 @@ static const char *quote_token_sequence(struct token *token)
 
 static struct token *stringify(struct token *arg)
 {
-	const char *s = quote_token_sequence(arg);
+	const char *s = show_token_sequence(arg, 1);
 	int size = strlen(s)+1;
 	struct token *token = __alloc_token(0);
 	struct string *string = __alloc_string(size);
@@ -744,6 +762,11 @@ static int already_tokenized(const char *path)
 		struct stream *s = input_streams + stream;
 
 		next = s->next_stream;
+		if (s->once) {
+			if (strcmp(path, s->name))
+				continue;
+			return 1;
+		}
 		if (s->constant != CONSTANT_FILE_YES)
 			continue;
 		if (strcmp(path, s->name))
@@ -1437,7 +1460,7 @@ static int handle_ifndef(struct stream *stream, struct token **line, struct toke
 	return preprocessor_if(stream, token, arg);
 }
 
-static const char *show_token_sequence(struct token *token);
+static const char *show_token_sequence(struct token *token, int quote);
 
 /*
  * Expression handling for #if and #elif; it differs from normal expansion
@@ -1496,7 +1519,7 @@ static int expression_value(struct token **where)
 
 	p = constant_expression(*where, &expr);
 	if (!eof_token(p))
-		sparse_error(p->pos, "garbage at end: %s", show_token_sequence(p));
+		sparse_error(p->pos, "garbage at end: %s", show_token_sequence(p, 0));
 	value = get_expression_value(expr);
 	return value != 0;
 }
@@ -1585,43 +1608,15 @@ static int handle_endif(struct stream *stream, struct token **line, struct token
 	return 1;
 }
 
-static const char *show_token_sequence(struct token *token)
-{
-	static char buffer[1024];
-	char *ptr = buffer;
-	int whitespace = 0;
-
-	if (!token)
-		return "<none>";
-	while (!eof_token(token)) {
-		const char *val = show_token(token);
-		int len = strlen(val);
-
-		if (ptr + whitespace + len >= buffer + sizeof(buffer)) {
-			sparse_error(token->pos, "too long token expansion");
-			break;
-		}
-
-		if (whitespace)
-			*ptr++ = ' ';
-		memcpy(ptr, val, len);
-		ptr += len;
-		token = token->next;
-		whitespace = token->pos.whitespace;
-	}
-	*ptr = 0;
-	return buffer;
-}
-
 static int handle_warning(struct stream *stream, struct token **line, struct token *token)
 {
-	warning(token->pos, "%s", show_token_sequence(token->next));
+	warning(token->pos, "%s", show_token_sequence(token->next, 0));
 	return 1;
 }
 
 static int handle_error(struct stream *stream, struct token **line, struct token *token)
 {
-	sparse_error(token->pos, "%s", show_token_sequence(token->next));
+	sparse_error(token->pos, "%s", show_token_sequence(token->next, 0));
 	return 1;
 }
 
@@ -1810,6 +1805,10 @@ static int handle_pragma(struct stream *stream, struct token **line, struct toke
 {
 	struct token *next = *line;
 
+	if (match_ident(token->next, &once_ident) && eof_token(token->next->next)) {
+		stream->once = 1;
+		return 1;
+	}
 	token->ident = &pragma_ident;
 	token->pos.newline = 1;
 	token->pos.whitespace = 1;
@@ -1829,7 +1828,7 @@ static int handle_line(struct stream *stream, struct token **line, struct token 
 
 static int handle_nondirective(struct stream *stream, struct token **line, struct token *token)
 {
-	sparse_error(token->pos, "unrecognized preprocessor line '%s'", show_token_sequence(token));
+	sparse_error(token->pos, "unrecognized preprocessor line '%s'", show_token_sequence(token, 0));
 	return 1;
 }
 

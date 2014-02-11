@@ -1,4 +1,12 @@
-VERSION=0.4.4
+VERSION=0.5.0
+
+# Generating file version.h if current version has changed
+SPARSE_VERSION:=$(shell git describe 2>/dev/null || echo '$(VERSION)')
+VERSION_H := $(shell cat version.h 2>/dev/null)
+ifneq ($(lastword $(VERSION_H)),"$(SPARSE_VERSION)")
+$(info $(shell echo '     GEN      'version.h))
+$(shell echo '#define SPARSE_VERSION "$(SPARSE_VERSION)"' > version.h)
+endif
 
 OS = linux
 
@@ -99,14 +107,13 @@ HAVE_LLVM=no
 else
 LLVM_PROGS := sparse-llvm
 $(LLVM_PROGS): LD := g++
-LDFLAGS += $(shell llvm-config --ldflags)
+LLVM_LDFLAGS := $(shell llvm-config --ldflags)
 LLVM_CFLAGS := $(shell llvm-config --cflags | sed -e "s/-DNDEBUG//g")
 LLVM_LIBS := $(shell llvm-config --libs)
 PROGRAMS += $(LLVM_PROGS)
 INST_PROGRAMS += sparse-llvm sparsec
-sparse-llvm_EXTRA_DEPS := sparse-llvm.o
-sparse-llvm.o $(sparse-llvm_EXTRA_DEPS): BASIC_CFLAGS += $(LLVM_CFLAGS)
-sparse-llvm_EXTRA_OBJS := $(LLVM_LIBS)
+sparse-llvm.o: BASIC_CFLAGS += $(LLVM_CFLAGS)
+sparse-llvm_EXTRA_OBJS := $(LLVM_LIBS) $(LLVM_LDFLAGS)
 endif
 endif
 
@@ -227,7 +234,7 @@ clean: clean-check
 		$(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
 
 dist:
-	@if test "`git describe`" != "v$(VERSION)" ; then \
+	@if test "$(SPARSE_VERSION)" != "v$(VERSION)" ; then \
 		echo 'Update VERSION in the Makefile before running "make dist".' ; \
 		exit 1 ; \
 	fi

@@ -42,30 +42,6 @@ A.  See the previous question: I personally think that the front end
     they want to have a proprietary back-end, that's ok by me too. It's
     their loss, not mine.
 
-    At the same time, I'm a big believer in "quid pro quo". I wrote the
-    front-end, and if you make improvements to the semantic parsing part
-    (as opposed to just using the resulting parse tree), you'd better
-    cough up.  The front-end is intended to be an open-source project in
-    its own right, and if you improve the front end, you must give those
-    improvements back. That's your "quid" to my "quo".
-
-
-Q.  So what _is_ the license?
-
-A.  I don't know yet.  I originally thought it would be LGPL, but I'm
-    possibly going for a license that is _not_ subsumable by the GPL. 
-    In other words, I don't want to see a GPL'd project suck in the
-    LGPL'd front-end, and then make changes to the front end under the
-    GPL (this is something that the LGPL expressly allows, and see the
-    previous question for why I think it's the _only_ thing that I will
-    not allow). 
-
-    The current front-runner is the OSL ("Open Software License", see
-    http://www.opensource.org/licenses/osl.php), together with a note on
-    what makes source derivative and what does not to make it clear that
-    people can write back-ends for it without having to make those
-    back-ends available under the OSL. 
-
 
 Q.  Does it really parse C?
 

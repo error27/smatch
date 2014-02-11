@@ -189,6 +189,24 @@ Sparse issues these warnings by default.  To turn them off, use
 \fB\-Wno\-enum\-mismatch\fR.
 .
 .TP
+.B \-Winit\-cstring
+Warn about initialization of a char array with a too long constant C string.
+
+If the size of the char array and the length of the string is the same,
+there is no space for the last nul char of the string in the array:
+
+.nf
+char s[3] = "abc";
+.fi
+
+If the array is used as a byte array, not as C string, this
+warning is just noise. However, if the array is passed to functions
+dealing with C string like printf(%s) and strcmp, it may cause a
+trouble.
+
+Sparse does not issue these warnings by default.
+.
+.TP
 .B \-Wnon\-pointer\-null
 Warn about the use of 0 as a NULL pointer.
 
