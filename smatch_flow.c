@@ -29,7 +29,7 @@ static const char *filename;
 static char *pathname;
 static char *full_filename;
 static char *cur_func;
-static int loop_count;
+static unsigned int loop_count;
 int __expr_stmt_count;
 int __in_function_def;
 static struct expression_list *switch_expr_stack = NULL;
@@ -42,6 +42,7 @@ int __bail_on_rest_of_function = 0;
 char *get_function(void) { return cur_func; }
 int get_lineno(void) { return __smatch_lineno; }
 int inside_loop(void) { return !!loop_count; }
+int definitely_inside_loop(void) { return !!(loop_count & ~0x80000000); }
 struct expression *get_switch_expr(void) { return top_expression(switch_expr_stack); }
 int in_expression_statement(void) { return !!__expr_stmt_count; }
 
@@ -744,7 +745,7 @@ void __split_stmt(struct statement *stmt)
 		if (stmt->label_identifier &&
 		    stmt->label_identifier->type == SYM_LABEL &&
 		    stmt->label_identifier->ident) {
-			loop_count = 1000000;
+			loop_count |= 0x80000000;
 			__merge_gotos(stmt->label_identifier->ident->name);
 		}
 		__split_stmt(stmt->label_statement);

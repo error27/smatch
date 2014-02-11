@@ -357,6 +357,7 @@ int in_condition(void);
 extern int __in_fake_assign;
 void smatch (int argc, char **argv);
 int inside_loop(void);
+int definitely_inside_loop(void);
 struct expression *get_switch_expr(void);
 int in_expression_statement(void);
 void __process_post_op_stack(void);
