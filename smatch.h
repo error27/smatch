@@ -58,14 +58,23 @@ static inline int PTR_INT(void *p)
 	return (int)(long)p;
 }
 
+struct tracker {
+	char *name;
+	struct symbol *sym;
+	unsigned short owner;
+};
+DECLARE_ALLOCATOR(tracker);
+DECLARE_PTR_LIST(tracker_list, struct tracker);
+
+/* The first 3 struct members must match struct tracker */
 struct sm_state {
+	const char *name;
+	struct symbol *sym;
 	unsigned short owner;
 	unsigned short merged:1;
 	unsigned short implied:1;
 	unsigned int nr_children;
 	unsigned int line;
-	const char *name;
-	struct symbol *sym;
   	struct smatch_state *state;
 	struct state_list *pool;
 	struct sm_state *left;
@@ -79,14 +88,6 @@ struct var_sym {
 };
 DECLARE_ALLOCATOR(var_sym);
 DECLARE_PTR_LIST(var_sym_list, struct var_sym);
-
-struct tracker {
-	int owner;
-	char *name;
-	struct symbol *sym;
-};
-DECLARE_ALLOCATOR(tracker);
-DECLARE_PTR_LIST(tracker_list, struct tracker);
 
 enum hook_type {
 	EXPR_HOOK,
