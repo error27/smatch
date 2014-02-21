@@ -30,9 +30,7 @@ typedef struct AVL           AVL;
 typedef struct AvlNode       AvlNode;
 typedef struct AvlIter       AvlIter;
 
-typedef int (*AvlCompare)(const void *, const void *);
-
-AVL *avl_new(AvlCompare compare);
+AVL *avl_new(void);
 	/* Create a new AVL tree sorted with the given comparison function. */
 
 void avl_free(AVL *avl);
@@ -106,7 +104,6 @@ void avl_iter_next(AvlIter *iter);
 /***************** Internal data structures ******************/
 
 struct AVL {
-	AvlCompare  compare;
 	AvlNode    *root;
 	size_t      count;
 };

@@ -63,13 +63,12 @@ static int sign(int cmp)
 	return 1;
 }
 
-AVL *avl_new(AvlCompare compare)
+AVL *avl_new(void)
 {
 	AVL *avl = malloc(sizeof(*avl));
 
 	assert(avl != NULL);
 
-	avl->compare = compare;
 	avl->root = NULL;
 	avl->count = 0;
 	return avl;
@@ -148,7 +147,7 @@ static AvlNode *lookup(const AVL *avl, AvlNode *node, const void *key)
 	if (node == NULL)
 		return NULL;
 
-	cmp = avl->compare(key, node->key);
+	cmp = cmp_tracker(key, node->key);
 
 	if (cmp < 0)
 		return lookup(avl, node->lr[0], key);
@@ -170,7 +169,7 @@ static bool insert_sm(AVL *avl, AvlNode **p, const void *key, const void *value)
 		return true;
 	} else {
 		AvlNode *node = *p;
-		int      cmp  = sign(avl->compare(key, node->key));
+		int      cmp  = sign(cmp_tracker(key, node->key));
 
 		if (cmp == 0) {
 			node->key = key;
@@ -199,7 +198,7 @@ static bool remove_sm(AVL *avl, AvlNode **p, const void *key, AvlNode **ret)
 		return false;
 	} else {
 		AvlNode *node = *p;
-		int      cmp  = sign(avl->compare(key, node->key));
+		int      cmp  = sign(cmp_tracker(key, node->key));
 
 		if (cmp == 0) {
 			*ret = node;
@@ -376,7 +375,7 @@ static bool checkOrder(AVL *avl)
 	bool        last_set = false;
 
 	avl_foreach(i, avl) {
-		if (last_set && avl->compare(last, i.key) >= 0)
+		if (last_set && cmp_tracker(last, i.key) >= 0)
 			return false;
 		last     = i.key;
 		last_set = true;
