@@ -80,10 +80,10 @@ void avl_free(AVL *avl)
 	free(avl);
 }
 
-void *avl_lookup(const AVL *avl, const struct sm_state *sm)
+struct sm_state *avl_lookup(const AVL *avl, const struct sm_state *sm)
 {
 	AvlNode *found = lookup(avl, avl->root, sm);
-	return found ? (void*) found->sm : NULL;
+	return found ? (struct sm_state *) found->sm : NULL;
 }
 
 AvlNode *avl_lookup_node(const AVL *avl, const struct sm_state *sm)
@@ -369,7 +369,7 @@ static bool checkBalances(AvlNode *node, int *height)
 static bool checkOrder(AVL *avl)
 {
 	AvlIter     i;
-	const void *last     = NULL;
+	const struct sm_state *last = NULL;
 	bool        last_set = false;
 
 	avl_foreach(i, avl) {
@@ -411,7 +411,7 @@ void avl_iter_begin(AvlIter *iter, AVL *avl, AvlDirection dir)
 		node = node->lr[dir];
 	}
 
-	iter->sm   = (void*) node->sm;
+	iter->sm   = (struct sm_state *) node->sm;
 	iter->node  = node;
 }
 
@@ -438,5 +438,5 @@ void avl_iter_next(AvlIter *iter)
 	}
 
 	iter->node  = node;
-	iter->sm   = (void*) node->sm;
+	iter->sm   = (struct sm_state *) node->sm;
 }

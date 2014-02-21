@@ -38,7 +38,7 @@ AVL *avl_new(void);
 void avl_free(AVL *avl);
 	/* Free an AVL tree. */
 
-void *avl_lookup(const AVL *avl, const struct sm_state *sm);
+struct sm_state *avl_lookup(const AVL *avl, const struct sm_state *sm);
 	/* O(log n). Lookup a sm.  Return NULL if the sm is not present. */
 
 #define avl_member(avl, sm) (!!avl_lookup_node(avl, sm))
