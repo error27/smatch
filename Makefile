@@ -63,7 +63,7 @@ SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	smatch_param_cleared.o smatch_clear_buffer.o smatch_start_states.o \
 	smatch_recurse.o smatch_data_source.o smatch_type_val.o \
 	smatch_common_functions.o smatch_struct_assignment.o \
-	smatch_unknown_value.o smatch_stored_conditions.o
+	smatch_unknown_value.o smatch_stored_conditions.o avl.o
 
 SMATCH_CHECKS=$(shell ls check_*.c | sed -e 's/\.c/.o/')
 SMATCH_DATA=smatch_data/kernel.allocation_funcs smatch_data/kernel.balanced_funcs \
@@ -119,13 +119,13 @@ endif
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 	  linearize.h bitmap.h ident-list.h compat.h flow.h allocate.h \
-	  storage.h ptrlist.h dissect.h avl.h
+	  storage.h ptrlist.h dissect.h
 
 LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 	  expression.o show-parse.o evaluate.o expand.o inline.o linearize.o \
 	  char.o sort.o allocate.o compat-$(OS).o ptrlist.o \
 	  flow.o cse.o simplify.o memops.o liveness.o storage.o unssa.o \
-	  dissect.o macro_table.o token_store.o cwchash/hashtable.o avl.o
+	  dissect.o macro_table.o token_store.o cwchash/hashtable.o
 
 LIB_FILE= libsparse.a
 SLIB_FILE= libsparse.so
@@ -214,7 +214,7 @@ check_list_local.h:
 
 smatch.o: smatch.c $(LIB_H) smatch.h check_list.h check_list_local.h
 	$(CC) -c smatch.c -DSMATCHDATADIR='"$(SMATCHDATADIR)"'
-$(SMATCH_CHECKS): smatch.h smatch_slist.h smatch_extra.h
+$(SMATCH_CHECKS): smatch.h smatch_slist.h smatch_extra.h avl.h
 DEP_FILES := $(wildcard .*.o.d)
 $(if $(DEP_FILES),$(eval include $(DEP_FILES)))
 
