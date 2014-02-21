@@ -1,6 +1,6 @@
 Smatch is released under the GPLv2+ license however Smatch includes the Sparse
 source as well which is licensed under the MIT license and cwchash which is
-licensed under the three clause BSD license.
+licensed under the three clause BSD license and avl.[ch] which are MIT licensed.
 
 The line between which files are a part of Sparse and which are a part of Smatch
 is normally pretty clear.  The one thing I will clarify is that there are some

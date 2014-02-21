@@ -27,6 +27,7 @@
 #include "scope.h"
 #include "parse.h"
 #include "expression.h"
+#include "avl.h"
 
 typedef struct {
 	struct symbol *type;

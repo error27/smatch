@@ -119,13 +119,13 @@ endif
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 	  linearize.h bitmap.h ident-list.h compat.h flow.h allocate.h \
-	  storage.h ptrlist.h dissect.h
+	  storage.h ptrlist.h dissect.h avl.h
 
 LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 	  expression.o show-parse.o evaluate.o expand.o inline.o linearize.o \
 	  char.o sort.o allocate.o compat-$(OS).o ptrlist.o \
 	  flow.o cse.o simplify.o memops.o liveness.o storage.o unssa.o \
-	  dissect.o macro_table.o token_store.o cwchash/hashtable.o
+	  dissect.o macro_table.o token_store.o cwchash/hashtable.o avl.o
 
 LIB_FILE= libsparse.a
 SLIB_FILE= libsparse.so
