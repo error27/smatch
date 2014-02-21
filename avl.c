@@ -74,10 +74,11 @@ AVL *avl_new(void)
 	return avl;
 }
 
-void avl_free(AVL *avl)
+void avl_free(AVL **avl)
 {
-	freeNode(avl->root);
-	free(avl);
+	freeNode((*avl)->root);
+	free(*avl);
+	*avl = NULL;
 }
 
 struct sm_state *avl_lookup(const AVL *avl, const struct sm_state *sm)
@@ -96,18 +97,25 @@ size_t avl_count(const AVL *avl)
 	return avl->count;
 }
 
-bool avl_insert(AVL *avl, const struct sm_state *sm)
+bool avl_insert(AVL **avl, const struct sm_state *sm)
 {
-	size_t old_count = avl->count;
-	insert_sm(avl, &avl->root, sm);
-	return avl->count != old_count;
+	size_t old_count;
+
+	if (!*avl)
+		*avl = avl_new();
+	old_count = (*avl)->count;
+	insert_sm(*avl, &(*avl)->root, sm);
+	return (*avl)->count != old_count;
 }
 
-bool avl_remove(AVL *avl, const struct sm_state *sm)
+bool avl_remove(AVL **avl, const struct sm_state *sm)
 {
 	AvlNode *node = NULL;
 
-	remove_sm(avl, &avl->root, sm, &node);
+	remove_sm(*avl, &(*avl)->root, sm, &node);
+
+	if ((*avl)->count == 0)
+		avl_free(avl);
 
 	if (node == NULL) {
 		return false;

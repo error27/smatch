@@ -32,10 +32,7 @@ typedef struct AVL           AVL;
 typedef struct AvlNode       AvlNode;
 typedef struct AvlIter       AvlIter;
 
-AVL *avl_new(void);
-	/* Create a new AVL tree sorted with the given comparison function. */
-
-void avl_free(AVL *avl);
+void avl_free(AVL **avl);
 	/* Free an AVL tree. */
 
 struct sm_state *avl_lookup(const AVL *avl, const struct sm_state *sm);
@@ -47,14 +44,14 @@ struct sm_state *avl_lookup(const AVL *avl, const struct sm_state *sm);
 size_t avl_count(const AVL *avl);
 	/* O(1). Return the number of elements in the tree. */
 
-bool avl_insert(AVL *avl, const struct sm_state *sm);
+bool avl_insert(AVL **avl, const struct sm_state *sm);
 	/*
 	 * O(log n). Insert an sm or replace it if already present.
 	 *
 	 * Return false if the insertion replaced an existing sm.
 	 */
 
-bool avl_remove(AVL *avl, const struct sm_state *sm);
+bool avl_remove(AVL **avl, const struct sm_state *sm);
 	/*
 	 * O(log n). Remove an sm (if present).
 	 *
