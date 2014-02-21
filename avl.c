@@ -26,13 +26,13 @@
 #include "smatch.h"
 #include "smatch_slist.h"
 
-static AvlNode *mkNode(const void *key, const void *value);
+static AvlNode *mkNode(const struct sm_state *sm, const void *value);
 static void freeNode(AvlNode *node);
 
-static AvlNode *lookup(const AVL *avl, AvlNode *node, const void *key);
+static AvlNode *lookup(const AVL *avl, AvlNode *node, const struct sm_state *sm);
 
-static bool insert_sm(AVL *avl, AvlNode **p, const void *key, const void *value);
-static bool remove_sm(AVL *avl, AvlNode **p, const void *key, AvlNode **ret);
+static bool insert_sm(AVL *avl, AvlNode **p, const struct sm_state *sm, const void *value);
+static bool remove_sm(AVL *avl, AvlNode **p, const struct sm_state *sm, AvlNode **ret);
 static bool removeExtremum(AvlNode **p, int side, AvlNode **ret);
 
 static int sway(AvlNode **p, int sway);
@@ -80,15 +80,15 @@ void avl_free(AVL *avl)
 	free(avl);
 }
 
-void *avl_lookup(const AVL *avl, const void *key)
+void *avl_lookup(const AVL *avl, const struct sm_state *sm)
 {
-	AvlNode *found = lookup(avl, avl->root, key);
+	AvlNode *found = lookup(avl, avl->root, sm);
 	return found ? (void*) found->value : NULL;
 }
 
-AvlNode *avl_lookup_node(const AVL *avl, const void *key)
+AvlNode *avl_lookup_node(const AVL *avl, const struct sm_state *sm)
 {
-	return lookup(avl, avl->root, key);
+	return lookup(avl, avl->root, sm);
 }
 
 size_t avl_count(const AVL *avl)
@@ -96,18 +96,18 @@ size_t avl_count(const AVL *avl)
 	return avl->count;
 }
 
-bool avl_insert(AVL *avl, const void *key, const void *value)
+bool avl_insert(AVL *avl, const struct sm_state *sm, const void *value)
 {
 	size_t old_count = avl->count;
-	insert_sm(avl, &avl->root, key, value);
+	insert_sm(avl, &avl->root, sm, value);
 	return avl->count != old_count;
 }
 
-bool avl_remove(AVL *avl, const void *key)
+bool avl_remove(AVL *avl, const struct sm_state *sm)
 {
 	AvlNode *node = NULL;
 
-	remove_sm(avl, &avl->root, key, &node);
+	remove_sm(avl, &avl->root, sm, &node);
 
 	if (node == NULL) {
 		return false;
@@ -117,13 +117,13 @@ bool avl_remove(AVL *avl, const void *key)
 	}
 }
 
-static AvlNode *mkNode(const void *key, const void *value)
+static AvlNode *mkNode(const struct sm_state *sm, const void *value)
 {
 	AvlNode *node = malloc(sizeof(*node));
 
 	assert(node != NULL);
 
-	node->key = key;
+	node->sm = sm;
 	node->value = value;
 	node->lr[0] = NULL;
 	node->lr[1] = NULL;
@@ -140,44 +140,44 @@ static void freeNode(AvlNode *node)
 	}
 }
 
-static AvlNode *lookup(const AVL *avl, AvlNode *node, const void *key)
+static AvlNode *lookup(const AVL *avl, AvlNode *node, const struct sm_state *sm)
 {
 	int cmp;
 
 	if (node == NULL)
 		return NULL;
 
-	cmp = cmp_tracker(key, node->key);
+	cmp = cmp_tracker(sm, node->sm);
 
 	if (cmp < 0)
-		return lookup(avl, node->lr[0], key);
+		return lookup(avl, node->lr[0], sm);
 	if (cmp > 0)
-		return lookup(avl, node->lr[1], key);
+		return lookup(avl, node->lr[1], sm);
 	return node;
 }
 
 /*
- * Insert a key/value into a subtree, rebalancing if necessary.
+ * Insert a sm/value into a subtree, rebalancing if necessary.
  *
  * Return true if the subtree's height increased.
  */
-static bool insert_sm(AVL *avl, AvlNode **p, const void *key, const void *value)
+static bool insert_sm(AVL *avl, AvlNode **p, const struct sm_state *sm, const void *value)
 {
 	if (*p == NULL) {
-		*p = mkNode(key, value);
+		*p = mkNode(sm, value);
 		avl->count++;
 		return true;
 	} else {
 		AvlNode *node = *p;
-		int      cmp  = sign(cmp_tracker(key, node->key));
+		int      cmp  = sign(cmp_tracker(sm, node->sm));
 
 		if (cmp == 0) {
-			node->key = key;
+			node->sm = sm;
 			node->value = value;
 			return false;
 		}
 
-		if (!insert_sm(avl, &node->lr[side(cmp)], key, value))
+		if (!insert_sm(avl, &node->lr[side(cmp)], sm, value))
 			return false;
 
 		/* If tree's balance became -1 or 1, it means the tree's height grew due to insertion. */
@@ -186,19 +186,19 @@ static bool insert_sm(AVL *avl, AvlNode **p, const void *key, const void *value)
 }
 
 /*
- * Remove the node matching the given key.
+ * Remove the node matching the given sm.
  * If present, return the removed node through *ret .
  * The returned node's lr and balance are meaningless.
  *
  * Return true if the subtree's height decreased.
  */
-static bool remove_sm(AVL *avl, AvlNode **p, const void *key, AvlNode **ret)
+static bool remove_sm(AVL *avl, AvlNode **p, const struct sm_state *sm, AvlNode **ret)
 {
 	if (*p == NULL) {
 		return false;
 	} else {
 		AvlNode *node = *p;
-		int      cmp  = sign(cmp_tracker(key, node->key));
+		int      cmp  = sign(cmp_tracker(sm, node->sm));
 
 		if (cmp == 0) {
 			*ret = node;
@@ -237,7 +237,7 @@ static bool remove_sm(AVL *avl, AvlNode **p, const void *key, AvlNode **ret)
 			return true;
 
 		} else {
-			if (!remove_sm(avl, &node->lr[side(cmp)], key, ret))
+			if (!remove_sm(avl, &node->lr[side(cmp)], sm, ret))
 				return false;
 
 			/* If tree's balance became 0, it means the tree's height shrank due to removal. */
@@ -375,9 +375,9 @@ static bool checkOrder(AVL *avl)
 	bool        last_set = false;
 
 	avl_foreach(i, avl) {
-		if (last_set && cmp_tracker(last, i.key) >= 0)
+		if (last_set && cmp_tracker(last, i.sm) >= 0)
 			return false;
-		last     = i.key;
+		last     = i.sm;
 		last_set = true;
 	}
 
@@ -403,7 +403,7 @@ void avl_iter_begin(AvlIter *iter, AVL *avl, AvlDirection dir)
 	iter->direction   = dir;
 
 	if (node == NULL) {
-		iter->key      = NULL;
+		iter->sm      = NULL;
 		iter->value    = NULL;
 		iter->node     = NULL;
 		return;
@@ -414,7 +414,7 @@ void avl_iter_begin(AvlIter *iter, AVL *avl, AvlDirection dir)
 		node = node->lr[dir];
 	}
 
-	iter->key   = (void*) node->key;
+	iter->sm   = (void*) node->sm;
 	iter->value = (void*) node->value;
 	iter->node  = node;
 }
@@ -436,13 +436,13 @@ void avl_iter_next(AvlIter *iter)
 	} else if (iter->stack_index > 0) {
 		node = iter->stack[--iter->stack_index];
 	} else {
-		iter->key      = NULL;
+		iter->sm      = NULL;
 		iter->value    = NULL;
 		iter->node     = NULL;
 		return;
 	}
 
 	iter->node  = node;
-	iter->key   = (void*) node->key;
+	iter->sm   = (void*) node->sm;
 	iter->value = (void*) node->value;
 }

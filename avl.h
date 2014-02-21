@@ -26,6 +26,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+struct sm_state;
+
 typedef struct AVL           AVL;
 typedef struct AvlNode       AvlNode;
 typedef struct AvlIter       AvlIter;
@@ -36,25 +38,25 @@ AVL *avl_new(void);
 void avl_free(AVL *avl);
 	/* Free an AVL tree. */
 
-void *avl_lookup(const AVL *avl, const void *key);
-	/* O(log n). Lookup a value at a key.  Return NULL if the key is not present. */
+void *avl_lookup(const AVL *avl, const struct sm_state *sm);
+	/* O(log n). Lookup a value at a sm.  Return NULL if the sm is not present. */
 
-#define avl_member(avl, key) (!!avl_lookup_node(avl, key))
-	/* O(log n). See if a key is present. */
+#define avl_member(avl, sm) (!!avl_lookup_node(avl, sm))
+	/* O(log n). See if a sm is present. */
 
 size_t avl_count(const AVL *avl);
 	/* O(1). Return the number of elements in the tree. */
 
-bool avl_insert(AVL *avl, const void *key, const void *value);
+bool avl_insert(AVL *avl, const struct sm_state *sm, const void *value);
 	/*
-	 * O(log n). Insert a key/value pair, or replace it if already present.
+	 * O(log n). Insert a sm/value pair, or replace it if already present.
 	 *
-	 * Return false if the insertion replaced an existing key/value.
+	 * Return false if the insertion replaced an existing sm/value.
 	 */
 
-bool avl_remove(AVL *avl, const void *key);
+bool avl_remove(AVL *avl, const struct sm_state *sm);
 	/*
-	 * O(log n). Remove a key/value pair (if present).
+	 * O(log n). Remove a sm/value pair (if present).
 	 *
 	 * Return true if it was removed.
 	 */
@@ -74,7 +76,7 @@ bool avl_check_invariants(AVL *avl);
 	 * AvlIter i;
 	 *
 	 * avl_foreach(i, avl)
-	 *     printf("%s -> %s\n", i.key, i.value);
+	 *     printf("%s -> %s\n", i.sm, i.value);
 	 */
 
 #define avl_foreach_reverse(iter, avl) avl_traverse(iter, avl, BACKWARD)
@@ -83,7 +85,7 @@ bool avl_check_invariants(AVL *avl);
 typedef enum AvlDirection {FORWARD = 0, BACKWARD = 1} AvlDirection;
 
 struct AvlIter {
-	void         *key;
+	struct sm_state *sm;
 	void         *value;
 	AvlNode      *node;
 
@@ -109,14 +111,14 @@ struct AVL {
 };
 
 struct AvlNode {
-	const void *key;
+	const struct sm_state *sm;
 	const void *value;
 
 	AvlNode    *lr[2];
 	int         balance; /* -1, 0, or 1 */
 };
 
-AvlNode *avl_lookup_node(const AVL *avl, const void *key);
-	/* O(log n). Lookup an AVL node by key.  Return NULL if not present. */
+AvlNode *avl_lookup_node(const AVL *avl, const struct sm_state *sm);
+	/* O(log n). Lookup an AVL node by sm.  Return NULL if not present. */
 
 #endif
