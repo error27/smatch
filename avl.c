@@ -26,12 +26,12 @@
 #include "smatch.h"
 #include "smatch_slist.h"
 
-static AvlNode *mkNode(const struct sm_state *sm, const void *value);
+static AvlNode *mkNode(const struct sm_state *sm);
 static void freeNode(AvlNode *node);
 
 static AvlNode *lookup(const AVL *avl, AvlNode *node, const struct sm_state *sm);
 
-static bool insert_sm(AVL *avl, AvlNode **p, const struct sm_state *sm, const void *value);
+static bool insert_sm(AVL *avl, AvlNode **p, const struct sm_state *sm);
 static bool remove_sm(AVL *avl, AvlNode **p, const struct sm_state *sm, AvlNode **ret);
 static bool removeExtremum(AvlNode **p, int side, AvlNode **ret);
 
@@ -83,7 +83,7 @@ void avl_free(AVL *avl)
 void *avl_lookup(const AVL *avl, const struct sm_state *sm)
 {
 	AvlNode *found = lookup(avl, avl->root, sm);
-	return found ? (void*) found->value : NULL;
+	return found ? (void*) found->sm : NULL;
 }
 
 AvlNode *avl_lookup_node(const AVL *avl, const struct sm_state *sm)
@@ -96,10 +96,10 @@ size_t avl_count(const AVL *avl)
 	return avl->count;
 }
 
-bool avl_insert(AVL *avl, const struct sm_state *sm, const void *value)
+bool avl_insert(AVL *avl, const struct sm_state *sm)
 {
 	size_t old_count = avl->count;
-	insert_sm(avl, &avl->root, sm, value);
+	insert_sm(avl, &avl->root, sm);
 	return avl->count != old_count;
 }
 
@@ -117,14 +117,13 @@ bool avl_remove(AVL *avl, const struct sm_state *sm)
 	}
 }
 
-static AvlNode *mkNode(const struct sm_state *sm, const void *value)
+static AvlNode *mkNode(const struct sm_state *sm)
 {
 	AvlNode *node = malloc(sizeof(*node));
 
 	assert(node != NULL);
 
 	node->sm = sm;
-	node->value = value;
 	node->lr[0] = NULL;
 	node->lr[1] = NULL;
 	node->balance = 0;
@@ -157,14 +156,14 @@ static AvlNode *lookup(const AVL *avl, AvlNode *node, const struct sm_state *sm)
 }
 
 /*
- * Insert a sm/value into a subtree, rebalancing if necessary.
+ * Insert an sm into a subtree, rebalancing if necessary.
  *
  * Return true if the subtree's height increased.
  */
-static bool insert_sm(AVL *avl, AvlNode **p, const struct sm_state *sm, const void *value)
+static bool insert_sm(AVL *avl, AvlNode **p, const struct sm_state *sm)
 {
 	if (*p == NULL) {
-		*p = mkNode(sm, value);
+		*p = mkNode(sm);
 		avl->count++;
 		return true;
 	} else {
@@ -173,11 +172,10 @@ static bool insert_sm(AVL *avl, AvlNode **p, const struct sm_state *sm, const vo
 
 		if (cmp == 0) {
 			node->sm = sm;
-			node->value = value;
 			return false;
 		}
 
-		if (!insert_sm(avl, &node->lr[side(cmp)], sm, value))
+		if (!insert_sm(avl, &node->lr[side(cmp)], sm))
 			return false;
 
 		/* If tree's balance became -1 or 1, it means the tree's height grew due to insertion. */
@@ -404,7 +402,6 @@ void avl_iter_begin(AvlIter *iter, AVL *avl, AvlDirection dir)
 
 	if (node == NULL) {
 		iter->sm      = NULL;
-		iter->value    = NULL;
 		iter->node     = NULL;
 		return;
 	}
@@ -415,7 +412,6 @@ void avl_iter_begin(AvlIter *iter, AVL *avl, AvlDirection dir)
 	}
 
 	iter->sm   = (void*) node->sm;
-	iter->value = (void*) node->value;
 	iter->node  = node;
 }
 
@@ -437,12 +433,10 @@ void avl_iter_next(AvlIter *iter)
 		node = iter->stack[--iter->stack_index];
 	} else {
 		iter->sm      = NULL;
-		iter->value    = NULL;
 		iter->node     = NULL;
 		return;
 	}
 
 	iter->node  = node;
 	iter->sm   = (void*) node->sm;
-	iter->value = (void*) node->value;
 }

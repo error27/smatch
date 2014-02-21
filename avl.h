@@ -39,7 +39,7 @@ void avl_free(AVL *avl);
 	/* Free an AVL tree. */
 
 void *avl_lookup(const AVL *avl, const struct sm_state *sm);
-	/* O(log n). Lookup a value at a sm.  Return NULL if the sm is not present. */
+	/* O(log n). Lookup a sm.  Return NULL if the sm is not present. */
 
 #define avl_member(avl, sm) (!!avl_lookup_node(avl, sm))
 	/* O(log n). See if a sm is present. */
@@ -47,16 +47,16 @@ void *avl_lookup(const AVL *avl, const struct sm_state *sm);
 size_t avl_count(const AVL *avl);
 	/* O(1). Return the number of elements in the tree. */
 
-bool avl_insert(AVL *avl, const struct sm_state *sm, const void *value);
+bool avl_insert(AVL *avl, const struct sm_state *sm);
 	/*
-	 * O(log n). Insert a sm/value pair, or replace it if already present.
+	 * O(log n). Insert an sm or replace it if already present.
 	 *
-	 * Return false if the insertion replaced an existing sm/value.
+	 * Return false if the insertion replaced an existing sm.
 	 */
 
 bool avl_remove(AVL *avl, const struct sm_state *sm);
 	/*
-	 * O(log n). Remove a sm/value pair (if present).
+	 * O(log n). Remove an sm (if present).
 	 *
 	 * Return true if it was removed.
 	 */
@@ -76,7 +76,7 @@ bool avl_check_invariants(AVL *avl);
 	 * AvlIter i;
 	 *
 	 * avl_foreach(i, avl)
-	 *     printf("%s -> %s\n", i.sm, i.value);
+	 *     printf("%s -> %s\n", i.sm->name, i.sm->state->name);
 	 */
 
 #define avl_foreach_reverse(iter, avl) avl_traverse(iter, avl, BACKWARD)
@@ -86,7 +86,6 @@ typedef enum AvlDirection {FORWARD = 0, BACKWARD = 1} AvlDirection;
 
 struct AvlIter {
 	struct sm_state *sm;
-	void         *value;
 	AvlNode      *node;
 
 	/* private */
@@ -112,7 +111,6 @@ struct AVL {
 
 struct AvlNode {
 	const struct sm_state *sm;
-	const void *value;
 
 	AvlNode    *lr[2];
 	int         balance; /* -1, 0, or 1 */
