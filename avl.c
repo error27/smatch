@@ -76,15 +76,23 @@ AVL *avl_new(void)
 
 void avl_free(AVL **avl)
 {
-	freeNode((*avl)->root);
-	free(*avl);
+	if (*avl) {
+		freeNode((*avl)->root);
+		free(*avl);
+	}
 	*avl = NULL;
 }
 
 struct sm_state *avl_lookup(const AVL *avl, const struct sm_state *sm)
 {
-	AvlNode *found = lookup(avl, avl->root, sm);
-	return found ? (struct sm_state *) found->sm : NULL;
+	AvlNode *found;
+
+	if (!avl)
+		return NULL;
+	found = lookup(avl, avl->root, sm);
+	if (!found)
+		return NULL;
+	return (struct sm_state *)found->sm;
 }
 
 AvlNode *avl_lookup_node(const AVL *avl, const struct sm_state *sm)
@@ -111,6 +119,9 @@ bool avl_insert(AVL **avl, const struct sm_state *sm)
 bool avl_remove(AVL **avl, const struct sm_state *sm)
 {
 	AvlNode *node = NULL;
+
+	if (!*avl)
+		return false;
 
 	remove_sm(*avl, &(*avl)->root, sm, &node);
 
@@ -200,7 +211,7 @@ static bool insert_sm(AVL *avl, AvlNode **p, const struct sm_state *sm)
  */
 static bool remove_sm(AVL *avl, AvlNode **p, const struct sm_state *sm, AvlNode **ret)
 {
-	if (*p == NULL) {
+	if (p == NULL || *p == NULL) {
 		return false;
 	} else {
 		AvlNode *node = *p;
@@ -403,16 +414,17 @@ static size_t countNode(AvlNode *node)
 
 void avl_iter_begin(AvlIter *iter, AVL *avl, AvlDirection dir)
 {
-	AvlNode *node = avl->root;
+	AvlNode *node;
 
 	iter->stack_index = 0;
 	iter->direction   = dir;
 
-	if (node == NULL) {
+	if (!avl || !avl->root) {
 		iter->sm      = NULL;
 		iter->node     = NULL;
 		return;
 	}
+	node = avl->root;
 
 	while (node->lr[dir] != NULL) {
 		iter->stack[iter->stack_index++] = node;
