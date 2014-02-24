@@ -578,7 +578,7 @@ free:
 struct state_list *__implied_case_slist(struct expression *switch_expr,
 					struct expression *case_expr,
 					struct range_list_stack **remaining_cases,
-					struct state_list **raw_slist)
+					struct AVL **raw_stree)
 {
 	char *name = NULL;
 	struct symbol *sym;
@@ -586,14 +586,14 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	struct state_list *true_states = NULL;
 	struct state_list *false_states = NULL;
 	struct state_list *extra_states = NULL;
-	struct state_list *ret = clone_slist(*raw_slist);
+	struct state_list *ret = clone_slist(stree_to_slist(*raw_stree));
 	sval_t sval;
 	struct range_list *vals = NULL;
 
 	name = expr_to_var_sym(switch_expr, &sym);
 	if (!name || !sym)
 		goto free;
-	sm = get_sm_state_slist(*raw_slist, SMATCH_EXTRA, name, sym);
+	sm = get_sm_state_stree(*raw_stree, SMATCH_EXTRA, name, sym);
 
 	if (case_expr) {
 		if (get_value(case_expr, &sval)) {
@@ -607,7 +607,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	}
 
 	if (sm)
-		separate_and_filter(sm, SPECIAL_EQUAL, vals, LEFT, *raw_slist, &true_states, &false_states);
+		separate_and_filter(sm, SPECIAL_EQUAL, vals, LEFT, stree_to_slist(*raw_stree), &true_states, &false_states);
 
 	__push_fake_cur_slist();
 	__unnullify_path();

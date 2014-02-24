@@ -55,7 +55,7 @@ static struct stree_stack *fake_cur_stree_stack;
 static int read_only;
 
 static struct stree_stack *break_stack;
-static struct state_list_stack *switch_stack;
+static struct stree_stack *switch_stack;
 static struct range_list_stack *remaining_cases;
 static struct state_list_stack *default_stack;
 static struct state_list_stack *continue_stack;
@@ -582,7 +582,7 @@ void clear_all_states(void)
 	check_stack_free(&cond_true_stack);
 	check_stack_free(&cond_false_stack);
 	check_stree_stack_free(&break_stack);
-	check_stack_free(&switch_stack);
+	check_stree_stack_free(&switch_stack);
 	check_stack_free(&continue_stack);
 	free_stack_and_slists(&implied_pools);
 
@@ -878,28 +878,28 @@ void __use_breaks(void)
 void __save_switch_states(struct expression *switch_expr)
 {
 	push_rl(&remaining_cases, __get_implied_values(switch_expr));
-	push_slist(&switch_stack, stree_to_slist(clone_stree(cur_stree)));
+	push_stree(&switch_stack, clone_stree(cur_stree));
 }
 
 void __merge_switches(struct expression *switch_expr, struct expression *case_expr)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 	struct state_list *implied_slist;
 
-	slist = pop_slist(&switch_stack);
-	implied_slist = __implied_case_slist(switch_expr, case_expr, &remaining_cases, &slist);
+	stree = pop_stree(&switch_stack);
+	implied_slist = __implied_case_slist(switch_expr, case_expr, &remaining_cases, &stree);
 	merge_stree(&cur_stree, slist_to_stree(implied_slist));
 	free_slist(&implied_slist);
-	push_slist(&switch_stack, slist);
+	push_stree(&switch_stack, stree);
 }
 
 void __discard_switches(void)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 
 	pop_rl(&remaining_cases);
-	slist = pop_slist(&switch_stack);
-	free_slist(&slist);
+	stree = pop_stree(&switch_stack);
+	free_stree(&stree);
 }
 
 void __push_default(void)

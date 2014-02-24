@@ -416,7 +416,7 @@ struct range_list_stack;
 struct state_list *__implied_case_slist(struct expression *switch_expr,
 					struct expression *case_expr,
 					struct range_list_stack **remaining_cases,
-					struct state_list **raw_slist);
+					struct AVL **raw_stree);
 struct range_list *__get_implied_values(struct expression *switch_expr);
 void overwrite_states_using_pool(struct sm_state *sm);
 
