@@ -46,10 +46,10 @@ static struct AVL *cur_stree; /* current states */
 
 static struct stree_stack *true_stack; /* states after a t/f branch */
 static struct stree_stack *false_stack;
-static struct state_list_stack *pre_cond_stack; /* states before a t/f branch */
+static struct stree_stack *pre_cond_stack; /* states before a t/f branch */
 
-static struct state_list_stack *cond_true_stack; /* states affected by a branch */
-static struct state_list_stack *cond_false_stack;
+static struct stree_stack *cond_true_stack; /* states affected by a branch */
+static struct stree_stack *cond_false_stack;
 
 static struct stree_stack *fake_cur_stree_stack;
 static int read_only;
@@ -138,8 +138,8 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 	ret =  set_state_stree(&cur_stree, owner, name, sym, state);
 
 	if (cond_true_stack) {
-		set_state_stack(&cond_true_stack, owner, name, sym, state);
-		set_state_stack(&cond_false_stack, owner, name, sym, state);
+		set_state_stree_stack(&cond_true_stack, owner, name, sym, state);
+		set_state_stree_stack(&cond_false_stack, owner, name, sym, state);
 	}
 	return ret;
 }
@@ -183,27 +183,27 @@ void __free_fake_cur_slist()
 
 void __set_fake_cur_slist_fast(struct state_list *slist)
 {
-	push_slist(&pre_cond_stack, stree_to_slist(cur_stree));
+	push_stree(&pre_cond_stack, cur_stree);
 	cur_stree = slist_to_stree(slist);
 	read_only = 1;
 }
 
 void __set_fake_cur_stree_fast(struct AVL *stree)
 {
-	push_slist(&pre_cond_stack, stree_to_slist(cur_stree));
+	push_stree(&pre_cond_stack, cur_stree);
 	cur_stree = stree;
 	read_only = 1;
 }
 
 void __pop_fake_cur_slist_fast()
 {
-	cur_stree = slist_to_stree(pop_slist(&pre_cond_stack));
+	cur_stree = pop_stree(&pre_cond_stack);
 	read_only = 0;
 }
 
 void __pop_fake_cur_stree_fast()
 {
-	cur_stree = slist_to_stree(pop_slist(&pre_cond_stack));
+	cur_stree = pop_stree(&pre_cond_stack);
 	read_only = 0;
 }
 
@@ -252,8 +252,8 @@ void __set_sm(struct sm_state *sm)
 	overwrite_sm_state_stree(&cur_stree, sm);
 
 	if (cond_true_stack) {
-		overwrite_sm_state_stack(&cond_true_stack, sm);
-		overwrite_sm_state_stack(&cond_false_stack, sm);
+		overwrite_sm_state_stree_stack(&cond_true_stack, sm);
+		overwrite_sm_state_stree_stack(&cond_false_stack, sm);
 	}
 }
 
@@ -329,9 +329,9 @@ void delete_state(int owner, const char *name, struct symbol *sym)
 {
 	delete_state_stree(&cur_stree, owner, name, sym);
 	if (cond_true_stack) {
-		delete_state_stack(&pre_cond_stack, owner, name, sym);
-		delete_state_stack(&cond_true_stack, owner, name, sym);
-		delete_state_stack(&cond_false_stack, owner, name, sym);
+		delete_state_stree_stack(&pre_cond_stack, owner, name, sym);
+		delete_state_stree_stack(&cond_true_stack, owner, name, sym);
+		delete_state_stree_stack(&cond_false_stack, owner, name, sym);
 	}
 }
 
@@ -410,10 +410,10 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 
 	if (true_state) {
 		set_state_stree(&cur_stree, owner, name, sym, true_state);
-		set_state_stack(&cond_true_stack, owner, name, sym, true_state);
+		set_state_stree_stack(&cond_true_stack, owner, name, sym, true_state);
 	}
 	if (false_state)
-		set_state_stack(&cond_false_stack, owner, name, sym, false_state);
+		set_state_stree_stack(&cond_false_stack, owner, name, sym, false_state);
 }
 
 void set_true_false_states_expr(int owner, struct expression *expr,
@@ -444,10 +444,10 @@ void __set_true_false_sm(struct sm_state *true_sm, struct sm_state *false_sm)
 
 	if (true_sm) {
 		overwrite_sm_state_stree(&cur_stree, true_sm);
-		overwrite_sm_state_stack(&cond_true_stack, true_sm);
+		overwrite_sm_state_stree_stack(&cond_true_stack, true_sm);
 	}
 	if (false_sm)
-		overwrite_sm_state_stack(&cond_false_stack, false_sm);
+		overwrite_sm_state_stree_stack(&cond_false_stack, false_sm);
 }
 
 void nullify_path(void)
@@ -578,9 +578,9 @@ void clear_all_states(void)
 	nullify_path();
 	check_stree_stack_free(&true_stack);
 	check_stree_stack_free(&false_stack);
-	check_stack_free(&pre_cond_stack);
-	check_stack_free(&cond_true_stack);
-	check_stack_free(&cond_false_stack);
+	check_stree_stack_free(&pre_cond_stack);
+	check_stree_stack_free(&cond_true_stack);
+	check_stree_stack_free(&cond_false_stack);
 	check_stree_stack_free(&break_stack);
 	check_stree_stack_free(&switch_stack);
 	check_stree_stack_free(&continue_stack);
@@ -595,36 +595,36 @@ void clear_all_states(void)
 
 void __push_cond_stacks(void)
 {
-	push_slist(&cond_true_stack, NULL);
-	push_slist(&cond_false_stack, NULL);
+	push_stree(&cond_true_stack, NULL);
+	push_stree(&cond_false_stack, NULL);
 }
 
 struct state_list *__copy_cond_true_states(void)
 {
-	struct state_list *ret;
+	struct AVL *ret;
 
-	ret = pop_slist(&cond_true_stack);
-	push_slist(&cond_true_stack, clone_slist(ret));
-	return ret;
+	ret = pop_stree(&cond_true_stack);
+	push_stree(&cond_true_stack, clone_stree(ret));
+	return stree_to_slist(ret);
 }
 
 struct state_list *__copy_cond_false_states(void)
 {
-	struct state_list *ret;
+	struct AVL *ret;
 
-	ret = pop_slist(&cond_false_stack);
-	push_slist(&cond_false_stack, clone_slist(ret));
-	return ret;
+	ret = pop_stree(&cond_false_stack);
+	push_stree(&cond_false_stack, clone_stree(ret));
+	return stree_to_slist(ret);
 }
 
 struct state_list *__pop_cond_true_stack(void)
 {
-	return pop_slist(&cond_true_stack);
+	return stree_to_slist(pop_stree(&cond_true_stack));
 }
 
 struct state_list *__pop_cond_false_stack(void)
 {
-	return pop_slist(&cond_false_stack);
+	return stree_to_slist(pop_stree(&cond_false_stack));
 }
 
 /*
@@ -635,24 +635,24 @@ struct state_list *__pop_cond_false_stack(void)
  * In the false state it is null.  Combine the pre and the false to get
  * that when we call 'foo', 'a' is null.
  */
-static void __use_cond_stack(struct state_list_stack **stack)
+static void __use_cond_stack(struct stree_stack **stack)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 
 	free_stree(&cur_stree);
 
-	cur_stree = slist_to_stree(pop_slist(&pre_cond_stack));
-	push_slist(&pre_cond_stack, stree_to_slist(clone_stree(cur_stree)));
+	cur_stree = pop_stree(&pre_cond_stack);
+	push_stree(&pre_cond_stack, clone_stree(cur_stree));
 
-	slist = pop_slist(stack);
-	overwrite_stree(slist_to_stree(slist), &cur_stree);
-	push_slist(stack, slist);
+	stree = pop_stree(stack);
+	overwrite_stree(stree, &cur_stree);
+	push_stree(stack, stree);
 }
 
 void __use_pre_cond_states(void)
 {
 	free_stree(&cur_stree);
-	cur_stree = slist_to_stree(pop_slist(&pre_cond_stack));
+	cur_stree = pop_stree(&pre_cond_stack);
 }
 
 void __use_cond_true_states(void)
@@ -667,56 +667,56 @@ void __use_cond_false_states(void)
 
 void __negate_cond_stacks(void)
 {
-	struct state_list *old_false, *old_true;
+	struct AVL *old_false, *old_true;
 
 	__use_cond_stack(&cond_false_stack);
-	old_false = pop_slist(&cond_false_stack);
-	old_true = pop_slist(&cond_true_stack);
-	push_slist(&cond_false_stack, old_true);
-	push_slist(&cond_true_stack, old_false);
+	old_false = pop_stree(&cond_false_stack);
+	old_true = pop_stree(&cond_true_stack);
+	push_stree(&cond_false_stack, old_true);
+	push_stree(&cond_true_stack, old_false);
 }
 
 void __and_cond_states(void)
 {
-	and_slist_stack(&cond_true_stack);
-	or_slist_stack(&pre_cond_stack, stree_to_slist(cur_stree), &cond_false_stack);
+	and_stree_stack(&cond_true_stack);
+	or_stree_stack(&pre_cond_stack, cur_stree, &cond_false_stack);
 }
 
 void __or_cond_states(void)
 {
-	or_slist_stack(&pre_cond_stack, stree_to_slist(cur_stree), &cond_true_stack);
-	and_slist_stack(&cond_false_stack);
+	or_stree_stack(&pre_cond_stack, cur_stree, &cond_true_stack);
+	and_stree_stack(&cond_false_stack);
 }
 
 void __save_pre_cond_states(void)
 {
-	push_slist(&pre_cond_stack, stree_to_slist(clone_stree(cur_stree)));
+	push_stree(&pre_cond_stack, clone_stree(cur_stree));
 }
 
 void __discard_pre_cond_states(void)
 {
-	struct state_list *tmp;
+	struct AVL *tmp;
 
-	tmp = pop_slist(&pre_cond_stack);
-	free_slist(&tmp);
+	tmp = pop_stree(&pre_cond_stack);
+	free_stree(&tmp);
 }
 
 void __use_cond_states(void)
 {
-	struct state_list *pre, *pre_clone, *true_states, *false_states;
+	struct AVL *pre, *pre_clone, *true_states, *false_states;
 
-	pre = pop_slist(&pre_cond_stack);
-	pre_clone = clone_slist(pre);
+	pre = pop_stree(&pre_cond_stack);
+	pre_clone = clone_stree(pre);
 
-	true_states = pop_slist(&cond_true_stack);
-	overwrite_slist(true_states, &pre);
+	true_states = pop_stree(&cond_true_stack);
+	overwrite_stree(true_states, &pre);
 	/* we use the true states right away */
 	free_stree(&cur_stree);
-	cur_stree = slist_to_stree(pre);
+	cur_stree = pre;
 
-	false_states = pop_slist(&cond_false_stack);
-	overwrite_slist(false_states, &pre_clone);
-	push_stree(&false_stack, slist_to_stree(pre_clone));
+	false_states = pop_stree(&cond_false_stack);
+	overwrite_stree(false_states, &pre_clone);
+	push_stree(&false_stack, pre_clone);
 }
 
 void __push_true_states(void)

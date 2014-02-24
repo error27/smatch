@@ -1103,6 +1103,7 @@ void filter_stree(struct AVL **stree, struct AVL *filter)
 		if (!one_iter.sm && !two_iter.sm)
 			break;
 		if (cmp_tracker(one_iter.sm, two_iter.sm) < 0) {
+			avl_insert(&results, one_iter.sm);
 			avl_iter_next(&one_iter);
 		} else if (cmp_tracker(one_iter.sm, two_iter.sm) == 0) {
 			if (one_iter.sm != two_iter.sm)
