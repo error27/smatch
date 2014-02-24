@@ -73,6 +73,17 @@ void __print_slist(struct state_list *slist)
 	printf("---\n");
 }
 
+void __print_stree(struct AVL *stree)
+{
+	struct sm_state *sm;
+
+	printf("dumping stree at %d\n", get_lineno());
+	FOR_EACH_SM(stree, sm) {
+		printf("%s\n", show_sm(sm));
+	} END_FOR_EACH_SM(sm);
+	printf("---\n");
+}
+
 /* NULL states go at the end to simplify merge_slist */
 int cmp_tracker(const struct sm_state *a, const struct sm_state *b)
 {
@@ -439,6 +450,22 @@ struct sm_state *get_sm_state_slist(struct state_list *slist, int owner, const c
 	return NULL;
 }
 
+struct sm_state *get_sm_state_stree(struct AVL *stree, int owner, const char *name,
+				struct symbol *sym)
+{
+	struct tracker tracker = {
+		.owner = owner,
+		.name = (char *)name,
+		.sym = sym,
+	};
+
+	if (!name)
+		return NULL;
+
+
+	return avl_lookup(stree, (struct sm_state *)&tracker);
+}
+
 struct smatch_state *get_state_slist(struct state_list *slist,
 				int owner, const char *name,
 				struct symbol *sym)
@@ -446,6 +473,18 @@ struct smatch_state *get_state_slist(struct state_list *slist,
 	struct sm_state *sm;
 
 	sm = get_sm_state_slist(slist, owner, name, sym);
+	if (sm)
+		return sm->state;
+	return NULL;
+}
+
+struct smatch_state *get_state_stree(struct AVL *stree,
+				int owner, const char *name,
+				struct symbol *sym)
+{
+	struct sm_state *sm;
+
+	sm = get_sm_state_stree(stree, owner, name, sym);
 	if (sm)
 		return sm->state;
 	return NULL;
@@ -469,6 +508,12 @@ void overwrite_sm_state(struct state_list **slist, struct sm_state *new)
 	add_ptr_list(slist, new);
 }
 
+/* FIXME: this is almost exactly the same as set_sm_state_slist() */
+void overwrite_sm_state_stree(struct AVL **stree, struct sm_state *new)
+{
+	avl_insert(stree, new);
+}
+
 void overwrite_sm_state_stack(struct state_list_stack **stack,
 			struct sm_state *sm)
 {
@@ -477,6 +522,16 @@ void overwrite_sm_state_stack(struct state_list_stack **stack,
 	slist = pop_slist(stack);
 	overwrite_sm_state(&slist, sm);
 	push_slist(stack, slist);
+}
+
+void overwrite_sm_state_stree_stack(struct stree_stack **stack,
+			struct sm_state *sm)
+{
+	struct AVL *stree;
+
+	stree = pop_stree(stack);
+	overwrite_sm_state_stree(&stree, sm);
+	push_stree(stack, stree);
 }
 
 struct sm_state *set_state_slist(struct state_list **slist, int owner, const char *name,
@@ -500,6 +555,15 @@ struct sm_state *set_state_slist(struct state_list **slist, int owner, const cha
 	return new;
 }
 
+struct sm_state *set_state_stree(struct AVL **stree, int owner, const char *name,
+		     struct symbol *sym, struct smatch_state *state)
+{
+	struct sm_state *new = alloc_sm_state(owner, name, sym, state);
+
+	avl_insert(stree, new);
+	return new;
+}
+
 void delete_state_slist(struct state_list **slist, int owner, const char *name,
 			struct symbol *sym)
 {
@@ -513,6 +577,18 @@ void delete_state_slist(struct state_list **slist, int owner, const char *name,
 	} END_FOR_EACH_PTR(sm);
 }
 
+void delete_state_stree(struct AVL **stree, int owner, const char *name,
+			struct symbol *sym)
+{
+	struct tracker tracker = {
+		.owner = owner,
+		.name = (char *)name,
+		.sym = sym,
+	};
+
+	avl_remove(stree, (struct sm_state *)&tracker);
+}
+
 void delete_state_stack(struct state_list_stack **stack, int owner, const char *name,
 			struct symbol *sym)
 {
@@ -521,6 +597,16 @@ void delete_state_stack(struct state_list_stack **stack, int owner, const char *
 	slist = pop_slist(stack);
 	delete_state_slist(&slist, owner, name, sym);
 	push_slist(stack, slist);
+}
+
+void delete_state_stree_stack(struct stree_stack **stack, int owner, const char *name,
+			struct symbol *sym)
+{
+	struct AVL *stree;
+
+	stree = pop_stree(stack);
+	delete_state_stree(&stree, owner, name, sym);
+	push_stree(stack, stree);
 }
 
 void push_slist(struct state_list_stack **list_stack, struct state_list *slist)
@@ -535,6 +621,20 @@ struct state_list *pop_slist(struct state_list_stack **list_stack)
 	slist = last_ptr_list((struct ptr_list *)*list_stack);
 	delete_ptr_list_last((struct ptr_list **)list_stack);
 	return slist;
+}
+
+void push_stree(struct stree_stack **stack, struct AVL *stree)
+{
+	add_ptr_list(stack, stree);
+}
+
+struct AVL *pop_stree(struct stree_stack **stack)
+{
+	struct AVL *stree;
+
+	stree = last_ptr_list((struct ptr_list *)*stack);
+	delete_ptr_list_last((struct ptr_list **)stack);
+	return stree;
 }
 
 void free_slist(struct state_list **slist)
@@ -557,6 +657,26 @@ void free_stack_and_slists(struct state_list_stack **slist_stack)
 	free_stack(slist_stack);
 }
 
+void free_stree(struct AVL **stree)
+{
+	avl_free(stree);
+}
+
+void free_stree_stack(struct stree_stack **stack)
+{
+	__free_ptr_list((struct ptr_list **)stack);
+}
+
+void free_stack_and_strees(struct stree_stack **stree_stack)
+{
+	struct AVL *stree;
+
+	FOR_EACH_PTR(*stree_stack, stree) {
+		free_stree(&stree);
+	} END_FOR_EACH_PTR(stree);
+	free_stree_stack(stree_stack);
+}
+
 /*
  * set_state_stack() sets the state for the top slist on the stack.
  */
@@ -569,6 +689,19 @@ struct sm_state *set_state_stack(struct state_list_stack **stack, int owner, con
 	slist = pop_slist(stack);
 	sm = set_state_slist(&slist, owner, name, sym, state);
 	push_slist(stack, slist);
+
+	return sm;
+}
+
+struct sm_state *set_state_stree_stack(struct stree_stack **stack, int owner, const char *name,
+				struct symbol *sym, struct smatch_state *state)
+{
+	struct AVL *stree;
+	struct sm_state *sm;
+
+	stree = pop_stree(stack);
+	sm = set_state_stree(&stree, owner, name, sym, state);
+	push_stree(stack, stree);
 
 	return sm;
 }
@@ -589,6 +722,19 @@ struct sm_state *get_sm_state_stack(struct state_list_stack *stack,
 	return ret;
 }
 
+struct sm_state *get_sm_state_stree_stack(struct stree_stack *stack,
+				int owner, const char *name,
+				struct symbol *sym)
+{
+	struct AVL *stree;
+	struct sm_state *ret;
+
+	stree = pop_stree(&stack);
+	ret = get_sm_state_stree(stree, owner, name, sym);
+	push_stree(&stack, stree);
+	return ret;
+}
+
 struct smatch_state *get_state_stack(struct state_list_stack *stack,
 				int owner, const char *name,
 				struct symbol *sym)
@@ -596,6 +742,18 @@ struct smatch_state *get_state_stack(struct state_list_stack *stack,
 	struct sm_state *sm;
 
 	sm = get_sm_state_stack(stack, owner, name, sym);
+	if (sm)
+		return sm->state;
+	return NULL;
+}
+
+struct smatch_state *get_state_stree_stack(struct stree_stack *stack,
+				int owner, const char *name,
+				struct symbol *sym)
+{
+	struct sm_state *sm;
+
+	sm = get_sm_state_stree_stack(stack, owner, name, sym);
 	if (sm)
 		return sm->state;
 	return NULL;
@@ -643,6 +801,51 @@ static void match_states(struct state_list **one, struct state_list **two)
 	overwrite_slist(add_to_two, two);
 }
 
+static void match_states_stree(struct AVL **one, struct AVL **two)
+{
+	struct smatch_state *tmp_state;
+	struct sm_state *tmp_sm;
+	struct AVL *add_to_one = NULL;
+	struct AVL *add_to_two = NULL;
+	AvlIter one_iter;
+	AvlIter two_iter;
+
+	avl_iter_begin(&one_iter, *one, FORWARD);
+	avl_iter_begin(&two_iter, *two, FORWARD);
+
+	for (;;) {
+		if (!one_iter.sm && !two_iter.sm)
+			break;
+		if (cmp_tracker(one_iter.sm, two_iter.sm) < 0) {
+#if STREE
+			__set_fake_cur_stree_fast(*two);
+#endif
+			tmp_state = __client_unmatched_state_function(one_iter.sm);
+			__pop_fake_cur_slist_fast();
+			tmp_sm = alloc_state_no_name(one_iter.sm->owner, one_iter.sm->name,
+						  one_iter.sm->sym, tmp_state);
+			avl_insert(&add_to_two, tmp_sm);
+			avl_iter_next(&one_iter);
+		} else if (cmp_tracker(one_iter.sm, two_iter.sm) == 0) {
+			avl_iter_next(&one_iter);
+			avl_iter_next(&two_iter);
+		} else {
+#if STREE
+			__set_fake_cur_stree_fast(*one);
+#endif
+			tmp_state = __client_unmatched_state_function(two_iter.sm);
+			__pop_fake_cur_slist_fast();
+			tmp_sm = alloc_state_no_name(two_iter.sm->owner, two_iter.sm->name,
+						  two_iter.sm->sym, tmp_state);
+			avl_insert(&add_to_one, tmp_sm);
+			avl_iter_next(&two_iter);
+		}
+	}
+
+	overwrite_stree(add_to_one, one);
+	overwrite_stree(add_to_two, two);
+}
+
 static void clone_pool_havers(struct state_list *slist)
 {
 	struct sm_state *sm;
@@ -654,6 +857,16 @@ static void clone_pool_havers(struct state_list *slist)
 			REPLACE_CURRENT_PTR(sm, new);
 		}
 	} END_FOR_EACH_PTR(sm);
+}
+
+static void clone_pool_havers_stree(struct AVL *stree)
+{
+	struct AvlIter iter;
+
+	avl_foreach(iter, stree) {
+		if (iter.sm->pool)
+			iter.sm = clone_sm(iter.sm);
+	}
 }
 
 int __slist_id;
@@ -676,6 +889,22 @@ static void set_slist_id(struct state_list *slist)
 	} END_FOR_EACH_PTR(tmp);
 }
 
+static void set_stree_id(struct AVL *stree)
+{
+	struct smatch_state *state;
+	struct sm_state *new;
+
+	/* FIXME: This is horrible.  Anyway, slist_id should be a part of the
+	   AVL pointer */
+
+	state = alloc_state_num(++__slist_id);
+	new = alloc_sm_state(-1, "unnull_path", NULL, state);
+
+	if (!avl_member(stree, new))
+		return;
+	avl_insert(&stree, new);
+}
+
 int get_slist_id(struct state_list *slist)
 {
 	struct sm_state *tmp;
@@ -685,6 +914,16 @@ int get_slist_id(struct state_list *slist)
 			return 0;
 		return PTR_INT(tmp->state->data);
 	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
+int get_stree_id(struct AVL *stree)
+{
+	struct sm_state *sm;
+
+	sm = get_sm_state_stree(stree, -1, "unnull_path", NULL);
+	if (sm)
+		return PTR_INT(sm->state->data);
 	return 0;
 }
 
@@ -755,6 +994,68 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 	*to = results;
 }
 
+void merge_stree(struct AVL **to, struct AVL *stree)
+{
+	struct AVL *results = NULL;
+	struct AVL *implied_one = NULL;
+	struct AVL *implied_two = NULL;
+	AvlIter one_iter;
+	AvlIter two_iter;
+	struct sm_state *tmp_sm;
+
+	if (out_of_memory())
+		return;
+
+	/* merging a null and nonnull path gives you only the nonnull path */
+	if (!stree)
+		return;
+
+	if (!*to) {
+		*to = avl_clone(stree);
+		return;
+	}
+
+	implied_one = avl_clone(*to);
+	implied_two = avl_clone(stree);
+
+	match_states_stree(&implied_one, &implied_two);
+
+	clone_pool_havers_stree(implied_one);
+	clone_pool_havers_stree(implied_two);
+
+	set_stree_id(implied_one);
+	set_stree_id(implied_two);
+
+	avl_iter_begin(&one_iter, implied_one, FORWARD);
+	avl_iter_begin(&two_iter, implied_two, FORWARD);
+
+	for (;;) {
+		if (!one_iter.sm && !two_iter.sm)
+			break;
+		if (cmp_tracker(one_iter.sm, two_iter.sm) < 0) {
+			sm_msg("error:  Internal smatch error.");
+			avl_iter_next(&one_iter);
+		} else if (cmp_tracker(one_iter.sm, two_iter.sm) == 0) {
+			if (one_iter.sm != two_iter.sm) {
+#if STREE
+				one_iter.sm->pool = implied_one;
+				two_iter.sm->pool = implied_two;
+#endif
+			}
+			tmp_sm = merge_sm_states(one_iter.sm, two_iter.sm);
+			avl_insert(&results, tmp_sm);
+			avl_iter_next(&one_iter);
+			avl_iter_next(&two_iter);
+		} else {
+			sm_msg("error:  Internal smatch error.");
+			avl_iter_next(&two_iter);
+		}
+	}
+
+	free_stree(to);
+	*to = results;
+}
+
 /*
  * filter_slist() removes any sm states "slist" holds in common with "filter"
  */
@@ -787,6 +1088,37 @@ void filter_slist(struct state_list **slist, struct state_list *filter)
 	*slist = results;
 }
 
+void filter_stree(struct AVL **stree, struct AVL *filter)
+{
+	struct AVL *results = NULL;
+	AvlIter one_iter;
+	AvlIter two_iter;
+
+	avl_iter_begin(&one_iter, *stree, FORWARD);
+	avl_iter_begin(&two_iter, filter, FORWARD);
+
+	/* FIXME: This should probably be re-written with trees in mind */
+
+	for (;;) {
+		if (!one_iter.sm && !two_iter.sm)
+			break;
+		if (cmp_tracker(one_iter.sm, two_iter.sm) < 0) {
+			avl_iter_next(&one_iter);
+		} else if (cmp_tracker(one_iter.sm, two_iter.sm) == 0) {
+			if (one_iter.sm != two_iter.sm)
+				avl_insert(&results, one_iter.sm);
+			avl_iter_next(&one_iter);
+			avl_iter_next(&two_iter);
+		} else {
+			avl_iter_next(&two_iter);
+		}
+	}
+
+	free_stree(stree);
+	*stree = results;
+}
+
+
 /*
  * and_slist_stack() pops the top two slists, overwriting the one with
  * the other and pushing it back on the stack.
@@ -800,6 +1132,17 @@ void and_slist_stack(struct state_list_stack **slist_stack)
 		overwrite_sm_state_stack(slist_stack, tmp);
 	} END_FOR_EACH_PTR(tmp);
 	free_slist(&right_slist);
+}
+
+void and_stree_stack(struct stree_stack **stack)
+{
+	struct sm_state *tmp;
+	struct AVL *right_stree = pop_stree(stack);
+
+	FOR_EACH_SM(right_stree, tmp) {
+		overwrite_sm_state_stree_stack(stack, tmp);
+	} END_FOR_EACH_SM(tmp);
+	free_stree(&right_stree);
 }
 
 /*
@@ -842,6 +1185,38 @@ void or_slist_stack(struct state_list_stack **pre_conds,
 	free_slist(&old);
 }
 
+void or_stree_stack(struct stree_stack **pre_conds,
+		    struct AVL *cur_stree,
+		    struct stree_stack **stack)
+{
+	struct AVL *new;
+	struct AVL *old;
+	struct AVL *pre_stree;
+	struct AVL *res;
+	struct AVL *tmp_stree;
+
+	new = pop_stree(stack);
+	old = pop_stree(stack);
+
+	pre_stree = pop_stree(pre_conds);
+	push_stree(pre_conds, avl_clone(pre_stree));
+
+	res = avl_clone(pre_stree);
+	overwrite_stree(old, &res);
+
+	tmp_stree = avl_clone(cur_stree);
+	overwrite_stree(new, &tmp_stree);
+
+	merge_stree(&res, tmp_stree);
+	filter_stree(&res, pre_stree);
+
+	push_stree(stack, res);
+	free_stree(&tmp_stree);
+	free_stree(&pre_stree);
+	free_stree(&new);
+	free_stree(&old);
+}
+
 /*
  * get_slist_from_named_stack() is only used for gotos.
  */
@@ -857,6 +1232,18 @@ struct state_list **get_slist_from_named_stack(struct named_stack *stack,
 	return NULL;
 }
 
+struct AVL **get_slist_from_named_stree(struct named_stree_stack *stack,
+					      const char *name)
+{
+	struct named_stree *tmp;
+
+	FOR_EACH_PTR(stack, tmp) {
+		if (!strcmp(tmp->name, name))
+			return &tmp->stree;
+	} END_FOR_EACH_PTR(tmp);
+	return NULL;
+}
+
 void overwrite_slist(struct state_list *from, struct state_list **to)
 {
 	struct sm_state *tmp;
@@ -865,3 +1252,13 @@ void overwrite_slist(struct state_list *from, struct state_list **to)
 		overwrite_sm_state(to, tmp);
 	} END_FOR_EACH_PTR(tmp);
 }
+
+void overwrite_stree(struct AVL *from, struct AVL **to)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_SM(from, tmp) {
+		overwrite_sm_state_stree(to, tmp);
+	} END_FOR_EACH_SM(tmp);
+}
+
