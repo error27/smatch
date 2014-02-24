@@ -25,6 +25,7 @@
 ALLOCATOR(smatch_state, "smatch state");
 ALLOCATOR(sm_state, "sm state");
 ALLOCATOR(named_slist, "named slist");
+ALLOCATOR(named_stree, "named slist");
 __DO_ALLOCATOR(char, 1, 4, "state names", sname);
 
 static int sm_state_counter;
@@ -1231,7 +1232,7 @@ struct state_list **get_slist_from_named_stack(struct named_stack *stack,
 	return NULL;
 }
 
-struct AVL **get_slist_from_named_stree(struct named_stree_stack *stack,
+struct AVL **get_named_stree(struct named_stree_stack *stack,
 					      const char *name)
 {
 	struct named_stree *tmp;

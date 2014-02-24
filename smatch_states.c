@@ -60,7 +60,7 @@ static struct range_list_stack *remaining_cases;
 static struct stree_stack *default_stack;
 static struct stree_stack *continue_stack;
 
-static struct named_stack *goto_stack;
+static struct named_stree_stack *goto_stack;
 
 static struct ptr_list *backup;
 
@@ -573,7 +573,7 @@ void restore_all_states(void)
 
 void clear_all_states(void)
 {
-	struct named_slist *named_slist;
+	struct named_stree *named_stree;
 
 	nullify_path();
 	check_stree_stack_free(&true_stack);
@@ -586,9 +586,9 @@ void clear_all_states(void)
 	check_stree_stack_free(&continue_stack);
 	free_stack_and_slists(&implied_pools);
 
-	FOR_EACH_PTR(goto_stack, named_slist) {
-		free_slist(&named_slist->slist);
-	} END_FOR_EACH_PTR(named_slist);
+	FOR_EACH_PTR(goto_stack, named_stree) {
+		free_stree(&named_stree->stree);
+	} END_FOR_EACH_PTR(named_stree);
 	__free_ptr_list((struct ptr_list **)&goto_stack);
 	free_every_single_sm_state();
 }
@@ -782,18 +782,6 @@ void __process_continues(void)
 	push_stree(&continue_stack, stree);
 }
 
-static int top_slist_empty(struct state_list_stack **stack)
-{
-	struct state_list *tmp;
-	int empty = 0;
-
-	tmp = pop_slist(stack);
-	if (!tmp)
-		empty = 1;
-	push_slist(stack, tmp);
-	return empty;
-}
-
 static int top_stree_empty(struct stree_stack **stack)
 {
 	struct AVL *tmp;
@@ -924,40 +912,38 @@ int __pop_default(void)
 	return 0;
 }
 
-static struct named_slist *alloc_named_slist(const char *name, struct state_list *slist)
+static struct named_stree *alloc_named_stree(const char *name, struct AVL *stree)
 {
-	struct named_slist *named_slist = __alloc_named_slist(0);
+	struct named_stree *named_stree = __alloc_named_stree(0);
 
-	named_slist->name = (char *)name;
-	named_slist->slist = slist;
-	return named_slist;
+	named_stree->name = (char *)name;
+	named_stree->stree = stree;
+	return named_stree;
 }
 
 void __save_gotos(const char *name)
 {
-	struct state_list **slist;
-	struct state_list *clone;
+	struct AVL **stree;
+	struct AVL *clone;
 
-	slist = get_slist_from_named_stack(goto_stack, name);
-	if (slist) {
-		clone = stree_to_slist(clone_stree(cur_stree));
-		merge_slist(slist, clone);
-		free_slist(&clone);
+	stree = get_named_stree(goto_stack, name);
+	if (stree) {
+		merge_stree(stree, cur_stree);
 		return;
 	} else {
-		struct named_slist *named_slist;
+		struct named_stree *named_stree;
 
-		clone = clone_slist(stree_to_slist(cur_stree));
-		named_slist = alloc_named_slist(name, clone);
-		add_ptr_list(&goto_stack, named_slist);
+		clone = clone_stree(cur_stree);
+		named_stree = alloc_named_stree(name, clone);
+		add_ptr_list(&goto_stack, named_stree);
 	}
 }
 
 void __merge_gotos(const char *name)
 {
-	struct state_list **slist;
+	struct AVL **stree;
 
-	slist = get_slist_from_named_stack(goto_stack, name);
-	if (slist)
-		merge_stree(&cur_stree, slist_to_stree(*slist));
+	stree = get_named_stree(goto_stack, name);
+	if (stree)
+		merge_stree(&cur_stree, *stree);
 }

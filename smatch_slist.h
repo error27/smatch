@@ -115,8 +115,8 @@ void or_stree_stack(struct stree_stack **pre_conds,
 struct state_list **get_slist_from_named_stack(struct named_stack *stack,
 					      const char *name);
 
-struct state_list **get_stree_from_named_stack(struct named_stree_stack *stack,
-					      const char *name);
+struct AVL **get_named_stree(struct named_stree_stack *stack,
+				    const char *name);
 
 void overwrite_slist(struct state_list *from, struct state_list **to);
 void overwrite_stree(struct AVL *from, struct AVL **to);
