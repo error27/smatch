@@ -44,8 +44,8 @@ struct smatch_state false_state = { .name = "false" };
 
 static struct AVL *cur_stree; /* current states */
 
-static struct state_list_stack *true_stack; /* states after a t/f branch */
-static struct state_list_stack *false_stack;
+static struct stree_stack *true_stack; /* states after a t/f branch */
+static struct stree_stack *false_stack;
 static struct state_list_stack *pre_cond_stack; /* states before a t/f branch */
 
 static struct state_list_stack *cond_true_stack; /* states affected by a branch */
@@ -487,6 +487,14 @@ static void check_stack_free(struct state_list_stack **stack)
 	}
 }
 
+static void check_stree_stack_free(struct stree_stack **stack)
+{
+	if (*stack) {
+		sm_msg("smatch internal error:  stack not empty");
+		free_stack_and_strees(stack);
+	}
+}
+
 void save_all_states(void)
 {
 	__add_ptr_list(&backup, stree_to_slist(cur_stree), 0);
@@ -568,8 +576,8 @@ void clear_all_states(void)
 	struct named_slist *named_slist;
 
 	nullify_path();
-	check_stack_free(&true_stack);
-	check_stack_free(&false_stack);
+	check_stree_stack_free(&true_stack);
+	check_stree_stack_free(&false_stack);
 	check_stack_free(&pre_cond_stack);
 	check_stack_free(&cond_true_stack);
 	check_stack_free(&cond_false_stack);
@@ -708,44 +716,44 @@ void __use_cond_states(void)
 
 	false_states = pop_slist(&cond_false_stack);
 	overwrite_slist(false_states, &pre_clone);
-	push_slist(&false_stack, pre_clone);
+	push_stree(&false_stack, slist_to_stree(pre_clone));
 }
 
 void __push_true_states(void)
 {
-	push_slist(&true_stack, stree_to_slist(clone_stree(cur_stree)));
+	push_stree(&true_stack, clone_stree(cur_stree));
 }
 
 void __use_false_states(void)
 {
 	free_stree(&cur_stree);
-	cur_stree = slist_to_stree(pop_slist(&false_stack));
+	cur_stree = pop_stree(&false_stack);
 }
 
 void __discard_false_states(void)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 
-	slist = pop_slist(&false_stack);
-	free_slist(&slist);
+	stree = pop_stree(&false_stack);
+	free_stree(&stree);
 }
 
 void __merge_false_states(void)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 
-	slist = pop_slist(&false_stack);
-	merge_stree(&cur_stree, slist_to_stree(slist));
-	free_slist(&slist);
+	stree = pop_stree(&false_stack);
+	merge_stree(&cur_stree, stree);
+	free_stree(&stree);
 }
 
 void __merge_true_states(void)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 
-	slist = pop_slist(&true_stack);
-	merge_stree(&cur_stree, slist_to_stree(slist));
-	free_slist(&slist);
+	stree = pop_stree(&true_stack);
+	merge_stree(&cur_stree, stree);
+	free_stree(&stree);
 }
 
 void __push_continues(void)
@@ -786,6 +794,18 @@ static int top_slist_empty(struct state_list_stack **stack)
 	return empty;
 }
 
+static int top_stree_empty(struct stree_stack **stack)
+{
+	struct AVL *tmp;
+	int empty = 0;
+
+	tmp = pop_stree(stack);
+	if (!tmp)
+		empty = 1;
+	push_stree(stack, tmp);
+	return empty;
+}
+
 /* a silly loop does this:  while(i--) { return; } */
 void __warn_on_silly_pre_loops(void)
 {
@@ -797,7 +817,7 @@ void __warn_on_silly_pre_loops(void)
 		return;
 	/* if the path was nullified before the loop, then we already
 	   printed an error earlier */
-	if (top_slist_empty(&false_stack))
+	if (top_stree_empty(&false_stack))
 		return;
 	sm_msg("info: loop could be replaced with if statement.");
 }
