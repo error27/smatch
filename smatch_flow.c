@@ -403,7 +403,7 @@ static void handle_pre_loop(struct statement *stmt)
 
 		__push_fake_cur_slist();
 		__split_stmt(stmt->iterator_post_statement);
-		slist = __pop_fake_cur_slist();
+		slist = stree_to_slist(__pop_fake_cur_slist());
 
 		__discard_continues();
 		__discard_false_states();

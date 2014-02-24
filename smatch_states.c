@@ -166,10 +166,10 @@ void __push_fake_cur_slist()
 	__save_pre_cond_states();
 }
 
-struct state_list *__pop_fake_cur_slist()
+struct AVL *__pop_fake_cur_slist()
 {
 	__use_pre_cond_states();
-	return stree_to_slist(pop_stree(&fake_cur_stree_stack));
+	return pop_stree(&fake_cur_stree_stack);
 }
 
 void __free_fake_cur_slist()
@@ -599,32 +599,32 @@ void __push_cond_stacks(void)
 	push_stree(&cond_false_stack, NULL);
 }
 
-struct state_list *__copy_cond_true_states(void)
+struct AVL *__copy_cond_true_states(void)
 {
 	struct AVL *ret;
 
 	ret = pop_stree(&cond_true_stack);
 	push_stree(&cond_true_stack, clone_stree(ret));
-	return stree_to_slist(ret);
+	return ret;
 }
 
-struct state_list *__copy_cond_false_states(void)
+struct AVL *__copy_cond_false_states(void)
 {
 	struct AVL *ret;
 
 	ret = pop_stree(&cond_false_stack);
 	push_stree(&cond_false_stack, clone_stree(ret));
-	return stree_to_slist(ret);
+	return ret;
 }
 
-struct state_list *__pop_cond_true_stack(void)
+struct AVL *__pop_cond_true_stack(void)
 {
-	return stree_to_slist(pop_stree(&cond_true_stack));
+	return pop_stree(&cond_true_stack);
 }
 
-struct state_list *__pop_cond_false_stack(void)
+struct AVL *__pop_cond_false_stack(void)
 {
-	return stree_to_slist(pop_stree(&cond_false_stack));
+	return pop_stree(&cond_false_stack);
 }
 
 /*

@@ -443,7 +443,7 @@ static void match_call_marker(struct expression *expr)
 	sql_insert_caller_info(expr, INTERNAL, -1, "%call_marker%", "");
 }
 
-static void print_struct_members(struct expression *call, struct expression *expr, int param, struct state_list *slist,
+static void print_struct_members(struct expression *call, struct expression *expr, int param, struct AVL *stree,
 	void (*callback)(struct expression *call, int param, char *printed_name, struct smatch_state *state))
 {
 	struct sm_state *sm;
@@ -464,7 +464,7 @@ static void print_struct_members(struct expression *call, struct expression *exp
 		goto free;
 
 	len = strlen(name);
-	FOR_EACH_PTR(slist, sm) {
+	FOR_EACH_SM(stree, sm) {
 		if (sm->sym != sym)
 			continue;
 		if (strcmp(name, sm->name) == 0) {
@@ -483,7 +483,7 @@ static void print_struct_members(struct expression *call, struct expression *exp
 			continue;
 		}
 		callback(call, param, printed_name, sm->state);
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 free:
 	free_string(name);
 }
@@ -504,7 +504,7 @@ static void match_call_info(struct expression *call)
 		slist = get_all_states(cb->owner);
 		i = 0;
 		FOR_EACH_PTR(call->args, arg) {
-			print_struct_members(call, arg, i, slist, cb->callback);
+			print_struct_members(call, arg, i, slist_to_stree(slist), cb->callback);
 			i++;
 		} END_FOR_EACH_PTR(arg);
 		free_slist(&slist);
@@ -566,7 +566,7 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 	if (prev_func_id == -1)
 		prev_func_id = func_id;
 	if (func_id != prev_func_id) {
-		slist = __pop_fake_cur_slist();
+		slist = stree_to_slist(__pop_fake_cur_slist());
 		merge_slist(&final_states, slist);
 		free_slist(&slist);
 		__push_fake_cur_slist();
@@ -677,7 +677,7 @@ static void match_data_from_db(struct symbol *sym)
 	if (!__inline_fn)
 		get_function_pointer_callers(sym);
 
-	slist = __pop_fake_cur_slist();
+	slist = stree_to_slist(__pop_fake_cur_slist());
 	merge_slist(&final_states, slist);
 	free_slist(&slist);
 

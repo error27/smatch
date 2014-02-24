@@ -612,7 +612,7 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	__push_fake_cur_slist();
 	__unnullify_path();
 	set_extra_nomod(name, sym, alloc_estate_rl(vals));
-	extra_states = __pop_fake_cur_slist();
+	extra_states = stree_to_slist(__pop_fake_cur_slist());
 	overwrite_slist(extra_states, &true_states);
 	overwrite_slist(true_states, &ret);
 	free_slist(&extra_states);

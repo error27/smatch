@@ -453,7 +453,7 @@ int get_db_type_rl(struct expression *expr, struct range_list **rl);
 
 /* smatch_states.c */
 void __push_fake_cur_slist();
-struct state_list *__pop_fake_cur_slist();
+struct AVL *__pop_fake_cur_slist();
 void __free_fake_cur_slist();
 void __set_fake_cur_slist_fast(struct state_list *slist);
 void __pop_fake_cur_slist_fast(void);
@@ -490,10 +490,10 @@ void __use_pre_cond_states(void);
 void __use_cond_true_states(void);
 void __use_cond_false_states(void);
 void __push_cond_stacks(void);
-struct state_list *__copy_cond_true_states(void);
-struct state_list *__copy_cond_false_states(void);
-struct state_list *__pop_cond_true_stack(void);
-struct state_list *__pop_cond_false_stack(void);
+struct AVL *__copy_cond_true_states(void);
+struct AVL *__copy_cond_false_states(void);
+struct AVL *__pop_cond_true_stack(void);
+struct AVL *__pop_cond_false_stack(void);
 void __and_cond_states(void);
 void __or_cond_states(void);
 void __save_pre_cond_states(void);

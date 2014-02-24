@@ -239,8 +239,8 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 	char *var_name;
 	struct symbol *sym;
 	struct smatch_state *estate;
-	struct state_list *tmp_slist;
-	struct state_list *final_states = NULL;
+	struct AVL *tmp_stree;
+	struct AVL *final_states = NULL;
 	struct range_list *handled_ranges = NULL;
 	struct call_back_list *same_range_call_backs = NULL;
 	int handled = 0;
@@ -268,17 +268,17 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 		estate = alloc_estate_range(tmp->range->min, tmp->range->max);
 		set_extra_mod(var_name, sym, estate);
 
-		tmp_slist = __pop_fake_cur_slist();
-		merge_slist(&final_states, tmp_slist);
-		free_slist(&tmp_slist);
+		tmp_stree = __pop_fake_cur_slist();
+		merge_stree(&final_states, tmp_stree);
+		free_stree(&tmp_stree);
 		handled = 1;
 	} END_FOR_EACH_PTR(tmp);
 
-	FOR_EACH_PTR(final_states, sm) {
+	FOR_EACH_SM(final_states, sm) {
 		__set_sm(sm);
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 
-	free_slist(&final_states);
+	free_stree(&final_states);
 free:
 	free_string(var_name);
 	return handled;
@@ -290,9 +290,9 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 	struct fcall_back *tmp;
 	const char *fn;
 	struct data_range *value_range;
-	struct state_list *true_states = NULL;
-	struct state_list *false_states = NULL;
-	struct state_list *tmp_slist;
+	struct AVL *true_states = NULL;
+	struct AVL *false_states = NULL;
+	struct AVL *tmp_stree;
 	struct sm_state *sm;
 
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
@@ -312,9 +312,9 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 			continue;
 		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
-	tmp_slist = __pop_fake_cur_slist();
-	merge_slist(&true_states, tmp_slist);
-	free_slist(&tmp_slist);
+	tmp_stree = __pop_fake_cur_slist();
+	merge_stree(&true_states, tmp_stree);
+	free_stree(&tmp_stree);
 
 	/* set false states */
 	__push_fake_cur_slist();
@@ -325,19 +325,19 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 			continue;
 		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
-	tmp_slist = __pop_fake_cur_slist();
-	merge_slist(&false_states, tmp_slist);
-	free_slist(&tmp_slist);
+	tmp_stree = __pop_fake_cur_slist();
+	merge_stree(&false_states, tmp_stree);
+	free_stree(&tmp_stree);
 
-	FOR_EACH_PTR(true_states, sm) {
+	FOR_EACH_SM(true_states, sm) {
 		__set_true_false_sm(sm, NULL);
-	} END_FOR_EACH_PTR(sm);
-	FOR_EACH_PTR(false_states, sm) {
+	} END_FOR_EACH_SM(sm);
+	FOR_EACH_SM(false_states, sm) {
 		__set_true_false_sm(NULL, sm);
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 
-	free_slist(&true_states);
-	free_slist(&false_states);
+	free_stree(&true_states);
+	free_stree(&false_states);
 	return 1;
 }
 
@@ -347,7 +347,7 @@ struct db_callback_info {
 	struct expression *expr;
 	struct range_list *rl;
 	int left;
-	struct state_list *slist;
+	struct AVL *stree;
 	struct db_implies_list *callbacks;
 };
 static struct db_callback_info db_info;
@@ -389,8 +389,8 @@ static int db_compare_callback(void *unused, int argc, char **argv, char **azCol
 
 void compare_db_return_states_callbacks(int comparison, struct expression *expr, sval_t sval, int left)
 {
-	struct state_list *true_states;
-	struct state_list *false_states;
+	struct AVL *true_states;
+	struct AVL *false_states;
 	struct sm_state *sm;
 
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
@@ -416,17 +416,17 @@ void compare_db_return_states_callbacks(int comparison, struct expression *expr,
 			db_compare_callback);
 	false_states = __pop_fake_cur_slist();
 
-	FOR_EACH_PTR(true_states, sm) {
+	FOR_EACH_SM(true_states, sm) {
 		__set_true_false_sm(sm, NULL);
-	} END_FOR_EACH_PTR(sm);
-	FOR_EACH_PTR(false_states, sm) {
+	} END_FOR_EACH_SM(sm);
+	FOR_EACH_SM(false_states, sm) {
 		__set_true_false_sm(NULL, sm);
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 
 	call_return_states_after_hooks();
 
-	free_slist(&true_states);
-	free_slist(&false_states);
+	free_stree(&true_states);
+	free_stree(&false_states);
 }
 
 
@@ -445,7 +445,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 	int type, param;
 	char *key, *value;
 	struct return_implies_callback *tmp;
-	struct state_list *slist;
+	struct AVL *stree;
 	int return_id;
 
 	if (argc != 6)
@@ -463,9 +463,9 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 	value = argv[5];
 
 	if (prev_return_id != -1 && return_id != prev_return_id) {
-		slist = __pop_fake_cur_slist();
-		merge_slist(&db_info.slist, slist);
-		free_slist(&slist);
+		stree = __pop_fake_cur_slist();
+		merge_stree(&db_info.stree, stree);
+		free_stree(&stree);
 		__push_fake_cur_slist();
 	}
 	prev_return_id = return_id;
@@ -484,7 +484,7 @@ static int db_return_states_assign(struct expression *expr)
 {
 	struct expression *right;
 	struct sm_state *sm;
-	struct state_list *slist;
+	struct AVL *stree;
 	int handled = 0;
 
 	right = strip_expr(expr->right);
@@ -493,21 +493,21 @@ static int db_return_states_assign(struct expression *expr)
 
 	prev_return_id = -1;
 	db_info.expr = expr;
-	db_info.slist = NULL;
+	db_info.stree = NULL;
 
 	call_return_states_before_hooks();
 
 	__push_fake_cur_slist();
 	sql_select_return_states("return_id, return, type, parameter, key, value",
 			right, db_assign_return_states_callback);
-	slist = __pop_fake_cur_slist();
-	merge_slist(&db_info.slist, slist);
-	free_slist(&slist);
+	stree = __pop_fake_cur_slist();
+	merge_stree(&db_info.stree, stree);
+	free_stree(&stree);
 
-	FOR_EACH_PTR(db_info.slist, sm) {
+	FOR_EACH_SM(db_info.stree, sm) {
 		__set_sm(sm);
 		handled = 1;
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 
 	call_return_states_after_hooks();
 
@@ -577,7 +577,7 @@ static int db_return_states_callback(void *unused, int argc, char **argv, char *
 	int type, param;
 	char *key, *value;
 	struct return_implies_callback *tmp;
-	struct state_list *slist;
+	struct AVL *stree;
 	int return_id;
 
 	if (argc != 6)
@@ -592,9 +592,9 @@ static int db_return_states_callback(void *unused, int argc, char **argv, char *
 	value = argv[5];
 
 	if (prev_return_id != -1 && return_id != prev_return_id) {
-		slist = __pop_fake_cur_slist();
-		merge_slist(&db_info.slist, slist);
-		free_slist(&slist);
+		stree = __pop_fake_cur_slist();
+		merge_stree(&db_info.stree, stree);
+		free_stree(&stree);
 		__push_fake_cur_slist();
 		__unnullify_path();
 	}
@@ -611,7 +611,7 @@ static int db_return_states_callback(void *unused, int argc, char **argv, char *
 static void db_return_states(struct expression *expr)
 {
 	struct sm_state *sm;
-	struct state_list *slist;
+	struct AVL *stree;
 
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
 		return;
@@ -620,7 +620,7 @@ static void db_return_states(struct expression *expr)
 
 	prev_return_id = -1;
 	db_info.expr = expr;
-	db_info.slist = NULL;
+	db_info.stree = NULL;
 
 	call_return_states_before_hooks();
 
@@ -628,13 +628,13 @@ static void db_return_states(struct expression *expr)
 	__unnullify_path();
 	sql_select_return_states("return_id, return, type, parameter, key, value",
 			expr, db_return_states_callback);
-	slist = __pop_fake_cur_slist();
-	merge_slist(&db_info.slist, slist);
-	free_slist(&slist);
+	stree = __pop_fake_cur_slist();
+	merge_stree(&db_info.stree, stree);
+	free_stree(&stree);
 
-	FOR_EACH_PTR(db_info.slist, sm) {
+	FOR_EACH_SM(db_info.stree, sm) {
 		__set_sm(sm);
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 
 	call_return_states_after_hooks();
 }

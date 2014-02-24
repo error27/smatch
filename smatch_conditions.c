@@ -190,15 +190,14 @@ static void handle_logical(struct expression *expr)
 	__use_cond_true_states();
 }
 
-static struct state_list *combine(struct state_list *orig, struct state_list *fake,
-				struct state_list *new)
+static struct AVL *combine_strees(struct AVL *orig, struct AVL *fake, struct AVL *new)
 {
-	struct state_list *ret = NULL;
+	struct AVL *ret = NULL;
 
-	overwrite_slist(orig, &ret);
-	overwrite_slist(fake, &ret);
-	overwrite_slist(new, &ret);
-	free_slist(&new);
+	overwrite_stree(orig, &ret);
+	overwrite_stree(fake, &ret);
+	overwrite_stree(new, &ret);
+	free_stree(&new);
 
 	return ret;
 }
@@ -216,14 +215,14 @@ static struct state_list *combine(struct state_list *orig, struct state_list *fa
 
 static void handle_select(struct expression *expr)
 {
-	struct state_list *a_T = NULL;
-	struct state_list *a_F = NULL;
-	struct state_list *a_T_b_T = NULL;
-	struct state_list *a_T_b_F = NULL;
-	struct state_list *a_T_b_fake = NULL;
-	struct state_list *a_F_c_T = NULL;
-	struct state_list *a_F_c_F = NULL;
-	struct state_list *a_F_c_fake = NULL;
+	struct AVL *a_T = NULL;
+	struct AVL *a_F = NULL;
+	struct AVL *a_T_b_T = NULL;
+	struct AVL *a_T_b_F = NULL;
+	struct AVL *a_T_b_fake = NULL;
+	struct AVL *a_F_c_T = NULL;
+	struct AVL *a_F_c_F = NULL;
+	struct AVL *a_F_c_fake = NULL;
 	struct sm_state *sm;
 
 	/*
@@ -266,8 +265,8 @@ static void handle_select(struct expression *expr)
 	split_conditions(expr->cond_true);
 	__process_post_op_stack();
 	a_T_b_fake = __pop_fake_cur_slist();
-	a_T_b_T = combine(a_T, a_T_b_fake, __pop_cond_true_stack());
-	a_T_b_F = combine(a_T, a_T_b_fake, __pop_cond_false_stack());
+	a_T_b_T = combine_strees(a_T, a_T_b_fake, __pop_cond_true_stack());
+	a_T_b_F = combine_strees(a_T, a_T_b_fake, __pop_cond_false_stack());
 
 	__use_cond_false_states();
 
@@ -275,53 +274,53 @@ static void handle_select(struct expression *expr)
 	__push_fake_cur_slist();
 	split_conditions(expr->cond_false);
 	a_F_c_fake = __pop_fake_cur_slist();
-	a_F_c_T = combine(a_F, a_F_c_fake, __pop_cond_true_stack());
-	a_F_c_F = combine(a_F, a_F_c_fake, __pop_cond_false_stack());
+	a_F_c_T = combine_strees(a_F, a_F_c_fake, __pop_cond_true_stack());
+	a_F_c_F = combine_strees(a_F, a_F_c_fake, __pop_cond_false_stack());
 
 	/* We have to restore the pre condition states so that
-	   implied_condition_true() will use the right cur_slist */
+	   implied_condition_true() will use the right cur_stree */
 	__use_pre_cond_states();
 
 	if (implied_condition_true(expr->cond_true)) {
-		free_slist(&a_T_b_T);
-		free_slist(&a_T_b_F);
-		a_T_b_T = clone_slist(a_T);
-		overwrite_slist(a_T_b_fake, &a_T_b_T);
+		free_stree(&a_T_b_T);
+		free_stree(&a_T_b_F);
+		a_T_b_T = clone_stree(a_T);
+		overwrite_stree(a_T_b_fake, &a_T_b_T);
 	}
 	if (implied_condition_false(expr->cond_true)) {
-		free_slist(&a_T_b_T);
-		free_slist(&a_T_b_F);
-		a_T_b_F = clone_slist(a_T);
-		overwrite_slist(a_T_b_fake, &a_T_b_F);
+		free_stree(&a_T_b_T);
+		free_stree(&a_T_b_F);
+		a_T_b_F = clone_stree(a_T);
+		overwrite_stree(a_T_b_fake, &a_T_b_F);
 	}
 	if (implied_condition_true(expr->cond_false)) {
-		free_slist(&a_F_c_T);
-		free_slist(&a_F_c_F);
-		a_F_c_T = clone_slist(a_F);
-		overwrite_slist(a_F_c_fake, &a_F_c_T);
+		free_stree(&a_F_c_T);
+		free_stree(&a_F_c_F);
+		a_F_c_T = clone_stree(a_F);
+		overwrite_stree(a_F_c_fake, &a_F_c_T);
 	}
 	if (implied_condition_false(expr->cond_false)) {
-		free_slist(&a_F_c_T);
-		free_slist(&a_F_c_F);
-		a_F_c_F = clone_slist(a_F);
-		overwrite_slist(a_F_c_fake, &a_F_c_F);
+		free_stree(&a_F_c_T);
+		free_stree(&a_F_c_F);
+		a_F_c_F = clone_stree(a_F);
+		overwrite_stree(a_F_c_fake, &a_F_c_F);
 	}
 
-	merge_slist(&a_T_b_T, a_F_c_T);
-	merge_slist(&a_T_b_F, a_F_c_F);
+	merge_stree(&a_T_b_T, a_F_c_T);
+	merge_stree(&a_T_b_F, a_F_c_F);
 
 	__pop_cond_true_stack();
 	__pop_cond_false_stack();
 	__push_cond_stacks();
-	FOR_EACH_PTR(a_T_b_T, sm) {
+	FOR_EACH_SM(a_T_b_T, sm) {
 		__set_true_false_sm(sm, NULL);
-	} END_FOR_EACH_PTR(sm);
-	FOR_EACH_PTR(a_T_b_F, sm) {
+	} END_FOR_EACH_SM(sm);
+	FOR_EACH_SM(a_T_b_F, sm) {
 		__set_true_false_sm(NULL, sm);
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 
-	free_slist(&a_T_b_fake);
-	free_slist(&a_F_c_fake);
+	free_stree(&a_T_b_fake);
+	free_stree(&a_F_c_fake);
 }
 
 static int make_op_unsigned(int op)
