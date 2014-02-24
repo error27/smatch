@@ -489,7 +489,7 @@ static void check_stree_stack_free(struct stree_stack **stack)
 
 void save_all_states(void)
 {
-	__add_ptr_list(&backup, stree_to_slist(cur_stree), 0);
+	__add_ptr_list(&backup, cur_stree, 0);
 
 	__add_ptr_list(&backup, true_stack, 0);
 	__add_ptr_list(&backup, false_stack, 0);
@@ -560,7 +560,7 @@ void restore_all_states(void)
 	false_stack = pop_backup();
 	true_stack = pop_backup();
 
-	cur_stree = slist_to_stree(pop_backup());
+	cur_stree = pop_backup();
 }
 
 void clear_all_states(void)
