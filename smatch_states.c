@@ -54,7 +54,7 @@ static struct state_list_stack *cond_false_stack;
 static struct stree_stack *fake_cur_stree_stack;
 static int read_only;
 
-static struct state_list_stack *break_stack;
+static struct stree_stack *break_stack;
 static struct state_list_stack *switch_stack;
 static struct range_list_stack *remaining_cases;
 static struct state_list_stack *default_stack;
@@ -581,7 +581,7 @@ void clear_all_states(void)
 	check_stack_free(&pre_cond_stack);
 	check_stack_free(&cond_true_stack);
 	check_stack_free(&cond_false_stack);
-	check_stack_free(&break_stack);
+	check_stree_stack_free(&break_stack);
 	check_stack_free(&switch_stack);
 	check_stack_free(&continue_stack);
 	free_stack_and_slists(&implied_pools);
@@ -813,7 +813,7 @@ void __warn_on_silly_pre_loops(void)
 		return;
 	if (!top_slist_empty(&continue_stack))
 		return;
-	if (!top_slist_empty(&break_stack))
+	if (!top_stree_empty(&break_stack))
 		return;
 	/* if the path was nullified before the loop, then we already
 	   printed an error earlier */
@@ -833,46 +833,46 @@ void __merge_continues(void)
 
 void __push_breaks(void)
 {
-	push_slist(&break_stack, NULL);
+	push_stree(&break_stack, NULL);
 }
 
 void __process_breaks(void)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 
-	slist = pop_slist(&break_stack);
-	if (!slist)
-		slist = clone_slist(stree_to_slist(cur_stree));
+	stree = pop_stree(&break_stack);
+	if (!stree)
+		stree = clone_stree(cur_stree);
 	else
-		merge_slist(&slist, stree_to_slist(cur_stree));
+		merge_stree(&stree, cur_stree);
 
-	push_slist(&break_stack, slist);
+	push_stree(&break_stack, stree);
 }
 
 int __has_breaks(void)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 	int ret;
 
-	slist = pop_slist(&break_stack);
-	ret = !!slist;
-	push_slist(&break_stack, slist);
+	stree = pop_stree(&break_stack);
+	ret = !!stree;
+	push_stree(&break_stack, stree);
 	return ret;
 }
 
 void __merge_breaks(void)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 
-	slist = pop_slist(&break_stack);
-	merge_stree(&cur_stree, slist_to_stree(slist));
-	free_slist(&slist);
+	stree = pop_stree(&break_stack);
+	merge_stree(&cur_stree, stree);
+	free_stree(&stree);
 }
 
 void __use_breaks(void)
 {
 	free_stree(&cur_stree);
-	cur_stree = slist_to_stree(pop_slist(&break_stack));
+	cur_stree = pop_stree(&break_stack);
 }
 
 void __save_switch_states(struct expression *switch_expr)
