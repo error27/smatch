@@ -58,7 +58,7 @@ static struct stree_stack *break_stack;
 static struct stree_stack *switch_stack;
 static struct range_list_stack *remaining_cases;
 static struct stree_stack *default_stack;
-static struct state_list_stack *continue_stack;
+static struct stree_stack *continue_stack;
 
 static struct named_stack *goto_stack;
 
@@ -583,7 +583,7 @@ void clear_all_states(void)
 	check_stack_free(&cond_false_stack);
 	check_stree_stack_free(&break_stack);
 	check_stree_stack_free(&switch_stack);
-	check_stack_free(&continue_stack);
+	check_stree_stack_free(&continue_stack);
 	free_stack_and_slists(&implied_pools);
 
 	FOR_EACH_PTR(goto_stack, named_slist) {
@@ -758,28 +758,28 @@ void __merge_true_states(void)
 
 void __push_continues(void)
 {
-	push_slist(&continue_stack, NULL);
+	push_stree(&continue_stack, NULL);
 }
 
 void __discard_continues(void)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 
-	slist = pop_slist(&continue_stack);
-	free_slist(&slist);
+	stree = pop_stree(&continue_stack);
+	free_stree(&stree);
 }
 
 void __process_continues(void)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 
-	slist = pop_slist(&continue_stack);
-	if (!slist)
-		slist = clone_slist(stree_to_slist(cur_stree));
+	stree = pop_stree(&continue_stack);
+	if (!stree)
+		stree = clone_stree(cur_stree);
 	else
-		merge_slist(&slist, stree_to_slist(cur_stree));
+		merge_stree(&stree, cur_stree);
 
-	push_slist(&continue_stack, slist);
+	push_stree(&continue_stack, stree);
 }
 
 static int top_slist_empty(struct state_list_stack **stack)
@@ -811,7 +811,7 @@ void __warn_on_silly_pre_loops(void)
 {
 	if (!__path_is_null())
 		return;
-	if (!top_slist_empty(&continue_stack))
+	if (!top_stree_empty(&continue_stack))
 		return;
 	if (!top_stree_empty(&break_stack))
 		return;
@@ -824,11 +824,11 @@ void __warn_on_silly_pre_loops(void)
 
 void __merge_continues(void)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 
-	slist = pop_slist(&continue_stack);
-	merge_stree(&cur_stree, slist_to_stree(slist));
-	free_slist(&slist);
+	stree = pop_stree(&continue_stack);
+	merge_stree(&cur_stree, stree);
+	free_stree(&stree);
 }
 
 void __push_breaks(void)
