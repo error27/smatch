@@ -57,7 +57,7 @@ static int read_only;
 static struct stree_stack *break_stack;
 static struct stree_stack *switch_stack;
 static struct range_list_stack *remaining_cases;
-static struct state_list_stack *default_stack;
+static struct stree_stack *default_stack;
 static struct state_list_stack *continue_stack;
 
 static struct named_stack *goto_stack;
@@ -904,21 +904,21 @@ void __discard_switches(void)
 
 void __push_default(void)
 {
-	push_slist(&default_stack, NULL);
+	push_stree(&default_stack, NULL);
 }
 
 void __set_default(void)
 {
-	set_state_stack(&default_stack, 0, "has_default", NULL, &true_state);
+	set_state_stree_stack(&default_stack, 0, "has_default", NULL, &true_state);
 }
 
 int __pop_default(void)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 
-	slist = pop_slist(&default_stack);
-	if (slist) {
-		free_slist(&slist);
+	stree = pop_stree(&default_stack);
+	if (stree) {
+		free_stree(&stree);
 		return 1;
 	}
 	return 0;
