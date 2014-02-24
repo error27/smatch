@@ -76,6 +76,13 @@ bool avl_check_invariants(AVL *avl);
 	 *     printf("%s -> %s\n", i.sm->name, i.sm->state->name);
 	 */
 
+#define FOR_EACH_SM(avl, _sm) {			\
+	AvlIter _i;				\
+	avl_foreach(_i, avl) {			\
+		_sm = _i.sm;
+
+#define END_FOR_EACH_SM(_sm) }}
+
 #define avl_foreach_reverse(iter, avl) avl_traverse(iter, avl, BACKWARD)
 	/* O(n). Traverse an AVL tree in reverse order. */
 
