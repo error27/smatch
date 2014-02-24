@@ -128,3 +128,6 @@ void all_return_states_hook_stree(void (*callback)(struct AVL *slist));
 int get_slist_id(struct state_list *slist);
 int get_stree_id(struct AVL *slist);
 
+struct state_list *stree_to_slist(struct AVL *stree);
+struct AVL *slist_to_stree(struct state_list *stree);
+

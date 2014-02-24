@@ -1262,3 +1262,27 @@ void overwrite_stree(struct AVL *from, struct AVL **to)
 	} END_FOR_EACH_SM(tmp);
 }
 
+struct state_list *stree_to_slist(struct AVL *stree)
+{
+	struct state_list *ret = NULL;
+	struct sm_state *tmp;
+
+	FOR_EACH_SM(stree, tmp) {
+		overwrite_sm_state(&ret, tmp);
+	} END_FOR_EACH_SM(tmp);
+
+	return ret;
+}
+
+struct AVL *slist_to_stree(struct state_list *slist)
+{
+	struct AVL *ret = NULL;
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(slist, tmp) {
+		overwrite_sm_state_stree(&ret, tmp);
+	} END_FOR_EACH_PTR(tmp);
+
+	return ret;
+
+}
