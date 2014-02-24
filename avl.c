@@ -448,3 +448,14 @@ void avl_iter_next(AvlIter *iter)
 	iter->node  = node;
 	iter->sm   = (struct sm_state *) node->sm;
 }
+
+AVL *avl_clone(AVL *orig)
+{
+	AVL *new = NULL;
+ 	AvlIter i;
+
+	avl_foreach(i, orig)
+		avl_insert(&new, i.sm);
+
+	return new;
+}

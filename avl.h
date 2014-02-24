@@ -116,4 +116,6 @@ struct AvlNode {
 AvlNode *avl_lookup_node(const AVL *avl, const struct sm_state *sm);
 	/* O(log n). Lookup an AVL node by sm.  Return NULL if not present. */
 
+AVL *avl_clone(AVL *orig);
+
 #endif
