@@ -479,14 +479,6 @@ int __path_is_null(void)
 	return 1;
 }
 
-static void check_stack_free(struct state_list_stack **stack)
-{
-	if (*stack) {
-		sm_msg("smatch internal error:  stack not empty");
-		free_stack_and_slists(stack);
-	}
-}
-
 static void check_stree_stack_free(struct stree_stack **stack)
 {
 	if (*stack) {
