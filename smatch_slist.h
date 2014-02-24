@@ -57,6 +57,7 @@ struct sm_state *get_sm_state_stree(struct AVL *stree, int owner, const char *na
 void overwrite_sm_state(struct state_list **slist, struct sm_state *sm);
 void overwrite_sm_state_stree(struct AVL **stree, struct sm_state *sm);
 void overwrite_sm_state_stack(struct state_list_stack **stack, struct sm_state *sm);
+void overwrite_sm_state_stree_stack(struct stree_stack **stack, struct sm_state *sm);
 struct sm_state *set_state_slist(struct state_list **slist, int owner, const char *name,
 		     struct symbol *sym, struct smatch_state *state);
 struct sm_state *set_state_stree(struct AVL **stree, int owner, const char *name,
