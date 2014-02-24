@@ -817,11 +817,9 @@ static void match_states_stree(struct AVL **one, struct AVL **two)
 		if (!one_iter.sm && !two_iter.sm)
 			break;
 		if (cmp_tracker(one_iter.sm, two_iter.sm) < 0) {
-#if STREE
 			__set_fake_cur_stree_fast(*two);
-#endif
 			tmp_state = __client_unmatched_state_function(one_iter.sm);
-			__pop_fake_cur_slist_fast();
+			__pop_fake_cur_stree_fast();
 			tmp_sm = alloc_state_no_name(one_iter.sm->owner, one_iter.sm->name,
 						  one_iter.sm->sym, tmp_state);
 			avl_insert(&add_to_two, tmp_sm);
@@ -830,11 +828,9 @@ static void match_states_stree(struct AVL **one, struct AVL **two)
 			avl_iter_next(&one_iter);
 			avl_iter_next(&two_iter);
 		} else {
-#if STREE
 			__set_fake_cur_stree_fast(*one);
-#endif
 			tmp_state = __client_unmatched_state_function(two_iter.sm);
-			__pop_fake_cur_slist_fast();
+			__pop_fake_cur_stree_fast();
 			tmp_sm = alloc_state_no_name(two_iter.sm->owner, two_iter.sm->name,
 						  two_iter.sm->sym, tmp_state);
 			avl_insert(&add_to_one, tmp_sm);
@@ -1002,6 +998,8 @@ void merge_stree(struct AVL **to, struct AVL *stree)
 	AvlIter one_iter;
 	AvlIter two_iter;
 	struct sm_state *tmp_sm;
+	struct state_list *implied_one_slist;
+	struct state_list *implied_two_slist;
 
 	if (out_of_memory())
 		return;
@@ -1026,6 +1024,9 @@ void merge_stree(struct AVL **to, struct AVL *stree)
 	set_stree_id(implied_one);
 	set_stree_id(implied_two);
 
+	implied_one_slist = stree_to_slist(implied_one);
+	implied_two_slist = stree_to_slist(implied_two);
+
 	avl_iter_begin(&one_iter, implied_one, FORWARD);
 	avl_iter_begin(&two_iter, implied_two, FORWARD);
 
@@ -1037,10 +1038,8 @@ void merge_stree(struct AVL **to, struct AVL *stree)
 			avl_iter_next(&one_iter);
 		} else if (cmp_tracker(one_iter.sm, two_iter.sm) == 0) {
 			if (one_iter.sm != two_iter.sm) {
-#if STREE
-				one_iter.sm->pool = implied_one;
-				two_iter.sm->pool = implied_two;
-#endif
+				one_iter.sm->pool = implied_one_slist;
+				two_iter.sm->pool = implied_two_slist;
 			}
 			tmp_sm = merge_sm_states(one_iter.sm, two_iter.sm);
 			avl_insert(&results, tmp_sm);
@@ -1244,6 +1243,7 @@ struct AVL **get_slist_from_named_stree(struct named_stree_stack *stack,
 	return NULL;
 }
 
+/* FIXME:  These parameters are in a different order from expected */
 void overwrite_slist(struct state_list *from, struct state_list **to)
 {
 	struct sm_state *tmp;

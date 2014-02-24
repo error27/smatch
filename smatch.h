@@ -457,6 +457,8 @@ struct state_list *__pop_fake_cur_slist();
 void __free_fake_cur_slist();
 void __set_fake_cur_slist_fast(struct state_list *slist);
 void __pop_fake_cur_slist_fast(void);
+void __set_fake_cur_stree_fast(struct AVL *stree);
+void __pop_fake_cur_stree_fast(void);
 void __merge_slist_into_cur(struct state_list *slist);
 
 int unreachable(void);
