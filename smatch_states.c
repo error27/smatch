@@ -51,7 +51,7 @@ static struct state_list_stack *pre_cond_stack; /* states before a t/f branch */
 static struct state_list_stack *cond_true_stack; /* states affected by a branch */
 static struct state_list_stack *cond_false_stack;
 
-static struct state_list_stack *fake_cur_slist_stack;
+static struct stree_stack *fake_cur_stree_stack;
 static int read_only;
 
 static struct state_list_stack *break_stack;
@@ -132,8 +132,8 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 	if (owner != -1 && unreachable())
 		return NULL;
 
-	if (fake_cur_slist_stack)
-		set_state_stack(&fake_cur_slist_stack, owner, name, sym, state);
+	if (fake_cur_stree_stack)
+		set_state_stree_stack(&fake_cur_stree_stack, owner, name, sym, state);
 
 	ret =  set_state_stree(&cur_stree, owner, name, sym, state);
 
@@ -162,23 +162,23 @@ free:
 
 void __push_fake_cur_slist()
 {
-	push_slist(&fake_cur_slist_stack, NULL);
+	push_stree(&fake_cur_stree_stack, NULL);
 	__save_pre_cond_states();
 }
 
 struct state_list *__pop_fake_cur_slist()
 {
 	__use_pre_cond_states();
-	return pop_slist(&fake_cur_slist_stack);
+	return stree_to_slist(pop_stree(&fake_cur_stree_stack));
 }
 
 void __free_fake_cur_slist()
 {
-	struct state_list *slist;
+	struct AVL *stree;
 
 	__use_pre_cond_states();
-	slist = pop_slist(&fake_cur_slist_stack);
-	free_slist(&slist);
+	stree = pop_stree(&fake_cur_stree_stack);
+	free_stree(&stree);
 }
 
 void __set_fake_cur_slist_fast(struct state_list *slist)
@@ -246,8 +246,8 @@ void __set_sm(struct sm_state *sm)
 	if (unreachable())
 		return;
 
-	if (fake_cur_slist_stack)
-		overwrite_sm_state_stack(&fake_cur_slist_stack, sm);
+	if (fake_cur_stree_stack)
+		overwrite_sm_state_stree_stack(&fake_cur_stree_stack, sm);
 
 	overwrite_sm_state_stree(&cur_stree, sm);
 
@@ -506,7 +506,7 @@ void save_all_states(void)
 	__add_ptr_list(&backup, cond_true_stack, 0);
 	__add_ptr_list(&backup, cond_false_stack, 0);
 
-	__add_ptr_list(&backup, fake_cur_slist_stack, 0);
+	__add_ptr_list(&backup, fake_cur_stree_stack, 0);
 
 	__add_ptr_list(&backup, break_stack, 0);
 	__add_ptr_list(&backup, switch_stack, 0);
@@ -529,7 +529,7 @@ void nullify_all_states(void)
 	cond_true_stack = NULL;
 	cond_false_stack = NULL;
 
-	fake_cur_slist_stack = NULL;
+	fake_cur_stree_stack = NULL;
 
 	break_stack = NULL;
 	switch_stack = NULL;
@@ -559,7 +559,7 @@ void restore_all_states(void)
 	switch_stack = pop_backup();
 	break_stack = pop_backup();
 
-	fake_cur_slist_stack = pop_backup();
+	fake_cur_stree_stack = pop_backup();
 
 	cond_false_stack = pop_backup();
 	cond_true_stack = pop_backup();
