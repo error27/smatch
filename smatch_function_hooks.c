@@ -615,7 +615,7 @@ static void db_return_states(struct expression *expr)
 
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
 		return;
-	if (!__get_cur_slist())  /* no return functions */
+	if (!__get_cur_stree())  /* no return functions */
 		return;
 
 	prev_return_id = -1;

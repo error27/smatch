@@ -358,11 +358,6 @@ struct AVL *get_all_states_stree(int owner)
 	return get_all_states_from_stree(owner, cur_stree);
 }
 
-struct state_list *__get_cur_slist(void)
-{
-	return stree_to_slist(cur_stree);
-}
-
 struct AVL *__get_cur_stree(void)
 {
 	return cur_stree;

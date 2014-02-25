@@ -875,7 +875,7 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 
 	/* bail if it gets too complicated */
 	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
-	nr_states = ptr_list_size((struct ptr_list *)__get_cur_slist());
+	nr_states = avl_count(__get_cur_stree());
 	/*
 	 * the main thing option_info because we don't want to print a
 	 * million lines of output.  If someone else, like check_locking.c
@@ -971,7 +971,7 @@ static void call_return_state_hooks(struct expression *expr)
 	return_ranges = get_return_ranges_str(expr);
 
 	return_id++;
-	nr_states = ptr_list_size((struct ptr_list *)__get_cur_slist());
+	nr_states = avl_count(__get_cur_stree());
 	if (nr_states >= 10000) {
 		match_return_info(return_id, return_ranges, expr);
 		return;

@@ -195,7 +195,7 @@ static void print_return_implies_capped(int return_id, char *return_ranges, stru
 	const char *param_name;
 	int param;
 
-	FOR_EACH_PTR(__get_cur_slist(), sm) {
+	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (sm->owner != my_id)
 			continue;
 		if (sm->state != &capped)
@@ -218,7 +218,7 @@ static void print_return_implies_capped(int return_id, char *return_ranges, stru
 
 		sql_insert_return_states(return_id, return_ranges, CAPPED_DATA,
 					 param, param_name, "1");
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 }
 
 static void db_return_states_capped(struct expression *expr, int param, char *key, char *value)

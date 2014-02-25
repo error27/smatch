@@ -102,6 +102,8 @@ AvlNode *avl_lookup_node(const AVL *avl, const struct sm_state *sm)
 
 size_t avl_count(const AVL *avl)
 {
+	if (!avl)
+		return 0;
 	return avl->count;
 }
 
