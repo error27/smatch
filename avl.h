@@ -28,37 +28,41 @@
 
 struct sm_state;
 
-typedef struct stree           stree;
 typedef struct AvlNode       AvlNode;
 typedef struct AvlIter       AvlIter;
 
-void avl_free(stree **avl);
+struct stree {
+	AvlNode    *root;
+	size_t      count;
+};
+
+void avl_free(struct stree **avl);
 	/* Free an stree tree. */
 
-struct sm_state *avl_lookup(const stree *avl, const struct sm_state *sm);
+struct sm_state *avl_lookup(const struct stree *avl, const struct sm_state *sm);
 	/* O(log n). Lookup a sm.  Return NULL if the sm is not present. */
 
 #define avl_member(avl, sm) (!!avl_lookup_node(avl, sm))
 	/* O(log n). See if a sm is present. */
 
-size_t avl_count(const stree *avl);
+size_t avl_count(const struct stree *avl);
 	/* O(1). Return the number of elements in the tree. */
 
-bool avl_insert(stree **avl, const struct sm_state *sm);
+bool avl_insert(struct stree **avl, const struct sm_state *sm);
 	/*
 	 * O(log n). Insert an sm or replace it if already present.
 	 *
 	 * Return false if the insertion replaced an existing sm.
 	 */
 
-bool avl_remove(stree **avl, const struct sm_state *sm);
+bool avl_remove(struct stree **avl, const struct sm_state *sm);
 	/*
 	 * O(log n). Remove an sm (if present).
 	 *
 	 * Return true if it was removed.
 	 */
 
-bool avl_check_invariants(stree *avl);
+bool avl_check_invariants(struct stree *avl);
 	/* For testing purposes.  This function will always return true :-) */
 
 
@@ -98,7 +102,7 @@ struct AvlIter {
 	AvlDirection  direction;
 };
 
-void avl_iter_begin(AvlIter *iter, stree *avl, AvlDirection dir);
+void avl_iter_begin(AvlIter *iter, struct stree *avl, AvlDirection dir);
 void avl_iter_next(AvlIter *iter);
 #define avl_traverse(iter, avl, direction)        \
 	for (avl_iter_begin(&(iter), avl, direction); \
@@ -108,11 +112,6 @@ void avl_iter_next(AvlIter *iter);
 
 /***************** Internal data structures ******************/
 
-struct stree {
-	AvlNode    *root;
-	size_t      count;
-};
-
 struct AvlNode {
 	const struct sm_state *sm;
 
@@ -120,9 +119,9 @@ struct AvlNode {
 	int         balance; /* -1, 0, or 1 */
 };
 
-AvlNode *avl_lookup_node(const stree *avl, const struct sm_state *sm);
+AvlNode *avl_lookup_node(const struct stree *avl, const struct sm_state *sm);
 	/* O(log n). Lookup an stree node by sm.  Return NULL if not present. */
 
-stree *clone_stree(stree *orig);
+struct stree *clone_stree(struct stree *orig);
 
 #endif
