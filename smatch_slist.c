@@ -648,12 +648,12 @@ void merge_stree(struct AVL **to, struct AVL *stree)
 		return;
 
 	if (!*to) {
-		*to = avl_clone(stree);
+		*to = clone_stree(stree);
 		return;
 	}
 
-	implied_one = avl_clone(*to);
-	implied_two = avl_clone(stree);
+	implied_one = clone_stree(*to);
+	implied_two = clone_stree(stree);
 
 	match_states_stree(&implied_one, &implied_two);
 
@@ -763,12 +763,12 @@ void or_stree_stack(struct stree_stack **pre_conds,
 	old = pop_stree(stack);
 
 	pre_stree = pop_stree(pre_conds);
-	push_stree(pre_conds, avl_clone(pre_stree));
+	push_stree(pre_conds, clone_stree(pre_stree));
 
-	res = avl_clone(pre_stree);
+	res = clone_stree(pre_stree);
 	overwrite_stree(old, &res);
 
-	tmp_stree = avl_clone(cur_stree);
+	tmp_stree = clone_stree(cur_stree);
 	overwrite_stree(new, &tmp_stree);
 
 	merge_stree(&res, tmp_stree);

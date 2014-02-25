@@ -463,7 +463,7 @@ void avl_iter_next(AvlIter *iter)
 	iter->sm   = (struct sm_state *) node->sm;
 }
 
-AVL *avl_clone(AVL *orig)
+AVL *clone_stree(AVL *orig)
 {
 	AVL *new = NULL;
  	AvlIter i;
