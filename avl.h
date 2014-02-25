@@ -45,7 +45,7 @@ struct sm_state *avl_lookup(const struct stree *avl, const struct sm_state *sm);
 #define avl_member(avl, sm) (!!avl_lookup_node(avl, sm))
 	/* O(log n). See if a sm is present. */
 
-size_t avl_count(const struct stree *avl);
+size_t stree_count(const struct stree *avl);
 	/* O(1). Return the number of elements in the tree. */
 
 bool avl_insert(struct stree **avl, const struct sm_state *sm);

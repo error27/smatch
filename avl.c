@@ -100,7 +100,7 @@ AvlNode *avl_lookup_node(const struct stree *avl, const struct sm_state *sm)
 	return lookup(avl, avl->root, sm);
 }
 
-size_t avl_count(const struct stree *avl)
+size_t stree_count(const struct stree *avl)
 {
 	if (!avl)
 		return 0;
