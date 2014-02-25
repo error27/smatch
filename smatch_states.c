@@ -375,16 +375,39 @@ struct state_list *get_all_states(int owner)
 	return slist;
 }
 
-int is_reachable(void)
+struct AVL *get_all_states_from_stree(int owner, struct AVL *source)
 {
-	if (cur_stree)
-		return 1;
-	return 0;
+	struct AVL *ret = NULL;
+	struct sm_state *tmp;
+
+	FOR_EACH_SM(source, tmp) {
+		if (tmp->owner == owner)
+			avl_insert(&ret, tmp);
+	} END_FOR_EACH_SM(tmp);
+
+	return ret;
+}
+
+struct AVL *get_all_states_stree(int owner)
+{
+	return get_all_states_from_stree(owner, cur_stree);
 }
 
 struct state_list *__get_cur_slist(void)
 {
 	return stree_to_slist(cur_stree);
+}
+
+struct AVL *__get_cur_stree(void)
+{
+	return cur_stree;
+}
+
+int is_reachable(void)
+{
+	if (cur_stree)
+		return 1;
+	return 0;
 }
 
 void set_true_false_states(int owner, const char *name, struct symbol *sym,

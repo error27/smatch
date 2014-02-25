@@ -250,6 +250,9 @@ void set_true_false_states_expr(int owner, struct expression *expr,
 
 struct state_list *get_all_states_slist(int owner, struct state_list *source);
 struct state_list *get_all_states(int id);
+struct AVL *get_all_states_from_stree(int owner, struct AVL *source);
+struct AVL *get_all_states_stree(int id);
+struct AVL *__get_cur_stree(void);
 int is_reachable(void);
 
 /* smatch_helper.c */
