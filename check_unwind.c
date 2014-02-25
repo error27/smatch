@@ -127,7 +127,7 @@ static int func_returns_int()
 
 static void match_return(struct expression *ret_value)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 	struct sm_state *tmp;
 	sval_t sval;
 
@@ -140,12 +140,12 @@ static void match_return(struct expression *ret_value)
 	if (get_state(my_id, "unwind_function", NULL) == &called)
 		return;
 
-	slist = get_all_states(my_id);
-	FOR_EACH_PTR(slist, tmp) {
+	stree = get_all_states_stree(my_id);
+	FOR_EACH_SM(stree, tmp) {
 		if (slist_has_state(tmp->possible, &allocated))
 			sm_msg("warn: '%s' was not released on error", tmp->name);
-	} END_FOR_EACH_PTR(tmp);
-	free_slist(&slist);
+	} END_FOR_EACH_SM(tmp);
+	free_stree(&stree);
 }
 
 static void register_unwind_functions(void)
