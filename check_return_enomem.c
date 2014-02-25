@@ -51,7 +51,7 @@ static void allocation_failed(const char *fn, struct expression *call_expr,
 static void match_return(struct expression *ret_value)
 {
 	struct sm_state *sm;
-	struct state_list *slist;
+	struct AVL *stree;
 	sval_t sval;
 
 	if (!ret_value)
@@ -65,17 +65,17 @@ static void match_return(struct expression *ret_value)
 	if (get_macro_name(ret_value->pos))
 		return;
 
-	slist = get_all_states(my_id);
+	stree = get_all_states_stree(my_id);
 
-	FOR_EACH_PTR(slist, sm) {
+	FOR_EACH_SM(stree, sm) {
 		if (sm->state == &enomem) {
 			sm_msg("warn: returning -1 instead of -ENOMEM is sloppy");
 			goto out;
 		}
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 
 out:
-	free_slist(&slist);
+	free_stree(&stree);
 }
 
 void check_return_enomem(int id)
