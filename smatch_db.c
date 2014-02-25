@@ -492,7 +492,7 @@ static void match_call_info(struct expression *call)
 {
 	struct member_info_callback *cb;
 	struct expression *arg;
-	struct state_list *slist;
+	struct AVL *stree;
 	char *name;
 	int i;
 
@@ -501,13 +501,13 @@ static void match_call_info(struct expression *call)
 		return;
 
 	FOR_EACH_PTR(member_callbacks, cb) {
-		slist = get_all_states(cb->owner);
+		stree = get_all_states_stree(cb->owner);
 		i = 0;
 		FOR_EACH_PTR(call->args, arg) {
-			print_struct_members(call, arg, i, slist_to_stree(slist), cb->callback);
+			print_struct_members(call, arg, i, stree, cb->callback);
 			i++;
 		} END_FOR_EACH_PTR(arg);
-		free_slist(&slist);
+		free_stree(&stree);
 	} END_FOR_EACH_PTR(cb);
 
 	free_string(name);
@@ -541,7 +541,7 @@ static int get_param(int param, char **name, struct symbol **sym)
 	return FALSE;
 }
 
-static struct state_list *final_states;
+static struct AVL *final_states;
 static int prev_func_id = -1;
 static int db_callback(void *unused, int argc, char **argv, char **azColName)
 {
@@ -551,7 +551,7 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 	char *name = NULL;
 	struct symbol *sym = NULL;
 	struct def_callback *def_callback;
-	struct state_list *slist;
+	struct AVL *stree;
 
 	if (argc != 5)
 		return 0;
@@ -566,9 +566,9 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 	if (prev_func_id == -1)
 		prev_func_id = func_id;
 	if (func_id != prev_func_id) {
-		slist = stree_to_slist(__pop_fake_cur_slist());
-		merge_slist(&final_states, slist);
-		free_slist(&slist);
+		stree = __pop_fake_cur_slist();
+		merge_stree(&final_states, stree);
+		free_stree(&stree);
 		__push_fake_cur_slist();
 		__unnullify_path();
 		prev_func_id = func_id;
@@ -664,7 +664,7 @@ static void get_function_pointer_callers(struct symbol *sym)
 static void match_data_from_db(struct symbol *sym)
 {
 	struct sm_state *sm;
-	struct state_list *slist;
+	struct AVL *stree;
 
 	if (!sym || !sym->ident || !sym->ident->name)
 		return;
@@ -677,15 +677,15 @@ static void match_data_from_db(struct symbol *sym)
 	if (!__inline_fn)
 		get_function_pointer_callers(sym);
 
-	slist = stree_to_slist(__pop_fake_cur_slist());
-	merge_slist(&final_states, slist);
-	free_slist(&slist);
+	stree = __pop_fake_cur_slist();
+	merge_stree(&final_states, stree);
+	free_stree(&stree);
 
-	FOR_EACH_PTR(final_states, sm) {
+	FOR_EACH_SM(final_states, sm) {
 		__set_sm(sm);
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 
-	free_slist(&final_states);
+	free_stree(&final_states);
 }
 
 static int call_implies_callbacks(void *unused, int argc, char **argv, char **azColName)
@@ -984,7 +984,7 @@ static void call_return_state_hooks(struct expression *expr)
 static void print_returned_struct_members(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct returned_member_callback *cb;
-	struct state_list *my_slist;
+	struct AVL *my_stree;
 	struct sm_state *sm;
 	struct symbol *type;
 	char *name;
@@ -1003,8 +1003,8 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 
 	len = strlen(name);
 	FOR_EACH_PTR(returned_member_callbacks, cb) {
-		my_slist = get_all_states(cb->owner);
-		FOR_EACH_PTR(my_slist, sm) {
+		my_stree = get_all_states_stree(cb->owner);
+		FOR_EACH_SM(my_stree, sm) {
 			if (sm->name[0] == '*' && strcmp(sm->name + 1, name) == 0) {
 				strcpy(member_name, "*$$");
 				cb->callback(return_id, return_ranges, member_name, sm->state);
@@ -1017,8 +1017,8 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 			strcpy(member_name, "$$");
 			strncpy(member_name + 2, sm->name + len, sizeof(member_name) - 2);
 			cb->callback(return_id, return_ranges, member_name, sm->state);
-		} END_FOR_EACH_PTR(sm);
-		free_slist(&my_slist);
+		} END_FOR_EACH_SM(sm);
+		free_stree(&my_stree);
 	} END_FOR_EACH_PTR(cb);
 
 	free_string(name);
