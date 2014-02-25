@@ -971,8 +971,8 @@ void merge_slist(struct state_list **to, struct state_list *slist)
 			NEXT_PTR_LIST(one_sm);
 		} else if (cmp_tracker(one_sm, two_sm) == 0) {
 			if (one_sm != two_sm) {
-				one_sm->pool = implied_one;
-				two_sm->pool = implied_two;
+				one_sm->pool = slist_to_stree(implied_one);
+				two_sm->pool = slist_to_stree(implied_two);
 			}
 
 			tmp = merge_sm_states(one_sm, two_sm);
@@ -999,8 +999,6 @@ void merge_stree(struct AVL **to, struct AVL *stree)
 	AvlIter one_iter;
 	AvlIter two_iter;
 	struct sm_state *tmp_sm;
-	struct state_list *implied_one_slist;
-	struct state_list *implied_two_slist;
 
 	if (out_of_memory())
 		return;
@@ -1025,9 +1023,6 @@ void merge_stree(struct AVL **to, struct AVL *stree)
 	set_stree_id(implied_one);
 	set_stree_id(implied_two);
 
-	implied_one_slist = stree_to_slist(implied_one);
-	implied_two_slist = stree_to_slist(implied_two);
-
 	avl_iter_begin(&one_iter, implied_one, FORWARD);
 	avl_iter_begin(&two_iter, implied_two, FORWARD);
 
@@ -1039,8 +1034,8 @@ void merge_stree(struct AVL **to, struct AVL *stree)
 			avl_iter_next(&one_iter);
 		} else if (cmp_tracker(one_iter.sm, two_iter.sm) == 0) {
 			if (one_iter.sm != two_iter.sm) {
-				one_iter.sm->pool = implied_one_slist;
-				two_iter.sm->pool = implied_two_slist;
+				one_iter.sm->pool = implied_one;
+				two_iter.sm->pool = implied_two;
 			}
 			tmp_sm = merge_sm_states(one_iter.sm, two_iter.sm);
 			avl_insert(&results, tmp_sm);

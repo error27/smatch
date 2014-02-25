@@ -76,7 +76,7 @@ struct sm_state {
 	unsigned int nr_children;
 	unsigned int line;
   	struct smatch_state *state;
-	struct state_list *pool;
+	struct AVL *pool;
 	struct sm_state *left;
 	struct sm_state *right;
 	struct state_list *possible;

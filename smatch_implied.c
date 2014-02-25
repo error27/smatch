@@ -111,9 +111,9 @@ static void print_debug_tf(struct sm_state *s, int istrue, int isfalse)
  * add_pool() adds a slist to *pools. If the slist has already been
  * added earlier then it doesn't get added a second time.
  */
-static void add_pool(struct state_list_stack **pools, struct state_list *new)
+static void add_pool(struct stree_stack **pools, struct AVL *new)
 {
-	struct state_list *tmp;
+	struct AVL *tmp;
 
 	FOR_EACH_PTR(*pools, tmp) {
 		if (tmp < new)
@@ -134,8 +134,8 @@ static void add_pool(struct state_list_stack **pools, struct state_list *new)
  */
 static void do_compare(struct sm_state *sm_state, int comparison, struct range_list *vals,
 			int lr,
-			struct state_list_stack **true_stack,
-			struct state_list_stack **false_stack)
+			struct stree_stack **true_stack,
+			struct stree_stack **false_stack)
 {
 	struct sm_state *s;
 	int istrue;
@@ -145,7 +145,7 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 		return;
 
 	if (is_implied(sm_state)) {
-		s = get_sm_state_slist(sm_state->pool,
+		s = get_sm_state_stree(sm_state->pool,
 				sm_state->owner, sm_state->name,
 				sm_state->sym);
 	} else {
@@ -176,10 +176,10 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 		add_pool(false_stack, s->pool);
 }
 
-static int pool_in_pools(struct state_list *pool,
-			struct state_list_stack *pools)
+static int pool_in_pools(struct AVL *pool,
+			struct stree_stack *pools)
 {
-	struct state_list *tmp;
+	struct AVL *tmp;
 
 	FOR_EACH_PTR(pools, tmp) {
 		if (tmp == pool)
@@ -211,8 +211,8 @@ static int is_checked(struct state_list *checked, struct sm_state *sm)
  */
 static void separate_pools(struct sm_state *sm_state, int comparison, struct range_list *vals,
 			int lr,
-			struct state_list_stack **true_stack,
-			struct state_list_stack **false_stack,
+			struct stree_stack **true_stack,
+			struct stree_stack **false_stack,
 			struct state_list **checked)
 {
 	int free_checked = 0;
@@ -251,7 +251,7 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 }
 
 struct sm_state *remove_pools(struct sm_state *sm,
-				struct state_list_stack *pools, int *modified)
+				struct stree_stack *pools, int *modified)
 {
 	struct sm_state *ret = NULL;
 	struct sm_state *left;
@@ -324,9 +324,9 @@ static int highest_slist_id(struct sm_state *sm)
 		return 0;
 
 	if (sm->left)
-		left = get_slist_id(sm->left->pool);
+		left = get_stree_id(sm->left->pool);
 	if (sm->right)
-		right = get_slist_id(sm->right->pool);
+		right = get_stree_id(sm->right->pool);
 
 	if (right > left)
 		return right;
@@ -335,7 +335,7 @@ static int highest_slist_id(struct sm_state *sm)
 
 static struct AVL *filter_stack(struct sm_state *gate_sm,
 				       struct AVL *pre_stree,
-				       struct state_list_stack *stack)
+				       struct stree_stack *stack)
 {
 	struct AVL *ret = NULL;
 	struct sm_state *tmp;
@@ -372,8 +372,8 @@ static void separate_and_filter(struct sm_state *sm_state, int comparison, struc
 		struct AVL **true_states,
 		struct AVL **false_states)
 {
-	struct state_list_stack *true_stack = NULL;
-	struct state_list_stack *false_stack = NULL;
+	struct stree_stack *true_stack = NULL;
+	struct stree_stack *false_stack = NULL;
 	struct timeval time_before;
 	struct timeval time_after;
 
@@ -399,8 +399,8 @@ static void separate_and_filter(struct sm_state *sm_state, int comparison, struc
 	*true_states = filter_stack(sm_state, pre_stree, false_stack);
 	DIMPLIED("filtering false stack.\n");
 	*false_states = filter_stack(sm_state, pre_stree, true_stack);
-	free_stack(&true_stack);
-	free_stack(&false_stack);
+	free_stree_stack(&true_stack);
+	free_stree_stack(&false_stack);
 	if (option_debug_implied || option_debug) {
 		printf("These are the implied states for the true path:\n");
 		__print_stree(*true_states);
@@ -655,13 +655,13 @@ void overwrite_states_using_pool(struct sm_state *sm)
 	if (!sm->pool)
 		return;
 
-	FOR_EACH_PTR(sm->pool, old) {
+	FOR_EACH_SM(sm->pool, old) {
 		new = get_sm_state(old->owner, old->name, old->sym);
 		if (!new)  /* the variable went out of scope */
 			continue;
 		if (sm_state_in_slist(old, new->possible))
 			set_state(old->owner, old->name, old->sym, old->state);
-	} END_FOR_EACH_PTR(old);
+	} END_FOR_EACH_SM(old);
 }
 
 void __extra_match_condition(struct expression *expr);

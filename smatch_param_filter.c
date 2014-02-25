@@ -86,7 +86,7 @@ static struct range_list *get_orig_rl(struct sm_state *sm)
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (tmp->state != &original)
 			continue;
-		extra = get_state_slist(tmp->pool, SMATCH_EXTRA, tmp->name, tmp->sym);
+		extra = get_state_stree(tmp->pool, SMATCH_EXTRA, tmp->name, tmp->sym);
 		if (!extra) {
 //			sm_msg("debug: no value found in pool %p", tmp->pool);
 			return NULL;
