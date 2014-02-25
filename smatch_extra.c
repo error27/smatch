@@ -336,7 +336,7 @@ static struct sm_state *handle_canonical_for_loops(struct statement *loop)
 	return NULL;
 }
 
-struct sm_state *__extra_handle_canonical_loops(struct statement *loop, struct state_list **slist)
+struct sm_state *__extra_handle_canonical_loops(struct statement *loop, struct AVL **stree)
 {
 	struct sm_state *ret;
 
@@ -345,7 +345,7 @@ struct sm_state *__extra_handle_canonical_loops(struct statement *loop, struct s
 		ret = handle_canonical_while_count_down(loop);
 	else
 		ret = handle_canonical_for_loops(loop);
-	*slist = stree_to_slist(__pop_fake_cur_slist());
+	*stree = __pop_fake_cur_slist();
 	return ret;
 }
 

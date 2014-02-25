@@ -207,20 +207,20 @@ void __pop_fake_cur_stree_fast()
 	read_only = 0;
 }
 
-void __merge_slist_into_cur(struct state_list *slist)
+void __merge_stree_into_cur(struct AVL *stree)
 {
 	struct sm_state *sm;
 	struct sm_state *orig;
 	struct sm_state *merged;
 
-	FOR_EACH_PTR(slist, sm) {
+	FOR_EACH_SM(stree, sm) {
 		orig = get_sm_state(sm->owner, sm->name, sm->sym);
 		if (orig)
 			merged = merge_sm_states(orig, sm);
 		else
 			merged = sm;
 		__set_sm(merged);
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 }
 
 void __set_sm(struct sm_state *sm)

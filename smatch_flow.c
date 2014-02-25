@@ -363,7 +363,7 @@ static void handle_pre_loop(struct statement *stmt)
 	struct sm_state *extra_sm = NULL;
 	int unchanged = 0;
 	char *loop_name;
-	struct state_list *slist = NULL;
+	struct AVL *stree = NULL;
 	struct sm_state *sm = NULL;
 
 	loop_name = get_loop_name(loop_num);
@@ -379,15 +379,15 @@ static void handle_pre_loop(struct statement *stmt)
 
 	__merge_gotos(loop_name);
 
-	extra_sm = __extra_handle_canonical_loops(stmt, &slist);
+	extra_sm = __extra_handle_canonical_loops(stmt, &stree);
 	__in_pre_condition++;
 	__pass_to_client(stmt, PRELOOP_HOOK);
 	__split_whole_condition(stmt->iterator_pre_condition);
 	__in_pre_condition--;
-	FOR_EACH_PTR(slist, sm) {
+	FOR_EACH_SM(stree, sm) {
 		set_state(sm->owner, sm->name, sm->sym, sm->state);
-	} END_FOR_EACH_PTR(sm);
-	free_slist(&slist);
+	} END_FOR_EACH_SM(sm);
+	free_stree(&stree);
 	if (extra_sm)
 		extra_sm = get_sm_state(extra_sm->owner, extra_sm->name, extra_sm->sym);
 
@@ -397,21 +397,19 @@ static void handle_pre_loop(struct statement *stmt)
 	__split_stmt(stmt->iterator_statement);
 	__warn_on_silly_pre_loops();
 	if (is_forever_loop(stmt)) {
-		struct state_list *slist;
-
 		__save_gotos(loop_name);
 
 		__push_fake_cur_slist();
 		__split_stmt(stmt->iterator_post_statement);
-		slist = stree_to_slist(__pop_fake_cur_slist());
+		stree = __pop_fake_cur_slist();
 
 		__discard_continues();
 		__discard_false_states();
 		__use_breaks();
 
 		if (!__path_is_null())
-			__merge_slist_into_cur(slist);
-		free_slist(&slist);
+			__merge_stree_into_cur(stree);
+		free_stree(&stree);
 	} else {
 		__merge_continues();
 		unchanged = __iterator_unchanged(extra_sm);

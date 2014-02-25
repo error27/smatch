@@ -144,7 +144,7 @@ struct data_info *get_dinfo(struct smatch_state *state);
 void add_extra_mod_hook(void (*fn)(const char *name, struct symbol *sym, struct smatch_state *state));
 int implied_not_equal(struct expression *expr, long long val);
 
-struct sm_state *__extra_handle_canonical_loops(struct statement *loop, struct state_list **slist);
+struct sm_state *__extra_handle_canonical_loops(struct statement *loop, struct AVL **stree);
 int __iterator_unchanged(struct sm_state *sm);
 void __extra_pre_loop_hook_after(struct sm_state *sm,
 				struct statement *iterator,

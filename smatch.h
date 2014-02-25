@@ -462,7 +462,7 @@ void __set_fake_cur_slist_fast(struct state_list *slist);
 void __pop_fake_cur_slist_fast(void);
 void __set_fake_cur_stree_fast(struct AVL *stree);
 void __pop_fake_cur_stree_fast(void);
-void __merge_slist_into_cur(struct state_list *slist);
+void __merge_stree_into_cur(struct AVL *stree);
 
 int unreachable(void);
 void __set_sm(struct sm_state *sm);
