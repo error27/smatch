@@ -248,8 +248,6 @@ void set_true_false_states_expr(int owner, struct expression *expr,
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state);
 
-struct state_list *get_all_states_slist(int owner, struct state_list *source);
-struct state_list *get_all_states(int id);
 struct AVL *get_all_states_from_stree(int owner, struct AVL *source);
 struct AVL *get_all_states_stree(int id);
 struct AVL *__get_cur_stree(void);
@@ -458,7 +456,6 @@ int get_db_type_rl(struct expression *expr, struct range_list **rl);
 void __push_fake_cur_slist();
 struct AVL *__pop_fake_cur_slist();
 void __free_fake_cur_slist();
-void __set_fake_cur_slist_fast(struct state_list *slist);
 void __pop_fake_cur_slist_fast(void);
 void __set_fake_cur_stree_fast(struct AVL *stree);
 void __pop_fake_cur_stree_fast(void);

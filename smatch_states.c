@@ -64,8 +64,6 @@ static struct named_stree_stack *goto_stack;
 
 static struct ptr_list *backup;
 
-struct state_list_stack *implied_pools;
-
 int option_debug;
 
 void __print_cur_slist(void)
@@ -179,13 +177,6 @@ void __free_fake_cur_slist()
 	__use_pre_cond_states();
 	stree = pop_stree(&fake_cur_stree_stack);
 	free_stree(&stree);
-}
-
-void __set_fake_cur_slist_fast(struct state_list *slist)
-{
-	push_stree(&pre_cond_stack, cur_stree);
-	cur_stree = slist_to_stree(slist);
-	read_only = 1;
 }
 
 void __set_fake_cur_stree_fast(struct AVL *stree)
@@ -347,32 +338,6 @@ void delete_state_expr(int owner, struct expression *expr)
 	delete_state(owner, name, sym);
 free:
 	free_string(name);
-}
-
-struct state_list *get_all_states_slist(int owner, struct state_list *source)
-{
-	struct state_list *slist = NULL;
-	struct sm_state *tmp;
-
-	FOR_EACH_PTR(source, tmp) {
-		if (tmp->owner == owner)
-			add_ptr_list(&slist, tmp);
-	} END_FOR_EACH_PTR(tmp);
-
-	return slist;
-}
-
-struct state_list *get_all_states(int owner)
-{
-	struct state_list *slist = NULL;
-	struct sm_state *tmp;
-
-	FOR_EACH_SM(cur_stree, tmp) {
-		if (tmp->owner == owner)
-			add_ptr_list(&slist, tmp);
-	} END_FOR_EACH_SM(tmp);
-
-	return slist;
 }
 
 struct AVL *get_all_states_from_stree(int owner, struct AVL *source)
@@ -599,7 +564,6 @@ void clear_all_states(void)
 	check_stree_stack_free(&break_stack);
 	check_stree_stack_free(&switch_stack);
 	check_stree_stack_free(&continue_stack);
-	free_stack_and_slists(&implied_pools);
 
 	FOR_EACH_PTR(goto_stack, named_stree) {
 		free_stree(&named_stree->stree);
