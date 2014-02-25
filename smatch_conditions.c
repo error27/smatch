@@ -526,7 +526,7 @@ static void set_fake_assign(struct expression *new,
 int __handle_select_assigns(struct expression *expr)
 {
 	struct expression *right;
-	struct state_list *final_states = NULL;
+	struct AVL *final_states = NULL;
 	struct sm_state *sm;
 	int is_true;
 	int is_false;
@@ -551,7 +551,7 @@ int __handle_select_assigns(struct expression *expr)
 		else
 			set_fake_assign(&fake_expr, expr->left, expr->op, right->conditional);
 		__split_expr(&fake_expr);
-		final_states = clone_slist(__get_cur_slist());
+		final_states = clone_stree(__get_cur_stree());
 	}
 
 	__use_false_states();
@@ -560,16 +560,16 @@ int __handle_select_assigns(struct expression *expr)
 
 		set_fake_assign(&fake_expr, expr->left, expr->op, right->cond_false);
 		__split_expr(&fake_expr);
-		merge_slist(&final_states, __get_cur_slist());
+		merge_stree(&final_states, __get_cur_stree());
 	}
 
 	__use_pre_cond_states();
 
-	FOR_EACH_PTR(final_states, sm) {
+	FOR_EACH_SM(final_states, sm) {
 		__set_sm(sm);
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 
-	free_slist(&final_states);
+	free_stree(&final_states);
 
 	sm_debug("%d done __handle_ternary_assigns\n", get_lineno());
 
