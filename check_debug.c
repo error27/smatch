@@ -24,11 +24,11 @@ static int my_id;
 
 static void match_all_values(const char *fn, struct expression *expr, void *info)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 
-	slist = get_all_states(SMATCH_EXTRA);
-	__print_slist(slist);
-	free_slist(&slist);
+	stree = get_all_states_stree(SMATCH_EXTRA);
+	__print_stree(stree);
+	free_stree(&stree);
 }
 
 static void match_cur_slist(const char *fn, struct expression *expr, void *info)
@@ -91,7 +91,7 @@ static void match_states(const char *fn, struct expression *expr, void *info)
 
 static void match_print_value(const char *fn, struct expression *expr, void *info)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 	struct sm_state *tmp;
 	struct expression *arg_expr;
 
@@ -101,12 +101,12 @@ static void match_print_value(const char *fn, struct expression *expr, void *inf
 		return;
 	}
 
-	slist = get_all_states(SMATCH_EXTRA);
-	FOR_EACH_PTR(slist, tmp) {
+	stree = get_all_states_stree(SMATCH_EXTRA);
+	FOR_EACH_SM(stree, tmp) {
 		if (!strcmp(tmp->name, arg_expr->string->data))
 			sm_msg("%s = %s", tmp->name, tmp->state->name);
-	} END_FOR_EACH_PTR(tmp);
-	free_slist(&slist);
+	} END_FOR_EACH_SM(tmp);
+	free_stree(&stree);
 }
 
 static void match_print_implied(const char *fn, struct expression *expr, void *info)
@@ -267,7 +267,7 @@ static void print_possible(struct sm_state *sm)
 
 static void match_possible(const char *fn, struct expression *expr, void *info)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 	struct sm_state *tmp;
 	struct expression *arg_expr;
 
@@ -277,12 +277,12 @@ static void match_possible(const char *fn, struct expression *expr, void *info)
 		return;
 	}
 
-	slist = get_all_states(SMATCH_EXTRA);
-	FOR_EACH_PTR(slist, tmp) {
+	stree = get_all_states_stree(SMATCH_EXTRA);
+	FOR_EACH_SM(stree, tmp) {
 		if (!strcmp(tmp->name, arg_expr->string->data))
 			print_possible(tmp);
-	} END_FOR_EACH_PTR(tmp);
-	free_slist(&slist);
+	} END_FOR_EACH_SM(tmp);
+	free_stree(&stree);
 }
 
 static void match_strlen(const char *fn, struct expression *expr, void *info)
@@ -360,14 +360,14 @@ static void print_related(struct sm_state *sm)
 
 static void match_dump_related(const char *fn, struct expression *expr, void *info)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 	struct sm_state *tmp;
 
-	slist = get_all_states(SMATCH_EXTRA);
-	FOR_EACH_PTR(slist, tmp) {
+	stree = get_all_states_stree(SMATCH_EXTRA);
+	FOR_EACH_SM(stree, tmp) {
 		print_related(tmp);
-	} END_FOR_EACH_PTR(tmp);
-	free_slist(&slist);
+	} END_FOR_EACH_SM(tmp);
+	free_stree(&stree);
 }
 
 static void match_compare(const char *fn, struct expression *expr, void *info)
