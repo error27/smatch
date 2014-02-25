@@ -38,27 +38,27 @@ static int my_id;
 STATE(modified);
 STATE(original);
 
-static struct state_list *start_states;
-static struct state_list_stack *saved_stack;
+static struct AVL *start_states;
+static struct stree_stack *saved_stack;
 static void save_start_states(struct statement *stmt)
 {
-	start_states = get_all_states(SMATCH_EXTRA);
+	start_states = get_all_states_stree(SMATCH_EXTRA);
 }
 
 static void match_end_func(void)
 {
-	free_slist(&start_states);
+	free_stree(&start_states);
 }
 
 static void match_save_states(struct expression *expr)
 {
-	push_slist(&saved_stack, start_states);
+	push_stree(&saved_stack, start_states);
 	start_states = NULL;
 }
 
 static void match_restore_states(struct expression *expr)
 {
-	start_states = pop_slist(&saved_stack);
+	start_states = pop_stree(&saved_stack);
 }
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
@@ -121,7 +121,7 @@ static void print_one_extra_param(int return_id, char *return_ranges,
 
 	if (estate_is_whole(sm->state))
 		return;
-	old = get_state_slist(start_states, SMATCH_EXTRA, sm->name, sm->sym);
+	old = get_state_stree(start_states, SMATCH_EXTRA, sm->name, sm->sym);
 	if (old && estates_equiv(old, sm->state))
 		return;
 
@@ -135,14 +135,14 @@ static void print_one_extra_param(int return_id, char *return_ranges,
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct state_list *extra_slist;
+	struct AVL *extra_stree;
 	struct sm_state *tmp;
 	struct sm_state *sm;
 	int param;
 
-	extra_slist = get_all_states(SMATCH_EXTRA);
+	extra_stree = get_all_states_stree(SMATCH_EXTRA);
 
-	FOR_EACH_PTR(extra_slist, tmp) {
+	FOR_EACH_SM(extra_stree, tmp) {
 		param = get_param_num_from_sym(tmp->sym);
 		if (param < 0)
 			continue;
@@ -158,9 +158,9 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 			print_one_mod_param(return_id, return_ranges, param, sm);
 		else
 			print_one_extra_param(return_id, return_ranges, param, tmp);
-	} END_FOR_EACH_PTR(tmp);
+	} END_FOR_EACH_SM(tmp);
 
-	free_slist(&extra_slist);
+	free_stree(&extra_stree);
 }
 
 void register_param_filter(int id)
