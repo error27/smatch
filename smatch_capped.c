@@ -205,7 +205,7 @@ static void print_return_implies_capped(int return_id, char *return_ranges, stru
 		if (param < 0)
 			continue;
 
-		orig = get_state_slist(get_start_states(), my_id, sm->name, sm->sym);
+		orig = get_state_stree(get_start_states(), my_id, sm->name, sm->sym);
 		if (orig == &capped)
 			continue;
 

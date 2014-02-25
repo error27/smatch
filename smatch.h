@@ -735,7 +735,7 @@ int is_uninitialized(struct expression *expr);
 int has_uninitialized_members(struct expression *expr);
 
 /* smatch_start_states.c */
-struct state_list *get_start_states(void);
+struct AVL *get_start_states(void);
 
 /* smatch_recurse.c */
 int has_symbol(struct expression *expr, struct symbol *sym);

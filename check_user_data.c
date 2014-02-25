@@ -505,7 +505,7 @@ static void print_returned_user_data(int return_id, char *return_ranges, struct 
 		if (is_capped_var_sym(tmp->name, tmp->sym))
 			continue;
 		/* ignore states that were already USER_DATA to begin with */
-		if (get_state_slist(get_start_states(), my_id, tmp->name, tmp->sym))
+		if (get_state_stree(get_start_states(), my_id, tmp->name, tmp->sym))
 			continue;
 
 		param_name = get_param_name(tmp);

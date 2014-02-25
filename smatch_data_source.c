@@ -39,7 +39,7 @@ static char *get_source_parameter(struct expression *expr)
 	cur = get_sm_state(SMATCH_EXTRA, name, sym);
 	if (!cur)
 		goto out;
-	orig = get_sm_state_slist(get_start_states(), SMATCH_EXTRA, name, sym);
+	orig = get_sm_state_stree(get_start_states(), SMATCH_EXTRA, name, sym);
 	if (!orig)
 		goto out;
 	if (orig != cur)

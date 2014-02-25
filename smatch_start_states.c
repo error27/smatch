@@ -50,9 +50,9 @@ static void match_end_func(void)
 	free_stree(&start_states);
 }
 
-struct state_list *get_start_states(void)
+struct AVL *get_start_states(void)
 {
-	return stree_to_slist(start_states);
+	return start_states;
 }
 
 void register_start_states(int id)
