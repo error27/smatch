@@ -312,14 +312,14 @@ static void match_declarations(struct symbol *sym)
 
 static void check_for_allocated(void)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 	struct sm_state *tmp;
 
-	slist = get_all_states(my_id);
-	FOR_EACH_PTR(slist, tmp) {
+	stree = get_all_states_stree(my_id);
+	FOR_EACH_SM(stree, tmp) {
 		check_sm_is_leaked(tmp);
-	} END_FOR_EACH_PTR(tmp);
-	free_slist(&slist);
+	} END_FOR_EACH_SM(tmp);
+	free_stree(&stree);
 }
 
 static void match_return(struct expression *ret_value)
