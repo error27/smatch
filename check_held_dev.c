@@ -65,17 +65,17 @@ static void match_returns_null(const char *fn, struct expression *call_expr,
 
 static void check_for_held(void)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 	struct sm_state *tmp;
 
-	slist = get_all_states(my_id);
-	FOR_EACH_PTR(slist, tmp) {
+	stree = get_all_states_stree(my_id);
+	FOR_EACH_SM(stree, tmp) {
 		if (slist_has_state(tmp->possible, &held)) {
 			sm_msg("warn: '%s' held on error path.",
 				tmp->name);
 		}
-	} END_FOR_EACH_PTR(tmp);
-	free_slist(&slist);
+	} END_FOR_EACH_SM(tmp);
+	free_stree(&stree);
 }
 
 static void print_returns_held(struct expression *expr)
