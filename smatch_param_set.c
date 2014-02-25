@@ -66,15 +66,15 @@ static void print_one_return_value_param(int return_id, char *return_ranges,
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct state_list *my_slist;
+	struct AVL *stree;
 	struct sm_state *sm;
 	struct smatch_state *extra;
 	int param;
 	struct range_list *rl;
 
-	my_slist = get_all_states(my_id);
+	stree = get_all_states_stree(my_id);
 
-	FOR_EACH_PTR(my_slist, sm) {
+	FOR_EACH_SM(stree, sm) {
 		if (!estate_rl(sm->state))
 			continue;
 		extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
@@ -90,7 +90,8 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (!sm->sym->ident)
 			continue;
 		print_one_return_value_param(return_id, return_ranges, param, sm, show_rl(rl));
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
+	free_stree(&stree);
 }
 
 void register_param_set(int id)
