@@ -23,7 +23,7 @@ static int my_id;
 STATE(checked);
 STATE(modified);
 
-struct state_list *to_check;
+struct AVL *to_check;
 
 static void set_modified(struct sm_state *sm, struct expression *mod_expr)
 {
@@ -74,7 +74,7 @@ static void match_condition(struct expression *expr)
 		if (!name)
 			return;
 		set_state_expr(my_id, expr, &checked);
-		set_state_slist(&to_check, my_id, name, sym, &checked);
+		set_state_stree(&to_check, my_id, name, sym, &checked);
 		free_string(name);
 		return;
 	}
@@ -107,7 +107,7 @@ static void after_loop(struct statement *stmt)
 	if (__inline_fn)
 		return;
 
-	FOR_EACH_PTR(to_check, check) {
+	FOR_EACH_SM(to_check, check) {
 		continue;
 		sm = get_sm_state(my_id, check->name, check->sym);
 		continue;
@@ -118,9 +118,9 @@ static void after_loop(struct statement *stmt)
 
 		sm_printf("%s:%d %s() ", get_filename(), get_check_line(sm), get_function());
 		sm_printf("warn: we tested '%s' already\n", check->name);
-	} END_FOR_EACH_PTR(check);
+	} END_FOR_EACH_SM(check);
 
-	free_slist(&to_check);
+	free_stree(&to_check);
 }
 
 static void match_func_end(struct symbol *sym)
@@ -129,7 +129,7 @@ static void match_func_end(struct symbol *sym)
 		return;
 	if (to_check)
 		sm_msg("debug: odd...  found an function without an end.");
-	free_slist(&to_check);
+	free_stree(&to_check);
 }
 
 void check_double_checking(int id)
