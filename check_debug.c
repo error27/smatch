@@ -33,7 +33,7 @@ static void match_all_values(const char *fn, struct expression *expr, void *info
 
 static void match_cur_slist(const char *fn, struct expression *expr, void *info)
 {
-	__print_cur_slist();
+	__print_cur_stree();
 }
 
 static void match_state(const char *fn, struct expression *expr, void *info)

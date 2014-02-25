@@ -66,7 +66,7 @@ static struct ptr_list *backup;
 
 int option_debug;
 
-void __print_cur_slist(void)
+void __print_cur_stree(void)
 {
 	__print_stree(cur_stree);
 }

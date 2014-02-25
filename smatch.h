@@ -526,7 +526,7 @@ void __discard_conditions(void);
 void __save_gotos(const char *name);
 void __merge_gotos(const char *name);
 
-void __print_cur_slist(void);
+void __print_cur_stree(void);
 
 /* smatch_hooks.c */
 void __pass_to_client(void *data, enum hook_type type);
