@@ -419,24 +419,6 @@ struct smatch_state *get_state_stree(struct AVL *stree,
 	return NULL;
 }
 
-void overwrite_sm_state(struct state_list **slist, struct sm_state *new)
-{
-	struct sm_state *tmp;
-
-	FOR_EACH_PTR(*slist, tmp) {
-		if (cmp_tracker(tmp, new) < 0)
-			continue;
-		else if (cmp_tracker(tmp, new) == 0) {
-			REPLACE_CURRENT_PTR(tmp, new);
-			return;
-		} else {
-			INSERT_CURRENT(new, tmp);
-			return;
-		}
-	} END_FOR_EACH_PTR(tmp);
-	add_ptr_list(slist, new);
-}
-
 /* FIXME: this is almost exactly the same as set_sm_state_slist() */
 void overwrite_sm_state_stree(struct AVL **stree, struct sm_state *new)
 {
@@ -501,21 +483,6 @@ struct AVL *pop_stree(struct stree_stack **stack)
 void free_slist(struct state_list **slist)
 {
 	__free_ptr_list((struct ptr_list **)slist);
-}
-
-void free_stack(struct state_list_stack **stack)
-{
-	__free_ptr_list((struct ptr_list **)stack);
-}
-
-void free_stack_and_slists(struct state_list_stack **slist_stack)
-{
-	struct state_list *slist;
-
-	FOR_EACH_PTR(*slist_stack, slist) {
-		free_slist(&slist);
-	} END_FOR_EACH_PTR(slist);
-	free_stack(slist_stack);
 }
 
 void free_stree(struct AVL **stree)
@@ -727,35 +694,6 @@ void merge_stree(struct AVL **to, struct AVL *stree)
 /*
  * filter_slist() removes any sm states "slist" holds in common with "filter"
  */
-void filter_slist(struct state_list **slist, struct state_list *filter)
-{
-	struct sm_state *one_sm, *two_sm;
-	struct state_list *results = NULL;
-
-	PREPARE_PTR_LIST(*slist, one_sm);
-	PREPARE_PTR_LIST(filter, two_sm);
-	for (;;) {
-		if (!one_sm && !two_sm)
-			break;
-		if (cmp_tracker(one_sm, two_sm) < 0) {
-			add_ptr_list(&results, one_sm);
-			NEXT_PTR_LIST(one_sm);
-		} else if (cmp_tracker(one_sm, two_sm) == 0) {
-			if (one_sm != two_sm)
-				add_ptr_list(&results, one_sm);
-			NEXT_PTR_LIST(one_sm);
-			NEXT_PTR_LIST(two_sm);
-		} else {
-			NEXT_PTR_LIST(two_sm);
-		}
-	}
-	FINISH_PTR_LIST(two_sm);
-	FINISH_PTR_LIST(one_sm);
-
-	free_slist(slist);
-	*slist = results;
-}
-
 void filter_stree(struct AVL **stree, struct AVL *filter)
 {
 	struct AVL *results = NULL;
@@ -868,27 +806,3 @@ void overwrite_stree(struct AVL *from, struct AVL **to)
 	} END_FOR_EACH_SM(tmp);
 }
 
-struct state_list *stree_to_slist(struct AVL *stree)
-{
-	struct state_list *ret = NULL;
-	struct sm_state *tmp;
-
-	FOR_EACH_SM(stree, tmp) {
-		overwrite_sm_state(&ret, tmp);
-	} END_FOR_EACH_SM(tmp);
-
-	return ret;
-}
-
-struct AVL *slist_to_stree(struct state_list *slist)
-{
-	struct AVL *ret = NULL;
-	struct sm_state *tmp;
-
-	FOR_EACH_PTR(slist, tmp) {
-		overwrite_sm_state_stree(&ret, tmp);
-	} END_FOR_EACH_PTR(tmp);
-
-	return ret;
-
-}

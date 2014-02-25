@@ -41,7 +41,6 @@ struct smatch_state *get_state_stree(struct AVL *stree, int owner, const char *n
 struct sm_state *get_sm_state_stree(struct AVL *stree, int owner, const char *name,
 		    struct symbol *sym);
 
-void overwrite_sm_state(struct state_list **slist, struct sm_state *sm);
 void overwrite_sm_state_stree(struct AVL **stree, struct sm_state *sm);
 void overwrite_sm_state_stree_stack(struct stree_stack **stack, struct sm_state *sm);
 struct sm_state *set_state_stree(struct AVL **stree, int owner, const char *name,
@@ -58,9 +57,7 @@ struct AVL *pop_stree(struct stree_stack **list_stack);
 
 void free_slist(struct state_list **slist);
 void free_stree(struct AVL **stree);
-void free_stack(struct state_list_stack **stack);
 void free_stree_stack(struct stree_stack **stack);
-void free_stack_and_slists(struct state_list_stack **slist_stack);
 void free_stack_and_strees(struct stree_stack **stree_stack);
 
 struct sm_state *set_state_stree_stack(struct stree_stack **stack, int owner, const char *name,
@@ -72,7 +69,6 @@ struct smatch_state *get_state_stree_stack(struct stree_stack *stack, int owner,
 int out_of_memory(void);
 int low_on_memory(void);
 void merge_stree(struct AVL **to, struct AVL *stree);
-void filter_slist(struct state_list **slist, struct state_list *filter);
 void filter_stree(struct AVL **stree, struct AVL *filter);
 void and_stree_stack(struct stree_stack **stree_stack);
 
@@ -89,9 +85,5 @@ void overwrite_stree(struct AVL *from, struct AVL **to);
 
 void all_return_states_hook(void (*callback)(struct AVL *slist));
 
-int get_slist_id(struct state_list *slist);
 int get_stree_id(struct AVL *slist);
-
-struct state_list *stree_to_slist(struct AVL *stree);
-struct AVL *slist_to_stree(struct state_list *stree);
 
