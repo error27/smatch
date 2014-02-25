@@ -423,20 +423,20 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	set_extra_mod(sm->name, sm->sym, state);
 }
 
-static struct state_list *unmatched_slist;
+static struct AVL *unmatched_stree;
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	struct smatch_state *state;
 
-	if (unmatched_slist) {
-		state = get_state_slist(unmatched_slist, SMATCH_EXTRA, sm->name, sm->sym);
+	if (unmatched_stree) {
+		state = get_state_stree(unmatched_stree, SMATCH_EXTRA, sm->name, sm->sym);
 		if (state)
 			return state;
 	}
 	return alloc_estate_whole(estate_type(sm->state));
 }
 
-static void clear_the_pointed_at(struct expression *expr, struct state_list *slist)
+static void clear_the_pointed_at(struct expression *expr, struct AVL *stree)
 {
 	char *name;
 	struct symbol *sym;
@@ -446,7 +446,7 @@ static void clear_the_pointed_at(struct expression *expr, struct state_list *sli
 	if (!name || !sym)
 		goto free;
 
-	FOR_EACH_PTR(slist, tmp) {
+	FOR_EACH_SM(stree, tmp) {
 		if (tmp->name[0] != '*')
 			continue;
 		if (tmp->sym != sym)
@@ -454,7 +454,7 @@ static void clear_the_pointed_at(struct expression *expr, struct state_list *sli
 		if (strcmp(tmp->name + 1, name) != 0)
 			continue;
 		set_extra_mod(tmp->name, tmp->sym, alloc_estate_whole(estate_type(tmp->state)));
-	} END_FOR_EACH_PTR(tmp);
+	} END_FOR_EACH_SM(tmp);
 
 free:
 	free_string(name);
@@ -464,7 +464,7 @@ static void match_function_call(struct expression *expr)
 {
 	struct expression *arg;
 	struct expression *tmp;
-	struct state_list *slist;
+	struct AVL *stree;
 
 	/* if we have the db this is handled in smatch_function_hooks.c */
 	if (!option_no_db)
@@ -472,17 +472,17 @@ static void match_function_call(struct expression *expr)
 	if (inlinable(expr->fn))
 		return;
 
-	slist = get_all_states(SMATCH_EXTRA);
+	stree = get_all_states_stree(SMATCH_EXTRA);
 
 	FOR_EACH_PTR(expr->args, arg) {
 		tmp = strip_expr(arg);
 		if (tmp->type == EXPR_PREOP && tmp->op == '&')
 			set_extra_expr_mod(tmp->unop, alloc_estate_whole(get_type(tmp->unop)));
 		else
-			clear_the_pointed_at(tmp, slist);
+			clear_the_pointed_at(tmp, stree);
 	} END_FOR_EACH_PTR(arg);
 
-	free_slist(&slist);
+	free_stree(&stree);
 }
 
 static int types_equiv_or_pointer(struct symbol *one, struct symbol *two)
@@ -1357,12 +1357,12 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 
 static void db_limited_before(void)
 {
-	unmatched_slist = clone_slist(__get_cur_slist());
+	unmatched_stree = clone_stree(__get_cur_stree());
 }
 
 static void db_limited_after(void)
 {
-	free_slist(&unmatched_slist);
+	free_stree(&unmatched_stree);
 }
 
 static void db_param_limit_filter(struct expression *expr, int param, char *key, char *value, int mod)
