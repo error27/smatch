@@ -118,18 +118,18 @@ static void check_possible(struct sm_state *sm)
 
 static void match_return(struct expression *expr)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 	struct sm_state *tmp;
 
 	if (__inline_fn)
 		return;
 
-	slist = get_all_states(my_id);
-	FOR_EACH_PTR(slist, tmp) {
+	stree = get_all_states_stree(my_id);
+	FOR_EACH_SM(stree, tmp) {
 		if (tmp->state == &merged)
 			check_possible(tmp);
-	} END_FOR_EACH_PTR(tmp);
-	free_slist(&slist);
+	} END_FOR_EACH_SM(tmp);
+	free_stree(&stree);
 }
 
 static void clear_lists(void)
