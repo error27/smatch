@@ -99,7 +99,7 @@ static void set_param_dereferenced(struct expression *arg, char *unused)
 	check_deref(arg);
 }
 
-static void process_states(struct AVL *stree)
+static void process_states(struct stree *stree)
 {
 	struct symbol *arg;
 	int i;

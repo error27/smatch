@@ -190,9 +190,9 @@ static void handle_logical(struct expression *expr)
 	__use_cond_true_states();
 }
 
-static struct AVL *combine_strees(struct AVL *orig, struct AVL *fake, struct AVL *new)
+static struct stree *combine_strees(struct stree *orig, struct stree *fake, struct stree *new)
 {
-	struct AVL *ret = NULL;
+	struct stree *ret = NULL;
 
 	overwrite_stree(orig, &ret);
 	overwrite_stree(fake, &ret);
@@ -215,14 +215,14 @@ static struct AVL *combine_strees(struct AVL *orig, struct AVL *fake, struct AVL
 
 static void handle_select(struct expression *expr)
 {
-	struct AVL *a_T = NULL;
-	struct AVL *a_F = NULL;
-	struct AVL *a_T_b_T = NULL;
-	struct AVL *a_T_b_F = NULL;
-	struct AVL *a_T_b_fake = NULL;
-	struct AVL *a_F_c_T = NULL;
-	struct AVL *a_F_c_F = NULL;
-	struct AVL *a_F_c_fake = NULL;
+	struct stree *a_T = NULL;
+	struct stree *a_F = NULL;
+	struct stree *a_T_b_T = NULL;
+	struct stree *a_T_b_F = NULL;
+	struct stree *a_T_b_fake = NULL;
+	struct stree *a_F_c_T = NULL;
+	struct stree *a_F_c_F = NULL;
+	struct stree *a_F_c_fake = NULL;
 	struct sm_state *sm;
 
 	/*
@@ -526,7 +526,7 @@ static void set_fake_assign(struct expression *new,
 int __handle_select_assigns(struct expression *expr)
 {
 	struct expression *right;
-	struct AVL *final_states = NULL;
+	struct stree *final_states = NULL;
 	struct sm_state *sm;
 	int is_true;
 	int is_false;

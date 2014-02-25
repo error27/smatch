@@ -66,7 +66,7 @@ static void print_one_return_value_param(int return_id, char *return_ranges,
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct AVL *stree;
+	struct stree *stree;
 	struct sm_state *sm;
 	struct smatch_state *extra;
 	int param;

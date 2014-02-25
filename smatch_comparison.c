@@ -637,7 +637,7 @@ done:
 	free_string(var);
 }
 
-static void update_tf_links(struct AVL *pre_stree,
+static void update_tf_links(struct stree *pre_stree,
 			    const char *left_var, struct var_sym_list *left_vsl,
 			    int left_comparison,
 			    const char *mid_var, struct var_sym_list *mid_vsl,
@@ -710,7 +710,7 @@ static void update_tf_links(struct AVL *pre_stree,
 	} END_FOR_EACH_PTR(tmp);
 }
 
-static void update_tf_data(struct AVL *pre_stree,
+static void update_tf_data(struct stree *pre_stree,
 		const char *left_name, struct symbol *left_sym,
 		const char *right_name, struct symbol *right_sym,
 		struct compare_data *tdata)
@@ -735,7 +735,7 @@ static void match_compare(struct expression *expr)
 	int op, false_op;
 	struct smatch_state *true_state, *false_state;
 	char state_name[256];
-	struct AVL *pre_stree;
+	struct stree *pre_stree;
 
 	if (expr->type != EXPR_COMPARE)
 		return;

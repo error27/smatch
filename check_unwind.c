@@ -127,7 +127,7 @@ static int func_returns_int()
 
 static void match_return(struct expression *ret_value)
 {
-	struct AVL *stree;
+	struct stree *stree;
 	struct sm_state *tmp;
 	sval_t sval;
 

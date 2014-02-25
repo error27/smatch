@@ -118,7 +118,7 @@ static void check_possible(struct sm_state *sm)
 
 static void match_return(struct expression *expr)
 {
-	struct AVL *stree;
+	struct stree *stree;
 	struct sm_state *tmp;
 
 	if (__inline_fn)

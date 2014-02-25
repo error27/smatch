@@ -211,7 +211,7 @@ static void match_assign(struct expression *expr)
 
 static void check_for_allocated(void)
 {
-	struct AVL *stree;
+	struct stree *stree;
 	struct sm_state *tmp;
 
 	stree = get_all_states_stree(my_id);

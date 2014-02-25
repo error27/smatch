@@ -95,7 +95,7 @@ static void set_param_freed(struct expression *arg, char *unused)
 	freed_variable(arg);
 }
 
-static void process_states(struct AVL *stree)
+static void process_states(struct stree *stree)
 {
 	struct symbol *arg;
 	int i;

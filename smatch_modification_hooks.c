@@ -80,7 +80,7 @@ static int matches(char *name, struct symbol *sym, struct sm_state *sm)
 
 static void call_modification_hooks_name_sym(char *name, struct symbol *sym, struct expression *mod_expr)
 {
-	struct AVL *stree;
+	struct stree *stree;
 	struct sm_state *sm;
 	int match;
 

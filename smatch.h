@@ -76,7 +76,7 @@ struct sm_state {
 	unsigned int nr_children;
 	unsigned int line;
   	struct smatch_state *state;
-	struct AVL *pool;
+	struct stree *pool;
 	struct sm_state *left;
 	struct sm_state *right;
 	struct state_list *possible;
@@ -248,9 +248,9 @@ void set_true_false_states_expr(int owner, struct expression *expr,
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state);
 
-struct AVL *get_all_states_from_stree(int owner, struct AVL *source);
-struct AVL *get_all_states_stree(int id);
-struct AVL *__get_cur_stree(void);
+struct stree *get_all_states_from_stree(int owner, struct stree *source);
+struct stree *get_all_states_stree(int id);
+struct stree *__get_cur_stree(void);
 int is_reachable(void);
 
 /* smatch_helper.c */
@@ -414,10 +414,10 @@ extern int option_debug_implied;
 extern int option_debug_related;
 extern int option_no_implied;
 struct range_list_stack;
-struct AVL *__implied_case_stree(struct expression *switch_expr,
+struct stree *__implied_case_stree(struct expression *switch_expr,
 				 struct expression *case_expr,
 				 struct range_list_stack **remaining_cases,
-				 struct AVL **raw_stree);
+				 struct stree **raw_stree);
 struct range_list *__get_implied_values(struct expression *switch_expr);
 void overwrite_states_using_pool(struct sm_state *sm);
 
@@ -454,12 +454,12 @@ int get_db_type_rl(struct expression *expr, struct range_list **rl);
 
 /* smatch_states.c */
 void __push_fake_cur_slist();
-struct AVL *__pop_fake_cur_slist();
+struct stree *__pop_fake_cur_slist();
 void __free_fake_cur_slist();
 void __pop_fake_cur_slist_fast(void);
-void __set_fake_cur_stree_fast(struct AVL *stree);
+void __set_fake_cur_stree_fast(struct stree *stree);
 void __pop_fake_cur_stree_fast(void);
-void __merge_stree_into_cur(struct AVL *stree);
+void __merge_stree_into_cur(struct stree *stree);
 
 int unreachable(void);
 void __set_sm(struct sm_state *sm);
@@ -489,10 +489,10 @@ void __use_pre_cond_states(void);
 void __use_cond_true_states(void);
 void __use_cond_false_states(void);
 void __push_cond_stacks(void);
-struct AVL *__copy_cond_true_states(void);
-struct AVL *__copy_cond_false_states(void);
-struct AVL *__pop_cond_true_stack(void);
-struct AVL *__pop_cond_false_stack(void);
+struct stree *__copy_cond_true_states(void);
+struct stree *__copy_cond_false_states(void);
+struct stree *__pop_cond_true_stack(void);
+struct stree *__pop_cond_false_stack(void);
 void __and_cond_states(void);
 void __or_cond_states(void);
 void __save_pre_cond_states(void);
@@ -731,7 +731,7 @@ int is_uninitialized(struct expression *expr);
 int has_uninitialized_members(struct expression *expr);
 
 /* smatch_start_states.c */
-struct AVL *get_start_states(void);
+struct stree *get_start_states(void);
 
 /* smatch_recurse.c */
 int has_symbol(struct expression *expr, struct symbol *sym);

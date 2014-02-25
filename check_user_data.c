@@ -55,7 +55,7 @@ int is_user_macro(struct expression *expr)
 	return 0;
 }
 
-static int has_user_data_state(struct expression *expr, struct AVL *my_stree)
+static int has_user_data_state(struct expression *expr, struct stree *my_stree)
 {
 	struct sm_state *sm;
 	struct symbol *sym;
@@ -79,7 +79,7 @@ static int has_user_data_state(struct expression *expr, struct AVL *my_stree)
 
 static int passes_user_data(struct expression *expr)
 {
-	struct AVL *stree;
+	struct stree *stree;
 	struct expression *arg;
 
 	stree = get_all_states_stree(my_id);
@@ -186,7 +186,7 @@ static int in_container_of_macro(struct expression *expr)
 
 static int is_user_data_state(struct expression *expr)
 {
-	struct AVL *stree = NULL;
+	struct stree *stree = NULL;
 	struct sm_state *tmp;
 	struct symbol *sym;
 	char *name;
@@ -477,7 +477,7 @@ static void returned_member_callback(int return_id, char *return_ranges, char *p
 
 static void print_returned_user_data(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct AVL *stree;
+	struct stree *stree;
 	struct sm_state *tmp;
 	int param;
 	int user_data;

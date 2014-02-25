@@ -26,7 +26,7 @@
 
 static int my_id;
 
-static struct AVL *start_states;
+static struct stree *start_states;
 static struct stree_stack *saved_stack;
 static void save_start_states(struct statement *stmt)
 {
@@ -50,7 +50,7 @@ static void match_end_func(void)
 	free_stree(&start_states);
 }
 
-struct AVL *get_start_states(void)
+struct stree *get_start_states(void)
 {
 	return start_states;
 }

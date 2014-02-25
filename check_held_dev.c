@@ -65,7 +65,7 @@ static void match_returns_null(const char *fn, struct expression *call_expr,
 
 static void check_for_held(void)
 {
-	struct AVL *stree;
+	struct stree *stree;
 	struct sm_state *tmp;
 
 	stree = get_all_states_stree(my_id);

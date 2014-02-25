@@ -23,7 +23,7 @@ static int my_id;
 STATE(checked);
 STATE(modified);
 
-struct AVL *to_check;
+struct stree *to_check;
 
 static void set_modified(struct sm_state *sm, struct expression *mod_expr)
 {

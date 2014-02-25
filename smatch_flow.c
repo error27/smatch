@@ -363,7 +363,7 @@ static void handle_pre_loop(struct statement *stmt)
 	struct sm_state *extra_sm = NULL;
 	int unchanged = 0;
 	char *loop_name;
-	struct AVL *stree = NULL;
+	struct stree *stree = NULL;
 	struct sm_state *sm = NULL;
 
 	loop_name = get_loop_name(loop_num);

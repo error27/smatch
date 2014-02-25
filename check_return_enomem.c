@@ -51,7 +51,7 @@ static void allocation_failed(const char *fn, struct expression *call_expr,
 static void match_return(struct expression *ret_value)
 {
 	struct sm_state *sm;
-	struct AVL *stree;
+	struct stree *stree;
 	sval_t sval;
 
 	if (!ret_value)

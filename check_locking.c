@@ -603,7 +603,7 @@ static void check_possible(struct sm_state *sm)
 static void match_return(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct locks_on_return *ret;
-	struct AVL *stree;
+	struct stree *stree;
 	struct sm_state *tmp;
 
 	if (!final_pass)
@@ -877,7 +877,7 @@ static void load_table(struct lock_info *_lock_table, int size)
 /* print_held_locks() is used in check_call_tree.c */
 void print_held_locks()
 {
-	struct AVL *stree;
+	struct stree *stree;
 	struct sm_state *sm;
 	int i = 0;
 

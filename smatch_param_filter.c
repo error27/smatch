@@ -38,7 +38,7 @@ static int my_id;
 STATE(modified);
 STATE(original);
 
-static struct AVL *start_states;
+static struct stree *start_states;
 static struct stree_stack *saved_stack;
 static void save_start_states(struct statement *stmt)
 {
@@ -135,7 +135,7 @@ static void print_one_extra_param(int return_id, char *return_ranges,
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct AVL *extra_stree;
+	struct stree *extra_stree;
 	struct sm_state *tmp;
 	struct sm_state *sm;
 	int param;

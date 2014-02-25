@@ -443,7 +443,7 @@ static void match_call_marker(struct expression *expr)
 	sql_insert_caller_info(expr, INTERNAL, -1, "%call_marker%", "");
 }
 
-static void print_struct_members(struct expression *call, struct expression *expr, int param, struct AVL *stree,
+static void print_struct_members(struct expression *call, struct expression *expr, int param, struct stree *stree,
 	void (*callback)(struct expression *call, int param, char *printed_name, struct smatch_state *state))
 {
 	struct sm_state *sm;
@@ -492,7 +492,7 @@ static void match_call_info(struct expression *call)
 {
 	struct member_info_callback *cb;
 	struct expression *arg;
-	struct AVL *stree;
+	struct stree *stree;
 	char *name;
 	int i;
 
@@ -541,7 +541,7 @@ static int get_param(int param, char **name, struct symbol **sym)
 	return FALSE;
 }
 
-static struct AVL *final_states;
+static struct stree *final_states;
 static int prev_func_id = -1;
 static int db_callback(void *unused, int argc, char **argv, char **azColName)
 {
@@ -551,7 +551,7 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 	char *name = NULL;
 	struct symbol *sym = NULL;
 	struct def_callback *def_callback;
-	struct AVL *stree;
+	struct stree *stree;
 
 	if (argc != 5)
 		return 0;
@@ -664,7 +664,7 @@ static void get_function_pointer_callers(struct symbol *sym)
 static void match_data_from_db(struct symbol *sym)
 {
 	struct sm_state *sm;
-	struct AVL *stree;
+	struct stree *stree;
 
 	if (!sym || !sym->ident || !sym->ident->name)
 		return;
@@ -984,7 +984,7 @@ static void call_return_state_hooks(struct expression *expr)
 static void print_returned_struct_members(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct returned_member_callback *cb;
-	struct AVL *my_stree;
+	struct stree *my_stree;
 	struct sm_state *sm;
 	struct symbol *type;
 	char *name;

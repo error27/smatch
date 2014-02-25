@@ -28,37 +28,37 @@
 
 struct sm_state;
 
-typedef struct AVL           AVL;
+typedef struct stree           stree;
 typedef struct AvlNode       AvlNode;
 typedef struct AvlIter       AvlIter;
 
-void avl_free(AVL **avl);
-	/* Free an AVL tree. */
+void avl_free(stree **avl);
+	/* Free an stree tree. */
 
-struct sm_state *avl_lookup(const AVL *avl, const struct sm_state *sm);
+struct sm_state *avl_lookup(const stree *avl, const struct sm_state *sm);
 	/* O(log n). Lookup a sm.  Return NULL if the sm is not present. */
 
 #define avl_member(avl, sm) (!!avl_lookup_node(avl, sm))
 	/* O(log n). See if a sm is present. */
 
-size_t avl_count(const AVL *avl);
+size_t avl_count(const stree *avl);
 	/* O(1). Return the number of elements in the tree. */
 
-bool avl_insert(AVL **avl, const struct sm_state *sm);
+bool avl_insert(stree **avl, const struct sm_state *sm);
 	/*
 	 * O(log n). Insert an sm or replace it if already present.
 	 *
 	 * Return false if the insertion replaced an existing sm.
 	 */
 
-bool avl_remove(AVL **avl, const struct sm_state *sm);
+bool avl_remove(stree **avl, const struct sm_state *sm);
 	/*
 	 * O(log n). Remove an sm (if present).
 	 *
 	 * Return true if it was removed.
 	 */
 
-bool avl_check_invariants(AVL *avl);
+bool avl_check_invariants(stree *avl);
 	/* For testing purposes.  This function will always return true :-) */
 
 
@@ -66,7 +66,7 @@ bool avl_check_invariants(AVL *avl);
 
 #define avl_foreach(iter, avl)         avl_traverse(iter, avl, FORWARD)
 	/*
-	 * O(n). Traverse an AVL tree in order.
+	 * O(n). Traverse an stree tree in order.
 	 *
 	 * Example:
 	 *
@@ -84,7 +84,7 @@ bool avl_check_invariants(AVL *avl);
 #define END_FOR_EACH_SM(_sm) }}
 
 #define avl_foreach_reverse(iter, avl) avl_traverse(iter, avl, BACKWARD)
-	/* O(n). Traverse an AVL tree in reverse order. */
+	/* O(n). Traverse an stree tree in reverse order. */
 
 typedef enum AvlDirection {FORWARD = 0, BACKWARD = 1} AvlDirection;
 
@@ -98,7 +98,7 @@ struct AvlIter {
 	AvlDirection  direction;
 };
 
-void avl_iter_begin(AvlIter *iter, AVL *avl, AvlDirection dir);
+void avl_iter_begin(AvlIter *iter, stree *avl, AvlDirection dir);
 void avl_iter_next(AvlIter *iter);
 #define avl_traverse(iter, avl, direction)        \
 	for (avl_iter_begin(&(iter), avl, direction); \
@@ -108,7 +108,7 @@ void avl_iter_next(AvlIter *iter);
 
 /***************** Internal data structures ******************/
 
-struct AVL {
+struct stree {
 	AvlNode    *root;
 	size_t      count;
 };
@@ -120,9 +120,9 @@ struct AvlNode {
 	int         balance; /* -1, 0, or 1 */
 };
 
-AvlNode *avl_lookup_node(const AVL *avl, const struct sm_state *sm);
-	/* O(log n). Lookup an AVL node by sm.  Return NULL if not present. */
+AvlNode *avl_lookup_node(const stree *avl, const struct sm_state *sm);
+	/* O(log n). Lookup an stree node by sm.  Return NULL if not present. */
 
-AVL *clone_stree(AVL *orig);
+stree *clone_stree(stree *orig);
 
 #endif

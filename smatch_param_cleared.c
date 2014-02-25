@@ -70,7 +70,7 @@ static void match_memcpy(const char *fn, struct expression *expr, void *arg)
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct AVL *stree;
+	struct stree *stree;
 	struct sm_state *sm;
 	int param;
 

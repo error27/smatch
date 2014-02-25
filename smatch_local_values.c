@@ -104,7 +104,7 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 	set_state(my_id, name, sym, new);
 }
 
-static void process_states(struct AVL *stree)
+static void process_states(struct stree *stree)
 {
 	struct sm_state *sm;
 	struct smatch_state *extra;

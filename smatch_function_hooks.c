@@ -239,8 +239,8 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 	char *var_name;
 	struct symbol *sym;
 	struct smatch_state *estate;
-	struct AVL *tmp_stree;
-	struct AVL *final_states = NULL;
+	struct stree *tmp_stree;
+	struct stree *final_states = NULL;
 	struct range_list *handled_ranges = NULL;
 	struct call_back_list *same_range_call_backs = NULL;
 	int handled = 0;
@@ -290,9 +290,9 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 	struct fcall_back *tmp;
 	const char *fn;
 	struct data_range *value_range;
-	struct AVL *true_states = NULL;
-	struct AVL *false_states = NULL;
-	struct AVL *tmp_stree;
+	struct stree *true_states = NULL;
+	struct stree *false_states = NULL;
+	struct stree *tmp_stree;
 	struct sm_state *sm;
 
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
@@ -347,7 +347,7 @@ struct db_callback_info {
 	struct expression *expr;
 	struct range_list *rl;
 	int left;
-	struct AVL *stree;
+	struct stree *stree;
 	struct db_implies_list *callbacks;
 };
 static struct db_callback_info db_info;
@@ -389,8 +389,8 @@ static int db_compare_callback(void *unused, int argc, char **argv, char **azCol
 
 void compare_db_return_states_callbacks(int comparison, struct expression *expr, sval_t sval, int left)
 {
-	struct AVL *true_states;
-	struct AVL *false_states;
+	struct stree *true_states;
+	struct stree *false_states;
 	struct sm_state *sm;
 
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
@@ -445,7 +445,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 	int type, param;
 	char *key, *value;
 	struct return_implies_callback *tmp;
-	struct AVL *stree;
+	struct stree *stree;
 	int return_id;
 
 	if (argc != 6)
@@ -484,7 +484,7 @@ static int db_return_states_assign(struct expression *expr)
 {
 	struct expression *right;
 	struct sm_state *sm;
-	struct AVL *stree;
+	struct stree *stree;
 	int handled = 0;
 
 	right = strip_expr(expr->right);
@@ -577,7 +577,7 @@ static int db_return_states_callback(void *unused, int argc, char **argv, char *
 	int type, param;
 	char *key, *value;
 	struct return_implies_callback *tmp;
-	struct AVL *stree;
+	struct stree *stree;
 	int return_id;
 
 	if (argc != 6)
@@ -611,7 +611,7 @@ static int db_return_states_callback(void *unused, int argc, char **argv, char *
 static void db_return_states(struct expression *expr)
 {
 	struct sm_state *sm;
-	struct AVL *stree;
+	struct stree *stree;
 
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
 		return;

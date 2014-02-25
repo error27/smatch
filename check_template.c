@@ -85,7 +85,7 @@ free_fn:
 static void match_return(struct expression *ret_value)
 {
 	sval_t ret_val;
-	struct AVL *stree;
+	struct stree *stree;
 	struct sm_state *tmp;
 
 	if (!get_value(ret_value, &ret_val) || sval_cmp_val(ret_val, 0) >= 0)

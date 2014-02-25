@@ -29,17 +29,17 @@
 static AvlNode *mkNode(const struct sm_state *sm);
 static void freeNode(AvlNode *node);
 
-static AvlNode *lookup(const AVL *avl, AvlNode *node, const struct sm_state *sm);
+static AvlNode *lookup(const stree *avl, AvlNode *node, const struct sm_state *sm);
 
-static bool insert_sm(AVL *avl, AvlNode **p, const struct sm_state *sm);
-static bool remove_sm(AVL *avl, AvlNode **p, const struct sm_state *sm, AvlNode **ret);
+static bool insert_sm(stree *avl, AvlNode **p, const struct sm_state *sm);
+static bool remove_sm(stree *avl, AvlNode **p, const struct sm_state *sm, AvlNode **ret);
 static bool removeExtremum(AvlNode **p, int side, AvlNode **ret);
 
 static int sway(AvlNode **p, int sway);
 static void balance(AvlNode **p, int side);
 
 static bool checkBalances(AvlNode *node, int *height);
-static bool checkOrder(AVL *avl);
+static bool checkOrder(stree *avl);
 static size_t countNode(AvlNode *node);
 
 /*
@@ -63,9 +63,9 @@ static int sign(int cmp)
 	return 1;
 }
 
-AVL *avl_new(void)
+stree *avl_new(void)
 {
-	AVL *avl = malloc(sizeof(*avl));
+	stree *avl = malloc(sizeof(*avl));
 
 	assert(avl != NULL);
 
@@ -74,7 +74,7 @@ AVL *avl_new(void)
 	return avl;
 }
 
-void avl_free(AVL **avl)
+void avl_free(stree **avl)
 {
 	if (*avl) {
 		freeNode((*avl)->root);
@@ -83,7 +83,7 @@ void avl_free(AVL **avl)
 	*avl = NULL;
 }
 
-struct sm_state *avl_lookup(const AVL *avl, const struct sm_state *sm)
+struct sm_state *avl_lookup(const stree *avl, const struct sm_state *sm)
 {
 	AvlNode *found;
 
@@ -95,19 +95,19 @@ struct sm_state *avl_lookup(const AVL *avl, const struct sm_state *sm)
 	return (struct sm_state *)found->sm;
 }
 
-AvlNode *avl_lookup_node(const AVL *avl, const struct sm_state *sm)
+AvlNode *avl_lookup_node(const stree *avl, const struct sm_state *sm)
 {
 	return lookup(avl, avl->root, sm);
 }
 
-size_t avl_count(const AVL *avl)
+size_t avl_count(const stree *avl)
 {
 	if (!avl)
 		return 0;
 	return avl->count;
 }
 
-bool avl_insert(AVL **avl, const struct sm_state *sm)
+bool avl_insert(stree **avl, const struct sm_state *sm)
 {
 	size_t old_count;
 
@@ -118,7 +118,7 @@ bool avl_insert(AVL **avl, const struct sm_state *sm)
 	return (*avl)->count != old_count;
 }
 
-bool avl_remove(AVL **avl, const struct sm_state *sm)
+bool avl_remove(stree **avl, const struct sm_state *sm)
 {
 	AvlNode *node = NULL;
 
@@ -160,7 +160,7 @@ static void freeNode(AvlNode *node)
 	}
 }
 
-static AvlNode *lookup(const AVL *avl, AvlNode *node, const struct sm_state *sm)
+static AvlNode *lookup(const stree *avl, AvlNode *node, const struct sm_state *sm)
 {
 	int cmp;
 
@@ -181,7 +181,7 @@ static AvlNode *lookup(const AVL *avl, AvlNode *node, const struct sm_state *sm)
  *
  * Return true if the subtree's height increased.
  */
-static bool insert_sm(AVL *avl, AvlNode **p, const struct sm_state *sm)
+static bool insert_sm(stree *avl, AvlNode **p, const struct sm_state *sm)
 {
 	if (*p == NULL) {
 		*p = mkNode(sm);
@@ -211,7 +211,7 @@ static bool insert_sm(AVL *avl, AvlNode **p, const struct sm_state *sm)
  *
  * Return true if the subtree's height decreased.
  */
-static bool remove_sm(AVL *avl, AvlNode **p, const struct sm_state *sm, AvlNode **ret)
+static bool remove_sm(stree *avl, AvlNode **p, const struct sm_state *sm, AvlNode **ret)
 {
 	if (p == NULL || *p == NULL) {
 		return false;
@@ -357,7 +357,7 @@ static void balance(AvlNode **p, int side)
 
 /************************* avl_check_invariants() *************************/
 
-bool avl_check_invariants(AVL *avl)
+bool avl_check_invariants(stree *avl)
 {
 	int    dummy;
 
@@ -387,7 +387,7 @@ static bool checkBalances(AvlNode *node, int *height)
 	}
 }
 
-static bool checkOrder(AVL *avl)
+static bool checkOrder(stree *avl)
 {
 	AvlIter     i;
 	const struct sm_state *last = NULL;
@@ -414,7 +414,7 @@ static size_t countNode(AvlNode *node)
 
 /************************* Traversal *************************/
 
-void avl_iter_begin(AvlIter *iter, AVL *avl, AvlDirection dir)
+void avl_iter_begin(AvlIter *iter, stree *avl, AvlDirection dir)
 {
 	AvlNode *node;
 
@@ -463,9 +463,9 @@ void avl_iter_next(AvlIter *iter)
 	iter->sm   = (struct sm_state *) node->sm;
 }
 
-AVL *clone_stree(AVL *orig)
+stree *clone_stree(stree *orig)
 {
-	AVL *new = NULL;
+	stree *new = NULL;
  	AvlIter i;
 
 	avl_foreach(i, orig)

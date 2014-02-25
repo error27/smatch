@@ -24,7 +24,7 @@ static int my_id;
 
 static void match_all_values(const char *fn, struct expression *expr, void *info)
 {
-	struct AVL *stree;
+	struct stree *stree;
 
 	stree = get_all_states_stree(SMATCH_EXTRA);
 	__print_stree(stree);
@@ -91,7 +91,7 @@ static void match_states(const char *fn, struct expression *expr, void *info)
 
 static void match_print_value(const char *fn, struct expression *expr, void *info)
 {
-	struct AVL *stree;
+	struct stree *stree;
 	struct sm_state *tmp;
 	struct expression *arg_expr;
 
@@ -267,7 +267,7 @@ static void print_possible(struct sm_state *sm)
 
 static void match_possible(const char *fn, struct expression *expr, void *info)
 {
-	struct AVL *stree;
+	struct stree *stree;
 	struct sm_state *tmp;
 	struct expression *arg_expr;
 
@@ -360,7 +360,7 @@ static void print_related(struct sm_state *sm)
 
 static void match_dump_related(const char *fn, struct expression *expr, void *info)
 {
-	struct AVL *stree;
+	struct stree *stree;
 	struct sm_state *tmp;
 
 	stree = get_all_states_stree(SMATCH_EXTRA);

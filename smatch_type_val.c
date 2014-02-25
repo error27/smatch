@@ -39,8 +39,8 @@
 static int my_id;
 
 struct stree_stack *fn_type_val_stack;
-struct AVL *fn_type_val;
-struct AVL *global_type_val;
+struct stree *fn_type_val;
+struct stree *global_type_val;
 
 static char *db_vals;
 static int get_vals(void *unused, int argc, char **argv, char **azColName)
@@ -111,7 +111,7 @@ static struct smatch_state *clone_estate_perm(struct smatch_state *state)
 	return ret;
 }
 
-static void set_state_stree_perm(struct AVL **stree, int owner, const char *name,
+static void set_state_stree_perm(struct stree **stree, int owner, const char *name,
 		     struct symbol *sym, struct smatch_state *state)
 {
 	struct sm_state *sm;

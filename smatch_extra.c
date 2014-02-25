@@ -336,7 +336,7 @@ static struct sm_state *handle_canonical_for_loops(struct statement *loop)
 	return NULL;
 }
 
-struct sm_state *__extra_handle_canonical_loops(struct statement *loop, struct AVL **stree)
+struct sm_state *__extra_handle_canonical_loops(struct statement *loop, struct stree **stree)
 {
 	struct sm_state *ret;
 
@@ -423,7 +423,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	set_extra_mod(sm->name, sm->sym, state);
 }
 
-static struct AVL *unmatched_stree;
+static struct stree *unmatched_stree;
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	struct smatch_state *state;
@@ -436,7 +436,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	return alloc_estate_whole(estate_type(sm->state));
 }
 
-static void clear_the_pointed_at(struct expression *expr, struct AVL *stree)
+static void clear_the_pointed_at(struct expression *expr, struct stree *stree)
 {
 	char *name;
 	struct symbol *sym;
@@ -464,7 +464,7 @@ static void match_function_call(struct expression *expr)
 {
 	struct expression *arg;
 	struct expression *tmp;
-	struct AVL *stree;
+	struct stree *stree;
 
 	/* if we have the db this is handled in smatch_function_hooks.c */
 	if (!option_no_db)

@@ -42,7 +42,7 @@ struct smatch_state merged = { .name = "merged" };
 struct smatch_state true_state = { .name = "true" };
 struct smatch_state false_state = { .name = "false" };
 
-static struct AVL *cur_stree; /* current states */
+static struct stree *cur_stree; /* current states */
 
 static struct stree_stack *true_stack; /* states after a t/f branch */
 static struct stree_stack *false_stack;
@@ -164,7 +164,7 @@ void __push_fake_cur_slist()
 	__save_pre_cond_states();
 }
 
-struct AVL *__pop_fake_cur_slist()
+struct stree *__pop_fake_cur_slist()
 {
 	__use_pre_cond_states();
 	return pop_stree(&fake_cur_stree_stack);
@@ -172,14 +172,14 @@ struct AVL *__pop_fake_cur_slist()
 
 void __free_fake_cur_slist()
 {
-	struct AVL *stree;
+	struct stree *stree;
 
 	__use_pre_cond_states();
 	stree = pop_stree(&fake_cur_stree_stack);
 	free_stree(&stree);
 }
 
-void __set_fake_cur_stree_fast(struct AVL *stree)
+void __set_fake_cur_stree_fast(struct stree *stree)
 {
 	push_stree(&pre_cond_stack, cur_stree);
 	cur_stree = stree;
@@ -198,7 +198,7 @@ void __pop_fake_cur_stree_fast()
 	read_only = 0;
 }
 
-void __merge_stree_into_cur(struct AVL *stree)
+void __merge_stree_into_cur(struct stree *stree)
 {
 	struct sm_state *sm;
 	struct sm_state *orig;
@@ -340,9 +340,9 @@ free:
 	free_string(name);
 }
 
-struct AVL *get_all_states_from_stree(int owner, struct AVL *source)
+struct stree *get_all_states_from_stree(int owner, struct stree *source)
 {
-	struct AVL *ret = NULL;
+	struct stree *ret = NULL;
 	struct sm_state *tmp;
 
 	FOR_EACH_SM(source, tmp) {
@@ -353,12 +353,12 @@ struct AVL *get_all_states_from_stree(int owner, struct AVL *source)
 	return ret;
 }
 
-struct AVL *get_all_states_stree(int owner)
+struct stree *get_all_states_stree(int owner)
 {
 	return get_all_states_from_stree(owner, cur_stree);
 }
 
-struct AVL *__get_cur_stree(void)
+struct stree *__get_cur_stree(void)
 {
 	return cur_stree;
 }
@@ -573,30 +573,30 @@ void __push_cond_stacks(void)
 	push_stree(&cond_false_stack, NULL);
 }
 
-struct AVL *__copy_cond_true_states(void)
+struct stree *__copy_cond_true_states(void)
 {
-	struct AVL *ret;
+	struct stree *ret;
 
 	ret = pop_stree(&cond_true_stack);
 	push_stree(&cond_true_stack, clone_stree(ret));
 	return ret;
 }
 
-struct AVL *__copy_cond_false_states(void)
+struct stree *__copy_cond_false_states(void)
 {
-	struct AVL *ret;
+	struct stree *ret;
 
 	ret = pop_stree(&cond_false_stack);
 	push_stree(&cond_false_stack, clone_stree(ret));
 	return ret;
 }
 
-struct AVL *__pop_cond_true_stack(void)
+struct stree *__pop_cond_true_stack(void)
 {
 	return pop_stree(&cond_true_stack);
 }
 
-struct AVL *__pop_cond_false_stack(void)
+struct stree *__pop_cond_false_stack(void)
 {
 	return pop_stree(&cond_false_stack);
 }
@@ -611,7 +611,7 @@ struct AVL *__pop_cond_false_stack(void)
  */
 static void __use_cond_stack(struct stree_stack **stack)
 {
-	struct AVL *stree;
+	struct stree *stree;
 
 	free_stree(&cur_stree);
 
@@ -641,7 +641,7 @@ void __use_cond_false_states(void)
 
 void __negate_cond_stacks(void)
 {
-	struct AVL *old_false, *old_true;
+	struct stree *old_false, *old_true;
 
 	__use_cond_stack(&cond_false_stack);
 	old_false = pop_stree(&cond_false_stack);
@@ -669,7 +669,7 @@ void __save_pre_cond_states(void)
 
 void __discard_pre_cond_states(void)
 {
-	struct AVL *tmp;
+	struct stree *tmp;
 
 	tmp = pop_stree(&pre_cond_stack);
 	free_stree(&tmp);
@@ -677,7 +677,7 @@ void __discard_pre_cond_states(void)
 
 void __use_cond_states(void)
 {
-	struct AVL *pre, *pre_clone, *true_states, *false_states;
+	struct stree *pre, *pre_clone, *true_states, *false_states;
 
 	pre = pop_stree(&pre_cond_stack);
 	pre_clone = clone_stree(pre);
@@ -706,7 +706,7 @@ void __use_false_states(void)
 
 void __discard_false_states(void)
 {
-	struct AVL *stree;
+	struct stree *stree;
 
 	stree = pop_stree(&false_stack);
 	free_stree(&stree);
@@ -714,7 +714,7 @@ void __discard_false_states(void)
 
 void __merge_false_states(void)
 {
-	struct AVL *stree;
+	struct stree *stree;
 
 	stree = pop_stree(&false_stack);
 	merge_stree(&cur_stree, stree);
@@ -723,7 +723,7 @@ void __merge_false_states(void)
 
 void __merge_true_states(void)
 {
-	struct AVL *stree;
+	struct stree *stree;
 
 	stree = pop_stree(&true_stack);
 	merge_stree(&cur_stree, stree);
@@ -737,7 +737,7 @@ void __push_continues(void)
 
 void __discard_continues(void)
 {
-	struct AVL *stree;
+	struct stree *stree;
 
 	stree = pop_stree(&continue_stack);
 	free_stree(&stree);
@@ -745,7 +745,7 @@ void __discard_continues(void)
 
 void __process_continues(void)
 {
-	struct AVL *stree;
+	struct stree *stree;
 
 	stree = pop_stree(&continue_stack);
 	if (!stree)
@@ -758,7 +758,7 @@ void __process_continues(void)
 
 static int top_stree_empty(struct stree_stack **stack)
 {
-	struct AVL *tmp;
+	struct stree *tmp;
 	int empty = 0;
 
 	tmp = pop_stree(stack);
@@ -786,7 +786,7 @@ void __warn_on_silly_pre_loops(void)
 
 void __merge_continues(void)
 {
-	struct AVL *stree;
+	struct stree *stree;
 
 	stree = pop_stree(&continue_stack);
 	merge_stree(&cur_stree, stree);
@@ -800,7 +800,7 @@ void __push_breaks(void)
 
 void __process_breaks(void)
 {
-	struct AVL *stree;
+	struct stree *stree;
 
 	stree = pop_stree(&break_stack);
 	if (!stree)
@@ -813,7 +813,7 @@ void __process_breaks(void)
 
 int __has_breaks(void)
 {
-	struct AVL *stree;
+	struct stree *stree;
 	int ret;
 
 	stree = pop_stree(&break_stack);
@@ -824,7 +824,7 @@ int __has_breaks(void)
 
 void __merge_breaks(void)
 {
-	struct AVL *stree;
+	struct stree *stree;
 
 	stree = pop_stree(&break_stack);
 	merge_stree(&cur_stree, stree);
@@ -845,8 +845,8 @@ void __save_switch_states(struct expression *switch_expr)
 
 void __merge_switches(struct expression *switch_expr, struct expression *case_expr)
 {
-	struct AVL *stree;
-	struct AVL *implied_stree;
+	struct stree *stree;
+	struct stree *implied_stree;
 
 	stree = pop_stree(&switch_stack);
 	implied_stree = __implied_case_stree(switch_expr, case_expr, &remaining_cases, &stree);
@@ -857,7 +857,7 @@ void __merge_switches(struct expression *switch_expr, struct expression *case_ex
 
 void __discard_switches(void)
 {
-	struct AVL *stree;
+	struct stree *stree;
 
 	pop_rl(&remaining_cases);
 	stree = pop_stree(&switch_stack);
@@ -876,7 +876,7 @@ void __set_default(void)
 
 int __pop_default(void)
 {
-	struct AVL *stree;
+	struct stree *stree;
 
 	stree = pop_stree(&default_stack);
 	if (stree) {
@@ -886,7 +886,7 @@ int __pop_default(void)
 	return 0;
 }
 
-static struct named_stree *alloc_named_stree(const char *name, struct AVL *stree)
+static struct named_stree *alloc_named_stree(const char *name, struct stree *stree)
 {
 	struct named_stree *named_stree = __alloc_named_stree(0);
 
@@ -897,8 +897,8 @@ static struct named_stree *alloc_named_stree(const char *name, struct AVL *stree
 
 void __save_gotos(const char *name)
 {
-	struct AVL **stree;
-	struct AVL *clone;
+	struct stree **stree;
+	struct stree *clone;
 
 	stree = get_named_stree(goto_stack, name);
 	if (stree) {
@@ -915,7 +915,7 @@ void __save_gotos(const char *name)
 
 void __merge_gotos(const char *name)
 {
-	struct AVL **stree;
+	struct stree **stree;
 
 	stree = get_named_stree(goto_stack, name);
 	if (stree)
