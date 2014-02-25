@@ -74,7 +74,7 @@ struct stree *avl_new(void)
 	return avl;
 }
 
-void avl_free(struct stree **avl)
+void free_stree(struct stree **avl)
 {
 	if (*avl) {
 		freeNode((*avl)->root);
@@ -128,7 +128,7 @@ bool avl_remove(struct stree **avl, const struct sm_state *sm)
 	remove_sm(*avl, &(*avl)->root, sm, &node);
 
 	if ((*avl)->count == 0)
-		avl_free(avl);
+		free_stree(avl);
 
 	if (node == NULL) {
 		return false;

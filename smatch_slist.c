@@ -485,11 +485,6 @@ void free_slist(struct state_list **slist)
 	__free_ptr_list((struct ptr_list **)slist);
 }
 
-void free_stree(struct stree **stree)
-{
-	avl_free(stree);
-}
-
 void free_stree_stack(struct stree_stack **stack)
 {
 	__free_ptr_list((struct ptr_list **)stack);

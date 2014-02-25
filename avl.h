@@ -36,7 +36,7 @@ struct stree {
 	size_t      count;
 };
 
-void avl_free(struct stree **avl);
+void free_stree(struct stree **avl);
 	/* Free an stree tree. */
 
 struct sm_state *avl_lookup(const struct stree *avl, const struct sm_state *sm);
