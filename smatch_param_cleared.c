@@ -70,13 +70,13 @@ static void match_memcpy(const char *fn, struct expression *expr, void *arg)
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct state_list *my_slist;
+	struct AVL *stree;
 	struct sm_state *sm;
 	int param;
 
-	my_slist = get_all_states(my_id);
+	stree = get_all_states_stree(my_id);
 
-	FOR_EACH_PTR(my_slist, sm) {
+	FOR_EACH_SM(stree, sm) {
 		param = get_param_num_from_sym(sm->sym);
 		if (param < 0)
 			continue;
@@ -90,7 +90,8 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 			sql_insert_return_states(return_id, return_ranges,
 						 PARAM_CLEARED, param, "$$", "");
 		}
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
+	free_stree(&stree);
 }
 
 static void register_clears_param(void)
