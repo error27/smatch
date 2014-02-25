@@ -63,7 +63,7 @@ static void match_put(const char *fn, struct expression *expr, void *info)
 static int return_count = 0;
 static void match_return(struct expression *ret_value)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 	struct sm_state *tmp;
 	struct tracker *tracker;
 
@@ -71,13 +71,13 @@ static void match_return(struct expression *ret_value)
 		return;
 
 	if (!return_count) {
-		slist = get_all_states(my_id);
-		FOR_EACH_PTR(slist, tmp) {
+		stree = get_all_states_stree(my_id);
+		FOR_EACH_SM(stree, tmp) {
 			if (tmp->state == &putted)
 				add_tracker(&putted_args, my_id, tmp->name, 
 					    tmp->sym);
-		} END_FOR_EACH_PTR(tmp);
-		free_slist(&slist);
+		} END_FOR_EACH_SM(tmp);
+		free_stree(&stree);
 	} else {
 		FOR_EACH_PTR(putted_args, tracker) {
 			tmp = get_sm_state(my_id, tracker->name, tracker->sym);
