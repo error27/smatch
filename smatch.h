@@ -453,10 +453,9 @@ int get_local_min_helper(struct expression *expr, sval_t *sval);
 int get_db_type_rl(struct expression *expr, struct range_list **rl);
 
 /* smatch_states.c */
-void __push_fake_cur_slist();
-struct stree *__pop_fake_cur_slist();
-void __free_fake_cur_slist();
-void __pop_fake_cur_slist_fast(void);
+void __push_fake_cur_stree();
+struct stree *__pop_fake_cur_stree();
+void __free_fake_cur_stree();
 void __set_fake_cur_stree_fast(struct stree *stree);
 void __pop_fake_cur_stree_fast(void);
 void __merge_stree_into_cur(struct stree *stree);

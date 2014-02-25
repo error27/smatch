@@ -592,7 +592,7 @@ static struct range_list *handle_conditional_rl(struct expression *expr, int imp
 
 	type = get_type(expr);
 
-	__push_fake_cur_slist();
+	__push_fake_cur_stree();
 	final_pass = 0;
 	__split_whole_condition(expr->conditional);
 	true_rl = _get_rl(expr->cond_true, implied);
@@ -600,7 +600,7 @@ static struct range_list *handle_conditional_rl(struct expression *expr, int imp
 	__use_false_states();
 	false_rl = _get_rl(expr->cond_false, implied);
 	__merge_true_states();
-	__free_fake_cur_slist();
+	__free_fake_cur_stree();
 	final_pass = final_pass_orig;
 
 	if (!true_rl || !false_rl)

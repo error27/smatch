@@ -340,12 +340,12 @@ struct sm_state *__extra_handle_canonical_loops(struct statement *loop, struct s
 {
 	struct sm_state *ret;
 
-	__push_fake_cur_slist();
+	__push_fake_cur_stree();
 	if (!loop->iterator_post_statement)
 		ret = handle_canonical_while_count_down(loop);
 	else
 		ret = handle_canonical_for_loops(loop);
-	*stree = __pop_fake_cur_slist();
+	*stree = __pop_fake_cur_stree();
 	return ret;
 }
 

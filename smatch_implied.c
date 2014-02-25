@@ -609,10 +609,10 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 	if (sm)
 		separate_and_filter(sm, SPECIAL_EQUAL, vals, LEFT, *raw_stree, &true_states, &false_states);
 
-	__push_fake_cur_slist();
+	__push_fake_cur_stree();
 	__unnullify_path();
 	set_extra_nomod(name, sym, alloc_estate_rl(vals));
-	extra_states = __pop_fake_cur_slist();
+	extra_states = __pop_fake_cur_stree();
 	overwrite_stree(extra_states, &true_states);
 	overwrite_stree(true_states, &ret);
 	free_stree(&extra_states);
@@ -644,7 +644,7 @@ static int sm_state_in_slist(struct sm_state *sm, struct state_list *slist)
 /*
  * The situation is we have a SMATCH_EXTRA state and we want to break it into
  * each of the ->possible states and find the implications of each.  The caller
- * has to use __push_fake_cur_slist() to preserve the correct states so they
+ * has to use __push_fake_cur_stree() to preserve the correct states so they
  * can be restored later.
  */
 void overwrite_states_using_pool(struct sm_state *sm)

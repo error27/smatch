@@ -261,19 +261,19 @@ static void handle_select(struct expression *expr)
 	a_F = __copy_cond_false_states();
 
 	__push_cond_stacks();
-	__push_fake_cur_slist();
+	__push_fake_cur_stree();
 	split_conditions(expr->cond_true);
 	__process_post_op_stack();
-	a_T_b_fake = __pop_fake_cur_slist();
+	a_T_b_fake = __pop_fake_cur_stree();
 	a_T_b_T = combine_strees(a_T, a_T_b_fake, __pop_cond_true_stack());
 	a_T_b_F = combine_strees(a_T, a_T_b_fake, __pop_cond_false_stack());
 
 	__use_cond_false_states();
 
 	__push_cond_stacks();
-	__push_fake_cur_slist();
+	__push_fake_cur_stree();
 	split_conditions(expr->cond_false);
-	a_F_c_fake = __pop_fake_cur_slist();
+	a_F_c_fake = __pop_fake_cur_stree();
 	a_F_c_T = combine_strees(a_F, a_F_c_fake, __pop_cond_true_stack());
 	a_F_c_F = combine_strees(a_F, a_F_c_fake, __pop_cond_false_stack());
 

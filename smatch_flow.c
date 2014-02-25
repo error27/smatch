@@ -399,9 +399,9 @@ static void handle_pre_loop(struct statement *stmt)
 	if (is_forever_loop(stmt)) {
 		__save_gotos(loop_name);
 
-		__push_fake_cur_slist();
+		__push_fake_cur_stree();
 		__split_stmt(stmt->iterator_post_statement);
-		stree = __pop_fake_cur_slist();
+		stree = __pop_fake_cur_stree();
 
 		__discard_continues();
 		__discard_false_states();

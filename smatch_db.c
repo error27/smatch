@@ -566,10 +566,10 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 	if (prev_func_id == -1)
 		prev_func_id = func_id;
 	if (func_id != prev_func_id) {
-		stree = __pop_fake_cur_slist();
+		stree = __pop_fake_cur_stree();
 		merge_stree(&final_states, stree);
 		free_stree(&stree);
-		__push_fake_cur_slist();
+		__push_fake_cur_stree();
 		__unnullify_path();
 		prev_func_id = func_id;
 	}
@@ -669,7 +669,7 @@ static void match_data_from_db(struct symbol *sym)
 	if (!sym || !sym->ident || !sym->ident->name)
 		return;
 
-	__push_fake_cur_slist();
+	__push_fake_cur_stree();
 	__unnullify_path();
 	prev_func_id = -1;
 
@@ -677,7 +677,7 @@ static void match_data_from_db(struct symbol *sym)
 	if (!__inline_fn)
 		get_function_pointer_callers(sym);
 
-	stree = __pop_fake_cur_slist();
+	stree = __pop_fake_cur_stree();
 	merge_stree(&final_states, stree);
 	free_stree(&stree);
 
@@ -784,7 +784,7 @@ static void call_return_state_hooks_conditional(struct expression *expr)
 	char *return_ranges;
 	int final_pass_orig = final_pass;
 
-	__push_fake_cur_slist();
+	__push_fake_cur_stree();
 
 	final_pass = 0;
 	__split_whole_condition(expr->conditional);
@@ -816,7 +816,7 @@ static void call_return_state_hooks_conditional(struct expression *expr)
 	} END_FOR_EACH_PTR(cb);
 
 	__merge_true_states();
-	__free_fake_cur_slist();
+	__free_fake_cur_stree();
 }
 
 static void call_return_state_hooks_compare(struct expression *expr)
@@ -825,7 +825,7 @@ static void call_return_state_hooks_compare(struct expression *expr)
 	char *return_ranges;
 	int final_pass_orig = final_pass;
 
-	__push_fake_cur_slist();
+	__push_fake_cur_stree();
 
 	final_pass = 0;
 	__split_whole_condition(expr);
@@ -848,7 +848,7 @@ static void call_return_state_hooks_compare(struct expression *expr)
 	} END_FOR_EACH_PTR(cb);
 
 	__merge_true_states();
-	__free_fake_cur_slist();
+	__free_fake_cur_stree();
 }
 
 static int call_return_state_hooks_split_possible(struct expression *expr)
@@ -891,7 +891,7 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 			continue;
 
 		ret = 1;
-		__push_fake_cur_slist();
+		__push_fake_cur_stree();
 
 		overwrite_states_using_pool(tmp);
 
@@ -907,7 +907,7 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 			cb->callback(return_id, return_ranges, expr);
 		} END_FOR_EACH_PTR(cb);
 
-		__free_fake_cur_slist();
+		__free_fake_cur_stree();
 	} END_FOR_EACH_PTR(tmp);
 
 	return ret;
