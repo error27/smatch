@@ -80,13 +80,13 @@ static int matches(char *name, struct symbol *sym, struct sm_state *sm)
 
 static void call_modification_hooks_name_sym(char *name, struct symbol *sym, struct expression *mod_expr)
 {
-	struct state_list *slist;
+	struct AVL *stree;
 	struct sm_state *sm;
 	int match;
 
-	slist = __get_cur_slist();
+	stree = __get_cur_stree();
 
-	FOR_EACH_PTR(slist, sm) {
+	FOR_EACH_SM(stree, sm) {
 		if (sm->owner > num_checks)
 			continue;
 		match = matches(name, sym, sm);
@@ -96,7 +96,7 @@ static void call_modification_hooks_name_sym(char *name, struct symbol *sym, str
 
 		if (match == match_indirect && indirect_hooks[sm->owner])
 			(indirect_hooks[sm->owner])(sm, mod_expr);
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 }
 
 static void call_modification_hooks(struct expression *expr, struct expression *mod_expr)
