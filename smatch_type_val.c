@@ -38,9 +38,9 @@
 
 static int my_id;
 
-struct state_list_stack *fn_type_val_stack;
-struct state_list *fn_type_val;
-struct state_list *global_type_val;
+struct stree_stack *fn_type_val_stack;
+struct AVL *fn_type_val;
+struct AVL *global_type_val;
 
 static char *db_vals;
 static int get_vals(void *unused, int argc, char **argv, char **azColName)
@@ -51,13 +51,13 @@ static int get_vals(void *unused, int argc, char **argv, char **azColName)
 
 static void match_inline_start(struct expression *expr)
 {
-	push_slist(&fn_type_val_stack, fn_type_val);
+	push_stree(&fn_type_val_stack, fn_type_val);
 	fn_type_val = NULL;
 }
 
 static void match_inline_end(struct expression *expr)
 {
-	fn_type_val = pop_slist(&fn_type_val_stack);
+	fn_type_val = pop_stree(&fn_type_val_stack);
 }
 
 int get_db_type_rl(struct expression *expr, struct range_list **rl)
@@ -111,7 +111,7 @@ static struct smatch_state *clone_estate_perm(struct smatch_state *state)
 	return ret;
 }
 
-static void set_state_slist_perm(struct state_list **slist, int owner, const char *name,
+static void set_state_stree_perm(struct AVL **stree, int owner, const char *name,
 		     struct symbol *sym, struct smatch_state *state)
 {
 	struct sm_state *sm;
@@ -123,7 +123,7 @@ static void set_state_slist_perm(struct state_list **slist, int owner, const cha
 	sm->sym = sym;
 	sm->state = state;
 
-	overwrite_sm_state(slist, sm);
+	overwrite_sm_state_stree(stree, sm);
 }
 
 static void add_type_val(char *member, struct range_list *rl)
@@ -131,13 +131,13 @@ static void add_type_val(char *member, struct range_list *rl)
 	struct smatch_state *old, *add, *new;
 
 	member = alloc_string(member);
-	old = get_state_slist(fn_type_val, my_id, member, NULL);
+	old = get_state_stree(fn_type_val, my_id, member, NULL);
 	add = alloc_estate_rl(rl);
 	if (old)
 		new = merge_estates(old, add);
 	else
 		new = add;
-	set_state_slist(&fn_type_val, my_id, member, NULL, new);
+	set_state_stree(&fn_type_val, my_id, member, NULL, new);
 }
 
 static void add_global_type_val(char *member, struct range_list *rl)
@@ -145,14 +145,14 @@ static void add_global_type_val(char *member, struct range_list *rl)
 	struct smatch_state *old, *add, *new;
 
 	member = alloc_string(member);
-	old = get_state_slist(global_type_val, my_id, member, NULL);
+	old = get_state_stree(global_type_val, my_id, member, NULL);
 	add = alloc_estate_rl(rl);
 	if (old)
 		new = merge_estates(old, add);
 	else
 		new = add;
 	new = clone_estate_perm(new);
-	set_state_slist_perm(&global_type_val, my_id, member, NULL, new);
+	set_state_stree_perm(&global_type_val, my_id, member, NULL, new);
 }
 
 static void match_assign_value(struct expression *expr)
@@ -303,20 +303,20 @@ static void match_end_func_info(struct symbol *sym)
 {
 	struct sm_state *sm;
 
-	FOR_EACH_PTR(fn_type_val, sm) {
+	FOR_EACH_SM(fn_type_val, sm) {
 		sql_insert_function_type_value(sm->name, sm->state->name);
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 
-	free_slist(&fn_type_val);
+	free_stree(&fn_type_val);
 }
 
 static void match_end_file(struct symbol_list *sym_list)
 {
 	struct sm_state *sm;
 
-	FOR_EACH_PTR(global_type_val, sm) {
+	FOR_EACH_SM(global_type_val, sm) {
 		sql_insert_function_type_value(sm->name, sm->state->name);
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 }
 
 void register_type_val(int id)
