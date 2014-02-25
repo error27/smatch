@@ -603,7 +603,7 @@ static void check_possible(struct sm_state *sm)
 static void match_return(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct locks_on_return *ret;
-	struct state_list *slist;
+	struct AVL *stree;
 	struct sm_state *tmp;
 
 	if (!final_pass)
@@ -613,8 +613,8 @@ static void match_return(int return_id, char *return_ranges, struct expression *
 
 	ret = alloc_return(expr);
 
-	slist = get_all_states(my_id);
-	FOR_EACH_PTR(slist, tmp) {
+	stree = get_all_states_stree(my_id);
+	FOR_EACH_SM(stree, tmp) {
 		if (tmp->state == &locked) {
 			add_tracker(&ret->locked, tmp->owner, tmp->name,
 				tmp->sym);
@@ -634,8 +634,8 @@ static void match_return(int return_id, char *return_ranges, struct expression *
 		} else {
 			check_possible(tmp);
 		}
-	} END_FOR_EACH_PTR(tmp);
-	free_slist(&slist);
+	} END_FOR_EACH_SM(tmp);
+	free_stree(&stree);
 	add_ptr_list(&all_returns, ret);
 }
 
@@ -877,19 +877,19 @@ static void load_table(struct lock_info *_lock_table, int size)
 /* print_held_locks() is used in check_call_tree.c */
 void print_held_locks()
 {
-	struct state_list *slist;
+	struct AVL *stree;
 	struct sm_state *sm;
 	int i = 0;
 
-	slist = get_all_states(my_id);
-	FOR_EACH_PTR(slist, sm) {
+	stree = get_all_states_stree(my_id);
+	FOR_EACH_SM(stree, sm) {
 		if (sm->state != &locked)
 			continue;
 		if (i++)
 			sm_printf(" ");
 		sm_printf("'%s'", sm->name);
-	} END_FOR_EACH_PTR(sm);
-	free_slist(&slist);
+	} END_FOR_EACH_SM(sm);
+	free_stree(&stree);
 }
 
 void check_locking(int id)
