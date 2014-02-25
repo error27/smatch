@@ -887,12 +887,12 @@ void __save_switch_states(struct expression *switch_expr)
 void __merge_switches(struct expression *switch_expr, struct expression *case_expr)
 {
 	struct AVL *stree;
-	struct state_list *implied_slist;
+	struct AVL *implied_stree;
 
 	stree = pop_stree(&switch_stack);
-	implied_slist = __implied_case_slist(switch_expr, case_expr, &remaining_cases, &stree);
-	merge_stree(&cur_stree, slist_to_stree(implied_slist));
-	free_slist(&implied_slist);
+	implied_stree = __implied_case_stree(switch_expr, case_expr, &remaining_cases, &stree);
+	merge_stree(&cur_stree, implied_stree);
+	free_stree(&implied_stree);
 	push_stree(&switch_stack, stree);
 }
 

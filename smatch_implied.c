@@ -333,11 +333,11 @@ static int highest_slist_id(struct sm_state *sm)
 	return left;
 }
 
-static struct state_list *filter_stack(struct sm_state *gate_sm,
-				       struct state_list *pre_list,
+static struct AVL *filter_stack(struct sm_state *gate_sm,
+				       struct AVL *pre_stree,
 				       struct state_list_stack *stack)
 {
-	struct state_list *ret = NULL;
+	struct AVL *ret = NULL;
 	struct sm_state *tmp;
 	struct sm_state *filtered_sm;
 	int modified;
@@ -345,7 +345,7 @@ static struct state_list *filter_stack(struct sm_state *gate_sm,
 	if (!stack)
 		return NULL;
 
-	FOR_EACH_PTR(pre_list, tmp) {
+	FOR_EACH_SM(pre_stree, tmp) {
 		if (highest_slist_id(tmp) < highest_slist_id(gate_sm)) {
 			DIMPLIED("skipping %s.  set before.  %d vs %d",
 					tmp->name, highest_slist_id(tmp),
@@ -357,20 +357,20 @@ static struct state_list *filter_stack(struct sm_state *gate_sm,
 		if (filtered_sm && modified) {
 			filtered_sm->name = tmp->name;
 			filtered_sm->sym = tmp->sym;
-			add_ptr_list(&ret, filtered_sm);
+			avl_insert(&ret, filtered_sm);
 			if (out_of_memory())
 				return NULL;
 
 		}
-	} END_FOR_EACH_PTR(tmp);
+	} END_FOR_EACH_SM(tmp);
 	return ret;
 }
 
 static void separate_and_filter(struct sm_state *sm_state, int comparison, struct range_list *vals,
 		int lr,
-		struct state_list *pre_list,
-		struct state_list **true_states,
-		struct state_list **false_states)
+		struct AVL *pre_stree,
+		struct AVL **true_states,
+		struct AVL **false_states)
 {
 	struct state_list_stack *true_stack = NULL;
 	struct state_list_stack *false_stack = NULL;
@@ -396,16 +396,16 @@ static void separate_and_filter(struct sm_state *sm_state, int comparison, struc
 	separate_pools(sm_state, comparison, vals, lr, &true_stack, &false_stack, NULL);
 
 	DIMPLIED("filtering true stack.\n");
-	*true_states = filter_stack(sm_state, pre_list, false_stack);
+	*true_states = filter_stack(sm_state, pre_stree, false_stack);
 	DIMPLIED("filtering false stack.\n");
-	*false_states = filter_stack(sm_state, pre_list, true_stack);
+	*false_states = filter_stack(sm_state, pre_stree, true_stack);
 	free_stack(&true_stack);
 	free_stack(&false_stack);
 	if (option_debug_implied || option_debug) {
 		printf("These are the implied states for the true path:\n");
-		__print_slist(*true_states);
+		__print_stree(*true_states);
 		printf("These are the implied states for the false path:\n");
-		__print_slist(*false_states);
+		__print_stree(*false_states);
 	}
 
 	gettimeofday(&time_after, NULL);
@@ -436,25 +436,25 @@ static int is_merged_expr(struct expression  *expr)
 	return 0;
 }
 
-static void delete_equiv_slist(struct state_list **slist, const char *name, struct symbol *sym)
+static void delete_equiv_stree(struct AVL **stree, const char *name, struct symbol *sym)
 {
 	struct smatch_state *state;
 	struct relation *rel;
 
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (!estate_related(state)) {
-		delete_state_slist(slist, SMATCH_EXTRA, name, sym);
+		delete_state_stree(stree, SMATCH_EXTRA, name, sym);
 		return;
 	}
 
 	FOR_EACH_PTR(estate_related(state), rel) {
-		delete_state_slist(slist, SMATCH_EXTRA, rel->name, rel->sym);
+		delete_state_stree(stree, SMATCH_EXTRA, rel->name, rel->sym);
 	} END_FOR_EACH_PTR(rel);
 }
 
 static void handle_comparison(struct expression *expr,
-			      struct state_list **implied_true,
-			      struct state_list **implied_false)
+			      struct AVL **implied_true,
+			      struct AVL **implied_false)
 {
 	struct sm_state *sm = NULL;
 	struct range_list *ranges = NULL;
@@ -480,15 +480,15 @@ static void handle_comparison(struct expression *expr,
 		return;
 	}
 
-	separate_and_filter(sm, expr->op, ranges, lr, __get_cur_slist(), implied_true, implied_false);
+	separate_and_filter(sm, expr->op, ranges, lr, __get_cur_stree(), implied_true, implied_false);
 	free_rl(&ranges);
-	delete_equiv_slist(implied_true, sm->name, sm->sym);
-	delete_equiv_slist(implied_false, sm->name, sm->sym);
+	delete_equiv_stree(implied_true, sm->name, sm->sym);
+	delete_equiv_stree(implied_false, sm->name, sm->sym);
 }
 
 static void handle_zero_comparison(struct expression *expr,
-				struct state_list **implied_true,
-				struct state_list **implied_false)
+				struct AVL **implied_true,
+				struct AVL **implied_false)
 {
 	struct symbol *sym;
 	char *name;
@@ -511,16 +511,16 @@ static void handle_zero_comparison(struct expression *expr,
 	if (!sm)
 		goto free;
 
-	separate_and_filter(sm, SPECIAL_NOTEQUAL, tmp_range_list(0), LEFT, __get_cur_slist(), implied_true, implied_false);
-	delete_equiv_slist(implied_true, name, sym);
-	delete_equiv_slist(implied_false, name, sym);
+	separate_and_filter(sm, SPECIAL_NOTEQUAL, tmp_range_list(0), LEFT, __get_cur_stree(), implied_true, implied_false);
+	delete_equiv_stree(implied_true, name, sym);
+	delete_equiv_stree(implied_false, name, sym);
 free:
 	free_string(name);
 }
 
 static void get_tf_states(struct expression *expr,
-			  struct state_list **implied_true,
-			  struct state_list **implied_false)
+			  struct AVL **implied_true,
+			  struct AVL **implied_false)
 {
 	if (expr->type == EXPR_COMPARE)
 		handle_comparison(expr, implied_true, implied_false);
@@ -531,23 +531,23 @@ static void get_tf_states(struct expression *expr,
 static void implied_states_hook(struct expression *expr)
 {
 	struct sm_state *sm;
-	struct state_list *implied_true = NULL;
-	struct state_list *implied_false = NULL;
+	struct AVL *implied_true = NULL;
+	struct AVL *implied_false = NULL;
 
 	if (option_no_implied)
 		return;
 
 	get_tf_states(expr, &implied_true, &implied_false);
 
-	FOR_EACH_PTR(implied_true, sm) {
+	FOR_EACH_SM(implied_true, sm) {
 		__set_true_false_sm(sm, NULL);
-	} END_FOR_EACH_PTR(sm);
-	free_slist(&implied_true);
+	} END_FOR_EACH_SM(sm);
+	free_stree(&implied_true);
 
-	FOR_EACH_PTR(implied_false, sm) {
+	FOR_EACH_SM(implied_false, sm) {
 		__set_true_false_sm(NULL, sm);
-	} END_FOR_EACH_PTR(sm);
-	free_slist(&implied_false);
+	} END_FOR_EACH_SM(sm);
+	free_stree(&implied_false);
 }
 
 struct range_list *__get_implied_values(struct expression *switch_expr)
@@ -575,7 +575,7 @@ free:
 	return ret;
 }
 
-struct state_list *__implied_case_slist(struct expression *switch_expr,
+struct AVL *__implied_case_stree(struct expression *switch_expr,
 					struct expression *case_expr,
 					struct range_list_stack **remaining_cases,
 					struct AVL **raw_stree)
@@ -583,10 +583,10 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	char *name = NULL;
 	struct symbol *sym;
 	struct sm_state *sm;
-	struct state_list *true_states = NULL;
-	struct state_list *false_states = NULL;
-	struct state_list *extra_states = NULL;
-	struct state_list *ret = clone_slist(stree_to_slist(*raw_stree));
+	struct AVL *true_states = NULL;
+	struct AVL *false_states = NULL;
+	struct AVL *extra_states = NULL;
+	struct AVL *ret = clone_stree(*raw_stree);
 	sval_t sval;
 	struct range_list *vals = NULL;
 
@@ -607,17 +607,17 @@ struct state_list *__implied_case_slist(struct expression *switch_expr,
 	}
 
 	if (sm)
-		separate_and_filter(sm, SPECIAL_EQUAL, vals, LEFT, stree_to_slist(*raw_stree), &true_states, &false_states);
+		separate_and_filter(sm, SPECIAL_EQUAL, vals, LEFT, *raw_stree, &true_states, &false_states);
 
 	__push_fake_cur_slist();
 	__unnullify_path();
 	set_extra_nomod(name, sym, alloc_estate_rl(vals));
-	extra_states = stree_to_slist(__pop_fake_cur_slist());
-	overwrite_slist(extra_states, &true_states);
-	overwrite_slist(true_states, &ret);
-	free_slist(&extra_states);
-	free_slist(&true_states);
-	free_slist(&false_states);
+	extra_states = __pop_fake_cur_slist();
+	overwrite_stree(extra_states, &true_states);
+	overwrite_stree(true_states, &ret);
+	free_stree(&extra_states);
+	free_stree(&true_states);
+	free_stree(&false_states);
 free:
 	free_string(name);
 	return ret;

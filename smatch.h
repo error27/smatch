@@ -416,10 +416,10 @@ extern int option_debug_implied;
 extern int option_debug_related;
 extern int option_no_implied;
 struct range_list_stack;
-struct state_list *__implied_case_slist(struct expression *switch_expr,
-					struct expression *case_expr,
-					struct range_list_stack **remaining_cases,
-					struct AVL **raw_stree);
+struct AVL *__implied_case_stree(struct expression *switch_expr,
+				 struct expression *case_expr,
+				 struct range_list_stack **remaining_cases,
+				 struct AVL **raw_stree);
 struct range_list *__get_implied_values(struct expression *switch_expr);
 void overwrite_states_using_pool(struct sm_state *sm);
 
