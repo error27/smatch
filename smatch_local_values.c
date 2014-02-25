@@ -104,16 +104,16 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 	set_state(my_id, name, sym, new);
 }
 
-static void process_states(struct state_list *slist)
+static void process_states(struct AVL *stree)
 {
 	struct sm_state *sm;
 	struct smatch_state *extra;
 	struct range_list *rl;
 
-	FOR_EACH_PTR(slist, sm) {
+	FOR_EACH_SM(stree, sm) {
 		if (sm->owner != my_id)
 			continue;
-		extra = get_state_slist(slist, SMATCH_EXTRA, sm->name, sm->sym);
+		extra = get_state_stree(stree, SMATCH_EXTRA, sm->name, sm->sym);
 		if (extra && estate_rl(extra))
 			rl = rl_intersection(estate_rl(sm->state), estate_rl(extra));
 		else
@@ -123,7 +123,7 @@ static void process_states(struct state_list *slist)
 			"insert into local_values values ('%s', '%s', '%s', %lu);",
 			get_filename(), sm->name, show_rl(rl),
 			(unsigned long)sm->sym);
-	} END_FOR_EACH_PTR(sm);
+	} END_FOR_EACH_SM(sm);
 }
 
 static int get_initial_value_sym(struct symbol *sym, char *name, sval_t *sval)

@@ -123,8 +123,7 @@ void overwrite_stree(struct AVL *from, struct AVL **to);
 
 /* add stuff smatch_returns.c here */
 
-void all_return_states_hook(void (*callback)(struct state_list *slist));
-void all_return_states_hook_stree(void (*callback)(struct AVL *slist));
+void all_return_states_hook(void (*callback)(struct AVL *slist));
 
 int get_slist_id(struct state_list *slist);
 int get_stree_id(struct AVL *slist);

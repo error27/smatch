@@ -95,7 +95,7 @@ static void set_param_freed(struct expression *arg, char *unused)
 	freed_variable(arg);
 }
 
-static void process_states(struct state_list *slist)
+static void process_states(struct AVL *stree)
 {
 	struct symbol *arg;
 	int i;
@@ -105,7 +105,7 @@ static void process_states(struct state_list *slist)
 		i++;
 		if (!arg->ident)
 			continue;
-		if (get_state_slist(slist, my_id, arg->ident->name, arg) == &freed)
+		if (get_state_stree(stree, my_id, arg->ident->name, arg) == &freed)
 			sql_insert_call_implies(PARAM_FREED, i, 1);
 	} END_FOR_EACH_PTR(arg);
 }

@@ -21,7 +21,7 @@
 static int my_id;
 
 struct return_states_callback {
-	void (*callback)(struct state_list *slist);
+	void (*callback)(struct AVL *stree);
 };
 ALLOCATOR(return_states_callback, "return states callbacks");
 DECLARE_PTR_LIST(callback_list, struct return_states_callback);
@@ -30,7 +30,7 @@ static struct callback_list *callback_list;
 static struct AVL *all_return_states;
 static struct stree_stack *saved_stack;
 
-void all_return_states_hook(void (*callback)(struct state_list *slist))
+void all_return_states_hook(void (*callback)(struct AVL *stree))
 {
 	struct return_states_callback *rs_cb = __alloc_return_states_callback(0);
 
@@ -43,7 +43,7 @@ static void call_hooks()
 	struct return_states_callback *rs_cb;
 
 	FOR_EACH_PTR(callback_list, rs_cb) {
-		rs_cb->callback(stree_to_slist(all_return_states));
+		rs_cb->callback(all_return_states);
 	} END_FOR_EACH_PTR(rs_cb);
 }
 
