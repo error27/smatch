@@ -27,8 +27,8 @@ ALLOCATOR(return_states_callback, "return states callbacks");
 DECLARE_PTR_LIST(callback_list, struct return_states_callback);
 static struct callback_list *callback_list;
 
-static struct state_list *all_return_states;
-static struct state_list_stack *saved_stack;
+static struct AVL *all_return_states;
+static struct stree_stack *saved_stack;
 
 void all_return_states_hook(void (*callback)(struct state_list *slist))
 {
@@ -43,31 +43,31 @@ static void call_hooks()
 	struct return_states_callback *rs_cb;
 
 	FOR_EACH_PTR(callback_list, rs_cb) {
-		rs_cb->callback(all_return_states);
+		rs_cb->callback(stree_to_slist(all_return_states));
 	} END_FOR_EACH_PTR(rs_cb);
 }
 
 static void match_return(struct expression *ret_value)
 {
-	merge_slist(&all_return_states, __get_cur_slist());
+	merge_stree(&all_return_states, __get_cur_stree());
 }
 
 static void match_end_func(struct symbol *sym)
 {
-	merge_slist(&all_return_states, __get_cur_slist());
+	merge_stree(&all_return_states, __get_cur_stree());
 	call_hooks();
-	free_slist(&all_return_states);
+	free_stree(&all_return_states);
 }
 
 static void match_save_states(struct expression *expr)
 {
-	push_slist(&saved_stack, all_return_states);
+	push_stree(&saved_stack, all_return_states);
 	all_return_states = NULL;
 }
 
 static void match_restore_states(struct expression *expr)
 {
-	all_return_states = pop_slist(&saved_stack);
+	all_return_states = pop_stree(&saved_stack);
 }
 
 void register_returns(int id)
