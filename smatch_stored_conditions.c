@@ -137,16 +137,47 @@ static int is_local_variable(struct expression *expr)
 	return 1;
 }
 
+static void store_all_links(struct expression *expr, const char *condition)
+{
+	char *var;
+	struct symbol *sym;
+
+	expr = strip_expr(expr);
+
+	switch (expr->type) {
+	case EXPR_COMPARE:
+	case EXPR_BINOP:
+		store_all_links(expr->left, condition);
+		store_all_links(expr->right, condition);
+		return;
+	case EXPR_VALUE:
+		return;
+	}
+
+	var = expr_to_var_sym(expr, &sym);
+	if (!var || !sym)
+		goto free;
+	save_link_var_sym(var, sym, condition);
+free:
+	free_string(var);
+}
+
 static int get_complication_score(struct expression *expr)
 {
 	int score = 0;
 
 	expr = strip_expr(expr);
 
+	/*
+	 * Don't forget to keep get_complication_score() and store_all_links()
+	 * in sync.
+	 *
+	 */
+
 	switch (expr->type) {
 	case EXPR_CALL:
 		return 999;
-	case EXPR_LOGICAL:
+	case EXPR_COMPARE:
 	case EXPR_BINOP:
 		score += get_complication_score(expr->left);
 		score += get_complication_score(expr->right);
@@ -175,30 +206,6 @@ static int condition_too_complicated(struct expression *expr)
 		return 1;
 	return 0;
 
-}
-
-static void store_all_links(struct expression *expr, const char *condition)
-{
-	char *var;
-	struct symbol *sym;
-
-	expr = strip_expr(expr);
-
-	switch (expr->type) {
-	case EXPR_BINOP:
-		store_all_links(expr->left, condition);
-		store_all_links(expr->right, condition);
-		return;
-	case EXPR_VALUE:
-		return;
-	}
-
-	var = expr_to_var_sym(expr, &sym);
-	if (!var || !sym)
-		goto free;
-	save_link_var_sym(var, sym, condition);
-free:
-	free_string(var);
 }
 
 static void match_condition(struct expression *expr)
