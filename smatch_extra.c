@@ -436,8 +436,9 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	return alloc_estate_whole(estate_type(sm->state));
 }
 
-static void clear_the_pointed_at(struct expression *expr, struct stree *stree)
+static void clear_the_pointed_at(struct expression *expr)
 {
+	struct stree *stree;
 	char *name;
 	struct symbol *sym;
 	struct sm_state *tmp;
@@ -446,7 +447,8 @@ static void clear_the_pointed_at(struct expression *expr, struct stree *stree)
 	if (!name || !sym)
 		goto free;
 
-	FOR_EACH_SM(stree, tmp) {
+	stree = __get_cur_stree();
+	FOR_EACH_MY_SM(SMATCH_EXTRA, stree, tmp) {
 		if (tmp->name[0] != '*')
 			continue;
 		if (tmp->sym != sym)
@@ -464,7 +466,6 @@ static void match_function_call(struct expression *expr)
 {
 	struct expression *arg;
 	struct expression *tmp;
-	struct stree *stree;
 
 	/* if we have the db this is handled in smatch_function_hooks.c */
 	if (!option_no_db)
@@ -472,17 +473,13 @@ static void match_function_call(struct expression *expr)
 	if (inlinable(expr->fn))
 		return;
 
-	stree = get_all_states_stree(SMATCH_EXTRA);
-
 	FOR_EACH_PTR(expr->args, arg) {
 		tmp = strip_expr(arg);
 		if (tmp->type == EXPR_PREOP && tmp->op == '&')
 			set_extra_expr_mod(tmp->unop, alloc_estate_whole(get_type(tmp->unop)));
 		else
-			clear_the_pointed_at(tmp, stree);
+			clear_the_pointed_at(tmp);
 	} END_FOR_EACH_PTR(arg);
-
-	free_stree(&stree);
 }
 
 static int types_equiv_or_pointer(struct symbol *one, struct symbol *two)

@@ -65,17 +65,14 @@ static void match_return(struct expression *ret_value)
 	if (get_macro_name(ret_value->pos))
 		return;
 
-	stree = get_all_states_stree(my_id);
+	stree = __get_cur_stree();
 
-	FOR_EACH_SM(stree, sm) {
+	FOR_EACH_MY_SM(my_id, stree, sm) {
 		if (sm->state == &enomem) {
 			sm_msg("warn: returning -1 instead of -ENOMEM is sloppy");
-			goto out;
+			return;
 		}
 	} END_FOR_EACH_SM(sm);
-
-out:
-	free_stree(&stree);
 }
 
 void check_return_enomem(int id)

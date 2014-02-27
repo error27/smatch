@@ -613,8 +613,8 @@ static void match_return(int return_id, char *return_ranges, struct expression *
 
 	ret = alloc_return(expr);
 
-	stree = get_all_states_stree(my_id);
-	FOR_EACH_SM(stree, tmp) {
+	stree = __get_cur_stree();
+	FOR_EACH_MY_SM(my_id, stree, tmp) {
 		if (tmp->state == &locked) {
 			add_tracker(&ret->locked, tmp->owner, tmp->name,
 				tmp->sym);
@@ -635,7 +635,6 @@ static void match_return(int return_id, char *return_ranges, struct expression *
 			check_possible(tmp);
 		}
 	} END_FOR_EACH_SM(tmp);
-	free_stree(&stree);
 	add_ptr_list(&all_returns, ret);
 }
 
@@ -881,15 +880,14 @@ void print_held_locks()
 	struct sm_state *sm;
 	int i = 0;
 
-	stree = get_all_states_stree(my_id);
-	FOR_EACH_SM(stree, sm) {
+	stree = __get_cur_stree();
+	FOR_EACH_MY_SM(my_id, stree, sm) {
 		if (sm->state != &locked)
 			continue;
 		if (i++)
 			sm_printf(" ");
 		sm_printf("'%s'", sm->name);
 	} END_FOR_EACH_SM(sm);
-	free_stree(&stree);
 }
 
 void check_locking(int id)

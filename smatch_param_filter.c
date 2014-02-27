@@ -135,14 +135,14 @@ static void print_one_extra_param(int return_id, char *return_ranges,
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct stree *extra_stree;
+	struct stree *stree;
 	struct sm_state *tmp;
 	struct sm_state *sm;
 	int param;
 
-	extra_stree = get_all_states_stree(SMATCH_EXTRA);
+	stree = __get_cur_stree();
 
-	FOR_EACH_SM(extra_stree, tmp) {
+	FOR_EACH_MY_SM(SMATCH_EXTRA, stree, tmp) {
 		param = get_param_num_from_sym(tmp->sym);
 		if (param < 0)
 			continue;
@@ -159,8 +159,6 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		else
 			print_one_extra_param(return_id, return_ranges, param, tmp);
 	} END_FOR_EACH_SM(tmp);
-
-	free_stree(&extra_stree);
 }
 
 void register_param_filter(int id)

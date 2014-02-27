@@ -87,6 +87,13 @@ bool avl_check_invariants(struct stree *avl);
 
 #define END_FOR_EACH_SM(_sm) }}
 
+#define FOR_EACH_MY_SM(_owner, avl, _sm) {	\
+	AvlIter _i;				\
+	avl_foreach(_i, avl) {			\
+		_sm = _i.sm;			\
+		if (_sm->owner != _owner)	\
+			continue;		\
+
 #define avl_foreach_reverse(iter, avl) avl_traverse(iter, avl, BACKWARD)
 	/* O(n). Traverse an stree tree in reverse order. */
 

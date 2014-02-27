@@ -101,12 +101,11 @@ static void match_print_value(const char *fn, struct expression *expr, void *inf
 		return;
 	}
 
-	stree = get_all_states_stree(SMATCH_EXTRA);
-	FOR_EACH_SM(stree, tmp) {
+	stree = __get_cur_stree();
+	FOR_EACH_MY_SM(SMATCH_EXTRA, stree, tmp) {
 		if (!strcmp(tmp->name, arg_expr->string->data))
 			sm_msg("%s = %s", tmp->name, tmp->state->name);
 	} END_FOR_EACH_SM(tmp);
-	free_stree(&stree);
 }
 
 static void match_print_implied(const char *fn, struct expression *expr, void *info)
@@ -277,12 +276,11 @@ static void match_possible(const char *fn, struct expression *expr, void *info)
 		return;
 	}
 
-	stree = get_all_states_stree(SMATCH_EXTRA);
-	FOR_EACH_SM(stree, tmp) {
+	stree = __get_cur_stree();
+	FOR_EACH_MY_SM(SMATCH_EXTRA, stree, tmp) {
 		if (!strcmp(tmp->name, arg_expr->string->data))
 			print_possible(tmp);
 	} END_FOR_EACH_SM(tmp);
-	free_stree(&stree);
 }
 
 static void match_strlen(const char *fn, struct expression *expr, void *info)
@@ -363,11 +361,10 @@ static void match_dump_related(const char *fn, struct expression *expr, void *in
 	struct stree *stree;
 	struct sm_state *tmp;
 
-	stree = get_all_states_stree(SMATCH_EXTRA);
-	FOR_EACH_SM(stree, tmp) {
+	stree = __get_cur_stree();
+	FOR_EACH_MY_SM(SMATCH_EXTRA, stree, tmp) {
 		print_related(tmp);
 	} END_FOR_EACH_SM(tmp);
-	free_stree(&stree);
 }
 
 static void match_compare(const char *fn, struct expression *expr, void *info)

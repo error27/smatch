@@ -68,14 +68,13 @@ static void check_for_held(void)
 	struct stree *stree;
 	struct sm_state *tmp;
 
-	stree = get_all_states_stree(my_id);
-	FOR_EACH_SM(stree, tmp) {
+	stree = __get_cur_stree();
+	FOR_EACH_MY_SM(my_id, stree, tmp) {
 		if (slist_has_state(tmp->possible, &held)) {
 			sm_msg("warn: '%s' held on error path.",
 				tmp->name);
 		}
 	} END_FOR_EACH_SM(tmp);
-	free_stree(&stree);
 }
 
 static void print_returns_held(struct expression *expr)

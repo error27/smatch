@@ -74,13 +74,12 @@ static void match_return(struct expression *ret_value)
 		return;
 
 	if (!return_count) {
-		stree = get_all_states_stree(my_id);
-		FOR_EACH_SM(stree, tmp) {
+		stree = __get_cur_stree();
+		FOR_EACH_MY_SM(my_id, stree, tmp) {
 			if (tmp->state == &freed)
 				add_tracker(&freed_args, my_id, tmp->name,
 					    tmp->sym);
 		} END_FOR_EACH_SM(tmp);
-		free_stree(&stree);
 	} else {
 		FOR_EACH_PTR(freed_args, tracker) {
 			tmp = get_sm_state(my_id, tracker->name, tracker->sym);

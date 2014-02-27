@@ -91,13 +91,12 @@ static void match_return(struct expression *ret_value)
 	if (!get_value(ret_value, &ret_val) || sval_cmp_val(ret_val, 0) >= 0)
 		return;
 
-	stree = get_all_states_stree(my_id);
-	FOR_EACH_SM(stree, tmp) {
+	stree = __get_cur_stree();
+	FOR_EACH_MY_SM(my_id, stree, tmp) {
 		if (tmp->state != &unlock)
 			sm_msg("warn: returned negative with %s semaphore held",
 				   tmp->name);
 	} END_FOR_EACH_SM(tmp);
-	free_stree(&stree);
 }
 
 void check_template(int id)

@@ -74,9 +74,9 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	struct sm_state *sm;
 	int param;
 
-	stree = get_all_states_stree(my_id);
+	stree = __get_cur_stree();
 
-	FOR_EACH_SM(stree, sm) {
+	FOR_EACH_MY_SM(my_id, stree, sm) {
 		param = get_param_num_from_sym(sm->sym);
 		if (param < 0)
 			continue;
@@ -91,7 +91,6 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 						 PARAM_CLEARED, param, "$$", "");
 		}
 	} END_FOR_EACH_SM(sm);
-	free_stree(&stree);
 }
 
 static void register_clears_param(void)

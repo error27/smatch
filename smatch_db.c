@@ -987,7 +987,7 @@ static void call_return_state_hooks(struct expression *expr)
 static void print_returned_struct_members(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct returned_member_callback *cb;
-	struct stree *my_stree;
+	struct stree *stree;
 	struct sm_state *sm;
 	struct symbol *type;
 	char *name;
@@ -1006,8 +1006,8 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 
 	len = strlen(name);
 	FOR_EACH_PTR(returned_member_callbacks, cb) {
-		my_stree = get_all_states_stree(cb->owner);
-		FOR_EACH_SM(my_stree, sm) {
+		stree = get_all_states_stree(cb->owner);
+		FOR_EACH_MY_SM(cb->owner, stree, sm) {
 			if (sm->name[0] == '*' && strcmp(sm->name + 1, name) == 0) {
 				strcpy(member_name, "*$$");
 				cb->callback(return_id, return_ranges, member_name, sm->state);
@@ -1021,7 +1021,6 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 			strncpy(member_name + 2, sm->name + len, sizeof(member_name) - 2);
 			cb->callback(return_id, return_ranges, member_name, sm->state);
 		} END_FOR_EACH_SM(sm);
-		free_stree(&my_stree);
 	} END_FOR_EACH_PTR(cb);
 
 	free_string(name);

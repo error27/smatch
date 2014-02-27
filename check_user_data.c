@@ -55,8 +55,9 @@ int is_user_macro(struct expression *expr)
 	return 0;
 }
 
-static int has_user_data_state(struct expression *expr, struct stree *my_stree)
+static int has_user_data_state(struct expression *expr)
 {
+	struct stree *stree;
 	struct sm_state *sm;
 	struct symbol *sym;
 	char *name;
@@ -70,7 +71,8 @@ static int has_user_data_state(struct expression *expr, struct stree *my_stree)
 	if (!sym)
 		return 1;
 
-	FOR_EACH_SM(my_stree, sm) {
+	stree = __get_cur_stree();
+	FOR_EACH_MY_SM(my_id, stree, sm) {
 		if (sm->sym == sym)
 			return 1;
 	} END_FOR_EACH_SM(sm);
@@ -79,17 +81,14 @@ static int has_user_data_state(struct expression *expr, struct stree *my_stree)
 
 static int passes_user_data(struct expression *expr)
 {
-	struct stree *stree;
 	struct expression *arg;
 
-	stree = get_all_states_stree(my_id);
 	FOR_EACH_PTR(expr->args, arg) {
 		if (is_user_data(arg))
 			return 1;
-		if (has_user_data_state(arg, stree))
+		if (has_user_data_state(arg))
 			return 1;
 	} END_FOR_EACH_PTR(arg);
-	free_stree(&stree);
 
 	return 0;
 }
@@ -205,8 +204,8 @@ static int is_user_data_state(struct expression *expr)
 	if (!name || !sym)
 		goto free;
 
-	stree = get_all_states_stree(my_id);
-	FOR_EACH_SM(stree, tmp) {
+	stree = __get_cur_stree();
+	FOR_EACH_MY_SM(my_id, stree, tmp) {
 		if (tmp->sym != sym)
 			continue;
 		if (!strncmp(tmp->name, name, strlen(tmp->name))) {
@@ -219,7 +218,6 @@ static int is_user_data_state(struct expression *expr)
 	} END_FOR_EACH_SM(tmp);
 
 free:
-	free_stree(&stree);
 	free_string(name);
 	return user;
 }
@@ -493,9 +491,9 @@ static void print_returned_user_data(int return_id, char *return_ranges, struct 
 				-1, "$$", "1");
 	}
 
-	stree = get_all_states_stree(my_id);
+	stree = __get_cur_stree();
 
-	FOR_EACH_SM(stree, tmp) {
+	FOR_EACH_MY_SM(my_id, stree, tmp) {
 		const char *param_name;
 
 		param = get_param_num_from_sym(tmp->sym);
@@ -522,8 +520,6 @@ static void print_returned_user_data(int return_id, char *return_ranges, struct 
 		sql_insert_return_states(return_id, return_ranges, USER_DATA,
 				param, param_name, passed_or_new);
 	} END_FOR_EACH_SM(tmp);
-
-	free_stree(&stree);
 }
 
 static void db_return_states_userdata(struct expression *expr, int param, char *key, char *value)

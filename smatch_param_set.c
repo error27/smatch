@@ -72,9 +72,9 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	int param;
 	struct range_list *rl;
 
-	stree = get_all_states_stree(my_id);
+	stree = __get_cur_stree();
 
-	FOR_EACH_SM(stree, sm) {
+	FOR_EACH_MY_SM(my_id, stree, sm) {
 		if (!estate_rl(sm->state))
 			continue;
 		extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
@@ -91,7 +91,6 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 			continue;
 		print_one_return_value_param(return_id, return_ranges, param, sm, show_rl(rl));
 	} END_FOR_EACH_SM(sm);
-	free_stree(&stree);
 }
 
 void register_param_set(int id)

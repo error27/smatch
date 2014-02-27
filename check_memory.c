@@ -315,11 +315,10 @@ static void check_for_allocated(void)
 	struct stree *stree;
 	struct sm_state *tmp;
 
-	stree = get_all_states_stree(my_id);
-	FOR_EACH_SM(stree, tmp) {
+	stree = __get_cur_stree();
+	FOR_EACH_MY_SM(my_id, stree, tmp) {
 		check_sm_is_leaked(tmp);
 	} END_FOR_EACH_SM(tmp);
-	free_stree(&stree);
 }
 
 static void match_return(struct expression *ret_value)

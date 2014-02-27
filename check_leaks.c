@@ -214,13 +214,12 @@ static void check_for_allocated(void)
 	struct stree *stree;
 	struct sm_state *tmp;
 
-	stree = get_all_states_stree(my_id);
-	FOR_EACH_SM(stree, tmp) {
+	stree = __get_cur_stree();
+	FOR_EACH_MY_SM(my_id, stree, tmp) {
 		if (!slist_has_state(tmp->possible, &allocated))
 			continue;
 		sm_msg("warn: possible memory leak of '%s'", tmp->name);
 	} END_FOR_EACH_SM(tmp);
-	free_stree(&stree);
 }
 
 static void match_return(struct expression *ret_value)

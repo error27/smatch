@@ -102,15 +102,15 @@ struct smatch_state *get_orig_estate(const char *name, struct symbol *sym)
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct stree *extra_stree;
+	struct stree *stree;
 	struct sm_state *tmp;
 	struct sm_state *my_sm;
 	struct smatch_state *state;
 	int param;
 
-	extra_stree = get_all_states_stree(SMATCH_EXTRA);
+	stree = __get_cur_stree();
 
-	FOR_EACH_SM(extra_stree, tmp) {
+	FOR_EACH_MY_SM(SMATCH_EXTRA, stree, tmp) {
 		if (!tmp->sym || !tmp->sym->ident || strcmp(tmp->name, tmp->sym->ident->name) != 0)
 			continue;
 
@@ -145,8 +145,6 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 					LIMITED_VALUE, param, "$$",
 					state->name);
 	} END_FOR_EACH_SM(tmp);
-
-	free_stree(&extra_stree);
 }
 
 static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_state *state)
