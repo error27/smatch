@@ -604,19 +604,19 @@ static void clone_pool_havers_stree(struct stree **stree)
 	free_slist(&slist);
 }
 
-int __slist_id;
+int __stree_id;
 /*
- * Sets the first state to the slist_id.
+ * Sets the first state to the stree_id.
  */
 static void set_stree_id(struct stree *stree)
 {
 	struct smatch_state *state;
 	struct sm_state *new;
 
-	/* FIXME: This is horrible.  Anyway, slist_id should be a part of the
+	/* FIXME: This is horrible.  Anyway, stree_id should be a part of the
 	   stree pointer */
 
-	state = alloc_state_num(++__slist_id);
+	state = alloc_state_num(++__stree_id);
 	new = alloc_sm_state(-1, "unnull_path", NULL, state);
 
 	if (!avl_member(stree, new))

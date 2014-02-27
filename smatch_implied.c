@@ -315,7 +315,7 @@ struct sm_state *remove_pools(struct sm_state *sm,
 	return ret;
 }
 
-static int highest_slist_id(struct sm_state *sm)
+static int highest_stree_id(struct sm_state *sm)
 {
 	int left = 0;
 	int right = 0;
@@ -346,10 +346,10 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 		return NULL;
 
 	FOR_EACH_SM(pre_stree, tmp) {
-		if (highest_slist_id(tmp) < highest_slist_id(gate_sm)) {
+		if (highest_stree_id(tmp) < highest_stree_id(gate_sm)) {
 			DIMPLIED("skipping %s.  set before.  %d vs %d\n",
-					tmp->name, highest_slist_id(tmp),
-					highest_slist_id(gate_sm));
+					tmp->name, highest_stree_id(tmp),
+					highest_stree_id(gate_sm));
 			continue;
 		}
 		modified = 0;
