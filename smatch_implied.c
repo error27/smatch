@@ -347,7 +347,7 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 
 	FOR_EACH_SM(pre_stree, tmp) {
 		if (highest_slist_id(tmp) < highest_slist_id(gate_sm)) {
-			DIMPLIED("skipping %s.  set before.  %d vs %d",
+			DIMPLIED("skipping %s.  set before.  %d vs %d\n",
 					tmp->name, highest_slist_id(tmp),
 					highest_slist_id(gate_sm));
 			continue;
@@ -355,6 +355,7 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 		modified = 0;
 		filtered_sm = remove_pools(tmp, stack, &modified);
 		if (filtered_sm && modified) {
+			/* the assignments here are for borrowed implications */
 			filtered_sm->name = tmp->name;
 			filtered_sm->sym = tmp->sym;
 			avl_insert(&ret, filtered_sm);
