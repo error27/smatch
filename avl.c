@@ -72,15 +72,25 @@ struct stree *avl_new(void)
 	avl->root = NULL;
 	avl->count = 0;
 	avl->stree_id = 0;
+	avl->references = 1;
 	return avl;
 }
 
 void free_stree(struct stree **avl)
 {
-	if (*avl) {
-		freeNode((*avl)->root);
-		free(*avl);
+	if (!*avl)
+		return;
+
+	assert((*avl)->references > 0);
+
+	(*avl)->references--;
+	if ((*avl)->references != 0) {
+		*avl = NULL;
+		return;
 	}
+
+	freeNode((*avl)->root);
+	free(*avl);
 	*avl = NULL;
 }
 
@@ -108,12 +118,27 @@ size_t stree_count(const struct stree *avl)
 	return avl->count;
 }
 
+static struct stree *clone_stree_real(struct stree *orig)
+{
+	struct stree *new = avl_new();
+	AvlIter i;
+
+	avl_foreach(i, orig)
+		avl_insert(&new, i.sm);
+
+	return new;
+}
+
 bool avl_insert(struct stree **avl, const struct sm_state *sm)
 {
 	size_t old_count;
 
 	if (!*avl)
 		*avl = avl_new();
+	if ((*avl)->references > 1) {
+		(*avl)->references--;
+		*avl = clone_stree_real(*avl);
+	}
 	old_count = (*avl)->count;
 	insert_sm(*avl, &(*avl)->root, sm);
 	return (*avl)->count != old_count;
@@ -125,6 +150,11 @@ bool avl_remove(struct stree **avl, const struct sm_state *sm)
 
 	if (!*avl)
 		return false;
+	/* it's fairly rare for smatch to call avl_remove */
+	if ((*avl)->references > 1) {
+		(*avl)->references--;
+		*avl = clone_stree_real(*avl);
+	}
 
 	remove_sm(*avl, &(*avl)->root, sm, &node);
 
@@ -466,13 +496,11 @@ void avl_iter_next(AvlIter *iter)
 
 struct stree *clone_stree(struct stree *orig)
 {
-	struct stree *new = NULL;
- 	AvlIter i;
+	if (!orig)
+		return NULL;
 
-	avl_foreach(i, orig)
-		avl_insert(&new, i.sm);
-
-	return new;
+	orig->references++;
+	return orig;
 }
 
 void set_stree_id(struct stree *stree, int stree_id)

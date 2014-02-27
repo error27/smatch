@@ -625,6 +625,8 @@ void merge_stree(struct stree **to, struct stree *stree)
 	/* merging a null and nonnull path gives you only the nonnull path */
 	if (!stree)
 		return;
+	if (*to == stree)
+		return;
 
 	if (!*to) {
 		*to = clone_stree(stree);

@@ -35,6 +35,7 @@ struct stree {
 	AvlNode    *root;
 	size_t      count;
 	int stree_id;
+	int references;
 };
 
 void free_stree(struct stree **avl);
