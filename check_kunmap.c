@@ -36,7 +36,7 @@ static void check_assignment(void *data)
 	if (!fn)
 		return;
 	if (!strcmp(fn, "kmap"))
-		sm_msg("warn: passing the wrong stuff kunmap()");
+		sm_msg("warn: passing the wrong variable to kunmap()");
 	free_string(fn);
 }
 
@@ -58,7 +58,7 @@ static void match_kunmap_atomic(const char *fn, struct expression *expr, void *d
 	if (!sm)
 		return;
 	if (slist_has_state(sm->possible, &no_unmap))
-		sm_msg("warn: passing the wrong stuff to kmap_atomic()");
+		sm_msg("warn: passing the wrong variable to kmap_atomic()");
 }
 
 static void match_kunmap(const char *fn, struct expression *expr, void *data)
