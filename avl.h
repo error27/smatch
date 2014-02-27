@@ -34,6 +34,7 @@ typedef struct AvlIter       AvlIter;
 struct stree {
 	AvlNode    *root;
 	size_t      count;
+	int stree_id;
 };
 
 void free_stree(struct stree **avl);
@@ -130,5 +131,8 @@ AvlNode *avl_lookup_node(const struct stree *avl, const struct sm_state *sm);
 	/* O(log n). Lookup an stree node by sm.  Return NULL if not present. */
 
 struct stree *clone_stree(struct stree *orig);
+
+void set_stree_id(struct stree *stree, int id);
+int get_stree_id(struct stree *stree);
 
 #endif

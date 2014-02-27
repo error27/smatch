@@ -71,6 +71,7 @@ struct stree *avl_new(void)
 
 	avl->root = NULL;
 	avl->count = 0;
+	avl->stree_id = 0;
 	return avl;
 }
 
@@ -472,4 +473,18 @@ struct stree *clone_stree(struct stree *orig)
 		avl_insert(&new, i.sm);
 
 	return new;
+}
+
+void set_stree_id(struct stree *stree, int stree_id)
+{
+	assert(stree->stree_id == 0);
+
+	stree->stree_id = stree_id;
+}
+
+int get_stree_id(struct stree *stree)
+{
+	if (!stree)
+		return 0;
+	return stree->stree_id;
 }

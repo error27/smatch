@@ -84,5 +84,3 @@ void overwrite_stree(struct stree *from, struct stree **to);
 
 void all_return_states_hook(void (*callback)(struct stree *slist));
 
-int get_stree_id(struct stree *slist);
-

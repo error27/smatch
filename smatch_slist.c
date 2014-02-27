@@ -605,34 +605,6 @@ static void clone_pool_havers_stree(struct stree **stree)
 }
 
 int __stree_id;
-/*
- * Sets the first state to the stree_id.
- */
-static void set_stree_id(struct stree *stree)
-{
-	struct smatch_state *state;
-	struct sm_state *new;
-
-	/* FIXME: This is horrible.  Anyway, stree_id should be a part of the
-	   stree pointer */
-
-	state = alloc_state_num(++__stree_id);
-	new = alloc_sm_state(-1, "unnull_path", NULL, state);
-
-	if (!avl_member(stree, new))
-		return;
-	avl_insert(&stree, new);
-}
-
-int get_stree_id(struct stree *stree)
-{
-	struct sm_state *sm;
-
-	sm = get_sm_state_stree(stree, -1, "unnull_path", NULL);
-	if (sm)
-		return PTR_INT(sm->state->data);
-	return 0;
-}
 
 /*
  * merge_slist() is called whenever paths merge, such as after
@@ -667,8 +639,8 @@ void merge_stree(struct stree **to, struct stree *stree)
 	clone_pool_havers_stree(&implied_one);
 	clone_pool_havers_stree(&implied_two);
 
-	set_stree_id(implied_one);
-	set_stree_id(implied_two);
+	set_stree_id(implied_one, ++__stree_id);
+	set_stree_id(implied_two, ++__stree_id);
 
 	push_stree(&all_pools, implied_one);
 	push_stree(&all_pools, implied_two);
