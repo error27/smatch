@@ -601,8 +601,8 @@ static void match_assign(struct expression *expr)
 	left_type = get_type(left);
 	right_type = get_type(right);
 
-	res_min = sval_type_min(right_type);
-	res_max = sval_type_max(right_type);
+	res_min = sval_type_min(left_type);
+	res_max = sval_type_max(left_type);
 
 	switch (expr->op) {
 	case SPECIAL_ADD_ASSIGN:
@@ -651,7 +651,7 @@ static void match_assign(struct expression *expr)
 		binop_expr = binop_expression(expr->left,
 					      op_remove_assign(expr->op),
 					      expr->right);
-		if (get_implied_rl(binop_expr, &rl)) {
+		if (get_absolute_rl(binop_expr, &rl)) {
 			rl = cast_rl(left_type, rl);
 			set_extra_mod(name, sym, alloc_estate_rl(rl));
 			goto free;
