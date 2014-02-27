@@ -47,6 +47,7 @@ struct expression_list *big_expression_stack;
 struct statement_list *big_statement_stack;
 int __in_pre_condition = 0;
 int __bail_on_rest_of_function = 0;
+static struct timeval fn_start_time;
 char *get_function(void) { return cur_func; }
 int get_lineno(void) { return __smatch_lineno; }
 int inside_loop(void) { return !!loop_count; }
@@ -628,6 +629,16 @@ out:
 	pop_expression(&switch_expr_stack);
 }
 
+static int taking_too_long(void)
+{
+	int ms;
+
+	ms = ms_since(&fn_start_time);
+	if (ms > 1000 * 60 * 5)  /* five minutes */
+		return 1;
+	return 0;
+}
+
 void __split_stmt(struct statement *stmt)
 {
 	sval_t sval;
@@ -635,9 +646,10 @@ void __split_stmt(struct statement *stmt)
 	if (!stmt)
 		goto out;
 
-	if (out_of_memory() || __bail_on_rest_of_function) {
+	if (__bail_on_rest_of_function || out_of_memory() || taking_too_long()) {
 		static char *printed = NULL;
 
+		__bail_on_rest_of_function = 1;
 		if (printed != cur_func)
 			sm_msg("Function too hairy.  Giving up.");
 		final_pass = 0;  /* turn off sm_msg() from here */
@@ -1120,6 +1132,7 @@ static void split_function(struct symbol *sym)
 {
 	struct symbol *base_type = get_base_type(sym);
 
+	gettimeofday(&fn_start_time, NULL);
 	cur_func_sym = sym;
 	if (sym->ident)
 		cur_func = sym->ident->name;
@@ -1139,6 +1152,7 @@ static void split_function(struct symbol *sym)
 	}
 	__unnullify_path();
 	loop_num = 0;
+	final_pass = 1;
 	start_function_definition(sym);
 	__split_stmt(base_type->stmt);
 	__split_stmt(base_type->inline_stmt);
