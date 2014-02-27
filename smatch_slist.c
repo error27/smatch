@@ -29,6 +29,8 @@ __DO_ALLOCATOR(char, 1, 4, "state names", sname);
 
 static int sm_state_counter;
 
+static struct stree_stack *all_pools;
+
 char *show_sm(struct sm_state *sm)
 {
 	static char buf[256];
@@ -283,6 +285,7 @@ void free_every_single_sm_state(void)
 	clear_sname_alloc();
 	clear_smatch_state_alloc();
 
+	free_stack_and_strees(&all_pools);
 	sm_state_counter = 0;
 }
 
@@ -666,6 +669,9 @@ void merge_stree(struct stree **to, struct stree *stree)
 
 	set_stree_id(implied_one);
 	set_stree_id(implied_two);
+
+	push_stree(&all_pools, implied_one);
+	push_stree(&all_pools, implied_two);
 
 	avl_iter_begin(&one_iter, implied_one, FORWARD);
 	avl_iter_begin(&two_iter, implied_two, FORWARD);
