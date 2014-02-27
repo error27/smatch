@@ -321,6 +321,12 @@ static void handle_select(struct expression *expr)
 
 	free_stree(&a_T_b_fake);
 	free_stree(&a_F_c_fake);
+	free_stree(&a_F_c_T);
+	free_stree(&a_F_c_F);
+	free_stree(&a_T_b_T);
+	free_stree(&a_T_b_F);
+	free_stree(&a_T);
+	free_stree(&a_F);
 }
 
 static int make_op_unsigned(int op)
