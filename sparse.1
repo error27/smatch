@@ -297,6 +297,14 @@ Such declarations can lead to error-prone code.
 Sparse does not issue these warnings by default.
 .
 .TP
+.B \-Wsizeof-bool
+Warn when checking the sizeof a _Bool.
+
+C99 does not specify the sizeof a _Bool.  gcc uses 1.
+
+Sparse does not issue these warnings by default.
+.
+.TP
 .B \-Wtransparent\-union
 Warn about any declaration using the GCC extension
 \fB__attribute__((transparent_union))\fR.
