@@ -582,14 +582,23 @@ static void match_states_stree(struct stree **one, struct stree **two)
 	overwrite_stree(add_to_two, two);
 }
 
-static void clone_pool_havers_stree(struct stree *stree)
+static void clone_pool_havers_stree(struct stree **stree)
 {
-	struct AvlIter iter;
+	struct sm_state *sm, *tmp;
+	struct state_list *slist = NULL;
 
-	avl_foreach(iter, stree) {
-		if (iter.sm->pool)
-			iter.sm = clone_sm(iter.sm);
-	}
+	FOR_EACH_SM(*stree, sm) {
+		if (sm->pool) {
+			tmp = clone_sm(sm);
+			add_ptr_list(&slist, tmp);
+		}
+	} END_FOR_EACH_SM(sm);
+
+	FOR_EACH_PTR(slist, sm) {
+		avl_insert(stree, sm);
+	} END_FOR_EACH_PTR(sm);
+
+	free_slist(&slist);
 }
 
 int __slist_id;
@@ -652,8 +661,8 @@ void merge_stree(struct stree **to, struct stree *stree)
 
 	match_states_stree(&implied_one, &implied_two);
 
-	clone_pool_havers_stree(implied_one);
-	clone_pool_havers_stree(implied_two);
+	clone_pool_havers_stree(&implied_one);
+	clone_pool_havers_stree(&implied_two);
 
 	set_stree_id(implied_one);
 	set_stree_id(implied_two);
