@@ -395,22 +395,24 @@ void select_call_implies_hook(int type, void (*callback)(struct expression *arg,
 }
 
 static struct expression *static_call_expr;
+static struct expression *static_returns_call;
 static struct symbol *return_type;
 static struct range_list *return_range_list;
 static int db_return_callback(void *unused, int argc, char **argv, char **azColName)
 {
 	struct range_list *rl;
+	struct expression *call_expr = static_returns_call;
 
 	if (argc != 1)
 		return 0;
-	call_results_to_rl(static_call_expr, return_type, argv[0], &rl);
+	call_results_to_rl(call_expr, return_type, argv[0], &rl);
 	return_range_list = rl_union(return_range_list, rl);
 	return 0;
 }
 
 struct range_list *db_return_vals(struct expression *expr)
 {
-	static_call_expr = expr;
+	static_returns_call = expr;
 	return_type = get_type(expr);
 	if (!return_type)
 		return NULL;
@@ -690,6 +692,7 @@ static void match_data_from_db(struct symbol *sym)
 
 static int call_implies_callbacks(void *unused, int argc, char **argv, char **azColName)
 {
+	struct expression *call_expr = static_call_expr;
 	struct call_implies_callback *cb;
 	struct expression *arg = NULL;
 	int type;
@@ -705,7 +708,7 @@ static int call_implies_callbacks(void *unused, int argc, char **argv, char **az
 		if (cb->type != type)
 			continue;
 		if (param != -1) {
-			arg = get_argument_from_call_expr(static_call_expr->args, param);
+			arg = get_argument_from_call_expr(call_expr->args, param);
 			if (!arg)
 				continue;
 		}
