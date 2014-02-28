@@ -467,45 +467,35 @@ static void check_stree_stack_free(struct stree_stack **stack)
 void save_all_states(void)
 {
 	__add_ptr_list(&backup, cur_stree, 0);
-
-	__add_ptr_list(&backup, true_stack, 0);
-	__add_ptr_list(&backup, false_stack, 0);
-	__add_ptr_list(&backup, pre_cond_stack, 0);
-
-	__add_ptr_list(&backup, cond_true_stack, 0);
-	__add_ptr_list(&backup, cond_false_stack, 0);
-
-	__add_ptr_list(&backup, fake_cur_stree_stack, 0);
-
-	__add_ptr_list(&backup, break_stack, 0);
-	__add_ptr_list(&backup, switch_stack, 0);
-	__add_ptr_list(&backup, remaining_cases, 0);
-	__add_ptr_list(&backup, default_stack, 0);
-	__add_ptr_list(&backup, continue_stack, 0);
-
-	__add_ptr_list(&backup, goto_stack, 0);
-}
-
-void nullify_all_states(void)
-{
-	/* FIXME:  These should call free_stree() */
 	cur_stree = NULL;
 
+	__add_ptr_list(&backup, true_stack, 0);
 	true_stack = NULL;
+	__add_ptr_list(&backup, false_stack, 0);
 	false_stack = NULL;
+	__add_ptr_list(&backup, pre_cond_stack, 0);
 	pre_cond_stack = NULL;
 
+	__add_ptr_list(&backup, cond_true_stack, 0);
 	cond_true_stack = NULL;
+	__add_ptr_list(&backup, cond_false_stack, 0);
 	cond_false_stack = NULL;
 
+	__add_ptr_list(&backup, fake_cur_stree_stack, 0);
 	fake_cur_stree_stack = NULL;
 
+	__add_ptr_list(&backup, break_stack, 0);
 	break_stack = NULL;
+	__add_ptr_list(&backup, switch_stack, 0);
 	switch_stack = NULL;
+	__add_ptr_list(&backup, remaining_cases, 0);
 	remaining_cases = NULL;
+	__add_ptr_list(&backup, default_stack, 0);
 	default_stack = NULL;
+	__add_ptr_list(&backup, continue_stack, 0);
 	continue_stack = NULL;
 
+	__add_ptr_list(&backup, goto_stack, 0);
 	goto_stack = NULL;
 }
 

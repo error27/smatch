@@ -470,7 +470,6 @@ void __match_nullify_path_hook(const char *fn, struct expression *expr,
 void __unnullify_path(void);
 int __path_is_null(void);
 void save_all_states(void);
-void nullify_all_states(void);
 void restore_all_states(void);
 void clear_all_states(void);
 

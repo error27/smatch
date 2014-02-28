@@ -1191,7 +1191,6 @@ static void parse_inline(struct expression *call)
 	set_position(call->fn->symbol->pos);
 
 	save_all_states();
-	nullify_all_states();
 	big_statement_stack = NULL;
 	big_expression_stack = NULL;
 	switch_expr_stack = NULL;
