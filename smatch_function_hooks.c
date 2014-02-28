@@ -509,6 +509,7 @@ static int db_return_states_assign(struct expression *expr)
 		handled = 1;
 	} END_FOR_EACH_SM(sm);
 
+	free_stree(&db_info.stree);
 	call_return_states_after_hooks();
 
 	return handled;
@@ -636,6 +637,7 @@ static void db_return_states(struct expression *expr)
 		__set_sm(sm);
 	} END_FOR_EACH_SM(sm);
 
+	free_stree(&db_info.stree);
 	call_return_states_after_hooks();
 }
 

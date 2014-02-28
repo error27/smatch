@@ -223,6 +223,7 @@ static void handle_select(struct expression *expr)
 	struct stree *a_F_c_T = NULL;
 	struct stree *a_F_c_F = NULL;
 	struct stree *a_F_c_fake = NULL;
+	struct stree *tmp;
 	struct sm_state *sm;
 
 	/*
@@ -309,8 +310,11 @@ static void handle_select(struct expression *expr)
 	merge_stree(&a_T_b_T, a_F_c_T);
 	merge_stree(&a_T_b_F, a_F_c_F);
 
-	__pop_cond_true_stack();
-	__pop_cond_false_stack();
+	tmp = __pop_cond_true_stack();
+	free_stree(&tmp);
+	tmp = __pop_cond_false_stack();
+	free_stree(&tmp);
+
 	__push_cond_stacks();
 	FOR_EACH_SM(a_T_b_T, sm) {
 		__set_true_false_sm(sm, NULL);

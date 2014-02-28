@@ -67,6 +67,7 @@ static void match_save_states(struct expression *expr)
 
 static void match_restore_states(struct expression *expr)
 {
+	free_stree(&all_return_states);
 	all_return_states = pop_stree(&saved_stack);
 }
 

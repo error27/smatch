@@ -57,6 +57,7 @@ static void match_inline_start(struct expression *expr)
 
 static void match_inline_end(struct expression *expr)
 {
+	free_stree(&fn_type_val);
 	fn_type_val = pop_stree(&fn_type_val_stack);
 }
 

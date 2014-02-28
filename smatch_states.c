@@ -530,10 +530,18 @@ void restore_all_states(void)
 	cur_stree = pop_backup();
 }
 
-void clear_all_states(void)
+void free_goto_stack(void)
 {
 	struct named_stree *named_stree;
 
+	FOR_EACH_PTR(goto_stack, named_stree) {
+		free_stree(&named_stree->stree);
+	} END_FOR_EACH_PTR(named_stree);
+	__free_ptr_list((struct ptr_list **)&goto_stack);
+}
+
+void clear_all_states(void)
+{
 	nullify_path();
 	check_stree_stack_free(&true_stack);
 	check_stree_stack_free(&false_stack);
@@ -544,10 +552,8 @@ void clear_all_states(void)
 	check_stree_stack_free(&switch_stack);
 	check_stree_stack_free(&continue_stack);
 
-	FOR_EACH_PTR(goto_stack, named_stree) {
-		free_stree(&named_stree->stree);
-	} END_FOR_EACH_PTR(named_stree);
-	__free_ptr_list((struct ptr_list **)&goto_stack);
+	free_goto_stack();
+
 	free_every_single_sm_state();
 }
 
@@ -668,12 +674,14 @@ void __use_cond_states(void)
 
 	true_states = pop_stree(&cond_true_stack);
 	overwrite_stree(true_states, &pre);
+	free_stree(&true_states);
 	/* we use the true states right away */
 	free_stree(&cur_stree);
 	cur_stree = pre;
 
 	false_states = pop_stree(&cond_false_stack);
 	overwrite_stree(false_states, &pre_clone);
+	free_stree(&false_states);
 	push_stree(&false_stack, pre_clone);
 }
 

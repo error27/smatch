@@ -547,9 +547,9 @@ struct smatch_state *get_state_stree_stack(struct stree_stack *stack,
 static void match_states_stree(struct stree **one, struct stree **two)
 {
 	struct smatch_state *tmp_state;
-	struct sm_state *tmp_sm;
-	struct stree *add_to_one = NULL;
-	struct stree *add_to_two = NULL;
+	struct sm_state *sm;
+	struct state_list *add_to_one = NULL;
+	struct state_list *add_to_two = NULL;
 	AvlIter one_iter;
 	AvlIter two_iter;
 
@@ -563,9 +563,9 @@ static void match_states_stree(struct stree **one, struct stree **two)
 			__set_fake_cur_stree_fast(*two);
 			tmp_state = __client_unmatched_state_function(one_iter.sm);
 			__pop_fake_cur_stree_fast();
-			tmp_sm = alloc_state_no_name(one_iter.sm->owner, one_iter.sm->name,
+			sm = alloc_state_no_name(one_iter.sm->owner, one_iter.sm->name,
 						  one_iter.sm->sym, tmp_state);
-			avl_insert(&add_to_two, tmp_sm);
+			add_ptr_list(&add_to_two, sm);
 			avl_iter_next(&one_iter);
 		} else if (cmp_tracker(one_iter.sm, two_iter.sm) == 0) {
 			avl_iter_next(&one_iter);
@@ -574,15 +574,23 @@ static void match_states_stree(struct stree **one, struct stree **two)
 			__set_fake_cur_stree_fast(*one);
 			tmp_state = __client_unmatched_state_function(two_iter.sm);
 			__pop_fake_cur_stree_fast();
-			tmp_sm = alloc_state_no_name(two_iter.sm->owner, two_iter.sm->name,
+			sm = alloc_state_no_name(two_iter.sm->owner, two_iter.sm->name,
 						  two_iter.sm->sym, tmp_state);
-			avl_insert(&add_to_one, tmp_sm);
+			add_ptr_list(&add_to_one, sm);
 			avl_iter_next(&two_iter);
 		}
 	}
 
-	overwrite_stree(add_to_one, one);
-	overwrite_stree(add_to_two, two);
+	FOR_EACH_PTR(add_to_one, sm) {
+		avl_insert(one, sm);
+	} END_FOR_EACH_PTR(sm);
+
+	FOR_EACH_PTR(add_to_two, sm) {
+		avl_insert(two, sm);
+	} END_FOR_EACH_PTR(sm);
+
+	free_slist(&add_to_one);
+	free_slist(&add_to_two);
 }
 
 static void clone_pool_havers_stree(struct stree **stree)

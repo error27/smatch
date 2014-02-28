@@ -1158,6 +1158,7 @@ static void split_function(struct symbol *sym)
 	__split_stmt(base_type->inline_stmt);
 	__pass_to_client(sym, END_FUNC_HOOK);
 	__pass_to_client(sym, AFTER_FUNC_HOOK);
+
 	cur_func_sym = NULL;
 	cur_func = NULL;
 	clear_all_states();
@@ -1207,6 +1208,7 @@ static void parse_inline(struct expression *call)
 	free_expression_stack(&switch_expr_stack);
 	__free_ptr_list((struct ptr_list **)&big_statement_stack);
 	nullify_path();
+	free_goto_stack();
 
 	loop_num = loop_num_bak;
 	final_pass = final_pass_bak;

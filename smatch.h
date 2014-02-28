@@ -471,6 +471,7 @@ void __unnullify_path(void);
 int __path_is_null(void);
 void save_all_states(void);
 void restore_all_states(void);
+void free_goto_stack(void);
 void clear_all_states(void);
 
 struct sm_state *get_sm_state(int owner, const char *name,

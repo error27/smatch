@@ -1006,7 +1006,7 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 
 	len = strlen(name);
 	FOR_EACH_PTR(returned_member_callbacks, cb) {
-		stree = get_all_states_stree(cb->owner);
+		stree = __get_cur_stree();
 		FOR_EACH_MY_SM(cb->owner, stree, sm) {
 			if (sm->name[0] == '*' && strcmp(sm->name + 1, name) == 0) {
 				strcpy(member_name, "*$$");
