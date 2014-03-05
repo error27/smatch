@@ -446,7 +446,8 @@ void __match_nullify_path_hook(const char *fn, struct expression *expr,
  */
 void __unnullify_path(void)
 {
-	set_state(-1, "unnull_path", NULL, &true_state);
+	if (!cur_stree)
+		set_state(-1, "unnull_path", NULL, &true_state);
 }
 
 int __path_is_null(void)
