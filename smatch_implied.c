@@ -250,8 +250,10 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 		free_slist(checked);
 }
 
-struct sm_state *remove_pools(struct sm_state *sm,
-				struct stree_stack *pools, int *modified)
+struct sm_state *filter_pools(struct sm_state *sm,
+			      struct stree_stack *remove_stack,
+			      struct stree_stack *keep_stack,
+			      int *modified)
 {
 	struct sm_state *ret = NULL;
 	struct sm_state *left;
@@ -269,20 +271,20 @@ struct sm_state *remove_pools(struct sm_state *sm,
 		return NULL;
 	}
 
-	if (pool_in_pools(sm->pool, pools)) {
+	if (pool_in_pools(sm->pool, remove_stack)) {
 		DIMPLIED("removed %s from %d\n", show_sm(sm), sm->line);
 		*modified = 1;
 		return NULL;
 	}
 
-	if (!is_merged(sm)) {
+	if (!is_merged(sm) || pool_in_pools(sm->pool, keep_stack)) {
 		DIMPLIED("kept %s from %d\n", show_sm(sm), sm->line);
 		return sm;
 	}
 
 	DIMPLIED("checking %s from %d (%d)\n", show_sm(sm), sm->line, sm->nr_children);
-	left = remove_pools(sm->left, pools, &removed);
-	right = remove_pools(sm->right, pools, &removed);
+	left = filter_pools(sm->left, remove_stack, keep_stack, &removed);
+	right = filter_pools(sm->right, remove_stack, keep_stack, &removed);
 	if (!removed) {
 		DIMPLIED("kept %s from %d\n", show_sm(sm), sm->line);
 		return sm;
@@ -335,14 +337,15 @@ static int highest_stree_id(struct sm_state *sm)
 
 static struct stree *filter_stack(struct sm_state *gate_sm,
 				       struct stree *pre_stree,
-				       struct stree_stack *stack)
+				       struct stree_stack *remove_stack,
+				       struct stree_stack *keep_stack)
 {
 	struct stree *ret = NULL;
 	struct sm_state *tmp;
 	struct sm_state *filtered_sm;
 	int modified;
 
-	if (!stack)
+	if (!remove_stack)
 		return NULL;
 
 	FOR_EACH_SM(pre_stree, tmp) {
@@ -353,7 +356,7 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 			continue;
 		}
 		modified = 0;
-		filtered_sm = remove_pools(tmp, stack, &modified);
+		filtered_sm = filter_pools(tmp, remove_stack, keep_stack, &modified);
 		if (filtered_sm && modified) {
 			/* the assignments here are for borrowed implications */
 			filtered_sm->name = tmp->name;
@@ -397,9 +400,9 @@ static void separate_and_filter(struct sm_state *sm_state, int comparison, struc
 	separate_pools(sm_state, comparison, vals, lr, &true_stack, &false_stack, NULL);
 
 	DIMPLIED("filtering true stack.\n");
-	*true_states = filter_stack(sm_state, pre_stree, false_stack);
+	*true_states = filter_stack(sm_state, pre_stree, false_stack, true_stack);
 	DIMPLIED("filtering false stack.\n");
-	*false_states = filter_stack(sm_state, pre_stree, true_stack);
+	*false_states = filter_stack(sm_state, pre_stree, true_stack, false_stack);
 	free_stree_stack(&true_stack);
 	free_stree_stack(&false_stack);
 	if (option_debug_implied || option_debug) {
