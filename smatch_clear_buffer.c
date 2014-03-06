@@ -189,16 +189,6 @@ int has_uninitialized_members(struct expression *expr)
 	return 0;
 }
 
-static void match_assign(struct expression *expr)
-{
-	struct symbol *type;
-
-	type = get_type(expr->left);
-	if (!type || type->type != SYM_STRUCT)
-		return;
-	initialize_struct_members(type, expr->left, NULL);
-}
-
 static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
 {
 	set_members_uninitialized(expr->left);
@@ -262,7 +252,6 @@ void register_clear_buffer(int id)
 		add_function_hook("usb_control_msg", &match_usb_control_msg, NULL);
 	}
 	add_modification_hook(my_id, &reset_initialized);
-	add_hook(&match_assign, ASSIGNMENT_HOOK);
 
 	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
 }
