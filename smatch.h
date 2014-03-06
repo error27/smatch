@@ -330,6 +330,7 @@ const char *global_static();
 struct symbol *cur_func_return_type(void);
 struct symbol *get_arg_type(struct expression *fn, int arg);
 struct symbol *get_member_type_from_key(struct expression *expr, char *key);
+int is_struct(struct expression *expr);
 
 /* smatch_ignore.c */
 void add_ignore(int owner, const char *name, struct symbol *sym);

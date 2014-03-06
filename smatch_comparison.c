@@ -988,6 +988,9 @@ static void match_assign(struct expression *expr)
 	if (expr->op != '=')
 		return;
 
+	if (is_struct(expr->left))
+		return;
+
 	copy_comparisons(expr->left, expr->right);
 	add_comparison(expr->left, SPECIAL_EQUAL, expr->right);
 

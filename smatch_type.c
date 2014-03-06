@@ -522,3 +522,13 @@ struct symbol *get_member_type_from_key(struct expression *expr, char *key)
 		return NULL;
 	return get_real_base_type(sym);
 }
+
+int is_struct(struct expression *expr)
+{
+	struct symbol *type;
+
+	type = get_type(expr);
+	if (type && type->type == SYM_STRUCT)
+		return 1;
+	return 0;
+}
