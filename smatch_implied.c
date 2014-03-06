@@ -96,14 +96,14 @@ static void print_debug_tf(struct sm_state *s, int istrue, int isfalse)
 		printf("'%s = %s' from %d does not exist.\n", s->name,
 			show_state(s->state), s->line);
 	} else if (istrue) {
-		printf("'%s = %s' from %d is true.\n", s->name, show_state(s->state),
-			s->line);
+		printf("'%s = %s' from %d is true. [stree %d]\n", s->name, show_state(s->state),
+			s->line, get_stree_id(s->pool));
 	} else if (isfalse) {
-		printf("'%s = %s' from %d is false.\n", s->name, show_state(s->state),
-			s->line);
+		printf("'%s = %s' from %d is false. [stree %d]\n", s->name, show_state(s->state),
+			s->line, get_stree_id(s->pool));
 	} else {
-		printf("'%s = %s' from %d could be true or false.\n", s->name,
-			show_state(s->state), s->line);
+		printf("'%s = %s' from %d could be true or false. [stree %d]\n", s->name,
+			show_state(s->state), s->line, get_stree_id(s->pool));
 	}
 }
 
@@ -265,33 +265,36 @@ struct sm_state *filter_pools(struct sm_state *sm,
 
 	if (sm->nr_children > 4000) {
 		static char buf[1028];
-		snprintf(buf, sizeof(buf), "debug: remove_pools: nr_children over 4000 (%d). (%s %s)",
-			 sm->nr_children, sm->name, show_state(sm->state));
+		snprintf(buf, sizeof(buf), "debug: %s: nr_children over 4000 (%d). (%s %s)",
+			 __func__, sm->nr_children, sm->name, show_state(sm->state));
 		implied_debug_msg = buf;
 		return NULL;
 	}
 
 	if (pool_in_pools(sm->pool, remove_stack)) {
-		DIMPLIED("removed %s from %d\n", show_sm(sm), sm->line);
+		DIMPLIED("removed %s from %d [stree %d]\n", show_sm(sm), sm->line, get_stree_id(sm->pool));
 		*modified = 1;
 		return NULL;
 	}
 
 	if (!is_merged(sm) || pool_in_pools(sm->pool, keep_stack)) {
-		DIMPLIED("kept %s from %d\n", show_sm(sm), sm->line);
+		DIMPLIED("kept %s from %d [stree %d]\n", show_sm(sm), sm->line, get_stree_id(sm->pool));
 		return sm;
 	}
 
-	DIMPLIED("checking %s from %d (%d)\n", show_sm(sm), sm->line, sm->nr_children);
+	DIMPLIED("checking %s from %d (%d) [stree %d] left = %s [stree %d] right = %s [stree %d]\n",
+		 show_sm(sm), sm->line, sm->nr_children, get_stree_id(sm->pool),
+		 sm->left ? show_sm(sm->left) : "<none>", sm->left ? get_stree_id(sm->left->pool) : -1,
+		 sm->right ? show_sm(sm->right) : "<none>", sm->right ? get_stree_id(sm->right->pool) : -1);
 	left = filter_pools(sm->left, remove_stack, keep_stack, &removed);
 	right = filter_pools(sm->right, remove_stack, keep_stack, &removed);
 	if (!removed) {
-		DIMPLIED("kept %s from %d\n", show_sm(sm), sm->line);
+		DIMPLIED("kept %s from %d [stree %d]\n", show_sm(sm), sm->line, get_stree_id(sm->pool));
 		return sm;
 	}
 	*modified = 1;
 	if (!left && !right) {
-		DIMPLIED("removed %s from %d <none>\n", show_sm(sm), sm->line);
+		DIMPLIED("removed %s from %d <none> [stree %d]\n", show_sm(sm), sm->line, get_stree_id(sm->pool));
 		return NULL;
 	}
 
@@ -313,7 +316,7 @@ struct sm_state *filter_pools(struct sm_state *sm,
 	}
 	ret->implied = 1;
 	DIMPLIED("partial %s => ", show_sm(sm));
-	DIMPLIED("%s from %d\n", show_sm(ret), sm->line);
+	DIMPLIED("%s from %d [stree %d]\n", show_sm(ret), sm->line, get_stree_id(sm->pool));
 	return ret;
 }
 
