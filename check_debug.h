@@ -3,7 +3,7 @@
 
 static inline void __smatch_about(long var){}
 
-static inline void __smatch_cur_slist(void){}
+static inline void __smatch_cur_stree(void){}
 static inline void __smatch_all_values(void){}
 static inline void __smatch_state(const char *check_name, const char *state_name){}
 static inline void __smatch_states(const char *check_name){}

@@ -31,7 +31,7 @@ static void match_all_values(const char *fn, struct expression *expr, void *info
 	free_stree(&stree);
 }
 
-static void match_cur_slist(const char *fn, struct expression *expr, void *info)
+static void match_cur_stree(const char *fn, struct expression *expr, void *info)
 {
 	__print_cur_stree();
 }
@@ -465,7 +465,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_sval_info", &match_sval_info, NULL);
 	add_function_hook("__smatch_member_name", &match_member_name, NULL);
 	add_function_hook("__smatch_possible", &match_possible, NULL);
-	add_function_hook("__smatch_cur_slist", &match_cur_slist, NULL);
+	add_function_hook("__smatch_cur_stree", &match_cur_stree, NULL);
 	add_function_hook("__smatch_strlen", &match_strlen, NULL);
 	add_function_hook("__smatch_buf_size", &match_buf_size, NULL);
 	add_function_hook("__smatch_buf_size_rl", &match_buf_size_rl, NULL);
