@@ -503,6 +503,9 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	sval_t max;
 	struct smatch_state *state;
 
+	if (is_struct(left))
+		return;
+
 	name = expr_to_var_sym(left, &sym);
 	if (!name)
 		return;
