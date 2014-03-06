@@ -46,6 +46,8 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 
 static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_state *state)
 {
+	if (get_param_num_from_sym(sym) < 0)
+		return;
 	set_state(my_id, name, sym, state);
 }
 
