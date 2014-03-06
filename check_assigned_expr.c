@@ -22,6 +22,7 @@
 
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 
 int check_assigned_expr_id;
 static int my_id;
@@ -53,6 +54,8 @@ static struct smatch_state *alloc_my_state(struct expression *expr)
 static void match_assignment(struct expression *expr)
 {
 	if (expr->op != '=')
+		return;
+	if (is_fake_call(expr->right))
 		return;
 	set_state_expr(my_id, expr->left, alloc_my_state(expr->right));
 }
