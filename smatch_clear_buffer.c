@@ -213,16 +213,6 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 		set_initialized(arg, NULL);
 }
 
-static void match_memcpy(const char *fn, struct expression *expr, void *_arg)
-{
-	struct expression *buf;
-	int arg = PTR_INT(_arg);
-
-	buf = get_argument_from_call_expr(expr->args, arg);
-
-	set_initialized(buf, NULL);
-}
-
 static void reset_initialized(struct sm_state *sm, struct expression *mod_expr)
 {
 	set_state(my_id, sm->name, sm->sym, &initialized);
