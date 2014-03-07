@@ -368,6 +368,9 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state)
 {
+	if (read_only)
+		sm_msg("Smatch Internal Error: cur_stree is read only.");
+
 	if (option_debug || strcmp(check_name(owner), option_debug_check) == 0) {
 		struct smatch_state *tmp;
 
