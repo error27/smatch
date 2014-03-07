@@ -42,6 +42,8 @@ static bool checkBalances(AvlNode *node, int *height);
 static bool checkOrder(struct stree *avl);
 static size_t countNode(AvlNode *node);
 
+int unfree_stree;
+
 /*
  * Utility macros for converting between
  * "balance" values (-1 or 1) and "side" values (0 or 1).
@@ -67,6 +69,7 @@ struct stree *avl_new(void)
 {
 	struct stree *avl = malloc(sizeof(*avl));
 
+	unfree_stree++;
 	assert(avl != NULL);
 
 	avl->root = NULL;
@@ -88,6 +91,8 @@ void free_stree(struct stree **avl)
 		*avl = NULL;
 		return;
 	}
+
+	unfree_stree--;
 
 	freeNode((*avl)->root);
 	free(*avl);
