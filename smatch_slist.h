@@ -68,6 +68,7 @@ struct smatch_state *get_state_stree_stack(struct stree_stack *stack, int owner,
 int out_of_memory(void);
 int low_on_memory(void);
 void merge_stree(struct stree **to, struct stree *stree);
+void merge_stree_no_pools(struct stree **to, struct stree *stree);
 void filter_stree(struct stree **stree, struct stree *filter);
 void and_stree_stack(struct stree_stack **stree_stack);
 

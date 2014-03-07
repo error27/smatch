@@ -49,7 +49,7 @@ static void call_hooks()
 
 static void match_return(struct expression *ret_value)
 {
-	merge_stree(&all_return_states, __get_cur_stree());
+	merge_stree_no_pools(&all_return_states, __get_cur_stree());
 }
 
 static void match_end_func(struct symbol *sym)

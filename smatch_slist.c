@@ -618,7 +618,7 @@ int __stree_id;
  * merge_slist() is called whenever paths merge, such as after
  * an if statement.  It takes the two slists and creates one.
  */
-void merge_stree(struct stree **to, struct stree *stree)
+static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 {
 	struct stree *results = NULL;
 	struct stree *implied_one = NULL;
@@ -646,11 +646,13 @@ void merge_stree(struct stree **to, struct stree *stree)
 
 	match_states_stree(&implied_one, &implied_two);
 
-	clone_pool_havers_stree(&implied_one);
-	clone_pool_havers_stree(&implied_two);
+	if (add_pool) {
+		clone_pool_havers_stree(&implied_one);
+		clone_pool_havers_stree(&implied_two);
 
-	set_stree_id(implied_one, ++__stree_id);
-	set_stree_id(implied_two, ++__stree_id);
+		set_stree_id(implied_one, ++__stree_id);
+		set_stree_id(implied_two, ++__stree_id);
+	}
 
 	push_stree(&all_pools, implied_one);
 	push_stree(&all_pools, implied_two);
@@ -665,7 +667,7 @@ void merge_stree(struct stree **to, struct stree *stree)
 			sm_msg("error:  Internal smatch error.");
 			avl_iter_next(&one_iter);
 		} else if (cmp_tracker(one_iter.sm, two_iter.sm) == 0) {
-			if (one_iter.sm != two_iter.sm) {
+			if (add_pool && one_iter.sm != two_iter.sm) {
 				one_iter.sm->pool = implied_one;
 				two_iter.sm->pool = implied_two;
 			}
@@ -683,6 +685,15 @@ void merge_stree(struct stree **to, struct stree *stree)
 	*to = results;
 }
 
+void merge_stree(struct stree **to, struct stree *stree)
+{
+	__merge_stree(to, stree, 1);
+}
+
+void merge_stree_no_pools(struct stree **to, struct stree *stree)
+{
+	__merge_stree(to, stree, 0);
+}
 /*
  * filter_slist() removes any sm states "slist" holds in common with "filter"
  */
