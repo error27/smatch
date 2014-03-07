@@ -45,6 +45,8 @@ static struct expression *skip_this;
 STATE(used);
 STATE(no_break);
 
+static int in_switch_stmt;
+
 static struct smatch_state *alloc_my_state(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -95,6 +97,8 @@ static void match_symbol(struct expression *expr)
 {
 	if (outside_of_function())
 		return;
+	if (!get_switch_expr())
+		return;
 
 	expr = strip_expr(expr);
 	if (expr == skip_this)
@@ -130,6 +134,42 @@ static void match_stmt(struct statement *stmt)
 		in_case = 0;
 }
 
+static void match_switch(struct statement *stmt)
+{
+	if (stmt->type != STMT_SWITCH)
+		return;
+
+	in_switch_stmt++;
+}
+
+static void delete_my_states(int owner)
+{
+	struct state_list *slist = NULL;
+	struct sm_state *sm;
+
+	FOR_EACH_MY_SM(owner, __get_cur_stree(), sm) {
+		add_ptr_list(&slist, sm);
+	} END_FOR_EACH_SM(sm);
+
+	FOR_EACH_PTR(slist, sm) {
+		delete_state(sm->owner, sm->name, sm->sym);
+	} END_FOR_EACH_PTR(sm);
+
+	free_slist(&slist);
+}
+
+static void match_switch_end(struct statement *stmt)
+{
+
+	if (stmt->type != STMT_SWITCH)
+		return;
+
+	in_switch_stmt--;
+
+	if (!in_switch_stmt)
+		delete_my_states(my_id);
+}
+
 void check_missing_break(int id)
 {
 	my_id = id;
@@ -140,4 +180,6 @@ void check_missing_break(int id)
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_symbol, SYM_HOOK);
 	add_hook(&match_stmt, STMT_HOOK);
+	add_hook(&match_switch, STMT_HOOK);
+	add_hook(&match_switch_end, STMT_HOOK_AFTER);
 }
