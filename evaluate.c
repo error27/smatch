@@ -1406,6 +1406,32 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 	return 1;
 }
 
+static int compatible_transparent_union(struct symbol *target,
+	struct expression **rp)
+{
+	struct symbol *t, *member;
+	classify_type(target, &t);
+	if (t->type != SYM_UNION || !t->transparent_union)
+		return 0;
+
+	FOR_EACH_PTR(t->symbol_list, member) {
+		const char *typediff;
+		if (check_assignment_types(member, rp, &typediff))
+			return 1;
+	} END_FOR_EACH_PTR(member);
+
+	return 0;
+}
+
+static int compatible_argument_type(struct expression *expr, struct symbol *target,
+	struct expression **rp, const char *where)
+{
+	if (compatible_transparent_union(target, rp))
+		return 1;
+
+	return compatible_assignment_types(expr, target, rp, where);
+}
+
 static void mark_assigned(struct expression *expr)
 {
 	struct symbol *sym;
@@ -2173,7 +2199,7 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 			static char where[30];
 			examine_symbol_type(target);
 			sprintf(where, "argument %d", i);
-			compatible_assignment_types(expr, target, p, where);
+			compatible_argument_type(expr, target, p, where);
 		}
 
 		i++;
