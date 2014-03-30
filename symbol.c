@@ -354,6 +354,15 @@ static int count_array_initializer(struct symbol *t, struct expression *expr)
 	return nr;
 }
 
+static struct expression *get_symbol_initializer(struct symbol *sym)
+{
+	do {
+		if (sym->initializer)
+			return sym->initializer;
+	} while ((sym = sym->same_symbol) != NULL);
+	return NULL;
+}
+
 static struct symbol * examine_node_type(struct symbol *sym)
 {
 	struct symbol *base_type = examine_base_type(sym);
@@ -376,12 +385,15 @@ static struct symbol * examine_node_type(struct symbol *sym)
 		sym->ctype.alignment = alignment;
 
 	/* Unsized array? The size might come from the initializer.. */
-	if (bit_size < 0 && base_type->type == SYM_ARRAY && sym->initializer) {
-		struct symbol *node_type = base_type->ctype.base_type;
-		int count = count_array_initializer(node_type, sym->initializer);
+	if (bit_size < 0 && base_type->type == SYM_ARRAY) {
+		struct expression *initializer = get_symbol_initializer(sym);
+		if (initializer) {
+			struct symbol *node_type = base_type->ctype.base_type;
+			int count = count_array_initializer(node_type, initializer);
 
-		if (node_type && node_type->bit_size >= 0)
-			bit_size = node_type->bit_size * count;
+			if (node_type && node_type->bit_size >= 0)
+				bit_size = node_type->bit_size * count;
+		}
 	}
 	
 	sym->bit_size = bit_size;
