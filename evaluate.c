@@ -3081,10 +3081,18 @@ static void check_duplicates(struct symbol *sym)
 {
 	int declared = 0;
 	struct symbol *next = sym;
+	int initialized = sym->initializer != NULL;
 
 	while ((next = next->same_symbol) != NULL) {
 		const char *typediff;
 		evaluate_symbol(next);
+		if (initialized && next->initializer) {
+			sparse_error(sym->pos, "symbol '%s' has multiple initializers (originally initialized at %s:%d)",
+				show_ident(sym->ident),
+				stream_name(next->pos.stream), next->pos.line);
+			/* Only warn once */
+			initialized = 0;
+		}
 		declared++;
 		typediff = type_difference(&sym->ctype, &next->ctype, 0, 0);
 		if (typediff) {
