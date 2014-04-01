@@ -577,11 +577,12 @@ void check_declaration(struct symbol *sym)
 			sym->same_symbol = next;
 			return;
 		}
-		if (sym->ctype.modifiers & next->ctype.modifiers & MOD_EXTERN) {
-			if ((sym->ctype.modifiers ^ next->ctype.modifiers) & MOD_INLINE)
-				continue;
-			sym->same_symbol = next;
-			return;
+		/* Extern in block level matches a TOPLEVEL non-static symbol */
+		if (sym->ctype.modifiers & MOD_EXTERN) {
+			if ((next->ctype.modifiers & (MOD_TOPLEVEL|MOD_STATIC)) == MOD_TOPLEVEL) {
+				sym->same_symbol = next;
+				return;
+			}
 		}
 
 		if (!Wshadow || warned)
