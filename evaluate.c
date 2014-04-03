@@ -2209,17 +2209,6 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 	return 1;
 }
 
-static struct symbol *find_struct_ident(struct symbol *ctype, struct ident *ident)
-{
-	struct symbol *sym;
-
-	FOR_EACH_PTR(ctype->symbol_list, sym) {
-		if (sym->ident == ident)
-			return sym;
-	} END_FOR_EACH_PTR(sym);
-	return NULL;
-}
-
 static void convert_index(struct expression *e)
 {
 	struct expression *child = e->idx_expression;
@@ -2328,11 +2317,12 @@ static struct expression *check_designators(struct expression *e,
 			}
 			e = e->idx_expression;
 		} else if (e->type == EXPR_IDENTIFIER) {
+			int offset = 0;
 			if (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION) {
 				err = "field name not in struct or union";
 				break;
 			}
-			ctype = find_struct_ident(ctype, e->expr_ident);
+			ctype = find_identifier(e->expr_ident, ctype->symbol_list, &offset);
 			if (!ctype) {
 				err = "unknown field name in";
 				break;
