@@ -1308,10 +1308,9 @@ static int whitelist_pointers(struct symbol *t1, struct symbol *t2)
 	return !Wtypesign;
 }
 
-static int compatible_assignment_types(struct expression *expr, struct symbol *target,
-	struct expression **rp, const char *where)
+static int check_assignment_types(struct symbol *target, struct expression **rp,
+	const char **typediff)
 {
-	const char *typediff;
 	struct symbol *source = degenerate(*rp);
 	struct symbol *t, *s;
 	int tclass = classify_type(target, &t);
@@ -1328,8 +1327,8 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 				return 1;
 		} else if (!(sclass & TYPE_RESTRICT))
 			goto Cast;
-		typediff = "different base types";
-		goto Err;
+		*typediff = "different base types";
+		return 0;
 	}
 
 	if (tclass == TYPE_PTR) {
@@ -1343,8 +1342,8 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			goto Cast;
 		}
 		if (!(sclass & TYPE_PTR)) {
-			typediff = "different base types";
-			goto Err;
+			*typediff = "different base types";
+			return 0;
 		}
 		b1 = examine_pointer_target(t);
 		b2 = examine_pointer_target(s);
@@ -1357,19 +1356,19 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 			 * or mix address spaces [sparse].
 			 */
 			if (t->ctype.attribute->as != s->ctype.attribute->as) {
-				typediff = "different address spaces";
-				goto Err;
+				*typediff = "different address spaces";
+				return 0;
 			}
 			if (mod2 & ~mod1) {
-				typediff = "different modifiers";
-				goto Err;
+				*typediff = "different modifiers";
+				return 0;
 			}
 			goto Cast;
 		}
 		/* It's OK if the target is more volatile or const than the source */
-		typediff = type_difference(&t->ctype, &s->ctype, 0, mod1);
-		if (typediff)
-			goto Err;
+		*typediff = type_difference(&t->ctype, &s->ctype, 0, mod1);
+		if (*typediff)
+			return 0;
 		return 1;
 	}
 
@@ -1380,20 +1379,58 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 		/* XXX: need to turn into comparison with NULL */
 		if (t == &bool_ctype && (sclass & TYPE_PTR))
 			goto Cast;
-		typediff = "different base types";
-		goto Err;
+		*typediff = "different base types";
+		return 0;
 	}
-	typediff = "invalid types";
-
-Err:
-	warning(expr->pos, "incorrect type in %s (%s)", where, typediff);
-	info(expr->pos, "   expected %s", show_typename(target));
-	info(expr->pos, "   got %s", show_typename(source));
-	*rp = cast_to(*rp, target);
+	*typediff = "invalid types";
 	return 0;
+
 Cast:
 	*rp = cast_to(*rp, target);
 	return 1;
+}
+
+static int compatible_assignment_types(struct expression *expr, struct symbol *target,
+	struct expression **rp, const char *where)
+{
+	const char *typediff;
+	struct symbol *source = degenerate(*rp);
+
+	if (!check_assignment_types(target, rp, &typediff)) {
+		warning(expr->pos, "incorrect type in %s (%s)", where, typediff);
+		info(expr->pos, "   expected %s", show_typename(target));
+		info(expr->pos, "   got %s", show_typename(source));
+		*rp = cast_to(*rp, target);
+		return 0;
+	}
+
+	return 1;
+}
+
+static int compatible_transparent_union(struct symbol *target,
+	struct expression **rp)
+{
+	struct symbol *t, *member;
+	classify_type(target, &t);
+	if (t->type != SYM_UNION || !t->transparent_union)
+		return 0;
+
+	FOR_EACH_PTR(t->symbol_list, member) {
+		const char *typediff;
+		if (check_assignment_types(member, rp, &typediff))
+			return 1;
+	} END_FOR_EACH_PTR(member);
+
+	return 0;
+}
+
+static int compatible_argument_type(struct expression *expr, struct symbol *target,
+	struct expression **rp, const char *where)
+{
+	if (compatible_transparent_union(target, rp))
+		return 1;
+
+	return compatible_assignment_types(expr, target, rp, where);
 }
 
 static void mark_assigned(struct expression *expr)
@@ -2058,7 +2095,8 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 	}
 
 	if (size == 1 && is_bool_type(type)) {
-		warning(expr->pos, "expression using sizeof bool");
+		if (Wsizeof_bool)
+			warning(expr->pos, "expression using sizeof bool");
 		size = bits_in_char;
 	}
 
@@ -2162,7 +2200,7 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 			static char where[30];
 			examine_symbol_type(target);
 			sprintf(where, "argument %d", i);
-			compatible_assignment_types(expr, target, p, where);
+			compatible_argument_type(expr, target, p, where);
 		}
 
 		i++;
@@ -2170,17 +2208,6 @@ static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expres
 	} END_FOR_EACH_PTR(expr);
 	FINISH_PTR_LIST(argtype);
 	return 1;
-}
-
-static struct symbol *find_struct_ident(struct symbol *ctype, struct ident *ident)
-{
-	struct symbol *sym;
-
-	FOR_EACH_PTR(ctype->symbol_list, sym) {
-		if (sym->ident == ident)
-			return sym;
-	} END_FOR_EACH_PTR(sym);
-	return NULL;
 }
 
 static void convert_index(struct expression *e)
@@ -2291,11 +2318,12 @@ static struct expression *check_designators(struct expression *e,
 			}
 			e = e->idx_expression;
 		} else if (e->type == EXPR_IDENTIFIER) {
+			int offset = 0;
 			if (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION) {
 				err = "field name not in struct or union";
 				break;
 			}
-			ctype = find_struct_ident(ctype, e->expr_ident);
+			ctype = find_identifier(e->expr_ident, ctype->symbol_list, &offset);
 			if (!ctype) {
 				err = "unknown field name in";
 				break;
@@ -3044,10 +3072,18 @@ static void check_duplicates(struct symbol *sym)
 {
 	int declared = 0;
 	struct symbol *next = sym;
+	int initialized = sym->initializer != NULL;
 
 	while ((next = next->same_symbol) != NULL) {
 		const char *typediff;
 		evaluate_symbol(next);
+		if (initialized && next->initializer) {
+			sparse_error(sym->pos, "symbol '%s' has multiple initializers (originally initialized at %s:%d)",
+				show_ident(sym->ident),
+				stream_name(next->pos.stream), next->pos.line);
+			/* Only warn once */
+			initialized = 0;
+		}
 		declared++;
 		typediff = type_difference(&sym->ctype, &next->ctype, 0, 0);
 		if (typediff) {

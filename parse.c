@@ -1210,7 +1210,12 @@ static struct token *attribute_designated_init(struct token *token, struct symbo
 static struct token *attribute_transparent_union(struct token *token, struct symbol *attr, struct decl_state *ctx)
 {
 	if (Wtransparent_union)
-		warning(token->pos, "ignoring attribute __transparent_union__");
+		warning(token->pos, "attribute __transparent_union__");
+
+	if (ctx->ctype.base_type && ctx->ctype.base_type->type == SYM_UNION)
+		ctx->ctype.base_type->transparent_union = 1;
+	else
+		warning(token->pos, "attribute __transparent_union__ applied to non-union type");
 	return token;
 }
 
