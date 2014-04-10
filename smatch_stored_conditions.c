@@ -212,6 +212,10 @@ static void match_condition(struct expression *expr)
 {
 	struct smatch_state *true_state, *false_state;
 	char *name;
+	sval_t val;
+
+	if (get_value(expr, &val))
+		return;
 
 	if (condition_too_complicated(expr))
 		return;
