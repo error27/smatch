@@ -545,7 +545,7 @@ static int get_param(int param, char **name, struct symbol **sym)
 
 static struct stree *final_states;
 static int prev_func_id = -1;
-static int db_callback(void *unused, int argc, char **argv, char **azColName)
+static int caller_info_callback(void *unused, int argc, char **argv, char **azColName)
 {
 	int func_id;
 	long type;
@@ -592,7 +592,7 @@ static int db_callback(void *unused, int argc, char **argv, char **azColName)
 static void get_direct_callers(struct symbol *sym)
 {
 	sql_select_caller_info("call_id, type, parameter, key, value", sym,
-			db_callback);
+			caller_info_callback);
 }
 
 static struct string_list *ptr_names_done;
@@ -653,7 +653,7 @@ static void get_function_pointer_callers(struct symbol *sym)
 		get_ptr_names(NULL, sym->ident->name);
 
 	FOR_EACH_PTR(ptr_names, ptr) {
-		run_sql(db_callback, "select call_id, type, parameter, key, value"
+		run_sql(caller_info_callback, "select call_id, type, parameter, key, value"
 			" from caller_info where function = '%s' order by call_id",
 			ptr);
 		free_string(ptr);
