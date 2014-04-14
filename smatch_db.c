@@ -643,26 +643,6 @@ static void get_ptr_names(const char *file, const char *name)
 		get_ptr_names(NULL, name);
 }
 
-static void get_function_pointer_callers(struct symbol *sym)
-{
-	char *ptr;
-
-	if (sym->ctype.modifiers & MOD_STATIC)
-		get_ptr_names(get_base_file(), sym->ident->name);
-	else
-		get_ptr_names(NULL, sym->ident->name);
-
-	FOR_EACH_PTR(ptr_names, ptr) {
-		run_sql(caller_info_callback, "select call_id, type, parameter, key, value"
-			" from caller_info where function = '%s' order by call_id",
-			ptr);
-		free_string(ptr);
-	} END_FOR_EACH_PTR(ptr);
-
-	__free_ptr_list((struct ptr_list **)&ptr_names);
-	__free_ptr_list((struct ptr_list **)&ptr_names_done);
-}
-
 static void match_data_from_db(struct symbol *sym)
 {
 	struct sm_state *sm;
@@ -675,9 +655,36 @@ static void match_data_from_db(struct symbol *sym)
 	__unnullify_path();
 	prev_func_id = -1;
 
-	get_direct_callers(sym);
-	if (!__inline_fn)
-		get_function_pointer_callers(sym);
+	if (!__inline_fn) {
+		char *ptr;
+
+		if (sym->ctype.modifiers & MOD_STATIC)
+			get_ptr_names(get_base_file(), sym->ident->name);
+		else
+			get_ptr_names(NULL, sym->ident->name);
+
+		if (ptr_list_size((struct ptr_list *)ptr_names) > 20) {
+			__free_ptr_list((struct ptr_list **)&ptr_names);
+			__free_ptr_list((struct ptr_list **)&ptr_names_done);
+			stree = __pop_fake_cur_stree();
+			free_stree(&stree);
+			return;
+		}
+
+		get_direct_callers(sym);
+
+		FOR_EACH_PTR(ptr_names, ptr) {
+			run_sql(caller_info_callback, "select call_id, type, parameter, key, value"
+				" from caller_info where function = '%s' order by call_id",
+				ptr);
+			free_string(ptr);
+		} END_FOR_EACH_PTR(ptr);
+
+		__free_ptr_list((struct ptr_list **)&ptr_names);
+		__free_ptr_list((struct ptr_list **)&ptr_names_done);
+	} else {
+		get_direct_callers(sym);
+	}
 
 	stree = __pop_fake_cur_stree();
 	merge_stree(&final_states, stree);
