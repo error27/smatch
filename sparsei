@@ -3,7 +3,7 @@
 set +e
 
 DIRNAME=`dirname $0`
-LLI=`llvm-config --bindir`/lli
+LLI=`"${LLVM_CONFIG:-llvm-config}" --bindir`/lli
 
 if [ $# -eq 0 ]; then
   echo "`basename $0`: no input files"
