@@ -41,7 +41,7 @@ static void match_overflow(struct expression *expr)
 	type = get_cast_type(expr->left);
 	if (!type)
 		return;
-	cast_size = bits_to_bytes(type->bit_size);
+	cast_size = type_bytes(type);
 
 	ptr = strip_expr(expr->left->unop);
 	data_size = get_array_size_bytes_min(ptr);

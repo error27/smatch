@@ -22,7 +22,6 @@ static int my_id;
 static int get_data_size(struct expression *ptr)
 {
 	struct symbol *type;
-	int ret;
 
 	type = get_type(ptr);
 	if (!type || type->type != SYM_PTR)
@@ -30,10 +29,7 @@ static int get_data_size(struct expression *ptr)
 	type = get_base_type(type);
 	if (!type)
 		return 0;
-	ret = bits_to_bytes(type->bit_size);
-	if (ret == -1)
-		return 0;
-	return ret;
+	return type_bytes(type);
 }
 
 static void check_size_matches(int data_size, struct expression *size_expr)

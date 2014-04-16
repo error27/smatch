@@ -346,7 +346,7 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 	if (expr->type != EXPR_ASSIGNMENT)
 		return;
 	right_type = get_pointer_type(expr->right);
-	if (!right_type || right_type->bit_size != -1)
+	if (!right_type || type_bits(right_type) != -1)
 		return;
 
 	call = strip_expr(expr->right);
@@ -356,7 +356,7 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 		return;
 	if (!left_type)
 		return;
-	bytes = bits_to_bytes(left_type->bit_size);
+	bytes = type_bytes(left_type);
 	if (bytes <= 0)
 		return;
 	if (sval.uvalue >= bytes)

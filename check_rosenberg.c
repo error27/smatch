@@ -76,10 +76,10 @@ static int check_struct(struct expression *expr, struct symbol *type)
 
 		if (base_type == &bool_ctype)
 			align += 1;
-		else if (tmp->bit_size <= 0)
+		else if (type_bits(tmp) <= 0)
 			align = 0;
 		else
-			align += bits_to_bytes(tmp->bit_size);
+			align += type_bytes(tmp);
 
 		if (tmp->ident)
 			prev = tmp->ident->name;

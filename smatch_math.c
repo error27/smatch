@@ -723,7 +723,7 @@ static sval_t handle_sizeof(struct expression *expr)
 		 * promoted - check that here
 		 */
 		if (is_restricted_type(sym)) {
-			if (sym->bit_size < bits_in_int)
+			if (type_bits(sym) < bits_in_int)
 				sym = &int_ctype;
 		} else if (is_fouled_type(sym)) {
 			sym = &int_ctype;
@@ -732,13 +732,13 @@ static sval_t handle_sizeof(struct expression *expr)
 	examine_symbol_type(sym);
 
 	ret.type = size_t_ctype;
-	if (sym->bit_size <= 0) /* sizeof(void) */ {
+	if (type_bits(sym) <= 0) /* sizeof(void) */ {
 		if (get_real_base_type(sym) == &void_ctype)
 			ret.value = 1;
 		else
 			ret.value = 0;
 	} else
-		ret.value = bits_to_bytes(sym->bit_size);
+		ret.value = type_bytes(sym);
 
 	return ret;
 }
@@ -767,7 +767,7 @@ static struct range_list *handle_cast(struct expression *expr, int implied)
 	if (implied == RL_ABSOLUTE)
 		return alloc_whole_rl(type);
 	if (implied == RL_IMPLIED && type &&
-	    type->bit_size > 0 && type->bit_size < 32)
+	    type_bits(type) > 0 && type_bits(type) < 32)
 		return alloc_whole_rl(type);
 	return NULL;
 }

@@ -47,7 +47,7 @@ static void match_assign(struct expression *expr)
 		//sm_msg("could not get type");
 		return;
 	}
-	if (sym->bit_size < 0 || sym->bit_size >= 32) /* max_val limits this */
+	if (type_bits(sym) < 0 || type_bits(sym) >= 32) /* max_val limits this */
 		return;
 	if (!get_implied_value(expr->right, &sval))
 		return;

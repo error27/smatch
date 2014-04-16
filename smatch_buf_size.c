@@ -132,7 +132,6 @@ void set_param_buf_size(const char *name, struct symbol *sym, char *key, char *v
 static int bytes_per_element(struct expression *expr)
 {
 	struct symbol *type;
-	int bpe;
 
 	if (expr->type == EXPR_STRING)
 		return 1;
@@ -144,12 +143,7 @@ static int bytes_per_element(struct expression *expr)
 		return 0;
 
 	type = get_base_type(type);
-	bpe = bits_to_bytes(type->bit_size);
-
-	if (bpe == -1) /* void pointer */
-		bpe = 1;
-
-	return bpe;
+	return type_bytes(type);
 }
 
 static int bytes_to_elements(struct expression *expr, int bytes)
@@ -312,9 +306,7 @@ static int get_bytes_from_address(struct expression *expr)
 	if (type->type == SYM_PTR)
 		type = get_base_type(type);
 
-	ret = bits_to_bytes(type->bit_size);
-	if (ret == -1)
-		return 0;
+	ret = type_bytes(type);
 	if (ret == 1)
 		return 0;  /* ignore char pointers */
 
@@ -391,7 +383,7 @@ static int get_stored_size_end_struct_bytes(struct expression *expr)
 	free_string(name);
 	if (!sym || !sym->ident || !sym->ident->name)
 		return 0;
-	if (!sym->bit_size)
+	if (!type_bytes(sym))
 		return 0;
 
 	if (sym->type != SYM_NODE)
@@ -410,8 +402,7 @@ static int get_stored_size_end_struct_bytes(struct expression *expr)
 	if (!is_last_member_of_struct(sym, expr->member))
 		return 0;
 
-	return estate_to_size(state) - bits_to_bytes(sym->bit_size) +
-		bits_to_bytes(type->bit_size);
+	return estate_to_size(state) - type_bytes(sym) + type_bytes(type);
 }
 
 static struct range_list *alloc_int_rl(int value)

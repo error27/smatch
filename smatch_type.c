@@ -40,7 +40,18 @@ int type_bits(struct symbol *type)
 		return 0;
 	if (type->type == SYM_PTR)  /* Sparse doesn't set this for &pointers */
 		return bits_in_pointer;
+	if (!type->examined)
+		examine_symbol_type(type);
 	return type->bit_size;
+}
+
+int type_bytes(struct symbol *type)
+{
+	int bits = type_bits(type);
+
+	if (bits < 0)
+		return 0;
+	return bits_to_bytes(bits);
 }
 
 int type_positive_bits(struct symbol *type)
@@ -315,7 +326,7 @@ sval_t sval_type_max(struct symbol *base_type)
 	ret.value = (~0ULL) >> 1;
 	ret.type = base_type;
 
-	if (!base_type || !base_type->bit_size)
+	if (!base_type || !type_bits(base_type))
 		return ret;
 
 	ret.value = (~0ULL) >> (64 - type_positive_bits(base_type));
@@ -326,7 +337,7 @@ sval_t sval_type_min(struct symbol *base_type)
 {
 	sval_t ret;
 
-	if (!base_type || !base_type->bit_size)
+	if (!base_type || !type_bits(base_type))
 		base_type = &llong_ctype;
 	ret.type = base_type;
 

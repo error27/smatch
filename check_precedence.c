@@ -26,7 +26,7 @@ static int is_bool(struct expression *expr)
 	type = get_type(expr);
 	if (!type)
 		return 0;
-	if (type->bit_size == 1 && type->ctype.modifiers & MOD_UNSIGNED)
+	if (type_bits(type) == 1 && type->ctype.modifiers & MOD_UNSIGNED)
 		return 1;
 	return 0;
 }

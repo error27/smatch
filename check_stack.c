@@ -46,16 +46,16 @@ static void match_declarations(struct symbol *sym)
 	if (sym->ctype.modifiers & MOD_STATIC)
 		return;
 	name = sym->ident->name;
-	total_size += base->bit_size;
+	total_size += type_bytes(base);
 	if (total_size > max_size) {
 		max_size = total_size;
 		max_lineno = get_lineno();
 	}
-	if (base->bit_size >= MAX_ALLOWED * 8) {
+	if (type_bytes(base) >= MAX_ALLOWED) {
 		complained = 1;
-		sm_msg("warn: '%s' puts %d bytes on stack", name, base->bit_size / 8);
+		sm_msg("warn: '%s' puts %d bytes on stack", name, type_bytes(base));
 	}
-	add_scope_hook((scope_hook *)&scope_end, INT_PTR(base->bit_size)); 
+	add_scope_hook((scope_hook *)&scope_end, INT_PTR(type_bytes(base))); 
 }
 
 static void match_end_func(struct symbol *sym)
@@ -63,9 +63,9 @@ static void match_end_func(struct symbol *sym)
 	if (__inline_fn)
 		return;
 
-	if ((max_size >= MAX_ALLOWED * 8) && !complained) {
+	if ((max_size >= MAX_ALLOWED) && !complained) {
 		sm_printf("%s:%d %s() ", get_filename(), max_lineno, get_function());
-		sm_printf("warn: function puts %d bytes on stack\n", max_size / 8);
+		sm_printf("warn: function puts %d bytes on stack\n", max_size);
 	}
 	total_size = 0;
 	complained = 0;

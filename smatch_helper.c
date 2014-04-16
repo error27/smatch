@@ -245,8 +245,8 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		char tmp[25];
 
 		if (expr->cast_type && get_base_type(expr->cast_type)) {
-			size = (get_base_type(expr->cast_type))->bit_size;
-			snprintf(tmp, 25, "%d", bits_to_bytes(size));
+			size = type_bytes(get_base_type(expr->cast_type));
+			snprintf(tmp, 25, "%d", size);
 			append(buf, tmp, len);
 		}
 		return;
