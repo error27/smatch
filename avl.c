@@ -508,11 +508,12 @@ struct stree *clone_stree(struct stree *orig)
 	return orig;
 }
 
-void set_stree_id(struct stree *stree, int stree_id)
+void set_stree_id(struct stree **stree, int stree_id)
 {
-	assert(stree->stree_id == 0);
+	if ((*stree)->stree_id != 0)
+		*stree = clone_stree_real(*stree);
 
-	stree->stree_id = stree_id;
+	(*stree)->stree_id = stree_id;
 }
 
 int get_stree_id(struct stree *stree)

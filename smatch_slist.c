@@ -650,8 +650,8 @@ static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 		clone_pool_havers_stree(&implied_one);
 		clone_pool_havers_stree(&implied_two);
 
-		set_stree_id(implied_one, ++__stree_id);
-		set_stree_id(implied_two, ++__stree_id);
+		set_stree_id(&implied_one, ++__stree_id);
+		set_stree_id(&implied_two, ++__stree_id);
 	}
 
 	push_stree(&all_pools, implied_one);

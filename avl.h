@@ -133,7 +133,7 @@ AvlNode *avl_lookup_node(const struct stree *avl, const struct sm_state *sm);
 
 struct stree *clone_stree(struct stree *orig);
 
-void set_stree_id(struct stree *stree, int id);
+void set_stree_id(struct stree **stree, int id);
 int get_stree_id(struct stree *stree);
 
 #endif
