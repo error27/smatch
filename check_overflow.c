@@ -421,17 +421,11 @@ void check_overflow(int id)
 	select_return_states_hook(BUF_SIZE, &db_returns_buf_size);
 	add_modification_hook(my_used_id, &delete);
 	if (option_project == PROJ_KERNEL) {
-		add_function_hook("copy_to_user", &match_limited, &b0_l2);
 		add_function_hook("copy_to_user", &match_limited, &b1_l2);
-		add_function_hook("_copy_to_user", &match_limited, &b0_l2);
 		add_function_hook("_copy_to_user", &match_limited, &b1_l2);
-		add_function_hook("__copy_to_user", &match_limited, &b0_l2);
 		add_function_hook("__copy_to_user", &match_limited, &b1_l2);
 		add_function_hook("copy_from_user", &match_limited, &b0_l2);
-		add_function_hook("copy_from_user", &match_limited, &b1_l2);
 		add_function_hook("_copy_from_user", &match_limited, &b0_l2);
-		add_function_hook("_copy_from_user", &match_limited, &b1_l2);
 		add_function_hook("__copy_from_user", &match_limited, &b0_l2);
-		add_function_hook("__copy_from_user", &match_limited, &b1_l2);
 	}
 }

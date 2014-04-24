@@ -59,12 +59,10 @@ _config_request 5 4
 console_cont_flush 1 0
 __copy_from_user 2 0
 copy_from_user 2 0
-copy_from_user 2 1
 __copy_from_user_inatomic 2 0
 copy_from_user_nmi 2 0
 copy_in_user 2 0
 copy_in_user 2 1
-copy_to_user 2 0
 __copy_to_user 2 1
 copy_to_user 2 1
 cpulist_scnprintf 1 0
