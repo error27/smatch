@@ -78,6 +78,28 @@ static int is_ignored_macro(struct statement *stmt)
 	return 0;
 }
 
+static int prev_line_was_endif(struct statement *stmt)
+{
+	struct token *token;
+	struct position pos = stmt->pos;
+
+	pos.line--;
+	pos.pos = 2;
+
+	token = pos_get_token(pos);
+	if (token && token_type(token) == TOKEN_IDENT &&
+	    strcmp(show_ident(token->ident), "endif") == 0)
+		return 1;
+
+	pos.line--;
+	token = pos_get_token(pos);
+	if (token && token_type(token) == TOKEN_IDENT &&
+	    strcmp(show_ident(token->ident), "endif") == 0)
+		return 1;
+
+	return 0;
+}
+
 static void unreachable_stmt(struct statement *stmt)
 {
 
@@ -91,6 +113,8 @@ static void unreachable_stmt(struct statement *stmt)
 
 	/* if we hit a label then assume there is a matching goto */
 	if (stmt->type == STMT_LABEL)
+		print_unreached = 0;
+	if (prev_line_was_endif(stmt))
 		print_unreached = 0;
 
 	if (!print_unreached)
