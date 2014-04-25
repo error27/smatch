@@ -19,6 +19,9 @@
 
 static int my_id;
 
+static int print_unreached = 1;
+static struct string_list *turn_off_names;
+
 static int empty_statement(struct statement *stmt)
 {
 	if (!stmt)
@@ -57,18 +60,17 @@ static void print_unreached_initializers(struct symbol_list *sym_list)
 	} END_FOR_EACH_PTR(sym);
 }
 
-static void print_unreached(struct statement *stmt)
+static void unreachable_stmt(struct statement *stmt)
 {
-	static int print = 1;
 
 	if (__inline_fn)
 		return;
 
 	if (!__path_is_null()) {
-		print = 1;
+		print_unreached = 1;
 		return;
 	}
-	if (!print)
+	if (!print_unreached)
 		return;
 
 	switch (stmt->type) {
@@ -98,12 +100,93 @@ static void print_unreached(struct statement *stmt)
 	if (!option_spammy)
 		return;
 	sm_msg("info: ignoring unreachable code.");
-	print = 0;
+	print_unreached = 0;
+}
+
+static int is_turn_off(char *name)
+{
+	char *tmp;
+
+	if (!name)
+		return 0;
+
+	FOR_EACH_PTR(turn_off_names, tmp) {
+		if (strcmp(tmp, name) == 0)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+
+	return 0;
+}
+
+static char *get_function_name(struct statement *stmt)
+{
+	struct expression *expr;
+
+	if (stmt->type != STMT_EXPRESSION)
+		return NULL;
+	expr = stmt->expression;
+	if (!expr || expr->type != EXPR_CALL)
+		return NULL;
+	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol_name)
+		return NULL;
+	return expr->fn->symbol_name->name;
+}
+
+static void turn_off_unreachable(struct statement *stmt)
+{
+	char *name;
+
+	name = get_macro_name(stmt->pos);
+	if (is_turn_off(name)) {
+		print_unreached = 0;
+		return;
+	}
+
+	if (stmt->type == STMT_IF &&
+	    known_condition_true(stmt->if_conditional)) {
+		name = get_macro_name(stmt->if_conditional->pos);
+		if (is_turn_off(name))
+			print_unreached = 0;
+		return;
+	}
+
+	name = get_function_name(stmt);
+	if (is_turn_off(name))
+		print_unreached = 0;
+}
+
+static void register_turn_off_macros(void)
+{
+	struct token *token;
+	char *macro;
+	char name[256];
+
+	if (option_project == PROJ_NONE)
+		strcpy(name, "unreachable.turn_off");
+	else
+		snprintf(name, 256, "%s.unreachable.turn_off", option_project_str);
+
+	token = get_tokens_file(name);
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		macro = alloc_string(show_ident(token->ident));
+		add_ptr_list(&turn_off_names, macro);
+		token = token->next;
+	}
+	clear_token_alloc();
 }
 
 void check_unreachable(int id)
 {
 	my_id = id;
 
-	add_hook(&print_unreached, STMT_HOOK);
+	add_hook(&unreachable_stmt, STMT_HOOK);
+	register_turn_off_macros();
+	add_hook(&turn_off_unreachable, STMT_HOOK_AFTER);
 }
