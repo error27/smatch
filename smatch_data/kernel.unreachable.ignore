@@ -1,6 +1,8 @@
 list_for_each
 list_for_each_entry
 list_for_each_entry_safe
+list_for_each_entry_rcu
+list_for_each_entry_continue_rcu
 hlist_for_each_entry
 hlist_for_each_entry_safe
 ax25_uid_for_each
@@ -14,4 +16,4 @@ ata_for_each_dev
 netlbl_af4list_foreach_rcu
 netlbl_af6list_foreach_rcu
 for_primary_ifa
-list_for_each_entry_continue_rcu
+sk_nulls_for_each
