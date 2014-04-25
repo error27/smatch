@@ -486,69 +486,6 @@ static int last_stmt_on_same_line()
 	return 0;
 }
 
-static struct statement *last_stmt;
-static int is_last_stmt(struct statement *stmt)
-{
-	if (stmt == last_stmt)
-		return 1;
-	return 0;
-}
-
-static void print_unreached_initializers(struct symbol_list *sym_list)
-{
-	struct symbol *sym;
-
-	FOR_EACH_PTR(sym_list, sym) {
-		if (sym->initializer)
-			sm_msg("info: '%s' is not actually initialized (unreached code).",
-				(sym->ident ? sym->ident->name : "this variable"));
-	} END_FOR_EACH_PTR(sym);
-}
-
-static void print_unreached(struct statement *stmt)
-{
-	static int print = 1;
-
-	if (__inline_fn)
-		return;
-
-	if (!__path_is_null()) {
-		print = 1;
-		return;
-	}
-	if (!print)
-		return;
-
-	switch (stmt->type) {
-	case STMT_COMPOUND: /* after a switch before a case stmt */
-	case STMT_RANGE:
-	case STMT_CASE:
-	case STMT_LABEL:
-		return;
-	case STMT_DECLARATION: /* switch (x) { int a; case foo: ... */
-		print_unreached_initializers(stmt->declaration);
-		return;
-	case STMT_RETURN: /* gcc complains if you don't have a return statement */
-		if (is_last_stmt(stmt))
-			return;
-		break;
-	case STMT_GOTO:
-		/* people put extra breaks inside switch statements */
-		if (stmt->goto_label && stmt->goto_label->type == SYM_NODE &&
-		    strcmp(stmt->goto_label->ident->name, "break") == 0)
-			return;
-		break;
-	default:
-		break;
-	}
-	if (empty_statement(stmt))
-		return;
-	if (!option_spammy)
-		return;
-	sm_msg("info: ignoring unreachable code.");
-	print = 0;
-}
-
 static void split_asm_constraints(struct expression_list *expr_list)
 {
 	struct expression *expr;
@@ -598,9 +535,6 @@ static void split_known_switch(struct statement *stmt, sval_t sval)
 	__push_breaks();
 
 	stmt = stmt->switch_statement;
-
-	if (!last_stmt)
-		last_stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
 
 	__push_scope_hooks();
 	FOR_EACH_PTR(stmt->stmts, tmp) {
@@ -660,7 +594,6 @@ void __split_stmt(struct statement *stmt)
 	add_ptr_list(&big_statement_stack, stmt);
 	free_expression_stack(&big_expression_stack);
 	set_position(stmt->pos);
-	print_unreached(stmt);
 	__pass_to_client(stmt, STMT_HOOK);
 
 	switch (stmt->type) {
@@ -678,8 +611,6 @@ void __split_stmt(struct statement *stmt)
 	case STMT_COMPOUND: {
 		struct statement *tmp;
 
-		if (!last_stmt)
-			last_stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
 		__push_scope_hooks();
 		FOR_EACH_PTR(stmt->stmts, tmp) {
 			__split_stmt(tmp);
@@ -1137,7 +1068,6 @@ static void split_function(struct symbol *sym)
 	if (sym->ident)
 		cur_func = sym->ident->name;
 	__smatch_lineno = sym->pos.line;
-	last_stmt = NULL;
 	loop_count = 0;
 	sm_debug("new function:  %s\n", cur_func);
 	__stree_id = 0;

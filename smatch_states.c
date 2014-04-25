@@ -71,37 +71,11 @@ void __print_cur_stree(void)
 	__print_stree(cur_stree);
 }
 
-static int in_declarations_bit(void)
-{
-	struct statement *tmp;
-
-	FOR_EACH_PTR_REVERSE(big_statement_stack, tmp) {
-		if (tmp->type == STMT_DECLARATION)
-			return 1;
-		return 0;
-	} END_FOR_EACH_PTR_REVERSE(tmp);
-	return 0;
-}
-
 int unreachable(void)
 {
-	static int reset_warnings = 1;
-
-	if (cur_stree) {
-		if (!__inline_fn)
-			reset_warnings = 1;
-		return 0;
-	}
-
-	if (in_declarations_bit())
+	if (!cur_stree)
 		return 1;
-
-	/* option spammy turns on a noisier version of this */
-	if (reset_warnings && !option_spammy)
-		sm_msg("info: ignoring unreachable code.");
-	if (!__inline_fn)
-		reset_warnings = 0;
-	return 1;
+	return 0;
 }
 
 struct sm_state *set_state(int owner, const char *name, struct symbol *sym, struct smatch_state *state)
