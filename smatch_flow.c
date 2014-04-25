@@ -398,13 +398,13 @@ static void handle_pre_loop(struct statement *stmt)
 	__split_stmt(stmt->iterator_statement);
 	__warn_on_silly_pre_loops();
 	if (is_forever_loop(stmt)) {
+		__merge_continues();
 		__save_gotos(loop_name);
 
 		__push_fake_cur_stree();
 		__split_stmt(stmt->iterator_post_statement);
 		stree = __pop_fake_cur_stree();
 
-		__discard_continues();
 		__discard_false_states();
 		__use_breaks();
 
