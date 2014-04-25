@@ -575,6 +575,19 @@ struct statement *get_current_statement(void)
 	return prev;
 }
 
+struct statement *get_prev_statement(void)
+{
+	struct statement *tmp;
+	int i;
+
+	i = 0;
+	FOR_EACH_PTR_REVERSE(big_statement_stack, tmp) {
+		if (i++ == 1)
+			return tmp;
+	} END_FOR_EACH_PTR_REVERSE(tmp);
+	return NULL;
+}
+
 int get_param_num_from_sym(struct symbol *sym)
 {
 	struct symbol *tmp;
