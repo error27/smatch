@@ -163,10 +163,8 @@ static void turn_off_unreachable(struct statement *stmt)
 	}
 
 	if (stmt->type == STMT_IF &&
-	    known_condition_true(stmt->if_conditional)) {
-		name = get_macro_name(stmt->if_conditional->pos);
-		if (is_turn_off(name))
-			print_unreached = 0;
+	    known_condition_true(stmt->if_conditional) &&  __path_is_null()) {
+		print_unreached = 0;
 		return;
 	}
 
