@@ -88,6 +88,11 @@ static void unreachable_stmt(struct statement *stmt)
 		print_unreached = 1;
 		return;
 	}
+
+	/* if we hit a label then assume there is a matching goto */
+	if (stmt->type == STMT_LABEL)
+		print_unreached = 0;
+
 	if (!print_unreached)
 		return;
 
@@ -95,7 +100,6 @@ static void unreachable_stmt(struct statement *stmt)
 	case STMT_COMPOUND: /* after a switch before a case stmt */
 	case STMT_RANGE:
 	case STMT_CASE:
-	case STMT_LABEL:
 		return;
 	case STMT_DECLARATION: /* switch (x) { int a; case foo: ... */
 		print_unreached_initializers(stmt->declaration);
