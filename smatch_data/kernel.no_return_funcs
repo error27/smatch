@@ -98,7 +98,6 @@ usbatm_do_heavy_init
 vdump_bucket_and_panic
 wait_for_helper
 wait_for_panic
-watchdog
 x86_64_start_kernel
 x86_64_start_reservations
 yield_task_stop

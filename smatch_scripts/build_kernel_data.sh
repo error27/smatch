@@ -26,11 +26,10 @@ fi
 $SCRIPT_DIR/test_kernel.sh --call-tree --info --param-mapper --spammy --data=$DATA_DIR
 
 for i in $SCRIPT_DIR/gen_* ; do
-	$i warns.txt
+	$i warns.txt -p=kernel
 done
 
 mv ${PROJECT}.* $DATA_DIR
-mv no_return_funcs $DATA_DIR/${PROJECT}.no_return_funcs
 
 $DATA_DIR/db/create_db.sh -p=kernel warns.txt
 

@@ -1,13 +1,19 @@
 #!/bin/bash
 
 file=$1
+project=$2
 
 if [[ "$file" = "" ]] ; then
     echo "Usage:  $0 <file with smatch messages>"
     exit 1
 fi
 
-outfile="no_return_funcs"
+if [[ "$project" = "-p=kernel" ]] ; then
+    outfile="kernel.no_return_funcs"
+else
+    outfile="no_return_funcs"
+fi
+
 bin_dir=$(dirname $0)
 remove=$(echo ${bin_dir}/../smatch_data/${outfile}.remove)
 tmp=$(mktemp /tmp/smatch.XXXX)
