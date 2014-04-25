@@ -603,6 +603,7 @@ void __split_stmt(struct statement *stmt)
 	case STMT_RETURN:
 		__split_expr(stmt->ret_value);
 		__pass_to_client(stmt->ret_value, RETURN_HOOK);
+		__process_post_op_stack();
 		nullify_path();
 		break;
 	case STMT_EXPRESSION:
