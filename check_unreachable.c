@@ -100,6 +100,31 @@ static int prev_line_was_endif(struct statement *stmt)
 	return 0;
 }
 
+static int we_jumped_into_the_middle_of_a_loop(struct statement *stmt)
+{
+	struct statement *prev;
+
+	/*
+	 * Smatch doesn't handle loops correctly and this is a hack.  What we
+	 * do is that if the first unreachable statement is a loop and the
+	 * previous statement was a goto then it's probably code like this:
+	 * 	goto first;
+	 * 	for (;;) {
+	 *		frob();
+	 * first:
+	 *		more_frob();
+	 * 	}
+	 * Every statement is reachable but only on the second iteration.
+	 */
+
+	if (stmt->type != STMT_ITERATOR)
+		return 0;
+	prev = get_prev_statement();
+	if (prev && prev->type == STMT_GOTO)
+		return 1;
+	return 0;
+}
+
 static void unreachable_stmt(struct statement *stmt)
 {
 
@@ -115,6 +140,8 @@ static void unreachable_stmt(struct statement *stmt)
 	if (stmt->type == STMT_LABEL)
 		print_unreached = 0;
 	if (prev_line_was_endif(stmt))
+		print_unreached = 0;
+	if (we_jumped_into_the_middle_of_a_loop(stmt))
 		print_unreached = 0;
 
 	if (!print_unreached)
