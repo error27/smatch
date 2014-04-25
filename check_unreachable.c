@@ -172,8 +172,6 @@ static void unreachable_stmt(struct statement *stmt)
 		return;
 	if (is_ignored_macro(stmt))
 		return;
-	if (!option_spammy)
-		return;
 	sm_msg("info: ignoring unreachable code.");
 	print_unreached = 0;
 }
