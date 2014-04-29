@@ -87,6 +87,11 @@ static int check_struct(struct expression *expr, struct symbol *type)
 			prev = NULL;
 	} END_FOR_EACH_PTR(tmp);
 
+	if (align % type->ctype.alignment) {
+		print_holey_warning(expr, prev);
+		return 1;
+	}
+
 	return 0;
 }
 
