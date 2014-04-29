@@ -299,6 +299,9 @@ void check_rosenberg(int id)
 
 void check_rosenberg2(int id)
 {
+	if (option_project != PROJ_KERNEL)
+		return;
+
 	my_member_id = id;
 	add_extra_mod_hook(&extra_mod_hook);
 }
