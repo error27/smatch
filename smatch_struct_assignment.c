@@ -150,6 +150,9 @@ void __struct_members_copy(int mode, struct expression *left, struct expression 
 
 void __fake_struct_member_assignments(struct expression *expr)
 {
+	if (is_zero(expr->right))
+		return;
+
 	__struct_members_copy(COPY_NORMAL, expr->left, expr->right);
 }
 
