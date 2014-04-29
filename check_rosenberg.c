@@ -149,7 +149,7 @@ static int was_memset(struct expression *expr)
 	return 0;
 }
 
-static int member_initialized(char *name, struct symbol *outer, struct symbol *member)
+static int member_initialized(char *name, struct symbol *outer, struct symbol *member, int pointer)
 {
 	char buf[256];
 	struct symbol *base;
@@ -158,14 +158,18 @@ static int member_initialized(char *name, struct symbol *outer, struct symbol *m
 	if (!base || base->type != SYM_BASETYPE || !member->ident)
 		return FALSE;
 
-	snprintf(buf, 256, "%s.%s", name, member->ident->name);
+	if (pointer)
+		snprintf(buf, 256, "%s->%s", name, member->ident->name);
+	else
+		snprintf(buf, 256, "%s.%s", name, member->ident->name);
+
 	if (get_state(my_member_id, buf, outer))
 		return TRUE;
 
 	return FALSE;
 }
 
-static int member_uninitialized(char *name, struct symbol *outer, struct symbol *member)
+static int member_uninitialized(char *name, struct symbol *outer, struct symbol *member, int pointer)
 {
 	char buf[256];
 	struct symbol *base;
@@ -175,7 +179,11 @@ static int member_uninitialized(char *name, struct symbol *outer, struct symbol 
 	if (!base || base->type != SYM_BASETYPE || !member->ident)
 		return FALSE;
 
-	snprintf(buf, 256, "%s.%s", name, member->ident->name);
+	if (pointer)
+		snprintf(buf, 256, "%s->%s", name, member->ident->name);
+	else
+		snprintf(buf, 256, "%s.%s", name, member->ident->name);
+
 	sm = get_sm_state(my_member_id, buf, outer);
 	if (sm && !slist_has_state(sm->possible, &undefined))
 		return FALSE;
@@ -190,10 +198,17 @@ static int check_members_initialized(struct expression *expr)
 	struct symbol *outer;
 	struct symbol *sym;
 	struct symbol *tmp;
+	int pointer = 0;
 	int printed = 0;
 
 	sym = get_type(expr);
-	if (!sym || sym->type != SYM_STRUCT)
+	if (sym && sym->type == SYM_PTR) {
+		pointer = 1;
+		sym = get_real_base_type(sym);
+	}
+	if (!sym)
+		return 0;
+	if (sym->type != SYM_STRUCT)
 		return 0;
 
 	name = expr_to_var_sym(expr, &outer);
@@ -207,14 +222,14 @@ static int check_members_initialized(struct expression *expr)
 	 * code.
 	 */
 	FOR_EACH_PTR(sym->symbol_list, tmp) {
-		if (member_initialized(name, outer, tmp))
+		if (member_initialized(name, outer, tmp, pointer))
 			goto check;
 	} END_FOR_EACH_PTR(tmp);
 	goto out;
 
 check:
 	FOR_EACH_PTR(sym->symbol_list, tmp) {
-		if (member_uninitialized(name, outer, tmp)) {
+		if (member_uninitialized(name, outer, tmp, pointer)) {
 			printed = 1;
 			goto out;
 		}
