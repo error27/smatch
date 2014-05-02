@@ -31,6 +31,9 @@ int func (void)
  *
  * check-output-start
 sm_locking2.c:21 func() error: double unlock 'spin_lock:mylock'
-sm_locking2.c:26 func() warn: inconsistent returns spin_lock:mylock3: locked (26) unlocked (14, 25)
+sm_locking2.c:26 func() warn: inconsistent returns 'spin_lock:mylock3'.
+  Locked on:   line 26
+  Unlocked on: line 14
+               line 25
  * check-output-end
  */

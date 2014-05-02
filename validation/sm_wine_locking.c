@@ -39,6 +39,8 @@ void test1(void)
  * check-output-start
 sm_wine_locking.c:28 test1() error: double unlock 'create_window_handle:b'
 sm_wine_locking.c:30 test1() warn: 'CriticalSection:c' is sometimes locked here and sometimes unlocked.
-sm_wine_locking.c:33 test1() warn: inconsistent returns USER_Lock:: locked (30) unlocked (33)
+sm_wine_locking.c:33 test1() warn: inconsistent returns 'USER_Lock:'.
+  Locked on:   line 30
+  Unlocked on: line 33
  * check-output-end
  */
