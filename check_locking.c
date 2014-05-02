@@ -638,58 +638,73 @@ static void match_return(int return_id, char *return_ranges, struct expression *
 	add_ptr_list(&all_returns, ret);
 }
 
+static void add_line(struct range_list **rl, int line)
+{
+	sval_t sval = sval_type_val(&int_ctype, line);
+
+	add_range(rl, sval, sval);
+}
+
+static int line_printed(struct range_list *rl, int line)
+{
+	sval_t sval = sval_type_val(&int_ctype, line);
+
+	return rl_has_sval(rl, sval);
+}
+
 static void print_inconsistent_returns(struct tracker *lock,
 				struct smatch_state *start)
 {
 	struct locks_on_return *tmp;
+	struct range_list *printed = NULL;
 	int i;
 
-	sm_prefix();
-	sm_printf("warn: inconsistent returns %s:", lock->name);
-	sm_printf(" locked (");
+	sm_msg("warn: inconsistent returns '%s'.", lock->name);
+	sm_printf("  Locked on:   ");
+
 	i = 0;
 	FOR_EACH_PTR(all_returns, tmp) {
+		if (line_printed(printed, tmp->line))
+			continue;
 		if (in_tracker_list(tmp->unlocked, lock->owner, lock->name, lock->sym))
 			continue;
 		if (in_tracker_list(tmp->locked, lock->owner, lock->name, lock->sym)) {
 			if (i++)
-				sm_printf(", ");
-			sm_printf("%d", tmp->line);
-			if (tmp->return_values)
-				sm_printf(" [%s]", show_rl(tmp->return_values));
+				sm_printf("               ");
+			sm_printf("line %d\n", tmp->line);
+			add_line(&printed, tmp->line);
 			continue;
 		}
 		if (start == &locked) {
 			if (i++)
-				sm_printf(", ");
-			sm_printf("%d", tmp->line);
-			if (tmp->return_values)
-				sm_printf(" [%s]", show_rl(tmp->return_values));
+				sm_printf("               ");
+			sm_printf("line %d\n", tmp->line);
+			add_line(&printed, tmp->line);
 		}
 	} END_FOR_EACH_PTR(tmp);
 
-	sm_printf(") unlocked (");
+	sm_printf("  Unlocked on: ");
+	printed = NULL;
 	i = 0;
 	FOR_EACH_PTR(all_returns, tmp) {
+		if (line_printed(printed, tmp->line))
+			continue;
 		if (in_tracker_list(tmp->unlocked, lock->owner, lock->name, lock->sym)) {
 			if (i++)
-				sm_printf(", ");
-			sm_printf("%d", tmp->line);
-			if (tmp->return_values)
-				sm_printf(" [%s]", show_rl(tmp->return_values));
+				sm_printf("               ");
+			sm_printf("line %d\n", tmp->line);
+			add_line(&printed, tmp->line);
 			continue;
 		}
 		if (in_tracker_list(tmp->locked, lock->owner, lock->name, lock->sym))
 			continue;
 		if (start == &unlocked) {
 			if (i++)
-				sm_printf(", ");
-			sm_printf("%d", tmp->line);
-			if (tmp->return_values)
-				sm_printf(" [%s]", show_rl(tmp->return_values));
+				sm_printf("               ");
+			sm_printf("line %d\n", tmp->line);
+			add_line(&printed, tmp->line);
 		}
 	} END_FOR_EACH_PTR(tmp);
-	sm_printf(")\n");
 }
 
 static int matches_return_type(struct range_list *rl, enum return_type type)
