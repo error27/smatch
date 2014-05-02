@@ -141,9 +141,6 @@ static void match_usb_control_msg(const char *fn, struct expression *expr, void 
 
 void register_param_cleared(int id)
 {
-	if (!option_info)
-		return;
-
 	my_id = id;
 
 	add_function_hook("memset", &match_memset, INT_PTR(0));
