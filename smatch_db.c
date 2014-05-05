@@ -951,6 +951,17 @@ static char *get_return_ranges_str(struct expression *expr)
 	return return_ranges;
 }
 
+static int is_boolean(struct expression *expr)
+{
+	struct range_list *rl;
+
+	if (!get_implied_rl(expr, &rl))
+		return 0;
+	if (rl_min(rl).value == 0 && rl_max(rl).value == 1)
+		return 1;
+	return 0;
+}
+
 static int is_conditional(struct expression *expr)
 {
 	if (!expr)
@@ -968,7 +979,7 @@ static void call_return_state_hooks(struct expression *expr)
 
 	expr = strip_expr(expr);
 
-	if (is_condition(expr)) {
+	if (is_condition(expr) || is_boolean(expr)) {
 		call_return_state_hooks_compare(expr);
 		return;
 	} else if (is_conditional(expr)) {
