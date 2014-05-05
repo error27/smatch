@@ -728,10 +728,6 @@ void insert_string(struct string_list **str_list, char *str);
 struct string_list *clone_str_list(struct string_list *orig);
 struct string_list *combine_string_lists(struct string_list *one, struct string_list *two);
 
-/* smatch_clear_buffer.c */
-int is_uninitialized(struct expression *expr);
-int has_uninitialized_members(struct expression *expr);
-
 /* smatch_start_states.c */
 struct stree *get_start_states(void);
 

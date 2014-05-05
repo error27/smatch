@@ -228,6 +228,26 @@ static void register_clears_param(void)
 	clear_token_alloc();
 }
 
+static void db_param_cleared(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *arg;
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return;
+
+	arg = get_argument_from_call_expr(expr->args, param);
+	if (!arg)
+		return;
+
+	if (strcmp(value, "0") == 0)
+		__struct_members_copy(COPY_MEMSET, remove_addr(arg), zero_expr());
+	else
+		__struct_members_copy(COPY_MEMCPY, remove_addr(arg), NULL);
+
+}
+
 void register_struct_assignment(int id)
 {
 	add_function_hook("memset", &match_memset, NULL);
@@ -236,4 +256,5 @@ void register_struct_assignment(int id)
 	add_function_hook("memmove", &match_memcpy, INT_PTR(0));
 
 	register_clears_param();
+	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
 }
