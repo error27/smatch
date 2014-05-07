@@ -309,6 +309,8 @@ void check_rosenberg(int id)
 
 	add_function_hook("memset", &match_clear, INT_PTR(0));
 	add_function_hook("memcpy", &match_clear, INT_PTR(0));
+	add_function_hook("__memzero", &match_clear, INT_PTR(0));
+	add_function_hook("memzero", &match_clear, INT_PTR(0));
 	register_clears_argument();
 
 	add_function_hook("copy_to_user", &match_copy_to_user, INT_PTR(1));
