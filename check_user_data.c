@@ -263,6 +263,14 @@ int is_user_data(struct expression *expr)
 	return is_user_data_state(expr);
 }
 
+int implied_user_data(struct expression *expr, struct range_list **rl)
+{
+	if (!is_user_data(expr))
+		return 0;
+	get_absolute_rl(expr, rl);
+	return 1;
+}
+
 int is_capped_user_data(struct expression *expr)
 {
 	struct sm_state *sm;

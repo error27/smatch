@@ -674,6 +674,7 @@ int is_capped_var_sym(const char *name, struct symbol *sym);
 int is_user_macro(struct expression *expr);
 int is_user_data(struct expression *expr);
 int is_capped_user_data(struct expression *expr);
+int implied_user_data(struct expression *expr, struct range_list **rl);
 
 /* check_locking.c */
 void print_held_locks();
