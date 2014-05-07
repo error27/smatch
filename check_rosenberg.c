@@ -239,12 +239,8 @@ out:
 	return printed;
 }
 
-static void match_copy_to_user(const char *fn, struct expression *expr, void *_arg)
+static void check_was_initialized(struct expression *data)
 {
-	int arg = PTR_INT(_arg);
-	struct expression *data;
-
-	data = get_argument_from_call_expr(expr->args, arg);
 	data = strip_expr(data);
 	if (!data)
 		return;
@@ -262,6 +258,15 @@ static void match_copy_to_user(const char *fn, struct expression *expr, void *_a
 	if (warn_on_holey_struct(data))
 		return;
 	check_members_initialized(data);
+}
+
+static void match_copy_to_user(const char *fn, struct expression *expr, void *_arg)
+{
+	int arg = PTR_INT(_arg);
+	struct expression *data;
+
+	data = get_argument_from_call_expr(expr->args, arg);
+	check_was_initialized(data);
 }
 
 static void db_param_cleared(struct expression *expr, int param, char *key, char *value)
