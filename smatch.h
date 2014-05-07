@@ -325,6 +325,7 @@ sval_t sval_type_min(struct symbol *base_type);
 int nr_bits(struct expression *expr);
 int is_void_pointer(struct expression *expr);
 int is_char_pointer(struct expression *expr);
+int is_string(struct expression *expr);
 int is_static(struct expression *expr);
 int types_equiv(struct symbol *one, struct symbol *two);
 int fn_static(void);

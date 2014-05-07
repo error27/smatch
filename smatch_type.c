@@ -387,6 +387,16 @@ int is_char_pointer(struct expression *expr)
 	return 0;
 }
 
+int is_string(struct expression *expr)
+{
+	expr = strip_expr(expr);
+	if (!expr || expr->type != EXPR_STRING)
+		return 0;
+	if (expr->string)
+		return 1;
+	return 0;
+}
+
 int is_static(struct expression *expr)
 {
 	char *name;
