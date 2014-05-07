@@ -301,6 +301,32 @@ static void register_clears_argument(void)
 	clear_token_alloc();
 }
 
+static void register_copy_funcs_from_file(void)
+{
+	struct token *token;
+	const char *func;
+	int arg;
+
+	token = get_tokens_file("kernel.rosenberg_funcs");
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = show_ident(token->ident);
+		token = token->next;
+		if (token_type(token) != TOKEN_NUMBER)
+			return;
+		arg = atoi(token->number);
+		add_function_hook(func, &match_copy_to_user, INT_PTR(arg));
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
 void check_rosenberg(int id)
 {
 	if (option_project != PROJ_KERNEL)
@@ -312,11 +338,9 @@ void check_rosenberg(int id)
 	add_function_hook("__memzero", &match_clear, INT_PTR(0));
 	add_function_hook("memzero", &match_clear, INT_PTR(0));
 	register_clears_argument();
-
-	add_function_hook("copy_to_user", &match_copy_to_user, INT_PTR(1));
-	add_function_hook("__copy_to_user", &match_copy_to_user, INT_PTR(1));
-	add_function_hook("nla_put", &match_copy_to_user, INT_PTR(3));
 	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
+
+	register_copy_funcs_from_file();
 }
 
 void check_rosenberg2(int id)
