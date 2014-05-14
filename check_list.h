@@ -99,6 +99,7 @@ CK(check_cast_assign)
 CK(check_readl_infinite_loops)
 CK(check_double_checking)
 CK(check_unreachable)
+CK(check_no_if_block)
 
 /* <- your test goes here */
 /* CK(register_template) */
