@@ -397,8 +397,20 @@ static void match_debug_on(const char *fn, struct expression *expr, void *info)
 	option_debug = 1;
 }
 
+static void match_debug_check(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	if (!arg || arg->type != EXPR_STRING)
+		return;
+	option_debug_check = arg->string->data;
+	sm_msg("arg = '%s'", option_debug_check);
+}
+
 static void match_debug_off(const char *fn, struct expression *expr, void *info)
 {
+	option_debug_check = (char *)"";
 	option_debug = 0;
 }
 
@@ -473,6 +485,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_dump_related", &match_dump_related, NULL);
 	add_function_hook("__smatch_compare", &match_compare, NULL);
 	add_function_hook("__smatch_debug_on", &match_debug_on, NULL);
+	add_function_hook("__smatch_debug_check", &match_debug_check, NULL);
 	add_function_hook("__smatch_debug_off", &match_debug_off, NULL);
 	add_function_hook("__smatch_local_debug_on", &match_local_debug_on, NULL);
 	add_function_hook("__smatch_local_debug_off", &match_local_debug_off, NULL);
