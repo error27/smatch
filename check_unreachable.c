@@ -146,6 +146,10 @@ static void unreachable_stmt(struct statement *stmt)
 
 	if (!print_unreached)
 		return;
+	if (empty_statement(stmt))
+		return;
+	if (is_ignored_macro(stmt))
+		return;
 
 	switch (stmt->type) {
 	case STMT_COMPOUND: /* after a switch before a case stmt */
@@ -168,10 +172,6 @@ static void unreachable_stmt(struct statement *stmt)
 	default:
 		break;
 	}
-	if (empty_statement(stmt))
-		return;
-	if (is_ignored_macro(stmt))
-		return;
 	sm_msg("info: ignoring unreachable code.");
 	print_unreached = 0;
 }
