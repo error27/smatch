@@ -269,7 +269,7 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 		set_extra_mod(var_name, sym, estate);
 
 		tmp_stree = __pop_fake_cur_stree();
-		merge_stree(&final_states, tmp_stree);
+		merge_fake_stree(&final_states, tmp_stree);
 		free_stree(&tmp_stree);
 		handled = 1;
 	} END_FOR_EACH_PTR(tmp);
@@ -313,7 +313,7 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
 	tmp_stree = __pop_fake_cur_stree();
-	merge_stree(&true_states, tmp_stree);
+	merge_fake_stree(&true_states, tmp_stree);
 	free_stree(&tmp_stree);
 
 	/* set false states */
@@ -326,7 +326,7 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
 	tmp_stree = __pop_fake_cur_stree();
-	merge_stree(&false_states, tmp_stree);
+	merge_fake_stree(&false_states, tmp_stree);
 	free_stree(&tmp_stree);
 
 	FOR_EACH_SM(true_states, sm) {
@@ -464,7 +464,7 @@ static int db_assign_return_states_callback(void *unused, int argc, char **argv,
 
 	if (prev_return_id != -1 && return_id != prev_return_id) {
 		stree = __pop_fake_cur_stree();
-		merge_stree(&db_info.stree, stree);
+		merge_fake_stree(&db_info.stree, stree);
 		free_stree(&stree);
 		__push_fake_cur_stree();
 	}
@@ -501,7 +501,7 @@ static int db_return_states_assign(struct expression *expr)
 	sql_select_return_states("return_id, return, type, parameter, key, value",
 			right, db_assign_return_states_callback);
 	stree = __pop_fake_cur_stree();
-	merge_stree(&db_info.stree, stree);
+	merge_fake_stree(&db_info.stree, stree);
 	free_stree(&stree);
 
 	FOR_EACH_SM(db_info.stree, sm) {
@@ -594,7 +594,7 @@ static int db_return_states_callback(void *unused, int argc, char **argv, char *
 
 	if (prev_return_id != -1 && return_id != prev_return_id) {
 		stree = __pop_fake_cur_stree();
-		merge_stree(&db_info.stree, stree);
+		merge_fake_stree(&db_info.stree, stree);
 		free_stree(&stree);
 		__push_fake_cur_stree();
 		__unnullify_path();
@@ -630,7 +630,7 @@ static void db_return_states(struct expression *expr)
 	sql_select_return_states("return_id, return, type, parameter, key, value",
 			expr, db_return_states_callback);
 	stree = __pop_fake_cur_stree();
-	merge_stree(&db_info.stree, stree);
+	merge_fake_stree(&db_info.stree, stree);
 	free_stree(&stree);
 
 	FOR_EACH_SM(db_info.stree, sm) {

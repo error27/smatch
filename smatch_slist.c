@@ -694,6 +694,73 @@ void merge_stree_no_pools(struct stree **to, struct stree *stree)
 {
 	__merge_stree(to, stree, 0);
 }
+
+/*
+ * This is unfortunately a bit subtle...  The problem is that if a
+ * state is set on one fake stree but not the other then we should
+ * look up the the original state and use that as the unset state.
+ * Fortunately, after you pop your fake stree then the cur_slist should
+ * reflect the original state.
+ */
+void merge_fake_stree(struct stree **to, struct stree *stree)
+{
+	struct stree *one = *to;
+	struct stree *two = stree;
+	struct sm_state *sm;
+	struct state_list *add_to_one = NULL;
+	struct state_list *add_to_two = NULL;
+	AvlIter one_iter;
+	AvlIter two_iter;
+
+	if (!stree)
+		return;
+	if (*to == stree)
+		return;
+	if (!*to) {
+		*to = clone_stree(stree);
+		return;
+	}
+
+	avl_iter_begin(&one_iter, one, FORWARD);
+	avl_iter_begin(&two_iter, two, FORWARD);
+
+	for (;;) {
+		if (!one_iter.sm && !two_iter.sm)
+			break;
+		if (cmp_tracker(one_iter.sm, two_iter.sm) < 0) {
+			sm = get_sm_state(one_iter.sm->owner, one_iter.sm->name,
+					  one_iter.sm->sym);
+			if (sm)
+				add_ptr_list(&add_to_two, sm);
+			avl_iter_next(&one_iter);
+		} else if (cmp_tracker(one_iter.sm, two_iter.sm) == 0) {
+			avl_iter_next(&one_iter);
+			avl_iter_next(&two_iter);
+		} else {
+			sm = get_sm_state(two_iter.sm->owner, two_iter.sm->name,
+					  two_iter.sm->sym);
+			if (sm)
+				add_ptr_list(&add_to_one, sm);
+			avl_iter_next(&two_iter);
+		}
+	}
+
+	FOR_EACH_PTR(add_to_one, sm) {
+		avl_insert(&one, sm);
+	} END_FOR_EACH_PTR(sm);
+
+	FOR_EACH_PTR(add_to_two, sm) {
+		avl_insert(&two, sm);
+	} END_FOR_EACH_PTR(sm);
+
+	free_slist(&add_to_one);
+	free_slist(&add_to_two);
+
+	__merge_stree(&one, two, 1);
+
+	*to = one;
+}
+
 /*
  * filter_slist() removes any sm states "slist" holds in common with "filter"
  */
