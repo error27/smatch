@@ -34,3 +34,5 @@ for i in ${bin_dir}/*.idx ; do
     cat $i | sqlite3 $db_file
 done
 
+${bin_dir}/mark_function_ptrs_searchable.pl
+

@@ -393,9 +393,6 @@ void compare_db_return_states_callbacks(int comparison, struct expression *expr,
 	struct stree *false_states;
 	struct sm_state *sm;
 
-	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
-		return;
-
 	db_info.comparison = comparison;
 	db_info.expr = expr;
 	db_info.rl = alloc_rl(sval, sval);
@@ -488,8 +485,6 @@ static int db_return_states_assign(struct expression *expr)
 	int handled = 0;
 
 	right = strip_expr(expr->right);
-	if (right->fn->type != EXPR_SYMBOL || !right->fn->symbol)
-		return 0;
 
 	prev_return_id = -1;
 	db_info.expr = expr;
@@ -532,13 +527,16 @@ static void match_assign_call(struct expression *expr)
 	const char *fn;
 	struct expression *right;
 	int handled = 0;
+	struct range_list *rl;
 
 	if (expr->op != '=')
 		return;
 
 	right = strip_expr(expr->right);
 	if (right->fn->type != EXPR_SYMBOL || !right->fn->symbol) {
-		set_extra_expr_mod(expr->left, alloc_estate_whole(get_type(expr->left)));
+		handled |= db_return_states_assign(expr);
+		if (!handled)
+			goto assigned_unknown;
 		return;
 	}
 	if (is_fake_call(right)) {
@@ -562,14 +560,13 @@ static void match_assign_call(struct expression *expr)
 	handled |= assign_ranged_funcs(fn, expr, call_backs);
 	handled |= handle_implied_return(expr);
 
-	if (!handled) {
-		struct range_list *rl;
+	if (handled)
+		return;
 
-		if (!get_implied_rl(expr->right, &rl))
-			rl = alloc_whole_rl(get_type(expr->right));
-		rl = cast_rl(get_type(expr->left), rl);
-		set_extra_expr_mod(expr->left, alloc_estate_rl(rl));
-	}
+assigned_unknown:
+	get_absolute_rl(expr->right, &rl);
+	rl = cast_rl(get_type(expr->left), rl);
+	set_extra_expr_mod(expr->left, alloc_estate_rl(rl));
 }
 
 static int db_return_states_callback(void *unused, int argc, char **argv, char **azColName)
@@ -614,8 +611,6 @@ static void db_return_states(struct expression *expr)
 	struct sm_state *sm;
 	struct stree *stree;
 
-	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
-		return;
 	if (!__get_cur_stree())  /* no return functions */
 		return;
 
@@ -665,12 +660,12 @@ static void match_function_call(struct expression *expr)
 {
 	struct call_back_list *call_backs;
 
-	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
-		return;
-	call_backs = search_callback(func_hash, (char *)expr->fn->symbol->ident->name);
-	if (call_backs)
-		call_call_backs(call_backs, REGULAR_CALL,
-				expr->fn->symbol->ident->name, expr);
+	if (expr->fn->type == EXPR_SYMBOL && expr->fn->symbol) {
+		call_backs = search_callback(func_hash, (char *)expr->fn->symbol->ident->name);
+		if (call_backs)
+			call_call_backs(call_backs, REGULAR_CALL,
+					expr->fn->symbol->ident->name, expr);
+	}
 	db_return_states_call(expr);
 }
 

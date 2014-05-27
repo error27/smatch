@@ -1,2 +1,3 @@
 CREATE INDEX fn_ptr_idx_file on function_ptr (file, function);
 CREATE INDEX fn_ptr_idx_nofile on function_ptr (function);
+CREATE INDEX fn_ptr_idx_ptr on function_ptr (ptr);

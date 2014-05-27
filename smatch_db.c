@@ -267,22 +267,14 @@ static void sql_select_return_states_pointer(const char *cols,
 {
 	char *ptr;
 
-	ptr = get_fnptr_name(call);
+	ptr = get_fnptr_name(call->fn);
 	if (!ptr)
-		return;
-
-	row_count = 0;
-	run_sql(get_row_count,
-		"select count(*) from return_states join function_ptr where "
-		"return_states.function == function_ptr.function and ptr = '%s';",
-		ptr);
-	if (row_count > 1000)
 		return;
 
 	run_sql(callback,
 		"select %s from return_states join function_ptr where "
-		"return_states.function == function_ptr.function and ptr = '%s' "
-		"order by return_id, type;",
+		"return_states.function == function_ptr.function and ptr = '%s'"
+		"and searchable = 1 order by return_id, type;",
 		cols, ptr);
 }
 
