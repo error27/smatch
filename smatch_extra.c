@@ -514,8 +514,11 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	right_type = get_type(right);
 
 	right_name = expr_to_var_sym(right, &right_sym);
-	if (right_name && right_sym &&
-	    types_equiv_or_pointer(left_type, right_type)) {
+
+	if (!(right->type == EXPR_PREOP && right->op == '&') &&
+	    right_name && right_sym &&
+	    types_equiv_or_pointer(left_type, right_type) &&
+	    !has_symbol(right, sym)) {
 		set_equiv(left, right);
 		goto free;
 	}
