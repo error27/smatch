@@ -340,9 +340,7 @@ static struct range_list *handle_right_shift(struct expression *expr, int implie
 
 	if (implied == RL_EXACT || implied == RL_HARD)
 		return NULL;
-	/* this is hopeless without the right side */
-	if (!get_implied_value(expr->right, &right))
-		return NULL;
+
 	left_rl = _get_rl(expr->left, implied);
 	if (left_rl) {
 		max = rl_max(left_rl);
@@ -354,8 +352,16 @@ static struct range_list *handle_right_shift(struct expression *expr, int implie
 		min = sval_type_val(get_type(expr->left), 0);
 	}
 
-	max = sval_binop(max, SPECIAL_RIGHTSHIFT, right);
-	min = sval_binop(min, SPECIAL_RIGHTSHIFT, right);
+	if (get_implied_value(expr->right, &right)) {
+		min = sval_binop(min, SPECIAL_RIGHTSHIFT, right);
+		max = sval_binop(max, SPECIAL_RIGHTSHIFT, right);
+	} else if (!sval_is_negative(min)) {
+		min.value = 0;
+		max = sval_type_max(max.type);
+	} else {
+		return NULL;
+	}
+
 	return alloc_rl(min, max);
 }
 
