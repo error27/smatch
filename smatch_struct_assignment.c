@@ -60,6 +60,12 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+enum {
+	COPY_NORMAL,
+	COPY_MEMCPY,
+	COPY_MEMSET,
+};
+
 static struct symbol *get_struct_type(struct expression *expr)
 {
 	struct symbol *type;
@@ -108,7 +114,17 @@ static struct expression *remove_addr(struct expression *expr)
 	return expr;
 }
 
-void __struct_members_copy(int mode, struct expression *left, struct expression *right)
+static struct expression *faked_expression;
+struct expression *get_faked_expression(void)
+{
+	if (!__in_fake_assign)
+		return NULL;
+	return faked_expression;
+}
+
+static void __struct_members_copy(int mode, struct expression *faked,
+				  struct expression *left,
+				  struct expression *right)
 {
 	struct symbol *struct_type, *tmp, *type;
 	struct expression *left_member;
@@ -119,6 +135,7 @@ void __struct_members_copy(int mode, struct expression *left, struct expression 
 
 	if (__in_fake_assign)
 		return;
+	faked_expression = faked;
 
 	left = strip_expr(left);
 	right = strip_expr(right);
@@ -133,7 +150,7 @@ void __struct_members_copy(int mode, struct expression *left, struct expression 
 
 		type = get_type(left);
 		if (!type || type->type != SYM_BASETYPE)
-			return;
+			goto done;
 
 		right = strip_expr(right);
 		if (right && right->type == EXPR_PREOP && right->op == '&')
@@ -144,7 +161,7 @@ void __struct_members_copy(int mode, struct expression *left, struct expression 
 		__in_fake_assign++;
 		__split_expr(assign);
 		__in_fake_assign--;
-		return;
+		goto done;
 	}
 
 	if (is_pointer(left)) {
@@ -175,6 +192,9 @@ void __struct_members_copy(int mode, struct expression *left, struct expression 
 		__split_expr(assign);
 		__in_fake_assign--;
 	} END_FOR_EACH_PTR(tmp);
+
+done:
+	faked_expression = NULL;
 }
 
 void __fake_struct_member_assignments(struct expression *expr)
@@ -188,7 +208,7 @@ void __fake_struct_member_assignments(struct expression *expr)
 	if (!struct_type)
 		return;
 
-	__struct_members_copy(COPY_NORMAL, expr->left, expr->right);
+	__struct_members_copy(COPY_NORMAL, expr, expr->left, expr->right);
 }
 
 static void match_memset(const char *fn, struct expression *expr, void *_size_arg)
@@ -200,7 +220,7 @@ static void match_memset(const char *fn, struct expression *expr, void *_size_ar
 	val = get_argument_from_call_expr(expr->args, 1);
 
 	buf = strip_expr(buf);
-	__struct_members_copy(COPY_MEMSET, remove_addr(buf), val);
+	__struct_members_copy(COPY_MEMSET, expr, remove_addr(buf), val);
 }
 
 static void match_memcpy(const char *fn, struct expression *expr, void *_arg)
@@ -211,7 +231,7 @@ static void match_memcpy(const char *fn, struct expression *expr, void *_arg)
 	dest = get_argument_from_call_expr(expr->args, 0);
 	src = get_argument_from_call_expr(expr->args, 1);
 
-	__struct_members_copy(COPY_MEMCPY, remove_addr(dest), remove_addr(src));
+	__struct_members_copy(COPY_MEMCPY, expr, remove_addr(dest), remove_addr(src));
 }
 
 static void match_memcpy_unknown(const char *fn, struct expression *expr, void *_arg)
@@ -219,7 +239,7 @@ static void match_memcpy_unknown(const char *fn, struct expression *expr, void *
 	struct expression *dest;
 
 	dest = get_argument_from_call_expr(expr->args, 0);
-	__struct_members_copy(COPY_MEMCPY, remove_addr(dest), NULL);
+	__struct_members_copy(COPY_MEMCPY, expr, remove_addr(dest), NULL);
 }
 
 static void register_clears_param(void)
@@ -268,9 +288,9 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 		return;
 
 	if (strcmp(value, "0") == 0)
-		__struct_members_copy(COPY_MEMSET, remove_addr(arg), zero_expr());
+		__struct_members_copy(COPY_MEMSET, expr, remove_addr(arg), zero_expr());
 	else
-		__struct_members_copy(COPY_MEMCPY, remove_addr(arg), NULL);
+		__struct_members_copy(COPY_MEMCPY, expr, remove_addr(arg), NULL);
 
 }
 
