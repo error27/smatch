@@ -99,6 +99,15 @@ static struct expression *get_matching_member_expr(struct symbol *left_type, str
 	return member_expression(right, op, left_member->ident);
 }
 
+static struct expression *remove_addr(struct expression *expr)
+{
+	expr = strip_expr(expr);
+
+	if (expr->type == EXPR_PREOP && expr->op == '&')
+		return strip_expr(expr->unop);
+	return expr;
+}
+
 void __struct_members_copy(int mode, struct expression *left, struct expression *right)
 {
 	struct symbol *struct_type, *tmp, *type;
@@ -115,8 +124,28 @@ void __struct_members_copy(int mode, struct expression *left, struct expression 
 	right = strip_expr(right);
 
 	struct_type = get_struct_type(left);
-	if (!struct_type)
+	if (!struct_type) {
+		/*
+		 * This is not a struct assignment obviously.  But this is where
+		 * memcpy() is handled so it feels like a good place to add this
+		 * code.
+		 */
+
+		type = get_type(left);
+		if (!type || type->type != SYM_BASETYPE)
+			return;
+
+		right = strip_expr(right);
+		if (right && right->type == EXPR_PREOP && right->op == '&')
+			right = remove_addr(right);
+		else
+			right = unknown_value_expression(left);
+		assign = assign_expression(left, right);
+		__in_fake_assign++;
+		__split_expr(assign);
+		__in_fake_assign--;
 		return;
+	}
 
 	if (is_pointer(left)) {
 		left = deref_expression(left);
@@ -150,19 +179,16 @@ void __struct_members_copy(int mode, struct expression *left, struct expression 
 
 void __fake_struct_member_assignments(struct expression *expr)
 {
+	struct symbol *struct_type;
+
 	if (is_zero(expr->right))
 		return;
 
+	struct_type = get_struct_type(expr->left);
+	if (!struct_type)
+		return;
+
 	__struct_members_copy(COPY_NORMAL, expr->left, expr->right);
-}
-
-static struct expression *remove_addr(struct expression *expr)
-{
-	expr = strip_expr(expr);
-
-	if (expr->type == EXPR_PREOP && expr->op == '&')
-		return strip_expr(expr->unop);
-	return expr;
 }
 
 static void match_memset(const char *fn, struct expression *expr, void *_size_arg)
