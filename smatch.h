@@ -677,6 +677,7 @@ void print_held_locks();
 
 /* check_assigned_expr.c */
 struct expression *get_assigned_expr(struct expression *expr);
+struct expression *get_assigned_expr_name_sym(const char *name, struct symbol *sym);
 
 /* smatch_comparison.c */
 int get_comparison(struct expression *left, struct expression *right);

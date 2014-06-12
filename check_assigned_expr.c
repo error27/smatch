@@ -37,6 +37,16 @@ struct expression *get_assigned_expr(struct expression *expr)
 	return (struct expression *)state->data;
 }
 
+struct expression *get_assigned_expr_name_sym(const char *name, struct symbol *sym)
+{
+	struct smatch_state *state;
+
+	state = get_state(my_id, name, sym);
+	if (!state)
+		return NULL;
+	return (struct expression *)state->data;
+}
+
 static struct smatch_state *alloc_my_state(struct expression *expr)
 {
 	struct smatch_state *state;
