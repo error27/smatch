@@ -284,6 +284,16 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 	match_clear(NULL, expr, INT_PTR(param));
 }
 
+static void match_assign(struct expression *expr)
+{
+	struct symbol *type;
+
+	type = get_type(expr->left);
+	if (!type || type->type != SYM_STRUCT)
+		return;
+	set_state_expr(my_whole_id, expr->left, &cleared);
+}
+
 static void register_clears_argument(void)
 {
 	struct token *token;
@@ -347,6 +357,7 @@ void check_rosenberg(int id)
 	add_function_hook("memcpy", &match_clear, INT_PTR(0));
 	add_function_hook("__memzero", &match_clear, INT_PTR(0));
 	add_function_hook("memzero", &match_clear, INT_PTR(0));
+	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	register_clears_argument();
 	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
 
