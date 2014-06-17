@@ -675,22 +675,42 @@ static char **handle_version(char *arg, char **next)
 	exit(0);
 }
 
+static char **handle_param(char *arg, char **next)
+{
+	char *value = NULL;
+
+	/* For now just skip any '--param=*' or '--param *' */
+	if (*arg == '\0') {
+		value = *++next;
+	} else if (isspace(*arg) || *arg == '=') {
+		value = ++arg;
+	}
+
+	if (!value)
+		die("missing argument for --param option");
+
+	return next;
+}
+
 struct switches {
 	const char *name;
 	char **(*fn)(char *, char **);
+	unsigned int prefix:1;
 };
 
 static char **handle_long_options(char *arg, char **next)
 {
 	static struct switches cmd[] = {
+		{ "param", handle_param, 1 },
 		{ "version", handle_version },
 		{ NULL, NULL }
 	};
 	struct switches *s = cmd;
 
 	while (s->name) {
-		if (!strcmp(s->name, arg))
-			return s->fn(arg, next);
+		int optlen = strlen(s->name);
+		if (!strncmp(s->name, arg, optlen + !s->prefix))
+			return s->fn(arg + optlen, next);
 		s++;
 	}
 	return next;
