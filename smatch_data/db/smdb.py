@@ -64,7 +64,7 @@ db_types = {   0: "INTERNAL",
 def type_to_str(type_int):
 
     t = int(type_int)
-    if db_types[t]:
+    if db_types.has_key(t):
         return db_types[t]
     return type_int
 
