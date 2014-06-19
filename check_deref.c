@@ -97,6 +97,41 @@ static void check_dereference(struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
+static void check_dereference_name_sym(char *name, struct symbol *sym)
+{
+	struct sm_state *sm;
+	struct sm_state *tmp;
+
+	sm = get_sm_state(my_id, name, sym);
+	if (!sm)
+		return;
+	if (is_ignored(my_id, sm->name, sm->sym))
+		return;
+	if (implied_not_equal_name_sym(name, sym, 0))
+		return;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (tmp->state == &merged)
+			continue;
+		if (tmp->state == &ok)
+			continue;
+		add_ignore(my_id, sm->name, sm->sym);
+		if (tmp->state == &null) {
+			if (option_spammy)
+				sm_msg("error: potential NULL dereference '%s'.", tmp->name);
+			return;
+		}
+		if (tmp->state == &uninitialized) {
+			if (option_spammy)
+				sm_msg("error: potentially dereferencing uninitialized '%s'.", tmp->name);
+			return;
+		}
+		sm_msg("error: potential null dereference '%s'.  (%s returns null)",
+			tmp->name, tmp->state->name);
+		return;
+	} END_FOR_EACH_PTR(tmp);
+}
+
 static void match_dereferences(struct expression *expr)
 {
 	if (expr->type != EXPR_PREOP)
@@ -111,9 +146,18 @@ static void match_pointer_as_array(struct expression *expr)
 	check_dereference(expr->unop->left);
 }
 
-static void set_param_dereferenced(struct expression *arg, char *unused)
+static void set_param_dereferenced(struct expression *arg, char *key, char *unused)
 {
-	check_dereference(arg);
+	struct symbol *sym;
+	char *name;
+
+	name = get_variable_from_key(arg, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	check_dereference_name_sym(name, sym);
+free:
+	free_string(name);
 }
 
 static void match_declarations(struct symbol *sym)

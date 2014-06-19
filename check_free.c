@@ -88,9 +88,18 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 	set_state_expr(my_id, arg, &freed);
 }
 
-static void set_param_freed(struct expression *arg, char *unused)
+static void set_param_freed(struct expression *arg, char *key, char *unused)
 {
-	set_state_expr(my_id, arg, &freed);
+	struct symbol *sym;
+	char *name;
+
+	name = get_variable_from_key(arg, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	set_state(my_id, name, sym, &freed);
+free:
+	free_string(name);
 }
 
 void check_free(int id)

@@ -89,7 +89,7 @@ static struct returned_member_cb_list *returned_member_callbacks;
 
 struct call_implies_callback {
 	int type;
-	void (*callback)(struct expression *arg, char *value);
+	void (*callback)(struct expression *arg, char *key, char *value);
 };
 ALLOCATOR(call_implies_callback, "call_implies callbacks");
 DECLARE_PTR_LIST(call_implies_cb_list, struct call_implies_callback);
@@ -215,11 +215,11 @@ void sql_insert_function_ptr(const char *fn, const char *struct_name)
 		   struct_name);
 }
 
-void sql_insert_call_implies(int type, int param, int value)
+void sql_insert_call_implies(int type, int param, const char *key, const char *value)
 {
-	sql_insert(call_implies, "'%s', '%s', %lu, %d, %d, %d, %d", get_base_file(),
+	sql_insert(call_implies, "'%s', '%s', %lu, %d, %d, %d, '%s', %s", get_base_file(),
 	           get_function(), (unsigned long)__inline_fn, fn_static(),
-		   type, param, value);
+		   type, param, key, value);
 }
 
 void sql_insert_function_type_size(const char *member, const char *ranges)
@@ -377,7 +377,7 @@ void add_returned_member_callback(int owner, void (*callback)(int return_id, cha
 	add_ptr_list(&returned_member_callbacks, member_callback);
 }
 
-void select_call_implies_hook(int type, void (*callback)(struct expression *arg, char *value))
+void select_call_implies_hook(int type, void (*callback)(struct expression *arg, char *key, char *value))
 {
 	struct call_implies_callback *cb = __alloc_call_implies_callback(0);
 
@@ -711,7 +711,7 @@ static int call_implies_callbacks(void *unused, int argc, char **argv, char **az
 			if (!arg)
 				continue;
 		}
-		cb->callback(arg, argv[3]);
+		cb->callback(arg, argv[3], argv[4]);
 	} END_FOR_EACH_PTR(cb);
 
 	return 0;
@@ -720,7 +720,7 @@ static int call_implies_callbacks(void *unused, int argc, char **argv, char **az
 static void match_call_implies(struct expression *expr)
 {
 	static_call_expr = expr;
-	sql_select_call_implies("function, type, parameter, value", expr,
+	sql_select_call_implies("function, type, parameter, key, value", expr,
 				call_implies_callbacks);
 	return;
 }

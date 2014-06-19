@@ -40,11 +40,21 @@ static void match_dereference(struct expression *expr)
 	set_state_expr(my_id, expr, &derefed);
 }
 
-static void set_param_dereferenced(struct expression *arg, char *unused)
+static void set_param_dereferenced(struct expression *arg, char *key, char *unused)
 {
-	if (implied_not_equal(arg, 0))
+	struct symbol *sym;
+	char *name;
+
+	name = get_variable_from_key(arg, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	if (implied_not_equal_name_sym(name, sym, 0))
 		return;
-	set_state_expr(my_id, arg, &derefed);
+	set_state(my_id, name, sym, &derefed);
+
+free:
+	free_string(name);
 }
 
 static void match_condition(struct expression *expr)

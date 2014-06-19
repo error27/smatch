@@ -90,8 +90,11 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 	freed_variable(arg);
 }
 
-static void set_param_freed(struct expression *arg, char *unused)
+static void set_param_freed(struct expression *arg, char *key, char *unused)
 {
+	/* XXX FIXME: call_implies has been updated with more information */
+	if (strcmp(key, "$$") != 0)
+		return;
 	freed_variable(arg);
 }
 
@@ -106,7 +109,7 @@ static void process_states(struct stree *stree)
 		if (!arg->ident)
 			continue;
 		if (get_state_stree(stree, my_id, arg->ident->name, arg) == &freed)
-			sql_insert_call_implies(PARAM_FREED, i, 1);
+			sql_insert_call_implies(PARAM_FREED, i, "$$", "1");
 	} END_FOR_EACH_PTR(arg);
 }
 

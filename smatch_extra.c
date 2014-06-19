@@ -800,9 +800,19 @@ static void match_pointer_as_array(struct expression *expr)
 	check_dereference(expr->unop->left);
 }
 
-static void set_param_dereferenced(struct expression *arg, char *unused)
+static void set_param_dereferenced(struct expression *arg, char *key, char *unused)
 {
-	check_dereference(arg);
+	struct symbol *sym;
+	char *name;
+
+	name = get_variable_from_key(arg, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	set_extra_nomod(name, sym, alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval));
+
+free:
+	free_string(name);
 }
 
 static void match_function_def(struct symbol *sym)
@@ -1346,6 +1356,18 @@ static void assume_indexes_are_valid(struct expression *expr)
 int implied_not_equal(struct expression *expr, long long val)
 {
 	return !possibly_false(expr, SPECIAL_NOTEQUAL, value_expr(val));
+}
+
+int implied_not_equal_name_sym(char *name, struct symbol *sym, long long val)
+{
+	struct smatch_state *estate;
+
+	estate = get_state(SMATCH_EXTRA, name, sym);
+	if (!estate)
+		return 0;
+	if (!rl_has_sval(estate_rl(estate), sval_type_val(estate_type(estate), 0)))
+		return 1;
+	return 0;
 }
 
 static void struct_member_callback(struct expression *call, int param, char *printed_name, struct smatch_state *state)

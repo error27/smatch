@@ -31,20 +31,6 @@ STATE(derefed);
 STATE(ignore);
 STATE(param);
 
-static int is_arg(struct expression *expr)
-{
-	struct symbol *arg;
-
-	if (expr->type != EXPR_SYMBOL)
-		return 0;
-
-	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
-		if (arg == expr->symbol)
-			return 1;
-	} END_FOR_EACH_PTR(arg);
-	return 0;
-}
-
 static void set_ignore(struct sm_state *sm, struct expression *mod_expr)
 {
 	if (sm->state == &derefed)
@@ -76,7 +62,7 @@ static void check_deref(struct expression *expr)
 		expr = tmp;
 	expr = strip_expr(expr);
 
-	if (!is_arg(expr))
+	if (get_param_num(expr) < 0)
 		return;
 
 	sm = get_sm_state_expr(my_id, expr);
@@ -94,8 +80,11 @@ static void match_dereference(struct expression *expr)
 	check_deref(expr->unop);
 }
 
-static void set_param_dereferenced(struct expression *arg, char *unused)
+static void set_param_dereferenced(struct expression *arg, char *key, char *unused)
 {
+	/* XXX FIXME: param_implies has more information now */
+	if (strcmp(key, "$$") != 0)
+		return;
 	check_deref(arg);
 }
 
@@ -110,7 +99,7 @@ static void process_states(struct stree *stree)
 		if (!arg->ident)
 			continue;
 		if (get_state_stree(stree, my_id, arg->ident->name, arg) == &derefed)
-			sql_insert_call_implies(DEREFERENCE, i, 1);
+			sql_insert_call_implies(DEREFERENCE, i, "$$", "1");
 	} END_FOR_EACH_PTR(arg);
 }
 
