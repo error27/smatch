@@ -139,6 +139,16 @@ static void match_usb_control_msg(const char *fn, struct expression *expr, void 
 	db_param_cleared(expr, 6, (char *)"$$", (char *)"");
 }
 
+static void match_assign(struct expression *expr)
+{
+	struct symbol *type;
+
+	type = get_type(expr->left);
+	if (!type || type->type != SYM_STRUCT)
+		return;
+	set_state_expr(my_id, expr->left, &cleared);
+}
+
 void register_param_cleared(int id)
 {
 	my_id = id;
@@ -153,6 +163,8 @@ void register_param_cleared(int id)
 	add_function_hook("strncpy", &match_memcpy, INT_PTR(0));
 	add_function_hook("sprintf", &match_memcpy, INT_PTR(0));
 	add_function_hook("snprintf", &match_memcpy, INT_PTR(0));
+
+	add_hook(&match_assign, ASSIGNMENT_HOOK);
 
 	register_clears_param();
 
