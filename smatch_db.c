@@ -697,7 +697,7 @@ static int call_implies_callbacks(void *unused, int argc, char **argv, char **az
 	int type;
 	int param;
 
-	if (argc != 4)
+	if (argc != 5)
 		return 0;
 
 	type = atoi(argv[1]);
