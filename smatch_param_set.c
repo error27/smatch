@@ -51,19 +51,28 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 	set_state(my_id, name, sym, state);
 }
 
-static void print_one_return_value_param(int return_id, char *return_ranges,
-			int param, struct sm_state *sm, char *implied_rl)
+/*
+ * This relies on the fact that these states are stored so that
+ * foo->bar is before foo->bar->baz.
+ */
+static int parent_set(struct string_list *list, const char *name)
 {
-	const char *param_name;
+	char *tmp;
+	int len;
+	int ret;
 
-	param_name = get_param_name(sm);
-	if (!param_name)
-		return;
-	if (strcmp(param_name, "$$") == 0)
-		return;
+	FOR_EACH_PTR(list, tmp) {
+		len = strlen(tmp);
+		ret = strncmp(tmp, name, len);
+		if (ret < 0)
+			continue;
+		if (ret > 0)
+			return 0;
+		if (name[len] == '-')
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
 
-	sql_insert_return_states(return_id, return_ranges, ADDED_VALUE, param,
-			param_name, implied_rl);
+	return 0;
 }
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
@@ -73,6 +82,8 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	struct smatch_state *extra;
 	int param;
 	struct range_list *rl;
+	const char *param_name;
+	struct string_list *set_list = NULL;
 
 	stree = __get_cur_stree();
 
@@ -89,10 +100,22 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		param = get_param_num_from_sym(sm->sym);
 		if (param < 0)
 			continue;
-		if (!sm->sym->ident)
+		param_name = get_param_name(sm);
+		if (!param_name)
 			continue;
-		print_one_return_value_param(return_id, return_ranges, param, sm, show_rl(rl));
+		if (strcmp(param_name, "$$") == 0)
+			continue;
+
+		/* no useful information here. */
+		if (is_whole_rl(rl) && parent_set(set_list, sm->name))
+			continue;
+		insert_string(&set_list, (char *)sm->name);
+
+		sql_insert_return_states(return_id, return_ranges, ADDED_VALUE,
+					 param, param_name, show_rl(rl));
 	} END_FOR_EACH_SM(sm);
+
+	free_ptr_list((struct ptr_list **)&set_list);
 }
 
 void register_param_set(int id)

@@ -78,6 +78,30 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 	set_state(my_id, name, sym, &modified);
 }
 
+/*
+ * This relies on the fact that these states are stored so that
+ * foo->bar is before foo->bar->baz.
+ */
+static int parent_set(struct string_list *list, const char *name)
+{
+	char *tmp;
+	int len;
+	int ret;
+
+	FOR_EACH_PTR(list, tmp) {
+		len = strlen(tmp);
+		ret = strncmp(tmp, name, len);
+		if (ret < 0)
+			continue;
+		if (ret > 0)
+			return 0;
+		if (name[len] == '-')
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+
+	return 0;
+}
+
 static struct range_list *get_orig_rl(struct sm_state *sm)
 {
 	struct range_list *ret = NULL;
@@ -98,7 +122,7 @@ static struct range_list *get_orig_rl(struct sm_state *sm)
 }
 
 static void print_one_mod_param(int return_id, char *return_ranges,
-			int param, struct sm_state *sm)
+			int param, struct sm_state *sm, struct string_list **totally_filtered)
 {
 	const char *param_name;
 	struct range_list *rl;
@@ -110,12 +134,15 @@ static void print_one_mod_param(int return_id, char *return_ranges,
 	if (is_whole_rl(rl))
 		return;
 
+	if (!rl)
+		insert_string(totally_filtered, (char *)sm->name);
+
 	sql_insert_return_states(return_id, return_ranges, FILTER_VALUE, param,
 			param_name, show_rl(rl));
 }
 
 static void print_one_extra_param(int return_id, char *return_ranges,
-			int param, struct sm_state *sm)
+			int param, struct sm_state *sm, struct string_list **totally_filtered)
 {
 	struct smatch_state *old;
 	const char *param_name;
@@ -130,6 +157,9 @@ static void print_one_extra_param(int return_id, char *return_ranges,
 	if (!param_name)
 		return;
 
+	if (strcmp(sm->state->name, "") == 0)
+		insert_string(totally_filtered, (char *)sm->name);
+
 	sql_insert_return_states(return_id, return_ranges, FILTER_VALUE, param,
 			param_name, sm->state->name);
 }
@@ -139,6 +169,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	struct stree *stree;
 	struct sm_state *tmp;
 	struct sm_state *sm;
+	struct string_list *totally_filtered = NULL;
 	int param;
 
 	stree = __get_cur_stree();
@@ -148,18 +179,23 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (param < 0)
 			continue;
 		/*
-		 * skip the parameter itself because that's handled by
-		 * smatch_param_limit.c.
+		 * skip the parameter itself because that's stored on the stack
+		 * and thus handled by smatch_param_limit.c.
 		 */
 		if (tmp->sym->ident && strcmp(tmp->sym->ident->name, tmp->name) == 0)
 			continue;
 
+		if (parent_set(totally_filtered, tmp->name))
+			continue;
+
 		sm = get_sm_state(my_id, tmp->name, tmp->sym);
 		if (sm)
-			print_one_mod_param(return_id, return_ranges, param, sm);
+			print_one_mod_param(return_id, return_ranges, param, sm, &totally_filtered);
 		else
-			print_one_extra_param(return_id, return_ranges, param, tmp);
+			print_one_extra_param(return_id, return_ranges, param, tmp, &totally_filtered);
 	} END_FOR_EACH_SM(tmp);
+
+	free_ptr_list((struct ptr_list **)&totally_filtered);
 }
 
 void register_param_filter(int id)
