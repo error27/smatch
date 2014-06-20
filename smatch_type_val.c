@@ -141,6 +141,22 @@ static void add_type_val(char *member, struct range_list *rl)
 	set_state_stree(&fn_type_val, my_id, member, NULL, new);
 }
 
+static void add_fake_type_val(char *member, struct range_list *rl)
+{
+	struct smatch_state *old, *add, *new;
+
+	member = alloc_string(member);
+	old = get_state_stree(fn_type_val, my_id, member, NULL);
+	add = alloc_estate_rl(rl);
+	if (old) {
+		new = merge_estates(old, add);
+	} else {
+		new = add;
+		new->name = alloc_string("min-max");
+	}
+	set_state_stree(&fn_type_val, my_id, member, NULL, new);
+}
+
 static void add_global_type_val(char *member, struct range_list *rl)
 {
 	struct smatch_state *old, *add, *new;
@@ -174,6 +190,11 @@ static void match_assign_value(struct expression *expr)
 	right_member = get_member_name(expr->right);
 	if (right_member && strcmp(right_member, member) == 0)
 		goto free;
+
+	if (is_fake_call(expr->right)) {
+		add_fake_type_val(member, alloc_whole_rl(get_type(expr->left)));
+		goto free;
+	}
 
 	if (expr->op != '=') {
 		add_type_val(member, alloc_whole_rl(get_type(expr->left)));
