@@ -200,7 +200,7 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		type = &llong_ctype;
 	*rl = NULL;
 
-	if (value && strcmp(value, "empty") == 0)
+	if (strcmp(value, "empty") == 0)
 		return;
 
 	if (strncmp(value, "[==p", 4) == 0) {
