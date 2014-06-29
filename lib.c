@@ -661,6 +661,14 @@ static char **handle_nostdinc(char *arg, char **next)
 	return next;
 }
 
+static char **handle_switch_n(char *arg, char **next)
+{
+	if (!strcmp (arg, "nostdinc"))
+		return handle_nostdinc(arg, next);
+
+	return next;
+}
+
 static char **handle_base_dir(char *arg, char **next)
 {
 	gcc_base_dir = *++next;
@@ -668,6 +676,15 @@ static char **handle_base_dir(char *arg, char **next)
 		die("missing argument for -gcc-base-dir option");
 	return next;
 }
+
+static char **handle_switch_g(char *arg, char **next)
+{
+	if (!strcmp (arg, "gcc-base-dir"))
+		return handle_base_dir(arg, next);
+
+	return next;
+}
+
 
 static char **handle_version(char *arg, char **next)
 {
@@ -714,44 +731,31 @@ static char **handle_long_options(char *arg, char **next)
 		s++;
 	}
 	return next;
-
 }
 
 static char **handle_switch(char *arg, char **next)
 {
-	static struct switches cmd[] = {
-		{ "nostdinc", handle_nostdinc },
-		{ "gcc-base-dir", handle_base_dir},
-		{ NULL, NULL }
-	};
-	struct switches *s;
-
 	switch (*arg) {
+	case 'a': return handle_switch_a(arg, next);
 	case 'D': return handle_switch_D(arg, next);
 	case 'E': return handle_switch_E(arg, next);
+	case 'f': return handle_switch_f(arg, next);
+	case 'g': return handle_switch_g(arg, next);
+	case 'G': return handle_switch_G(arg, next);
 	case 'I': return handle_switch_I(arg, next);
 	case 'i': return handle_switch_i(arg, next);
 	case 'M': return handle_switch_M(arg, next);
 	case 'm': return handle_switch_m(arg, next);
+	case 'n': return handle_switch_n(arg, next);
 	case 'o': return handle_switch_o(arg, next);
+	case 'O': return handle_switch_O(arg, next);
+	case 's': return handle_switch_s(arg, next);
 	case 'U': return handle_switch_U(arg, next);
 	case 'v': return handle_switch_v(arg, next);
 	case 'W': return handle_switch_W(arg, next);
-	case 'O': return handle_switch_O(arg, next);
-	case 'f': return handle_switch_f(arg, next);
-	case 'G': return handle_switch_G(arg, next);
-	case 'a': return handle_switch_a(arg, next);
-	case 's': return handle_switch_s(arg, next);
 	case '-': return handle_long_options(arg + 1, next);
 	default:
 		break;
-	}
-
-	s = cmd;
-	while (s->name) {
-		if (!strcmp(s->name, arg))
-			return s->fn(arg, next);
-		s++;
 	}
 
 	/*
