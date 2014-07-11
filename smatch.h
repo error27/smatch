@@ -740,4 +740,7 @@ struct smatch_state *get_stored_condition(struct expression *expr);
 /* check_string_len.c */
 int get_formatted_string_size(struct expression *call, int arg);
 
+/* smatch_param_set.c */
+int param_was_set(struct expression *expr);
+
 #endif 	    /* !SMATCH_H_ */

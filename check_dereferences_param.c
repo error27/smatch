@@ -65,6 +65,9 @@ static void check_deref(struct expression *expr)
 	if (get_param_num(expr) < 0)
 		return;
 
+	if (param_was_set(expr))
+		return;
+
 	sm = get_sm_state_expr(my_id, expr);
 	if (sm && slist_has_state(sm->possible, &ignore))
 		return;
@@ -90,17 +93,21 @@ static void set_param_dereferenced(struct expression *arg, char *key, char *unus
 
 static void process_states(struct stree *stree)
 {
-	struct symbol *arg;
-	int i;
+	struct sm_state *tmp;
+	int arg;
+	const char *name;
 
-	i = -1;
-	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
-		i++;
-		if (!arg->ident)
+	FOR_EACH_MY_SM(my_id, stree, tmp) {
+		if (tmp->state != &derefed)
 			continue;
-		if (get_state_stree(stree, my_id, arg->ident->name, arg) == &derefed)
-			sql_insert_call_implies(DEREFERENCE, i, "$$", "1");
-	} END_FOR_EACH_PTR(arg);
+		arg = get_param_num_from_sym(tmp->sym);
+		if (arg < 0)
+			continue;
+		name = get_param_name(tmp);
+		if (!name)
+			continue;
+		sql_insert_call_implies(DEREFERENCE, arg, name, "1");
+	} END_FOR_EACH_SM(tmp);
 }
 
 void check_dereferences_param(int id)

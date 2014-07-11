@@ -118,6 +118,13 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	free_ptr_list((struct ptr_list **)&set_list);
 }
 
+int param_was_set(struct expression *expr)
+{
+	if (get_state_expr(my_id, expr))
+		return 1;
+	return 0;
+}
+
 void register_param_set(int id)
 {
 	my_id = id;
