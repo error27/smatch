@@ -211,7 +211,7 @@ void sql_insert_caller_info(struct expression *call, int type,
 
 void sql_insert_function_ptr(const char *fn, const char *struct_name)
 {
-	sql_insert(function_ptr, "'%s', '%s', '%s'", get_base_file(), fn,
+	sql_insert(function_ptr, "'%s', '%s', '%s', 0", get_base_file(), fn,
 		   struct_name);
 }
 
