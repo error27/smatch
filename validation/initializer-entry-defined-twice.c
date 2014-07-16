@@ -41,6 +41,16 @@ static struct same_offset not_an_error = {
 	.field1 = { },
 	.field2 = 0
 };
+
+/*
+ * _Bools generally take a whole byte, so ensure that we can initialize
+ * them without spewing a warning.
+ */
+static _Bool boolarray[3] = {
+	[0] = 1,
+	[1] = 1,
+};
+
 /*
  * check-name: Initializer entry defined twice
  *

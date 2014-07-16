@@ -900,7 +900,7 @@ void init_ctype(void)
 		struct symbol *sym = ctype->ptr;
 		unsigned long bit_size = ctype->bit_size ? *ctype->bit_size : -1;
 		unsigned long maxalign = ctype->maxalign ? *ctype->maxalign : 0;
-		unsigned long alignment = bits_to_bytes(bit_size + bits_in_char - 1);
+		unsigned long alignment = bits_to_bytes(bit_size);
 
 		if (alignment > maxalign)
 			alignment = maxalign;

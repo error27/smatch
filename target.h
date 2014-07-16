@@ -49,7 +49,7 @@ extern int enum_alignment;
 
 static inline int bits_to_bytes(int bits)
 {
-	return bits >= 0 ? bits / bits_in_char : -1;
+	return bits >= 0 ? (bits + bits_in_char - 1) / bits_in_char : -1;
 }
 
 static inline int bytes_to_bits(int bytes)
