@@ -2302,7 +2302,7 @@ static struct expression *check_designators(struct expression *e,
 			}
 			type = ctype->ctype.base_type;
 			if (ctype->bit_size >= 0 && type->bit_size >= 0) {
-				unsigned offset = e->idx_to * type->bit_size;
+				unsigned offset = array_element_offset(type->bit_size, e->idx_to);
 				if (offset >= ctype->bit_size) {
 					err = "index out of bounds in";
 					break;

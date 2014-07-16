@@ -234,7 +234,8 @@ static struct symbol * examine_array_type(struct symbol *sym)
 		return sym;
 
 	if (array_size) {	
-		bit_size = base_type->bit_size * get_expression_value_silent(array_size);
+		bit_size = array_element_offset(base_type->bit_size,
+						get_expression_value_silent(array_size));
 		if (array_size->type != EXPR_VALUE) {
 			if (Wvla)
 				warning(array_size->pos, "Variable length array is used.");
