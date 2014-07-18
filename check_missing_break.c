@@ -112,7 +112,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 }
 
 static int in_case;
-struct smatch_state *merge_hook(struct smatch_state *s1, struct smatch_state *s2)
+static struct smatch_state *merge_hook(struct smatch_state *s1, struct smatch_state *s2)
 {
 	struct expression *switch_expr;
 
