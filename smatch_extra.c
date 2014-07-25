@@ -1115,6 +1115,8 @@ static int opposite_op(int op)
 		return '-';
 	case '-':
 		return '+';
+	case '*':
+		return '/';
 	}
 	return 0;
 }
@@ -1139,6 +1141,17 @@ static void move_known_values(struct expression **left_p, struct expression **ri
 	if (get_implied_value(left, &sval)) {
 		if (!is_simple_math(right))
 			return;
+		if (right->op == '*') {
+			sval_t divisor;
+
+			if (!get_value(right->right, &divisor))
+				return;
+			if (divisor.value == 0 && sval.value % divisor.value)
+				return;
+			*left_p = binop_expression(left, opposite_op(right->op), right->right);
+			*right_p = right->left;
+			return;
+		}
 		if (right->op == '+' && get_value(right->left, &sval)) {
 			*left_p = binop_expression(left, opposite_op(right->op), right->left);
 			*right_p = right->right;
@@ -1154,6 +1167,17 @@ static void move_known_values(struct expression **left_p, struct expression **ri
 	if (get_implied_value(right, &sval)) {
 		if (!is_simple_math(left))
 			return;
+		if (left->op == '*') {
+			sval_t divisor;
+
+			if (!get_value(left->right, &divisor))
+				return;
+			if (divisor.value == 0 && sval.value % divisor.value)
+				return;
+			*right_p = binop_expression(right, opposite_op(left->op), left->right);
+			*left_p = left->left;
+			return;
+		}
 		if (left->op == '+' && get_value(left->left, &sval)) {
 			*right_p = binop_expression(right, opposite_op(left->op), left->left);
 			*left_p = left->right;
