@@ -2611,6 +2611,7 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 		info(prev->definition->pos, " the previous one is here");
 	} else {
 		while (prev) {
+			rebind_scope(prev, decl->scope);
 			prev->definition = decl;
 			prev = prev->same_symbol;
 		}

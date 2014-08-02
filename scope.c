@@ -46,6 +46,20 @@ void bind_scope(struct symbol *sym, struct scope *scope)
 	add_symbol(&scope->symbols, sym);
 }
 
+
+void rebind_scope(struct symbol *sym, struct scope *new)
+{
+	struct scope *old = sym->scope;
+
+	if (old == new)
+		return;
+
+	if (old)
+		delete_ptr_list_entry((struct ptr_list**) &old->symbols, sym, 1);
+
+	bind_scope(sym, new);
+}
+
 static void start_scope(struct scope **s)
 {
 	struct scope *scope = __alloc_scope(0);
