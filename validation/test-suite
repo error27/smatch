@@ -7,12 +7,18 @@ default_cmd="sparse \$file"
 tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
 prog_name=`basename $0`
 
+if [ ! -x "$default_path/sparse-llvm" ]; then
+	disabled_cmds="sparsec sparsei sparse-llvm"
+fi
+
 # counts:
 #	- tests that have not been converted to test-suite format
+#	- tests that are disabled
 #	- tests that passed
 #	- tests that failed
 #	- tests that failed but are known to fail
 unhandled_tests=0
+disabled_tests=0
 ok_tests=0
 ko_tests=0
 known_ko_tests=0
@@ -80,6 +86,7 @@ echo "    help                       prints usage"
 #	- 0 if the test passed,
 #	- 1 if it failed,
 #	- 2 if it is not a "test-suite" test.
+#	- 3 if the test is disabled.
 do_test()
 {
 	test_failed=0
@@ -95,8 +102,6 @@ do_test()
 	fi
 	test_name=$last_result
 
-	echo "     TEST    $test_name ($file)"
-
 	# does the test provide a specific command ?
 	cmd=`eval echo $default_path/$default_cmd`
 	get_value "check-command" $file
@@ -104,6 +109,20 @@ do_test()
 		last_result=`echo $last_result | sed -e 's/^ *//'`
 		cmd=`eval echo $default_path/$last_result`
 	fi
+
+	# check for disabled commands
+	set -- $cmd
+	base_cmd=`basename $1`
+	for i in $disabled_cmds; do
+		if [ "$i" == "$base_cmd" ] ; then
+			disabled_tests=`expr $disabled_tests + 1`
+			echo "     DISABLE $test_name ($file)"
+			return 3
+		fi
+	done
+
+	echo "     TEST    $test_name ($file)"
+
 	verbose "Using command       : $cmd"
 
 	# grab the expected output
@@ -168,6 +187,9 @@ do_test_suite()
 	echo " ($known_ko_tests of them are known to fail)"
 	if [ "$unhandled_tests" -ne "0" ]; then
 		echo "$unhandled_tests tests could not be handled by $prog_name"
+	fi
+	if [ "$disabled_tests" -ne "0" ]; then
+		echo "$disabled_tests tests were disabled"
 	fi
 }
 
