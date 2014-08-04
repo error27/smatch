@@ -536,6 +536,8 @@ const char *ignored_attributes[] = {
 	"__format__",
 	"format_arg",
 	"__format_arg__",
+	"gnu_inline",
+	"__gnu_inline__",
 	"hot",
 	"__hot__",
         "leaf",
