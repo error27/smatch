@@ -11,6 +11,7 @@ my $gendeps = 0;
 my $do_check = 0;
 my $do_compile = 1;
 my $gcc_base_dir;
+my $multiarch_dir;
 my $verbose = 0;
 
 while (@ARGV) {
@@ -44,6 +45,12 @@ while (@ARGV) {
         next;
     }
 
+    if (/^-multiarch-dir$/) {
+        $multiarch_dir = shift @ARGV;
+        die ("$0: missing argument for -multiarch-dir option") if !$multiarch_dir;
+        next;
+    }
+
     # If someone adds "-E", don't pre-process twice.
     $do_compile = 0 if $_ eq '-E';
 
@@ -66,7 +73,10 @@ if ($do_check) {
     }
 
     $gcc_base_dir = qx($cc -print-file-name=) if !$gcc_base_dir;
+    chomp($gcc_base_dir);  # possibly remove '\n' from compiler
     $check .= " -gcc-base-dir " . $gcc_base_dir if $gcc_base_dir;
+
+    $check .= " -multiarch-dir " . $multiarch_dir if $multiarch_dir;
 
     print "$check\n" if $verbose;
     if ($do_compile) {

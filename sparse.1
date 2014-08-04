@@ -338,6 +338,12 @@ Sparse does not issue these warnings by default.
 .B \-gcc-base-dir \fIdir\fR
 Look for compiler-provided system headers in \fIdir\fR/include/ and \fIdir\fR/include-fixed/.
 .
+.TP
+.B \-multiarch-dir \fIdir\fR
+Look for system headers in the multiarch subdirectory \fIdir\fR.
+The \fIdir\fR name would normally take the form of the target's
+normalized GNU triplet. (e.g. i386-linux-gnu).
+.
 .SH OTHER OPTIONS
 .TP
 .B \-ftabstop=WIDTH

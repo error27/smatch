@@ -59,6 +59,7 @@ int gcc_minor = __GNUC_MINOR__;
 int gcc_patchlevel = __GNUC_PATCHLEVEL__;
 
 static const char *gcc_base_dir = GCC_BASE;
+static const char *multiarch_dir = MULTIARCH_TRIPLET;
 
 struct token *skip_to(struct token *token, int op)
 {
@@ -371,6 +372,14 @@ static char **handle_switch_M(char *arg, char **next)
 	return next;
 }
 
+static char **handle_multiarch_dir(char *arg, char **next)
+{
+	multiarch_dir = *++next;
+	if (!multiarch_dir)
+		die("missing argument for -multiarch-dir option");
+	return next;
+}
+
 static char **handle_switch_m(char *arg, char **next)
 {
 	if (!strcmp(arg, "m64")) {
@@ -379,7 +388,8 @@ static char **handle_switch_m(char *arg, char **next)
 		arch_m64 = 0;
 	} else if (!strcmp(arg, "msize-long")) {
 		arch_msize_long = 1;
-	}
+	} else if (!strcmp(arg, "multiarch-dir"))
+		return handle_multiarch_dir(arg, next);
 	return next;
 }
 
@@ -889,6 +899,12 @@ void create_builtin_stream(void)
 	add_pre_buffer("#weak_define __GNUC__ %d\n", gcc_major);
 	add_pre_buffer("#weak_define __GNUC_MINOR__ %d\n", gcc_minor);
 	add_pre_buffer("#weak_define __GNUC_PATCHLEVEL__ %d\n", gcc_patchlevel);
+
+	/* add the multiarch include directories, if any */
+	if (multiarch_dir && *multiarch_dir) {
+		add_pre_buffer("#add_system \"/usr/include/%s\"\n", multiarch_dir);
+		add_pre_buffer("#add_system \"/usr/local/include/%s\"\n", multiarch_dir);
+	}
 
 	/* We add compiler headers path here because we have to parse
 	 * the arguments to get it, falling back to default. */

@@ -36,6 +36,9 @@ HAVE_LLVM:=$(shell $(LLVM_CONFIG) --version >/dev/null 2>&1 && echo 'yes')
 GCC_BASE = $(shell $(CC) --print-file-name=)
 BASIC_CFLAGS = -DGCC_BASE=\"$(GCC_BASE)\"
 
+MULTIARCH_TRIPLET = $(shell $(CC) -print-multiarch 2>/dev/null)
+BASIC_CFLAGS += -DMULTIARCH_TRIPLET=\"$(MULTIARCH_TRIPLET)\"
+
 ifeq ($(HAVE_GCC_DEP),yes)
 BASIC_CFLAGS += -Wp,-MD,$(@D)/.$(@F).d
 endif
