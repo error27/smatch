@@ -240,7 +240,7 @@ static struct token *builtin_offsetof_expr(struct token *token,
 
 static unsigned long long parse_num(const char *nptr, char **end)
 {
-	if (nptr[0] == '0' && tolower(nptr[1]) == 'b')
+	if (nptr[0] == '0' && tolower((unsigned char)nptr[1]) == 'b')
 		return strtoull(&nptr[2], end, 2);
 	return strtoull(nptr, end, 0);
 }

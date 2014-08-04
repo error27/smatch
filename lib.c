@@ -289,7 +289,7 @@ static char **handle_switch_D(char *arg, char **next)
 	const char *name = arg + 1;
 	const char *value = "1";
 
-	if (!*name || isspace(*name))
+	if (!*name || isspace((unsigned char)*name))
 		die("argument to `-D' is missing");
 
 	for (;;) {
@@ -708,7 +708,7 @@ static char **handle_param(char *arg, char **next)
 	/* For now just skip any '--param=*' or '--param *' */
 	if (*arg == '\0') {
 		value = *++next;
-	} else if (isspace(*arg) || *arg == '=') {
+	} else if (isspace((unsigned char)*arg) || *arg == '=') {
 		value = ++arg;
 	}
 
