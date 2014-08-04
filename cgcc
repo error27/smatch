@@ -3,6 +3,7 @@
 
 my $cc = $ENV{'REAL_CC'} || 'cc';
 my $check = $ENV{'CHECK'} || 'sparse';
+my $ccom = $cc;
 
 my $m32 = 0;
 my $m64 = 0;
@@ -72,7 +73,7 @@ if ($do_check) {
 	$check .= &add_specs ('host_os_specs');
     }
 
-    $gcc_base_dir = qx($cc -print-file-name=) if !$gcc_base_dir;
+    $gcc_base_dir = qx($ccom -print-file-name=) if !$gcc_base_dir;
     chomp($gcc_base_dir);  # possibly remove '\n' from compiler
     $check .= " -gcc-base-dir " . $gcc_base_dir if $gcc_base_dir;
 
