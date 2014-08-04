@@ -77,6 +77,8 @@ if ($do_check) {
     chomp($gcc_base_dir);  # possibly remove '\n' from compiler
     $check .= " -gcc-base-dir " . $gcc_base_dir if $gcc_base_dir;
 
+    $multiarch_dir = qx($ccom -print-multiarch) if ! defined $multiarch_dir;
+    chomp($multiarch_dir);  # possibly remove '\n' from compiler
     $check .= " -multiarch-dir " . $multiarch_dir if $multiarch_dir;
 
     print "$check\n" if $verbose;
