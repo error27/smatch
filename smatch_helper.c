@@ -216,7 +216,8 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	}
 	case EXPR_STRING:
 		append(buf, "\"", len);
-		append(buf, expr->string->data, len);
+		if (expr->string && expr->string->data)
+			append(buf, expr->string->data, len);
 		append(buf, "\"", len);
 		return;
 	case EXPR_CALL: {
