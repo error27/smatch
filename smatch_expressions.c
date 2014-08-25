@@ -18,7 +18,7 @@ static struct position get_cur_pos(void)
 	return pos;
 }
 
-struct expression *zero_expr()
+struct expression *zero_expr(void)
 {
 	static struct expression *zero;
 

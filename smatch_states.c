@@ -132,19 +132,19 @@ free:
 	return ret;
 }
 
-void __push_fake_cur_stree()
+void __push_fake_cur_stree(void)
 {
 	push_stree(&fake_cur_stree_stack, NULL);
 	__save_pre_cond_states();
 }
 
-struct stree *__pop_fake_cur_stree()
+struct stree *__pop_fake_cur_stree(void)
 {
 	__use_pre_cond_states();
 	return pop_stree(&fake_cur_stree_stack);
 }
 
-void __free_fake_cur_stree()
+void __free_fake_cur_stree(void)
 {
 	struct stree *stree;
 
@@ -160,7 +160,7 @@ void __set_fake_cur_stree_fast(struct stree *stree)
 	read_only = 1;
 }
 
-void __pop_fake_cur_stree_fast()
+void __pop_fake_cur_stree_fast(void)
 {
 	cur_stree = pop_stree(&pre_cond_stack);
 	read_only = 0;

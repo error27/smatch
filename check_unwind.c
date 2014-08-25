@@ -111,7 +111,7 @@ static void match_unwind_function(const char *fn, struct expression *expr, void 
 	set_state(my_id, "unwind_function", NULL, &called);
 }
 
-static int func_returns_int()
+static int func_returns_int(void)
 {
 	struct symbol *type;
 

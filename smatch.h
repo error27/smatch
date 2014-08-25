@@ -207,7 +207,7 @@ do {								\
 } while (0)
 
 extern char *implied_debug_msg;
-static inline void print_implied_debug_msg()
+static inline void print_implied_debug_msg(void)
 {
 	static struct symbol *last_printed = NULL;
 

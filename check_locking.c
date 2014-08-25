@@ -889,7 +889,7 @@ static void load_table(struct lock_info *_lock_table, int size)
 }
 
 /* print_held_locks() is used in check_call_tree.c */
-void print_held_locks()
+void print_held_locks(void)
 {
 	struct stree *stree;
 	struct sm_state *sm;

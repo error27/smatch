@@ -38,7 +38,7 @@ void all_return_states_hook(void (*callback)(struct stree *stree))
 	add_ptr_list(&callback_list, rs_cb);
 }
 
-static void call_hooks()
+static void call_hooks(void)
 {
 	struct return_states_callback *rs_cb;
 

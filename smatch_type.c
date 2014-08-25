@@ -434,7 +434,7 @@ int fn_static(void)
 	return !!(cur_func_sym->ctype.modifiers & MOD_STATIC);
 }
 
-const char *global_static()
+const char *global_static(void)
 {
 	if (cur_func_sym->ctype.modifiers & MOD_STATIC)
 		return "static";

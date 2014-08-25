@@ -471,7 +471,7 @@ static int empty_statement(struct statement *stmt)
 	return 0;
 }
 
-static int last_stmt_on_same_line()
+static int last_stmt_on_same_line(void)
 {
 	struct statement *stmt;
 	int i = 0;
@@ -1170,7 +1170,7 @@ static void add_inline_function(struct symbol *sym)
 	add_ptr_list(&inlines_called, sym);
 }
 
-static void process_inlines()
+static void process_inlines(void)
 {
 	struct symbol *tmp;
 

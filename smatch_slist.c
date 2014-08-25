@@ -224,7 +224,7 @@ char *alloc_sname(const char *str)
 	return tmp;
 }
 
-int out_of_memory()
+int out_of_memory(void)
 {
 	/*
 	 * I decided to use 50M here based on trial and error.

@@ -46,7 +46,7 @@ static void push_val(sval_t sval)
 	add_ptr_list(&num_list, p);
 }
 
-static sval_t pop_val()
+static sval_t pop_val(void)
 {
 	sval_t *p;
 	sval_t ret;
@@ -74,7 +74,7 @@ static void push_op(char c)
 	add_ptr_list(&op_list, p);
 }
 
-static char pop_op()
+static char pop_op(void)
 {
 	char *p;
 	char c;
@@ -107,7 +107,7 @@ static int op_precedence(char c)
 	}
 }
 
-static int top_op_precedence()
+static int top_op_precedence(void)
 {
 	char *p;
 
@@ -133,7 +133,7 @@ static void pop_until(char c)
 	}
 }
 
-static void discard_stacks()
+static void discard_stacks(void)
 {
 	while (op_list)
 		pop_op();

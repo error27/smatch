@@ -34,7 +34,7 @@
 static int my_id;
 
 struct string_list *__ignored_macros = NULL;
-static int in_warn_on_macro()
+static int in_warn_on_macro(void)
 {
 	struct statement *stmt;
 	char *tmp;
