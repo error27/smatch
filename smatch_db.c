@@ -524,7 +524,7 @@ static int get_param(int param, char **name, struct symbol **sym)
 		 */
 		if (arg->ident->name < (char *)100)
 			continue;
-		if (i == param && arg->ident->name) {
+		if (i == param) {
 			*name = arg->ident->name;
 			*sym = arg;
 			return TRUE;
@@ -640,7 +640,7 @@ static void match_data_from_db(struct symbol *sym)
 	struct sm_state *sm;
 	struct stree *stree;
 
-	if (!sym || !sym->ident || !sym->ident->name)
+	if (!sym || !sym->ident)
 		return;
 
 	__push_fake_cur_stree();

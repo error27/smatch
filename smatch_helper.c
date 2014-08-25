@@ -130,7 +130,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		else
 			append(buf, ".", len);
 
-		if (expr->member && expr->member->name)
+		if (expr->member)
 			append(buf, expr->member->name, len);
 		else
 			append(buf, "unknown_member", len);
@@ -216,7 +216,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	}
 	case EXPR_STRING:
 		append(buf, "\"", len);
-		if (expr->string && expr->string->data)
+		if (expr->string)
 			append(buf, expr->string->data, len);
 		append(buf, "\"", len);
 		return;
@@ -254,7 +254,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	}
 	case EXPR_IDENTIFIER:
 		*complicated = 1;
-		if (expr->expr_ident && expr->expr_ident->name)
+		if (expr->expr_ident)
 			append(buf, expr->expr_ident->name, len);
 		return;
 	default:

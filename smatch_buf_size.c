@@ -381,7 +381,7 @@ static int get_stored_size_end_struct_bytes(struct expression *expr)
 
 	name = expr_to_var_sym(expr, &sym);
 	free_string(name);
-	if (!sym || !sym->ident || !sym->ident->name)
+	if (!sym || !sym->ident)
 		return 0;
 	if (!type_bytes(sym))
 		return 0;

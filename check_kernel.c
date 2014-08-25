@@ -184,7 +184,7 @@ static void find_module_init_exit(struct symbol_list *sym_list)
 			continue;
 		if (fn->type != SYM_FN)
 			continue;
-		if (!sym->ident || !sym->ident->name)
+		if (!sym->ident)
 			continue;
 		if (!fn->inline_stmt)
 			continue;
