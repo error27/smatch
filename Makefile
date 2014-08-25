@@ -10,7 +10,9 @@ endif
 
 OS = linux
 
+ifeq ($(CC),"")
 CC = gcc
+endif
 CFLAGS = -O2 -finline-functions -fno-strict-aliasing -g
 CFLAGS += -Wall -Wwrite-strings
 LDFLAGS += -g -lm -lsqlite3
