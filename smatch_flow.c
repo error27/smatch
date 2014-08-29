@@ -65,6 +65,7 @@ int option_assume_loops = 0;
 int option_known_conditions = 0;
 int option_two_passes = 0;
 struct symbol *cur_func_sym = NULL;
+struct stree *global_states;
 
 int outside_of_function(void)
 {
@@ -1236,18 +1237,38 @@ static void split_inlines(struct symbol_list *sym_list)
 		split_inlines_in_scope(sym);
 }
 
+static struct stree *clone_estates_perm(struct stree *orig)
+{
+	struct stree *ret = NULL;
+	struct sm_state *tmp;
+
+	FOR_EACH_SM(orig, tmp) {
+		set_state_stree_perm(&ret, tmp->owner, tmp->name, tmp->sym, clone_estate_perm(tmp->state));
+	} END_FOR_EACH_SM(tmp);
+
+	return ret;
+}
+
 static void split_functions(struct symbol_list *sym_list)
 {
 	struct symbol *sym;
+
+	__unnullify_path();
+	FOR_EACH_PTR(sym_list, sym) {
+		set_position(sym->pos);
+		if (sym->type != SYM_NODE || get_base_type(sym)->type != SYM_FN) {
+			__pass_to_client(sym, BASE_HOOK);
+			fake_global_assign(sym);
+		}
+	} END_FOR_EACH_PTR(sym);
+	global_states = clone_estates_perm(get_all_states_stree(SMATCH_EXTRA));
+	nullify_path();
 
 	FOR_EACH_PTR(sym_list, sym) {
 		set_position(sym->pos);
 		if (sym->type == SYM_NODE && get_base_type(sym)->type == SYM_FN) {
 			split_function(sym);
 			process_inlines();
-		} else {
-			__pass_to_client(sym, BASE_HOOK);
-			fake_global_assign(sym);
 		}
 	} END_FOR_EACH_PTR(sym);
 	split_inlines(sym_list);

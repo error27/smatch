@@ -176,6 +176,7 @@ extern struct symbol *cur_func_sym;
 extern int option_debug;
 extern int local_debug;
 extern int option_info;
+extern struct stree *global_states;
 int is_silenced_function(void);
 
 extern FILE *sm_outfd;
