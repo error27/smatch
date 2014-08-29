@@ -1048,6 +1048,64 @@ free:
 	return ret;
 }
 
+int possible_comparison(struct expression *a, int comparison, struct expression *b)
+{
+	char *one = NULL;
+	char *two = NULL;
+	int ret = 0;
+	char buf[256];
+	struct sm_state *sm;
+	int saved;
+
+	one = chunk_to_var(a);
+	if (!one)
+		goto free;
+	two = chunk_to_var(b);
+	if (!two)
+		goto free;
+
+
+	if (strcmp(one, two) == 0 && comparison == SPECIAL_EQUAL) {
+		ret = 1;
+		goto free;
+	}
+
+	if (strcmp(one, two) > 0) {
+		char *tmp = one;
+
+		one = two;
+		two = tmp;
+		comparison = flip_op(comparison);
+	}
+
+	snprintf(buf, sizeof(buf), "%s vs %s", one, two);
+	sm = get_sm_state(compare_id, buf, NULL);
+	if (!sm)
+		goto free;
+
+	FOR_EACH_PTR(sm->possible, sm) {
+		if (!sm->state->data)
+			continue;
+		saved = ((struct compare_data *)sm->state->data)->comparison;
+		if (saved == comparison)
+			ret = 1;
+		if (comparison == SPECIAL_EQUAL &&
+		    (saved == SPECIAL_LTE ||
+		     saved == SPECIAL_GTE ||
+		     saved == SPECIAL_UNSIGNED_LTE ||
+		     saved == SPECIAL_UNSIGNED_GTE))
+			ret = 1;
+		if (ret == 1)
+			goto free;
+	} END_FOR_EACH_PTR(sm);
+
+	return ret;
+free:
+	free_string(one);
+	free_string(two);
+	return ret;
+}
+
 static void update_links_from_call(struct expression *left,
 				   int left_compare,
 				   struct expression *right)
