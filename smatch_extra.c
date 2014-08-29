@@ -1642,6 +1642,7 @@ void register_smatch_extra_late(int id)
 	select_call_implies_hook(DEREFERENCE, &set_param_dereferenced);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_assign, GLOBAL_ASSIGNMENT_HOOK);
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&asm_expr, ASM_HOOK);
 
