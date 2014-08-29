@@ -93,11 +93,11 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 
 		s = get_state(owner, name, sym);
 		if (!s)
-			printf("%d new state. name='%s' [%s] %s\n",
-				get_lineno(), name, check_name(owner), show_state(state));
+			sm_msg("new state. name='%s' [%s] %s",
+				name, check_name(owner), show_state(state));
 		else
-			printf("%d state change name='%s' [%s] %s => %s\n",
-				get_lineno(), name, check_name(owner), show_state(s),
+			sm_msg("state change name='%s' [%s] %s => %s",
+				name, check_name(owner), show_state(s),
 				show_state(state));
 	}
 
@@ -193,12 +193,12 @@ void __set_sm(struct sm_state *sm)
 
 		s = get_state(sm->owner, sm->name, sm->sym);
 		if (!s)
-			printf("%d new state. name='%s' [%s] %s\n",
-				get_lineno(), sm->name, check_name(sm->owner),
+			sm_msg("new state. name='%s' [%s] %s",
+				sm->name, check_name(sm->owner),
 				show_state(sm->state));
 		else
-			printf("%d state change name='%s' [%s] %s => %s\n",
-				get_lineno(), sm->name, check_name(sm->owner), show_state(s),
+			sm_msg("state change name='%s' [%s] %s => %s",
+				sm->name, check_name(sm->owner), show_state(s),
 				show_state(sm->state));
 	}
 
@@ -349,8 +349,8 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 		struct smatch_state *tmp;
 
 		tmp = get_state(owner, name, sym);
-		printf("%d set_true_false '%s'.  Was %s.  Now T:%s F:%s\n",
-		       get_lineno(), name, show_state(tmp),
+		sm_msg("set_true_false '%s'.  Was %s.  Now T:%s F:%s\n",
+		       name, show_state(tmp),
 		       show_state(true_state), show_state(false_state));
 	}
 
