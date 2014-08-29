@@ -63,6 +63,9 @@ void free_stack_and_strees(struct stree_stack **stree_stack);
 struct sm_state *set_state_stree_stack(struct stree_stack **stack, int owner, const char *name,
 				struct symbol *sym, struct smatch_state *state);
 
+struct sm_state *get_sm_state_stree_stack(struct stree_stack *stack,
+				int owner, const char *name,
+				struct symbol *sym);
 struct smatch_state *get_state_stree_stack(struct stree_stack *stack, int owner,
 				const char *name, struct symbol *sym);
 
