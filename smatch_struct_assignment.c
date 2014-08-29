@@ -197,6 +197,22 @@ done:
 	faked_expression = NULL;
 }
 
+static int returns_zeroed_mem(struct expression *expr)
+{
+	char *fn;
+
+	if (expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL)
+		return 0;
+	fn = expr_to_var(expr->fn);
+	if (!fn)
+		return 0;
+	if (strcmp(fn, "kcalloc") == 0)
+		return 1;
+	if (option_project == PROJ_KERNEL && strstr(fn, "zalloc"))
+		return 1;
+	return 0;
+}
+
 void __fake_struct_member_assignments(struct expression *expr)
 {
 	struct symbol *struct_type;
@@ -208,7 +224,10 @@ void __fake_struct_member_assignments(struct expression *expr)
 	if (!struct_type)
 		return;
 
-	__struct_members_copy(COPY_NORMAL, expr, expr->left, expr->right);
+	if (returns_zeroed_mem(expr->right))
+		__struct_members_copy(COPY_MEMSET, expr, expr->left, zero_expr());
+	else
+		__struct_members_copy(COPY_NORMAL, expr, expr->left, expr->right);
 }
 
 static void match_memset(const char *fn, struct expression *expr, void *_size_arg)
