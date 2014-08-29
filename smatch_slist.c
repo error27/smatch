@@ -377,8 +377,9 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 		struct sm_state *tmp;
 		int i = 0;
 
-		printf("%d merge [%s] '%s' %s(L %d) + %s(L %d) => %s (",
-			get_lineno(), check_name(one->owner), one->name,
+		printf("%s:%d %s() merge [%s] '%s' %s(L %d) + %s(L %d) => %s (",
+			get_filename(), get_lineno(), get_function(),
+			check_name(one->owner), one->name,
 			show_state(one->state), one->line,
 			show_state(two->state), two->line,
 			show_state(s));
