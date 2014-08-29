@@ -113,7 +113,7 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct smatch_state *
 	set_related(state, estate_related(orig_state));
 	FOR_EACH_PTR(estate_related(orig_state), rel) {
 		if (option_debug_related)
-			sm_msg("updating related %s to %s", rel->name, state->name);
+			sm_msg("%s updating related %s to %s", name, rel->name, state->name);
 		set_state(SMATCH_EXTRA, rel->name, rel->sym, state);
 	} END_FOR_EACH_PTR(rel);
 }
