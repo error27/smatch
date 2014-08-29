@@ -45,7 +45,8 @@ void overwrite_sm_state_stree(struct stree **stree, struct sm_state *sm);
 void overwrite_sm_state_stree_stack(struct stree_stack **stack, struct sm_state *sm);
 struct sm_state *set_state_stree(struct stree **stree, int owner, const char *name,
 		     struct symbol *sym, struct smatch_state *state);
-
+void set_state_stree_perm(struct stree **stree, int owner, const char *name,
+		     struct symbol *sym, struct smatch_state *state);
 void delete_state_stree(struct stree **stree, int owner, const char *name,
 			struct symbol *sym);
 

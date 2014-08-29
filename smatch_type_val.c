@@ -86,47 +86,6 @@ int get_db_type_rl(struct expression *expr, struct range_list **rl)
 	return 1;
 }
 
-/*
- * One of the complications is that smatch tries to free a bunch of data at the
- * end of every function.
- */
-static struct data_info *clone_dinfo_perm(struct data_info *dinfo)
-{
-	struct data_info *ret;
-
-	ret = malloc(sizeof(*ret));
-	ret->related = NULL;
-	ret->value_ranges = clone_rl_permanent(dinfo->value_ranges);
-	ret->hard_max = 0;
-	ret->fuzzy_max = dinfo->fuzzy_max;
-	return ret;
-}
-
-static struct smatch_state *clone_estate_perm(struct smatch_state *state)
-{
-	struct smatch_state *ret;
-
-	ret = malloc(sizeof(*ret));
-	ret->name = alloc_string(state->name);
-	ret->data = clone_dinfo_perm(get_dinfo(state));
-	return ret;
-}
-
-static void set_state_stree_perm(struct stree **stree, int owner, const char *name,
-		     struct symbol *sym, struct smatch_state *state)
-{
-	struct sm_state *sm;
-
-	sm = malloc(sizeof(*sm));
-	memset(sm, 0, sizeof(*sm));
-	sm->owner = owner;
-	sm->name = name;
-	sm->sym = sym;
-	sm->state = state;
-
-	overwrite_sm_state_stree(stree, sm);
-}
-
 static void add_type_val(char *member, struct range_list *rl)
 {
 	struct smatch_state *old, *add, *new;

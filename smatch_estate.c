@@ -349,4 +349,30 @@ struct smatch_state *estate_filter_sval(struct smatch_state *orig, sval_t sval)
 	return estate_filter_range(orig, sval, sval);
 }
 
+/*
+ * One of the complications is that smatch tries to free a bunch of data at the
+ * end of every function.
+ */
+struct data_info *clone_dinfo_perm(struct data_info *dinfo)
+{
+	struct data_info *ret;
+
+	ret = malloc(sizeof(*ret));
+	ret->related = NULL;
+	ret->value_ranges = clone_rl_permanent(dinfo->value_ranges);
+	ret->hard_max = 0;
+	ret->fuzzy_max = dinfo->fuzzy_max;
+	return ret;
+}
+
+struct smatch_state *clone_estate_perm(struct smatch_state *state)
+{
+	struct smatch_state *ret;
+
+	ret = malloc(sizeof(*ret));
+	ret->name = alloc_string(state->name);
+	ret->data = clone_dinfo_perm(get_dinfo(state));
+	return ret;
+}
+
 

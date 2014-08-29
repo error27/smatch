@@ -447,6 +447,22 @@ struct sm_state *set_state_stree(struct stree **stree, int owner, const char *na
 	return new;
 }
 
+void set_state_stree_perm(struct stree **stree, int owner, const char *name,
+		     struct symbol *sym, struct smatch_state *state)
+{
+	struct sm_state *sm;
+
+	sm = malloc(sizeof(*sm) + strlen(name) + 1);
+	memset(sm, 0, sizeof(*sm));
+	sm->owner = owner;
+	sm->name = (char *)(sm + 1);
+	strcpy((char *)sm->name, name);
+	sm->sym = sym;
+	sm->state = state;
+
+	overwrite_sm_state_stree(stree, sm);
+}
+
 void delete_state_stree(struct stree **stree, int owner, const char *name,
 			struct symbol *sym)
 {
