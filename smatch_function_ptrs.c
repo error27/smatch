@@ -35,6 +35,13 @@ static char *get_array_ptr(struct expression *expr)
 	char buf[256];
 
 	array = get_array_name(expr);
+
+	if (array) {
+		name = get_member_name(array);
+		if (name)
+			return name;
+	}
+
 	/* FIXME:  is_array() should probably be is_array_element() */
 	type = get_type(expr);
 	if (!array && type && type->type == SYM_ARRAY)
@@ -83,6 +90,31 @@ static char *ptr_prefix(struct symbol *sym)
 	return buf;
 }
 
+char *get_returned_ptr(struct expression *expr)
+{
+	struct symbol *type;
+	char *name;
+	char buf[256];
+
+	if (expr->type != EXPR_CALL)
+		return NULL;
+	if (!expr->fn || expr->fn->type != EXPR_SYMBOL)
+		return NULL;
+
+	type = get_type(expr);
+	if (type && type->type == SYM_PTR)
+		type = get_real_base_type(type);
+	if (!type || type->type != SYM_FN)
+		return NULL;
+
+	name = expr_to_var(expr->fn);
+	if (!name)
+		return NULL;
+	snprintf(buf, sizeof(buf), "r %s()", name);
+	free_string(name);
+	return alloc_string(buf);
+}
+
 char *get_fnptr_name(struct expression *expr)
 {
 	char *name;
@@ -100,6 +132,14 @@ char *get_fnptr_name(struct expression *expr)
 	}
 
 	name = get_array_ptr(expr);
+	if (name)
+		return name;
+
+	name = get_returned_ptr(expr);
+	if (name)
+		return name;
+
+	name = get_member_name(expr);
 	if (name)
 		return name;
 
@@ -126,9 +166,6 @@ char *get_fnptr_name(struct expression *expr)
 		}
 		return name;
 	}
-	name = get_member_name(expr);
-	if (name)
-		return name;
 	return expr_to_var(expr);
 }
 
@@ -185,7 +222,7 @@ static void match_function_assign(struct expression *expr)
 	right = strip_expr(expr->right);
 	if (right->type == EXPR_PREOP && right->op == '&')
 		right = strip_expr(right->unop);
-	if (right->type != EXPR_SYMBOL && right->type != EXPR_DEREF)
+	if (right->type != EXPR_SYMBOL && right->type != EXPR_DEREF && right->type != EXPR_CALL)
 		return;
 	sym = get_type(right);
 	if (!sym)
@@ -214,6 +251,35 @@ free:
 	free_string(ptr_name);
 }
 
+static void match_returns_function_pointer(struct expression *expr)
+{
+	struct symbol *type;
+	char *fn_name;
+	char ptr_name[256];
+
+	if (__inline_fn)
+		return;
+
+	type = get_real_base_type(cur_func_sym);
+	if (!type || type->type != SYM_FN)
+		return;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_PTR)
+		return;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_FN)
+		return;
+
+	if (expr->type == EXPR_PREOP && expr->op == '&')
+		expr = strip_expr(expr->unop);
+
+	fn_name = get_fnptr_name(expr);
+	if (!fn_name)
+		return;
+	snprintf(ptr_name, sizeof(ptr_name), "r %s()", get_function());
+	sql_insert_function_ptr(fn_name, ptr_name);
+}
+
 void register_function_ptrs(int id)
 {
 	my_id = id;
@@ -222,6 +288,7 @@ void register_function_ptrs(int id)
 		return;
 
 	add_hook(&match_passes_function_pointer, FUNCTION_CALL_HOOK);
+	add_hook(&match_returns_function_pointer, RETURN_HOOK);
 	add_hook(&match_function_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_function_assign, GLOBAL_ASSIGNMENT_HOOK);
 }
