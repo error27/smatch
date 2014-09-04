@@ -366,6 +366,8 @@ struct range_list *alloc_whole_rl(struct symbol *type)
 {
 	if (!type || type_positive_bits(type) < 0)
 		type = &llong_ctype;
+	if (type->type == SYM_ARRAY)
+		type = &ptr_ctype;
 
 	return alloc_rl(sval_type_min(type), sval_type_max(type));
 }
