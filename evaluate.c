@@ -1358,6 +1358,15 @@ static int check_assignment_types(struct symbol *target, struct expression **rp,
 				*typediff = "different address spaces";
 				return 0;
 			}
+			/*
+			 * If this is a function pointer assignment, it is
+			 * actually fine to assign a pointer to const data to
+			 * it, as a function pointer points to const data
+			 * implicitly, i.e., dereferencing it does not produce
+			 * an lvalue.
+			 */
+			if (b1->type == SYM_FN)
+				mod1 |= MOD_CONST;
 			if (mod2 & ~mod1) {
 				*typediff = "different modifiers";
 				return 0;
