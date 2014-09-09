@@ -567,7 +567,7 @@ static struct locks_on_return *alloc_return(struct expression *expr)
 	return ret;
 }
 
-static void check_possible(struct sm_state *sm)
+static int check_possible(struct sm_state *sm)
 {
 	struct sm_state *tmp;
 	int islocked = 0;
@@ -575,7 +575,7 @@ static void check_possible(struct sm_state *sm)
 	int undef = 0;
 
 	if (!option_spammy)
-		return;
+		return 0;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (tmp->state == &locked)
@@ -596,9 +596,14 @@ static void check_possible(struct sm_state *sm)
 		if (tmp->state == &undefined)
 			undef = 1;  // i don't think this is possible any more.
 	} END_FOR_EACH_PTR(tmp);
-	if ((islocked && isunlocked) || undef)
+	if ((islocked && isunlocked) || undef) {
 		sm_msg("warn: '%s' is sometimes locked here and sometimes unlocked.", sm->name);
+		return 1;
+	}
+	return 0;
 }
+
+static struct position warned_pos;
 
 static void match_return(int return_id, char *return_ranges, struct expression *expr)
 {
@@ -609,6 +614,9 @@ static void match_return(int return_id, char *return_ranges, struct expression *
 	if (!final_pass)
 		return;
 	if (__inline_fn)
+		return;
+
+	if (expr && cmp_pos(expr->pos, warned_pos) == 0)
 		return;
 
 	ret = alloc_return(expr);
@@ -632,7 +640,10 @@ static void match_return(int return_id, char *return_ranges, struct expression *
 				add_tracker(&ret->unlocked, tmp->owner,tmp->name,
 					     tmp->sym);
 		} else {
-			check_possible(tmp);
+			if (check_possible(tmp)) {
+				if (expr)
+					warned_pos = expr->pos;
+			}
 		}
 	} END_FOR_EACH_SM(tmp);
 	add_ptr_list(&all_returns, ret);
