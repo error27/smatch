@@ -553,3 +553,83 @@ int is_struct(struct expression *expr)
 		return 1;
 	return 0;
 }
+
+static struct {
+	struct symbol *sym;
+	const char *name;
+} base_types[] = {
+	{&bool_ctype, "bool"},
+	{&void_ctype, "void"},
+	{&type_ctype, "type"},
+	{&char_ctype, "char"},
+	{&schar_ctype, "schar"},
+	{&uchar_ctype, "uchar"},
+	{&short_ctype, "short"},
+	{&sshort_ctype, "sshort"},
+	{&ushort_ctype, "ushort"},
+	{&int_ctype, "int"},
+	{&sint_ctype, "sint"},
+	{&uint_ctype, "uint"},
+	{&long_ctype, "long"},
+	{&slong_ctype, "slong"},
+	{&ulong_ctype, "ulong"},
+	{&llong_ctype, "llong"},
+	{&sllong_ctype, "sllong"},
+	{&ullong_ctype, "ullong"},
+	{&lllong_ctype, "lllong"},
+	{&slllong_ctype, "slllong"},
+	{&ulllong_ctype, "ulllong"},
+	{&float_ctype, "float"},
+	{&double_ctype, "double"},
+	{&ldouble_ctype, "ldouble"},
+	{&string_ctype, "string"},
+	{&ptr_ctype, "ptr"},
+	{&lazy_ptr_ctype, "lazy_ptr"},
+	{&incomplete_ctype, "incomplete"},
+	{&label_ctype, "label"},
+	{&bad_ctype, "bad"},
+	{&null_ctype, "null"},
+};
+
+static const char *base_type_str(struct symbol *sym)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(base_types); i++) {
+		if (sym == base_types[i].sym)
+			return base_types[i].name;
+	}
+	return "<unknown>";
+}
+
+static int type_str_helper(char *buf, int size, struct symbol *sym)
+{
+	struct symbol *type;
+	int n;
+
+	type = get_real_base_type(sym);
+	if (!type)
+		return snprintf(buf, size, "<unknown>");
+
+	if (type->type == SYM_BASETYPE) {
+		return snprintf(buf, size, base_type_str(type));
+	} else if (type->type == SYM_PTR) {
+		n = type_str_helper(buf, size, type);
+		if (n > size)
+			return n;
+		return n + snprintf(buf + n, size - n, "*");
+	} else if (type->type == SYM_STRUCT) {
+		return snprintf(buf, size, "struct %s", type->ident ? type->ident->name : "");
+	} else {
+		return snprintf(buf, size, "<type %d>", type->type);
+	}
+}
+
+char *type_to_str(struct symbol *sym)
+{
+	static char buf[256];
+
+	buf[0] = '\0';
+	type_str_helper(buf, sizeof(buf), sym);
+	return buf;
+}
