@@ -237,6 +237,12 @@ void sql_insert_function_type_value(const char *type, const char *value)
 	sql_insert(function_type_value, "'%s', '%s', '%s', '%s'", get_base_file(), get_function(), type, value);
 }
 
+void sql_insert_function_type_info(int param, const char *value)
+{
+	sql_insert(function_type_info, "'%s', '%s', %d, %d, '%s'",
+		   get_base_file(), get_function(), fn_static(), param, value);
+}
+
 static char *get_static_filter(struct symbol *sym)
 {
 	static char sql_filter[1024];
@@ -1067,6 +1073,7 @@ static void init_memdb(void)
 		"db/local_values.schema",
 		"db/function_type_value.schema",
 		"db/type_value.schema",
+		"db/function_type_info.schema",
 	};
 	static char buf[4096];
 	int fd;

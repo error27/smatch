@@ -1,0 +1,2 @@
+CREATE INDEX file_function_type_info_idx on function_type_info (file, function);
+CREATE INDEX function_type_info_idx on function_type_info (function);
