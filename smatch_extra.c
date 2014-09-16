@@ -491,6 +491,51 @@ static int types_equiv_or_pointer(struct symbol *one, struct symbol *two)
 	return types_equiv(one, two);
 }
 
+static bool is_non_null_array(struct expression *expr)
+{
+	struct symbol *type;
+	struct symbol *sym;
+	struct symbol *tmp;
+	char *name;
+	int i;
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_ARRAY)
+		return 0;
+	if (expr->type == EXPR_SYMBOL)
+		return 1;
+	if (implied_not_equal(expr, 0))
+		return 1;
+
+	/* verify that it's not the first member of the struct */
+	if (expr->type != EXPR_DEREF || !expr->member)
+		return 0;
+	name = expr_to_var_sym(expr, &sym);
+	free_string(name);
+	if (!name || !sym)
+		return 0;
+	type = get_real_base_type(sym);
+	if (!type || type->type != SYM_PTR)
+		return 0;
+	type = get_real_base_type(type);
+	if (type->type != SYM_STRUCT)
+		return 0;
+
+	i = 0;
+	FOR_EACH_PTR(type->symbol_list, tmp) {
+		i++;
+		if (!tmp->ident)
+			continue;
+		if (strcmp(expr->member->name, tmp->ident->name) == 0) {
+			if (i == 1)
+				return 0;
+			return 1;
+		}
+	} END_FOR_EACH_PTR(tmp);
+
+	return 0;
+}
+
 static void match_vanilla_assign(struct expression *left, struct expression *right)
 {
 	struct range_list *rl = NULL;
@@ -523,7 +568,9 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 		goto free;
 	}
 
-	if (get_implied_rl(right, &rl)) {
+	if (is_non_null_array(right)) {
+		state = alloc_estate_range(array_min_sval, array_max_sval);
+	} else if (get_implied_rl(right, &rl)) {
 		rl = cast_rl(left_type, rl);
 		state = alloc_estate_rl(rl);
 		if (get_hard_max(right, &max)) {

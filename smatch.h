@@ -430,15 +430,23 @@ struct data_range {
 	sval_t max;
 };
 
-static const long long valid_ptr_max = LONG_MAX;
 static const long long valid_ptr_min = 4096;
+static const long long valid_ptr_max = LONG_MAX;
+static const sval_t valid_ptr_min_sval = {
+	.type = &ptr_ctype,
+	{.value = 4096},
+};
 static const sval_t valid_ptr_max_sval = {
 	.type = &ptr_ctype,
 	{.value = LONG_MAX},
 };
-static const sval_t valid_ptr_min_sval = {
+static const sval_t array_min_sval = {
 	.type = &ptr_ctype,
-	{.value = 4096},
+	{.value = 100000},
+};
+static const sval_t array_max_sval = {
+	.type = &ptr_ctype,
+	{.value = 200000},
 };
 
 /* smatch_absolute.c */
