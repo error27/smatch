@@ -85,6 +85,18 @@ static void match_dereferences(struct expression *expr)
 	check_is_err_ptr(sm);
 }
 
+static void match_kfree(const char *fn, struct expression *expr, void *_arg_nr)
+{
+	int arg_nr = PTR_INT(_arg_nr);
+	struct expression *arg;
+	struct sm_state *sm;
+
+	arg = get_argument_from_call_expr(expr->args, arg_nr);
+
+	sm = get_sm_state_expr(my_id, arg);
+	check_is_err_ptr(sm);
+}
+
 static void match_condition(struct expression *expr)
 {
 	if (expr->type == EXPR_ASSIGNMENT) {
@@ -163,5 +175,9 @@ void check_err_ptr_deref(int id)
 	add_function_hook("ERR_PTR", &match_err_ptr, NULL);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_modification_hook(my_id, &ok_to_use);
+	add_function_hook("kfree", &match_kfree, INT_PTR(0));
+	add_function_hook("brelse", &match_kfree, INT_PTR(0));
+	add_function_hook("kmem_cache_free", &match_kfree, INT_PTR(1));
+	add_function_hook("vfree", &match_kfree, INT_PTR(0));
 }
 
