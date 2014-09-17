@@ -17,3 +17,4 @@ netlbl_af4list_foreach_rcu
 netlbl_af6list_foreach_rcu
 for_primary_ifa
 sk_nulls_for_each
+unreachable
