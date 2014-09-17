@@ -433,6 +433,8 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 		if (state)
 			return state;
 	}
+	if (parent_is_null_var_sym(sm->name, sm->sym))
+		return alloc_estate_empty();
 	return alloc_estate_whole(estate_type(sm->state));
 }
 
@@ -1439,6 +1441,49 @@ int implied_not_equal_name_sym(char *name, struct symbol *sym, long long val)
 	if (!rl_has_sval(estate_rl(estate), sval_type_val(estate_type(estate), 0)))
 		return 1;
 	return 0;
+}
+
+int parent_is_null_var_sym(const char *name, struct symbol *sym)
+{
+	char buf[256];
+	char *start;
+	char *end;
+	struct smatch_state *state;
+
+	strncpy(buf, name, sizeof(buf) - 1);
+	buf[sizeof(buf) - 1] = '\0';
+
+	start = &buf[0];
+	while ((*start == '&'))
+		start++;
+
+	while ((end = strrchr(start, '-'))) {
+		*end = '\0';
+		state = get_state(SMATCH_EXTRA, start, sym);
+		if (!state)
+			continue;
+		if (estate_min(state).value == 0 &&
+		    estate_max(state).value == 0)
+			return 1;
+		return 0;
+	}
+	return 0;
+}
+
+int parent_is_null(struct expression *expr)
+{
+	struct symbol *sym;
+	char *var;
+	int ret = 0;
+
+	expr = strip_expr(expr);
+	var = expr_to_var_sym(expr, &sym);
+	if (!var || !sym)
+		goto free;
+	ret = parent_is_null_var_sym(var, sym);
+free:
+	free_string(var);
+	return ret;
 }
 
 static void struct_member_callback(struct expression *call, int param, char *printed_name, struct smatch_state *state)
