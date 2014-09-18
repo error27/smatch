@@ -2223,9 +2223,10 @@ static void convert_index(struct expression *e)
 static void convert_ident(struct expression *e)
 {
 	struct expression *child = e->ident_expression;
-	struct symbol *sym = e->field;
+	int offset = e->offset;
+
 	e->type = EXPR_POS;
-	e->init_offset = sym->offset;
+	e->init_offset = offset;
 	e->init_nr = 1;
 	e->init_expr = child;
 }
@@ -2277,6 +2278,7 @@ static struct expression *first_subobject(struct symbol *ctype, int class,
 		new = alloc_expression(e->pos, EXPR_IDENTIFIER);
 		new->ident_expression = e;
 		new->field = new->ctype = field;
+		new->offset = field->offset;
 	}
 	*v = new;
 	return new;
@@ -2327,6 +2329,7 @@ static struct expression *check_designators(struct expression *e,
 				err = "unknown field name in";
 				break;
 			}
+			e->offset = offset;
 			e->field = e->ctype = ctype;
 			last = e;
 			if (!e->ident_expression) {
@@ -2386,6 +2389,7 @@ static struct expression *next_designators(struct expression *old,
 	} else if (old->type == EXPR_IDENTIFIER) {
 		struct expression *copy;
 		struct symbol *field;
+		int offset = 0;
 
 		copy = next_designators(old->ident_expression,
 					old->ctype, e, v);
@@ -2397,6 +2401,17 @@ static struct expression *next_designators(struct expression *old,
 			}
 			copy = e;
 			*v = new = alloc_expression(e->pos, EXPR_IDENTIFIER);
+			/*
+			 * We can't necessarily trust "field->offset",
+			 * because the field might be in an anonymous
+			 * union, and the field offset is then the offset
+			 * within that union.
+			 *
+			 * The "old->offset - old->field->offset"
+			 * would be the offset of such an anonymous
+			 * union.
+			 */
+			offset = old->offset - old->field->offset;
 		} else {
 			field = old->field;
 			new = alloc_expression(e->pos, EXPR_IDENTIFIER);
@@ -2406,6 +2421,7 @@ static struct expression *next_designators(struct expression *old,
 		new->expr_ident = field->ident;
 		new->ident_expression = copy;
 		new->ctype = field;
+		new->offset = field->offset + offset;
 		convert_ident(old);
 	}
 	return new;
