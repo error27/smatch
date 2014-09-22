@@ -474,7 +474,7 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	sql_insert_caller_info(call, USER_DATA, param, printed_name, "");
 }
 
-static void returned_member_callback(int return_id, char *return_ranges, char *printed_name, struct smatch_state *state)
+static void returned_member_callback(int return_id, char *return_ranges, struct expression *expr, char *printed_name, struct smatch_state *state)
 {
 	if (state == &capped)
 		return;

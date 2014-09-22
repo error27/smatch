@@ -1623,7 +1623,7 @@ free:
 	free_string(name);
 }
 
-static void returned_member_callback(int return_id, char *return_ranges, char *printed_name, struct smatch_state *state)
+static void returned_member_callback(int return_id, char *return_ranges, struct expression *expr, char *printed_name, struct smatch_state *state)
 {
 	if (estate_is_whole(state))
 		return;

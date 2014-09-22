@@ -81,7 +81,7 @@ static struct returned_state_cb_list *returned_state_callbacks;
 
 struct returned_member_callback {
 	int owner;
-	void (*callback)(int return_id, char *return_ranges, char *printed_name, struct smatch_state *state);
+	void (*callback)(int return_id, char *return_ranges, struct expression *expr, char *printed_name, struct smatch_state *state);
 };
 ALLOCATOR(returned_member_callback, "returned member callbacks");
 DECLARE_PTR_LIST(returned_member_cb_list, struct returned_member_callback);
@@ -374,7 +374,7 @@ void add_split_return_callback(void (*fn)(int return_id, char *return_ranges, st
 	add_ptr_list(&returned_state_callbacks, callback);
 }
 
-void add_returned_member_callback(int owner, void (*callback)(int return_id, char *return_ranges, char *printed_name, struct smatch_state *state))
+void add_returned_member_callback(int owner, void (*callback)(int return_id, char *return_ranges, struct expression *expr, char *printed_name, struct smatch_state *state))
 {
 	struct returned_member_callback *member_callback = __alloc_returned_member_callback(0);
 
@@ -1030,7 +1030,7 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 		FOR_EACH_MY_SM(cb->owner, stree, sm) {
 			if (sm->name[0] == '*' && strcmp(sm->name + 1, name) == 0) {
 				strcpy(member_name, "*$$");
-				cb->callback(return_id, return_ranges, member_name, sm->state);
+				cb->callback(return_id, return_ranges, expr, member_name, sm->state);
 				continue;
 			}
 			if (strncmp(sm->name, name, len) != 0)
@@ -1039,7 +1039,7 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 				continue;
 			strcpy(member_name, "$$");
 			strncpy(member_name + 2, sm->name + len, sizeof(member_name) - 2);
-			cb->callback(return_id, return_ranges, member_name, sm->state);
+			cb->callback(return_id, return_ranges, expr, member_name, sm->state);
 		} END_FOR_EACH_SM(sm);
 	} END_FOR_EACH_PTR(cb);
 
