@@ -383,7 +383,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 
 static char *swap_format(struct expression *call, char *format)
 {
-	static char buf[256];
+	char buf[256];
 	sval_t sval;
 	long param;
 	struct expression *arg;
@@ -391,7 +391,7 @@ static char *swap_format(struct expression *call, char *format)
 	char *out;
 	int ret;
 
-	if (format[0] == '<' && format[2] == '>' && format[3] == '\0') {
+	if (format[0] == '$' && format[2] == '\0') {
 		param = strtol(format + 1, NULL, 10);
 		arg = get_argument_from_call_expr(call->args, param);
 		if (!arg)
