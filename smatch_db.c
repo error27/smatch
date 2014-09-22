@@ -871,7 +871,7 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 	char *compare_str;
 	char buf[128];
 
-	if (!expr || expr_equal_to_param(expr))
+	if (!expr || expr_equal_to_param(expr, -1))
 		return 0;
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
@@ -892,7 +892,7 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 	if (option_info && nr_states * nr_possible >= 2000)
 		return 0;
 
-	compare_str = expr_lte_to_param(expr);
+	compare_str = expr_lte_to_param(expr, -1);
 
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (tmp->merged)
@@ -930,7 +930,7 @@ static char *get_return_ranges_str(struct expression *expr)
 
 	if (!expr)
 		return alloc_sname("");
-	compare_str = expr_equal_to_param(expr);
+	compare_str = expr_equal_to_param(expr, -1);
 	if (compare_str)
 		return compare_str;
 
@@ -941,7 +941,7 @@ static char *get_return_ranges_str(struct expression *expr)
 		rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr)));
 		return_ranges = show_rl(rl);
 	}
-	compare_str = expr_lte_to_param(expr);
+	compare_str = expr_lte_to_param(expr, -1);
 	if (compare_str) {
 		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
 		return alloc_sname(buf);

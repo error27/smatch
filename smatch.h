@@ -695,8 +695,8 @@ int get_comparison(struct expression *left, struct expression *right);
 int get_comparison_strings(const char *one, const char *two);
 int possible_comparison(struct expression *a, int comparison, struct expression *b);
 void __add_comparison_info(struct expression *expr, struct expression *call, const char *range);
-char *expr_equal_to_param(struct expression *expr);
-char *expr_lte_to_param(struct expression *expr);
+char *expr_equal_to_param(struct expression *expr, int ignore);
+char *expr_lte_to_param(struct expression *expr, int ignore);
 
 /* smatch_sval.c */
 sval_t *sval_alloc(sval_t sval);

@@ -1170,7 +1170,7 @@ void __add_comparison_info(struct expression *expr, struct expression *call, con
 	add_comparison(expr, comparison, arg);
 }
 
-static char *range_comparison_to_param_helper(struct expression *expr, char starts_with)
+static char *range_comparison_to_param_helper(struct expression *expr, char starts_with, int ignore)
 {
 	struct symbol *param;
 	char *var = NULL;
@@ -1186,6 +1186,8 @@ static char *range_comparison_to_param_helper(struct expression *expr, char star
 	i = -1;
 	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, param) {
 		i++;
+		if (i == ignore)
+			continue;
 		if (!param->ident)
 			continue;
 		snprintf(buf, sizeof(buf), "%s orig", param->ident->name);
@@ -1204,14 +1206,14 @@ free:
 	return ret_str;
 }
 
-char *expr_equal_to_param(struct expression *expr)
+char *expr_equal_to_param(struct expression *expr, int ignore)
 {
-	return range_comparison_to_param_helper(expr, '=');
+	return range_comparison_to_param_helper(expr, '=', -1);
 }
 
-char *expr_lte_to_param(struct expression *expr)
+char *expr_lte_to_param(struct expression *expr, int ignore)
 {
-	return range_comparison_to_param_helper(expr, '<');
+	return range_comparison_to_param_helper(expr, '<', ignore);
 }
 
 static void free_data(struct symbol *sym)
