@@ -283,6 +283,7 @@ int get_absolute_min(struct expression *expr, sval_t *sval);
 int get_absolute_max(struct expression *expr, sval_t *sval);
 int parse_call_math(struct expression *expr, char *math, sval_t *val);
 char *get_value_in_terms_of_parameter_math(struct expression *expr);
+char *get_value_in_terms_of_parameter_math_var_sym(const char *var, struct symbol *sym);
 int is_zero(struct expression *expr);
 int known_condition_true(struct expression *expr);
 int known_condition_false(struct expression *expr);

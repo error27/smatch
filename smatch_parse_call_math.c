@@ -347,6 +347,24 @@ char *get_value_in_terms_of_parameter_math(struct expression *expr)
 	return alloc_sname(buf);
 }
 
+char *get_value_in_terms_of_parameter_math_var_sym(const char *name, struct symbol *sym)
+{
+	struct expression *expr;
+	char buf[256];
+	int ret;
+
+	expr = get_assigned_expr_name_sym(name, sym);
+	if (!expr)
+		return NULL;
+
+	ret = format_expr_helper(buf, sizeof(buf), expr);
+	if (ret == 0)
+		return NULL;
+
+	return alloc_sname(buf);
+
+}
+
 static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
 {
 	int size_arg = PTR_INT(_size_arg);

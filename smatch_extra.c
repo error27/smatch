@@ -1634,13 +1634,9 @@ static char *in_terms_of_param_math(struct expression *expr, char *printed_name)
 	var = expr_to_var_sym(expr, &sym);
 	if (!var || !sym)
 		goto free;
-
 	snprintf(buf, sizeof(buf), "%s%s", var, printed_name + 2);
-	assigned = get_assigned_expr_name_sym(buf, sym);
-	if (!assigned)
-		goto free;
 
-	ret = get_value_in_terms_of_parameter_math(assigned);
+	ret = get_value_in_terms_of_parameter_math_var_sym(buf, sym);
 
 free:
 	free_string(var);
