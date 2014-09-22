@@ -934,6 +934,10 @@ static char *get_return_ranges_str(struct expression *expr)
 	if (compare_str)
 		return compare_str;
 
+	compare_str = get_value_in_terms_of_parameter_math(expr);
+	if (compare_str)
+		return compare_str;
+
 	if (get_implied_rl(expr, &rl)) {
 		rl = cast_rl(cur_func_return_type(), rl);
 		return_ranges = show_rl(rl);

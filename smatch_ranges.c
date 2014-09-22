@@ -210,6 +210,18 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		goto out;
 	}
 
+	/* if it's not a comparison an it has a '$' char then it must be math */
+	if (strchr(value, '$')) {
+		sval_t res;
+
+		if (!parse_call_math(call, value, &res)) {
+			sm_msg("XXX trouble parsing math: '%s'", value);
+			return;
+		}
+		*rl = alloc_rl(res, res);
+		goto out;
+	}
+
 	c = value;
 	while (*c) {
 		if (*c == '(')

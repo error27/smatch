@@ -330,6 +330,23 @@ static char *format_expr(struct expression *expr)
 	return alloc_sname(buf);
 }
 
+char *get_value_in_terms_of_parameter_math(struct expression *expr)
+{
+	struct expression *tmp;
+	char buf[256];
+	int ret;
+
+	tmp = get_assigned_expr(expr);
+	if (tmp)
+		expr = tmp;
+
+	ret = format_expr_helper(buf, sizeof(buf), expr);
+	if (ret == 0)
+		return NULL;
+
+	return alloc_sname(buf);
+}
+
 static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
 {
 	int size_arg = PTR_INT(_size_arg);
