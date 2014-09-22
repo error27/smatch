@@ -54,10 +54,6 @@ static int str_to_comparison_arg_helper(const char *str,
 	int param;
 	char *c = (char *)str;
 
-	if (*c != '[')
-		return 0;
-	c++;
-
 	if (*c == '<') {
 		c++;
 		if (*c == '=') {
@@ -82,12 +78,10 @@ static int str_to_comparison_arg_helper(const char *str,
 		return 0;
 	}
 
-	if (*c != 'p')
+	if (*c != '$')
 		return 0;
-	c++;
 
 	param = strtoll(c, &c, 10);
-	c++; /* skip the ']' character */
 	if (endp)
 		*endp = (char *)c;
 
@@ -102,13 +96,16 @@ static int str_to_comparison_arg_helper(const char *str,
 int str_to_comparison_arg(const char *str, struct expression *call, int *comparison, struct expression **arg)
 {
 	while (1) {
-		if (!*str)
+		switch (*str) {
+		case '\0':
 			return 0;
-		if (*str == '[')
-			break;
+		case '<':
+		case '=':
+		case '>':
+			return str_to_comparison_arg_helper(str, call, comparison, arg, NULL);
+		}
 		str++;
 	}
-	return str_to_comparison_arg_helper(str, call, comparison, arg, NULL);
 }
 
 static sval_t get_val_from_key(int use_max, struct symbol *type, char *c, struct expression *call, char **endp)
@@ -203,7 +200,7 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 	if (strcmp(value, "empty") == 0)
 		return;
 
-	if (strncmp(value, "[==p", 4) == 0) {
+	if (strncmp(value, "==$", 3) == 0) {
 		struct expression *arg;
 		int comparison;
 

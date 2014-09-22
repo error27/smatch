@@ -156,12 +156,12 @@ static int read_number(struct expression *call, char *p, char **end, sval_t *sva
 	while (*p == ' ')
 		p++;
 
-	if (*p == '<') {
+	if (*p == '$') {
 		p++;
 		param = strtol(p, &p, 10);
 		if (!get_implied_param(call, param, sval))
 			return 0;
-		*end = p + 1;
+		*end = p;
 	} else {
 		sval->type = &llong_ctype;
 		sval->value = strtoll(p, end, 10);
@@ -300,7 +300,7 @@ static int format_expr_helper(char *buf, int remaining, struct expression *expr)
 
 	arg = get_arg_number(expr);
 	if (arg >= 0) {
-		ret = snprintf(cur, remaining, "<%d>", arg);
+		ret = snprintf(cur, remaining, "$%d", arg);
 		remaining -= ret;
 		if (remaining <= 0)
 			return 0;
@@ -379,7 +379,7 @@ static char *swap_format(struct expression *call, char *format)
 				return NULL;
 			param = get_arg_number(arg);
 			if (param >= 0) {
-				ret = snprintf(out, buf + sizeof(buf) - out, "<%ld>", param);
+				ret = snprintf(out, buf + sizeof(buf) - out, "$%ld", param);
 				out += ret;
 				if (out >= buf + sizeof(buf))
 					return NULL;
@@ -433,7 +433,7 @@ static char *get_allocation_recipe_from_call(struct expression *expr)
 		if (strcmp(sym->ident->name, alloc_functions[i].func) == 0) {
 			char buf[32];
 
-			snprintf(buf, sizeof(buf), "<%d>", alloc_functions[i].param);
+			snprintf(buf, sizeof(buf), "$%d", alloc_functions[i].param);
 			buf_size_recipe = alloc_sname(buf);
 			return swap_format(expr, buf_size_recipe);
 		}
