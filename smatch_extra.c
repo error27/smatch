@@ -1623,8 +1623,46 @@ free:
 	free_string(name);
 }
 
+static char *in_terms_of_param_math(struct expression *expr, char *printed_name)
+{
+	struct expression *assigned;
+	struct symbol *sym;
+	char *var;
+	char buf[256];
+	char *ret = NULL;
+
+	var = expr_to_var_sym(expr, &sym);
+	if (!var || !sym)
+		goto free;
+
+	snprintf(buf, sizeof(buf), "%s%s", var, printed_name + 2);
+	assigned = get_assigned_expr_name_sym(buf, sym);
+	if (!assigned)
+		goto free;
+
+	ret = get_value_in_terms_of_parameter_math(assigned);
+
+free:
+	free_string(var);
+	return ret;
+}
+
 static void returned_member_callback(int return_id, char *return_ranges, struct expression *expr, char *printed_name, struct smatch_state *state)
 {
+	char *math_str;
+
+	/* these are handled in smatch_param_filter/set/limit.c */
+	if (printed_name[0] != '*' &&
+	    !strchr(printed_name, '.') && !strchr(printed_name, '-'))
+		return;
+
+	math_str = in_terms_of_param_math(expr, printed_name);
+	if (math_str) {
+		sql_insert_return_states(return_id, return_ranges, RETURN_VALUE, -1,
+				printed_name, math_str);
+		return;
+	}
+
 	if (estate_is_whole(state))
 		return;
 
