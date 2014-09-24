@@ -54,6 +54,10 @@ static int str_to_comparison_arg_helper(const char *str,
 	int param;
 	char *c = (char *)str;
 
+	if (*c != '[')
+		return 0;
+	c++;
+
 	if (*c == '<') {
 		c++;
 		if (*c == '=') {
@@ -80,8 +84,10 @@ static int str_to_comparison_arg_helper(const char *str,
 
 	if (*c != '$')
 		return 0;
+	c++;
 
 	param = strtoll(c, &c, 10);
+	c++; /* skip the ']' character */
 	if (endp)
 		*endp = (char *)c;
 
@@ -96,16 +102,13 @@ static int str_to_comparison_arg_helper(const char *str,
 int str_to_comparison_arg(const char *str, struct expression *call, int *comparison, struct expression **arg)
 {
 	while (1) {
-		switch (*str) {
-		case '\0':
+		if (!*str)
 			return 0;
-		case '<':
-		case '=':
-		case '>':
-			return str_to_comparison_arg_helper(str, call, comparison, arg, NULL);
-		}
+		if (*str == '[')
+			break;
 		str++;
 	}
+	return str_to_comparison_arg_helper(str, call, comparison, arg, NULL);
 }
 
 static sval_t get_val_from_key(int use_max, struct symbol *type, char *c, struct expression *call, char **endp)
@@ -188,9 +191,26 @@ static sval_t parse_val(int use_max, struct expression *call, struct symbol *typ
 	return ret;
 }
 
+static char *jump_to_call_math(char *value)
+{
+	char *c = value;
+
+	while (*c && *c != '[')
+		c++;
+
+	if (!*c)
+		return NULL;
+	c++;
+	if (*c == '<' || *c == '=' || *c == '>')
+		return NULL;
+
+	return c;
+}
+
 static void str_to_rl_helper(struct expression *call, struct symbol *type, char *value, struct range_list **rl)
 {
-	sval_t min, max, arg_max;
+	sval_t min, max, arg_max, val;
+	char *call_math;
 	char *c;
 
 	if (!type)
@@ -200,7 +220,7 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 	if (strcmp(value, "empty") == 0)
 		return;
 
-	if (strncmp(value, "==$", 3) == 0) {
+	if (strncmp(value, "[==$", 4) == 0) {
 		struct expression *arg;
 		int comparison;
 
@@ -210,15 +230,9 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		goto out;
 	}
 
-	/* if it's not a comparison an it has a '$' char then it must be math */
-	if (strchr(value, '$')) {
-		sval_t res;
-
-		if (!parse_call_math(call, value, &res)) {
-			sm_msg("XXX trouble parsing math: '%s'", value);
-			return;
-		}
-		*rl = alloc_rl(res, res);
+	call_math = jump_to_call_math(value);
+	if (call_math && parse_call_math(call, call_math, &val)) {
+		*rl = alloc_rl(val, val);
 		goto out;
 	}
 
@@ -249,6 +263,10 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		if (*c == ')')
 			c++;
 		if (*c == '[') {
+			if (jump_to_call_math(c) == c + 1) {
+				add_range(rl, min, max);
+				break;
+			}
 			arg_max = get_val_from_key(1, type, c, call, &c);
 			if (sval_cmp(arg_max, max) < 0)
 				max = arg_max;
@@ -257,7 +275,8 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		if (!*c)
 			break;
 		if (*c != ',') {
-			sm_msg("debug YYY: trouble parsing %s %s", value, c);
+			sm_msg("debug YYY: trouble parsing call = '%s' value = '%s' remaining = '%s'",
+			       expr_to_str(call), value, c);
 			break;
 		}
 		c++;

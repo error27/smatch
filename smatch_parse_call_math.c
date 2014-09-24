@@ -209,6 +209,8 @@ int parse_call_math(struct expression *call, char *math, sval_t *sval)
 
 		if (!*c)
 			break;
+		if (*c == ']' && *(c + 1) == '\0')
+			break;
 
 		c = read_op(c);
 		if (!c)

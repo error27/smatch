@@ -1625,7 +1625,6 @@ free:
 
 static char *in_terms_of_param_math(struct expression *expr, char *printed_name)
 {
-	struct expression *assigned;
 	struct symbol *sym;
 	char *var;
 	char buf[256];
@@ -1645,6 +1644,7 @@ free:
 
 static void returned_member_callback(int return_id, char *return_ranges, struct expression *expr, char *printed_name, struct smatch_state *state)
 {
+	char buf[256];
 	char *math_str;
 
 	/* these are handled in smatch_param_filter/set/limit.c */
@@ -1654,17 +1654,13 @@ static void returned_member_callback(int return_id, char *return_ranges, struct 
 
 	math_str = in_terms_of_param_math(expr, printed_name);
 	if (math_str) {
+		snprintf(buf, sizeof(buf), "%s[%s]", state->name, math_str);
 		sql_insert_return_states(return_id, return_ranges, RETURN_VALUE, -1,
-				printed_name, math_str);
+				printed_name, buf);
 		return;
 	}
 
 	if (estate_is_whole(state))
-		return;
-
-	/* these are handled in smatch_param_filter/set/limit.c */
-	if (printed_name[0] != '*' &&
-	    !strchr(printed_name, '.') && !strchr(printed_name, '-'))
 		return;
 
 	sql_insert_return_states(return_id, return_ranges, RETURN_VALUE, -1,

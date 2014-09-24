@@ -921,11 +921,13 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 	return ret;
 }
 
-static char *get_return_ranges_str(struct expression *expr)
+static const char *get_return_ranges_str(struct expression *expr)
 {
 	struct range_list *rl;
 	char *return_ranges;
+	sval_t sval;
 	char *compare_str;
+	char *math_str;
 	char buf[128];
 
 	if (!expr)
@@ -934,9 +936,10 @@ static char *get_return_ranges_str(struct expression *expr)
 	if (compare_str)
 		return compare_str;
 
-	compare_str = get_value_in_terms_of_parameter_math(expr);
-	if (compare_str)
-		return compare_str;
+	if (get_implied_value(expr, &sval))
+		return sval_to_str(sval);
+
+	math_str = get_value_in_terms_of_parameter_math(expr);
 
 	if (get_implied_rl(expr, &rl)) {
 		rl = cast_rl(cur_func_return_type(), rl);
@@ -945,6 +948,12 @@ static char *get_return_ranges_str(struct expression *expr)
 		rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr)));
 		return_ranges = show_rl(rl);
 	}
+
+	if (math_str) {
+		snprintf(buf, sizeof(buf), "%s[%s]", return_ranges, math_str);
+		return alloc_sname(buf);
+	}
+
 	compare_str = expr_lte_to_param(expr, -1);
 	if (compare_str) {
 		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
@@ -976,7 +985,7 @@ static int is_conditional(struct expression *expr)
 static void call_return_state_hooks(struct expression *expr)
 {
 	struct returned_state_callback *cb;
-	char *return_ranges;
+	const char *return_ranges;
 	int nr_states;
 
 	expr = strip_expr(expr);
@@ -996,11 +1005,11 @@ static void call_return_state_hooks(struct expression *expr)
 	return_id++;
 	nr_states = stree_count(__get_cur_stree());
 	if (nr_states >= 10000) {
-		match_return_info(return_id, return_ranges, expr);
+		match_return_info(return_id, (char *)return_ranges, expr);
 		return;
 	}
 	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, return_ranges, expr);
+		cb->callback(return_id, (char *)return_ranges, expr);
 	} END_FOR_EACH_PTR(cb);
 }
 

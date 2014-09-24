@@ -85,6 +85,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	const char *param_name;
 	struct string_list *set_list = NULL;
 	char *math_str;
+	char buf[256];
 
 	stree = __get_cur_stree();
 
@@ -109,9 +110,10 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 
 		math_str = get_value_in_terms_of_parameter_math_var_sym(sm->name, sm->sym);
 		if (math_str) {
+			snprintf(buf, sizeof(buf), "%s[%s]", show_rl(rl), math_str);
 			insert_string(&set_list, (char *)sm->name);
 			sql_insert_return_states(return_id, return_ranges, ADDED_VALUE,
-					param, param_name, math_str);
+					param, param_name, buf);
 			continue;
 		}
 
