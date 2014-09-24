@@ -33,6 +33,7 @@ CK(register_function_info)
 
 CK(check_debug)
 CK(check_assigned_expr)
+CK(check_assigned_expr_links)
 CK(check_user_data)
 
 CK(check_bogus_loop)

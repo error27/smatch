@@ -26,6 +26,7 @@
 
 int check_assigned_expr_id;
 static int my_id;
+static int link_id;
 
 struct expression *get_assigned_expr(struct expression *expr)
 {
@@ -63,11 +64,29 @@ static struct smatch_state *alloc_my_state(struct expression *expr)
 
 static void match_assignment(struct expression *expr)
 {
+	struct symbol *left_sym, *right_sym;
+	char *left_name = NULL;
+	char *right_name = NULL;
+
 	if (expr->op != '=')
 		return;
 	if (is_fake_call(expr->right))
 		return;
-	set_state_expr(my_id, expr->left, alloc_my_state(expr->right));
+
+	left_name = expr_to_var_sym(expr->left, &left_sym);
+	if (!left_name || !left_sym)
+		goto free;
+	set_state(my_id, left_name, left_sym, alloc_my_state(expr->right));
+
+	right_name = expr_to_var_sym(expr->right, &right_sym);
+	if (!right_name || !right_sym)
+		goto free;
+
+	store_link(link_id, right_name, right_sym, left_name, left_sym);
+
+free:
+	free_string(left_name);
+	free_string(right_name);
 }
 
 void check_assigned_expr(int id)
@@ -75,3 +94,10 @@ void check_assigned_expr(int id)
 	my_id = check_assigned_expr_id = id;
 	add_hook(&match_assignment, ASSIGNMENT_HOOK);
 }
+
+void check_assigned_expr_links(int id)
+{
+	link_id = id;
+	set_up_link_functions(my_id, link_id);
+}
+
