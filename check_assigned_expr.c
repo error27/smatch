@@ -28,6 +28,11 @@ int check_assigned_expr_id;
 static int my_id;
 static int link_id;
 
+static void undef(struct sm_state *sm, struct expression *mod_expr)
+{
+	set_state(my_id, sm->name, sm->sym, &undefined);
+}
+
 struct expression *get_assigned_expr(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -93,6 +98,7 @@ void check_assigned_expr(int id)
 {
 	my_id = check_assigned_expr_id = id;
 	add_hook(&match_assignment, ASSIGNMENT_HOOK);
+	add_modification_hook(my_id, &undef);
 }
 
 void check_assigned_expr_links(int id)
