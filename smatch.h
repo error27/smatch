@@ -757,4 +757,8 @@ int get_formatted_string_size(struct expression *call, int arg);
 /* smatch_param_set.c */
 int param_was_set(struct expression *expr);
 
+/* smatch_links.c */
+void set_up_link_functions(int id, int linkid);
+void store_link(int link_id, const char *name, struct symbol *sym, const char *link_name, struct symbol *link_sym);
+
 #endif 	    /* !SMATCH_H_ */
