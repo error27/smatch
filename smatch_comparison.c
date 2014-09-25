@@ -1196,7 +1196,7 @@ static char *range_comparison_to_param_helper(struct expression *expr, char star
 			continue;
 		if (show_special(compare)[0] != starts_with)
 			continue;
-		snprintf(buf, sizeof(buf), "%s$%d", show_special(compare), i);
+		snprintf(buf, sizeof(buf), "[%s$%d]", show_special(compare), i);
 		ret_str = alloc_sname(buf);
 		break;
 	} END_FOR_EACH_PTR(param);
