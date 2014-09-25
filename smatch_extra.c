@@ -1646,11 +1646,18 @@ static void returned_member_callback(int return_id, char *return_ranges, struct 
 {
 	char buf[256];
 	char *math_str;
+	sval_t sval;
 
 	/* these are handled in smatch_param_filter/set/limit.c */
 	if (printed_name[0] != '*' &&
 	    !strchr(printed_name, '.') && !strchr(printed_name, '-'))
 		return;
+
+	if (estate_get_single_value(state, &sval)) {
+		sql_insert_return_states(return_id, return_ranges, RETURN_VALUE, -1,
+				printed_name, sval_to_str(sval));
+		return;
+	}
 
 	math_str = in_terms_of_param_math(expr, printed_name);
 	if (math_str) {
