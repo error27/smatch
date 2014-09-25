@@ -126,25 +126,6 @@ void info(struct position pos, const char * fmt, ...)
 	va_end(args);
 }
 
-void warning(struct position pos, const char * fmt, ...)
-{
-	va_list args;
-
-	if (!max_warnings) {
-		show_info = 0;
-		return;
-	}
-
-	if (!--max_warnings) {
-		show_info = 0;
-		fmt = "too many warnings";
-	}
-
-	va_start(args, fmt);
-	do_warn("warning: ", pos, fmt, args);
-	va_end(args);
-}	
-
 static void do_error(struct position pos, const char * fmt, va_list args)
 {
 	static int errors = 0;
@@ -164,6 +145,32 @@ static void do_error(struct position pos, const char * fmt, va_list args)
 	do_warn("error: ", pos, fmt, args);
 	errors++;
 }	
+
+void warning(struct position pos, const char * fmt, ...)
+{
+	va_list args;
+
+	if (Werror) {
+		va_start(args, fmt);
+		do_error(pos, fmt, args);
+		va_end(args);
+		return;
+	}
+
+	if (!max_warnings) {
+		show_info = 0;
+		return;
+	}
+
+	if (!--max_warnings) {
+		show_info = 0;
+		fmt = "too many warnings";
+	}
+
+	va_start(args, fmt);
+	do_warn("warning: ", pos, fmt, args);
+	va_end(args);
+}
 
 void sparse_error(struct position pos, const char * fmt, ...)
 {
@@ -219,6 +226,7 @@ int Wdesignated_init = 1;
 int Wdo_while = 0;
 int Winit_cstring = 0;
 int Wenum_mismatch = 1;
+int Werror = 0;
 int Wnon_pointer_null = 1;
 int Wold_initializer = 1;
 int Wone_bit_signed_bitfield = 1;
@@ -431,6 +439,7 @@ static const struct warning {
 	{ "designated-init", &Wdesignated_init },
 	{ "do-while", &Wdo_while },
 	{ "enum-mismatch", &Wenum_mismatch },
+	{ "error", &Werror },
 	{ "init-cstring", &Winit_cstring },
 	{ "non-pointer-null", &Wnon_pointer_null },
 	{ "old-initializer", &Wold_initializer },
@@ -462,7 +471,7 @@ static char **handle_onoff_switch(char *arg, char **next, const struct warning w
 
 	if (!strcmp(p, "sparse-all")) {
 		for (i = 0; i < n; i++) {
-			if (*warnings[i].flag != WARNING_FORCE_OFF)
+			if (*warnings[i].flag != WARNING_FORCE_OFF && warnings[i].flag != &Werror)
 				*warnings[i].flag = WARNING_ON;
 		}
 	}

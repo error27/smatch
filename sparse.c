@@ -287,6 +287,9 @@ static void check_symbols(struct symbol_list *list)
 			check_context(ep);
 		}
 	} END_FOR_EACH_PTR(sym);
+
+	if (die_if_error)
+		exit(1);
 }
 
 int main(int argc, char **argv)
