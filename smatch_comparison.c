@@ -375,6 +375,73 @@ static int combine_comparisons(int left_compare, int right_compare)
 	return 0;
 }
 
+static int filter_comparison(int orig, int op)
+{
+	switch (orig) {
+	case 0:
+		return op;
+	case '<':
+		switch (op) {
+		case '<':
+			return op;
+		case SPECIAL_NOTEQUAL:
+			return '<';
+		}
+		return 0;
+	case SPECIAL_LTE:
+		switch (op) {
+		case '<':
+		case SPECIAL_LTE:
+		case SPECIAL_EQUAL:
+			return op;
+		case SPECIAL_NOTEQUAL:
+			return '<';
+		}
+		return 0;
+	case SPECIAL_EQUAL:
+		switch (op) {
+		case SPECIAL_LTE:
+		case SPECIAL_EQUAL:
+		case SPECIAL_GTE:
+			return SPECIAL_EQUAL;
+		}
+		return 0;
+	case SPECIAL_NOTEQUAL:
+		switch (op) {
+		case '<':
+		case SPECIAL_LTE:
+			return '<';
+		case SPECIAL_NOTEQUAL:
+			return op;
+		case '>':
+		case SPECIAL_GTE:
+			return '>';
+		}
+		return 0;
+	case SPECIAL_GTE:
+		switch (op) {
+		case '>':
+		case SPECIAL_GTE:
+		case SPECIAL_EQUAL:
+			return op;
+		case SPECIAL_NOTEQUAL:
+			return '>';
+		}
+		return 0;
+	case '>':
+		switch (op) {
+		case '>':
+		case SPECIAL_GTE:
+			return '>';
+		case SPECIAL_NOTEQUAL:
+			return '>';
+		}
+		return 0;
+	}
+	sm_msg("Internal: what did I forget? orig = %d op = '%s'", orig, show_special(op));
+	return 0;
+}
+
 static struct smatch_state *merge_compare_states(struct smatch_state *s1, struct smatch_state *s2)
 {
 	struct compare_data *data = s1->data;
@@ -733,6 +800,7 @@ static void match_compare(struct expression *expr)
 	struct symbol *left_sym, *right_sym;
 	struct var_sym_list *left_vsl, *right_vsl;
 	int op, false_op;
+	int orig_comparison;
 	struct smatch_state *true_state, *false_state;
 	char state_name[256];
 	struct stree *pre_stree;
@@ -764,6 +832,11 @@ static void match_compare(struct expression *expr)
 		op = expr->op;
 	}
 	false_op = falsify_op(op);
+
+	orig_comparison = get_comparison_strings(left, right);
+	op = filter_comparison(orig_comparison, op);
+	false_op = filter_comparison(orig_comparison, false_op);
+
 	snprintf(state_name, sizeof(state_name), "%s vs %s", left, right);
 	true_state = alloc_compare_state(left, left_vsl, op, right, right_vsl);
 	false_state = alloc_compare_state(left, left_vsl, false_op, right, right_vsl);
