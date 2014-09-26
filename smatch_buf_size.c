@@ -602,9 +602,10 @@ static void match_strlen_condition(struct expression *expr)
 		break;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
-		if (strlen_left)
+		if (strlen_left) {
+			true_state = size_to_estate(-1);
 			false_state = size_to_estate(sval.value + 1);
-		else
+		} else
 			true_state = size_to_estate(sval.value);
 		break;
 	}
