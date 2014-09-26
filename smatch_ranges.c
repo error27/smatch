@@ -345,6 +345,8 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		add_range(rl, min, max);
 		if (*c == ')')
 			c++;
+		if (*c == ',')
+			c++;
 	}
 
 	if (*c == '\0')
