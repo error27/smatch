@@ -111,7 +111,7 @@ int str_to_comparison_arg(const char *str, struct expression *call, int *compari
 	return str_to_comparison_arg_helper(str, call, comparison, arg, NULL);
 }
 
-static sval_t get_val_from_key(int use_max, struct symbol *type, char *c, struct expression *call, char **endp)
+static int get_val_from_key(int use_max, struct symbol *type, char *c, struct expression *call, char **endp, sval_t *sval)
 {
 	struct expression *arg;
 	int comparison;
@@ -122,8 +122,10 @@ static sval_t get_val_from_key(int use_max, struct symbol *type, char *c, struct
 	else
 		ret = sval_type_min(type);
 
-	if (!str_to_comparison_arg_helper(c, call, &comparison, &arg, endp))
-		return ret;
+	if (!str_to_comparison_arg_helper(c, call, &comparison, &arg, endp)) {
+		*sval = ret;
+		return 0;
+	}
 
 	if (use_max && get_implied_max(arg, &tmp)) {
 		ret = tmp;
@@ -140,7 +142,8 @@ static sval_t get_val_from_key(int use_max, struct symbol *type, char *c, struct
 		}
 	}
 
-	return ret;
+	*sval = ret;
+	return 1;
 }
 
 static sval_t parse_val(int use_max, struct expression *call, struct symbol *type, char *c, char **endp)
@@ -183,7 +186,7 @@ static sval_t parse_val(int use_max, struct expression *call, struct symbol *typ
 		c += 6;
 	} else if (start[0] == '[') {
 		/* this parses [==p0] comparisons */
-		ret = get_val_from_key(1, type, start, call, &c);
+		get_val_from_key(1, type, start, call, &c, &ret);
 	} else {
 		ret = sval_type_val(type, strtoll(start, &c, 10));
 	}
@@ -225,22 +228,24 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		int comparison;
 
 		if (!str_to_comparison_arg(value, call, &comparison, &arg))
-			goto out;
-		get_implied_rl(arg, rl);
-		goto out;
+			return;
+		if (!get_implied_rl(arg, rl))
+			return;
+		goto cast;
 	}
 
 	call_math = jump_to_call_math(value);
 	if (call_math && parse_call_math(call, call_math, &val)) {
 		*rl = alloc_rl(val, val);
-		goto out;
+		goto cast;
 	}
 
 	c = value;
-	while (*c) {
+	while (*c != '\0' && *c != '[') {
 		if (*c == '(')
 			c++;
 		min = parse_val(0, call, type, c, &c);
+		max = min;
 		if (*c == ')')
 			c++;
 		if (*c == '\0' || *c == '[') {
@@ -253,36 +258,42 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 			continue;
 		}
 		if (*c != '-') {
-			sm_msg("debug XXX: trouble parsing %s ", value);
+			sm_msg("debug XXX: trouble parsing %s c = %s", value, c);
 			break;
 		}
 		c++;
 		if (*c == '(')
 			c++;
 		max = parse_val(1, call, type, c, &c);
+		add_range(rl, min, max);
 		if (*c == ')')
 			c++;
-		if (*c == '[') {
-			if (jump_to_call_math(c) == c + 1) {
-				add_range(rl, min, max);
-				break;
-			}
-			arg_max = get_val_from_key(1, type, c, call, &c);
-			if (sval_cmp(arg_max, max) < 0)
-				max = arg_max;
-		}
-		add_range(rl, min, max);
-		if (!*c)
-			break;
-		if (*c != ',') {
-			sm_msg("debug YYY: trouble parsing call = '%s' value = '%s' remaining = '%s'",
-			       expr_to_str(call), value, c);
-			break;
-		}
-		c++;
 	}
 
-out:
+	if (*c == '\0')
+		goto cast;
+
+	/*
+	 * For now if we already tried to handle the call math and couldn't
+	 * figure it out then bail.
+	 */
+	if (jump_to_call_math(c) == c + 1)
+		goto cast;
+
+
+	/*
+	 * This isn't great.  We should get a range list from the parameter
+	 * comparison and then take the intersection.  But for now we just get
+	 * an upper limit.
+	 */
+	if (!get_val_from_key(1, type, c, call, &c, &arg_max))
+		goto cast;
+	if (sval_cmp(arg_max, max) >= 0)
+		goto cast;
+	arg_max.value++;
+	*rl = rl_filter(*rl, alloc_rl(arg_max, max));
+
+cast:
 	*rl = cast_rl(type, *rl);
 }
 
