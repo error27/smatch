@@ -126,7 +126,7 @@ static int is_user_fn_db(struct expression *expr)
 
 	db_expr = expr;
 	db_user_data = 0;
-	run_sql(db_user_data_callback,
+	run_sql(db_user_data_callback, NULL,
 		"select value from return_states where type=%d and parameter = -1 and key = '$$' and %s",
 		USER_DATA, sql_filter);
 	return db_user_data;

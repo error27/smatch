@@ -113,11 +113,11 @@ void debug_sql(const char *sql)
 	if (!option_debug)
 		return;
 	sm_msg("%s", sql);
-	sql_exec(print_sql_output, sql);
+	sql_exec(print_sql_output, NULL, sql);
 
 }
 
-void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql)
+void sql_exec(int (*callback)(void*, int, char**, char**), void *data, const char *sql)
 {
 	char *err = NULL;
 	int rc;
@@ -125,14 +125,14 @@ void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql)
 	if (option_no_db || !db)
 		return;
 
-	rc = sqlite3_exec(db, sql, callback, 0, &err);
+	rc = sqlite3_exec(db, sql, callback, data, &err);
 	if (rc != SQLITE_OK) {
 		fprintf(stderr, "SQL error #2: %s\n", err);
 		fprintf(stderr, "SQL: '%s'\n", sql);
 	}
 }
 
-void sql_mem_exec(int (*callback)(void*, int, char**, char**), const char *sql)
+void sql_mem_exec(int (*callback)(void*, int, char**, char**), void *data, const char *sql)
 {
 	char *err = NULL;
 	int rc;
@@ -140,7 +140,7 @@ void sql_mem_exec(int (*callback)(void*, int, char**, char**), const char *sql)
 	if (!mem_db)
 		return;
 
-	rc = sqlite3_exec(mem_db, sql, callback, 0, &err);
+	rc = sqlite3_exec(mem_db, sql, callback, data, &err);
 	if (rc != SQLITE_OK) {
 		fprintf(stderr, "SQL error #2: %s\n", err);
 		fprintf(stderr, "SQL: '%s'\n", sql);
@@ -189,7 +189,7 @@ void sql_insert_caller_info(struct expression *call, int type,
 		return;
 
 	if (__inline_call) {
-		mem_sql(NULL,
+		mem_sql(NULL, NULL,
 			"insert into caller_info values ('%s', '%s', '%s', %lu, %d, %d, %d, '%s', '%s');",
 			get_base_file(), get_function(), fn, (unsigned long)call,
 			is_static(call->fn), type, param, key, value);
@@ -277,7 +277,7 @@ static void sql_select_return_states_pointer(const char *cols,
 	if (!ptr)
 		return;
 
-	run_sql(callback,
+	run_sql(callback, NULL,
 		"select %s from return_states join function_ptr where "
 		"return_states.function == function_ptr.function and ptr = '%s'"
 		"and searchable = 1 order by return_id, type;",
@@ -296,19 +296,19 @@ void sql_select_return_states(const char *cols, struct expression *call,
 	}
 
 	if (inlinable(call->fn)) {
-		mem_sql(callback,
+		mem_sql(callback, NULL,
 			"select %s from return_states where call_id = '%lu' order by return_id, type;",
 			cols, (unsigned long)call);
 		return;
 	}
 
 	row_count = 0;
-	run_sql(get_row_count, "select count(*) from return_states where %s;",
+	run_sql(get_row_count, NULL, "select count(*) from return_states where %s;",
 		get_static_filter(call->fn->symbol));
 	if (row_count > 1000)
 		return;
 
-	run_sql(callback, "select %s from return_states where %s order by return_id, type;",
+	run_sql(callback, NULL, "select %s from return_states where %s order by return_id, type;",
 		cols, get_static_filter(call->fn->symbol));
 }
 
@@ -319,13 +319,13 @@ void sql_select_call_implies(const char *cols, struct expression *call,
 		return;
 
 	if (inlinable(call->fn)) {
-		mem_sql(callback,
+		mem_sql(callback, NULL,
 			"select %s from call_implies where call_id = '%lu';",
 			cols, (unsigned long)call);
 		return;
 	}
 
-	run_sql(callback, "select %s from call_implies where %s;",
+	run_sql(callback, NULL, "select %s from call_implies where %s;",
 		cols, get_static_filter(call->fn->symbol));
 }
 
@@ -333,12 +333,13 @@ void sql_select_caller_info(const char *cols, struct symbol *sym,
 	int (*callback)(void*, int, char**, char**))
 {
 	if (__inline_fn) {
-		mem_sql(callback, "select %s from caller_info where call_id = %lu;",
+		mem_sql(callback, NULL,
+			"select %s from caller_info where call_id = %lu;",
 			cols, (unsigned long)__inline_fn);
 		return;
 	}
 
-	run_sql(callback,
+	run_sql(callback, NULL,
 		"select %s from caller_info where %s order by call_id;",
 		cols, get_static_filter(sym));
 }
@@ -421,11 +422,11 @@ struct range_list *db_return_vals(struct expression *expr)
 
 	return_range_list = NULL;
 	if (inlinable(expr->fn)) {
-		mem_sql(db_return_callback,
+		mem_sql(db_return_callback, NULL,
 			"select distinct return from return_states where call_id = '%lu';",
 			(unsigned long)expr);
 	} else {
-		run_sql(db_return_callback,
+		run_sql(db_return_callback, NULL,
 			"select distinct return from return_states where %s;",
 			get_static_filter(expr->fn->symbol));
 	}
@@ -629,7 +630,7 @@ static void get_ptr_names(const char *file, const char *name)
 
 	before = ptr_list_size((struct ptr_list *)ptr_names);
 
-	run_sql(get_ptr_name,
+	run_sql(get_ptr_name, NULL,
 		"select distinct ptr from function_ptr where %s",
 		sql_filter);
 
@@ -672,7 +673,8 @@ static void match_data_from_db(struct symbol *sym)
 		get_direct_callers(sym);
 
 		FOR_EACH_PTR(ptr_names, ptr) {
-			run_sql(caller_info_callback, "select call_id, type, parameter, key, value"
+			run_sql(caller_info_callback, NULL,
+				"select call_id, type, parameter, key, value"
 				" from caller_info where function = '%s' order by call_id",
 				ptr);
 			free_string(ptr);
@@ -1057,9 +1059,9 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 
 static void reset_memdb(void)
 {
-	mem_sql(NULL, "delete from caller_info;");
-	mem_sql(NULL, "delete from return_states;");
-	mem_sql(NULL, "delete from call_implies;");
+	mem_sql(NULL, NULL, "delete from caller_info;");
+	mem_sql(NULL, NULL, "delete from return_states;");
+	mem_sql(NULL, NULL, "delete from call_implies;");
 }
 
 static void match_end_func_info(struct symbol *sym)

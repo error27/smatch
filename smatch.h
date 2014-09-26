@@ -597,24 +597,24 @@ char *return_state_to_var_sym(struct expression *expr, int param, char *key, str
 char *get_variable_from_key(struct expression *arg, char *key, struct symbol **sym);
 const char *get_param_name(struct sm_state *sm);
 
-#define run_sql(call_back, sql...)    \
+#define run_sql(call_back, data, sql...)    \
 do {                                  \
 	char sql_txt[1024];           \
 	if (option_no_db)             \
 		break;                \
 	snprintf(sql_txt, 1024, sql); \
 	debug_sql(sql_txt);  	      \
-	sql_exec(call_back, sql_txt); \
+	sql_exec(call_back, data, sql_txt); \
 } while (0)
 
 /* like run_sql() but for the in-memory database */
-#define mem_sql(call_back, sql...)						\
+#define mem_sql(call_back, data, sql...)						\
 do {										\
 	char sql_txt[1024];							\
 										\
 	snprintf(sql_txt, sizeof(sql_txt), sql);				\
 	sm_debug("in-mem: %s\n", sql_txt);					\
-	sql_mem_exec(call_back, sql_txt);					\
+	sql_mem_exec(call_back, data, sql_txt);					\
 } while (0)
 
 void sql_insert_return_states(int return_id, const char *return_ranges,
@@ -636,8 +636,8 @@ void sql_select_caller_info(const char *cols, struct symbol *sym,
 void sql_select_call_implies(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**));
 
-void sql_exec(int (*callback)(void*, int, char**, char**), const char *sql);
-void sql_mem_exec(int (*callback)(void*, int, char**, char**), const char *sql);
+void sql_exec(int (*callback)(void*, int, char**, char**), void *data, const char *sql);
+void sql_mem_exec(int (*callback)(void*, int, char**, char**), void *data, const char *sql);
 
 void open_smatch_db(void);
 

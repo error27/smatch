@@ -507,8 +507,9 @@ static char *get_allocation_recipe_from_call(struct expression *expr)
 	}
 
 	buf_size_recipe = NULL;
-	run_sql(db_buf_size_callback, "select value from return_states where type=%d and %s",
-		 BUF_SIZE, sql_filter);
+	run_sql(db_buf_size_callback, NULL,
+		"select value from return_states where type=%d and %s",
+		BUF_SIZE, sql_filter);
 	if (!buf_size_recipe || strcmp(buf_size_recipe, "invalid") == 0)
 		return NULL;
 	return swap_format(expr, buf_size_recipe);

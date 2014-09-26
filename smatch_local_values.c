@@ -51,7 +51,7 @@ int get_local_rl(struct expression *expr, struct range_list **rl)
 		return 0;
 
 	db_vals = NULL;
-	run_sql(get_vals,
+	run_sql(get_vals, NULL,
 		"select value from local_values where file = '%s' and variable = '%s';",
 		get_filename(), name);
 	free_string(name);
@@ -119,7 +119,7 @@ static void process_states(struct stree *stree)
 		else
 			rl = estate_rl(sm->state);
 		rl = cast_rl(&llong_ctype, rl);
-		mem_sql(NULL,
+		mem_sql(NULL, NULL,
 			"insert into local_values values ('%s', '%s', '%s', %lu);",
 			get_filename(), sm->name, show_rl(rl),
 			(unsigned long)sm->sym);
@@ -205,7 +205,7 @@ static int save_final_values(void *unused, int argc, char **argv, char **azColNa
 
 static void match_end_file(struct symbol_list *sym_list)
 {
-	mem_sql(save_final_values,
+	mem_sql(save_final_values, NULL,
 		"select distinct variable, symbol, value from local_values order by variable;");
 	if (cur_name)
 		add_current_local();
@@ -223,5 +223,5 @@ void register_local_values(int id)
 	add_merge_hook(my_id, &merge_estates);
 	all_return_states_hook(&process_states);
 	add_hook(match_end_file, END_FILE_HOOK);
-	mem_sql(NULL, "alter table local_values add column symbol integer;");
+	mem_sql(NULL, NULL, "alter table local_values add column symbol integer;");
 }
