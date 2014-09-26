@@ -240,6 +240,8 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		goto cast;
 	}
 
+	min = sval_type_min(type);
+	max = sval_type_max(type);
 	c = value;
 	while (*c != '\0' && *c != '[') {
 		if (*c == '(')
