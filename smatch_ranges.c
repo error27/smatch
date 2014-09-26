@@ -287,7 +287,7 @@ static char *jump_to_call_math(char *value)
 
 static void str_to_rl_helper(struct expression *call, struct symbol *type, char *value, struct range_list **rl)
 {
-	sval_t min, max, val;
+	sval_t min, max;
 	char *call_math;
 	char *c;
 
@@ -310,10 +310,8 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 	}
 
 	call_math = jump_to_call_math(value);
-	if (call_math && parse_call_math(call, call_math, &val)) {
-		*rl = alloc_rl(val, val);
+	if (call_math && parse_call_math_rl(call, call_math, rl))
 		goto cast;
-	}
 
 	min = sval_type_min(type);
 	max = sval_type_max(type);

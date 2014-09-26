@@ -232,6 +232,28 @@ fail:
 	return 0;
 }
 
+int parse_call_math_rl(struct expression *call, char *math, struct range_list **rl)
+{
+	struct expression *arg;
+	sval_t sval;
+	char *c = math;
+	int param;
+
+	if (parse_call_math(call, math, &sval)) {
+		*rl = alloc_rl(sval, sval);
+		return 1;
+	}
+
+	if (*c != '$')
+		return 0;
+	c++;
+	param = strtoll(c, &c, 10);
+	if (*c != ']')
+		return 0;
+	arg = get_argument_from_call_expr(call->args, param);
+	return get_implied_rl(arg, rl);
+}
+
 static struct smatch_state *alloc_state_sname(char *sname)
 {
 	struct smatch_state *state;
