@@ -140,6 +140,8 @@ void __push_fake_cur_stree(void)
 
 struct stree *__pop_fake_cur_stree(void)
 {
+	if (!fake_cur_stree_stack)
+		sm_msg("INTERNAL error: popping too many fake cur strees.");
 	__use_pre_cond_states();
 	return pop_stree(&fake_cur_stree_stack);
 }
