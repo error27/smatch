@@ -341,6 +341,8 @@ static struct lock_info kernel_lock_table[] = {
 	{"spin_trylock_bh",     LOCK,   "bottom_half", NO_ARG, ret_non_zero},
 	{"_spin_trylock_bh",    LOCK,   "bottom_half", NO_ARG, ret_non_zero},
 	{"__spin_trylock_bh",   LOCK,   "bottom_half", NO_ARG, ret_non_zero},
+
+	{"ffs_mutex_lock",        LOCK,   "mutex", 0, ret_zero},
 };
 
 static struct lock_info *lock_table;
