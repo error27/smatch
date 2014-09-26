@@ -78,6 +78,10 @@ static int str_to_comparison_arg_helper(const char *str,
 		} else {
 			*comparison = '>';
 		}
+	} else if (*c == '!') {
+		c++;
+		c++;
+		*comparison = SPECIAL_NOTEQUAL;
 	} else {
 		return 0;
 	}
@@ -146,6 +150,77 @@ static int get_val_from_key(int use_max, struct symbol *type, char *c, struct ex
 	return 1;
 }
 
+static sval_t add_one(sval_t sval)
+{
+	sval.value++;
+	return sval;
+}
+
+static sval_t sub_one(sval_t sval)
+{
+	sval.value--;
+	return sval;
+}
+
+static struct range_list *filter_by_comparison(char *c, struct expression *call, char **endp, struct range_list *start_rl)
+{
+	struct expression *arg;
+	struct symbol *cast_type;
+	struct range_list *left_orig, *right_orig;
+	struct range_list *ret_rl = start_rl;
+	int comparison;
+	sval_t min, max;
+
+	if (!str_to_comparison_arg_helper(c, call, &comparison, &arg, endp))
+		return 0;
+
+	if (!get_implied_rl(arg, &right_orig))
+		return 0;
+
+	cast_type = rl_type(start_rl);
+	if (sval_type_max(rl_type(start_rl)).uvalue < sval_type_max(rl_type(right_orig)).uvalue)
+		cast_type = rl_type(right_orig);
+	if (sval_type_max(cast_type).uvalue < INT_MAX)
+		cast_type = &int_ctype;
+
+	min = sval_type_min(cast_type);
+	max = sval_type_max(cast_type);
+	left_orig = cast_rl(cast_type, start_rl);
+	right_orig = cast_rl(cast_type, right_orig);
+
+
+	switch (comparison) {
+	case '<':
+		ret_rl = remove_range(left_orig, rl_max(right_orig), max);
+		break;
+	case SPECIAL_LTE:
+		if (!sval_is_max(rl_max(right_orig)))
+			ret_rl = remove_range(left_orig, add_one(rl_max(right_orig)), max);
+		break;
+	case SPECIAL_EQUAL:
+		if (!sval_is_max(rl_max(right_orig)))
+			ret_rl = remove_range(ret_rl, add_one(rl_max(right_orig)), max);
+		if (!sval_is_min(rl_min(right_orig)))
+			ret_rl = remove_range(ret_rl, min, sub_one(rl_min(right_orig)));
+		break;
+	case SPECIAL_GTE:
+		if (!sval_is_min(rl_min(right_orig)))
+			ret_rl = remove_range(left_orig, min, sub_one(rl_min(right_orig)));
+		break;
+	case '>':
+		ret_rl = remove_range(left_orig, min, rl_min(right_orig));
+		break;
+	case SPECIAL_NOTEQUAL:
+		if (sval_cmp(rl_min(right_orig), rl_max(right_orig)) == 0)
+			ret_rl = remove_range(left_orig, rl_min(right_orig), rl_min(right_orig));
+		break;
+	default:
+		return start_rl;
+	}
+
+	return cast_rl(rl_type(start_rl), ret_rl);
+}
+
 static sval_t parse_val(int use_max, struct expression *call, struct symbol *type, char *c, char **endp)
 {
 	char *start = c;
@@ -204,7 +279,7 @@ static char *jump_to_call_math(char *value)
 	if (!*c)
 		return NULL;
 	c++;
-	if (*c == '<' || *c == '=' || *c == '>')
+	if (*c == '<' || *c == '=' || *c == '>' || *c == '!')
 		return NULL;
 
 	return c;
@@ -212,7 +287,7 @@ static char *jump_to_call_math(char *value)
 
 static void str_to_rl_helper(struct expression *call, struct symbol *type, char *value, struct range_list **rl)
 {
-	sval_t min, max, arg_max, val;
+	sval_t min, max, val;
 	char *call_math;
 	char *c;
 
@@ -283,17 +358,7 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		goto cast;
 
 
-	/*
-	 * This isn't great.  We should get a range list from the parameter
-	 * comparison and then take the intersection.  But for now we just get
-	 * an upper limit.
-	 */
-	if (!get_val_from_key(1, type, c, call, &c, &arg_max))
-		goto cast;
-	if (sval_cmp(arg_max, max) >= 0)
-		goto cast;
-	arg_max.value++;
-	*rl = rl_filter(*rl, alloc_rl(arg_max, max));
+	*rl = filter_by_comparison(c, call, &c, *rl);
 
 cast:
 	*rl = cast_rl(type, *rl);
