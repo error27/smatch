@@ -584,6 +584,11 @@ enum info_type {
 	DATA_SOURCE	= 1014,
 	FUZZY_MAX	= 1015,
 	STR_LEN		= 1016,
+
+	/* put random temporary stuff in the 7000-7999 range for testing */
+	USER_DATA2	= 9017,
+	USER_DATA_SET	= 9018,
+	USER_DATA_LIMITED = 9019,
 };
 
 void debug_sql(const char *sql);
