@@ -107,6 +107,9 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	struct sm_state *my_sm;
 	struct smatch_state *state;
 	int param;
+	char *compare;
+	const char *compare_str;
+	char buf[256];
 
 	stree = __get_cur_stree();
 
@@ -118,18 +121,26 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (param < 0)
 			continue;
 
+		compare = expr_equal_to_param(symbol_expression(tmp->sym), param);
+		if (!compare)
+			compare = expr_lte_to_param(symbol_expression(tmp->sym), param);
+		compare_str = compare;
+		if (!compare_str)
+			compare_str = "";
+
 		my_sm = get_sm_state(my_id, tmp->name, tmp->sym);
 		if (!my_sm) {
 			struct smatch_state *old;
 
-			if (estate_is_whole(tmp->state))
+			if (estate_is_whole(tmp->state) && !compare)
 				continue;
 			old = get_state_stree(start_states, SMATCH_EXTRA, tmp->name, tmp->sym);
-			if (old && estates_equiv(old, tmp->state))
+			if (old && estates_equiv(old, tmp->state) && !compare)
 				continue;
+
+			snprintf(buf, sizeof(buf), "%s%s", tmp->state->name, compare_str);
 			sql_insert_return_states(return_id, return_ranges,
-					LIMITED_VALUE, param, "$$",
-					tmp->state->name);
+					LIMITED_VALUE, param, "$$", buf);
 			continue;
 		}
 
@@ -139,11 +150,13 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		/* This represents an impossible state.  I screwd up.  Bail. */
 		if (!estate_rl(state))
 			continue;
-		if (estate_is_whole(state))
+		if (estate_is_whole(state) && !compare) {
 			continue;
+		}
+
+		snprintf(buf, sizeof(buf), "%s%s", state->name, compare_str);
 		sql_insert_return_states(return_id, return_ranges,
-					LIMITED_VALUE, param, "$$",
-					state->name);
+					LIMITED_VALUE, param, "$$", buf);
 	} END_FOR_EACH_SM(tmp);
 }
 
