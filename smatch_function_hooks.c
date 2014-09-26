@@ -351,22 +351,27 @@ struct db_callback_info {
 	struct db_implies_list *callbacks;
 };
 static struct db_callback_info db_info;
+static int prev_return_id;
+
 static int db_compare_callback(void *unused, int argc, char **argv, char **azColName)
 {
 	struct range_list *ret_range;
 	int type, param;
 	char *key, *value;
 	struct return_implies_callback *tmp;
+	struct stree *stree;
+	int return_id;
 
-	if (argc != 5)
+	if (argc != 6)
 		return 0;
 
-	call_results_to_rl(db_info.expr, get_type(strip_expr(db_info.expr)), argv[0], &ret_range);
+	return_id = atoi(argv[0]);
+	call_results_to_rl(db_info.expr, get_type(strip_expr(db_info.expr)), argv[1], &ret_range);
 	ret_range = cast_rl(get_type(db_info.expr), ret_range);
-	type = atoi(argv[1]);
-	param = atoi(argv[2]);
-	key = argv[3];
-	value = argv[4];
+	type = atoi(argv[2]);
+	param = atoi(argv[3]);
+	key = argv[4];
+	value = argv[5];
 
 	if (db_info.true_side) {
 		if (!possibly_true_rl_LR(db_info.comparison,
@@ -380,6 +385,14 @@ static int db_compare_callback(void *unused, int argc, char **argv, char **azCol
 			return 0;
 	}
 
+	if (prev_return_id != -1 && return_id != prev_return_id) {
+		stree = __pop_fake_cur_stree();
+		merge_fake_stree(&db_info.stree, stree);
+		free_stree(&stree);
+		__push_fake_cur_stree();
+	}
+	prev_return_id = return_id;
+
 	FOR_EACH_PTR(db_info.callbacks, tmp) {
 		if (tmp->type == type)
 			tmp->callback(db_info.expr, param, key, value);
@@ -389,6 +402,7 @@ static int db_compare_callback(void *unused, int argc, char **argv, char **azCol
 
 void compare_db_return_states_callbacks(int comparison, struct expression *expr, sval_t sval, int left)
 {
+	struct stree *stree;
 	struct stree *true_states;
 	struct stree *false_states;
 	struct sm_state *sm;
@@ -402,16 +416,26 @@ void compare_db_return_states_callbacks(int comparison, struct expression *expr,
 	call_return_states_before_hooks();
 
 	db_info.true_side = 1;
+	db_info.stree = NULL;
+	prev_return_id = -1;
 	__push_fake_cur_stree();
-	sql_select_return_states("return, type, parameter, key, value", expr,
+	sql_select_return_states("return_id, return, type, parameter, key, value", expr,
 			db_compare_callback);
-	true_states = __pop_fake_cur_stree();
+	stree = __pop_fake_cur_stree();
+	merge_fake_stree(&db_info.stree, stree);
+	free_stree(&stree);
+	true_states = db_info.stree;
 
 	db_info.true_side = 0;
+	db_info.stree = NULL;
+	prev_return_id = -1;
 	__push_fake_cur_stree();
-	sql_select_return_states("return, type, parameter, key, value", expr,
+	sql_select_return_states("return_id, return, type, parameter, key, value", expr,
 			db_compare_callback);
-	false_states = __pop_fake_cur_stree();
+	stree = __pop_fake_cur_stree();
+	merge_fake_stree(&db_info.stree, stree);
+	free_stree(&stree);
+	false_states = db_info.stree;
 
 	FOR_EACH_SM(true_states, sm) {
 		__set_true_false_sm(sm, NULL);
@@ -426,8 +450,6 @@ void compare_db_return_states_callbacks(int comparison, struct expression *expr,
 	free_stree(&false_states);
 }
 
-
-
 void function_comparison(int comparison, struct expression *expr, sval_t sval, int left)
 {
 	if (call_implies_callbacks(comparison, expr, sval, left))
@@ -435,7 +457,6 @@ void function_comparison(int comparison, struct expression *expr, sval_t sval, i
 	compare_db_return_states_callbacks(comparison, expr, sval, left);
 }
 
-static int prev_return_id;
 static int db_assign_return_states_callback(void *unused, int argc, char **argv, char **azColName)
 {
 	struct range_list *ret_range;
