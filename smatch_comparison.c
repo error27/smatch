@@ -1281,7 +1281,7 @@ free:
 
 char *expr_equal_to_param(struct expression *expr, int ignore)
 {
-	return range_comparison_to_param_helper(expr, '=', -1);
+	return range_comparison_to_param_helper(expr, '=', ignore);
 }
 
 char *expr_lte_to_param(struct expression *expr, int ignore)
