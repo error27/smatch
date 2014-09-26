@@ -377,13 +377,16 @@ static int combine_comparisons(int left_compare, int right_compare)
 
 static int filter_comparison(int orig, int op)
 {
+	if (orig == op)
+		return orig;
+
 	switch (orig) {
 	case 0:
 		return op;
 	case '<':
 		switch (op) {
 		case '<':
-			return op;
+		case SPECIAL_LTE:
 		case SPECIAL_NOTEQUAL:
 			return '<';
 		}
@@ -403,6 +406,8 @@ static int filter_comparison(int orig, int op)
 		case SPECIAL_LTE:
 		case SPECIAL_EQUAL:
 		case SPECIAL_GTE:
+		case SPECIAL_UNSIGNED_LTE:
+		case SPECIAL_UNSIGNED_GTE:
 			return SPECIAL_EQUAL;
 		}
 		return 0;
@@ -411,15 +416,23 @@ static int filter_comparison(int orig, int op)
 		case '<':
 		case SPECIAL_LTE:
 			return '<';
+		case SPECIAL_UNSIGNED_LT:
+		case SPECIAL_UNSIGNED_LTE:
+			return SPECIAL_UNSIGNED_LT;
 		case SPECIAL_NOTEQUAL:
 			return op;
 		case '>':
 		case SPECIAL_GTE:
 			return '>';
+		case SPECIAL_UNSIGNED_GT:
+		case SPECIAL_UNSIGNED_GTE:
+			return SPECIAL_UNSIGNED_GT;
 		}
 		return 0;
 	case SPECIAL_GTE:
 		switch (op) {
+		case SPECIAL_LTE:
+			return SPECIAL_EQUAL;
 		case '>':
 		case SPECIAL_GTE:
 		case SPECIAL_EQUAL:
@@ -432,13 +445,51 @@ static int filter_comparison(int orig, int op)
 		switch (op) {
 		case '>':
 		case SPECIAL_GTE:
-			return '>';
 		case SPECIAL_NOTEQUAL:
 			return '>';
 		}
 		return 0;
+	case SPECIAL_UNSIGNED_LT:
+		switch (op) {
+		case SPECIAL_UNSIGNED_LT:
+		case SPECIAL_UNSIGNED_LTE:
+		case SPECIAL_NOTEQUAL:
+			return SPECIAL_UNSIGNED_LT;
+		}
+		return 0;
+	case SPECIAL_UNSIGNED_LTE:
+		switch (op) {
+		case SPECIAL_UNSIGNED_LT:
+		case SPECIAL_UNSIGNED_LTE:
+		case SPECIAL_EQUAL:
+			return op;
+		case SPECIAL_NOTEQUAL:
+			return SPECIAL_UNSIGNED_LT;
+		case SPECIAL_UNSIGNED_GTE:
+			return SPECIAL_EQUAL;
+		}
+		return 0;
+	case SPECIAL_UNSIGNED_GTE:
+		switch (op) {
+		case SPECIAL_UNSIGNED_LTE:
+			return SPECIAL_EQUAL;
+		case SPECIAL_NOTEQUAL:
+			return SPECIAL_UNSIGNED_GT;
+		case SPECIAL_EQUAL:
+		case SPECIAL_UNSIGNED_GTE:
+		case SPECIAL_UNSIGNED_GT:
+			return op;
+		}
+		return 0;
+	case SPECIAL_UNSIGNED_GT:
+		switch (op) {
+		case SPECIAL_UNSIGNED_GT:
+		case SPECIAL_UNSIGNED_GTE:
+		case SPECIAL_NOTEQUAL:
+			return SPECIAL_UNSIGNED_GT;
+		}
+		return 0;
 	}
-	sm_msg("Internal: what did I forget? orig = %d op = '%s'", orig, show_special(op));
 	return 0;
 }
 
