@@ -417,7 +417,9 @@ static void handle_pre_loop(struct statement *stmt)
 		unchanged = __iterator_unchanged(extra_sm);
 		__split_stmt(stmt->iterator_post_statement);
 		__save_gotos(loop_name);
+		__in_pre_condition++;
 		__split_whole_condition(stmt->iterator_pre_condition);
+		__in_pre_condition--;
 		nullify_path();
 		__merge_false_states();
 		if (once_through)
