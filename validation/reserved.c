@@ -30,6 +30,7 @@ reserved.c:8:12: error: Trying to use reserved word '__const' as identifier
 reserved.c:9:12: error: Trying to use reserved word '__const__' as identifier
 reserved.c:10:12: error: Trying to use reserved word 'restrict' as identifier
 reserved.c:11:12: error: Trying to use reserved word '__restrict' as identifier
+reserved.c:12:12: error: Trying to use reserved word '__restrict__' as identifier
 reserved.c:13:12: error: Trying to use reserved word 'typedef' as identifier
 reserved.c:14:12: error: Trying to use reserved word '__typeof' as identifier
 reserved.c:15:12: error: Trying to use reserved word '__typeof__' as identifier
