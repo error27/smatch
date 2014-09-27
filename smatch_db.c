@@ -269,7 +269,7 @@ static int get_row_count(void *unused, int argc, char **argv, char **azColName)
 }
 
 static void sql_select_return_states_pointer(const char *cols,
-	struct expression *call, int (*callback)(void*, int, char**, char**))
+	struct expression *call, int (*callback)(void*, int, char**, char**), void *info)
 {
 	char *ptr;
 
@@ -277,7 +277,7 @@ static void sql_select_return_states_pointer(const char *cols,
 	if (!ptr)
 		return;
 
-	run_sql(callback, NULL,
+	run_sql(callback, info,
 		"select %s from return_states join function_ptr where "
 		"return_states.function == function_ptr.function and ptr = '%s'"
 		"and searchable = 1 order by return_id, type;",
@@ -285,30 +285,30 @@ static void sql_select_return_states_pointer(const char *cols,
 }
 
 void sql_select_return_states(const char *cols, struct expression *call,
-	int (*callback)(void*, int, char**, char**))
+	int (*callback)(void*, int, char**, char**), void *info)
 {
 	if (is_fake_call(call))
 		return;
 
 	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol) {
-		sql_select_return_states_pointer(cols, call, callback);
+		sql_select_return_states_pointer(cols, call, callback, info);
 		return;
 	}
 
 	if (inlinable(call->fn)) {
-		mem_sql(callback, NULL,
+		mem_sql(callback, info,
 			"select %s from return_states where call_id = '%lu' order by return_id, type;",
 			cols, (unsigned long)call);
 		return;
 	}
 
 	row_count = 0;
-	run_sql(get_row_count, NULL, "select count(*) from return_states where %s;",
+	run_sql(get_row_count, info, "select count(*) from return_states where %s;",
 		get_static_filter(call->fn->symbol));
 	if (row_count > 1000)
 		return;
 
-	run_sql(callback, NULL, "select %s from return_states where %s order by return_id, type;",
+	run_sql(callback, info, "select %s from return_states where %s order by return_id, type;",
 		cols, get_static_filter(call->fn->symbol));
 }
 

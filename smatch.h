@@ -635,7 +635,7 @@ void sql_insert_function_type_value(const char *type, const char *value);
 void sql_insert_function_type_info(int param, const char *value);
 
 void sql_select_return_states(const char *cols, struct expression *call,
-	int (*callback)(void*, int, char**, char**));
+	int (*callback)(void*, int, char**, char**), void *info);
 void sql_select_caller_info(const char *cols, struct symbol *sym,
 	int (*callback)(void*, int, char**, char**));
 void sql_select_call_implies(const char *cols, struct expression *call,
