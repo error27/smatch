@@ -748,6 +748,15 @@ done:
 	free_string(var);
 }
 
+/*
+ * The idea here is that we take a comparison "a < b" and then we look at all
+ * the things which "b" is compared against "b < c" and we say that that implies
+ * a relationship "a < c".
+ *
+ * The names here about because the comparisons are organized like this
+ * "a < b < c".
+ *
+ */
 static void update_tf_links(struct stree *pre_stree,
 			    const char *left_var, struct var_sym_list *left_vsl,
 			    int left_comparison, int left_false_comparison,
