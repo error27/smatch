@@ -44,13 +44,6 @@ struct compare_data {
 };
 ALLOCATOR(compare_data, "compare data");
 
-int chunk_vsl_eq(const char *a, struct var_sym_list *a_vsl, const char *b, struct var_sym_list *b_vsl)
-{
-	if (strcmp(a, b) == 0)
-		return 1;
-	return 0;
-}
-
 static struct symbol *vsl_to_sym(struct var_sym_list *vsl)
 {
 	struct var_sym *vs;
@@ -781,7 +774,7 @@ static void update_tf_links(struct stree *pre_stree,
 		right_comparison = data->comparison;
 		right_var = data->var2;
 		right_vsl = data->vsl2;
-		if (chunk_vsl_eq(mid_var, mid_vsl, right_var, right_vsl)) {
+		if (strcmp(mid_var, right_var) == 0) {
 			right_var = data->var1;
 			right_vsl = data->vsl1;
 			right_comparison = flip_op(right_comparison);
@@ -1093,7 +1086,7 @@ static void copy_comparisons(struct expression *left, struct expression *right)
 		comparison = data->comparison;
 		var = data->var2;
 		vsl = data->vsl2;
-		if (chunk_vsl_eq(var, vsl, right_var, NULL)) {
+		if (strcmp(var, right_var) == 0) {
 			var = data->var1;
 			vsl = data->vsl1;
 			comparison = flip_op(comparison);
@@ -1267,7 +1260,7 @@ static void update_links_from_call(struct expression *left,
 		comparison = data->comparison;
 		var = data->var2;
 		vsl = data->vsl2;
-		if (chunk_vsl_eq(var, vsl, right_var, NULL)) {
+		if (strcmp(var, right_var) == 0) {
 			var = data->var1;
 			vsl = data->vsl1;
 			comparison = flip_op(comparison);
