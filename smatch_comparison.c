@@ -757,7 +757,7 @@ done:
 
 static void update_tf_links(struct stree *pre_stree,
 			    const char *left_var, struct var_sym_list *left_vsl,
-			    int left_comparison,
+			    int left_comparison, int left_false_comparison,
 			    const char *mid_var, struct var_sym_list *mid_vsl,
 			    struct string_list *links)
 {
@@ -787,7 +787,7 @@ static void update_tf_links(struct stree *pre_stree,
 			right_comparison = flip_op(right_comparison);
 		}
 		true_comparison = combine_comparisons(left_comparison, right_comparison);
-		false_comparison = combine_comparisons(falsify_op(left_comparison), right_comparison);
+		false_comparison = combine_comparisons(left_false_comparison, right_comparison);
 
 		if (strcmp(left_var, right_var) > 0) {
 			const char *tmp_var = left_var;
@@ -831,17 +831,17 @@ static void update_tf_links(struct stree *pre_stree,
 static void update_tf_data(struct stree *pre_stree,
 		const char *left_name, struct var_sym_list *left_vsl,
 		const char *right_name, struct var_sym_list *right_vsl,
-		int true_comparison)
+		int true_comparison, int false_comparison)
 {
 	struct smatch_state *state;
 
 	state = get_state_stree(pre_stree, link_id, right_name, vsl_to_sym(right_vsl));
 	if (state)
-		update_tf_links(pre_stree, left_name, left_vsl, true_comparison, right_name, right_vsl, state->data);
+		update_tf_links(pre_stree, left_name, left_vsl, true_comparison, false_comparison, right_name, right_vsl, state->data);
 
 	state = get_state_stree(pre_stree, link_id, left_name, vsl_to_sym(left_vsl));
 	if (state)
-		update_tf_links(pre_stree, right_name, right_vsl, flip_op(true_comparison), left_name, left_vsl, state->data);
+		update_tf_links(pre_stree, right_name, right_vsl, flip_op(true_comparison), flip_op(false_comparison), left_name, left_vsl, state->data);
 }
 
 static void match_compare(struct expression *expr)
@@ -893,7 +893,7 @@ static void match_compare(struct expression *expr)
 	false_state = alloc_compare_state(left, left_vsl, false_op, right, right_vsl);
 
 	pre_stree = clone_stree(__get_cur_stree());
-	update_tf_data(pre_stree, left, left_vsl, right, right_vsl, op);
+	update_tf_data(pre_stree, left, left_vsl, right, right_vsl, op, false_op);
 	free_stree(&pre_stree);
 
 	set_true_false_states(compare_id, state_name, NULL, true_state, false_state);
