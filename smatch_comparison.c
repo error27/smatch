@@ -829,19 +829,19 @@ static void update_tf_links(struct stree *pre_stree,
 }
 
 static void update_tf_data(struct stree *pre_stree,
-		const char *left_name, struct symbol *left_sym,
-		const char *right_name, struct symbol *right_sym,
-		struct compare_data *tdata)
+		const char *left_name, struct var_sym_list *left_vsl,
+		const char *right_name, struct var_sym_list *right_vsl,
+		int true_comparison)
 {
 	struct smatch_state *state;
 
-	state = get_state_stree(pre_stree, link_id, tdata->var2, vsl_to_sym(tdata->vsl2));
+	state = get_state_stree(pre_stree, link_id, right_name, vsl_to_sym(right_vsl));
 	if (state)
-		update_tf_links(pre_stree, tdata->var1, tdata->vsl1, tdata->comparison, tdata->var2, tdata->vsl2, state->data);
+		update_tf_links(pre_stree, left_name, left_vsl, true_comparison, right_name, right_vsl, state->data);
 
-	state = get_state_stree(pre_stree, link_id, tdata->var1, vsl_to_sym(tdata->vsl1));
+	state = get_state_stree(pre_stree, link_id, left_name, vsl_to_sym(left_vsl));
 	if (state)
-		update_tf_links(pre_stree, tdata->var2, tdata->vsl2, flip_op(tdata->comparison), tdata->var1, tdata->vsl1, state->data);
+		update_tf_links(pre_stree, right_name, right_vsl, flip_op(true_comparison), left_name, left_vsl, state->data);
 }
 
 static void match_compare(struct expression *expr)
@@ -893,7 +893,7 @@ static void match_compare(struct expression *expr)
 	false_state = alloc_compare_state(left, left_vsl, false_op, right, right_vsl);
 
 	pre_stree = clone_stree(__get_cur_stree());
-	update_tf_data(pre_stree, left, left_sym, right, right_sym, true_state->data);
+	update_tf_data(pre_stree, left, left_vsl, right, right_vsl, op);
 	free_stree(&pre_stree);
 
 	set_true_false_states(compare_id, state_name, NULL, true_state, false_state);
