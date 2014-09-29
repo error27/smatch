@@ -788,6 +788,9 @@ static void update_tf_links(struct stree *pre_stree,
 			right_vsl = data->vsl1;
 			right_comparison = flip_op(right_comparison);
 		}
+		if (strcmp(left_var, right_var) == 0)
+			continue;
+
 		true_comparison = combine_comparisons(left_comparison, right_comparison);
 		false_comparison = combine_comparisons(left_false_comparison, right_comparison);
 
