@@ -15,7 +15,12 @@ except sqlite3.Error, e:
     sys.exit(1)
 
 def usage():
-    print "%s <function> [table] [type] [parameter]" %(sys.argv[0])
+    print "%s" %(sys.argv[0])
+    print "<function> - how a function is called"
+    print "return_states <function> - what a function returns"
+    print "where <struct_type> <member> - where a struct member is set"
+    print "type_size <struct_type> <member> - how a struct member is allocated"
+    print "function_ptr <function> - which function pointers point to this"
     sys.exit(1)
 
 function_ptrs = []
