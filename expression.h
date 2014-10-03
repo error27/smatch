@@ -154,6 +154,7 @@ struct expression {
 		struct expression_list *expr_list;
 		// EXPR_IDENTIFIER
 		struct /* ident_expr */ {
+			int offset;
 			struct ident *expr_ident;
 			struct symbol *field;
 			struct expression *ident_expression;

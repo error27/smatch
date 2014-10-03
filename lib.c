@@ -126,25 +126,6 @@ void info(struct position pos, const char * fmt, ...)
 	va_end(args);
 }
 
-void warning(struct position pos, const char * fmt, ...)
-{
-	va_list args;
-
-	if (!max_warnings) {
-		show_info = 0;
-		return;
-	}
-
-	if (!--max_warnings) {
-		show_info = 0;
-		fmt = "too many warnings";
-	}
-
-	va_start(args, fmt);
-	do_warn("warning: ", pos, fmt, args);
-	va_end(args);
-}	
-
 static void do_error(struct position pos, const char * fmt, va_list args)
 {
 	static int errors = 0;
@@ -164,6 +145,32 @@ static void do_error(struct position pos, const char * fmt, va_list args)
 	do_warn("error: ", pos, fmt, args);
 	errors++;
 }	
+
+void warning(struct position pos, const char * fmt, ...)
+{
+	va_list args;
+
+	if (Werror) {
+		va_start(args, fmt);
+		do_error(pos, fmt, args);
+		va_end(args);
+		return;
+	}
+
+	if (!max_warnings) {
+		show_info = 0;
+		return;
+	}
+
+	if (!--max_warnings) {
+		show_info = 0;
+		fmt = "too many warnings";
+	}
+
+	va_start(args, fmt);
+	do_warn("warning: ", pos, fmt, args);
+	va_end(args);
+}
 
 void sparse_error(struct position pos, const char * fmt, ...)
 {
@@ -219,6 +226,7 @@ int Wdesignated_init = 1;
 int Wdo_while = 0;
 int Winit_cstring = 0;
 int Wenum_mismatch = 1;
+int Werror = 0;
 int Wnon_pointer_null = 1;
 int Wold_initializer = 1;
 int Wone_bit_signed_bitfield = 1;
@@ -431,6 +439,7 @@ static const struct warning {
 	{ "designated-init", &Wdesignated_init },
 	{ "do-while", &Wdo_while },
 	{ "enum-mismatch", &Wenum_mismatch },
+	{ "error", &Werror },
 	{ "init-cstring", &Winit_cstring },
 	{ "non-pointer-null", &Wnon_pointer_null },
 	{ "old-initializer", &Wold_initializer },
@@ -462,7 +471,7 @@ static char **handle_onoff_switch(char *arg, char **next, const struct warning w
 
 	if (!strcmp(p, "sparse-all")) {
 		for (i = 0; i < n; i++) {
-			if (*warnings[i].flag != WARNING_FORCE_OFF)
+			if (*warnings[i].flag != WARNING_FORCE_OFF && warnings[i].flag != &Werror)
 				*warnings[i].flag = WARNING_ON;
 		}
 	}
@@ -661,6 +670,14 @@ static char **handle_nostdinc(char *arg, char **next)
 	return next;
 }
 
+static char **handle_switch_n(char *arg, char **next)
+{
+	if (!strcmp (arg, "nostdinc"))
+		return handle_nostdinc(arg, next);
+
+	return next;
+}
+
 static char **handle_base_dir(char *arg, char **next)
 {
 	gcc_base_dir = *++next;
@@ -675,70 +692,87 @@ static char **handle_no_lineno(char *arg, char **next)
 	return next;
 }
 
+static char **handle_switch_g(char *arg, char **next)
+{
+	if (!strcmp (arg, "gcc-base-dir"))
+		return handle_base_dir(arg, next);
+
+	return next;
+}
+
 static char **handle_version(char *arg, char **next)
 {
 	printf("%s\n", SPARSE_VERSION);
 	exit(0);
 }
 
+static char **handle_param(char *arg, char **next)
+{
+	char *value = NULL;
+
+	/* For now just skip any '--param=*' or '--param *' */
+	if (*arg == '\0') {
+		value = *++next;
+	} else if (isspace(*arg) || *arg == '=') {
+		value = ++arg;
+	}
+
+	if (!value)
+		die("missing argument for --param option");
+
+	return next;
+}
+
 struct switches {
 	const char *name;
 	char **(*fn)(char *, char **);
+	unsigned int prefix:1;
 };
 
 static char **handle_long_options(char *arg, char **next)
 {
 	static struct switches cmd[] = {
+		{ "param", handle_param, 1 },
 		{ "version", handle_version },
-		{ NULL, NULL }
-	};
-	struct switches *s = cmd;
-
-	while (s->name) {
-		if (!strcmp(s->name, arg))
-			return s->fn(arg, next);
-		s++;
-	}
-	return next;
-
-}
-
-static char **handle_switch(char *arg, char **next)
-{
-	static struct switches cmd[] = {
 		{ "nostdinc", handle_nostdinc },
 		{ "gcc-base-dir", handle_base_dir},
 		{ "no-lineno", handle_no_lineno},
 		{ NULL, NULL }
 	};
-	struct switches *s;
+	struct switches *s = cmd;
 
+	while (s->name) {
+		int optlen = strlen(s->name);
+		if (!strncmp(s->name, arg, optlen + !s->prefix))
+			return s->fn(arg + optlen, next);
+		s++;
+	}
+	return next;
+}
+
+static char **handle_switch(char *arg, char **next)
+{
 	switch (*arg) {
+	case 'a': return handle_switch_a(arg, next);
 	case 'D': return handle_switch_D(arg, next);
 	case 'E': return handle_switch_E(arg, next);
+	case 'f': return handle_switch_f(arg, next);
+	case 'g': return handle_switch_g(arg, next);
+	case 'G': return handle_switch_G(arg, next);
 	case 'I': return handle_switch_I(arg, next);
 	case 'i': return handle_switch_i(arg, next);
 	case 'M': return handle_switch_M(arg, next);
 	case 'm': return handle_switch_m(arg, next);
+	case 'n': return handle_switch_n(arg, next);
 	case 'o': return handle_switch_o(arg, next);
+	case 'O': return handle_switch_O(arg, next);
+	case 's': return handle_switch_s(arg, next);
 	case 'U': return handle_switch_U(arg, next);
 	case 'v': return handle_switch_v(arg, next);
 	case 'W': return handle_switch_W(arg, next);
-	case 'O': return handle_switch_O(arg, next);
-	case 'f': return handle_switch_f(arg, next);
-	case 'G': return handle_switch_G(arg, next);
-	case 'a': return handle_switch_a(arg, next);
-	case 's': return handle_switch_s(arg, next);
 	case '-': return handle_long_options(arg + 1, next);
 	default:
 		break;
-	}
-
-	s = cmd;
-	while (s->name) {
-		if (!strcmp(s->name, arg))
-			return s->fn(arg, next);
-		s++;
 	}
 
 	/*

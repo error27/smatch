@@ -235,7 +235,8 @@ static struct symbol * examine_array_type(struct symbol *sym)
 		return sym;
 
 	if (array_size) {	
-		bit_size = base_type->bit_size * get_expression_value_silent(array_size);
+		bit_size = array_element_offset(base_type->bit_size,
+						get_expression_value_silent(array_size));
 		if (array_size->type != EXPR_VALUE) {
 			if (Wvla)
 				warning(array_size->pos, "Variable length array is used.");
@@ -575,11 +576,12 @@ void check_declaration(struct symbol *sym)
 			sym->same_symbol = next;
 			return;
 		}
-		if (sym->ctype.modifiers & next->ctype.modifiers & MOD_EXTERN) {
-			if ((sym->ctype.modifiers ^ next->ctype.modifiers) & MOD_INLINE)
-				continue;
-			sym->same_symbol = next;
-			return;
+		/* Extern in block level matches a TOPLEVEL non-static symbol */
+		if (sym->ctype.modifiers & MOD_EXTERN) {
+			if ((next->ctype.modifiers & (MOD_TOPLEVEL|MOD_STATIC)) == MOD_TOPLEVEL) {
+				sym->same_symbol = next;
+				return;
+			}
 		}
 
 		if (!Wshadow || warned)
@@ -911,7 +913,7 @@ void init_ctype(void)
 		struct symbol *sym = ctype->ptr;
 		unsigned long bit_size = ctype->bit_size ? *ctype->bit_size : -1;
 		unsigned long maxalign = ctype->maxalign ? *ctype->maxalign : 0;
-		unsigned long alignment = bits_to_bytes(bit_size + bits_in_char - 1);
+		unsigned long alignment = bits_to_bytes(bit_size);
 
 		if (alignment > maxalign)
 			alignment = maxalign;

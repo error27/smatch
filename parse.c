@@ -1534,12 +1534,28 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 	return token;
 }
 
+static struct token *abstract_array_static_declarator(struct token *token, int *has_static)
+{
+	while (token->ident == &static_ident) {
+		if (*has_static)
+			sparse_error(token->pos, "duplicate array static declarator");
+
+		*has_static = 1;
+		token = token->next;
+	}
+	return token;
+
+}
+
 static struct token *abstract_array_declarator(struct token *token, struct symbol *sym)
 {
 	struct expression *expr = NULL;
+	int has_static = 0;
+
+	token = abstract_array_static_declarator(token, &has_static);
 
 	if (match_idents(token, &restrict_ident, &__restrict_ident, NULL))
-		token = token->next;
+		token = abstract_array_static_declarator(token->next, &has_static);
 	token = parse_expression(token, &expr);
 	sym->array_size = expr;
 	return token;
@@ -2597,6 +2613,7 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 		info(prev->definition->pos, " the previous one is here");
 	} else {
 		while (prev) {
+			rebind_scope(prev, decl->scope);
 			prev->definition = decl;
 			prev = prev->same_symbol;
 		}

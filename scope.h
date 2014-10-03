@@ -56,6 +56,7 @@ extern void start_function_scope(struct position pos);
 extern void end_function_scope(void);
 
 extern void bind_scope(struct symbol *, struct scope *);
+extern void rebind_scope(struct symbol *, struct scope *);
 
 extern int is_outer_scope(struct scope *);
 #endif

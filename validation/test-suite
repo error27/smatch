@@ -106,20 +106,26 @@ do_test()
 	fi
 	verbose "Using command       : $cmd"
 
-	# grab the expected exit value
-	get_value "check-exit-value" $file
-	if [ "$?" -eq "0" ]; then
-		expected_exit_value=`echo $last_result | tr -d ' '`
-	else
-		expected_exit_value=0
-	fi
-	verbose "Expecting exit value: $expected_exit_value"
-
 	# grab the expected output
 	sed -n '/check-output-start/,/check-output-end/p' $file \
 		| grep -v check-output > "$file".output.expected
 	sed -n '/check-error-start/,/check-error-end/p' $file \
 		| grep -v check-error > "$file".error.expected
+
+	# grab the expected exit value
+	get_value "check-exit-value" $file
+	if [ "$?" -eq "0" ]; then
+		expected_exit_value=`echo $last_result | tr -d ' '`
+	else
+		grep -q -E "^[^:]+:[[:digit:]]+:[[:digit:]]+: error:" "$file".error.expected
+		if  [ "$?" -eq "0" ]; then
+			expected_exit_value=1
+		else
+			expected_exit_value=0
+		fi
+	fi
+	verbose "Expecting exit value: $expected_exit_value"
+
 
 	# grab the actual output & exit value
 	$cmd 1> $file.output.got 2> $file.error.got
