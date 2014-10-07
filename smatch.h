@@ -706,6 +706,7 @@ void __add_comparison_info(struct expression *expr, struct expression *call, con
 char *expr_equal_to_param(struct expression *expr, int ignore);
 char *expr_lte_to_param(struct expression *expr, int ignore);
 int flip_comparison(int op);
+int negate_comparison(int op);
 
 /* smatch_sval.c */
 sval_t *sval_alloc(sval_t sval);

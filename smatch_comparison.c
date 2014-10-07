@@ -117,7 +117,7 @@ int flip_comparison(int op)
 	}
 }
 
-static int falsify_op(int op)
+int negate_comparison(int op)
 {
 	switch (op) {
 	case 0:
@@ -887,7 +887,7 @@ static void match_compare(struct expression *expr)
 	} else {
 		op = expr->op;
 	}
-	false_op = falsify_op(op);
+	false_op = negate_comparison(op);
 
 	orig_comparison = get_comparison_strings(left, right);
 	op = filter_comparison(orig_comparison, op);
