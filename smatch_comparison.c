@@ -84,9 +84,9 @@ static int state_to_comparison(struct smatch_state *state)
 }
 
 /*
- * flip_op() reverses the op left and right.  So "x >= y" becomes "y <= x".
+ * flip_comparison() reverses the op left and right.  So "x >= y" becomes "y <= x".
  */
-static int flip_op(int op)
+int flip_comparison(int op)
 {
 	switch (op) {
 	case 0:
@@ -786,7 +786,7 @@ static void update_tf_links(struct stree *pre_stree,
 		if (strcmp(mid_var, right_var) == 0) {
 			right_var = data->var1;
 			right_vsl = data->vsl1;
-			right_comparison = flip_op(right_comparison);
+			right_comparison = flip_comparison(right_comparison);
 		}
 		if (strcmp(left_var, right_var) == 0)
 			continue;
@@ -802,8 +802,8 @@ static void update_tf_links(struct stree *pre_stree,
 			left_vsl = right_vsl;
 			right_var = tmp_var;
 			right_vsl = tmp_vsl;
-			true_comparison = flip_op(true_comparison);
-			false_comparison = flip_op(false_comparison);
+			true_comparison = flip_comparison(true_comparison);
+			false_comparison = flip_comparison(false_comparison);
 		}
 
 		if (!true_comparison && !false_comparison)
@@ -846,7 +846,7 @@ static void update_tf_data(struct stree *pre_stree,
 
 	state = get_state_stree(pre_stree, link_id, left_name, vsl_to_sym(left_vsl));
 	if (state)
-		update_tf_links(pre_stree, right_name, right_vsl, flip_op(true_comparison), flip_op(false_comparison), left_name, left_vsl, state->data);
+		update_tf_links(pre_stree, right_name, right_vsl, flip_comparison(true_comparison), flip_comparison(false_comparison), left_name, left_vsl, state->data);
 }
 
 static void match_compare(struct expression *expr)
@@ -883,7 +883,7 @@ static void match_compare(struct expression *expr)
 		right = tmp_name;
 		right_sym = tmp_sym;
 		right_vsl = tmp_vsl;
-		op = flip_op(expr->op);
+		op = flip_comparison(expr->op);
 	} else {
 		op = expr->op;
 	}
@@ -926,7 +926,7 @@ static void add_comparison_var_sym(const char *left_name,
 		left_vsl = right_vsl;
 		right_name = tmp_name;
 		right_vsl = tmp_vsl;
-		comparison = flip_op(comparison);
+		comparison = flip_comparison(comparison);
 	}
 	snprintf(state_name, sizeof(state_name), "%s vs %s", left_name, right_name);
 	state = alloc_compare_state(left_name, left_vsl, comparison, right_name, right_vsl);
@@ -970,7 +970,7 @@ static void add_comparison(struct expression *left, int comparison, struct expre
 		right_name = tmp_name;
 		right_sym = tmp_sym;
 		right_vsl = tmp_vsl;
-		comparison = flip_op(comparison);
+		comparison = flip_comparison(comparison);
 	}
 	snprintf(state_name, sizeof(state_name), "%s vs %s", left_name, right_name);
 	state = alloc_compare_state(left_name, left_vsl, comparison, right_name, right_vsl);
@@ -1101,7 +1101,7 @@ static void copy_comparisons(struct expression *left, struct expression *right)
 		if (strcmp(var, right_var) == 0) {
 			var = data->var1;
 			vsl = data->vsl1;
-			comparison = flip_op(comparison);
+			comparison = flip_comparison(comparison);
 		}
 		add_comparison_var_sym(left_var, left_vsl, comparison, var, vsl);
 	} END_FOR_EACH_PTR(tmp);
@@ -1152,7 +1152,7 @@ int get_comparison_strings(const char *one, const char *two)
 		ret = state_to_comparison(state);
 
 	if (invert)
-		ret = flip_op(ret);
+		ret = flip_comparison(ret);
 
 	return ret;
 }
@@ -1204,7 +1204,7 @@ int possible_comparison(struct expression *a, int comparison, struct expression 
 
 		one = two;
 		two = tmp;
-		comparison = flip_op(comparison);
+		comparison = flip_comparison(comparison);
 	}
 
 	snprintf(buf, sizeof(buf), "%s vs %s", one, two);
@@ -1275,7 +1275,7 @@ static void update_links_from_call(struct expression *left,
 		if (strcmp(var, right_var) == 0) {
 			var = data->var1;
 			vsl = data->vsl1;
-			comparison = flip_op(comparison);
+			comparison = flip_comparison(comparison);
 		}
 		comparison = combine_comparisons(left_compare, comparison);
 		if (!comparison)
