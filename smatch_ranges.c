@@ -162,7 +162,7 @@ static sval_t sub_one(sval_t sval)
 	return sval;
 }
 
-static struct range_list *filter_by_comparison(char *c, struct expression *call, char **endp, struct range_list *start_rl)
+static struct range_list *filter_by_comparison_call(char *c, struct expression *call, char **endp, struct range_list *start_rl)
 {
 	struct expression *arg;
 	struct symbol *cast_type;
@@ -358,7 +358,7 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		goto cast;
 
 
-	*rl = filter_by_comparison(c, call, &c, *rl);
+	*rl = filter_by_comparison_call(c, call, &c, *rl);
 
 cast:
 	*rl = cast_rl(type, *rl);
