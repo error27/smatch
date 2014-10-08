@@ -707,6 +707,7 @@ char *expr_equal_to_param(struct expression *expr, int ignore);
 char *expr_lte_to_param(struct expression *expr, int ignore);
 int flip_comparison(int op);
 int negate_comparison(int op);
+void filter_by_comparison(struct range_list **rl, int comparison, struct range_list *right);
 
 /* smatch_sval.c */
 sval_t *sval_alloc(sval_t sval);

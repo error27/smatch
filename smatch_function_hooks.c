@@ -352,6 +352,28 @@ struct db_callback_info {
 };
 static int prev_return_id;
 
+static void handle_ret_equals_param(char *ret_string, struct range_list *rl, struct expression *call)
+{
+	char *str;
+	long long param;
+	struct expression *arg;
+	struct range_list *orig;
+
+	str = strstr(ret_string, "==$");
+	if (!str)
+		return;
+	str += 3;
+	param = strtoll(str, NULL, 10);
+	arg = get_argument_from_call_expr(call->args, param);
+	if (!arg)
+		return;
+	get_absolute_rl(arg, &orig);
+	rl = rl_intersection(orig, rl);
+	if (!rl)
+		return;
+	set_extra_expr_nomod(arg, alloc_estate_rl(rl));
+}
+
 static int db_compare_callback(void *_info, int argc, char **argv, char **azColName)
 {
 	struct db_callback_info *db_info = _info;
@@ -361,6 +383,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 	struct return_implies_callback *tmp;
 	struct stree *stree;
 	int return_id;
+	int comparison;
 
 	if (argc != 6)
 		return 0;
@@ -368,22 +391,12 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 	return_id = atoi(argv[0]);
 	call_results_to_rl(db_info->expr, get_type(strip_expr(db_info->expr)), argv[1], &ret_range);
 	ret_range = cast_rl(get_type(db_info->expr), ret_range);
+	if (!ret_range)
+		ret_range = alloc_whole_rl(get_type(db_info->expr));
 	type = atoi(argv[2]);
 	param = atoi(argv[3]);
 	key = argv[4];
 	value = argv[5];
-
-	if (db_info->true_side) {
-		if (!possibly_true_rl_LR(db_info->comparison,
-						  ret_range, db_info->rl,
-						  db_info->left))
-			return 0;
-	} else {
-		if (!possibly_false_rl_LR(db_info->comparison,
-						  ret_range, db_info->rl,
-						  db_info->left))
-			return 0;
-	}
 
 	if (prev_return_id != -1 && return_id != prev_return_id) {
 		stree = __pop_fake_cur_stree();
@@ -392,6 +405,22 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 		__push_fake_cur_stree();
 	}
 	prev_return_id = return_id;
+
+	comparison = db_info->comparison;
+	if (!db_info->left)
+		comparison = flip_comparison(comparison);
+
+	if (db_info->true_side) {
+		if (!possibly_true_rl(ret_range, comparison, db_info->rl))
+			return 0;
+		filter_by_comparison(&ret_range, comparison, db_info->rl);
+	} else {
+		if (!possibly_false_rl(ret_range, comparison, db_info->rl))
+			return 0;
+		filter_by_comparison(&ret_range, negate_comparison(comparison), db_info->rl);
+	}
+
+	handle_ret_equals_param(argv[1], ret_range, db_info->expr);
 
 	FOR_EACH_PTR(db_info->callbacks, tmp) {
 		if (tmp->type == type)

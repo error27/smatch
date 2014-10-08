@@ -162,38 +162,32 @@ static sval_t sub_one(sval_t sval)
 	return sval;
 }
 
-static struct range_list *filter_by_comparison_call(char *c, struct expression *call, char **endp, struct range_list *start_rl)
+void filter_by_comparison(struct range_list **rl, int comparison, struct range_list *right)
 {
-	struct expression *arg;
+	struct range_list *left_orig = *rl;
+	struct range_list *right_orig = right;
+	struct range_list *ret_rl = *rl;
 	struct symbol *cast_type;
-	struct range_list *left_orig, *right_orig;
-	struct range_list *ret_rl = start_rl;
-	int comparison;
 	sval_t min, max;
 
-	if (!str_to_comparison_arg_helper(c, call, &comparison, &arg, endp))
-		return 0;
-
-	if (!get_implied_rl(arg, &right_orig))
-		return 0;
-
-	cast_type = rl_type(start_rl);
-	if (sval_type_max(rl_type(start_rl)).uvalue < sval_type_max(rl_type(right_orig)).uvalue)
+	cast_type = rl_type(left_orig);
+	if (sval_type_max(rl_type(left_orig)).uvalue < sval_type_max(rl_type(right_orig)).uvalue)
 		cast_type = rl_type(right_orig);
 	if (sval_type_max(cast_type).uvalue < INT_MAX)
 		cast_type = &int_ctype;
 
 	min = sval_type_min(cast_type);
 	max = sval_type_max(cast_type);
-	left_orig = cast_rl(cast_type, start_rl);
+	left_orig = cast_rl(cast_type, left_orig);
 	right_orig = cast_rl(cast_type, right_orig);
-
 
 	switch (comparison) {
 	case '<':
+	case SPECIAL_UNSIGNED_LT:
 		ret_rl = remove_range(left_orig, rl_max(right_orig), max);
 		break;
 	case SPECIAL_LTE:
+	case SPECIAL_UNSIGNED_LTE:
 		if (!sval_is_max(rl_max(right_orig)))
 			ret_rl = remove_range(left_orig, add_one(rl_max(right_orig)), max);
 		break;
@@ -204,10 +198,12 @@ static struct range_list *filter_by_comparison_call(char *c, struct expression *
 			ret_rl = remove_range(ret_rl, min, sub_one(rl_min(right_orig)));
 		break;
 	case SPECIAL_GTE:
+	case SPECIAL_UNSIGNED_GTE:
 		if (!sval_is_min(rl_min(right_orig)))
 			ret_rl = remove_range(left_orig, min, sub_one(rl_min(right_orig)));
 		break;
 	case '>':
+	case SPECIAL_UNSIGNED_GT:
 		ret_rl = remove_range(left_orig, min, rl_min(right_orig));
 		break;
 	case SPECIAL_NOTEQUAL:
@@ -215,10 +211,27 @@ static struct range_list *filter_by_comparison_call(char *c, struct expression *
 			ret_rl = remove_range(left_orig, rl_min(right_orig), rl_min(right_orig));
 		break;
 	default:
-		return start_rl;
+		sm_msg("internal error: unhandled comparison %s", show_special(comparison));
+		return;
 	}
 
-	return cast_rl(rl_type(start_rl), ret_rl);
+	*rl = cast_rl(rl_type(*rl), ret_rl);
+}
+
+static struct range_list *filter_by_comparison_call(char *c, struct expression *call, char **endp, struct range_list *start_rl)
+{
+	struct expression *arg;
+	struct range_list *right_orig;
+	int comparison;
+
+	if (!str_to_comparison_arg_helper(c, call, &comparison, &arg, endp))
+		return 0;
+
+	if (!get_implied_rl(arg, &right_orig))
+		return 0;
+
+	filter_by_comparison(&start_rl, comparison, right_orig);
+	return start_rl;
 }
 
 static sval_t parse_val(int use_max, struct expression *call, struct symbol *type, char *c, char **endp)
