@@ -29,9 +29,9 @@ delete from caller_info where caller = 'p9_fd_poll' and function = '(struct file
 delete from caller_info where caller = 'proc_reg_poll' and function = 'proc_reg_poll ptr poll' and type = 1003;
 delete from caller_info where function = 'blkdev_ioctl' and type = 1003 and parameter = 0 and key = '\$\$';
 
-insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 3, 0, '$$', '1');
-insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 3, 1, '$$', '1');
-insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 3, 2, '$$', '1');
+insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 0, '\$\$', '1');
+insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 1, '\$\$', '1');
+insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 2, '\$\$', '1');
 
 delete from caller_info where function = '(struct timer_list)->function' and parameter = 0;
 
@@ -41,19 +41,19 @@ delete from caller_info where function = '(struct timer_list)->function' and par
  * on 32 bits.
  */
 delete from return_states where function = 'rw_verify_area';
-insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=p3]', 0, 0, -1, '', '');
-insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=p3]', 0, 11, 2, '*\$\$', '0-1000000');
-insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=p3]', 0, 11, 3, '\$\$', '0-1000000');
-insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)', 0, 0, -1, '', '');
+insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 0,   -1,      '', '');
+insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 1011, 2, '*\$\$', '0-1000000');
+insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 1011, 3,  '\$\$', '0-1000000');
+insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)',     0, 0,   -1,      '', '');
 
 
 /* store a bunch of capped functions */
-update return_states set return = '0-u32max[<=p2]' where function = 'copy_to_user';
-update return_states set return = '0-u32max[<=p2]' where function = '_copy_to_user';
-update return_states set return = '0-u32max[<=p2]' where function = '__copy_to_user';
-update return_states set return = '0-u32max[<=p2]' where function = 'copy_from_user';
-update return_states set return = '0-u32max[<=p2]' where function = '_copy_from_user';
-update return_states set return = '0-u32max[<=p2]' where function = '__copy_from_user';
+update return_states set return = '0-u32max[<=\$2]' where function = 'copy_to_user';
+update return_states set return = '0-u32max[<=\$2]' where function = '_copy_to_user';
+update return_states set return = '0-u32max[<=\$2]' where function = '__copy_to_user';
+update return_states set return = '0-u32max[<=\$2]' where function = 'copy_from_user';
+update return_states set return = '0-u32max[<=\$2]' where function = '_copy_from_user';
+update return_states set return = '0-u32max[<=\$2]' where function = '__copy_from_user';
 
 /* 64 CPUs aught to be enough for anyone */
 update return_states set return = '1-64' where function = 'cpumask_weight';
@@ -67,19 +67,19 @@ update return_states set return = '0-64' where function = '__arch_hweight64';
  * Preserve the value across byte swapping.  By the time we use it for math it
  * will be byte swapped back to CPU endian.
  */
-update return_states set return = '[==p0]' where function = '__fswab64';
-update return_states set return = '[==p0]' where function = '__fswab32';
-update return_states set return = '[==p0]' where function = '__fswab16';
+update return_states set return = 's64min-s64max[==\$0]' where function = '__fswab64';
+update return_states set return = 's32min-s32max[==\$0]' where function = '__fswab32';
+update return_states set return = 's16min-s16max[==\$0]' where function = '__fswab16';
 
 EOF
 
 call_id=$(echo "select distinct call_id from caller_info where function = '__kernel_write';" | sqlite3 smatch_db.sqlite)
 for id in $call_id ; do
-    echo "insert into caller_info values ('fake', '', '__kernel_write', $id, 0, 1, 3, '*\$\$', '0-1000000');" | sqlite3 smatch_db.sqlite
+    echo "insert into caller_info values ('fake', '', '__kernel_write', $id, 0, 1, 1003, '*\$\$', '0-1000000');" | sqlite3 smatch_db.sqlite
 done
 
 for i in $(echo "select distinct return from return_states where function = 'clear_user';" | sqlite3 smatch_db.sqlite ) ; do
-    echo "update return_states set return = \"$i[<=p1]\" where return = \"$i\" and function = 'clear_user';" | sqlite3 smatch_db.sqlite
+    echo "update return_states set return = \"$i[<=\$1]\" where return = \"$i\" and function = 'clear_user';" | sqlite3 smatch_db.sqlite
 done
 
 
