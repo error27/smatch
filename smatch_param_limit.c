@@ -121,7 +121,9 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (param < 0)
 			continue;
 
-		compare = expr_equal_to_param(symbol_expression(tmp->sym), param);
+		compare = expr_param_comparison(symbol_expression(tmp->sym), param);
+		if (!compare)
+			compare = expr_equal_to_param(symbol_expression(tmp->sym), param);
 		if (!compare)
 			compare = expr_lte_to_param(symbol_expression(tmp->sym), param);
 		compare_str = compare;

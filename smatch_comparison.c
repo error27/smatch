@@ -1377,6 +1377,40 @@ char *expr_lte_to_param(struct expression *expr, int ignore)
 	return range_comparison_to_param_helper(expr, '<', ignore);
 }
 
+char *expr_param_comparison(struct expression *expr, int ignore)
+{
+	struct symbol *param;
+	char *var = NULL;
+	char buf[256];
+	char *ret_str = NULL;
+	int compare;
+	int i;
+
+	var = chunk_to_var(expr);
+	if (!var)
+		goto free;
+
+	i = -1;
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, param) {
+		i++;
+		if (i == ignore)
+			continue;
+		if (!param->ident)
+			continue;
+		snprintf(buf, sizeof(buf), "%s orig", param->ident->name);
+		compare = get_comparison_strings(var, buf);
+		if (!compare)
+			continue;
+		snprintf(buf, sizeof(buf), "[%s$%d]", show_special(compare), i);
+		ret_str = alloc_sname(buf);
+		break;
+	} END_FOR_EACH_PTR(param);
+
+free:
+	free_string(var);
+	return ret_str;
+}
+
 static void free_data(struct symbol *sym)
 {
 	if (__inline_fn)

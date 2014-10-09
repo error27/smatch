@@ -705,6 +705,7 @@ int possible_comparison(struct expression *a, int comparison, struct expression 
 void __add_comparison_info(struct expression *expr, struct expression *call, const char *range);
 char *expr_equal_to_param(struct expression *expr, int ignore);
 char *expr_lte_to_param(struct expression *expr, int ignore);
+char *expr_param_comparison(struct expression *expr, int ignore);
 int flip_comparison(int op);
 int negate_comparison(int op);
 void filter_by_comparison(struct range_list **rl, int comparison, struct range_list *right);
