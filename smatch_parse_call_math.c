@@ -32,38 +32,8 @@ struct {
 	{"__vmalloc_node", 0},
 };
 
-DECLARE_PTR_LIST(sval_list, sval_t);
-
-static struct sval_list *num_list;
+static struct range_list_stack *rl_stack;
 static struct string_list *op_list;
-
-static void push_val(sval_t sval)
-{
-	sval_t *p;
-
-	p = malloc(sizeof(*p));
-	*p = sval;
-	add_ptr_list(&num_list, p);
-}
-
-static sval_t pop_val(void)
-{
-	sval_t *p;
-	sval_t ret;
-
-	if (!num_list) {
-		sm_msg("internal bug:  %s popping empty list", __func__);
-		ret.type = &llong_ctype;
-		ret.value = 0;
-		return ret;
-	}
-	p = last_ptr_list((struct ptr_list *)num_list);
-	delete_ptr_list_last((struct ptr_list **)&num_list);
-	ret = *p;
-	free(p);
-
-	return ret;
-}
 
 static void push_op(char c)
 {
@@ -118,40 +88,34 @@ static int top_op_precedence(void)
 	return op_precedence(p[0]);
 }
 
-static void pop_until(char c)
+static void rl_pop_until(char c)
 {
 	char op;
-	sval_t left, right;
-	sval_t res;
+	struct range_list *left, *right;
+	struct range_list *res;
 
 	while (top_op_precedence() && op_precedence(c) <= top_op_precedence()) {
 		op = pop_op();
-		right = pop_val();
-		left = pop_val();
-		res = sval_binop(left, op, right);
-		push_val(res);
+		right = pop_rl(&rl_stack);
+		left = pop_rl(&rl_stack);
+		res = rl_binop(left, op, right);
+		push_rl(&rl_stack, res);
 	}
 }
 
-static void discard_stacks(void)
+static void rl_discard_stacks(void)
 {
 	while (op_list)
 		pop_op();
-	while (num_list)
-		pop_val();
+	while (rl_stack)
+		pop_rl(&rl_stack);
 }
 
-static int get_implied_param(struct expression *call, int param, sval_t *sval)
+static int read_var_num(struct expression *call, char *p, char **end, struct range_list **rl)
 {
 	struct expression *arg;
-
-	arg = get_argument_from_call_expr(call->args, param);
-	return get_implied_value(arg, sval);
-}
-
-static int read_number(struct expression *call, char *p, char **end, sval_t *sval)
-{
 	long param;
+	sval_t sval;
 
 	while (*p == ' ')
 		p++;
@@ -159,15 +123,20 @@ static int read_number(struct expression *call, char *p, char **end, sval_t *sva
 	if (*p == '$') {
 		p++;
 		param = strtol(p, &p, 10);
-		if (!get_implied_param(call, param, sval))
+
+		arg = get_argument_from_call_expr(call->args, param);
+		if (!arg)
 			return 0;
+		get_absolute_rl(arg, rl);
 		*end = p;
-	} else {
-		sval->type = &llong_ctype;
-		sval->value = strtoll(p, end, 10);
-		if (*end == p)
-			return 0;
+		return 1;
 	}
+
+	sval.type = &llong_ctype;
+	sval.value = strtoll(p, end, 10);
+	if (*end == p)
+		return 0;
+	*rl = alloc_rl(sval, sval);
 	return 1;
 }
 
@@ -187,9 +156,9 @@ static char *read_op(char *p)
 	}
 }
 
-int parse_call_math(struct expression *call, char *math, sval_t *sval)
+int parse_call_math_rl(struct expression *call, char *math, struct range_list **rl)
 {
-	sval_t tmp;
+	struct range_list *tmp;
 	char *c;
 
 	/* try to implement shunting yard algorithm. */
@@ -200,12 +169,12 @@ int parse_call_math(struct expression *call, char *math, sval_t *sval)
 			sm_msg("parsing %s", c);
 
 		/* read a number and push it onto the number stack */
-		if (!read_number(call, c, &c, &tmp))
+		if (!read_var_num(call, c, &c, &tmp))
 			goto fail;
-		push_val(tmp);
+		push_rl(&rl_stack, tmp);
 
 		if (option_debug)
-			sm_msg("val = %s remaining = %s", sval_to_str(tmp), c);
+			sm_msg("val = %s remaining = %s", show_rl(tmp), c);
 
 		if (!*c)
 			break;
@@ -219,39 +188,28 @@ int parse_call_math(struct expression *call, char *math, sval_t *sval)
 		if (option_debug)
 			sm_msg("op = %c remaining = %s", *c, c);
 
-		pop_until(*c);
+		rl_pop_until(*c);
 		push_op(*c);
 		c++;
 	}
 
-	pop_until(0);
-	*sval = pop_val();
+	rl_pop_until(0);
+	*rl = pop_rl(&rl_stack);
 	return 1;
 fail:
-	discard_stacks();
+	rl_discard_stacks();
 	return 0;
 }
 
-int parse_call_math_rl(struct expression *call, char *math, struct range_list **rl)
+int parse_call_math(struct expression *call, char *math, sval_t *sval)
 {
-	struct expression *arg;
-	sval_t sval;
-	char *c = math;
-	int param;
+	struct range_list *rl;
 
-	if (parse_call_math(call, math, &sval)) {
-		*rl = alloc_rl(sval, sval);
-		return 1;
-	}
-
-	if (*c != '$')
+	if (!parse_call_math_rl(call, math, &rl))
 		return 0;
-	c++;
-	param = strtoll(c, &c, 10);
-	if (*c != ']')
+	if (!rl_to_sval(rl, sval))
 		return 0;
-	arg = get_argument_from_call_expr(call->args, param);
-	return get_implied_rl(arg, rl);
+	return 1;
 }
 
 static struct smatch_state *alloc_state_sname(char *sname)
