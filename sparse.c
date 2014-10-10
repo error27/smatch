@@ -288,7 +288,7 @@ static void check_symbols(struct symbol_list *list)
 		}
 	} END_FOR_EACH_PTR(sym);
 
-	if (die_if_error)
+	if (Wsparse_error && die_if_error)
 		exit(1);
 }
 

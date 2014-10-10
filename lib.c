@@ -150,7 +150,7 @@ void warning(struct position pos, const char * fmt, ...)
 {
 	va_list args;
 
-	if (Werror) {
+	if (Wsparse_error) {
 		va_start(args, fmt);
 		do_error(pos, fmt, args);
 		va_end(args);
@@ -226,7 +226,7 @@ int Wdesignated_init = 1;
 int Wdo_while = 0;
 int Winit_cstring = 0;
 int Wenum_mismatch = 1;
-int Werror = 0;
+int Wsparse_error = 0;
 int Wnon_pointer_null = 1;
 int Wold_initializer = 1;
 int Wone_bit_signed_bitfield = 1;
@@ -439,7 +439,7 @@ static const struct warning {
 	{ "designated-init", &Wdesignated_init },
 	{ "do-while", &Wdo_while },
 	{ "enum-mismatch", &Wenum_mismatch },
-	{ "error", &Werror },
+	{ "sparse-error", &Wsparse_error },
 	{ "init-cstring", &Winit_cstring },
 	{ "non-pointer-null", &Wnon_pointer_null },
 	{ "old-initializer", &Wold_initializer },
@@ -471,7 +471,7 @@ static char **handle_onoff_switch(char *arg, char **next, const struct warning w
 
 	if (!strcmp(p, "sparse-all")) {
 		for (i = 0; i < n; i++) {
-			if (*warnings[i].flag != WARNING_FORCE_OFF && warnings[i].flag != &Werror)
+			if (*warnings[i].flag != WARNING_FORCE_OFF && warnings[i].flag != &Wsparse_error)
 				*warnings[i].flag = WARNING_ON;
 		}
 	}
