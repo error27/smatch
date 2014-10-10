@@ -1117,6 +1117,111 @@ struct range_list *rl_intersection(struct range_list *one, struct range_list *tw
 	return rl_filter(one, two);
 }
 
+static struct range_list *handle_mod_rl(struct range_list *left, struct range_list *right)
+{
+	sval_t zero;
+	sval_t max;
+
+	max = rl_max(right);
+	if (sval_is_max(max))
+		return left;
+	if (max.value == 0)
+		return NULL;
+	max.value--;
+	if (sval_is_negative(max))
+		return NULL;
+	if (sval_cmp(rl_max(left), max) < 0)
+		return left;
+	zero = max;
+	zero.value = 0;
+	return alloc_rl(zero, max);
+}
+
+static struct range_list *handle_divide_rl(struct range_list *left, struct range_list *right)
+{
+	sval_t min, max;
+
+	if (sval_is_max(rl_max(left)))
+		return NULL;
+	if (sval_is_max(rl_max(right)))
+		return NULL;
+
+	if (sval_is_negative(rl_min(left)))
+		return NULL;
+	if (sval_cmp_val(rl_min(right), 0) <= 0)
+		return NULL;
+
+	max = sval_binop(rl_max(left), '/', rl_min(right));
+	min = sval_binop(rl_min(left), '/', rl_max(right));
+
+	return alloc_rl(min, max);
+}
+
+static struct range_list *handle_add_mult_rl(struct range_list *left, int op, struct range_list *right)
+{
+	sval_t min, max;
+
+	if (sval_binop_overflows(rl_min(left), op, rl_min(right)))
+		return NULL;
+	min = sval_binop(rl_min(left), op, rl_min(right));
+
+	if (sval_binop_overflows(rl_max(left), op, rl_max(right)))
+		return NULL;
+	max = sval_binop(rl_max(left), op, rl_max(right));
+
+	return alloc_rl(min, max);
+}
+
+struct range_list *rl_binop(struct range_list *left, int op, struct range_list *right)
+{
+	struct symbol *cast_type;
+	sval_t left_sval, right_sval;
+	struct range_list *ret = NULL;
+
+	cast_type = rl_type(left);
+	if (sval_type_max(rl_type(left)).uvalue < sval_type_max(rl_type(right)).uvalue)
+		cast_type = rl_type(right);
+	if (sval_type_max(cast_type).uvalue < INT_MAX)
+		cast_type = &int_ctype;
+
+	left = cast_rl(cast_type, left);
+	right = cast_rl(cast_type, right);
+
+	if (!left || !right)
+		return alloc_whole_rl(cast_type);
+
+	if (rl_to_sval(left, &left_sval) && rl_to_sval(right, &right_sval)) {
+		sval_t val = sval_binop(left_sval, op, right_sval);
+		return alloc_rl(val, val);
+	}
+
+	switch (op) {
+	case '%':
+		ret = handle_mod_rl(left, right);
+		break;
+	case '/':
+		ret = handle_divide_rl(left, right);
+		break;
+	case '*':
+	case '+':
+		ret = handle_add_mult_rl(left, op, right);
+		break;
+
+	/* FIXME:  Do the rest as well */
+	case '-':
+	case '|':
+	case '&':
+	case SPECIAL_RIGHTSHIFT:
+	case SPECIAL_LEFTSHIFT:
+	case '^':
+		break;
+	}
+
+	if (!ret)
+		ret = alloc_whole_rl(cast_type);
+	return ret;
+}
+
 void free_rl(struct range_list **rlist)
 {
 	__free_ptr_list((struct ptr_list **)rlist);

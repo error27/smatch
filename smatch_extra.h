@@ -80,6 +80,7 @@ struct range_list *rl_invert(struct range_list *orig);
 struct range_list *rl_filter(struct range_list *rl, struct range_list *filter);
 struct range_list *rl_intersection(struct range_list *one, struct range_list *two);
 struct range_list *rl_union(struct range_list *one, struct range_list *two);
+struct range_list *rl_binop(struct range_list *left, int op, struct range_list *right);
 
 void push_rl(struct range_list_stack **rl_stack, struct range_list *rl);
 struct range_list *pop_rl(struct range_list_stack **rl_stack);
