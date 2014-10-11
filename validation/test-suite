@@ -114,7 +114,7 @@ do_test()
 	set -- $cmd
 	base_cmd=`basename $1`
 	for i in $disabled_cmds; do
-		if [ "$i" == "$base_cmd" ] ; then
+		if [ "$i" = "$base_cmd" ] ; then
 			disabled_tests=`expr $disabled_tests + 1`
 			echo "     DISABLE $test_name ($file)"
 			return 3
