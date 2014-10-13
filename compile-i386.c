@@ -732,7 +732,8 @@ static void emit_insn_atom(struct function *f, struct atom *atom)
 			atom->insn,
 			comment[0] ? "\t\t" : "", comment);
 
-	write(STDOUT_FILENO, s, strlen(s));
+	if (write(STDOUT_FILENO, s, strlen(s)) < 0)
+		die("can't write to stdout");
 }
 
 static void emit_atom_list(struct function *f)
@@ -742,9 +743,8 @@ static void emit_atom_list(struct function *f)
 	FOR_EACH_PTR(f->atom_list, atom) {
 		switch (atom->type) {
 		case ATOM_TEXT: {
-			ssize_t rc = write(STDOUT_FILENO, atom->text,
-					   atom->text_len);
-			(void) rc;	/* FIXME */
+			if (write(STDOUT_FILENO, atom->text, atom->text_len) < 0)
+				die("can't write to stdout");
 			break;
 		}
 		case ATOM_INSN:
