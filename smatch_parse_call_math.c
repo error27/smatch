@@ -385,12 +385,9 @@ static char *swap_format(struct expression *call, char *format)
 	p = format;
 	out = buf;
 	while (*p) {
-		if (*p == '<') {
+		if (*p == '$') {
 			p++;
 			param = strtol(p, &p, 10);
-			if (*p != '>')
-				return NULL;
-			p++;
 			arg = get_argument_from_call_expr(call->args, param);
 			if (!arg)
 				return NULL;
