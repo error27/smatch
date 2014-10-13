@@ -415,6 +415,7 @@ static char *swap_format(struct expression *call, char *format)
 	}
 	if (buf[0] == '\0')
 		return NULL;
+	*out = '\0';
 	return alloc_sname(buf);
 }
 
