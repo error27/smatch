@@ -155,7 +155,7 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
 	if (sval_is_negative(min) && sval_cmp_val(min, -4095) < 0)
 		sm_msg("error: %s too low for ERR_PTR", sval_to_str(min));
 	if (sval_is_positive(max) && sval_cmp_val(max, 0) != 0)
-		sm_msg("error: passing non neg %s to ERR_PTR", sval_to_str(max));
+		sm_msg("error: passing non negative %s to ERR_PTR", sval_to_str(max));
 }
 
 void check_err_ptr_deref(int id)
