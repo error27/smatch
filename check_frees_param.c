@@ -31,20 +31,6 @@ STATE(freed);
 STATE(ignore);
 STATE(param);
 
-static int is_arg(struct expression *expr)
-{
-	struct symbol *arg;
-
-	if (expr->type != EXPR_SYMBOL)
-		return 0;
-
-	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
-		if (arg == expr->symbol)
-			return 1;
-	} END_FOR_EACH_PTR(arg);
-	return 0;
-}
-
 static void set_ignore(struct sm_state *sm, struct expression *mod_expr)
 {
 	if (sm->state == &freed)
@@ -71,7 +57,7 @@ static void freed_variable(struct expression *expr)
 	struct sm_state *sm;
 
 	expr = strip_expr(expr);
-	if (!is_arg(expr))
+	if (get_param_num(expr) < 0)
 		return;
 
 	sm = get_sm_state_expr(my_id, expr);
@@ -100,17 +86,22 @@ static void set_param_freed(struct expression *arg, char *key, char *unused)
 
 static void process_states(struct stree *stree)
 {
-	struct symbol *arg;
-	int i;
+	struct sm_state *sm;
+	int param;
+	const char *param_name;
 
-	i = -1;
-	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
-		i++;
-		if (!arg->ident)
+	FOR_EACH_MY_SM(my_id, stree, sm) {
+		if (sm->state != &freed)
 			continue;
-		if (get_state_stree(stree, my_id, arg->ident->name, arg) == &freed)
-			sql_insert_call_implies(PARAM_FREED, i, "$$", "1");
-	} END_FOR_EACH_PTR(arg);
+		param = get_param_num_from_sym(sm->sym);
+		if (param < 0)
+			continue;
+		param_name = get_param_name(sm);
+		if (!param_name)
+			continue;
+		sql_insert_call_implies(PARAM_FREED, param, param_name, "1");
+	} END_FOR_EACH_SM(sm);
+
 }
 
 void check_frees_param(int id)
