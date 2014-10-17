@@ -934,13 +934,11 @@ static const char *get_return_ranges_str(struct expression *expr)
 
 	if (!expr)
 		return alloc_sname("");
-	compare_str = expr_equal_to_param(expr, -1);
-	if (compare_str)
-		return compare_str;
 
 	if (get_implied_value(expr, &sval))
 		return sval_to_str(sval);
 
+	compare_str = expr_equal_to_param(expr, -1);
 	math_str = get_value_in_terms_of_parameter_math(expr);
 
 	if (get_implied_rl(expr, &rl)) {
@@ -949,6 +947,11 @@ static const char *get_return_ranges_str(struct expression *expr)
 	} else {
 		rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr)));
 		return_ranges = show_rl(rl);
+	}
+
+	if (compare_str) {
+		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
+		return alloc_sname(buf);
 	}
 
 	if (math_str) {

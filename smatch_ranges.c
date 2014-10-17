@@ -162,38 +162,32 @@ static sval_t sub_one(sval_t sval)
 	return sval;
 }
 
-static struct range_list *filter_by_comparison(char *c, struct expression *call, char **endp, struct range_list *start_rl)
+void filter_by_comparison(struct range_list **rl, int comparison, struct range_list *right)
 {
-	struct expression *arg;
+	struct range_list *left_orig = *rl;
+	struct range_list *right_orig = right;
+	struct range_list *ret_rl = *rl;
 	struct symbol *cast_type;
-	struct range_list *left_orig, *right_orig;
-	struct range_list *ret_rl = start_rl;
-	int comparison;
 	sval_t min, max;
 
-	if (!str_to_comparison_arg_helper(c, call, &comparison, &arg, endp))
-		return 0;
-
-	if (!get_implied_rl(arg, &right_orig))
-		return 0;
-
-	cast_type = rl_type(start_rl);
-	if (sval_type_max(rl_type(start_rl)).uvalue < sval_type_max(rl_type(right_orig)).uvalue)
+	cast_type = rl_type(left_orig);
+	if (sval_type_max(rl_type(left_orig)).uvalue < sval_type_max(rl_type(right_orig)).uvalue)
 		cast_type = rl_type(right_orig);
 	if (sval_type_max(cast_type).uvalue < INT_MAX)
 		cast_type = &int_ctype;
 
 	min = sval_type_min(cast_type);
 	max = sval_type_max(cast_type);
-	left_orig = cast_rl(cast_type, start_rl);
+	left_orig = cast_rl(cast_type, left_orig);
 	right_orig = cast_rl(cast_type, right_orig);
-
 
 	switch (comparison) {
 	case '<':
+	case SPECIAL_UNSIGNED_LT:
 		ret_rl = remove_range(left_orig, rl_max(right_orig), max);
 		break;
 	case SPECIAL_LTE:
+	case SPECIAL_UNSIGNED_LTE:
 		if (!sval_is_max(rl_max(right_orig)))
 			ret_rl = remove_range(left_orig, add_one(rl_max(right_orig)), max);
 		break;
@@ -204,10 +198,12 @@ static struct range_list *filter_by_comparison(char *c, struct expression *call,
 			ret_rl = remove_range(ret_rl, min, sub_one(rl_min(right_orig)));
 		break;
 	case SPECIAL_GTE:
+	case SPECIAL_UNSIGNED_GTE:
 		if (!sval_is_min(rl_min(right_orig)))
 			ret_rl = remove_range(left_orig, min, sub_one(rl_min(right_orig)));
 		break;
 	case '>':
+	case SPECIAL_UNSIGNED_GT:
 		ret_rl = remove_range(left_orig, min, rl_min(right_orig));
 		break;
 	case SPECIAL_NOTEQUAL:
@@ -215,10 +211,27 @@ static struct range_list *filter_by_comparison(char *c, struct expression *call,
 			ret_rl = remove_range(left_orig, rl_min(right_orig), rl_min(right_orig));
 		break;
 	default:
-		return start_rl;
+		sm_msg("internal error: unhandled comparison %s", show_special(comparison));
+		return;
 	}
 
-	return cast_rl(rl_type(start_rl), ret_rl);
+	*rl = cast_rl(rl_type(*rl), ret_rl);
+}
+
+static struct range_list *filter_by_comparison_call(char *c, struct expression *call, char **endp, struct range_list *start_rl)
+{
+	struct expression *arg;
+	struct range_list *right_orig;
+	int comparison;
+
+	if (!str_to_comparison_arg_helper(c, call, &comparison, &arg, endp))
+		return 0;
+
+	if (!get_implied_rl(arg, &right_orig))
+		return 0;
+
+	filter_by_comparison(&start_rl, comparison, right_orig);
+	return start_rl;
 }
 
 static sval_t parse_val(int use_max, struct expression *call, struct symbol *type, char *c, char **endp)
@@ -358,7 +371,7 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		goto cast;
 
 
-	*rl = filter_by_comparison(c, call, &c, *rl);
+	*rl = filter_by_comparison_call(c, call, &c, *rl);
 
 cast:
 	*rl = cast_rl(type, *rl);
@@ -1102,6 +1115,111 @@ struct range_list *rl_intersection(struct range_list *one, struct range_list *tw
 		return NULL;
 	two = rl_invert(two);
 	return rl_filter(one, two);
+}
+
+static struct range_list *handle_mod_rl(struct range_list *left, struct range_list *right)
+{
+	sval_t zero;
+	sval_t max;
+
+	max = rl_max(right);
+	if (sval_is_max(max))
+		return left;
+	if (max.value == 0)
+		return NULL;
+	max.value--;
+	if (sval_is_negative(max))
+		return NULL;
+	if (sval_cmp(rl_max(left), max) < 0)
+		return left;
+	zero = max;
+	zero.value = 0;
+	return alloc_rl(zero, max);
+}
+
+static struct range_list *handle_divide_rl(struct range_list *left, struct range_list *right)
+{
+	sval_t min, max;
+
+	if (sval_is_max(rl_max(left)))
+		return NULL;
+	if (sval_is_max(rl_max(right)))
+		return NULL;
+
+	if (sval_is_negative(rl_min(left)))
+		return NULL;
+	if (sval_cmp_val(rl_min(right), 0) <= 0)
+		return NULL;
+
+	max = sval_binop(rl_max(left), '/', rl_min(right));
+	min = sval_binop(rl_min(left), '/', rl_max(right));
+
+	return alloc_rl(min, max);
+}
+
+static struct range_list *handle_add_mult_rl(struct range_list *left, int op, struct range_list *right)
+{
+	sval_t min, max;
+
+	if (sval_binop_overflows(rl_min(left), op, rl_min(right)))
+		return NULL;
+	min = sval_binop(rl_min(left), op, rl_min(right));
+
+	if (sval_binop_overflows(rl_max(left), op, rl_max(right)))
+		return NULL;
+	max = sval_binop(rl_max(left), op, rl_max(right));
+
+	return alloc_rl(min, max);
+}
+
+struct range_list *rl_binop(struct range_list *left, int op, struct range_list *right)
+{
+	struct symbol *cast_type;
+	sval_t left_sval, right_sval;
+	struct range_list *ret = NULL;
+
+	cast_type = rl_type(left);
+	if (sval_type_max(rl_type(left)).uvalue < sval_type_max(rl_type(right)).uvalue)
+		cast_type = rl_type(right);
+	if (sval_type_max(cast_type).uvalue < INT_MAX)
+		cast_type = &int_ctype;
+
+	left = cast_rl(cast_type, left);
+	right = cast_rl(cast_type, right);
+
+	if (!left || !right)
+		return alloc_whole_rl(cast_type);
+
+	if (rl_to_sval(left, &left_sval) && rl_to_sval(right, &right_sval)) {
+		sval_t val = sval_binop(left_sval, op, right_sval);
+		return alloc_rl(val, val);
+	}
+
+	switch (op) {
+	case '%':
+		ret = handle_mod_rl(left, right);
+		break;
+	case '/':
+		ret = handle_divide_rl(left, right);
+		break;
+	case '*':
+	case '+':
+		ret = handle_add_mult_rl(left, op, right);
+		break;
+
+	/* FIXME:  Do the rest as well */
+	case '-':
+	case '|':
+	case '&':
+	case SPECIAL_RIGHTSHIFT:
+	case SPECIAL_LEFTSHIFT:
+	case '^':
+		break;
+	}
+
+	if (!ret)
+		ret = alloc_whole_rl(cast_type);
+	return ret;
 }
 
 void free_rl(struct range_list **rlist)

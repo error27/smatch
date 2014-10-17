@@ -117,7 +117,7 @@ int flip_comparison(int op)
 	}
 }
 
-static int falsify_op(int op)
+int negate_comparison(int op)
 {
 	switch (op) {
 	case 0:
@@ -748,6 +748,32 @@ done:
 	free_string(var);
 }
 
+static int get_orig_comparison(struct stree *pre_stree, const char *left, const char *right)
+{
+	struct smatch_state *state;
+	struct compare_data *data;
+	int flip = 0;
+	char state_name[256];
+
+	if (strcmp(left, right) > 0) {
+		const char *tmp = right;
+
+		flip = 1;
+		right = left;
+		left = tmp;
+	}
+
+	snprintf(state_name, sizeof(state_name), "%s vs %s", left, right);
+	state = get_state_stree(pre_stree, compare_id, state_name, NULL);
+	if (!state || !state->data)
+		return 0;
+	data = state->data;
+	if (flip)
+		return flip_comparison(data->comparison);
+	return data->comparison;
+
+}
+
 /*
  * The idea here is that we take a comparison "a < b" and then we look at all
  * the things which "b" is compared against "b < c" and we say that that implies
@@ -768,6 +794,7 @@ static void update_tf_links(struct stree *pre_stree,
 	struct compare_data *data;
 	const char *right_var;
 	struct var_sym_list *right_vsl;
+	int orig_comparison;
 	int right_comparison;
 	int true_comparison;
 	int false_comparison;
@@ -791,8 +818,13 @@ static void update_tf_links(struct stree *pre_stree,
 		if (strcmp(left_var, right_var) == 0)
 			continue;
 
+		orig_comparison = get_orig_comparison(pre_stree, left_var, right_var);
+
 		true_comparison = combine_comparisons(left_comparison, right_comparison);
 		false_comparison = combine_comparisons(left_false_comparison, right_comparison);
+
+		true_comparison = filter_comparison(orig_comparison, true_comparison);
+		false_comparison = filter_comparison(orig_comparison, false_comparison);
 
 		if (strcmp(left_var, right_var) > 0) {
 			const char *tmp_var = left_var;
@@ -887,7 +919,7 @@ static void match_compare(struct expression *expr)
 	} else {
 		op = expr->op;
 	}
-	false_op = falsify_op(op);
+	false_op = negate_comparison(op);
 
 	orig_comparison = get_comparison_strings(left, right);
 	op = filter_comparison(orig_comparison, op);
@@ -1343,6 +1375,40 @@ char *expr_equal_to_param(struct expression *expr, int ignore)
 char *expr_lte_to_param(struct expression *expr, int ignore)
 {
 	return range_comparison_to_param_helper(expr, '<', ignore);
+}
+
+char *expr_param_comparison(struct expression *expr, int ignore)
+{
+	struct symbol *param;
+	char *var = NULL;
+	char buf[256];
+	char *ret_str = NULL;
+	int compare;
+	int i;
+
+	var = chunk_to_var(expr);
+	if (!var)
+		goto free;
+
+	i = -1;
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, param) {
+		i++;
+		if (i == ignore)
+			continue;
+		if (!param->ident)
+			continue;
+		snprintf(buf, sizeof(buf), "%s orig", param->ident->name);
+		compare = get_comparison_strings(var, buf);
+		if (!compare)
+			continue;
+		snprintf(buf, sizeof(buf), "[%s$%d]", show_special(compare), i);
+		ret_str = alloc_sname(buf);
+		break;
+	} END_FOR_EACH_PTR(param);
+
+free:
+	free_string(var);
+	return ret_str;
 }
 
 static void free_data(struct symbol *sym)

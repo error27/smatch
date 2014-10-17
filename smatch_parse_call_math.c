@@ -32,38 +32,8 @@ struct {
 	{"__vmalloc_node", 0},
 };
 
-DECLARE_PTR_LIST(sval_list, sval_t);
-
-static struct sval_list *num_list;
+static struct range_list_stack *rl_stack;
 static struct string_list *op_list;
-
-static void push_val(sval_t sval)
-{
-	sval_t *p;
-
-	p = malloc(sizeof(*p));
-	*p = sval;
-	add_ptr_list(&num_list, p);
-}
-
-static sval_t pop_val(void)
-{
-	sval_t *p;
-	sval_t ret;
-
-	if (!num_list) {
-		sm_msg("internal bug:  %s popping empty list", __func__);
-		ret.type = &llong_ctype;
-		ret.value = 0;
-		return ret;
-	}
-	p = last_ptr_list((struct ptr_list *)num_list);
-	delete_ptr_list_last((struct ptr_list **)&num_list);
-	ret = *p;
-	free(p);
-
-	return ret;
-}
 
 static void push_op(char c)
 {
@@ -118,56 +88,95 @@ static int top_op_precedence(void)
 	return op_precedence(p[0]);
 }
 
-static void pop_until(char c)
+static void rl_pop_until(char c)
 {
 	char op;
-	sval_t left, right;
-	sval_t res;
+	struct range_list *left, *right;
+	struct range_list *res;
 
 	while (top_op_precedence() && op_precedence(c) <= top_op_precedence()) {
 		op = pop_op();
-		right = pop_val();
-		left = pop_val();
-		res = sval_binop(left, op, right);
-		push_val(res);
+		right = pop_rl(&rl_stack);
+		left = pop_rl(&rl_stack);
+		res = rl_binop(left, op, right);
+		push_rl(&rl_stack, res);
 	}
 }
 
-static void discard_stacks(void)
+static void rl_discard_stacks(void)
 {
 	while (op_list)
 		pop_op();
-	while (num_list)
-		pop_val();
+	while (rl_stack)
+		pop_rl(&rl_stack);
 }
 
-static int get_implied_param(struct expression *call, int param, sval_t *sval)
+static int read_rl_from_var(struct expression *call, char *p, char **end, struct range_list **rl)
 {
 	struct expression *arg;
+	struct smatch_state *state;
+	long param;
+	char *name;
+	struct symbol *sym;
+	char buf[256];
+	int star;
+
+	p++;
+	param = strtol(p, &p, 10);
 
 	arg = get_argument_from_call_expr(call->args, param);
-	return get_implied_value(arg, sval);
+	if (!arg)
+		return 0;
+
+	if (*p != '-' && *p != '.') {
+		get_absolute_rl(arg, rl);
+		*end = p;
+		return 1;
+	}
+
+	*end = strchr(p, ' ');
+
+	if (arg->type == EXPR_PREOP && arg->op == '&') {
+		arg = strip_expr(arg->unop);
+		star = 0;
+		p++;
+	} else {
+		star = 1;
+		p += 2;
+	}
+
+	name = expr_to_var_sym(arg, &sym);
+	if (!name)
+		return 0;
+	snprintf(buf, sizeof(buf), "%s%s", name, star ? "->" : ".");
+	free_string(name);
+
+	if (*end - p + strlen(buf) >= sizeof(buf))
+		return 0;
+	strncat(buf, p, *end - p);
+
+	state = get_state(SMATCH_EXTRA, buf, sym);
+	if (!state)
+		return 0;
+	*rl = estate_rl(state);
+	return 1;
 }
 
-static int read_number(struct expression *call, char *p, char **end, sval_t *sval)
+static int read_var_num(struct expression *call, char *p, char **end, struct range_list **rl)
 {
-	long param;
+	sval_t sval;
 
 	while (*p == ' ')
 		p++;
 
-	if (*p == '$') {
-		p++;
-		param = strtol(p, &p, 10);
-		if (!get_implied_param(call, param, sval))
-			return 0;
-		*end = p;
-	} else {
-		sval->type = &llong_ctype;
-		sval->value = strtoll(p, end, 10);
-		if (*end == p)
-			return 0;
-	}
+	if (*p == '$')
+		return read_rl_from_var(call, p, end, rl);
+
+	sval.type = &llong_ctype;
+	sval.value = strtoll(p, end, 10);
+	if (*end == p)
+		return 0;
+	*rl = alloc_rl(sval, sval);
 	return 1;
 }
 
@@ -187,9 +196,9 @@ static char *read_op(char *p)
 	}
 }
 
-int parse_call_math(struct expression *call, char *math, sval_t *sval)
+int parse_call_math_rl(struct expression *call, char *math, struct range_list **rl)
 {
-	sval_t tmp;
+	struct range_list *tmp;
 	char *c;
 
 	/* try to implement shunting yard algorithm. */
@@ -200,12 +209,12 @@ int parse_call_math(struct expression *call, char *math, sval_t *sval)
 			sm_msg("parsing %s", c);
 
 		/* read a number and push it onto the number stack */
-		if (!read_number(call, c, &c, &tmp))
+		if (!read_var_num(call, c, &c, &tmp))
 			goto fail;
-		push_val(tmp);
+		push_rl(&rl_stack, tmp);
 
 		if (option_debug)
-			sm_msg("val = %s remaining = %s", sval_to_str(tmp), c);
+			sm_msg("val = %s remaining = %s", show_rl(tmp), c);
 
 		if (!*c)
 			break;
@@ -219,39 +228,28 @@ int parse_call_math(struct expression *call, char *math, sval_t *sval)
 		if (option_debug)
 			sm_msg("op = %c remaining = %s", *c, c);
 
-		pop_until(*c);
+		rl_pop_until(*c);
 		push_op(*c);
 		c++;
 	}
 
-	pop_until(0);
-	*sval = pop_val();
+	rl_pop_until(0);
+	*rl = pop_rl(&rl_stack);
 	return 1;
 fail:
-	discard_stacks();
+	rl_discard_stacks();
 	return 0;
 }
 
-int parse_call_math_rl(struct expression *call, char *math, struct range_list **rl)
+int parse_call_math(struct expression *call, char *math, sval_t *sval)
 {
-	struct expression *arg;
-	sval_t sval;
-	char *c = math;
-	int param;
+	struct range_list *rl;
 
-	if (parse_call_math(call, math, &sval)) {
-		*rl = alloc_rl(sval, sval);
-		return 1;
-	}
-
-	if (*c != '$')
+	if (!parse_call_math_rl(call, math, &rl))
 		return 0;
-	c++;
-	param = strtoll(c, &c, 10);
-	if (*c != ']')
+	if (!rl_to_sval(rl, sval))
 		return 0;
-	arg = get_argument_from_call_expr(call->args, param);
-	return get_implied_rl(arg, rl);
+	return 1;
 }
 
 static struct smatch_state *alloc_state_sname(char *sname)
@@ -285,9 +283,46 @@ static int get_arg_number(struct expression *expr)
 	return -1;
 }
 
+static int format_variable_helper(char *buf, int remaining, struct expression *expr)
+{
+	int ret = 0;
+	char *name;
+	struct symbol *sym;
+	int arg;
+	char *param_name;
+	int name_len;
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym || !sym->ident)
+		goto free;
+	arg = get_param_num_from_sym(sym);
+	if (arg < 0)
+		goto free;
+	if (param_was_set(expr))
+		goto free;
+
+	param_name = sym->ident->name;
+	name_len = strlen(param_name);
+
+	if (name[name_len] == '\0')
+		ret = snprintf(buf, remaining, "$%d", arg);
+	else if (name[name_len] == '-') {
+		ret = snprintf(buf, remaining, "$%d%s", arg, name + name_len);
+	}
+	else
+		goto free;
+
+	remaining -= ret;
+	if (remaining <= 0)
+		ret = 0;
+free:
+	free_string(name);
+
+	return ret;
+}
+
 static int format_expr_helper(char *buf, int remaining, struct expression *expr)
 {
-	int arg;
 	sval_t sval;
 	int ret;
 	char *cur;
@@ -322,15 +357,6 @@ static int format_expr_helper(char *buf, int remaining, struct expression *expr)
 		return cur - buf;
 	}
 
-	arg = get_arg_number(expr);
-	if (arg >= 0) {
-		ret = snprintf(cur, remaining, "$%d", arg);
-		remaining -= ret;
-		if (remaining <= 0)
-			return 0;
-		return ret;
-	}
-
 	if (get_implied_value(expr, &sval)) {
 		ret = snprintf(cur, remaining, "%s", sval_to_str(sval));
 		remaining -= ret;
@@ -339,7 +365,7 @@ static int format_expr_helper(char *buf, int remaining, struct expression *expr)
 		return ret;
 	}
 
-	return 0;
+	return format_variable_helper(cur, remaining, expr);
 }
 
 static char *format_expr(struct expression *expr)
@@ -427,12 +453,9 @@ static char *swap_format(struct expression *call, char *format)
 	p = format;
 	out = buf;
 	while (*p) {
-		if (*p == '<') {
+		if (*p == '$') {
 			p++;
 			param = strtol(p, &p, 10);
-			if (*p != '>')
-				return NULL;
-			p++;
 			arg = get_argument_from_call_expr(call->args, param);
 			if (!arg)
 				return NULL;
@@ -457,6 +480,7 @@ static char *swap_format(struct expression *call, char *format)
 	}
 	if (buf[0] == '\0')
 		return NULL;
+	*out = '\0';
 	return alloc_sname(buf);
 }
 
