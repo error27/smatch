@@ -119,6 +119,8 @@ CK(check_rosenberg)
 CK(check_rosenberg2)
 CK(check_wait_for_common)
 CK(check_bogus_irqrestore)
+CK(check_buf_comparison)
+CK(check_buf_comparison_links)
 
 /* wine specific stuff */
 CK(check_wine_filehandles)
