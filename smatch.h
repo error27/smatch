@@ -772,4 +772,7 @@ int param_was_set(struct expression *expr);
 void set_up_link_functions(int id, int linkid);
 void store_link(int link_id, const char *name, struct symbol *sym, const char *link_name, struct symbol *link_sym);
 
+/* smatch_auto_copy.c */
+void set_auto_copy(int owner);
+
 #endif 	    /* !SMATCH_H_ */

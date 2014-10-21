@@ -30,6 +30,7 @@ CK(register_data_source)
 CK(register_common_functions)
 CK(register_stored_conditions_links)
 CK(register_function_info)
+CK(register_auto_copy)
 
 CK(check_debug)
 CK(check_assigned_expr)
