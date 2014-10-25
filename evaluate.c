@@ -2380,7 +2380,7 @@ static struct expression *next_designators(struct expression *old,
 					old->ctype, e, v);
 		if (!copy) {
 			n = old->idx_to + 1;
-			if (n * old->ctype->bit_size == ctype->bit_size) {
+			if (array_element_offset(old->ctype->bit_size, n) == ctype->bit_size) {
 				convert_index(old);
 				return NULL;
 			}
