@@ -701,9 +701,18 @@ struct expression *get_assigned_expr(struct expression *expr);
 struct expression *get_assigned_expr_name_sym(const char *name, struct symbol *sym);
 
 /* smatch_comparison.c */
+struct compare_data {
+	const char *var1;
+	struct var_sym_list *vsl1;
+	int comparison;
+	const char *var2;
+	struct var_sym_list *vsl2;
+};
 int get_comparison(struct expression *left, struct expression *right);
 int get_comparison_strings(const char *one, const char *two);
 int possible_comparison(struct expression *a, int comparison, struct expression *b);
+struct state_list *get_all_comparisons(struct expression *expr);
+struct state_list *get_all_possible_equal_comparisons(struct expression *expr);
 void __add_comparison_info(struct expression *expr, struct expression *call, const char *range);
 char *expr_equal_to_param(struct expression *expr, int ignore);
 char *expr_lte_to_param(struct expression *expr, int ignore);

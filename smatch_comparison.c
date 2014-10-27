@@ -1267,6 +1267,57 @@ free:
 	return ret;
 }
 
+struct state_list *get_all_comparisons(struct expression *expr)
+{
+	struct smatch_state *state;
+	struct string_list *links;
+	struct state_list *ret = NULL;
+	struct sm_state *sm;
+	char *tmp;
+
+	state = get_state_expr(link_id, expr);
+	if (!state)
+		return NULL;
+	links = state->data;
+
+	FOR_EACH_PTR(links, tmp) {
+		sm = get_sm_state(compare_id, tmp, NULL);
+		if (!sm)
+			continue;
+		// FIXME have to compare name with vsl
+		add_ptr_list(&ret, sm);
+	} END_FOR_EACH_PTR(tmp);
+
+	return ret;
+}
+
+struct state_list *get_all_possible_equal_comparisons(struct expression *expr)
+{
+	struct smatch_state *state;
+	struct string_list *links;
+	struct state_list *ret = NULL;
+	struct sm_state *sm;
+	char *tmp;
+
+	state = get_state_expr(link_id, expr);
+	if (!state)
+		return NULL;
+	links = state->data;
+
+	FOR_EACH_PTR(links, tmp) {
+		sm = get_sm_state(compare_id, tmp, NULL);
+		if (!sm)
+			continue;
+		if (!strchr(sm->state->name, '='))
+			continue;
+		if (strcmp(sm->state->name, "!=") == 0)
+			continue;
+		add_ptr_list(&ret, sm);
+	} END_FOR_EACH_PTR(tmp);
+
+	return ret;
+}
+
 static void update_links_from_call(struct expression *left,
 				   int left_compare,
 				   struct expression *right)
