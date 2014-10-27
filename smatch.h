@@ -634,6 +634,7 @@ void sql_insert_function_type_size(const char *member, const char *ranges);
 void sql_insert_local_values(const char *name, const char *value);
 void sql_insert_function_type_value(const char *type, const char *value);
 void sql_insert_function_type_info(int param, const char *value);
+void sql_insert_data_info(struct expression *data, int type, const char *value);
 
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**), void *info);

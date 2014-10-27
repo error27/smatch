@@ -20,6 +20,7 @@ def usage():
     print "return_states <function> - what a function returns"
     print "where <struct_type> <member> - where a struct member is set"
     print "type_size <struct_type> <member> - how a struct member is allocated"
+    print "data_info <struct_type> <member> - information about a given data type"
     print "function_ptr <function> - which function pointers point to this"
     sys.exit(1)
 
@@ -140,6 +141,13 @@ def print_type_size(struct_type, member):
     for txt in cur:
         print "%-15s | %-15s | %-15s | %s" %(txt[0], txt[1], txt[2], txt[3])
 
+def print_data_info(struct_type, member):
+    cur = con.cursor()
+    cur.execute("select * from data_info where data like '(struct %s)->%s';" %(struct_type, member))
+    print "file | data | type | value"
+    for txt in cur:
+        print "%-15s | %-15s | %-15s | %s" %(txt[0], txt[1], type_to_str(txt[2]), txt[3])
+
 def print_fn_ptrs(func):
     ptrs = get_function_pointers(func)
     if not ptrs:
@@ -217,6 +225,10 @@ elif sys.argv[1] == "type_size" or sys.argv[1] == "buf_size":
     struct_type = sys.argv[2]
     member = sys.argv[3]
     print_type_size(struct_type, member)
+elif sys.argv[1] == "data_info":
+    struct_type = sys.argv[2]
+    member = sys.argv[3]
+    print_data_info(struct_type, member)
 elif sys.argv[1] == "call_tree":
     func = sys.argv[2]
     print_call_tree(func)

@@ -1,0 +1,2 @@
+CREATE INDEX data_file_info_idx on data_info (file, data);
+CREATE INDEX data_info_idx on data_info (data);

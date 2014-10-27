@@ -243,6 +243,16 @@ void sql_insert_function_type_info(int param, const char *value)
 		   get_base_file(), get_function(), fn_static(), param, value);
 }
 
+void sql_insert_data_info(struct expression *data, int type, const char *value)
+{
+	char *data_name;
+
+	data_name = get_member_name(data);
+	if (!data_name)
+		return;
+	sql_insert(data_info, "'%s', '%s', %d, '%s'", get_base_file(), data_name, type, value);
+}
+
 static char *get_static_filter(struct symbol *sym)
 {
 	static char sql_filter[1024];
@@ -1092,6 +1102,7 @@ static void init_memdb(void)
 		"db/function_type_value.schema",
 		"db/type_value.schema",
 		"db/function_type_info.schema",
+		"db/data_info.schema",
 	};
 	static char buf[4096];
 	int fd;
