@@ -62,7 +62,7 @@ static void match_binop2(struct expression *expr)
 	if ((unsigned long long)-1 & mask.uvalue >> shift.uvalue)
 		return;
 
-	sm_msg("warn: right shifting more than type allows");
+	sm_msg("warn: mask and shift to zero");
 }
 
 static void match_assign(struct expression *expr)
