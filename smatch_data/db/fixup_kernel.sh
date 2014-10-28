@@ -71,6 +71,8 @@ update return_states set return = 's64min-s64max[==\$0]' where function = '__fsw
 update return_states set return = 's32min-s32max[==\$0]' where function = '__fswab32';
 update return_states set return = 's16min-s16max[==\$0]' where function = '__fswab16';
 
+delete from return_states where function = 'bitmap_allocate_region' and return = '1';
+
 EOF
 
 call_id=$(echo "select distinct call_id from caller_info where function = '__kernel_write';" | sqlite3 smatch_db.sqlite)
