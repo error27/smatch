@@ -78,8 +78,7 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 	arg = get_argument_from_call_expr(expr->args, PTR_INT(param));
 	if (!arg)
 		return;
-	/* option_spammy already prints a warning here */
-	if (!option_spammy && is_freed(arg)) {
+	if (is_freed(arg)) {
 		char *name = expr_to_var_sym(arg, NULL);
 
 		sm_msg("error: double free of '%s'", name);
@@ -115,8 +114,7 @@ void check_free(int id)
 
 	if (option_spammy)
 		add_hook(&match_symbol, SYM_HOOK);
-	else
-		add_hook(&match_dereferences, DEREF_HOOK);
+	add_hook(&match_dereferences, DEREF_HOOK);
 
 	add_modification_hook(my_id, &ok_to_use);
 	select_call_implies_hook(PARAM_FREED, &set_param_freed);
