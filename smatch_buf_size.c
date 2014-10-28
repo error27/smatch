@@ -788,6 +788,7 @@ void register_buf_size(int id)
 	add_allocation_function("malloc", &match_alloc, 0);
 	add_allocation_function("calloc", &match_calloc, 0);
 	add_allocation_function("memdup", &match_alloc, 1);
+	add_allocation_function("realloc", &match_alloc, 1);
 	if (option_project == PROJ_KERNEL) {
 		add_allocation_function("kmalloc", &match_alloc, 0);
 		add_allocation_function("kzalloc", &match_alloc, 0);
@@ -805,6 +806,7 @@ void register_buf_size(int id)
 		add_allocation_function("pci_alloc_coherent", &match_alloc, 1);
 		add_allocation_function("devm_kmalloc", &match_alloc, 1);
 		add_allocation_function("devm_kzalloc", &match_alloc, 1);
+		add_allocation_function("krealloc", &match_alloc, 1);
 	}
 	add_hook(&match_strlen_condition, CONDITION_HOOK);
 

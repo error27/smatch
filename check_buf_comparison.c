@@ -318,6 +318,7 @@ void check_buf_comparison(int id)
 
 	add_allocation_function("malloc", &match_alloc, 0);
 	add_allocation_function("memdup", &match_alloc, 1);
+	add_allocation_function("realloc", &match_alloc, 1);
 	if (option_project == PROJ_KERNEL) {
 		add_allocation_function("kmalloc", &match_alloc, 0);
 		add_allocation_function("kzalloc", &match_alloc, 0);
@@ -332,6 +333,7 @@ void check_buf_comparison(int id)
 		add_allocation_function("devm_kmalloc", &match_alloc, 1);
 		add_allocation_function("devm_kzalloc", &match_alloc, 1);
 		add_allocation_function("kcalloc", &match_calloc, 0);
+		add_allocation_function("krealloc", &match_alloc, 1);
 	}
 
 	add_hook(&array_check, OP_HOOK);
