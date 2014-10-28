@@ -71,6 +71,87 @@ static void match_dereferences(struct expression *expr)
 	free_string(name);
 }
 
+static int ignored_params[16];
+
+static void set_ignored_params(struct expression *call)
+{
+	struct expression *arg;
+	const char *p;
+	int i;
+
+	memset(&ignored_params, 0, sizeof(ignored_params));
+
+	i = -1;
+	FOR_EACH_PTR(call->args, arg) {
+		i++;
+		if (arg->type != EXPR_STRING)
+			continue;
+		goto found;
+	} END_FOR_EACH_PTR(arg);
+
+	return;
+
+found:
+	i++;
+	p = arg->string->data;
+	while ((p = strchr(p, '%'))) {
+		if (i >= ARRAY_SIZE(ignored_params))
+			return;
+		p++;
+		if (*p == '%') {
+			p++;
+			continue;
+		}
+		if (*p == '.')
+			p++;
+		if (*p == '*')
+			i++;
+		if (*p == 'p')
+			ignored_params[i] = 1;
+		i++;
+	}
+}
+
+static void match_call(struct expression *expr)
+{
+	struct expression *arg;
+	char *name;
+	int i;
+
+	set_ignored_params(expr);
+
+	i = -1;
+	FOR_EACH_PTR(expr->args, arg) {
+		i++;
+		if (!is_pointer(arg))
+			continue;
+		if (!is_freed(arg))
+			continue;
+		if (ignored_params[i])
+			continue;
+
+		name = expr_to_var_sym(arg, NULL);
+		sm_msg("warn: passing freed memory '%s'", name);
+		set_state_expr(my_id, arg, &ok);
+		free_string(name);
+	} END_FOR_EACH_PTR(arg);
+}
+
+static void match_return(struct expression *expr)
+{
+	char *name;
+
+	if (!expr)
+		return;
+	if (!is_freed(expr))
+		return;
+
+	name = expr_to_var_sym(expr, NULL);
+	sm_msg("warn: returning freed memory '%s'", name);
+	set_state_expr(my_id, expr, &ok);
+	free_string(name);
+}
+
 static void match_free(const char *fn, struct expression *expr, void *param)
 {
 	struct expression *arg;
@@ -115,6 +196,8 @@ void check_free(int id)
 	if (option_spammy)
 		add_hook(&match_symbol, SYM_HOOK);
 	add_hook(&match_dereferences, DEREF_HOOK);
+	add_hook(&match_call, FUNCTION_CALL_HOOK);
+	add_hook(&match_return, RETURN_HOOK);
 
 	add_modification_hook(my_id, &ok_to_use);
 	select_call_implies_hook(PARAM_FREED, &set_param_freed);
