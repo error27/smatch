@@ -94,6 +94,16 @@ static int bytes_per_element(struct expression *expr)
 	return type_bytes(type);
 }
 
+static void db_save_type_links(struct expression *array, struct expression *size)
+{
+	const char *array_name;
+
+	array_name = get_member_name(array);
+	if (!array_name)
+		array_name = "";
+	sql_insert_data_info(size, ARRAY_LEN, array_name);
+}
+
 static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
 {
 	int size_arg = PTR_INT(_size_arg);
@@ -121,6 +131,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 			arg = left;
 	}
 
+	db_save_type_links(pointer, arg);
 	tmp = set_state_expr(size_id, pointer, alloc_expr_state(arg));
 	if (!tmp)
 		return;
@@ -140,6 +151,7 @@ static void match_calloc(const char *fn, struct expression *expr, void *unused)
 	    sval.value == bytes_per_element(pointer))
 		arg = get_argument_from_call_expr(call->args, 1);
 
+	db_save_type_links(pointer, arg);
 	tmp = set_state_expr(size_id, pointer, alloc_expr_state(arg));
 	if (!tmp)
 		return;
@@ -180,6 +192,154 @@ static void array_check(struct expression *expr)
 	sm_msg("warn: potentially one past the end of array '%s[%s]'", array_str, offset_str);
 	free_string(array_str);
 	free_string(offset_str);
+}
+
+struct db_info {
+	char *name;
+	int ret;
+};
+
+static int db_limitter_callback(void *_info, int argc, char **argv, char **azColName)
+{
+	struct db_info *info = _info;
+
+	/*
+	 * If possible the limitters are tied to the struct they limit.  If we
+	 * aren't sure which struct they limit then we use them as limitters for
+	 * everything.
+	 */
+	if (!info->name || argv[0][0] == '\0' || strcmp(info->name, argv[0]) == 0)
+		info->ret = 1;
+	return 0;
+}
+
+static int db_var_is_array_limit(struct expression *array, const char *name, struct var_sym_list *vsl)
+{
+	struct var_sym *vs;
+	struct symbol *type;
+	char buf[80];
+	const char *p;
+	char *array_name = get_member_name(array);
+	struct db_info db_info = {.name = array_name,};
+
+	if (ptr_list_size((struct ptr_list *)vsl) != 1)
+		return 0;
+	vs = first_ptr_list((struct ptr_list *)vsl);
+
+	type = get_real_base_type(vs->sym);
+	if (!type || type->type != SYM_PTR)
+		return 0;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_STRUCT)
+		return 0;
+	if (!type->ident)
+		return 0;
+
+	p = name;
+	while ((name = strstr(p, "->")))
+		p = name + 2;
+
+	snprintf(buf, sizeof(buf),"(struct %s)->%s", type->ident->name, p);
+
+	run_sql(db_limitter_callback, &db_info,
+		"select value from data_info where type = %d and data = '%s';",
+		ARRAY_LEN, buf);
+
+	return db_info.ret;
+}
+
+static int known_access_ok_comparison(struct expression *expr)
+{
+	struct expression *array;
+	struct expression *size;
+	struct expression *offset;
+	int comparison;
+
+	array = strip_parens(expr->unop->left);
+	size = get_saved_size(array);
+	if (!size)
+		return 0;
+	offset = get_array_offset(expr);
+	comparison = get_comparison(size, offset);
+	if (comparison == '>' || comparison == SPECIAL_UNSIGNED_GT)
+		return 1;
+
+	return 0;
+}
+
+static int known_access_ok_numbers(struct expression *expr)
+{
+	struct expression *array;
+	struct expression *offset;
+	sval_t max;
+	int size;
+
+	array = strip_parens(expr->unop->left);
+	offset = get_array_offset(expr);
+
+	size = get_array_size(array);
+	if (size <= 0)
+		return 0;
+
+	get_absolute_max(offset, &max);
+	if (max.uvalue < size)
+		return 1;
+	return 0;
+}
+
+static void array_check_data_info(struct expression *expr)
+{
+	struct expression *array;
+	struct expression *offset;
+	struct state_list *slist;
+	struct sm_state *sm;
+	struct compare_data *comp;
+	char *offset_name;
+	const char *equal_name = NULL;
+
+	expr = strip_expr(expr);
+	if (!is_array(expr))
+		return;
+
+	if (known_access_ok_numbers(expr))
+		return;
+	if (known_access_ok_comparison(expr))
+		return;
+
+	array = strip_parens(expr->unop->left);
+	offset = get_array_offset(expr);
+	offset_name = expr_to_var(offset);
+	if (!offset_name)
+		return;
+	slist = get_all_possible_equal_comparisons(offset);
+	if (!slist)
+		goto free;
+
+	FOR_EACH_PTR(slist, sm) {
+		comp = sm->state->data;
+		if (strcmp(comp->var1, offset_name) == 0) {
+			if (db_var_is_array_limit(array, comp->var2, comp->vsl2)) {
+				equal_name = comp->var2;
+				break;
+			}
+		} else if (strcmp(comp->var2, offset_name) == 0) {
+			if (db_var_is_array_limit(array, comp->var1, comp->vsl1)) {
+				equal_name = comp->var1;
+				break;
+			}
+		}
+	} END_FOR_EACH_PTR(sm);
+
+	if (equal_name) {
+		char *array_name = expr_to_str(array);
+
+		sm_msg("warn: potential off by one '%s[]' limit '%s'", array_name, equal_name);
+		free_string(array_name);
+	}
+
+free:
+	free_slist(&slist);
+	free_string(offset_name);
 }
 
 static void add_allocation_function(const char *func, void *call_back, int param)
@@ -337,6 +497,7 @@ void check_buf_comparison(int id)
 	}
 
 	add_hook(&array_check, OP_HOOK);
+	add_hook(&array_check_data_info, OP_HOOK);
 
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	select_caller_info_hook(set_param_compare, ARRAY_LEN);
