@@ -47,6 +47,8 @@ static void match_assign(struct expression *expr)
 		goto free;
 
 	FOR_EACH_SM(__get_cur_stree(), sm) {
+		if (sm->owner <= 1 || sm->owner > num_checks)
+			continue;
 		if (!auto_copy[sm->owner])
 			continue;
 		if (right_sym != sm->sym)
