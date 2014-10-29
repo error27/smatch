@@ -107,10 +107,23 @@ static void match_binop(struct expression *expr)
 		sm_msg("warn: add some parenthesis here?");
 }
 
+static void match_mask(struct expression *expr)
+{
+	if (expr->op != '&')
+		return;
+	if (expr->right->type != EXPR_BINOP)
+		return;
+	if (expr->right->op != SPECIAL_RIGHTSHIFT)
+		return;
+
+	sm_msg("warn: shift has higher precedence than mask");
+}
+
 void check_precedence(int id)
 {
 	my_id = id;
 
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_binop, BINOP_HOOK);
+	add_hook(&match_mask, BINOP_HOOK);
 }
