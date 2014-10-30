@@ -349,8 +349,8 @@ struct db_callback_info {
 	int left;
 	struct stree *stree;
 	struct db_implies_list *callbacks;
+	int prev_return_id;
 };
-static int prev_return_id;
 
 static void handle_ret_equals_param(char *ret_string, struct range_list *rl, struct expression *call)
 {
@@ -398,13 +398,13 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 	key = argv[4];
 	value = argv[5];
 
-	if (prev_return_id != -1 && return_id != prev_return_id) {
+	if (db_info->prev_return_id != -1 && return_id != db_info->prev_return_id) {
 		stree = __pop_fake_cur_stree();
 		merge_fake_stree(&db_info->stree, stree);
 		free_stree(&stree);
 		__push_fake_cur_stree();
 	}
-	prev_return_id = return_id;
+	db_info->prev_return_id = return_id;
 
 	comparison = db_info->comparison;
 	if (!db_info->left)
@@ -447,7 +447,7 @@ void compare_db_return_states_callbacks(int comparison, struct expression *expr,
 
 	db_info.true_side = 1;
 	db_info.stree = NULL;
-	prev_return_id = -1;
+	db_info.prev_return_id = -1;
 	__push_fake_cur_stree();
 	sql_select_return_states("return_id, return, type, parameter, key, value", expr,
 			db_compare_callback, &db_info);
@@ -458,7 +458,7 @@ void compare_db_return_states_callbacks(int comparison, struct expression *expr,
 
 	db_info.true_side = 0;
 	db_info.stree = NULL;
-	prev_return_id = -1;
+	db_info.prev_return_id = -1;
 	__push_fake_cur_stree();
 	sql_select_return_states("return_id, return, type, parameter, key, value", expr,
 			db_compare_callback, &db_info);
@@ -511,13 +511,13 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 	key = argv[4];
 	value = argv[5];
 
-	if (prev_return_id != -1 && return_id != prev_return_id) {
+	if (db_info->prev_return_id != -1 && return_id != db_info->prev_return_id) {
 		stree = __pop_fake_cur_stree();
 		merge_fake_stree(&db_info->stree, stree);
 		free_stree(&stree);
 		__push_fake_cur_stree();
 	}
-	prev_return_id = return_id;
+	db_info->prev_return_id = return_id;
 
 	FOR_EACH_PTR(db_return_states_list, tmp) {
 		if (tmp->type == type)
@@ -539,7 +539,7 @@ static int db_return_states_assign(struct expression *expr)
 
 	right = strip_expr(expr->right);
 
-	prev_return_id = -1;
+	db_info.prev_return_id = -1;
 	db_info.expr = expr;
 	db_info.stree = NULL;
 
@@ -643,14 +643,14 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 	key = argv[4];
 	value = argv[5];
 
-	if (prev_return_id != -1 && return_id != prev_return_id) {
+	if (db_info->prev_return_id != -1 && return_id != db_info->prev_return_id) {
 		stree = __pop_fake_cur_stree();
 		merge_fake_stree(&db_info->stree, stree);
 		free_stree(&stree);
 		__push_fake_cur_stree();
 		__unnullify_path();
 	}
-	prev_return_id = return_id;
+	db_info->prev_return_id = return_id;
 
 	FOR_EACH_PTR(db_return_states_list, tmp) {
 		if (tmp->type == type)
@@ -669,7 +669,7 @@ static void db_return_states(struct expression *expr)
 	if (!__get_cur_stree())  /* no return functions */
 		return;
 
-	prev_return_id = -1;
+	db_info.prev_return_id = -1;
 	db_info.expr = expr;
 	db_info.stree = NULL;
 
