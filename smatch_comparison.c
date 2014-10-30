@@ -35,13 +35,6 @@
 static int compare_id;
 static int link_id;
 
-struct compare_data {
-	const char *var1;
-	struct var_sym_list *vsl1;
-	int comparison;
-	const char *var2;
-	struct var_sym_list *vsl2;
-};
 ALLOCATOR(compare_data, "compare data");
 
 static struct symbol *vsl_to_sym(struct var_sym_list *vsl)
