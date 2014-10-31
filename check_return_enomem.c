@@ -23,33 +23,11 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-#define ENOMEM 12
-
 static int my_id;
-
-STATE(enomem);
-STATE(ok);
-
-static void ok_to_use(struct sm_state *sm, struct expression *mod_expr)
-{
-	if (sm->state != &ok)
-		set_state(my_id, sm->name, sm->sym, &ok);
-}
-
-static void allocation_succeeded(const char *fn, struct expression *call_expr,
-				struct expression *assign_expr, void *unused)
-{
-	set_state_expr(my_id, assign_expr->left, &ok);
-}
-
-static void allocation_failed(const char *fn, struct expression *call_expr,
-			struct expression *assign_expr, void *_arg_no)
-{
-	set_state_expr(my_id, assign_expr->left, &enomem);
-}
 
 static void match_return(struct expression *ret_value)
 {
+	struct expression *expr;
 	struct sm_state *sm;
 	struct stree *stree;
 	sval_t sval;
@@ -67,11 +45,28 @@ static void match_return(struct expression *ret_value)
 
 	stree = __get_cur_stree();
 
-	FOR_EACH_MY_SM(my_id, stree, sm) {
-		if (sm->state == &enomem) {
-			sm_msg("warn: returning -1 instead of -ENOMEM is sloppy");
-			return;
-		}
+	FOR_EACH_MY_SM(SMATCH_EXTRA, stree, sm) {
+		if (!estate_get_single_value(sm->state, &sval) || sval.value != 0)
+			continue;
+		expr = get_assigned_expr_name_sym(sm->name, sm->sym);
+		if (!expr)
+			continue;
+		if (expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL)
+			continue;
+		if (!expr->fn->symbol_name && !expr->fn->symbol_name->name)
+			continue;
+		/* To be honest the correct check is:
+		 * if (strstr(expr->fn->symbol_name->name, "alloc"))
+		 * 	complain();
+		 * But it generates too many warnings and it's too depressing.
+		 */
+		if (strcmp(expr->fn->symbol_name->name, "kmalloc") != 0 &&
+		    strcmp(expr->fn->symbol_name->name, "kzalloc") != 0)
+			continue;
+
+		sm_msg("warn: returning -1 instead of -ENOMEM is sloppy");
+		return;
+
 	} END_FOR_EACH_SM(sm);
 }
 
@@ -81,12 +76,5 @@ void check_return_enomem(int id)
 		return;
 
 	my_id = id;
-	return_implies_state("kmalloc", valid_ptr_min, valid_ptr_max, &allocation_succeeded, INT_PTR(0));
-	return_implies_state("kmalloc", 0, 0, &allocation_failed, INT_PTR(0));
-	return_implies_state("kzalloc", valid_ptr_min, valid_ptr_max, &allocation_succeeded, INT_PTR(0));
-	return_implies_state("kzalloc", 0, 0, &allocation_failed, INT_PTR(0));
-	return_implies_state("kcalloc", valid_ptr_min, valid_ptr_max, &allocation_succeeded, INT_PTR(0));
-	return_implies_state("kcalloc", 0, 0, &allocation_failed, INT_PTR(0));
 	add_hook(&match_return, RETURN_HOOK);
-	add_modification_hook(my_id, &ok_to_use);
 }
