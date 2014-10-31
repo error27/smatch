@@ -28,6 +28,28 @@
 static int size_id;
 static int link_id;
 
+/*
+ * We need this for code which does:
+ *
+ *     if (size)
+ *         foo = malloc(size);
+ *
+ * We want to record that the size of "foo" is "size" even after the merge.
+ *
+ */
+static struct smatch_state *unmatched_state(struct sm_state *sm)
+{
+	struct expression *size_expr;
+	sval_t sval;
+
+	if (!sm->state->data)
+		return &undefined;
+	size_expr = sm->state->data;
+	if (!get_implied_value(size_expr, &sval) || sval.value != 0)
+		return &undefined;
+	return sm->state;
+}
+
 static int expr_equiv(struct expression *one, struct expression *two)
 {
 	struct symbol *one_sym, *two_sym;
@@ -494,6 +516,8 @@ static void munge_start_states(struct statement *stmt)
 void check_buf_comparison(int id)
 {
 	size_id = id;
+
+	add_unmatched_state_hook(size_id, &unmatched_state);
 
 	add_allocation_function("malloc", &match_alloc, 0);
 	add_allocation_function("memdup", &match_alloc, 1);
