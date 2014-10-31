@@ -247,7 +247,7 @@ void sql_insert_data_info(struct expression *data, int type, const char *value)
 {
 	char *data_name;
 
-	data_name = get_member_name(data);
+	data_name = get_data_info_name(data);
 	if (!data_name)
 		return;
 	sql_insert(data_info, "'%s', '%s', %d, '%s'", get_base_file(), data_name, type, value);
@@ -1303,3 +1303,28 @@ const char *get_param_name(struct sm_state *sm)
 	return NULL;
 }
 
+char *get_data_info_name(struct expression *expr)
+{
+	struct symbol *sym;
+	char *name;
+	char buf[256];
+	char *ret = NULL;
+
+	expr = strip_expr(expr);
+	name = get_member_name(expr);
+	if (name)
+		return name;
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	if (!(sym->ctype.modifiers & MOD_TOPLEVEL))
+		goto free;
+	if (sym->ctype.modifiers & MOD_STATIC)
+		snprintf(buf, sizeof(buf), "static %s", name);
+	else
+		snprintf(buf, sizeof(buf), "global %s", name);
+	ret = alloc_sname(buf);
+free:
+	free_string(name);
+	return ret;
+}

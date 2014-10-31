@@ -98,7 +98,7 @@ static void db_save_type_links(struct expression *array, struct expression *size
 {
 	const char *array_name;
 
-	array_name = get_member_name(array);
+	array_name = get_data_info_name(array);
 	if (!array_name)
 		array_name = "";
 	sql_insert_data_info(size, ARRAY_LEN, array_name);
@@ -213,37 +213,56 @@ static int db_limitter_callback(void *_info, int argc, char **argv, char **azCol
 	return 0;
 }
 
-static int db_var_is_array_limit(struct expression *array, const char *name, struct var_sym_list *vsl)
+static char *vsl_to_data_info_name(const char *name, struct var_sym_list *vsl)
 {
 	struct var_sym *vs;
 	struct symbol *type;
-	char buf[80];
+	static char buf[80];
 	const char *p;
-	char *array_name = get_member_name(array);
-	struct db_info db_info = {.name = array_name,};
 
 	if (ptr_list_size((struct ptr_list *)vsl) != 1)
-		return 0;
+		return NULL;
 	vs = first_ptr_list((struct ptr_list *)vsl);
 
 	type = get_real_base_type(vs->sym);
 	if (!type || type->type != SYM_PTR)
-		return 0;
+		goto top_level_name;
 	type = get_real_base_type(type);
 	if (!type || type->type != SYM_STRUCT)
-		return 0;
+		goto top_level_name;
 	if (!type->ident)
-		return 0;
+		goto top_level_name;
 
 	p = name;
 	while ((name = strstr(p, "->")))
 		p = name + 2;
 
 	snprintf(buf, sizeof(buf),"(struct %s)->%s", type->ident->name, p);
+	return alloc_sname(buf);
+
+top_level_name:
+	if (!(vs->sym->ctype.modifiers & MOD_TOPLEVEL))
+		return NULL;
+	if (vs->sym->ctype.modifiers & MOD_STATIC)
+		snprintf(buf, sizeof(buf),"static %s", name);
+	else
+		snprintf(buf, sizeof(buf),"global %s", name);
+	return alloc_sname(buf);
+}
+
+static int db_var_is_array_limit(struct expression *array, const char *name, struct var_sym_list *vsl)
+{
+	char *size_name;
+	char *array_name = get_data_info_name(array);
+	struct db_info db_info = {.name = array_name,};
+
+	size_name = vsl_to_data_info_name(name, vsl);
+	if (!size_name)
+		return 0;
 
 	run_sql(db_limitter_callback, &db_info,
 		"select value from data_info where type = %d and data = '%s';",
-		ARRAY_LEN, buf);
+		ARRAY_LEN, size_name);
 
 	return db_info.ret;
 }

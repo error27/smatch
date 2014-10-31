@@ -602,6 +602,7 @@ struct range_list *db_return_vals(struct expression *expr);
 char *return_state_to_var_sym(struct expression *expr, int param, char *key, struct symbol **sym);
 char *get_variable_from_key(struct expression *arg, char *key, struct symbol **sym);
 const char *get_param_name(struct sm_state *sm);
+char *get_data_info_name(struct expression *expr);
 
 #define run_sql(call_back, data, sql...)    \
 do {                                  \
