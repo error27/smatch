@@ -158,7 +158,7 @@ static void match_calloc(const char *fn, struct expression *expr, void *unused)
 	set_state_expr(link_id, arg, alloc_expr_state(pointer));
 }
 
-static struct expression *get_saved_size(struct expression *buf)
+struct expression *get_size_variable(struct expression *buf)
 {
 	struct smatch_state *state;
 
@@ -180,7 +180,7 @@ static void array_check(struct expression *expr)
 		return;
 
 	array = strip_parens(expr->unop->left);
-	size = get_saved_size(array);
+	size = get_size_variable(array);
 	if (!size)
 		return;
 	offset = get_array_offset(expr);
@@ -275,7 +275,7 @@ static int known_access_ok_comparison(struct expression *expr)
 	int comparison;
 
 	array = strip_parens(expr->unop->left);
-	size = get_saved_size(array);
+	size = get_size_variable(array);
 	if (!size)
 		return 0;
 	offset = get_array_offset(expr);
@@ -373,7 +373,7 @@ static char *buf_size_param_comparison(struct expression *array, struct expressi
 	static char buf[32];
 	int i;
 
-	size = get_saved_size(array);
+	size = get_size_variable(array);
 	if (!size)
 		return NULL;
 

@@ -786,4 +786,7 @@ void store_link(int link_id, const char *name, struct symbol *sym, const char *l
 /* smatch_auto_copy.c */
 void set_auto_copy(int owner);
 
+/* check_buf_comparison */
+struct expression *get_size_variable(struct expression *buf);
+
 #endif 	    /* !SMATCH_H_ */
