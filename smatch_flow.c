@@ -38,6 +38,7 @@ static char *pathname;
 static char *full_filename;
 static char *cur_func;
 static unsigned int loop_count;
+static int last_goto_statement_handled;
 int __expr_stmt_count;
 int __in_function_def;
 static struct expression_list *switch_expr_stack = NULL;
@@ -576,6 +577,71 @@ static int taking_too_long(void)
 	return 0;
 }
 
+static int is_last_stmt(struct statement *cur_stmt)
+{
+	struct symbol *fn = get_base_type(cur_func_sym);
+	struct statement *stmt;
+
+	if (!fn)
+		return 0;
+	stmt = fn->stmt;
+	if (!stmt)
+		stmt = fn->inline_stmt;
+	if (!stmt || stmt->type != STMT_COMPOUND)
+		return 0;
+	stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
+	if (stmt && stmt->type == STMT_LABEL)
+		stmt = stmt->label_statement;
+	if (stmt == cur_stmt)
+		return 1;
+	return 0;
+}
+
+static void handle_backward_goto(struct statement *goto_stmt)
+{
+	const char *goto_name, *label_name;
+	struct statement *func_stmt;
+	struct symbol *base_type = get_base_type(cur_func_sym);
+	struct statement *tmp;
+	int found = 0;
+
+	if (!option_info)
+		return;
+	if (last_goto_statement_handled)
+		return;
+	last_goto_statement_handled = 1;
+
+	if (!goto_stmt->goto_label ||
+	    goto_stmt->goto_label->type != SYM_LABEL ||
+	    !goto_stmt->goto_label->ident)
+		return;
+	goto_name = goto_stmt->goto_label->ident->name;
+
+	func_stmt = base_type->stmt;
+	if (!func_stmt)
+		func_stmt = base_type->inline_stmt;
+	if (!func_stmt)
+		return;
+	if (func_stmt->type != STMT_COMPOUND)
+		return;
+
+	FOR_EACH_PTR(func_stmt->stmts, tmp) {
+		if (!found) {
+			if (tmp->type != STMT_LABEL)
+				continue;
+			if (!tmp->label_identifier ||
+			    tmp->label_identifier->type != SYM_LABEL ||
+			    !tmp->label_identifier->ident)
+				continue;
+			label_name = tmp->label_identifier->ident->name;
+			if (strcmp(goto_name, label_name) != 0)
+				continue;
+			found = 1;
+		}
+		__split_stmt(tmp);
+	} END_FOR_EACH_PTR(tmp);
+}
+
 void __split_stmt(struct statement *stmt)
 {
 	sval_t sval;
@@ -718,6 +784,8 @@ void __split_stmt(struct statement *stmt)
 			__save_gotos(stmt->goto_label->ident->name);
 		}
 		nullify_path();
+		if (is_last_stmt(stmt))
+			handle_backward_goto(stmt);
 		break;
 	case STMT_NONE:
 		break;
@@ -1076,6 +1144,7 @@ static void split_function(struct symbol *sym)
 		cur_func = sym->ident->name;
 	__smatch_lineno = sym->pos.line;
 	loop_count = 0;
+	last_goto_statement_handled = 0;
 	sm_debug("new function:  %s\n", cur_func);
 	__stree_id = 0;
 	if (option_two_passes) {
