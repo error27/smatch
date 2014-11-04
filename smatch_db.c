@@ -961,7 +961,6 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 	if (option_info && nr_states * nr_possible >= 2000)
 		return 0;
 
-	compare_str = expr_lte_to_param(expr, -1);
 
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (tmp->merged)
@@ -974,6 +973,8 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 
 		rl = cast_rl(cur_func_return_type(), estate_rl(tmp->state));
 		return_ranges = show_rl(rl);
+
+		compare_str = expr_lte_to_param(expr, -1);
 		if (compare_str) {
 			snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
 			return_ranges = alloc_sname(buf);
