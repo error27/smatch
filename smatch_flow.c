@@ -1067,6 +1067,9 @@ static void split_function(struct symbol *sym)
 {
 	struct symbol *base_type = get_base_type(sym);
 
+	if (!base_type->stmt && !base_type->inline_stmt)
+		return;
+
 	gettimeofday(&fn_start_time, NULL);
 	cur_func_sym = sym;
 	if (sym->ident)
