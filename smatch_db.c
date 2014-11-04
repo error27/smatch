@@ -871,6 +871,63 @@ static void call_return_state_hooks_compare(struct expression *expr)
 	__free_fake_cur_stree();
 }
 
+static int split_helper(struct sm_state *sm, struct expression *expr)
+{
+	struct returned_state_callback *cb;
+	struct range_list *rl;
+	char *return_ranges;
+	struct sm_state *tmp;
+	int ret = 0;
+	int nr_possible, nr_states;
+	char *compare_str;
+	char buf[128];
+
+	if (!sm || !sm->merged)
+		return 0;
+
+	if (too_many_possible(sm))
+		return 0;
+
+	/* bail if it gets too complicated */
+	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
+	nr_states = stree_count(__get_cur_stree());
+	/*
+	 * the main thing option_info because we don't want to print a
+	 * million lines of output.  If someone else, like check_locking.c
+	 * wants this data, then it doesn't cause a slow down to provide it.
+	 */
+	if (option_info && nr_states * nr_possible >= 2000)
+		return 0;
+
+	compare_str = expr_lte_to_param(expr, -1);
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (tmp->merged)
+			continue;
+
+		ret = 1;
+		__push_fake_cur_stree();
+
+		overwrite_states_using_pool(tmp);
+
+		rl = cast_rl(cur_func_return_type(), estate_rl(tmp->state));
+		return_ranges = show_rl(rl);
+		if (compare_str) {
+			snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
+			return_ranges = alloc_sname(buf);
+		}
+
+		return_id++;
+		FOR_EACH_PTR(returned_state_callbacks, cb) {
+			cb->callback(return_id, return_ranges, expr);
+		} END_FOR_EACH_PTR(cb);
+
+		__free_fake_cur_stree();
+	} END_FOR_EACH_PTR(tmp);
+
+	return ret;
+}
+
 static int call_return_state_hooks_split_possible(struct expression *expr)
 {
 	struct returned_state_callback *cb;
@@ -997,6 +1054,18 @@ static int is_conditional(struct expression *expr)
 	return 0;
 }
 
+static int splitable_function_call(struct expression *expr)
+{
+	struct sm_state *sm;
+	char buf[64];
+
+	if (!expr || expr->type != EXPR_CALL)
+		return 0;
+	snprintf(buf, sizeof(buf), "return %p", expr);
+	sm = get_sm_state(SMATCH_EXTRA, buf, NULL);
+	return split_helper(sm, expr);
+}
+
 static void call_return_state_hooks(struct expression *expr)
 {
 	struct returned_state_callback *cb;
@@ -1012,6 +1081,8 @@ static void call_return_state_hooks(struct expression *expr)
 		call_return_state_hooks_conditional(expr);
 		return;
 	} else if (call_return_state_hooks_split_possible(expr)) {
+		return;
+	} else if (splitable_function_call(expr)) {
 		return;
 	}
 

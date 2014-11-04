@@ -631,6 +631,7 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 	struct return_implies_callback *tmp;
 	struct stree *stree;
 	int return_id;
+	char buf[64];
 
 	if (argc != 6)
 		return 0;
@@ -656,6 +657,14 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 		if (tmp->type == type)
 			tmp->callback(db_info->expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
+
+	/*
+	 * We want to store the return values so that we can split the strees
+	 * in smatch_db.c.  This uses set_state() directly because it's not a
+	 * real smatch_extra state.
+	 */
+	snprintf(buf, sizeof(buf), "return %p", db_info->expr);
+	set_state(SMATCH_EXTRA, buf, NULL, alloc_estate_rl(ret_range));
 
 	return 0;
 }
