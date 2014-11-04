@@ -272,6 +272,15 @@ static sval_t parse_val(int use_max, struct expression *call, struct symbol *typ
 	} else if (!strncmp(start, "s16min", 6)) {
 		ret = sval_type_val(type, SHRT_MIN);
 		c += 6;
+	} else if (!strncmp(start, "long_min", 8)) {
+		ret = sval_type_val(type, LONG_MIN);
+		c += 8;
+	} else if (!strncmp(start, "long_max", 8)) {
+		ret = sval_type_val(type, LONG_MAX);
+		c += 8;
+	} else if (!strncmp(start, "ulong_max", 9)) {
+		ret = sval_type_val(type, ULONG_MAX);
+		c += 8;
 	} else if (start[0] == '[') {
 		/* this parses [==p0] comparisons */
 		get_val_from_key(1, type, start, call, &c, &ret);
