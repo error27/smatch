@@ -46,6 +46,21 @@ insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=
 insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 1011, 3,  '\$\$', '0-1000000');
 insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)',     0, 0,   -1,      '', '');
 
+/*
+ * I am a bad person for doing this to __kmalloc() which is a very deep function
+ * and can easily be removed instead of to kmalloc().  But kmalloc() is an
+ * inline function so it ends up being recorded thousands of times in the
+ * database.  Doing this is easier.
+ *
+ */
+delete from return_states where function = '__kmalloc';
+insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0,    0,  -1, '', '');
+insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0, 1011,   0, '\$\$', '0');
+insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-s64max', 0,    0, -1, '', '');
+insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-s64max', 0, 1011,  0, '\$\$', '1-134217728');
+insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    0,  -1, '', '');
+insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    1011,  0, '\$\$', '134217729-u64max');
+
 
 /* store a bunch of capped functions */
 update return_states set return = '0-u32max[<=\$2]' where function = 'copy_to_user';
