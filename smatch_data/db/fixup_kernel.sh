@@ -87,6 +87,8 @@ update return_states set return = 's32min-s32max[==\$0]' where function = '__fsw
 update return_states set return = 's16min-s16max[==\$0]' where function = '__fswab16';
 
 delete from return_states where function = 'bitmap_allocate_region' and return = '1';
+delete from return_states where function = 'pci_bus_read_config_word' and return = 135;
+delete from return_states where function = 'pci_bus_write_config_word' and return = 135;
 
 EOF
 
