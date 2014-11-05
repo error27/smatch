@@ -1512,7 +1512,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	char *name;
 	struct symbol *sym;
 	struct sm_state *sm;
-	struct symbol *type;
+	struct symbol *compare_type, *var_type;
 	struct range_list *rl;
 	struct range_list *limit;
 	struct range_list *new;
@@ -1530,15 +1530,22 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	if (!name || !sym)
 		goto free;
 
+	if (strcmp(key, "$$") == 0)
+		compare_type = get_arg_type(expr->fn, param);
+	else
+		compare_type = get_member_type_from_key(arg, key);
+
 	sm = get_sm_state(SMATCH_EXTRA, name, sym);
-	type = get_member_type_from_key(arg, key);
 	if (sm)
 		rl = estate_rl(sm->state);
 	else
-		rl = alloc_whole_rl(type);
+		rl = alloc_whole_rl(compare_type);
 
-	call_results_to_rl(expr, type, value, &limit);
+	call_results_to_rl(expr, compare_type, value, &limit);
 	new = rl_intersection(rl, limit);
+
+	var_type = get_member_type_from_key(arg, key);
+	new = cast_rl(var_type, new);
 
 	/* We want to preserve the implications here */
 	if (sm && rl_equiv(estate_rl(sm->state), new)) {
