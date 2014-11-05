@@ -642,6 +642,24 @@ static void handle_backward_goto(struct statement *goto_stmt)
 	} END_FOR_EACH_PTR(tmp);
 }
 
+static void fake_a_return(void)
+{
+	struct symbol *return_type;
+
+	nullify_path();
+	__unnullify_path();
+
+	return_type = get_real_base_type(cur_func_sym);
+	return_type = get_real_base_type(return_type);
+	if (return_type != &void_ctype) {
+		__pass_to_client(unknown_value_expression(NULL), RETURN_HOOK);
+		nullify_path();
+	}
+
+	__pass_to_client(cur_func_sym, END_FUNC_HOOK);
+	__pass_to_client(cur_func_sym, AFTER_FUNC_HOOK);
+}
+
 void __split_stmt(struct statement *stmt)
 {
 	sval_t sval;
@@ -655,6 +673,7 @@ void __split_stmt(struct statement *stmt)
 		__bail_on_rest_of_function = 1;
 		if (printed != cur_func)
 			sm_msg("Function too hairy.  Giving up.");
+		fake_a_return();
 		final_pass = 0;  /* turn off sm_msg() from here */
 		printed = cur_func;
 		return;
