@@ -68,6 +68,27 @@ int option_two_passes = 0;
 struct symbol *cur_func_sym = NULL;
 struct stree *global_states;
 
+long long valid_ptr_min = 4096;
+long long valid_ptr_max = LONG_MAX - 100000;
+sval_t valid_ptr_min_sval = {
+	.type = &ptr_ctype,
+	{.value = 4096},
+};
+sval_t valid_ptr_max_sval = {
+	.type = &ptr_ctype,
+	{.value = LONG_MAX - 100000},
+};
+
+static void set_valid_ptr_max(void)
+{
+	if (type_bits(&ptr_ctype) == 32)
+		valid_ptr_max = INT_MAX - 100000;
+	else if (type_bits(&ptr_ctype) == 64)
+		valid_ptr_max = LLONG_MAX - 100000;
+
+	valid_ptr_max_sval.value = valid_ptr_max;
+}
+
 int outside_of_function(void)
 {
 	return cur_func_sym == NULL;
@@ -1379,6 +1400,7 @@ void smatch(int argc, char **argv)
 		exit(1);
 	}
 	sparse_initialize(argc, argv, &filelist);
+	set_valid_ptr_max();
 	FOR_EACH_PTR_NOTAG(filelist, base_file) {
 		if (option_file_output) {
 			char buf[256];

@@ -56,10 +56,10 @@ insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)
 delete from return_states where function = '__kmalloc';
 insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0,    0,  -1, '', '');
 insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0, 1011,   0, '\$\$', '0');
-insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-long_max', 0,    0, -1, '', '');
-insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-long_max', 0, 1011,  0, '\$\$', '1-134217728');
+insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0,    0, -1, '', '');
+insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0, 1011,  0, '\$\$', '1-128000');
 insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    0,  -1, '', '');
-insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    1011,  0, '\$\$', '134217729-u64max');
+insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    1011,  0, '\$\$', '128000-long_max');
 
 
 /* store a bunch of capped functions */
