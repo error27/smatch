@@ -619,6 +619,31 @@ static int type_str_helper(char *buf, int size, struct symbol *type)
 		return n + snprintf(buf + n, size - n, "*");
 	} else if (type->type == SYM_STRUCT) {
 		return snprintf(buf, size, "struct %s", type->ident ? type->ident->name : "");
+	} else if (type->type == SYM_FN) {
+		struct symbol *arg, *return_type, *arg_type;
+		int i;
+
+		return_type = get_real_base_type(type);
+		n = type_str_helper(buf, size, return_type);
+		if (n > size)
+			return n;
+		n += snprintf(buf + n, size - n, "(*)(");
+		if (n > size)
+			return n;
+
+		i = 0;
+		FOR_EACH_PTR(type->arguments, arg) {
+			if (i++)
+				n += snprintf(buf + n, size - n, ", ");
+			if (n > size)
+				return n;
+			arg_type = get_real_base_type(arg);
+			n += type_str_helper(buf + n, size - n, arg_type);
+			if (n > size)
+				return n;
+		} END_FOR_EACH_PTR(arg);
+
+		return n + snprintf(buf + n, size - n, ")");
 	} else {
 		return snprintf(buf, size, "<type %d>", type->type);
 	}
