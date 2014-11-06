@@ -200,19 +200,33 @@ int get_formatted_string_size(struct expression *call, int arg)
 static void match_not_limited(const char *fn, struct expression *call, void *info)
 {
 	struct param_info *params = info;
+	struct expression *dest;
 	struct expression *arg;
 	int buf_size, size;
 	int user = 0;
 	int i;
+	int offset = 0;
 
-	arg = get_argument_from_call_expr(call->args, params->buf_or_limit);
-	buf_size = get_array_size_bytes(arg);
+	dest = get_argument_from_call_expr(call->args, params->buf_or_limit);
+	dest = strip_expr(dest);
+	if (dest->type == EXPR_BINOP && dest->op == '+') {
+		sval_t max;
+
+		if (get_hard_max(dest->right, &max))
+			offset = max.value;
+		dest = dest->left;
+	}
+
+
+	buf_size = get_array_size_bytes(dest);
 	if (buf_size <= 0)
 		return;
 
 	size = get_formatted_string_size(call, params->string);
 	if (size <= 0)
 		return;
+	if (size < offset)
+		size -= offset;
 	if (size <= buf_size)
 		return;
 
