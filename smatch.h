@@ -585,6 +585,8 @@ enum info_type {
 	FUZZY_MAX	= 1015,
 	STR_LEN		= 1016,
 	ARRAY_LEN	= 1017,
+	CAPABLE		= 1018,
+	NS_CAPABLE	= 1019,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA2	= 9017,
