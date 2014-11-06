@@ -612,6 +612,7 @@ static int type_str_helper(char *buf, int size, struct symbol *type)
 	if (type->type == SYM_BASETYPE) {
 		return snprintf(buf, size, base_type_str(type));
 	} else if (type->type == SYM_PTR) {
+		type = get_real_base_type(type);
 		n = type_str_helper(buf, size, type);
 		if (n > size)
 			return n;
