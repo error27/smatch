@@ -602,12 +602,10 @@ static const char *base_type_str(struct symbol *sym)
 	return "<unknown>";
 }
 
-static int type_str_helper(char *buf, int size, struct symbol *sym)
+static int type_str_helper(char *buf, int size, struct symbol *type)
 {
-	struct symbol *type;
 	int n;
 
-	type = get_real_base_type(sym);
 	if (!type)
 		return snprintf(buf, size, "<unknown>");
 
@@ -625,11 +623,11 @@ static int type_str_helper(char *buf, int size, struct symbol *sym)
 	}
 }
 
-char *type_to_str(struct symbol *sym)
+char *type_to_str(struct symbol *type)
 {
 	static char buf[256];
 
 	buf[0] = '\0';
-	type_str_helper(buf, sizeof(buf), sym);
+	type_str_helper(buf, sizeof(buf), type);
 	return buf;
 }
