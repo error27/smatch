@@ -475,6 +475,19 @@ static void match_intersection(const char *fn, struct expression *expr, void *in
 	sm_msg("'%s' intersect '%s' is '%s'", show_rl(one_rl), show_rl(two_rl), show_rl(res));
 }
 
+static void match_type(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *one;
+	struct symbol *type;
+	char *name;
+
+	one = get_argument_from_call_expr(expr->args, 0);
+	type = get_type(one);
+	name = expr_to_str(one);
+	sm_msg("type of '%s' is: '%s'", name, type_to_str(type));
+	free_string(name);
+}
+
 void check_debug(int id)
 {
 	my_id = id;
@@ -508,4 +521,5 @@ void check_debug(int id)
 	add_function_hook("__smatch_debug_implied_on", &match_debug_implied_on, NULL);
 	add_function_hook("__smatch_debug_implied_off", &match_debug_implied_off, NULL);
 	add_function_hook("__smatch_intersection", &match_intersection, NULL);
+	add_function_hook("__smatch_type", &match_type, NULL);
 }
