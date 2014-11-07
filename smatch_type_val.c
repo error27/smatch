@@ -106,6 +106,8 @@ static void add_fake_type_val(char *member, struct range_list *rl)
 
 	member = alloc_string(member);
 	old = get_state_stree(fn_type_val, my_id, member, NULL);
+	if (old && strcmp(old->name, "min-max") == 0)
+		return;
 	add = alloc_estate_rl(rl);
 	if (old) {
 		new = merge_estates(old, add);
