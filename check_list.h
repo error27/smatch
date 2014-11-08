@@ -105,6 +105,7 @@ CK(check_double_checking)
 CK(check_shift_to_zero)
 CK(check_unreachable)
 CK(check_no_if_block)
+CK(check_buffer_too_small_for_struct)
 
 /* <- your test goes here */
 /* CK(register_template) */
