@@ -430,8 +430,11 @@ struct expression *strip_expr(struct expression *expr)
 			return strip_expr(expr->unop);
 		return expr;
 	case EXPR_CONDITIONAL:
-		if (known_condition_true(expr->conditional))
-			return strip_expr(expr->cond_true);
+		if (known_condition_true(expr->conditional)) {
+			if (expr->cond_true)
+				return strip_expr(expr->cond_true);
+			return strip_expr(expr->conditional);
+		}
 		if (known_condition_false(expr->conditional))
 			return strip_expr(expr->cond_false);
 		return expr;
