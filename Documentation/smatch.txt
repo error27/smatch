@@ -29,10 +29,16 @@ normally rebuild the database every morning.
 
 If you are running Smatch over the whole kernel then use the command:
 	~/progs/smatch/devel/smatch_scripts/test_kernel.sh
+
+The test_kernel.sh script will create a .c.smatch file for every file it tests
+and a combined warns.txt file with all the warnings.
+
 If you are running Smatch just over one kernel file:
 	~/progs/smatch/devel/smatch_scripts/kchecker drivers/whatever/file.c
 You can also build a directory like this:
 	~/progs/smatch/devel/smatch_scripts/kchecker drivers/whatever/
+
+The kchecker script prints its warnings to stdout.
 
 If you are building something else (which is not the Linux kernel) then use
 something like:
