@@ -31,6 +31,9 @@ while true ; do
     elif [[ "$1" == "--valgrind" ]] ; then
 	PRE="valgrind"
 	shift
+    elif [[ "$1" == "--endian" ]] ; then
+        ENDIAN="CF=-D__CHECK_ENDIAN__"
+	shift
     elif [[ "$1" == "" ]] ; then
 	break
     else
