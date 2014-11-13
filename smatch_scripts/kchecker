@@ -42,7 +42,7 @@ while true ; do
 		exit 1
 	fi
 	if echo $1 | grep -q ^- ; then
-		POST="$POST $1"
+		POST="$1 $POST"
 	else
 		break
 	fi
