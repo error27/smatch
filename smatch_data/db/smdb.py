@@ -221,6 +221,8 @@ elif sys.argv[1] == "function_ptr" or sys.argv[1] == "fn_ptr":
 elif sys.argv[1] == "return_states":
     func = sys.argv[2]
     print_return_states(func)
+    print "================================================"
+    print_call_implies(func)
 elif sys.argv[1] == "call_implies":
     func = sys.argv[2]
     print_call_implies(func)
