@@ -76,7 +76,7 @@ while (<WARNS>) {
     if ($fn =~ /__builtin_/) {
         next;
     }
-    if ($fn =~ /(printk|memset|memcpy|kfree|printf|dev_err|writel)/) {
+    if ($fn =~ /^(printk|memset|memcpy|kfree|printf|dev_err|writel)$/) {
         next;
     }
 
