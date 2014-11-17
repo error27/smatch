@@ -310,6 +310,8 @@ struct statement *get_prev_statement(void);
 int get_param_num_from_sym(struct symbol *sym);
 int get_param_num(struct expression *expr);
 int ms_since(struct timeval *start);
+int parent_is_gone_var_sym(const char *name, struct symbol *sym);
+int parent_is_gone(struct expression *expr);
 
 /* smatch_type.c */
 struct symbol *get_real_base_type(struct symbol *sym);

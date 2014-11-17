@@ -641,3 +641,26 @@ int ms_since(struct timeval *start)
 	return (int)diff;
 }
 
+int parent_is_gone_var_sym(const char *name, struct symbol *sym)
+{
+	if (parent_is_null_var_sym(name, sym) ||
+	    parent_is_free_var_sym(name, sym))
+		return 1;
+	return 0;
+}
+
+int parent_is_gone(struct expression *expr)
+{
+	struct symbol *sym;
+	char *var;
+	int ret = 0;
+
+	expr = strip_expr(expr);
+	var = expr_to_var_sym(expr, &sym);
+	if (!var || !sym)
+		goto free;
+	ret = parent_is_gone_var_sym(var, sym);
+free:
+	free_string(var);
+	return ret;
+}

@@ -182,6 +182,45 @@ free:
 	free_string(name);
 }
 
+int parent_is_free_var_sym(const char *name, struct symbol *sym)
+{
+	char buf[256];
+	char *start;
+	char *end;
+	struct smatch_state *state;
+
+	strncpy(buf, name, sizeof(buf) - 1);
+	buf[sizeof(buf) - 1] = '\0';
+
+	start = &buf[0];
+	while ((*start == '&'))
+		start++;
+
+	while ((end = strrchr(start, '-'))) {
+		*end = '\0';
+		state = get_state(my_id, start, sym);
+		if (state == &freed)
+			return 1;
+	}
+	return 0;
+}
+
+int parent_is_free(struct expression *expr)
+{
+	struct symbol *sym;
+	char *var;
+	int ret = 0;
+
+	expr = strip_expr(expr);
+	var = expr_to_var_sym(expr, &sym);
+	if (!var || !sym)
+		goto free;
+	ret = parent_is_free_var_sym(var, sym);
+free:
+	free_string(var);
+	return ret;
+}
+
 void check_free(int id)
 {
 	my_id = id;

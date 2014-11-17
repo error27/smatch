@@ -433,7 +433,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 		if (state)
 			return state;
 	}
-	if (parent_is_null_var_sym(sm->name, sm->sym))
+	if (parent_is_gone_var_sym(sm->name, sm->sym))
 		return alloc_estate_empty();
 	return alloc_estate_whole(estate_type(sm->state));
 }
@@ -1465,7 +1465,6 @@ int parent_is_null_var_sym(const char *name, struct symbol *sym)
 		if (estate_min(state).value == 0 &&
 		    estate_max(state).value == 0)
 			return 1;
-		return 0;
 	}
 	return 0;
 }
