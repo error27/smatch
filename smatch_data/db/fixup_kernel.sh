@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# mark some paramaters as coming from user space
-cat << EOF | sqlite3 smatch_db.sqlite
+db_file=$1
+cat << EOF | sqlite3 $db_file
 /* we only care about the main ->read/write() functions. */
 delete from caller_info where function = '(struct file_operations)->read' and file != 'fs/read_write.c';
 delete from caller_info where function = '(struct file_operations)->write' and file != 'fs/read_write.c';
@@ -96,13 +96,13 @@ delete from return_states where function = 'pci_bus_write_config_word' and retur
 
 EOF
 
-call_id=$(echo "select distinct call_id from caller_info where function = '__kernel_write';" | sqlite3 smatch_db.sqlite)
+call_id=$(echo "select distinct call_id from caller_info where function = '__kernel_write';" | sqlite3 $db_file)
 for id in $call_id ; do
-    echo "insert into caller_info values ('fake', '', '__kernel_write', $id, 0, 1, 1003, '*\$\$', '0-1000000');" | sqlite3 smatch_db.sqlite
+    echo "insert into caller_info values ('fake', '', '__kernel_write', $id, 0, 1, 1003, '*\$\$', '0-1000000');" | sqlite3 $db_file
 done
 
-for i in $(echo "select distinct return from return_states where function = 'clear_user';" | sqlite3 smatch_db.sqlite ) ; do
-    echo "update return_states set return = \"$i[<=\$1]\" where return = \"$i\" and function = 'clear_user';" | sqlite3 smatch_db.sqlite
+for i in $(echo "select distinct return from return_states where function = 'clear_user';" | sqlite3 $db_file ) ; do
+    echo "update return_states set return = \"$i[<=\$1]\" where return = \"$i\" and function = 'clear_user';" | sqlite3 $db_file
 done
 
 

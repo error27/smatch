@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# mark some paramaters as coming from user space
-cat << EOF | sqlite3 smatch_db.sqlite
+db_file=$1
+cat << EOF | sqlite3 $db_file
 
 delete from return_states where function = 'strlen';
 delete from return_states where function = 'strnlen';

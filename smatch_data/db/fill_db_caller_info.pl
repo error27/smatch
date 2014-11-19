@@ -6,7 +6,7 @@ use Scalar::Util qw(looks_like_number);
 
 sub usage()
 {
-    print "usage:  $0 <project> <warns.txt>\n";
+    print "usage:  $0 <-p=project> <warns.txt> <db_file>\n";
     exit(1);
 }
 
@@ -42,14 +42,15 @@ my $path = $exec_name;
 $path =~ s/(.*)\/.*/$1/;
 my $project = shift;
 my $warns = shift;
+my $db_file = shift;
 
-if (!defined($warns)) {
+if (!defined($db_file)) {
     usage();
 }
 
 get_too_common_functions($path, $project, $warns);
 
-my $db = DBI->connect("dbi:SQLite:smatch_db.sqlite", "", "", {AutoCommit => 0});
+my $db = DBI->connect("dbi:SQLite:$db_file", "", "", {AutoCommit => 0});
 $db->do("PRAGMA synchronous = OFF");
 $db->do("PRAGMA cache_size = 800000");
 $db->do("PRAGMA journal_mode = OFF");

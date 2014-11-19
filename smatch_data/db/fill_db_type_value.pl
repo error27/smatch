@@ -6,7 +6,11 @@ use bigint;
 use DBI;
 use Data::Dumper;
 
-my $db = DBI->connect("dbi:SQLite:smatch_db.sqlite", "", "", {AutoCommit => 0});
+
+my $project = shift;
+my $warns = shift;
+my $db_file = shift;
+my $db = DBI->connect("dbi:SQLite:$db_file", "", "", {AutoCommit => 0});
 
 my $raw_line;
 
