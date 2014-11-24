@@ -668,6 +668,7 @@ static void match_array_assignment(struct expression *expr)
 {
 	struct expression *left;
 	struct expression *right;
+	char *left_member, *right_member;
 	struct range_list *rl;
 	sval_t sval;
 
@@ -677,8 +678,20 @@ static void match_array_assignment(struct expression *expr)
 	right = strip_expr(expr->right);
 	right = strip_ampersands(right);
 
+	if (!is_pointer(left))
+		return;
 	if (is_allocation_function(right))
 		return;
+
+	left_member = get_member_name(left);
+	right_member = get_member_name(right);
+	if (left_member && right_member && strcmp(left_member, right_member) == 0) {
+		free_string(left_member);
+		free_string(right_member);
+		return;
+	}
+	free_string(left_member);
+	free_string(right_member);
 
 	if (get_implied_value(right, &sval) && sval.value == 0) {
 		rl = alloc_int_rl(0);
