@@ -174,6 +174,9 @@ int sval_is_a_max(sval_t sval)
 		return 1;
 	if (sval_unsigned(sval) && sval.uvalue == ULLONG_MAX)
 		return 1;
+	if (sval.value > valid_ptr_max - 1000 &&
+	    sval.value < valid_ptr_max + 1000)
+		return 1;
 	return 0;
 }
 
