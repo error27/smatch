@@ -431,6 +431,17 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr)
 	if (expr->type == EXPR_STRING)
 		return alloc_int_rl(expr->string->length);
 
+	if (expr->type == EXPR_BINOP && expr->op == '+') {
+		sval_t offset;
+
+		if (!get_implied_value(expr->right, &offset))
+			return NULL;
+		size = get_array_size_bytes(expr->left);
+		if (size <= 0)
+			return NULL;
+		return alloc_int_rl(size - offset.value);
+	}
+
 	/* buf[4] */
 	size = get_real_array_size(expr);
 	if (size)
