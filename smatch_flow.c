@@ -189,6 +189,24 @@ void __process_post_op_stack(void)
 	__free_ptr_list((struct ptr_list **)&post_op_stack);
 }
 
+static int handle_comma_assigns(struct expression *expr)
+{
+	struct expression *right;
+	struct expression *assign;
+
+	right = strip_expr(expr->right);
+	if (right->type != EXPR_COMMA)
+		return 0;
+
+	__split_expr(right->left);
+	__process_post_op_stack();
+
+	assign = assign_expression(expr->left, right->right);
+	__split_expr(assign);
+
+	return 1;
+}
+
 void __split_expr(struct expression *expr)
 {
 	if (!expr)
@@ -249,6 +267,9 @@ void __split_expr(struct expression *expr)
 			break;
 		/* foo = ({frob(); frob(); frob(); 1;}) */
 		if (__handle_expr_statement_assigns(expr))
+			break;
+		/* foo = (3, 4); */
+		if (handle_comma_assigns(expr))
 			break;
 
 		__split_expr(expr->right);
