@@ -323,6 +323,7 @@ void __split_expr(struct expression *expr)
 			parse_inline(expr);
 		}
 		__pass_to_client(expr, CALL_HOOK_AFTER_INLINE);
+		__pass_to_client(expr, FUNCTION_CALL_HOOK_AFTER);
 		if (is_noreturn_func(expr->fn))
 			nullify_path();
 		break;
