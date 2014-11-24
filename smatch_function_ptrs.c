@@ -27,6 +27,29 @@
 
 static int my_id;
 
+static char *get_from__symbol_get(struct expression *expr)
+{
+	struct expression *arg;
+
+	/*
+	 * typeof(&dib0070_attach) __a =
+	 * ((((typeof(&dib0070_attach)) (__symbol_get("dib0070_attach")))) ?:
+	 *  (__request_module(true, "symbol:" "dib0070_attach"), (((typeof(&dib0070_attach))(__symbol_get("dib0070_attach"))))));
+	 */
+
+	expr = strip_expr(expr);
+
+	if (expr->type != EXPR_CALL)
+		return NULL;
+	if (!sym_name_is("__symbol_get", expr->fn))
+		return NULL;
+	arg = get_argument_from_call_expr(expr->args, 0);
+	if (!arg || arg->type != EXPR_STRING)
+		return NULL;
+
+	return alloc_string(arg->string->data);
+}
+
 static char *get_array_ptr(struct expression *expr)
 {
 	struct expression *array;
@@ -125,6 +148,9 @@ char *get_fnptr_name(struct expression *expr)
 	if (expr->type == EXPR_PREOP && expr->op == '*')
 		expr = strip_expr(expr->unop);
 
+	name = get_from__symbol_get(expr);
+	if (name)
+		return name;
 
 	name = get_array_ptr(expr);
 	if (name)
