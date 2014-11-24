@@ -582,6 +582,7 @@ enum info_type {
 	ARRAY_LEN	= 1017,
 	CAPABLE		= 1018,
 	NS_CAPABLE	= 1019,
+	TYPE_LINK	= 1022,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA2	= 9017,

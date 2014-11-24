@@ -100,7 +100,7 @@ static void add_type_val(char *member, struct range_list *rl)
 	set_state_stree(&fn_type_val, my_id, member, NULL, new);
 }
 
-static void add_fake_type_val(char *member, struct range_list *rl)
+static void add_fake_type_val(char *member, struct range_list *rl, int ignore)
 {
 	struct smatch_state *old, *add, *new;
 
@@ -108,12 +108,17 @@ static void add_fake_type_val(char *member, struct range_list *rl)
 	old = get_state_stree(fn_type_val, my_id, member, NULL);
 	if (old && strcmp(old->name, "min-max") == 0)
 		return;
+	if (ignore && old && strcmp(old->name, "ignore") == 0)
+		return;
 	add = alloc_estate_rl(rl);
 	if (old) {
 		new = merge_estates(old, add);
 	} else {
 		new = add;
-		new->name = alloc_string("min-max");
+		if (ignore)
+			new->name = alloc_string("ignore");
+		else
+			new->name = alloc_string("min-max");
 	}
 	set_state_stree(&fn_type_val, my_id, member, NULL, new);
 }
@@ -131,6 +136,40 @@ static void add_global_type_val(char *member, struct range_list *rl)
 		new = add;
 	new = clone_estate_perm(new);
 	set_state_stree_perm(&global_type_val, my_id, member, NULL, new);
+}
+
+static int has_link_cb(void *has_link, int argc, char **argv, char **azColName)
+{
+	*(int *)has_link = 1;
+	return 0;
+}
+static int is_ignored_fake_assignment(void)
+{
+	struct expression *expr;
+	struct symbol *type;
+	char *member_name;
+	int has_link = 0;
+
+	expr = get_faked_expression();
+	if (!expr || expr->type != EXPR_ASSIGNMENT)
+		return 0;
+	if (!is_void_pointer(expr->right))
+		return 0;
+	member_name = get_member_name(expr->right);
+	if (!member_name)
+		return 0;
+
+	type = get_type(expr->left);
+	if (!type || type->type != SYM_PTR)
+		return 0;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_STRUCT)
+		return 0;
+
+	run_sql(has_link_cb, &has_link,
+		"select * from data_info where type = %d and data = '%s' and value = '%s';",
+		TYPE_LINK, member_name, type_to_str(type));
+	return has_link;
 }
 
 static void match_assign_value(struct expression *expr)
@@ -153,7 +192,7 @@ static void match_assign_value(struct expression *expr)
 		goto free;
 
 	if (is_fake_call(expr->right)) {
-		add_fake_type_val(member, alloc_whole_rl(get_type(expr->left)));
+		add_fake_type_val(member, alloc_whole_rl(get_type(expr->left)), is_ignored_fake_assignment());
 		goto free;
 	}
 

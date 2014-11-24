@@ -166,6 +166,9 @@ while (@row = $sth->fetchrow_array()) {
 
     @ranges = split(/,/, $row[3]);
     foreach $range_txt (@ranges) {
+        if ($range_txt =~ /ignore/) {
+            next;
+        }
         if ($range_txt =~ /(.*[^(])-(.*)/) {
             $min = text_to_int($1);
             $max = text_to_int($2);
