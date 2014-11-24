@@ -315,7 +315,7 @@ void sql_select_return_states(const char *cols, struct expression *call,
 	row_count = 0;
 	run_sql(get_row_count, info, "select count(*) from return_states where %s;",
 		get_static_filter(call->fn->symbol));
-	if (row_count > 1000)
+	if (row_count > 3000)
 		return;
 
 	run_sql(callback, info, "select %s from return_states where %s order by return_id, type;",
