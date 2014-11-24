@@ -590,8 +590,6 @@ static int caller_info_callback(void *unused, int argc, char **argv, char **azCo
 		prev_func_id = func_id;
 	}
 
-	if (type == INTERNAL)
-		return 0;
 	if (param >= 0 && !get_param(param, &name, &sym))
 		return 0;
 
