@@ -559,6 +559,8 @@ static int caller_info_callback(void *unused, int argc, char **argv, char **azCo
 	int func_id;
 	long type;
 	long param;
+	char *key;
+	char *value;
 	char *name = NULL;
 	struct symbol *sym = NULL;
 	struct def_callback *def_callback;
@@ -573,6 +575,9 @@ static int caller_info_callback(void *unused, int argc, char **argv, char **azCo
 	param = strtol(argv[2], NULL, 10);
 	if (errno)
 		return 0;
+	key = argv[3];
+	value = argv[4];
+
 
 	if (prev_func_id == -1)
 		prev_func_id = func_id;
@@ -592,7 +597,7 @@ static int caller_info_callback(void *unused, int argc, char **argv, char **azCo
 
 	FOR_EACH_PTR(callbacks, def_callback) {
 		if (def_callback->hook_type == type)
-			def_callback->callback(name, sym, argv[3], argv[4]);
+			def_callback->callback(name, sym, key, value);
 	} END_FOR_EACH_PTR(def_callback);
 
 	return 0;
