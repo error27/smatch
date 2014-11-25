@@ -28,6 +28,8 @@
 
 static int my_id;
 
+STATE(called);
+
 STATE(capped);
 STATE(user_data_passed);
 STATE(user_data_set);
@@ -283,6 +285,11 @@ int is_capped_user_data(struct expression *expr)
 	return 0;
 }
 
+static void set_called(const char *name, struct symbol *sym, char *key, char *value)
+{
+	set_state(my_id, "this_function", NULL, &called);
+}
+
 static void set_param_user_data(const char *name, struct symbol *sym, char *key, char *value)
 {
 	char fullname[256];
@@ -298,12 +305,25 @@ static void match_syscall_definition(struct symbol *sym)
 {
 	struct symbol *arg;
 	char *macro;
+	char *name;
+	int is_syscall = 0;
 
 	macro = get_macro_name(sym->pos);
-	if (!macro)
-		return;
-	if (strncmp("SYSCALL_DEFINE", macro, strlen("SYSCALL_DEFINE")) != 0 &&
-	    strncmp("COMPAT_SYSCALL_DEFINE", macro, strlen("COMPAT_SYSCALL_DEFINE")) != 0)
+	if (macro &&
+	    (strncmp("SYSCALL_DEFINE", macro, strlen("SYSCALL_DEFINE")) == 0 ||
+	     strncmp("COMPAT_SYSCALL_DEFINE", macro, strlen("COMPAT_SYSCALL_DEFINE")) == 0))
+		is_syscall = 1;
+
+	name = get_function();
+	if (!option_no_db && get_state(my_id, "this_function", NULL) != &called) {
+		if (name && strncmp(name, "sys_", 4) == 0)
+			is_syscall = 1;
+	}
+
+	if (name && strncmp(name, "compat_sys_", 11) == 0)
+		is_syscall = 1;
+
+	if (!is_syscall)
 		return;
 
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
@@ -554,8 +574,9 @@ void check_user_data(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 	my_id = id;
+	select_caller_info_hook(set_called, INTERNAL);
 	select_caller_info_hook(set_param_user_data, USER_DATA);
-	add_hook(&match_syscall_definition, FUNC_DEF_HOOK);
+	add_hook(&match_syscall_definition, AFTER_DEF_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_function_hook("copy_from_user", &match_user_copy, INT_PTR(0));
