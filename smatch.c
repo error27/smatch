@@ -160,6 +160,7 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(call_tree);
 		OPTION(file_output);
 		OPTION(time);
+		OPTION(no_db);
 		if (!found)
 			break;
 		(*argcp)--;
