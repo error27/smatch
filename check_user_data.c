@@ -127,7 +127,7 @@ static int is_user_fn_db(struct expression *expr)
 	db_expr = expr;
 	db_user_data = 0;
 	run_sql(db_user_data_callback, NULL,
-		"select value from return_states where type=%d and parameter = -1 and key = '$$' and %s",
+		"select value from return_states where type=%d and parameter = -1 and key = '$' and %s",
 		USER_DATA, sql_filter);
 	return db_user_data;
 }
@@ -288,9 +288,9 @@ static void set_param_user_data(const char *name, struct symbol *sym, char *key,
 	char fullname[256];
 
 	/* sanity check.  this should always be true. */
-	if (strncmp(key, "$$", 2) != 0)
+	if (strncmp(key, "$", 1) != 0)
 		return;
-	snprintf(fullname, 256, "%s%s", name, key + 2);
+	snprintf(fullname, 256, "%s%s", name, key + 1);
 	set_state(my_id, fullname, sym, &user_data_passed);
 }
 
@@ -462,7 +462,7 @@ static void match_caller_info(struct expression *expr)
 	i = 0;
 	FOR_EACH_PTR(expr->args, tmp) {
 		if (is_user_data(tmp))
-			sql_insert_caller_info(expr, USER_DATA, i, "$$", "");
+			sql_insert_caller_info(expr, USER_DATA, i, "$", "");
 		i++;
 	} END_FOR_EACH_PTR(tmp);
 }
@@ -492,11 +492,11 @@ static void print_returned_user_data(int return_id, char *return_ranges, struct 
 	user_data = is_user_data(expr);
 	if (user_data == PASSED_DATA) {
 		sql_insert_return_states(return_id, return_ranges, USER_DATA,
-				-1, "$$", "2");
+				-1, "$", "2");
 	}
 	if (user_data == SET_DATA) {
 		sql_insert_return_states(return_id, return_ranges, USER_DATA,
-				-1, "$$", "1");
+				-1, "$", "1");
 	}
 
 	stree = __get_cur_stree();
@@ -515,7 +515,7 @@ static void print_returned_user_data(int return_id, char *return_ranges, struct 
 			continue;
 
 		param_name = get_param_name(tmp);
-		if (!param_name || strcmp(param_name, "$$") == 0)
+		if (!param_name || strcmp(param_name, "$") == 0)
 			continue;
 
 		if (slist_has_state(tmp->possible, &user_data_set))
@@ -535,7 +535,7 @@ static void db_return_states_userdata(struct expression *expr, int param, char *
 	char *name;
 	struct symbol *sym;
 
-	if (expr->type == EXPR_ASSIGNMENT && param == -1 && strcmp(key, "*$$") == 0) {
+	if (expr->type == EXPR_ASSIGNMENT && param == -1 && strcmp(key, "*$") == 0) {
 		tag_as_user_data(expr->left);
 		return;
 	}

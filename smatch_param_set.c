@@ -106,7 +106,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		param_name = get_param_name(sm);
 		if (!param_name)
 			continue;
-		if (strcmp(param_name, "$$") == 0)
+		if (strcmp(param_name, "$") == 0)
 			continue;
 
 		if (rl_to_sval(rl, &sval)) {

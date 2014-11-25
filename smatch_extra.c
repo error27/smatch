@@ -1529,7 +1529,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	if (!name || !sym)
 		goto free;
 
-	if (strcmp(key, "$$") == 0)
+	if (strcmp(key, "$") == 0)
 		compare_type = get_arg_type(expr->fn, param);
 	else
 		compare_type = get_member_type_from_key(arg, key);
@@ -1697,10 +1697,10 @@ static void match_call_info(struct expression *expr)
 			rl = cast_rl(type, alloc_whole_rl(get_type(arg)));
 
 		if (!is_whole_rl(rl))
-			sql_insert_caller_info(expr, PARAM_VALUE, i, "$$", show_rl(rl));
+			sql_insert_caller_info(expr, PARAM_VALUE, i, "$", show_rl(rl));
 		state = get_state_expr(SMATCH_EXTRA, arg);
 		if (estate_has_fuzzy_max(state)) {
-			sql_insert_caller_info(expr, FUZZY_MAX, i, "$$",
+			sql_insert_caller_info(expr, FUZZY_MAX, i, "$",
 					       sval_to_str(estate_get_fuzzy_max(state)));
 		}
 		i++;
@@ -1714,10 +1714,10 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 	struct symbol *type;
 	char fullname[256];
 
-	if (strcmp(key, "*$$") == 0)
+	if (strcmp(key, "*$") == 0)
 		snprintf(fullname, sizeof(fullname), "*%s", name);
-	else if (strncmp(key, "$$", 2) == 0)
-		snprintf(fullname, 256, "%s%s", name, key + 2);
+	else if (strncmp(key, "$", 1) == 0)
+		snprintf(fullname, 256, "%s%s", name, key + 1);
 	else
 		return;
 
@@ -1735,10 +1735,10 @@ static void set_param_hard_max(const char *name, struct symbol *sym, char *key, 
 	char fullname[256];
 	sval_t max;
 
-	if (strcmp(key, "*$$") == 0)
+	if (strcmp(key, "*$") == 0)
 		snprintf(fullname, sizeof(fullname), "*%s", name);
-	else if (strncmp(key, "$$", 2) == 0)
-		snprintf(fullname, 256, "%s%s", name, key + 2);
+	else if (strncmp(key, "$", 1) == 0)
+		snprintf(fullname, 256, "%s%s", name, key + 1);
 	else
 		return;
 

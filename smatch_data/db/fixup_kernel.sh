@@ -21,17 +21,17 @@ delete from caller_info where function = '(struct timer_list)->function' and typ
 delete from caller_info where caller = 'hid_input_report' and type = 1003;
 delete from caller_info where caller = 'nes_process_iwarp_aeqe' and type = 1003;
 delete from caller_info where caller = 'oz_process_ep0_urb' and type = 1003;
-delete from caller_info where function = 'dev_hard_start_xmit' and key = '\$\$' and type = 1003;
-delete from caller_info where function like '%->ndo_start_xmit' and key = '\$\$' and type = 1003;
+delete from caller_info where function = 'dev_hard_start_xmit' and key = '\$' and type = 1003;
+delete from caller_info where function like '%->ndo_start_xmit' and key = '\$' and type = 1003;
 delete from caller_info where caller = 'packet_rcv_fanout' and function = '(struct packet_type)->func' and parameter = 1 and type = 1003;
 delete from caller_info where caller = 'hptiop_probe' and type = 1003;
 delete from caller_info where caller = 'p9_fd_poll' and function = '(struct file_operations)->poll' and type = 1003;
 delete from caller_info where caller = 'proc_reg_poll' and function = 'proc_reg_poll ptr poll' and type = 1003;
-delete from caller_info where function = 'blkdev_ioctl' and type = 1003 and parameter = 0 and key = '\$\$';
+delete from caller_info where function = 'blkdev_ioctl' and type = 1003 and parameter = 0 and key = '\$';
 
-insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 0, '\$\$', '1');
-insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 1, '\$\$', '1');
-insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 2, '\$\$', '1');
+insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 0, '\$', '1');
+insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 1, '\$', '1');
+insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 2, '\$', '1');
 
 delete from caller_info where function = '(struct timer_list)->function' and parameter = 0;
 
@@ -42,8 +42,8 @@ delete from caller_info where function = '(struct timer_list)->function' and par
  */
 delete from return_states where function = 'rw_verify_area';
 insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 0,   -1,      '', '');
-insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 1011, 2, '*\$\$', '0-1000000');
-insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 1011, 3,  '\$\$', '0-1000000');
+insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 1011, 2, '*\$', '0-1000000');
+insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 1011, 3,  '\$', '0-1000000');
 insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)',     0, 0,   -1,      '', '');
 
 /*
@@ -55,15 +55,15 @@ insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)
  */
 delete from return_states where function = '__kmalloc';
 insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0,    0,  -1, '', '');
-insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0, 1011,   0, '\$\$', '0');
+insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0, 1011,   0, '\$', '0');
 insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0,    0, -1, '', '');
-insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0, 1011,  0, '\$\$', '1-128000');
+insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0, 1011,  0, '\$', '1-128000');
 insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    0,  -1, '', '');
-insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    1011,  0, '\$\$', '128000-long_max');
+insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    1011,  0, '\$', '128000-long_max');
 
 delete from return_states where function = 'vmalloc';
 insert into return_states values ('faked', 'vmalloc', 0, 1, '0,4096-ptr_max', 0,    0, -1, '', '');
-insert into return_states values ('faked', 'vmalloc', 0, 1, '0,4096-ptr_max', 0, 1011,  0, '\$\$', '1-128000000');
+insert into return_states values ('faked', 'vmalloc', 0, 1, '0,4096-ptr_max', 0, 1011,  0, '\$', '1-128000000');
 insert into return_states values ('faked', 'vmalloc', 0, 2, '0', 0,    0,  -1, '', '');
 
 /* store a bunch of capped functions */
@@ -98,7 +98,7 @@ EOF
 
 call_id=$(echo "select distinct call_id from caller_info where function = '__kernel_write';" | sqlite3 $db_file)
 for id in $call_id ; do
-    echo "insert into caller_info values ('fake', '', '__kernel_write', $id, 0, 1, 1003, '*\$\$', '0-1000000');" | sqlite3 $db_file
+    echo "insert into caller_info values ('fake', '', '__kernel_write', $id, 0, 1, 1003, '*\$', '0-1000000');" | sqlite3 $db_file
 done
 
 for i in $(echo "select distinct return from return_states where function = 'clear_user';" | sqlite3 $db_file ) ; do

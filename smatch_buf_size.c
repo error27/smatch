@@ -117,10 +117,10 @@ void set_param_buf_size(const char *name, struct symbol *sym, char *key, char *v
 	struct smatch_state *state;
 	char fullname[256];
 
-	if (strncmp(key, "$$", 2) != 0)
+	if (strncmp(key, "$", 1) != 0)
 		return;
 
-	snprintf(fullname, 256, "%s%s", name, key + 2);
+	snprintf(fullname, 256, "%s%s", name, key + 1);
 
 	str_to_rl(&int_ctype, value, &rl);
 	if (!rl || is_whole_rl(rl))
@@ -780,15 +780,22 @@ static void match_strndup(const char *fn, struct expression *expr, void *unused)
 static void match_call(struct expression *expr)
 {
 	struct expression *arg;
+	struct symbol *type;
 	struct range_list *rl;
 	int i;
 
-	i = 0;
+	i = -1;
 	FOR_EACH_PTR(expr->args, arg) {
-		rl = get_array_size_bytes_rl(arg);
-		if (rl && !is_whole_rl(rl))
-			sql_insert_caller_info(expr, BUF_SIZE, i, "$$", show_rl(rl));
 		i++;
+		type = get_type(arg);
+		if (!type || (type->type != SYM_PTR && type->type != SYM_ARRAY))
+			continue;
+		rl = get_array_size_bytes_rl(arg);
+		if (!rl)
+			continue;
+		if (is_whole_rl(rl))
+			continue;
+		sql_insert_caller_info(expr, BUF_SIZE, i, "$", show_rl(rl));
 	} END_FOR_EACH_PTR(arg);
 }
 

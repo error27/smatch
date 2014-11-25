@@ -142,7 +142,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 
 			snprintf(buf, sizeof(buf), "%s%s", tmp->state->name, compare_str);
 			sql_insert_return_states(return_id, return_ranges,
-					LIMITED_VALUE, param, "$$", buf);
+					LIMITED_VALUE, param, "$", buf);
 			continue;
 		}
 
@@ -158,7 +158,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 
 		snprintf(buf, sizeof(buf), "%s%s", state->name, compare_str);
 		sql_insert_return_states(return_id, return_ranges,
-					LIMITED_VALUE, param, "$$", buf);
+					LIMITED_VALUE, param, "$", buf);
 	} END_FOR_EACH_SM(tmp);
 }
 

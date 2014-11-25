@@ -99,7 +99,7 @@ static void match_caller_info(struct expression *expr)
 		source = get_source_str(tmp);
 		if (!source)
 			continue;
-		sql_insert_caller_info(expr, DATA_SOURCE, i, "$$", source);
+		sql_insert_caller_info(expr, DATA_SOURCE, i, "$", source);
 		free_string(source);
 	} END_FOR_EACH_PTR(tmp);
 }

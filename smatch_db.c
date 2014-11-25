@@ -480,16 +480,16 @@ static void print_struct_members(struct expression *call, struct expression *exp
 			continue;
 		if (strcmp(name, sm->name) == 0) {
 			if (is_address)
-				snprintf(printed_name, sizeof(printed_name), "*$$");
+				snprintf(printed_name, sizeof(printed_name), "*$");
 			else /* these are already handled. fixme: handle them here */
 				continue;
 		} else if (sm->name[0] == '*' && strcmp(name, sm->name + 1) == 0) {
-			snprintf(printed_name, sizeof(printed_name), "*$$");
+			snprintf(printed_name, sizeof(printed_name), "*$");
 		} else if (strncmp(name, sm->name, len) == 0) {
 			if (is_address)
-				snprintf(printed_name, sizeof(printed_name), "$$->%s", sm->name + len + 1);
+				snprintf(printed_name, sizeof(printed_name), "$->%s", sm->name + len + 1);
 			else
-				snprintf(printed_name, sizeof(printed_name), "$$%s", sm->name + len);
+				snprintf(printed_name, sizeof(printed_name), "$%s", sm->name + len);
 		} else {
 			continue;
 		}
@@ -1121,14 +1121,14 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 		return;
 
 	member_name[sizeof(member_name) - 1] = '\0';
-	strcpy(member_name, "$$");
+	strcpy(member_name, "$");
 
 	len = strlen(name);
 	FOR_EACH_PTR(returned_member_callbacks, cb) {
 		stree = __get_cur_stree();
 		FOR_EACH_MY_SM(cb->owner, stree, sm) {
 			if (sm->name[0] == '*' && strcmp(sm->name + 1, name) == 0) {
-				strcpy(member_name, "*$$");
+				strcpy(member_name, "*$");
 				cb->callback(return_id, return_ranges, expr, member_name, sm->state);
 				continue;
 			}
@@ -1136,8 +1136,7 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 				continue;
 			if (strncmp(sm->name + len, "->", 2) != 0)
 				continue;
-			strcpy(member_name, "$$");
-			strncpy(member_name + 2, sm->name + len, sizeof(member_name) - 2);
+			snprintf(member_name, sizeof(member_name), "$%s", sm->name + len);
 			cb->callback(return_id, return_ranges, expr, member_name, sm->state);
 		} END_FOR_EACH_SM(sm);
 	} END_FOR_EACH_PTR(cb);
@@ -1296,9 +1295,9 @@ char *return_state_to_var_sym(struct expression *expr, int param, char *key, str
 			star = "*";
 			key++;
 		}
-		if (strncmp(key, "$$", 2) != 0)
+		if (strncmp(key, "$", 1) != 0)
 			return name;
-		snprintf(member_name, sizeof(member_name), "%s%s%s", star, name, key + 2);
+		snprintf(member_name, sizeof(member_name), "%s%s%s", star, name, key + 1);
 		free_string(name);
 		return alloc_string(member_name);
 	}
@@ -1320,10 +1319,10 @@ char *get_variable_from_key(struct expression *arg, char *key, struct symbol **s
 	char buf[256];
 	char *tmp;
 
-	if (strcmp(key, "$$") == 0)
+	if (strcmp(key, "$") == 0)
 		return expr_to_var_sym(arg, sym);
 
-	if (strcmp(key, "*$$") == 0) {
+	if (strcmp(key, "*$") == 0) {
 		if (arg->type == EXPR_PREOP && arg->op == '&') {
 			arg = strip_expr(arg->unop);
 			return expr_to_var_sym(arg, sym);
@@ -1342,14 +1341,14 @@ char *get_variable_from_key(struct expression *arg, char *key, struct symbol **s
 		tmp = expr_to_var_sym(arg, sym);
 		if (!tmp)
 			return NULL;
-		snprintf(buf, sizeof(buf), "%s.%s", tmp, key + 4);
+		snprintf(buf, sizeof(buf), "%s.%s", tmp, key + 3);
 		return alloc_string(buf);
 	}
 
 	tmp = expr_to_var_sym(arg, sym);
 	if (!tmp)
 		return NULL;
-	snprintf(buf, sizeof(buf), "%s%s", tmp, key + 2);
+	snprintf(buf, sizeof(buf), "%s%s", tmp, key + 1);
 	free_string(tmp);
 	return alloc_string(buf);
 }
@@ -1367,13 +1366,13 @@ const char *get_param_name(struct sm_state *sm)
 	name_len = strlen(param_name);
 
 	if (strcmp(sm->name, param_name) == 0) {
-		return "$$";
+		return "$";
 	} else if (sm->name[name_len] == '-' && /* check for '-' from "->" */
 	    strncmp(sm->name, param_name, name_len) == 0) {
-		snprintf(buf, sizeof(buf), "$$%s", sm->name + name_len);
+		snprintf(buf, sizeof(buf), "$%s", sm->name + name_len);
 		return buf;
 	} else if (sm->name[0] == '*' && strcmp(sm->name + 1, param_name) == 0) {
-		return "*$$";
+		return "*$";
 	}
 	return NULL;
 }

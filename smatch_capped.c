@@ -98,9 +98,9 @@ void set_param_capped_data(const char *name, struct symbol *sym, char *key, char
 {
 	char fullname[256];
 
-	if (strncmp(key, "$$", 2))
+	if (strncmp(key, "$", 1))
 		return;
-	snprintf(fullname, 256, "%s%s", name, key + 2);
+	snprintf(fullname, 256, "%s%s", name, key + 1);
 	set_state(my_id, fullname, sym, &capped);
 }
 
@@ -165,7 +165,7 @@ static void match_caller_info(struct expression *expr)
 	i = 0;
 	FOR_EACH_PTR(expr->args, tmp) {
 		if (is_capped(tmp))
-			sql_insert_caller_info(expr, CAPPED_DATA, i, "$$", "1");
+			sql_insert_caller_info(expr, CAPPED_DATA, i, "$", "1");
 		i++;
 	} END_FOR_EACH_PTR(tmp);
 }

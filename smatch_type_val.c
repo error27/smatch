@@ -296,7 +296,7 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	struct range_list *rl;
 	char *member;
 
-	if (strcmp(key, "*$$") != 0)
+	if (strcmp(key, "*$") != 0)
 		return;
 
 	while (expr->type == EXPR_ASSIGNMENT)

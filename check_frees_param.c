@@ -79,7 +79,7 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 static void set_param_freed(struct expression *arg, char *key, char *unused)
 {
 	/* XXX FIXME: call_implies has been updated with more information */
-	if (strcmp(key, "$$") != 0)
+	if (strcmp(key, "$") != 0)
 		return;
 	freed_variable(arg);
 }

@@ -427,7 +427,7 @@ static void match_call(struct expression *call)
 		compare = buf_size_param_comparison(arg, call->args);
 		if (!compare)
 			continue;
-		sql_insert_caller_info(call, ARRAY_LEN, param, "$$", compare);
+		sql_insert_caller_info(call, ARRAY_LEN, param, "$", compare);
 	} END_FOR_EACH_PTR(arg);
 }
 

@@ -164,10 +164,10 @@ void set_param_strlen(const char *name, struct symbol *sym, char *key, char *val
 	struct smatch_state *state;
 	char fullname[256];
 
-	if (strncmp(key, "$$", 2) != 0)
+	if (strncmp(key, "$", 1) != 0)
 		return;
 
-	snprintf(fullname, 256, "%s%s", name, key + 2);
+	snprintf(fullname, 256, "%s%s", name, key + 1);
 
 	str_to_rl(&int_ctype, value, &rl);
 	if (!rl || is_whole_rl(rl))
@@ -187,7 +187,7 @@ static void match_call(struct expression *expr)
 		if (!get_implied_strlen(arg, &rl))
 			continue;
 		if (!is_whole_rl(rl))
-			sql_insert_caller_info(expr, STR_LEN, i, "$$", show_rl(rl));
+			sql_insert_caller_info(expr, STR_LEN, i, "$", show_rl(rl));
 		i++;
 	} END_FOR_EACH_PTR(arg);
 }

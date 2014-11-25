@@ -60,12 +60,12 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 
 static void match_memset(const char *fn, struct expression *expr, void *arg)
 {
-	db_param_cleared(expr, PTR_INT(arg), (char *)"$$", (char *)"0");
+	db_param_cleared(expr, PTR_INT(arg), (char *)"$", (char *)"0");
 }
 
 static void match_memcpy(const char *fn, struct expression *expr, void *arg)
 {
-	db_param_cleared(expr, PTR_INT(arg), (char *)"$$", (char *)"");
+	db_param_cleared(expr, PTR_INT(arg), (char *)"$", (char *)"");
 }
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
@@ -83,12 +83,12 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 
 		if (sm->state == &zeroed) {
 			sql_insert_return_states(return_id, return_ranges,
-						 PARAM_CLEARED, param, "$$", "0");
+						 PARAM_CLEARED, param, "$", "0");
 		}
 
 		if (sm->state == &cleared) {
 			sql_insert_return_states(return_id, return_ranges,
-						 PARAM_CLEARED, param, "$$", "");
+						 PARAM_CLEARED, param, "$", "");
 		}
 	} END_FOR_EACH_SM(sm);
 }
@@ -136,7 +136,7 @@ static void match_usb_control_msg(const char *fn, struct expression *expr, void 
 	if (get_value(inout, &sval) && !(sval.uvalue & USB_DIR_IN))
 		return;
 
-	db_param_cleared(expr, 6, (char *)"$$", (char *)"");
+	db_param_cleared(expr, 6, (char *)"$", (char *)"");
 }
 
 static void match_assign(struct expression *expr)

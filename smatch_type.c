@@ -519,10 +519,10 @@ struct symbol *get_member_type_from_key(struct expression *expr, char *key)
 	struct symbol *sym;
 	char *name;
 
-	if (strcmp(key, "$$") == 0)
+	if (strcmp(key, "$") == 0)
 		return get_type(expr);
 
-	if (strcmp(key, "*$$") == 0) {
+	if (strcmp(key, "*$") == 0) {
 		sym = get_type(expr);
 		if (!sym || sym->type != SYM_PTR)
 			return NULL;
@@ -537,7 +537,7 @@ struct symbol *get_member_type_from_key(struct expression *expr, char *key)
 	if (sym->type == SYM_PTR)
 		sym = get_real_base_type(sym);
 
-	key = key + 2;
+	key = key + 1;
 	sym = get_member_from_string(sym->symbol_list, key);
 	if (!sym)
 		return NULL;
