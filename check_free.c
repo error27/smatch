@@ -65,7 +65,7 @@ static void match_dereferences(struct expression *expr)
 
 	if (!is_freed(expr))
 		return;
-	name = expr_to_var_sym(expr, NULL);
+	name = expr_to_var(expr);
 	sm_msg("error: dereferencing freed memory '%s'", name);
 	set_state_expr(my_id, expr, &ok);
 	free_string(name);
@@ -130,7 +130,7 @@ static void match_call(struct expression *expr)
 		if (ignored_params[i])
 			continue;
 
-		name = expr_to_var_sym(arg, NULL);
+		name = expr_to_var(arg);
 		sm_msg("warn: passing freed memory '%s'", name);
 		set_state_expr(my_id, arg, &ok);
 		free_string(name);
@@ -146,7 +146,7 @@ static void match_return(struct expression *expr)
 	if (!is_freed(expr))
 		return;
 
-	name = expr_to_var_sym(expr, NULL);
+	name = expr_to_var(expr);
 	sm_msg("warn: returning freed memory '%s'", name);
 	set_state_expr(my_id, expr, &ok);
 	free_string(name);
@@ -160,7 +160,7 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 	if (!arg)
 		return;
 	if (is_freed(arg)) {
-		char *name = expr_to_var_sym(arg, NULL);
+		char *name = expr_to_var(arg);
 
 		sm_msg("error: double free of '%s'", name);
 		free_string(name);
