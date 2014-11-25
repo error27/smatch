@@ -43,7 +43,7 @@ static void match_assign(struct expression *expr)
 		return;
 
 	sym = get_type(expr->left);
-	if (!sym) {
+	if (!sym || sym->type != SYM_BASETYPE) {
 		//sm_msg("could not get type");
 		return;
 	}
