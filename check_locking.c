@@ -224,6 +224,8 @@ static struct lock_info kernel_lock_table[] = {
 	{"_write_unlock_bh",          UNLOCK, "write_lock", 0, ret_any},
 	{"__write_lock_bh",           LOCK,   "write_lock", 0, ret_any},
 	{"__write_unlock_bh",         UNLOCK, "write_lock", 0, ret_any},
+	{"_raw_write_unlock",         UNLOCK, "write_lock", 0, ret_any},
+	{"__raw_write_unlock",        UNLOCK, "write_lock", 0, ret_any},
 
 	{"write_trylock",             LOCK,   "write_lock", 0, ret_non_zero},
 	{"_write_trylock",            LOCK,   "write_lock", 0, ret_non_zero},
