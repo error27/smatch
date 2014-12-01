@@ -584,6 +584,7 @@ enum info_type {
 	CAPABLE		= 1018,
 	NS_CAPABLE	= 1019,
 	TYPE_LINK	= 1022,
+	UNTRACKED_PARAM = 1023,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA2	= 9017,
@@ -787,5 +788,8 @@ void set_auto_copy(int owner);
 
 /* check_buf_comparison */
 struct expression *get_size_variable(struct expression *buf);
+
+/* smatch_untracked_param.c */
+void add_untracked_param_hook(void (func)(struct expression *call, int param));
 
 #endif 	    /* !SMATCH_H_ */

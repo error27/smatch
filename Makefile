@@ -68,7 +68,7 @@ SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	smatch_common_functions.o smatch_struct_assignment.o \
 	smatch_unknown_value.o smatch_stored_conditions.o avl.o \
 	smatch_function_info.o smatch_links.o smatch_auto_copy.o \
-	smatch_type_links.o
+	smatch_type_links.o smatch_untracked_param.o
 
 SMATCH_CHECKS=$(shell ls check_*.c | sed -e 's/\.c/.o/')
 SMATCH_DATA=smatch_data/kernel.allocation_funcs smatch_data/kernel.balanced_funcs \
