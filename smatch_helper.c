@@ -438,6 +438,12 @@ struct expression *strip_expr(struct expression *expr)
 		if (known_condition_false(expr->conditional))
 			return strip_expr(expr->cond_false);
 		return expr;
+	case EXPR_CALL:
+		if (sym_name_is("__builtin_expect", expr->fn)) {
+			expr = get_argument_from_call_expr(expr->args, 0);
+			return strip_expr(expr);
+		}
+		return expr;
 	}
 	return expr;
 }

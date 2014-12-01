@@ -787,6 +787,18 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 	expr = strip_parens(expr);
 	if (!expr)
 		return NULL;
+
+	switch(expr->type) {
+	case EXPR_CAST:
+	case EXPR_FORCE_CAST:
+	case EXPR_IMPLIED_CAST:
+		rl = handle_cast(expr, implied);
+		goto out_cast;
+	}
+
+	expr = strip_expr(expr);
+	if (!expr)
+		return NULL;
 	type = get_type(expr);
 
 	switch (expr->type) {
@@ -799,11 +811,6 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 		break;
 	case EXPR_POSTOP:
 		rl = _get_rl(expr->unop, implied);
-		break;
-	case EXPR_CAST:
-	case EXPR_FORCE_CAST:
-	case EXPR_IMPLIED_CAST:
-		rl = handle_cast(expr, implied);
 		break;
 	case EXPR_BINOP:
 		rl = handle_binop_rl(expr, implied);
@@ -830,6 +837,7 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 		rl = handle_variable(expr, implied);
 	}
 
+out_cast:
 	if (rl)
 		return rl;
 	if (type && implied == RL_ABSOLUTE)
