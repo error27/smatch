@@ -700,19 +700,6 @@ static void db_return_states(struct expression *expr)
 	call_return_states_after_hooks();
 }
 
-static int is_assigned_call(struct expression *expr)
-{
-	struct expression *tmp;
-
-	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
-		if (tmp->type == EXPR_ASSIGNMENT && strip_expr(tmp->right) == expr)
-			return 1;
-		if (tmp->pos.line < expr->pos.line)
-			return 0;
-	} END_FOR_EACH_PTR_REVERSE(tmp);
-	return 0;
-}
-
 static void db_return_states_call(struct expression *expr)
 {
 	if (is_assigned_call(expr))

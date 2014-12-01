@@ -135,6 +135,19 @@ static void set_position(struct position pos)
 	free(pathname);
 }
 
+int is_assigned_call(struct expression *expr)
+{
+	struct expression *tmp;
+
+	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
+		if (tmp->type == EXPR_ASSIGNMENT && strip_expr(tmp->right) == expr)
+			return 1;
+		if (tmp->pos.line < expr->pos.line)
+			return 0;
+	} END_FOR_EACH_PTR_REVERSE(tmp);
+	return 0;
+}
+
 static int is_inline_func(struct expression *expr)
 {
 	if (expr->type != EXPR_SYMBOL || !expr->symbol)
@@ -281,8 +294,11 @@ void __split_expr(struct expression *expr)
 		__fake_struct_member_assignments(expr);
 
 		tmp = strip_expr(expr->right);
-		if (tmp->type == EXPR_CALL)
+		if (tmp->type == EXPR_CALL) {
 			__pass_to_client(expr, CALL_ASSIGNMENT_HOOK);
+			if (!is_fake_call(tmp))
+				__pass_to_client(tmp, FUNCTION_CALL_HOOK_AFTER);
+		}
 		if (get_macro_name(tmp->pos) &&
 		    get_macro_name(expr->pos) != get_macro_name(tmp->pos))
 			__pass_to_client(expr, MACRO_ASSIGNMENT_HOOK);
@@ -344,7 +360,8 @@ void __split_expr(struct expression *expr)
 			parse_inline(expr);
 		}
 		__pass_to_client(expr, CALL_HOOK_AFTER_INLINE);
-		__pass_to_client(expr, FUNCTION_CALL_HOOK_AFTER);
+		if (!is_assigned_call(expr))
+			__pass_to_client(expr, FUNCTION_CALL_HOOK_AFTER);
 		if (is_noreturn_func(expr->fn))
 			nullify_path();
 		break;
