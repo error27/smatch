@@ -38,6 +38,7 @@
 #include "smatch_extra.h"
 
 struct smatch_state undefined = { .name = "undefined" };
+struct smatch_state ghost = { .name = "ghost" };
 struct smatch_state merged = { .name = "merged" };
 struct smatch_state true_state = { .name = "true" };
 struct smatch_state false_state = { .name = "false" };
