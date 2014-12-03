@@ -333,6 +333,12 @@ static void handle_select(struct expression *expr)
 	free_stree(&a_F);
 }
 
+static void handle_comma(struct expression *expr)
+{
+	__split_expr(expr->left);
+	split_conditions(expr->right);
+}
+
 static int make_op_unsigned(int op)
 {
 	switch (op) {
@@ -391,6 +397,9 @@ static void split_conditions(struct expression *expr)
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
 		handle_select(expr);
+		return;
+	case EXPR_COMMA:
+		handle_comma(expr);
 		return;
 	}
 
