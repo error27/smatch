@@ -68,6 +68,8 @@ db_types = {   0: "INTERNAL",
             1017: "ARRAY_LEN",
             1018: "CAPABLE",
             1019: "NS_CAPABLE",
+            1022: "TYPE_LINK",
+            1023: "UNTRACKED_PARAM",
 };
 
 def type_to_str(type_int):
