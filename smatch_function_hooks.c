@@ -389,10 +389,6 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 		return 0;
 
 	return_id = atoi(argv[0]);
-	call_results_to_rl(db_info->expr, get_type(strip_expr(db_info->expr)), argv[1], &ret_range);
-	ret_range = cast_rl(get_type(db_info->expr), ret_range);
-	if (!ret_range)
-		ret_range = alloc_whole_rl(get_type(db_info->expr));
 	type = atoi(argv[2]);
 	param = atoi(argv[3]);
 	key = argv[4];
@@ -405,6 +401,11 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 		__push_fake_cur_stree();
 	}
 	db_info->prev_return_id = return_id;
+
+	call_results_to_rl(db_info->expr, get_type(strip_expr(db_info->expr)), argv[1], &ret_range);
+	ret_range = cast_rl(get_type(db_info->expr), ret_range);
+	if (!ret_range)
+		ret_range = alloc_whole_rl(get_type(db_info->expr));
 
 	comparison = db_info->comparison;
 	if (!db_info->left)
@@ -501,11 +502,6 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 		return 0;
 
 	return_id = atoi(argv[0]);
-	call_results_to_rl(db_info->expr->right, get_type(strip_expr(db_info->expr->right)), argv[1], &ret_range);
-	__add_comparison_info(db_info->expr->left, strip_expr(db_info->expr->right), argv[1]);
-	if (!ret_range)
-		ret_range = alloc_whole_rl(get_type(strip_expr(db_info->expr->right)));
-	ret_range = cast_rl(get_type(db_info->expr->right), ret_range);
 	type = atoi(argv[2]);
 	param = atoi(argv[3]);
 	key = argv[4];
@@ -518,6 +514,12 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 		__push_fake_cur_stree();
 	}
 	db_info->prev_return_id = return_id;
+
+	call_results_to_rl(db_info->expr->right, get_type(strip_expr(db_info->expr->right)), argv[1], &ret_range);
+	__add_comparison_info(db_info->expr->left, strip_expr(db_info->expr->right), argv[1]);
+	if (!ret_range)
+		ret_range = alloc_whole_rl(get_type(strip_expr(db_info->expr->right)));
+	ret_range = cast_rl(get_type(db_info->expr->right), ret_range);
 
 	FOR_EACH_PTR(db_return_states_list, tmp) {
 		if (tmp->type == type)
@@ -637,8 +639,6 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 		return 0;
 
 	return_id = atoi(argv[0]);
-	call_results_to_rl(db_info->expr, get_type(strip_expr(db_info->expr)), argv[1], &ret_range);
-	ret_range = cast_rl(get_type(db_info->expr), ret_range);
 	type = atoi(argv[2]);
 	param = atoi(argv[3]);
 	key = argv[4];
@@ -652,6 +652,9 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 		__unnullify_path();
 	}
 	db_info->prev_return_id = return_id;
+
+	call_results_to_rl(db_info->expr, get_type(strip_expr(db_info->expr)), argv[1], &ret_range);
+	ret_range = cast_rl(get_type(db_info->expr), ret_range);
 
 	FOR_EACH_PTR(db_return_states_list, tmp) {
 		if (tmp->type == type)
