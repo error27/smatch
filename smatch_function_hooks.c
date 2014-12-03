@@ -284,7 +284,7 @@ free:
 	return handled;
 }
 
-static int call_implies_callbacks(int comparison, struct expression *expr, sval_t sval, int left)
+static void call_implies_callbacks(int comparison, struct expression *expr, sval_t sval, int left, struct stree **implied_true, struct stree **implied_false)
 {
 	struct call_back_list *call_backs;
 	struct fcall_back *tmp;
@@ -293,14 +293,15 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 	struct stree *true_states = NULL;
 	struct stree *false_states = NULL;
 	struct stree *tmp_stree;
-	struct sm_state *sm;
 
+	*implied_true = NULL;
+	*implied_false = NULL;
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
-		return 0;
+		return;
 	fn = expr->fn->symbol->ident->name;
 	call_backs = search_callback(func_hash, (char *)expr->fn->symbol->ident->name);
 	if (!call_backs)
-		return 0;
+		return;
 	value_range = alloc_range(sval, sval);
 
 	/* set true states */
@@ -329,16 +330,8 @@ static int call_implies_callbacks(int comparison, struct expression *expr, sval_
 	merge_fake_stree(&false_states, tmp_stree);
 	free_stree(&tmp_stree);
 
-	FOR_EACH_SM(true_states, sm) {
-		__set_true_false_sm(sm, NULL);
-	} END_FOR_EACH_SM(sm);
-	FOR_EACH_SM(false_states, sm) {
-		__set_true_false_sm(NULL, sm);
-	} END_FOR_EACH_SM(sm);
-
-	free_stree(&true_states);
-	free_stree(&false_states);
-	return 1;
+	*implied_true = true_states;
+	*implied_false = false_states;
 }
 
 struct db_callback_info {
@@ -430,7 +423,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 	return 0;
 }
 
-void compare_db_return_states_callbacks(int comparison, struct expression *expr, sval_t sval, int left)
+static void compare_db_return_states_callbacks(int comparison, struct expression *expr, sval_t sval, int left, struct stree *implied_true, struct stree *implied_false)
 {
 	struct stree *stree;
 	struct stree *true_states;
@@ -475,17 +468,28 @@ void compare_db_return_states_callbacks(int comparison, struct expression *expr,
 		__set_true_false_sm(NULL, sm);
 	} END_FOR_EACH_SM(sm);
 
-	call_return_states_after_hooks();
-
 	free_stree(&true_states);
 	free_stree(&false_states);
+
+	call_return_states_after_hooks();
+
+	FOR_EACH_SM(implied_true, sm) {
+		__set_true_false_sm(sm, NULL);
+	} END_FOR_EACH_SM(sm);
+	FOR_EACH_SM(implied_false, sm) {
+		__set_true_false_sm(NULL, sm);
+	} END_FOR_EACH_SM(sm);
+
 }
 
 void function_comparison(int comparison, struct expression *expr, sval_t sval, int left)
 {
-	if (call_implies_callbacks(comparison, expr, sval, left))
-		return;
-	compare_db_return_states_callbacks(comparison, expr, sval, left);
+	struct stree *implied_true, *implied_false;
+
+	call_implies_callbacks(comparison, expr, sval, left, &implied_true, &implied_false);
+	compare_db_return_states_callbacks(comparison, expr, sval, left, implied_true, implied_false);
+	free_stree(&implied_true);
+	free_stree(&implied_false);
 }
 
 static int db_assign_return_states_callback(void *_info, int argc, char **argv, char **azColName)
