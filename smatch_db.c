@@ -1319,6 +1319,8 @@ char *get_variable_from_key(struct expression *arg, char *key, struct symbol **s
 	char buf[256];
 	char *tmp;
 
+	arg = strip_expr(arg);
+
 	if (strcmp(key, "$") == 0)
 		return expr_to_var_sym(arg, sym);
 
