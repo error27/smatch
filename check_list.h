@@ -33,6 +33,7 @@ CK(register_stored_conditions_links)
 CK(register_function_info)
 CK(register_auto_copy)
 CK(register_type_links)
+CK(register_impossible)
 
 CK(check_debug)
 CK(check_assigned_expr)

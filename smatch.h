@@ -793,4 +793,7 @@ struct expression *get_size_variable(struct expression *buf);
 /* smatch_untracked_param.c */
 void add_untracked_param_hook(void (func)(struct expression *call, int param));
 
+/* smatch_impossible.c */
+int is_impossible_path(void);
+
 #endif 	    /* !SMATCH_H_ */
