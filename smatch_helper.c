@@ -422,13 +422,29 @@ struct expression *strip_expr(struct expression *expr)
 	case EXPR_FORCE_CAST:
 	case EXPR_CAST:
 		return strip_expr(expr->cast_expression);
-	case EXPR_PREOP:
+	case EXPR_PREOP: {
+		struct expression *unop;
+
 		if (expr->op == '(' && expr->unop->type == EXPR_STATEMENT &&
 			expr->unop->statement->type == STMT_COMPOUND)
 			return expr;
+
+		unop = strip_expr(expr->unop);
+
+		if (expr->op == '*' &&
+		    unop->type == EXPR_PREOP && unop->op == '&') {
+			struct symbol *type = get_type(unop->unop);
+
+			if (type && type->type == SYM_ARRAY)
+				return expr;
+			return strip_expr(unop->unop);
+		}
+
 		if (expr->op == '(')
-			return strip_expr(expr->unop);
+			return unop;
+
 		return expr;
+	}
 	case EXPR_CONDITIONAL:
 		if (known_condition_true(expr->conditional)) {
 			if (expr->cond_true)
