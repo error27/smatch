@@ -343,7 +343,26 @@ struct db_callback_info {
 	struct stree *stree;
 	struct db_implies_list *callbacks;
 	int prev_return_id;
+	struct smatch_state *ret_state;
 };
+
+static void store_return_state(struct db_callback_info *db_info, struct smatch_state *state)
+{
+	db_info->ret_state = state;
+}
+
+static void set_return_state(struct db_callback_info *db_info)
+{
+	if (db_info->expr->type != EXPR_ASSIGNMENT) {
+		sm_msg("Smatch Internal Error: expected an assignment");
+		return;
+	}
+	if (!db_info->ret_state)
+		return;
+
+	set_extra_expr_mod(db_info->expr->left, db_info->ret_state);
+	db_info->ret_state = NULL;
+}
 
 static void handle_ret_equals_param(char *ret_string, struct range_list *rl, struct expression *call)
 {
@@ -512,6 +531,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 	value = argv[5];
 
 	if (db_info->prev_return_id != -1 && return_id != db_info->prev_return_id) {
+		set_return_state(db_info);
 		stree = __pop_fake_cur_stree();
 		merge_fake_stree(&db_info->stree, stree);
 		free_stree(&stree);
@@ -530,7 +550,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 			tmp->callback(db_info->expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
 	ret_range = cast_rl(get_type(db_info->expr->left), ret_range);
-	set_extra_expr_mod(db_info->expr->left, alloc_estate_rl(ret_range));
+	store_return_state(db_info, alloc_estate_rl(ret_range));
 
 	return 0;
 }
@@ -541,7 +561,7 @@ static int db_return_states_assign(struct expression *expr)
 	struct sm_state *sm;
 	struct stree *stree;
 	int handled = 0;
-	struct db_callback_info db_info;
+	struct db_callback_info db_info = {};
 
 	right = strip_expr(expr->right);
 
@@ -554,6 +574,7 @@ static int db_return_states_assign(struct expression *expr)
 	__push_fake_cur_stree();
 	sql_select_return_states("return_id, return, type, parameter, key, value",
 			right, db_assign_return_states_callback, &db_info);
+	set_return_state(&db_info);
 	stree = __pop_fake_cur_stree();
 	merge_fake_stree(&db_info.stree, stree);
 	free_stree(&stree);
