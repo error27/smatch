@@ -343,6 +343,7 @@ struct db_callback_info {
 	struct stree *stree;
 	struct db_implies_list *callbacks;
 	int prev_return_id;
+	int cull;
 	struct smatch_state *ret_state;
 };
 
@@ -386,6 +387,38 @@ static void handle_ret_equals_param(char *ret_string, struct range_list *rl, str
 	set_extra_expr_nomod(arg, alloc_estate_rl(rl));
 }
 
+static int impossible_limit(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *arg;
+	struct range_list *passed;
+	struct range_list *limit;
+	struct symbol *compare_type;
+
+	if (strcmp(key, "$") != 0)
+		return 0;
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return 0;
+
+	arg = get_argument_from_call_expr(expr->args, param);
+	if (!arg)
+		return 0;
+	if (!get_implied_rl(arg, &passed))
+		return 0;
+	if (!passed || is_whole_rl(passed))
+		return 0;
+
+	compare_type = get_arg_type(expr->fn, param);
+	call_results_to_rl(expr, compare_type, value, &limit);
+	if (!limit || is_whole_rl(limit))
+		return 0;
+	if (possibly_true_rl(passed, SPECIAL_EQUAL, limit))
+		return 0;
+	return 1;
+}
+
 static int db_compare_callback(void *_info, int argc, char **argv, char **azColName)
 {
 	struct db_callback_info *db_info = _info;
@@ -408,11 +441,18 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 
 	if (db_info->prev_return_id != -1 && return_id != db_info->prev_return_id) {
 		stree = __pop_fake_cur_stree();
-		merge_fake_stree(&db_info->stree, stree);
+		if (!db_info->cull)
+			merge_fake_stree(&db_info->stree, stree);
 		free_stree(&stree);
 		__push_fake_cur_stree();
+		db_info->cull = 0;
 	}
 	db_info->prev_return_id = return_id;
+
+	if (type == LIMITED_VALUE && impossible_limit(db_info->expr, param, key, value))
+		db_info->cull = 1;
+	if (db_info->cull)
+		return 0;
 
 	call_results_to_rl(db_info->expr, get_type(strip_expr(db_info->expr)), argv[1], &ret_range);
 	ret_range = cast_rl(get_type(db_info->expr), ret_range);
@@ -448,7 +488,7 @@ static void compare_db_return_states_callbacks(int comparison, struct expression
 	struct stree *true_states;
 	struct stree *false_states;
 	struct sm_state *sm;
-	struct db_callback_info db_info;
+	struct db_callback_info db_info = {};
 
 	db_info.comparison = comparison;
 	db_info.expr = expr;
@@ -465,18 +505,21 @@ static void compare_db_return_states_callbacks(int comparison, struct expression
 	sql_select_return_states("return_id, return, type, parameter, key, value", expr,
 			db_compare_callback, &db_info);
 	stree = __pop_fake_cur_stree();
-	merge_fake_stree(&db_info.stree, stree);
+	if (!db_info.cull)
+		merge_fake_stree(&db_info.stree, stree);
 	free_stree(&stree);
 	true_states = db_info.stree;
 
 	db_info.true_side = 0;
 	db_info.stree = NULL;
 	db_info.prev_return_id = -1;
+	db_info.cull = 0;
 	__push_fake_cur_stree();
 	sql_select_return_states("return_id, return, type, parameter, key, value", expr,
 			db_compare_callback, &db_info);
 	stree = __pop_fake_cur_stree();
-	merge_fake_stree(&db_info.stree, stree);
+	if (!db_info.cull)
+		merge_fake_stree(&db_info.stree, stree);
 	free_stree(&stree);
 	false_states = db_info.stree;
 
@@ -533,11 +576,18 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 	if (db_info->prev_return_id != -1 && return_id != db_info->prev_return_id) {
 		set_return_state(db_info);
 		stree = __pop_fake_cur_stree();
-		merge_fake_stree(&db_info->stree, stree);
+		if (!db_info->cull)
+			merge_fake_stree(&db_info->stree, stree);
 		free_stree(&stree);
 		__push_fake_cur_stree();
+		db_info->cull = 0;
 	}
 	db_info->prev_return_id = return_id;
+
+	if (type == LIMITED_VALUE && impossible_limit(db_info->expr, param, key, value))
+		db_info->cull = 1;
+	if (db_info->cull)
+		return 0;
 
 	call_results_to_rl(db_info->expr->right, get_type(strip_expr(db_info->expr->right)), argv[1], &ret_range);
 	__add_comparison_info(db_info->expr->left, strip_expr(db_info->expr->right), argv[1]);
@@ -576,7 +626,8 @@ static int db_return_states_assign(struct expression *expr)
 			right, db_assign_return_states_callback, &db_info);
 	set_return_state(&db_info);
 	stree = __pop_fake_cur_stree();
-	merge_fake_stree(&db_info.stree, stree);
+	if (!db_info.cull)
+		merge_fake_stree(&db_info.stree, stree);
 	free_stree(&stree);
 
 	FOR_EACH_SM(db_info.stree, sm) {
@@ -671,12 +722,19 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 
 	if (db_info->prev_return_id != -1 && return_id != db_info->prev_return_id) {
 		stree = __pop_fake_cur_stree();
-		merge_fake_stree(&db_info->stree, stree);
+		if (!db_info->cull)
+			merge_fake_stree(&db_info->stree, stree);
 		free_stree(&stree);
 		__push_fake_cur_stree();
 		__unnullify_path();
+		db_info->cull = 0;
 	}
 	db_info->prev_return_id = return_id;
+
+	if (type == LIMITED_VALUE && impossible_limit(db_info->expr, param, key, value))
+		db_info->cull = 1;
+	if (db_info->cull)
+		return 0;
 
 	call_results_to_rl(db_info->expr, get_type(strip_expr(db_info->expr)), argv[1], &ret_range);
 	ret_range = cast_rl(get_type(db_info->expr), ret_range);
@@ -701,7 +759,7 @@ static void db_return_states(struct expression *expr)
 {
 	struct sm_state *sm;
 	struct stree *stree;
-	struct db_callback_info db_info;
+	struct db_callback_info db_info = {};
 
 	if (!__get_cur_stree())  /* no return functions */
 		return;
@@ -717,7 +775,8 @@ static void db_return_states(struct expression *expr)
 	sql_select_return_states("return_id, return, type, parameter, key, value",
 			expr, db_return_states_callback, &db_info);
 	stree = __pop_fake_cur_stree();
-	merge_fake_stree(&db_info.stree, stree);
+	if (!db_info.cull)
+		merge_fake_stree(&db_info.stree, stree);
 	free_stree(&stree);
 
 	FOR_EACH_SM(db_info.stree, sm) {
