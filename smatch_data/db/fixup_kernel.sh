@@ -42,7 +42,7 @@ delete from caller_info where function = '(struct timer_list)->function' and par
  */
 delete from return_states where function = 'rw_verify_area';
 insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 0,   -1,      '', '');
-insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 1011, 2, '*\$', '0-1000000');
+insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 102,  2, '*\$', '0-1000000');
 insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 1011, 3,  '\$', '0-1000000');
 insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)',     0, 0,   -1,      '', '');
 
