@@ -16,6 +16,14 @@
  */
 
 /*
+ * This is almost the same as smatch_param_filter.c.  The difference is that
+ * this only deals with values passed on the stack and param filter only deals
+ * with values changed so that the caller sees the new value.  It other words
+ * the key for these should always be "$" and the key for param_filter should
+ * never be "$".  Also smatch_param_set() should never use "$" as the key.
+ * Param set should work together with param_filter to determine the value that
+ * the caller sees at the end.
+ *
  * This is for functions like this:
  *
  * int foo(int a)
@@ -51,7 +59,7 @@ static void save_start_states(struct statement *stmt)
 	start_states = get_all_states_stree(SMATCH_EXTRA);
 }
 
-static void match_end_func(void)
+static void free_start_states(void)
 {
 	free_stree(&start_states);
 }
@@ -196,12 +204,14 @@ void register_param_limit(int id)
 	my_id = id;
 
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
+	add_hook(&free_start_states, END_FUNC_HOOK);
+
 	add_extra_mod_hook(&extra_mod_hook);
 	add_unmatched_state_hook(my_id, &unmatched_state);
-	add_split_return_callback(&print_return_value_param);
-	add_hook(&match_end_func, END_FUNC_HOOK);
+
 	add_hook(&match_save_states, INLINE_FN_START);
 	add_hook(&match_restore_states, INLINE_FN_END);
 
+	add_split_return_callback(&print_return_value_param);
 }
 
