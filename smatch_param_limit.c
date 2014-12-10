@@ -113,6 +113,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	struct stree *stree;
 	struct sm_state *tmp;
 	struct sm_state *my_sm;
+	struct smatch_state *orig;
 	struct smatch_state *state;
 	int param;
 	char *compare;
@@ -140,12 +141,11 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 
 		my_sm = get_sm_state(my_id, tmp->name, tmp->sym);
 		if (!my_sm) {
-			struct smatch_state *old;
 
 			if (estate_is_whole(tmp->state) && !compare)
 				continue;
-			old = get_state_stree(start_states, SMATCH_EXTRA, tmp->name, tmp->sym);
-			if (old && estates_equiv(old, tmp->state) && !compare)
+			orig = get_state_stree(start_states, SMATCH_EXTRA, tmp->name, tmp->sym);
+			if (orig && estates_equiv(orig, tmp->state) && !compare)
 				continue;
 
 			snprintf(buf, sizeof(buf), "%s%s", tmp->state->name, compare_str);
@@ -160,9 +160,12 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		/* This represents an impossible state.  I screwd up.  Bail. */
 		if (!estate_rl(state))
 			continue;
-		if (estate_is_whole(state) && !compare) {
+		if (estate_is_whole(state) && !compare)
 			continue;
-		}
+
+		orig = get_state_stree(start_states, SMATCH_EXTRA, tmp->name, tmp->sym);
+		if (orig && estates_equiv(orig, state) && !compare)
+			continue;
 
 		snprintf(buf, sizeof(buf), "%s%s", state->name, compare_str);
 		sql_insert_return_states(return_id, return_ranges,
