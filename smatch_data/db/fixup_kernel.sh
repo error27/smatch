@@ -36,14 +36,14 @@ insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003,
 delete from caller_info where function = '(struct timer_list)->function' and parameter = 0;
 
 /*
- * rw_verify_area is a very central function for the kernel.  The 1000000 isn't
- * accurate but I've picked it so that we can add "pos + count" without wrapping
- * on 32 bits.
+ * rw_verify_area is a very central function for the kernel.  The 1000000000
+ * isn't accurate but I've picked it so that we can add "pos + count" without
+ * wrapping on 32 bits.
  */
 delete from return_states where function = 'rw_verify_area';
-insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 0,   -1,      '', '');
-insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 102,  2, '*\$', '0-1000000');
-insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000[<=\$3]', 0, 1011, 3,  '\$', '0-1000000');
+insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000[<=\$3]', 0, 0,   -1,      '', '');
+insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000[<=\$3]', 0, 102,  2, '*\$', '0-1000000000');
+insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000[<=\$3]', 0, 1011, 3,  '\$', '0-1000000000');
 insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)',     0, 0,   -1,      '', '');
 
 /*
@@ -103,7 +103,7 @@ EOF
 
 call_id=$(echo "select distinct call_id from caller_info where function = '__kernel_write';" | sqlite3 $db_file)
 for id in $call_id ; do
-    echo "insert into caller_info values ('fake', '', '__kernel_write', $id, 0, 1, 1003, '*\$', '0-1000000');" | sqlite3 $db_file
+    echo "insert into caller_info values ('fake', '', '__kernel_write', $id, 0, 1, 1003, '*\$', '0-1000000000');" | sqlite3 $db_file
 done
 
 for i in $(echo "select distinct return from return_states where function = 'clear_user';" | sqlite3 $db_file ) ; do
