@@ -784,6 +784,7 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 	struct symbol *type;
 	sval_t sval;
 
+	type = get_type(expr);
 	expr = strip_parens(expr);
 	if (!expr)
 		return NULL;
@@ -799,7 +800,6 @@ static struct range_list *_get_rl(struct expression *expr, int implied)
 	expr = strip_expr(expr);
 	if (!expr)
 		return NULL;
-	type = get_type(expr);
 
 	switch (expr->type) {
 	case EXPR_VALUE:
