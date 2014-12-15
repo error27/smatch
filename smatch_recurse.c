@@ -127,16 +127,50 @@ int has_symbol(struct expression *expr, struct symbol *sym)
 	return recurse(expr, has_symbol_helper, sym, 0);
 }
 
-int has_variable(struct expression *expr, struct expression *var)
-{
+struct expr_name_sym {
+	struct expression *expr;
 	char *name;
 	struct symbol *sym;
+};
 
-	name = expr_to_var_sym(var, &sym);
+static int has_var_helper(struct expression *expr, void *_var)
+{
+	struct expr_name_sym *xns = _var;
+	char *name;
+	struct symbol *sym;
+	int matched = 0;
+
+	if (!expr)
+		return 0;
+	if (expr->type != xns->expr->type)
+		return 0;
+	// I hope this is defined for everything?  It should work, right?
+	if (expr->op != xns->expr->op)
+		return 0;
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	if (sym == xns->sym && strcmp(name, xns->name) == 0)
+		matched = 1;
+free:
 	free_string(name);
-	if (!sym)
-		return -1;
-	return has_symbol(expr, sym);
+	return matched;
+}
+
+int has_variable(struct expression *expr, struct expression *var)
+{
+	struct expr_name_sym xns;
+	int ret = -1;
+
+	xns.expr = var;
+	xns.name = expr_to_var_sym(var, &xns.sym);
+	if (!xns.name || !xns.sym)
+		goto free;
+	ret = recurse(expr, has_var_helper, &xns, 0);
+free:
+	free_string(xns.name);
+	return ret;
 }
 
 static int has_inc_dec_helper(struct expression *expr, void *unused)
