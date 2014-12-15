@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include "allocate.h"
 #include "smatch.h"
+#include "smatch_extra.h"
 
 #define VAR_LEN 512
 
@@ -114,18 +115,27 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 				     struct expression *expr, int len,
 				     int *complicated, int no_parens)
 {
-	struct expression *tmp;
-
 	switch (expr->type) {
-	case EXPR_DEREF:
-		tmp = expr->deref;
-		if (tmp->op == '*')
-			tmp = tmp->unop;
+	case EXPR_DEREF: {
+		struct expression *deref;
+		int op;
 
-		__get_variable_from_expr(sym_ptr, buf, tmp, len, complicated, no_parens);
+		deref = expr->deref;
+		op = deref->op;
+		if (op == '*') {
+			struct expression *unop = strip_expr(deref->unop);
 
-		tmp = expr->deref;
-		if (tmp->op == '*')
+			if (unop->type == EXPR_PREOP && unop->op == '&') {
+				deref = unop->unop;
+				op = '.';
+			} else {
+				deref = deref->unop;
+			}
+		}
+
+		__get_variable_from_expr(sym_ptr, buf, deref, len, complicated, no_parens);
+
+		if (op == '*')
 			append(buf, "->", len);
 		else
 			append(buf, ".", len);
@@ -136,6 +146,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			append(buf, "unknown_member", len);
 
 		return;
+	}
 	case EXPR_SYMBOL:
 		if (expr->symbol_name)
 			append(buf, expr->symbol_name->name, len);
