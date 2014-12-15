@@ -19,6 +19,7 @@
 #include "smatch_extra.h"
 
 static int my_id;
+static int my_return_id;
 
 STATE(impossible);
 
@@ -31,11 +32,27 @@ int is_impossible_path(void)
 
 static void handle_compare(struct expression *left, int op, struct expression *right)
 {
-	if (!possibly_true(left, op, right))
-		set_true_false_states(my_id, "impossible", NULL, &impossible, NULL);
-	if (!possibly_false(left, op, right))
-		set_true_false_states(my_id, "impossible", NULL, NULL, &impossible);
+	int true_impossible = 0;
+	int false_impossible = 0;
 
+	if (!possibly_true(left, op, right))
+		true_impossible = 1;
+	if (!possibly_false(left, op, right))
+		false_impossible = 1;
+
+	if (!true_impossible && !false_impossible)
+		return;
+
+	set_true_false_states(my_id, "impossible", NULL,
+			      true_impossible ? &impossible : &undefined,
+			      false_impossible ? &impossible : &undefined);
+
+	if (inside_loop())
+		return;
+
+	set_true_false_states(my_return_id, "impossible", NULL,
+			      true_impossible ? &impossible : &undefined,
+			      false_impossible ? &impossible : &undefined);
 }
 
 static void match_condition(struct expression *expr)
@@ -46,6 +63,15 @@ static void match_condition(struct expression *expr)
 		handle_compare(expr, SPECIAL_NOTEQUAL, zero_expr());
 }
 
+static void print_impossible_return(int return_id, char *return_ranges, struct expression *expr)
+{
+	if (get_state(my_return_id, "impossible", NULL) == &impossible) {
+		if (option_debug)
+			sm_msg("impossible return.  return_id = %d return ranges = %s", return_id, return_ranges);
+		sql_insert_return_states(return_id, return_ranges, CULL_PATH, -1, "", "");
+	}
+}
+
 void register_impossible(int id)
 {
 	my_id = id;
@@ -53,4 +79,9 @@ void register_impossible(int id)
 	add_hook(&match_condition, CONDITION_HOOK);
 }
 
+void register_impossible_return(int id)
+{
+	my_return_id = id;
 
+	add_split_return_callback(&print_impossible_return);
+}

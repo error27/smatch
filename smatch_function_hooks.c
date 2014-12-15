@@ -449,6 +449,8 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 	}
 	db_info->prev_return_id = return_id;
 
+	if (type == CULL_PATH)
+		db_info->cull = 1;
 	if (type == LIMITED_VALUE && impossible_limit(db_info->expr, param, key, value))
 		db_info->cull = 1;
 	if (db_info->cull)
@@ -584,6 +586,8 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 	}
 	db_info->prev_return_id = return_id;
 
+	if (type == CULL_PATH)
+		db_info->cull = 1;
 	if (type == LIMITED_VALUE && impossible_limit(db_info->expr, param, key, value))
 		db_info->cull = 1;
 	if (db_info->cull)
@@ -731,6 +735,8 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 	}
 	db_info->prev_return_id = return_id;
 
+	if (type == CULL_PATH)
+		db_info->cull = 1;
 	if (type == LIMITED_VALUE && impossible_limit(db_info->expr, param, key, value))
 		db_info->cull = 1;
 	if (db_info->cull)

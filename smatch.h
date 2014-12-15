@@ -587,6 +587,7 @@ enum info_type {
 	NS_CAPABLE	= 1019,
 	TYPE_LINK	= 1022,
 	UNTRACKED_PARAM = 1023,
+	CULL_PATH	= 1024,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA2	= 9017,
