@@ -491,7 +491,8 @@ int sval_binop_overflows(sval_t left, int op, sval_t right)
 	if (type_positive_bits(right.type) > type_positive_bits(left.type))
 		type = right.type;
 	if (type_positive_bits(type) < 31)
-		return 0;
+		type = &int_ctype;
+
 	max = sval_type_max(type);
 	min = sval_type_min(type);
 
