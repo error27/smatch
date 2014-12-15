@@ -178,6 +178,7 @@ extern struct symbol *cur_func_sym;
 extern int option_debug;
 extern int local_debug;
 extern int option_info;
+extern char *trace_variable;
 extern struct stree *global_states;
 int is_silenced_function(void);
 

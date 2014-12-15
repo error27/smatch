@@ -21,6 +21,7 @@
 
 int local_debug;
 static int my_id;
+char *trace_variable;
 
 static void match_all_values(const char *fn, struct expression *expr, void *info)
 {
@@ -488,6 +489,31 @@ static void match_type(const char *fn, struct expression *expr, void *info)
 	free_string(name);
 }
 
+static void trace_var(struct statement *stmt)
+{
+	static struct stree *old_stree;
+	struct sm_state *sm, *old;
+
+	if (!trace_variable)
+		return;
+	if (__inline_fn)
+		return;
+
+	FOR_EACH_SM(__get_cur_stree(), sm) {
+		if (strcmp(sm->name, trace_variable) != 0)
+			continue;
+		old = get_sm_state_stree(old_stree, sm->owner, sm->name, sm->sym);
+		if (old && old->state == sm->state)
+			continue;
+		sm_msg("[%d] %s '%s': '%s' => '%s'", stmt->type,
+		       check_name(sm->owner),
+		       sm->name, old ? old->state->name : "<none>", sm->state->name);
+	} END_FOR_EACH_SM(sm);
+
+	free_stree(&old_stree);
+	old_stree = clone_stree(__get_cur_stree());
+}
+
 void check_debug(int id)
 {
 	my_id = id;
@@ -522,4 +548,6 @@ void check_debug(int id)
 	add_function_hook("__smatch_debug_implied_off", &match_debug_implied_off, NULL);
 	add_function_hook("__smatch_intersection", &match_intersection, NULL);
 	add_function_hook("__smatch_type", &match_type, NULL);
+
+	add_hook(trace_var, STMT_HOOK_AFTER);
 }

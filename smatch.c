@@ -144,6 +144,11 @@ void parse_args(int *argcp, char ***argvp)
 			(*argvp)[1] = (*argvp)[0];
 			found = 1;
 		}
+		if (!found && strncmp((*argvp)[1], "--trace=", 8) == 0) {
+			trace_variable = (*argvp)[1] + 8;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
+		}
 
 		OPTION(spammy);
 		OPTION(info);
