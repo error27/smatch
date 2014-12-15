@@ -651,6 +651,15 @@ static int type_str_helper(char *buf, int size, struct symbol *type)
 		} END_FOR_EACH_PTR(arg);
 
 		return n + snprintf(buf + n, size - n, ")");
+	} else if (type->type == SYM_NODE) {
+		n = snprintf(buf, size, "node {");
+		if (n > size)
+			return n;
+		type = get_real_base_type(type);
+		n += type_str_helper(buf + n, size - n, type);
+		if (n > size)
+			return n;
+		return n + snprintf(buf + n, size - n, "}");
 	} else {
 		return snprintf(buf, size, "<type %d>", type->type);
 	}
