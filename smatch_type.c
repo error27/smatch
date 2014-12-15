@@ -185,7 +185,14 @@ struct symbol *get_pointer_type(struct expression *expr)
 	struct symbol *sym;
 
 	sym = get_type(expr);
-	if (!sym || (sym->type != SYM_PTR && sym->type != SYM_ARRAY))
+	if (!sym)
+		return NULL;
+	if (sym->type == SYM_NODE) {
+		sym = get_real_base_type(sym);
+		if (!sym)
+			return NULL;
+	}
+	if (sym->type != SYM_PTR && sym->type != SYM_ARRAY)
 		return NULL;
 	return get_real_base_type(sym);
 }
