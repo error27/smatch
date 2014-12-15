@@ -21,7 +21,8 @@
  *
  * This tracks functions like memset() which clear out a chunk of memory.
  * It fills in a gap that smatch_param_set.c can't handle.  It only handles
- * void pointers because smatch_param_set.c should handle the rest.
+ * void pointers because smatch_param_set.c should handle the rest.  Oh.  And
+ * also it handles arrays because Smatch sucks at handling arrays.
  */
 
 #include "scope.h"
@@ -149,6 +150,17 @@ static void match_assign(struct expression *expr)
 	set_state_expr(my_id, expr->left, &cleared);
 }
 
+static void match_array_assign(struct expression *expr)
+{
+	struct expression *array_expr;
+
+	if (!is_array(expr->left))
+		return;
+
+	array_expr = get_array_name(expr->left);
+	set_state_expr(my_id, array_expr, &cleared);
+}
+
 void register_param_cleared(int id)
 {
 	my_id = id;
@@ -165,6 +177,7 @@ void register_param_cleared(int id)
 	add_function_hook("snprintf", &match_memcpy, INT_PTR(0));
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_array_assign, ASSIGNMENT_HOOK);
 
 	register_clears_param();
 
