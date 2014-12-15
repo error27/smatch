@@ -292,6 +292,7 @@ int known_condition_true(struct expression *expr);
 int known_condition_false(struct expression *expr);
 int implied_condition_true(struct expression *expr);
 int implied_condition_false(struct expression *expr);
+int can_integer_overflow(struct symbol *type, struct expression *expr);
 
 int is_array(struct expression *expr);
 struct expression *get_array_name(struct expression *expr);
