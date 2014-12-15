@@ -56,7 +56,7 @@ sval_t sval_blank(struct expression *expr)
 
 	ret.type = get_type(expr);
 	if (!ret.type)
-		ret.type = &llong_ctype;
+		ret.type = &int_ctype;
 	ret.value = 123456789;
 
 	return ret;
@@ -65,6 +65,9 @@ sval_t sval_blank(struct expression *expr)
 sval_t sval_type_val(struct symbol *type, long long val)
 {
 	sval_t ret;
+
+	if (!type)
+		type = &int_ctype;
 
 	ret.type = type;
 	ret.value = val;
@@ -283,7 +286,7 @@ sval_t sval_cast(struct symbol *type, sval_t sval)
 	sval_t ret;
 
 	if (!type)
-		type = &llong_ctype;
+		type = &int_ctype;
 
 	ret.type = type;
 	switch (sval_bits(ret)) {
