@@ -57,7 +57,7 @@ static char *get_array_ptr(struct expression *expr)
 	char *name;
 	char buf[256];
 
-	array = get_array_name(expr);
+	array = get_array_base(expr);
 
 	if (array) {
 		name = get_member_name(array);
@@ -78,7 +78,7 @@ static char *get_array_ptr(struct expression *expr)
 	}
 
 	expr = get_assigned_expr(expr);
-	array = get_array_name(expr);
+	array = get_array_base(expr);
 	if (!array)
 		return NULL;
 	name = expr_to_var(array);

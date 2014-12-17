@@ -133,6 +133,8 @@ static int bytes_per_element(struct expression *expr)
 {
 	struct symbol *type;
 
+	if (!expr)
+		return 0;
 	if (expr->type == EXPR_STRING)
 		return 1;
 	type = get_type(expr);
@@ -254,6 +256,8 @@ int get_real_array_size(struct expression *expr)
 	struct symbol *type;
 	sval_t sval;
 
+	if (!expr)
+		return 0;
 	if (expr->type == EXPR_BINOP) /* array elements foo[5] */
 		return 0;
 
@@ -536,6 +540,8 @@ int get_array_size_bytes_min(struct expression *expr)
 
 int get_array_size(struct expression *expr)
 {
+	if (!expr)
+		return 0;
 	return bytes_to_elements(expr, get_array_size_bytes_max(expr));
 }
 

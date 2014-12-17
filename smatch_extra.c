@@ -846,7 +846,7 @@ static void match_pointer_as_array(struct expression *expr)
 {
 	if (!is_array(expr))
 		return;
-	check_dereference(expr->unop->left);
+	check_dereference(get_array_base(expr));
 }
 
 static void set_param_dereferenced(struct expression *arg, char *key, char *unused)
@@ -1409,7 +1409,7 @@ static void assume_indexes_are_valid(struct expression *expr)
 				  sval_type_val(offset_type, -1));
 	}
 
-	array_expr = strip_parens(expr->unop->left);
+	array_expr = get_array_base(expr);
 	array_size = get_real_array_size(array_expr);
 	if (array_size > 1) {
 		size = sval_type_val(offset_type, array_size);

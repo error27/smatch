@@ -364,27 +364,50 @@ int is_zero(struct expression *expr)
 
 int is_array(struct expression *expr)
 {
+	struct symbol *type;
+
 	expr = strip_expr(expr);
-	if (!expr || expr->type != EXPR_PREOP || expr->op != '*')
+	if (!expr)
 		return 0;
-	expr = expr->unop;
-	if (expr->op != '+')
+
+	if (expr->type == EXPR_PREOP || expr->op == '*') {
+		expr = strip_expr(expr->unop);
+		if (expr->type == EXPR_BINOP && expr->op == '+')
+			return 1;
+	}
+
+	if (expr->type != EXPR_BINOP || expr->op != '+')
 		return 0;
+
+	type = get_type(expr->left);
+	if (!type || type->type != SYM_ARRAY)
+		return 0;
+
 	return 1;
 }
 
-struct expression *get_array_name(struct expression *expr)
+struct expression *get_array_base(struct expression *expr)
 {
 	if (!is_array(expr))
 		return NULL;
-	return strip_expr(expr->unop->left);
+	expr = strip_expr(expr);
+	if (expr->type == EXPR_PREOP && expr->op == '*')
+		expr = strip_expr(expr->unop);
+	if (expr->type != EXPR_BINOP || expr->op != '+')
+		return NULL;
+	return strip_parens(expr->left);
 }
 
 struct expression *get_array_offset(struct expression *expr)
 {
 	if (!is_array(expr))
 		return NULL;
-	return expr->unop->right;
+	expr = strip_expr(expr);
+	if (expr->type == EXPR_PREOP && expr->op == '*')
+		expr = strip_expr(expr->unop);
+	if (expr->type != EXPR_BINOP || expr->op != '+')
+		return NULL;
+	return strip_expr(expr->right);
 }
 
 const char *show_state(struct smatch_state *state)

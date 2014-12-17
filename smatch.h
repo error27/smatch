@@ -296,7 +296,7 @@ int implied_condition_false(struct expression *expr);
 int can_integer_overflow(struct symbol *type, struct expression *expr);
 
 int is_array(struct expression *expr);
-struct expression *get_array_name(struct expression *expr);
+struct expression *get_array_base(struct expression *expr);
 struct expression *get_array_offset(struct expression *expr);
 const char *show_state(struct smatch_state *state);
 struct statement *get_expression_statement(struct expression *expr);

@@ -143,7 +143,7 @@ static void match_pointer_as_array(struct expression *expr)
 {
 	if (!is_array(expr))
 		return;
-	check_dereference(expr->unop->left);
+	check_dereference(get_array_base(expr));
 }
 
 static void set_param_dereferenced(struct expression *arg, char *key, char *unused)

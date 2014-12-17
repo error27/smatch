@@ -201,7 +201,7 @@ static void array_check(struct expression *expr)
 	if (!is_array(expr))
 		return;
 
-	array = strip_parens(expr->unop->left);
+	array = get_array_base(expr);
 	size = get_size_variable(array);
 	if (!size)
 		return;
@@ -296,7 +296,7 @@ static int known_access_ok_comparison(struct expression *expr)
 	struct expression *offset;
 	int comparison;
 
-	array = strip_parens(expr->unop->left);
+	array = get_array_base(expr);
 	size = get_size_variable(array);
 	if (!size)
 		return 0;
@@ -315,7 +315,7 @@ static int known_access_ok_numbers(struct expression *expr)
 	sval_t max;
 	int size;
 
-	array = strip_parens(expr->unop->left);
+	array = get_array_base(expr);
 	offset = get_array_offset(expr);
 
 	size = get_array_size(array);
@@ -347,7 +347,7 @@ static void array_check_data_info(struct expression *expr)
 	if (known_access_ok_comparison(expr))
 		return;
 
-	array = strip_parens(expr->unop->left);
+	array = get_array_base(expr);
 	offset = get_array_offset(expr);
 	offset_name = expr_to_var(offset);
 	if (!offset_name)

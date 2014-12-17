@@ -157,7 +157,7 @@ static void match_array_assign(struct expression *expr)
 	if (!is_array(expr->left))
 		return;
 
-	array_expr = get_array_name(expr->left);
+	array_expr = get_array_base(expr->left);
 	set_state_expr(my_id, array_expr, &cleared);
 }
 
