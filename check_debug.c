@@ -489,9 +489,9 @@ static void match_type(const char *fn, struct expression *expr, void *info)
 	free_string(name);
 }
 
+static struct stree *old_stree;
 static void trace_var(struct statement *stmt)
 {
-	static struct stree *old_stree;
 	struct sm_state *sm, *old;
 
 	if (!trace_variable)
@@ -512,6 +512,11 @@ static void trace_var(struct statement *stmt)
 
 	free_stree(&old_stree);
 	old_stree = clone_stree(__get_cur_stree());
+}
+
+static void free_old_stree(struct symbol *sym)
+{
+	free_stree(&old_stree);
 }
 
 void check_debug(int id)
@@ -549,5 +554,6 @@ void check_debug(int id)
 	add_function_hook("__smatch_intersection", &match_intersection, NULL);
 	add_function_hook("__smatch_type", &match_type, NULL);
 
+	add_hook(free_old_stree, END_FUNC_HOOK);
 	add_hook(trace_var, STMT_HOOK_AFTER);
 }
