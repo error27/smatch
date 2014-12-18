@@ -74,6 +74,8 @@ static void check_dereference(struct expression *expr)
 		return;
 	if (implied_not_equal(expr, 0))
 		return;
+	if (is_impossible_path())
+		return;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (tmp->state == &merged)
@@ -108,6 +110,8 @@ static void check_dereference_name_sym(char *name, struct symbol *sym)
 	if (is_ignored(my_id, sm->name, sm->sym))
 		return;
 	if (implied_not_equal_name_sym(name, sym, 0))
+		return;
+	if (is_impossible_path())
 		return;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
