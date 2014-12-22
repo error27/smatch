@@ -140,7 +140,8 @@ int is_assigned_call(struct expression *expr)
 	struct expression *tmp;
 
 	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
-		if (tmp->type == EXPR_ASSIGNMENT && strip_expr(tmp->right) == expr)
+		if (tmp->type == EXPR_ASSIGNMENT && tmp->op == '=' &&
+		    strip_expr(tmp->right) == expr)
 			return 1;
 		if (tmp->pos.line < expr->pos.line)
 			return 0;
@@ -294,7 +295,7 @@ void __split_expr(struct expression *expr)
 		__fake_struct_member_assignments(expr);
 
 		tmp = strip_expr(expr->right);
-		if (tmp->type == EXPR_CALL) {
+		if (expr->op == '=' && tmp->type == EXPR_CALL) {
 			__pass_to_client(expr, CALL_ASSIGNMENT_HOOK);
 			if (!is_fake_call(tmp))
 				__pass_to_client(tmp, FUNCTION_CALL_HOOK_AFTER);
