@@ -293,12 +293,21 @@ static struct range_list *handle_bitwise_AND(struct expression *expr, int implie
 	}
 
 	if (get_implied_value(expr->right, &known)) {
-		sval_t min;
+		sval_t min, left_max, mod;
 
 		min = sval_lowest_set_bit(known);
 		right_rl = alloc_rl(min, known);
 		right_rl = cast_rl(type, right_rl);
 		add_range(&right_rl, sval_type_val(type, 0), sval_type_val(type, 0));
+
+		if (min.value != 0) {
+			left_max = rl_max(left_rl);
+			mod = sval_binop(left_max, '%', min);
+			left_max = sval_binop(left_max, '-', mod);
+			left_max.value++;
+			if (left_max.value > 0 && sval_cmp(left_max, rl_max(left_rl)) < 0)
+				left_rl = remove_range(left_rl, left_max, rl_max(left_rl));
+		}
 	} else {
 		right_rl = _get_rl(expr->right, implied);
 		if (right_rl) {
