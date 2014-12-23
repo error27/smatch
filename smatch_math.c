@@ -303,10 +303,12 @@ static struct range_list *handle_bitwise_AND(struct expression *expr, int implie
 		if (min.value != 0) {
 			left_max = rl_max(left_rl);
 			mod = sval_binop(left_max, '%', min);
-			left_max = sval_binop(left_max, '-', mod);
-			left_max.value++;
-			if (left_max.value > 0 && sval_cmp(left_max, rl_max(left_rl)) < 0)
-				left_rl = remove_range(left_rl, left_max, rl_max(left_rl));
+			if (mod.value) {
+				left_max = sval_binop(left_max, '-', mod);
+				left_max.value++;
+				if (left_max.value > 0 && sval_cmp(left_max, rl_max(left_rl)) < 0)
+					left_rl = remove_range(left_rl, left_max, rl_max(left_rl));
+			}
 		}
 	} else {
 		right_rl = _get_rl(expr->right, implied);
