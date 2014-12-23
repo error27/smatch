@@ -26,12 +26,12 @@ static struct range_list *handle_variable(struct expression *expr, int implied);
 static sval_t zero  = {.type = &int_ctype, {.value = 0} };
 static sval_t one   = {.type = &int_ctype, {.value = 1} };
 
-static struct range_list *rl_zero(void)
+struct range_list *rl_zero(void)
 {
 	return alloc_rl(zero, zero);
 }
 
-static struct range_list *rl_one(void)
+struct range_list *rl_one(void)
 {
 	return alloc_rl(one, one);
 }

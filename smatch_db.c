@@ -994,6 +994,56 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 	return ret;
 }
 
+static int call_return_state_hooks_split_success_fail(struct expression *expr)
+{
+	struct range_list *rl;
+	int nr_states;
+	struct returned_state_callback *cb;
+	char *return_ranges;
+	int final_pass_orig = final_pass;
+
+	if (option_project != PROJ_KERNEL)
+		return 0;
+
+	nr_states = stree_count(__get_cur_stree());
+	if (nr_states > 1500)
+		return 0;
+
+	if (!get_implied_rl(expr, &rl))
+		return 0;
+	if (rl_min(rl).value < -4095)
+		return 0;
+	if (rl_max(rl).value != 0)
+		return 0;
+
+	__push_fake_cur_stree();
+
+	final_pass = 0;
+	__split_whole_condition(expr);
+	final_pass = final_pass_orig;
+
+	return_ranges = show_rl(rl_filter(rl, rl_zero()));
+
+	return_id++;
+	FOR_EACH_PTR(returned_state_callbacks, cb) {
+		cb->callback(return_id, return_ranges, expr);
+	} END_FOR_EACH_PTR(cb);
+
+	__push_true_states();
+	__use_false_states();
+
+	return_ranges = alloc_sname("0");;
+	return_id++;
+	FOR_EACH_PTR(returned_state_callbacks, cb) {
+		cb->callback(return_id, return_ranges, expr);
+	} END_FOR_EACH_PTR(cb);
+
+	__merge_true_states();
+	__free_fake_cur_stree();
+
+	return 1;
+}
+
 static const char *get_return_ranges_str(struct expression *expr)
 {
 	struct range_list *rl;
@@ -1085,6 +1135,8 @@ static void call_return_state_hooks(struct expression *expr)
 		call_return_state_hooks_conditional(expr);
 		return;
 	} else if (call_return_state_hooks_split_possible(expr)) {
+		return;
+	} else if (call_return_state_hooks_split_success_fail(expr)) {
 		return;
 	} else if (splitable_function_call(expr)) {
 		return;
