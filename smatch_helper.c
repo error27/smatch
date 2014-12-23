@@ -370,7 +370,7 @@ int is_array(struct expression *expr)
 	if (!expr)
 		return 0;
 
-	if (expr->type == EXPR_PREOP || expr->op == '*') {
+	if (expr->type == EXPR_PREOP && expr->op == '*') {
 		expr = strip_expr(expr->unop);
 		if (expr->type == EXPR_BINOP && expr->op == '+')
 			return 1;
