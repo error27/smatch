@@ -1001,6 +1001,7 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	struct returned_state_callback *cb;
 	char *return_ranges;
 	int final_pass_orig = final_pass;
+	sval_t val;
 
 	if (option_project != PROJ_KERNEL)
 		return 0;
@@ -1009,6 +1010,8 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	if (nr_states > 1500)
 		return 0;
 
+	if (get_value(expr, &val))
+		return 0;
 	if (!get_implied_rl(expr, &rl))
 		return 0;
 	if (rl_min(rl).value < -4095)
