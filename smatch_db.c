@@ -1128,10 +1128,12 @@ static void call_return_state_hooks(struct expression *expr)
 	struct returned_state_callback *cb;
 	const char *return_ranges;
 	int nr_states;
+	sval_t sval;
 
 	expr = strip_expr(expr);
 
-	if (is_condition(expr) || is_boolean(expr)) {
+	if (!get_implied_value(expr, &sval) &&
+	    (is_condition(expr) || is_boolean(expr))) {
 		call_return_state_hooks_compare(expr);
 		return;
 	} else if (is_conditional(expr)) {
