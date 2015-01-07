@@ -457,6 +457,9 @@ static struct range_list *handle_implied_binop(struct expression *expr)
 
 	FOR_EACH_PTR(left_rl, left_drange) {
 		FOR_EACH_PTR(right_rl, right_drange) {
+			if ((expr->op == '%' || expr->op == '/') &&
+			    right_drange->min.value == 0)
+				return NULL;
 			res = sval_binop(left_drange->min, expr->op, right_drange->min);
 			add_range(&res_rl, res, res);
 		} END_FOR_EACH_PTR(right_drange);
