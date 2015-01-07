@@ -424,6 +424,47 @@ static struct range_list *handle_known_binop(struct expression *expr)
 	return alloc_rl(left, left);
 }
 
+static int has_actual_ranges(struct range_list *rl)
+{
+	struct data_range *tmp;
+
+	FOR_EACH_PTR(rl, tmp) {
+		if (sval_cmp(tmp->min, tmp->max) != 0)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
+static struct range_list *handle_implied_binop(struct expression *expr)
+{
+	struct range_list *left_rl, *right_rl, *res_rl;
+	struct data_range *left_drange, *right_drange;
+	sval_t res;
+
+	if (!get_implied_rl(expr->left, &left_rl))
+		return NULL;
+	if (has_actual_ranges(left_rl))
+		return NULL;
+	if (!get_implied_rl(expr->right, &right_rl))
+		return NULL;
+	if (has_actual_ranges(right_rl))
+		return NULL;
+
+	if (ptr_list_size((struct ptr_list *)left_rl) * ptr_list_size((struct ptr_list *)right_rl) > 20)
+		return NULL;
+
+	res_rl = NULL;
+
+	FOR_EACH_PTR(left_rl, left_drange) {
+		FOR_EACH_PTR(right_rl, right_drange) {
+			res = sval_binop(left_drange->min, expr->op, right_drange->min);
+			add_range(&res_rl, res, res);
+		} END_FOR_EACH_PTR(right_drange);
+	} END_FOR_EACH_PTR(left_drange);
+
+	return res_rl;
+}
+
 static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 {
 	struct symbol *type;
@@ -435,6 +476,10 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 		return rl;
 	if (implied == RL_EXACT)
 		return NULL;
+
+	rl = handle_implied_binop(expr);
+	if (rl)
+		return rl;
 
 	switch (expr->op) {
 	case '%':
