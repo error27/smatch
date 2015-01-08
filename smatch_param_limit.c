@@ -49,14 +49,22 @@
 
 static int my_id;
 
-STATE(original);
-
 static struct stree *start_states;
 static struct stree_stack *saved_stack;
 
 static void save_start_states(struct statement *stmt)
 {
-	start_states = get_all_states_stree(SMATCH_EXTRA);
+	struct smatch_state *state;
+	struct symbol *tmp;
+
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, tmp) {
+		if (!tmp->ident)
+			continue;
+		state = get_state(SMATCH_EXTRA, tmp->ident->name, tmp);
+		if (!state)
+			state = alloc_estate_whole(get_real_base_type(tmp));
+		set_state_stree(&start_states, SMATCH_EXTRA, tmp->ident->name, tmp, state);
+	} END_FOR_EACH_PTR(tmp);
 }
 
 static void free_start_states(void)
@@ -66,41 +74,21 @@ static void free_start_states(void)
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
-	return &original;
-}
+	struct smatch_state *state;
 
-static struct smatch_state *filter_my_sm(struct sm_state *sm)
-{
-	struct range_list *ret = NULL;
-	struct sm_state *tmp;
-	struct smatch_state *estate;
-
-	FOR_EACH_PTR(sm->possible, tmp) {
-		if (tmp->state == &merged)
-			continue;
-		if (tmp->state == &original) {
-			estate = get_state_stree(tmp->pool, SMATCH_EXTRA, tmp->name, tmp->sym);
-			if (!estate) {
-//				sm_msg("debug: no value found in pool %p", tmp->pool);
-				continue;
-			}
-		} else {
-			estate = tmp->state;
-		}
-		ret = rl_union(ret, estate_rl(estate));
-	} END_FOR_EACH_PTR(tmp);
-
-	return alloc_estate_rl(ret);
+	state = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	if (state)
+		return state;
+	return alloc_estate_whole(get_real_base_type(sm->sym));
 }
 
 struct smatch_state *get_orig_estate(const char *name, struct symbol *sym)
 {
-	struct sm_state *sm;
 	struct smatch_state *state;
 
-	sm = get_sm_state(my_id, name, sym);
-	if (sm)
-		return filter_my_sm(sm);
+	state = get_state(my_id, name, sym);
+	if (state)
+		return state;
 
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (state)
@@ -110,67 +98,33 @@ struct smatch_state *get_orig_estate(const char *name, struct symbol *sym)
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct stree *stree;
-	struct sm_state *tmp;
-	struct sm_state *my_sm;
-	struct smatch_state *orig;
-	struct smatch_state *state;
+	struct smatch_state *start_state, *state;
+	struct symbol *tmp;
 	int param;
-	char *compare;
-	const char *compare_str;
-	char buf[256];
 
-	stree = __get_cur_stree();
-
-	FOR_EACH_MY_SM(SMATCH_EXTRA, stree, tmp) {
-		if (!tmp->sym || !tmp->sym->ident || strcmp(tmp->name, tmp->sym->ident->name) != 0)
+	param = -1;
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, tmp) {
+		param++;
+		if (!tmp->ident)
+			continue;
+		state = get_state(my_id, tmp->ident->name, tmp);
+		if (state)
+			goto print;
+		state = get_state(SMATCH_EXTRA, tmp->ident->name, tmp);
+		if (state)
+			goto print;
+		continue;
+print:
+		if (estate_is_whole(state))
 			continue;
 
-		param = get_param_num_from_sym(tmp->sym);
-		if (param < 0)
+		start_state = get_state_stree(start_states, SMATCH_EXTRA, tmp->ident->name, tmp);
+		if (estates_equiv(state, start_state))
 			continue;
-
-		compare = expr_param_comparison(symbol_expression(tmp->sym), param);
-		if (!compare)
-			compare = expr_equal_to_param(symbol_expression(tmp->sym), param);
-		if (!compare)
-			compare = expr_lte_to_param(symbol_expression(tmp->sym), param);
-		compare_str = compare;
-		if (!compare_str)
-			compare_str = "";
-
-		my_sm = get_sm_state(my_id, tmp->name, tmp->sym);
-		if (!my_sm) {
-
-			if (estate_is_whole(tmp->state) && !compare)
-				continue;
-			orig = get_state_stree(start_states, SMATCH_EXTRA, tmp->name, tmp->sym);
-			if (orig && estates_equiv(orig, tmp->state) && !compare)
-				continue;
-
-			snprintf(buf, sizeof(buf), "%s%s", tmp->state->name, compare_str);
-			sql_insert_return_states(return_id, return_ranges,
-					LIMITED_VALUE, param, "$", buf);
-			continue;
-		}
-
-		state = filter_my_sm(my_sm);
-		if (!state)
-			continue;
-		/* This represents an impossible state.  I screwd up.  Bail. */
-		if (!estate_rl(state))
-			continue;
-		if (estate_is_whole(state) && !compare)
-			continue;
-
-		orig = get_state_stree(start_states, SMATCH_EXTRA, tmp->name, tmp->sym);
-		if (orig && estates_equiv(orig, state) && !compare)
-			continue;
-
-		snprintf(buf, sizeof(buf), "%s%s", state->name, compare_str);
+//		sm_msg("return_range %s limited '%s' from %s to %s", return_ranges, tmp->ident->name, start_state->name, state->name);
 		sql_insert_return_states(return_id, return_ranges,
-					LIMITED_VALUE, param, "$", buf);
-	} END_FOR_EACH_SM(tmp);
+				LIMITED_VALUE, param, "$", state->name);
+	} END_FOR_EACH_PTR(tmp);
 }
 
 static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_state *state)
@@ -182,7 +136,7 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 	if (param < 0)
 		return;
 
-	/* we are only saving params for now */
+	/* we only save on-stack params */
 	if (!sym->ident || strcmp(name, sym->ident->name) != 0)
 		return;
 
@@ -211,6 +165,7 @@ void register_param_limit(int id)
 
 	add_extra_mod_hook(&extra_mod_hook);
 	add_unmatched_state_hook(my_id, &unmatched_state);
+	add_merge_hook(my_id, &merge_estates);
 
 	add_hook(&match_save_states, INLINE_FN_START);
 	add_hook(&match_restore_states, INLINE_FN_END);
