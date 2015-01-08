@@ -64,6 +64,8 @@ static void match_restore_states(struct expression *expr)
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
+	if (parent_is_gone_var_sym(sm->name, sm->sym))
+		return &modified;
 	return &original;
 }
 
