@@ -230,6 +230,7 @@ int main(int argc, char **argv)
 
 	data_dir = get_data_dir(argv[0]);
 
+	allocate_hook_memory();
 	create_function_hook_hash();
 	open_smatch_db();
 	for (i = 0; i < ARRAY_SIZE(reg_funcs); i++) {

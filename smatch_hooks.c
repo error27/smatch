@@ -34,6 +34,7 @@ DECLARE_PTR_LIST(hook_func_list, struct hook_container);
 static struct hook_func_list *hook_funcs;
 static struct hook_func_list *merge_funcs;
 static struct hook_func_list *unmatched_state_funcs;
+void (**pre_merge_hooks)(struct sm_state *sm);
 
 struct scope_container {
 	void *fn;
@@ -175,6 +176,11 @@ void add_unmatched_state_hook(int client_id, unmatched_func_t *func)
 	add_ptr_list(&unmatched_state_funcs, container);
 }
 
+void add_pre_merge_hook(int client_id, void (*hook)(struct sm_state *sm))
+{
+	pre_merge_hooks[client_id] = hook;
+}
+
 static void pass_to_client(void *fn)
 {
 	typedef void (expr_func)();
@@ -295,6 +301,15 @@ struct smatch_state *__client_unmatched_state_function(struct sm_state *sm)
 	return &undefined;
 }
 
+void call_pre_merge_hook(struct sm_state *sm)
+{
+	if (sm->owner > num_checks)
+		return;
+
+	if (pre_merge_hooks[sm->owner])
+		pre_merge_hooks[sm->owner](sm);
+}
+
 static struct scope_hook_list *pop_scope_hook_list(struct scope_hook_stack **stack)
 {
 	struct scope_hook_list *hook_list;
@@ -343,3 +358,10 @@ void __call_scope_hooks(void)
 		__free_scope_container(tmp);
 	} END_FOR_EACH_PTR(tmp);
 }
+
+void allocate_hook_memory(void)
+{
+	pre_merge_hooks = malloc((num_checks + 1) * sizeof(*pre_merge_hooks));
+	memset(pre_merge_hooks, 0, (num_checks + 1) * sizeof(*pre_merge_hooks));
+}
+

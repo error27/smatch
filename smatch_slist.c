@@ -614,6 +614,29 @@ static void match_states_stree(struct stree **one, struct stree **two)
 	free_slist(&add_to_two);
 }
 
+static void call_pre_merge_hooks(struct stree **one, struct stree **two)
+{
+	struct stree *orig;
+	struct sm_state *sm;
+
+	orig = __get_cur_stree();
+	__swap_cur_stree(*one);
+
+	FOR_EACH_SM(*two, sm) {
+		call_pre_merge_hook(sm);
+	} END_FOR_EACH_SM(sm);
+
+	*one = __get_cur_stree();
+	__swap_cur_stree(*two);
+
+	FOR_EACH_SM(*one, sm) {
+		call_pre_merge_hook(sm);
+	} END_FOR_EACH_SM(sm);
+
+	*two = __get_cur_stree();
+	__swap_cur_stree(orig);
+}
+
 static void clone_pool_havers_stree(struct stree **stree)
 {
 	struct sm_state *sm, *tmp;
@@ -666,6 +689,7 @@ static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 	implied_two = clone_stree(stree);
 
 	match_states_stree(&implied_one, &implied_two);
+	call_pre_merge_hooks(&implied_one, &implied_two);
 
 	if (add_pool) {
 		clone_pool_havers_stree(&implied_one);

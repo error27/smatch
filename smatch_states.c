@@ -133,6 +133,11 @@ free:
 	return ret;
 }
 
+void __swap_cur_stree(struct stree *stree)
+{
+	cur_stree = stree;
+}
+
 void __push_fake_cur_stree(void)
 {
 	push_stree(&fake_cur_stree_stack, NULL);
