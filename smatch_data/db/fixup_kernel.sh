@@ -91,9 +91,9 @@ update return_states set return = '0-64' where function = '__arch_hweight64';
  * Preserve the value across byte swapping.  By the time we use it for math it
  * will be byte swapped back to CPU endian.
  */
-update return_states set return = 's64min-s64max[==\$0]' where function = '__fswab64';
-update return_states set return = 's32min-s32max[==\$0]' where function = '__fswab32';
-update return_states set return = 's16min-s16max[==\$0]' where function = '__fswab16';
+update return_states set return = '0-u64max[==\$0]' where function = '__fswab64';
+update return_states set return = '0-u32max[==\$0]' where function = '__fswab32';
+update return_states set return = '0-u16max[==\$0]' where function = '__fswab16';
 
 delete from return_states where function = 'bitmap_allocate_region' and return = '1';
 delete from return_states where function = 'pci_bus_read_config_word' and return = 135;
