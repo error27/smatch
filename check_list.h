@@ -41,6 +41,9 @@ CK(check_assigned_expr)
 CK(check_assigned_expr_links)
 CK(check_user_data)
 
+CK(check_user_data2)
+CK(check_user_data3)
+
 CK(check_bogus_loop)
 
 CK(check_deref)

@@ -11,6 +11,7 @@ static inline void __smatch_value(const char *unused){}
 static inline void __smatch_implied(long long val){}
 static inline void __smatch_implied_min(long long val){}
 static inline void __smatch_implied_max(long long val){}
+static inline void __smatch_user_rl(long long val){}
 
 static inline void __smatch_hard_max(long long val){}
 static inline void __smatch_fuzzy_max(long long val){}

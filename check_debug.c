@@ -157,6 +157,21 @@ static void match_print_implied_max(const char *fn, struct expression *expr, voi
 	free_string(name);
 }
 
+static void match_user_rl(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	struct range_list *rl;
+	char *name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	name = expr_to_str(arg);
+
+	get_user_rl(arg, &rl);
+	sm_msg("user rl: '%s' = '%s'", name, show_rl(rl));
+
+	free_string(name);
+}
+
 static void match_print_hard_max(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
@@ -530,6 +545,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_implied", &match_print_implied, NULL);
 	add_function_hook("__smatch_implied_min", &match_print_implied_min, NULL);
 	add_function_hook("__smatch_implied_max", &match_print_implied_max, NULL);
+	add_function_hook("__smatch_user_rl", &match_user_rl, NULL);
 	add_function_hook("__smatch_hard_max", &match_print_hard_max, NULL);
 	add_function_hook("__smatch_fuzzy_max", &match_print_fuzzy_max, NULL);
 	add_function_hook("__smatch_absolute_min", &match_print_absolute_min, NULL);

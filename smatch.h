@@ -597,7 +597,7 @@ enum info_type {
 	CULL_PATH	= 1024,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
-	USER_DATA2	= 9017,
+	USER_DATA3	= 8017,
 	USER_DATA_SET	= 9018,
 	USER_DATA_LIMITED = 9019,
 };
@@ -705,6 +705,7 @@ int is_user_macro(struct expression *expr);
 int is_user_data(struct expression *expr);
 int is_capped_user_data(struct expression *expr);
 int implied_user_data(struct expression *expr, struct range_list **rl);
+int get_user_rl(struct expression *expr, struct range_list **rl);
 
 /* check_locking.c */
 void print_held_locks();
