@@ -73,13 +73,62 @@ void call_extra_mod_hooks(const char *name, struct symbol *sym, struct smatch_st
 	} END_FOR_EACH_PTR(fn);
 }
 
-struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state)
+struct sm_state *set_extra_mod_helper(const char *name, struct symbol *sym, struct smatch_state *state)
 {
-	if (in_warn_on_macro())
-		return NULL;
 	remove_from_equiv(name, sym);
 	call_extra_mod_hooks(name, sym, state);
 	return set_state(SMATCH_EXTRA, name, sym, state);
+}
+
+static char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym)
+{
+	struct expression *assigned;
+	char *orig_name;
+	char buf[256];
+	char *ret = NULL;
+	int skip;
+
+	*new_sym = NULL;
+
+	if (!sym->ident)
+		return NULL;
+
+	skip = strlen(sym->ident->name);
+	if (name[skip] != '-' || name[skip + 1] != '>')
+		return NULL;
+	skip += 2;
+
+	assigned = get_assigned_expr_name_sym(sym->ident->name, sym);
+	if (!assigned)
+		return NULL;
+	if (assigned->type != EXPR_PREOP || assigned->op != '&')
+		return NULL;
+
+	orig_name = expr_to_var_sym(assigned, new_sym);
+	if (!orig_name || !*new_sym)
+		goto free;
+
+	snprintf(buf, sizeof(buf), "%s.%s", orig_name + 1, name + skip);
+	ret = alloc_string(buf);
+free:
+	free_string(orig_name);
+	return ret;
+}
+
+struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state)
+{
+	char *new_name;
+	struct symbol *new_sym;
+	struct sm_state *sm;
+
+	if (in_warn_on_macro())
+		return NULL;
+	sm = set_extra_mod_helper(name, sym, state);
+	new_name = get_other_name_sym(name, sym, &new_sym);
+	if (new_name && new_sym)
+		set_extra_mod_helper(new_name, new_sym, state);
+	free_string(new_name);
+	return sm;
 }
 
 struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state)
@@ -100,10 +149,17 @@ free:
 
 void set_extra_nomod(const char *name, struct symbol *sym, struct smatch_state *state)
 {
+	char *new_name;
+	struct symbol *new_sym;
 	struct relation *rel;
 	struct smatch_state *orig_state;
 
 	orig_state = get_state(SMATCH_EXTRA, name, sym);
+
+	new_name = get_other_name_sym(name, sym, &new_sym);
+	if (new_name && new_sym)
+		set_state(SMATCH_EXTRA, new_name, new_sym, state);
+	free_string(new_name);
 
 	if (!estate_related(orig_state)) {
 		set_state(SMATCH_EXTRA, name, sym, state);
@@ -139,11 +195,18 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 			struct smatch_state *true_state,
 			struct smatch_state *false_state)
 {
+	char *new_name;
+	struct symbol *new_sym;
 	struct relation *rel;
 	struct smatch_state *orig_state;
 
 	if (in_warn_on_macro())
 		return;
+
+	new_name = get_other_name_sym(name, sym, &new_sym);
+	if (new_name && new_sym)
+		set_true_false_states(SMATCH_EXTRA, new_name, new_sym, true_state, false_state);
+	free_string(new_name);
 
 	orig_state = get_state(SMATCH_EXTRA, name, sym);
 
