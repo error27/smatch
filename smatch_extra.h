@@ -93,6 +93,10 @@ struct range_list *rl_truncate_cast(struct symbol *type, struct range_list *rl);
 struct range_list *cast_rl(struct symbol *type, struct range_list *rl);
 int get_implied_rl(struct expression *expr, struct range_list **rl);
 int get_absolute_rl(struct expression *expr, struct range_list **rl);
+struct range_list *var_to_absolute_rl(struct expression *expr);
+int custom_get_absolute_rl(struct expression *expr,
+			   struct range_list *(*fn)(struct expression *expr),
+			   struct range_list **rl);
 int get_implied_rl_var_sym(const char *var, struct symbol *sym, struct range_list **rl);
 
 void free_rl(struct range_list **rlist);

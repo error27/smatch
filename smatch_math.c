@@ -22,6 +22,7 @@
 
 static struct range_list *_get_rl(struct expression *expr, int implied);
 static struct range_list *handle_variable(struct expression *expr, int implied);
+static struct range_list *(*custom_handle_variable)(struct expression *expr);
 
 static sval_t zero  = {.type = &int_ctype, {.value = 0} };
 static sval_t one   = {.type = &int_ctype, {.value = 1} };
@@ -730,6 +731,25 @@ int get_const_value(struct expression *expr, sval_t *sval)
 	return 0;
 }
 
+struct range_list *var_to_absolute_rl(struct expression *expr)
+{
+	struct smatch_state *state;
+	struct range_list *rl;
+
+	state = get_state_expr(SMATCH_EXTRA, expr);
+	if (!state) {
+		if (get_local_rl(expr, &rl))
+			return rl;
+		if (get_db_type_rl(expr, &rl))
+			return rl;
+		return alloc_whole_rl(get_type(expr));
+	}
+	/* err on the side of saying things are possible */
+	if (!estate_rl(state))
+		return alloc_whole_rl(get_type(expr));
+	return clone_rl(estate_rl(state));
+}
+
 static struct range_list *handle_variable(struct expression *expr, int implied)
 {
 	struct smatch_state *state;
@@ -738,6 +758,13 @@ static struct range_list *handle_variable(struct expression *expr, int implied)
 
 	if (get_const_value(expr, &sval))
 		return alloc_rl(sval, sval);
+
+	if (custom_handle_variable) {
+		rl = custom_handle_variable(expr);
+		if (!rl)
+			return var_to_absolute_rl(expr);
+		return rl;
+	}
 
 	switch (implied) {
 	case RL_EXACT:
@@ -960,6 +987,17 @@ int get_absolute_rl(struct expression *expr, struct range_list **rl)
 	*rl = _get_rl(expr, RL_ABSOLUTE);
 	if (!*rl)
 		*rl = alloc_whole_rl(get_type(expr));
+	return 1;
+}
+
+int custom_get_absolute_rl(struct expression *expr,
+			   struct range_list *(*fn)(struct expression *expr),
+			   struct range_list **rl)
+{
+	*rl = NULL;
+	custom_handle_variable = fn;
+	*rl = _get_rl(expr, RL_ABSOLUTE);
+	custom_handle_variable = NULL;
 	return 1;
 }
 
