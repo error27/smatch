@@ -680,6 +680,11 @@ static char *chunk_to_var_sym(struct expression *expr, struct symbol **sym)
 	if (sym)
 		*sym = NULL;
 
+	if (expr->type == EXPR_PREOP &&
+	    (expr->op == SPECIAL_INCREMENT ||
+	     expr->op == SPECIAL_DECREMENT))
+		expr = strip_expr(expr->unop);
+
 	name = expr_to_var_sym(expr, &tmp);
 	if (name && tmp) {
 		if (sym)
