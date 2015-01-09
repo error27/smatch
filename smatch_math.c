@@ -435,17 +435,15 @@ static int has_actual_ranges(struct range_list *rl)
 	return 0;
 }
 
-static struct range_list *handle_implied_binop(struct expression *expr)
+static struct range_list *handle_implied_binop(struct range_list *left_rl, int op, struct range_list *right_rl)
 {
-	struct range_list *left_rl, *right_rl, *res_rl;
+	struct range_list *res_rl;
 	struct data_range *left_drange, *right_drange;
 	sval_t res;
 
-	if (!get_implied_rl(expr->left, &left_rl))
+	if (!left_rl || !right_rl)
 		return NULL;
 	if (has_actual_ranges(left_rl))
-		return NULL;
-	if (!get_implied_rl(expr->right, &right_rl))
 		return NULL;
 	if (has_actual_ranges(right_rl))
 		return NULL;
@@ -457,10 +455,10 @@ static struct range_list *handle_implied_binop(struct expression *expr)
 
 	FOR_EACH_PTR(left_rl, left_drange) {
 		FOR_EACH_PTR(right_rl, right_drange) {
-			if ((expr->op == '%' || expr->op == '/') &&
+			if ((op == '%' || op == '/') &&
 			    right_drange->min.value == 0)
 				return NULL;
-			res = sval_binop(left_drange->min, expr->op, right_drange->min);
+			res = sval_binop(left_drange->min, op, right_drange->min);
 			add_range(&res_rl, res, res);
 		} END_FOR_EACH_PTR(right_drange);
 	} END_FOR_EACH_PTR(left_drange);
@@ -480,7 +478,13 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 	if (implied == RL_EXACT)
 		return NULL;
 
-	rl = handle_implied_binop(expr);
+	type = get_type(expr);
+	left_rl = _get_rl(expr->left, implied);
+	left_rl = cast_rl(type, left_rl);
+	right_rl = _get_rl(expr->right, implied);
+	right_rl = cast_rl(type, right_rl);
+
+	rl = handle_implied_binop(left_rl, expr->op, right_rl);
 	if (rl)
 		return rl;
 
@@ -500,12 +504,6 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied)
 	case '/':
 		return handle_divide_rl(expr, implied);
 	}
-
-	type = get_type(expr);
-	left_rl = _get_rl(expr->left, implied);
-	left_rl = cast_rl(type, left_rl);
-	right_rl = _get_rl(expr->right, implied);
-	right_rl = cast_rl(type, right_rl);
 
 	if (!left_rl || !right_rl)
 		return NULL;
