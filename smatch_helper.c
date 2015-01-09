@@ -574,28 +574,23 @@ char *get_member_name(struct expression *expr)
 	expr = strip_expr(expr);
 	if (expr->type != EXPR_DEREF)
 		return NULL;
+	if (!expr->member)
+		return NULL;
+
 	sym = get_type(expr->deref);
 	if (!sym)
 		return NULL;
-	/* FIXME: HACK! Sparse isn't storing the names of unions...  Just take last member */
 	if (sym->type == SYM_UNION) {
-		struct symbol *tmp;
-
-		FOR_EACH_PTR_REVERSE(sym->symbol_list, tmp) {
-			if (tmp->ident) {
-				const char *member_name;
-
-				if (expr->member)
-					member_name = expr->member->name;
-				else
-					member_name = "unknown_member";
-				snprintf(buf, sizeof(buf), "(union hack %s)->%s", tmp->ident->name, member_name);
-				return alloc_string(buf);
-			}
-		} END_FOR_EACH_PTR_REVERSE(tmp);
-		return NULL;
+		sym = expr_to_sym(expr->deref);
+		sym = get_real_base_type(sym);
+		if (sym && sym->type == SYM_PTR)
+			sym = get_real_base_type(sym);
+		if (!sym || !sym->ident) {
+			snprintf(buf, sizeof(buf), "(union hack)->%s", expr->member->name);
+			return alloc_string(buf);
+		}
 	}
-	if (!sym->ident || !expr->member)
+	if (!sym->ident)
 		return NULL;
 	snprintf(buf, sizeof(buf), "(struct %s)->%s", sym->ident->name, expr->member->name);
 	return alloc_string(buf);
