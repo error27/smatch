@@ -312,6 +312,7 @@ static char *jump_to_call_math(char *value)
 
 static void str_to_rl_helper(struct expression *call, struct symbol *type, char *value, struct range_list **rl)
 {
+	struct range_list *math_rl;
 	sval_t min, max;
 	char *call_math;
 	char *c;
@@ -333,10 +334,6 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 			return;
 		goto cast;
 	}
-
-	call_math = jump_to_call_math(value);
-	if (call_math && parse_call_math_rl(call, call_math, rl))
-		goto cast;
 
 	min = sval_type_min(type);
 	max = sval_type_max(type);
@@ -375,13 +372,18 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 	if (*c == '\0')
 		goto cast;
 
+	call_math = jump_to_call_math(value);
+	if (call_math && parse_call_math_rl(call, call_math, &math_rl)) {
+		*rl = rl_intersection(*rl, math_rl);
+		goto cast;
+	}
+
 	/*
 	 * For now if we already tried to handle the call math and couldn't
 	 * figure it out then bail.
 	 */
 	if (jump_to_call_math(c) == c + 1)
 		goto cast;
-
 
 	*rl = filter_by_comparison_call(c, call, &c, *rl);
 
