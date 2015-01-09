@@ -248,6 +248,8 @@ static void match_function_assign(struct expression *expr)
 	sym = get_type(right);
 	if (!sym)
 		return;
+	if (sym->type == SYM_NODE)
+		sym = get_real_base_type(sym);
 	if (sym->type != SYM_FN && sym->type != SYM_PTR && sym->type != SYM_ARRAY)
 		return;
 	if (sym->type == SYM_PTR) {
