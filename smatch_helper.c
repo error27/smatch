@@ -342,6 +342,16 @@ char *expr_to_var(struct expression *expr)
 	return expr_to_var_sym(expr, NULL);
 }
 
+struct symbol *expr_to_sym(struct expression *expr)
+{
+	struct symbol *sym;
+	char *name;
+
+	name = expr_to_var_sym(expr, &sym);
+	free_string(name);
+	return sym;
+}
+
 int sym_name_is(const char *name, struct expression *expr)
 {
 	if (!expr)
