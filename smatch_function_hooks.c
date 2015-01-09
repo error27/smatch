@@ -345,6 +345,7 @@ struct db_callback_info {
 	int prev_return_id;
 	int cull;
 	struct smatch_state *ret_state;
+	struct expression *var_expr;
 };
 
 static void store_return_state(struct db_callback_info *db_info, struct smatch_state *state)
@@ -352,16 +353,12 @@ static void store_return_state(struct db_callback_info *db_info, struct smatch_s
 	db_info->ret_state = state;
 }
 
-static void set_return_state(struct db_callback_info *db_info)
+static void set_return_state(struct expression *expr, struct db_callback_info *db_info)
 {
-	if (db_info->expr->type != EXPR_ASSIGNMENT) {
-		sm_msg("Smatch Internal Error: expected an assignment");
-		return;
-	}
 	if (!db_info->ret_state)
 		return;
 
-	set_extra_expr_mod(db_info->expr->left, db_info->ret_state);
+	set_extra_expr_mod(expr, db_info->ret_state);
 	db_info->ret_state = NULL;
 }
 
@@ -411,6 +408,7 @@ static int impossible_limit(struct expression *expr, int param, char *key, char 
 		return 0;
 
 	compare_type = get_arg_type(expr->fn, param);
+	passed = cast_rl(compare_type, passed);
 	call_results_to_rl(expr, compare_type, value, &limit);
 	if (!limit || is_whole_rl(limit))
 		return 0;
@@ -440,6 +438,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 	value = argv[5];
 
 	if (db_info->prev_return_id != -1 && return_id != db_info->prev_return_id) {
+		set_return_state(db_info->var_expr, db_info);
 		stree = __pop_fake_cur_stree();
 		if (!db_info->cull)
 			merge_fake_stree(&db_info->stree, stree);
@@ -481,22 +480,41 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 		if (tmp->type == type)
 			tmp->callback(db_info->expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
+
+	store_return_state(db_info, alloc_estate_rl(ret_range));
 	return 0;
 }
 
-static void compare_db_return_states_callbacks(int comparison, struct expression *expr, sval_t sval, int left, struct stree *implied_true, struct stree *implied_false)
+static void compare_db_return_states_callbacks(struct expression *left, int comparison, struct expression *right, struct stree *implied_true, struct stree *implied_false)
 {
 	struct stree *stree;
 	struct stree *true_states;
 	struct stree *false_states;
 	struct sm_state *sm;
 	struct db_callback_info db_info = {};
+	struct expression *var_expr;
+	struct expression *call_expr;
+	struct range_list *rl;
+	int call_on_left;
+
+	/* legacy cruft.  need to fix call_implies_callbacks(). */
+	call_on_left = 1;
+	call_expr = left;
+	var_expr = right;
+	if (left->type != EXPR_CALL) {
+		call_on_left = 0;
+		call_expr = right;
+		var_expr = left;
+	}
+
+	get_absolute_rl(var_expr, &rl);
 
 	db_info.comparison = comparison;
-	db_info.expr = expr;
-	db_info.rl = alloc_rl(sval, sval);
-	db_info.left = left;
+	db_info.expr = call_expr;
+	db_info.rl = rl;
+	db_info.left = call_on_left;
 	db_info.callbacks = db_return_states_list;
+	db_info.var_expr = var_expr;
 
 	call_return_states_before_hooks();
 
@@ -504,8 +522,9 @@ static void compare_db_return_states_callbacks(int comparison, struct expression
 	db_info.stree = NULL;
 	db_info.prev_return_id = -1;
 	__push_fake_cur_stree();
-	sql_select_return_states("return_id, return, type, parameter, key, value", expr,
-			db_compare_callback, &db_info);
+	sql_select_return_states("return_id, return, type, parameter, key, value",
+				 call_expr, db_compare_callback, &db_info);
+	set_return_state(db_info.var_expr, &db_info);
 	stree = __pop_fake_cur_stree();
 	if (!db_info.cull)
 		merge_fake_stree(&db_info.stree, stree);
@@ -517,7 +536,7 @@ static void compare_db_return_states_callbacks(int comparison, struct expression
 	db_info.prev_return_id = -1;
 	db_info.cull = 0;
 	__push_fake_cur_stree();
-	sql_select_return_states("return_id, return, type, parameter, key, value", expr,
+	sql_select_return_states("return_id, return, type, parameter, key, value", call_expr,
 			db_compare_callback, &db_info);
 	stree = __pop_fake_cur_stree();
 	if (!db_info.cull)
@@ -546,12 +565,32 @@ static void compare_db_return_states_callbacks(int comparison, struct expression
 
 }
 
-void function_comparison(int comparison, struct expression *expr, sval_t sval, int left)
+void function_comparison(struct expression *left, int comparison, struct expression *right)
 {
-	struct stree *implied_true, *implied_false;
+	struct expression *var_expr;
+	struct expression *call_expr;
+	struct stree *implied_true = NULL;
+	struct stree *implied_false = NULL;
+	struct range_list *rl;
+	sval_t sval;
+	int call_on_left;
 
-	call_implies_callbacks(comparison, expr, sval, left, &implied_true, &implied_false);
-	compare_db_return_states_callbacks(comparison, expr, sval, left, implied_true, implied_false);
+	/* legacy cruft.  need to fix call_implies_callbacks(). */
+	call_on_left = 1;
+	call_expr = left;
+	var_expr = right;
+	if (left->type != EXPR_CALL) {
+		call_on_left = 0;
+		call_expr = right;
+		var_expr = left;
+	}
+
+	get_absolute_rl(var_expr, &rl);
+
+	if (rl_to_sval(rl, &sval))
+		call_implies_callbacks(comparison, call_expr, sval, call_on_left, &implied_true, &implied_false);
+
+	compare_db_return_states_callbacks(left, comparison, right, implied_true, implied_false);
 	free_stree(&implied_true);
 	free_stree(&implied_false);
 }
@@ -576,7 +615,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 	value = argv[5];
 
 	if (db_info->prev_return_id != -1 && return_id != db_info->prev_return_id) {
-		set_return_state(db_info);
+		set_return_state(db_info->expr->left, db_info);
 		stree = __pop_fake_cur_stree();
 		if (!db_info->cull)
 			merge_fake_stree(&db_info->stree, stree);
@@ -628,7 +667,13 @@ static int db_return_states_assign(struct expression *expr)
 	__push_fake_cur_stree();
 	sql_select_return_states("return_id, return, type, parameter, key, value",
 			right, db_assign_return_states_callback, &db_info);
-	set_return_state(&db_info);
+	if (option_debug) {
+		sm_msg("%s return_id %d return_ranges %s",
+			db_info.cull ? "culled" : "merging",
+			db_info.prev_return_id,
+			db_info.ret_state ? db_info.ret_state->name : "'<empty'");
+	}
+	set_return_state(db_info.expr->left, &db_info);
 	stree = __pop_fake_cur_stree();
 	if (!db_info.cull)
 		merge_fake_stree(&db_info.stree, stree);

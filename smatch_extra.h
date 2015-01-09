@@ -171,7 +171,7 @@ void remove_from_equiv_expr(struct expression *expr);
 void set_equiv_state_expr(int id, struct expression *expr, struct smatch_state *state);
 
 /* smatch_function_hooks.c */
-void function_comparison(int comparison, struct expression *expr, sval_t sval, int left);
+void function_comparison(struct expression *left, int comparison, struct expression *right);
 
 /* smatch_expressions.c */
 struct expression *zero_expr();

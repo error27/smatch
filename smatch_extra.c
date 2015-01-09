@@ -1323,9 +1323,7 @@ static int match_func_comparison(struct expression *expr)
 			handle_comparison(get_type(expr), left, expr->op, right);
 			return 1;
 		}
-		if (!get_implied_value(right, &sval))
-			return 1;
-		function_comparison(expr->op, left, sval, 1);
+		function_comparison(left, expr->op, right);
 		return 1;
 	}
 
@@ -1334,9 +1332,7 @@ static int match_func_comparison(struct expression *expr)
 			handle_comparison(get_type(expr), left, expr->op, right);
 			return 1;
 		}
-		if (!get_implied_value(left, &sval))
-			return 1;
-		function_comparison(expr->op, right, sval, 0);
+		function_comparison(left, expr->op, right);
 		return 1;
 	}
 
@@ -1414,7 +1410,7 @@ void __extra_match_condition(struct expression *expr)
 	expr = strip_expr(expr);
 	switch (expr->type) {
 	case EXPR_CALL:
-		function_comparison(SPECIAL_NOTEQUAL, expr, ll_to_sval(0), 1);
+		function_comparison(expr, SPECIAL_NOTEQUAL, zero_expr());
 		return;
 	case EXPR_PREOP:
 	case EXPR_SYMBOL:
