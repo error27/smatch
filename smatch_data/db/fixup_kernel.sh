@@ -102,6 +102,8 @@ delete from return_states where function = 'pci_bus_write_config_word' and retur
 update return_states set return = '(-4095)-s32max[<=\$3]' where function = 'get_user_pages' and return = 's32min-s32max';
 update return_states set return = '(-4095)-s64max[<=\$3]' where function = 'get_user_pages' and return = 's64min-s64max';
 
+delete from caller_info where caller = '__kernel_write';
+
 EOF
 
 call_id=$(echo "select distinct call_id from caller_info where function = '__kernel_write';" | sqlite3 $db_file)
