@@ -172,6 +172,22 @@ static int is_ignored_fake_assignment(void)
 	return has_link;
 }
 
+static int is_ignored_container_of(void)
+{
+	struct expression *expr;
+	char *name;
+
+	expr = get_faked_expression();
+	if (!expr || expr->type != EXPR_ASSIGNMENT)
+		return 0;
+	name = get_macro_name(expr->right->pos);
+	if (!name)
+		return 0;
+	if (strcmp(name, "container_of") == 0)
+		return 1;
+	return 0;
+}
+
 static void match_assign_value(struct expression *expr)
 {
 	char *member, *right_member;
@@ -192,6 +208,8 @@ static void match_assign_value(struct expression *expr)
 		goto free;
 
 	if (is_fake_call(expr->right)) {
+		if (is_ignored_container_of())
+			goto free;
 		add_fake_type_val(member, alloc_whole_rl(get_type(expr->left)), is_ignored_fake_assignment());
 		goto free;
 	}
