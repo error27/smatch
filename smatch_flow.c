@@ -170,6 +170,7 @@ static int is_noreturn_func(struct expression *expr)
 int inlinable(struct expression *expr)
 {
 	struct symbol *sym;
+	struct statement *last_stmt = NULL;
 
 	if (__inline_fn)  /* don't nest */
 		return 0;
@@ -180,16 +181,28 @@ int inlinable(struct expression *expr)
 		return 0;
 	sym = get_base_type(expr->symbol);
 	if (sym->stmt && sym->stmt->type == STMT_COMPOUND) {
-		if (ptr_list_size((struct ptr_list *)sym->stmt->stmts) <= 10)
-			return 1;
-		return 0;
+		if (ptr_list_size((struct ptr_list *)sym->stmt->stmts) > 10)
+			return 0;
+		if (sym->stmt->type != STMT_COMPOUND)
+			return 0;
+		last_stmt = last_ptr_list((struct ptr_list *)sym->stmt->stmts);
 	}
 	if (sym->inline_stmt && sym->inline_stmt->type == STMT_COMPOUND) {
-		if (ptr_list_size((struct ptr_list *)sym->inline_stmt->stmts) <= 10)
-			return 1;
-		return 0;
+		if (ptr_list_size((struct ptr_list *)sym->inline_stmt->stmts) > 10)
+			return 0;
+		if (sym->inline_stmt->type != STMT_COMPOUND)
+			return 0;
+		last_stmt = last_ptr_list((struct ptr_list *)sym->inline_stmt->stmts);
 	}
-	return 0;
+
+	if (!last_stmt)
+		return 0;
+
+	/* the magic numbers in this function are pulled out of my bum. */
+	if (last_stmt->pos.line > sym->pos.line + 20)
+		return 0;
+
+	return 1;
 }
 
 void __process_post_op_stack(void)
