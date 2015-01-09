@@ -1577,7 +1577,7 @@ static void db_limited_after(void)
 	free_stree(&unmatched_stree);
 }
 
-static void db_param_limit_filter(struct expression *expr, int param, char *key, char *value, int mod)
+static void db_param_limit_filter(struct expression *expr, int param, char *key, char *value)
 {
 	struct expression *arg;
 	char *name;
@@ -1619,27 +1619,13 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	new = cast_rl(var_type, new);
 
 	/* We want to preserve the implications here */
-	if (sm && rl_equiv(estate_rl(sm->state), new)) {
+	if (sm && rl_equiv(estate_rl(sm->state), new))
 		__set_sm(sm);
-	} else {
-		if (mod)
-			set_extra_mod(name, sym, alloc_estate_rl(new));
-		else
-			set_extra_nomod(name, sym, alloc_estate_rl(new));
-	}
+	else
+		set_extra_nomod(name, sym, alloc_estate_rl(new));
 
 free:
 	free_string(name);
-}
-
-static void db_param_limit(struct expression *expr, int param, char *key, char *value)
-{
-	db_param_limit_filter(expr, param, key, value, 0);
-}
-
-static void db_param_filter(struct expression *expr, int param, char *key, char *value)
-{
-	db_param_limit_filter(expr, param, key, value, 1);
 }
 
 static void db_param_add(struct expression *expr, int param, char *key, char *value)
@@ -1836,8 +1822,8 @@ void register_smatch_extra(int id)
 	select_caller_info_hook(set_param_hard_max, FUZZY_MAX);
 	select_return_states_hook(RETURN_VALUE, &db_returned_member_info);
 	select_return_states_before(&db_limited_before);
-	select_return_states_hook(LIMITED_VALUE, &db_param_limit);
-	select_return_states_hook(FILTER_VALUE, &db_param_filter);
+	select_return_states_hook(LIMITED_VALUE, &db_param_limit_filter);
+	select_return_states_hook(FILTER_VALUE, &db_param_limit_filter);
 	select_return_states_hook(ADDED_VALUE, &db_param_add);
 	select_return_states_after(&db_limited_after);
 }
