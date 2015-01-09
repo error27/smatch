@@ -20,6 +20,7 @@
  *
  */
 
+#include <string.h>
 #include "smatch.h"
 #include "smatch_slist.h"
 
@@ -112,6 +113,21 @@ found:
 	}
 }
 
+static int is_free_func(struct expression *fn)
+{
+	char *name;
+	int ret = 0;
+
+	name = expr_to_str(fn);
+	if (!name)
+		return 0;
+	if (strstr(name, "free"))
+		ret = 1;
+	free_string(name);
+
+	return ret;
+}
+
 static void match_call(struct expression *expr)
 {
 	struct expression *arg;
@@ -131,7 +147,10 @@ static void match_call(struct expression *expr)
 			continue;
 
 		name = expr_to_var(arg);
-		sm_msg("warn: passing freed memory '%s'", name);
+		if (is_free_func(expr->fn))
+			sm_msg("error: double free of '%s'", name);
+		else
+			sm_msg("warn: passing freed memory '%s'", name);
 		set_state_expr(my_id, arg, &ok);
 		free_string(name);
 	} END_FOR_EACH_PTR(arg);
