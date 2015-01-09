@@ -1513,7 +1513,20 @@ int parent_is_null_var_sym(const char *name, struct symbol *sym)
 	buf[sizeof(buf) - 1] = '\0';
 
 	start = &buf[0];
-	while ((*start == '&'))
+	while (*start == '*') {
+		start++;
+		state = get_state(SMATCH_EXTRA, start, sym);
+		if (!state)
+			continue;
+		if (!estate_rl(state))
+			return 1;
+		if (estate_min(state).value == 0 &&
+		    estate_max(state).value == 0)
+			return 1;
+	}
+
+	start = &buf[0];
+	while (*start == '&')
 		start++;
 
 	while ((end = strrchr(start, '-'))) {
