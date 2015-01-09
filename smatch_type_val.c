@@ -143,6 +143,7 @@ static int has_link_cb(void *has_link, int argc, char **argv, char **azColName)
 	*(int *)has_link = 1;
 	return 0;
 }
+
 static int is_ignored_fake_assignment(void)
 {
 	struct expression *expr;
