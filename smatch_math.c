@@ -339,8 +339,10 @@ static struct range_list *handle_bitwise_OR(struct expression *expr, int implied
 	get_absolute_rl(expr->right, &right_rl);
 	left_rl = cast_rl(type, left_rl);
 	right_rl = cast_rl(type, right_rl);
+	if (!left_rl || !right_rl)
+		return NULL;
 
-	return rl_union(left_rl, right_rl);
+	return rl_binop(left_rl, '|', right_rl);
 }
 
 static struct range_list *handle_right_shift(struct expression *expr, int implied)

@@ -1248,6 +1248,54 @@ static struct range_list *handle_add_mult_rl(struct range_list *left, int op, st
 	return alloc_rl(min, max);
 }
 
+static unsigned long long sval_fls_mask(sval_t sval)
+{
+	unsigned long long uvalue = sval.uvalue;
+	unsigned long long high_bit = 0;
+
+	while (uvalue) {
+		uvalue >>= 1;
+		high_bit++;
+	}
+
+	if (high_bit == 0)
+		return 0;
+
+	return ((unsigned long long)-1) >> (64 - high_bit);
+}
+
+static unsigned long long rl_bits_always_set(struct range_list *rl)
+{
+	return sval_fls_mask(rl_min(rl));
+}
+
+static unsigned long long rl_bits_maybe_set(struct range_list *rl)
+{
+	return sval_fls_mask(rl_max(rl));
+}
+
+static struct range_list *handle_OR_rl(struct range_list *left, struct range_list *right)
+{
+	unsigned long long left_min, left_max, right_min, right_max;
+	sval_t min, max;
+	sval_t sval;
+
+	if ((rl_to_sval(left, &sval) || rl_to_sval(right, &sval)) &&
+	    !sval_binop_overflows(rl_max(left), '+', rl_max(right)))
+		return rl_binop(left, '+', right);
+
+	left_min = rl_bits_always_set(left);
+	left_max = rl_bits_maybe_set(left);
+	right_min = rl_bits_always_set(right);
+	right_max = rl_bits_maybe_set(right);
+
+	min.type = max.type = &ullong_ctype;
+	min.uvalue = left_min | right_min;
+	max.uvalue = left_max | right_max;
+
+	return cast_rl(rl_type(left), alloc_rl(min, max));
+}
+
 struct range_list *rl_binop(struct range_list *left, int op, struct range_list *right)
 {
 	struct symbol *cast_type;
@@ -1282,10 +1330,12 @@ struct range_list *rl_binop(struct range_list *left, int op, struct range_list *
 	case '+':
 		ret = handle_add_mult_rl(left, op, right);
 		break;
+	case '|':
+		ret = handle_OR_rl(left, right);
+		break;
 
 	/* FIXME:  Do the rest as well */
 	case '-':
-	case '|':
 	case '&':
 	case SPECIAL_RIGHTSHIFT:
 	case SPECIAL_LEFTSHIFT:
