@@ -35,9 +35,6 @@
 
 static int my_id;
 
-STATE(modified);
-STATE(original);
-
 static struct stree *start_states;
 static struct stree_stack *saved_stack;
 static void save_start_states(struct statement *stmt)
@@ -45,7 +42,7 @@ static void save_start_states(struct statement *stmt)
 	start_states = get_all_states_stree(SMATCH_EXTRA);
 }
 
-static void match_end_func(void)
+static void free_start_states(void)
 {
 	free_stree(&start_states);
 }
@@ -64,9 +61,34 @@ static void match_restore_states(struct expression *expr)
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
+	struct smatch_state *state;
+
 	if (parent_is_gone_var_sym(sm->name, sm->sym))
-		return &modified;
-	return &original;
+		return alloc_estate_empty();
+
+	state = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	if (state)
+		return state;
+	return alloc_estate_whole(get_real_base_type(sm->sym));
+}
+
+static void pre_merge_hook(struct sm_state *sm)
+{
+	struct smatch_state *extra, *mine;
+	struct range_list *rl;
+
+	if (estate_rl(sm->state))
+		return;
+
+	extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	if (!extra)
+		return;
+	mine = get_state(my_id, sm->name, sm->sym);
+
+	rl = rl_intersection(estate_rl(extra), estate_rl(mine));
+	if (rl_equiv(rl, estate_rl(mine)))
+		return;
+	set_state(my_id, sm->name, sm->sym, alloc_estate_rl(clone_rl(rl)));
 }
 
 static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_state *state)
@@ -77,7 +99,11 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 	if (param < 0)
 		return;
 
-	set_state(my_id, name, sym, &modified);
+	/* on stack parameters are handled in smatch_param_limit.c */
+	if (sym->ident && strcmp(sym->ident->name, name) == 0)
+		return;
+
+	set_state(my_id, name, sym, alloc_estate_empty());
 }
 
 /*
@@ -104,43 +130,21 @@ static int parent_set(struct string_list *list, const char *name)
 	return 0;
 }
 
-static struct range_list *get_orig_rl(struct sm_state *sm)
-{
-	struct range_list *ret = NULL;
-	struct sm_state *tmp;
-	struct smatch_state *extra;
-
-	FOR_EACH_PTR(sm->possible, tmp) {
-		if (tmp->state != &original)
-			continue;
-		extra = get_state_stree(tmp->pool, SMATCH_EXTRA, tmp->name, tmp->sym);
-		if (!extra) {
-//			sm_msg("debug: no value found in pool %p", tmp->pool);
-			return NULL;
-		}
-		ret = rl_union(ret, estate_rl(extra));
-	} END_FOR_EACH_PTR(tmp);
-	return ret;
-}
-
 static void print_one_mod_param(int return_id, char *return_ranges,
 			int param, struct sm_state *sm, struct string_list **totally_filtered)
 {
 	const char *param_name;
-	struct range_list *rl;
 
 	param_name = get_param_name(sm);
 	if (!param_name)
 		return;
-	rl = get_orig_rl(sm);
-	if (is_whole_rl(rl))
+	if (is_whole_rl(estate_rl(sm->state)))
 		return;
-
-	if (!rl)
+	if (!estate_rl(sm->state))
 		insert_string(totally_filtered, (char *)sm->name);
 
 	sql_insert_return_states(return_id, return_ranges, FILTER_VALUE, param,
-			param_name, show_rl(rl));
+			param_name, show_rl(estate_rl(sm->state)));
 }
 
 static void print_one_extra_param(int return_id, char *return_ranges,
@@ -168,22 +172,17 @@ static void print_one_extra_param(int return_id, char *return_ranges,
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct stree *stree;
 	struct sm_state *tmp;
 	struct sm_state *sm;
 	struct string_list *totally_filtered = NULL;
 	int param;
 
-	stree = __get_cur_stree();
-
-	FOR_EACH_MY_SM(SMATCH_EXTRA, stree, tmp) {
+	FOR_EACH_MY_SM(SMATCH_EXTRA, __get_cur_stree(), tmp) {
 		param = get_param_num_from_sym(tmp->sym);
 		if (param < 0)
 			continue;
-		/*
-		 * skip the parameter itself because that's stored on the stack
-		 * and thus handled by smatch_param_limit.c.
-		 */
+
+		/* on stack parameters are handled in smatch_param_limit.c */
 		if (tmp->sym->ident && strcmp(tmp->sym->ident->name, tmp->name) == 0)
 			continue;
 
@@ -205,11 +204,16 @@ void register_param_filter(int id)
 	my_id = id;
 
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
+	add_hook(&free_start_states, END_FUNC_HOOK);
+
 	add_extra_mod_hook(&extra_mod_hook);
 	add_unmatched_state_hook(my_id, &unmatched_state);
-	add_split_return_callback(&print_return_value_param);
-	add_hook(&match_end_func, END_FUNC_HOOK);
+	add_pre_merge_hook(my_id, &pre_merge_hook);
+	add_merge_hook(my_id, &merge_estates);
+
 	add_hook(&match_save_states, INLINE_FN_START);
 	add_hook(&match_restore_states, INLINE_FN_END);
+
+	add_split_return_callback(&print_return_value_param);
 }
 
