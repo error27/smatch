@@ -303,7 +303,7 @@ struct smatch_state *__client_unmatched_state_function(struct sm_state *sm)
 
 void call_pre_merge_hook(struct sm_state *sm)
 {
-	if (sm->owner > num_checks)
+	if (sm->owner >= num_checks)
 		return;
 
 	if (pre_merge_hooks[sm->owner])
@@ -361,7 +361,7 @@ void __call_scope_hooks(void)
 
 void allocate_hook_memory(void)
 {
-	pre_merge_hooks = malloc((num_checks + 1) * sizeof(*pre_merge_hooks));
-	memset(pre_merge_hooks, 0, (num_checks + 1) * sizeof(*pre_merge_hooks));
+	pre_merge_hooks = malloc(num_checks * sizeof(*pre_merge_hooks));
+	memset(pre_merge_hooks, 0, num_checks * sizeof(*pre_merge_hooks));
 }
 
