@@ -32,10 +32,12 @@ static int match_strlen(struct expression *call, void *unused, struct range_list
 	/* smatch_strlen.c is not very complete */
 	max = get_array_size_bytes_max(str);
 	if (max == 0) {
-		*rl = alloc_whole_rl(&ulong_ctype);
+		*rl = alloc_rl(sval_type_val(&ulong_ctype, 0),
+			       sval_type_val(&ulong_ctype, STRLEN_MAX_RET));
 	} else {
 		max--;
-		*rl = alloc_rl(ll_to_sval(0), ll_to_sval(max));
+		*rl = alloc_rl(sval_type_val(&ulong_ctype, 0),
+			       sval_type_val(&ulong_ctype, max));
 	}
 	return 1;
 }

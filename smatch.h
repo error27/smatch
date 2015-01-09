@@ -453,6 +453,7 @@ static const sval_t array_max_sval = {
 	.type = &ptr_ctype,
 	{.value = 200000},
 };
+#define STRLEN_MAX_RET 1010101
 
 /* smatch_absolute.c */
 int get_absolute_min_helper(struct expression *expr, sval_t *sval);
