@@ -1557,14 +1557,14 @@ free:
 	return ret;
 }
 
-static void struct_member_callback(struct expression *call, int param, char *printed_name, struct smatch_state *state)
+static void struct_member_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
-	if (estate_is_whole(state))
+	if (estate_is_whole(sm->state))
 		return;
-	sql_insert_caller_info(call, PARAM_VALUE, param, printed_name, state->name);
-	if (estate_has_fuzzy_max(state))
+	sql_insert_caller_info(call, PARAM_VALUE, param, printed_name, sm->state->name);
+	if (estate_has_fuzzy_max(sm->state))
 		sql_insert_caller_info(call, FUZZY_MAX, param, printed_name,
-				       sval_to_str(estate_get_fuzzy_max(state)));
+				       sval_to_str(estate_get_fuzzy_max(sm->state)));
 }
 
 static void db_limited_before(void)

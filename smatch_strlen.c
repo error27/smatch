@@ -192,11 +192,11 @@ static void match_call(struct expression *expr)
 	} END_FOR_EACH_PTR(arg);
 }
 
-static void struct_member_callback(struct expression *call, int param, char *printed_name, struct smatch_state *state)
+static void struct_member_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
-	if (state == &merged)
+	if (sm->state == &merged)
 		return;
-	sql_insert_caller_info(call, STR_LEN, param, printed_name, state->name);
+	sql_insert_caller_info(call, STR_LEN, param, printed_name, sm->state->name);
 }
 
 void register_strlen(int id)

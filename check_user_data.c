@@ -487,9 +487,9 @@ static void match_caller_info(struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
-static void struct_member_callback(struct expression *call, int param, char *printed_name, struct smatch_state *state)
+static void struct_member_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
-	if (state == &capped)
+	if (sm->state == &capped)
 		return;
 	sql_insert_caller_info(call, USER_DATA, param, printed_name, "");
 }

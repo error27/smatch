@@ -66,7 +66,7 @@ static struct callback_list *callbacks;
 
 struct member_info_callback {
 	int owner;
-	void (*callback)(struct expression *call, int param, char *printed_name, struct smatch_state *state);
+	void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm);
 };
 ALLOCATOR(member_info_callback, "caller_info callbacks");
 DECLARE_PTR_LIST(member_info_cb_list, struct member_info_callback);
@@ -368,7 +368,7 @@ void select_caller_info_hook(void (*callback)(const char *name, struct symbol *s
  * member information.  For example foo->bar could have a state in
  * smatch_extra.c and also check_user.c.
  */
-void add_member_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct smatch_state *state))
+void add_member_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm))
 {
 	struct member_info_callback *member_callback = __alloc_member_info_callback(0);
 
@@ -455,7 +455,7 @@ static void match_call_marker(struct expression *expr)
 }
 
 static void print_struct_members(struct expression *call, struct expression *expr, int param, struct stree *stree,
-	void (*callback)(struct expression *call, int param, char *printed_name, struct smatch_state *state))
+	void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm))
 {
 	struct sm_state *sm;
 	char *name;
@@ -493,7 +493,7 @@ static void print_struct_members(struct expression *call, struct expression *exp
 		} else {
 			continue;
 		}
-		callback(call, param, printed_name, sm->state);
+		callback(call, param, printed_name, sm);
 	} END_FOR_EACH_SM(sm);
 free:
 	free_string(name);
