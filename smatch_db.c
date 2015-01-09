@@ -114,7 +114,14 @@ void debug_sql(const char *sql)
 		return;
 	sm_msg("%s", sql);
 	sql_exec(print_sql_output, NULL, sql);
+}
 
+void debug_mem_sql(const char *sql)
+{
+	if (!option_debug)
+		return;
+	sm_msg("%s", sql);
+	sql_mem_exec(print_sql_output, NULL, sql);
 }
 
 void sql_exec(int (*callback)(void*, int, char**, char**), void *data, const char *sql)
