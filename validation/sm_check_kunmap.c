@@ -5,13 +5,13 @@ int kunmap(int p);
 int kmap_atomic(int p);
 int kunmap_atomic(int p);
 
+int page;
+int x;
+int y;
+int z;
+
 void func(void)
 {
-	int page;
-	int x;
-	int y;
-	int z;
-
 	x = kmap(page);
 	kunmap(page);
 	kunmap(x);
