@@ -33,8 +33,6 @@ STATE(param);
 
 static void set_ignore(struct sm_state *sm, struct expression *mod_expr)
 {
-	if (sm->state == &freed)
-		return;
 	set_state(my_id, sm->name, sm->sym, &ignore);
 }
 
