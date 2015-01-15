@@ -135,6 +135,7 @@ free:
 
 void __swap_cur_stree(struct stree *stree)
 {
+	free_stree(&cur_stree);
 	cur_stree = stree;
 }
 
@@ -156,8 +157,7 @@ void __free_fake_cur_stree(void)
 {
 	struct stree *stree;
 
-	__use_pre_cond_states();
-	stree = pop_stree(&fake_cur_stree_stack);
+	stree = __pop_fake_cur_stree();
 	free_stree(&stree);
 }
 

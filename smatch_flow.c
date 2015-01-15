@@ -1258,9 +1258,9 @@ static void split_function(struct symbol *sym)
 	__pass_to_client(sym, END_FUNC_HOOK);
 	__pass_to_client(sym, AFTER_FUNC_HOOK);
 
+	clear_all_states();
 	cur_func_sym = NULL;
 	cur_func = NULL;
-	clear_all_states();
 	free_data_info_allocs();
 	free_expression_stack(&switch_expr_stack);
 	__free_ptr_list((struct ptr_list **)&big_statement_stack);

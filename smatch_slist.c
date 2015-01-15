@@ -616,25 +616,23 @@ static void match_states_stree(struct stree **one, struct stree **two)
 
 static void call_pre_merge_hooks(struct stree **one, struct stree **two)
 {
-	struct stree *orig;
 	struct sm_state *sm;
 
-	orig = __get_cur_stree();
-	__swap_cur_stree(*one);
+	save_all_states();
 
+	__swap_cur_stree(*one);
 	FOR_EACH_SM(*two, sm) {
 		call_pre_merge_hook(sm);
 	} END_FOR_EACH_SM(sm);
+	*one = clone_stree(__get_cur_stree());
 
-	*one = __get_cur_stree();
 	__swap_cur_stree(*two);
-
 	FOR_EACH_SM(*one, sm) {
 		call_pre_merge_hook(sm);
 	} END_FOR_EACH_SM(sm);
+	*two = clone_stree(__get_cur_stree());
 
-	*two = __get_cur_stree();
-	__swap_cur_stree(orig);
+	restore_all_states();
 }
 
 static void clone_pool_havers_stree(struct stree **stree)
