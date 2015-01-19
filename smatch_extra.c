@@ -1628,7 +1628,7 @@ free:
 	free_string(name);
 }
 
-static void db_param_add(struct expression *expr, int param, char *key, char *value)
+static void db_param_add_set(struct expression *expr, int param, char *key, char *value, enum info_type op)
 {
 	struct expression *arg;
 	char *name;
@@ -1651,17 +1651,31 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 		goto free;
 
 	type = get_member_type_from_key(arg, key);
-	state = get_state(SMATCH_EXTRA, name, sym);
-	if (state) {
-		call_results_to_rl(expr, type, value, &added);
-		new = rl_union(estate_rl(state), added);
+	call_results_to_rl(expr, type, value, &added);
+
+	if (op == PARAM_SET) {
+		new = added;
 	} else {
-		new = alloc_whole_rl(type);
+		state = get_state(SMATCH_EXTRA, name, sym);
+		if (state)
+			new = rl_union(estate_rl(state), added);
+		else
+			new = alloc_whole_rl(type);
 	}
 
 	set_extra_mod(name, sym, alloc_estate_rl(new));
 free:
 	free_string(name);
+}
+
+static void db_param_add(struct expression *expr, int param, char *key, char *value)
+{
+	db_param_add_set(expr, param, key, value, ADDED_VALUE);
+}
+
+static void db_param_set(struct expression *expr, int param, char *key, char *value)
+{
+	db_param_add_set(expr, param, key, value, PARAM_SET);
 }
 
 static void db_returned_member_info(struct expression *expr, int param, char *key, char *value)
@@ -1825,6 +1839,7 @@ void register_smatch_extra(int id)
 	select_return_states_hook(LIMITED_VALUE, &db_param_limit_filter);
 	select_return_states_hook(FILTER_VALUE, &db_param_limit_filter);
 	select_return_states_hook(ADDED_VALUE, &db_param_add);
+	select_return_states_hook(PARAM_SET, &db_param_set);
 	select_return_states_after(&db_limited_after);
 }
 

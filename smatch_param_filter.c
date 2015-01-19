@@ -140,8 +140,10 @@ static void print_one_mod_param(int return_id, char *return_ranges,
 		return;
 	if (is_whole_rl(estate_rl(sm->state)))
 		return;
-	if (!estate_rl(sm->state))
+	if (!estate_rl(sm->state)) {
 		insert_string(totally_filtered, (char *)sm->name);
+		return;
+	}
 
 	sql_insert_return_states(return_id, return_ranges, FILTER_VALUE, param,
 			param_name, show_rl(estate_rl(sm->state)));
@@ -197,6 +199,18 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	} END_FOR_EACH_SM(tmp);
 
 	free_ptr_list((struct ptr_list **)&totally_filtered);
+}
+
+int param_has_filter_data(struct sm_state *sm)
+{
+	struct smatch_state *state;
+
+	state = get_state(my_id, sm->name, sm->sym);
+	if (!state)
+		return 1;
+	if (estate_rl(state))
+		return 1;
+	return 0;
 }
 
 void register_param_filter(int id)

@@ -595,6 +595,7 @@ enum info_type {
 	TYPE_LINK	= 1022,
 	UNTRACKED_PARAM = 1023,
 	CULL_PATH	= 1024,
+	PARAM_SET	= 1025,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA3	= 8017,
@@ -791,6 +792,8 @@ int get_formatted_string_size(struct expression *call, int arg);
 
 /* smatch_param_set.c */
 int param_was_set(struct expression *expr);
+/* smatch_param_filter.c */
+int param_has_filter_data(struct sm_state *sm);
 
 /* smatch_links.c */
 void set_up_link_functions(int id, int linkid);
