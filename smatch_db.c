@@ -428,12 +428,21 @@ static int db_return_callback(void *unused, int argc, char **argv, char **azColN
 
 struct range_list *db_return_vals(struct expression *expr)
 {
+	char buf[64];
+	struct sm_state *sm;
+
+	if (is_fake_call(expr))
+		return NULL;
+
+	snprintf(buf, sizeof(buf), "return %p", expr);
+	sm = get_sm_state(SMATCH_EXTRA, buf, NULL);
+	if (sm)
+		return clone_rl(estate_rl(sm->state));
 	static_returns_call = expr;
 	return_type = get_type(expr);
 	if (!return_type)
 		return NULL;
-	if (is_fake_call(expr))
-		return NULL;
+
 	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
 		return NULL;
 
