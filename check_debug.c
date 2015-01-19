@@ -109,6 +109,25 @@ static void match_print_value(const char *fn, struct expression *expr, void *inf
 	} END_FOR_EACH_SM(tmp);
 }
 
+static void match_print_known(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	struct range_list *rl = NULL;
+	char *name;
+	int known = 0;
+	sval_t sval;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	if (get_value(arg, &sval))
+		known = 1;
+
+	get_implied_rl(arg, &rl);
+
+	name = expr_to_str(arg);
+	sm_msg("known: '%s' = '%s'.  implied = '%s'", name, known ? sval_to_str(sval) : "<unknown>", show_rl(rl));
+	free_string(name);
+}
+
 static void match_print_implied(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
@@ -542,6 +561,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_state", &match_state, NULL);
 	add_function_hook("__smatch_states", &match_states, NULL);
 	add_function_hook("__smatch_value", &match_print_value, NULL);
+	add_function_hook("__smatch_known", &match_print_known, NULL);
 	add_function_hook("__smatch_implied", &match_print_implied, NULL);
 	add_function_hook("__smatch_implied_min", &match_print_implied_min, NULL);
 	add_function_hook("__smatch_implied_max", &match_print_implied_max, NULL);
