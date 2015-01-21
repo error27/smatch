@@ -191,6 +191,18 @@ static int is_ignored_macro(void)
 	return 0;
 }
 
+static int is_uncasted_function(void)
+{
+	struct expression *expr;
+
+	expr = get_faked_expression();
+	if (!expr || expr->type != EXPR_ASSIGNMENT)
+		return 0;
+	if (expr->right->type == EXPR_CALL)
+		return 1;
+	return 0;
+}
+
 static void match_assign_value(struct expression *expr)
 {
 	char *member, *right_member;
@@ -212,6 +224,8 @@ static void match_assign_value(struct expression *expr)
 
 	if (is_fake_call(expr->right)) {
 		if (is_ignored_macro())
+			goto free;
+		if (is_uncasted_function())
 			goto free;
 		add_fake_type_val(member, alloc_whole_rl(get_type(expr->left)), is_ignored_fake_assignment());
 		goto free;
