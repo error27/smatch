@@ -302,6 +302,14 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 	if (expr->type != EXPR_CALL)
 		return;
 
+	/*
+	 * FIXME:  __struct_members_copy() requires an expression but
+	 * get_variable_from_key() returns a name/sym pair so that doesn't
+	 * work here.
+	 */
+	if (strcmp(key, "$") != 0)
+		return;
+
 	arg = get_argument_from_call_expr(expr->args, param);
 	if (!arg)
 		return;

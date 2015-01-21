@@ -38,6 +38,8 @@ STATE(zeroed);
 static void db_param_cleared(struct expression *expr, int param, char *key, char *value)
 {
 	struct expression *arg;
+	char *name;
+	struct symbol *sym;
 
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
@@ -45,18 +47,16 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 		return;
 
 	arg = get_argument_from_call_expr(expr->args, param);
-	arg = strip_expr(arg);
-	if (!arg)
-		return;
-	if (arg->type != EXPR_SYMBOL)
-		return;
-	if (get_param_num_from_sym(arg->symbol) < 0)
-		return;
+	name = get_variable_from_key(arg, key, &sym);
+	if (!name || !sym)
+		goto free;
 
 	if (strcmp(value, "0") == 0)
-		set_state_expr(my_id, arg, &zeroed);
+		set_state(my_id, name, sym, &zeroed);
 	else
-		set_state_expr(my_id, arg, &cleared);
+		set_state(my_id, name, sym, &cleared);
+free:
+	free_string(name);
 }
 
 static void match_memset(const char *fn, struct expression *expr, void *arg)
@@ -74,6 +74,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	struct stree *stree;
 	struct sm_state *sm;
 	int param;
+	const char *param_name;
 
 	stree = __get_cur_stree();
 
@@ -82,14 +83,18 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (param < 0)
 			continue;
 
+		param_name = get_param_name(sm);
+		if (!param_name)
+			continue;
+
 		if (sm->state == &zeroed) {
 			sql_insert_return_states(return_id, return_ranges,
-						 PARAM_CLEARED, param, "$", "0");
+						 PARAM_CLEARED, param, param_name, "0");
 		}
 
 		if (sm->state == &cleared) {
 			sql_insert_return_states(return_id, return_ranges,
-						 PARAM_CLEARED, param, "$", "");
+						 PARAM_CLEARED, param, param_name, "");
 		}
 	} END_FOR_EACH_SM(sm);
 }
