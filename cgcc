@@ -279,6 +279,12 @@ sub add_specs {
 		&float_types (1, 1, 21, [24,8], [53,11], [113,15]) .
 		&define_size_t ($m64 ? "long unsigned int" : "unsigned int") .
 		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
+    } elsif ($spec eq 's390x') {
+	return (' -D__s390x__ -D__s390__ -D_BIG_ENDIAN' .
+		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
+		&float_types (1, 1, 36, [24,8], [53,11], [113,15]) .
+		&define_size_t ("long unsigned int") .
+		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
     } elsif ($spec eq 'host_os_specs') {
 	my $os = `uname -s`;
 	chomp $os;
@@ -294,6 +300,8 @@ sub add_specs {
 	    return &add_specs ('x86_64');
 	} elsif ($arch =~ /^(ppc)$/i) {
 	    return &add_specs ('ppc');
+	} elsif ($arch =~ /^(s390x)$/i) {
+	    return &add_specs ('s390x');
 	} elsif ($arch =~ /^(sparc64)$/i) {
 	    return &add_specs ('sparc64');
 	}
