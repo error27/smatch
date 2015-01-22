@@ -310,16 +310,16 @@ static char *jump_to_call_math(char *value)
 	return c;
 }
 
-static void str_to_rl_helper(struct expression *call, struct symbol *type, char *value, struct range_list **rl)
+static void str_to_dinfo(struct expression *call, struct symbol *type, char *value, struct data_info *dinfo)
 {
 	struct range_list *math_rl;
 	sval_t min, max;
 	char *call_math;
 	char *c;
+	struct range_list *rl = NULL;
 
 	if (!type)
 		type = &llong_ctype;
-	*rl = NULL;
 
 	if (strcmp(value, "empty") == 0)
 		return;
@@ -330,7 +330,7 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 
 		if (!str_to_comparison_arg(value, call, &comparison, &arg))
 			return;
-		if (!get_implied_rl(arg, rl))
+		if (!get_implied_rl(arg, &rl))
 			return;
 		goto cast;
 	}
@@ -346,11 +346,11 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		if (*c == ')')
 			c++;
 		if (*c == '\0' || *c == '[') {
-			add_range(rl, min, min);
+			add_range(&rl, min, min);
 			break;
 		}
 		if (*c == ',') {
-			add_range(rl, min, min);
+			add_range(&rl, min, min);
 			c++;
 			continue;
 		}
@@ -362,7 +362,7 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		if (*c == '(')
 			c++;
 		max = parse_val(1, call, type, c, &c);
-		add_range(rl, min, max);
+		add_range(&rl, min, max);
 		if (*c == ')')
 			c++;
 		if (*c == ',')
@@ -374,7 +374,7 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 
 	call_math = jump_to_call_math(value);
 	if (call_math && parse_call_math_rl(call, call_math, &math_rl)) {
-		*rl = rl_intersection(*rl, math_rl);
+		rl = rl_intersection(rl, math_rl);
 		goto cast;
 	}
 
@@ -385,20 +385,27 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 	if (jump_to_call_math(c) == c + 1)
 		goto cast;
 
-	*rl = filter_by_comparison_call(c, call, &c, *rl);
+	rl = filter_by_comparison_call(c, call, &c, rl);
 
 cast:
-	*rl = cast_rl(type, *rl);
+	rl = cast_rl(type, rl);
+	dinfo->value_ranges = rl;
 }
 
 void str_to_rl(struct symbol *type, char *value, struct range_list **rl)
 {
-	return str_to_rl_helper(NULL, type, value, rl);
+	struct data_info dinfo = {};
+
+	str_to_dinfo(NULL, type, value, &dinfo);
+	*rl = dinfo.value_ranges;
 }
 
 void call_results_to_rl(struct expression *expr, struct symbol *type, char *value, struct range_list **rl)
 {
-	return str_to_rl_helper(strip_expr(expr), type, value, rl);
+	struct data_info dinfo = {};
+
+	str_to_dinfo(strip_expr(expr), type, value, &dinfo);
+	*rl = dinfo.value_ranges;
 }
 
 int is_whole_rl(struct range_list *rl)
