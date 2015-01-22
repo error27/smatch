@@ -310,10 +310,53 @@ static char *jump_to_call_math(char *value)
 	return c;
 }
 
+static void str_to_rl_helper(struct expression *call, struct symbol *type, char *str, char **endp, struct range_list **rl)
+{
+	struct range_list *rl_tmp = NULL;
+	sval_t min, max;
+	char *c;
+
+	min = sval_type_min(type);
+	max = sval_type_max(type);
+	c = str;
+	while (*c != '\0' && *c != '[') {
+		if (*c == '(')
+			c++;
+		min = parse_val(0, call, type, c, &c);
+		max = min;
+		if (*c == ')')
+			c++;
+		if (*c == '\0' || *c == '[') {
+			add_range(&rl_tmp, min, min);
+			break;
+		}
+		if (*c == ',') {
+			add_range(&rl_tmp, min, min);
+			c++;
+			continue;
+		}
+		if (*c != '-') {
+			sm_msg("debug XXX: trouble parsing %s c = %s", str, c);
+			break;
+		}
+		c++;
+		if (*c == '(')
+			c++;
+		max = parse_val(1, call, type, c, &c);
+		add_range(&rl_tmp, min, max);
+		if (*c == ')')
+			c++;
+		if (*c == ',')
+			c++;
+	}
+
+	*rl = rl_tmp;
+	*endp = c;
+}
+
 static void str_to_dinfo(struct expression *call, struct symbol *type, char *value, struct data_info *dinfo)
 {
 	struct range_list *math_rl;
-	sval_t min, max;
 	char *call_math;
 	char *c;
 	struct range_list *rl = NULL;
@@ -335,40 +378,7 @@ static void str_to_dinfo(struct expression *call, struct symbol *type, char *val
 		goto cast;
 	}
 
-	min = sval_type_min(type);
-	max = sval_type_max(type);
-	c = value;
-	while (*c != '\0' && *c != '[') {
-		if (*c == '(')
-			c++;
-		min = parse_val(0, call, type, c, &c);
-		max = min;
-		if (*c == ')')
-			c++;
-		if (*c == '\0' || *c == '[') {
-			add_range(&rl, min, min);
-			break;
-		}
-		if (*c == ',') {
-			add_range(&rl, min, min);
-			c++;
-			continue;
-		}
-		if (*c != '-') {
-			sm_msg("debug XXX: trouble parsing %s c = %s", value, c);
-			break;
-		}
-		c++;
-		if (*c == '(')
-			c++;
-		max = parse_val(1, call, type, c, &c);
-		add_range(&rl, min, max);
-		if (*c == ')')
-			c++;
-		if (*c == ',')
-			c++;
-	}
-
+	str_to_rl_helper(call, type, value, &c, &rl);
 	if (*c == '\0')
 		goto cast;
 
