@@ -108,6 +108,7 @@ __IDENT(__TIME___ident, "__TIME__", 0);
 __IDENT(__func___ident, "__func__", 0);
 __IDENT(__FUNCTION___ident, "__FUNCTION__", 0);
 __IDENT(__PRETTY_FUNCTION___ident, "__PRETTY_FUNCTION__", 0);
+__IDENT(__COUNTER___ident, "__COUNTER__", 0);
 
 /* Sparse commands */
 IDENT_RESERVED(__context__);

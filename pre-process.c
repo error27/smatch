@@ -45,6 +45,7 @@
 #include "scope.h"
 
 static int false_nesting = 0;
+static int counter_macro = 0;		// __COUNTER__ expansion
 
 #define INCLUDEPATHS 300
 const char *includepath[INCLUDEPATHS+1] = {
@@ -181,6 +182,8 @@ static int expand_one_symbol(struct token **list)
 			time(&t);
 		strftime(buffer, 9, "%T", localtime(&t));
 		replace_with_string(token, buffer);
+	} else if (token->ident == &__COUNTER___ident) {
+		replace_with_integer(token, counter_macro++);
 	}
 	return 1;
 }
@@ -1894,6 +1897,7 @@ static void init_preprocessor(void)
 		sym->normal = 0;
 	}
 
+	counter_macro = 0;
 }
 
 static void handle_preprocessor_line(struct stream *stream, struct token **line, struct token *start)
