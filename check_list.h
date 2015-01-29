@@ -118,6 +118,7 @@ CK(check_buffer_too_small_for_struct)
 /* CK(register_template) */
 
 /* kernel specific */
+CK(check_kernel_printf)
 CK(check_locking)
 CK(check_puts_argument)
 CK(check_err_ptr)
