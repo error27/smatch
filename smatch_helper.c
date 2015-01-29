@@ -728,3 +728,22 @@ free:
 	free_string(var);
 	return ret;
 }
+
+int invert_op(int op)
+{
+	switch (op) {
+	case '*':
+		return '/';
+	case '/':
+		return '*';
+	case '+':
+		return '-';
+	case '-':
+		return '+';
+	case SPECIAL_LEFTSHIFT:
+		return SPECIAL_RIGHTSHIFT;
+	case SPECIAL_RIGHTSHIFT:
+		return SPECIAL_LEFTSHIFT;
+	}
+	return 0;
+}

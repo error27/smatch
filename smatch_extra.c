@@ -1220,28 +1220,19 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 	set_extra_expr_true_false(right, right_true_state, right_false_state);
 }
 
-static int opposite_op(int op)
-{
-	switch (op) {
-	case '+':
-		return '-';
-	case '-':
-		return '+';
-	case '*':
-		return '/';
-	}
-	return 0;
-}
-
 static int is_simple_math(struct expression *expr)
 {
 	if (!expr)
 		return 0;
 	if (expr->type != EXPR_BINOP)
 		return 0;
-	if (!opposite_op(expr->op))
-		return 0;
-	return 1;
+	switch (expr->op) {
+	case '+':
+	case '-':
+	case '*':
+		return 1;
+	}
+	return 0;
 }
 
 static void move_known_values(struct expression **left_p, struct expression **right_p)
@@ -1260,17 +1251,17 @@ static void move_known_values(struct expression **left_p, struct expression **ri
 				return;
 			if (divisor.value == 0 && sval.value % divisor.value)
 				return;
-			*left_p = binop_expression(left, opposite_op(right->op), right->right);
+			*left_p = binop_expression(left, invert_op(right->op), right->right);
 			*right_p = right->left;
 			return;
 		}
 		if (right->op == '+' && get_value(right->left, &sval)) {
-			*left_p = binop_expression(left, opposite_op(right->op), right->left);
+			*left_p = binop_expression(left, invert_op(right->op), right->left);
 			*right_p = right->right;
 			return;
 		}
 		if (get_value(right->right, &sval)) {
-			*left_p = binop_expression(left, opposite_op(right->op), right->right);
+			*left_p = binop_expression(left, invert_op(right->op), right->right);
 			*right_p = right->left;
 			return;
 		}
@@ -1286,18 +1277,18 @@ static void move_known_values(struct expression **left_p, struct expression **ri
 				return;
 			if (divisor.value == 0 && sval.value % divisor.value)
 				return;
-			*right_p = binop_expression(right, opposite_op(left->op), left->right);
+			*right_p = binop_expression(right, invert_op(left->op), left->right);
 			*left_p = left->left;
 			return;
 		}
 		if (left->op == '+' && get_value(left->left, &sval)) {
-			*right_p = binop_expression(right, opposite_op(left->op), left->left);
+			*right_p = binop_expression(right, invert_op(left->op), left->left);
 			*left_p = left->right;
 			return;
 		}
 
 		if (get_value(left->right, &sval)) {
-			*right_p = binop_expression(right, opposite_op(left->op), left->right);
+			*right_p = binop_expression(right, invert_op(left->op), left->right);
 			*left_p = left->left;
 			return;
 		}
