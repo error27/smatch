@@ -318,7 +318,6 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 		__struct_members_copy(COPY_MEMSET, expr, remove_addr(arg), zero_expr());
 	else
 		__struct_members_copy(COPY_MEMCPY, expr, remove_addr(arg), NULL);
-
 }
 
 void register_struct_assignment(int id)
