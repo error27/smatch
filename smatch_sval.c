@@ -460,7 +460,7 @@ sval_t sval_binop(sval_t left, int op, sval_t right)
 		ret = sval_binop_unsigned(type, left, op, right);
 	else
 		ret = sval_binop_signed(type, left, op, right);
-	return ret;
+	return sval_cast(type, ret);
 }
 
 int sval_unop_overflows(sval_t sval, int op)
