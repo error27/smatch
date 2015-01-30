@@ -521,6 +521,10 @@ int sval_binop_overflows(sval_t left, int op, sval_t right)
 		if (sval_binop_overflows(left, '+', right))
 			return 1;
 		return 0;
+	case SPECIAL_LEFTSHIFT:
+		if (sval_cmp(left, sval_binop(max, invert_op(op), right)) > 0)
+			return 1;
+		return 0;
 	}
 	return 0;
 }
