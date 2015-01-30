@@ -409,6 +409,8 @@ void register_type_val(int id)
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&asm_expr, ASM_HOOK);
 	select_return_states_hook(ADDED_VALUE, &db_param_add);
+	select_return_states_hook(PARAM_SET, &db_param_add);
+
 
 	add_hook(&match_inline_start, INLINE_FN_START);
 	add_hook(&match_inline_end, INLINE_FN_END);
