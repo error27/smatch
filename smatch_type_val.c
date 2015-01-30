@@ -188,6 +188,8 @@ static int is_ignored_macro(void)
 		return 1;
 	if (strcmp(name, "list_entry") == 0)
 		return 1;
+	if (strstr(name, "for_each"))
+		return 1;
 	return 0;
 }
 
