@@ -193,6 +193,23 @@ static int is_ignored_macro(void)
 	return 0;
 }
 
+static int is_ignored_function(void)
+{
+	struct expression *expr;
+
+	expr = get_faked_expression();
+	if (!expr || expr->type != EXPR_ASSIGNMENT)
+		return 0;
+	expr = strip_expr(expr->right);
+	if (!expr || expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL)
+		return 0;
+
+	if (sym_name_is("kmalloc", expr->fn))
+		return 1;
+
+	return 0;
+}
+
 static int is_uncasted_function(void)
 {
 	struct expression *expr;
@@ -226,6 +243,8 @@ static void match_assign_value(struct expression *expr)
 
 	if (is_fake_call(expr->right)) {
 		if (is_ignored_macro())
+			goto free;
+		if (is_ignored_function())
 			goto free;
 		if (is_uncasted_function())
 			goto free;
