@@ -343,10 +343,6 @@ static struct range_list *var_user_rl(struct expression *expr)
 found:
 	user_data_flag = 1;
 	absolute_rl = var_to_absolute_rl(expr);
-	if (local_debug) {
-		sm_msg("user rl = '%s'.  absolute = '%s'.  intersection = '%s'",
-		       show_rl(rl), show_rl(absolute_rl), show_rl((rl_intersection(rl, absolute_rl))));
-	}
 	return clone_rl(rl_intersection(rl, absolute_rl));
 }
 
