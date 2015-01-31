@@ -93,6 +93,7 @@ struct token *get_string_constant(struct token *token, struct expression *expr)
 	static char buffer[MAX_STRING];
 	int len = 0;
 	int bits;
+	int parts = 0;
 
 	while (!done) {
 		switch (token_type(next)) {
@@ -117,13 +118,14 @@ struct token *get_string_constant(struct token *token, struct expression *expr)
 			len++;
 		}
 		token = token->next;
+		parts++;
 	}
 	if (len > MAX_STRING) {
 		warning(token->pos, "trying to concatenate %d-character string (%d bytes max)", len, MAX_STRING);
 		len = MAX_STRING;
 	}
 
-	if (len >= string->length)	/* can't cannibalize */
+	if (len >= string->length || parts > 1)	/* safe to reuse the string buffer */
 		string = __alloc_string(len+1);
 	string->length = len+1;
 	memcpy(string->data, buffer, len);
