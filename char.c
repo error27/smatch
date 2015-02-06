@@ -93,6 +93,7 @@ struct token *get_string_constant(struct token *token, struct expression *expr)
 	static char buffer[MAX_STRING];
 	int len = 0;
 	int bits;
+	int esc_count = 0;
 
 	while (!done) {
 		switch (token_type(next)) {
@@ -111,6 +112,8 @@ struct token *get_string_constant(struct token *token, struct expression *expr)
 		const char *p = token->string->data;
 		const char *end = p + token->string->length - 1;
 		while (p < end) {
+			if (*p == '\\')
+				esc_count++;
 			p = parse_escape(p, &v, end, bits, token->pos);
 			if (len < MAX_STRING)
 				buffer[len] = v;
@@ -123,11 +126,13 @@ struct token *get_string_constant(struct token *token, struct expression *expr)
 		len = MAX_STRING;
 	}
 
-	if (len >= string->length)	/* can't cannibalize */
-		string = __alloc_string(len+1);
-	string->length = len+1;
-	memcpy(string->data, buffer, len);
-	string->data[len] = '\0';
+	if (esc_count || len >= string->length) {
+		if (string->immutable || len >= string->length)	/* can't cannibalize */
+			string = __alloc_string(len+1);
+		string->length = len+1;
+		memcpy(string->data, buffer, len);
+		string->data[len] = '\0';
+	}
 	expr->string = string;
 	expr->wide = is_wide;
 	return token;

@@ -164,7 +164,8 @@ enum special_token {
 };
 
 struct string {
-	unsigned int length;
+	unsigned int length:31;
+	unsigned int immutable:1;
 	char data[];
 };
 
