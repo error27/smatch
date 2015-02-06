@@ -69,6 +69,17 @@ int id_from_name(const char *name)
 	return 0;
 }
 
+static void show_checks(void)
+{
+	int i;
+
+	for (i = 1; i < ARRAY_SIZE(reg_funcs); i++) {
+		if (!strncmp(reg_funcs[i].name, "check_", 6))
+			printf("%3d. %s\n", i, reg_funcs[i].name);
+	}
+	exit(1);
+}
+
 static void help(void)
 {
 	printf("Usage:  smatch [smatch arguments][sparse arguments] file.c\n");
@@ -124,6 +135,9 @@ void parse_args(int *argcp, char ***argvp)
 		int found = 0;
 		if (!strcmp((*argvp)[1], "--help"))
 			help();
+
+		if (!strcmp((*argvp)[1], "--show-checks"))
+			show_checks();
 
 		if (!found && !strncmp((*argvp)[1], "--project=", 10)) {
 			option_project_str = (*argvp)[1] + 10;
