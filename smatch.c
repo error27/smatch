@@ -44,26 +44,27 @@ static struct reg_func_info {
 	const char *name;
 	reg_func func;
 } reg_funcs[] = {
+	{NULL, NULL},
 #include "check_list.h"
 };
 #undef CK
-int num_checks = ARRAY_SIZE(reg_funcs);
+int num_checks = ARRAY_SIZE(reg_funcs) - 1;
 
 const char *check_name(unsigned short id)
 {
-	if (id > ARRAY_SIZE(reg_funcs))
+	if (id >= ARRAY_SIZE(reg_funcs))
 		return "internal";
 
-	return reg_funcs[id - 1].name;
+	return reg_funcs[id].name;
 }
 
 int id_from_name(const char *name)
 {
 	int i;
 
-	for (i = 0; i < ARRAY_SIZE(reg_funcs); i++) {
+	for (i = 1; i < ARRAY_SIZE(reg_funcs); i++) {
 		if (!strcmp(name, reg_funcs[i].name))
-			return i + 1;
+			return i;
 	}
 	return 0;
 }
@@ -233,11 +234,11 @@ int main(int argc, char **argv)
 	allocate_hook_memory();
 	create_function_hook_hash();
 	open_smatch_db();
-	for (i = 0; i < ARRAY_SIZE(reg_funcs); i++) {
+	for (i = 1; i < ARRAY_SIZE(reg_funcs); i++) {
 		func = reg_funcs[i].func;
 		/* The script IDs start at 1.
 		   0 is used for internal stuff. */
-		func(i + 1);
+		func(i);
 	}
 
 	smatch(argc, argv);
