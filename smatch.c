@@ -32,6 +32,7 @@ int option_full_path = 0;
 int option_param_mapper = 0;
 int option_call_tree = 0;
 int option_no_db = 0;
+int option_enable = 0;
 int option_debug_related;
 int option_file_output;
 int option_time;
@@ -39,10 +40,11 @@ char *option_datadir_str;
 FILE *sm_outfd;
 
 typedef void (*reg_func) (int id);
-#define CK(_x) {.name = #_x, .func = &_x},
+#define CK(_x) {.name = #_x, .func = &_x, .enabled = 0},
 static struct reg_func_info {
 	const char *name;
 	reg_func func;
+	int enabled;
 } reg_funcs[] = {
 	{NULL, NULL},
 #include "check_list.h"
@@ -78,6 +80,42 @@ static void show_checks(void)
 			printf("%3d. %s\n", i, reg_funcs[i].name);
 	}
 	exit(1);
+}
+static void enable_check(int i)
+{
+	if (1 <= i && i < ARRAY_SIZE(reg_funcs))
+		reg_funcs[i].enabled = 1;
+}
+
+static void enable_checks(const char *s)
+{
+	int n = 0, lo = -1, i;
+
+	do {
+		switch (*s) {
+		case ',':
+		case '\0':
+			if (lo < 0)
+				enable_check(n);
+			else
+				for (i = lo; i <= n; ++i)
+					enable_check(i);
+			lo = -1;
+			n = 0;
+			break;
+		case '-':
+			lo = n;
+			n = 0;
+			break;
+		case '0' ... '9':
+			n = 10*n + (*s - '0');
+			break;
+		default:
+			fprintf(stderr, "invalid character '%c'\n", *s);
+			exit(1);
+			
+		}
+	} while (*s++);
 }
 
 static void help(void)
@@ -161,6 +199,12 @@ void parse_args(int *argcp, char ***argvp)
 		}
 		if (!found && strncmp((*argvp)[1], "--trace=", 8) == 0) {
 			trace_variable = (*argvp)[1] + 8;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
+		}
+		if (!found && strncmp((*argvp)[1], "--enable=", 9) == 0) {
+			enable_checks((*argvp)[1] + 9);
+			option_enable = 1;
 			(*argvp)[1] = (*argvp)[0];
 			found = 1;
 		}
@@ -252,7 +296,8 @@ int main(int argc, char **argv)
 		func = reg_funcs[i].func;
 		/* The script IDs start at 1.
 		   0 is used for internal stuff. */
-		func(i);
+		if (!option_enable || reg_funcs[i].enabled || !strncmp(reg_funcs[i].name, "register_", 9))
+			func(i);
 	}
 
 	smatch(argc, argv);
