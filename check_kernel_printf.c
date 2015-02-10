@@ -728,14 +728,16 @@ static int arg_contains_caller(struct expression *arg, const char *caller)
 
 
 static void
-check_printf_call(const char *name, struct expression *expr, void *info)
+check_printf_call(const char *name, struct expression *expr, void *_info)
 {
 	/*
 	 * Note: attribute(printf) uses 1-based indexing, but
 	 * get_argument_from_call_expr() uses 0-based indexing.
 	 */
-	int fmtidx = (PTR_INT(info) & 0xff) - 1;
-	int vaidx = ((PTR_INT(info) >> 8) & 0xff) - 1;
+	int info = PTR_INT(_info);
+	int fmtidx = (info & 0xff) - 1;
+	int vaidx = ((info >> 8) & 0xff) - 1;
+	int cond_arg = (info >> 16) & 0x3;
 	struct printf_spec spec = {0};
 	struct expression *fmtexpr;
 	const char *fmt;
@@ -769,22 +771,40 @@ check_printf_call(const char *name, struct expression *expr, void *info)
 	}
 	if (fmtexpr->type != EXPR_STRING) {
 		/*
-		 * These generate far too much noise, and we can't do
-		 * anything about it anyway. Moreover, gcc can easily
-		 * be asked to provide the same info if one really
-		 * wanted it.
+		 * If the format is given by a conditional, we can check the format in each case.
 		 */
-		if (0)
+		if (fmtexpr->type == EXPR_CONDITIONAL) {
+			switch(cond_arg) {
+			case 0:
+				if (fmtexpr->cond_true->type == EXPR_STRING)
+					check_printf_call(name, expr, INT_PTR(PTR_INT(_info) | (1 << 16)));
+				else
+					sm_msg("warn: true branch of ? : is not a literal string");
+				if (fmtexpr->cond_false->type == EXPR_STRING)
+					check_printf_call(name, expr, INT_PTR(PTR_INT(_info) | (2 << 16)));
+				else
+					sm_msg("warn: false branch of ? : is not a literal string");
+				return;
+			case 1:
+				assert(fmtexpr->cond_true->type == EXPR_STRING);
+				fmtexpr = fmtexpr->cond_true;
+				break;
+			case 2:
+				assert(fmtexpr->cond_false->type == EXPR_STRING);
+				fmtexpr = fmtexpr->cond_false;
+				break;
+			default:
+				assert(0);
+			}
+		} else {
+			/*
+			 * Since we're now handling the case of ?:, we
+			 * don't get as much noise. It's still spammy,
+			 * though.
+			 */
 			spam("warn: call of %s with non-constant format argument", name);
-		/*
-		 * XXX: We could make a special case if the expression
-		 * is EXPR_CONDITIONAL and either branch is a string,
-		 * by calling ourselves recursively with an extra
-		 * piece of information in info.
-		 */
-		if (fmtexpr->type == EXPR_CONDITIONAL)
-			sm_msg("format string given by conditional");
-		return;
+			return;
+		}
 	}
 	fmt = fmtexpr->string->data;
 	caller_in_fmt = check_format_string(fmt, caller);
