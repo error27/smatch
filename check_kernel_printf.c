@@ -769,6 +769,7 @@ check_printf_call(const char *name, struct expression *expr, void *_info)
 		sm_msg("error: call of %s with no format argument", name);
 		return;
 	}
+	fmtexpr = strip_parens(fmtexpr);
 	if (fmtexpr->type != EXPR_STRING) {
 		/*
 		 * If the format is given by a conditional, we can check the format in each case.
@@ -776,22 +777,24 @@ check_printf_call(const char *name, struct expression *expr, void *_info)
 		if (fmtexpr->type == EXPR_CONDITIONAL) {
 			switch(cond_arg) {
 			case 0:
-				if (fmtexpr->cond_true->type == EXPR_STRING)
+				if (strip_parens(fmtexpr->cond_true)->type == EXPR_STRING)
 					check_printf_call(name, expr, INT_PTR(PTR_INT(_info) | (1 << 16)));
 				else
 					sm_msg("warn: true branch of ? : is not a literal string");
-				if (fmtexpr->cond_false->type == EXPR_STRING)
+				if (strip_parens(fmtexpr->cond_false)->type == EXPR_STRING)
 					check_printf_call(name, expr, INT_PTR(PTR_INT(_info) | (2 << 16)));
 				else
 					sm_msg("warn: false branch of ? : is not a literal string");
 				return;
 			case 1:
-				assert(fmtexpr->cond_true->type == EXPR_STRING);
 				fmtexpr = fmtexpr->cond_true;
+				fmtexpr = strip_parens(fmtexpr);
+				assert(fmtexpr->type == EXPR_STRING);
 				break;
 			case 2:
-				assert(fmtexpr->cond_false->type == EXPR_STRING);
 				fmtexpr = fmtexpr->cond_false;
+				fmtexpr = strip_parens(fmtexpr);
+				assert(fmtexpr->type == EXPR_STRING);
 				break;
 			default:
 				assert(0);
