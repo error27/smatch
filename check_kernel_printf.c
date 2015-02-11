@@ -740,7 +740,7 @@ do_check_printf_call(const char *caller, const char *name, struct expression *ca
 
 	fmtexpr = strip_parens(fmtexpr);
 	if (fmtexpr->type == EXPR_CONDITIONAL) {
-		do_check_printf_call(caller, name, callexpr, fmtexpr->cond_true, vaidx);
+		do_check_printf_call(caller, name, callexpr, fmtexpr->cond_true ? : fmtexpr->conditional, vaidx);
 		do_check_printf_call(caller, name, callexpr, fmtexpr->cond_false, vaidx);
 		return;
 	}
