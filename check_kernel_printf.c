@@ -750,7 +750,7 @@ check_printf_call(const char *name, struct expression *expr, void *_info)
 	 * we could do, namely checking that the format string is
 	 * valid.
 	 */
-	if (!vaidx)
+	if (vaidx < 0)
 		return;
 
 	/*
