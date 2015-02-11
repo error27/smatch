@@ -731,6 +731,37 @@ static int arg_contains_caller(struct expression *arg, const char *caller)
 	return strstr(arg->string->data, caller) != NULL;
 }
 
+static int is_array_of_const_char(struct symbol *sym)
+{
+	struct symbol *base = sym->ctype.base_type;
+	if (base->type != SYM_ARRAY)
+		return 0;
+	if (!(base->ctype.modifiers & MOD_CONST))
+		return 0;
+	if (!is_char_type(base->ctype.base_type)) {
+		spam("weird: format argument is array of const %s", type_to_str(base->ctype.base_type));
+		return 0;
+	}
+	return 1;
+}
+
+static int is_const_pointer_to_const_char(struct symbol *sym)
+{
+	struct symbol *base = sym->ctype.base_type;
+	if (!(sym->ctype.modifiers & MOD_CONST))
+		return 0;
+	if (base->type != SYM_PTR)
+		return 0;
+	if (!(base->ctype.modifiers & MOD_CONST))
+		return 0;
+	if (!is_char_type(base->ctype.base_type)) {
+		spam("weird: format argument is pointer to const %s", type_to_str(base->ctype.base_type));
+		return 0;
+	}
+	return 1;
+}
+
+
 static void
 do_check_printf_call(const char *caller, const char *name, struct expression *callexpr, struct expression *fmtexpr, int vaidx)
 {
@@ -744,11 +775,32 @@ do_check_printf_call(const char *caller, const char *name, struct expression *ca
 		do_check_printf_call(caller, name, callexpr, fmtexpr->cond_false, vaidx);
 		return;
 	}
-	/* XXX: Handle the case of a static const char[] argument. */
+	if (fmtexpr->type == EXPR_SYMBOL) {
+		/*
+		 * If the symbol has an initializer, we can handle
+		 *
+		 *   const char foo[] = "abc";         and
+		 *   const char * const foo = "abc";
+		 *
+		 * We simply replace fmtexpr with the initializer
+		 * expression. If foo is not one of the above, or if
+		 * the initializer expression is somehow not a string
+		 * literal, fmtexpr->type != EXPR_STRING will trigger
+		 * below and we'll spam+return.
+		 */
+		struct symbol *sym = fmtexpr->symbol;
+		if (sym->initializer &&
+		    (is_array_of_const_char(sym) ||
+		     is_const_pointer_to_const_char(sym))) {
+			fmtexpr = strip_parens(sym->initializer);
+		}
+	}
+
 	if (fmtexpr->type != EXPR_STRING) {
 		/*
-		 * Since we're now handling the case of ?:, we don't
-		 * get as much noise. It's still spammy, though.
+		 * Since we're now handling both ?: and static const
+		 * char[] arguments, we don't get as much noise. It's
+		 * still spammy, though.
 		 */
 		spam("warn: call of '%s' with non-constant format argument", name);
 		return;
