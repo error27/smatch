@@ -731,89 +731,29 @@ static int arg_contains_caller(struct expression *arg, const char *caller)
 	return strstr(arg->string->data, caller) != NULL;
 }
 
-
 static void
-check_printf_call(const char *name, struct expression *expr, void *_info)
+do_check_printf_call(const char *caller, const char *name, struct expression *callexpr, struct expression *fmtexpr, int vaidx)
 {
-	/*
-	 * Note: attribute(printf) uses 1-based indexing, but
-	 * get_argument_from_call_expr() uses 0-based indexing.
-	 */
-	int info = PTR_INT(_info);
-	int fmtidx = (info & 0xff) - 1;
-	int vaidx = ((info >> 8) & 0xff) - 1;
-	int cond_arg = (info >> 16) & 0x3;
 	struct printf_spec spec = {0};
-	struct expression *fmtexpr;
 	const char *fmt;
 	int caller_in_fmt;
-	const char *caller = get_function();
 
-	/*
-	 * Calling a v*printf function with a literal format arg is
-	 * extremely rare, so we don't bother doing the only checking
-	 * we could do, namely checking that the format string is
-	 * valid.
-	 */
-	if (vaidx < 0)
-		return;
-
-	/*
-	 * For the things we use the name of the calling function for,
-	 * it is more appropriate to skip a potential SyS_ prefix; the
-	 * same goes for leading underscores.
-	 */
-	if (!strncmp(caller, "SyS_", 4))
-		caller += 4;
-	while (*caller == '_')
-		++caller;
-
-	/* If the format is not a string literal, there's nothing we can do. */
-	fmtexpr = get_argument_from_call_expr(expr->args, fmtidx);
-	if (!fmtexpr) {
-		sm_msg("error: call of %s with no format argument", name);
+	fmtexpr = strip_parens(fmtexpr);
+	if (fmtexpr->type == EXPR_CONDITIONAL) {
+		do_check_printf_call(caller, name, callexpr, fmtexpr->cond_true, vaidx);
+		do_check_printf_call(caller, name, callexpr, fmtexpr->cond_false, vaidx);
 		return;
 	}
-	fmtexpr = strip_parens(fmtexpr);
+	/* XXX: Handle the case of a static const char[] argument. */
 	if (fmtexpr->type != EXPR_STRING) {
 		/*
-		 * If the format is given by a conditional, we can check the format in each case.
+		 * Since we're now handling the case of ?:, we don't
+		 * get as much noise. It's still spammy, though.
 		 */
-		if (fmtexpr->type == EXPR_CONDITIONAL) {
-			switch(cond_arg) {
-			case 0:
-				if (strip_parens(fmtexpr->cond_true)->type == EXPR_STRING)
-					check_printf_call(name, expr, INT_PTR(PTR_INT(_info) | (1 << 16)));
-				else
-					spam("warn: true branch of ? : is not a literal string");
-				if (strip_parens(fmtexpr->cond_false)->type == EXPR_STRING)
-					check_printf_call(name, expr, INT_PTR(PTR_INT(_info) | (2 << 16)));
-				else
-					spam("warn: false branch of ? : is not a literal string");
-				return;
-			case 1:
-				fmtexpr = fmtexpr->cond_true;
-				fmtexpr = strip_parens(fmtexpr);
-				assert(fmtexpr->type == EXPR_STRING);
-				break;
-			case 2:
-				fmtexpr = fmtexpr->cond_false;
-				fmtexpr = strip_parens(fmtexpr);
-				assert(fmtexpr->type == EXPR_STRING);
-				break;
-			default:
-				assert(0);
-			}
-		} else {
-			/*
-			 * Since we're now handling the case of ?:, we
-			 * don't get as much noise. It's still spammy,
-			 * though.
-			 */
-			spam("warn: call of '%s' with non-constant format argument", name);
-			return;
-		}
+		spam("warn: call of '%s' with non-constant format argument", name);
+		return;
 	}
+
 	fmt = fmtexpr->string->data;
 	caller_in_fmt = check_format_string(fmt, caller);
 
@@ -835,7 +775,7 @@ check_printf_call(const char *name, struct expression *expr, void *_info)
 		 * that we handle all FORMAT_TYPE_* things not taking
 		 * an argument above.
 		 */
-		arg = get_argument_from_call_expr(expr->args, vaidx++);
+		arg = get_argument_from_call_expr(callexpr->args, vaidx++);
 
 		switch (spec.type) {
 		/* case FORMAT_TYPE_NONE: */
@@ -918,8 +858,52 @@ check_printf_call(const char *name, struct expression *expr, void *_info)
 
 	}
 
-	if (get_argument_from_call_expr(expr->args, vaidx))
+	if (get_argument_from_call_expr(callexpr->args, vaidx))
 		sm_msg("warn: excess argument passed to %s", name);
+
+
+}
+
+static void
+check_printf_call(const char *name, struct expression *callexpr, void *_info)
+{
+	/*
+	 * Note: attribute(printf) uses 1-based indexing, but
+	 * get_argument_from_call_expr() uses 0-based indexing.
+	 */
+	int info = PTR_INT(_info);
+	int fmtidx = (info & 0xff) - 1;
+	int vaidx = ((info >> 8) & 0xff) - 1;
+	struct expression *fmtexpr;
+	const char *caller = get_function();
+
+	/*
+	 * Calling a v*printf function with a literal format arg is
+	 * extremely rare, so we don't bother doing the only checking
+	 * we could do, namely checking that the format string is
+	 * valid.
+	 */
+	if (vaidx < 0)
+		return;
+
+	/*
+	 * For the things we use the name of the calling function for,
+	 * it is more appropriate to skip a potential SyS_ prefix; the
+	 * same goes for leading underscores.
+	 */
+	if (!strncmp(caller, "SyS_", 4))
+		caller += 4;
+	while (*caller == '_')
+		++caller;
+
+	/* Lack of format argument is a bug. */
+	fmtexpr = get_argument_from_call_expr(callexpr->args, fmtidx);
+	if (!fmtexpr) {
+		sm_msg("error: call of %s with no format argument", name);
+		return;
+	}
+
+	do_check_printf_call(caller, name, callexpr, fmtexpr, vaidx);
 }
 
 
