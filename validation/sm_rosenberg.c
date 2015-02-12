@@ -22,10 +22,10 @@ struct foo {
 
 struct foo *p;
 struct foo global_dec;
+void *ptr;
 
 int main(void)
 {
-	void *ptr;
 	struct zr364xx_pipeinfo one;
 	struct aa_policy two;
 	aa_policy_t three;
