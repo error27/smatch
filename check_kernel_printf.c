@@ -781,11 +781,11 @@ check_printf_call(const char *name, struct expression *expr, void *_info)
 				if (strip_parens(fmtexpr->cond_true)->type == EXPR_STRING)
 					check_printf_call(name, expr, INT_PTR(PTR_INT(_info) | (1 << 16)));
 				else
-					sm_msg("warn: true branch of ? : is not a literal string");
+					spam("warn: true branch of ? : is not a literal string");
 				if (strip_parens(fmtexpr->cond_false)->type == EXPR_STRING)
 					check_printf_call(name, expr, INT_PTR(PTR_INT(_info) | (2 << 16)));
 				else
-					sm_msg("warn: false branch of ? : is not a literal string");
+					spam("warn: false branch of ? : is not a literal string");
 				return;
 			case 1:
 				fmtexpr = fmtexpr->cond_true;
