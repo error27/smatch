@@ -806,7 +806,7 @@ check_printf_call(const char *name, struct expression *expr, void *_info)
 			 * don't get as much noise. It's still spammy,
 			 * though.
 			 */
-			spam("warn: call of %s with non-constant format argument", name);
+			spam("warn: call of '%s' with non-constant format argument", name);
 			return;
 		}
 	}
