@@ -875,7 +875,7 @@ check_printf_call(const char *name, struct expression *expr, void *_info)
 
 			if (caller_in_fmt) {
 				if (arg_is___func__(arg))
-					spam("warn: passing __func__ while the format string already contains the name of the function %s",
+					spam("warn: passing __func__ while the format string already contains the name of the function '%s'",
 					     caller);
 				else if (arg_contains_caller(arg, caller))
 					sm_msg("warn: passing string constant '%s' containing '%s' which is already part of the format string",
