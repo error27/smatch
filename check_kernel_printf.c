@@ -600,6 +600,7 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 	 */
 
 	switch (*fmt) {
+	case 'b':
 	case 'F':
 	case 'f':
 	case 'S':
