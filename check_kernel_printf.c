@@ -699,6 +699,10 @@ check_format_string(const char *fmt, const char *caller)
 		case 0x80 ... 0xff:
 			sm_msg("warn: format string contains non-ascii character \\x%02x", c);
 			break;
+		case 0x08:
+			if (f == fmt)
+				break;
+			/* fall through */
 		default:
 			sm_msg("warn: format string contains unusual character \\x%02x", c);
 			break;
