@@ -1,4 +1,5 @@
 copy_from_user 0
+__copy_from_user 0
 loop_get_status 1
 loop_info64_to_old 1
 ib_copy_qp_attr_to_user 0

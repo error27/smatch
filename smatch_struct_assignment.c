@@ -323,9 +323,12 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 void register_struct_assignment(int id)
 {
 	add_function_hook("memset", &match_memset, NULL);
+	add_function_hook("__memset", &match_memset, NULL);
 
 	add_function_hook("memcpy", &match_memcpy, INT_PTR(0));
 	add_function_hook("memmove", &match_memcpy, INT_PTR(0));
+	add_function_hook("__memcpy", &match_memcpy, INT_PTR(0));
+	add_function_hook("__memmove", &match_memcpy, INT_PTR(0));
 
 	register_clears_param();
 	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);

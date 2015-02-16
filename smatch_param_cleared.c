@@ -171,11 +171,14 @@ void register_param_cleared(int id)
 	my_id = id;
 
 	add_function_hook("memset", &match_memset, INT_PTR(0));
-	add_function_hook("__memzero", &match_memset, INT_PTR(0));
 	add_function_hook("memzero", &match_memset, INT_PTR(0));
+	add_function_hook("__memset", &match_memset, INT_PTR(0));
+	add_function_hook("__memzero", &match_memset, INT_PTR(0));
 
 	add_function_hook("memcpy", &match_memcpy, INT_PTR(0));
 	add_function_hook("memmove", &match_memcpy, INT_PTR(0));
+	add_function_hook("__memcpy", &match_memcpy, INT_PTR(0));
+	add_function_hook("__memmove", &match_memcpy, INT_PTR(0));
 	add_function_hook("strcpy", &match_memcpy, INT_PTR(0));
 	add_function_hook("strncpy", &match_memcpy, INT_PTR(0));
 	add_function_hook("sprintf", &match_memcpy, INT_PTR(0));
