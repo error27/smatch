@@ -95,6 +95,9 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 {
 	int param;
 
+	if (__in_fake_assign)
+		return;
+
 	param = get_param_num_from_sym(sym);
 	if (param < 0)
 		return;
