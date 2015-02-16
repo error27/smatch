@@ -186,7 +186,13 @@ static int is_ignored_macro(void)
 		return 0;
 	if (strcmp(name, "container_of") == 0)
 		return 1;
+	if (strcmp(name, "rb_entry") == 0)
+		return 1;
 	if (strcmp(name, "list_entry") == 0)
+		return 1;
+	if (strcmp(name, "list_first_entry") == 0)
+		return 1;
+	if (strcmp(name, "hlist_entry") == 0)
 		return 1;
 	if (strstr(name, "for_each"))
 		return 1;
@@ -205,6 +211,8 @@ static int is_ignored_function(void)
 		return 0;
 
 	if (sym_name_is("kmalloc", expr->fn))
+		return 1;
+	if (sym_name_is("netdev_priv", expr->fn))
 		return 1;
 
 	return 0;
