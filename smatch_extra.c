@@ -1640,8 +1640,8 @@ static void db_param_add_set(struct expression *expr, int param, char *key, char
 	struct symbol *sym;
 	struct symbol *type;
 	struct smatch_state *state;
+	struct range_list *new = NULL;
 	struct range_list *added = NULL;
-	struct range_list *new;
 
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
@@ -1651,22 +1651,21 @@ static void db_param_add_set(struct expression *expr, int param, char *key, char
 	arg = get_argument_from_call_expr(expr->args, param);
 	if (!arg)
 		return;
+	type = get_member_type_from_key(arg, key);
 	name = get_variable_from_key(arg, key, &sym);
 	if (!name || !sym)
 		goto free;
 
-	type = get_member_type_from_key(arg, key);
+	state = get_state(SMATCH_EXTRA, name, sym);
+	if (state)
+		new = estate_rl(state);
+
 	call_results_to_rl(expr, type, value, &added);
 
-	if (op == PARAM_SET) {
+	if (op == PARAM_SET)
 		new = added;
-	} else {
-		state = get_state(SMATCH_EXTRA, name, sym);
-		if (state)
-			new = rl_union(estate_rl(state), added);
-		else
-			new = alloc_whole_rl(type);
-	}
+	else
+		new = rl_union(new, added);
 
 	set_extra_mod(name, sym, alloc_estate_rl(new));
 free:
