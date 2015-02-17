@@ -220,9 +220,6 @@ static int check_members_initialized(struct expression *expr)
 
 	name = expr_to_var_sym(expr, &outer);
 
-	if (get_state(my_member_id, name, outer))
-		goto out;
-
 	/*
 	 * check that at least one member was set.  If all of them were not set
 	 * it's more likely a problem in the check than a problem in the kernel
