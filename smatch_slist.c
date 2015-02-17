@@ -38,7 +38,7 @@ char *show_sm(struct sm_state *sm)
 	int pos;
 	int i;
 
-	pos = snprintf(buf, sizeof(buf), "[%s] '%s' = %s",
+	pos = snprintf(buf, sizeof(buf), "[%s] '%s' = '%s'",
 		       check_name(sm->owner), sm->name, show_state(sm->state));
 	if (pos > sizeof(buf))
 		goto truncate;
@@ -46,7 +46,7 @@ char *show_sm(struct sm_state *sm)
 	if (ptr_list_size((struct ptr_list *)sm->possible) == 1)
 		return buf;
 
-	pos += snprintf(buf, sizeof(buf) - pos, " (");
+	pos += snprintf(buf + pos, sizeof(buf) - pos, " (");
 	if (pos > sizeof(buf))
 		goto truncate;
 	i = 0;
