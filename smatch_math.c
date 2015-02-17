@@ -839,6 +839,13 @@ static struct range_list *handle_call_rl(struct expression *expr, int implied)
 {
 	struct range_list *rl;
 
+	if (sym_name_is("__builtin_expect", expr->fn)) {
+		struct expression *arg;
+
+		arg = get_argument_from_call_expr(expr->args, 0);
+		return _get_rl(arg, implied);
+	}
+
 	if (implied == RL_EXACT || implied == RL_HARD || implied == RL_FUZZY)
 		return NULL;
 
