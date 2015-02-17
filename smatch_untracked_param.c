@@ -157,6 +157,9 @@ static void match_param_assign(struct expression *expr)
 	struct symbol *type;
 	int param;
 
+	if (__in_fake_assign)
+		return;
+
 	right = strip_expr(expr->right);
 	type = get_type(right);
 	if (!type || type->type != SYM_PTR)

@@ -187,6 +187,9 @@ static void match_assign(struct expression *expr)
 	if (!is_zero(expr->right))
 		return;
 
+	if (__in_fake_assign)
+		return;
+
 	FOR_EACH_PTR_REVERSE(big_statement_stack, stmt) {
 		if (stmt->type == STMT_DECLARATION)
 			return;

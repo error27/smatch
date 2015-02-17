@@ -75,7 +75,7 @@ static void match_assignment(struct expression *expr)
 
 	if (expr->op != '=')
 		return;
-	if (is_fake_call(expr->right))
+	if (is_fake_call(expr->right) || __in_fake_assign)
 		return;
 
 	left_name = expr_to_var_sym(expr->left, &left_sym);
