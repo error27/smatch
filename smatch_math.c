@@ -538,9 +538,9 @@ static int do_comparison(struct expression *expr)
 	struct symbol *type;
 
 	type = get_type(expr);
+	get_absolute_rl(expr->left, &left_ranges);
+	get_absolute_rl(expr->right, &right_ranges);
 
-	get_implied_rl(expr->left, &left_ranges);
-	get_implied_rl(expr->right, &right_ranges);
 	left_ranges = cast_rl(type, left_ranges);
 	right_ranges = cast_rl(type, right_ranges);
 
@@ -551,12 +551,12 @@ static int do_comparison(struct expression *expr)
 	free_rl(&right_ranges);
 
 	if (!poss_true && !poss_false)
-		return 0;
+		return 0x0;
 	if (poss_true && !poss_false)
-		return 1;
+		return 0x1;
 	if (!poss_true && poss_false)
-		return 2;
-	return 3;
+		return 0x2;
+	return 0x3;
 }
 
 static struct range_list *handle_comparison_rl(struct expression *expr, int implied)
