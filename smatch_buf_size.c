@@ -807,7 +807,10 @@ static void match_call(struct expression *expr)
 
 static void struct_member_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
-	if (sm->state == &merged)
+	if (sm->state == &merged ||
+	    strcmp(sm->state->name, "(-1)") == 0 ||
+	    strcmp(sm->state->name, "empty") == 0 ||
+	    strcmp(sm->state->name, "0") == 0)
 		return;
 	sql_insert_caller_info(call, BUF_SIZE, param, printed_name, sm->state->name);
 }
