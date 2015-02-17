@@ -160,19 +160,29 @@ static void match_assign(struct expression *expr)
 static void match_caller_info(struct expression *expr)
 {
 	struct expression *tmp;
+	sval_t sval;
 	int i;
 
-	i = 0;
+	i = -1;
 	FOR_EACH_PTR(expr->args, tmp) {
-		if (is_capped(tmp))
-			sql_insert_caller_info(expr, CAPPED_DATA, i, "$", "1");
 		i++;
+		if (get_implied_value(tmp, &sval))
+			continue;
+		if (!is_capped(tmp))
+			continue;
+		sql_insert_caller_info(expr, CAPPED_DATA, i, "$", "1");
 	} END_FOR_EACH_PTR(tmp);
 }
 
 static void struct_member_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
+	struct smatch_state *estate;
+	sval_t sval;
+
 	if (sm->state != &capped)
+		return;
+	estate = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	if (estate_get_single_value(estate, &sval))
 		return;
 	sql_insert_caller_info(call, CAPPED_DATA, param, printed_name, "1");
 }
@@ -190,10 +200,11 @@ static int is_unmodified(const char *name)
 
 static void print_return_implies_capped(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct smatch_state *orig;
+	struct smatch_state *orig, *estate;
 	struct sm_state *sm;
 	const char *param_name;
 	int param;
+	sval_t sval;
 
 	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (sm->owner != my_id)
@@ -203,6 +214,10 @@ static void print_return_implies_capped(int return_id, char *return_ranges, stru
 
 		param = get_param_num_from_sym(sm->sym);
 		if (param < 0)
+			continue;
+
+		estate = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+		if (estate_get_single_value(estate, &sval))
 			continue;
 
 		orig = get_state_stree(get_start_states(), my_id, sm->name, sm->sym);
