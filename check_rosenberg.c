@@ -33,6 +33,12 @@ STATE(cleared);
 
 static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_state *state)
 {
+	struct symbol *type;
+
+	type = get_real_base_type(sym);
+	if (!type || type->type != SYM_STRUCT)
+		return;
+
 	set_state(my_member_id, name, sym, state);
 }
 
