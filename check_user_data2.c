@@ -372,7 +372,6 @@ static void match_call_info(struct expression *expr)
 			continue;
 
 		sql_insert_caller_info(expr, USER_DATA3, i, "$", show_rl(rl));
-		i++;
 	} END_FOR_EACH_PTR(arg);
 }
 
