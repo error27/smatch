@@ -638,6 +638,8 @@ do {										\
 	sql_mem_exec(call_back, data, sql_txt);					\
 } while (0)
 
+char *get_static_filter(struct symbol *sym);
+
 void sql_insert_return_states(int return_id, const char *return_ranges,
 		int type, int param, const char *key, const char *value);
 void sql_insert_caller_info(struct expression *call, int type, int param,
