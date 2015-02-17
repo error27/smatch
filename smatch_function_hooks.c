@@ -414,6 +414,8 @@ static int impossible_limit(struct expression *expr, int param, char *key, char 
 		return 0;
 	if (possibly_true_rl(passed, SPECIAL_EQUAL, limit))
 		return 0;
+	if (option_debug)
+		sm_msg("impossible: %d '%s' limit '%s' == '%s'", param, key, show_rl(passed), value);
 	return 1;
 }
 
