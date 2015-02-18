@@ -25,6 +25,9 @@ for i in ${bin_dir}/fill_* ; do
     $i "$PROJ" $info_file $db_file
 done
 
+cat ${bin_dir}/function_type_value.idx | sqlite3 $db_file
+${bin_dir}/load_db_type_value.pl "$PROJ" $info_file $db_file
+
 ${bin_dir}/fixup_all.sh $db_file
 if [ "$PROJ" != "" ] ; then
     ${bin_dir}/fixup_${PROJ}.sh $db_file

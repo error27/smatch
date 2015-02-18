@@ -12,8 +12,6 @@ my $warns = shift;
 my $db_file = shift;
 my $db = DBI->connect("dbi:SQLite:$db_file", "", "", {AutoCommit => 0});
 
-my $raw_line;
-
 sub text_to_int($)
 {
     my $text = shift;
@@ -145,15 +143,13 @@ $db->do("PRAGMA locking = EXCLUSIVE");
 
 my ($sth, @row, $cur_type, $type, @ranges, $range_txt, %range, $min, $max, $union_array, $skip);
 
-$sth = $db->prepare('select * from function_type_value order by type');
+$sth = $db->prepare('select type, value from function_type_value order by type');
 $sth->execute();
 
 $skip = 0;
 $cur_type = "";
 while (@row = $sth->fetchrow_array()) {
-    $raw_line = join ',', @row;
-
-    $type = $row[2];
+    $type = $row[0];
 
     if ($cur_type ne "$type") {
         if ($cur_type ne "" && $skip == 0) {
@@ -164,7 +160,11 @@ while (@row = $sth->fetchrow_array()) {
         $skip = 0;
     }
 
-    @ranges = split(/,/, $row[3]);
+    if ($skip == 1) {
+        next;
+    }
+
+    @ranges = split(/,/, $row[1]);
     foreach $range_txt (@ranges) {
         if ($range_txt =~ /ignore/) {
             next;
@@ -178,6 +178,7 @@ while (@row = $sth->fetchrow_array()) {
         }
         if ($min =~ /NaN/ || $max =~ /NaN/) {
             $skip = 1;
+            last;
         }
         $union_array = add_range($union_array, $min, $max);
     }
