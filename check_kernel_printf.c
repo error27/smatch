@@ -284,6 +284,22 @@ static int is_struct_tag(struct symbol *type, const char *tag)
 	return type->type == SYM_STRUCT && type->ident && !strcmp(type->ident->name, tag);
 }
 
+static int has_struct_tag(struct symbol *type, const char *tag)
+{
+	struct symbol *tmp;
+
+	if (type->type == SYM_STRUCT)
+		return is_struct_tag(type, tag);
+	if (type->type == SYM_UNION) {
+		FOR_EACH_PTR(type->symbol_list, tmp) {
+			tmp = get_real_base_type(tmp);
+			if (tmp && is_struct_tag(tmp, tag))
+				return 1;
+		} END_FOR_EACH_PTR(tmp);
+	}
+	return 0;
+}
+
 static int is_char_type(struct symbol *type)
 {
 	return type == &uchar_ctype || type == &char_ctype || type == &schar_ctype;
@@ -413,9 +429,9 @@ static void ipS(const char *fmt, struct symbol *type, struct symbol *basetype, i
 	 * we do accept struct sockaddr_in and struct sockaddr_in6,
 	 * since those are easy to handle and rather harmless.
 	 */
-	if (!is_struct_tag(basetype, "sockaddr") &&
-	    !is_struct_tag(basetype, "sockaddr_in") &&
-	    !is_struct_tag(basetype, "sockaddr_in6"))
+	if (!has_struct_tag(basetype, "sockaddr") &&
+	    !has_struct_tag(basetype, "sockaddr_in") &&
+	    !has_struct_tag(basetype, "sockaddr_in6"))
 		sm_msg("error: '%%p%cS' expects argument of type struct sockaddr *, "
 			"argument %d has type '%s'", fmt[0], vaidx, type_to_str(type));
 }
