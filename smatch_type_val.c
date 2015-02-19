@@ -416,7 +416,7 @@ void register_type_val(int id)
 	add_hook(&match_assign_pointer, ASSIGNMENT_HOOK);
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&asm_expr, ASM_HOOK);
-	select_return_states_hook(ADDED_VALUE, &db_param_add);
+	select_return_states_hook(PARAM_ADD, &db_param_add);
 	select_return_states_hook(PARAM_SET, &db_param_add);
 
 

@@ -148,7 +148,7 @@ static void print_one_mod_param(int return_id, char *return_ranges,
 		return;
 	}
 
-	sql_insert_return_states(return_id, return_ranges, FILTER_VALUE, param,
+	sql_insert_return_states(return_id, return_ranges, PARAM_FILTER, param,
 			param_name, show_rl(estate_rl(sm->state)));
 }
 
@@ -171,7 +171,7 @@ static void print_one_extra_param(int return_id, char *return_ranges,
 	if (strcmp(sm->state->name, "") == 0)
 		insert_string(totally_filtered, (char *)sm->name);
 
-	sql_insert_return_states(return_id, return_ranges, FILTER_VALUE, param,
+	sql_insert_return_states(return_id, return_ranges, PARAM_FILTER, param,
 			param_name, sm->state->name);
 }
 

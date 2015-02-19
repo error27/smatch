@@ -123,7 +123,7 @@ print:
 			continue;
 //		sm_msg("return_range %s limited '%s' from %s to %s", return_ranges, tmp->ident->name, start_state->name, state->name);
 		sql_insert_return_states(return_id, return_ranges,
-				LIMITED_VALUE, param, "$", state->name);
+				PARAM_LIMIT, param, "$", state->name);
 	} END_FOR_EACH_PTR(tmp);
 }
 

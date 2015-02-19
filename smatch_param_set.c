@@ -114,7 +114,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (rl_to_sval(rl, &sval)) {
 			insert_string(&set_list, (char *)sm->name);
 			sql_insert_return_states(return_id, return_ranges,
-					param_has_filter_data(sm) ? ADDED_VALUE : PARAM_SET,
+					param_has_filter_data(sm) ? PARAM_ADD : PARAM_SET,
 					param, param_name, show_rl(rl));
 			continue;
 		}
@@ -124,7 +124,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 			snprintf(buf, sizeof(buf), "%s[%s]", show_rl(rl), math_str);
 			insert_string(&set_list, (char *)sm->name);
 			sql_insert_return_states(return_id, return_ranges,
-					param_has_filter_data(sm) ? ADDED_VALUE : PARAM_SET,
+					param_has_filter_data(sm) ? PARAM_ADD : PARAM_SET,
 					param, param_name, buf);
 			continue;
 		}
@@ -135,7 +135,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		insert_string(&set_list, (char *)sm->name);
 
 		sql_insert_return_states(return_id, return_ranges,
-					 param_has_filter_data(sm) ? ADDED_VALUE : PARAM_SET,
+					 param_has_filter_data(sm) ? PARAM_ADD : PARAM_SET,
 					 param, param_name, show_rl(rl));
 
 	} END_FOR_EACH_SM(sm);

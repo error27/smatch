@@ -452,7 +452,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 
 	if (type == CULL_PATH)
 		db_info->cull = 1;
-	if (type == LIMITED_VALUE && impossible_limit(db_info->expr, param, key, value))
+	if (type == PARAM_LIMIT && impossible_limit(db_info->expr, param, key, value))
 		db_info->cull = 1;
 	if (db_info->cull)
 		return 0;
@@ -629,7 +629,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 
 	if (type == CULL_PATH)
 		db_info->cull = 1;
-	if (type == LIMITED_VALUE && impossible_limit(db_info->expr, param, key, value))
+	if (type == PARAM_LIMIT && impossible_limit(db_info->expr, param, key, value))
 		db_info->cull = 1;
 	if (db_info->cull)
 		return 0;
@@ -782,7 +782,7 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 
 	if (type == CULL_PATH)
 		db_info->cull = 1;
-	if (type == LIMITED_VALUE && impossible_limit(db_info->expr, param, key, value))
+	if (type == PARAM_LIMIT && impossible_limit(db_info->expr, param, key, value))
 		db_info->cull = 1;
 	if (db_info->cull)
 		return 0;
