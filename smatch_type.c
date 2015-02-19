@@ -626,6 +626,11 @@ static int type_str_helper(char *buf, int size, struct symbol *type)
 		return n + snprintf(buf + n, size - n, "*");
 	} else if (type->type == SYM_STRUCT) {
 		return snprintf(buf, size, "struct %s", type->ident ? type->ident->name : "");
+	} else if (type->type == SYM_UNION) {
+		if (type->ident)
+			return snprintf(buf, size, "union %s", type->ident->name);
+		else
+			return snprintf(buf, size, "anonymous union");
 	} else if (type->type == SYM_FN) {
 		struct symbol *arg, *return_type, *arg_type;
 		int i;
