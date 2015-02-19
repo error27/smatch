@@ -196,7 +196,6 @@ static int comes_from_skb_data(struct expression *expr)
 	if (!expr)
 		return 0;
 
-	return 0;
 	switch (expr->type) {
 	case EXPR_BINOP:
 		if (comes_from_skb_data(expr->left))
