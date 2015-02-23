@@ -19,6 +19,7 @@
 #include <ctype.h>
 #include <string.h>
 #include "smatch.h"
+#include "smatch_slist.h"
 
 #define spam(args...) do {			\
 	if (option_spammy)			\
@@ -777,6 +778,18 @@ static int is_const_pointer_to_const_char(struct symbol *sym)
 	return 1;
 }
 
+static int unknown_format(struct expression *expr)
+{
+	struct state_list *slist;
+
+	slist = get_strings(expr);
+	if (!slist)
+		return 1;
+	if (slist_has_state(slist, &undefined))
+		return 1;
+	free_slist(&slist);
+	return 0;
+}
 
 static void
 do_check_printf_call(const char *caller, const char *name, struct expression *callexpr, struct expression *fmtexpr, int vaidx)
@@ -813,6 +826,8 @@ do_check_printf_call(const char *caller, const char *name, struct expression *ca
 	}
 
 	if (fmtexpr->type != EXPR_STRING) {
+		if (!unknown_format(fmtexpr))
+			return;
 		/*
 		 * Since we're now handling both ?: and static const
 		 * char[] arguments, we don't get as much noise. It's
