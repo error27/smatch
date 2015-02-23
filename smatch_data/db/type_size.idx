@@ -1,1 +1,0 @@
-CREATE INDEX type_size_idx on type_size (type);

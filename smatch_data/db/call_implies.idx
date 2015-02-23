@@ -1,2 +1,0 @@
-CREATE INDEX call_implies_fn_idx on call_implies (function);
-CREATE INDEX call_implies_ff_idx on call_implies (file, function);

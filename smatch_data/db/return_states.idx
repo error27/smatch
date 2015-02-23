@@ -1,2 +1,0 @@
-CREATE INDEX return_states_fn_idx on return_states (function);
-CREATE INDEX return_states_ff_idx on return_states (file, function);
