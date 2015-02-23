@@ -148,8 +148,8 @@ static int cmp_sm_states(const struct sm_state *a, const struct sm_state *b, int
 	return 0;
 }
 
-static struct sm_state *alloc_sm_state(int owner, const char *name,
-			     struct symbol *sym, struct smatch_state *state)
+struct sm_state *alloc_sm_state(int owner, const char *name,
+				struct symbol *sym, struct smatch_state *state)
 {
 	struct sm_state *sm_state = __alloc_sm_state(0);
 
