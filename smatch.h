@@ -815,4 +815,6 @@ void add_untracked_param_hook(void (func)(struct expression *call, int param));
 /* smatch_impossible.c */
 int is_impossible_path(void);
 
+/* smatch_strings.c */
+struct state_list *get_strings(struct expression *expr);
 #endif 	    /* !SMATCH_H_ */

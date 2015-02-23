@@ -35,6 +35,7 @@ CK(register_auto_copy)
 CK(register_type_links)
 CK(register_impossible)
 CK(register_impossible_return)
+CK(register_strings)
 
 CK(check_debug)
 CK(check_assigned_expr)
