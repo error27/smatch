@@ -149,6 +149,10 @@ static void match_assign(struct expression *expr)
 {
 	struct symbol *type;
 
+	/*
+	 * If we have struct foo x, y; and we say that x = y; then it
+	 * initializes the struct holes.  So we record that here.
+	 */
 	type = get_type(expr->left);
 	if (!type || type->type != SYM_STRUCT)
 		return;
