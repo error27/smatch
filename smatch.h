@@ -409,6 +409,9 @@ extern int __inline_call;
 extern struct expression *__inline_fn;
 extern int __in_pre_condition;
 extern int __bail_on_rest_of_function;
+extern struct statement *__prev_stmt;
+extern struct statement *__cur_stmt;
+extern struct statement *__next_stmt;
 
 /* smatch_struct_assignment.c */
 struct expression *get_faked_expression(void);

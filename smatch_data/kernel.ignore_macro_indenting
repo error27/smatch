@@ -1,0 +1,5 @@
+while_each_pid_thread
+while_each_pid_task
+LOCKDEP_STATE
+get_user_catch
+put_user_catch

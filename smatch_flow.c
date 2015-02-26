@@ -46,6 +46,9 @@ static struct expression_list *post_op_stack = NULL;
 
 struct expression_list *big_expression_stack;
 struct statement_list *big_statement_stack;
+struct statement *__prev_stmt;
+struct statement *__cur_stmt;
+struct statement *__next_stmt;
 int __in_pre_condition = 0;
 int __bail_on_rest_of_function = 0;
 static struct timeval fn_start_time;
@@ -734,6 +737,34 @@ static void fake_a_return(void)
 	__pass_to_client(cur_func_sym, AFTER_FUNC_HOOK);
 }
 
+static void split_compound(struct statement *stmt)
+{
+	struct statement *prev = NULL;
+	struct statement *cur = NULL;
+	struct statement *next;
+
+	__push_scope_hooks();
+
+	FOR_EACH_PTR(stmt->stmts, next) {
+		if (cur) {
+			__prev_stmt = prev;
+			__next_stmt = next;
+			__cur_stmt = cur;
+			__split_stmt(cur);
+		}
+		prev = cur;
+		cur = next;
+	} END_FOR_EACH_PTR(next);
+	if (cur) {
+		__prev_stmt = prev;
+		__cur_stmt = cur;
+		__next_stmt = NULL;
+		__split_stmt(cur);
+	}
+
+	__call_scope_hooks();
+}
+
 void __split_stmt(struct statement *stmt)
 {
 	sval_t sval;
@@ -771,16 +802,9 @@ void __split_stmt(struct statement *stmt)
 	case STMT_EXPRESSION:
 		__split_expr(stmt->expression);
 		break;
-	case STMT_COMPOUND: {
-		struct statement *tmp;
-
-		__push_scope_hooks();
-		FOR_EACH_PTR(stmt->stmts, tmp) {
-			__split_stmt(tmp);
-		} END_FOR_EACH_PTR(tmp);
-		__call_scope_hooks();
+	case STMT_COMPOUND:
+		split_compound(stmt);
 		break;
-	}
 	case STMT_IF:
 		if (known_condition_true(stmt->if_conditional)) {
 			__split_stmt(stmt->if_true);
