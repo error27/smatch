@@ -166,6 +166,13 @@ def print_fn_ptrs(func):
         print "'%s'" %(p),
     print ""
 
+def print_functions(member):
+    cur = con.cursor()
+    cur.execute("select * from function_ptr where ptr like '%%->%s';" %(member))
+    print "File | Pointer | Function | Static"
+    for txt in cur:
+        print "%-15s | %-15s | %-15s | %s" %(txt[0], txt[2], txt[1], txt[3])
+
 def get_callers(func):
     ret = []
     cur = con.cursor()
@@ -253,5 +260,8 @@ elif sys.argv[1] == "local":
     if len(sys.argv) == 4:
         variable = sys.argv[3]
     local_values(filename, variable)
+elif sys.argv[1] == "functions":
+    member = sys.argv[2]
+    print_functions(member)
 else:
     usage()
