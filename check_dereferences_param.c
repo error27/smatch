@@ -110,6 +110,13 @@ static void process_states(struct stree *stree)
 	} END_FOR_EACH_SM(tmp);
 }
 
+static void match_pointer_as_array(struct expression *expr)
+{
+	if (!is_array(expr))
+		return;
+	check_deref(get_array_base(expr));
+}
+
 void check_dereferences_param(int id)
 {
 	my_id = id;
@@ -117,6 +124,7 @@ void check_dereferences_param(int id)
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 
 	add_hook(&match_dereference, DEREF_HOOK);
+	add_hook(&match_pointer_as_array, OP_HOOK);
 	select_call_implies_hook(DEREFERENCE, &set_param_dereferenced);
 	add_modification_hook(my_id, &set_ignore);
 
