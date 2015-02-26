@@ -83,7 +83,7 @@ struct sm_state *set_extra_mod_helper(const char *name, struct symbol *sym, stru
 static char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym)
 {
 	struct expression *assigned;
-	char *orig_name;
+	char *orig_name = NULL;
 	char buf[256];
 	char *ret = NULL;
 	int skip;
@@ -101,18 +101,33 @@ static char *get_other_name_sym(const char *name, struct symbol *sym, struct sym
 	assigned = get_assigned_expr_name_sym(sym->ident->name, sym);
 	if (!assigned)
 		return NULL;
-	if (assigned->type != EXPR_PREOP || assigned->op != '&')
-		return NULL;
+	if (assigned->type == EXPR_PREOP || assigned->op == '&') {
+
+		orig_name = expr_to_var_sym(assigned, new_sym);
+		if (!orig_name || !*new_sym)
+			goto free;
+
+		snprintf(buf, sizeof(buf), "%s.%s", orig_name + 1, name + skip);
+		ret = alloc_string(buf);
+		free_string(orig_name);
+		return ret;
+	}
+
+	if (assigned->type != EXPR_DEREF)
+		goto free;
 
 	orig_name = expr_to_var_sym(assigned, new_sym);
 	if (!orig_name || !*new_sym)
 		goto free;
 
-	snprintf(buf, sizeof(buf), "%s.%s", orig_name + 1, name + skip);
+	snprintf(buf, sizeof(buf), "%s->%s", orig_name, name + skip);
 	ret = alloc_string(buf);
-free:
 	free_string(orig_name);
 	return ret;
+
+free:
+	free_string(orig_name);
+	return NULL;
 }
 
 struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state)
