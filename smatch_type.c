@@ -288,6 +288,18 @@ int expr_unsigned(struct expression *expr)
 	return 0;
 }
 
+int expr_signed(struct expression *expr)
+{
+	struct symbol *sym;
+
+	sym = get_type(expr);
+	if (!sym)
+		return 0;
+	if (type_signed(sym))
+		return 1;
+	return 0;
+}
+
 int returns_unsigned(struct symbol *sym)
 {
 	if (!sym)
