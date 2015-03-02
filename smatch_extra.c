@@ -77,6 +77,8 @@ struct sm_state *set_extra_mod_helper(const char *name, struct symbol *sym, stru
 {
 	remove_from_equiv(name, sym);
 	call_extra_mod_hooks(name, sym, state);
+	if (__in_fake_assign && estate_is_unknown(state) && !get_state(SMATCH_EXTRA, name, sym))
+		return NULL;
 	return set_state(SMATCH_EXTRA, name, sym, state);
 }
 
@@ -640,7 +642,8 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 
 	right_name = expr_to_var_sym(right, &right_sym);
 
-	if (!(right->type == EXPR_PREOP && right->op == '&') &&
+	if (!__in_fake_assign &&
+	    !(right->type == EXPR_PREOP && right->op == '&') &&
 	    right_name && right_sym &&
 	    types_equiv_or_pointer(left_type, right_type) &&
 	    !has_symbol(right, sym)) {
