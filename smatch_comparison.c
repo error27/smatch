@@ -1146,7 +1146,7 @@ static void match_assign(struct expression *expr)
 
 	if (expr->op != '=')
 		return;
-	if (__in_fake_assign)
+	if (__in_fake_assign || outside_of_function())
 		return;
 
 	if (is_struct(expr->left))
