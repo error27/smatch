@@ -190,6 +190,17 @@ int estate_is_whole(struct smatch_state *state)
 	return is_whole_rl(estate_rl(state));
 }
 
+int estate_is_unknown(struct smatch_state *state)
+{
+	if (!estate_is_whole(state))
+		return 0;
+	if (estate_related(state))
+		return 0;
+	if (estate_has_fuzzy_max(state))
+		return 0;
+	return 1;
+}
+
 int estate_get_single_value(struct smatch_state *state, sval_t *sval)
 {
 	sval_t min, max;

@@ -602,6 +602,7 @@ enum info_type {
 	UNTRACKED_PARAM = 1023,
 	CULL_PATH	= 1024,
 	PARAM_SET	= 1025,
+	PARAM_USED	= 1026,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA3	= 8017,
@@ -821,4 +822,7 @@ int is_impossible_path(void);
 
 /* smatch_strings.c */
 struct state_list *get_strings(struct expression *expr);
+
+/* for now this is in smatch_used_parameter.c */
+void __get_state_hook(int owner, const char *name, struct symbol *sym);
 #endif 	    /* !SMATCH_H_ */

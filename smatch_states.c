@@ -226,6 +226,8 @@ void __set_sm(struct sm_state *sm)
 
 struct smatch_state *get_state(int owner, const char *name, struct symbol *sym)
 {
+	__get_state_hook(owner, name, sym);
+
 	return get_state_stree(cur_stree, owner, name, sym);
 }
 

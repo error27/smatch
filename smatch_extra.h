@@ -72,6 +72,7 @@ int ranges_equiv(struct data_range *one, struct data_range *two);
 
 int rl_equiv(struct range_list *one, struct range_list *two);
 int is_whole_rl(struct range_list *rl);
+int estate_is_unknown(struct smatch_state *state);
 
 sval_t rl_min(struct range_list *rl);
 sval_t rl_max(struct range_list *rl);

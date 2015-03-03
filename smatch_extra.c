@@ -1566,9 +1566,54 @@ free:
 	return ret;
 }
 
+static int param_used_callback(void *found, int argc, char **argv, char **azColName)
+{
+	*(int *)found = 1;
+	return 0;
+}
+
+static int filter_unused_kzalloc_info(struct expression *call, int param, char *printed_name, struct sm_state *sm)
+{
+	sval_t sval;
+	int found = 0;
+
+	/* for function pointers assume everything is used */
+	if (call->fn->type != EXPR_SYMBOL)
+		return 0;
+
+	/*
+	 * kzalloc() information is treated as special because so there is just
+	 * a lot of stuff initialized to zero and it makes building the database
+	 * take hours and hours.
+	 *
+	 * In theory, we should just remove this line and not pass any unused
+	 * information, but I'm not sure enough that this code works so I want
+	 * to hold off on that for now.
+	 */
+	if (!estate_get_single_value(sm->state, &sval) || sval.value != 0)
+		return 0;
+
+	run_sql(&param_used_callback, &found,
+		"select * from call_implies where %s and type = %d and parameter = %d and key = '%s';",
+		get_static_filter(call->fn->symbol), PARAM_USED, param, printed_name);
+	if (found)
+		return 0;
+
+	/* If the database is not built yet, then assume everything is used */
+	run_sql(&param_used_callback, &found,
+		"select * from call_implies where %s and type = %d;",
+		get_static_filter(call->fn->symbol), PARAM_USED);
+	if (!found)
+		return 0;
+
+	return 1;
+}
+
 static void struct_member_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
 	if (estate_is_whole(sm->state))
+		return;
+	if (filter_unused_kzalloc_info(call, param, printed_name, sm))
 		return;
 	sql_insert_caller_info(call, PARAM_VALUE, param, printed_name, sm->state->name);
 	if (estate_has_fuzzy_max(sm->state))
