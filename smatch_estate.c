@@ -176,6 +176,8 @@ static int rlists_equiv(struct related_list *one, struct related_list *two)
 
 int estates_equiv(struct smatch_state *one, struct smatch_state *two)
 {
+	if (!one || !two)
+		return 0;
 	if (one == two)
 		return 1;
 	if (!rlists_equiv(estate_related(one), estate_related(two)))
