@@ -1045,34 +1045,77 @@ static void mark_member_as_set(struct symbol *type, struct member_set *member_se
 //	sm_msg("internal smatch error in initializer %s.%s", type->ident->name, ident->name);
 }
 
-static void set_unset_to_zero(struct expression *symbol, struct symbol *type, struct member_set *member_set)
+static void set_inner_struct_members(struct expression *expr, struct symbol *member)
 {
-	struct expression *deref, *assign;
-	struct symbol *member, *member_type;
-	int member_idx;
+	struct expression *edge_member, *assign;
+	struct symbol *base = get_real_base_type(member);
+	struct symbol *tmp;
 
-	member_idx = 0;
-	FOR_EACH_PTR(type->symbol_list, member) {
-		if (!member->ident || member_set[member_idx].set) {
-			member_idx++;
+	if (member->ident)
+		expr = member_expression(expr, '.', member->ident);
+
+	FOR_EACH_PTR(base->symbol_list, tmp) {
+		struct symbol *type;
+
+		type = get_real_base_type(tmp);
+		if (!type)
+			continue;
+
+		if (tmp->ident) {
+			edge_member = member_expression(expr, '.', tmp->ident);
+			if (get_state_expr(SMATCH_EXTRA, edge_member))
+				continue;
+		}
+
+		if (type->type == SYM_UNION || type->type == SYM_STRUCT) {
+			set_inner_struct_members(expr, tmp);
 			continue;
 		}
-		member_type = get_real_base_type(member);
-		if (!member_type || member_type->type == SYM_ARRAY) {
-			member_idx++;
+
+		if (!tmp->ident)
 			continue;
-		}
-		/* TODO: this should be handled recursively and not ignored */
-		if (member_type->type == SYM_STRUCT || member_type->type == SYM_UNION) {
-			member_idx++;
-			continue;
-		}
-		deref = member_expression(symbol, '.', member->ident);
-		assign = assign_expression(deref, zero_expr());
+
+		assign = assign_expression(edge_member, zero_expr());
 		__split_expr(assign);
-		member_idx++;
-	} END_FOR_EACH_PTR(member);
+	} END_FOR_EACH_PTR(tmp);
 
+
+}
+
+static void set_unset_to_zero(struct symbol *type, struct expression *expr)
+{
+	struct symbol *tmp;
+	struct expression *member, *assign;
+	int op = '*';
+
+	if (expr->type == EXPR_PREOP && expr->op == '&') {
+		expr = strip_expr(expr->unop);
+		op = '.';
+	}
+
+	FOR_EACH_PTR(type->symbol_list, tmp) {
+		type = get_real_base_type(tmp);
+		if (!type)
+			continue;
+
+		if (tmp->ident) {
+			member = member_expression(expr, op, tmp->ident);
+			if (get_state_expr(SMATCH_EXTRA, member))
+				continue;
+		}
+
+		if (type->type == SYM_UNION || type->type == SYM_STRUCT) {
+			set_inner_struct_members(expr, tmp);
+			continue;
+		}
+		if (type->type == SYM_ARRAY)
+			continue;
+		if (!tmp->ident)
+			continue;
+
+		assign = assign_expression(member, zero_expr());
+		__split_expr(assign);
+	} END_FOR_EACH_PTR(tmp);
 }
 
 static void fake_member_assigns_helper(struct expression *symbol, struct expression_list *members, fake_cb *fake_cb)
@@ -1113,7 +1156,7 @@ static void fake_member_assigns_helper(struct expression *symbol, struct express
 		}
 	} END_FOR_EACH_PTR(tmp);
 
-	set_unset_to_zero(symbol, struct_type, member_set);
+	set_unset_to_zero(struct_type, symbol);
 }
 
 static void fake_member_assigns(struct symbol *sym, fake_cb *fake_cb)
