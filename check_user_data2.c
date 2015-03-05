@@ -142,6 +142,20 @@ static void match_user_copy(const char *fn, struct expression *expr, void *_para
 	tag_as_user_data(dest);
 }
 
+static void match_sscanf(const char *fn, struct expression *expr, void *unused)
+{
+	struct expression *arg;
+	int i;
+
+	i = -1;
+	FOR_EACH_PTR(expr->args, arg) {
+		i++;
+		if (i < 2)
+			continue;
+		tag_as_user_data(arg);
+	} END_FOR_EACH_PTR(arg);
+}
+
 static int points_to_user_data(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -468,6 +482,8 @@ void check_user_data2(int id)
 	add_function_hook("__copy_from_user", &match_user_copy, INT_PTR(0));
 	add_function_hook("memcpy_fromiovec", &match_user_copy, INT_PTR(0));
 	add_function_hook("_kstrtoull", &match_user_copy, INT_PTR(2));
+
+	add_function_hook("sscanf", &match_sscanf, NULL);
 
 	add_function_assign_hook("kmemdup_user", &match_user_assign_function, NULL);
 	add_function_assign_hook("kmap_atomic", &match_user_assign_function, NULL);
