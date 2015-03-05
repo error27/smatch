@@ -1230,24 +1230,100 @@ static struct range_list *handle_mod_rl(struct range_list *left, struct range_li
 	return alloc_rl(zero, max);
 }
 
-static struct range_list *handle_divide_rl(struct range_list *left, struct range_list *right)
+static struct range_list *get_neg_rl(struct range_list *rl)
 {
+	struct data_range *tmp;
+	struct range_list *ret = NULL;
+
+	if (!rl)
+		return NULL;
+	if (sval_is_positive(rl_min(rl)))
+		return NULL;
+
+	FOR_EACH_PTR(rl, tmp) {
+		if (sval_is_positive(tmp->min))
+			return ret;
+		if (sval_is_positive(tmp->max)) {
+			tmp->max.value = -1;
+			add_range(&ret, tmp->min, tmp->max);
+			return ret;
+		}
+		add_range(&ret, tmp->min, tmp->max);
+	} END_FOR_EACH_PTR(tmp);
+
+	return ret;
+}
+
+static struct range_list *get_pos_rl(struct range_list *rl)
+{
+	struct data_range *tmp;
+	struct range_list *ret = NULL;
+
+	if (!rl)
+		return NULL;
+	if (sval_is_negative(rl_max(rl)))
+		return NULL;
+
+	FOR_EACH_PTR(rl, tmp) {
+		if (sval_is_negative(tmp->max))
+			continue;
+		if (sval_is_positive(tmp->min)) {
+			add_range(&ret, tmp->min, tmp->max);
+			continue;
+		}
+		tmp->min.value = 0;
+		add_range(&ret, tmp->min, tmp->max);
+	} END_FOR_EACH_PTR(tmp);
+
+	return ret;
+}
+
+static struct range_list *divide_rl_helper(struct range_list *left, struct range_list *right)
+{
+	sval_t right_min, right_max;
 	sval_t min, max;
 
-	if (sval_is_max(rl_max(left)))
-		return NULL;
-	if (sval_is_max(rl_max(right)))
+	if (!left || !right)
 		return NULL;
 
-	if (sval_is_negative(rl_min(left)))
+	/* let's assume we never divide by zero */
+	right_min = rl_min(right);
+	right_max = rl_max(right);
+	if (right_min.value == 0 && right_max.value == 0)
 		return NULL;
-	if (sval_cmp_val(rl_min(right), 0) <= 0)
-		return NULL;
+	if (right_min.value == 0)
+		right_min.value = 1;
+	if (right_max.value == 0)
+		right_max.value = -1;
 
-	max = sval_binop(rl_max(left), '/', rl_min(right));
-	min = sval_binop(rl_min(left), '/', rl_max(right));
+	max = sval_binop(rl_max(left), '/', right_min);
+	min = sval_binop(rl_min(left), '/', right_max);
 
 	return alloc_rl(min, max);
+}
+
+static struct range_list *handle_divide_rl(struct range_list *left, struct range_list *right)
+{
+	struct range_list *left_neg, *left_pos, *right_neg, *right_pos;
+	struct range_list *neg_neg, *neg_pos, *pos_neg, *pos_pos;
+	struct range_list *ret;
+
+	if (is_whole_rl(left) || is_whole_rl(right))
+		return NULL;
+
+	left_neg = get_neg_rl(left);
+	left_pos = get_pos_rl(left);
+	right_neg = get_neg_rl(right);
+	right_pos = get_pos_rl(right);
+
+	neg_neg = divide_rl_helper(left_neg, right_neg);
+	neg_pos = divide_rl_helper(left_neg, right_pos);
+	pos_neg = divide_rl_helper(left_pos, right_neg);
+	pos_pos = divide_rl_helper(left_pos, right_pos);
+
+	ret = rl_union(neg_neg, neg_pos);
+	ret = rl_union(ret, pos_neg);
+	return rl_union(ret, pos_pos);
 }
 
 static struct range_list *handle_add_mult_rl(struct range_list *left, int op, struct range_list *right)

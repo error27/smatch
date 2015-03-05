@@ -134,7 +134,6 @@ static struct range_list *handle_divide_rl(struct expression *expr, int implied)
 {
 	struct range_list *left_rl, *right_rl;
 	struct symbol *type;
-	sval_t min, max;
 
 	type = get_type(expr);
 
@@ -147,14 +146,8 @@ static struct range_list *handle_divide_rl(struct expression *expr, int implied)
 		return NULL;
 	if (is_whole_rl(left_rl) || is_whole_rl(right_rl))
 		return NULL;
-	if (sval_is_negative(rl_min(left_rl)) || sval_cmp_val(rl_min(right_rl), 0) <= 0)
-		return NULL;
 
-	max = rl_max(left_rl);
-	if (!sval_is_max(max))
-		max = sval_binop(max, '/', rl_min(right_rl));
-	min = sval_binop(rl_min(left_rl), '/', rl_max(right_rl));
-	return alloc_rl(min, max);
+	return rl_binop(left_rl, '/', right_rl);
 }
 
 static struct range_list *handle_subtract_rl(struct expression *expr, int implied)
