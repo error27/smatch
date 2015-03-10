@@ -156,7 +156,8 @@ static void match_stmt(struct statement *stmt)
 	    stmt->goto_label->type == SYM_NODE &&
 	    strcmp(stmt->goto_label->ident->name, "break") == 0) {
 		if (__next_stmt && __next_stmt->type == STMT_CASE &&
-		    stmt->pos.pos == __next_stmt->pos.pos)
+		    (stmt->pos.line == __next_stmt->pos.line ||
+		     stmt->pos.pos == __next_stmt->pos.pos))
 			return;
 		/*
 		 * If we have a compound and the last statement is a break then
