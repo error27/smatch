@@ -11,6 +11,7 @@ AWDATA
 ENCODE
 ENCODE_DATA
 ENCODE_STR
+get_child
 get_unaligned
 get_user
 __get_user
@@ -20,6 +21,7 @@ lookup
 lookup_rightempty
 MAKE_RAW_BYTE
 MAKE_RAW_BYTE_56K
+mdelay
 MsgHead
 MUL64
 NEW_AUX_ENT
@@ -46,6 +48,7 @@ RADEON_WAIT_UNTIL_2D_IDLE
 RADEON_WAIT_UNTIL_3D_IDLE
 RADEON_WAIT_UNTIL_IDLE
 READ64
+rtnl_dereference
 send_bits
 send_code
 VIA_OUT_RING_QW
