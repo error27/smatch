@@ -600,12 +600,26 @@ static char **handle_switch_ftabstop(char *arg, char **next)
 	return next;
 }
 
+static int funsigned_char;
+static void handle_funsigned_char(void)
+{
+	if (funsigned_char) {
+		char_ctype.ctype.modifiers &= ~MOD_SIGNED;
+		char_ctype.ctype.modifiers |= MOD_UNSIGNED;
+	}
+}
+
 static char **handle_switch_f(char *arg, char **next)
 {
 	arg++;
 
 	if (!strncmp(arg, "tabstop=", 8))
 		return handle_switch_ftabstop(arg+8, next);
+
+	if (!strcmp(arg, "unsigned-char")) {
+		funsigned_char = 1;
+		return next;
+	}
 
 	/* handle switches w/ arguments above, boolean and only boolean below */
 
@@ -1077,6 +1091,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	if (!ptr_list_empty(filelist)) {
 		// Initialize type system
 		init_ctype();
+		handle_funsigned_char();
 
 		create_builtin_stream();
 		add_pre_buffer("#define __CHECKER__ 1\n");
