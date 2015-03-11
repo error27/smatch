@@ -970,6 +970,7 @@ void create_builtin_stream(void)
 	add_pre_buffer("#define __builtin_va_alist (*(void *)0)\n");
 	add_pre_buffer("#define __builtin_va_arg_incr(x) ((x) + 1)\n");
 	add_pre_buffer("#define __builtin_va_copy(dest, src) ({ dest = src; (void)0; })\n");
+	add_pre_buffer("#define __builtin_ms_va_copy(dest, src) ({ dest = src; (void)0; })\n");
 	add_pre_buffer("#define __builtin_va_end(arg)\n");
 	add_pre_buffer("#define __builtin_ms_va_end(arg)\n");
 	add_pre_buffer("#define __builtin_va_arg_pack()\n");
