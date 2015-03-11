@@ -876,6 +876,17 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern int __builtin_islessgreater(float, float);\n");
 	add_pre_buffer("extern int __builtin_isunordered(float, float);\n");
 
+	/* And some INFINITY / NAN stuff.. */
+	add_pre_buffer("extern double __builtin_huge_val(void);\n");
+	add_pre_buffer("extern float __builtin_huge_valf(void);\n");
+	add_pre_buffer("extern long double __builtin_huge_vall(void);\n");
+	add_pre_buffer("extern double __builtin_inf(void);\n");
+	add_pre_buffer("extern float __builtin_inff(void);\n");
+	add_pre_buffer("extern long double __builtin_infl(void);\n");
+	add_pre_buffer("extern double __builtin_nan(const char *);\n");
+	add_pre_buffer("extern float __builtin_nanf(const char *);\n");
+	add_pre_buffer("extern long double __builtin_nanl(const char *);\n");
+
 	/* And some __FORTIFY_SOURCE ones.. */
 	add_pre_buffer ("extern __SIZE_TYPE__ __builtin_object_size(void *, int);\n");
 	add_pre_buffer ("extern void * __builtin___memcpy_chk(void *, const void *, __SIZE_TYPE__, __SIZE_TYPE__);\n");
