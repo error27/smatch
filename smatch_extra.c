@@ -718,7 +718,7 @@ static void match_assign(struct expression *expr)
 	while (right->type == EXPR_ASSIGNMENT && right->op == '=')
 		right = strip_expr(right->left);
 
-	if (is_condition(expr->right))
+	if (expr->op == '=' && is_condition(expr->right))
 		return; /* handled in smatch_condition.c */
 	if (expr->op == '=' && right->type == EXPR_CALL)
 		return; /* handled in smatch_function_hooks.c */

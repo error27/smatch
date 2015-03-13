@@ -490,6 +490,8 @@ int __handle_condition_assigns(struct expression *expr)
 {
 	struct expression *right;
 
+	if (expr->op != '=')
+		return 0;
 	right = strip_expr(expr->right);
 	if (!is_condition(expr->right))
 		return 0;
