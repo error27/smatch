@@ -18,3 +18,4 @@ netlbl_af6list_foreach_rcu
 for_primary_ifa
 sk_nulls_for_each
 unreachable
+iterate_all_kinds
