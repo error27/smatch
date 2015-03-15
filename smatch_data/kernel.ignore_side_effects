@@ -17,6 +17,8 @@ get_user
 __get_user
 __get_user_nocheck
 hybrid_tuner_request_state
+iterate_bvec
+iterate_all_kinds
 lookup
 lookup_rightempty
 MAKE_RAW_BYTE
