@@ -344,11 +344,9 @@ sval_t sval_type_max(struct symbol *base_type)
 {
 	sval_t ret;
 
-	ret.value = (~0ULL) >> 1;
-	ret.type = base_type;
-
 	if (!base_type || !type_bits(base_type))
-		return ret;
+		base_type = &llong_ctype;
+	ret.type = base_type;
 
 	ret.value = (~0ULL) >> (64 - type_positive_bits(base_type));
 	return ret;
