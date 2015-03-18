@@ -29,7 +29,9 @@ struct symbol *get_real_base_type(struct symbol *sym)
 	if (!sym)
 		return NULL;
 	ret = get_base_type(sym);
-	if (ret && ret->type == SYM_RESTRICT)
+	if (!ret)
+		return NULL;
+	if (ret->type == SYM_RESTRICT || ret->type == SYM_NODE)
 		return get_real_base_type(ret);
 	return ret;
 }
