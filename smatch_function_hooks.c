@@ -422,6 +422,7 @@ static int impossible_limit(struct expression *expr, int param, char *key, char 
 static int db_compare_callback(void *_info, int argc, char **argv, char **azColName)
 {
 	struct db_callback_info *db_info = _info;
+	struct range_list *var_rl = db_info->rl;
 	struct range_list *ret_range;
 	int type, param;
 	char *key, *value;
@@ -463,17 +464,17 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 		ret_range = alloc_whole_rl(get_type(db_info->expr));
 
 	comparison = db_info->comparison;
-	if (!db_info->left)
+	if (db_info->left)
 		comparison = flip_comparison(comparison);
 
 	if (db_info->true_side) {
-		if (!possibly_true_rl(ret_range, comparison, db_info->rl))
+		if (!possibly_true_rl(var_rl, comparison, ret_range))
 			return 0;
-		filter_by_comparison(&ret_range, comparison, db_info->rl);
+		filter_by_comparison(&var_rl, comparison, ret_range);
 	} else {
-		if (!possibly_false_rl(ret_range, comparison, db_info->rl))
+		if (!possibly_false_rl(var_rl, comparison, ret_range))
 			return 0;
-		filter_by_comparison(&ret_range, negate_comparison(comparison), db_info->rl);
+		filter_by_comparison(&var_rl, negate_comparison(comparison), ret_range);
 	}
 
 	handle_ret_equals_param(argv[1], ret_range, db_info->expr);
@@ -483,7 +484,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 			tmp->callback(db_info->expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
 
-	store_return_state(db_info, alloc_estate_rl(ret_range));
+	store_return_state(db_info, alloc_estate_rl(clone_rl(var_rl)));
 	return 0;
 }
 
@@ -528,8 +529,10 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 				 call_expr, db_compare_callback, &db_info);
 	set_return_state(db_info.var_expr, &db_info);
 	stree = __pop_fake_cur_stree();
-	if (!db_info.cull)
+	if (!db_info.cull) {
+		set_return_state(db_info.var_expr, &db_info);
 		merge_fake_stree(&db_info.stree, stree);
+	}
 	free_stree(&stree);
 	true_states = db_info.stree;
 
@@ -541,8 +544,10 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	sql_select_return_states("return_id, return, type, parameter, key, value", call_expr,
 			db_compare_callback, &db_info);
 	stree = __pop_fake_cur_stree();
-	if (!db_info.cull)
+	if (!db_info.cull) {
+		set_return_state(db_info.var_expr, &db_info);
 		merge_fake_stree(&db_info.stree, stree);
+	}
 	free_stree(&stree);
 	false_states = db_info.stree;
 
