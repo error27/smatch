@@ -32,8 +32,9 @@ static int complained;
 
 #define MAX_ALLOWED 1000
 
-static void scope_end(int size)
+static void scope_end(void *_size)
 {
+	int size = PTR_INT(_size);
 	total_size -= size;
 }
 
@@ -55,7 +56,7 @@ static void match_declarations(struct symbol *sym)
 		complained = 1;
 		sm_msg("warn: '%s' puts %d bytes on stack", name, type_bytes(base));
 	}
-	add_scope_hook((scope_hook *)&scope_end, INT_PTR(type_bytes(base))); 
+	add_scope_hook(&scope_end, INT_PTR(type_bytes(base))); 
 }
 
 static void match_end_func(struct symbol *sym)
