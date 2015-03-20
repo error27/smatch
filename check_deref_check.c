@@ -34,6 +34,8 @@ static void match_dereference(struct expression *expr)
 	if (getting_address())
 		return;
 	expr = strip_expr(expr->unop);
+	if (!is_pointer(expr))
+		return;
 	if (implied_not_equal(expr, 0))
 		return;
 
