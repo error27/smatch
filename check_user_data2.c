@@ -31,6 +31,30 @@ static int my_call_id;
 
 STATE(called);
 
+static struct stree *start_states;
+static struct stree_stack *saved_stack;
+static void save_start_states(struct statement *stmt)
+{
+	start_states = clone_stree(__get_cur_stree());
+}
+
+static void free_start_states(void)
+{
+	free_stree(&start_states);
+}
+
+static void match_save_states(struct expression *expr)
+{
+	push_stree(&saved_stack, start_states);
+	start_states = NULL;
+}
+
+static void match_restore_states(struct expression *expr)
+{
+	free_stree(&start_states);
+	start_states = pop_stree(&saved_stack);
+}
+
 static struct smatch_state *empty_state(struct sm_state *sm)
 {
 	return alloc_estate_empty();
@@ -468,12 +492,89 @@ static void match_syscall_definition(struct symbol *sym)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static void returns_param_user_data(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *arg;
+	char *name;
+	struct symbol *sym;
+	struct symbol *type;
+	struct range_list *rl = NULL;
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return;
+
+	arg = get_argument_from_call_expr(expr->args, param);
+	if (!arg)
+		return;
+	type = get_member_type_from_key(arg, key);
+	name = get_variable_from_key(arg, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	call_results_to_rl(expr, type, value, &rl);
+
+	set_state(my_id, name, sym, alloc_estate_rl(rl));
+free:
+	free_string(name);
+}
+
+static int has_empty_state(struct sm_state *sm)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (!estate_rl(tmp->state))
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+
+	return 0;
+}
+
+static void param_set_to_user_data(int return_id, char *return_ranges, struct expression *expr)
+{
+	struct sm_state *sm;
+	struct smatch_state *start_state;
+	int param;
+	const char *param_name;
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (has_empty_state(sm))
+			continue;
+
+
+		param = get_param_num_from_sym(sm->sym);
+		if (param < 0)
+			continue;
+
+		start_state = get_state_stree(start_states, my_id, sm->name, sm->sym);
+		if (start_state && estates_equiv(sm->state, start_state))
+			continue;
+
+
+		param_name = get_param_name(sm);
+		if (!param_name)
+			continue;
+		if (strcmp(param_name, "$") == 0)
+			continue;
+
+		sql_insert_return_states(return_id, return_ranges, USER_DATA3,
+					 param, param_name, show_rl(estate_rl(sm->state)));
+	} END_FOR_EACH_SM(sm);
+}
+
 void check_user_data2(int id)
 {
 	my_id = id;
 
 	if (option_project != PROJ_KERNEL)
 		return;
+
+	add_hook(&save_start_states, AFTER_DEF_HOOK);
+	add_hook(&free_start_states, END_FUNC_HOOK);
+	add_hook(&match_save_states, INLINE_FN_START);
+	add_hook(&match_restore_states, INLINE_FN_END);
 
 	add_unmatched_state_hook(my_id, &empty_state);
 	add_merge_hook(my_id, &merge_estates);
@@ -495,6 +596,8 @@ void check_user_data2(int id)
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
 	select_caller_info_hook(set_param_user_data, USER_DATA3);
+	select_return_states_hook(USER_DATA3, &returns_param_user_data);
+	add_split_return_callback(&param_set_to_user_data);
 }
 
 void check_user_data3(int id)
