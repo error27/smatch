@@ -47,7 +47,7 @@ static struct smatch_state *alloc_link(struct var_sym_list *links)
 	return state;
 }
 
-static struct smatch_state *merge_link_states(struct smatch_state *s1, struct smatch_state *s2)
+struct smatch_state *merge_link_states(struct smatch_state *s1, struct smatch_state *s2)
 {
 	struct var_sym_list *new_links;
 

@@ -806,6 +806,7 @@ int param_has_filter_data(struct sm_state *sm);
 
 /* smatch_links.c */
 void set_up_link_functions(int id, int linkid);
+struct smatch_state *merge_link_states(struct smatch_state *s1, struct smatch_state *s2);
 void store_link(int link_id, const char *name, struct symbol *sym, const char *link_name, struct symbol *link_sym);
 
 /* smatch_auto_copy.c */
