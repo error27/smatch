@@ -893,9 +893,24 @@ static void match_compare(struct expression *expr)
 	struct smatch_state *true_state, *false_state;
 	char state_name[256];
 	struct stree *pre_stree;
+	sval_t sval;
 
 	if (expr->type != EXPR_COMPARE)
 		return;
+
+	op = expr->op;
+	false_op = negate_comparison(op);
+
+	if (op == SPECIAL_UNSIGNED_LT &&
+	    get_implied_value(expr->left, &sval) &&
+	    sval.value == 0)
+		false_op = SPECIAL_EQUAL;
+
+	if (op == SPECIAL_UNSIGNED_GT &&
+	    get_implied_value(expr->right, &sval) &&
+	    sval.value == 0)
+		false_op = SPECIAL_EQUAL;
+
 	left = chunk_to_var_sym(expr->left, &left_sym);
 	if (!left)
 		goto free;
@@ -916,11 +931,9 @@ static void match_compare(struct expression *expr)
 		right = tmp_name;
 		right_sym = tmp_sym;
 		right_vsl = tmp_vsl;
-		op = flip_comparison(expr->op);
-	} else {
-		op = expr->op;
+		op = flip_comparison(op);
+		false_op = flip_comparison(false_op);
 	}
-	false_op = negate_comparison(op);
 
 	orig_comparison = get_comparison_strings(left, right);
 	op = filter_comparison(orig_comparison, op);
