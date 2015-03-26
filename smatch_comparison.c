@@ -596,7 +596,7 @@ static void match_inc(struct sm_state *sm)
 			new = alloc_compare_state(data->var1, data->vsl1, '>', data->var2, data->vsl2);
 			set_state(compare_id, tmp, NULL, new);
 			break;
-			}
+		}
 		default:
 			set_state(compare_id, tmp, NULL, &undefined);
 		}
