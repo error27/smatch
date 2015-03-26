@@ -238,6 +238,9 @@ static int merge_comparisons(int one, int two)
 	one = remove_unsigned_from_comparison(one);
 	two = remove_unsigned_from_comparison(two);
 
+	if (one == two)
+		return one;
+
 	LT = EQ = GT = 0;
 
 	switch (one) {
