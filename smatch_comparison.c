@@ -34,6 +34,12 @@
 
 static int compare_id;
 static int link_id;
+static int inc_dec_id;
+static int inc_dec_link_id;
+
+/* for handling for loops */
+STATE(start);
+STATE(incremented);
 
 ALLOCATOR(compare_data, "compare data");
 
@@ -882,6 +888,73 @@ static void update_tf_data(struct stree *pre_stree,
 		update_tf_links(pre_stree, right_name, right_vsl, flip_comparison(true_comparison), flip_comparison(false_comparison), left_name, left_vsl, state->data);
 }
 
+static void iter_modify(struct sm_state *sm, struct expression *mod_expr)
+{
+	if (sm->state != &start ||
+	    !mod_expr ||
+	    (mod_expr->type != EXPR_PREOP && mod_expr->type != EXPR_POSTOP) ||
+	    mod_expr->op != SPECIAL_INCREMENT)
+		set_state(inc_dec_id, sm->name, sm->sym, &undefined);
+	else
+		set_state(inc_dec_id, sm->name, sm->sym, &incremented);
+}
+
+static void handle_for_loops(struct expression *expr, char *state_name, struct smatch_state *false_state)
+{
+	sval_t sval;
+	char *iter_name, *cap_name;
+	struct symbol *iter_sym, *cap_sym;
+	struct compare_data *data;
+
+	if (expr->op != '<' && expr->op != SPECIAL_UNSIGNED_LT)
+		return;
+
+	if (!__cur_stmt || !__prev_stmt)
+		return;
+	if (__cur_stmt->type != STMT_ITERATOR)
+		return;
+	if (__cur_stmt->iterator_pre_condition != expr)
+		return;
+
+	/* literals are handled in smatch_extra.c */
+	if (get_value(expr->right, &sval))
+		return;
+
+	/* First time checking the condition */
+	if (__prev_stmt == __cur_stmt->iterator_pre_statement) {
+		if (!get_implied_value(expr->left, &sval) ||
+		    sval.value != 0)
+			return;
+
+		iter_name = expr_to_var_sym(expr->left, &iter_sym);
+		cap_name = expr_to_var_sym(expr->right, &cap_sym);
+		if (!iter_name || !cap_name || !iter_sym || !cap_sym) {
+			free_string(iter_name);
+			free_string(cap_name);
+			return;
+		}
+
+		set_state(inc_dec_id, iter_name, iter_sym, &start);
+		store_link(inc_dec_link_id, cap_name, cap_sym, iter_name, iter_sym);
+
+		free_string(iter_name);
+		free_string(cap_name);
+		return;
+	}
+
+	/* Second time checking the condtion */
+	if (__prev_stmt != __cur_stmt->iterator_post_statement)
+		return;
+
+	if (get_state_expr(inc_dec_id, expr->left) != &incremented)
+		return;
+
+	data = false_state->data;
+	false_state = alloc_compare_state(data->var1, data->vsl1, SPECIAL_EQUAL, data->var2, data->vsl2);
+
+	set_true_false_states(compare_id, state_name, NULL, NULL, false_state);
+}
+
 static void match_compare(struct expression *expr)
 {
 	char *left = NULL;
@@ -950,6 +1023,8 @@ static void match_compare(struct expression *expr)
 	set_true_false_states(compare_id, state_name, NULL, true_state, false_state);
 	save_link(expr->left, state_name);
 	save_link(expr->right, state_name);
+
+	handle_for_loops(expr, state_name, false_state);
 free:
 	free_string(left);
 	free_string(right);
@@ -1501,4 +1576,16 @@ void register_comparison_links(int id)
 	link_id = id;
 	add_merge_hook(link_id, &merge_links);
 	add_modification_hook(link_id, &match_modify);
+}
+
+void register_comparison_inc_dec(int id)
+{
+	inc_dec_id = id;
+	add_modification_hook(inc_dec_id, &iter_modify);
+}
+
+void register_comparison_inc_dec_links(int id)
+{
+	inc_dec_link_id = id;
+	set_up_link_functions(inc_dec_id, inc_dec_link_id);
 }
