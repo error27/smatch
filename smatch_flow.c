@@ -450,6 +450,7 @@ static void handle_pre_loop(struct statement *stmt)
 	loop_num++;
 
 	__split_stmt(stmt->iterator_pre_statement);
+	__prev_stmt = stmt->iterator_pre_statement;
 
 	once_through = implied_condition_true(stmt->iterator_pre_condition);
 
@@ -494,6 +495,9 @@ static void handle_pre_loop(struct statement *stmt)
 		__merge_continues();
 		unchanged = __iterator_unchanged(extra_sm);
 		__split_stmt(stmt->iterator_post_statement);
+		__prev_stmt = stmt->iterator_post_statement;
+		__cur_stmt = stmt;
+
 		__save_gotos(loop_name);
 		__in_pre_condition++;
 		__split_whole_condition(stmt->iterator_pre_condition);
