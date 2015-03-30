@@ -155,7 +155,12 @@ CK(check_kernel)  /* this is overwriting stuff from smatch_extra_late */
 CK(register_function_hooks)
 CK(register_returns)
 CK(register_db_call_marker) /* always second last */
-CK(register_implications) /* implications always has to be last */
+/*
+ * Implications always has to be last.  If you need to be after implications
+ * then you need to hack smatch_implications.c and add function calls there.
+ *
+ */
+CK(register_implications)
 
 #ifdef __undo_CK_def
 #undef CK
