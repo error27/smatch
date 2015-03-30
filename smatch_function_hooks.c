@@ -443,6 +443,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 	if (db_info->prev_return_id != -1 && return_id != db_info->prev_return_id) {
 		set_return_state(db_info->var_expr, db_info);
 		stree = __pop_fake_cur_stree();
+
 		if (!db_info->cull)
 			merge_fake_stree(&db_info->stree, stree);
 		free_stree(&stree);
@@ -490,6 +491,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 
 static void compare_db_return_states_callbacks(struct expression *left, int comparison, struct expression *right, struct stree *implied_true, struct stree *implied_false)
 {
+	struct stree *orig_states;
 	struct stree *stree;
 	struct stree *true_states;
 	struct stree *false_states;
@@ -499,6 +501,8 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	struct expression *call_expr;
 	struct range_list *rl;
 	int call_on_left;
+
+	orig_states = clone_stree(__get_cur_stree());
 
 	/* legacy cruft.  need to fix call_implies_callbacks(). */
 	call_on_left = 1;
@@ -551,6 +555,29 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	free_stree(&stree);
 	false_states = db_info.stree;
 
+	/*
+	 * FIXME: This is the biggest hack ever.  I need to think about
+	 * how the fake stacks work a lot more.  The problem here is that when
+	 * you set the fake stack then it also sets the real stack.  That would
+	 * not be a problem in most cases because we normally will just
+	 * overwrite both the true and false states.  The problem comes where we
+	 * only overwrite one side, say the true side.  Then we use whatever is
+	 * in the cur_stree for the other false side and the cur_stree has part
+	 * of whatever data was set on the true state.
+	 *
+	 * It should be that setting the fake_cur_stree means that the real
+	 * cur_stree stays the same.  But for whatever reason that doesn't work.
+	 * We also have many different ways of faking an stree.  Sometimes we
+	 * fake everything....  It is a mess.
+	 *
+	 */
+
+	FOR_EACH_SM(orig_states, sm) {
+		__set_sm(sm);
+	} END_FOR_EACH_SM(sm);
+
+	free_stree(&orig_states);
+
 	FOR_EACH_SM(true_states, sm) {
 		__set_true_false_sm(sm, NULL);
 	} END_FOR_EACH_SM(sm);
@@ -569,7 +596,6 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	FOR_EACH_SM(implied_false, sm) {
 		__set_true_false_sm(NULL, sm);
 	} END_FOR_EACH_SM(sm);
-
 }
 
 void function_comparison(struct expression *left, int comparison, struct expression *right)
