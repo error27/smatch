@@ -79,7 +79,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	state = get_state(SMATCH_EXTRA, sm->name, sm->sym);
 	if (state)
 		return state;
-	return alloc_estate_whole(get_real_base_type(sm->sym));
+	return alloc_estate_whole(estate_type(sm->state));
 }
 
 struct smatch_state *get_orig_estate(const char *name, struct symbol *sym)
