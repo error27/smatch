@@ -1234,6 +1234,16 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 		right_false_state = decrement_state(right_false_state);
 	}
 
+	if (estate_rl(left_true_state) && estates_equiv(left_true_state, left_false_state)) {
+		left_true_state = NULL;
+		left_false_state = NULL;
+	}
+
+	if (estate_rl(right_true_state) && estates_equiv(right_true_state, right_false_state)) {
+		right_true_state = NULL;
+		right_false_state = NULL;
+	}
+
 	set_extra_expr_true_false(left, left_true_state, left_false_state);
 	set_extra_expr_true_false(right, right_true_state, right_false_state);
 }
