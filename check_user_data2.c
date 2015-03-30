@@ -545,8 +545,13 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 
 
 		param = get_param_num_from_sym(sm->sym);
-		if (param < 0)
-			continue;
+		if (param < 0) {
+			if (expr_to_sym(expr) == sm->sym)
+				param = -1;
+			else
+				continue;
+		}
+
 
 		start_state = get_state_stree(start_states, my_id, sm->name, sm->sym);
 		if (start_state && estates_equiv(sm->state, start_state))
