@@ -665,7 +665,9 @@ static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 	struct string_list *links;
 	char *tmp;
 
-	/* Huh???  This needs a comment!  */
+	/*
+	 * if (foo > bar) then ++foo is also > bar.
+	 */
 	if (match_inc_dec(sm, mod_expr))
 		return;
 
