@@ -69,6 +69,25 @@ struct state_list *get_strings(struct expression *expr)
 	return clone_slist(sm->possible);
 }
 
+static void match_assignment(struct expression *expr)
+{
+	struct state_list *slist;
+	struct sm_state *sm;
+
+	if (expr->op != '=')
+		return;
+
+	slist = get_strings(strip_expr(expr->right));
+	if (!slist)
+		return;
+
+	if (ptr_list_size((struct ptr_list *)slist) == 1) {
+		sm = first_ptr_list((struct ptr_list *)slist);
+		set_state_expr(my_id, expr->left, sm->state);
+		return;
+	}
+}
+
 void register_strings(int id)
 {
 	my_id = id;
@@ -76,4 +95,7 @@ void register_strings(int id)
 	add_function_hook("strcpy", &match_strcpy, NULL);
 	add_function_hook("strlcpy", &match_strcpy, NULL);
 	add_function_hook("strncpy", &match_strcpy, NULL);
+
+	add_hook(&match_assignment, ASSIGNMENT_HOOK);
+
 }
