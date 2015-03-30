@@ -214,7 +214,7 @@ static void match_condition(struct expression *expr)
 	char *name;
 	sval_t val;
 
-	if (get_value(expr, &val))
+	if (get_implied_value(expr, &val))
 		return;
 
 	if (condition_too_complicated(expr))
