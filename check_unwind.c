@@ -75,10 +75,13 @@ static void request_granted(const char *fn, struct expression *call_expr,
 	struct expression *arg_expr;
 	int arg_no = PTR_INT(_arg_no);
 
-	if (arg_no == -1)
+	if (arg_no == -1) {
+		if (!assign_expr)
+			return;
 		arg_expr = assign_expr->left;
-	else
+	} else {
 		arg_expr = get_argument_from_call_expr(call_expr->args, arg_no);
+	}
 	set_state_expr(my_id, arg_expr, &allocated);
 }
 
@@ -88,10 +91,13 @@ static void request_denied(const char *fn, struct expression *call_expr,
 	struct expression *arg_expr;
 	int arg_no = PTR_INT(_arg_no);
 
-	if (arg_no == -1)
+	if (arg_no == -1) {
+		if (!assign_expr)
+			return;
 		arg_expr = assign_expr->left;
-	else
+	} else {
 		arg_expr = get_argument_from_call_expr(call_expr->args, arg_no);
+	}
 	set_state_expr(my_id, arg_expr, &unallocated);
 }
 
