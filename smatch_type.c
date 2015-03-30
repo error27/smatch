@@ -21,6 +21,7 @@
  */
 
 #include "smatch.h"
+#include "smatch_slist.h"
 
 struct symbol *get_real_base_type(struct symbol *sym)
 {
