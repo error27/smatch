@@ -54,17 +54,7 @@ static struct stree_stack *saved_stack;
 
 static void save_start_states(struct statement *stmt)
 {
-	struct smatch_state *state;
-	struct symbol *tmp;
-
-	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, tmp) {
-		if (!tmp->ident)
-			continue;
-		state = get_state(SMATCH_EXTRA, tmp->ident->name, tmp);
-		if (!state)
-			state = alloc_estate_whole(get_real_base_type(tmp));
-		set_state_stree(&start_states, SMATCH_EXTRA, tmp->ident->name, tmp, state);
-	} END_FOR_EACH_PTR(tmp);
+	start_states = get_all_states_stree(SMATCH_EXTRA);
 }
 
 static void free_start_states(void)
@@ -96,35 +86,49 @@ struct smatch_state *get_orig_estate(const char *name, struct symbol *sym)
 	return alloc_estate_rl(alloc_whole_rl(get_real_base_type(sym)));
 }
 
+struct smatch_state *get_orig_estate_type(const char *name, struct symbol *sym, struct symbol *type)
+{
+	struct smatch_state *state;
+
+	state = get_state(my_id, name, sym);
+	if (state)
+		return state;
+
+	state = get_state(SMATCH_EXTRA, name, sym);
+	if (state)
+		return state;
+	return alloc_estate_rl(alloc_whole_rl(type));
+}
+
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct smatch_state *start_state, *state;
-	struct symbol *tmp;
+	struct smatch_state *state, *old;
+	struct sm_state *tmp;
+	const char *param_name;
 	int param;
 
-	param = -1;
-	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, tmp) {
-		param++;
-		if (!tmp->ident)
-			continue;
-		state = get_state(my_id, tmp->ident->name, tmp);
-		if (state)
-			goto print;
-		state = get_state(SMATCH_EXTRA, tmp->ident->name, tmp);
-		if (state)
-			goto print;
-		continue;
-print:
-		if (estate_is_whole(state))
+	FOR_EACH_MY_SM(SMATCH_EXTRA, __get_cur_stree(), tmp) {
+		param = get_param_num_from_sym(tmp->sym);
+		if (param < 0)
 			continue;
 
-		start_state = get_state_stree(start_states, SMATCH_EXTRA, tmp->ident->name, tmp);
-		if (estates_equiv(state, start_state))
+		param_name = get_param_name(tmp);
+		if (!param_name)
 			continue;
-//		sm_msg("return_range %s limited '%s' from %s to %s", return_ranges, tmp->ident->name, start_state->name, state->name);
-		sql_insert_return_states(return_id, return_ranges,
-				PARAM_LIMIT, param, "$", state->name);
-	} END_FOR_EACH_PTR(tmp);
+
+		state = get_state(my_id, tmp->name, tmp->sym);
+		if (!state)
+			state = tmp->state;
+
+		if (estate_is_whole(state))
+			continue;
+		old = get_state_stree(start_states, SMATCH_EXTRA, tmp->name, tmp->sym);
+		if (old && estates_equiv(old, state))
+			continue;
+
+		sql_insert_return_states(return_id, return_ranges, PARAM_LIMIT,
+					 param, param_name, state->name);
+	} END_FOR_EACH_SM(tmp);
 }
 
 static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_state *state)
@@ -136,11 +140,7 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 	if (param < 0)
 		return;
 
-	/* we only save on-stack params */
-	if (!sym->ident || strcmp(name, sym->ident->name) != 0)
-		return;
-
-	orig_vals = get_orig_estate(name, sym);
+	orig_vals = get_orig_estate_type(name, sym, estate_type(state));
 	set_state(my_id, name, sym, orig_vals);
 }
 

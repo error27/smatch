@@ -152,29 +152,6 @@ static void print_one_mod_param(int return_id, char *return_ranges,
 			param_name, show_rl(estate_rl(sm->state)));
 }
 
-static void print_one_extra_param(int return_id, char *return_ranges,
-			int param, struct sm_state *sm, struct string_list **totally_filtered)
-{
-	struct smatch_state *old;
-	const char *param_name;
-
-	if (estate_is_whole(sm->state))
-		return;
-	old = get_state_stree(start_states, SMATCH_EXTRA, sm->name, sm->sym);
-	if (old && estates_equiv(old, sm->state))
-		return;
-
-	param_name = get_param_name(sm);
-	if (!param_name)
-		return;
-
-	if (strcmp(sm->state->name, "") == 0)
-		insert_string(totally_filtered, (char *)sm->name);
-
-	sql_insert_return_states(return_id, return_ranges, PARAM_FILTER, param,
-			param_name, sm->state->name);
-}
-
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct sm_state *tmp;
@@ -197,8 +174,6 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		sm = get_sm_state(my_id, tmp->name, tmp->sym);
 		if (sm)
 			print_one_mod_param(return_id, return_ranges, param, sm, &totally_filtered);
-		else
-			print_one_extra_param(return_id, return_ranges, param, tmp, &totally_filtered);
 	} END_FOR_EACH_SM(tmp);
 
 	free_ptr_list((struct ptr_list **)&totally_filtered);
