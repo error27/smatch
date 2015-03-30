@@ -896,19 +896,6 @@ static void scoped_state_extra(const char *name, struct symbol *sym)
 	add_scope_hook((scope_hook *)&delete_state_tracker, t);
 }
 
-static void match_declarations(struct symbol *sym)
-{
-	const char *name;
-
-	if (sym->ident) {
-		name = sym->ident->name;
-		if (!sym->initializer) {
-			set_state(SMATCH_EXTRA, name, sym, alloc_estate_whole(get_real_base_type(sym)));
-			scoped_state_extra(name, sym);
-		}
-	}
-}
-
 static void check_dereference(struct expression *expr)
 {
 	if (outside_of_function())
@@ -943,17 +930,6 @@ static void set_param_dereferenced(struct expression *arg, char *key, char *unus
 
 free:
 	free_string(name);
-}
-
-static void match_function_def(struct symbol *sym)
-{
-	struct symbol *arg;
-
-	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
-		if (!arg->ident)
-			continue;
-		set_state(my_id, arg->ident->name, arg, alloc_estate_whole(get_real_base_type(arg)));
-	} END_FOR_EACH_PTR(arg);
 }
 
 static sval_t add_one(sval_t sval)
@@ -1907,8 +1883,6 @@ void register_smatch_extra(int id)
 
 	add_merge_hook(my_id, &merge_estates);
 	add_unmatched_state_hook(my_id, &unmatched_state);
-	add_hook(&match_function_def, FUNC_DEF_HOOK);
-	add_hook(&match_declarations, DECLARATION_HOOK);
 	select_caller_info_hook(set_param_value, PARAM_VALUE);
 	select_caller_info_hook(set_param_hard_max, FUZZY_MAX);
 	select_return_states_hook(RETURN_VALUE, &db_returned_member_info);
