@@ -363,6 +363,8 @@ void check_rosenberg(int id)
 	add_function_hook("__memset", &match_clear, INT_PTR(0));
 	add_function_hook("__memcpy", &match_clear, INT_PTR(0));
 	add_function_hook("__memzero", &match_clear, INT_PTR(0));
+	add_function_hook("__builtin_memset", &match_clear, INT_PTR(0));
+	add_function_hook("__builtin_memcpy", &match_clear, INT_PTR(0));
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	register_clears_argument();
