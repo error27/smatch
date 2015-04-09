@@ -111,7 +111,7 @@ static void print_debug_tf(struct sm_state *s, int istrue, int isfalse)
  * add_pool() adds a slist to *pools. If the slist has already been
  * added earlier then it doesn't get added a second time.
  */
-static void add_pool(struct stree_stack **pools, struct stree *new)
+void add_pool(struct stree_stack **pools, struct stree *new)
 {
 	struct stree *tmp;
 
@@ -525,36 +525,66 @@ free:
 	free_string(name);
 }
 
+static int handled_by_implied_hook(struct expression *expr,
+				   struct stree **implied_true,
+				   struct stree **implied_false)
+{
+	struct stree_stack *true_stack = NULL;
+	struct stree_stack *false_stack = NULL;
+	struct stree *pre_stree;
+	struct sm_state *sm;
+
+	sm = comparison_implication_hook(expr, &true_stack, &false_stack);
+	if (!sm)
+		return 0;
+
+	pre_stree = clone_stree(__get_cur_stree());
+
+	*implied_true = filter_stack(sm, pre_stree, false_stack, true_stack);
+	*implied_false = filter_stack(sm, pre_stree, true_stack, false_stack);
+
+	free_stree_stack(&true_stack);
+	free_stree_stack(&false_stack);
+
+	return 1;
+}
+
 static void get_tf_states(struct expression *expr,
 			  struct stree **implied_true,
 			  struct stree **implied_false)
 {
+	if (handled_by_implied_hook(expr, implied_true, implied_false))
+		return;
+
 	if (expr->type == EXPR_COMPARE)
 		handle_comparison(expr, implied_true, implied_false);
 	else
 		handle_zero_comparison(expr, implied_true, implied_false);
 }
 
-static void implied_states_hook(struct expression *expr)
-{
-	struct sm_state *sm;
-	struct stree *implied_true = NULL;
-	struct stree *implied_false = NULL;
+static struct stree *saved_implied_true;
+static struct stree *saved_implied_false;
 
+static void save_implications_hook(struct expression *expr)
+{
 	if (option_no_implied)
 		return;
+	get_tf_states(expr, &saved_implied_true, &saved_implied_false);
+}
 
-	get_tf_states(expr, &implied_true, &implied_false);
+static void set_implied_states(struct expression *expr)
+{
+	struct sm_state *sm;
 
-	FOR_EACH_SM(implied_true, sm) {
+	FOR_EACH_SM(saved_implied_true, sm) {
 		__set_true_false_sm(sm, NULL);
 	} END_FOR_EACH_SM(sm);
-	free_stree(&implied_true);
+	free_stree(&saved_implied_true);
 
-	FOR_EACH_SM(implied_false, sm) {
+	FOR_EACH_SM(saved_implied_false, sm) {
 		__set_true_false_sm(NULL, sm);
 	} END_FOR_EACH_SM(sm);
-	free_stree(&implied_false);
+	free_stree(&saved_implied_false);
 }
 
 struct range_list *__get_implied_values(struct expression *switch_expr)
@@ -672,9 +702,12 @@ void overwrite_states_using_pool(struct sm_state *sm)
 }
 
 void __extra_match_condition(struct expression *expr);
+void __comparison_match_condition(struct expression *expr);
 void register_implications(int id)
 {
-	add_hook(&implied_states_hook, CONDITION_HOOK);
+	add_hook(&save_implications_hook, CONDITION_HOOK);
 	add_hook(&__extra_match_condition, CONDITION_HOOK);
+	add_hook(&__comparison_match_condition, CONDITION_HOOK);
+	add_hook(&set_implied_states, CONDITION_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
 }

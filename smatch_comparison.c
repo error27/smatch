@@ -957,7 +957,7 @@ static void handle_for_loops(struct expression *expr, char *state_name, struct s
 	set_true_false_states(compare_id, state_name, NULL, NULL, false_state);
 }
 
-static void match_compare(struct expression *expr)
+void __comparison_match_condition(struct expression *expr)
 {
 	char *left = NULL;
 	char *right = NULL;
@@ -1565,7 +1565,6 @@ static void free_data(struct symbol *sym)
 void register_comparison(int id)
 {
 	compare_id = id;
-	add_hook(&match_compare, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
 	add_unmatched_state_hook(compare_id, unmatched_comparison);
@@ -1590,4 +1589,81 @@ void register_comparison_inc_dec_links(int id)
 {
 	inc_dec_link_id = id;
 	set_up_link_functions(inc_dec_id, inc_dec_link_id);
+}
+
+static void filter_by_sm(struct sm_state *sm, int op,
+		       struct stree_stack **true_stack,
+		       struct stree_stack **false_stack)
+{
+	struct compare_data *data;
+	int istrue = 0;
+	int isfalse = 0;
+
+	if (!sm)
+		return;
+	data = sm->state->data;
+	if (!data)
+		return;
+
+	if (data->comparison &&
+	    data->comparison == filter_comparison(data->comparison, op))
+		istrue = 1;
+
+	if (data->comparison &&
+	    data->comparison == filter_comparison(data->comparison, negate_comparison(op)))
+		isfalse = 1;
+
+	if (istrue)
+		add_pool(true_stack, sm->pool);
+	if (isfalse)
+		add_pool(false_stack, sm->pool);
+
+	if (sm->merged) {
+		filter_by_sm(sm->left, op, true_stack, false_stack);
+		filter_by_sm(sm->right, op, true_stack, false_stack);
+	}
+}
+
+struct sm_state *comparison_implication_hook(struct expression *expr,
+				struct stree_stack **true_stack,
+				struct stree_stack **false_stack)
+{
+	struct sm_state *sm;
+	char *left, *right;
+	int op;
+	static char buf[256];
+
+	if (expr->type != EXPR_COMPARE)
+		return NULL;
+
+	op = expr->op;
+
+	left = expr_to_var(expr->left);
+	right = expr_to_var(expr->right);
+	if (!left || !right) {
+		free_string(left);
+		free_string(right);
+		return NULL;
+	}
+
+	if (strcmp(left, right) > 0) {
+		char *tmp = left;
+
+		left = right;
+		right = tmp;
+		op = flip_comparison(op);
+	}
+
+	snprintf(buf, sizeof(buf), "%s vs %s", left, right);
+	sm = get_sm_state(compare_id, buf, NULL);
+	if (!sm)
+		return NULL;
+	if (!sm->merged)
+		return NULL;
+
+	filter_by_sm(sm, op, true_stack, false_stack);
+	if (!*true_stack && !*false_stack)
+		return NULL;
+
+	return sm;
 }

@@ -441,6 +441,7 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 				 struct stree **raw_stree);
 struct range_list *__get_implied_values(struct expression *switch_expr);
 void overwrite_states_using_pool(struct sm_state *sm);
+void add_pool(struct stree_stack **pools, struct stree *new);
 
 /* smatch_extras.c */
 #define SMATCH_EXTRA 1 /* this is my_id from smatch extra set in smatch.c */
