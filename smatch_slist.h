@@ -2,7 +2,6 @@ struct stree;
 
 DECLARE_PTR_LIST(state_list, struct sm_state);
 DECLARE_PTR_LIST(state_list_stack, struct state_list);
-DECLARE_PTR_LIST(stree_stack, struct stree);
 
 struct named_stree {
 	char *name;

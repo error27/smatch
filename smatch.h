@@ -66,6 +66,7 @@ struct tracker {
 };
 DECLARE_ALLOCATOR(tracker);
 DECLARE_PTR_LIST(tracker_list, struct tracker);
+DECLARE_PTR_LIST(stree_stack, struct stree);
 
 /* The first 3 struct members must match struct tracker */
 struct sm_state {
