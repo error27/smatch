@@ -12,6 +12,7 @@ ENCODE
 ENCODE_DATA
 ENCODE_STR
 get_child
+get_child_rcu
 get_unaligned
 get_user
 __get_user
