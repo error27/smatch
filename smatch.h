@@ -826,6 +826,9 @@ int is_impossible_path(void);
 /* smatch_strings.c */
 struct state_list *get_strings(struct expression *expr);
 
+/* smatch_estate.c */
+int estate_get_single_value(struct smatch_state *state, sval_t *sval);
+
 /* for now this is in smatch_used_parameter.c */
 void __get_state_hook(int owner, const char *name, struct symbol *sym);
 #endif 	    /* !SMATCH_H_ */
