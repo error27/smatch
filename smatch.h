@@ -746,6 +746,9 @@ char *expr_param_comparison(struct expression *expr, int ignore);
 int flip_comparison(int op);
 int negate_comparison(int op);
 void filter_by_comparison(struct range_list **rl, int comparison, struct range_list *right);
+struct sm_state *comparison_implication_hook(struct expression *expr,
+			struct stree_stack **true_stack,
+			struct stree_stack **false_stack);
 
 /* smatch_sval.c */
 sval_t *sval_alloc(sval_t sval);
