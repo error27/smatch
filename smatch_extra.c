@@ -882,20 +882,6 @@ static void asm_expr(struct statement *stmt)
 	} END_FOR_EACH_PTR(expr);
 }
 
-static void delete_state_tracker(struct tracker *t)
-{
-	remove_from_equiv(t->name, t->sym);
-	delete_state(t->owner, t->name, t->sym);
-}
-
-static void scoped_state_extra(const char *name, struct symbol *sym)
-{
-	struct tracker *t;
-
-	t = alloc_tracker(SMATCH_EXTRA, name, sym);
-	add_scope_hook((scope_hook *)&delete_state_tracker, t);
-}
-
 static void check_dereference(struct expression *expr)
 {
 	if (outside_of_function())
