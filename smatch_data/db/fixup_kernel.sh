@@ -102,6 +102,9 @@ delete from return_states where function = 'pci_bus_write_config_word' and retur
 update return_states set return = '(-4095)-s32max[<=\$3]' where function = 'get_user_pages' and return = 's32min-s32max';
 update return_states set return = '(-4095)-s64max[<=\$3]' where function = 'get_user_pages' and return = 's64min-s64max';
 
+/* Smatch can't parse wait_for_completion() */
+update return_states set return = '(-108),(-22),0' where function = '__spi_sync' and return = '(-115),(-108),(-22)';
+
 delete from caller_info where caller = '__kernel_write';
 
 EOF
