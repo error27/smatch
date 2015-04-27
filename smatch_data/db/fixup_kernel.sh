@@ -57,9 +57,9 @@ delete from return_states where function = '__kmalloc';
 insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0,    0,  -1, '', '');
 insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0, 1011,   0, '\$', '0');
 insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0,    0, -1, '', '');
-insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0, 1011,  0, '\$', '1-128000');
+insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0, 1011,  0, '\$', '1-4000000');
 insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    0,  -1, '', '');
-insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    1011,  0, '\$', '128000-long_max');
+insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    1011,  0, '\$', '4000000-long_max');
 
 delete from return_states where function = 'vmalloc';
 insert into return_states values ('faked', 'vmalloc', 0, 1, '0,4096-ptr_max', 0,    0, -1, '', '');
@@ -69,7 +69,7 @@ insert into return_states values ('faked', 'vmalloc', 0, 2, '0', 0,    0,  -1, '
 delete from return_states where function = 'ksize';
 insert into return_states values ('faked', 'ksize', 0, 1, '0', 0,    0, -1, '', '');
 insert into return_states values ('faked', 'ksize', 0, 1, '0', 0, 1011,  0, '\$', '16');
-insert into return_states values ('faked', 'ksize', 0, 2, '1-128000', 0,    0,  -1, '', '');
+insert into return_states values ('faked', 'ksize', 0, 2, '1-4000000', 0,    0,  -1, '', '');
 
 /* store a bunch of capped functions */
 update return_states set return = '0-u32max[<=\$2]' where function = 'copy_to_user';
