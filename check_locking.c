@@ -171,6 +171,8 @@ static struct lock_info kernel_lock_table[] = {
 	{"__read_unlock",             UNLOCK, "read_lock", 0, ret_any},
 	{"_raw_read_lock",            LOCK,   "read_lock", 0, ret_any},
 	{"_raw_read_unlock",          UNLOCK, "read_lock", 0, ret_any},
+	{"__raw_read_lock",           LOCK,   "read_lock", 0, ret_any},
+	{"__raw_read_unlock",         UNLOCK, "read_lock", 0, ret_any},
 	{"read_lock_irq",             LOCK,   "read_lock", 0, ret_any},
 	{"read_unlock_irq" ,          UNLOCK, "read_lock", 0, ret_any},
 	{"_read_lock_irq",            LOCK,   "read_lock", 0, ret_any},
@@ -191,6 +193,8 @@ static struct lock_info kernel_lock_table[] = {
 	{"__read_unlock_bh",          UNLOCK, "read_lock", 0, ret_any},
 	{"_raw_read_lock_bh",         LOCK,   "read_lock", 0, ret_any},
 	{"_raw_read_unlock_bh",       UNLOCK, "read_lock", 0, ret_any},
+	{"__raw_read_lock_bh",        LOCK,   "read_lock", 0, ret_any},
+	{"__raw_read_unlock_bh",      UNLOCK, "read_lock", 0, ret_any},
 
 	{"generic__raw_read_trylock", LOCK,   "read_lock", 0, ret_non_zero},
 	{"read_trylock",              LOCK,   "read_lock", 0, ret_non_zero},
