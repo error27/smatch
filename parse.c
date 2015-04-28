@@ -540,6 +540,8 @@ const char *ignored_attributes[] = {
 	"__gnu_inline__",
 	"hot",
 	"__hot__",
+	"hotpatch",
+	"__hotpatch__",
         "leaf",
         "__leaf__",
 	"l1_text",
