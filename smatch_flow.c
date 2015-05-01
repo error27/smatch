@@ -61,7 +61,7 @@ int in_expression_statement(void) { return !!__expr_stmt_count; }
 
 static void split_symlist(struct symbol_list *sym_list);
 static void split_declaration(struct symbol_list *sym_list);
-static void split_expr_list(struct expression_list *expr_list);
+static void split_expr_list(struct expression_list *expr_list, struct expression *parent);
 static void add_inline_function(struct symbol *sym);
 static void parse_inline(struct expression *expr);
 
@@ -136,6 +136,13 @@ static void set_position(struct position pos)
 		full_filename = alloc_string(filename);
 	}
 	free(pathname);
+}
+
+static void set_parent(struct expression *expr, struct expression *parent)
+{
+	if (!expr)
+		return;
+	expr->parent = parent;
 }
 
 int is_assigned_call(struct expression *expr)
@@ -255,12 +262,16 @@ void __split_expr(struct expression *expr)
 
 	switch (expr->type) {
 	case EXPR_PREOP:
+		set_parent(expr->unop, expr);
+
 		if (expr->op == '*')
 			__pass_to_client(expr, DEREF_HOOK);
 		__split_expr(expr->unop);
 		__pass_to_client(expr, OP_HOOK);
 		break;
 	case EXPR_POSTOP:
+		set_parent(expr->unop, expr);
+
 		__split_expr(expr->unop);
 		push_expression(&post_op_stack, expr);
 		break;
@@ -271,18 +282,30 @@ void __split_expr(struct expression *expr)
 		break;
 	case EXPR_LOGICAL:
 	case EXPR_COMPARE:
+		set_parent(expr->left, expr);
+		set_parent(expr->right, expr);
+
 		__pass_to_client(expr, LOGIC_HOOK);
 		__handle_logic(expr);
 		break;
 	case EXPR_BINOP:
+		set_parent(expr->left, expr);
+		set_parent(expr->right, expr);
+
 		__pass_to_client(expr, BINOP_HOOK);
 	case EXPR_COMMA:
+		set_parent(expr->left, expr);
+		set_parent(expr->right, expr);
+
 		__split_expr(expr->left);
 		__process_post_op_stack();
 		__split_expr(expr->right);
 		break;
 	case EXPR_ASSIGNMENT: {
 		struct expression *tmp;
+
+		set_parent(expr->left, expr);
+		set_parent(expr->right, expr);
 
 		if (!expr->right)
 			break;
@@ -323,14 +346,20 @@ void __split_expr(struct expression *expr)
 		break;
 	}
 	case EXPR_DEREF:
+		set_parent(expr->deref, expr);
+
 		__pass_to_client(expr, DEREF_HOOK);
 		__split_expr(expr->deref);
 		break;
 	case EXPR_SLICE:
+		set_parent(expr->base, expr);
+
 		__split_expr(expr->base);
 		break;
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
+		set_parent(expr->cast_expression, expr);
+
 		__pass_to_client(expr, CAST_HOOK);
 		__split_expr(expr->cast_expression);
 		break;
@@ -345,6 +374,10 @@ void __split_expr(struct expression *expr)
 		break;
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
+		set_parent(expr->conditional, expr);
+		set_parent(expr->cond_true, expr);
+		set_parent(expr->cond_false, expr);
+
 		if (known_condition_true(expr->conditional)) {
 			__split_expr(expr->cond_true);
 			break;
@@ -362,9 +395,11 @@ void __split_expr(struct expression *expr)
 		__merge_true_states();
 		break;
 	case EXPR_CALL:
+		set_parent(expr->fn, expr);
+
 		if (sym_name_is("__builtin_constant_p", expr->fn))
 			break;
-		split_expr_list(expr->args);
+		split_expr_list(expr->args, expr);
 		__split_expr(expr->fn);
 		if (is_inline_func(expr->fn))
 			add_inline_function(expr->fn->symbol);
@@ -383,15 +418,18 @@ void __split_expr(struct expression *expr)
 			nullify_path();
 		break;
 	case EXPR_INITIALIZER:
-		split_expr_list(expr->expr_list);
+		split_expr_list(expr->expr_list, expr);
 		break;
 	case EXPR_IDENTIFIER:
+		set_parent(expr->ident_expression, expr);
 		__split_expr(expr->ident_expression);
 		break;
 	case EXPR_INDEX:
+		set_parent(expr->idx_expression, expr);
 		__split_expr(expr->idx_expression);
 		break;
 	case EXPR_POS:
+		set_parent(expr->init_expr, expr);
 		__split_expr(expr->init_expr);
 		break;
 	case EXPR_SYMBOL:
@@ -930,11 +968,12 @@ out:
 	__process_post_op_stack();
 }
 
-static void split_expr_list(struct expression_list *expr_list)
+static void split_expr_list(struct expression_list *expr_list, struct expression *parent)
 {
 	struct expression *expr;
 
 	FOR_EACH_PTR(expr_list, expr) {
+		set_parent(expr, parent);
 		__split_expr(expr);
 		__process_post_op_stack();
 	} END_FOR_EACH_PTR(expr);

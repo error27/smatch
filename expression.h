@@ -80,6 +80,7 @@ enum {
 }; /* for expr->taint */
 
 struct expression {
+	struct expression *parent;
 	enum expression_type type:8;
 	unsigned flags:8;
 	unsigned smatch_flags:16;
