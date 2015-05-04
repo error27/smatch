@@ -71,15 +71,8 @@ static struct symbol *get_binop_type(struct expression *expr)
 	struct symbol *left, *right;
 
 	left = get_type(expr->left);
-	right = get_type(expr->right);
-
-	if (!left || !right)
+	if (!left)
 		return NULL;
-
-	if (left->type == SYM_PTR || left->type == SYM_ARRAY)
-		return left;
-	if (right->type == SYM_PTR || right->type == SYM_ARRAY)
-		return right;
 
 	if (expr->op == SPECIAL_LEFTSHIFT ||
 	    expr->op == SPECIAL_RIGHTSHIFT) {
@@ -87,6 +80,15 @@ static struct symbol *get_binop_type(struct expression *expr)
 			return &int_ctype;
 		return left;
 	}
+	if (left->type == SYM_PTR || left->type == SYM_ARRAY)
+		return left;
+
+	right = get_type(expr->right);
+	if (!right)
+		return NULL;
+
+	if (right->type == SYM_PTR || right->type == SYM_ARRAY)
+		return right;
 
 	if (type_positive_bits(left) < 31 && type_positive_bits(right) < 31)
 		return &int_ctype;
