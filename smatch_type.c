@@ -218,49 +218,68 @@ static struct symbol *fake_pointer_sym(struct expression *expr)
 
 struct symbol *get_type(struct expression *expr)
 {
+	struct symbol *ret;
+
+	expr = strip_parens(expr);
 	if (!expr)
 		return NULL;
-	expr = strip_parens(expr);
+
+	if (expr->ctype)
+		return expr->ctype;
 
 	switch (expr->type) {
 	case EXPR_STRING:
-		return &string_ctype;
+		ret = &string_ctype;
+		break;
 	case EXPR_SYMBOL:
-		return get_type_symbol(expr);
+		ret = get_type_symbol(expr);
+		break;
 	case EXPR_DEREF:
-		return get_symbol_from_deref(expr);
+		ret = get_symbol_from_deref(expr);
+		break;
 	case EXPR_PREOP:
 	case EXPR_POSTOP:
 		if (expr->op == '&')
-			return fake_pointer_sym(expr);
-		if (expr->op == '*')
-			return get_pointer_type(expr->unop);
-		return get_type(expr->unop);
+			ret = fake_pointer_sym(expr);
+		else if (expr->op == '*')
+			ret = get_pointer_type(expr->unop);
+		else
+			ret = get_type(expr->unop);
+		break;
 	case EXPR_ASSIGNMENT:
-		return get_type(expr->left);
+		ret = get_type(expr->left);
+		break;
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
-		return get_real_base_type(expr->cast_type);
+		ret = get_real_base_type(expr->cast_type);
+		break;
 	case EXPR_COMPARE:
 	case EXPR_BINOP:
-		return get_binop_type(expr);
+		ret = get_binop_type(expr);
+		break;
 	case EXPR_CALL:
-		return get_return_type(expr);
+		ret = get_return_type(expr);
+		break;
 	case EXPR_STATEMENT:
-		return get_expr_stmt_type(expr->statement);
+		ret = get_expr_stmt_type(expr->statement);
+		break;
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
-		return get_select_type(expr);
+		ret = get_select_type(expr);
+		break;
 	case EXPR_SIZEOF:
-		return &ulong_ctype;
+		ret = &ulong_ctype;
+		break;
 	case EXPR_LOGICAL:
-		return &int_ctype;
+		ret = &int_ctype;
+		break;
 	default:
-//		sm_msg("unhandled type %d", expr->type);
-		return expr->ctype;
+		return NULL;
 	}
-	return NULL;
+
+	expr->ctype = ret;
+	return ret;
 }
 
 int type_unsigned(struct symbol *base_type)
