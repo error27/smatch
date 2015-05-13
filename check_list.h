@@ -139,6 +139,7 @@ CK(check_buf_comparison)
 CK(check_buf_comparison_links)
 CK(check_capable)
 CK(check_ns_capable)
+CK(check_test_bit)
 
 /* wine specific stuff */
 CK(check_wine_filehandles)
