@@ -244,6 +244,20 @@ static int handle_comma_assigns(struct expression *expr)
 	return 1;
 }
 
+static int prev_expression_is_getting_address(struct expression *expr)
+{
+	do {
+		if (!expr->parent)
+			return 0;
+		if (expr->parent->type == EXPR_PREOP && expr->parent->op == '&')
+			return 1;
+		if (expr->parent->type != EXPR_DEREF || expr->parent->op != '.')
+			return 0;
+
+		expr = expr->parent;
+	} while (1);
+}
+
 void __split_expr(struct expression *expr)
 {
 	if (!expr)
@@ -264,7 +278,8 @@ void __split_expr(struct expression *expr)
 	case EXPR_PREOP:
 		set_parent(expr->unop, expr);
 
-		if (expr->op == '*')
+		if (expr->op == '*' &&
+		    !prev_expression_is_getting_address(expr))
 			__pass_to_client(expr, DEREF_HOOK);
 		__split_expr(expr->unop);
 		__pass_to_client(expr, OP_HOOK);
