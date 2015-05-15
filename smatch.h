@@ -459,8 +459,57 @@ static const sval_t array_min_sval = {
 };
 static const sval_t array_max_sval = {
 	.type = &ptr_ctype,
-	{.value = 200000},
+	{.value = 199999},
 };
+static const sval_t text_seg_min = {
+	.type = &ptr_ctype,
+	{.value = 100000000},
+};
+static const sval_t text_seg_max = {
+	.type = &ptr_ctype,
+	{.value = 177777777},
+};
+static const sval_t data_seg_min = {
+	.type = &ptr_ctype,
+	{.value = 200000000},
+};
+static const sval_t data_seg_max = {
+	.type = &ptr_ctype,
+	{.value = 277777777},
+};
+static const sval_t bss_seg_min = {
+	.type = &ptr_ctype,
+	{.value = 300000000},
+};
+static const sval_t bss_seg_max = {
+	.type = &ptr_ctype,
+	{.value = 377777777},
+};
+static const sval_t stack_seg_min = {
+	.type = &ptr_ctype,
+	{.value = 400000000},
+};
+static const sval_t stack_seg_max = {
+	.type = &ptr_ctype,
+	{.value = 477777777},
+};
+static const sval_t kmalloc_seg_min = {
+	.type = &ptr_ctype,
+	{.value = 500000000},
+};
+static const sval_t kmalloc_seg_max = {
+	.type = &ptr_ctype,
+	{.value = 577777777},
+};
+static const sval_t vmalloc_seg_min = {
+	.type = &ptr_ctype,
+	{.value = 600000000},
+};
+static const sval_t vmalloc_seg_max = {
+	.type = &ptr_ctype,
+	{.value = 677777777},
+};
+
 #define STRLEN_MAX_RET 1010101
 
 /* smatch_absolute.c */

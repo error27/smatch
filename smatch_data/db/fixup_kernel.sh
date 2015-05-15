@@ -56,14 +56,14 @@ insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)
 delete from return_states where function = '__kmalloc';
 insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0,    0,  -1, '', '');
 insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0, 1011,   0, '\$', '0');
-insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0,    0, -1, '', '');
-insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0, 1011,  0, '\$', '1-4000000');
+insert into return_states values ('faked', '__kmalloc', 0, 2, '0,500000000-577777777', 0,    0, -1, '', '');
+insert into return_states values ('faked', '__kmalloc', 0, 2, '0,500000000-577777777', 0, 1011,  0, '\$', '1-4000000');
 insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    0,  -1, '', '');
 insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    1011,  0, '\$', '4000000-long_max');
 
 delete from return_states where function = 'vmalloc';
-insert into return_states values ('faked', 'vmalloc', 0, 1, '0,4096-ptr_max', 0,    0, -1, '', '');
-insert into return_states values ('faked', 'vmalloc', 0, 1, '0,4096-ptr_max', 0, 1011,  0, '\$', '1-128000000');
+insert into return_states values ('faked', 'vmalloc', 0, 1, '0,600000000-677777777', 0,    0, -1, '', '');
+insert into return_states values ('faked', 'vmalloc', 0, 1, '0,600000000-677777777', 0, 1011,  0, '\$', '1-128000000');
 insert into return_states values ('faked', 'vmalloc', 0, 2, '0', 0,    0,  -1, '', '');
 
 delete from return_states where function = 'ksize';

@@ -64,8 +64,122 @@ static bool is_non_null_array(struct expression *expr)
 	return 0;
 }
 
+static int get_member_offset(struct expression *expr)
+{
+	struct symbol *type, *tmp;
+	struct ident *member;
+	int offset;
+
+	if (expr->type != EXPR_DEREF)  /* hopefully, this doesn't happen */
+		return 0;
+
+	member = expr->member;
+	if (!member || !member->name)
+		return 0;
+
+	if (expr->member_offset >= 0)
+		return expr->member_offset;
+
+	type = get_type(expr->deref);
+	if (!type || type->type != SYM_STRUCT)
+		return 0;
+
+	offset = 0;
+	FOR_EACH_PTR(type->symbol_list, tmp) {
+		if (tmp->ident && tmp->ident->name &&
+		    strcmp(member->name, tmp->ident->name) == 0) {
+			expr->member_offset = offset;
+			return offset;
+		}
+		offset += type_bytes(tmp);
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
+static void add_offset_to_min(struct range_list **rl, int offset)
+{
+	sval_t sval, max;
+	struct range_list *orig = *rl;
+	struct range_list *offset_rl;
+	struct range_list *big_rl;
+	struct range_list *tmp;
+
+	/*
+	 * I don't know.  I guess I want to preserve the upper value because
+	 * that has no information.  Only the lower value is interesting.
+	 */
+
+	if (!orig)
+		return;
+	sval = rl_min(orig); /* get the type */
+	sval.value = offset;
+
+	offset_rl = alloc_rl(sval, sval);
+	tmp = rl_binop(orig, '+', offset_rl);
+
+	max = rl_max(orig);
+	/* if we actually "know" the max then preserve it. */
+	if (max.value < 100000) {
+		*rl = tmp;
+		return;
+	}
+	sval.value = 0;
+	big_rl = alloc_rl(sval, max);
+
+	*rl = rl_intersection(tmp, big_rl);
+}
+
+static struct range_list *where_allocated_rl(struct symbol *sym)
+{
+	if (sym->ctype.modifiers & (MOD_TOPLEVEL | MOD_STATIC)) {
+		if (sym->initializer)
+			return alloc_rl(data_seg_min, data_seg_max);
+		else
+			return alloc_rl(bss_seg_min, bss_seg_max);
+	}
+	return alloc_rl(stack_seg_min, stack_seg_max);
+}
+
 int get_address_rl(struct expression *expr, struct range_list **rl)
 {
+	expr = strip_expr(expr);
+	if (!expr)
+		return 0;
+
+	if (expr->type == EXPR_STRING) {
+		*rl = alloc_rl(text_seg_min, text_seg_max);
+		return 1;
+	}
+
+	if (expr->type == EXPR_PREOP && expr->op == '&') {
+		struct expression *unop;
+
+		unop = strip_expr(expr->unop);
+		if (unop->type == EXPR_SYMBOL) {
+			*rl = where_allocated_rl(unop->symbol);
+			return 1;
+		}
+
+		if (unop->type == EXPR_DEREF) {
+			int offset = get_member_offset(unop);
+
+			unop = strip_expr(unop->unop);
+			if (unop->type == EXPR_SYMBOL) {
+				*rl = where_allocated_rl(unop->symbol);
+			} else if (unop->type == EXPR_PREOP && unop->op == '*') {
+				unop = strip_expr(unop->unop);
+				get_absolute_rl(unop, rl);
+			} else {
+				return 0;
+			}
+
+			add_offset_to_min(rl, offset);
+			return 1;
+		}
+
+		return 0;
+	}
+
 	if (is_non_null_array(expr)) {
 		*rl = alloc_rl(array_min_sval, array_max_sval);
 		return 1;
