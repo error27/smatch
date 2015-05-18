@@ -246,15 +246,19 @@ static int handle_comma_assigns(struct expression *expr)
 
 static int prev_expression_is_getting_address(struct expression *expr)
 {
+	struct expression *parent;
+
 	do {
-		if (!expr->parent)
+		parent = expr->parent;
+
+		if (!parent)
 			return 0;
-		if (expr->parent->type == EXPR_PREOP && expr->parent->op == '&')
+		if (parent->type == EXPR_PREOP && parent->op == '&')
 			return 1;
-		if (expr->parent->type != EXPR_DEREF || expr->parent->op != '.')
+		if (parent->type != EXPR_DEREF || parent->op != '.')
 			return 0;
 
-		expr = expr->parent;
+		expr = parent;
 	} while (1);
 }
 
