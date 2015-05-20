@@ -19,3 +19,4 @@ for_primary_ifa
 sk_nulls_for_each
 unreachable
 iterate_all_kinds
+netdev_for_each_lower_dev
