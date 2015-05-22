@@ -255,9 +255,13 @@ static int prev_expression_is_getting_address(struct expression *expr)
 			return 0;
 		if (parent->type == EXPR_PREOP && parent->op == '&')
 			return 1;
-		if (parent->type != EXPR_DEREF || parent->op != '.')
-			return 0;
+		if (parent->type == EXPR_PREOP && parent->op == '(')
+			goto next;
+		if (parent->type == EXPR_DEREF && parent->op == '.')
+			goto next;
 
+		return 0;
+next:
 		expr = parent;
 	} while (1);
 }
