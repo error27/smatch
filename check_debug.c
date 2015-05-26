@@ -82,7 +82,7 @@ static void match_states(const char *fn, struct expression *expr, void *info)
 	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (strcmp(check_name(sm->owner), check_arg->string->data) != 0)
 			continue;
-		sm_msg("'%s' = '%s'", sm->name, sm->state->name);
+		sm_msg("%s", show_sm(sm));
 		found = 1;
 	} END_FOR_EACH_SM(sm);
 
