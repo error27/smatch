@@ -34,8 +34,10 @@ HAVE_GCC_DEP:=$(shell touch .gcc-test.c && 				\
 HAVE_GTK2:=$(shell $(PKG_CONFIG) --exists gtk+-2.0 2>/dev/null && echo 'yes')
 LLVM_CONFIG:=llvm-config
 HAVE_LLVM:=$(shell $(LLVM_CONFIG) --version >/dev/null 2>&1 && echo 'yes')
+ifeq ($(HAVE_LLVM),yes)
 HAVE_LLVM_VERSION:=$(shell $(LLVM_CONFIG) --version | grep "^[3-9].*" >/dev/null 2>&1 && echo yes)
 LLVM_VERSION:=$(shell $(LLVM_CONFIG) --version)
+endif
 
 GCC_BASE = $(shell $(CC) --print-file-name=)
 BASIC_CFLAGS = -DGCC_BASE=\"$(GCC_BASE)\"
