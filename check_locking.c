@@ -243,6 +243,7 @@ static struct lock_info kernel_lock_table[] = {
 	{"down",               LOCK,   "sem", 0, ret_any},
 	{"up",                 UNLOCK, "sem", 0, ret_any},
 	{"down_trylock",       LOCK,   "sem", 0, ret_zero},
+	{"down_timeout",       LOCK,   "sem", 0, ret_zero},
 	{"down_interruptible", LOCK,   "sem", 0, ret_zero},
 
 	{"mutex_lock",                      LOCK,   "mutex", 0, ret_any},
