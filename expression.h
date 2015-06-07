@@ -126,6 +126,7 @@ struct expression {
 		struct /* deref_arg */ {
 			struct expression *deref;
 			struct ident *member;
+			int member_offset;
 		};
 		// EXPR_SLICE
 		struct /* slice */ {
