@@ -42,8 +42,8 @@ delete from caller_info where function = '(struct timer_list)->function' and par
  */
 delete from return_states where function = 'rw_verify_area';
 insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000[<=\$3]', 0, 0,   -1,      '', '');
-insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000[<=\$3]', 0, 102,  2, '*\$', '0-1000000000');
-insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000[<=\$3]', 0, 1011, 3,  '\$', '0-1000000000');
+insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000[<=\$3]', 0, 104,  2, '*\$', '0-1000000000');
+insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000[<=\$3]', 0, 103, 3,  '\$', '0-1000000000');
 insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)',     0, 0,   -1,      '', '');
 
 /*
@@ -55,20 +55,20 @@ insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)
  */
 delete from return_states where function = '__kmalloc';
 insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0,    0,  -1, '', '');
-insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0, 1011,   0, '\$', '0');
+insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0, 103,   0, '\$', '0');
 insert into return_states values ('faked', '__kmalloc', 0, 2, '0,500000000-577777777', 0,    0, -1, '', '');
-insert into return_states values ('faked', '__kmalloc', 0, 2, '0,500000000-577777777', 0, 1011,  0, '\$', '1-4000000');
+insert into return_states values ('faked', '__kmalloc', 0, 2, '0,500000000-577777777', 0, 103,  0, '\$', '1-4000000');
 insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    0,  -1, '', '');
-insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    1011,  0, '\$', '4000000-long_max');
+insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    103,  0, '\$', '4000000-long_max');
 
 delete from return_states where function = 'vmalloc';
 insert into return_states values ('faked', 'vmalloc', 0, 1, '0,600000000-677777777', 0,    0, -1, '', '');
-insert into return_states values ('faked', 'vmalloc', 0, 1, '0,600000000-677777777', 0, 1011,  0, '\$', '1-128000000');
+insert into return_states values ('faked', 'vmalloc', 0, 1, '0,600000000-677777777', 0, 103,  0, '\$', '1-128000000');
 insert into return_states values ('faked', 'vmalloc', 0, 2, '0', 0,    0,  -1, '', '');
 
 delete from return_states where function = 'ksize';
 insert into return_states values ('faked', 'ksize', 0, 1, '0', 0,    0, -1, '', '');
-insert into return_states values ('faked', 'ksize', 0, 1, '0', 0, 1011,  0, '\$', '16');
+insert into return_states values ('faked', 'ksize', 0, 1, '0', 0, 103,  0, '\$', '16');
 insert into return_states values ('faked', 'ksize', 0, 2, '1-4000000', 0,    0,  -1, '', '');
 
 /* store a bunch of capped functions */
