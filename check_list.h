@@ -41,8 +41,6 @@ CK(register_param_used)
 CK(register_strings)
 
 CK(check_debug)
-CK(check_assigned_expr)
-CK(check_assigned_expr_links)
 CK(check_user_data)
 
 CK(check_user_data2)
@@ -152,6 +150,8 @@ CK(register_sval)
 CK(register_buf_size_late)
 CK(register_modification_hooks_late)
 CK(register_smatch_extra_late)
+CK(check_assigned_expr) /* This is used by smatch_extra.c so it has to come really late */
+CK(check_assigned_expr_links)
 CK(check_kernel)  /* this is overwriting stuff from smatch_extra_late */
 CK(register_function_hooks)
 CK(register_returns)
