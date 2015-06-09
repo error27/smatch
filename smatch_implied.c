@@ -543,6 +543,7 @@ static int handled_by_implied_hook(struct expression *expr,
 	*implied_true = filter_stack(sm, pre_stree, false_stack, true_stack);
 	*implied_false = filter_stack(sm, pre_stree, true_stack, false_stack);
 
+	free_stree(&pre_stree);
 	free_stree_stack(&true_stack);
 	free_stree_stack(&false_stack);
 
