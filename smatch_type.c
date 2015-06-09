@@ -278,6 +278,9 @@ struct symbol *get_type(struct expression *expr)
 		return NULL;
 	}
 
+	if (ret && ret->type == SYM_TYPEOF)
+		ret = get_type(ret->initializer);
+
 	expr->ctype = ret;
 	return ret;
 }
