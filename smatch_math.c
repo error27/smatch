@@ -61,10 +61,14 @@ static struct range_list *handle_expression_statement_rl(struct expression *expr
 	return last_stmt_rl(get_expression_statement(expr), implied);
 }
 
-static struct range_list *handle_ampersand_rl(int implied)
+static struct range_list *handle_ampersand_rl(struct expression *expr, int implied)
 {
+	struct range_list *rl;
+
 	if (implied == RL_EXACT || implied == RL_HARD)
 		return NULL;
+	if (get_address_rl(expr, &rl))
+		return rl;
 	return alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
 }
 
@@ -114,7 +118,7 @@ static struct range_list *handle_preop_rl(struct expression *expr, int implied)
 {
 	switch (expr->op) {
 	case '&':
-		return handle_ampersand_rl(implied);
+		return handle_ampersand_rl(expr, implied);
 	case '!':
 		return handle_negate_rl(expr, implied);
 	case '~':
