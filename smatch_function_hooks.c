@@ -472,10 +472,12 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 		if (!possibly_true_rl(var_rl, comparison, ret_range))
 			return 0;
 		filter_by_comparison(&var_rl, comparison, ret_range);
+		filter_by_comparison(&ret_range, flip_comparison(comparison), var_rl);
 	} else {
 		if (!possibly_false_rl(var_rl, comparison, ret_range))
 			return 0;
 		filter_by_comparison(&var_rl, negate_comparison(comparison), ret_range);
+		filter_by_comparison(&ret_range, flip_comparison(negate_comparison(comparison)), var_rl);
 	}
 
 	handle_ret_equals_param(argv[1], ret_range, db_info->expr);
