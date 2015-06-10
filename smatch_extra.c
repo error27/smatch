@@ -669,9 +669,9 @@ static void match_assign(struct expression *expr)
 
 	left = strip_expr(expr->left);
 
-	right = strip_expr(expr->right);
+	right = strip_parens(expr->right);
 	while (right->type == EXPR_ASSIGNMENT && right->op == '=')
-		right = strip_expr(right->left);
+		right = strip_parens(right->left);
 
 	if (expr->op == '=' && is_condition(expr->right))
 		return; /* handled in smatch_condition.c */
