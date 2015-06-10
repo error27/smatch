@@ -2,6 +2,7 @@ list_for_each
 list_for_each_entry
 list_for_each_entry_safe
 list_for_each_entry_rcu
+list_for_each_entry_continue
 list_for_each_entry_continue_rcu
 hlist_for_each_entry
 hlist_for_each_entry_safe
