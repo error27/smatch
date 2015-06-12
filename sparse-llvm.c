@@ -1070,6 +1070,13 @@ static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
 	return data;
 }
 
+static int is_prototype(struct symbol *sym)
+{
+	if (sym->type == SYM_NODE)
+		sym = sym->ctype.base_type;
+	return sym && sym->type == SYM_FN && !sym->stmt;
+}
+
 static int compile(LLVMModuleRef module, struct symbol_list *list)
 {
 	struct symbol *sym;
@@ -1077,6 +1084,10 @@ static int compile(LLVMModuleRef module, struct symbol_list *list)
 	FOR_EACH_PTR(list, sym) {
 		struct entrypoint *ep;
 		expand_symbol(sym);
+
+		if (is_prototype(sym))
+			continue;
+
 		ep = linearize_symbol(sym);
 		if (ep)
 			output_fn(module, ep);
