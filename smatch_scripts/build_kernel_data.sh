@@ -15,11 +15,12 @@ if [ "$1" = "-h" ] || [ "$1" = "--help" ] ; then
 fi
 
 SCRIPT_DIR=$(dirname $0)
-if [ -e $SCRIPT_DIR/../smatch ] ; then
+if [ -e $SCRIPT_DIR/../smatch -a -d kernel -a -d fs ] ; then
     CMD=$SCRIPT_DIR/../smatch
     DATA_DIR=$SCRIPT_DIR/../smatch_data
 else
-    echo "This script should be run from the smatch_scripts/ directory."
+    echo "This script should be located in the smatch_scripts/ subdirectory of the smatch source."
+    echo "It should be run from the root of a kernel source tree."
     exit 1
 fi
 
