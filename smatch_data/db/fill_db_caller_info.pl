@@ -17,7 +17,7 @@ sub get_too_common_functions($$$)
     my $project = shift;
     my $warns = shift;
 
-    open(FUNCS, "cat $warns | grep 'SQL_caller_info: ' | grep '%call_marker%' | cut -d \"'\" -f 6 | sort | uniq -c | ");
+    open(FUNCS, "grep 'SQL_caller_info: ' $warns | grep '%call_marker%' | cut -d \"'\" -f 6 | sort | uniq -c | ");
 
     while (<FUNCS>) {
         if ($_ =~ /(\d+) (.*)/) {
