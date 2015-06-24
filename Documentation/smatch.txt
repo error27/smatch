@@ -43,7 +43,7 @@ command:
 	~/progs/smatch/devel/smatch_scripts/test_kernel.sh
 
 The test_kernel.sh script will create a .c.smatch file for every file it tests
-and a combined warns.txt file with all the warnings.
+and a combined smatch_warns.txt file with all the warnings.
 
 If you are running Smatch just over one kernel file:
 

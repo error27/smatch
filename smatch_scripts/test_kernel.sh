@@ -28,6 +28,6 @@ fi
 make clean
 find -name \*.c.smatch -exec rm \{\} \;
 make -j${NR_CPU} -k CHECK="$CMD -p=kernel --file-output $*" \
-	C=1 bzImage modules 2>&1 | tee compile.warns
-find -name \*.c.smatch -exec cat \{\} \; -exec rm \{\} \; > warns.txt
+	C=1 bzImage modules 2>&1 | tee smatch_compile.warns
+find -name \*.c.smatch -exec cat \{\} \; -exec rm \{\} \; > smatch_warns.txt
 

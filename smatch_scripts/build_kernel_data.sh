@@ -27,8 +27,8 @@ fi
 # If someone is building the database for the first time then make sure all the
 # required packages are installed
 if [ ! -e smatch_db.sqlite ] ; then
-    [ -e warns.txt ] || touch warns.txt
-    if ! $DATA_DIR/db/create_db.sh -p=kernel warns.txt ; then
+    [ -e smatch_warns.txt ] || touch smatch_warns.txt
+    if ! $DATA_DIR/db/create_db.sh -p=kernel smatch_warns.txt ; then
         echo "Hm... Not working.  Make sure you have all the sqlite3 packages"
         echo "And the sqlite3 libraries for Perl and Python"
         exit 1
@@ -38,10 +38,10 @@ fi
 $SCRIPT_DIR/test_kernel.sh --call-tree --info --param-mapper --spammy --data=$DATA_DIR
 
 for i in $SCRIPT_DIR/gen_* ; do
-	$i warns.txt -p=kernel
+	$i smatch_warns.txt -p=kernel
 done
 
 mv ${PROJECT}.* $DATA_DIR
 
-$DATA_DIR/db/create_db.sh -p=kernel warns.txt
+$DATA_DIR/db/create_db.sh -p=kernel smatch_warns.txt
 
