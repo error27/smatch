@@ -25,22 +25,22 @@ sub recurse($$)
     my $found = 0;
 
     if ($link =~ /$target/) {
-        %{$param_map{$link}}->{found} = $FOUND;
+        $param_map{$link}->{found} = $FOUND;
         return 1;
     }
 
-    if (%{$param_map{$link}}->{found} == $FOUND) {
+    if ($param_map{$link}->{found} == $FOUND) {
         return 1;
     }
-    if (%{$param_map{$link}}->{found} == $NOTFOUND) {
+    if ($param_map{$link}->{found} == $NOTFOUND) {
         return 0;
     }
 
-    %{$param_map{$link}}->{found} = $NOTFOUND;
-    foreach my $l (@{%{$param_map{$link}}->{links}}){
+    $param_map{$link}->{found} = $NOTFOUND;
+    foreach my $l (@{$param_map{$link}->{links}}){
         $found = recurse($l, $target);
         if ($found) {
-            %{$param_map{$link}}->{found} = $FOUND;
+            $param_map{$link}->{found} = $FOUND;
             return 1;
         }
     }
@@ -87,7 +87,7 @@ sub print_found()
     foreach my $func (keys %param_map){
         my $tmp = $param_map{$func};
 
-        if (%{$tmp}->{found} == $FOUND) {
+        if ($tmp->{found} == $FOUND) {
             my ($f, $p) = split(/%/, $func);
             print("$f $p\n");
         }
