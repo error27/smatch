@@ -1818,6 +1818,26 @@ static void set_param_hard_max(const char *name, struct symbol *sym, char *key, 
 	estate_set_fuzzy_max(state, max);
 }
 
+struct smatch_state *get_extra_state(struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+	struct smatch_state *ret = NULL;
+	struct range_list *rl;
+
+	if (is_pointer(expr) && get_address_rl(expr, &rl))
+		return alloc_estate_rl(rl);
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	ret = get_state(SMATCH_EXTRA, name, sym);
+free:
+	free_string(name);
+	return ret;
+}
+
 void register_smatch_extra(int id)
 {
 	my_id = id;

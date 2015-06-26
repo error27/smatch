@@ -684,7 +684,7 @@ static int get_fuzzy_max_helper(struct expression *expr, sval_t *max)
 		return 1;
 	}
 
-	state = get_state_expr(SMATCH_EXTRA, expr);
+	state = get_extra_state(expr);
 	if (!state || !estate_has_fuzzy_max(state))
 		return 0;
 	*max = sval_cast(get_type(expr), estate_get_fuzzy_max(state));
@@ -696,7 +696,7 @@ static int get_fuzzy_min_helper(struct expression *expr, sval_t *min)
 	struct smatch_state *state;
 	sval_t sval;
 
-	state = get_state_expr(SMATCH_EXTRA, expr);
+	state = get_extra_state(expr);
 	if (!state || !estate_rl(state))
 		return 0;
 
@@ -733,7 +733,7 @@ struct range_list *var_to_absolute_rl(struct expression *expr)
 	struct smatch_state *state;
 	struct range_list *rl;
 
-	state = get_state_expr(SMATCH_EXTRA, expr);
+	state = get_extra_state(expr);
 	if (!state) {
 		if (get_local_rl(expr, &rl))
 			return rl;
@@ -769,7 +769,7 @@ static struct range_list *handle_variable(struct expression *expr, int implied)
 	case RL_HARD:
 	case RL_IMPLIED:
 	case RL_ABSOLUTE:
-		state = get_state_expr(SMATCH_EXTRA, expr);
+		state = get_extra_state(expr);
 		if (!state || !state->data) {
 			if (implied == RL_HARD)
 				return NULL;
