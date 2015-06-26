@@ -8,7 +8,7 @@ my $warns = shift;
 my $db_file = shift;
 
 if (!defined($warns)) {
-    print "usage:  $0 <-p=project> <warns.txt> <db_file>\n";
+    print "usage:  $0 <-p=project> <smatch_warns.txt> <db_file>\n";
     exit(1);
 }
 

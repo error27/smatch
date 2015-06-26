@@ -59,7 +59,7 @@ If you are building something else (which is not the Linux kernel) then use
 something like:
 
 	make CHECK="~/progs/smatch/devel/smatch --full-path" \
-		CC=~/progs/smatch/devel/smatch/cgcc | tee warns.txt
+		CC=~/progs/smatch/devel/smatch/cgcc | tee smatch_warns.txt
 
 The makefile has to let people set the CC with an environment variable for that
 to work, of course.

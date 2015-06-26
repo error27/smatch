@@ -6,7 +6,7 @@ use Scalar::Util qw(looks_like_number);
 
 sub usage()
 {
-    print "usage:  $0 <-p=project> <warns.txt> <db_file>\n";
+    print "usage:  $0 <-p=project> <smatch_warns.txt> <db_file>\n";
     exit(1);
 }
 
