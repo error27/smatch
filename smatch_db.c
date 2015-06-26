@@ -900,6 +900,8 @@ static int split_helper(struct sm_state *sm, struct expression *expr)
 	int nr_possible, nr_states;
 	char *compare_str;
 	char buf[128];
+	struct stree *orig_stree;
+	struct sm_state *orig_sm;
 
 	if (!sm || !sm->merged)
 		return 0;
@@ -920,12 +922,17 @@ static int split_helper(struct sm_state *sm, struct expression *expr)
 
 	compare_str = expr_lte_to_param(expr, -1);
 
+	orig_stree = clone_stree(__get_cur_stree());
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (tmp->merged)
 			continue;
 
 		ret = 1;
 		__push_fake_cur_stree();
+
+		FOR_EACH_SM(orig_stree, orig_sm) {
+			__set_sm(orig_sm);
+		} END_FOR_EACH_SM(orig_sm);
 
 		overwrite_states_using_pool(tmp);
 
@@ -944,6 +951,7 @@ static int split_helper(struct sm_state *sm, struct expression *expr)
 		__free_fake_cur_stree();
 	} END_FOR_EACH_PTR(tmp);
 
+	free_stree(&orig_stree);
 	return ret;
 }
 
