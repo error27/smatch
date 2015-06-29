@@ -523,6 +523,24 @@ static void match_type(const char *fn, struct expression *expr, void *info)
 	free_string(name);
 }
 
+static void match_type_rl(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *one, *two;
+	struct symbol *type;
+	struct range_list *rl;
+
+	one = get_argument_from_call_expr(expr->args, 0);
+	type = get_type(one);
+
+	two = get_argument_from_call_expr(expr->args, 1);
+	if (!two || two->type != EXPR_STRING) {
+		sm_msg("expected: __smatch_type_rl(type, \"string\")");
+		return;
+	}
+	call_results_to_rl(expr, type, two->string->data, &rl);
+	sm_msg("'%s' => '%s'", two->string->data, show_rl(rl));
+}
+
 static struct stree *old_stree;
 static void trace_var(struct statement *stmt)
 {
@@ -589,6 +607,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_debug_implied_off", &match_debug_implied_off, NULL);
 	add_function_hook("__smatch_intersection", &match_intersection, NULL);
 	add_function_hook("__smatch_type", &match_type, NULL);
+	add_function_hook("__smatch_type_rl_helper", match_type_rl, NULL);
 
 	add_hook(free_old_stree, END_FUNC_HOOK);
 	add_hook(trace_var, STMT_HOOK_AFTER);

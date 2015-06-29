@@ -50,4 +50,7 @@ static inline void __smatch_debug_implied_off(void){}
 static inline void __smatch_intersection(long long one, long long two){}
 static inline void __smatch_type(long long one){}
 
+static inline void __smatch_type_rl_helper(long long type, const char *str, ...){}
+#define __smatch_type_rl(type, rl, other...) __smatch_type_rl_helper((type)0, rl, other)
+
 #endif
