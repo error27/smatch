@@ -364,19 +364,20 @@ static int is_last_member_of_struct(struct symbol *sym, struct ident *member)
 	return 0;
 }
 
-static int get_stored_size_end_struct_bytes(struct expression *expr)
+static int last_member_is_resizable(struct symbol *sym)
 {
+	struct symbol *last_member;
 	struct symbol *type;
-	char *name;
-	struct symbol *sym;
-	struct smatch_state *state;
 	sval_t sval;
 
-	if (expr->type == EXPR_BINOP) /* array elements foo[5] */
+	last_member = last_ptr_list((struct ptr_list *)sym->symbol_list);
+	if (!last_member || !last_member->ident)
 		return 0;
 
-	type = get_type(expr);
-	if (!type || type->type != SYM_ARRAY)
+	type = get_real_base_type(last_member);
+	if (type->type == SYM_STRUCT)
+		return last_member_is_resizable(type);
+	if (type->type != SYM_ARRAY)
 		return 0;
 
 	if (!get_implied_value(type->array_size, &sval))
@@ -385,30 +386,46 @@ static int get_stored_size_end_struct_bytes(struct expression *expr)
 	if (sval.value != 0 && sval.value != 1)
 		return 0;
 
-	name = expr_to_var_sym(expr, &sym);
-	free_string(name);
+	return 1;
+}
+
+static int get_stored_size_end_struct_bytes(struct expression *expr)
+{
+	struct symbol *sym;
+	struct symbol *base_sym;
+	struct smatch_state *state;
+
+	if (expr->type == EXPR_BINOP) /* array elements foo[5] */
+		return 0;
+
+	if (expr->type == EXPR_PREOP && expr->op == '&')
+		expr = strip_parens(expr->unop);
+
+	sym = expr_to_sym(expr);
 	if (!sym || !sym->ident)
 		return 0;
 	if (!type_bytes(sym))
 		return 0;
-
 	if (sym->type != SYM_NODE)
+		return 0;
+
+	base_sym = get_real_base_type(sym);
+	if (!base_sym || base_sym->type != SYM_PTR)
+		return 0;
+	base_sym = get_real_base_type(base_sym);
+	if (!base_sym || base_sym->type != SYM_STRUCT)
+		return 0;
+
+	if (!is_last_member_of_struct(base_sym, expr->member))
+		return 0;
+	if (!last_member_is_resizable(base_sym))
 		return 0;
 
 	state = get_state(my_size_id, sym->ident->name, sym);
 	if (!estate_to_size(state))
 		return 0;
 
-	sym = get_real_base_type(sym);
-	if (!sym || sym->type != SYM_PTR)
-		return 0;
-	sym = get_real_base_type(sym);
-	if (!sym || sym->type != SYM_STRUCT)
-		return 0;
-	if (!is_last_member_of_struct(sym, expr->member))
-		return 0;
-
-	return estate_to_size(state) - type_bytes(sym) + type_bytes(type);
+	return estate_to_size(state) - type_bytes(base_sym) + type_bytes(get_type(expr));
 }
 
 static struct range_list *alloc_int_rl(int value)
