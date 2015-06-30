@@ -258,6 +258,9 @@ struct smatch_state *clone_estate(struct smatch_state *state)
 {
 	struct smatch_state *ret;
 
+	if (!state)
+		return NULL;
+
 	ret = __alloc_smatch_state(0);
 	ret->name = state->name;
 	ret->data = clone_dinfo(get_dinfo(state));
