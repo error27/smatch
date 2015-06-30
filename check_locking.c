@@ -418,19 +418,19 @@ free:
 
 static struct smatch_state *get_start_state(struct sm_state *sm)
 {
-       int is_locked = 0;
-       int is_unlocked = 0;
+	int is_locked = 0;
+	int is_unlocked = 0;
 
-       if (in_tracker_list(starts_locked, my_id, sm->name, sm->sym))
-               is_locked = 1;
-       if (in_tracker_list(starts_unlocked, my_id, sm->name, sm->sym))
-               is_unlocked = 1;
-       if (is_locked && is_unlocked)
-               return &undefined;
-       if (is_locked)
-               return &locked;
-       if (is_unlocked)
-	       return &unlocked;
+	if (in_tracker_list(starts_locked, my_id, sm->name, sm->sym))
+		is_locked = 1;
+	if (in_tracker_list(starts_unlocked, my_id, sm->name, sm->sym))
+		is_unlocked = 1;
+	if (is_locked && is_unlocked)
+		return &undefined;
+	if (is_locked)
+		return &locked;
+	if (is_unlocked)
+		return &unlocked;
 	return &undefined;
 }
 

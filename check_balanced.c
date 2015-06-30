@@ -33,19 +33,19 @@ static struct tracker_list *starts_right;
 
 static struct smatch_state *get_start_state(struct sm_state *sm)
 {
-       int is_left = 0;
-       int is_right = 0;
+	int is_left = 0;
+	int is_right = 0;
 
-       if (in_tracker_list(starts_left, my_id, sm->name, sm->sym))
-               is_left = 1;
-       if (in_tracker_list(starts_right, my_id, sm->name, sm->sym))
-               is_right = 1;
-       if (is_left && is_right)
-               return &undefined;
-       if (is_left)
-               return &left;
-       if (is_right)
-	       return &right;
+	if (in_tracker_list(starts_left, my_id, sm->name, sm->sym))
+		is_left = 1;
+	if (in_tracker_list(starts_right, my_id, sm->name, sm->sym))
+		is_right = 1;
+	if (is_left && is_right)
+		return &undefined;
+	if (is_left)
+		return &left;
+	if (is_right)
+		return &right;
 	return &undefined;
 }
 
