@@ -51,8 +51,7 @@ static void check_dereference(struct expression *expr)
 	struct sm_state *tmp;
 
 	expr = strip_expr(expr);
-	if (getting_address())
-		return;
+
 	sm = get_sm_state_expr(my_id, expr);
 	if (!sm)
 		return;
