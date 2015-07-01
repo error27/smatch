@@ -583,6 +583,7 @@ void check_user_data(int id)
 	add_function_hook("__copy_from_user", &match_user_copy, INT_PTR(0));
 	add_function_hook("memcpy_fromiovec", &match_user_copy, INT_PTR(0));
 	add_function_assign_hook("memdup_user", &match_user_assign_function, NULL);
+	add_function_assign_hook("kmap_atomic", &match_user_assign_function, NULL);
 	add_function_hook("_kstrtoull", &match_user_copy, INT_PTR(2));
 
 	add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
