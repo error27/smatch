@@ -188,6 +188,16 @@ static int points_to_user_data(struct expression *expr)
 	char *name;
 	int ret = 0;
 
+	expr = strip_expr(expr);
+
+	if (expr->type == EXPR_BINOP && expr->op == '+') {
+		if (points_to_user_data(expr->left))
+			return 1;
+		if (points_to_user_data(expr->right))
+			return 1;
+		return 0;
+	}
+
 	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
@@ -198,6 +208,21 @@ static int points_to_user_data(struct expression *expr)
 free:
 	free_string(name);
 	return ret;
+}
+
+static void set_points_to_user_data(struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+	char buf[256];
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	snprintf(buf, sizeof(buf), "*%s", name);
+	set_state(my_id, buf, sym, alloc_estate_whole(&llong_ctype));
+free:
+	free_string(name);
 }
 
 static int is_skb_data(struct expression *expr)
@@ -273,6 +298,8 @@ static int handle_struct_assignment(struct expression *expr)
 	type = get_type(right);
 	if (!type || type->type != SYM_PTR)
 		return 0;
+
+	/* structs are handled else where */
 	type = get_real_base_type(type);
 	if (type && type->type == SYM_STRUCT)
 		return 0;
@@ -309,9 +336,11 @@ static void match_assign(struct expression *expr)
 
 	if (is_fake_call(expr->right))
 		return;
-	if (handle_struct_assignment(expr))
-		return;
 	if (handle_get_user(expr))
+		return;
+	if (points_to_user_data(expr->right))
+		set_points_to_user_data(expr->left);
+	if (handle_struct_assignment(expr))
 		return;
 
 	if (expr->right->type == EXPR_CALL ||
@@ -331,6 +360,7 @@ clear_old_state:
 static void match_user_assign_function(const char *fn, struct expression *expr, void *unused)
 {
 	tag_as_user_data(expr->left);
+	set_points_to_user_data(expr->left);
 }
 
 static int get_user_macro_rl(struct expression *expr, struct range_list **rl)
@@ -450,6 +480,7 @@ static void set_param_user_data(const char *name, struct symbol *sym, char *key,
 		struct expression *expr = symbol_expression(sym);
 
 		tag_as_user_data(expr);
+		set_points_to_user_data(expr);
 		return;
 	}
 	str_to_rl(type, value, &rl);
