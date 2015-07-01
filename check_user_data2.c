@@ -624,6 +624,7 @@ void check_user_data2(int id)
 
 	add_function_assign_hook("memdup_user", &match_user_assign_function, NULL);
 	add_function_assign_hook("kmap_atomic", &match_user_assign_function, NULL);
+	add_function_assign_hook("skb_network_header", &match_user_assign_function, NULL);
 
 	add_hook(&match_syscall_definition, AFTER_DEF_HOOK);
 
