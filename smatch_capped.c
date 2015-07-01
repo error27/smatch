@@ -206,9 +206,7 @@ static void print_return_implies_capped(int return_id, char *return_ranges, stru
 	int param;
 	sval_t sval;
 
-	FOR_EACH_SM(__get_cur_stree(), sm) {
-		if (sm->owner != my_id)
-			continue;
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (sm->state != &capped)
 			continue;
 
