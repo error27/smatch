@@ -119,4 +119,24 @@ for i in $(echo "select distinct return from return_states where function = 'cle
     echo "update return_states set return = \"$i[<=\$1]\" where return = \"$i\" and function = 'clear_user';" | sqlite3 $db_file
 done
 
+echo "select distinct file, function from function_ptr where ptr='(struct rtl_hal_ops)->set_hw_reg';" \
+        | sqlite3 smatch_db.sqlite | sed -e 's/|/ /' | while read file function ; do
+
+    drv=$(echo $file | perl -ne 's/.*\/rtlwifi\/(.*?)\/sw.c/$1/; print')
+    if [ $drv = "" ] ; then
+        continue
+    fi
+
+    echo "FILE='$file'"
+    echo "FUNCTION='$function'"
+    echo $drv
+
+    echo "update caller_info
+          set function = '$drv (struct rtl_hal_ops)->set_hw_reg'
+          where function = '(struct rtl_hal_ops)->set_hw_reg' and file like 'drivers/net/wireless/rtlwifi/$drv/%';" \
+         | sqlite3 smatch_db.sqlite
+
+    echo "insert into function_ptr values ('$file', '$function', '$drv (struct rtl_hal_ops)->set_hw_reg', 1);" \
+         | sqlite3 smatch_db.sqlite
+done
 
