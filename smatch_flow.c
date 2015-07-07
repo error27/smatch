@@ -1237,6 +1237,9 @@ static void fake_element_assigns_helper(struct expression *array, struct express
 	struct symbol *type;
 	int idx;
 
+	if (ptr_list_size((struct ptr_list *)expr_list) > 1000)
+		return;
+
 	idx = 0;
 	FOR_EACH_PTR(expr_list, tmp) {
 		if (tmp->type == EXPR_INDEX) {
