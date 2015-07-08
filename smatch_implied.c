@@ -227,10 +227,12 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 	   positives but won't hide actual bugs.
 	*/
 	if (sm_state->nr_children > 4000) {
-		static char buf[1028];
-		snprintf(buf, sizeof(buf), "debug: separate_pools: nr_children over 4000 (%d). (%s %s)",
-			 sm_state->nr_children, sm_state->name, show_state(sm_state->state));
-		implied_debug_msg = buf;
+		if (option_debug || option_debug_implied) {
+			static char buf[1028];
+			snprintf(buf, sizeof(buf), "debug: separate_pools: nr_children over 4000 (%d). (%s %s)",
+				 sm_state->nr_children, sm_state->name, show_state(sm_state->state));
+			implied_debug_msg = buf;
+		}
 		return;
 	}
 
@@ -264,10 +266,12 @@ struct sm_state *filter_pools(struct sm_state *sm,
 		return NULL;
 
 	if (sm->nr_children > 4000) {
-		static char buf[1028];
-		snprintf(buf, sizeof(buf), "debug: %s: nr_children over 4000 (%d). (%s %s)",
-			 __func__, sm->nr_children, sm->name, show_state(sm->state));
-		implied_debug_msg = buf;
+		if (option_debug || option_debug_implied) {
+			static char buf[1028];
+			snprintf(buf, sizeof(buf), "debug: %s: nr_children over 4000 (%d). (%s %s)",
+				 __func__, sm->nr_children, sm->name, show_state(sm->state));
+			implied_debug_msg = buf;
+		}
 		return NULL;
 	}
 
