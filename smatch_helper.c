@@ -362,6 +362,61 @@ struct symbol *expr_to_sym(struct expression *expr)
 	return sym;
 }
 
+char *expr_to_chunk_sym(struct expression *expr, struct symbol **sym)
+{
+	char *name, *left_name, *right_name;
+	struct symbol *tmp, *left_sym, *right_sym;
+	char buf[128];
+
+	expr = strip_parens(expr);
+	if (!expr)
+		return NULL;
+	if (sym)
+		*sym = NULL;
+
+	name = expr_to_var_sym(expr, &tmp);
+	if (name && tmp) {
+		if (sym)
+			*sym = tmp;
+		return name;
+	}
+	free_string(name);
+
+	if (expr->type != EXPR_BINOP)
+		return NULL;
+	if (expr->op != '-' && expr->op != '+')
+		return NULL;
+
+	left_name = expr_to_var_sym(expr->left, &left_sym);
+	if (!left_name || !left_sym)
+		return NULL;
+	right_name = expr_to_var_sym(expr->right, &right_sym);
+	if (!right_name || !right_sym) {
+		free_string(left_name);
+		return NULL;
+	}
+
+	if (expr->op == '+') {
+		if (strcmp(left_name, right_name) > 0) {
+			char *tmp_name;
+
+			tmp = left_sym;
+			left_sym = right_sym;
+			right_sym = tmp;
+
+			tmp_name = left_name;
+			left_name = right_name;
+			right_name = tmp_name;
+		}
+	}
+
+	snprintf(buf, sizeof(buf), "%s %s %s", left_name, show_special(expr->op), right_name);
+	*sym = left_sym;
+	free_string(left_name);
+	free_string(right_name);
+	return alloc_string(buf);
+}
+
 int sym_name_is(const char *name, struct expression *expr)
 {
 	if (!expr)

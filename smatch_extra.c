@@ -32,6 +32,7 @@
 #include "smatch_extra.h"
 
 static int my_id;
+static int link_id;
 
 struct string_list *__ignored_macros = NULL;
 static int in_warn_on_macro(void)
@@ -243,6 +244,40 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 	} END_FOR_EACH_PTR(rel);
 }
 
+static void set_extra_chunk_true_false(struct expression *expr,
+				       struct smatch_state *true_state,
+				       struct smatch_state *false_state)
+{
+	struct var_sym_list *vsl;
+	struct var_sym *vs;
+	struct symbol *type;
+	char *name;
+	struct symbol *sym;
+
+	if (in_warn_on_macro())
+		return;
+
+	type = get_type(expr);
+	if (!type)
+		return;
+
+	name = expr_to_chunk_sym(expr, &sym);
+	if (!name)
+		return;
+	vsl = expr_to_vsl(expr);
+	if (!vsl)
+		goto free;
+	FOR_EACH_PTR(vsl, vs) {
+		store_link(link_id, vs->var, vs->sym, name, sym);
+	} END_FOR_EACH_PTR(vs);
+
+	set_true_false_states(SMATCH_EXTRA, name, sym,
+			      clone_estate(true_state),
+			      clone_estate(false_state));
+free:
+	free_string(name);
+}
+
 static void set_extra_expr_true_false(struct expression *expr,
 		struct smatch_state *true_state,
 		struct smatch_state *false_state)
@@ -252,10 +287,12 @@ static void set_extra_expr_true_false(struct expression *expr,
 
 	expr = strip_expr(expr);
 	name = expr_to_var_sym(expr, &sym);
-	if (!name || !sym)
-		goto free;
+	if (!name || !sym) {
+		free_string(name);
+		set_extra_chunk_true_false(expr, true_state, false_state);
+		return;
+	}
 	set_extra_true_false(name, sym, true_state, false_state);
-free:
 	free_string(name);
 }
 
@@ -573,6 +610,42 @@ static int types_equiv_or_pointer(struct symbol *one, struct symbol *two)
 	return types_equiv(one, two);
 }
 
+static void save_chunk_info(struct expression *left, struct expression *right)
+{
+	struct var_sym_list *vsl;
+	struct var_sym *vs;
+	struct expression *add_expr;
+	struct symbol *type;
+	sval_t sval;
+	char *name;
+	struct symbol *sym;
+
+	if (right->type != EXPR_BINOP || right->op != '-')
+		return;
+	if (!get_value(right->left, &sval))
+		return;
+	if (!expr_to_sym(right->right))
+		return;
+
+	add_expr = binop_expression(left, '+', right->right);
+	type = get_type(add_expr);
+	if (!type)
+		return;
+	name = expr_to_chunk_sym(add_expr, &sym);
+	if (!name)
+		return;
+	vsl = expr_to_vsl(add_expr);
+	if (!vsl)
+		goto free;
+	FOR_EACH_PTR(vsl, vs) {
+		store_link(link_id, vs->var, vs->sym, name, sym);
+	} END_FOR_EACH_PTR(vs);
+
+	set_state(SMATCH_EXTRA, name, sym, alloc_estate_sval(sval_cast(type, sval)));
+free:
+	free_string(name);
+}
+
 static void match_vanilla_assign(struct expression *left, struct expression *right)
 {
 	struct range_list *rl = NULL;
@@ -587,6 +660,8 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 
 	if (is_struct(left))
 		return;
+
+	save_chunk_info(left, right);
 
 	name = expr_to_var_sym(left, &sym);
 	if (!name)
@@ -1828,7 +1903,7 @@ struct smatch_state *get_extra_state(struct expression *expr)
 	if (is_pointer(expr) && get_address_rl(expr, &rl))
 		return alloc_estate_rl(rl);
 
-	name = expr_to_var_sym(expr, &sym);
+	name = expr_to_chunk_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 
@@ -1855,8 +1930,32 @@ void register_smatch_extra(int id)
 	select_return_states_after(&db_limited_after);
 }
 
+static void match_link_modify(struct sm_state *sm, struct expression *mod_expr)
+{
+	struct var_sym_list *links;
+	struct var_sym *tmp;
+	struct smatch_state *state;
+
+	links = sm->state->data;
+
+	FOR_EACH_PTR(links, tmp) {
+		state = get_state(SMATCH_EXTRA, tmp->var, tmp->sym);
+		if (!state)
+			continue;
+		set_state(SMATCH_EXTRA, tmp->var, tmp->sym, alloc_estate_whole(estate_type(state)));
+	} END_FOR_EACH_PTR(tmp);
+	set_state(link_id, sm->name, sm->sym, &undefined);
+}
+
+void register_smatch_extra_links(int id)
+{
+	link_id = id;
+}
+
 void register_smatch_extra_late(int id)
 {
+	add_merge_hook(link_id, &merge_link_states);
+	add_modification_hook(link_id, &match_link_modify);
 	add_hook(&match_dereferences, DEREF_HOOK);
 	add_hook(&match_pointer_as_array, OP_HOOK);
 	select_call_implies_hook(DEREFERENCE, &set_param_dereferenced);

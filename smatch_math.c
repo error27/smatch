@@ -468,6 +468,7 @@ static struct range_list *handle_implied_binop(struct range_list *left_rl, int o
 
 static struct range_list *handle_binop_rl(struct expression *expr, int implied, int *recurse_cnt)
 {
+	struct smatch_state *state;
 	struct symbol *type;
 	struct range_list *left_rl, *right_rl, *rl;
 	sval_t min, max;
@@ -477,6 +478,10 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied, 
 		return rl;
 	if (implied == RL_EXACT)
 		return NULL;
+
+	state = get_extra_state(expr);
+	if (state && !is_whole_rl(estate_rl(state)))
+		return clone_rl(estate_rl(state));
 
 	type = get_type(expr);
 	left_rl = _get_rl(expr->left, implied, recurse_cnt);

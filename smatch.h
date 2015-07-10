@@ -277,6 +277,7 @@ char *expr_to_str_sym(struct expression *expr,
 				     struct symbol **sym_ptr);
 char *expr_to_var_sym(struct expression *expr,
 			     struct symbol **sym_ptr);
+char *expr_to_chunk_sym(struct expression *expr, struct symbol **sym);
 
 int sym_name_is(const char *name, struct expression *expr);
 int get_const_value(struct expression *expr, sval_t *sval);
