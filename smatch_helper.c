@@ -362,11 +362,14 @@ struct symbol *expr_to_sym(struct expression *expr)
 	return sym;
 }
 
-char *expr_to_chunk_sym(struct expression *expr, struct symbol **sym)
+char *expr_to_chunk_helper(struct expression *expr, struct symbol **sym, struct var_sym_list **vsl)
 {
 	char *name, *left_name, *right_name;
 	struct symbol *tmp, *left_sym, *right_sym;
 	char buf[128];
+
+	if (vsl)
+		*vsl = NULL;
 
 	expr = strip_parens(expr);
 	if (!expr)
@@ -378,6 +381,8 @@ char *expr_to_chunk_sym(struct expression *expr, struct symbol **sym)
 	if (name && tmp) {
 		if (sym)
 			*sym = tmp;
+		if (vsl)
+			*vsl = expr_to_vsl(expr);
 		return name;
 	}
 	free_string(name);
@@ -386,6 +391,12 @@ char *expr_to_chunk_sym(struct expression *expr, struct symbol **sym)
 		return NULL;
 	if (expr->op != '-' && expr->op != '+')
 		return NULL;
+
+	if (vsl) {
+		*vsl = expr_to_vsl(expr);
+		if (!*vsl)
+			return NULL;
+	}
 
 	left_name = expr_to_var_sym(expr->left, &left_sym);
 	if (!left_name || !left_sym)
@@ -415,6 +426,16 @@ char *expr_to_chunk_sym(struct expression *expr, struct symbol **sym)
 	free_string(left_name);
 	free_string(right_name);
 	return alloc_string(buf);
+}
+
+char *expr_to_known_chunk_sym(struct expression *expr, struct symbol **sym)
+{
+	return expr_to_chunk_helper(expr, sym, NULL);
+}
+
+char *expr_to_chunk_sym_vsl(struct expression *expr, struct symbol **sym, struct var_sym_list **vsl)
+{
+	return expr_to_chunk_helper(expr, sym, vsl);
 }
 
 int sym_name_is(const char *name, struct expression *expr)

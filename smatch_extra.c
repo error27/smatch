@@ -261,11 +261,8 @@ static void set_extra_chunk_true_false(struct expression *expr,
 	if (!type)
 		return;
 
-	name = expr_to_chunk_sym(expr, &sym);
-	if (!name)
-		return;
-	vsl = expr_to_vsl(expr);
-	if (!vsl)
+	name = expr_to_chunk_sym_vsl(expr, &sym, &vsl);
+	if (!name || !vsl)
 		goto free;
 	FOR_EACH_PTR(vsl, vs) {
 		store_link(link_id, vs->var, vs->sym, name, sym);
@@ -631,11 +628,8 @@ static void save_chunk_info(struct expression *left, struct expression *right)
 	type = get_type(add_expr);
 	if (!type)
 		return;
-	name = expr_to_chunk_sym(add_expr, &sym);
-	if (!name)
-		return;
-	vsl = expr_to_vsl(add_expr);
-	if (!vsl)
+	name = expr_to_chunk_sym_vsl(add_expr, &sym, &vsl);
+	if (!name || !vsl)
 		goto free;
 	FOR_EACH_PTR(vsl, vs) {
 		store_link(link_id, vs->var, vs->sym, name, sym);
@@ -1903,7 +1897,7 @@ struct smatch_state *get_extra_state(struct expression *expr)
 	if (is_pointer(expr) && get_address_rl(expr, &rl))
 		return alloc_estate_rl(rl);
 
-	name = expr_to_chunk_sym(expr, &sym);
+	name = expr_to_known_chunk_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 
