@@ -121,22 +121,6 @@ static struct smatch_state *alloc_state(struct expression *expr, int is_true)
 	return state;
 }
 
-static int is_local_variable(struct expression *expr)
-{
-	struct symbol *sym;
-	char *name;
-
-	name = expr_to_var_sym(expr, &sym);
-	free_string(name);
-	if (!sym || !sym->scope || !sym->scope->token)
-		return 0;
-	if (cmp_pos(sym->scope->token->pos, cur_func_sym->pos) < 0)
-		return 0;
-	if (is_static(expr))
-		return 0;
-	return 1;
-}
-
 static void store_all_links(struct expression *expr, const char *condition)
 {
 	char *var;
