@@ -403,9 +403,8 @@ int get_complication_score(struct expression *expr)
 
 char *expr_to_chunk_helper(struct expression *expr, struct symbol **sym, struct var_sym_list **vsl)
 {
-	char *name, *left_name, *right_name;
-	struct symbol *tmp, *left_sym, *right_sym;
-	char buf[128];
+	char *name;
+	struct symbol *tmp;
 
 	if (vsl)
 		*vsl = NULL;
@@ -426,9 +425,7 @@ char *expr_to_chunk_helper(struct expression *expr, struct symbol **sym, struct 
 	}
 	free_string(name);
 
-	if (expr->type != EXPR_BINOP)
-		return NULL;
-	if (expr->op != '-' && expr->op != '+')
+	if (get_complication_score(expr) > 2)
 		return NULL;
 
 	if (vsl) {
@@ -437,34 +434,7 @@ char *expr_to_chunk_helper(struct expression *expr, struct symbol **sym, struct 
 			return NULL;
 	}
 
-	left_name = expr_to_var_sym(expr->left, &left_sym);
-	if (!left_name || !left_sym)
-		return NULL;
-	right_name = expr_to_var_sym(expr->right, &right_sym);
-	if (!right_name || !right_sym) {
-		free_string(left_name);
-		return NULL;
-	}
-
-	if (expr->op == '+') {
-		if (strcmp(left_name, right_name) > 0) {
-			char *tmp_name;
-
-			tmp = left_sym;
-			left_sym = right_sym;
-			right_sym = tmp;
-
-			tmp_name = left_name;
-			left_name = right_name;
-			right_name = tmp_name;
-		}
-	}
-
-	snprintf(buf, sizeof(buf), "%s %s %s", left_name, show_special(expr->op), right_name);
-	*sym = left_sym;
-	free_string(left_name);
-	free_string(right_name);
-	return alloc_string(buf);
+	return expr_to_str(expr);
 }
 
 char *expr_to_known_chunk_sym(struct expression *expr, struct symbol **sym)

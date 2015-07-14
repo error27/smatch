@@ -1,9 +1,6 @@
 #include "check_debug.h"
 
-unsigned long nsec;
-unsigned long count;
-
-static void perf_calculate_period(void)
+static void perf_calculate_period(unsigned long nsec, unsigned long count)
 {
 	if (nsec + count > 64)
 		return;
@@ -19,7 +16,7 @@ static void perf_calculate_period(void)
  * check-command: smatch -I.. sm_chunk1.c
  *
  * check-output-start
-sm_chunk1.c:11 perf_calculate_period() implied: nsec + count = '0-64'
-sm_chunk1.c:13 perf_calculate_period() implied: nsec + count = ''
+sm_chunk1.c:8 perf_calculate_period() implied: nsec + count = '0-64'
+sm_chunk1.c:10 perf_calculate_period() implied: nsec + count = ''
  * check-output-end
  */
