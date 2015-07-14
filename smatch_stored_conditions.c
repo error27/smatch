@@ -146,44 +146,6 @@ free:
 	free_string(var);
 }
 
-static int get_complication_score(struct expression *expr)
-{
-	int score = 0;
-
-	expr = strip_expr(expr);
-
-	/*
-	 * Don't forget to keep get_complication_score() and store_all_links()
-	 * in sync.
-	 *
-	 */
-
-	switch (expr->type) {
-	case EXPR_CALL:
-		return 999;
-	case EXPR_COMPARE:
-	case EXPR_BINOP:
-		score += get_complication_score(expr->left);
-		score += get_complication_score(expr->right);
-		return score;
-	case EXPR_SYMBOL:
-		if (is_local_variable(expr))
-			return 1;
-		return 999;
-	case EXPR_VALUE:
-		return 0;
-#if 0
-	case EXPR_PREOP:
-		if (expr->op == SPECIAL_INCREMENT ||
-		    expr->op == SPECIAL_DECREMENT)
-			return 999;
-		return get_complication_score(expr->unop);
-#endif
-	default:
-		return 999;
-	}
-}
-
 static int condition_too_complicated(struct expression *expr)
 {
 	if (get_complication_score(expr) > 2)
