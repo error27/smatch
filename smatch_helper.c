@@ -386,15 +386,16 @@ int get_complication_score(struct expression *expr)
 		if (is_local_variable(expr))
 			return 1;
 		return 999;
+	case EXPR_PREOP:
+		if (expr->op == '*')
+			return score + get_complication_score(expr->unop);
+		else
+			return 999;
+		break;
+	case EXPR_DEREF:
+		return score + get_complication_score(expr->deref);
 	case EXPR_VALUE:
 		return 0;
-#if 0
-	case EXPR_PREOP:
-		if (expr->op == SPECIAL_INCREMENT ||
-		    expr->op == SPECIAL_DECREMENT)
-			return 999;
-		return get_complication_score(expr->unop);
-#endif
 	default:
 		return 999;
 	}
