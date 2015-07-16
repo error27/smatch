@@ -537,7 +537,7 @@ void add_range(struct range_list **list, sval_t min, sval_t max)
 		if (check_next) {
 			/* Sometimes we overlap with more than one range
 			   so we have to delete or modify the next range. */
-			if (max.value + 1 == tmp->min.value) {
+			if (!sval_is_max(max) && max.value + 1 == tmp->min.value) {
 				/* join 2 ranges here */
 				new->max = tmp->max;
 				DELETE_CURRENT_PTR(tmp);
