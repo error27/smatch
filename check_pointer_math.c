@@ -32,18 +32,18 @@ static int is_sizeof(struct expression *expr)
 	return (expr->type == EXPR_SIZEOF);
 }
 
-static int is_align(struct expression *expr)
+static int is_macro(struct expression *expr, const char *macro_name)
 {
 	char *name;
 	struct expression *outside_expr;
 
-	/* check that we aren't inside the ALIGN() macro itself */
+	/* check that we aren't inside the macro itself */
 	outside_expr = last_ptr_list((struct ptr_list *)big_expression_stack);
 	if (outside_expr && positions_eq(expr->pos, outside_expr->pos))
 		return 0;
 
 	name = get_macro_name(expr->pos);
-	if (name && strcmp(name, "ALIGN") == 0)
+	if (name && strcmp(name, macro_name) == 0)
 		return 1;
 	return 0;
 }
@@ -53,7 +53,9 @@ static int is_size_in_bytes(struct expression *expr)
 	if (is_sizeof(expr))
 		return 1;
 
-	if (is_align(expr))
+	if (is_macro(expr, "offsetof"))
+		return 1;
+	if (is_macro(expr, "PAGE_SIZE"))
 		return 1;
 
 	if (get_state_expr(my_id, expr) == &size_in_bytes)
