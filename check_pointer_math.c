@@ -66,6 +66,7 @@ static void match_binop(struct expression *expr)
 {
 	struct symbol *type;
 	char *name;
+	int size;
 
 	if (expr->op != '+')
 		return;
@@ -76,6 +77,16 @@ static void match_binop(struct expression *expr)
 		return;
 	if (!is_size_in_bytes(expr->right))
 		return;
+
+	/* if we know it's within bounds then don't complain */
+	size = get_array_size(expr->left);
+	if (size) {
+		sval_t max;
+
+		get_absolute_max(expr->right, &max);
+		if (max.uvalue < size)
+			return;
+	}
 
 	name = expr_to_str(expr->left);
 	sm_msg("warn: potential pointer math issue ('%s' is a %d bit pointer)",
