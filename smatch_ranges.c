@@ -547,13 +547,14 @@ void add_range(struct range_list **list, sval_t min, sval_t max)
 			/* Doesn't overlap with the next one. */
 			if (sval_cmp(max, tmp->min) < 0)
 				return;
-			/* Partially overlaps with the next one. */
-			if (sval_cmp(max, tmp->max) < 0) {
-				tmp->min.value = max.value + 1;
+
+			if (sval_cmp(max, tmp->max) <= 0) {
+				/* Partially overlaps the next one. */
+				new->max = tmp->max;
+				DELETE_CURRENT_PTR(tmp);
 				return;
-			}
-			/* Completely overlaps with the next one. */
-			if (sval_cmp(max, tmp->max) >= 0) {
+			} else {
+				/* Completely overlaps the next one. */
 				DELETE_CURRENT_PTR(tmp);
 				/* there could be more ranges to delete */
 				continue;
