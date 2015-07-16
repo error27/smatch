@@ -98,6 +98,9 @@ static void check_assign(struct expression *expr)
 	struct symbol *type;
 	char *name;
 
+	if (expr->op != SPECIAL_ADD_ASSIGN && expr->op != SPECIAL_SUB_ASSIGN)
+		return;
+
 	type = get_pointer_type(expr->left);
 	if (!type)
 		return;
