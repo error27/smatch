@@ -97,6 +97,8 @@ static inline void *last_ptr_list(struct ptr_list *list)
 			} else {							\
 				__list = __list->next;					\
 				ptr = NULL;						\
+				while (__list->nr == 0 && __list != __head)		\
+					__list = __list->next;				\
 				if (__list != __head) {					\
 					__nr = 0;					\
 					ptr = PTR_ENTRY(__list,0);			\
