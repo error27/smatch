@@ -37,6 +37,9 @@ static void match_dereference(struct expression *expr)
 	if (implied_not_equal(expr, 0))
 		return;
 
+	if (is_impossible_path())
+		return;
+
 	set_state_expr(my_id, expr, &derefed);
 }
 
