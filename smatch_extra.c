@@ -1898,7 +1898,7 @@ struct smatch_state *get_extra_state(struct expression *expr)
 		return alloc_estate_rl(rl);
 
 	name = expr_to_known_chunk_sym(expr, &sym);
-	if (!name || !sym)
+	if (!name)
 		goto free;
 
 	ret = get_state(SMATCH_EXTRA, name, sym);
