@@ -1,12 +1,12 @@
-//#include <stdlib.h>
+#include "check_debug.h"
 
 struct foo {
 	int a;
 };
 
-struct foo a;
-struct foo b;
-struct foo c;
+struct foo *a;
+struct foo *b;
+struct foo *c;
 struct foo *d;
 
 static void func (void)
@@ -50,7 +50,7 @@ static void func (void)
 }
 /*
  * check-name: Null Dereferences
- * check-command: smatch --spammy sm_null_deref.c
+ * check-command: smatch --spammy -I.. sm_null_deref.c
  *
  * check-output-start
 sm_null_deref.c:18 func() error: potentially dereferencing uninitialized 'aa'.
