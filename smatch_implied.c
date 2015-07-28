@@ -582,6 +582,17 @@ static void set_implied_states(struct expression *expr)
 	struct sm_state *sm;
 
 	FOR_EACH_SM(saved_implied_true, sm) {
+		/*
+		 * Setting the true sm means setting the cur_stree.  If we are
+		 * not also setting the false_stree then it causes problems.
+		 */
+		if (!get_state_stree(saved_implied_false, sm->owner, sm->name, sm->sym)) {
+			struct sm_state *orig;
+
+			orig = get_sm_state(sm->owner, sm->name, sm->sym);
+			if (orig)
+				set_state_stree(&saved_implied_false, sm->owner, sm->name, sm->sym, orig->state);
+		}
 		__set_true_false_sm(sm, NULL);
 	} END_FOR_EACH_SM(sm);
 	free_stree(&saved_implied_true);
