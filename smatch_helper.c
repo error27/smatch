@@ -389,9 +389,7 @@ int get_complication_score(struct expression *expr)
 	case EXPR_PREOP:
 		if (expr->op == '*')
 			return score + get_complication_score(expr->unop);
-		else
-			return 999;
-		break;
+		return 999;
 	case EXPR_DEREF:
 		return score + get_complication_score(expr->deref);
 	case EXPR_VALUE:
