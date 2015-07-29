@@ -677,6 +677,12 @@ static int type_str_helper(char *buf, int size, struct symbol *type)
 		if (n > size)
 			return n;
 		return n + snprintf(buf + n, size - n, "*");
+	} else if (type->type == SYM_ARRAY) {
+		type = get_real_base_type(type);
+		n = type_str_helper(buf, size, type);
+		if (n > size)
+			return n;
+		return n + snprintf(buf + n, size - n, "[]");
 	} else if (type->type == SYM_STRUCT) {
 		return snprintf(buf, size, "struct %s", type->ident ? type->ident->name : "");
 	} else if (type->type == SYM_UNION) {
