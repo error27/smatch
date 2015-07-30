@@ -577,7 +577,6 @@ static struct symbol *get_member_from_string(struct symbol_list *symbol_list, ch
 struct symbol *get_member_type_from_key(struct expression *expr, char *key)
 {
 	struct symbol *sym;
-	char *name;
 
 	if (strcmp(key, "$") == 0)
 		return get_type(expr);
@@ -589,11 +588,9 @@ struct symbol *get_member_type_from_key(struct expression *expr, char *key)
 		return get_real_base_type(sym);
 	}
 
-	name = expr_to_str_sym(expr, &sym);
-	free_string(name);
+	sym = get_type(expr);
 	if (!sym)
 		return NULL;
-	sym = get_real_base_type(sym);
 	if (sym->type == SYM_PTR)
 		sym = get_real_base_type(sym);
 
