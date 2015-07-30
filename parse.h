@@ -47,6 +47,7 @@ enum statement_type {
 struct statement {
 	enum statement_type type;
 	struct position pos;
+	struct statement *parent;
 	union {
 		struct /* declaration */ {
 			struct symbol_list *declaration;

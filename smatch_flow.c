@@ -145,6 +145,13 @@ static void set_parent(struct expression *expr, struct expression *parent)
 	expr->parent = parent;
 }
 
+static void set_parent_stmt(struct statement *stmt, struct statement *parent)
+{
+	if (!stmt)
+		return;
+	stmt->parent = parent;
+}
+
 int is_assigned_call(struct expression *expr)
 {
 	struct expression *tmp;
@@ -811,6 +818,9 @@ static void split_compound(struct statement *stmt)
 	__push_scope_hooks();
 
 	FOR_EACH_PTR(stmt->stmts, next) {
+		/* just set them all ahead of time */
+		set_parent_stmt(next, stmt);
+
 		if (cur) {
 			__prev_stmt = prev;
 			__next_stmt = next;
@@ -871,6 +881,9 @@ void __split_stmt(struct statement *stmt)
 		split_compound(stmt);
 		break;
 	case STMT_IF:
+		set_parent_stmt(stmt->if_true, stmt);
+		set_parent_stmt(stmt->if_false, stmt);
+
 		if (known_condition_true(stmt->if_conditional)) {
 			__split_stmt(stmt->if_true);
 			break;
@@ -903,6 +916,10 @@ void __split_stmt(struct statement *stmt)
 		__merge_true_states();
 		break;
 	case STMT_ITERATOR:
+		set_parent_stmt(stmt->iterator_pre_statement, stmt);
+		set_parent_stmt(stmt->iterator_statement, stmt);
+		set_parent_stmt(stmt->iterator_post_statement, stmt);
+
 		if (stmt->iterator_pre_condition)
 			handle_pre_loop(stmt);
 		else if (stmt->iterator_post_condition)
@@ -913,6 +930,8 @@ void __split_stmt(struct statement *stmt)
 		}
 		break;
 	case STMT_SWITCH:
+		set_parent_stmt(stmt->switch_statement, stmt);
+
 		if (get_value(stmt->switch_expression, &sval)) {
 			split_known_switch(stmt, sval);
 			break;
