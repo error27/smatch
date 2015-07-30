@@ -47,6 +47,11 @@ insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000
 insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000[<=\$3]', 0, 103, 3,  '\$', '0-1000000000');
 insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)',     0, 0,   -1,      '', '');
 
+delete from return_states where function = 'is_kernel_rodata';
+insert into return_states values ('faked', 'is_kernel_rodata', 0, 1, '1', 0, 0,   -1,  '', '');
+insert into return_states values ('faked', 'is_kernel_rodata', 0, 1, '1', 0, 103,  0,  '\$', '100000000-177777777');
+insert into return_states values ('faked', 'is_kernel_rodata', 0, 2, '0', 0, 0,   -1,  '', '');
+
 /*
  * I am a bad person for doing this to __kmalloc() which is a very deep function
  * and can easily be removed instead of to kmalloc().  But kmalloc() is an
@@ -61,6 +66,13 @@ insert into return_states values ('faked', '__kmalloc', 0, 2, '0,500000000-57777
 insert into return_states values ('faked', '__kmalloc', 0, 2, '0,500000000-577777777', 0, 103,  0, '\$', '1-4000000');
 insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    0,  -1, '', '');
 insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    103,  0, '\$', '4000000-long_max');
+
+/*
+ * Other kmalloc hacking.
+ */
+update return_states set return = '0,500000000-577777777' where function = 'kmalloc_slab' and return = 's64min-s64max';
+update return_states set return = '0,500000000-577777777' where function = 'slab_alloc_node' and return = 's64min-s64max';
+update return_states set return = '0,500000000-577777777' where function = 'kmalloc_large' and return != '0';
 
 delete from return_states where function = 'vmalloc';
 insert into return_states values ('faked', 'vmalloc', 0, 1, '0,600000000-677777777', 0,    0, -1, '', '');
