@@ -283,6 +283,10 @@ static void set_extra_expr_true_false(struct expression *expr,
 {
 	char *name;
 	struct symbol *sym;
+	sval_t sval;
+
+	if (get_value(expr, &sval))
+		return;
 
 	expr = strip_expr(expr);
 	name = expr_to_var_sym(expr, &sym);
