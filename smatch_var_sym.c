@@ -39,6 +39,9 @@ struct var_sym_list *expr_to_vsl(struct expression *expr)
 	if (!expr)
 		return NULL;
 
+	if (expr->type == EXPR_PREOP && expr->op == '*')
+		return expr_to_vsl(expr->unop);
+
 	if (expr->type == EXPR_BINOP ||
 	    expr->type == EXPR_LOGICAL ||
 	    expr->type == EXPR_COMPARE) {

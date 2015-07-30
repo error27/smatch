@@ -34,6 +34,8 @@
 static int my_id;
 static int link_id;
 
+static void match_link_modify(struct sm_state *sm, struct expression *mod_expr);
+
 struct string_list *__ignored_macros = NULL;
 static int in_warn_on_macro(void)
 {
@@ -640,6 +642,42 @@ free:
 	free_string(name);
 }
 
+static void do_array_assign(struct expression *left, int op, struct expression *right)
+{
+	struct expression *array;
+	struct expression *offset;
+	struct var_sym_list *vsl;
+	struct var_sym *vs;
+	char *name;
+	struct symbol *sym;
+	struct range_list *rl;
+	sval_t sval;
+
+	array = get_array_base(left);
+	offset = get_array_offset(left);
+	get_absolute_rl(right, &rl);
+	rl = cast_rl(get_type(left), rl);
+
+	name = expr_to_chunk_sym_vsl(left, &sym, &vsl);
+
+	if (!name || !vsl || op != '=' || !get_value(offset, &sval) || is_whole_rl(rl)) {
+		struct sm_state *sm;
+
+		sm = get_sm_state_expr(link_id, array);
+		if (sm)
+			match_link_modify(sm, NULL);
+		goto free;
+	}
+
+	FOR_EACH_PTR(vsl, vs) {
+		store_link(link_id, vs->var, vs->sym, name, sym);
+	} END_FOR_EACH_PTR(vs);
+
+	set_state(SMATCH_EXTRA, name, sym, alloc_estate_rl(rl));
+free:
+	free_string(name);
+}
+
 static void match_vanilla_assign(struct expression *left, struct expression *right)
 {
 	struct range_list *rl = NULL;
@@ -658,8 +696,11 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	save_chunk_info(left, right);
 
 	name = expr_to_var_sym(left, &sym);
-	if (!name)
+	if (!name) {
+		if (is_array(left))
+			do_array_assign(left, '=', right);
 		return;
+	}
 
 	left_type = get_type(left);
 	right_type = get_type(right);
@@ -1406,8 +1447,6 @@ static void handle_AND_condition(struct expression *expr)
 /* this is actually hooked from smatch_implied.c...  it's hacky, yes */
 void __extra_match_condition(struct expression *expr)
 {
-	struct symbol *sym;
-	char *name;
 	struct smatch_state *pre_state;
 	struct smatch_state *true_state;
 	struct smatch_state *false_state;
@@ -1425,17 +1464,13 @@ void __extra_match_condition(struct expression *expr)
 		zero = sval_blank(expr);
 		zero.value = 0;
 
-		name = expr_to_var_sym(expr, &sym);
-		if (!name)
-			return;
-		pre_state = get_state(my_id, name, sym);
+		pre_state = get_extra_state(expr);
 		true_state = estate_filter_sval(pre_state, zero);
 		if (possibly_true(expr, SPECIAL_EQUAL, zero_expr()))
 			false_state = alloc_estate_sval(zero);
 		else
 			false_state = alloc_estate_empty();
-		set_extra_true_false(name, sym, true_state, false_state);
-		free_string(name);
+		set_extra_expr_true_false(expr, true_state, false_state);
 		return;
 	}
 	case EXPR_COMPARE:
