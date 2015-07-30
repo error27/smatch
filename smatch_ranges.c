@@ -47,6 +47,72 @@ char *show_rl(struct range_list *list)
 	return alloc_sname(full);
 }
 
+static int sval_too_big(struct symbol *type, sval_t sval)
+{
+	if (type_bits(type) == 64)
+		return 0;
+	if (sval.uvalue > ((1ULL << type_bits(type)) - 1))
+		return 1;
+	return 0;
+}
+
+static void add_range_t(struct symbol *type, struct range_list **rl, sval_t min, sval_t max)
+{
+	/* If we're just adding a number, cast it and add it */
+	if (sval_cmp(min, max) == 0) {
+		add_range(rl, sval_cast(type, min), sval_cast(type, max));
+		return;
+	}
+
+	/* If the range is within the type range then add it */
+	if (sval_fits(type, min) && sval_fits(type, max)) {
+		add_range(rl, sval_cast(type, min), sval_cast(type, max));
+		return;
+	}
+
+	/*
+	 * If the range we are adding has more bits than the range type then
+	 * add the whole range type.  Eg:
+	 * 0x8000000000000000 - 0xf000000000000000 -> cast to int
+	 * This isn't totally the right thing to do.  We could be more granular.
+	 */
+	if (sval_too_big(type, min) || sval_too_big(type, max)) {
+		add_range(rl, sval_type_min(type), sval_type_max(type));
+		return;
+	}
+
+	/* Cast negative values to high positive values */
+	if (sval_is_negative(min) && type_unsigned(type)) {
+		if (sval_is_positive(max)) {
+			if (sval_too_high(type, max)) {
+				add_range(rl, sval_type_min(type), sval_type_max(type));
+				return;
+			}
+			add_range(rl, sval_type_val(type, 0), sval_cast(type, max));
+			max = sval_type_max(type);
+		} else {
+			max = sval_cast(type, max);
+		}
+		min = sval_cast(type, min);
+		add_range(rl, min, max);
+	}
+
+	/* Cast high positive numbers to negative */
+	if (sval_unsigned(max) && sval_is_negative(sval_cast(type, max))) {
+		if (!sval_is_negative(sval_cast(type, min))) {
+			add_range(rl, sval_cast(type, min), sval_type_max(type));
+			min = sval_type_min(type);
+		} else {
+			min = sval_cast(type, min);
+		}
+		max = sval_cast(type, max);
+		add_range(rl, min, max);
+	}
+
+	add_range(rl, min, max);
+	return;
+}
+
 static int str_to_comparison_arg_helper(const char *str,
 		struct expression *call, int *comparison,
 		struct expression **arg, char **endp)
@@ -327,11 +393,11 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		if (*c == ')')
 			c++;
 		if (*c == '\0' || *c == '[') {
-			add_range(&rl_tmp, min, min);
+			add_range_t(type, &rl_tmp, min, min);
 			break;
 		}
 		if (*c == ',') {
-			add_range(&rl_tmp, min, min);
+			add_range_t(type, &rl_tmp, min, min);
 			c++;
 			continue;
 		}
@@ -343,7 +409,7 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		if (*c == '(')
 			c++;
 		max = parse_val(1, call, type, c, &c);
-		add_range(&rl_tmp, min, max);
+		add_range_t(type, &rl_tmp, min, max);
 		if (*c == ')')
 			c++;
 		if (*c == ',')
@@ -527,6 +593,11 @@ void add_range(struct range_list **list, sval_t min, sval_t max)
 	struct data_range *tmp = NULL;
 	struct data_range *new = NULL;
 	int check_next = 0;
+
+	if (sval_cmp(min, max) > 0) {
+		min = sval_type_min(min.type);
+		max = sval_type_max(min.type);
+	}
 
 	/*
 	 * FIXME:  This has a problem merging a range_list like: min-0,3-max
@@ -970,72 +1041,6 @@ void filter_top_rl(struct range_list_stack **rl_stack, sval_t sval)
 	rl = pop_rl(rl_stack);
 	rl = remove_range(rl, sval, sval);
 	push_rl(rl_stack, rl);
-}
-
-static int sval_too_big(struct symbol *type, sval_t sval)
-{
-	if (type_bits(type) == 64)
-		return 0;
-	if (sval.uvalue > ((1ULL << type_bits(type)) - 1))
-		return 1;
-	return 0;
-}
-
-static void add_range_t(struct symbol *type, struct range_list **rl, sval_t min, sval_t max)
-{
-	/* If we're just adding a number, cast it and add it */
-	if (sval_cmp(min, max) == 0) {
-		add_range(rl, sval_cast(type, min), sval_cast(type, max));
-		return;
-	}
-
-	/* If the range is within the type range then add it */
-	if (sval_fits(type, min) && sval_fits(type, max)) {
-		add_range(rl, sval_cast(type, min), sval_cast(type, max));
-		return;
-	}
-
-	/*
-	 * If the range we are adding has more bits than the range type then
-	 * add the whole range type.  Eg:
-	 * 0x8000000000000000 - 0xf000000000000000 -> cast to int
-	 * This isn't totally the right thing to do.  We could be more granular.
-	 */
-	if (sval_too_big(type, min) || sval_too_big(type, max)) {
-		add_range(rl, sval_type_min(type), sval_type_max(type));
-		return;
-	}
-
-	/* Cast negative values to high positive values */
-	if (sval_is_negative(min) && type_unsigned(type)) {
-		if (sval_is_positive(max)) {
-			if (sval_too_high(type, max)) {
-				add_range(rl, sval_type_min(type), sval_type_max(type));
-				return;
-			}
-			add_range(rl, sval_type_val(type, 0), sval_cast(type, max));
-			max = sval_type_max(type);
-		} else {
-			max = sval_cast(type, max);
-		}
-		min = sval_cast(type, min);
-		add_range(rl, min, max);
-	}
-
-	/* Cast high positive numbers to negative */
-	if (sval_unsigned(max) && sval_is_negative(sval_cast(type, max))) {
-		if (!sval_is_negative(sval_cast(type, min))) {
-			add_range(rl, sval_cast(type, min), sval_type_max(type));
-			min = sval_type_min(type);
-		} else {
-			min = sval_cast(type, min);
-		}
-		max = sval_cast(type, max);
-		add_range(rl, min, max);
-	}
-
-	add_range(rl, min, max);
-	return;
 }
 
 struct range_list *rl_truncate_cast(struct symbol *type, struct range_list *rl)
