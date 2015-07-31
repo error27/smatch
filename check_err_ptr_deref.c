@@ -24,22 +24,42 @@ static int my_id;
 STATE(err_ptr);
 STATE(checked);
 
+sval_t err_ptr_min = {
+	.type = &int_ctype,
+	.value = -4095,
+};
+
+sval_t err_ptr_max = {
+	.type = &int_ctype,
+	.value = -1,
+};
+
+struct range_list *err_ptr_rl;
+
 static void ok_to_use(struct sm_state *sm, struct expression *mod_expr)
 {
 	if (sm->state != &checked)
 		set_state(my_id, sm->name, sm->sym, &checked);
 }
 
-static void check_is_err_ptr(struct sm_state *sm)
+static void check_is_err_ptr(struct expression *expr)
 {
+	struct sm_state *sm;
+	struct range_list *rl;
+
+	sm = get_sm_state_expr(my_id, expr);
 	if (!sm)
 		return;
 
-	if (slist_has_state(sm->possible, &err_ptr)) {
-		sm_msg("error: '%s' dereferencing possible ERR_PTR()",
-			   sm->name);
-		set_state(my_id, sm->name, sm->sym, &checked);
-	}
+	if (!slist_has_state(sm->possible, &err_ptr))
+		return;
+
+	get_absolute_rl(expr, &rl);
+	if (!possibly_true_rl(rl, SPECIAL_EQUAL, err_ptr_rl))
+		return;
+
+	sm_msg("error: '%s' dereferencing possible ERR_PTR()", sm->name);
+	set_state(my_id, sm->name, sm->sym, &checked);
 }
 
 static void match_returns_err_ptr(const char *fn, struct expression *expr,
@@ -75,26 +95,18 @@ static void match_err(const char *fn, struct expression *call_expr,
 
 static void match_dereferences(struct expression *expr)
 {
-	struct sm_state *sm;
-
 	if (expr->type != EXPR_PREOP)
 		return;
-	expr = strip_expr(expr->unop);
-
-	sm = get_sm_state_expr(my_id, expr);
-	check_is_err_ptr(sm);
+	check_is_err_ptr(expr->unop);
 }
 
 static void match_kfree(const char *fn, struct expression *expr, void *_arg_nr)
 {
 	int arg_nr = PTR_INT(_arg_nr);
 	struct expression *arg;
-	struct sm_state *sm;
 
 	arg = get_argument_from_call_expr(expr->args, arg_nr);
-
-	sm = get_sm_state_expr(my_id, arg);
-	check_is_err_ptr(sm);
+	check_is_err_ptr(arg);
 }
 
 static void match_condition(struct expression *expr)
@@ -179,5 +191,7 @@ void check_err_ptr_deref(int id)
 	add_function_hook("brelse", &match_kfree, INT_PTR(0));
 	add_function_hook("kmem_cache_free", &match_kfree, INT_PTR(1));
 	add_function_hook("vfree", &match_kfree, INT_PTR(0));
+
+	err_ptr_rl = clone_rl_permanent(alloc_rl(err_ptr_min, err_ptr_max));
 }
 
