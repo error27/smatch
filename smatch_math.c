@@ -489,6 +489,9 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied, 
 	right_rl = _get_rl(expr->right, implied, recurse_cnt);
 	right_rl = cast_rl(type, right_rl);
 
+	if (!left_rl && !right_rl)
+		return NULL;
+
 	rl = handle_implied_binop(left_rl, expr->op, right_rl);
 	if (rl)
 		return rl;
