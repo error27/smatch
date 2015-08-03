@@ -24,6 +24,9 @@ static struct range_list *_get_rl(struct expression *expr, int implied, int *rec
 static struct range_list *handle_variable(struct expression *expr, int implied, int *recurse_cnt);
 static struct range_list *(*custom_handle_variable)(struct expression *expr);
 
+static int get_implied_value_internal(struct expression *expr, sval_t *sval, int *recurse_cnt);
+static int get_absolute_rl_internal(struct expression *expr, struct range_list **rl, int *recurse_cnt);
+
 static sval_t zero  = {.type = &int_ctype, {.value = 0} };
 static sval_t one   = {.type = &int_ctype, {.value = 1} };
 
@@ -232,7 +235,7 @@ static struct range_list *handle_mod_rl(struct expression *expr, int implied, in
 		return alloc_rl(sval, sval);
 	}
 	/* if we can't figure out the right side it's probably hopeless */
-	if (!get_implied_value(expr->right, &right))
+	if (!get_implied_value_internal(expr->right, &right, recurse_cnt))
 		return NULL;
 
 	right = sval_cast(get_type(expr), right);
@@ -271,7 +274,7 @@ static struct range_list *handle_bitwise_AND(struct expression *expr, int implie
 
 	type = get_type(expr);
 
-	if (get_implied_value(expr->left, &known)) {
+	if (get_implied_value_internal(expr->left, &known, recurse_cnt)) {
 		sval_t min;
 
 		min = sval_lowest_set_bit(known);
@@ -290,7 +293,7 @@ static struct range_list *handle_bitwise_AND(struct expression *expr, int implie
 		}
 	}
 
-	if (get_implied_value(expr->right, &known)) {
+	if (get_implied_value_internal(expr->right, &known, recurse_cnt)) {
 		sval_t min, left_max, mod;
 
 		min = sval_lowest_set_bit(known);
@@ -333,8 +336,8 @@ static struct range_list *handle_bitwise_OR(struct expression *expr, int implied
 
 	type = get_type(expr);
 
-	get_absolute_rl(expr->left, &left_rl);
-	get_absolute_rl(expr->right, &right_rl);
+	get_absolute_rl_internal(expr->left, &left_rl, recurse_cnt);
+	get_absolute_rl_internal(expr->right, &right_rl, recurse_cnt);
 	left_rl = cast_rl(type, left_rl);
 	right_rl = cast_rl(type, right_rl);
 	if (!left_rl || !right_rl)
@@ -363,7 +366,7 @@ static struct range_list *handle_right_shift(struct expression *expr, int implie
 		min = sval_type_val(get_type(expr->left), 0);
 	}
 
-	if (get_implied_value(expr->right, &right)) {
+	if (get_implied_value_internal(expr->right, &right, recurse_cnt)) {
 		min = sval_binop(min, SPECIAL_RIGHTSHIFT, right);
 		max = sval_binop(max, SPECIAL_RIGHTSHIFT, right);
 	} else if (!sval_is_negative(min)) {
@@ -386,7 +389,7 @@ static struct range_list *handle_left_shift(struct expression *expr, int implied
 	if (implied == RL_EXACT || implied == RL_HARD)
 		return NULL;
 	/* this is hopeless without the right side */
-	if (!get_implied_value(expr->right, &right))
+	if (!get_implied_value_internal(expr->right, &right, recurse_cnt))
 		return NULL;
 	left_rl = _get_rl(expr->left, implied, recurse_cnt);
 	if (left_rl) {
@@ -564,7 +567,7 @@ static int do_comparison(struct expression *expr)
 	return 0x3;
 }
 
-static struct range_list *handle_comparison_rl(struct expression *expr, int implied)
+static struct range_list *handle_comparison_rl(struct expression *expr, int implied, int *recurse_cnt)
 {
 	sval_t left, right;
 	int res;
@@ -593,7 +596,7 @@ static struct range_list *handle_comparison_rl(struct expression *expr, int impl
 	return alloc_rl(zero, one);
 }
 
-static struct range_list *handle_logical_rl(struct expression *expr, int implied)
+static struct range_list *handle_logical_rl(struct expression *expr, int implied, int *recurse_cnt)
 {
 	sval_t left, right;
 	int left_known = 0;
@@ -605,9 +608,9 @@ static struct range_list *handle_logical_rl(struct expression *expr, int implied
 		if (get_value(expr->right, &right))
 			right_known = 1;
 	} else {
-		if (get_implied_value(expr->left, &left))
+		if (get_implied_value_internal(expr->left, &left, recurse_cnt))
 			left_known = 1;
-		if (get_implied_value(expr->right, &right))
+		if (get_implied_value_internal(expr->right, &right, recurse_cnt))
 			right_known = 1;
 	}
 
@@ -917,10 +920,10 @@ static struct range_list *_get_rl(struct expression *expr, int implied, int *rec
 		rl = handle_binop_rl(expr, implied, recurse_cnt);
 		break;
 	case EXPR_COMPARE:
-		rl = handle_comparison_rl(expr, implied);
+		rl = handle_comparison_rl(expr, implied, recurse_cnt);
 		break;
 	case EXPR_LOGICAL:
-		rl = handle_logical_rl(expr, implied);
+		rl = handle_logical_rl(expr, implied, recurse_cnt);
 		break;
 	case EXPR_PTRSIZEOF:
 	case EXPR_SIZEOF:
@@ -953,6 +956,16 @@ int get_value(struct expression *expr, sval_t *sval)
 	int recurse_cnt = 0;
 
 	rl = _get_rl(expr, RL_EXACT, &recurse_cnt);
+	if (!rl_to_sval(rl, sval))
+		return 0;
+	return 1;
+}
+
+static int get_implied_value_internal(struct expression *expr, sval_t *sval, int *recurse_cnt)
+{
+	struct range_list *rl;
+
+	rl =  _get_rl(expr, RL_IMPLIED, recurse_cnt);
 	if (!rl_to_sval(rl, sval))
 		return 0;
 	return 1;
@@ -1001,6 +1014,14 @@ int get_implied_rl(struct expression *expr, struct range_list **rl)
 	if (*rl)
 		return 1;
 	return 0;
+}
+
+static int get_absolute_rl_internal(struct expression *expr, struct range_list **rl, int *recurse_cnt)
+{
+	*rl = _get_rl(expr, RL_ABSOLUTE, recurse_cnt);
+	if (!*rl)
+		*rl = alloc_whole_rl(get_type(expr));
+	return 1;
 }
 
 int get_absolute_rl(struct expression *expr, struct range_list **rl)
