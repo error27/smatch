@@ -95,7 +95,7 @@ static void save_link_var_sym(const char *var, struct symbol *sym, const char *l
 	set_state(link_id, var, sym, new_state);
 }
 
-static void match_modify(struct sm_state *sm, struct expression *mod_expr)
+static void match_link_modify(struct sm_state *sm, struct expression *mod_expr)
 {
 	struct string_list *links;
 	char *tmp;
@@ -201,6 +201,6 @@ void register_stored_conditions_links(int id)
 {
 	link_id = id;
 	add_merge_hook(link_id, &merge_links);
-	add_modification_hook(link_id, &match_modify);
+	add_modification_hook(link_id, &match_link_modify);
 }
 
