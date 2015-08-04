@@ -134,6 +134,9 @@ static void match_condition(struct expression *expr)
 	if (get_macro_name(expr->pos))
 		return;
 
+	if (!is_pointer(expr))
+		return;
+
 	if (expr->type == EXPR_ASSIGNMENT) {
 		match_condition(expr->right);
 		match_condition(expr->left);

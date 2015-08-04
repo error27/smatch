@@ -70,6 +70,9 @@ static void match_condition(struct expression *expr)
 	if (get_macro_name(expr->pos))
 		return;
 
+	if (!is_pointer(expr))
+		return;
+
 	sm = get_sm_state_expr(my_id, expr);
 	if (!sm || sm->state != &derefed)
 		return;
