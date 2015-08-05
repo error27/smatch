@@ -949,9 +949,19 @@ int possibly_false(struct expression *left, int comparison, struct expression *r
 int possibly_true_rl(struct range_list *left_ranges, int comparison, struct range_list *right_ranges)
 {
 	struct data_range *left_tmp, *right_tmp;
+	struct symbol *type;
 
 	if (!left_ranges || !right_ranges)
 		return 1;
+
+	type = rl_type(left_ranges);
+	if (type_positive_bits(type) < type_positive_bits(rl_type(right_ranges)))
+		type = rl_type(right_ranges);
+	if (type_positive_bits(type) < 31)
+		type = &int_ctype;
+
+	left_ranges = cast_rl(type, left_ranges);
+	right_ranges = cast_rl(type, right_ranges);
 
 	FOR_EACH_PTR(left_ranges, left_tmp) {
 		FOR_EACH_PTR(right_ranges, right_tmp) {
@@ -965,9 +975,19 @@ int possibly_true_rl(struct range_list *left_ranges, int comparison, struct rang
 int possibly_false_rl(struct range_list *left_ranges, int comparison, struct range_list *right_ranges)
 {
 	struct data_range *left_tmp, *right_tmp;
+	struct symbol *type;
 
 	if (!left_ranges || !right_ranges)
 		return 1;
+
+	type = rl_type(left_ranges);
+	if (type_positive_bits(type) < type_positive_bits(rl_type(right_ranges)))
+		type = rl_type(right_ranges);
+	if (type_positive_bits(type) < 31)
+		type = &int_ctype;
+
+	left_ranges = cast_rl(type, left_ranges);
+	right_ranges = cast_rl(type, right_ranges);
 
 	FOR_EACH_PTR(left_ranges, left_tmp) {
 		FOR_EACH_PTR(right_ranges, right_tmp) {

@@ -140,6 +140,8 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 	struct sm_state *s;
 	int istrue;
 	int isfalse;
+	struct symbol *type;
+	struct range_list *var_rl;
 
 	if (!sm_state->pool)
 		return;
@@ -159,12 +161,20 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 		return;
 	}
 
+	type = estate_type(sm_state->state);
+	if (type_positive_bits(rl_type(vals)) > type_positive_bits(type))
+		type = rl_type(vals);
+	if (type_positive_bits(type) < 31)
+		type = &int_ctype;
+	var_rl = cast_rl(type, estate_rl(s->state));
+	vals = cast_rl(type, vals);
+
 	if (lr == LEFT) {
-		istrue = !possibly_false_rl(estate_rl(s->state), comparison, vals);
-		isfalse = !possibly_true_rl(estate_rl(s->state), comparison, vals);
+		istrue = !possibly_false_rl(var_rl, comparison, vals);
+		isfalse = !possibly_true_rl(var_rl, comparison, vals);
 	} else {
-		istrue = !possibly_false_rl(vals, comparison, estate_rl(s->state));
-		isfalse = !possibly_true_rl(vals, comparison, estate_rl(s->state));
+		istrue = !possibly_false_rl(vals, comparison, var_rl);
+		isfalse = !possibly_true_rl(vals, comparison, var_rl);
 	}
 
 	print_debug_tf(s, istrue, isfalse);
