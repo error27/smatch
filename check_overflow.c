@@ -101,7 +101,7 @@ static int get_the_max(struct expression *expr, sval_t *sval)
 	return 0;
 }
 
-static int common_false_positives(char *name)
+static int common_false_positives(struct expression *array, char *name, sval_t max)
 {
 	if (!name)
 		return 0;
@@ -112,6 +112,22 @@ static int common_false_positives(char *name)
 	 */
 	if (strcmp(name, "__s1") == 0 || strcmp(name, "__s2") == 0)
 		return 1;
+
+	/* Ugh... People are saying that Smatch still barfs on glibc strcmp()
+	 * functions.
+	 */
+	if (array && array->type == EXPR_STRING) {
+		char *macro;
+
+		if (max.value == array->string->length)
+			return 1;
+
+		macro = get_macro_name(array->pos);
+		if (macro &&
+		    (strcmp(macro, "strcmp") == 0 ||
+		     strcmp(macro, "strncmp") == 0))
+		    return 1;
+	}
 
 	/*
 	 * passing WORK_CPU_UNBOUND is idiomatic but Smatch doesn't understand
@@ -156,8 +172,9 @@ static void array_check(struct expression *expr)
 		if (definitely_just_used_as_limiter(array_expr, offset))
 			return;
 
+		array_expr = strip_expr(array_expr);
 		name = expr_to_str(array_expr);
-		if (!common_false_positives(name)) {
+		if (!common_false_positives(array_expr, name, max)) {
 			sm_msg("%s: buffer overflow '%s' %d <= %s",
 				level, name, array_size, sval_to_str(max));
 		}
