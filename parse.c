@@ -2771,6 +2771,9 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 			case SYM_ENUM:
 			case SYM_RESTRICT:
 				base_type->ident = ident;
+				break;
+			default:
+				break;
 			}
 		}
 	} else if (base_type && base_type->type == SYM_FN) {

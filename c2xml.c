@@ -214,6 +214,8 @@ static void examine_symbol(struct symbol *sym, xmlNodePtr node)
 	case SYM_UNINITIALIZED:
 		newProp(child, "base-type-builtin", builtin_typename(sym));
 		break;
+	default:
+		break;
 	}
 	return;
 }
@@ -330,4 +332,3 @@ int main(int argc, char **argv)
 
 	return 0;
 }
-
