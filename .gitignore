@@ -40,3 +40,6 @@ series
 # local makefile
 local.mk
 
+# cscope and Qt files
+cscope.out
+*.pro*
