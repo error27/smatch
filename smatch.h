@@ -853,6 +853,9 @@ int has_inc_dec(struct expression *expr);
 
 /* smatch_stored_conditions.c */
 struct smatch_state *get_stored_condition(struct expression *expr);
+struct sm_state *stored_condition_implication_hook(struct expression *expr,
+			struct stree_stack **true_stack,
+			struct stree_stack **false_stack);
 
 /* check_string_len.c */
 int get_formatted_string_size(struct expression *call, int arg);

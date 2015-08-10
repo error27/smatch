@@ -154,7 +154,7 @@ static int condition_too_complicated(struct expression *expr)
 
 }
 
-static void match_condition(struct expression *expr)
+void __stored_condition(struct expression *expr)
 {
 	struct smatch_state *true_state, *false_state;
 	char *name;
@@ -193,8 +193,6 @@ struct smatch_state *get_stored_condition(struct expression *expr)
 void register_stored_conditions(int id)
 {
 	my_id = id;
-
-	add_hook(&match_condition, CONDITION_HOOK);
 }
 
 void register_stored_conditions_links(int id)
@@ -202,5 +200,83 @@ void register_stored_conditions_links(int id)
 	link_id = id;
 	add_merge_hook(link_id, &merge_links);
 	add_modification_hook(link_id, &match_link_modify);
+}
+
+#define RECURSE_LIMIT 50
+
+static void filter_by_sm(struct sm_state *sm,
+		       struct stree_stack **true_stack,
+		       struct stree_stack **false_stack,
+		       int *recurse_cnt)
+{
+	if (!sm)
+		return;
+
+	if ((*recurse_cnt)++ > RECURSE_LIMIT)
+		return;
+
+	if (strcmp(sm->state->name, "true") == 0) {
+		add_pool(true_stack, sm->pool);
+	} else if (strcmp(sm->state->name, "false") == 0) {
+		add_pool(false_stack, sm->pool);
+	}
+
+	if (sm->merged) {
+		filter_by_sm(sm->left, true_stack, false_stack, recurse_cnt);
+		filter_by_sm(sm->right, true_stack, false_stack, recurse_cnt);
+	}
+}
+
+struct sm_state *stored_condition_implication_hook(struct expression *expr,
+				struct stree_stack **true_stack,
+				struct stree_stack **false_stack)
+{
+	struct sm_state *sm;
+	char *name;
+	int recurse_cnt = 0;
+	struct stree_stack *tmp_true = NULL;
+	struct stree_stack *tmp_false = NULL;
+	struct stree *stree;
+
+	expr = strip_expr(expr);
+
+	/*
+	 * We only look at BINOP here because smatch_extra.c and
+	 * smatch_compare.c handle everything else.
+	 */
+	if (expr->type != EXPR_BINOP)
+		return NULL;
+
+	name = expr_to_str(expr);
+	if (!name)
+		return NULL;
+
+	sm = get_sm_state(my_id, name, NULL);
+	free_string(name);
+	if (!sm)
+		return NULL;
+	if (!sm->merged)
+		return NULL;
+
+	filter_by_sm(sm, &tmp_true, &tmp_false, &recurse_cnt);
+	if (!tmp_true && !tmp_false)
+		return NULL;
+	if (recurse_cnt > RECURSE_LIMIT) {
+		sm = NULL;
+		goto free;
+	}
+
+	FOR_EACH_PTR(tmp_true, stree) {
+		add_pool(true_stack, stree);
+	} END_FOR_EACH_PTR(stree);
+
+	FOR_EACH_PTR(tmp_false, stree) {
+		add_pool(false_stack, stree);
+	} END_FOR_EACH_PTR(stree);
+
+free:
+	free_stree_stack(&tmp_true);
+	free_stree_stack(&tmp_false);
+	return sm;
 }
 

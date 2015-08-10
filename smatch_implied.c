@@ -550,6 +550,8 @@ static int handled_by_implied_hook(struct expression *expr,
 
 	sm = comparison_implication_hook(expr, &true_stack, &false_stack);
 	if (!sm)
+		sm = stored_condition_implication_hook(expr, &true_stack, &false_stack);
+	if (!sm)
 		return 0;
 
 	pre_stree = clone_stree(__get_cur_stree());
@@ -736,11 +738,13 @@ void overwrite_states_using_pool(struct sm_state *sm)
 
 void __extra_match_condition(struct expression *expr);
 void __comparison_match_condition(struct expression *expr);
+void __stored_condition(struct expression *expr);
 void register_implications(int id)
 {
 	add_hook(&save_implications_hook, CONDITION_HOOK);
 	add_hook(&set_implied_states, CONDITION_HOOK);
 	add_hook(&__extra_match_condition, CONDITION_HOOK);
 	add_hook(&__comparison_match_condition, CONDITION_HOOK);
+	add_hook(&__stored_condition, CONDITION_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
 }
