@@ -739,8 +739,8 @@ void __comparison_match_condition(struct expression *expr);
 void register_implications(int id)
 {
 	add_hook(&save_implications_hook, CONDITION_HOOK);
+	add_hook(&set_implied_states, CONDITION_HOOK);
 	add_hook(&__extra_match_condition, CONDITION_HOOK);
 	add_hook(&__comparison_match_condition, CONDITION_HOOK);
-	add_hook(&set_implied_states, CONDITION_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
 }
