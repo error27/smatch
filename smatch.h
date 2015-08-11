@@ -576,8 +576,6 @@ void __discard_pre_cond_states(void);
 void __use_cond_states(void);
 extern struct state_list *__last_base_slist;
 
-void __warn_on_silly_pre_loops(void);
-
 void __push_continues(void);
 void __discard_continues(void);
 void __process_continues(void);

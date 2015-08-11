@@ -544,7 +544,6 @@ static void handle_pre_loop(struct statement *stmt)
 		once_through = 1;
 
 	__split_stmt(stmt->iterator_statement);
-	__warn_on_silly_pre_loops();
 	if (is_forever_loop(stmt)) {
 		__merge_continues();
 		__save_gotos(loop_name);

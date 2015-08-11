@@ -748,22 +748,6 @@ static int top_stree_empty(struct stree_stack **stack)
 	return empty;
 }
 
-/* a silly loop does this:  while(i--) { return; } */
-void __warn_on_silly_pre_loops(void)
-{
-	if (!__path_is_null())
-		return;
-	if (!top_stree_empty(&continue_stack))
-		return;
-	if (!top_stree_empty(&break_stack))
-		return;
-	/* if the path was nullified before the loop, then we already
-	   printed an error earlier */
-	if (top_stree_empty(&false_stack))
-		return;
-	sm_msg("info: loop could be replaced with if statement.");
-}
-
 void __merge_continues(void)
 {
 	struct stree *stree;
