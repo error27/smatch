@@ -682,6 +682,21 @@ static void info_record_alloction(struct expression *buffer, struct range_list *
 
 static void store_alloc(struct expression *expr, struct range_list *rl)
 {
+	struct symbol *type;
+
+	type = get_type(expr);
+	if (!type)
+		return;
+	if (type->type != SYM_PTR)
+		return;
+	type = get_real_base_type(type);
+	if (!type)
+		return;
+	if (type == &void_ctype)
+		return;
+	if (type->type != SYM_BASETYPE)
+		return;
+
 	rl = clone_rl(rl); // FIXME!!!
 	info_record_alloction(expr, rl);
 	set_state_expr(my_size_id, expr, alloc_estate_rl(rl));
