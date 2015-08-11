@@ -684,6 +684,9 @@ static void store_alloc(struct expression *expr, struct range_list *rl)
 {
 	struct symbol *type;
 
+	rl = clone_rl(rl); // FIXME!!!
+	set_state_expr(my_size_id, expr, alloc_estate_rl(rl));
+
 	type = get_type(expr);
 	if (!type)
 		return;
@@ -697,9 +700,7 @@ static void store_alloc(struct expression *expr, struct range_list *rl)
 	if (type->type != SYM_BASETYPE)
 		return;
 
-	rl = clone_rl(rl); // FIXME!!!
 	info_record_alloction(expr, rl);
-	set_state_expr(my_size_id, expr, alloc_estate_rl(rl));
 }
 
 static void match_array_assignment(struct expression *expr)
