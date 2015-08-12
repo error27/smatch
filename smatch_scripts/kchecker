@@ -70,4 +70,4 @@ if  echo $oname | grep -q .o$ ; then
     rm -f $oname
 fi
 
-make C=1 $ENDIAN CHECK="$PRE $CMD $POST" $oname
+make C=2 $ENDIAN CHECK="$PRE $CMD $POST" $oname
