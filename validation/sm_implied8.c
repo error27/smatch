@@ -2,11 +2,11 @@
 
 void frob();
 
+int test, test2;
+
 int x;
 void func (void)
 {
-	int test, test2;
-
 	if (({int test = !!x; frob(); frob(); frob(); test;}))
 		__smatch_value("x");
 	else

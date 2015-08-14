@@ -7,13 +7,12 @@ void USER_Unlock(void);
 int GDI_GetObjPtr(int x);
 void GDI_ReleaseObj(int x);
 
+int a, b, c, d, e, z;
+
 void test1(void)
 {
-	int a;
-	int b = create_window_handle(a);
-	int c;
-	int d, e;
-	int z = frob();
+	b = create_window_handle(a);
+	z = frob();
 
 	if (d = GDI_GetObjPtr(e))
 		GDI_ReleaseObj(e);
@@ -37,10 +36,10 @@ void test1(void)
  * check-command: smatch -p=wine --spammy sm_wine_locking.c
  *
  * check-output-start
-sm_wine_locking.c:28 test1() error: double unlock 'create_window_handle:b'
-sm_wine_locking.c:30 test1() warn: 'CriticalSection:c' is sometimes locked here and sometimes unlocked.
-sm_wine_locking.c:33 test1() warn: inconsistent returns 'USER_Lock:'.
-  Locked on:   line 30
-  Unlocked on: line 33
+sm_wine_locking.c:27 test1() error: double unlock 'create_window_handle:b'
+sm_wine_locking.c:29 test1() warn: 'CriticalSection:c' is sometimes locked here and sometimes unlocked.
+sm_wine_locking.c:32 test1() warn: inconsistent returns 'USER_Lock:'.
+  Locked on:   line 29
+  Unlocked on: line 32
  * check-output-end
  */
