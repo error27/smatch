@@ -43,6 +43,29 @@ enum {
 static modification_hook **hooks;
 static modification_hook **indirect_hooks;  /* parent struct modified etc */
 
+ALLOCATOR(modification_data, "modification data");
+
+static int my_id;
+static struct smatch_state *alloc_my_state(struct expression *expr, struct smatch_state *prev)
+{
+	struct smatch_state *state;
+	struct modification_data *data;
+	char *name;
+
+	state = __alloc_smatch_state(0);
+	expr = strip_expr(expr);
+	name = expr_to_str(expr);
+	state->name = alloc_sname(name);
+	free_string(name);
+
+	data = __alloc_modification_data(0);
+	data->prev = prev;
+	data->cur = expr;
+	state->data = data;
+
+	return state;
+}
+
 void add_modification_hook(int owner, modification_hook *call_back)
 {
 	hooks[owner] = call_back;
@@ -82,7 +105,11 @@ static void call_modification_hooks_name_sym(char *name, struct symbol *sym, str
 {
 	struct stree *stree;
 	struct sm_state *sm;
+	struct smatch_state *prev;
 	int match;
+
+	prev = get_state(my_id, name, sym);
+	set_state(my_id, name, sym, alloc_my_state(mod_expr, prev));
 
 	stree = __get_cur_stree();
 
@@ -194,8 +221,15 @@ static void match_declaration(struct symbol *sym)
 	add_scope_hook(&scope_end, sym); 
 }
 
+struct smatch_state *get_modification_state(struct expression *expr)
+{
+	return get_state_expr(my_id, expr);
+}
+
 void register_modification_hooks(int id)
 {
+	my_id = id;
+
 	hooks = malloc((num_checks + 1) * sizeof(*hooks));
 	memset(hooks, 0, (num_checks + 1) * sizeof(*hooks));
 	indirect_hooks = malloc((num_checks + 1) * sizeof(*hooks));

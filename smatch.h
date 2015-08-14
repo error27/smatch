@@ -167,9 +167,15 @@ void select_return_states_after(void (*fn)(void));
 int get_implied_return(struct expression *expr, struct range_list **rl);
 void allocate_hook_memory(void);
 
+struct modification_data {
+	struct smatch_state *prev;
+	struct expression *cur;
+};
+
 typedef void (modification_hook)(struct sm_state *sm, struct expression *mod_expr);
 void add_modification_hook(int owner, modification_hook *call_back);
 void add_indirect_modification_hook(int owner, modification_hook *call_back);
+struct smatch_state *get_modification_state(struct expression *expr);
 
 int outside_of_function(void);
 const char *get_filename(void);
