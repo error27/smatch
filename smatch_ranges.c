@@ -109,7 +109,7 @@ static void add_range_t(struct symbol *type, struct range_list **rl, sval_t min,
 		add_range(rl, min, max);
 	}
 
-	add_range(rl, min, max);
+	add_range(rl, sval_cast(type, min), sval_cast(type, max));
 	return;
 }
 
