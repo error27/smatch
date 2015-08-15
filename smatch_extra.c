@@ -151,11 +151,53 @@ struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smat
 	return sm;
 }
 
+static void clear_array_states(struct expression *array)
+{
+	struct sm_state *sm;
+
+	sm = get_sm_state_expr(link_id, array);
+	if (sm)
+		match_link_modify(sm, NULL);
+}
+
+static struct sm_state *set_extra_array_mod(struct expression *expr, struct smatch_state *state)
+{
+	struct expression *array;
+	struct expression *offset;
+	struct var_sym_list *vsl;
+	struct var_sym *vs;
+	char *name;
+	struct symbol *sym;
+	sval_t sval;
+
+	array = get_array_base(expr);
+	offset = get_array_offset(expr);
+
+	name = expr_to_chunk_sym_vsl(expr, &sym, &vsl);
+
+	if (!name || !vsl || !get_value(offset, &sval)) {
+		clear_array_states(array);
+		goto free;
+	}
+
+	FOR_EACH_PTR(vsl, vs) {
+		store_link(link_id, vs->var, vs->sym, name, sym);
+	} END_FOR_EACH_PTR(vs);
+
+	return set_state(SMATCH_EXTRA, name, sym, state);
+free:
+	free_string(name);
+	return NULL;
+}
+
 struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state)
 {
 	struct symbol *sym;
 	char *name;
 	struct sm_state *ret = NULL;
+
+	if (is_array(expr))
+		return set_extra_array_mod(expr, state);
 
 	expr = strip_expr(expr);
 	name = expr_to_var_sym(expr, &sym);
@@ -648,38 +690,26 @@ free:
 
 static void do_array_assign(struct expression *left, int op, struct expression *right)
 {
-	struct expression *array;
-	struct expression *offset;
-	struct var_sym_list *vsl;
-	struct var_sym *vs;
-	char *name;
-	struct symbol *sym;
 	struct range_list *rl;
-	sval_t sval;
 
-	array = get_array_base(left);
-	offset = get_array_offset(left);
-	get_absolute_rl(right, &rl);
-	rl = cast_rl(get_type(left), rl);
-
-	name = expr_to_chunk_sym_vsl(left, &sym, &vsl);
-
-	if (!name || !vsl || op != '=' || !get_value(offset, &sval) || is_whole_rl(rl)) {
-		struct sm_state *sm;
-
-		sm = get_sm_state_expr(link_id, array);
-		if (sm)
-			match_link_modify(sm, NULL);
-		goto free;
+	if (op == '=') {
+		get_absolute_rl(right, &rl);
+		rl = cast_rl(get_type(left), rl);
+	} else {
+		rl = alloc_whole_rl(get_type(left));
 	}
 
-	FOR_EACH_PTR(vsl, vs) {
-		store_link(link_id, vs->var, vs->sym, name, sym);
-	} END_FOR_EACH_PTR(vs);
+	set_extra_array_mod(left, alloc_estate_rl(rl));
+}
 
-	set_state(SMATCH_EXTRA, name, sym, alloc_estate_rl(rl));
-free:
-	free_string(name);
+static void match_untracked_array(struct expression *call, int param)
+{
+	struct expression *arg;
+
+	arg = get_argument_from_call_expr(call->args, param);
+	arg = strip_expr(arg);
+
+	clear_array_states(arg);
 }
 
 static void match_vanilla_assign(struct expression *left, struct expression *right)
@@ -1997,6 +2027,7 @@ void register_smatch_extra_late(int id)
 	add_hook(&match_assign, GLOBAL_ASSIGNMENT_HOOK);
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&asm_expr, ASM_HOOK);
+	add_untracked_param_hook(&match_untracked_array);
 
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
