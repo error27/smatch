@@ -128,6 +128,12 @@ static void store_all_links(struct expression *expr, const char *condition)
 
 	expr = strip_expr(expr);
 
+	if (is_array(expr)) {
+		var = expr_to_known_chunk_sym(expr, &sym);
+		if (var)
+			save_link_var_sym(var, sym, condition);
+	}
+
 	switch (expr->type) {
 	case EXPR_COMPARE:
 	case EXPR_BINOP:

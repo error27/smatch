@@ -131,8 +131,8 @@ static void call_modification_hooks(struct expression *expr, struct expression *
 	char *name;
 	struct symbol *sym;
 
-	name = expr_to_var_sym(expr, &sym);
-	if (!name || !sym)
+	name = expr_to_known_chunk_sym(expr, &sym);
+	if (!name)
 		goto free;
 	call_modification_hooks_name_sym(name, sym, mod_expr);
 free:
