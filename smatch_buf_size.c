@@ -687,6 +687,16 @@ static void match_calloc(const char *fn, struct expression *expr, void *unused)
 		store_alloc(expr->left, size_to_rl(-1));
 }
 
+static void match_page(const char *fn, struct expression *expr, void *_unused)
+{
+	sval_t page_size = {
+		.type = &int_ctype,
+		.value = 4096,
+	};
+
+	store_alloc(expr->left, alloc_rl(page_size, page_size));
+}
+
 static void match_limited(const char *fn, struct expression *expr, void *_limiter)
 {
 	struct limiter *limiter = (struct limiter *)_limiter;
@@ -792,6 +802,8 @@ void register_buf_size(int id)
 		add_allocation_function("devm_kmalloc", &match_alloc, 1);
 		add_allocation_function("devm_kzalloc", &match_alloc, 1);
 		add_allocation_function("krealloc", &match_alloc, 1);
+		add_allocation_function("kmap", &match_page, 0);
+		add_allocation_function("get_zeroed_page", &match_page, 0);
 	}
 
 	add_allocation_function("strndup", match_strndup, 0);
