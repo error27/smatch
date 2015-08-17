@@ -234,10 +234,12 @@ static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 	dest = get_argument_from_call_expr(expr->args, 0);
 	data = get_argument_from_call_expr(expr->args, 1);
 	dest_size = get_array_size_bytes(dest);
-	data_size = get_array_size_bytes(data);
-
 	if (!dest_size)
 		return;
+
+	data_size = get_size_from_strlen(data);
+	if (!data_size)
+		data_size = get_array_size_bytes(data);
 
 	/* If the size of both arrays is known and the destination
 	 * buffer is larger than the source buffer, we're okay.
@@ -288,7 +290,9 @@ static void match_snprintf(const char *fn, struct expression *expr, void *unused
 	if (strcmp(format, "\"%s\""))
 		goto free;
 	data_name = expr_to_str(data);
-	data_size = get_array_size_bytes(data);
+	data_size = get_size_from_strlen(data);
+	if (!data_size)
+		data_size = get_array_size_bytes(data);
 	if (limit_size.value < data_size)
 		sm_msg("error: snprintf() chops off the last chars of '%s': %d vs %s",
 		       data_name, data_size, sval_to_str(limit_size));
@@ -320,7 +324,9 @@ static void match_sprintf(const char *fn, struct expression *expr, void *unused)
 	if (strcmp(format, "\"%s\""))
 		goto free;
 	data_name = expr_to_str(data);
-	data_size = get_array_size_bytes(data);
+	data_size = get_size_from_strlen(data);
+	if (!data_size)
+		data_size = get_array_size_bytes(data);
 	if (dest_size < data_size)
 		sm_msg("error: sprintf() copies too much data from '%s': %d vs %d",
 		       data_name, data_size, dest_size);

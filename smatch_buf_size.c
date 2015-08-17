@@ -491,10 +491,6 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr)
 	if (size)
 		return alloc_int_rl(size);
 
-	/* if (strlen(foo) > 4) */
-	size = get_size_from_strlen(expr);
-	if (size)
-		return alloc_int_rl(size);
 
 	ret = size_from_db(expr);
 	if (ret)
