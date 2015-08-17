@@ -562,90 +562,6 @@ int get_array_size(struct expression *expr)
 	return bytes_to_elements(expr, get_array_size_bytes_max(expr));
 }
 
-static void match_strlen_condition(struct expression *expr)
-{
-	struct expression *left;
-	struct expression *right;
-	struct expression *str = NULL;
-	int strlen_left = 0;
-	int strlen_right = 0;
-	sval_t sval;
-	struct smatch_state *true_state = NULL;
-	struct smatch_state *false_state = NULL;
-
-	if (expr->type != EXPR_COMPARE)
-		return;
-	left = strip_expr(expr->left);
-	right = strip_expr(expr->right);
-
-	if (left->type == EXPR_CALL && sym_name_is("strlen", left->fn)) {
-		str = get_argument_from_call_expr(left->args, 0);
-		strlen_left = 1;
-	}
-	if (right->type == EXPR_CALL && sym_name_is("strlen", right->fn)) {
-		str = get_argument_from_call_expr(right->args, 0);
-		strlen_right = 1;
-	}
-
-	if (!strlen_left && !strlen_right)
-		return;
-	if (strlen_left && strlen_right)
-		return;
-
-	if (strlen_left) {
-		if (!get_value(right, &sval))
-			return;
-	}
-	if (strlen_right) {
-		if (!get_value(left, &sval))
-			return;
-	}
-
-	/* FIXME:  why are we using my_size_id here instead of my_strlen_id */
-
-	if (expr->op == SPECIAL_EQUAL) {
-		set_true_false_states_expr(my_size_id, str, size_to_estate(sval.value + 1), NULL);
-		return;
-	}
-	if (expr->op == SPECIAL_NOTEQUAL) {
-		set_true_false_states_expr(my_size_id, str, NULL, size_to_estate(sval.value + 1));
-		return;
-	}
-
-	switch (expr->op) {
-	case '<':
-	case SPECIAL_UNSIGNED_LT:
-		if (strlen_left)
-			true_state = size_to_estate(sval.value);
-		else
-			false_state = size_to_estate(sval.value + 1);
-		break;
-	case SPECIAL_LTE:
-	case SPECIAL_UNSIGNED_LTE:
-		if (strlen_left)
-			true_state = size_to_estate(sval.value + 1);
-		else
-			false_state = size_to_estate(sval.value);
-		break;
-	case SPECIAL_GTE:
-	case SPECIAL_UNSIGNED_GTE:
-		if (strlen_left)
-			false_state = size_to_estate(sval.value);
-		else
-			true_state = size_to_estate(sval.value + 1);
-		break;
-	case '>':
-	case SPECIAL_UNSIGNED_GT:
-		if (strlen_left) {
-			true_state = size_to_estate(-1);
-			false_state = size_to_estate(sval.value + 1);
-		} else
-			true_state = size_to_estate(sval.value);
-		break;
-	}
-	set_true_false_states_expr(my_size_id, str, true_state, false_state);
-}
-
 static struct expression *strip_ampersands(struct expression *expr)
 {
 	struct symbol *type;
@@ -881,7 +797,6 @@ void register_buf_size(int id)
 		add_allocation_function("devm_kzalloc", &match_alloc, 1);
 		add_allocation_function("krealloc", &match_alloc, 1);
 	}
-	add_hook(&match_strlen_condition, CONDITION_HOOK);
 
 	add_allocation_function("strndup", match_strndup, 0);
 	if (option_project == PROJ_KERNEL)

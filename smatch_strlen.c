@@ -92,6 +92,76 @@ static void match_strlen(const char *fn, struct expression *expr, void *unused)
 	set_state_expr(my_equiv_id, str, state);
 }
 
+static void match_strlen_condition(struct expression *expr)
+{
+	struct expression *left;
+	struct expression *right;
+	struct expression *str = NULL;
+	int strlen_left = 0;
+	int strlen_right = 0;
+	sval_t sval;
+	struct smatch_state *true_state = NULL;
+	struct smatch_state *false_state = NULL;
+	int op;
+
+	if (expr->type != EXPR_COMPARE)
+		return;
+
+	left = strip_expr(expr->left);
+	right = strip_expr(expr->right);
+
+	if (left->type == EXPR_CALL && sym_name_is("strlen", left->fn)) {
+		str = get_argument_from_call_expr(left->args, 0);
+		strlen_left = 1;
+	}
+	if (right->type == EXPR_CALL && sym_name_is("strlen", right->fn)) {
+		str = get_argument_from_call_expr(right->args, 0);
+		strlen_right = 1;
+	}
+
+	if (!strlen_left && !strlen_right)
+		return;
+	if (strlen_left && strlen_right)
+		return;
+
+	op = expr->op;
+	if (strlen_left) {
+		if (!get_value(right, &sval))
+			return;
+	} else {
+		op = flip_comparison(op);
+		if (!get_value(left, &sval))
+			return;
+	}
+
+	switch (op) {
+	case '<':
+	case SPECIAL_UNSIGNED_LT:
+		true_state = size_to_estate(sval.value - 1);
+		break;
+	case SPECIAL_LTE:
+	case SPECIAL_UNSIGNED_LTE:
+		true_state = size_to_estate(sval.value);
+		break;
+	case SPECIAL_EQUAL:
+		true_state = size_to_estate(sval.value);
+		break;
+	case SPECIAL_NOTEQUAL:
+		false_state = size_to_estate(sval.value);
+		break;
+	case SPECIAL_GTE:
+	case SPECIAL_UNSIGNED_GTE:
+		false_state = size_to_estate(sval.value - 1);
+		break;
+	case '>':
+	case SPECIAL_UNSIGNED_GT:
+		false_state = size_to_estate(sval.value);
+		break;
+	}
+
+	set_true_false_states_expr(my_strlen_id, str, true_state, false_state);
+}
+
 static int get_strlen_from_string(struct expression *expr, struct range_list **rl)
 {
 	sval_t sval;
@@ -212,6 +282,7 @@ void register_strlen(int id)
 	add_merge_hook(my_strlen_id, &merge_estates);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_strlen_id, struct_member_callback);
+	add_hook(&match_strlen_condition, CONDITION_HOOK);
 }
 
 void register_strlen_equiv(int id)
