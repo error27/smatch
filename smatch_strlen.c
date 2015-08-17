@@ -197,15 +197,17 @@ static int get_strlen_from_equiv(struct expression *expr, struct range_list **rl
 	return 1;
 }
 
+/*
+ * This returns the strlen() without the NUL char.
+ */
 int get_implied_strlen(struct expression *expr, struct range_list **rl)
 {
 
 	*rl = NULL;
 
-	switch (expr->type) {
-	case EXPR_STRING:
+	expr = strip_expr(expr);
+	if (expr->type == EXPR_STRING)
 		return get_strlen_from_string(expr, rl);
-	}
 
 	if (get_strlen_from_state(expr, rl))
 		return 1;
