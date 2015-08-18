@@ -1810,80 +1810,6 @@ static void db_param_set(struct expression *expr, int param, char *key, char *va
 	db_param_add_set(expr, param, key, value, PARAM_SET);
 }
 
-static void db_returned_member_info(struct expression *expr, int param, char *key, char *value)
-{
-	struct symbol *type;
-	struct symbol *sym;
-	char *name;
-	struct range_list *rl;
-
-	if (expr->type != EXPR_ASSIGNMENT)
-		return;
-
-	name = return_state_to_var_sym(expr, param, key, &sym);
-	if (!name || !sym)
-		goto free;
-	type = get_member_type_from_key(expr->left, key);
-	if (!type)
-		return;
-	call_results_to_rl(expr->right, type, value, &rl);
-	set_extra_mod(name, sym, alloc_estate_rl(rl));
-
-free:
-	free_string(name);
-}
-
-static char *in_terms_of_param_math(struct expression *expr, char *printed_name)
-{
-	struct symbol *sym;
-	char *var;
-	char buf[256];
-	char *ret = NULL;
-
-	var = expr_to_var_sym(expr, &sym);
-	if (!var || !sym)
-		goto free;
-	snprintf(buf, sizeof(buf), "%s%s", var, printed_name + 2);
-
-	ret = get_value_in_terms_of_parameter_math_var_sym(buf, sym);
-
-free:
-	free_string(var);
-	return ret;
-}
-
-static void returned_member_callback(int return_id, char *return_ranges, struct expression *expr, char *printed_name, struct smatch_state *state)
-{
-	char buf[256];
-	char *math_str;
-	sval_t sval;
-
-	/* these are handled in smatch_param_filter/set/limit.c */
-	if (printed_name[0] != '*' &&
-	    !strchr(printed_name, '.') && !strchr(printed_name, '-'))
-		return;
-
-	if (estate_get_single_value(state, &sval)) {
-		sql_insert_return_states(return_id, return_ranges, RETURN_VALUE, -1,
-				printed_name, sval_to_str(sval));
-		return;
-	}
-
-	math_str = in_terms_of_param_math(expr, printed_name);
-	if (math_str) {
-		snprintf(buf, sizeof(buf), "%s[%s]", state->name, math_str);
-		sql_insert_return_states(return_id, return_ranges, RETURN_VALUE, -1,
-				printed_name, buf);
-		return;
-	}
-
-	if (estate_is_whole(state))
-		return;
-
-	sql_insert_return_states(return_id, return_ranges, RETURN_VALUE, -1,
-			printed_name, state->name);
-}
-
 static void match_call_info(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -1984,7 +1910,6 @@ void register_smatch_extra(int id)
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	select_caller_info_hook(set_param_value, PARAM_VALUE);
 	select_caller_info_hook(set_param_hard_max, FUZZY_MAX);
-	select_return_states_hook(RETURN_VALUE, &db_returned_member_info);
 	select_return_states_before(&db_limited_before);
 	select_return_states_hook(PARAM_LIMIT, &db_param_limit);
 	select_return_states_hook(PARAM_FILTER, &db_param_filter);
@@ -2031,7 +1956,6 @@ void register_smatch_extra_late(int id)
 
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
-	add_returned_member_callback(my_id, returned_member_callback);
 
 	add_hook(&assume_indexes_are_valid, OP_HOOK);
 }
