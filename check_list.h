@@ -155,8 +155,8 @@ CK(register_modification_hooks_late)
 CK(register_smatch_extra_late)
 CK(check_assigned_expr) /* This is used by smatch_extra.c so it has to come really late */
 CK(check_assigned_expr_links)
-CK(check_kernel)  /* this is overwriting stuff from smatch_extra_late */
 CK(register_function_hooks)
+CK(check_kernel)  /* this is overwriting stuff from smatch_extra_late */
 CK(register_returns)
 CK(register_db_call_marker) /* always second last */
 /*
