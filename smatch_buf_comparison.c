@@ -272,7 +272,7 @@ top_level_name:
 	return alloc_sname(buf);
 }
 
-static int db_var_is_array_limit(struct expression *array, const char *name, struct var_sym_list *vsl)
+int db_var_is_array_limit(struct expression *array, const char *name, struct var_sym_list *vsl)
 {
 	char *size_name;
 	char *array_name = get_data_info_name(array);
@@ -513,7 +513,7 @@ static void munge_start_states(struct statement *stmt)
 	free_slist(&slist);
 }
 
-void check_buf_comparison(int id)
+void register_buf_comparison(int id)
 {
 	size_id = id;
 
@@ -547,7 +547,7 @@ void check_buf_comparison(int id)
 	add_hook(&munge_start_states, AFTER_DEF_HOOK);
 }
 
-void check_buf_comparison_links(int id)
+void register_buf_comparison_links(int id)
 {
 	link_id = id;
 	add_modification_hook(link_id, &match_modify);

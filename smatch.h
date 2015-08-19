@@ -897,4 +897,8 @@ int get_address_rl(struct expression *expr, struct range_list **rl);
 
 /* for now this is in smatch_used_parameter.c */
 void __get_state_hook(int owner, const char *name, struct symbol *sym);
+
+/* smatch_buf_comparison.c */
+int db_var_is_array_limit(struct expression *array, const char *name, struct var_sym_list *vsl);
+
 #endif 	    /* !SMATCH_H_ */
