@@ -15,6 +15,8 @@
  * along with this program; if not, see http://www.gnu.org/copyleft/gpl.txt
  */
 
+#define _GNU_SOURCE
+#include <string.h>
 #include "smatch.h"
 #include "smatch_slist.h"
 
@@ -24,6 +26,11 @@ STATE(checked);
 STATE(modified);
 
 struct stree *to_check;
+
+static struct statement *get_cur_stmt(void)
+{
+	return last_ptr_list((struct ptr_list *)big_statement_stack);
+}
 
 static void set_modified(struct sm_state *sm, struct expression *mod_expr)
 {
@@ -96,6 +103,67 @@ static int is_obvious_else(struct expression *cond)
 	return conditions_match(cond, prev);
 }
 
+static int name_means_synchronize(const char *name)
+{
+	if (!name)
+		return 0;
+
+	if (strcasestr(name, "wait"))
+		return 1;
+	if (strcasestr(name, "down"))
+		return 1;
+	if (strcasestr(name, "lock") && !strcasestr(name, "unlock"))
+		return 1;
+	if (strcasestr(name, "delay"))
+		return 1;
+	if (strcasestr(name, "schedule"))
+		return 1;
+	if (strcmp(name, "smp_rmb") == 0)
+		return 1;
+	if (strcmp(name, "mb") == 0)
+		return 1;
+	if (strcmp(name, "barrier") == 0)
+		return 1;
+	return 0;
+}
+
+static int previous_statement_was_synchronize(void)
+{
+	struct statement *stmt;
+	struct position pos;
+	struct position prev_pos;
+	char *ident;
+
+	if (__prev_stmt) {
+		prev_pos = __prev_stmt->pos;
+		prev_pos.line -= 1;
+	} else {
+		prev_pos = __cur_stmt->pos;
+		prev_pos.line -= 3;
+	}
+
+	FOR_EACH_PTR_REVERSE(big_statement_stack, stmt) {
+		if (stmt->pos.line < prev_pos.line)
+			return 0;
+		pos = stmt->pos;
+		ident = get_macro_name(pos);
+		if (name_means_synchronize(ident))
+			return 1;
+		ident = pos_ident(pos);
+		if (!ident)
+			continue;
+		if (strcmp(ident, "if") == 0) {
+			pos.pos += 4;
+			ident = pos_ident(pos);
+			if (!ident)
+				continue;
+		}
+		if (name_means_synchronize(ident))
+			return 1;
+	} END_FOR_EACH_PTR_REVERSE(stmt);
+	return 0;
+}
+
 static void match_condition(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -146,6 +214,13 @@ static void match_condition(struct expression *expr)
 	}
 
 	if (is_obvious_else(state->data))
+		return;
+
+	/*
+	 * It's common to test something, then take a lock and test if it is
+	 * still true.
+	 */
+	if (previous_statement_was_synchronize())
 		return;
 
 	name = expr_to_str(expr);
