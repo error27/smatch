@@ -736,18 +736,6 @@ void __process_continues(void)
 	push_stree(&continue_stack, stree);
 }
 
-static int top_stree_empty(struct stree_stack **stack)
-{
-	struct stree *tmp;
-	int empty = 0;
-
-	tmp = pop_stree(stack);
-	if (!tmp)
-		empty = 1;
-	push_stree(stack, tmp);
-	return empty;
-}
-
 void __merge_continues(void)
 {
 	struct stree *stree;
