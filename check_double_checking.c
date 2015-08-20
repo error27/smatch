@@ -30,6 +30,72 @@ static void set_modified(struct sm_state *sm, struct expression *mod_expr)
 	set_state(my_id, sm->name, sm->sym, &modified);
 }
 
+static struct expression *strip_condition(struct expression *expr)
+{
+	expr = strip_expr(expr);
+
+	if (expr->type == EXPR_PREOP && expr->op == '!')
+		return strip_condition(expr->unop);
+
+	if (expr->type == EXPR_COMPARE &&
+	    (expr->op == SPECIAL_EQUAL ||
+	     expr->op == SPECIAL_NOTEQUAL)) {
+		if (is_zero(expr->left))
+			return strip_condition(expr->right);
+		if (is_zero(expr->right))
+			return strip_condition(expr->left);
+	}
+
+	return expr;
+}
+
+static int conditions_match(struct expression *cond, struct expression *prev)
+{
+	prev = strip_condition(prev);
+
+	if (prev == cond)
+		return 1;
+
+	if (prev->type == EXPR_LOGICAL) {
+		if (conditions_match(cond, prev->left) ||
+		    conditions_match(cond, prev->right))
+			return 1;
+	}
+
+	return 0;
+}
+
+/*
+ * People like to do "if (foo) { ... } else if (!foo) { ... }".  Don't
+ * complain when they do that even though it is nonsense.
+ */
+static int is_obvious_else(struct expression *cond)
+{
+	struct statement *parent;
+	struct expression *prev;
+
+	if (!get_cur_stmt())
+		return 0;
+	parent = get_cur_stmt()->parent;
+	if (!parent)
+		return 0;
+
+	if (parent->type != STMT_IF)
+		return 0;
+
+	if (!parent->if_false)
+		return 0;
+	if (parent->if_false != get_cur_stmt())
+		return 0;
+
+	prev = strip_condition(parent->if_conditional);
+
+	sm_msg("prev = '%s'", expr_to_str(prev));
+	sm_msg("prev = '%s'", expr_to_str(cond));
+
+	return conditions_match(cond, prev);
+}
+
 static void match_condition(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -78,6 +144,9 @@ static void match_condition(struct expression *expr)
 		free_string(name);
 		return;
 	}
+
+	if (is_obvious_else(state->data))
+		return;
 
 	name = expr_to_str(expr);
 	sm_msg("warn: we tested '%s' before and it was '%s'", name, state->name);
