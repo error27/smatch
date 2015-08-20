@@ -70,6 +70,10 @@ db_types = {   0: "INTERNAL",
             1019: "NS_CAPABLE",
             1022: "TYPE_LINK",
             1023: "UNTRACKED_PARAM",
+            1025: "PARAM_SET",
+            1026: "PARAM_USED",
+            1027: "BYTE_UNITS",
+            8017: "USER_DATA2",
 };
 
 def type_to_str(type_int):
