@@ -168,21 +168,15 @@ static void match_condition(struct expression *expr)
 {
 	struct smatch_state *state;
 	sval_t dummy;
-	int is_true;
 	char *name;
+
+	if (inside_loop())
+		return;
 
 	if (get_value(expr, &dummy))
 		return;
 
 	if (get_macro_name(expr->pos))
-		return;
-
-	// FIXME:  needed?
-	if (implied_condition_true(expr))
-		is_true = 1;
-	else if (implied_condition_false(expr))
-		is_true = 0;
-	else
 		return;
 
 	state = get_stored_condition(expr);
@@ -195,7 +189,7 @@ static void match_condition(struct expression *expr)
 	 * we allow double checking for NULL because people do this all the time
 	 * and trying to stop them is a losers' battle.
 	 */
-	if (is_pointer(expr) && is_true)
+	if (is_pointer(expr) && implied_condition_true(expr))
 		return;
 
 	if (definitely_inside_loop()) {
