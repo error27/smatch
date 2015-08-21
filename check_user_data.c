@@ -34,6 +34,17 @@ STATE(capped);
 STATE(user_data_passed);
 STATE(user_data_set);
 
+static const char * kstr_funcs[] = {
+	"kstrtoull", "kstrtoll", "kstrtoul", "kstrtol", "kstrtouint",
+	"kstrtoint", "kstrtou64", "kstrtos64", "kstrtou32", "kstrtos32",
+	"kstrtou16", "kstrtos16", "kstrtou8", "kstrtos8", "kstrtoull_from_user"
+	"kstrtoll_from_user", "kstrtoul_from_user", "kstrtol_from_user",
+	"kstrtouint_from_user", "kstrtoint_from_user", "kstrtou16_from_user",
+	"kstrtos16_from_user", "kstrtou8_from_user", "kstrtos8_from_user",
+	"kstrtou64_from_user", "kstrtos64_from_user", "kstrtou32_from_user",
+	"kstrtos32_from_user",
+};
+
 enum {
 	SET_DATA = 1,
 	PASSED_DATA = 2,
@@ -571,6 +582,8 @@ free:
 
 void check_user_data(int id)
 {
+	int i;
+
 	if (option_project != PROJ_KERNEL)
 		return;
 	my_id = id;
@@ -584,7 +597,8 @@ void check_user_data(int id)
 	add_function_hook("memcpy_fromiovec", &match_user_copy, INT_PTR(0));
 	add_function_assign_hook("memdup_user", &match_user_assign_function, NULL);
 	add_function_assign_hook("kmap_atomic", &match_user_assign_function, NULL);
-	add_function_hook("_kstrtoull", &match_user_copy, INT_PTR(2));
+	for (i = 0; i < ARRAY_SIZE(kstr_funcs); i++)
+		add_function_hook(kstr_funcs[i], &match_user_copy, INT_PTR(2));
 
 	add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);

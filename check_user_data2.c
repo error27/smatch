@@ -31,6 +31,17 @@ static int my_call_id;
 
 STATE(called);
 
+static const char * kstr_funcs[] = {
+	"kstrtoull", "kstrtoll", "kstrtoul", "kstrtol", "kstrtouint",
+	"kstrtoint", "kstrtou64", "kstrtos64", "kstrtou32", "kstrtos32",
+	"kstrtou16", "kstrtos16", "kstrtou8", "kstrtos8", "kstrtoull_from_user"
+	"kstrtoll_from_user", "kstrtoul_from_user", "kstrtol_from_user",
+	"kstrtouint_from_user", "kstrtoint_from_user", "kstrtou16_from_user",
+	"kstrtos16_from_user", "kstrtou8_from_user", "kstrtos8_from_user",
+	"kstrtou64_from_user", "kstrtos64_from_user", "kstrtou32_from_user",
+	"kstrtos32_from_user",
+};
+
 static struct stree *start_states;
 static struct stree_stack *saved_stack;
 static void save_start_states(struct statement *stmt)
@@ -602,6 +613,8 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 
 void check_user_data2(int id)
 {
+	int i;
+
 	my_id = id;
 
 	if (option_project != PROJ_KERNEL)
@@ -618,7 +631,8 @@ void check_user_data2(int id)
 	add_function_hook("copy_from_user", &match_user_copy, INT_PTR(0));
 	add_function_hook("__copy_from_user", &match_user_copy, INT_PTR(0));
 	add_function_hook("memcpy_fromiovec", &match_user_copy, INT_PTR(0));
-	add_function_hook("_kstrtoull", &match_user_copy, INT_PTR(2));
+	for (i = 0; i < ARRAY_SIZE(kstr_funcs); i++)
+		add_function_hook(kstr_funcs[i], &match_user_copy, INT_PTR(2));
 
 	add_function_hook("sscanf", &match_sscanf, NULL);
 
