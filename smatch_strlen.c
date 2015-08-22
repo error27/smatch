@@ -162,6 +162,24 @@ static void match_strlen_condition(struct expression *expr)
 	set_true_false_states_expr(my_strlen_id, str, true_state, false_state);
 }
 
+static void match_snprintf(const char *fn, struct expression *expr, void *unused)
+{
+	struct expression *dest;
+	struct expression *dest_size_expr;
+	sval_t limit_size;
+
+	dest = get_argument_from_call_expr(expr->args, 0);
+	dest_size_expr = get_argument_from_call_expr(expr->args, 1);
+
+	if (!get_implied_value(dest_size_expr, &limit_size))
+		return;
+
+	if (limit_size.value <= 0)
+		return;
+
+	set_state_expr(my_strlen_id, dest, size_to_estate(limit_size.value - 1));
+}
+
 static int get_strlen_from_string(struct expression *expr, struct range_list **rl)
 {
 	sval_t sval;
@@ -285,6 +303,8 @@ void register_strlen(int id)
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_strlen_id, struct_member_callback);
 	add_hook(&match_strlen_condition, CONDITION_HOOK);
+
+	add_function_hook("snprintf", &match_snprintf, NULL);
 }
 
 void register_strlen_equiv(int id)
