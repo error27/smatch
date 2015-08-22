@@ -440,7 +440,6 @@ static struct range_list *alloc_int_rl(int value)
 
 struct range_list *get_array_size_bytes_rl(struct expression *expr)
 {
-	int declared_size = 0;
 	struct range_list *ret = NULL;
 	int size;
 
@@ -466,17 +465,12 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr)
 	/* buf[4] */
 	size = get_real_array_size(expr);
 	if (size)
-		declared_size = elements_to_bytes(expr, size);
+		return alloc_int_rl(elements_to_bytes(expr, size));
 
 	/* buf = malloc(1024); */
 	ret = get_stored_size_bytes(expr);
-	if (ret) {
-		if (declared_size)
-			return rl_union(ret, alloc_int_rl(size));
+	if (ret)
 		return ret;
-	}
-	if (declared_size)
-		return alloc_int_rl(declared_size);
 
 	size = get_stored_size_end_struct_bytes(expr);
 	if (size)
@@ -490,7 +484,6 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr)
 	size = get_bytes_from_address(expr);
 	if (size)
 		return alloc_int_rl(size);
-
 
 	ret = size_from_db(expr);
 	if (ret)
