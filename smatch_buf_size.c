@@ -602,7 +602,7 @@ static void store_alloc(struct expression *expr, struct range_list *rl)
 		return;
 	if (type == &void_ctype)
 		return;
-	if (type->type != SYM_BASETYPE)
+	if (type->type != SYM_BASETYPE && type->type != SYM_PTR)
 		return;
 
 	info_record_alloction(expr, rl);
