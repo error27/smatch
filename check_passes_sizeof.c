@@ -23,34 +23,6 @@
 
 static int my_id;
 
-static int expr_equiv(struct expression *one, struct expression *two)
-{
-	struct symbol *one_sym, *two_sym;
-	char *one_name = NULL;
-	char *two_name = NULL;
-	int ret = 0;
-
-	if (!one || !two)
-		return 0;
-	if (one->type != two->type)
-		return 0;
-
-	one_name = expr_to_str_sym(one, &one_sym);
-	if (!one_name || !one_sym)
-		goto free;
-	two_name = expr_to_str_sym(two, &two_sym);
-	if (!two_name || !two_sym)
-		goto free;
-	if (one_sym != two_sym)
-		goto free;
-	if (strcmp(one_name, two_name) == 0)
-		ret = 1;
-free:
-	free_string(one_name);
-	free_string(two_name);
-	return ret;
-}
-
 static struct expression *get_returned_expr(struct expression *expr)
 {
 	struct statement *stmt;

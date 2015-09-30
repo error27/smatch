@@ -32,30 +32,11 @@ static int does_inc_dec(struct expression *expr)
 	return 0;
 }
 
-static int expr_equiv(struct expression *one, struct expression *two)
+static int expr_equiv_no_inc_dec(struct expression *one, struct expression *two)
 {
-	struct symbol *one_sym, *two_sym;
-	char *one_name = NULL;
-	char *two_name = NULL;
-	int ret = 0;
-
 	if (does_inc_dec(one) || does_inc_dec(two))
 		return 0;
-
-	one_name = expr_to_str_sym(one, &one_sym);
-	if (!one_name || !one_sym)
-		goto free;
-	two_name = expr_to_str_sym(two, &two_sym);
-	if (!two_name || !two_sym)
-		goto free;
-	if (one_sym != two_sym)
-		goto free;
-	if (strcmp(one_name, two_name) == 0)
-		ret = 1;
-free:
-	free_string(one_name);
-	free_string(two_name);
-	return ret;
+	return expr_equiv(one, two);
 }
 
 static int inconsistent_check(struct expression *left, struct expression *right)
@@ -64,16 +45,16 @@ static int inconsistent_check(struct expression *left, struct expression *right)
 
 	if (get_value(left->left, &sval)) {
 		if (get_value(right->left, &sval))
-			return expr_equiv(left->right, right->right);
+			return expr_equiv_no_inc_dec(left->right, right->right);
 		if (get_value(right->right, &sval))
-			return expr_equiv(left->right, right->left);
+			return expr_equiv_no_inc_dec(left->right, right->left);
 		return 0;
 	}
 	if (get_value(left->right, &sval)) {
 		if (get_value(right->left, &sval))
-			return expr_equiv(left->left, right->right);
+			return expr_equiv_no_inc_dec(left->left, right->right);
 		if (get_value(right->right, &sval))
-			return expr_equiv(left->left, right->left);
+			return expr_equiv_no_inc_dec(left->left, right->left);
 		return 0;
 	}
 

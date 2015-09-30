@@ -331,6 +331,7 @@ int ms_since(struct timeval *start);
 int parent_is_gone_var_sym(const char *name, struct symbol *sym);
 int parent_is_gone(struct expression *expr);
 int invert_op(int op);
+int expr_equiv(struct expression *one, struct expression *two);
 
 /* smatch_type.c */
 struct symbol *get_real_base_type(struct symbol *sym);
