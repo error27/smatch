@@ -453,9 +453,21 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr)
 
 	if (expr->type == EXPR_BINOP && expr->op == '+') {
 		sval_t offset;
+		struct symbol *type;
+		int bytes;
 
 		if (!get_implied_value(expr->right, &offset))
 			return NULL;
+		type = get_type(expr->left);
+		if (!type)
+			return 0;
+		if (type->type != SYM_ARRAY && type->type != SYM_PTR)
+			return 0;
+		type = get_real_base_type(type);
+		bytes = type_bytes(type);
+		if (bytes == 0)
+			return NULL;
+		offset.value *= bytes;
 		size = get_array_size_bytes(expr->left);
 		if (size <= 0)
 			return NULL;
