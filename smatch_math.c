@@ -521,19 +521,11 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied, 
 
 	if (sval_binop_overflows(rl_min(left_rl), expr->op, rl_min(right_rl)))
 		return NULL;
-	min = sval_binop(rl_min(left_rl), expr->op, rl_min(right_rl));
+	if (sval_binop_overflows(rl_max(left_rl), expr->op, rl_max(right_rl)))
+		return NULL;
 
-	if (sval_binop_overflows(rl_max(left_rl), expr->op, rl_max(right_rl))) {
-		switch (implied) {
-		case RL_FUZZY:
-		case RL_HARD:
-			return NULL;
-		default:
-			max = sval_type_max(get_type(expr));
-		}
-	} else {
-		max = sval_binop(rl_max(left_rl), expr->op, rl_max(right_rl));
-	}
+	min = sval_binop(rl_min(left_rl), expr->op, rl_min(right_rl));
+	max = sval_binop(rl_max(left_rl), expr->op, rl_max(right_rl));
 
 	return alloc_rl(min, max);
 }
