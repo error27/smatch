@@ -142,6 +142,19 @@ static void register_err_ptr_funcs(void)
 	clear_token_alloc();
 }
 
+static void match_err_ptr_positive_const(const char *fn, struct expression *expr, void *unused)
+{
+	struct expression *arg;
+	sval_t sval;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+
+	if (!get_value(arg, &sval))
+		return;
+	if (sval_is_positive(sval) && sval_cmp_val(sval, 0) != 0)
+		sm_msg("error: passing non negative %s to ERR_PTR", sval_to_str(sval));
+}
+
 static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *arg;
@@ -184,6 +197,7 @@ void check_err_ptr_deref(int id)
 	return_implies_state("PTR_RET", -4096, -1, &match_err, NULL);
 	register_err_ptr_funcs();
 	add_hook(&match_dereferences, DEREF_HOOK);
+	add_function_hook("ERR_PTR", &match_err_ptr_positive_const, NULL);
 	add_function_hook("ERR_PTR", &match_err_ptr, NULL);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_modification_hook(my_id, &ok_to_use);
