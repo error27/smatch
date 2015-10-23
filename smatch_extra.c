@@ -1051,17 +1051,17 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 			left->smatch_flags |= Handled;
 			left_postop = left->op;
 		}
-		left = strip_expr(left->unop);
+		left = strip_parens(left->unop);
 	}
 	while (left->type == EXPR_ASSIGNMENT)
-		left = strip_expr(left->left);
+		left = strip_parens(left->left);
 
 	if (right->op == SPECIAL_INCREMENT || right->op == SPECIAL_DECREMENT) {
 		if (right->type == EXPR_POSTOP) {
 			right->smatch_flags |= Handled;
 			right_postop = right->op;
 		}
-		right = strip_expr(right->unop);
+		right = strip_parens(right->unop);
 	}
 
 	if (get_implied_rl(left, &left_orig)) {
@@ -1175,10 +1175,10 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 		return;
 	}
 
-	left_true = rl_truncate_cast(get_type(left), left_true);
-	left_false = rl_truncate_cast(get_type(left), left_false);
-	right_true = rl_truncate_cast(get_type(right), right_true);
-	right_false = rl_truncate_cast(get_type(right), right_false);
+	left_true = rl_truncate_cast(get_type(strip_expr(left)), left_true);
+	left_false = rl_truncate_cast(get_type(strip_expr(left)), left_false);
+	right_true = rl_truncate_cast(get_type(strip_expr(right)), right_true);
+	right_false = rl_truncate_cast(get_type(strip_expr(right)), right_false);
 
 	left_true_state = alloc_estate_rl(left_true);
 	left_false_state = alloc_estate_rl(left_false);
@@ -1422,8 +1422,8 @@ static int match_func_comparison(struct expression *expr)
 
 static void match_comparison(struct expression *expr)
 {
-	struct expression *left_orig = strip_expr(expr->left);
-	struct expression *right_orig = strip_expr(expr->right);
+	struct expression *left_orig = strip_parens(expr->left);
+	struct expression *right_orig = strip_parens(expr->right);
 	struct expression *left, *right;
 	struct expression *prev;
 	struct symbol *type;
