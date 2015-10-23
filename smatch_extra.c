@@ -169,6 +169,7 @@ static struct sm_state *set_extra_array_mod(struct expression *expr, struct smat
 	char *name;
 	struct symbol *sym;
 	sval_t sval;
+	struct sm_state *ret = NULL;
 
 	array = get_array_base(expr);
 	offset = get_array_offset(expr);
@@ -184,10 +185,10 @@ static struct sm_state *set_extra_array_mod(struct expression *expr, struct smat
 		store_link(link_id, vs->var, vs->sym, name, sym);
 	} END_FOR_EACH_PTR(vs);
 
-	return set_state(SMATCH_EXTRA, name, sym, state);
+	ret = set_state(SMATCH_EXTRA, name, sym, state);
 free:
 	free_string(name);
-	return NULL;
+	return ret;
 }
 
 struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state)
