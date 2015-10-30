@@ -1334,7 +1334,7 @@ static struct range_list *handle_divide_rl(struct range_list *left, struct range
 	struct range_list *neg_neg, *neg_pos, *pos_neg, *pos_pos;
 	struct range_list *ret;
 
-	if (is_whole_rl(left) || is_whole_rl(right))
+	if (is_whole_rl(right))
 		return NULL;
 
 	left_neg = get_neg_rl(left);
