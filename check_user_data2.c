@@ -71,6 +71,22 @@ static struct smatch_state *empty_state(struct sm_state *sm)
 	return alloc_estate_empty();
 }
 
+static void pre_merge_hook(struct sm_state *sm)
+{
+	struct smatch_state *user;
+	struct smatch_state *extra;
+	struct range_list *rl;
+
+	extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	if (!extra || !estate_rl(extra))
+		return;
+	user = get_state(my_id, sm->name, sm->sym);
+	if (!user || !estate_rl(user))
+		return;
+	rl = rl_intersection(estate_rl(user), estate_rl(extra));
+	set_state(my_id, sm->name, sm->sym, alloc_estate_rl(clone_rl(rl)));
+}
+
 static void tag_inner_struct_members(struct expression *expr, struct symbol *member)
 {
 	struct expression *edge_member;
@@ -626,7 +642,7 @@ void check_user_data2(int id)
 	add_hook(&match_restore_states, INLINE_FN_END);
 
 	add_unmatched_state_hook(my_id, &empty_state);
-	add_merge_hook(my_id, &merge_estates);
+	add_pre_merge_hook(my_id, &pre_merge_hook);
 
 	add_function_hook("copy_from_user", &match_user_copy, INT_PTR(0));
 	add_function_hook("__copy_from_user", &match_user_copy, INT_PTR(0));
