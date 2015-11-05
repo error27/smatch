@@ -180,6 +180,46 @@ static void match_snprintf(const char *fn, struct expression *expr, void *unused
 	set_state_expr(my_strlen_id, dest, size_to_estate(limit_size.value - 1));
 }
 
+static void match_strlcpycat(const char *fn, struct expression *expr, void *unused)
+{
+	struct expression *dest;
+	struct expression *src;
+	struct expression *limit_expr;
+	int src_len;
+	sval_t limit;
+
+	dest = get_argument_from_call_expr(expr->args, 0);
+	src = get_argument_from_call_expr(expr->args, 1);
+	limit_expr = get_argument_from_call_expr(expr->args, 2);
+
+	src_len = get_size_from_strlen(src);
+
+	if (!get_implied_max(limit_expr, &limit))
+		return;
+	if (limit.value < 0 || limit.value > INT_MAX)
+		return;
+	if (src_len != 0 && strcmp(fn, "strcpy") == 0 && src_len < limit.value)
+		limit.value = src_len;
+
+	set_state_expr(my_strlen_id, dest, size_to_estate(limit.value - 1));
+}
+
+static void match_strcpy(const char *fn, struct expression *expr, void *unused)
+{
+	struct expression *dest;
+	struct expression *src;
+	int src_len;
+
+	dest = get_argument_from_call_expr(expr->args, 0);
+	src = get_argument_from_call_expr(expr->args, 1);
+
+	src_len = get_size_from_strlen(src);
+	if (src_len == 0)
+		return;
+
+	set_state_expr(my_strlen_id, dest, size_to_estate(src_len - 1));
+}
+
 static int get_strlen_from_string(struct expression *expr, struct range_list **rl)
 {
 	sval_t sval;
@@ -305,6 +345,10 @@ void register_strlen(int id)
 	add_hook(&match_strlen_condition, CONDITION_HOOK);
 
 	add_function_hook("snprintf", &match_snprintf, NULL);
+
+	add_function_hook("strlcpy", &match_strlcpycat, NULL);
+	add_function_hook("strlcat", &match_strlcpycat, NULL);
+	add_function_hook("strcpy", &match_strcpy, NULL);
 }
 
 void register_strlen_equiv(int id)

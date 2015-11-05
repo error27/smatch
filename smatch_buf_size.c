@@ -27,12 +27,6 @@
 
 static int my_size_id;
 
-struct limiter {
-	int buf_arg;
-	int limit_arg;
-};
-static struct limiter b0_l2 = {0, 2};
-
 static DEFINE_HASHTABLE_INSERT(insert_func, char, int);
 static DEFINE_HASHTABLE_SEARCH(search_func, char, int);
 static struct hashtable *allocation_funcs;
@@ -702,30 +696,6 @@ static void match_page(const char *fn, struct expression *expr, void *_unused)
 	store_alloc(expr->left, alloc_rl(page_size, page_size));
 }
 
-static void match_limited(const char *fn, struct expression *expr, void *_limiter)
-{
-	struct limiter *limiter = (struct limiter *)_limiter;
-	struct expression *dest;
-	struct expression *size_expr;
-	sval_t size;
-
-	dest = get_argument_from_call_expr(expr->args, limiter->buf_arg);
-	size_expr = get_argument_from_call_expr(expr->args, limiter->limit_arg);
-	if (!get_implied_max(size_expr, &size))
-		return;
-	set_state_expr(my_size_id, dest, size_to_estate(size.value));
-}
-
-static void match_strcpy(const char *fn, struct expression *expr, void *unused)
-{
-	struct expression fake_assign;
-
-	fake_assign.op = '=';
-	fake_assign.left = get_argument_from_call_expr(expr->args, 0);
-	fake_assign.right = get_argument_from_call_expr(expr->args, 1);
-	match_array_assignment(&fake_assign);
-}
-
 static void match_strndup(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *fn_expr;
@@ -824,12 +794,6 @@ void register_buf_size_late(int id)
 {
 	/* has to happen after match_alloc() */
 	add_hook(&match_array_assignment, ASSIGNMENT_HOOK);
-
-	add_function_hook("strlcpy", &match_limited, &b0_l2);
-	add_function_hook("strlcat", &match_limited, &b0_l2);
-	add_function_hook("memscan", &match_limited, &b0_l2);
-
-	add_function_hook("strcpy", &match_strcpy, NULL);
 
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_size_id, struct_member_callback);
