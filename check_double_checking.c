@@ -133,10 +133,10 @@ static int previous_statement_was_synchronize(void)
 
 	if (__prev_stmt) {
 		prev_pos = __prev_stmt->pos;
-		prev_pos.line -= 1;
+		prev_pos.line -= 3;
 	} else {
 		prev_pos = __cur_stmt->pos;
-		prev_pos.line -= 3;
+		prev_pos.line -= 5;
 	}
 
 	FOR_EACH_PTR_REVERSE(big_statement_stack, stmt) {
