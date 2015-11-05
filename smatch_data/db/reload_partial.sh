@@ -14,18 +14,23 @@ fi
 
 bin_dir=$(dirname $0)
 db_file=smatch_db.sqlite
-c_file=$(grep "insert into caller_info" $info_file | cut -d : -f 1 | sort -u)
+
+files=$(grep "insert into caller_info" $info_file | cut -d : -f 1 | sort -u)
+for c_file in $files; do
+    echo "FILE $c_file"
+    echo "delete from caller_info where file = '$c_file';" | sqlite3 $db_file
+    echo "delete from return_states where file = '$c_file';" | sqlite3 $db_file
+    echo "delete from call_implies where file = '$c_file';" | sqlite3 $db_file
+done
+
 tmp_file=$(mktemp)
 
-echo "delete from caller_info where file = '$c_file';" | sqlite3 $db_file
 grep "insert into caller_info" $info_file > $tmp_file
 ${bin_dir}/fill_db_caller_info.pl "$PROJ" $tmp_file $db_file
 
-echo "delete from return_states where file = '$c_file';" | sqlite3 $db_file
 grep "insert into return_states" $info_file > $tmp_file
 ${bin_dir}/fill_db_sql.pl "$PROJ" $tmp_file $db_file
 
-echo "delete from call_implies where file = '$c_file';" | sqlite3 $db_file
 grep "insert into call_implies" $info_file > $tmp_file
 ${bin_dir}/fill_db_sql.pl "$PROJ" $tmp_file $db_file
 
