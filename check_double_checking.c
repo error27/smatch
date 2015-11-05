@@ -97,9 +97,6 @@ static int is_obvious_else(struct expression *cond)
 
 	prev = strip_condition(parent->if_conditional);
 
-	sm_msg("prev = '%s'", expr_to_str(prev));
-	sm_msg("prev = '%s'", expr_to_str(cond));
-
 	return conditions_match(cond, prev);
 }
 
