@@ -121,8 +121,22 @@ update return_states set return = '(-108),(-22),0' where function = '__spi_sync'
 
 delete from caller_info where caller = '__kernel_write';
 
+/* We sometimes use pre-allocated 4097 byte buffers for performance critical code but pretend it is always PAGE_SIZE */
+update caller_info set value = 4096 where caller='kernfs_file_direct_read' and function='(struct kernfs_ops)->read' and type = 1002 and parameter = 1;
+/* let's pretend firewire doesn't exist */
+delete from caller_info where caller='init_fw_attribute_group' and function='(struct device_attribute)->show';
+/* and let's fake the next dev_attr_show() call entirely */
+delete from caller_info where caller='sysfs_kf_seq_show' and function='(struct sysfs_ops)->show';
+insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 1001, 0, '\$', '4096-2117777777777777777');
+insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 1002, 2, '\$', '4096');
+insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 1001, 2, '\$', '4096-2117777777777777777');
+insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 0,   -1, ''  , '');
+/* config fs confuses smatch a little */
+update caller_info set value = 4096 where caller='fill_read_buffer' and function='(struct configfs_item_operations)->show_attribute' and type = 1002 and parameter = 2;
+
 EOF
 
+# fixme: this is totally broken
 call_id=$(echo "select distinct call_id from caller_info where function = '__kernel_write';" | sqlite3 $db_file)
 for id in $call_id ; do
     echo "insert into caller_info values ('fake', '', '__kernel_write', $id, 0, 1, 1003, '*\$', '0-1000000000');" | sqlite3 $db_file
