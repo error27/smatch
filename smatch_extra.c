@@ -141,8 +141,6 @@ struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smat
 	struct symbol *new_sym;
 	struct sm_state *sm;
 
-	if (in_warn_on_macro())
-		return NULL;
 	sm = set_extra_mod_helper(name, sym, state);
 	new_name = get_other_name_sym(name, sym, &new_sym);
 	if (new_name && new_sym)
