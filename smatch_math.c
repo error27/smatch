@@ -326,7 +326,7 @@ static struct range_list *handle_bitwise_AND(struct expression *expr, int implie
 	return rl_intersection(left_rl, right_rl);
 }
 
-static struct range_list *handle_bitwise_OR(struct expression *expr, int implied, int *recurse_cnt)
+static struct range_list *use_rl_binop(struct expression *expr, int implied, int *recurse_cnt)
 {
 	struct symbol *type;
 	struct range_list *left_rl, *right_rl;
@@ -343,7 +343,7 @@ static struct range_list *handle_bitwise_OR(struct expression *expr, int implied
 	if (!left_rl || !right_rl)
 		return NULL;
 
-	return rl_binop(left_rl, '|', right_rl);
+	return rl_binop(left_rl, expr->op, right_rl);
 }
 
 static struct range_list *handle_right_shift(struct expression *expr, int implied, int *recurse_cnt)
@@ -505,7 +505,8 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied, 
 	case '&':
 		return handle_bitwise_AND(expr, implied, recurse_cnt);
 	case '|':
-		return handle_bitwise_OR(expr, implied, recurse_cnt);
+	case '^':
+		return use_rl_binop(expr, implied, recurse_cnt);
 	case SPECIAL_RIGHTSHIFT:
 		return handle_right_shift(expr, implied, recurse_cnt);
 	case SPECIAL_LEFTSHIFT:
