@@ -39,12 +39,28 @@ static int get_vals(void *unused, int argc, char **argv, char **azColName)
 	return 0;
 }
 
+static int is_array_symbol(struct expression *expr)
+{
+	struct symbol *type;
+
+	if (!expr || expr->type != EXPR_SYMBOL)
+		return 0;
+	type = get_type(expr);
+	if (!type)
+		return 0;
+	if (type->type == SYM_ARRAY)
+		return 1;
+	return 0;
+}
+
 int get_local_rl(struct expression *expr, struct range_list **rl)
 {
 	char *name;
 	struct range_list *tmp;
 
 	if (!is_static(expr))
+		return 0;
+	if (is_array_symbol(expr))
 		return 0;
 	name = expr_to_var(expr);
 	if (!name)
