@@ -366,6 +366,8 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 		return NULL;
 
 	FOR_EACH_SM(pre_stree, tmp) {
+		if (!tmp->merged)
+			continue;
 		if (highest_stree_id(tmp) < highest_stree_id(gate_sm)) {
 			DIMPLIED("skipping %s.  set before.  %d vs %d\n",
 					tmp->name, highest_stree_id(tmp),
