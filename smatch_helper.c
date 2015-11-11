@@ -406,12 +406,12 @@ char *expr_to_chunk_helper(struct expression *expr, struct symbol **sym, struct 
 
 	if (vsl)
 		*vsl = NULL;
+	if (sym)
+		*sym = NULL;
 
 	expr = strip_parens(expr);
 	if (!expr)
 		return NULL;
-	if (sym)
-		*sym = NULL;
 
 	name = expr_to_var_sym(expr, &tmp);
 	if (name && tmp) {
