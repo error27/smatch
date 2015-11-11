@@ -187,7 +187,7 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 }
 
 static int pool_in_pools(struct stree *pool,
-			struct stree_stack *pools)
+			 const struct stree_stack *pools)
 {
 	struct stree *tmp;
 
@@ -263,8 +263,8 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 }
 
 struct sm_state *filter_pools(struct sm_state *sm,
-			      struct stree_stack *remove_stack,
-			      struct stree_stack *keep_stack,
+			      const struct stree_stack *remove_stack,
+			      const struct stree_stack *keep_stack,
 			      int *modified)
 {
 	struct sm_state *ret = NULL;
@@ -354,8 +354,8 @@ static int highest_stree_id(struct sm_state *sm)
 
 static struct stree *filter_stack(struct sm_state *gate_sm,
 				       struct stree *pre_stree,
-				       struct stree_stack *remove_stack,
-				       struct stree_stack *keep_stack)
+				       const struct stree_stack *remove_stack,
+				       const struct stree_stack *keep_stack)
 {
 	struct stree *ret = NULL;
 	struct sm_state *tmp;
