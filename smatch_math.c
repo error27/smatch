@@ -836,6 +836,32 @@ static sval_t handle_sizeof(struct expression *expr)
 	return ret;
 }
 
+static struct range_list *handle_strlen(struct expression *expr, int implied, int *recurse_cnt)
+{
+	struct range_list *rl;
+	struct expression *arg;
+	sval_t sval = { .type = &ulong_ctype };
+
+	if (implied == RL_EXACT)
+		return NULL;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	if (!arg)
+		return NULL;
+	if (arg->type == EXPR_STRING) {
+		sval.value = arg->string->length - 1;
+		return alloc_rl(sval, sval);
+	}
+
+	if (implied == RL_HARD || implied == RL_FUZZY)
+		return NULL;
+
+	if (get_implied_return(expr, &rl))
+		return rl;
+
+	return NULL;
+}
+
 static struct range_list *handle_call_rl(struct expression *expr, int implied, int *recurse_cnt)
 {
 	struct range_list *rl;
@@ -846,6 +872,9 @@ static struct range_list *handle_call_rl(struct expression *expr, int implied, i
 		arg = get_argument_from_call_expr(expr->args, 0);
 		return _get_rl(arg, implied, recurse_cnt);
 	}
+
+	if (sym_name_is("strlen", expr->fn))
+		return handle_strlen(expr, implied, recurse_cnt);
 
 	if (implied == RL_EXACT || implied == RL_HARD || implied == RL_FUZZY)
 		return NULL;
