@@ -643,6 +643,7 @@ void check_user_data2(int id)
 
 	add_unmatched_state_hook(my_id, &empty_state);
 	add_pre_merge_hook(my_id, &pre_merge_hook);
+	add_merge_hook(my_id, &merge_estates);
 
 	add_function_hook("copy_from_user", &match_user_copy, INT_PTR(0));
 	add_function_hook("__copy_from_user", &match_user_copy, INT_PTR(0));
