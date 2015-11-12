@@ -1259,6 +1259,7 @@ static struct range_list *handle_mod_rl(struct range_list *left, struct range_li
 static struct range_list *get_neg_rl(struct range_list *rl)
 {
 	struct data_range *tmp;
+	struct data_range *new;
 	struct range_list *ret = NULL;
 
 	if (!rl)
@@ -1270,8 +1271,9 @@ static struct range_list *get_neg_rl(struct range_list *rl)
 		if (sval_is_positive(tmp->min))
 			return ret;
 		if (sval_is_positive(tmp->max)) {
-			tmp->max.value = -1;
-			add_range(&ret, tmp->min, tmp->max);
+			new = alloc_range(tmp->min, tmp->max);
+			new->max.value = -1;
+			add_range(&ret, new->min, new->max);
 			return ret;
 		}
 		add_range(&ret, tmp->min, tmp->max);
@@ -1283,6 +1285,7 @@ static struct range_list *get_neg_rl(struct range_list *rl)
 static struct range_list *get_pos_rl(struct range_list *rl)
 {
 	struct data_range *tmp;
+	struct data_range *new;
 	struct range_list *ret = NULL;
 
 	if (!rl)
@@ -1297,8 +1300,9 @@ static struct range_list *get_pos_rl(struct range_list *rl)
 			add_range(&ret, tmp->min, tmp->max);
 			continue;
 		}
-		tmp->min.value = 0;
-		add_range(&ret, tmp->min, tmp->max);
+		new = alloc_range(tmp->min, tmp->max);
+		new->min.value = 0;
+		add_range(&ret, new->min, new->max);
 	} END_FOR_EACH_PTR(tmp);
 
 	return ret;
