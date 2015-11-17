@@ -94,6 +94,7 @@ struct range_list *rl_truncate_cast(struct symbol *type, struct range_list *rl);
 struct range_list *cast_rl(struct symbol *type, struct range_list *rl);
 int get_implied_rl(struct expression *expr, struct range_list **rl);
 int get_absolute_rl(struct expression *expr, struct range_list **rl);
+int get_real_absolute_rl(struct expression *expr, struct range_list **rl);
 struct range_list *var_to_absolute_rl(struct expression *expr);
 int custom_get_absolute_rl(struct expression *expr,
 			   struct range_list *(*fn)(struct expression *expr),
@@ -193,3 +194,6 @@ int is_fake_call(struct expression *expr);
 
 /* smatch_param_limit.c */
 struct smatch_state *get_orig_estate(const char *name, struct symbol *sym);
+
+/* smatch_real_absolute.c */
+struct smatch_state *get_real_absolute_state(struct expression *expr);

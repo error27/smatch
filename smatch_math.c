@@ -45,7 +45,8 @@ enum {
 	RL_HARD,
 	RL_FUZZY,
 	RL_IMPLIED,
-	RL_ABSOLUTE
+	RL_ABSOLUTE,
+	RL_REAL_ABSOLUTE,
 };
 
 static struct range_list *last_stmt_rl(struct statement *stmt, int implied, int *recurse_cnt)
@@ -151,8 +152,11 @@ static struct range_list *handle_divide_rl(struct expression *expr, int implied,
 
 	if (!left_rl || !right_rl)
 		return NULL;
-	if (is_whole_rl(left_rl) || is_whole_rl(right_rl))
-		return NULL;
+
+	if (implied != RL_REAL_ABSOLUTE) {
+		if (is_whole_rl(left_rl) || is_whole_rl(right_rl))
+			return NULL;
+	}
 
 	return rl_binop(left_rl, '/', right_rl);
 }
@@ -269,7 +273,7 @@ static struct range_list *handle_bitwise_AND(struct expression *expr, int implie
 	struct range_list *left_rl, *right_rl;
 	sval_t known;
 
-	if (implied != RL_IMPLIED && implied != RL_ABSOLUTE)
+	if (implied != RL_IMPLIED && implied != RL_ABSOLUTE && implied != RL_REAL_ABSOLUTE)
 		return NULL;
 
 	type = get_type(expr);
@@ -331,7 +335,7 @@ static struct range_list *use_rl_binop(struct expression *expr, int implied, int
 	struct symbol *type;
 	struct range_list *left_rl, *right_rl;
 
-	if (implied != RL_IMPLIED && implied != RL_ABSOLUTE)
+	if (implied != RL_IMPLIED && implied != RL_ABSOLUTE && implied != RL_REAL_ABSOLUTE)
 		return NULL;
 
 	type = get_type(expr);
@@ -738,11 +742,14 @@ struct range_list *var_to_absolute_rl(struct expression *expr)
 	struct range_list *rl;
 
 	state = get_extra_state(expr);
-	if (!state) {
+	if (!state || is_whole_rl(estate_rl(state))) {
 		if (get_local_rl(expr, &rl))
 			return rl;
 		if (get_db_type_rl(expr, &rl))
 			return rl;
+		state = get_real_absolute_state(expr);
+		if (state && state->data)
+			return clone_rl(estate_rl(state));
 		return alloc_whole_rl(get_type(expr));
 	}
 	/* err on the side of saying things are possible */
@@ -785,6 +792,19 @@ static struct range_list *handle_variable(struct expression *expr, int implied, 
 		}
 		if (implied == RL_HARD && !estate_has_hard_max(state))
 			return NULL;
+		return clone_rl(estate_rl(state));
+	case RL_REAL_ABSOLUTE:
+		state = get_extra_state(expr);
+		if (!state || !state->data || is_whole_rl(estate_rl(state))) {
+			if (get_local_rl(expr, &rl))
+				return rl;
+			if (get_db_type_rl(expr, &rl))
+				return rl;
+			state = get_real_absolute_state(expr);
+			if (state && state->data)
+				return clone_rl(estate_rl(state));
+			return NULL;
+		}
 		return clone_rl(estate_rl(state));
 	case RL_FUZZY:
 		if (!get_fuzzy_min_helper(expr, &min))
@@ -893,7 +913,7 @@ static struct range_list *handle_cast(struct expression *expr, int implied, int 
 	rl = _get_rl(expr->cast_expression, implied, recurse_cnt);
 	if (rl)
 		return cast_rl(type, rl);
-	if (implied == RL_ABSOLUTE)
+	if (implied == RL_ABSOLUTE || implied == RL_REAL_ABSOLUTE)
 		return alloc_whole_rl(type);
 	if (implied == RL_IMPLIED && type &&
 	    type_bits(type) > 0 && type_bits(type) < 32)
@@ -966,7 +986,7 @@ static struct range_list *_get_rl(struct expression *expr, int implied, int *rec
 out_cast:
 	if (rl)
 		return rl;
-	if (type && implied == RL_ABSOLUTE)
+	if (type && (implied == RL_ABSOLUTE || implied == RL_REAL_ABSOLUTE))
 		return alloc_whole_rl(type);
 	return NULL;
 }
@@ -1051,6 +1071,16 @@ int get_absolute_rl(struct expression *expr, struct range_list **rl)
 	int recurse_cnt = 0;
 
 	*rl = _get_rl(expr, RL_ABSOLUTE, &recurse_cnt);
+	if (!*rl)
+		*rl = alloc_whole_rl(get_type(expr));
+	return 1;
+}
+
+int get_real_absolute_rl(struct expression *expr, struct range_list **rl)
+{
+	int recurse_cnt = 0;
+
+	*rl = _get_rl(expr, RL_REAL_ABSOLUTE, &recurse_cnt);
 	if (!*rl)
 		*rl = alloc_whole_rl(get_type(expr));
 	return 1;
