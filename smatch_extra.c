@@ -229,9 +229,14 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct smatch_state *
 
 	set_related(state, estate_related(orig_state));
 	FOR_EACH_PTR(estate_related(orig_state), rel) {
+		struct smatch_state *estate;
+
 		if (option_debug_related)
 			sm_msg("%s updating related %s to %s", name, rel->name, state->name);
-		set_state(SMATCH_EXTRA, rel->name, rel->sym, state);
+		estate = get_state(SMATCH_EXTRA, rel->name, rel->sym);
+		if (!estate)
+			continue;
+		set_state(SMATCH_EXTRA, rel->name, rel->sym, clone_estate_cast(estate_type(estate), state));
 	} END_FOR_EACH_PTR(rel);
 }
 
@@ -645,13 +650,20 @@ static void match_function_call(struct expression *expr)
 	} END_FOR_EACH_PTR(arg);
 }
 
-static int types_equiv_or_pointer(struct symbol *one, struct symbol *two)
+static int values_fit_type(struct expression *left, struct expression *right)
 {
-	if (!one || !two)
+	struct range_list *rl;
+	struct symbol *type;
+
+	type = get_type(left);
+	if (!type)
 		return 0;
-	if (one->type == SYM_PTR && two->type == SYM_PTR)
-		return 1;
-	return types_equiv(one, two);
+	get_absolute_rl(right, &rl);
+	if (sval_cmp(sval_type_min(type), rl_min(rl)) > 0)
+		return 0;
+	if (sval_cmp(sval_type_max(type), rl_max(rl)) < 0)
+		return 0;
+	return 1;
 }
 
 static void save_chunk_info(struct expression *left, struct expression *right)
@@ -743,7 +755,7 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	if (!__in_fake_assign &&
 	    !(right->type == EXPR_PREOP && right->op == '&') &&
 	    right_name && right_sym &&
-	    types_equiv_or_pointer(left_type, right_type) &&
+	    values_fit_type(left, right) &&
 	    !has_symbol(right, sym)) {
 		set_equiv(left, right);
 		goto free;

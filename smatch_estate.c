@@ -329,6 +329,27 @@ struct smatch_state *alloc_estate_rl(struct range_list *rl)
 	return state;
 }
 
+struct smatch_state *clone_estate_cast(struct symbol *type, struct smatch_state *state)
+{
+	struct smatch_state *ret;
+	struct data_info *dinfo;
+
+	if (!state)
+		return NULL;
+
+	dinfo = alloc_dinfo();
+	dinfo->related = clone_related_list(dinfo->related);
+	dinfo->value_ranges = clone_rl(cast_rl(type, dinfo->value_ranges));
+	dinfo->hard_max = dinfo->hard_max;
+	dinfo->fuzzy_max = dinfo->fuzzy_max;
+
+	ret = __alloc_smatch_state(0);
+	ret->name = show_rl(dinfo->value_ranges);
+	ret->data = dinfo;
+
+	return ret;
+}
+
 struct smatch_state *get_implied_estate(struct expression *expr)
 {
 	struct smatch_state *state;
