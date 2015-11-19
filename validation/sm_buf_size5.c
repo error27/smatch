@@ -24,6 +24,6 @@ int function(void)
 sm_buf_size5.c:12 function() buf size: '&foo' 1 elements, 60 bytes
 sm_buf_size5.c:13 function() buf size: '&(foo.buf[0])' 42 elements, 42 bytes
 sm_buf_size5.c:14 function() buf size: '&foo.x[0]' 4 elements, 16 bytes
-sm_buf_size5.c:15 function() buf size: '&foo.x[1]' 3 elements, 15 bytes
+sm_buf_size5.c:15 function() buf size: '&foo.x[1]' 3 elements, 12 bytes
  * check-output-end
  */

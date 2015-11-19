@@ -3,10 +3,10 @@
 #include "check_debug.h"
 
 int a;
+int x;
+
 int main(void)
 {
-	int x;
-
 	a = (unsigned short)x;
 	__smatch_implied(a);
 
@@ -19,6 +19,6 @@ int main(void)
  * check-command: smatch -I.. sm_casts7.c
  *
  * check-output-start
-sm_casts7.c:11 main() implied: a = '0-65535'
+sm_casts7.c:11 main() implied: a = '0-u16max'
  * check-output-end
  */

@@ -43,7 +43,7 @@ int main(void)
  *
  * check-output-start
 sm_casts5.c:29 main() implied: l = '(-2)-s64max'
-sm_casts5.c:30 main() implied: ul = '(-2)-s64max'
+sm_casts5.c:30 main() implied: ul = '4294967294-s64max'
 sm_casts5.c:31 main() implied: i = '(-2)-s32max'
 sm_casts5.c:32 main() implied: ui = '(-2)-(-1)'
 sm_casts5.c:33 main() implied: c = '(-2)-127'
