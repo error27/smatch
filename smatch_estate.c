@@ -338,10 +338,7 @@ struct smatch_state *clone_estate_cast(struct symbol *type, struct smatch_state 
 		return NULL;
 
 	dinfo = alloc_dinfo();
-	dinfo->related = clone_related_list(dinfo->related);
-	dinfo->value_ranges = clone_rl(cast_rl(type, dinfo->value_ranges));
-	dinfo->hard_max = dinfo->hard_max;
-	dinfo->fuzzy_max = dinfo->fuzzy_max;
+	dinfo->value_ranges = clone_rl(cast_rl(type, estate_rl(state)));
 
 	ret = __alloc_smatch_state(0);
 	ret->name = show_rl(dinfo->value_ranges);
