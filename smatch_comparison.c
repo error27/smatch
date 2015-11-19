@@ -536,7 +536,7 @@ static void save_start_states(struct statement *stmt)
 		struct var_sym_list *vsl1 = NULL;
 		struct var_sym_list *vsl2 = NULL;
 
-		if (!param->ident || !param->ident->name)
+		if (!param->ident)
 			continue;
 		snprintf(orig, sizeof(orig), "%s orig", param->ident->name);
 		snprintf(state_name, sizeof(state_name), "%s vs %s", param->ident->name, orig);
