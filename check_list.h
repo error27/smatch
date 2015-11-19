@@ -118,6 +118,7 @@ CK(check_indenting)
 CK(check_unreachable)
 CK(check_no_if_block)
 CK(check_buffer_too_small_for_struct)
+CK(check_impossible_mask)
 
 /* <- your test goes here */
 /* CK(register_template) */
