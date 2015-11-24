@@ -17,9 +17,12 @@
 
 #include "smatch.h"
 
-int list_has_string(struct string_list *str_list, char *str)
+int list_has_string(struct string_list *str_list, const char *str)
 {
 	char *tmp;
+
+	if (!str)
+		return 0;
 
 	FOR_EACH_PTR(str_list, tmp) {
 		if (strcmp(tmp, str) < 0)
@@ -31,7 +34,7 @@ int list_has_string(struct string_list *str_list, char *str)
 	return 0;
 }
 
-void insert_string(struct string_list **str_list, char *new)
+void insert_string(struct string_list **str_list, const char *new)
 {
 	char *tmp;
 
