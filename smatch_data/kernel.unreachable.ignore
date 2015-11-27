@@ -21,3 +21,5 @@ sk_nulls_for_each
 unreachable
 iterate_all_kinds
 netdev_for_each_lower_dev
+for_each_clear_bit_from
+idr_for_each_entry_continue
