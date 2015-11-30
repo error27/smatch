@@ -838,13 +838,13 @@ void __save_switch_states(struct expression *switch_expr)
 	push_stree(&switch_stack, clone_stree(cur_stree));
 }
 
-void __merge_switches(struct expression *switch_expr, struct expression *case_expr)
+void __merge_switches(struct expression *switch_expr, struct expression *case_expr, struct expression *case_to)
 {
 	struct stree *stree;
 	struct stree *implied_stree;
 
 	stree = pop_stree(&switch_stack);
-	implied_stree = __implied_case_stree(switch_expr, case_expr, &remaining_cases, &stree);
+	implied_stree = __implied_case_stree(switch_expr, case_expr, case_to, &remaining_cases, &stree);
 	merge_stree(&cur_stree, implied_stree);
 	free_stree(&implied_stree);
 	push_stree(&switch_stack, stree);

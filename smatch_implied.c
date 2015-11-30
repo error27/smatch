@@ -651,6 +651,7 @@ free:
 
 struct stree *__implied_case_stree(struct expression *switch_expr,
 					struct expression *case_expr,
+					struct expression *case_to,
 					struct range_list_stack **remaining_cases,
 					struct stree **raw_stree)
 {
@@ -661,7 +662,7 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 	struct stree *false_states = NULL;
 	struct stree *extra_states = NULL;
 	struct stree *ret = clone_stree(*raw_stree);
-	sval_t sval;
+	sval_t start, end;
 	struct range_list *vals = NULL;
 
 	name = expr_to_var_sym(switch_expr, &sym);
@@ -669,15 +670,14 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 		goto free;
 	sm = get_sm_state_stree(*raw_stree, SMATCH_EXTRA, name, sym);
 
-	if (case_expr) {
-		if (get_value(case_expr, &sval)) {
-			filter_top_rl(remaining_cases, sval);
-			add_range(&vals, sval, sval);
-		} else {
-			vals = clone_rl(top_rl(*remaining_cases));
-		}
+	if (get_value(case_to, &end) && get_value(case_expr, &start)) {
+		filter_top_rl(remaining_cases, start, end);
+		add_range(&vals, start, end);
+	} else if (get_value(case_expr, &start)) {
+		filter_top_rl(remaining_cases, start, start);
+		add_range(&vals, start, start);
 	} else {
-		vals = top_rl(*remaining_cases);
+		vals = clone_rl(top_rl(*remaining_cases));
 	}
 
 	if (sm)
