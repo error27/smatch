@@ -575,7 +575,7 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	 */
 
 	FOR_EACH_SM(orig_states, sm) {
-		__set_sm(sm);
+		__use_orig_if_not_set(sm);
 	} END_FOR_EACH_SM(sm);
 
 	free_stree(&orig_states);
