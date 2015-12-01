@@ -447,6 +447,7 @@ extern int option_no_implied;
 struct range_list_stack;
 struct stree *__implied_case_stree(struct expression *switch_expr,
 				 struct expression *case_expr,
+				 struct expression *case_to,
 				 struct range_list_stack **remaining_cases,
 				 struct stree **raw_stree);
 struct range_list *__get_implied_values(struct expression *switch_expr);
@@ -596,7 +597,7 @@ void __use_breaks(void);
 
 void __save_switch_states(struct expression *switch_expr);
 void __discard_switches(void);
-void __merge_switches(struct expression *switch_expr, struct expression *case_expr);
+void __merge_switches(struct expression *switch_expr, struct expression *case_expr, struct expression *case_to);
 void __push_default(void);
 void __set_default(void);
 int __pop_default(void);

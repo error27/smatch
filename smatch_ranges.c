@@ -1054,12 +1054,12 @@ struct range_list *top_rl(struct range_list_stack *rl_stack)
 	return rl;
 }
 
-void filter_top_rl(struct range_list_stack **rl_stack, sval_t sval)
+void filter_top_rl(struct range_list_stack **rl_stack, sval_t start, sval_t end)
 {
 	struct range_list *rl;
 
 	rl = pop_rl(rl_stack);
-	rl = remove_range(rl, sval, sval);
+	rl = remove_range(rl, start, end);
 	push_rl(rl_stack, rl);
 }
 
