@@ -192,7 +192,7 @@ extern struct stree *global_states;
 int is_silenced_function(void);
 
 extern FILE *sm_outfd;
-#define sm_printf(msg...) do { if (final_pass || option_debug) fprintf(sm_outfd, msg); } while (0)
+#define sm_printf(msg...) do { if (final_pass || option_debug || local_debug) fprintf(sm_outfd, msg); } while (0)
 
 static inline void sm_prefix(void)
 {
@@ -204,7 +204,7 @@ static inline void print_implied_debug_msg();
 #define sm_msg(msg...) \
 do {                                                           \
 	print_implied_debug_msg();                             \
-	if (!option_debug && !final_pass)                      \
+	if (!option_debug && !final_pass && !local_debug)      \
 		break;                                         \
 	if (!option_info && is_silenced_function())	       \
 		break;					       \
