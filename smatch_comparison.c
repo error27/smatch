@@ -1602,8 +1602,13 @@ static void filter_by_sm(struct sm_state *sm, int op,
 	if (!sm)
 		return;
 	data = sm->state->data;
-	if (!data)
+	if (!data) {
+		if (sm->merged) {
+			filter_by_sm(sm->left, op, true_stack, false_stack);
+			filter_by_sm(sm->right, op, true_stack, false_stack);
+		}
 		return;
+	}
 
 	if (data->comparison &&
 	    data->comparison == filter_comparison(data->comparison, op))
