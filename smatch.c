@@ -132,7 +132,6 @@ static void help(void)
 	printf("--debug-implied:  print debug output about implications.\n");
 	printf("--no-implied:  ignore implications.\n");
 	printf("--assume-loops:  assume loops always go through at least once.\n");
-	printf("--known-conditions:  don't branch for known conditions.\n");
 	printf("--two-passes:  use a two pass system for each function.\n");
 	printf("--file-output:  instead of printing stdout, print to \"file.c.smatch_out\".\n");
 	printf("--help:  print this helpful message.\n");
@@ -216,7 +215,6 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(debug_related);
 		OPTION(no_implied);
 		OPTION(assume_loops);
-		OPTION(known_conditions);
 		OPTION(no_data);
 		OPTION(two_passes);
 		OPTION(full_path);

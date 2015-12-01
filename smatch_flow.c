@@ -66,7 +66,6 @@ static void add_inline_function(struct symbol *sym);
 static void parse_inline(struct expression *expr);
 
 int option_assume_loops = 0;
-int option_known_conditions = 0;
 int option_two_passes = 0;
 struct symbol *cur_func_sym = NULL;
 struct stree *global_states;
@@ -888,18 +887,6 @@ void __split_stmt(struct statement *stmt)
 			break;
 		}
 		if (known_condition_false(stmt->if_conditional)) {
-			__split_stmt(stmt->if_false);
-			break;
-		}
-		if (option_known_conditions &&
-		    implied_condition_true(stmt->if_conditional)) {
-			sm_info("this condition is true.");
-			__split_stmt(stmt->if_true);
-			break;
-		}
-		if (option_known_conditions &&
-		    implied_condition_false(stmt->if_conditional)) {
-			sm_info("this condition is false.");
 			__split_stmt(stmt->if_false);
 			break;
 		}
