@@ -66,7 +66,6 @@ char *implied_debug_msg;
 #define DIMPLIED(msg...) do { if (option_debug_implied) printf(msg); } while (0)
 
 int option_debug_implied = 0;
-int option_no_implied = 0;
 
 #define RIGHT 0
 #define LEFT  1
@@ -586,8 +585,6 @@ static struct stree *saved_implied_false;
 
 static void save_implications_hook(struct expression *expr)
 {
-	if (option_no_implied)
-		return;
 	get_tf_states(expr, &saved_implied_true, &saved_implied_false);
 }
 

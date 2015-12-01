@@ -130,7 +130,6 @@ static void help(void)
 	printf("--data=<dir>: overwrite path to default smatch data directory.\n");
 	printf("--full-path:  print the full pathname.\n");
 	printf("--debug-implied:  print debug output about implications.\n");
-	printf("--no-implied:  ignore implications.\n");
 	printf("--assume-loops:  assume loops always go through at least once.\n");
 	printf("--two-passes:  use a two pass system for each function.\n");
 	printf("--file-output:  instead of printing stdout, print to \"file.c.smatch_out\".\n");
@@ -213,7 +212,6 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(debug);
 		OPTION(debug_implied);
 		OPTION(debug_related);
-		OPTION(no_implied);
 		OPTION(assume_loops);
 		OPTION(no_data);
 		OPTION(two_passes);

@@ -443,7 +443,6 @@ int __handle_expr_statement_assigns(struct expression *expr);
 /* smatch_implied.c */
 extern int option_debug_implied;
 extern int option_debug_related;
-extern int option_no_implied;
 struct range_list_stack;
 struct stree *__implied_case_stree(struct expression *switch_expr,
 				 struct expression *case_expr,
