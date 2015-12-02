@@ -86,23 +86,23 @@ static struct range_list *tmp_range_list(long long num)
 	return my_list;
 }
 
-static void print_debug_tf(struct sm_state *s, int istrue, int isfalse)
+static void print_debug_tf(struct sm_state *sm, int istrue, int isfalse)
 {
 	if (!option_debug_implied && !option_debug)
 		return;
 
 	if (istrue && isfalse) {
-		printf("'%s = %s' from %d does not exist.\n", s->name,
-			show_state(s->state), s->line);
+		printf("'%s = %s' from %d does not exist.\n", sm->name,
+			show_state(sm->state), sm->line);
 	} else if (istrue) {
-		printf("'%s = %s' from %d is true. [stree %d]\n", s->name, show_state(s->state),
-			s->line, get_stree_id(s->pool));
+		printf("'%s = %s' from %d is true. [stree %d]\n", sm->name, show_state(sm->state),
+			sm->line, get_stree_id(sm->pool));
 	} else if (isfalse) {
-		printf("'%s = %s' from %d is false. [stree %d]\n", s->name, show_state(s->state),
-			s->line, get_stree_id(s->pool));
+		printf("'%s = %s' from %d is false. [stree %d]\n", sm->name, show_state(sm->state),
+			sm->line, get_stree_id(sm->pool));
 	} else {
-		printf("'%s = %s' from %d could be true or false. [stree %d]\n", s->name,
-			show_state(s->state), s->line, get_stree_id(s->pool));
+		printf("'%s = %s' from %d could be true or false. [stree %d]\n", sm->name,
+			show_state(sm->state), sm->line, get_stree_id(sm->pool));
 	}
 }
 
@@ -131,7 +131,7 @@ void add_pool(struct stree_stack **pools, struct stree *new)
  * If 'foo' == 99 add it that pool to the true pools.  If it's false, add it to
  * the false pools.  If we're not sure, then we don't add it to either.
  */
-static void do_compare(struct sm_state *sm_state, int comparison, struct range_list *vals,
+static void do_compare(struct sm_state *sm, int comparison, struct range_list *vals,
 			int lr,
 			struct stree_stack **true_stack,
 			struct stree_stack **false_stack)
@@ -142,25 +142,25 @@ static void do_compare(struct sm_state *sm_state, int comparison, struct range_l
 	struct symbol *type;
 	struct range_list *var_rl;
 
-	if (!sm_state->pool)
+	if (!sm->pool)
 		return;
 
-	if (is_implied(sm_state)) {
-		s = get_sm_state_stree(sm_state->pool,
-				sm_state->owner, sm_state->name,
-				sm_state->sym);
+	if (is_implied(sm)) {
+		s = get_sm_state_stree(sm->pool,
+				sm->owner, sm->name,
+				sm->sym);
 	} else {
-		s = sm_state;
+		s = sm;
 	}
 
 	if (!s) {
 		if (option_debug_implied || option_debug)
 			sm_msg("%s from %d, has borrowed implications.",
-				sm_state->name, sm_state->line);
+				sm->name, sm->line);
 		return;
 	}
 
-	type = estate_type(sm_state->state);
+	type = estate_type(sm->state);
 	if (type_positive_bits(rl_type(vals)) > type_positive_bits(type))
 		type = rl_type(vals);
 	if (type_positive_bits(type) < 31)
@@ -218,7 +218,7 @@ static int is_checked(struct state_list *checked, struct sm_state *sm)
  * of merges.  separate_pools() iterates through the pools recursively and calls
  * do_compare() for each time 'foo' was set.
  */
-static void separate_pools(struct sm_state *sm_state, int comparison, struct range_list *vals,
+static void separate_pools(struct sm_state *sm, int comparison, struct range_list *vals,
 			int lr,
 			struct stree_stack **true_stack,
 			struct stree_stack **false_stack,
@@ -227,7 +227,7 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 	int free_checked = 0;
 	struct state_list *checked_states = NULL;
 
-	if (!sm_state)
+	if (!sm)
 		return;
 
 	/*
@@ -235,11 +235,11 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 	   so we bail.  Theoretically, bailing out here can cause more false
 	   positives but won't hide actual bugs.
 	*/
-	if (sm_state->nr_children > 4000) {
+	if (sm->nr_children > 4000) {
 		if (option_debug || option_debug_implied) {
 			static char buf[1028];
 			snprintf(buf, sizeof(buf), "debug: separate_pools: nr_children over 4000 (%d). (%s %s)",
-				 sm_state->nr_children, sm_state->name, show_state(sm_state->state));
+				 sm->nr_children, sm->name, show_state(sm->state));
 			implied_debug_msg = buf;
 		}
 		return;
@@ -249,14 +249,14 @@ static void separate_pools(struct sm_state *sm_state, int comparison, struct ran
 		checked = &checked_states;
 		free_checked = 1;
 	}
-	if (is_checked(*checked, sm_state))
+	if (is_checked(*checked, sm))
 		return;
-	add_ptr_list(checked, sm_state);
+	add_ptr_list(checked, sm);
 
-	do_compare(sm_state, comparison, vals, lr, true_stack, false_stack);
+	do_compare(sm, comparison, vals, lr, true_stack, false_stack);
 
-	separate_pools(sm_state->left, comparison, vals, lr, true_stack, false_stack, checked);
-	separate_pools(sm_state->right, comparison, vals, lr, true_stack, false_stack, checked);
+	separate_pools(sm->left, comparison, vals, lr, true_stack, false_stack, checked);
+	separate_pools(sm->right, comparison, vals, lr, true_stack, false_stack, checked);
 	if (free_checked)
 		free_slist(checked);
 }
@@ -388,7 +388,7 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 	return ret;
 }
 
-static void separate_and_filter(struct sm_state *sm_state, int comparison, struct range_list *vals,
+static void separate_and_filter(struct sm_state *sm, int comparison, struct range_list *vals,
 		int lr,
 		struct stree *pre_stree,
 		struct stree **true_states,
@@ -401,26 +401,26 @@ static void separate_and_filter(struct sm_state *sm_state, int comparison, struc
 
 	gettimeofday(&time_before, NULL);
 
-	if (!is_merged(sm_state)) {
-		DIMPLIED("%d '%s' is not merged.\n", get_lineno(), sm_state->name);
+	if (!is_merged(sm)) {
+		DIMPLIED("%d '%s' is not merged.\n", get_lineno(), sm->name);
 		return;
 	}
 
 	if (option_debug_implied || option_debug) {
 		if (lr == LEFT)
 			sm_msg("checking implications: (%s %s %s)",
-				sm_state->name, show_special(comparison), show_rl(vals));
+				sm->name, show_special(comparison), show_rl(vals));
 		else
 			sm_msg("checking implications: (%s %s %s)",
-				show_rl(vals), show_special(comparison), sm_state->name);
+				show_rl(vals), show_special(comparison), sm->name);
 	}
 
-	separate_pools(sm_state, comparison, vals, lr, &true_stack, &false_stack, NULL);
+	separate_pools(sm, comparison, vals, lr, &true_stack, &false_stack, NULL);
 
 	DIMPLIED("filtering true stack.\n");
-	*true_states = filter_stack(sm_state, pre_stree, false_stack, true_stack);
+	*true_states = filter_stack(sm, pre_stree, false_stack, true_stack);
 	DIMPLIED("filtering false stack.\n");
-	*false_states = filter_stack(sm_state, pre_stree, true_stack, false_stack);
+	*false_states = filter_stack(sm, pre_stree, true_stack, false_stack);
 	free_stree_stack(&true_stack);
 	free_stree_stack(&false_stack);
 	if (option_debug_implied || option_debug) {
