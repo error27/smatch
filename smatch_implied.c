@@ -479,7 +479,7 @@ static void handle_comparison(struct expression *expr,
 			      struct stree **implied_false)
 {
 	struct sm_state *sm = NULL;
-	struct range_list *ranges = NULL;
+	struct range_list *rl = NULL;
 	struct expression *left;
 	struct expression *right;
 	int left_right;
@@ -490,20 +490,20 @@ static void handle_comparison(struct expression *expr,
 	if (is_merged_expr(left)) {
 		left_right = LEFT;
 		sm = get_sm_state_expr(SMATCH_EXTRA, left);
-		get_implied_rl(right, &ranges);
+		get_implied_rl(right, &rl);
 	} else if (is_merged_expr(right)) {
 		left_right = RIGHT;
 		sm = get_sm_state_expr(SMATCH_EXTRA, right);
-		get_implied_rl(left, &ranges);
+		get_implied_rl(left, &rl);
 	}
 
-	if (!ranges || !sm) {
-		free_rl(&ranges);
+	if (!rl || !sm) {
+		free_rl(&rl);
 		return;
 	}
 
-	separate_and_filter(sm, expr->op, ranges, left_right, __get_cur_stree(), implied_true, implied_false);
-	free_rl(&ranges);
+	separate_and_filter(sm, expr->op, rl, left_right, __get_cur_stree(), implied_true, implied_false);
+	free_rl(&rl);
 	delete_equiv_stree(implied_true, sm->name, sm->sym);
 	delete_equiv_stree(implied_false, sm->name, sm->sym);
 }
