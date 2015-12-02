@@ -131,7 +131,7 @@ void add_pool(struct stree_stack **pools, struct stree *new)
  * If 'foo' == 99 add it that pool to the true pools.  If it's false, add it to
  * the false pools.  If we're not sure, then we don't add it to either.
  */
-static void do_compare(struct sm_state *sm, int comparison, struct range_list *vals,
+static void do_compare(struct sm_state *sm, int comparison, struct range_list *rl,
 			int left_right,
 			struct stree_stack **true_stack,
 			struct stree_stack **false_stack)
@@ -161,19 +161,19 @@ static void do_compare(struct sm_state *sm, int comparison, struct range_list *v
 	}
 
 	type = estate_type(sm->state);
-	if (type_positive_bits(rl_type(vals)) > type_positive_bits(type))
-		type = rl_type(vals);
+	if (type_positive_bits(rl_type(rl)) > type_positive_bits(type))
+		type = rl_type(rl);
 	if (type_positive_bits(type) < 31)
 		type = &int_ctype;
 	var_rl = cast_rl(type, estate_rl(s->state));
-	vals = cast_rl(type, vals);
+	rl = cast_rl(type, rl);
 
 	if (left_right == LEFT) {
-		istrue = !possibly_false_rl(var_rl, comparison, vals);
-		isfalse = !possibly_true_rl(var_rl, comparison, vals);
+		istrue = !possibly_false_rl(var_rl, comparison, rl);
+		isfalse = !possibly_true_rl(var_rl, comparison, rl);
 	} else {
-		istrue = !possibly_false_rl(vals, comparison, var_rl);
-		isfalse = !possibly_true_rl(vals, comparison, var_rl);
+		istrue = !possibly_false_rl(rl, comparison, var_rl);
+		isfalse = !possibly_true_rl(rl, comparison, var_rl);
 	}
 
 	print_debug_tf(s, istrue, isfalse);
@@ -218,7 +218,7 @@ static int is_checked(struct state_list *checked, struct sm_state *sm)
  * of merges.  separate_pools() iterates through the pools recursively and calls
  * do_compare() for each time 'foo' was set.
  */
-static void separate_pools(struct sm_state *sm, int comparison, struct range_list *vals,
+static void separate_pools(struct sm_state *sm, int comparison, struct range_list *rl,
 			int left_right,
 			struct stree_stack **true_stack,
 			struct stree_stack **false_stack,
@@ -253,10 +253,10 @@ static void separate_pools(struct sm_state *sm, int comparison, struct range_lis
 		return;
 	add_ptr_list(checked, sm);
 
-	do_compare(sm, comparison, vals, left_right, true_stack, false_stack);
+	do_compare(sm, comparison, rl, left_right, true_stack, false_stack);
 
-	separate_pools(sm->left, comparison, vals, left_right, true_stack, false_stack, checked);
-	separate_pools(sm->right, comparison, vals, left_right, true_stack, false_stack, checked);
+	separate_pools(sm->left, comparison, rl, left_right, true_stack, false_stack, checked);
+	separate_pools(sm->right, comparison, rl, left_right, true_stack, false_stack, checked);
 	if (free_checked)
 		free_slist(checked);
 }
@@ -388,7 +388,7 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 	return ret;
 }
 
-static void separate_and_filter(struct sm_state *sm, int comparison, struct range_list *vals,
+static void separate_and_filter(struct sm_state *sm, int comparison, struct range_list *rl,
 		int left_right,
 		struct stree *pre_stree,
 		struct stree **true_states,
@@ -409,13 +409,13 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 	if (option_debug_implied || option_debug) {
 		if (left_right == LEFT)
 			sm_msg("checking implications: (%s %s %s)",
-				sm->name, show_special(comparison), show_rl(vals));
+				sm->name, show_special(comparison), show_rl(rl));
 		else
 			sm_msg("checking implications: (%s %s %s)",
-				show_rl(vals), show_special(comparison), sm->name);
+				show_rl(rl), show_special(comparison), sm->name);
 	}
 
-	separate_pools(sm, comparison, vals, left_right, &true_stack, &false_stack, NULL);
+	separate_pools(sm, comparison, rl, left_right, &true_stack, &false_stack, NULL);
 
 	DIMPLIED("filtering true stack.\n");
 	*true_states = filter_stack(sm, pre_stree, false_stack, true_stack);
@@ -660,7 +660,7 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 	struct stree *extra_states = NULL;
 	struct stree *ret = clone_stree(*raw_stree);
 	sval_t start, end;
-	struct range_list *vals = NULL;
+	struct range_list *rl = NULL;
 
 	name = expr_to_var_sym(switch_expr, &sym);
 	if (!name || !sym)
@@ -669,20 +669,20 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 
 	if (get_value(case_to, &end) && get_value(case_expr, &start)) {
 		filter_top_rl(remaining_cases, start, end);
-		add_range(&vals, start, end);
+		add_range(&rl, start, end);
 	} else if (get_value(case_expr, &start)) {
 		filter_top_rl(remaining_cases, start, start);
-		add_range(&vals, start, start);
+		add_range(&rl, start, start);
 	} else {
-		vals = clone_rl(top_rl(*remaining_cases));
+		rl = clone_rl(top_rl(*remaining_cases));
 	}
 
 	if (sm)
-		separate_and_filter(sm, SPECIAL_EQUAL, vals, LEFT, *raw_stree, &true_states, &false_states);
+		separate_and_filter(sm, SPECIAL_EQUAL, rl, LEFT, *raw_stree, &true_states, &false_states);
 
 	__push_fake_cur_stree();
 	__unnullify_path();
-	set_extra_nomod(name, sym, alloc_estate_rl(vals));
+	set_extra_nomod(name, sym, alloc_estate_rl(rl));
 	extra_states = __pop_fake_cur_stree();
 	overwrite_stree(extra_states, &true_states);
 	overwrite_stree(true_states, &ret);
