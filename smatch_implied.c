@@ -75,7 +75,7 @@ int option_debug_implied = 0;
  * It messes things up to free range list allocations.  This helper fuction
  * lets us reuse memory instead of doing new allocations.
  */
-static struct range_list *tmp_range_list(long long num)
+static struct range_list *tmp_range_list(struct symbol *type, long long num)
 {
 	static struct range_list *my_list = NULL;
 	static struct data_range *my_range;
@@ -139,7 +139,6 @@ static void do_compare(struct sm_state *sm, int comparison, struct range_list *r
 	struct sm_state *s;
 	int istrue;
 	int isfalse;
-	struct symbol *type;
 	struct range_list *var_rl;
 
 	if (!sm->pool)
@@ -160,13 +159,7 @@ static void do_compare(struct sm_state *sm, int comparison, struct range_list *r
 		return;
 	}
 
-	type = estate_type(sm->state);
-	if (type_positive_bits(rl_type(rl)) > type_positive_bits(type))
-		type = rl_type(rl);
-	if (type_positive_bits(type) < 31)
-		type = &int_ctype;
-	var_rl = cast_rl(type, estate_rl(s->state));
-	rl = cast_rl(type, rl);
+	var_rl = cast_rl(rl_type(rl), estate_rl(s->state));
 
 	if (left_right == LEFT) {
 		istrue = !possibly_false_rl(var_rl, comparison, rl);
@@ -482,6 +475,7 @@ static void handle_comparison(struct expression *expr,
 	struct range_list *rl = NULL;
 	struct expression *left;
 	struct expression *right;
+	struct symbol *type;
 	int left_right;
 
 	left = get_left_most_expr(expr->left);
@@ -501,6 +495,13 @@ static void handle_comparison(struct expression *expr,
 		free_rl(&rl);
 		return;
 	}
+
+	type = estate_type(sm->state);
+	if (type_positive_bits(rl_type(rl)) > type_positive_bits(type))
+		type = rl_type(rl);
+	if (type_positive_bits(type) < 31)
+		type = &int_ctype;
+	rl = cast_rl(type, rl);
 
 	separate_and_filter(sm, expr->op, rl, left_right, __get_cur_stree(), implied_true, implied_false);
 	free_rl(&rl);
@@ -533,7 +534,7 @@ static void handle_zero_comparison(struct expression *expr,
 	if (!sm)
 		goto free;
 
-	separate_and_filter(sm, SPECIAL_NOTEQUAL, tmp_range_list(0), LEFT, __get_cur_stree(), implied_true, implied_false);
+	separate_and_filter(sm, SPECIAL_NOTEQUAL, tmp_range_list(estate_type(sm->state), 0), LEFT, __get_cur_stree(), implied_true, implied_false);
 	delete_equiv_stree(implied_true, name, sym);
 	delete_equiv_stree(implied_false, name, sym);
 free:
