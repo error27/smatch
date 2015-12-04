@@ -67,9 +67,6 @@ char *implied_debug_msg;
 
 int option_debug_implied = 0;
 
-#define RIGHT 0
-#define LEFT  1
-
 /*
  * tmp_range_list():
  * It messes things up to free range list allocations.  This helper fuction
@@ -132,7 +129,6 @@ void add_pool(struct stree_stack **pools, struct stree *new)
  * the false pools.  If we're not sure, then we don't add it to either.
  */
 static void do_compare(struct sm_state *sm, int comparison, struct range_list *rl,
-			int left_right,
 			struct stree_stack **true_stack,
 			struct stree_stack **false_stack)
 {
@@ -161,13 +157,8 @@ static void do_compare(struct sm_state *sm, int comparison, struct range_list *r
 
 	var_rl = cast_rl(rl_type(rl), estate_rl(s->state));
 
-	if (left_right == LEFT) {
-		istrue = !possibly_false_rl(var_rl, comparison, rl);
-		isfalse = !possibly_true_rl(var_rl, comparison, rl);
-	} else {
-		istrue = !possibly_false_rl(rl, comparison, var_rl);
-		isfalse = !possibly_true_rl(rl, comparison, var_rl);
-	}
+	istrue = !possibly_false_rl(var_rl, comparison, rl);
+	isfalse = !possibly_true_rl(var_rl, comparison, rl);
 
 	print_debug_tf(s, istrue, isfalse);
 
@@ -212,7 +203,6 @@ static int is_checked(struct state_list *checked, struct sm_state *sm)
  * do_compare() for each time 'foo' was set.
  */
 static void separate_pools(struct sm_state *sm, int comparison, struct range_list *rl,
-			int left_right,
 			struct stree_stack **true_stack,
 			struct stree_stack **false_stack,
 			struct state_list **checked)
@@ -246,10 +236,10 @@ static void separate_pools(struct sm_state *sm, int comparison, struct range_lis
 		return;
 	add_ptr_list(checked, sm);
 
-	do_compare(sm, comparison, rl, left_right, true_stack, false_stack);
+	do_compare(sm, comparison, rl, true_stack, false_stack);
 
-	separate_pools(sm->left, comparison, rl, left_right, true_stack, false_stack, checked);
-	separate_pools(sm->right, comparison, rl, left_right, true_stack, false_stack, checked);
+	separate_pools(sm->left, comparison, rl, true_stack, false_stack, checked);
+	separate_pools(sm->right, comparison, rl, true_stack, false_stack, checked);
 	if (free_checked)
 		free_slist(checked);
 }
@@ -382,7 +372,6 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 }
 
 static void separate_and_filter(struct sm_state *sm, int comparison, struct range_list *rl,
-		int left_right,
 		struct stree *pre_stree,
 		struct stree **true_states,
 		struct stree **false_states)
@@ -400,15 +389,11 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 	}
 
 	if (option_debug_implied || option_debug) {
-		if (left_right == LEFT)
-			sm_msg("checking implications: (%s %s %s)",
-				sm->name, show_special(comparison), show_rl(rl));
-		else
-			sm_msg("checking implications: (%s %s %s)",
-				show_rl(rl), show_special(comparison), sm->name);
+		sm_msg("checking implications: (%s %s %s)",
+		       sm->name, show_special(comparison), show_rl(rl));
 	}
 
-	separate_pools(sm, comparison, rl, left_right, &true_stack, &false_stack, NULL);
+	separate_pools(sm, comparison, rl, &true_stack, &false_stack, NULL);
 
 	DIMPLIED("filtering true stack.\n");
 	*true_states = filter_stack(sm, pre_stree, false_stack, true_stack);
@@ -476,19 +461,18 @@ static void handle_comparison(struct expression *expr,
 	struct expression *left;
 	struct expression *right;
 	struct symbol *type;
-	int left_right;
+	int comparison = expr->op;
 
 	left = get_left_most_expr(expr->left);
 	right = get_left_most_expr(expr->right);
 
 	if (is_merged_expr(left)) {
-		left_right = LEFT;
 		sm = get_sm_state_expr(SMATCH_EXTRA, left);
 		get_implied_rl(right, &rl);
 	} else if (is_merged_expr(right)) {
-		left_right = RIGHT;
 		sm = get_sm_state_expr(SMATCH_EXTRA, right);
 		get_implied_rl(left, &rl);
+		comparison = flip_comparison(comparison);
 	}
 
 	if (!rl || !sm) {
@@ -503,7 +487,7 @@ static void handle_comparison(struct expression *expr,
 		type = &int_ctype;
 	rl = cast_rl(type, rl);
 
-	separate_and_filter(sm, expr->op, rl, left_right, __get_cur_stree(), implied_true, implied_false);
+	separate_and_filter(sm, comparison, rl, __get_cur_stree(), implied_true, implied_false);
 	free_rl(&rl);
 	delete_equiv_stree(implied_true, sm->name, sm->sym);
 	delete_equiv_stree(implied_false, sm->name, sm->sym);
@@ -534,7 +518,7 @@ static void handle_zero_comparison(struct expression *expr,
 	if (!sm)
 		goto free;
 
-	separate_and_filter(sm, SPECIAL_NOTEQUAL, tmp_range_list(estate_type(sm->state), 0), LEFT, __get_cur_stree(), implied_true, implied_false);
+	separate_and_filter(sm, SPECIAL_NOTEQUAL, tmp_range_list(estate_type(sm->state), 0), __get_cur_stree(), implied_true, implied_false);
 	delete_equiv_stree(implied_true, name, sym);
 	delete_equiv_stree(implied_false, name, sym);
 free:
@@ -679,7 +663,7 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 	}
 
 	if (sm)
-		separate_and_filter(sm, SPECIAL_EQUAL, rl, LEFT, *raw_stree, &true_states, &false_states);
+		separate_and_filter(sm, SPECIAL_EQUAL, rl, *raw_stree, &true_states, &false_states);
 
 	__push_fake_cur_stree();
 	__unnullify_path();
