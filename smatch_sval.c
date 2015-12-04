@@ -541,6 +541,26 @@ int sval_binop_overflows(sval_t left, int op, sval_t right)
 	return 0;
 }
 
+unsigned long long fls_mask(unsigned long long uvalue)
+{
+	unsigned long long high_bit = 0;
+
+	while (uvalue) {
+		uvalue >>= 1;
+		high_bit++;
+	}
+
+	if (high_bit == 0)
+		return 0;
+
+	return ((unsigned long long)-1) >> (64 - high_bit);
+}
+
+unsigned long long sval_fls_mask(sval_t sval)
+{
+	return fls_mask(sval.uvalue);
+}
+
 const char *sval_to_str(sval_t sval)
 {
 	char buf[30];

@@ -1371,26 +1371,6 @@ static struct range_list *handle_add_mult_rl(struct range_list *left, int op, st
 	return alloc_rl(min, max);
 }
 
-static unsigned long long fls_mask(unsigned long long uvalue)
-{
-	unsigned long long high_bit = 0;
-
-	while (uvalue) {
-		uvalue >>= 1;
-		high_bit++;
-	}
-
-	if (high_bit == 0)
-		return 0;
-
-	return ((unsigned long long)-1) >> (64 - high_bit);
-}
-
-static unsigned long long sval_fls_mask(sval_t sval)
-{
-	return fls_mask(sval.uvalue);
-}
-
 static unsigned long long rl_bits_always_set(struct range_list *rl)
 {
 	return sval_fls_mask(rl_min(rl));
