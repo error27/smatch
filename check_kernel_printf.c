@@ -71,13 +71,15 @@ enum format_type {
 };
 
 struct printf_spec {
-	u8	type;		/* format_type enum */
-	u8	flags;		/* flags to number() */
-	u8	base;		/* number base, 8, 10 or 16 only */
-	u8	qualifier;	/* number qualifier, one of 'hHlLtzZ' */
-	s16	field_width;	/* width of output field */
-	s16	precision;	/* # of digits/chars */
-};
+	unsigned int	type:8;		/* format_type enum */
+	signed int	field_width:24;	/* width of output field */
+	unsigned int	flags:8;	/* flags to number() */
+	unsigned int	base:8;		/* number base, 8, 10 or 16 only */
+	signed int	precision:16;	/* # of digits/chars */
+} __packed;
+#define FIELD_WIDTH_MAX ((1 << 23) - 1)
+#define PRECISION_MAX ((1 << 15) - 1)
+extern char __check_printf_spec[1-2*(sizeof(struct printf_spec) != 8)];
 
 static int
 skip_atoi(const char **s)
@@ -94,6 +96,7 @@ static int
 format_decode(const char *fmt, struct printf_spec *spec)
 {
 	const char *start = fmt;
+	char qualifier;
 
 	/* we finished early by reading the field width */
 	if (spec->type == FORMAT_TYPE_WIDTH) {
@@ -176,16 +179,16 @@ precision:
 
 qualifier:
 	/* get the conversion qualifier */
-	spec->qualifier = 0;
+	qualifier = 0;
 	if (*fmt == 'h' || _tolower(*fmt) == 'l' ||
 	    _tolower(*fmt) == 'z' || *fmt == 't') {
-		spec->qualifier = *fmt++;
-		if (spec->qualifier == *fmt) {
-			if (spec->qualifier == 'l') {
-				spec->qualifier = 'L';
+		qualifier = *fmt++;
+		if (qualifier == *fmt) {
+			if (qualifier == 'l') {
+				qualifier = 'L';
 				++fmt;
-			} else if (spec->qualifier == 'h') {
-				spec->qualifier = 'H';
+			} else if (qualifier == 'h') {
+				qualifier = 'H';
 				++fmt;
 			} else {
 				sm_msg("warn: invalid repeated qualifier '%c'", *fmt);
@@ -197,10 +200,16 @@ qualifier:
 	spec->base = 10;
 	switch (*fmt) {
 	case 'c':
+		if (qualifier)
+			sm_msg("warn: qualifier '%c' ignored for %%c specifier", qualifier);
+
 		spec->type = FORMAT_TYPE_CHAR;
 		return ++fmt - start;
 
 	case 's':
+		if (qualifier)
+			sm_msg("warn: qualifier '%c' ignored for %%s specifier", qualifier);
+
 		spec->type = FORMAT_TYPE_STR;
 		return ++fmt - start;
 
@@ -249,23 +258,23 @@ qualifier:
 		return ++fmt - start;
 	}
 
-	if (spec->qualifier == 'L')
+	if (qualifier == 'L')
 		spec->type = FORMAT_TYPE_LONG_LONG;
-	else if (spec->qualifier == 'l') {
+	else if (qualifier == 'l') {
 		if (spec->flags & SIGN)
 			spec->type = FORMAT_TYPE_LONG;
 		else
 			spec->type = FORMAT_TYPE_ULONG;
-	} else if (_tolower(spec->qualifier) == 'z') {
+	} else if (_tolower(qualifier) == 'z') {
 		spec->type = FORMAT_TYPE_SIZE_T;
-	} else if (spec->qualifier == 't') {
+	} else if (qualifier == 't') {
 		spec->type = FORMAT_TYPE_PTRDIFF;
-	} else if (spec->qualifier == 'H') {
+	} else if (qualifier == 'H') {
 		if (spec->flags & SIGN)
 			spec->type = FORMAT_TYPE_BYTE;
 		else
 			spec->type = FORMAT_TYPE_UBYTE;
-	} else if (spec->qualifier == 'h') {
+	} else if (qualifier == 'h') {
 		if (spec->flags & SIGN)
 			spec->type = FORMAT_TYPE_SHORT;
 		else
@@ -929,9 +938,6 @@ do_check_printf_call(const char *caller, const char *name, struct expression *ca
 			 * the things which don't occur that often
 			 * first, so we use spam().
 			 */
-			if (spec.qualifier)
-				sm_msg("warn: qualifier '%c' ignored for %%s specifier", spec.qualifier);
-
 			if (caller_in_fmt) {
 				if (arg_is___func__(arg))
 					spam("warn: passing __func__ while the format string already contains the name of the function '%s'",
@@ -950,8 +956,6 @@ do_check_printf_call(const char *caller, const char *name, struct expression *ca
 			break;
 
 		case FORMAT_TYPE_CHAR:
-			if (spec.qualifier)
-				sm_msg("warn: qualifier '%c' ignored for %%s specifier", spec.qualifier);
 
 		case FORMAT_TYPE_UBYTE:
 		case FORMAT_TYPE_BYTE:
