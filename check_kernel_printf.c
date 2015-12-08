@@ -441,7 +441,8 @@ static void ipS(const char *fmt, struct symbol *type, struct symbol *basetype, i
 	 */
 	if (!has_struct_tag(basetype, "sockaddr") &&
 	    !has_struct_tag(basetype, "sockaddr_in") &&
-	    !has_struct_tag(basetype, "sockaddr_in6"))
+	    !has_struct_tag(basetype, "sockaddr_in6") &&
+	    !has_struct_tag(basetype, "__kernel_sockaddr_storage"))
 		sm_msg("error: '%%p%cS' expects argument of type struct sockaddr *, "
 			"argument %d has type '%s'", fmt[0], vaidx, type_to_str(type));
 }
