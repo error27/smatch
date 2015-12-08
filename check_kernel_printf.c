@@ -521,6 +521,20 @@ static void dentry_file(const char *fmt, struct symbol *type, struct symbol *bas
 			fmt[0], tag, vaidx, type_to_str(type));
 }
 
+static void clock(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
+{
+	assert(fmt[0] == 'C');
+	if (isalnum(fmt[1])) {
+		if (!strchr("nr", fmt[1]))
+			sm_msg("warn: '%%pC' can only be followed by one of [nr]");
+		if (isalnum(fmt[2]))
+			sm_msg("warn: '%%pC%c' cannot be followed by '%c'", fmt[1], fmt[2]);
+	}
+	if (!is_struct_tag(basetype, "clk"))
+		sm_msg("error: '%%pC' expects argument of type 'struct clk*', argument %d has type '%s'",
+		       vaidx, type_to_str(type));
+}
+
 static void va_format(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
 {
 	assert(fmt[0] == 'V');
@@ -688,6 +702,9 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 	case 'D':
 	case 'd':
 		dentry_file(fmt, type, basetype, vaidx);
+		break;
+	case 'C':
+		clock(fmt, type, basetype, vaidx);
 		break;
 	default:
 		sm_msg("error: unrecognized %%p extension '%c', treated as normal %%p", *fmt);
