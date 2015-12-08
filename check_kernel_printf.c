@@ -764,7 +764,9 @@ check_format_string(const char *fmt, const char *caller)
 			 * "%c...". printk explicitly supports
 			 * this.
 			 */
-			if (!(('0' <= f[1] && f[1] <= '7') || f[1] == 'd'))
+			if (!(('0' <= f[1] && f[1] <= '7') ||
+			      f[1] == 'd' ||
+			      (f[1] == '%' && f[2] == 'c')))
 				sm_msg("warn: invalid KERN_* level: KERN_SOH_ASCII followed by '\\x%02x'", (unsigned char)f[1]);
 			break;
 		case '\t':
