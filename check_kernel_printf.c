@@ -597,6 +597,34 @@ static void address_val(const char *fmt, struct symbol *type, struct symbol *bas
 	}
 }
 
+static void flag_string(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
+{
+	static struct typedef_lookup gfp = { .name = "gfp_t" };
+
+	assert(fmt[0] == 'g');
+	if (!isalnum(fmt[1])) {
+		sm_msg("error: %%pg must be followed by one of [gpv]");
+		return;
+	}
+	switch (fmt[1]) {
+	case 'p':
+	case 'v':
+		if (basetype != &ulong_ctype)
+			sm_msg("error: '%%pg%c' expects argument of type 'unsigned long *', argument %d has type '%s'",
+				fmt[1], vaidx, type_to_str(type));
+		break;
+	case 'g':
+		typedef_lookup(&gfp);
+		if (basetype != gfp.sym)
+			sm_msg("error: '%%pgg' expects argument of type 'gfp_t *', argument %d has type '%s'",
+				vaidx, type_to_str(type));
+		break;
+	default:
+		sm_msg("error: '%%pg' must be followed by one of [gpv]");
+	}
+}
+
+
 static void
 pointer(const char *fmt, struct expression *arg, int vaidx)
 {
@@ -705,6 +733,9 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 		break;
 	case 'C':
 		clock(fmt, type, basetype, vaidx);
+		break;
+	case 'g':
+		flag_string(fmt, type, basetype, vaidx);
 		break;
 	default:
 		sm_msg("error: unrecognized %%p extension '%c', treated as normal %%p", *fmt);
