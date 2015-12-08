@@ -852,11 +852,38 @@ static int unknown_format(struct expression *expr)
 	return 0;
 }
 
+static bool has_hex_prefix(const char *orig_fmt, const char *old_fmt)
+{
+	return old_fmt >= orig_fmt + 2 &&
+		old_fmt[-2] == '0' && _tolower(old_fmt[-1]) == 'x';
+}
+
+static bool is_integer_specifier(int type)
+{
+	switch (type) {
+	case FORMAT_TYPE_LONG_LONG:
+	case FORMAT_TYPE_ULONG:
+	case FORMAT_TYPE_LONG:
+	case FORMAT_TYPE_UBYTE:
+	case FORMAT_TYPE_BYTE:
+	case FORMAT_TYPE_USHORT:
+	case FORMAT_TYPE_SHORT:
+	case FORMAT_TYPE_UINT:
+	case FORMAT_TYPE_INT:
+	case FORMAT_TYPE_SIZE_T:
+	case FORMAT_TYPE_PTRDIFF:
+		return true;
+	default:
+		return false;
+	}
+}
+
+
 static void
 do_check_printf_call(const char *caller, const char *name, struct expression *callexpr, struct expression *fmtexpr, int vaidx)
 {
 	struct printf_spec spec = {0};
-	const char *fmt;
+	const char *fmt, *orig_fmt;
 	int caller_in_fmt;
 
 	fmtexpr = strip_parens(fmtexpr);
@@ -898,7 +925,7 @@ do_check_printf_call(const char *caller, const char *name, struct expression *ca
 		return;
 	}
 
-	fmt = fmtexpr->string->data;
+	orig_fmt = fmt = fmtexpr->string->data;
 	caller_in_fmt = check_format_string(fmt, caller);
 
 	while (*fmt) {
@@ -920,6 +947,12 @@ do_check_printf_call(const char *caller, const char *name, struct expression *ca
 		 * an argument above.
 		 */
 		arg = get_argument_from_call_expr(callexpr->args, vaidx++);
+
+		if (spec.flags & SPECIAL && has_hex_prefix(orig_fmt, old_fmt))
+			sm_msg("warn: '%.2s' prefix is redundant when # flag is used", old_fmt-2);
+		if (is_integer_specifier(spec.type) && spec.base != 16 && has_hex_prefix(orig_fmt, old_fmt))
+			sm_msg("warn: '%.2s' prefix is confusing together with '%.*s' specifier",
+			       old_fmt-2, (int)(fmt-old_fmt), old_fmt);
 
 		switch (spec.type) {
 		/* case FORMAT_TYPE_NONE: */
