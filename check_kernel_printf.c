@@ -684,6 +684,38 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 	}
 }
 
+/*
+ * A common error is to pass a "char" or "signed char" to %02x (or
+ * %.2X or some other variant). This can actually be a security
+ * problem, because a lot of code expects this to produce exactly two
+ * characters of output. Unfortunately this also produces false
+ * positives, since we're sometimes in arch-specific code on an arch
+ * where char is always unsigned.
+ */
+static void
+hexbyte(const char *fmt, int fmt_len, struct expression *arg, int vaidx, struct printf_spec spec)
+{
+	struct symbol *type;
+
+	/*
+	 * For now, just check the most common and obvious, which is
+	 * roughly %[.0]2[xX].
+	 */
+	if (spec.field_width != 2 && spec.precision != 2)
+		return;
+	if (spec.base != 16)
+		return;
+
+	type = get_type(arg);
+	if (!type) {
+		sm_msg("warn: could not determine type of argument %d", vaidx);
+		return;
+	}
+	if (type == &char_ctype || type == &schar_ctype)
+		sm_msg("warn: argument %d to %.*s specifier has type '%s'",
+		       vaidx, fmt_len, fmt, type_to_str(type));
+}
+
 static int
 check_format_string(const char *fmt, const char *caller)
 {
@@ -930,6 +962,7 @@ do_check_printf_call(const char *caller, const char *name, struct expression *ca
 			break;
 
 		case FORMAT_TYPE_UINT:
+			hexbyte(old_fmt, fmt-old_fmt, arg, vaidx, spec);
 		case FORMAT_TYPE_LONG:
 		case FORMAT_TYPE_ULONG:
 		case FORMAT_TYPE_LONG_LONG:
