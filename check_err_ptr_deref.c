@@ -26,12 +26,12 @@ STATE(checked);
 
 sval_t err_ptr_min = {
 	.type = &int_ctype,
-	.value = -4095,
+	{.value = -4095},
 };
 
 sval_t err_ptr_max = {
 	.type = &int_ctype,
-	.value = -1,
+	{.value = -1},
 };
 
 struct range_list *err_ptr_rl;
