@@ -26,29 +26,22 @@ static char *get_source_parameter(struct expression *expr)
 	struct symbol *sym;
 	char *name;
 	int param;
-	struct sm_state *orig, *cur;
 	char *ret = NULL;
 	char buf[32];
 
 	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
-		goto out;
+		goto free;
 	param = get_param_num_from_sym(sym);
 	if (param < 0)
-		goto out;
-	cur = get_sm_state(SMATCH_EXTRA, name, sym);
-	if (!cur)
-		goto out;
-	orig = get_sm_state_stree(get_start_states(), SMATCH_EXTRA, name, sym);
-	if (!orig)
-		goto out;
-	if (orig != cur)
-		goto out;
+		goto free;
+	if (param_was_set(expr))
+		goto free;
 
 	snprintf(buf, sizeof(buf), "p %d", param);
 	ret = alloc_string(buf);
 
-out:
+free:
 	free_string(name);
 	return ret;
 }
@@ -106,8 +99,8 @@ static void match_caller_info(struct expression *expr)
 
 void register_data_source(int id)
 {
-	if (!option_info)
-		return;
+//	if (!option_info)
+//		return;
 	my_id = id;
 	add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
 }
