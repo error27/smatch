@@ -392,6 +392,7 @@ struct data_info *clone_dinfo_perm(struct data_info *dinfo)
 	struct data_info *ret;
 
 	ret = malloc(sizeof(*ret));
+	memset(ret, 0, sizeof(*ret));
 	ret->related = NULL;
 	ret->value_ranges = clone_rl_permanent(dinfo->value_ranges);
 	ret->hard_max = 0;
