@@ -802,9 +802,6 @@ static void fake_a_return(void)
 		__pass_to_client(unknown_value_expression(NULL), RETURN_HOOK);
 		nullify_path();
 	}
-
-	__pass_to_client(cur_func_sym, END_FUNC_HOOK);
-	__pass_to_client(cur_func_sym, AFTER_FUNC_HOOK);
 }
 
 static void split_compound(struct statement *stmt)
@@ -845,15 +842,15 @@ void __split_stmt(struct statement *stmt)
 	if (!stmt)
 		goto out;
 
-	if (__bail_on_rest_of_function || out_of_memory() || taking_too_long()) {
-		static char *printed = NULL;
+	if (__bail_on_rest_of_function)
+		return;
+
+	if (out_of_memory() || taking_too_long()) {
 
 		__bail_on_rest_of_function = 1;
-		if (printed != cur_func)
-			sm_msg("Function too hairy.  Giving up.");
+		sm_msg("Function too hairy.  Giving up.");
 		fake_a_return();
 		final_pass = 0;  /* turn off sm_msg() from here */
-		printed = cur_func;
 		return;
 	}
 
