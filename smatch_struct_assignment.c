@@ -331,6 +331,19 @@ static void match_memcpy_unknown(const char *fn, struct expression *expr, void *
 	__struct_members_copy(COPY_MEMCPY, expr, remove_addr(dest), NULL);
 }
 
+static void match_sscanf(const char *fn, struct expression *expr, void *unused)
+{
+	struct expression *arg;
+	int i;
+
+	i = -1;
+	FOR_EACH_PTR(expr->args, arg) {
+		if (++i < 2)
+			continue;
+		__struct_members_copy(COPY_MEMCPY, expr, remove_addr(arg), NULL);
+	} END_FOR_EACH_PTR(arg);
+}
+
 static void register_clears_param(void)
 {
 	struct token *token;
@@ -399,6 +412,8 @@ void register_struct_assignment(int id)
 	add_function_hook("memmove", &match_memcpy, INT_PTR(0));
 	add_function_hook("__memcpy", &match_memcpy, INT_PTR(0));
 	add_function_hook("__memmove", &match_memcpy, INT_PTR(0));
+
+	add_function_hook("sscanf", &match_sscanf, NULL);
 
 	register_clears_param();
 	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
