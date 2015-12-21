@@ -23,6 +23,7 @@ def usage():
     print "type_size <struct_type> <member> - how a struct member is allocated"
     print "data_info <struct_type> <member> - information about a given data type"
     print "function_ptr <function> - which function pointers point to this"
+    print "trace_param <function> <param> - trace where a parameter came from"
     sys.exit(1)
 
 function_ptrs = []
@@ -218,6 +219,51 @@ def function_type_value(struct_type, member):
     for txt in cur:
         print "%-30s | %-30s | %s | %s" %(txt[0], txt[1], txt[2], txt[3])
 
+def trace_callers(func, param):
+    sources = []
+    prev_type = 0
+
+    cur = con.cursor()
+    ptrs = get_function_pointers(func)
+    for ptr in ptrs:
+        cur.execute("select type, caller, value from caller_info where function = '%s' and (type = 0 or type = 1014) and (parameter = -1 or parameter = %d);" %(ptr, param))
+        for row in cur:
+            data_type = int(row[0])
+            if data_type == 1014:
+                sources.append((row[1], row[2]))
+            elif data_type == 0 and prev_type == 0:
+                sources.append((row[1], ""))
+            prev_type = data_type
+    return sources
+
+def trace_param_helper(func, param, indent = 0):
+    global printed_funcs
+    if func in printed_funcs:
+        return
+    print "%s%s(param %d)" %(" " * indent, func, param)
+    if func == "too common":
+        return
+    if indent > 20:
+        return
+    printed_funcs.append(func)
+    sources = trace_callers(func, param)
+    if len(sources) >= 20:
+        print "Over 20 callers for %s()" %(func)
+        return
+    for path in sources:
+
+        if len(path[1]) and path[1][0] == 'p' and path[1][1] == ' ':
+            p = int(path[1][2:])
+            trace_param_helper(path[0], p, indent + 2)
+        else:
+            print "* %s%s %s" %(" " * (indent - 1), path[0], path[1])
+
+def trace_param(func, param):
+    global printed_funcs
+    printed_funcs = []
+    print "tracing %s %d" %(func, param)
+    trace_param_helper(func, param)
+
 if len(sys.argv) < 2:
     usage()
 
@@ -269,5 +315,11 @@ elif sys.argv[1] == "local":
 elif sys.argv[1] == "functions":
     member = sys.argv[2]
     print_functions(member)
+elif sys.argv[1] == "trace_param":
+    if len(sys.argv) != 4:
+        usage()
+    func = sys.argv[2]
+    param = int(sys.argv[3])
+    trace_param(func, param)
 else:
     usage()
