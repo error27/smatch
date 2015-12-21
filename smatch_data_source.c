@@ -29,6 +29,10 @@ static char *get_source_parameter(struct expression *expr)
 	char *ret = NULL;
 	char buf[32];
 
+	expr = strip_expr(expr);
+	if (expr->type != EXPR_SYMBOL)
+		return NULL;
+
 	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
