@@ -1094,7 +1094,7 @@ int custom_get_absolute_rl(struct expression *expr,
 
 	*rl = NULL;
 	custom_handle_variable = fn;
-	*rl = _get_rl(expr, RL_ABSOLUTE, &recurse_cnt);
+	*rl = _get_rl(expr, RL_REAL_ABSOLUTE, &recurse_cnt);
 	custom_handle_variable = NULL;
 	return 1;
 }
