@@ -142,6 +142,20 @@ static void match_print_implied(const char *fn, struct expression *expr, void *i
 	free_string(name);
 }
 
+static void match_real_absolute(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	struct range_list *rl = NULL;
+	char *name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	get_real_absolute_rl(arg, &rl);
+
+	name = expr_to_str(arg);
+	sm_msg("real absolute: %s = '%s'", name, show_rl(rl));
+	free_string(name);
+}
+
 static void match_print_implied_min(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
@@ -588,6 +602,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_fuzzy_max", &match_print_fuzzy_max, NULL);
 	add_function_hook("__smatch_absolute_min", &match_print_absolute_min, NULL);
 	add_function_hook("__smatch_absolute_max", &match_print_absolute_max, NULL);
+	add_function_hook("__smatch_real_absolute", &match_real_absolute, NULL);
 	add_function_hook("__smatch_sval_info", &match_sval_info, NULL);
 	add_function_hook("__smatch_member_name", &match_member_name, NULL);
 	add_function_hook("__smatch_possible", &match_possible, NULL);

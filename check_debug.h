@@ -19,6 +19,7 @@ static inline void __smatch_fuzzy_max(long long val){}
 
 static inline void __smatch_absolute_min(long long val){}
 static inline void __smatch_absolute_max(long long val){}
+static inline void __smatch_real_absolute(long long val){}
 
 static inline void __smatch_sval_info(long long val){}
 
