@@ -690,7 +690,7 @@ static void match_page(const char *fn, struct expression *expr, void *_unused)
 {
 	sval_t page_size = {
 		.type = &int_ctype,
-		.value = 4096,
+		{.value = 4096},
 	};
 
 	store_alloc(expr->left, alloc_rl(page_size, page_size));
