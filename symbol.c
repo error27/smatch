@@ -393,7 +393,7 @@ static struct symbol * examine_node_type(struct symbol *sym)
 			int count = count_array_initializer(node_type, initializer);
 
 			if (node_type && node_type->bit_size >= 0)
-				bit_size = node_type->bit_size * count;
+				bit_size = array_element_offset(node_type->bit_size, count);
 		}
 	}
 	
