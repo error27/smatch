@@ -313,13 +313,13 @@ static int comes_from_skb_data(struct expression *expr)
 static int handle_struct_assignment(struct expression *expr)
 {
 	struct expression *right;
-	struct symbol *type;
+	struct symbol *left_type, *right_type;
 
-	type = get_type(expr->left);
-	if (!type || type->type != SYM_PTR)
+	left_type = get_type(expr->left);
+	if (!left_type || left_type->type != SYM_PTR)
 		return 0;
-	type = get_real_base_type(type);
-	if (!type || type->type != SYM_STRUCT)
+	left_type = get_real_base_type(left_type);
+	if (!left_type || left_type->type != SYM_STRUCT)
 		return 0;
 
 	/*
@@ -327,13 +327,16 @@ static int handle_struct_assignment(struct expression *expr)
 	 * individual members.
 	 */
 	right = strip_expr(expr->right);
-	type = get_type(right);
-	if (!type || type->type != SYM_PTR)
+	right_type = get_type(right);
+	if (!right_type || right_type->type != SYM_PTR)
 		return 0;
 
-	/* structs are handled else where */
-	type = get_real_base_type(type);
-	if (type && type->type == SYM_STRUCT)
+	/* If we are assigning struct members then normally that is handled
+	 * by fake assignments, however if we cast one struct to a different
+	 * of struct then we handle that here.
+	 */
+	right_type = get_real_base_type(right_type);
+	if (right_type == left_type)
 		return 0;
 
 	if (!points_to_user_data(right) && !is_skb_data(right))
