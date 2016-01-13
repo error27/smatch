@@ -42,6 +42,8 @@ static const char * kstr_funcs[] = {
 	"kstrtos32_from_user",
 };
 
+static void set_points_to_user_data(struct expression *expr);
+
 static struct stree *start_states;
 static struct stree_stack *saved_stack;
 static void save_start_states(struct statement *stmt)
@@ -144,6 +146,9 @@ static void tag_struct_members(struct symbol *type, struct expression *expr)
 
 		member = member_expression(expr, op, tmp->ident);
 		set_state_expr(my_id, member, alloc_estate_whole(get_type(member)));
+
+		if (type->type == SYM_ARRAY)
+			set_points_to_user_data(member);
 	} END_FOR_EACH_PTR(tmp);
 }
 
