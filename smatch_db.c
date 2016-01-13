@@ -1445,7 +1445,7 @@ const char *get_param_name(struct sm_state *sm)
 	int name_len;
 	static char buf[256];
 
-	if (!sm->sym->ident)
+	if (!sm->sym || !sm->sym->ident)
 		return NULL;
 
 	param_name = sm->sym->ident->name;
