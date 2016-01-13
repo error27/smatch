@@ -182,6 +182,8 @@ static void tag_as_user_data(struct expression *expr)
 	if (type->type == SYM_STRUCT) {
 		if (expr->type != EXPR_PREOP || expr->op != '&')
 			expr = deref_expression(expr);
+		else
+			set_state_expr(my_id, deref_expression(expr), alloc_estate_whole(&ulong_ctype));
 		tag_struct_members(type, expr);
 	}
 }
