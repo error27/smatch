@@ -400,6 +400,11 @@ static void match_user_assign_function(const char *fn, struct expression *expr, 
 	set_points_to_user_data(expr->left);
 }
 
+static void match_simple_strtoul(const char *fn, struct expression *expr, void *unused)
+{
+	set_state_expr(my_id, expr->left, alloc_estate_whole(get_type(expr->left)));
+}
+
 static int get_user_macro_rl(struct expression *expr, struct range_list **rl)
 {
 	char *macro;
@@ -660,6 +665,11 @@ void check_user_data2(int id)
 	add_function_hook("memcpy_fromiovec", &match_user_copy, INT_PTR(0));
 	for (i = 0; i < ARRAY_SIZE(kstr_funcs); i++)
 		add_function_hook(kstr_funcs[i], &match_user_copy, INT_PTR(2));
+
+	add_function_assign_hook("simple_strtol", &match_simple_strtoul, NULL);
+	add_function_assign_hook("simple_strtoll", &match_simple_strtoul, NULL);
+	add_function_assign_hook("simple_strtoul", &match_simple_strtoul, NULL);
+	add_function_assign_hook("simple_strtoull", &match_simple_strtoul, NULL);
 
 	add_function_hook("sscanf", &match_sscanf, NULL);
 
