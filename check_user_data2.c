@@ -467,6 +467,18 @@ int get_user_rl(struct expression *expr, struct range_list **rl)
 	return 1;
 }
 
+int get_user_rl_var_sym(const char *name, struct symbol *sym, struct range_list **rl)
+{
+	struct smatch_state *state;
+
+	state = get_state(my_id, name, sym);
+	if (state && estate_rl(state)) {
+		*rl = estate_rl(state);
+		return 1;
+	}
+	return 0;
+}
+
 static void match_call_info(struct expression *expr)
 {
 	struct range_list *rl;
