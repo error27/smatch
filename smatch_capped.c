@@ -198,17 +198,6 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	sql_insert_caller_info(call, CAPPED_DATA, param, printed_name, "1");
 }
 
-static int is_unmodified(const char *name)
-{
-	char orig[256];
-
-	snprintf(orig, sizeof(orig), "%s orig", name);
-
-	if (get_comparison_strings(name, orig) == SPECIAL_EQUAL)
-		return 1;
-	return 0;
-}
-
 static void print_return_implies_capped(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct smatch_state *orig, *estate;
@@ -231,9 +220,6 @@ static void print_return_implies_capped(int return_id, char *return_ranges, stru
 
 		orig = get_state_stree(get_start_states(), my_id, sm->name, sm->sym);
 		if (orig == &capped)
-			continue;
-
-		if (!is_unmodified(sm->name))
 			continue;
 
 		param_name = get_param_name(sm);
