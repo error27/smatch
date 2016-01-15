@@ -154,8 +154,8 @@ static void match_condition(struct expression *expr)
 		return;
 	}
 
-	set_true_false_states_expr(my_id, expr->right, right_true, right_false);
 	set_true_false_states_expr(my_id, expr->left, left_true, left_false);
+	set_true_false_states_expr(my_id, expr->right, right_true, right_false);
 }
 
 static void match_assign(struct expression *expr)
