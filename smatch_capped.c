@@ -79,6 +79,8 @@ int is_capped(struct expression *expr)
 		return 1;
 
 	if (expr->type == EXPR_BINOP) {
+		struct range_list *left_rl, *right_rl;
+
 		if (expr->op == '&')
 			return 1;
 		if (expr->op == SPECIAL_RIGHTSHIFT)
@@ -91,6 +93,13 @@ int is_capped(struct expression *expr)
 			return 1;
 		if (!is_capped(expr->right))
 			return 0;
+		if (expr->op == '*') {
+			get_absolute_rl(expr->left, &left_rl);
+			get_absolute_rl(expr->right, &right_rl);
+			if (sval_is_negative(rl_min(left_rl)) ||
+			    sval_is_negative(rl_min(right_rl)))
+				return 0;
+		}
 		return 1;
 	}
 	if (get_state_expr(my_id, expr) == &capped)
