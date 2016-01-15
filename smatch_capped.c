@@ -26,11 +26,22 @@
 
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 
 static int my_id;
 
 STATE(capped);
 STATE(uncapped);
+
+static struct smatch_state *unmatched_state(struct sm_state *sm)
+{
+	struct smatch_state *state;
+
+	state = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	if (state && !estate_is_whole(state))
+		return &capped;
+	return &uncapped;
+}
 
 static int is_capped_macro(struct expression *expr)
 {
@@ -252,6 +263,7 @@ void register_capped(int id)
 {
 	my_id = id;
 
+	add_unmatched_state_hook(my_id, &unmatched_state);
 	select_caller_info_hook(set_param_capped_data, CAPPED_DATA);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
