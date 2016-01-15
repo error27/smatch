@@ -1699,6 +1699,39 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 				       sval_to_str(estate_get_fuzzy_max(sm->state)));
 }
 
+static void returned_struct_members(int return_id, char *return_ranges, struct expression *expr)
+{
+	struct symbol *returned_sym;
+	struct sm_state *sm;
+	const char *param_name;
+	char *compare_str;
+	char buf[256];
+
+	returned_sym = expr_to_sym(expr);
+	if (!returned_sym)
+		return;
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (!estate_rl(sm->state))
+			continue;
+		if (returned_sym != sm->sym)
+			continue;
+
+		param_name = get_param_name(sm);
+		if (!param_name)
+			continue;
+		if (strcmp(param_name, "$") == 0)
+			continue;
+		compare_str = name_sym_to_param_comparison(sm->name, sm->sym);
+		if (!compare_str && estate_is_whole(sm->state))
+			continue;
+		snprintf(buf, sizeof(buf), "%s%s", sm->state->name, compare_str ?: "");
+
+		sql_insert_return_states(return_id, return_ranges, PARAM_VALUE,
+					 -1, param_name, buf);
+	} END_FOR_EACH_SM(sm);
+}
+
 static void db_limited_before(void)
 {
 	unmatched_stree = clone_stree(__get_cur_stree());
@@ -1823,6 +1856,35 @@ static void db_param_set(struct expression *expr, int param, char *key, char *va
 	db_param_add_set(expr, param, key, value, PARAM_SET);
 }
 
+static void db_param_value(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *call;
+	char *name;
+	struct symbol *sym;
+	struct symbol *type;
+	struct range_list *rl = NULL;
+
+	if (param != -1)
+		return;
+
+	call = expr;
+	while (call->type == EXPR_ASSIGNMENT)
+		call = strip_expr(call->right);
+	if (call->type != EXPR_CALL)
+		return;
+
+	type = get_member_type_from_key(expr->left, key);
+	name = get_variable_from_key(expr->left, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	call_results_to_rl(call, type, value, &rl);
+
+	set_extra_mod(name, sym, alloc_estate_rl(rl));
+free:
+	free_string(name);
+}
+
 static void match_call_info(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -1928,6 +1990,7 @@ void register_smatch_extra(int id)
 	select_return_states_hook(PARAM_FILTER, &db_param_filter);
 	select_return_states_hook(PARAM_ADD, &db_param_add);
 	select_return_states_hook(PARAM_SET, &db_param_set);
+	select_return_states_hook(PARAM_VALUE, &db_param_value);
 	select_return_states_after(&db_limited_after);
 }
 
@@ -1969,6 +2032,7 @@ void register_smatch_extra_late(int id)
 
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
+	add_split_return_callback(&returned_struct_members);
 
 	add_hook(&assume_indexes_are_valid, OP_HOOK);
 }
