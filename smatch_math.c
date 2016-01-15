@@ -743,13 +743,13 @@ struct range_list *var_to_absolute_rl(struct expression *expr)
 
 	state = get_extra_state(expr);
 	if (!state || is_whole_rl(estate_rl(state))) {
-		if (get_local_rl(expr, &rl))
-			return rl;
-		if (get_db_type_rl(expr, &rl))
-			return rl;
 		state = get_real_absolute_state(expr);
-		if (state && state->data)
+		if (state && state->data && !estate_is_whole(state))
 			return clone_rl(estate_rl(state));
+		if (get_local_rl(expr, &rl) && !is_whole_rl(rl))
+			return rl;
+		if (get_db_type_rl(expr, &rl) && !is_whole_rl(rl))
+			return rl;
 		return alloc_whole_rl(get_type(expr));
 	}
 	/* err on the side of saying things are possible */
