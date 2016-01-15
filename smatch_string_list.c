@@ -34,8 +34,9 @@ int list_has_string(struct string_list *str_list, const char *str)
 	return 0;
 }
 
-void insert_string(struct string_list **str_list, const char *new)
+void insert_string(struct string_list **str_list, const char *_new)
 {
+	char *new = (char *)_new;
 	char *tmp;
 
 	FOR_EACH_PTR(*str_list, tmp) {
