@@ -616,7 +616,6 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 		if (has_empty_state(sm))
 			continue;
 
-
 		param = get_param_num_from_sym(sm->sym);
 		if (param < 0) {
 			if (expr_to_sym(expr) == sm->sym)
@@ -625,11 +624,16 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 				continue;
 		}
 
-
+		/* The logic here was that if we were passed in a user data then
+		 * we don't record that.  It's like the difference between
+		 * param_filter and param_set.  When I think about it, I'm not
+		 * sure it actually works.  It's probably harmless because we
+		 * checked earlier that we're not returning a parameter...
+		 * Let's mark this as a TODO.
+		 */
 		start_state = get_state_stree(start_states, my_id, sm->name, sm->sym);
 		if (start_state && estates_equiv(sm->state, start_state))
 			continue;
-
 
 		param_name = get_param_name(sm);
 		if (!param_name)
