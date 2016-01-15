@@ -734,7 +734,7 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 	case 'C':
 		clock(fmt, type, basetype, vaidx);
 		break;
-	case 'g':
+	case 'j':
 		flag_string(fmt, type, basetype, vaidx);
 		break;
 	default:
