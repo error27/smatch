@@ -1511,6 +1511,29 @@ free:
 	return ret_str;
 }
 
+char *name_sym_to_param_comparison(const char *name, struct symbol *sym)
+{
+	struct symbol *param;
+	char buf[256];
+	int compare;
+	int i;
+
+	i = -1;
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, param) {
+		i++;
+		if (!param->ident)
+			continue;
+		snprintf(buf, sizeof(buf), "%s orig", param->ident->name);
+		compare = get_comparison_strings(name, buf);
+		if (!compare)
+			continue;
+		snprintf(buf, sizeof(buf), "[%s$%d]", show_special(compare), i);
+		return alloc_sname(buf);
+	} END_FOR_EACH_PTR(param);
+
+	return NULL;
+}
+
 char *expr_equal_to_param(struct expression *expr, int ignore)
 {
 	return range_comparison_to_param_helper(expr, '=', ignore);
