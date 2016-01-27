@@ -19,6 +19,8 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+#define ALIGN(x, a) (((x) + (a) - 1) & ~((a) - 1))
+
 static bool is_non_null_array(struct expression *expr)
 {
 	struct symbol *type;
@@ -64,36 +66,51 @@ static bool is_non_null_array(struct expression *expr)
 	return 0;
 }
 
-static int get_member_offset(struct expression *expr)
+int get_member_offset(struct symbol *type, char *member_name)
 {
-	struct symbol *type, *tmp;
-	struct ident *member;
+	struct symbol *tmp;
 	int offset;
 
-	if (expr->type != EXPR_DEREF)  /* hopefully, this doesn't happen */
-		return 0;
-
-	member = expr->member;
-	if (!member || !member->name)
-		return 0;
-
-	if (expr->member_offset >= 0)
-		return expr->member_offset;
-
-	type = get_type(expr->deref);
-	if (!type || type->type != SYM_STRUCT)
-		return 0;
+	if (type->type != SYM_STRUCT)
+		return -1;
 
 	offset = 0;
 	FOR_EACH_PTR(type->symbol_list, tmp) {
+		if (!type->ctype.attribute->is_packed)
+			offset = ALIGN(offset, tmp->ctype.alignment);
 		if (tmp->ident && tmp->ident->name &&
-		    strcmp(member->name, tmp->ident->name) == 0) {
-			expr->member_offset = offset;
+		    strcmp(member_name, tmp->ident->name) == 0) {
 			return offset;
 		}
 		offset += type_bytes(tmp);
 	} END_FOR_EACH_PTR(tmp);
-	return 0;
+	return -1;
+}
+
+int get_member_offset_from_deref(struct expression *expr)
+{
+	struct symbol *type;
+	struct ident *member;
+	int offset;
+
+	if (expr->type != EXPR_DEREF)  /* hopefully, this doesn't happen */
+		return -1;
+
+	if (expr->member_offset >= 0)
+		return expr->member_offset;
+
+	member = expr->member;
+	if (!member || !member->name)
+		return -1;
+
+	type = get_type(expr->deref);
+	if (!type || type->type != SYM_STRUCT)
+		return -1;
+
+	offset = get_member_offset(type, member->name);
+	if (offset >= 0)
+		expr->member_offset = offset;
+	return offset;
 }
 
 static void add_offset_to_min(struct range_list **rl, int offset)
@@ -161,7 +178,7 @@ int get_address_rl(struct expression *expr, struct range_list **rl)
 		}
 
 		if (unop->type == EXPR_DEREF) {
-			int offset = get_member_offset(unop);
+			int offset = get_member_offset_from_deref(unop);
 
 			unop = strip_expr(unop->unop);
 			if (unop->type == EXPR_SYMBOL) {
