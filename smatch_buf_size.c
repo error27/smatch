@@ -234,15 +234,16 @@ static struct range_list *size_from_db(struct expression *expr)
 static void db_returns_buf_size(struct expression *expr, int param, char *unused, char *math)
 {
 	struct expression *call;
-	sval_t sval;
+	struct range_list *rl;
 
 	if (expr->type != EXPR_ASSIGNMENT)
 		return;
 	call = strip_expr(expr->right);
 
-	if (!parse_call_math(call, math, &sval))
+	if (!parse_call_math_rl(call, math, &rl))
 		return;
-	set_state_expr(my_size_id, expr->left, size_to_estate(sval.value));
+	rl = cast_rl(&int_ctype, rl);
+	set_state_expr(my_size_id, expr->left, alloc_estate_rl(rl));
 }
 
 int get_real_array_size(struct expression *expr)
