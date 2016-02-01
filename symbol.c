@@ -87,6 +87,7 @@ struct struct_union_info {
 	unsigned long max_align;
 	unsigned long bit_size;
 	int align_size;
+	int is_packed;
 };
 
 /*
@@ -129,7 +130,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 
 	// Unnamed bitfields do not affect alignment.
 	if (sym->ident || !is_bitfield_type(sym)) {
-		if (sym->ctype.alignment > info->max_align)
+		if (!info->is_packed && sym->ctype.alignment > info->max_align)
 			info->max_align = sym->ctype.alignment;
 	}
 
@@ -145,7 +146,10 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		base_size = 0;
 	}
 
-	align_bit_mask = bytes_to_bits(sym->ctype.alignment) - 1;
+	if (info->is_packed)
+		align_bit_mask = 0;
+	else
+		align_bit_mask = bytes_to_bits(sym->ctype.alignment) - 1;
 
 	/*
 	 * Bitfields have some very special rules..
@@ -190,6 +194,7 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 	void (*fn)(struct symbol *, struct struct_union_info *);
 	struct symbol *member;
 
+	info.is_packed = sym->ctype.attribute->is_packed;
 	fn = advance ? lay_out_struct : lay_out_union;
 	FOR_EACH_PTR(sym->symbol_list, member) {
 		fn(member, &info);
