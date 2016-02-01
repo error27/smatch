@@ -108,6 +108,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 	
 	addr->symbol = sym;
 	addr->ctype = &lazy_ptr_ctype;
+	addr->flags = CEF_ADDR;
 
 	expr->type = EXPR_PREOP;
 	expr->op = '*';
