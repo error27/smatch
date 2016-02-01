@@ -2760,6 +2760,13 @@ static int cast_flags(struct expression *expr, struct expression *old)
 		 */
 		else if (old->flags & CEF_FLOAT)
 			flags = CEF_SET_ICE;
+	} else if (class & TYPE_PTR) {
+		/*
+		 * Casts of integer literals to pointer type yield
+		 * address constants [6.6(9)].
+		 */
+		if (old->flags & CEF_INT)
+			flags = CEF_ADDR;
 	}
 
 	return flags;
