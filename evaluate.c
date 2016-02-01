@@ -1962,6 +1962,12 @@ static struct expression *evaluate_offset(struct expression *expr, unsigned long
 	 * we ever take the address of this member dereference..
 	 */
 	add->ctype = &lazy_ptr_ctype;
+	/*
+	 * The resulting address of a member access through an address
+	 * constant is an address constant again [6.6(9)].
+	 */
+	add->flags = expr->flags;
+
 	return add;
 }
 
