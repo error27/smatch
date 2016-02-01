@@ -120,6 +120,13 @@ enum constexpr_flag {
 	CEF_CONST_MASK = (CEF_INT | CEF_FLOAT | CEF_CHAR),
 };
 
+/*
+ * not an integer constant expression => neither of integer,
+ * enumeration and character constant
+ */
+#define CEF_CLR_ICE \
+	(CEF_ICE | CEF_INT | CEF_ENUM |	CEF_CHAR)
+
 enum {
 	Taint_comma = 1,
 }; /* for expr->taint */

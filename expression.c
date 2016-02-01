@@ -722,25 +722,6 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 			if (!v)
 				return token;
 			cast->cast_expression = v;
-
-			cast->flags = v->flags & ~CEF_CONST_MASK;
-			/*
-			 * Up to now, we missed the (int).0 case here
-			 * which should really get a
-			 * CEF_ICE marker. Also,
-			 * conversion to non-numeric types is not
-			 * properly reflected up to this point.
-			 * However, we do not know until evaluation.
-			 * For the moment, in order to preserve
-			 * semantics, speculatively set
-			 * CEF_ICE if
-			 * CEF_FLOAT is
-			 * set. evaluate_cast() will unset
-			 * inappropriate flags again after examining
-			 * type information.
-			 */
-			if (v->flags & CEF_FLOAT)
-				cast->flags |= CEF_SET_ICE;
 			return token;
 		}
 	}

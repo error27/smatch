@@ -271,6 +271,7 @@ warn_for_different_enum_types (struct position pos,
 	}
 }
 
+static int cast_flags(struct expression *expr, struct expression *target);
 static struct symbol *cast_to_bool(struct expression *expr);
 
 /*
@@ -323,10 +324,10 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 	}
 
 	expr = alloc_expression(old->pos, EXPR_IMPLIED_CAST);
-	expr->flags = old->flags;
 	expr->ctype = type;
 	expr->cast_type = type;
 	expr->cast_expression = old;
+	expr->flags = cast_flags(expr, old);
 
 	if (is_bool_type(type))
 		cast_to_bool(expr);
@@ -2720,6 +2721,32 @@ static struct symbol *cast_to_bool(struct expression *expr)
 	return expr->ctype;
 }
 
+static int cast_flags(struct expression *expr, struct expression *old)
+{
+	struct symbol *t;
+	int class;
+	int flags = CEF_NONE;
+
+	class = classify_type(expr->ctype, &t);
+	if (class & TYPE_NUM) {
+		flags = old->flags & ~CEF_CONST_MASK;
+		/*
+		 * Cast to float type -> not an integer constant
+		 * expression [6.6(6)].
+		 */
+		if (class & TYPE_FLOAT)
+			flags &= ~CEF_CLR_ICE;
+		/*
+		 * Casts of float literals to integer type results in
+		 * a constant integer expression [6.6(6)].
+		 */
+		else if (old->flags & CEF_FLOAT)
+			flags = CEF_SET_ICE;
+	}
+
+	return flags;
+}
+
 static struct symbol *evaluate_cast(struct expression *expr)
 {
 	struct expression *target = expr->cast_expression;
@@ -2768,13 +2795,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 
 	class1 = classify_type(ctype, &t1);
 
-	/* cast to non-integer type -> not an integer constant expression */
-	if (!is_int(class1))
-		expr->flags = CEF_NONE;
-	/* if argument turns out to be not an integer constant expression *and*
-	   it was not a floating literal to start with -> too bad */
-	else if (expr->flags & CEF_ICE && !(target->flags & CEF_ICE))
-		expr->flags = CEF_NONE;
+	expr->flags = cast_flags(expr, target);
 
 	/*
 	 * You can always throw a value away by casting to
