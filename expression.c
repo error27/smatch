@@ -435,6 +435,14 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		}
 		expr->symbol_name = token->ident;
 		expr->symbol = sym;
+
+		/*
+		 * A pointer to an lvalue designating a static storage
+		 * duration object is an address constant [6.6(9)].
+		 */
+		if (sym && (sym->ctype.modifiers & (MOD_TOPLEVEL | MOD_STATIC)))
+			expr->flags = CEF_ADDR;
+
 		token = next;
 		break;
 	}
