@@ -1016,15 +1016,20 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	struct symbol *ctype;
 	const char *typediff;
 
-	expr->flags = left->flags & right->flags & ~CEF_CONST_MASK;
-	expr->flags &= ~CEF_ADDR;
-
 	/* Type types? */
-	if (is_type_type(ltype) && is_type_type(rtype))
+	if (is_type_type(ltype) && is_type_type(rtype)) {
+		/*
+		 * __builtin_types_compatible_p() yields an integer
+		 * constant expression
+		 */
+		expr->flags = CEF_SET_ICE;
 		goto OK;
+	}
 
 	if (is_safe_type(left->ctype) || is_safe_type(right->ctype))
 		warning(expr->pos, "testing a 'safe expression'");
+
+	expr->flags = left->flags & right->flags & ~CEF_CONST_MASK & ~CEF_ADDR;
 
 	/* number on number */
 	if (lclass & rclass & TYPE_NUM) {
