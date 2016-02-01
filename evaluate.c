@@ -2627,6 +2627,16 @@ static int handle_initializer(struct expression **ep, int nested,
 		if (!evaluate_expression(e))
 			return 1;
 		compatible_assignment_types(e, ctype, ep, "initializer");
+		/*
+		 * Initializers for static storage duration objects
+		 * shall be constant expressions or a string literal [6.7.8(4)].
+		 */
+		mods |= ctype->ctype.modifiers;
+		mods &= (MOD_TOPLEVEL | MOD_STATIC);
+		if (mods && !(e->flags & (CEF_ACE | CEF_ADDR)))
+			if (Wconstexpr_not_const)
+				warning(e->pos, "non-constant initializer for static object");
+
 		return 1;
 	}
 

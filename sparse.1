@@ -86,6 +86,15 @@ Sparse issues these warnings by default.  To turn them off, use
 \fB\-Wno\-cast\-truncate\fR.
 .
 .TP
+.B \-Wconstexpr-not-const
+Warn if a non-constant expression is encountered when really expecting a
+constant expression instead.
+Currently, this warns when initializing an object of static storage duration
+with an initializer which is not a constant expression.
+
+Sparse does not issue these warnings by default.
+.
+.TP
 .B \-Wcontext
 Warn about potential errors in synchronization or other delimited contexts.
 
