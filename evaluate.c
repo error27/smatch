@@ -889,10 +889,8 @@ static struct symbol *evaluate_logical(struct expression *expr)
 
 	/* the result is int [6.5.13(3), 6.5.14(3)] */
 	expr->ctype = &int_ctype;
-	if (expr->flags) {
-		if (!(expr->left->flags & expr->right->flags & CEF_ICE))
-			expr->flags = CEF_NONE;
-	}
+	expr->flags = expr->left->flags & expr->right->flags;
+	expr->flags &= ~CEF_CONST_MASK;
 	return &int_ctype;
 }
 
@@ -903,13 +901,11 @@ static struct symbol *evaluate_binop(struct expression *expr)
 	int rclass = classify_type(expr->right->ctype, &rtype);
 	int op = expr->op;
 
-	if (expr->flags) {
-		if (!(expr->left->flags & expr->right->flags & CEF_ICE))
-			expr->flags = CEF_NONE;
-	}
-
 	/* number op number */
 	if (lclass & rclass & TYPE_NUM) {
+		expr->flags = expr->left->flags & expr->right->flags;
+		expr->flags &= ~CEF_CONST_MASK;
+
 		if ((lclass | rclass) & TYPE_FLOAT) {
 			switch (op) {
 			case '+': case '-': case '*': case '/':
@@ -1010,10 +1006,7 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	struct symbol *ctype;
 	const char *typediff;
 
-	if (expr->flags) {
-		if (!(expr->left->flags & expr->right->flags & CEF_ICE))
-			expr->flags = CEF_NONE;
-	}
+	expr->flags = left->flags & right->flags & ~CEF_CONST_MASK;
 
 	/* Type types? */
 	if (is_type_type(ltype) && is_type_type(rtype))
