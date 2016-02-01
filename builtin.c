@@ -27,9 +27,10 @@
 #include "expand.h"
 #include "symbol.h"
 
-static int evaluate_to_integer(struct expression *expr)
+static int evaluate_to_int_const_expr(struct expression *expr)
 {
 	expr->ctype = &int_ctype;
+	expr->flags |= CEF_SET_ICE;
 	return 1;
 }
 
@@ -152,17 +153,17 @@ static int expand_safe_p(struct expression *expr, int cost)
 }
 
 static struct symbol_op constant_p_op = {
-	.evaluate = evaluate_to_integer,
+	.evaluate = evaluate_to_int_const_expr,
 	.expand = expand_constant_p
 };
 
 static struct symbol_op safe_p_op = {
-	.evaluate = evaluate_to_integer,
+	.evaluate = evaluate_to_int_const_expr,
 	.expand = expand_safe_p
 };
 
 static struct symbol_op warning_op = {
-	.evaluate = evaluate_to_integer,
+	.evaluate = evaluate_to_int_const_expr,
 	.expand = expand_warning
 };
 
