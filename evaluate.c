@@ -571,6 +571,13 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *i
 	classify_type(degenerate(expr->left), &ctype);
 	base = examine_pointer_target(ctype);
 
+	/*
+	 * An address constant +/- an integer constant expression
+	 * yields an address constant again [6.6(7)].
+	 */
+	if ((expr->left->flags & CEF_ADDR) && (expr->right->flags & CEF_ICE))
+		expr->flags = CEF_ADDR;
+
 	if (!base) {
 		expression_error(expr, "missing type information");
 		return NULL;
