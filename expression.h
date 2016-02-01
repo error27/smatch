@@ -97,9 +97,11 @@ enum constexpr_flag {
 	 * A constant expression in the sense of [6.6]:
 	 * - integer constant expression [6.6(6)]
 	 * - arithmetic constant expression [6.6(8)]
+	 * - address constant [6.6(9)]
 	 */
 	CEF_ICE = (1 << 4),
 	CEF_ACE = (1 << 5),
+	CEF_ADDR = (1 << 6),
 
 	/* integer constant expression => arithmetic constant expression */
 	CEF_SET_ICE = (CEF_ICE | CEF_ACE),

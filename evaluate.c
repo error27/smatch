@@ -890,7 +890,7 @@ static struct symbol *evaluate_logical(struct expression *expr)
 	/* the result is int [6.5.13(3), 6.5.14(3)] */
 	expr->ctype = &int_ctype;
 	expr->flags = expr->left->flags & expr->right->flags;
-	expr->flags &= ~CEF_CONST_MASK;
+	expr->flags &= ~(CEF_CONST_MASK | CEF_ADDR);
 	return &int_ctype;
 }
 
@@ -1007,6 +1007,7 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	const char *typediff;
 
 	expr->flags = left->flags & right->flags & ~CEF_CONST_MASK;
+	expr->flags &= ~CEF_ADDR;
 
 	/* Type types? */
 	if (is_type_type(ltype) && is_type_type(rtype))
@@ -1124,6 +1125,11 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 
 	expr->flags = (expr->conditional->flags & (*true)->flags &
 			expr->cond_false->flags & ~CEF_CONST_MASK);
+	/*
+	 * A conditional operator never yields an address constant
+	 * [6.6(9)].
+	 */
+	expr->flags &= ~CEF_ADDR;
 
 	lclass = classify_type(ltype, &ltype);
 	rclass = classify_type(rtype, &rtype);
@@ -1858,6 +1864,12 @@ static struct symbol *evaluate_preop(struct expression *expr)
 
 	case '!':
 		expr->flags = expr->unop->flags & ~CEF_CONST_MASK;
+		/*
+		 * A logical negation never yields an address constant
+		 * [6.6(9)].
+		 */
+		expr->flags &= ~CEF_ADDR;
+
 		if (is_safe_type(ctype))
 			warning(expr->pos, "testing a 'safe expression'");
 		if (is_float_type(ctype)) {
@@ -2719,6 +2731,11 @@ static int cast_flags(struct expression *expr, struct expression *old)
 	class = classify_type(expr->ctype, &t);
 	if (class & TYPE_NUM) {
 		flags = old->flags & ~CEF_CONST_MASK;
+		/*
+		 * Casts to numeric types never result in address
+		 * constants [6.6(9)].
+		 */
+		flags &= ~CEF_ADDR;
 		/*
 		 * Cast to float type -> not an integer constant
 		 * expression [6.6(6)].
