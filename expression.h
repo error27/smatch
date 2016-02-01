@@ -96,16 +96,19 @@ enum constexpr_flag {
 	/*
 	 * A constant expression in the sense of [6.6]:
 	 * - integer constant expression [6.6(6)]
+	 * - arithmetic constant expression [6.6(8)]
 	 */
 	CEF_ICE = (1 << 4),
+	CEF_ACE = (1 << 5),
 
-
-	CEF_SET_ICE = (CEF_ICE),
+	/* integer constant expression => arithmetic constant expression */
+	CEF_SET_ICE = (CEF_ICE | CEF_ACE),
 
 	/* integer constant => integer constant expression */
 	CEF_SET_INT = (CEF_INT | CEF_SET_ICE),
 
-	CEF_SET_FLOAT = (CEF_FLOAT),
+	/* floating point constant => arithmetic constant expression */
+	CEF_SET_FLOAT = (CEF_FLOAT | CEF_ACE),
 
 	/* enumeration constant => integer constant expression */
 	CEF_SET_ENUM = (CEF_ENUM | CEF_SET_ICE),
@@ -118,14 +121,13 @@ enum constexpr_flag {
 	 * expression" [6.6] flags.
 	 */
 	CEF_CONST_MASK = (CEF_INT | CEF_FLOAT | CEF_CHAR),
-};
 
-/*
- * not an integer constant expression => neither of integer,
- * enumeration and character constant
- */
-#define CEF_CLR_ICE \
-	(CEF_ICE | CEF_INT | CEF_ENUM |	CEF_CHAR)
+	/*
+	 * not an integer constant expression => neither of integer,
+	 * enumeration and character constant
+	 */
+	CEF_CLR_ICE = (CEF_ICE | CEF_INT | CEF_ENUM | CEF_CHAR),
+};
 
 enum {
 	Taint_comma = 1,
