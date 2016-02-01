@@ -249,6 +249,7 @@ static inline struct expression *alloc_expression(struct position pos, int type)
 	struct expression *expr = __alloc_expression(0);
 	expr->type = type;
 	expr->pos = pos;
+	expr->flags = CEF_NONE;
 	return expr;
 }
 
@@ -259,6 +260,7 @@ static inline struct expression *alloc_const_expression(struct position pos, int
 	expr->pos = pos;
 	expr->value = value;
 	expr->ctype = &int_ctype;
+	expr->flags = CEF_SET_INT;
 	return expr;
 }
 
