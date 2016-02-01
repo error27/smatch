@@ -856,12 +856,6 @@ struct token *conditional_expression(struct token *token, struct expression **tr
 		token = parse_expression(token->next, &expr->cond_true);
 		token = expect(token, ':', "in conditional expression");
 		token = conditional_expression(token, &expr->cond_false);
-		if (expr->left && expr->cond_false) {
-			expr->flags = expr->left->flags & expr->cond_false->flags;
-			if (expr->cond_true)
-				expr->flags &= expr->cond_true->flags;
-			expr->flags &= ~CEF_CONST_MASK;
-		}
 	}
 	return token;
 }

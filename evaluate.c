@@ -1122,12 +1122,8 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 		true = &expr->cond_true;
 	}
 
-	if (expr->flags) {
-		int flags = expr->conditional->flags & CEF_ICE;
-		flags &= (*true)->flags & expr->cond_false->flags;
-		if (!flags)
-			expr->flags = CEF_NONE;
-	}
+	expr->flags = (expr->conditional->flags & (*true)->flags &
+			expr->cond_false->flags & ~CEF_CONST_MASK);
 
 	lclass = classify_type(ltype, &ltype);
 	rclass = classify_type(rtype, &rtype);
