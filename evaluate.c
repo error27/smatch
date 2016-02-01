@@ -2841,6 +2841,8 @@ static struct symbol *evaluate_cast(struct expression *expr)
 
 		addr->ctype = &lazy_ptr_ctype;	/* Lazy eval */
 		addr->symbol = sym;
+		if (sym->ctype.modifiers & MOD_TOPLEVEL)
+			addr->flags |= CEF_ADDR;
 
 		expr->type = EXPR_PREOP;
 		expr->op = '*';
