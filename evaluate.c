@@ -1136,10 +1136,20 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 	expr->flags = (expr->conditional->flags & (*true)->flags &
 			expr->cond_false->flags & ~CEF_CONST_MASK);
 	/*
+	 * A conditional operator yields a particular constant
+	 * expression type only if all of its three subexpressions are
+	 * of that type [6.6(6), 6.6(8)].
+	 * As an extension, relax this restriction by allowing any
+	 * constant expression type for the condition expression.
+	 *
 	 * A conditional operator never yields an address constant
 	 * [6.6(9)].
+	 * However, as an extension, if the condition is any constant
+	 * expression, and the true and false expressions are both
+	 * address constants, mark the result as an address constant.
 	 */
-	expr->flags &= ~CEF_ADDR;
+	if (expr->conditional->flags & (CEF_ACE | CEF_ADDR))
+		expr->flags = (*true)->flags & expr->cond_false->flags & ~CEF_CONST_MASK;
 
 	lclass = classify_type(ltype, &ltype);
 	rclass = classify_type(rtype, &rtype);
@@ -2762,6 +2772,14 @@ static int cast_flags(struct expression *expr, struct expression *old)
 		 * constants [6.6(9)].
 		 */
 		flags &= ~CEF_ADDR;
+
+		/*
+		 * As an extension, treat address constants cast to
+		 * integer type as an arithmetic constant.
+		 */
+		if (old->flags & CEF_ADDR)
+			flags = CEF_ACE;
+
 		/*
 		 * Cast to float type -> not an integer constant
 		 * expression [6.6(6)].
@@ -2778,8 +2796,15 @@ static int cast_flags(struct expression *expr, struct expression *old)
 		/*
 		 * Casts of integer literals to pointer type yield
 		 * address constants [6.6(9)].
+		 *
+		 * As an extension, treat address constants cast to a
+		 * different pointer type as address constants again.
+		 *
+		 * As another extension, treat integer constant
+		 * expressions (in contrast to literals) cast to
+		 * pointer type as address constants.
 		 */
-		if (old->flags & CEF_INT)
+		if (old->flags & (CEF_ICE | CEF_ADDR))
 			flags = CEF_ADDR;
 	}
 
