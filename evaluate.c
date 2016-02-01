@@ -404,7 +404,7 @@ static struct symbol *bad_expr_type(struct expression *expr)
 		break;
 	}
 
-	expr->flags = 0;
+	expr->flags = CEF_NONE;
 	return expr->ctype = &bad_ctype;
 }
 
@@ -889,8 +889,8 @@ static struct symbol *evaluate_logical(struct expression *expr)
 	/* the result is int [6.5.13(3), 6.5.14(3)] */
 	expr->ctype = &int_ctype;
 	if (expr->flags) {
-		if (!(expr->left->flags & expr->right->flags & Int_const_expr))
-			expr->flags = 0;
+		if (!(expr->left->flags & expr->right->flags & CEF_ICE))
+			expr->flags = CEF_NONE;
 	}
 	return &int_ctype;
 }
@@ -903,8 +903,8 @@ static struct symbol *evaluate_binop(struct expression *expr)
 	int op = expr->op;
 
 	if (expr->flags) {
-		if (!(expr->left->flags & expr->right->flags & Int_const_expr))
-			expr->flags = 0;
+		if (!(expr->left->flags & expr->right->flags & CEF_ICE))
+			expr->flags = CEF_NONE;
 	}
 
 	/* number op number */
@@ -995,7 +995,7 @@ static inline int is_null_pointer_constant(struct expression *e)
 {
 	if (e->ctype == &null_ctype)
 		return 1;
-	if (!(e->flags & Int_const_expr))
+	if (!(e->flags & CEF_ICE))
 		return 0;
 	return is_zero_constant(e) ? 2 : 0;
 }
@@ -1010,8 +1010,8 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	const char *typediff;
 
 	if (expr->flags) {
-		if (!(expr->left->flags & expr->right->flags & Int_const_expr))
-			expr->flags = 0;
+		if (!(expr->left->flags & expr->right->flags & CEF_ICE))
+			expr->flags = CEF_NONE;
 	}
 
 	/* Type types? */
@@ -1129,10 +1129,10 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 	}
 
 	if (expr->flags) {
-		int flags = expr->conditional->flags & Int_const_expr;
+		int flags = expr->conditional->flags & CEF_ICE;
 		flags &= (*true)->flags & expr->cond_false->flags;
 		if (!flags)
-			expr->flags = 0;
+			expr->flags = CEF_NONE;
 	}
 
 	lclass = classify_type(ltype, &ltype);
@@ -1693,7 +1693,7 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 	}
 	ctype = op->ctype;
 	*expr = *op->unop;
-	expr->flags = 0;
+	expr->flags = CEF_NONE;
 
 	if (expr->type == EXPR_SYMBOL) {
 		struct symbol *sym = expr->symbol;
@@ -1721,7 +1721,7 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	/* Simplify: *&(expr) => (expr) */
 	if (op->type == EXPR_PREOP && op->op == '&') {
 		*expr = *op->unop;
-		expr->flags = 0;
+		expr->flags = CEF_NONE;
 		return expr->ctype;
 	}
 
@@ -1811,8 +1811,8 @@ static struct symbol *evaluate_sign(struct expression *expr)
 {
 	struct symbol *ctype = expr->unop->ctype;
 	int class = classify_type(ctype, &ctype);
-	if (expr->flags && !(expr->unop->flags & Int_const_expr))
-		expr->flags = 0;
+	if (expr->flags && !(expr->unop->flags & CEF_ICE))
+		expr->flags = CEF_NONE;
 	/* should be an arithmetic type */
 	if (!(class & TYPE_NUM))
 		return bad_expr_type(expr);
@@ -1866,8 +1866,8 @@ static struct symbol *evaluate_preop(struct expression *expr)
 		return evaluate_postop(expr);
 
 	case '!':
-		if (expr->flags && !(expr->unop->flags & Int_const_expr))
-			expr->flags = 0;
+		if (expr->flags && !(expr->unop->flags & CEF_ICE))
+			expr->flags = CEF_NONE;
 		if (is_safe_type(ctype))
 			warning(expr->pos, "testing a 'safe expression'");
 		if (is_float_type(ctype)) {
@@ -2770,12 +2770,12 @@ static struct symbol *evaluate_cast(struct expression *expr)
 
 	/* cast to non-integer type -> not an integer constant expression */
 	if (!is_int(class1))
-		expr->flags = 0;
+		expr->flags = CEF_NONE;
 	/* if argument turns out to be not an integer constant expression *and*
 	   it was not a floating literal to start with -> too bad */
-	else if (expr->flags == Int_const_expr &&
-		!(target->flags & Int_const_expr))
-		expr->flags = 0;
+	else if (expr->flags & CEF_ICE && !(target->flags & CEF_ICE))
+		expr->flags = CEF_NONE;
+
 	/*
 	 * You can always throw a value away by casting to
 	 * "void" - that's an implicit "force". Note that
@@ -2837,7 +2837,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 			"cast adds address space to expression (<asn:%d>)", as1);
 
 	if (!(t1->ctype.modifiers & MOD_PTRINHERIT) && class1 == TYPE_PTR &&
-	    !as1 && (target->flags & Int_const_expr)) {
+	    !as1 && (target->flags & CEF_ICE)) {
 		if (t1->ctype.base_type == &void_ctype) {
 			if (is_zero_constant(target)) {
 				/* NULL */
@@ -2971,7 +2971,7 @@ static struct symbol *evaluate_offsetof(struct expression *expr)
 		}
 		ctype = field;
 		expr->type = EXPR_VALUE;
-		expr->flags = Int_const_expr;
+		expr->flags = CEF_SET_ICE;
 		expr->value = offset;
 		expr->taint = 0;
 		expr->ctype = size_t_ctype;
@@ -2989,7 +2989,7 @@ static struct symbol *evaluate_offsetof(struct expression *expr)
 		ctype = ctype->ctype.base_type;
 		if (!expr->index) {
 			expr->type = EXPR_VALUE;
-			expr->flags = Int_const_expr;
+			expr->flags = CEF_SET_ICE;
 			expr->value = 0;
 			expr->taint = 0;
 			expr->ctype = size_t_ctype;
@@ -3006,13 +3006,13 @@ static struct symbol *evaluate_offsetof(struct expression *expr)
 			m = alloc_const_expression(expr->pos,
 						   bits_to_bytes(ctype->bit_size));
 			m->ctype = size_t_ctype;
-			m->flags = Int_const_expr;
+			m->flags |= CEF_SET_ICE;
 			expr->type = EXPR_BINOP;
 			expr->left = idx;
 			expr->right = m;
 			expr->op = '*';
 			expr->ctype = size_t_ctype;
-			expr->flags = m->flags & idx->flags & Int_const_expr;
+			expr->flags = m->flags & idx->flags;
 		}
 	}
 	if (e) {
@@ -3023,7 +3023,7 @@ static struct symbol *evaluate_offsetof(struct expression *expr)
 		if (!evaluate_expression(e))
 			return NULL;
 		expr->type = EXPR_BINOP;
-		expr->flags = e->flags & copy->flags & Int_const_expr;
+		expr->flags = e->flags & copy->flags & ~CEF_CONST_MASK;
 		expr->op = '+';
 		expr->ctype = size_t_ctype;
 		expr->left = copy;

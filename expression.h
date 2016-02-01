@@ -66,10 +66,59 @@ enum expression_type {
 	EXPR_OFFSETOF,
 };
 
-enum {
-	Int_const_expr = 1,
-	Float_literal = 2,
-}; /* for expr->flags */
+
+/*
+ * Flags for tracking the promotion of constness related attributes
+ * from subexpressions to their parents.
+ *
+ * The flags are not independent as one might imply another.
+ * The implications are as follows:
+ * - CEF_INT, CEF_ENUM and
+ *   CEF_CHAR imply CEF_ICE.
+ *
+ * Use the CEF_*_SET_MASK and CEF_*_CLEAR_MASK
+ * helper macros defined below to set or clear one of these flags.
+ */
+enum constexpr_flag {
+	CEF_NONE = 0,
+	/*
+	 * A constant in the sense of [6.4.4]:
+	 * - Integer constant [6.4.4.1]
+	 * - Floating point constant [6.4.4.2]
+	 * - Enumeration constant [6.4.4.3]
+	 * - Character constant [6.4.4.4]
+	 */
+	CEF_INT = (1 << 0),
+	CEF_FLOAT = (1 << 1),
+	CEF_ENUM = (1 << 2),
+	CEF_CHAR = (1 << 3),
+
+	/*
+	 * A constant expression in the sense of [6.6]:
+	 * - integer constant expression [6.6(6)]
+	 */
+	CEF_ICE = (1 << 4),
+
+
+	CEF_SET_ICE = (CEF_ICE),
+
+	/* integer constant => integer constant expression */
+	CEF_SET_INT = (CEF_INT | CEF_SET_ICE),
+
+	CEF_SET_FLOAT = (CEF_FLOAT),
+
+	/* enumeration constant => integer constant expression */
+	CEF_SET_ENUM = (CEF_ENUM | CEF_SET_ICE),
+
+	/* character constant => integer constant expression */
+	CEF_SET_CHAR = (CEF_CHAR | CEF_SET_ICE),
+
+	/*
+	 * Remove any "Constant" [6.4.4] flag, but retain the "constant
+	 * expression" [6.6] flags.
+	 */
+	CEF_CONST_MASK = (CEF_INT | CEF_FLOAT | CEF_CHAR),
+};
 
 enum {
 	Taint_comma = 1,

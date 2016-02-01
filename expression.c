@@ -131,7 +131,7 @@ static struct token *parse_type(struct token *token, struct expression **tree)
 {
 	struct symbol *sym;
 	*tree = alloc_expression(token->pos, EXPR_TYPE);
-	(*tree)->flags = Int_const_expr; /* sic */
+	(*tree)->flags = CEF_SET_ICE; /* sic */
 	token = typename(token, &sym, NULL);
 	if (sym->ident)
 		sparse_error(token->pos,
@@ -146,7 +146,7 @@ static struct token *builtin_types_compatible_p_expr(struct token *token,
 {
 	struct expression *expr = alloc_expression(
 		token->pos, EXPR_COMPARE);
-	expr->flags = Int_const_expr;
+	expr->flags = CEF_SET_ICE;
 	expr->op = SPECIAL_EQUAL;
 	token = token->next;
 	if (!match_op(token, '('))
@@ -200,7 +200,7 @@ static struct token *builtin_offsetof_expr(struct token *token,
 			return expect(token, ')', "at end of __builtin_offset");
 		case SPECIAL_DEREFERENCE:
 			e = alloc_expression(token->pos, EXPR_OFFSETOF);
-			e->flags = Int_const_expr;
+			e->flags = CEF_SET_ICE;
 			e->op = '[';
 			*p = e;
 			p = &e->down;
@@ -208,7 +208,7 @@ static struct token *builtin_offsetof_expr(struct token *token,
 		case '.':
 			token = token->next;
 			e = alloc_expression(token->pos, EXPR_OFFSETOF);
-			e->flags = Int_const_expr;
+			e->flags = CEF_SET_ICE;
 			e->op = '.';
 			if (token_type(token) != TOKEN_IDENT) {
 				sparse_error(token->pos, "Expected member name");
@@ -220,7 +220,7 @@ static struct token *builtin_offsetof_expr(struct token *token,
 		case '[':
 			token = token->next;
 			e = alloc_expression(token->pos, EXPR_OFFSETOF);
-			e->flags = Int_const_expr;
+			e->flags = CEF_SET_ICE;
 			e->op = '[';
 			token = parse_expression(token, &e->index);
 			token = expect(token, ']',
@@ -336,7 +336,7 @@ got_it:
 			"likely to produce unsigned long (and a warning) here",
 			show_token(token));
         expr->type = EXPR_VALUE;
-	expr->flags = Int_const_expr;
+	expr->flags = CEF_SET_INT;
         expr->ctype = ctype_integer(size, want_unsigned);
         expr->value = value;
 	return;
@@ -361,7 +361,7 @@ Float:
 	else
 		goto Enoint;
 
-	expr->flags = Float_literal;
+	expr->flags = CEF_SET_FLOAT;
 	expr->type = EXPR_FVALUE;
 	return;
 
@@ -375,8 +375,8 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 
 	switch (token_type(token)) {
 	case TOKEN_CHAR ... TOKEN_WIDE_CHAR_EMBEDDED_3:
-		expr = alloc_expression(token->pos, EXPR_VALUE);   
-		expr->flags = Int_const_expr;
+		expr = alloc_expression(token->pos, EXPR_VALUE);
+		expr->flags = CEF_SET_CHAR;
 		expr->ctype = token_type(token) < TOKEN_WIDE_CHAR ? &int_ctype : &long_ctype;
 		get_char_constant(token, &expr->value);
 		token = token->next;
@@ -390,7 +390,7 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 
 	case TOKEN_ZERO_IDENT: {
 		expr = alloc_expression(token->pos, EXPR_SYMBOL);
-		expr->flags = Int_const_expr;
+		expr->flags = CEF_SET_INT;
 		expr->ctype = &int_ctype;
 		expr->symbol = &zero_int;
 		expr->symbol_name = token->ident;
@@ -417,7 +417,7 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 			*expr = *sym->initializer;
 			/* we want the right position reported, thus the copy */
 			expr->pos = token->pos;
-			expr->flags = Int_const_expr;
+			expr->flags = CEF_SET_ENUM;
 			token = next;
 			break;
 		}
@@ -457,7 +457,8 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		}
 		if (token->special == '[' && lookup_type(token->next)) {
 			expr = alloc_expression(token->pos, EXPR_TYPE);
-			expr->flags = Int_const_expr; /* sic */
+			/* sic */
+			expr->flags = CEF_SET_ICE;
 			token = typename(token->next, &expr->symbol, NULL);
 			token = expect(token, ']', "in type expression");
 			break;
@@ -573,7 +574,7 @@ static struct token *type_info_expression(struct token *token,
 	struct token *p;
 
 	*tree = expr;
-	expr->flags = Int_const_expr; /* XXX: VLA support will need that changed */
+	expr->flags = CEF_SET_ICE; /* XXX: VLA support will need that changed */
 	token = token->next;
 	if (!match_op(token, '(') || !lookup_type(token->next))
 		return unary_expression(token, &expr->cast_expression);
@@ -663,7 +664,7 @@ static struct token *unary_expression(struct token *token, struct expression **t
 			unary = alloc_expression(token->pos, EXPR_PREOP);
 			unary->op = token->special;
 			unary->unop = unop;
-			unary->flags = unop->flags & Int_const_expr;
+			unary->flags = unop->flags & ~CEF_CONST_MASK;
 			*tree = unary;
 			return next;
 		}
@@ -721,10 +722,25 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 			if (!v)
 				return token;
 			cast->cast_expression = v;
-			if (v->flags & Int_const_expr)
-				cast->flags = Int_const_expr;
-			else if (v->flags & Float_literal) /* and _not_ int */
-				cast->flags = Int_const_expr | Float_literal;
+
+			cast->flags = v->flags & ~CEF_CONST_MASK;
+			/*
+			 * Up to now, we missed the (int).0 case here
+			 * which should really get a
+			 * CEF_ICE marker. Also,
+			 * conversion to non-numeric types is not
+			 * properly reflected up to this point.
+			 * However, we do not know until evaluation.
+			 * For the moment, in order to preserve
+			 * semantics, speculatively set
+			 * CEF_ICE if
+			 * CEF_FLOAT is
+			 * set. evaluate_cast() will unset
+			 * inappropriate flags again after examining
+			 * type information.
+			 */
+			if (v->flags & CEF_FLOAT)
+				cast->flags |= CEF_SET_ICE;
 			return token;
 		}
 	}
@@ -762,7 +778,7 @@ static struct token *cast_expression(struct token *token, struct expression **tr
 				break;					\
 			}						\
 			top->flags = left->flags & right->flags		\
-						& Int_const_expr;	\
+						& ~CEF_CONST_MASK;	\
 			top->op = op;					\
 			top->left = left;				\
 			top->right = right;				\
@@ -866,12 +882,10 @@ struct token *conditional_expression(struct token *token, struct expression **tr
 		token = expect(token, ':', "in conditional expression");
 		token = conditional_expression(token, &expr->cond_false);
 		if (expr->left && expr->cond_false) {
-			int is_const = expr->left->flags &
-					expr->cond_false->flags &
-					Int_const_expr;
+			expr->flags = expr->left->flags & expr->cond_false->flags;
 			if (expr->cond_true)
-				is_const &= expr->cond_true->flags;
-			expr->flags = is_const;
+				expr->flags &= expr->cond_true->flags;
+			expr->flags &= ~CEF_CONST_MASK;
 		}
 	}
 	return token;
