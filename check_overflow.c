@@ -154,40 +154,6 @@ free:
 	free_string(format);
 }
 
-static void match_sprintf(const char *fn, struct expression *expr, void *unused)
-{
-	struct expression *dest;
-	struct expression *format_string;
-	struct expression *data;
-	char *data_name = NULL;
-	int dest_size;
-	char *format;
-	int data_size;
-
-	dest = get_argument_from_call_expr(expr->args, 0);
-	format_string = get_argument_from_call_expr(expr->args, 1);
-	data = get_argument_from_call_expr(expr->args, 2);
-
-	dest_size = get_array_size_bytes(dest);
-	if (!dest_size)
-		return;
-	format = expr_to_var(format_string);
-	if (!format)
-		return;
-	if (strcmp(format, "\"%s\""))
-		goto free;
-	data_name = expr_to_str(data);
-	data_size = get_size_from_strlen(data);
-	if (!data_size)
-		data_size = get_array_size_bytes(data);
-	if (dest_size < data_size)
-		sm_msg("error: sprintf() copies too much data from '%s': %d vs %d",
-		       data_name, data_size, dest_size);
-free:
-	free_string(data_name);
-	free_string(format);
-}
-
 static void db_returns_buf_size(struct expression *expr, int param, char *unused, char *math)
 {
 	struct expression *call;
@@ -222,7 +188,6 @@ void check_overflow(int id)
 	add_hook(&array_check, OP_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_function_hook("snprintf", &match_snprintf, NULL);
-	add_function_hook("sprintf", &match_sprintf, NULL);
 	select_return_states_hook(BUF_SIZE, &db_returns_buf_size);
 	add_modification_hook(my_used_id, &delete);
 }
