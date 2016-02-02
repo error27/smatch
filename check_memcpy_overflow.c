@@ -46,6 +46,116 @@ static int get_the_max(struct expression *expr, sval_t *sval)
 	return 1;
 }
 
+static int bytes_to_end_of_struct(struct expression *expr)
+{
+	struct symbol *type;
+	int offset;
+
+	/* FIXME: if the struct ends in a variable length array then look up the
+	   size */
+
+	if (expr->type == EXPR_PREOP && expr->op == '&')
+		expr = strip_parens(expr->unop);
+	else {
+		type = get_type(expr);
+		if (!type || type->type != SYM_ARRAY)
+			return 0;
+	}
+	if (expr->type != EXPR_DEREF || !expr->member)
+		return 0;
+	type = get_type(expr->deref);
+	if (!type)
+		return 0;
+	offset = get_member_offset_from_deref(expr);
+	if (offset <= 0)
+		return 0;
+	return type_bytes(type) - expr->member_offset;
+}
+
+static int size_of_union(struct expression *expr)
+{
+	struct symbol *type;
+
+	if (expr->type != EXPR_PREOP || expr->op != '&')
+		return 0;
+	expr = strip_parens(expr->unop);
+	if (expr->type != EXPR_DEREF || !expr->member)
+		return 0;
+	expr = expr->unop;
+	type = get_type(expr);
+	if (!type || type->type != SYM_UNION)
+		return 0;
+	return type_bytes(type);
+}
+
+static int is_likely_multiple(int has, int needed, struct expression *limit)
+{
+	sval_t mult;
+
+	limit = strip_parens(limit);
+	if (limit->type != EXPR_BINOP || limit->op != '*')
+		return 0;
+	if (!get_value(limit->left, &mult))
+		return 0;
+	if (has * mult.value == needed)
+		return 1;
+	if (!get_value(limit->right, &mult))
+		return 0;
+	if (has * mult.value == needed)
+		return 1;
+
+	return 0;
+}
+
+static int ends_on_struct_member_boundary(struct expression *expr, int needed)
+{
+	struct symbol *type, *tmp;
+	int offset;
+	int size;
+	int found = 0;
+
+	/* Fixme.  Or if the destination is an array &foo and foo are equivalent
+	 * in that case. */
+
+	expr = strip_expr(expr);
+	if (expr->type != EXPR_PREOP || expr->op != '&')
+		return 0;
+	expr = strip_parens(expr->unop);
+	if (expr->type != EXPR_DEREF || !expr->member)
+		return 0;
+
+	type = get_type(expr->unop);
+	if (type->type != SYM_STRUCT)
+		return 0;
+
+	offset = 0;
+	FOR_EACH_PTR(type->symbol_list, tmp) {
+		if (!found) {
+			if (tmp->ident && tmp->ident->name &&
+			    strcmp(expr->member->name, tmp->ident->name) == 0)
+				found = 1;
+			if (!type->ctype.attribute->is_packed)
+			    offset = ALIGN(offset, tmp->ctype.alignment);
+
+			offset += type_bytes(tmp);
+			size = type_bytes(tmp);
+			continue;
+		}
+
+		/* if there is a hole then fail. */
+		if (!type->ctype.attribute->is_packed &&
+		    offset != ALIGN(offset, tmp->ctype.alignment))
+			return 0;
+		offset += type_bytes(tmp);
+		size += type_bytes(tmp);
+
+		if (size == needed)
+			return 1;
+		if (size > needed)
+			return 0;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
 
 static void match_limited(const char *fn, struct expression *expr, void *_limiter)
 {
@@ -65,6 +175,21 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 		return;
 	if (has >= needed.value)
 		return;
+
+	if (needed.value == bytes_to_end_of_struct(dest))
+		return;
+
+	if (needed.value <= size_of_union(dest))
+		return;
+
+	if (is_likely_multiple(has, needed.value, limit))
+		return;
+
+	if (ends_on_struct_member_boundary(dest, needed.value))
+		return;
+
+	// FIXME
+	// if (is_one_element_last_byte_array() ...
 
 	dest_name = expr_to_str(dest);
 	sm_msg("error: %s() '%s' too small (%d vs %s)", fn, dest_name, has, sval_to_str(needed));
