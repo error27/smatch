@@ -54,40 +54,6 @@ static void delete(struct sm_state *sm, struct expression *mod_expr)
 	set_state(my_used_id, sm->name, sm->sym, &undefined);
 }
 
-static int definitely_just_used_as_limiter(struct expression *array, struct expression *offset)
-{
-	sval_t sval;
-	struct expression *tmp;
-	int step = 0;
-	int dot_ops = 0;
-
-	if (!get_implied_value(offset, &sval))
-		return 0;
-	if (get_array_size(array) != sval.value)
-		return 0;
-
-	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
-		if (step == 0) {
-			step = 1;
-			continue;
-		}
-		if (tmp->type == EXPR_PREOP && tmp->op == '(')
-			continue;
-		if (tmp->op == '.' && !dot_ops++)
-			continue;
-		if (step == 1 && tmp->op == '&') {
-			step = 2;
-			continue;
-		}
-		if (step == 2 && tmp->type == EXPR_COMPARE)
-			return 1;
-		if (step == 2 && tmp->type == EXPR_ASSIGNMENT)
-			return 1;
-		return 0;
-	} END_FOR_EACH_PTR_REVERSE(tmp);
-	return 0;
-}
-
 static int get_the_max(struct expression *expr, sval_t *sval)
 {
 	if (get_hard_max(expr, sval))
@@ -101,51 +67,12 @@ static int get_the_max(struct expression *expr, sval_t *sval)
 	return 0;
 }
 
-static int common_false_positives(struct expression *array, char *name, sval_t max)
-{
-	if (!name)
-		return 0;
-
-	/* Smatch can't figure out glibc's strcmp __strcmp_cg()
-	 * so it prints an error every time you compare to a string
-	 * literal array with 4 or less chars.
-	 */
-	if (strcmp(name, "__s1") == 0 || strcmp(name, "__s2") == 0)
-		return 1;
-
-	/* Ugh... People are saying that Smatch still barfs on glibc strcmp()
-	 * functions.
-	 */
-	if (array && array->type == EXPR_STRING) {
-		char *macro;
-
-		if (max.value == array->string->length)
-			return 1;
-
-		macro = get_macro_name(array->pos);
-		if (macro &&
-		    (strcmp(macro, "strcmp") == 0 ||
-		     strcmp(macro, "strncmp") == 0))
-		    return 1;
-	}
-
-	/*
-	 * passing WORK_CPU_UNBOUND is idiomatic but Smatch doesn't understand
-	 * how it's used so it causes a bunch of false positives.
-	 */
-	if (option_project == PROJ_KERNEL &&
-	    strcmp(name, "__per_cpu_offset") == 0)
-		return 1;
-	return 0;
-}
-
 static void array_check(struct expression *expr)
 {
 	struct expression *array_expr;
 	int array_size;
 	struct expression *offset;
 	sval_t max;
-	char *name;
 
 	expr = strip_expr(expr);
 	if (!is_array(expr))
@@ -163,22 +90,6 @@ static void array_check(struct expression *expr)
 		if (is_capped(offset))
 			return;
 		set_state_expr(my_used_id, offset, alloc_state_num(array_size));
-	} else if (array_size <= max.value) {
-		const char *level = "error";
-
-		if (getting_address())
-			level = "warn";
-
-		if (definitely_just_used_as_limiter(array_expr, offset))
-			return;
-
-		array_expr = strip_expr(array_expr);
-		name = expr_to_str(array_expr);
-		if (!common_false_positives(array_expr, name, max)) {
-			sm_msg("%s: buffer overflow '%s' %d <= %s",
-				level, name, array_size, sval_to_str(max));
-		}
-		free_string(name);
 	}
 }
 
