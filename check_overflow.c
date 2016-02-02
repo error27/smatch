@@ -114,45 +114,6 @@ static void match_condition(struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
-static void match_strcpy(const char *fn, struct expression *expr, void *unused)
-{
-	struct expression *dest;
-	struct expression *data;
-	char *dest_name = NULL;
-	char *data_name = NULL;
-	int dest_size;
-	int data_size;
-
-	dest = get_argument_from_call_expr(expr->args, 0);
-	data = get_argument_from_call_expr(expr->args, 1);
-	dest_size = get_array_size_bytes(dest);
-	if (!dest_size)
-		return;
-
-	data_size = get_size_from_strlen(data);
-	if (!data_size)
-		data_size = get_array_size_bytes(data);
-
-	/* If the size of both arrays is known and the destination
-	 * buffer is larger than the source buffer, we're okay.
-	 */
-	if (data_size && dest_size >= data_size)
-		return;
-
-	dest_name = expr_to_str(dest);
-	data_name = expr_to_str(data);
-
-	if (data_size)
-		sm_msg("error: %s() '%s' too large for '%s' (%d vs %d)",
-			fn, data_name, dest_name, data_size, dest_size);
-	else if (option_spammy)
-		sm_msg("warn: %s() '%s' of unknown size might be too large for '%s'",
-			fn, data_name, dest_name);
-
-	free_string(dest_name);
-	free_string(data_name);
-}
-
 static void match_snprintf(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *dest;
@@ -260,7 +221,6 @@ void check_overflow(int id)
 	my_used_id = id;
 	add_hook(&array_check, OP_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
-	add_function_hook("strcpy", &match_strcpy, NULL);
 	add_function_hook("snprintf", &match_snprintf, NULL);
 	add_function_hook("sprintf", &match_sprintf, NULL);
 	select_return_states_hook(BUF_SIZE, &db_returns_buf_size);
