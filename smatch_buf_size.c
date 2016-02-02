@@ -131,6 +131,11 @@ static int bytes_per_element(struct expression *expr)
 		return 0;
 	if (expr->type == EXPR_STRING)
 		return 1;
+	if (expr->type == EXPR_PREOP && expr->op == '&') {
+		type = get_type(expr->unop);
+		if (type && type->type == SYM_ARRAY)
+			expr = expr->unop;
+	}
 	type = get_type(expr);
 	if (!type)
 		return 0;
@@ -253,6 +258,8 @@ int get_real_array_size(struct expression *expr)
 
 	if (!expr)
 		return 0;
+	if (expr->type == EXPR_PREOP && expr->op == '&')
+		expr = expr->unop;
 	if (expr->type == EXPR_BINOP) /* array elements foo[5] */
 		return 0;
 
