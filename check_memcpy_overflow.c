@@ -51,14 +51,14 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 {
 	struct limiter *limiter = (struct limiter *)_limiter;
 	struct expression *dest;
-	struct expression *data;
+	struct expression *limit;
 	char *dest_name = NULL;
 	sval_t needed;
 	int has;
 
 	dest = get_argument_from_call_expr(expr->args, limiter->buf_arg);
-	data = get_argument_from_call_expr(expr->args, limiter->limit_arg);
-	if (!get_the_max(data, &needed))
+	limit = get_argument_from_call_expr(expr->args, limiter->limit_arg);
+	if (!get_the_max(limit, &needed))
 		return;
 	has = get_array_size_bytes_max(dest);
 	if (!has)
