@@ -790,7 +790,9 @@ void register_buf_size(int id)
 	add_allocation_function("realloc", &match_alloc, 1);
 	if (option_project == PROJ_KERNEL) {
 		add_allocation_function("kmalloc", &match_alloc, 0);
+		add_allocation_function("kmalloc_node", &match_alloc, 0);
 		add_allocation_function("kzalloc", &match_alloc, 0);
+		add_allocation_function("kzalloc_node", &match_alloc, 0);
 		add_allocation_function("vmalloc", &match_alloc, 0);
 		add_allocation_function("__vmalloc", &match_alloc, 0);
 		add_allocation_function("kcalloc", &match_calloc, 0);
@@ -806,6 +808,8 @@ void register_buf_size(int id)
 		add_allocation_function("devm_kmalloc", &match_alloc, 1);
 		add_allocation_function("devm_kzalloc", &match_alloc, 1);
 		add_allocation_function("krealloc", &match_alloc, 1);
+		add_allocation_function("__alloc_bootmem", &match_alloc, 0);
+		add_allocation_function("alloc_bootmem", &match_alloc, 0);
 		add_allocation_function("kmap", &match_page, 0);
 		add_allocation_function("get_zeroed_page", &match_page, 0);
 		add_allocation_function("alloc_pages", &match_alloc_pages, 1);
