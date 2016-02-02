@@ -114,39 +114,10 @@ static void match_condition(struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
-static void db_returns_buf_size(struct expression *expr, int param, char *unused, char *math)
-{
-	struct expression *call;
-	struct symbol *left_type, *right_type;
-	int bytes;
-	sval_t sval;
-
-	if (expr->type != EXPR_ASSIGNMENT)
-		return;
-	right_type = get_pointer_type(expr->right);
-	if (!right_type || type_bits(right_type) != -1)
-		return;
-
-	call = strip_expr(expr->right);
-	left_type = get_pointer_type(expr->left);
-
-	if (!parse_call_math(call, math, &sval) || sval.value == 0)
-		return;
-	if (!left_type)
-		return;
-	bytes = type_bytes(left_type);
-	if (bytes <= 0)
-		return;
-	if (sval.uvalue >= bytes)
-		return;
-	sm_msg("error: not allocating enough data %d vs %s", bytes, sval_to_str(sval));
-}
-
 void check_overflow(int id)
 {
 	my_used_id = id;
 	add_hook(&array_check, OP_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
-	select_return_states_hook(BUF_SIZE, &db_returns_buf_size);
 	add_modification_hook(my_used_id, &delete);
 }
