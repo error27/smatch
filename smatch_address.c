@@ -19,8 +19,6 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-#define ALIGN(x, a) (((x) + (a) - 1) & ~((a) - 1))
-
 static bool is_non_null_array(struct expression *expr)
 {
 	struct symbol *type;
