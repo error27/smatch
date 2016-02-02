@@ -114,7 +114,7 @@ static void match_condition(struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
-void check_overflow(int id)
+void check_testing_index_after_use(int id)
 {
 	my_used_id = id;
 	add_hook(&array_check, OP_HOOK);
