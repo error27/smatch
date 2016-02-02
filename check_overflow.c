@@ -42,13 +42,6 @@ static void match_function_def(struct symbol *sym)
 	this_func = sym;
 }
 
-struct limiter {
-	int buf_arg;
-	int limit_arg;
-};
-static struct limiter b0_l2 = {0, 2};
-static struct limiter b1_l2 = {1, 2};
-
 static void delete(struct sm_state *sm, struct expression *mod_expr)
 {
 	set_state(my_used_id, sm->name, sm->sym, &undefined);
@@ -246,30 +239,6 @@ free:
 	free_string(format);
 }
 
-static void match_limited(const char *fn, struct expression *expr, void *_limiter)
-{
-	struct limiter *limiter = (struct limiter *)_limiter;
-	struct expression *dest;
-	struct expression *data;
-	char *dest_name = NULL;
-	sval_t needed;
-	int has;
-
-	dest = get_argument_from_call_expr(expr->args, limiter->buf_arg);
-	data = get_argument_from_call_expr(expr->args, limiter->limit_arg);
-	if (!get_the_max(data, &needed))
-		return;
-	has = get_array_size_bytes_max(dest);
-	if (!has)
-		return;
-	if (has >= needed.value)
-		return;
-
-	dest_name = expr_to_str(dest);
-	sm_msg("error: %s() '%s' too small (%d vs %s)", fn, dest_name, has, sval_to_str(needed));
-	free_string(dest_name);
-}
-
 static void db_returns_buf_size(struct expression *expr, int param, char *unused, char *math)
 {
 	struct expression *call;
@@ -298,68 +267,15 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 	sm_msg("error: not allocating enough data %d vs %s", bytes, sval_to_str(sval));
 }
 
-static void register_funcs_from_file(void)
-{
-	char name[256];
-	struct token *token;
-	const char *func;
-	int size, buf;
-	struct limiter *limiter;
-
-	snprintf(name, 256, "%s.sizeof_param", option_project_str);
-	name[255] = '\0';
-	token = get_tokens_file(name);
-	if (!token)
-		return;
-	if (token_type(token) != TOKEN_STREAMBEGIN)
-		return;
-	token = token->next;
-	while (token_type(token) != TOKEN_STREAMEND) {
-		if (token_type(token) != TOKEN_IDENT)
-			return;
-		func = show_ident(token->ident);
-
-		token = token->next;
-		if (token_type(token) != TOKEN_NUMBER)
-			return;
-		size = atoi(token->number);
-
-		token = token->next;
-		if (token_type(token) != TOKEN_NUMBER)
-			return;
-		buf = atoi(token->number);
-
-		limiter = malloc(sizeof(*limiter));
-		limiter->limit_arg = size;
-		limiter->buf_arg = buf;
-
-		add_function_hook(func, &match_limited, limiter);
-
-		token = token->next;
-	}
-	clear_token_alloc();
-}
-
 void check_overflow(int id)
 {
 	my_used_id = id;
-	register_funcs_from_file();
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&array_check, OP_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_function_hook("strcpy", &match_strcpy, NULL);
 	add_function_hook("snprintf", &match_snprintf, NULL);
 	add_function_hook("sprintf", &match_sprintf, NULL);
-	add_function_hook("memcmp", &match_limited, &b0_l2);
-	add_function_hook("memcmp", &match_limited, &b1_l2);
 	select_return_states_hook(BUF_SIZE, &db_returns_buf_size);
 	add_modification_hook(my_used_id, &delete);
-	if (option_project == PROJ_KERNEL) {
-		add_function_hook("copy_to_user", &match_limited, &b1_l2);
-		add_function_hook("_copy_to_user", &match_limited, &b1_l2);
-		add_function_hook("__copy_to_user", &match_limited, &b1_l2);
-		add_function_hook("copy_from_user", &match_limited, &b0_l2);
-		add_function_hook("_copy_from_user", &match_limited, &b0_l2);
-		add_function_hook("__copy_from_user", &match_limited, &b0_l2);
-	}
 }
