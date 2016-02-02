@@ -30,16 +30,22 @@ static struct limiter b1_l2 = {1, 2};
 
 static int get_the_max(struct expression *expr, sval_t *sval)
 {
+	struct range_list *rl;
+
 	if (get_hard_max(expr, sval))
 		return 1;
 	if (!option_spammy)
 		return 0;
 	if (get_fuzzy_max(expr, sval))
 		return 1;
-	if (is_user_data(expr))
-		return get_absolute_max(expr, sval);
-	return 0;
+	if (!is_user_data(expr))
+		return 0;
+	if (!get_user_rl(expr, &rl))
+		return 0;
+	*sval = rl_max(rl);
+	return 1;
 }
+
 
 static void match_limited(const char *fn, struct expression *expr, void *_limiter)
 {
