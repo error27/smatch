@@ -21,11 +21,6 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-struct bound {
-	int param;
-	int size;
-};
-
 /*
  * This check has two smatch IDs.
  * my_used_id - keeps a record of array offsets that have been used.
@@ -34,13 +29,6 @@ struct bound {
  *              that it is within bounds.
  */
 static int my_used_id;
-
-static struct symbol *this_func;
-
-static void match_function_def(struct symbol *sym)
-{
-	this_func = sym;
-}
 
 static void delete(struct sm_state *sm, struct expression *mod_expr)
 {
@@ -270,7 +258,6 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 void check_overflow(int id)
 {
 	my_used_id = id;
-	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&array_check, OP_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_function_hook("strcpy", &match_strcpy, NULL);
