@@ -665,6 +665,7 @@ enum info_type {
 	CULL_PATH	= 1024,
 	PARAM_SET	= 1025,
 	PARAM_USED	= 1026,
+	PARAM_COMPARE	= 1028,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA3	= 8017,

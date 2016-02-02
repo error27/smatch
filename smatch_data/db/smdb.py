@@ -76,6 +76,7 @@ db_types = {   0: "INTERNAL",
             1025: "PARAM_SET",
             1026: "PARAM_USED",
             1027: "BYTE_UNITS",
+            1028: "PARAM_COMPARE",
             8017: "USER_DATA2",
 };
 
@@ -226,11 +227,13 @@ def trace_callers(func, param):
     cur = con.cursor()
     ptrs = get_function_pointers(func)
     for ptr in ptrs:
-        cur.execute("select type, caller, value from caller_info where function = '%s' and (type = 0 or type = 1014) and (parameter = -1 or parameter = %d);" %(ptr, param))
+        cur.execute("select type, caller, value from caller_info where function = '%s' and (type = 0 or type = 1014 or type = 1028) and (parameter = -1 or parameter = %d);" %(ptr, param))
         for row in cur:
             data_type = int(row[0])
             if data_type == 1014:
                 sources.append((row[1], row[2]))
+            elif data_type == 1028:
+                sources.append(("%", row[2])) # hack...
             elif data_type == 0 and prev_type == 0:
                 sources.append((row[1], ""))
             prev_type = data_type
@@ -247,14 +250,13 @@ def trace_param_helper(func, param, indent = 0):
         return
     printed_funcs.append(func)
     sources = trace_callers(func, param)
-    if len(sources) >= 20:
-        print "Over 20 callers for %s()" %(func)
-        return
     for path in sources:
 
         if len(path[1]) and path[1][0] == 'p' and path[1][1] == ' ':
             p = int(path[1][2:])
             trace_param_helper(path[0], p, indent + 2)
+        elif len(path[0]) and path[0][0] == '%':
+            print "  %s%s" %(" " * indent, path[1])
         else:
             print "* %s%s %s" %(" " * (indent - 1), path[0], path[1])
 

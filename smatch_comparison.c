@@ -1578,6 +1578,61 @@ free:
 	return ret_str;
 }
 
+static void match_call_info(struct expression *expr)
+{
+	struct expression *arg;
+	struct smatch_state *state;
+	struct sm_state *sm;
+	struct compare_data *data;
+	int comparison;
+	struct string_list *links;
+	char *arg_name;
+	const char *right_name;
+	char *link;
+	char info_buf[256];
+	int i;
+
+	i = -1;
+	FOR_EACH_PTR(expr->args, arg) {
+		i++;
+
+		state = get_state_expr(link_id, arg);
+		if (!state)
+			continue;
+
+		links = state->data;
+		FOR_EACH_PTR(links, link) {
+			if (strstr(link, " orig"))
+				continue;
+			sm = get_sm_state(compare_id, link, NULL);
+			if (!sm)
+				continue;
+			data = sm->state->data;
+			if (!data || !data->comparison)
+				continue;
+			arg_name = expr_to_var(arg);
+			if (!arg_name)
+				continue;
+
+			if (strcmp(data->var1, arg_name) == 0) {
+				comparison = data->comparison;
+				right_name = data->var2;
+			} else if (strcmp(data->var2, arg_name) == 0) {
+				comparison = flip_comparison(data->comparison);
+				right_name = data->var1;
+			} else {
+				goto free;
+			}
+
+			snprintf(info_buf, sizeof(info_buf), "%s %s", show_special(comparison), right_name);
+			sql_insert_caller_info(expr, PARAM_COMPARE, i, "$", info_buf);
+
+free:
+			free_string(arg_name);
+		} END_FOR_EACH_PTR(link);
+	} END_FOR_EACH_PTR(arg);
+}
+
 static void free_data(struct symbol *sym)
 {
 	if (__inline_fn)
@@ -1593,6 +1648,7 @@ void register_comparison(int id)
 	add_unmatched_state_hook(compare_id, unmatched_comparison);
 	add_merge_hook(compare_id, &merge_compare_states);
 	add_hook(&free_data, AFTER_FUNC_HOOK);
+	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 }
 
 void register_comparison_links(int id)
