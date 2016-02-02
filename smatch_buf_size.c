@@ -721,6 +721,27 @@ static void match_strndup(const char *fn, struct expression *expr, void *unused)
 
 }
 
+static void match_alloc_pages(const char *fn, struct expression *expr, void *_order_arg)
+{
+	int order_arg = PTR_INT(_order_arg);
+	struct expression *right;
+	struct expression *arg;
+	sval_t sval;
+
+	right = strip_expr(expr->right);
+	arg = get_argument_from_call_expr(right->args, order_arg);
+	if (!get_implied_value(arg, &sval))
+		return;
+	if (sval.value < 0 || sval.value > 10)
+		return;
+
+	sval.type = &int_ctype;
+	sval.value = 1 << sval.value;
+	sval.value *= 4096;
+
+	store_alloc(expr->left, alloc_rl(sval, sval));
+}
+
 static void match_call(struct expression *expr)
 {
 	struct expression *arg;
@@ -787,6 +808,9 @@ void register_buf_size(int id)
 		add_allocation_function("krealloc", &match_alloc, 1);
 		add_allocation_function("kmap", &match_page, 0);
 		add_allocation_function("get_zeroed_page", &match_page, 0);
+		add_allocation_function("alloc_pages", &match_alloc_pages, 1);
+		add_allocation_function("alloc_pages_current", &match_alloc_pages, 1);
+		add_allocation_function("__get_free_pages", &match_alloc_pages, 1);
 	}
 
 	add_allocation_function("strndup", match_strndup, 0);
