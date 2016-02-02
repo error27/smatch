@@ -957,43 +957,39 @@ static void handle_for_loops(struct expression *expr, char *state_name, struct s
 	set_true_false_states(compare_id, state_name, NULL, NULL, false_state);
 }
 
-void __comparison_match_condition(struct expression *expr)
+static void handle_comparison(struct expression *expr_left, int op, struct expression *expr_right, char **_state_name, struct smatch_state **_false_state)
 {
 	char *left = NULL;
 	char *right = NULL;
 	struct symbol *left_sym, *right_sym;
 	struct var_sym_list *left_vsl, *right_vsl;
-	int op, false_op;
+	int false_op;
 	int orig_comparison;
 	struct smatch_state *true_state, *false_state;
-	char state_name[256];
+	static char state_name[256];
 	struct stree *pre_stree;
 	sval_t sval;
 
-	if (expr->type != EXPR_COMPARE)
-		return;
-
-	op = expr->op;
 	false_op = negate_comparison(op);
 
 	if (op == SPECIAL_UNSIGNED_LT &&
-	    get_implied_value(expr->left, &sval) &&
+	    get_implied_value(expr_left, &sval) &&
 	    sval.value == 0)
 		false_op = SPECIAL_EQUAL;
 
 	if (op == SPECIAL_UNSIGNED_GT &&
-	    get_implied_value(expr->right, &sval) &&
+	    get_implied_value(expr_right, &sval) &&
 	    sval.value == 0)
 		false_op = SPECIAL_EQUAL;
 
-	left = chunk_to_var_sym(expr->left, &left_sym);
+	left = chunk_to_var_sym(expr_left, &left_sym);
 	if (!left)
 		goto free;
-	left_vsl = expr_to_vsl(expr->left);
-	right = chunk_to_var_sym(expr->right, &right_sym);
+	left_vsl = expr_to_vsl(expr_left);
+	right = chunk_to_var_sym(expr_right, &right_sym);
 	if (!right)
 		goto free;
-	right_vsl = expr_to_vsl(expr->right);
+	right_vsl = expr_to_vsl(expr_right);
 
 	if (strcmp(left, right) > 0) {
 		struct symbol *tmp_sym = left_sym;
@@ -1023,13 +1019,31 @@ void __comparison_match_condition(struct expression *expr)
 	free_stree(&pre_stree);
 
 	set_true_false_states(compare_id, state_name, NULL, true_state, false_state);
-	save_link(expr->left, state_name);
-	save_link(expr->right, state_name);
+	save_link(expr_left, state_name);
+	save_link(expr_right, state_name);
 
-	handle_for_loops(expr, state_name, false_state);
+	if (_false_state)
+		*_false_state = false_state;
+	if (_state_name)
+		*_state_name = state_name;
 free:
 	free_string(left);
 	free_string(right);
+
+}
+
+void __comparison_match_condition(struct expression *expr)
+{
+	struct smatch_state *false_state = NULL;
+	char *state_name = NULL;
+
+	if (expr->type != EXPR_COMPARE)
+		return;
+
+	handle_comparison(expr->left, expr->op, expr->right, &state_name, &false_state);
+	if (false_state && state_name)
+		handle_for_loops(expr, state_name, false_state);
+
 }
 
 static void add_comparison_var_sym(const char *left_name,
