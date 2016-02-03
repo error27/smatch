@@ -266,6 +266,9 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 	struct relation *rel;
 	struct smatch_state *orig_state;
 
+	if (!true_state && !false_state)
+		return;
+
 	if (in_warn_on_macro())
 		return;
 
@@ -330,6 +333,9 @@ static void set_extra_expr_true_false(struct expression *expr,
 	char *name;
 	struct symbol *sym;
 	sval_t sval;
+
+	if (!true_state && !false_state)
+		return;
 
 	if (get_value(expr, &sval))
 		return;
