@@ -40,8 +40,15 @@ enum {
 	match_indirect
 };
 
+enum {
+	EARLY = 0,
+	LATE = 1
+};
+
 static modification_hook **hooks;
 static modification_hook **indirect_hooks;  /* parent struct modified etc */
+static modification_hook **hooks_late;
+static modification_hook **indirect_hooks_late;  /* parent struct modified etc */
 
 ALLOCATOR(modification_data, "modification data");
 
@@ -76,6 +83,16 @@ void add_indirect_modification_hook(int owner, modification_hook *call_back)
 	indirect_hooks[owner] = call_back;
 }
 
+void add_modification_hook_late(int owner, modification_hook *call_back)
+{
+	hooks_late[owner] = call_back;
+}
+
+void add_indirect_modification_hook_late(int owner, modification_hook *call_back)
+{
+	indirect_hooks_late[owner] = call_back;
+}
+
 static int matches(char *name, struct symbol *sym, struct sm_state *sm)
 {
 	int len;
@@ -101,7 +118,7 @@ static int matches(char *name, struct symbol *sym, struct sm_state *sm)
 	return match_none;
 }
 
-static void call_modification_hooks_name_sym(char *name, struct symbol *sym, struct expression *mod_expr)
+static void call_modification_hooks_name_sym(char *name, struct symbol *sym, struct expression *mod_expr, int late)
 {
 	struct stree *stree;
 	struct sm_state *sm;
@@ -117,16 +134,25 @@ static void call_modification_hooks_name_sym(char *name, struct symbol *sym, str
 		if (sm->owner > num_checks)
 			continue;
 		match = matches(name, sym, sm);
+		if (!match)
+			continue;
 
-		if (match && hooks[sm->owner])
-			(hooks[sm->owner])(sm, mod_expr);
+		if (!late) {
+			if (hooks[sm->owner])
+				(hooks[sm->owner])(sm, mod_expr);
+			if (match == match_indirect && indirect_hooks[sm->owner])
+				(indirect_hooks[sm->owner])(sm, mod_expr);
+		} else {
+			if (hooks_late[sm->owner])
+				(hooks_late[sm->owner])(sm, mod_expr);
+			if (match == match_indirect && indirect_hooks_late[sm->owner])
+				(indirect_hooks_late[sm->owner])(sm, mod_expr);
+		}
 
-		if (match == match_indirect && indirect_hooks[sm->owner])
-			(indirect_hooks[sm->owner])(sm, mod_expr);
 	} END_FOR_EACH_SM(sm);
 }
 
-static void call_modification_hooks(struct expression *expr, struct expression *mod_expr)
+static void call_modification_hooks(struct expression *expr, struct expression *mod_expr, int late)
 {
 	char *name;
 	struct symbol *sym;
@@ -134,7 +160,7 @@ static void call_modification_hooks(struct expression *expr, struct expression *
 	name = expr_to_known_chunk_sym(expr, &sym);
 	if (!name)
 		goto free;
-	call_modification_hooks_name_sym(name, sym, mod_expr);
+	call_modification_hooks_name_sym(name, sym, mod_expr, late);
 free:
 	free_string(name);
 }
@@ -158,22 +184,22 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	if (!name || !sym)
 		goto free;
 
-	call_modification_hooks_name_sym(name, sym, expr);
+	call_modification_hooks_name_sym(name, sym, expr, LATE);
 free:
 	free_string(name);
 }
 
-static void match_assign(struct expression *expr)
+static void match_assign(struct expression *expr, int late)
 {
-	call_modification_hooks(expr->left, expr);
+	call_modification_hooks(expr->left, expr, late);
 }
 
-static void unop_expr(struct expression *expr)
+static void unop_expr(struct expression *expr, int late)
 {
 	if (expr->op != SPECIAL_DECREMENT && expr->op != SPECIAL_INCREMENT)
 		return;
 
-	call_modification_hooks(expr->unop, expr);
+	call_modification_hooks(expr->unop, expr, late);
 }
 
 static void match_call(struct expression *expr)
@@ -183,13 +209,13 @@ static void match_call(struct expression *expr)
 	FOR_EACH_PTR(expr->args, arg) {
 		tmp = strip_expr(arg);
 		if (tmp->type == EXPR_PREOP && tmp->op == '&')
-			call_modification_hooks(tmp->unop, expr);
+			call_modification_hooks(tmp->unop, expr, LATE);
 		else if (option_no_db)
-			call_modification_hooks(deref_expression(tmp), expr);
+			call_modification_hooks(deref_expression(tmp), expr, LATE);
 	} END_FOR_EACH_PTR(arg);
 }
 
-static void asm_expr(struct statement *stmt)
+static void asm_expr(struct statement *stmt, int late)
 {
 	struct expression *expr;
 	int state = 0;
@@ -202,10 +228,41 @@ static void asm_expr(struct statement *stmt)
 			continue;
 		case 2: /* expression */
 			state = 0;
-			call_modification_hooks(expr, NULL);
+			call_modification_hooks(expr, NULL, late);
 			continue;
 		}
 	} END_FOR_EACH_PTR(expr);
+}
+
+
+static void match_assign_early(struct expression *expr)
+{
+	match_assign(expr, EARLY);
+}
+
+static void unop_expr_early(struct expression *expr)
+{
+	unop_expr(expr, EARLY);
+}
+
+static void asm_expr_early(struct statement *stmt)
+{
+	asm_expr(stmt, EARLY);
+}
+
+static void match_assign_late(struct expression *expr)
+{
+	match_assign(expr, LATE);
+}
+
+static void unop_expr_late(struct expression *expr)
+{
+	unop_expr(expr, LATE);
+}
+
+static void asm_expr_late(struct statement *stmt)
+{
+	asm_expr(stmt, LATE);
 }
 
 static void scope_end(void *_sym)
@@ -213,7 +270,7 @@ static void scope_end(void *_sym)
 	struct symbol *sym = _sym;
 	struct expression *expr = symbol_expression(sym);
 
-	call_modification_hooks(expr, NULL);
+	call_modification_hooks(expr, NULL, LATE);
 }
 
 static void match_declaration(struct symbol *sym)
@@ -234,15 +291,24 @@ void register_modification_hooks(int id)
 	memset(hooks, 0, (num_checks + 1) * sizeof(*hooks));
 	indirect_hooks = malloc((num_checks + 1) * sizeof(*hooks));
 	memset(indirect_hooks, 0, (num_checks + 1) * sizeof(*hooks));
+	hooks_late = malloc((num_checks + 1) * sizeof(*hooks));
+	memset(hooks_late, 0, (num_checks + 1) * sizeof(*hooks));
+	indirect_hooks_late = malloc((num_checks + 1) * sizeof(*hooks));
+	memset(indirect_hooks_late, 0, (num_checks + 1) * sizeof(*hooks));
 
-	add_hook(&match_assign, ASSIGNMENT_HOOK);
-	add_hook(&unop_expr, OP_HOOK);
-	add_hook(&asm_expr, ASM_HOOK);
+	add_hook(&match_assign_early, ASSIGNMENT_HOOK);
+	add_hook(&unop_expr_early, OP_HOOK);
+	add_hook(&asm_expr_early, ASM_HOOK);
 }
 
 void register_modification_hooks_late(int id)
 {
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
+
+	add_hook(&match_assign_late, ASSIGNMENT_HOOK);
+	add_hook(&unop_expr_late, OP_HOOK);
+	add_hook(&asm_expr_late, ASM_HOOK);
+
 	select_return_states_hook(PARAM_ADD, &db_param_add);
 	select_return_states_hook(PARAM_SET, &db_param_add);
 	add_hook(&match_declaration, DECLARATION_HOOK);
