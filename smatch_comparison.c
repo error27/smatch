@@ -1034,6 +1034,7 @@ free:
 
 void __comparison_match_condition(struct expression *expr)
 {
+	struct expression *left, *right, *new_left, *new_right;
 	struct smatch_state *false_state = NULL;
 	char *state_name = NULL;
 
@@ -1044,6 +1045,19 @@ void __comparison_match_condition(struct expression *expr)
 	if (false_state && state_name)
 		handle_for_loops(expr, state_name, false_state);
 
+
+	left = strip_parens(expr->left);
+	right = strip_parens(expr->right);
+
+	if (left->type == EXPR_BINOP && left->op == '+') {
+		new_left = left->left;
+		new_right = binop_expression(right, '-', left->right);
+		handle_comparison(new_left, expr->op, new_right, NULL, NULL);
+
+		new_left = left->right;
+		new_right = binop_expression(right, '-', left->left);
+		handle_comparison(new_left, expr->op, new_right, NULL, NULL);
+	}
 }
 
 static void add_comparison_var_sym(const char *left_name,
