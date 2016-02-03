@@ -725,6 +725,7 @@ static void match_untracked_array(struct expression *call, int param)
 
 static void match_vanilla_assign(struct expression *left, struct expression *right)
 {
+	struct range_list *orig_rl = NULL;
 	struct range_list *rl = NULL;
 	struct symbol *right_sym;
 	struct symbol *left_type;
@@ -734,6 +735,7 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	char *name;
 	sval_t max;
 	struct smatch_state *state;
+	int comparison;
 
 	if (is_struct(left))
 		return;
@@ -763,8 +765,19 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 
 	if (is_pointer(right) && get_address_rl(right, &rl)) {
 		state = alloc_estate_rl(rl);
-	} else if (get_implied_rl(right, &rl)) {
+		goto done;
+	}
+
+	comparison = get_comparison(left, right);
+	if (comparison) {
+		comparison = flip_comparison(comparison);
+		get_implied_rl(left, &orig_rl);
+	}
+
+	if (get_implied_rl(right, &rl)) {
 		rl = cast_rl(left_type, rl);
+		if (orig_rl)
+			filter_by_comparison(&rl, comparison, orig_rl);
 		state = alloc_estate_rl(rl);
 		if (get_hard_max(right, &max)) {
 			estate_set_hard_max(state);
@@ -773,8 +786,12 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	} else {
 		rl = alloc_whole_rl(right_type);
 		rl = cast_rl(left_type, rl);
+		if (orig_rl)
+			filter_by_comparison(&rl, comparison, orig_rl);
 		state = alloc_estate_rl(rl);
 	}
+
+done:
 	set_extra_mod(name, sym, state);
 free:
 	free_string(right_name);
