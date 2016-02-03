@@ -1093,21 +1093,15 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 		right = strip_parens(right->unop);
 	}
 
-	if (get_implied_rl(left, &left_orig)) {
-		left_orig = cast_rl(type, left_orig);
-	} else {
-		min = sval_type_min(get_type(left));
-		max = sval_type_max(get_type(left));
-		left_orig = cast_rl(type, alloc_rl(min, max));
-	}
+	/* FIXME: we should be able to use get_real_absolute_rl() here but
+	 * apparently that is buggy.
+	 */
+	get_absolute_rl(left, &left_orig);
+	left_orig = cast_rl(type, left_orig);
 
-	if (get_implied_rl(right, &right_orig)) {
-		right_orig = cast_rl(type, right_orig);
-	} else {
-		min = sval_type_min(get_type(right));
-		max = sval_type_max(get_type(right));
-		right_orig = cast_rl(type, alloc_rl(min, max));
-	}
+	get_absolute_rl(right, &right_orig);
+	right_orig = cast_rl(type, right_orig);
+
 	min = sval_type_min(type);
 	max = sval_type_max(type);
 
