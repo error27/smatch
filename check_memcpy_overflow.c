@@ -157,6 +157,30 @@ static int ends_on_struct_member_boundary(struct expression *expr, int needed)
 	return 0;
 }
 
+static int is_one_element_array(struct expression *expr)
+{
+	struct symbol *type;
+	sval_t sval;
+
+	if (expr->type == EXPR_PREOP && expr->op == '&')
+		expr = expr->unop;
+	if (expr->type == EXPR_BINOP) /* array elements foo[5] */
+		return 0;
+
+	type = get_type(expr);
+	if (!type)
+		return 0;
+	if (!type || type->type != SYM_ARRAY)
+		return 0;
+
+	if (!get_implied_value(type->array_size, &sval))
+		return 0;
+
+	if (sval.value == 1)
+		return 1;
+	return 0;
+}
+
 static void match_limited(const char *fn, struct expression *expr, void *_limiter)
 {
 	struct limiter *limiter = (struct limiter *)_limiter;
@@ -188,8 +212,8 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 	if (ends_on_struct_member_boundary(dest, needed.value))
 		return;
 
-	// FIXME
-	// if (is_one_element_last_byte_array() ...
+	if (is_one_element_array(dest))
+		return;
 
 	dest_name = expr_to_str(dest);
 	sm_msg("error: %s() '%s' too small (%d vs %s)", fn, dest_name, has, sval_to_str(needed));
