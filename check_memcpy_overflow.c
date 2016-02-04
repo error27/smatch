@@ -48,28 +48,27 @@ static int get_the_max(struct expression *expr, sval_t *sval)
 
 static int bytes_to_end_of_struct(struct expression *expr)
 {
-	struct symbol *type;
+	int struct_bytes;
 	int offset;
-
-	/* FIXME: if the struct ends in a variable length array then look up the
-	   size */
 
 	if (expr->type == EXPR_PREOP && expr->op == '&')
 		expr = strip_parens(expr->unop);
 	else {
+		struct symbol *type;
+
 		type = get_type(expr);
 		if (!type || type->type != SYM_ARRAY)
 			return 0;
 	}
 	if (expr->type != EXPR_DEREF || !expr->member)
 		return 0;
-	type = get_type(expr->deref);
-	if (!type)
+	struct_bytes = get_array_size_bytes_max(expr->deref);
+	if (struct_bytes <= 0)
 		return 0;
 	offset = get_member_offset_from_deref(expr);
 	if (offset <= 0)
 		return 0;
-	return type_bytes(type) - expr->member_offset;
+	return struct_bytes - expr->member_offset;
 }
 
 static int size_of_union(struct expression *expr)
@@ -114,13 +113,14 @@ static int ends_on_struct_member_boundary(struct expression *expr, int needed)
 	int size;
 	int found = 0;
 
-	/* Fixme.  Or if the destination is an array &foo and foo are equivalent
-	 * in that case. */
-
 	expr = strip_expr(expr);
-	if (expr->type != EXPR_PREOP || expr->op != '&')
-		return 0;
-	expr = strip_parens(expr->unop);
+	if (expr->type == EXPR_PREOP && expr->op == '&') {
+		expr = strip_parens(expr->unop);
+	} else {
+		type = get_type(expr);
+		if (!type || type->type != SYM_ARRAY)
+			return 0;
+	}
 	if (expr->type != EXPR_DEREF || !expr->member)
 		return 0;
 
