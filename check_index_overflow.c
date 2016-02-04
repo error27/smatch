@@ -65,6 +65,8 @@ static int get_the_max(struct expression *expr, sval_t *sval)
 		return 0;
 	if (get_fuzzy_max(expr, sval))
 		return 1;
+	if (!is_user_data(expr))
+		return 0;
 	if (!get_user_rl(expr, &rl))
 		return 0;
 	*sval = rl_max(rl);
