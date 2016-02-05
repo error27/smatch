@@ -144,6 +144,17 @@ static int ends_on_struct_member_boundary(struct expression *expr, int needed)
 		return 0;
 
 	type = get_type(expr->unop);
+	if (!type)
+		return 0;
+	if (type->type == SYM_UNION) {
+		struct expression *unop = strip_expr(expr->unop);
+
+		if (unop->type != EXPR_DEREF)
+			return 0;
+		type = get_type(unop->unop);
+		if (!type)
+			return 0;
+	}
 	if (type->type != SYM_STRUCT)
 		return 0;
 
