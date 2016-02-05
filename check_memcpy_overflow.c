@@ -107,6 +107,24 @@ static int is_likely_multiple(int has, int needed, struct expression *limit)
 	return 0;
 }
 
+static int name_in_union(struct symbol *type, const char *name)
+{
+	struct symbol *tmp;
+
+	if (type->type == SYM_NODE)
+		type = get_real_base_type(type);
+	if (!type || type->type != SYM_UNION)
+		return 0;
+
+	FOR_EACH_PTR(type->symbol_list, tmp) {
+		if (tmp->ident && tmp->ident->name &&
+		    strcmp(name, tmp->ident->name) == 0)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+
+	return 0;
+}
+
 static int ends_on_struct_member_boundary(struct expression *expr, int needed)
 {
 	struct symbol *type, *tmp;
@@ -132,9 +150,11 @@ static int ends_on_struct_member_boundary(struct expression *expr, int needed)
 	offset = 0;
 	FOR_EACH_PTR(type->symbol_list, tmp) {
 		if (!found) {
-			if (tmp->ident && tmp->ident->name &&
-			    strcmp(expr->member->name, tmp->ident->name) == 0)
+			if ((tmp->ident && tmp->ident->name &&
+			     strcmp(expr->member->name, tmp->ident->name) == 0) ||
+			    name_in_union(tmp, expr->member->name))
 				found = 1;
+
 			if (!type->ctype.attribute->is_packed)
 			    offset = ALIGN(offset, tmp->ctype.alignment);
 
