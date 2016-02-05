@@ -42,7 +42,8 @@ enum {
 
 enum {
 	EARLY = 0,
-	LATE = 1
+	LATE = 1,
+	BOTH = 2
 };
 
 static modification_hook **hooks;
@@ -137,12 +138,13 @@ static void call_modification_hooks_name_sym(char *name, struct symbol *sym, str
 		if (!match)
 			continue;
 
-		if (!late) {
+		if (late == EARLY || late == BOTH) {
 			if (hooks[sm->owner])
 				(hooks[sm->owner])(sm, mod_expr);
 			if (match == match_indirect && indirect_hooks[sm->owner])
 				(indirect_hooks[sm->owner])(sm, mod_expr);
-		} else {
+		}
+		if (late == LATE || late == BOTH) {
 			if (hooks_late[sm->owner])
 				(hooks_late[sm->owner])(sm, mod_expr);
 			if (match == match_indirect && indirect_hooks_late[sm->owner])
@@ -184,7 +186,7 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	if (!name || !sym)
 		goto free;
 
-	call_modification_hooks_name_sym(name, sym, expr, LATE);
+	call_modification_hooks_name_sym(name, sym, expr, BOTH);
 free:
 	free_string(name);
 }
@@ -209,9 +211,9 @@ static void match_call(struct expression *expr)
 	FOR_EACH_PTR(expr->args, arg) {
 		tmp = strip_expr(arg);
 		if (tmp->type == EXPR_PREOP && tmp->op == '&')
-			call_modification_hooks(tmp->unop, expr, LATE);
+			call_modification_hooks(tmp->unop, expr, BOTH);
 		else if (option_no_db)
-			call_modification_hooks(deref_expression(tmp), expr, LATE);
+			call_modification_hooks(deref_expression(tmp), expr, BOTH);
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -270,7 +272,7 @@ static void scope_end(void *_sym)
 	struct symbol *sym = _sym;
 	struct expression *expr = symbol_expression(sym);
 
-	call_modification_hooks(expr, NULL, LATE);
+	call_modification_hooks(expr, NULL, BOTH);
 }
 
 static void match_declaration(struct symbol *sym)
