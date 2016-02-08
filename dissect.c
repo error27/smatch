@@ -547,18 +547,23 @@ static struct symbol *do_initializer(struct symbol *type, struct expression *exp
 				if (m_expr->type == EXPR_INDEX)
 					m_expr = m_expr->idx_expression;
 			} else {
-				struct position *pos = &m_expr->pos;
-				struct ident *m_name = NULL;
+				int *m_atop = &m_addr;
 
-				if (m_expr->type == EXPR_IDENTIFIER) {
-					m_name = m_expr->expr_ident;
+				m_type = type;
+				while (m_expr->type == EXPR_IDENTIFIER) {
+					m_type = report_member(U_W_VAL, &m_expr->pos, m_type,
+							lookup_member(m_type, m_expr->expr_ident, m_atop));
 					m_expr = m_expr->ident_expression;
+					m_atop = NULL;
 				}
 
-				m_type = report_member(U_W_VAL, pos, type,
-						lookup_member(type, m_name, &m_addr));
+				if (m_atop) {
+					m_type = report_member(U_W_VAL, &m_expr->pos, m_type,
+							lookup_member(m_type, NULL, m_atop));
+				}
+
 				if (m_expr->type != EXPR_INITIALIZER)
-					report_implicit(U_W_VAL, pos, m_type);
+					report_implicit(U_W_VAL, &m_expr->pos, m_type);
 			}
 			do_initializer(m_type, m_expr);
 			m_addr++;
