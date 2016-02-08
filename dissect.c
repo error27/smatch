@@ -1,7 +1,7 @@
 /*
  * sparse/dissect.c
  *
- * Started by Oleg Nesterov <oleg@tv-sign.ru>
+ * Started by Oleg Nesterov <oleg@redhat.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -427,6 +427,20 @@ again:
 
 		ret = report_member(mode, &expr->pos, p_type,
 			lookup_member(p_type, expr->member, NULL));
+	}
+
+	break; case EXPR_OFFSETOF: {
+		struct symbol *in = base_type(expr->in);
+
+		do {
+			if (expr->op == '.') {
+				in = report_member(U_VOID, &expr->pos, in,
+					lookup_member(in, expr->ident, NULL));
+			} else {
+				do_expression(U_R_VAL, expr->index);
+				in = in->ctype.base_type;
+			}
+		} while ((expr = expr->down));
 	}
 
 	break; case EXPR_SYMBOL:
