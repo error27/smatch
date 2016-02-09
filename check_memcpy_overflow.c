@@ -48,6 +48,7 @@ static int get_the_max(struct expression *expr, sval_t *sval)
 
 static int bytes_to_end_of_struct(struct expression *expr)
 {
+	struct expression *deref;
 	struct symbol *type;
 	int struct_bytes;
 	int offset;
@@ -61,7 +62,10 @@ static int bytes_to_end_of_struct(struct expression *expr)
 	}
 	if (expr->type != EXPR_DEREF || !expr->member)
 		return 0;
-	struct_bytes = get_array_size_bytes_max(expr->deref);
+	deref = expr->deref;
+	if (deref->type == EXPR_PREOP && deref->op == '*')
+		deref = deref->unop;
+	struct_bytes = get_array_size_bytes_max(deref);
 	if (struct_bytes <= 0) {
 		type = get_type(expr->deref);
 		struct_bytes = type_bytes(type);
