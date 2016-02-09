@@ -403,6 +403,7 @@ char *expr_to_chunk_helper(struct expression *expr, struct symbol **sym, struct 
 {
 	char *name;
 	struct symbol *tmp;
+	int score;
 
 	if (vsl)
 		*vsl = NULL;
@@ -423,7 +424,8 @@ char *expr_to_chunk_helper(struct expression *expr, struct symbol **sym, struct 
 	}
 	free_string(name);
 
-	if (get_complication_score(expr) > 2)
+	score = get_complication_score(expr);
+	if (score <= 0 || score > 2)
 		return NULL;
 
 	if (vsl) {
