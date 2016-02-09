@@ -84,6 +84,18 @@ static int prev_lines_say_endif(struct statement *stmt)
 	return 0;
 }
 
+static int is_pre_or_post_statement(struct statement *stmt)
+{
+	if (!stmt->parent)
+		return 0;
+	if (stmt->parent->type != STMT_ITERATOR)
+		return 0;
+	if (stmt->parent->iterator_pre_statement == stmt ||
+	    stmt->parent->iterator_post_statement == stmt)
+		return 1;
+	return 0;
+}
+
 /*
  * If we go out of position, then warn, but don't warn when we go back
  * into the correct position.
@@ -108,6 +120,8 @@ static void match_stmt(struct statement *stmt)
 	if (prev_lines_say_endif(stmt))
 		return;
 
+	if (is_pre_or_post_statement(stmt))
+		return;
 	/* ignore empty statements if (foo) frob();; */
 	if (stmt->type == STMT_EXPRESSION && !stmt->expression)
 		return;
