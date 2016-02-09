@@ -606,6 +606,59 @@ static void set_implied_states(struct expression *expr)
 	free_stree(&saved_implied_false);
 }
 
+void param_limit_implications(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *arg;
+	struct symbol *compare_type;
+	char *name;
+	struct symbol *sym;
+	struct sm_state *sm;
+	struct sm_state *tmp;
+	struct stree *implied_true = NULL;
+	struct stree *implied_false = NULL;
+	struct range_list *orig, *limit, *rl;
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return;
+
+	arg = get_argument_from_call_expr(expr->args, param);
+	if (!arg)
+		return;
+
+	name = get_variable_from_key(arg, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	sm = get_sm_state(SMATCH_EXTRA, name, sym);
+	if (!sm || !sm->merged)
+		goto free;
+
+	if (strcmp(key, "$") == 0)
+		compare_type = get_arg_type(expr->fn, param);
+	else
+		compare_type = get_member_type_from_key(arg, key);
+
+	orig = estate_rl(sm->state);
+	orig = cast_rl(compare_type, orig);
+
+	call_results_to_rl(expr, compare_type, value, &limit);
+	rl = rl_intersection(orig, limit);
+
+	separate_and_filter(sm, SPECIAL_EQUAL, rl, __get_cur_stree(), &implied_true, &implied_false);
+
+	FOR_EACH_SM(implied_true, tmp) {
+		__set_sm(tmp);
+	} END_FOR_EACH_SM(tmp);
+
+
+	free_stree(&implied_true);
+	free_stree(&implied_false);
+free:
+	free_string(name);
+}
+
 struct range_list *__get_implied_values(struct expression *switch_expr)
 {
 	char *name;

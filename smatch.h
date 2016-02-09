@@ -450,6 +450,7 @@ int __handle_expr_statement_assigns(struct expression *expr);
 extern int option_debug_implied;
 extern int option_debug_related;
 struct range_list_stack;
+void param_limit_implications(struct expression *expr, int param, char *key, char *value);
 struct stree *__implied_case_stree(struct expression *switch_expr,
 				 struct expression *case_expr,
 				 struct expression *case_to,
