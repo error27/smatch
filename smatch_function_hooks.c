@@ -546,6 +546,10 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	free_stree(&stree);
 	true_states = db_info.stree;
 
+	FOR_EACH_SM(orig_states, sm) {
+		__set_sm(sm);
+	} END_FOR_EACH_SM(sm);
+
 	db_info.true_side = 0;
 	db_info.stree = NULL;
 	db_info.prev_return_id = -1;
