@@ -681,10 +681,6 @@ static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 
 static char *chunk_to_var_sym(struct expression *expr, struct symbol **sym)
 {
-	char *name, *left_name, *right_name;
-	struct symbol *tmp;
-	char buf[128];
-
 	expr = strip_expr(expr);
 	if (!expr)
 		return NULL;
@@ -696,32 +692,7 @@ static char *chunk_to_var_sym(struct expression *expr, struct symbol **sym)
 	     expr->op == SPECIAL_DECREMENT))
 		expr = strip_expr(expr->unop);
 
-	name = expr_to_var_sym(expr, &tmp);
-	if (name && tmp) {
-		if (sym)
-			*sym = tmp;
-		return name;
-	}
-	if (name)
-		free_string(name);
-
-	if (expr->type != EXPR_BINOP)
-		return NULL;
-	if (expr->op != '-' && expr->op != '+')
-		return NULL;
-
-	left_name = expr_to_var(expr->left);
-	if (!left_name)
-		return NULL;
-	right_name = expr_to_var(expr->right);
-	if (!right_name) {
-		free_string(left_name);
-		return NULL;
-	}
-	snprintf(buf, sizeof(buf), "%s %s %s", left_name, show_special(expr->op), right_name);
-	free_string(left_name);
-	free_string(right_name);
-	return alloc_string(buf);
+	return expr_to_chunk_sym_vsl(expr, sym, NULL);
 }
 
 static char *chunk_to_var(struct expression *expr)
