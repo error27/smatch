@@ -754,6 +754,18 @@ static int get_orig_comparison(struct stree *pre_stree, const char *left, const 
 
 }
 
+static int have_common_var_sym(struct var_sym_list *left_vsl, struct var_sym_list *right_vsl)
+{
+	struct var_sym *tmp;
+
+	FOR_EACH_PTR(left_vsl, tmp) {
+		if (in_var_sym_list(right_vsl, tmp->var, tmp->sym))
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+
+	return 0;
+}
+
 /*
  * The idea here is that we take a comparison "a < b" and then we look at all
  * the things which "b" is compared against "b < c" and we say that that implies
@@ -795,7 +807,7 @@ static void update_tf_links(struct stree *pre_stree,
 			right_vsl = data->vsl1;
 			right_comparison = flip_comparison(right_comparison);
 		}
-		if (strcmp(left_var, right_var) == 0)
+		if (have_common_var_sym(left_vsl, right_vsl))
 			continue;
 
 		orig_comparison = get_orig_comparison(pre_stree, left_var, right_var);
