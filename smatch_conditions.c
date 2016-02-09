@@ -337,6 +337,8 @@ static void handle_select(struct expression *expr)
 
 static void handle_comma(struct expression *expr)
 {
+	set_parent_expr(expr->left, expr);
+	set_parent_expr(expr->right, expr);
 	__split_expr(expr->left);
 	split_conditions(expr->right);
 }
@@ -414,6 +416,9 @@ static void split_conditions(struct expression *expr)
 	push_expression(&big_condition_stack, expr);
 
 	if (expr->type == EXPR_COMPARE) {
+		set_parent_expr(expr->left, expr);
+		set_parent_expr(expr->right, expr);
+
 		if (expr->left->type != EXPR_POSTOP)
 			__split_expr(expr->left);
 		if (expr->right->type != EXPR_POSTOP)

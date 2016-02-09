@@ -137,7 +137,7 @@ static void set_position(struct position pos)
 	free(pathname);
 }
 
-static void set_parent_expr(struct expression *expr, struct expression *parent)
+void set_parent_expr(struct expression *expr, struct expression *parent)
 {
 	if (!expr)
 		return;
