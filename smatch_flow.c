@@ -137,7 +137,7 @@ static void set_position(struct position pos)
 	free(pathname);
 }
 
-static void set_parent(struct expression *expr, struct expression *parent)
+static void set_parent_expr(struct expression *expr, struct expression *parent)
 {
 	if (!expr)
 		return;
@@ -290,7 +290,7 @@ void __split_expr(struct expression *expr)
 
 	switch (expr->type) {
 	case EXPR_PREOP:
-		set_parent(expr->unop, expr);
+		set_parent_expr(expr->unop, expr);
 
 		if (expr->op == '*' &&
 		    !prev_expression_is_getting_address(expr))
@@ -299,7 +299,7 @@ void __split_expr(struct expression *expr)
 		__pass_to_client(expr, OP_HOOK);
 		break;
 	case EXPR_POSTOP:
-		set_parent(expr->unop, expr);
+		set_parent_expr(expr->unop, expr);
 
 		__split_expr(expr->unop);
 		push_expression(&post_op_stack, expr);
@@ -311,20 +311,20 @@ void __split_expr(struct expression *expr)
 		break;
 	case EXPR_LOGICAL:
 	case EXPR_COMPARE:
-		set_parent(expr->left, expr);
-		set_parent(expr->right, expr);
+		set_parent_expr(expr->left, expr);
+		set_parent_expr(expr->right, expr);
 
 		__pass_to_client(expr, LOGIC_HOOK);
 		__handle_logic(expr);
 		break;
 	case EXPR_BINOP:
-		set_parent(expr->left, expr);
-		set_parent(expr->right, expr);
+		set_parent_expr(expr->left, expr);
+		set_parent_expr(expr->right, expr);
 
 		__pass_to_client(expr, BINOP_HOOK);
 	case EXPR_COMMA:
-		set_parent(expr->left, expr);
-		set_parent(expr->right, expr);
+		set_parent_expr(expr->left, expr);
+		set_parent_expr(expr->right, expr);
 
 		__split_expr(expr->left);
 		__process_post_op_stack();
@@ -333,8 +333,8 @@ void __split_expr(struct expression *expr)
 	case EXPR_ASSIGNMENT: {
 		struct expression *tmp;
 
-		set_parent(expr->left, expr);
-		set_parent(expr->right, expr);
+		set_parent_expr(expr->left, expr);
+		set_parent_expr(expr->right, expr);
 
 		if (!expr->right)
 			break;
@@ -375,19 +375,19 @@ void __split_expr(struct expression *expr)
 		break;
 	}
 	case EXPR_DEREF:
-		set_parent(expr->deref, expr);
+		set_parent_expr(expr->deref, expr);
 
 		__pass_to_client(expr, DEREF_HOOK);
 		__split_expr(expr->deref);
 		break;
 	case EXPR_SLICE:
-		set_parent(expr->base, expr);
+		set_parent_expr(expr->base, expr);
 
 		__split_expr(expr->base);
 		break;
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
-		set_parent(expr->cast_expression, expr);
+		set_parent_expr(expr->cast_expression, expr);
 
 		__pass_to_client(expr, CAST_HOOK);
 		__split_expr(expr->cast_expression);
@@ -403,9 +403,9 @@ void __split_expr(struct expression *expr)
 		break;
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
-		set_parent(expr->conditional, expr);
-		set_parent(expr->cond_true, expr);
-		set_parent(expr->cond_false, expr);
+		set_parent_expr(expr->conditional, expr);
+		set_parent_expr(expr->cond_true, expr);
+		set_parent_expr(expr->cond_false, expr);
 
 		if (known_condition_true(expr->conditional)) {
 			__split_expr(expr->cond_true);
@@ -424,7 +424,7 @@ void __split_expr(struct expression *expr)
 		__merge_true_states();
 		break;
 	case EXPR_CALL:
-		set_parent(expr->fn, expr);
+		set_parent_expr(expr->fn, expr);
 
 		if (sym_name_is("__builtin_constant_p", expr->fn))
 			break;
@@ -450,15 +450,15 @@ void __split_expr(struct expression *expr)
 		split_expr_list(expr->expr_list, expr);
 		break;
 	case EXPR_IDENTIFIER:
-		set_parent(expr->ident_expression, expr);
+		set_parent_expr(expr->ident_expression, expr);
 		__split_expr(expr->ident_expression);
 		break;
 	case EXPR_INDEX:
-		set_parent(expr->idx_expression, expr);
+		set_parent_expr(expr->idx_expression, expr);
 		__split_expr(expr->idx_expression);
 		break;
 	case EXPR_POS:
-		set_parent(expr->init_expr, expr);
+		set_parent_expr(expr->init_expr, expr);
 		__split_expr(expr->init_expr);
 		break;
 	case EXPR_SYMBOL:
@@ -998,7 +998,7 @@ static void split_expr_list(struct expression_list *expr_list, struct expression
 	struct expression *expr;
 
 	FOR_EACH_PTR(expr_list, expr) {
-		set_parent(expr, parent);
+		set_parent_expr(expr, parent);
 		__split_expr(expr);
 		__process_post_op_stack();
 	} END_FOR_EACH_PTR(expr);
