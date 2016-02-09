@@ -887,9 +887,25 @@ static void db_return_states(struct expression *expr)
 	call_return_states_after_hooks();
 }
 
+static int is_condition_call(struct expression *expr)
+{
+	struct expression *tmp;
+
+	FOR_EACH_PTR_REVERSE(big_condition_stack, tmp) {
+		if (expr == tmp)
+			return 1;
+		if (tmp->pos.line < expr->pos.line)
+			return 0;
+	} END_FOR_EACH_PTR_REVERSE(tmp);
+
+	return 0;
+}
+
 static void db_return_states_call(struct expression *expr)
 {
 	if (is_assigned_call(expr))
+		return;
+	if (is_condition_call(expr))
 		return;
 	db_return_states(expr);
 }
