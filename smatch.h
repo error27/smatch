@@ -418,6 +418,7 @@ extern int option_no_db;
 extern int option_file_output;
 extern int option_time;
 extern struct expression_list *big_expression_stack;
+extern struct expression_list *big_condition_stack;
 extern struct statement_list *big_statement_stack;
 int is_assigned_call(struct expression *expr);
 int inlinable(struct expression *expr);

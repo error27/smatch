@@ -61,6 +61,8 @@
 
 extern int __expr_stmt_count;
 
+struct expression_list *big_condition_stack;
+
 static void split_conditions(struct expression *expr);
 
 static int is_logical_and(struct expression *expr)
@@ -409,6 +411,8 @@ static void split_conditions(struct expression *expr)
 	   call CONDITION_HOOK in smatch_flow as well.
 	*/
 	push_expression(&big_expression_stack, expr);
+	push_expression(&big_condition_stack, expr);
+
 	if (expr->type == EXPR_COMPARE) {
 		if (expr->left->type != EXPR_POSTOP)
 			__split_expr(expr->left);
@@ -427,6 +431,7 @@ static void split_conditions(struct expression *expr)
 		__split_expr(expr);
 	}
 	__process_post_op_stack();
+	pop_expression(&big_condition_stack);
 	pop_expression(&big_expression_stack);
 }
 
