@@ -28,6 +28,8 @@ struct limiter {
 static struct limiter b0_l2 = {0, 2};
 static struct limiter b1_l2 = {1, 2};
 
+struct string_list *ignored_structs;
+
 static int get_the_max(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
@@ -217,6 +219,24 @@ static int is_one_element_array(struct expression *expr)
 	return 0;
 }
 
+static int is_ignored_struct(struct expression *expr)
+{
+	struct symbol *type;
+
+	type = get_type(expr);
+	if (!type)
+		return 0;
+	if (type->type == SYM_PTR)
+		type = get_real_base_type(type);
+	if (type->type != SYM_STRUCT)
+		return 0;
+	if (!type->ident)
+		return 0;
+	if (list_has_string(ignored_structs, type->ident->name))
+		return 1;
+	return 0;
+}
+
 static void match_limited(const char *fn, struct expression *expr, void *_limiter)
 {
 	struct limiter *limiter = (struct limiter *)_limiter;
@@ -249,6 +269,9 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 		return;
 
 	if (is_one_element_array(dest))
+		return;
+
+	if (is_ignored_struct(dest))
 		return;
 
 	dest_name = expr_to_str(dest);
@@ -298,9 +321,36 @@ static void register_funcs_from_file(void)
 	clear_token_alloc();
 }
 
+static void register_ignored_structs_from_file(void)
+{
+	char name[256];
+	struct token *token;
+	const char *struct_type;
+
+	snprintf(name, 256, "%s.ignore_memcpy_struct_overflows", option_project_str);
+	name[255] = '\0';
+	token = get_tokens_file(name);
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+
+		struct_type = show_ident(token->ident);
+		insert_string(&ignored_structs, alloc_string(struct_type));
+
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
 void check_memcpy_overflow(int id)
 {
 	register_funcs_from_file();
+	register_ignored_structs_from_file();
 	add_function_hook("memcmp", &match_limited, &b0_l2);
 	add_function_hook("memcmp", &match_limited, &b1_l2);
 	if (option_project == PROJ_KERNEL) {
