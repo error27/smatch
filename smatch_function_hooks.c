@@ -452,12 +452,16 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 	}
 	db_info->prev_return_id = return_id;
 
-	if (type == CULL_PATH)
-		db_info->cull = 1;
-	if (type == PARAM_LIMIT && impossible_limit(db_info->expr, param, key, value))
-		db_info->cull = 1;
 	if (db_info->cull)
 		return 0;
+	if (type == CULL_PATH) {
+		db_info->cull = 1;
+		return 0;
+	}
+	if (type == PARAM_LIMIT && impossible_limit(db_info->expr, param, key, value)) {
+		db_info->cull = 1;
+		return 0;
+	}
 
 	call_results_to_rl(db_info->expr, get_type(strip_expr(db_info->expr)), argv[1], &ret_range);
 	ret_range = cast_rl(get_type(db_info->expr), ret_range);
@@ -660,12 +664,16 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 	}
 	db_info->prev_return_id = return_id;
 
-	if (type == CULL_PATH)
-		db_info->cull = 1;
-	if (type == PARAM_LIMIT && impossible_limit(db_info->expr, param, key, value))
-		db_info->cull = 1;
 	if (db_info->cull)
 		return 0;
+	if (type == CULL_PATH) {
+		db_info->cull = 1;
+		return 0;
+	}
+	if (type == PARAM_LIMIT && impossible_limit(db_info->expr, param, key, value)) {
+		db_info->cull = 1;
+		return 0;
+	}
 
 	call_results_to_rl(db_info->expr->right, get_type(strip_expr(db_info->expr->right)), argv[1], &ret_range);
 	__add_comparison_info(db_info->expr->left, strip_expr(db_info->expr->right), argv[1]);
@@ -813,12 +821,16 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 	}
 	db_info->prev_return_id = return_id;
 
-	if (type == CULL_PATH)
-		db_info->cull = 1;
-	if (type == PARAM_LIMIT && impossible_limit(db_info->expr, param, key, value))
-		db_info->cull = 1;
 	if (db_info->cull)
 		return 0;
+	if (type == CULL_PATH) {
+		db_info->cull = 1;
+		return 0;
+	}
+	if (type == PARAM_LIMIT && impossible_limit(db_info->expr, param, key, value)) {
+		db_info->cull = 1;
+		return 0;
+	}
 
 	call_results_to_rl(db_info->expr, get_type(strip_expr(db_info->expr)), argv[1], &ret_range);
 	ret_range = cast_rl(get_type(db_info->expr), ret_range);
