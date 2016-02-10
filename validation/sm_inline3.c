@@ -1,5 +1,4 @@
 #include "check_debug.h"
-#include "test.h"
 
 void memset(void *p, char pat, int size);
 
@@ -32,9 +31,9 @@ void test(void)
  * check-command: smatch -I.. sm_inline3.c
  *
  * check-output-start
-sm_inline3.c:24 test() implied: my_pointer->a = '1'
-sm_inline3.c:25 test() implied: my_pointer->b = '0'
-sm_inline3.c:26 test() implied: foo.a = '1'
-sm_inline3.c:27 test() implied: foo.b = '0'
+sm_inline3.c:23 test() implied: my_pointer->a = '1'
+sm_inline3.c:24 test() implied: my_pointer->b = '0'
+sm_inline3.c:25 test() implied: foo.a = '1'
+sm_inline3.c:26 test() implied: foo.b = '0'
  * check-output-end
  */
