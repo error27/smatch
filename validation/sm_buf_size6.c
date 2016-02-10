@@ -25,7 +25,7 @@ int function(void)
 sm_buf_size6.c:12 function() buf size: 'p' 1000 elements, 4000 bytes
 sm_buf_size6.c:13 function() buf size: '&*p + 0' 1000 elements, 4000 bytes
 sm_buf_size6.c:14 function() buf size: 'array' 1000 elements, 4000 bytes
-sm_buf_size6.c:15 function() buf size: '&array' 1 elements, 4000 bytes
+sm_buf_size6.c:15 function() buf size: '&array' 1000 elements, 4000 bytes
 sm_buf_size6.c:16 function() buf size: '&array[0]' 1000 elements, 4000 bytes
  * check-output-end
  */
