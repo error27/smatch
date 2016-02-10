@@ -5,9 +5,15 @@
 	type __min2 = (y);			\
 	__min1 < __min2 ? __min1: __min2; })
 
-int a, b, c, d;
+int frob();
+
 static int options_write(void)
 {
+	int a = frob();
+	int b = frob();
+	int c = frob();
+	int d = frob();
+
 	a = min_t(int, b + c, d);
 	__smatch_compare(a, d);
 	__smatch_compare(a, b + c);
@@ -20,8 +26,8 @@ static int options_write(void)
  * check-command: smatch -I.. sm_compare12.c
  *
  * check-output-start
-sm_compare12.c:12 options_write() a <= d
-sm_compare12.c:13 options_write() a <= b + c
-sm_compare12.c:15 options_write() a <none> b + c
+sm_compare12.c:18 options_write() a <= d
+sm_compare12.c:19 options_write() a <= b + c
+sm_compare12.c:21 options_write() a <none> b + c
  * check-output-end
  */
