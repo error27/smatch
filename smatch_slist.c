@@ -641,6 +641,25 @@ static void call_pre_merge_hooks(struct stree **one, struct stree **two)
 	restore_all_states();
 }
 
+static void clone_pool_havers_stree(struct stree **stree)
+{
+	struct sm_state *sm, *tmp;
+	struct state_list *slist = NULL;
+
+	FOR_EACH_SM(*stree, sm) {
+		if (sm->pool) {
+			tmp = clone_sm(sm);
+			add_ptr_list(&slist, tmp);
+		}
+	} END_FOR_EACH_SM(sm);
+
+	FOR_EACH_PTR(slist, sm) {
+		avl_insert(stree, sm);
+	} END_FOR_EACH_PTR(sm);
+
+	free_slist(&slist);
+}
+
 int __stree_id;
 
 /*
@@ -652,14 +671,9 @@ static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 	struct stree *results = NULL;
 	struct stree *implied_one = NULL;
 	struct stree *implied_two = NULL;
-	struct state_list *add_to_one = NULL;
-	struct state_list *add_to_two = NULL;
 	AvlIter one_iter;
 	AvlIter two_iter;
-	struct sm_state *one_sm, *two_sm;
 	struct sm_state *tmp_sm;
-	void *one_pool = (void *)0x11111111UL;
-	void *two_pool = (void *)0x22222222UL;
 
 	if (out_of_memory())
 		return;
@@ -682,9 +696,15 @@ static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 	call_pre_merge_hooks(&implied_one, &implied_two);
 
 	if (add_pool) {
+		clone_pool_havers_stree(&implied_one);
+		clone_pool_havers_stree(&implied_two);
+
 		set_stree_id(&implied_one, ++__stree_id);
 		set_stree_id(&implied_two, ++__stree_id);
 	}
+
+	push_stree(&all_pools, implied_one);
+	push_stree(&all_pools, implied_two);
 
 	avl_iter_begin(&one_iter, implied_one, FORWARD);
 	avl_iter_begin(&two_iter, implied_two, FORWARD);
@@ -696,21 +716,11 @@ static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 			sm_msg("error:  Internal smatch error.");
 			avl_iter_next(&one_iter);
 		} else if (cmp_tracker(one_iter.sm, two_iter.sm) == 0) {
-			one_sm = one_iter.sm;
-			two_sm = two_iter.sm;
-
 			if (add_pool && one_iter.sm != two_iter.sm) {
-				if (one_sm->pool)
-					one_sm = clone_sm(one_sm);
-				one_sm->pool = one_pool;
-				add_ptr_list(&add_to_one, one_sm);
-
-				if (two_sm->pool)
-					two_sm = clone_sm(two_sm);
-				two_sm->pool = two_pool;
-				add_ptr_list(&add_to_two, two_sm);
+				one_iter.sm->pool = implied_one;
+				two_iter.sm->pool = implied_two;
 			}
-			tmp_sm = merge_sm_states(one_sm, two_sm);
+			tmp_sm = merge_sm_states(one_iter.sm, two_iter.sm);
 			avl_insert(&results, tmp_sm);
 			avl_iter_next(&one_iter);
 			avl_iter_next(&two_iter);
@@ -719,25 +729,6 @@ static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 			avl_iter_next(&two_iter);
 		}
 	}
-
-	FOR_EACH_PTR(add_to_one, tmp_sm) {
-		avl_insert(&implied_one, tmp_sm);
-	} END_FOR_EACH_PTR(tmp_sm);
-	FOR_EACH_PTR(add_to_one, tmp_sm) {
-		tmp_sm->pool = implied_one;
-	} END_FOR_EACH_PTR(tmp_sm);
-	free_slist(&add_to_one);
-
-	FOR_EACH_PTR(add_to_two, tmp_sm) {
-		avl_insert(&implied_two, tmp_sm);
-	} END_FOR_EACH_PTR(tmp_sm);
-	FOR_EACH_PTR(add_to_two, tmp_sm) {
-		tmp_sm->pool = implied_two;
-	} END_FOR_EACH_PTR(tmp_sm);
-	free_slist(&add_to_two);
-
-	push_stree(&all_pools, implied_one);
-	push_stree(&all_pools, implied_two);
 
 	free_stree(to);
 	*to = results;
