@@ -6,6 +6,9 @@ int a, b, c, d;
 int e, f, g;
 int main(void)
 {
+	if (b > 1000000000)
+		return 0;
+
 	if (a >= b)
 		return 1;
 	if (a < 0 || b < 0)
@@ -30,19 +33,18 @@ int main(void)
 	return 0;
 }
 
-
 /*
  * check-name: Smatch compare #3
  * check-command: smatch -I.. sm_compare3.c
  *
  * check-output-start
-sm_compare3.c:14 main() implied: c = '1-s32max'
-sm_compare3.c:15 main() b <= c
-sm_compare3.c:23 main() implied: g = '1-s32max'
-sm_compare3.c:24 main() implied: e = '0-s32max'
-sm_compare3.c:25 main() g > e
-sm_compare3.c:26 main() e < g
-sm_compare3.c:27 main() implied: g - e = '1-s32max'
-sm_compare3.c:28 main() implied: g - f = '0-s32max'
+sm_compare3.c:17 main() implied: c = '1-1000000000'
+sm_compare3.c:18 main() b <= c
+sm_compare3.c:26 main() implied: g = '1-2000000000'
+sm_compare3.c:27 main() implied: e = '0-1000000000'
+sm_compare3.c:28 main() g > e
+sm_compare3.c:29 main() e < g
+sm_compare3.c:30 main() implied: g - e = '1-2000000000'
+sm_compare3.c:31 main() implied: g - f = '0-1999999999'
  * check-output-end
  */
