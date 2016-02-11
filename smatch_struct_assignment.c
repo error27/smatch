@@ -124,7 +124,9 @@ struct expression *get_faked_expression(void)
 
 static void set_inner_struct_members(int mode, struct expression *faked, struct expression *left, struct expression *right, struct symbol *member)
 {
-	struct expression *left_member, *right_member, *assign;
+	struct expression *left_member;
+	struct expression *right_member = NULL;  /* silence GCC */
+	struct expression *assign;
 	struct symbol *base = get_real_base_type(member);
 	struct symbol *tmp;
 
