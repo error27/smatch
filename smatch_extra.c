@@ -665,6 +665,8 @@ static int values_fit_type(struct expression *left, struct expression *right)
 	if (!type)
 		return 0;
 	get_absolute_rl(right, &rl);
+	if (type_unsigned(type) && sval_is_negative(rl_min(rl)))
+		return 0;
 	if (sval_cmp(sval_type_min(type), rl_min(rl)) > 0)
 		return 0;
 	if (sval_cmp(sval_type_max(type), rl_max(rl)) < 0)
