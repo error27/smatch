@@ -649,7 +649,7 @@ void param_limit_implications(struct expression *expr, int param, char *key, cha
 	separate_and_filter(sm, SPECIAL_EQUAL, rl, __get_cur_stree(), &implied_true, &implied_false);
 
 	FOR_EACH_SM(implied_true, tmp) {
-		__set_sm(tmp);
+		__set_sm_cur_stree(tmp);
 	} END_FOR_EACH_SM(tmp);
 
 

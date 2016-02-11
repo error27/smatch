@@ -550,8 +550,10 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	free_stree(&stree);
 	true_states = db_info.stree;
 
+	nullify_path();
+	__unnullify_path();
 	FOR_EACH_SM(orig_states, sm) {
-		__set_sm(sm);
+		__set_sm_cur_stree(sm);
 	} END_FOR_EACH_SM(sm);
 
 	db_info.true_side = 0;
@@ -569,25 +571,10 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	free_stree(&stree);
 	false_states = db_info.stree;
 
-	/*
-	 * FIXME: This is the biggest hack ever.  I need to think about
-	 * how the fake stacks work a lot more.  The problem here is that when
-	 * you set the fake stack then it also sets the real stack.  That would
-	 * not be a problem in most cases because we normally will just
-	 * overwrite both the true and false states.  The problem comes where we
-	 * only overwrite one side, say the true side.  Then we use whatever is
-	 * in the cur_stree for the other false side and the cur_stree has part
-	 * of whatever data was set on the true state.
-	 *
-	 * It should be that setting the fake_cur_stree means that the real
-	 * cur_stree stays the same.  But for whatever reason that doesn't work.
-	 * We also have many different ways of faking an stree.  Sometimes we
-	 * fake everything....  It is a mess.
-	 *
-	 */
-
+	nullify_path();
+	__unnullify_path();
 	FOR_EACH_SM(orig_states, sm) {
-		__use_orig_if_not_set(sm);
+		__set_sm_cur_stree(sm);
 	} END_FOR_EACH_SM(sm);
 
 	free_stree(&orig_states);

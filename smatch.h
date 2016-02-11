@@ -552,6 +552,7 @@ void __merge_stree_into_cur(struct stree *stree);
 
 int unreachable(void);
 void __set_sm(struct sm_state *sm);
+void __set_sm_cur_stree(struct sm_state *sm);
 void __use_orig_if_not_set(struct sm_state *sm);
 void __set_true_false_sm(struct sm_state *true_state,
 			struct sm_state *false_state);
