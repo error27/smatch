@@ -1153,7 +1153,8 @@ static void set_inner_struct_members(struct expression *expr, struct symbol *mem
 static void set_unset_to_zero(struct symbol *type, struct expression *expr)
 {
 	struct symbol *tmp;
-	struct expression *member, *assign;
+	struct expression *member = NULL;
+	struct expression *assign;
 	int op = '*';
 
 	if (expr->type == EXPR_PREOP && expr->op == '&') {
