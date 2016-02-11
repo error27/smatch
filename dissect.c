@@ -130,7 +130,7 @@ static inline struct symbol *no_member(struct ident *name)
 	return &sym;
 }
 
-static struct symbol *report_member(mode_t mode, struct position *pos,
+static struct symbol *report_member(usage_t mode, struct position *pos,
 					struct symbol *type, struct symbol *mem)
 {
 	struct symbol *ret = mem->ctype.base_type;
