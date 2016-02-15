@@ -174,7 +174,9 @@ static void handle_logical(struct expression *expr)
 	split_conditions(expr->left);
 	__process_post_op_stack();
 
-	if (!is_logical_and(expr))
+	if (is_logical_and(expr))
+		__use_cond_true_states();
+	else
 		__use_cond_false_states();
 
 	__push_cond_stacks();
@@ -262,6 +264,8 @@ static void handle_select(struct expression *expr)
 
 	a_T = __copy_cond_true_states();
 	a_F = __copy_cond_false_states();
+
+	__use_cond_true_states();
 
 	__push_cond_stacks();
 	__push_fake_cur_stree();

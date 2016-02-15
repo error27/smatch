@@ -444,10 +444,8 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 		return;
 	}
 
-	if (true_state) {
-		set_state_stree(&cur_stree, owner, name, sym, true_state);
+	if (true_state)
 		set_state_stree_stack(&cond_true_stack, owner, name, sym, true_state);
-	}
 	if (false_state)
 		set_state_stree_stack(&cond_false_stack, owner, name, sym, false_state);
 }
@@ -478,10 +476,8 @@ void __set_true_false_sm(struct sm_state *true_sm, struct sm_state *false_sm)
 		return;
 	}
 
-	if (true_sm) {
-		overwrite_sm_state_stree(&cur_stree, true_sm);
+	if (true_sm)
 		overwrite_sm_state_stree_stack(&cond_true_stack, true_sm);
-	}
 	if (false_sm)
 		overwrite_sm_state_stree_stack(&cond_false_stack, false_sm);
 }
