@@ -247,9 +247,6 @@ void __set_sm_cur_stree(struct sm_state *sm)
 	if (unreachable())
 		return;
 
-	if (fake_cur_stree_stack)
-		overwrite_sm_state_stree_stack(&fake_cur_stree_stack, sm);
-
 	overwrite_sm_state_stree(&cur_stree, sm);
 }
 
