@@ -69,6 +69,8 @@ static void match_assign(struct expression *expr)
 	struct range_list *rl;
 	struct symbol *type;
 
+	if (expr->op != '=')
+		return;
 	if (is_fake_call(expr->right))
 		return;
 
