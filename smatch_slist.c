@@ -449,6 +449,19 @@ void overwrite_sm_state_stree_stack(struct stree_stack **stack,
 	push_stree(stack, stree);
 }
 
+void set_sm_state_stree_stack_if_not_already_set(struct stree_stack **stack,
+		struct sm_state *sm)
+{
+	struct stree *stree;
+
+	stree = pop_stree(stack);
+	if (get_state_stree(stree, sm->owner, sm->name, sm->sym))
+		goto push;
+	overwrite_sm_state_stree(&stree, sm);
+push:
+	push_stree(stack, stree);
+}
+
 struct sm_state *set_state_stree(struct stree **stree, int owner, const char *name,
 		     struct symbol *sym, struct smatch_state *state)
 {

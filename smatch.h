@@ -556,6 +556,7 @@ void __set_sm_cur_stree(struct sm_state *sm);
 void __use_orig_if_not_set(struct sm_state *sm);
 void __set_true_false_sm(struct sm_state *true_state,
 			struct sm_state *false_state);
+void __set_true_false_sm_if_not_already_set(struct sm_state *true_sm, struct sm_state *false_sm);
 void nullify_path(void);
 void __match_nullify_path_hook(const char *fn, struct expression *expr,
 			       void *unused);

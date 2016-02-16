@@ -479,6 +479,22 @@ void __set_true_false_sm(struct sm_state *true_sm, struct sm_state *false_sm)
 		overwrite_sm_state_stree_stack(&cond_false_stack, false_sm);
 }
 
+void __set_true_false_sm_if_not_already_set(struct sm_state *true_sm, struct sm_state *false_sm)
+{
+	if (unreachable())
+		return;
+
+	if (!cond_false_stack || !cond_true_stack) {
+		printf("Error:  missing true/false stacks\n");
+		return;
+	}
+
+	if (true_sm)
+		set_sm_state_stree_stack_if_not_already_set(&cond_true_stack, true_sm);
+	if (false_sm)
+		set_sm_state_stree_stack_if_not_already_set(&cond_false_stack, false_sm);
+}
+
 void nullify_path(void)
 {
 	free_stree(&cur_stree);
