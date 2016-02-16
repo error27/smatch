@@ -276,49 +276,6 @@ void __set_sm_fake_stree(struct sm_state *sm)
 	overwrite_sm_state_stree_stack(&fake_cur_stree_stack, sm);
 }
 
-void __use_orig_if_not_set(struct sm_state *sm)
-{
-	if (read_only)
-		sm_msg("Smatch Internal Error: cur_stree is read only.");
-
-	if (option_debug ||
-	    strcmp(check_name(sm->owner), option_debug_check) == 0) {
-		struct smatch_state *s;
-
-		s = get_state(sm->owner, sm->name, sm->sym);
-		if (!s)
-			sm_msg("new state. name='%s' [%s] %s",
-				sm->name, check_name(sm->owner),
-				show_state(sm->state));
-		else
-			sm_msg("state change name='%s' [%s] %s => %s",
-				sm->name, check_name(sm->owner), show_state(s),
-				show_state(sm->state));
-	}
-
-	if (unreachable())
-		return;
-
-	if (fake_cur_stree_stack)
-		overwrite_sm_state_stree_stack(&fake_cur_stree_stack, sm);
-
-	overwrite_sm_state_stree(&cur_stree, sm);
-
-	if (cond_true_stack) {
-		struct stree *stree;
-
-		stree = pop_stree(&cond_true_stack);
-		if (!get_sm_state_stree(stree, sm->owner, sm->name, sm->sym))
-			overwrite_sm_state_stree(&stree, sm);
-		push_stree(&cond_true_stack, stree);
-
-		stree = pop_stree(&cond_false_stack);
-		if (!get_sm_state_stree(stree, sm->owner, sm->name, sm->sym))
-			overwrite_sm_state_stree(&stree, sm);
-		push_stree(&cond_false_stack, stree);
-	}
-}
-
 struct smatch_state *get_state(int owner, const char *name, struct symbol *sym)
 {
 	__get_state_hook(owner, name, sym);
