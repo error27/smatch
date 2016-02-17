@@ -275,7 +275,7 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 	} END_FOR_EACH_PTR(tmp);
 
 	FOR_EACH_SM(final_states, sm) {
-		__set_sm(sm);
+		__set_sm_cur_stree(sm);
 	} END_FOR_EACH_SM(sm);
 
 	free_stree(&final_states);
