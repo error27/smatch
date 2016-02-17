@@ -718,7 +718,7 @@ static int db_return_states_assign(struct expression *expr)
 	free_stree(&stree);
 
 	FOR_EACH_SM(db_info.stree, sm) {
-		__set_sm(sm);
+		__set_sm_cur_stree(sm);
 		handled = 1;
 	} END_FOR_EACH_SM(sm);
 
