@@ -452,7 +452,7 @@ static void delete_equiv_stree(struct stree **stree, const char *name, struct sy
 	} END_FOR_EACH_PTR(rel);
 }
 
-static void handle_comparison(struct expression *expr,
+static int handle_comparison(struct expression *expr,
 			      struct stree **implied_true,
 			      struct stree **implied_false)
 {
@@ -477,7 +477,7 @@ static void handle_comparison(struct expression *expr,
 
 	if (!rl || !sm) {
 		free_rl(&rl);
-		return;
+		return 0;
 	}
 
 	type = estate_type(sm->state);
@@ -491,15 +491,18 @@ static void handle_comparison(struct expression *expr,
 	free_rl(&rl);
 	delete_equiv_stree(implied_true, sm->name, sm->sym);
 	delete_equiv_stree(implied_false, sm->name, sm->sym);
+
+	return 1;
 }
 
-static void handle_zero_comparison(struct expression *expr,
+static int handle_zero_comparison(struct expression *expr,
 				struct stree **implied_true,
 				struct stree **implied_false)
 {
 	struct symbol *sym;
 	char *name;
 	struct sm_state *sm;
+	int ret = 0;
 
 	if (expr->type == EXPR_POSTOP)
 		expr = strip_expr(expr->unop);
@@ -521,8 +524,10 @@ static void handle_zero_comparison(struct expression *expr,
 	separate_and_filter(sm, SPECIAL_NOTEQUAL, tmp_range_list(estate_type(sm->state), 0), __get_cur_stree(), implied_true, implied_false);
 	delete_equiv_stree(implied_true, name, sym);
 	delete_equiv_stree(implied_false, name, sym);
+	ret = 1;
 free:
 	free_string(name);
+	return ret;
 }
 
 static int handled_by_implied_hook(struct expression *expr,
@@ -536,7 +541,41 @@ static int handled_by_implied_hook(struct expression *expr,
 
 	sm = comparison_implication_hook(expr, &true_stack, &false_stack);
 	if (!sm)
-		sm = stored_condition_implication_hook(expr, &true_stack, &false_stack);
+		return 0;
+
+	pre_stree = clone_stree(__get_cur_stree());
+
+	*implied_true = filter_stack(sm, pre_stree, false_stack, true_stack);
+	*implied_false = filter_stack(sm, pre_stree, true_stack, false_stack);
+
+	free_stree(&pre_stree);
+	free_stree_stack(&true_stack);
+	free_stree_stack(&false_stack);
+
+	return 1;
+}
+
+static int handled_by_extra_states(struct expression *expr,
+				   struct stree **implied_true,
+				   struct stree **implied_false)
+{
+	if (expr->type == EXPR_COMPARE)
+		return handle_comparison(expr, implied_true, implied_false);
+	else
+		return handle_zero_comparison(expr, implied_true, implied_false);
+
+}
+
+static int handled_by_stored_conditions(struct expression *expr,
+					struct stree **implied_true,
+					struct stree **implied_false)
+{
+	struct stree_stack *true_stack = NULL;
+	struct stree_stack *false_stack = NULL;
+	struct stree *pre_stree;
+	struct sm_state *sm;
+
+	sm = stored_condition_implication_hook(expr, &true_stack, &false_stack);
 	if (!sm)
 		return 0;
 
@@ -559,10 +598,11 @@ static void get_tf_states(struct expression *expr,
 	if (handled_by_implied_hook(expr, implied_true, implied_false))
 		return;
 
-	if (expr->type == EXPR_COMPARE)
-		handle_comparison(expr, implied_true, implied_false);
-	else
-		handle_zero_comparison(expr, implied_true, implied_false);
+	if (handled_by_extra_states(expr, implied_true, implied_false))
+		return;
+
+	if (handled_by_stored_conditions(expr, implied_true, implied_false))
+		return;
 }
 
 static struct stree *saved_implied_true;

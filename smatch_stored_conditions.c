@@ -246,12 +246,6 @@ struct sm_state *stored_condition_implication_hook(struct expression *expr,
 
 	expr = strip_expr(expr);
 
-	/*
-	 * We only look at BINOP here because smatch_extra.c and
-	 * smatch_compare.c handle everything else.
-	 */
-	if (expr->type != EXPR_BINOP)
-		return NULL;
 
 	name = expr_to_str(expr);
 	if (!name)
