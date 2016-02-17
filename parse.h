@@ -51,7 +51,7 @@ struct statement {
 		struct /* declaration */ {
 			struct symbol_list *declaration;
 		};
-		struct {
+		struct /* context */ {
 			struct expression *expression;
 			struct expression *context;
 		};
